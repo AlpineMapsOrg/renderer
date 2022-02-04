@@ -51,6 +51,7 @@
 #ifndef GLWIDGET_H
 #define GLWIDGET_H
 
+#include <chrono>
 #include <memory>
 #include <QOpenGLWindow>
 #include <QMatrix4x4>
@@ -81,6 +82,9 @@ public:
     void paintOverGL() override;
 
 private:
+    using ClockResolution = std::chrono::microseconds;
+    using Clock = std::chrono::steady_clock;
+    using TimePoint = std::chrono::time_point<Clock, ClockResolution>;
     std::unique_ptr<QOpenGLPaintDevice> m_gl_paint_device;
 
     QOpenGLShaderProgram *m_program = nullptr;
@@ -102,6 +106,8 @@ private:
     GLuint m_matrixUniform = 0;
     int m_frame = 0;
     bool m_initialised = false;
+    TimePoint m_frame_start;
+    TimePoint m_frame_end;
 
 };
 

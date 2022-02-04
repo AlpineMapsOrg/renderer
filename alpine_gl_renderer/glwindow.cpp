@@ -63,6 +63,8 @@
 #include <QTimer>
 #include <QOpenGLDebugLogger>
 #include <QDebug>
+#include <QRandomGenerator>
+
 
 GLWindow::GLWindow()
 {
@@ -113,8 +115,8 @@ void GLWindow::initializeGL()
   logger->initialize();
   connect(logger, &QOpenGLDebugLogger::messageLogged, [](const auto& message) {
     qDebug() << message;
-    qDebug() << "\n";
   });
+  logger->disableMessages(QList<GLuint>({131185}));
   logger->startLogging(QOpenGLDebugLogger::SynchronousLogging);
   QOpenGLFunctions *f = QOpenGLContext::currentContext()->functions();
 
@@ -180,11 +182,7 @@ void GLWindow::initializeGL()
     m_index_buffer->setUsagePattern(QOpenGLBuffer::StaticDraw);
     m_index_buffer->allocate(indices.data(), sizeof(indices));
   }
-  const auto before = m_vao->objectId();
   m_vao->release();
-  const auto after = m_vao->objectId();
-
-  m_initialised = true;
 }
 
 void GLWindow::resizeGL(int w, int h)
@@ -193,15 +191,13 @@ void GLWindow::resizeGL(int w, int h)
   m_proj.perspective(45.0f, GLfloat(w) / h, 0.01f, 100.0f);
   m_gl_paint_device->setSize({w, h});
   const qreal retinaScale = devicePixelRatio();
+  qDebug("w = %i, h = %i, scale=%f", w, h, retinaScale);
   m_gl_paint_device->setDevicePixelRatio(retinaScale);
 }
 
 void GLWindow::paintGL()
 {
-  if (!m_initialised) {
-    Q_ASSERT(false);
-    return;
-  }
+  m_frame_start = std::chrono::time_point_cast<ClockResolution>(Clock::now());
 
   // Now use QOpenGLExtraFunctions instead of QOpenGLFunctions as we want to
   // do more than what GL(ES) 2.0 offers.
@@ -225,19 +221,32 @@ void GLWindow::paintGL()
   m_program->setUniformValue(m_matrixUniform, matrix);
 
   m_vao->bind();
-  const auto vao_id = m_vao->objectId();
-  m_index_buffer->bind();
   f->glDrawElements(GL_TRIANGLES, /* count */ 3,  GL_UNSIGNED_INT, nullptr);
   m_vao->release();
   m_program->release();
+
+  m_frame_end = std::chrono::time_point_cast<ClockResolution>(Clock::now());
   update();
 
 }
 
 void GLWindow::paintOverGL()
 {
+  const auto frame_duration = (m_frame_end - m_frame_start);
+  const auto frame_duration_float = double(frame_duration.count()) / 1000.;
+  const auto frame_duration_text = QString("Last frame: %1ms, draw indicator: ")
+                                       .arg(QString::asprintf("%04.1f", frame_duration_float));
+
+  const auto random_u32 = QRandomGenerator::global()->generate();
+
   QPainter painter(m_gl_paint_device.get());
+  painter.setFont(QFont("Helvetica", 12));
   painter.setPen(Qt::white);
+  QRect text_bb = painter.boundingRect(10, 20, 1, 15, Qt::TextSingleLine, frame_duration_text);
+  painter.drawText(10, 20, frame_duration_text);
+  painter.setBrush(QBrush(QColor(random_u32)));
+  painter.drawRect(int(text_bb.right()) + 5, 8, 12, 12);
+  painter.setBrush(QBrush(Qt::transparent));
   painter.drawRect(100, 100, 1200, 1200);
   painter.drawText(100, 50, "Hello world with vaos!");
 }
