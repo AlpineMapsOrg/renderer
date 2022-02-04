@@ -84,8 +84,10 @@ private:
     std::unique_ptr<QOpenGLPaintDevice> m_gl_paint_device;
 
     QOpenGLShaderProgram *m_program = nullptr;
-    QOpenGLBuffer *m_vbo = nullptr;
-    QOpenGLVertexArrayObject *m_vao = nullptr;
+    std::unique_ptr<QOpenGLBuffer> m_position_buffer;
+    std::unique_ptr<QOpenGLBuffer> m_colour_buffer;
+    std::unique_ptr<QOpenGLBuffer> m_index_buffer;
+    std::unique_ptr<QOpenGLVertexArrayObject> m_vao;
     int m_projMatrixLoc = 0;
     int m_camMatrixLoc = 0;
     int m_worldMatrixLoc = 0;
@@ -99,6 +101,7 @@ private:
     GLuint m_colAttr = 0;
     GLuint m_matrixUniform = 0;
     int m_frame = 0;
+    bool m_initialised = false;
 
 };
 

@@ -38,10 +38,6 @@ if (ATB_USE_LLVM_LINKER)
     string(APPEND CMAKE_EXE_LINKER_FLAGS " -fuse-ld=lld")
 endif()
 
-if (ATB_ENABLE_ASSERTS)
-    target_compile_options(terrainlib PUBLIC "-U NDEBUG")
-endif()
-
 ############################################ backend ##############################################
 set(ATB_RENDER_BACKEND_SOURCES
     render_backend/Tile.cpp render_backend/Tile.h
@@ -52,6 +48,10 @@ add_library(render_backend STATIC
 target_compile_definitions(render_backend PUBLIC GLM_FORCE_SWIZZLE GLM_ENABLE_EXPERIMENTAL GLM_FORCE_XYZW_ONLY)
 target_link_libraries(render_backend PUBLIC Qt::Core)
 
+
+if (ATB_ENABLE_ASSERTS)
+    target_compile_options(render_backend PUBLIC "-U NDEBUG")
+endif()
 
 ########################################### gl engine #############################################
 
@@ -73,6 +73,9 @@ target_link_libraries(alpine_gl_renderer PUBLIC
     Qt::OpenGL
 )
 
+if (ATB_ENABLE_ASSERTS)
+    target_compile_options(alpine_gl_renderer PUBLIC "-U NDEBUG")
+endif()
 
 # Resources:
 #set(ATB_RESOURCES
@@ -107,4 +110,7 @@ if (ATB_UNITTESTS AND NOT EMSCRIPTEN)
     )
     add_executable(unittests ${ATB_UNITTEST_SOURCES})
     target_link_libraries(unittests PUBLIC render_backend Catch2::Catch2)
+    if (ATB_ENABLE_ASSERTS)
+        target_compile_options(unittests PUBLIC "-U NDEBUG")
+    endif()
 endif()

@@ -48,6 +48,8 @@
 **
 ****************************************************************************/
 
+#include <array>
+
 #include "glwindow.h"
 #include <QImage>
 #include <QOpenGLTexture>
@@ -74,8 +76,6 @@ GLWindow::~GLWindow()
 {
   makeCurrent();
   delete m_program;
-  delete m_vbo;
-  delete m_vao;
 }
 
 static const char *vertexShaderSource = R"(
@@ -118,24 +118,73 @@ void GLWindow::initializeGL()
   logger->startLogging(QOpenGLDebugLogger::SynchronousLogging);
   QOpenGLFunctions *f = QOpenGLContext::currentContext()->functions();
 
-  static const GLfloat vertices[] = {
-      0.0f,  0.707f,
-      -0.5f, -0.5f,
-      0.5f, -0.5f
-  };
-
   m_gl_paint_device = std::make_unique<QOpenGLPaintDevice>();
 
   m_program = new QOpenGLShaderProgram(this);
   m_program->addShaderFromSourceCode(QOpenGLShader::Vertex, vertexShaderSource);
   m_program->addShaderFromSourceCode(QOpenGLShader::Fragment, fragmentShaderSource);
-  m_program->link();
-  m_posAttr = m_program->attributeLocation("posAttr");
-  Q_ASSERT(m_posAttr != -1);
-  m_colAttr = m_program->attributeLocation("colAttr");
-  Q_ASSERT(m_colAttr != -1);
+  {
+    const auto success = m_program->link();
+    Q_ASSERT(success);
+  }
+
+  const auto posAttr = m_program->attributeLocation("posAttr");
+  Q_ASSERT(posAttr != -1);
+  const auto colAttr = m_program->attributeLocation("colAttr");
+  Q_ASSERT(colAttr != -1);
   m_matrixUniform = m_program->uniformLocation("matrix");
-  Q_ASSERT(m_matrixUniform != -1);
+  Q_ASSERT(m_matrixUniform != GLuint(-1));
+
+  const std::array<GLfloat, 6> vertices = {
+      0.0f,  0.707f,
+      -0.5f, -0.5f,
+      0.5f, -0.5f
+  };
+  static_assert(sizeof(vertices) == 6 * 4);
+
+  const std::array<GLfloat, 9> colors = {
+      1.0f, 0.0f, 0.0f,
+      0.0f, 1.0f, 0.0f,
+      0.0f, 0.0f, 1.0f
+  };
+  static_assert(sizeof(colors) == 9 * 4);
+
+  const std::array<GLuint, 3> indices = {
+      0, 1, 2
+  };
+  static_assert(sizeof(indices) == 3 * 4);
+
+  m_vao = std::make_unique<QOpenGLVertexArrayObject>();
+  m_vao->create();
+  m_vao->bind();
+  {   // vao state
+    m_position_buffer = std::make_unique<QOpenGLBuffer>(QOpenGLBuffer::VertexBuffer);
+    m_position_buffer->create();
+    m_position_buffer->bind();
+    m_position_buffer->setUsagePattern(QOpenGLBuffer::StaticDraw);
+    m_position_buffer->allocate(vertices.data(), sizeof(vertices));
+    f->glEnableVertexAttribArray(GLuint(posAttr));
+    f->glVertexAttribPointer(GLuint(posAttr), /*size*/ 2, /*type*/ GL_FLOAT, /*normalised*/ GL_FALSE, /*stride*/ 0, nullptr);
+
+    m_colour_buffer = std::make_unique<QOpenGLBuffer>(QOpenGLBuffer::VertexBuffer);
+    m_colour_buffer->create();
+    m_colour_buffer->bind();
+    m_colour_buffer->setUsagePattern(QOpenGLBuffer::StaticDraw);
+    m_colour_buffer->allocate(colors.data(), sizeof(colors));
+    f->glEnableVertexAttribArray(GLuint(colAttr));
+    f->glVertexAttribPointer(GLuint(colAttr), /*size*/ 3, /*type*/ GL_FLOAT, /*normalised*/ GL_FALSE, /*stride*/ 0, nullptr);
+
+    m_index_buffer = std::make_unique<QOpenGLBuffer>(QOpenGLBuffer::IndexBuffer);
+    m_index_buffer->create();
+    m_index_buffer->bind();
+    m_index_buffer->setUsagePattern(QOpenGLBuffer::StaticDraw);
+    m_index_buffer->allocate(indices.data(), sizeof(indices));
+  }
+  const auto before = m_vao->objectId();
+  m_vao->release();
+  const auto after = m_vao->objectId();
+
+  m_initialised = true;
 }
 
 void GLWindow::resizeGL(int w, int h)
@@ -143,11 +192,17 @@ void GLWindow::resizeGL(int w, int h)
   m_proj.setToIdentity();
   m_proj.perspective(45.0f, GLfloat(w) / h, 0.01f, 100.0f);
   m_gl_paint_device->setSize({w, h});
-  m_gl_paint_device->setDevicePixelRatio(1);
+  const qreal retinaScale = devicePixelRatio();
+  m_gl_paint_device->setDevicePixelRatio(retinaScale);
 }
 
 void GLWindow::paintGL()
 {
+  if (!m_initialised) {
+    Q_ASSERT(false);
+    return;
+  }
+
   // Now use QOpenGLExtraFunctions instead of QOpenGLFunctions as we want to
   // do more than what GL(ES) 2.0 offers.
   QOpenGLExtraFunctions *f = QOpenGLContext::currentContext()->extraFunctions();
@@ -169,29 +224,11 @@ void GLWindow::paintGL()
 
   m_program->setUniformValue(m_matrixUniform, matrix);
 
-  static const GLfloat vertices[] = {
-      0.0f,  0.707f,
-      -0.5f, -0.5f,
-      0.5f, -0.5f
-  };
-
-  static const GLfloat colors[] = {
-      1.0f, 0.0f, 0.0f,
-      0.0f, 1.0f, 0.0f,
-      0.0f, 0.0f, 1.0f
-  };
-
-  f->glVertexAttribPointer(m_posAttr, 2, GL_FLOAT, GL_FALSE, 0, vertices);
-  f->glVertexAttribPointer(m_colAttr, 3, GL_FLOAT, GL_FALSE, 0, colors);
-
-  f->glEnableVertexAttribArray(m_posAttr);
-  f->glEnableVertexAttribArray(m_colAttr);
-
-  f->glDrawArrays(GL_TRIANGLES, 0, 3);
-
-  f->glDisableVertexAttribArray(m_colAttr);
-  f->glDisableVertexAttribArray(m_posAttr);
-
+  m_vao->bind();
+  const auto vao_id = m_vao->objectId();
+  m_index_buffer->bind();
+  f->glDrawElements(GL_TRIANGLES, /* count */ 3,  GL_UNSIGNED_INT, nullptr);
+  m_vao->release();
   m_program->release();
   update();
 
@@ -202,5 +239,5 @@ void GLWindow::paintOverGL()
   QPainter painter(m_gl_paint_device.get());
   painter.setPen(Qt::white);
   painter.drawRect(100, 100, 1200, 1200);
-  painter.drawText(100, 50, "Hello world!");
+  painter.drawText(100, 50, "Hello world with vaos!");
 }
