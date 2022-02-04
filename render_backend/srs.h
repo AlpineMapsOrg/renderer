@@ -42,6 +42,6 @@ struct Bounds {
 inline unsigned number_of_horizontal_tiles_for_zoom_level(unsigned z) { return 1 << z; }
 inline unsigned number_of_vertical_tiles_for_zoom_level(unsigned z) { return 1 << z; }
 
-
 Bounds tile_bounds(const Tile& tile);
+
 }

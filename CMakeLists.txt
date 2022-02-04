@@ -48,6 +48,8 @@ set(ATB_RENDER_BACKEND_SOURCES
 add_library(render_backend STATIC
     ${ATB_RENDER_BACKEND_SOURCES}
 )
+message(${CMAKE_SOURCE_DIR}/libs/glm)
+target_include_directories(render_backend SYSTEM PUBLIC ${CMAKE_SOURCE_DIR}/libs/glm)
 target_compile_definitions(render_backend PUBLIC GLM_FORCE_SWIZZLE GLM_ENABLE_EXPERIMENTAL GLM_FORCE_XYZW_ONLY)
 target_link_libraries(render_backend PUBLIC Qt::Core)
 

@@ -48,6 +48,7 @@
 **
 ****************************************************************************/
 
+#include <QMoveEvent>
 #include <array>
 
 #include "glwindow.h"
@@ -66,11 +67,25 @@
 #include <QRandomGenerator>
 
 
+#include <glm/glm.hpp>
+#include <glm/gtc/type_ptr.hpp>
+#include <glm/gtc/matrix_transform.hpp>
+
+#include "render_backend/utils/terrain_mesh_index_generator.h"
+
+namespace {
+QMatrix4x4 toQtType(const glm::mat4& mat) {
+  return QMatrix4x4(glm::value_ptr(mat));
+}
+template <typename T>
+int bufferLengthInBytes(const std::vector<T>& vec) {
+  return int(vec.size() * sizeof(T));
+}
+}
+
 GLWindow::GLWindow()
 {
-  m_world.setToIdentity();
-  m_world.translate(0, 0, -1);
-  m_world.rotate(180, 1, 0, 0);
+  m_camera_matrix = glm::lookAt(glm::vec3{-2.f, -2.f, 2.f}, {0.f, 0.f, 0.f}, {0.f, 0.f, 1.f});
   QTimer::singleShot(0, [this]() {this->update();});
 }
 
@@ -81,19 +96,24 @@ GLWindow::~GLWindow()
 }
 
 static const char *vertexShaderSource = R"(
-  attribute highp vec4 posAttr;
-  attribute lowp vec4 colAttr;
-  varying lowp vec4 col;
+  in highp float height;
+  in lowp vec4 colAttr;
+  out lowp vec4 colour;
   uniform highp mat4 matrix;
   void main() {
-     col = colAttr;
-     gl_Position = matrix * posAttr;
+     int n_cols = 3;
+     int row = gl_VertexID / n_cols;
+     int col = gl_VertexID - (row * n_cols);
+     vec4 pos = vec4(col, row, height, 1);
+     colour = colAttr;
+     gl_Position = matrix * pos;
   })";
 
 static const char *fragmentShaderSource = R"(
-  varying lowp vec4 col;
+  in lowp vec4 colour;
+  out lowp vec4 out_Color;
   void main() {
-     gl_FragColor = col;
+     out_Color = colour;
   })";
 
 QByteArray versionedShaderCode(const char *src)
@@ -123,38 +143,36 @@ void GLWindow::initializeGL()
   m_gl_paint_device = std::make_unique<QOpenGLPaintDevice>();
 
   m_program = new QOpenGLShaderProgram(this);
-  m_program->addShaderFromSourceCode(QOpenGLShader::Vertex, vertexShaderSource);
-  m_program->addShaderFromSourceCode(QOpenGLShader::Fragment, fragmentShaderSource);
+  m_program->addShaderFromSourceCode(QOpenGLShader::Vertex, versionedShaderCode(vertexShaderSource));
+  m_program->addShaderFromSourceCode(QOpenGLShader::Fragment, versionedShaderCode(fragmentShaderSource));
   {
     const auto success = m_program->link();
     Q_ASSERT(success);
   }
 
-  const auto posAttr = m_program->attributeLocation("posAttr");
-  Q_ASSERT(posAttr != -1);
+  const auto height_attr = m_program->attributeLocation("height");
+  Q_ASSERT(height_attr != -1);
   const auto colAttr = m_program->attributeLocation("colAttr");
   Q_ASSERT(colAttr != -1);
   m_matrixUniform = m_program->uniformLocation("matrix");
   Q_ASSERT(m_matrixUniform != GLuint(-1));
 
-  const std::array<GLfloat, 6> vertices = {
-      0.0f,  0.707f,
-      -0.5f, -0.5f,
-      0.5f, -0.5f
-  };
-  static_assert(sizeof(vertices) == 6 * 4);
+//  const std::vector<u_int16_t> height_map = {0, 516, 10214, 60498, 30000, 40000, 10000, 0, 0};
+  const std::vector<uint16_t> height_map = {0, 0, 0, 0, 0, 0, 0, 0, 0};
 
-  const std::array<GLfloat, 9> colors = {
+  const std::vector<GLfloat> colors = {
       1.0f, 0.0f, 0.0f,
       0.0f, 1.0f, 0.0f,
-      0.0f, 0.0f, 1.0f
+      0.0f, 0.0f, 1.0f,
+      1.0f, 0.0f, 0.0f,
+      0.0f, 1.0f, 0.0f,
+      0.0f, 0.0f, 1.0f,
+      1.0f, 0.0f, 0.0f,
+      0.0f, 1.0f, 0.0f,
+      0.0f, 0.0f, 1.0f,
   };
-  static_assert(sizeof(colors) == 9 * 4);
 
-  const std::array<GLuint, 3> indices = {
-      0, 1, 2
-  };
-  static_assert(sizeof(indices) == 3 * 4);
+  const std::vector<GLuint> indices = terrain_mesh_index_generator::surface_quads<GLuint>(3);
 
   m_vao = std::make_unique<QOpenGLVertexArrayObject>();
   m_vao->create();
@@ -164,15 +182,15 @@ void GLWindow::initializeGL()
     m_position_buffer->create();
     m_position_buffer->bind();
     m_position_buffer->setUsagePattern(QOpenGLBuffer::StaticDraw);
-    m_position_buffer->allocate(vertices.data(), sizeof(vertices));
-    f->glEnableVertexAttribArray(GLuint(posAttr));
-    f->glVertexAttribPointer(GLuint(posAttr), /*size*/ 2, /*type*/ GL_FLOAT, /*normalised*/ GL_FALSE, /*stride*/ 0, nullptr);
+    m_position_buffer->allocate(height_map.data(), bufferLengthInBytes(height_map));
+    f->glEnableVertexAttribArray(GLuint(height_attr));
+    f->glVertexAttribPointer(GLuint(height_attr), /*size*/ 1, /*type*/ GL_SHORT, /*normalised*/ GL_TRUE, /*stride*/ 0, nullptr);
 
     m_colour_buffer = std::make_unique<QOpenGLBuffer>(QOpenGLBuffer::VertexBuffer);
     m_colour_buffer->create();
     m_colour_buffer->bind();
     m_colour_buffer->setUsagePattern(QOpenGLBuffer::StaticDraw);
-    m_colour_buffer->allocate(colors.data(), sizeof(colors));
+    m_colour_buffer->allocate(colors.data(), bufferLengthInBytes(colors));
     f->glEnableVertexAttribArray(GLuint(colAttr));
     f->glVertexAttribPointer(GLuint(colAttr), /*size*/ 3, /*type*/ GL_FLOAT, /*normalised*/ GL_FALSE, /*stride*/ 0, nullptr);
 
@@ -180,19 +198,24 @@ void GLWindow::initializeGL()
     m_index_buffer->create();
     m_index_buffer->bind();
     m_index_buffer->setUsagePattern(QOpenGLBuffer::StaticDraw);
-    m_index_buffer->allocate(indices.data(), sizeof(indices));
+    m_index_buffer->allocate(indices.data(), bufferLengthInBytes(indices));
   }
   m_vao->release();
 }
 
 void GLWindow::resizeGL(int w, int h)
 {
-  m_proj.setToIdentity();
-  m_proj.perspective(45.0f, GLfloat(w) / h, 0.01f, 100.0f);
-  m_gl_paint_device->setSize({w, h});
+  if (w == 0 || h == 0)
+    return;
   const qreal retinaScale = devicePixelRatio();
   qDebug("w = %i, h = %i, scale=%f", w, h, retinaScale);
+  m_projection_matrix = glm::perspective(45.f, float(w) / h, 0.1f, 1000.f);
+
+  m_gl_paint_device->setSize({w, h});
   m_gl_paint_device->setDevicePixelRatio(retinaScale);
+  QOpenGLFunctions *f = QOpenGLContext::currentContext()->functions();
+  f->glViewport(0, 0, width() * retinaScale, height() * retinaScale);
+  update();
 }
 
 void GLWindow::paintGL()
@@ -205,29 +228,20 @@ void GLWindow::paintGL()
 
   f->glClearColor(0.1, 0, 0, 1);
 
-  const qreal retinaScale = devicePixelRatio();
-  f->glViewport(0, 0, width() * retinaScale, height() * retinaScale);
-
   //    f->glClear(GL_COLOR_BUFFER_BIT);
   f->glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
 
   m_program->bind();
 
-  QMatrix4x4 matrix;
-  matrix.perspective(60.0f, 4.0f / 3.0f, 0.1f, 100.0f);
-  matrix.translate(0, 0, -2);
-  matrix.rotate(100.0f * m_frame++ / 60.0f + 1, 0, 1, 0);
 
-  m_program->setUniformValue(m_matrixUniform, matrix);
+  m_program->setUniformValue(m_matrixUniform, toQtType(m_projection_matrix * m_camera_matrix));
 
   m_vao->bind();
-  f->glDrawElements(GL_TRIANGLES, /* count */ 3,  GL_UNSIGNED_INT, nullptr);
+  f->glDrawElements(GL_TRIANGLE_STRIP, /* count */ 12,  GL_UNSIGNED_INT, nullptr);
   m_vao->release();
   m_program->release();
 
   m_frame_end = std::chrono::time_point_cast<ClockResolution>(Clock::now());
-  update();
-
 }
 
 void GLWindow::paintOverGL()
@@ -249,4 +263,17 @@ void GLWindow::paintOverGL()
   painter.setBrush(QBrush(Qt::transparent));
   painter.drawRect(100, 100, 1200, 1200);
   painter.drawText(100, 50, "Hello world with vaos!");
+}
+
+void GLWindow::mouseMoveEvent(QMouseEvent* e)
+{
+  glm::ivec2 mouse_position{e->pos().x(), e->pos().y()};
+  if (e->buttons() == Qt::LeftButton) {
+    assert(m_previous_mouse_pos.x >= 0);
+    const auto delta = mouse_position - m_previous_mouse_pos;
+    m_camera_matrix = glm::rotate(m_camera_matrix, 0.01f * delta.y, glm::vec3{1, 0, 0});
+    m_camera_matrix = glm::rotate(m_camera_matrix, 0.01f * delta.x, glm::vec3{0, 0, 1});
+    update();
+  }
+  m_previous_mouse_pos = mouse_position;
 }

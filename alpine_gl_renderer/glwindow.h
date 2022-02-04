@@ -53,8 +53,8 @@
 
 #include <chrono>
 #include <memory>
+#include <glm/glm.hpp>
 #include <QOpenGLWindow>
-#include <QMatrix4x4>
 #include <QVector3D>
 #include <QOpenGLPaintDevice>
 #include <QPainter>
@@ -81,6 +81,9 @@ public:
     void paintGL() override;
     void paintOverGL() override;
 
+  protected:
+    void mouseMoveEvent(QMouseEvent*) override;
+
 private:
     using ClockResolution = std::chrono::microseconds;
     using Clock = std::chrono::steady_clock;
@@ -97,10 +100,11 @@ private:
     int m_worldMatrixLoc = 0;
     int m_myMatrixLoc = 0;
     int m_lightPosLoc = 0;
-    QMatrix4x4 m_proj;
-    QMatrix4x4 m_world;
-    QVector3D m_eye;
-    QVector3D m_target = {0, 0, -1};
+
+    glm::mat4 m_projection_matrix;
+    glm::mat4 m_camera_matrix;
+    glm::ivec2 m_previous_mouse_pos = {-1, -1};
+
     GLuint m_posAttr = 0;
     GLuint m_colAttr = 0;
     GLuint m_matrixUniform = 0;
