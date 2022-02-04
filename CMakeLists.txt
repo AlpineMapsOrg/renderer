@@ -40,6 +40,7 @@ endif()
 
 ############################################ backend ##############################################
 set(ATB_RENDER_BACKEND_SOURCES
+    render_backend/Raster.h
     render_backend/Tile.cpp render_backend/Tile.h
 )
 add_library(render_backend STATIC
@@ -106,6 +107,8 @@ endif()
 #################################### unit tests for backend #######################################
 if (ATB_UNITTESTS AND NOT EMSCRIPTEN)
     set(ATB_UNITTEST_SOURCES
+        unittests/test_helpers.h
+        unittests/test_raster.cpp
         unittests/main.cpp
     )
     add_executable(unittests ${ATB_UNITTEST_SOURCES})
