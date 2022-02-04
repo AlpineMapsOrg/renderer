@@ -42,6 +42,7 @@ endif()
 set(ATB_RENDER_BACKEND_SOURCES
     render_backend/Raster.h
     render_backend/Tile.cpp render_backend/Tile.h
+    render_backend/utils/terrain_mesh_index_generator.h
 )
 add_library(render_backend STATIC
     ${ATB_RENDER_BACKEND_SOURCES}
@@ -107,9 +108,10 @@ endif()
 #################################### unit tests for backend #######################################
 if (ATB_UNITTESTS AND NOT EMSCRIPTEN)
     set(ATB_UNITTEST_SOURCES
+        unittests/main.cpp
         unittests/test_helpers.h
         unittests/test_raster.cpp
-        unittests/main.cpp
+        unittests/test_terrain_mesh_index_generator.cpp
     )
     add_executable(unittests ${ATB_UNITTEST_SOURCES})
     target_link_libraries(unittests PUBLIC render_backend Catch2::Catch2)

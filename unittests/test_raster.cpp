@@ -18,8 +18,6 @@
 
 #include "render_backend/Raster.h"
 
-#include <algorithm>
-
 #include <catch2/catch.hpp>
 
 #include "unittests/test_helpers.h"
