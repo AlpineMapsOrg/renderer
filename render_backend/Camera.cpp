@@ -35,39 +35,49 @@
 
 Camera::Camera(const glm::vec3& position, const glm::vec3& view_at_point)// : m_position(position)
 {
-  m_matrix = glm::inverse(glm::lookAt(position, view_at_point, {0, 0, 1}));
+  m_camera_transformation = glm::inverse(glm::lookAt(position, view_at_point, {0, 0, 1}));
 }
 
 glm::mat4 Camera::cameraMatrix() const
 {
-  return glm::inverse(m_matrix);
+  return glm::inverse(m_camera_transformation);
+}
+
+glm::mat4 Camera::viewProjectionMatrix() const
+{
+  return m_projection_matrix * cameraMatrix();
 }
 
 glm::vec3 Camera::position() const
 {
-  return glm::vec3(m_matrix * glm::vec4(0, 0, 0, 1));
+  return glm::vec3(m_camera_transformation * glm::vec4(0, 0, 0, 1));
 }
 
 glm::vec3 Camera::xAxis() const
 {
-  return glm::vec3(m_matrix[0]);
+  return glm::vec3(m_camera_transformation[0]);
 }
 
 glm::vec3 Camera::negativeZAxis() const
 {
-  return glm::vec3(m_matrix[2]);
+  return glm::vec3(m_camera_transformation[2]);
+}
+
+void Camera::setPerspectiveParams(float fov_degrees, int viewport_width, int viewport_height)
+{
+  m_projection_matrix = glm::perspective(glm::radians(fov_degrees), float(viewport_width) / viewport_height, 0.1f, 1000.f);
 }
 
 void Camera::pan(const glm::vec2& v)
 {
   const auto x_dir = xAxis();
   const auto y_dir = glm::cross(x_dir, glm::vec3(0, 0, 1));
-  m_matrix = glm::translate(-1.f * (v.x * x_dir + v.y * y_dir)) * m_matrix;
+  m_camera_transformation = glm::translate(-1.f * (v.x * x_dir + v.y * y_dir)) * m_camera_transformation;
 }
 
 void Camera::move(const glm::vec3& v)
 {
-  m_matrix = glm::translate(v) * m_matrix;
+  m_camera_transformation = glm::translate(v) * m_camera_transformation;
 }
 
 void Camera::orbit(const glm::vec3& centre, const glm::vec2& degrees)
@@ -76,7 +86,7 @@ void Camera::orbit(const glm::vec3& centre, const glm::vec2& degrees)
   const auto rotation_x_axis = glm::rotate(glm::radians(degrees.y), xAxis());
   const auto rotation_z_axis = glm::rotate(glm::radians(degrees.x), glm::vec3(0, 0, 1));
   const auto rotation = rotation_z_axis * rotation_x_axis;
-  m_matrix = rotation * m_matrix;
+  m_camera_transformation = rotation * m_camera_transformation;
   move(centre);
 }
 

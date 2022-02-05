@@ -208,13 +208,14 @@ void GLWindow::resizeGL(int w, int h)
   if (w == 0 || h == 0)
     return;
   const qreal retinaScale = devicePixelRatio();
-  qDebug("w = %i, h = %i, scale=%f", w, h, retinaScale);
-  m_projection_matrix = glm::perspective(glm::radians(45.0f), float(w) / h, 0.1f, 1000.f);
+  const int width = retinaScale * w;
+  const int height = retinaScale * h;
 
+  m_camera.setPerspectiveParams(45, width, height);
   m_gl_paint_device->setSize({w, h});
   m_gl_paint_device->setDevicePixelRatio(retinaScale);
   QOpenGLFunctions *f = QOpenGLContext::currentContext()->functions();
-  f->glViewport(0, 0, width() * retinaScale, height() * retinaScale);
+  f->glViewport(0, 0, width, height);
   update();
 }
 
@@ -230,7 +231,7 @@ void GLWindow::paintGL()
   m_program->bind();
 
 
-  m_program->setUniformValue(m_matrixUniform, toQtType(m_projection_matrix * m_camera.cameraMatrix()));
+  m_program->setUniformValue(m_matrixUniform, toQtType(m_camera.viewProjectionMatrix()));
 
   m_vao->bind();
   f->glDrawElements(GL_TRIANGLE_STRIP, /* count */ 12,  GL_UNSIGNED_INT, nullptr);

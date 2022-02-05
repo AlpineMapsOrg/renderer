@@ -22,13 +22,16 @@
 
 class Camera
 {
-  glm::mat4 m_matrix;
+  glm::mat4 m_projection_matrix;
+  glm::mat4 m_camera_transformation;
 public:
   Camera(const glm::vec3& position, const glm::vec3& view_at_point);
   [[nodiscard]] glm::mat4 cameraMatrix() const;
+  [[nodiscard]] glm::mat4 viewProjectionMatrix() const;
   [[nodiscard]] glm::vec3 position() const;
   [[nodiscard]] glm::vec3 xAxis() const;
   [[nodiscard]] glm::vec3 negativeZAxis() const;
+  void setPerspectiveParams(float fov_degrees, int viewport_width, int viewport_height);
   void pan(const glm::vec2& v);
   void move(const glm::vec3& v);
   void orbit(const glm::vec3& centre, const glm::vec2& degrees);
