@@ -83,7 +83,7 @@ int bufferLengthInBytes(const std::vector<T>& vec) {
 }
 }
 
-GLWindow::GLWindow()
+GLWindow::GLWindow() : m_camera(glm::vec3{-2.f, -2.f, 2.f}, {0.f, 0.f, 0.f})
 {
   m_camera_matrix = glm::lookAt(glm::vec3{-2.f, -2.f, 2.f}, {0.f, 0.f, 0.f}, {0.f, 0.f, 1.f});
   QTimer::singleShot(0, [this]() {this->update();});
@@ -97,14 +97,14 @@ GLWindow::~GLWindow()
 
 static const char *vertexShaderSource = R"(
   in highp float height;
-  in lowp vec4 colAttr;
+  in highp vec4 colAttr;
   out lowp vec4 colour;
   uniform highp mat4 matrix;
   void main() {
      int n_cols = 3;
      int row = gl_VertexID / n_cols;
      int col = gl_VertexID - (row * n_cols);
-     vec4 pos = vec4(col, row, height, 1);
+     vec4 pos = vec4(col, row, height, 1.0);
      colour = colAttr;
      gl_Position = matrix * pos;
   })";
@@ -157,19 +157,19 @@ void GLWindow::initializeGL()
   m_matrixUniform = m_program->uniformLocation("matrix");
   Q_ASSERT(m_matrixUniform != GLuint(-1));
 
-//  const std::vector<u_int16_t> height_map = {0, 516, 10214, 60498, 30000, 40000, 10000, 0, 0};
-  const std::vector<uint16_t> height_map = {0, 0, 0, 0, 0, 0, 0, 0, 0};
+  const std::vector<u_int16_t> height_map = {0, 516, 10214, 5498, 10000, 20000, 10000, 0, 0};
+//  const std::vector<uint16_t> height_map = {1, 0, 1, 0, 1, 0, 1, 0, 1};
 
   const std::vector<GLfloat> colors = {
-      1.0f, 0.0f, 0.0f,
-      0.0f, 1.0f, 0.0f,
       0.0f, 0.0f, 1.0f,
-      1.0f, 0.0f, 0.0f,
-      0.0f, 1.0f, 0.0f,
-      0.0f, 0.0f, 1.0f,
-      1.0f, 0.0f, 0.0f,
-      0.0f, 1.0f, 0.0f,
-      0.0f, 0.0f, 1.0f,
+      0.5f, 0.0f, 0.0f,
+      1.0f, 0.0f, 1.0f,
+      0.0f, 0.5f, 0.0f,
+      0.5f, 0.5f, 1.0f,
+      1.0f, 0.5f, 0.0f,
+      0.0f, 1.0f, 1.0f,
+      0.5f, 1.0f, 0.0f,
+      1.0f, 1.0f, 1.0f,
   };
 
   const std::vector<GLuint> indices = terrain_mesh_index_generator::surface_quads<GLuint>(3);
@@ -184,7 +184,7 @@ void GLWindow::initializeGL()
     m_position_buffer->setUsagePattern(QOpenGLBuffer::StaticDraw);
     m_position_buffer->allocate(height_map.data(), bufferLengthInBytes(height_map));
     f->glEnableVertexAttribArray(GLuint(height_attr));
-    f->glVertexAttribPointer(GLuint(height_attr), /*size*/ 1, /*type*/ GL_SHORT, /*normalised*/ GL_TRUE, /*stride*/ 0, nullptr);
+    f->glVertexAttribPointer(GLuint(height_attr), /*size*/ 1, /*type*/ GL_UNSIGNED_SHORT, /*normalised*/ GL_TRUE, /*stride*/ 0, nullptr);
 
     m_colour_buffer = std::make_unique<QOpenGLBuffer>(QOpenGLBuffer::VertexBuffer);
     m_colour_buffer->create();
@@ -201,6 +201,7 @@ void GLWindow::initializeGL()
     m_index_buffer->allocate(indices.data(), bufferLengthInBytes(indices));
   }
   m_vao->release();
+  glPolygonMode( GL_FRONT_AND_BACK, GL_LINE );
 }
 
 void GLWindow::resizeGL(int w, int h)
@@ -209,7 +210,7 @@ void GLWindow::resizeGL(int w, int h)
     return;
   const qreal retinaScale = devicePixelRatio();
   qDebug("w = %i, h = %i, scale=%f", w, h, retinaScale);
-  m_projection_matrix = glm::perspective(45.f, float(w) / h, 0.1f, 1000.f);
+  m_projection_matrix = glm::perspective(20.0f, float(w) / h, 0.1f, 10.f);
 
   m_gl_paint_device->setSize({w, h});
   m_gl_paint_device->setDevicePixelRatio(retinaScale);
@@ -226,7 +227,7 @@ void GLWindow::paintGL()
   // do more than what GL(ES) 2.0 offers.
   QOpenGLExtraFunctions *f = QOpenGLContext::currentContext()->extraFunctions();
 
-  f->glClearColor(0.1, 0, 0, 1);
+  f->glClearColor(0.5, 0.5, 0.5, 1);
 
   //    f->glClear(GL_COLOR_BUFFER_BIT);
   f->glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
@@ -234,7 +235,8 @@ void GLWindow::paintGL()
   m_program->bind();
 
 
-  m_program->setUniformValue(m_matrixUniform, toQtType(m_projection_matrix * m_camera_matrix));
+  m_program->setUniformValue(m_matrixUniform, toQtType(m_projection_matrix * m_camera.cameraMatrix()));
+//  m_program->setUniformValue(m_matrixUniform, toQtType(m_projection_matrix * m_camera_matrix));
 
   m_vao->bind();
   f->glDrawElements(GL_TRIANGLE_STRIP, /* count */ 12,  GL_UNSIGNED_INT, nullptr);
@@ -269,10 +271,13 @@ void GLWindow::mouseMoveEvent(QMouseEvent* e)
 {
   glm::ivec2 mouse_position{e->pos().x(), e->pos().y()};
   if (e->buttons() == Qt::LeftButton) {
-    assert(m_previous_mouse_pos.x >= 0);
     const auto delta = mouse_position - m_previous_mouse_pos;
-    m_camera_matrix = glm::rotate(m_camera_matrix, 0.01f * delta.y, glm::vec3{1, 0, 0});
-    m_camera_matrix = glm::rotate(m_camera_matrix, 0.01f * delta.x, glm::vec3{0, 0, 1});
+    m_camera.pan(glm::vec2(delta) * 0.01f);
+    update();
+  }
+  if (e->buttons() == Qt::MiddleButton) {
+    const auto delta = mouse_position - m_previous_mouse_pos;
+    m_camera.orbit({0, 0, 0}, glm::vec2(delta) * 0.1f);
     update();
   }
   m_previous_mouse_pos = mouse_position;

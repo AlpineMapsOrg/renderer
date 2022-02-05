@@ -40,6 +40,7 @@ endif()
 
 ############################################ backend ##############################################
 set(ATB_RENDER_BACKEND_SOURCES
+    render_backend/Camera.h render_backend/Camera.cpp
     render_backend/Raster.h
     render_backend/srs.h render_backend/srs.cpp
     render_backend/Tile.cpp render_backend/Tile.h
@@ -112,6 +113,7 @@ endif()
 if (ATB_UNITTESTS AND NOT EMSCRIPTEN)
     set(ATB_UNITTEST_SOURCES
         unittests/main.cpp
+        unittests/test_Camera.cpp
         unittests/test_helpers.h
         unittests/test_raster.cpp
         unittests/test_terrain_mesh_index_generator.cpp

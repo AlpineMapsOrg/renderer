@@ -59,6 +59,8 @@
 #include <QOpenGLPaintDevice>
 #include <QPainter>
 
+#include "render_backend/Camera.h"
+
 QT_BEGIN_NAMESPACE
 
 class QOpenGLTexture;
@@ -100,6 +102,8 @@ private:
     int m_worldMatrixLoc = 0;
     int m_myMatrixLoc = 0;
     int m_lightPosLoc = 0;
+
+    Camera m_camera;
 
     glm::mat4 m_projection_matrix;
     glm::mat4 m_camera_matrix;
