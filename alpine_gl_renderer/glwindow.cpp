@@ -83,9 +83,8 @@ int bufferLengthInBytes(const std::vector<T>& vec) {
 }
 }
 
-GLWindow::GLWindow() : m_camera(glm::vec3{-2.f, -2.f, 2.f}, {0.f, 0.f, 0.f})
+GLWindow::GLWindow() : m_camera(glm::dvec3{-2.f, -2.f, 2.f}, {0.f, 0.f, 0.f})
 {
-  m_camera_matrix = glm::lookAt(glm::vec3{-2.f, -2.f, 2.f}, {0.f, 0.f, 0.f}, {0.f, 0.f, 1.f});
   QTimer::singleShot(0, [this]() {this->update();});
 }
 
@@ -138,7 +137,7 @@ void GLWindow::initializeGL()
   });
   logger->disableMessages(QList<GLuint>({131185}));
   logger->startLogging(QOpenGLDebugLogger::SynchronousLogging);
-  QOpenGLFunctions *f = QOpenGLContext::currentContext()->functions();
+  QOpenGLFunctions *f = QOpenGLContext::currentContext()->extraFunctions();
 
   m_gl_paint_device = std::make_unique<QOpenGLPaintDevice>();
 
@@ -157,7 +156,7 @@ void GLWindow::initializeGL()
   m_matrixUniform = m_program->uniformLocation("matrix");
   Q_ASSERT(m_matrixUniform != GLuint(-1));
 
-  const std::vector<u_int16_t> height_map = {0, 516, 10214, 5498, 10000, 20000, 10000, 0, 0};
+  const std::vector<uint16_t> height_map = {0, 516, 10214, 5498, 10000, 20000, 10000, 0, 0};
 //  const std::vector<uint16_t> height_map = {1, 0, 1, 0, 1, 0, 1, 0, 1};
 
   const std::vector<GLfloat> colors = {
@@ -201,7 +200,7 @@ void GLWindow::initializeGL()
     m_index_buffer->allocate(indices.data(), bufferLengthInBytes(indices));
   }
   m_vao->release();
-  glPolygonMode( GL_FRONT_AND_BACK, GL_LINE );
+//  glPolygonMode( GL_FRONT_AND_BACK, GL_LINE );
 }
 
 void GLWindow::resizeGL(int w, int h)
@@ -210,7 +209,7 @@ void GLWindow::resizeGL(int w, int h)
     return;
   const qreal retinaScale = devicePixelRatio();
   qDebug("w = %i, h = %i, scale=%f", w, h, retinaScale);
-  m_projection_matrix = glm::perspective(20.0f, float(w) / h, 0.1f, 10.f);
+  m_projection_matrix = glm::perspective(glm::radians(45.0f), float(w) / h, 0.1f, 1000.f);
 
   m_gl_paint_device->setSize({w, h});
   m_gl_paint_device->setDevicePixelRatio(retinaScale);
@@ -223,20 +222,15 @@ void GLWindow::paintGL()
 {
   m_frame_start = std::chrono::time_point_cast<ClockResolution>(Clock::now());
 
-  // Now use QOpenGLExtraFunctions instead of QOpenGLFunctions as we want to
-  // do more than what GL(ES) 2.0 offers.
   QOpenGLExtraFunctions *f = QOpenGLContext::currentContext()->extraFunctions();
-
   f->glClearColor(0.5, 0.5, 0.5, 1);
 
-  //    f->glClear(GL_COLOR_BUFFER_BIT);
   f->glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
 
   m_program->bind();
 
 
   m_program->setUniformValue(m_matrixUniform, toQtType(m_projection_matrix * m_camera.cameraMatrix()));
-//  m_program->setUniformValue(m_matrixUniform, toQtType(m_projection_matrix * m_camera_matrix));
 
   m_vao->bind();
   f->glDrawElements(GL_TRIANGLE_STRIP, /* count */ 12,  GL_UNSIGNED_INT, nullptr);
@@ -277,7 +271,12 @@ void GLWindow::mouseMoveEvent(QMouseEvent* e)
   }
   if (e->buttons() == Qt::MiddleButton) {
     const auto delta = mouse_position - m_previous_mouse_pos;
-    m_camera.orbit({0, 0, 0}, glm::vec2(delta) * 0.1f);
+    m_camera.orbit(glm::vec2(delta) * 0.1f);
+    update();
+  }
+  if (e->buttons() == Qt::RightButton) {
+    const auto delta = mouse_position - m_previous_mouse_pos;
+    m_camera.zoom(delta.y * 0.005);
     update();
   }
   m_previous_mouse_pos = mouse_position;

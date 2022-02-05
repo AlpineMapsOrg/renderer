@@ -104,9 +104,7 @@ private:
     int m_lightPosLoc = 0;
 
     Camera m_camera;
-
     glm::mat4 m_projection_matrix;
-    glm::mat4 m_camera_matrix;
     glm::ivec2 m_previous_mouse_pos = {-1, -1};
 
     GLuint m_posAttr = 0;
@@ -116,7 +114,6 @@ private:
     bool m_initialised = false;
     TimePoint m_frame_start;
     TimePoint m_frame_end;
-
 };
 
 #endif

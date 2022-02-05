@@ -22,17 +22,21 @@
 
 class Camera
 {
-//  float m_rotation_around_z = 0;
-//  float m_rotation_around_x = 0;
-//  glm::vec3 m_position;
   glm::mat4 m_matrix;
 public:
   Camera(const glm::vec3& position, const glm::vec3& view_at_point);
   [[nodiscard]] glm::mat4 cameraMatrix() const;
   [[nodiscard]] glm::vec3 position() const;
   [[nodiscard]] glm::vec3 xAxis() const;
+  [[nodiscard]] glm::vec3 negativeZAxis() const;
   void pan(const glm::vec2& v);
   void move(const glm::vec3& v);
   void orbit(const glm::vec3& centre, const glm::vec2& degrees);
+  // orbits around the intersection of negative z and 0 plane (temprorary only, until we can read the depth buffer)
+  void orbit(const glm::vec2& degrees);
+  void zoom(float v);
+
+private:
+  glm::vec3 operationCentre() const;
 };
 

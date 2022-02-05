@@ -20,6 +20,7 @@
 #include <cmath>
 
 #include <glm/gtx/transform.hpp>
+#include <QDebug>
 
 // camera space in opengl / webgl:
 // origin:
@@ -35,16 +36,11 @@
 Camera::Camera(const glm::vec3& position, const glm::vec3& view_at_point)// : m_position(position)
 {
   m_matrix = glm::inverse(glm::lookAt(position, view_at_point, {0, 0, 1}));
-//  const auto view_direction = glm::normalize(position - view_at_point);
-//  m_rotation_around_x = std::acos(glm::dot(-view_direction, glm::vec3(0, 0, 1)));
-//  const auto x_axis = glm::cross(view_direction, glm::vec3(0, 0, 1));
-//  m_rotation_around_z = std::acos(glm::dot(x_axis, glm::vec3(0, 0, 1)));
 }
 
 glm::mat4 Camera::cameraMatrix() const
 {
   return glm::inverse(m_matrix);
-  //  return glm::rotate(m_rotation_around_x, glm::vec3(1, 0, 0)) * glm::rotate(m_rotation_around_z, glm::vec3(0, 0, 1)) * glm::translate(m_position);
 }
 
 glm::vec3 Camera::position() const
@@ -55,6 +51,11 @@ glm::vec3 Camera::position() const
 glm::vec3 Camera::xAxis() const
 {
   return glm::vec3(m_matrix[0]);
+}
+
+glm::vec3 Camera::negativeZAxis() const
+{
+  return glm::vec3(m_matrix[2]);
 }
 
 void Camera::pan(const glm::vec2& v)
@@ -71,29 +72,29 @@ void Camera::move(const glm::vec3& v)
 
 void Camera::orbit(const glm::vec3& centre, const glm::vec2& degrees)
 {
-//  pan(-centre);
-//  const auto rotation_x_axis = glm::rotate(glm::radians(degrees.y), glm::vec3(1, 0, 0));
-////  const auto rotation_x_axis2 = glm::rotate(-degrees.y, glm::vec3(1, 0, 0));
-//  // z axis of world is y axis of camera
-//  const auto rotation_z_axis = glm::rotate(glm::radians(-degrees.x), glm::vec3(0, 1, 0));
-//  const auto rotation = rotation_z_axis * rotation_x_axis;
-//  const auto camera_position = glm::vec3(m_matrix[3]);
-
-//  m_matrix = glm::translate(camera_position) * rotation * glm::translate(-camera_position) * m_matrix;
-
-//  pan(centre);
-  move(centre);
-//  const auto old_position = position();
-//  move(old_position);
+  move(-centre);
   const auto rotation_x_axis = glm::rotate(glm::radians(degrees.y), xAxis());
-  //  const auto rotation_x_axis2 = glm::rotate(-degrees.y, glm::vec3(1, 0, 0));
-  // z axis of world is y axis of camera
   const auto rotation_z_axis = glm::rotate(glm::radians(degrees.x), glm::vec3(0, 0, 1));
   const auto rotation = rotation_z_axis * rotation_x_axis;
-//  const auto camera_position = glm::vec3(m_matrix[3]);
-
   m_matrix = rotation * m_matrix;
+  move(centre);
+}
 
-//  move(-old_position);
-  move(-centre);
+void Camera::orbit(const glm::vec2& degrees)
+{
+  orbit(operationCentre(), degrees);
+}
+
+void Camera::zoom(float v)
+{
+  move(negativeZAxis() * v);
+}
+
+glm::vec3 Camera::operationCentre() const
+{
+  // a ray going through the middle pixel, intersecting with the z == 0 pane
+  const auto origin = position();
+  const auto direction = negativeZAxis();
+  const auto t = -origin.z / direction.z;
+  return origin + t * direction;
 }
