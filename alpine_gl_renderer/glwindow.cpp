@@ -75,7 +75,7 @@
 
 namespace {
 QMatrix4x4 toQtType(const glm::mat4& mat) {
-  return QMatrix4x4(glm::value_ptr(mat));
+  return QMatrix4x4(glm::value_ptr(mat)).transposed();
 }
 template <typename T>
 int bufferLengthInBytes(const std::vector<T>& vec) {
