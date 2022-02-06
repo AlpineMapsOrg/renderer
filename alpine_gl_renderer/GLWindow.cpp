@@ -51,7 +51,7 @@
 #include <QMoveEvent>
 #include <array>
 
-#include "glwindow.h"
+#include "GLWindow.h"
 #include <QImage>
 #include <QOpenGLTexture>
 #include <QOpenGLShaderProgram>

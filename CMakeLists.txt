@@ -64,7 +64,7 @@ endif()
 set(ATB_GL_ENGINE_SOURCES
     alpine_gl_renderer/GLTileSet.h
     alpine_gl_renderer/GLAttributeLocations.h
-    alpine_gl_renderer/glwindow.cpp alpine_gl_renderer/glwindow.h
+    alpine_gl_renderer/GLWindow.cpp alpine_gl_renderer/GLWindow.h
     alpine_gl_renderer/GLTileManager.h alpine_gl_renderer/GLTileManager.cpp
     alpine_gl_renderer/main.cpp
 )
