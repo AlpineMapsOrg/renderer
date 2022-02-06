@@ -20,6 +20,7 @@
 
 #include <vector>
 #include <cassert>
+#include <limits>
 
 
 // functions in this file generate the indices for our terrain meshes.
@@ -46,6 +47,7 @@ namespace terrain_mesh_index_generator {
 template <typename Index>
 std::vector<Index> surface_quads(unsigned vertex_side_length) {
   assert(vertex_side_length >= 2);
+  assert(vertex_side_length * vertex_side_length < std::numeric_limits<Index>::max());
   std::vector<Index> indices;
   const auto height = vertex_side_length;
   const auto width = vertex_side_length;

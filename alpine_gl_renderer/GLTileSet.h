@@ -16,19 +16,31 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *****************************************************************************/
 
-#include "srs.h"
+#pragma once
 
-constexpr unsigned int cSemiMajorAxis = 6378137;
-constexpr double cEarthCircumference = 2 * M_PI * cSemiMajorAxis;
-constexpr double cOriginShift = cEarthCircumference / 2.0;
+#include <memory>
+#include <vector>
 
+#include <QOpenGLBuffer>
+#include <QOpenGLVertexArrayObject>
 
-srs::Bounds srs::tile_bounds(const TileId& tile)
-{
-  const auto width_of_a_tile = cEarthCircumference / srs::number_of_horizontal_tiles_for_zoom_level(tile.zoom_level);
-  const auto height_of_a_tile = cEarthCircumference / srs::number_of_vertical_tiles_for_zoom_level(tile.zoom_level);
-  glm::dvec2 absolute_min = {-cOriginShift, -cOriginShift};
-  const auto min = absolute_min + glm::dvec2{tile.coords.x * width_of_a_tile, tile.coords.y * height_of_a_tile};
-  const auto max = min + glm::dvec2{width_of_a_tile, height_of_a_tile};
-  return {min, max};
-}
+#include "render_backend/srs.h"
+
+// we want to be flexible and have the ability to draw several tiles at once.
+// GpuTileSets can have an arbitrary number of slots, each slot is an index in the corresponding
+// vao buffers and textures.
+struct GLTileSet {
+  struct Tile {
+    srs::TileId tile_id;
+    srs::Bounds bounds;
+    void invalidate() { tile_id = {unsigned(-1), {unsigned(-1), unsigned(-1)}}; bounds = {}; }
+    [[nodiscard]] bool isValid() const { return tile_id.zoom_level < 100; }
+  };
+
+  std::unique_ptr<QOpenGLBuffer> heightmap_buffer;
+  std::unique_ptr<QOpenGLVertexArrayObject> vao;
+  std::vector<std::pair<srs::TileId, srs::Bounds>> tiles;
+  int gl_element_count = -1;
+  unsigned gl_index_type = 0;
+  // texture
+};

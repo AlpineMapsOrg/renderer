@@ -29,19 +29,19 @@ namespace srs {
 // This coordinate system is clamped at at 85 degrees north and south (https://epsg.io/3857),
 // so the tiles do not go until the poles.
 
-struct Tile {
-  unsigned zoom_level;
+struct TileId {
+  unsigned zoom_level = unsigned(-1);
   glm::uvec2 coords;
 };
 struct Bounds {
-  glm::dvec2 min;
-  glm::dvec2 max;
+  glm::dvec2 min = {};
+  glm::dvec2 max = {};
 };
 
 // for now it's the same, but if we ever switch to wgs84 / epsg 4326 / the one with 2 tiles in level zero
 inline unsigned number_of_horizontal_tiles_for_zoom_level(unsigned z) { return 1 << z; }
 inline unsigned number_of_vertical_tiles_for_zoom_level(unsigned z) { return 1 << z; }
 
-Bounds tile_bounds(const Tile& tile);
+Bounds tile_bounds(const TileId& tile);
 
 }

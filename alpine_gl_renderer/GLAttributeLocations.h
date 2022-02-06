@@ -16,19 +16,8 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *****************************************************************************/
 
-#include "srs.h"
+#pragma once
 
-constexpr unsigned int cSemiMajorAxis = 6378137;
-constexpr double cEarthCircumference = 2 * M_PI * cSemiMajorAxis;
-constexpr double cOriginShift = cEarthCircumference / 2.0;
-
-
-srs::Bounds srs::tile_bounds(const TileId& tile)
-{
-  const auto width_of_a_tile = cEarthCircumference / srs::number_of_horizontal_tiles_for_zoom_level(tile.zoom_level);
-  const auto height_of_a_tile = cEarthCircumference / srs::number_of_vertical_tiles_for_zoom_level(tile.zoom_level);
-  glm::dvec2 absolute_min = {-cOriginShift, -cOriginShift};
-  const auto min = absolute_min + glm::dvec2{tile.coords.x * width_of_a_tile, tile.coords.y * height_of_a_tile};
-  const auto max = min + glm::dvec2{width_of_a_tile, height_of_a_tile};
-  return {min, max};
-}
+struct GLAttributeLocations {
+  int height = -1;
+};

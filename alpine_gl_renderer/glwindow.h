@@ -60,6 +60,7 @@
 #include <QPainter>
 
 #include "render_backend/Camera.h"
+#include "alpine_gl_renderer/GLTileManager.h"
 
 QT_BEGIN_NAMESPACE
 
@@ -90,11 +91,11 @@ private:
     using ClockResolution = std::chrono::microseconds;
     using Clock = std::chrono::steady_clock;
     using TimePoint = std::chrono::time_point<Clock, ClockResolution>;
-    std::unique_ptr<QOpenGLPaintDevice> m_gl_paint_device;
 
+    std::unique_ptr<GLTileManager> m_tile_manager; // needs opengl context
+    std::unique_ptr<QOpenGLPaintDevice> m_gl_paint_device;
     QOpenGLShaderProgram *m_program = nullptr;
     std::unique_ptr<QOpenGLBuffer> m_position_buffer;
-    std::unique_ptr<QOpenGLBuffer> m_colour_buffer;
     std::unique_ptr<QOpenGLBuffer> m_index_buffer;
     std::unique_ptr<QOpenGLVertexArrayObject> m_vao;
     int m_projMatrixLoc = 0;

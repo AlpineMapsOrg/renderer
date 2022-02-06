@@ -71,6 +71,7 @@
 #include <glm/gtc/type_ptr.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 
+#include "render_backend/Tile.h"
 #include "render_backend/utils/terrain_mesh_index_generator.h"
 
 namespace {
@@ -96,23 +97,22 @@ GLWindow::~GLWindow()
 
 static const char *vertexShaderSource = R"(
   in highp float height;
-  in highp vec4 colAttr;
-  out lowp vec4 colour;
+  out lowp vec2 uv;
   uniform highp mat4 matrix;
   void main() {
-     int n_cols = 3;
-     int row = gl_VertexID / n_cols;
-     int col = gl_VertexID - (row * n_cols);
+     int n_edge_vertices = 64;
+     int row = gl_VertexID / n_edge_vertices;
+     int col = gl_VertexID - (row * n_edge_vertices);
      vec4 pos = vec4(col, row, height, 1.0);
-     colour = colAttr;
+     uv = vec2(float(col) / n_edge_vertices, float(row) / n_edge_vertices);
      gl_Position = matrix * pos;
   })";
 
 static const char *fragmentShaderSource = R"(
-  in lowp vec4 colour;
+  in lowp vec2 uv;
   out lowp vec4 out_Color;
   void main() {
-     out_Color = colour;
+     out_Color = vec4(uv, 0, 1);
   })";
 
 QByteArray versionedShaderCode(const char *src)
@@ -140,6 +140,7 @@ void GLWindow::initializeGL()
   QOpenGLFunctions *f = QOpenGLContext::currentContext()->extraFunctions();
 
   m_gl_paint_device = std::make_unique<QOpenGLPaintDevice>();
+  m_tile_manager = std::make_unique<GLTileManager>();
 
   m_program = new QOpenGLShaderProgram(this);
   m_program->addShaderFromSourceCode(QOpenGLShader::Vertex, versionedShaderCode(vertexShaderSource));
@@ -151,55 +152,20 @@ void GLWindow::initializeGL()
 
   const auto height_attr = m_program->attributeLocation("height");
   Q_ASSERT(height_attr != -1);
-  const auto colAttr = m_program->attributeLocation("colAttr");
-  Q_ASSERT(colAttr != -1);
+  m_tile_manager->setAttributeLocations({height_attr});
   m_matrixUniform = m_program->uniformLocation("matrix");
   Q_ASSERT(m_matrixUniform != GLuint(-1));
 
-  const std::vector<uint16_t> height_map = {0, 516, 10214, 5498, 10000, 20000, 10000, 0, 0};
-//  const std::vector<uint16_t> height_map = {1, 0, 1, 0, 1, 0, 1, 0, 1};
+  Tile t;
+  t.height_map = Raster<uint16_t>(64);
+  t.bounds.max = {4., 4.};
+  t.id.zoom_level = 0;
+  t.id.coords = {0, 0};
 
-  const std::vector<GLfloat> colors = {
-      0.0f, 0.0f, 1.0f,
-      0.5f, 0.0f, 0.0f,
-      1.0f, 0.0f, 1.0f,
-      0.0f, 0.5f, 0.0f,
-      0.5f, 0.5f, 1.0f,
-      1.0f, 0.5f, 0.0f,
-      0.0f, 1.0f, 1.0f,
-      0.5f, 1.0f, 0.0f,
-      1.0f, 1.0f, 1.0f,
-  };
+  m_tile_manager->addTile(std::make_shared<Tile>(std::move(t)));
 
-  const std::vector<GLuint> indices = terrain_mesh_index_generator::surface_quads<GLuint>(3);
 
-  m_vao = std::make_unique<QOpenGLVertexArrayObject>();
-  m_vao->create();
-  m_vao->bind();
-  {   // vao state
-    m_position_buffer = std::make_unique<QOpenGLBuffer>(QOpenGLBuffer::VertexBuffer);
-    m_position_buffer->create();
-    m_position_buffer->bind();
-    m_position_buffer->setUsagePattern(QOpenGLBuffer::StaticDraw);
-    m_position_buffer->allocate(height_map.data(), bufferLengthInBytes(height_map));
-    f->glEnableVertexAttribArray(GLuint(height_attr));
-    f->glVertexAttribPointer(GLuint(height_attr), /*size*/ 1, /*type*/ GL_UNSIGNED_SHORT, /*normalised*/ GL_TRUE, /*stride*/ 0, nullptr);
 
-    m_colour_buffer = std::make_unique<QOpenGLBuffer>(QOpenGLBuffer::VertexBuffer);
-    m_colour_buffer->create();
-    m_colour_buffer->bind();
-    m_colour_buffer->setUsagePattern(QOpenGLBuffer::StaticDraw);
-    m_colour_buffer->allocate(colors.data(), bufferLengthInBytes(colors));
-    f->glEnableVertexAttribArray(GLuint(colAttr));
-    f->glVertexAttribPointer(GLuint(colAttr), /*size*/ 3, /*type*/ GL_FLOAT, /*normalised*/ GL_FALSE, /*stride*/ 0, nullptr);
-
-    m_index_buffer = std::make_unique<QOpenGLBuffer>(QOpenGLBuffer::IndexBuffer);
-    m_index_buffer->create();
-    m_index_buffer->bind();
-    m_index_buffer->setUsagePattern(QOpenGLBuffer::StaticDraw);
-    m_index_buffer->allocate(indices.data(), bufferLengthInBytes(indices));
-  }
-  m_vao->release();
 //  glPolygonMode( GL_FRONT_AND_BACK, GL_LINE );
 }
 
@@ -208,8 +174,8 @@ void GLWindow::resizeGL(int w, int h)
   if (w == 0 || h == 0)
     return;
   const qreal retinaScale = devicePixelRatio();
-  const int width = retinaScale * w;
-  const int height = retinaScale * h;
+  const int width = int(retinaScale * w);
+  const int height = int(retinaScale * h);
 
   m_camera.setPerspectiveParams(45, width, height);
   m_gl_paint_device->setSize({w, h});
@@ -230,12 +196,14 @@ void GLWindow::paintGL()
 
   m_program->bind();
 
-
   m_program->setUniformValue(m_matrixUniform, toQtType(m_camera.viewProjectionMatrix()));
 
-  m_vao->bind();
-  f->glDrawElements(GL_TRIANGLE_STRIP, /* count */ 12,  GL_UNSIGNED_INT, nullptr);
-  m_vao->release();
+  const auto& tilesets = m_tile_manager->tiles();
+  for (const auto& tileset : tilesets) {
+    tileset.vao->bind();
+    f->glDrawElements(GL_TRIANGLE_STRIP, tileset.gl_element_count,  tileset.gl_index_type, nullptr);
+    tileset.vao->release();
+  }
   m_program->release();
 
   m_frame_end = std::chrono::time_point_cast<ClockResolution>(Clock::now());
