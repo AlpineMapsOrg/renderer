@@ -104,7 +104,7 @@ static const char *vertexShaderSource = R"(
      int row = gl_VertexID / n_edge_vertices;
      int col = gl_VertexID - (row * n_edge_vertices);
      vec4 pos = vec4(col, row, height, 1.0);
-     uv = vec2(float(col) / n_edge_vertices, float(row) / n_edge_vertices);
+     uv = vec2(float(col) / float(n_edge_vertices), float(row) / float(n_edge_vertices));
      gl_Position = matrix * pos;
   })";
 
@@ -225,9 +225,6 @@ void GLWindow::paintOverGL()
   painter.drawText(10, 20, frame_duration_text);
   painter.setBrush(QBrush(QColor(random_u32)));
   painter.drawRect(int(text_bb.right()) + 5, 8, 12, 12);
-  painter.setBrush(QBrush(Qt::transparent));
-  painter.drawRect(100, 100, 1200, 1200);
-  painter.drawText(100, 50, "Hello world with vaos!");
 }
 
 void GLWindow::mouseMoveEvent(QMouseEvent* e)

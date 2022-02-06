@@ -95,21 +95,10 @@ private:
     std::unique_ptr<GLTileManager> m_tile_manager; // needs opengl context
     std::unique_ptr<QOpenGLPaintDevice> m_gl_paint_device;
     QOpenGLShaderProgram *m_program = nullptr;
-    std::unique_ptr<QOpenGLBuffer> m_position_buffer;
-    std::unique_ptr<QOpenGLBuffer> m_index_buffer;
-    std::unique_ptr<QOpenGLVertexArrayObject> m_vao;
-    int m_projMatrixLoc = 0;
-    int m_camMatrixLoc = 0;
-    int m_worldMatrixLoc = 0;
-    int m_myMatrixLoc = 0;
-    int m_lightPosLoc = 0;
 
     Camera m_camera;
-    glm::mat4 m_projection_matrix;
     glm::ivec2 m_previous_mouse_pos = {-1, -1};
 
-    GLuint m_posAttr = 0;
-    GLuint m_colAttr = 0;
     GLuint m_matrixUniform = 0;
     int m_frame = 0;
     bool m_initialised = false;
