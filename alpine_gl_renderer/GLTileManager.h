@@ -33,6 +33,7 @@ public:
   explicit GLTileManager(QObject *parent = nullptr);
 
   [[nodiscard]] const std::vector<GLTileSet>& tiles() const;
+  void draw();
 
 signals:
   void tilesChanged();

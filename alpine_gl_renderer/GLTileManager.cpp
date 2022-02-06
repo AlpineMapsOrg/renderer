@@ -54,6 +54,16 @@ const std::vector<GLTileSet>& GLTileManager::tiles() const
   return m_gpu_tiles;
 }
 
+void GLTileManager::draw()
+{
+  QOpenGLExtraFunctions *f = QOpenGLContext::currentContext()->extraFunctions();
+  for (const auto& tileset : tiles()) {
+    tileset.vao->bind();
+    f->glDrawElements(GL_TRIANGLE_STRIP, tileset.gl_element_count,  tileset.gl_index_type, nullptr);
+  }
+  f->glBindVertexArray(0);
+}
+
 void GLTileManager::addTile(const std::shared_ptr<Tile>& tile)
 {
   assert(m_attribute_locations.height != -1);

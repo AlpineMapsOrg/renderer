@@ -198,12 +198,7 @@ void GLWindow::paintGL()
 
   m_program->setUniformValue(m_matrixUniform, toQtType(m_camera.viewProjectionMatrix()));
 
-  const auto& tilesets = m_tile_manager->tiles();
-  for (const auto& tileset : tilesets) {
-    tileset.vao->bind();
-    f->glDrawElements(GL_TRIANGLE_STRIP, tileset.gl_element_count,  tileset.gl_index_type, nullptr);
-    tileset.vao->release();
-  }
+  m_tile_manager->draw();
   m_program->release();
 
   m_frame_end = std::chrono::time_point_cast<ClockResolution>(Clock::now());
