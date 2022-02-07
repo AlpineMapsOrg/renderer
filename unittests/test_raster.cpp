@@ -67,6 +67,5 @@ TEST_CASE("raster tests") {
       check &= v == i++;
     }
     CHECK(check);
-
   }
 }

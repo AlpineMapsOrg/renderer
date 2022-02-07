@@ -21,6 +21,8 @@
 #include <QObject>
 #include "render_backend/srs.h"
 
+class QNetworkAccessManager;
+
 class TileLoadService : public QObject
 {
   Q_OBJECT
@@ -28,13 +30,18 @@ public:
   enum class UrlPattern {
     ZXY, ZYX
   };
-  TileLoadService(const std::string& base_url, UrlPattern url_pattern, const std::string& file_ending);
+  TileLoadService(const QString& base_url, UrlPattern url_pattern, const QString& file_ending);
+  ~TileLoadService() override;
   void load(const srs::TileId& tile_id);
+  [[nodiscard]] QString build_tile_url(const srs::TileId& tile_id) const;
 
 signals:
-  void loadReady(srs::TileId tile_id, std::shared_ptr<QByteArray> data);
+  void loadReady(srs::TileId tile_id, std::shared_ptr<QImage> data);
 
 private:
-  std::string m_base_url;
+  std::shared_ptr<QNetworkAccessManager> m_network_manager;
+  QString m_base_url;
+  UrlPattern m_url_pattern;
+  QString m_file_ending;
 };
 

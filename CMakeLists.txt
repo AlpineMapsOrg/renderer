@@ -55,9 +55,7 @@ set(CMAKE_AUTOUIC ON)
 if (ATB_UNITTESTS AND NOT EMSCRIPTEN)
     find_package(Catch2 REQUIRED)
 endif()
-find_package(Qt6 REQUIRED COMPONENTS Core)
-find_package(Qt6 REQUIRED COMPONENTS Gui)
-find_package(Qt6 REQUIRED COMPONENTS OpenGL)
+find_package(Qt6 REQUIRED COMPONENTS Core Gui OpenGL Network)
 
 
 if (ATB_ENABLE_ADDRESS_SANITIZER)
@@ -83,7 +81,7 @@ add_library(render_backend STATIC
 message(${CMAKE_SOURCE_DIR}/libs/glm)
 target_include_directories(render_backend SYSTEM PUBLIC ${CMAKE_SOURCE_DIR}/libs/glm)
 target_compile_definitions(render_backend PUBLIC GLM_FORCE_SWIZZLE GLM_ENABLE_EXPERIMENTAL GLM_FORCE_XYZW_ONLY)
-target_link_libraries(render_backend PUBLIC Qt::Core)
+target_link_libraries(render_backend PUBLIC Qt::Core Qt::Gui Qt6::Network)
 
 
 if (ATB_ENABLE_ASSERTS)

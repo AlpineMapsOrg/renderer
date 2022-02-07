@@ -32,6 +32,8 @@ private slots:
     const auto white_tile_id = srs::TileId{.zoom_level = 9, .coords = {273, 177}};
     const auto tirol_tile_id = srs::TileId{.zoom_level = 9, .coords = {272, 179}};
     TileLoadService service("https://maps.wien.gv.at/basemap/bmaporthofoto30cm/normal/google3857/", TileLoadService::UrlPattern::ZYX, ".jpeg");
+    QCOMPARE(service.build_tile_url({.zoom_level=1, .coords = {2, 3}}),
+             "https://maps.wien.gv.at/basemap/bmaporthofoto30cm/normal/google3857/1/3/2.jpeg");
 
     {
       QSignalSpy spy(&service, &TileLoadService::loadReady);
@@ -42,9 +44,10 @@ private slots:
       QList<QVariant> arguments = spy.takeFirst(); // take the first signal
       QCOMPARE(arguments.at(0).value<srs::TileId>().zoom_level, white_tile_id.zoom_level); // verify the first argument
       QCOMPARE(arguments.at(0).value<srs::TileId>().coords, white_tile_id.coords); // verify the first argument
-      const auto bytes_sp = arguments.at(1).value<std::shared_ptr<QByteArray>>();
-      QVERIFY(bytes_sp->size()); // verify the first argument
-      QCOMPARE(std::accumulate(bytes_sp->cbegin(), bytes_sp->cend(), 0u), 0);
+      const auto image = arguments.at(1).value<std::shared_ptr<QImage>>();
+      QVERIFY(image->sizeInBytes()); // verify the first argument
+      // the image on the server is almost white. this test will fail when the file changes.
+      QCOMPARE(256LLu*256*255*4 - std::accumulate(image->constBits(), image->constBits() + image->sizeInBytes(), 0LLu), 342912);
     }
     {
       QSignalSpy spy(&service, &TileLoadService::loadReady);
@@ -55,9 +58,11 @@ private slots:
       QList<QVariant> arguments = spy.takeFirst(); // take the first signal
       QCOMPARE(arguments.at(0).value<srs::TileId>().zoom_level, tirol_tile_id.zoom_level); // verify the first argument
       QCOMPARE(arguments.at(0).value<srs::TileId>().coords, tirol_tile_id.coords); // verify the first argument
-      const auto bytes_sp = arguments.at(1).value<std::shared_ptr<QByteArray>>();
-      QVERIFY(bytes_sp->size()); // verify the first argument
-      QVERIFY(std::accumulate(bytes_sp->cbegin(), bytes_sp->cend(), 0u) > 0);   // don't know what it will sum up to, but certainly not zero..
+      const auto image = arguments.at(1).value<std::shared_ptr<QImage>>();
+      QVERIFY(image->sizeInBytes()); // verify the first argument
+      // manually checked. comparing the sum should find regressions. this test will fail when the file changes.
+//      image->save("/home/madam/Documents/work/tuw/alpinemaps/build-alpine-renderer-Desktop_Qt_6_2_3_GCC_64bit-Debug/test.jpeg");
+      QCOMPARE(std::accumulate(image->constBits(), image->constBits() + image->sizeInBytes(), 0LLu), 34877273LLu);   // don't know what it will sum up to, but certainly not zero..
     }
 
   }

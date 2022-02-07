@@ -18,14 +18,45 @@
 
 #include "TileLoadService.h"
 
+#include <QNetworkAccessManager>
+#include <QNetworkReply>
+#include <QImage>
 
-TileLoadService::TileLoadService(const std::string& base_url, UrlPattern url_pattern, const std::string& file_ending) : m_base_url(base_url)
+
+TileLoadService::TileLoadService(const QString& base_url, UrlPattern url_pattern, const QString& file_ending)
+    : m_network_manager(new QNetworkAccessManager()),
+      m_base_url(base_url),
+      m_url_pattern(url_pattern),
+      m_file_ending(file_ending)
 {
 
 }
 
+TileLoadService::~TileLoadService()
+{
+}
+
 void TileLoadService::load(const srs::TileId& tile_id)
 {
-  auto sp = std::make_shared<QByteArray>(10, 0);
-  emit loadReady(tile_id, std::move(sp));
+  QNetworkReply* reply = m_network_manager->get(QNetworkRequest(QUrl(build_tile_url(tile_id))));
+  connect(reply, &QNetworkReply::finished, [tile_id, reply, this]() {
+    auto tile = std::make_shared<QImage>(QImage::fromData(reply->readAll()));
+    tile->save("/home/madam/Documents/work/tuw/alpinemaps/build-alpine-renderer-Desktop_Qt_6_2_3_GCC_64bit-Debug/tls.jpeg");
+    emit loadReady(tile_id, std::move(tile));
+    reply->deleteLater();
+  });
+}
+
+QString TileLoadService::build_tile_url(const srs::TileId& tile_id) const
+{
+  QString tile_address;
+  switch (m_url_pattern) {
+  case UrlPattern::ZXY:
+    tile_address = QString("%1/%2/%3").arg(tile_id.zoom_level).arg(tile_id.coords.x).arg(tile_id.coords.y);
+    break;
+  case UrlPattern::ZYX:
+    tile_address = QString("%1/%2/%3").arg(tile_id.zoom_level).arg(tile_id.coords.y).arg(tile_id.coords.x);
+    break;
+  }
+  return m_base_url + tile_address + m_file_ending;
 }
