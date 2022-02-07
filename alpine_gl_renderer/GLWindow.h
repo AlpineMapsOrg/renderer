@@ -60,7 +60,6 @@
 #include <QPainter>
 
 #include "render_backend/Camera.h"
-#include "alpine_gl_renderer/GLTileManager.h"
 
 QT_BEGIN_NAMESPACE
 
@@ -68,8 +67,10 @@ class QOpenGLTexture;
 class QOpenGLShaderProgram;
 class QOpenGLBuffer;
 class QOpenGLVertexArrayObject;
-
 QT_END_NAMESPACE
+
+class GLTileManager;
+class GLShaderManager;
 
 class GLWindow : public QOpenGLWindow
 {
@@ -93,13 +94,12 @@ private:
     using TimePoint = std::chrono::time_point<Clock, ClockResolution>;
 
     std::unique_ptr<GLTileManager> m_tile_manager; // needs opengl context
+    std::unique_ptr<GLShaderManager> m_shader_manager;
     std::unique_ptr<QOpenGLPaintDevice> m_gl_paint_device;
-    QOpenGLShaderProgram *m_program = nullptr;
 
     Camera m_camera;
     glm::ivec2 m_previous_mouse_pos = {-1, -1};
 
-    GLuint m_matrixUniform = 0;
     int m_frame = 0;
     bool m_initialised = false;
     TimePoint m_frame_start;

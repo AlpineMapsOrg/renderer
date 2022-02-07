@@ -5,7 +5,7 @@ option(ATB_UNITTESTS "include unit test targets in the buildsystem" ON)
 option(ATB_ENABLE_ADDRESS_SANITIZER "compiles atb with address sanitizer enabled (only debug, works only on g++ and clang)" ON)
 option(ATB_ENABLE_THREAD_SANITIZER "compiles atb with thread sanitizer enabled (only debug, works only on g++ and clang)" OFF)
 option(ATB_ENABLE_ASSERTS "enable asserts (do not define NDEBUG)" ON)
-set(ATB_INSTALL_DIR CACHE PATH "path to the install directory (for webassembly files, i.e., www directory)")
+set(ATB_INSTALL_DIR "${CMAKE_CURRENT_BINARY_DIR}" CACHE PATH "path to the install directory (for webassembly files, i.e., www directory)")
 option(ATB_USE_LLVM_LINKER "use lld (llvm) for linking. it's parallel and much faster, but not installed by default. if it's not installed, you'll get errors, that openmp or other stuff is not installed (hard to track down)" OFF)
 
 set(CMAKE_CXX_STANDARD 20)
@@ -62,10 +62,11 @@ endif()
 ########################################### gl engine #############################################
 
 set(ATB_GL_ENGINE_SOURCES
-    alpine_gl_renderer/GLTileSet.h
-    alpine_gl_renderer/GLAttributeLocations.h
-    alpine_gl_renderer/GLWindow.cpp alpine_gl_renderer/GLWindow.h
+    alpine_gl_renderer/GLShaderManager.h alpine_gl_renderer/GLShaderManager.cpp
     alpine_gl_renderer/GLTileManager.h alpine_gl_renderer/GLTileManager.cpp
+    alpine_gl_renderer/GLTileSet.h
+    alpine_gl_renderer/GLWindow.cpp alpine_gl_renderer/GLWindow.h
+    alpine_gl_renderer/TileGLLocations.h
     alpine_gl_renderer/main.cpp
 )
 add_executable(alpine_gl_renderer

@@ -105,7 +105,12 @@ void GLTileManager::removeTile(const srs::TileId& tile_id)
   emit tilesChanged();
 }
 
-void GLTileManager::setAttributeLocations(const GLAttributeLocations& d)
+void GLTileManager::setAttributeLocations(const TileGLAttributeLocations& d)
 {
   m_attribute_locations = d;
+}
+
+void GLTileManager::setUniformLocations(const TileGLUniformLocations& d)
+{
+  m_uniform_locations = d;
 }

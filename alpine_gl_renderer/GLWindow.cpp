@@ -71,6 +71,8 @@
 #include <glm/gtc/type_ptr.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 
+#include "alpine_gl_renderer/GLTileManager.h"
+#include "alpine_gl_renderer/GLShaderManager.h"
 #include "render_backend/Tile.h"
 #include "render_backend/utils/terrain_mesh_index_generator.h"
 
@@ -92,41 +94,8 @@ GLWindow::GLWindow() : m_camera(glm::dvec3{-2.f, -2.f, 2.f}, {0.f, 0.f, 0.f})
 GLWindow::~GLWindow()
 {
   makeCurrent();
-  delete m_program;
 }
 
-static const char *vertexShaderSource = R"(
-  in highp float height;
-  out lowp vec2 uv;
-  uniform highp mat4 matrix;
-  void main() {
-     int n_edge_vertices = 64;
-     int row = gl_VertexID / n_edge_vertices;
-     int col = gl_VertexID - (row * n_edge_vertices);
-     vec4 pos = vec4(col, row, height, 1.0);
-     uv = vec2(float(col) / float(n_edge_vertices), float(row) / float(n_edge_vertices));
-     gl_Position = matrix * pos;
-  })";
-
-static const char *fragmentShaderSource = R"(
-  in lowp vec2 uv;
-  out lowp vec4 out_Color;
-  void main() {
-     out_Color = vec4(uv, 0, 1);
-  })";
-
-QByteArray versionedShaderCode(const char *src)
-{
-  QByteArray versionedSrc;
-
-  if (QOpenGLContext::currentContext()->isOpenGLES())
-    versionedSrc.append(QByteArrayLiteral("#version 300 es\n"));
-  else
-    versionedSrc.append(QByteArrayLiteral("#version 330\n"));
-
-  versionedSrc.append(src);
-  return versionedSrc;
-}
 
 void GLWindow::initializeGL()
 {
@@ -137,24 +106,14 @@ void GLWindow::initializeGL()
   });
   logger->disableMessages(QList<GLuint>({131185}));
   logger->startLogging(QOpenGLDebugLogger::SynchronousLogging);
+  const auto c = QOpenGLContext::currentContext();
   QOpenGLFunctions *f = QOpenGLContext::currentContext()->extraFunctions();
 
   m_gl_paint_device = std::make_unique<QOpenGLPaintDevice>();
   m_tile_manager = std::make_unique<GLTileManager>();
+  m_shader_manager = std::make_unique<GLShaderManager>();
 
-  m_program = new QOpenGLShaderProgram(this);
-  m_program->addShaderFromSourceCode(QOpenGLShader::Vertex, versionedShaderCode(vertexShaderSource));
-  m_program->addShaderFromSourceCode(QOpenGLShader::Fragment, versionedShaderCode(fragmentShaderSource));
-  {
-    const auto success = m_program->link();
-    Q_ASSERT(success);
-  }
-
-  const auto height_attr = m_program->attributeLocation("height");
-  Q_ASSERT(height_attr != -1);
-  m_tile_manager->setAttributeLocations({height_attr});
-  m_matrixUniform = m_program->uniformLocation("matrix");
-  Q_ASSERT(m_matrixUniform != GLuint(-1));
+  m_tile_manager->setAttributeLocations(m_shader_manager->tileAttributeLocations());
 
   Tile t;
   t.height_map = Raster<uint16_t>(64);
@@ -194,12 +153,13 @@ void GLWindow::paintGL()
 
   f->glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
 
-  m_program->bind();
+  m_shader_manager->bindTileShader();
 
-  m_program->setUniformValue(m_matrixUniform, toQtType(m_camera.viewProjectionMatrix()));
+  const auto tile_uniform_locations = m_shader_manager->tileUniformLocations();
+  m_shader_manager->tileShader()->setUniformValue(tile_uniform_locations.view_projection_matrix, toQtType(m_camera.viewProjectionMatrix()));
 
   m_tile_manager->draw();
-  m_program->release();
+  m_shader_manager->release();
 
   m_frame_end = std::chrono::time_point_cast<ClockResolution>(Clock::now());
 }

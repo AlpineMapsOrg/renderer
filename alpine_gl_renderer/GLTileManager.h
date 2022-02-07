@@ -23,7 +23,7 @@
 #include <QObject>
 
 #include "render_backend/Tile.h"
-#include "alpine_gl_renderer/GLAttributeLocations.h"
+#include "alpine_gl_renderer/TileGLLocations.h"
 #include "alpine_gl_renderer/GLTileSet.h"
 
 class GLTileManager : public QObject
@@ -41,7 +41,8 @@ signals:
 public slots:
   void addTile(const std::shared_ptr<Tile>& tile);
   void removeTile(const srs::TileId& tile_id);
-  void setAttributeLocations(const GLAttributeLocations& d);
+  void setAttributeLocations(const TileGLAttributeLocations& d);
+  void setUniformLocations(const TileGLUniformLocations& d);
 
 private:
   static constexpr auto N_EDGE_VERTICES = 64;
@@ -53,7 +54,8 @@ private:
   //       for 4 tiles take index 1, for 16 2..
   // the size_t is the number of indices
   std::vector<std::pair<std::unique_ptr<QOpenGLBuffer>, size_t>> m_index_buffers;
-  GLAttributeLocations m_attribute_locations;
+  TileGLAttributeLocations m_attribute_locations;
+  TileGLUniformLocations m_uniform_locations;
   unsigned m_tiles_per_set = 1;
 };
 
