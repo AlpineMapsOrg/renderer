@@ -25,13 +25,21 @@ static const char *vertexShaderSource = R"(
   in highp float height;
   out lowp vec2 uv;
   uniform highp mat4 matrix;
+  uniform highp vec4 bounds[32];
+  uniform int n_edge_vertices;
   void main() {
-     int n_edge_vertices = 64;
-     int row = gl_VertexID / n_edge_vertices;
-     int col = gl_VertexID - (row * n_edge_vertices);
-     vec4 pos = vec4(col, row, height, 1.0);
-     uv = vec2(float(col) / float(n_edge_vertices), float(row) / float(n_edge_vertices));
-     gl_Position = matrix * pos;
+    int row = gl_VertexID / n_edge_vertices;
+    int col = gl_VertexID - (row * n_edge_vertices);
+    int tile_id = 0;
+    float tile_width = (bounds[tile_id].z - bounds[tile_id].x) / float(n_edge_vertices);
+    float tile_height = (bounds[tile_id].w - bounds[tile_id].y) / float(n_edge_vertices);
+
+    vec4 pos = vec4(float(col) * tile_width + bounds[tile_id].x,
+                   float(row) * tile_width + bounds[tile_id].y,
+                   height,
+                   1.0);
+    uv = vec2(float(col) / float(n_edge_vertices), float(row) / float(n_edge_vertices));
+    gl_Position = matrix * pos;
   })";
 
 static const char *fragmentShaderSource = R"(
@@ -66,6 +74,13 @@ GLShaderManager::GLShaderManager()
   }
   m_tile_uniform_location.view_projection_matrix = m_tile_program->uniformLocation("matrix");
   assert(m_tile_uniform_location.view_projection_matrix != -1);
+
+  m_tile_uniform_location.bounds_array = m_tile_program->uniformLocation("bounds");
+//  assert(m_tile_uniform_location.bounds_array != -1);
+
+  m_tile_uniform_location.n_edge_vertices = m_tile_program->uniformLocation("n_edge_vertices");
+//  assert(m_tile_uniform_location.n_edge_vertices != -1);
+
   m_tile_attribute_locations.height = m_tile_program->attributeLocation("height");
   assert(m_tile_attribute_locations.height != -1);
 }

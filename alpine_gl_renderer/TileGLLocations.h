@@ -26,4 +26,5 @@ struct TileGLUniformLocations {
   int view_projection_matrix = -1;
   int bounds_array = -1;
   int ortho_texture_something = -1;
+  int n_edge_vertices = -1;
 };

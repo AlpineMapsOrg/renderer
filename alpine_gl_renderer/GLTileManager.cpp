@@ -22,6 +22,7 @@
 #include <QOpenGLFunctions>
 #include <QOpenGLExtraFunctions>
 #include <QOpenGLVertexArrayObject>
+#include <QOpenGLShaderProgram>
 
 #include "render_backend/utils/terrain_mesh_index_generator.h"
 
@@ -31,6 +32,18 @@ namespace {
 template <typename T>
 int bufferLengthInBytes(const std::vector<T>& vec) {
   return int(vec.size() * sizeof(T));
+}
+
+std::vector<QVector4D> boundsArray(const GLTileSet& tileset) {
+  std::vector<QVector4D> ret;
+  ret.reserve(tileset.tiles.size());
+  for (const auto& tile : tileset.tiles) {
+    ret.emplace_back(tile.second.min.x,
+                     tile.second.min.y,
+                     tile.second.max.x,
+                     tile.second.max.y);
+  }
+  return ret;
 }
 }
 
@@ -54,11 +67,14 @@ const std::vector<GLTileSet>& GLTileManager::tiles() const
   return m_gpu_tiles;
 }
 
-void GLTileManager::draw()
+void GLTileManager::draw(QOpenGLShaderProgram* shader_program) const
 {
   QOpenGLExtraFunctions *f = QOpenGLContext::currentContext()->extraFunctions();
+  shader_program->setUniformValue(m_uniform_locations.n_edge_vertices, N_EDGE_VERTICES);
   for (const auto& tileset : tiles()) {
     tileset.vao->bind();
+    const auto bounds = boundsArray(tileset);
+    shader_program->setUniformValueArray(m_uniform_locations.bounds_array, bounds.data(), int(bounds.size()));
     f->glDrawElements(GL_TRIANGLE_STRIP, tileset.gl_element_count,  tileset.gl_index_type, nullptr);
   }
   f->glBindVertexArray(0);

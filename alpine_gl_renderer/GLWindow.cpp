@@ -114,6 +114,7 @@ void GLWindow::initializeGL()
   m_shader_manager = std::make_unique<GLShaderManager>();
 
   m_tile_manager->setAttributeLocations(m_shader_manager->tileAttributeLocations());
+  m_tile_manager->setUniformLocations(m_shader_manager->tileUniformLocations());
 
   Tile t;
   t.height_map = Raster<uint16_t>(64);
@@ -158,7 +159,7 @@ void GLWindow::paintGL()
   const auto tile_uniform_locations = m_shader_manager->tileUniformLocations();
   m_shader_manager->tileShader()->setUniformValue(tile_uniform_locations.view_projection_matrix, toQtType(m_camera.viewProjectionMatrix()));
 
-  m_tile_manager->draw();
+  m_tile_manager->draw(m_shader_manager->tileShader());
   m_shader_manager->release();
 
   m_frame_end = std::chrono::time_point_cast<ClockResolution>(Clock::now());
