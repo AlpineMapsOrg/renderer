@@ -19,12 +19,13 @@
 #include "TileLoadService.h"
 
 
-TileLoadService::TileLoadService(const std::string& base_url) : m_base_url(base_url)
+TileLoadService::TileLoadService(const std::string& base_url, UrlPattern url_pattern, const std::string& file_ending) : m_base_url(base_url)
 {
 
 }
 
-void TileLoadService::load(const std::string& path)
+void TileLoadService::load(const srs::TileId& tile_id)
 {
-  emit loadReady({}, {});
+  auto sp = std::make_shared<QByteArray>(10, 0);
+  emit loadReady(tile_id, std::move(sp));
 }

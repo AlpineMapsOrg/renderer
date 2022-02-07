@@ -25,11 +25,14 @@ class TileLoadService : public QObject
 {
   Q_OBJECT
 public:
-  TileLoadService(const std::string& base_url);
-  void load(const std::string& path);
+  enum class UrlPattern {
+    ZXY, ZYX
+  };
+  TileLoadService(const std::string& base_url, UrlPattern url_pattern, const std::string& file_ending);
+  void load(const srs::TileId& tile_id);
 
 signals:
-  void loadReady(std::shared_ptr<QByteArray> data, srs::TileId tile_id);
+  void loadReady(srs::TileId tile_id, std::shared_ptr<QByteArray> data);
 
 private:
   std::string m_base_url;

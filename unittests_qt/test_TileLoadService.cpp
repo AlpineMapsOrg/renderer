@@ -17,6 +17,7 @@
  *****************************************************************************/
 
 #include "render_backend/TileLoadService.h"
+#include <algorithm>
 
 #include <QTest>
 #include <QSignalSpy>
@@ -26,18 +27,39 @@ class TestTileLoadService: public QObject
   Q_OBJECT
 private slots:
   void download() {
-    // https://maps2.wien.gv.at/basemap/bmaporthofoto30cm/normal/google3857/9/177/273.jpeg => should be a white tile
-    // https://maps2.wien.gv.at/basemap/bmaporthofoto30cm/normal/google3857/9/179/272.jpeg => should show Tirol
-    TileLoadService service("https://maps2.wien.gv.at/basemap/bmaporthofoto30cm/normal/google3857/", TileLoadService::UrlPattern::ZXY, ".jpeg");
-    QSignalSpy spy(&service, &TileLoadService::loadReady);
-    service.load("project-logos/enwiki.png");
+    // https://maps.wien.gv.at/basemap/bmaporthofoto30cm/normal/google3857/9/177/273.jpeg => should be a white tile
+    // https://maps.wien.gv.at/basemap/bmaporthofoto30cm/normal/google3857/9/179/272.jpeg => should show Tirol
+    const auto white_tile_id = srs::TileId{.zoom_level = 9, .coords = {273, 177}};
+    const auto tirol_tile_id = srs::TileId{.zoom_level = 9, .coords = {272, 179}};
+    TileLoadService service("https://maps.wien.gv.at/basemap/bmaporthofoto30cm/normal/google3857/", TileLoadService::UrlPattern::ZYX, ".jpeg");
 
-    spy.wait(250);
+    {
+      QSignalSpy spy(&service, &TileLoadService::loadReady);
+      service.load(white_tile_id);
+      spy.wait(250);
 
-    QCOMPARE(spy.count(), 1); // make sure the signal was emitted exactly one time
-//    QList<QVariant> arguments = spy.takeFirst(); // take the first signal
+      QCOMPARE(spy.count(), 1); // make sure the signal was emitted exactly one time
+      QList<QVariant> arguments = spy.takeFirst(); // take the first signal
+      QCOMPARE(arguments.at(0).value<srs::TileId>().zoom_level, white_tile_id.zoom_level); // verify the first argument
+      QCOMPARE(arguments.at(0).value<srs::TileId>().coords, white_tile_id.coords); // verify the first argument
+      const auto bytes_sp = arguments.at(1).value<std::shared_ptr<QByteArray>>();
+      QVERIFY(bytes_sp->size()); // verify the first argument
+      QCOMPARE(std::accumulate(bytes_sp->cbegin(), bytes_sp->cend(), 0u), 0);
+    }
+    {
+      QSignalSpy spy(&service, &TileLoadService::loadReady);
+      service.load(tirol_tile_id);
+      spy.wait(250);
 
-//    QVERIFY(arguments.at(0).toByteArray()); // verify the first argument
+      QCOMPARE(spy.count(), 1); // make sure the signal was emitted exactly one time
+      QList<QVariant> arguments = spy.takeFirst(); // take the first signal
+      QCOMPARE(arguments.at(0).value<srs::TileId>().zoom_level, tirol_tile_id.zoom_level); // verify the first argument
+      QCOMPARE(arguments.at(0).value<srs::TileId>().coords, tirol_tile_id.coords); // verify the first argument
+      const auto bytes_sp = arguments.at(1).value<std::shared_ptr<QByteArray>>();
+      QVERIFY(bytes_sp->size()); // verify the first argument
+      QVERIFY(std::accumulate(bytes_sp->cbegin(), bytes_sp->cend(), 0u) > 0);   // don't know what it will sum up to, but certainly not zero..
+    }
+
   }
 };
 
