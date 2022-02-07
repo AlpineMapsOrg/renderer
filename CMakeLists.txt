@@ -8,6 +8,43 @@ option(ATB_ENABLE_ASSERTS "enable asserts (do not define NDEBUG)" ON)
 set(ATB_INSTALL_DIR "${CMAKE_CURRENT_BINARY_DIR}" CACHE PATH "path to the install directory (for webassembly files, i.e., www directory)")
 option(ATB_USE_LLVM_LINKER "use lld (llvm) for linking. it's parallel and much faster, but not installed by default. if it's not installed, you'll get errors, that openmp or other stuff is not installed (hard to track down)" OFF)
 
+
+############################################ sources ##############################################
+set(ATB_RENDER_BACKEND_SOURCES
+    render_backend/Camera.h render_backend/Camera.cpp
+    render_backend/Raster.h
+    render_backend/srs.h render_backend/srs.cpp
+    render_backend/Tile.cpp render_backend/Tile.h
+    render_backend/TileScheduler.h render_backend/TileScheduler.cpp
+    render_backend/TileLoadService.h render_backend/TileLoadService.cpp
+    render_backend/utils/terrain_mesh_index_generator.h
+)
+set(ATB_GL_ENGINE_SOURCES
+    alpine_gl_renderer/GLShaderManager.h alpine_gl_renderer/GLShaderManager.cpp
+    alpine_gl_renderer/GLTileManager.h alpine_gl_renderer/GLTileManager.cpp
+    alpine_gl_renderer/GLTileSet.h
+    alpine_gl_renderer/GLWindow.cpp alpine_gl_renderer/GLWindow.h
+    alpine_gl_renderer/TileGLLocations.h
+    alpine_gl_renderer/main.cpp
+)
+if (ATB_UNITTESTS AND NOT EMSCRIPTEN)
+    set(ATB_CATCH_UNITTEST_SOURCES
+        unittests/main.cpp
+        unittests/test_Camera.cpp
+        unittests/test_helpers.h
+        unittests/test_raster.cpp
+        unittests/test_terrain_mesh_index_generator.cpp
+        unittests/test_srs.cpp
+        unittests/test_tile.cpp
+    )
+    set(ATB_QT_UNITTESTS
+        test_TileScheduler
+        test_TileLoadService
+    )
+endif()
+
+
+########################################### setup #################################################
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_INCLUDE_CURRENT_DIR ON)
 set(CMAKE_AUTOMOC ON)
@@ -18,9 +55,10 @@ set(CMAKE_AUTOUIC ON)
 if (ATB_UNITTESTS AND NOT EMSCRIPTEN)
     find_package(Catch2 REQUIRED)
 endif()
-find_package(Qt6 COMPONENTS Core)
-find_package(Qt6 COMPONENTS Gui)
-find_package(Qt6 COMPONENTS OpenGL)
+find_package(Qt6 REQUIRED COMPONENTS Core)
+find_package(Qt6 REQUIRED COMPONENTS Gui)
+find_package(Qt6 REQUIRED COMPONENTS OpenGL)
+
 
 if (ATB_ENABLE_ADDRESS_SANITIZER)
     message(NOTICE "building with address sanitizer enabled")
@@ -39,13 +77,6 @@ if (ATB_USE_LLVM_LINKER)
 endif()
 
 ############################################ backend ##############################################
-set(ATB_RENDER_BACKEND_SOURCES
-    render_backend/Camera.h render_backend/Camera.cpp
-    render_backend/Raster.h
-    render_backend/srs.h render_backend/srs.cpp
-    render_backend/Tile.cpp render_backend/Tile.h
-    render_backend/utils/terrain_mesh_index_generator.h
-)
 add_library(render_backend STATIC
     ${ATB_RENDER_BACKEND_SOURCES}
 )
@@ -60,15 +91,6 @@ if (ATB_ENABLE_ASSERTS)
 endif()
 
 ########################################### gl engine #############################################
-
-set(ATB_GL_ENGINE_SOURCES
-    alpine_gl_renderer/GLShaderManager.h alpine_gl_renderer/GLShaderManager.cpp
-    alpine_gl_renderer/GLTileManager.h alpine_gl_renderer/GLTileManager.cpp
-    alpine_gl_renderer/GLTileSet.h
-    alpine_gl_renderer/GLWindow.cpp alpine_gl_renderer/GLWindow.h
-    alpine_gl_renderer/TileGLLocations.h
-    alpine_gl_renderer/main.cpp
-)
 add_executable(alpine_gl_renderer
     ${ATB_GL_ENGINE_SOURCES}
 )
@@ -115,18 +137,21 @@ endif()
 
 #################################### unit tests for backend #######################################
 if (ATB_UNITTESTS AND NOT EMSCRIPTEN)
-    set(ATB_UNITTEST_SOURCES
-        unittests/main.cpp
-        unittests/test_Camera.cpp
-        unittests/test_helpers.h
-        unittests/test_raster.cpp
-        unittests/test_terrain_mesh_index_generator.cpp
-        unittests/test_srs.cpp
-        unittests/test_tile.cpp
-    )
-    add_executable(unittests ${ATB_UNITTEST_SOURCES})
+    add_executable(unittests ${ATB_CATCH_UNITTEST_SOURCES})
     target_link_libraries(unittests PUBLIC render_backend Catch2::Catch2)
     if (ATB_ENABLE_ASSERTS)
         target_compile_options(unittests PUBLIC "-U NDEBUG")
     endif()
+
+    find_package(Qt6 REQUIRED COMPONENTS Test)
+    enable_testing(true)
+    function(add_cute_test name)
+        add_executable(${name} unittests_qt/${name}.cpp)
+        add_test(NAME ${name} COMMAND ${name})
+        target_link_libraries(${name} PUBLIC render_backend Qt6::Test)
+    endfunction()
+
+    foreach(cute_test ${ATB_QT_UNITTESTS})
+        add_cute_test(${cute_test})
+    endforeach()
 endif()
