@@ -70,6 +70,25 @@ void refine(QuadTreeNode<DataType>* root, const PredicateFunction& predicate, co
     refine(node.get(), predicate, generate_children);
   }
 }
+template <typename DataType, typename PredicateFunction>
+void reduce(QuadTreeNode<DataType>* root, const PredicateFunction& remove_node) {
+  using QuadTreeNodePtr = std::unique_ptr<QuadTreeNode<DataType>>;
+  if (!root->hasChildren())
+    return;
+  auto remove_children = true;
+  for (QuadTreeNodePtr& node : *root) {
+    assert(node);
+    remove_children &= remove_node(node->data());
+  }
+  if (remove_children) {
+    root->removeChildren();
+    return;
+  }
+  for (QuadTreeNodePtr& node : *root) {
+    assert(node);
+    reduce(node.get(), remove_node);
+  }
+}
 }
 
 
