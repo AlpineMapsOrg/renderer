@@ -17,6 +17,7 @@ set(ATB_RENDER_BACKEND_SOURCES
     render_backend/Tile.cpp render_backend/Tile.h
     render_backend/TileScheduler.h render_backend/TileScheduler.cpp
     render_backend/TileLoadService.h render_backend/TileLoadService.cpp
+    render_backend/utils/QuadTree.h
     render_backend/utils/terrain_mesh_index_generator.h
     render_backend/utils/tile_conversion.h render_backend/utils/tile_conversion.cpp
 )
@@ -34,6 +35,7 @@ if (ATB_UNITTESTS AND NOT EMSCRIPTEN)
         unittests/catch2_helpers.h
         unittests/test_Camera.cpp
         unittests/test_helpers.h
+        unittests/test_QuadTree.cpp
         unittests/test_raster.cpp
         unittests/test_terrain_mesh_index_generator.cpp
         unittests/test_srs.cpp
