@@ -35,7 +35,7 @@ template <typename DataType>
 class QuadTreeNode {
   using QuadTreeNodePtr = std::unique_ptr<QuadTreeNode>;
   DataType m_data = {};
-  std::array<QuadTreeNodePtr, 4> m_children;
+  std::array<QuadTreeNodePtr, 4> m_children = {};
   bool m_children_present = false;
 public:
 
@@ -45,14 +45,40 @@ public:
   void removeChildren();
   QuadTreeNode& operator[](unsigned index);
   const QuadTreeNode& operator[](unsigned index) const;
+  auto begin() { return m_children.begin(); }
+  auto begin() const { return m_children.begin(); }
+  auto end() { return m_children.end(); }
+  auto end() const { return m_children.end(); }
   DataType& data() { return m_data; }
   const DataType& data() const { return m_data; }
 };
 
+namespace quad_tree {
+enum class Operation {
+  Reduce, Refine
+};
+
+template <typename DataType, typename PredicateFunction, typename RefineFunction>
+void refine(QuadTreeNode<DataType>* root, const PredicateFunction& predicate, const RefineFunction& generate_children) {
+  using QuadTreeNodePtr = std::unique_ptr<QuadTreeNode<DataType>>;
+  if (!root->hasChildren())
+    return;
+  for (QuadTreeNodePtr& node : *root) {
+    assert(node);
+    if (!node->hasChildren() && predicate(node->data()))
+      node->addChildren(generate_children(node->data()));
+    refine(node.get(), predicate, generate_children);
+  }
+}
+}
+
+
 template<typename DataType>
 void QuadTreeNode<DataType>::addChildren(const std::array<DataType, 4>& data)
 {
-  assert(!m_children_present);
+  if (m_children_present)
+    return;
+
   m_children_present = true;
   std::transform(data.begin(), data.end(), m_children.begin(), [](const auto& data) { return std::make_unique<QuadTreeNode>(data); });
 }
@@ -60,7 +86,9 @@ void QuadTreeNode<DataType>::addChildren(const std::array<DataType, 4>& data)
 template<typename DataType>
 void QuadTreeNode<DataType>::removeChildren()
 {
-  assert(m_children_present);
+  if (!m_children_present)
+    return;
+
   m_children_present = false;
   for (auto& ch : m_children) {
     ch.reset();
@@ -70,11 +98,13 @@ void QuadTreeNode<DataType>::removeChildren()
 template<typename DataType>
 QuadTreeNode<DataType>& QuadTreeNode<DataType>::operator[](unsigned index)
 {
+  assert(m_children_present);
   return *m_children[index];
 }
 
 template<typename DataType>
 const QuadTreeNode<DataType>& QuadTreeNode<DataType>::operator[](unsigned index) const
 {
+  assert(m_children_present);
   return *m_children[index];
 }
