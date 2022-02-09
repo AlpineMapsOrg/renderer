@@ -17,16 +17,39 @@
  *****************************************************************************/
 
 #include "render_backend/TileScheduler.h"
-
 #include <QTest>
+#include <QSignalSpy>
+#include <glm/glm.hpp>
+
+#include "render_backend/Camera.h"
+#include "render_backend/srs.h"
+
 
 class TestTileScheduler: public QObject
 {
   Q_OBJECT
 private slots:
-  void toUpper() {
-    QString str = "Hello";
-    QVERIFY(str.toUpper() == "HELLO");
+  void emitsTileRequestsWhenCalled() {
+    TileScheduler scheduler;
+    Camera test_cam({1822577.0, 6141664.0 - 50, 171.28 + 50}, {1822577.0, 6141664.0, 171.28}); // should point right at the stephansdom
+
+    QSignalSpy spy(&scheduler, &TileScheduler::tileRequested);
+    scheduler.updateCamera(test_cam);
+    spy.wait(5);
+
+    QVERIFY(spy.count() >= 1);
+    auto n_tiles_containing_camera_position = 0;
+    auto n_tiles_containing_camera_view_dir = 0;
+    for (const QList<QVariant>& signal : spy) {    // yes, QSignalSpy is a QList<QList<QVariant>>, where the inner QList contains the signal arguments
+      const auto tile_id = signal.at(0).value<srs::TileId>();
+      const auto tile_bounds = srs::tile_bounds(tile_id);
+      if (contains(tile_bounds, glm::dvec2(test_cam.position())))
+        n_tiles_containing_camera_position++;
+      if (contains(tile_bounds, {1822577.0, 6141664.0}))
+        n_tiles_containing_camera_view_dir++;
+    }
+    QCOMPARE(n_tiles_containing_camera_view_dir, 1);
+    QCOMPARE(n_tiles_containing_camera_position, 1);
   }
 };
 

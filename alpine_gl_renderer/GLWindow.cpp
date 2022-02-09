@@ -157,7 +157,7 @@ void GLWindow::paintGL()
   m_shader_manager->bindTileShader();
 
   const auto tile_uniform_locations = m_shader_manager->tileUniformLocations();
-  m_shader_manager->tileShader()->setUniformValue(tile_uniform_locations.view_projection_matrix, toQtType(m_camera.viewProjectionMatrix()));
+  m_shader_manager->tileShader()->setUniformValue(tile_uniform_locations.view_projection_matrix, toQtType(m_camera.localViewProjectionMatrix({})));
 
   m_tile_manager->draw(m_shader_manager->tileShader());
   m_shader_manager->release();

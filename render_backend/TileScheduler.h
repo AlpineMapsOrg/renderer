@@ -18,10 +18,21 @@
 
 #pragma once
 
+#include <QObject>
 
-class TileScheduler
+#include "render_backend/Camera.h"
+#include "render_backend/srs.h"
+
+class TileScheduler : public QObject
 {
+  Q_OBJECT
 public:
   TileScheduler();
+
+public slots:
+  void updateCamera(const Camera& camera);
+
+signals:
+  void tileRequested(const srs::TileId& tile_id);
 };
 

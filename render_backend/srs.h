@@ -38,6 +38,11 @@ struct Bounds {
   glm::dvec2 max = {};
 };
 
+inline bool contains(const Bounds& bounds, const glm::dvec2& point) {
+  return bounds.min.x < point.x && point.x < bounds.max.x &&
+         bounds.min.y < point.y && point.y < bounds.max.y;
+}
+
 // for now it's the same, but if we ever switch to wgs84 / epsg 4326 / the one with 2 tiles in level zero
 inline unsigned number_of_horizontal_tiles_for_zoom_level(unsigned z) { return 1 << z; }
 inline unsigned number_of_vertical_tiles_for_zoom_level(unsigned z) { return 1 << z; }

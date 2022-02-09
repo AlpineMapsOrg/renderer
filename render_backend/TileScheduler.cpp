@@ -22,3 +22,8 @@ TileScheduler::TileScheduler()
 {
 
 }
+
+void TileScheduler::updateCamera(const Camera& camera)
+{
+  emit tileRequested({});
+}

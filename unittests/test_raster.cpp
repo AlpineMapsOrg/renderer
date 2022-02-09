@@ -19,6 +19,7 @@
 #include "render_backend/Raster.h"
 
 #include <catch2/catch.hpp>
+#include <glm/glm.hpp>
 
 #include "unittests/test_helpers.h"
 
@@ -37,7 +38,11 @@ TEST_CASE("raster tests") {
     const Raster<uint16_t> raster(64);
     CHECK(raster.width() == 64);
     CHECK(raster.height() == 64);
-
+  }
+  SECTION("non-square default") {
+    const Raster<uint16_t> raster(glm::uvec2(5, 10));
+    CHECK(raster.width() == 5);
+    CHECK(raster.height() == 10);
   }
 
   SECTION("move raster") {

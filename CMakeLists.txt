@@ -18,6 +18,7 @@ set(ATB_RENDER_BACKEND_SOURCES
     render_backend/TileScheduler.h render_backend/TileScheduler.cpp
     render_backend/TileLoadService.h render_backend/TileLoadService.cpp
     render_backend/utils/terrain_mesh_index_generator.h
+    render_backend/utils/tile_conversion.h render_backend/utils/tile_conversion.cpp
 )
 set(ATB_GL_ENGINE_SOURCES
     alpine_gl_renderer/GLShaderManager.h alpine_gl_renderer/GLShaderManager.cpp
@@ -30,12 +31,14 @@ set(ATB_GL_ENGINE_SOURCES
 if (ATB_UNITTESTS AND NOT EMSCRIPTEN)
     set(ATB_CATCH_UNITTEST_SOURCES
         unittests/main.cpp
+        unittests/catch2_helpers.h
         unittests/test_Camera.cpp
         unittests/test_helpers.h
         unittests/test_raster.cpp
         unittests/test_terrain_mesh_index_generator.cpp
         unittests/test_srs.cpp
         unittests/test_tile.cpp
+        unittests/test_tile_conversion.cpp
     )
     set(ATB_QT_UNITTESTS
         test_TileScheduler
@@ -137,6 +140,7 @@ endif()
 if (ATB_UNITTESTS AND NOT EMSCRIPTEN)
     add_executable(unittests ${ATB_CATCH_UNITTEST_SOURCES})
     target_link_libraries(unittests PUBLIC render_backend Catch2::Catch2)
+    target_compile_definitions(unittests PUBLIC "ATB_TEST_DATA_DIR=\"${CMAKE_SOURCE_DIR}/unittests/data/\"")
     if (ATB_ENABLE_ASSERTS)
         target_compile_options(unittests PUBLIC "-U NDEBUG")
     endif()

@@ -1,6 +1,7 @@
 /*****************************************************************************
  * Alpine Terrain Builder
  * Copyright (C) 2022 alpinemaps.org
+ * Copyright (C) 2022 Adam Celarek <family name at cg tuwien ac at>
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -16,34 +17,22 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *****************************************************************************/
 
-#pragma once
+#ifndef CATCH2_HELPERS_H
+#define CATCH2_HELPERS_H
 
-#include <QObject>
-#include "render_backend/srs.h"
+#include <catch2/catch.hpp>
 
-class QNetworkAccessManager;
+#include <glm/gtx/string_cast.hpp>
 
-class TileLoadService : public QObject
-{
-  Q_OBJECT
-public:
-  enum class UrlPattern {
-    ZXY, ZYX
-  };
-  TileLoadService(const QString& base_url, UrlPattern url_pattern, const QString& file_ending);
-  ~TileLoadService() override;
-  [[nodiscard]] QString build_tile_url(const srs::TileId& tile_id) const;
+namespace Catch {
 
-public slots:
-  void load(const srs::TileId& tile_id);
-
-signals:
-  void loadReady(srs::TileId tile_id, std::shared_ptr<QByteArray> data);
-
-private:
-  std::shared_ptr<QNetworkAccessManager> m_network_manager;
-  QString m_base_url;
-  UrlPattern m_url_pattern;
-  QString m_file_ending;
+//template<>
+template<glm::length_t s,  typename T>
+struct StringMaker<glm::vec<s, T>> {
+  static std::string convert(const glm::vec<s, T>& value) {
+    return glm::to_string(value);
+  }
 };
+}
 
+#endif // CATCH2_HELPERS_H

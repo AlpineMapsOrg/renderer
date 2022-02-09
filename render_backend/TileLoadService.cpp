@@ -40,8 +40,7 @@ void TileLoadService::load(const srs::TileId& tile_id)
 {
   QNetworkReply* reply = m_network_manager->get(QNetworkRequest(QUrl(build_tile_url(tile_id))));
   connect(reply, &QNetworkReply::finished, [tile_id, reply, this]() {
-    auto tile = std::make_shared<QImage>(QImage::fromData(reply->readAll()));
-    tile->save("/home/madam/Documents/work/tuw/alpinemaps/build-alpine-renderer-Desktop_Qt_6_2_3_GCC_64bit-Debug/tls.jpeg");
+    auto tile = std::make_shared<QByteArray>(reply->readAll());
     emit loadReady(tile_id, std::move(tile));
     reply->deleteLater();
   });

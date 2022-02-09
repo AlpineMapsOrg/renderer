@@ -20,6 +20,11 @@
 
 #include <catch2/catch.hpp>
 
+namespace {
+glm::vec3 divideByW(const glm::vec4& vec) {
+  return {vec.x / vec.w, vec.y / vec.w, vec.z / vec.w};
+}
+}
 
 TEST_CASE("Camera") {
   SECTION("constructor") {
@@ -56,5 +61,26 @@ TEST_CASE("Camera") {
       CHECK(t1.y > 0);  // y (in camera space) points up (in world space)
       CHECK(t1.z < 0);  // negative z looks into the scene
     }
+  }
+  SECTION("view projection matrix") {
+    const auto c = Camera({0, 0, 0}, {10, 10, 0});
+    const auto clip_space_v = divideByW(c.localViewProjectionMatrix({}) * glm::vec4(10, 10, 0, 1));
+    CHECK(clip_space_v.x == Approx(0.0f).scale(50));
+    CHECK(clip_space_v.y == Approx(0.0f).scale(50));
+    CHECK(clip_space_v.z > 0);
+  }
+  SECTION("local coordinate system offset") {
+    // see doc/gl_render_design.svg, this tests that the camera returns the local view projection matrix, i.e., offset such, that the floats are smaller
+    const auto c = Camera({1000, 1000, 5}, {1000, 1010, 0});
+    const auto not_transformed = divideByW(c.localViewProjectionMatrix({}) * glm::vec4(1000, 1010, 0, 1));
+    CHECK(not_transformed.x == Approx(0.0f).scale(50));
+    CHECK(not_transformed.y == Approx(0.0f).scale(50));
+    CHECK(not_transformed.z > 0);
+
+    const auto transformed = divideByW(c.localViewProjectionMatrix(glm::dvec3(1000, 1010, 0)) * glm::vec4(0, 0, 0, 1));
+    CHECK(transformed.x == Approx(0.0f).scale(50));
+    CHECK(transformed.y == Approx(0.0f).scale(50));
+    CHECK(transformed.z > 0);
+
   }
 }

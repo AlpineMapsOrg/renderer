@@ -21,6 +21,8 @@
 #include <vector>
 #include <cassert>
 
+#include <glm/glm.hpp>
+
 template <typename T>
 class Raster {
   std::vector<T> m_data;
@@ -31,6 +33,7 @@ public:
   Raster() = default;
   Raster(std::vector<T>&& vector, size_t square_side_length) : m_data(std::move(vector)), m_width(square_side_length), m_height(square_side_length) { assert(m_data.size() == m_width * m_height); }
   Raster(size_t square_side_length) : m_data(square_side_length * square_side_length), m_width(square_side_length), m_height(square_side_length) {}
+  Raster(const glm::uvec2& size) : m_data(size.x * size.y), m_width(size.x), m_height(size.y) {}
   const auto& buffer() const { return m_data; }
   [[nodiscard]] size_t width() const { return m_width; }
   [[nodiscard]] size_t height() const { return m_height; }
