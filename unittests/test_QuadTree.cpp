@@ -192,7 +192,59 @@ TEST_CASE("QuadTree") {
 //    root[0][1].addChildren({-1, -1, -1, -1});
 //    root[0][2].addChildren({-1, -1, -1, -1});
 //    root[0][3].addChildren({0, 0, 0, -1});
-
-
   }
+}
+
+TEST_CASE("on the fly QuadTree") {
+
+  const auto refine_predicate = [](const auto& node_value) {
+    if (node_value <= 0) return false;
+    return true;
+  };
+  const auto generate_children_function = [](const auto& node_value) {
+    const auto t = node_value / 4;
+    const auto t2 = node_value % 4 - 1;
+    return std::array<int, 4>({t + t2, t, t, t});
+  };
+  SECTION("do not create") {
+    const auto leaves = quad_tree::onTheFlyTraverse(42,  [](const auto&) { return false; }, generate_children_function);
+    CHECK(leaves.size() == 1);
+    CHECK(leaves.front() == 42);
+  }
+  SECTION("create one level") {
+    bool created = false;
+    const auto leaves = quad_tree::onTheFlyTraverse(42,
+        [&created](const auto&) {
+          if (created)
+            return false;
+          created = true;
+          return true;
+        },
+        [](const auto&) {
+          return std::array<int, 4>({1, 2, 3, 4});
+        });
+    CHECK(leaves.size() == 4);
+    CHECK(leaves == std::vector({1, 2, 3, 4}));
+  }
+  SECTION("create 2 levels") {
+    int predicate_call = 0;
+    int generate_call = 0;
+    const auto leaves = quad_tree::onTheFlyTraverse(42,
+        [&predicate_call](const auto&) {
+          ++predicate_call;
+          return predicate_call == 1 || predicate_call == 2;
+        },
+        [&generate_call](const auto&) {
+          generate_call++;
+          if (generate_call == 1)
+            return std::array<int, 4>({1, 2, 3, 4});
+          if (generate_call == 2)
+            return std::array<int, 4>({5, 6, 7, 8});
+          CHECK(false);
+          return std::array<int, 4>({11, 11, 11, 11});
+        });
+    CHECK(leaves.size() == 7);
+//    CHECK(leaves.cont);
+  }
+
 }

@@ -54,9 +54,19 @@ public:
 };
 
 namespace quad_tree {
-enum class Operation {
-  Reduce, Refine
-};
+
+template <typename DataType, typename PredicateFunction, typename RefineFunction>
+std::vector<DataType> onTheFlyTraverse(const DataType& root, const PredicateFunction& predicate, const RefineFunction& generate_children) {
+  if (!predicate(root)) {
+    std::vector<DataType> leaves;
+    leaves.push_back(root);
+    return leaves;
+  }
+  const auto ch = generate_children(root);
+  std::vector<DataType> leaves;
+
+  return std::vector<int>({ch[0], ch[1], ch[2], ch[3]});
+}
 
 template <typename DataType, typename PredicateFunction, typename RefineFunction>
 void refine(QuadTreeNode<DataType>* root, const PredicateFunction& predicate, const RefineFunction& generate_children) {
