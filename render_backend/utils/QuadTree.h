@@ -62,10 +62,13 @@ std::vector<DataType> onTheFlyTraverse(const DataType& root, const PredicateFunc
     leaves.push_back(root);
     return leaves;
   }
-  const auto ch = generate_children(root);
+  const auto children = generate_children(root);
   std::vector<DataType> leaves;
+  for (const auto& child : children) {
+    std::ranges::copy(onTheFlyTraverse(child, predicate, generate_children), std::back_inserter(leaves));
+  }
 
-  return std::vector<int>({ch[0], ch[1], ch[2], ch[3]});
+  return leaves;
 }
 
 template <typename DataType, typename PredicateFunction, typename RefineFunction>

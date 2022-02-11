@@ -244,7 +244,11 @@ TEST_CASE("on the fly QuadTree") {
           return std::array<int, 4>({11, 11, 11, 11});
         });
     CHECK(leaves.size() == 7);
-//    CHECK(leaves.cont);
+    CHECK(std::ranges::find(leaves, 1) == leaves.end());
+    for (int i = 2; i < 9; ++i) {
+      CHECK(std::ranges::find(leaves, i) != leaves.end());
+    }
+    CHECK(std::ranges::find(leaves, 11) == leaves.end());
   }
 
 }
