@@ -17,6 +17,7 @@ set(ATB_RENDER_BACKEND_SOURCES
     render_backend/Tile.cpp render_backend/Tile.h
     render_backend/TileScheduler.h render_backend/TileScheduler.cpp
     render_backend/TileLoadService.h render_backend/TileLoadService.cpp
+    render_backend/utils/geometry.h
     render_backend/utils/QuadTree.h
     render_backend/utils/terrain_mesh_index_generator.h
     render_backend/utils/tile_conversion.h render_backend/utils/tile_conversion.cpp
@@ -41,6 +42,7 @@ if (ATB_UNITTESTS AND NOT EMSCRIPTEN)
         unittests/test_srs.cpp
         unittests/test_tile.cpp
         unittests/test_tile_conversion.cpp
+        unittests/test_geometry.cpp
     )
     set(ATB_QT_UNITTESTS
         test_TileScheduler
@@ -107,6 +109,7 @@ target_link_libraries(alpine_gl_renderer PUBLIC
     Qt::Gui
     Qt::OpenGL
 )
+set_target_properties(alpine_gl_renderer PROPERTIES FOLDER "qtc_runnable")
 
 if (ATB_ENABLE_ASSERTS)
     target_compile_options(alpine_gl_renderer PUBLIC "-U NDEBUG")
@@ -158,4 +161,6 @@ if (ATB_UNITTESTS AND NOT EMSCRIPTEN)
     foreach(cute_test ${ATB_QT_UNITTESTS})
         add_cute_test(${cute_test})
     endforeach()
+
+    set_target_properties(${ATB_QT_UNITTESTS} PROPERTIES FOLDER "cute_unitetests")
 endif()
