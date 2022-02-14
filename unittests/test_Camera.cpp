@@ -20,6 +20,10 @@
 
 #include <catch2/catch.hpp>
 
+#include "unittests/test_helpers.h"
+
+using test_helpers::equals;
+
 namespace {
 glm::vec3 divideByW(const glm::vec4& vec) {
   return {vec.x / vec.w, vec.y / vec.w, vec.z / vec.w};
@@ -81,6 +85,43 @@ TEST_CASE("Camera") {
     CHECK(transformed.x == Approx(0.0f).scale(50));
     CHECK(transformed.y == Approx(0.0f).scale(50));
     CHECK(transformed.z > 0);
+  }
+  SECTION("unproject") {
+    {
+      auto c = Camera({1, 2, 3}, {10, 2, 3});
+      c.setPerspectiveParams(90, 100, 100);
+      CHECK(equals(c.unproject(glm::vec2(0.0, 0.0)), {1, 0, 0}));
+      CHECK(equals((c.worldViewProjectionMatrix() * glm::dvec4(19, 2, 3, 1)).xy(), glm::dvec2(0.0, 0.0)));
+
+      CHECK(equals(c.unproject(glm::vec2(1.0, 0.0)), glm::normalize(glm::dvec3(1, -1, 0))));
+      CHECK(equals(c.unproject(glm::vec2(-1.0, 0.0)), glm::normalize(glm::dvec3(1, 1, 0))));
+      CHECK(equals(c.unproject(glm::vec2(1.0, 1.0)), glm::normalize(glm::dvec3(1, -1, 1))));
+
+      CHECK(equals(c.unproject(glm::vec2(0.0, 1.0)), glm::normalize(glm::dvec3(1, 0, 1))));
+      CHECK(equals(c.unproject(glm::vec2(0.0, -1.0)), glm::normalize(glm::dvec3(1, 0, -1))));
+    }
+    {
+      auto c = Camera({2, 2, 1}, {1, 1, 0});
+      c.setPerspectiveParams(90, 100, 100);
+      CHECK(equals(c.unproject(glm::vec2(0.0, 0.0)), glm::normalize(glm::dvec3(-1, -1, -1))));
+      CHECK(equals((c.worldViewProjectionMatrix() * glm::dvec4(0, 0, -1, 1)).xy(), glm::dvec2(0.0, 0.0)));
+    }
+    {
+      auto c = Camera({1, 1, 1}, {0, 0, 0});
+      c.setPerspectiveParams(90, 100, 100);
+      CHECK(equals(c.unproject(glm::vec2(0.0, 0.0)), glm::normalize(glm::dvec3(-1, -1, -1))));
+    }
+    {
+      auto c = Camera({10, 10, 10}, {10, 20, 20});
+      c.setPerspectiveParams(90, 100, 100);
+      CHECK(equals(c.unproject(glm::vec2(0.0, 0.0)), glm::normalize(glm::dvec3(0, 1, 1))));
+    }
+    {
+      auto c = Camera({10, 10, 10}, {10, 10, 20});
+      c.setPerspectiveParams(90, 100, 100);
+      const auto unprojected = c.unproject(glm::vec2(0.0, 0.0));
+      CHECK(equals(unprojected, glm::normalize(glm::dvec3(0, 0, 1)), 10));
+    }
 
   }
 }

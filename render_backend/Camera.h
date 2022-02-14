@@ -36,6 +36,7 @@ public:
   [[nodiscard]] glm::dvec3 position() const;
   [[nodiscard]] glm::dvec3 xAxis() const;
   [[nodiscard]] glm::dvec3 negativeZAxis() const;
+  [[nodiscard]] glm::dvec3 unproject(const glm::vec2& screen_space_position) const;
   void setPerspectiveParams(float fov_degrees, int viewport_width, int viewport_height);
   void pan(const glm::dvec2& v);
   void move(const glm::dvec3& v);

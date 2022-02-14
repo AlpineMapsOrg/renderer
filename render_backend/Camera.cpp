@@ -36,6 +36,10 @@
 Camera::Camera(const glm::dvec3& position, const glm::dvec3& view_at_point)// : m_position(position)
 {
   m_camera_transformation = glm::inverse(glm::lookAt(position, view_at_point, {0, 0, 1}));
+  if (std::isnan(m_camera_transformation[0][0])) {
+    m_camera_transformation = glm::inverse(glm::lookAt(position, view_at_point, {0, 1, 0}));
+  }
+
   setPerspectiveParams(45, 100, 100);
 }
 
@@ -61,7 +65,7 @@ glm::mat4 Camera::localViewProjectionMatrix(const glm::dvec3& origin_offset) con
 
 glm::dvec3 Camera::position() const
 {
-  return glm::dvec3(m_camera_transformation * glm::vec4(0, 0, 0, 1));
+  return glm::dvec3(m_camera_transformation * glm::dvec4(0, 0, 0, 1));
 }
 
 glm::dvec3 Camera::xAxis() const
@@ -74,11 +78,36 @@ glm::dvec3 Camera::negativeZAxis() const
   return glm::dvec3(m_camera_transformation[2]);
 }
 
+glm::dvec3 Camera::unproject(const glm::vec2& screen_space_position) const
+{
+  //    At first I was a bit surprised, that we don't need to subtract the camera position, so I'll explain why that is (hopefully correctly):
+  //    Homogenous coordinates use a non-zero number for the w coordinate, if it is a point, and zero if it is a vector (a direction). The cannonical
+  // form uses w == 1, and you can convert into cannonical form by dividing the whole vec4 by w. if w == 0, then translation has no effect (makes
+  // sense for vectors / directions.
+  //    The perspective projection needs a division by the z-component (in camera space, i.e. the point projected on the (negative) z-axis). The
+  // perspective transformation matrix achieves that by mapping z onto w. when putting the homogenious coordinate back into cannonical form, we divide
+  // by w => after perspective projection transform we divide by z.
+//        const auto wvpm = worldViewProjectionMatrix();  // camera is positioned at 2, 1, 0, and looks in direction of x+, and with z+ up
+//        const auto p0 = wvpm * glm::dvec4(4, 2, 2, 0);  // gives (-2, 2, 4, 4) => (-0.5, 0.5, 1, 1 ) in cannonical form
+//        const auto p1 = wvpm * glm::dvec4(6, 3, 2, 1);  // gives (-2, 2, 3.9, 4) =>  (-0.5, 0.5, 0.975, 1) in cannonical form
+  // p0 is a transformed vector, and p1 is a transformed point. p0 and p1 have the same screen space coordinates (x, and y), and w returns the projected
+  // distance on the z-axis. I don't understand, what the significance of the z axis is, but for vectors it seems to be 1 always, while for points it
+  // is something that can be used in the depth buffer for sorting (so it's a stricticly increasing function of the distance)
+  //    Anyways, we can use the vector form, and backproject into worldspace. in that case we don't need to subtract the camera position.
+  // Alternatively, we could use e.g.: unprojection_matrix * glm::dvec4(screen_space_position.x, screen_space_position.y, 0.9, 1), divide by 2
+  // to put it in cannonical form, subtract the camera position and nomralise.
+  //
+  // based on https://gabrielgambetta.com/computer-graphics-from-scratch/09-perspective-projection.html and
+  // https://gabrielgambetta.com/computer-graphics-from-scratch/10-describing-and-rendering-a-scene.html
+  const auto unprojection_matrix = glm::inverse(worldViewProjectionMatrix());
+  return glm::normalize((unprojection_matrix * glm::dvec4(screen_space_position.x, screen_space_position.y, 1, 1)).xyz());
+}
+
 void Camera::setPerspectiveParams(float fov_degrees, int viewport_width, int viewport_height)
 {
   // half a metre to 10 000 km
   // should be precise enough (https://outerra.blogspot.com/2012/11/maximizing-depth-buffer-range-and.html)
-  m_projection_matrix = glm::perspective(glm::radians(double(fov_degrees)), double(viewport_width) / double(viewport_height), 0.5, 10'000'000.0);
+  m_projection_matrix = glm::perspective(glm::radians(double(fov_degrees)), double(viewport_width) / double(viewport_height), 0.5, 1'000'000.0);
 }
 
 void Camera::pan(const glm::dvec2& v)
