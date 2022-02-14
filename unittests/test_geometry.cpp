@@ -20,10 +20,11 @@
 
 #include <catch2/catch.hpp>
 
+#include "unittests/test_helpers.h"
+
+using test_helpers::equals;
+
 namespace {
-bool equals(const glm::dvec3& a, const glm::dvec3& b, double scale = 1) {
-  return glm::length(a - b) == Approx(0).scale(scale);
-}
 bool test_contains(const geometry::Triangle<3, double>& triangle, const glm::dvec3& b, double scale = 1) {
   return ((glm::length(triangle[0] - b) == Approx(0).scale(scale)
            || glm::length(triangle[1] - b) == Approx(0).scale(scale)
@@ -157,8 +158,17 @@ TEST_CASE("geometry") {
     }
   }
 
+
+  SECTION("clip several triangles at once") {
+    const auto plane = geometry::Plane<double>{glm::normalize(glm::dvec3{1.0, 1.0, 1.0}), -std::sqrt(3)};
+    const auto box = geometry::AABB<3, double>{.min = {0.0, -1.0, -2.0}, .max={10.0, 11.0, 12.0}};
+    const auto triangles = geometry::triangulise(box);
+    const auto clipped_triangles = geometry::clip(triangles, plane);
+    CHECK(!clipped_triangles.empty());
+  }
+
   // turn aabb into list of triangles
-  // transform triangles with camera
+  // get clipping planes from camera
   // clip
   // from clipped triangles, take the closest point
   // compute point 1px away parallel to screen

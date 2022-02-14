@@ -106,6 +106,16 @@ std::vector<Triangle<3, T>> clip(const Triangle<3, T>& triangle, const Plane<T>&
 }
 
 template <typename T>
+std::vector<Triangle<3, T>> clip(const std::vector<Triangle<3, T>>& triangles, const Plane<T>& plane) {
+  std::vector<Triangle<3, T>> ret;
+  for (const auto& tri : triangles) {
+    const auto clipped = clip(tri, plane);
+    std::copy(clipped.begin(), clipped.end(), std::back_inserter(ret));
+  }
+  return ret;
+}
+
+template <typename T>
 std::vector<Triangle<3, T>> triangulise(const AABB<3, T>& box) {
   using Tri = Triangle<3, T>;
   using Vert = glm::vec<3, T>;

@@ -20,6 +20,8 @@
 
 #include <catch2/catch.hpp>
 
+#include <glm/glm.hpp>
+
 namespace test_helpers {
 class FailOnCopy {
   int v = 0;
@@ -31,5 +33,11 @@ public:
   FailOnCopy& operator=(FailOnCopy&& other) noexcept { v = other.v; CHECK(true); return *this; }
   ~FailOnCopy() = default;
 };
+
+template<int n_dims>
+bool equals(const glm::vec<n_dims, double>& a, const glm::vec<n_dims, double>& b, double scale = 1) {
+  const auto delta = glm::length(a - b);
+  return delta == Approx(0).scale(scale);
+}
 
 }
