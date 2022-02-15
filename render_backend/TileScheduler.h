@@ -29,6 +29,8 @@ class TileScheduler : public QObject
 public:
   TileScheduler();
 
+  [[nodiscard]] std::vector<srs::TileId> loadCandidates(const Camera& camera) const;
+
 public slots:
   void updateCamera(const Camera& camera);
 

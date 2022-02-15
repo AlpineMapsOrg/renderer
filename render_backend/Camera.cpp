@@ -17,10 +17,13 @@
  *****************************************************************************/
 
 #include "Camera.h"
+
 #include <cmath>
 
 #include <glm/gtx/transform.hpp>
 #include <QDebug>
+
+#include "render_backend/utils/geometry.h"
 
 // camera space in opengl / webgl:
 // origin:
@@ -40,7 +43,7 @@ Camera::Camera(const glm::dvec3& position, const glm::dvec3& view_at_point)// : 
     m_camera_transformation = glm::inverse(glm::lookAt(position, view_at_point, {0, 1, 0}));
   }
 
-  setPerspectiveParams(45, 100, 100);
+  setPerspectiveParams(45, {1, 1});
 }
 
 glm::dmat4 Camera::cameraMatrix() const
@@ -65,7 +68,7 @@ glm::mat4 Camera::localViewProjectionMatrix(const glm::dvec3& origin_offset) con
 
 glm::dvec3 Camera::position() const
 {
-  return glm::dvec3(m_camera_transformation * glm::dvec4(0, 0, 0, 1));
+  return glm::dvec3(m_camera_transformation[3]);
 }
 
 glm::dvec3 Camera::xAxis() const
@@ -73,12 +76,17 @@ glm::dvec3 Camera::xAxis() const
   return glm::dvec3(m_camera_transformation[0]);
 }
 
-glm::dvec3 Camera::negativeZAxis() const
+glm::dvec3 Camera::yAxis() const
+{
+  return glm::dvec3(m_camera_transformation[1]);
+}
+
+glm::dvec3 Camera::zAxis() const
 {
   return glm::dvec3(m_camera_transformation[2]);
 }
 
-glm::dvec3 Camera::unproject(const glm::vec2& screen_space_position) const
+glm::dvec3 Camera::unproject(const glm::dvec2& screen_space_position) const
 {
   //    At first I was a bit surprised, that we don't need to subtract the camera position, so I'll explain why that is (hopefully correctly):
   //    Homogenous coordinates use a non-zero number for the w coordinate, if it is a point, and zero if it is a vector (a direction). The cannonical
@@ -90,7 +98,7 @@ glm::dvec3 Camera::unproject(const glm::vec2& screen_space_position) const
 //        const auto wvpm = worldViewProjectionMatrix();  // camera is positioned at 2, 1, 0, and looks in direction of x+, and with z+ up
 //        const auto p0 = wvpm * glm::dvec4(4, 2, 2, 0);  // gives (-2, 2, 4, 4) => (-0.5, 0.5, 1, 1 ) in cannonical form
 //        const auto p1 = wvpm * glm::dvec4(6, 3, 2, 1);  // gives (-2, 2, 3.9, 4) =>  (-0.5, 0.5, 0.975, 1) in cannonical form
-  // p0 is a transformed vector, and p1 is a transformed point. p0 and p1 have the same screen space coordinates (x, and y), and w returns the projected
+  // p0 is a transformed vector, and p1 is a transformed point. p0 and p1 have the same screen space coordinates (x and y), and w returns the projected
   // distance on the z-axis. I don't understand, what the significance of the z axis is, but for vectors it seems to be 1 always, while for points it
   // is something that can be used in the depth buffer for sorting (so it's a stricticly increasing function of the distance)
   //    Anyways, we can use the vector form, and backproject into worldspace. in that case we don't need to subtract the camera position.
@@ -103,11 +111,38 @@ glm::dvec3 Camera::unproject(const glm::vec2& screen_space_position) const
   return glm::normalize((unprojection_matrix * glm::dvec4(screen_space_position.x, screen_space_position.y, 1, 1)).xyz());
 }
 
-void Camera::setPerspectiveParams(float fov_degrees, int viewport_width, int viewport_height)
+std::vector<geometry::Plane<double> > Camera::clippingPlanes() const
 {
+  const auto clippingPane = [this](const glm::dvec2& a, const glm::dvec2& b) {
+      const auto v_a = unproject(a);
+      const auto v_b = unproject(b);
+      const auto normal = glm::normalize(cross(v_a, v_b));
+      const auto distance = - dot(normal, position());
+      return geometry::Plane<double>{normal, distance};
+    };
+  std::vector<geometry::Plane<double> > clipping_panes;
+  // front and back
+  const auto p0 = position() + -zAxis() * m_near_clipping;
+  clipping_panes.push_back({.normal = -zAxis(), .distance = - dot(-zAxis(), p0)});
+  const auto p1 = position() + -zAxis() * m_far_clipping;
+  clipping_panes.push_back({.normal = zAxis(), .distance = - dot(zAxis(), p1)});
+
+  // top and down
+  clipping_panes.push_back(clippingPane({-1, 1}, {1, 1}));
+  clipping_panes.push_back(clippingPane({1, -1}, {-1, -1}));
+
+  // left and right
+  clipping_panes.push_back(clippingPane({-1, -1}, {-1, 1}));
+  clipping_panes.push_back(clippingPane({1, 1}, {1, -1}));
+  return clipping_panes;
+}
+
+void Camera::setPerspectiveParams(float fov_degrees, const glm::uvec2& viewport_size)
+{
+  m_viewport_size = viewport_size;
   // half a metre to 10 000 km
   // should be precise enough (https://outerra.blogspot.com/2012/11/maximizing-depth-buffer-range-and.html)
-  m_projection_matrix = glm::perspective(glm::radians(double(fov_degrees)), double(viewport_width) / double(viewport_height), 0.5, 1'000'000.0);
+  m_projection_matrix = glm::perspective(glm::radians(double(fov_degrees)), double(viewport_size.x) / double(viewport_size.y), m_near_clipping, m_far_clipping);
 }
 
 void Camera::pan(const glm::dvec2& v)
@@ -139,14 +174,19 @@ void Camera::orbit(const glm::vec2& degrees)
 
 void Camera::zoom(double v)
 {
-  move(negativeZAxis() * v);
+  move(zAxis() * v);
+}
+
+const glm::uvec2& Camera::viewportSize() const
+{
+  return m_viewport_size;
 }
 
 glm::dvec3 Camera::operationCentre() const
 {
   // a ray going through the middle pixel, intersecting with the z == 0 pane
   const auto origin = position();
-  const auto direction = negativeZAxis();
+  const auto direction = -zAxis();
   const auto t = -origin.z / direction.z;
   return origin + t * direction;
 }

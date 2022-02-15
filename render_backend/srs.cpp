@@ -22,13 +22,25 @@ constexpr unsigned int cSemiMajorAxis = 6378137;
 constexpr double cEarthCircumference = 2 * M_PI * cSemiMajorAxis;
 constexpr double cOriginShift = cEarthCircumference / 2.0;
 
+namespace srs {
 
-srs::Bounds srs::tile_bounds(const TileId& tile)
+Bounds tile_bounds(const TileId& tile)
 {
-  const auto width_of_a_tile = cEarthCircumference / srs::number_of_horizontal_tiles_for_zoom_level(tile.zoom_level);
-  const auto height_of_a_tile = cEarthCircumference / srs::number_of_vertical_tiles_for_zoom_level(tile.zoom_level);
+  const auto width_of_a_tile = cEarthCircumference / number_of_horizontal_tiles_for_zoom_level(tile.zoom_level);
+  const auto height_of_a_tile = cEarthCircumference / number_of_vertical_tiles_for_zoom_level(tile.zoom_level);
   glm::dvec2 absolute_min = {-cOriginShift, -cOriginShift};
   const auto min = absolute_min + glm::dvec2{tile.coords.x * width_of_a_tile, tile.coords.y * height_of_a_tile};
   const auto max = min + glm::dvec2{width_of_a_tile, height_of_a_tile};
   return {min, max};
+}
+
+std::array<TileId, 4> subtiles(const TileId& tile)
+{
+  return {
+    TileId{tile.zoom_level + 1, tile.coords * 2u + glm::uvec2(0, 0)},
+    TileId{tile.zoom_level + 1, tile.coords * 2u + glm::uvec2(1, 0)},
+    TileId{tile.zoom_level + 1, tile.coords * 2u + glm::uvec2(0, 1)},
+    TileId{tile.zoom_level + 1, tile.coords * 2u + glm::uvec2(1, 1)}};
+}
+
 }

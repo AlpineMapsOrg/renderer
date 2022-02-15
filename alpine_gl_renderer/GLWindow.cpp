@@ -137,7 +137,7 @@ void GLWindow::resizeGL(int w, int h)
   const int width = int(retinaScale * w);
   const int height = int(retinaScale * h);
 
-  m_camera.setPerspectiveParams(45, width, height);
+  m_camera.setPerspectiveParams(45, {width, height});
   m_gl_paint_device->setSize({w, h});
   m_gl_paint_device->setDevicePixelRatio(retinaScale);
   QOpenGLFunctions *f = QOpenGLContext::currentContext()->functions();

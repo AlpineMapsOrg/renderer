@@ -78,4 +78,41 @@ TEST_CASE("srs tests") {
       CHECK(bounds.max.y == Approx(5793315.24779008));
     }
   }
+
+  SECTION("subtiles") {
+    {
+      const auto tiles = srs::subtiles(srs::TileId{.zoom_level = 0, .coords = {0, 0}});
+      REQUIRE(tiles.size() == 4);
+      for (const auto& tid : tiles)
+        CHECK(tid.zoom_level == 1);
+      CHECK(tiles[0].coords.x == 0);
+      CHECK(tiles[0].coords.y == 0);
+
+      CHECK(tiles[1].coords.x == 1);
+      CHECK(tiles[1].coords.y == 0);
+
+      CHECK(tiles[2].coords.x == 0);
+      CHECK(tiles[2].coords.y == 1);
+
+      CHECK(tiles[3].coords.x == 1);
+      CHECK(tiles[3].coords.y == 1);
+    }
+    {
+      const auto tiles = srs::subtiles(srs::TileId{.zoom_level = 1, .coords = {1, 1}});
+      REQUIRE(tiles.size() == 4);
+      for (const auto& tid : tiles)
+        CHECK(tid.zoom_level == 2);
+      CHECK(tiles[0].coords.x == 2);
+      CHECK(tiles[0].coords.y == 2);
+
+      CHECK(tiles[1].coords.x == 3);
+      CHECK(tiles[1].coords.y == 2);
+
+      CHECK(tiles[2].coords.x == 2);
+      CHECK(tiles[2].coords.y == 3);
+
+      CHECK(tiles[3].coords.x == 3);
+      CHECK(tiles[3].coords.y == 3);
+    }
+  }
 }

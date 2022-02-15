@@ -21,6 +21,7 @@
 #include <catch2/catch.hpp>
 
 #include "unittests/test_helpers.h"
+#include "render_backend/utils/geometry.h"
 
 using test_helpers::equals;
 
@@ -89,7 +90,7 @@ TEST_CASE("Camera") {
   SECTION("unproject") {
     {
       auto c = Camera({1, 2, 3}, {10, 2, 3});
-      c.setPerspectiveParams(90, 100, 100);
+      c.setPerspectiveParams(90, {100, 100});
       CHECK(equals(c.unproject(glm::vec2(0.0, 0.0)), {1, 0, 0}));
       CHECK(equals((c.worldViewProjectionMatrix() * glm::dvec4(19, 2, 3, 1)).xy(), glm::dvec2(0.0, 0.0)));
 
@@ -102,26 +103,71 @@ TEST_CASE("Camera") {
     }
     {
       auto c = Camera({2, 2, 1}, {1, 1, 0});
-      c.setPerspectiveParams(90, 100, 100);
+      c.setPerspectiveParams(90, {100, 100});
       CHECK(equals(c.unproject(glm::vec2(0.0, 0.0)), glm::normalize(glm::dvec3(-1, -1, -1))));
       CHECK(equals((c.worldViewProjectionMatrix() * glm::dvec4(0, 0, -1, 1)).xy(), glm::dvec2(0.0, 0.0)));
     }
     {
       auto c = Camera({1, 1, 1}, {0, 0, 0});
-      c.setPerspectiveParams(90, 100, 100);
+      c.setPerspectiveParams(90, {100, 100});
       CHECK(equals(c.unproject(glm::vec2(0.0, 0.0)), glm::normalize(glm::dvec3(-1, -1, -1))));
     }
     {
       auto c = Camera({10, 10, 10}, {10, 20, 20});
-      c.setPerspectiveParams(90, 100, 100);
+      c.setPerspectiveParams(90, {100, 100});
       CHECK(equals(c.unproject(glm::vec2(0.0, 0.0)), glm::normalize(glm::dvec3(0, 1, 1))));
     }
     {
       auto c = Camera({10, 10, 10}, {10, 10, 20});
-      c.setPerspectiveParams(90, 100, 100);
+      c.setPerspectiveParams(90, {100, 100});
       const auto unprojected = c.unproject(glm::vec2(0.0, 0.0));
       CHECK(equals(unprojected, glm::normalize(glm::dvec3(0, 0, 1)), 10));
     }
 
+  }
+
+  SECTION("clipping panes") {
+    { // camera in origin
+      auto c = Camera({0, 0, 0}, {1, 0, 0});
+      c.setPerspectiveParams(90, {100, 100});
+      const auto clipping_panes = c.clippingPlanes();  // the order of clipping panes is front, back, top, down, left, and finally right
+      REQUIRE(clipping_panes.size() == 6);
+      // front and back
+      CHECK(equals(clipping_panes[0].normal, glm::normalize(glm::dvec3(1, 0, 0))));
+      CHECK(clipping_panes[0].distance == Approx(-0.5));
+      CHECK(equals(clipping_panes[1].normal, glm::normalize(glm::dvec3(-1, 0, 0))));
+      CHECK(clipping_panes[1].distance == Approx(10'000'000));
+      // top and down
+      CHECK(equals(clipping_panes[2].normal, glm::normalize(glm::dvec3(1, 0, -1))));
+      CHECK(clipping_panes[2].distance == Approx(0).scale(1));
+      CHECK(equals(clipping_panes[3].normal, glm::normalize(glm::dvec3(1, 0, 1))));
+      CHECK(clipping_panes[3].distance == Approx(0).scale(1));
+      // left and right
+      CHECK(equals(clipping_panes[4].normal, glm::normalize(glm::dvec3(1, -1, 0))));
+      CHECK(clipping_panes[4].distance == Approx(0).scale(1));
+      CHECK(equals(clipping_panes[5].normal, glm::normalize(glm::dvec3(1, 1, 0))));
+      CHECK(clipping_panes[5].distance == Approx(0).scale(1));
+    }
+    { // camera somewhere else
+      auto c = Camera({10, 10, 0}, {0, 0, 0});
+      c.setPerspectiveParams(90, {100, 100});
+      const auto clipping_panes = c.clippingPlanes();  // the order of clipping panes is front, back, top, down, left, and finally right
+      REQUIRE(clipping_panes.size() == 6);
+      // front and back
+      CHECK(equals(clipping_panes[0].normal, glm::normalize(glm::dvec3(-1, -1, 0))));
+      CHECK(clipping_panes[0].distance == Approx(std::sqrt(200.0) - 0.5));
+      CHECK(equals(clipping_panes[1].normal, glm::normalize(glm::dvec3(1, 1, 0))));
+      CHECK(clipping_panes[1].distance == Approx(10'000'000.0 - std::sqrt(200.0)));
+      // top and down
+      CHECK(equals(clipping_panes[2].normal, glm::normalize(glm::dvec3(-0.5, -0.5, - std::sqrt(0.5)))));
+      CHECK(clipping_panes[2].distance == Approx(10).scale(1));
+      CHECK(equals(clipping_panes[3].normal, glm::normalize(glm::dvec3(-0.5, -0.5, std::sqrt(0.5)))));
+      CHECK(clipping_panes[3].distance == Approx(10).scale(1));
+      // left and right
+      CHECK(equals(clipping_panes[4].normal, glm::normalize(glm::dvec3(-1, 0, 0))));
+      CHECK(clipping_panes[4].distance == Approx(10).scale(1));
+      CHECK(equals(clipping_panes[5].normal, glm::normalize(glm::dvec3(0, -1, 0))));
+      CHECK(clipping_panes[5].distance == Approx(10).scale(1));
+    }
   }
 }

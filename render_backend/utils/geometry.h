@@ -116,6 +116,13 @@ std::vector<Triangle<3, T>> clip(const std::vector<Triangle<3, T>>& triangles, c
 }
 
 template <typename T>
+std::vector<Triangle<3, T>> clip(std::vector<Triangle<3, T>> triangles, const std::vector<Plane<T>>& planes) {
+  for (const auto& plane : planes)
+    triangles = geometry::clip(triangles, plane);
+  return triangles;
+}
+
+template <typename T>
 std::vector<Triangle<3, T>> triangulise(const AABB<3, T>& box) {
   using Tri = Triangle<3, T>;
   using Vert = glm::vec<3, T>;

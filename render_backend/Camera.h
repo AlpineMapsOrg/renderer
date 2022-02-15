@@ -18,7 +18,15 @@
 
 #pragma once
 
+#include <vector>
+
 #include <glm/glm.hpp>
+
+namespace geometry {
+template <typename T>
+struct Plane;
+}
+
 
 class Camera
 {
@@ -35,9 +43,11 @@ public:
   [[nodiscard]] glm::mat4 localViewProjectionMatrix(const glm::dvec3& origin_offset) const;
   [[nodiscard]] glm::dvec3 position() const;
   [[nodiscard]] glm::dvec3 xAxis() const;
-  [[nodiscard]] glm::dvec3 negativeZAxis() const;
-  [[nodiscard]] glm::dvec3 unproject(const glm::vec2& screen_space_position) const;
-  void setPerspectiveParams(float fov_degrees, int viewport_width, int viewport_height);
+  [[nodiscard]] glm::dvec3 yAxis() const;
+  [[nodiscard]] glm::dvec3 zAxis() const;
+  [[nodiscard]] glm::dvec3 unproject(const glm::dvec2 &screen_space_position) const;
+  [[nodiscard]] std::vector<geometry::Plane<double>> clippingPlanes() const;
+  void setPerspectiveParams(float fov_degrees, const glm::uvec2& viewport_size);
   void pan(const glm::dvec2& v);
   void move(const glm::dvec3& v);
   void orbit(const glm::dvec3& centre, const glm::dvec2& degrees);
@@ -45,7 +55,12 @@ public:
   void orbit(const glm::vec2& degrees);
   void zoom(double v);
 
+  [[nodiscard]] const glm::uvec2& viewportSize() const;
+
 private:
+  static constexpr double m_near_clipping = 0.5;
+  static constexpr double m_far_clipping = 10'000'000;
+  glm::uvec2 m_viewport_size = {1, 1};
   glm::dvec3 operationCentre() const;
 };
 

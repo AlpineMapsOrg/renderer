@@ -17,6 +17,9 @@
  *****************************************************************************/
 
 #pragma once
+
+#include <array>
+
 #include <glm/glm.hpp>
 
 namespace srs {
@@ -48,5 +51,6 @@ inline unsigned number_of_horizontal_tiles_for_zoom_level(unsigned z) { return 1
 inline unsigned number_of_vertical_tiles_for_zoom_level(unsigned z) { return 1 << z; }
 
 Bounds tile_bounds(const TileId& tile);
+std::array<TileId, 4> subtiles(const TileId& tile);
 
 }
