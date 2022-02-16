@@ -18,10 +18,14 @@
 
 #pragma once
 
+#include <unordered_set>
+
 #include <QObject>
 
 #include "render_backend/Camera.h"
 #include "render_backend/srs.h"
+
+struct Tile;
 
 class TileScheduler : public QObject
 {
@@ -33,8 +37,17 @@ public:
 
 public slots:
   void updateCamera(const Camera& camera);
+  void loadOrthoTile(srs::TileId tile_id, std::shared_ptr<QByteArray> data);
+  void loadHeightTile(srs::TileId tile_id, std::shared_ptr<QByteArray> data);
 
 signals:
   void tileRequested(const srs::TileId& tile_id);
+  void tileReady(const std::shared_ptr<Tile>& tile);
+
+private:
+  void checkLoadedTile(const srs::TileId& tile_id);
+  std::unordered_set<srs::TileId, srs::TileId::Hasher> m_pending_tile_requests;
+  std::unordered_map<srs::TileId, std::shared_ptr<QByteArray>, srs::TileId::Hasher> m_loaded_ortho_tiles;
+  std::unordered_map<srs::TileId, std::shared_ptr<QByteArray>, srs::TileId::Hasher> m_loaded_height_tiles;
 };
 

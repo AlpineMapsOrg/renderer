@@ -19,6 +19,7 @@
 #pragma once
 
 #include <array>
+#include <functional>
 
 #include <glm/glm.hpp>
 
@@ -32,9 +33,32 @@ namespace srs {
 // This coordinate system is clamped at at 85 degrees north and south (https://epsg.io/3857),
 // so the tiles do not go until the poles.
 
+namespace {
+template <class T>
+void hash_combine(std::size_t& seed, const T& v)
+{
+  std::hash<T> hasher;
+  seed ^= hasher(v) + 0x9e3779b9 + (seed<<6) + (seed>>2);
+}
+}
+
 struct TileId {
   unsigned zoom_level = unsigned(-1);
   glm::uvec2 coords;
+  friend bool operator==(const TileId&, const TileId&) = default;
+
+  struct Hasher
+  {
+    size_t operator()(const TileId& tile) const
+    {
+      static_assert(sizeof(size_t) == 8);
+      std::size_t seed = 0;
+      hash_combine(seed, tile.zoom_level);
+      hash_combine(seed, tile.coords.x);
+      hash_combine(seed, tile.coords.y);
+      return seed;
+    }
+  };
 };
 struct Bounds {
   glm::dvec2 min = {};

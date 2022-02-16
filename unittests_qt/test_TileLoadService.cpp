@@ -64,7 +64,7 @@ private slots:
       const auto image = tile_conversion::toQImage(*image_bytes);
       QVERIFY(image.sizeInBytes()); // verify the first argument
       // manually checked. comparing the sum should find regressions. this test will fail when the file changes.
-//      image->save("/home/madam/Documents/work/tuw/alpinemaps/build-alpine-renderer-Desktop_Qt_6_2_3_GCC_64bit-Debug/test.jpeg");
+      image.save("/home/madam/Documents/work/tuw/alpinemaps/build-alpine-renderer-Desktop_Qt_6_2_3_GCC_64bit-Debug/test.jpeg");
       QCOMPARE(std::accumulate(image.constBits(), image.constBits() + image.sizeInBytes(), 0LLu), 34877273LLu);   // don't know what it will sum up to, but certainly not zero..
     }
 

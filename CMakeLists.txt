@@ -156,6 +156,7 @@ if (ATB_UNITTESTS AND NOT EMSCRIPTEN)
         add_executable(${name} unittests_qt/${name}.cpp)
         add_test(NAME ${name} COMMAND ${name})
         target_link_libraries(${name} PUBLIC render_backend Qt6::Test)
+        target_compile_definitions(${name} PUBLIC "ATB_TEST_DATA_DIR=\"${CMAKE_SOURCE_DIR}/unittests/data/\"")
     endfunction()
 
     foreach(cute_test ${ATB_QT_UNITTESTS})

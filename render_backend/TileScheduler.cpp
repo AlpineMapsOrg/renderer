@@ -18,9 +18,11 @@
 
 #include "TileScheduler.h"
 
+#include "render_backend/Tile.h"
 #include "render_backend/srs.h"
 #include "render_backend/utils/geometry.h"
 #include "render_backend/utils/QuadTree.h"
+#include "render_backend/utils/tile_conversion.h"
 
 namespace {
 geometry::AABB<3, double> aabb(const srs::TileId& tile_id)
@@ -81,6 +83,32 @@ std::vector<srs::TileId> TileScheduler::loadCandidates(const Camera& camera) con
 void TileScheduler::updateCamera(const Camera& camera)
 {
   const auto tiles = loadCandidates(camera);
-  for (const auto& t : tiles)
+  for (const auto& t : tiles) {
+    if (m_pending_tile_requests.contains(t))
+      continue;
     emit tileRequested(t);
+    m_pending_tile_requests.insert(t);
+  }
+}
+
+void TileScheduler::loadOrthoTile(srs::TileId tile_id, std::shared_ptr<QByteArray> data)
+{
+  m_loaded_ortho_tiles[tile_id] = data;
+  checkLoadedTile(tile_id);
+}
+
+void TileScheduler::loadHeightTile(srs::TileId tile_id, std::shared_ptr<QByteArray> data)
+{
+  m_loaded_height_tiles[tile_id] = data;
+  checkLoadedTile(tile_id);
+}
+
+void TileScheduler::checkLoadedTile(const srs::TileId& tile_id)
+{
+  if (m_loaded_height_tiles.contains(tile_id) && m_loaded_ortho_tiles.contains(tile_id)) {
+    auto heightraster = tile_conversion::qImage2uint16Raster(tile_conversion::toQImage(*m_loaded_height_tiles[tile_id]));
+    auto ortho = tile_conversion::toQImage(*m_loaded_ortho_tiles[tile_id]);
+    const auto tile = std::make_shared<Tile>(tile_id, srs::tile_bounds(tile_id), std::move(heightraster), std::move(ortho));
+    emit tileReady(tile);
+  }
 }

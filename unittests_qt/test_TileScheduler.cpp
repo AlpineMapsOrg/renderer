@@ -17,32 +17,63 @@
  *****************************************************************************/
 
 #include "render_backend/TileScheduler.h"
+
+#include <unordered_set>
+
 #include <QTest>
 #include <QSignalSpy>
 #include <glm/glm.hpp>
 
 #include "render_backend/Camera.h"
 #include "render_backend/srs.h"
+#include "render_backend/Tile.h"
 
 
 class TestTileScheduler: public QObject
 {
   Q_OBJECT
+private:
+  QByteArray m_ortho_bytes;
+  QByteArray m_height_bytes;
+  std::unique_ptr<TileScheduler> m_scheduler;
+  Camera test_cam = Camera({1822577.0, 6141664.0 - 500, 171.28 + 500}, {1822577.0, 6141664.0, 171.28}); // should point right at the stephansdom
+  std::unordered_set<srs::TileId, srs::TileId::Hasher> m_given_tiles;
 
+public slots:
+  void giveTiles(const srs::TileId& tile_id) {
+    m_given_tiles.insert(tile_id);
+    emit orthoTileReady(tile_id, std::make_shared<QByteArray>(m_ortho_bytes));
+    emit heightTileReady(tile_id, std::make_shared<QByteArray>(m_height_bytes));
+  }
+
+signals:
+  void orthoTileReady(srs::TileId tile_id, std::shared_ptr<QByteArray> data);
+  void heightTileReady(srs::TileId tile_id, std::shared_ptr<QByteArray> data);
 
 private slots:
+  void initTestCase() {
+    auto ortho_file = QFile(QString("%1%2").arg(ATB_TEST_DATA_DIR, "test-tile_ortho.jpeg"));
+    ortho_file.open(QFile::ReadOnly);
+    m_ortho_bytes = ortho_file.readAll();
+    QVERIFY(m_ortho_bytes.size() > 10);
+
+    auto height_file = QFile(QString("%1%2").arg(ATB_TEST_DATA_DIR, "test-tile.png"));
+    height_file.open(QFile::ReadOnly);
+    m_height_bytes = height_file.readAll();
+    QVERIFY(m_height_bytes.size() > 10);
+  }
+  void init() {
+    m_scheduler = std::make_unique<TileScheduler>();
+    m_given_tiles.clear();
+  }
   void loadCandidates() {
-    TileScheduler scheduler;
-    Camera test_cam = Camera({1822577.0, 6141664.0 - 500, 171.28 + 500}, {1822577.0, 6141664.0, 171.28}); // should point right at the stephansdom
-    const auto tile_list = scheduler.loadCandidates(test_cam);
+    const auto tile_list = m_scheduler->loadCandidates(test_cam);
     QVERIFY(!tile_list.empty());
   }
 
   void emitsTileRequestsWhenCalled() {
-    TileScheduler scheduler;
-    Camera test_cam = Camera({1822577.0, 6141664.0 - 500, 171.28 + 500}, {1822577.0, 6141664.0, 171.28}); // should point right at the stephansdom
-    QSignalSpy spy(&scheduler, &TileScheduler::tileRequested);
-    scheduler.updateCamera(test_cam);
+    QSignalSpy spy(m_scheduler.get(), &TileScheduler::tileRequested);
+    m_scheduler->updateCamera(test_cam);
     spy.wait(5);
 
     QVERIFY(spy.count() >= 1);
@@ -59,6 +90,42 @@ private slots:
     }
     QCOMPARE(n_tiles_containing_camera_view_dir, 1);
     QCOMPARE(n_tiles_containing_camera_position, 1);
+  }
+
+  void tileRequestsSentOnlyOnce() {
+    {
+      QSignalSpy spy(m_scheduler.get(), &TileScheduler::tileRequested);
+      m_scheduler->updateCamera(test_cam);
+      spy.wait(10); // ignore first batch of requests
+    }
+    {
+      QSignalSpy spy(m_scheduler.get(), &TileScheduler::tileRequested);
+      m_scheduler->updateCamera(test_cam);
+      spy.wait(10);
+      QVERIFY(spy.count() == 0);  // the scheduler should know, that it already requested these tiles
+    }
+  }
+
+  void emitsLoadedTiles() {
+    connect(m_scheduler.get(), &TileScheduler::tileRequested, this, &TestTileScheduler::giveTiles);
+    connect(this, &TestTileScheduler::orthoTileReady, m_scheduler.get(), &TileScheduler::loadOrthoTile);
+    connect(this, &TestTileScheduler::heightTileReady, m_scheduler.get(), &TileScheduler::loadHeightTile);
+    QSignalSpy spy(m_scheduler.get(), &TileScheduler::tileReady);
+    m_scheduler->updateCamera(test_cam);
+    spy.wait(10);
+    QVERIFY(size_t(spy.size()) == m_given_tiles.size());
+    for (const QList<QVariant>& signal : spy) {    // yes, QSignalSpy is a QList<QList<QVariant>>, where the inner QList contains the signal arguments
+      const std::shared_ptr<Tile> tile = signal.at(0).value<std::shared_ptr<Tile>>();
+      QVERIFY(tile);
+      QVERIFY(m_given_tiles.contains(tile->id));
+      QVERIFY(tile->height_map.width() == 256);
+      QVERIFY(tile->height_map.height() == 256);
+      QVERIFY(tile->orthotexture.width() == 256);
+      QVERIFY(tile->orthotexture.height() == 256);
+    }
+  }
+  void loadsTilesOnlyOnce() {
+
   }
 };
 
