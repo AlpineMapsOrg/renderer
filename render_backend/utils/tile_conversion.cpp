@@ -39,21 +39,9 @@ Raster<uint16_t> qImage2uint16Raster(const QImage&  qimage)
   }
   Raster<uint16_t> raster({qimage.width(), qimage.height()});
 
-//  auto image_pointer = qimage.constBits();
-//  for (uint16_t& r : raster) {
-//    // blue
-//    ++image_pointer;
-//    const auto green = *image_pointer;
-//    ++image_pointer;
-//    const auto red = *image_pointer;
-//    ++image_pointer;
-//    // alpha
-//    ++image_pointer;
-//    //next pixel
-//    r = alppineRedGreen2uint16(red, green);
-//  }
+  const auto qimage_copy = qimage.mirrored();
 
-  const auto* image_pointer = reinterpret_cast<const u_int32_t*>(qimage.constBits());
+  const auto* image_pointer = reinterpret_cast<const u_int32_t*>(qimage_copy.constBits());
   for (uint16_t& r : raster) {
     r = uint16_t((*image_pointer) >> 8);
     ++image_pointer;
