@@ -28,7 +28,8 @@ class TileLoadService : public QObject
   Q_OBJECT
 public:
   enum class UrlPattern {
-    ZXY, ZYX
+    ZXY, ZYX,                              // y=0 is southern most tile
+    ZXY_yPointingSouth, ZYX_yPointingSouth // y=0 is the northern most tile
   };
   TileLoadService(const QString& base_url, UrlPattern url_pattern, const QString& file_ending);
   ~TileLoadService() override;

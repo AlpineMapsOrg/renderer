@@ -86,7 +86,7 @@ int bufferLengthInBytes(const std::vector<T>& vec) {
 }
 }
 
-GLWindow::GLWindow() : m_camera(glm::dvec3{-2.f, -2.f, 2.f}, {0.f, 0.f, 0.f})
+GLWindow::GLWindow() : m_camera({1822577.0, 6141664.0 - 500, 171.28 + 500}, {1822577.0, 6141664.0, 171.28}) // should point right at the stephansdom
 {
   QTimer::singleShot(0, [this]() {this->update();});
 }
@@ -116,17 +116,7 @@ void GLWindow::initializeGL()
   m_tile_manager->setAttributeLocations(m_shader_manager->tileAttributeLocations());
   m_tile_manager->setUniformLocations(m_shader_manager->tileUniformLocations());
 
-  Tile t;
-  t.height_map = Raster<uint16_t>(64);
-  t.bounds.max = {4., 4.};
-  t.id.zoom_level = 0;
-  t.id.coords = {0, 0};
-
-  m_tile_manager->addTile(std::make_shared<Tile>(std::move(t)));
-
-
-
-//  glPolygonMode( GL_FRONT_AND_BACK, GL_LINE );
+  glPolygonMode( GL_FRONT_AND_BACK, GL_LINE );
 }
 
 void GLWindow::resizeGL(int w, int h)
@@ -142,6 +132,7 @@ void GLWindow::resizeGL(int w, int h)
   m_gl_paint_device->setDevicePixelRatio(retinaScale);
   QOpenGLFunctions *f = QOpenGLContext::currentContext()->functions();
   f->glViewport(0, 0, width, height);
+  emit cameraUpdated(m_camera);
   update();
 }
 
@@ -188,18 +179,26 @@ void GLWindow::mouseMoveEvent(QMouseEvent* e)
   glm::ivec2 mouse_position{e->pos().x(), e->pos().y()};
   if (e->buttons() == Qt::LeftButton) {
     const auto delta = mouse_position - m_previous_mouse_pos;
-    m_camera.pan(glm::vec2(delta) * 0.01f);
+    m_camera.pan(glm::vec2(delta) * 1.0f);
+    emit cameraUpdated(m_camera);
     update();
   }
   if (e->buttons() == Qt::MiddleButton) {
     const auto delta = mouse_position - m_previous_mouse_pos;
     m_camera.orbit(glm::vec2(delta) * 0.1f);
+    emit cameraUpdated(m_camera);
     update();
   }
   if (e->buttons() == Qt::RightButton) {
     const auto delta = mouse_position - m_previous_mouse_pos;
-    m_camera.zoom(delta.y * 0.005);
+    m_camera.zoom(delta.y * 0.5);
+    emit cameraUpdated(m_camera);
     update();
   }
   m_previous_mouse_pos = mouse_position;
+}
+
+GLTileManager*GLWindow::gpuTileManager() const
+{
+  return m_tile_manager.get();
 }

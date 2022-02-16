@@ -74,36 +74,40 @@ class GLShaderManager;
 
 class GLWindow : public QOpenGLWindow
 {
-    Q_OBJECT
-
+  Q_OBJECT
 public:
-    GLWindow();
-    ~GLWindow() override;
+  GLWindow();
+  ~GLWindow() override;
 
-    void initializeGL() override;
-    void resizeGL(int w, int h) override;
-    void paintGL() override;
-    void paintOverGL() override;
+  void initializeGL() override;
+  void resizeGL(int w, int h) override;
+  void paintGL() override;
+  void paintOverGL() override;
 
-  protected:
-    void mouseMoveEvent(QMouseEvent*) override;
+  GLTileManager* gpuTileManager() const;
+
+protected:
+  void mouseMoveEvent(QMouseEvent*) override;
+
+signals:
+  void cameraUpdated(const Camera&);
 
 private:
-    using ClockResolution = std::chrono::microseconds;
-    using Clock = std::chrono::steady_clock;
-    using TimePoint = std::chrono::time_point<Clock, ClockResolution>;
+  using ClockResolution = std::chrono::microseconds;
+  using Clock = std::chrono::steady_clock;
+  using TimePoint = std::chrono::time_point<Clock, ClockResolution>;
 
-    std::unique_ptr<GLTileManager> m_tile_manager; // needs opengl context
-    std::unique_ptr<GLShaderManager> m_shader_manager;
-    std::unique_ptr<QOpenGLPaintDevice> m_gl_paint_device;
+  std::unique_ptr<GLTileManager> m_tile_manager; // needs opengl context
+  std::unique_ptr<GLShaderManager> m_shader_manager;
+  std::unique_ptr<QOpenGLPaintDevice> m_gl_paint_device;
 
-    Camera m_camera;
-    glm::ivec2 m_previous_mouse_pos = {-1, -1};
+  Camera m_camera;
+  glm::ivec2 m_previous_mouse_pos = {-1, -1};
 
-    int m_frame = 0;
-    bool m_initialised = false;
-    TimePoint m_frame_start;
-    TimePoint m_frame_end;
+  int m_frame = 0;
+  bool m_initialised = false;
+  TimePoint m_frame_start;
+  TimePoint m_frame_end;
 };
 
 #endif

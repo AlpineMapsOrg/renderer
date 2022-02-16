@@ -51,8 +51,12 @@
 #include <QGuiApplication>
 #include <QSurfaceFormat>
 #include <QOpenGLContext>
+#include <QObject>
 
 #include "GLWindow.h"
+#include "alpine_gl_renderer/GLTileManager.h"
+#include "render_backend/TileLoadService.h"
+#include "render_backend/TileScheduler.h"
 
 // This example demonstrates easy, cross-platform usage of OpenGL ES 3.0 functions via
 // QOpenGLExtraFunctions in an application that works identically on desktop platforms
@@ -82,8 +86,18 @@ int main(int argc, char *argv[])
 
     QSurfaceFormat::setDefaultFormat(fmt);
 
+    TileLoadService terrain_service("http://localhost/tiles/at_dsm_1m/", TileLoadService::UrlPattern::ZXY_yPointingSouth, ".png");
+    TileLoadService ortho_service("https://maps.wien.gv.at/basemap/bmaporthofoto30cm/normal/google3857/", TileLoadService::UrlPattern::ZYX_yPointingSouth, ".jpeg");
+    TileScheduler scheduler;
     GLWindow glWindow;
     glWindow.showMaximized();
+
+    QObject::connect(&scheduler, &TileScheduler::tileRequested, &terrain_service, &TileLoadService::load);
+    QObject::connect(&scheduler, &TileScheduler::tileRequested, &ortho_service, &TileLoadService::load);
+    QObject::connect(&ortho_service, &TileLoadService::loadReady, &scheduler, &TileScheduler::loadOrthoTile);
+    QObject::connect(&terrain_service, &TileLoadService::loadReady, &scheduler, &TileScheduler::loadHeightTile);
+    QObject::connect(&scheduler, &TileScheduler::tileReady, [&glWindow](const std::shared_ptr<Tile>& tile) { glWindow.gpuTileManager()->addTile(tile); });
+    QObject::connect(&glWindow, &GLWindow::cameraUpdated, &scheduler, &TileScheduler::updateCamera);
 
     return app.exec();
 }

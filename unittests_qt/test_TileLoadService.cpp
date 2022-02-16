@@ -27,14 +27,35 @@ class TestTileLoadService: public QObject
 {
   Q_OBJECT
 private slots:
+  void buildTileUrl() {
+    {
+      TileLoadService service("https://maps.wien.gv.at/basemap/bmaporthofoto30cm/normal/google3857/", TileLoadService::UrlPattern::ZXY, ".jpeg");
+      QCOMPARE(service.build_tile_url({.zoom_level=2, .coords = {1, 3}}),
+               "https://maps.wien.gv.at/basemap/bmaporthofoto30cm/normal/google3857/2/1/3.jpeg");
+    }
+    {
+      TileLoadService service("https://maps.wien.gv.at/basemap/bmaporthofoto30cm/normal/google3857/", TileLoadService::UrlPattern::ZYX, ".jpeg");
+      QCOMPARE(service.build_tile_url({.zoom_level=2, .coords = {1, 3}}),
+               "https://maps.wien.gv.at/basemap/bmaporthofoto30cm/normal/google3857/2/3/1.jpeg");
+    }
+    {
+      TileLoadService service("https://maps.wien.gv.at/basemap/bmaporthofoto30cm/normal/google3857/", TileLoadService::UrlPattern::ZXY_yPointingSouth, ".jpeg");
+      QCOMPARE(service.build_tile_url({.zoom_level=2, .coords = {1, 3}}),
+               "https://maps.wien.gv.at/basemap/bmaporthofoto30cm/normal/google3857/2/1/0.jpeg");
+    }
+    {
+      TileLoadService service("https://maps.wien.gv.at/basemap/bmaporthofoto30cm/normal/google3857/", TileLoadService::UrlPattern::ZYX_yPointingSouth, ".jpeg");
+      QCOMPARE(service.build_tile_url({.zoom_level=2, .coords = {1, 3}}),
+               "https://maps.wien.gv.at/basemap/bmaporthofoto30cm/normal/google3857/2/0/1.jpeg");
+    }
+  }
+
   void download() {
     // https://maps.wien.gv.at/basemap/bmaporthofoto30cm/normal/google3857/9/177/273.jpeg => should be a white tile
     // https://maps.wien.gv.at/basemap/bmaporthofoto30cm/normal/google3857/9/179/272.jpeg => should show Tirol
     const auto white_tile_id = srs::TileId{.zoom_level = 9, .coords = {273, 177}};
     const auto tirol_tile_id = srs::TileId{.zoom_level = 9, .coords = {272, 179}};
     TileLoadService service("https://maps.wien.gv.at/basemap/bmaporthofoto30cm/normal/google3857/", TileLoadService::UrlPattern::ZYX, ".jpeg");
-    QCOMPARE(service.build_tile_url({.zoom_level=1, .coords = {2, 3}}),
-             "https://maps.wien.gv.at/basemap/bmaporthofoto30cm/normal/google3857/1/3/2.jpeg");
 
     {
       QSignalSpy spy(&service, &TileLoadService::loadReady);
