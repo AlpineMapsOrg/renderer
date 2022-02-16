@@ -73,10 +73,12 @@ private slots:
 
   void emitsTileRequestsWhenCalled() {
     QSignalSpy spy(m_scheduler.get(), &TileScheduler::tileRequested);
+    QVERIFY(m_scheduler->numberOfTilesInTransit() == 0);
     m_scheduler->updateCamera(test_cam);
     spy.wait(5);
 
-    QVERIFY(spy.count() >= 1);
+    QVERIFY(spy.size() >= 1);
+    QVERIFY(m_scheduler->numberOfTilesInTransit() == size_t(spy.size()));
     auto n_tiles_containing_camera_position = 0;
     auto n_tiles_containing_camera_view_dir = 0;
     for (const QList<QVariant>& signal : spy) {    // yes, QSignalSpy is a QList<QList<QVariant>>, where the inner QList contains the signal arguments
@@ -124,8 +126,45 @@ private slots:
       QVERIFY(tile->orthotexture.height() == 256);
     }
   }
-  void loadsTilesOnlyOnce() {
+  void freesMemory() {
+    connect(m_scheduler.get(), &TileScheduler::tileRequested, this, &TestTileScheduler::giveTiles);
+    connect(this, &TestTileScheduler::orthoTileReady, m_scheduler.get(), &TileScheduler::loadOrthoTile);
+    connect(this, &TestTileScheduler::heightTileReady, m_scheduler.get(), &TileScheduler::loadHeightTile);
+    m_scheduler->updateCamera(test_cam);
+    QTest::qWait(10);
+    QVERIFY(m_scheduler->numberOfTilesInTransit() == 0);
+    QVERIFY(m_scheduler->numberOfWaitingHeightTiles() == 0);
+    QVERIFY(m_scheduler->numberOfWaitingOrthoTiles() == 0);
+  }
 
+  void hasInfoAboutGpuTiles() {
+    QVERIFY(m_scheduler->gpuTiles().empty());
+    connect(m_scheduler.get(), &TileScheduler::tileRequested, this, &TestTileScheduler::giveTiles);
+    connect(this, &TestTileScheduler::orthoTileReady, m_scheduler.get(), &TileScheduler::loadOrthoTile);
+    connect(this, &TestTileScheduler::heightTileReady, m_scheduler.get(), &TileScheduler::loadHeightTile);
+    m_scheduler->updateCamera(test_cam);
+    QTest::qWait(10);
+    const auto gpu_tiles = m_scheduler->gpuTiles();
+    QVERIFY(gpu_tiles.size() == m_given_tiles.size());
+    for (const auto& t : gpu_tiles) {
+      QVERIFY(m_given_tiles.contains(t));
+    }
+  }
+
+  void doesntRequestTilesWhichAreOnTheGpu() {
+    QVERIFY(m_scheduler->gpuTiles().empty());
+    connect(m_scheduler.get(), &TileScheduler::tileRequested, this, &TestTileScheduler::giveTiles);
+    connect(this, &TestTileScheduler::orthoTileReady, m_scheduler.get(), &TileScheduler::loadOrthoTile);
+    connect(this, &TestTileScheduler::heightTileReady, m_scheduler.get(), &TileScheduler::loadHeightTile);
+    m_scheduler->updateCamera(test_cam);
+    QTest::qWait(10);
+    // tiles are on the gpu
+
+    QSignalSpy spy(m_scheduler.get(), &TileScheduler::tileRequested);
+    QVERIFY(m_scheduler->numberOfTilesInTransit() == 0);
+    m_scheduler->updateCamera(test_cam);
+    spy.wait(5);
+    QVERIFY(spy.empty());
   }
 };
 

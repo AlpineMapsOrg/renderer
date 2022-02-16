@@ -31,9 +31,14 @@ class TileScheduler : public QObject
 {
   Q_OBJECT
 public:
+  using TileSet = std::unordered_set<srs::TileId, srs::TileId::Hasher>;
   TileScheduler();
 
   [[nodiscard]] std::vector<srs::TileId> loadCandidates(const Camera& camera) const;
+  [[nodiscard]] size_t numberOfTilesInTransit() const;
+  [[nodiscard]] size_t numberOfWaitingHeightTiles() const;
+  [[nodiscard]] size_t numberOfWaitingOrthoTiles() const;
+  [[nodiscard]] TileSet gpuTiles() const;
 
 public slots:
   void updateCamera(const Camera& camera);
@@ -46,7 +51,8 @@ signals:
 
 private:
   void checkLoadedTile(const srs::TileId& tile_id);
-  std::unordered_set<srs::TileId, srs::TileId::Hasher> m_pending_tile_requests;
+  TileSet m_pending_tile_requests;
+  TileSet m_gpu_tiles;
   std::unordered_map<srs::TileId, std::shared_ptr<QByteArray>, srs::TileId::Hasher> m_loaded_ortho_tiles;
   std::unordered_map<srs::TileId, std::shared_ptr<QByteArray>, srs::TileId::Hasher> m_loaded_height_tiles;
 };

@@ -80,14 +80,36 @@ std::vector<srs::TileId> TileScheduler::loadCandidates(const Camera& camera) con
   return quad_tree::onTheFlyTraverse(srs::TileId{0, {0, 0}}, refine, srs::subtiles);
 }
 
+size_t TileScheduler::numberOfTilesInTransit() const
+{
+  return m_pending_tile_requests.size();
+}
+
+size_t TileScheduler::numberOfWaitingHeightTiles() const
+{
+  return m_loaded_ortho_tiles.size();
+}
+
+size_t TileScheduler::numberOfWaitingOrthoTiles() const
+{
+  return m_loaded_ortho_tiles.size();
+}
+
+TileScheduler::TileSet TileScheduler::gpuTiles() const
+{
+  return m_gpu_tiles;
+}
+
 void TileScheduler::updateCamera(const Camera& camera)
 {
   const auto tiles = loadCandidates(camera);
   for (const auto& t : tiles) {
     if (m_pending_tile_requests.contains(t))
       continue;
-    emit tileRequested(t);
+    if (m_gpu_tiles.contains(t))
+      continue;
     m_pending_tile_requests.insert(t);
+    emit tileRequested(t);
   }
 }
 
@@ -106,9 +128,13 @@ void TileScheduler::loadHeightTile(srs::TileId tile_id, std::shared_ptr<QByteArr
 void TileScheduler::checkLoadedTile(const srs::TileId& tile_id)
 {
   if (m_loaded_height_tiles.contains(tile_id) && m_loaded_ortho_tiles.contains(tile_id)) {
+    m_pending_tile_requests.erase(tile_id);
     auto heightraster = tile_conversion::qImage2uint16Raster(tile_conversion::toQImage(*m_loaded_height_tiles[tile_id]));
     auto ortho = tile_conversion::toQImage(*m_loaded_ortho_tiles[tile_id]);
     const auto tile = std::make_shared<Tile>(tile_id, srs::tile_bounds(tile_id), std::move(heightraster), std::move(ortho));
+    m_loaded_ortho_tiles.erase(tile_id);
+    m_loaded_height_tiles.erase(tile_id);
+    m_gpu_tiles.insert(tile_id);
     emit tileReady(tile);
   }
 }
