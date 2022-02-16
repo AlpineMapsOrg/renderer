@@ -58,8 +58,8 @@ public:
   [[nodiscard]] const glm::uvec2& viewportSize() const;
 
 private:
-  static constexpr double m_near_clipping = 0.5;
-  static constexpr double m_far_clipping = 10'000'000;
+  static constexpr double m_near_clipping = 1.0;
+  static constexpr double m_far_clipping = 100'000;
   glm::uvec2 m_viewport_size = {1, 1};
   glm::dvec3 operationCentre() const;
 };

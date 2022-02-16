@@ -35,6 +35,7 @@ public:
   explicit GLShaderManager();
   ~GLShaderManager() override;
   void bindTileShader();
+  void bindDebugShader();
   QOpenGLShaderProgram* tileShader() const;
   void release();
   [[nodiscard]] TileGLAttributeLocations tileAttributeLocations() const;
@@ -43,6 +44,7 @@ signals:
 
 private:
   std::unique_ptr<QOpenGLShaderProgram> m_tile_program = nullptr;
+  std::unique_ptr<QOpenGLShaderProgram> m_debug_program = nullptr;
   TileGLUniformLocations m_tile_uniform_location = {};
   TileGLAttributeLocations m_tile_attribute_locations = {};
 };

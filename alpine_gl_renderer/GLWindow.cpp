@@ -74,7 +74,7 @@
 #include "alpine_gl_renderer/GLTileManager.h"
 #include "alpine_gl_renderer/GLShaderManager.h"
 #include "render_backend/Tile.h"
-#include "render_backend/utils/terrain_mesh_index_generator.h"
+#include "render_backend/TileScheduler.h"
 
 namespace {
 QMatrix4x4 toQtType(const glm::mat4& mat) {
@@ -86,7 +86,8 @@ int bufferLengthInBytes(const std::vector<T>& vec) {
 }
 }
 
-GLWindow::GLWindow() : m_camera({1822577.0, 6141664.0 - 500, 171.28 + 500}, {1822577.0, 6141664.0, 171.28}) // should point right at the stephansdom
+GLWindow::GLWindow() : m_camera({1822577.0, 6141664.0 - 500, 171.28 + 500}, {1822577.0, 6141664.0, 171.28}), // should point right at the stephansdom
+                       m_debug_stored_camera(m_camera)
 {
   QTimer::singleShot(0, [this]() {this->update();});
 }
@@ -115,6 +116,7 @@ void GLWindow::initializeGL()
 
   m_tile_manager->setAttributeLocations(m_shader_manager->tileAttributeLocations());
   m_tile_manager->setUniformLocations(m_shader_manager->tileUniformLocations());
+//  f->glEnable(GL_DEPTH_TEST);
 
   glPolygonMode( GL_FRONT_AND_BACK, GL_LINE );
 }
@@ -151,6 +153,16 @@ void GLWindow::paintGL()
   m_shader_manager->tileShader()->setUniformValue(tile_uniform_locations.view_projection_matrix, toQtType(m_camera.localViewProjectionMatrix({})));
 
   m_tile_manager->draw(m_shader_manager->tileShader());
+
+  {
+    m_shader_manager->bindDebugShader();
+    const auto position = m_debug_stored_camera.position();
+    const auto direction_tl = m_debug_stored_camera.unproject({-1, 1});
+    const auto direction_tr = m_debug_stored_camera.unproject({1, 1});
+    std::array<glm::vec3, 3> debug_cam_lines = {position + direction_tl * 100.0,
+                                                position,
+                                                position + direction_tr * 100.0};
+  }
   m_shader_manager->release();
 
   m_frame_end = std::chrono::time_point_cast<ClockResolution>(Clock::now());
@@ -163,6 +175,12 @@ void GLWindow::paintOverGL()
   const auto frame_duration_text = QString("Last frame: %1ms, draw indicator: ")
                                        .arg(QString::asprintf("%04.1f", frame_duration_float));
 
+  const auto scheduler_stats = QString("Scheduler: %1 tiles in transit, %2 waiting height tiles, %3 waiting ortho tiles, %4 tiles on gpu")
+                                   .arg(m_tile_scheduler->numberOfTilesInTransit())
+                                   .arg(m_tile_scheduler->numberOfWaitingHeightTiles())
+                                   .arg(m_tile_scheduler->numberOfWaitingOrthoTiles())
+                                   .arg(m_tile_scheduler->gpuTiles().size());
+
   const auto random_u32 = QRandomGenerator::global()->generate();
 
   QPainter painter(m_gl_paint_device.get());
@@ -170,6 +188,7 @@ void GLWindow::paintOverGL()
   painter.setPen(Qt::white);
   QRect text_bb = painter.boundingRect(10, 20, 1, 15, Qt::TextSingleLine, frame_duration_text);
   painter.drawText(10, 20, frame_duration_text);
+  painter.drawText(10, 40, scheduler_stats);
   painter.setBrush(QBrush(QColor(random_u32)));
   painter.drawRect(int(text_bb.right()) + 5, 8, 12, 12);
 }
@@ -196,6 +215,17 @@ void GLWindow::mouseMoveEvent(QMouseEvent* e)
     update();
   }
   m_previous_mouse_pos = mouse_position;
+}
+
+void GLWindow::keyPressEvent(QKeyEvent* e)
+{
+  if (e->key() == Qt::Key::Key_C)
+    m_debug_stored_camera = m_camera;
+}
+
+void GLWindow::setTileScheduler(TileScheduler* new_tile_scheduler)
+{
+  m_tile_scheduler = new_tile_scheduler;
 }
 
 GLTileManager*GLWindow::gpuTileManager() const

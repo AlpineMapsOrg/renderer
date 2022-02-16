@@ -71,6 +71,7 @@ QT_END_NAMESPACE
 
 class GLTileManager;
 class GLShaderManager;
+class TileScheduler;
 
 class GLWindow : public QOpenGLWindow
 {
@@ -86,8 +87,11 @@ public:
 
   GLTileManager* gpuTileManager() const;
 
+  void setTileScheduler(TileScheduler* new_tile_scheduler);
+
 protected:
   void mouseMoveEvent(QMouseEvent*) override;
+  void keyPressEvent(QKeyEvent*) override;
 
 signals:
   void cameraUpdated(const Camera&);
@@ -100,8 +104,10 @@ private:
   std::unique_ptr<GLTileManager> m_tile_manager; // needs opengl context
   std::unique_ptr<GLShaderManager> m_shader_manager;
   std::unique_ptr<QOpenGLPaintDevice> m_gl_paint_device;
+  TileScheduler* m_tile_scheduler;
 
   Camera m_camera;
+  Camera m_debug_stored_camera;
   glm::ivec2 m_previous_mouse_pos = {-1, -1};
 
   int m_frame = 0;

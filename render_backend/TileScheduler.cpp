@@ -28,7 +28,7 @@ namespace {
 geometry::AABB<3, double> aabb(const srs::TileId& tile_id)
 {
   const auto bounds = srs::tile_bounds(tile_id);
-  return {.min = {bounds.min, 0}, .max = {bounds.max, 4000}};
+  return {.min = {bounds.min, 100.0}, .max = {bounds.max, 4000}};
 }
 
 glm::dvec3 nearestPoint(const std::vector<geometry::Triangle<3, double>>& triangles, const Camera& camera) {
@@ -102,6 +102,8 @@ TileScheduler::TileSet TileScheduler::gpuTiles() const
 
 void TileScheduler::updateCamera(const Camera& camera)
 {
+  if (!enabled())
+    return;
   const auto tiles = loadCandidates(camera);
   for (const auto& t : tiles) {
     if (m_pending_tile_requests.contains(t))
@@ -137,4 +139,14 @@ void TileScheduler::checkLoadedTile(const srs::TileId& tile_id)
     m_gpu_tiles.insert(tile_id);
     emit tileReady(tile);
   }
+}
+
+bool TileScheduler::enabled() const
+{
+  return m_enabled;
+}
+
+void TileScheduler::setEnabled(bool newEnabled)
+{
+  m_enabled = newEnabled;
 }

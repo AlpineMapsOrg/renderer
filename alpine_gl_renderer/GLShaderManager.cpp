@@ -21,7 +21,7 @@
 #include <QOpenGLContext>
 
 
-static const char *vertexShaderSource = R"(
+static const char* tileVertexShaderSource = R"(
   in highp float height;
   out lowp vec2 uv;
   uniform highp mat4 matrix;
@@ -42,11 +42,24 @@ static const char *vertexShaderSource = R"(
     gl_Position = matrix * pos;
   })";
 
-static const char *fragmentShaderSource = R"(
+static const char* tileFragmentShaderSource = R"(
   in lowp vec2 uv;
   out lowp vec4 out_Color;
   void main() {
-     out_Color = vec4(uv, 0, 1);
+     out_Color = vec4(uv * 0.1, 0, 1);
+  })";
+
+static const char* debugVertexShaderSource = R"(
+  in vec4 a_position;
+  uniform highp mat4 matrix;
+  void main() {
+    gl_Position = matrix * a_position;
+  })";
+
+static const char* debugFragmentShaderSource = R"(
+  out lowp vec4 out_Color;
+  void main() {
+     out_Color = vec4(1, 0, 0, 1);
   })";
 
 QByteArray versionedShaderCode(const char *src)
@@ -66,8 +79,8 @@ QByteArray versionedShaderCode(const char *src)
 GLShaderManager::GLShaderManager()
 {
   m_tile_program = std::make_unique<QOpenGLShaderProgram>();
-  m_tile_program->addShaderFromSourceCode(QOpenGLShader::Vertex, versionedShaderCode(vertexShaderSource));
-  m_tile_program->addShaderFromSourceCode(QOpenGLShader::Fragment, versionedShaderCode(fragmentShaderSource));
+  m_tile_program->addShaderFromSourceCode(QOpenGLShader::Vertex, versionedShaderCode(tileVertexShaderSource));
+  m_tile_program->addShaderFromSourceCode(QOpenGLShader::Fragment, versionedShaderCode(tileFragmentShaderSource));
   {
     const auto link_success = m_tile_program->link();
     assert(link_success);
@@ -83,6 +96,15 @@ GLShaderManager::GLShaderManager()
 
   m_tile_attribute_locations.height = m_tile_program->attributeLocation("height");
   assert(m_tile_attribute_locations.height != -1);
+
+
+  m_debug_program = std::make_unique<QOpenGLShaderProgram>();
+  m_debug_program->addShaderFromSourceCode(QOpenGLShader::Vertex, versionedShaderCode(debugVertexShaderSource));
+  m_debug_program->addShaderFromSourceCode(QOpenGLShader::Fragment, versionedShaderCode(debugFragmentShaderSource));
+  {
+    const auto link_success = m_tile_program->link();
+    assert(link_success);
+  }
 }
 
 GLShaderManager::~GLShaderManager() {
@@ -92,6 +114,11 @@ GLShaderManager::~GLShaderManager() {
 void GLShaderManager::bindTileShader()
 {
   m_tile_program->bind();
+}
+
+void GLShaderManager::bindDebugShader()
+{
+  m_debug_program->bind();
 }
 
 QOpenGLShaderProgram* GLShaderManager::tileShader() const

@@ -40,6 +40,9 @@ public:
   [[nodiscard]] size_t numberOfWaitingOrthoTiles() const;
   [[nodiscard]] TileSet gpuTiles() const;
 
+  bool enabled() const;
+  void setEnabled(bool newEnabled);
+
 public slots:
   void updateCamera(const Camera& camera);
   void loadOrthoTile(srs::TileId tile_id, std::shared_ptr<QByteArray> data);
@@ -55,5 +58,6 @@ private:
   TileSet m_gpu_tiles;
   std::unordered_map<srs::TileId, std::shared_ptr<QByteArray>, srs::TileId::Hasher> m_loaded_ortho_tiles;
   std::unordered_map<srs::TileId, std::shared_ptr<QByteArray>, srs::TileId::Hasher> m_loaded_height_tiles;
+  bool m_enabled = true;
 };
 

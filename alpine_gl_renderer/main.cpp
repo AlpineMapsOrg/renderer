@@ -52,6 +52,7 @@
 #include <QSurfaceFormat>
 #include <QOpenGLContext>
 #include <QObject>
+#include <QTimer>
 
 #include "GLWindow.h"
 #include "alpine_gl_renderer/GLTileManager.h"
@@ -91,6 +92,7 @@ int main(int argc, char *argv[])
     TileScheduler scheduler;
     GLWindow glWindow;
     glWindow.showMaximized();
+    glWindow.setTileScheduler(&scheduler);  // i don't like this, gl window is tightly coupled with the scheduler.
 
     QObject::connect(&scheduler, &TileScheduler::tileRequested, &terrain_service, &TileLoadService::load);
     QObject::connect(&scheduler, &TileScheduler::tileRequested, &ortho_service, &TileLoadService::load);
@@ -98,6 +100,9 @@ int main(int argc, char *argv[])
     QObject::connect(&terrain_service, &TileLoadService::loadReady, &scheduler, &TileScheduler::loadHeightTile);
     QObject::connect(&scheduler, &TileScheduler::tileReady, [&glWindow](const std::shared_ptr<Tile>& tile) { glWindow.gpuTileManager()->addTile(tile); });
     QObject::connect(&glWindow, &GLWindow::cameraUpdated, &scheduler, &TileScheduler::updateCamera);
+    QTimer::singleShot(10'000, [&]() {
+      scheduler.setEnabled(false);
+    });
 
     return app.exec();
 }
