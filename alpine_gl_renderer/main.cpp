@@ -100,9 +100,8 @@ int main(int argc, char *argv[])
     QObject::connect(&ortho_service, &TileLoadService::loadReady, &scheduler, &TileScheduler::loadOrthoTile);
     QObject::connect(&terrain_service, &TileLoadService::loadReady, &scheduler, &TileScheduler::loadHeightTile);
     QObject::connect(&scheduler, &TileScheduler::tileReady, [&glWindow](const std::shared_ptr<Tile>& tile) { glWindow.gpuTileManager()->addTile(tile); });
-    QTimer::singleShot(10'000, [&]() {
-      scheduler.setEnabled(false);
-    });
+    QObject::connect(&scheduler, &TileScheduler::tileExpired, [&glWindow](const auto& tile) { glWindow.gpuTileManager()->removeTile(tile); });
+    QObject::connect(&scheduler, &TileScheduler::tileReady, &glWindow, qOverload<>(&GLWindow::update));
 
     return app.exec();
 }

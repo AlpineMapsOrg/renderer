@@ -118,6 +118,11 @@ void GLTileManager::removeTile(const srs::TileId& tile_id)
 {
   // clear slot
   // or remove from list and free resources
+  const auto found_tile = std::find_if(m_gpu_tiles.begin(), m_gpu_tiles.end(), [&tile_id](const GLTileSet& tileset) {
+    return tileset.tiles.front().first == tile_id;
+  });
+  if (found_tile != m_gpu_tiles.end())
+    m_gpu_tiles.erase(found_tile);
 
   emit tilesChanged();
 }

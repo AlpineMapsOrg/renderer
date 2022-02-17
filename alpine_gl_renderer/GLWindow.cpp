@@ -79,6 +79,7 @@ GLWindow::GLWindow() : m_camera({1822577.0, 6141664.0 - 500, 171.28 + 500}, {182
                        m_debug_stored_camera(m_camera)
 {
   QTimer::singleShot(0, [this]() {this->update();});
+  QTimer::singleShot(0, [this]() {emit cameraUpdated(m_camera);});
 }
 
 GLWindow::~GLWindow()

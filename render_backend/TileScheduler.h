@@ -52,6 +52,7 @@ public slots:
 signals:
   void tileRequested(const srs::TileId& tile_id);
   void tileReady(const std::shared_ptr<Tile>& tile);
+  void tileExpired(const srs::TileId& tile_id);
 
 private:
   void checkLoadedTile(const srs::TileId& tile_id);

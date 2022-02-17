@@ -72,8 +72,12 @@ std::vector<srs::TileId> TileScheduler::loadCandidates(const Camera& camera) con
     const auto other_point = nearest_point + glm::dvec4(camera.xAxis() * aabb_width / 256.0, 0);
     const auto vp_mat = camera.worldViewProjectionMatrix();
 
-    const auto screen_space_difference = length((vp_mat * nearest_point - vp_mat * other_point).xy());
-    if (screen_space_difference < 2.0 / camera.viewportSize().x)
+    auto nearest_screenspace = vp_mat * nearest_point;
+    nearest_screenspace /= nearest_screenspace.w;
+    auto other_screenspace = vp_mat * other_point;
+    other_screenspace /= other_screenspace.w;
+    const auto clip_space_difference = length((nearest_screenspace - other_screenspace).xy());
+    if (clip_space_difference * 0.5 * camera.viewportSize().x < 4.0)
       return false;
     return true;
   };
@@ -105,13 +109,20 @@ void TileScheduler::updateCamera(const Camera& camera)
   if (!enabled())
     return;
   const auto tiles = loadCandidates(camera);
+  auto expired_gpu_tiles = m_gpu_tiles;
   for (const auto& t : tiles) {
     if (m_pending_tile_requests.contains(t))
       continue;
-    if (m_gpu_tiles.contains(t))
+    if (m_gpu_tiles.contains(t)) {
+      expired_gpu_tiles.erase(t);
       continue;
+    }
     m_pending_tile_requests.insert(t);
     emit tileRequested(t);
+  }
+  for (const auto& t : expired_gpu_tiles) {
+    m_gpu_tiles.erase(t);
+    emit tileExpired(t);
   }
 }
 

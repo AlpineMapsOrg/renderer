@@ -166,6 +166,29 @@ private slots:
     spy.wait(5);
     QVERIFY(spy.empty());
   }
+
+
+  void expiresOldTiles() {
+    QVERIFY(m_scheduler->gpuTiles().empty());
+    connect(m_scheduler.get(), &TileScheduler::tileRequested, this, &TestTileScheduler::giveTiles);
+    connect(this, &TestTileScheduler::orthoTileReady, m_scheduler.get(), &TileScheduler::loadOrthoTile);
+    connect(this, &TestTileScheduler::heightTileReady, m_scheduler.get(), &TileScheduler::loadHeightTile);
+    m_scheduler->updateCamera(test_cam);
+    QTest::qWait(10);
+    // tiles are on the gpu
+    const auto gpu_tiles = m_scheduler->gpuTiles();
+
+    QSignalSpy spy(m_scheduler.get(), &TileScheduler::tileExpired);
+    Camera replacement_cam = Camera({0.0, 0.0 - 500, 0.0 - 500}, {0.0, 0.0, -1000.0});
+    m_scheduler->updateCamera(replacement_cam);
+    spy.wait(5);
+    QVERIFY(m_scheduler->gpuTiles().size() == 1);   // only root tile
+    QVERIFY(size_t(spy.size()) == gpu_tiles.size());
+    for (const auto& tileExpireSignal : spy) {
+      const srs::TileId tile = tileExpireSignal.at(0).value<srs::TileId>();
+      QVERIFY(gpu_tiles.contains(tile));
+    }
+  }
 };
 
 
