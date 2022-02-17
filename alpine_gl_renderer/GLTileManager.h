@@ -23,7 +23,7 @@
 #include <QObject>
 
 #include "render_backend/Tile.h"
-#include "alpine_gl_renderer/TileGLLocations.h"
+#include "alpine_gl_renderer/GLVariableLocations.h"
 #include "alpine_gl_renderer/GLTileSet.h"
 
 class QOpenGLShaderProgram;
@@ -35,7 +35,7 @@ public:
   explicit GLTileManager(QObject *parent = nullptr);
 
   [[nodiscard]] const std::vector<GLTileSet>& tiles() const;
-  void draw(QOpenGLShaderProgram* shader_program) const;
+  void draw(QOpenGLShaderProgram* shader_program, const glm::mat4& world_view_projection_matrix) const;
 
 signals:
   void tilesChanged();

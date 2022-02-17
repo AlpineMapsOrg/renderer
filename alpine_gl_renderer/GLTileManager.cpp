@@ -24,9 +24,9 @@
 #include <QOpenGLVertexArrayObject>
 #include <QOpenGLShaderProgram>
 
+#include "alpine_gl_renderer/GLHelpers.h"
 #include "render_backend/utils/terrain_mesh_index_generator.h"
-
-#include <render_backend/Tile.h>
+#include "render_backend/Tile.h"
 
 namespace {
 template <typename T>
@@ -67,10 +67,11 @@ const std::vector<GLTileSet>& GLTileManager::tiles() const
   return m_gpu_tiles;
 }
 
-void GLTileManager::draw(QOpenGLShaderProgram* shader_program) const
+void GLTileManager::draw(QOpenGLShaderProgram* shader_program, const glm::mat4& world_view_projection_matrix) const
 {
   QOpenGLExtraFunctions *f = QOpenGLContext::currentContext()->extraFunctions();
   shader_program->setUniformValue(m_uniform_locations.n_edge_vertices, N_EDGE_VERTICES);
+  shader_program->setUniformValue(m_uniform_locations.view_projection_matrix, gl_helpers::toQtType(world_view_projection_matrix));
   for (const auto& tileset : tiles()) {
     tileset.vao->bind();
     const auto bounds = boundsArray(tileset);
@@ -96,7 +97,7 @@ void GLTileManager::addTile(const std::shared_ptr<Tile>& tile)
     tileset.heightmap_buffer = std::make_unique<QOpenGLBuffer>(QOpenGLBuffer::VertexBuffer);
     tileset.heightmap_buffer->create();
     tileset.heightmap_buffer->bind();
-    tileset.heightmap_buffer->setUsagePattern(QOpenGLBuffer::StaticDraw);
+    tileset.heightmap_buffer->setUsagePattern(QOpenGLBuffer::DynamicDraw);
     tileset.heightmap_buffer->allocate(tile->height_map.buffer().data(), bufferLengthInBytes(tile->height_map.buffer()));
     f->glEnableVertexAttribArray(GLuint(m_attribute_locations.height));
     f->glVertexAttribPointer(GLuint(m_attribute_locations.height), /*size*/ 1, /*type*/ GL_UNSIGNED_SHORT, /*normalised*/ GL_TRUE, /*stride*/ 0, nullptr);

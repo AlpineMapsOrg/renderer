@@ -22,7 +22,7 @@
 #include <QObject>
 #include <QOpenGLShaderProgram>
 
-#include "alpine_gl_renderer/TileGLLocations.h"
+#include "alpine_gl_renderer/GLVariableLocations.h"
 
 //QT_BEGIN_NAMESPACE
 //class QOpenGLShaderProgram;
@@ -36,10 +36,13 @@ public:
   ~GLShaderManager() override;
   void bindTileShader();
   void bindDebugShader();
-  QOpenGLShaderProgram* tileShader() const;
+  [[nodiscard]] QOpenGLShaderProgram* tileShader() const;
+  [[nodiscard]] QOpenGLShaderProgram* debugShader() const;
   void release();
   [[nodiscard]] TileGLAttributeLocations tileAttributeLocations() const;
   [[nodiscard]] TileGLUniformLocations tileUniformLocations() const;
+  [[nodiscard]] DebugGLAttributeLocations debugAttributeLocations() const;
+  [[nodiscard]] DebugGLUniformLocations debugUniformLocations() const;
 signals:
 
 private:
@@ -47,5 +50,7 @@ private:
   std::unique_ptr<QOpenGLShaderProgram> m_debug_program = nullptr;
   TileGLUniformLocations m_tile_uniform_location = {};
   TileGLAttributeLocations m_tile_attribute_locations = {};
+  DebugGLUniformLocations m_debug_uniform_location = {};
+  DebugGLAttributeLocations m_debug_attribute_locations = {};
 };
 

@@ -22,7 +22,7 @@
 
 
 static const char* tileVertexShaderSource = R"(
-  in highp float height;
+  layout(location = 0) in highp float height;
   out lowp vec2 uv;
   uniform highp mat4 matrix;
   uniform highp vec4 bounds[32];
@@ -50,7 +50,7 @@ static const char* tileFragmentShaderSource = R"(
   })";
 
 static const char* debugVertexShaderSource = R"(
-  in vec4 a_position;
+  layout(location = 0) in vec4 a_position;
   uniform highp mat4 matrix;
   void main() {
     gl_Position = matrix * a_position;
@@ -85,6 +85,15 @@ GLShaderManager::GLShaderManager()
     const auto link_success = m_tile_program->link();
     assert(link_success);
   }
+  m_debug_program = std::make_unique<QOpenGLShaderProgram>();
+  m_debug_program->addShaderFromSourceCode(QOpenGLShader::Vertex, versionedShaderCode(debugVertexShaderSource));
+  m_debug_program->addShaderFromSourceCode(QOpenGLShader::Fragment, versionedShaderCode(debugFragmentShaderSource));
+  {
+    const auto link_success = m_debug_program->link();
+    assert(link_success);
+  }
+
+  // tile shader
   m_tile_uniform_location.view_projection_matrix = m_tile_program->uniformLocation("matrix");
   assert(m_tile_uniform_location.view_projection_matrix != -1);
 
@@ -98,13 +107,11 @@ GLShaderManager::GLShaderManager()
   assert(m_tile_attribute_locations.height != -1);
 
 
-  m_debug_program = std::make_unique<QOpenGLShaderProgram>();
-  m_debug_program->addShaderFromSourceCode(QOpenGLShader::Vertex, versionedShaderCode(debugVertexShaderSource));
-  m_debug_program->addShaderFromSourceCode(QOpenGLShader::Fragment, versionedShaderCode(debugFragmentShaderSource));
-  {
-    const auto link_success = m_tile_program->link();
-    assert(link_success);
-  }
+  // debug shader
+  m_debug_uniform_location.view_projection_matrix = m_debug_program->uniformLocation("matrix");
+  assert(m_tile_uniform_location.view_projection_matrix != -1);
+
+  m_debug_attribute_locations.position = 0;
 }
 
 GLShaderManager::~GLShaderManager() {
@@ -126,6 +133,11 @@ QOpenGLShaderProgram* GLShaderManager::tileShader() const
   return m_tile_program.get();
 }
 
+QOpenGLShaderProgram* GLShaderManager::debugShader() const
+{
+  return m_debug_program.get();
+}
+
 void GLShaderManager::release()
 {
   m_tile_program->release();
@@ -139,4 +151,14 @@ TileGLAttributeLocations GLShaderManager::tileAttributeLocations() const
 TileGLUniformLocations GLShaderManager::tileUniformLocations() const
 {
   return m_tile_uniform_location;
+}
+
+DebugGLAttributeLocations GLShaderManager::debugAttributeLocations() const
+{
+  return m_debug_attribute_locations;
+}
+
+DebugGLUniformLocations GLShaderManager::debugUniformLocations() const
+{
+  return m_debug_uniform_location;
 }

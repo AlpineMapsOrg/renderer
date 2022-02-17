@@ -45,9 +45,9 @@ public:
   [[nodiscard]] glm::dvec3 xAxis() const;
   [[nodiscard]] glm::dvec3 yAxis() const;
   [[nodiscard]] glm::dvec3 zAxis() const;
-  [[nodiscard]] glm::dvec3 unproject(const glm::dvec2 &screen_space_position) const;
+  [[nodiscard]] glm::dvec3 ray_direction(const glm::dvec2 &normalised_device_coordinates) const;
   [[nodiscard]] std::vector<geometry::Plane<double>> clippingPlanes() const;
-  void setPerspectiveParams(float fov_degrees, const glm::uvec2& viewport_size);
+  void setPerspectiveParams(float fov_degrees, const glm::uvec2& viewport_size, double near_plane);
   void pan(const glm::dvec2& v);
   void move(const glm::dvec3& v);
   void orbit(const glm::dvec3& centre, const glm::dvec2& degrees);
@@ -58,8 +58,8 @@ public:
   [[nodiscard]] const glm::uvec2& viewportSize() const;
 
 private:
-  static constexpr double m_near_clipping = 1.0;
-  static constexpr double m_far_clipping = 100'000;
+  double m_near_clipping = 100.0;
+  double m_far_clipping = 100'000;
   glm::uvec2 m_viewport_size = {1, 1};
   glm::dvec3 operationCentre() const;
 };

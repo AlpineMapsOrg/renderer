@@ -68,23 +68,12 @@
 
 
 #include <glm/glm.hpp>
-#include <glm/gtc/type_ptr.hpp>
-#include <glm/gtc/matrix_transform.hpp>
 
 #include "alpine_gl_renderer/GLTileManager.h"
 #include "alpine_gl_renderer/GLShaderManager.h"
+#include "alpine_gl_renderer/GLDebugPainter.h"
 #include "render_backend/Tile.h"
 #include "render_backend/TileScheduler.h"
-
-namespace {
-QMatrix4x4 toQtType(const glm::mat4& mat) {
-  return QMatrix4x4(glm::value_ptr(mat)).transposed();
-}
-template <typename T>
-int bufferLengthInBytes(const std::vector<T>& vec) {
-  return int(vec.size() * sizeof(T));
-}
-}
 
 GLWindow::GLWindow() : m_camera({1822577.0, 6141664.0 - 500, 171.28 + 500}, {1822577.0, 6141664.0, 171.28}), // should point right at the stephansdom
                        m_debug_stored_camera(m_camera)
@@ -112,12 +101,14 @@ void GLWindow::initializeGL()
 
   m_gl_paint_device = std::make_unique<QOpenGLPaintDevice>();
   m_tile_manager = std::make_unique<GLTileManager>();
+  m_debug_painter = std::make_unique<GLDebugPainter>();
   m_shader_manager = std::make_unique<GLShaderManager>();
 
   m_tile_manager->setAttributeLocations(m_shader_manager->tileAttributeLocations());
   m_tile_manager->setUniformLocations(m_shader_manager->tileUniformLocations());
 
-//  glPolygonMode( GL_FRONT_AND_BACK, GL_LINE );
+  m_debug_painter->setAttributeLocations(m_shader_manager->debugAttributeLocations());
+  m_debug_painter->setUniformLocations(m_shader_manager->debugUniformLocations());
 }
 
 void GLWindow::resizeGL(int w, int h)
@@ -128,7 +119,7 @@ void GLWindow::resizeGL(int w, int h)
   const int width = int(retinaScale * w);
   const int height = int(retinaScale * h);
 
-  m_camera.setPerspectiveParams(45, {width, height});
+  m_camera.setPerspectiveParams(45, {width, height}, 100);
   m_gl_paint_device->setSize({w, h});
   m_gl_paint_device->setDevicePixelRatio(retinaScale);
   QOpenGLFunctions *f = QOpenGLContext::currentContext()->functions();
@@ -148,25 +139,27 @@ void GLWindow::paintGL()
   f->glEnable(GL_DEPTH_TEST);
   f->glDepthFunc(GL_LEQUAL);
 //  f->glEnable(GL_CULL_FACE);
+//  glPolygonMode( GL_FRONT_AND_BACK, GL_LINE );
 
   m_shader_manager->bindTileShader();
 
-  const auto tile_uniform_locations = m_shader_manager->tileUniformLocations();
-  m_shader_manager->tileShader()->setUniformValue(tile_uniform_locations.view_projection_matrix, toQtType(m_camera.localViewProjectionMatrix({})));
-
-  m_tile_manager->draw(m_shader_manager->tileShader());
+  const auto world_view_projection_matrix = m_camera.localViewProjectionMatrix({});
+  m_tile_manager->draw(m_shader_manager->tileShader(), world_view_projection_matrix);
 
   {
     m_shader_manager->bindDebugShader();
+    m_debug_painter->activate(m_shader_manager->debugShader(), world_view_projection_matrix);
     const auto position = m_debug_stored_camera.position();
-    const auto direction_tl = m_debug_stored_camera.unproject({-1, 1});
-    const auto direction_tr = m_debug_stored_camera.unproject({1, 1});
-    std::array<glm::vec3, 3> debug_cam_lines = {position + direction_tl * 100.0,
+    const auto direction_tl = m_debug_stored_camera.ray_direction({-1, 1});
+    const auto direction_tr = m_debug_stored_camera.ray_direction({1, 1});
+    std::vector<glm::vec3> debug_cam_lines = {position + direction_tl * 100.0,
                                                 position,
                                                 position + direction_tr * 100.0};
+    m_debug_painter->drawLineStrip(debug_cam_lines);
   }
   m_shader_manager->release();
 
+//  glPolygonMode( GL_FRONT_AND_BACK, GL_FILL );
   m_frame_end = std::chrono::time_point_cast<ClockResolution>(Clock::now());
 }
 
