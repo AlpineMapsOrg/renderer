@@ -116,9 +116,8 @@ void GLWindow::initializeGL()
 
   m_tile_manager->setAttributeLocations(m_shader_manager->tileAttributeLocations());
   m_tile_manager->setUniformLocations(m_shader_manager->tileUniformLocations());
-//  f->glEnable(GL_DEPTH_TEST);
 
-  glPolygonMode( GL_FRONT_AND_BACK, GL_LINE );
+//  glPolygonMode( GL_FRONT_AND_BACK, GL_LINE );
 }
 
 void GLWindow::resizeGL(int w, int h)
@@ -146,6 +145,9 @@ void GLWindow::paintGL()
   f->glClearColor(0.5, 0.5, 0.5, 1);
 
   f->glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
+  f->glEnable(GL_DEPTH_TEST);
+  f->glDepthFunc(GL_LEQUAL);
+//  f->glEnable(GL_CULL_FACE);
 
   m_shader_manager->bindTileShader();
 
