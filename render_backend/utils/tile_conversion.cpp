@@ -39,9 +39,7 @@ Raster<uint16_t> qImage2uint16Raster(const QImage&  qimage)
   }
   Raster<uint16_t> raster({qimage.width(), qimage.height()});
 
-  const auto qimage_copy = qimage.mirrored();
-
-  const auto* image_pointer = reinterpret_cast<const u_int32_t*>(qimage_copy.constBits());
+  const auto* image_pointer = reinterpret_cast<const u_int32_t*>(qimage.constBits());
   for (uint16_t& r : raster) {
     r = uint16_t((*image_pointer) >> 8);
     ++image_pointer;
