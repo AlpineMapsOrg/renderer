@@ -65,7 +65,8 @@ std::vector<DataType> onTheFlyTraverse(const DataType& root, const PredicateFunc
   const auto children = generate_children(root);
   std::vector<DataType> leaves;
   for (const auto& child : children) {
-    std::ranges::copy(onTheFlyTraverse(child, predicate, generate_children), std::back_inserter(leaves));
+    const auto tmp = onTheFlyTraverse(child, predicate, generate_children);
+    std::copy(tmp.begin(), tmp.end(), std::back_inserter(leaves));
   }
 
   return leaves;

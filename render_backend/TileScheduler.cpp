@@ -77,7 +77,7 @@ std::vector<srs::TileId> TileScheduler::loadCandidates(const Camera& camera) con
       return false;
     return true;
   };
-  return quad_tree::onTheFlyTraverse(srs::TileId{0, {0, 0}}, refine, srs::subtiles);
+  return quad_tree::onTheFlyTraverse(srs::TileId{0, {0, 0}}, refine, [](const auto& v) { return srs::subtiles(v); });
 }
 
 size_t TileScheduler::numberOfTilesInTransit() const
@@ -87,7 +87,7 @@ size_t TileScheduler::numberOfTilesInTransit() const
 
 size_t TileScheduler::numberOfWaitingHeightTiles() const
 {
-  return m_loaded_ortho_tiles.size();
+  return m_loaded_height_tiles.size();
 }
 
 size_t TileScheduler::numberOfWaitingOrthoTiles() const

@@ -48,7 +48,7 @@ void TileLoadService::load(const srs::TileId& tile_id)
       emit loadReady(tile_id, std::move(tile));
     }
     else {
-      qDebug() << "Loading of tiled " << url << " failed: " << error;
+      qDebug() << "Loading of tile " << url << " failed: " << error;
       // we need better error handling!
     }
     reply->deleteLater();

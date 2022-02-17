@@ -51,7 +51,6 @@ struct TileId {
   {
     size_t operator()(const TileId& tile) const
     {
-      static_assert(sizeof(size_t) == 8);
       std::size_t seed = 0;
       hash_combine(seed, tile.zoom_level);
       hash_combine(seed, tile.coords.x);
