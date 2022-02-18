@@ -61,8 +61,8 @@ void GLDebugPainter::drawLineStrip(const std::vector<glm::vec3>& points) const
 
   QOpenGLExtraFunctions *f = QOpenGLContext::currentContext()->extraFunctions();
   f->glEnableVertexAttribArray(GLuint(m_attribute_locations.position));
-  f->glVertexAttribPointer(GLuint(m_attribute_locations.position), /*size*/ 3, /*type*/ GL_FLOAT, /*normalised*/ GL_FALSE, /*stride*/ 0, nullptr);
-  f->glDrawArrays(GL_LINE_STRIP, 0, points.size());
+//  f->glVertexAttribPointer(GLuint(m_attribute_locations.position), /*size*/ 3, /*type*/ GL_FLOAT, /*normalised*/ GL_FALSE, /*stride*/ 0, nullptr);
+//  f->glDrawArrays(GL_LINE_STRIP, 0, points.size());
 
   vao.release();
 }
