@@ -76,6 +76,7 @@ void GLTileManager::draw(QOpenGLShaderProgram* shader_program, const glm::mat4& 
     tileset.vao->bind();
     const auto bounds = boundsArray(tileset);
     shader_program->setUniformValueArray(m_uniform_locations.bounds_array, bounds.data(), int(bounds.size()));
+    tileset.ortho_texture->bind();
     f->glDrawElements(GL_TRIANGLE_STRIP, tileset.gl_element_count,  tileset.gl_index_type, nullptr);
   }
   f->glBindVertexArray(0);
@@ -107,6 +108,7 @@ void GLTileManager::addTile(const std::shared_ptr<Tile>& tile)
     tileset.gl_index_type = GL_UNSIGNED_SHORT;
   }
   tileset.vao->release();
+  tileset.ortho_texture = std::make_unique<QOpenGLTexture>(tile->orthotexture);
 
   // add to m_gpu_tiles
   m_gpu_tiles.push_back(std::move(tileset));

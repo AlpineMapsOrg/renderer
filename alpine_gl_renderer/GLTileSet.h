@@ -23,6 +23,7 @@
 
 #include <QOpenGLBuffer>
 #include <QOpenGLVertexArrayObject>
+#include <QOpenGLTexture>
 
 #include "render_backend/srs.h"
 
@@ -37,6 +38,7 @@ struct GLTileSet {
     [[nodiscard]] bool isValid() const { return tile_id.zoom_level < 100; }
   };
 
+  std::unique_ptr<QOpenGLTexture> ortho_texture;
   std::unique_ptr<QOpenGLBuffer> heightmap_buffer;
   std::unique_ptr<QOpenGLVertexArrayObject> vao;
   std::vector<std::pair<srs::TileId, srs::Bounds>> tiles;

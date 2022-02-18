@@ -44,9 +44,10 @@ static const char* tileVertexShaderSource = R"(
 
 static const char* tileFragmentShaderSource = R"(
   in lowp vec2 uv;
+  uniform sampler2D texture_sampler;
   out lowp vec4 out_Color;
   void main() {
-     out_Color = vec4(uv, 0, 1);
+     out_Color = texture(texture_sampler, uv);
   })";
 
 static const char* debugVertexShaderSource = R"(
