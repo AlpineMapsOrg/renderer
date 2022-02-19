@@ -13,10 +13,11 @@ option(ATB_USE_LLVM_LINKER "use lld (llvm) for linking. it's parallel and much f
 set(ATB_RENDER_BACKEND_SOURCES
     alpine_renderer/Camera.h alpine_renderer/Camera.cpp
     alpine_renderer/Raster.h
-    alpine_renderer/SimplisticTileScheduler.h alpine_renderer/SimplisticTileScheduler.cpp
     alpine_renderer/srs.h alpine_renderer/srs.cpp
     alpine_renderer/Tile.cpp alpine_renderer/Tile.h
     alpine_renderer/TileScheduler.h
+    alpine_renderer/SimplisticTileScheduler.h alpine_renderer/SimplisticTileScheduler.cpp
+    alpine_renderer/BasicTreeTileScheduler.h alpine_renderer/BasicTreeTileScheduler.cpp
     alpine_renderer/TileLoadService.h alpine_renderer/TileLoadService.cpp
     alpine_renderer/utils/geometry.h
     alpine_renderer/utils/QuadTree.h
@@ -51,6 +52,7 @@ if (ATB_UNITTESTS AND NOT EMSCRIPTEN)
         qtest_TileLoadService
     )
     set(ATB_QT_SCHEDULER_UNITTESTS
+        qtest_BasicTreeTileScheduler
         qtest_SimplisticTileScheduler
     )
 endif()
