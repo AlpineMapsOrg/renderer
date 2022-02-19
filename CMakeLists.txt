@@ -48,8 +48,10 @@ if (ATB_UNITTESTS AND NOT EMSCRIPTEN)
         unittests/test_geometry.cpp
     )
     set(ATB_QT_UNITTESTS
-        qtest_SimplisticTileScheduler
         qtest_TileLoadService
+    )
+    set(ATB_QT_SCHEDULER_UNITTESTS
+        qtest_SimplisticTileScheduler
     )
 endif()
 
@@ -112,7 +114,6 @@ target_link_libraries(alpine_gl_renderer PUBLIC
     Qt::Gui
     Qt::OpenGL
 )
-set_target_properties(alpine_gl_renderer PROPERTIES FOLDER "qtc_runnable")
 
 if (ATB_ENABLE_ASSERTS)
     target_compile_options(alpine_gl_renderer PUBLIC "-U NDEBUG")
@@ -161,10 +162,19 @@ if (ATB_UNITTESTS AND NOT EMSCRIPTEN)
         target_link_libraries(${name} PUBLIC render_backend Qt6::Test)
         target_compile_definitions(${name} PUBLIC "ATB_TEST_DATA_DIR=\"${CMAKE_SOURCE_DIR}/unittests/data/\"")
     endfunction()
-
     foreach(cute_test ${ATB_QT_UNITTESTS})
         add_cute_test(${cute_test})
     endforeach()
 
-    set_target_properties(${ATB_QT_UNITTESTS} PROPERTIES FOLDER "cute_unitetests")
+
+    function(add_cute_scheduler_test name)
+        add_executable(${name} unittests_qt/${name}.cpp unittests_qt/qtest_TileScheduler.h)
+        add_test(NAME ${name} COMMAND ${name})
+        target_link_libraries(${name} PUBLIC render_backend Qt6::Test)
+        target_compile_definitions(${name} PUBLIC "ATB_TEST_DATA_DIR=\"${CMAKE_SOURCE_DIR}/unittests/data/\"")
+    endfunction()
+    foreach(cute_test ${ATB_QT_SCHEDULER_UNITTESTS})
+        add_cute_scheduler_test(${cute_test})
+    endforeach()
+
 endif()

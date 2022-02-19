@@ -16,7 +16,7 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *****************************************************************************/
 
-#include "render_backend/SimplisticTileScheduler.h"
+#include "render_backend/TileScheduler.h"
 
 #include <unordered_set>
 
@@ -28,7 +28,6 @@
 #include "render_backend/srs.h"
 #include "render_backend/Tile.h"
 
-
 class TestTileScheduler: public QObject
 {
   Q_OBJECT
@@ -38,6 +37,9 @@ private:
   std::unique_ptr<TileScheduler> m_scheduler;
   Camera test_cam = Camera({1822577.0, 6141664.0 - 500, 171.28 + 500}, {1822577.0, 6141664.0, 171.28}); // should point right at the stephansdom
   std::unordered_set<srs::TileId, srs::TileId::Hasher> m_given_tiles;
+
+  virtual std::unique_ptr<TileScheduler> makeScheduler() const = 0;
+
 
 public slots:
   void giveTiles(const srs::TileId& tile_id) {
@@ -62,13 +64,10 @@ private slots:
     m_height_bytes = height_file.readAll();
     QVERIFY(m_height_bytes.size() > 10);
   }
+
   void init() {
-    m_scheduler = std::make_unique<SimplisticTileScheduler>();
+    m_scheduler = makeScheduler();
     m_given_tiles.clear();
-  }
-  void loadCandidates() {
-    const auto tile_list = SimplisticTileScheduler::loadCandidates(test_cam);
-    QVERIFY(!tile_list.empty());
   }
 
   void emitsTileRequestsWhenCalled() {
@@ -190,7 +189,3 @@ private slots:
     }
   }
 };
-
-
-QTEST_MAIN(TestTileScheduler)
-#include "test_TileScheduler.moc"
