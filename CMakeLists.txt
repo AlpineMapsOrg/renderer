@@ -11,17 +11,17 @@ option(ATB_USE_LLVM_LINKER "use lld (llvm) for linking. it's parallel and much f
 
 ############################################ sources ##############################################
 set(ATB_RENDER_BACKEND_SOURCES
-    render_backend/Camera.h render_backend/Camera.cpp
-    render_backend/Raster.h
-    render_backend/SimplisticTileScheduler.h render_backend/SimplisticTileScheduler.cpp
-    render_backend/srs.h render_backend/srs.cpp
-    render_backend/Tile.cpp render_backend/Tile.h
-    render_backend/TileScheduler.h
-    render_backend/TileLoadService.h render_backend/TileLoadService.cpp
-    render_backend/utils/geometry.h
-    render_backend/utils/QuadTree.h
-    render_backend/utils/terrain_mesh_index_generator.h
-    render_backend/utils/tile_conversion.h render_backend/utils/tile_conversion.cpp
+    alpine_renderer/Camera.h alpine_renderer/Camera.cpp
+    alpine_renderer/Raster.h
+    alpine_renderer/SimplisticTileScheduler.h alpine_renderer/SimplisticTileScheduler.cpp
+    alpine_renderer/srs.h alpine_renderer/srs.cpp
+    alpine_renderer/Tile.cpp alpine_renderer/Tile.h
+    alpine_renderer/TileScheduler.h
+    alpine_renderer/TileLoadService.h alpine_renderer/TileLoadService.cpp
+    alpine_renderer/utils/geometry.h
+    alpine_renderer/utils/QuadTree.h
+    alpine_renderer/utils/terrain_mesh_index_generator.h
+    alpine_renderer/utils/tile_conversion.h alpine_renderer/utils/tile_conversion.cpp
 )
 set(ATB_GL_ENGINE_SOURCES
     alpine_gl_renderer/GLShaderManager.h alpine_gl_renderer/GLShaderManager.cpp
@@ -87,17 +87,17 @@ if (ATB_USE_LLVM_LINKER)
 endif()
 
 ############################################ backend ##############################################
-add_library(render_backend STATIC
+add_library(alpine_renderer STATIC
     ${ATB_RENDER_BACKEND_SOURCES}
 )
 message(${CMAKE_SOURCE_DIR}/libs/glm)
-target_include_directories(render_backend SYSTEM PUBLIC ${CMAKE_SOURCE_DIR}/libs/glm)
-target_compile_definitions(render_backend PUBLIC GLM_FORCE_SWIZZLE GLM_ENABLE_EXPERIMENTAL GLM_FORCE_XYZW_ONLY)
-target_link_libraries(render_backend PUBLIC Qt::Core Qt::Gui Qt6::Network)
+target_include_directories(alpine_renderer SYSTEM PUBLIC ${CMAKE_SOURCE_DIR}/libs/glm)
+target_compile_definitions(alpine_renderer PUBLIC GLM_FORCE_SWIZZLE GLM_ENABLE_EXPERIMENTAL GLM_FORCE_XYZW_ONLY)
+target_link_libraries(alpine_renderer PUBLIC Qt::Core Qt::Gui Qt6::Network)
 
 
 if (ATB_ENABLE_ASSERTS)
-    target_compile_options(render_backend PUBLIC "-U NDEBUG")
+    target_compile_options(alpine_renderer PUBLIC "-U NDEBUG")
 endif()
 
 ########################################### gl engine #############################################
@@ -109,7 +109,7 @@ set_target_properties(alpine_gl_renderer PROPERTIES
     MACOSX_BUNDLE TRUE
 )
 target_link_libraries(alpine_gl_renderer PUBLIC
-    render_backend
+    alpine_renderer
     Qt::Core
     Qt::Gui
     Qt::OpenGL
@@ -148,7 +148,7 @@ endif()
 #################################### unit tests for backend #######################################
 if (ATB_UNITTESTS AND NOT EMSCRIPTEN)
     add_executable(unittests ${ATB_CATCH_UNITTEST_SOURCES})
-    target_link_libraries(unittests PUBLIC render_backend Catch2::Catch2)
+    target_link_libraries(unittests PUBLIC alpine_renderer Catch2::Catch2)
     target_compile_definitions(unittests PUBLIC "ATB_TEST_DATA_DIR=\"${CMAKE_SOURCE_DIR}/unittests/data/\"")
     if (ATB_ENABLE_ASSERTS)
         target_compile_options(unittests PUBLIC "-U NDEBUG")
@@ -159,7 +159,7 @@ if (ATB_UNITTESTS AND NOT EMSCRIPTEN)
     function(add_cute_test name)
         add_executable(${name} unittests_qt/${name}.cpp)
         add_test(NAME ${name} COMMAND ${name})
-        target_link_libraries(${name} PUBLIC render_backend Qt6::Test)
+        target_link_libraries(${name} PUBLIC alpine_renderer Qt6::Test)
         target_compile_definitions(${name} PUBLIC "ATB_TEST_DATA_DIR=\"${CMAKE_SOURCE_DIR}/unittests/data/\"")
     endfunction()
     foreach(cute_test ${ATB_QT_UNITTESTS})
@@ -170,7 +170,7 @@ if (ATB_UNITTESTS AND NOT EMSCRIPTEN)
     function(add_cute_scheduler_test name)
         add_executable(${name} unittests_qt/${name}.cpp unittests_qt/qtest_TileScheduler.h)
         add_test(NAME ${name} COMMAND ${name})
-        target_link_libraries(${name} PUBLIC render_backend Qt6::Test)
+        target_link_libraries(${name} PUBLIC alpine_renderer Qt6::Test)
         target_compile_definitions(${name} PUBLIC "ATB_TEST_DATA_DIR=\"${CMAKE_SOURCE_DIR}/unittests/data/\"")
     endfunction()
     foreach(cute_test ${ATB_QT_SCHEDULER_UNITTESTS})

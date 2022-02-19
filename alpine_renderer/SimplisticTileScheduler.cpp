@@ -18,11 +18,11 @@
 
 #include "SimplisticTileScheduler.h"
 
-#include "render_backend/Tile.h"
-#include "render_backend/srs.h"
-#include "render_backend/utils/geometry.h"
-#include "render_backend/utils/QuadTree.h"
-#include "render_backend/utils/tile_conversion.h"
+#include "alpine_renderer/Tile.h"
+#include "alpine_renderer/srs.h"
+#include "alpine_renderer/utils/geometry.h"
+#include "alpine_renderer/utils/QuadTree.h"
+#include "alpine_renderer/utils/tile_conversion.h"
 
 namespace {
 geometry::AABB<3, double> aabb(const srs::TileId& tile_id)

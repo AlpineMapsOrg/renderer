@@ -23,8 +23,8 @@
 
 #include <QObject>
 
-#include "render_backend/Camera.h"
-#include "render_backend/srs.h"
+#include "alpine_renderer/Camera.h"
+#include "alpine_renderer/srs.h"
 
 struct Tile;
 

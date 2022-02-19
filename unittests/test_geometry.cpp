@@ -16,7 +16,7 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *****************************************************************************/
 
-#include "render_backend/utils/geometry.h"
+#include "alpine_renderer/utils/geometry.h"
 
 #include <catch2/catch.hpp>
 

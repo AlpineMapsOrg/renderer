@@ -16,7 +16,7 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *****************************************************************************/
 
-#include "render_backend/SimplisticTileScheduler.h"
+#include "alpine_renderer/SimplisticTileScheduler.h"
 #include "unittests_qt/qtest_TileScheduler.h"
 
 #include <unordered_set>
@@ -25,9 +25,9 @@
 #include <QSignalSpy>
 #include <glm/glm.hpp>
 
-#include "render_backend/Camera.h"
-#include "render_backend/srs.h"
-#include "render_backend/Tile.h"
+#include "alpine_renderer/Camera.h"
+#include "alpine_renderer/srs.h"
+#include "alpine_renderer/Tile.h"
 
 
 class TestSimplisticTileScheduler: public TestTileScheduler

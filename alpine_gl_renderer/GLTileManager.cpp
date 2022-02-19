@@ -25,8 +25,8 @@
 #include <QOpenGLShaderProgram>
 
 #include "alpine_gl_renderer/GLHelpers.h"
-#include "render_backend/utils/terrain_mesh_index_generator.h"
-#include "render_backend/Tile.h"
+#include "alpine_renderer/utils/terrain_mesh_index_generator.h"
+#include "alpine_renderer/Tile.h"
 
 namespace {
 template <typename T>

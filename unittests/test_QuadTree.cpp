@@ -16,7 +16,7 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *****************************************************************************/
 
-#include "render_backend/utils/QuadTree.h"
+#include "alpine_renderer/utils/QuadTree.h"
 
 #include <catch2/catch.hpp>
 

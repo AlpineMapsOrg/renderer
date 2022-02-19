@@ -17,7 +17,7 @@
  *****************************************************************************/
 #include <catch2/catch.hpp>
 
-#include "render_backend/srs.h"
+#include "alpine_renderer/srs.h"
 
 TEST_CASE("srs tests") {
   SECTION("number of tiles per level") {

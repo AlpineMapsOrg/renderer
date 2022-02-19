@@ -56,8 +56,8 @@
 
 #include "GLWindow.h"
 #include "alpine_gl_renderer/GLTileManager.h"
-#include "render_backend/TileLoadService.h"
-#include "render_backend/SimplisticTileScheduler.h"
+#include "alpine_renderer/TileLoadService.h"
+#include "alpine_renderer/SimplisticTileScheduler.h"
 
 // This example demonstrates easy, cross-platform usage of OpenGL ES 3.0 functions via
 // QOpenGLExtraFunctions in an application that works identically on desktop platforms

@@ -16,12 +16,12 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *****************************************************************************/
 
-#include "render_backend/Camera.h"
+#include "alpine_renderer/Camera.h"
 
 #include <catch2/catch.hpp>
 
 #include "unittests/test_helpers.h"
-#include "render_backend/utils/geometry.h"
+#include "alpine_renderer/utils/geometry.h"
 
 using test_helpers::equals;
 

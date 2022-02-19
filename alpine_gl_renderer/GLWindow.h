@@ -59,7 +59,7 @@
 #include <QOpenGLPaintDevice>
 #include <QPainter>
 
-#include "render_backend/Camera.h"
+#include "alpine_renderer/Camera.h"
 
 QT_BEGIN_NAMESPACE
 
