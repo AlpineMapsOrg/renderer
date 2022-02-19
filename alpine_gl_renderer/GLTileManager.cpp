@@ -109,6 +109,8 @@ void GLTileManager::addTile(const std::shared_ptr<Tile>& tile)
   }
   tileset.vao->release();
   tileset.ortho_texture = std::make_unique<QOpenGLTexture>(tile->orthotexture);
+  tileset.ortho_texture->setWrapMode(QOpenGLTexture::WrapMode::ClampToEdge);
+  tileset.ortho_texture->setMinMagFilters(QOpenGLTexture::Filter::LinearMipMapLinear, QOpenGLTexture::Filter::Linear);
 
   // add to m_gpu_tiles
   m_gpu_tiles.push_back(std::move(tileset));
