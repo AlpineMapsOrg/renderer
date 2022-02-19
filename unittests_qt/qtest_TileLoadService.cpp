@@ -94,4 +94,4 @@ private slots:
 
 
 QTEST_MAIN(TestTileLoadService)
-#include "test_TileLoadService.moc"
+#include "qtest_TileLoadService.moc"

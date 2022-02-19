@@ -48,8 +48,8 @@ if (ATB_UNITTESTS AND NOT EMSCRIPTEN)
         unittests/test_geometry.cpp
     )
     set(ATB_QT_UNITTESTS
-        test_TileScheduler
-        test_TileLoadService
+        qtest_SimplisticTileScheduler
+        qtest_TileLoadService
     )
 endif()
 

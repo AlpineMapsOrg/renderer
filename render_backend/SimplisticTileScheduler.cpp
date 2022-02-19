@@ -141,7 +141,7 @@ void SimplisticTileScheduler::checkLoadedTile(const srs::TileId& tile_id)
 {
   if (m_loaded_height_tiles.contains(tile_id) && m_loaded_ortho_tiles.contains(tile_id)) {
     m_pending_tile_requests.erase(tile_id);
-    auto heightraster = tile_conversion::qImage2uint16Raster(tile_conversion::toQImage(*m_loaded_height_tiles[tile_id]).scaled(65, 65));
+    auto heightraster = tile_conversion::qImage2uint16Raster(tile_conversion::toQImage(*m_loaded_height_tiles[tile_id]));
     auto ortho = tile_conversion::toQImage(*m_loaded_ortho_tiles[tile_id]);
     const auto tile = std::make_shared<Tile>(tile_id, srs::tile_bounds(tile_id), std::move(heightraster), std::move(ortho));
     m_loaded_ortho_tiles.erase(tile_id);
