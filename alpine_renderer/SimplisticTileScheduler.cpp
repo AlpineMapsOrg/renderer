@@ -125,13 +125,13 @@ void SimplisticTileScheduler::updateCamera(const Camera& camera)
   }
 }
 
-void SimplisticTileScheduler::loadOrthoTile(srs::TileId tile_id, std::shared_ptr<QByteArray> data)
+void SimplisticTileScheduler::receiveOrthoTile(srs::TileId tile_id, std::shared_ptr<QByteArray> data)
 {
   m_loaded_ortho_tiles[tile_id] = data;
   checkLoadedTile(tile_id);
 }
 
-void SimplisticTileScheduler::loadHeightTile(srs::TileId tile_id, std::shared_ptr<QByteArray> data)
+void SimplisticTileScheduler::receiveHeightTile(srs::TileId tile_id, std::shared_ptr<QByteArray> data)
 {
   m_loaded_height_tiles[tile_id] = data;
   checkLoadedTile(tile_id);

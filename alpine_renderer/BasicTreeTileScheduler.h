@@ -35,7 +35,7 @@ public:
 
 public slots:
   void updateCamera(const Camera& camera) override;
-  void loadOrthoTile(srs::TileId tile_id, std::shared_ptr<QByteArray> data) override;
-  void loadHeightTile(srs::TileId tile_id, std::shared_ptr<QByteArray> data) override;
+  void receiveOrthoTile(srs::TileId tile_id, std::shared_ptr<QByteArray> data) override;
+  void receiveHeightTile(srs::TileId tile_id, std::shared_ptr<QByteArray> data) override;
 };
 

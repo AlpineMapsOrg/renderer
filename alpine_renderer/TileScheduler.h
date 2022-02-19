@@ -46,8 +46,8 @@ public:
 
 public slots:
   virtual void updateCamera(const Camera& camera) = 0;
-  virtual void loadOrthoTile(srs::TileId tile_id, std::shared_ptr<QByteArray> data) = 0;
-  virtual void loadHeightTile(srs::TileId tile_id, std::shared_ptr<QByteArray> data) = 0;
+  virtual void receiveOrthoTile(srs::TileId tile_id, std::shared_ptr<QByteArray> data) = 0;
+  virtual void receiveHeightTile(srs::TileId tile_id, std::shared_ptr<QByteArray> data) = 0;
 
 signals:
   void tileRequested(const srs::TileId& tile_id);

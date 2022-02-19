@@ -109,8 +109,8 @@ private slots:
 
   void emitsLoadedTiles() {
     connect(m_scheduler.get(), &TileScheduler::tileRequested, this, &TestTileScheduler::giveTiles);
-    connect(this, &TestTileScheduler::orthoTileReady, m_scheduler.get(), &TileScheduler::loadOrthoTile);
-    connect(this, &TestTileScheduler::heightTileReady, m_scheduler.get(), &TileScheduler::loadHeightTile);
+    connect(this, &TestTileScheduler::orthoTileReady, m_scheduler.get(), &TileScheduler::receiveOrthoTile);
+    connect(this, &TestTileScheduler::heightTileReady, m_scheduler.get(), &TileScheduler::receiveHeightTile);
     QSignalSpy spy(m_scheduler.get(), &TileScheduler::tileReady);
     m_scheduler->updateCamera(test_cam);
     spy.wait(10);
@@ -127,8 +127,8 @@ private slots:
   }
   void freesMemory() {
     connect(m_scheduler.get(), &TileScheduler::tileRequested, this, &TestTileScheduler::giveTiles);
-    connect(this, &TestTileScheduler::orthoTileReady, m_scheduler.get(), &TileScheduler::loadOrthoTile);
-    connect(this, &TestTileScheduler::heightTileReady, m_scheduler.get(), &TileScheduler::loadHeightTile);
+    connect(this, &TestTileScheduler::orthoTileReady, m_scheduler.get(), &TileScheduler::receiveOrthoTile);
+    connect(this, &TestTileScheduler::heightTileReady, m_scheduler.get(), &TileScheduler::receiveHeightTile);
     m_scheduler->updateCamera(test_cam);
     QTest::qWait(10);
     QVERIFY(m_scheduler->numberOfTilesInTransit() == 0);
@@ -139,8 +139,8 @@ private slots:
   void hasInfoAboutGpuTiles() {
     QVERIFY(m_scheduler->gpuTiles().empty());
     connect(m_scheduler.get(), &TileScheduler::tileRequested, this, &TestTileScheduler::giveTiles);
-    connect(this, &TestTileScheduler::orthoTileReady, m_scheduler.get(), &TileScheduler::loadOrthoTile);
-    connect(this, &TestTileScheduler::heightTileReady, m_scheduler.get(), &TileScheduler::loadHeightTile);
+    connect(this, &TestTileScheduler::orthoTileReady, m_scheduler.get(), &TileScheduler::receiveOrthoTile);
+    connect(this, &TestTileScheduler::heightTileReady, m_scheduler.get(), &TileScheduler::receiveHeightTile);
     m_scheduler->updateCamera(test_cam);
     QTest::qWait(10);
     const auto gpu_tiles = m_scheduler->gpuTiles();
@@ -153,8 +153,8 @@ private slots:
   void doesntRequestTilesWhichAreOnTheGpu() {
     QVERIFY(m_scheduler->gpuTiles().empty());
     connect(m_scheduler.get(), &TileScheduler::tileRequested, this, &TestTileScheduler::giveTiles);
-    connect(this, &TestTileScheduler::orthoTileReady, m_scheduler.get(), &TileScheduler::loadOrthoTile);
-    connect(this, &TestTileScheduler::heightTileReady, m_scheduler.get(), &TileScheduler::loadHeightTile);
+    connect(this, &TestTileScheduler::orthoTileReady, m_scheduler.get(), &TileScheduler::receiveOrthoTile);
+    connect(this, &TestTileScheduler::heightTileReady, m_scheduler.get(), &TileScheduler::receiveHeightTile);
     m_scheduler->updateCamera(test_cam);
     QTest::qWait(10);
     // tiles are on the gpu
@@ -170,8 +170,8 @@ private slots:
   void expiresOldTiles() {
     QVERIFY(m_scheduler->gpuTiles().empty());
     connect(m_scheduler.get(), &TileScheduler::tileRequested, this, &TestTileScheduler::giveTiles);
-    connect(this, &TestTileScheduler::orthoTileReady, m_scheduler.get(), &TileScheduler::loadOrthoTile);
-    connect(this, &TestTileScheduler::heightTileReady, m_scheduler.get(), &TileScheduler::loadHeightTile);
+    connect(this, &TestTileScheduler::orthoTileReady, m_scheduler.get(), &TileScheduler::receiveOrthoTile);
+    connect(this, &TestTileScheduler::heightTileReady, m_scheduler.get(), &TileScheduler::receiveHeightTile);
     m_scheduler->updateCamera(test_cam);
     QTest::qWait(10);
     // tiles are on the gpu

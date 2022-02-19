@@ -57,10 +57,10 @@ void BasicTreeTileScheduler::updateCamera(const Camera& camera)
 {
 }
 
-void BasicTreeTileScheduler::loadOrthoTile(srs::TileId tile_id, std::shared_ptr<QByteArray> data)
+void BasicTreeTileScheduler::receiveOrthoTile(srs::TileId tile_id, std::shared_ptr<QByteArray> data)
 {
 }
 
-void BasicTreeTileScheduler::loadHeightTile(srs::TileId tile_id, std::shared_ptr<QByteArray> data)
+void BasicTreeTileScheduler::receiveHeightTile(srs::TileId tile_id, std::shared_ptr<QByteArray> data)
 {
 }
