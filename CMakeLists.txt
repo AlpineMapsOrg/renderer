@@ -16,8 +16,9 @@ set(ATB_RENDER_BACKEND_SOURCES
     alpine_renderer/srs.h alpine_renderer/srs.cpp
     alpine_renderer/Tile.cpp alpine_renderer/Tile.h
     alpine_renderer/TileScheduler.h
-    alpine_renderer/SimplisticTileScheduler.h alpine_renderer/SimplisticTileScheduler.cpp
-    alpine_renderer/BasicTreeTileScheduler.h alpine_renderer/BasicTreeTileScheduler.cpp
+    alpine_renderer/tile_scheduler/utils.h
+    alpine_renderer/tile_scheduler/SimplisticTileScheduler.h alpine_renderer/tile_scheduler/SimplisticTileScheduler.cpp
+    alpine_renderer/tile_scheduler/BasicTreeTileScheduler.h alpine_renderer/tile_scheduler/BasicTreeTileScheduler.cpp
     alpine_renderer/TileLoadService.h alpine_renderer/TileLoadService.cpp
     alpine_renderer/utils/geometry.h
     alpine_renderer/utils/QuadTree.h

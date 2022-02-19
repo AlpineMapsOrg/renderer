@@ -16,16 +16,19 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *****************************************************************************/
 
-#include "BasicTreeTileScheduler.h"
+#include "alpine_renderer/tile_scheduler/BasicTreeTileScheduler.h"
+#include "alpine_renderer/utils/geometry.h"
+
 
 BasicTreeTileScheduler::BasicTreeTileScheduler()
 {
-
+  m_root_node = std::make_unique<Node>(NodeData{.id = {0, {0, 0}}, .status = TileStatus::Uninitialised});
 }
 
 
 size_t BasicTreeTileScheduler::numberOfTilesInTransit() const
 {
+  // traverse tree and count
   return {};
 }
 
@@ -41,6 +44,7 @@ size_t BasicTreeTileScheduler::numberOfWaitingOrthoTiles() const
 
 TileScheduler::TileSet BasicTreeTileScheduler::gpuTiles() const
 {
+  // traverse tree and find all gpu nodes
   return {};
 }
 
@@ -55,6 +59,8 @@ void BasicTreeTileScheduler::setEnabled(bool newEnabled)
 
 void BasicTreeTileScheduler::updateCamera(const Camera& camera)
 {
+  if (!enabled())
+    return;
 }
 
 void BasicTreeTileScheduler::receiveOrthoTile(srs::TileId tile_id, std::shared_ptr<QByteArray> data)
@@ -63,4 +69,9 @@ void BasicTreeTileScheduler::receiveOrthoTile(srs::TileId tile_id, std::shared_p
 
 void BasicTreeTileScheduler::receiveHeightTile(srs::TileId tile_id, std::shared_ptr<QByteArray> data)
 {
+}
+
+void BasicTreeTileScheduler::checkLoadedTile(const srs::TileId& tile_id)
+{
+
 }

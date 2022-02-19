@@ -18,20 +18,39 @@
 
 #pragma once
 
+#include <QObject>
+
 #include "alpine_renderer/TileScheduler.h"
+#include "alpine_renderer/utils/QuadTree.h"
 
-class SimplisticTileScheduler : public TileScheduler
+class BasicTreeTileScheduler : public TileScheduler
 {
-  Q_OBJECT
-      public:
-               SimplisticTileScheduler();
+  enum class TileStatus {
+    Uninitialised,
+    Unavailable,
+    InTransit,
+    WaitingForSiblings,
+    OnGpu
+  };
+  struct NodeData {
+    srs::TileId id = {};
+    TileStatus status = TileStatus::Uninitialised;
+  };
+  using Node = QuadTreeNode<NodeData>;
 
-  [[nodiscard]] static std::vector<srs::TileId> loadCandidates(const Camera& camera) ;
-  [[nodiscard]] size_t numberOfTilesInTransit() const override;
-  [[nodiscard]] size_t numberOfWaitingHeightTiles() const override;
-  [[nodiscard]] size_t numberOfWaitingOrthoTiles() const override;
-  [[nodiscard]] TileSet gpuTiles() const override;
+  std::unique_ptr<Node> m_root_node;
+  Tile2DataMap m_waiting_ortho_tiles;
+  Tile2DataMap m_waiting_height_tiles;
 
+  bool m_enabled = true;
+
+public:
+  BasicTreeTileScheduler();
+
+  size_t numberOfTilesInTransit() const override;
+  size_t numberOfWaitingHeightTiles() const override;
+  size_t numberOfWaitingOrthoTiles() const override;
+  TileSet gpuTiles() const override;
   bool enabled() const override;
   void setEnabled(bool newEnabled) override;
 
@@ -40,11 +59,13 @@ public slots:
   void receiveOrthoTile(srs::TileId tile_id, std::shared_ptr<QByteArray> data) override;
   void receiveHeightTile(srs::TileId tile_id, std::shared_ptr<QByteArray> data) override;
 
+//signals:
+//  void tileRequested(const srs::TileId& tile_id);
+//  void tileReady(const std::shared_ptr<Tile>& tile);
+//  void tileExpired(const srs::TileId& tile_id);
+//  void cancelTileRequest(const srs::TileId& tile_id);
+
 private:
   void checkLoadedTile(const srs::TileId& tile_id);
-  TileSet m_pending_tile_requests;
-  TileSet m_gpu_tiles;
-  std::unordered_map<srs::TileId, std::shared_ptr<QByteArray>, srs::TileId::Hasher> m_loaded_ortho_tiles;
-  std::unordered_map<srs::TileId, std::shared_ptr<QByteArray>, srs::TileId::Hasher> m_loaded_height_tiles;
-  bool m_enabled = true;
 };
+

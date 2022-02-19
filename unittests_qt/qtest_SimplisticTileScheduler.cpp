@@ -16,7 +16,7 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *****************************************************************************/
 
-#include "alpine_renderer/SimplisticTileScheduler.h"
+#include "alpine_renderer/tile_scheduler/SimplisticTileScheduler.h"
 #include "unittests_qt/qtest_TileScheduler.h"
 
 #include <unordered_set>

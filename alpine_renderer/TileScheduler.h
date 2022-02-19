@@ -34,6 +34,7 @@ class TileScheduler : public QObject
   Q_OBJECT
 public:
   using TileSet = std::unordered_set<srs::TileId, srs::TileId::Hasher>;
+  using Tile2DataMap = std::unordered_map<srs::TileId, std::shared_ptr<QByteArray>, srs::TileId::Hasher>;
   TileScheduler() = default;
 
   [[nodiscard]] virtual size_t numberOfTilesInTransit() const = 0;
@@ -53,4 +54,6 @@ signals:
   void tileRequested(const srs::TileId& tile_id);
   void tileReady(const std::shared_ptr<Tile>& tile);
   void tileExpired(const srs::TileId& tile_id);
+  void cancelTileRequest(const srs::TileId& tile_id);
 };
+

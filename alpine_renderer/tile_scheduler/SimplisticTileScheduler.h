@@ -18,18 +18,20 @@
 
 #pragma once
 
-#include <alpine_renderer/TileScheduler.h>
-#include <QObject>
+#include "alpine_renderer/TileScheduler.h"
 
-class BasicTreeTileScheduler : public TileScheduler
+class SimplisticTileScheduler : public TileScheduler
 {
+  Q_OBJECT
 public:
-  BasicTreeTileScheduler();
+  SimplisticTileScheduler();
 
-  size_t numberOfTilesInTransit() const override;
-  size_t numberOfWaitingHeightTiles() const override;
-  size_t numberOfWaitingOrthoTiles() const override;
-  TileSet gpuTiles() const override;
+  [[nodiscard]] static std::vector<srs::TileId> loadCandidates(const Camera& camera) ;
+  [[nodiscard]] size_t numberOfTilesInTransit() const override;
+  [[nodiscard]] size_t numberOfWaitingHeightTiles() const override;
+  [[nodiscard]] size_t numberOfWaitingOrthoTiles() const override;
+  [[nodiscard]] TileSet gpuTiles() const override;
+
   bool enabled() const override;
   void setEnabled(bool newEnabled) override;
 
@@ -37,5 +39,12 @@ public slots:
   void updateCamera(const Camera& camera) override;
   void receiveOrthoTile(srs::TileId tile_id, std::shared_ptr<QByteArray> data) override;
   void receiveHeightTile(srs::TileId tile_id, std::shared_ptr<QByteArray> data) override;
-};
 
+private:
+  void checkLoadedTile(const srs::TileId& tile_id);
+  TileSet m_pending_tile_requests;
+  TileSet m_gpu_tiles;
+  Tile2DataMap m_received_ortho_tiles;
+  Tile2DataMap m_received_height_tiles;
+  bool m_enabled = true;
+};

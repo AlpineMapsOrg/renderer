@@ -70,7 +70,7 @@ private slots:
     m_given_tiles.clear();
   }
 
-  void emitsTileRequestsWhenCalled() {
+  void emitsTileRequestsWhenUpdatingCamera() {
     QSignalSpy spy(m_scheduler.get(), &TileScheduler::tileRequested);
     QVERIFY(m_scheduler->numberOfTilesInTransit() == 0);
     m_scheduler->updateCamera(test_cam);

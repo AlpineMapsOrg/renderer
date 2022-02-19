@@ -23,6 +23,8 @@
 
 #include <glm/glm.hpp>
 
+#include "alpine_renderer/utils/geometry.h"
+
 namespace srs {
 // the srs used for the alpine renderer is EPSG: 3857 (also called web mercator, spherical mercator).
 // this coordinate system uses metres for coordiantes, 0m norhting is on the equator, 0m easting on the prime merridian
@@ -75,5 +77,11 @@ inline unsigned number_of_vertical_tiles_for_zoom_level(unsigned z) { return 1 <
 
 Bounds tile_bounds(const TileId& tile);
 std::array<TileId, 4> subtiles(const TileId& tile);
+
+inline geometry::AABB<3, double> aabb(const srs::TileId& tile_id, double min_height, double max_height)
+{
+  const auto bounds = srs::tile_bounds(tile_id);
+  return {.min = {bounds.min, min_height}, .max = {bounds.max, max_height}};
+}
 
 }
