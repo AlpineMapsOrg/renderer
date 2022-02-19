@@ -30,7 +30,6 @@ SimplisticTileScheduler::SimplisticTileScheduler() = default;
 
 std::vector<srs::TileId> SimplisticTileScheduler::loadCandidates(const Camera& camera)
 {
-
   return quad_tree::onTheFlyTraverse(srs::TileId{0, {0, 0}}, tile_scheduler::refineFunctor(camera), [](const auto& v) { return srs::subtiles(v); });
 }
 

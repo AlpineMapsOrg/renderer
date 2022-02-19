@@ -24,7 +24,7 @@
 
 
 namespace tile_scheduler {
-glm::dvec3 nearestVertex(const Camera& camera, const std::vector<geometry::Triangle<3, double>>& triangles) {
+inline glm::dvec3 nearestVertex(const Camera& camera, const std::vector<geometry::Triangle<3, double>>& triangles) {
   const auto camera_distance = [&camera](const auto& point) {
     const auto delta = point - camera.position();
     return glm::dot(delta, delta);
@@ -43,7 +43,7 @@ glm::dvec3 nearestVertex(const Camera& camera, const std::vector<geometry::Trian
   return nearest_point;
 }
 
-auto refineFunctor(const Camera& camera, double error_threshold_px = 4.0, double tile_size = 256) {
+inline auto refineFunctor(const Camera& camera, double error_threshold_px = 4.0, double tile_size = 256) {
   const auto refine = [&camera, error_threshold_px, tile_size](const srs::TileId& tile) {
     if (tile.zoom_level >= 16)
       return false;

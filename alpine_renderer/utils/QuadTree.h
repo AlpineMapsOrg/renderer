@@ -72,35 +72,59 @@ std::vector<DataType> onTheFlyTraverse(const DataType& root, const PredicateFunc
   return leaves;
 }
 
-template <typename DataType, typename PredicateFunction, typename RefineFunction>
-void refine(QuadTreeNode<DataType>* root, const PredicateFunction& predicate, const RefineFunction& generate_children) {
+template <typename DataType, typename Function>
+void visit(QuadTreeNode<DataType>* root, const Function& visitor) {
   using QuadTreeNodePtr = std::unique_ptr<QuadTreeNode<DataType>>;
-  if (!root->hasChildren())
+  visitor(root->data());
+  if (!root->hasChildren()) {
     return;
+  }
   for (QuadTreeNodePtr& node : *root) {
     assert(node);
-    if (!node->hasChildren() && predicate(node->data()))
-      node->addChildren(generate_children(node->data()));
-    refine(node.get(), predicate, generate_children);
+    visit(node.get(), visitor);
   }
 }
-template <typename DataType, typename PredicateFunction>
-void reduce(QuadTreeNode<DataType>* root, const PredicateFunction& remove_node) {
+
+template <typename DataType, typename Function>
+void visitChildren(QuadTreeNode<DataType>* root, const Function& visitor) {
+  using QuadTreeNodePtr = std::unique_ptr<QuadTreeNode<DataType>>;
+  if (!root->hasChildren()) {
+    visitor(root->data());
+    return;
+  }
+  for (QuadTreeNodePtr& node : *root) {
+    assert(node);
+    visitChildren(node.get(), visitor);
+  }
+}
+
+template <typename DataType, typename PredicateFunction, typename RefineFunction>
+void refine(QuadTreeNode<DataType>* root, const PredicateFunction& node_needs_refinement, const RefineFunction& generate_children) {
   using QuadTreeNodePtr = std::unique_ptr<QuadTreeNode<DataType>>;
   if (!root->hasChildren())
     return;
-  auto remove_children = true;
   for (QuadTreeNodePtr& node : *root) {
     assert(node);
-    remove_children &= remove_node(node->data());
+    if (!node->hasChildren() && node_needs_refinement(node->data()))
+      node->addChildren(generate_children(node->data()));
+    refine(node.get(), node_needs_refinement, generate_children);
   }
+}
+
+// removes all unnecessary children (i.e., if the parent doesn't need refinement).
+template <typename DataType, typename PredicateFunction>
+void reduce(QuadTreeNode<DataType>* root, const PredicateFunction& node_needs_refinement) {
+  using QuadTreeNodePtr = std::unique_ptr<QuadTreeNode<DataType>>;
+  if (!root->hasChildren())
+    return;
+  auto remove_children = !node_needs_refinement(root->data());
   if (remove_children) {
     root->removeChildren();
     return;
   }
   for (QuadTreeNodePtr& node : *root) {
     assert(node);
-    reduce(node.get(), remove_node);
+    reduce(node.get(), node_needs_refinement);
   }
 }
 }

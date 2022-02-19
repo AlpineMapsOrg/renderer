@@ -17,6 +17,7 @@
  *****************************************************************************/
 
 #include "alpine_renderer/tile_scheduler/BasicTreeTileScheduler.h"
+#include "alpine_renderer/tile_scheduler/utils.h"
 #include "alpine_renderer/utils/geometry.h"
 
 
@@ -28,8 +29,9 @@ BasicTreeTileScheduler::BasicTreeTileScheduler()
 
 size_t BasicTreeTileScheduler::numberOfTilesInTransit() const
 {
-  // traverse tree and count
-  return {};
+  unsigned counter = 0;
+  quad_tree::visit(m_root_node.get(), [&counter](const NodeData& tile) { if (tile.status == TileStatus::InTransit) counter++; });
+  return counter;
 }
 
 size_t BasicTreeTileScheduler::numberOfWaitingHeightTiles() const
@@ -50,7 +52,7 @@ TileScheduler::TileSet BasicTreeTileScheduler::gpuTiles() const
 
 bool BasicTreeTileScheduler::enabled() const
 {
-  return {};
+  return m_enabled;
 }
 
 void BasicTreeTileScheduler::setEnabled(bool newEnabled)
@@ -61,6 +63,37 @@ void BasicTreeTileScheduler::updateCamera(const Camera& camera)
 {
   if (!enabled())
     return;
+
+  const auto refine_id = tile_scheduler::refineFunctor(camera, 1.0);
+  const auto refine_data = [&](const auto& v) {
+    return refine_id(v.id);
+  };
+
+  const auto generateChildren = [](const NodeData& v) {
+    std::array<NodeData, 4> dta;
+    const auto ids = srs::subtiles(v.id);
+    for (unsigned i = 0; i < 4; ++i) {
+      dta[i].id = ids[i];
+    }
+    return dta;
+  };
+
+  quad_tree::refine(m_root_node.get(), refine_data, generateChildren);
+
+  const auto visitor = [&](NodeData& tile) {
+    switch (tile.status) {
+    case TileStatus::InTransit:
+    case TileStatus::OnGpu:
+    case TileStatus::Unavailable:
+    case TileStatus::WaitingForSiblings:
+      break;
+    case TileStatus::Uninitialised:
+      tile.status = TileStatus::InTransit;
+      emit tileRequested(tile.id);
+      break;
+    }
+  };
+  quad_tree::visitChildren(m_root_node.get(), visitor);
 }
 
 void BasicTreeTileScheduler::receiveOrthoTile(srs::TileId tile_id, std::shared_ptr<QByteArray> data)
