@@ -134,7 +134,7 @@ void GLWindow::paintGL()
   m_frame_start = std::chrono::time_point_cast<ClockResolution>(Clock::now());
 
   QOpenGLExtraFunctions *f = QOpenGLContext::currentContext()->extraFunctions();
-  f->glClearColor(0.5, 0.5, 0.5, 1);
+  f->glClearColor(1.0, 0.0, 0.5, 1);
 
   f->glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
   f->glEnable(GL_DEPTH_TEST);
