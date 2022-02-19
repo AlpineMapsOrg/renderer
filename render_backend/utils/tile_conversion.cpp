@@ -30,7 +30,7 @@ Raster<glm::u8vec4> toRasterRGBA(const QByteArray& byte_array)
 
 Raster<uint16_t> qImage2uint16Raster(const QImage&  qimage)
 {
-  if (qimage.format() != QImage::Format_ARGB32) {
+  if (qimage.format() != QImage::Format_ARGB32 && qimage.format() != QImage::Format_RGB32) {
     // let's hope that the format is always ARGB32
     // if not, please implement the conversion, that'll give better performance.
     // the assert will be disabled in release, just as a backup.

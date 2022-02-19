@@ -47,7 +47,7 @@ public slots:
   void setUniformLocations(const TileGLUniformLocations& d);
 
 private:
-  static constexpr auto N_EDGE_VERTICES = 64;
+  static constexpr auto N_EDGE_VERTICES = 65;
   static constexpr auto MAX_TILES_PER_TILESET = 1;
 
   std::vector<GLTileSet> m_gpu_tiles;

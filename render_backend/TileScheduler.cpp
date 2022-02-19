@@ -77,9 +77,8 @@ std::vector<srs::TileId> TileScheduler::loadCandidates(const Camera& camera) con
     auto other_screenspace = vp_mat * other_point;
     other_screenspace /= other_screenspace.w;
     const auto clip_space_difference = length((nearest_screenspace - other_screenspace).xy());
-    if (clip_space_difference * 0.5 * camera.viewportSize().x < 4.0)
-      return false;
-    return true;
+
+    return clip_space_difference * 0.5 * camera.viewportSize().x >= 4.0;
   };
   return quad_tree::onTheFlyTraverse(srs::TileId{0, {0, 0}}, refine, [](const auto& v) { return srs::subtiles(v); });
 }
@@ -142,7 +141,7 @@ void TileScheduler::checkLoadedTile(const srs::TileId& tile_id)
 {
   if (m_loaded_height_tiles.contains(tile_id) && m_loaded_ortho_tiles.contains(tile_id)) {
     m_pending_tile_requests.erase(tile_id);
-    auto heightraster = tile_conversion::qImage2uint16Raster(tile_conversion::toQImage(*m_loaded_height_tiles[tile_id]).scaled(64, 64));
+    auto heightraster = tile_conversion::qImage2uint16Raster(tile_conversion::toQImage(*m_loaded_height_tiles[tile_id]).scaled(65, 65));
     auto ortho = tile_conversion::toQImage(*m_loaded_ortho_tiles[tile_id]);
     const auto tile = std::make_shared<Tile>(tile_id, srs::tile_bounds(tile_id), std::move(heightraster), std::move(ortho));
     m_loaded_ortho_tiles.erase(tile_id);
