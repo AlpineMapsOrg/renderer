@@ -16,7 +16,7 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *****************************************************************************/
 
-#include "TileScheduler.h"
+#include "SimplisticTileScheduler.h"
 
 #include "render_backend/Tile.h"
 #include "render_backend/srs.h"
@@ -52,15 +52,15 @@ glm::dvec3 nearestPoint(const std::vector<geometry::Triangle<3, double>>& triang
 
 }
 
-TileScheduler::TileScheduler()
+SimplisticTileScheduler::SimplisticTileScheduler()
 {
 
 }
 
-std::vector<srs::TileId> TileScheduler::loadCandidates(const Camera& camera) const
+std::vector<srs::TileId> SimplisticTileScheduler::loadCandidates(const Camera& camera)
 {
-  const auto refine = [this, camera](const srs::TileId& tile) {
-    if (tile.zoom_level >= 16)
+  const auto refine = [camera](const srs::TileId& tile) {
+    if (tile.zoom_level >= 15)
       return false;
 
     const auto tile_aabb = aabb(tile);
@@ -83,27 +83,27 @@ std::vector<srs::TileId> TileScheduler::loadCandidates(const Camera& camera) con
   return quad_tree::onTheFlyTraverse(srs::TileId{0, {0, 0}}, refine, [](const auto& v) { return srs::subtiles(v); });
 }
 
-size_t TileScheduler::numberOfTilesInTransit() const
+size_t SimplisticTileScheduler::numberOfTilesInTransit() const
 {
   return m_pending_tile_requests.size();
 }
 
-size_t TileScheduler::numberOfWaitingHeightTiles() const
+size_t SimplisticTileScheduler::numberOfWaitingHeightTiles() const
 {
   return m_loaded_height_tiles.size();
 }
 
-size_t TileScheduler::numberOfWaitingOrthoTiles() const
+size_t SimplisticTileScheduler::numberOfWaitingOrthoTiles() const
 {
   return m_loaded_ortho_tiles.size();
 }
 
-TileScheduler::TileSet TileScheduler::gpuTiles() const
+SimplisticTileScheduler::TileSet SimplisticTileScheduler::gpuTiles() const
 {
   return m_gpu_tiles;
 }
 
-void TileScheduler::updateCamera(const Camera& camera)
+void SimplisticTileScheduler::updateCamera(const Camera& camera)
 {
   if (!enabled())
     return;
@@ -125,19 +125,19 @@ void TileScheduler::updateCamera(const Camera& camera)
   }
 }
 
-void TileScheduler::loadOrthoTile(srs::TileId tile_id, std::shared_ptr<QByteArray> data)
+void SimplisticTileScheduler::loadOrthoTile(srs::TileId tile_id, std::shared_ptr<QByteArray> data)
 {
   m_loaded_ortho_tiles[tile_id] = data;
   checkLoadedTile(tile_id);
 }
 
-void TileScheduler::loadHeightTile(srs::TileId tile_id, std::shared_ptr<QByteArray> data)
+void SimplisticTileScheduler::loadHeightTile(srs::TileId tile_id, std::shared_ptr<QByteArray> data)
 {
   m_loaded_height_tiles[tile_id] = data;
   checkLoadedTile(tile_id);
 }
 
-void TileScheduler::checkLoadedTile(const srs::TileId& tile_id)
+void SimplisticTileScheduler::checkLoadedTile(const srs::TileId& tile_id)
 {
   if (m_loaded_height_tiles.contains(tile_id) && m_loaded_ortho_tiles.contains(tile_id)) {
     m_pending_tile_requests.erase(tile_id);
@@ -151,12 +151,12 @@ void TileScheduler::checkLoadedTile(const srs::TileId& tile_id)
   }
 }
 
-bool TileScheduler::enabled() const
+bool SimplisticTileScheduler::enabled() const
 {
   return m_enabled;
 }
 
-void TileScheduler::setEnabled(bool newEnabled)
+void SimplisticTileScheduler::setEnabled(bool newEnabled)
 {
   m_enabled = newEnabled;
 }

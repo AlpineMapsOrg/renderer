@@ -13,9 +13,10 @@ option(ATB_USE_LLVM_LINKER "use lld (llvm) for linking. it's parallel and much f
 set(ATB_RENDER_BACKEND_SOURCES
     render_backend/Camera.h render_backend/Camera.cpp
     render_backend/Raster.h
+    render_backend/SimplisticTileScheduler.h render_backend/SimplisticTileScheduler.cpp
     render_backend/srs.h render_backend/srs.cpp
     render_backend/Tile.cpp render_backend/Tile.h
-    render_backend/TileScheduler.h render_backend/TileScheduler.cpp
+    render_backend/TileScheduler.h
     render_backend/TileLoadService.h render_backend/TileLoadService.cpp
     render_backend/utils/geometry.h
     render_backend/utils/QuadTree.h

@@ -28,38 +28,29 @@
 
 struct Tile;
 
+
 class TileScheduler : public QObject
 {
   Q_OBJECT
 public:
   using TileSet = std::unordered_set<srs::TileId, srs::TileId::Hasher>;
-  TileScheduler();
+  TileScheduler() = default;
 
-  [[nodiscard]] std::vector<srs::TileId> loadCandidates(const Camera& camera) const;
-  [[nodiscard]] size_t numberOfTilesInTransit() const;
-  [[nodiscard]] size_t numberOfWaitingHeightTiles() const;
-  [[nodiscard]] size_t numberOfWaitingOrthoTiles() const;
-  [[nodiscard]] TileSet gpuTiles() const;
+  [[nodiscard]] virtual size_t numberOfTilesInTransit() const = 0;
+  [[nodiscard]] virtual size_t numberOfWaitingHeightTiles() const = 0;
+  [[nodiscard]] virtual size_t numberOfWaitingOrthoTiles() const = 0;
+  [[nodiscard]] virtual TileSet gpuTiles() const = 0;
 
-  bool enabled() const;
-  void setEnabled(bool newEnabled);
+  virtual bool enabled() const = 0;
+  virtual void setEnabled(bool newEnabled) = 0;
 
 public slots:
-  void updateCamera(const Camera& camera);
-  void loadOrthoTile(srs::TileId tile_id, std::shared_ptr<QByteArray> data);
-  void loadHeightTile(srs::TileId tile_id, std::shared_ptr<QByteArray> data);
+  virtual void updateCamera(const Camera& camera) = 0;
+  virtual void loadOrthoTile(srs::TileId tile_id, std::shared_ptr<QByteArray> data) = 0;
+  virtual void loadHeightTile(srs::TileId tile_id, std::shared_ptr<QByteArray> data) = 0;
 
 signals:
   void tileRequested(const srs::TileId& tile_id);
   void tileReady(const std::shared_ptr<Tile>& tile);
   void tileExpired(const srs::TileId& tile_id);
-
-private:
-  void checkLoadedTile(const srs::TileId& tile_id);
-  TileSet m_pending_tile_requests;
-  TileSet m_gpu_tiles;
-  std::unordered_map<srs::TileId, std::shared_ptr<QByteArray>, srs::TileId::Hasher> m_loaded_ortho_tiles;
-  std::unordered_map<srs::TileId, std::shared_ptr<QByteArray>, srs::TileId::Hasher> m_loaded_height_tiles;
-  bool m_enabled = true;
 };
-

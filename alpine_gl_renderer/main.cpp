@@ -57,7 +57,7 @@
 #include "GLWindow.h"
 #include "alpine_gl_renderer/GLTileManager.h"
 #include "render_backend/TileLoadService.h"
-#include "render_backend/TileScheduler.h"
+#include "render_backend/SimplisticTileScheduler.h"
 
 // This example demonstrates easy, cross-platform usage of OpenGL ES 3.0 functions via
 // QOpenGLExtraFunctions in an application that works identically on desktop platforms
@@ -89,7 +89,7 @@ int main(int argc, char *argv[])
 
     TileLoadService terrain_service("http://gataki.cg.tuwien.ac.at/tiles/alpine_png/", TileLoadService::UrlPattern::ZXY, ".png");
     TileLoadService ortho_service("https://maps.wien.gv.at/basemap/bmaporthofoto30cm/normal/google3857/", TileLoadService::UrlPattern::ZYX_yPointingSouth, ".jpeg");
-    TileScheduler scheduler;
+    SimplisticTileScheduler scheduler;
     GLWindow glWindow;
     glWindow.showMaximized();
     glWindow.setTileScheduler(&scheduler);  // i don't like this, gl window is tightly coupled with the scheduler.

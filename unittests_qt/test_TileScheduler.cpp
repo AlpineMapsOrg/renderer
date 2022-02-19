@@ -16,7 +16,7 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *****************************************************************************/
 
-#include "render_backend/TileScheduler.h"
+#include "render_backend/SimplisticTileScheduler.h"
 
 #include <unordered_set>
 
@@ -63,11 +63,11 @@ private slots:
     QVERIFY(m_height_bytes.size() > 10);
   }
   void init() {
-    m_scheduler = std::make_unique<TileScheduler>();
+    m_scheduler = std::make_unique<SimplisticTileScheduler>();
     m_given_tiles.clear();
   }
   void loadCandidates() {
-    const auto tile_list = m_scheduler->loadCandidates(test_cam);
+    const auto tile_list = SimplisticTileScheduler::loadCandidates(test_cam);
     QVERIFY(!tile_list.empty());
   }
 
