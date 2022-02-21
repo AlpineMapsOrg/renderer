@@ -39,8 +39,9 @@ class BasicTreeTileScheduler : public TileScheduler
   using Node = QuadTreeNode<NodeData>;
 
   std::unique_ptr<Node> m_root_node;
-  Tile2DataMap m_waiting_ortho_tiles;
-  Tile2DataMap m_waiting_height_tiles;
+  Tile2DataMap m_received_ortho_tiles;
+  Tile2DataMap m_received_height_tiles;
+  std::vector<srs::TileId> m_gpu_tiles_to_be_expired;
 
   bool m_enabled = true;
 
@@ -58,6 +59,8 @@ public slots:
   void updateCamera(const Camera& camera) override;
   void receiveOrthoTile(srs::TileId tile_id, std::shared_ptr<QByteArray> data) override;
   void receiveHeightTile(srs::TileId tile_id, std::shared_ptr<QByteArray> data) override;
+  void notifyAboutUnavailableOrthoTile(srs::TileId tile_id) override;
+  void notifyAboutUnavailableHeightTile(srs::TileId tile_id) override;
 
 //signals:
 //  void tileRequested(const srs::TileId& tile_id);
@@ -66,6 +69,8 @@ public slots:
 //  void cancelTileRequest(const srs::TileId& tile_id);
 
 private:
+  void checkConsistency() const;
   void checkLoadedTile(const srs::TileId& tile_id);
+  void markTileUnavailable(const srs::TileId& tile_id);
 };
 

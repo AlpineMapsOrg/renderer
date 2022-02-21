@@ -39,9 +39,12 @@ public slots:
   void updateCamera(const Camera& camera) override;
   void receiveOrthoTile(srs::TileId tile_id, std::shared_ptr<QByteArray> data) override;
   void receiveHeightTile(srs::TileId tile_id, std::shared_ptr<QByteArray> data) override;
+  void notifyAboutUnavailableOrthoTile(srs::TileId tile_id) override;
+  void notifyAboutUnavailableHeightTile(srs::TileId tile_id) override;
 
 private:
   void checkLoadedTile(const srs::TileId& tile_id);
+  TileSet m_unavaliable_tiles;
   TileSet m_pending_tile_requests;
   TileSet m_gpu_tiles;
   Tile2DataMap m_received_ortho_tiles;

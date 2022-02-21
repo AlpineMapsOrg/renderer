@@ -40,6 +40,7 @@ public slots:
 
 signals:
   void loadReady(srs::TileId tile_id, std::shared_ptr<QByteArray> data);
+  void tileUnavailable(srs::TileId tile_id);
 
 private:
   std::shared_ptr<QNetworkAccessManager> m_network_manager;

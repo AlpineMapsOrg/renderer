@@ -88,6 +88,17 @@ private slots:
       image.save("/home/madam/Documents/work/tuw/alpinemaps/build-alpine-renderer-Desktop_Qt_6_2_3_GCC_64bit-Debug/test.jpeg");
       QCOMPARE(std::accumulate(image.constBits(), image.constBits() + image.sizeInBytes(), 0LLu), 34877273LLu);   // don't know what it will sum up to, but certainly not zero..
     }
+  }
+
+  void notifiesOfUnavailableTiles() {
+    TileLoadService service("https://maps.wien.gv.at/basemap/bmaporthofoto30cm/normal/google3857/", TileLoadService::UrlPattern::ZYX, ".jpeg");
+    QSignalSpy spy(&service, &TileLoadService::tileUnavailable);
+    srs::TileId unavailable_tile_id = {.zoom_level = 90, .coords = {273, 177}};
+    service.load(unavailable_tile_id);
+    spy.wait(250);
+    QCOMPARE(spy.count(), 1);
+    QList<QVariant> arguments = spy.takeFirst(); // take the first signal
+    QCOMPARE(arguments.at(0).value<srs::TileId>(), unavailable_tile_id); // verify the first argument
 
   }
 };

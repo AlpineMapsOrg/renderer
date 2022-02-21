@@ -60,6 +60,8 @@ void SimplisticTileScheduler::updateCamera(const Camera& camera)
   const auto tiles = loadCandidates(camera);
   auto expired_gpu_tiles = m_gpu_tiles;
   for (const auto& t : tiles) {
+    if (m_unavaliable_tiles.contains(t))
+      continue;
     if (m_pending_tile_requests.contains(t))
       continue;
     if (m_gpu_tiles.contains(t)) {
@@ -85,6 +87,22 @@ void SimplisticTileScheduler::receiveHeightTile(srs::TileId tile_id, std::shared
 {
   m_received_height_tiles[tile_id] = data;
   checkLoadedTile(tile_id);
+}
+
+void SimplisticTileScheduler::notifyAboutUnavailableOrthoTile(srs::TileId tile_id)
+{
+  m_unavaliable_tiles.insert(tile_id);
+  m_pending_tile_requests.erase(tile_id);
+  m_received_ortho_tiles.erase(tile_id);
+  m_received_height_tiles.erase(tile_id);
+}
+
+void SimplisticTileScheduler::notifyAboutUnavailableHeightTile(srs::TileId tile_id)
+{
+  m_unavaliable_tiles.insert(tile_id);
+  m_pending_tile_requests.erase(tile_id);
+  m_received_ortho_tiles.erase(tile_id);
+  m_received_height_tiles.erase(tile_id);
 }
 
 void SimplisticTileScheduler::checkLoadedTile(const srs::TileId& tile_id)

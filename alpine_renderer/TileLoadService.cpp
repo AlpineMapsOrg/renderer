@@ -49,7 +49,8 @@ void TileLoadService::load(const srs::TileId& tile_id)
     }
     else {
       qDebug() << "Loading of tile " << url << " failed: " << error;
-      // we need better error handling!
+      emit tileUnavailable(tile_id);
+      // do we need better error handling?
     }
     reply->deleteLater();
   });

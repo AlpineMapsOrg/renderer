@@ -86,7 +86,20 @@ void visit(QuadTreeNode<DataType>* root, const Function& visitor) {
 }
 
 template <typename DataType, typename Function>
-void visitChildren(QuadTreeNode<DataType>* root, const Function& visitor) {
+void visitInnerNodes(QuadTreeNode<DataType>* root, const Function& visitor) {
+  using QuadTreeNodePtr = std::unique_ptr<QuadTreeNode<DataType>>;
+  if (!root->hasChildren()) {
+    return;
+  }
+  visitor(root->data());
+  for (QuadTreeNodePtr& node : *root) {
+    assert(node);
+    visitInnerNodes(node.get(), visitor);
+  }
+}
+
+template <typename DataType, typename Function>
+void visitLeaves(QuadTreeNode<DataType>* root, const Function& visitor) {
   using QuadTreeNodePtr = std::unique_ptr<QuadTreeNode<DataType>>;
   if (!root->hasChildren()) {
     visitor(root->data());
@@ -94,19 +107,43 @@ void visitChildren(QuadTreeNode<DataType>* root, const Function& visitor) {
   }
   for (QuadTreeNodePtr& node : *root) {
     assert(node);
-    visitChildren(node.get(), visitor);
+    visitLeaves(node.get(), visitor);
   }
+}
+
+template <typename DataType, typename Predicate>
+std::vector<QuadTreeNode<DataType>*> collectSubtreesWithLeafCondition(QuadTreeNode<DataType>* root, const Predicate& check_leaf) {
+  if (!root->hasChildren()) {
+    if (check_leaf(root->data()))
+      return {root};
+    return {};
+  }
+  auto all_leaves_match_condition = true;
+  const auto visitor = [&check_leaf, &all_leaves_match_condition](const auto& node_data) { all_leaves_match_condition &= check_leaf(node_data); };
+  visitLeaves(root, visitor);
+  if (all_leaves_match_condition)
+    return {root};
+
+  std::vector<QuadTreeNode<DataType>*> subtrees;
+  for (const auto& child : *root) {
+    const auto tmp = collectSubtreesWithLeafCondition(child.get(), check_leaf);
+    std::copy(tmp.begin(), tmp.end(), std::back_inserter(subtrees));
+  }
+  return subtrees;
 }
 
 template <typename DataType, typename PredicateFunction, typename RefineFunction>
 void refine(QuadTreeNode<DataType>* root, const PredicateFunction& node_needs_refinement, const RefineFunction& generate_children) {
   using QuadTreeNodePtr = std::unique_ptr<QuadTreeNode<DataType>>;
+
+  if (!root->hasChildren() && node_needs_refinement(root->data()))
+    root->addChildren(generate_children(root->data()));
+
   if (!root->hasChildren())
     return;
+
   for (QuadTreeNodePtr& node : *root) {
     assert(node);
-    if (!node->hasChildren() && node_needs_refinement(node->data()))
-      node->addChildren(generate_children(node->data()));
     refine(node.get(), node_needs_refinement, generate_children);
   }
 }

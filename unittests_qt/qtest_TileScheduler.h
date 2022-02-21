@@ -37,12 +37,17 @@ private:
   std::unique_ptr<TileScheduler> m_scheduler;
   Camera test_cam = Camera({1822577.0, 6141664.0 - 500, 171.28 + 500}, {1822577.0, 6141664.0, 171.28}); // should point right at the stephansdom
   std::unordered_set<srs::TileId, srs::TileId::Hasher> m_given_tiles;
+  std::unordered_set<srs::TileId, srs::TileId::Hasher> m_unavailable_tiles;
 
   virtual std::unique_ptr<TileScheduler> makeScheduler() const = 0;
 
 
 public slots:
   void giveTiles(const srs::TileId& tile_id) {
+    if (m_unavailable_tiles.contains(tile_id)) {
+      emit tileUnavailable(tile_id);
+      return;
+    }
     m_given_tiles.insert(tile_id);
     emit orthoTileReady(tile_id, std::make_shared<QByteArray>(m_ortho_bytes));
     emit heightTileReady(tile_id, std::make_shared<QByteArray>(m_height_bytes));
@@ -51,6 +56,7 @@ public slots:
 signals:
   void orthoTileReady(srs::TileId tile_id, std::shared_ptr<QByteArray> data);
   void heightTileReady(srs::TileId tile_id, std::shared_ptr<QByteArray> data);
+  void tileUnavailable(srs::TileId tile_id);
 
 private slots:
   void initTestCase() {
@@ -68,6 +74,7 @@ private slots:
   void init() {
     m_scheduler = makeScheduler();
     m_given_tiles.clear();
+    m_unavailable_tiles.clear();
   }
 
   void emitsTileRequestsWhenUpdatingCamera() {
@@ -76,7 +83,7 @@ private slots:
     m_scheduler->updateCamera(test_cam);
     spy.wait(5);
 
-    QVERIFY(spy.size() >= 1);
+    QVERIFY(spy.size() >= 10);
     QVERIFY(m_scheduler->numberOfTilesInTransit() == size_t(spy.size()));
     auto n_tiles_containing_camera_position = 0;
     auto n_tiles_containing_camera_view_dir = 0;
@@ -107,13 +114,14 @@ private slots:
     }
   }
 
-  void emitsLoadedTiles() {
+  void emitsReceivedTiles() {
     connect(m_scheduler.get(), &TileScheduler::tileRequested, this, &TestTileScheduler::giveTiles);
     connect(this, &TestTileScheduler::orthoTileReady, m_scheduler.get(), &TileScheduler::receiveOrthoTile);
     connect(this, &TestTileScheduler::heightTileReady, m_scheduler.get(), &TileScheduler::receiveHeightTile);
     QSignalSpy spy(m_scheduler.get(), &TileScheduler::tileReady);
     m_scheduler->updateCamera(test_cam);
     spy.wait(10);
+    QVERIFY(m_given_tiles.size() > 10);
     QVERIFY(size_t(spy.size()) == m_given_tiles.size());
     for (const QList<QVariant>& signal : spy) {    // yes, QSignalSpy is a QList<QList<QVariant>>, where the inner QList contains the signal arguments
       const std::shared_ptr<Tile> tile = signal.at(0).value<std::shared_ptr<Tile>>();
@@ -125,6 +133,35 @@ private slots:
       QVERIFY(tile->orthotexture.height() == 256);
     }
   }
+
+  void emitsReceivedTilesWhenSomeAreUnavailable() {
+    m_unavailable_tiles.insert(srs::TileId{.zoom_level = 0, .coords = {0, 0}});
+    m_unavailable_tiles.insert(srs::TileId{.zoom_level = 1, .coords = {0, 0}});
+    m_unavailable_tiles.insert(srs::TileId{.zoom_level = 1, .coords = {0, 1}});
+    m_unavailable_tiles.insert(srs::TileId{.zoom_level = 1, .coords = {1, 0}});
+    m_unavailable_tiles.insert(srs::TileId{.zoom_level = 1, .coords = {1, 1}});
+
+    connect(m_scheduler.get(), &TileScheduler::tileRequested, this, &TestTileScheduler::giveTiles);
+    connect(this, &TestTileScheduler::orthoTileReady, m_scheduler.get(), &TileScheduler::receiveOrthoTile);
+    connect(this, &TestTileScheduler::heightTileReady, m_scheduler.get(), &TileScheduler::receiveHeightTile);
+    connect(this, &TestTileScheduler::tileUnavailable, m_scheduler.get(), &TileScheduler::notifyAboutUnavailableOrthoTile);
+    connect(this, &TestTileScheduler::tileUnavailable, m_scheduler.get(), &TileScheduler::notifyAboutUnavailableHeightTile);
+    QSignalSpy spy(m_scheduler.get(), &TileScheduler::tileReady);
+    m_scheduler->updateCamera(test_cam);
+    spy.wait(10);
+    QVERIFY(m_given_tiles.size() > 10);
+    QVERIFY(size_t(spy.size()) == m_given_tiles.size());
+    for (const QList<QVariant>& signal : spy) {    // yes, QSignalSpy is a QList<QList<QVariant>>, where the inner QList contains the signal arguments
+      const std::shared_ptr<Tile> tile = signal.at(0).value<std::shared_ptr<Tile>>();
+      QVERIFY(tile);
+      QVERIFY(m_given_tiles.contains(tile->id));
+      QVERIFY(tile->height_map.width() == 256);
+      QVERIFY(tile->height_map.height() == 256);
+      QVERIFY(tile->orthotexture.width() == 256);
+      QVERIFY(tile->orthotexture.height() == 256);
+    }
+  }
+
   void freesMemory() {
     connect(m_scheduler.get(), &TileScheduler::tileRequested, this, &TestTileScheduler::giveTiles);
     connect(this, &TestTileScheduler::orthoTileReady, m_scheduler.get(), &TileScheduler::receiveOrthoTile);

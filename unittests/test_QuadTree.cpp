@@ -76,7 +76,7 @@ TEST_CASE("QuadTree") {
     CHECK(root.hasChildren() == false);
     CHECK(DeletionChecker::counter == 1);
   }
-  SECTION("visit") {
+  SECTION("visit all nodes") {
     QuadTreeNode<unsigned> root(0);
     root.addChildren({1, 2, 3, 4});
     root[0].addChildren({5, 6, 7, 8});
@@ -87,20 +87,75 @@ TEST_CASE("QuadTree") {
     for (unsigned i = 0; i < 13; ++i)
       CHECK(check.at(unsigned(i)) == 1);
   }
-  SECTION("visit children") {
+  SECTION("visit inner nodes") {
     QuadTreeNode<unsigned> root(0);
     root.addChildren({1, 2, 3, 4});
     root[0].addChildren({5, 6, 7, 8});
     root[0][2].addChildren({9, 10, 11, 12});
 
     std::array<unsigned, 13> check = {};
-    quad_tree::visitChildren(&root, [&](unsigned v) { check.at(v)++; });
+    quad_tree::visitInnerNodes(&root, [&](unsigned v) { check.at(v)++; });
+    for (auto i : std::array{0, 1, 7})
+      CHECK(check.at(unsigned(i)) == 1);
+    for (auto i : std::array{2, 3, 4, 5, 6, 8, 9, 10, 11, 12})
+      CHECK(check.at(unsigned(i)) == 0);
+  }
+  SECTION("visit leaves") {
+    QuadTreeNode<unsigned> root(0);
+    root.addChildren({1, 2, 3, 4});
+    root[0].addChildren({5, 6, 7, 8});
+    root[0][2].addChildren({9, 10, 11, 12});
+
+    std::array<unsigned, 13> check = {};
+    quad_tree::visitLeaves(&root, [&](unsigned v) { check.at(v)++; });
     for (auto i : std::array{0, 1, 7})
       CHECK(check.at(unsigned(i)) == 0);
     for (auto i : std::array{2, 3, 4, 5, 6, 8, 9, 10, 11, 12})
       CHECK(check.at(unsigned(i)) == 1);
   }
-  SECTION("refine and reduce") {
+  SECTION("collect subtrees with leaf condition 1") {
+    QuadTreeNode<int> root(-101);
+    const auto collection = quad_tree::collectSubtreesWithLeafCondition(&root, [&](auto v) {
+      CHECK(std::abs(v) > 100); // checks that only leaves are visited
+      return v < 0;
+    });
+    REQUIRE(collection.size() == 1);
+    CHECK(collection[0]->data() == -101);
+  }
+  SECTION("collect subtrees with leaf condition 2") {
+    QuadTreeNode<int> root(0);
+    root.addChildren({1, 2, 3, 400});
+    root[0].addChildren({500, 600, 7, 800});
+    root[0][2].addChildren({900, 101, 110, 120});
+    root[1].addChildren({-130, -140, -150, -160});
+    root[2].addChildren({-17, -180, -190, -200});
+    root[2][0].addChildren({-210, -220, -230, -240});
+
+    const auto collection = quad_tree::collectSubtreesWithLeafCondition(&root, [&](auto v) {
+      if (std::abs(v) <= 100)
+        CHECK(std::abs(v) > 100); // checks that only leaves are visited
+      return v < 0;
+    });
+    REQUIRE(collection.size() == 2);
+    CHECK(((collection[0]->data() == 2 && collection[1]->data() == 3) || (collection[1]->data() == 2 && collection[0]->data() == 3)));
+  }
+  SECTION("refine can start from root") {
+    QuadTreeNode<int> root(1);
+    const auto refine_predicate = [](const auto& node_value) {
+      return node_value > 0;
+    };
+    const auto generate_children_function = [](const auto& node_value) {
+      return std::array<int, 4>({0, 0, 0, 0});
+    };
+    quad_tree::refine(&root, refine_predicate, generate_children_function);
+    REQUIRE(root.hasChildren());
+    CHECK(root.data() == 1);
+    for (unsigned i = 0; i < 4; ++i) {
+      CHECK(root[i].data() == 0);
+    }
+  }
+
+  SECTION("refine 2 and reduce") {
     QuadTreeNode<int> root(0);
     root.addChildren({42, 1, 6, -1});
     root[0].addChildren({-43, -44, -45, 46});
