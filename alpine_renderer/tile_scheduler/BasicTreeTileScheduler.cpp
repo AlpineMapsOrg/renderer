@@ -96,7 +96,7 @@ void BasicTreeTileScheduler::updateCamera(const Camera& camera)
         // see also todo in checkLoadedTile / tile shipping
         break;
       case TileStatus::OnGpu:
-//        m_gpu_tiles_to_be_expired.push_back(v.id);
+        m_gpu_tiles_to_be_expired.insert(v.id);
         break;
       }
     };
@@ -241,7 +241,9 @@ void BasicTreeTileScheduler::checkLoadedTile(const srs::TileId&)
 
   // ship
   if (ready_to_ship) {
-    std::vector<srs::TileId> tile_expiries = std::move(m_gpu_tiles_to_be_expired);
+    std::vector<srs::TileId> tile_expiries;
+    for (const auto& id : m_gpu_tiles_to_be_expired)
+      tile_expiries.push_back(id);
     m_gpu_tiles_to_be_expired = {};
     std::vector<std::shared_ptr<Tile>> tiles_ready;
 

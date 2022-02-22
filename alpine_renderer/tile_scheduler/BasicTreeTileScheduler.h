@@ -41,7 +41,7 @@ class BasicTreeTileScheduler : public TileScheduler
   std::unique_ptr<Node> m_root_node;
   Tile2DataMap m_received_ortho_tiles;
   Tile2DataMap m_received_height_tiles;
-  std::vector<srs::TileId> m_gpu_tiles_to_be_expired;
+  TileSet m_gpu_tiles_to_be_expired;
 
   bool m_enabled = true;
 
