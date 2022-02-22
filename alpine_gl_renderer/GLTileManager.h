@@ -49,6 +49,7 @@ public slots:
 private:
   static constexpr auto N_EDGE_VERTICES = 65;
   static constexpr auto MAX_TILES_PER_TILESET = 1;
+  float m_max_anisotropy = 0;
 
   std::vector<GLTileSet> m_gpu_tiles;
   // indexbuffers for 4^index tiles,

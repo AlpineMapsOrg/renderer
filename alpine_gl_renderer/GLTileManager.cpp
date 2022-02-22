@@ -60,6 +60,8 @@ GLTileManager::GLTileManager(QObject *parent)
     index_buffer->release();
     m_index_buffers.emplace_back(std::move(index_buffer), indices.size());
   }
+  auto* f = QOpenGLContext::currentContext()->extraFunctions();
+  f->glGetFloatv(GL_MAX_TEXTURE_MAX_ANISOTROPY_EXT, &m_max_anisotropy);
 }
 
 const std::vector<GLTileSet>& GLTileManager::tiles() const
@@ -109,6 +111,7 @@ void GLTileManager::addTile(const std::shared_ptr<Tile>& tile)
   }
   tileset.vao->release();
   tileset.ortho_texture = std::make_unique<QOpenGLTexture>(tile->orthotexture);
+  tileset.ortho_texture->setMaximumAnisotropy(m_max_anisotropy);
   tileset.ortho_texture->setWrapMode(QOpenGLTexture::WrapMode::ClampToEdge);
   tileset.ortho_texture->setMinMagFilters(QOpenGLTexture::Filter::LinearMipMapLinear, QOpenGLTexture::Filter::Linear);
 
