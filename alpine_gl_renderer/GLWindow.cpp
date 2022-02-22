@@ -217,6 +217,11 @@ void GLWindow::keyPressEvent(QKeyEvent* e)
 {
   if (e->key() == Qt::Key::Key_C)
     m_debug_stored_camera = m_camera;
+
+  if (e->key() == Qt::Key::Key_T) {
+    m_tile_scheduler->setEnabled(!m_tile_scheduler->enabled());
+    qDebug("setting tile scheduler enabled = %d", int(m_tile_scheduler->enabled()));
+  }
 }
 
 void GLWindow::setTileScheduler(TileScheduler* new_tile_scheduler)
