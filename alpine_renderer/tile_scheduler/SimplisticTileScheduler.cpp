@@ -31,7 +31,7 @@ SimplisticTileScheduler::SimplisticTileScheduler() = default;
 std::vector<srs::TileId> SimplisticTileScheduler::loadCandidates(const Camera& camera)
 {
 //  return quad_tree::onTheFlyTraverse(srs::TileId{0, {0, 0}}, tile_scheduler::refineFunctor(camera, 1.0), [](const auto& v) { return srs::subtiles(v); });
-  const auto all_leaves = quad_tree::onTheFlyTraverse(srs::TileId{0, {0, 0}}, tile_scheduler::refineFunctor(camera, 1.0), [](const auto& v) { return srs::subtiles(v); });
+  const auto all_leaves = quad_tree::onTheFlyTraverse(srs::TileId{0, {0, 0}}, tile_scheduler::refineFunctor(camera, 4.0), [](const auto& v) { return srs::subtiles(v); });
   std::vector<srs::TileId> visible_leaves;
   visible_leaves.reserve(all_leaves.size());
 

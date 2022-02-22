@@ -69,6 +69,8 @@ private slots:
     height_file.open(QFile::ReadOnly);
     m_height_bytes = height_file.readAll();
     QVERIFY(m_height_bytes.size() > 10);
+
+    test_cam.setPerspectiveParams(45, {1000, 1000}, 100);
   }
 
   void init() {
@@ -121,7 +123,7 @@ private slots:
     QSignalSpy spy(m_scheduler.get(), &TileScheduler::tileReady);
     m_scheduler->updateCamera(test_cam);
     spy.wait(10);
-    QVERIFY(m_given_tiles.size() > 10);
+    QVERIFY(m_given_tiles.size() >= 10);
     QVERIFY(size_t(spy.size()) == m_given_tiles.size());
     for (const QList<QVariant>& signal : spy) {    // yes, QSignalSpy is a QList<QList<QVariant>>, where the inner QList contains the signal arguments
       const std::shared_ptr<Tile> tile = signal.at(0).value<std::shared_ptr<Tile>>();
@@ -149,7 +151,7 @@ private slots:
     QSignalSpy spy(m_scheduler.get(), &TileScheduler::tileReady);
     m_scheduler->updateCamera(test_cam);
     spy.wait(10);
-    QVERIFY(m_given_tiles.size() > 10);
+    QVERIFY(m_given_tiles.size() >= 10);
     QVERIFY(size_t(spy.size()) == m_given_tiles.size());
     for (const QList<QVariant>& signal : spy) {    // yes, QSignalSpy is a QList<QList<QVariant>>, where the inner QList contains the signal arguments
       const std::shared_ptr<Tile> tile = signal.at(0).value<std::shared_ptr<Tile>>();
@@ -217,8 +219,9 @@ private slots:
     QSignalSpy spy(m_scheduler.get(), &TileScheduler::tileExpired);
     Camera replacement_cam = Camera({0.0, 0.0 - 500, 0.0 - 500}, {0.0, 0.0, -1000.0});
     m_scheduler->updateCamera(replacement_cam);
+    const auto current_gpu_tiles = m_scheduler->gpuTiles();
     spy.wait(5);
-    QVERIFY(m_scheduler->gpuTiles().size() == 1);   // only root tile
+    QVERIFY(m_scheduler->gpuTiles().size() <= 1);   // root tile allowed
     QVERIFY(size_t(spy.size()) == gpu_tiles.size());
     for (const auto& tileExpireSignal : spy) {
       const srs::TileId tile = tileExpireSignal.at(0).value<srs::TileId>();
