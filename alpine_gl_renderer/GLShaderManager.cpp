@@ -30,12 +30,12 @@ static const char* tileVertexShaderSource = R"(
   void main() {
     int row = gl_VertexID / n_edge_vertices;
     int col = gl_VertexID - (row * n_edge_vertices);
-    int tile_id = 0;
-    float tile_width = (bounds[tile_id].z - bounds[tile_id].x) / float(n_edge_vertices - 1);
-    float tile_height = (bounds[tile_id].w - bounds[tile_id].y) / float(n_edge_vertices - 1);
+    int geometry_id = 0;
+    float tile_width = (bounds[geometry_id].z - bounds[geometry_id].x) / float(n_edge_vertices - 1);
+    float tile_height = (bounds[geometry_id].w - bounds[geometry_id].y) / float(n_edge_vertices - 1);
 
-    vec4 pos = vec4(float(col) * tile_width + bounds[tile_id].x,
-                   float(n_edge_vertices - row - 1) * tile_width + bounds[tile_id].y,
+    vec4 pos = vec4(float(col) * tile_width + bounds[geometry_id].x,
+                   float(n_edge_vertices - row - 1) * tile_width + bounds[geometry_id].y,
                    height*10000.0,
                    1.0);
     uv = vec2(float(col) / float(n_edge_vertices - 1), float(row) / float(n_edge_vertices - 1));
