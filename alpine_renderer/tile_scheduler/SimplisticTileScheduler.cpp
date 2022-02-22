@@ -30,7 +30,21 @@ SimplisticTileScheduler::SimplisticTileScheduler() = default;
 
 std::vector<srs::TileId> SimplisticTileScheduler::loadCandidates(const Camera& camera)
 {
-  return quad_tree::onTheFlyTraverse(srs::TileId{0, {0, 0}}, tile_scheduler::refineFunctor(camera), [](const auto& v) { return srs::subtiles(v); });
+//  return quad_tree::onTheFlyTraverse(srs::TileId{0, {0, 0}}, tile_scheduler::refineFunctor(camera, 1.0), [](const auto& v) { return srs::subtiles(v); });
+  const auto all_leaves = quad_tree::onTheFlyTraverse(srs::TileId{0, {0, 0}}, tile_scheduler::refineFunctor(camera, 1.0), [](const auto& v) { return srs::subtiles(v); });
+  std::vector<srs::TileId> visible_leaves;
+  visible_leaves.reserve(all_leaves.size());
+
+  const auto is_visible = [&camera](const srs::TileId& tile) {
+    const auto tile_aabb = srs::aabb(tile, 100, 4000);
+    const auto triangles = geometry::clip(geometry::triangulise(tile_aabb), camera.clippingPlanes());
+    if (triangles.empty())
+      return false;
+    return true;
+  };
+
+  std::copy_if(all_leaves.begin(), all_leaves.end(), std::back_inserter(visible_leaves), is_visible);
+  return visible_leaves;
 }
 
 size_t SimplisticTileScheduler::numberOfTilesInTransit() const
