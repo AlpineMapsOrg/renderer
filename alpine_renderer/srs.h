@@ -77,6 +77,7 @@ inline unsigned number_of_vertical_tiles_for_zoom_level(unsigned z) { return 1 <
 
 Bounds tile_bounds(const TileId& tile);
 std::array<TileId, 4> subtiles(const TileId& tile);
+bool overlap(const TileId& a, const TileId& b);
 
 inline geometry::AABB<3, double> aabb(const srs::TileId& tile_id, double min_height, double max_height)
 {

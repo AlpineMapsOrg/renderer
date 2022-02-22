@@ -36,11 +36,7 @@ std::vector<srs::TileId> SimplisticTileScheduler::loadCandidates(const Camera& c
   visible_leaves.reserve(all_leaves.size());
 
   const auto is_visible = [&camera](const srs::TileId& tile) {
-    const auto tile_aabb = srs::aabb(tile, 100, 4000);
-    const auto triangles = geometry::clip(geometry::triangulise(tile_aabb), camera.clippingPlanes());
-    if (triangles.empty())
-      return false;
-    return true;
+    return tile_scheduler::cameraFrustumContainsTile(camera, tile);
   };
 
   std::copy_if(all_leaves.begin(), all_leaves.end(), std::back_inserter(visible_leaves), is_visible);
@@ -71,23 +67,21 @@ void SimplisticTileScheduler::updateCamera(const Camera& camera)
 {
   if (!enabled())
     return;
+
+  const auto outside_camera_frustum = [&camera](const auto& gpu_tile_id) { return !tile_scheduler::cameraFrustumContainsTile(camera, gpu_tile_id); };
+  removeGpuTileIf(outside_camera_frustum);
+
   const auto tiles = loadCandidates(camera);
-  auto expired_gpu_tiles = m_gpu_tiles;
   for (const auto& t : tiles) {
     if (m_unavaliable_tiles.contains(t))
       continue;
-    if (m_pending_tile_requests.contains(t))
+    if (m_pending_tile_requests.contains(t))    // todo cancel current requests
       continue;
     if (m_gpu_tiles.contains(t)) {
-      expired_gpu_tiles.erase(t);
       continue;
     }
     m_pending_tile_requests.insert(t);
     emit tileRequested(t);
-  }
-  for (const auto& t : expired_gpu_tiles) {
-    m_gpu_tiles.erase(t);
-    emit tileExpired(t);
   }
 }
 
@@ -128,6 +122,10 @@ void SimplisticTileScheduler::checkLoadedTile(const srs::TileId& tile_id)
     const auto tile = std::make_shared<Tile>(tile_id, srs::tile_bounds(tile_id), std::move(heightraster), std::move(ortho));
     m_received_ortho_tiles.erase(tile_id);
     m_received_height_tiles.erase(tile_id);
+
+    const auto overlaps = [&tile_id](const auto& gpu_tile_id) { return srs::overlap(gpu_tile_id, tile_id); };
+    removeGpuTileIf(overlaps);
+
     m_gpu_tiles.insert(tile_id);
     emit tileReady(tile);
   }
@@ -141,4 +139,16 @@ bool SimplisticTileScheduler::enabled() const
 void SimplisticTileScheduler::setEnabled(bool newEnabled)
 {
   m_enabled = newEnabled;
+}
+
+template<typename Predicate>
+void SimplisticTileScheduler::removeGpuTileIf(Predicate condition)
+{
+  std::vector<srs::TileId> overlapping_tiles;
+  overlapping_tiles.reserve(4);
+  std::copy_if(m_gpu_tiles.cbegin(), m_gpu_tiles.cend(), std::back_inserter(overlapping_tiles), condition);
+  for (const auto& gpu_tile_id : overlapping_tiles) {
+    emit tileExpired(gpu_tile_id);
+    m_gpu_tiles.erase(gpu_tile_id);
+  }
 }

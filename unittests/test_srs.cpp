@@ -115,4 +115,12 @@ TEST_CASE("srs tests") {
       CHECK(tiles[3].coords.y == 3);
     }
   }
+
+  SECTION("overlap") {
+    CHECK(srs::overlap(srs::TileId{.zoom_level = 0, .coords = {0, 0}}, srs::TileId{.zoom_level = 0, .coords = {0, 0}}));
+    CHECK(!srs::overlap(srs::TileId{.zoom_level = 1, .coords = {0, 0}}, srs::TileId{.zoom_level = 1, .coords = {0, 1}}));
+    CHECK(srs::overlap(srs::TileId{.zoom_level = 0, .coords = {0, 0}}, srs::TileId{.zoom_level = 1, .coords = {0, 1}}));
+    CHECK(srs::overlap(srs::TileId{.zoom_level = 1, .coords = {0, 0}}, srs::TileId{.zoom_level = 3, .coords = {2, 1}}));
+    CHECK(!srs::overlap(srs::TileId{.zoom_level = 1, .coords = {0, 0}}, srs::TileId{.zoom_level = 3, .coords = {0, 7}}));
+  }
 }

@@ -43,4 +43,16 @@ std::array<TileId, 4> subtiles(const TileId& tile)
     TileId{tile.zoom_level + 1, tile.coords * 2u + glm::uvec2(1, 1)}};
 }
 
+bool overlap(const TileId& a, const TileId& b) {
+  const auto& smaller_zoom_tile = (a.zoom_level < b.zoom_level) ? a : b;
+  auto other = (a.zoom_level >= b.zoom_level) ? a : b;
+
+  while (other.zoom_level != smaller_zoom_tile.zoom_level) {
+    other.zoom_level--;
+    other.coords /= 2;
+  }
+
+  return smaller_zoom_tile == other;
+}
+
 }

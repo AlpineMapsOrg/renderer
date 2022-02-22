@@ -44,6 +44,8 @@ public slots:
 
 private:
   void checkLoadedTile(const srs::TileId& tile_id);
+  template <typename Predicate>
+  void removeGpuTileIf(Predicate condition);
   TileSet m_unavaliable_tiles;
   TileSet m_pending_tile_requests;
   TileSet m_gpu_tiles;
