@@ -70,7 +70,7 @@ inline auto refineFunctor(const Camera& camera, double error_threshold_px = 4.0,
     nearest_screenspace /= nearest_screenspace.w;
     auto other_screenspace = vp_mat * other_point;
     other_screenspace /= other_screenspace.w;
-    const auto clip_space_difference = length((nearest_screenspace - other_screenspace).xy());
+    const auto clip_space_difference = length(glm::dvec2(nearest_screenspace - other_screenspace));
 
     return clip_space_difference * 0.5 * camera.viewportSize().x >= error_threshold_px;
   };

@@ -95,7 +95,7 @@ add_library(alpine_renderer STATIC
 )
 message(${CMAKE_SOURCE_DIR}/libs/glm)
 target_include_directories(alpine_renderer SYSTEM PUBLIC ${CMAKE_SOURCE_DIR}/libs/glm)
-target_compile_definitions(alpine_renderer PUBLIC GLM_FORCE_SWIZZLE GLM_ENABLE_EXPERIMENTAL GLM_FORCE_XYZW_ONLY)
+target_compile_definitions(alpine_renderer PUBLIC GLM_ENABLE_EXPERIMENTAL GLM_FORCE_XYZW_ONLY)
 target_link_libraries(alpine_renderer PUBLIC Qt::Core Qt::Gui Qt6::Network)
 
 

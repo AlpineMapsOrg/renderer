@@ -94,7 +94,7 @@ TEST_CASE("Camera") {
       auto c = Camera({1, 2, 3}, {10, 2, 3});
       c.setPerspectiveParams(90, {100, 100}, 0.5);
       CHECK(equals(c.ray_direction(glm::vec2(0.0, 0.0)), {1, 0, 0}));
-      CHECK(equals((c.worldViewProjectionMatrix() * glm::dvec4(19, 2, 3, 1)).xy(), glm::dvec2(0.0, 0.0)));
+      CHECK(equals(glm::dvec2(c.worldViewProjectionMatrix() * glm::dvec4(19, 2, 3, 1)), glm::dvec2(0.0, 0.0)));
 
       CHECK(equals(c.ray_direction(glm::vec2(1.0, 0.0)), glm::normalize(glm::dvec3(1, -1, 0))));
       CHECK(equals(c.ray_direction(glm::vec2(-1.0, 0.0)), glm::normalize(glm::dvec3(1, 1, 0))));
@@ -107,7 +107,7 @@ TEST_CASE("Camera") {
       auto c = Camera({2, 2, 1}, {1, 1, 0});
       c.setPerspectiveParams(90, {100, 100}, 0.5);
       CHECK(equals(c.ray_direction(glm::vec2(0.0, 0.0)), glm::normalize(glm::dvec3(-1, -1, -1))));
-      CHECK(equals((c.worldViewProjectionMatrix() * glm::dvec4(0, 0, -1, 1)).xy(), glm::dvec2(0.0, 0.0)));
+      CHECK(equals(glm::dvec2(c.worldViewProjectionMatrix() * glm::dvec4(0, 0, -1, 1)), glm::dvec2(0.0, 0.0)));
     }
     {
       auto c = Camera({1, 1, 1}, {0, 0, 0});
