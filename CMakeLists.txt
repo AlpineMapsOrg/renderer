@@ -71,6 +71,7 @@ if (ATB_UNITTESTS AND NOT EMSCRIPTEN)
     find_package(Catch2 REQUIRED)
 endif()
 find_package(Qt6 REQUIRED COMPONENTS Core Gui OpenGL Network)
+add_subdirectory(sherpa)
 
 
 if (ATB_ENABLE_ADDRESS_SANITIZER)
