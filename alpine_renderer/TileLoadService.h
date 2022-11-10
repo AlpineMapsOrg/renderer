@@ -18,34 +18,34 @@
 
 #pragma once
 
-#include <QObject>
 #include "alpine_renderer/srs.h"
+#include <QObject>
 
 class QNetworkAccessManager;
 
-class TileLoadService : public QObject
-{
-  Q_OBJECT
+class TileLoadService : public QObject {
+    Q_OBJECT
 public:
-  enum class UrlPattern {
-    ZXY, ZYX,                              // y=0 is southern most tile
-    ZXY_yPointingSouth, ZYX_yPointingSouth // y=0 is the northern most tile
-  };
-  TileLoadService(const QString& base_url, UrlPattern url_pattern, const QString& file_ending);
-  ~TileLoadService() override;
-  [[nodiscard]] QString build_tile_url(const srs::TileId& tile_id) const;
+    enum class UrlPattern {
+        ZXY,
+        ZYX, // y=0 is southern most tile
+        ZXY_yPointingSouth,
+        ZYX_yPointingSouth // y=0 is the northern most tile
+    };
+    TileLoadService(const QString& base_url, UrlPattern url_pattern, const QString& file_ending);
+    ~TileLoadService() override;
+    [[nodiscard]] QString build_tile_url(const srs::TileId& tile_id) const;
 
 public slots:
-  void load(const srs::TileId& tile_id);
+    void load(const srs::TileId& tile_id);
 
 signals:
-  void loadReady(srs::TileId tile_id, std::shared_ptr<QByteArray> data);
-  void tileUnavailable(srs::TileId tile_id);
+    void loadReady(srs::TileId tile_id, std::shared_ptr<QByteArray> data);
+    void tileUnavailable(srs::TileId tile_id);
 
 private:
-  std::shared_ptr<QNetworkAccessManager> m_network_manager;
-  QString m_base_url;
-  UrlPattern m_url_pattern;
-  QString m_file_ending;
+    std::shared_ptr<QNetworkAccessManager> m_network_manager;
+    QString m_base_url;
+    UrlPattern m_url_pattern;
+    QString m_file_ending;
 };
-

@@ -18,39 +18,37 @@
 
 #pragma once
 
-#include <memory>
 #include <QObject>
 #include <QOpenGLShaderProgram>
+#include <memory>
 
 #include "alpine_gl_renderer/GLVariableLocations.h"
 
-//QT_BEGIN_NAMESPACE
-//class QOpenGLShaderProgram;
-//QT_END_NAMESPACE
+// QT_BEGIN_NAMESPACE
+// class QOpenGLShaderProgram;
+// QT_END_NAMESPACE
 
-class GLShaderManager : public QObject
-{
-  Q_OBJECT
+class GLShaderManager : public QObject {
+    Q_OBJECT
 public:
-  explicit GLShaderManager();
-  ~GLShaderManager() override;
-  void bindTileShader();
-  void bindDebugShader();
-  [[nodiscard]] QOpenGLShaderProgram* tileShader() const;
-  [[nodiscard]] QOpenGLShaderProgram* debugShader() const;
-  void release();
-  [[nodiscard]] TileGLAttributeLocations tileAttributeLocations() const;
-  [[nodiscard]] TileGLUniformLocations tileUniformLocations() const;
-  [[nodiscard]] DebugGLAttributeLocations debugAttributeLocations() const;
-  [[nodiscard]] DebugGLUniformLocations debugUniformLocations() const;
+    explicit GLShaderManager();
+    ~GLShaderManager() override;
+    void bindTileShader();
+    void bindDebugShader();
+    [[nodiscard]] QOpenGLShaderProgram* tileShader() const;
+    [[nodiscard]] QOpenGLShaderProgram* debugShader() const;
+    void release();
+    [[nodiscard]] TileGLAttributeLocations tileAttributeLocations() const;
+    [[nodiscard]] TileGLUniformLocations tileUniformLocations() const;
+    [[nodiscard]] DebugGLAttributeLocations debugAttributeLocations() const;
+    [[nodiscard]] DebugGLUniformLocations debugUniformLocations() const;
 signals:
 
 private:
-  std::unique_ptr<QOpenGLShaderProgram> m_tile_program = nullptr;
-  std::unique_ptr<QOpenGLShaderProgram> m_debug_program = nullptr;
-  TileGLUniformLocations m_tile_uniform_location = {};
-  TileGLAttributeLocations m_tile_attribute_locations = {};
-  DebugGLUniformLocations m_debug_uniform_location = {};
-  DebugGLAttributeLocations m_debug_attribute_locations = {};
+    std::unique_ptr<QOpenGLShaderProgram> m_tile_program = nullptr;
+    std::unique_ptr<QOpenGLShaderProgram> m_debug_program = nullptr;
+    TileGLUniformLocations m_tile_uniform_location = {};
+    TileGLAttributeLocations m_tile_attribute_locations = {};
+    DebugGLUniformLocations m_debug_uniform_location = {};
+    DebugGLAttributeLocations m_debug_attribute_locations = {};
 };
-

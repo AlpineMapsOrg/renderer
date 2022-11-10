@@ -23,8 +23,8 @@
 
 #include <glm/glm.hpp>
 
-#include "sherpa/TileHeights.h"
 #include "alpine_renderer/utils/geometry.h"
+#include "sherpa/TileHeights.h"
 
 namespace srs {
 // the srs used for the alpine renderer is EPSG: 3857 (also called web mercator, spherical mercator).
@@ -37,39 +37,38 @@ namespace srs {
 // so the tiles do not go until the poles.
 
 namespace {
-template <class T>
-void hash_combine(std::size_t& seed, const T& v)
-{
-  std::hash<T> hasher;
-  seed ^= hasher(v) + 0x9e3779b9 + (seed<<6) + (seed>>2);
-}
+    template <class T>
+    void hash_combine(std::size_t& seed, const T& v)
+    {
+        std::hash<T> hasher;
+        seed ^= hasher(v) + 0x9e3779b9 + (seed << 6) + (seed >> 2);
+    }
 }
 
 struct TileId {
-  unsigned zoom_level = unsigned(-1);
-  glm::uvec2 coords;
-  friend bool operator==(const TileId&, const TileId&) = default;
+    unsigned zoom_level = unsigned(-1);
+    glm::uvec2 coords;
+    friend bool operator==(const TileId&, const TileId&) = default;
 
-  struct Hasher
-  {
-    size_t operator()(const TileId& tile) const
-    {
-      std::size_t seed = 0;
-      hash_combine(seed, tile.zoom_level);
-      hash_combine(seed, tile.coords.x);
-      hash_combine(seed, tile.coords.y);
-      return seed;
-    }
-  };
+    struct Hasher {
+        size_t operator()(const TileId& tile) const
+        {
+            std::size_t seed = 0;
+            hash_combine(seed, tile.zoom_level);
+            hash_combine(seed, tile.coords.x);
+            hash_combine(seed, tile.coords.y);
+            return seed;
+        }
+    };
 };
 struct Bounds {
-  glm::dvec2 min = {};
-  glm::dvec2 max = {};
+    glm::dvec2 min = {};
+    glm::dvec2 max = {};
 };
 
-inline bool contains(const Bounds& bounds, const glm::dvec2& point) {
-  return bounds.min.x < point.x && point.x < bounds.max.x &&
-         bounds.min.y < point.y && point.y < bounds.max.y;
+inline bool contains(const Bounds& bounds, const glm::dvec2& point)
+{
+    return bounds.min.x < point.x && point.x < bounds.max.x && bounds.min.y < point.y && point.y < bounds.max.y;
 }
 
 // for now it's the same, but if we ever switch to wgs84 / epsg 4326 / the one with 2 tiles in level zero
@@ -84,9 +83,9 @@ static const auto g_heights = TileHeights::read_from("/home/madam/valtava/tiles/
 
 inline geometry::AABB<3, double> aabb(const srs::TileId& tile_id, double min_height, double max_height)
 {
-  const auto bounds = srs::tile_bounds(tile_id);
-  const auto heights = g_heights.query({ tile_id.zoom_level, tile_id.coords });
-  return {.min = {bounds.min, heights.first}, .max = {bounds.max, heights.second}};
+    const auto bounds = srs::tile_bounds(tile_id);
+    const auto heights = g_heights.query({ tile_id.zoom_level, tile_id.coords });
+    return { .min = { bounds.min, heights.first }, .max = { bounds.max, heights.second } };
 }
 
 }

@@ -18,8 +18,8 @@
 
 #pragma once
 
-#include <unordered_set>
 #include <unordered_map>
+#include <unordered_set>
 
 #include <QObject>
 
@@ -28,34 +28,31 @@
 
 struct Tile;
 
-
-class TileScheduler : public QObject
-{
-  Q_OBJECT
+class TileScheduler : public QObject {
+    Q_OBJECT
 public:
-  using TileSet = std::unordered_set<srs::TileId, srs::TileId::Hasher>;
-  using Tile2DataMap = std::unordered_map<srs::TileId, std::shared_ptr<QByteArray>, srs::TileId::Hasher>;
-  TileScheduler() = default;
+    using TileSet = std::unordered_set<srs::TileId, srs::TileId::Hasher>;
+    using Tile2DataMap = std::unordered_map<srs::TileId, std::shared_ptr<QByteArray>, srs::TileId::Hasher>;
+    TileScheduler() = default;
 
-  [[nodiscard]] virtual size_t numberOfTilesInTransit() const = 0;
-  [[nodiscard]] virtual size_t numberOfWaitingHeightTiles() const = 0;
-  [[nodiscard]] virtual size_t numberOfWaitingOrthoTiles() const = 0;
-  [[nodiscard]] virtual TileSet gpuTiles() const = 0;
+    [[nodiscard]] virtual size_t numberOfTilesInTransit() const = 0;
+    [[nodiscard]] virtual size_t numberOfWaitingHeightTiles() const = 0;
+    [[nodiscard]] virtual size_t numberOfWaitingOrthoTiles() const = 0;
+    [[nodiscard]] virtual TileSet gpuTiles() const = 0;
 
-  virtual bool enabled() const = 0;
-  virtual void setEnabled(bool newEnabled) = 0;
+    virtual bool enabled() const = 0;
+    virtual void setEnabled(bool newEnabled) = 0;
 
 public slots:
-  virtual void updateCamera(const Camera& camera) = 0;
-  virtual void receiveOrthoTile(srs::TileId tile_id, std::shared_ptr<QByteArray> data) = 0;
-  virtual void receiveHeightTile(srs::TileId tile_id, std::shared_ptr<QByteArray> data) = 0;
-  virtual void notifyAboutUnavailableOrthoTile(srs::TileId tile_id) = 0;
-  virtual void notifyAboutUnavailableHeightTile(srs::TileId tile_id) = 0;
+    virtual void updateCamera(const Camera& camera) = 0;
+    virtual void receiveOrthoTile(srs::TileId tile_id, std::shared_ptr<QByteArray> data) = 0;
+    virtual void receiveHeightTile(srs::TileId tile_id, std::shared_ptr<QByteArray> data) = 0;
+    virtual void notifyAboutUnavailableOrthoTile(srs::TileId tile_id) = 0;
+    virtual void notifyAboutUnavailableHeightTile(srs::TileId tile_id) = 0;
 
 signals:
-  void tileRequested(const srs::TileId& tile_id);
-  void tileReady(const std::shared_ptr<Tile>& tile);
-  void tileExpired(const srs::TileId& tile_id);
-  void cancelTileRequest(const srs::TileId& tile_id);
+    void tileRequested(const srs::TileId& tile_id);
+    void tileReady(const std::shared_ptr<Tile>& tile);
+    void tileExpired(const srs::TileId& tile_id);
+    void cancelTileRequest(const srs::TileId& tile_id);
 };
-

@@ -24,13 +24,14 @@
 #include <glm/glm.hpp>
 #include <glm/gtc/type_ptr.hpp>
 
-
 namespace gl_helpers {
-inline QMatrix4x4 toQtType(const glm::mat4& mat) {
-  return QMatrix4x4(glm::value_ptr(mat)).transposed();
+inline QMatrix4x4 toQtType(const glm::mat4& mat)
+{
+    return QMatrix4x4(glm::value_ptr(mat)).transposed();
 }
 template <typename T>
-inline int bufferLengthInBytes(const std::vector<T>& vec) {
-  return int(vec.size() * sizeof(T));
+inline int bufferLengthInBytes(const std::vector<T>& vec)
+{
+    return int(vec.size() * sizeof(T));
 }
 }

@@ -51,13 +51,13 @@
 #ifndef GLWIDGET_H
 #define GLWIDGET_H
 
-#include <chrono>
-#include <memory>
-#include <glm/glm.hpp>
-#include <QOpenGLWindow>
-#include <QVector3D>
 #include <QOpenGLPaintDevice>
+#include <QOpenGLWindow>
 #include <QPainter>
+#include <QVector3D>
+#include <chrono>
+#include <glm/glm.hpp>
+#include <memory>
 
 #include "alpine_renderer/Camera.h"
 
@@ -74,48 +74,47 @@ class GLTileManager;
 class GLShaderManager;
 class TileScheduler;
 
-class GLWindow : public QOpenGLWindow
-{
-  Q_OBJECT
+class GLWindow : public QOpenGLWindow {
+    Q_OBJECT
 public:
-  GLWindow();
-  ~GLWindow() override;
+    GLWindow();
+    ~GLWindow() override;
 
-  void initializeGL() override;
-  void resizeGL(int w, int h) override;
-  void paintGL() override;
-  void paintOverGL() override;
+    void initializeGL() override;
+    void resizeGL(int w, int h) override;
+    void paintGL() override;
+    void paintOverGL() override;
 
-  GLTileManager* gpuTileManager() const;
+    GLTileManager* gpuTileManager() const;
 
-  void setTileScheduler(TileScheduler* new_tile_scheduler);
+    void setTileScheduler(TileScheduler* new_tile_scheduler);
 
 protected:
-  void mouseMoveEvent(QMouseEvent*) override;
-  void keyPressEvent(QKeyEvent*) override;
+    void mouseMoveEvent(QMouseEvent*) override;
+    void keyPressEvent(QKeyEvent*) override;
 
 signals:
-  void cameraUpdated(const Camera&);
+    void cameraUpdated(const Camera&);
 
 private:
-  using ClockResolution = std::chrono::microseconds;
-  using Clock = std::chrono::steady_clock;
-  using TimePoint = std::chrono::time_point<Clock, ClockResolution>;
+    using ClockResolution = std::chrono::microseconds;
+    using Clock = std::chrono::steady_clock;
+    using TimePoint = std::chrono::time_point<Clock, ClockResolution>;
 
-  std::unique_ptr<GLTileManager> m_tile_manager; // needs opengl context
-  std::unique_ptr<GLDebugPainter> m_debug_painter; // needs opengl context
-  std::unique_ptr<GLShaderManager> m_shader_manager;
-  std::unique_ptr<QOpenGLPaintDevice> m_gl_paint_device;
-  TileScheduler* m_tile_scheduler;
+    std::unique_ptr<GLTileManager> m_tile_manager; // needs opengl context
+    std::unique_ptr<GLDebugPainter> m_debug_painter; // needs opengl context
+    std::unique_ptr<GLShaderManager> m_shader_manager;
+    std::unique_ptr<QOpenGLPaintDevice> m_gl_paint_device;
+    TileScheduler* m_tile_scheduler;
 
-  Camera m_camera;
-  Camera m_debug_stored_camera;
-  glm::ivec2 m_previous_mouse_pos = {-1, -1};
+    Camera m_camera;
+    Camera m_debug_stored_camera;
+    glm::ivec2 m_previous_mouse_pos = { -1, -1 };
 
-  int m_frame = 0;
-  bool m_initialised = false;
-  TimePoint m_frame_start;
-  TimePoint m_frame_end;
+    int m_frame = 0;
+    bool m_initialised = false;
+    TimePoint m_frame_start;
+    TimePoint m_frame_end;
 };
 
 #endif

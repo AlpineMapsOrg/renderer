@@ -23,54 +23,52 @@
 #include "alpine_renderer/TileScheduler.h"
 #include "alpine_renderer/utils/QuadTree.h"
 
-class BasicTreeTileScheduler : public TileScheduler
-{
-  enum class TileStatus {
-    Uninitialised,
-    Unavailable,
-    InTransit,
-    WaitingForSiblings,
-    OnGpu
-  };
-  struct NodeData {
-    srs::TileId id = {};
-    TileStatus status = TileStatus::Uninitialised;
-  };
-  using Node = QuadTreeNode<NodeData>;
+class BasicTreeTileScheduler : public TileScheduler {
+    enum class TileStatus {
+        Uninitialised,
+        Unavailable,
+        InTransit,
+        WaitingForSiblings,
+        OnGpu
+    };
+    struct NodeData {
+        srs::TileId id = {};
+        TileStatus status = TileStatus::Uninitialised;
+    };
+    using Node = QuadTreeNode<NodeData>;
 
-  std::unique_ptr<Node> m_root_node;
-  Tile2DataMap m_received_ortho_tiles;
-  Tile2DataMap m_received_height_tiles;
-  TileSet m_gpu_tiles_to_be_expired;
+    std::unique_ptr<Node> m_root_node;
+    Tile2DataMap m_received_ortho_tiles;
+    Tile2DataMap m_received_height_tiles;
+    TileSet m_gpu_tiles_to_be_expired;
 
-  bool m_enabled = true;
+    bool m_enabled = true;
 
 public:
-  BasicTreeTileScheduler();
+    BasicTreeTileScheduler();
 
-  size_t numberOfTilesInTransit() const override;
-  size_t numberOfWaitingHeightTiles() const override;
-  size_t numberOfWaitingOrthoTiles() const override;
-  TileSet gpuTiles() const override;
-  bool enabled() const override;
-  void setEnabled(bool newEnabled) override;
+    size_t numberOfTilesInTransit() const override;
+    size_t numberOfWaitingHeightTiles() const override;
+    size_t numberOfWaitingOrthoTiles() const override;
+    TileSet gpuTiles() const override;
+    bool enabled() const override;
+    void setEnabled(bool newEnabled) override;
 
 public slots:
-  void updateCamera(const Camera& camera) override;
-  void receiveOrthoTile(srs::TileId tile_id, std::shared_ptr<QByteArray> data) override;
-  void receiveHeightTile(srs::TileId tile_id, std::shared_ptr<QByteArray> data) override;
-  void notifyAboutUnavailableOrthoTile(srs::TileId tile_id) override;
-  void notifyAboutUnavailableHeightTile(srs::TileId tile_id) override;
+    void updateCamera(const Camera& camera) override;
+    void receiveOrthoTile(srs::TileId tile_id, std::shared_ptr<QByteArray> data) override;
+    void receiveHeightTile(srs::TileId tile_id, std::shared_ptr<QByteArray> data) override;
+    void notifyAboutUnavailableOrthoTile(srs::TileId tile_id) override;
+    void notifyAboutUnavailableHeightTile(srs::TileId tile_id) override;
 
-//signals:
-//  void tileRequested(const srs::TileId& tile_id);
-//  void tileReady(const std::shared_ptr<Tile>& tile);
-//  void tileExpired(const srs::TileId& tile_id);
-//  void cancelTileRequest(const srs::TileId& tile_id);
+    // signals:
+    //   void tileRequested(const srs::TileId& tile_id);
+    //   void tileReady(const std::shared_ptr<Tile>& tile);
+    //   void tileExpired(const srs::TileId& tile_id);
+    //   void cancelTileRequest(const srs::TileId& tile_id);
 
 private:
-  void checkConsistency() const;
-  void checkLoadedTile(const srs::TileId& tile_id);
-  void markTileUnavailable(const srs::TileId& tile_id);
+    void checkConsistency() const;
+    void checkLoadedTile(const srs::TileId& tile_id);
+    void markTileUnavailable(const srs::TileId& tile_id);
 };
-

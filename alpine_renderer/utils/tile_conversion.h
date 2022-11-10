@@ -24,8 +24,7 @@
 
 #include "alpine_renderer/Raster.h"
 
-namespace tile_conversion
-{
+namespace tile_conversion {
 
 inline QImage toQImage(const QByteArray& byte_array) { return QImage::fromData(byte_array); }
 Raster<glm::u8vec4> toRasterRGBA(const QByteArray& byte_array);
@@ -33,27 +32,29 @@ Raster<uint16_t> qImage2uint16Raster(const QImage& byte_array);
 
 inline glm::u8vec4 float2alpineRGBA(float height)
 {
-  const auto r = std::clamp(int(height / 32.0f), 0, 255);
-  const auto g = std::clamp(int(std::fmod(height, 32.0f) * 8), 0, 255);
+    const auto r = std::clamp(int(height / 32.0f), 0, 255);
+    const auto g = std::clamp(int(std::fmod(height, 32.0f) * 8), 0, 255);
 
-  return {glm::u8(r), glm::u8(g), 0, 255};
-}
-
-inline float alppineRGBA2float(const glm::u8vec4& rgba) {
-  constexpr auto one_red = 32.0f;
-  constexpr auto one_green = 32.000000001f / 256;
-  return float(rgba.x) * one_red + float(rgba.y) * one_green;
+    return { glm::u8(r), glm::u8(g), 0, 255 };
 }
 
-
-inline uint16_t alppineRedGreen2uint16(uchar red, uchar green) {
-  return uint16_t(red << 8) | uint16_t(green);
-}
-inline uint16_t alppineRGBA2uint16(const glm::u8vec4& rgba) {
-  return alppineRedGreen2uint16(rgba.x, rgba.y);
-}
-inline glm::u8vec4 uint162alpineRGBA(uint16_t v) {
-  return {v >> 8, v & 255, 0, 255};
-}
+inline float alppineRGBA2float(const glm::u8vec4& rgba)
+{
+    constexpr auto one_red = 32.0f;
+    constexpr auto one_green = 32.000000001f / 256;
+    return float(rgba.x) * one_red + float(rgba.y) * one_green;
 }
 
+inline uint16_t alppineRedGreen2uint16(uchar red, uchar green)
+{
+    return uint16_t(red << 8) | uint16_t(green);
+}
+inline uint16_t alppineRGBA2uint16(const glm::u8vec4& rgba)
+{
+    return alppineRedGreen2uint16(rgba.x, rgba.y);
+}
+inline glm::u8vec4 uint162alpineRGBA(uint16_t v)
+{
+    return { v >> 8, v & 255, 0, 255 };
+}
+}

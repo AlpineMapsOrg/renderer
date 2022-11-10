@@ -18,10 +18,9 @@
 
 #pragma once
 
-#include <vector>
 #include <cassert>
 #include <limits>
-
+#include <vector>
 
 // functions in this file generate the indices for our terrain meshes.
 // we use a regular grid. vertex positions are computed in the vertex shader on the fly,
@@ -45,20 +44,21 @@ namespace terrain_mesh_index_generator {
 // triangles (3, 7, 7), (7, 7, 11), (4, 8, 9), and (8, 8, 12) are degenerate intentionally.
 // this keeps the strip running, and shouldn't be visible.
 template <typename Index>
-std::vector<Index> surface_quads(unsigned vertex_side_length) {
-  assert(vertex_side_length >= 2);
-  assert(vertex_side_length * vertex_side_length < std::numeric_limits<Index>::max());
-  std::vector<Index> indices;
-  const auto height = vertex_side_length;
-  const auto width = vertex_side_length;
-  for (size_t row = 0; row < height - 1; row++) {
-    const bool left2right = (row & 1) == 0;
-    const size_t start = left2right ? 0 : width - 1;
-    for (size_t col = start; col < width; left2right ? col++ : col--) {
-      indices.push_back(col + row * width);
-      indices.push_back(col + (row + 1) * width);
+std::vector<Index> surface_quads(unsigned vertex_side_length)
+{
+    assert(vertex_side_length >= 2);
+    assert(vertex_side_length * vertex_side_length < std::numeric_limits<Index>::max());
+    std::vector<Index> indices;
+    const auto height = vertex_side_length;
+    const auto width = vertex_side_length;
+    for (size_t row = 0; row < height - 1; row++) {
+        const bool left2right = (row & 1) == 0;
+        const size_t start = left2right ? 0 : width - 1;
+        for (size_t col = start; col < width; left2right ? col++ : col--) {
+            indices.push_back(col + row * width);
+            indices.push_back(col + (row + 1) * width);
+        }
     }
-  }
-  return indices;
+    return indices;
 }
 }

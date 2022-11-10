@@ -49,9 +49,9 @@
 ****************************************************************************/
 
 #include <QGuiApplication>
-#include <QSurfaceFormat>
-#include <QOpenGLContext>
 #include <QObject>
+#include <QOpenGLContext>
+#include <QSurfaceFormat>
 #include <QTimer>
 
 #include "GLWindow.h"
@@ -68,7 +68,7 @@
 // creation has to have a sufficiently high version number for the features that are in
 // use, and (2) the shader code's version directive is different.
 
-int main(int argc, char *argv[])
+int main(int argc, char* argv[])
 {
     QGuiApplication app(argc, argv);
 
@@ -93,7 +93,7 @@ int main(int argc, char *argv[])
     SimplisticTileScheduler scheduler;
     GLWindow glWindow;
     glWindow.showMaximized();
-    glWindow.setTileScheduler(&scheduler);  // i don't like this, gl window is tightly coupled with the scheduler.
+    glWindow.setTileScheduler(&scheduler); // i don't like this, gl window is tightly coupled with the scheduler.
 
     QObject::connect(&glWindow, &GLWindow::cameraUpdated, &scheduler, &TileScheduler::updateCamera);
     QObject::connect(&scheduler, &TileScheduler::tileRequested, &terrain_service, &TileLoadService::load);

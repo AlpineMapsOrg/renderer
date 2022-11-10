@@ -18,31 +18,47 @@
 
 #pragma once
 
-#include <vector>
 #include <cassert>
+#include <vector>
 
 #include <glm/glm.hpp>
 
 template <typename T>
 class Raster {
-  std::vector<T> m_data;
-  size_t m_width = 0;
-  size_t m_height = 0;
+    std::vector<T> m_data;
+    size_t m_width = 0;
+    size_t m_height = 0;
 
 public:
-  Raster() = default;
-  Raster(std::vector<T>&& vector, size_t square_side_length) : m_data(std::move(vector)), m_width(square_side_length), m_height(square_side_length) { assert(m_data.size() == m_width * m_height); }
-  Raster(size_t square_side_length) : m_data(square_side_length * square_side_length), m_width(square_side_length), m_height(square_side_length) {}
-  Raster(const glm::uvec2& size) : m_data(size.x * size.y), m_width(size.x), m_height(size.y) {}
-  const auto& buffer() const { return m_data; }
-  [[nodiscard]] size_t width() const { return m_width; }
-  [[nodiscard]] size_t height() const { return m_height; }
-  [[nodiscard]] size_t bufferLength() const { return m_data.size(); }
+    Raster() = default;
+    Raster(std::vector<T>&& vector, size_t square_side_length)
+        : m_data(std::move(vector))
+        , m_width(square_side_length)
+        , m_height(square_side_length)
+    {
+        assert(m_data.size() == m_width * m_height);
+    }
+    Raster(size_t square_side_length)
+        : m_data(square_side_length * square_side_length)
+        , m_width(square_side_length)
+        , m_height(square_side_length)
+    {
+    }
+    Raster(const glm::uvec2& size)
+        : m_data(size.x * size.y)
+        , m_width(size.x)
+        , m_height(size.y)
+    {
+    }
+    const auto& buffer() const { return m_data; }
+    [[nodiscard]] size_t width() const { return m_width; }
+    [[nodiscard]] size_t height() const { return m_height; }
+    [[nodiscard]] size_t bufferLength() const { return m_data.size(); }
 
-  auto begin() { return m_data.begin(); }
-  auto end() { return m_data.end(); }
-  auto begin() const { return m_data.begin(); }
-  auto end() const { return m_data.end(); }
-  auto cbegin() const { return m_data.cbegin(); }
-  auto cend() const { return m_data.cend(); }
+    auto begin() { return m_data.begin(); }
+    auto end() { return m_data.end(); }
+    auto begin() const { return m_data.begin(); }
+    auto end() const { return m_data.end(); }
+    auto cbegin() const { return m_data.cbegin(); }
+    auto cend() const { return m_data.cend(); }
 };

@@ -19,108 +19,113 @@
 
 #include "alpine_renderer/srs.h"
 
-TEST_CASE("srs tests") {
-  SECTION("number of tiles per level") {
-    CHECK(srs::number_of_horizontal_tiles_for_zoom_level(0) == 1);
-    CHECK(srs::number_of_horizontal_tiles_for_zoom_level(1) == 2);
-    CHECK(srs::number_of_horizontal_tiles_for_zoom_level(4) == 16);
-    CHECK(srs::number_of_vertical_tiles_for_zoom_level(0) == 1);
-    CHECK(srs::number_of_vertical_tiles_for_zoom_level(1) == 2);
-    CHECK(srs::number_of_vertical_tiles_for_zoom_level(4) == 16);
-  }
-
-  SECTION("tile bounds") {
-    // https://gis.stackexchange.com/questions/144471/spherical-mercator-world-bounds
-    // ACHTUNG: https://epsg.io/3857 shows wrong bounds (as of February 2022).
-    constexpr auto b = 20037508.3427892;
+TEST_CASE("srs tests")
+{
+    SECTION("number of tiles per level")
     {
-      const auto bounds = srs::tile_bounds({0, {0, 0}});
-      CHECK(bounds.min.x == Approx(-b));
-      CHECK(bounds.min.y == Approx(-b));
-      CHECK(bounds.max.x == Approx(b));
-      CHECK(bounds.max.y == Approx(b));
+        CHECK(srs::number_of_horizontal_tiles_for_zoom_level(0) == 1);
+        CHECK(srs::number_of_horizontal_tiles_for_zoom_level(1) == 2);
+        CHECK(srs::number_of_horizontal_tiles_for_zoom_level(4) == 16);
+        CHECK(srs::number_of_vertical_tiles_for_zoom_level(0) == 1);
+        CHECK(srs::number_of_vertical_tiles_for_zoom_level(1) == 2);
+        CHECK(srs::number_of_vertical_tiles_for_zoom_level(4) == 16);
     }
+
+    SECTION("tile bounds")
     {
-      // we default to TMS mapping, that is, y tile 0 is south
-      const auto bounds = srs::tile_bounds({1, {0, 0}});
-      CHECK(bounds.min.x == Approx(-b));
-      CHECK(bounds.min.y == Approx(-b));
-      CHECK(bounds.max.x == Approx(0));
-      CHECK(bounds.max.y == Approx(0));
+        // https://gis.stackexchange.com/questions/144471/spherical-mercator-world-bounds
+        // ACHTUNG: https://epsg.io/3857 shows wrong bounds (as of February 2022).
+        constexpr auto b = 20037508.3427892;
+        {
+            const auto bounds = srs::tile_bounds({ 0, { 0, 0 } });
+            CHECK(bounds.min.x == Approx(-b));
+            CHECK(bounds.min.y == Approx(-b));
+            CHECK(bounds.max.x == Approx(b));
+            CHECK(bounds.max.y == Approx(b));
+        }
+        {
+            // we default to TMS mapping, that is, y tile 0 is south
+            const auto bounds = srs::tile_bounds({ 1, { 0, 0 } });
+            CHECK(bounds.min.x == Approx(-b));
+            CHECK(bounds.min.y == Approx(-b));
+            CHECK(bounds.max.x == Approx(0));
+            CHECK(bounds.max.y == Approx(0));
+        }
+        {
+            const auto bounds = srs::tile_bounds({ 1, { 0, 1 } });
+            CHECK(bounds.min.x == Approx(-b));
+            CHECK(bounds.min.y == Approx(0));
+            CHECK(bounds.max.x == Approx(0));
+            CHECK(bounds.max.y == Approx(b));
+        }
+        {
+            const auto bounds = srs::tile_bounds({ 1, { 1, 0 } });
+            CHECK(bounds.min.x == Approx(0));
+            CHECK(bounds.min.y == Approx(-b));
+            CHECK(bounds.max.x == Approx(b));
+            CHECK(bounds.max.y == Approx(0));
+        }
+        {
+            const auto bounds = srs::tile_bounds({ 1, { 1, 1 } });
+            CHECK(bounds.min.x == Approx(0));
+            CHECK(bounds.min.y == Approx(0));
+            CHECK(bounds.max.x == Approx(b));
+            CHECK(bounds.max.y == Approx(b));
+        }
+        {
+            // computed using alpine terrain builder
+            const auto bounds = srs::tile_bounds({ 16, { 34420, 42241 } });
+            CHECK(bounds.min.x == Approx(1010191.76581689));
+            CHECK(bounds.min.y == Approx(5792703.751563799));
+            CHECK(bounds.max.x == Approx(1010803.262043171));
+            CHECK(bounds.max.y == Approx(5793315.24779008));
+        }
     }
+
+    SECTION("subtiles")
     {
-      const auto bounds = srs::tile_bounds({1, {0, 1}});
-      CHECK(bounds.min.x == Approx(-b));
-      CHECK(bounds.min.y == Approx(0));
-      CHECK(bounds.max.x == Approx(0));
-      CHECK(bounds.max.y == Approx(b));
+        {
+            const auto tiles = srs::subtiles(srs::TileId { .zoom_level = 0, .coords = { 0, 0 } });
+            REQUIRE(tiles.size() == 4);
+            for (const auto& tid : tiles)
+                CHECK(tid.zoom_level == 1);
+            CHECK(tiles[0].coords.x == 0);
+            CHECK(tiles[0].coords.y == 0);
+
+            CHECK(tiles[1].coords.x == 1);
+            CHECK(tiles[1].coords.y == 0);
+
+            CHECK(tiles[2].coords.x == 0);
+            CHECK(tiles[2].coords.y == 1);
+
+            CHECK(tiles[3].coords.x == 1);
+            CHECK(tiles[3].coords.y == 1);
+        }
+        {
+            const auto tiles = srs::subtiles(srs::TileId { .zoom_level = 1, .coords = { 1, 1 } });
+            REQUIRE(tiles.size() == 4);
+            for (const auto& tid : tiles)
+                CHECK(tid.zoom_level == 2);
+            CHECK(tiles[0].coords.x == 2);
+            CHECK(tiles[0].coords.y == 2);
+
+            CHECK(tiles[1].coords.x == 3);
+            CHECK(tiles[1].coords.y == 2);
+
+            CHECK(tiles[2].coords.x == 2);
+            CHECK(tiles[2].coords.y == 3);
+
+            CHECK(tiles[3].coords.x == 3);
+            CHECK(tiles[3].coords.y == 3);
+        }
     }
+
+    SECTION("overlap")
     {
-      const auto bounds = srs::tile_bounds({1, {1, 0}});
-      CHECK(bounds.min.x == Approx(0));
-      CHECK(bounds.min.y == Approx(-b));
-      CHECK(bounds.max.x == Approx(b));
-      CHECK(bounds.max.y == Approx(0));
+        CHECK(srs::overlap(srs::TileId { .zoom_level = 0, .coords = { 0, 0 } }, srs::TileId { .zoom_level = 0, .coords = { 0, 0 } }));
+        CHECK(!srs::overlap(srs::TileId { .zoom_level = 1, .coords = { 0, 0 } }, srs::TileId { .zoom_level = 1, .coords = { 0, 1 } }));
+        CHECK(srs::overlap(srs::TileId { .zoom_level = 0, .coords = { 0, 0 } }, srs::TileId { .zoom_level = 1, .coords = { 0, 1 } }));
+        CHECK(srs::overlap(srs::TileId { .zoom_level = 1, .coords = { 0, 0 } }, srs::TileId { .zoom_level = 3, .coords = { 2, 1 } }));
+        CHECK(!srs::overlap(srs::TileId { .zoom_level = 1, .coords = { 0, 0 } }, srs::TileId { .zoom_level = 3, .coords = { 0, 7 } }));
     }
-    {
-      const auto bounds = srs::tile_bounds({1, {1, 1}});
-      CHECK(bounds.min.x == Approx(0));
-      CHECK(bounds.min.y == Approx(0));
-      CHECK(bounds.max.x == Approx(b));
-      CHECK(bounds.max.y == Approx(b));
-    }
-    {
-      // computed using alpine terrain builder
-      const auto bounds = srs::tile_bounds({16, {34420, 42241}});
-      CHECK(bounds.min.x == Approx(1010191.76581689));
-      CHECK(bounds.min.y == Approx(5792703.751563799));
-      CHECK(bounds.max.x == Approx(1010803.262043171));
-      CHECK(bounds.max.y == Approx(5793315.24779008));
-    }
-  }
-
-  SECTION("subtiles") {
-    {
-      const auto tiles = srs::subtiles(srs::TileId{.zoom_level = 0, .coords = {0, 0}});
-      REQUIRE(tiles.size() == 4);
-      for (const auto& tid : tiles)
-        CHECK(tid.zoom_level == 1);
-      CHECK(tiles[0].coords.x == 0);
-      CHECK(tiles[0].coords.y == 0);
-
-      CHECK(tiles[1].coords.x == 1);
-      CHECK(tiles[1].coords.y == 0);
-
-      CHECK(tiles[2].coords.x == 0);
-      CHECK(tiles[2].coords.y == 1);
-
-      CHECK(tiles[3].coords.x == 1);
-      CHECK(tiles[3].coords.y == 1);
-    }
-    {
-      const auto tiles = srs::subtiles(srs::TileId{.zoom_level = 1, .coords = {1, 1}});
-      REQUIRE(tiles.size() == 4);
-      for (const auto& tid : tiles)
-        CHECK(tid.zoom_level == 2);
-      CHECK(tiles[0].coords.x == 2);
-      CHECK(tiles[0].coords.y == 2);
-
-      CHECK(tiles[1].coords.x == 3);
-      CHECK(tiles[1].coords.y == 2);
-
-      CHECK(tiles[2].coords.x == 2);
-      CHECK(tiles[2].coords.y == 3);
-
-      CHECK(tiles[3].coords.x == 3);
-      CHECK(tiles[3].coords.y == 3);
-    }
-  }
-
-  SECTION("overlap") {
-    CHECK(srs::overlap(srs::TileId{.zoom_level = 0, .coords = {0, 0}}, srs::TileId{.zoom_level = 0, .coords = {0, 0}}));
-    CHECK(!srs::overlap(srs::TileId{.zoom_level = 1, .coords = {0, 0}}, srs::TileId{.zoom_level = 1, .coords = {0, 1}}));
-    CHECK(srs::overlap(srs::TileId{.zoom_level = 0, .coords = {0, 0}}, srs::TileId{.zoom_level = 1, .coords = {0, 1}}));
-    CHECK(srs::overlap(srs::TileId{.zoom_level = 1, .coords = {0, 0}}, srs::TileId{.zoom_level = 3, .coords = {2, 1}}));
-    CHECK(!srs::overlap(srs::TileId{.zoom_level = 1, .coords = {0, 0}}, srs::TileId{.zoom_level = 3, .coords = {0, 7}}));
-  }
 }

@@ -21,34 +21,33 @@
 
 #include <unordered_set>
 
-#include <QTest>
 #include <QSignalSpy>
+#include <QTest>
 #include <glm/glm.hpp>
 
 #include "alpine_renderer/Camera.h"
-#include "alpine_renderer/srs.h"
 #include "alpine_renderer/Tile.h"
+#include "alpine_renderer/srs.h"
 
-
-class TestSimplisticTileScheduler: public TestTileScheduler
-{
-  Q_OBJECT
+class TestSimplisticTileScheduler : public TestTileScheduler {
+    Q_OBJECT
 private:
-  Camera test_cam = Camera({1822577.0, 6141664.0 - 500, 171.28 + 500}, {1822577.0, 6141664.0, 171.28}); // should point right at the stephansdom
+    Camera test_cam = Camera({ 1822577.0, 6141664.0 - 500, 171.28 + 500 }, { 1822577.0, 6141664.0, 171.28 }); // should point right at the stephansdom
 
-  std::unique_ptr<TileScheduler> makeScheduler() const override {
-    return std::make_unique<SimplisticTileScheduler>();
-  }
+    std::unique_ptr<TileScheduler> makeScheduler() const override
+    {
+        return std::make_unique<SimplisticTileScheduler>();
+    }
 
 private slots:
-//  void initTestCase() {}    // implementing these functions will override TestTileScheduler and break the tests.
-//  void init() {}            // so call the TestTileScheduler::init and initTestCase somehow, then it should be good again.
-  void loadCandidates() {
-    const auto tile_list = SimplisticTileScheduler::loadCandidates(test_cam);
-    QVERIFY(!tile_list.empty());
-  }
+    //  void initTestCase() {}    // implementing these functions will override TestTileScheduler and break the tests.
+    //  void init() {}            // so call the TestTileScheduler::init and initTestCase somehow, then it should be good again.
+    void loadCandidates()
+    {
+        const auto tile_list = SimplisticTileScheduler::loadCandidates(test_cam);
+        QVERIFY(!tile_list.empty());
+    }
 };
-
 
 QTEST_MAIN(TestSimplisticTileScheduler)
 #include "qtest_SimplisticTileScheduler.moc"

@@ -20,33 +20,37 @@
 
 #include <catch2/catch.hpp>
 
-TEST_CASE("terrain_mesh_index_generator") {
+TEST_CASE("terrain_mesh_index_generator")
+{
 
-  SECTION("surface quads 2x2") {
-    const auto indices = terrain_mesh_index_generator::surface_quads<int>(2);
-    REQUIRE(indices.size() == 4);
-    CHECK(indices == std::vector({0, 2, 1, 3}));
-  }
-  SECTION("surface quads 3x3") {
-    const auto indices = terrain_mesh_index_generator::surface_quads<int>(3);
-    const auto gt = std::vector({0, 3, 1, 4, 2, 5, 5, 8, 4, 7, 3, 6});
-    REQUIRE(indices.size() == gt.size());
-    CHECK(indices == gt);
-  }
-  SECTION("surface quads 4x4") {
-    const auto indices = terrain_mesh_index_generator::surface_quads<int>(4);
-    const auto gt = std::vector({0, 4, 1, 5, 2, 6, 3, 7, 7, 11, 6, 10, 5, 9, 4, 8, 8, 12, 9, 13, 10, 14, 11, 15});
-    REQUIRE(indices.size() == gt.size());
-    CHECK(indices == gt);
-  }
-  SECTION("surface quads 5x5") {
-    const auto indices = terrain_mesh_index_generator::surface_quads<int>(5);
-    const auto gt = std::vector({ 0,  5,  1,  6,  2,  7,  3,  8,  4,  9,
-                                  9, 14,  8, 13,  7, 12,  6, 11,  5, 10,
-                                 10, 15, 11, 16, 12, 17, 13, 18, 14, 19,
-                                 19, 24, 18, 23, 17, 22, 16, 21, 15, 20});
-    REQUIRE(indices.size() == gt.size());
-    CHECK(indices == gt);
-  }
+    SECTION("surface quads 2x2")
+    {
+        const auto indices = terrain_mesh_index_generator::surface_quads<int>(2);
+        REQUIRE(indices.size() == 4);
+        CHECK(indices == std::vector({ 0, 2, 1, 3 }));
+    }
+    SECTION("surface quads 3x3")
+    {
+        const auto indices = terrain_mesh_index_generator::surface_quads<int>(3);
+        const auto gt = std::vector({ 0, 3, 1, 4, 2, 5, 5, 8, 4, 7, 3, 6 });
+        REQUIRE(indices.size() == gt.size());
+        CHECK(indices == gt);
+    }
+    SECTION("surface quads 4x4")
+    {
+        const auto indices = terrain_mesh_index_generator::surface_quads<int>(4);
+        const auto gt = std::vector({ 0, 4, 1, 5, 2, 6, 3, 7, 7, 11, 6, 10, 5, 9, 4, 8, 8, 12, 9, 13, 10, 14, 11, 15 });
+        REQUIRE(indices.size() == gt.size());
+        CHECK(indices == gt);
+    }
+    SECTION("surface quads 5x5")
+    {
+        const auto indices = terrain_mesh_index_generator::surface_quads<int>(5);
+        const auto gt = std::vector({ 0, 5, 1, 6, 2, 7, 3, 8, 4, 9,
+            9, 14, 8, 13, 7, 12, 6, 11, 5, 10,
+            10, 15, 11, 16, 12, 17, 13, 18, 14, 19,
+            19, 24, 18, 23, 17, 22, 16, 21, 15, 20 });
+        REQUIRE(indices.size() == gt.size());
+        CHECK(indices == gt);
+    }
 }
-

@@ -22,43 +22,41 @@
 
 #include <QObject>
 
-#include "alpine_renderer/Tile.h"
-#include "alpine_gl_renderer/GLVariableLocations.h"
 #include "alpine_gl_renderer/GLTileSet.h"
+#include "alpine_gl_renderer/GLVariableLocations.h"
+#include "alpine_renderer/Tile.h"
 
 class QOpenGLShaderProgram;
 
-class GLTileManager : public QObject
-{
-  Q_OBJECT
+class GLTileManager : public QObject {
+    Q_OBJECT
 public:
-  explicit GLTileManager(QObject *parent = nullptr);
+    explicit GLTileManager(QObject* parent = nullptr);
 
-  [[nodiscard]] const std::vector<GLTileSet>& tiles() const;
-  void draw(QOpenGLShaderProgram* shader_program, const glm::mat4& world_view_projection_matrix) const;
+    [[nodiscard]] const std::vector<GLTileSet>& tiles() const;
+    void draw(QOpenGLShaderProgram* shader_program, const glm::mat4& world_view_projection_matrix) const;
 
 signals:
-  void tilesChanged();
+    void tilesChanged();
 
 public slots:
-  void addTile(const std::shared_ptr<Tile>& tile);
-  void removeTile(const srs::TileId& tile_id);
-  void setAttributeLocations(const TileGLAttributeLocations& d);
-  void setUniformLocations(const TileGLUniformLocations& d);
+    void addTile(const std::shared_ptr<Tile>& tile);
+    void removeTile(const srs::TileId& tile_id);
+    void setAttributeLocations(const TileGLAttributeLocations& d);
+    void setUniformLocations(const TileGLUniformLocations& d);
 
 private:
-  static constexpr auto N_EDGE_VERTICES = 65;
-  static constexpr auto MAX_TILES_PER_TILESET = 1;
-  float m_max_anisotropy = 0;
+    static constexpr auto N_EDGE_VERTICES = 65;
+    static constexpr auto MAX_TILES_PER_TILESET = 1;
+    float m_max_anisotropy = 0;
 
-  std::vector<GLTileSet> m_gpu_tiles;
-  // indexbuffers for 4^index tiles,
-  // e.g., for single tile tile sets take index 0
-  //       for 4 tiles take index 1, for 16 2..
-  // the size_t is the number of indices
-  std::vector<std::pair<std::unique_ptr<QOpenGLBuffer>, size_t>> m_index_buffers;
-  TileGLAttributeLocations m_attribute_locations;
-  TileGLUniformLocations m_uniform_locations;
-  unsigned m_tiles_per_set = 1;
+    std::vector<GLTileSet> m_gpu_tiles;
+    // indexbuffers for 4^index tiles,
+    // e.g., for single tile tile sets take index 0
+    //       for 4 tiles take index 1, for 16 2..
+    // the size_t is the number of indices
+    std::vector<std::pair<std::unique_ptr<QOpenGLBuffer>, size_t>> m_index_buffers;
+    TileGLAttributeLocations m_attribute_locations;
+    TileGLUniformLocations m_uniform_locations;
+    unsigned m_tiles_per_set = 1;
 };
-

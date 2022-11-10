@@ -19,20 +19,20 @@
 #pragma once
 
 struct TileGLAttributeLocations {
-  int height = -1;
+    int height = -1;
 };
 
 struct TileGLUniformLocations {
-  int view_projection_matrix = -1;
-  int bounds_array = -1;
-  int ortho_texture_something = -1;
-  int n_edge_vertices = -1;
+    int view_projection_matrix = -1;
+    int bounds_array = -1;
+    int ortho_texture_something = -1;
+    int n_edge_vertices = -1;
 };
 
 struct DebugGLAttributeLocations {
-  int position = -1;
+    int position = -1;
 };
 
 struct DebugGLUniformLocations {
-  int view_projection_matrix = -1;
+    int view_projection_matrix = -1;
 };

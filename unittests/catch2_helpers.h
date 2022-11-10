@@ -26,12 +26,13 @@
 
 namespace Catch {
 
-//template<>
-template<glm::length_t s,  typename T>
+// template<>
+template <glm::length_t s, typename T>
 struct StringMaker<glm::vec<s, T>> {
-  static std::string convert(const glm::vec<s, T>& value) {
-    return glm::to_string(value);
-  }
+    static std::string convert(const glm::vec<s, T>& value)
+    {
+        return glm::to_string(value);
+    }
 };
 }
 

@@ -17,8 +17,8 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *****************************************************************************/
 
-#include <limits>
 #include <chrono>
+#include <limits>
 
 #define CATCH_CONFIG_MAIN
 #include <catch2/catch.hpp>
@@ -29,13 +29,13 @@ constexpr bool asserts_are_enabled = false;
 constexpr bool asserts_are_enabled = true;
 #endif
 
-TEST_CASE("check that asserts are enabled") {
-  CHECK(asserts_are_enabled);
+TEST_CASE("check that asserts are enabled")
+{
+    CHECK(asserts_are_enabled);
 }
 
-
-TEST_CASE("check that NaNs are enabled (-ffast-math removes support, -fno-finite-math-only puts it back in)") {
-  CHECK(std::isnan(std::numeric_limits<float>::quiet_NaN() * float(std::chrono::system_clock::now().time_since_epoch().count())));
-  CHECK(std::isnan(double(std::numeric_limits<float>::quiet_NaN() * float(std::chrono::system_clock::now().time_since_epoch().count()))));
+TEST_CASE("check that NaNs are enabled (-ffast-math removes support, -fno-finite-math-only puts it back in)")
+{
+    CHECK(std::isnan(std::numeric_limits<float>::quiet_NaN() * float(std::chrono::system_clock::now().time_since_epoch().count())));
+    CHECK(std::isnan(double(std::numeric_limits<float>::quiet_NaN() * float(std::chrono::system_clock::now().time_since_epoch().count()))));
 }
-

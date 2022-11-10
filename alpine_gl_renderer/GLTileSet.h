@@ -22,8 +22,8 @@
 #include <vector>
 
 #include <QOpenGLBuffer>
-#include <QOpenGLVertexArrayObject>
 #include <QOpenGLTexture>
+#include <QOpenGLVertexArrayObject>
 
 #include "alpine_renderer/srs.h"
 
@@ -31,18 +31,22 @@
 // GpuTileSets can have an arbitrary number of slots, each slot is an index in the corresponding
 // vao buffers and textures.
 struct GLTileSet {
-  struct Tile {
-    srs::TileId tile_id;
-    srs::Bounds bounds;
-    void invalidate() { tile_id = {unsigned(-1), {unsigned(-1), unsigned(-1)}}; bounds = {}; }
-    [[nodiscard]] bool isValid() const { return tile_id.zoom_level < 100; }
-  };
+    struct Tile {
+        srs::TileId tile_id;
+        srs::Bounds bounds;
+        void invalidate()
+        {
+            tile_id = { unsigned(-1), { unsigned(-1), unsigned(-1) } };
+            bounds = {};
+        }
+        [[nodiscard]] bool isValid() const { return tile_id.zoom_level < 100; }
+    };
 
-  std::unique_ptr<QOpenGLTexture> ortho_texture;
-  std::unique_ptr<QOpenGLBuffer> heightmap_buffer;
-  std::unique_ptr<QOpenGLVertexArrayObject> vao;
-  std::vector<std::pair<srs::TileId, srs::Bounds>> tiles;
-  int gl_element_count = -1;
-  unsigned gl_index_type = 0;
-  // texture
+    std::unique_ptr<QOpenGLTexture> ortho_texture;
+    std::unique_ptr<QOpenGLBuffer> heightmap_buffer;
+    std::unique_ptr<QOpenGLVertexArrayObject> vao;
+    std::vector<std::pair<srs::TileId, srs::Bounds>> tiles;
+    int gl_element_count = -1;
+    unsigned gl_index_type = 0;
+    // texture
 };

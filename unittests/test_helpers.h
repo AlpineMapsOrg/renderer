@@ -24,20 +24,40 @@
 
 namespace test_helpers {
 class FailOnCopy {
-  int v = 0;
+    int v = 0;
+
 public:
-  FailOnCopy() = default;
-  FailOnCopy(const FailOnCopy& other) : v(other.v) { CHECK(false); }
-  FailOnCopy(FailOnCopy&& other) noexcept : v(other.v) { CHECK(true); }
-  FailOnCopy& operator=(const FailOnCopy& other) { v = other.v; CHECK(false); return *this; }
-  FailOnCopy& operator=(FailOnCopy&& other) noexcept { v = other.v; CHECK(true); return *this; }
-  ~FailOnCopy() = default;
+    FailOnCopy() = default;
+    FailOnCopy(const FailOnCopy& other)
+        : v(other.v)
+    {
+        CHECK(false);
+    }
+    FailOnCopy(FailOnCopy&& other) noexcept
+        : v(other.v)
+    {
+        CHECK(true);
+    }
+    FailOnCopy& operator=(const FailOnCopy& other)
+    {
+        v = other.v;
+        CHECK(false);
+        return *this;
+    }
+    FailOnCopy& operator=(FailOnCopy&& other) noexcept
+    {
+        v = other.v;
+        CHECK(true);
+        return *this;
+    }
+    ~FailOnCopy() = default;
 };
 
-template<int n_dims>
-bool equals(const glm::vec<n_dims, double>& a, const glm::vec<n_dims, double>& b, double scale = 1) {
-  const auto delta = glm::length(a - b);
-  return delta == Approx(0).scale(scale);
+template <int n_dims>
+bool equals(const glm::vec<n_dims, double>& a, const glm::vec<n_dims, double>& b, double scale = 1)
+{
+    const auto delta = glm::length(a - b);
+    return delta == Approx(0).scale(scale);
 }
 
 }
