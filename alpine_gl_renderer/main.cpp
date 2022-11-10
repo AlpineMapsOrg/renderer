@@ -59,6 +59,8 @@
 #include "alpine_renderer/TileLoadService.h"
 #include "alpine_renderer/tile_scheduler/BasicTreeTileScheduler.h"
 #include "alpine_renderer/tile_scheduler/SimplisticTileScheduler.h"
+#include "alpine_renderer/tile_scheduler/utils.h"
+#include "sherpa/TileHeights.h"
 
 // This example demonstrates easy, cross-platform usage of OpenGL ES 3.0 functions via
 // QOpenGLExtraFunctions in an application that works identically on desktop platforms
@@ -91,6 +93,11 @@ int main(int argc, char* argv[])
     TileLoadService terrain_service("http://alpinemaps.cg.tuwien.ac.at/tiles/alpine_png/", TileLoadService::UrlPattern::ZXY, ".png");
     TileLoadService ortho_service("http://maps.wien.gv.at/basemap/bmaporthofoto30cm/normal/google3857/", TileLoadService::UrlPattern::ZYX_yPointingSouth, ".jpeg");
     SimplisticTileScheduler scheduler;
+
+    TileHeights h;
+    h.emplace({ 0, { 0, 0 } }, { 100, 4000 });
+    scheduler.set_aabb_decorator(tile_scheduler::AabbDecorator::make(std::move(h)));
+
     GLWindow glWindow;
     glWindow.showMaximized();
     glWindow.setTileScheduler(&scheduler); // i don't like this, gl window is tightly coupled with the scheduler.
