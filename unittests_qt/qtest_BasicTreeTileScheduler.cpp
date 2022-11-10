@@ -22,7 +22,7 @@
 #include <QTest>
 #include <glm/glm.hpp>
 
-#include "TileHeights.h"
+#include "sherpa/TileHeights.h"
 #include "alpine_renderer/Camera.h"
 #include "alpine_renderer/tile_scheduler/BasicTreeTileScheduler.h"
 #include "alpine_renderer/tile_scheduler/utils.h"

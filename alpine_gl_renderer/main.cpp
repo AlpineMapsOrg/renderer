@@ -60,6 +60,7 @@
 #include "alpine_renderer/tile_scheduler/BasicTreeTileScheduler.h"
 #include "alpine_renderer/tile_scheduler/SimplisticTileScheduler.h"
 #include "alpine_renderer/tile_scheduler/utils.h"
+#include "qnetworkreply.h"
 #include "sherpa/TileHeights.h"
 
 // This example demonstrates easy, cross-platform usage of OpenGL ES 3.0 functions via
@@ -97,6 +98,23 @@ int main(int argc, char* argv[])
     TileHeights h;
     h.emplace({ 0, { 0, 0 } }, { 100, 4000 });
     scheduler.set_aabb_decorator(tile_scheduler::AabbDecorator::make(std::move(h)));
+
+    QNetworkAccessManager m_network_manager;
+    QNetworkReply* reply = m_network_manager.get(QNetworkRequest(QUrl("http://gataki.cg.tuwien.ac.at/tiles/alpine_png2/height_data.atb")));
+    QObject::connect(reply, &QNetworkReply::finished, [reply, &scheduler, &app]() {
+        const auto url = reply->url();
+        const auto error = reply->error();
+        if (error == QNetworkReply::NoError) {
+            const QByteArray data = reply->readAll();
+            scheduler.set_aabb_decorator(tile_scheduler::AabbDecorator::make(TileHeights::deserialise(data)));
+
+        } else {
+            qDebug() << "Loading of " << url << " failed: " << error;
+            app.exit(0);
+            // do we need better error handling?
+        }
+        reply->deleteLater();
+    });
 
     GLWindow glWindow;
     glWindow.showMaximized();
