@@ -59,11 +59,9 @@ endif()
 
 ########################################### setup #################################################
 set(CMAKE_CXX_STANDARD 20)
-set(CMAKE_INCLUDE_CURRENT_DIR ON)
 set(CMAKE_AUTOMOC ON)
 set(CMAKE_AUTORCC ON)
 set(CMAKE_AUTOUIC ON)
-
 
 if (ATB_UNITTESTS AND NOT EMSCRIPTEN)
     find_package(Catch2 REQUIRED)
@@ -94,6 +92,7 @@ add_library(alpine_renderer STATIC
 )
 
 target_include_directories(alpine_renderer SYSTEM PUBLIC ${CMAKE_SOURCE_DIR}/libs/glm)
+target_include_directories(alpine_renderer PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
 target_compile_definitions(alpine_renderer PUBLIC GLM_ENABLE_EXPERIMENTAL GLM_FORCE_XYZW_ONLY)
 target_link_libraries(alpine_renderer PUBLIC sherpa Qt::Core Qt::Gui Qt6::Network)
 
