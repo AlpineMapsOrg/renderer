@@ -17,6 +17,7 @@
  *****************************************************************************/
 
 #include "alpine_renderer/tile_scheduler/SimplisticTileScheduler.h"
+#include "alpine_renderer/tile_scheduler/utils.h"
 #include "unittests_qt/qtest_TileScheduler.h"
 
 #include <unordered_set>
@@ -28,6 +29,7 @@
 #include "alpine_renderer/Camera.h"
 #include "alpine_renderer/Tile.h"
 #include "alpine_renderer/srs.h"
+#include "sherpa/TileHeights.h"
 
 class TestSimplisticTileScheduler : public TestTileScheduler {
     Q_OBJECT
@@ -36,7 +38,11 @@ private:
 
     std::unique_ptr<TileScheduler> makeScheduler() const override
     {
-        return std::make_unique<SimplisticTileScheduler>();
+        auto sch = std::make_unique<SimplisticTileScheduler>();
+        TileHeights h;
+        h.emplace({ 0, { 0, 0 } }, { 100, 4000 });
+        sch->set_aabb_decorator(tile_scheduler::AabbDecorator::make(std::move(h)));
+        return sch;
     }
 
 private slots:
@@ -44,7 +50,7 @@ private slots:
     //  void init() {}            // so call the TestTileScheduler::init and initTestCase somehow, then it should be good again.
     void loadCandidates()
     {
-        const auto tile_list = SimplisticTileScheduler::loadCandidates(test_cam);
+        const auto tile_list = SimplisticTileScheduler::loadCandidates(test_cam, m_scheduler->aabb_decorator());
         QVERIFY(!tile_list.empty());
     }
 };

@@ -18,6 +18,7 @@
 
 #pragma once
 
+#include <memory>
 #include <unordered_map>
 #include <unordered_set>
 
@@ -26,14 +27,25 @@
 #include "alpine_renderer/Camera.h"
 #include "sherpa/tile.h"
 
+
 struct Tile;
+namespace tile_scheduler {
+class AabbDecorator;
+using AabbDecoratorPtr = std::shared_ptr<AabbDecorator>;
+}
 
 class TileScheduler : public QObject {
     Q_OBJECT
 public:
     using TileSet = std::unordered_set<tile::Id, tile::Id::Hasher>;
     using Tile2DataMap = std::unordered_map<tile::Id, std::shared_ptr<QByteArray>, tile::Id::Hasher>;
-    TileScheduler() = default;
+//    TileScheduler();
+//    TileScheduler(const TileScheduler&) = delete;
+//    TileScheduler(const TileScheduler&&) = delete;
+//    ~TileScheduler() override;
+
+//    void operator = (const TileScheduler&) = delete;
+//    void operator = (const TileScheduler&&) = delete;
 
     [[nodiscard]] virtual size_t numberOfTilesInTransit() const = 0;
     [[nodiscard]] virtual size_t numberOfWaitingHeightTiles() const = 0;
@@ -42,6 +54,9 @@ public:
 
     [[nodiscard]] virtual bool enabled() const = 0;
     virtual void setEnabled(bool newEnabled) = 0;
+
+    [[nodiscard]] const tile_scheduler::AabbDecoratorPtr& aabb_decorator() const;
+    void set_aabb_decorator(const tile_scheduler::AabbDecoratorPtr& new_aabb_decorator);
 
 public slots:
     virtual void updateCamera(const Camera& camera) = 0;
@@ -55,4 +70,7 @@ signals:
     void tileReady(const std::shared_ptr<Tile>& tile);
     void tileExpired(const tile::Id& tile_id);
     void cancelTileRequest(const tile::Id& tile_id);
+
+private:
+    tile_scheduler::AabbDecoratorPtr m_aabb_decorator;
 };

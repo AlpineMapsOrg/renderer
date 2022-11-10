@@ -25,7 +25,7 @@ class SimplisticTileScheduler : public TileScheduler {
 public:
     SimplisticTileScheduler();
 
-    [[nodiscard]] static std::vector<tile::Id> loadCandidates(const Camera& camera);
+    [[nodiscard]] static std::vector<tile::Id> loadCandidates(const Camera& camera, const tile_scheduler::AabbDecoratorPtr& aabb_decorator);
     [[nodiscard]] size_t numberOfTilesInTransit() const override;
     [[nodiscard]] size_t numberOfWaitingHeightTiles() const override;
     [[nodiscard]] size_t numberOfWaitingOrthoTiles() const override;
@@ -45,6 +45,8 @@ private:
     void checkLoadedTile(const tile::Id& tile_id);
     template <typename Predicate>
     void removeGpuTileIf(Predicate condition);
+
+
     TileSet m_unavaliable_tiles;
     TileSet m_pending_tile_requests;
     TileSet m_gpu_tiles;

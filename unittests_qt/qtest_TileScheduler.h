@@ -30,7 +30,7 @@
 
 class TestTileScheduler : public QObject {
     Q_OBJECT
-private:
+protected:
     QByteArray m_ortho_bytes;
     QByteArray m_height_bytes;
     std::unique_ptr<TileScheduler> m_scheduler;

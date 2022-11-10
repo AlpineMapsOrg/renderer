@@ -8,7 +8,7 @@
 
 struct Tile {
     Tile() = default;
-    Tile(tile::Id id, tile::SrsBounds bounds, Raster<uint16_t> height_map, QImage orthotexture)
+    Tile(tile::Id id, tile::SrsAndHeightBounds bounds, Raster<uint16_t> height_map, QImage orthotexture)
         : id(id)
         , bounds(bounds)
         , height_map(height_map)
@@ -16,7 +16,7 @@ struct Tile {
     {
     }
     tile::Id id = {};
-    tile::SrsBounds bounds = {};
+    tile::SrsAndHeightBounds bounds = {};
     Raster<uint16_t> height_map;
     QImage orthotexture;
 };

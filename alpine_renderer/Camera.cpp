@@ -23,7 +23,7 @@
 #include <QDebug>
 #include <glm/gtx/transform.hpp>
 
-#include "alpine_renderer/utils/geometry.h"
+#include "sherpa/geometry.h"
 
 // camera space in opengl / webgl:
 // origin:

@@ -19,8 +19,8 @@
 #include "alpine_renderer/tile_scheduler/BasicTreeTileScheduler.h"
 #include "alpine_renderer/Tile.h"
 #include "alpine_renderer/tile_scheduler/utils.h"
-#include "alpine_renderer/utils/geometry.h"
 #include "alpine_renderer/utils/tile_conversion.h"
+#include "sherpa/geometry.h"
 
 BasicTreeTileScheduler::BasicTreeTileScheduler()
 {
@@ -80,7 +80,7 @@ void BasicTreeTileScheduler::updateCamera(const Camera& camera)
         return;
 
     { // reduce tree
-        const auto refine_id = tile_scheduler::refineFunctor(camera, 0.5);
+        const auto refine_id = tile_scheduler::refineFunctor(camera, aabb_decorator(), 0.5);
         const auto clean_up = [&](const NodeData& v) {
             if (refine_id(v.id))
                 return;
@@ -107,7 +107,7 @@ void BasicTreeTileScheduler::updateCamera(const Camera& camera)
     }
 
     { // refine tree
-        const auto refine_id = tile_scheduler::refineFunctor(camera, 1.0);
+        const auto refine_id = tile_scheduler::refineFunctor(camera, aabb_decorator(), 1.0);
         const auto refine_data = [&](const auto& v) {
             return refine_id(v.id);
         };
@@ -281,7 +281,7 @@ void BasicTreeTileScheduler::checkLoadedTile(const tile::Id&)
                     assert(m_received_ortho_tiles.contains(tile.id));
                     auto heightraster = tile_conversion::qImage2uint16Raster(tile_conversion::toQImage(*m_received_height_tiles[tile.id]));
                     auto ortho = tile_conversion::toQImage(*m_received_ortho_tiles[tile.id]);
-                    const auto new_tile = std::make_shared<Tile>(tile.id, srs::tile_bounds(tile.id), std::move(heightraster), std::move(ortho));
+                    const auto new_tile = std::make_shared<Tile>(tile.id, this->aabb_decorator()->aabb(tile.id), std::move(heightraster), std::move(ortho));
                     m_received_ortho_tiles.erase(tile.id);
                     m_received_height_tiles.erase(tile.id);
                     tiles_ready.push_back(new_tile);

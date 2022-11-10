@@ -23,8 +23,7 @@
 
 #include <glm/glm.hpp>
 
-#include "alpine_renderer/utils/geometry.h"
-#include "sherpa/TileHeights.h"
+#include "sherpa/tile.h"
 
 namespace srs {
 // the srs used for the alpine renderer is EPSG: 3857 (also called web mercator, spherical mercator).
@@ -43,14 +42,4 @@ inline unsigned number_of_vertical_tiles_for_zoom_level(unsigned z) { return 1 <
 
 tile::SrsBounds tile_bounds(const tile::Id& tile);
 bool overlap(const tile::Id& a, const tile::Id& b);
-
-static const auto g_heights = TileHeights::read_from("/home/madam/valtava/tiles/alpine_png2/height_data.atb");
-
-inline geometry::AABB<3, double> aabb(const tile::Id& tile_id, double min_height, double max_height)
-{
-    const auto bounds = srs::tile_bounds(tile_id);
-    const auto heights = g_heights.query({ tile_id.zoom_level, tile_id.coords });
-    return { .min = { bounds.min, heights.first }, .max = { bounds.max, heights.second } };
-}
-
 }

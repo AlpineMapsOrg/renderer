@@ -20,7 +20,7 @@
 
 #include <catch2/catch.hpp>
 
-#include "alpine_renderer/utils/geometry.h"
+#include "sherpa/geometry.h"
 #include "unittests/test_helpers.h"
 
 using test_helpers::equals;

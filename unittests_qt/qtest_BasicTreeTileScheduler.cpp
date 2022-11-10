@@ -16,18 +16,17 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *****************************************************************************/
 
-#include "alpine_renderer/tile_scheduler/BasicTreeTileScheduler.h"
-#include "unittests_qt/qtest_TileScheduler.h"
-
 #include <unordered_set>
 
 #include <QSignalSpy>
 #include <QTest>
 #include <glm/glm.hpp>
 
+#include "TileHeights.h"
 #include "alpine_renderer/Camera.h"
-#include "alpine_renderer/Tile.h"
-#include "alpine_renderer/srs.h"
+#include "alpine_renderer/tile_scheduler/BasicTreeTileScheduler.h"
+#include "alpine_renderer/tile_scheduler/utils.h"
+#include "unittests_qt/qtest_TileScheduler.h"
 
 class TestBasicTreeTileScheduler : public TestTileScheduler {
     Q_OBJECT
@@ -36,7 +35,11 @@ private:
 
     std::unique_ptr<TileScheduler> makeScheduler() const override
     {
-        return std::make_unique<BasicTreeTileScheduler>();
+        auto sch = std::make_unique<BasicTreeTileScheduler>();
+        TileHeights h;
+        h.emplace({ 0, { 0, 0 } }, { 100, 4000 });
+        sch->set_aabb_decorator(tile_scheduler::AabbDecorator::make(std::move(h)));
+        return sch;
     }
 
 private slots:

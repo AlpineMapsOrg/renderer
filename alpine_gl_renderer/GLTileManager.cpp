@@ -94,7 +94,7 @@ void GLTileManager::addTile(const std::shared_ptr<Tile>& tile)
     // find an empty slot => todo, for now just create a new tile every time.
     // setup / copy data to gpu
     GLTileSet tileset;
-    tileset.tiles.emplace_back(tile->id, tile->bounds);
+    tileset.tiles.emplace_back(tile->id, tile::SrsBounds(tile->bounds));
     tileset.vao = std::make_unique<QOpenGLVertexArrayObject>();
     tileset.vao->create();
     tileset.vao->bind();

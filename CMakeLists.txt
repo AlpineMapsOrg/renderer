@@ -15,12 +15,11 @@ set(ATB_RENDER_BACKEND_SOURCES
     alpine_renderer/Raster.h
     alpine_renderer/srs.h alpine_renderer/srs.cpp
     alpine_renderer/Tile.cpp alpine_renderer/Tile.h
-    alpine_renderer/TileScheduler.h
+    alpine_renderer/TileScheduler.h alpine_renderer/TileScheduler.cpp
     alpine_renderer/tile_scheduler/utils.h
     alpine_renderer/tile_scheduler/SimplisticTileScheduler.h alpine_renderer/tile_scheduler/SimplisticTileScheduler.cpp
     alpine_renderer/tile_scheduler/BasicTreeTileScheduler.h alpine_renderer/tile_scheduler/BasicTreeTileScheduler.cpp
     alpine_renderer/TileLoadService.h alpine_renderer/TileLoadService.cpp
-    alpine_renderer/utils/geometry.h
     alpine_renderer/utils/QuadTree.h
     alpine_renderer/utils/terrain_mesh_index_generator.h
     alpine_renderer/utils/tile_conversion.h alpine_renderer/utils/tile_conversion.cpp
@@ -47,7 +46,6 @@ if (ATB_UNITTESTS AND NOT EMSCRIPTEN)
         unittests/test_srs.cpp
         unittests/test_tile.cpp
         unittests/test_tile_conversion.cpp
-        unittests/test_geometry.cpp
     )
     set(ATB_QT_UNITTESTS
         qtest_TileLoadService

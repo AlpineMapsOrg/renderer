@@ -22,20 +22,20 @@
 #include "alpine_renderer/Tile.h"
 #include "alpine_renderer/srs.h"
 #include "alpine_renderer/utils/QuadTree.h"
-#include "alpine_renderer/utils/geometry.h"
 #include "alpine_renderer/utils/tile_conversion.h"
+#include "sherpa/geometry.h"
 
 SimplisticTileScheduler::SimplisticTileScheduler() = default;
 
-std::vector<tile::Id> SimplisticTileScheduler::loadCandidates(const Camera& camera)
+std::vector<tile::Id> SimplisticTileScheduler::loadCandidates(const Camera& camera, const tile_scheduler::AabbDecoratorPtr& aabb_decorator)
 {
     //  return quad_tree::onTheFlyTraverse(tile::Id{0, {0, 0}}, tile_scheduler::refineFunctor(camera, 1.0), [](const auto& v) { return srs::subtiles(v); });
-    const auto all_leaves = quad_tree::onTheFlyTraverse(tile::Id { 0, { 0, 0 } }, tile_scheduler::refineFunctor(camera, 2.0), [](const tile::Id& v) { return v.children(); });
+    const auto all_leaves = quad_tree::onTheFlyTraverse(tile::Id { 0, { 0, 0 } }, tile_scheduler::refineFunctor(camera, aabb_decorator, 2.0), [](const tile::Id& v) { return v.children(); });
     std::vector<tile::Id> visible_leaves;
     visible_leaves.reserve(all_leaves.size());
 
-    const auto is_visible = [&camera](const tile::Id& tile) {
-        return tile_scheduler::cameraFrustumContainsTile(camera, tile);
+    const auto is_visible = [&camera, aabb_decorator](const tile::Id& tile) {
+        return tile_scheduler::cameraFrustumContainsTile(camera, aabb_decorator->aabb(tile));
     };
 
     std::copy_if(all_leaves.begin(), all_leaves.end(), std::back_inserter(visible_leaves), is_visible);
@@ -67,10 +67,14 @@ void SimplisticTileScheduler::updateCamera(const Camera& camera)
     if (!enabled())
         return;
 
-    const auto outside_camera_frustum = [&camera](const auto& gpu_tile_id) { return !tile_scheduler::cameraFrustumContainsTile(camera, gpu_tile_id); };
+    const auto aabb_decorator = this->aabb_decorator();
+
+    const auto outside_camera_frustum = [&camera, aabb_decorator](const auto& gpu_tile_id) {
+        return !tile_scheduler::cameraFrustumContainsTile(camera, aabb_decorator->aabb(gpu_tile_id));
+    };
     removeGpuTileIf(outside_camera_frustum);
 
-    const auto tiles = loadCandidates(camera);
+    const auto tiles = loadCandidates(camera, aabb_decorator);
     for (const auto& t : tiles) {
         if (m_unavaliable_tiles.contains(t))
             continue;
@@ -114,11 +118,11 @@ void SimplisticTileScheduler::notifyAboutUnavailableHeightTile(tile::Id tile_id)
 
 void SimplisticTileScheduler::checkLoadedTile(const tile::Id& tile_id)
 {
-    if (m_received_height_tiles.contains(tile_id) & m_received_ortho_tiles.contains(tile_id)) {
+    if (m_received_height_tiles.contains(tile_id) && m_received_ortho_tiles.contains(tile_id)) {
         m_pending_tile_requests.erase(tile_id);
         auto heightraster = tile_conversion::qImage2uint16Raster(tile_conversion::toQImage(*m_received_height_tiles[tile_id]));
         auto ortho = tile_conversion::toQImage(*m_received_ortho_tiles[tile_id]);
-        const auto tile = std::make_shared<Tile>(tile_id, srs::tile_bounds(tile_id), std::move(heightraster), std::move(ortho));
+        const auto tile = std::make_shared<Tile>(tile_id, this->aabb_decorator()->aabb(tile_id), std::move(heightraster), std::move(ortho));
         m_received_ortho_tiles.erase(tile_id);
         m_received_height_tiles.erase(tile_id);
 

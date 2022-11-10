@@ -20,9 +20,33 @@
 
 #include "alpine_renderer/Camera.h"
 #include "alpine_renderer/srs.h"
-#include "alpine_renderer/utils/geometry.h"
+#include "sherpa/geometry.h"
+#include "sherpa/TileHeights.h"
 
 namespace tile_scheduler {
+
+class AabbDecorator;
+using AabbDecoratorPtr = std::shared_ptr<AabbDecorator>;
+
+class AabbDecorator {
+    TileHeights tile_heights;
+public:
+    inline AabbDecorator(TileHeights tile_heights)
+        : tile_heights(std::move(tile_heights))
+    {
+    }
+    inline tile::SrsAndHeightBounds aabb(const tile::Id& id)
+    {
+        const auto bounds = srs::tile_bounds(id);
+        const auto heights = tile_heights.query({ id.zoom_level, id.coords });
+        return { .min = { bounds.min, heights.first }, .max = { bounds.max, heights.second } };
+    }
+    static inline AabbDecoratorPtr make(TileHeights heights)
+    {
+        return std::make_shared<AabbDecorator>(std::move(heights));
+    }
+};
+
 inline glm::dvec3 nearestVertex(const Camera& camera, const std::vector<geometry::Triangle<3, double>>& triangles)
 {
     const auto camera_distance = [&camera](const auto& point) {
@@ -43,22 +67,21 @@ inline glm::dvec3 nearestVertex(const Camera& camera, const std::vector<geometry
     return nearest_point;
 }
 
-inline auto cameraFrustumContainsTile(const Camera& camera, const tile::Id& tile)
+inline auto cameraFrustumContainsTile(const Camera& camera, const tile::SrsAndHeightBounds& aabb)
 {
-    const auto tile_aabb = srs::aabb(tile, 100, 4000);
-    const auto triangles = geometry::clip(geometry::triangulise(tile_aabb), camera.clippingPlanes());
+    const auto triangles = geometry::clip(geometry::triangulise(aabb), camera.clippingPlanes());
     if (triangles.empty())
         return false;
     return true;
 }
 
-inline auto refineFunctor(const Camera& camera, double error_threshold_px, double tile_size = 256)
+inline auto refineFunctor(const Camera& camera, const AabbDecoratorPtr& aabb_decorator, double error_threshold_px, double tile_size = 256)
 {
-    const auto refine = [&camera, error_threshold_px, tile_size](const tile::Id& tile) {
+    const auto refine = [&camera, error_threshold_px, tile_size, aabb_decorator](const tile::Id& tile) {
         if (tile.zoom_level >= 18)
             return false;
 
-        const auto tile_aabb = srs::aabb(tile, 100, 4000);
+        const auto tile_aabb = aabb_decorator->aabb(tile);
         const auto triangles = geometry::clip(geometry::triangulise(tile_aabb), camera.clippingPlanes());
         if (triangles.empty())
             return false;
