@@ -120,7 +120,7 @@ void GLWindow::resizeGL(int w, int h)
   const int width = int(retinaScale * w);
   const int height = int(retinaScale * h);
 
-  m_camera.setPerspectiveParams(45, {width, height}, 100);
+  m_camera.setPerspectiveParams(45, {width, height}, 500);
   m_gl_paint_device->setSize({w, h});
   m_gl_paint_device->setDevicePixelRatio(retinaScale);
   QOpenGLFunctions *f = QOpenGLContext::currentContext()->functions();
@@ -194,7 +194,7 @@ void GLWindow::mouseMoveEvent(QMouseEvent* e)
   glm::ivec2 mouse_position{e->pos().x(), e->pos().y()};
   if (e->buttons() == Qt::LeftButton) {
     const auto delta = mouse_position - m_previous_mouse_pos;
-    m_camera.pan(glm::vec2(delta) * 1.0f);
+    m_camera.pan(glm::vec2(delta) * 10.0f);
     emit cameraUpdated(m_camera);
     update();
   }
@@ -206,7 +206,7 @@ void GLWindow::mouseMoveEvent(QMouseEvent* e)
   }
   if (e->buttons() == Qt::RightButton) {
     const auto delta = mouse_position - m_previous_mouse_pos;
-    m_camera.zoom(delta.y * 0.5);
+    m_camera.zoom(delta.y * 10.0);
     emit cameraUpdated(m_camera);
     update();
   }

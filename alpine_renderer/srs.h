@@ -23,6 +23,7 @@
 
 #include <glm/glm.hpp>
 
+#include "sherpa/TileHeights.h"
 #include "alpine_renderer/utils/geometry.h"
 
 namespace srs {
@@ -79,10 +80,13 @@ Bounds tile_bounds(const TileId& tile);
 std::array<TileId, 4> subtiles(const TileId& tile);
 bool overlap(const TileId& a, const TileId& b);
 
+static const auto g_heights = TileHeights::read_from("/home/madam/valtava/tiles/alpine_png2/height_data.atb");
+
 inline geometry::AABB<3, double> aabb(const srs::TileId& tile_id, double min_height, double max_height)
 {
   const auto bounds = srs::tile_bounds(tile_id);
-  return {.min = {bounds.min, min_height}, .max = {bounds.max, max_height}};
+  const auto heights = g_heights.query({ tile_id.zoom_level, tile_id.coords });
+  return {.min = {bounds.min, heights.first}, .max = {bounds.max, heights.second}};
 }
 
 }

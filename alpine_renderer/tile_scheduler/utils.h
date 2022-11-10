@@ -53,7 +53,7 @@ inline auto cameraFrustumContainsTile(const Camera& camera, const srs::TileId& t
 
 inline auto refineFunctor(const Camera& camera, double error_threshold_px = 4.0, double tile_size = 256) {
   const auto refine = [&camera, error_threshold_px, tile_size](const srs::TileId& tile) {
-    if (tile.zoom_level >= 16)
+    if (tile.zoom_level >= 18)
       return false;
 
     const auto tile_aabb = srs::aabb(tile, 100, 4000);
