@@ -32,7 +32,7 @@ class BasicTreeTileScheduler : public TileScheduler {
         OnGpu
     };
     struct NodeData {
-        srs::TileId id = {};
+        tile::Id id = {};
         TileStatus status = TileStatus::Uninitialised;
     };
     using Node = QuadTreeNode<NodeData>;
@@ -56,19 +56,19 @@ public:
 
 public slots:
     void updateCamera(const Camera& camera) override;
-    void receiveOrthoTile(srs::TileId tile_id, std::shared_ptr<QByteArray> data) override;
-    void receiveHeightTile(srs::TileId tile_id, std::shared_ptr<QByteArray> data) override;
-    void notifyAboutUnavailableOrthoTile(srs::TileId tile_id) override;
-    void notifyAboutUnavailableHeightTile(srs::TileId tile_id) override;
+    void receiveOrthoTile(tile::Id tile_id, std::shared_ptr<QByteArray> data) override;
+    void receiveHeightTile(tile::Id tile_id, std::shared_ptr<QByteArray> data) override;
+    void notifyAboutUnavailableOrthoTile(tile::Id tile_id) override;
+    void notifyAboutUnavailableHeightTile(tile::Id tile_id) override;
 
     // signals:
-    //   void tileRequested(const srs::TileId& tile_id);
+    //   void tileRequested(const tile::Id& tile_id);
     //   void tileReady(const std::shared_ptr<Tile>& tile);
-    //   void tileExpired(const srs::TileId& tile_id);
-    //   void cancelTileRequest(const srs::TileId& tile_id);
+    //   void tileExpired(const tile::Id& tile_id);
+    //   void cancelTileRequest(const tile::Id& tile_id);
 
 private:
     void checkConsistency() const;
-    void checkLoadedTile(const srs::TileId& tile_id);
-    void markTileUnavailable(const srs::TileId& tile_id);
+    void checkLoadedTile(const tile::Id& tile_id);
+    void markTileUnavailable(const tile::Id& tile_id);
 };

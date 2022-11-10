@@ -25,7 +25,7 @@ class SimplisticTileScheduler : public TileScheduler {
 public:
     SimplisticTileScheduler();
 
-    [[nodiscard]] static std::vector<srs::TileId> loadCandidates(const Camera& camera);
+    [[nodiscard]] static std::vector<tile::Id> loadCandidates(const Camera& camera);
     [[nodiscard]] size_t numberOfTilesInTransit() const override;
     [[nodiscard]] size_t numberOfWaitingHeightTiles() const override;
     [[nodiscard]] size_t numberOfWaitingOrthoTiles() const override;
@@ -36,13 +36,13 @@ public:
 
 public slots:
     void updateCamera(const Camera& camera) override;
-    void receiveOrthoTile(srs::TileId tile_id, std::shared_ptr<QByteArray> data) override;
-    void receiveHeightTile(srs::TileId tile_id, std::shared_ptr<QByteArray> data) override;
-    void notifyAboutUnavailableOrthoTile(srs::TileId tile_id) override;
-    void notifyAboutUnavailableHeightTile(srs::TileId tile_id) override;
+    void receiveOrthoTile(tile::Id tile_id, std::shared_ptr<QByteArray> data) override;
+    void receiveHeightTile(tile::Id tile_id, std::shared_ptr<QByteArray> data) override;
+    void notifyAboutUnavailableOrthoTile(tile::Id tile_id) override;
+    void notifyAboutUnavailableHeightTile(tile::Id tile_id) override;
 
 private:
-    void checkLoadedTile(const srs::TileId& tile_id);
+    void checkLoadedTile(const tile::Id& tile_id);
     template <typename Predicate>
     void removeGpuTileIf(Predicate condition);
     TileSet m_unavaliable_tiles;

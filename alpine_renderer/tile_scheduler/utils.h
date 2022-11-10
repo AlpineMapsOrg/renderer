@@ -43,7 +43,7 @@ inline glm::dvec3 nearestVertex(const Camera& camera, const std::vector<geometry
     return nearest_point;
 }
 
-inline auto cameraFrustumContainsTile(const Camera& camera, const srs::TileId& tile)
+inline auto cameraFrustumContainsTile(const Camera& camera, const tile::Id& tile)
 {
     const auto tile_aabb = srs::aabb(tile, 100, 4000);
     const auto triangles = geometry::clip(geometry::triangulise(tile_aabb), camera.clippingPlanes());
@@ -54,7 +54,7 @@ inline auto cameraFrustumContainsTile(const Camera& camera, const srs::TileId& t
 
 inline auto refineFunctor(const Camera& camera, double error_threshold_px, double tile_size = 256)
 {
-    const auto refine = [&camera, error_threshold_px, tile_size](const srs::TileId& tile) {
+    const auto refine = [&camera, error_threshold_px, tile_size](const tile::Id& tile) {
         if (tile.zoom_level >= 18)
             return false;
 

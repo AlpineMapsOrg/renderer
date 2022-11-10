@@ -24,15 +24,15 @@
 #include <QObject>
 
 #include "alpine_renderer/Camera.h"
-#include "alpine_renderer/srs.h"
+#include "sherpa/tile.h"
 
 struct Tile;
 
 class TileScheduler : public QObject {
     Q_OBJECT
 public:
-    using TileSet = std::unordered_set<srs::TileId, srs::TileId::Hasher>;
-    using Tile2DataMap = std::unordered_map<srs::TileId, std::shared_ptr<QByteArray>, srs::TileId::Hasher>;
+    using TileSet = std::unordered_set<tile::Id, tile::Id::Hasher>;
+    using Tile2DataMap = std::unordered_map<tile::Id, std::shared_ptr<QByteArray>, tile::Id::Hasher>;
     TileScheduler() = default;
 
     [[nodiscard]] virtual size_t numberOfTilesInTransit() const = 0;
@@ -40,19 +40,19 @@ public:
     [[nodiscard]] virtual size_t numberOfWaitingOrthoTiles() const = 0;
     [[nodiscard]] virtual TileSet gpuTiles() const = 0;
 
-    virtual bool enabled() const = 0;
+    [[nodiscard]] virtual bool enabled() const = 0;
     virtual void setEnabled(bool newEnabled) = 0;
 
 public slots:
     virtual void updateCamera(const Camera& camera) = 0;
-    virtual void receiveOrthoTile(srs::TileId tile_id, std::shared_ptr<QByteArray> data) = 0;
-    virtual void receiveHeightTile(srs::TileId tile_id, std::shared_ptr<QByteArray> data) = 0;
-    virtual void notifyAboutUnavailableOrthoTile(srs::TileId tile_id) = 0;
-    virtual void notifyAboutUnavailableHeightTile(srs::TileId tile_id) = 0;
+    virtual void receiveOrthoTile(tile::Id tile_id, std::shared_ptr<QByteArray> data) = 0;
+    virtual void receiveHeightTile(tile::Id tile_id, std::shared_ptr<QByteArray> data) = 0;
+    virtual void notifyAboutUnavailableOrthoTile(tile::Id tile_id) = 0;
+    virtual void notifyAboutUnavailableHeightTile(tile::Id tile_id) = 0;
 
 signals:
-    void tileRequested(const srs::TileId& tile_id);
+    void tileRequested(const tile::Id& tile_id);
     void tileReady(const std::shared_ptr<Tile>& tile);
-    void tileExpired(const srs::TileId& tile_id);
-    void cancelTileRequest(const srs::TileId& tile_id);
+    void tileExpired(const tile::Id& tile_id);
+    void cancelTileRequest(const tile::Id& tile_id);
 };

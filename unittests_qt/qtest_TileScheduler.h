@@ -35,13 +35,13 @@ private:
     QByteArray m_height_bytes;
     std::unique_ptr<TileScheduler> m_scheduler;
     Camera test_cam = Camera({ 1822577.0, 6141664.0 - 500, 171.28 + 500 }, { 1822577.0, 6141664.0, 171.28 }); // should point right at the stephansdom
-    std::unordered_set<srs::TileId, srs::TileId::Hasher> m_given_tiles;
-    std::unordered_set<srs::TileId, srs::TileId::Hasher> m_unavailable_tiles;
+    std::unordered_set<tile::Id, tile::Id::Hasher> m_given_tiles;
+    std::unordered_set<tile::Id, tile::Id::Hasher> m_unavailable_tiles;
 
     virtual std::unique_ptr<TileScheduler> makeScheduler() const = 0;
 
 public slots:
-    void giveTiles(const srs::TileId& tile_id)
+    void giveTiles(const tile::Id& tile_id)
     {
         if (m_unavailable_tiles.contains(tile_id)) {
             emit tileUnavailable(tile_id);
@@ -53,9 +53,9 @@ public slots:
     }
 
 signals:
-    void orthoTileReady(srs::TileId tile_id, std::shared_ptr<QByteArray> data);
-    void heightTileReady(srs::TileId tile_id, std::shared_ptr<QByteArray> data);
-    void tileUnavailable(srs::TileId tile_id);
+    void orthoTileReady(tile::Id tile_id, std::shared_ptr<QByteArray> data);
+    void heightTileReady(tile::Id tile_id, std::shared_ptr<QByteArray> data);
+    void tileUnavailable(tile::Id tile_id);
 
 private slots:
     void initTestCase()
@@ -92,12 +92,12 @@ private slots:
         auto n_tiles_containing_camera_position = 0;
         auto n_tiles_containing_camera_view_dir = 0;
         for (const QList<QVariant>& signal : spy) { // yes, QSignalSpy is a QList<QList<QVariant>>, where the inner QList contains the signal arguments
-            const auto tile_id = signal.at(0).value<srs::TileId>();
+            const auto tile_id = signal.at(0).value<tile::Id>();
             QVERIFY(tile_id.zoom_level < 30);
             const auto tile_bounds = srs::tile_bounds(tile_id);
-            if (contains(tile_bounds, glm::dvec2(test_cam.position())))
+            if (tile_bounds.contains(glm::dvec2(test_cam.position())))
                 n_tiles_containing_camera_position++;
-            if (contains(tile_bounds, { 1822577.0, 6141664.0 }))
+            if (tile_bounds.contains({ 1822577.0, 6141664.0 }))
                 n_tiles_containing_camera_view_dir++;
         }
         QCOMPARE(n_tiles_containing_camera_view_dir, 1);
@@ -142,11 +142,11 @@ private slots:
 
     void emitsReceivedTilesWhenSomeAreUnavailable()
     {
-        m_unavailable_tiles.insert(srs::TileId { .zoom_level = 0, .coords = { 0, 0 } });
-        m_unavailable_tiles.insert(srs::TileId { .zoom_level = 1, .coords = { 0, 0 } });
-        m_unavailable_tiles.insert(srs::TileId { .zoom_level = 1, .coords = { 0, 1 } });
-        m_unavailable_tiles.insert(srs::TileId { .zoom_level = 1, .coords = { 1, 0 } });
-        m_unavailable_tiles.insert(srs::TileId { .zoom_level = 1, .coords = { 1, 1 } });
+        m_unavailable_tiles.insert(tile::Id { .zoom_level = 0, .coords = { 0, 0 } });
+        m_unavailable_tiles.insert(tile::Id { .zoom_level = 1, .coords = { 0, 0 } });
+        m_unavailable_tiles.insert(tile::Id { .zoom_level = 1, .coords = { 0, 1 } });
+        m_unavailable_tiles.insert(tile::Id { .zoom_level = 1, .coords = { 1, 0 } });
+        m_unavailable_tiles.insert(tile::Id { .zoom_level = 1, .coords = { 1, 1 } });
 
         connect(m_scheduler.get(), &TileScheduler::tileRequested, this, &TestTileScheduler::giveTiles);
         connect(this, &TestTileScheduler::orthoTileReady, m_scheduler.get(), &TileScheduler::receiveOrthoTile);
@@ -232,7 +232,7 @@ private slots:
         QVERIFY(m_scheduler->gpuTiles().size() <= 1); // root tile allowed
         QVERIFY(size_t(spy.size()) == gpu_tiles.size());
         for (const auto& tileExpireSignal : spy) {
-            const srs::TileId tile = tileExpireSignal.at(0).value<srs::TileId>();
+            const tile::Id tile = tileExpireSignal.at(0).value<tile::Id>();
             QVERIFY(gpu_tiles.contains(tile));
         }
     }

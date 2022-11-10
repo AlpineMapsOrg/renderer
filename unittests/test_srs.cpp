@@ -82,50 +82,12 @@ TEST_CASE("srs tests")
         }
     }
 
-    SECTION("subtiles")
-    {
-        {
-            const auto tiles = srs::subtiles(srs::TileId { .zoom_level = 0, .coords = { 0, 0 } });
-            REQUIRE(tiles.size() == 4);
-            for (const auto& tid : tiles)
-                CHECK(tid.zoom_level == 1);
-            CHECK(tiles[0].coords.x == 0);
-            CHECK(tiles[0].coords.y == 0);
-
-            CHECK(tiles[1].coords.x == 1);
-            CHECK(tiles[1].coords.y == 0);
-
-            CHECK(tiles[2].coords.x == 0);
-            CHECK(tiles[2].coords.y == 1);
-
-            CHECK(tiles[3].coords.x == 1);
-            CHECK(tiles[3].coords.y == 1);
-        }
-        {
-            const auto tiles = srs::subtiles(srs::TileId { .zoom_level = 1, .coords = { 1, 1 } });
-            REQUIRE(tiles.size() == 4);
-            for (const auto& tid : tiles)
-                CHECK(tid.zoom_level == 2);
-            CHECK(tiles[0].coords.x == 2);
-            CHECK(tiles[0].coords.y == 2);
-
-            CHECK(tiles[1].coords.x == 3);
-            CHECK(tiles[1].coords.y == 2);
-
-            CHECK(tiles[2].coords.x == 2);
-            CHECK(tiles[2].coords.y == 3);
-
-            CHECK(tiles[3].coords.x == 3);
-            CHECK(tiles[3].coords.y == 3);
-        }
-    }
-
     SECTION("overlap")
     {
-        CHECK(srs::overlap(srs::TileId { .zoom_level = 0, .coords = { 0, 0 } }, srs::TileId { .zoom_level = 0, .coords = { 0, 0 } }));
-        CHECK(!srs::overlap(srs::TileId { .zoom_level = 1, .coords = { 0, 0 } }, srs::TileId { .zoom_level = 1, .coords = { 0, 1 } }));
-        CHECK(srs::overlap(srs::TileId { .zoom_level = 0, .coords = { 0, 0 } }, srs::TileId { .zoom_level = 1, .coords = { 0, 1 } }));
-        CHECK(srs::overlap(srs::TileId { .zoom_level = 1, .coords = { 0, 0 } }, srs::TileId { .zoom_level = 3, .coords = { 2, 1 } }));
-        CHECK(!srs::overlap(srs::TileId { .zoom_level = 1, .coords = { 0, 0 } }, srs::TileId { .zoom_level = 3, .coords = { 0, 7 } }));
+        CHECK(srs::overlap(tile::Id { .zoom_level = 0, .coords = { 0, 0 } }, tile::Id { .zoom_level = 0, .coords = { 0, 0 } }));
+        CHECK(!srs::overlap(tile::Id { .zoom_level = 1, .coords = { 0, 0 } }, tile::Id { .zoom_level = 1, .coords = { 0, 1 } }));
+        CHECK(srs::overlap(tile::Id { .zoom_level = 0, .coords = { 0, 0 } }, tile::Id { .zoom_level = 1, .coords = { 0, 1 } }));
+        CHECK(srs::overlap(tile::Id { .zoom_level = 1, .coords = { 0, 0 } }, tile::Id { .zoom_level = 3, .coords = { 2, 1 } }));
+        CHECK(!srs::overlap(tile::Id { .zoom_level = 1, .coords = { 0, 0 } }, tile::Id { .zoom_level = 3, .coords = { 0, 7 } }));
     }
 }

@@ -25,15 +25,15 @@
 #include <QOpenGLTexture>
 #include <QOpenGLVertexArrayObject>
 
-#include "alpine_renderer/srs.h"
+#include "sherpa/tile.h"
 
 // we want to be flexible and have the ability to draw several tiles at once.
 // GpuTileSets can have an arbitrary number of slots, each slot is an index in the corresponding
 // vao buffers and textures.
 struct GLTileSet {
     struct Tile {
-        srs::TileId tile_id;
-        srs::Bounds bounds;
+        tile::Id tile_id;
+        tile::SrsBounds bounds;
         void invalidate()
         {
             tile_id = { unsigned(-1), { unsigned(-1), unsigned(-1) } };
@@ -45,7 +45,7 @@ struct GLTileSet {
     std::unique_ptr<QOpenGLTexture> ortho_texture;
     std::unique_ptr<QOpenGLBuffer> heightmap_buffer;
     std::unique_ptr<QOpenGLVertexArrayObject> vao;
-    std::vector<std::pair<srs::TileId, srs::Bounds>> tiles;
+    std::vector<std::pair<tile::Id, tile::SrsBounds>> tiles;
     int gl_element_count = -1;
     unsigned gl_index_type = 0;
     // texture

@@ -27,14 +27,14 @@
 
 SimplisticTileScheduler::SimplisticTileScheduler() = default;
 
-std::vector<srs::TileId> SimplisticTileScheduler::loadCandidates(const Camera& camera)
+std::vector<tile::Id> SimplisticTileScheduler::loadCandidates(const Camera& camera)
 {
-    //  return quad_tree::onTheFlyTraverse(srs::TileId{0, {0, 0}}, tile_scheduler::refineFunctor(camera, 1.0), [](const auto& v) { return srs::subtiles(v); });
-    const auto all_leaves = quad_tree::onTheFlyTraverse(srs::TileId { 0, { 0, 0 } }, tile_scheduler::refineFunctor(camera, 2.0), [](const auto& v) { return srs::subtiles(v); });
-    std::vector<srs::TileId> visible_leaves;
+    //  return quad_tree::onTheFlyTraverse(tile::Id{0, {0, 0}}, tile_scheduler::refineFunctor(camera, 1.0), [](const auto& v) { return srs::subtiles(v); });
+    const auto all_leaves = quad_tree::onTheFlyTraverse(tile::Id { 0, { 0, 0 } }, tile_scheduler::refineFunctor(camera, 2.0), [](const tile::Id& v) { return v.children(); });
+    std::vector<tile::Id> visible_leaves;
     visible_leaves.reserve(all_leaves.size());
 
-    const auto is_visible = [&camera](const srs::TileId& tile) {
+    const auto is_visible = [&camera](const tile::Id& tile) {
         return tile_scheduler::cameraFrustumContainsTile(camera, tile);
     };
 
@@ -84,19 +84,19 @@ void SimplisticTileScheduler::updateCamera(const Camera& camera)
     }
 }
 
-void SimplisticTileScheduler::receiveOrthoTile(srs::TileId tile_id, std::shared_ptr<QByteArray> data)
+void SimplisticTileScheduler::receiveOrthoTile(tile::Id tile_id, std::shared_ptr<QByteArray> data)
 {
     m_received_ortho_tiles[tile_id] = data;
     checkLoadedTile(tile_id);
 }
 
-void SimplisticTileScheduler::receiveHeightTile(srs::TileId tile_id, std::shared_ptr<QByteArray> data)
+void SimplisticTileScheduler::receiveHeightTile(tile::Id tile_id, std::shared_ptr<QByteArray> data)
 {
     m_received_height_tiles[tile_id] = data;
     checkLoadedTile(tile_id);
 }
 
-void SimplisticTileScheduler::notifyAboutUnavailableOrthoTile(srs::TileId tile_id)
+void SimplisticTileScheduler::notifyAboutUnavailableOrthoTile(tile::Id tile_id)
 {
     m_unavaliable_tiles.insert(tile_id);
     m_pending_tile_requests.erase(tile_id);
@@ -104,7 +104,7 @@ void SimplisticTileScheduler::notifyAboutUnavailableOrthoTile(srs::TileId tile_i
     m_received_height_tiles.erase(tile_id);
 }
 
-void SimplisticTileScheduler::notifyAboutUnavailableHeightTile(srs::TileId tile_id)
+void SimplisticTileScheduler::notifyAboutUnavailableHeightTile(tile::Id tile_id)
 {
     m_unavaliable_tiles.insert(tile_id);
     m_pending_tile_requests.erase(tile_id);
@@ -112,7 +112,7 @@ void SimplisticTileScheduler::notifyAboutUnavailableHeightTile(srs::TileId tile_
     m_received_height_tiles.erase(tile_id);
 }
 
-void SimplisticTileScheduler::checkLoadedTile(const srs::TileId& tile_id)
+void SimplisticTileScheduler::checkLoadedTile(const tile::Id& tile_id)
 {
     if (m_received_height_tiles.contains(tile_id) & m_received_ortho_tiles.contains(tile_id)) {
         m_pending_tile_requests.erase(tile_id);
@@ -143,7 +143,7 @@ void SimplisticTileScheduler::setEnabled(bool newEnabled)
 template <typename Predicate>
 void SimplisticTileScheduler::removeGpuTileIf(Predicate condition)
 {
-    std::vector<srs::TileId> overlapping_tiles;
+    std::vector<tile::Id> overlapping_tiles;
     overlapping_tiles.reserve(4);
     std::copy_if(m_gpu_tiles.cbegin(), m_gpu_tiles.cend(), std::back_inserter(overlapping_tiles), condition);
     for (const auto& gpu_tile_id : overlapping_tiles) {

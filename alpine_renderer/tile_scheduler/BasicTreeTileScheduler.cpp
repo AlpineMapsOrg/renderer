@@ -114,7 +114,7 @@ void BasicTreeTileScheduler::updateCamera(const Camera& camera)
 
         const auto generateChildren = [](const NodeData& v) {
             std::array<NodeData, 4> dta;
-            const auto ids = srs::subtiles(v.id);
+            const auto ids = v.id.children();
             for (unsigned i = 0; i < 4; ++i) {
                 dta[i].id = ids[i];
             }
@@ -124,7 +124,7 @@ void BasicTreeTileScheduler::updateCamera(const Camera& camera)
     }
 
     { // emit tile requests
-        std::vector<srs::TileId> tile_requests;
+        std::vector<tile::Id> tile_requests;
         const auto visitor = [&](NodeData& tile) {
             switch (tile.status) {
             case TileStatus::InTransit:
@@ -148,26 +148,26 @@ void BasicTreeTileScheduler::updateCamera(const Camera& camera)
     }
 }
 
-void BasicTreeTileScheduler::receiveOrthoTile(srs::TileId tile_id, std::shared_ptr<QByteArray> data)
+void BasicTreeTileScheduler::receiveOrthoTile(tile::Id tile_id, std::shared_ptr<QByteArray> data)
 {
     assert(data);
     m_received_ortho_tiles[tile_id] = data;
     checkLoadedTile(tile_id); // should go on a qtimer or something, so that the expensive checkLoadTile is not called too often, similar to qwidget update()
 }
 
-void BasicTreeTileScheduler::receiveHeightTile(srs::TileId tile_id, std::shared_ptr<QByteArray> data)
+void BasicTreeTileScheduler::receiveHeightTile(tile::Id tile_id, std::shared_ptr<QByteArray> data)
 {
     assert(data);
     m_received_height_tiles[tile_id] = data;
     checkLoadedTile(tile_id);
 }
 
-void BasicTreeTileScheduler::notifyAboutUnavailableOrthoTile(srs::TileId tile_id)
+void BasicTreeTileScheduler::notifyAboutUnavailableOrthoTile(tile::Id tile_id)
 {
     markTileUnavailable(tile_id);
 }
 
-void BasicTreeTileScheduler::notifyAboutUnavailableHeightTile(srs::TileId tile_id)
+void BasicTreeTileScheduler::notifyAboutUnavailableHeightTile(tile::Id tile_id)
 {
     markTileUnavailable(tile_id);
 }
@@ -212,7 +212,7 @@ void BasicTreeTileScheduler::checkConsistency() const
 #endif
 }
 
-void BasicTreeTileScheduler::checkLoadedTile(const srs::TileId&)
+void BasicTreeTileScheduler::checkLoadedTile(const tile::Id&)
 {
     // setting received tiles to waiting and check if we are ready to ship
     auto ready_to_ship = true;
@@ -239,7 +239,7 @@ void BasicTreeTileScheduler::checkLoadedTile(const srs::TileId&)
 
     // ship
     if (ready_to_ship) {
-        std::vector<srs::TileId> tile_expiries;
+        std::vector<tile::Id> tile_expiries;
         for (const auto& id : m_gpu_tiles_to_be_expired)
             tile_expiries.push_back(id);
         m_gpu_tiles_to_be_expired = {};
@@ -306,7 +306,7 @@ void BasicTreeTileScheduler::checkLoadedTile(const srs::TileId&)
     }
 }
 
-void BasicTreeTileScheduler::markTileUnavailable(const srs::TileId& unavailable_tile_id)
+void BasicTreeTileScheduler::markTileUnavailable(const tile::Id& unavailable_tile_id)
 {
     const auto visitor = [&](NodeData& tile) {
         if (tile.id != unavailable_tile_id)

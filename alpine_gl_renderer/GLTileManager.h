@@ -41,7 +41,7 @@ signals:
 
 public slots:
     void addTile(const std::shared_ptr<Tile>& tile);
-    void removeTile(const srs::TileId& tile_id);
+    void removeTile(const tile::Id& tile_id);
     void setAttributeLocations(const TileGLAttributeLocations& d);
     void setUniformLocations(const TileGLUniformLocations& d);
 

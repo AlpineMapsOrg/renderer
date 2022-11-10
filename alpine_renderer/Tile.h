@@ -4,19 +4,19 @@
 #include <glm/glm.hpp>
 
 #include "Raster.h"
-#include "alpine_renderer/srs.h"
+#include "sherpa/tile.h"
 
 struct Tile {
     Tile() = default;
-    Tile(srs::TileId id, srs::Bounds bounds, Raster<uint16_t> height_map, QImage orthotexture)
+    Tile(tile::Id id, tile::SrsBounds bounds, Raster<uint16_t> height_map, QImage orthotexture)
         : id(id)
         , bounds(bounds)
         , height_map(height_map)
         , orthotexture(orthotexture)
     {
     }
-    srs::TileId id = {};
-    srs::Bounds bounds = {};
+    tile::Id id = {};
+    tile::SrsBounds bounds = {};
     Raster<uint16_t> height_map;
     QImage orthotexture;
 };

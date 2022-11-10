@@ -34,14 +34,14 @@ public:
     };
     TileLoadService(const QString& base_url, UrlPattern url_pattern, const QString& file_ending);
     ~TileLoadService() override;
-    [[nodiscard]] QString build_tile_url(const srs::TileId& tile_id) const;
+    [[nodiscard]] QString build_tile_url(const tile::Id& tile_id) const;
 
 public slots:
-    void load(const srs::TileId& tile_id);
+    void load(const tile::Id& tile_id);
 
 signals:
-    void loadReady(srs::TileId tile_id, std::shared_ptr<QByteArray> data);
-    void tileUnavailable(srs::TileId tile_id);
+    void loadReady(tile::Id tile_id, std::shared_ptr<QByteArray> data);
+    void tileUnavailable(tile::Id tile_id);
 
 private:
     std::shared_ptr<QNetworkAccessManager> m_network_manager;

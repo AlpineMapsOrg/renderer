@@ -54,8 +54,8 @@ private slots:
     {
         // https://maps.wien.gv.at/basemap/bmaporthofoto30cm/normal/google3857/9/177/273.jpeg => should be a white tile
         // https://maps.wien.gv.at/basemap/bmaporthofoto30cm/normal/google3857/9/179/272.jpeg => should show Tirol
-        const auto white_tile_id = srs::TileId { .zoom_level = 9, .coords = { 273, 177 } };
-        const auto tirol_tile_id = srs::TileId { .zoom_level = 9, .coords = { 272, 179 } };
+        const auto white_tile_id = tile::Id { .zoom_level = 9, .coords = { 273, 177 } };
+        const auto tirol_tile_id = tile::Id { .zoom_level = 9, .coords = { 272, 179 } };
         TileLoadService service("http://maps.wien.gv.at/basemap/bmaporthofoto30cm/normal/google3857/", TileLoadService::UrlPattern::ZYX, ".jpeg");
 
         {
@@ -65,8 +65,8 @@ private slots:
 
             QCOMPARE(spy.count(), 1); // make sure the signal was emitted exactly one time
             QList<QVariant> arguments = spy.takeFirst(); // take the first signal
-            QCOMPARE(arguments.at(0).value<srs::TileId>().zoom_level, white_tile_id.zoom_level); // verify the first argument
-            QCOMPARE(arguments.at(0).value<srs::TileId>().coords, white_tile_id.coords); // verify the first argument
+            QCOMPARE(arguments.at(0).value<tile::Id>().zoom_level, white_tile_id.zoom_level); // verify the first argument
+            QCOMPARE(arguments.at(0).value<tile::Id>().coords, white_tile_id.coords); // verify the first argument
             const auto image_bytes = arguments.at(1).value<std::shared_ptr<QByteArray>>();
             const auto image = tile_conversion::toQImage(*image_bytes);
             QVERIFY(image.sizeInBytes()); // verify the first argument
@@ -80,8 +80,8 @@ private slots:
 
             QCOMPARE(spy.count(), 1); // make sure the signal was emitted exactly one time
             QList<QVariant> arguments = spy.takeFirst(); // take the first signal
-            QCOMPARE(arguments.at(0).value<srs::TileId>().zoom_level, tirol_tile_id.zoom_level); // verify the first argument
-            QCOMPARE(arguments.at(0).value<srs::TileId>().coords, tirol_tile_id.coords); // verify the first argument
+            QCOMPARE(arguments.at(0).value<tile::Id>().zoom_level, tirol_tile_id.zoom_level); // verify the first argument
+            QCOMPARE(arguments.at(0).value<tile::Id>().coords, tirol_tile_id.coords); // verify the first argument
             const auto image_bytes = arguments.at(1).value<std::shared_ptr<QByteArray>>();
             const auto image = tile_conversion::toQImage(*image_bytes);
             QVERIFY(image.sizeInBytes()); // verify the first argument
@@ -95,12 +95,12 @@ private slots:
     {
         TileLoadService service("https://maps.wien.gv.at/basemap/bmaporthofoto30cm/normal/google3857/", TileLoadService::UrlPattern::ZYX, ".jpeg");
         QSignalSpy spy(&service, &TileLoadService::tileUnavailable);
-        srs::TileId unavailable_tile_id = { .zoom_level = 90, .coords = { 273, 177 } };
+        tile::Id unavailable_tile_id = { .zoom_level = 90, .coords = { 273, 177 } };
         service.load(unavailable_tile_id);
         spy.wait(250);
         QCOMPARE(spy.count(), 1);
         QList<QVariant> arguments = spy.takeFirst(); // take the first signal
-        QCOMPARE(arguments.at(0).value<srs::TileId>(), unavailable_tile_id); // verify the first argument
+        QCOMPARE(arguments.at(0).value<tile::Id>(), unavailable_tile_id); // verify the first argument
     }
 };
 

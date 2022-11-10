@@ -24,7 +24,7 @@ constexpr double cOriginShift = cEarthCircumference / 2.0;
 
 namespace srs {
 
-Bounds tile_bounds(const TileId& tile)
+tile::SrsBounds tile_bounds(const tile::Id& tile)
 {
     const auto width_of_a_tile = cEarthCircumference / number_of_horizontal_tiles_for_zoom_level(tile.zoom_level);
     const auto height_of_a_tile = cEarthCircumference / number_of_vertical_tiles_for_zoom_level(tile.zoom_level);
@@ -34,17 +34,7 @@ Bounds tile_bounds(const TileId& tile)
     return { min, max };
 }
 
-std::array<TileId, 4> subtiles(const TileId& tile)
-{
-    return {
-        TileId { tile.zoom_level + 1, tile.coords * 2u + glm::uvec2(0, 0) },
-        TileId { tile.zoom_level + 1, tile.coords * 2u + glm::uvec2(1, 0) },
-        TileId { tile.zoom_level + 1, tile.coords * 2u + glm::uvec2(0, 1) },
-        TileId { tile.zoom_level + 1, tile.coords * 2u + glm::uvec2(1, 1) }
-    };
-}
-
-bool overlap(const TileId& a, const TileId& b)
+bool overlap(const tile::Id& a, const tile::Id& b)
 {
     const auto& smaller_zoom_tile = (a.zoom_level < b.zoom_level) ? a : b;
     auto other = (a.zoom_level >= b.zoom_level) ? a : b;

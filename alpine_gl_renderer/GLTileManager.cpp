@@ -123,7 +123,7 @@ void GLTileManager::addTile(const std::shared_ptr<Tile>& tile)
     emit tilesChanged();
 }
 
-void GLTileManager::removeTile(const srs::TileId& tile_id)
+void GLTileManager::removeTile(const tile::Id& tile_id)
 {
     // clear slot
     // or remove from list and free resources

@@ -35,7 +35,7 @@ TileLoadService::~TileLoadService()
 {
 }
 
-void TileLoadService::load(const srs::TileId& tile_id)
+void TileLoadService::load(const tile::Id& tile_id)
 {
     QNetworkReply* reply = m_network_manager->get(QNetworkRequest(QUrl(build_tile_url(tile_id))));
     connect(reply, &QNetworkReply::finished, [tile_id, reply, this]() {
@@ -53,7 +53,7 @@ void TileLoadService::load(const srs::TileId& tile_id)
     });
 }
 
-QString TileLoadService::build_tile_url(const srs::TileId& tile_id) const
+QString TileLoadService::build_tile_url(const tile::Id& tile_id) const
 {
     QString tile_address;
     const auto n_y_tiles = srs::number_of_vertical_tiles_for_zoom_level(tile_id.zoom_level);

@@ -36,52 +36,17 @@ namespace srs {
 // This coordinate system is clamped at at 85 degrees north and south (https://epsg.io/3857),
 // so the tiles do not go until the poles.
 
-namespace {
-    template <class T>
-    void hash_combine(std::size_t& seed, const T& v)
-    {
-        std::hash<T> hasher;
-        seed ^= hasher(v) + 0x9e3779b9 + (seed << 6) + (seed >> 2);
-    }
-}
-
-struct TileId {
-    unsigned zoom_level = unsigned(-1);
-    glm::uvec2 coords;
-    friend bool operator==(const TileId&, const TileId&) = default;
-
-    struct Hasher {
-        size_t operator()(const TileId& tile) const
-        {
-            std::size_t seed = 0;
-            hash_combine(seed, tile.zoom_level);
-            hash_combine(seed, tile.coords.x);
-            hash_combine(seed, tile.coords.y);
-            return seed;
-        }
-    };
-};
-struct Bounds {
-    glm::dvec2 min = {};
-    glm::dvec2 max = {};
-};
-
-inline bool contains(const Bounds& bounds, const glm::dvec2& point)
-{
-    return bounds.min.x < point.x && point.x < bounds.max.x && bounds.min.y < point.y && point.y < bounds.max.y;
-}
 
 // for now it's the same, but if we ever switch to wgs84 / epsg 4326 / the one with 2 tiles in level zero
 inline unsigned number_of_horizontal_tiles_for_zoom_level(unsigned z) { return 1 << z; }
 inline unsigned number_of_vertical_tiles_for_zoom_level(unsigned z) { return 1 << z; }
 
-Bounds tile_bounds(const TileId& tile);
-std::array<TileId, 4> subtiles(const TileId& tile);
-bool overlap(const TileId& a, const TileId& b);
+tile::SrsBounds tile_bounds(const tile::Id& tile);
+bool overlap(const tile::Id& a, const tile::Id& b);
 
 static const auto g_heights = TileHeights::read_from("/home/madam/valtava/tiles/alpine_png2/height_data.atb");
 
-inline geometry::AABB<3, double> aabb(const srs::TileId& tile_id, double min_height, double max_height)
+inline geometry::AABB<3, double> aabb(const tile::Id& tile_id, double min_height, double max_height)
 {
     const auto bounds = srs::tile_bounds(tile_id);
     const auto heights = g_heights.query({ tile_id.zoom_level, tile_id.coords });
