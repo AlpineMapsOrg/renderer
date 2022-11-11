@@ -43,7 +43,7 @@ Camera::Camera(const glm::dvec3& position, const glm::dvec3& view_at_point) // :
         m_camera_transformation = glm::inverse(glm::lookAt(position, view_at_point, { 0, 1, 0 }));
     }
 
-    setPerspectiveParams(45, { 1, 1 }, m_near_clipping);
+    setPerspectiveParams(m_fov, m_viewport_size, m_near_clipping);
 }
 
 glm::dmat4 Camera::cameraMatrix() const
@@ -126,9 +126,13 @@ void Camera::setPerspectiveParams(float fov_degrees, const glm::uvec2& viewport_
     m_near_clipping = near_plane;
     m_far_clipping = near_plane * 1000;
     m_viewport_size = viewport_size;
-    // half a metre to 10 000 km
-    // should be precise enough (https://outerra.blogspot.com/2012/11/maximizing-depth-buffer-range-and.html)
+    m_fov = fov_degrees;
     m_projection_matrix = glm::perspective(glm::radians(double(fov_degrees)), double(viewport_size.x) / double(viewport_size.y), m_near_clipping, m_far_clipping);
+}
+
+void Camera::setNearPlane(double near_plane)
+{
+    setPerspectiveParams(m_fov, m_viewport_size, near_plane);
 }
 
 void Camera::pan(const glm::dvec2& v)
