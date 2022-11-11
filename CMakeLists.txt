@@ -20,6 +20,8 @@ set(ATB_RENDER_BACKEND_SOURCES
     alpine_renderer/tile_scheduler/SimplisticTileScheduler.h alpine_renderer/tile_scheduler/SimplisticTileScheduler.cpp
     alpine_renderer/tile_scheduler/BasicTreeTileScheduler.h alpine_renderer/tile_scheduler/BasicTreeTileScheduler.cpp
     alpine_renderer/TileLoadService.h alpine_renderer/TileLoadService.cpp
+    alpine_renderer/camera/Adapter.h alpine_renderer/camera/Adapter.cpp
+    alpine_renderer/camera/NearPlaneAdjuster.h alpine_renderer/camera/NearPlaneAdjuster.cpp
     alpine_renderer/utils/QuadTree.h
     alpine_renderer/utils/terrain_mesh_index_generator.h
     alpine_renderer/utils/tile_conversion.h alpine_renderer/utils/tile_conversion.cpp
@@ -49,6 +51,7 @@ if (ATB_UNITTESTS AND NOT EMSCRIPTEN)
     )
     set(ATB_QT_UNITTESTS
         qtest_TileLoadService
+        camera_Adapter_and_NearPlaneAdjuster
     )
     set(ATB_QT_SCHEDULER_UNITTESTS
         qtest_BasicTreeTileScheduler
