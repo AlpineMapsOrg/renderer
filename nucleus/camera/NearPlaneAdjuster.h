@@ -30,6 +30,8 @@ private:
     void updateNearPlane() const;
 
     struct Sphere {
+        Sphere() = default;
+        Sphere(const tile::Id& id, const glm::dvec3& centre, const double& radius) : id(id), centre(centre), radius(radius) {}
         tile::Id id;
         glm::dvec3 centre;
         double radius;
