@@ -23,7 +23,7 @@
 #include <glm/glm.hpp>
 
 #include "sherpa/TileHeights.h"
-#include "alpine_renderer/Camera.h"
+#include "alpine_renderer/camera/Definition.h"
 #include "alpine_renderer/tile_scheduler/BasicTreeTileScheduler.h"
 #include "alpine_renderer/tile_scheduler/utils.h"
 #include "unittests_qt/qtest_TileScheduler.h"

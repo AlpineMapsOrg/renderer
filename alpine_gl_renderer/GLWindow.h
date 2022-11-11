@@ -59,7 +59,7 @@
 #include <glm/glm.hpp>
 #include <memory>
 
-#include "alpine_renderer/Camera.h"
+#include "alpine_renderer/camera/Definition.h"
 
 QT_BEGIN_NAMESPACE
 

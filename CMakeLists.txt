@@ -11,7 +11,6 @@ option(ATB_USE_LLVM_LINKER "use lld (llvm) for linking. it's parallel and much f
 
 ############################################ sources ##############################################
 set(ATB_RENDER_BACKEND_SOURCES
-    alpine_renderer/Camera.h alpine_renderer/Camera.cpp
     alpine_renderer/Raster.h
     alpine_renderer/srs.h alpine_renderer/srs.cpp
     alpine_renderer/Tile.cpp alpine_renderer/Tile.h
@@ -21,6 +20,7 @@ set(ATB_RENDER_BACKEND_SOURCES
     alpine_renderer/tile_scheduler/BasicTreeTileScheduler.h alpine_renderer/tile_scheduler/BasicTreeTileScheduler.cpp
     alpine_renderer/TileLoadService.h alpine_renderer/TileLoadService.cpp
     alpine_renderer/camera/Adapter.h alpine_renderer/camera/Adapter.cpp
+    alpine_renderer/camera/Definition.h alpine_renderer/camera/Definition.cpp
     alpine_renderer/camera/NearPlaneAdjuster.h alpine_renderer/camera/NearPlaneAdjuster.cpp
     alpine_renderer/utils/QuadTree.h
     alpine_renderer/utils/terrain_mesh_index_generator.h

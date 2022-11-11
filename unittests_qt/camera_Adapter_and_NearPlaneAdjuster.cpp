@@ -16,7 +16,7 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *****************************************************************************/
 
-#include "alpine_renderer/Camera.h"
+#include "alpine_renderer/camera/Definition.h"
 #include "alpine_renderer/Tile.h"
 #include "alpine_renderer/camera/NearPlaneAdjuster.h"
 #include "alpine_renderer/camera/Adapter.h"

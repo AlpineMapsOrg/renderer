@@ -26,7 +26,7 @@
 #include <QTest>
 #include <glm/glm.hpp>
 
-#include "alpine_renderer/Camera.h"
+#include "alpine_renderer/camera/Definition.h"
 #include "alpine_renderer/Tile.h"
 #include "alpine_renderer/srs.h"
 #include "sherpa/TileHeights.h"
