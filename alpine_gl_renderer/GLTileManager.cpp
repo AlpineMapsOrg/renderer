@@ -25,8 +25,8 @@
 #include <QOpenGLVertexArrayObject>
 
 #include "alpine_gl_renderer/GLHelpers.h"
-#include "alpine_renderer/Tile.h"
-#include "alpine_renderer/utils/terrain_mesh_index_generator.h"
+#include "nucleus/Tile.h"
+#include "nucleus/utils/terrain_mesh_index_generator.h"
 
 namespace {
 template <typename T>

@@ -24,7 +24,7 @@
 
 #include "alpine_gl_renderer/GLTileSet.h"
 #include "alpine_gl_renderer/GLVariableLocations.h"
-#include "alpine_renderer/Tile.h"
+#include "nucleus/Tile.h"
 
 class QOpenGLShaderProgram;
 

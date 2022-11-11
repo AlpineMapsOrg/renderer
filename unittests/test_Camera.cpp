@@ -16,7 +16,7 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *****************************************************************************/
 
-#include "alpine_renderer/camera/Definition.h"
+#include "nucleus/camera/Definition.h"
 
 #include <catch2/catch.hpp>
 

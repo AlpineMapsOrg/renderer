@@ -16,8 +16,8 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *****************************************************************************/
 
-#include "alpine_renderer/TileLoadService.h"
-#include "alpine_renderer/utils/tile_conversion.h"
+#include "nucleus/TileLoadService.h"
+#include "nucleus/utils/tile_conversion.h"
 #include <algorithm>
 
 #include <QSignalSpy>

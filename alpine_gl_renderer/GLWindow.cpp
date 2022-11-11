@@ -71,8 +71,8 @@
 #include "alpine_gl_renderer/GLDebugPainter.h"
 #include "alpine_gl_renderer/GLShaderManager.h"
 #include "alpine_gl_renderer/GLTileManager.h"
-#include "alpine_renderer/Tile.h"
-#include "alpine_renderer/TileScheduler.h"
+#include "nucleus/Tile.h"
+#include "nucleus/TileScheduler.h"
 
 GLWindow::GLWindow()
     : m_camera({ 1822577.0, 6141664.0 - 500, 171.28 + 500 }, { 1822577.0, 6141664.0, 171.28 })

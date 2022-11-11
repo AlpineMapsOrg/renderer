@@ -16,8 +16,8 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *****************************************************************************/
 
-#include "alpine_renderer/tile_scheduler/SimplisticTileScheduler.h"
-#include "alpine_renderer/tile_scheduler/utils.h"
+#include "nucleus/tile_scheduler/SimplisticTileScheduler.h"
+#include "nucleus/tile_scheduler/utils.h"
 #include "unittests_qt/qtest_TileScheduler.h"
 
 #include <unordered_set>
@@ -26,9 +26,9 @@
 #include <QTest>
 #include <glm/glm.hpp>
 
-#include "alpine_renderer/camera/Definition.h"
-#include "alpine_renderer/Tile.h"
-#include "alpine_renderer/srs.h"
+#include "nucleus/camera/Definition.h"
+#include "nucleus/Tile.h"
+#include "nucleus/srs.h"
 #include "sherpa/TileHeights.h"
 
 class TestSimplisticTileScheduler : public TestTileScheduler {

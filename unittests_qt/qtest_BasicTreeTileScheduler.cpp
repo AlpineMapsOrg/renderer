@@ -23,9 +23,9 @@
 #include <glm/glm.hpp>
 
 #include "sherpa/TileHeights.h"
-#include "alpine_renderer/camera/Definition.h"
-#include "alpine_renderer/tile_scheduler/BasicTreeTileScheduler.h"
-#include "alpine_renderer/tile_scheduler/utils.h"
+#include "nucleus/camera/Definition.h"
+#include "nucleus/tile_scheduler/BasicTreeTileScheduler.h"
+#include "nucleus/tile_scheduler/utils.h"
 #include "unittests_qt/qtest_TileScheduler.h"
 
 class TestBasicTreeTileScheduler : public TestTileScheduler {

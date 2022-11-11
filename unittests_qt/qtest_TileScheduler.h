@@ -16,7 +16,7 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *****************************************************************************/
 
-#include "alpine_renderer/TileScheduler.h"
+#include "nucleus/TileScheduler.h"
 
 #include <unordered_set>
 
@@ -24,9 +24,9 @@
 #include <QTest>
 #include <glm/glm.hpp>
 
-#include "alpine_renderer/camera/Definition.h"
-#include "alpine_renderer/Tile.h"
-#include "alpine_renderer/srs.h"
+#include "nucleus/camera/Definition.h"
+#include "nucleus/Tile.h"
+#include "nucleus/srs.h"
 
 class TestTileScheduler : public QObject {
     Q_OBJECT

@@ -16,13 +16,13 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *****************************************************************************/
 
-#include "alpine_renderer/tile_scheduler/SimplisticTileScheduler.h"
-#include "alpine_renderer/tile_scheduler/utils.h"
+#include "nucleus/tile_scheduler/SimplisticTileScheduler.h"
+#include "nucleus/tile_scheduler/utils.h"
 
-#include "alpine_renderer/Tile.h"
-#include "alpine_renderer/srs.h"
-#include "alpine_renderer/utils/QuadTree.h"
-#include "alpine_renderer/utils/tile_conversion.h"
+#include "nucleus/Tile.h"
+#include "nucleus/srs.h"
+#include "nucleus/utils/QuadTree.h"
+#include "nucleus/utils/tile_conversion.h"
 #include "sherpa/geometry.h"
 
 SimplisticTileScheduler::SimplisticTileScheduler() = default;

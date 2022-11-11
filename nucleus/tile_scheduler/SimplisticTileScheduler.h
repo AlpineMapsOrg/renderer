@@ -18,39 +18,19 @@
 
 #pragma once
 
-#include <QObject>
+#include "nucleus/TileScheduler.h"
 
-#include "alpine_renderer/TileScheduler.h"
-#include "alpine_renderer/utils/QuadTree.h"
-
-class BasicTreeTileScheduler : public TileScheduler {
-    enum class TileStatus {
-        Uninitialised,
-        Unavailable,
-        InTransit,
-        WaitingForSiblings,
-        OnGpu
-    };
-    struct NodeData {
-        tile::Id id = {};
-        TileStatus status = TileStatus::Uninitialised;
-    };
-    using Node = QuadTreeNode<NodeData>;
-
-    std::unique_ptr<Node> m_root_node;
-    Tile2DataMap m_received_ortho_tiles;
-    Tile2DataMap m_received_height_tiles;
-    TileSet m_gpu_tiles_to_be_expired;
-
-    bool m_enabled = true;
-
+class SimplisticTileScheduler : public TileScheduler {
+    Q_OBJECT
 public:
-    BasicTreeTileScheduler();
+    SimplisticTileScheduler();
 
-    size_t numberOfTilesInTransit() const override;
-    size_t numberOfWaitingHeightTiles() const override;
-    size_t numberOfWaitingOrthoTiles() const override;
-    TileSet gpuTiles() const override;
+    [[nodiscard]] static std::vector<tile::Id> loadCandidates(const camera::Definition& camera, const tile_scheduler::AabbDecoratorPtr& aabb_decorator);
+    [[nodiscard]] size_t numberOfTilesInTransit() const override;
+    [[nodiscard]] size_t numberOfWaitingHeightTiles() const override;
+    [[nodiscard]] size_t numberOfWaitingOrthoTiles() const override;
+    [[nodiscard]] TileSet gpuTiles() const override;
+
     bool enabled() const override;
     void setEnabled(bool newEnabled) override;
 
@@ -61,14 +41,16 @@ public slots:
     void notifyAboutUnavailableOrthoTile(tile::Id tile_id) override;
     void notifyAboutUnavailableHeightTile(tile::Id tile_id) override;
 
-    // signals:
-    //   void tileRequested(const tile::Id& tile_id);
-    //   void tileReady(const std::shared_ptr<Tile>& tile);
-    //   void tileExpired(const tile::Id& tile_id);
-    //   void cancelTileRequest(const tile::Id& tile_id);
-
 private:
-    void checkConsistency() const;
     void checkLoadedTile(const tile::Id& tile_id);
-    void markTileUnavailable(const tile::Id& tile_id);
+    template <typename Predicate>
+    void removeGpuTileIf(Predicate condition);
+
+
+    TileSet m_unavaliable_tiles;
+    TileSet m_pending_tile_requests;
+    TileSet m_gpu_tiles;
+    Tile2DataMap m_received_ortho_tiles;
+    Tile2DataMap m_received_height_tiles;
+    bool m_enabled = true;
 };

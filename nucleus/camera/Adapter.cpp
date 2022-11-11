@@ -2,7 +2,7 @@
 
 #include <QTimer>
 
-#include "alpine_renderer/camera/Definition.h"
+#include "nucleus/camera/Definition.h"
 
 camera::Adapter::Adapter(camera::Definition* camera)
     : m_camera(camera)

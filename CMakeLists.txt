@@ -11,20 +11,20 @@ option(ATB_USE_LLVM_LINKER "use lld (llvm) for linking. it's parallel and much f
 
 ############################################ sources ##############################################
 set(ATB_RENDER_BACKEND_SOURCES
-    alpine_renderer/Raster.h
-    alpine_renderer/srs.h alpine_renderer/srs.cpp
-    alpine_renderer/Tile.cpp alpine_renderer/Tile.h
-    alpine_renderer/TileScheduler.h alpine_renderer/TileScheduler.cpp
-    alpine_renderer/tile_scheduler/utils.h
-    alpine_renderer/tile_scheduler/SimplisticTileScheduler.h alpine_renderer/tile_scheduler/SimplisticTileScheduler.cpp
-    alpine_renderer/tile_scheduler/BasicTreeTileScheduler.h alpine_renderer/tile_scheduler/BasicTreeTileScheduler.cpp
-    alpine_renderer/TileLoadService.h alpine_renderer/TileLoadService.cpp
-    alpine_renderer/camera/Adapter.h alpine_renderer/camera/Adapter.cpp
-    alpine_renderer/camera/Definition.h alpine_renderer/camera/Definition.cpp
-    alpine_renderer/camera/NearPlaneAdjuster.h alpine_renderer/camera/NearPlaneAdjuster.cpp
-    alpine_renderer/utils/QuadTree.h
-    alpine_renderer/utils/terrain_mesh_index_generator.h
-    alpine_renderer/utils/tile_conversion.h alpine_renderer/utils/tile_conversion.cpp
+    nucleus/Raster.h
+    nucleus/srs.h nucleus/srs.cpp
+    nucleus/Tile.cpp nucleus/Tile.h
+    nucleus/TileScheduler.h nucleus/TileScheduler.cpp
+    nucleus/tile_scheduler/utils.h
+    nucleus/tile_scheduler/SimplisticTileScheduler.h nucleus/tile_scheduler/SimplisticTileScheduler.cpp
+    nucleus/tile_scheduler/BasicTreeTileScheduler.h nucleus/tile_scheduler/BasicTreeTileScheduler.cpp
+    nucleus/TileLoadService.h nucleus/TileLoadService.cpp
+    nucleus/camera/Adapter.h nucleus/camera/Adapter.cpp
+    nucleus/camera/Definition.h nucleus/camera/Definition.cpp
+    nucleus/camera/NearPlaneAdjuster.h nucleus/camera/NearPlaneAdjuster.cpp
+    nucleus/utils/QuadTree.h
+    nucleus/utils/terrain_mesh_index_generator.h
+    nucleus/utils/tile_conversion.h nucleus/utils/tile_conversion.cpp
 )
 set(ATB_GL_ENGINE_SOURCES
     alpine_gl_renderer/GLShaderManager.h alpine_gl_renderer/GLShaderManager.cpp
@@ -90,18 +90,18 @@ if (ATB_USE_LLVM_LINKER)
 endif()
 
 ############################################ backend ##############################################
-add_library(alpine_renderer STATIC
+add_library(nucleus STATIC
     ${ATB_RENDER_BACKEND_SOURCES}
 )
 
-target_include_directories(alpine_renderer SYSTEM PUBLIC ${CMAKE_SOURCE_DIR}/libs/glm)
-target_include_directories(alpine_renderer PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
-target_compile_definitions(alpine_renderer PUBLIC GLM_ENABLE_EXPERIMENTAL GLM_FORCE_XYZW_ONLY)
-target_link_libraries(alpine_renderer PUBLIC sherpa Qt::Core Qt::Gui Qt6::Network)
+target_include_directories(nucleus SYSTEM PUBLIC ${CMAKE_SOURCE_DIR}/libs/glm)
+target_include_directories(nucleus PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
+target_compile_definitions(nucleus PUBLIC GLM_ENABLE_EXPERIMENTAL GLM_FORCE_XYZW_ONLY)
+target_link_libraries(nucleus PUBLIC sherpa Qt::Core Qt::Gui Qt6::Network)
 
 
 if (ATB_ENABLE_ASSERTS)
-    target_compile_options(alpine_renderer PUBLIC "-U NDEBUG")
+    target_compile_options(nucleus PUBLIC "-U NDEBUG")
 endif()
 
 ########################################### gl engine #############################################
@@ -113,7 +113,7 @@ set_target_properties(alpine_gl_renderer PROPERTIES
     MACOSX_BUNDLE TRUE
 )
 target_link_libraries(alpine_gl_renderer PUBLIC
-    alpine_renderer
+    nucleus
     Qt::Core
     Qt::Gui
     Qt::OpenGL
@@ -152,7 +152,7 @@ endif()
 #################################### unit tests for backend #######################################
 if (ATB_UNITTESTS AND NOT EMSCRIPTEN)
     add_executable(unittests ${ATB_CATCH_UNITTEST_SOURCES})
-    target_link_libraries(unittests PUBLIC alpine_renderer Catch2::Catch2)
+    target_link_libraries(unittests PUBLIC nucleus Catch2::Catch2)
     target_compile_definitions(unittests PUBLIC "ATB_TEST_DATA_DIR=\"${CMAKE_SOURCE_DIR}/unittests/data/\"")
     if (ATB_ENABLE_ASSERTS)
         target_compile_options(unittests PUBLIC "-U NDEBUG")
@@ -163,7 +163,7 @@ if (ATB_UNITTESTS AND NOT EMSCRIPTEN)
     function(add_cute_test name)
         add_executable(${name} unittests_qt/${name}.cpp)
         add_test(NAME ${name} COMMAND ${name})
-        target_link_libraries(${name} PUBLIC alpine_renderer Qt6::Test)
+        target_link_libraries(${name} PUBLIC nucleus Qt6::Test)
         target_compile_definitions(${name} PUBLIC "ATB_TEST_DATA_DIR=\"${CMAKE_SOURCE_DIR}/unittests/data/\"")
     endfunction()
     foreach(cute_test ${ATB_QT_UNITTESTS})
@@ -174,7 +174,7 @@ if (ATB_UNITTESTS AND NOT EMSCRIPTEN)
     function(add_cute_scheduler_test name)
         add_executable(${name} unittests_qt/${name}.cpp unittests_qt/qtest_TileScheduler.h)
         add_test(NAME ${name} COMMAND ${name})
-        target_link_libraries(${name} PUBLIC alpine_renderer Qt6::Test)
+        target_link_libraries(${name} PUBLIC nucleus Qt6::Test)
         target_compile_definitions(${name} PUBLIC "ATB_TEST_DATA_DIR=\"${CMAKE_SOURCE_DIR}/unittests/data/\"")
     endfunction()
     foreach(cute_test ${ATB_QT_SCHEDULER_UNITTESTS})

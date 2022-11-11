@@ -56,10 +56,10 @@
 
 #include "GLWindow.h"
 #include "alpine_gl_renderer/GLTileManager.h"
-#include "alpine_renderer/TileLoadService.h"
-#include "alpine_renderer/tile_scheduler/BasicTreeTileScheduler.h"
-#include "alpine_renderer/tile_scheduler/SimplisticTileScheduler.h"
-#include "alpine_renderer/tile_scheduler/utils.h"
+#include "nucleus/TileLoadService.h"
+#include "nucleus/tile_scheduler/BasicTreeTileScheduler.h"
+#include "nucleus/tile_scheduler/SimplisticTileScheduler.h"
+#include "nucleus/tile_scheduler/utils.h"
 #include "qnetworkreply.h"
 #include "sherpa/TileHeights.h"
 

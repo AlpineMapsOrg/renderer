@@ -16,7 +16,7 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *****************************************************************************/
 
-#include "alpine_renderer/utils/terrain_mesh_index_generator.h"
+#include "nucleus/utils/terrain_mesh_index_generator.h"
 
 #include <catch2/catch.hpp>
 

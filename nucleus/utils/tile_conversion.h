@@ -22,7 +22,7 @@
 
 #include <QImage>
 
-#include "alpine_renderer/Raster.h"
+#include "nucleus/Raster.h"
 
 namespace tile_conversion {
 

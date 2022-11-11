@@ -16,7 +16,7 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *****************************************************************************/
 
-#include "alpine_renderer/Raster.h"
+#include "nucleus/Raster.h"
 
 #include <catch2/catch.hpp>
 #include <glm/glm.hpp>

@@ -24,7 +24,7 @@
 
 #include <QObject>
 
-#include "alpine_renderer/camera/Definition.h"
+#include "nucleus/camera/Definition.h"
 #include "sherpa/tile.h"
 
 

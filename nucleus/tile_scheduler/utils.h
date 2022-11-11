@@ -18,8 +18,8 @@
 
 #pragma once
 
-#include "alpine_renderer/camera/Definition.h"
-#include "alpine_renderer/srs.h"
+#include "nucleus/camera/Definition.h"
+#include "nucleus/srs.h"
 #include "sherpa/geometry.h"
 #include "sherpa/TileHeights.h"
 
