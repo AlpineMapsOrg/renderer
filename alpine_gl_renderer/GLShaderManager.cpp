@@ -20,7 +20,7 @@
 
 #include <QOpenGLContext>
 
-static const char* tileVertexShaderSource = R"(
+static const char* const tileVertexShaderSource = R"(
   layout(location = 0) in highp float height;
   out lowp vec2 uv;
   uniform highp mat4 matrix;
@@ -41,7 +41,7 @@ static const char* tileVertexShaderSource = R"(
     gl_Position = matrix * pos;
   })";
 
-static const char* tileFragmentShaderSource = R"(
+static const char* const tileFragmentShaderSource = R"(
   in lowp vec2 uv;
   uniform sampler2D texture_sampler;
   out lowp vec4 out_Color;
@@ -49,20 +49,20 @@ static const char* tileFragmentShaderSource = R"(
      out_Color = texture(texture_sampler, uv);
   })";
 
-static const char* debugVertexShaderSource = R"(
+static const char* const debugVertexShaderSource = R"(
   layout(location = 0) in vec4 a_position;
   uniform highp mat4 matrix;
   void main() {
     gl_Position = matrix * a_position;
   })";
 
-static const char* debugFragmentShaderSource = R"(
+static const char* const debugFragmentShaderSource = R"(
   out lowp vec4 out_Color;
   void main() {
      out_Color = vec4(1, 0, 0, 1);
   })";
 
-QByteArray versionedShaderCode(const char* src)
+QByteArray versionedShaderCode(const char* const src)
 {
     QByteArray versionedSrc;
 
@@ -112,9 +112,7 @@ GLShaderManager::GLShaderManager()
     m_debug_attribute_locations.position = 0;
 }
 
-GLShaderManager::~GLShaderManager() {
-
-};
+GLShaderManager::~GLShaderManager() = default;
 
 void GLShaderManager::bindTileShader()
 {
