@@ -50,12 +50,12 @@ if (ATB_UNITTESTS AND NOT EMSCRIPTEN)
         unittests/test_tile_conversion.cpp
     )
     set(ATB_QT_UNITTESTS
-        qtest_TileLoadService
+        TileLoadService
         camera_Adapter_and_NearPlaneAdjuster
     )
     set(ATB_QT_SCHEDULER_UNITTESTS
-        qtest_BasicTreeTileScheduler
-        qtest_SimplisticTileScheduler
+        BasicTreeTileScheduler
+        SimplisticTileScheduler
     )
 endif()
 
@@ -161,10 +161,10 @@ if (ATB_UNITTESTS AND NOT EMSCRIPTEN)
     find_package(Qt6 REQUIRED COMPONENTS Test)
     enable_testing(true)
     function(add_cute_test name)
-        add_executable(${name} unittests_qt/${name}.cpp)
-        add_test(NAME ${name} COMMAND ${name})
-        target_link_libraries(${name} PUBLIC nucleus Qt6::Test)
-        target_compile_definitions(${name} PUBLIC "ATB_TEST_DATA_DIR=\"${CMAKE_SOURCE_DIR}/unittests/data/\"")
+        add_executable(qtest_${name} unittests_qt/${name}.cpp)
+        add_test(NAME ${name} COMMAND qtest_${name})
+        target_link_libraries(qtest_${name} PUBLIC nucleus Qt6::Test)
+        target_compile_definitions(qtest_${name} PUBLIC "ATB_TEST_DATA_DIR=\"${CMAKE_SOURCE_DIR}/unittests/data/\"")
     endfunction()
     foreach(cute_test ${ATB_QT_UNITTESTS})
         add_cute_test(${cute_test})
@@ -172,10 +172,10 @@ if (ATB_UNITTESTS AND NOT EMSCRIPTEN)
 
 
     function(add_cute_scheduler_test name)
-        add_executable(${name} unittests_qt/${name}.cpp unittests_qt/qtest_TileScheduler.h)
-        add_test(NAME ${name} COMMAND ${name})
-        target_link_libraries(${name} PUBLIC nucleus Qt6::Test)
-        target_compile_definitions(${name} PUBLIC "ATB_TEST_DATA_DIR=\"${CMAKE_SOURCE_DIR}/unittests/data/\"")
+        add_executable(qtest_${name} unittests_qt/${name}.cpp unittests_qt/TileScheduler.h)
+        add_test(NAME qtest_${name} COMMAND ${name})
+        target_link_libraries(qtest_${name} PUBLIC nucleus Qt6::Test)
+        target_compile_definitions(qtest_${name} PUBLIC "ATB_TEST_DATA_DIR=\"${CMAKE_SOURCE_DIR}/unittests/data/\"")
     endfunction()
     foreach(cute_test ${ATB_QT_SCHEDULER_UNITTESTS})
         add_cute_scheduler_test(${cute_test})

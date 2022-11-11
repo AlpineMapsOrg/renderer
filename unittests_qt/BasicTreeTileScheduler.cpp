@@ -26,7 +26,7 @@
 #include "nucleus/camera/Definition.h"
 #include "nucleus/tile_scheduler/BasicTreeTileScheduler.h"
 #include "nucleus/tile_scheduler/utils.h"
-#include "unittests_qt/qtest_TileScheduler.h"
+#include "unittests_qt/TileScheduler.h"
 
 class TestBasicTreeTileScheduler : public TestTileScheduler {
     Q_OBJECT
@@ -48,4 +48,4 @@ private slots:
 };
 
 QTEST_MAIN(TestBasicTreeTileScheduler)
-#include "qtest_BasicTreeTileScheduler.moc"
+#include "BasicTreeTileScheduler.moc"

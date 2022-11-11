@@ -18,7 +18,7 @@
 
 #include "nucleus/tile_scheduler/SimplisticTileScheduler.h"
 #include "nucleus/tile_scheduler/utils.h"
-#include "unittests_qt/qtest_TileScheduler.h"
+#include "unittests_qt/TileScheduler.h"
 
 #include <unordered_set>
 
@@ -27,8 +27,6 @@
 #include <glm/glm.hpp>
 
 #include "nucleus/camera/Definition.h"
-#include "nucleus/Tile.h"
-#include "nucleus/srs.h"
 #include "sherpa/TileHeights.h"
 
 class TestSimplisticTileScheduler : public TestTileScheduler {
@@ -56,4 +54,4 @@ private slots:
 };
 
 QTEST_MAIN(TestSimplisticTileScheduler)
-#include "qtest_SimplisticTileScheduler.moc"
+#include "SimplisticTileScheduler.moc"
