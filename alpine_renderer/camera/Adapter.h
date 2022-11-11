@@ -4,18 +4,18 @@
 
 #include <glm/glm.hpp>
 
-class Camera;
 
 namespace camera {
+class Definition;
 
 class Adapter : public QObject
 {
     Q_OBJECT
 public:
-    explicit Adapter(Camera* camera = nullptr);
+    explicit Adapter(Definition* camera = nullptr);
 
 public slots:
-    void setCamera(Camera* camera);
+    void setCamera(Definition* camera);
     void setNearPlane(float distance);
     void move(const glm::dvec3& v);
     void orbit(const glm::dvec3& centre, const glm::dvec2& degrees);
@@ -28,7 +28,7 @@ signals:
     void worldViewProjectionChanged(const glm::dmat4& new_transformation) const;
 
 private:
-    Camera* m_camera = nullptr;
+    Definition* m_camera = nullptr;
 };
 
 }

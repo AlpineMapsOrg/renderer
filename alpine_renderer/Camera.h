@@ -27,9 +27,11 @@ template <typename T>
 struct Plane;
 }
 
-class Camera {
+namespace camera {
+
+class Definition {
 public:
-    Camera(const glm::dvec3& position, const glm::dvec3& view_at_point);
+    Definition(const glm::dvec3& position, const glm::dvec3& view_at_point);
     [[nodiscard]] glm::dmat4 cameraMatrix() const;
     [[nodiscard]] glm::dmat4 projectionMatrix() const;
     // transforms from webmercator to clip space. You should use this matrix only in double precision.
@@ -65,3 +67,4 @@ private:
     glm::uvec2 m_viewport_size = { 1, 1 };
 
 };
+}

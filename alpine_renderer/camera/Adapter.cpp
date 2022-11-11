@@ -4,12 +4,12 @@
 
 #include "alpine_renderer/Camera.h"
 
-camera::Adapter::Adapter(Camera* camera)
+camera::Adapter::Adapter(camera::Definition* camera)
     : m_camera(camera)
 {
 }
 
-void camera::Adapter::setCamera(Camera* camera)
+void camera::Adapter::setCamera(camera::Definition* camera)
 {
     m_camera = camera;
     if (m_camera != nullptr) {

@@ -27,7 +27,7 @@
 
 SimplisticTileScheduler::SimplisticTileScheduler() = default;
 
-std::vector<tile::Id> SimplisticTileScheduler::loadCandidates(const Camera& camera, const tile_scheduler::AabbDecoratorPtr& aabb_decorator)
+std::vector<tile::Id> SimplisticTileScheduler::loadCandidates(const camera::Definition& camera, const tile_scheduler::AabbDecoratorPtr& aabb_decorator)
 {
     //  return quad_tree::onTheFlyTraverse(tile::Id{0, {0, 0}}, tile_scheduler::refineFunctor(camera, 1.0), [](const auto& v) { return srs::subtiles(v); });
     const auto all_leaves = quad_tree::onTheFlyTraverse(tile::Id { 0, { 0, 0 } }, tile_scheduler::refineFunctor(camera, aabb_decorator, 2.0), [](const tile::Id& v) { return v.children(); });
@@ -62,7 +62,7 @@ SimplisticTileScheduler::TileSet SimplisticTileScheduler::gpuTiles() const
     return m_gpu_tiles;
 }
 
-void SimplisticTileScheduler::updateCamera(const Camera& camera)
+void SimplisticTileScheduler::updateCamera(const camera::Definition& camera)
 {
     if (!enabled())
         return;

@@ -36,7 +36,8 @@
 //
 // https://webglfundamentals.org/webgl/lessons/webgl-3d-camera.html
 
-Camera::Camera(const glm::dvec3& position, const glm::dvec3& view_at_point) // : m_position(position)
+
+camera::Definition::Definition(const glm::dvec3& position, const glm::dvec3& view_at_point) // : m_position(position)
 {
     m_camera_transformation = glm::inverse(glm::lookAt(position, view_at_point, { 0, 0, 1 }));
     if (std::isnan(m_camera_transformation[0][0])) {
@@ -46,47 +47,47 @@ Camera::Camera(const glm::dvec3& position, const glm::dvec3& view_at_point) // :
     setPerspectiveParams(m_fov, m_viewport_size, m_near_clipping);
 }
 
-glm::dmat4 Camera::cameraMatrix() const
+glm::dmat4 camera::Definition::cameraMatrix() const
 {
     return glm::inverse(m_camera_transformation);
 }
 
-glm::dmat4 Camera::projectionMatrix() const
+glm::dmat4 camera::Definition::projectionMatrix() const
 {
     return m_projection_matrix;
 }
 
-glm::dmat4 Camera::worldViewProjectionMatrix() const
+glm::dmat4 camera::Definition::worldViewProjectionMatrix() const
 {
     return m_projection_matrix * cameraMatrix();
 }
 
-glm::mat4 Camera::localViewProjectionMatrix(const glm::dvec3& origin_offset) const
+glm::mat4 camera::Definition::localViewProjectionMatrix(const glm::dvec3& origin_offset) const
 {
     return glm::mat4(m_projection_matrix * cameraMatrix() * glm::translate(origin_offset));
 }
 
-glm::dvec3 Camera::position() const
+glm::dvec3 camera::Definition::position() const
 {
     return glm::dvec3(m_camera_transformation[3]);
 }
 
-glm::dvec3 Camera::xAxis() const
+glm::dvec3 camera::Definition::xAxis() const
 {
     return glm::dvec3(m_camera_transformation[0]);
 }
 
-glm::dvec3 Camera::yAxis() const
+glm::dvec3 camera::Definition::yAxis() const
 {
     return glm::dvec3(m_camera_transformation[1]);
 }
 
-glm::dvec3 Camera::zAxis() const
+glm::dvec3 camera::Definition::zAxis() const
 {
     return glm::dvec3(m_camera_transformation[2]);
 }
 
-glm::dvec3 Camera::ray_direction(const glm::dvec2& normalised_device_coordinates) const
+glm::dvec3 camera::Definition::ray_direction(const glm::dvec2& normalised_device_coordinates) const
 {
     const auto inverse_projection_matrix = glm::inverse(projectionMatrix());
     const auto inverse_view_matrix = m_camera_transformation;
@@ -95,7 +96,7 @@ glm::dvec3 Camera::ray_direction(const glm::dvec2& normalised_device_coordinates
     return glm::normalize(glm::dvec3(inverse_view_matrix * normalised_unprojected) - position());
 }
 
-std::vector<geometry::Plane<double>> Camera::clippingPlanes() const
+std::vector<geometry::Plane<double>> camera::Definition::clippingPlanes() const
 {
     const auto clippingPane = [this](const glm::dvec2& a, const glm::dvec2& b) {
         const auto v_a = ray_direction(a);
@@ -121,7 +122,7 @@ std::vector<geometry::Plane<double>> Camera::clippingPlanes() const
     return clipping_panes;
 }
 
-void Camera::setPerspectiveParams(float fov_degrees, const glm::uvec2& viewport_size, double near_plane)
+void camera::Definition::setPerspectiveParams(float fov_degrees, const glm::uvec2& viewport_size, double near_plane)
 {
     m_near_clipping = near_plane;
     m_far_clipping = near_plane * 1000;
@@ -130,24 +131,24 @@ void Camera::setPerspectiveParams(float fov_degrees, const glm::uvec2& viewport_
     m_projection_matrix = glm::perspective(glm::radians(double(fov_degrees)), double(viewport_size.x) / double(viewport_size.y), m_near_clipping, m_far_clipping);
 }
 
-void Camera::setNearPlane(double near_plane)
+void camera::Definition::setNearPlane(double near_plane)
 {
     setPerspectiveParams(m_fov, m_viewport_size, near_plane);
 }
 
-void Camera::pan(const glm::dvec2& v)
+void camera::Definition::pan(const glm::dvec2& v)
 {
     const auto x_dir = xAxis();
     const auto y_dir = glm::cross(x_dir, glm::dvec3(0, 0, 1));
     m_camera_transformation = glm::translate(-1.0 * (v.x * x_dir + v.y * y_dir)) * m_camera_transformation;
 }
 
-void Camera::move(const glm::dvec3& v)
+void camera::Definition::move(const glm::dvec3& v)
 {
     m_camera_transformation = glm::translate(v) * m_camera_transformation;
 }
 
-void Camera::orbit(const glm::dvec3& centre, const glm::dvec2& degrees)
+void camera::Definition::orbit(const glm::dvec3& centre, const glm::dvec2& degrees)
 {
     move(-centre);
     const auto rotation_x_axis = glm::rotate(glm::radians(degrees.y), xAxis());
@@ -157,22 +158,22 @@ void Camera::orbit(const glm::dvec3& centre, const glm::dvec2& degrees)
     move(centre);
 }
 
-void Camera::orbit(const glm::vec2& degrees)
+void camera::Definition::orbit(const glm::vec2& degrees)
 {
     orbit(operationCentre(), degrees);
 }
 
-void Camera::zoom(double v)
+void camera::Definition::zoom(double v)
 {
     move(zAxis() * v);
 }
 
-const glm::uvec2& Camera::viewportSize() const
+const glm::uvec2& camera::Definition::viewportSize() const
 {
     return m_viewport_size;
 }
 
-glm::dvec3 Camera::operationCentre() const
+glm::dvec3 camera::Definition::operationCentre() const
 {
     // a ray going through the middle pixel, intersecting with the z == 0 pane
     const auto origin = position();

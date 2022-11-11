@@ -55,7 +55,7 @@ public:
     void setEnabled(bool newEnabled) override;
 
 public slots:
-    void updateCamera(const Camera& camera) override;
+    void updateCamera(const camera::Definition& camera) override;
     void receiveOrthoTile(tile::Id tile_id, std::shared_ptr<QByteArray> data) override;
     void receiveHeightTile(tile::Id tile_id, std::shared_ptr<QByteArray> data) override;
     void notifyAboutUnavailableOrthoTile(tile::Id tile_id) override;

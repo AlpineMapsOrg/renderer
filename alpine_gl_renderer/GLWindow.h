@@ -94,7 +94,7 @@ protected:
     void keyPressEvent(QKeyEvent*) override;
 
 signals:
-    void cameraUpdated(const Camera&);
+    void cameraUpdated(const camera::Definition&);
 
 private:
     using ClockResolution = std::chrono::microseconds;
@@ -107,8 +107,8 @@ private:
     std::unique_ptr<QOpenGLPaintDevice> m_gl_paint_device;
     TileScheduler* m_tile_scheduler;
 
-    Camera m_camera;
-    Camera m_debug_stored_camera;
+    camera::Definition m_camera;
+    camera::Definition m_debug_stored_camera;
     glm::ivec2 m_previous_mouse_pos = { -1, -1 };
 
     int m_frame = 0;

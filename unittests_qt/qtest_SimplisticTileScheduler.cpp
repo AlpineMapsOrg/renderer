@@ -34,7 +34,7 @@
 class TestSimplisticTileScheduler : public TestTileScheduler {
     Q_OBJECT
 private:
-    Camera test_cam = Camera({ 1822577.0, 6141664.0 - 500, 171.28 + 500 }, { 1822577.0, 6141664.0, 171.28 }); // should point right at the stephansdom
+    camera::Definition test_cam = camera::Definition({ 1822577.0, 6141664.0 - 500, 171.28 + 500 }, { 1822577.0, 6141664.0, 171.28 }); // should point right at the stephansdom
 
     std::unique_ptr<TileScheduler> makeScheduler() const override
     {

@@ -25,7 +25,7 @@ class SimplisticTileScheduler : public TileScheduler {
 public:
     SimplisticTileScheduler();
 
-    [[nodiscard]] static std::vector<tile::Id> loadCandidates(const Camera& camera, const tile_scheduler::AabbDecoratorPtr& aabb_decorator);
+    [[nodiscard]] static std::vector<tile::Id> loadCandidates(const camera::Definition& camera, const tile_scheduler::AabbDecoratorPtr& aabb_decorator);
     [[nodiscard]] size_t numberOfTilesInTransit() const override;
     [[nodiscard]] size_t numberOfWaitingHeightTiles() const override;
     [[nodiscard]] size_t numberOfWaitingOrthoTiles() const override;
@@ -35,7 +35,7 @@ public:
     void setEnabled(bool newEnabled) override;
 
 public slots:
-    void updateCamera(const Camera& camera) override;
+    void updateCamera(const camera::Definition& camera) override;
     void receiveOrthoTile(tile::Id tile_id, std::shared_ptr<QByteArray> data) override;
     void receiveHeightTile(tile::Id tile_id, std::shared_ptr<QByteArray> data) override;
     void notifyAboutUnavailableOrthoTile(tile::Id tile_id) override;

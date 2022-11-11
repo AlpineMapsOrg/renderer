@@ -29,7 +29,7 @@ class camera_Adapter_and_NearPlaneAdjuster : public QObject {
 private slots:
     void adapter()
     {
-        Camera cam { { 100, 0, 0 }, { 0, 0, 0 } };
+        camera::Definition cam { { 100, 0, 0 }, { 0, 0, 0 } };
         camera::Adapter cam_adapter(&cam);
         QSignalSpy worldViewSpy(&cam_adapter, &camera::Adapter::worldViewChanged);
         QSignalSpy projectionSpy(&cam_adapter, &camera::Adapter::projectionChanged);
@@ -81,7 +81,7 @@ private slots:
 
     void nearPlaneAdjuster_adding_removing()
     {
-        Camera cam { { 100, 0, 0 }, { 0, 0, 0 } };
+        camera::Definition cam { { 100, 0, 0 }, { 0, 0, 0 } };
         camera::Adapter cam_adapter(&cam);
         camera::NearPlaneAdjuster near_plane_adjuster;
 
@@ -121,7 +121,7 @@ private slots:
 
     void nearPlaneAdjuster_camera_update()
     {
-        Camera cam { { 100, 0, 0 }, { 0, 0, 0 } };
+        camera::Definition cam { { 100, 0, 0 }, { 0, 0, 0 } };
         camera::Adapter cam_adapter(&cam);
         camera::NearPlaneAdjuster near_plane_adjuster;
 

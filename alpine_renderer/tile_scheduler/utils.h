@@ -47,7 +47,7 @@ public:
     }
 };
 
-inline glm::dvec3 nearestVertex(const Camera& camera, const std::vector<geometry::Triangle<3, double>>& triangles)
+inline glm::dvec3 nearestVertex(const camera::Definition& camera, const std::vector<geometry::Triangle<3, double>>& triangles)
 {
     const auto camera_distance = [&camera](const auto& point) {
         const auto delta = point - camera.position();
@@ -67,7 +67,7 @@ inline glm::dvec3 nearestVertex(const Camera& camera, const std::vector<geometry
     return nearest_point;
 }
 
-inline auto cameraFrustumContainsTile(const Camera& camera, const tile::SrsAndHeightBounds& aabb)
+inline auto cameraFrustumContainsTile(const camera::Definition& camera, const tile::SrsAndHeightBounds& aabb)
 {
     const auto triangles = geometry::clip(geometry::triangulise(aabb), camera.clippingPlanes());
     if (triangles.empty())
@@ -75,7 +75,7 @@ inline auto cameraFrustumContainsTile(const Camera& camera, const tile::SrsAndHe
     return true;
 }
 
-inline auto refineFunctor(const Camera& camera, const AabbDecoratorPtr& aabb_decorator, double error_threshold_px, double tile_size = 256)
+inline auto refineFunctor(const camera::Definition& camera, const AabbDecoratorPtr& aabb_decorator, double error_threshold_px, double tile_size = 256)
 {
     const auto refine = [&camera, error_threshold_px, tile_size, aabb_decorator](const tile::Id& tile) {
         if (tile.zoom_level >= 18)

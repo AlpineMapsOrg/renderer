@@ -34,7 +34,7 @@ protected:
     QByteArray m_ortho_bytes;
     QByteArray m_height_bytes;
     std::unique_ptr<TileScheduler> m_scheduler;
-    Camera test_cam = Camera({ 1822577.0, 6141664.0 - 500, 171.28 + 500 }, { 1822577.0, 6141664.0, 171.28 }); // should point right at the stephansdom
+    camera::Definition test_cam = camera::Definition({ 1822577.0, 6141664.0 - 500, 171.28 + 500 }, { 1822577.0, 6141664.0, 171.28 }); // should point right at the stephansdom
     std::unordered_set<tile::Id, tile::Id::Hasher> m_given_tiles;
     std::unordered_set<tile::Id, tile::Id::Hasher> m_unavailable_tiles;
 
@@ -225,7 +225,7 @@ private slots:
         const auto gpu_tiles = m_scheduler->gpuTiles();
 
         QSignalSpy spy(m_scheduler.get(), &TileScheduler::tileExpired);
-        Camera replacement_cam = Camera({ 0.0, 0.0 - 500, 0.0 - 500 }, { 0.0, 0.0, -1000.0 });
+        camera::Definition replacement_cam = camera::Definition({ 0.0, 0.0 - 500, 0.0 - 500 }, { 0.0, 0.0, -1000.0 });
         m_scheduler->updateCamera(replacement_cam);
         const auto current_gpu_tiles = m_scheduler->gpuTiles();
         spy.wait(5);

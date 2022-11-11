@@ -74,7 +74,7 @@ void BasicTreeTileScheduler::setEnabled(bool newEnabled)
     m_enabled = newEnabled;
 }
 
-void BasicTreeTileScheduler::updateCamera(const Camera& camera)
+void BasicTreeTileScheduler::updateCamera(const camera::Definition& camera)
 {
     if (!enabled())
         return;
