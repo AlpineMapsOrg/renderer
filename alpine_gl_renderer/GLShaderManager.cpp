@@ -35,7 +35,7 @@ static const char* const tileVertexShaderSource = R"(
 
     vec4 pos = vec4(float(col) * tile_width + bounds[geometry_id].x,
                    float(n_edge_vertices - row - 1) * tile_width + bounds[geometry_id].y,
-                   height * 65536 * 0.125,
+                   height * 65536.0 * 0.125,
                    1.0);
     uv = vec2(float(col) / float(n_edge_vertices - 1), float(row) / float(n_edge_vertices - 1));
     gl_Position = matrix * pos;

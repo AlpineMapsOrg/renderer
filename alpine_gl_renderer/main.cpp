@@ -154,7 +154,10 @@ int main(int argc, char* argv[])
 
     QObject::connect(&near_plane_adjuster, &camera::NearPlaneAdjuster::nearPlaneChanged, &camera_controller, &camera::Controller::setNearPlane);
 
-
+    // in web assembly, the gl window is resized before it is connected. need to set viewport manually.
+    // native, however, glWindow has a zero size at this point.
+    if (glWindow.width() > 0 && glWindow.height() > 0)
+        camera_controller.setViewport({ glWindow.width(), glWindow.height() });
     camera_controller.update();
 
     return app.exec();

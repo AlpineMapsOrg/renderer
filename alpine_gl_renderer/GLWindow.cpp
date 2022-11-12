@@ -115,15 +115,12 @@ void GLWindow::resizeGL(int w, int h)
     const qreal retinaScale = devicePixelRatio();
     const int width = int(retinaScale * w);
     const int height = int(retinaScale * h);
-    emit viewport_changed({ width, height });
 
     m_gl_paint_device->setSize({ w, h });
     m_gl_paint_device->setDevicePixelRatio(retinaScale);
     QOpenGLFunctions* f = QOpenGLContext::currentContext()->functions();
     f->glViewport(0, 0, width, height);
-
     emit viewport_changed({ w, h });
-    update();
 }
 
 void GLWindow::paintGL()
@@ -137,27 +134,27 @@ void GLWindow::paintGL()
     f->glEnable(GL_DEPTH_TEST);
     f->glDepthFunc(GL_LEQUAL);
     //  f->glEnable(GL_CULL_FACE);
-    //  glPolygonMode( GL_FRONT_AND_BACK, GL_LINE );
+//    glPolygonMode( GL_FRONT_AND_BACK, GL_LINE );
 
     m_shader_manager->bindTileShader();
 
     const auto world_view_projection_matrix = m_camera.localViewProjectionMatrix({});
     m_tile_manager->draw(m_shader_manager->tileShader(), world_view_projection_matrix);
 
-    {
+//    {
 //        m_shader_manager->bindDebugShader();
 //        m_debug_painter->activate(m_shader_manager->debugShader(), world_view_projection_matrix);
-//        const auto position = m_debug_stored_camera.position();
-//        const auto direction_tl = m_debug_stored_camera.ray_direction({ -1, 1 });
-//        const auto direction_tr = m_debug_stored_camera.ray_direction({ 1, 1 });
+//        const auto position = m_camera.position();
+//        const auto direction_tl = m_camera.ray_direction({ -1, 1 });
+//        const auto direction_tr = m_camera.ray_direction({ 1, 1 });
 //        std::vector<glm::vec3> debug_cam_lines = { position + direction_tl * 10000.0,
 //            position,
 //            position + direction_tr * 10000.0 };
 //        m_debug_painter->drawLineStrip(debug_cam_lines);
-    }
+//    }
     m_shader_manager->release();
 
-    //  glPolygonMode( GL_FRONT_AND_BACK, GL_FILL );
+//    glPolygonMode( GL_FRONT_AND_BACK, GL_FILL );
     m_frame_end = std::chrono::time_point_cast<ClockResolution>(Clock::now());
 
 //    QTimer::singleShot(500, [this]() { this->update(); });
@@ -165,6 +162,13 @@ void GLWindow::paintGL()
 
 void GLWindow::paintOverGL()
 {
+    {
+        // the buffer is necessary, so that we can use qpainter (likely something with the opengl state). works only in ff. ye, wtf..
+        QOpenGLBuffer buffer(QOpenGLBuffer::VertexBuffer);
+        buffer.create();
+        buffer.bind();
+    }
+
     const auto frame_duration = (m_frame_end - m_frame_start);
     const auto frame_duration_float = double(frame_duration.count()) / 1000.;
     const auto frame_duration_text = QString("Last frame: %1ms, draw indicator: ")
