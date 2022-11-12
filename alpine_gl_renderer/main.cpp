@@ -48,6 +48,8 @@
 **
 ****************************************************************************/
 
+#include <iostream>
+
 #include <QGuiApplication>
 #include <QObject>
 #include <QOpenGLContext>
@@ -57,6 +59,9 @@
 #include "GLWindow.h"
 #include "alpine_gl_renderer/GLTileManager.h"
 #include "nucleus/TileLoadService.h"
+#include "nucleus/camera/Controller.h"
+#include "nucleus/camera/CrapyInteraction.h"
+#include "nucleus/camera/NearPlaneAdjuster.h"
 #include "nucleus/tile_scheduler/BasicTreeTileScheduler.h"
 #include "nucleus/tile_scheduler/SimplisticTileScheduler.h"
 #include "nucleus/tile_scheduler/utils.h"
@@ -116,20 +121,43 @@ int main(int argc, char* argv[])
         reply->deleteLater();
     });
 
+    camera::Controller camera_controller { { { 1822577.0, 6141664.0 - 500, 171.28 + 500 }, { 1822577.0, 6141664.0, 171.28 } } };
+    camera_controller.set_interaction_style(std::make_unique<camera::CrapyInteraction>());
+
+    camera::NearPlaneAdjuster near_plane_adjuster;
+
     GLWindow glWindow;
     glWindow.showMaximized();
     glWindow.setTileScheduler(&scheduler); // i don't like this, gl window is tightly coupled with the scheduler.
 
-    QObject::connect(&glWindow, &GLWindow::cameraUpdated, &scheduler, &TileScheduler::updateCamera);
+    QObject::connect(&glWindow, &GLWindow::viewport_changed, &camera_controller, &camera::Controller::setViewport);
+    QObject::connect(&glWindow, &GLWindow::mouse_moved, &camera_controller, &camera::Controller::mouse_move);
+    QObject::connect(&glWindow, &GLWindow::mouse_pressed, &camera_controller, &camera::Controller::mouse_press);
+    QObject::connect(&glWindow, &GLWindow::key_pressed, &camera_controller, &camera::Controller::key_press);
+
+    QObject::connect(&camera_controller, &camera::Controller::definitionChanged, &scheduler, &TileScheduler::updateCamera);
+    QObject::connect(&camera_controller, &camera::Controller::definitionChanged, &near_plane_adjuster, &camera::NearPlaneAdjuster::updateCamera);
+    QObject::connect(&camera_controller, &camera::Controller::definitionChanged, &glWindow, &GLWindow::update_camera);
+
     QObject::connect(&scheduler, &TileScheduler::tileRequested, &terrain_service, &TileLoadService::load);
     QObject::connect(&scheduler, &TileScheduler::tileRequested, &ortho_service, &TileLoadService::load);
-    QObject::connect(&ortho_service, &TileLoadService::loadReady, &scheduler, &TileScheduler::receiveOrthoTile);
-    QObject::connect(&terrain_service, &TileLoadService::loadReady, &scheduler, &TileScheduler::receiveHeightTile);
-    QObject::connect(&ortho_service, &TileLoadService::tileUnavailable, &scheduler, &TileScheduler::notifyAboutUnavailableOrthoTile);
-    QObject::connect(&terrain_service, &TileLoadService::tileUnavailable, &scheduler, &TileScheduler::notifyAboutUnavailableHeightTile);
     QObject::connect(&scheduler, &TileScheduler::tileReady, [&glWindow](const std::shared_ptr<Tile>& tile) { glWindow.gpuTileManager()->addTile(tile); });
-    QObject::connect(&scheduler, &TileScheduler::tileExpired, [&glWindow](const auto& tile) { glWindow.gpuTileManager()->removeTile(tile); });
+    QObject::connect(&scheduler, &TileScheduler::tileReady, &near_plane_adjuster, &camera::NearPlaneAdjuster::addTile);
     QObject::connect(&scheduler, &TileScheduler::tileReady, &glWindow, qOverload<>(&GLWindow::update));
+    QObject::connect(&scheduler, &TileScheduler::tileExpired, [&glWindow](const auto& tile) { glWindow.gpuTileManager()->removeTile(tile); });
+    QObject::connect(&scheduler, &TileScheduler::tileExpired, &near_plane_adjuster, &camera::NearPlaneAdjuster::removeTile);
+
+    QObject::connect(&ortho_service, &TileLoadService::loadReady, &scheduler, &TileScheduler::receiveOrthoTile);
+    QObject::connect(&ortho_service, &TileLoadService::tileUnavailable, &scheduler, &TileScheduler::notifyAboutUnavailableOrthoTile);
+    QObject::connect(&terrain_service, &TileLoadService::loadReady, &scheduler, &TileScheduler::receiveHeightTile);
+    QObject::connect(&terrain_service, &TileLoadService::tileUnavailable, &scheduler, &TileScheduler::notifyAboutUnavailableHeightTile);
+
+    QObject::connect(&near_plane_adjuster, &camera::NearPlaneAdjuster::nearPlaneChanged, &camera_controller, &camera::Controller::setNearPlane);
+    QObject::connect(&near_plane_adjuster, &camera::NearPlaneAdjuster::nearPlaneChanged, &camera_controller,
+        [](float distance) { std::cout << "new near plane at " << distance << std::endl; });
+
+
+    camera_controller.update();
 
     return app.exec();
 }

@@ -120,7 +120,7 @@ private slots:
         cam_adapter.move({-50, 0, 0});
         spy.wait(1);
         QCOMPARE(spy.count(), 1);
-        QCOMPARE(spy.front().front().toDouble(), float(0.1));
+        QCOMPARE(spy.front().front().toDouble(), float(1.0));
     }
 };
 

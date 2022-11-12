@@ -20,7 +20,9 @@ set(ATB_RENDER_BACKEND_SOURCES
     nucleus/tile_scheduler/BasicTreeTileScheduler.h nucleus/tile_scheduler/BasicTreeTileScheduler.cpp
     nucleus/TileLoadService.h nucleus/TileLoadService.cpp
     nucleus/camera/Controller.h nucleus/camera/Controller.cpp
+    nucleus/camera/CrapyInteraction.h nucleus/camera/CrapyInteraction.cpp
     nucleus/camera/Definition.h nucleus/camera/Definition.cpp
+    nucleus/camera/InteractionStyle.h nucleus/camera/InteractionStyle.cpp
     nucleus/camera/NearPlaneAdjuster.h nucleus/camera/NearPlaneAdjuster.cpp
     nucleus/utils/QuadTree.h
     nucleus/utils/terrain_mesh_index_generator.h

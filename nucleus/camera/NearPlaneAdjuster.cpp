@@ -40,7 +40,7 @@ void camera::NearPlaneAdjuster::updateNearPlane() const
         if (dist_to_cam < min_dist)
             min_dist = dist_to_cam;
     }
-    min_dist = std::max(0.1, min_dist);
+    min_dist = std::max(1.0, min_dist);
     if (!m_object_spheres.empty()) {
         emit nearPlaneChanged(min_dist);
     }

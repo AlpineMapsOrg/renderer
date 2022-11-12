@@ -7,7 +7,7 @@
 
 namespace camera {
 Controller::Controller(const Definition& camera)
-    : m_definition(camera)
+    : m_definition(camera), m_interaction_style(std::make_unique<InteractionStyle>())
 {
 }
 
@@ -47,6 +47,41 @@ void Controller::orbit(const glm::dvec3& centre, const glm::dvec2& degrees)
 void Controller::update() const
 {
     emit definitionChanged(m_definition);
+}
+
+void Controller::mouse_press(QMouseEvent* e, float distance)
+{
+    const auto new_definition = m_interaction_style->mousePressEvent(e, m_definition, distance);
+    if (!new_definition)
+        return;
+    m_definition = new_definition.value();
+    update();
+}
+
+void Controller::mouse_move(QMouseEvent* e)
+{
+    const auto new_definition = m_interaction_style->mouseMoveEvent(e, m_definition);
+    if (!new_definition)
+        return;
+    m_definition = new_definition.value();
+    update();
+}
+
+void Controller::key_press(QKeyEvent* e)
+{
+    const auto new_definition = m_interaction_style->keyPressEvent(e, m_definition);
+    if (!new_definition)
+        return;
+    m_definition = new_definition.value();
+    update();
+}
+
+void Controller::set_interaction_style(std::unique_ptr<InteractionStyle> new_style)
+{
+    if (new_style)
+        m_interaction_style = std::move(new_style);
+    else
+        m_interaction_style = std::make_unique<InteractionStyle>();
 }
 
 const Definition& Controller::definition() const

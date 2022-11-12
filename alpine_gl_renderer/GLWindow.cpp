@@ -77,7 +77,6 @@ GLWindow::GLWindow()
     : m_camera({ 1822577.0, 6141664.0 - 500, 171.28 + 500 }, { 1822577.0, 6141664.0, 171.28 }) // should point right at the stephansdom
 {
     QTimer::singleShot(0, [this]() { this->update(); });
-    QTimer::singleShot(0, [this]() { emit cameraUpdated(m_camera); });
 }
 
 GLWindow::~GLWindow()
@@ -116,13 +115,14 @@ void GLWindow::resizeGL(int w, int h)
     const qreal retinaScale = devicePixelRatio();
     const int width = int(retinaScale * w);
     const int height = int(retinaScale * h);
+    emit viewport_changed({ width, height });
 
-    m_camera.setPerspectiveParams(45, { width, height }, 500);
     m_gl_paint_device->setSize({ w, h });
     m_gl_paint_device->setDevicePixelRatio(retinaScale);
     QOpenGLFunctions* f = QOpenGLContext::currentContext()->functions();
     f->glViewport(0, 0, width, height);
-    emit cameraUpdated(m_camera);
+
+    emit viewport_changed({ w, h });
     update();
 }
 
@@ -159,6 +159,8 @@ void GLWindow::paintGL()
 
     //  glPolygonMode( GL_FRONT_AND_BACK, GL_FILL );
     m_frame_end = std::chrono::time_point_cast<ClockResolution>(Clock::now());
+
+//    QTimer::singleShot(500, [this]() { this->update(); });
 }
 
 void GLWindow::paintOverGL()
@@ -188,26 +190,8 @@ void GLWindow::paintOverGL()
 
 void GLWindow::mouseMoveEvent(QMouseEvent* e)
 {
-    glm::ivec2 mouse_position { e->pos().x(), e->pos().y() };
-    if (e->buttons() == Qt::LeftButton) {
-        const auto delta = mouse_position - m_previous_mouse_pos;
-        m_camera.pan(glm::vec2(delta) * 10.0f);
-        emit cameraUpdated(m_camera);
-        update();
-    }
-    if (e->buttons() == Qt::MiddleButton) {
-        const auto delta = mouse_position - m_previous_mouse_pos;
-        m_camera.orbit(glm::vec2(delta) * 0.1f);
-        emit cameraUpdated(m_camera);
-        update();
-    }
-    if (e->buttons() == Qt::RightButton) {
-        const auto delta = mouse_position - m_previous_mouse_pos;
-        m_camera.zoom(delta.y * 10.0);
-        emit cameraUpdated(m_camera);
-        update();
-    }
-    m_previous_mouse_pos = mouse_position;
+    // send depth information only on mouse press to be more efficient (?)
+    emit mouse_moved(e);
 }
 
 void GLWindow::keyPressEvent(QKeyEvent* e)
@@ -216,11 +200,24 @@ void GLWindow::keyPressEvent(QKeyEvent* e)
         m_tile_scheduler->setEnabled(!m_tile_scheduler->enabled());
         qDebug("setting tile scheduler enabled = %d", int(m_tile_scheduler->enabled()));
     }
+    emit key_pressed(e);
+}
+
+void GLWindow::update_camera(const camera::Definition& new_definition)
+{
+    m_camera = new_definition;
+    update();
 }
 
 void GLWindow::setTileScheduler(TileScheduler* new_tile_scheduler)
 {
     m_tile_scheduler = new_tile_scheduler;
+}
+
+void GLWindow::mousePressEvent(QMouseEvent* ev)
+{
+    float distance = 500;   // todo read and compute from depth buffer
+    emit mouse_pressed(ev, distance);
 }
 
 GLTileManager* GLWindow::gpuTileManager() const

@@ -90,11 +90,18 @@ public:
     void setTileScheduler(TileScheduler* new_tile_scheduler);
 
 protected:
+    void mousePressEvent(QMouseEvent* ev) override;
     void mouseMoveEvent(QMouseEvent*) override;
     void keyPressEvent(QKeyEvent*) override;
 
+public slots:
+    void update_camera(const camera::Definition& new_definition);
+
 signals:
-    void cameraUpdated(const camera::Definition&);
+    void mouse_pressed(QMouseEvent*, float distance) const;
+    void mouse_moved(QMouseEvent*) const;
+    void key_pressed(QKeyEvent*) const;
+    void viewport_changed(const glm::uvec2& new_viewport) const;
 
 private:
     using ClockResolution = std::chrono::microseconds;
@@ -108,7 +115,6 @@ private:
     TileScheduler* m_tile_scheduler;
 
     camera::Definition m_camera;
-    glm::ivec2 m_previous_mouse_pos = { -1, -1 };
 
     int m_frame = 0;
     bool m_initialised = false;
