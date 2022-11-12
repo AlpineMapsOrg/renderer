@@ -20,6 +20,14 @@ void Controller::setNearPlane(float distance)
     update();
 }
 
+void Controller::setViewport(const glm::uvec2& new_viewport)
+{
+    if (m_definition.viewportSize() == new_viewport)
+        return;
+    m_definition.set_viewport_size(new_viewport);
+    update();
+}
+
 void Controller::move(const glm::dvec3& v)
 {
     if (v == glm::dvec3 { 0, 0, 0 })

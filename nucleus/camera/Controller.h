@@ -19,6 +19,7 @@ public:
 public slots:
     void setDefinition(const Definition& new_definition);
     void setNearPlane(float distance);
+    void setViewport(const glm::uvec2& new_viewport);
     void move(const glm::dvec3& v);
     void orbit(const glm::dvec3& centre, const glm::dvec2& degrees);
     void update() const;

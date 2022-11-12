@@ -190,3 +190,12 @@ glm::dvec3 camera::Definition::operationCentre() const
     const auto t = -origin.z / direction.z;
     return origin + t * direction;
 }
+
+
+namespace camera {
+void Definition::set_viewport_size(const glm::uvec2& new_viewport_size)
+{
+    setPerspectiveParams(m_fov, new_viewport_size, m_near_clipping);
+}
+
+}

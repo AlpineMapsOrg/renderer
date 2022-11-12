@@ -71,13 +71,10 @@
 #include "alpine_gl_renderer/GLDebugPainter.h"
 #include "alpine_gl_renderer/GLShaderManager.h"
 #include "alpine_gl_renderer/GLTileManager.h"
-#include "nucleus/Tile.h"
 #include "nucleus/TileScheduler.h"
 
 GLWindow::GLWindow()
-    : m_camera({ 1822577.0, 6141664.0 - 500, 171.28 + 500 }, { 1822577.0, 6141664.0, 171.28 })
-    , // should point right at the stephansdom
-    m_debug_stored_camera({ 0.0, 500.0, 500.0 }, { 0.0, 0.0, 0.0 })
+    : m_camera({ 1822577.0, 6141664.0 - 500, 171.28 + 500 }, { 1822577.0, 6141664.0, 171.28 }) // should point right at the stephansdom
 {
     QTimer::singleShot(0, [this]() { this->update(); });
     QTimer::singleShot(0, [this]() { emit cameraUpdated(m_camera); });
@@ -148,15 +145,15 @@ void GLWindow::paintGL()
     m_tile_manager->draw(m_shader_manager->tileShader(), world_view_projection_matrix);
 
     {
-        m_shader_manager->bindDebugShader();
-        m_debug_painter->activate(m_shader_manager->debugShader(), world_view_projection_matrix);
-        const auto position = m_debug_stored_camera.position();
-        const auto direction_tl = m_debug_stored_camera.ray_direction({ -1, 1 });
-        const auto direction_tr = m_debug_stored_camera.ray_direction({ 1, 1 });
-        std::vector<glm::vec3> debug_cam_lines = { position + direction_tl * 10000.0,
-            position,
-            position + direction_tr * 10000.0 };
-        m_debug_painter->drawLineStrip(debug_cam_lines);
+//        m_shader_manager->bindDebugShader();
+//        m_debug_painter->activate(m_shader_manager->debugShader(), world_view_projection_matrix);
+//        const auto position = m_debug_stored_camera.position();
+//        const auto direction_tl = m_debug_stored_camera.ray_direction({ -1, 1 });
+//        const auto direction_tr = m_debug_stored_camera.ray_direction({ 1, 1 });
+//        std::vector<glm::vec3> debug_cam_lines = { position + direction_tl * 10000.0,
+//            position,
+//            position + direction_tr * 10000.0 };
+//        m_debug_painter->drawLineStrip(debug_cam_lines);
     }
     m_shader_manager->release();
 
@@ -215,9 +212,6 @@ void GLWindow::mouseMoveEvent(QMouseEvent* e)
 
 void GLWindow::keyPressEvent(QKeyEvent* e)
 {
-    if (e->key() == Qt::Key::Key_C)
-        m_debug_stored_camera = m_camera;
-
     if (e->key() == Qt::Key::Key_T) {
         m_tile_scheduler->setEnabled(!m_tile_scheduler->enabled());
         qDebug("setting tile scheduler enabled = %d", int(m_tile_scheduler->enabled()));

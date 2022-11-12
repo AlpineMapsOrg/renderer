@@ -108,7 +108,6 @@ private:
     TileScheduler* m_tile_scheduler;
 
     camera::Definition m_camera;
-    camera::Definition m_debug_stored_camera;
     glm::ivec2 m_previous_mouse_pos = { -1, -1 };
 
     int m_frame = 0;

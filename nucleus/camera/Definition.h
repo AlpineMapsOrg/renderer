@@ -56,6 +56,8 @@ public:
 
     [[nodiscard]] const glm::uvec2& viewportSize() const;
 
+    void set_viewport_size(const glm::uvec2& new_viewport_size);
+
 private:
     [[nodiscard]] glm::dvec3 operationCentre() const;
 
