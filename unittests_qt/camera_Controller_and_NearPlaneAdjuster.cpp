@@ -29,63 +29,35 @@ class camera_Controller_and_NearPlaneAdjuster : public QObject {
 private slots:
     void adapter()
     {
-        camera::Definition cam { { 100, 0, 0 }, { 0, 0, 0 } };
-        camera::Controller cam_adapter(&cam);
-        QSignalSpy worldViewSpy(&cam_adapter, &camera::Controller::worldViewChanged);
-        QSignalSpy projectionSpy(&cam_adapter, &camera::Controller::projectionChanged);
-        QSignalSpy worldProjectionSpy(&cam_adapter, &camera::Controller::worldViewProjectionChanged);
+        camera::Controller cam_adapter(camera::Definition{ { 100, 0, 0 }, { 0, 0, 0 } });
+        QSignalSpy worldProjectionSpy(&cam_adapter, &camera::Controller::definitionChanged);
         cam_adapter.update();
-        QVERIFY(worldViewSpy.isValid());
-        QVERIFY(projectionSpy.isValid());
         QVERIFY(worldProjectionSpy.isValid());
-        worldViewSpy.wait(1);
-        projectionSpy.wait(1);
         worldProjectionSpy.wait(1);
-        QCOMPARE(worldViewSpy.count(), 1); // adapter should send out camera transformation on startup.
-        QCOMPARE(projectionSpy.count(), 1);
         QCOMPARE(worldProjectionSpy.count(), 1);
 
-        worldViewSpy.clear();
-        projectionSpy.clear();
         worldProjectionSpy.clear();
         cam_adapter.setNearPlane(2);
-        worldViewSpy.wait(1);
-        projectionSpy.wait(1);
         worldProjectionSpy.wait(1);
-        QCOMPARE(worldViewSpy.count(), 0);
-        QCOMPARE(projectionSpy.count(), 1);
         QCOMPARE(worldProjectionSpy.count(), 1);
 
-        worldViewSpy.clear();
-        projectionSpy.clear();
         worldProjectionSpy.clear();
         cam_adapter.move({ 1, 1, 1 });
-        worldViewSpy.wait(1);
-        projectionSpy.wait(1);
         worldProjectionSpy.wait(1);
-        QCOMPARE(worldViewSpy.count(), 1);
-        QCOMPARE(projectionSpy.count(), 0);
         QCOMPARE(worldProjectionSpy.count(), 1);
 
-        worldViewSpy.clear();
-        projectionSpy.clear();
         worldProjectionSpy.clear();
         cam_adapter.orbit({ 1, 1, 1 }, {33, 45});
-        worldViewSpy.wait(1);
-        projectionSpy.wait(1);
         worldProjectionSpy.wait(1);
-        QCOMPARE(worldViewSpy.count(), 1);
-        QCOMPARE(projectionSpy.count(), 0);
         QCOMPARE(worldProjectionSpy.count(), 1);
     }
 
     void nearPlaneAdjuster_adding_removing()
     {
-        camera::Definition cam { { 100, 0, 0 }, { 0, 0, 0 } };
-        camera::Controller cam_adapter(&cam);
+        camera::Controller cam_adapter(camera::Definition{ { 100, 0, 0 }, { 0, 0, 0 } });
         camera::NearPlaneAdjuster near_plane_adjuster;
 
-        connect(&cam_adapter, &camera::Controller::positionChanged, &near_plane_adjuster, &camera::NearPlaneAdjuster::changeCameraPosition);
+        connect(&cam_adapter, &camera::Controller::definitionChanged, &near_plane_adjuster, &camera::NearPlaneAdjuster::updateCamera);
         cam_adapter.update();
 
 
@@ -121,11 +93,10 @@ private slots:
 
     void nearPlaneAdjuster_camera_update()
     {
-        camera::Definition cam { { 100, 0, 0 }, { 0, 0, 0 } };
-        camera::Controller cam_adapter(&cam);
+        camera::Controller cam_adapter(camera::Definition{ { 100, 0, 0 }, { 0, 0, 0 } });
         camera::NearPlaneAdjuster near_plane_adjuster;
 
-        connect(&cam_adapter, &camera::Controller::positionChanged, &near_plane_adjuster, &camera::NearPlaneAdjuster::changeCameraPosition);
+        connect(&cam_adapter, &camera::Controller::definitionChanged, &near_plane_adjuster, &camera::NearPlaneAdjuster::updateCamera);
         cam_adapter.update();
 
         near_plane_adjuster.addTile(std::make_shared<Tile>(

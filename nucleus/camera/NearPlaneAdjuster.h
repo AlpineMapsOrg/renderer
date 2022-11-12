@@ -11,6 +11,7 @@
 class Tile;
 
 namespace camera {
+class Definition;
 
 class NearPlaneAdjuster : public QObject
 {
@@ -22,7 +23,7 @@ signals:
     void nearPlaneChanged(float new_distance) const;
 
 public slots:
-    void changeCameraPosition(const glm::dvec3& new_position);
+    void updateCamera(const Definition& new_definition);
     void addTile(const std::shared_ptr<Tile>& tile);
     void removeTile(const tile::Id& tile_id);
 

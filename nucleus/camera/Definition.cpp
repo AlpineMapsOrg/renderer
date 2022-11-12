@@ -107,9 +107,9 @@ std::vector<geometry::Plane<double>> camera::Definition::clippingPlanes() const
     };
     std::vector<geometry::Plane<double>> clipping_panes;
     // front and back
-    const auto p0 = position() + -zAxis() * m_near_clipping;
+    const auto p0 = position() + -zAxis() * double(m_near_clipping);
     clipping_panes.push_back({ .normal = -zAxis(), .distance = -dot(-zAxis(), p0) });
-    const auto p1 = position() + -zAxis() * m_far_clipping;
+    const auto p1 = position() + -zAxis() * double(m_far_clipping);
     clipping_panes.push_back({ .normal = zAxis(), .distance = -dot(zAxis(), p1) });
 
     // top and down
@@ -122,18 +122,27 @@ std::vector<geometry::Plane<double>> camera::Definition::clippingPlanes() const
     return clipping_panes;
 }
 
-void camera::Definition::setPerspectiveParams(float fov_degrees, const glm::uvec2& viewport_size, double near_plane)
+void camera::Definition::setPerspectiveParams(float fov_degrees, const glm::uvec2& viewport_size, float near_plane)
 {
     m_near_clipping = near_plane;
     m_far_clipping = near_plane * 1000;
     m_viewport_size = viewport_size;
     m_fov = fov_degrees;
-    m_projection_matrix = glm::perspective(glm::radians(double(fov_degrees)), double(viewport_size.x) / double(viewport_size.y), m_near_clipping, m_far_clipping);
+    m_projection_matrix = glm::perspective(
+        glm::radians(double(fov_degrees)),
+        double(viewport_size.x) / double(viewport_size.y),
+        double(m_near_clipping),
+        double(m_far_clipping));
 }
 
-void camera::Definition::setNearPlane(double near_plane)
+void camera::Definition::setNearPlane(float near_plane)
 {
     setPerspectiveParams(m_fov, m_viewport_size, near_plane);
+}
+
+float camera::Definition::nearPlane() const
+{
+    return m_near_clipping;
 }
 
 void camera::Definition::pan(const glm::dvec2& v)

@@ -2,6 +2,7 @@
 
 #include <limits>
 
+#include "Definition.h"
 #include "nucleus/Tile.h"
 
 camera::NearPlaneAdjuster::NearPlaneAdjuster(QObject *parent)
@@ -10,8 +11,11 @@ camera::NearPlaneAdjuster::NearPlaneAdjuster(QObject *parent)
 
 }
 
-void camera::NearPlaneAdjuster::changeCameraPosition(const glm::dvec3& new_position)
+void camera::NearPlaneAdjuster::updateCamera(const Definition& new_definition)
 {
+    const auto new_position = new_definition.position();
+    if (m_camera_position == new_position)
+        return;
     m_camera_position = new_position;
     updateNearPlane();
 }

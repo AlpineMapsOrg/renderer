@@ -4,31 +4,30 @@
 
 #include <glm/glm.hpp>
 
+#include "Definition.h"
 
 namespace camera {
-class Definition;
 
 class Controller : public QObject
 {
     Q_OBJECT
 public:
-    explicit Controller(Definition* camera = nullptr);
+    explicit Controller(const Definition& camera);
+
+    [[nodiscard]] const Definition& definition() const;
 
 public slots:
-    void setCamera(Definition* camera);
+    void setDefinition(const Definition& new_definition);
     void setNearPlane(float distance);
     void move(const glm::dvec3& v);
     void orbit(const glm::dvec3& centre, const glm::dvec2& degrees);
     void update() const;
 
 signals:
-    void positionChanged(const glm::dvec3& new_position) const;
-    void worldViewChanged(const glm::dmat4& new_transformation) const;
-    void projectionChanged(const glm::dmat4& new_transformation) const;
-    void worldViewProjectionChanged(const glm::dmat4& new_transformation) const;
+    void definitionChanged(const Definition& new_definition) const;
 
 private:
-    Definition* m_camera = nullptr;
+    Definition m_definition;
 };
 
 }
