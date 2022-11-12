@@ -153,8 +153,6 @@ int main(int argc, char* argv[])
     QObject::connect(&terrain_service, &TileLoadService::tileUnavailable, &scheduler, &TileScheduler::notifyAboutUnavailableHeightTile);
 
     QObject::connect(&near_plane_adjuster, &camera::NearPlaneAdjuster::nearPlaneChanged, &camera_controller, &camera::Controller::setNearPlane);
-    QObject::connect(&near_plane_adjuster, &camera::NearPlaneAdjuster::nearPlaneChanged, &camera_controller,
-        [](float distance) { std::cout << "new near plane at " << distance << std::endl; });
 
 
     camera_controller.update();
