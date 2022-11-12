@@ -86,7 +86,7 @@ inline auto refineFunctor(const camera::Definition& camera, const AabbDecoratorP
         if (triangles.empty())
             return false;
         const auto nearest_point = glm::dvec4(nearestVertex(camera, triangles), 1);
-        const auto aabb_width = tile_aabb.max.x - tile_aabb.min.x;
+        const auto aabb_width = tile_aabb.size().x;
         const auto other_point_axis = camera.xAxis();
         const auto other_point = nearest_point + glm::dvec4(other_point_axis * aabb_width / tile_size, 0);
         const auto vp_mat = camera.worldViewProjectionMatrix();
