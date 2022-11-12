@@ -19,21 +19,21 @@
 #include "nucleus/camera/Definition.h"
 #include "nucleus/Tile.h"
 #include "nucleus/camera/NearPlaneAdjuster.h"
-#include "nucleus/camera/Adapter.h"
+#include "nucleus/camera/Controller.h"
 
 #include <QSignalSpy>
 #include <QTest>
 
-class camera_Adapter_and_NearPlaneAdjuster : public QObject {
+class camera_Controller_and_NearPlaneAdjuster : public QObject {
     Q_OBJECT
 private slots:
     void adapter()
     {
         camera::Definition cam { { 100, 0, 0 }, { 0, 0, 0 } };
-        camera::Adapter cam_adapter(&cam);
-        QSignalSpy worldViewSpy(&cam_adapter, &camera::Adapter::worldViewChanged);
-        QSignalSpy projectionSpy(&cam_adapter, &camera::Adapter::projectionChanged);
-        QSignalSpy worldProjectionSpy(&cam_adapter, &camera::Adapter::worldViewProjectionChanged);
+        camera::Controller cam_adapter(&cam);
+        QSignalSpy worldViewSpy(&cam_adapter, &camera::Controller::worldViewChanged);
+        QSignalSpy projectionSpy(&cam_adapter, &camera::Controller::projectionChanged);
+        QSignalSpy worldProjectionSpy(&cam_adapter, &camera::Controller::worldViewProjectionChanged);
         cam_adapter.update();
         QVERIFY(worldViewSpy.isValid());
         QVERIFY(projectionSpy.isValid());
@@ -82,10 +82,10 @@ private slots:
     void nearPlaneAdjuster_adding_removing()
     {
         camera::Definition cam { { 100, 0, 0 }, { 0, 0, 0 } };
-        camera::Adapter cam_adapter(&cam);
+        camera::Controller cam_adapter(&cam);
         camera::NearPlaneAdjuster near_plane_adjuster;
 
-        connect(&cam_adapter, &camera::Adapter::positionChanged, &near_plane_adjuster, &camera::NearPlaneAdjuster::changeCameraPosition);
+        connect(&cam_adapter, &camera::Controller::positionChanged, &near_plane_adjuster, &camera::NearPlaneAdjuster::changeCameraPosition);
         cam_adapter.update();
 
 
@@ -122,10 +122,10 @@ private slots:
     void nearPlaneAdjuster_camera_update()
     {
         camera::Definition cam { { 100, 0, 0 }, { 0, 0, 0 } };
-        camera::Adapter cam_adapter(&cam);
+        camera::Controller cam_adapter(&cam);
         camera::NearPlaneAdjuster near_plane_adjuster;
 
-        connect(&cam_adapter, &camera::Adapter::positionChanged, &near_plane_adjuster, &camera::NearPlaneAdjuster::changeCameraPosition);
+        connect(&cam_adapter, &camera::Controller::positionChanged, &near_plane_adjuster, &camera::NearPlaneAdjuster::changeCameraPosition);
         cam_adapter.update();
 
         near_plane_adjuster.addTile(std::make_shared<Tile>(
@@ -153,5 +153,5 @@ private slots:
     }
 };
 
-QTEST_MAIN(camera_Adapter_and_NearPlaneAdjuster)
-#include "camera_Adapter_and_NearPlaneAdjuster.moc"
+QTEST_MAIN(camera_Controller_and_NearPlaneAdjuster)
+#include "camera_Controller_and_NearPlaneAdjuster.moc"

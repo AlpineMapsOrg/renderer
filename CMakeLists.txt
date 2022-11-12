@@ -19,7 +19,7 @@ set(ATB_RENDER_BACKEND_SOURCES
     nucleus/tile_scheduler/SimplisticTileScheduler.h nucleus/tile_scheduler/SimplisticTileScheduler.cpp
     nucleus/tile_scheduler/BasicTreeTileScheduler.h nucleus/tile_scheduler/BasicTreeTileScheduler.cpp
     nucleus/TileLoadService.h nucleus/TileLoadService.cpp
-    nucleus/camera/Adapter.h nucleus/camera/Adapter.cpp
+    nucleus/camera/Controller.h nucleus/camera/Controller.cpp
     nucleus/camera/Definition.h nucleus/camera/Definition.cpp
     nucleus/camera/NearPlaneAdjuster.h nucleus/camera/NearPlaneAdjuster.cpp
     nucleus/utils/QuadTree.h
@@ -51,7 +51,7 @@ if (ATB_UNITTESTS AND NOT EMSCRIPTEN)
     )
     set(ATB_QT_UNITTESTS
         TileLoadService
-        camera_Adapter_and_NearPlaneAdjuster
+        camera_Controller_and_NearPlaneAdjuster
     )
     set(ATB_QT_SCHEDULER_UNITTESTS
         BasicTreeTileScheduler

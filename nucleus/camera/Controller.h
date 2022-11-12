@@ -8,11 +8,11 @@
 namespace camera {
 class Definition;
 
-class Adapter : public QObject
+class Controller : public QObject
 {
     Q_OBJECT
 public:
-    explicit Adapter(Definition* camera = nullptr);
+    explicit Controller(Definition* camera = nullptr);
 
 public slots:
     void setCamera(Definition* camera);
