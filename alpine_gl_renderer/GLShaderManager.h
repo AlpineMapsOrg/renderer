@@ -37,6 +37,7 @@ public:
     void bindDebugShader();
     [[nodiscard]] QOpenGLShaderProgram* tileShader() const;
     [[nodiscard]] QOpenGLShaderProgram* debugShader() const;
+    [[nodiscard]] QOpenGLShaderProgram* screen_quad_program() const;
     void release();
     [[nodiscard]] TileGLAttributeLocations tileAttributeLocations() const;
     [[nodiscard]] TileGLUniformLocations tileUniformLocations() const;
@@ -47,6 +48,7 @@ signals:
 private:
     std::unique_ptr<QOpenGLShaderProgram> m_tile_program = nullptr;
     std::unique_ptr<QOpenGLShaderProgram> m_debug_program = nullptr;
+    std::unique_ptr<QOpenGLShaderProgram> m_screen_quad_program = nullptr;
     TileGLUniformLocations m_tile_uniform_location = {};
     TileGLAttributeLocations m_tile_attribute_locations = {};
     DebugGLUniformLocations m_debug_uniform_location = {};

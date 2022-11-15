@@ -50,6 +50,25 @@ static const char* const tileFragmentShaderSource = R"(
      //gl_FragDepth = gl_FragCoord.z;
   })";
 
+static const char* const screenQuadVertexShaderSource = R"(
+// https://stackoverflow.com/a/59739538
+out highp vec2 texcoords; // texcoords are in the normalized [0,1] range for the viewport-filling quad part of the triangle
+void main() {
+    vec2 vertices[3]=vec2[3](vec2(-1.0, -1.0),
+                             vec2(3.0, -1.0),
+                             vec2(-1.0, 3.0));
+    gl_Position = vec4(vertices[gl_VertexID], 0.0, 1.0);
+    texcoords = 0.5 * gl_Position.xy + vec2(0.5);
+})";
+
+static const char* const screenQuadFragmentShaderSource = R"(
+  in highp vec2 texcoords;
+  uniform sampler2D texture_sampler;
+  out lowp vec4 out_Color;
+  void main() {
+     out_Color = vec4(texcoords.xy, 0.0, 1.0) * 0.1 + texture(texture_sampler, texcoords);
+  })";
+
 static const char* const debugVertexShaderSource = R"(
   layout(location = 0) in vec4 a_position;
   uniform highp mat4 matrix;
@@ -60,7 +79,7 @@ static const char* const debugVertexShaderSource = R"(
 static const char* const debugFragmentShaderSource = R"(
   out lowp vec4 out_Color;
   void main() {
-     out_Color = vec4(1, 0, 0, 1);
+     out_Color = vec4(1.0, 0.0, 0.0, 1.0);
   })";
 
 QByteArray versionedShaderCode(const char* const src)
@@ -90,6 +109,13 @@ GLShaderManager::GLShaderManager()
     m_debug_program->addShaderFromSourceCode(QOpenGLShader::Fragment, versionedShaderCode(debugFragmentShaderSource));
     {
         const auto link_success = m_debug_program->link();
+        assert(link_success);
+    }
+    m_screen_quad_program = std::make_unique<QOpenGLShaderProgram>();
+    m_screen_quad_program->addShaderFromSourceCode(QOpenGLShader::Vertex, versionedShaderCode(screenQuadVertexShaderSource));
+    m_screen_quad_program->addShaderFromSourceCode(QOpenGLShader::Fragment, versionedShaderCode(screenQuadFragmentShaderSource));
+    {
+        const auto link_success = m_screen_quad_program->link();
         assert(link_success);
     }
 
@@ -134,6 +160,12 @@ QOpenGLShaderProgram* GLShaderManager::debugShader() const
 {
     return m_debug_program.get();
 }
+
+QOpenGLShaderProgram* GLShaderManager::screen_quad_program() const
+{
+    return m_screen_quad_program.get();
+}
+
 
 void GLShaderManager::release()
 {

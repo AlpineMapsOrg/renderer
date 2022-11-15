@@ -84,10 +84,10 @@ GLWindow::~GLWindow()
 {
     makeCurrent();
 }
-constexpr auto depth_internal_format = GL_DEPTH_COMPONENT32F;
-constexpr auto depth_type = GL_FLOAT;
-//constexpr auto depth_internal_format = GL_DEPTH_COMPONENT16;
-//constexpr auto depth_type = GL_UNSIGNED_SHORT;
+//constexpr auto depth_internal_format = GL_DEPTH_COMPONENT32F;
+//constexpr auto depth_type = GL_FLOAT;
+constexpr auto depth_internal_format = GL_DEPTH_COMPONENT16;
+constexpr auto depth_type = GL_UNSIGNED_SHORT;
 //constexpr auto depth_internal_format = GL_DEPTH_COMPONENT32;
 //constexpr auto depth_type = GL_INT;
 
@@ -124,6 +124,11 @@ void GLWindow::initializeGL()
             const auto type = GL_UNSIGNED_BYTE;
             const auto data = nullptr;
             f->glTexImage2D(GL_TEXTURE_2D, level, internalFormat, 4, 4, border, format, type, data);
+            f->glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+            f->glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+            f->glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+            f->glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+
         }
     }
     {
@@ -146,7 +151,20 @@ void GLWindow::initializeGL()
         f->glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, m_frame_buffer_colour, 0);
         f->glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, m_frame_buffer_depth, 0);
     }
-//    std::cout << "init complete" << std::endl;
+    //    std::cout << "init complete" << std::endl;
+
+    m_screen_quad_vao = std::make_unique<QOpenGLVertexArrayObject>();
+    m_screen_quad_vao->create();
+    m_screen_quad_vao->bind();
+    { // vao state
+        const std::array<unsigned short, 3> indices = {0, 1, 2};
+        m_screen_quad_index_buffer = std::make_unique<QOpenGLBuffer>(QOpenGLBuffer::IndexBuffer);
+        m_screen_quad_index_buffer->create();
+        m_screen_quad_index_buffer->bind();
+        m_screen_quad_index_buffer->setUsagePattern(QOpenGLBuffer::DynamicDraw);
+        m_screen_quad_index_buffer->allocate(indices.data(), 3 * sizeof(unsigned short));
+    }
+    m_screen_quad_vao->release();
 }
 
 void GLWindow::resizeGL(int w, int h)
@@ -193,29 +211,38 @@ void GLWindow::paintGL()
     f->glBindFramebuffer(GL_FRAMEBUFFER, m_frame_buffer);
     f->glClearColor(1.0, 0.0, 0.5, 1);
 
-    f->glClearDepthf(1.00);
+//    f->glClearDepthf(1.00);
     f->glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
     f->glEnable(GL_DEPTH_TEST);
     f->glDepthFunc(GL_LESS);
-//    f->glDepthFunc(GL_GREATER);
-//    glPolygonMode( GL_FRONT_AND_BACK, GL_LINE );
+////    f->glDepthFunc(GL_GREATER);
+////    glPolygonMode( GL_FRONT_AND_BACK, GL_LINE );
 
     m_shader_manager->bindTileShader();
 
     const auto world_view_projection_matrix = m_camera.localViewProjectionMatrix({});
     m_tile_manager->draw(m_shader_manager->tileShader(), world_view_projection_matrix);
 
-    {
-        m_shader_manager->bindDebugShader();
-        m_debug_painter->activate(m_shader_manager->debugShader(), world_view_projection_matrix);
-        const auto position = m_camera.position();
-        const auto direction_tl = m_camera.ray_direction({ -1, 1 });
-        const auto direction_tr = m_camera.ray_direction({ 1, 1 });
-        std::vector<glm::vec3> debug_cam_lines = { position + direction_tl * 10000.0,
-            position,
-            position + direction_tr * 10000.0 };
-        m_debug_painter->drawLineStrip(debug_cam_lines);
-    }
+    //    {
+    //        m_shader_manager->bindDebugShader();
+    //        m_debug_painter->activate(m_shader_manager->debugShader(), world_view_projection_matrix);
+    //        const auto position = m_camera.position();
+    //        const auto direction_tl = m_camera.ray_direction({ -1, 1 });
+    //        const auto direction_tr = m_camera.ray_direction({ 1, 1 });
+    //        std::vector<glm::vec3> debug_cam_lines = { position + direction_tl * 10000.0,
+    //            position,
+    //            position + direction_tr * 10000.0 };
+    //        m_debug_painter->drawLineStrip(debug_cam_lines);
+    //    }
+    f->glBindFramebuffer(GL_FRAMEBUFFER, 0);
+    m_shader_manager->screen_quad_program()->bind();
+    m_screen_quad_vao->bind();
+    f->glDisable(GL_DEPTH_TEST);
+    f->glBindTexture(GL_TEXTURE_2D, m_frame_buffer_colour);
+    f->glDrawElements(GL_TRIANGLE_STRIP, 3, GL_UNSIGNED_SHORT, nullptr);
+
+
+    m_screen_quad_vao->release();
     m_shader_manager->release();
 
 //        glPolygonMode( GL_FRONT_AND_BACK, GL_FILL );
@@ -223,13 +250,13 @@ void GLWindow::paintGL()
 //        f->glDepthFunc(GL_LESS);
 //        f->glDisable(GL_DEPTH_TEST);
 
-    const qreal retinaScale = devicePixelRatio();
-    const int width = int(retinaScale * this->width());
-    const int height = int(retinaScale * this->height());
-    f->glBindFramebuffer(GL_READ_FRAMEBUFFER, m_frame_buffer);
-    f->glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
-    f->glBlitFramebuffer(0, 0, width, height, 0, 0, width, height, GL_COLOR_BUFFER_BIT, GL_NEAREST);
-    f->glBindFramebuffer(GL_FRAMEBUFFER, 0);
+//    const qreal retinaScale = devicePixelRatio();
+//    const int width = int(retinaScale * this->width());
+//    const int height = int(retinaScale * this->height());
+//    f->glBindFramebuffer(GL_READ_FRAMEBUFFER, m_frame_buffer);
+//    f->glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
+//    f->glBlitFramebuffer(0, 0, width, height, 0, 0, width, height, GL_COLOR_BUFFER_BIT, GL_NEAREST);
+//    f->glBindFramebuffer(GL_FRAMEBUFFER, 0);
     m_frame_end = std::chrono::time_point_cast<ClockResolution>(Clock::now());
 
 //    QTimer::singleShot(500, [this]() { this->update(); });
