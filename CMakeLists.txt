@@ -92,7 +92,7 @@ if (ATB_USE_LLVM_LINKER)
 endif()
 
 ############################################ backend ##############################################
-add_library(nucleus STATIC
+qt_add_library(nucleus STATIC
     ${ATB_RENDER_BACKEND_SOURCES}
 )
 
@@ -107,7 +107,7 @@ if (ATB_ENABLE_ASSERTS)
 endif()
 
 ########################################### gl engine #############################################
-add_executable(alpine_gl_renderer
+qt_add_executable(alpine_gl_renderer
     ${ATB_GL_ENGINE_SOURCES}
 )
 set_target_properties(alpine_gl_renderer PROPERTIES
