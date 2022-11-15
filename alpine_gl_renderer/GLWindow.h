@@ -114,6 +114,9 @@ private:
     TileScheduler* m_tile_scheduler;
 
     camera::Definition m_camera;
+    unsigned int m_frame_buffer;
+    unsigned int m_frame_buffer_colour;
+    unsigned int m_frame_buffer_depth;
 
     int m_frame = 0;
     bool m_initialised = false;

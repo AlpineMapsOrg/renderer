@@ -47,6 +47,7 @@ static const char* const tileFragmentShaderSource = R"(
   out lowp vec4 out_Color;
   void main() {
      out_Color = texture(texture_sampler, uv);
+     //gl_FragDepth = gl_FragCoord.z;
   })";
 
 static const char* const debugVertexShaderSource = R"(
