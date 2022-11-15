@@ -84,6 +84,7 @@ int main(int argc, char* argv[])
     fmt.setDepthBufferSize(24);
     fmt.setOption(QSurfaceFormat::DebugContext);
 
+    bool running_in_browser = false;
     // Request OpenGL 3.3 core or OpenGL ES 3.0.
     if (QOpenGLContext::openGLModuleType() == QOpenGLContext::LibGL) {
         qDebug("Requesting 3.3 core context");
@@ -92,6 +93,7 @@ int main(int argc, char* argv[])
     } else {
         qDebug("Requesting 3.0 context");
         fmt.setVersion(3, 0);
+        running_in_browser = true;
     }
 
     QSurfaceFormat::setDefaultFormat(fmt);
@@ -127,7 +129,10 @@ int main(int argc, char* argv[])
     camera::NearPlaneAdjuster near_plane_adjuster;
 
     GLWindow glWindow;
-    glWindow.showMaximized();
+    if (running_in_browser)
+        glWindow.showFullScreen();
+    else
+        glWindow.showMaximized();
     glWindow.setTileScheduler(&scheduler); // i don't like this, gl window is tightly coupled with the scheduler.
 
     QObject::connect(&glWindow, &GLWindow::viewport_changed, &camera_controller, &camera::Controller::setViewport);
