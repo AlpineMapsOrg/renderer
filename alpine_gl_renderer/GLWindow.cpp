@@ -96,7 +96,6 @@ void GLWindow::initializeGL()
     const auto c = QOpenGLContext::currentContext();
     QOpenGLFunctions* f = QOpenGLContext::currentContext()->extraFunctions();
 
-    m_gl_paint_device = std::make_unique<QOpenGLPaintDevice>();
     m_tile_manager = std::make_unique<GLTileManager>();
     m_debug_painter = std::make_unique<GLDebugPainter>();
     m_shader_manager = std::make_unique<GLShaderManager>();
@@ -116,8 +115,6 @@ void GLWindow::resizeGL(int w, int h)
     const int width = int(retinaScale * w);
     const int height = int(retinaScale * h);
 
-    m_gl_paint_device->setSize({ w, h });
-    m_gl_paint_device->setDevicePixelRatio(retinaScale);
     QOpenGLFunctions* f = QOpenGLContext::currentContext()->functions();
     f->glViewport(0, 0, width, height);
     emit viewport_changed({ w, h });
@@ -162,13 +159,6 @@ void GLWindow::paintGL()
 
 void GLWindow::paintOverGL()
 {
-    {
-        // the buffer is necessary, so that we can use qpainter (likely something with the opengl state). works only in ff. ye, wtf..
-        QOpenGLBuffer buffer(QOpenGLBuffer::VertexBuffer);
-        buffer.create();
-        buffer.bind();
-    }
-
     const auto frame_duration = (m_frame_end - m_frame_start);
     const auto frame_duration_float = double(frame_duration.count()) / 1000.;
     const auto frame_duration_text = QString("Last frame: %1ms, draw indicator: ")
@@ -182,7 +172,7 @@ void GLWindow::paintOverGL()
 
     const auto random_u32 = QRandomGenerator::global()->generate();
 
-    QPainter painter(m_gl_paint_device.get());
+    QPainter painter(this);
     painter.setFont(QFont("Helvetica", 12));
     painter.setPen(Qt::white);
     QRect text_bb = painter.boundingRect(10, 20, 1, 15, Qt::TextSingleLine, frame_duration_text);

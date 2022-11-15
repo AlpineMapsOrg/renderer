@@ -111,7 +111,6 @@ private:
     std::unique_ptr<GLTileManager> m_tile_manager; // needs opengl context
     std::unique_ptr<GLDebugPainter> m_debug_painter; // needs opengl context
     std::unique_ptr<GLShaderManager> m_shader_manager;
-    std::unique_ptr<QOpenGLPaintDevice> m_gl_paint_device;
     TileScheduler* m_tile_scheduler;
 
     camera::Definition m_camera;
