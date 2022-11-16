@@ -84,12 +84,17 @@ GLWindow::~GLWindow()
 {
     makeCurrent();
 }
+
+// these are the combinations of valid depth buffer formats/types.
+// for now int24 is enough. if we get z-fighting, look for inverse-z (which requires a float buffer)
+// https://developer.nvidia.com/content/depth-precision-visualized
+// https://thxforthefish.com/posts/reverse_z/
 //constexpr auto depth_internal_format = GL_DEPTH_COMPONENT32F;
 //constexpr auto depth_type = GL_FLOAT;
-constexpr auto depth_internal_format = GL_DEPTH_COMPONENT16;
-constexpr auto depth_type = GL_UNSIGNED_SHORT;
-//constexpr auto depth_internal_format = GL_DEPTH_COMPONENT32;
-//constexpr auto depth_type = GL_INT;
+//constexpr auto depth_internal_format = GL_DEPTH_COMPONENT16;
+//constexpr auto depth_type = GL_UNSIGNED_SHORT;
+constexpr auto depth_internal_format = GL_DEPTH_COMPONENT24;
+constexpr auto depth_type = GL_UNSIGNED_INT;
 
 void GLWindow::initializeGL()
 {
@@ -151,7 +156,6 @@ void GLWindow::initializeGL()
         f->glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, m_frame_buffer_colour, 0);
         f->glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, m_frame_buffer_depth, 0);
     }
-    //    std::cout << "init complete" << std::endl;
 
     m_screen_quad_vao = std::make_unique<QOpenGLVertexArrayObject>();
     m_screen_quad_vao->create();
@@ -199,29 +203,24 @@ void GLWindow::resizeGL(int w, int h)
 
     f->glViewport(0, 0, width, height);
     emit viewport_changed({ w, h });
-//    std::cout << "resizeGL" << std::endl;
 }
 
 void GLWindow::paintGL()
 {
-//    std::cout << "paintGL start" << std::endl;
     m_frame_start = std::chrono::time_point_cast<ClockResolution>(Clock::now());
 
     QOpenGLExtraFunctions* f = QOpenGLContext::currentContext()->extraFunctions();
     f->glBindFramebuffer(GL_FRAMEBUFFER, m_frame_buffer);
     f->glClearColor(1.0, 0.0, 0.5, 1);
 
-//    f->glClearDepthf(1.00);
     f->glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
     f->glEnable(GL_DEPTH_TEST);
     f->glDepthFunc(GL_LESS);
-////    f->glDepthFunc(GL_GREATER);
 ////    glPolygonMode( GL_FRONT_AND_BACK, GL_LINE );
 
     m_shader_manager->bindTileShader();
 
-    const auto world_view_projection_matrix = m_camera.localViewProjectionMatrix({});
-    m_tile_manager->draw(m_shader_manager->tileShader(), world_view_projection_matrix);
+    m_tile_manager->draw(m_shader_manager->tileShader(), m_camera);
 
     //    {
     //        m_shader_manager->bindDebugShader();
@@ -246,21 +245,7 @@ void GLWindow::paintGL()
     m_shader_manager->release();
 
 //        glPolygonMode( GL_FRONT_AND_BACK, GL_FILL );
-
-//        f->glDepthFunc(GL_LESS);
-//        f->glDisable(GL_DEPTH_TEST);
-
-//    const qreal retinaScale = devicePixelRatio();
-//    const int width = int(retinaScale * this->width());
-//    const int height = int(retinaScale * this->height());
-//    f->glBindFramebuffer(GL_READ_FRAMEBUFFER, m_frame_buffer);
-//    f->glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
-//    f->glBlitFramebuffer(0, 0, width, height, 0, 0, width, height, GL_COLOR_BUFFER_BIT, GL_NEAREST);
-//    f->glBindFramebuffer(GL_FRAMEBUFFER, 0);
     m_frame_end = std::chrono::time_point_cast<ClockResolution>(Clock::now());
-
-//    QTimer::singleShot(500, [this]() { this->update(); });
-//    std::cout << "paintGL end" << std::endl;
 }
 
 void GLWindow::paintOverGL()

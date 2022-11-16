@@ -24,6 +24,7 @@ static const char* const tileVertexShaderSource = R"(
   layout(location = 0) in highp float height;
   out lowp vec2 uv;
   uniform highp mat4 matrix;
+  uniform highp vec3 camera_position;
   uniform highp vec4 bounds[32];
   uniform int n_edge_vertices;
   void main() {
@@ -35,7 +36,7 @@ static const char* const tileVertexShaderSource = R"(
 
     vec4 pos = vec4(float(col) * tile_width + bounds[geometry_id].x,
                    float(n_edge_vertices - row - 1) * tile_width + bounds[geometry_id].y,
-                   height * 65536.0 * 0.125,
+                   height * 65536.0 * 0.125 - camera_position.z,
                    1.0);
     uv = vec2(float(col) / float(n_edge_vertices - 1), float(row) / float(n_edge_vertices - 1));
     gl_Position = matrix * pos;
@@ -123,11 +124,14 @@ GLShaderManager::GLShaderManager()
     m_tile_uniform_location.view_projection_matrix = m_tile_program->uniformLocation("matrix");
     assert(m_tile_uniform_location.view_projection_matrix != -1);
 
+    m_tile_uniform_location.camera_position = m_tile_program->uniformLocation("camera_position");
+    assert(m_tile_uniform_location.camera_position != -1);
+
     m_tile_uniform_location.bounds_array = m_tile_program->uniformLocation("bounds");
-    //  assert(m_tile_uniform_location.bounds_array != -1);
+    assert(m_tile_uniform_location.bounds_array != -1);
 
     m_tile_uniform_location.n_edge_vertices = m_tile_program->uniformLocation("n_edge_vertices");
-    //  assert(m_tile_uniform_location.n_edge_vertices != -1);
+    assert(m_tile_uniform_location.n_edge_vertices != -1);
 
     m_tile_attribute_locations.height = m_tile_program->attributeLocation("height");
     assert(m_tile_attribute_locations.height != -1);

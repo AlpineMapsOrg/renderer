@@ -26,6 +26,10 @@
 #include "alpine_gl_renderer/GLVariableLocations.h"
 #include "nucleus/Tile.h"
 
+namespace camera {
+class Definition;
+}
+
 class QOpenGLShaderProgram;
 
 class GLTileManager : public QObject {
@@ -34,7 +38,7 @@ public:
     explicit GLTileManager(QObject* parent = nullptr);
 
     [[nodiscard]] const std::vector<GLTileSet>& tiles() const;
-    void draw(QOpenGLShaderProgram* shader_program, const glm::mat4& world_view_projection_matrix) const;
+    void draw(QOpenGLShaderProgram* shader_program, const camera::Definition& camera) const;
 
 signals:
     void tilesChanged();

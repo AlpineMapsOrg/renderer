@@ -27,6 +27,7 @@ struct TileGLUniformLocations {
     int bounds_array = -1;
     int ortho_texture_something = -1;
     int n_edge_vertices = -1;
+    int camera_position = -1;
 };
 
 struct DebugGLAttributeLocations {

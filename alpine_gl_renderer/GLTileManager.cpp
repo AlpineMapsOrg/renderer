@@ -26,6 +26,7 @@
 
 #include "alpine_gl_renderer/GLHelpers.h"
 #include "nucleus/Tile.h"
+#include "nucleus/camera/Definition.h"
 #include "nucleus/utils/terrain_mesh_index_generator.h"
 
 namespace {
@@ -35,15 +36,15 @@ int bufferLengthInBytes(const std::vector<T>& vec)
     return int(vec.size() * sizeof(T));
 }
 
-std::vector<QVector4D> boundsArray(const GLTileSet& tileset)
+std::vector<QVector4D> boundsArray(const GLTileSet& tileset, const glm::dvec3& camera_position)
 {
     std::vector<QVector4D> ret;
     ret.reserve(tileset.tiles.size());
     for (const auto& tile : tileset.tiles) {
-        ret.emplace_back(tile.second.min.x,
-            tile.second.min.y,
-            tile.second.max.x,
-            tile.second.max.y);
+        ret.emplace_back(tile.second.min.x - camera_position.x,
+            tile.second.min.y - camera_position.y,
+            tile.second.max.x - camera_position.x,
+            tile.second.max.y - camera_position.y);
     }
     return ret;
 }
@@ -71,14 +72,15 @@ const std::vector<GLTileSet>& GLTileManager::tiles() const
     return m_gpu_tiles;
 }
 
-void GLTileManager::draw(QOpenGLShaderProgram* shader_program, const glm::mat4& world_view_projection_matrix) const
+void GLTileManager::draw(QOpenGLShaderProgram* shader_program, const camera::Definition& camera) const
 {
     QOpenGLExtraFunctions* f = QOpenGLContext::currentContext()->extraFunctions();
     shader_program->setUniformValue(m_uniform_locations.n_edge_vertices, N_EDGE_VERTICES);
-    shader_program->setUniformValue(m_uniform_locations.view_projection_matrix, gl_helpers::toQtType(world_view_projection_matrix));
+    shader_program->setUniformValue(m_uniform_locations.view_projection_matrix, gl_helpers::toQtType(camera.localViewProjectionMatrix(camera.position())));
+    shader_program->setUniformValue(m_uniform_locations.camera_position, gl_helpers::toQtType(camera.position()));
     for (const auto& tileset : tiles()) {
         tileset.vao->bind();
-        const auto bounds = boundsArray(tileset);
+        const auto bounds = boundsArray(tileset, camera.position());
         shader_program->setUniformValueArray(m_uniform_locations.bounds_array, bounds.data(), int(bounds.size()));
         tileset.ortho_texture->bind();
         f->glDrawElements(GL_TRIANGLE_STRIP, tileset.gl_element_count, tileset.gl_index_type, nullptr);
