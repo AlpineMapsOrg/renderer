@@ -54,7 +54,7 @@ private slots:
 
     void nearPlaneAdjuster_adding_removing()
     {
-        camera::Controller cam_adapter(camera::Definition{ { 100, 0, 0 }, { 0, 0, 0 } });
+        camera::Controller cam_adapter(camera::Definition{ { 100, 0, 100 }, { 0, 0, 0 } });
         camera::NearPlaneAdjuster near_plane_adjuster;
 
         connect(&cam_adapter, &camera::Controller::definitionChanged, &near_plane_adjuster, &camera::NearPlaneAdjuster::updateCamera);
@@ -67,33 +67,46 @@ private slots:
 
         near_plane_adjuster.addTile(std::make_shared<Tile>(
             tile::Id { 0, {} },
-            tile::SrsAndHeightBounds { { -0.5, -0.5, -0.5 }, { 0.5, 0.5, 0.5 } },
+            tile::SrsAndHeightBounds { { -0.5, -0.5, -0.5 }, { 0.5, 0.5, 10.0 } },
             Raster<uint16_t> {},
             QImage {}));
         spy.wait(1);
         QCOMPARE(spy.count(), 1);
-        QCOMPARE(spy.front().front().toDouble(), float(100 - std::sqrt(3.0) / 2));
+        QCOMPARE(spy.front().front().toDouble(), float(90 * 0.9));
 
         spy.clear();
         near_plane_adjuster.addTile(std::make_shared<Tile>(
             tile::Id { 1, {} },
-            tile::SrsAndHeightBounds { { -100.5, -0.5, -0.5 }, { -99.5, 0.5, 0.5 } },
+            tile::SrsAndHeightBounds { { -100.5, -0.5, -0.5 }, { -99.5, 0.5, 20.0 } },
             Raster<uint16_t> {},
             QImage {}));
         spy.wait(1);
         QCOMPARE(spy.count(), 1);
-        QCOMPARE(spy.front().front().toDouble(), float(100 - std::sqrt(3.0) / 2));
+        QCOMPARE(spy.front().front().toDouble(), float(80.0 * 0.9));
 
         spy.clear();
         near_plane_adjuster.removeTile(tile::Id { 0, {} });
         spy.wait(1);
         QCOMPARE(spy.count(), 1);
-        QCOMPARE(spy.front().front().toDouble(), float(200 - std::sqrt(3.0) / 2));
+        QCOMPARE(spy.front().front().toDouble(), float(80 * 0.9));
+
+        near_plane_adjuster.addTile(std::make_shared<Tile>(
+            tile::Id { 0, {} },
+            tile::SrsAndHeightBounds { { -0.5, -0.5, -0.5 }, { 0.5, 0.5, 10.0 } },
+            Raster<uint16_t> {},
+            QImage {}));
+
+        spy.clear();
+        near_plane_adjuster.removeTile(tile::Id { 1, {} });
+        spy.wait(1);
+        QCOMPARE(spy.count(), 1);
+        QCOMPARE(spy.front().front().toDouble(), float(90 * 0.9));
+
     }
 
     void nearPlaneAdjuster_camera_update()
     {
-        camera::Controller cam_adapter(camera::Definition{ { 100, 0, 0 }, { 0, 0, 0 } });
+        camera::Controller cam_adapter(camera::Definition{ { 100, 0, 100 }, { 0, 0, 0 } });
         camera::NearPlaneAdjuster near_plane_adjuster;
 
         connect(&cam_adapter, &camera::Controller::definitionChanged, &near_plane_adjuster, &camera::NearPlaneAdjuster::updateCamera);
@@ -101,26 +114,26 @@ private slots:
 
         near_plane_adjuster.addTile(std::make_shared<Tile>(
             tile::Id { 0, {} },
-            tile::SrsAndHeightBounds { { -0.5, -0.5, -0.5 }, { 0.5, 0.5, 0.5 } },
+            tile::SrsAndHeightBounds { { -0.5, -0.5, -0.5 }, { 0.5, 0.5, 10.0 } },
             Raster<uint16_t> {},
             QImage {}));
         near_plane_adjuster.addTile(std::make_shared<Tile>(
             tile::Id { 1, {} },
-            tile::SrsAndHeightBounds { { -100.5, -0.5, -0.5 }, { -99.5, 0.5, 0.5 } },
+            tile::SrsAndHeightBounds { { -100.5, -0.5, -0.5 }, { -99.5, 0.5, 20.0 } },
             Raster<uint16_t> {},
             QImage {}));
 
         QSignalSpy spy(&near_plane_adjuster, &camera::NearPlaneAdjuster::nearPlaneChanged);
-        cam_adapter.move({-50, 0, 0});
+        cam_adapter.move({-50, 0, -50});
         spy.wait(1);
         QCOMPARE(spy.count(), 1);
-        QCOMPARE(spy.front().front().toDouble(), float(50 - std::sqrt(3.0) / 2));
+        QCOMPARE(spy.front().front().toDouble(), float(30.0 * 0.9));
 
         spy.clear();
-        cam_adapter.move({-50, 0, 0});
+        cam_adapter.move({-50, 0, 10});
         spy.wait(1);
         QCOMPARE(spy.count(), 1);
-        QCOMPARE(spy.front().front().toDouble(), float(1.0));
+        QCOMPARE(spy.front().front().toDouble(), float(40.0 * 0.9));
     }
 };
 

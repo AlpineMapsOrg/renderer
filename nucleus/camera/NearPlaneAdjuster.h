@@ -30,15 +30,14 @@ public slots:
 private:
     void updateNearPlane() const;
 
-    struct Sphere {
-        Sphere() = default;
-        Sphere(const tile::Id& id, const glm::dvec3& centre, const double& radius) : id(id), centre(centre), radius(radius) {}
+    struct Object {
+        Object() = default;
+        Object(const tile::Id& id, const double& elevation) : id(id), elevation(elevation) {}
         tile::Id id;
-        glm::dvec3 centre;
-        double radius;
+        double elevation;
     };
     glm::dvec3 m_camera_position;
-    std::vector<Sphere> m_object_spheres;
+    std::vector<Object> m_objects;
 };
 
 }
