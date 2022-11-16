@@ -98,6 +98,20 @@ glm::dvec3 camera::Definition::ray_direction(const glm::dvec2& normalised_device
 
 std::vector<geometry::Plane<double>> camera::Definition::clippingPlanes() const
 {
+    std::vector<geometry::Plane<double>> clipping_panes;
+    // front and back
+    const auto p0 = position() + -zAxis() * double(m_near_clipping);
+    clipping_panes.push_back({ .normal = -zAxis(), .distance = -dot(-zAxis(), p0) });
+    const auto p1 = position() + -zAxis() * double(m_far_clipping);
+    clipping_panes.push_back({ .normal = zAxis(), .distance = -dot(zAxis(), p1) });
+
+    const auto four = fourClippingPlanes();
+    std::copy(four.begin(), four.end(), std::back_inserter(clipping_panes));
+    return clipping_panes;
+}
+
+std::vector<geometry::Plane<double>> camera::Definition::fourClippingPlanes() const
+{
     const auto clippingPane = [this](const glm::dvec2& a, const glm::dvec2& b) {
         const auto v_a = ray_direction(a);
         const auto v_b = ray_direction(b);
@@ -106,11 +120,6 @@ std::vector<geometry::Plane<double>> camera::Definition::clippingPlanes() const
         return geometry::Plane<double> { normal, distance };
     };
     std::vector<geometry::Plane<double>> clipping_panes;
-    // front and back
-    const auto p0 = position() + -zAxis() * double(m_near_clipping);
-    clipping_panes.push_back({ .normal = -zAxis(), .distance = -dot(-zAxis(), p0) });
-    const auto p1 = position() + -zAxis() * double(m_far_clipping);
-    clipping_panes.push_back({ .normal = zAxis(), .distance = -dot(zAxis(), p1) });
 
     // top and down
     clipping_panes.push_back(clippingPane({ -1, 1 }, { 1, 1 }));
@@ -125,7 +134,7 @@ std::vector<geometry::Plane<double>> camera::Definition::clippingPlanes() const
 void camera::Definition::setPerspectiveParams(float fov_degrees, const glm::uvec2& viewport_size, float near_plane)
 {
     m_near_clipping = near_plane;
-    m_far_clipping = near_plane * 1000;
+    m_far_clipping = near_plane * 100000;
     m_viewport_size = viewport_size;
     m_fov = fov_degrees;
     m_projection_matrix = glm::perspective(

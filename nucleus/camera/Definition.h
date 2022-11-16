@@ -44,6 +44,7 @@ public:
     [[nodiscard]] glm::dvec3 zAxis() const;
     [[nodiscard]] glm::dvec3 ray_direction(const glm::dvec2& normalised_device_coordinates) const;
     [[nodiscard]] std::vector<geometry::Plane<double>> clippingPlanes() const;
+    [[nodiscard]] std::vector<geometry::Plane<double>> fourClippingPlanes() const;
     void setPerspectiveParams(float fov_degrees, const glm::uvec2& viewport_size, float near_plane);
     void setNearPlane(float near_plane);
     [[nodiscard]] float nearPlane() const;
@@ -65,7 +66,7 @@ private:
     glm::dmat4 m_projection_matrix;
     glm::dmat4 m_camera_transformation;
     float m_fov = 45;
-    float m_near_clipping = 100.0;
+    float m_near_clipping = 1.0;
     float m_far_clipping = 100'000;
     glm::uvec2 m_viewport_size = { 1, 1 };
 

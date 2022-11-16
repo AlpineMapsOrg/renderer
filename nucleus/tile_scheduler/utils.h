@@ -69,7 +69,9 @@ inline glm::dvec3 nearestVertex(const camera::Definition& camera, const std::vec
 
 inline auto cameraFrustumContainsTile(const camera::Definition& camera, const tile::SrsAndHeightBounds& aabb)
 {
-    const auto triangles = geometry::clip(geometry::triangulise(aabb), camera.clippingPlanes());
+    // this test should be based only on the four frustum planes (top, left, bottom, right), because
+    // the near and far planes are adjusted based on the loaded AABBs, and that results in  a chicken egg problem.
+    const auto triangles = geometry::clip(geometry::triangulise(aabb), camera.fourClippingPlanes());
     if (triangles.empty())
         return false;
     return true;
@@ -82,7 +84,10 @@ inline auto refineFunctor(const camera::Definition& camera, const AabbDecoratorP
             return false;
 
         const auto tile_aabb = aabb_decorator->aabb(tile);
-        const auto triangles = geometry::clip(geometry::triangulise(tile_aabb), camera.clippingPlanes());
+
+        // this test should be based only on the four frustum planes (top, left, bottom, right), because
+        // the near and far planes are adjusted based on the loaded AABBs, and that results in  a chicken egg problem.
+        const auto triangles = geometry::clip(geometry::triangulise(tile_aabb), camera.fourClippingPlanes());
         if (triangles.empty())
             return false;
         const auto nearest_point = glm::dvec4(nearestVertex(camera, triangles), 1);
@@ -101,5 +106,4 @@ inline auto refineFunctor(const camera::Definition& camera, const AabbDecoratorP
     };
     return refine;
 }
-
 }
