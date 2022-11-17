@@ -78,6 +78,7 @@ GLWindow::GLWindow()
     : m_camera({ 1822577.0, 6141664.0 - 500, 171.28 + 500 }, { 1822577.0, 6141664.0, 171.28 }) // should point right at the stephansdom
 {
     QTimer::singleShot(0, [this]() { this->update(); });
+
 }
 
 GLWindow::~GLWindow()
@@ -222,20 +223,22 @@ void GLWindow::paintGL()
 
     m_tile_manager->draw(m_shader_manager->tileShader(), m_camera);
 
-    //    {
-    //        m_shader_manager->bindDebugShader();
-    //        m_debug_painter->activate(m_shader_manager->debugShader(), world_view_projection_matrix);
-    //        const auto position = m_camera.position();
-    //        const auto direction_tl = m_camera.ray_direction({ -1, 1 });
-    //        const auto direction_tr = m_camera.ray_direction({ 1, 1 });
-    //        std::vector<glm::vec3> debug_cam_lines = { position + direction_tl * 10000.0,
-    //            position,
-    //            position + direction_tr * 10000.0 };
-    //        m_debug_painter->drawLineStrip(debug_cam_lines);
-    //    }
+//    {
+//        m_shader_manager->bindDebugShader();
+//        m_debug_painter->activate(m_shader_manager->debugShader(), world_view_projection_matrix);
+//        const auto position = m_camera.position();
+//        const auto direction_tl = m_camera.ray_direction({ -1, 1 });
+//        const auto direction_tr = m_camera.ray_direction({ 1, 1 });
+//        std::vector<glm::vec3> debug_cam_lines = { position + direction_tl * 10000.0,
+//            position,
+//            position + direction_tr * 10000.0 };
+//        m_debug_painter->drawLineStrip(debug_cam_lines);
+//    }
+    m_screen_quad_vao->bind();
+    f->glDrawElements(GL_TRIANGLE_STRIP, 3, GL_UNSIGNED_SHORT, nullptr);
+
     f->glBindFramebuffer(GL_FRAMEBUFFER, 0);
     m_shader_manager->screen_quad_program()->bind();
-    m_screen_quad_vao->bind();
     f->glDisable(GL_DEPTH_TEST);
     f->glBindTexture(GL_TEXTURE_2D, m_frame_buffer_colour);
     f->glDrawElements(GL_TRIANGLE_STRIP, 3, GL_UNSIGNED_SHORT, nullptr);
