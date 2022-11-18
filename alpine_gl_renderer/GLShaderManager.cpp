@@ -22,44 +22,6 @@
 
 #include "ShaderProgram.h"
 
-static const char* const tileVertexShaderSource = R"(
-  layout(location = 0) in highp float height;
-  uniform highp mat4 matrix;
-  uniform highp vec3 camera_position;
-  uniform highp vec4 bounds[32];
-  uniform int n_edge_vertices;
-  out lowp vec2 uv;
-  out highp vec3 camera_rel_pos;
-
-  void main() {
-    int row = gl_VertexID / n_edge_vertices;
-    int col = gl_VertexID - (row * n_edge_vertices);
-    int geometry_id = 0;
-    float tile_width = (bounds[geometry_id].z - bounds[geometry_id].x) / float(n_edge_vertices - 1);
-    float tile_height = (bounds[geometry_id].w - bounds[geometry_id].y) / float(n_edge_vertices - 1);
-
-    camera_rel_pos = vec3(float(col) * tile_width + bounds[geometry_id].x,
-                          float(n_edge_vertices - row - 1) * tile_width + bounds[geometry_id].y,
-                          height * 65536.0 * 0.125 - camera_position.z);
-    uv = vec2(float(col) / float(n_edge_vertices - 1), float(row) / float(n_edge_vertices - 1));
-    gl_Position = matrix * vec4(camera_rel_pos, 1);
-  })";
-
-static const char* const tileFragmentShaderSource = R"(
-  precision highp float;
-
-  uniform highp vec3 camera_position;
-  uniform sampler2D texture_sampler;
-  in lowp vec2 uv;
-  in highp vec3 camera_rel_pos;
-  out lowp vec4 out_Color;
-  void main() {
-     vec3 origin = vec3(camera_position);
-     vec4 ortho = texture(texture_sampler, uv);
-     float dist = length(camera_rel_pos) / 1000.0;
-     out_Color = vec4(dist, dist, dist, 1.0);
-     //gl_FragDepth = gl_FragCoord.z;
-  })";
 
 
 //#include "UnityCG.cginc"
@@ -241,26 +203,15 @@ static const char* const debugFragmentShaderSource = R"(
      out_Color = vec4(1.0, 0.0, 0.0, 1.0);
   })";
 
-QByteArray versionedShaderCode(const char* const src)
-{
-    QByteArray versionedSrc;
-
-    if (QOpenGLContext::currentContext()->isOpenGLES())
-        versionedSrc.append(QByteArrayLiteral("#version 300 es\n"));
-    else
-        versionedSrc.append(QByteArrayLiteral("#version 330\n"));
-
-    versionedSrc.append(src);
-    return versionedSrc;
-}
-
 GLShaderManager::GLShaderManager()
 {
-    m_tile_program = std::make_unique<ShaderProgram>(tileVertexShaderSource, tileFragmentShaderSource);
+    m_tile_program = std::make_unique<ShaderProgram>(
+        ShaderProgram::Files({"gl_shaders/tile.vert"}),
+        ShaderProgram::Files({"gl_shaders/tile.frag"}));
     m_debug_program = std::make_unique<ShaderProgram>(debugVertexShaderSource, debugFragmentShaderSource);
     m_screen_quad_program = std::make_unique<ShaderProgram>(
-        ShaderProgram::Files({":/gl_shaders/screen_pass.vert"}),
-        ShaderProgram::Files({":/gl_shaders/screen_copy.frag"}));
+        ShaderProgram::Files({"gl_shaders/screen_pass.vert"}),
+        ShaderProgram::Files({"gl_shaders/screen_copy.frag"}));
 }
 
 GLShaderManager::~GLShaderManager() = default;
@@ -293,4 +244,11 @@ ShaderProgram* GLShaderManager::screen_quad_program() const
 void GLShaderManager::release()
 {
     m_tile_program->release();
+}
+
+void GLShaderManager::reload_shaders()
+{
+    m_tile_program->reload();
+    m_debug_program->reload();
+    m_screen_quad_program->reload();
 }

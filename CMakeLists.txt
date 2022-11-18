@@ -133,6 +133,7 @@ qt_add_resources(alpine_gl_renderer "gl_shaders"
      PREFIX "/"
      FILES ${ATB_GL_SHADERS}
 )
+target_compile_definitions(alpine_gl_renderer PUBLIC "ALP_RESOURCES_PREFIX=\"${CMAKE_SOURCE_DIR}/\"")
 
 message(NOTICE "ATB_INSTALL_DIR = ${ATB_INSTALL_DIR}")
 if (NOT EMSCRIPTEN)

@@ -30,6 +30,18 @@ QByteArray versionedShaderCode(const QByteArray& src)
     versionedSrc.append(src);
     return versionedSrc;
 }
+
+
+void set_qrc_or_path_prefix(ShaderProgram::Files* files)
+{
+    QString prefix = ":/";
+    if (!QOpenGLContext::currentContext()->isOpenGLES())
+        prefix = ALP_RESOURCES_PREFIX;
+
+    for (auto& path : *files) {
+        path.prepend(prefix);
+    }
+}
 }
 
 ShaderProgram::ShaderProgram(const std::string& vetex_shader_source, const std::string& fragment_shader_source)
@@ -48,6 +60,8 @@ ShaderProgram::ShaderProgram(Files vertex_shader_parts, Files fragment_shader_pa
     : m_vertex_shader_parts(std::move(vertex_shader_parts))
     , m_fragment_shader_parts(std::move(fragment_shader_parts))
 {
+    set_qrc_or_path_prefix(&m_vertex_shader_parts);
+    set_qrc_or_path_prefix(&m_fragment_shader_parts);
     reload();
     assert(m_q_shader_program);
 }
@@ -121,10 +135,16 @@ void ShaderProgram::reload()
         return;
 
     auto program = std::make_unique<QOpenGLShaderProgram>();
-    program->addShaderFromSourceCode(QOpenGLShader::Vertex, versionedShaderCode(create_shader_code(m_vertex_shader_parts)));
-    program->addShaderFromSourceCode(QOpenGLShader::Fragment, versionedShaderCode(create_shader_code(m_fragment_shader_parts)));
-    if (program->link()) {
+    bool success = true;
+    success = success && program->addShaderFromSourceCode(QOpenGLShader::Vertex, versionedShaderCode(create_shader_code(m_vertex_shader_parts)));
+    success = success && program->addShaderFromSourceCode(QOpenGLShader::Fragment, versionedShaderCode(create_shader_code(m_fragment_shader_parts)));
+    success = success && program->link();
+    if (success) {
+        qDebug("build success");
         m_q_shader_program = std::move(program);
+    }
+    else {
+        qDebug("build no success");
     }
 }
 

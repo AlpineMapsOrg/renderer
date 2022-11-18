@@ -285,6 +285,11 @@ void GLWindow::keyPressEvent(QKeyEvent* e)
         m_tile_scheduler->setEnabled(!m_tile_scheduler->enabled());
         qDebug("setting tile scheduler enabled = %d", int(m_tile_scheduler->enabled()));
     }
+    if (e->key() == Qt::Key::Key_F5) {
+        m_shader_manager->reload_shaders();
+        update();
+        qDebug("all shaders reloaded");
+    }
     emit key_pressed(e);
 }
 

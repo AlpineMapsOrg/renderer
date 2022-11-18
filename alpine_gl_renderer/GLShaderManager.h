@@ -37,6 +37,8 @@ public:
     [[nodiscard]] ShaderProgram* debugShader() const;
     [[nodiscard]] ShaderProgram* screen_quad_program() const;
     void release();
+public slots:
+    void reload_shaders();
 signals:
 
 private:
