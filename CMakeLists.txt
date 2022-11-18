@@ -38,6 +38,10 @@ set(ATB_GL_ENGINE_SOURCES
     alpine_gl_renderer/ShaderProgram.h alpine_gl_renderer/ShaderProgram.cpp
     alpine_gl_renderer/main.cpp
 )
+set(ATB_GL_SHADERS
+    gl_shaders/screen_pass.vert
+    gl_shaders/screen_copy.frag
+)
 if (ATB_UNITTESTS AND NOT EMSCRIPTEN)
     set(ATB_CATCH_UNITTEST_SOURCES
         unittests/main.cpp
@@ -125,17 +129,11 @@ if (ATB_ENABLE_ASSERTS)
     target_compile_options(alpine_gl_renderer PUBLIC "-U NDEBUG")
 endif()
 
-# Resources:
-#set(ATB_RESOURCES
-    #"logo.png"
-#)
+qt_add_resources(alpine_gl_renderer "gl_shaders"
+     PREFIX "/"
+     FILES ${ATB_GL_SHADERS}
+)
 
-#qt6_add_resources(alpinerenderengine "alpinerenderengine"
-    #PREFIX
-        #"/"
-    #FILES
-        #${ATB_RESOURCES}
-#)
 message(NOTICE "ATB_INSTALL_DIR = ${ATB_INSTALL_DIR}")
 if (NOT EMSCRIPTEN)
     install(TARGETS alpine_gl_renderer

@@ -46,6 +46,8 @@ static const char* const tileVertexShaderSource = R"(
   })";
 
 static const char* const tileFragmentShaderSource = R"(
+  precision highp float;
+
   uniform highp vec3 camera_position;
   uniform sampler2D texture_sampler;
   in lowp vec2 uv;
@@ -54,7 +56,7 @@ static const char* const tileFragmentShaderSource = R"(
   void main() {
      vec3 origin = vec3(camera_position);
      vec4 ortho = texture(texture_sampler, uv);
-     float dist = length(camera_rel_pos) / 1000;
+     float dist = length(camera_rel_pos) / 1000.0;
      out_Color = vec4(dist, dist, dist, 1.0);
      //gl_FragDepth = gl_FragCoord.z;
   })";
@@ -226,25 +228,6 @@ static const char* const tileFragmentShaderSource = R"(
 //    return originalCol;
 //}
 
-static const char* const screenQuadVertexShaderSource = R"(
-// https://stackoverflow.com/a/59739538
-out highp vec2 texcoords; // texcoords are in the normalized [0,1] range for the viewport-filling quad part of the triangle
-void main() {
-    vec2 vertices[3]=vec2[3](vec2(-1.0, -1.0),
-                             vec2(3.0, -1.0),
-                             vec2(-1.0, 3.0));
-    gl_Position = vec4(vertices[gl_VertexID], 0.0, 1.0);
-    texcoords = 0.5 * gl_Position.xy + vec2(0.5);
-})";
-
-static const char* const screenQuadFragmentShaderSource = R"(
-  in highp vec2 texcoords;
-  uniform sampler2D texture_sampler;
-  out lowp vec4 out_Color;
-  void main() {
-     out_Color = vec4(texcoords.xy, 0.0, 1.0) * 0.1 + texture(texture_sampler, texcoords);
-  })";
-
 static const char* const debugVertexShaderSource = R"(
   layout(location = 0) in vec4 a_position;
   uniform highp mat4 matrix;
@@ -275,7 +258,9 @@ GLShaderManager::GLShaderManager()
 {
     m_tile_program = std::make_unique<ShaderProgram>(tileVertexShaderSource, tileFragmentShaderSource);
     m_debug_program = std::make_unique<ShaderProgram>(debugVertexShaderSource, debugFragmentShaderSource);
-    m_screen_quad_program = std::make_unique<ShaderProgram>(screenQuadVertexShaderSource, screenQuadFragmentShaderSource);
+    m_screen_quad_program = std::make_unique<ShaderProgram>(
+        ShaderProgram::Files({":/gl_shaders/screen_pass.vert"}),
+        ShaderProgram::Files({":/gl_shaders/screen_copy.frag"}));
 }
 
 GLShaderManager::~GLShaderManager() = default;

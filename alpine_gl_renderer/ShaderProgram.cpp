@@ -1,12 +1,24 @@
 #include "ShaderProgram.h"
 
+#include <QFile>
 #include <QOpenGLContext>
 
 #include "GLHelpers.h"
 
 namespace {
 
-QByteArray versionedShaderCode(const std::string& src)
+QByteArray create_shader_code(const ShaderProgram::Files& files)
+{
+    QByteArray code;
+    for (const QString& url : files) {
+        QFile f(url);
+        f.open(QIODeviceBase::ReadOnly);
+        code.append(f.readAll());
+    }
+    return code;
+}
+
+QByteArray versionedShaderCode(const QByteArray& src)
 {
     QByteArray versionedSrc;
 
@@ -23,13 +35,21 @@ QByteArray versionedShaderCode(const std::string& src)
 ShaderProgram::ShaderProgram(const std::string& vetex_shader_source, const std::string& fragment_shader_source)
 {
     auto program = std::make_unique<QOpenGLShaderProgram>();
-    program->addShaderFromSourceCode(QOpenGLShader::Vertex, versionedShaderCode(vetex_shader_source));
-    program->addShaderFromSourceCode(QOpenGLShader::Fragment, versionedShaderCode(fragment_shader_source));
+    program->addShaderFromSourceCode(QOpenGLShader::Vertex, versionedShaderCode(vetex_shader_source.c_str()));
+    program->addShaderFromSourceCode(QOpenGLShader::Fragment, versionedShaderCode(fragment_shader_source.c_str()));
     {
         const auto link_success = program->link();
         assert(link_success);
     }
     m_q_shader_program = std::move(program);
+}
+
+ShaderProgram::ShaderProgram(Files vertex_shader_parts, Files fragment_shader_parts)
+    : m_vertex_shader_parts(std::move(vertex_shader_parts))
+    , m_fragment_shader_parts(std::move(fragment_shader_parts))
+{
+    reload();
+    assert(m_q_shader_program);
 }
 
 unsigned ShaderProgram::attribute_location(const std::string& name)
@@ -93,7 +113,19 @@ void ShaderProgram::set_uniform_array(const std::string& name, const std::vector
     const auto uniform_location = m_cached_uniforms.at(name);
 
     m_q_shader_program->setUniformValueArray(uniform_location, reinterpret_cast<const float*>(array.data()), int(array.size()), 4);
+}
 
+void ShaderProgram::reload()
+{
+    if (m_vertex_shader_parts.empty() || m_fragment_shader_parts.empty())
+        return;
+
+    auto program = std::make_unique<QOpenGLShaderProgram>();
+    program->addShaderFromSourceCode(QOpenGLShader::Vertex, versionedShaderCode(create_shader_code(m_vertex_shader_parts)));
+    program->addShaderFromSourceCode(QOpenGLShader::Fragment, versionedShaderCode(create_shader_code(m_fragment_shader_parts)));
+    if (program->link()) {
+        m_q_shader_program = std::move(program);
+    }
 }
 
 template<typename T>
