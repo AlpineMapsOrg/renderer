@@ -25,28 +25,19 @@
 #include <QOpenGLVertexArrayObject>
 
 #include "alpine_gl_renderer/GLHelpers.h"
+#include "ShaderProgram.h"
 
 GLDebugPainter::GLDebugPainter(QObject* parent)
     : QObject { parent }
 {
 }
 
-void GLDebugPainter::setAttributeLocations(const DebugGLAttributeLocations& d)
+void GLDebugPainter::activate(ShaderProgram* shader_program, const glm::mat4& world_view_projection_matrix)
 {
-    m_attribute_locations = d;
+    shader_program->set_uniform("matrix", world_view_projection_matrix);
 }
 
-void GLDebugPainter::setUniformLocations(const DebugGLUniformLocations& d)
-{
-    m_uniform_locations = d;
-}
-
-void GLDebugPainter::activate(QOpenGLShaderProgram* shader_program, const glm::mat4& world_view_projection_matrix)
-{
-    shader_program->setUniformValue(m_uniform_locations.view_projection_matrix, gl_helpers::toQtType(world_view_projection_matrix));
-}
-
-void GLDebugPainter::drawLineStrip(const std::vector<glm::vec3>& points) const
+void GLDebugPainter::drawLineStrip(ShaderProgram* shader_program, const std::vector<glm::vec3>& points) const
 {
     QOpenGLVertexArrayObject vao;
     vao.create();
@@ -59,9 +50,10 @@ void GLDebugPainter::drawLineStrip(const std::vector<glm::vec3>& points) const
     buffer.allocate(points.data(), gl_helpers::bufferLengthInBytes(points));
 
     QOpenGLExtraFunctions* f = QOpenGLContext::currentContext()->extraFunctions();
-    f->glEnableVertexAttribArray(GLuint(m_attribute_locations.position));
-    f->glVertexAttribPointer(GLuint(m_attribute_locations.position), /*size*/ 3, /*type*/ GL_FLOAT, /*normalised*/ GL_FALSE, /*stride*/ 0, nullptr);
-    f->glDrawArrays(GL_LINE_STRIP, 0, points.size());
+    const auto position_attrib_location = shader_program->attribute_location("a_position");
+    f->glEnableVertexAttribArray(position_attrib_location);
+    f->glVertexAttribPointer(position_attrib_location, /*size*/ 3, /*type*/ GL_FLOAT, /*normalised*/ GL_FALSE, /*stride*/ 0, nullptr);
+    f->glDrawArrays(GL_LINE_STRIP, 0, int(points.size()));
 
     vao.release();
 }

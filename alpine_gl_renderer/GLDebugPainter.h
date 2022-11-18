@@ -23,23 +23,17 @@
 #include <QObject>
 #include <glm/glm.hpp>
 
-#include "alpine_gl_renderer/GLVariableLocations.h"
-
-class QOpenGLShaderProgram;
+class ShaderProgram;
 
 class GLDebugPainter : public QObject {
     Q_OBJECT
 public:
     explicit GLDebugPainter(QObject* parent = nullptr);
 
-    void setAttributeLocations(const DebugGLAttributeLocations& d);
-    void setUniformLocations(const DebugGLUniformLocations& d);
-    void activate(QOpenGLShaderProgram* shader_program, const glm::mat4& world_view_projection_matrix);
-    void drawLineStrip(const std::vector<glm::vec3>& points) const;
+    void activate(ShaderProgram* shader_program, const glm::mat4& world_view_projection_matrix);
+    void drawLineStrip(ShaderProgram* shader_program, const std::vector<glm::vec3>& points) const;
 
 signals:
 
 private:
-    DebugGLAttributeLocations m_attribute_locations;
-    DebugGLUniformLocations m_uniform_locations;
 };

@@ -29,10 +29,25 @@ inline QMatrix4x4 toQtType(const glm::mat4& mat)
 {
     return QMatrix4x4(glm::value_ptr(mat)).transposed();
 }
+inline QVector4D toQtType(const glm::vec4& v)
+{
+    return QVector4D(v.x, v.y, v.z, v.w);
+}
 inline QVector3D toQtType(const glm::vec3& v)
 {
     return QVector3D(v.x, v.y, v.z);
 }
+inline QVector2D toQtType(const glm::vec2& v)
+{
+    return QVector2D(v.x, v.y);
+}
+template <typename T>
+T toQtType(const T& v)
+{
+    return v;
+}
+
+
 template <typename T>
 inline int bufferLengthInBytes(const std::vector<T>& vec)
 {

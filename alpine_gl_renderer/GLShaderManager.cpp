@@ -20,14 +20,17 @@
 
 #include <QOpenGLContext>
 
+#include "ShaderProgram.h"
+
 static const char* const tileVertexShaderSource = R"(
   layout(location = 0) in highp float height;
-  out lowp vec2 uv;
-  out highp vec3 camera_rel_pos;
   uniform highp mat4 matrix;
   uniform highp vec3 camera_position;
   uniform highp vec4 bounds[32];
   uniform int n_edge_vertices;
+  out lowp vec2 uv;
+  out highp vec3 camera_rel_pos;
+
   void main() {
     int row = gl_VertexID / n_edge_vertices;
     int col = gl_VertexID - (row * n_edge_vertices);
@@ -44,9 +47,9 @@ static const char* const tileVertexShaderSource = R"(
 
 static const char* const tileFragmentShaderSource = R"(
   uniform highp vec3 camera_position;
+  uniform sampler2D texture_sampler;
   in lowp vec2 uv;
   in highp vec3 camera_rel_pos;
-  uniform sampler2D texture_sampler;
   out lowp vec4 out_Color;
   void main() {
      vec3 origin = vec3(camera_position);
@@ -270,49 +273,9 @@ QByteArray versionedShaderCode(const char* const src)
 
 GLShaderManager::GLShaderManager()
 {
-    m_tile_program = std::make_unique<QOpenGLShaderProgram>();
-    m_tile_program->addShaderFromSourceCode(QOpenGLShader::Vertex, versionedShaderCode(tileVertexShaderSource));
-    m_tile_program->addShaderFromSourceCode(QOpenGLShader::Fragment, versionedShaderCode(tileFragmentShaderSource));
-    {
-        const auto link_success = m_tile_program->link();
-        assert(link_success);
-    }
-    m_debug_program = std::make_unique<QOpenGLShaderProgram>();
-    m_debug_program->addShaderFromSourceCode(QOpenGLShader::Vertex, versionedShaderCode(debugVertexShaderSource));
-    m_debug_program->addShaderFromSourceCode(QOpenGLShader::Fragment, versionedShaderCode(debugFragmentShaderSource));
-    {
-        const auto link_success = m_debug_program->link();
-        assert(link_success);
-    }
-    m_screen_quad_program = std::make_unique<QOpenGLShaderProgram>();
-    m_screen_quad_program->addShaderFromSourceCode(QOpenGLShader::Vertex, versionedShaderCode(screenQuadVertexShaderSource));
-    m_screen_quad_program->addShaderFromSourceCode(QOpenGLShader::Fragment, versionedShaderCode(screenQuadFragmentShaderSource));
-    {
-        const auto link_success = m_screen_quad_program->link();
-        assert(link_success);
-    }
-
-    // tile shader
-    m_tile_uniform_location.view_projection_matrix = m_tile_program->uniformLocation("matrix");
-    assert(m_tile_uniform_location.view_projection_matrix != -1);
-
-    m_tile_uniform_location.camera_position = m_tile_program->uniformLocation("camera_position");
-    assert(m_tile_uniform_location.camera_position != -1);
-
-    m_tile_uniform_location.bounds_array = m_tile_program->uniformLocation("bounds");
-    assert(m_tile_uniform_location.bounds_array != -1);
-
-    m_tile_uniform_location.n_edge_vertices = m_tile_program->uniformLocation("n_edge_vertices");
-    assert(m_tile_uniform_location.n_edge_vertices != -1);
-
-    m_tile_attribute_locations.height = m_tile_program->attributeLocation("height");
-    assert(m_tile_attribute_locations.height != -1);
-
-    // debug shader
-    m_debug_uniform_location.view_projection_matrix = m_debug_program->uniformLocation("matrix");
-    assert(m_tile_uniform_location.view_projection_matrix != -1);
-
-    m_debug_attribute_locations.position = 0;
+    m_tile_program = std::make_unique<ShaderProgram>(tileVertexShaderSource, tileFragmentShaderSource);
+    m_debug_program = std::make_unique<ShaderProgram>(debugVertexShaderSource, debugFragmentShaderSource);
+    m_screen_quad_program = std::make_unique<ShaderProgram>(screenQuadVertexShaderSource, screenQuadFragmentShaderSource);
 }
 
 GLShaderManager::~GLShaderManager() = default;
@@ -327,43 +290,22 @@ void GLShaderManager::bindDebugShader()
     m_debug_program->bind();
 }
 
-QOpenGLShaderProgram* GLShaderManager::tileShader() const
+ShaderProgram* GLShaderManager::tileShader() const
 {
     return m_tile_program.get();
 }
 
-QOpenGLShaderProgram* GLShaderManager::debugShader() const
+ShaderProgram* GLShaderManager::debugShader() const
 {
     return m_debug_program.get();
 }
 
-QOpenGLShaderProgram* GLShaderManager::screen_quad_program() const
+ShaderProgram* GLShaderManager::screen_quad_program() const
 {
     return m_screen_quad_program.get();
 }
 
-
 void GLShaderManager::release()
 {
     m_tile_program->release();
-}
-
-TileGLAttributeLocations GLShaderManager::tileAttributeLocations() const
-{
-    return m_tile_attribute_locations;
-}
-
-TileGLUniformLocations GLShaderManager::tileUniformLocations() const
-{
-    return m_tile_uniform_location;
-}
-
-DebugGLAttributeLocations GLShaderManager::debugAttributeLocations() const
-{
-    return m_debug_attribute_locations;
-}
-
-DebugGLUniformLocations GLShaderManager::debugUniformLocations() const
-{
-    return m_debug_uniform_location;
 }

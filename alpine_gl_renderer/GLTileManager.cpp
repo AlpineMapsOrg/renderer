@@ -1,6 +1,6 @@
 /*****************************************************************************
- * Alpine Terrain Builder
- * Copyright (C) 2022 alpinemaps.org
+ * Alpine Renderer
+ * Copyright (C) 2022 Adam Celarek
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -24,7 +24,7 @@
 #include <QOpenGLShaderProgram>
 #include <QOpenGLVertexArrayObject>
 
-#include "alpine_gl_renderer/GLHelpers.h"
+#include "alpine_gl_renderer/ShaderProgram.h"
 #include "nucleus/Tile.h"
 #include "nucleus/camera/Definition.h"
 #include "nucleus/utils/terrain_mesh_index_generator.h"
@@ -36,9 +36,9 @@ int bufferLengthInBytes(const std::vector<T>& vec)
     return int(vec.size() * sizeof(T));
 }
 
-std::vector<QVector4D> boundsArray(const GLTileSet& tileset, const glm::dvec3& camera_position)
+std::vector<glm::vec4> boundsArray(const GLTileSet& tileset, const glm::dvec3& camera_position)
 {
-    std::vector<QVector4D> ret;
+    std::vector<glm::vec4> ret;
     ret.reserve(tileset.tiles.size());
     for (const auto& tile : tileset.tiles) {
         ret.emplace_back(tile.second.min.x - camera_position.x,
@@ -72,16 +72,15 @@ const std::vector<GLTileSet>& GLTileManager::tiles() const
     return m_gpu_tiles;
 }
 
-void GLTileManager::draw(QOpenGLShaderProgram* shader_program, const camera::Definition& camera) const
+void GLTileManager::draw(ShaderProgram* shader_program, const camera::Definition& camera) const
 {
     QOpenGLExtraFunctions* f = QOpenGLContext::currentContext()->extraFunctions();
-    shader_program->setUniformValue(m_uniform_locations.n_edge_vertices, N_EDGE_VERTICES);
-    shader_program->setUniformValue(m_uniform_locations.view_projection_matrix, gl_helpers::toQtType(camera.localViewProjectionMatrix(camera.position())));
-    shader_program->setUniformValue(m_uniform_locations.camera_position, gl_helpers::toQtType(camera.position()));
+    shader_program->set_uniform("n_edge_vertices", N_EDGE_VERTICES);
+    shader_program->set_uniform("matrix", camera.localViewProjectionMatrix(camera.position()));
+    shader_program->set_uniform("camera_position", glm::vec3(camera.position()));
     for (const auto& tileset : tiles()) {
         tileset.vao->bind();
-        const auto bounds = boundsArray(tileset, camera.position());
-        shader_program->setUniformValueArray(m_uniform_locations.bounds_array, bounds.data(), int(bounds.size()));
+        shader_program->set_uniform_array("bounds", boundsArray(tileset, camera.position()));
         tileset.ortho_texture->bind();
         f->glDrawElements(GL_TRIANGLE_STRIP, tileset.gl_element_count, tileset.gl_index_type, nullptr);
     }
@@ -138,12 +137,8 @@ void GLTileManager::removeTile(const tile::Id& tile_id)
     emit tilesChanged();
 }
 
-void GLTileManager::setAttributeLocations(const TileGLAttributeLocations& d)
+void GLTileManager::initiliseAttributeLocations(ShaderProgram* program)
 {
-    m_attribute_locations = d;
+    m_attribute_locations.height = program->attribute_location("height");
 }
 
-void GLTileManager::setUniformLocations(const TileGLUniformLocations& d)
-{
-    m_uniform_locations = d;
-}

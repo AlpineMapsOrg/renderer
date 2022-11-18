@@ -23,7 +23,6 @@
 #include <QObject>
 
 #include "alpine_gl_renderer/GLTileSet.h"
-#include "alpine_gl_renderer/GLVariableLocations.h"
 #include "nucleus/Tile.h"
 
 namespace camera {
@@ -31,6 +30,7 @@ class Definition;
 }
 
 class QOpenGLShaderProgram;
+class ShaderProgram;
 
 class GLTileManager : public QObject {
     Q_OBJECT
@@ -38,7 +38,7 @@ public:
     explicit GLTileManager(QObject* parent = nullptr);
 
     [[nodiscard]] const std::vector<GLTileSet>& tiles() const;
-    void draw(QOpenGLShaderProgram* shader_program, const camera::Definition& camera) const;
+    void draw(ShaderProgram* shader_program, const camera::Definition& camera) const;
 
 signals:
     void tilesChanged();
@@ -46,10 +46,13 @@ signals:
 public slots:
     void addTile(const std::shared_ptr<Tile>& tile);
     void removeTile(const tile::Id& tile_id);
-    void setAttributeLocations(const TileGLAttributeLocations& d);
-    void setUniformLocations(const TileGLUniformLocations& d);
+    void initiliseAttributeLocations(ShaderProgram* program);
 
 private:
+    struct TileGLAttributeLocations {
+        int height = -1;
+    };
+
     static constexpr auto N_EDGE_VERTICES = 65;
     static constexpr auto MAX_TILES_PER_TILESET = 1;
     float m_max_anisotropy = 0;
@@ -61,6 +64,5 @@ private:
     // the size_t is the number of indices
     std::vector<std::pair<std::unique_ptr<QOpenGLBuffer>, size_t>> m_index_buffers;
     TileGLAttributeLocations m_attribute_locations;
-    TileGLUniformLocations m_uniform_locations;
     unsigned m_tiles_per_set = 1;
 };

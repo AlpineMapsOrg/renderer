@@ -72,6 +72,7 @@
 #include "alpine_gl_renderer/GLDebugPainter.h"
 #include "alpine_gl_renderer/GLShaderManager.h"
 #include "alpine_gl_renderer/GLTileManager.h"
+#include "alpine_gl_renderer/ShaderProgram.h"
 #include "nucleus/TileScheduler.h"
 
 GLWindow::GLWindow()
@@ -113,11 +114,7 @@ void GLWindow::initializeGL()
     m_debug_painter = std::make_unique<GLDebugPainter>();
     m_shader_manager = std::make_unique<GLShaderManager>();
 
-    m_tile_manager->setAttributeLocations(m_shader_manager->tileAttributeLocations());
-    m_tile_manager->setUniformLocations(m_shader_manager->tileUniformLocations());
-
-    m_debug_painter->setAttributeLocations(m_shader_manager->debugAttributeLocations());
-    m_debug_painter->setUniformLocations(m_shader_manager->debugUniformLocations());
+    m_tile_manager->initiliseAttributeLocations(m_shader_manager->tileShader());
 
     {
         f->glGenTextures(1, &m_frame_buffer_colour);
