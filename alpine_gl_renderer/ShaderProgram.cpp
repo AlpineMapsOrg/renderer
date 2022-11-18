@@ -140,11 +140,7 @@ void ShaderProgram::reload()
     success = success && program->addShaderFromSourceCode(QOpenGLShader::Fragment, versionedShaderCode(create_shader_code(m_fragment_shader_parts)));
     success = success && program->link();
     if (success) {
-        qDebug("build success");
         m_q_shader_program = std::move(program);
-    }
-    else {
-        qDebug("build no success");
     }
 }
 
