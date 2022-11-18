@@ -37,7 +37,11 @@ void camera::NearPlaneAdjuster::removeTile(const tile::Id& tile_id)
 void camera::NearPlaneAdjuster::updateNearPlane() const
 {
     if (!m_objects.empty()) {
-        double max_elevation = std::ranges::max_element(m_objects.begin(), m_objects.end(), std::less<double>(), &Object::elevation)->elevation;
+        double max_elevation = 0;
+        for (const auto& obj : m_objects) {
+            if (obj.elevation > max_elevation)
+                max_elevation = obj.elevation;
+        }
         double near_plane_distance = std::max(10.0, (m_camera_position.z - max_elevation) * 0.9);
         emit nearPlaneChanged(near_plane_distance);
     }
