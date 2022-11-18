@@ -41,6 +41,8 @@ set(ATB_GL_ENGINE_SOURCES
 set(ATB_GL_SHADERS
     gl_shaders/screen_pass.vert
     gl_shaders/screen_copy.frag
+    gl_shaders/tile.vert
+    gl_shaders/tile.frag
 )
 if (ATB_UNITTESTS AND NOT EMSCRIPTEN)
     set(ATB_CATCH_UNITTEST_SOURCES

@@ -23,7 +23,7 @@ public:
     ShaderProgram(const std::string& vetex_shader_source, const std::string& fragment_shader_source);
     ShaderProgram(Files vertex_shader_parts, Files fragment_shader_parts);
 
-    unsigned attribute_location(const std::string& name);
+    int attribute_location(const std::string& name);
     void bind();
     void release();
 

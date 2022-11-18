@@ -66,7 +66,7 @@ ShaderProgram::ShaderProgram(Files vertex_shader_parts, Files fragment_shader_pa
     assert(m_q_shader_program);
 }
 
-unsigned ShaderProgram::attribute_location(const std::string& name)
+int ShaderProgram::attribute_location(const std::string& name)
 {
     if (!m_cached_attribs.contains(name))
         m_cached_attribs[name] = m_q_shader_program->attributeLocation(name.c_str());
