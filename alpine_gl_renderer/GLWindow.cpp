@@ -232,7 +232,7 @@ void GLWindow::paintGL()
 //        m_debug_painter->drawLineStrip(debug_cam_lines);
 //    }
     m_screen_quad_vao->bind();
-    f->glDrawElements(GL_TRIANGLE_STRIP, 3, GL_UNSIGNED_SHORT, nullptr);
+//    f->glDrawElements(GL_TRIANGLE_STRIP, 3, GL_UNSIGNED_SHORT, nullptr);
 
     f->glBindFramebuffer(GL_FRAMEBUFFER, 0);
     m_shader_manager->screen_quad_program()->bind();
