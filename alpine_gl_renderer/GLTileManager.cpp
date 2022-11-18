@@ -89,6 +89,9 @@ void GLTileManager::draw(ShaderProgram* shader_program, const camera::Definition
 
 void GLTileManager::addTile(const std::shared_ptr<Tile>& tile)
 {
+    if (!QOpenGLContext::currentContext())  // can happen during shutdown.
+        return;
+
     assert(m_attribute_locations.height != -1);
     auto* f = QOpenGLContext::currentContext()->extraFunctions();
     // need to call GLWindow::makeCurrent, when calling through signals?
