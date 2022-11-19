@@ -141,6 +141,8 @@ void ShaderProgram::reload()
     success = success && program->link();
     if (success) {
         m_q_shader_program = std::move(program);
+        m_cached_attribs.clear();
+        m_cached_uniforms.clear();
     }
 }
 

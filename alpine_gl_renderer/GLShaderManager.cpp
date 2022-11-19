@@ -248,7 +248,7 @@ void GLShaderManager::release()
 
 void GLShaderManager::reload_shaders()
 {
-//    m_tile_program->reload();
-//    m_debug_program->reload();
-//    m_screen_quad_program->reload();
+    m_tile_program->reload();
+    m_debug_program->reload();
+    m_screen_quad_program->reload();
 }
