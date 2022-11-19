@@ -1,5 +1,5 @@
 # alpine-renderer
-`git clone --recurse-submodules git@github.com:AlpineMapsOrg/renderer.git
+`git clone --recurse-submodules git@github.com:AlpineMapsOrg/renderer.git`
 
 or a normal clone and
 
