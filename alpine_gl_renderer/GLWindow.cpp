@@ -245,6 +245,7 @@ void GLWindow::paintGL()
     m_shader_manager->release();
 
 //        glPolygonMode( GL_FRONT_AND_BACK, GL_FILL );
+    f->glFinish(); // synchronization
     m_frame_end = std::chrono::time_point_cast<ClockResolution>(Clock::now());
 }
 
