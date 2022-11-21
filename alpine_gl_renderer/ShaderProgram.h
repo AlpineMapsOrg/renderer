@@ -14,7 +14,7 @@ public:
     using Files = std::vector<QString>;
 private:
     std::unordered_map<std::string, int> m_cached_uniforms;
-    std::unordered_map<std::string, unsigned> m_cached_attribs;
+    std::unordered_map<std::string, int> m_cached_attribs;
     std::unique_ptr<QOpenGLShaderProgram> m_q_shader_program;
     Files m_vertex_shader_parts;
     Files m_fragment_shader_parts;

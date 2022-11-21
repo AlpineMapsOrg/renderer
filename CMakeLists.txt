@@ -29,6 +29,7 @@ set(ATB_RENDER_BACKEND_SOURCES
     nucleus/utils/tile_conversion.h nucleus/utils/tile_conversion.cpp
 )
 set(ATB_GL_ENGINE_SOURCES
+    alpine_gl_renderer/Framebuffer.h alpine_gl_renderer/Framebuffer.cpp
     alpine_gl_renderer/GLShaderManager.h alpine_gl_renderer/GLShaderManager.cpp
     alpine_gl_renderer/GLTileManager.h alpine_gl_renderer/GLTileManager.cpp
     alpine_gl_renderer/GLTileSet.h
@@ -45,6 +46,12 @@ set(ATB_GL_SHADERS
     gl_shaders/tile.frag
 )
 if (ATB_UNITTESTS AND NOT EMSCRIPTEN)
+    set(ALP_CATCH_UNITTEST_GL_SOURCES
+        alpine_gl_renderer/Framebuffer.h alpine_gl_renderer/Framebuffer.cpp
+        alpine_gl_renderer/ShaderProgram.h alpine_gl_renderer/ShaderProgram.cpp
+        unittests_gl/main.cpp
+        unittests_gl/framebuffer.cpp
+    )
     set(ATB_CATCH_UNITTEST_SOURCES
         unittests/main.cpp
         unittests/catch2_helpers.h
@@ -159,6 +166,13 @@ if (ATB_UNITTESTS AND NOT EMSCRIPTEN)
     target_compile_definitions(unittests PUBLIC "ATB_TEST_DATA_DIR=\"${CMAKE_SOURCE_DIR}/unittests/data/\"")
     if (ATB_ENABLE_ASSERTS)
         target_compile_options(unittests PUBLIC "-U NDEBUG")
+    endif()
+
+    qt_add_executable(unittests_gl ${ALP_CATCH_UNITTEST_GL_SOURCES})
+    target_link_libraries(unittests_gl PUBLIC nucleus Catch2::Catch2 Qt::Core Qt::Gui Qt::OpenGL)
+    target_compile_definitions(unittests_gl PUBLIC "ALP_RESOURCES_PREFIX=\"${CMAKE_SOURCE_DIR}/\"")
+    if (ATB_ENABLE_ASSERTS)
+        target_compile_options(unittests_gl PUBLIC "-U NDEBUG")
     endif()
 
     find_package(Qt6 REQUIRED COMPONENTS Test)

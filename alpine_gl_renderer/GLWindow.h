@@ -60,6 +60,7 @@
 #include <memory>
 
 #include "nucleus/camera/Definition.h"
+#include "GLHelpers.h"
 
 QT_BEGIN_NAMESPACE
 
@@ -73,6 +74,7 @@ class GLDebugPainter;
 class GLTileManager;
 class GLShaderManager;
 class TileScheduler;
+class Framebuffer;
 
 class GLWindow : public QOpenGLWindow {
     Q_OBJECT
@@ -111,14 +113,11 @@ private:
     std::unique_ptr<GLTileManager> m_tile_manager; // needs opengl context
     std::unique_ptr<GLDebugPainter> m_debug_painter; // needs opengl context
     std::unique_ptr<GLShaderManager> m_shader_manager;
-    std::unique_ptr<QOpenGLVertexArrayObject> m_screen_quad_vao;
-    std::unique_ptr<QOpenGLBuffer> m_screen_quad_index_buffer;
+    std::unique_ptr<Framebuffer> m_framebuffer;
+    gl_helpers::ScreenQuadGeometry m_screen_quad_geometry;
     TileScheduler* m_tile_scheduler;
 
     camera::Definition m_camera;
-    unsigned int m_frame_buffer;
-    unsigned int m_frame_buffer_colour;
-    unsigned int m_frame_buffer_depth;
 
     int m_frame = 0;
     bool m_initialised = false;
