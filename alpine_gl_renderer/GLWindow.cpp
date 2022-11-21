@@ -88,17 +88,6 @@ GLWindow::~GLWindow()
     makeCurrent();
 }
 
-// these are the combinations of valid depth buffer formats/types.
-// for now int24 is enough. if we get z-fighting, look for inverse-z (which requires a float buffer)
-// https://developer.nvidia.com/content/depth-precision-visualized
-// https://thxforthefish.com/posts/reverse_z/
-//constexpr auto depth_internal_format = GL_DEPTH_COMPONENT32F;
-//constexpr auto depth_type = GL_FLOAT;
-//constexpr auto depth_internal_format = GL_DEPTH_COMPONENT16;
-//constexpr auto depth_type = GL_UNSIGNED_SHORT;
-constexpr auto depth_internal_format = GL_DEPTH_COMPONENT24;
-constexpr auto depth_type = GL_UNSIGNED_INT;
-
 void GLWindow::initializeGL()
 {
     QOpenGLDebugLogger* logger = new QOpenGLDebugLogger(this);
