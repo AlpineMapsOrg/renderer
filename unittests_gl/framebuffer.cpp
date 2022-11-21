@@ -18,9 +18,10 @@
 
 #include <catch2/catch.hpp>
 #include <QGuiApplication>
+#include <QRgb>
 #include <QOpenGLDebugLogger>
-#include <QOpenGLWindow>
 #include <QOpenGLExtraFunctions>
+#include <QOffscreenSurface>
 
 #include "alpine_gl_renderer/GLHelpers.h"
 #include "alpine_gl_renderer/ShaderProgram.h"
@@ -39,7 +40,7 @@ ShaderProgram create_debug_shader()
     static const char* const fragment_source = R"(
     out lowp vec4 out_Color;
     void main() {
-        out_Color = vec4(1.0, 0.0, 0.0, 1.0);
+        out_Color = vec4(0.2, 0.4, 0.6, 0.8);
     })";
     return ShaderProgram(vertex_source, fragment_source);
 }
@@ -50,48 +51,46 @@ TEST_CASE("gl framebuffer")
     char argv_c = '\0';
     std::array<char*, 1> argv = { &argv_c };
     QGuiApplication app(argc, argv.data());
-    class GLWindow : public QOpenGLWindow {
-        QGuiApplication* app = nullptr;
+    QOffscreenSurface surface;
+    surface.create();
+    QOpenGLContext c;
+    REQUIRE(c.create());
+    c.makeCurrent(&surface);
+    QOpenGLDebugLogger logger;
+    logger.initialize();
+    logger.disableMessages(QList<GLuint>({ 131185 }));
+    QObject::connect(&logger, &QOpenGLDebugLogger::messageLogged, [](const auto& message) {
+        qDebug() << message;
+    });
+    logger.startLogging(QOpenGLDebugLogger::SynchronousLogging);
 
-    public:
-        GLWindow(QGuiApplication* app)
-            : app(app)
-        {
-        }
-        void initializeGL() override
-        {
-            QOpenGLDebugLogger logger;
-            logger.initialize();
-            connect(&logger, &QOpenGLDebugLogger::messageLogged, [](const auto& message) {
-                qDebug() << message;
-            });
-            logger.startLogging(QOpenGLDebugLogger::SynchronousLogging);
-            const auto c = QOpenGLContext::currentContext();
-            REQUIRE(c);
-            QOpenGLExtraFunctions* f = c->extraFunctions();
-            REQUIRE(f);
-            SECTION("create")
-            {
-                Framebuffer b(Framebuffer::DepthFormat::None, { Framebuffer::ColourFormat::RGBA8 });
-                b.resize({ 100, 100 });
-                b.bind();
-                ShaderProgram shader = create_debug_shader();
-                shader.bind();
-                f->glDisable(GL_DEPTH_TEST);
-                f->glClearColor(0.0, 0.0, 0.0, 1);
-                f->glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
-                const auto screen_quad_geometry = gl_helpers::create_screen_quad_geometry();
-                screen_quad_geometry.draw();
-                Framebuffer::unbind();
+    QOpenGLExtraFunctions* f = c.extraFunctions();
+    REQUIRE(f);
+    SECTION("create")
+    {
+        Framebuffer b(Framebuffer::DepthFormat::None, { Framebuffer::ColourFormat::RGBA8 });
+        b.resize({ 10, 20 });
+        b.bind();
+        ShaderProgram shader = create_debug_shader();
+        shader.bind();
+        f->glDisable(GL_DEPTH_TEST);
+        f->glClearColor(0.0, 0.0, 0.0, 1);
+        f->glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
+        const auto screen_quad_geometry = gl_helpers::create_screen_quad_geometry();
+        screen_quad_geometry.draw();
+        f->glFinish();
 
-                const auto tex = b.colour_attachment(0);
-                REQUIRE(!tex.isNull());
-
+        const QImage tex = b.read_colour_attachment(0);
+        Framebuffer::unbind();
+        f->glFinish();
+        REQUIRE(!tex.isNull());
+        REQUIRE(tex.width() == 10);
+        REQUIRE(tex.height() == 20);
+        for (int i = 0; i < tex.width(); ++i) {
+            for (int j = 0; j < tex.height(); ++j) {
+                CHECK(tex.pixel(i, j) == qRgba(51, 102, 153, 204));
             }
-
-            app->quit();
         }
-    } test(&app);
-    test.show();
-    app.exec();
+
+    }
 }
