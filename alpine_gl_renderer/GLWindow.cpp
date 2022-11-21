@@ -65,14 +65,15 @@
 #include <QRandomGenerator>
 #include <QSequentialAnimationGroup>
 #include <QTimer>
-
 #include <glm/glm.hpp>
 
+#include "Framebuffer.h"
+#include "GLDebugPainter.h"
+#include "GLHelpers.h"
+#include "GLShaderManager.h"
+#include "GLTileManager.h"
 #include "GLWindow.h"
-#include "alpine_gl_renderer/GLDebugPainter.h"
-#include "alpine_gl_renderer/GLShaderManager.h"
-#include "alpine_gl_renderer/GLTileManager.h"
-#include "alpine_gl_renderer/ShaderProgram.h"
+#include "ShaderProgram.h"
 #include "nucleus/TileScheduler.h"
 
 GLWindow::GLWindow()
@@ -115,58 +116,8 @@ void GLWindow::initializeGL()
     m_shader_manager = std::make_unique<GLShaderManager>();
 
     m_tile_manager->initiliseAttributeLocations(m_shader_manager->tileShader());
-
-    {
-        f->glGenTextures(1, &m_frame_buffer_colour);
-        f->glBindTexture(GL_TEXTURE_2D, m_frame_buffer_colour);
-        {
-            const auto level = 0;
-            const auto internalFormat = GL_RGBA;
-            const auto border = 0;
-            const auto format = GL_RGBA;
-            const auto type = GL_UNSIGNED_BYTE;
-            const auto data = nullptr;
-            f->glTexImage2D(GL_TEXTURE_2D, level, internalFormat, 4, 4, border, format, type, data);
-            f->glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-            f->glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-            f->glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-            f->glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-
-        }
-    }
-    {
-        f->glGenTextures(1, &m_frame_buffer_depth);
-        f->glBindTexture(GL_TEXTURE_2D, m_frame_buffer_depth);
-        {
-            const auto level = 0;
-            const auto internalFormat = depth_internal_format;
-            const auto border = 0;
-            const auto format = GL_DEPTH_COMPONENT;
-            const auto type = depth_type;
-            const auto data = nullptr;
-            f->glTexImage2D(GL_TEXTURE_2D, level, internalFormat, 4, 4, border, format, type, data);
-        }
-    }
-    f->glBindTexture(GL_TEXTURE_2D, 0);
-    {
-        f->glGenFramebuffers(1, &m_frame_buffer);
-        f->glBindFramebuffer(GL_FRAMEBUFFER, m_frame_buffer);
-        f->glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, m_frame_buffer_colour, 0);
-        f->glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, m_frame_buffer_depth, 0);
-    }
-
-    m_screen_quad_vao = std::make_unique<QOpenGLVertexArrayObject>();
-    m_screen_quad_vao->create();
-    m_screen_quad_vao->bind();
-    { // vao state
-        const std::array<unsigned short, 3> indices = {0, 1, 2};
-        m_screen_quad_index_buffer = std::make_unique<QOpenGLBuffer>(QOpenGLBuffer::IndexBuffer);
-        m_screen_quad_index_buffer->create();
-        m_screen_quad_index_buffer->bind();
-        m_screen_quad_index_buffer->setUsagePattern(QOpenGLBuffer::DynamicDraw);
-        m_screen_quad_index_buffer->allocate(indices.data(), 3 * sizeof(unsigned short));
-    }
-    m_screen_quad_vao->release();
+    m_screen_quad_geometry = gl_helpers::create_screen_quad_geometry();
+    m_framebuffer = std::make_unique<Framebuffer>(Framebuffer::DepthFormat::Int24, std::vector({ Framebuffer::ColourFormat::RGBA8 }));
 }
 
 void GLWindow::resizeGL(int w, int h)
@@ -178,26 +129,7 @@ void GLWindow::resizeGL(int w, int h)
     const int height = int(retinaScale * h);
 
     QOpenGLFunctions* f = QOpenGLContext::currentContext()->functions();
-    {
-        f->glBindTexture(GL_TEXTURE_2D, m_frame_buffer_colour);
-        const auto level = 0;
-        const auto internalFormat = GL_RGBA;
-        const auto border = 0;
-        const auto format = GL_RGBA;
-        const auto type = GL_UNSIGNED_BYTE;
-        const auto data = nullptr;
-        f->glTexImage2D(GL_TEXTURE_2D, level, internalFormat, width, height, border, format, type, data);
-    }
-    {
-        f->glBindTexture(GL_TEXTURE_2D, m_frame_buffer_depth);
-        const auto level = 0;
-        const auto internalFormat = depth_internal_format;
-        const auto border = 0;
-        const auto format = GL_DEPTH_COMPONENT;
-        const auto type = depth_type;
-        const auto data = nullptr;
-        f->glTexImage2D(GL_TEXTURE_2D, level, internalFormat, width, height, border, format, type, data);
-    }
+    m_framebuffer->resize({ width, height });
 
     f->glViewport(0, 0, width, height);
     emit viewport_changed({ w, h });
@@ -208,7 +140,7 @@ void GLWindow::paintGL()
     m_frame_start = std::chrono::time_point_cast<ClockResolution>(Clock::now());
 
     QOpenGLExtraFunctions* f = QOpenGLContext::currentContext()->extraFunctions();
-    f->glBindFramebuffer(GL_FRAMEBUFFER, m_frame_buffer);
+    m_framebuffer->bind();
     f->glClearColor(1.0, 0.0, 0.5, 1);
 
     f->glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
@@ -231,17 +163,12 @@ void GLWindow::paintGL()
 //            position + direction_tr * 10000.0 };
 //        m_debug_painter->drawLineStrip(debug_cam_lines);
 //    }
-    m_screen_quad_vao->bind();
-//    f->glDrawElements(GL_TRIANGLE_STRIP, 3, GL_UNSIGNED_SHORT, nullptr);
+    m_framebuffer->unbind();
 
-    f->glBindFramebuffer(GL_FRAMEBUFFER, 0);
     m_shader_manager->screen_quad_program()->bind();
-    f->glDisable(GL_DEPTH_TEST);
-    f->glBindTexture(GL_TEXTURE_2D, m_frame_buffer_colour);
-    f->glDrawElements(GL_TRIANGLE_STRIP, 3, GL_UNSIGNED_SHORT, nullptr);
+    f->glBindTexture(GL_TEXTURE_2D, m_framebuffer->m_frame_buffer_colour);
+    m_screen_quad_geometry.draw();
 
-
-    m_screen_quad_vao->release();
     m_shader_manager->release();
 
 //        glPolygonMode( GL_FRONT_AND_BACK, GL_FILL );

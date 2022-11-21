@@ -19,8 +19,12 @@
 #pragma once
 
 #include <vector>
+#include <memory>
 
 #include <QMatrix4x4>
+#include <QOpenGLBuffer>
+#include <QOpenGLExtraFunctions>
+#include <QOpenGLVertexArrayObject>
 #include <glm/glm.hpp>
 #include <glm/gtc/type_ptr.hpp>
 
@@ -53,4 +57,36 @@ inline int bufferLengthInBytes(const std::vector<T>& vec)
 {
     return int(vec.size() * sizeof(T));
 }
+
+
+struct ScreenQuadGeometry {
+    std::unique_ptr<QOpenGLVertexArrayObject> vao;
+    std::unique_ptr<QOpenGLBuffer> index_buffer;
+    inline void draw() const {
+        QOpenGLExtraFunctions* f = QOpenGLContext::currentContext()->extraFunctions();
+        vao->bind();
+        f->glDisable(GL_DEPTH_TEST);
+        f->glDrawElements(GL_TRIANGLE_STRIP, 3, GL_UNSIGNED_SHORT, nullptr);
+        vao->release();
+    }
+};
+
+inline ScreenQuadGeometry create_screen_quad_geometry()
+{
+    ScreenQuadGeometry geometry;
+    geometry.vao = std::make_unique<QOpenGLVertexArrayObject>();
+    geometry.vao->create();
+    geometry.vao->bind();
+    { // vao state
+        const std::array<unsigned short, 3> indices = { 0, 1, 2 };
+        geometry.index_buffer = std::make_unique<QOpenGLBuffer>(QOpenGLBuffer::IndexBuffer);
+        geometry.index_buffer->create();
+        geometry.index_buffer->bind();
+        geometry.index_buffer->setUsagePattern(QOpenGLBuffer::DynamicDraw);
+        geometry.index_buffer->allocate(indices.data(), 3 * sizeof(unsigned short));
+    }
+    geometry.vao->release();
+    return geometry;
+}
+
 }

@@ -32,7 +32,7 @@ highp float optical_depth2(vec3 ray_origin, vec3 ray_dir, float ray_length) {
 }
 
 highp float rm_optical_depth(vec3 ray_origin, vec3 ray_dir, float ray_length) {
-    const int n_optical_depth_steps = 1000;
+    const int n_optical_depth_steps = 10;
     float density_sample_point = ray_origin.z;
     float step_size = ray_length / (n_optical_depth_steps - 1);
     float optical_depth = 0.0;

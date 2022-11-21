@@ -76,7 +76,7 @@ private slots:
         {
             QSignalSpy spy(&service, &TileLoadService::loadReady);
             service.load(tirol_tile_id);
-            spy.wait(250);
+            spy.wait(500);
 
             QCOMPARE(spy.count(), 1); // make sure the signal was emitted exactly one time
             QList<QVariant> arguments = spy.takeFirst(); // take the first signal

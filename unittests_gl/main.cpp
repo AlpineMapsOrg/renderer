@@ -1,6 +1,6 @@
 /*****************************************************************************
  * Alpine Renderer
- * Copyright (C) 2022 Adam Celarek
+ * Copyright (C) 2022 Adam Celarek <family name at cg tuwien ac at>
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -16,24 +16,25 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *****************************************************************************/
 
-#pragma once
+#include <chrono>
+#include <limits>
 
-#include <vector>
+#define CATCH_CONFIG_MAIN
+#include <catch2/catch.hpp>
 
-#include <QObject>
-#include <glm/glm.hpp>
+#ifdef NDEBUG
+constexpr bool asserts_are_enabled = false;
+#else
+constexpr bool asserts_are_enabled = true;
+#endif
 
-class ShaderProgram;
+TEST_CASE("check that asserts are enabled")
+{
+    CHECK(asserts_are_enabled);
+}
 
-class GLDebugPainter : public QObject {
-    Q_OBJECT
-public:
-    explicit GLDebugPainter(QObject* parent = nullptr);
-
-    void activate(ShaderProgram* shader_program, const glm::mat4& world_view_projection_matrix);
-    void drawLineStrip(ShaderProgram* shader_program, const std::vector<glm::vec3>& points) const;
-
-signals:
-
-private:
-};
+TEST_CASE("check that NaNs are enabled (-ffast-math removes support, -fno-finite-math-only puts it back in)")
+{
+    CHECK(std::isnan(std::numeric_limits<float>::quiet_NaN() * float(std::chrono::system_clock::now().time_since_epoch().count())));
+    CHECK(std::isnan(double(std::numeric_limits<float>::quiet_NaN() * float(std::chrono::system_clock::now().time_since_epoch().count()))));
+}
