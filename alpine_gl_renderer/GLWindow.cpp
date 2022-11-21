@@ -166,7 +166,7 @@ void GLWindow::paintGL()
     m_framebuffer->unbind();
 
     m_shader_manager->screen_quad_program()->bind();
-    f->glBindTexture(GL_TEXTURE_2D, m_framebuffer->m_frame_buffer_colour);
+    m_framebuffer->bind_colour_texture(0);
     m_screen_quad_geometry.draw();
 
     m_shader_manager->release();
