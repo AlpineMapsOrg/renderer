@@ -139,7 +139,7 @@ void GLWindow::paintGL()
     f->glDepthFunc(GL_LESS);
 ////    glPolygonMode( GL_FRONT_AND_BACK, GL_LINE );
 
-    m_shader_manager->bindTileShader();
+    m_shader_manager->tileShader()->bind();
 
     m_tile_manager->draw(m_shader_manager->tileShader(), m_camera);
 
@@ -154,6 +154,9 @@ void GLWindow::paintGL()
 //            position + direction_tr * 10000.0 };
 //        m_debug_painter->drawLineStrip(debug_cam_lines);
 //    }
+    m_shader_manager->atmosphere_bg_program()->bind();
+    m_atmosphere->draw(m_shader_manager->atmosphere_bg_program(), m_camera);
+
     m_framebuffer->unbind();
 
     m_shader_manager->screen_quad_program()->bind();

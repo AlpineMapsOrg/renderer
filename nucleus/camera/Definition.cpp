@@ -52,6 +52,11 @@ glm::dmat4 camera::Definition::cameraMatrix() const
     return glm::inverse(m_camera_transformation);
 }
 
+glm::dmat4 camera::Definition::camera_space_to_world_matrix() const
+{
+    return m_camera_transformation;
+}
+
 glm::dmat4 camera::Definition::projectionMatrix() const
 {
     return m_projection_matrix;

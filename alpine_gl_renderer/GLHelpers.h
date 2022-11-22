@@ -69,6 +69,13 @@ struct ScreenQuadGeometry {
         f->glDrawElements(GL_TRIANGLE_STRIP, 3, GL_UNSIGNED_SHORT, nullptr);
         vao->release();
     }
+    inline void draw_with_depth_test() const {
+        QOpenGLExtraFunctions* f = QOpenGLContext::currentContext()->extraFunctions();
+        vao->bind();
+        f->glEnable(GL_DEPTH_TEST);
+        f->glDrawElements(GL_TRIANGLE_STRIP, 3, GL_UNSIGNED_SHORT, nullptr);
+        vao->release();
+    }
 };
 
 inline ScreenQuadGeometry create_screen_quad_geometry()
