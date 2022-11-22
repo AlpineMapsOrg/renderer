@@ -18,6 +18,8 @@
 
 #include "Framebuffer.h"
 
+#include <iostream>
+
 #include <QOpenGLExtraFunctions>
 #include <QOpenGLFunctions>
 #include <QOpenGLTexture>
@@ -30,7 +32,8 @@ int internal_format(Framebuffer::ColourFormat f)
     switch (f) {
     case Framebuffer::ColourFormat::RGBA8:
         return GL_RGBA8;
-        break;
+    case Framebuffer::ColourFormat::Float32:
+        return GL_R32F;
     }
     assert(false);
     return -1;
@@ -41,7 +44,8 @@ int format(Framebuffer::ColourFormat f)
     switch (f) {
     case Framebuffer::ColourFormat::RGBA8:
         return GL_RGBA;
-        break;
+    case Framebuffer::ColourFormat::Float32:
+        return GL_RED;
     }
     assert(false);
     return -1;
@@ -69,7 +73,8 @@ int type(Framebuffer::ColourFormat f)
     switch (f) {
     case Framebuffer::ColourFormat::RGBA8:
         return GL_UNSIGNED_BYTE;
-        break;
+    case Framebuffer::ColourFormat::Float32:
+        return GL_FLOAT;
     }
     assert(false);
     return -1;
@@ -92,12 +97,15 @@ int type(Framebuffer::DepthFormat f)
     return -1;
 }
 
-QImage::Format qimage_format(Framebuffer::ColourFormat f) {
+// https://doc.qt.io/qt-6/qimage.html#Format-enum
+QImage::Format qimage_format(Framebuffer::ColourFormat f)
+{
 
     switch (f) {
     case Framebuffer::ColourFormat::RGBA8:
         return QImage::Format_RGBA8888;
-        break;
+    case Framebuffer::ColourFormat::Float32:
+        throw std::logic_error("unsupported, QImage does not support float32");
     }
     assert(false);
     return QImage::Format_Invalid;
@@ -124,7 +132,7 @@ Framebuffer::Framebuffer(DepthFormat depth_format, std::vector<ColourFormat> col
             const auto format = ::format(m_colour_formats.front());
             const auto type = ::type(m_colour_formats.front());
             const auto data = nullptr;
-            f->glTexImage2D(GL_TEXTURE_2D, level, internalFormat, m_size.x, m_size.y, border, format, type, data);
+            f->glTexImage2D(GL_TEXTURE_2D, level, internalFormat, int(m_size.x), int(m_size.y), border, format, type, data);
             f->glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
             f->glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
             f->glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
@@ -141,7 +149,7 @@ Framebuffer::Framebuffer(DepthFormat depth_format, std::vector<ColourFormat> col
             const auto format = GL_DEPTH_COMPONENT;
             const auto type = ::type(m_depth_format);
             const auto data = nullptr;
-            f->glTexImage2D(GL_TEXTURE_2D, level, internalFormat, m_size.x, m_size.y, border, format, type, data);
+            f->glTexImage2D(GL_TEXTURE_2D, level, internalFormat, int(m_size.x), int(m_size.y), border, format, type, data);
         }
     }
     f->glBindTexture(GL_TEXTURE_2D, 0);
@@ -167,7 +175,7 @@ void Framebuffer::resize(const glm::uvec2& new_size)
         const auto format = GL_RGBA;
         const auto type = ::type(m_colour_formats.front());
         const auto data = nullptr;
-        f->glTexImage2D(GL_TEXTURE_2D, level, internalFormat, new_size.x, new_size.y, border, format, type, data);
+        f->glTexImage2D(GL_TEXTURE_2D, level, internalFormat, int(new_size.x), int(new_size.y), border, format, type, data);
     }
     if (m_depth_format != DepthFormat::None) {
         f->glBindTexture(GL_TEXTURE_2D, m_frame_buffer_depth);
@@ -177,8 +185,9 @@ void Framebuffer::resize(const glm::uvec2& new_size)
         const auto format = GL_DEPTH_COMPONENT;
         const auto type = ::type(m_depth_format);
         const auto data = nullptr;
-        f->glTexImage2D(GL_TEXTURE_2D, level, internalFormat, new_size.x, new_size.y, border, format, type, data);
+        f->glTexImage2D(GL_TEXTURE_2D, level, internalFormat, int(new_size.x), int(new_size.y), border, format, type, data);
     }
+    f->glViewport(0, 0, int(new_size.x), int(new_size.y));
 }
 
 void Framebuffer::bind()
@@ -201,14 +210,34 @@ QImage Framebuffer::read_colour_attachment(unsigned index)
     if (index != 0)
         throw std::logic_error("not implemented");
 
-    QImage image({ static_cast<int>(m_size.x), static_cast<int>(m_size.y) }, qimage_format(m_colour_formats.front()));
-    assert(!image.isNull());
     bind();
     QOpenGLExtraFunctions* f = QOpenGLContext::currentContext()->extraFunctions();
-
     f->glReadBuffer(GL_COLOR_ATTACHMENT0);
-    f->glReadPixels(0, 0, m_size.x, m_size.y, format(m_colour_formats.front()), type(m_colour_formats.front()), image.bits());
 
+    if (m_colour_formats.front() == ColourFormat::Float32) {
+        std::vector<float> buffer;
+        buffer.resize(size_t(m_size.x) * size_t(m_size.y));
+        f->glReadPixels(0, 0, int(m_size.x), int(m_size.y), format(m_colour_formats.front()), type(m_colour_formats.front()), buffer.data());
+
+        QImage image(static_cast<int>(m_size.x), static_cast<int>(m_size.y), QImage::Format_Grayscale8);
+        const auto min_max = std::minmax_element(buffer.cbegin(), buffer.cend());
+        const auto min = *min_max.first;
+        const auto scale = *min_max.second - *min_max.first;
+        for (unsigned j = 0; j < m_size.y; ++j) {
+            for (unsigned i = 0; i < m_size.x; ++i) {
+                float fv = buffer[j * m_size.x + i];
+                const auto v = uchar(std::min(255, std::max(0, int(255 * (fv - min) / scale))));
+                // i don't understand why, but setting bits directly didn't work.
+                image.setPixel(int(i), int(j), qRgb(v, v, v));
+            }
+        }
+        image.mirror();
+        return image;
+    }
+
+    QImage image({ static_cast<int>(m_size.x), static_cast<int>(m_size.y) }, qimage_format(m_colour_formats.front()));
+    assert(!image.isNull());
+    f->glReadPixels(0, 0, m_size.x, m_size.y, format(m_colour_formats.front()), type(m_colour_formats.front()), image.bits());
     image.mirror();
 
     return image;

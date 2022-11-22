@@ -67,6 +67,7 @@
 #include <QTimer>
 #include <glm/glm.hpp>
 
+#include "Atmosphere.h"
 #include "Framebuffer.h"
 #include "GLDebugPainter.h"
 #include "GLHelpers.h"
@@ -103,6 +104,7 @@ void GLWindow::initializeGL()
     m_tile_manager = std::make_unique<GLTileManager>();
     m_debug_painter = std::make_unique<GLDebugPainter>();
     m_shader_manager = std::make_unique<GLShaderManager>();
+    m_atmosphere = std::make_unique<Atmosphere>();
 
     m_tile_manager->initiliseAttributeLocations(m_shader_manager->tileShader());
     m_screen_quad_geometry = gl_helpers::create_screen_quad_geometry();
