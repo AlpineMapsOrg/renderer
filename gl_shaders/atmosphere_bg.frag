@@ -1,8 +1,11 @@
 uniform highp vec3 camera_position;
 uniform sampler2D texture_sampler;
-in lowp vec2 uv;
+uniform highp mat4 inversed_projection_matrix;
+uniform highp mat4 inversed_view_matrix;
+in lowp vec2 texcoords;
 in highp vec3 pos_wrt_cam;
 out lowp vec4 out_Color;
+in vec4 gl_FragCoord;
 
 const int n_atmospheric_marching_steps = 10;
 const highp vec3 wavelengths = vec3(700, 530, 440);
@@ -113,15 +116,22 @@ highp vec3 rm_calculate_atmospheric_light(vec3 ray_origin, vec3 ray_direction, f
    return in_scattered_light + transmittance * original_colour;
 }
 
+highp vec3 unproject(vec2 normalised_device_coordinates) {
+   highp vec4 unprojected = inversed_projection_matrix * vec4(normalised_device_coordinates, 1.0, 1.0);
+   highp vec4 normalised_unprojected = unprojected / unprojected.w;
+   
+   return normalize(vec3(inversed_view_matrix * normalised_unprojected) - camera_position);
+}
+
 void main() {
    highp vec3 origin = vec3(camera_position);
-   highp vec4 ortho = texture(texture_sampler, uv);
-   highp float dist = length(pos_wrt_cam);
-   highp vec3 ray_direction = pos_wrt_cam / dist;
-   
-   vec3 shading_point = camera_position + pos_wrt_cam;
-//   highp vec3 inscattering = calculate_atmospheric_light(camera_position.z / 1000.0, ray_direction, dist / 1000.0, (camera_position.z + pos_wrt_cam.z) / 1000.0) / 100;
-   highp vec3 light_through_atmosphere = rm_calculate_atmospheric_light(camera_position / 1000.0, ray_direction, dist / 1000.0, vec3(ortho));
+//    highp vec4 ortho = texture(texture_sampler, uv);
+//    highp float dist = length(10000);
+   highp vec3 ray_direction = unproject(texcoords * 2.0 - 1.0);
+//    
+//    vec3 shading_point = camera_position + pos_wrt_cam;
+// //   highp vec3 inscattering = calculate_atmospheric_light(camera_position.z / 1000.0, ray_direction, dist / 1000.0, (camera_position.z + pos_wrt_cam.z) / 1000.0) / 100;
+   highp vec3 light_through_atmosphere = rm_calculate_atmospheric_light(camera_position / 1000.0, ray_direction, 1000.0, vec3(0.0, 0.0, 0.0));
 
 //   highp vec3 inscattering = exp(- 0.1 * optical_depth(camera_position.z/1000.0, ray_direction, (shading_point.z)/1000.0, dist / 1000.) * scattering_coefficients()) / 2;
 
@@ -138,5 +148,6 @@ void main() {
 //   out_Color = ortho * (1.0 - inscattering) * 0.0 + vec4(inscattering, inscattering, inscattering, 1.0);
 //   out_Color = ortho * (1.0 - inscattering.x) * 0.0 + vec4(inscattering, 1.0);
    out_Color = vec4(light_through_atmosphere, 1.0);
+//    out_Color = vec4(, 1.0);
    //gl_FragDepth = gl_FragCoord.z;
 }

@@ -44,19 +44,18 @@ GLShaderManager::GLShaderManager()
     m_screen_quad_program = std::make_unique<ShaderProgram>(
         ShaderProgram::Files({"gl_shaders/screen_pass.vert"}),
         ShaderProgram::Files({"gl_shaders/screen_copy.frag"}));
+    m_atmosphere_bg_program = std::make_unique<ShaderProgram>(
+        ShaderProgram::Files({"gl_shaders/screen_pass.vert"}),
+        ShaderProgram::Files({"gl_shaders/atmosphere_bg.frag"}));
+
+    m_program_list.push_back(m_tile_program.get());
+    m_program_list.push_back(m_debug_program.get());
+    m_program_list.push_back(m_screen_quad_program.get());
+    m_program_list.push_back(m_atmosphere_bg_program.get());
 }
 
 GLShaderManager::~GLShaderManager() = default;
 
-void GLShaderManager::bindTileShader()
-{
-    m_tile_program->bind();
-}
-
-void GLShaderManager::bindDebugShader()
-{
-    m_debug_program->bind();
-}
 
 ShaderProgram* GLShaderManager::tileShader() const
 {
@@ -73,6 +72,11 @@ ShaderProgram* GLShaderManager::screen_quad_program() const
     return m_screen_quad_program.get();
 }
 
+ShaderProgram* GLShaderManager::atmosphere_bg_program() const
+{
+    return m_atmosphere_bg_program.get();
+}
+
 void GLShaderManager::release()
 {
     m_tile_program->release();
@@ -80,7 +84,7 @@ void GLShaderManager::release()
 
 void GLShaderManager::reload_shaders()
 {
-    m_tile_program->reload();
-    m_debug_program->reload();
-    m_screen_quad_program->reload();
+    for (auto* program : m_program_list) {
+        program->reload();
+    }
 }
