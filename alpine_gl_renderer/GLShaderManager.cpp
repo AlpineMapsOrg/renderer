@@ -39,14 +39,14 @@ GLShaderManager::GLShaderManager()
 {
     m_tile_program = std::make_unique<ShaderProgram>(
         ShaderProgram::Files({"gl_shaders/tile.vert"}),
-        ShaderProgram::Files({"gl_shaders/tile.frag"}));
+        ShaderProgram::Files({"gl_shaders/atmosphere_implementation.frag", "gl_shaders/tile.frag"}));
     m_debug_program = std::make_unique<ShaderProgram>(debugVertexShaderSource, debugFragmentShaderSource);
     m_screen_quad_program = std::make_unique<ShaderProgram>(
         ShaderProgram::Files({"gl_shaders/screen_pass.vert"}),
         ShaderProgram::Files({"gl_shaders/screen_copy.frag"}));
     m_atmosphere_bg_program = std::make_unique<ShaderProgram>(
         ShaderProgram::Files({"gl_shaders/screen_pass.vert"}),
-        ShaderProgram::Files({"gl_shaders/atmosphere_bg.frag"}));
+        ShaderProgram::Files({"gl_shaders/atmosphere_implementation.frag", "gl_shaders/atmosphere_bg.frag"}));
 
     m_program_list.push_back(m_tile_program.get());
     m_program_list.push_back(m_debug_program.get());
