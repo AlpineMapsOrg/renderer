@@ -22,25 +22,39 @@
 #include <QOpenGLDebugLogger>
 #include <QOpenGLExtraFunctions>
 #include <QOffscreenSurface>
+#include <QScreen>
 
 #include "alpine_gl_renderer/GLHelpers.h"
 #include "alpine_gl_renderer/ShaderProgram.h"
 #include "alpine_gl_renderer/Framebuffer.h"
 
+static const char* const vertex_source = R"(
+out highp vec2 texcoords;
+void main() {
+    vec2 vertices[3]=vec2[3](vec2(-1.0, -1.0),
+                             vec2(3.0, -1.0),
+                             vec2(-1.0, 3.0));
+    gl_Position = vec4(vertices[gl_VertexID], 0.0, 1.0);
+    texcoords = 0.5 * gl_Position.xy + vec2(0.5);
+})";
+
 ShaderProgram create_debug_shader()
 {
-    static const char* const vertex_source = R"(
-    void main() {
-        vec2 vertices[3]=vec2[3](vec2(-1.0, -1.0),
-                                 vec2(3.0, -1.0),
-                                 vec2(-1.0, 3.0));
-        gl_Position = vec4(vertices[gl_VertexID], 0.0, 1.0);
-    })";
-
     static const char* const fragment_source = R"(
     out lowp vec4 out_Color;
     void main() {
         out_Color = vec4(0.2, 0.4, 0.6, 0.8);
+    })";
+    return ShaderProgram(vertex_source, fragment_source);
+}
+
+ShaderProgram create_debug_shader_float()
+{
+    static const char* const fragment_source = R"(
+    in highp vec2 texcoords;
+    out lowp float out_Color;
+    void main() {
+        out_Color = texcoords.x * 50 - 0.499999;
     })";
     return ShaderProgram(vertex_source, fragment_source);
 }
@@ -53,6 +67,8 @@ TEST_CASE("gl framebuffer")
     QGuiApplication app(argc, argv.data());
     QOffscreenSurface surface;
     surface.create();
+    const auto size = surface.size();
+    const auto screensize = surface.screen()->size();
     QOpenGLContext c;
     REQUIRE(c.create());
     c.makeCurrent(&surface);
@@ -66,31 +82,52 @@ TEST_CASE("gl framebuffer")
 
     QOpenGLExtraFunctions* f = c.extraFunctions();
     REQUIRE(f);
-    SECTION("create")
+    SECTION("rgba 32 bit")
     {
         Framebuffer b(Framebuffer::DepthFormat::None, { Framebuffer::ColourFormat::RGBA8 });
-        b.resize({ 10, 20 });
+        b.resize({ 501, 211 });
         b.bind();
         ShaderProgram shader = create_debug_shader();
         shader.bind();
-        f->glDisable(GL_DEPTH_TEST);
-        f->glClearColor(0.0, 0.0, 0.0, 1);
-        f->glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
-        const auto screen_quad_geometry = gl_helpers::create_screen_quad_geometry();
-        screen_quad_geometry.draw();
-        f->glFinish();
+        gl_helpers::create_screen_quad_geometry().draw();
 
         const QImage tex = b.read_colour_attachment(0);
+        //        tex.save("/home/madam/Documents/work/tuw/alpinemaps/test.png");
         Framebuffer::unbind();
-        f->glFinish();
         REQUIRE(!tex.isNull());
-        REQUIRE(tex.width() == 10);
-        REQUIRE(tex.height() == 20);
+        CHECK(tex.width() == 501);
+        CHECK(tex.height() == 211);
+        bool good = true;
         for (int i = 0; i < tex.width(); ++i) {
             for (int j = 0; j < tex.height(); ++j) {
-                CHECK(tex.pixel(i, j) == qRgba(51, 102, 153, 204));
+                good = good && (tex.pixel(i, j) == qRgba(51, 102, 153, 204));
             }
         }
+        CHECK(good);
+    }
 
+    SECTION("float 32 bit")
+    {
+        Framebuffer b(Framebuffer::DepthFormat::None, { Framebuffer::ColourFormat::Float32 });
+        b.resize({ 50, 2 });
+        b.bind();
+        ShaderProgram shader = create_debug_shader_float();
+        shader.bind();
+        gl_helpers::create_screen_quad_geometry().draw();
+
+        f->glFinish();
+        const QImage tex = b.read_colour_attachment(0);
+//        tex.save("/home/madam/Documents/work/tuw/alpinemaps/test.png");
+        Framebuffer::unbind();
+        REQUIRE(!tex.isNull());
+        CHECK(tex.width() == 50);
+        CHECK(tex.height() == 2);
+        for (int i = 0; i < tex.width(); ++i) {
+            for (int j = 0; j < tex.height(); ++j) {
+                const auto v = unsigned(qGray(tex.pixel(i, j)));
+                const auto t = unsigned(255 * (float(i) / (tex.width()-1)));
+                CHECK(v == t);
+            }
+        }
     }
 }

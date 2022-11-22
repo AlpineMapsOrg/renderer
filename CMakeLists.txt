@@ -29,6 +29,7 @@ set(ATB_RENDER_BACKEND_SOURCES
     nucleus/utils/tile_conversion.h nucleus/utils/tile_conversion.cpp
 )
 set(ATB_GL_ENGINE_SOURCES
+    alpine_gl_renderer/Atmosphere.h alpine_gl_renderer/Atmosphere.cpp
     alpine_gl_renderer/Framebuffer.h alpine_gl_renderer/Framebuffer.cpp
     alpine_gl_renderer/GLShaderManager.h alpine_gl_renderer/GLShaderManager.cpp
     alpine_gl_renderer/GLTileManager.h alpine_gl_renderer/GLTileManager.cpp

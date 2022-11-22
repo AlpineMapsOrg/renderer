@@ -17,7 +17,7 @@ highp float density_at_height(highp float height_msl) {
 highp float optical_depth(highp float origin_height, highp vec3 direction, highp float end_height, highp float distance) {
     // integral of density along a direction.
     highp float w = 0.13;
-    highp float dot = dot(direction, vec3(0.0, 0.0, 1.0));
+    highp float dot = direction.z;//dot(direction, vec3(0.0, 0.0, 1.0));
     if (abs(dot) < 0.001)
         return distance;
     if (distance < 0.01)

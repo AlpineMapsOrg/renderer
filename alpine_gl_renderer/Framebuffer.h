@@ -41,17 +41,18 @@ public:
         Float32
     };
     enum class ColourFormat {
-        RGBA8
+        RGBA8,
+        Float32
     };
 
 private:
     DepthFormat m_depth_format;
     std::vector<ColourFormat> m_colour_formats;
-    unsigned m_frame_buffer;
+    unsigned m_frame_buffer = -1;
     glm::uvec2 m_size;
 public:
-    unsigned m_frame_buffer_colour;
-    unsigned m_frame_buffer_depth;
+    unsigned m_frame_buffer_colour = -1;
+    unsigned m_frame_buffer_depth = -1;
 
 public:
     Framebuffer(DepthFormat depth_format, std::vector<ColourFormat> colour_formats);
