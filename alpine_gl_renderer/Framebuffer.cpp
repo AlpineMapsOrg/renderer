@@ -161,6 +161,13 @@ Framebuffer::Framebuffer(DepthFormat depth_format, std::vector<ColourFormat> col
         if (m_depth_format != DepthFormat::None)
             f->glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, m_frame_buffer_depth, 0);
     }
+    assert(f->glCheckFramebufferStatus(GL_FRAMEBUFFER) == GL_FRAMEBUFFER_COMPLETE);
+}
+
+Framebuffer::~Framebuffer()
+{
+    QOpenGLFunctions* f = QOpenGLContext::currentContext()->functions();
+    f->glDeleteFramebuffers(1, &m_frame_buffer);
 }
 
 void Framebuffer::resize(const glm::uvec2& new_size)
@@ -187,13 +194,14 @@ void Framebuffer::resize(const glm::uvec2& new_size)
         const auto data = nullptr;
         f->glTexImage2D(GL_TEXTURE_2D, level, internalFormat, int(new_size.x), int(new_size.y), border, format, type, data);
     }
-    f->glViewport(0, 0, int(new_size.x), int(new_size.y));
+    assert(f->glCheckFramebufferStatus(GL_FRAMEBUFFER) == GL_FRAMEBUFFER_COMPLETE);
 }
 
 void Framebuffer::bind()
 {
     QOpenGLFunctions* f = QOpenGLContext::currentContext()->functions();
     f->glBindFramebuffer(GL_FRAMEBUFFER, m_frame_buffer);
+    f->glViewport(0, 0, int(m_size.x), int(m_size.y));
 }
 
 void Framebuffer::bind_colour_texture(unsigned index)

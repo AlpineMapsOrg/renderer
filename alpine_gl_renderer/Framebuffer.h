@@ -56,6 +56,7 @@ public:
 
 public:
     Framebuffer(DepthFormat depth_format, std::vector<ColourFormat> colour_formats);
+    ~Framebuffer();
     void resize(const glm::uvec2& new_size);
     void bind();
     void bind_colour_texture(unsigned index);
