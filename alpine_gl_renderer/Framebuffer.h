@@ -28,8 +28,7 @@
 // - resize (while keeping all parametres)
 // - limited depth / colour formats (to ease the pain of managing)
 
-// There are also QOpenGLTextures, but they are unusable (at least for the depth buffer: https://bugreports.qt.io/browse/QTBUG-108710)
-// They are also of limited usefulness here. I hoped for a 'move to cpu as QImage' method, but nah.
+class QOpenGLTexture;
 
 class Framebuffer
 {
@@ -48,11 +47,10 @@ public:
 private:
     DepthFormat m_depth_format;
     std::vector<ColourFormat> m_colour_formats;
+    std::unique_ptr<QOpenGLTexture> m_depth_texture;
+    std::unique_ptr<QOpenGLTexture> m_colour_texture;
     unsigned m_frame_buffer = -1;
     glm::uvec2 m_size;
-public:
-    unsigned m_frame_buffer_colour = -1;
-    unsigned m_frame_buffer_depth = -1;
 
 public:
     Framebuffer(DepthFormat depth_format, std::vector<ColourFormat> colour_formats);
@@ -62,5 +60,8 @@ public:
     void bind_colour_texture(unsigned index);
     QImage read_colour_attachment(unsigned index);
     static void unbind();
+
+private:
+    void reset_fbo();
 };
 
