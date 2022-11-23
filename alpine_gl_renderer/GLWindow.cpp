@@ -209,6 +209,8 @@ void GLWindow::keyPressEvent(QKeyEvent* e)
     }
     if (e->key() == Qt::Key::Key_F5) {
         m_shader_manager->reload_shaders();
+        m_atmosphere = std::make_unique<Atmosphere>();
+
         update();
         qDebug("all shaders reloaded");
     }

@@ -78,6 +78,7 @@ void GLTileManager::draw(ShaderProgram* shader_program, const camera::Definition
     shader_program->set_uniform("n_edge_vertices", N_EDGE_VERTICES);
     shader_program->set_uniform("matrix", camera.localViewProjectionMatrix(camera.position()));
     shader_program->set_uniform("camera_position", glm::vec3(camera.position()));
+//    shader_program->set_uniform("texture_sampler", 0);
     for (const auto& tileset : tiles()) {
         tileset.vao->bind();
         shader_program->set_uniform_array("bounds", boundsArray(tileset, camera.position()));
