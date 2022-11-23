@@ -1,11 +1,14 @@
 in highp vec2 texcoords;
 out highp float out_Color;
 
-const int n_optical_depth_steps = 100;
+const int n_optical_depth_steps = 1000;
 const highp float earth_radius = 6371.0;
+const highp float atmosphere_height = 100.0;
 const highp float infinity = 1.0 / 0.0;
 
 highp float density_at_height(highp float height) {
+    if (height < 0)
+        return height = 0;
    return exp(-height * 0.13);
 }
 
@@ -36,11 +39,14 @@ highp float ray_sphere_intersect(highp vec2 ray_origin, highp vec2 ray_direction
 highp float rm_optical_depth(highp float height_origin, highp float ray_dir_cos_up) {
     highp vec2 ray_origin = vec2(0, earth_radius + height_origin);
     highp vec2 ray_direction = vec2(sqrt(max(0.0, 1 - ray_dir_cos_up*ray_dir_cos_up)), ray_dir_cos_up);
-    highp float ray_length1 = ray_sphere_intersect(ray_origin, ray_direction, earth_radius - 20);
-    highp float ray_length2 = ray_sphere_intersect(ray_origin, ray_direction, earth_radius + 100);
+
+    highp float ray_length1 = 1000.0;//ray_sphere_intersect(ray_origin, ray_direction, earth_radius - 100);
+    highp float ray_length2 = ray_sphere_intersect(ray_origin, ray_direction, earth_radius + atmosphere_height);
+//    return ray_length2 / (earth_radius * 0.2);
 //    highp float ray_length = min(ray_sphere_intersect(ray_origin, ray_direction, earth_radius),
 //                                 ray_sphere_intersect(ray_origin, ray_direction, earth_radius + 100));
     highp float ray_length = min(ray_length1, ray_length2);
+//    highp float ray_length = ray_length2;
 //    return ray_length;//min(1000, ray_sphere_intersect(ray_origin, ray_direction, earth_radius + 100));
 
     highp vec2 density_sample_point = ray_origin;
@@ -53,13 +59,13 @@ highp float rm_optical_depth(highp float height_origin, highp float ray_dir_cos_
         optical_depth += local_density;
         density_sample_point += ray_direction * step_size;
     }
-    return optical_depth * (ray_length / n_optical_depth_steps);
+    return optical_depth * ray_length / float(n_optical_depth_steps);
 }
 
 
 void main() {
-    highp float height = texcoords.x * 100;
-//    highp float height = exp(texcoords.x * (log(100.0) - log(0.01)) + log(0.01)); // log scale
+    highp float height = texcoords.x * atmosphere_height;
+//    highp float height = exp(texcoords.x * (log(atmosphere_height) - log(0.01)) + log(0.01)); // log scale
     highp float cos_up = texcoords.y * 2.0 - 1.0;
 //    cos_up = max(0, cos_up);
     out_Color = rm_optical_depth(height, cos_up);

@@ -1,8 +1,12 @@
 
-const int n_atmospheric_marching_steps = 10;
-const highp vec3 wavelengths = vec3(700, 530, 440);
+const highp float atmosphere_height = 100.0;
+const highp float earth_radius = 6371.0;
+const int n_atmospheric_marching_steps = 20;
+const int n_optical_depth_steps = 20;
+//const highp vec3 wavelengths = vec3(700, 530, 440);
+const highp vec3 wavelengths = vec3(700, 560, 440);
 highp vec3 scattering_coefficients() {
-    return pow(400 / wavelengths, vec3(4.0, 4.0, 4.0)) * 0.018;
+    return pow(400 / wavelengths, vec3(4.0, 4.0, 4.0)) * 0.05;
 }
 
 highp float density_at_height(highp float height_msl) {
@@ -22,45 +26,65 @@ highp float optical_depth(highp float origin_height, highp vec3 direction, highp
     return oneOverW * (exp(-w * origin_height) - exp(-w * end_height)) * distance / (end_height - origin_height);
 }
 
-highp float optical_depth2(vec3 ray_origin, vec3 ray_dir, float ray_length) {
-    return optical_depth(ray_origin.z, ray_dir, ray_origin.z + ray_dir.z * ray_length, ray_length);
-}
+//// flat world
+//highp float rm_optical_depth(vec3 ray_origin, vec3 ray_dir, float ray_length) {
+//    float density_sample_point = ray_origin.z;
+//    float step_size = ray_length / (n_optical_depth_steps - 1);
+//    float optical_depth = 0.0;
+//    for (int i = 0; i < n_optical_depth_steps; i++) {
+//        float local_density = density_at_height(density_sample_point);
+//        optical_depth += local_density;
+//        density_sample_point += ray_dir.z * step_size;
+//    }
+//    return optical_depth * step_size;
+//}
 
+// spherical world
 highp float rm_optical_depth(vec3 ray_origin, vec3 ray_dir, float ray_length) {
-    const int n_optical_depth_steps = 10;
-    float density_sample_point = ray_origin.z;
+    highp vec2 density_sample_point = vec2(0, ray_origin.z + earth_radius);
+    highp vec2 density_sample_dir = vec2(sqrt(max(0.0, 1 - ray_dir.z*ray_dir.z)), ray_dir.z);
+
     float step_size = ray_length / (n_optical_depth_steps - 1);
     float optical_depth = 0.0;
     for (int i = 0; i < n_optical_depth_steps; i++) {
-        float local_density = density_at_height(density_sample_point);
+        float height = length(density_sample_point) - earth_radius;
+        float local_density = density_at_height(height);
         optical_depth += local_density;
-        density_sample_point += ray_dir.z * step_size;
+        density_sample_point += density_sample_dir * step_size;
     }
-    return optical_depth * step_size;
+    return optical_depth * ray_length / float(n_optical_depth_steps);
 }
 
-// computation via direction and length for ray end height is numerically unstable, hence the extra param
-highp vec3 calculate_atmospheric_light(highp float origin_height, highp vec3 ray_direction, highp float ray_length, highp float ray_end_height) {
-   highp vec2 marching_position = vec2(0.0, origin_height);
-   highp float one_over_n_steps = 1.0 / float(n_atmospheric_marching_steps);
-   highp vec2 marching_step = vec2(length(ray_direction.xy) * ray_length * one_over_n_steps,
-                                   ray_direction.z * ray_length * one_over_n_steps);
-   highp float marching_step_lenght = ray_length / n_atmospheric_marching_steps;// length(marching_step);
-   highp float in_scattered_light = 0.0;
-   for (int i = 0; i < n_atmospheric_marching_steps; i++) {
-      float sun_ray_optical_depth = optical_depth(marching_position.y, vec3(0, 0, 1), 100.0, 100 - marching_position.y);
-      float view_ray_optical_depth = optical_depth(marching_position.y, ray_direction, ray_end_height, marching_step_lenght * i);
-      
-      float transmittance = exp(-0.1 * (sun_ray_optical_depth + view_ray_optical_depth));
-      
-      float local_density = density_at_height(marching_position.y);
-      
-//       in_scattered_light += marching_step_lenght_in_km * 0.01 * transmittance;
-      in_scattered_light += /*local_density * */transmittance * marching_step_lenght;
-      marching_position += marching_step;
-   }
-   return vec3(in_scattered_light, in_scattered_light, in_scattered_light);
+highp float lu_optical_depth(highp vec3 ray_origin, highp vec3 ray_dir, highp float ray_length, sampler2D lookup_sampler) {
+    highp float start_height = ray_origin.z;
+
+    highp vec2 density_sample_start = vec2(0, ray_origin.z + earth_radius);
+    highp vec2 density_sample_dir = vec2(sqrt(max(0.0, 1 - ray_dir.z*ray_dir.z)), ray_dir.z);
+    highp vec2 density_sample_destination = density_sample_start + ray_length * density_sample_dir;
+    highp float end_radius = length(density_sample_destination);
+    highp float end_height = end_radius - earth_radius;
+    highp vec2 end_up_vector = density_sample_destination / end_radius;
+    highp float end_relativ_ray_dir_z = dot(end_up_vector, density_sample_dir);
+
+    start_height = max(0, min(atmosphere_height, start_height));
+    end_height = max(0, min(atmosphere_height, end_height));
+    start_height = start_height / atmosphere_height; // linear
+    end_height = end_height / atmosphere_height;
+
+//    start_height = max(0.01, start_height);
+//    end_height = max(0.01, end_height);
+//    start_height = (log(start_height) - log(0.01))/(log(atmosphere_height) - log(0.01));
+//    end_height = (log(end_height) - log(0.01))/(log(atmosphere_height) - log(0.01));
+////    start_height = log(start_height * atmosphere_height) / (log(atmosphere_height) - log(0.01)); // logarithmic
+////    end_height = log(end_height * atmosphere_height) / (log(atmosphere_height) - log(0.01));
+
+    highp float start_lookup_dir = (ray_dir.z * 0.5 + 0.5);
+    highp float end_lookup_dir = (end_relativ_ray_dir_z * 0.5 + 0.5);
+
+//    return texture(lookup_sampler, vec2(start_height, lookup_ray_dir_z)).r;
+    return abs(texture(lookup_sampler, vec2(end_height, end_lookup_dir)).r - texture(lookup_sampler, vec2(start_height, start_lookup_dir)).r);
 }
+
 
 highp vec3 rm_calculate_atmospheric_light_orig(vec3 ray_origin, vec3 ray_direction, float ray_length, vec3 original_colour) {
    highp vec3 marching_position = ray_origin;
@@ -68,7 +92,7 @@ highp vec3 rm_calculate_atmospheric_light_orig(vec3 ray_origin, vec3 ray_directi
    highp vec3 in_scattered_light = vec3(0.0, 0.0, 0.0);
 
    for (int i = 0; i < n_atmospheric_marching_steps; i++) {
-      float sun_ray_optical_depth = rm_optical_depth(marching_position, vec3(0, 0, 1), 100.0);
+      float sun_ray_optical_depth = rm_optical_depth(marching_position, vec3(0, 0, 1), atmosphere_height);
       float view_ray_optical_depth = rm_optical_depth(marching_position, -ray_direction, step_size * i);
       vec3 transmittance = exp(-(sun_ray_optical_depth + view_ray_optical_depth) * scattering_coefficients());
       float local_density = density_at_height(marching_position.z);
@@ -89,20 +113,57 @@ highp vec3 rm_calculate_atmospheric_light(vec3 ray_origin, vec3 ray_direction, f
    highp vec3 in_scattered_light = vec3(0.0, 0.0, 0.0);
 
    for (int i = 0; i < n_atmospheric_marching_steps; i++) {
-//      float sun_ray_optical_depth = optical_depth(marching_position.z, vec3(0, 0, 1), 100.0, 100.0 - marching_position.z);
-      float sun_ray_optical_depth = rm_optical_depth(marching_position, vec3(0, 0, 1), 100.0);
+      float sun_ray_optical_depth = optical_depth(marching_position.z, vec3(0, 0, 1), atmosphere_height, atmosphere_height - marching_position.z);
+//      float sun_ray_optical_depth = rm_optical_depth(marching_position, vec3(0, 0, 1), atmosphere_height - marching_position.z);
 
-      float view_ray_optical_depth = optical_depth(marching_position.z, -ray_direction, ray_origin.z, length(ray_origin - marching_position));
-//      float view_ray_optical_depth = rm_optical_depth(ray_origin, ray_direction, step_size * i);
+//      float view_ray_optical_depth = optical_depth(marching_position.z, -ray_direction, ray_origin.z, length(ray_origin - marching_position));
+      float view_ray_optical_depth = rm_optical_depth(ray_origin, ray_direction, step_size * i);
+//      if (i == n_atmospheric_marching_steps - 1)
+//        return vec3(view_ray_optical_depth, view_ray_optical_depth, view_ray_optical_depth)/100;
 
       vec3 transmittance = exp(-(sun_ray_optical_depth + view_ray_optical_depth) * scattering_coefficients());
       float local_density = density_at_height(marching_position.z);
 
-      in_scattered_light += local_density * transmittance * step_size * scattering_coefficients();
+      in_scattered_light += local_density * transmittance;
       marching_position += ray_direction * step_size;
 
    }
-   float view_ray_optical_depth = optical_depth(ray_origin.z, ray_direction, ray_origin.z + ray_direction.z * ray_length, ray_length);
+   float cos_sun = dot(ray_direction, vec3(0.0, 0.0, 1.0));
+   float phase_function = 0.75 * (1 + cos_sun * cos_sun);
+   in_scattered_light *= (ray_length / n_atmospheric_marching_steps) * scattering_coefficients() * phase_function;
+//   float view_ray_optical_depth = optical_depth(ray_origin.z, ray_direction, ray_origin.z + ray_direction.z * ray_length, ray_length);
+   float view_ray_optical_depth = rm_optical_depth(ray_origin, ray_direction, ray_length);
+   vec3 transmittance = exp(-(view_ray_optical_depth) * scattering_coefficients());
+
+   return in_scattered_light + transmittance * original_colour;
+}
+
+highp vec3 lu_calculate_atmospheric_light(vec3 ray_origin, vec3 ray_direction, float ray_length, vec3 original_colour, sampler2D lookup_sampler) {
+   highp vec3 marching_position = ray_origin;
+   float step_size = ray_length / float(n_atmospheric_marching_steps - 1);
+   highp vec3 in_scattered_light = vec3(0.0, 0.0, 0.0);
+
+   for (int i = 0; i < n_atmospheric_marching_steps; i++) {
+
+      float sun_ray_optical_depth = optical_depth(marching_position.z, vec3(0, 0, 1), atmosphere_height, atmosphere_height - marching_position.z);
+//       float sun_ray_optical_depth = rm_optical_depth(marching_position, vec3(0, 0, 1), atmosphere_height - marching_position.z);
+//       float sun_ray_optical_depth = lu_optical_depth(marching_position, vec3(0, 0, 1),  atmosphere_height - marching_position.z, lookup_sampler);
+
+      float view_ray_optical_depth = rm_optical_depth(ray_origin, ray_direction, step_size * i);
+//      float view_ray_optical_depth = lu_optical_depth(ray_origin, ray_direction, step_size * i, lookup_sampler);
+
+      vec3 transmittance = exp(-(sun_ray_optical_depth + view_ray_optical_depth) * scattering_coefficients());
+      float local_density = density_at_height(marching_position.z);
+
+      in_scattered_light += local_density * transmittance;
+      marching_position += ray_direction * step_size;
+
+   }
+   float cos_sun = dot(ray_direction, vec3(0.0, 0.0, 1.0));
+   float phase_function = 0.75 * (1 + cos_sun * cos_sun);
+   in_scattered_light *= (ray_length / n_atmospheric_marching_steps) * scattering_coefficients() * phase_function;
+   float view_ray_optical_depth = lu_optical_depth(ray_origin, ray_direction, ray_length, lookup_sampler);
+//   float view_ray_optical_depth = rm_optical_depth(ray_origin, ray_direction, ray_length);
    vec3 transmittance = exp(-(view_ray_optical_depth) * scattering_coefficients());
 
    return in_scattered_light + transmittance * original_colour;

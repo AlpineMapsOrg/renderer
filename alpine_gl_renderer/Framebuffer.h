@@ -58,6 +58,7 @@ public:
     void resize(const glm::uvec2& new_size);
     void bind();
     void bind_colour_texture(unsigned index);
+    std::unique_ptr<QOpenGLTexture> take_and_replace_colour_attachment(unsigned index);
     QImage read_colour_attachment(unsigned index);
     static void unbind();
 

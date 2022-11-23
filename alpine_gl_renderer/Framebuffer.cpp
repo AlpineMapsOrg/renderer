@@ -207,6 +207,18 @@ void Framebuffer::bind_colour_texture(unsigned index)
     f->glBindTexture(GL_TEXTURE_2D, m_colour_texture->textureId());
 }
 
+std::unique_ptr<QOpenGLTexture> Framebuffer::take_and_replace_colour_attachment(unsigned index)
+{
+    if (index != 0)
+        throw std::logic_error("not implemented");
+
+    std::unique_ptr<QOpenGLTexture> tmp = std::move(m_colour_texture);
+    m_colour_texture = std::make_unique<QOpenGLTexture>(QOpenGLTexture::Target::Target2D);
+    resize(m_size);
+
+    return tmp;
+}
+
 QImage Framebuffer::read_colour_attachment(unsigned index)
 {
     if (index != 0)
@@ -223,8 +235,10 @@ QImage Framebuffer::read_colour_attachment(unsigned index)
 
         QImage image(static_cast<int>(m_size.x), static_cast<int>(m_size.y), QImage::Format_Grayscale8);
         const auto min_max = std::minmax_element(buffer.cbegin(), buffer.cend());
-        const auto min = *min_max.first;
-        const auto scale = *min_max.second - *min_max.first;
+//        const auto min = *min_max.first;
+//        const auto scale = *min_max.second - *min_max.first;
+        const auto min = 0;
+        const auto scale = 10;
         for (unsigned j = 0; j < m_size.y; ++j) {
             for (unsigned i = 0; i < m_size.x; ++i) {
                 float fv = buffer[j * m_size.x + i];
