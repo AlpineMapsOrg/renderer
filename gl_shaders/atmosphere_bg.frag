@@ -18,12 +18,12 @@ highp vec3 unproject(vec2 normalised_device_coordinates) {
 void main() {
    highp vec3 origin = vec3(camera_position);
    highp vec3 ray_direction = unproject(texcoords * 2.0 - 1.0);
-   highp float ray_length = 1000;
+   highp float ray_length = 2000;
    highp vec3 background_colour = vec3(0.0, 0.0, 0.0);
    if (ray_direction.z < 0) {
        ray_length = min(ray_length, -(origin.z * 0.001) / ray_direction.z);
    }
-   highp vec3 light_through_atmosphere = calculate_atmospheric_light(camera_position / 1000.0, ray_direction, ray_length, background_colour);
+   highp vec3 light_through_atmosphere = calculate_atmospheric_light(camera_position / 1000.0, ray_direction, ray_length, background_colour, 250);
 
    out_Color = vec4(light_through_atmosphere, 1.0);
 }

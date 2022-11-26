@@ -6,13 +6,16 @@ namespace camera {
 class Definition;
 }
 class ShaderProgram;
-class QOpenGLTexture;
+class Framebuffer;
 
 class Atmosphere
 {
-    gl_helpers::ScreenQuadGeometry m_screen_quad_geometry;
 public:
+    gl_helpers::ScreenQuadGeometry m_screen_quad_geometry;
+    std::unique_ptr<Framebuffer> m_framebuffer;
+
     Atmosphere();
-    void draw(ShaderProgram* shader_program, const camera::Definition& camera);
+    void resize(const glm::uvec2& new_size);
+    void draw(ShaderProgram* atmosphere_program, const camera::Definition& camera, ShaderProgram* copy_program, Framebuffer* out);
 };
 
