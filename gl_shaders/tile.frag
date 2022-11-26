@@ -1,5 +1,6 @@
 uniform highp vec3 camera_position;
 uniform sampler2D texture_sampler;
+uniform sampler2D atmosphere_lookup_sampler;
 in lowp vec2 uv;
 in highp vec3 pos_wrt_cam;
 out lowp vec4 out_Color;
@@ -12,7 +13,8 @@ void main() {
    
    vec3 shading_point = camera_position + pos_wrt_cam;
 //   highp vec3 inscattering = calculate_atmospheric_light(camera_position.z / 1000.0, ray_direction, dist / 1000.0, (camera_position.z + pos_wrt_cam.z) / 1000.0) / 100;
-   highp vec3 light_through_atmosphere = rm_calculate_atmospheric_light(camera_position / 1000.0, ray_direction, dist / 1000.0, vec3(ortho));
+//   highp vec3 light_through_atmosphere = rm_calculate_atmospheric_light(camera_position / 1000.0, ray_direction, dist / 1000.0, vec3(ortho));
+   highp vec3 light_through_atmosphere = lu_calculate_atmospheric_light(camera_position / 1000.0, ray_direction, dist / 1000.0, vec3(ortho), atmosphere_lookup_sampler);
 
 //   highp vec3 inscattering = exp(- 0.1 * optical_depth(camera_position.z/1000.0, ray_direction, (shading_point.z)/1000.0, dist / 1000.) * scattering_coefficients()) / 2;
 

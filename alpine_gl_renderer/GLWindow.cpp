@@ -141,7 +141,7 @@ void GLWindow::paintGL()
 
     m_shader_manager->tileShader()->bind();
 
-    m_tile_manager->draw(m_shader_manager->tileShader(), m_camera);
+    m_tile_manager->draw(m_shader_manager->tileShader(), m_camera, m_atmosphere.get());
 
 //    {
 //        m_shader_manager->bindDebugShader();

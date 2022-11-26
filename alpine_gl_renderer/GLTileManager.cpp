@@ -24,7 +24,8 @@
 #include <QOpenGLShaderProgram>
 #include <QOpenGLVertexArrayObject>
 
-#include "alpine_gl_renderer/ShaderProgram.h"
+#include "Atmosphere.h"
+#include "ShaderProgram.h"
 #include "nucleus/Tile.h"
 #include "nucleus/camera/Definition.h"
 #include "nucleus/utils/terrain_mesh_index_generator.h"
@@ -72,17 +73,20 @@ const std::vector<GLTileSet>& GLTileManager::tiles() const
     return m_gpu_tiles;
 }
 
-void GLTileManager::draw(ShaderProgram* shader_program, const camera::Definition& camera) const
+void GLTileManager::draw(ShaderProgram* shader_program, const camera::Definition& camera, Atmosphere* atmosphere) const
 {
     QOpenGLExtraFunctions* f = QOpenGLContext::currentContext()->extraFunctions();
     shader_program->set_uniform("n_edge_vertices", N_EDGE_VERTICES);
     shader_program->set_uniform("matrix", camera.localViewProjectionMatrix(camera.position()));
     shader_program->set_uniform("camera_position", glm::vec3(camera.position()));
+    shader_program->set_uniform("texture_sampler", 0);
+    shader_program->set_uniform("atmosphere_lookup_sampler", 1);
+    atmosphere->bind_lookup_table(1);
 //    shader_program->set_uniform("texture_sampler", 0);
     for (const auto& tileset : tiles()) {
         tileset.vao->bind();
         shader_program->set_uniform_array("bounds", boundsArray(tileset, camera.position()));
-        tileset.ortho_texture->bind();
+        tileset.ortho_texture->bind(0);
         f->glDrawElements(GL_TRIANGLE_STRIP, tileset.gl_element_count, tileset.gl_index_type, nullptr);
     }
     f->glBindVertexArray(0);
