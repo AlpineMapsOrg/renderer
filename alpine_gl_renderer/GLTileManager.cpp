@@ -73,15 +73,13 @@ const std::vector<GLTileSet>& GLTileManager::tiles() const
     return m_gpu_tiles;
 }
 
-void GLTileManager::draw(ShaderProgram* shader_program, const camera::Definition& camera, Atmosphere* atmosphere) const
+void GLTileManager::draw(ShaderProgram* shader_program, const camera::Definition& camera) const
 {
     QOpenGLExtraFunctions* f = QOpenGLContext::currentContext()->extraFunctions();
     shader_program->set_uniform("n_edge_vertices", N_EDGE_VERTICES);
     shader_program->set_uniform("matrix", camera.localViewProjectionMatrix(camera.position()));
     shader_program->set_uniform("camera_position", glm::vec3(camera.position()));
     shader_program->set_uniform("texture_sampler", 0);
-    shader_program->set_uniform("atmosphere_lookup_sampler", 1);
-    atmosphere->bind_lookup_table(1);
 //    shader_program->set_uniform("texture_sampler", 0);
     for (const auto& tileset : tiles()) {
         tileset.vao->bind();

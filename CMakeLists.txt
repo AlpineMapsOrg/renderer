@@ -42,7 +42,6 @@ set(ATB_GL_ENGINE_SOURCES
 )
 set(ATB_GL_SHADERS
     gl_shaders/atmosphere_bg.frag
-    gl_shaders/atmosphere_compute.frag
     gl_shaders/atmosphere_implementation.frag
     gl_shaders/screen_copy.frag
     gl_shaders/screen_pass.vert
