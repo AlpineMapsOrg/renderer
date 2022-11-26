@@ -141,19 +141,19 @@ void GLWindow::paintGL()
 
     m_shader_manager->tileShader()->bind();
 
-    m_tile_manager->draw(m_shader_manager->tileShader(), m_camera, m_atmosphere.get());
+    m_tile_manager->draw(m_shader_manager->tileShader(), m_camera);
 
-//    {
-//        m_shader_manager->bindDebugShader();
-//        m_debug_painter->activate(m_shader_manager->debugShader(), world_view_projection_matrix);
-//        const auto position = m_camera.position();
-//        const auto direction_tl = m_camera.ray_direction({ -1, 1 });
-//        const auto direction_tr = m_camera.ray_direction({ 1, 1 });
-//        std::vector<glm::vec3> debug_cam_lines = { position + direction_tl * 10000.0,
-//            position,
-//            position + direction_tr * 10000.0 };
-//        m_debug_painter->drawLineStrip(debug_cam_lines);
-//    }
+    //    {
+    //        m_shader_manager->bindDebugShader();
+    //        m_debug_painter->activate(m_shader_manager->debugShader(), world_view_projection_matrix);
+    //        const auto position = m_camera.position();
+    //        const auto direction_tl = m_camera.ray_direction({ -1, 1 });
+    //        const auto direction_tr = m_camera.ray_direction({ 1, 1 });
+    //        std::vector<glm::vec3> debug_cam_lines = { position + direction_tl * 10000.0,
+    //            position,
+    //            position + direction_tr * 10000.0 };
+    //        m_debug_painter->drawLineStrip(debug_cam_lines);
+    //    }
     m_shader_manager->atmosphere_bg_program()->bind();
     m_atmosphere->draw(m_shader_manager->atmosphere_bg_program(), m_camera);
 

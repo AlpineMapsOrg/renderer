@@ -39,7 +39,7 @@ public:
     explicit GLTileManager(QObject* parent = nullptr);
 
     [[nodiscard]] const std::vector<GLTileSet>& tiles() const;
-    void draw(ShaderProgram* shader_program, const camera::Definition& camera, Atmosphere* atmosphere) const;
+    void draw(ShaderProgram* shader_program, const camera::Definition& camera) const;
 
 signals:
     void tilesChanged();
