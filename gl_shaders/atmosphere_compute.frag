@@ -8,7 +8,9 @@ const highp float infinity = 1.0 / 0.0;
 
 highp float density_at_height(highp float height) {
     if (height < 0)
-        return height = 0;
+        return height = height * 0.0001;
+//    if (height < -1)
+//        return height = (height + 1.0) * 0.0001 - 1.0;
    return exp(-height * 0.13);
 }
 
@@ -34,34 +36,26 @@ highp float ray_sphere_intersect(highp vec2 ray_origin, highp vec2 ray_direction
     return infinity;
 }
 
-
 // based on https://www.youtube.com/watch?v=DxfEbulyFcY
 highp float rm_optical_depth(highp float height_origin, highp float ray_dir_cos_up) {
     highp vec2 ray_origin = vec2(0, earth_radius + height_origin);
     highp vec2 ray_direction = vec2(sqrt(max(0.0, 1 - ray_dir_cos_up*ray_dir_cos_up)), ray_dir_cos_up);
-
-    highp float ray_length1 = 1000.0;//ray_sphere_intersect(ray_origin, ray_direction, earth_radius - 100);
-    highp float ray_length2 = ray_sphere_intersect(ray_origin, ray_direction, earth_radius + atmosphere_height);
-//    return ray_length2 / (earth_radius * 0.2);
-//    highp float ray_length = min(ray_sphere_intersect(ray_origin, ray_direction, earth_radius),
-//                                 ray_sphere_intersect(ray_origin, ray_direction, earth_radius + 100));
-    highp float ray_length = min(ray_length1, ray_length2);
-//    highp float ray_length = ray_length2;
-//    return ray_length;//min(1000, ray_sphere_intersect(ray_origin, ray_direction, earth_radius + 100));
+    highp float ray_length = ray_sphere_intersect(ray_origin, ray_direction, earth_radius + atmosphere_height);
 
     highp vec2 density_sample_point = ray_origin;
 
-    float step_size = ray_length / (n_optical_depth_steps - 1);
     float optical_depth = 0.0;
-    for (int i = 0; i < n_optical_depth_steps; i++) {
-        float height = length(density_sample_point) - earth_radius;
-        float local_density = density_at_height(height);
-        optical_depth += local_density;
-        density_sample_point += ray_direction * step_size;
-    }
-    return optical_depth * ray_length / float(n_optical_depth_steps);
-}
+    for (float t = 0; t < ray_length;) {
+        float height1 = length(density_sample_point) - earth_radius;
+        float step_length = min(max(0.5, height1/10), ray_length - t);
+        t += step_length;
+        density_sample_point = ray_origin + t * ray_direction;
+        float height2 = length(density_sample_point) - earth_radius;
 
+        optical_depth += step_length * 0.5 * (density_at_height(height1) + density_at_height(height2));
+    }
+    return optical_depth;
+}
 
 void main() {
     highp float height = texcoords.x * atmosphere_height;

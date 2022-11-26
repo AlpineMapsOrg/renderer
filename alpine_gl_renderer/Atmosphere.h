@@ -15,5 +15,6 @@ class Atmosphere
 public:
     Atmosphere();
     void draw(ShaderProgram* shader_program, const camera::Definition& camera);
+    void bind_lookup_table(int texture_unit);
 };
 

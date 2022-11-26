@@ -29,6 +29,7 @@ namespace camera {
 class Definition;
 }
 
+class Atmosphere;
 class QOpenGLShaderProgram;
 class ShaderProgram;
 
@@ -38,7 +39,7 @@ public:
     explicit GLTileManager(QObject* parent = nullptr);
 
     [[nodiscard]] const std::vector<GLTileSet>& tiles() const;
-    void draw(ShaderProgram* shader_program, const camera::Definition& camera) const;
+    void draw(ShaderProgram* shader_program, const camera::Definition& camera, Atmosphere* atmosphere) const;
 
 signals:
     void tilesChanged();
