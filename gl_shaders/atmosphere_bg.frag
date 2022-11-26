@@ -41,10 +41,15 @@ highp float ray_sphere_intersect(highp vec2 ray_origin, highp vec2 ray_direction
 void main() {
    highp vec3 origin = vec3(camera_position);
    highp vec3 ray_direction = unproject(texcoords * 2.0 - 1.0);
-   highp float ray_length = ray_sphere_intersect(vec2(0, origin.z/1000.0),
-                                                 vec2(sqrt(max(0.0, 1 - ray_direction.z*ray_direction.z)), ray_direction.z),
-                                                 earth_radius + atmosphere_height) * .1;
-   highp vec3 light_through_atmosphere = lu_calculate_atmospheric_light(camera_position / 1000.0, ray_direction, ray_length, vec3(0.0, 0.0, 0.0), lookup_sampler);
+//   highp float ray_length = ray_sphere_intersect(vec2(0, origin.z/1000.0),
+//                                                 vec2(sqrt(max(0.0, 1 - ray_direction.z*ray_direction.z)), ray_direction.z),
+//                                                 earth_radius + atmosphere_height) * .1;
+   highp float ray_length = 10000.0;
+   highp vec3 background_colour = vec3(0.0, 0.0, 0.0);
+   if (ray_direction.z < 0) {
+       ray_length = min(ray_length, -(origin.z * 0.001) / ray_direction.z);
+   }
+   highp vec3 light_through_atmosphere = lu_calculate_atmospheric_light(camera_position / 1000.0, ray_direction, ray_length, background_colour, lookup_sampler);
 //   highp vec3 light_through_atmosphere = rm_calculate_atmospheric_light(camera_position / 1000.0, ray_direction, ray_length, vec3(0.0, 0.0, 0.0));
 
    out_Color = vec4(light_through_atmosphere, 1.0);
