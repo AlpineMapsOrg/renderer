@@ -121,6 +121,7 @@ void GLWindow::resizeGL(int w, int h)
 
     QOpenGLFunctions* f = QOpenGLContext::currentContext()->functions();
     m_framebuffer->resize({ width, height });
+    m_atmosphere->resize({ width, height });
 
     f->glViewport(0, 0, width, height);
     emit viewport_changed({ w, h });
@@ -155,7 +156,7 @@ void GLWindow::paintGL()
     //        m_debug_painter->drawLineStrip(debug_cam_lines);
     //    }
     m_shader_manager->atmosphere_bg_program()->bind();
-    m_atmosphere->draw(m_shader_manager->atmosphere_bg_program(), m_camera);
+    m_atmosphere->draw(m_shader_manager->atmosphere_bg_program(), m_camera, m_shader_manager->screen_quad_program(), m_framebuffer.get());
 
     m_framebuffer->unbind();
 
@@ -209,8 +210,6 @@ void GLWindow::keyPressEvent(QKeyEvent* e)
     }
     if (e->key() == Qt::Key::Key_F5) {
         m_shader_manager->reload_shaders();
-        m_atmosphere = std::make_unique<Atmosphere>();
-
         update();
         qDebug("all shaders reloaded");
     }
