@@ -139,7 +139,8 @@ std::vector<geometry::Plane<double>> camera::Definition::fourClippingPlanes() co
 void camera::Definition::setPerspectiveParams(float fov_degrees, const glm::uvec2& viewport_size, float near_plane)
 {
     m_near_clipping = near_plane;
-    m_far_clipping = near_plane * 100000;
+    m_far_clipping = near_plane * 100'000;
+    m_far_clipping = std::min(m_far_clipping, 1'000'000.f);     // will be obscured by atmosphere anyways + depth based atmosphere will have numerical issues (show background atmosphere)
     m_viewport_size = viewport_size;
     m_fov = fov_degrees;
     m_projection_matrix = glm::perspective(
