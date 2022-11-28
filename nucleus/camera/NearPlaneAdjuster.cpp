@@ -42,7 +42,7 @@ void camera::NearPlaneAdjuster::updateNearPlane() const
             if (obj.elevation > max_elevation)
                 max_elevation = obj.elevation;
         }
-        double near_plane_distance = std::max(10.0, (m_camera_position.z - max_elevation) * 0.9);
+        double near_plane_distance = std::max(10.0, (m_camera_position.z - max_elevation) * 0.8);
         emit nearPlaneChanged(near_plane_distance);
     }
 }
