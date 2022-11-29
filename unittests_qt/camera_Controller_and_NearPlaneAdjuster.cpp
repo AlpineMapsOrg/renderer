@@ -24,6 +24,8 @@
 #include <QSignalSpy>
 #include <QTest>
 
+constexpr float near_plane_adjustment_factor = 0.8;
+
 class camera_Controller_and_NearPlaneAdjuster : public QObject {
     Q_OBJECT
 private slots:
@@ -72,7 +74,7 @@ private slots:
             QImage {}));
         spy.wait(1);
         QCOMPARE(spy.count(), 1);
-        QCOMPARE(spy.front().front().toDouble(), float(90 * 0.9));
+        QCOMPARE(spy.front().front().toDouble(), float(90 * near_plane_adjustment_factor));
 
         spy.clear();
         near_plane_adjuster.addTile(std::make_shared<Tile>(
@@ -82,13 +84,13 @@ private slots:
             QImage {}));
         spy.wait(1);
         QCOMPARE(spy.count(), 1);
-        QCOMPARE(spy.front().front().toDouble(), float(80.0 * 0.9));
+        QCOMPARE(spy.front().front().toDouble(), float(80.0 * near_plane_adjustment_factor));
 
         spy.clear();
         near_plane_adjuster.removeTile(tile::Id { 0, {} });
         spy.wait(1);
         QCOMPARE(spy.count(), 1);
-        QCOMPARE(spy.front().front().toDouble(), float(80 * 0.9));
+        QCOMPARE(spy.front().front().toDouble(), float(80 * near_plane_adjustment_factor));
 
         near_plane_adjuster.addTile(std::make_shared<Tile>(
             tile::Id { 0, {} },
@@ -100,7 +102,7 @@ private slots:
         near_plane_adjuster.removeTile(tile::Id { 1, {} });
         spy.wait(1);
         QCOMPARE(spy.count(), 1);
-        QCOMPARE(spy.front().front().toDouble(), float(90 * 0.9));
+        QCOMPARE(spy.front().front().toDouble(), float(90 * near_plane_adjustment_factor));
 
     }
 
@@ -127,13 +129,13 @@ private slots:
         cam_adapter.move({-50, 0, -50});
         spy.wait(1);
         QCOMPARE(spy.count(), 1);
-        QCOMPARE(spy.front().front().toDouble(), float(30.0 * 0.9));
+        QCOMPARE(spy.front().front().toDouble(), float(30.0 * near_plane_adjustment_factor));
 
         spy.clear();
         cam_adapter.move({-50, 0, 10});
         spy.wait(1);
         QCOMPARE(spy.count(), 1);
-        QCOMPARE(spy.front().front().toDouble(), float(40.0 * 0.9));
+        QCOMPARE(spy.front().front().toDouble(), float(40.0 * near_plane_adjustment_factor));
     }
 };
 
