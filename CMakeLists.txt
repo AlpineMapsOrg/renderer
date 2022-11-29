@@ -115,6 +115,9 @@ qt_add_library(nucleus STATIC
 target_include_directories(nucleus SYSTEM PUBLIC ${CMAKE_SOURCE_DIR}/libs/glm)
 target_include_directories(nucleus PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
 target_compile_definitions(nucleus PUBLIC GLM_ENABLE_EXPERIMENTAL GLM_FORCE_XYZW_ONLY)
+if (NOT EMSCRIPTEN)
+    target_compile_definitions(nucleus PUBLIC ALP_USE_DISK_CACHE)
+endif()
 target_link_libraries(nucleus PUBLIC sherpa Qt::Core Qt::Gui Qt6::Network)
 
 
