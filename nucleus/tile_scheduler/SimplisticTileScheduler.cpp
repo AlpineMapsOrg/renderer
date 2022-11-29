@@ -90,12 +90,16 @@ void SimplisticTileScheduler::updateCamera(const camera::Definition& camera)
 
 void SimplisticTileScheduler::receiveOrthoTile(tile::Id tile_id, std::shared_ptr<QByteArray> data)
 {
+    if (m_unavaliable_tiles.contains(tile_id))
+        return;
     m_received_ortho_tiles[tile_id] = data;
     checkLoadedTile(tile_id);
 }
 
 void SimplisticTileScheduler::receiveHeightTile(tile::Id tile_id, std::shared_ptr<QByteArray> data)
 {
+    if (m_unavaliable_tiles.contains(tile_id))
+        return;
     m_received_height_tiles[tile_id] = data;
     checkLoadedTile(tile_id);
 }
