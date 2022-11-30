@@ -38,7 +38,9 @@ public:
         ZXY_yPointingSouth,
         ZYX_yPointingSouth // y=0 is the northern most tile
     };
-    TileLoadService(const QString& base_url, UrlPattern url_pattern, const QString& file_ending);
+    using LoadBalancingTargets = std::vector<QString>;
+
+    TileLoadService(const QString& base_url, UrlPattern url_pattern, const QString& file_ending, const LoadBalancingTargets& load_balancing_targets = {});
     ~TileLoadService() override;
     [[nodiscard]] QString build_tile_url(const tile::Id& tile_id) const;
 
@@ -57,4 +59,5 @@ private:
     QString m_base_url;
     UrlPattern m_url_pattern;
     QString m_file_ending;
+    LoadBalancingTargets m_load_balancing_targets;
 };

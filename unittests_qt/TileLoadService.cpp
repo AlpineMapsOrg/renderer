@@ -50,6 +50,30 @@ private slots:
         }
     }
 
+    void buildTileUrlWithLoadBalancing()
+    {
+        {
+            TileLoadService service("https://maps%1.wien.gv.at/basemap/bmaporthofoto30cm/normal/google3857/", TileLoadService::UrlPattern::ZXY, ".jpeg", { "1", "2", "3", "4" });
+            QCOMPARE(service.build_tile_url({ .zoom_level = 2, .coords = { 1, 3 } }),
+                "https://maps3.wien.gv.at/basemap/bmaporthofoto30cm/normal/google3857/2/1/3.jpeg");
+        }
+        {
+            TileLoadService service("https://maps%1.wien.gv.at/basemap/bmaporthofoto30cm/normal/google3857/", TileLoadService::UrlPattern::ZYX, ".jpeg", { "1", "2", "3", "4" });
+            QCOMPARE(service.build_tile_url({ .zoom_level = 2, .coords = { 1, 3 } }),
+                "https://maps1.wien.gv.at/basemap/bmaporthofoto30cm/normal/google3857/2/3/1.jpeg");
+        }
+        {
+            TileLoadService service("https://maps%1.wien.gv.at/basemap/bmaporthofoto30cm/normal/google3857/", TileLoadService::UrlPattern::ZXY_yPointingSouth, ".jpeg", { "1", "2", "3", "4" });
+            QCOMPARE(service.build_tile_url({ .zoom_level = 2, .coords = { 1, 3 } }),
+                "https://maps2.wien.gv.at/basemap/bmaporthofoto30cm/normal/google3857/2/1/0.jpeg");
+        }
+        {
+            TileLoadService service("https://maps%1.wien.gv.at/basemap/bmaporthofoto30cm/normal/google3857/", TileLoadService::UrlPattern::ZYX_yPointingSouth, ".jpeg", { "1", "2", "3", "4" });
+            QCOMPARE(service.build_tile_url({ .zoom_level = 2, .coords = { 1, 3 } }),
+                "https://maps4.wien.gv.at/basemap/bmaporthofoto30cm/normal/google3857/2/0/1.jpeg");
+        }
+    }
+
     void download()
     {
         // https://maps.wien.gv.at/basemap/bmaporthofoto30cm/normal/google3857/9/177/273.jpeg => should be a white tile

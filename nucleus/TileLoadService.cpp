@@ -28,7 +28,7 @@
 #include <QRegularExpression>
 #endif
 
-TileLoadService::TileLoadService(const QString& base_url, UrlPattern url_pattern, const QString& file_ending)
+TileLoadService::TileLoadService(const QString& base_url, UrlPattern url_pattern, const QString& file_ending, const LoadBalancingTargets& load_balancing_targets)
     : m_network_manager(new QNetworkAccessManager())
 #ifdef ALP_USE_DISK_CACHE
     , m_disk_cache(new QNetworkDiskCache())
@@ -36,6 +36,7 @@ TileLoadService::TileLoadService(const QString& base_url, UrlPattern url_pattern
     , m_base_url(base_url)
     , m_url_pattern(url_pattern)
     , m_file_ending(file_ending)
+    , m_load_balancing_targets(load_balancing_targets)
 {
 #ifdef ALP_USE_DISK_CACHE
     m_disk_cache->setCacheDirectory(QStandardPaths::writableLocation(QStandardPaths::CacheLocation) + "/" + QString(base_url).replace(QRegularExpression("\\W"), ""));
@@ -85,6 +86,12 @@ QString TileLoadService::build_tile_url(const tile::Id& tile_id) const
     case UrlPattern::ZYX_yPointingSouth:
         tile_address = QString("%1/%3/%2").arg(tile_id.zoom_level).arg(tile_id.coords.x).arg(n_y_tiles - tile_id.coords.y - 1);
         break;
+    }
+    if (!m_load_balancing_targets.empty()) {
+        const unsigned hash = qHash(tile_address) % 1024;
+        const auto index = unsigned((float(hash) / 1024.1f) * m_load_balancing_targets.size());
+        assert(index < m_load_balancing_targets.size());
+        return m_base_url.arg(m_load_balancing_targets[index]) + tile_address + m_file_ending;
     }
     return m_base_url + tile_address + m_file_ending;
 }

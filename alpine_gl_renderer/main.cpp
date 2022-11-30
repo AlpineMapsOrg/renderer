@@ -62,7 +62,7 @@
 #include "nucleus/camera/Controller.h"
 #include "nucleus/camera/CrapyInteraction.h"
 #include "nucleus/camera/NearPlaneAdjuster.h"
-#include "nucleus/tile_scheduler/BasicTreeTileScheduler.h"
+#include "nucleus/tile_scheduler/GpuCacheTileScheduler.h"
 #include "nucleus/tile_scheduler/SimplisticTileScheduler.h"
 #include "nucleus/tile_scheduler/utils.h"
 #include "qnetworkreply.h"
@@ -99,8 +99,9 @@ int main(int argc, char* argv[])
     QSurfaceFormat::setDefaultFormat(fmt);
 
     TileLoadService terrain_service("http://alpinemaps.cg.tuwien.ac.at/tiles/alpine_png/", TileLoadService::UrlPattern::ZXY, ".png");
-    TileLoadService ortho_service("http://alpinemaps.cg.tuwien.ac.at/tiles/ortho/", TileLoadService::UrlPattern::ZYX_yPointingSouth, ".jpeg");
-//    TileLoadService ortho_service("http://maps1.wien.gv.at/basemap/bmaporthofoto30cm/normal/google3857/", TileLoadService::UrlPattern::ZYX_yPointingSouth, ".jpeg");
+//    TileLoadService ortho_service("http://alpinemaps.cg.tuwien.ac.at/tiles/ortho/", TileLoadService::UrlPattern::ZYX_yPointingSouth, ".jpeg");
+    TileLoadService ortho_service("http://maps%1.wien.gv.at/basemap/bmaporthofoto30cm/normal/google3857/", TileLoadService::UrlPattern::ZYX_yPointingSouth, ".jpeg", { "", "1", "2", "3", "4" });
+    //    GpuCacheTileScheduler scheduler;
     SimplisticTileScheduler scheduler;
 
     TileHeights h;
