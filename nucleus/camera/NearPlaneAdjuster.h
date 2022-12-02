@@ -8,7 +8,7 @@
 
 #include "sherpa/tile.h"
 
-class Tile;
+struct Tile;
 
 namespace camera {
 class Definition;
