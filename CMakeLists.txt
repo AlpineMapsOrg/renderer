@@ -16,8 +16,9 @@ set(ATB_RENDER_BACKEND_SOURCES
     nucleus/Tile.cpp nucleus/Tile.h
     nucleus/TileScheduler.h nucleus/TileScheduler.cpp
     nucleus/tile_scheduler/utils.h
-    nucleus/tile_scheduler/SimplisticTileScheduler.h nucleus/tile_scheduler/SimplisticTileScheduler.cpp
     nucleus/tile_scheduler/BasicTreeTileScheduler.h nucleus/tile_scheduler/BasicTreeTileScheduler.cpp
+    nucleus/tile_scheduler/GpuCacheTileScheduler.h nucleus/tile_scheduler/GpuCacheTileScheduler.cpp
+    nucleus/tile_scheduler/SimplisticTileScheduler.h nucleus/tile_scheduler/SimplisticTileScheduler.cpp
     nucleus/TileLoadService.h nucleus/TileLoadService.cpp
     nucleus/camera/Controller.h nucleus/camera/Controller.cpp
     nucleus/camera/CrapyInteraction.h nucleus/camera/CrapyInteraction.cpp
@@ -74,6 +75,7 @@ if (ATB_UNITTESTS AND NOT EMSCRIPTEN)
     set(ATB_QT_SCHEDULER_UNITTESTS
         BasicTreeTileScheduler
         SimplisticTileScheduler
+        GpuCacheTileScheduler
     )
 endif()
 
