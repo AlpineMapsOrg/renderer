@@ -41,6 +41,7 @@ public slots:
     void receiveHeightTile(tile::Id tile_id, std::shared_ptr<QByteArray> data) override;
     void notifyAboutUnavailableOrthoTile(tile::Id tile_id) override;
     void notifyAboutUnavailableHeightTile(tile::Id tile_id) override;
+    void set_tile_cache_size(unsigned int);
 
 private:
     void checkLoadedTile(const tile::Id& tile_id);

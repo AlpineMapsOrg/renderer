@@ -128,6 +128,10 @@ void GpuCacheTileScheduler::notifyAboutUnavailableHeightTile(tile::Id tile_id)
     m_received_height_tiles.erase(tile_id);
 }
 
+void GpuCacheTileScheduler::set_tile_cache_size(unsigned int)
+{
+}
+
 void GpuCacheTileScheduler::checkLoadedTile(const tile::Id& tile_id)
 {
     if (m_received_height_tiles.contains(tile_id) && m_received_ortho_tiles.contains(tile_id)) {
