@@ -36,6 +36,10 @@
 //
 // https://webglfundamentals.org/webgl/lessons/webgl-3d-camera.html
 
+camera::Definition::Definition()
+    : Definition({ 1, 1, 1 }, { 0, 0, 0 })
+{
+}
 
 camera::Definition::Definition(const glm::dvec3& position, const glm::dvec3& view_at_point) // : m_position(position)
 {

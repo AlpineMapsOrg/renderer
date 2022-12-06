@@ -31,6 +31,7 @@ namespace camera {
 
 class Definition {
 public:
+    Definition();
     Definition(const glm::dvec3& position, const glm::dvec3& view_at_point);
     [[nodiscard]] glm::dmat4 cameraMatrix() const;
     [[nodiscard]] glm::dmat4 camera_space_to_world_matrix() const;

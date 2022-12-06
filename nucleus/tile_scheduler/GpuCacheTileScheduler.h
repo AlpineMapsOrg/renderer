@@ -26,7 +26,7 @@ class GpuCacheTileScheduler : public TileScheduler
 public:
     GpuCacheTileScheduler();
 
-    [[nodiscard]] static std::vector<tile::Id> loadCandidates(const camera::Definition& camera, const tile_scheduler::AabbDecoratorPtr& aabb_decorator);
+    [[nodiscard]] static TileSet loadCandidates(const camera::Definition& camera, const tile_scheduler::AabbDecoratorPtr& aabb_decorator);
     [[nodiscard]] size_t numberOfTilesInTransit() const override;
     [[nodiscard]] size_t numberOfWaitingHeightTiles() const override;
     [[nodiscard]] size_t numberOfWaitingOrthoTiles() const override;
@@ -41,14 +41,17 @@ public slots:
     void receiveHeightTile(tile::Id tile_id, std::shared_ptr<QByteArray> data) override;
     void notifyAboutUnavailableOrthoTile(tile::Id tile_id) override;
     void notifyAboutUnavailableHeightTile(tile::Id tile_id) override;
-    void set_tile_cache_size(unsigned int);
+    void set_tile_cache_size(unsigned);
+    void purge_cache_from_old_tiles();
 
 private:
     void checkLoadedTile(const tile::Id& tile_id);
     template <typename Predicate>
     void removeGpuTileIf(Predicate condition);
+    void remove_gpu_tiles(const std::vector<tile::Id>& tiles);
 
-
+    camera::Definition m_current_camera;
+    unsigned m_tile_cache_size = 0;
     TileSet m_unavaliable_tiles;
     TileSet m_pending_tile_requests;
     TileSet m_gpu_tiles;

@@ -102,6 +102,7 @@ int main(int argc, char* argv[])
 //    TileLoadService ortho_service("http://alpinemaps.cg.tuwien.ac.at/tiles/ortho/", TileLoadService::UrlPattern::ZYX_yPointingSouth, ".jpeg");
     TileLoadService ortho_service("http://maps%1.wien.gv.at/basemap/bmaporthofoto30cm/normal/google3857/", TileLoadService::UrlPattern::ZYX_yPointingSouth, ".jpeg", { "", "1", "2", "3", "4" });
     GpuCacheTileScheduler scheduler;
+    scheduler.set_tile_cache_size(1000);
     //    SimplisticTileScheduler scheduler;
 
     TileHeights h;

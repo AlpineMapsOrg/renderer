@@ -32,8 +32,6 @@
 class TestGpuCacheTileScheduler : public TestTileScheduler {
     Q_OBJECT
 private:
-    camera::Definition test_cam = camera::Definition({ 1822577.0, 6141664.0 - 500, 171.28 + 500 }, { 1822577.0, 6141664.0, 171.28 }); // should point right at the stephansdom
-
     std::unique_ptr<TileScheduler> makeScheduler() const override
     {
         auto sch = std::make_unique<GpuCacheTileScheduler>();
@@ -49,7 +47,7 @@ private slots:
     void init()
     {
         TestTileScheduler::init();
-        dynamic_cast<GpuCacheTileScheduler*>(m_scheduler.get())->set_tile_cache_size(400);
+        dynamic_cast<GpuCacheTileScheduler*>(m_scheduler.get())->set_tile_cache_size(0);
     }
     void loadCandidates()
     {
@@ -57,8 +55,9 @@ private slots:
         QVERIFY(!tile_list.empty());
     }
 
-    void expiresOldTiles()
+    void no_crash_with_0_cache_size()
     {
+        dynamic_cast<GpuCacheTileScheduler*>(m_scheduler.get())->set_tile_cache_size(0);
         QVERIFY(m_scheduler->gpuTiles().empty());
         connect(m_scheduler.get(), &TileScheduler::tileRequested, this, &TestTileScheduler::giveTiles);
         connect(this, &TestTileScheduler::orthoTileReady, m_scheduler.get(), &TileScheduler::receiveOrthoTile);
@@ -70,11 +69,29 @@ private slots:
 
         QSignalSpy spy(m_scheduler.get(), &TileScheduler::tileExpired);
         camera::Definition replacement_cam = camera::Definition({ 1383814.3, 5290605.1 - 500, 2277.0 + 500 }, { 1383814.3, 5290605.1, 2277.0 }); // should be westliche hochgrubachspitze
+        replacement_cam.set_viewport_size({ 2560, 1440 });
+        m_scheduler->updateCamera(replacement_cam);
+    }
+
+    void expiresOldTiles()
+    {
+        dynamic_cast<GpuCacheTileScheduler*>(m_scheduler.get())->set_tile_cache_size(400);
+        QVERIFY(m_scheduler->gpuTiles().empty());
+        connect(m_scheduler.get(), &TileScheduler::tileRequested, this, &TestTileScheduler::giveTiles);
+        connect(this, &TestTileScheduler::orthoTileReady, m_scheduler.get(), &TileScheduler::receiveOrthoTile);
+        connect(this, &TestTileScheduler::heightTileReady, m_scheduler.get(), &TileScheduler::receiveHeightTile);
+        m_scheduler->updateCamera(test_cam);
+        QTest::qWait(10);
+        // tiles are on the gpu
+        const auto gpu_tiles = m_scheduler->gpuTiles();
+
+        QSignalSpy spy(m_scheduler.get(), &TileScheduler::tileExpired);
+        camera::Definition replacement_cam = camera::Definition({ 1383814.3, 5290605.1 - 500, 2277.0 + 500 }, { 1383814.3, 5290605.1, 2277.0 }); // should be westliche hochgrubachspitze
+        replacement_cam.set_viewport_size({ 2560, 1440 });
         m_scheduler->updateCamera(replacement_cam);
         const auto current_gpu_tiles = m_scheduler->gpuTiles();
         spy.wait(5);
-        QCOMPARE(m_scheduler->gpuTiles().size(), 400); // root tile allowed
-        QVERIFY(size_t(spy.size()) == gpu_tiles.size());
+        QCOMPARE(m_scheduler->gpuTiles().size(), 400); // 400 cached tiles should remain
         for (const auto& tileExpireSignal : spy) {
             const tile::Id tile = tileExpireSignal.at(0).value<tile::Id>();
             QVERIFY(gpu_tiles.contains(tile));

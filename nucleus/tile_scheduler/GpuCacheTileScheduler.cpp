@@ -17,29 +17,33 @@
  *****************************************************************************/
 
 #include "GpuCacheTileScheduler.h"
-#include "nucleus/tile_scheduler/utils.h"
+#include <unordered_set>
 
+#include "nucleus/tile_scheduler/utils.h"
 #include "nucleus/Tile.h"
 #include "nucleus/srs.h"
 #include "nucleus/utils/QuadTree.h"
 #include "nucleus/utils/tile_conversion.h"
 #include "sherpa/geometry.h"
+#include "sherpa/hasher.h"
+#include "sherpa/iterator.h"
+
 
 GpuCacheTileScheduler::GpuCacheTileScheduler() = default;
 
-std::vector<tile::Id> GpuCacheTileScheduler::loadCandidates(const camera::Definition& camera, const tile_scheduler::AabbDecoratorPtr& aabb_decorator)
+TileScheduler::TileSet GpuCacheTileScheduler::loadCandidates(const camera::Definition& camera, const tile_scheduler::AabbDecoratorPtr& aabb_decorator)
 {
     //  return quad_tree::onTheFlyTraverse(tile::Id{0, {0, 0}}, tile_scheduler::refineFunctor(camera, 1.0), [](const auto& v) { return srs::subtiles(v); });
-    std::vector<tile::Id> all_tiles;
+    std::unordered_set<tile::Id, tile::Id::Hasher> all_tiles;
     const auto all_leaves = quad_tree::onTheFlyTraverse(
         tile::Id { 0, { 0, 0 } },
         tile_scheduler::refineFunctor(camera, aabb_decorator, 2.0),
-        [&all_tiles](const tile::Id& v) { all_tiles.push_back(v); return v.children(); });
+        [&all_tiles](const tile::Id& v) { all_tiles.insert(v); return v.children(); });
     std::vector<tile::Id> visible_leaves;
     visible_leaves.reserve(all_leaves.size());
 
     all_tiles.reserve(all_tiles.size() + all_leaves.size());
-    std::copy(all_leaves.begin(), all_leaves.end(), std::back_inserter(all_tiles));
+    std::copy(all_leaves.begin(), all_leaves.end(), sherpa::unordered_inserter(all_tiles));
 
 
 //    const auto is_visible = [&camera, aabb_decorator](const tile::Id& tile) {
@@ -75,6 +79,7 @@ void GpuCacheTileScheduler::updateCamera(const camera::Definition& camera)
     if (!enabled())
         return;
 
+    m_current_camera = camera;
     const auto aabb_decorator = this->aabb_decorator();
 
 //    const auto outside_camera_frustum = [&camera, aabb_decorator](const auto& gpu_tile_id) {
@@ -128,8 +133,36 @@ void GpuCacheTileScheduler::notifyAboutUnavailableHeightTile(tile::Id tile_id)
     m_received_height_tiles.erase(tile_id);
 }
 
-void GpuCacheTileScheduler::set_tile_cache_size(unsigned int)
+void GpuCacheTileScheduler::set_tile_cache_size(unsigned tile_cache_size)
 {
+    m_tile_cache_size = tile_cache_size;
+}
+
+void GpuCacheTileScheduler::purge_cache_from_old_tiles()
+{
+    if (m_gpu_tiles.size() <= m_tile_cache_size)
+        return;
+
+    const auto necessary_tiles = loadCandidates(m_current_camera, this->aabb_decorator());
+
+    std::vector<tile::Id> unnecessary_tiles;
+    unnecessary_tiles.reserve(m_gpu_tiles.size());
+    std::copy_if(m_gpu_tiles.cbegin(), m_gpu_tiles.cend(), std::back_inserter(unnecessary_tiles), [&necessary_tiles](const auto& tile_id) { return !necessary_tiles.contains(tile_id); });
+
+    const auto n_tiles_to_be_removed = m_gpu_tiles.size() - m_tile_cache_size;
+    if (n_tiles_to_be_removed >= unnecessary_tiles.size()) {
+        remove_gpu_tiles(unnecessary_tiles); // cache too small. can't remove 'enough', so remove everything we can
+        return;
+    }
+    const auto last_remove_tile_iter = unnecessary_tiles.begin() + n_tiles_to_be_removed;
+    assert(last_remove_tile_iter < unnecessary_tiles.end());
+
+    std::nth_element(unnecessary_tiles.begin(), last_remove_tile_iter, unnecessary_tiles.end(), [](const tile::Id& a, const tile::Id& b) {
+        return !(a < b);
+    });
+    unnecessary_tiles.resize(n_tiles_to_be_removed);
+    remove_gpu_tiles(unnecessary_tiles);
+
 }
 
 void GpuCacheTileScheduler::checkLoadedTile(const tile::Id& tile_id)
@@ -147,6 +180,7 @@ void GpuCacheTileScheduler::checkLoadedTile(const tile::Id& tile_id)
 
         m_gpu_tiles.insert(tile_id);
         emit tileReady(tile);
+        purge_cache_from_old_tiles();
     }
 }
 
@@ -163,11 +197,16 @@ void GpuCacheTileScheduler::setEnabled(bool newEnabled)
 template <typename Predicate>
 void GpuCacheTileScheduler::removeGpuTileIf(Predicate condition)
 {
-    std::vector<tile::Id> overlapping_tiles;
-    overlapping_tiles.reserve(4);
-    std::copy_if(m_gpu_tiles.cbegin(), m_gpu_tiles.cend(), std::back_inserter(overlapping_tiles), condition);
-    for (const auto& gpu_tile_id : overlapping_tiles) {
-        emit tileExpired(gpu_tile_id);
-        m_gpu_tiles.erase(gpu_tile_id);
+    std::vector<tile::Id> remove_list;
+    remove_list.reserve(4);
+    std::copy_if(m_gpu_tiles.cbegin(), m_gpu_tiles.cend(), std::back_inserter(remove_list), condition);
+    remove_gpu_tiles(remove_list);
+}
+
+void GpuCacheTileScheduler::remove_gpu_tiles(const std::vector<tile::Id>& tiles)
+{
+    for (const auto& id : tiles) {
+        emit tileExpired(id);
+        m_gpu_tiles.erase(id);
     }
 }
