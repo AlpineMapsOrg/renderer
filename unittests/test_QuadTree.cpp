@@ -40,7 +40,7 @@ struct DeletionChecker {
 unsigned DeletionChecker::counter = 0;
 }
 
-TEST_CASE("QuadTree")
+TEST_CASE("nucleus/utils/QuadTree")
 {
     SECTION("construction and basics")
     {
@@ -284,7 +284,7 @@ TEST_CASE("QuadTree")
     }
 }
 
-TEST_CASE("on the fly QuadTree")
+TEST_CASE("nucleus/utils/QuadTree: on the fly traverse")
 {
 
     const auto refine_predicate = [](const auto& node_value) {

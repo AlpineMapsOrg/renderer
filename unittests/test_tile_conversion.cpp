@@ -39,7 +39,7 @@ auto check_uint16_conversion_for(const glm::u8vec4& v)
 }
 }
 
-TEST_CASE("tile_conversion")
+TEST_CASE("nucleus/utils/tile_conversion")
 {
 
     SECTION("byte array to qimage")

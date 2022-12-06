@@ -23,7 +23,7 @@
 
 #include "unittests/test_helpers.h"
 
-TEST_CASE("raster tests")
+TEST_CASE("nucleus/Raster")
 {
     SECTION("empty and interface")
     {

@@ -32,7 +32,7 @@ glm::vec3 divideByW(const glm::vec4& vec)
 }
 }
 
-TEST_CASE("Camera")
+TEST_CASE("nucleus/camera: Definition")
 {
     SECTION("constructor")
     {

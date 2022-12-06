@@ -29,12 +29,12 @@ constexpr bool asserts_are_enabled = false;
 constexpr bool asserts_are_enabled = true;
 #endif
 
-TEST_CASE("check that asserts are enabled")
+TEST_CASE("nucleus/main: check that asserts are enabled")
 {
     CHECK(asserts_are_enabled);
 }
 
-TEST_CASE("check that NaNs are enabled (-ffast-math removes support, -fno-finite-math-only puts it back in)")
+TEST_CASE("nucleus/main: check that NaNs are enabled (-ffast-math removes support, -fno-finite-math-only puts it back in)")
 {
     CHECK(std::isnan(std::numeric_limits<float>::quiet_NaN() * float(std::chrono::system_clock::now().time_since_epoch().count())));
     CHECK(std::isnan(double(std::numeric_limits<float>::quiet_NaN() * float(std::chrono::system_clock::now().time_since_epoch().count()))));

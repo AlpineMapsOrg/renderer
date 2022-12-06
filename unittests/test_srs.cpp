@@ -19,7 +19,7 @@
 
 #include "nucleus/srs.h"
 
-TEST_CASE("srs tests")
+TEST_CASE("nucleus/srs")
 {
     SECTION("number of tiles per level")
     {

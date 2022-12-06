@@ -20,7 +20,7 @@
 
 #include <catch2/catch.hpp>
 
-TEST_CASE("terrain_mesh_index_generator")
+TEST_CASE("nucleus/utils/terrain_mesh_index_generator")
 {
 
     SECTION("surface quads 2x2")
