@@ -17,6 +17,7 @@
  *****************************************************************************/
 
 #include "GpuCacheTileScheduler.h"
+#include <QBuffer>
 #include <unordered_set>
 
 #include "nucleus/tile_scheduler/utils.h"
@@ -89,8 +90,6 @@ void GpuCacheTileScheduler::updateCamera(const camera::Definition& camera)
 
     const auto tiles = loadCandidates(camera, aabb_decorator);
     for (const auto& t : tiles) {
-        if (m_unavaliable_tiles.contains(t))
-            continue;
         if (m_pending_tile_requests.contains(t)) // todo cancel current requests
             continue;
         if (m_gpu_tiles.contains(t)) {
@@ -103,34 +102,36 @@ void GpuCacheTileScheduler::updateCamera(const camera::Definition& camera)
 
 void GpuCacheTileScheduler::receiveOrthoTile(tile::Id tile_id, std::shared_ptr<QByteArray> data)
 {
-    if (m_unavaliable_tiles.contains(tile_id))
-        return;
     m_received_ortho_tiles[tile_id] = data;
     checkLoadedTile(tile_id);
 }
 
 void GpuCacheTileScheduler::receiveHeightTile(tile::Id tile_id, std::shared_ptr<QByteArray> data)
 {
-    if (m_unavaliable_tiles.contains(tile_id))
-        return;
     m_received_height_tiles[tile_id] = data;
     checkLoadedTile(tile_id);
 }
 
 void GpuCacheTileScheduler::notifyAboutUnavailableOrthoTile(tile::Id tile_id)
 {
-    m_unavaliable_tiles.insert(tile_id);
-    m_pending_tile_requests.erase(tile_id);
-    m_received_ortho_tiles.erase(tile_id);
-    m_received_height_tiles.erase(tile_id);
+    QImage default_tile(m_ortho_tile_size, m_ortho_tile_size, QImage::Format_ARGB32);
+    default_tile.fill(Qt::GlobalColor::white);
+    QByteArray arr;
+    QBuffer buffer(&arr);
+    buffer.open(QIODevice::WriteOnly);
+    default_tile.save(&buffer, "JPEG");
+    receiveOrthoTile(tile_id, std::make_shared<QByteArray>(arr));
 }
 
 void GpuCacheTileScheduler::notifyAboutUnavailableHeightTile(tile::Id tile_id)
 {
-    m_unavaliable_tiles.insert(tile_id);
-    m_pending_tile_requests.erase(tile_id);
-    m_received_ortho_tiles.erase(tile_id);
-    m_received_height_tiles.erase(tile_id);
+    QImage default_tile(m_ortho_tile_size, m_ortho_tile_size, QImage::Format_ARGB32);
+    default_tile.fill(Qt::GlobalColor::black);
+    QByteArray arr;
+    QBuffer buffer(&arr);
+    buffer.open(QIODevice::WriteOnly);
+    default_tile.save(&buffer, "PNG");
+    receiveOrthoTile(tile_id, std::make_shared<QByteArray>(arr));
 }
 
 void GpuCacheTileScheduler::set_tile_cache_size(unsigned tile_cache_size)
@@ -162,7 +163,6 @@ void GpuCacheTileScheduler::purge_cache_from_old_tiles()
     });
     unnecessary_tiles.resize(n_tiles_to_be_removed);
     remove_gpu_tiles(unnecessary_tiles);
-
 }
 
 void GpuCacheTileScheduler::checkLoadedTile(const tile::Id& tile_id)
@@ -192,15 +192,6 @@ bool GpuCacheTileScheduler::enabled() const
 void GpuCacheTileScheduler::setEnabled(bool newEnabled)
 {
     m_enabled = newEnabled;
-}
-
-template <typename Predicate>
-void GpuCacheTileScheduler::removeGpuTileIf(Predicate condition)
-{
-    std::vector<tile::Id> remove_list;
-    remove_list.reserve(4);
-    std::copy_if(m_gpu_tiles.cbegin(), m_gpu_tiles.cend(), std::back_inserter(remove_list), condition);
-    remove_gpu_tiles(remove_list);
 }
 
 void GpuCacheTileScheduler::remove_gpu_tiles(const std::vector<tile::Id>& tiles)

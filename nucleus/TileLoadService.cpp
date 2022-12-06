@@ -42,8 +42,8 @@ TileLoadService::TileLoadService(const QString& base_url, UrlPattern url_pattern
     m_disk_cache->setCacheDirectory(QStandardPaths::writableLocation(QStandardPaths::CacheLocation) + "/" + QString(base_url).replace(QRegularExpression("\\W"), ""));
     m_disk_cache->setMaximumCacheSize(200 * 1024 * 1024); // 200mib
     m_network_manager->setCache(m_disk_cache.get());
-//    qDebug("cache directory: %s", m_disk_cache->cacheDirectory().toStdString().c_str());
-//    qDebug("maximum cache size: %lld", m_disk_cache->maximumCacheSize());
+    qDebug("cache directory: %s", m_disk_cache->cacheDirectory().toStdString().c_str());
+    qDebug("maximum cache size: %lld", m_disk_cache->maximumCacheSize());
 #endif
 }
 

@@ -1,7 +1,13 @@
 #include "TileScheduler.h"
+#include "nucleus/tile_scheduler/utils.h"
+#include "sherpa/TileHeights.h"
 
 
-//TileScheduler::TileScheduler() = default;
+TileScheduler::TileScheduler() {
+    TileHeights h;
+    h.emplace({ 0, { 0, 0 } }, { 100, 4000 });
+    set_aabb_decorator(tile_scheduler::AabbDecorator::make(std::move(h)));
+}
 
 //TileScheduler::~TileScheduler() = default;
 

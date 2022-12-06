@@ -26,6 +26,7 @@
 
 #include "nucleus/camera/Definition.h"
 #include "nucleus/Tile.h"
+#include "nucleus/camera/stored_positions.h"
 #include "nucleus/srs.h"
 
 class TestTileScheduler : public QObject {
@@ -34,7 +35,7 @@ protected:
     QByteArray m_ortho_bytes;
     QByteArray m_height_bytes;
     std::unique_ptr<TileScheduler> m_scheduler;
-    camera::Definition test_cam = camera::Definition({ 1822577.0, 6141664.0 - 500, 171.28 + 500 }, { 1822577.0, 6141664.0, 171.28 }); // should point right at the stephansdom
+    camera::Definition test_cam = camera::stored_positions::stephansdom();
     std::unordered_set<tile::Id, tile::Id::Hasher> m_given_tiles;
     std::unordered_set<tile::Id, tile::Id::Hasher> m_unavailable_tiles;
 

@@ -45,9 +45,9 @@ public slots:
     void purge_cache_from_old_tiles();
 
 private:
+    const unsigned m_ortho_tile_size = 256;
+    const unsigned m_height_tile_size = 64;
     void checkLoadedTile(const tile::Id& tile_id);
-    template <typename Predicate>
-    void removeGpuTileIf(Predicate condition);
     void remove_gpu_tiles(const std::vector<tile::Id>& tiles);
 
     camera::Definition m_current_camera;

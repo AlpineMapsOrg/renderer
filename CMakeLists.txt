@@ -17,6 +17,7 @@ set(ATB_RENDER_BACKEND_SOURCES
     nucleus/TileScheduler.h nucleus/TileScheduler.cpp
     nucleus/tile_scheduler/utils.h
     nucleus/tile_scheduler/BasicTreeTileScheduler.h nucleus/tile_scheduler/BasicTreeTileScheduler.cpp
+    nucleus/tile_scheduler/DrawListGenerator.h nucleus/tile_scheduler/DrawListGenerator.cpp
     nucleus/tile_scheduler/GpuCacheTileScheduler.h nucleus/tile_scheduler/GpuCacheTileScheduler.cpp
     nucleus/tile_scheduler/SimplisticTileScheduler.h nucleus/tile_scheduler/SimplisticTileScheduler.cpp
     nucleus/TileLoadService.h nucleus/TileLoadService.cpp
@@ -25,6 +26,7 @@ set(ATB_RENDER_BACKEND_SOURCES
     nucleus/camera/Definition.h nucleus/camera/Definition.cpp
     nucleus/camera/InteractionStyle.h nucleus/camera/InteractionStyle.cpp
     nucleus/camera/NearPlaneAdjuster.h nucleus/camera/NearPlaneAdjuster.cpp
+    nucleus/camera/stored_positions.h
     nucleus/utils/QuadTree.h
     nucleus/utils/terrain_mesh_index_generator.h
     nucleus/utils/tile_conversion.h nucleus/utils/tile_conversion.cpp
@@ -60,6 +62,7 @@ if (ATB_UNITTESTS AND NOT EMSCRIPTEN)
         unittests/main.cpp
         unittests/catch2_helpers.h
         unittests/test_Camera.cpp
+        unittests/test_DrawListGenerator.cpp
         unittests/test_helpers.h
         unittests/test_QuadTree.cpp
         unittests/test_raster.cpp

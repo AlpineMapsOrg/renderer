@@ -39,7 +39,7 @@ class TileScheduler : public QObject {
 public:
     using TileSet = std::unordered_set<tile::Id, tile::Id::Hasher>;
     using Tile2DataMap = std::unordered_map<tile::Id, std::shared_ptr<QByteArray>, tile::Id::Hasher>;
-//    TileScheduler();
+    TileScheduler();
 //    TileScheduler(const TileScheduler&) = delete;
 //    TileScheduler(const TileScheduler&&) = delete;
 //    ~TileScheduler() override;

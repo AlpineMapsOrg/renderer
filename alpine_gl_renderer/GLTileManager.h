@@ -24,6 +24,7 @@
 
 #include "alpine_gl_renderer/GLTileSet.h"
 #include "nucleus/Tile.h"
+#include "nucleus/tile_scheduler/DrawListGenerator.h"
 
 namespace camera {
 class Definition;
@@ -37,6 +38,7 @@ class GLTileManager : public QObject {
     Q_OBJECT
 public:
     explicit GLTileManager(QObject* parent = nullptr);
+    void init(); // needs OpenGL context
 
     [[nodiscard]] const std::vector<GLTileSet>& tiles() const;
     void draw(ShaderProgram* shader_program, const camera::Definition& camera) const;
@@ -48,6 +50,8 @@ public slots:
     void addTile(const std::shared_ptr<Tile>& tile);
     void removeTile(const tile::Id& tile_id);
     void initiliseAttributeLocations(ShaderProgram* program);
+    void set_aabb_decorator(const tile_scheduler::AabbDecoratorPtr& new_aabb_decorator);
+
 
 private:
     struct TileGLAttributeLocations {
@@ -66,4 +70,5 @@ private:
     std::vector<std::pair<std::unique_ptr<QOpenGLBuffer>, size_t>> m_index_buffers;
     TileGLAttributeLocations m_attribute_locations;
     unsigned m_tiles_per_set = 1;
+    DrawListGenerator m_draw_list_generator;
 };

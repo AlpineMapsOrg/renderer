@@ -54,6 +54,11 @@ std::vector<glm::vec4> boundsArray(const GLTileSet& tileset, const glm::dvec3& c
 GLTileManager::GLTileManager(QObject* parent)
     : QObject { parent }
 {
+}
+
+void GLTileManager::init()
+{
+    assert(QOpenGLContext::currentContext());
     for (auto i = 0; i < MAX_TILES_PER_TILESET; ++i) {
         const auto indices = terrain_mesh_index_generator::surface_quads<uint16_t>(N_EDGE_VERTICES);
         auto index_buffer = std::make_unique<QOpenGLBuffer>(QOpenGLBuffer::IndexBuffer);
@@ -81,7 +86,11 @@ void GLTileManager::draw(ShaderProgram* shader_program, const camera::Definition
     shader_program->set_uniform("camera_position", glm::vec3(camera.position()));
     shader_program->set_uniform("texture_sampler", 0);
 //    shader_program->set_uniform("texture_sampler", 0);
+
+    const auto draw_tiles = m_draw_list_generator.generate_for(camera);
     for (const auto& tileset : tiles()) {
+        if (!draw_tiles.contains(tileset.tiles.front().first))
+            continue;
         tileset.vao->bind();
         shader_program->set_uniform_array("bounds", boundsArray(tileset, camera.position()));
         tileset.ortho_texture->bind(0);
@@ -126,6 +135,7 @@ void GLTileManager::addTile(const std::shared_ptr<Tile>& tile)
 
     // add to m_gpu_tiles
     m_gpu_tiles.push_back(std::move(tileset));
+    m_draw_list_generator.add_tile(tile->id);
 
     emit tilesChanged();
 }
@@ -139,6 +149,7 @@ void GLTileManager::removeTile(const tile::Id& tile_id)
     });
     if (found_tile != m_gpu_tiles.end())
         m_gpu_tiles.erase(found_tile);
+    m_draw_list_generator.remove_tile(tile_id);
 
     emit tilesChanged();
 }
@@ -146,5 +157,10 @@ void GLTileManager::removeTile(const tile::Id& tile_id)
 void GLTileManager::initiliseAttributeLocations(ShaderProgram* program)
 {
     m_attribute_locations.height = program->attribute_location("height");
+}
+
+void GLTileManager::set_aabb_decorator(const tile_scheduler::AabbDecoratorPtr& new_aabb_decorator)
+{
+    m_draw_list_generator.set_aabb_decorator(new_aabb_decorator);
 }
 

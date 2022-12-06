@@ -62,6 +62,7 @@
 #include "nucleus/camera/Controller.h"
 #include "nucleus/camera/CrapyInteraction.h"
 #include "nucleus/camera/NearPlaneAdjuster.h"
+#include "nucleus/camera/stored_positions.h"
 #include "nucleus/tile_scheduler/GpuCacheTileScheduler.h"
 #include "nucleus/tile_scheduler/SimplisticTileScheduler.h"
 #include "nucleus/tile_scheduler/utils.h"
@@ -103,33 +104,7 @@ int main(int argc, char* argv[])
     TileLoadService ortho_service("http://maps%1.wien.gv.at/basemap/bmaporthofoto30cm/normal/google3857/", TileLoadService::UrlPattern::ZYX_yPointingSouth, ".jpeg", { "", "1", "2", "3", "4" });
     GpuCacheTileScheduler scheduler;
     scheduler.set_tile_cache_size(1000);
-    //    SimplisticTileScheduler scheduler;
-
-    TileHeights h;
-    h.emplace({ 0, { 0, 0 } }, { 100, 4000 });
-    scheduler.set_aabb_decorator(tile_scheduler::AabbDecorator::make(std::move(h)));
-
-    QNetworkAccessManager m_network_manager;
-    QNetworkReply* reply = m_network_manager.get(QNetworkRequest(QUrl("http://gataki.cg.tuwien.ac.at/tiles/alpine_png2/height_data.atb")));
-    QObject::connect(reply, &QNetworkReply::finished, [reply, &scheduler, &app]() {
-        const auto url = reply->url();
-        const auto error = reply->error();
-        if (error == QNetworkReply::NoError) {
-            const QByteArray data = reply->readAll();
-            scheduler.set_aabb_decorator(tile_scheduler::AabbDecorator::make(TileHeights::deserialise(data)));
-
-        } else {
-            qDebug() << "Loading of " << url << " failed: " << error;
-            app.exit(0);
-            // do we need better error handling?
-        }
-        reply->deleteLater();
-    });
-
-    camera::Controller camera_controller { { { 1822577.0, 6141664.0 - 500, 171.28 + 500 }, { 1822577.0, 6141664.0, 171.28 } } };
-    camera_controller.set_interaction_style(std::make_unique<camera::CrapyInteraction>());
-
-    camera::NearPlaneAdjuster near_plane_adjuster;
+    // SimplisticTileScheduler scheduler;
 
     GLWindow glWindow;
     if (running_in_browser)
@@ -137,6 +112,32 @@ int main(int argc, char* argv[])
     else
         glWindow.showMaximized();
     glWindow.setTileScheduler(&scheduler); // i don't like this, gl window is tightly coupled with the scheduler.
+
+    QNetworkAccessManager m_network_manager;
+    QNetworkReply* reply = m_network_manager.get(QNetworkRequest(QUrl("http://gataki.cg.tuwien.ac.at/tiles/alpine_png2/height_data.atb")));
+    QObject::connect(reply, &QNetworkReply::finished, [reply, &scheduler, &glWindow, &app]() {
+        const auto url = reply->url();
+        const auto error = reply->error();
+        if (error == QNetworkReply::NoError) {
+            const QByteArray data = reply->readAll();
+            const auto decorator = tile_scheduler::AabbDecorator::make(TileHeights::deserialise(data));
+            scheduler.set_aabb_decorator(decorator);
+            assert(glWindow.gpuTileManager());
+            glWindow.gpuTileManager()->set_aabb_decorator(decorator);
+        } else {
+            qDebug() << "Loading of " << url << " failed: " << error;
+            QGuiApplication::exit(0);
+            // do we need better error handling?
+        }
+        reply->deleteLater();
+    });
+
+    camera::Controller camera_controller { camera::stored_positions::westl_hochgrubach_spitze() };
+//    camera::Controller camera_controller { camera::stored_positions::stephansdom() };
+    camera_controller.set_interaction_style(std::make_unique<camera::CrapyInteraction>());
+
+    camera::NearPlaneAdjuster near_plane_adjuster;
+
 
     QObject::connect(&glWindow, &GLWindow::viewport_changed, &camera_controller, &camera::Controller::setViewport);
     QObject::connect(&glWindow, &GLWindow::mouse_moved, &camera_controller, &camera::Controller::mouse_move);
@@ -168,5 +169,5 @@ int main(int argc, char* argv[])
         camera_controller.setViewport({ glWindow.width(), glWindow.height() });
     camera_controller.update();
 
-    return app.exec();
+    return QGuiApplication::exec();
 }

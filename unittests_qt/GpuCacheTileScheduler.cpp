@@ -27,6 +27,7 @@
 #include <glm/glm.hpp>
 
 #include "nucleus/camera/Definition.h"
+#include "nucleus/camera/stored_positions.h"
 #include "sherpa/TileHeights.h"
 
 class TestGpuCacheTileScheduler : public TestTileScheduler {
@@ -68,7 +69,7 @@ private slots:
         const auto gpu_tiles = m_scheduler->gpuTiles();
 
         QSignalSpy spy(m_scheduler.get(), &TileScheduler::tileExpired);
-        camera::Definition replacement_cam = camera::Definition({ 1383814.3, 5290605.1 - 500, 2277.0 + 500 }, { 1383814.3, 5290605.1, 2277.0 }); // should be westliche hochgrubachspitze
+        camera::Definition replacement_cam = camera::stored_positions::westl_hochgrubach_spitze();
         replacement_cam.set_viewport_size({ 2560, 1440 });
         m_scheduler->updateCamera(replacement_cam);
     }
@@ -86,10 +87,9 @@ private slots:
         const auto gpu_tiles = m_scheduler->gpuTiles();
 
         QSignalSpy spy(m_scheduler.get(), &TileScheduler::tileExpired);
-        camera::Definition replacement_cam = camera::Definition({ 1383814.3, 5290605.1 - 500, 2277.0 + 500 }, { 1383814.3, 5290605.1, 2277.0 }); // should be westliche hochgrubachspitze
+        camera::Definition replacement_cam = camera::stored_positions::westl_hochgrubach_spitze();
         replacement_cam.set_viewport_size({ 2560, 1440 });
         m_scheduler->updateCamera(replacement_cam);
-        const auto current_gpu_tiles = m_scheduler->gpuTiles();
         spy.wait(5);
         QCOMPARE(m_scheduler->gpuTiles().size(), 400); // 400 cached tiles should remain
         for (const auto& tileExpireSignal : spy) {
