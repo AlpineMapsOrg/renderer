@@ -49,8 +49,11 @@ GpuCacheTileScheduler::GpuCacheTileScheduler()
         m_default_height_tile = std::make_shared<QByteArray>(arr);
     }
     m_purge_timer.setSingleShot(true);
+    m_update_timer.setSingleShot(true);
     m_purge_timer.setInterval(5);
+    m_update_timer.setInterval(2);
     connect(&m_purge_timer, &QTimer::timeout, this, &GpuCacheTileScheduler::purge_cache_from_old_tiles);
+    connect(&m_update_timer, &QTimer::timeout, this, &GpuCacheTileScheduler::do_update);
 }
 
 TileScheduler::TileSet GpuCacheTileScheduler::loadCandidates(const camera::Definition& camera, const tile_scheduler::AabbDecoratorPtr& aabb_decorator)
@@ -58,15 +61,13 @@ TileScheduler::TileSet GpuCacheTileScheduler::loadCandidates(const camera::Defin
     std::unordered_set<tile::Id, tile::Id::Hasher> all_tiles;
     const auto all_leaves = quad_tree::onTheFlyTraverse(
         tile::Id { 0, { 0, 0 } },
-        tile_scheduler::refineFunctor(camera, aabb_decorator, 2.0),
+        tile_scheduler::refineFunctor(camera, aabb_decorator, 2.0, m_ortho_tile_size),
         [&all_tiles](const tile::Id& v) { all_tiles.insert(v); return v.children(); });
     std::vector<tile::Id> visible_leaves;
     visible_leaves.reserve(all_leaves.size());
 
     all_tiles.reserve(all_tiles.size() + all_leaves.size());
     std::copy(all_leaves.begin(), all_leaves.end(), sherpa::unordered_inserter(all_tiles));
-
-
     return all_tiles;
 }
 
@@ -94,21 +95,40 @@ void GpuCacheTileScheduler::updateCamera(const camera::Definition& camera)
 {
     if (!enabled())
         return;
-
     m_current_camera = camera;
+    if (!m_update_timer.isActive())
+        m_update_timer.start();
+}
 
+void GpuCacheTileScheduler::do_update()
+{
     const auto aabb_decorator = this->aabb_decorator();
 
-    const auto tiles = loadCandidates(camera, aabb_decorator);
-    for (const auto& t : tiles) {
-        if (m_pending_tile_requests.contains(t)) // todo cancel current requests
-            continue;
-        if (m_gpu_tiles.contains(t)) {
-            continue;
-        }
+    const auto load_candidates = loadCandidates(m_current_camera, aabb_decorator);
+    std::vector<tile::Id> tiles_to_load;
+    tiles_to_load.reserve(load_candidates.size());
+    std::copy_if(load_candidates.begin(), load_candidates.end(), std::back_inserter(tiles_to_load), [this](const tile::Id& id) {
+        if (m_pending_tile_requests.contains(id))
+            return false;
+        if (m_gpu_tiles.contains(id))
+            return false;
+        return true;
+    });
+
+    const auto n_available_load_slots = m_max_n_simultaneous_requests - m_pending_tile_requests.size();
+    assert(n_available_load_slots <= m_max_n_simultaneous_requests);
+    const auto n_load_requests = std::min(tiles_to_load.size(), n_available_load_slots);
+    assert(n_load_requests <= tiles_to_load.size());
+    const auto last_load_tile_iter = tiles_to_load.begin() + int(n_load_requests);
+    std::nth_element(tiles_to_load.begin(), last_load_tile_iter, tiles_to_load.end());
+
+    std::for_each(tiles_to_load.begin(), last_load_tile_iter, [this](const auto& t) {
         m_pending_tile_requests.insert(t);
         emit tileRequested(t);
-    }
+    });
+
+    if (tiles_to_load.size() > n_available_load_slots && !m_update_timer.isActive())
+        m_update_timer.start();
 }
 
 void GpuCacheTileScheduler::receiveOrthoTile(tile::Id tile_id, std::shared_ptr<QByteArray> data)

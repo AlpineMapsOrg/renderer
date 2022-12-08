@@ -45,9 +45,13 @@ public slots:
     void set_tile_cache_size(unsigned);
     void purge_cache_from_old_tiles();
 
+private slots:
+    void do_update();
+
 private:
-    const unsigned m_ortho_tile_size = 256;
-    const unsigned m_height_tile_size = 64;
+    static constexpr unsigned m_ortho_tile_size = 256;
+    static constexpr unsigned m_height_tile_size = 64;
+    static constexpr unsigned m_max_n_simultaneous_requests = 64;
     void checkLoadedTile(const tile::Id& tile_id);
     void remove_gpu_tiles(const std::vector<tile::Id>& tiles);
 
@@ -59,6 +63,7 @@ private:
     std::shared_ptr<QByteArray> m_default_ortho_tile;
     std::shared_ptr<QByteArray> m_default_height_tile;
     QTimer m_purge_timer;
+    QTimer m_update_timer;
     unsigned m_tile_cache_size = 0;
     bool m_enabled = true;
 };
