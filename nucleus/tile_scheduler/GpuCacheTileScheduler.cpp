@@ -131,7 +131,7 @@ void GpuCacheTileScheduler::notifyAboutUnavailableHeightTile(tile::Id tile_id)
     QBuffer buffer(&arr);
     buffer.open(QIODevice::WriteOnly);
     default_tile.save(&buffer, "PNG");
-    receiveOrthoTile(tile_id, std::make_shared<QByteArray>(arr));
+    receiveHeightTile(tile_id, std::make_shared<QByteArray>(arr));
 }
 
 void GpuCacheTileScheduler::set_tile_cache_size(unsigned tile_cache_size)
