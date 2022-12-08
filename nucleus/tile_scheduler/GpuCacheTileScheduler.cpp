@@ -20,21 +20,41 @@
 #include <QBuffer>
 #include <unordered_set>
 
-#include "nucleus/tile_scheduler/utils.h"
 #include "nucleus/Tile.h"
-#include "nucleus/srs.h"
+#include "nucleus/tile_scheduler/utils.h"
 #include "nucleus/utils/QuadTree.h"
 #include "nucleus/utils/tile_conversion.h"
 #include "sherpa/geometry.h"
-#include "sherpa/hasher.h"
 #include "sherpa/iterator.h"
 
+GpuCacheTileScheduler::GpuCacheTileScheduler()
+{
+    {
+        QImage default_tile(QSize { int(m_ortho_tile_size), int(m_ortho_tile_size) }, QImage::Format_ARGB32);
+        default_tile.fill(Qt::GlobalColor::white);
+        QByteArray arr;
+        QBuffer buffer(&arr);
+        buffer.open(QIODevice::WriteOnly);
+        default_tile.save(&buffer, "JPEG");
+        m_default_ortho_tile = std::make_shared<QByteArray>(arr);
+    }
 
-GpuCacheTileScheduler::GpuCacheTileScheduler() = default;
+    {
+        QImage default_tile(QSize { int(m_height_tile_size), int(m_height_tile_size) }, QImage::Format_ARGB32);
+        default_tile.fill(Qt::GlobalColor::black);
+        QByteArray arr;
+        QBuffer buffer(&arr);
+        buffer.open(QIODevice::WriteOnly);
+        default_tile.save(&buffer, "PNG");
+        m_default_height_tile = std::make_shared<QByteArray>(arr);
+    }
+    m_purge_timer.setSingleShot(true);
+    m_purge_timer.setInterval(5);
+    connect(&m_purge_timer, &QTimer::timeout, this, &GpuCacheTileScheduler::purge_cache_from_old_tiles);
+}
 
 TileScheduler::TileSet GpuCacheTileScheduler::loadCandidates(const camera::Definition& camera, const tile_scheduler::AabbDecoratorPtr& aabb_decorator)
 {
-    //  return quad_tree::onTheFlyTraverse(tile::Id{0, {0, 0}}, tile_scheduler::refineFunctor(camera, 1.0), [](const auto& v) { return srs::subtiles(v); });
     std::unordered_set<tile::Id, tile::Id::Hasher> all_tiles;
     const auto all_leaves = quad_tree::onTheFlyTraverse(
         tile::Id { 0, { 0, 0 } },
@@ -47,11 +67,6 @@ TileScheduler::TileSet GpuCacheTileScheduler::loadCandidates(const camera::Defin
     std::copy(all_leaves.begin(), all_leaves.end(), sherpa::unordered_inserter(all_tiles));
 
 
-//    const auto is_visible = [&camera, aabb_decorator](const tile::Id& tile) {
-//        return tile_scheduler::cameraFrustumContainsTile(camera, aabb_decorator->aabb(tile));
-//    };
-
-//    std::copy_if(all_leaves.begin(), all_leaves.end(), std::back_inserter(visible_leaves), is_visible);
     return all_tiles;
 }
 
@@ -81,12 +96,8 @@ void GpuCacheTileScheduler::updateCamera(const camera::Definition& camera)
         return;
 
     m_current_camera = camera;
-    const auto aabb_decorator = this->aabb_decorator();
 
-//    const auto outside_camera_frustum = [&camera, aabb_decorator](const auto& gpu_tile_id) {
-//        return !tile_scheduler::cameraFrustumContainsTile(camera, aabb_decorator->aabb(gpu_tile_id));
-//    };
-//    removeGpuTileIf(outside_camera_frustum);
+    const auto aabb_decorator = this->aabb_decorator();
 
     const auto tiles = loadCandidates(camera, aabb_decorator);
     for (const auto& t : tiles) {
@@ -114,24 +125,12 @@ void GpuCacheTileScheduler::receiveHeightTile(tile::Id tile_id, std::shared_ptr<
 
 void GpuCacheTileScheduler::notifyAboutUnavailableOrthoTile(tile::Id tile_id)
 {
-    QImage default_tile(m_ortho_tile_size, m_ortho_tile_size, QImage::Format_ARGB32);
-    default_tile.fill(Qt::GlobalColor::white);
-    QByteArray arr;
-    QBuffer buffer(&arr);
-    buffer.open(QIODevice::WriteOnly);
-    default_tile.save(&buffer, "JPEG");
-    receiveOrthoTile(tile_id, std::make_shared<QByteArray>(arr));
+    receiveOrthoTile(tile_id, m_default_ortho_tile);
 }
 
 void GpuCacheTileScheduler::notifyAboutUnavailableHeightTile(tile::Id tile_id)
 {
-    QImage default_tile(m_ortho_tile_size, m_ortho_tile_size, QImage::Format_ARGB32);
-    default_tile.fill(Qt::GlobalColor::black);
-    QByteArray arr;
-    QBuffer buffer(&arr);
-    buffer.open(QIODevice::WriteOnly);
-    default_tile.save(&buffer, "PNG");
-    receiveHeightTile(tile_id, std::make_shared<QByteArray>(arr));
+    receiveHeightTile(tile_id, m_default_height_tile);
 }
 
 void GpuCacheTileScheduler::set_tile_cache_size(unsigned tile_cache_size)
@@ -155,7 +154,7 @@ void GpuCacheTileScheduler::purge_cache_from_old_tiles()
         remove_gpu_tiles(unnecessary_tiles); // cache too small. can't remove 'enough', so remove everything we can
         return;
     }
-    const auto last_remove_tile_iter = unnecessary_tiles.begin() + n_tiles_to_be_removed;
+    const auto last_remove_tile_iter = unnecessary_tiles.begin() + int(n_tiles_to_be_removed);
     assert(last_remove_tile_iter < unnecessary_tiles.end());
 
     std::nth_element(unnecessary_tiles.begin(), last_remove_tile_iter, unnecessary_tiles.end(), [](const tile::Id& a, const tile::Id& b) {
@@ -175,12 +174,10 @@ void GpuCacheTileScheduler::checkLoadedTile(const tile::Id& tile_id)
         m_received_ortho_tiles.erase(tile_id);
         m_received_height_tiles.erase(tile_id);
 
-//        const auto overlaps = [&tile_id](const auto& gpu_tile_id) { return srs::overlap(gpu_tile_id, tile_id); };
-//        removeGpuTileIf(overlaps);
-
         m_gpu_tiles.insert(tile_id);
         emit tileReady(tile);
-        purge_cache_from_old_tiles();
+        if (!m_purge_timer.isActive())
+            m_purge_timer.start();
     }
 }
 

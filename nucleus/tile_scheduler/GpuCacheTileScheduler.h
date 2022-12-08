@@ -19,6 +19,7 @@
 #pragma once
 
 #include "../TileScheduler.h"
+#include <QTimer>
 
 class GpuCacheTileScheduler : public TileScheduler
 {
@@ -51,12 +52,13 @@ private:
     void remove_gpu_tiles(const std::vector<tile::Id>& tiles);
 
     camera::Definition m_current_camera;
-    unsigned m_tile_cache_size = 0;
-    TileSet m_unavaliable_tiles;
     TileSet m_pending_tile_requests;
     TileSet m_gpu_tiles;
     Tile2DataMap m_received_ortho_tiles;
     Tile2DataMap m_received_height_tiles;
+    std::shared_ptr<QByteArray> m_default_ortho_tile;
+    std::shared_ptr<QByteArray> m_default_height_tile;
+    QTimer m_purge_timer;
+    unsigned m_tile_cache_size = 0;
     bool m_enabled = true;
 };
-
