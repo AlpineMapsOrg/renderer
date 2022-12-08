@@ -45,7 +45,7 @@ void DrawListGenerator::remove_tile(const tile::Id& id)
 
 DrawListGenerator::TileSet DrawListGenerator::generate_for(const camera::Definition& camera) const
 {
-    const auto tile_refine_functor = tile_scheduler::refineFunctor(camera, m_aabb_decorator, 2.0);
+    const auto tile_refine_functor = tile_scheduler::refineFunctor(camera, m_aabb_decorator, 1.0);
     const auto draw_refine_functor = [&tile_refine_functor, this](const tile::Id& tile) {
         bool all = true;
         for (const auto& child : tile.children()) {
