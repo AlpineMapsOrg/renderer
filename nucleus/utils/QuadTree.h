@@ -22,6 +22,8 @@
 #include <array>
 #include <cassert>
 #include <memory>
+#include <vector>
+#include <iterator>
 
 using std::size_t;
 
