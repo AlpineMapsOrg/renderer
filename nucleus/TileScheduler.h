@@ -64,6 +64,7 @@ public slots:
     virtual void receiveHeightTile(tile::Id tile_id, std::shared_ptr<QByteArray> data) = 0;
     virtual void notifyAboutUnavailableOrthoTile(tile::Id tile_id) = 0;
     virtual void notifyAboutUnavailableHeightTile(tile::Id tile_id) = 0;
+    virtual void print_debug_info() const;
 
 signals:
     void tileRequested(const tile::Id& tile_id);

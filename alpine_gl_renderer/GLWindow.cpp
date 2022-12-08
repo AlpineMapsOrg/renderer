@@ -177,7 +177,7 @@ void GLWindow::paintOverGL()
     const auto frame_duration_text = QString("Last frame: %1ms, draw indicator: ")
                                          .arg(QString::asprintf("%04.1f", frame_duration_float));
 
-    const auto scheduler_stats = QString("Scheduler: %1 tiles in transit, %2 waiting height tiles, %3 waiting ortho tiles, %4 tiles on gpu")
+    const auto scheduler_stats = QString("Scheduler: %1 tiles in transit, %2 height, %3 ortho tiles in main cache, %4 tiles on gpu")
                                      .arg(m_tile_scheduler->numberOfTilesInTransit())
                                      .arg(m_tile_scheduler->numberOfWaitingHeightTiles())
                                      .arg(m_tile_scheduler->numberOfWaitingOrthoTiles())
@@ -206,6 +206,10 @@ void GLWindow::keyPressEvent(QKeyEvent* e)
     if (e->key() == Qt::Key::Key_T) {
         m_tile_scheduler->setEnabled(!m_tile_scheduler->enabled());
         qDebug("setting tile scheduler enabled = %d", int(m_tile_scheduler->enabled()));
+    }
+    if (e->key() == Qt::Key::Key_D) {
+        qDebug("scheduler debug print:");
+        m_tile_scheduler->print_debug_info();
     }
     if (e->key() == Qt::Key::Key_F5) {
         m_shader_manager->reload_shaders();

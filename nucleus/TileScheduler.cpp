@@ -20,3 +20,7 @@ void TileScheduler::set_aabb_decorator(const tile_scheduler::AabbDecoratorPtr& n
 {
     m_aabb_decorator = new_aabb_decorator;
 }
+
+void TileScheduler::print_debug_info() const
+{
+}

@@ -24,6 +24,7 @@
 class GpuCacheTileScheduler : public TileScheduler
 {
     Q_OBJECT
+
 public:
     GpuCacheTileScheduler();
 
@@ -42,28 +43,36 @@ public slots:
     void receiveHeightTile(tile::Id tile_id, std::shared_ptr<QByteArray> data) override;
     void notifyAboutUnavailableOrthoTile(tile::Id tile_id) override;
     void notifyAboutUnavailableHeightTile(tile::Id tile_id) override;
-    void set_tile_cache_size(unsigned);
-    void purge_cache_from_old_tiles();
+    void print_debug_info() const override;
+    void set_gpu_cache_size(unsigned);
+    void purge_gpu_cache_from_old_tiles();
+    void purge_main_cache_from_old_tiles();
 
 private slots:
     void do_update();
 
 private:
+    bool send_to_gpu_if_available(const tile::Id& tile_id);
+    void remove_gpu_tiles(const std::vector<tile::Id>& tiles);
+
     static constexpr unsigned m_ortho_tile_size = 256;
     static constexpr unsigned m_height_tile_size = 64;
     static constexpr unsigned m_max_n_simultaneous_requests = 64;
-    void checkLoadedTile(const tile::Id& tile_id);
-    void remove_gpu_tiles(const std::vector<tile::Id>& tiles);
+    static constexpr unsigned m_main_cache_size = 5000;
 
     camera::Definition m_current_camera;
     TileSet m_pending_tile_requests;
     TileSet m_gpu_tiles;
-    Tile2DataMap m_received_ortho_tiles;
-    Tile2DataMap m_received_height_tiles;
+    Tile2DataMap m_received_ortho_tiles; // used as main cache
+    Tile2DataMap m_received_height_tiles; // used as main cache
+    std::unordered_map<tile::Id, unsigned, tile::Id::Hasher> m_main_cache_book;
+
     std::shared_ptr<QByteArray> m_default_ortho_tile;
     std::shared_ptr<QByteArray> m_default_height_tile;
-    QTimer m_purge_timer;
+    QTimer m_gpu_purge_timer;
+    QTimer m_main_cache_purge_timer;
     QTimer m_update_timer;
-    unsigned m_tile_cache_size = 0;
+    const uint64_t m_construction_msec_since_epoch = 0;
+    unsigned m_gpu_cache_size = 0;
     bool m_enabled = true;
 };
