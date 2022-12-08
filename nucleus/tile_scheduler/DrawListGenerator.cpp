@@ -51,7 +51,7 @@ DrawListGenerator::TileSet DrawListGenerator::generate_for(const camera::Definit
         for (const auto& child : tile.children()) {
             all = all && m_available_tiles.contains(child);
         }
-        all = all || tile.zoom_level < 10;
+        //        all = all || tile.zoom_level < 10;
         return all && tile_refine_functor(tile);
     };
 
