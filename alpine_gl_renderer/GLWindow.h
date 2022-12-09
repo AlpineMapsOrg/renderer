@@ -96,6 +96,7 @@ protected:
     void mousePressEvent(QMouseEvent* ev) override;
     void mouseMoveEvent(QMouseEvent*) override;
     void keyPressEvent(QKeyEvent*) override;
+    void touchEvent(QTouchEvent*) override;
 
 public slots:
     void update_camera(const camera::Definition& new_definition);
@@ -125,6 +126,7 @@ private:
     bool m_initialised = false;
     TimePoint m_frame_start;
     TimePoint m_frame_end;
+    QString m_debug_text;
 };
 
 #endif

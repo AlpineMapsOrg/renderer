@@ -191,6 +191,7 @@ void GLWindow::paintOverGL()
     QRect text_bb = painter.boundingRect(10, 20, 1, 15, Qt::TextSingleLine, frame_duration_text);
     painter.drawText(10, 20, frame_duration_text);
     painter.drawText(10, 40, scheduler_stats);
+    painter.drawText(10, 60, m_debug_text);
     painter.setBrush(QBrush(QColor(random_u32)));
     painter.drawRect(int(text_bb.right()) + 5, 8, 12, 12);
 }
@@ -217,6 +218,19 @@ void GLWindow::keyPressEvent(QKeyEvent* e)
         qDebug("all shaders reloaded");
     }
     emit key_pressed(e);
+}
+
+void GLWindow::touchEvent(QTouchEvent* ev)
+{
+    if (ev->isEndEvent()) {
+        m_debug_text = "";
+        return;
+    }
+    m_debug_text = "touches: ";
+    for (const auto& point : ev->points()) {
+        m_debug_text.append(QString("%1:%2/%3; ").arg(point.id()).arg(point.position().x()).arg(point.position().y()));
+    }
+    update();
 }
 
 void GLWindow::update_camera(const camera::Definition& new_definition)
