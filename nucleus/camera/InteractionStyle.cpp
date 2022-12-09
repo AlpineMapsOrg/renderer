@@ -15,3 +15,8 @@ std::optional<camera::Definition> camera::InteractionStyle::keyPressEvent(QKeyEv
 {
     return {};
 }
+
+std::optional<camera::Definition> camera::InteractionStyle::touchEvent(QTouchEvent*, Definition)
+{
+    return {};
+}

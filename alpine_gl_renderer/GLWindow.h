@@ -93,7 +93,7 @@ public:
     void setTileScheduler(TileScheduler* new_tile_scheduler);
 
 protected:
-    void mousePressEvent(QMouseEvent* ev) override;
+    void mousePressEvent(QMouseEvent*) override;
     void mouseMoveEvent(QMouseEvent*) override;
     void keyPressEvent(QKeyEvent*) override;
     void touchEvent(QTouchEvent*) override;
@@ -105,6 +105,7 @@ signals:
     void mouse_pressed(QMouseEvent*, float distance) const;
     void mouse_moved(QMouseEvent*) const;
     void key_pressed(QKeyEvent*) const;
+    void touch_made(QTouchEvent*) const;
     void viewport_changed(const glm::uvec2& new_viewport) const;
 
 private:

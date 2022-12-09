@@ -31,6 +31,7 @@ public slots:
     void mouse_press(QMouseEvent*, float distance);
     void mouse_move(QMouseEvent*);
     void key_press(QKeyEvent*);
+    void touch(QTouchEvent*);
 
 signals:
     void definitionChanged(const Definition& new_definition) const;

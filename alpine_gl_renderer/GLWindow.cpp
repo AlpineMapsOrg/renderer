@@ -231,6 +231,7 @@ void GLWindow::touchEvent(QTouchEvent* ev)
         m_debug_text.append(QString("%1:%2/%3; ").arg(point.id()).arg(point.position().x()).arg(point.position().y()));
     }
     update();
+    emit touch_made(ev);
 }
 
 void GLWindow::update_camera(const camera::Definition& new_definition)

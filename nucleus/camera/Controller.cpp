@@ -76,6 +76,15 @@ void Controller::key_press(QKeyEvent* e)
     update();
 }
 
+void Controller::touch(QTouchEvent* e)
+{
+    const auto new_definition = m_interaction_style->touchEvent(e, m_definition);
+    if (!new_definition)
+        return;
+    m_definition = new_definition.value();
+    update();
+}
+
 void Controller::set_interaction_style(std::unique_ptr<InteractionStyle> new_style)
 {
     if (new_style)
