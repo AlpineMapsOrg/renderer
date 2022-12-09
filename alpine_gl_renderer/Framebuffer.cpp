@@ -180,12 +180,18 @@ void Framebuffer::resize(const glm::uvec2& new_size)
         m_colour_texture->destroy();
         m_colour_texture->setFormat(internal_format_qt(m_colour_formats.front()));
         m_colour_texture->setSize(int(m_size.x), int(m_size.y));
+        m_colour_texture->setAutoMipMapGenerationEnabled(false);
+        m_colour_texture->setMinMagFilters(QOpenGLTexture::Filter::Linear, QOpenGLTexture::Filter::Linear);
+        m_colour_texture->setWrapMode(QOpenGLTexture::WrapMode::ClampToEdge);
         m_colour_texture->allocateStorage();
     }
     if (m_depth_format != DepthFormat::None) {
         m_depth_texture->destroy();
         m_depth_texture->setFormat(QOpenGLTexture::TextureFormat::D32F);
         m_depth_texture->setSize(int(m_size.x), int(m_size.y));
+        m_colour_texture->setAutoMipMapGenerationEnabled(false);
+        m_colour_texture->setMinMagFilters(QOpenGLTexture::Filter::Linear, QOpenGLTexture::Filter::Linear);
+        m_colour_texture->setWrapMode(QOpenGLTexture::WrapMode::ClampToEdge);
         m_depth_texture->allocateStorage();
     }
     reset_fbo();
