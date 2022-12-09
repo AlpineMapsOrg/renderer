@@ -269,3 +269,8 @@ void GpuCacheTileScheduler::remove_gpu_tiles(const std::vector<tile::Id>& tiles)
         m_gpu_tiles.erase(id);
     }
 }
+
+void GpuCacheTileScheduler::set_max_n_simultaneous_requests(unsigned int new_max_n_simultaneous_requests)
+{
+    m_max_n_simultaneous_requests = new_max_n_simultaneous_requests;
+}

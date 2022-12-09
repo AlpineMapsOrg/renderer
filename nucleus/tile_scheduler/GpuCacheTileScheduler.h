@@ -45,6 +45,7 @@ public slots:
     void notifyAboutUnavailableHeightTile(tile::Id tile_id) override;
     void print_debug_info() const override;
     void set_gpu_cache_size(unsigned);
+    void set_max_n_simultaneous_requests(unsigned int new_max_n_simultaneous_requests);
     void purge_gpu_cache_from_old_tiles();
     void purge_main_cache_from_old_tiles();
 
@@ -57,7 +58,7 @@ private:
 
     static constexpr unsigned m_ortho_tile_size = 256;
     static constexpr unsigned m_height_tile_size = 64;
-    static constexpr unsigned m_max_n_simultaneous_requests = 64;
+    unsigned m_max_n_simultaneous_requests = 64;
     static constexpr unsigned m_main_cache_size = 5000;
 
     camera::Definition m_current_camera;
