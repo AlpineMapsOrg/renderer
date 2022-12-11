@@ -27,7 +27,7 @@
 #include "nucleus/camera/Definition.h"
 #include "sherpa/tile.h"
 
-
+class QKeyEvent;
 struct Tile;
 namespace tile_scheduler {
 class AabbDecorator;
@@ -60,6 +60,7 @@ public slots:
     virtual void notifyAboutUnavailableHeightTile(tile::Id tile_id) = 0;
     virtual void print_debug_info() const;
     virtual void send_debug_scheduler_stats() const;
+    void key_press(const QKeyCombination&);
 
 signals:
     void tileRequested(const tile::Id& tile_id) const;

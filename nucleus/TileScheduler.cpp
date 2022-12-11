@@ -2,8 +2,10 @@
 #include "nucleus/tile_scheduler/utils.h"
 #include "sherpa/TileHeights.h"
 
+#include <QKeyEvent>
 
-TileScheduler::TileScheduler() {
+TileScheduler::TileScheduler()
+{
     TileHeights h;
     h.emplace({ 0, { 0, 0 } }, { 100, 4000 });
     set_aabb_decorator(tile_scheduler::AabbDecorator::make(std::move(h)));
@@ -33,4 +35,12 @@ void TileScheduler::send_debug_scheduler_stats() const
                           .arg(numberOfWaitingOrthoTiles())
                           .arg(gpuTiles().size());
     emit debug_scheduler_stats_updated(text);
+}
+
+void TileScheduler::key_press(const QKeyCombination& e)
+{
+    if (e.key() == Qt::Key::Key_T) {
+        setEnabled(!enabled());
+        qDebug("setting tile scheduler enabled = %d", int(enabled()));
+    }
 }

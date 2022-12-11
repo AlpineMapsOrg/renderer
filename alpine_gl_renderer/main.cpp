@@ -148,6 +148,7 @@ int main(int argc, char* argv[])
     QObject::connect(&glWindow, &GLWindow::mouse_pressed, &camera_controller, &camera::Controller::mouse_press);
     QObject::connect(&glWindow, &GLWindow::key_pressed, &camera_controller, &camera::Controller::key_press);
     QObject::connect(&glWindow, &GLWindow::touch_made, &camera_controller, &camera::Controller::touch);
+    QObject::connect(&glWindow, &GLWindow::key_pressed, &scheduler, &TileScheduler::key_press);
 
     QObject::connect(&camera_controller, &camera::Controller::definitionChanged, &scheduler, &TileScheduler::updateCamera);
     QObject::connect(&camera_controller, &camera::Controller::definitionChanged, &near_plane_adjuster, &camera::NearPlaneAdjuster::updateCamera);

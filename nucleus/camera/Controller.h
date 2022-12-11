@@ -30,7 +30,7 @@ public slots:
 
     void mouse_press(QMouseEvent*, float distance);
     void mouse_move(QMouseEvent*);
-    void key_press(QKeyEvent*);
+    void key_press(const QKeyCombination&);
     void touch(QTouchEvent*);
 
 signals:

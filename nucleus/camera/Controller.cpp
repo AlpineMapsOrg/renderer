@@ -65,7 +65,7 @@ void Controller::mouse_move(QMouseEvent* e)
     update();
 }
 
-void Controller::key_press(QKeyEvent* e)
+void Controller::key_press(const QKeyCombination& e)
 {
     const auto new_definition = m_interaction_style->keyPressEvent(e, m_definition);
     if (!new_definition)

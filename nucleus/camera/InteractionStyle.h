@@ -2,9 +2,9 @@
 
 #include <optional>
 
-#include <QTouchEvent>
+#include <QKeyCombination>
 #include <QMouseEvent>
-#include <QKeyEvent>
+#include <QTouchEvent>
 
 #include "Definition.h"
 
@@ -16,7 +16,7 @@ public:
     virtual ~InteractionStyle() = default;
     virtual std::optional<Definition> mousePressEvent(QMouseEvent* e, Definition camera, float distance);
     virtual std::optional<Definition> mouseMoveEvent(QMouseEvent* e, Definition camera);
-    virtual std::optional<Definition> keyPressEvent(QKeyEvent* e, Definition camera);
+    virtual std::optional<Definition> keyPressEvent(const QKeyCombination& e, Definition camera);
     virtual std::optional<Definition> touchEvent(QTouchEvent* e, Definition camera);
 };
 

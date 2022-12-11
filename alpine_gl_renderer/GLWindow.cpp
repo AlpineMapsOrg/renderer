@@ -203,7 +203,8 @@ void GLWindow::keyPressEvent(QKeyEvent* e)
         update();
         qDebug("all shaders reloaded");
     }
-    emit key_pressed(e);
+
+    emit key_pressed(e->keyCombination());
 }
 
 void GLWindow::touchEvent(QTouchEvent* ev)

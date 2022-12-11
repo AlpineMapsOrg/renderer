@@ -102,7 +102,7 @@ public slots:
 signals:
     void mouse_pressed(QMouseEvent*, float distance) const;
     void mouse_moved(QMouseEvent*) const;
-    void key_pressed(QKeyEvent*) const;
+    void key_pressed(const QKeyCombination&) const;
     void touch_made(QTouchEvent*) const;
     void viewport_changed(const glm::uvec2& new_viewport) const;
 
