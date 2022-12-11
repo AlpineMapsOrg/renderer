@@ -40,12 +40,6 @@ public:
     using TileSet = std::unordered_set<tile::Id, tile::Id::Hasher>;
     using Tile2DataMap = std::unordered_map<tile::Id, std::shared_ptr<QByteArray>, tile::Id::Hasher>;
     TileScheduler();
-//    TileScheduler(const TileScheduler&) = delete;
-//    TileScheduler(const TileScheduler&&) = delete;
-//    ~TileScheduler() override;
-
-//    void operator = (const TileScheduler&) = delete;
-//    void operator = (const TileScheduler&&) = delete;
 
     [[nodiscard]] virtual size_t numberOfTilesInTransit() const = 0;
     [[nodiscard]] virtual size_t numberOfWaitingHeightTiles() const = 0;
@@ -65,12 +59,14 @@ public slots:
     virtual void notifyAboutUnavailableOrthoTile(tile::Id tile_id) = 0;
     virtual void notifyAboutUnavailableHeightTile(tile::Id tile_id) = 0;
     virtual void print_debug_info() const;
+    virtual void send_debug_scheduler_stats() const;
 
 signals:
-    void tileRequested(const tile::Id& tile_id);
-    void tileReady(const std::shared_ptr<Tile>& tile);
-    void tileExpired(const tile::Id& tile_id);
-    void cancelTileRequest(const tile::Id& tile_id);
+    void tileRequested(const tile::Id& tile_id) const;
+    void tileReady(const std::shared_ptr<Tile>& tile) const;
+    void tileExpired(const tile::Id& tile_id) const;
+    void cancelTileRequest(const tile::Id& tile_id) const;
+    void debug_scheduler_stats_updated(const QString& stats) const;
 
 private:
     tile_scheduler::AabbDecoratorPtr m_aabb_decorator;

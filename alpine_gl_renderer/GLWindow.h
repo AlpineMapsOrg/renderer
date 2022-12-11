@@ -73,7 +73,6 @@ QT_END_NAMESPACE
 class GLDebugPainter;
 class GLTileManager;
 class GLShaderManager;
-class TileScheduler;
 class Framebuffer;
 class Atmosphere;
 
@@ -90,8 +89,6 @@ public:
 
     GLTileManager* gpuTileManager() const;
 
-    void setTileScheduler(TileScheduler* new_tile_scheduler);
-
 protected:
     void mousePressEvent(QMouseEvent*) override;
     void mouseMoveEvent(QMouseEvent*) override;
@@ -100,6 +97,7 @@ protected:
 
 public slots:
     void update_camera(const camera::Definition& new_definition);
+    void update_debug_scheduler_stats(const QString& stats);
 
 signals:
     void mouse_pressed(QMouseEvent*, float distance) const;
@@ -119,7 +117,6 @@ private:
     std::unique_ptr<GLShaderManager> m_shader_manager;
     std::unique_ptr<Framebuffer> m_framebuffer;
     gl_helpers::ScreenQuadGeometry m_screen_quad_geometry;
-    TileScheduler* m_tile_scheduler;
 
     camera::Definition m_camera;
 
@@ -128,6 +125,7 @@ private:
     TimePoint m_frame_start;
     TimePoint m_frame_end;
     QString m_debug_text;
+    QString m_debug_scheduler_stats;
 };
 
 #endif

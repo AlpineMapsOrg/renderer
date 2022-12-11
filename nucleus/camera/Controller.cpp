@@ -1,7 +1,5 @@
 #include "Controller.h"
 
-#include <QTimer>
-
 #include "nucleus/camera/Definition.h"
 
 

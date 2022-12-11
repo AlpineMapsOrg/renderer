@@ -53,14 +53,17 @@ GpuCacheTileScheduler::GpuCacheTileScheduler()
         default_tile.save(&buffer, "PNG");
         m_default_height_tile = std::make_shared<QByteArray>(arr);
     }
+    m_main_cache_purge_timer.setParent(this); // must move to new threads together
     m_main_cache_purge_timer.setSingleShot(true);
     m_main_cache_purge_timer.setInterval(100);
     connect(&m_main_cache_purge_timer, &QTimer::timeout, this, &GpuCacheTileScheduler::purge_main_cache_from_old_tiles);
 
+    m_gpu_purge_timer.setParent(this); // must move to new threads together
     m_gpu_purge_timer.setSingleShot(true);
     m_gpu_purge_timer.setInterval(5);
     connect(&m_gpu_purge_timer, &QTimer::timeout, this, &GpuCacheTileScheduler::purge_gpu_cache_from_old_tiles);
 
+    m_update_timer.setParent(this); // must move to new threads together
     m_update_timer.setSingleShot(true);
     m_update_timer.setInterval(2);
     connect(&m_update_timer, &QTimer::timeout, this, &GpuCacheTileScheduler::do_update);
@@ -143,18 +146,22 @@ void GpuCacheTileScheduler::do_update()
 
     if (tiles_to_load.size() > n_available_load_slots && !m_update_timer.isActive())
         m_update_timer.start();
+
+    send_debug_scheduler_stats();
 }
 
 void GpuCacheTileScheduler::receiveOrthoTile(tile::Id tile_id, std::shared_ptr<QByteArray> data)
 {
     m_received_ortho_tiles[tile_id] = data;
     send_to_gpu_if_available(tile_id);
+    send_debug_scheduler_stats();
 }
 
 void GpuCacheTileScheduler::receiveHeightTile(tile::Id tile_id, std::shared_ptr<QByteArray> data)
 {
     m_received_height_tiles[tile_id] = data;
     send_to_gpu_if_available(tile_id);
+    send_debug_scheduler_stats();
 }
 
 void GpuCacheTileScheduler::notifyAboutUnavailableOrthoTile(tile::Id tile_id)
@@ -190,6 +197,7 @@ void GpuCacheTileScheduler::purge_gpu_cache_from_old_tiles()
     const auto n_tiles_to_be_removed = m_gpu_tiles.size() - m_gpu_cache_size;
     if (n_tiles_to_be_removed >= unnecessary_tiles.size()) {
         remove_gpu_tiles(unnecessary_tiles); // cache too small. can't remove 'enough', so remove everything we can
+        send_debug_scheduler_stats();
         return;
     }
     const auto last_remove_tile_iter = unnecessary_tiles.begin() + int(n_tiles_to_be_removed);
@@ -200,6 +208,7 @@ void GpuCacheTileScheduler::purge_gpu_cache_from_old_tiles()
     });
     unnecessary_tiles.resize(n_tiles_to_be_removed);
     remove_gpu_tiles(unnecessary_tiles);
+    send_debug_scheduler_stats();
 }
 
 void GpuCacheTileScheduler::purge_main_cache_from_old_tiles()
@@ -226,6 +235,7 @@ void GpuCacheTileScheduler::purge_main_cache_from_old_tiles()
         m_received_height_tiles.erase(v.first);
         m_received_ortho_tiles.erase(v.first);
     });
+    send_debug_scheduler_stats();
 }
 
 bool GpuCacheTileScheduler::send_to_gpu_if_available(const tile::Id& tile_id)

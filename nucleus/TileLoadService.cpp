@@ -29,9 +29,9 @@
 #endif
 
 TileLoadService::TileLoadService(const QString& base_url, UrlPattern url_pattern, const QString& file_ending, const LoadBalancingTargets& load_balancing_targets)
-    : m_network_manager(new QNetworkAccessManager())
+    : m_network_manager(new QNetworkAccessManager(this))
 #ifdef ALP_USE_DISK_CACHE
-    , m_disk_cache(new QNetworkDiskCache())
+    , m_disk_cache(new QNetworkDiskCache(this))
 #endif
     , m_base_url(base_url)
     , m_url_pattern(url_pattern)

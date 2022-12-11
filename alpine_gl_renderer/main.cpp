@@ -54,6 +54,7 @@
 #include <QObject>
 #include <QOpenGLContext>
 #include <QSurfaceFormat>
+#include <QThread>
 #include <QTimer>
 
 #include "GLWindow.h"
@@ -104,24 +105,23 @@ int main(int argc, char* argv[])
     TileLoadService ortho_service("http://maps%1.wien.gv.at/basemap/bmaporthofoto30cm/normal/google3857/", TileLoadService::UrlPattern::ZYX_yPointingSouth, ".jpeg", { "", "1", "2", "3", "4" });
     GpuCacheTileScheduler scheduler;
     scheduler.set_gpu_cache_size(1000);
-    // SimplisticTileScheduler scheduler;
 
     GLWindow glWindow;
     if (running_in_browser)
         glWindow.showFullScreen();
     else
         glWindow.showMaximized();
-    glWindow.setTileScheduler(&scheduler); // i don't like this, gl window is tightly coupled with the scheduler.
 
     QNetworkAccessManager m_network_manager;
     QNetworkReply* reply = m_network_manager.get(QNetworkRequest(QUrl("http://gataki.cg.tuwien.ac.at/tiles/alpine_png2/height_data.atb")));
-    QObject::connect(reply, &QNetworkReply::finished, [reply, &scheduler, &glWindow, &app]() {
+    QObject::connect(reply, &QNetworkReply::finished, &glWindow, [reply, &scheduler, &glWindow, &app]() {
         const auto url = reply->url();
         const auto error = reply->error();
         if (error == QNetworkReply::NoError) {
             const QByteArray data = reply->readAll();
             const auto decorator = tile_scheduler::AabbDecorator::make(TileHeights::deserialise(data));
-            scheduler.set_aabb_decorator(decorator);
+            QTimer::singleShot(1, &scheduler, [&scheduler, decorator]() { scheduler.set_aabb_decorator(decorator); });
+
             assert(glWindow.gpuTileManager());
             glWindow.gpuTileManager()->set_aabb_decorator(decorator);
         } else {
@@ -138,6 +138,10 @@ int main(int argc, char* argv[])
 
     camera::NearPlaneAdjuster near_plane_adjuster;
 
+    QThread scheduler_thread;
+    terrain_service.moveToThread(&scheduler_thread);
+    ortho_service.moveToThread(&scheduler_thread);
+    scheduler.moveToThread(&scheduler_thread);
 
     QObject::connect(&glWindow, &GLWindow::viewport_changed, &camera_controller, &camera::Controller::setViewport);
     QObject::connect(&glWindow, &GLWindow::mouse_moved, &camera_controller, &camera::Controller::mouse_move);
@@ -151,11 +155,12 @@ int main(int argc, char* argv[])
 
     QObject::connect(&scheduler, &TileScheduler::tileRequested, &terrain_service, &TileLoadService::load);
     QObject::connect(&scheduler, &TileScheduler::tileRequested, &ortho_service, &TileLoadService::load);
-    QObject::connect(&scheduler, &TileScheduler::tileReady, [&glWindow](const std::shared_ptr<Tile>& tile) { glWindow.gpuTileManager()->addTile(tile); });
+    QObject::connect(&scheduler, &TileScheduler::tileReady, &glWindow, [&glWindow](const std::shared_ptr<Tile>& tile) { glWindow.gpuTileManager()->addTile(tile); });
     QObject::connect(&scheduler, &TileScheduler::tileReady, &near_plane_adjuster, &camera::NearPlaneAdjuster::addTile);
     QObject::connect(&scheduler, &TileScheduler::tileReady, &glWindow, qOverload<>(&GLWindow::update));
-    QObject::connect(&scheduler, &TileScheduler::tileExpired, [&glWindow](const auto& tile) { glWindow.gpuTileManager()->removeTile(tile); });
+    QObject::connect(&scheduler, &TileScheduler::tileExpired, &glWindow, [&glWindow](const auto& tile) { glWindow.gpuTileManager()->removeTile(tile); });
     QObject::connect(&scheduler, &TileScheduler::tileExpired, &near_plane_adjuster, &camera::NearPlaneAdjuster::removeTile);
+    QObject::connect(&scheduler, &TileScheduler::debug_scheduler_stats_updated, &glWindow, &GLWindow::update_debug_scheduler_stats);
 
     QObject::connect(&ortho_service, &TileLoadService::loadReady, &scheduler, &TileScheduler::receiveOrthoTile);
     QObject::connect(&ortho_service, &TileLoadService::tileUnavailable, &scheduler, &TileScheduler::notifyAboutUnavailableOrthoTile);
@@ -163,6 +168,8 @@ int main(int argc, char* argv[])
     QObject::connect(&terrain_service, &TileLoadService::tileUnavailable, &scheduler, &TileScheduler::notifyAboutUnavailableHeightTile);
 
     QObject::connect(&near_plane_adjuster, &camera::NearPlaneAdjuster::nearPlaneChanged, &camera_controller, &camera::Controller::setNearPlane);
+
+    scheduler_thread.start();
 
     // in web assembly, the gl window is resized before it is connected. need to set viewport manually.
     // native, however, glWindow has a zero size at this point.

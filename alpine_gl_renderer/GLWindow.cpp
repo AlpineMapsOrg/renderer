@@ -177,12 +177,6 @@ void GLWindow::paintOverGL()
     const auto frame_duration_text = QString("Last frame: %1ms, draw indicator: ")
                                          .arg(QString::asprintf("%04.1f", frame_duration_float));
 
-    const auto scheduler_stats = QString("Scheduler: %1 tiles in transit, %2 height, %3 ortho tiles in main cache, %4 tiles on gpu")
-                                     .arg(m_tile_scheduler->numberOfTilesInTransit())
-                                     .arg(m_tile_scheduler->numberOfWaitingHeightTiles())
-                                     .arg(m_tile_scheduler->numberOfWaitingOrthoTiles())
-                                     .arg(m_tile_scheduler->gpuTiles().size());
-
     const auto random_u32 = QRandomGenerator::global()->generate();
 
     QPainter painter(this);
@@ -190,7 +184,7 @@ void GLWindow::paintOverGL()
     painter.setPen(Qt::white);
     QRect text_bb = painter.boundingRect(10, 20, 1, 15, Qt::TextSingleLine, frame_duration_text);
     painter.drawText(10, 20, frame_duration_text);
-    painter.drawText(10, 40, scheduler_stats);
+    painter.drawText(10, 40, m_debug_scheduler_stats);
     painter.drawText(10, 60, m_debug_text);
     painter.setBrush(QBrush(QColor(random_u32)));
     painter.drawRect(int(text_bb.right()) + 5, 8, 12, 12);
@@ -204,14 +198,6 @@ void GLWindow::mouseMoveEvent(QMouseEvent* e)
 
 void GLWindow::keyPressEvent(QKeyEvent* e)
 {
-    if (e->key() == Qt::Key::Key_T) {
-        m_tile_scheduler->setEnabled(!m_tile_scheduler->enabled());
-        qDebug("setting tile scheduler enabled = %d", int(m_tile_scheduler->enabled()));
-    }
-    if (e->key() == Qt::Key::Key_D) {
-        qDebug("scheduler debug print:");
-        m_tile_scheduler->print_debug_info();
-    }
     if (e->key() == Qt::Key::Key_F5) {
         m_shader_manager->reload_shaders();
         update();
@@ -240,9 +226,10 @@ void GLWindow::update_camera(const camera::Definition& new_definition)
     update();
 }
 
-void GLWindow::setTileScheduler(TileScheduler* new_tile_scheduler)
+void GLWindow::update_debug_scheduler_stats(const QString& stats)
 {
-    m_tile_scheduler = new_tile_scheduler;
+    m_debug_scheduler_stats = stats;
+    update();
 }
 
 void GLWindow::mousePressEvent(QMouseEvent* ev)
