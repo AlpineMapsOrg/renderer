@@ -100,9 +100,9 @@ int main(int argc, char* argv[])
 
     QSurfaceFormat::setDefaultFormat(fmt);
 
-    TileLoadService terrain_service("http://alpinemaps.cg.tuwien.ac.at/tiles/alpine_png/", TileLoadService::UrlPattern::ZXY, ".png");
-//    TileLoadService ortho_service("http://alpinemaps.cg.tuwien.ac.at/tiles/ortho/", TileLoadService::UrlPattern::ZYX_yPointingSouth, ".jpeg");
-    TileLoadService ortho_service("http://maps%1.wien.gv.at/basemap/bmaporthofoto30cm/normal/google3857/", TileLoadService::UrlPattern::ZYX_yPointingSouth, ".jpeg", { "", "1", "2", "3", "4" });
+    TileLoadService terrain_service("https://alpinemaps.cg.tuwien.ac.at/tiles/alpine_png/", TileLoadService::UrlPattern::ZXY, ".png");
+//    TileLoadService ortho_service("https://alpinemaps.cg.tuwien.ac.at/tiles/ortho/", TileLoadService::UrlPattern::ZYX_yPointingSouth, ".jpeg");
+    TileLoadService ortho_service("https://maps%1.wien.gv.at/basemap/bmaporthofoto30cm/normal/google3857/", TileLoadService::UrlPattern::ZYX_yPointingSouth, ".jpeg", { "", "1", "2", "3", "4" });
     GpuCacheTileScheduler scheduler;
     scheduler.set_gpu_cache_size(1000);
 
@@ -113,7 +113,8 @@ int main(int argc, char* argv[])
         glWindow.showMaximized();
 
     QNetworkAccessManager m_network_manager;
-    QNetworkReply* reply = m_network_manager.get(QNetworkRequest(QUrl("http://gataki.cg.tuwien.ac.at/tiles/alpine_png2/height_data.atb")));
+    QNetworkReply* reply = m_network_manager.get(QNetworkRequest(QUrl("https://gataki.cg.tuwien.ac.at/tiles/alpine_png2/height_data.atb")));
+//    QNetworkReply* reply = m_network_manager.get(QNetworkRequest(QUrl("https://alpinemaps.cg.tuwien.ac.at/threaded//height_data.atb")));
     QObject::connect(reply, &QNetworkReply::finished, &glWindow, [reply, &scheduler, &glWindow, &app]() {
         const auto url = reply->url();
         const auto error = reply->error();
@@ -138,10 +139,13 @@ int main(int argc, char* argv[])
 
     camera::NearPlaneAdjuster near_plane_adjuster;
 
+#ifdef ALP_ENABLE_THREADING
     QThread scheduler_thread;
-    terrain_service.moveToThread(&scheduler_thread);
-    ortho_service.moveToThread(&scheduler_thread);
+//    terrain_service.moveToThread(&scheduler_thread);
+//    ortho_service.moveToThread(&scheduler_thread);
     scheduler.moveToThread(&scheduler_thread);
+    scheduler_thread.start();
+#endif
 
     QObject::connect(&glWindow, &GLWindow::viewport_changed, &camera_controller, &camera::Controller::setViewport);
     QObject::connect(&glWindow, &GLWindow::mouse_moved, &camera_controller, &camera::Controller::mouse_move);
@@ -169,8 +173,6 @@ int main(int argc, char* argv[])
     QObject::connect(&terrain_service, &TileLoadService::tileUnavailable, &scheduler, &TileScheduler::notifyAboutUnavailableHeightTile);
 
     QObject::connect(&near_plane_adjuster, &camera::NearPlaneAdjuster::nearPlaneChanged, &camera_controller, &camera::Controller::setNearPlane);
-
-    scheduler_thread.start();
 
     // in web assembly, the gl window is resized before it is connected. need to set viewport manually.
     // native, however, glWindow has a zero size at this point.

@@ -2,8 +2,9 @@ cmake_minimum_required(VERSION 3.21)
 project(alpine-renderer LANGUAGES CXX)
 
 option(ATB_UNITTESTS "include unit test targets in the buildsystem" ON)
-option(ATB_ENABLE_ADDRESS_SANITIZER "compiles atb with address sanitizer enabled (only debug, works only on g++ and clang)" ON)
+option(ATB_ENABLE_ADDRESS_SANITIZER "compiles atb with address sanitizer enabled (only debug, works only on g++ and clang)" OFF)
 option(ATB_ENABLE_THREAD_SANITIZER "compiles atb with thread sanitizer enabled (only debug, works only on g++ and clang)" OFF)
+option(ALP_ENABLE_THREADING "Puts the scheduler into an extra thread." OFF)
 option(ATB_ENABLE_ASSERTS "enable asserts (do not define NDEBUG)" ON)
 set(ATB_INSTALL_DIR "${CMAKE_CURRENT_BINARY_DIR}" CACHE PATH "path to the install directory (for webassembly files, i.e., www directory)")
 option(ATB_USE_LLVM_LINKER "use lld (llvm) for linking. it's parallel and much faster, but not installed by default. if it's not installed, you'll get errors, that openmp or other stuff is not installed (hard to track down)" OFF)
@@ -129,6 +130,9 @@ target_link_libraries(nucleus PUBLIC sherpa Qt::Core Qt::Gui Qt6::Network)
 if (ATB_ENABLE_ASSERTS)
     target_compile_options(nucleus PUBLIC "-U NDEBUG")
 endif()
+if (ALP_ENABLE_THREADING)
+    target_compile_definitions(nucleus PUBLIC "ALP_ENABLE_THREADING")
+endif()
 
 ########################################### gl engine #############################################
 qt_add_executable(alpine_gl_renderer
@@ -155,6 +159,7 @@ qt_add_resources(alpine_gl_renderer "gl_shaders"
 )
 target_compile_definitions(alpine_gl_renderer PUBLIC "ALP_RESOURCES_PREFIX=\"${CMAKE_SOURCE_DIR}/\"")
 
+
 message(NOTICE "ATB_INSTALL_DIR = ${ATB_INSTALL_DIR}")
 if (NOT EMSCRIPTEN)
     install(TARGETS alpine_gl_renderer
@@ -163,10 +168,15 @@ if (NOT EMSCRIPTEN)
         LIBRARY DESTINATION "${ATB_INSTALL_DIR}"
     )
 else ()
-    install(FILES
+    set(ALP_INSTALL_FILES
         "$<TARGET_FILE_DIR:alpine_gl_renderer>/alpine_gl_renderer.js"
         "$<TARGET_FILE_DIR:alpine_gl_renderer>/alpine_gl_renderer.wasm"
-        DESTINATION ${ATB_INSTALL_DIR})
+    )
+    if (ALP_ENABLE_THREADING)
+        list(APPEND ALP_INSTALL_FILES "$<TARGET_FILE_DIR:alpine_gl_renderer>/alpine_gl_renderer.worker.js")
+    endif()
+    install(FILES ${ALP_INSTALL_FILES} DESTINATION ${ATB_INSTALL_DIR})
+
 endif()
 
 
