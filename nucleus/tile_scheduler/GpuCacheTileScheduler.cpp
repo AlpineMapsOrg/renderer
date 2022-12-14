@@ -138,6 +138,7 @@ void GpuCacheTileScheduler::do_update()
     assert(n_load_requests <= tiles_to_load.size());
     const auto last_load_tile_iter = tiles_to_load.begin() + int(n_load_requests);
     std::nth_element(tiles_to_load.begin(), last_load_tile_iter, tiles_to_load.end());
+    std::sort(tiles_to_load.begin(), last_load_tile_iter);  // start loading low zoom tiles first
 
     std::for_each(tiles_to_load.begin(), last_load_tile_iter, [this](const auto& t) {
         m_pending_tile_requests.insert(t);
