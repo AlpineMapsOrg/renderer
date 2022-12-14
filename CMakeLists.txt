@@ -171,6 +171,9 @@ else ()
     set(ALP_INSTALL_FILES
         "$<TARGET_FILE_DIR:alpine_gl_renderer>/alpine_gl_renderer.js"
         "$<TARGET_FILE_DIR:alpine_gl_renderer>/alpine_gl_renderer.wasm"
+        "$<TARGET_FILE_DIR:alpine_gl_renderer>/qtloader.js"
+        "${CMAKE_SOURCE_DIR}/site/index.html"
+        "${CMAKE_SOURCE_DIR}/site/mascot.png"
     )
     if (ALP_ENABLE_THREADING)
         list(APPEND ALP_INSTALL_FILES "$<TARGET_FILE_DIR:alpine_gl_renderer>/alpine_gl_renderer.worker.js")
