@@ -50,7 +50,7 @@ std::optional<Definition> CrapyInteraction::touchEvent(QTouchEvent* e, Definitio
     if (e->points().size() == 2) {
         const auto previous_centre = (m_previous_first_touch + m_previous_second_touch) / 2;
         const auto current_centre = (first_touch + second_touch) / 2;
-        const auto pitch = (current_centre - previous_centre).y;
+        const auto pitch = -(current_centre - previous_centre).y;
 
         const auto previous_yaw_dir = glm::normalize(glm::vec2(m_previous_first_touch - m_previous_second_touch));
         const auto previous_yaw_angle = std::atan2(previous_yaw_dir.y, previous_yaw_dir.x);
