@@ -1,4 +1,10 @@
 # alpine-renderer
+A developer version is available at https://gataki.cg.tuwien.ac.at/. Be aware that it can break at any time.
+
+We are in discord, talk to us!
+https://discord.gg/tvtnZnZ6
+
+# cloning
 `git clone --recurse-submodules git@github.com:AlpineMapsOrg/renderer.git`
 
 or a normal clone and
