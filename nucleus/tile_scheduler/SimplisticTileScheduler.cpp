@@ -17,13 +17,13 @@
  *****************************************************************************/
 
 #include "nucleus/tile_scheduler/SimplisticTileScheduler.h"
-#include "nucleus/tile_scheduler/utils.h"
 
 #include "nucleus/Tile.h"
 #include "nucleus/srs.h"
-#include "nucleus/utils/QuadTree.h"
+#include "nucleus/tile_scheduler/utils.h"
 #include "nucleus/utils/tile_conversion.h"
 #include "sherpa/geometry.h"
+#include "sherpa/quad_tree.h"
 
 SimplisticTileScheduler::SimplisticTileScheduler() = default;
 

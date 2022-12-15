@@ -21,7 +21,8 @@
 #include <QObject>
 
 #include "nucleus/TileScheduler.h"
-#include "nucleus/utils/QuadTree.h"
+
+#include "sherpa/quad_tree.h"
 
 class BasicTreeTileScheduler : public TileScheduler {
     enum class TileStatus {

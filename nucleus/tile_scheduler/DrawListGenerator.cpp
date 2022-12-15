@@ -17,9 +17,9 @@
  *****************************************************************************/
 
 #include "DrawListGenerator.h"
-#include "nucleus/utils/QuadTree.h"
-#include "sherpa/iterator.h"
 
+#include "sherpa/iterator.h"
+#include "sherpa/quad_tree.h"
 
 DrawListGenerator::DrawListGenerator()
 {

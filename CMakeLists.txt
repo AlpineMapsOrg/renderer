@@ -28,7 +28,6 @@ set(ATB_RENDER_BACKEND_SOURCES
     nucleus/camera/InteractionStyle.h nucleus/camera/InteractionStyle.cpp
     nucleus/camera/NearPlaneAdjuster.h nucleus/camera/NearPlaneAdjuster.cpp
     nucleus/camera/stored_positions.h
-    nucleus/utils/QuadTree.h
     nucleus/utils/terrain_mesh_index_generator.h
     nucleus/utils/tile_conversion.h nucleus/utils/tile_conversion.cpp
 )
@@ -65,7 +64,6 @@ if (ATB_UNITTESTS AND NOT EMSCRIPTEN)
         unittests/test_Camera.cpp
         unittests/test_DrawListGenerator.cpp
         unittests/test_helpers.h
-        unittests/test_QuadTree.cpp
         unittests/test_raster.cpp
         unittests/test_terrain_mesh_index_generator.cpp
         unittests/test_srs.cpp

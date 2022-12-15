@@ -26,10 +26,10 @@
 
 #include "nucleus/Tile.h"
 #include "nucleus/tile_scheduler/utils.h"
-#include "nucleus/utils/QuadTree.h"
 #include "nucleus/utils/tile_conversion.h"
 #include "sherpa/geometry.h"
 #include "sherpa/iterator.h"
+#include "sherpa/quad_tree.h"
 
 GpuCacheTileScheduler::GpuCacheTileScheduler()
     : m_construction_msec_since_epoch(uint64_t(std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now().time_since_epoch()).count()))
