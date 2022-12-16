@@ -70,5 +70,9 @@ std::optional<Definition> CrapyInteraction::touchEvent(QTouchEvent* e, Definitio
     return camera;
 }
 
-
+std::optional<Definition> CrapyInteraction::wheelEvent(QWheelEvent* e, Definition camera, float distance)
+{
+    camera.zoom(e->angleDelta().y() * -8.0);
+    return camera;
+}
 }

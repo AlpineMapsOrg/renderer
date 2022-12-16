@@ -92,6 +92,7 @@ public:
 protected:
     void mousePressEvent(QMouseEvent*) override;
     void mouseMoveEvent(QMouseEvent*) override;
+    void wheelEvent(QWheelEvent*) override;
     void keyPressEvent(QKeyEvent*) override;
     void touchEvent(QTouchEvent*) override;
 
@@ -102,6 +103,7 @@ public slots:
 signals:
     void mouse_pressed(QMouseEvent*, float distance) const;
     void mouse_moved(QMouseEvent*) const;
+    void wheel_turned(QWheelEvent*, float distance) const;
     void key_pressed(const QKeyCombination&) const;
     void touch_made(QTouchEvent*) const;
     void viewport_changed(const glm::uvec2& new_viewport) const;

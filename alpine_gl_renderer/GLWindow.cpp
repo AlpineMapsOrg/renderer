@@ -196,6 +196,12 @@ void GLWindow::mouseMoveEvent(QMouseEvent* e)
     emit mouse_moved(e);
 }
 
+void GLWindow::wheelEvent(QWheelEvent* e)
+{
+    float distance = 500; // todo read and compute from depth buffer
+    emit wheel_turned(e, distance);
+}
+
 void GLWindow::keyPressEvent(QKeyEvent* e)
 {
     if (e->key() == Qt::Key::Key_F5) {

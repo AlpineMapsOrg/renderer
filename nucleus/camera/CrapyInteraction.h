@@ -11,5 +11,6 @@ class CrapyInteraction : public InteractionStyle
 public:
     std::optional<Definition> mouseMoveEvent(QMouseEvent* e, Definition camera) override;
     std::optional<Definition> touchEvent(QTouchEvent* e, Definition camera) override;
+    std::optional<Definition> wheelEvent(QWheelEvent* e, Definition camera, float distance) override;
 };
 }

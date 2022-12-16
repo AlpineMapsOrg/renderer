@@ -65,6 +65,15 @@ void Controller::mouse_move(QMouseEvent* e)
     update();
 }
 
+void Controller::wheel_turn(QWheelEvent* e, float distance)
+{
+    const auto new_definition = m_interaction_style->wheelEvent(e, m_definition, distance);
+    if (!new_definition)
+        return;
+    m_definition = new_definition.value();
+    update();
+}
+
 void Controller::key_press(const QKeyCombination& e)
 {
     const auto new_definition = m_interaction_style->keyPressEvent(e, m_definition);

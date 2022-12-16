@@ -11,6 +11,11 @@ std::optional<camera::Definition> camera::InteractionStyle::mouseMoveEvent(QMous
     return {};
 }
 
+std::optional<camera::Definition> camera::InteractionStyle::wheelEvent(QWheelEvent* e, Definition camera, float distance)
+{
+    return {};
+}
+
 std::optional<camera::Definition> camera::InteractionStyle::keyPressEvent(const QKeyCombination&, Definition)
 {
     return {};
