@@ -209,7 +209,7 @@ void GLWindow::keyPressEvent(QKeyEvent* e)
         update();
         qDebug("all shaders reloaded");
     }
-    if (e->key() == Qt::Key::Key_F11) {
+    if (e->key() == Qt::Key::Key_F11 || (e->key() == Qt::Key_P && e->modifiers() == Qt::ControlModifier)) {
         e->ignore();
     }
 
