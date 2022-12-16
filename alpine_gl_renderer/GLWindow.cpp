@@ -209,6 +209,9 @@ void GLWindow::keyPressEvent(QKeyEvent* e)
         update();
         qDebug("all shaders reloaded");
     }
+    if (e->key() == Qt::Key::Key_F11) {
+        e->ignore();
+    }
 
     emit key_pressed(e->keyCombination());
 }
