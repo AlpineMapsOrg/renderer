@@ -150,6 +150,10 @@ void camera::Definition::setPerspectiveParams(float fov_degrees, const glm::uvec
         double(m_far_clipping));
 }
 
+void camera::Definition::setOrthographicParams(float left, float right, float bottom, float top, float near, float far) {
+    m_projection_matrix = glm::ortho(left, right, bottom, top, near, far);
+}
+
 void camera::Definition::setNearPlane(float near_plane)
 {
     setPerspectiveParams(m_fov, m_viewport_size, near_plane);

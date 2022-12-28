@@ -12,6 +12,6 @@ void main() {
    highp float dist = length(pos_wrt_cam);
    highp vec3 ray_direction = pos_wrt_cam / dist;
 
-   highp vec3 light_through_atmosphere = calculate_atmospheric_light(camera_position / 1000.0, ray_direction, dist / 1000.0, vec3(ortho), 10);
-   out_Color = vec4(light_through_atmosphere, 1.0);
+   //highp vec3 light_through_atmosphere = calculate_atmospheric_light(camera_position / 1000.0, ray_direction, dist / 1000.0, vec3(ortho), 10);
+   out_Color = vec4(vec3(ortho), 1.0);
 }

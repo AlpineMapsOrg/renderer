@@ -38,6 +38,7 @@ class GLTileManager : public QObject {
 public:
     explicit GLTileManager(QObject* parent = nullptr);
 
+    const std::map<tile::Id, Raster<uint16_t>>& height_maps() const;
     [[nodiscard]] const std::vector<GLTileSet>& tiles() const;
     void draw(ShaderProgram* shader_program, const camera::Definition& camera) const;
 
@@ -58,6 +59,7 @@ private:
     static constexpr auto MAX_TILES_PER_TILESET = 1;
     float m_max_anisotropy = 0;
 
+    std::map<tile::Id, Raster<uint16_t>> m_height_maps;
     std::vector<GLTileSet> m_gpu_tiles;
     // indexbuffers for 4^index tiles,
     // e.g., for single tile tile sets take index 0

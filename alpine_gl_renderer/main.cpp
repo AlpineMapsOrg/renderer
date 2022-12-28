@@ -47,7 +47,8 @@
 ** $QT_END_LICENSE$
 **
 ****************************************************************************/
-
+//#define ENABLE_MAIN
+#ifdef ENABLE_MAIN
 #include <iostream>
 
 #include <QGuiApplication>
@@ -62,7 +63,6 @@
 #include "nucleus/camera/Controller.h"
 #include "nucleus/camera/CrapyInteraction.h"
 #include "nucleus/camera/NearPlaneAdjuster.h"
-#include "nucleus/tile_scheduler/BasicTreeTileScheduler.h"
 #include "nucleus/tile_scheduler/SimplisticTileScheduler.h"
 #include "nucleus/tile_scheduler/utils.h"
 #include "qnetworkreply.h"
@@ -75,6 +75,7 @@
 // The code is always the same, with the exception of two places: (1) the OpenGL context
 // creation has to have a sufficiently high version number for the features that are in
 // use, and (2) the shader code's version directive is different.
+
 
 int main(int argc, char* argv[])
 {
@@ -168,3 +169,4 @@ int main(int argc, char* argv[])
 
     return app.exec();
 }
+#endif

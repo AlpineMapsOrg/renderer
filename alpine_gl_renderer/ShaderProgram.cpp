@@ -2,6 +2,7 @@
 
 #include <QFile>
 #include <QOpenGLContext>
+#include <iostream>
 
 #include "GLHelpers.h"
 
@@ -18,20 +19,6 @@ QByteArray create_shader_code(const ShaderProgram::Files& files)
     return code;
 }
 
-QByteArray versionedShaderCode(const QByteArray& src)
-{
-    QByteArray versionedSrc;
-
-    if (QOpenGLContext::currentContext()->isOpenGLES())
-        versionedSrc.append(QByteArrayLiteral("#version 300 es\n"));
-    else
-        versionedSrc.append(QByteArrayLiteral("#version 330\n"));
-
-    versionedSrc.append(src);
-    return versionedSrc;
-}
-
-
 void set_qrc_or_path_prefix(ShaderProgram::Files* files)
 {
     QString prefix = ":/";
@@ -44,7 +31,25 @@ void set_qrc_or_path_prefix(ShaderProgram::Files* files)
 }
 }
 
-ShaderProgram::ShaderProgram(const std::string& vetex_shader_source, const std::string& fragment_shader_source)
+QByteArray ShaderProgram::versionedShaderCode(const QByteArray& src) const
+{
+    QByteArray versionedSrc;
+
+    if (m_version.empty()) {
+        if (QOpenGLContext::currentContext()->isOpenGLES())
+            versionedSrc.append(QByteArrayLiteral("#version 300 es\n"));
+        else
+            versionedSrc.append(QByteArrayLiteral("#version 330\n"));
+    } else {
+        versionedSrc.append(m_version + "\n");
+    }
+    versionedSrc.append(src);
+    return versionedSrc;
+}
+
+
+ShaderProgram::ShaderProgram(const std::string& vetex_shader_source, const std::string& fragment_shader_source, const std::string& version) :
+    m_version(version)
 {
     auto program = std::make_unique<QOpenGLShaderProgram>();
     program->addShaderFromSourceCode(QOpenGLShader::Vertex, versionedShaderCode(vetex_shader_source.c_str()));
@@ -56,9 +61,10 @@ ShaderProgram::ShaderProgram(const std::string& vetex_shader_source, const std::
     m_q_shader_program = std::move(program);
 }
 
-ShaderProgram::ShaderProgram(Files vertex_shader_parts, Files fragment_shader_parts)
+ShaderProgram::ShaderProgram(Files vertex_shader_parts, Files fragment_shader_parts, const std::string& version)
     : m_vertex_shader_parts(std::move(vertex_shader_parts))
     , m_fragment_shader_parts(std::move(fragment_shader_parts))
+    , m_version(version)
 {
     set_qrc_or_path_prefix(&m_vertex_shader_parts);
     set_qrc_or_path_prefix(&m_fragment_shader_parts);
@@ -149,8 +155,9 @@ void ShaderProgram::reload()
 template<typename T>
 void ShaderProgram::set_uniform_template(const std::string& name, T value)
 {
-    if (!m_cached_uniforms.contains(name))
+    if (!m_cached_uniforms.contains(name)) {
         m_cached_uniforms[name] = m_q_shader_program->uniformLocation(name.c_str());
+    }
 
     const auto uniform_location = m_cached_uniforms.at(name);
     m_q_shader_program->setUniformValue(uniform_location, gl_helpers::toQtType(value));

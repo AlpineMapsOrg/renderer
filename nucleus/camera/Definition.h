@@ -47,6 +47,7 @@ public:
     [[nodiscard]] std::vector<geometry::Plane<double>> clippingPlanes() const;
     [[nodiscard]] std::vector<geometry::Plane<double>> fourClippingPlanes() const;
     void setPerspectiveParams(float fov_degrees, const glm::uvec2& viewport_size, float near_plane);
+    void setOrthographicParams(float left, float right, float bottom, float top, float near, float far);
     void setNearPlane(float near_plane);
     [[nodiscard]] float nearPlane() const;
     void pan(const glm::dvec2& v);

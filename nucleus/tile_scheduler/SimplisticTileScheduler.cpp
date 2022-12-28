@@ -25,6 +25,8 @@
 #include "nucleus/utils/tile_conversion.h"
 #include "sherpa/geometry.h"
 
+#include <QDebug>
+
 SimplisticTileScheduler::SimplisticTileScheduler() = default;
 
 std::vector<tile::Id> SimplisticTileScheduler::loadCandidates(const camera::Definition& camera, const tile_scheduler::AabbDecoratorPtr& aabb_decorator)
@@ -106,6 +108,10 @@ void SimplisticTileScheduler::notifyAboutUnavailableOrthoTile(tile::Id tile_id)
     m_pending_tile_requests.erase(tile_id);
     m_received_ortho_tiles.erase(tile_id);
     m_received_height_tiles.erase(tile_id);
+
+    if (m_pending_tile_requests.empty()) {
+        emit allTilesLoaded();
+    }
 }
 
 void SimplisticTileScheduler::notifyAboutUnavailableHeightTile(tile::Id tile_id)
@@ -114,6 +120,10 @@ void SimplisticTileScheduler::notifyAboutUnavailableHeightTile(tile::Id tile_id)
     m_pending_tile_requests.erase(tile_id);
     m_received_ortho_tiles.erase(tile_id);
     m_received_height_tiles.erase(tile_id);
+
+    if (m_pending_tile_requests.empty()) {
+        emit allTilesLoaded();
+    }
 }
 
 void SimplisticTileScheduler::checkLoadedTile(const tile::Id& tile_id)
@@ -131,6 +141,10 @@ void SimplisticTileScheduler::checkLoadedTile(const tile::Id& tile_id)
 
         m_gpu_tiles.insert(tile_id);
         emit tileReady(tile);
+
+        if (m_pending_tile_requests.empty()) {
+            emit allTilesLoaded();
+        }
     }
 }
 

@@ -1,0 +1,50 @@
+
+layout (local_size_x = 256, local_size_y = 256) in;
+
+layout(binding = 0, rgba32f) uniform restrict readonly image2D ortho_texture;
+layout(binding = 1, rgba32f) uniform restrict readonly image2D in_out_texture;
+
+
+struct result_struct {
+    uint in_cnt;
+    uint out_cnt;
+    uint in_brightness;
+    uint out_brightness;
+}
+
+layout(binding = 0, std140) writeonly buffer results_buffer {
+    result_struct result;
+}
+
+
+void main() {
+
+    if (gl_LocalInvocationIndex = 0) {
+        result.in_cnt = 0;
+        result.out_cnt = 0;
+        result.in_brightness = 0;
+        result.out_brightness = 0;
+    }
+
+    barrier();
+
+    ivec2 uv = ivec2(gl_LocalInvocationID.xy);
+    vec3 ortho = vec3(imageLoad(ortho_texture, uv).xyz);
+
+    float max_value = max(ortho.x, max(ortho.y, ortho.z));
+    float min_value = min(ortho.x, max(ortho.y, ortho.z));
+
+    float brightness = (max_value + min_value) * 0.5f;
+    uint int_brightness = uint(brightness * 65536‬.f);
+
+    float in = imageLoad(in_out_texture, uv).x;
+
+    if (in > 0.5) {
+        atomicAdd(result.in_cnt, 1);
+        atomicAdd(result.in_brightness, int_brightness);
+    } else {
+        atmoicAdd(result.out_cnt, 1);
+        atomicAdd(result.out_brightness, int_brightness);
+    }
+}
+

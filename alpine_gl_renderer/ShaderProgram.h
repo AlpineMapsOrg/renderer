@@ -19,9 +19,11 @@ private:
     Files m_vertex_shader_parts;
     Files m_fragment_shader_parts;
 
+    std::string m_version;
+
 public:
-    ShaderProgram(const std::string& vetex_shader_source, const std::string& fragment_shader_source);
-    ShaderProgram(Files vertex_shader_parts, Files fragment_shader_parts);
+    ShaderProgram(const std::string& vetex_shader_source, const std::string& fragment_shader_source, const std::string& version = std::string());
+    ShaderProgram(Files vertex_shader_parts, Files fragment_shader_parts, const std::string& version = std::string());
 
     int attribute_location(const std::string& name);
     void bind();
@@ -41,6 +43,8 @@ public slots:
 private:
     template <typename T>
     void set_uniform_template(const std::string& name, T value);
+
+    QByteArray versionedShaderCode(const QByteArray& src) const;
 
 };
 

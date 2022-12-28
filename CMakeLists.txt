@@ -27,6 +27,8 @@ set(ATB_RENDER_BACKEND_SOURCES
     nucleus/utils/QuadTree.h
     nucleus/utils/terrain_mesh_index_generator.h
     nucleus/utils/tile_conversion.h nucleus/utils/tile_conversion.cpp
+    nucleus/tile_scheduler/SingleTileLoader.h nucleus/tile_scheduler/SingleTileLoader.cpp
+    nucleus/camera/ShadowGenerationController.h nucleus/camera/ShadowGenerationController.cpp
 )
 set(ATB_GL_ENGINE_SOURCES
     alpine_gl_renderer/Atmosphere.h alpine_gl_renderer/Atmosphere.cpp
@@ -39,6 +41,7 @@ set(ATB_GL_ENGINE_SOURCES
     alpine_gl_renderer/GLHelpers.h
     alpine_gl_renderer/ShaderProgram.h alpine_gl_renderer/ShaderProgram.cpp
     alpine_gl_renderer/main.cpp
+    alpine_gl_renderer/shadow_main.cpp
 )
 set(ATB_GL_SHADERS
     gl_shaders/atmosphere_bg.frag
@@ -47,6 +50,11 @@ set(ATB_GL_SHADERS
     gl_shaders/screen_pass.vert
     gl_shaders/tile.frag
     gl_shaders/tile.vert
+    gl_shaders/shadow.frag
+    gl_shaders/shadow.vert
+    gl_shaders/sun.frag
+    gl_shaders/sun.vert
+    gl_shaders/comparison.comp
 )
 if (ATB_UNITTESTS AND NOT EMSCRIPTEN)
     set(ALP_CATCH_UNITTEST_GL_SOURCES

@@ -22,6 +22,7 @@
 #include <QOpenGLExtraFunctions>
 #include <QOpenGLFunctions>
 #include <QOpenGLShaderProgram>
+#include <iostream>
 #include <QOpenGLVertexArrayObject>
 
 #include "Atmosphere.h"
@@ -68,6 +69,10 @@ GLTileManager::GLTileManager(QObject* parent)
     f->glGetFloatv(GL_MAX_TEXTURE_MAX_ANISOTROPY_EXT, &m_max_anisotropy);
 }
 
+const std::map<tile::Id, Raster<uint16_t>>& GLTileManager::height_maps() const {
+    return m_height_maps;
+}
+
 const std::vector<GLTileSet>& GLTileManager::tiles() const
 {
     return m_gpu_tiles;
@@ -80,7 +85,7 @@ void GLTileManager::draw(ShaderProgram* shader_program, const camera::Definition
     shader_program->set_uniform("matrix", camera.localViewProjectionMatrix(camera.position()));
     shader_program->set_uniform("camera_position", glm::vec3(camera.position()));
     shader_program->set_uniform("texture_sampler", 0);
-//    shader_program->set_uniform("texture_sampler", 0);
+
     for (const auto& tileset : tiles()) {
         tileset.vao->bind();
         shader_program->set_uniform_array("bounds", boundsArray(tileset, camera.position()));
@@ -90,10 +95,13 @@ void GLTileManager::draw(ShaderProgram* shader_program, const camera::Definition
     f->glBindVertexArray(0);
 }
 
+
 void GLTileManager::addTile(const std::shared_ptr<Tile>& tile)
 {
     if (!QOpenGLContext::currentContext())  // can happen during shutdown.
         return;
+
+
 
     assert(m_attribute_locations.height != -1);
     auto* f = QOpenGLContext::currentContext()->extraFunctions();
@@ -110,6 +118,11 @@ void GLTileManager::addTile(const std::shared_ptr<Tile>& tile)
         tileset.heightmap_buffer->create();
         tileset.heightmap_buffer->bind();
         tileset.heightmap_buffer->setUsagePattern(QOpenGLBuffer::DynamicDraw);
+
+     //   for(uint16_t height : tile->height_map.buffer()) {
+     //       qDebug() << height << ", " ;
+     //   }
+
         tileset.heightmap_buffer->allocate(tile->height_map.buffer().data(), bufferLengthInBytes(tile->height_map.buffer()));
         f->glEnableVertexAttribArray(GLuint(m_attribute_locations.height));
         f->glVertexAttribPointer(GLuint(m_attribute_locations.height), /*size*/ 1, /*type*/ GL_UNSIGNED_SHORT, /*normalised*/ GL_TRUE, /*stride*/ 0, nullptr);
@@ -122,7 +135,7 @@ void GLTileManager::addTile(const std::shared_ptr<Tile>& tile)
     tileset.ortho_texture = std::make_unique<QOpenGLTexture>(tile->orthotexture);
     tileset.ortho_texture->setMaximumAnisotropy(m_max_anisotropy);
     tileset.ortho_texture->setWrapMode(QOpenGLTexture::WrapMode::ClampToEdge);
-    tileset.ortho_texture->setMinMagFilters(QOpenGLTexture::Filter::LinearMipMapLinear, QOpenGLTexture::Filter::Linear);
+    tileset.ortho_texture->setMinMagFilters(QOpenGLTexture::Filter::NearestMipMapNearest, QOpenGLTexture::Filter::Nearest);
 
     // add to m_gpu_tiles
     m_gpu_tiles.push_back(std::move(tileset));

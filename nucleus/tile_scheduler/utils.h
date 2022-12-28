@@ -23,6 +23,8 @@
 #include "sherpa/geometry.h"
 #include "sherpa/TileHeights.h"
 
+#include <iostream>
+
 namespace tile_scheduler {
 
 class AabbDecorator;

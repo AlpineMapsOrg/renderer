@@ -60,6 +60,7 @@
 #include <QOpenGLExtraFunctions>
 #include <QOpenGLShaderProgram>
 #include <QOpenGLTexture>
+#include <QOpenGLFunctions_3_2_Core>
 #include <QOpenGLVertexArrayObject>
 #include <QPropertyAnimation>
 #include <QRandomGenerator>
@@ -138,7 +139,7 @@ void GLWindow::paintGL()
     f->glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
     f->glEnable(GL_DEPTH_TEST);
     f->glDepthFunc(GL_LESS);
-////    glPolygonMode( GL_FRONT_AND_BACK, GL_LINE );
+////glPolygonMode( GL_FRONT_AND_BACK, GL_LINE );
 
     m_shader_manager->tileShader()->bind();
 

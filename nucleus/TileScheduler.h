@@ -70,6 +70,7 @@ signals:
     void tileReady(const std::shared_ptr<Tile>& tile);
     void tileExpired(const tile::Id& tile_id);
     void cancelTileRequest(const tile::Id& tile_id);
+    void allTilesLoaded();
 
 private:
     tile_scheduler::AabbDecoratorPtr m_aabb_decorator;
