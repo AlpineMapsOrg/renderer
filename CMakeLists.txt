@@ -86,9 +86,6 @@ set(CMAKE_AUTOMOC ON)
 set(CMAKE_AUTORCC ON)
 set(CMAKE_AUTOUIC ON)
 
-if (ATB_UNITTESTS AND NOT EMSCRIPTEN)
-    find_package(Catch2 REQUIRED)
-endif()
 find_package(Qt6 REQUIRED COMPONENTS Core Gui OpenGL Network)
 add_subdirectory(sherpa)
 
@@ -115,6 +112,9 @@ qt_add_library(nucleus STATIC
 )
 
 target_include_directories(nucleus SYSTEM PUBLIC ${CMAKE_SOURCE_DIR}/libs/glm)
+if (ATB_UNITTESTS AND NOT EMSCRIPTEN)
+    add_subdirectory(${CMAKE_SOURCE_DIR}/libs/Catch2)
+endif()
 target_include_directories(nucleus PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
 target_compile_definitions(nucleus PUBLIC GLM_ENABLE_EXPERIMENTAL GLM_FORCE_XYZW_ONLY)
 if (NOT EMSCRIPTEN)
