@@ -29,6 +29,8 @@
 #include "nucleus/camera/Definition.h"
 #include "sherpa/TileHeights.h"
 
+using nucleus::tile_scheduler::SimplisticTileScheduler;
+
 class TestSimplisticTileScheduler : public TestTileScheduler {
     Q_OBJECT
 private:
@@ -39,7 +41,7 @@ private:
         auto sch = std::make_unique<SimplisticTileScheduler>();
         TileHeights h;
         h.emplace({ 0, { 0, 0 } }, { 100, 4000 });
-        sch->set_aabb_decorator(tile_scheduler::AabbDecorator::make(std::move(h)));
+        sch->set_aabb_decorator(nucleus::tile_scheduler::AabbDecorator::make(std::move(h)));
         return sch;
     }
 

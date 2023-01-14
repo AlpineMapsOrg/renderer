@@ -21,6 +21,8 @@
 #include "../TileScheduler.h"
 #include <QTimer>
 
+namespace nucleus::tile_scheduler {
+
 class GpuCacheTileScheduler : public TileScheduler
 {
     Q_OBJECT
@@ -28,7 +30,7 @@ class GpuCacheTileScheduler : public TileScheduler
 public:
     GpuCacheTileScheduler();
 
-    [[nodiscard]] static TileSet load_candidates(const nucleus::camera::Definition& camera, const tile_scheduler::AabbDecoratorPtr& aabb_decorator);
+    [[nodiscard]] static TileSet load_candidates(const nucleus::camera::Definition& camera, const AabbDecoratorPtr& aabb_decorator);
     [[nodiscard]] size_t number_of_tiles_in_transit() const override;
     [[nodiscard]] size_t number_of_waiting_height_tiles() const override;
     [[nodiscard]] size_t number_of_waiting_ortho_tiles() const override;
@@ -77,3 +79,4 @@ private:
     unsigned m_gpu_cache_size = 0;
     bool m_enabled = true;
 };
+}

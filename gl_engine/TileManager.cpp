@@ -62,7 +62,7 @@ void TileManager::init()
 {
     assert(QOpenGLContext::currentContext());
     for (auto i = 0; i < MAX_TILES_PER_TILESET; ++i) {
-        const auto indices = terrain_mesh_index_generator::surface_quads<uint16_t>(N_EDGE_VERTICES);
+        const auto indices = nucleus::utils::terrain_mesh_index_generator::surface_quads<uint16_t>(N_EDGE_VERTICES);
         auto index_buffer = std::make_unique<QOpenGLBuffer>(QOpenGLBuffer::IndexBuffer);
         index_buffer->create();
         index_buffer->bind();
@@ -161,7 +161,7 @@ void TileManager::initilise_attribute_locations(ShaderProgram* program)
     m_attribute_locations.height = program->attribute_location("height");
 }
 
-void TileManager::set_aabb_decorator(const tile_scheduler::AabbDecoratorPtr& new_aabb_decorator)
+void TileManager::set_aabb_decorator(const nucleus::tile_scheduler::AabbDecoratorPtr& new_aabb_decorator)
 {
     m_draw_list_generator.set_aabb_decorator(new_aabb_decorator);
 }

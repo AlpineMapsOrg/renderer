@@ -23,6 +23,7 @@
 
 #include <unordered_set>
 
+namespace nucleus::tile_scheduler {
 class DrawListGenerator
 {
 public:
@@ -30,13 +31,13 @@ public:
 
     DrawListGenerator();
 
-    void set_aabb_decorator(const tile_scheduler::AabbDecoratorPtr& new_aabb_decorator);
+    void set_aabb_decorator(const AabbDecoratorPtr& new_aabb_decorator);
     void add_tile(const tile::Id& id);
     void remove_tile(const tile::Id& id);
-    [[nodiscard]] TileSet generate_for(const nucleus::camera::Definition& camera) const;
+    [[nodiscard]] TileSet generate_for(const camera::Definition& camera) const;
 
 private:
-    tile_scheduler::AabbDecoratorPtr m_aabb_decorator;
+    AabbDecoratorPtr m_aabb_decorator;
     TileSet m_available_tiles;
 };
-
+}

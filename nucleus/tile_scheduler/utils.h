@@ -23,7 +23,7 @@
 #include "sherpa/geometry.h"
 #include "sherpa/TileHeights.h"
 
-namespace tile_scheduler {
+namespace nucleus::tile_scheduler {
 
 class AabbDecorator;
 using AabbDecoratorPtr = std::shared_ptr<AabbDecorator>;

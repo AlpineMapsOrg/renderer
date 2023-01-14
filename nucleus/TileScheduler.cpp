@@ -4,6 +4,9 @@
 
 #include <QKeyEvent>
 
+using nucleus::TileScheduler;
+using nucleus::tile_scheduler::AabbDecoratorPtr;
+
 TileScheduler::TileScheduler()
 {
     TileHeights h;
@@ -13,7 +16,7 @@ TileScheduler::TileScheduler()
 
 //TileScheduler::~TileScheduler() = default;
 
-const tile_scheduler::AabbDecoratorPtr& TileScheduler::aabb_decorator() const
+const AabbDecoratorPtr& TileScheduler::aabb_decorator() const
 {
     return m_aabb_decorator;
 }

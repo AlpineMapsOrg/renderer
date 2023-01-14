@@ -29,10 +29,12 @@
 
 class QKeyEvent;
 struct Tile;
-namespace tile_scheduler {
+namespace nucleus::tile_scheduler {
 class AabbDecorator;
 using AabbDecoratorPtr = std::shared_ptr<AabbDecorator>;
 }
+
+namespace nucleus {
 
 class TileScheduler : public QObject {
     Q_OBJECT
@@ -71,3 +73,4 @@ signals:
 private:
     tile_scheduler::AabbDecoratorPtr m_aabb_decorator;
 };
+}

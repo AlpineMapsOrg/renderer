@@ -25,6 +25,8 @@
 #include "sherpa/geometry.h"
 #include "sherpa/quad_tree.h"
 
+using nucleus::tile_scheduler::SimplisticTileScheduler;
+
 SimplisticTileScheduler::SimplisticTileScheduler() = default;
 
 std::vector<tile::Id> SimplisticTileScheduler::load_candidates(const nucleus::camera::Definition& camera, const tile_scheduler::AabbDecoratorPtr& aabb_decorator)

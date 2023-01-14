@@ -21,6 +21,8 @@
 #include "sherpa/iterator.h"
 #include "sherpa/quad_tree.h"
 
+using nucleus::tile_scheduler::DrawListGenerator;
+
 DrawListGenerator::DrawListGenerator()
 {
     TileHeights h;

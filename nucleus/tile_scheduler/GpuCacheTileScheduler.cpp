@@ -31,6 +31,9 @@
 #include "sherpa/iterator.h"
 #include "sherpa/quad_tree.h"
 
+using nucleus::TileScheduler;
+using nucleus::tile_scheduler::GpuCacheTileScheduler;
+
 GpuCacheTileScheduler::GpuCacheTileScheduler()
     : m_construction_msec_since_epoch(uint64_t(std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now().time_since_epoch()).count()))
 {

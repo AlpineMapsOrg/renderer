@@ -32,8 +32,8 @@ TEST_CASE("nucleus/tile_scheduler/DrawListGenerator")
     auto camera = nucleus::camera::stored_positions::westl_hochgrubach_spitze();
     camera.set_viewport_size({ 1920, 1080 });
 
-    DrawListGenerator draw_list_generator;
-    draw_list_generator.set_aabb_decorator(tile_scheduler::AabbDecorator::make(std::move(h)));
+    nucleus::tile_scheduler::DrawListGenerator draw_list_generator;
+    draw_list_generator.set_aabb_decorator(nucleus::tile_scheduler::AabbDecorator::make(std::move(h)));
 
     SECTION("root only")
     {

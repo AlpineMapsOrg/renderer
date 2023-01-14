@@ -37,7 +37,7 @@
 //  8,  9, 10, 11
 // 12, 13, 14, 15
 
-namespace terrain_mesh_index_generator {
+namespace nucleus::utils::terrain_mesh_index_generator {
 
 // generates a triangle strip for the surface.
 // i.e., for the example 0, 4, 1, 5, 2, 6, 3, 7, 7, 11, 6, 10, 5, 9, 4, 8, 8, 12, ..

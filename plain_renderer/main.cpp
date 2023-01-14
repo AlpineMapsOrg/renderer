@@ -103,7 +103,7 @@ int main(int argc, char* argv[])
     TileLoadService terrain_service("https://alpinemaps.cg.tuwien.ac.at/tiles/alpine_png/", TileLoadService::UrlPattern::ZXY, ".png");
 //    TileLoadService ortho_service("https://alpinemaps.cg.tuwien.ac.at/tiles/ortho/", TileLoadService::UrlPattern::ZYX_yPointingSouth, ".jpeg");
     TileLoadService ortho_service("https://maps%1.wien.gv.at/basemap/bmaporthofoto30cm/normal/google3857/", TileLoadService::UrlPattern::ZYX_yPointingSouth, ".jpeg", { "", "1", "2", "3", "4" });
-    GpuCacheTileScheduler scheduler;
+    nucleus::tile_scheduler::GpuCacheTileScheduler scheduler;
     scheduler.set_gpu_cache_size(1000);
 
     gl_engine::Window glWindow;
@@ -120,7 +120,7 @@ int main(int argc, char* argv[])
         const auto error = reply->error();
         if (error == QNetworkReply::NoError) {
             const QByteArray data = reply->readAll();
-            const auto decorator = tile_scheduler::AabbDecorator::make(TileHeights::deserialise(data));
+            const auto decorator = nucleus::tile_scheduler::AabbDecorator::make(TileHeights::deserialise(data));
             QTimer::singleShot(1, &scheduler, [&scheduler, decorator]() { scheduler.set_aabb_decorator(decorator); });
 
             assert(glWindow.gpu_tile_manager());
@@ -146,27 +146,29 @@ int main(int argc, char* argv[])
     scheduler.moveToThread(&scheduler_thread);
     scheduler_thread.start();
 #endif
+    using gl_engine::Window;
+    using nucleus::TileScheduler;
 
-    QObject::connect(&glWindow, &gl_engine::Window::viewport_changed, &camera_controller, &nucleus::camera::Controller::set_viewport);
-    QObject::connect(&glWindow, &gl_engine::Window::mouse_moved, &camera_controller, &nucleus::camera::Controller::mouse_move);
-    QObject::connect(&glWindow, &gl_engine::Window::mouse_pressed, &camera_controller, &nucleus::camera::Controller::mouse_press);
-    QObject::connect(&glWindow, &gl_engine::Window::wheel_turned, &camera_controller, &nucleus::camera::Controller::wheel_turn);
-    QObject::connect(&glWindow, &gl_engine::Window::key_pressed, &camera_controller, &nucleus::camera::Controller::key_press);
-    QObject::connect(&glWindow, &gl_engine::Window::touch_made, &camera_controller, &nucleus::camera::Controller::touch);
-    QObject::connect(&glWindow, &gl_engine::Window::key_pressed, &scheduler, &TileScheduler::key_press);
+    QObject::connect(&glWindow, &Window::viewport_changed, &camera_controller, &nucleus::camera::Controller::set_viewport);
+    QObject::connect(&glWindow, &Window::mouse_moved, &camera_controller, &nucleus::camera::Controller::mouse_move);
+    QObject::connect(&glWindow, &Window::mouse_pressed, &camera_controller, &nucleus::camera::Controller::mouse_press);
+    QObject::connect(&glWindow, &Window::wheel_turned, &camera_controller, &nucleus::camera::Controller::wheel_turn);
+    QObject::connect(&glWindow, &Window::key_pressed, &camera_controller, &nucleus::camera::Controller::key_press);
+    QObject::connect(&glWindow, &Window::touch_made, &camera_controller, &nucleus::camera::Controller::touch);
+    QObject::connect(&glWindow, &Window::key_pressed, &scheduler, &TileScheduler::key_press);
 
     QObject::connect(&camera_controller, &nucleus::camera::Controller::definition_changed, &scheduler, &TileScheduler::update_camera);
     QObject::connect(&camera_controller, &nucleus::camera::Controller::definition_changed, &near_plane_adjuster, &nucleus::camera::NearPlaneAdjuster::update_camera);
-    QObject::connect(&camera_controller, &nucleus::camera::Controller::definition_changed, &glWindow, &gl_engine::Window::update_camera);
+    QObject::connect(&camera_controller, &nucleus::camera::Controller::definition_changed, &glWindow, &Window::update_camera);
 
     QObject::connect(&scheduler, &TileScheduler::tile_requested, &terrain_service, &TileLoadService::load);
     QObject::connect(&scheduler, &TileScheduler::tile_requested, &ortho_service, &TileLoadService::load);
     QObject::connect(&scheduler, &TileScheduler::tile_ready, &glWindow, [&glWindow](const std::shared_ptr<Tile>& tile) { glWindow.gpu_tile_manager()->add_tile(tile); });
     QObject::connect(&scheduler, &TileScheduler::tile_ready, &near_plane_adjuster, &nucleus::camera::NearPlaneAdjuster::add_tile);
-    QObject::connect(&scheduler, &TileScheduler::tile_ready, &glWindow, qOverload<>(&gl_engine::Window::update));
+    QObject::connect(&scheduler, &TileScheduler::tile_ready, &glWindow, qOverload<>(&Window::update));
     QObject::connect(&scheduler, &TileScheduler::tile_expired, &glWindow, [&glWindow](const auto& tile) { glWindow.gpu_tile_manager()->remove_tile(tile); });
     QObject::connect(&scheduler, &TileScheduler::tile_expired, &near_plane_adjuster, &nucleus::camera::NearPlaneAdjuster::remove_tile);
-    QObject::connect(&scheduler, &TileScheduler::debug_scheduler_stats_updated, &glWindow, &gl_engine::Window::update_debug_scheduler_stats);
+    QObject::connect(&scheduler, &TileScheduler::debug_scheduler_stats_updated, &glWindow, &Window::update_debug_scheduler_stats);
 
     QObject::connect(&ortho_service, &TileLoadService::load_ready, &scheduler, &TileScheduler::receive_ortho_tile);
     QObject::connect(&ortho_service, &TileLoadService::tile_unavailable, &scheduler, &TileScheduler::notify_about_unavailable_ortho_tile);

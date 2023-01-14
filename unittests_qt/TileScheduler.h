@@ -29,6 +29,8 @@
 #include "nucleus/camera/stored_positions.h"
 #include "nucleus/srs.h"
 
+using nucleus::TileScheduler;
+
 class TestTileScheduler : public QObject {
     Q_OBJECT
 protected:

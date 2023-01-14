@@ -30,6 +30,8 @@
 #include "nucleus/camera/stored_positions.h"
 #include "sherpa/TileHeights.h"
 
+using nucleus::tile_scheduler::GpuCacheTileScheduler;
+
 class TestGpuCacheTileScheduler : public TestTileScheduler {
     Q_OBJECT
 private:
@@ -38,7 +40,7 @@ private:
         auto sch = std::make_unique<GpuCacheTileScheduler>();
         TileHeights h;
         h.emplace({ 0, { 0, 0 } }, { 100, 200 });
-        sch->set_aabb_decorator(tile_scheduler::AabbDecorator::make(std::move(h)));
+        sch->set_aabb_decorator(nucleus::tile_scheduler::AabbDecorator::make(std::move(h)));
         sch->set_max_n_simultaneous_requests(400);
         return sch;
     }

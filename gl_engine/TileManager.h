@@ -52,8 +52,7 @@ public slots:
     void add_tile(const std::shared_ptr<Tile>& tile);
     void remove_tile(const tile::Id& tile_id);
     void initilise_attribute_locations(ShaderProgram* program);
-    void set_aabb_decorator(const tile_scheduler::AabbDecoratorPtr& new_aabb_decorator);
-
+    void set_aabb_decorator(const nucleus::tile_scheduler::AabbDecoratorPtr& new_aabb_decorator);
 
 private:
     struct TileGLAttributeLocations {
@@ -72,6 +71,6 @@ private:
     std::vector<std::pair<std::unique_ptr<QOpenGLBuffer>, size_t>> m_index_buffers;
     TileGLAttributeLocations m_attribute_locations;
     unsigned m_tiles_per_set = 1;
-    DrawListGenerator m_draw_list_generator;
+    nucleus::tile_scheduler::DrawListGenerator m_draw_list_generator;
 };
 }

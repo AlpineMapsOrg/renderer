@@ -20,6 +20,8 @@
 
 #include "nucleus/TileScheduler.h"
 
+namespace nucleus::tile_scheduler {
+
 class SimplisticTileScheduler : public TileScheduler {
     Q_OBJECT
 public:
@@ -54,3 +56,4 @@ private:
     Tile2DataMap m_received_height_tiles;
     bool m_enabled = true;
 };
+}
