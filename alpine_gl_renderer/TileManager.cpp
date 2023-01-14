@@ -16,7 +16,7 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *****************************************************************************/
 
-#include "GLTileManager.h"
+#include "TileManager.h"
 
 #include <QOpenGLBuffer>
 #include <QOpenGLExtraFunctions>
@@ -24,7 +24,6 @@
 #include <QOpenGLShaderProgram>
 #include <QOpenGLVertexArrayObject>
 
-#include "Atmosphere.h"
 #include "ShaderProgram.h"
 #include "nucleus/Tile.h"
 #include "nucleus/camera/Definition.h"
@@ -37,7 +36,7 @@ int bufferLengthInBytes(const std::vector<T>& vec)
     return int(vec.size() * sizeof(T));
 }
 
-std::vector<glm::vec4> boundsArray(const GLTileSet& tileset, const glm::dvec3& camera_position)
+std::vector<glm::vec4> boundsArray(const TileSet& tileset, const glm::dvec3& camera_position)
 {
     std::vector<glm::vec4> ret;
     ret.reserve(tileset.tiles.size());
@@ -51,12 +50,12 @@ std::vector<glm::vec4> boundsArray(const GLTileSet& tileset, const glm::dvec3& c
 }
 }
 
-GLTileManager::GLTileManager(QObject* parent)
+TileManager::TileManager(QObject* parent)
     : QObject { parent }
 {
 }
 
-void GLTileManager::init()
+void TileManager::init()
 {
     assert(QOpenGLContext::currentContext());
     for (auto i = 0; i < MAX_TILES_PER_TILESET; ++i) {
@@ -73,12 +72,12 @@ void GLTileManager::init()
     f->glGetFloatv(GL_MAX_TEXTURE_MAX_ANISOTROPY_EXT, &m_max_anisotropy);
 }
 
-const std::vector<GLTileSet>& GLTileManager::tiles() const
+const std::vector<TileSet>& TileManager::tiles() const
 {
     return m_gpu_tiles;
 }
 
-void GLTileManager::draw(ShaderProgram* shader_program, const camera::Definition& camera) const
+void TileManager::draw(ShaderProgram* shader_program, const camera::Definition& camera) const
 {
     QOpenGLExtraFunctions* f = QOpenGLContext::currentContext()->extraFunctions();
     shader_program->set_uniform("n_edge_vertices", N_EDGE_VERTICES);
@@ -99,7 +98,7 @@ void GLTileManager::draw(ShaderProgram* shader_program, const camera::Definition
     f->glBindVertexArray(0);
 }
 
-void GLTileManager::addTile(const std::shared_ptr<Tile>& tile)
+void TileManager::addTile(const std::shared_ptr<Tile>& tile)
 {
     if (!QOpenGLContext::currentContext())  // can happen during shutdown.
         return;
@@ -109,7 +108,7 @@ void GLTileManager::addTile(const std::shared_ptr<Tile>& tile)
     // need to call GLWindow::makeCurrent, when calling through signals?
     // find an empty slot => todo, for now just create a new tile every time.
     // setup / copy data to gpu
-    GLTileSet tileset;
+    TileSet tileset;
     tileset.tiles.emplace_back(tile->id, tile::SrsBounds(tile->bounds));
     tileset.vao = std::make_unique<QOpenGLVertexArrayObject>();
     tileset.vao->create();
@@ -140,11 +139,11 @@ void GLTileManager::addTile(const std::shared_ptr<Tile>& tile)
     emit tilesChanged();
 }
 
-void GLTileManager::removeTile(const tile::Id& tile_id)
+void TileManager::removeTile(const tile::Id& tile_id)
 {
     // clear slot
     // or remove from list and free resources
-    const auto found_tile = std::find_if(m_gpu_tiles.begin(), m_gpu_tiles.end(), [&tile_id](const GLTileSet& tileset) {
+    const auto found_tile = std::find_if(m_gpu_tiles.begin(), m_gpu_tiles.end(), [&tile_id](const TileSet& tileset) {
         return tileset.tiles.front().first == tile_id;
     });
     if (found_tile != m_gpu_tiles.end())
@@ -154,12 +153,12 @@ void GLTileManager::removeTile(const tile::Id& tile_id)
     emit tilesChanged();
 }
 
-void GLTileManager::initiliseAttributeLocations(ShaderProgram* program)
+void TileManager::initiliseAttributeLocations(ShaderProgram* program)
 {
     m_attribute_locations.height = program->attribute_location("height");
 }
 
-void GLTileManager::set_aabb_decorator(const tile_scheduler::AabbDecoratorPtr& new_aabb_decorator)
+void TileManager::set_aabb_decorator(const tile_scheduler::AabbDecoratorPtr& new_aabb_decorator)
 {
     m_draw_list_generator.set_aabb_decorator(new_aabb_decorator);
 }

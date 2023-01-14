@@ -22,7 +22,7 @@
 
 #include <QObject>
 
-#include "alpine_gl_renderer/GLTileSet.h"
+#include "alpine_gl_renderer/TileSet.h"
 #include "nucleus/Tile.h"
 #include "nucleus/tile_scheduler/DrawListGenerator.h"
 
@@ -34,13 +34,13 @@ class Atmosphere;
 class QOpenGLShaderProgram;
 class ShaderProgram;
 
-class GLTileManager : public QObject {
+class TileManager : public QObject {
     Q_OBJECT
 public:
-    explicit GLTileManager(QObject* parent = nullptr);
+    explicit TileManager(QObject* parent = nullptr);
     void init(); // needs OpenGL context
 
-    [[nodiscard]] const std::vector<GLTileSet>& tiles() const;
+    [[nodiscard]] const std::vector<TileSet>& tiles() const;
     void draw(ShaderProgram* shader_program, const camera::Definition& camera) const;
 
 signals:
@@ -62,7 +62,7 @@ private:
     static constexpr auto MAX_TILES_PER_TILESET = 1;
     float m_max_anisotropy = 0;
 
-    std::vector<GLTileSet> m_gpu_tiles;
+    std::vector<TileSet> m_gpu_tiles;
     // indexbuffers for 4^index tiles,
     // e.g., for single tile tile sets take index 0
     //       for 4 tiles take index 1, for 16 2..

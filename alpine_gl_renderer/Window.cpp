@@ -70,26 +70,26 @@
 #include "Atmosphere.h"
 #include "DebugPainter.h"
 #include "Framebuffer.h"
-#include "GLShaderManager.h"
-#include "GLTileManager.h"
-#include "GLWindow.h"
+#include "ShaderManager.h"
 #include "ShaderProgram.h"
+#include "TileManager.h"
+#include "Window.h"
 #include "helpers.h"
 
-GLWindow::GLWindow()
+Window::Window()
     : m_camera({ 1822577.0, 6141664.0 - 500, 171.28 + 500 }, { 1822577.0, 6141664.0, 171.28 }) // should point right at the stephansdom
 {
-    m_tile_manager = std::make_unique<GLTileManager>();
+    m_tile_manager = std::make_unique<TileManager>();
     QTimer::singleShot(0, [this]() { this->update(); });
 
 }
 
-GLWindow::~GLWindow()
+Window::~Window()
 {
     makeCurrent();
 }
 
-void GLWindow::initializeGL()
+void Window::initializeGL()
 {
     QOpenGLDebugLogger* logger = new QOpenGLDebugLogger(this);
     logger->initialize();
@@ -100,7 +100,7 @@ void GLWindow::initializeGL()
     logger->startLogging(QOpenGLDebugLogger::SynchronousLogging);
 
     m_debug_painter = std::make_unique<DebugPainter>();
-    m_shader_manager = std::make_unique<GLShaderManager>();
+    m_shader_manager = std::make_unique<ShaderManager>();
     m_atmosphere = std::make_unique<Atmosphere>();
 
     m_tile_manager->init();
@@ -109,7 +109,7 @@ void GLWindow::initializeGL()
     m_framebuffer = std::make_unique<Framebuffer>(Framebuffer::DepthFormat::Int24, std::vector({ Framebuffer::ColourFormat::RGBA8 }));
 }
 
-void GLWindow::resizeGL(int w, int h)
+void Window::resizeGL(int w, int h)
 {
     if (w == 0 || h == 0)
         return;
@@ -125,7 +125,7 @@ void GLWindow::resizeGL(int w, int h)
     emit viewport_changed({ w, h });
 }
 
-void GLWindow::paintGL()
+void Window::paintGL()
 {
     m_frame_start = std::chrono::time_point_cast<ClockResolution>(Clock::now());
 
@@ -169,7 +169,7 @@ void GLWindow::paintGL()
     m_frame_end = std::chrono::time_point_cast<ClockResolution>(Clock::now());
 }
 
-void GLWindow::paintOverGL()
+void Window::paintOverGL()
 {
     const auto frame_duration = (m_frame_end - m_frame_start);
     const auto frame_duration_float = double(frame_duration.count()) / 1000.;
@@ -189,19 +189,19 @@ void GLWindow::paintOverGL()
     painter.drawRect(int(text_bb.right()) + 5, 8, 12, 12);
 }
 
-void GLWindow::mouseMoveEvent(QMouseEvent* e)
+void Window::mouseMoveEvent(QMouseEvent* e)
 {
     // send depth information only on mouse press to be more efficient (?)
     emit mouse_moved(e);
 }
 
-void GLWindow::wheelEvent(QWheelEvent* e)
+void Window::wheelEvent(QWheelEvent* e)
 {
     float distance = 500; // todo read and compute from depth buffer
     emit wheel_turned(e, distance);
 }
 
-void GLWindow::keyPressEvent(QKeyEvent* e)
+void Window::keyPressEvent(QKeyEvent* e)
 {
     if (e->key() == Qt::Key::Key_F5) {
         m_shader_manager->reload_shaders();
@@ -217,7 +217,7 @@ void GLWindow::keyPressEvent(QKeyEvent* e)
     emit key_pressed(e->keyCombination());
 }
 
-void GLWindow::touchEvent(QTouchEvent* ev)
+void Window::touchEvent(QTouchEvent* ev)
 {
     if (ev->isEndEvent()) {
         m_debug_text = "";
@@ -231,25 +231,25 @@ void GLWindow::touchEvent(QTouchEvent* ev)
     emit touch_made(ev);
 }
 
-void GLWindow::update_camera(const camera::Definition& new_definition)
+void Window::update_camera(const camera::Definition& new_definition)
 {
     m_camera = new_definition;
     update();
 }
 
-void GLWindow::update_debug_scheduler_stats(const QString& stats)
+void Window::update_debug_scheduler_stats(const QString& stats)
 {
     m_debug_scheduler_stats = stats;
     update();
 }
 
-void GLWindow::mousePressEvent(QMouseEvent* ev)
+void Window::mousePressEvent(QMouseEvent* ev)
 {
     float distance = 500;   // todo read and compute from depth buffer
     emit mouse_pressed(ev, distance);
 }
 
-GLTileManager* GLWindow::gpuTileManager() const
+TileManager* Window::gpuTileManager() const
 {
     return m_tile_manager.get();
 }

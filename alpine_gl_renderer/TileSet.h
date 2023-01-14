@@ -30,7 +30,7 @@
 // we want to be flexible and have the ability to draw several tiles at once.
 // GpuTileSets can have an arbitrary number of slots, each slot is an index in the corresponding
 // vao buffers and textures.
-struct GLTileSet {
+struct TileSet {
     struct Tile {
         tile::Id tile_id;
         tile::SrsBounds bounds;

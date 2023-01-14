@@ -71,23 +71,23 @@ class QOpenGLVertexArrayObject;
 QT_END_NAMESPACE
 
 class DebugPainter;
-class GLTileManager;
-class GLShaderManager;
+class TileManager;
+class ShaderManager;
 class Framebuffer;
 class Atmosphere;
 
-class GLWindow : public QOpenGLWindow {
+class Window : public QOpenGLWindow {
     Q_OBJECT
 public:
-    GLWindow();
-    ~GLWindow() override;
+    Window();
+    ~Window() override;
 
     void initializeGL() override;
     void resizeGL(int w, int h) override;
     void paintGL() override;
     void paintOverGL() override;
 
-    GLTileManager* gpuTileManager() const;
+    TileManager* gpuTileManager() const;
 
 protected:
     void mousePressEvent(QMouseEvent*) override;
@@ -113,10 +113,10 @@ private:
     using Clock = std::chrono::steady_clock;
     using TimePoint = std::chrono::time_point<Clock, ClockResolution>;
 
-    std::unique_ptr<GLTileManager> m_tile_manager; // needs opengl context
+    std::unique_ptr<TileManager> m_tile_manager; // needs opengl context
     std::unique_ptr<DebugPainter> m_debug_painter; // needs opengl context
     std::unique_ptr<Atmosphere> m_atmosphere; // needs opengl context
-    std::unique_ptr<GLShaderManager> m_shader_manager;
+    std::unique_ptr<ShaderManager> m_shader_manager;
     std::unique_ptr<Framebuffer> m_framebuffer;
     gl::helpers::ScreenQuadGeometry m_screen_quad_geometry;
 

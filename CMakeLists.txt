@@ -33,10 +33,10 @@ set(ATB_RENDER_BACKEND_SOURCES
 set(ATB_GL_ENGINE_SOURCES
     alpine_gl_renderer/Atmosphere.h alpine_gl_renderer/Atmosphere.cpp
     alpine_gl_renderer/Framebuffer.h alpine_gl_renderer/Framebuffer.cpp
-    alpine_gl_renderer/GLShaderManager.h alpine_gl_renderer/GLShaderManager.cpp
-    alpine_gl_renderer/GLTileManager.h alpine_gl_renderer/GLTileManager.cpp
-    alpine_gl_renderer/GLTileSet.h
-    alpine_gl_renderer/GLWindow.cpp alpine_gl_renderer/GLWindow.h
+    alpine_gl_renderer/ShaderManager.h alpine_gl_renderer/ShaderManager.cpp
+    alpine_gl_renderer/TileManager.h alpine_gl_renderer/TileManager.cpp
+    alpine_gl_renderer/TileSet.h
+    alpine_gl_renderer/Window.cpp alpine_gl_renderer/Window.h
     alpine_gl_renderer/DebugPainter.h alpine_gl_renderer/DebugPainter.cpp
     alpine_gl_renderer/helpers.h
     alpine_gl_renderer/ShaderProgram.h alpine_gl_renderer/ShaderProgram.cpp

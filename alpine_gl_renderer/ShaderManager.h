@@ -24,11 +24,11 @@
 // consider removing. the only thing it does atm is a shader list + reloading. erm, so maybe rename into shader reloader..
 class ShaderProgram;
 
-class GLShaderManager : public QObject {
+class ShaderManager : public QObject {
     Q_OBJECT
 public:
-    GLShaderManager();
-    ~GLShaderManager() override;
+    ShaderManager();
+    ~ShaderManager() override;
     [[nodiscard]] ShaderProgram* tileShader() const;
     [[nodiscard]] ShaderProgram* debugShader() const;
     [[nodiscard]] ShaderProgram* screen_quad_program() const;
@@ -44,5 +44,4 @@ private:
     std::unique_ptr<ShaderProgram> m_debug_program;
     std::unique_ptr<ShaderProgram> m_screen_quad_program;
     std::unique_ptr<ShaderProgram> m_atmosphere_bg_program;
-
 };
