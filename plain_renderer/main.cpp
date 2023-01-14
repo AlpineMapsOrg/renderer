@@ -57,8 +57,8 @@
 #include <QThread>
 #include <QTimer>
 
-#include "Window.h"
 #include "alpine_gl_renderer/TileManager.h"
+#include "alpine_gl_renderer/Window.h"
 #include "nucleus/TileLoadService.h"
 #include "nucleus/camera/Controller.h"
 #include "nucleus/camera/CrapyInteraction.h"

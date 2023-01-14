@@ -44,7 +44,7 @@ TEST_CASE("nucleus/utils/tile_conversion")
 
     SECTION("byte array to qimage")
     {
-        QString filepath = QString("%1%2").arg(ATB_TEST_DATA_DIR, "170px-Jeune_bouquetin_de_face.jpg");
+        QString filepath = QString("%1%2").arg(ALP_TEST_DATA_DIR, "170px-Jeune_bouquetin_de_face.jpg");
         QFile file(filepath);
         file.open(QIODevice::ReadOnly);
         QByteArray ba = file.readAll();
@@ -56,7 +56,7 @@ TEST_CASE("nucleus/utils/tile_conversion")
 
     SECTION("byte array to raster RGBA")
     {
-        QString filepath = QString("%1%2").arg(ATB_TEST_DATA_DIR, "170px-Jeune_bouquetin_de_face.jpg");
+        QString filepath = QString("%1%2").arg(ALP_TEST_DATA_DIR, "170px-Jeune_bouquetin_de_face.jpg");
         QFile file(filepath);
         file.open(QIODevice::ReadOnly);
         QByteArray ba = file.readAll();
@@ -132,7 +132,7 @@ TEST_CASE("nucleus/utils/tile_conversion")
 
     SECTION("byte array to raster unsigned short")
     {
-        QString filepath = QString("%1%2").arg(ATB_TEST_DATA_DIR, "test-tile.png");
+        QString filepath = QString("%1%2").arg(ALP_TEST_DATA_DIR, "test-tile.png");
         QFile file(filepath);
         file.open(QIODevice::ReadOnly);
         QByteArray ba = file.readAll();

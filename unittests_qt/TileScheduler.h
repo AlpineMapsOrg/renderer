@@ -61,12 +61,12 @@ signals:
 protected slots:
     void initTestCase()
     {
-        auto ortho_file = QFile(QString("%1%2").arg(ATB_TEST_DATA_DIR, "test-tile_ortho.jpeg"));
+        auto ortho_file = QFile(QString("%1%2").arg(ALP_TEST_DATA_DIR, "test-tile_ortho.jpeg"));
         ortho_file.open(QFile::ReadOnly);
         m_ortho_bytes = ortho_file.readAll();
         QVERIFY(m_ortho_bytes.size() > 10);
 
-        auto height_file = QFile(QString("%1%2").arg(ATB_TEST_DATA_DIR, "test-tile.png"));
+        auto height_file = QFile(QString("%1%2").arg(ALP_TEST_DATA_DIR, "test-tile.png"));
         height_file.open(QFile::ReadOnly);
         m_height_bytes = height_file.readAll();
         QVERIFY(m_height_bytes.size() > 10);
