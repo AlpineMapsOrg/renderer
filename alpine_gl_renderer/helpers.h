@@ -28,7 +28,7 @@
 #include <glm/glm.hpp>
 #include <glm/gtc/type_ptr.hpp>
 
-namespace gl_helpers {
+namespace gl::helpers {
 inline QMatrix4x4 toQtType(const glm::mat4& mat)
 {
     return QMatrix4x4(glm::value_ptr(mat)).transposed();

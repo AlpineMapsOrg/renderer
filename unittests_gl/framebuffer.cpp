@@ -24,9 +24,9 @@
 #include <QOffscreenSurface>
 #include <QScreen>
 
-#include "alpine_gl_renderer/GLHelpers.h"
-#include "alpine_gl_renderer/ShaderProgram.h"
 #include "alpine_gl_renderer/Framebuffer.h"
+#include "alpine_gl_renderer/ShaderProgram.h"
+#include "alpine_gl_renderer/helpers.h"
 
 static const char* const vertex_source = R"(
 out highp vec2 texcoords;
@@ -89,7 +89,7 @@ TEST_CASE("gl framebuffer")
         b.bind();
         ShaderProgram shader = create_debug_shader();
         shader.bind();
-        gl_helpers::create_screen_quad_geometry().draw();
+        gl::helpers::create_screen_quad_geometry().draw();
 
         const QImage tex = b.read_colour_attachment(0);
         //        tex.save("/home/madam/Documents/work/tuw/alpinemaps/test.png");
@@ -113,7 +113,7 @@ TEST_CASE("gl framebuffer")
         b.bind();
         ShaderProgram shader = create_debug_shader_float();
         shader.bind();
-        gl_helpers::create_screen_quad_geometry().draw();
+        gl::helpers::create_screen_quad_geometry().draw();
 
         f->glFinish();
         const QImage tex = b.read_colour_attachment(0);

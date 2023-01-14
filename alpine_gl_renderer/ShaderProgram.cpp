@@ -3,7 +3,7 @@
 #include <QFile>
 #include <QOpenGLContext>
 
-#include "GLHelpers.h"
+#include "helpers.h"
 
 namespace {
 
@@ -153,5 +153,5 @@ void ShaderProgram::set_uniform_template(const std::string& name, T value)
         m_cached_uniforms[name] = m_q_shader_program->uniformLocation(name.c_str());
 
     const auto uniform_location = m_cached_uniforms.at(name);
-    m_q_shader_program->setUniformValue(uniform_location, gl_helpers::toQtType(value));
+    m_q_shader_program->setUniformValue(uniform_location, gl::helpers::toQtType(value));
 }

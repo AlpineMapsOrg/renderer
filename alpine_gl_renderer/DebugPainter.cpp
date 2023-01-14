@@ -16,7 +16,7 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *****************************************************************************/
 
-#include "GLDebugPainter.h"
+#include "DebugPainter.h"
 
 #include <QOpenGLBuffer>
 #include <QOpenGLContext>
@@ -24,20 +24,20 @@
 #include <QOpenGLShaderProgram>
 #include <QOpenGLVertexArrayObject>
 
-#include "alpine_gl_renderer/GLHelpers.h"
 #include "ShaderProgram.h"
+#include "helpers.h"
 
-GLDebugPainter::GLDebugPainter(QObject* parent)
+DebugPainter::DebugPainter(QObject* parent)
     : QObject { parent }
 {
 }
 
-void GLDebugPainter::activate(ShaderProgram* shader_program, const glm::mat4& world_view_projection_matrix)
+void DebugPainter::activate(ShaderProgram* shader_program, const glm::mat4& world_view_projection_matrix)
 {
     shader_program->set_uniform("matrix", world_view_projection_matrix);
 }
 
-void GLDebugPainter::drawLineStrip(ShaderProgram* shader_program, const std::vector<glm::vec3>& points) const
+void DebugPainter::drawLineStrip(ShaderProgram* shader_program, const std::vector<glm::vec3>& points) const
 {
     QOpenGLVertexArrayObject vao;
     vao.create();
@@ -47,7 +47,7 @@ void GLDebugPainter::drawLineStrip(ShaderProgram* shader_program, const std::vec
     buffer.create();
     buffer.bind();
     buffer.setUsagePattern(QOpenGLBuffer::StreamDraw);
-    buffer.allocate(points.data(), gl_helpers::bufferLengthInBytes(points));
+    buffer.allocate(points.data(), gl::helpers::bufferLengthInBytes(points));
 
     QOpenGLExtraFunctions* f = QOpenGLContext::currentContext()->extraFunctions();
     const auto position_attrib_location = shader_program->attribute_location("a_position");

@@ -68,14 +68,13 @@
 #include <glm/glm.hpp>
 
 #include "Atmosphere.h"
+#include "DebugPainter.h"
 #include "Framebuffer.h"
-#include "GLDebugPainter.h"
-#include "GLHelpers.h"
 #include "GLShaderManager.h"
 #include "GLTileManager.h"
 #include "GLWindow.h"
 #include "ShaderProgram.h"
-#include "nucleus/TileScheduler.h"
+#include "helpers.h"
 
 GLWindow::GLWindow()
     : m_camera({ 1822577.0, 6141664.0 - 500, 171.28 + 500 }, { 1822577.0, 6141664.0, 171.28 }) // should point right at the stephansdom
@@ -100,13 +99,13 @@ void GLWindow::initializeGL()
     logger->disableMessages(QList<GLuint>({ 131185 }));
     logger->startLogging(QOpenGLDebugLogger::SynchronousLogging);
 
-    m_debug_painter = std::make_unique<GLDebugPainter>();
+    m_debug_painter = std::make_unique<DebugPainter>();
     m_shader_manager = std::make_unique<GLShaderManager>();
     m_atmosphere = std::make_unique<Atmosphere>();
 
     m_tile_manager->init();
     m_tile_manager->initiliseAttributeLocations(m_shader_manager->tileShader());
-    m_screen_quad_geometry = gl_helpers::create_screen_quad_geometry();
+    m_screen_quad_geometry = gl::helpers::create_screen_quad_geometry();
     m_framebuffer = std::make_unique<Framebuffer>(Framebuffer::DepthFormat::Int24, std::vector({ Framebuffer::ColourFormat::RGBA8 }));
 }
 

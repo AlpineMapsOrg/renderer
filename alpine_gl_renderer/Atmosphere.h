@@ -1,6 +1,6 @@
 #pragma once
 
-#include "alpine_gl_renderer/GLHelpers.h"
+#include "helpers.h"
 
 namespace camera {
 class Definition;
@@ -11,7 +11,7 @@ class Framebuffer;
 class Atmosphere
 {
 public:
-    gl_helpers::ScreenQuadGeometry m_screen_quad_geometry;
+    gl::helpers::ScreenQuadGeometry m_screen_quad_geometry;
     std::unique_ptr<Framebuffer> m_framebuffer;
 
     Atmosphere();

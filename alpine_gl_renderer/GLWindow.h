@@ -59,8 +59,8 @@
 #include <glm/glm.hpp>
 #include <memory>
 
+#include "helpers.h"
 #include "nucleus/camera/Definition.h"
-#include "GLHelpers.h"
 
 QT_BEGIN_NAMESPACE
 
@@ -70,7 +70,7 @@ class QOpenGLBuffer;
 class QOpenGLVertexArrayObject;
 QT_END_NAMESPACE
 
-class GLDebugPainter;
+class DebugPainter;
 class GLTileManager;
 class GLShaderManager;
 class Framebuffer;
@@ -114,11 +114,11 @@ private:
     using TimePoint = std::chrono::time_point<Clock, ClockResolution>;
 
     std::unique_ptr<GLTileManager> m_tile_manager; // needs opengl context
-    std::unique_ptr<GLDebugPainter> m_debug_painter; // needs opengl context
+    std::unique_ptr<DebugPainter> m_debug_painter; // needs opengl context
     std::unique_ptr<Atmosphere> m_atmosphere; // needs opengl context
     std::unique_ptr<GLShaderManager> m_shader_manager;
     std::unique_ptr<Framebuffer> m_framebuffer;
-    gl_helpers::ScreenQuadGeometry m_screen_quad_geometry;
+    gl::helpers::ScreenQuadGeometry m_screen_quad_geometry;
 
     camera::Definition m_camera;
 

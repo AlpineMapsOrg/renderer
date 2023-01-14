@@ -37,8 +37,8 @@ set(ATB_GL_ENGINE_SOURCES
     alpine_gl_renderer/GLTileManager.h alpine_gl_renderer/GLTileManager.cpp
     alpine_gl_renderer/GLTileSet.h
     alpine_gl_renderer/GLWindow.cpp alpine_gl_renderer/GLWindow.h
-    alpine_gl_renderer/GLDebugPainter.h alpine_gl_renderer/GLDebugPainter.cpp
-    alpine_gl_renderer/GLHelpers.h
+    alpine_gl_renderer/DebugPainter.h alpine_gl_renderer/DebugPainter.cpp
+    alpine_gl_renderer/helpers.h
     alpine_gl_renderer/ShaderProgram.h alpine_gl_renderer/ShaderProgram.cpp
     alpine_gl_renderer/main.cpp
 )
@@ -111,7 +111,7 @@ qt_add_library(nucleus STATIC
     ${ATB_RENDER_BACKEND_SOURCES}
 )
 
-target_include_directories(nucleus PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
+target_include_directories(nucleus PRIVATE . PUBLIC ${CMAKE_SOURCE_DIR})
 target_compile_definitions(nucleus PUBLIC GLM_ENABLE_EXPERIMENTAL)
 if (NOT EMSCRIPTEN)
     target_compile_definitions(nucleus PUBLIC ALP_USE_DISK_CACHE)
@@ -140,6 +140,7 @@ target_link_libraries(alpine_gl_renderer PUBLIC
     Qt::Gui
     Qt::OpenGL
 )
+target_include_directories(alpine_gl_renderer PRIVATE .)
 
 if (ATB_ENABLE_ASSERTS)
     target_compile_options(alpine_gl_renderer PUBLIC "-U NDEBUG")

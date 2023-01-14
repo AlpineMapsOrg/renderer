@@ -4,13 +4,13 @@
 #include <QOpenGLTexture>
 
 #include "Framebuffer.h"
-#include "GLHelpers.h"
 #include "ShaderProgram.h"
+#include "helpers.h"
 #include "nucleus/camera/Definition.h"
 
 Atmosphere::Atmosphere()
 {
-    m_screen_quad_geometry = gl_helpers::create_screen_quad_geometry();
+    m_screen_quad_geometry = gl::helpers::create_screen_quad_geometry();
     m_framebuffer = std::make_unique<Framebuffer>(Framebuffer::DepthFormat::None, std::vector({ Framebuffer::ColourFormat::RGBA8 }));
 }
 
