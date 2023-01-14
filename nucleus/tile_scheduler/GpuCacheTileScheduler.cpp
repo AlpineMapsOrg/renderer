@@ -250,8 +250,8 @@ bool GpuCacheTileScheduler::send_to_gpu_if_available(const tile::Id& tile_id)
         assert(current_time < std::numeric_limits<unsigned>::max());
         m_main_cache_book[tile_id] = unsigned(current_time);
 
-        auto heightraster = tile_conversion::qImage2uint16Raster(tile_conversion::toQImage(*m_received_height_tiles[tile_id]));
-        auto ortho = tile_conversion::toQImage(*m_received_ortho_tiles[tile_id]);
+        auto heightraster = nucleus::utils::tile_conversion::qImage2uint16Raster(nucleus::utils::tile_conversion::toQImage(*m_received_height_tiles[tile_id]));
+        auto ortho = nucleus::utils::tile_conversion::toQImage(*m_received_ortho_tiles[tile_id]);
         const auto tile = std::make_shared<Tile>(tile_id, this->aabb_decorator()->aabb(tile_id), std::move(heightraster), std::move(ortho));
 
         m_gpu_tiles.insert(tile_id);

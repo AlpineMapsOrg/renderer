@@ -92,7 +92,7 @@ private slots:
             QCOMPARE(arguments.at(0).value<tile::Id>().zoom_level, white_tile_id.zoom_level); // verify the first argument
             QCOMPARE(arguments.at(0).value<tile::Id>().coords, white_tile_id.coords); // verify the first argument
             const auto image_bytes = arguments.at(1).value<std::shared_ptr<QByteArray>>();
-            const auto image = tile_conversion::toQImage(*image_bytes);
+            const auto image = nucleus::utils::tile_conversion::toQImage(*image_bytes);
             QVERIFY(image.sizeInBytes()); // verify the first argument
             // the image on the server is only almost white. this test will fail when the file changes.
             QCOMPARE(256LLu * 256 * 255 * 4 - std::accumulate(image.constBits(), image.constBits() + image.sizeInBytes(), 0LLu), 342792);
@@ -107,7 +107,7 @@ private slots:
             QCOMPARE(arguments.at(0).value<tile::Id>().zoom_level, tirol_tile_id.zoom_level); // verify the first argument
             QCOMPARE(arguments.at(0).value<tile::Id>().coords, tirol_tile_id.coords); // verify the first argument
             const auto image_bytes = arguments.at(1).value<std::shared_ptr<QByteArray>>();
-            const auto image = tile_conversion::toQImage(*image_bytes);
+            const auto image = nucleus::utils::tile_conversion::toQImage(*image_bytes);
             QVERIFY(image.sizeInBytes()); // verify the first argument
             // manually checked. comparing the sum should find regressions. this test will fail when the file changes.
             image.save("/home/madam/Documents/work/tuw/alpinemaps/build-alpine-renderer-Desktop_Qt_6_2_3_GCC_64bit-Debug/test.jpeg");

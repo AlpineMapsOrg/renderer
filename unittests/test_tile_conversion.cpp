@@ -27,14 +27,14 @@
 namespace {
 auto check_alpine_raster_format_for(const glm::u8vec4& v)
 {
-    const auto float_v = tile_conversion::alppineRGBA2float(v);
-    const auto ar_v = tile_conversion::float2alpineRGBA(float_v);
+    const auto float_v = nucleus::utils::tile_conversion::alppineRGBA2float(v);
+    const auto ar_v = nucleus::utils::tile_conversion::float2alpineRGBA(float_v);
     CHECK(ar_v == v);
 }
 auto check_uint16_conversion_for(const glm::u8vec4& v)
 {
-    const uint16_t short_v = tile_conversion::alppineRGBA2uint16(v);
-    const auto ar_v = tile_conversion::uint162alpineRGBA(short_v);
+    const uint16_t short_v = nucleus::utils::tile_conversion::alppineRGBA2uint16(v);
+    const auto ar_v = nucleus::utils::tile_conversion::uint162alpineRGBA(short_v);
     CHECK(ar_v == v);
 }
 }
@@ -49,7 +49,7 @@ TEST_CASE("nucleus/utils/tile_conversion")
         file.open(QIODevice::ReadOnly);
         QByteArray ba = file.readAll();
         REQUIRE(ba.size() > 0);
-        QImage image = tile_conversion::toQImage(ba);
+        QImage image = nucleus::utils::tile_conversion::toQImage(ba);
         CHECK(image.size().width() == 170);
         CHECK(image.size().height() == 227);
     }
@@ -61,7 +61,7 @@ TEST_CASE("nucleus/utils/tile_conversion")
         file.open(QIODevice::ReadOnly);
         QByteArray ba = file.readAll();
         REQUIRE(ba.size() > 0);
-        const auto raster = tile_conversion::toRasterRGBA(ba);
+        const auto raster = nucleus::utils::tile_conversion::toRasterRGBA(ba);
         CHECK(raster.width() == 170);
         CHECK(raster.height() == 227);
         CHECK(raster.buffer().front().x == 80);
@@ -76,31 +76,31 @@ TEST_CASE("nucleus/utils/tile_conversion")
         const auto one_green = 32.000000001f / 256;
         const auto eps = 0.000000001f;
 
-        CHECK(tile_conversion::float2alpineRGBA(0) == glm::u8vec4(0, 0, 0, 255));
+        CHECK(nucleus::utils::tile_conversion::float2alpineRGBA(0) == glm::u8vec4(0, 0, 0, 255));
 
-        CHECK(tile_conversion::float2alpineRGBA(one_red + eps) == glm::u8vec4(1, 0, 0, 255));
-        CHECK(tile_conversion::float2alpineRGBA(one_green + eps) == glm::u8vec4(0, 1, 0, 255));
+        CHECK(nucleus::utils::tile_conversion::float2alpineRGBA(one_red + eps) == glm::u8vec4(1, 0, 0, 255));
+        CHECK(nucleus::utils::tile_conversion::float2alpineRGBA(one_green + eps) == glm::u8vec4(0, 1, 0, 255));
 
-        CHECK(tile_conversion::float2alpineRGBA(42 * one_red + eps) == glm::u8vec4(42, 0, 0, 255));
-        CHECK(tile_conversion::float2alpineRGBA(200 * one_green + eps) == glm::u8vec4(0, 200, 0, 255));
+        CHECK(nucleus::utils::tile_conversion::float2alpineRGBA(42 * one_red + eps) == glm::u8vec4(42, 0, 0, 255));
+        CHECK(nucleus::utils::tile_conversion::float2alpineRGBA(200 * one_green + eps) == glm::u8vec4(0, 200, 0, 255));
 
-        CHECK(tile_conversion::float2alpineRGBA(255 * one_red + eps) == glm::u8vec4(255, 0, 0, 255));
-        CHECK(tile_conversion::float2alpineRGBA(253 * one_green + eps) == glm::u8vec4(0, 253, 0, 255));
-        CHECK(tile_conversion::float2alpineRGBA(254 * one_green + eps) == glm::u8vec4(0, 254, 0, 255));
-        CHECK(tile_conversion::float2alpineRGBA(255 * one_green + eps) == glm::u8vec4(0, 255, 0, 255));
-        CHECK(tile_conversion::float2alpineRGBA(256 * one_green + eps) == glm::u8vec4(1, 0, 0, 255));
-        CHECK(tile_conversion::float2alpineRGBA(257 * one_green + eps) == glm::u8vec4(1, 1, 0, 255));
-        CHECK(tile_conversion::float2alpineRGBA(258 * one_green + eps) == glm::u8vec4(1, 2, 0, 255));
+        CHECK(nucleus::utils::tile_conversion::float2alpineRGBA(255 * one_red + eps) == glm::u8vec4(255, 0, 0, 255));
+        CHECK(nucleus::utils::tile_conversion::float2alpineRGBA(253 * one_green + eps) == glm::u8vec4(0, 253, 0, 255));
+        CHECK(nucleus::utils::tile_conversion::float2alpineRGBA(254 * one_green + eps) == glm::u8vec4(0, 254, 0, 255));
+        CHECK(nucleus::utils::tile_conversion::float2alpineRGBA(255 * one_green + eps) == glm::u8vec4(0, 255, 0, 255));
+        CHECK(nucleus::utils::tile_conversion::float2alpineRGBA(256 * one_green + eps) == glm::u8vec4(1, 0, 0, 255));
+        CHECK(nucleus::utils::tile_conversion::float2alpineRGBA(257 * one_green + eps) == glm::u8vec4(1, 1, 0, 255));
+        CHECK(nucleus::utils::tile_conversion::float2alpineRGBA(258 * one_green + eps) == glm::u8vec4(1, 2, 0, 255));
 
-        CHECK(tile_conversion::float2alpineRGBA(240 * one_red + 195 * one_green + eps) == glm::u8vec4(240, 195, 0, 255));
-        CHECK(tile_conversion::float2alpineRGBA(64 * one_red + 255 * one_green + eps) == glm::u8vec4(64, 255, 0, 255));
-        CHECK(tile_conversion::float2alpineRGBA(255 * one_red + 128 * one_green + eps) == glm::u8vec4(255, 128, 0, 255));
-        CHECK(tile_conversion::float2alpineRGBA(255 * one_red + 255 * one_green + eps) == glm::u8vec4(255, 255, 0, 255));
+        CHECK(nucleus::utils::tile_conversion::float2alpineRGBA(240 * one_red + 195 * one_green + eps) == glm::u8vec4(240, 195, 0, 255));
+        CHECK(nucleus::utils::tile_conversion::float2alpineRGBA(64 * one_red + 255 * one_green + eps) == glm::u8vec4(64, 255, 0, 255));
+        CHECK(nucleus::utils::tile_conversion::float2alpineRGBA(255 * one_red + 128 * one_green + eps) == glm::u8vec4(255, 128, 0, 255));
+        CHECK(nucleus::utils::tile_conversion::float2alpineRGBA(255 * one_red + 255 * one_green + eps) == glm::u8vec4(255, 255, 0, 255));
 
-        CHECK(tile_conversion::float2alpineRGBA(123 * one_red + 250 * one_green + eps) == glm::u8vec4(123, 250, 0, 255));
-        CHECK(tile_conversion::float2alpineRGBA(140 * one_red + 255 * one_green + eps) == glm::u8vec4(140, 255, 0, 255));
-        CHECK(tile_conversion::float2alpineRGBA(141 * one_red + 0 * one_green + eps) == glm::u8vec4(141, 0, 0, 255));
-        CHECK(tile_conversion::float2alpineRGBA(141 * one_red + 1 * one_green + eps) == glm::u8vec4(141, 1, 0, 255));
+        CHECK(nucleus::utils::tile_conversion::float2alpineRGBA(123 * one_red + 250 * one_green + eps) == glm::u8vec4(123, 250, 0, 255));
+        CHECK(nucleus::utils::tile_conversion::float2alpineRGBA(140 * one_red + 255 * one_green + eps) == glm::u8vec4(140, 255, 0, 255));
+        CHECK(nucleus::utils::tile_conversion::float2alpineRGBA(141 * one_red + 0 * one_green + eps) == glm::u8vec4(141, 0, 0, 255));
+        CHECK(nucleus::utils::tile_conversion::float2alpineRGBA(141 * one_red + 1 * one_green + eps) == glm::u8vec4(141, 1, 0, 255));
     }
     SECTION("alpine raster RGBA to float conversion math")
     {
@@ -137,7 +137,7 @@ TEST_CASE("nucleus/utils/tile_conversion")
         file.open(QIODevice::ReadOnly);
         QByteArray ba = file.readAll();
         REQUIRE(ba.size() > 0);
-        const auto raster = tile_conversion::qImage2uint16Raster(tile_conversion::toQImage(ba));
+        const auto raster = nucleus::utils::tile_conversion::qImage2uint16Raster(nucleus::utils::tile_conversion::toQImage(ba));
         CHECK(raster.width() == 256);
         CHECK(raster.height() == 256);
         CHECK(raster.buffer()[0] == 24 * 256 + 44);

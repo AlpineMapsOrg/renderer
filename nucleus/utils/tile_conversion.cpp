@@ -18,7 +18,7 @@
 
 #include "tile_conversion.h"
 
-namespace tile_conversion {
+namespace nucleus::utils::tile_conversion {
 
 Raster<glm::u8vec4> toRasterRGBA(const QByteArray& byte_array)
 {
