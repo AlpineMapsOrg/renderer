@@ -2,7 +2,7 @@
 
 #include <QDebug>
 
-namespace camera {
+namespace nucleus::camera {
 
 std::optional<Definition> CrapyInteraction::mouse_move_event(QMouseEvent* e, Definition camera)
 {

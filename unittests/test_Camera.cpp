@@ -37,7 +37,7 @@ TEST_CASE("nucleus/camera: Definition")
     SECTION("constructor")
     {
         {
-            const auto c = camera::Definition({ 13, 12, 5 }, { 0, 0, 0 });
+            const auto c = nucleus::camera::Definition({ 13, 12, 5 }, { 0, 0, 0 });
             {
                 const auto t = c.camera_matrix() * glm::vec4 { 0, 0, 0, 1 };
                 CHECK(t.x == Approx(0.0f).scale(50));
@@ -58,7 +58,7 @@ TEST_CASE("nucleus/camera: Definition")
             }
         }
         {
-            const auto c = camera::Definition({ 10, 20, 30 }, { 42, 22, 55 });
+            const auto c = nucleus::camera::Definition({ 10, 20, 30 }, { 42, 22, 55 });
             const auto t0 = c.camera_matrix() * glm::vec4 { 42, 22, 55, 1 };
             CHECK(t0.x == Approx(0.0f).scale(50));
             CHECK(t0.y == Approx(0.0f).scale(50));
@@ -72,7 +72,7 @@ TEST_CASE("nucleus/camera: Definition")
     }
     SECTION("view projection matrix")
     {
-        auto c = camera::Definition({ 0, 0, 0 }, { 10, 10, 0 });
+        auto c = nucleus::camera::Definition({ 0, 0, 0 }, { 10, 10, 0 });
         c.set_perspective_params(90.0, { 100, 100 }, 1);
         const auto clip_space_v = divideByW(c.local_view_projection_matrix({}) * glm::vec4(10, 10, 0, 1));
         CHECK(clip_space_v.x == Approx(0.0f).scale(50));
@@ -82,7 +82,7 @@ TEST_CASE("nucleus/camera: Definition")
     SECTION("local coordinate system offset")
     {
         // see doc/gl_render_design.svg, this tests that the camera returns the local view projection matrix, i.e., offset such, that the floats are smaller
-        auto c = camera::Definition({ 1000, 1000, 5 }, { 1000, 1010, 0 });
+        auto c = nucleus::camera::Definition({ 1000, 1000, 5 }, { 1000, 1010, 0 });
         c.set_perspective_params(90.0, { 100, 100 }, 1);
         const auto not_transformed = divideByW(c.local_view_projection_matrix({}) * glm::vec4(1000, 1010, 0, 1));
         CHECK(not_transformed.x == Approx(0.0f).scale(50));
@@ -97,7 +97,7 @@ TEST_CASE("nucleus/camera: Definition")
     SECTION("unproject")
     {
         {
-            auto c = camera::Definition({ 1, 2, 3 }, { 10, 2, 3 });
+            auto c = nucleus::camera::Definition({ 1, 2, 3 }, { 10, 2, 3 });
             c.set_perspective_params(90, { 100, 100 }, 0.5);
             CHECK(equals(c.ray_direction(glm::vec2(0.0, 0.0)), { 1, 0, 0 }));
             CHECK(equals(glm::dvec2(c.world_view_projection_matrix() * glm::dvec4(19, 2, 3, 1)), glm::dvec2(0.0, 0.0)));
@@ -110,23 +110,23 @@ TEST_CASE("nucleus/camera: Definition")
             CHECK(equals(c.ray_direction(glm::vec2(0.0, -1.0)), glm::normalize(glm::dvec3(1, 0, -1))));
         }
         {
-            auto c = camera::Definition({ 2, 2, 1 }, { 1, 1, 0 });
+            auto c = nucleus::camera::Definition({ 2, 2, 1 }, { 1, 1, 0 });
             c.set_perspective_params(90, { 100, 100 }, 0.5);
             CHECK(equals(c.ray_direction(glm::vec2(0.0, 0.0)), glm::normalize(glm::dvec3(-1, -1, -1))));
             CHECK(equals(glm::dvec2(c.world_view_projection_matrix() * glm::dvec4(0, 0, -1, 1)), glm::dvec2(0.0, 0.0)));
         }
         {
-            auto c = camera::Definition({ 1, 1, 1 }, { 0, 0, 0 });
+            auto c = nucleus::camera::Definition({ 1, 1, 1 }, { 0, 0, 0 });
             c.set_perspective_params(90, { 100, 100 }, 0.5);
             CHECK(equals(c.ray_direction(glm::vec2(0.0, 0.0)), glm::normalize(glm::dvec3(-1, -1, -1))));
         }
         {
-            auto c = camera::Definition({ 10, 10, 10 }, { 10, 20, 20 });
+            auto c = nucleus::camera::Definition({ 10, 10, 10 }, { 10, 20, 20 });
             c.set_perspective_params(90, { 100, 100 }, 0.5);
             CHECK(equals(c.ray_direction(glm::vec2(0.0, 0.0)), glm::normalize(glm::dvec3(0, 1, 1))));
         }
         {
-            auto c = camera::Definition({ 10, 10, 10 }, { 10, 10, 20 });
+            auto c = nucleus::camera::Definition({ 10, 10, 10 }, { 10, 10, 20 });
             c.set_perspective_params(90, { 100, 100 }, 0.5);
             const auto unprojected = c.ray_direction(glm::vec2(0.0, 0.0));
             CHECK(equals(unprojected, glm::normalize(glm::dvec3(0, 0, 1)), 10));
@@ -136,7 +136,7 @@ TEST_CASE("nucleus/camera: Definition")
     SECTION("clipping panes")
     {
         { // camera in origin
-            auto c = camera::Definition({ 0, 0, 0 }, { 1, 0, 0 });
+            auto c = nucleus::camera::Definition({ 0, 0, 0 }, { 1, 0, 0 });
             c.set_perspective_params(90, { 100, 100 }, 0.5);
             const auto clipping_panes = c.clipping_planes(); // the order of clipping panes is front, back, top, down, left, and finally right
             REQUIRE(clipping_panes.size() == 6);
@@ -157,7 +157,7 @@ TEST_CASE("nucleus/camera: Definition")
             CHECK(clipping_panes[5].distance == Approx(0).scale(1));
         }
         { // camera somewhere else
-            auto c = camera::Definition({ 10, 10, 0 }, { 0, 0, 0 });
+            auto c = nucleus::camera::Definition({ 10, 10, 0 }, { 0, 0, 0 });
             c.set_perspective_params(90, { 100, 100 }, 0.5);
             const auto clipping_panes = c.clipping_planes(); // the order of clipping panes is front, back, top, down, left, and finally right
             REQUIRE(clipping_panes.size() == 6);

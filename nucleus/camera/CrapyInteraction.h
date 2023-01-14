@@ -2,7 +2,7 @@
 
 #include "InteractionStyle.h"
 
-namespace camera {
+namespace nucleus::camera {
 class CrapyInteraction : public InteractionStyle
 {
     glm::ivec2 m_previous_mouse_pos = { -1, -1 };

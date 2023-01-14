@@ -71,7 +71,7 @@ GpuCacheTileScheduler::GpuCacheTileScheduler()
     m_main_cache_book.reserve(m_main_cache_size + 500); // reserve some more space for tiles in flight
 }
 
-TileScheduler::TileSet GpuCacheTileScheduler::load_candidates(const camera::Definition& camera, const tile_scheduler::AabbDecoratorPtr& aabb_decorator)
+TileScheduler::TileSet GpuCacheTileScheduler::load_candidates(const nucleus::camera::Definition& camera, const tile_scheduler::AabbDecoratorPtr& aabb_decorator)
 {
     std::unordered_set<tile::Id, tile::Id::Hasher> all_tiles;
     const auto all_leaves = quad_tree::onTheFlyTraverse(
@@ -106,7 +106,7 @@ TileScheduler::TileSet GpuCacheTileScheduler::gpu_tiles() const
     return m_gpu_tiles;
 }
 
-void GpuCacheTileScheduler::update_camera(const camera::Definition& camera)
+void GpuCacheTileScheduler::update_camera(const nucleus::camera::Definition& camera)
 {
     if (!enabled())
         return;

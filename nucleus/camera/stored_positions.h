@@ -20,13 +20,13 @@
 
 #include "Definition.h"
 
-namespace camera::stored_positions {
+namespace nucleus::camera::stored_positions {
 // coordinate transformer: https://epsg.io/transform#s_srs=4326&t_srs=3857&x=16.3726561&y=48.2086939
-inline camera::Definition westl_hochgrubach_spitze()
+inline nucleus::camera::Definition westl_hochgrubach_spitze()
 {
     return { { 1374755.7, 6033683.4 - 500, 2277.0 + 500 }, { 1374755.7, 6033683.4, 2277.0 } };
 }
-inline camera::Definition stephansdom()
+inline nucleus::camera::Definition stephansdom()
 {
     return { { 1822577.0, 6141664.0 - 500, 171.28 + 500 }, { 1822577.0, 6141664.0, 171.28 } };
 }

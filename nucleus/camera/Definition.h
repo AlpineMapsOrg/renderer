@@ -27,7 +27,7 @@ template <typename T>
 struct Plane;
 }
 
-namespace camera {
+namespace nucleus::camera {
 
 class Definition {
 public:

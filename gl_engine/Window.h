@@ -98,7 +98,7 @@ protected:
     void touchEvent(QTouchEvent*) override;
 
 public slots:
-    void update_camera(const camera::Definition& new_definition);
+    void update_camera(const nucleus::camera::Definition& new_definition);
     void update_debug_scheduler_stats(const QString& stats);
 
 signals:
@@ -121,7 +121,7 @@ private:
     std::unique_ptr<Framebuffer> m_framebuffer;
     gl_engine::helpers::ScreenQuadGeometry m_screen_quad_geometry;
 
-    camera::Definition m_camera;
+    nucleus::camera::Definition m_camera;
 
     int m_frame = 0;
     bool m_initialised = false;

@@ -10,7 +10,7 @@
 
 struct Tile;
 
-namespace camera {
+namespace nucleus::camera {
 class Definition;
 
 class NearPlaneAdjuster : public QObject

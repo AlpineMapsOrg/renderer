@@ -47,7 +47,7 @@ public:
     }
 };
 
-inline glm::dvec3 nearestVertex(const camera::Definition& camera, const std::vector<geometry::Triangle<3, double>>& triangles)
+inline glm::dvec3 nearestVertex(const nucleus::camera::Definition& camera, const std::vector<geometry::Triangle<3, double>>& triangles)
 {
     const auto camera_distance = [&camera](const auto& point) {
         const auto delta = point - camera.position();
@@ -67,7 +67,7 @@ inline glm::dvec3 nearestVertex(const camera::Definition& camera, const std::vec
     return nearest_point;
 }
 
-inline auto cameraFrustumContainsTile(const camera::Definition& camera, const tile::SrsAndHeightBounds& aabb)
+inline auto cameraFrustumContainsTile(const nucleus::camera::Definition& camera, const tile::SrsAndHeightBounds& aabb)
 {
     // this test should be based only on the four frustum planes (top, left, bottom, right), because
     // the near and far planes are adjusted based on the loaded AABBs, and that results in  a chicken egg problem.
@@ -77,7 +77,7 @@ inline auto cameraFrustumContainsTile(const camera::Definition& camera, const ti
     return true;
 }
 
-inline auto refineFunctor(const camera::Definition& camera, const AabbDecoratorPtr& aabb_decorator, double error_threshold_px, double tile_size = 256)
+inline auto refineFunctor(const nucleus::camera::Definition& camera, const AabbDecoratorPtr& aabb_decorator, double error_threshold_px, double tile_size = 256)
 {
     const auto refine = [&camera, error_threshold_px, tile_size, aabb_decorator](const tile::Id& tile) {
         if (tile.zoom_level >= 18)

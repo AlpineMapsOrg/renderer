@@ -233,7 +233,7 @@ void Window::touchEvent(QTouchEvent* ev)
     emit touch_made(ev);
 }
 
-void Window::update_camera(const camera::Definition& new_definition)
+void Window::update_camera(const nucleus::camera::Definition& new_definition)
 {
     m_camera = new_definition;
     update();

@@ -32,7 +32,7 @@
 class TestSimplisticTileScheduler : public TestTileScheduler {
     Q_OBJECT
 private:
-    camera::Definition test_cam = camera::Definition({ 1822577.0, 6141664.0 - 500, 171.28 + 500 }, { 1822577.0, 6141664.0, 171.28 }); // should point right at the stephansdom
+    nucleus::camera::Definition test_cam = nucleus::camera::Definition({ 1822577.0, 6141664.0 - 500, 171.28 + 500 }, { 1822577.0, 6141664.0, 171.28 }); // should point right at the stephansdom
 
     std::unique_ptr<TileScheduler> makeScheduler() const override
     {
@@ -64,7 +64,7 @@ private slots:
         const auto gpu_tiles = m_scheduler->gpu_tiles();
 
         QSignalSpy spy(m_scheduler.get(), &TileScheduler::tile_expired);
-        camera::Definition replacement_cam = camera::Definition({ 0.0, 0.0 - 500, 0.0 - 500 }, { 0.0, 0.0, -1000.0 });
+        nucleus::camera::Definition replacement_cam = nucleus::camera::Definition({ 0.0, 0.0 - 500, 0.0 - 500 }, { 0.0, 0.0, -1000.0 });
         m_scheduler->update_camera(replacement_cam);
         const auto current_gpu_tiles = m_scheduler->gpu_tiles();
         spy.wait(5);

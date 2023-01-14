@@ -43,7 +43,7 @@ public:
     void init(); // needs OpenGL context
 
     [[nodiscard]] const std::vector<TileSet>& tiles() const;
-    void draw(ShaderProgram* shader_program, const camera::Definition& camera) const;
+    void draw(ShaderProgram* shader_program, const nucleus::camera::Definition& camera) const;
 
 signals:
     void tiles_changed();

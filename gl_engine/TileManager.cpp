@@ -80,7 +80,7 @@ const std::vector<TileSet>& TileManager::tiles() const
     return m_gpu_tiles;
 }
 
-void TileManager::draw(ShaderProgram* shader_program, const camera::Definition& camera) const
+void TileManager::draw(ShaderProgram* shader_program, const nucleus::camera::Definition& camera) const
 {
     QOpenGLExtraFunctions* f = QOpenGLContext::currentContext()->extraFunctions();
     shader_program->set_uniform("n_edge_vertices", N_EDGE_VERTICES);

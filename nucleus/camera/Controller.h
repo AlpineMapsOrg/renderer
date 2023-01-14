@@ -9,7 +9,7 @@
 #include "Definition.h"
 #include "InteractionStyle.h"
 
-namespace camera {
+namespace nucleus::camera {
 
 class Controller : public QObject
 {

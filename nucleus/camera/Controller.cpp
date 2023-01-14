@@ -2,8 +2,7 @@
 
 #include "nucleus/camera/Definition.h"
 
-
-namespace camera {
+namespace nucleus::camera {
 Controller::Controller(const Definition& camera)
     : m_definition(camera), m_interaction_style(std::make_unique<InteractionStyle>())
 {

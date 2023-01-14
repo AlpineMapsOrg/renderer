@@ -35,7 +35,7 @@ protected:
     QByteArray m_ortho_bytes;
     QByteArray m_height_bytes;
     std::unique_ptr<TileScheduler> m_scheduler;
-    camera::Definition test_cam = camera::stored_positions::stephansdom();
+    nucleus::camera::Definition test_cam = nucleus::camera::stored_positions::stephansdom();
     std::unordered_set<tile::Id, tile::Id::Hasher> m_given_tiles;
     std::unordered_set<tile::Id, tile::Id::Hasher> m_unavailable_tiles;
 

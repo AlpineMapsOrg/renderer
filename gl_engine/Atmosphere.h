@@ -2,7 +2,7 @@
 
 #include "helpers.h"
 
-namespace camera {
+namespace nucleus::camera {
 class Definition;
 }
 
@@ -17,6 +17,6 @@ public:
 
     Atmosphere();
     void resize(const glm::uvec2& new_size);
-    void draw(ShaderProgram* atmosphere_program, const camera::Definition& camera, ShaderProgram* copy_program, Framebuffer* out);
+    void draw(ShaderProgram* atmosphere_program, const nucleus::camera::Definition& camera, ShaderProgram* copy_program, Framebuffer* out);
 };
 }

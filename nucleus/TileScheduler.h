@@ -53,7 +53,7 @@ public:
     void set_aabb_decorator(const tile_scheduler::AabbDecoratorPtr& new_aabb_decorator);
 
 public slots:
-    virtual void update_camera(const camera::Definition& camera) = 0;
+    virtual void update_camera(const nucleus::camera::Definition& camera) = 0;
     virtual void receive_ortho_tile(tile::Id tile_id, std::shared_ptr<QByteArray> data) = 0;
     virtual void receive_height_tile(tile::Id tile_id, std::shared_ptr<QByteArray> data) = 0;
     virtual void notify_about_unavailable_ortho_tile(tile::Id tile_id) = 0;

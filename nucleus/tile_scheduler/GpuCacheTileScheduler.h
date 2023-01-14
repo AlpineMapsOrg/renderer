@@ -28,7 +28,7 @@ class GpuCacheTileScheduler : public TileScheduler
 public:
     GpuCacheTileScheduler();
 
-    [[nodiscard]] static TileSet load_candidates(const camera::Definition& camera, const tile_scheduler::AabbDecoratorPtr& aabb_decorator);
+    [[nodiscard]] static TileSet load_candidates(const nucleus::camera::Definition& camera, const tile_scheduler::AabbDecoratorPtr& aabb_decorator);
     [[nodiscard]] size_t number_of_tiles_in_transit() const override;
     [[nodiscard]] size_t number_of_waiting_height_tiles() const override;
     [[nodiscard]] size_t number_of_waiting_ortho_tiles() const override;
@@ -38,7 +38,7 @@ public:
     void set_enabled(bool newEnabled) override;
 
 public slots:
-    void update_camera(const camera::Definition& camera) override;
+    void update_camera(const nucleus::camera::Definition& camera) override;
     void receive_ortho_tile(tile::Id tile_id, std::shared_ptr<QByteArray> data) override;
     void receive_height_tile(tile::Id tile_id, std::shared_ptr<QByteArray> data) override;
     void notify_about_unavailable_ortho_tile(tile::Id tile_id) override;
@@ -61,7 +61,7 @@ private:
     unsigned m_max_n_simultaneous_requests = 64;
     static constexpr unsigned m_main_cache_size = 5000;
 
-    camera::Definition m_current_camera;
+    nucleus::camera::Definition m_current_camera;
     TileSet m_pending_tile_requests;
     TileSet m_gpu_tiles;
     Tile2DataMap m_received_ortho_tiles; // used as main cache

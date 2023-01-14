@@ -43,7 +43,7 @@ void DrawListGenerator::remove_tile(const tile::Id& id)
     m_available_tiles.erase(id);
 }
 
-DrawListGenerator::TileSet DrawListGenerator::generate_for(const camera::Definition& camera) const
+DrawListGenerator::TileSet DrawListGenerator::generate_for(const nucleus::camera::Definition& camera) const
 {
     const auto tile_refine_functor = tile_scheduler::refineFunctor(camera, m_aabb_decorator, 1.0);
     const auto draw_refine_functor = [&tile_refine_functor, this](const tile::Id& tile) {

@@ -9,7 +9,7 @@
 
 #include "Definition.h"
 
-namespace camera {
+namespace nucleus::camera {
 
 class InteractionStyle
 {

@@ -133,11 +133,11 @@ int main(int argc, char* argv[])
         reply->deleteLater();
     });
 
-    camera::Controller camera_controller { camera::stored_positions::westl_hochgrubach_spitze() };
-//    camera::Controller camera_controller { camera::stored_positions::stephansdom() };
-    camera_controller.set_interaction_style(std::make_unique<camera::CrapyInteraction>());
+    nucleus::camera::Controller camera_controller { nucleus::camera::stored_positions::westl_hochgrubach_spitze() };
+//    nucleus::camera::Controller camera_controller { nucleus::camera::stored_positions::stephansdom() };
+    camera_controller.set_interaction_style(std::make_unique<nucleus::camera::CrapyInteraction>());
 
-    camera::NearPlaneAdjuster near_plane_adjuster;
+    nucleus::camera::NearPlaneAdjuster near_plane_adjuster;
 
 #ifdef ALP_ENABLE_THREADING
     QThread scheduler_thread;
@@ -147,25 +147,25 @@ int main(int argc, char* argv[])
     scheduler_thread.start();
 #endif
 
-    QObject::connect(&glWindow, &gl_engine::Window::viewport_changed, &camera_controller, &camera::Controller::set_viewport);
-    QObject::connect(&glWindow, &gl_engine::Window::mouse_moved, &camera_controller, &camera::Controller::mouse_move);
-    QObject::connect(&glWindow, &gl_engine::Window::mouse_pressed, &camera_controller, &camera::Controller::mouse_press);
-    QObject::connect(&glWindow, &gl_engine::Window::wheel_turned, &camera_controller, &camera::Controller::wheel_turn);
-    QObject::connect(&glWindow, &gl_engine::Window::key_pressed, &camera_controller, &camera::Controller::key_press);
-    QObject::connect(&glWindow, &gl_engine::Window::touch_made, &camera_controller, &camera::Controller::touch);
+    QObject::connect(&glWindow, &gl_engine::Window::viewport_changed, &camera_controller, &nucleus::camera::Controller::set_viewport);
+    QObject::connect(&glWindow, &gl_engine::Window::mouse_moved, &camera_controller, &nucleus::camera::Controller::mouse_move);
+    QObject::connect(&glWindow, &gl_engine::Window::mouse_pressed, &camera_controller, &nucleus::camera::Controller::mouse_press);
+    QObject::connect(&glWindow, &gl_engine::Window::wheel_turned, &camera_controller, &nucleus::camera::Controller::wheel_turn);
+    QObject::connect(&glWindow, &gl_engine::Window::key_pressed, &camera_controller, &nucleus::camera::Controller::key_press);
+    QObject::connect(&glWindow, &gl_engine::Window::touch_made, &camera_controller, &nucleus::camera::Controller::touch);
     QObject::connect(&glWindow, &gl_engine::Window::key_pressed, &scheduler, &TileScheduler::key_press);
 
-    QObject::connect(&camera_controller, &camera::Controller::definition_changed, &scheduler, &TileScheduler::update_camera);
-    QObject::connect(&camera_controller, &camera::Controller::definition_changed, &near_plane_adjuster, &camera::NearPlaneAdjuster::update_camera);
-    QObject::connect(&camera_controller, &camera::Controller::definition_changed, &glWindow, &gl_engine::Window::update_camera);
+    QObject::connect(&camera_controller, &nucleus::camera::Controller::definition_changed, &scheduler, &TileScheduler::update_camera);
+    QObject::connect(&camera_controller, &nucleus::camera::Controller::definition_changed, &near_plane_adjuster, &nucleus::camera::NearPlaneAdjuster::update_camera);
+    QObject::connect(&camera_controller, &nucleus::camera::Controller::definition_changed, &glWindow, &gl_engine::Window::update_camera);
 
     QObject::connect(&scheduler, &TileScheduler::tile_requested, &terrain_service, &TileLoadService::load);
     QObject::connect(&scheduler, &TileScheduler::tile_requested, &ortho_service, &TileLoadService::load);
     QObject::connect(&scheduler, &TileScheduler::tile_ready, &glWindow, [&glWindow](const std::shared_ptr<Tile>& tile) { glWindow.gpu_tile_manager()->add_tile(tile); });
-    QObject::connect(&scheduler, &TileScheduler::tile_ready, &near_plane_adjuster, &camera::NearPlaneAdjuster::add_tile);
+    QObject::connect(&scheduler, &TileScheduler::tile_ready, &near_plane_adjuster, &nucleus::camera::NearPlaneAdjuster::add_tile);
     QObject::connect(&scheduler, &TileScheduler::tile_ready, &glWindow, qOverload<>(&gl_engine::Window::update));
     QObject::connect(&scheduler, &TileScheduler::tile_expired, &glWindow, [&glWindow](const auto& tile) { glWindow.gpu_tile_manager()->remove_tile(tile); });
-    QObject::connect(&scheduler, &TileScheduler::tile_expired, &near_plane_adjuster, &camera::NearPlaneAdjuster::remove_tile);
+    QObject::connect(&scheduler, &TileScheduler::tile_expired, &near_plane_adjuster, &nucleus::camera::NearPlaneAdjuster::remove_tile);
     QObject::connect(&scheduler, &TileScheduler::debug_scheduler_stats_updated, &glWindow, &gl_engine::Window::update_debug_scheduler_stats);
 
     QObject::connect(&ortho_service, &TileLoadService::load_ready, &scheduler, &TileScheduler::receive_ortho_tile);
@@ -173,7 +173,7 @@ int main(int argc, char* argv[])
     QObject::connect(&terrain_service, &TileLoadService::load_ready, &scheduler, &TileScheduler::receive_height_tile);
     QObject::connect(&terrain_service, &TileLoadService::tile_unavailable, &scheduler, &TileScheduler::notify_about_unavailable_height_tile);
 
-    QObject::connect(&near_plane_adjuster, &camera::NearPlaneAdjuster::near_plane_changed, &camera_controller, &camera::Controller::set_near_plane);
+    QObject::connect(&near_plane_adjuster, &nucleus::camera::NearPlaneAdjuster::near_plane_changed, &camera_controller, &nucleus::camera::Controller::set_near_plane);
 
     // in web assembly, the gl window is resized before it is connected. need to set viewport manually.
     // native, however, glWindow has a zero size at this point.

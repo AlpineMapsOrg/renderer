@@ -70,7 +70,7 @@ private slots:
         const auto gpu_tiles = m_scheduler->gpu_tiles();
 
         QSignalSpy spy(m_scheduler.get(), &TileScheduler::tile_expired);
-        camera::Definition replacement_cam = camera::stored_positions::westl_hochgrubach_spitze();
+        nucleus::camera::Definition replacement_cam = nucleus::camera::stored_positions::westl_hochgrubach_spitze();
         replacement_cam.set_viewport_size({ 2560, 1440 });
         m_scheduler->update_camera(replacement_cam);
     }
@@ -88,7 +88,7 @@ private slots:
         const auto gpu_tiles = m_scheduler->gpu_tiles();
 
         QSignalSpy spy(m_scheduler.get(), &TileScheduler::tile_expired);
-        camera::Definition replacement_cam = camera::stored_positions::westl_hochgrubach_spitze();
+        nucleus::camera::Definition replacement_cam = nucleus::camera::stored_positions::westl_hochgrubach_spitze();
         replacement_cam.set_viewport_size({ 2560, 1440 });
         m_scheduler->update_camera(replacement_cam);
         spy.wait(20);

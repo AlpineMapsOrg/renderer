@@ -7,13 +7,15 @@
 #include "Definition.h"
 #include "nucleus/Tile.h"
 
-camera::NearPlaneAdjuster::NearPlaneAdjuster(QObject *parent)
-    : QObject{parent}
+using nucleus::camera::NearPlaneAdjuster;
+
+NearPlaneAdjuster::NearPlaneAdjuster(QObject* parent)
+    : QObject { parent }
 {
 
 }
 
-void camera::NearPlaneAdjuster::update_camera(const Definition& new_definition)
+void NearPlaneAdjuster::update_camera(const Definition& new_definition)
 {
     const auto new_position = new_definition.position();
     if (m_camera_position == new_position)
@@ -22,19 +24,19 @@ void camera::NearPlaneAdjuster::update_camera(const Definition& new_definition)
     update_near_plane();
 }
 
-void camera::NearPlaneAdjuster::add_tile(const std::shared_ptr<Tile>& tile)
+void NearPlaneAdjuster::add_tile(const std::shared_ptr<Tile>& tile)
 {
     m_objects.emplace_back(tile->id, tile->bounds.max.z);
     update_near_plane();
 }
 
-void camera::NearPlaneAdjuster::remove_tile(const tile::Id& tile_id)
+void NearPlaneAdjuster::remove_tile(const tile::Id& tile_id)
 {
     std::erase_if(m_objects, [&tile_id](const Object& o) { return o.id == tile_id; });
     update_near_plane();
 }
 
-void camera::NearPlaneAdjuster::update_near_plane() const
+void NearPlaneAdjuster::update_near_plane() const
 {
     if (!m_objects.empty()) {
         double max_elevation = 0;
