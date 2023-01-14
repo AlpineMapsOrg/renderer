@@ -28,6 +28,6 @@ or a normal clone and
 * files are CamelCase if the content is a CamelCase class. otherwise they are snake_case, and have a snake_case namespace with stuff.
 * the folder/structure.h is reflected in namespace folder::structure{ .. }
 * indent with space only, indent 4 spaces
-* ideally, use clang-format with the WebKit style\\
+* ideally, use clang-format with the WebKit style  
   (in case you use Qt Creator, go to Preferences -> C++ -> Code Style: Formatting mode: Full, Format while typing, Format edited code on file save, Clang-Format Style -> BasedOnStyle=WebKit)
 
