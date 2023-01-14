@@ -20,3 +20,13 @@ or a normal clone and
 * Qt 6.4.1 (!), or greater
 * WebAssembly version compatible with the Qt version (https://doc-snapshots.qt.io/qt6-dev/wasm.html#installing-emscripten)
 * For compiling the threaded version, you need your own build of Qt (Instructions: https://doc-snapshots.qt.io/qt6-dev/wasm.html#building-qt-from-source, my compile commands were `mkdir my_threaded_qt && cd my_threaded_qt`, `../Src/configure -qt-host-path ../gcc_64 -platform wasm-emscripten -submodules qtbase -no-dbus -prefix $PWD/qtbase -feature-thread -opengles3 -c++std 20 -static -optimize-size` and `cmake --build . -t qtbase`; after which I added this build to the kits in Qt Creator)
+
+# code style
+* class names are CamelCase, method and variable names are snake_case.
+* class attributes have an m_ prefix and are usually private, struct attributes don't and are usually public.
+* structs are usually small, simple, and have no or only few methods. they never have inheritance.
+* files are CamelCase if the content is a CamelCase class. otherwise they are snake_case, and have a snake_case namespace with stuff.
+* the folder/structure.h is reflected in namespace folder::structure{ .. }
+* indent with space only, indent 4 spaces
+* ideally, use clang-format with the WebKit style (in Qt Creator Preferences -> C++ -> Code Style: Formatting mode: Full, Format while typing, Format edited code on file save, Clang-Format Style -> BasedOnStyle=WebKit)
+
