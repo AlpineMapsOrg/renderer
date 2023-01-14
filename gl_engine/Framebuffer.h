@@ -30,6 +30,7 @@
 
 class QOpenGLTexture;
 
+namespace gl_engine {
 class Framebuffer
 {
 public:
@@ -65,4 +66,4 @@ public:
 private:
     void reset_fbo();
 };
-
+}

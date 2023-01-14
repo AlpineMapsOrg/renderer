@@ -9,6 +9,7 @@
 #include <QOpenGLShaderProgram>
 #include <QUrl>
 
+namespace gl_engine {
 class ShaderProgram {
 public:
     using Files = std::vector<QString>;
@@ -43,4 +44,4 @@ private:
     void set_uniform_template(const std::string& name, T value);
 
 };
-
+}

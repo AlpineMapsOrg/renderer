@@ -5,6 +5,8 @@
 
 #include "helpers.h"
 
+using gl_engine::ShaderProgram;
+
 namespace {
 
 QByteArray create_shader_code(const ShaderProgram::Files& files)
@@ -153,5 +155,5 @@ void ShaderProgram::set_uniform_template(const std::string& name, T value)
         m_cached_uniforms[name] = m_q_shader_program->uniformLocation(name.c_str());
 
     const auto uniform_location = m_cached_uniforms.at(name);
-    m_q_shader_program->setUniformValue(uniform_location, gl::helpers::toQtType(value));
+    m_q_shader_program->setUniformValue(uniform_location, gl_engine::helpers::toQtType(value));
 }

@@ -27,17 +27,17 @@
 #include "ShaderProgram.h"
 #include "helpers.h"
 
-DebugPainter::DebugPainter(QObject* parent)
+gl_engine::DebugPainter::DebugPainter(QObject* parent)
     : QObject { parent }
 {
 }
 
-void DebugPainter::activate(ShaderProgram* shader_program, const glm::mat4& world_view_projection_matrix)
+void gl_engine::DebugPainter::activate(ShaderProgram* shader_program, const glm::mat4& world_view_projection_matrix)
 {
     shader_program->set_uniform("matrix", world_view_projection_matrix);
 }
 
-void DebugPainter::drawLineStrip(ShaderProgram* shader_program, const std::vector<glm::vec3>& points) const
+void gl_engine::DebugPainter::drawLineStrip(ShaderProgram* shader_program, const std::vector<glm::vec3>& points) const
 {
     QOpenGLVertexArrayObject vao;
     vao.create();
@@ -47,7 +47,7 @@ void DebugPainter::drawLineStrip(ShaderProgram* shader_program, const std::vecto
     buffer.create();
     buffer.bind();
     buffer.setUsagePattern(QOpenGLBuffer::StreamDraw);
-    buffer.allocate(points.data(), gl::helpers::bufferLengthInBytes(points));
+    buffer.allocate(points.data(), gl_engine::helpers::bufferLengthInBytes(points));
 
     QOpenGLExtraFunctions* f = QOpenGLContext::currentContext()->extraFunctions();
     const auto position_attrib_location = shader_program->attribute_location("a_position");

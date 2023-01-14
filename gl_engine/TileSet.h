@@ -30,6 +30,7 @@
 // we want to be flexible and have the ability to draw several tiles at once.
 // GpuTileSets can have an arbitrary number of slots, each slot is an index in the corresponding
 // vao buffers and textures.
+namespace gl_engine {
 struct TileSet {
     struct Tile {
         tile::Id tile_id;
@@ -50,3 +51,4 @@ struct TileSet {
     unsigned gl_index_type = 0;
     // texture
 };
+}

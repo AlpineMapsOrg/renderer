@@ -1,6 +1,6 @@
 /*****************************************************************************
- * Alpine Renderer
- * Copyright (C) 2022 Adam Celarek
+ * Alpine Terrain Builder
+ * Copyright (C) 2022 alpinemaps.org
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -18,22 +18,32 @@
 
 #pragma once
 
-#include <vector>
-
 #include <QObject>
-#include <glm/glm.hpp>
+#include <memory>
 
+// consider removing. the only thing it does atm is a shader list + reloading. erm, so maybe rename into shader reloader..
+namespace gl_engine {
 class ShaderProgram;
 
-class DebugPainter : public QObject {
+class ShaderManager : public QObject {
     Q_OBJECT
 public:
-    explicit DebugPainter(QObject* parent = nullptr);
-
-    void activate(ShaderProgram* shader_program, const glm::mat4& world_view_projection_matrix);
-    void drawLineStrip(ShaderProgram* shader_program, const std::vector<glm::vec3>& points) const;
-
+    ShaderManager();
+    ~ShaderManager() override;
+    [[nodiscard]] ShaderProgram* tileShader() const;
+    [[nodiscard]] ShaderProgram* debugShader() const;
+    [[nodiscard]] ShaderProgram* screen_quad_program() const;
+    [[nodiscard]] ShaderProgram* atmosphere_bg_program() const;
+    void release();
+public slots:
+    void reload_shaders();
 signals:
 
 private:
+    std::vector<ShaderProgram*> m_program_list;
+    std::unique_ptr<ShaderProgram> m_tile_program;
+    std::unique_ptr<ShaderProgram> m_debug_program;
+    std::unique_ptr<ShaderProgram> m_screen_quad_program;
+    std::unique_ptr<ShaderProgram> m_atmosphere_bg_program;
 };
+}

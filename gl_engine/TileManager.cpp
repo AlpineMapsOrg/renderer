@@ -29,6 +29,9 @@
 #include "nucleus/camera/Definition.h"
 #include "nucleus/utils/terrain_mesh_index_generator.h"
 
+using gl_engine::TileManager;
+using gl_engine::TileSet;
+
 namespace {
 template <typename T>
 int bufferLengthInBytes(const std::vector<T>& vec)

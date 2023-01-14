@@ -48,8 +48,7 @@
 **
 ****************************************************************************/
 
-#ifndef GLWIDGET_H
-#define GLWIDGET_H
+#pragma once
 
 #include <QOpenGLPaintDevice>
 #include <QOpenGLWindow>
@@ -70,8 +69,10 @@ class QOpenGLBuffer;
 class QOpenGLVertexArrayObject;
 QT_END_NAMESPACE
 
-class DebugPainter;
 class TileManager;
+
+namespace gl_engine {
+class DebugPainter;
 class ShaderManager;
 class Framebuffer;
 class Atmosphere;
@@ -118,7 +119,7 @@ private:
     std::unique_ptr<Atmosphere> m_atmosphere; // needs opengl context
     std::unique_ptr<ShaderManager> m_shader_manager;
     std::unique_ptr<Framebuffer> m_framebuffer;
-    gl::helpers::ScreenQuadGeometry m_screen_quad_geometry;
+    gl_engine::helpers::ScreenQuadGeometry m_screen_quad_geometry;
 
     camera::Definition m_camera;
 
@@ -129,5 +130,4 @@ private:
     QString m_debug_text;
     QString m_debug_scheduler_stats;
 };
-
-#endif
+}

@@ -22,6 +22,9 @@
 
 #include "ShaderProgram.h"
 
+using gl_engine::ShaderManager;
+using gl_engine::ShaderProgram;
+
 static const char* const debugVertexShaderSource = R"(
   layout(location = 0) in vec4 a_position;
   uniform highp mat4 matrix;

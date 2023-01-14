@@ -57,8 +57,8 @@
 #include <QThread>
 #include <QTimer>
 
-#include "alpine_gl_renderer/TileManager.h"
-#include "alpine_gl_renderer/Window.h"
+#include "gl_engine/TileManager.h"
+#include "gl_engine/Window.h"
 #include "nucleus/TileLoadService.h"
 #include "nucleus/camera/Controller.h"
 #include "nucleus/camera/CrapyInteraction.h"
@@ -106,7 +106,7 @@ int main(int argc, char* argv[])
     GpuCacheTileScheduler scheduler;
     scheduler.set_gpu_cache_size(1000);
 
-    Window glWindow;
+    gl_engine::Window glWindow;
     if (running_in_browser)
         glWindow.showFullScreen();
     else
@@ -147,26 +147,26 @@ int main(int argc, char* argv[])
     scheduler_thread.start();
 #endif
 
-    QObject::connect(&glWindow, &Window::viewport_changed, &camera_controller, &camera::Controller::setViewport);
-    QObject::connect(&glWindow, &Window::mouse_moved, &camera_controller, &camera::Controller::mouse_move);
-    QObject::connect(&glWindow, &Window::mouse_pressed, &camera_controller, &camera::Controller::mouse_press);
-    QObject::connect(&glWindow, &Window::wheel_turned, &camera_controller, &camera::Controller::wheel_turn);
-    QObject::connect(&glWindow, &Window::key_pressed, &camera_controller, &camera::Controller::key_press);
-    QObject::connect(&glWindow, &Window::touch_made, &camera_controller, &camera::Controller::touch);
-    QObject::connect(&glWindow, &Window::key_pressed, &scheduler, &TileScheduler::key_press);
+    QObject::connect(&glWindow, &gl_engine::Window::viewport_changed, &camera_controller, &camera::Controller::setViewport);
+    QObject::connect(&glWindow, &gl_engine::Window::mouse_moved, &camera_controller, &camera::Controller::mouse_move);
+    QObject::connect(&glWindow, &gl_engine::Window::mouse_pressed, &camera_controller, &camera::Controller::mouse_press);
+    QObject::connect(&glWindow, &gl_engine::Window::wheel_turned, &camera_controller, &camera::Controller::wheel_turn);
+    QObject::connect(&glWindow, &gl_engine::Window::key_pressed, &camera_controller, &camera::Controller::key_press);
+    QObject::connect(&glWindow, &gl_engine::Window::touch_made, &camera_controller, &camera::Controller::touch);
+    QObject::connect(&glWindow, &gl_engine::Window::key_pressed, &scheduler, &TileScheduler::key_press);
 
     QObject::connect(&camera_controller, &camera::Controller::definitionChanged, &scheduler, &TileScheduler::updateCamera);
     QObject::connect(&camera_controller, &camera::Controller::definitionChanged, &near_plane_adjuster, &camera::NearPlaneAdjuster::updateCamera);
-    QObject::connect(&camera_controller, &camera::Controller::definitionChanged, &glWindow, &Window::update_camera);
+    QObject::connect(&camera_controller, &camera::Controller::definitionChanged, &glWindow, &gl_engine::Window::update_camera);
 
     QObject::connect(&scheduler, &TileScheduler::tileRequested, &terrain_service, &TileLoadService::load);
     QObject::connect(&scheduler, &TileScheduler::tileRequested, &ortho_service, &TileLoadService::load);
     QObject::connect(&scheduler, &TileScheduler::tileReady, &glWindow, [&glWindow](const std::shared_ptr<Tile>& tile) { glWindow.gpuTileManager()->addTile(tile); });
     QObject::connect(&scheduler, &TileScheduler::tileReady, &near_plane_adjuster, &camera::NearPlaneAdjuster::addTile);
-    QObject::connect(&scheduler, &TileScheduler::tileReady, &glWindow, qOverload<>(&Window::update));
+    QObject::connect(&scheduler, &TileScheduler::tileReady, &glWindow, qOverload<>(&gl_engine::Window::update));
     QObject::connect(&scheduler, &TileScheduler::tileExpired, &glWindow, [&glWindow](const auto& tile) { glWindow.gpuTileManager()->removeTile(tile); });
     QObject::connect(&scheduler, &TileScheduler::tileExpired, &near_plane_adjuster, &camera::NearPlaneAdjuster::removeTile);
-    QObject::connect(&scheduler, &TileScheduler::debug_scheduler_stats_updated, &glWindow, &Window::update_debug_scheduler_stats);
+    QObject::connect(&scheduler, &TileScheduler::debug_scheduler_stats_updated, &glWindow, &gl_engine::Window::update_debug_scheduler_stats);
 
     QObject::connect(&ortho_service, &TileLoadService::loadReady, &scheduler, &TileScheduler::receiveOrthoTile);
     QObject::connect(&ortho_service, &TileLoadService::tileUnavailable, &scheduler, &TileScheduler::notifyAboutUnavailableOrthoTile);

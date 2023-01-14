@@ -22,7 +22,7 @@
 
 #include <QObject>
 
-#include "alpine_gl_renderer/TileSet.h"
+#include "gl_engine/TileSet.h"
 #include "nucleus/Tile.h"
 #include "nucleus/tile_scheduler/DrawListGenerator.h"
 
@@ -30,8 +30,10 @@ namespace camera {
 class Definition;
 }
 
-class Atmosphere;
 class QOpenGLShaderProgram;
+
+namespace gl_engine {
+class Atmosphere;
 class ShaderProgram;
 
 class TileManager : public QObject {
@@ -72,3 +74,4 @@ private:
     unsigned m_tiles_per_set = 1;
     DrawListGenerator m_draw_list_generator;
 };
+}

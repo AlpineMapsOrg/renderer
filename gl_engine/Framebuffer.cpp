@@ -24,6 +24,8 @@
 #include <QOpenGLFunctions>
 #include <QOpenGLTexture>
 
+using gl_engine::Framebuffer;
+
 namespace {
 
 // https://registry.khronos.org/OpenGL-Refpages/es3.0/html/glTexImage2D.xhtml

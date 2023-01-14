@@ -31,15 +31,15 @@ set(ALP_NUCLEUS_SOURCES
     nucleus/utils/tile_conversion.h nucleus/utils/tile_conversion.cpp
 )
 set(ALP_GL_SOURCES
-    alpine_gl_renderer/Atmosphere.h alpine_gl_renderer/Atmosphere.cpp
-    alpine_gl_renderer/Framebuffer.h alpine_gl_renderer/Framebuffer.cpp
-    alpine_gl_renderer/ShaderManager.h alpine_gl_renderer/ShaderManager.cpp
-    alpine_gl_renderer/TileManager.h alpine_gl_renderer/TileManager.cpp
-    alpine_gl_renderer/TileSet.h
-    alpine_gl_renderer/Window.cpp alpine_gl_renderer/Window.h
-    alpine_gl_renderer/DebugPainter.h alpine_gl_renderer/DebugPainter.cpp
-    alpine_gl_renderer/helpers.h
-    alpine_gl_renderer/ShaderProgram.h alpine_gl_renderer/ShaderProgram.cpp
+    gl_engine/Atmosphere.h gl_engine/Atmosphere.cpp
+    gl_engine/Framebuffer.h gl_engine/Framebuffer.cpp
+    gl_engine/ShaderManager.h gl_engine/ShaderManager.cpp
+    gl_engine/TileManager.h gl_engine/TileManager.cpp
+    gl_engine/TileSet.h
+    gl_engine/Window.cpp gl_engine/Window.h
+    gl_engine/DebugPainter.h gl_engine/DebugPainter.cpp
+    gl_engine/helpers.h
+    gl_engine/ShaderProgram.h gl_engine/ShaderProgram.cpp
 )
 set(ALP_PLAIN_RENDERER_SOURCES
     plain_renderer/main.cpp
@@ -54,8 +54,8 @@ set(ALP_GL_SHADERS
 )
 if (ALP_UNITTESTS AND NOT EMSCRIPTEN)
     set(ALP_CATCH_UNITTEST_GL_SOURCES
-        alpine_gl_renderer/Framebuffer.h alpine_gl_renderer/Framebuffer.cpp
-        alpine_gl_renderer/ShaderProgram.h alpine_gl_renderer/ShaderProgram.cpp
+        gl_engine/Framebuffer.h gl_engine/Framebuffer.cpp
+        gl_engine/ShaderProgram.h gl_engine/ShaderProgram.cpp
         unittests_gl/main.cpp
         unittests_gl/framebuffer.cpp
     )
@@ -160,6 +160,8 @@ if (NOT EMSCRIPTEN)
         LIBRARY DESTINATION "${ALP_INSTALL_DIR}"
     )
 else ()
+    configure_file(site/index.html index.html COPYONLY)
+    configure_file(site/mascot.png mascot.png COPYONLY)
     set(ALP_INSTALL_FILES
         "$<TARGET_FILE_DIR:plain_renderer>/plain_renderer.js"
         "$<TARGET_FILE_DIR:plain_renderer>/plain_renderer.wasm"
