@@ -112,7 +112,7 @@ qt_add_library(nucleus STATIC
 )
 
 target_include_directories(nucleus SYSTEM PUBLIC ${CMAKE_SOURCE_DIR}/libs/glm)
-if (ATB_UNITTESTS AND NOT EMSCRIPTEN)
+if (ATB_UNITTESTS AND NOT EMSCRIPTEN AND NOT TARGET Catch2)
     add_subdirectory(${CMAKE_SOURCE_DIR}/libs/Catch2)
 endif()
 target_include_directories(nucleus PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})

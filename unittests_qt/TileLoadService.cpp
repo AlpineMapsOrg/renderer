@@ -117,7 +117,7 @@ private slots:
 
     void notifiesOfUnavailableTiles()
     {
-        TileLoadService service("https://maps.wien.gv.at/basemap/bmaporthofoto30cm/normal/google3857/", TileLoadService::UrlPattern::ZYX, ".jpeg");
+        TileLoadService service("http://maps.wien.gv.at/basemap/bmaporthofoto30cm/normal/google3857/", TileLoadService::UrlPattern::ZYX, ".jpeg");
         QSignalSpy spy(&service, &TileLoadService::tileUnavailable);
         tile::Id unavailable_tile_id = { .zoom_level = 90, .coords = { 273, 177 } };
         service.load(unavailable_tile_id);

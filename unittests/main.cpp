@@ -21,6 +21,9 @@
 #include <limits>
 
 #define CATCH_CONFIG_MAIN
+#ifdef __MINGW32__
+#define DO_NOT_USE_WMAIN
+#endif
 #include <catch2/catch.hpp>
 
 #ifdef NDEBUG
