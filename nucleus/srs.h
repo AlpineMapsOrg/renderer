@@ -25,7 +25,7 @@
 
 #include "sherpa/tile.h"
 
-namespace srs {
+namespace nucleus::srs {
 // the srs used for the alpine renderer is EPSG: 3857 (also called web mercator, spherical mercator).
 // this coordinate system uses metres for coordiantes, 0m norhting is on the equator, 0m easting on the prime merridian
 // Vienna is about 1 822 577 metres east and 6 141 664 metres north

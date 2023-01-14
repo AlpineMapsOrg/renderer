@@ -24,6 +24,8 @@
 #include <QSignalSpy>
 #include <QTest>
 
+using nucleus::Raster;
+
 constexpr float near_plane_adjustment_factor = 0.8;
 
 class camera_Controller_and_NearPlaneAdjuster : public QObject {

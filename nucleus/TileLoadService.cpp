@@ -28,6 +28,8 @@
 #include <QRegularExpression>
 #endif
 
+using nucleus::TileLoadService;
+
 TileLoadService::TileLoadService(const QString& base_url, UrlPattern url_pattern, const QString& file_ending, const LoadBalancingTargets& load_balancing_targets)
     : m_network_manager(new QNetworkAccessManager(this))
 #ifdef ALP_USE_DISK_CACHE

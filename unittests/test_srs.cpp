@@ -19,6 +19,8 @@
 
 #include "nucleus/srs.h"
 
+using namespace nucleus;
+
 TEST_CASE("nucleus/srs")
 {
     SECTION("number of tiles per level")

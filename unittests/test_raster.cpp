@@ -23,6 +23,8 @@
 
 #include "unittests/test_helpers.h"
 
+using nucleus::Raster;
+
 TEST_CASE("nucleus/Raster")
 {
     SECTION("empty and interface")

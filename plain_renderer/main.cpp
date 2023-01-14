@@ -78,6 +78,10 @@
 // creation has to have a sufficiently high version number for the features that are in
 // use, and (2) the shader code's version directive is different.
 
+using gl_engine::Window;
+using nucleus::TileLoadService;
+using nucleus::TileScheduler;
+
 int main(int argc, char* argv[])
 {
     QGuiApplication app(argc, argv);
@@ -101,7 +105,7 @@ int main(int argc, char* argv[])
     QSurfaceFormat::setDefaultFormat(fmt);
 
     TileLoadService terrain_service("https://alpinemaps.cg.tuwien.ac.at/tiles/alpine_png/", TileLoadService::UrlPattern::ZXY, ".png");
-//    TileLoadService ortho_service("https://alpinemaps.cg.tuwien.ac.at/tiles/ortho/", TileLoadService::UrlPattern::ZYX_yPointingSouth, ".jpeg");
+    //    TileLoadService ortho_service("https://alpinemaps.cg.tuwien.ac.at/tiles/ortho/", TileLoadService::UrlPattern::ZYX_yPointingSouth, ".jpeg");
     TileLoadService ortho_service("https://maps%1.wien.gv.at/basemap/bmaporthofoto30cm/normal/google3857/", TileLoadService::UrlPattern::ZYX_yPointingSouth, ".jpeg", { "", "1", "2", "3", "4" });
     nucleus::tile_scheduler::GpuCacheTileScheduler scheduler;
     scheduler.set_gpu_cache_size(1000);
@@ -146,8 +150,6 @@ int main(int argc, char* argv[])
     scheduler.moveToThread(&scheduler_thread);
     scheduler_thread.start();
 #endif
-    using gl_engine::Window;
-    using nucleus::TileScheduler;
 
     QObject::connect(&glWindow, &Window::viewport_changed, &camera_controller, &nucleus::camera::Controller::set_viewport);
     QObject::connect(&glWindow, &Window::mouse_moved, &camera_controller, &nucleus::camera::Controller::mouse_move);

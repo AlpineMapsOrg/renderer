@@ -23,6 +23,8 @@
 #include <QSignalSpy>
 #include <QTest>
 
+using namespace nucleus;
+
 class TestTileLoadService : public QObject {
     Q_OBJECT
 private slots:

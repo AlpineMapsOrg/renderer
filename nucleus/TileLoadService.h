@@ -29,6 +29,8 @@ class QNetworkDiskCache;
 #endif
 class QNetworkAccessManager;
 
+namespace nucleus {
+
 class TileLoadService : public QObject {
     Q_OBJECT
 public:
@@ -61,3 +63,4 @@ private:
     QString m_file_ending;
     LoadBalancingTargets m_load_balancing_targets;
 };
+}

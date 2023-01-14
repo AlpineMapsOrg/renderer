@@ -22,7 +22,7 @@ constexpr unsigned int cSemiMajorAxis = 6378137;
 constexpr double cEarthCircumference = 2 * 3.1415926535897932384626433 * cSemiMajorAxis;
 constexpr double cOriginShift = cEarthCircumference / 2.0;
 
-namespace srs {
+namespace nucleus::srs {
 
 tile::SrsBounds tile_bounds(const tile::Id& tile)
 {

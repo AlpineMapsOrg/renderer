@@ -23,6 +23,8 @@
 
 #include <glm/glm.hpp>
 
+namespace nucleus {
+
 template <typename T>
 class Raster {
     std::vector<T> m_data;
@@ -62,3 +64,4 @@ public:
     auto cbegin() const { return m_data.cbegin(); }
     auto cend() const { return m_data.cend(); }
 };
+}
