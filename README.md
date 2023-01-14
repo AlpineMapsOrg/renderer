@@ -13,8 +13,8 @@ or a normal clone and
 
 # dependencies for the native dev build
 * Qt 6.4.1 (!), or greater
-* Catch2 (version 2.x, not 3.x!)
 * OpenGL
+* Catch2 (version 2.x, not 3.x!) and GLM will be pulled as git submodules.
 
 # for building the WebAssembly version:
 * Qt 6.4.1 (!), or greater
