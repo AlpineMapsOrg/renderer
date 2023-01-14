@@ -24,7 +24,7 @@
 #include <QSignalSpy>
 #include <QTest>
 
-using nucleus::Raster;
+using namespace nucleus;
 
 constexpr float near_plane_adjustment_factor = 0.8;
 
@@ -33,8 +33,8 @@ class camera_Controller_and_NearPlaneAdjuster : public QObject {
 private slots:
     void adapter()
     {
-        nucleus::camera::Controller cam_adapter(nucleus::camera::Definition{ { 100, 0, 0 }, { 0, 0, 0 } });
-        QSignalSpy worldProjectionSpy(&cam_adapter, &nucleus::camera::Controller::definition_changed);
+        camera::Controller cam_adapter(camera::Definition { { 100, 0, 0 }, { 0, 0, 0 } });
+        QSignalSpy worldProjectionSpy(&cam_adapter, &camera::Controller::definition_changed);
         cam_adapter.update();
         QVERIFY(worldProjectionSpy.isValid());
         worldProjectionSpy.wait(1);
@@ -58,14 +58,13 @@ private slots:
 
     void nearPlaneAdjuster_adding_removing()
     {
-        nucleus::camera::Controller cam_adapter(nucleus::camera::Definition{ { 100, 0, 100 }, { 0, 0, 0 } });
-        nucleus::camera::NearPlaneAdjuster near_plane_adjuster;
+        camera::Controller cam_adapter(camera::Definition { { 100, 0, 100 }, { 0, 0, 0 } });
+        camera::NearPlaneAdjuster near_plane_adjuster;
 
-        connect(&cam_adapter, &nucleus::camera::Controller::definition_changed, &near_plane_adjuster, &nucleus::camera::NearPlaneAdjuster::update_camera);
+        connect(&cam_adapter, &camera::Controller::definition_changed, &near_plane_adjuster, &camera::NearPlaneAdjuster::update_camera);
         cam_adapter.update();
 
-
-        QSignalSpy spy(&near_plane_adjuster, &nucleus::camera::NearPlaneAdjuster::near_plane_changed);
+        QSignalSpy spy(&near_plane_adjuster, &camera::NearPlaneAdjuster::near_plane_changed);
         spy.wait(1);
         QCOMPARE(spy.count(), 0);
 
@@ -110,10 +109,10 @@ private slots:
 
     void nearPlaneAdjuster_camera_update()
     {
-        nucleus::camera::Controller cam_adapter(nucleus::camera::Definition{ { 100, 0, 100 }, { 0, 0, 0 } });
-        nucleus::camera::NearPlaneAdjuster near_plane_adjuster;
+        camera::Controller cam_adapter(camera::Definition { { 100, 0, 100 }, { 0, 0, 0 } });
+        camera::NearPlaneAdjuster near_plane_adjuster;
 
-        connect(&cam_adapter, &nucleus::camera::Controller::definition_changed, &near_plane_adjuster, &nucleus::camera::NearPlaneAdjuster::update_camera);
+        connect(&cam_adapter, &camera::Controller::definition_changed, &near_plane_adjuster, &camera::NearPlaneAdjuster::update_camera);
         cam_adapter.update();
 
         near_plane_adjuster.add_tile(std::make_shared<Tile>(
@@ -127,7 +126,7 @@ private slots:
             Raster<uint16_t> {},
             QImage {}));
 
-        QSignalSpy spy(&near_plane_adjuster, &nucleus::camera::NearPlaneAdjuster::near_plane_changed);
+        QSignalSpy spy(&near_plane_adjuster, &camera::NearPlaneAdjuster::near_plane_changed);
         cam_adapter.move({-50, 0, -50});
         spy.wait(1);
         QCOMPARE(spy.count(), 1);

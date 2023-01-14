@@ -6,6 +6,7 @@
 #include "Raster.h"
 #include "sherpa/tile.h"
 
+namespace nucleus {
 struct Tile {
     Tile() = default;
     Tile(tile::Id id, tile::SrsAndHeightBounds bounds, nucleus::Raster<uint16_t> height_map, QImage orthotexture)
@@ -20,3 +21,4 @@ struct Tile {
     nucleus::Raster<uint16_t> height_map;
     QImage orthotexture;
 };
+}

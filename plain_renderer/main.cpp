@@ -165,7 +165,7 @@ int main(int argc, char* argv[])
 
     QObject::connect(&scheduler, &TileScheduler::tile_requested, &terrain_service, &TileLoadService::load);
     QObject::connect(&scheduler, &TileScheduler::tile_requested, &ortho_service, &TileLoadService::load);
-    QObject::connect(&scheduler, &TileScheduler::tile_ready, &glWindow, [&glWindow](const std::shared_ptr<Tile>& tile) { glWindow.gpu_tile_manager()->add_tile(tile); });
+    QObject::connect(&scheduler, &TileScheduler::tile_ready, &glWindow, [&glWindow](const std::shared_ptr<nucleus::Tile>& tile) { glWindow.gpu_tile_manager()->add_tile(tile); });
     QObject::connect(&scheduler, &TileScheduler::tile_ready, &near_plane_adjuster, &nucleus::camera::NearPlaneAdjuster::add_tile);
     QObject::connect(&scheduler, &TileScheduler::tile_ready, &glWindow, qOverload<>(&Window::update));
     QObject::connect(&scheduler, &TileScheduler::tile_expired, &glWindow, [&glWindow](const auto& tile) { glWindow.gpu_tile_manager()->remove_tile(tile); });

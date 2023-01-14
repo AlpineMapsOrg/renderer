@@ -8,7 +8,9 @@
 
 #include "sherpa/tile.h"
 
+namespace nucleus {
 struct Tile;
+}
 
 namespace nucleus::camera {
 class Definition;
@@ -24,7 +26,7 @@ signals:
 
 public slots:
     void update_camera(const Definition& new_definition);
-    void add_tile(const std::shared_ptr<Tile>& tile);
+    void add_tile(const std::shared_ptr<nucleus::Tile>& tile);
     void remove_tile(const tile::Id& tile_id);
 
 private:

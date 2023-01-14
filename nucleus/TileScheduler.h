@@ -28,13 +28,13 @@
 #include "sherpa/tile.h"
 
 class QKeyEvent;
-struct Tile;
 namespace nucleus::tile_scheduler {
 class AabbDecorator;
 using AabbDecoratorPtr = std::shared_ptr<AabbDecorator>;
 }
 
 namespace nucleus {
+struct Tile;
 
 class TileScheduler : public QObject {
     Q_OBJECT

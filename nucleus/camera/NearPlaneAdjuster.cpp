@@ -24,7 +24,7 @@ void NearPlaneAdjuster::update_camera(const Definition& new_definition)
     update_near_plane();
 }
 
-void NearPlaneAdjuster::add_tile(const std::shared_ptr<Tile>& tile)
+void NearPlaneAdjuster::add_tile(const std::shared_ptr<nucleus::Tile>& tile)
 {
     m_objects.emplace_back(tile->id, tile->bounds.max.z);
     update_near_plane();
