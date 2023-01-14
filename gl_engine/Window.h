@@ -88,7 +88,7 @@ public:
     void paintGL() override;
     void paintOverGL() override;
 
-    TileManager* gpuTileManager() const;
+    TileManager* gpu_tile_manager() const;
 
 protected:
     void mousePressEvent(QMouseEvent*) override;

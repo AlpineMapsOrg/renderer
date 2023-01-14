@@ -106,7 +106,7 @@ void Window::initializeGL()
     m_atmosphere = std::make_unique<Atmosphere>();
 
     m_tile_manager->init();
-    m_tile_manager->initiliseAttributeLocations(m_shader_manager->tileShader());
+    m_tile_manager->initilise_attribute_locations(m_shader_manager->tile_shader());
     m_screen_quad_geometry = gl_engine::helpers::create_screen_quad_geometry();
     m_framebuffer = std::make_unique<Framebuffer>(Framebuffer::DepthFormat::Int24, std::vector({ Framebuffer::ColourFormat::RGBA8 }));
 }
@@ -140,9 +140,9 @@ void Window::paintGL()
     f->glDepthFunc(GL_LESS);
 ////    glPolygonMode( GL_FRONT_AND_BACK, GL_LINE );
 
-    m_shader_manager->tileShader()->bind();
+    m_shader_manager->tile_shader()->bind();
 
-    m_tile_manager->draw(m_shader_manager->tileShader(), m_camera);
+    m_tile_manager->draw(m_shader_manager->tile_shader(), m_camera);
 
     //    {
     //        m_shader_manager->bindDebugShader();
@@ -251,7 +251,7 @@ void Window::mousePressEvent(QMouseEvent* ev)
     emit mouse_pressed(ev, distance);
 }
 
-gl_engine::TileManager* Window::gpuTileManager() const
+gl_engine::TileManager* Window::gpu_tile_manager() const
 {
     return m_tile_manager.get();
 }

@@ -37,7 +37,7 @@ void gl_engine::DebugPainter::activate(ShaderProgram* shader_program, const glm:
     shader_program->set_uniform("matrix", world_view_projection_matrix);
 }
 
-void gl_engine::DebugPainter::drawLineStrip(ShaderProgram* shader_program, const std::vector<glm::vec3>& points) const
+void gl_engine::DebugPainter::draw_line_strip(ShaderProgram* shader_program, const std::vector<glm::vec3>& points) const
 {
     QOpenGLVertexArrayObject vao;
     vao.create();

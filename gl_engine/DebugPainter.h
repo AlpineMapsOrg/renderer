@@ -32,7 +32,7 @@ public:
     explicit DebugPainter(QObject* parent = nullptr);
 
     void activate(ShaderProgram* shader_program, const glm::mat4& world_view_projection_matrix);
-    void drawLineStrip(ShaderProgram* shader_program, const std::vector<glm::vec3>& points) const;
+    void draw_line_strip(ShaderProgram* shader_program, const std::vector<glm::vec3>& points) const;
 
 signals:
 

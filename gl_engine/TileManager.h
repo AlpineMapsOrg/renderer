@@ -46,12 +46,12 @@ public:
     void draw(ShaderProgram* shader_program, const camera::Definition& camera) const;
 
 signals:
-    void tilesChanged();
+    void tiles_changed();
 
 public slots:
-    void addTile(const std::shared_ptr<Tile>& tile);
-    void removeTile(const tile::Id& tile_id);
-    void initiliseAttributeLocations(ShaderProgram* program);
+    void add_tile(const std::shared_ptr<Tile>& tile);
+    void remove_tile(const tile::Id& tile_id);
+    void initilise_attribute_locations(ShaderProgram* program);
     void set_aabb_decorator(const tile_scheduler::AabbDecoratorPtr& new_aabb_decorator);
 
 

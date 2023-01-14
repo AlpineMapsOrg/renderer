@@ -30,8 +30,8 @@ class ShaderManager : public QObject {
 public:
     ShaderManager();
     ~ShaderManager() override;
-    [[nodiscard]] ShaderProgram* tileShader() const;
-    [[nodiscard]] ShaderProgram* debugShader() const;
+    [[nodiscard]] ShaderProgram* tile_shader() const;
+    [[nodiscard]] ShaderProgram* debug_shader() const;
     [[nodiscard]] ShaderProgram* screen_quad_program() const;
     [[nodiscard]] ShaderProgram* atmosphere_bg_program() const;
     void release();

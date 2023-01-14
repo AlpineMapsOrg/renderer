@@ -59,12 +59,12 @@ ShaderManager::ShaderManager()
 
 ShaderManager::~ShaderManager() = default;
 
-ShaderProgram* ShaderManager::tileShader() const
+ShaderProgram* ShaderManager::tile_shader() const
 {
     return m_tile_program.get();
 }
 
-ShaderProgram* ShaderManager::debugShader() const
+ShaderProgram* ShaderManager::debug_shader() const
 {
     return m_debug_program.get();
 }

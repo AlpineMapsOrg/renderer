@@ -101,7 +101,7 @@ void TileManager::draw(ShaderProgram* shader_program, const camera::Definition& 
     f->glBindVertexArray(0);
 }
 
-void TileManager::addTile(const std::shared_ptr<Tile>& tile)
+void TileManager::add_tile(const std::shared_ptr<Tile>& tile)
 {
     if (!QOpenGLContext::currentContext())  // can happen during shutdown.
         return;
@@ -139,10 +139,10 @@ void TileManager::addTile(const std::shared_ptr<Tile>& tile)
     m_gpu_tiles.push_back(std::move(tileset));
     m_draw_list_generator.add_tile(tile->id);
 
-    emit tilesChanged();
+    emit tiles_changed();
 }
 
-void TileManager::removeTile(const tile::Id& tile_id)
+void TileManager::remove_tile(const tile::Id& tile_id)
 {
     // clear slot
     // or remove from list and free resources
@@ -153,10 +153,10 @@ void TileManager::removeTile(const tile::Id& tile_id)
         m_gpu_tiles.erase(found_tile);
     m_draw_list_generator.remove_tile(tile_id);
 
-    emit tilesChanged();
+    emit tiles_changed();
 }
 
-void TileManager::initiliseAttributeLocations(ShaderProgram* program)
+void TileManager::initilise_attribute_locations(ShaderProgram* program)
 {
     m_attribute_locations.height = program->attribute_location("height");
 }

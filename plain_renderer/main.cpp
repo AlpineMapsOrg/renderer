@@ -123,8 +123,8 @@ int main(int argc, char* argv[])
             const auto decorator = tile_scheduler::AabbDecorator::make(TileHeights::deserialise(data));
             QTimer::singleShot(1, &scheduler, [&scheduler, decorator]() { scheduler.set_aabb_decorator(decorator); });
 
-            assert(glWindow.gpuTileManager());
-            glWindow.gpuTileManager()->set_aabb_decorator(decorator);
+            assert(glWindow.gpu_tile_manager());
+            glWindow.gpu_tile_manager()->set_aabb_decorator(decorator);
         } else {
             qDebug() << "Loading of " << url << " failed: " << error;
             QGuiApplication::exit(0);
@@ -161,10 +161,10 @@ int main(int argc, char* argv[])
 
     QObject::connect(&scheduler, &TileScheduler::tileRequested, &terrain_service, &TileLoadService::load);
     QObject::connect(&scheduler, &TileScheduler::tileRequested, &ortho_service, &TileLoadService::load);
-    QObject::connect(&scheduler, &TileScheduler::tileReady, &glWindow, [&glWindow](const std::shared_ptr<Tile>& tile) { glWindow.gpuTileManager()->addTile(tile); });
+    QObject::connect(&scheduler, &TileScheduler::tileReady, &glWindow, [&glWindow](const std::shared_ptr<Tile>& tile) { glWindow.gpu_tile_manager()->add_tile(tile); });
     QObject::connect(&scheduler, &TileScheduler::tileReady, &near_plane_adjuster, &camera::NearPlaneAdjuster::addTile);
     QObject::connect(&scheduler, &TileScheduler::tileReady, &glWindow, qOverload<>(&gl_engine::Window::update));
-    QObject::connect(&scheduler, &TileScheduler::tileExpired, &glWindow, [&glWindow](const auto& tile) { glWindow.gpuTileManager()->removeTile(tile); });
+    QObject::connect(&scheduler, &TileScheduler::tileExpired, &glWindow, [&glWindow](const auto& tile) { glWindow.gpu_tile_manager()->remove_tile(tile); });
     QObject::connect(&scheduler, &TileScheduler::tileExpired, &near_plane_adjuster, &camera::NearPlaneAdjuster::removeTile);
     QObject::connect(&scheduler, &TileScheduler::debug_scheduler_stats_updated, &glWindow, &gl_engine::Window::update_debug_scheduler_stats);
 
