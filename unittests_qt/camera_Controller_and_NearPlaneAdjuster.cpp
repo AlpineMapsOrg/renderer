@@ -32,14 +32,14 @@ private slots:
     void adapter()
     {
         camera::Controller cam_adapter(camera::Definition{ { 100, 0, 0 }, { 0, 0, 0 } });
-        QSignalSpy worldProjectionSpy(&cam_adapter, &camera::Controller::definitionChanged);
+        QSignalSpy worldProjectionSpy(&cam_adapter, &camera::Controller::definition_changed);
         cam_adapter.update();
         QVERIFY(worldProjectionSpy.isValid());
         worldProjectionSpy.wait(1);
         QCOMPARE(worldProjectionSpy.count(), 1);
 
         worldProjectionSpy.clear();
-        cam_adapter.setNearPlane(2);
+        cam_adapter.set_near_plane(2);
         worldProjectionSpy.wait(1);
         QCOMPARE(worldProjectionSpy.count(), 1);
 
@@ -59,15 +59,15 @@ private slots:
         camera::Controller cam_adapter(camera::Definition{ { 100, 0, 100 }, { 0, 0, 0 } });
         camera::NearPlaneAdjuster near_plane_adjuster;
 
-        connect(&cam_adapter, &camera::Controller::definitionChanged, &near_plane_adjuster, &camera::NearPlaneAdjuster::updateCamera);
+        connect(&cam_adapter, &camera::Controller::definition_changed, &near_plane_adjuster, &camera::NearPlaneAdjuster::update_camera);
         cam_adapter.update();
 
 
-        QSignalSpy spy(&near_plane_adjuster, &camera::NearPlaneAdjuster::nearPlaneChanged);
+        QSignalSpy spy(&near_plane_adjuster, &camera::NearPlaneAdjuster::near_plane_changed);
         spy.wait(1);
         QCOMPARE(spy.count(), 0);
 
-        near_plane_adjuster.addTile(std::make_shared<Tile>(
+        near_plane_adjuster.add_tile(std::make_shared<Tile>(
             tile::Id { 0, {} },
             tile::SrsAndHeightBounds { { -0.5, -0.5, -0.5 }, { 0.5, 0.5, 10.0 } },
             Raster<uint16_t> {},
@@ -77,7 +77,7 @@ private slots:
         QCOMPARE(spy.front().front().toDouble(), float(90 * near_plane_adjustment_factor));
 
         spy.clear();
-        near_plane_adjuster.addTile(std::make_shared<Tile>(
+        near_plane_adjuster.add_tile(std::make_shared<Tile>(
             tile::Id { 1, {} },
             tile::SrsAndHeightBounds { { -100.5, -0.5, -0.5 }, { -99.5, 0.5, 20.0 } },
             Raster<uint16_t> {},
@@ -87,19 +87,19 @@ private slots:
         QCOMPARE(spy.front().front().toDouble(), float(80.0 * near_plane_adjustment_factor));
 
         spy.clear();
-        near_plane_adjuster.removeTile(tile::Id { 0, {} });
+        near_plane_adjuster.remove_tile(tile::Id { 0, {} });
         spy.wait(1);
         QCOMPARE(spy.count(), 1);
         QCOMPARE(spy.front().front().toDouble(), float(80 * near_plane_adjustment_factor));
 
-        near_plane_adjuster.addTile(std::make_shared<Tile>(
+        near_plane_adjuster.add_tile(std::make_shared<Tile>(
             tile::Id { 0, {} },
             tile::SrsAndHeightBounds { { -0.5, -0.5, -0.5 }, { 0.5, 0.5, 10.0 } },
             Raster<uint16_t> {},
             QImage {}));
 
         spy.clear();
-        near_plane_adjuster.removeTile(tile::Id { 1, {} });
+        near_plane_adjuster.remove_tile(tile::Id { 1, {} });
         spy.wait(1);
         QCOMPARE(spy.count(), 1);
         QCOMPARE(spy.front().front().toDouble(), float(90 * near_plane_adjustment_factor));
@@ -111,21 +111,21 @@ private slots:
         camera::Controller cam_adapter(camera::Definition{ { 100, 0, 100 }, { 0, 0, 0 } });
         camera::NearPlaneAdjuster near_plane_adjuster;
 
-        connect(&cam_adapter, &camera::Controller::definitionChanged, &near_plane_adjuster, &camera::NearPlaneAdjuster::updateCamera);
+        connect(&cam_adapter, &camera::Controller::definition_changed, &near_plane_adjuster, &camera::NearPlaneAdjuster::update_camera);
         cam_adapter.update();
 
-        near_plane_adjuster.addTile(std::make_shared<Tile>(
+        near_plane_adjuster.add_tile(std::make_shared<Tile>(
             tile::Id { 0, {} },
             tile::SrsAndHeightBounds { { -0.5, -0.5, -0.5 }, { 0.5, 0.5, 10.0 } },
             Raster<uint16_t> {},
             QImage {}));
-        near_plane_adjuster.addTile(std::make_shared<Tile>(
+        near_plane_adjuster.add_tile(std::make_shared<Tile>(
             tile::Id { 1, {} },
             tile::SrsAndHeightBounds { { -100.5, -0.5, -0.5 }, { -99.5, 0.5, 20.0 } },
             Raster<uint16_t> {},
             QImage {}));
 
-        QSignalSpy spy(&near_plane_adjuster, &camera::NearPlaneAdjuster::nearPlaneChanged);
+        QSignalSpy spy(&near_plane_adjuster, &camera::NearPlaneAdjuster::near_plane_changed);
         cam_adapter.move({-50, 0, -50});
         spy.wait(1);
         QCOMPARE(spy.count(), 1);

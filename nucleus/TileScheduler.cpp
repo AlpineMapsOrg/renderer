@@ -30,17 +30,17 @@ void TileScheduler::print_debug_info() const
 void TileScheduler::send_debug_scheduler_stats() const
 {
     const auto text = QString("Scheduler: %1 tiles in transit, %2 height, %3 ortho tiles in main cache, %4 tiles on gpu")
-                          .arg(numberOfTilesInTransit())
-                          .arg(numberOfWaitingHeightTiles())
-                          .arg(numberOfWaitingOrthoTiles())
-                          .arg(gpuTiles().size());
+                          .arg(number_of_tiles_in_transit())
+                          .arg(number_of_waiting_height_tiles())
+                          .arg(number_of_waiting_ortho_tiles())
+                          .arg(gpu_tiles().size());
     emit debug_scheduler_stats_updated(text);
 }
 
 void TileScheduler::key_press(const QKeyCombination& e)
 {
     if (e.key() == Qt::Key::Key_T) {
-        setEnabled(!enabled());
+        set_enabled(!enabled());
         qDebug("setting tile scheduler enabled = %d", int(enabled()));
     }
 }

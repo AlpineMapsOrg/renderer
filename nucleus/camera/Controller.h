@@ -21,9 +21,9 @@ public:
     void set_interaction_style(std::unique_ptr<InteractionStyle> new_style);
 
 public slots:
-    void setDefinition(const Definition& new_definition);
-    void setNearPlane(float distance);
-    void setViewport(const glm::uvec2& new_viewport);
+    void set_definition(const Definition& new_definition);
+    void set_near_plane(float distance);
+    void set_viewport(const glm::uvec2& new_viewport);
     void move(const glm::dvec3& v);
     void orbit(const glm::dvec3& centre, const glm::dvec2& degrees);
     void update() const;
@@ -35,7 +35,7 @@ public slots:
     void touch(QTouchEvent*);
 
 signals:
-    void definitionChanged(const Definition& new_definition) const;
+    void definition_changed(const Definition& new_definition) const;
 
 private:
     Definition m_definition;

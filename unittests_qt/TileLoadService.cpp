@@ -83,7 +83,7 @@ private slots:
         TileLoadService service("http://maps.wien.gv.at/basemap/bmaporthofoto30cm/normal/google3857/", TileLoadService::UrlPattern::ZYX, ".jpeg");
 
         {
-            QSignalSpy spy(&service, &TileLoadService::loadReady);
+            QSignalSpy spy(&service, &TileLoadService::load_ready);
             service.load(white_tile_id);
             spy.wait(250);
 
@@ -98,7 +98,7 @@ private slots:
             QCOMPARE(256LLu * 256 * 255 * 4 - std::accumulate(image.constBits(), image.constBits() + image.sizeInBytes(), 0LLu), 342792);
         }
         {
-            QSignalSpy spy(&service, &TileLoadService::loadReady);
+            QSignalSpy spy(&service, &TileLoadService::load_ready);
             service.load(tirol_tile_id);
             spy.wait(500);
 
@@ -118,7 +118,7 @@ private slots:
     void notifiesOfUnavailableTiles()
     {
         TileLoadService service("http://maps.wien.gv.at/basemap/bmaporthofoto30cm/normal/google3857/", TileLoadService::UrlPattern::ZYX, ".jpeg");
-        QSignalSpy spy(&service, &TileLoadService::tileUnavailable);
+        QSignalSpy spy(&service, &TileLoadService::tile_unavailable);
         tile::Id unavailable_tile_id = { .zoom_level = 90, .coords = { 273, 177 } };
         service.load(unavailable_tile_id);
         spy.wait(250);

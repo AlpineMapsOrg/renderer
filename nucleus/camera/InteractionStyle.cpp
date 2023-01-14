@@ -1,27 +1,27 @@
 #include "InteractionStyle.h"
 
 
-std::optional<camera::Definition> camera::InteractionStyle::mousePressEvent(QMouseEvent*, Definition, float)
+std::optional<camera::Definition> camera::InteractionStyle::mouse_press_event(QMouseEvent*, Definition, float)
 {
     return {};
 }
 
-std::optional<camera::Definition> camera::InteractionStyle::mouseMoveEvent(QMouseEvent*, Definition)
+std::optional<camera::Definition> camera::InteractionStyle::mouse_move_event(QMouseEvent*, Definition)
 {
     return {};
 }
 
-std::optional<camera::Definition> camera::InteractionStyle::wheelEvent(QWheelEvent* e, Definition camera, float distance)
+std::optional<camera::Definition> camera::InteractionStyle::wheel_event(QWheelEvent* e, Definition camera, float distance)
 {
     return {};
 }
 
-std::optional<camera::Definition> camera::InteractionStyle::keyPressEvent(const QKeyCombination&, Definition)
+std::optional<camera::Definition> camera::InteractionStyle::key_press_event(const QKeyCombination&, Definition)
 {
     return {};
 }
 
-std::optional<camera::Definition> camera::InteractionStyle::touchEvent(QTouchEvent*, Definition)
+std::optional<camera::Definition> camera::InteractionStyle::touch_event(QTouchEvent*, Definition)
 {
     return {};
 }

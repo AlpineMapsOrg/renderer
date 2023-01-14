@@ -84,7 +84,7 @@ void TileManager::draw(ShaderProgram* shader_program, const camera::Definition& 
 {
     QOpenGLExtraFunctions* f = QOpenGLContext::currentContext()->extraFunctions();
     shader_program->set_uniform("n_edge_vertices", N_EDGE_VERTICES);
-    shader_program->set_uniform("matrix", camera.localViewProjectionMatrix(camera.position()));
+    shader_program->set_uniform("matrix", camera.local_view_projection_matrix(camera.position()));
     shader_program->set_uniform("camera_position", glm::vec3(camera.position()));
     shader_program->set_uniform("texture_sampler", 0);
 //    shader_program->set_uniform("texture_sampler", 0);

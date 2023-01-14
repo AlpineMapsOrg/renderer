@@ -59,10 +59,10 @@ void TileLoadService::load(const tile::Id& tile_id)
         const auto error = reply->error();
         if (error == QNetworkReply::NoError) {
             auto tile = std::make_shared<QByteArray>(reply->readAll());
-            emit loadReady(tile_id, std::move(tile));
+            emit load_ready(tile_id, std::move(tile));
         } else {
             qDebug() << "Loading of tile " << url << " failed: " << error;
-            emit tileUnavailable(tile_id);
+            emit tile_unavailable(tile_id);
             // do we need better error handling?
         }
         reply->deleteLater();

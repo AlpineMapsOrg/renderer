@@ -4,7 +4,7 @@
 
 namespace camera {
 
-std::optional<Definition> CrapyInteraction::mouseMoveEvent(QMouseEvent* e, Definition camera)
+std::optional<Definition> CrapyInteraction::mouse_move_event(QMouseEvent* e, Definition camera)
 {
 
     glm::ivec2 mouse_position { e->pos().x(), e->pos().y() };
@@ -28,7 +28,7 @@ std::optional<Definition> CrapyInteraction::mouseMoveEvent(QMouseEvent* e, Defin
         return camera;
 }
 
-std::optional<Definition> CrapyInteraction::touchEvent(QTouchEvent* e, Definition camera)
+std::optional<Definition> CrapyInteraction::touch_event(QTouchEvent* e, Definition camera)
 {
     glm::ivec2 first_touch = { e->points()[0].position().x(), e->points()[0].position().y() };
     glm::ivec2 second_touch;
@@ -70,7 +70,7 @@ std::optional<Definition> CrapyInteraction::touchEvent(QTouchEvent* e, Definitio
     return camera;
 }
 
-std::optional<Definition> CrapyInteraction::wheelEvent(QWheelEvent* e, Definition camera, float distance)
+std::optional<Definition> CrapyInteraction::wheel_event(QWheelEvent* e, Definition camera, float distance)
 {
     camera.zoom(e->angleDelta().y() * -8.0);
     return camera;

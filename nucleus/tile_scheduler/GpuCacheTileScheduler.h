@@ -28,21 +28,21 @@ class GpuCacheTileScheduler : public TileScheduler
 public:
     GpuCacheTileScheduler();
 
-    [[nodiscard]] static TileSet loadCandidates(const camera::Definition& camera, const tile_scheduler::AabbDecoratorPtr& aabb_decorator);
-    [[nodiscard]] size_t numberOfTilesInTransit() const override;
-    [[nodiscard]] size_t numberOfWaitingHeightTiles() const override;
-    [[nodiscard]] size_t numberOfWaitingOrthoTiles() const override;
-    [[nodiscard]] TileSet gpuTiles() const override;
+    [[nodiscard]] static TileSet load_candidates(const camera::Definition& camera, const tile_scheduler::AabbDecoratorPtr& aabb_decorator);
+    [[nodiscard]] size_t number_of_tiles_in_transit() const override;
+    [[nodiscard]] size_t number_of_waiting_height_tiles() const override;
+    [[nodiscard]] size_t number_of_waiting_ortho_tiles() const override;
+    [[nodiscard]] TileSet gpu_tiles() const override;
 
     bool enabled() const override;
-    void setEnabled(bool newEnabled) override;
+    void set_enabled(bool newEnabled) override;
 
 public slots:
-    void updateCamera(const camera::Definition& camera) override;
-    void receiveOrthoTile(tile::Id tile_id, std::shared_ptr<QByteArray> data) override;
-    void receiveHeightTile(tile::Id tile_id, std::shared_ptr<QByteArray> data) override;
-    void notifyAboutUnavailableOrthoTile(tile::Id tile_id) override;
-    void notifyAboutUnavailableHeightTile(tile::Id tile_id) override;
+    void update_camera(const camera::Definition& camera) override;
+    void receive_ortho_tile(tile::Id tile_id, std::shared_ptr<QByteArray> data) override;
+    void receive_height_tile(tile::Id tile_id, std::shared_ptr<QByteArray> data) override;
+    void notify_about_unavailable_ortho_tile(tile::Id tile_id) override;
+    void notify_about_unavailable_height_tile(tile::Id tile_id) override;
     void print_debug_info() const override;
     void set_gpu_cache_size(unsigned);
     void set_max_n_simultaneous_requests(unsigned int new_max_n_simultaneous_requests);

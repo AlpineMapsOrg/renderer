@@ -33,7 +33,7 @@ TEST_CASE("nucleus/Raster")
         CHECK(raster.height() == 0);
         CHECK(raster.begin() == raster.end());
         CHECK(raster.cbegin() == raster.cend());
-        CHECK(raster.bufferLength() == 0);
+        CHECK(raster.buffer_length() == 0);
     }
 
     SECTION("square default")

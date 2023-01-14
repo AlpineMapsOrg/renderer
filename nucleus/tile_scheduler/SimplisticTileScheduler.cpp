@@ -27,7 +27,7 @@
 
 SimplisticTileScheduler::SimplisticTileScheduler() = default;
 
-std::vector<tile::Id> SimplisticTileScheduler::loadCandidates(const camera::Definition& camera, const tile_scheduler::AabbDecoratorPtr& aabb_decorator)
+std::vector<tile::Id> SimplisticTileScheduler::load_candidates(const camera::Definition& camera, const tile_scheduler::AabbDecoratorPtr& aabb_decorator)
 {
     //  return quad_tree::onTheFlyTraverse(tile::Id{0, {0, 0}}, tile_scheduler::refineFunctor(camera, 1.0), [](const auto& v) { return srs::subtiles(v); });
     const auto all_leaves = quad_tree::onTheFlyTraverse(tile::Id { 0, { 0, 0 } }, tile_scheduler::refineFunctor(camera, aabb_decorator, 2.0), [](const tile::Id& v) { return v.children(); });
@@ -42,27 +42,27 @@ std::vector<tile::Id> SimplisticTileScheduler::loadCandidates(const camera::Defi
     return visible_leaves;
 }
 
-size_t SimplisticTileScheduler::numberOfTilesInTransit() const
+size_t SimplisticTileScheduler::number_of_tiles_in_transit() const
 {
     return m_pending_tile_requests.size();
 }
 
-size_t SimplisticTileScheduler::numberOfWaitingHeightTiles() const
+size_t SimplisticTileScheduler::number_of_waiting_height_tiles() const
 {
     return m_received_height_tiles.size();
 }
 
-size_t SimplisticTileScheduler::numberOfWaitingOrthoTiles() const
+size_t SimplisticTileScheduler::number_of_waiting_ortho_tiles() const
 {
     return m_received_ortho_tiles.size();
 }
 
-SimplisticTileScheduler::TileSet SimplisticTileScheduler::gpuTiles() const
+SimplisticTileScheduler::TileSet SimplisticTileScheduler::gpu_tiles() const
 {
     return m_gpu_tiles;
 }
 
-void SimplisticTileScheduler::updateCamera(const camera::Definition& camera)
+void SimplisticTileScheduler::update_camera(const camera::Definition& camera)
 {
     if (!enabled())
         return;
@@ -74,7 +74,7 @@ void SimplisticTileScheduler::updateCamera(const camera::Definition& camera)
     };
     removeGpuTileIf(outside_camera_frustum);
 
-    const auto tiles = loadCandidates(camera, aabb_decorator);
+    const auto tiles = load_candidates(camera, aabb_decorator);
     for (const auto& t : tiles) {
         if (m_unavaliable_tiles.contains(t))
             continue;
@@ -84,11 +84,11 @@ void SimplisticTileScheduler::updateCamera(const camera::Definition& camera)
             continue;
         }
         m_pending_tile_requests.insert(t);
-        emit tileRequested(t);
+        emit tile_requested(t);
     }
 }
 
-void SimplisticTileScheduler::receiveOrthoTile(tile::Id tile_id, std::shared_ptr<QByteArray> data)
+void SimplisticTileScheduler::receive_ortho_tile(tile::Id tile_id, std::shared_ptr<QByteArray> data)
 {
     if (m_unavaliable_tiles.contains(tile_id))
         return;
@@ -96,7 +96,7 @@ void SimplisticTileScheduler::receiveOrthoTile(tile::Id tile_id, std::shared_ptr
     checkLoadedTile(tile_id);
 }
 
-void SimplisticTileScheduler::receiveHeightTile(tile::Id tile_id, std::shared_ptr<QByteArray> data)
+void SimplisticTileScheduler::receive_height_tile(tile::Id tile_id, std::shared_ptr<QByteArray> data)
 {
     if (m_unavaliable_tiles.contains(tile_id))
         return;
@@ -104,7 +104,7 @@ void SimplisticTileScheduler::receiveHeightTile(tile::Id tile_id, std::shared_pt
     checkLoadedTile(tile_id);
 }
 
-void SimplisticTileScheduler::notifyAboutUnavailableOrthoTile(tile::Id tile_id)
+void SimplisticTileScheduler::notify_about_unavailable_ortho_tile(tile::Id tile_id)
 {
     m_unavaliable_tiles.insert(tile_id);
     m_pending_tile_requests.erase(tile_id);
@@ -112,7 +112,7 @@ void SimplisticTileScheduler::notifyAboutUnavailableOrthoTile(tile::Id tile_id)
     m_received_height_tiles.erase(tile_id);
 }
 
-void SimplisticTileScheduler::notifyAboutUnavailableHeightTile(tile::Id tile_id)
+void SimplisticTileScheduler::notify_about_unavailable_height_tile(tile::Id tile_id)
 {
     m_unavaliable_tiles.insert(tile_id);
     m_pending_tile_requests.erase(tile_id);
@@ -134,7 +134,7 @@ void SimplisticTileScheduler::checkLoadedTile(const tile::Id& tile_id)
         removeGpuTileIf(overlaps);
 
         m_gpu_tiles.insert(tile_id);
-        emit tileReady(tile);
+        emit tile_ready(tile);
     }
 }
 
@@ -143,7 +143,7 @@ bool SimplisticTileScheduler::enabled() const
     return m_enabled;
 }
 
-void SimplisticTileScheduler::setEnabled(bool newEnabled)
+void SimplisticTileScheduler::set_enabled(bool newEnabled)
 {
     m_enabled = newEnabled;
 }
@@ -155,7 +155,7 @@ void SimplisticTileScheduler::removeGpuTileIf(Predicate condition)
     overlapping_tiles.reserve(4);
     std::copy_if(m_gpu_tiles.cbegin(), m_gpu_tiles.cend(), std::back_inserter(overlapping_tiles), condition);
     for (const auto& gpu_tile_id : overlapping_tiles) {
-        emit tileExpired(gpu_tile_id);
+        emit tile_expired(gpu_tile_id);
         m_gpu_tiles.erase(gpu_tile_id);
     }
 }

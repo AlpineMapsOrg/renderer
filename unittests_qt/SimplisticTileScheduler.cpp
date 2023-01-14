@@ -48,27 +48,27 @@ private slots:
     //  void init() {}            // so call the TestTileScheduler::init and initTestCase somehow, then it should be good again.
     void loadCandidates()
     {
-        const auto tile_list = SimplisticTileScheduler::loadCandidates(test_cam, m_scheduler->aabb_decorator());
+        const auto tile_list = SimplisticTileScheduler::load_candidates(test_cam, m_scheduler->aabb_decorator());
         QVERIFY(!tile_list.empty());
     }
 
     void expiresOldTiles()
     {
-        QVERIFY(m_scheduler->gpuTiles().empty());
-        connect(m_scheduler.get(), &TileScheduler::tileRequested, this, &TestTileScheduler::giveTiles);
-        connect(this, &TestTileScheduler::orthoTileReady, m_scheduler.get(), &TileScheduler::receiveOrthoTile);
-        connect(this, &TestTileScheduler::heightTileReady, m_scheduler.get(), &TileScheduler::receiveHeightTile);
-        m_scheduler->updateCamera(test_cam);
+        QVERIFY(m_scheduler->gpu_tiles().empty());
+        connect(m_scheduler.get(), &TileScheduler::tile_requested, this, &TestTileScheduler::giveTiles);
+        connect(this, &TestTileScheduler::orthoTileReady, m_scheduler.get(), &TileScheduler::receive_ortho_tile);
+        connect(this, &TestTileScheduler::heightTileReady, m_scheduler.get(), &TileScheduler::receive_height_tile);
+        m_scheduler->update_camera(test_cam);
         QTest::qWait(10);
         // tiles are on the gpu
-        const auto gpu_tiles = m_scheduler->gpuTiles();
+        const auto gpu_tiles = m_scheduler->gpu_tiles();
 
-        QSignalSpy spy(m_scheduler.get(), &TileScheduler::tileExpired);
+        QSignalSpy spy(m_scheduler.get(), &TileScheduler::tile_expired);
         camera::Definition replacement_cam = camera::Definition({ 0.0, 0.0 - 500, 0.0 - 500 }, { 0.0, 0.0, -1000.0 });
-        m_scheduler->updateCamera(replacement_cam);
-        const auto current_gpu_tiles = m_scheduler->gpuTiles();
+        m_scheduler->update_camera(replacement_cam);
+        const auto current_gpu_tiles = m_scheduler->gpu_tiles();
         spy.wait(5);
-        QVERIFY(m_scheduler->gpuTiles().size() <= 1); // root tile allowed
+        QVERIFY(m_scheduler->gpu_tiles().size() <= 1); // root tile allowed
         QVERIFY(size_t(spy.size()) == gpu_tiles.size());
         for (const auto& tileExpireSignal : spy) {
             const tile::Id tile = tileExpireSignal.at(0).value<tile::Id>();

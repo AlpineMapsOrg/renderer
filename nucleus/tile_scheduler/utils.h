@@ -71,7 +71,7 @@ inline auto cameraFrustumContainsTile(const camera::Definition& camera, const ti
 {
     // this test should be based only on the four frustum planes (top, left, bottom, right), because
     // the near and far planes are adjusted based on the loaded AABBs, and that results in  a chicken egg problem.
-    const auto triangles = geometry::clip(geometry::triangulise(aabb), camera.fourClippingPlanes());
+    const auto triangles = geometry::clip(geometry::triangulise(aabb), camera.four_clipping_planes());
     if (triangles.empty())
         return false;
     return true;
@@ -87,14 +87,14 @@ inline auto refineFunctor(const camera::Definition& camera, const AabbDecoratorP
 
         // this test should be based only on the four frustum planes (top, left, bottom, right), because
         // the near and far planes are adjusted based on the loaded AABBs, and that results in  a chicken egg problem.
-        const auto triangles = geometry::clip(geometry::triangulise(tile_aabb), camera.fourClippingPlanes());
+        const auto triangles = geometry::clip(geometry::triangulise(tile_aabb), camera.four_clipping_planes());
         if (triangles.empty())
             return false;
         const auto nearest_point = glm::dvec4(nearestVertex(camera, triangles), 1);
         const auto aabb_width = tile_aabb.size().x;
-        const auto other_point_axis = camera.xAxis();
+        const auto other_point_axis = camera.x_axis();
         const auto other_point = nearest_point + glm::dvec4(other_point_axis * aabb_width / tile_size, 0);
-        const auto vp_mat = camera.worldViewProjectionMatrix();
+        const auto vp_mat = camera.world_view_projection_matrix();
 
         auto nearest_screenspace = vp_mat * nearest_point;
         nearest_screenspace /= nearest_screenspace.w;
@@ -102,7 +102,7 @@ inline auto refineFunctor(const camera::Definition& camera, const AabbDecoratorP
         other_screenspace /= other_screenspace.w;
         const auto clip_space_difference = length(glm::dvec2(nearest_screenspace - other_screenspace));
 
-        return clip_space_difference * 0.5 * camera.viewportSize().x >= error_threshold_px;
+        return clip_space_difference * 0.5 * camera.viewport_size().x >= error_threshold_px;
     };
     return refine;
 }

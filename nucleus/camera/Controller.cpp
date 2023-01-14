@@ -10,17 +10,17 @@ Controller::Controller(const Definition& camera)
 }
 
 
-void Controller::setNearPlane(float distance)
+void Controller::set_near_plane(float distance)
 {
-    if (m_definition.nearPlane() == distance)
+    if (m_definition.near_plane() == distance)
         return;
-    m_definition.setNearPlane(distance);
+    m_definition.set_near_plane(distance);
     update();
 }
 
-void Controller::setViewport(const glm::uvec2& new_viewport)
+void Controller::set_viewport(const glm::uvec2& new_viewport)
 {
-    if (m_definition.viewportSize() == new_viewport)
+    if (m_definition.viewport_size() == new_viewport)
         return;
     m_definition.set_viewport_size(new_viewport);
     update();
@@ -44,12 +44,12 @@ void Controller::orbit(const glm::dvec3& centre, const glm::dvec2& degrees)
 
 void Controller::update() const
 {
-    emit definitionChanged(m_definition);
+    emit definition_changed(m_definition);
 }
 
 void Controller::mouse_press(QMouseEvent* e, float distance)
 {
-    const auto new_definition = m_interaction_style->mousePressEvent(e, m_definition, distance);
+    const auto new_definition = m_interaction_style->mouse_press_event(e, m_definition, distance);
     if (!new_definition)
         return;
     m_definition = new_definition.value();
@@ -58,7 +58,7 @@ void Controller::mouse_press(QMouseEvent* e, float distance)
 
 void Controller::mouse_move(QMouseEvent* e)
 {
-    const auto new_definition = m_interaction_style->mouseMoveEvent(e, m_definition);
+    const auto new_definition = m_interaction_style->mouse_move_event(e, m_definition);
     if (!new_definition)
         return;
     m_definition = new_definition.value();
@@ -67,7 +67,7 @@ void Controller::mouse_move(QMouseEvent* e)
 
 void Controller::wheel_turn(QWheelEvent* e, float distance)
 {
-    const auto new_definition = m_interaction_style->wheelEvent(e, m_definition, distance);
+    const auto new_definition = m_interaction_style->wheel_event(e, m_definition, distance);
     if (!new_definition)
         return;
     m_definition = new_definition.value();
@@ -76,7 +76,7 @@ void Controller::wheel_turn(QWheelEvent* e, float distance)
 
 void Controller::key_press(const QKeyCombination& e)
 {
-    const auto new_definition = m_interaction_style->keyPressEvent(e, m_definition);
+    const auto new_definition = m_interaction_style->key_press_event(e, m_definition);
     if (!new_definition)
         return;
     m_definition = new_definition.value();
@@ -85,7 +85,7 @@ void Controller::key_press(const QKeyCombination& e)
 
 void Controller::touch(QTouchEvent* e)
 {
-    const auto new_definition = m_interaction_style->touchEvent(e, m_definition);
+    const auto new_definition = m_interaction_style->touch_event(e, m_definition);
     if (!new_definition)
         return;
     m_definition = new_definition.value();
@@ -105,7 +105,7 @@ const Definition& Controller::definition() const
     return m_definition;
 }
 
-void Controller::setDefinition(const Definition& new_definition)
+void Controller::set_definition(const Definition& new_definition)
 {
     m_definition = new_definition;
     update();

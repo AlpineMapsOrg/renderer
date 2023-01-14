@@ -20,15 +20,15 @@ public:
     explicit NearPlaneAdjuster(QObject *parent = nullptr);
 
 signals:
-    void nearPlaneChanged(float new_distance) const;
+    void near_plane_changed(float new_distance) const;
 
 public slots:
-    void updateCamera(const Definition& new_definition);
-    void addTile(const std::shared_ptr<Tile>& tile);
-    void removeTile(const tile::Id& tile_id);
+    void update_camera(const Definition& new_definition);
+    void add_tile(const std::shared_ptr<Tile>& tile);
+    void remove_tile(const tile::Id& tile_id);
 
 private:
-    void updateNearPlane() const;
+    void update_near_plane() const;
 
     struct Object {
         Object() = default;

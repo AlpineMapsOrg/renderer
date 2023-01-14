@@ -53,7 +53,7 @@ public:
     const auto& buffer() const { return m_data; }
     [[nodiscard]] size_t width() const { return m_width; }
     [[nodiscard]] size_t height() const { return m_height; }
-    [[nodiscard]] size_t bufferLength() const { return m_data.size(); }
+    [[nodiscard]] size_t buffer_length() const { return m_data.size(); }
 
     auto begin() { return m_data.begin(); }
     auto end() { return m_data.end(); }

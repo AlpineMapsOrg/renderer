@@ -15,11 +15,11 @@ class InteractionStyle
 {
 public:
     virtual ~InteractionStyle() = default;
-    virtual std::optional<Definition> mousePressEvent(QMouseEvent* e, Definition camera, float distance);
-    virtual std::optional<Definition> mouseMoveEvent(QMouseEvent* e, Definition camera);
-    virtual std::optional<Definition> wheelEvent(QWheelEvent* e, Definition camera, float distance);
-    virtual std::optional<Definition> keyPressEvent(const QKeyCombination& e, Definition camera);
-    virtual std::optional<Definition> touchEvent(QTouchEvent* e, Definition camera);
+    virtual std::optional<Definition> mouse_press_event(QMouseEvent* e, Definition camera, float distance);
+    virtual std::optional<Definition> mouse_move_event(QMouseEvent* e, Definition camera);
+    virtual std::optional<Definition> wheel_event(QWheelEvent* e, Definition camera, float distance);
+    virtual std::optional<Definition> key_press_event(const QKeyCombination& e, Definition camera);
+    virtual std::optional<Definition> touch_event(QTouchEvent* e, Definition camera);
 };
 
 }

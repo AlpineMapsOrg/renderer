@@ -41,32 +41,31 @@ public:
     using Tile2DataMap = std::unordered_map<tile::Id, std::shared_ptr<QByteArray>, tile::Id::Hasher>;
     TileScheduler();
 
-    [[nodiscard]] virtual size_t numberOfTilesInTransit() const = 0;
-    [[nodiscard]] virtual size_t numberOfWaitingHeightTiles() const = 0;
-    [[nodiscard]] virtual size_t numberOfWaitingOrthoTiles() const = 0;
-    [[nodiscard]] virtual TileSet gpuTiles() const = 0;
+    [[nodiscard]] virtual size_t number_of_tiles_in_transit() const = 0;
+    [[nodiscard]] virtual size_t number_of_waiting_height_tiles() const = 0;
+    [[nodiscard]] virtual size_t number_of_waiting_ortho_tiles() const = 0;
+    [[nodiscard]] virtual TileSet gpu_tiles() const = 0;
 
     [[nodiscard]] virtual bool enabled() const = 0;
-    virtual void setEnabled(bool newEnabled) = 0;
+    virtual void set_enabled(bool newEnabled) = 0;
 
     [[nodiscard]] const tile_scheduler::AabbDecoratorPtr& aabb_decorator() const;
     void set_aabb_decorator(const tile_scheduler::AabbDecoratorPtr& new_aabb_decorator);
 
 public slots:
-    virtual void updateCamera(const camera::Definition& camera) = 0;
-    virtual void receiveOrthoTile(tile::Id tile_id, std::shared_ptr<QByteArray> data) = 0;
-    virtual void receiveHeightTile(tile::Id tile_id, std::shared_ptr<QByteArray> data) = 0;
-    virtual void notifyAboutUnavailableOrthoTile(tile::Id tile_id) = 0;
-    virtual void notifyAboutUnavailableHeightTile(tile::Id tile_id) = 0;
+    virtual void update_camera(const camera::Definition& camera) = 0;
+    virtual void receive_ortho_tile(tile::Id tile_id, std::shared_ptr<QByteArray> data) = 0;
+    virtual void receive_height_tile(tile::Id tile_id, std::shared_ptr<QByteArray> data) = 0;
+    virtual void notify_about_unavailable_ortho_tile(tile::Id tile_id) = 0;
+    virtual void notify_about_unavailable_height_tile(tile::Id tile_id) = 0;
     virtual void print_debug_info() const;
     virtual void send_debug_scheduler_stats() const;
     void key_press(const QKeyCombination&);
 
 signals:
-    void tileRequested(const tile::Id& tile_id) const;
-    void tileReady(const std::shared_ptr<Tile>& tile) const;
-    void tileExpired(const tile::Id& tile_id) const;
-    void cancelTileRequest(const tile::Id& tile_id) const;
+    void tile_requested(const tile::Id& tile_id) const;
+    void tile_ready(const std::shared_ptr<Tile>& tile) const;
+    void tile_expired(const tile::Id& tile_id) const;
     void debug_scheduler_stats_updated(const QString& stats) const;
 
 private:

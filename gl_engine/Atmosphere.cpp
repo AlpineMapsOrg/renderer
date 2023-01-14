@@ -21,7 +21,7 @@ void gl_engine::Atmosphere::resize(const glm::uvec2& new_size)
 
 void gl_engine::Atmosphere::draw(ShaderProgram* atmosphere_program, const camera::Definition& camera, ShaderProgram* copy_program, Framebuffer* out)
 {
-    atmosphere_program->set_uniform("inversed_projection_matrix", glm::inverse(camera.projectionMatrix()));
+    atmosphere_program->set_uniform("inversed_projection_matrix", glm::inverse(camera.projection_matrix()));
     atmosphere_program->set_uniform("inversed_view_matrix", glm::translate(-camera.position()) * camera.camera_space_to_world_matrix());
     atmosphere_program->set_uniform("camera_position", glm::vec3(camera.position()));
     m_framebuffer->bind();

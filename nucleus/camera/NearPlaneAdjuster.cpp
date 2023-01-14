@@ -13,28 +13,28 @@ camera::NearPlaneAdjuster::NearPlaneAdjuster(QObject *parent)
 
 }
 
-void camera::NearPlaneAdjuster::updateCamera(const Definition& new_definition)
+void camera::NearPlaneAdjuster::update_camera(const Definition& new_definition)
 {
     const auto new_position = new_definition.position();
     if (m_camera_position == new_position)
         return;
     m_camera_position = new_position;
-    updateNearPlane();
+    update_near_plane();
 }
 
-void camera::NearPlaneAdjuster::addTile(const std::shared_ptr<Tile>& tile)
+void camera::NearPlaneAdjuster::add_tile(const std::shared_ptr<Tile>& tile)
 {
     m_objects.emplace_back(tile->id, tile->bounds.max.z);
-    updateNearPlane();
+    update_near_plane();
 }
 
-void camera::NearPlaneAdjuster::removeTile(const tile::Id& tile_id)
+void camera::NearPlaneAdjuster::remove_tile(const tile::Id& tile_id)
 {
     std::erase_if(m_objects, [&tile_id](const Object& o) { return o.id == tile_id; });
-    updateNearPlane();
+    update_near_plane();
 }
 
-void camera::NearPlaneAdjuster::updateNearPlane() const
+void camera::NearPlaneAdjuster::update_near_plane() const
 {
     if (!m_objects.empty()) {
         double max_elevation = 0;
@@ -43,6 +43,6 @@ void camera::NearPlaneAdjuster::updateNearPlane() const
                 max_elevation = obj.elevation;
         }
         double near_plane_distance = std::max(10.0, (m_camera_position.z - max_elevation) * 0.8);
-        emit nearPlaneChanged(near_plane_distance);
+        emit near_plane_changed(near_plane_distance);
     }
 }

@@ -53,46 +53,46 @@ private slots:
     }
     void loadCandidates()
     {
-        const auto tile_list = GpuCacheTileScheduler::loadCandidates(test_cam, m_scheduler->aabb_decorator());
+        const auto tile_list = GpuCacheTileScheduler::load_candidates(test_cam, m_scheduler->aabb_decorator());
         QVERIFY(!tile_list.empty());
     }
 
     void no_crash_with_0_cache_size()
     {
         dynamic_cast<GpuCacheTileScheduler*>(m_scheduler.get())->set_gpu_cache_size(0);
-        QVERIFY(m_scheduler->gpuTiles().empty());
-        connect(m_scheduler.get(), &TileScheduler::tileRequested, this, &TestTileScheduler::giveTiles);
-        connect(this, &TestTileScheduler::orthoTileReady, m_scheduler.get(), &TileScheduler::receiveOrthoTile);
-        connect(this, &TestTileScheduler::heightTileReady, m_scheduler.get(), &TileScheduler::receiveHeightTile);
-        m_scheduler->updateCamera(test_cam);
+        QVERIFY(m_scheduler->gpu_tiles().empty());
+        connect(m_scheduler.get(), &TileScheduler::tile_requested, this, &TestTileScheduler::giveTiles);
+        connect(this, &TestTileScheduler::orthoTileReady, m_scheduler.get(), &TileScheduler::receive_ortho_tile);
+        connect(this, &TestTileScheduler::heightTileReady, m_scheduler.get(), &TileScheduler::receive_height_tile);
+        m_scheduler->update_camera(test_cam);
         QTest::qWait(10);
         // tiles are on the gpu
-        const auto gpu_tiles = m_scheduler->gpuTiles();
+        const auto gpu_tiles = m_scheduler->gpu_tiles();
 
-        QSignalSpy spy(m_scheduler.get(), &TileScheduler::tileExpired);
+        QSignalSpy spy(m_scheduler.get(), &TileScheduler::tile_expired);
         camera::Definition replacement_cam = camera::stored_positions::westl_hochgrubach_spitze();
         replacement_cam.set_viewport_size({ 2560, 1440 });
-        m_scheduler->updateCamera(replacement_cam);
+        m_scheduler->update_camera(replacement_cam);
     }
 
     void expiresOldTiles()
     {
         dynamic_cast<GpuCacheTileScheduler*>(m_scheduler.get())->set_gpu_cache_size(400);
-        QVERIFY(m_scheduler->gpuTiles().empty());
-        connect(m_scheduler.get(), &TileScheduler::tileRequested, this, &TestTileScheduler::giveTiles);
-        connect(this, &TestTileScheduler::orthoTileReady, m_scheduler.get(), &TileScheduler::receiveOrthoTile);
-        connect(this, &TestTileScheduler::heightTileReady, m_scheduler.get(), &TileScheduler::receiveHeightTile);
-        m_scheduler->updateCamera(test_cam);
+        QVERIFY(m_scheduler->gpu_tiles().empty());
+        connect(m_scheduler.get(), &TileScheduler::tile_requested, this, &TestTileScheduler::giveTiles);
+        connect(this, &TestTileScheduler::orthoTileReady, m_scheduler.get(), &TileScheduler::receive_ortho_tile);
+        connect(this, &TestTileScheduler::heightTileReady, m_scheduler.get(), &TileScheduler::receive_height_tile);
+        m_scheduler->update_camera(test_cam);
         QTest::qWait(20);
         // tiles are on the gpu
-        const auto gpu_tiles = m_scheduler->gpuTiles();
+        const auto gpu_tiles = m_scheduler->gpu_tiles();
 
-        QSignalSpy spy(m_scheduler.get(), &TileScheduler::tileExpired);
+        QSignalSpy spy(m_scheduler.get(), &TileScheduler::tile_expired);
         camera::Definition replacement_cam = camera::stored_positions::westl_hochgrubach_spitze();
         replacement_cam.set_viewport_size({ 2560, 1440 });
-        m_scheduler->updateCamera(replacement_cam);
+        m_scheduler->update_camera(replacement_cam);
         spy.wait(20);
-        QCOMPARE(m_scheduler->gpuTiles().size(), 400); // 400 cached tiles should remain
+        QCOMPARE(m_scheduler->gpu_tiles().size(), 400); // 400 cached tiles should remain
         for (const auto& tileExpireSignal : spy) {
             const tile::Id tile = tileExpireSignal.at(0).value<tile::Id>();
             QVERIFY(gpu_tiles.contains(tile));

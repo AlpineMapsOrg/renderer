@@ -33,23 +33,23 @@ class Definition {
 public:
     Definition();
     Definition(const glm::dvec3& position, const glm::dvec3& view_at_point);
-    [[nodiscard]] glm::dmat4 cameraMatrix() const;
+    [[nodiscard]] glm::dmat4 camera_matrix() const;
     [[nodiscard]] glm::dmat4 camera_space_to_world_matrix() const;
-    [[nodiscard]] glm::dmat4 projectionMatrix() const;
+    [[nodiscard]] glm::dmat4 projection_matrix() const;
     // transforms from webmercator to clip space. You should use this matrix only in double precision.
-    [[nodiscard]] glm::dmat4 worldViewProjectionMatrix() const;
+    [[nodiscard]] glm::dmat4 world_view_projection_matrix() const;
     // transforms form the local coordinate system (webmercator shifted by origin_offset) to clip space.
-    [[nodiscard]] glm::mat4 localViewProjectionMatrix(const glm::dvec3& origin_offset) const;
+    [[nodiscard]] glm::mat4 local_view_projection_matrix(const glm::dvec3& origin_offset) const;
     [[nodiscard]] glm::dvec3 position() const;
-    [[nodiscard]] glm::dvec3 xAxis() const;
-    [[nodiscard]] glm::dvec3 yAxis() const;
-    [[nodiscard]] glm::dvec3 zAxis() const;
+    [[nodiscard]] glm::dvec3 x_axis() const;
+    [[nodiscard]] glm::dvec3 y_axis() const;
+    [[nodiscard]] glm::dvec3 z_axis() const;
     [[nodiscard]] glm::dvec3 ray_direction(const glm::dvec2& normalised_device_coordinates) const;
-    [[nodiscard]] std::vector<geometry::Plane<double>> clippingPlanes() const;
-    [[nodiscard]] std::vector<geometry::Plane<double>> fourClippingPlanes() const;
-    void setPerspectiveParams(float fov_degrees, const glm::uvec2& viewport_size, float near_plane);
-    void setNearPlane(float near_plane);
-    [[nodiscard]] float nearPlane() const;
+    [[nodiscard]] std::vector<geometry::Plane<double>> clipping_planes() const;
+    [[nodiscard]] std::vector<geometry::Plane<double>> four_clipping_planes() const;
+    void set_perspective_params(float fov_degrees, const glm::uvec2& viewport_size, float near_plane);
+    void set_near_plane(float near_plane);
+    [[nodiscard]] float near_plane() const;
     void pan(const glm::dvec2& v);
     void move(const glm::dvec3& v);
     void orbit(const glm::dvec3& centre, const glm::dvec2& degrees);
@@ -57,12 +57,12 @@ public:
     void orbit(const glm::vec2& degrees);
     void zoom(double v);
 
-    [[nodiscard]] const glm::uvec2& viewportSize() const;
+    [[nodiscard]] const glm::uvec2& viewport_size() const;
 
     void set_viewport_size(const glm::uvec2& new_viewport_size);
 
 private:
-    [[nodiscard]] glm::dvec3 operationCentre() const;
+    [[nodiscard]] glm::dvec3 operation_centre() const;
 
 private:
     glm::dmat4 m_projection_matrix;
