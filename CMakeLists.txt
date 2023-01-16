@@ -12,6 +12,8 @@ option(ALP_USE_LLVM_LINKER "use lld (llvm) for linking. it's parallel and much f
 
 ############################################ sources ##############################################
 set(ALP_NUCLEUS_SOURCES
+    nucleus/AbstractRenderWindow.h nucleus/AbstractRenderWindow.cpp
+    nucleus/Controller.h nucleus/Controller.cpp
     nucleus/Raster.h
     nucleus/srs.h nucleus/srs.cpp
     nucleus/Tile.cpp nucleus/Tile.h
@@ -43,6 +45,7 @@ set(ALP_GL_SOURCES
 )
 set(ALP_PLAIN_RENDERER_SOURCES
     plain_renderer/main.cpp
+    plain_renderer/Window.h plain_renderer/Window.cpp
 )
 set(ALP_GL_SHADERS
     gl_shaders/atmosphere_bg.frag

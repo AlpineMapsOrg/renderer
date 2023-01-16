@@ -59,6 +59,7 @@
 #include <memory>
 
 #include "helpers.h"
+#include "nucleus/AbstractRenderWindow.h"
 #include "nucleus/camera/Definition.h"
 
 QT_BEGIN_NAMESPACE
@@ -77,37 +78,32 @@ class ShaderManager;
 class Framebuffer;
 class Atmosphere;
 
-class Window : public QOpenGLWindow {
+class Window : public nucleus::AbstractRenderWindow {
     Q_OBJECT
 public:
     Window();
     ~Window() override;
 
-    void initializeGL() override;
-    void resizeGL(int w, int h) override;
-    void paintGL() override;
-    void paintOverGL() override;
+    void initialise_gpu() override;
+    void resize(int w, int h, qreal device_pixel_ratio) override;
+    void paint() override;
+    void paintOverGL(QPainter* painter);
 
-    TileManager* gpu_tile_manager() const;
+    glm::dvec3 ray_cast(const glm::dvec2& normalised_device_coordinates) override;
+    void deinit_gpu() override;
+    void set_aabb_decorator(const nucleus::tile_scheduler::AabbDecoratorPtr&) override;
+    void add_tile(const std::shared_ptr<nucleus::Tile>&) override;
+    void remove_tile(const tile::Id&) override;
 
-protected:
-    void mousePressEvent(QMouseEvent*) override;
-    void mouseMoveEvent(QMouseEvent*) override;
-    void wheelEvent(QWheelEvent*) override;
-    void keyPressEvent(QKeyEvent*) override;
-    void touchEvent(QTouchEvent*) override;
+    void mousePressEvent(QMouseEvent*);
+    void mouseMoveEvent(QMouseEvent*);
+    void wheelEvent(QWheelEvent*);
+    void keyPressEvent(QKeyEvent*);
+    void touchEvent(QTouchEvent*);
 
 public slots:
-    void update_camera(const nucleus::camera::Definition& new_definition);
-    void update_debug_scheduler_stats(const QString& stats);
-
-signals:
-    void mouse_pressed(QMouseEvent*, float distance) const;
-    void mouse_moved(QMouseEvent*) const;
-    void wheel_turned(QWheelEvent*, float distance) const;
-    void key_pressed(const QKeyCombination&) const;
-    void touch_made(QTouchEvent*) const;
-    void viewport_changed(const glm::uvec2& new_viewport) const;
+    void update_camera(const nucleus::camera::Definition& new_definition) override;
+    void update_debug_scheduler_stats(const QString& stats) override;
 
 private:
     using ClockResolution = std::chrono::microseconds;

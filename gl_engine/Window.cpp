@@ -82,16 +82,14 @@ Window::Window()
     : m_camera({ 1822577.0, 6141664.0 - 500, 171.28 + 500 }, { 1822577.0, 6141664.0, 171.28 }) // should point right at the stephansdom
 {
     m_tile_manager = std::make_unique<TileManager>();
-    QTimer::singleShot(0, [this]() { this->update(); });
-
+    QTimer::singleShot(0, [this]() { emit update_requested(); });
 }
 
 Window::~Window()
 {
-    makeCurrent();
 }
 
-void Window::initializeGL()
+void Window::initialise_gpu()
 {
     QOpenGLDebugLogger* logger = new QOpenGLDebugLogger(this);
     logger->initialize();
@@ -111,13 +109,12 @@ void Window::initializeGL()
     m_framebuffer = std::make_unique<Framebuffer>(Framebuffer::DepthFormat::Int24, std::vector({ Framebuffer::ColourFormat::RGBA8 }));
 }
 
-void Window::resizeGL(int w, int h)
+void Window::resize(int w, int h, qreal device_pixel_ratio)
 {
     if (w == 0 || h == 0)
         return;
-    const qreal retinaScale = devicePixelRatio();
-    const int width = int(retinaScale * w);
-    const int height = int(retinaScale * h);
+    const int width = int(device_pixel_ratio * w);
+    const int height = int(device_pixel_ratio * h);
 
     QOpenGLFunctions* f = QOpenGLContext::currentContext()->functions();
     m_framebuffer->resize({ width, height });
@@ -127,7 +124,7 @@ void Window::resizeGL(int w, int h)
     emit viewport_changed({ w, h });
 }
 
-void Window::paintGL()
+void Window::paint()
 {
     m_frame_start = std::chrono::time_point_cast<ClockResolution>(Clock::now());
 
@@ -171,7 +168,7 @@ void Window::paintGL()
     m_frame_end = std::chrono::time_point_cast<ClockResolution>(Clock::now());
 }
 
-void Window::paintOverGL()
+void Window::paintOverGL(QPainter* painter)
 {
     const auto frame_duration = (m_frame_end - m_frame_start);
     const auto frame_duration_float = double(frame_duration.count()) / 1000.;
@@ -180,15 +177,14 @@ void Window::paintOverGL()
 
     const auto random_u32 = QRandomGenerator::global()->generate();
 
-    QPainter painter(this);
-    painter.setFont(QFont("Helvetica", 12));
-    painter.setPen(Qt::white);
-    QRect text_bb = painter.boundingRect(10, 20, 1, 15, Qt::TextSingleLine, frame_duration_text);
-    painter.drawText(10, 20, frame_duration_text);
-    painter.drawText(10, 40, m_debug_scheduler_stats);
-    painter.drawText(10, 60, m_debug_text);
-    painter.setBrush(QBrush(QColor(random_u32)));
-    painter.drawRect(int(text_bb.right()) + 5, 8, 12, 12);
+    painter->setFont(QFont("Helvetica", 12));
+    painter->setPen(Qt::white);
+    QRect text_bb = painter->boundingRect(10, 20, 1, 15, Qt::TextSingleLine, frame_duration_text);
+    painter->drawText(10, 20, frame_duration_text);
+    painter->drawText(10, 40, m_debug_scheduler_stats);
+    painter->drawText(10, 60, m_debug_text);
+    painter->setBrush(QBrush(QColor(random_u32)));
+    painter->drawRect(int(text_bb.right()) + 5, 8, 12, 12);
 }
 
 void Window::mouseMoveEvent(QMouseEvent* e)
@@ -207,7 +203,7 @@ void Window::keyPressEvent(QKeyEvent* e)
 {
     if (e->key() == Qt::Key::Key_F5) {
         m_shader_manager->reload_shaders();
-        update();
+        emit update_requested();
         qDebug("all shaders reloaded");
     }
     if (e->key() == Qt::Key::Key_F11
@@ -229,20 +225,20 @@ void Window::touchEvent(QTouchEvent* ev)
     for (const auto& point : ev->points()) {
         m_debug_text.append(QString("%1:%2/%3; ").arg(point.id()).arg(point.position().x()).arg(point.position().y()));
     }
-    update();
+    emit update_requested();
     emit touch_made(ev);
 }
 
 void Window::update_camera(const nucleus::camera::Definition& new_definition)
 {
     m_camera = new_definition;
-    update();
+    emit update_requested();
 }
 
 void Window::update_debug_scheduler_stats(const QString& stats)
 {
     m_debug_scheduler_stats = stats;
-    update();
+    emit update_requested();
 }
 
 void Window::mousePressEvent(QMouseEvent* ev)
@@ -251,7 +247,35 @@ void Window::mousePressEvent(QMouseEvent* ev)
     emit mouse_pressed(ev, distance);
 }
 
-gl_engine::TileManager* Window::gpu_tile_manager() const
+glm::dvec3 Window::ray_cast(const glm::dvec2& normalised_device_coordinates)
 {
-    return m_tile_manager.get();
+    return m_camera.position() + m_camera.ray_direction(normalised_device_coordinates) * 500.;
+}
+
+void Window::deinit_gpu()
+{
+    m_tile_manager.reset();
+    m_debug_painter.reset();
+    m_atmosphere.reset();
+    m_shader_manager.reset();
+    m_framebuffer.reset();
+    m_screen_quad_geometry = {};
+}
+
+void Window::set_aabb_decorator(const nucleus::tile_scheduler::AabbDecoratorPtr& new_aabb_decorator)
+{
+    assert(m_tile_manager);
+    m_tile_manager->set_aabb_decorator(new_aabb_decorator);
+}
+
+void Window::add_tile(const std::shared_ptr<nucleus::Tile>& tile)
+{
+    assert(m_tile_manager);
+    m_tile_manager->add_tile(tile);
+}
+
+void Window::remove_tile(const tile::Id& id)
+{
+    assert(m_tile_manager);
+    m_tile_manager->remove_tile(id);
 }
