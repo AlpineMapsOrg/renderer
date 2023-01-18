@@ -103,10 +103,8 @@ void TileManager::draw(ShaderProgram* shader_program, const nucleus::camera::Def
 
 void TileManager::add_tile(const std::shared_ptr<nucleus::Tile>& tile)
 {
-    qDebug("add_tile");
     if (!QOpenGLContext::currentContext()) // can happen during shutdown.
         return;
-    qDebug("add_tile 2");
 
     assert(m_attribute_locations.height != -1);
     auto* f = QOpenGLContext::currentContext()->extraFunctions();

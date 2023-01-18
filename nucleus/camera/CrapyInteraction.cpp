@@ -28,26 +28,26 @@ std::optional<Definition> CrapyInteraction::mouse_move_event(QMouseEvent* e, Def
         return camera;
 }
 
-std::optional<Definition> CrapyInteraction::touch_event(QTouchEvent* e, Definition camera)
+std::optional<Definition> CrapyInteraction::touch_event(const event_parameter::Touch& e, Definition camera)
 {
-    glm::ivec2 first_touch = { e->points()[0].position().x(), e->points()[0].position().y() };
+    glm::ivec2 first_touch = { e.points[0].position().x(), e.points[0].position().y() };
     glm::ivec2 second_touch;
-    if (e->points().size() >= 2)
-        second_touch = { e->points()[1].position().x(), e->points()[1].position().y() };
+    if (e.points.size() >= 2)
+        second_touch = { e.points[1].position().x(), e.points[1].position().y() };
 
-    if (e->isEndEvent())
+    if (e.is_end_event)
         return {};
-    if (e->isBeginEvent()) {
+    if (e.is_begin_event) {
         m_previous_first_touch = first_touch;
         m_previous_second_touch = second_touch;
         return {};
     }
     // touch move
-    if (e->points().size() == 1) {
+    if (e.points.size() == 1) {
         const auto delta = first_touch - m_previous_first_touch;
         camera.pan(glm::vec2(delta) * 10.0f);
     }
-    if (e->points().size() == 2) {
+    if (e.points.size() == 2) {
         const auto previous_centre = (m_previous_first_touch + m_previous_second_touch) / 2;
         const auto current_centre = (first_touch + second_touch) / 2;
         const auto pitch = -(current_centre - previous_centre).y;

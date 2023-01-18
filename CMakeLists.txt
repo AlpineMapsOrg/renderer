@@ -14,6 +14,7 @@ option(ALP_USE_LLVM_LINKER "use lld (llvm) for linking. it's parallel and much f
 set(ALP_NUCLEUS_SOURCES
     nucleus/AbstractRenderWindow.h nucleus/AbstractRenderWindow.cpp
     nucleus/Controller.h nucleus/Controller.cpp
+    nucleus/event_parameter.h
     nucleus/Raster.h
     nucleus/srs.h nucleus/srs.cpp
     nucleus/Tile.cpp nucleus/Tile.h

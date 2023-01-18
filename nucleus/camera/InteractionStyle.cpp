@@ -23,7 +23,7 @@ std::optional<Definition> InteractionStyle::key_press_event(const QKeyCombinatio
     return {};
 }
 
-std::optional<Definition> InteractionStyle::touch_event(QTouchEvent*, Definition)
+std::optional<Definition> InteractionStyle::touch_event(const event_parameter::Touch&, Definition)
 {
     return {};
 }

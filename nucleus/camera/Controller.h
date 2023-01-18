@@ -6,6 +6,7 @@
 
 #include <glm/glm.hpp>
 
+#include "../event_parameter.h"
 #include "Definition.h"
 #include "InteractionStyle.h"
 
@@ -32,7 +33,7 @@ public slots:
     void mouse_move(QMouseEvent*);
     void wheel_turn(QWheelEvent*, float);
     void key_press(const QKeyCombination&);
-    void touch(QTouchEvent*);
+    void touch(const event_parameter::Touch&);
 
 signals:
     void definition_changed(const Definition& new_definition) const;

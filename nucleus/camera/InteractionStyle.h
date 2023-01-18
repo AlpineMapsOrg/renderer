@@ -8,6 +8,7 @@
 #include <QWheelEvent>
 
 #include "Definition.h"
+#include "nucleus/event_parameter.h"
 
 namespace nucleus::camera {
 
@@ -19,7 +20,7 @@ public:
     virtual std::optional<Definition> mouse_move_event(QMouseEvent* e, Definition camera);
     virtual std::optional<Definition> wheel_event(QWheelEvent* e, Definition camera, float distance);
     virtual std::optional<Definition> key_press_event(const QKeyCombination& e, Definition camera);
-    virtual std::optional<Definition> touch_event(QTouchEvent* e, Definition camera);
+    virtual std::optional<Definition> touch_event(const event_parameter::Touch& e, Definition camera);
 };
 
 }

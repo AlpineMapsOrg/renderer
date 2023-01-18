@@ -22,6 +22,7 @@
 #ifndef MYFRAMEBUFFEROBJECT_H
 #define MYFRAMEBUFFEROBJECT_H
 
+#include "nucleus/event_parameter.h"
 #include <QQuickFramebufferObject>
 
 class MyFrameBufferObject : public QQuickFramebufferObject
@@ -45,10 +46,16 @@ signals:
     void distanceChanged(float distance);
     void elevationChanged(float elevation);
 
+protected:
+    void touchEvent(QTouchEvent*) override;
+
 public slots:
     void setAzimuth(float azimuth);
     void setDistance(float distance);
     void setElevation(float elevation);
+
+public:
+    std::vector<nucleus::event_parameter::Touch> m_touch_events;
 
 private:
     float m_azimuth;

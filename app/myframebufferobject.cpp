@@ -50,11 +50,16 @@ public:
         m_azimuth = i->azimuth();
         m_elevation = i->elevation();
         m_distance = i->distance();
+        for (const auto& p : i->m_touch_events) {
+            m_glWindow->touch_made(p);
+        }
+
+        i->m_touch_events.clear();
+        //        m_glWindow->update_requested();
     }
 
     void render() Q_DECL_OVERRIDE
     {
-        qDebug("render");
         m_window->beginExternalCommands();
         QOpenGLExtraFunctions* f = QOpenGLContext::currentContext()->extraFunctions();
         f->glClearColor(m_azimuth, m_elevation, m_distance, 1);
@@ -78,6 +83,8 @@ public:
         return new QOpenGLFramebufferObject(size, format);
     }
 
+    gl_engine::Window* glWindow() const;
+
 private:
     QQuickWindow *m_window;
     std::unique_ptr<gl_engine::Window> m_glWindow;
@@ -95,11 +102,18 @@ MyFrameBufferObject::MyFrameBufferObject(QQuickItem* parent)
     , m_distance(0.5)
 {
     setMirrorVertically(true);
+    setAcceptTouchEvents(true);
 }
 
-QQuickFramebufferObject::Renderer *MyFrameBufferObject::createRenderer() const
+QQuickFramebufferObject::Renderer* MyFrameBufferObject::createRenderer() const
 {
-    return new MyFrameBufferObjectRenderer;
+    auto* r = new MyFrameBufferObjectRenderer;
+    qRegisterMetaType<nucleus::event_parameter::Touch>();
+    //    connect(
+    //        this, &MyFrameBufferObject::touch_made, r->glWindow(), []() { qDebug("touch d"); }, Qt::QueuedConnection);
+    //    connect(this, &MyFrameBufferObject::touch_made, r->glWindow(), &nucleus::AbstractRenderWindow::touch_made);
+    //    connect(this, &MyFrameBufferObject::touch_made, r->glWindow(), &nucleus::AbstractRenderWindow::update_requested);
+    return r;
 }
 
 float MyFrameBufferObject::azimuth() const
@@ -115,6 +129,13 @@ float MyFrameBufferObject::distance() const
 float MyFrameBufferObject::elevation() const
 {
     return m_elevation;
+}
+
+void MyFrameBufferObject::touchEvent(QTouchEvent* e)
+{
+    m_touch_events.push_back(nucleus::event_parameter::make(e));
+    update();
+    //    emit touch_made(nucleus::event_parameter::make(e));
 }
 
 void MyFrameBufferObject::setAzimuth(float azimuth)
@@ -145,4 +166,9 @@ void MyFrameBufferObject::setElevation(float elevation)
     m_elevation = elevation;
     emit elevationChanged(elevation);
     update();
+}
+
+gl_engine::Window* MyFrameBufferObjectRenderer::glWindow() const
+{
+    return m_glWindow.get();
 }

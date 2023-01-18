@@ -82,7 +82,7 @@ void Controller::key_press(const QKeyCombination& e)
     update();
 }
 
-void Controller::touch(QTouchEvent* e)
+void Controller::touch(const event_parameter::Touch& e)
 {
     const auto new_definition = m_interaction_style->touch_event(e, m_definition);
     if (!new_definition)

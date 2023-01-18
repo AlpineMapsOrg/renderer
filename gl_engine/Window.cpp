@@ -229,7 +229,7 @@ void Window::touchEvent(QTouchEvent* ev)
         m_debug_text.append(QString("%1:%2/%3; ").arg(point.id()).arg(point.position().x()).arg(point.position().y()));
     }
     emit update_requested();
-    emit touch_made(ev);
+    emit touch_made(nucleus::event_parameter::make(ev));
 }
 
 void Window::update_camera(const nucleus::camera::Definition& new_definition)
