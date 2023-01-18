@@ -103,8 +103,10 @@ void TileManager::draw(ShaderProgram* shader_program, const nucleus::camera::Def
 
 void TileManager::add_tile(const std::shared_ptr<nucleus::Tile>& tile)
 {
-    if (!QOpenGLContext::currentContext())  // can happen during shutdown.
+    qDebug("add_tile");
+    if (!QOpenGLContext::currentContext()) // can happen during shutdown.
         return;
+    qDebug("add_tile 2");
 
     assert(m_attribute_locations.height != -1);
     auto* f = QOpenGLContext::currentContext()->extraFunctions();
@@ -144,6 +146,8 @@ void TileManager::add_tile(const std::shared_ptr<nucleus::Tile>& tile)
 
 void TileManager::remove_tile(const tile::Id& tile_id)
 {
+    if (!QOpenGLContext::currentContext()) // can happen during shutdown.
+        return;
     // clear slot
     // or remove from list and free resources
     const auto found_tile = std::find_if(m_gpu_tiles.begin(), m_gpu_tiles.end(), [&tile_id](const TileSet& tileset) {

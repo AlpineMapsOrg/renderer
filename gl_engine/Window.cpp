@@ -58,6 +58,7 @@
 #include <QOpenGLContext>
 #include <QOpenGLDebugLogger>
 #include <QOpenGLExtraFunctions>
+#include <QOpenGLFramebufferObject>
 #include <QOpenGLShaderProgram>
 #include <QOpenGLTexture>
 #include <QOpenGLVertexArrayObject>
@@ -124,7 +125,7 @@ void Window::resize(int w, int h, qreal device_pixel_ratio)
     emit viewport_changed({ w, h });
 }
 
-void Window::paint()
+void Window::paint(QOpenGLFramebufferObject* framebuffer)
 {
     m_frame_start = std::chrono::time_point_cast<ClockResolution>(Clock::now());
 
@@ -156,6 +157,8 @@ void Window::paint()
     m_atmosphere->draw(m_shader_manager->atmosphere_bg_program(), m_camera, m_shader_manager->screen_quad_program(), m_framebuffer.get());
 
     m_framebuffer->unbind();
+    if (framebuffer)
+        framebuffer->bind();
 
     m_shader_manager->screen_quad_program()->bind();
     m_framebuffer->bind_colour_texture(0);

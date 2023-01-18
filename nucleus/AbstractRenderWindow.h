@@ -23,6 +23,8 @@
 
 #include <glm/glm.hpp>
 
+class QOpenGLFramebufferObject;
+
 namespace tile {
 struct Id;
 }
@@ -42,7 +44,7 @@ class AbstractRenderWindow : public QObject {
 public:
     virtual void initialise_gpu() = 0;
     virtual void resize(int width, int height, qreal device_pixel_ratio) = 0;
-    virtual void paint() = 0;
+    virtual void paint(QOpenGLFramebufferObject* framebuffer = 0) = 0;
     virtual glm::dvec3 ray_cast(const glm::dvec2& normalised_device_coordinates) = 0;
     virtual void deinit_gpu() = 0;
 

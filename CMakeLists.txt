@@ -43,10 +43,6 @@ set(ALP_GL_SOURCES
     gl_engine/helpers.h
     gl_engine/ShaderProgram.h gl_engine/ShaderProgram.cpp
 )
-set(ALP_PLAIN_RENDERER_SOURCES
-    plain_renderer/main.cpp
-    plain_renderer/Window.h plain_renderer/Window.cpp
-)
 set(ALP_GL_SHADERS
     gl_shaders/atmosphere_bg.frag
     gl_shaders/atmosphere_implementation.frag
@@ -54,6 +50,18 @@ set(ALP_GL_SHADERS
     gl_shaders/screen_pass.vert
     gl_shaders/tile.frag
     gl_shaders/tile.vert
+)
+set(ALP_PLAIN_RENDERER_SOURCES
+    plain_renderer/main.cpp
+    plain_renderer/Window.h plain_renderer/Window.cpp
+)
+set(ALP_APP_SOURCES
+    app/main.cpp
+    app/myframebufferobject.h app/myframebufferobject.cpp
+)
+set(ALP_APP_QML
+    app/main.qml
+    app/CameraControls.qml
 )
 if (ALP_UNITTESTS AND NOT EMSCRIPTEN)
     set(ALP_CATCH_UNITTEST_GL_SOURCES
@@ -91,7 +99,7 @@ set(CMAKE_AUTOMOC ON)
 set(CMAKE_AUTORCC ON)
 set(CMAKE_AUTOUIC ON)
 
-find_package(Qt6 REQUIRED COMPONENTS Core Gui OpenGL Network)
+find_package(Qt6 REQUIRED COMPONENTS Core Gui OpenGL Network Quick)
 add_subdirectory(sherpa)    # pulls in Catch2 and glm
 
 
@@ -133,7 +141,7 @@ endif()
 
 ########################################### gl engine #############################################
 qt_add_library(gl_engine STATIC ${ALP_GL_SOURCES})
-target_link_libraries(gl_engine PUBLIC nucleus Qt::Core Qt::Gui Qt::OpenGL)
+target_link_libraries(gl_engine PUBLIC nucleus Qt::Core Qt::OpenGL)
 target_include_directories(gl_engine PRIVATE .)
 
 qt_add_resources(gl_engine "gl_shaders"
@@ -150,9 +158,7 @@ set_target_properties(plain_renderer PROPERTIES
     WIN32_EXECUTABLE TRUE
     MACOSX_BUNDLE TRUE
 )
-target_link_libraries(plain_renderer PUBLIC
-    gl_engine
-)
+target_link_libraries(plain_renderer PUBLIC gl_engine Qt::Gui)
 target_include_directories(plain_renderer PRIVATE .)
 
 message(NOTICE "ALP_INSTALL_DIR = ${ALP_INSTALL_DIR}")
@@ -178,6 +184,33 @@ else ()
     install(FILES ${ALP_INSTALL_FILES} DESTINATION ${ALP_INSTALL_DIR})
 
 endif()
+
+########################################### app render frontend #############################################
+
+qt_add_executable(alpineapp
+    ${ALP_APP_SOURCES}
+)
+
+qt_add_qml_module(alpineapp
+    URI alpinemaps
+    VERSION 1.0
+    QML_FILES ${ALP_APP_QML}
+)
+#set_target_properties(alpineapp PROPERTIES
+#    MACOSX_BUNDLE_GUI_IDENTIFIER my.example.com
+#    MACOSX_BUNDLE_BUNDLE_VERSION ${PROJECT_VERSION}
+#    MACOSX_BUNDLE_SHORT_VERSION_STRING ${PROJECT_VERSION_MAJOR}.${PROJECT_VERSION_MINOR}
+#    MACOSX_BUNDLE TRUE
+#    WIN32_EXECUTABLE TRUE
+#)
+target_link_libraries(alpineapp PUBLIC gl_engine Qt6::Quick)
+set_property(TARGET alpineapp PROPERTY QT_ANDROID_EXTRA_LIBS
+    /home/madam/bin/Android/SDK/android_openssl/latest/arm64/libcrypto_1_1.so
+    /home/madam/bin/Android/SDK/android_openssl/latest/arm64/libssl_1_1.so)
+install(TARGETS alpineapp
+    BUNDLE DESTINATION .
+    LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR})
+
 
 #################################### unit tests for backend #######################################
 if (ALP_UNITTESTS AND NOT EMSCRIPTEN)

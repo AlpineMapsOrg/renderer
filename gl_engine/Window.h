@@ -62,14 +62,10 @@
 #include "nucleus/AbstractRenderWindow.h"
 #include "nucleus/camera/Definition.h"
 
-QT_BEGIN_NAMESPACE
-
 class QOpenGLTexture;
 class QOpenGLShaderProgram;
 class QOpenGLBuffer;
 class QOpenGLVertexArrayObject;
-QT_END_NAMESPACE
-
 class TileManager;
 
 namespace gl_engine {
@@ -86,7 +82,7 @@ public:
 
     void initialise_gpu() override;
     void resize(int w, int h, qreal device_pixel_ratio) override;
-    void paint() override;
+    void paint(QOpenGLFramebufferObject* framebuffer = 0) override;
     void paintOverGL(QPainter* painter);
 
     glm::dvec3 ray_cast(const glm::dvec2& normalised_device_coordinates) override;
