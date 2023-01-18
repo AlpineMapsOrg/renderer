@@ -23,23 +23,15 @@
 #include <QOpenGLExtraFunctions>
 #include <QOpenGLFunctions>
 #include <QOpenGLTexture>
+#ifdef ANDROID
+#include <GLES3/gl3.h>
+#endif
 
 using gl_engine::Framebuffer;
 
 namespace {
 
 // https://registry.khronos.org/OpenGL-Refpages/es3.0/html/glTexImage2D.xhtml
-int internal_format(Framebuffer::ColourFormat f)
-{
-    switch (f) {
-    case Framebuffer::ColourFormat::RGBA8:
-        return GL_RGBA8;
-    case Framebuffer::ColourFormat::Float32:
-        return GL_R32F;
-    }
-    assert(false);
-    return -1;
-}
 QOpenGLTexture::TextureFormat internal_format_qt(Framebuffer::ColourFormat f)
 {
     switch (f) {
@@ -59,23 +51,6 @@ int format(Framebuffer::ColourFormat f)
         return GL_RGBA;
     case Framebuffer::ColourFormat::Float32:
         return GL_RED;
-    }
-    assert(false);
-    return -1;
-}
-
-int internal_format(Framebuffer::DepthFormat f)
-{
-    switch (f) {
-    case Framebuffer::DepthFormat::Int16:
-        return GL_DEPTH_COMPONENT16;
-    case Framebuffer::DepthFormat::Int24:
-        return GL_DEPTH_COMPONENT24;
-    case Framebuffer::DepthFormat::Float32:
-        return GL_DEPTH_COMPONENT32F;
-    case Framebuffer::DepthFormat::None: // prevent compiler warning
-        assert(false); // extra assert, so we can from the line number which issue it is
-        return -1;
     }
     assert(false);
     return -1;
