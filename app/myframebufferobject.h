@@ -35,6 +35,7 @@ class MyFrameBufferObject : public QQuickFramebufferObject
 
 public:
     explicit MyFrameBufferObject(QQuickItem *parent = 0);
+    ~MyFrameBufferObject() override;
     Renderer *createRenderer() const Q_DECL_OVERRIDE;
 
     float azimuth() const;

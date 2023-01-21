@@ -41,6 +41,14 @@ class MyFrameBufferObjectRenderer : public QQuickFramebufferObject::Renderer
 public:
     MyFrameBufferObjectRenderer()
     {
+        m_glWindow = std::make_unique<gl_engine::Window>();
+        m_glWindow->initialise_gpu();
+        m_controller = std::make_unique<nucleus::Controller>(m_glWindow.get());
+        qDebug("MyFrameBufferObjectRenderer()");
+    }
+    ~MyFrameBufferObjectRenderer() override
+    {
+        qDebug("~MyFrameBufferObjectRenderer()");
     }
 
     void synchronize(QQuickFramebufferObject *item) Q_DECL_OVERRIDE
@@ -71,14 +79,12 @@ public:
 
     QOpenGLFramebufferObject *createFramebufferObject(const QSize &size) Q_DECL_OVERRIDE
     {
+        qDebug("QOpenGLFramebufferObject *createFramebufferObject(const QSize &size)");
         m_window->beginExternalCommands();
-        m_glWindow = std::make_unique<gl_engine::Window>();
-        m_glWindow->initialise_gpu();
-        m_controller = std::make_unique<nucleus::Controller>(m_glWindow.get());
         m_glWindow->resize(size.width(), size.height(), 1.0);
         m_window->endExternalCommands();
         QOpenGLFramebufferObjectFormat format;
-        format.setSamples(4);
+        format.setSamples(1);
         format.setAttachment(QOpenGLFramebufferObject::CombinedDepthStencil);
         return new QOpenGLFramebufferObject(size, format);
     }
@@ -101,13 +107,20 @@ MyFrameBufferObject::MyFrameBufferObject(QQuickItem* parent)
     , m_elevation(0.0)
     , m_distance(0.5)
 {
+    qDebug("MyFrameBufferObject::MyFrameBufferObject(QQuickItem* parent)");
     setMirrorVertically(true);
     setAcceptTouchEvents(true);
+}
+
+MyFrameBufferObject::~MyFrameBufferObject()
+{
+    qDebug("MyFrameBufferObject::~MyFrameBufferObject()");
 }
 
 QQuickFramebufferObject::Renderer* MyFrameBufferObject::createRenderer() const
 {
     auto* r = new MyFrameBufferObjectRenderer;
+    connect(r->glWindow(), &nucleus::AbstractRenderWindow::update_requested, this, &QQuickFramebufferObject::update);
     qRegisterMetaType<nucleus::event_parameter::Touch>();
     //    connect(
     //        this, &MyFrameBufferObject::touch_made, r->glWindow(), []() { qDebug("touch d"); }, Qt::QueuedConnection);

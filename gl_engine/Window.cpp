@@ -82,12 +82,14 @@ using gl_engine::Window;
 Window::Window()
     : m_camera({ 1822577.0, 6141664.0 - 500, 171.28 + 500 }, { 1822577.0, 6141664.0, 171.28 }) // should point right at the stephansdom
 {
+    qDebug("Window::Window()");
     m_tile_manager = std::make_unique<TileManager>();
     QTimer::singleShot(0, [this]() { emit update_requested(); });
 }
 
 Window::~Window()
 {
+    qDebug("~Window::Window()");
 }
 
 void Window::initialise_gpu()
