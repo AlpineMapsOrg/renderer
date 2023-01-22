@@ -27,6 +27,7 @@ struct Touch {
     bool is_begin_event = false;
     bool is_end_event = false;
     QList<QEventPoint> points;
+    QEventPoint::States states;
 };
 }
 Q_DECLARE_METATYPE(nucleus::event_parameter::Touch)
@@ -35,6 +36,6 @@ namespace nucleus::event_parameter {
 inline Touch make(const QTouchEvent* event)
 {
     //    static int id = qRegisterMetaType<::nucleus::event_parameter::Touch>();
-    return { event->isBeginEvent(), event->isEndEvent(), event->points() };
+    return { event->isBeginEvent(), event->isEndEvent(), event->points(), event->touchPointStates() };
 }
 }

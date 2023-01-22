@@ -35,8 +35,18 @@ std::optional<Definition> CrapyInteraction::touch_event(const event_parameter::T
     if (e.points.size() >= 2)
         second_touch = { e.points[1].position().x(), e.points[1].position().y() };
 
-    if (e.is_end_event)
+    // ugly code, but it prevents the following:
+    // touch 1 at pos a, touch 2 at pos b
+    // release touch 1, touch 2 becomes new touch 1. movement from b to a is initiated.
+    if (m_was_double_touch) {
+        m_previous_first_touch = first_touch;
+    }
+    m_was_double_touch = false;
+
+    if (e.is_end_event) {
+        m_was_double_touch = e.points.size() >= 2;
         return {};
+    }
     if (e.is_begin_event) {
         m_previous_first_touch = first_touch;
         m_previous_second_touch = second_touch;
