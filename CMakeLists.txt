@@ -197,14 +197,14 @@ qt_add_qml_module(alpineapp
     VERSION 1.0
     QML_FILES ${ALP_APP_QML}
 )
-#set_target_properties(alpineapp PROPERTIES
+set_target_properties(alpineapp PROPERTIES
 #    MACOSX_BUNDLE_GUI_IDENTIFIER my.example.com
 #    MACOSX_BUNDLE_BUNDLE_VERSION ${PROJECT_VERSION}
 #    MACOSX_BUNDLE_SHORT_VERSION_STRING ${PROJECT_VERSION_MAJOR}.${PROJECT_VERSION_MINOR}
 #    MACOSX_BUNDLE TRUE
 #    WIN32_EXECUTABLE TRUE
-#)
-target_link_libraries(alpineapp PUBLIC gl_engine Qt6::Quick)
+    QT_ANDROID_PACKAGE_SOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/android
+)
 set_property(TARGET alpineapp PROPERTY QT_ANDROID_EXTRA_LIBS
     /home/madam/bin/Android/SDK/android_openssl/latest/arm64/libcrypto_1_1.so
     /home/madam/bin/Android/SDK/android_openssl/latest/arm64/libssl_1_1.so)
