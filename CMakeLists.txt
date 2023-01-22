@@ -100,7 +100,7 @@ set(CMAKE_AUTOMOC ON)
 set(CMAKE_AUTORCC ON)
 set(CMAKE_AUTOUIC ON)
 
-find_package(Qt6 REQUIRED COMPONENTS Core Gui OpenGL Network Quick)
+find_package(Qt6 REQUIRED COMPONENTS Core Gui OpenGL Network Quick QuickControls2)
 add_subdirectory(sherpa)    # pulls in Catch2 and glm
 
 
@@ -205,6 +205,7 @@ set_target_properties(alpineapp PROPERTIES
 #    WIN32_EXECUTABLE TRUE
     QT_ANDROID_PACKAGE_SOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/android
 )
+target_link_libraries(alpineapp PUBLIC gl_engine Qt::Quick Qt::QuickControls2)
 set_property(TARGET alpineapp PROPERTY QT_ANDROID_EXTRA_LIBS
     /home/madam/bin/Android/SDK/android_openssl/latest/arm64/libcrypto_1_1.so
     /home/madam/bin/Android/SDK/android_openssl/latest/arm64/libssl_1_1.so)

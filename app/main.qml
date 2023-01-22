@@ -19,8 +19,9 @@
 **
 ****************************************************************************/
 
-import QtQuick 2.0
-import MyRenderLibrary 42.0
+import QtQuick
+import QtQuick.Controls
+import MyRenderLibrary
 
 Window{
     visible: true
