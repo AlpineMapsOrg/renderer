@@ -23,6 +23,7 @@
 
 #include <memory>
 
+#include <QDebug>
 #include <QOpenGLContext>
 #include <QOpenGLExtraFunctions>
 #include <QOpenGLFramebufferObject>
@@ -79,7 +80,7 @@ public:
 
     QOpenGLFramebufferObject *createFramebufferObject(const QSize &size) Q_DECL_OVERRIDE
     {
-        qDebug("QOpenGLFramebufferObject *createFramebufferObject(const QSize &size)");
+        qDebug() << "QOpenGLFramebufferObject *createFramebufferObject(const QSize& " << size << ")";
         m_window->beginExternalCommands();
         m_glWindow->resize(size.width(), size.height(), 1.0);
         m_window->endExternalCommands();

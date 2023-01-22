@@ -32,15 +32,6 @@ int main(int argc, char **argv)
 {
     QGuiApplication app(argc, argv);
 
-    //    QSurfaceFormat format;
-    //    format.setMajorVersion(3);
-    //    format.setMinorVersion(3);
-    //    format.setProfile(QSurfaceFormat::CoreProfile);
-    //    format.setDepthBufferSize(24);
-    //    format.setStencilBufferSize(8);
-    //    format.setSamples(4);
-    //    QSurfaceFormat::setDefaultFormat(format);
-
     QSurfaceFormat fmt;
     fmt.setDepthBufferSize(24);
     fmt.setOption(QSurfaceFormat::DebugContext);
