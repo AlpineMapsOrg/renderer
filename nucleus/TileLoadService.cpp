@@ -23,9 +23,10 @@
 #include <QNetworkAccessManager>
 #include <QNetworkReply>
 #ifdef ALP_USE_DISK_CACHE
+#include <QDir>
 #include <QNetworkDiskCache>
-#include <QStandardPaths>
 #include <QRegularExpression>
+#include <QStandardPaths>
 #endif
 
 using nucleus::TileLoadService;
@@ -46,6 +47,20 @@ TileLoadService::TileLoadService(const QString& base_url, UrlPattern url_pattern
     m_network_manager->setCache(m_disk_cache.get());
     qDebug("cache directory: %s", m_disk_cache->cacheDirectory().toStdString().c_str());
     qDebug("maximum cache size: %lld", m_disk_cache->maximumCacheSize());
+
+    const QDir cache_dir = m_disk_cache->cacheDirectory();
+    const std::function<void(const QDir&)> print_recursively = [&print_recursively](const QDir& dir) {
+        const auto fs = dir.entryInfoList(QDir::Filter::Files);
+        const auto d = dir.entryInfoList(QDir::Filter::Dirs | QDir::NoDotAndDotDot);
+        qDebug() << dir.absolutePath();
+        for (const auto& file : fs) {
+            qDebug() << file.absolutePath();
+        }
+        for (const auto& entry : d) {
+            print_recursively(entry.absoluteFilePath());
+        }
+    };
+    print_recursively(cache_dir);
 #endif
 }
 
