@@ -29,6 +29,8 @@ class MyFrameBufferObject : public QQuickFramebufferObject
 {
     Q_OBJECT
 
+    using EventParameters = std::variant<nucleus::event_parameter::Touch, nucleus::event_parameter::Mouse, nucleus::event_parameter::Wheel>;
+
     Q_PROPERTY(float azimuth READ azimuth WRITE setAzimuth NOTIFY azimuthChanged)
     Q_PROPERTY(float elevation READ elevation WRITE setElevation NOTIFY elevationChanged)
     Q_PROPERTY(float distance READ distance WRITE setDistance NOTIFY distanceChanged)
@@ -49,6 +51,9 @@ signals:
 
 protected:
     void touchEvent(QTouchEvent*) override;
+    void mousePressEvent(QMouseEvent*) override;
+    void mouseMoveEvent(QMouseEvent*) override;
+    void wheelEvent(QWheelEvent*) override;
 
 public slots:
     void setAzimuth(float azimuth);
@@ -56,7 +61,7 @@ public slots:
     void setElevation(float elevation);
 
 public:
-    std::vector<nucleus::event_parameter::Touch> m_touch_events;
+    std::vector<EventParameters> m_event_queue;
 
 private:
     float m_azimuth;

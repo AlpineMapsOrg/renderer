@@ -46,16 +46,16 @@ void Controller::update() const
     emit definition_changed(m_definition);
 }
 
-void Controller::mouse_press(QMouseEvent* e, float distance)
+void Controller::mouse_press(const event_parameter::Mouse& e)
 {
-    const auto new_definition = m_interaction_style->mouse_press_event(e, m_definition, distance);
+    const auto new_definition = m_interaction_style->mouse_press_event(e, m_definition);
     if (!new_definition)
         return;
     m_definition = new_definition.value();
     update();
 }
 
-void Controller::mouse_move(QMouseEvent* e)
+void Controller::mouse_move(const event_parameter::Mouse& e)
 {
     const auto new_definition = m_interaction_style->mouse_move_event(e, m_definition);
     if (!new_definition)
@@ -64,9 +64,9 @@ void Controller::mouse_move(QMouseEvent* e)
     update();
 }
 
-void Controller::wheel_turn(QWheelEvent* e, float distance)
+void Controller::wheel_turn(const event_parameter::Wheel& e)
 {
-    const auto new_definition = m_interaction_style->wheel_event(e, m_definition, distance);
+    const auto new_definition = m_interaction_style->wheel_event(e, m_definition);
     if (!new_definition)
         return;
     m_definition = new_definition.value();

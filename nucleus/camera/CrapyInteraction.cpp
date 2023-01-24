@@ -4,25 +4,23 @@
 
 namespace nucleus::camera {
 
-std::optional<Definition> CrapyInteraction::mouse_move_event(QMouseEvent* e, Definition camera)
+std::optional<Definition> CrapyInteraction::mouse_move_event(const event_parameter::Mouse& e, Definition camera)
 {
 
-    glm::ivec2 mouse_position { e->pos().x(), e->pos().y() };
-    if (e->buttons() == Qt::LeftButton) {
-        const auto delta = mouse_position - m_previous_mouse_pos;
-        camera.pan(glm::vec2(delta) * 10.0f);
+    if (e.buttons == Qt::LeftButton) {
+        const auto delta = e.point.position() - e.point.lastPosition();
+        camera.pan(glm::vec2(delta.x(), delta.y()) * 10.0f);
     }
-    if (e->buttons() == Qt::MiddleButton) {
-        const auto delta = mouse_position - m_previous_mouse_pos;
-        camera.orbit(glm::vec2(delta) * 0.1f);
+    if (e.buttons == Qt::MiddleButton) {
+        const auto delta = e.point.position() - e.point.lastPosition();
+        camera.orbit(glm::vec2(delta.x(), delta.y()) * 0.1f);
     }
-    if (e->buttons() == Qt::RightButton) {
-        const auto delta = mouse_position - m_previous_mouse_pos;
-        camera.zoom(delta.y * 10.0);
+    if (e.buttons == Qt::RightButton) {
+        const auto delta = e.point.position() - e.point.lastPosition();
+        camera.zoom(delta.y() * 10.0);
     }
-    m_previous_mouse_pos = mouse_position;
 
-    if (e->buttons() == Qt::NoButton)
+    if (e.buttons == Qt::NoButton)
         return {};
     else
         return camera;
@@ -80,9 +78,9 @@ std::optional<Definition> CrapyInteraction::touch_event(const event_parameter::T
     return camera;
 }
 
-std::optional<Definition> CrapyInteraction::wheel_event(QWheelEvent* e, Definition camera, float distance)
+std::optional<Definition> CrapyInteraction::wheel_event(const event_parameter::Wheel& e, Definition camera)
 {
-    camera.zoom(e->angleDelta().y() * -8.0);
+    camera.zoom(e.angle_delta.y() * -8.0);
     return camera;
 }
 }

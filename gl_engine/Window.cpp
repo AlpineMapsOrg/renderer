@@ -195,13 +195,12 @@ void Window::paintOverGL(QPainter* painter)
 void Window::mouseMoveEvent(QMouseEvent* e)
 {
     // send depth information only on mouse press to be more efficient (?)
-    emit mouse_moved(e);
+    emit mouse_moved(nucleus::event_parameter::make(e));
 }
 
 void Window::wheelEvent(QWheelEvent* e)
 {
-    float distance = 500; // todo read and compute from depth buffer
-    emit wheel_turned(e, distance);
+    emit wheel_turned(nucleus::event_parameter::make(e));
 }
 
 void Window::keyPressEvent(QKeyEvent* e)
@@ -246,10 +245,9 @@ void Window::update_debug_scheduler_stats(const QString& stats)
     emit update_requested();
 }
 
-void Window::mousePressEvent(QMouseEvent* ev)
+void Window::mousePressEvent(QMouseEvent* e)
 {
-    float distance = 500;   // todo read and compute from depth buffer
-    emit mouse_pressed(ev, distance);
+    emit mouse_pressed(nucleus::event_parameter::make(e));
 }
 
 glm::dvec3 Window::ray_cast(const glm::dvec2& normalised_device_coordinates)

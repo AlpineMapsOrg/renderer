@@ -11,8 +11,8 @@ class CrapyInteraction : public InteractionStyle
     bool m_was_double_touch = false;
 
 public:
-    std::optional<Definition> mouse_move_event(QMouseEvent* e, Definition camera) override;
+    std::optional<Definition> mouse_move_event(const event_parameter::Mouse& e, Definition camera) override;
     std::optional<Definition> touch_event(const event_parameter::Touch& e, Definition camera) override;
-    std::optional<Definition> wheel_event(QWheelEvent* e, Definition camera, float distance) override;
+    std::optional<Definition> wheel_event(const event_parameter::Wheel& e, Definition camera) override;
 };
 }

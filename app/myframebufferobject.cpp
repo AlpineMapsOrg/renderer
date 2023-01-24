@@ -33,8 +33,18 @@
 #include "gl_engine/Window.h"
 #include "nucleus/Controller.h"
 
-class MyFrameBufferObjectRenderer : public QQuickFramebufferObject::Renderer
-{
+namespace {
+// helper type for the visitor from https://en.cppreference.com/w/cpp/utility/variant/visit
+template <class... Ts>
+struct overloaded : Ts... {
+    using Ts::operator()...;
+};
+// explicit deduction guide (not needed as of C++20)
+template <class... Ts>
+overloaded(Ts...) -> overloaded<Ts...>;
+}
+
+class MyFrameBufferObjectRenderer : public QQuickFramebufferObject::Renderer {
     float m_azimuth = 0.4;
     float m_elevation = 0.4;
     float m_distance = 0.4;
@@ -59,11 +69,17 @@ public:
         m_azimuth = i->azimuth();
         m_elevation = i->elevation();
         m_distance = i->distance();
-        for (const auto& p : i->m_touch_events) {
-            m_glWindow->touch_made(p);
+        for (const auto& p : i->m_event_queue) {
+            //            m_glWindow->touch_made(p);
+            std::visit(overloaded {
+                           [this](const nucleus::event_parameter::Touch& p) { m_glWindow->touch_made(p); },
+                           [this](const nucleus::event_parameter::Mouse& p) { m_glWindow->mouse_moved(p); },
+                           [this](const nucleus::event_parameter::Wheel& p) { m_glWindow->wheel_turned(p); },
+                       },
+                p);
         }
 
-        i->m_touch_events.clear();
+        i->m_event_queue.clear();
         //        m_glWindow->update_requested();
     }
 
@@ -98,8 +114,6 @@ private:
     std::unique_ptr<nucleus::Controller> m_controller;
 };
 
-
-
 // MyFrameBufferObject implementation
 
 MyFrameBufferObject::MyFrameBufferObject(QQuickItem* parent)
@@ -111,6 +125,7 @@ MyFrameBufferObject::MyFrameBufferObject(QQuickItem* parent)
     qDebug("MyFrameBufferObject::MyFrameBufferObject(QQuickItem* parent)");
     setMirrorVertically(true);
     setAcceptTouchEvents(true);
+    setAcceptedMouseButtons(Qt::MouseButton::AllButtons);
 }
 
 MyFrameBufferObject::~MyFrameBufferObject()
@@ -120,8 +135,8 @@ MyFrameBufferObject::~MyFrameBufferObject()
 
 QQuickFramebufferObject::Renderer* MyFrameBufferObject::createRenderer() const
 {
-    auto* r = new MyFrameBufferObjectRenderer;
-    connect(r->glWindow(), &nucleus::AbstractRenderWindow::update_requested, this, &QQuickFramebufferObject::update);
+    auto* r = new MyFrameBufferObjectRenderer();
+    connect(r->glWindow(), &nucleus::AbstractRenderWindow::update_requested, this, &QQuickFramebufferObject::update, Qt::ConnectionType::QueuedConnection);
     qRegisterMetaType<nucleus::event_parameter::Touch>();
     //    connect(
     //        this, &MyFrameBufferObject::touch_made, r->glWindow(), []() { qDebug("touch d"); }, Qt::QueuedConnection);
@@ -147,9 +162,27 @@ float MyFrameBufferObject::elevation() const
 
 void MyFrameBufferObject::touchEvent(QTouchEvent* e)
 {
-    m_touch_events.push_back(nucleus::event_parameter::make(e));
+    m_event_queue.push_back(nucleus::event_parameter::make(e));
     update();
     //    emit touch_made(nucleus::event_parameter::make(e));
+}
+
+void MyFrameBufferObject::mousePressEvent(QMouseEvent* e)
+{
+    m_event_queue.push_back(nucleus::event_parameter::make(e));
+    update();
+}
+
+void MyFrameBufferObject::mouseMoveEvent(QMouseEvent* e)
+{
+    m_event_queue.push_back(nucleus::event_parameter::make(e));
+    update();
+}
+
+void MyFrameBufferObject::wheelEvent(QWheelEvent* e)
+{
+    m_event_queue.push_back(nucleus::event_parameter::make(e));
+    update();
 }
 
 void MyFrameBufferObject::setAzimuth(float azimuth)

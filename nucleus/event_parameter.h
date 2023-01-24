@@ -19,6 +19,7 @@
 #pragma once
 
 #include <QMetaType>
+#include <QMouseEvent>
 #include <QTouchEvent>
 
 namespace nucleus::event_parameter {
@@ -26,8 +27,26 @@ namespace nucleus::event_parameter {
 struct Touch {
     bool is_begin_event = false;
     bool is_end_event = false;
+    bool is_update_event = false;
     QList<QEventPoint> points;
     QEventPoint::States states;
+};
+
+struct Mouse {
+    bool is_begin_event = false;
+    bool is_end_event = false;
+    bool is_update_event = false;
+    Qt::MouseButton button = Qt::NoButton;
+    Qt::MouseButtons buttons;
+    QEventPoint point;
+};
+
+struct Wheel {
+    bool is_begin_event = false;
+    bool is_end_event = false;
+    bool is_update_event = false;
+    QPoint angle_delta;
+    QEventPoint point;
 };
 }
 Q_DECLARE_METATYPE(nucleus::event_parameter::Touch)
@@ -36,6 +55,21 @@ namespace nucleus::event_parameter {
 inline Touch make(const QTouchEvent* event)
 {
     //    static int id = qRegisterMetaType<::nucleus::event_parameter::Touch>();
-    return { event->isBeginEvent(), event->isEndEvent(), event->points(), event->touchPointStates() };
+    return { event->isBeginEvent(), event->isEndEvent(), event->isUpdateEvent(),
+        event->points(), event->touchPointStates() };
+}
+inline Mouse make(const QMouseEvent* event)
+{
+    assert(event->points().size() == 1);
+
+    return { event->isBeginEvent(), event->isEndEvent(), event->isUpdateEvent(),
+        event->button(), event->buttons(), event->points().front() };
+}
+inline Wheel make(const QWheelEvent* event)
+{
+    assert(event->points().size() == 1);
+
+    return { event->isBeginEvent(), event->isEndEvent(), event->isUpdateEvent(),
+        event->angleDelta(), event->points().front() };
 }
 }

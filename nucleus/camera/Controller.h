@@ -29,9 +29,9 @@ public slots:
     void orbit(const glm::dvec3& centre, const glm::dvec2& degrees);
     void update() const;
 
-    void mouse_press(QMouseEvent*, float);
-    void mouse_move(QMouseEvent*);
-    void wheel_turn(QWheelEvent*, float);
+    void mouse_press(const event_parameter::Mouse&);
+    void mouse_move(const event_parameter::Mouse&);
+    void wheel_turn(const event_parameter::Wheel&);
     void key_press(const QKeyCombination&);
     void touch(const event_parameter::Touch&);
 
