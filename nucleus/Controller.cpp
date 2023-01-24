@@ -20,6 +20,9 @@
 
 #include <QCoreApplication>
 #include <QNetworkReply>
+#ifdef ALP_ENABLE_THREADING
+#include <QThread>
+#endif
 
 #include "AbstractRenderWindow.h"
 #include "nucleus/TileLoadService.h"
@@ -71,11 +74,11 @@ Controller::Controller(AbstractRenderWindow* render_window)
     m_near_plane_adjuster = std::make_unique<nucleus::camera::NearPlaneAdjuster>();
 
 #ifdef ALP_ENABLE_THREADING
-    QThread scheduler_thread;
-    //    m_terrain_service->moveToThread(&scheduler_thread);
-    //    m_ortho_service->moveToThread(&scheduler_thread);
-    m_scheduler->moveToThread(&scheduler_thread);
-    scheduler_thread.start();
+    m_scheduler_thread = std::make_unique<QThread>();
+    m_terrain_service->moveToThread(m_scheduler_thread.get());
+    m_ortho_service->moveToThread(m_scheduler_thread.get());
+    m_tile_scheduler->moveToThread(m_scheduler_thread.get());
+    m_scheduler_thread->start();
 #endif
     connect(m_render_window, &AbstractRenderWindow::viewport_changed, m_camera_controller.get(), &nucleus::camera::Controller::set_viewport);
     connect(m_render_window, &AbstractRenderWindow::mouse_moved, m_camera_controller.get(), &nucleus::camera::Controller::mouse_move);
@@ -106,7 +109,13 @@ Controller::Controller(AbstractRenderWindow* render_window)
     connect(m_near_plane_adjuster.get(), &nucleus::camera::NearPlaneAdjuster::near_plane_changed, m_camera_controller.get(), &nucleus::camera::Controller::set_near_plane);
 }
 
-Controller::~Controller() = default;
+Controller::~Controller()
+{
+#ifdef ALP_ENABLE_THREADING
+    m_scheduler_thread->quit();
+    m_scheduler_thread->wait(500); // msec
+#endif
+};
 
 camera::Controller* Controller::camera_controller() const
 {
