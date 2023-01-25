@@ -106,6 +106,9 @@ const Definition& Controller::definition() const
 
 void Controller::set_definition(const Definition& new_definition)
 {
+    if (m_definition.world_view_projection_matrix() == new_definition.world_view_projection_matrix())
+        return;
+
     m_definition = new_definition;
     update();
 }
