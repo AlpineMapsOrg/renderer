@@ -43,24 +43,10 @@ TileLoadService::TileLoadService(const QString& base_url, UrlPattern url_pattern
 {
 #ifdef ALP_USE_DISK_CACHE
     m_disk_cache->setCacheDirectory(QStandardPaths::writableLocation(QStandardPaths::CacheLocation) + "/" + QString(base_url).replace(QRegularExpression("\\W"), ""));
-    m_disk_cache->setMaximumCacheSize(200 * 1024 * 1024); // 200mib
+    m_disk_cache->setMaximumCacheSize(1000 * 1024 * 1024); // 1000mib
     m_network_manager->setCache(m_disk_cache.get());
     qDebug("cache directory: %s", m_disk_cache->cacheDirectory().toStdString().c_str());
     qDebug("maximum cache size: %lld", m_disk_cache->maximumCacheSize());
-
-    const QDir cache_dir = m_disk_cache->cacheDirectory();
-    const std::function<void(const QDir&)> print_recursively = [&print_recursively](const QDir& dir) {
-        const auto fs = dir.entryInfoList(QDir::Filter::Files);
-        const auto d = dir.entryInfoList(QDir::Filter::Dirs | QDir::NoDotAndDotDot);
-        qDebug() << dir.absolutePath();
-        for (const auto& file : fs) {
-            qDebug() << file.absolutePath();
-        }
-        for (const auto& entry : d) {
-            print_recursively(entry.absoluteFilePath());
-        }
-    };
-    print_recursively(cache_dir);
 #endif
 }
 
@@ -70,7 +56,10 @@ TileLoadService::~TileLoadService()
 
 void TileLoadService::load(const tile::Id& tile_id)
 {
-    QNetworkReply* reply = m_network_manager->get(QNetworkRequest(QUrl(build_tile_url(tile_id))));
+    QNetworkRequest request(QUrl(build_tile_url(tile_id)));
+    request.setAttribute(QNetworkRequest::CacheLoadControlAttribute, QNetworkRequest::PreferCache);
+
+    QNetworkReply* reply = m_network_manager->get(request);
     connect(reply, &QNetworkReply::finished, [tile_id, reply, this]() {
         const auto url = reply->url();
         const auto error = reply->error();
@@ -78,7 +67,7 @@ void TileLoadService::load(const tile::Id& tile_id)
             auto tile = std::make_shared<QByteArray>(reply->readAll());
             emit load_ready(tile_id, std::move(tile));
         } else {
-            qDebug() << "Loading of tile " << url << " failed: " << error;
+            //            qDebug() << "Loading of tile " << url << " failed: " << error;
             emit tile_unavailable(tile_id);
             // do we need better error handling?
         }
