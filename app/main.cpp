@@ -24,7 +24,10 @@
 #include <QQmlApplicationEngine>
 #include <QQmlEngine>
 #include <QQuickView>
+#include <QRunnable>
 #include <QSurfaceFormat>
+#include <QThread>
+#include <QTimer>
 
 #include "myframebufferobject.h"
 
@@ -55,12 +58,29 @@ int main(int argc, char **argv)
     qmlRegisterType<MyFrameBufferObject>("MyRenderLibrary", 42, 0, "MeshRenderer");
 
     QQmlApplicationEngine engine;
+    QTimer timer;
+    timer.setInterval(5);
+    timer.setSingleShot(false);
+    timer.start();
+
     const QUrl url(u"qrc:/alpinemaps/app/main.qml"_qs);
     QObject::connect(
         &engine, &QQmlApplicationEngine::objectCreated,
-        &app, [url](QObject* obj, const QUrl& objUrl) {
+        &app, [url, &engine, &timer](QObject* obj, const QUrl& objUrl) {
             if (!obj && url == objUrl)
                 QCoreApplication::exit(-1);
+            if (url != objUrl)
+                return;
+            QQuickWindow* rootWindow = dynamic_cast<QQuickWindow*>(engine.rootObjects().first());
+            if (rootWindow == nullptr)
+                return;
+            QObject::connect(&timer, &QTimer::timeout, rootWindow, [rootWindow]() {
+                auto* runnable = QRunnable::create([]() {
+                    QCoreApplication::processEvents(QEventLoop::AllEvents, 1);
+                });
+                runnable->setAutoDelete(false);
+                rootWindow->scheduleRenderJob(runnable, QQuickWindow::RenderStage::NoStage);
+            });
         },
         Qt::QueuedConnection);
     engine.load(url);
