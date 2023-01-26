@@ -23,8 +23,6 @@
 
 #include <glm/glm.hpp>
 
-#include "event_parameter.h"
-
 class QOpenGLFramebufferObject;
 
 namespace tile {
@@ -59,12 +57,7 @@ public slots:
 
 signals:
     void update_requested();
-    void mouse_pressed(const event_parameter::Mouse&) const;
-    void mouse_moved(const event_parameter::Mouse&) const;
-    void wheel_turned(const event_parameter::Wheel&) const;
     void key_pressed(const QKeyCombination&) const;
-    void touch_made(const event_parameter::Touch&) const;
-    void viewport_changed(const glm::uvec2& new_viewport) const;
 };
 
 }

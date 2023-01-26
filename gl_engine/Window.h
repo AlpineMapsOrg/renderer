@@ -90,12 +90,7 @@ public:
     void set_aabb_decorator(const nucleus::tile_scheduler::AabbDecoratorPtr&) override;
     void add_tile(const std::shared_ptr<nucleus::Tile>&) override;
     void remove_tile(const tile::Id&) override;
-
-    void mousePressEvent(QMouseEvent*);
-    void mouseMoveEvent(QMouseEvent*);
-    void wheelEvent(QWheelEvent*);
     void keyPressEvent(QKeyEvent*);
-    void touchEvent(QTouchEvent*);
 
 public slots:
     void update_camera(const nucleus::camera::Definition& new_definition) override;

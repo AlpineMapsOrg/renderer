@@ -29,9 +29,11 @@
 #include <QOpenGLFramebufferObject>
 #include <QOpenGLFramebufferObjectFormat>
 #include <QQuickWindow>
+#include <QTimer>
 
 #include "gl_engine/Window.h"
 #include "nucleus/Controller.h"
+#include "nucleus/camera/Controller.h"
 
 namespace {
 // helper type for the visitor from https://en.cppreference.com/w/cpp/utility/variant/visit
@@ -69,15 +71,15 @@ public:
         m_azimuth = i->azimuth();
         m_elevation = i->elevation();
         m_distance = i->distance();
-        for (const auto& p : i->m_event_queue) {
-            //            m_glWindow->touch_made(p);
-            std::visit(overloaded {
-                           [this](const nucleus::event_parameter::Touch& p) { m_glWindow->touch_made(p); },
-                           [this](const nucleus::event_parameter::Mouse& p) { m_glWindow->mouse_moved(p); },
-                           [this](const nucleus::event_parameter::Wheel& p) { m_glWindow->wheel_turned(p); },
-                       },
-                p);
-        }
+        //        for (const auto& p : i->m_event_queue) {
+        //            //            m_glWindow->touch_made(p);
+        //            std::visit(overloaded {
+        //                           [this](const nucleus::event_parameter::Touch& p) { m_glWindow->touch_made(p); },
+        //                           [this](const nucleus::event_parameter::Mouse& p) { m_glWindow->mouse_moved(p); },
+        //                           [this](const nucleus::event_parameter::Wheel& p) { m_glWindow->wheel_turned(p); },
+        //                       },
+        //                p);
+        //        }
 
         i->m_event_queue.clear();
         //        m_glWindow->update_requested();
@@ -106,7 +108,15 @@ public:
         return new QOpenGLFramebufferObject(size, format);
     }
 
-    gl_engine::Window* glWindow() const;
+    [[nodiscard]] gl_engine::Window* glWindow() const
+    {
+        return m_glWindow.get();
+    }
+
+    [[nodiscard]] nucleus::Controller* controller() const
+    {
+        return m_controller.get();
+    }
 
 private:
     QQuickWindow *m_window;
@@ -118,10 +128,13 @@ private:
 
 MyFrameBufferObject::MyFrameBufferObject(QQuickItem* parent)
     : QQuickFramebufferObject(parent)
+    , m_update_timer(new QTimer(this))
     , m_azimuth(0.0)
     , m_elevation(0.0)
     , m_distance(0.5)
 {
+    m_update_timer->setSingleShot(true);
+    m_update_timer->setInterval(1000 / m_frame_limit);
     qDebug("MyFrameBufferObject::MyFrameBufferObject(QQuickItem* parent)");
     setMirrorVertically(true);
     setAcceptTouchEvents(true);
@@ -136,7 +149,14 @@ MyFrameBufferObject::~MyFrameBufferObject()
 QQuickFramebufferObject::Renderer* MyFrameBufferObject::createRenderer() const
 {
     auto* r = new MyFrameBufferObjectRenderer();
-    connect(r->glWindow(), &nucleus::AbstractRenderWindow::update_requested, this, &QQuickFramebufferObject::update, Qt::ConnectionType::QueuedConnection);
+    connect(r->glWindow(), &nucleus::AbstractRenderWindow::update_requested, this, &MyFrameBufferObject::schedule_update);
+    connect(m_update_timer, &QTimer::timeout, this, &QQuickFramebufferObject::update);
+
+    connect(this, &MyFrameBufferObject::touch_made, r->controller()->camera_controller(), &nucleus::camera::Controller::touch);
+    connect(this, &MyFrameBufferObject::mouse_pressed, r->controller()->camera_controller(), &nucleus::camera::Controller::mouse_press);
+    connect(this, &MyFrameBufferObject::mouse_moved, r->controller()->camera_controller(), &nucleus::camera::Controller::mouse_move);
+    connect(this, &MyFrameBufferObject::wheel_turned, r->controller()->camera_controller(), &nucleus::camera::Controller::wheel_turn);
+
     qRegisterMetaType<nucleus::event_parameter::Touch>();
     //    connect(
     //        this, &MyFrameBufferObject::touch_made, r->glWindow(), []() { qDebug("touch d"); }, Qt::QueuedConnection);
@@ -162,27 +182,28 @@ float MyFrameBufferObject::elevation() const
 
 void MyFrameBufferObject::touchEvent(QTouchEvent* e)
 {
-    m_event_queue.push_back(nucleus::event_parameter::make(e));
-    update();
-    //    emit touch_made(nucleus::event_parameter::make(e));
+    emit touch_made(nucleus::event_parameter::make(e));
 }
 
 void MyFrameBufferObject::mousePressEvent(QMouseEvent* e)
 {
-    m_event_queue.push_back(nucleus::event_parameter::make(e));
-    update();
+    //    m_event_queue.push_back(nucleus::event_parameter::make(e));
+    //    update();
+    emit mouse_pressed(nucleus::event_parameter::make(e));
 }
 
 void MyFrameBufferObject::mouseMoveEvent(QMouseEvent* e)
 {
-    m_event_queue.push_back(nucleus::event_parameter::make(e));
-    update();
+    //    m_event_queue.push_back(nucleus::event_parameter::make(e));
+    //    update();
+    emit mouse_moved(nucleus::event_parameter::make(e));
 }
 
 void MyFrameBufferObject::wheelEvent(QWheelEvent* e)
 {
-    m_event_queue.push_back(nucleus::event_parameter::make(e));
-    update();
+    //    m_event_queue.push_back(nucleus::event_parameter::make(e));
+    //    update();
+    emit wheel_turned(nucleus::event_parameter::make(e));
 }
 
 void MyFrameBufferObject::setAzimuth(float azimuth)
@@ -215,7 +236,25 @@ void MyFrameBufferObject::setElevation(float elevation)
     update();
 }
 
-gl_engine::Window* MyFrameBufferObjectRenderer::glWindow() const
+void MyFrameBufferObject::schedule_update()
 {
-    return m_glWindow.get();
+    qDebug("void MyFrameBufferObject::schedule_update()");
+    if (m_update_timer->isActive())
+        return;
+    m_update_timer->start();
+}
+
+int MyFrameBufferObject::frame_limit() const
+{
+    return m_frame_limit;
+}
+
+void MyFrameBufferObject::set_frame_limit(int new_frame_limit)
+{
+    new_frame_limit = std::clamp(new_frame_limit, 10, 120);
+    if (m_frame_limit == new_frame_limit)
+        return;
+    m_frame_limit = new_frame_limit;
+    m_update_timer->setInterval(1000 / m_frame_limit);
+    emit frame_limit_changed();
 }

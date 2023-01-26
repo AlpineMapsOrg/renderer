@@ -30,6 +30,8 @@
 
 int main(int argc, char **argv)
 {
+    //    QGuiApplication::setHighDpiScaleFactorRoundingPolicy(Qt::HighDpiScaleFactorRoundingPolicy::Floor);
+    QQuickWindow::setGraphicsApi(QSGRendererInterface::GraphicsApi::OpenGLRhi);
     QGuiApplication app(argc, argv);
 
     QSurfaceFormat fmt;

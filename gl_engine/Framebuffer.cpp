@@ -260,3 +260,10 @@ void Framebuffer::reset_fbo()
     assert(f->glCheckFramebufferStatus(GL_FRAMEBUFFER) == GL_FRAMEBUFFER_COMPLETE);
 }
 
+namespace gl_engine {
+glm::uvec2 Framebuffer::size() const
+{
+    return m_size;
+}
+
+}

@@ -41,6 +41,8 @@ public:
 
     camera::Controller* camera_controller() const;
 
+    tile_scheduler::GpuCacheTileScheduler* tile_scheduler() const;
+
 private:
     AbstractRenderWindow* m_render_window;
     QNetworkAccessManager m_network_manager;

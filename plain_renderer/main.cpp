@@ -94,6 +94,11 @@ int main(int argc, char* argv[])
     Window glWindow;
     nucleus::Controller controller(glWindow.render_window());
 
+    QObject::connect(&glWindow, &Window::mouse_moved, controller.camera_controller(), &nucleus::camera::Controller::mouse_move);
+    QObject::connect(&glWindow, &Window::mouse_moved, controller.camera_controller(), &nucleus::camera::Controller::mouse_move);
+    QObject::connect(&glWindow, &Window::mouse_moved, controller.camera_controller(), &nucleus::camera::Controller::mouse_move);
+    QObject::connect(&glWindow, &Window::mouse_moved, controller.camera_controller(), &nucleus::camera::Controller::mouse_move);
+
     if (running_in_browser)
         glWindow.showFullScreen();
     else

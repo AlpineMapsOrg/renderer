@@ -39,6 +39,10 @@ namespace nucleus {
 Controller::Controller(AbstractRenderWindow* render_window)
     : m_render_window(render_window)
 {
+    qRegisterMetaType<nucleus::event_parameter::Touch>();
+    qRegisterMetaType<nucleus::event_parameter::Mouse>();
+    qRegisterMetaType<nucleus::event_parameter::Wheel>();
+
     m_terrain_service = std::make_unique<TileLoadService>("https://alpinemaps.cg.tuwien.ac.at/tiles/alpine_png/", TileLoadService::UrlPattern::ZXY, ".png");
     //    m_ortho_service.reset(new TileLoadService("https://tiles.bergfex.at/styles/bergfex-osm/", TileLoadService::UrlPattern::ZXY_yPointingSouth, ".jpeg"));
     //        m_ortho_service.reset(new TileLoadService("https://alpinemaps.cg.tuwien.ac.at/tiles/ortho/", TileLoadService::UrlPattern::ZYX_yPointingSouth, ".jpeg"));
@@ -80,12 +84,12 @@ Controller::Controller(AbstractRenderWindow* render_window)
     m_tile_scheduler->moveToThread(m_scheduler_thread.get());
     m_scheduler_thread->start();
 #endif
-    connect(m_render_window, &AbstractRenderWindow::viewport_changed, m_camera_controller.get(), &nucleus::camera::Controller::set_viewport);
-    connect(m_render_window, &AbstractRenderWindow::mouse_moved, m_camera_controller.get(), &nucleus::camera::Controller::mouse_move);
-    connect(m_render_window, &AbstractRenderWindow::mouse_pressed, m_camera_controller.get(), &nucleus::camera::Controller::mouse_press);
-    connect(m_render_window, &AbstractRenderWindow::wheel_turned, m_camera_controller.get(), &nucleus::camera::Controller::wheel_turn);
+    //    connect(m_render_window, &AbstractRenderWindow::viewport_changed, m_camera_controller.get(), &nucleus::camera::Controller::set_viewport);
+    //    connect(m_render_window, &AbstractRenderWindow::mouse_moved, m_camera_controller.get(), &nucleus::camera::Controller::mouse_move);
+    //    connect(m_render_window, &AbstractRenderWindow::mouse_pressed, m_camera_controller.get(), &nucleus::camera::Controller::mouse_press);
+    //    connect(m_render_window, &AbstractRenderWindow::wheel_turned, m_camera_controller.get(), &nucleus::camera::Controller::wheel_turn);
     connect(m_render_window, &AbstractRenderWindow::key_pressed, m_camera_controller.get(), &nucleus::camera::Controller::key_press);
-    connect(m_render_window, &AbstractRenderWindow::touch_made, m_camera_controller.get(), &nucleus::camera::Controller::touch);
+    //    connect(m_render_window, &AbstractRenderWindow::touch_made, m_camera_controller.get(), &nucleus::camera::Controller::touch);
     connect(m_render_window, &AbstractRenderWindow::key_pressed, m_tile_scheduler.get(), &TileScheduler::key_press);
 
     connect(m_camera_controller.get(), &nucleus::camera::Controller::definition_changed, m_tile_scheduler.get(), &TileScheduler::update_camera);
@@ -120,6 +124,11 @@ Controller::~Controller()
 camera::Controller* Controller::camera_controller() const
 {
     return m_camera_controller.get();
+}
+
+tile_scheduler::GpuCacheTileScheduler* Controller::tile_scheduler() const
+{
+    return m_tile_scheduler.get();
 }
 
 }

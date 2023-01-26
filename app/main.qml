@@ -21,6 +21,7 @@
 
 import QtQuick
 import QtQuick.Controls
+import QtQuick.Layouts
 import MyRenderLibrary
 
 Window{
@@ -35,13 +36,57 @@ Window{
             id: renderer
             width: parent.width
             height: parent.height
+            frame_limit: frame_rate_slider.value
         }
 
-        CameraControls {
-            camera: renderer
+        Rectangle {
+            anchors {
+                bottom: root.bottom
+                left: root.left
+                right: root.right
+                margins: 10
+            }
+            color: "#88FFFFFF"
+            height: layout.implicitHeight + 20
 
-            anchors.bottom: root.bottom
-            anchors.horizontalCenter: root.horizontalCenter
+            ColumnLayout {
+                id: layout
+                anchors.fill: parent
+                anchors.margins: 10
+                RowLayout {
+                    Button {
+                        Layout.fillWidth: true
+                        text: "Quit"
+                        onClicked: {
+                            Qt.callLater(Qt.quit)
+                        }
+                    }
+                    Button {
+                        Layout.fillWidth: true
+                        text: "Update"
+                        onClicked: {
+                            renderer.update()
+                        }
+                    }
+                }
+                RowLayout {
+                    Label {
+                        text: "Frame limiter:"
+                    }
+                    Slider {
+                        Layout.fillWidth: true
+                        id: frame_rate_slider
+                        from: 10
+                        to: 120
+                        stepSize: 10
+                    }
+                    Label {
+                        text: frame_rate_slider.value
+                    }
+                }
+            }
         }
+
+
     }
 }

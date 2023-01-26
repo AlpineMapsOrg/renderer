@@ -49,6 +49,14 @@ signals:
     void distanceChanged(float distance);
     void elevationChanged(float elevation);
 
+    void frame_limit_changed();
+
+    void mouse_pressed(const nucleus::event_parameter::Mouse&) const;
+    void mouse_moved(const nucleus::event_parameter::Mouse&) const;
+    void wheel_turned(const nucleus::event_parameter::Wheel&) const;
+    void touch_made(const nucleus::event_parameter::Touch&) const;
+    //    void viewport_changed(const glm::uvec2& new_viewport) const;
+
 protected:
     void touchEvent(QTouchEvent*) override;
     void mousePressEvent(QMouseEvent*) override;
@@ -60,13 +68,22 @@ public slots:
     void setDistance(float distance);
     void setElevation(float elevation);
 
+private slots:
+    void schedule_update();
+
 public:
     std::vector<EventParameters> m_event_queue;
 
+    int frame_limit() const;
+    void set_frame_limit(int new_frame_limit);
+
 private:
+    int m_frame_limit = 60;
+    QTimer* m_update_timer = nullptr;
     float m_azimuth;
     float m_elevation;
     float m_distance;
+    Q_PROPERTY(int frame_limit READ frame_limit WRITE set_frame_limit NOTIFY frame_limit_changed)
 };
 
 #endif // MYFRAMEBUFFEROBJECT_H
