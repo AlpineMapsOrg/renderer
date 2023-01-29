@@ -209,7 +209,7 @@ void Window::keyPressEvent(QKeyEvent* e)
 }
 void Window::update_camera(const nucleus::camera::Definition& new_definition)
 {
-    qDebug("void Window::update_camera(const nucleus::camera::Definition& new_definition)");
+    //    qDebug("void Window::update_camera(const nucleus::camera::Definition& new_definition)");
     m_camera = new_definition;
     emit update_requested();
 }

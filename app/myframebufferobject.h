@@ -31,23 +31,12 @@ class MyFrameBufferObject : public QQuickFramebufferObject
 
     using EventParameters = std::variant<nucleus::event_parameter::Touch, nucleus::event_parameter::Mouse, nucleus::event_parameter::Wheel>;
 
-    Q_PROPERTY(float azimuth READ azimuth WRITE setAzimuth NOTIFY azimuthChanged)
-    Q_PROPERTY(float elevation READ elevation WRITE setElevation NOTIFY elevationChanged)
-    Q_PROPERTY(float distance READ distance WRITE setDistance NOTIFY distanceChanged)
-
 public:
     explicit MyFrameBufferObject(QQuickItem *parent = 0);
     ~MyFrameBufferObject() override;
     Renderer *createRenderer() const Q_DECL_OVERRIDE;
 
-    float azimuth() const;
-    float distance() const;
-    float elevation() const;
-
 signals:
-    void azimuthChanged(float azimuth);
-    void distanceChanged(float distance);
-    void elevationChanged(float elevation);
 
     void frame_limit_changed();
 
@@ -64,9 +53,6 @@ protected:
     void wheelEvent(QWheelEvent*) override;
 
 public slots:
-    void setAzimuth(float azimuth);
-    void setDistance(float distance);
-    void setElevation(float elevation);
 
 private slots:
     void schedule_update();

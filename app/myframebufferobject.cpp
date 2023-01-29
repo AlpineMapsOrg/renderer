@@ -47,10 +47,6 @@ overloaded(Ts...) -> overloaded<Ts...>;
 }
 
 class MyFrameBufferObjectRenderer : public QQuickFramebufferObject::Renderer {
-    float m_azimuth = 0.4;
-    float m_elevation = 0.4;
-    float m_distance = 0.4;
-
 public:
     MyFrameBufferObjectRenderer()
     {
@@ -68,32 +64,14 @@ public:
     {
         m_window = item->window();
         MyFrameBufferObject* i = static_cast<MyFrameBufferObject*>(item);
-        m_azimuth = i->azimuth();
-        m_elevation = i->elevation();
-        m_distance = i->distance();
-        //        for (const auto& p : i->m_event_queue) {
-        //            //            m_glWindow->touch_made(p);
-        //            std::visit(overloaded {
-        //                           [this](const nucleus::event_parameter::Touch& p) { m_glWindow->touch_made(p); },
-        //                           [this](const nucleus::event_parameter::Mouse& p) { m_glWindow->mouse_moved(p); },
-        //                           [this](const nucleus::event_parameter::Wheel& p) { m_glWindow->wheel_turned(p); },
-        //                       },
-        //                p);
-        //        }
-
         i->m_event_queue.clear();
-        //        m_glWindow->update_requested();
     }
 
     void render() Q_DECL_OVERRIDE
     {
         m_window->beginExternalCommands();
-        QOpenGLExtraFunctions* f = QOpenGLContext::currentContext()->extraFunctions();
-        f->glClearColor(m_azimuth, m_elevation, m_distance, 1);
-        f->glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
         m_glWindow->paint(this->framebufferObject());
         m_window->endExternalCommands();
-        //        update();
     }
 
     QOpenGLFramebufferObject *createFramebufferObject(const QSize &size) Q_DECL_OVERRIDE
@@ -157,88 +135,36 @@ QQuickFramebufferObject::Renderer* MyFrameBufferObject::createRenderer() const
     connect(this, &MyFrameBufferObject::mouse_moved, r->controller()->camera_controller(), &nucleus::camera::Controller::mouse_move);
     connect(this, &MyFrameBufferObject::wheel_turned, r->controller()->camera_controller(), &nucleus::camera::Controller::wheel_turn);
 
-    qRegisterMetaType<nucleus::event_parameter::Touch>();
-    //    connect(
-    //        this, &MyFrameBufferObject::touch_made, r->glWindow(), []() { qDebug("touch d"); }, Qt::QueuedConnection);
-    //    connect(this, &MyFrameBufferObject::touch_made, r->glWindow(), &nucleus::AbstractRenderWindow::touch_made);
-    //    connect(this, &MyFrameBufferObject::touch_made, r->glWindow(), &nucleus::AbstractRenderWindow::update_requested);
     return r;
-}
-
-float MyFrameBufferObject::azimuth() const
-{
-    return m_azimuth;
-}
-
-float MyFrameBufferObject::distance() const
-{
-    return m_distance;
-}
-
-float MyFrameBufferObject::elevation() const
-{
-    return m_elevation;
 }
 
 void MyFrameBufferObject::touchEvent(QTouchEvent* e)
 {
     emit touch_made(nucleus::event_parameter::make(e));
+    //    update();
 }
 
 void MyFrameBufferObject::mousePressEvent(QMouseEvent* e)
 {
-    //    m_event_queue.push_back(nucleus::event_parameter::make(e));
-    //    update();
     emit mouse_pressed(nucleus::event_parameter::make(e));
+    //    update();
 }
 
 void MyFrameBufferObject::mouseMoveEvent(QMouseEvent* e)
 {
-    //    m_event_queue.push_back(nucleus::event_parameter::make(e));
-    //    update();
     emit mouse_moved(nucleus::event_parameter::make(e));
+    //    update();
 }
 
 void MyFrameBufferObject::wheelEvent(QWheelEvent* e)
 {
-    //    m_event_queue.push_back(nucleus::event_parameter::make(e));
-    //    update();
     emit wheel_turned(nucleus::event_parameter::make(e));
-}
-
-void MyFrameBufferObject::setAzimuth(float azimuth)
-{
-    if (m_azimuth == azimuth)
-        return;
-
-    m_azimuth = azimuth;
-    emit azimuthChanged(azimuth);
-    update();
-}
-
-void MyFrameBufferObject::setDistance(float distance)
-{
-    if (m_distance == distance)
-        return;
-
-    m_distance = distance;
-    emit distanceChanged(distance);
-    update();
-}
-
-void MyFrameBufferObject::setElevation(float elevation)
-{
-    if (m_elevation == elevation)
-        return;
-
-    m_elevation = elevation;
-    emit elevationChanged(elevation);
-    update();
+    //    update();
 }
 
 void MyFrameBufferObject::schedule_update()
 {
-    qDebug("void MyFrameBufferObject::schedule_update()");
+    //    qDebug("void MyFrameBufferObject::schedule_update()");
     if (m_update_timer->isActive())
         return;
     m_update_timer->start();
