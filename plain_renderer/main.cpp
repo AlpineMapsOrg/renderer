@@ -108,7 +108,6 @@ int main(int argc, char* argv[])
     // native, however, glWindow has a zero size at this point.
     if (glWindow.width() > 0 && glWindow.height() > 0)
         controller.camera_controller()->set_viewport({ glWindow.width(), glWindow.height() });
-    controller.camera_controller()->update();
 
     return QGuiApplication::exec();
 }

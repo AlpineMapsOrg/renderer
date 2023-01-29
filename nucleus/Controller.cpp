@@ -43,6 +43,10 @@ Controller::Controller(AbstractRenderWindow* render_window)
     qRegisterMetaType<nucleus::event_parameter::Mouse>();
     qRegisterMetaType<nucleus::event_parameter::Wheel>();
 
+    m_camera_controller = std::make_unique<nucleus::camera::Controller>(nucleus::camera::stored_positions::westl_hochgrubach_spitze());
+    //    nucleus::camera::Controller camera_controller { nucleus::camera::stored_positions::stephansdom() };
+    m_camera_controller->set_interaction_style(std::make_unique<nucleus::camera::CrapyInteraction>());
+
     m_terrain_service = std::make_unique<TileLoadService>("https://alpinemaps.cg.tuwien.ac.at/tiles/alpine_png/", TileLoadService::UrlPattern::ZXY, ".png");
     //    m_ortho_service.reset(new TileLoadService("https://tiles.bergfex.at/styles/bergfex-osm/", TileLoadService::UrlPattern::ZXY_yPointingSouth, ".jpeg"));
     //        m_ortho_service.reset(new TileLoadService("https://alpinemaps.cg.tuwien.ac.at/tiles/ortho/", TileLoadService::UrlPattern::ZYX_yPointingSouth, ".jpeg"));
@@ -60,9 +64,10 @@ Controller::Controller(AbstractRenderWindow* render_window)
         if (error == QNetworkReply::NoError) {
             const QByteArray data = reply->readAll();
             const auto decorator = nucleus::tile_scheduler::AabbDecorator::make(TileHeights::deserialise(data));
-            QTimer::singleShot(1, this, [this, decorator]() { m_tile_scheduler->set_aabb_decorator(decorator); });
-
+            QTimer::singleShot(0, m_tile_scheduler.get(), [this, decorator]() { m_tile_scheduler->set_aabb_decorator(decorator); });
             m_render_window->set_aabb_decorator(decorator);
+
+            m_camera_controller->update(); // the startup code should be refactored. this one is necessary to initiate tile loading. tile loading should start after setting the aabb decorator (so we have the heights).
         } else {
             qDebug() << "Loading of " << url << " failed: " << error;
             QCoreApplication::exit(0);
@@ -70,10 +75,6 @@ Controller::Controller(AbstractRenderWindow* render_window)
         }
         reply->deleteLater();
     });
-
-    m_camera_controller = std::make_unique<nucleus::camera::Controller>(nucleus::camera::stored_positions::westl_hochgrubach_spitze());
-    //    nucleus::camera::Controller camera_controller { nucleus::camera::stored_positions::stephansdom() };
-    m_camera_controller->set_interaction_style(std::make_unique<nucleus::camera::CrapyInteraction>());
 
     m_near_plane_adjuster = std::make_unique<nucleus::camera::NearPlaneAdjuster>();
 

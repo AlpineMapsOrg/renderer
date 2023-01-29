@@ -47,14 +47,12 @@ public:
     [[nodiscard]] virtual size_t number_of_waiting_height_tiles() const = 0;
     [[nodiscard]] virtual size_t number_of_waiting_ortho_tiles() const = 0;
     [[nodiscard]] virtual TileSet gpu_tiles() const = 0;
-
     [[nodiscard]] virtual bool enabled() const = 0;
-    virtual void set_enabled(bool newEnabled) = 0;
-
     [[nodiscard]] const tile_scheduler::AabbDecoratorPtr& aabb_decorator() const;
-    void set_aabb_decorator(const tile_scheduler::AabbDecoratorPtr& new_aabb_decorator);
 
 public slots:
+    virtual void set_enabled(bool newEnabled) = 0;
+    void set_aabb_decorator(const tile_scheduler::AabbDecoratorPtr& new_aabb_decorator);
     virtual void update_camera(const nucleus::camera::Definition& camera) = 0;
     virtual void receive_ortho_tile(tile::Id tile_id, std::shared_ptr<QByteArray> data) = 0;
     virtual void receive_height_tile(tile::Id tile_id, std::shared_ptr<QByteArray> data) = 0;
