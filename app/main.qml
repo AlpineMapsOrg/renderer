@@ -76,9 +76,10 @@ Window{
                     Slider {
                         Layout.fillWidth: true
                         id: frame_rate_slider
-                        from: 10
+                        from: 1
                         to: 120
-                        stepSize: 10
+                        stepSize: 1
+                        value: 60
                     }
                     Label {
                         text: frame_rate_slider.value

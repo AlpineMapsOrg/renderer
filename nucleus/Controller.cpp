@@ -66,6 +66,7 @@ Controller::Controller(AbstractRenderWindow* render_window)
             const auto decorator = nucleus::tile_scheduler::AabbDecorator::make(TileHeights::deserialise(data));
             QTimer::singleShot(0, m_tile_scheduler.get(), [this, decorator]() { m_tile_scheduler->set_aabb_decorator(decorator); });
             m_render_window->set_aabb_decorator(decorator);
+            qDebug() << "Loading of " << url << " successful";
 
             m_camera_controller->update(); // the startup code should be refactored. this one is necessary to initiate tile loading. tile loading should start after setting the aabb decorator (so we have the heights).
         } else {
@@ -93,6 +94,10 @@ Controller::Controller(AbstractRenderWindow* render_window)
     //    connect(m_render_window, &AbstractRenderWindow::touch_made, m_camera_controller.get(), &nucleus::camera::Controller::touch);
     connect(m_render_window, &AbstractRenderWindow::key_pressed, m_tile_scheduler.get(), &TileScheduler::key_press);
 
+    // NOTICE ME!!!! READ THIS, IF YOU HAVE TROUBLES WITH SIGNALS NOT REACHING THE QML RENDERING THREAD!!!!111elevenone
+    // In Qt 6.4 and earlier the rendering thread goes to sleep. See RenderThreadNotifier.
+    // At the time of writing, an additional connection from tile_ready and tile_expired to the notifier is made.
+    // this only works if ALP_ENABLE_THREADING is on, i.e., the tile scheduler is on an extra thread. -> potential issue on webassembly
     connect(m_camera_controller.get(), &nucleus::camera::Controller::definition_changed, m_tile_scheduler.get(), &TileScheduler::update_camera);
     connect(m_camera_controller.get(), &nucleus::camera::Controller::definition_changed, m_near_plane_adjuster.get(), &nucleus::camera::NearPlaneAdjuster::update_camera);
     connect(m_camera_controller.get(), &nucleus::camera::Controller::definition_changed, m_render_window, &AbstractRenderWindow::update_camera);

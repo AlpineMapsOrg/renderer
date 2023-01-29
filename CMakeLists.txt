@@ -58,6 +58,7 @@ set(ALP_PLAIN_RENDERER_SOURCES
 )
 set(ALP_APP_SOURCES
     app/main.cpp
+    app/RenderThreadNotifier.h app/RenderThreadNotifier.cpp
     app/myframebufferobject.h app/myframebufferobject.cpp
 )
 set(ALP_APP_QML

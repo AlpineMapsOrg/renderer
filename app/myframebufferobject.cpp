@@ -31,9 +31,12 @@
 #include <QQuickWindow>
 #include <QTimer>
 
+#include "RenderThreadNotifier.h"
 #include "gl_engine/Window.h"
 #include "nucleus/Controller.h"
 #include "nucleus/camera/Controller.h"
+
+#include <nucleus/tile_scheduler/GpuCacheTileScheduler.h>
 
 namespace {
 // helper type for the visitor from https://en.cppreference.com/w/cpp/utility/variant/visit
@@ -114,6 +117,7 @@ MyFrameBufferObject::MyFrameBufferObject(QQuickItem* parent)
     m_update_timer->setSingleShot(true);
     m_update_timer->setInterval(1000 / m_frame_limit);
     qDebug("MyFrameBufferObject::MyFrameBufferObject(QQuickItem* parent)");
+    qDebug() << "gui thread: " << QThread::currentThread();
     setMirrorVertically(true);
     setAcceptTouchEvents(true);
     setAcceptedMouseButtons(Qt::MouseButton::AllButtons);
@@ -126,6 +130,9 @@ MyFrameBufferObject::~MyFrameBufferObject()
 
 QQuickFramebufferObject::Renderer* MyFrameBufferObject::createRenderer() const
 {
+    qDebug("QQuickFramebufferObject::Renderer* MyFrameBufferObject::createRenderer() const");
+    qDebug() << "rendering thread: " << QThread::currentThread();
+    // called on rendering thread.
     auto* r = new MyFrameBufferObjectRenderer();
     connect(r->glWindow(), &nucleus::AbstractRenderWindow::update_requested, this, &MyFrameBufferObject::schedule_update);
     connect(m_update_timer, &QTimer::timeout, this, &QQuickFramebufferObject::update);
@@ -135,30 +142,37 @@ QQuickFramebufferObject::Renderer* MyFrameBufferObject::createRenderer() const
     connect(this, &MyFrameBufferObject::mouse_moved, r->controller()->camera_controller(), &nucleus::camera::Controller::mouse_move);
     connect(this, &MyFrameBufferObject::wheel_turned, r->controller()->camera_controller(), &nucleus::camera::Controller::wheel_turn);
 
+    //    connect(r->controller()->tile_scheduler(), &nucleus::tile_scheduler::GpuCacheTileScheduler::tile_ready, RenderThreadNotifier::instance(), &RenderThreadNotifier::notify);
+    //    connect(r->controller()->tile_scheduler(), &nucleus::tile_scheduler::GpuCacheTileScheduler::tile_expired, RenderThreadNotifier::instance(), &RenderThreadNotifier::notify);
+
     return r;
 }
 
 void MyFrameBufferObject::touchEvent(QTouchEvent* e)
 {
     emit touch_made(nucleus::event_parameter::make(e));
+    RenderThreadNotifier::instance()->notify();
     //    update();
 }
 
 void MyFrameBufferObject::mousePressEvent(QMouseEvent* e)
 {
     emit mouse_pressed(nucleus::event_parameter::make(e));
+    RenderThreadNotifier::instance()->notify();
     //    update();
 }
 
 void MyFrameBufferObject::mouseMoveEvent(QMouseEvent* e)
 {
     emit mouse_moved(nucleus::event_parameter::make(e));
+    RenderThreadNotifier::instance()->notify();
     //    update();
 }
 
 void MyFrameBufferObject::wheelEvent(QWheelEvent* e)
 {
     emit wheel_turned(nucleus::event_parameter::make(e));
+    RenderThreadNotifier::instance()->notify();
     //    update();
 }
 
@@ -177,7 +191,7 @@ int MyFrameBufferObject::frame_limit() const
 
 void MyFrameBufferObject::set_frame_limit(int new_frame_limit)
 {
-    new_frame_limit = std::clamp(new_frame_limit, 10, 120);
+    new_frame_limit = std::clamp(new_frame_limit, 1, 120);
     if (m_frame_limit == new_frame_limit)
         return;
     m_frame_limit = new_frame_limit;

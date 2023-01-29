@@ -29,6 +29,7 @@
 #include <QThread>
 #include <QTimer>
 
+#include "RenderThreadNotifier.h"
 #include "myframebufferobject.h"
 
 int main(int argc, char **argv)
@@ -58,32 +59,46 @@ int main(int argc, char **argv)
     qmlRegisterType<MyFrameBufferObject>("MyRenderLibrary", 42, 0, "MeshRenderer");
 
     QQmlApplicationEngine engine;
-    QTimer timer;
-    timer.setInterval(5);
-    timer.setSingleShot(false);
-    timer.start();
+    //    QTimer timer;
+    //    timer.setInterval(5);
+    //    timer.setSingleShot(false);
+    //    timer.start();
 
+    RenderThreadNotifier::instance();
     const QUrl url(u"qrc:/alpinemaps/app/main.qml"_qs);
     QObject::connect(
         &engine, &QQmlApplicationEngine::objectCreated,
-        &app, [url, &engine, &timer](QObject* obj, const QUrl& objUrl) {
+        &app, [url, &engine /*, &timer*/](QObject* obj, const QUrl& objUrl) {
             if (!obj && url == objUrl)
                 QCoreApplication::exit(-1);
-            if (url != objUrl)
-                return;
-            QQuickWindow* rootWindow = dynamic_cast<QQuickWindow*>(engine.rootObjects().first());
-            if (rootWindow == nullptr)
-                return;
-            QObject::connect(&timer, &QTimer::timeout, rootWindow, [rootWindow]() {
-                auto* runnable = QRunnable::create([]() {
-                    QCoreApplication::processEvents(QEventLoop::AllEvents, 1);
-                });
-                runnable->setAutoDelete(false);
-                rootWindow->scheduleRenderJob(runnable, QQuickWindow::RenderStage::NoStage);
-            });
+            //            if (url != objUrl)
+            //                return;
+            //            QQuickWindow* root_window = dynamic_cast<QQuickWindow*>(engine.rootObjects().first());
+            //                        if (root_window == nullptr)
+            //                return;
+            //            qDebug() << "QQmlApplicationEngine::objectCreated current thread: " << QThread::currentThread();
+            //            RenderThreadNotifier::instance()->set_root_window(root_window);
+
+            //            QObject::connect(&timer, &QTimer::timeout, root_window, [root_window]() {
+            //                auto* runnable = QRunnable::create([]() {
+            //                    QCoreApplication::processEvents(QEventLoop::AllEvents, 1);
+            //                });
+            //                root_window->scheduleRenderJob(runnable, QQuickWindow::RenderStage::NoStage);
+            //            });
         },
         Qt::QueuedConnection);
     engine.load(url);
+    QQuickWindow* root_window = dynamic_cast<QQuickWindow*>(engine.rootObjects().first());
+    if (root_window == nullptr) {
+        qDebug() << "root window not created!";
+        return 1;
+    }
+    RenderThreadNotifier::instance()->set_root_window(root_window);
+
+    QTimer::singleShot(10, []() { RenderThreadNotifier::instance()->notify(); });
+    QTimer::singleShot(100, []() { RenderThreadNotifier::instance()->notify(); }); // dirty code to notify the render thread of the height data being loaded.
+    QTimer::singleShot(500, []() { RenderThreadNotifier::instance()->notify(); });
+    QTimer::singleShot(1000, []() { RenderThreadNotifier::instance()->notify(); });
 
     //    QQuickView view;
     //    view.setResizeMode(QQuickView::SizeRootObjectToView);
