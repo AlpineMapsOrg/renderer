@@ -17,6 +17,7 @@
 #include <QTimer>
 #include <QDir>
 #include <QPainter>
+#include <QOpenGLDebugLogger>
 
 #include "alpine_gl_renderer/GLTileManager.h"
 #include "nucleus/camera/Controller.h"
@@ -24,6 +25,7 @@
 #include "nucleus/tile_scheduler/SingleTileLoader.h"
 #include "ShaderProgram.h"
 #include "qnetworkreply.h"
+#include "ShadowGeneration.h"
 
 #include <nucleus/camera/ShadowGenerationController.h>
 
@@ -34,6 +36,9 @@
 // The code is always the same, with the exception of two places: (1) the OpenGL context
 // creation has to have a sufficiently high version number for the features that are in
 // use, and (2) the shader code's version directive is different.
+
+void find_min_max_metric(camera::ShadowGenerationController& controller, GLTileManager& gpu_tile_manager, ShadowGeneration& generation_obj, GLuint radius, glm::ivec2& min, glm::ivec2& max, float& min_value, float& max_value);
+void save_config(camera::ShadowGenerationController& controller, ShadowGeneration& generation_obj, GLuint radius, const glm::vec2& cam_orbit, int img, float value, const QDir& dir, const QString& folder, const QString& info);
 
 int main(int argc, char* argv[])
 {
@@ -58,25 +63,33 @@ int main(int argc, char* argv[])
     surface.create();
     context.makeCurrent(&surface);
 
-    GLuint radius = 5;
-    QOpenGLFramebufferObject img_fb(QSize(256, 256), QOpenGLFramebufferObject::Attachment::Depth);
+    QOpenGLDebugLogger logger;
+    logger.initialize();
 
-    glm::vec2 shadow_range(radius * 2 + 1, radius * 2 + 1); //the shadow map will be a rectangle centered at the current tile, with width shadow_range.x tiles and height shadow_range.y tiles
-    QOpenGLFramebufferObjectFormat format;
-    format.setInternalTextureFormat(GL_RGBA32F);
-    format.setAttachment(QOpenGLFramebufferObject::Attachment::Depth);
-    QOpenGLFramebufferObject shadow_fb(QSize(static_cast<int>(256 * shadow_range.x), static_cast<int>(256 * shadow_range.y)), format);
+    GLuint radius = 5;
 
     GLTileManager gpu_tile_manager;
     TileLoadService terrain_service("http://alpinemaps.cg.tuwien.ac.at/tiles/alpine_png/", TileLoadService::UrlPattern::ZXY, ".png");
     TileLoadService ortho_service("http://alpinemaps.cg.tuwien.ac.at/tiles/ortho/", TileLoadService::UrlPattern::ZYX_yPointingSouth, ".jpeg");
     SingleTileLoader scheduler(radius);
 
+    ShadowGeneration generation_obj(context, gpu_tile_manager, radius);
+
     //Hochschwab
     //camera::Controller camera_controller { { { 1689990.0, 6045529.0, 2074.4 + 100 }, { 1689990.0, 6045529.0, 2074.4 } } };
     //eps:4326 = 47.6300588, 15.1814383
     //http://alpinemaps.cg.tuwien.ac.at/#16/47.6300/15.1814
     //http://alpinemaps.cg.tuwien.ac.at/#16/47.63/15.1814/-170/70
+    //https://www.suncalc.org/#/47.5849,14.9593,9/2023.08.31/15:18/1/3
+    //estimate the sun position from the shadow of the network
+    //combine different shadow maps from different sun positions
+    //estimate sun position from landmark trees
+    //https://www.sciencedirect.com/science/article/pii/S0950705121011035
+
+    //git submodule
+    //add_subdirectory(sherpa)
+    //target_link_libraries(nucleus PUBLIC sherpa Qt::Core Qt::Gui Qt6::Network)
+
     camera::ShadowGenerationController controller({ 1689990.0, 6045529.0}, 18);
 
 
@@ -131,112 +144,38 @@ int main(int argc, char* argv[])
 
     QObject::connect(&scheduler, &TileScheduler::allTilesLoaded, &wait_for_tiles, &QEventLoop::quit);
 
-
     scheduler.loadTiles(controller.center_tile());
     wait_for_tiles.exec();
 
-    float bg[] = {0.1f, 0.1f, 0.1f, 1.f};
-    float one[] = {1.f, 1.f, 1.f, 1.f};
-
-    glm::mat4 biasMatrix(
-        0.5, 0.0, 0.0, 0.0,
-        0.0, 0.5, 0.0, 0.0,
-        0.0, 0.0, 0.5, 0.0,
-        0.5, 0.5, 0.5, 1.0);
-
-    int cnt = 21;
+    int cnt = 20;
     QDir dir("C:\\Users\\shalper\\Documents\\Shadow Detection\\Renderer\\mattes\\");
 
     context.functions()->glEnable(GL_DEPTH_TEST);
     context.functions()->glDepthFunc(GL_LEQUAL);
 
-    context.functions()->glEnable(GL_CULL_FACE);
-    context.functions()->glFrontFace(GL_BACK);
-
+    //-65.6, 53.1
+    glm::vec2 very_good(-65.6, 53.1);
     for(int i=0; i<cnt; i++) {
-     //   for(int rot = 0; rot <= 360; rot += 45) {
-            int rot = -68;
-            //-------------------------- sun pass --------------------------
-            glm::vec2 sun_orbit(rot, 55.f);
+        /*
+        GLuint ortho_texture_handle = 0;
+        for(auto& tileset : gpu_tile_manager.tiles()) {
+            if (tileset.tiles.front().first == controller.center_tile()) {
+                ortho_texture_handle = tileset.ortho_texture->textureId();
+            }
+        }
+        qDebug() << "img_" << i << " - metric = [" << generation_obj.calculate_shadow_metric(controller.tile_cam(), controller.sun_cam(very_good, glm::vec2(radius * 2 + 1), 800), ortho_texture_handle) << "]";
+         */
+        //save_config(controller, generation_obj, radius, very_good, i, 0, dir, "very_good", "");
+        if (i == 2)  {
+            glm::ivec2 max, min;
+            float max_value, min_value;
 
-            camera::Definition sun = controller.sun_cam(sun_orbit, shadow_range, 800);
+            find_min_max_metric(controller, gpu_tile_manager, generation_obj, radius, min, max, min_value, max_value);
 
-            context.functions()->glViewport(0, 0, shadow_fb.size().width(), shadow_fb.size().height());
-
-            shadow_fb.bind();
-            context.extraFunctions()->glClearBufferfv(GL_COLOR, 0, one);
-            context.extraFunctions()->glClearBufferfv(GL_DEPTH, 0, one);
-            sun_program->bind();
-            gpu_tile_manager.draw(shader.get(), sun);
-
-            QImage shadow_map_img = shadow_fb.toImage(false);
-            QOpenGLTexture shadow_map(shadow_map_img);
-
-            shadow_map.setMinMagFilters(QOpenGLTexture::Filter::NearestMipMapNearest, QOpenGLTexture::Filter::Nearest);
-
-
-            GLuint shadow_map_handle = shadow_fb.texture();
-
-            qDebug() << shadow_map_handle;
-
-            context.functions()->glBindTexture(GL_TEXTURE_2D, shadow_map_handle);
-            context.functions()->glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-            context.functions()->glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-            context.functions()->glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
-            context.functions()->glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-            context.functions()->glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-            context.functions()->glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAX_ANISOTROPY_EXT, 16);
-
-            context.functions()->glActiveTexture(GL_TEXTURE1);
-            context.functions()->glBindTexture(GL_TEXTURE_2D, shadow_map_handle);
-            context.functions()->glActiveTexture(GL_TEXTURE0);
-
-
-            //-------------------------- sun pass --------------------------
-            //-------------------------- tile pass --------------------------
-
-            context.functions()->glViewport(0, 0, img_fb.size().width(), img_fb.size().height());
-            img_fb.bind();
-
-            context.extraFunctions()->glClearBufferfv(GL_COLOR, 0, bg);
-            context.extraFunctions()->glClearBufferfv(GL_DEPTH, 0, one);
-
-            shader->bind();
-            shader->set_uniform("out_mode", 0);
-            shader->set_uniform("sun_position", glm::vec3(sun.position()));
-            shader->set_uniform("shadow_matrix", biasMatrix * sun.localViewProjectionMatrix(sun.position()));
-
-            gpu_tile_manager.draw(shader.get(), controller.tile_cam());
-
-            QImage shadow_detected_image = img_fb.toImage();
-
-            context.extraFunctions()->glClearBufferfv(GL_COLOR, 0, bg);
-            context.extraFunctions()->glClearBufferfv(GL_DEPTH, 0, one);
-            shader->set_uniform("out_mode", 1);
-            gpu_tile_manager.draw(shader.get(), sun);
-
-            QImage sun_pov = img_fb.toImage();
-
-            QString orbit_string = QString("%1_%2_x")
-                    .arg(sun_orbit.x)
-                    .arg(sun_orbit.y);
-
-            QString img_string = QString("img_%1")
-                    .arg(i);
-
-            QString sub_dir_name = orbit_string;
-            QString filename = img_string;
-
-            dir.mkdir(sub_dir_name);
-
-            QPixmap pixmap(3 * 256, 256);
-            QPainter painter(&pixmap);
-
-            painter.drawImage(0, 0, sun_pov);
-            painter.drawImage(256, 0, shadow_detected_image);
-            painter.drawImage(512, 0, controller.ortho_texture());
-
-            pixmap.toImage().save(dir.absolutePath() + "\\" + sub_dir_name + "\\" + filename + ".png", "PNG");
+            save_config(controller, generation_obj, radius, min, i, min_value, dir, "minmax\\boundary", "min");
+            save_config(controller, generation_obj, radius, max, i, max_value, dir, "minmax\\boundary", "max");
+            break;
+        }
 
    //     }
         if (i + 1 < cnt) {
@@ -255,4 +194,63 @@ int main(int argc, char* argv[])
     //let the os do the cleanup
     //(might be better to do it manually)
 }
+
+void save_config(camera::ShadowGenerationController& controller, ShadowGeneration& generation_obj, GLuint radius, const glm::vec2& cam_orbit, int img, float value, const QDir& dir, const QString& folder, const QString& info) {
+
+    QString orbit_string = QString("%1_%2_%3_%4")
+            .arg(info)
+            .arg(cam_orbit.x)
+            .arg(cam_orbit.y)
+            .arg(value);
+
+    QString img_string = QString("img_%1")
+            .arg(img);
+
+    QString filename = img_string + orbit_string;
+
+    dir.mkdir(folder);
+
+    QString total_path = dir.absolutePath() + "\\" + folder + "\\" + filename + ".png";
+
+    qDebug() << "image name: " << total_path;
+
+    generation_obj.render_sunview_shadow_ortho_tripple(controller.tile_cam(), controller.sun_cam(cam_orbit, glm::vec2(radius * 2 + 1), 800), controller.ortho_texture(), true)
+                .save(total_path, "PNG");
+
+}
+
+void find_min_max_metric(camera::ShadowGenerationController& controller, GLTileManager& gpu_tile_manager, ShadowGeneration& generation_obj, GLuint radius, glm::ivec2& min, glm::ivec2& max, float& min_value, float& max_value) {
+    max_value = -1000000.f;
+    min_value = 1000000.f;
+
+    for (int up = 30; up <= 80; up += 25) {
+        for(int rot = -80; rot <= -40; rot += 20) {
+            glm::vec2 sun_orbit(rot, up);
+
+            camera::Definition sun = controller.sun_cam(sun_orbit, glm::vec2(radius * 2 + 1), 800);
+
+            GLuint ortho_texture_handle = 0;
+            for(auto& tileset : gpu_tile_manager.tiles()) {
+                if (tileset.tiles.front().first == controller.center_tile()) {
+                    ortho_texture_handle = tileset.ortho_texture->textureId();
+                }
+            }
+            if (ortho_texture_handle != 0) {
+                float metric = generation_obj.calculate_shadow_metric(controller.tile_cam(), sun, ortho_texture_handle);
+                //qDebug() << "(" << rot << "/" << up << ") = " << generation_obj.calculate_shadow_metric(controller.tile_cam(), sun, ortho_texture_handle);
+
+                if (metric > max_value) {
+                    max = glm::ivec2(rot, up);
+                    max_value = metric;
+                }
+                if (metric < min_value) {
+                    min = glm::ivec2(rot, up);
+                    min_value = metric;
+                }
+            }
+        }
+    }
+
+}
+
 #endif

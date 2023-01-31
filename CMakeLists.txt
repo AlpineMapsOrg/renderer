@@ -42,6 +42,7 @@ set(ATB_GL_ENGINE_SOURCES
     alpine_gl_renderer/ShaderProgram.h alpine_gl_renderer/ShaderProgram.cpp
     alpine_gl_renderer/main.cpp
     alpine_gl_renderer/shadow_main.cpp
+    alpine_gl_renderer/ShadowGeneration.h alpine_gl_renderer/ShadowGeneration.cpp
 )
 set(ATB_GL_SHADERS
     gl_shaders/atmosphere_bg.frag
@@ -55,6 +56,8 @@ set(ATB_GL_SHADERS
     gl_shaders/sun.frag
     gl_shaders/sun.vert
     gl_shaders/comparison.comp
+    gl_shaders/render_texture.frag
+    gl_shaders/render_texture.vert
 )
 if (ATB_UNITTESTS AND NOT EMSCRIPTEN)
     set(ALP_CATCH_UNITTEST_GL_SOURCES

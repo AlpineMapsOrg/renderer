@@ -1,50 +1,161 @@
+#version 440 core
 
-layout (local_size_x = 256, local_size_y = 256) in;
+layout (local_size_x = 3, local_size_y = 3) in;
+//layout (local_size_x = 1, local_size_y = 1) in;
 
-layout(binding = 0, rgba32f) uniform restrict readonly image2D ortho_texture;
-layout(binding = 1, rgba32f) uniform restrict readonly image2D in_out_texture;
-
+layout(binding = 0, rgba8) uniform restrict readonly image2D ortho_texture;
+layout(binding = 1, rgba8) uniform restrict readonly image2D in_out_texture;
+layout(binding = 2, rgba8) uniform restrict writeonly image2D heatmap;
 
 struct result_struct {
     uint in_cnt;
     uint out_cnt;
     uint in_brightness;
     uint out_brightness;
-}
+};
 
-layout(binding = 0, std140) writeonly buffer results_buffer {
+layout(binding = 0, std140) restrict writeonly buffer results_buffer {
     result_struct result;
-}
+};
 
+shared double brightness_values[9];
+shared double gradient_values[9];
+
+shared bool all_in;
+shared bool all_out;
+
+double caluclate_gradient(ivec2 uv, ivec2 image_size);
+double calculate_brightness(ivec2 uv, ivec2 image_size);
+
+bool is_in_shadow(ivec2 uv);
+
+void naive_main();
 
 void main() {
+  //  naive_main();
 
-    if (gl_LocalInvocationIndex = 0) {
-        result.in_cnt = 0;
-        result.out_cnt = 0;
-        result.in_brightness = 0;
-        result.out_brightness = 0;
+    if(gl_LocalInvocationIndex == 0){
+        all_in = true;
+        all_out = true;
     }
 
     barrier();
 
-    ivec2 uv = ivec2(gl_LocalInvocationID.xy);
+    ivec2 uv = ivec2(gl_WorkGroupID.xy) + ivec2(gl_LocalInvocationID.xy) - ivec2(1,1);
+    ivec2 image_size = imageSize(ortho_texture);
+
+    brightness_values[gl_LocalInvocationIndex] = calculate_brightness(uv, image_size);
+    gradient_values[gl_LocalInvocationIndex] = caluclate_gradient(uv, image_size);
+
+    if (is_in_shadow(uv)) {
+        all_out = false;
+    } else {
+        all_in = false;
+    }
+
+    barrier();
+
+    if(gl_LocalInvocationIndex == 0 && (all_in || all_out)){
+        double max_brightness = -10;
+        double max_gradient = -10;
+
+        for(int i=0; i<9; i++) {
+            if (i != 4) {
+                double b = abs(brightness_values[i] - brightness_values[4]);
+                double g = abs(gradient_values[4] - gradient_values[i]);
+
+                if (b > max_brightness) {
+                    max_brightness = b;
+                }
+                if (g > max_gradient) {
+                    max_gradient = g;
+                }
+            }
+        }
+        max_gradient *= 0.70710678118; // 1/sqrt(2) so that 0 <= max_gradient <= 1
+
+        double metric = (max_brightness + max_gradient) * 0.5;
+        //uint b = uint(metric * 65536);
+
+       imageStore(heatmap, ivec2(gl_WorkGroupID.xy), vec4(metric, metric, metric, 1.f));
+       //imageStore(heatmap, ivec2(gl_WorkGroupID.xy), vec4(0.2, 0.8, 0.6, 1.f));
+
+        atomicAdd(result.in_brightness, uint(max_brightness * 65536));
+        atomicAdd(result.out_brightness, uint(max_gradient * 65536));
+    }
+
+}
+
+double caluclate_gradient(ivec2 uv, ivec2 image_size) {
+    double gradient_2d = 0;
+
+    for (int index = 0; index <= 1; index++) {
+        double gradient_1d = 0;
+
+        for (int offset = -1; offset <= 1; offset += 2) {
+            ivec2 offset_vector = ivec2(0, 0);
+            offset_vector[index] = offset;
+
+            ivec2 coords = uv + offset_vector;
+
+            if (coords.x >= 0 && coords.y >= 0 && coords.x < image_size.x && coords.y < image_size.y) {
+                gradient_1d += offset * calculate_brightness(coords, image_size);
+            } else {
+                return 0.0;
+            }
+        }
+
+        gradient_2d += gradient_1d * gradient_1d;
+    }
+    return sqrt(gradient_2d);
+}
+
+double calculate_brightness(ivec2 uv, ivec2 image_size) {
+    if (uv.x >= 0 && uv.y >= 0 && uv.x < image_size.x && uv.y < image_size.y) {
+        vec3 ortho = vec3(imageLoad(ortho_texture, uv).xyz);
+
+        float max_value = max(ortho.x, max(ortho.y, ortho.z));
+        float min_value = min(ortho.x, min(ortho.y, ortho.z));
+
+        return (max_value + min_value) * 0.5f;
+    }
+    return 0.0;
+}
+
+bool is_in_shadow(ivec2 uv) {
+    float tex = imageLoad(in_out_texture, uv).x;
+
+    return tex > 0.5f;
+}
+
+void naive_main() {
+    ivec2 uv = ivec2(gl_WorkGroupID.xy);
     vec3 ortho = vec3(imageLoad(ortho_texture, uv).xyz);
 
     float max_value = max(ortho.x, max(ortho.y, ortho.z));
-    float min_value = min(ortho.x, max(ortho.y, ortho.z));
+    float min_value = min(ortho.x, min(ortho.y, ortho.z));
 
     float brightness = (max_value + min_value) * 0.5f;
-    uint int_brightness = uint(brightness * 65536‬.f);
 
-    float in = imageLoad(in_out_texture, uv).x;
 
-    if (in > 0.5) {
-        atomicAdd(result.in_cnt, 1);
-        atomicAdd(result.in_brightness, int_brightness);
+    float tex = imageLoad(in_out_texture, uv).x;
+
+    if (tex < 0.5f) {
+        //not in shadow
+
+        brightness = brightness * brightness;
+
+        uint b = uint(brightness * 65536);
+
+        atomicAdd(result.in_brightness, b);
+        atomicAdd(result.in_cnt, 1u);
     } else {
-        atmoicAdd(result.out_cnt, 1);
-        atomicAdd(result.out_brightness, int_brightness);
+        //in shadow
+        brightness = sqrt(brightness);
+
+        uint b = uint(brightness * 65536);
+
+        atomicAdd(result.out_cnt, 1u);
+        atomicAdd(result.out_brightness, b);
     }
 }
-

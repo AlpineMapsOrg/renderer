@@ -8,6 +8,8 @@ in highp vec4 shadow_coords;
 
 out lowp vec4 out_Color;
 
+bool fragment_in_shadow();
+
 void main() {
 /*
    highp float dist = pos_to_cam.z;
@@ -18,7 +20,7 @@ void main() {
     if (out_mode == 0) {
         highp vec4 factor;
 
-       if (texture(shadow_map_sampler, shadow_coords.xy).x < shadow_coords.z - 0.005) {
+       if (fragment_in_shadow()) {
             out_Color = vec4(0.0f, 0.0f, 1.f, 1.f);
        } else {
             highp vec4 ortho = texture(texture_sampler, uv);
@@ -28,6 +30,8 @@ void main() {
         highp vec4 ortho = texture(texture_sampler, uv);
 
         out_Color = vec4(vec3(ortho), 1.f);
+    } else if (out_mode == 2) {
+        out_Color = vec4(vec3(fragment_in_shadow() ? 1.f : 0.f), 1.f);
     }
 
 
@@ -56,4 +60,8 @@ void main() {
 //   out_Color = vec4(normal, normal, normal, 1.f);
 
 
+}
+
+bool fragment_in_shadow() {
+    return texture(shadow_map_sampler, shadow_coords.xy).x < shadow_coords.z - 0.005;
 }

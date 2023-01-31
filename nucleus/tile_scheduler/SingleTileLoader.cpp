@@ -98,6 +98,7 @@ void SingleTileLoader::receiveHeightTile(tile::Id tile_id, std::shared_ptr<QByte
 void SingleTileLoader::notifyAboutUnavailableOrthoTile(tile::Id tile_id)
 {
     m_pending_tile_requests.erase(tile_id);
+    qDebug() << "[" << tile_id.coords.x << "|" << tile_id.coords.y << "]" << " not available!";
     if (m_pending_tile_requests.empty()) {
         emit allTilesLoaded();
     }
