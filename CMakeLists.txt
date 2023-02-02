@@ -55,6 +55,7 @@ set(ALP_GL_SHADERS
     gl_shaders/screen_pass.vert
     gl_shaders/tile.frag
     gl_shaders/tile.vert
+    gl_shaders/depth.frag
 )
 if (ALP_UNITTESTS AND NOT EMSCRIPTEN)
     set(ALP_CATCH_UNITTEST_GL_SOURCES
