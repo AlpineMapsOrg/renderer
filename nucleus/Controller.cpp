@@ -26,6 +26,7 @@
 #include "nucleus/camera/Controller.h"
 #include "nucleus/camera/CrapyInteraction.h"
 #include "nucleus/camera/NearPlaneAdjuster.h"
+#include "nucleus/camera/OrbitInteraction.h"
 #include "nucleus/camera/stored_positions.h"
 #include "nucleus/tile_scheduler/GpuCacheTileScheduler.h"
 #include "nucleus/tile_scheduler/SimplisticTileScheduler.h"
@@ -65,7 +66,7 @@ Controller::Controller(AbstractRenderWindow* render_window)
 
     m_camera_controller = std::make_unique<nucleus::camera::Controller>(nucleus::camera::stored_positions::westl_hochgrubach_spitze());
     //    nucleus::camera::Controller camera_controller { nucleus::camera::stored_positions::stephansdom() };
-    m_camera_controller->set_interaction_style(std::make_unique<nucleus::camera::CrapyInteraction>());
+    m_camera_controller->set_interaction_style(std::make_unique<nucleus::camera::OrbitInteraction>());
 
     m_near_plane_adjuster = std::make_unique<nucleus::camera::NearPlaneAdjuster>();
 
