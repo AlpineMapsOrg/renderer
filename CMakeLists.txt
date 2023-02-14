@@ -94,6 +94,14 @@ if (ALP_UNITTESTS AND NOT EMSCRIPTEN)
     )
 endif()
 
+include(FetchContent)
+FetchContent_Declare(
+  alpine_height_data
+  URL      https://gataki.cg.tuwien.ac.at/tiles/alpine_png2/height_data.atb
+  DOWNLOAD_NO_EXTRACT true
+  URL_HASH MD5=f5458b48ade5d6aaf980fcfc5b6be29a
+)
+FetchContent_MakeAvailable(alpine_height_data)
 
 ########################################### setup #################################################
 set(CMAKE_CXX_STANDARD 20)
@@ -163,6 +171,12 @@ set_target_properties(plain_renderer PROPERTIES
 target_link_libraries(plain_renderer PUBLIC gl_engine Qt::Gui)
 target_include_directories(plain_renderer PRIVATE .)
 
+qt_add_resources(plain_renderer "alpine_app_resources"
+    PREFIX "/resources"
+    BASE ${alpine_height_data_SOURCE_DIR}
+    FILES ${alpine_height_data_SOURCE_DIR}/height_data.atb
+)
+
 message(NOTICE "ALP_INSTALL_DIR = ${ALP_INSTALL_DIR}")
 if (NOT EMSCRIPTEN)
     install(TARGETS plain_renderer
@@ -197,6 +211,11 @@ qt_add_qml_module(alpineapp
     URI alpinemaps
     VERSION 1.0
     QML_FILES ${ALP_APP_QML}
+)
+qt_add_resources(alpineapp "alpine_app_resources"
+    PREFIX "/resources"
+    BASE ${alpine_height_data_SOURCE_DIR}
+    FILES ${alpine_height_data_SOURCE_DIR}/height_data.atb
 )
 set_target_properties(alpineapp PROPERTIES
 #    MACOSX_BUNDLE_GUI_IDENTIFIER my.example.com

@@ -19,6 +19,7 @@
 #include "Controller.h"
 
 #include <QCoreApplication>
+#include <QFile>
 #include <QNetworkReply>
 #ifdef ALP_ENABLE_THREADING
 #include <QThread>
@@ -56,26 +57,15 @@ Controller::Controller(AbstractRenderWindow* render_window)
     m_tile_scheduler = std::make_unique<nucleus::tile_scheduler::GpuCacheTileScheduler>();
     m_tile_scheduler->set_gpu_cache_size(1000);
 
-    QNetworkReply* reply = m_network_manager.get(QNetworkRequest(QUrl("https://gataki.cg.tuwien.ac.at/tiles/alpine_png2/height_data.atb")));
-    //    QNetworkReply* reply = m_network_manager.get(QNetworkRequest(QUrl("https://alpinemaps.cg.tuwien.ac.at/threaded//height_data.atb")));
-    connect(reply, &QNetworkReply::finished, this, [reply, this]() {
-        const auto url = reply->url();
-        const auto error = reply->error();
-        if (error == QNetworkReply::NoError) {
-            const QByteArray data = reply->readAll();
-            const auto decorator = nucleus::tile_scheduler::AabbDecorator::make(TileHeights::deserialise(data));
-            QTimer::singleShot(0, m_tile_scheduler.get(), [this, decorator]() { m_tile_scheduler->set_aabb_decorator(decorator); });
-            m_render_window->set_aabb_decorator(decorator);
-            qDebug() << "Loading of " << url << " successful";
-
-            m_camera_controller->update(); // the startup code should be refactored. this one is necessary to initiate tile loading. tile loading should start after setting the aabb decorator (so we have the heights).
-        } else {
-            qDebug() << "Loading of " << url << " failed: " << error;
-            QCoreApplication::exit(0);
-            // do we need better error handling?
-        }
-        reply->deleteLater();
-    });
+    {
+        QFile file(":/resources/height_data.atb");
+        const auto open = file.open(QIODeviceBase::OpenModeFlag::ReadOnly);
+        assert(open);
+        const QByteArray data = file.readAll();
+        const auto decorator = nucleus::tile_scheduler::AabbDecorator::make(TileHeights::deserialise(data));
+        m_tile_scheduler->set_aabb_decorator(decorator);
+        m_render_window->set_aabb_decorator(decorator);
+    }
 
     m_near_plane_adjuster = std::make_unique<nucleus::camera::NearPlaneAdjuster>();
 
@@ -117,6 +107,8 @@ Controller::Controller(AbstractRenderWindow* render_window)
     connect(m_terrain_service.get(), &TileLoadService::tile_unavailable, m_tile_scheduler.get(), &TileScheduler::notify_about_unavailable_height_tile);
 
     connect(m_near_plane_adjuster.get(), &nucleus::camera::NearPlaneAdjuster::near_plane_changed, m_camera_controller.get(), &nucleus::camera::Controller::set_near_plane);
+
+    m_camera_controller->update();
 }
 
 Controller::~Controller()

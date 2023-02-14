@@ -95,11 +95,6 @@ int main(int argc, char **argv)
     }
     RenderThreadNotifier::instance()->set_root_window(root_window);
 
-    QTimer::singleShot(10, []() { RenderThreadNotifier::instance()->notify(); });
-    QTimer::singleShot(100, []() { RenderThreadNotifier::instance()->notify(); }); // dirty code to notify the render thread of the height data being loaded.
-    QTimer::singleShot(500, []() { RenderThreadNotifier::instance()->notify(); });
-    QTimer::singleShot(1000, []() { RenderThreadNotifier::instance()->notify(); });
-
     //    QQuickView view;
     //    view.setResizeMode(QQuickView::SizeRootObjectToView);
     //    view.setSource(QUrl("qrc:///qml/main.qml"));
