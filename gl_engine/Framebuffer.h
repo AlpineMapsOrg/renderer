@@ -63,6 +63,8 @@ public:
     QImage read_colour_attachment(unsigned index);
     static void unbind();
 
+    glm::uvec2 size() const;
+
 private:
     void reset_fbo();
 };

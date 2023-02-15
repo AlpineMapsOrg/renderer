@@ -51,17 +51,17 @@ gl_engine::Window* Window::render_window()
 
 void Window::mousePressEvent(QMouseEvent* e)
 {
-    m_gl_window.mousePressEvent(e);
+    emit mouse_pressed(nucleus::event_parameter::make(e));
 }
 
 void Window::mouseMoveEvent(QMouseEvent* e)
 {
-    m_gl_window.mouseMoveEvent(e);
+    emit mouse_moved(nucleus::event_parameter::make(e));
 }
 
 void Window::wheelEvent(QWheelEvent* e)
 {
-    m_gl_window.wheelEvent(e);
+    emit wheel_turned(nucleus::event_parameter::make(e));
 }
 
 void Window::keyPressEvent(QKeyEvent* e)
@@ -71,5 +71,5 @@ void Window::keyPressEvent(QKeyEvent* e)
 
 void Window::touchEvent(QTouchEvent* e)
 {
-    m_gl_window.touchEvent(e);
+    emit touch_made(nucleus::event_parameter::make(e));
 }

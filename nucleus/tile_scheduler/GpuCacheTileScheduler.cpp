@@ -37,6 +37,7 @@ using nucleus::tile_scheduler::GpuCacheTileScheduler;
 GpuCacheTileScheduler::GpuCacheTileScheduler()
     : m_construction_msec_since_epoch(uint64_t(std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now().time_since_epoch()).count()))
 {
+    qDebug("GpuCacheTileScheduler::GpuCacheTileScheduler()");
     {
         QImage default_tile(QSize { int(m_ortho_tile_size), int(m_ortho_tile_size) }, QImage::Format_ARGB32);
         default_tile.fill(Qt::GlobalColor::white);
@@ -72,6 +73,11 @@ GpuCacheTileScheduler::GpuCacheTileScheduler()
     connect(&m_update_timer, &QTimer::timeout, this, &GpuCacheTileScheduler::do_update);
 
     m_main_cache_book.reserve(m_main_cache_size + 500); // reserve some more space for tiles in flight
+}
+
+GpuCacheTileScheduler::~GpuCacheTileScheduler()
+{
+    qDebug("~GpuCacheTileScheduler::GpuCacheTileScheduler()");
 }
 
 TileScheduler::TileSet GpuCacheTileScheduler::load_candidates(const nucleus::camera::Definition& camera, const tile_scheduler::AabbDecoratorPtr& aabb_decorator)

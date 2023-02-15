@@ -58,6 +58,7 @@
 #include <QOpenGLContext>
 #include <QOpenGLDebugLogger>
 #include <QOpenGLExtraFunctions>
+#include <QOpenGLFramebufferObject>
 #include <QOpenGLShaderProgram>
 #include <QOpenGLTexture>
 #include <QOpenGLVertexArrayObject>
@@ -81,12 +82,14 @@ using gl_engine::Window;
 Window::Window()
     : m_camera({ 1822577.0, 6141664.0 - 500, 171.28 + 500 }, { 1822577.0, 6141664.0, 171.28 }) // should point right at the stephansdom
 {
+    qDebug("Window::Window()");
     m_tile_manager = std::make_unique<TileManager>();
-    QTimer::singleShot(0, [this]() { emit update_requested(); });
+    QTimer::singleShot(1, [this]() { emit update_requested(); });
 }
 
 Window::~Window()
 {
+    qDebug("~Window::Window()");
 }
 
 void Window::initialise_gpu()
@@ -121,12 +124,12 @@ void Window::resize(int w, int h, qreal device_pixel_ratio)
     m_atmosphere->resize({ width, height });
 
     f->glViewport(0, 0, width, height);
-    emit viewport_changed({ w, h });
 }
 
-void Window::paint()
+void Window::paint(QOpenGLFramebufferObject* framebuffer)
 {
     m_frame_start = std::chrono::time_point_cast<ClockResolution>(Clock::now());
+    m_camera.set_viewport_size(m_framebuffer->size());
 
     QOpenGLExtraFunctions* f = QOpenGLContext::currentContext()->extraFunctions();
     m_framebuffer->bind();
@@ -156,6 +159,8 @@ void Window::paint()
     m_atmosphere->draw(m_shader_manager->atmosphere_bg_program(), m_camera, m_shader_manager->screen_quad_program(), m_framebuffer.get());
 
     m_framebuffer->unbind();
+    if (framebuffer)
+        framebuffer->bind();
 
     m_shader_manager->screen_quad_program()->bind();
     m_framebuffer->bind_colour_texture(0);
@@ -187,24 +192,12 @@ void Window::paintOverGL(QPainter* painter)
     painter->drawRect(int(text_bb.right()) + 5, 8, 12, 12);
 }
 
-void Window::mouseMoveEvent(QMouseEvent* e)
-{
-    // send depth information only on mouse press to be more efficient (?)
-    emit mouse_moved(e);
-}
-
-void Window::wheelEvent(QWheelEvent* e)
-{
-    float distance = 500; // todo read and compute from depth buffer
-    emit wheel_turned(e, distance);
-}
-
 void Window::keyPressEvent(QKeyEvent* e)
 {
     if (e->key() == Qt::Key::Key_F5) {
         m_shader_manager->reload_shaders();
-        emit update_requested();
         qDebug("all shaders reloaded");
+        emit update_requested();
     }
     if (e->key() == Qt::Key::Key_F11
         || (e->key() == Qt::Key_P && e->modifiers() == Qt::ControlModifier)
@@ -214,23 +207,9 @@ void Window::keyPressEvent(QKeyEvent* e)
 
     emit key_pressed(e->keyCombination());
 }
-
-void Window::touchEvent(QTouchEvent* ev)
-{
-    if (ev->isEndEvent()) {
-        m_debug_text = "";
-        return;
-    }
-    m_debug_text = "touches: ";
-    for (const auto& point : ev->points()) {
-        m_debug_text.append(QString("%1:%2/%3; ").arg(point.id()).arg(point.position().x()).arg(point.position().y()));
-    }
-    emit update_requested();
-    emit touch_made(ev);
-}
-
 void Window::update_camera(const nucleus::camera::Definition& new_definition)
 {
+    //    qDebug("void Window::update_camera(const nucleus::camera::Definition& new_definition)");
     m_camera = new_definition;
     emit update_requested();
 }
@@ -240,13 +219,6 @@ void Window::update_debug_scheduler_stats(const QString& stats)
     m_debug_scheduler_stats = stats;
     emit update_requested();
 }
-
-void Window::mousePressEvent(QMouseEvent* ev)
-{
-    float distance = 500;   // todo read and compute from depth buffer
-    emit mouse_pressed(ev, distance);
-}
-
 glm::dvec3 Window::ray_cast(const glm::dvec2& normalised_device_coordinates)
 {
     return m_camera.position() + m_camera.ray_direction(normalised_device_coordinates) * 500.;

@@ -1,8 +1,7 @@
 #include "NearPlaneAdjuster.h"
 
-#include <limits>
-#include <ranges>
 #include <functional>
+#include <limits>
 
 #include "Definition.h"
 #include "nucleus/Tile.h"

@@ -94,6 +94,11 @@ int main(int argc, char* argv[])
     Window glWindow;
     nucleus::Controller controller(glWindow.render_window());
 
+    QObject::connect(&glWindow, &Window::mouse_moved, controller.camera_controller(), &nucleus::camera::Controller::mouse_move);
+    QObject::connect(&glWindow, &Window::mouse_moved, controller.camera_controller(), &nucleus::camera::Controller::mouse_move);
+    QObject::connect(&glWindow, &Window::mouse_moved, controller.camera_controller(), &nucleus::camera::Controller::mouse_move);
+    QObject::connect(&glWindow, &Window::mouse_moved, controller.camera_controller(), &nucleus::camera::Controller::mouse_move);
+
     if (running_in_browser)
         glWindow.showFullScreen();
     else
@@ -103,7 +108,6 @@ int main(int argc, char* argv[])
     // native, however, glWindow has a zero size at this point.
     if (glWindow.width() > 0 && glWindow.height() > 0)
         controller.camera_controller()->set_viewport({ glWindow.width(), glWindow.height() });
-    controller.camera_controller()->update();
 
     return QGuiApplication::exec();
 }

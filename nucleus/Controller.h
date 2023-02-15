@@ -41,9 +41,14 @@ public:
 
     camera::Controller* camera_controller() const;
 
+    tile_scheduler::GpuCacheTileScheduler* tile_scheduler() const;
+
 private:
     AbstractRenderWindow* m_render_window;
     QNetworkAccessManager m_network_manager;
+#ifdef ALP_ENABLE_THREADING
+    std::unique_ptr<QThread> m_scheduler_thread;
+#endif
     std::unique_ptr<TileLoadService> m_terrain_service;
     std::unique_ptr<TileLoadService> m_ortho_service;
     std::unique_ptr<tile_scheduler::GpuCacheTileScheduler> m_tile_scheduler;

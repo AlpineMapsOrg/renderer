@@ -70,7 +70,6 @@ private:
     float m_fov = 75;
     float m_near_clipping = 1.0;
     float m_far_clipping = 100'000;
-    glm::uvec2 m_viewport_size = { 1, 1 };
-
+    glm::uvec2 m_viewport_size = { 800, 450 };
 };
 }

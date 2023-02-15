@@ -29,6 +29,7 @@ class GpuCacheTileScheduler : public TileScheduler
 
 public:
     GpuCacheTileScheduler();
+    ~GpuCacheTileScheduler() override;
 
     [[nodiscard]] static TileSet load_candidates(const nucleus::camera::Definition& camera, const AabbDecoratorPtr& aabb_decorator);
     [[nodiscard]] size_t number_of_tiles_in_transit() const override;
