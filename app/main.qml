@@ -56,14 +56,14 @@ Window{
                 RowLayout {
                     Button {
                         Layout.fillWidth: true
-                        text: "Quit"
+                        text: qsTr("Quit")
                         onClicked: {
                             Qt.callLater(Qt.quit)
                         }
                     }
                     Button {
                         Layout.fillWidth: true
-                        text: "Update"
+                        text: qsTr("Update")
                         onClicked: {
                             renderer.update()
                         }
@@ -71,7 +71,7 @@ Window{
                 }
                 RowLayout {
                     Label {
-                        text: "Frame limiter:"
+                        text: qsTr("Frame limiter:")
                     }
                     Slider {
                         Layout.fillWidth: true

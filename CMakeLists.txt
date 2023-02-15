@@ -109,7 +109,7 @@ set(CMAKE_AUTOMOC ON)
 set(CMAKE_AUTORCC ON)
 set(CMAKE_AUTOUIC ON)
 
-find_package(Qt6 REQUIRED COMPONENTS Core Gui OpenGL Network Quick QuickControls2)
+find_package(Qt6 REQUIRED COMPONENTS Core Gui OpenGL Network Quick QuickControls2 LinguistTools)
 add_subdirectory(sherpa)    # pulls in Catch2 and glm
 
 
@@ -217,6 +217,8 @@ qt_add_resources(alpineapp "alpine_app_resources"
     BASE ${alpine_height_data_SOURCE_DIR}
     FILES ${alpine_height_data_SOURCE_DIR}/height_data.atb
 )
+qt_add_translations(alpineapp TS_FILES app/i18n/de.ts app/i18n/en.ts)
+
 set_target_properties(alpineapp PROPERTIES
 #    MACOSX_BUNDLE_GUI_IDENTIFIER my.example.com
 #    MACOSX_BUNDLE_BUNDLE_VERSION ${PROJECT_VERSION}

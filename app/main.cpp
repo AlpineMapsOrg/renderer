@@ -28,6 +28,7 @@
 #include <QSurfaceFormat>
 #include <QThread>
 #include <QTimer>
+#include <QTranslator>
 
 #include "RenderThreadNotifier.h"
 #include "myframebufferobject.h"
@@ -37,6 +38,16 @@ int main(int argc, char **argv)
     //    QGuiApplication::setHighDpiScaleFactorRoundingPolicy(Qt::HighDpiScaleFactorRoundingPolicy::Floor);
     QQuickWindow::setGraphicsApi(QSGRendererInterface::GraphicsApi::OpenGLRhi);
     QGuiApplication app(argc, argv);
+
+    QTranslator translator;
+    const QStringList uiLanguages = QLocale::system().uiLanguages();
+    for (const QString& locale : uiLanguages) {
+        const QString baseName = QLocale::languageToCode(QLocale(locale).language());
+        if (translator.load(":/i18n/" + baseName)) {
+            app.installTranslator(&translator);
+            break;
+        }
+    }
 
     QSurfaceFormat fmt;
     fmt.setDepthBufferSize(24);
@@ -59,32 +70,16 @@ int main(int argc, char **argv)
     qmlRegisterType<MyFrameBufferObject>("MyRenderLibrary", 42, 0, "MeshRenderer");
 
     QQmlApplicationEngine engine;
-    //    QTimer timer;
-    //    timer.setInterval(5);
-    //    timer.setSingleShot(false);
-    //    timer.start();
 
     RenderThreadNotifier::instance();
     const QUrl url(u"qrc:/alpinemaps/app/main.qml"_qs);
     QObject::connect(
         &engine, &QQmlApplicationEngine::objectCreated,
-        &app, [url, &engine /*, &timer*/](QObject* obj, const QUrl& objUrl) {
-            if (!obj && url == objUrl)
+        &app, [](QObject* obj, const QUrl& objUrl) {
+            if (!obj) {
+                qDebug() << "Creating QML object from " << objUrl << " failed!";
                 QCoreApplication::exit(-1);
-            //            if (url != objUrl)
-            //                return;
-            //            QQuickWindow* root_window = dynamic_cast<QQuickWindow*>(engine.rootObjects().first());
-            //                        if (root_window == nullptr)
-            //                return;
-            //            qDebug() << "QQmlApplicationEngine::objectCreated current thread: " << QThread::currentThread();
-            //            RenderThreadNotifier::instance()->set_root_window(root_window);
-
-            //            QObject::connect(&timer, &QTimer::timeout, root_window, [root_window]() {
-            //                auto* runnable = QRunnable::create([]() {
-            //                    QCoreApplication::processEvents(QEventLoop::AllEvents, 1);
-            //                });
-            //                root_window->scheduleRenderJob(runnable, QQuickWindow::RenderStage::NoStage);
-            //            });
+            }
         },
         Qt::QueuedConnection);
     engine.load(url);
@@ -94,12 +89,6 @@ int main(int argc, char **argv)
         return 1;
     }
     RenderThreadNotifier::instance()->set_root_window(root_window);
-
-    //    QQuickView view;
-    //    view.setResizeMode(QQuickView::SizeRootObjectToView);
-    //    view.setSource(QUrl("qrc:///qml/main.qml"));
-    //    view.resize(600, 600);
-    //    view.show();
 
     return app.exec();
 }
