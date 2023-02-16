@@ -64,6 +64,11 @@ set(ALP_APP_SOURCES
 )
 set(ALP_APP_QML
     app/main.qml
+    app/Map.qml
+    app/Settings.qml
+)
+set(ALP_APP_ICONS
+    app/icons/menu.svg
 )
 if (ALP_UNITTESTS AND NOT EMSCRIPTEN)
     set(ALP_CATCH_UNITTEST_GL_SOURCES
@@ -109,7 +114,7 @@ set(CMAKE_AUTOMOC ON)
 set(CMAKE_AUTORCC ON)
 set(CMAKE_AUTOUIC ON)
 
-find_package(Qt6 REQUIRED COMPONENTS Core Gui OpenGL Network Quick QuickControls2 LinguistTools)
+find_package(Qt6 REQUIRED COMPONENTS Core Gui OpenGL Network Quick QuickControls2 LinguistTools Svg)
 add_subdirectory(sherpa)    # pulls in Catch2 and glm
 
 
@@ -139,7 +144,7 @@ target_include_directories(nucleus PRIVATE . PUBLIC ${CMAKE_SOURCE_DIR})
 if (NOT EMSCRIPTEN)
     target_compile_definitions(nucleus PUBLIC ALP_USE_DISK_CACHE)
 endif()
-target_link_libraries(nucleus PUBLIC sherpa Qt::Core Qt::Gui Qt6::Network)
+target_link_libraries(nucleus PUBLIC sherpa Qt::Core Qt::Gui Qt6::Network Qt6::Svg)
 
 
 if (ALP_ENABLE_ASSERTS)
@@ -216,6 +221,10 @@ qt_add_resources(alpineapp "alpine_app_resources"
     PREFIX "/resources"
     BASE ${alpine_height_data_SOURCE_DIR}
     FILES ${alpine_height_data_SOURCE_DIR}/height_data.atb
+)
+qt_add_resources(alpineapp "icons"
+    PREFIX "/alpinemaps/"
+    FILES ${ALP_APP_ICONS}
 )
 qt_add_translations(alpineapp TS_FILES app/i18n/de.ts app/i18n/en.ts)
 

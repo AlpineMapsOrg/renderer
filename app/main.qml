@@ -21,87 +21,84 @@ import QtQuick.Controls
 import QtQuick.Layouts
 import MyRenderLibrary
 
-Window{
+Window {
     visible: true
     id: root_window
 
     Rectangle {
-        id: root
-        width: parent.width
-        height: parent.height
-        MeshRenderer {
-            id: renderer
-            width: parent.width
-            height: parent.height
-            frame_limit: frame_rate_slider.value
-            virtual_resolution_factor: virtual_resolution_factor.value
+        id: tool_bar
+        implicitHeight: 60
+        color: "#00FF00FF"
+        anchors {
+            left: parent.left
+            right: parent.right
+            top: parent.top
+            margins: 6
         }
+        height: 48
 
-        Rectangle {
-            anchors {
-                bottom: root.bottom
-                left: root.left
-                right: root.right
-                margins: 10
-            }
-            color: "#88FFFFFF"
-            height: layout.implicitHeight + 20
-
-            ColumnLayout {
-                id: layout
-                anchors.fill: parent
-                anchors.margins: 10
-                RowLayout {
-                    Button {
-                        Layout.fillWidth: true
-                        text: qsTr("Quit")
-                        onClicked: {
-                            Qt.callLater(Qt.quit)
-                        }
-                    }
-                    Button {
-                        Layout.fillWidth: true
-                        text: qsTr("Update")
-                        onClicked: {
-                            renderer.update()
-                        }
-                    }
+        RowLayout {
+            anchors.fill: parent
+            Rectangle{
+                width: 48
+                height: 48
+                color: "#00FF0000"
+                Image {
+                    source: "qrc:/alpinemaps/app/icons/menu.svg"
+                    width: parent.width / 2
+                    height: parent.height / 2
+                    anchors.centerIn: parent
                 }
-                RowLayout {
-                    Label {
-                        text: qsTr("Frame limiter:")
-                    }
-                    Slider {
-                        Layout.fillWidth: true
-                        id: frame_rate_slider
-                        from: 1
-                        to: 120
-                        stepSize: 1
-                        value: 60
-                    }
-                    Label {
-                        text: frame_rate_slider.value
-                    }
-                }
-                RowLayout {
-                    Label {
-                        text: qsTr("Virtual Resolution factor:")
-                    }
-                    Slider {
-                        Layout.fillWidth: true
-                        id: virtual_resolution_factor
-                        from: 0.1
-                        to: 1.0
-                        stepSize: 0.1
-                        value: 0.5
-                    }
-                    Label {
-                        text: Number(virtual_resolution_factor.value).toFixed(1)
+                MouseArea {
+                    anchors.fill: parent
+                    onClicked: {
+                        menu.open()
                     }
                 }
             }
         }
+        z: 100
+    }
 
+    Drawer {
+        id: menu
+        width: Math.min(root_window.width, root_window.height) / 3 * 2
+        height: root_window.height
+        interactive: true
 
+        ListView {
+            id: menu_list_view
+
+//            focus: true
+//            currentIndex: -1
+            anchors.fill: parent
+
+            delegate: ItemDelegate {
+                width: menu_list_view.width
+                text: model.title
+//                highlighted: ListView.isCurrentItem
+                onClicked: {
+//                    menu_list_view.currentIndex = index
+//                    stackView.push(model.source)
+                    menu.close()
+                }
+            }
+
+            model: ListModel {
+                ListElement { title: "Cached Content"; component: "" }
+                ListElement { title: "Settings"; component: "qrc:/pages/Settings.qml" }
+                ListElement { title: "About"; component: "" }
+            }
+
+            ScrollIndicator.vertical: ScrollIndicator { }
+        }
+    }
+
+    StackView {
+        id: main_stack_view
+        anchors.fill: parent
+        initialItem: Map {
+            anchors.fill: parent
+        }
     }
 }
