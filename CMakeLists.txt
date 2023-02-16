@@ -29,6 +29,7 @@ set(ALP_NUCLEUS_SOURCES
     nucleus/camera/Definition.h nucleus/camera/Definition.cpp
     nucleus/camera/InteractionStyle.h nucleus/camera/InteractionStyle.cpp
     nucleus/camera/NearPlaneAdjuster.h nucleus/camera/NearPlaneAdjuster.cpp
+    nucleus/camera/AbstractRayCaster.h
     nucleus/camera/stored_positions.h
     nucleus/utils/terrain_mesh_index_generator.h
     nucleus/utils/tile_conversion.h nucleus/utils/tile_conversion.cpp

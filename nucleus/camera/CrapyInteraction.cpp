@@ -17,12 +17,19 @@
  *****************************************************************************/
 
 #include "CrapyInteraction.h"
+#include "AbstractRayCaster.h"
 
 #include <QDebug>
 
 namespace nucleus::camera {
 
-std::optional<Definition> CrapyInteraction::mouse_move_event(const event_parameter::Mouse& e, Definition camera)
+std::optional<Definition> CrapyInteraction::mouse_press_event(const event_parameter::Mouse& e, Definition camera, AbstractRayCaster* ray_caster)
+{
+    m_operation_centre = ray_caster->ray_cast(camera, camera.to_ndc({ e.point.pressPosition().x(), e.point.pressPosition().y() }));
+    return {};
+}
+
+std::optional<Definition> CrapyInteraction::mouse_move_event(const event_parameter::Mouse& e, Definition camera, AbstractRayCaster* ray_caster)
 {
 
     if (e.buttons == Qt::LeftButton) {
@@ -31,7 +38,7 @@ std::optional<Definition> CrapyInteraction::mouse_move_event(const event_paramet
     }
     if (e.buttons == Qt::MiddleButton) {
         const auto delta = e.point.position() - e.point.lastPosition();
-        camera.orbit(glm::vec2(delta.x(), delta.y()) * 0.1f);
+        camera.orbit(m_operation_centre, glm::vec2(delta.x(), delta.y()) * 0.1f);
     }
     if (e.buttons == Qt::RightButton) {
         const auto delta = e.point.position() - e.point.lastPosition();
@@ -44,7 +51,7 @@ std::optional<Definition> CrapyInteraction::mouse_move_event(const event_paramet
         return camera;
 }
 
-std::optional<Definition> CrapyInteraction::touch_event(const event_parameter::Touch& e, Definition camera)
+std::optional<Definition> CrapyInteraction::touch_event(const event_parameter::Touch& e, Definition camera, AbstractRayCaster*)
 {
     glm::ivec2 first_touch = { e.points[0].position().x(), e.points[0].position().y() };
     glm::ivec2 second_touch;
@@ -96,7 +103,7 @@ std::optional<Definition> CrapyInteraction::touch_event(const event_parameter::T
     return camera;
 }
 
-std::optional<Definition> CrapyInteraction::wheel_event(const event_parameter::Wheel& e, Definition camera)
+std::optional<Definition> CrapyInteraction::wheel_event(const event_parameter::Wheel& e, Definition camera, AbstractRayCaster*)
 {
     camera.zoom(e.angle_delta.y() * -8.0);
     return camera;

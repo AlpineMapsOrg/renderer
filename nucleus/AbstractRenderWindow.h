@@ -36,6 +36,7 @@ namespace tile_scheduler {
 }
 namespace camera {
     class Definition;
+    class AbstractRayCaster;
 }
 struct Tile;
 
@@ -44,9 +45,9 @@ class AbstractRenderWindow : public QObject {
 public:
     virtual void initialise_gpu() = 0;
     virtual void resize(int width, int height, qreal device_pixel_ratio) = 0;
-    virtual void paint(QOpenGLFramebufferObject* framebuffer = 0) = 0;
-    virtual glm::dvec3 ray_cast(const glm::dvec2& normalised_device_coordinates) = 0;
+    virtual void paint(QOpenGLFramebufferObject* framebuffer = nullptr) = 0;
     virtual void deinit_gpu() = 0;
+    [[nodiscard]] virtual camera::AbstractRayCaster* ray_caster() = 0;
 
 public slots:
     virtual void update_camera(const camera::Definition& new_definition) = 0;

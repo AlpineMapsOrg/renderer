@@ -21,27 +21,27 @@
 using nucleus::camera::Definition;
 using nucleus::camera::InteractionStyle;
 
-std::optional<Definition> InteractionStyle::mouse_press_event(const nucleus::event_parameter::Mouse&, Definition)
+std::optional<Definition> InteractionStyle::mouse_press_event(const nucleus::event_parameter::Mouse&, Definition, AbstractRayCaster*)
 {
     return {};
 }
 
-std::optional<Definition> InteractionStyle::mouse_move_event(const nucleus::event_parameter::Mouse&, Definition)
+std::optional<Definition> InteractionStyle::mouse_move_event(const nucleus::event_parameter::Mouse&, Definition, AbstractRayCaster*)
 {
     return {};
 }
 
-std::optional<Definition> InteractionStyle::wheel_event(const nucleus::event_parameter::Wheel&, Definition)
+std::optional<Definition> InteractionStyle::wheel_event(const nucleus::event_parameter::Wheel&, Definition, AbstractRayCaster*)
 {
     return {};
 }
 
-std::optional<Definition> InteractionStyle::key_press_event(const QKeyCombination&, Definition)
+std::optional<Definition> InteractionStyle::key_press_event(const QKeyCombination&, Definition, AbstractRayCaster*)
 {
     return {};
 }
 
-std::optional<Definition> InteractionStyle::touch_event(const event_parameter::Touch&, Definition)
+std::optional<Definition> InteractionStyle::touch_event(const event_parameter::Touch&, Definition, AbstractRayCaster*)
 {
     return {};
 }

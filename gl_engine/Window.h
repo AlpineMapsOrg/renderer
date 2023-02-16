@@ -60,6 +60,7 @@
 
 #include "helpers.h"
 #include "nucleus/AbstractRenderWindow.h"
+#include "nucleus/camera/AbstractRayCaster.h"
 #include "nucleus/camera/Definition.h"
 
 class QOpenGLTexture;
@@ -74,7 +75,7 @@ class ShaderManager;
 class Framebuffer;
 class Atmosphere;
 
-class Window : public nucleus::AbstractRenderWindow {
+class Window : public nucleus::AbstractRenderWindow, public nucleus::camera::AbstractRayCaster {
     Q_OBJECT
 public:
     Window();
@@ -82,14 +83,15 @@ public:
 
     void initialise_gpu() override;
     void resize(int w, int h, qreal device_pixel_ratio) override;
-    void paint(QOpenGLFramebufferObject* framebuffer = 0) override;
+    void paint(QOpenGLFramebufferObject* framebuffer = nullptr) override;
     void paintOverGL(QPainter* painter);
 
-    glm::dvec3 ray_cast(const glm::dvec2& normalised_device_coordinates) override;
+    [[nodiscard]] glm::dvec3 ray_cast(const nucleus::camera::Definition& camera, const glm::dvec2& normalised_device_coordinates) override;
     void deinit_gpu() override;
     void set_aabb_decorator(const nucleus::tile_scheduler::AabbDecoratorPtr&) override;
     void add_tile(const std::shared_ptr<nucleus::Tile>&) override;
     void remove_tile(const tile::Id&) override;
+    [[nodiscard]] nucleus::camera::AbstractRayCaster* ray_caster() override;
     void keyPressEvent(QKeyEvent*);
 
 public slots:

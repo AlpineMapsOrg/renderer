@@ -29,12 +29,13 @@
 #include "InteractionStyle.h"
 
 namespace nucleus::camera {
+class AbstractRayCaster;
 
 class Controller : public QObject
 {
     Q_OBJECT
 public:
-    explicit Controller(const Definition& camera);
+    explicit Controller(const Definition& camera, AbstractRayCaster* ray_caster);
 
     [[nodiscard]] const Definition& definition() const;
     void set_interaction_style(std::unique_ptr<InteractionStyle> new_style);
@@ -58,6 +59,7 @@ signals:
 
 private:
     Definition m_definition;
+    AbstractRayCaster* m_ray_caster;
     std::unique_ptr<InteractionStyle> m_interaction_style;
 };
 

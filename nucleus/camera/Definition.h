@@ -58,6 +58,8 @@ public:
     void zoom(double v);
 
     [[nodiscard]] const glm::uvec2& viewport_size() const;
+    // screen space is assumed in the qt way, i.e., origin is top left (https://doc.qt.io/qt-6/coordsys.html)
+    [[nodiscard]] glm::dvec2 to_ndc(const glm::dvec2& screen_space_coordinates) const;
 
     void set_viewport_size(const glm::uvec2& new_viewport_size);
 
@@ -72,4 +74,5 @@ private:
     float m_far_clipping = 100'000;
     glm::uvec2 m_viewport_size = { 800, 450 };
 };
+
 }

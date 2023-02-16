@@ -201,6 +201,13 @@ const glm::uvec2& nucleus::camera::Definition::viewport_size() const
     return m_viewport_size;
 }
 
+glm::dvec2 nucleus::camera::Definition::to_ndc(const glm::dvec2& screen_space_coordinates) const
+{
+    // https://doc.qt.io/qt-6/coordsys.html
+    // https://registry.khronos.org/OpenGL-Refpages/gl4/html/glViewport.xhtml
+    return ((screen_space_coordinates / glm::dvec2(m_viewport_size)) * 2.0 - 1.0) * glm::dvec2 { 1.0, -1.0 };
+}
+
 glm::dvec3 nucleus::camera::Definition::operation_centre() const
 {
     // a ray going through the middle pixel, intersecting with the z == 0 pane
