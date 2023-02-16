@@ -64,7 +64,6 @@ set(ALP_APP_SOURCES
 )
 set(ALP_APP_QML
     app/main.qml
-    app/CameraControls.qml
 )
 if (ALP_UNITTESTS AND NOT EMSCRIPTEN)
     set(ALP_CATCH_UNITTEST_GL_SOURCES
