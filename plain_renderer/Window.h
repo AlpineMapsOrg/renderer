@@ -49,6 +49,7 @@ signals:
     void mouse_moved(const nucleus::event_parameter::Mouse&) const;
     void wheel_turned(const nucleus::event_parameter::Wheel&) const;
     void touch_made(const nucleus::event_parameter::Touch&) const;
+    void resized(const glm::uvec2&) const;
 
 private:
     gl_engine::Window m_gl_window;

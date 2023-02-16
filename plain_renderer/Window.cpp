@@ -30,7 +30,8 @@ void Window::initializeGL()
 
 void Window::resizeGL(int w, int h)
 {
-    m_gl_window.resize(w, h, devicePixelRatio());
+    m_gl_window.resize_framebuffer(w * devicePixelRatio(), h * devicePixelRatio());
+    emit resized({ w, h });
 }
 
 void Window::paintGL()

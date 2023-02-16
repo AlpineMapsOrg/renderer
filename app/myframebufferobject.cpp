@@ -68,7 +68,7 @@ public:
     {
         m_window = item->window();
         MyFrameBufferObject* i = static_cast<MyFrameBufferObject*>(item);
-        i->m_event_queue.clear();
+        m_controller->camera_controller()->set_virtual_resolution_factor(i->virtual_resolution_factor());
     }
 
     void render() Q_DECL_OVERRIDE
@@ -82,7 +82,8 @@ public:
     {
         qDebug() << "QOpenGLFramebufferObject *createFramebufferObject(const QSize& " << size << ")";
         m_window->beginExternalCommands();
-        m_glWindow->resize(size.width(), size.height(), 1.0);
+        m_glWindow->resize_framebuffer(size.width(), size.height());
+        m_controller->camera_controller()->set_viewport({ size.width(), size.height() });
         m_window->endExternalCommands();
         QOpenGLFramebufferObjectFormat format;
         format.setSamples(1);
@@ -111,9 +112,6 @@ private:
 MyFrameBufferObject::MyFrameBufferObject(QQuickItem* parent)
     : QQuickFramebufferObject(parent)
     , m_update_timer(new QTimer(this))
-    , m_azimuth(0.0)
-    , m_elevation(0.0)
-    , m_distance(0.5)
 {
     m_update_timer->setSingleShot(true);
     m_update_timer->setInterval(1000 / m_frame_limit);
@@ -153,28 +151,24 @@ void MyFrameBufferObject::touchEvent(QTouchEvent* e)
 {
     emit touch_made(nucleus::event_parameter::make(e));
     RenderThreadNotifier::instance()->notify();
-    //    update();
 }
 
 void MyFrameBufferObject::mousePressEvent(QMouseEvent* e)
 {
     emit mouse_pressed(nucleus::event_parameter::make(e));
     RenderThreadNotifier::instance()->notify();
-    //    update();
 }
 
 void MyFrameBufferObject::mouseMoveEvent(QMouseEvent* e)
 {
     emit mouse_moved(nucleus::event_parameter::make(e));
     RenderThreadNotifier::instance()->notify();
-    //    update();
 }
 
 void MyFrameBufferObject::wheelEvent(QWheelEvent* e)
 {
     emit wheel_turned(nucleus::event_parameter::make(e));
     RenderThreadNotifier::instance()->notify();
-    //    update();
 }
 
 void MyFrameBufferObject::schedule_update()
@@ -198,4 +192,18 @@ void MyFrameBufferObject::set_frame_limit(int new_frame_limit)
     m_frame_limit = new_frame_limit;
     m_update_timer->setInterval(1000 / m_frame_limit);
     emit frame_limit_changed();
+}
+
+float MyFrameBufferObject::virtual_resolution_factor() const
+{
+    return m_virtual_resolution_factor;
+}
+
+void MyFrameBufferObject::set_virtual_resolution_factor(float new_virtual_resolution_factor)
+{
+    if (qFuzzyCompare(m_virtual_resolution_factor, new_virtual_resolution_factor))
+        return;
+    m_virtual_resolution_factor = new_virtual_resolution_factor;
+    emit virtual_resolution_factor_changed();
+    schedule_update();
 }

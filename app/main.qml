@@ -37,6 +37,7 @@ Window{
             width: parent.width
             height: parent.height
             frame_limit: frame_rate_slider.value
+            virtual_resolution_factor: virtual_resolution_factor.value
         }
 
         Rectangle {
@@ -83,6 +84,22 @@ Window{
                     }
                     Label {
                         text: frame_rate_slider.value
+                    }
+                }
+                RowLayout {
+                    Label {
+                        text: qsTr("Virtual Resolution factor:")
+                    }
+                    Slider {
+                        Layout.fillWidth: true
+                        id: virtual_resolution_factor
+                        from: 0.1
+                        to: 1.0
+                        stepSize: 0.1
+                        value: 0.5
+                    }
+                    Label {
+                        text: virtual_resolution_factor.value
                     }
                 }
             }

@@ -46,6 +46,8 @@ signals:
     void touch_made(const nucleus::event_parameter::Touch&) const;
     //    void viewport_changed(const glm::uvec2& new_viewport) const;
 
+    void virtual_resolution_factor_changed();
+
 protected:
     void touchEvent(QTouchEvent*) override;
     void mousePressEvent(QMouseEvent*) override;
@@ -58,18 +60,18 @@ private slots:
     void schedule_update();
 
 public:
-    std::vector<EventParameters> m_event_queue;
-
-    int frame_limit() const;
+    [[nodiscard]] int frame_limit() const;
     void set_frame_limit(int new_frame_limit);
+
+    [[nodiscard]] float virtual_resolution_factor() const;
+    void set_virtual_resolution_factor(float new_virtual_resolution_factor);
 
 private:
     int m_frame_limit = 60;
+    float m_virtual_resolution_factor = 0.5f;
     QTimer* m_update_timer = nullptr;
-    float m_azimuth;
-    float m_elevation;
-    float m_distance;
     Q_PROPERTY(int frame_limit READ frame_limit WRITE set_frame_limit NOTIFY frame_limit_changed)
+    Q_PROPERTY(float virtual_resolution_factor READ virtual_resolution_factor WRITE set_virtual_resolution_factor NOTIFY virtual_resolution_factor_changed)
 };
 
 #endif // MYFRAMEBUFFEROBJECT_H

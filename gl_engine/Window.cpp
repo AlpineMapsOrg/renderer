@@ -112,12 +112,10 @@ void Window::initialise_gpu()
     m_framebuffer = std::make_unique<Framebuffer>(Framebuffer::DepthFormat::Int24, std::vector({ Framebuffer::ColourFormat::RGBA8 }));
 }
 
-void Window::resize(int w, int h, qreal device_pixel_ratio)
+void Window::resize_framebuffer(int width, int height)
 {
-    if (w == 0 || h == 0)
+    if (width == 0 || height == 0)
         return;
-    const int width = int(device_pixel_ratio * w);
-    const int height = int(device_pixel_ratio * h);
 
     QOpenGLFunctions* f = QOpenGLContext::currentContext()->functions();
     m_framebuffer->resize({ width, height });

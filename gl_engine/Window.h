@@ -82,7 +82,7 @@ public:
     ~Window() override;
 
     void initialise_gpu() override;
-    void resize(int w, int h, qreal device_pixel_ratio) override;
+    void resize_framebuffer(int w, int h) override;
     void paint(QOpenGLFramebufferObject* framebuffer = nullptr) override;
     void paintOverGL(QPainter* painter);
 

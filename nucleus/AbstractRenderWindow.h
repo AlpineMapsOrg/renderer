@@ -44,7 +44,7 @@ class AbstractRenderWindow : public QObject {
     Q_OBJECT
 public:
     virtual void initialise_gpu() = 0;
-    virtual void resize(int width, int height, qreal device_pixel_ratio) = 0;
+    virtual void resize_framebuffer(int width, int height) = 0;
     virtual void paint(QOpenGLFramebufferObject* framebuffer = nullptr) = 0;
     virtual void deinit_gpu() = 0;
     [[nodiscard]] virtual camera::AbstractRayCaster* ray_caster() = 0;

@@ -41,7 +41,17 @@ void Controller::set_viewport(const glm::uvec2& new_viewport)
 {
     if (m_definition.viewport_size() == new_viewport)
         return;
+    if (new_viewport.x * new_viewport.y == 0)
+        return;
     m_definition.set_viewport_size(new_viewport);
+    update();
+}
+
+void Controller::set_virtual_resolution_factor(float new_factor)
+{
+    if (qFuzzyCompare(m_definition.virtual_resolution_factor(), new_factor))
+        return;
+    m_definition.set_virtual_resolution_factor(new_factor);
     update();
 }
 
