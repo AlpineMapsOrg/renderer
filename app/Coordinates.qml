@@ -22,38 +22,32 @@ import QtQuick.Layouts
 import Alpine
 
 Rectangle {
-    id: map_gui
-    color: "#00000000"
-    property MeshRenderer renderer
+    id: root
+    color: "#00FFFFFF"
 
     GnssInformation {
         id: gnss
-        enabled: current_location.checked
+        enabled: true
         onInformation_updated: {
-            renderer.set_position(gnss.latitude, gnss.longitude)
+
         }
     }
 
-
-    RoundButton {
-        id: current_location
-        width: 60
-        height: 60
-        checkable: true
-        icon {
-            source: "qrc:/alpinemaps/app/icons/current_location.svg"
-            height: 32
-            width: 32
-        }
+    Rectangle {
         anchors {
-            right: parent.right
-            bottom: parent.bottom
-            margins: 10
+            centerIn: root
         }
-        onClicked: {
-            if (!renderer)
-                return;
-//            renderer.virtual_resolution_factor = 0.1
+        width: 200
+        height: 200
+
+        ColumnLayout {
+            anchors.fill: parent
+            Label { text: `DD ${Number(gnss.latitude).toFixed(5)}, ${Number(gnss.longitude).toFixed(5)}` }
+            Label { text: `Accuracy: ${Number(gnss.horizontal_accuracy).toFixed(0)}m` }
+            Label { text: `Updated: `
+                + `${String(gnss.timestamp.getHours()).padStart(2, '0')}:`
+                + `${String(gnss.timestamp.getMinutes()).padStart(2, '0')}:`
+                + `${String(gnss.timestamp.getSeconds()).padStart(2, '0')}` }
         }
     }
 }

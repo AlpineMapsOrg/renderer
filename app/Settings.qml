@@ -19,7 +19,7 @@
 import QtQuick
 import QtQuick.Controls
 import QtQuick.Layouts
-import MyRenderLibrary
+import Alpine
 
 Rectangle {
     id: settings_root

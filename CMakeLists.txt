@@ -61,12 +61,14 @@ set(ALP_APP_SOURCES
     app/main.cpp
     app/RenderThreadNotifier.h app/RenderThreadNotifier.cpp
     app/myframebufferobject.h app/myframebufferobject.cpp
+    app/GnssInformation.h app/GnssInformation.cpp
 )
 set(ALP_APP_QML
     app/main.qml
     app/About.qml
     app/Map.qml
     app/Settings.qml
+    app/Coordinates.qml
 )
 set(ALP_APP_ICONS
     app/icons/current_location.svg
@@ -117,7 +119,7 @@ set(CMAKE_AUTOMOC ON)
 set(CMAKE_AUTORCC ON)
 set(CMAKE_AUTOUIC ON)
 
-find_package(Qt6 REQUIRED COMPONENTS Core Gui OpenGL Network Quick QuickControls2 LinguistTools Svg)
+find_package(Qt6 REQUIRED COMPONENTS Core Gui OpenGL Network Quick QuickControls2 LinguistTools Svg Positioning)
 add_subdirectory(sherpa)    # pulls in Catch2 and glm
 
 
@@ -239,7 +241,7 @@ set_target_properties(alpineapp PROPERTIES
 #    WIN32_EXECUTABLE TRUE
     QT_ANDROID_PACKAGE_SOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/android
 )
-target_link_libraries(alpineapp PUBLIC gl_engine Qt::Quick Qt::QuickControls2)
+target_link_libraries(alpineapp PUBLIC gl_engine Qt::Quick Qt::QuickControls2 Qt::Positioning)
 set_property(TARGET alpineapp PROPERTY QT_ANDROID_EXTRA_LIBS
     /home/madam/bin/Android/SDK/android_openssl/latest/arm64/libcrypto_1_1.so
     /home/madam/bin/Android/SDK/android_openssl/latest/arm64/libssl_1_1.so)

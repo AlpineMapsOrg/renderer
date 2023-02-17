@@ -19,7 +19,7 @@
 import QtQuick
 import QtQuick.Controls
 import QtQuick.Layouts
-import MyRenderLibrary
+import Alpine
 
 Window {
     visible: true
@@ -105,6 +105,7 @@ Window {
 
             model: ListModel {
                 ListElement { title: qsTr("Map"); source: "map" }
+                ListElement { title: qsTr("Coordinates"); source: "qrc:/alpinemaps/app/Coordinates.qml" }
 //                ListElement { title: qsTr("Cached Content"); source: "" }
                 ListElement { title: qsTr("Settings"); source: "qrc:/alpinemaps/app/Settings.qml" }
                 ListElement { title: qsTr("About"); source: "qrc:/alpinemaps/app/About.qml" }

@@ -45,6 +45,7 @@ signals:
     void wheel_turned(const nucleus::event_parameter::Wheel&) const;
     void touch_made(const nucleus::event_parameter::Touch&) const;
     //    void viewport_changed(const glm::uvec2& new_viewport) const;
+    void position_set_by_user(double new_latitude, double new_longitude);
 
     void virtual_resolution_factor_changed();
 
@@ -55,6 +56,7 @@ protected:
     void wheelEvent(QWheelEvent*) override;
 
 public slots:
+    void set_position(double latitude, double longitude);
 
 private slots:
     void schedule_update();

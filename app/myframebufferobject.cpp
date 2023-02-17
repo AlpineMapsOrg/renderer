@@ -140,6 +140,7 @@ QQuickFramebufferObject::Renderer* MyFrameBufferObject::createRenderer() const
     connect(this, &MyFrameBufferObject::mouse_pressed, r->controller()->camera_controller(), &nucleus::camera::Controller::mouse_press);
     connect(this, &MyFrameBufferObject::mouse_moved, r->controller()->camera_controller(), &nucleus::camera::Controller::mouse_move);
     connect(this, &MyFrameBufferObject::wheel_turned, r->controller()->camera_controller(), &nucleus::camera::Controller::wheel_turn);
+    connect(this, &MyFrameBufferObject::position_set_by_user, r->controller()->camera_controller(), &nucleus::camera::Controller::set_latitude_longitude);
 
     connect(r->controller()->tile_scheduler(), &nucleus::tile_scheduler::GpuCacheTileScheduler::tile_ready, RenderThreadNotifier::instance(), &RenderThreadNotifier::notify);
     connect(r->controller()->tile_scheduler(), &nucleus::tile_scheduler::GpuCacheTileScheduler::tile_expired, RenderThreadNotifier::instance(), &RenderThreadNotifier::notify);
@@ -168,6 +169,12 @@ void MyFrameBufferObject::mouseMoveEvent(QMouseEvent* e)
 void MyFrameBufferObject::wheelEvent(QWheelEvent* e)
 {
     emit wheel_turned(nucleus::event_parameter::make(e));
+    RenderThreadNotifier::instance()->notify();
+}
+
+void MyFrameBufferObject::set_position(double latitude, double longitude)
+{
+    emit position_set_by_user(latitude, longitude);
     RenderThreadNotifier::instance()->notify();
 }
 
