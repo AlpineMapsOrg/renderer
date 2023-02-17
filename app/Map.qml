@@ -1,6 +1,6 @@
 /*****************************************************************************
  * Alpine Terrain Renderer
- * Copyright (C) 2022 Adam Celarek
+ * Copyright (C) 2023 Adam Celarek
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -21,8 +21,23 @@ import QtQuick.Controls
 import QtQuick.Layouts
 import MyRenderLibrary
 
-MeshRenderer {
-    id: renderer
-//    frame_limit: frame_rate_slider.value
-//    virtual_resolution_factor: virtual_resolution_factor.value
+Rectangle {
+    id: map_gui
+    color: "#00000000"
+
+    RoundButton {
+        id: current_location
+        width: 60
+        height: 60
+        icon {
+            source: "qrc:/alpinemaps/app/icons/current_location.svg"
+            height: 32
+            width: 32
+        }
+        anchors {
+            right: parent.right
+            bottom: parent.bottom
+            margins: 10
+        }
+    }
 }

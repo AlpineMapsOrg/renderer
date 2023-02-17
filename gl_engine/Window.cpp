@@ -49,7 +49,6 @@
 ****************************************************************************/
 
 #include <array>
-#include <iostream>
 
 #include <QDebug>
 #include <QImage>
@@ -219,7 +218,6 @@ void Window::update_debug_scheduler_stats(const QString& stats)
 }
 glm::dvec3 Window::ray_cast(const nucleus::camera::Definition& camera, const glm::dvec2& normalised_device_coordinates)
 {
-    std::cout << "ndc: " << normalised_device_coordinates.x << "/" << normalised_device_coordinates.y << std::endl;
     return m_camera.position() + camera.ray_direction(normalised_device_coordinates) * 50.;
 }
 

@@ -64,10 +64,13 @@ set(ALP_APP_SOURCES
 )
 set(ALP_APP_QML
     app/main.qml
+    app/About.qml
     app/Map.qml
     app/Settings.qml
 )
 set(ALP_APP_ICONS
+    app/icons/current_location.svg
+    app/icons/mascot.png
     app/icons/menu.svg
 )
 if (ALP_UNITTESTS AND NOT EMSCRIPTEN)

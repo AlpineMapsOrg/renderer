@@ -23,60 +23,72 @@ import MyRenderLibrary
 
 Rectangle {
     id: settings_root
-    width: parent.width
-    height: parent.height
-    color: "#88FFFFFF"
+    color: "#00FFFFFF"
 
-    ColumnLayout {
-        id: layout
-        anchors.fill: parent
-        anchors.margins: 10
-        RowLayout {
-            Button {
-                Layout.fillWidth: true
-                text: qsTr("Quit")
-                onClicked: {
-                    Qt.callLater(Qt.quit)
+    Rectangle {
+        color: "#88FFFFFF"
+        height: layout.implicitHeight + 20
+        anchors {
+            left: settings_root.left
+            right: settings_root.right
+            bottom: settings_root.bottom
+            margins: 10
+        }
+
+        ColumnLayout {
+            id: layout
+            anchors {
+                fill: parent
+                margins: 10
+            }
+
+            RowLayout {
+                Button {
+                    Layout.fillWidth: true
+                    text: qsTr("Quit")
+                    onClicked: {
+                        Qt.callLater(Qt.quit)
+                    }
+                }
+                Button {
+                    Layout.fillWidth: true
+                    text: qsTr("Update")
+                    onClicked: {
+                        renderer.update()
+                    }
                 }
             }
-            Button {
-                Layout.fillWidth: true
-                text: qsTr("Update")
-                onClicked: {
-                    renderer.update()
+            RowLayout {
+                Label {
+                    text: qsTr("Frame limiter:")
+                }
+                Slider {
+                    Layout.fillWidth: true
+                    id: frame_rate_slider
+                    from: 1
+                    to: 120
+                    stepSize: 1
+                    value: 60
+                }
+                Label {
+                    text: frame_rate_slider.value
                 }
             }
-        }
-        RowLayout {
-            Label {
-                text: qsTr("Frame limiter:")
-            }
-            Slider {
-                Layout.fillWidth: true
-                id: frame_rate_slider
-                from: 1
-                to: 120
-                stepSize: 1
-                value: 60
-            }
-            Label {
-                text: frame_rate_slider.value
-            }
-        }
-        RowLayout {
-            Label {
-                text: qsTr("Virtual Resolution factor:")
-            }
-            Slider {
-                Layout.fillWidth: true
-                id: virtual_resolution_factor
-                from: 0.1
-                to: 1.0
-                stepSize: 0.1
-                value: 0.5
-            }
-            Label {
-                text: Number(virtual_resolution_factor.value).toFixed(1)
+            RowLayout {
+                Label {
+                    text: qsTr("Virtual Resolution factor:")
+                }
+                Slider {
+                    Layout.fillWidth: true
+                    id: virtual_resolution_factor
+                    from: 0.1
+                    to: 1.0
+                    stepSize: 0.1
+                    value: 0.5
+                }
+                Label {
+                    text: Number(virtual_resolution_factor.value).toFixed(1)
+                }
             }
         }
     }

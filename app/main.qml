@@ -1,6 +1,6 @@
 /*****************************************************************************
  * Alpine Terrain Renderer
- * Copyright (C) 2022 Adam Celarek
+ * Copyright (C) 2023 Adam Celarek
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -28,18 +28,17 @@ Window {
     Rectangle {
         id: tool_bar
         implicitHeight: 60
-        color: "#00FF00FF"
+        color: main_stack_view.depth == 1 ? "#00FF00FF" : "#AAFFFFFF"
         anchors {
             left: parent.left
             right: parent.right
             top: parent.top
-            margins: 6
         }
-        height: 48
 
         RowLayout {
             anchors.fill: parent
-            Rectangle{
+            anchors.margins: 6
+            Rectangle {
                 width: 48
                 height: 48
                 color: "#00FF0000"
@@ -56,6 +55,15 @@ Window {
                     }
                 }
             }
+            Label {
+                id: page_title
+                text: ""
+                wrapMode: Label.Wrap
+//                background: Rectangle { color: "#99FF00FF" }
+                font.pointSize: 24
+                font.weight: Font.ExtraBold
+                Layout.fillWidth: true
+            }
         }
         z: 100
     }
@@ -68,37 +76,57 @@ Window {
 
         ListView {
             id: menu_list_view
-
-//            focus: true
-//            currentIndex: -1
+            currentIndex: 0
             anchors.fill: parent
 
             delegate: ItemDelegate {
                 width: menu_list_view.width
                 text: model.title
-//                highlighted: ListView.isCurrentItem
+                highlighted: ListView.isCurrentItem
                 onClicked: {
-//                    menu_list_view.currentIndex = index
-//                    stackView.push(model.source)
+                    menu_list_view.currentIndex = index
+                    if (model.source === "map") {
+                        if (main_stack_view.depth >= 1)
+                            main_stack_view.pop()
+                        menu.close()
+                        page_title.text = ""
+                        return;
+                    }
+
+                    if (main_stack_view.depth === 1)
+                        main_stack_view.push(model.source)
+                    else
+                        main_stack_view.replace(model.source)
+                    page_title.text = model.title
                     menu.close()
                 }
             }
 
             model: ListModel {
-                ListElement { title: "Cached Content"; component: "" }
-                ListElement { title: "Settings"; component: "qrc:/pages/Settings.qml" }
-                ListElement { title: "About"; component: "" }
+                ListElement { title: qsTr("Map"); source: "map" }
+//                ListElement { title: qsTr("Cached Content"); source: "" }
+                ListElement { title: qsTr("Settings"); source: "qrc:/alpinemaps/app/Settings.qml" }
+                ListElement { title: qsTr("About"); source: "qrc:/alpinemaps/app/About.qml" }
             }
 
             ScrollIndicator.vertical: ScrollIndicator { }
         }
     }
 
+    MeshRenderer {
+        id: map
+        anchors.fill: parent
+    }
+
     StackView {
         id: main_stack_view
-        anchors.fill: parent
-        initialItem: Map {
-            anchors.fill: parent
+        anchors {
+            top: tool_bar.bottom
+            bottom: root_window.contentItem.bottom
+            left: root_window.contentItem.left
+            right: root_window.contentItem.right
         }
+
+        initialItem: Map {}
     }
 }
