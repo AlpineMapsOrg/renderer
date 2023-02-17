@@ -93,10 +93,11 @@ Window {
                         return;
                     }
 
+
                     if (main_stack_view.depth === 1)
-                        main_stack_view.push(model.source)
+                        main_stack_view.push(model.source, {renderer: map})
                     else
-                        main_stack_view.replace(model.source)
+                        main_stack_view.replace(model.source, {renderer: map})
                     page_title.text = model.title
                     menu.close()
                 }
@@ -127,6 +128,8 @@ Window {
             right: root_window.contentItem.right
         }
 
-        initialItem: Map {}
+        initialItem: Map {
+            renderer: map
+        }
     }
 }

@@ -24,6 +24,15 @@ import MyRenderLibrary
 Rectangle {
     id: settings_root
     color: "#00FFFFFF"
+    property MeshRenderer renderer
+    Component.onCompleted: {
+        // when creating the this component, values are read from the renderer
+        // after that we establish a binding, so this component can set values on the renderer
+        frame_rate_slider.value = renderer.frame_limit
+        lod_slider.value = renderer.virtual_resolution_factor
+        renderer.frame_limit = Qt.binding(function() { return frame_rate_slider.value })
+        renderer.virtual_resolution_factor = Qt.binding(function() { return lod_slider.value })
+    }
 
     Rectangle {
         color: "#88FFFFFF"
@@ -65,10 +74,9 @@ Rectangle {
                 Slider {
                     Layout.fillWidth: true
                     id: frame_rate_slider
-                    from: 1
+                    from: 2
                     to: 120
                     stepSize: 1
-                    value: 60
                 }
                 Label {
                     text: frame_rate_slider.value
@@ -76,18 +84,17 @@ Rectangle {
             }
             RowLayout {
                 Label {
-                    text: qsTr("Virtual Resolution factor:")
+                    text: qsTr("Level of detail:")
                 }
                 Slider {
                     Layout.fillWidth: true
-                    id: virtual_resolution_factor
+                    id: lod_slider
                     from: 0.1
                     to: 1.0
                     stepSize: 0.1
-                    value: 0.5
                 }
                 Label {
-                    text: Number(virtual_resolution_factor.value).toFixed(1)
+                    text: Number(lod_slider.value).toFixed(1)
                 }
             }
         }

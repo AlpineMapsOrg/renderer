@@ -24,6 +24,7 @@ import MyRenderLibrary
 Rectangle {
     id: map_gui
     color: "#00000000"
+    property MeshRenderer renderer
 
     RoundButton {
         id: current_location
@@ -38,6 +39,11 @@ Rectangle {
             right: parent.right
             bottom: parent.bottom
             margins: 10
+        }
+        onClicked: {
+            if (!renderer)
+                return;
+//            renderer.virtual_resolution_factor = 0.1
         }
     }
 }
