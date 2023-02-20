@@ -61,11 +61,14 @@ public:
     [[nodiscard]] glm::uvec2 virtual_resolution_size() const;
     // screen space is assumed in the qt way, i.e., origin is top left (https://doc.qt.io/qt-6/coordsys.html)
     [[nodiscard]] glm::dvec2 to_ndc(const glm::dvec2& screen_space_coordinates) const;
+    [[nodiscard]] float to_screen_space(float world_space_size, float world_space_distance) const;
 
     void set_viewport_size(const glm::uvec2& new_viewport_size);
 
-    float virtual_resolution_factor() const;
+    [[nodiscard]] float virtual_resolution_factor() const;
     void set_virtual_resolution_factor(float new_virtual_resolution_factor);
+
+    bool operator==(const Definition& other) const;
 
 private:
     [[nodiscard]] glm::dvec3 operation_centre() const;
@@ -73,7 +76,8 @@ private:
 private:
     glm::dmat4 m_projection_matrix;
     glm::dmat4 m_camera_transformation;
-    float m_fov = 75;
+    float m_fov = 0;
+    float m_distance_scaling_factor = 0;
     float m_near_clipping = 1.0;
     float m_far_clipping = 100'000;
     glm::uvec2 m_viewport_size = { 800, 450 };
