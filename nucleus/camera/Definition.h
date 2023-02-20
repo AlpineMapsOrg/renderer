@@ -70,13 +70,16 @@ public:
 
     bool operator==(const Definition& other) const;
 
+    float field_of_view() const;
+    void set_field_of_view(float new_field_of_view_degrees);
+
 private:
     [[nodiscard]] glm::dvec3 operation_centre() const;
 
 private:
     glm::dmat4 m_projection_matrix;
     glm::dmat4 m_camera_transformation;
-    float m_fov = 0;
+    float m_field_of_view = 0; // degrees
     float m_distance_scaling_factor = 0;
     float m_near_clipping = 1.0;
     float m_far_clipping = 100'000;

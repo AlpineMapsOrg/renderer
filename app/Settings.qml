@@ -30,8 +30,10 @@ Rectangle {
         // after that we establish a binding, so this component can set values on the renderer
         frame_rate_slider.value = renderer.frame_limit
         lod_slider.value = renderer.virtual_resolution_factor
+        fov_slider.value = renderer.field_of_view
         renderer.frame_limit = Qt.binding(function() { return frame_rate_slider.value })
         renderer.virtual_resolution_factor = Qt.binding(function() { return lod_slider.value })
+        renderer.field_of_view = Qt.binding(function() { return fov_slider.value })
     }
 
     Rectangle {
@@ -65,6 +67,21 @@ Rectangle {
                     onClicked: {
                         renderer.update()
                     }
+                }
+            }
+            RowLayout {
+                Label {
+                    text: qsTr("Field of view:")
+                }
+                Slider {
+                    Layout.fillWidth: true
+                    id: fov_slider
+                    from: 15
+                    to: 120
+                    stepSize: 1
+                }
+                Label {
+                    text: fov_slider.value
                 }
             }
             RowLayout {

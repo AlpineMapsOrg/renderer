@@ -147,7 +147,7 @@ void nucleus::camera::Definition::set_perspective_params(float fov_degrees, cons
     m_far_clipping = near_plane * 100'000;
     m_far_clipping = std::min(m_far_clipping, 1'000'000.f);     // will be obscured by atmosphere anyways + depth based atmosphere will have numerical issues (show background atmosphere)
     m_viewport_size = viewport_size;
-    m_fov = fov_degrees;
+    m_field_of_view = fov_degrees;
     m_projection_matrix = glm::perspective(
         glm::radians(double(fov_degrees)),
         double(viewport_size.x) / double(viewport_size.y),
@@ -157,7 +157,7 @@ void nucleus::camera::Definition::set_perspective_params(float fov_degrees, cons
 
 void nucleus::camera::Definition::set_near_plane(float near_plane)
 {
-    set_perspective_params(m_fov, m_viewport_size, near_plane);
+    set_perspective_params(m_field_of_view, m_viewport_size, near_plane);
 }
 
 float nucleus::camera::Definition::near_plane() const
@@ -230,6 +230,16 @@ glm::dvec3 nucleus::camera::Definition::operation_centre() const
 
 namespace nucleus::camera {
 
+float Definition::field_of_view() const
+{
+    return m_field_of_view;
+}
+
+void Definition::set_field_of_view(float new_field_of_view_degrees)
+{
+    set_perspective_params(new_field_of_view_degrees, m_viewport_size, m_near_clipping);
+}
+
 float Definition::virtual_resolution_factor() const
 {
     return m_virtual_resolution_factor;
@@ -247,7 +257,7 @@ bool Definition::operator==(const Definition& other) const
 
 void Definition::set_viewport_size(const glm::uvec2& new_viewport_size)
 {
-    set_perspective_params(m_fov, new_viewport_size, m_near_clipping);
+    set_perspective_params(m_field_of_view, new_viewport_size, m_near_clipping);
 }
 
 }

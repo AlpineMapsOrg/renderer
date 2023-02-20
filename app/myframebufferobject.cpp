@@ -69,6 +69,7 @@ public:
         m_window = item->window();
         MyFrameBufferObject* i = static_cast<MyFrameBufferObject*>(item);
         m_controller->camera_controller()->set_virtual_resolution_factor(i->virtual_resolution_factor());
+        m_controller->camera_controller()->set_field_of_view(i->field_of_view());
         if (!(i->camera() == m_controller->camera_controller()->definition())) {
             i->set_read_only_camera(m_controller->camera_controller()->definition());
             QTimer::singleShot(0, i, [i]() {
@@ -231,4 +232,16 @@ void MyFrameBufferObject::set_read_only_camera(const nucleus::camera::Definition
     // the camera is controlled by the rendering thread (i.e., movement, projection parameters, viewport size etc).
     // this method is only for copying the camera data to the gui thread for consumptino
     m_camera = new_camera;
+float MyFrameBufferObject::field_of_view() const
+{
+    return m_field_of_view;
+}
+
+void MyFrameBufferObject::set_field_of_view(float new_field_of_view)
+{
+    if (qFuzzyCompare(m_field_of_view, new_field_of_view))
+        return;
+    m_field_of_view = new_field_of_view;
+    emit field_of_view_changed();
+    schedule_update();
 }

@@ -64,6 +64,14 @@ void Controller::set_latitude_longitude(double latitude, double longitude)
         0.0 });
 }
 
+void Controller::set_field_of_view(float fov_degrees)
+{
+    if (qFuzzyCompare(m_definition.field_of_view(), fov_degrees))
+        return;
+    m_definition.set_field_of_view(fov_degrees);
+    update();
+}
+
 void Controller::move(const glm::dvec3& v)
 {
     if (v == glm::dvec3 { 0, 0, 0 })
