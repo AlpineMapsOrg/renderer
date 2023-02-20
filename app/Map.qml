@@ -50,10 +50,5 @@ Rectangle {
             bottom: parent.bottom
             margins: 10
         }
-        onClicked: {
-            if (!renderer)
-                return;
-//            renderer.virtual_resolution_factor = 0.1
-        }
     }
 }
