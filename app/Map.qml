@@ -66,8 +66,8 @@ Rectangle {
             }
 
             Rectangle {
-                x: -(text.implicitWidth + 10) / 2
-                y: -icon.height - 20 * my_scale() - (text.implicitHeight + 5) / 2
+                x: -(width) / 2
+                y: -icon.height - 20 * my_scale() - (height) / 2
                 color: "#00FFFFFF"
                 width: text.implicitWidth + 10
                 height: text.implicitHeight + 5
@@ -78,13 +78,15 @@ Rectangle {
                     color: "white"
                     radius: 3
                     samples: 5
+                    scale: text.scale
                 }
-                Label {
+                Text {
                     anchors.centerIn: parent
                     id: text
                     color: "#000000"
-                    text: model.text
-                    font.pointSize: 20 * my_scale()
+                    text: model.text + "(" + model.altitude + "m)"
+                    font.pixelSize: 20 * my_scale()
+                    scale: 20 * my_scale() / font.pixelSize
                 }
             }
 
