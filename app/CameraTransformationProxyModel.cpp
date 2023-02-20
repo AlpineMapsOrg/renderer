@@ -44,7 +44,7 @@ QVariant CameraTransformationProxyModel::data(const QModelIndex& index, int role
         return size_scale;
     }
 
-    const auto projected = m_camera.world_view_projection_matrix() * glm::dvec4(world_pos, 1.0);
+    const auto projected = m_camera.local_view_projection_matrix(m_camera.position()) * glm::dvec4(world_pos - m_camera.position(), 1.0);
     if (projected.z < 0)
         return -10000; // should be outside of screen
     const auto ndc_pos = glm::fvec2(projected / projected.w);
@@ -74,8 +74,8 @@ void CameraTransformationProxyModel::set_camera(const nucleus::camera::Definitio
 {
     if (m_camera == new_camera)
         return;
-    qDebug() << "CameraTransformationProxyModel::set_camera thread: " << QThread::currentThread();
     m_camera = new_camera;
+    m_camera.set_near_plane(10);
     emit camera_changed();
     emit dataChanged(index(0, 0), index(rowCount() - 1, 0), { int(MapLabel::Role::ViewportX), int(MapLabel::Role::ViewportY), int(MapLabel::Role::ViewportSize) });
 }

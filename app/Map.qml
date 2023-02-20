@@ -59,6 +59,7 @@ Rectangle {
                 source: "qrc:/alpinemaps/app/icons/peak.svg"
                 width: 16 * my_scale()
                 height: 16 * my_scale()
+                sourceSize: Qt.size(width, height)
                 x: -width/2
                 y: -height
                 anchors.centerIn: parent
