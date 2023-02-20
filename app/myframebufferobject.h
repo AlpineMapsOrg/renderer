@@ -22,14 +22,16 @@
 #ifndef MYFRAMEBUFFEROBJECT_H
 #define MYFRAMEBUFFEROBJECT_H
 
+#include "nucleus/camera/Definition.h"
 #include "nucleus/event_parameter.h"
 #include <QQuickFramebufferObject>
 
 class MyFrameBufferObject : public QQuickFramebufferObject
 {
     Q_OBJECT
-
-    using EventParameters = std::variant<nucleus::event_parameter::Touch, nucleus::event_parameter::Mouse, nucleus::event_parameter::Wheel>;
+    Q_PROPERTY(int frame_limit READ frame_limit WRITE set_frame_limit NOTIFY frame_limit_changed)
+    Q_PROPERTY(float virtual_resolution_factor READ virtual_resolution_factor WRITE set_virtual_resolution_factor NOTIFY virtual_resolution_factor_changed)
+    Q_PROPERTY(nucleus::camera::Definition camera READ camera NOTIFY camera_changed)
 
 public:
     explicit MyFrameBufferObject(QQuickItem *parent = 0);
@@ -47,6 +49,7 @@ signals:
     //    void viewport_changed(const glm::uvec2& new_viewport) const;
     void position_set_by_user(double new_latitude, double new_longitude);
 
+    void camera_changed();
     void virtual_resolution_factor_changed();
 
 protected:
@@ -68,12 +71,14 @@ public:
     [[nodiscard]] float virtual_resolution_factor() const;
     void set_virtual_resolution_factor(float new_virtual_resolution_factor);
 
+    [[nodiscard]] nucleus::camera::Definition camera() const;
+    void set_read_only_camera(const nucleus::camera::Definition& new_camera); // implementation detail
+
 private:
     int m_frame_limit = 60;
     float m_virtual_resolution_factor = 0.5f;
     QTimer* m_update_timer = nullptr;
-    Q_PROPERTY(int frame_limit READ frame_limit WRITE set_frame_limit NOTIFY frame_limit_changed)
-    Q_PROPERTY(float virtual_resolution_factor READ virtual_resolution_factor WRITE set_virtual_resolution_factor NOTIFY virtual_resolution_factor_changed)
+    nucleus::camera::Definition m_camera;
 };
 
 #endif // MYFRAMEBUFFEROBJECT_H

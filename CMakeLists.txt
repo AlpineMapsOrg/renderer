@@ -62,6 +62,9 @@ set(ALP_APP_SOURCES
     app/RenderThreadNotifier.h app/RenderThreadNotifier.cpp
     app/myframebufferobject.h app/myframebufferobject.cpp
     app/GnssInformation.h app/GnssInformation.cpp
+    app/MapLabelModel.h app/MapLabelModel.cpp
+    app/CameraTransformationProxyModel.h app/CameraTransformationProxyModel.cpp
+    app/MapLabel.h
 )
 set(ALP_APP_QML
     app/main.qml
@@ -74,6 +77,7 @@ set(ALP_APP_ICONS
     app/icons/current_location.svg
     app/icons/mascot.png
     app/icons/menu.svg
+    app/icons/peak.svg
 )
 if (ALP_UNITTESTS AND NOT EMSCRIPTEN)
     set(ALP_CATCH_UNITTEST_GL_SOURCES
@@ -119,7 +123,7 @@ set(CMAKE_AUTOMOC ON)
 set(CMAKE_AUTORCC ON)
 set(CMAKE_AUTOUIC ON)
 
-find_package(Qt6 REQUIRED COMPONENTS Core Gui OpenGL Network Quick QuickControls2 LinguistTools Svg Positioning)
+find_package(Qt6 REQUIRED COMPONENTS Core Gui OpenGL Network Quick QuickControls2 LinguistTools Svg Positioning Core5Compat)
 add_subdirectory(sherpa)    # pulls in Catch2 and glm
 
 
@@ -241,7 +245,7 @@ set_target_properties(alpineapp PROPERTIES
 #    WIN32_EXECUTABLE TRUE
     QT_ANDROID_PACKAGE_SOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/android
 )
-target_link_libraries(alpineapp PUBLIC gl_engine Qt::Quick Qt::QuickControls2 Qt::Positioning)
+target_link_libraries(alpineapp PUBLIC gl_engine Qt::Quick Qt::QuickControls2 Qt::Positioning Qt6::Core5Compat)
 set_property(TARGET alpineapp PROPERTY QT_ANDROID_EXTRA_LIBS
     /home/madam/bin/Android/SDK/android_openssl/latest/arm64/libcrypto_1_1.so
     /home/madam/bin/Android/SDK/android_openssl/latest/arm64/libssl_1_1.so)

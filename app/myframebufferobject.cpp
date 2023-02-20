@@ -69,6 +69,12 @@ public:
         m_window = item->window();
         MyFrameBufferObject* i = static_cast<MyFrameBufferObject*>(item);
         m_controller->camera_controller()->set_virtual_resolution_factor(i->virtual_resolution_factor());
+        if (!(i->camera() == m_controller->camera_controller()->definition())) {
+            i->set_read_only_camera(m_controller->camera_controller()->definition());
+            QTimer::singleShot(0, i, [i]() {
+                emit i->camera_changed();
+            });
+        }
     }
 
     void render() Q_DECL_OVERRIDE
@@ -213,4 +219,16 @@ void MyFrameBufferObject::set_virtual_resolution_factor(float new_virtual_resolu
     m_virtual_resolution_factor = new_virtual_resolution_factor;
     emit virtual_resolution_factor_changed();
     schedule_update();
+}
+
+nucleus::camera::Definition MyFrameBufferObject::camera() const
+{
+    return m_camera;
+}
+
+void MyFrameBufferObject::set_read_only_camera(const nucleus::camera::Definition& new_camera)
+{
+    // the camera is controlled by the rendering thread (i.e., movement, projection parameters, viewport size etc).
+    // this method is only for copying the camera data to the gui thread for consumptino
+    m_camera = new_camera;
 }

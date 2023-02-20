@@ -30,7 +30,9 @@
 #include <QTimer>
 #include <QTranslator>
 
+#include "CameraTransformationProxyModel.h"
 #include "GnssInformation.h"
+#include "MapLabelModel.h"
 #include "RenderThreadNotifier.h"
 #include "myframebufferobject.h"
 
@@ -70,6 +72,8 @@ int main(int argc, char **argv)
 
     qmlRegisterType<MyFrameBufferObject>("Alpine", 42, 0, "MeshRenderer");
     qmlRegisterType<GnssInformation>("Alpine", 42, 0, "GnssInformation");
+    qmlRegisterType<MapLabelModel>("Alpine", 42, 0, "LabelModel");
+    qmlRegisterType<CameraTransformationProxyModel>("Alpine", 42, 0, "CameraTransformationProxyModel");
 
     QQmlApplicationEngine engine;
 

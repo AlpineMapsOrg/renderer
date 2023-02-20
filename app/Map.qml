@@ -20,6 +20,7 @@ import QtQuick
 import QtQuick.Controls
 import QtQuick.Layouts
 import Alpine
+import Qt5Compat.GraphicalEffects
 
 Rectangle {
     id: map_gui
@@ -34,6 +35,60 @@ Rectangle {
         }
     }
 
+    Repeater {
+        id: label_view
+        anchors.fill: parent
+
+        model: CameraTransformationProxyModel {
+            sourceModel: LabelModel {}
+            camera: renderer.camera
+        }
+
+        delegate: Rectangle {
+            function my_scale() {
+
+                let distance_scale = Math.max(0.4, model.size)
+                let importance_scale = model.importance / 10;
+                let min_scale = 0.1;
+                return (min_scale + (1.0-min_scale) * importance_scale) * distance_scale * 2.0;
+            }
+            x: model.x
+            y: model.y - 60
+            Image {
+                id: icon
+                source: "qrc:/alpinemaps/app/icons/peak.svg"
+                width: 16 * my_scale()
+                height: 16 * my_scale()
+                x: -width/2
+                y: -height
+                anchors.centerIn: parent
+            }
+
+            Rectangle {
+                x: -(text.implicitWidth + 10) / 2
+                y: -icon.height - 20 * my_scale() - (text.implicitHeight + 5) / 2
+                color: "#00FFFFFF"
+                width: text.implicitWidth + 10
+                height: text.implicitHeight + 5
+
+                Glow {
+                    anchors.fill: text
+                    source: text
+                    color: "white"
+                    radius: 3
+                    samples: 5
+                }
+                Label {
+                    anchors.centerIn: parent
+                    id: text
+                    color: "#000000"
+                    text: model.text
+                    font.pointSize: 20 * my_scale()
+                }
+            }
+
+        }
+    }
 
     RoundButton {
         id: current_location
