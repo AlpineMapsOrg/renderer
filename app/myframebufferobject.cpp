@@ -71,9 +71,11 @@ public:
         m_controller->camera_controller()->set_virtual_resolution_factor(i->virtual_resolution_factor());
         m_controller->camera_controller()->set_field_of_view(i->field_of_view());
         if (!(i->camera() == m_controller->camera_controller()->definition())) {
-            i->set_read_only_camera(m_controller->camera_controller()->definition());
-            QTimer::singleShot(0, i, [i]() {
-                emit i->camera_changed();
+            const auto tmp_camera = m_controller->camera_controller()->definition();
+            QTimer::singleShot(0, i, [i, tmp_camera]() {
+                i->set_read_only_camera(tmp_camera);
+                i->set_read_only_frame_buffer_width(tmp_camera.viewport_size().x);
+                i->set_read_only_frame_buffer_height(tmp_camera.viewport_size().y);
             });
         }
     }
@@ -231,7 +233,38 @@ void MyFrameBufferObject::set_read_only_camera(const nucleus::camera::Definition
 {
     // the camera is controlled by the rendering thread (i.e., movement, projection parameters, viewport size etc).
     // this method is only for copying the camera data to the gui thread for consumptino
+    if (m_camera == new_camera)
+        return;
     m_camera = new_camera;
+    emit camera_changed();
+}
+
+int MyFrameBufferObject::frame_buffer_width() const
+{
+    return m_frame_buffer_width;
+}
+
+void MyFrameBufferObject::set_read_only_frame_buffer_width(int new_frame_buffer_width)
+{
+    if (m_frame_buffer_width == new_frame_buffer_width)
+        return;
+    m_frame_buffer_width = new_frame_buffer_width;
+    emit frame_buffer_width_changed();
+}
+
+int MyFrameBufferObject::frame_buffer_height() const
+{
+    return m_frame_buffer_height;
+}
+
+void MyFrameBufferObject::set_read_only_frame_buffer_height(int new_frame_buffer_height)
+{
+    if (m_frame_buffer_height == new_frame_buffer_height)
+        return;
+    m_frame_buffer_height = new_frame_buffer_height;
+    emit frame_buffer_height_changed();
+}
+
 float MyFrameBufferObject::field_of_view() const
 {
     return m_field_of_view;

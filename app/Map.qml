@@ -52,8 +52,8 @@ Rectangle {
                 let min_scale = 0.1;
                 return (min_scale + (1.0-min_scale) * importance_scale) * distance_scale * 2.0;
             }
-            x: model.x
-            y: model.y - 60
+            x: model.x * label_view.width / renderer.frame_buffer_width
+            y: model.y * (label_view.height + 60) / renderer.frame_buffer_height - 60
             Image {
                 id: icon
                 source: "qrc:/alpinemaps/app/icons/peak.svg"
