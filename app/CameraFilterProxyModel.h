@@ -18,22 +18,22 @@
 
 #pragma once
 
-#include <QAbstractListModel>
+#include <QAbstractProxyModel>
 
 #include "AbstractMapLabelModel.h"
 
-class MapLabelModel : public QAbstractListModel, public AbstractMapLabelModel {
+class CameraFilterProxyModel : public QAbstractProxyModel, public AbstractMapLabelModel {
     Q_OBJECT
-
 public:
-    explicit MapLabelModel(QObject* parent = nullptr);
+    explicit CameraFilterProxyModel(QObject* parent = nullptr);
 
-public:
-    [[nodiscard]] int rowCount(const QModelIndex& parent) const override;
-    [[nodiscard]] QVariant data(const QModelIndex& index, int role) const override;
-    [[nodiscard]] std::vector<MapLabel> data() const override;
-    [[nodiscard]] QHash<int, QByteArray> roleNames() const override;
-
-private:
-    std::vector<MapLabel> m_labels;
+    // public:
+    //     [[nodiscard]] QModelIndex index(int row, int column, const QModelIndex& parent) const override;
+    //     [[nodiscard]] QModelIndex parent(const QModelIndex& child) const override;
+    //     [[nodiscard]] int rowCount(const QModelIndex& parent) const override;
+    //     [[nodiscard]] int columnCount(const QModelIndex& parent) const override;
+    //     [[nodiscard]] QVariant data(const QModelIndex& index, int role) const override;
+    //     [[nodiscard]] QModelIndex mapToSource(const QModelIndex& proxyIndex) const override;
+    //     [[nodiscard]] QModelIndex mapFromSource(const QModelIndex& sourceIndex) const override;
+    //     [[nodiscard]] std::vector<MapLabel> data() const override;
 };

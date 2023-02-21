@@ -20,23 +20,30 @@
 
 #include <QIdentityProxyModel>
 
+#include "AbstractMapLabelModel.h"
 #include "nucleus/camera/Definition.h"
 
-class CameraTransformationProxyModel : public QIdentityProxyModel {
+class CameraTransformationProxyModel : public QIdentityProxyModel, public AbstractMapLabelModel {
     Q_OBJECT
 
 public:
     CameraTransformationProxyModel();
-    QVariant data(const QModelIndex& index, int role) const override;
-    QHash<int, QByteArray> roleNames() const override;
+    [[nodiscard]] QVariant data(const QModelIndex& index, int role) const override;
+    [[nodiscard]] std::vector<MapLabel> data() const override;
+    [[nodiscard]] QHash<int, QByteArray> roleNames() const override;
 
-    nucleus::camera::Definition camera() const;
+    [[nodiscard]] nucleus::camera::Definition camera() const;
     void set_camera(const nucleus::camera::Definition& new_camera);
 
 signals:
     void camera_changed();
 
+private slots:
+    void source_data_updated();
+    void recalculate_screen_space_data();
+
 private:
+    std::vector<MapLabel> m_labels;
     nucleus::camera::Definition m_camera;
     Q_PROPERTY(nucleus::camera::Definition camera READ camera WRITE set_camera NOTIFY camera_changed)
 };

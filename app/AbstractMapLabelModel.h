@@ -18,22 +18,11 @@
 
 #pragma once
 
-#include <QAbstractListModel>
+#include <vector>
 
-#include "AbstractMapLabelModel.h"
+#include "MapLabel.h"
 
-class MapLabelModel : public QAbstractListModel, public AbstractMapLabelModel {
-    Q_OBJECT
-
+class AbstractMapLabelModel {
 public:
-    explicit MapLabelModel(QObject* parent = nullptr);
-
-public:
-    [[nodiscard]] int rowCount(const QModelIndex& parent) const override;
-    [[nodiscard]] QVariant data(const QModelIndex& index, int role) const override;
-    [[nodiscard]] std::vector<MapLabel> data() const override;
-    [[nodiscard]] QHash<int, QByteArray> roleNames() const override;
-
-private:
-    std::vector<MapLabel> m_labels;
+    [[nodiscard]] virtual std::vector<MapLabel> data() const = 0;
 };

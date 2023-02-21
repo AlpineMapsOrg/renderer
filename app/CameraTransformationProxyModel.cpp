@@ -25,6 +25,7 @@
 
 CameraTransformationProxyModel::CameraTransformationProxyModel()
 {
+    connect(this, &QAbstractProxyModel::sourceModelChanged, this, &CameraTransformationProxyModel::source_data_updated);
 }
 
 QVariant CameraTransformationProxyModel::data(const QModelIndex& index, int role) const
@@ -32,28 +33,12 @@ QVariant CameraTransformationProxyModel::data(const QModelIndex& index, int role
     if (role != int(MapLabel::Role::ViewportX) && role != int(MapLabel::Role::ViewportY) && role != int(MapLabel::Role::ViewportSize))
         return QIdentityProxyModel::data(index, role);
 
-    const double lat = QIdentityProxyModel::data(index, int(MapLabel::Role::Latitde)).toDouble();
-    const double lon = QIdentityProxyModel::data(index, int(MapLabel::Role::Longitude)).toDouble();
-    const double alt = QIdentityProxyModel::data(index, int(MapLabel::Role::Altitude)).toDouble();
-    const auto world_xy = nucleus::srs::lat_long_to_world({ lat, lon });
-    const auto world_pos = glm::dvec3(world_xy, alt);
+    return m_labels[index.row()].get(MapLabel::Role(role));
+}
 
-    if (role == int(MapLabel::Role::ViewportSize)) {
-        const auto distance = glm::distance(world_pos, m_camera.position());
-        const auto size_scale = m_camera.to_screen_space(1, distance);
-        return size_scale;
-    }
-
-    const auto projected = m_camera.local_view_projection_matrix(m_camera.position()) * glm::dvec4(world_pos - m_camera.position(), 1.0);
-    if (projected.z < 0)
-        return -10000; // should be outside of screen
-    const auto ndc_pos = glm::fvec2(projected / projected.w);
-    const auto viewport_pos = (ndc_pos * glm::fvec2(1, -1) * 0.5f + 0.5f) * glm::fvec2(m_camera.viewport_size());
-
-    if (role == int(MapLabel::Role::ViewportX)) {
-        return viewport_pos.x;
-    }
-    return viewport_pos.y;
+std::vector<MapLabel> CameraTransformationProxyModel::data() const
+{
+    return m_labels;
 }
 
 QHash<int, QByteArray> CameraTransformationProxyModel::roleNames() const
@@ -76,6 +61,32 @@ void CameraTransformationProxyModel::set_camera(const nucleus::camera::Definitio
         return;
     m_camera = new_camera;
     m_camera.set_near_plane(10);
+    recalculate_screen_space_data();
     emit camera_changed();
     emit dataChanged(index(0, 0), index(rowCount() - 1, 0), { int(MapLabel::Role::ViewportX), int(MapLabel::Role::ViewportY), int(MapLabel::Role::ViewportSize) });
+}
+
+void CameraTransformationProxyModel::source_data_updated()
+{
+    const auto* source_model = dynamic_cast<AbstractMapLabelModel*>(sourceModel());
+    assert(source_model != nullptr);
+    m_labels = source_model->data();
+    recalculate_screen_space_data();
+}
+
+void CameraTransformationProxyModel::recalculate_screen_space_data()
+{
+    for (auto& label : m_labels) {
+        const auto world_xy = nucleus::srs::lat_long_to_world({ label.latitude, label.longitude });
+        const auto world_pos = glm::dvec3(world_xy, label.altitude);
+
+        const auto distance = glm::distance(world_pos, m_camera.position());
+        label.viewport_size = m_camera.to_screen_space(1, distance);
+
+        const auto projected = m_camera.local_view_projection_matrix(m_camera.position()) * glm::dvec4(world_pos - m_camera.position(), 1.0);
+        const auto ndc_pos = glm::fvec2(projected / projected.w);
+        const auto viewport_pos = (ndc_pos * glm::fvec2(1, -1) * 0.5f + 0.5f) * glm::fvec2(m_camera.viewport_size());
+        label.viewport_x = projected.z >= 0 ? viewport_pos.x : -10000;
+        label.viewport_y = projected.z >= 0 ? viewport_pos.y : -10000;
+    }
 }

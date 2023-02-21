@@ -56,6 +56,11 @@ QVariant MapLabelModel::data(const QModelIndex& index, int role) const
     return m_labels[index.row()].get(MapLabel::Role(role));
 }
 
+std::vector<MapLabel> MapLabelModel::data() const
+{
+    return m_labels;
+}
+
 QHash<int, QByteArray> MapLabelModel::roleNames() const
 {
     return {

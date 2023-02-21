@@ -65,6 +65,8 @@ set(ALP_APP_SOURCES
     app/MapLabelModel.h app/MapLabelModel.cpp
     app/CameraTransformationProxyModel.h app/CameraTransformationProxyModel.cpp
     app/MapLabel.h
+    app/AbstractMapLabelModel.h
+    app/CameraFilterProxyModel.h app/CameraFilterProxyModel.cpp
 )
 set(ALP_APP_QML
     app/main.qml
