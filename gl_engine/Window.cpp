@@ -107,6 +107,8 @@ void Window::initialise_gpu()
     m_tile_manager->initilise_attribute_locations(m_shader_manager->tile_shader());
     m_screen_quad_geometry = gl_engine::helpers::create_screen_quad_geometry();
     m_framebuffer = std::make_unique<Framebuffer>(Framebuffer::DepthFormat::Int24, std::vector({ Framebuffer::ColourFormat::RGBA8 }));
+    m_raycast_buffer = std::make_unique<Framebuffer>(Framebuffer::DepthFormat::Float32, std::vector({ Framebuffer::ColourFormat::Float32 }));
+    m_raycast_buffer->resize(glm::vec2(3, 3));
 }
 
 void Window::resize(int w, int h, qreal device_pixel_ratio)
@@ -259,6 +261,7 @@ void Window::deinit_gpu()
     m_atmosphere.reset();
     m_shader_manager.reset();
     m_framebuffer.reset();
+    m_raycast_buffer.reset();
     m_screen_quad_geometry = {};
 }
 

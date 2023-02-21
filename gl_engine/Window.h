@@ -115,6 +115,7 @@ private:
     std::unique_ptr<Atmosphere> m_atmosphere; // needs opengl context
     std::unique_ptr<ShaderManager> m_shader_manager;
     std::unique_ptr<Framebuffer> m_framebuffer;
+    std::unique_ptr<Framebuffer> m_raycast_buffer;
     gl_engine::helpers::ScreenQuadGeometry m_screen_quad_geometry;
 
     nucleus::camera::Definition m_camera;
