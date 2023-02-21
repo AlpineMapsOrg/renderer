@@ -139,6 +139,22 @@ void Window::paint()
     f->glDepthFunc(GL_LESS);
 ////    glPolygonMode( GL_FRONT_AND_BACK, GL_LINE );
 
+    // RAYCAST TEST
+    m_raycast_buffer->bind();
+    f->glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
+    f->glEnable(GL_DEPTH_TEST);
+    f->glDepthFunc(GL_LESS);
+    m_shader_manager->depth_program()->bind();
+    m_tile_manager->draw(m_shader_manager->depth_program(), m_camera);
+
+    float pixel[4];
+    f->glReadPixels(0, 0, 1, 1, GL_RGB, GL_FLOAT, &pixel);
+    m_current_depth = pixel[0];
+
+    m_raycast_buffer->unbind();
+    m_framebuffer->bind();
+    // RAYCAST TEST END
+
     m_shader_manager->tile_shader()->bind();
 
     m_tile_manager->draw(m_shader_manager->tile_shader(), m_camera);
@@ -197,7 +213,7 @@ void Window::mouseMoveEvent(QMouseEvent* e)
 
 void Window::wheelEvent(QWheelEvent* e)
 {
-    float distance = 500; // todo read and compute from depth buffer
+    float distance = m_current_depth; // todo read and compute from depth buffer directly
     emit wheel_turned(e, distance);
 }
 

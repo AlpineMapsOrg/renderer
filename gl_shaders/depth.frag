@@ -13,5 +13,5 @@ void main() {
    highp float normalized_depth = gl_FragCoord.z * 2.0 - 1.0;
    highp float linear_depth = (2.0 * near * far) / (far + near - normalized_depth * (far - near));
 
-   out_Color = vec4(vec3(dist / 1000.0, dist / 10000.0, dist / 100000.0), 1.0);
+   out_Color = vec4(vec3(dist, dist, dist), 1.0);
 }

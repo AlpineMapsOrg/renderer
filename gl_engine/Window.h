@@ -126,5 +126,6 @@ private:
     TimePoint m_frame_end;
     QString m_debug_text;
     QString m_debug_scheduler_stats;
+    float m_current_depth; // TODO remove and calculate only when needed
 };
 }

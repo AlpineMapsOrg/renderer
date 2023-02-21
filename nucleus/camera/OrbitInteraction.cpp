@@ -72,7 +72,8 @@ std::optional<Definition> OrbitInteraction::touch_event(QTouchEvent* e, Definiti
 
 std::optional<Definition> OrbitInteraction::wheel_event(QWheelEvent* e, Definition camera, float distance)
 {
-    camera.zoom(e->angleDelta().y() * -8.0);
+    float dist = -1.0 * std::max((distance / 1500), 0.07f);
+    camera.zoom(e->angleDelta().y() * dist);
     return camera;
 }
 }
