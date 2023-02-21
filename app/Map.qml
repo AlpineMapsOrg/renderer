@@ -54,6 +54,7 @@ Rectangle {
             }
             x: model.x * label_view.width / renderer.frame_buffer_width
             y: model.y * (label_view.height + 60) / renderer.frame_buffer_height - 60
+            z:  50 * my_scale()
             Image {
                 id: icon
                 source: "qrc:/alpinemaps/app/icons/peak.svg"
@@ -66,6 +67,7 @@ Rectangle {
             }
 
             Rectangle {
+                id: text_rect
                 x: -(width) / 2
                 y: -icon.height - 20 * my_scale() - (height) / 2
                 color: "#00FFFFFF"
@@ -75,19 +77,37 @@ Rectangle {
                 Glow {
                     anchors.fill: text
                     source: text
-                    color: "white"
+                    color: "#CCCCCC"
                     radius: 3
                     samples: 5
                     scale: text.scale
                 }
+//                Row {
+//                    Text { font.pointSize: 24; text: "Normal" }
+//                    Text { font.pointSize: 24; text: "Raised"; style: Text.Raised; styleColor: "#AAAAAA" }
+//                    Text { font.pointSize: 24; text: "Outline";style: Text.Outline; styleColor: "red" }
+//                    Text { font.pointSize: 24; text: "Sunken"; style: Text.Sunken; styleColor: "#AAAAAA" }
+//                }
                 Text {
-                    anchors.centerIn: parent
+                    anchors.fill: parent
                     id: text
                     color: "#000000"
                     text: model.text + "(" + model.altitude + "m)"
                     font.pixelSize: 20 * my_scale()
                     scale: 20 * my_scale() / font.pixelSize
                 }
+//                Text {
+//                    anchors {
+//                        horizontalCenter: text_rect
+//                        bottom: text.top
+//                    }
+//                    id: text2
+//                    color: "#000000"
+//                    text: model.text + "(" + model.altitude + "m)"
+//                    font.pixelSize: 20 * my_scale()
+//                    style: Text.Outline; styleColor: "#CCCCCC"
+////                    scale: 20 * my_scale() / font.pixelSize
+//                }
             }
 
         }
