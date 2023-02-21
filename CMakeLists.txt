@@ -33,6 +33,11 @@ set(ALP_NUCLEUS_SOURCES
     nucleus/camera/stored_positions.h
     nucleus/utils/terrain_mesh_index_generator.h
     nucleus/utils/tile_conversion.h nucleus/utils/tile_conversion.cpp
+    nucleus/map_label/MapLabelModel.h nucleus/map_label/MapLabelModel.cpp
+    nucleus/map_label/CameraTransformationProxyModel.h nucleus/map_label/CameraTransformationProxyModel.cpp
+    nucleus/map_label/MapLabel.h
+    nucleus/map_label/AbstractMapLabelModel.h
+    nucleus/map_label/CameraFilterProxyModel.h nucleus/map_label/CameraFilterProxyModel.cpp
 )
 set(ALP_GL_SOURCES
     gl_engine/Atmosphere.h gl_engine/Atmosphere.cpp
@@ -62,11 +67,6 @@ set(ALP_APP_SOURCES
     app/RenderThreadNotifier.h app/RenderThreadNotifier.cpp
     app/myframebufferobject.h app/myframebufferobject.cpp
     app/GnssInformation.h app/GnssInformation.cpp
-    app/MapLabelModel.h app/MapLabelModel.cpp
-    app/CameraTransformationProxyModel.h app/CameraTransformationProxyModel.cpp
-    app/MapLabel.h
-    app/AbstractMapLabelModel.h
-    app/CameraFilterProxyModel.h app/CameraFilterProxyModel.cpp
 )
 set(ALP_APP_QML
     app/main.qml

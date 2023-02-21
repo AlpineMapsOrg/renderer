@@ -22,6 +22,8 @@
 #include <QVariant>
 #include <Qt>
 
+namespace nucleus::map_label {
+
 struct MapLabel {
     enum class Role {
         Text = Qt::UserRole,
@@ -66,3 +68,5 @@ struct MapLabel {
         return {};
     }
 };
+
+}

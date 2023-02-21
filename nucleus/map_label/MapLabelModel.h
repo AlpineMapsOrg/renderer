@@ -16,10 +16,27 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *****************************************************************************/
 
-#include "CameraFilterProxyModel.h"
+#pragma once
 
-CameraFilterProxyModel::CameraFilterProxyModel(QObject *parent)
-    : QAbstractProxyModel{parent}
-{
+#include <QAbstractListModel>
+
+#include "AbstractMapLabelModel.h"
+
+namespace nucleus::map_label {
+class MapLabelModel : public QAbstractListModel, public AbstractMapLabelModel {
+    Q_OBJECT
+
+public:
+    explicit MapLabelModel(QObject* parent = nullptr);
+
+public:
+    [[nodiscard]] int rowCount(const QModelIndex& parent) const override;
+    [[nodiscard]] QVariant data(const QModelIndex& index, int role) const override;
+    [[nodiscard]] std::vector<MapLabel> data() const override;
+    [[nodiscard]] QHash<int, QByteArray> roleNames() const override;
+
+private:
+    std::vector<MapLabel> m_labels;
+};
 
 }

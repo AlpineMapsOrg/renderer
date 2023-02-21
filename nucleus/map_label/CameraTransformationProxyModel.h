@@ -23,6 +23,8 @@
 #include "AbstractMapLabelModel.h"
 #include "nucleus/camera/Definition.h"
 
+namespace nucleus::map_label {
+
 class CameraTransformationProxyModel : public QIdentityProxyModel, public AbstractMapLabelModel {
     Q_OBJECT
 
@@ -47,3 +49,5 @@ private:
     nucleus::camera::Definition m_camera;
     Q_PROPERTY(nucleus::camera::Definition camera READ camera WRITE set_camera NOTIFY camera_changed)
 };
+
+}

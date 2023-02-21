@@ -20,8 +20,10 @@
 
 #include <QThread>
 
-#include "app/MapLabel.h"
+#include "MapLabel.h"
 #include "nucleus/srs.h"
+
+namespace nucleus::map_label {
 
 CameraTransformationProxyModel::CameraTransformationProxyModel()
 {
@@ -89,4 +91,6 @@ void CameraTransformationProxyModel::recalculate_screen_space_data()
         label.viewport_x = projected.z >= 0 ? viewport_pos.x : -10000;
         label.viewport_y = projected.z >= 0 ? viewport_pos.y : -10000;
     }
+}
+
 }

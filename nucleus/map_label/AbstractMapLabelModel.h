@@ -22,7 +22,11 @@
 
 #include "MapLabel.h"
 
+namespace nucleus::map_label {
+
 class AbstractMapLabelModel {
 public:
     [[nodiscard]] virtual std::vector<MapLabel> data() const = 0;
 };
+
+}

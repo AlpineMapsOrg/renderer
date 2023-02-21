@@ -22,6 +22,8 @@
 
 #include "AbstractMapLabelModel.h"
 
+namespace nucleus::map_label {
+
 class CameraFilterProxyModel : public QAbstractProxyModel, public AbstractMapLabelModel {
     Q_OBJECT
 public:
@@ -37,3 +39,5 @@ public:
     //     [[nodiscard]] QModelIndex mapFromSource(const QModelIndex& sourceIndex) const override;
     //     [[nodiscard]] std::vector<MapLabel> data() const override;
 };
+
+}

@@ -21,6 +21,8 @@
 #include <QThread>
 #include <QTimer>
 
+namespace nucleus::map_label {
+
 MapLabelModel::MapLabelModel(QObject* parent)
     : QAbstractListModel { parent }
 {
@@ -70,4 +72,6 @@ QHash<int, QByteArray> MapLabelModel::roleNames() const
         { int(MapLabel::Role::Altitude), "altitude" },
         { int(MapLabel::Role::Importance), "importance" }
     };
+}
+
 }
