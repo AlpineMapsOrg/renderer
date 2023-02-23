@@ -24,6 +24,7 @@
 #include <QOpenGLShaderProgram>
 #include <iostream>
 #include <QOpenGLVertexArrayObject>
+#include <stdio.h>
 
 #include "Atmosphere.h"
 #include "ShaderProgram.h"
@@ -101,8 +102,6 @@ void GLTileManager::addTile(const std::shared_ptr<Tile>& tile)
     if (!QOpenGLContext::currentContext())  // can happen during shutdown.
         return;
 
-
-
     assert(m_attribute_locations.height != -1);
     auto* f = QOpenGLContext::currentContext()->extraFunctions();
     // need to call GLWindow::makeCurrent, when calling through signals?
@@ -118,10 +117,6 @@ void GLTileManager::addTile(const std::shared_ptr<Tile>& tile)
         tileset.heightmap_buffer->create();
         tileset.heightmap_buffer->bind();
         tileset.heightmap_buffer->setUsagePattern(QOpenGLBuffer::DynamicDraw);
-
-     //   for(uint16_t height : tile->height_map.buffer()) {
-     //       qDebug() << height << ", " ;
-     //   }
 
         tileset.heightmap_buffer->allocate(tile->height_map.buffer().data(), bufferLengthInBytes(tile->height_map.buffer()));
         f->glEnableVertexAttribArray(GLuint(m_attribute_locations.height));

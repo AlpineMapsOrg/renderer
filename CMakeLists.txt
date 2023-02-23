@@ -43,6 +43,7 @@ set(ATB_GL_ENGINE_SOURCES
     alpine_gl_renderer/main.cpp
     alpine_gl_renderer/shadow_main.cpp
     alpine_gl_renderer/ShadowGeneration.h alpine_gl_renderer/ShadowGeneration.cpp
+    alpine_gl_renderer/HoughTransform.h alpine_gl_renderer/HoughTransform.cpp
 )
 set(ATB_GL_SHADERS
     gl_shaders/atmosphere_bg.frag
@@ -100,7 +101,7 @@ if (ATB_UNITTESTS AND NOT EMSCRIPTEN)
 endif()
 find_package(Qt6 REQUIRED COMPONENTS Core Gui OpenGL Network)
 add_subdirectory(sherpa)
-
+#add_subdirectory(libs/soltrack)
 
 if (ATB_ENABLE_ADDRESS_SANITIZER)
     message(NOTICE "building with address sanitizer enabled")
@@ -141,12 +142,15 @@ set_target_properties(alpine_gl_renderer PROPERTIES
     WIN32_EXECUTABLE TRUE
     MACOSX_BUNDLE TRUE
 )
+
 target_link_libraries(alpine_gl_renderer PUBLIC
+    #soltrack
     nucleus
     Qt::Core
     Qt::Gui
     Qt::OpenGL
 )
+
 
 if (ATB_ENABLE_ASSERTS)
     target_compile_options(alpine_gl_renderer PUBLIC "-U NDEBUG")

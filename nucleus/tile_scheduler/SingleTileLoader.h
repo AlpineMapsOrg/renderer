@@ -3,6 +3,9 @@
 
 #include "nucleus/TileScheduler.h"
 
+/*
+ * Loads one single tile and its neighbors
+ */
 class SingleTileLoader : public TileScheduler {
     Q_OBJECT
 
@@ -18,6 +21,8 @@ private:
     bool m_enabled = false;
 
 public:
+    //radius defines how many neighbors shal be loaded additionally
+    //radius of 1 means one to the left right top and botton -> essentially the 3x3 neighborhood
     SingleTileLoader(int radius);
 
     void loadTiles(const tile::Id& center_tile);

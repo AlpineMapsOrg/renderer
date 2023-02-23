@@ -3,6 +3,7 @@
 #include "nucleus/srs.h"
 
 #include <algorithm>
+#include <QDebug>
 
 using namespace camera;
 
@@ -77,6 +78,10 @@ void ShadowGenerationController::get_min_max_center(const tile::Id& tile, float&
     min = CONVERSION_FACTOR * (*uint_min);
     max = CONVERSION_FACTOR * (*uint_max);
     center = CONVERSION_FACTOR * heights.at(heights.size() / 2);
+}
+
+const Raster<uint16_t>& ShadowGenerationController::get_height_map(const tile::Id& tile) {
+    return m_tile_heights.at(tile);
 }
 
 const tile::Id& ShadowGenerationController::center_tile() const {

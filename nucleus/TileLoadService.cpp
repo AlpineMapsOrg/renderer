@@ -38,7 +38,6 @@ TileLoadService::~TileLoadService()
 void TileLoadService::load(const tile::Id& tile_id)
 {
     QNetworkReply* reply = m_network_manager->get(QNetworkRequest(QUrl(build_tile_url(tile_id))));
-    //qDebug() << "reqest tile: " << build_tile_url(tile_id);
     connect(reply, &QNetworkReply::finished, [tile_id, reply, this]() {
         const auto url = reply->url();
         const auto error = reply->error();

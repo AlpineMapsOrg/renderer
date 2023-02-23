@@ -1,7 +1,13 @@
 #version 440 core
 
+//the simple brightness comparison method will be used
+//#define SIMPLE //comment to use the more advanced method
+
+#ifdef SIMPLE
+layout (local_size_x = 1, local_size_y = 1) in;
+#else
 layout (local_size_x = 3, local_size_y = 3) in;
-//layout (local_size_x = 1, local_size_y = 1) in;
+#endif
 
 layout(binding = 0, rgba8) uniform restrict readonly image2D ortho_texture;
 layout(binding = 1, rgba8) uniform restrict readonly image2D in_out_texture;
@@ -10,19 +16,21 @@ layout(binding = 2, rgba8) uniform restrict writeonly image2D heatmap;
 struct result_struct {
     uint in_cnt;
     uint out_cnt;
-    uint in_brightness;
-    uint out_brightness;
+    int in_brightness;
+    int out_brightness;
 };
 
-layout(binding = 0, std140) restrict writeonly buffer results_buffer {
+layout(binding = 0, std140) writeonly buffer results_buffer {
     result_struct result;
 };
 
+#ifndef SIMPLE
 shared double brightness_values[9];
 shared double gradient_values[9];
 
 shared bool all_in;
 shared bool all_out;
+#endif
 
 double caluclate_gradient(ivec2 uv, ivec2 image_size);
 double calculate_brightness(ivec2 uv, ivec2 image_size);
@@ -32,8 +40,9 @@ bool is_in_shadow(ivec2 uv);
 void naive_main();
 
 void main() {
-  //  naive_main();
-
+#ifdef SIMPLE
+    naive_main();
+#else
     if(gl_LocalInvocationIndex == 0){
         all_in = true;
         all_out = true;
@@ -55,7 +64,7 @@ void main() {
 
     barrier();
 
-    if(gl_LocalInvocationIndex == 0 && (all_in || all_out)){
+    if(gl_LocalInvocationIndex == 0){
         double max_brightness = -10;
         double max_gradient = -10;
 
@@ -72,18 +81,33 @@ void main() {
                 }
             }
         }
+
+        int factor = (all_in || all_out) ? -1 : 1;
+
+        //max_gradient *= factor;
+        max_gradient *= factor;
+        max_brightness *= factor;
+        //max_brightness *= 0;
+
         max_gradient *= 0.70710678118; // 1/sqrt(2) so that 0 <= max_gradient <= 1
 
         double metric = (max_brightness + max_gradient) * 0.5;
         //uint b = uint(metric * 65536);
 
-       imageStore(heatmap, ivec2(gl_WorkGroupID.xy), vec4(metric, metric, metric, 1.f));
+        vec4 color_out;
+        if (factor == -1) {
+            color_out = vec4(metric * -1, 0, 0, 1.f);
+        } else {
+            color_out = vec4(0, metric, 0, 1.f);
+        }
+
+       imageStore(heatmap, ivec2(gl_WorkGroupID.xy), color_out);
        //imageStore(heatmap, ivec2(gl_WorkGroupID.xy), vec4(0.2, 0.8, 0.6, 1.f));
 
-        atomicAdd(result.in_brightness, uint(max_brightness * 65536));
-        atomicAdd(result.out_brightness, uint(max_gradient * 65536));
+        atomicAdd(result.in_brightness, int(max_brightness * 32768));
+        atomicAdd(result.out_brightness, int(max_gradient * 32768));
     }
-
+#endif
 }
 
 double caluclate_gradient(ivec2 uv, ivec2 image_size) {
@@ -123,13 +147,16 @@ double calculate_brightness(ivec2 uv, ivec2 image_size) {
 }
 
 bool is_in_shadow(ivec2 uv) {
-    float tex = imageLoad(in_out_texture, uv).x;
+    ivec2 shadow_uv = ivec2(uv.x, 256 - uv.y);
+
+    float tex = imageLoad(in_out_texture, shadow_uv).x;
 
     return tex > 0.5f;
 }
 
 void naive_main() {
     ivec2 uv = ivec2(gl_WorkGroupID.xy);
+    ivec2 invers_uv = ivec2(uv.x, 256 - uv.y);
     vec3 ortho = vec3(imageLoad(ortho_texture, uv).xyz);
 
     float max_value = max(ortho.x, max(ortho.y, ortho.z));
@@ -138,24 +165,23 @@ void naive_main() {
     float brightness = (max_value + min_value) * 0.5f;
 
 
-    float tex = imageLoad(in_out_texture, uv).x;
+    float tex = imageLoad(in_out_texture, invers_uv).x;
 
     if (tex < 0.5f) {
         //not in shadow
 
-        brightness = brightness * brightness;
-
-        uint b = uint(brightness * 65536);
+        //convert to uint because atmoicAdd only accepts integers and the brightness can't be negative
+        int b = int(brightness * 65536);
 
         atomicAdd(result.in_brightness, b);
-        atomicAdd(result.in_cnt, 1u);
+        atomicAdd(result.in_cnt, 1);
     } else {
         //in shadow
-        brightness = sqrt(brightness);
 
-        uint b = uint(brightness * 65536);
+        //convert to uint because atmoicAdd only accepts integers and the brightness can't be negative
+        int b = int(brightness * 65536);
 
-        atomicAdd(result.out_cnt, 1u);
+        atomicAdd(result.out_cnt, 1);
         atomicAdd(result.out_brightness, b);
     }
 }

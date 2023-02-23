@@ -6,7 +6,9 @@
 
 #include <QOpenGLFramebufferObject>
 
-
+/*
+ * @brief: this class contains the control logic to all gpu based calculations, these include different renderings as well as calculating the metrics
+ */
 
 class ShadowGeneration
 {
@@ -22,7 +24,6 @@ class ShadowGeneration
     GLuint vao;
     GLuint compute_buffer;
 
-
     QOpenGLContext& context;
     GLTileManager& tile_manager;
 
@@ -32,6 +33,9 @@ class ShadowGeneration
     static const glm::mat4 biasMatrix;
 
 public:
+    /*
+     * @param tile_radis, defines how many tiles are loaded to do the shadow calculations
+     */
     ShadowGeneration(QOpenGLContext& context, GLTileManager& tile_manager, GLuint tile_radius);
     ~ShadowGeneration();
 

@@ -10,6 +10,7 @@
 const float ShadowGeneration::bg[] = {0.1f, 0.1f, 0.1f, 1.f};
 const float ShadowGeneration::one[] = {1.f, 1.f, 1.f, 1.f};
 
+/* bias Matrix for the Shadow Mapping */
 const glm::mat4 ShadowGeneration::biasMatrix = glm::mat4(
             0.5, 0.0, 0.0, 0.0,
             0.0, 0.5, 0.0, 0.0,
@@ -29,12 +30,12 @@ void set_texture_parameters(const QOpenGLContext& context, GLuint tex_handle) {
 struct ComputeShaderResults {
     GLuint in_cnt;
     GLuint out_cnt;
-    GLuint in_brightness;
-    GLuint out_brightness;
+    GLint in_brightness;
+    GLint out_brightness;
 };
 
 ShadowGeneration::ShadowGeneration(QOpenGLContext& context_in, GLTileManager& tile_manager_in, GLuint tile_radius)
-    : m_img_fb(QSize(256, 256), QOpenGLFramebufferObject::Attachment::Depth)
+    : m_img_fb(QSize(256, 256), QOpenGLFramebufferObject::Attachment::Depth, GL_TEXTURE_2D, GL_RGBA8)
     , m_shadow_fb(QSize(256 * (tile_radius * 2 + 1), 256 * tile_radius * 2 + 1), QOpenGLFramebufferObject::Attachment::Depth, GL_TEXTURE_2D, GL_RGBA32F)
     , context(context_in)
     , tile_manager(tile_manager_in)
@@ -138,7 +139,6 @@ QImage ShadowGeneration::render_sunview_shadow_ortho_tripple(const camera::Defin
 
 
 ShadowGeneration::~ShadowGeneration() {
-
     context.functions()->glDeleteTextures(1, &heatmap);
     context.functions()->glDeleteBuffers(1, &compute_buffer);
     context.extraFunctions()->glDeleteVertexArrays(1, &vao);
@@ -159,7 +159,7 @@ float ShadowGeneration::calculate_shadow_metric(const camera::Definition& camera
     set_texture_parameters(context, in_out_texture_handle);
 
     context.functions()->glBindBuffer(GL_SHADER_STORAGE_BUFFER, compute_buffer);
-    ComputeShaderResults *buffer = (ComputeShaderResults*)context.extraFunctions()->glMapBufferRange(GL_SHADER_STORAGE_BUFFER, 0, sizeof(ComputeShaderResults), GL_MAP_READ_BIT);
+    ComputeShaderResults *buffer = (ComputeShaderResults*)context.extraFunctions()->glMapBufferRange(GL_SHADER_STORAGE_BUFFER, 0, sizeof(ComputeShaderResults), GL_MAP_WRITE_BIT);
     memset(buffer, 0, sizeof(ComputeShaderResults));
     context.extraFunctions()->glUnmapBuffer(GL_SHADER_STORAGE_BUFFER);
 
@@ -191,21 +191,29 @@ float ShadowGeneration::calculate_shadow_metric(const camera::Definition& camera
     }
 
 
+    //-----------------------------
+    //here the results of the compute shader are evaluated
     ComputeShaderResults *results = (ComputeShaderResults*)context.extraFunctions()->glMapBufferRange(GL_SHADER_STORAGE_BUFFER, 0, sizeof(ComputeShaderResults), GL_MAP_READ_BIT);
- //   float in_ratio = results->in_cnt != 0 ? results->in_brightness / static_cast<float>(results->in_cnt) : 0;
- //   float out_ratio = results->out_cnt != 0 ? results->out_brightness / static_cast<float>(results->out_cnt) : 0;
-/*
-    qDebug() << "--------------------------------------";
-    qDebug() << "in_cnt = " << results->in_cnt << " - out_cnt = " << results->out_cnt;
+ //  float in_ratio = results->in_cnt != 0 ? results->in_brightness / static_cast<float>(results->in_cnt) : 0;
+ //  float out_ratio = results->out_cnt != 0 ? results->out_brightness / static_cast<float>(results->out_cnt) : 0;
+
+   //in_ratio = 256 * in_ratio / 65536;
+   //out_ratio = 256 * out_ratio / 65536;
+
+   // qDebug() << "--------------------------------------";
+   /* qDebug() << "in_cnt = " << results->in_cnt << " - out_cnt = " << results->out_cnt;
     qDebug() << "in_brightness = " << results->in_brightness << " - out_brightness = " << results->out_brightness;
     qDebug() << "in_ratio = " << in_ratio << " - out_ratio = " << out_ratio;
     qDebug() << "metric = " << (in_ratio - out_ratio);
 */
-    qDebug() << "brightness = " << results->in_brightness << " - gradient = " << results->out_brightness;
+   // qDebug() << "brightness = " << results->in_brightness << " - gradient = " << results->out_brightness;
 
     float metric = static_cast<float>(results->in_brightness) / 65536 + static_cast<float>(results->out_brightness) / 65536;
-
     context.extraFunctions()->glUnmapBuffer(GL_SHADER_STORAGE_BUFFER);
+
+  //  float metric = in_ratio - out_ratio;
+   // qDebug() << "metric = " << (in_ratio - out_ratio);
+    //-----------------------------
 
     return metric;
 }
