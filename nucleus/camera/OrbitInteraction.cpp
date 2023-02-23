@@ -1,8 +1,15 @@
 #include "OrbitInteraction.h"
+#include "AbstractRayCaster.h"
 
 #include <QDebug>
 
 namespace nucleus::camera {
+
+std::optional<Definition> OrbitInteraction::mouse_press_event(const event_parameter::Mouse& e, Definition camera, AbstractRayCaster* ray_caster)
+{
+    m_operation_centre = ray_caster->ray_cast(camera, camera.to_ndc({ e.point.pressPosition().x(), e.point.pressPosition().y() }));
+    return {};
+}
 
 std::optional<Definition> OrbitInteraction::mouse_move_event(const event_parameter::Mouse& e, Definition camera, AbstractRayCaster* ray_caster)
 {
@@ -13,6 +20,8 @@ std::optional<Definition> OrbitInteraction::mouse_move_event(const event_paramet
     }
     if (e.buttons == Qt::MiddleButton) {
         const auto delta = e.point.position() - e.point.lastPosition();
+        qDebug(QString("center %1 %2 %3").arg(m_operation_centre.x).arg(m_operation_centre.y).arg(m_operation_centre.z).toStdString().c_str());
+        qDebug(QString("camera %1 %2 %3").arg(camera.position().x).arg(camera.position().y).arg(camera.position().z).toStdString().c_str());
         camera.orbit(m_operation_centre, glm::vec2(delta.x(), delta.y()) * -0.1f);
     }
     if (e.buttons == Qt::RightButton) {
