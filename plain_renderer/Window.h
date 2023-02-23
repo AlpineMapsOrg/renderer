@@ -22,6 +22,7 @@
 #include <glm/glm.hpp>
 
 #include "gl_engine/Window.h"
+#include "nucleus/event_parameter.h"
 
 class Window : public QOpenGLWindow
 {
@@ -42,6 +43,13 @@ protected:
     void wheelEvent(QWheelEvent*) override;
     void keyPressEvent(QKeyEvent*) override;
     void touchEvent(QTouchEvent*) override;
+
+signals:
+    void mouse_pressed(const nucleus::event_parameter::Mouse&) const;
+    void mouse_moved(const nucleus::event_parameter::Mouse&) const;
+    void wheel_turned(const nucleus::event_parameter::Wheel&) const;
+    void touch_made(const nucleus::event_parameter::Touch&) const;
+    void resized(const glm::uvec2&) const;
 
 private:
     gl_engine::Window m_gl_window;

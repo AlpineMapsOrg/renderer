@@ -14,6 +14,7 @@ option(ALP_USE_LLVM_LINKER "use lld (llvm) for linking. it's parallel and much f
 set(ALP_NUCLEUS_SOURCES
     nucleus/AbstractRenderWindow.h nucleus/AbstractRenderWindow.cpp
     nucleus/Controller.h nucleus/Controller.cpp
+    nucleus/event_parameter.h
     nucleus/Raster.h
     nucleus/srs.h nucleus/srs.cpp
     nucleus/Tile.cpp nucleus/Tile.h
@@ -29,6 +30,7 @@ set(ALP_NUCLEUS_SOURCES
     nucleus/camera/InteractionStyle.h nucleus/camera/InteractionStyle.cpp
     nucleus/camera/NearPlaneAdjuster.h nucleus/camera/NearPlaneAdjuster.cpp
     nucleus/camera/OrbitInteraction.h nucleus/camera/OrbitInteraction.cpp
+    nucleus/camera/AbstractRayCaster.h
     nucleus/camera/stored_positions.h
     nucleus/utils/terrain_mesh_index_generator.h
     nucleus/utils/tile_conversion.h nucleus/utils/tile_conversion.cpp
@@ -44,10 +46,6 @@ set(ALP_GL_SOURCES
     gl_engine/helpers.h
     gl_engine/ShaderProgram.h gl_engine/ShaderProgram.cpp
 )
-set(ALP_PLAIN_RENDERER_SOURCES
-    plain_renderer/main.cpp
-    plain_renderer/Window.h plain_renderer/Window.cpp
-)
 set(ALP_GL_SHADERS
     gl_shaders/atmosphere_bg.frag
     gl_shaders/atmosphere_implementation.frag
@@ -56,6 +54,19 @@ set(ALP_GL_SHADERS
     gl_shaders/tile.frag
     gl_shaders/tile.vert
     gl_shaders/depth.frag
+)
+set(ALP_PLAIN_RENDERER_SOURCES
+    plain_renderer/main.cpp
+    plain_renderer/Window.h plain_renderer/Window.cpp
+)
+set(ALP_APP_SOURCES
+    app/main.cpp
+    app/RenderThreadNotifier.h app/RenderThreadNotifier.cpp
+    app/myframebufferobject.h app/myframebufferobject.cpp
+)
+set(ALP_APP_QML
+    app/main.qml
+    app/CameraControls.qml
 )
 if (ALP_UNITTESTS AND NOT EMSCRIPTEN)
     set(ALP_CATCH_UNITTEST_GL_SOURCES
@@ -86,6 +97,14 @@ if (ALP_UNITTESTS AND NOT EMSCRIPTEN)
     )
 endif()
 
+include(FetchContent)
+FetchContent_Declare(
+  alpine_height_data
+  URL      https://gataki.cg.tuwien.ac.at/tiles/alpine_png2/height_data.atb
+  DOWNLOAD_NO_EXTRACT true
+  URL_HASH MD5=f5458b48ade5d6aaf980fcfc5b6be29a
+)
+FetchContent_MakeAvailable(alpine_height_data)
 
 ########################################### setup #################################################
 set(CMAKE_CXX_STANDARD 20)
@@ -93,7 +112,7 @@ set(CMAKE_AUTOMOC ON)
 set(CMAKE_AUTORCC ON)
 set(CMAKE_AUTOUIC ON)
 
-find_package(Qt6 REQUIRED COMPONENTS Core Gui OpenGL Network)
+find_package(Qt6 REQUIRED COMPONENTS Core Gui OpenGL Network Quick QuickControls2 LinguistTools)
 add_subdirectory(sherpa)    # pulls in Catch2 and glm
 
 
@@ -135,7 +154,7 @@ endif()
 
 ########################################### gl engine #############################################
 qt_add_library(gl_engine STATIC ${ALP_GL_SOURCES})
-target_link_libraries(gl_engine PUBLIC nucleus Qt::Core Qt::Gui Qt::OpenGL)
+target_link_libraries(gl_engine PUBLIC nucleus Qt::Core Qt::OpenGL)
 target_include_directories(gl_engine PRIVATE .)
 
 qt_add_resources(gl_engine "gl_shaders"
@@ -152,10 +171,14 @@ set_target_properties(plain_renderer PROPERTIES
     WIN32_EXECUTABLE TRUE
     MACOSX_BUNDLE TRUE
 )
-target_link_libraries(plain_renderer PUBLIC
-    gl_engine
-)
+target_link_libraries(plain_renderer PUBLIC gl_engine Qt::Gui)
 target_include_directories(plain_renderer PRIVATE .)
+
+qt_add_resources(plain_renderer "alpine_app_resources"
+    PREFIX "/resources"
+    BASE ${alpine_height_data_SOURCE_DIR}
+    FILES ${alpine_height_data_SOURCE_DIR}/height_data.atb
+)
 
 message(NOTICE "ALP_INSTALL_DIR = ${ALP_INSTALL_DIR}")
 if (NOT EMSCRIPTEN)
@@ -180,6 +203,41 @@ else ()
     install(FILES ${ALP_INSTALL_FILES} DESTINATION ${ALP_INSTALL_DIR})
 
 endif()
+
+########################################### app render frontend #############################################
+
+qt_add_executable(alpineapp
+    ${ALP_APP_SOURCES}
+)
+
+qt_add_qml_module(alpineapp
+    URI alpinemaps
+    VERSION 1.0
+    QML_FILES ${ALP_APP_QML}
+)
+qt_add_resources(alpineapp "alpine_app_resources"
+    PREFIX "/resources"
+    BASE ${alpine_height_data_SOURCE_DIR}
+    FILES ${alpine_height_data_SOURCE_DIR}/height_data.atb
+)
+qt_add_translations(alpineapp TS_FILES app/i18n/de.ts app/i18n/en.ts)
+
+set_target_properties(alpineapp PROPERTIES
+#    MACOSX_BUNDLE_GUI_IDENTIFIER my.example.com
+#    MACOSX_BUNDLE_BUNDLE_VERSION ${PROJECT_VERSION}
+#    MACOSX_BUNDLE_SHORT_VERSION_STRING ${PROJECT_VERSION_MAJOR}.${PROJECT_VERSION_MINOR}
+#    MACOSX_BUNDLE TRUE
+#    WIN32_EXECUTABLE TRUE
+    QT_ANDROID_PACKAGE_SOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/android
+)
+target_link_libraries(alpineapp PUBLIC gl_engine Qt::Quick Qt::QuickControls2)
+set_property(TARGET alpineapp PROPERTY QT_ANDROID_EXTRA_LIBS
+    /home/madam/bin/Android/SDK/android_openssl/latest/arm64/libcrypto_1_1.so
+    /home/madam/bin/Android/SDK/android_openssl/latest/arm64/libssl_1_1.so)
+install(TARGETS alpineapp
+    BUNDLE DESTINATION .
+    LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR})
+
 
 #################################### unit tests for backend #######################################
 if (ALP_UNITTESTS AND NOT EMSCRIPTEN)

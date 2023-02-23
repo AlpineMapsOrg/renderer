@@ -2,7 +2,7 @@
 A developer version is available at https://gataki.cg.tuwien.ac.at/. Be aware that it can break at any time.
 
 We are in discord, talk to us!
-https://discord.gg/tvtnZnZ6
+https://discord.gg/p8T9XzVwRa
 
 # cloning
 `git clone --recurse-submodules git@github.com:AlpineMapsOrg/renderer.git`

@@ -60,16 +60,13 @@
 
 #include "helpers.h"
 #include "nucleus/AbstractRenderWindow.h"
+#include "nucleus/camera/AbstractRayCaster.h"
 #include "nucleus/camera/Definition.h"
-
-QT_BEGIN_NAMESPACE
 
 class QOpenGLTexture;
 class QOpenGLShaderProgram;
 class QOpenGLBuffer;
 class QOpenGLVertexArrayObject;
-QT_END_NAMESPACE
-
 class TileManager;
 
 namespace gl_engine {
@@ -78,28 +75,24 @@ class ShaderManager;
 class Framebuffer;
 class Atmosphere;
 
-class Window : public nucleus::AbstractRenderWindow {
+class Window : public nucleus::AbstractRenderWindow, public nucleus::camera::AbstractRayCaster {
     Q_OBJECT
 public:
     Window();
     ~Window() override;
 
     void initialise_gpu() override;
-    void resize(int w, int h, qreal device_pixel_ratio) override;
-    void paint() override;
+    void resize_framebuffer(int w, int h) override;
+    void paint(QOpenGLFramebufferObject* framebuffer = nullptr) override;
     void paintOverGL(QPainter* painter);
 
-    glm::dvec3 ray_cast(const glm::dvec2& normalised_device_coordinates) override;
+    [[nodiscard]] glm::dvec3 ray_cast(const nucleus::camera::Definition& camera, const glm::dvec2& normalised_device_coordinates) override;
     void deinit_gpu() override;
     void set_aabb_decorator(const nucleus::tile_scheduler::AabbDecoratorPtr&) override;
     void add_tile(const std::shared_ptr<nucleus::Tile>&) override;
     void remove_tile(const tile::Id&) override;
-
-    void mousePressEvent(QMouseEvent*);
-    void mouseMoveEvent(QMouseEvent*);
-    void wheelEvent(QWheelEvent*);
+    [[nodiscard]] nucleus::camera::AbstractRayCaster* ray_caster() override;
     void keyPressEvent(QKeyEvent*);
-    void touchEvent(QTouchEvent*);
 
 public slots:
     void update_camera(const nucleus::camera::Definition& new_definition) override;

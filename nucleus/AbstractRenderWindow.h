@@ -23,6 +23,8 @@
 
 #include <glm/glm.hpp>
 
+class QOpenGLFramebufferObject;
+
 namespace tile {
 struct Id;
 }
@@ -34,6 +36,7 @@ namespace tile_scheduler {
 }
 namespace camera {
     class Definition;
+    class AbstractRayCaster;
 }
 struct Tile;
 
@@ -41,10 +44,10 @@ class AbstractRenderWindow : public QObject {
     Q_OBJECT
 public:
     virtual void initialise_gpu() = 0;
-    virtual void resize(int width, int height, qreal device_pixel_ratio) = 0;
-    virtual void paint() = 0;
-    virtual glm::dvec3 ray_cast(const glm::dvec2& normalised_device_coordinates) = 0;
+    virtual void resize_framebuffer(int width, int height) = 0;
+    virtual void paint(QOpenGLFramebufferObject* framebuffer = nullptr) = 0;
     virtual void deinit_gpu() = 0;
+    [[nodiscard]] virtual camera::AbstractRayCaster* ray_caster() = 0;
 
 public slots:
     virtual void update_camera(const camera::Definition& new_definition) = 0;
@@ -55,12 +58,7 @@ public slots:
 
 signals:
     void update_requested();
-    void mouse_pressed(QMouseEvent*, float distance) const;
-    void mouse_moved(QMouseEvent*) const;
-    void wheel_turned(QWheelEvent*, float distance) const;
     void key_pressed(const QKeyCombination&) const;
-    void touch_made(QTouchEvent*) const;
-    void viewport_changed(const glm::uvec2& new_viewport) const;
 };
 
 }

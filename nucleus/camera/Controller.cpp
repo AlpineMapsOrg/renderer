@@ -1,10 +1,30 @@
+/*****************************************************************************
+ * Alpine Terrain Renderer
+ * Copyright (C) 2022 Adam Celarek
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ *****************************************************************************/
+
 #include "Controller.h"
 
 #include "nucleus/camera/Definition.h"
 
 namespace nucleus::camera {
-Controller::Controller(const Definition& camera)
-    : m_definition(camera), m_interaction_style(std::make_unique<InteractionStyle>())
+Controller::Controller(const Definition& camera, AbstractRayCaster* ray_caster)
+    : m_definition(camera)
+    , m_ray_caster(ray_caster)
+    , m_interaction_style(std::make_unique<InteractionStyle>())
 {
 }
 
@@ -21,7 +41,17 @@ void Controller::set_viewport(const glm::uvec2& new_viewport)
 {
     if (m_definition.viewport_size() == new_viewport)
         return;
+    if (new_viewport.x * new_viewport.y == 0)
+        return;
     m_definition.set_viewport_size(new_viewport);
+    update();
+}
+
+void Controller::set_virtual_resolution_factor(float new_factor)
+{
+    if (qFuzzyCompare(m_definition.virtual_resolution_factor(), new_factor))
+        return;
+    m_definition.set_virtual_resolution_factor(new_factor);
     update();
 }
 
@@ -46,27 +76,27 @@ void Controller::update() const
     emit definition_changed(m_definition);
 }
 
-void Controller::mouse_press(QMouseEvent* e, float distance)
+void Controller::mouse_press(const event_parameter::Mouse& e)
 {
-    const auto new_definition = m_interaction_style->mouse_press_event(e, m_definition, distance);
+    const auto new_definition = m_interaction_style->mouse_press_event(e, m_definition, m_ray_caster);
     if (!new_definition)
         return;
     m_definition = new_definition.value();
     update();
 }
 
-void Controller::mouse_move(QMouseEvent* e)
+void Controller::mouse_move(const event_parameter::Mouse& e)
 {
-    const auto new_definition = m_interaction_style->mouse_move_event(e, m_definition);
+    const auto new_definition = m_interaction_style->mouse_move_event(e, m_definition, m_ray_caster);
     if (!new_definition)
         return;
     m_definition = new_definition.value();
     update();
 }
 
-void Controller::wheel_turn(QWheelEvent* e, float distance)
+void Controller::wheel_turn(const event_parameter::Wheel& e)
 {
-    const auto new_definition = m_interaction_style->wheel_event(e, m_definition, distance);
+    const auto new_definition = m_interaction_style->wheel_event(e, m_definition, m_ray_caster);
     if (!new_definition)
         return;
     m_definition = new_definition.value();
@@ -75,16 +105,16 @@ void Controller::wheel_turn(QWheelEvent* e, float distance)
 
 void Controller::key_press(const QKeyCombination& e)
 {
-    const auto new_definition = m_interaction_style->key_press_event(e, m_definition);
+    const auto new_definition = m_interaction_style->key_press_event(e, m_definition, m_ray_caster);
     if (!new_definition)
         return;
     m_definition = new_definition.value();
     update();
 }
 
-void Controller::touch(QTouchEvent* e)
+void Controller::touch(const event_parameter::Touch& e)
 {
-    const auto new_definition = m_interaction_style->touch_event(e, m_definition);
+    const auto new_definition = m_interaction_style->touch_event(e, m_definition, m_ray_caster);
     if (!new_definition)
         return;
     m_definition = new_definition.value();
@@ -106,6 +136,9 @@ const Definition& Controller::definition() const
 
 void Controller::set_definition(const Definition& new_definition)
 {
+    if (m_definition.world_view_projection_matrix() == new_definition.world_view_projection_matrix())
+        return;
+
     m_definition = new_definition;
     update();
 }

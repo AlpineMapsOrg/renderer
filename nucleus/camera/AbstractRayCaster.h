@@ -1,6 +1,6 @@
 /*****************************************************************************
  * Alpine Terrain Renderer
- * Copyright (C) 2022 Adam Celarek
+ * Copyright (C) 2023 Adam Celarek
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -18,46 +18,13 @@
 
 #pragma once
 
-#include <memory>
-#include <vector>
-
 #include <glm/glm.hpp>
-#include <QObject>
-
-#include "sherpa/tile.h"
-
-namespace nucleus {
-struct Tile;
-}
 
 namespace nucleus::camera {
 class Definition;
 
-class NearPlaneAdjuster : public QObject
-{
-    Q_OBJECT
+class AbstractRayCaster {
 public:
-    explicit NearPlaneAdjuster(QObject *parent = nullptr);
-
-signals:
-    void near_plane_changed(float new_distance) const;
-
-public slots:
-    void update_camera(const Definition& new_definition);
-    void add_tile(const std::shared_ptr<nucleus::Tile>& tile);
-    void remove_tile(const tile::Id& tile_id);
-
-private:
-    void update_near_plane() const;
-
-    struct Object {
-        Object() = default;
-        Object(const tile::Id& id, const double& elevation) : id(id), elevation(elevation) {}
-        tile::Id id;
-        double elevation;
-    };
-    glm::dvec3 m_camera_position;
-    std::vector<Object> m_objects;
+    [[nodiscard]] virtual glm::dvec3 ray_cast(const Definition& camera, const glm::dvec2& normalised_device_coordinates) = 0;
 };
-
 }

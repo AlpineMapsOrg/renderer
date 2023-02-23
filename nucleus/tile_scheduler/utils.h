@@ -18,10 +18,12 @@
 
 #pragma once
 
+#include <iostream>
+
 #include "nucleus/camera/Definition.h"
 #include "nucleus/srs.h"
-#include "sherpa/geometry.h"
 #include "sherpa/TileHeights.h"
+#include "sherpa/geometry.h"
 
 namespace nucleus::tile_scheduler {
 
@@ -79,6 +81,8 @@ inline auto cameraFrustumContainsTile(const nucleus::camera::Definition& camera,
 
 inline auto refineFunctor(const nucleus::camera::Definition& camera, const AabbDecoratorPtr& aabb_decorator, double error_threshold_px, double tile_size = 256)
 {
+    std::cout << "camera.virtual_resolution_size().x: " << camera.virtual_resolution_size().x << std::endl;
+
     const auto refine = [&camera, error_threshold_px, tile_size, aabb_decorator](const tile::Id& tile) {
         if (tile.zoom_level >= 18)
             return false;
@@ -102,7 +106,7 @@ inline auto refineFunctor(const nucleus::camera::Definition& camera, const AabbD
         other_screenspace /= other_screenspace.w;
         const auto clip_space_difference = length(glm::dvec2(nearest_screenspace - other_screenspace));
 
-        return clip_space_difference * 0.5 * camera.viewport_size().x >= error_threshold_px;
+        return clip_space_difference * 0.5 * camera.virtual_resolution_size().x >= error_threshold_px;
     };
     return refine;
 }

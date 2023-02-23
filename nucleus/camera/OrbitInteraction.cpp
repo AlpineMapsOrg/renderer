@@ -4,50 +4,58 @@
 
 namespace nucleus::camera {
 
-std::optional<Definition> OrbitInteraction::mouse_move_event(QMouseEvent* e, Definition camera)
+std::optional<Definition> OrbitInteraction::mouse_move_event(const event_parameter::Mouse& e, Definition camera, AbstractRayCaster* ray_caster)
 {
 
-    glm::ivec2 mouse_position { e->pos().x(), e->pos().y() };
-    if (e->buttons() == Qt::LeftButton) {
-        const auto delta = mouse_position - m_previous_mouse_pos;
-        camera.pan(glm::vec2(delta) * 10.0f);
+    if (e.buttons == Qt::LeftButton) {
+        const auto delta = e.point.position() - e.point.lastPosition();
+        camera.pan(glm::vec2(delta.x(), delta.y()) * 10.0f);
     }
-    if (e->buttons() == Qt::MiddleButton) {
-        const auto delta = mouse_position - m_previous_mouse_pos;
-        camera.orbit(glm::vec2(delta) * -0.1f);
+    if (e.buttons == Qt::MiddleButton) {
+        const auto delta = e.point.position() - e.point.lastPosition();
+        camera.orbit(m_operation_centre, glm::vec2(delta.x(), delta.y()) * -0.1f);
     }
-    if (e->buttons() == Qt::RightButton) {
-        const auto delta = mouse_position - m_previous_mouse_pos;
-        camera.zoom((delta.y - delta.x) * 10.0);
+    if (e.buttons == Qt::RightButton) {
+        const auto delta = e.point.position() - e.point.lastPosition();
+        camera.zoom(delta.y() * 10.0);
     }
-    m_previous_mouse_pos = mouse_position;
 
-    if (e->buttons() == Qt::NoButton)
+    if (e.buttons == Qt::NoButton)
         return {};
     else
         return camera;
 }
 
-std::optional<Definition> OrbitInteraction::touch_event(QTouchEvent* e, Definition camera)
+std::optional<Definition> OrbitInteraction::touch_event(const event_parameter::Touch& e, Definition camera, AbstractRayCaster* ray_caster)
 {
-    glm::ivec2 first_touch = { e->points()[0].position().x(), e->points()[0].position().y() };
+    glm::ivec2 first_touch = { e.points[0].position().x(), e.points[0].position().y() };
     glm::ivec2 second_touch;
-    if (e->points().size() >= 2)
-        second_touch = { e->points()[1].position().x(), e->points()[1].position().y() };
+    if (e.points.size() >= 2)
+        second_touch = { e.points[1].position().x(), e.points[1].position().y() };
 
-    if (e->isEndEvent())
+    // ugly code, but it prevents the following:
+    // touch 1 at pos a, touch 2 at pos b
+    // release touch 1, touch 2 becomes new touch 1. movement from b to a is initiated.
+    if (m_was_double_touch) {
+        m_previous_first_touch = first_touch;
+    }
+    m_was_double_touch = false;
+
+    if (e.is_end_event) {
+        m_was_double_touch = e.points.size() >= 2;
         return {};
-    if (e->isBeginEvent()) {
+    }
+    if (e.is_begin_event) {
         m_previous_first_touch = first_touch;
         m_previous_second_touch = second_touch;
         return {};
     }
     // touch move
-    if (e->points().size() == 1) {
+    if (e.points.size() == 1) {
         const auto delta = first_touch - m_previous_first_touch;
         camera.pan(glm::vec2(delta) * 10.0f);
     }
-    if (e->points().size() == 2) {
+    if (e.points.size() == 2) {
         const auto previous_centre = (m_previous_first_touch + m_previous_second_touch) / 2;
         const auto current_centre = (first_touch + second_touch) / 2;
         const auto pitch = -(current_centre - previous_centre).y;
@@ -70,10 +78,10 @@ std::optional<Definition> OrbitInteraction::touch_event(QTouchEvent* e, Definiti
     return camera;
 }
 
-std::optional<Definition> OrbitInteraction::wheel_event(QWheelEvent* e, Definition camera, float distance)
+std::optional<Definition> OrbitInteraction::wheel_event(const event_parameter::Wheel& e, Definition camera, AbstractRayCaster* ray_caster)
 {
-    float dist = -1.0 * std::max((distance / 1500), 0.07f);
-    camera.zoom(e->angleDelta().y() * dist);
+    //float dist = -1.0 * std::max((distance / 1500), 0.07f);
+    camera.zoom(e.angle_delta.y() * -8.0); // replace -8.0 with dist
     return camera;
 }
 }

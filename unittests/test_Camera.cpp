@@ -94,6 +94,50 @@ TEST_CASE("nucleus/camera: Definition")
         CHECK(transformed.y == Approx(0.0f).scale(50));
         CHECK(transformed.z > 0);
     }
+
+    SECTION("screen space to glm ndc")
+    {
+        // https://registry.khronos.org/OpenGL-Refpages/gl4/html/glViewport.xhtml
+        auto c = nucleus::camera::Definition({ 1, 2, 3 }, { 10, 2, 3 });
+        c.set_viewport_size({ 2, 3 });
+        {
+            const auto ndc = c.to_ndc({ 1.0, 1.5 });
+            CHECK(ndc.x == Approx(0));
+            CHECK(ndc.y == Approx(0));
+        }
+        {
+            const auto ndc = c.to_ndc({ 0, 0 });
+            CHECK(ndc.x == Approx(-1));
+            CHECK(ndc.y == Approx(1));
+        }
+        {
+            const auto ndc = c.to_ndc({ 2, 3 });
+            CHECK(ndc.x == Approx(1));
+            CHECK(ndc.y == Approx(-1));
+        }
+        {
+            const auto ndc = c.to_ndc({ 1, 1 });
+            CHECK(ndc.x == Approx(0.0));
+            CHECK(ndc.y == Approx(1.0 / 3.0));
+        }
+        c.set_viewport_size({ 100, 1000 });
+        {
+            const auto ndc = c.to_ndc({ 50, 500 });
+            CHECK(ndc.x == Approx(0));
+            CHECK(ndc.y == Approx(0));
+        }
+        {
+            const auto ndc = c.to_ndc({ 0, 0 });
+            CHECK(ndc.x == Approx(-1));
+            CHECK(ndc.y == Approx(1));
+        }
+        {
+            const auto ndc = c.to_ndc({ 100, 1000 });
+            CHECK(ndc.x == Approx(1));
+            CHECK(ndc.y == Approx(-1));
+        }
+    }
+
     SECTION("unproject")
     {
         {

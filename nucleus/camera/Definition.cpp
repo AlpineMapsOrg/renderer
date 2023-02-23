@@ -1,6 +1,6 @@
 /*****************************************************************************
- * Alpine Terrain Builder
- * Copyright (C) 2022 alpinemaps.org
+ * Alpine Terrain Renderer
+ * Copyright (C) 2022 Adam Celarek
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -201,6 +201,18 @@ const glm::uvec2& nucleus::camera::Definition::viewport_size() const
     return m_viewport_size;
 }
 
+glm::uvec2 nucleus::camera::Definition::virtual_resolution_size() const
+{
+    return { float(viewport_size().x) * m_virtual_resolution_factor, float(viewport_size().y) * m_virtual_resolution_factor };
+}
+
+glm::dvec2 nucleus::camera::Definition::to_ndc(const glm::dvec2& screen_space_coordinates) const
+{
+    // https://doc.qt.io/qt-6/coordsys.html
+    // https://registry.khronos.org/OpenGL-Refpages/gl4/html/glViewport.xhtml
+    return ((screen_space_coordinates / glm::dvec2(m_viewport_size)) * 2.0 - 1.0) * glm::dvec2 { 1.0, -1.0 };
+}
+
 glm::dvec3 nucleus::camera::Definition::operation_centre() const
 {
     // a ray going through the middle pixel, intersecting with the z == 0 pane
@@ -211,6 +223,17 @@ glm::dvec3 nucleus::camera::Definition::operation_centre() const
 }
 
 namespace nucleus::camera {
+
+float Definition::virtual_resolution_factor() const
+{
+    return m_virtual_resolution_factor;
+}
+
+void Definition::set_virtual_resolution_factor(float new_virtual_resolution_factor)
+{
+    m_virtual_resolution_factor = new_virtual_resolution_factor;
+}
+
 void Definition::set_viewport_size(const glm::uvec2& new_viewport_size)
 {
     set_perspective_params(m_fov, new_viewport_size, m_near_clipping);

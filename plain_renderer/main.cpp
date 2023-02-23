@@ -53,6 +53,7 @@
 #include <QGuiApplication>
 #include <QObject>
 #include <QOpenGLContext>
+#include <QScreen>
 #include <QSurfaceFormat>
 #include <QThread>
 #include <QTimer>
@@ -93,6 +94,18 @@ int main(int argc, char* argv[])
 
     Window glWindow;
     nucleus::Controller controller(glWindow.render_window());
+    controller.camera_controller()->set_virtual_resolution_factor(1.0 / glWindow.devicePixelRatio());
+
+    QObject::connect(&glWindow, &Window::mouse_moved, controller.camera_controller(), &nucleus::camera::Controller::mouse_move);
+    QObject::connect(&glWindow, &Window::mouse_moved, controller.camera_controller(), &nucleus::camera::Controller::mouse_move);
+    QObject::connect(&glWindow, &Window::mouse_moved, controller.camera_controller(), &nucleus::camera::Controller::mouse_move);
+    QObject::connect(&glWindow, &Window::mouse_moved, controller.camera_controller(), &nucleus::camera::Controller::mouse_move);
+    QObject::connect(&glWindow, &Window::screenChanged, controller.camera_controller(), [&controller](QScreen* screen) {
+        controller.camera_controller()->set_virtual_resolution_factor(1.0 / screen->devicePixelRatio());
+    });
+    QObject::connect(&glWindow, &Window::resized, controller.camera_controller(), [&controller](glm::uvec2 new_size) {
+        controller.camera_controller()->set_viewport(new_size);
+    });
 
     if (running_in_browser)
         glWindow.showFullScreen();
@@ -103,7 +116,6 @@ int main(int argc, char* argv[])
     // native, however, glWindow has a zero size at this point.
     if (glWindow.width() > 0 && glWindow.height() > 0)
         controller.camera_controller()->set_viewport({ glWindow.width(), glWindow.height() });
-    controller.camera_controller()->update();
 
     return QGuiApplication::exec();
 }

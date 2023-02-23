@@ -19,7 +19,11 @@
 #include "Controller.h"
 
 #include <QCoreApplication>
+#include <QFile>
 #include <QNetworkReply>
+#ifdef ALP_ENABLE_THREADING
+#include <QThread>
+#endif
 
 #include "AbstractRenderWindow.h"
 #include "nucleus/TileLoadService.h"
@@ -37,55 +41,54 @@ namespace nucleus {
 Controller::Controller(AbstractRenderWindow* render_window)
     : m_render_window(render_window)
 {
+    qRegisterMetaType<nucleus::event_parameter::Touch>();
+    qRegisterMetaType<nucleus::event_parameter::Mouse>();
+    qRegisterMetaType<nucleus::event_parameter::Wheel>();
+
+    m_camera_controller = std::make_unique<nucleus::camera::Controller>(nucleus::camera::stored_positions::westl_hochgrubach_spitze(), m_render_window->ray_caster());
+    //    nucleus::camera::Controller camera_controller { nucleus::camera::stored_positions::stephansdom() };
+    m_camera_controller->set_interaction_style(std::make_unique<nucleus::camera::OrbitInteraction>());
+
     m_terrain_service = std::make_unique<TileLoadService>("https://alpinemaps.cg.tuwien.ac.at/tiles/alpine_png/", TileLoadService::UrlPattern::ZXY, ".png");
-    //    TileLoadService ortho_service("https://alpinemaps.cg.tuwien.ac.at/tiles/ortho/", TileLoadService::UrlPattern::ZYX_yPointingSouth, ".jpeg");
+    //    m_ortho_service.reset(new TileLoadService("https://tiles.bergfex.at/styles/bergfex-osm/", TileLoadService::UrlPattern::ZXY_yPointingSouth, ".jpeg"));
+    //        m_ortho_service.reset(new TileLoadService("https://alpinemaps.cg.tuwien.ac.at/tiles/ortho/", TileLoadService::UrlPattern::ZYX_yPointingSouth, ".jpeg"));
     m_ortho_service.reset(new TileLoadService(
         "https://maps%1.wien.gv.at/basemap/bmaporthofoto30cm/normal/google3857/", TileLoadService::UrlPattern::ZYX_yPointingSouth, ".jpeg", { "", "1", "2", "3", "4" }));
 
     m_tile_scheduler = std::make_unique<nucleus::tile_scheduler::GpuCacheTileScheduler>();
     m_tile_scheduler->set_gpu_cache_size(1000);
 
-    QNetworkReply* reply = m_network_manager.get(QNetworkRequest(QUrl("https://gataki.cg.tuwien.ac.at/tiles/alpine_png2/height_data.atb")));
-    //    QNetworkReply* reply = m_network_manager.get(QNetworkRequest(QUrl("https://alpinemaps.cg.tuwien.ac.at/threaded//height_data.atb")));
-    connect(reply, &QNetworkReply::finished, this, [reply, this]() {
-        const auto url = reply->url();
-        const auto error = reply->error();
-        if (error == QNetworkReply::NoError) {
-            const QByteArray data = reply->readAll();
-            const auto decorator = nucleus::tile_scheduler::AabbDecorator::make(TileHeights::deserialise(data));
-            QTimer::singleShot(1, this, [this, decorator]() { m_tile_scheduler->set_aabb_decorator(decorator); });
-
-            m_render_window->set_aabb_decorator(decorator);
-        } else {
-            qDebug() << "Loading of " << url << " failed: " << error;
-            QCoreApplication::exit(0);
-            // do we need better error handling?
-        }
-        reply->deleteLater();
-    });
-
-    m_camera_controller = std::make_unique<nucleus::camera::Controller>(nucleus::camera::stored_positions::westl_hochgrubach_spitze());
-    //    nucleus::camera::Controller camera_controller { nucleus::camera::stored_positions::stephansdom() };
-    m_camera_controller->set_interaction_style(std::make_unique<nucleus::camera::OrbitInteraction>());
+    {
+        QFile file(":/resources/height_data.atb");
+        const auto open = file.open(QIODeviceBase::OpenModeFlag::ReadOnly);
+        assert(open);
+        const QByteArray data = file.readAll();
+        const auto decorator = nucleus::tile_scheduler::AabbDecorator::make(TileHeights::deserialise(data));
+        m_tile_scheduler->set_aabb_decorator(decorator);
+        m_render_window->set_aabb_decorator(decorator);
+    }
 
     m_near_plane_adjuster = std::make_unique<nucleus::camera::NearPlaneAdjuster>();
 
 #ifdef ALP_ENABLE_THREADING
-    QThread scheduler_thread;
-    //    m_terrain_service->moveToThread(&scheduler_thread);
-    //    m_ortho_service->moveToThread(&scheduler_thread);
-    m_scheduler->moveToThread(&scheduler_thread);
-    scheduler_thread.start();
+    m_scheduler_thread = std::make_unique<QThread>();
+    m_terrain_service->moveToThread(m_scheduler_thread.get());
+    m_ortho_service->moveToThread(m_scheduler_thread.get());
+    m_tile_scheduler->moveToThread(m_scheduler_thread.get());
+    m_scheduler_thread->start();
 #endif
-
-    connect(m_render_window, &AbstractRenderWindow::viewport_changed, m_camera_controller.get(), &nucleus::camera::Controller::set_viewport);
-    connect(m_render_window, &AbstractRenderWindow::mouse_moved, m_camera_controller.get(), &nucleus::camera::Controller::mouse_move);
-    connect(m_render_window, &AbstractRenderWindow::mouse_pressed, m_camera_controller.get(), &nucleus::camera::Controller::mouse_press);
-    connect(m_render_window, &AbstractRenderWindow::wheel_turned, m_camera_controller.get(), &nucleus::camera::Controller::wheel_turn);
+    //    connect(m_render_window, &AbstractRenderWindow::viewport_changed, m_camera_controller.get(), &nucleus::camera::Controller::set_viewport);
+    //    connect(m_render_window, &AbstractRenderWindow::mouse_moved, m_camera_controller.get(), &nucleus::camera::Controller::mouse_move);
+    //    connect(m_render_window, &AbstractRenderWindow::mouse_pressed, m_camera_controller.get(), &nucleus::camera::Controller::mouse_press);
+    //    connect(m_render_window, &AbstractRenderWindow::wheel_turned, m_camera_controller.get(), &nucleus::camera::Controller::wheel_turn);
     connect(m_render_window, &AbstractRenderWindow::key_pressed, m_camera_controller.get(), &nucleus::camera::Controller::key_press);
-    connect(m_render_window, &AbstractRenderWindow::touch_made, m_camera_controller.get(), &nucleus::camera::Controller::touch);
+    //    connect(m_render_window, &AbstractRenderWindow::touch_made, m_camera_controller.get(), &nucleus::camera::Controller::touch);
     connect(m_render_window, &AbstractRenderWindow::key_pressed, m_tile_scheduler.get(), &TileScheduler::key_press);
 
+    // NOTICE ME!!!! READ THIS, IF YOU HAVE TROUBLES WITH SIGNALS NOT REACHING THE QML RENDERING THREAD!!!!111elevenone
+    // In Qt 6.4 and earlier the rendering thread goes to sleep. See RenderThreadNotifier.
+    // At the time of writing, an additional connection from tile_ready and tile_expired to the notifier is made.
+    // this only works if ALP_ENABLE_THREADING is on, i.e., the tile scheduler is on an extra thread. -> potential issue on webassembly
     connect(m_camera_controller.get(), &nucleus::camera::Controller::definition_changed, m_tile_scheduler.get(), &TileScheduler::update_camera);
     connect(m_camera_controller.get(), &nucleus::camera::Controller::definition_changed, m_near_plane_adjuster.get(), &nucleus::camera::NearPlaneAdjuster::update_camera);
     connect(m_camera_controller.get(), &nucleus::camera::Controller::definition_changed, m_render_window, &AbstractRenderWindow::update_camera);
@@ -105,13 +108,26 @@ Controller::Controller(AbstractRenderWindow* render_window)
     connect(m_terrain_service.get(), &TileLoadService::tile_unavailable, m_tile_scheduler.get(), &TileScheduler::notify_about_unavailable_height_tile);
 
     connect(m_near_plane_adjuster.get(), &nucleus::camera::NearPlaneAdjuster::near_plane_changed, m_camera_controller.get(), &nucleus::camera::Controller::set_near_plane);
+
+    m_camera_controller->update();
 }
 
-Controller::~Controller() = default;
+Controller::~Controller()
+{
+#ifdef ALP_ENABLE_THREADING
+    m_scheduler_thread->quit();
+    m_scheduler_thread->wait(500); // msec
+#endif
+};
 
 camera::Controller* Controller::camera_controller() const
 {
     return m_camera_controller.get();
+}
+
+tile_scheduler::GpuCacheTileScheduler* Controller::tile_scheduler() const
+{
+    return m_tile_scheduler.get();
 }
 
 }
