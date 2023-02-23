@@ -80,6 +80,7 @@ set(ALP_APP_ICONS
     app/icons/mascot.png
     app/icons/menu.svg
     app/icons/peak.svg
+    app/icons/search.svg
 )
 if (ALP_UNITTESTS AND NOT EMSCRIPTEN)
     set(ALP_CATCH_UNITTEST_GL_SOURCES
