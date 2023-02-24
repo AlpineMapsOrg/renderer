@@ -122,6 +122,7 @@ void Window::resize_framebuffer(int width, int height)
     QOpenGLFunctions* f = QOpenGLContext::currentContext()->functions();
     m_framebuffer->resize({ width, height });
     m_atmosphere->resize({ width, height });
+    m_raycast_buffer->resize({ width / 4, height / 4 });
 
     f->glViewport(0, 0, width, height);
 }
@@ -139,22 +140,6 @@ void Window::paint(QOpenGLFramebufferObject* framebuffer)
     f->glEnable(GL_DEPTH_TEST);
     f->glDepthFunc(GL_LESS);
 ////    glPolygonMode( GL_FRONT_AND_BACK, GL_LINE );
-
-    // RAYCAST TEST
-    m_raycast_buffer->bind();
-    f->glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
-    f->glEnable(GL_DEPTH_TEST);
-    f->glDepthFunc(GL_LESS);
-    m_shader_manager->depth_program()->bind();
-    m_tile_manager->draw(m_shader_manager->depth_program(), m_camera);
-
-    float pixel[4];
-    f->glReadPixels(0, 0, 1, 1, GL_RGB, GL_FLOAT, &pixel);
-    m_current_depth = pixel[0];
-
-    m_raycast_buffer->unbind();
-    m_framebuffer->bind();
-    // RAYCAST TEST END
 
     m_shader_manager->tile_shader()->bind();
 
@@ -237,8 +222,25 @@ void Window::update_debug_scheduler_stats(const QString& stats)
 }
 glm::dvec3 Window::ray_cast(const nucleus::camera::Definition& camera, const glm::dvec2& normalised_device_coordinates)
 {
-    std::cout << "ndc: " << normalised_device_coordinates.x << "/" << normalised_device_coordinates.y << std::endl;
-    return m_camera.position() + camera.ray_direction(normalised_device_coordinates) * 50.;
+    //std::cout << "ndc: " << normalised_device_coordinates.x << "/" << normalised_device_coordinates.y << std::endl;
+    m_camera.set_viewport_size(m_raycast_buffer->size());
+    QOpenGLExtraFunctions* f = QOpenGLContext::currentContext()->extraFunctions();
+
+    m_raycast_buffer->bind();
+    f->glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
+    f->glEnable(GL_DEPTH_TEST);
+    f->glDepthFunc(GL_LESS);
+
+    m_shader_manager->depth_program()->bind();
+    m_tile_manager->draw(m_shader_manager->depth_program(), m_camera);
+
+    float pixel[4];
+    f->glReadPixels((normalised_device_coordinates.x + 1) / 2 * m_raycast_buffer->size().x,
+                    (normalised_device_coordinates.y + 1) / 2 * m_raycast_buffer->size().y,
+                    1, 1, GL_RGB, GL_FLOAT, &pixel);
+
+    m_raycast_buffer->unbind();
+    return m_camera.position() + camera.ray_direction(normalised_device_coordinates) * (double) pixel[0];
 }
 
 void Window::deinit_gpu()
