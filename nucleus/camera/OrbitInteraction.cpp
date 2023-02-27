@@ -42,7 +42,12 @@ std::optional<Definition> OrbitInteraction::mouse_move_event(const event_paramet
     }
     if (e.buttons == Qt::RightButton) {
         const auto delta = e.point.position() - e.point.lastPosition();
-        camera.zoom(delta.y() * 10.0);
+
+        glm::dvec3 hit = m_operation_centre - camera.position();
+        float distance = std::sqrt(std::pow(hit.x, 2) + std::pow(hit.y, 2) + std::pow(hit.z, 2));
+        float dist = 1.0 * std::max((distance / 1200), 0.07f);
+
+        camera.zoom(delta.y() * dist);
     }
 
     if (e.buttons == Qt::NoButton)
@@ -105,8 +110,12 @@ std::optional<Definition> OrbitInteraction::touch_event(const event_parameter::T
 
 std::optional<Definition> OrbitInteraction::wheel_event(const event_parameter::Wheel& e, Definition camera, AbstractRayCaster* ray_caster)
 {
-    //float dist = -1.0 * std::max((distance / 1500), 0.07f);
-    camera.zoom(e.angle_delta.y() * -8.0); // replace -8.0 with dist
+    glm::dvec3 hit = ray_caster->ray_cast(camera, camera.to_ndc({ e.point.position().x(), e.point.position().y() }));
+    hit = hit - camera.position();
+    float distance = std::sqrt(std::pow(hit.x, 2) + std::pow(hit.y, 2) + std::pow(hit.z, 2));
+
+    float dist = -1.0 * std::max((distance / 1500), 0.07f);
+    camera.zoom(e.angle_delta.y() * dist); // replace -8.0 with dist
     return camera;
 }
 }
