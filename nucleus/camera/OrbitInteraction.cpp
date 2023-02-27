@@ -1,4 +1,4 @@
-/*****************************************************************************
+﻿/*****************************************************************************
  * Alpine Terrain Renderer
  * Copyright (C) 2022 Adam Celarek
  *
@@ -34,7 +34,12 @@ std::optional<Definition> OrbitInteraction::mouse_move_event(const event_paramet
 
     if (e.buttons == Qt::LeftButton) {
         const auto delta = e.point.position() - e.point.lastPosition();
-        camera.pan(glm::vec2(delta.x(), delta.y()) * 10.0f);
+
+        glm::dvec3 hit = m_operation_centre - camera.position();
+        float distance = std::sqrt(std::pow(hit.x, 2) + std::pow(hit.y, 2) + std::pow(hit.z, 2));
+        float dist = 1.0 * std::max((distance / 1200), 0.07f);
+
+        camera.pan(glm::vec2(delta.x(), delta.y()) * dist);
     }
     if (e.buttons == Qt::MiddleButton) {
         const auto delta = e.point.position() - e.point.lastPosition();
