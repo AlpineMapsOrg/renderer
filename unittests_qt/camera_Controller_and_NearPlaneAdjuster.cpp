@@ -17,7 +17,7 @@
  *****************************************************************************/
 
 #include "nucleus/Tile.h"
-#include "nucleus/camera/AbstractRayCaster.h"
+#include "nucleus/camera/AbstractDepthTester.h"
 #include "nucleus/camera/Controller.h"
 #include "nucleus/camera/Definition.h"
 #include "nucleus/camera/NearPlaneAdjuster.h"
@@ -31,18 +31,18 @@ constexpr float near_plane_adjustment_factor = 0.8;
 
 class camera_Controller_and_NearPlaneAdjuster : public QObject {
     Q_OBJECT
-    class RayCaster : public camera::AbstractRayCaster {
+    class RayCaster : public camera::AbstractDepthTester {
     public:
         glm::dvec3 ray_cast(const camera::Definition& camera, const glm::dvec2& normalised_device_coordinates) override
         {
             return camera.position() + camera.ray_direction(normalised_device_coordinates) * 500.0;
         }
-    } m_ray_caster;
+    } m_depth_tester;
 
 private slots:
     void adapter()
     {
-        camera::Controller cam_adapter(camera::Definition { { 100, 0, 0 }, { 0, 0, 0 } }, &m_ray_caster);
+        camera::Controller cam_adapter(camera::Definition { { 100, 0, 0 }, { 0, 0, 0 } }, &m_depth_tester);
         QSignalSpy worldProjectionSpy(&cam_adapter, &camera::Controller::definition_changed);
         cam_adapter.update();
         QVERIFY(worldProjectionSpy.isValid());
@@ -67,7 +67,7 @@ private slots:
 
     void nearPlaneAdjuster_adding_removing()
     {
-        camera::Controller cam_adapter(camera::Definition { { 100, 0, 100 }, { 0, 0, 0 } }, &m_ray_caster);
+        camera::Controller cam_adapter(camera::Definition { { 100, 0, 100 }, { 0, 0, 0 } }, &m_depth_tester);
         camera::NearPlaneAdjuster near_plane_adjuster;
 
         connect(&cam_adapter, &camera::Controller::definition_changed, &near_plane_adjuster, &camera::NearPlaneAdjuster::update_camera);
@@ -118,7 +118,7 @@ private slots:
 
     void nearPlaneAdjuster_camera_update()
     {
-        camera::Controller cam_adapter(camera::Definition { { 100, 0, 100 }, { 0, 0, 0 } }, &m_ray_caster);
+        camera::Controller cam_adapter(camera::Definition { { 100, 0, 100 }, { 0, 0, 0 } }, &m_depth_tester);
         camera::NearPlaneAdjuster near_plane_adjuster;
 
         connect(&cam_adapter, &camera::Controller::definition_changed, &near_plane_adjuster, &camera::NearPlaneAdjuster::update_camera);

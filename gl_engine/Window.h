@@ -60,7 +60,7 @@
 
 #include "helpers.h"
 #include "nucleus/AbstractRenderWindow.h"
-#include "nucleus/camera/AbstractRayCaster.h"
+#include "nucleus/camera/AbstractDepthTester.h"
 #include "nucleus/camera/Definition.h"
 
 class QOpenGLTexture;
@@ -75,7 +75,7 @@ class ShaderManager;
 class Framebuffer;
 class Atmosphere;
 
-class Window : public nucleus::AbstractRenderWindow, public nucleus::camera::AbstractRayCaster {
+class Window : public nucleus::AbstractRenderWindow, public nucleus::camera::AbstractDepthTester {
     Q_OBJECT
 public:
     Window();
@@ -91,7 +91,7 @@ public:
     void set_aabb_decorator(const nucleus::tile_scheduler::AabbDecoratorPtr&) override;
     void add_tile(const std::shared_ptr<nucleus::Tile>&) override;
     void remove_tile(const tile::Id&) override;
-    [[nodiscard]] nucleus::camera::AbstractRayCaster* ray_caster() override;
+    [[nodiscard]] nucleus::camera::AbstractDepthTester* depth_tester() override;
     void keyPressEvent(QKeyEvent*);
 
 public slots:

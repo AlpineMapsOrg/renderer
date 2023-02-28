@@ -36,7 +36,7 @@ namespace tile_scheduler {
 }
 namespace camera {
     class Definition;
-    class AbstractRayCaster;
+    class AbstractDepthTester;
 }
 struct Tile;
 
@@ -47,7 +47,7 @@ public:
     virtual void resize_framebuffer(int width, int height) = 0;
     virtual void paint(QOpenGLFramebufferObject* framebuffer = nullptr) = 0;
     virtual void deinit_gpu() = 0;
-    [[nodiscard]] virtual camera::AbstractRayCaster* ray_caster() = 0;
+    [[nodiscard]] virtual camera::AbstractDepthTester* depth_tester() = 0;
 
 public slots:
     virtual void update_camera(const camera::Definition& new_definition) = 0;

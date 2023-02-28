@@ -29,9 +29,9 @@ class OrbitInteraction : public InteractionStyle
     bool m_was_double_touch = false;
     glm::dvec3 m_operation_centre = {};
 public:
-    std::optional<Definition> mouse_press_event(const event_parameter::Mouse& e, Definition camera, AbstractRayCaster* ray_caster) override;
-    std::optional<Definition> mouse_move_event(const event_parameter::Mouse& e, Definition camera, AbstractRayCaster* ray_caster) override;
-    std::optional<Definition> touch_event(const event_parameter::Touch& e, Definition camera, AbstractRayCaster* ray_caster) override;
-    std::optional<Definition> wheel_event(const event_parameter::Wheel& e, Definition camera, AbstractRayCaster* ray_caster) override;
+    std::optional<Definition> mouse_press_event(const event_parameter::Mouse& e, Definition camera, AbstractDepthTester* depth_tester) override;
+    std::optional<Definition> mouse_move_event(const event_parameter::Mouse& e, Definition camera, AbstractDepthTester* depth_tester) override;
+    std::optional<Definition> touch_event(const event_parameter::Touch& e, Definition camera, AbstractDepthTester* depth_tester) override;
+    std::optional<Definition> wheel_event(const event_parameter::Wheel& e, Definition camera, AbstractDepthTester* depth_tester) override;
 };
 }

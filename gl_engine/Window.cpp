@@ -272,7 +272,7 @@ void Window::remove_tile(const tile::Id& id)
     m_tile_manager->remove_tile(id);
 }
 
-nucleus::camera::AbstractRayCaster* Window::ray_caster()
+nucleus::camera::AbstractDepthTester* Window::depth_tester()
 {
     return this;
 }

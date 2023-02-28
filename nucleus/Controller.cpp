@@ -45,7 +45,7 @@ Controller::Controller(AbstractRenderWindow* render_window)
     qRegisterMetaType<nucleus::event_parameter::Mouse>();
     qRegisterMetaType<nucleus::event_parameter::Wheel>();
 
-    m_camera_controller = std::make_unique<nucleus::camera::Controller>(nucleus::camera::stored_positions::westl_hochgrubach_spitze(), m_render_window->ray_caster());
+    m_camera_controller = std::make_unique<nucleus::camera::Controller>(nucleus::camera::stored_positions::westl_hochgrubach_spitze(), m_render_window->depth_tester());
     //    nucleus::camera::Controller camera_controller { nucleus::camera::stored_positions::stephansdom() };
     m_camera_controller->set_interaction_style(std::make_unique<nucleus::camera::OrbitInteraction>());
 
