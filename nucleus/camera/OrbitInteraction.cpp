@@ -52,7 +52,7 @@ std::optional<Definition> OrbitInteraction::mouse_move_event(const event_paramet
         float distance = std::sqrt(std::pow(hit.x, 2) + std::pow(hit.y, 2) + std::pow(hit.z, 2));
         float dist = 1.0 * std::max((distance / 1200), 0.07f);
 
-        camera.zoom(delta.y() * dist);
+        camera.zoom((delta.y() - delta.x()) * dist);
     }
 
     if (e.buttons == Qt::NoButton)
