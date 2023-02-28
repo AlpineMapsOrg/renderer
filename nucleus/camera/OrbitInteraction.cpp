@@ -50,9 +50,9 @@ std::optional<Definition> OrbitInteraction::mouse_move_event(const event_paramet
 
         glm::dvec3 hit = m_operation_centre - camera.position();
         float distance = std::sqrt(std::pow(hit.x, 2) + std::pow(hit.y, 2) + std::pow(hit.z, 2));
-        float dist = 1.0 * std::max((distance / 1200), 0.07f);
+        float dist = -1.0 * std::max((distance / 1200), 0.07f);
 
-        camera.zoom((delta.y() - delta.x()) * dist);
+        camera.move(glm::normalize(hit) * ((delta.y() - delta.x()) * (double)dist));
     }
 
     if (e.buttons == Qt::NoButton)
@@ -119,8 +119,8 @@ std::optional<Definition> OrbitInteraction::wheel_event(const event_parameter::W
     hit = hit - camera.position();
     float distance = std::sqrt(std::pow(hit.x, 2) + std::pow(hit.y, 2) + std::pow(hit.z, 2));
 
-    float dist = -1.0 * std::max((distance / 1500), 0.07f);
-    camera.zoom(e.angle_delta.y() * dist); // replace -8.0 with dist
+    float dist = std::max((distance / 1500), 0.07f);
+    camera.move(glm::normalize(hit) * (e.angle_delta.y() * (double)dist));
     return camera;
 }
 }
