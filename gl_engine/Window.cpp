@@ -237,7 +237,7 @@ glm::dvec3 Window::ray_cast(const nucleus::camera::Definition& camera, const glm
     float pixel[4];
     f->glReadPixels((normalised_device_coordinates.x + 1) / 2 * m_raycast_buffer->size().x,
                     (normalised_device_coordinates.y + 1) / 2 * m_raycast_buffer->size().y,
-                    1, 1, GL_RGB, GL_FLOAT, &pixel);
+                    1, 1, GL_RGBA, GL_FLOAT, &pixel);
 
     m_raycast_buffer->unbind();
     return m_camera.position() + camera.ray_direction(normalised_device_coordinates) * (double) pixel[0];
