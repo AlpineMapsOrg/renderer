@@ -25,7 +25,7 @@ namespace nucleus::camera {
 
 std::optional<Definition> CrapyInteraction::mouse_press_event(const event_parameter::Mouse& e, Definition camera, AbstractDepthTester* depth_tester)
 {
-    m_operation_centre = depth_tester->ray_cast(camera, camera.to_ndc({ e.point.pressPosition().x(), e.point.pressPosition().y() }));
+    m_operation_centre = depth_tester->position(camera.to_ndc({ e.point.pressPosition().x(), e.point.pressPosition().y() }));
     return {};
 }
 

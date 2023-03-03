@@ -86,7 +86,8 @@ public:
     void paint(QOpenGLFramebufferObject* framebuffer = nullptr) override;
     void paintOverGL(QPainter* painter);
 
-    [[nodiscard]] glm::dvec3 ray_cast(const nucleus::camera::Definition& camera, const glm::dvec2& normalised_device_coordinates) override;
+    [[nodiscard]] float depth(const glm::dvec2& normalised_device_coordinates) override;
+    [[nodiscard]] glm::dvec3 position(const glm::dvec2& normalised_device_coordinates) override;
     void deinit_gpu() override;
     void set_aabb_decorator(const nucleus::tile_scheduler::AabbDecoratorPtr&) override;
     void add_tile(const std::shared_ptr<nucleus::Tile>&) override;
@@ -108,7 +109,7 @@ private:
     std::unique_ptr<Atmosphere> m_atmosphere; // needs opengl context
     std::unique_ptr<ShaderManager> m_shader_manager;
     std::unique_ptr<Framebuffer> m_framebuffer;
-    std::unique_ptr<Framebuffer> m_raycast_buffer;
+    std::unique_ptr<Framebuffer> m_depth_buffer;
     gl_engine::helpers::ScreenQuadGeometry m_screen_quad_geometry;
 
     nucleus::camera::Definition m_camera;
@@ -119,6 +120,5 @@ private:
     TimePoint m_frame_end;
     QString m_debug_text;
     QString m_debug_scheduler_stats;
-    float m_current_depth; // TODO remove and calculate only when needed
 };
 }

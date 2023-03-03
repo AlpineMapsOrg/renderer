@@ -143,10 +143,10 @@ TEST_CASE("gl framebuffer")
         shader.bind();
         gl_engine::helpers::create_screen_quad_geometry().draw();
 
-        float pixel[4];
+        float pixel;
         f->glReadPixels(0, 0, 1, 1, GL_RGBA, GL_FLOAT, &pixel);
 
         Framebuffer::unbind();
-        CHECK(pixel[0] == 0.2f);
+        CHECK(pixel == 0.2f);
     }
 }

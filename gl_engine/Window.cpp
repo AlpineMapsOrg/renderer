@@ -220,9 +220,8 @@ void Window::update_debug_scheduler_stats(const QString& stats)
     m_debug_scheduler_stats = stats;
     emit update_requested();
 }
-glm::dvec3 Window::ray_cast(const nucleus::camera::Definition& camera, const glm::dvec2& normalised_device_coordinates)
+float Window::depth(const glm::dvec2& normalised_device_coordinates)
 {
-    //std::cout << "ndc: " << normalised_device_coordinates.x << "/" << normalised_device_coordinates.y << std::endl;
     m_camera.set_viewport_size(m_depth_buffer->size());
     QOpenGLExtraFunctions* f = QOpenGLContext::currentContext()->extraFunctions();
 
@@ -234,13 +233,18 @@ glm::dvec3 Window::ray_cast(const nucleus::camera::Definition& camera, const glm
     m_shader_manager->depth_program()->bind();
     m_tile_manager->draw(m_shader_manager->depth_program(), m_camera);
 
-    float pixel[4];
+    float pixel;
     f->glReadPixels((normalised_device_coordinates.x + 1) / 2 * m_depth_buffer->size().x,
                     (normalised_device_coordinates.y + 1) / 2 * m_depth_buffer->size().y,
                     1, 1, GL_RGBA, GL_FLOAT, &pixel);
 
     m_depth_buffer->unbind();
-    return m_camera.position() + m_camera.ray_direction(normalised_device_coordinates) * (double) pixel[0];
+    return pixel;
+}
+
+glm::dvec3 Window::position(const glm::dvec2& normalised_device_coordinates)
+{
+    return m_camera.position() + m_camera.ray_direction(normalised_device_coordinates) * (double)depth(normalised_device_coordinates);
 }
 
 void Window::deinit_gpu()

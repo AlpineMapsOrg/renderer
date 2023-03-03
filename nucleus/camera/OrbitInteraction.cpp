@@ -25,7 +25,7 @@ namespace nucleus::camera {
 
 std::optional<Definition> OrbitInteraction::mouse_press_event(const event_parameter::Mouse& e, Definition camera, AbstractDepthTester* depth_tester)
 {
-    m_operation_centre = depth_tester->ray_cast(camera, camera.to_ndc({ e.point.pressPosition().x(), e.point.pressPosition().y() }));
+    m_operation_centre = depth_tester->position(camera.to_ndc({ e.point.pressPosition().x(), e.point.pressPosition().y() }));
     return {};
 }
 
@@ -35,8 +35,7 @@ std::optional<Definition> OrbitInteraction::mouse_move_event(const event_paramet
     if (e.buttons == Qt::LeftButton) {
         const auto delta = e.point.position() - e.point.lastPosition();
 
-        glm::dvec3 hit = m_operation_centre - camera.position();
-        float distance = std::sqrt(std::pow(hit.x, 2) + std::pow(hit.y, 2) + std::pow(hit.z, 2));
+        float distance = glm::distance(m_operation_centre, camera.position());
         float dist = 1.0 * std::max((distance / 1200), 0.07f);
 
         camera.pan(glm::vec2(delta.x(), delta.y()) * dist);
@@ -48,11 +47,10 @@ std::optional<Definition> OrbitInteraction::mouse_move_event(const event_paramet
     if (e.buttons == Qt::RightButton) {
         const auto delta = e.point.position() - e.point.lastPosition();
 
-        glm::dvec3 hit = m_operation_centre - camera.position();
-        float distance = std::sqrt(std::pow(hit.x, 2) + std::pow(hit.y, 2) + std::pow(hit.z, 2));
+        float distance = glm::distance(m_operation_centre, camera.position());
         float dist = -1.0 * std::max((distance / 1200), 0.07f);
 
-        camera.move(glm::normalize(hit) * ((delta.y() - delta.x()) * (double)dist));
+        camera.move(glm::normalize(m_operation_centre - camera.position()) * ((delta.y() - delta.x()) * (double)dist));
     }
 
     if (e.buttons == Qt::NoButton)
@@ -115,12 +113,11 @@ std::optional<Definition> OrbitInteraction::touch_event(const event_parameter::T
 
 std::optional<Definition> OrbitInteraction::wheel_event(const event_parameter::Wheel& e, Definition camera, AbstractDepthTester* depth_tester)
 {
-    glm::dvec3 hit = depth_tester->ray_cast(camera, camera.to_ndc({ e.point.position().x(), e.point.position().y() }));
-    hit = hit - camera.position();
-    float distance = std::sqrt(std::pow(hit.x, 2) + std::pow(hit.y, 2) + std::pow(hit.z, 2));
+    glm::dvec3 hit = depth_tester->position(camera.to_ndc({ e.point.position().x(), e.point.position().y() }));
+    float distance = glm::distance(hit, camera.position());
 
     float dist = std::max((distance / 1500), 0.07f);
-    camera.move(glm::normalize(hit) * (e.angle_delta.y() * (double)dist));
+    camera.move(glm::normalize(hit - camera.position()) * (e.angle_delta.y() * (double)dist));
     return camera;
 }
 }

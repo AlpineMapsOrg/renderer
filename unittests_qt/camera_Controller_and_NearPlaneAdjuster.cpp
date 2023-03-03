@@ -33,9 +33,13 @@ class camera_Controller_and_NearPlaneAdjuster : public QObject {
     Q_OBJECT
     class RayCaster : public camera::AbstractDepthTester {
     public:
-        glm::dvec3 ray_cast(const camera::Definition& camera, const glm::dvec2& normalised_device_coordinates) override
+        float depth(const glm::dvec2& normalised_device_coordinates) override
         {
-            return camera.position() + camera.ray_direction(normalised_device_coordinates) * 500.0;
+            return 500.0;
+        }
+        glm::dvec3 position(const glm::dvec2& normalised_device_coordinates) override
+        {
+            return glm::dvec3(0.0, 0.0, 500.0);
         }
     } m_depth_tester;
 
