@@ -130,9 +130,21 @@ void Window::resize_framebuffer(int width, int height)
 void Window::paint(QOpenGLFramebufferObject* framebuffer)
 {
     m_frame_start = std::chrono::time_point_cast<ClockResolution>(Clock::now());
-    m_camera.set_viewport_size(m_framebuffer->size());
-
     QOpenGLExtraFunctions* f = QOpenGLContext::currentContext()->extraFunctions();
+
+    // DEPTH TEST
+    m_camera.set_viewport_size(m_depth_buffer->size());
+    m_depth_buffer->bind();
+    f->glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
+    f->glEnable(GL_DEPTH_TEST);
+    f->glDepthFunc(GL_LESS);
+
+    m_shader_manager->depth_program()->bind();
+    m_tile_manager->draw(m_shader_manager->depth_program(), m_camera);
+    m_depth_buffer->unbind();
+    // END DEPTH TEST
+
+    m_camera.set_viewport_size(m_framebuffer->size());
     m_framebuffer->bind();
     f->glClearColor(1.0, 0.0, 0.5, 1);
 
@@ -222,16 +234,8 @@ void Window::update_debug_scheduler_stats(const QString& stats)
 }
 float Window::depth(const glm::dvec2& normalised_device_coordinates)
 {
-    m_camera.set_viewport_size(m_depth_buffer->size());
     QOpenGLExtraFunctions* f = QOpenGLContext::currentContext()->extraFunctions();
-
     m_depth_buffer->bind();
-    f->glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
-    f->glEnable(GL_DEPTH_TEST);
-    f->glDepthFunc(GL_LESS);
-
-    m_shader_manager->depth_program()->bind();
-    m_tile_manager->draw(m_shader_manager->depth_program(), m_camera);
 
     float pixel;
     f->glReadPixels((normalised_device_coordinates.x + 1) / 2 * m_depth_buffer->size().x,
