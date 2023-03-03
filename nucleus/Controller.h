@@ -43,6 +43,9 @@ public:
 
     tile_scheduler::GpuCacheTileScheduler* tile_scheduler() const;
 
+public slots:
+    void change_interaction_style(const QKeyCombination&);
+
 private:
     AbstractRenderWindow* m_render_window;
     QNetworkAccessManager m_network_manager;
