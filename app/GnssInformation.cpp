@@ -18,21 +18,27 @@
 
 #include "GnssInformation.h"
 
+#ifdef ALP_ENABLE_GNSS
 #include <QGeoPositionInfoSource>
+#endif
 
 GnssInformation::GnssInformation()
+#ifdef ALP_ENABLE_GNSS
     : m_position_source(QGeoPositionInfoSource::createDefaultSource(this))
+#endif
 {
     qDebug("GnssInformation::GnssInformation");
     if (!m_position_source) {
         qDebug("GnssInformation: No QGeoPositionInfoSource available!");
         return;
     }
+#ifdef ALP_ENABLE_GNSS
     connect(m_position_source, &QGeoPositionInfoSource::positionUpdated, this, &GnssInformation::position_updated);
     connect(m_position_source, &QGeoPositionInfoSource::errorOccurred, this, [](QGeoPositionInfoSource::Error error) {
         QMetaEnum metaEnum = QMetaEnum::fromType<QGeoPositionInfoSource::Error>();
         qDebug() << "GnssInformation: QGeoPositionInfoSource::errorOccurred: " << metaEnum.valueToKey(error);
     });
+#endif
 }
 
 GnssInformation::~GnssInformation()
@@ -67,12 +73,14 @@ QDateTime GnssInformation::timestamp() const
 
 void GnssInformation::position_updated(const QGeoPositionInfo& position)
 {
+#ifdef ALP_ENABLE_GNSS
     m_latitude = position.coordinate().latitude();
     m_longitude = position.coordinate().longitude();
     m_altitude = position.coordinate().altitude();
     m_horizontal_accuracy = position.attribute(QGeoPositionInfo::Attribute::HorizontalAccuracy);
     m_timestamp = position.timestamp();
     emit information_updated();
+#endif
 }
 
 bool GnssInformation::enabled() const
@@ -85,10 +93,12 @@ void GnssInformation::set_enabled(bool new_enabled)
     if (m_enabled == new_enabled)
         return;
     m_enabled = new_enabled;
+#ifdef ALP_ENABLE_GNSS
     if (m_enabled)
         m_position_source->startUpdates();
     else
         m_position_source->stopUpdates();
+#endif
 
     emit enabled_changed();
 }

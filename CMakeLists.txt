@@ -6,6 +6,7 @@ option(ALP_ENABLE_ADDRESS_SANITIZER "compiles atb with address sanitizer enabled
 option(ALP_ENABLE_THREAD_SANITIZER "compiles atb with thread sanitizer enabled (only debug, works only on g++ and clang)" OFF)
 option(ALP_ENABLE_THREADING "Puts the scheduler into an extra thread." OFF)
 option(ALP_ENABLE_ASSERTS "enable asserts (do not define NDEBUG)" ON)
+option(ALP_ENABLE_POSITIONING "enable qt positinoing (gnss / gps)" OFF)
 set(ALP_INSTALL_DIR "${CMAKE_CURRENT_BINARY_DIR}" CACHE PATH "path to the install directory (for webassembly files, i.e., www directory)")
 option(ALP_USE_LLVM_LINKER "use lld (llvm) for linking. it's parallel and much faster, but not installed by default. if it's not installed, you'll get errors, that openmp or other stuff is not installed (hard to track down)" OFF)
 
@@ -126,7 +127,11 @@ set(CMAKE_AUTOMOC ON)
 set(CMAKE_AUTORCC ON)
 set(CMAKE_AUTOUIC ON)
 
-find_package(Qt6 REQUIRED COMPONENTS Core Gui OpenGL Network Quick QuickControls2 LinguistTools Svg Positioning Core5Compat)
+if (ALP_ENABLE_POSITIONING)
+    find_package(Qt6 REQUIRED COMPONENTS Core Gui OpenGL Network Quick QuickControls2 LinguistTools Svg Positioning Core5Compat)
+else()
+    find_package(Qt6 REQUIRED COMPONENTS Core Gui OpenGL Network Quick QuickControls2 LinguistTools Svg Core5Compat)
+endif()
 add_subdirectory(sherpa)    # pulls in Catch2 and glm
 
 
@@ -248,7 +253,11 @@ set_target_properties(alpineapp PROPERTIES
 #    WIN32_EXECUTABLE TRUE
     QT_ANDROID_PACKAGE_SOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/android
 )
-target_link_libraries(alpineapp PUBLIC gl_engine Qt::Quick Qt::QuickControls2 Qt::Positioning Qt6::Core5Compat)
+target_link_libraries(alpineapp PUBLIC gl_engine Qt::Quick Qt::QuickControls2 Qt6::Core5Compat)
+if (ALP_ENABLE_POSITIONING)
+    target_link_libraries(alpineapp PUBLIC Qt::Positioning)
+    target_compile_definitions(alpineapp PUBLIC "ALP_ENABLE_GNSS")
+endif()
 set_property(TARGET alpineapp PROPERTY QT_ANDROID_EXTRA_LIBS
     /home/madam/bin/Android/SDK/android_openssl/latest/arm64/libcrypto_1_1.so
     /home/madam/bin/Android/SDK/android_openssl/latest/arm64/libssl_1_1.so)
