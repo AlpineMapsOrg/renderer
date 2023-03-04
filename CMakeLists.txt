@@ -6,6 +6,7 @@ option(ALP_ENABLE_ADDRESS_SANITIZER "compiles atb with address sanitizer enabled
 option(ALP_ENABLE_THREAD_SANITIZER "compiles atb with thread sanitizer enabled (only debug, works only on g++ and clang)" OFF)
 option(ALP_ENABLE_THREADING "Puts the scheduler into an extra thread." OFF)
 option(ALP_ENABLE_ASSERTS "enable asserts (do not define NDEBUG)" ON)
+option(ALP_ENABLE_POSITIONING "enable qt positinoing (gnss / gps)" OFF)
 set(ALP_INSTALL_DIR "${CMAKE_CURRENT_BINARY_DIR}" CACHE PATH "path to the install directory (for webassembly files, i.e., www directory)")
 option(ALP_USE_LLVM_LINKER "use lld (llvm) for linking. it's parallel and much faster, but not installed by default. if it's not installed, you'll get errors, that openmp or other stuff is not installed (hard to track down)" OFF)
 
@@ -33,6 +34,11 @@ set(ALP_NUCLEUS_SOURCES
     nucleus/camera/stored_positions.h
     nucleus/utils/terrain_mesh_index_generator.h
     nucleus/utils/tile_conversion.h nucleus/utils/tile_conversion.cpp
+    nucleus/map_label/MapLabelModel.h nucleus/map_label/MapLabelModel.cpp
+    nucleus/map_label/CameraTransformationProxyModel.h nucleus/map_label/CameraTransformationProxyModel.cpp
+    nucleus/map_label/MapLabel.h
+    nucleus/map_label/AbstractMapLabelModel.h
+    nucleus/map_label/CameraFilterProxyModel.h nucleus/map_label/CameraFilterProxyModel.cpp
 )
 set(ALP_GL_SOURCES
     gl_engine/Atmosphere.h gl_engine/Atmosphere.cpp
@@ -61,10 +67,21 @@ set(ALP_APP_SOURCES
     app/main.cpp
     app/RenderThreadNotifier.h app/RenderThreadNotifier.cpp
     app/myframebufferobject.h app/myframebufferobject.cpp
+    app/GnssInformation.h app/GnssInformation.cpp
 )
 set(ALP_APP_QML
     app/main.qml
-    app/CameraControls.qml
+    app/About.qml
+    app/Map.qml
+    app/Settings.qml
+    app/Coordinates.qml
+)
+set(ALP_APP_ICONS
+    app/icons/current_location.svg
+    app/icons/mascot.png
+    app/icons/menu.svg
+    app/icons/peak.svg
+    app/icons/search.svg
 )
 if (ALP_UNITTESTS AND NOT EMSCRIPTEN)
     set(ALP_CATCH_UNITTEST_GL_SOURCES
@@ -110,7 +127,11 @@ set(CMAKE_AUTOMOC ON)
 set(CMAKE_AUTORCC ON)
 set(CMAKE_AUTOUIC ON)
 
-find_package(Qt6 REQUIRED COMPONENTS Core Gui OpenGL Network Quick QuickControls2 LinguistTools)
+if (ALP_ENABLE_POSITIONING)
+    find_package(Qt6 REQUIRED COMPONENTS Core Gui OpenGL Network Quick QuickControls2 LinguistTools Svg Positioning Core5Compat)
+else()
+    find_package(Qt6 REQUIRED COMPONENTS Core Gui OpenGL Network Quick QuickControls2 LinguistTools Svg Core5Compat)
+endif()
 add_subdirectory(sherpa)    # pulls in Catch2 and glm
 
 
@@ -140,7 +161,7 @@ target_include_directories(nucleus PRIVATE . PUBLIC ${CMAKE_SOURCE_DIR})
 if (NOT EMSCRIPTEN)
     target_compile_definitions(nucleus PUBLIC ALP_USE_DISK_CACHE)
 endif()
-target_link_libraries(nucleus PUBLIC sherpa Qt::Core Qt::Gui Qt6::Network)
+target_link_libraries(nucleus PUBLIC sherpa Qt::Core Qt::Gui Qt6::Network Qt6::Svg)
 
 
 if (ALP_ENABLE_ASSERTS)
@@ -218,6 +239,10 @@ qt_add_resources(alpineapp "alpine_app_resources"
     BASE ${alpine_height_data_SOURCE_DIR}
     FILES ${alpine_height_data_SOURCE_DIR}/height_data.atb
 )
+qt_add_resources(alpineapp "icons"
+    PREFIX "/alpinemaps/"
+    FILES ${ALP_APP_ICONS}
+)
 qt_add_translations(alpineapp TS_FILES app/i18n/de.ts app/i18n/en.ts)
 
 set_target_properties(alpineapp PROPERTIES
@@ -228,7 +253,11 @@ set_target_properties(alpineapp PROPERTIES
 #    WIN32_EXECUTABLE TRUE
     QT_ANDROID_PACKAGE_SOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/android
 )
-target_link_libraries(alpineapp PUBLIC gl_engine Qt::Quick Qt::QuickControls2)
+target_link_libraries(alpineapp PUBLIC gl_engine Qt::Quick Qt::QuickControls2 Qt6::Core5Compat)
+if (ALP_ENABLE_POSITIONING)
+    target_link_libraries(alpineapp PUBLIC Qt::Positioning)
+    target_compile_definitions(alpineapp PUBLIC "ALP_ENABLE_GNSS")
+endif()
 set_property(TARGET alpineapp PROPERTY QT_ANDROID_EXTRA_LIBS
     /home/madam/bin/Android/SDK/android_openssl/latest/arm64/libcrypto_1_1.so
     /home/madam/bin/Android/SDK/android_openssl/latest/arm64/libssl_1_1.so)

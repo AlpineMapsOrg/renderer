@@ -19,6 +19,7 @@
 #include "Controller.h"
 
 #include "nucleus/camera/Definition.h"
+#include "nucleus/srs.h"
 
 namespace nucleus::camera {
 Controller::Controller(const Definition& camera, AbstractRayCaster* ray_caster)
@@ -52,6 +53,22 @@ void Controller::set_virtual_resolution_factor(float new_factor)
     if (qFuzzyCompare(m_definition.virtual_resolution_factor(), new_factor))
         return;
     m_definition.set_virtual_resolution_factor(new_factor);
+    update();
+}
+
+void Controller::set_latitude_longitude(double latitude, double longitude)
+{
+    const auto xy_world_space = srs::lat_long_to_world({ latitude, longitude });
+    move({ xy_world_space.x - m_definition.position().x,
+        xy_world_space.y - m_definition.position().y,
+        0.0 });
+}
+
+void Controller::set_field_of_view(float fov_degrees)
+{
+    if (qFuzzyCompare(m_definition.field_of_view(), fov_degrees))
+        return;
+    m_definition.set_field_of_view(fov_degrees);
     update();
 }
 

@@ -42,4 +42,6 @@ inline unsigned number_of_vertical_tiles_for_zoom_level(unsigned z) { return 1 <
 
 tile::SrsBounds tile_bounds(const tile::Id& tile);
 bool overlap(const tile::Id& a, const tile::Id& b);
+
+glm::dvec2 lat_long_to_world(const glm::dvec2& lat_long);
 }

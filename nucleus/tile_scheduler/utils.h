@@ -18,8 +18,6 @@
 
 #pragma once
 
-#include <iostream>
-
 #include "nucleus/camera/Definition.h"
 #include "nucleus/srs.h"
 #include "sherpa/TileHeights.h"
@@ -81,8 +79,6 @@ inline auto cameraFrustumContainsTile(const nucleus::camera::Definition& camera,
 
 inline auto refineFunctor(const nucleus::camera::Definition& camera, const AabbDecoratorPtr& aabb_decorator, double error_threshold_px, double tile_size = 256)
 {
-    std::cout << "camera.virtual_resolution_size().x: " << camera.virtual_resolution_size().x << std::endl;
-
     const auto refine = [&camera, error_threshold_px, tile_size, aabb_decorator](const tile::Id& tile) {
         if (tile.zoom_level >= 18)
             return false;

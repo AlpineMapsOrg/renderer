@@ -138,6 +138,39 @@ TEST_CASE("nucleus/camera: Definition")
         }
     }
 
+    SECTION("size in screen space")
+    {
+        const auto to_screen_scale = [](const nucleus::camera::Definition& camera, const glm::dvec4& vec) {
+            auto ndc = camera.world_view_projection_matrix() * vec;
+            ndc /= ndc.w;
+            return glm::dvec2(ndc * 0.5) * glm::dvec2(camera.viewport_size());
+        };
+        {
+            auto c = nucleus::camera::Definition({ 10, 0, 0 }, { 0, 0, 0 });
+            c.set_perspective_params(90, { 2, 2 }, 0.1684); // simple test, ndc go from -1 to 1 -> 2 units
+            auto p = to_screen_scale(c, glm::dvec4(0, 1, 0, 1));
+            CHECK(c.to_screen_space(1, 10) == Approx(p.x)); // camera looks 90deg onto y/z plane, y points right
+        }
+        {
+            auto c = nucleus::camera::Definition({ 10, 0, 0 }, { 0, 0, 0 });
+            c.set_perspective_params(30, { 2, 2 }, 0.1684);
+            auto p = to_screen_scale(c, glm::dvec4(0, 1, 0, 1));
+            CHECK(c.to_screen_space(1, 10) == Approx(p.x));
+        }
+        {
+            auto c = nucleus::camera::Definition({ 10, 0, 0 }, { 0, 0, 0 });
+            c.set_perspective_params(30, { 100, 100 }, 0.1684);
+            auto p = to_screen_scale(c, glm::dvec4(0, 1, 0, 1));
+            CHECK(c.to_screen_space(1, 10) == Approx(p.x));
+        }
+        {
+            auto c = nucleus::camera::Definition({ 10, 0, 0 }, { 0, 0, 0 });
+            c.set_perspective_params(30, { 1, 100 }, 0.1684); // camera fov in glm is set for y direction
+            auto p = to_screen_scale(c, glm::dvec4(0, 1, 0, 1));
+            CHECK(c.to_screen_space(1, 10) == Approx(p.x));
+        }
+    }
+
     SECTION("unproject")
     {
         {

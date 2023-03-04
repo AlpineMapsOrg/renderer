@@ -48,7 +48,7 @@ nucleus::camera::Definition::Definition(const glm::dvec3& position, const glm::d
         m_camera_transformation = glm::inverse(glm::lookAt(position, view_at_point, { 0, 1, 0 }));
     }
 
-    set_perspective_params(m_fov, m_viewport_size, m_near_clipping);
+    set_perspective_params(75, m_viewport_size, m_near_clipping);
 }
 
 glm::dmat4 nucleus::camera::Definition::camera_matrix() const
@@ -142,11 +142,12 @@ std::vector<geometry::Plane<double>> nucleus::camera::Definition::four_clipping_
 
 void nucleus::camera::Definition::set_perspective_params(float fov_degrees, const glm::uvec2& viewport_size, float near_plane)
 {
+    m_distance_scaling_factor = 1.f / std::tan(0.5f * fov_degrees * 3.1415926535897932384626433f / 180);
     m_near_clipping = near_plane;
     m_far_clipping = near_plane * 100'000;
     m_far_clipping = std::min(m_far_clipping, 1'000'000.f);     // will be obscured by atmosphere anyways + depth based atmosphere will have numerical issues (show background atmosphere)
     m_viewport_size = viewport_size;
-    m_fov = fov_degrees;
+    m_field_of_view = fov_degrees;
     m_projection_matrix = glm::perspective(
         glm::radians(double(fov_degrees)),
         double(viewport_size.x) / double(viewport_size.y),
@@ -156,7 +157,7 @@ void nucleus::camera::Definition::set_perspective_params(float fov_degrees, cons
 
 void nucleus::camera::Definition::set_near_plane(float near_plane)
 {
-    set_perspective_params(m_fov, m_viewport_size, near_plane);
+    set_perspective_params(m_field_of_view, m_viewport_size, near_plane);
 }
 
 float nucleus::camera::Definition::near_plane() const
@@ -213,6 +214,11 @@ glm::dvec2 nucleus::camera::Definition::to_ndc(const glm::dvec2& screen_space_co
     return ((screen_space_coordinates / glm::dvec2(m_viewport_size)) * 2.0 - 1.0) * glm::dvec2 { 1.0, -1.0 };
 }
 
+float nucleus::camera::Definition::to_screen_space(float world_space_size, float world_space_distance) const
+{
+    return m_viewport_size.y * 0.5f * world_space_size * m_distance_scaling_factor / world_space_distance;
+}
+
 glm::dvec3 nucleus::camera::Definition::operation_centre() const
 {
     // a ray going through the middle pixel, intersecting with the z == 0 pane
@@ -224,6 +230,16 @@ glm::dvec3 nucleus::camera::Definition::operation_centre() const
 
 namespace nucleus::camera {
 
+float Definition::field_of_view() const
+{
+    return m_field_of_view;
+}
+
+void Definition::set_field_of_view(float new_field_of_view_degrees)
+{
+    set_perspective_params(new_field_of_view_degrees, m_viewport_size, m_near_clipping);
+}
+
 float Definition::virtual_resolution_factor() const
 {
     return m_virtual_resolution_factor;
@@ -234,9 +250,14 @@ void Definition::set_virtual_resolution_factor(float new_virtual_resolution_fact
     m_virtual_resolution_factor = new_virtual_resolution_factor;
 }
 
+bool Definition::operator==(const Definition& other) const
+{
+    return m_camera_transformation == other.m_camera_transformation && m_projection_matrix == other.m_projection_matrix && m_viewport_size == other.m_viewport_size;
+}
+
 void Definition::set_viewport_size(const glm::uvec2& new_viewport_size)
 {
-    set_perspective_params(m_fov, new_viewport_size, m_near_clipping);
+    set_perspective_params(m_field_of_view, new_viewport_size, m_near_clipping);
 }
 
 }
