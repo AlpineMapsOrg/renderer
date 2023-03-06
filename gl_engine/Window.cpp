@@ -49,7 +49,6 @@
 ****************************************************************************/
 
 #include <array>
-#include <iostream>
 
 #include <QDebug>
 #include <QImage>

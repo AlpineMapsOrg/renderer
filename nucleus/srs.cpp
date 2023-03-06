@@ -18,8 +18,11 @@
 
 #include "srs.h"
 
+#include <cmath>
+
+constexpr double pi = 3.1415926535897932384626433;
 constexpr unsigned int cSemiMajorAxis = 6378137;
-constexpr double cEarthCircumference = 2 * 3.1415926535897932384626433 * cSemiMajorAxis;
+constexpr double cEarthCircumference = 2 * pi * cSemiMajorAxis;
 constexpr double cOriginShift = cEarthCircumference / 2.0;
 
 namespace nucleus::srs {
@@ -47,4 +50,20 @@ bool overlap(const tile::Id& a, const tile::Id& b)
     return smaller_zoom_tile == other;
 }
 
+// edited from https://stackoverflow.com/questions/14329691/convert-latitude-longitude-point-to-a-pixels-x-y-on-mercator-projection
+glm::dvec2 lat_long_to_world(const glm::dvec2& lat_long)
+{
+    const auto& latitude = lat_long.x;
+    const auto& longitude = lat_long.y;
+    // get x value
+    const auto x = (longitude + 180) * (cOriginShift / 180) - cOriginShift;
+
+    // convert from degrees to radians
+    const auto latRad = latitude * pi / 180;
+
+    // get y value
+    const auto mercN = std::log(std::tan((pi / 4) + (latRad / 2)));
+    const auto y = cOriginShift * mercN / pi;
+    return { x, y };
+}
 }

@@ -15,6 +15,7 @@ or a normal clone and
 * Qt 6.4.1 (!), or greater
 * OpenGL
 * Catch2 (version 2.x, not 3.x!) and GLM will be pulled as git submodules.
+* Qt Positioning and qt5 compatibility modules
 
 # for building the WebAssembly version:
 * Qt 6.4.1 (!), or greater

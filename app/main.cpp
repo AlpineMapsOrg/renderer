@@ -30,8 +30,11 @@
 #include <QTimer>
 #include <QTranslator>
 
+#include "GnssInformation.h"
 #include "RenderThreadNotifier.h"
 #include "myframebufferobject.h"
+#include "nucleus/map_label/CameraTransformationProxyModel.h"
+#include "nucleus/map_label/MapLabelModel.h"
 
 int main(int argc, char **argv)
 {
@@ -67,7 +70,10 @@ int main(int argc, char **argv)
 
     QSurfaceFormat::setDefaultFormat(fmt);
 
-    qmlRegisterType<MyFrameBufferObject>("MyRenderLibrary", 42, 0, "MeshRenderer");
+    qmlRegisterType<MyFrameBufferObject>("Alpine", 42, 0, "MeshRenderer");
+    qmlRegisterType<GnssInformation>("Alpine", 42, 0, "GnssInformation");
+    qmlRegisterType<nucleus::map_label::MapLabelModel>("Alpine", 42, 0, "LabelModel");
+    qmlRegisterType<nucleus::map_label::CameraTransformationProxyModel>("Alpine", 42, 0, "CameraTransformationProxyModel");
 
     QQmlApplicationEngine engine;
 

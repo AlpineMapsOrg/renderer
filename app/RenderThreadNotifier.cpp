@@ -1,5 +1,5 @@
 /*****************************************************************************
- * Alpine Terrain Builder
+ * Alpine Terrain Renderer
  * Copyright (C) 2023 Adam Celarek
  *
  * This program is free software: you can redistribute it and/or modify

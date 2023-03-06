@@ -92,4 +92,21 @@ TEST_CASE("nucleus/srs")
         CHECK(srs::overlap(tile::Id { .zoom_level = 1, .coords = { 0, 0 } }, tile::Id { .zoom_level = 3, .coords = { 2, 1 } }));
         CHECK(!srs::overlap(tile::Id { .zoom_level = 1, .coords = { 0, 0 } }, tile::Id { .zoom_level = 3, .coords = { 0, 7 } }));
     }
+
+    SECTION("srs conversion")
+    {
+        CHECK(srs::lat_long_to_world({ 0, 0 }).x == Approx(0));
+        CHECK(srs::lat_long_to_world({ 0, 0 }).y == Approx(0).scale(20037508));
+
+        constexpr double maxLat = 85.05112878;
+        constexpr double maxLong = 180;
+        CHECK(srs::lat_long_to_world({ maxLat, maxLong }).x == Approx(20037508.342789244));
+        CHECK(srs::lat_long_to_world({ maxLat, maxLong }).y == Approx(20037508.342789244));
+
+        // https://epsg.io/transform#s_srs=4326&t_srs=3857&x=16.3726561&y=48.2086939
+        constexpr double westl_hochgrubach_spitze_lat = 48.2086939;
+        constexpr double westl_hochgrubach_spitze_long = 16.3726561;
+        CHECK(srs::lat_long_to_world({ westl_hochgrubach_spitze_lat, westl_hochgrubach_spitze_long }).x == Approx(1822595.7412222677));
+        CHECK(srs::lat_long_to_world({ westl_hochgrubach_spitze_lat, westl_hochgrubach_spitze_long }).y == Approx(6141644.553721141));
+    }
 }

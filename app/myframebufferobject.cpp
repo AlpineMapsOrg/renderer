@@ -69,6 +69,15 @@ public:
         m_window = item->window();
         MyFrameBufferObject* i = static_cast<MyFrameBufferObject*>(item);
         m_controller->camera_controller()->set_virtual_resolution_factor(i->virtual_resolution_factor());
+        m_controller->camera_controller()->set_field_of_view(i->field_of_view());
+        if (!(i->camera() == m_controller->camera_controller()->definition())) {
+            const auto tmp_camera = m_controller->camera_controller()->definition();
+            QTimer::singleShot(0, i, [i, tmp_camera]() {
+                i->set_read_only_camera(tmp_camera);
+                i->set_read_only_frame_buffer_width(tmp_camera.viewport_size().x);
+                i->set_read_only_frame_buffer_height(tmp_camera.viewport_size().y);
+            });
+        }
     }
 
     void render() Q_DECL_OVERRIDE
@@ -140,6 +149,7 @@ QQuickFramebufferObject::Renderer* MyFrameBufferObject::createRenderer() const
     connect(this, &MyFrameBufferObject::mouse_pressed, r->controller()->camera_controller(), &nucleus::camera::Controller::mouse_press);
     connect(this, &MyFrameBufferObject::mouse_moved, r->controller()->camera_controller(), &nucleus::camera::Controller::mouse_move);
     connect(this, &MyFrameBufferObject::wheel_turned, r->controller()->camera_controller(), &nucleus::camera::Controller::wheel_turn);
+    connect(this, &MyFrameBufferObject::position_set_by_user, r->controller()->camera_controller(), &nucleus::camera::Controller::set_latitude_longitude);
 
     connect(r->controller()->tile_scheduler(), &nucleus::tile_scheduler::GpuCacheTileScheduler::tile_ready, RenderThreadNotifier::instance(), &RenderThreadNotifier::notify);
     connect(r->controller()->tile_scheduler(), &nucleus::tile_scheduler::GpuCacheTileScheduler::tile_expired, RenderThreadNotifier::instance(), &RenderThreadNotifier::notify);
@@ -168,6 +178,12 @@ void MyFrameBufferObject::mouseMoveEvent(QMouseEvent* e)
 void MyFrameBufferObject::wheelEvent(QWheelEvent* e)
 {
     emit wheel_turned(nucleus::event_parameter::make(e));
+    RenderThreadNotifier::instance()->notify();
+}
+
+void MyFrameBufferObject::set_position(double latitude, double longitude)
+{
+    emit position_set_by_user(latitude, longitude);
     RenderThreadNotifier::instance()->notify();
 }
 
@@ -205,5 +221,60 @@ void MyFrameBufferObject::set_virtual_resolution_factor(float new_virtual_resolu
         return;
     m_virtual_resolution_factor = new_virtual_resolution_factor;
     emit virtual_resolution_factor_changed();
+    schedule_update();
+}
+
+nucleus::camera::Definition MyFrameBufferObject::camera() const
+{
+    return m_camera;
+}
+
+void MyFrameBufferObject::set_read_only_camera(const nucleus::camera::Definition& new_camera)
+{
+    // the camera is controlled by the rendering thread (i.e., movement, projection parameters, viewport size etc).
+    // this method is only for copying the camera data to the gui thread for consumptino
+    if (m_camera == new_camera)
+        return;
+    m_camera = new_camera;
+    emit camera_changed();
+}
+
+int MyFrameBufferObject::frame_buffer_width() const
+{
+    return m_frame_buffer_width;
+}
+
+void MyFrameBufferObject::set_read_only_frame_buffer_width(int new_frame_buffer_width)
+{
+    if (m_frame_buffer_width == new_frame_buffer_width)
+        return;
+    m_frame_buffer_width = new_frame_buffer_width;
+    emit frame_buffer_width_changed();
+}
+
+int MyFrameBufferObject::frame_buffer_height() const
+{
+    return m_frame_buffer_height;
+}
+
+void MyFrameBufferObject::set_read_only_frame_buffer_height(int new_frame_buffer_height)
+{
+    if (m_frame_buffer_height == new_frame_buffer_height)
+        return;
+    m_frame_buffer_height = new_frame_buffer_height;
+    emit frame_buffer_height_changed();
+}
+
+float MyFrameBufferObject::field_of_view() const
+{
+    return m_field_of_view;
+}
+
+void MyFrameBufferObject::set_field_of_view(float new_field_of_view)
+{
+    if (qFuzzyCompare(m_field_of_view, new_field_of_view))
+        return;
+    m_field_of_view = new_field_of_view;
+    emit field_of_view_changed();
     schedule_update();
 }
