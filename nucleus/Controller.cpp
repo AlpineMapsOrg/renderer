@@ -29,6 +29,7 @@
 #include "nucleus/TileLoadService.h"
 #include "nucleus/camera/Controller.h"
 #include "nucleus/camera/CrapyInteraction.h"
+#include "nucleus/camera/FirstPersonInteraction.h"
 #include "nucleus/camera/NearPlaneAdjuster.h"
 #include "nucleus/camera/OrbitInteraction.h"
 #include "nucleus/camera/stored_positions.h"
@@ -138,6 +139,9 @@ void Controller::change_interaction_style(const QKeyCombination& e)
     }
     if (e.key() == Qt::Key_V) {
         m_camera_controller->set_interaction_style(std::make_unique<nucleus::camera::OrbitInteraction>());
+    }
+    if (e.key() == Qt::Key_B) {
+        m_camera_controller->set_interaction_style(std::make_unique<nucleus::camera::FirstPersonInteraction>());
     }
 }
 

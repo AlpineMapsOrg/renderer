@@ -51,6 +51,7 @@ public:
     void set_near_plane(float near_plane);
     [[nodiscard]] float near_plane() const;
     void pan(const glm::dvec2& v);
+    void lift(float f);
     void move(const glm::dvec3& v);
     void orbit(const glm::dvec3& centre, const glm::dvec2& degrees);
     // orbits around the intersection of negative z and 0 plane (temprorary only, until we can read the depth buffer)
