@@ -1,4 +1,4 @@
-/*****************************************************************************
+﻿/*****************************************************************************
  * Alpine Terrain Renderer
  * Copyright (C) 2022 Adam Celarek
  *
@@ -95,8 +95,11 @@ std::optional<Definition> FirstPersonInteraction::touch_event(const event_parame
 
 std::optional<Definition> FirstPersonInteraction::wheel_event(const event_parameter::Wheel& e, Definition camera, AbstractDepthTester* depth_tester)
 {
-    m_speed_modifyer = std::max(m_speed_modifyer + (e.angle_delta.y() / 10), 1.0f);
-    qDebug() << "wheel: " << (e.angle_delta.y() / 10);
+    if (e.angle_delta.y() > 0) {
+        m_speed_modifyer = std::min(m_speed_modifyer * 1.3f, 4000.0f);
+    } else {
+        m_speed_modifyer = std::max(m_speed_modifyer / 1.3f, 1.0f);
+    }
     return camera;
 }
 
