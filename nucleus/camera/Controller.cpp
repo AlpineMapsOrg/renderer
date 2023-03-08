@@ -18,7 +18,10 @@
 
 #include "Controller.h"
 
+#include "nucleus/camera/CrapyInteraction.h"
 #include "nucleus/camera/Definition.h"
+#include "nucleus/camera/FirstPersonInteraction.h"
+#include "nucleus/camera/OrbitInteraction.h"
 #include "nucleus/srs.h"
 
 namespace nucleus::camera {
@@ -122,6 +125,16 @@ void Controller::wheel_turn(const event_parameter::Wheel& e)
 
 void Controller::key_press(const QKeyCombination& e)
 {
+    if (e.key() == Qt::Key_C) {
+        set_interaction_style(std::make_unique<nucleus::camera::CrapyInteraction>());
+    }
+    if (e.key() == Qt::Key_V) {
+        set_interaction_style(std::make_unique<nucleus::camera::OrbitInteraction>());
+    }
+    if (e.key() == Qt::Key_B) {
+        set_interaction_style(std::make_unique<nucleus::camera::FirstPersonInteraction>());
+    }
+
     const auto new_definition = m_interaction_style->key_press_event(e, m_definition, m_depth_tester);
     if (!new_definition)
         return;

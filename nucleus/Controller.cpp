@@ -28,8 +28,6 @@
 #include "AbstractRenderWindow.h"
 #include "nucleus/TileLoadService.h"
 #include "nucleus/camera/Controller.h"
-#include "nucleus/camera/CrapyInteraction.h"
-#include "nucleus/camera/FirstPersonInteraction.h"
 #include "nucleus/camera/NearPlaneAdjuster.h"
 #include "nucleus/camera/OrbitInteraction.h"
 #include "nucleus/camera/stored_positions.h"
@@ -85,7 +83,6 @@ Controller::Controller(AbstractRenderWindow* render_window)
     connect(m_render_window, &AbstractRenderWindow::key_pressed, m_camera_controller.get(), &nucleus::camera::Controller::key_press);
     //    connect(m_render_window, &AbstractRenderWindow::touch_made, m_camera_controller.get(), &nucleus::camera::Controller::touch);
     connect(m_render_window, &AbstractRenderWindow::key_pressed, m_tile_scheduler.get(), &TileScheduler::key_press);
-    connect(m_render_window, &AbstractRenderWindow::key_pressed, this, &nucleus::Controller::change_interaction_style);
 
     // NOTICE ME!!!! READ THIS, IF YOU HAVE TROUBLES WITH SIGNALS NOT REACHING THE QML RENDERING THREAD!!!!111elevenone
     // In Qt 6.4 and earlier the rendering thread goes to sleep. See RenderThreadNotifier.
@@ -131,18 +128,4 @@ tile_scheduler::GpuCacheTileScheduler* Controller::tile_scheduler() const
 {
     return m_tile_scheduler.get();
 }
-
-void Controller::change_interaction_style(const QKeyCombination& e)
-{
-    if (e.key() == Qt::Key_C) {
-        m_camera_controller->set_interaction_style(std::make_unique<nucleus::camera::CrapyInteraction>());
-    }
-    if (e.key() == Qt::Key_V) {
-        m_camera_controller->set_interaction_style(std::make_unique<nucleus::camera::OrbitInteraction>());
-    }
-    if (e.key() == Qt::Key_B) {
-        m_camera_controller->set_interaction_style(std::make_unique<nucleus::camera::FirstPersonInteraction>());
-    }
-}
-
 }
