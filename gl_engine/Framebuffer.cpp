@@ -242,6 +242,18 @@ QImage Framebuffer::read_colour_attachment(unsigned index)
     return image;
 }
 
+float Framebuffer::read_pixel(const glm::dvec2& normalised_device_coordinates)
+{
+    QOpenGLExtraFunctions* f = QOpenGLContext::currentContext()->extraFunctions();
+    bind();
+    float pixel;
+    f->glReadPixels((normalised_device_coordinates.x + 1) / 2 * m_size.x,
+                    (normalised_device_coordinates.y + 1) / 2 * m_size.y,
+                    1, 1, format(m_colour_formats.front()), type(m_colour_formats.front()), &pixel);
+    unbind();
+    return pixel;
+}
+
 void Framebuffer::unbind()
 {
     QOpenGLFunctions* f = QOpenGLContext::currentContext()->functions();

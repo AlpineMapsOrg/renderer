@@ -234,16 +234,7 @@ void Window::update_debug_scheduler_stats(const QString& stats)
 float Window::depth(const glm::dvec2& normalised_device_coordinates)
 {
     m_camera.set_viewport_size(m_depth_buffer->size());
-    QOpenGLExtraFunctions* f = QOpenGLContext::currentContext()->extraFunctions();
-    m_depth_buffer->bind();
-
-    float pixel;
-    f->glReadPixels((normalised_device_coordinates.x + 1) / 2 * m_depth_buffer->size().x,
-                    (normalised_device_coordinates.y + 1) / 2 * m_depth_buffer->size().y,
-                    1, 1, GL_RGBA, GL_FLOAT, &pixel);
-
-    m_depth_buffer->unbind();
-    return pixel;
+    return m_depth_buffer->read_pixel(normalised_device_coordinates);
 }
 
 glm::dvec3 Window::position(const glm::dvec2& normalised_device_coordinates)
