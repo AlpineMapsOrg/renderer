@@ -115,10 +115,10 @@ std::optional<Definition> FirstPersonInteraction::key_press_event(const QKeyComb
         camera.pan(glm::vec2(-1, 0) * m_speed_modifyer);
     }
     if (e.key() == Qt::Key_E) {
-        camera.lift(m_speed_modifyer);
+        camera.move(glm::dvec3(0, 0, m_speed_modifyer));
     }
     if (e.key() == Qt::Key_Q) {
-        camera.lift(m_speed_modifyer * -1.0f);
+        camera.move(glm::dvec3(0, 0, -m_speed_modifyer));
     }
     return camera;
 }

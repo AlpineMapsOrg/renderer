@@ -172,11 +172,6 @@ void nucleus::camera::Definition::pan(const glm::dvec2& v)
     m_camera_transformation = glm::translate(-1.0 * (v.x * x_dir + v.y * y_dir)) * m_camera_transformation;
 }
 
-void nucleus::camera::Definition::lift(float f)
-{
-    m_camera_transformation = glm::translate(glm::dvec3(0, 0, f)) * m_camera_transformation;
-}
-
 void nucleus::camera::Definition::move(const glm::dvec3& v)
 {
     m_camera_transformation = glm::translate(v) * m_camera_transformation;
