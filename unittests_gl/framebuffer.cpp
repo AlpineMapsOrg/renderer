@@ -133,4 +133,19 @@ TEST_CASE("gl framebuffer")
             }
         }
     }
+
+    SECTION("read pixel")
+    {
+        Framebuffer b(Framebuffer::DepthFormat::None, { Framebuffer::ColourFormat::Float32 });
+        b.resize({ 3, 3 });
+        b.bind();
+        ShaderProgram shader = create_debug_shader();
+        shader.bind();
+        gl_engine::helpers::create_screen_quad_geometry().draw();
+
+        float pixel = b.read_pixel(glm::dvec2(0, 0));
+
+        Framebuffer::unbind();
+        CHECK(pixel == 0.2f);
+    }
 }

@@ -50,11 +50,15 @@ ShaderManager::ShaderManager()
     m_atmosphere_bg_program = std::make_unique<ShaderProgram>(
         ShaderProgram::Files({"gl_shaders/screen_pass.vert"}),
         ShaderProgram::Files({"gl_shaders/atmosphere_implementation.frag", "gl_shaders/atmosphere_bg.frag"}));
+    m_depth_program = std::make_unique<ShaderProgram>(
+        ShaderProgram::Files({"gl_shaders/tile.vert"}),
+        ShaderProgram::Files({"gl_shaders/depth.frag"}));
 
     m_program_list.push_back(m_tile_program.get());
     m_program_list.push_back(m_debug_program.get());
     m_program_list.push_back(m_screen_quad_program.get());
     m_program_list.push_back(m_atmosphere_bg_program.get());
+    m_program_list.push_back(m_depth_program.get());
 }
 
 ShaderManager::~ShaderManager() = default;
@@ -77,6 +81,11 @@ ShaderProgram* ShaderManager::screen_quad_program() const
 ShaderProgram* ShaderManager::atmosphere_bg_program() const
 {
     return m_atmosphere_bg_program.get();
+}
+
+ShaderProgram* ShaderManager::depth_program() const
+{
+    return m_depth_program.get();
 }
 
 void ShaderManager::release()

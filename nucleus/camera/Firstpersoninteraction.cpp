@@ -1,4 +1,4 @@
-/*****************************************************************************
+﻿/*****************************************************************************
  * Alpine Terrain Renderer
  * Copyright (C) 2022 Adam Celarek
  *
@@ -16,33 +16,23 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *****************************************************************************/
 
-#include "CrapyInteraction.h"
+#include "Firstpersoninteraction.h"
 #include "AbstractDepthTester.h"
 
 #include <QDebug>
 
 namespace nucleus::camera {
 
-std::optional<Definition> CrapyInteraction::mouse_press_event(const event_parameter::Mouse& e, Definition camera, AbstractDepthTester* depth_tester)
-{
-    m_operation_centre = depth_tester->position(camera.to_ndc({ e.point.pressPosition().x(), e.point.pressPosition().y() }));
-    return {};
-}
-
-std::optional<Definition> CrapyInteraction::mouse_move_event(const event_parameter::Mouse& e, Definition camera, AbstractDepthTester* depth_tester)
+std::optional<Definition> FirstPersonInteraction::mouse_move_event(const event_parameter::Mouse& e, Definition camera, AbstractDepthTester* depth_tester)
 {
 
     if (e.buttons == Qt::LeftButton) {
         const auto delta = e.point.position() - e.point.lastPosition();
-        camera.pan(glm::vec2(delta.x(), delta.y()) * 10.0f);
+        camera.orbit(camera.position(), glm::vec2(delta.x(), delta.y()) * -0.1f);
     }
     if (e.buttons == Qt::MiddleButton) {
         const auto delta = e.point.position() - e.point.lastPosition();
-        camera.orbit(m_operation_centre, glm::vec2(delta.x(), delta.y()) * 0.1f);
-    }
-    if (e.buttons == Qt::RightButton) {
-        const auto delta = e.point.position() - e.point.lastPosition();
-        camera.zoom(delta.y() * 10.0);
+        camera.orbit(camera.position(), glm::vec2(delta.x(), delta.y()) * -0.1f);
     }
 
     if (e.buttons == Qt::NoButton)
@@ -51,7 +41,7 @@ std::optional<Definition> CrapyInteraction::mouse_move_event(const event_paramet
         return camera;
 }
 
-std::optional<Definition> CrapyInteraction::touch_event(const event_parameter::Touch& e, Definition camera, AbstractDepthTester* depth_tester)
+std::optional<Definition> FirstPersonInteraction::touch_event(const event_parameter::Touch& e, Definition camera, AbstractDepthTester* depth_tester)
 {
     glm::ivec2 first_touch = { e.points[0].position().x(), e.points[0].position().y() };
     glm::ivec2 second_touch;
@@ -103,9 +93,36 @@ std::optional<Definition> CrapyInteraction::touch_event(const event_parameter::T
     return camera;
 }
 
-std::optional<Definition> CrapyInteraction::wheel_event(const event_parameter::Wheel& e, Definition camera, AbstractDepthTester* depth_tester)
+std::optional<Definition> FirstPersonInteraction::wheel_event(const event_parameter::Wheel& e, Definition camera, AbstractDepthTester* depth_tester)
 {
-    camera.zoom(e.angle_delta.y() * -8.0);
+    if (e.angle_delta.y() > 0) {
+        m_speed_modifyer = std::min(m_speed_modifyer * 1.3f, 4000.0f);
+    } else {
+        m_speed_modifyer = std::max(m_speed_modifyer / 1.3f, 1.0f);
+    }
+    return camera;
+}
+
+std::optional<Definition> FirstPersonInteraction::key_press_event(const QKeyCombination& e, Definition camera, AbstractDepthTester* ray_caster)
+{
+    if (e.key() == Qt::Key_W) {
+        camera.move(camera.ray_direction(glm::vec2(0, 0)) * (double)m_speed_modifyer);
+    }
+    if (e.key() == Qt::Key_S) {
+        camera.move(camera.ray_direction(glm::vec2(0, 0)) * (double)m_speed_modifyer * -1.0);
+    }
+    if (e.key() == Qt::Key_A) {
+        camera.pan(glm::vec2(1, 0) * m_speed_modifyer);
+    }
+    if (e.key() == Qt::Key_D) {
+        camera.pan(glm::vec2(-1, 0) * m_speed_modifyer);
+    }
+    if (e.key() == Qt::Key_E) {
+        camera.move(glm::dvec3(0, 0, m_speed_modifyer));
+    }
+    if (e.key() == Qt::Key_Q) {
+        camera.move(glm::dvec3(0, 0, -m_speed_modifyer));
+    }
     return camera;
 }
 }

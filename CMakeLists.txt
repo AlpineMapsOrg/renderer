@@ -28,9 +28,11 @@ set(ALP_NUCLEUS_SOURCES
     nucleus/camera/Controller.h nucleus/camera/Controller.cpp
     nucleus/camera/CrapyInteraction.h nucleus/camera/CrapyInteraction.cpp
     nucleus/camera/Definition.h nucleus/camera/Definition.cpp
+    nucleus/camera/FirstPersonInteraction.h nucleus/camera/FirstPersonInteraction.cpp
     nucleus/camera/InteractionStyle.h nucleus/camera/InteractionStyle.cpp
     nucleus/camera/NearPlaneAdjuster.h nucleus/camera/NearPlaneAdjuster.cpp
-    nucleus/camera/AbstractRayCaster.h
+    nucleus/camera/OrbitInteraction.h nucleus/camera/OrbitInteraction.cpp
+    nucleus/camera/AbstractDepthTester.h
     nucleus/camera/stored_positions.h
     nucleus/utils/terrain_mesh_index_generator.h
     nucleus/utils/tile_conversion.h nucleus/utils/tile_conversion.cpp
@@ -58,6 +60,7 @@ set(ALP_GL_SHADERS
     gl_shaders/screen_pass.vert
     gl_shaders/tile.frag
     gl_shaders/tile.vert
+    gl_shaders/depth.frag
 )
 set(ALP_PLAIN_RENDERER_SOURCES
     plain_renderer/main.cpp

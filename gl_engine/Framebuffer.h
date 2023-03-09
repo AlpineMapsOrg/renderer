@@ -61,6 +61,7 @@ public:
     void bind_colour_texture(unsigned index);
     std::unique_ptr<QOpenGLTexture> take_and_replace_colour_attachment(unsigned index);
     QImage read_colour_attachment(unsigned index);
+    float read_pixel(const glm::dvec2& normalised_device_coordinates);
     static void unbind();
 
     glm::uvec2 size() const;

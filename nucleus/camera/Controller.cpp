@@ -18,13 +18,16 @@
 
 #include "Controller.h"
 
+#include "nucleus/camera/CrapyInteraction.h"
 #include "nucleus/camera/Definition.h"
+#include "nucleus/camera/FirstPersonInteraction.h"
+#include "nucleus/camera/OrbitInteraction.h"
 #include "nucleus/srs.h"
 
 namespace nucleus::camera {
-Controller::Controller(const Definition& camera, AbstractRayCaster* ray_caster)
+Controller::Controller(const Definition& camera, AbstractDepthTester* depth_tester)
     : m_definition(camera)
-    , m_ray_caster(ray_caster)
+    , m_depth_tester(depth_tester)
     , m_interaction_style(std::make_unique<InteractionStyle>())
 {
 }
@@ -95,7 +98,7 @@ void Controller::update() const
 
 void Controller::mouse_press(const event_parameter::Mouse& e)
 {
-    const auto new_definition = m_interaction_style->mouse_press_event(e, m_definition, m_ray_caster);
+    const auto new_definition = m_interaction_style->mouse_press_event(e, m_definition, m_depth_tester);
     if (!new_definition)
         return;
     m_definition = new_definition.value();
@@ -104,7 +107,7 @@ void Controller::mouse_press(const event_parameter::Mouse& e)
 
 void Controller::mouse_move(const event_parameter::Mouse& e)
 {
-    const auto new_definition = m_interaction_style->mouse_move_event(e, m_definition, m_ray_caster);
+    const auto new_definition = m_interaction_style->mouse_move_event(e, m_definition, m_depth_tester);
     if (!new_definition)
         return;
     m_definition = new_definition.value();
@@ -113,7 +116,7 @@ void Controller::mouse_move(const event_parameter::Mouse& e)
 
 void Controller::wheel_turn(const event_parameter::Wheel& e)
 {
-    const auto new_definition = m_interaction_style->wheel_event(e, m_definition, m_ray_caster);
+    const auto new_definition = m_interaction_style->wheel_event(e, m_definition, m_depth_tester);
     if (!new_definition)
         return;
     m_definition = new_definition.value();
@@ -122,7 +125,17 @@ void Controller::wheel_turn(const event_parameter::Wheel& e)
 
 void Controller::key_press(const QKeyCombination& e)
 {
-    const auto new_definition = m_interaction_style->key_press_event(e, m_definition, m_ray_caster);
+    if (e.key() == Qt::Key_C) {
+        set_interaction_style(std::make_unique<nucleus::camera::CrapyInteraction>());
+    }
+    if (e.key() == Qt::Key_V) {
+        set_interaction_style(std::make_unique<nucleus::camera::OrbitInteraction>());
+    }
+    if (e.key() == Qt::Key_B) {
+        set_interaction_style(std::make_unique<nucleus::camera::FirstPersonInteraction>());
+    }
+
+    const auto new_definition = m_interaction_style->key_press_event(e, m_definition, m_depth_tester);
     if (!new_definition)
         return;
     m_definition = new_definition.value();
@@ -131,7 +144,7 @@ void Controller::key_press(const QKeyCombination& e)
 
 void Controller::touch(const event_parameter::Touch& e)
 {
-    const auto new_definition = m_interaction_style->touch_event(e, m_definition, m_ray_caster);
+    const auto new_definition = m_interaction_style->touch_event(e, m_definition, m_depth_tester);
     if (!new_definition)
         return;
     m_definition = new_definition.value();

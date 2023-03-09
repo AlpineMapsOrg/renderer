@@ -109,6 +109,8 @@ void Window::initialise_gpu()
     m_tile_manager->initilise_attribute_locations(m_shader_manager->tile_shader());
     m_screen_quad_geometry = gl_engine::helpers::create_screen_quad_geometry();
     m_framebuffer = std::make_unique<Framebuffer>(Framebuffer::DepthFormat::Int24, std::vector({ Framebuffer::ColourFormat::RGBA8 }));
+    m_depth_buffer = std::make_unique<Framebuffer>(Framebuffer::DepthFormat::Float32, std::vector({ Framebuffer::ColourFormat::Float32 }));
+    m_depth_buffer->resize(glm::vec2(3, 3));
 }
 
 void Window::resize_framebuffer(int width, int height)
@@ -119,6 +121,7 @@ void Window::resize_framebuffer(int width, int height)
     QOpenGLFunctions* f = QOpenGLContext::currentContext()->functions();
     m_framebuffer->resize({ width, height });
     m_atmosphere->resize({ width, height });
+    m_depth_buffer->resize({ width / 4, height / 4 });
 
     f->glViewport(0, 0, width, height);
 }
@@ -126,9 +129,21 @@ void Window::resize_framebuffer(int width, int height)
 void Window::paint(QOpenGLFramebufferObject* framebuffer)
 {
     m_frame_start = std::chrono::time_point_cast<ClockResolution>(Clock::now());
-    m_camera.set_viewport_size(m_framebuffer->size());
-
     QOpenGLExtraFunctions* f = QOpenGLContext::currentContext()->extraFunctions();
+
+    // DEPTH TEST
+    m_camera.set_viewport_size(m_depth_buffer->size());
+    m_depth_buffer->bind();
+    f->glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
+    f->glEnable(GL_DEPTH_TEST);
+    f->glDepthFunc(GL_LESS);
+
+    m_shader_manager->depth_program()->bind();
+    m_tile_manager->draw(m_shader_manager->depth_program(), m_camera);
+    m_depth_buffer->unbind();
+    // END DEPTH TEST
+
+    m_camera.set_viewport_size(m_framebuffer->size());
     m_framebuffer->bind();
     f->glClearColor(1.0, 0.0, 0.5, 1);
 
@@ -216,9 +231,15 @@ void Window::update_debug_scheduler_stats(const QString& stats)
     m_debug_scheduler_stats = stats;
     emit update_requested();
 }
-glm::dvec3 Window::ray_cast(const nucleus::camera::Definition& camera, const glm::dvec2& normalised_device_coordinates)
+float Window::depth(const glm::dvec2& normalised_device_coordinates)
 {
-    return m_camera.position() + camera.ray_direction(normalised_device_coordinates) * 50.;
+    m_camera.set_viewport_size(m_depth_buffer->size());
+    return m_depth_buffer->read_pixel(normalised_device_coordinates);
+}
+
+glm::dvec3 Window::position(const glm::dvec2& normalised_device_coordinates)
+{
+    return m_camera.position() + m_camera.ray_direction(normalised_device_coordinates) * (double)depth(normalised_device_coordinates);
 }
 
 void Window::deinit_gpu()
@@ -228,6 +249,7 @@ void Window::deinit_gpu()
     m_atmosphere.reset();
     m_shader_manager.reset();
     m_framebuffer.reset();
+    m_depth_buffer.reset();
     m_screen_quad_geometry = {};
 }
 
@@ -249,7 +271,7 @@ void Window::remove_tile(const tile::Id& id)
     m_tile_manager->remove_tile(id);
 }
 
-nucleus::camera::AbstractRayCaster* Window::ray_caster()
+nucleus::camera::AbstractDepthTester* Window::depth_tester()
 {
     return this;
 }

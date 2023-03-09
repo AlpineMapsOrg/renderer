@@ -18,25 +18,20 @@
 
 #pragma once
 
-#include <optional>
-
-#include <QKeyCombination>
-
-#include "Definition.h"
-#include "nucleus/event_parameter.h"
+#include "InteractionStyle.h"
 
 namespace nucleus::camera {
-class AbstractDepthTester;
-
-class InteractionStyle
+class FirstPersonInteraction : public InteractionStyle
 {
+    glm::ivec2 m_previous_mouse_pos = { -1, -1 };
+    glm::ivec2 m_previous_first_touch = { -1, -1 };
+    glm::ivec2 m_previous_second_touch = { -1, -1 };
+    bool m_was_double_touch = false;
+    float m_speed_modifyer = 13;
 public:
-    virtual ~InteractionStyle() = default;
-    virtual std::optional<Definition> mouse_press_event(const event_parameter::Mouse& e, Definition camera, AbstractDepthTester* ray_caster);
-    virtual std::optional<Definition> mouse_move_event(const event_parameter::Mouse& e, Definition camera, AbstractDepthTester* ray_caster);
-    virtual std::optional<Definition> wheel_event(const event_parameter::Wheel& e, Definition camera, AbstractDepthTester* ray_caster);
-    virtual std::optional<Definition> key_press_event(const QKeyCombination& e, Definition camera, AbstractDepthTester* ray_caster);
-    virtual std::optional<Definition> touch_event(const event_parameter::Touch& e, Definition camera, AbstractDepthTester* ray_caster);
+    std::optional<Definition> mouse_move_event(const event_parameter::Mouse& e, Definition camera, AbstractDepthTester* depth_tester) override;
+    std::optional<Definition> touch_event(const event_parameter::Touch& e, Definition camera, AbstractDepthTester* depth_tester) override;
+    std::optional<Definition> wheel_event(const event_parameter::Wheel& e, Definition camera, AbstractDepthTester* depth_tester) override;
+    std::optional<Definition> key_press_event(const QKeyCombination& e, Definition camera, AbstractDepthTester* ray_caster) override;
 };
-
 }

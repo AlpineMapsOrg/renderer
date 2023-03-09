@@ -23,8 +23,12 @@
 namespace nucleus::camera {
 class Definition;
 
-class AbstractRayCaster {
+class AbstractDepthTester {
 public:
-    [[nodiscard]] virtual glm::dvec3 ray_cast(const Definition& camera, const glm::dvec2& normalised_device_coordinates) = 0;
+    [[nodiscard]] virtual float depth(const glm::dvec2& normalised_device_coordinates) = 0;
+    [[nodiscard]] virtual glm::dvec3 position(const glm::dvec2& normalised_device_coordinates) = 0;
+
+    //TODO implement this for other directions
+    //[[nodiscard]] virtual glm::dvec3 ray_cast(const Definition& camera, const glm::dvec2& normalised_device_coordinates) = 0;
 };
 }
