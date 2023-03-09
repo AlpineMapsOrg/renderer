@@ -143,8 +143,7 @@ TEST_CASE("gl framebuffer")
         shader.bind();
         gl_engine::helpers::create_screen_quad_geometry().draw();
 
-        float pixel;
-        f->glReadPixels(0, 0, 1, 1, GL_RGBA, GL_FLOAT, &pixel);
+        float pixel = b.read_pixel(glm::dvec2(0, 0));
 
         Framebuffer::unbind();
         CHECK(pixel == 0.2f);
