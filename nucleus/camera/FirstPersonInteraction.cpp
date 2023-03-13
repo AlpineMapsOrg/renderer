@@ -106,10 +106,10 @@ std::optional<Definition> FirstPersonInteraction::wheel_event(const event_parame
 std::optional<Definition> FirstPersonInteraction::key_press_event(const QKeyCombination& e, Definition camera, AbstractDepthTester* ray_caster)
 {
     if (e.key() == Qt::Key_W) {
-        camera.move(camera.ray_direction(glm::vec2(0, 0)) * (double)m_speed_modifyer);
+        camera.move(camera.z_axis() * -(double)m_speed_modifyer);
     }
     if (e.key() == Qt::Key_S) {
-        camera.move(camera.ray_direction(glm::vec2(0, 0)) * (double)m_speed_modifyer * -1.0);
+        camera.move(camera.z_axis() * (double)m_speed_modifyer);
     }
     if (e.key() == Qt::Key_A) {
         camera.pan(glm::vec2(1, 0) * m_speed_modifyer);
