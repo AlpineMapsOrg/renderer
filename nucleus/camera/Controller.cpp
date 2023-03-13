@@ -18,6 +18,7 @@
 
 #include "Controller.h"
 
+#include "nucleus/camera/CadInteraction.h"
 #include "nucleus/camera/CrapyInteraction.h"
 #include "nucleus/camera/Definition.h"
 #include "nucleus/camera/FirstPersonInteraction.h"
@@ -133,6 +134,9 @@ void Controller::key_press(const QKeyCombination& e)
     }
     if (e.key() == Qt::Key_B) {
         set_interaction_style(std::make_unique<nucleus::camera::FirstPersonInteraction>());
+    }
+    if (e.key() == Qt::Key_N) {
+        set_interaction_style(std::make_unique<nucleus::camera::CadInteraction>());
     }
 
     const auto new_definition = m_interaction_style->key_press_event(e, m_definition, m_depth_tester);
