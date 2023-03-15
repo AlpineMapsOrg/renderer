@@ -159,24 +159,28 @@ QQuickFramebufferObject::Renderer* MyFrameBufferObject::createRenderer() const
 
 void MyFrameBufferObject::touchEvent(QTouchEvent* e)
 {
+    set_camera_operation_center(e->point(0).position());
     emit touch_made(nucleus::event_parameter::make(e));
     RenderThreadNotifier::instance()->notify();
 }
 
 void MyFrameBufferObject::mousePressEvent(QMouseEvent* e)
 {
+    set_camera_operation_center(e->position());
     emit mouse_pressed(nucleus::event_parameter::make(e));
     RenderThreadNotifier::instance()->notify();
 }
 
 void MyFrameBufferObject::mouseMoveEvent(QMouseEvent* e)
 {
+    set_camera_operation_center(e->position());
     emit mouse_moved(nucleus::event_parameter::make(e));
     RenderThreadNotifier::instance()->notify();
 }
 
 void MyFrameBufferObject::wheelEvent(QWheelEvent* e)
 {
+    set_camera_operation_center(e->position());
     emit wheel_turned(nucleus::event_parameter::make(e));
     RenderThreadNotifier::instance()->notify();
 }
@@ -277,4 +281,17 @@ void MyFrameBufferObject::set_field_of_view(float new_field_of_view)
     m_field_of_view = new_field_of_view;
     emit field_of_view_changed();
     schedule_update();
+}
+
+QPointF MyFrameBufferObject::camera_operation_center() const
+{
+    return m_camera_operation_center;
+}
+
+void MyFrameBufferObject::set_camera_operation_center(QPointF new_camera_operation_center)
+{
+    if (m_camera_operation_center == new_camera_operation_center)
+        return;
+    m_camera_operation_center = new_camera_operation_center;
+    emit camera_operation_center_changed();
 }
