@@ -29,7 +29,6 @@
 #include "nucleus/TileLoadService.h"
 #include "nucleus/camera/Controller.h"
 #include "nucleus/camera/NearPlaneAdjuster.h"
-#include "nucleus/camera/OrbitInteraction.h"
 #include "nucleus/camera/stored_positions.h"
 #include "nucleus/tile_scheduler/GpuCacheTileScheduler.h"
 #include "nucleus/tile_scheduler/SimplisticTileScheduler.h"
@@ -46,7 +45,6 @@ Controller::Controller(AbstractRenderWindow* render_window)
 
     m_camera_controller = std::make_unique<nucleus::camera::Controller>(nucleus::camera::stored_positions::westl_hochgrubach_spitze(), m_render_window->depth_tester());
     //    nucleus::camera::Controller camera_controller { nucleus::camera::stored_positions::stephansdom() };
-    m_camera_controller->set_interaction_style(std::make_unique<nucleus::camera::OrbitInteraction>());
 
     m_terrain_service = std::make_unique<TileLoadService>("https://alpinemaps.cg.tuwien.ac.at/tiles/alpine_png/", TileLoadService::UrlPattern::ZXY, ".png");
     //    m_ortho_service.reset(new TileLoadService("https://tiles.bergfex.at/styles/bergfex-osm/", TileLoadService::UrlPattern::ZXY_yPointingSouth, ".jpeg"));

@@ -31,6 +31,7 @@ Controller::Controller(const Definition& camera, AbstractDepthTester* depth_test
     , m_depth_tester(depth_tester)
     , m_interaction_style(std::make_unique<InteractionStyle>())
 {
+    set_interaction_style(std::make_unique<nucleus::camera::OrbitInteraction>());
 }
 
 
