@@ -16,7 +16,7 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *****************************************************************************/
 
-#include "Firstpersoninteraction.h"
+#include "FirstPersonInteraction.h"
 #include "AbstractDepthTester.h"
 
 #include <QDebug>
