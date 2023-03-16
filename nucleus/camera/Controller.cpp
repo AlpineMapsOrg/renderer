@@ -127,17 +127,17 @@ void Controller::wheel_turn(const event_parameter::Wheel& e)
 
 void Controller::key_press(const QKeyCombination& e)
 {
-    if (e.key() == Qt::Key_C) {
-        set_interaction_style(std::make_unique<nucleus::camera::CrapyInteraction>());
-    }
-    if (e.key() == Qt::Key_V) {
+    if (e.key() == Qt::Key_1) {
         set_interaction_style(std::make_unique<nucleus::camera::OrbitInteraction>());
     }
-    if (e.key() == Qt::Key_B) {
+    if (e.key() == Qt::Key_2) {
         set_interaction_style(std::make_unique<nucleus::camera::FirstPersonInteraction>());
     }
-    if (e.key() == Qt::Key_N) {
+    if (e.key() == Qt::Key_3) {
         set_interaction_style(std::make_unique<nucleus::camera::CadInteraction>());
+    }
+    if (e.key() == Qt::Key_4) {
+        set_interaction_style(std::make_unique<nucleus::camera::CrapyInteraction>());
     }
 
     const auto new_definition = m_interaction_style->key_press_event(e, m_definition, m_depth_tester);
