@@ -55,9 +55,19 @@ ShaderProgram create_debug_shader_float()
 {
     static const char* const fragment_source = R"(
     in highp vec2 texcoords;
-    out lowp float out_Color;
+    out highp float out_Color;
     void main() {
-        out_Color = texcoords.x * 50 - 0.499999;
+        out_Color = texcoords.x * 50.0 - 0.499999;
+    })";
+    return ShaderProgram(vertex_source, fragment_source);
+}
+
+ShaderProgram create_debug_shader_float2()
+{
+    static const char* const fragment_source = R"(
+    out highp float out_Color;
+    void main() {
+        out_Color = 142000.5;
     })";
     return ShaderProgram(vertex_source, fragment_source);
 }
@@ -147,5 +157,19 @@ TEST_CASE("gl framebuffer")
 
         Framebuffer::unbind();
         CHECK(pixel == 0.2f);
+    }
+    SECTION("read pixel 2")
+    {
+        Framebuffer b(Framebuffer::DepthFormat::None, { Framebuffer::ColourFormat::Float32 });
+        b.resize({ 3, 3 });
+        b.bind();
+        ShaderProgram shader = create_debug_shader_float2();
+        shader.bind();
+        gl_engine::helpers::create_screen_quad_geometry().draw();
+
+        float pixel = b.read_pixel(glm::dvec2(0, 0));
+
+        Framebuffer::unbind();
+        CHECK(pixel == 142000.5f);
     }
 }
