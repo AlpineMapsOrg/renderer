@@ -1,4 +1,4 @@
-﻿/*****************************************************************************
+/*****************************************************************************
  * Alpine Terrain Renderer
  * Copyright (C) 2022 Adam Celarek
  *
@@ -26,13 +26,9 @@ namespace nucleus::camera {
 std::optional<Definition> FirstPersonInteraction::mouse_move_event(const event_parameter::Mouse& e, Definition camera, AbstractDepthTester* depth_tester)
 {
 
-    if (e.buttons == Qt::LeftButton) {
+    if (e.buttons == Qt::LeftButton || e.buttons == Qt::MiddleButton) {
         const auto delta = e.point.position() - e.point.lastPosition();
-        camera.orbit(camera.position(), glm::vec2(delta.x(), delta.y()) * -0.1f);
-    }
-    if (e.buttons == Qt::MiddleButton) {
-        const auto delta = e.point.position() - e.point.lastPosition();
-        camera.orbit(camera.position(), glm::vec2(delta.x(), delta.y()) * -0.1f);
+        camera.orbit_clamped(camera.position(), glm::vec2(delta.x(), delta.y()) * -0.1f);
     }
 
     if (e.buttons == Qt::NoButton)

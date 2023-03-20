@@ -46,7 +46,7 @@ std::optional<Definition> CadInteraction::mouse_move_event(const event_parameter
     }
     if (e.buttons == Qt::MiddleButton) {
         const auto delta = e.point.position() - e.point.lastPosition();
-        camera.orbit(m_operation_centre, glm::vec2(delta.x(), delta.y()) * -0.1f);
+        camera.orbit_clamped(m_operation_centre, glm::vec2(delta.x(), delta.y()) * -0.1f);
     }
     if (e.buttons == Qt::RightButton) {
         const auto delta = e.point.position() - e.point.lastPosition();
