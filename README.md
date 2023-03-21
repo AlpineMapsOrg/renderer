@@ -18,7 +18,7 @@ or a normal clone and
 * Qt Positioning and qt5 compatibility modules
 
 # for building the WebAssembly version:
-* Qt 6.4.1 (!), or greater
+* Qt 6.4.3 (!), or greater
 * WebAssembly version compatible with the Qt version (https://doc-snapshots.qt.io/qt6-dev/wasm.html#installing-emscripten)
 * For compiling the threaded version, you need your own build of Qt (Instructions: https://doc-snapshots.qt.io/qt6-dev/wasm.html#building-qt-from-source, my compile commands were `mkdir my_threaded_qt && cd my_threaded_qt`, `../Src/configure -qt-host-path ../gcc_64 -platform wasm-emscripten -submodules qtbase -no-dbus -prefix $PWD/qtbase -feature-thread -opengles3 -c++std 20 -static -optimize-size` and `cmake --build . -t qtbase`; after which I added this build to the kits in Qt Creator)
 
