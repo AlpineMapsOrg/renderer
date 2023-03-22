@@ -223,7 +223,7 @@ Window {
         }
     }
 
-    MeshRenderer {
+    TerrainRenderer {
         id: map
         anchors.fill: parent
     }

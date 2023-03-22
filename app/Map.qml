@@ -25,7 +25,7 @@ import Qt5Compat.GraphicalEffects
 Rectangle {
     id: map_gui
     color: "#00000000"
-    property MeshRenderer renderer
+    property TerrainRenderer renderer
 
     GnssInformation {
         id: gnss

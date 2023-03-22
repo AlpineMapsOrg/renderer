@@ -24,7 +24,7 @@ import Alpine
 Rectangle {
     id: settings_root
     color: "#00FFFFFF"
-    property MeshRenderer renderer
+    property TerrainRenderer renderer
     Component.onCompleted: {
         // when creating the this component, values are read from the renderer
         // after that we establish a binding, so this component can set values on the renderer

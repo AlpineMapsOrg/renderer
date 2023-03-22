@@ -19,7 +19,7 @@
 **
 ****************************************************************************/
 
-#include "myframebufferobject.h"
+#include "TerrainRendererItem.h"
 
 #include <memory>
 
@@ -67,7 +67,7 @@ public:
     void synchronize(QQuickFramebufferObject *item) Q_DECL_OVERRIDE
     {
         m_window = item->window();
-        MyFrameBufferObject* i = static_cast<MyFrameBufferObject*>(item);
+        TerrainRendererItem* i = static_cast<TerrainRendererItem*>(item);
         m_controller->camera_controller()->set_virtual_resolution_factor(i->virtual_resolution_factor());
         m_controller->camera_controller()->set_field_of_view(i->field_of_view());
         if (!(i->camera() == m_controller->camera_controller()->definition())) {
@@ -118,7 +118,7 @@ private:
 
 // MyFrameBufferObject implementation
 
-MyFrameBufferObject::MyFrameBufferObject(QQuickItem* parent)
+TerrainRendererItem::TerrainRendererItem(QQuickItem* parent)
     : QQuickFramebufferObject(parent)
     , m_update_timer(new QTimer(this))
 {
@@ -131,25 +131,25 @@ MyFrameBufferObject::MyFrameBufferObject(QQuickItem* parent)
     setAcceptedMouseButtons(Qt::MouseButton::AllButtons);
 }
 
-MyFrameBufferObject::~MyFrameBufferObject()
+TerrainRendererItem::~TerrainRendererItem()
 {
     qDebug("MyFrameBufferObject::~MyFrameBufferObject()");
 }
 
-QQuickFramebufferObject::Renderer* MyFrameBufferObject::createRenderer() const
+QQuickFramebufferObject::Renderer* TerrainRendererItem::createRenderer() const
 {
     qDebug("QQuickFramebufferObject::Renderer* MyFrameBufferObject::createRenderer() const");
     qDebug() << "rendering thread: " << QThread::currentThread();
     // called on rendering thread.
     auto* r = new MyFrameBufferObjectRenderer();
-    connect(r->glWindow(), &nucleus::AbstractRenderWindow::update_requested, this, &MyFrameBufferObject::schedule_update);
+    connect(r->glWindow(), &nucleus::AbstractRenderWindow::update_requested, this, &TerrainRendererItem::schedule_update);
     connect(m_update_timer, &QTimer::timeout, this, &QQuickFramebufferObject::update);
 
-    connect(this, &MyFrameBufferObject::touch_made, r->controller()->camera_controller(), &nucleus::camera::Controller::touch);
-    connect(this, &MyFrameBufferObject::mouse_pressed, r->controller()->camera_controller(), &nucleus::camera::Controller::mouse_press);
-    connect(this, &MyFrameBufferObject::mouse_moved, r->controller()->camera_controller(), &nucleus::camera::Controller::mouse_move);
-    connect(this, &MyFrameBufferObject::wheel_turned, r->controller()->camera_controller(), &nucleus::camera::Controller::wheel_turn);
-    connect(this, &MyFrameBufferObject::position_set_by_user, r->controller()->camera_controller(), &nucleus::camera::Controller::set_latitude_longitude);
+    connect(this, &TerrainRendererItem::touch_made, r->controller()->camera_controller(), &nucleus::camera::Controller::touch);
+    connect(this, &TerrainRendererItem::mouse_pressed, r->controller()->camera_controller(), &nucleus::camera::Controller::mouse_press);
+    connect(this, &TerrainRendererItem::mouse_moved, r->controller()->camera_controller(), &nucleus::camera::Controller::mouse_move);
+    connect(this, &TerrainRendererItem::wheel_turned, r->controller()->camera_controller(), &nucleus::camera::Controller::wheel_turn);
+    connect(this, &TerrainRendererItem::position_set_by_user, r->controller()->camera_controller(), &nucleus::camera::Controller::set_latitude_longitude);
 
     connect(r->controller()->tile_scheduler(), &nucleus::tile_scheduler::GpuCacheTileScheduler::tile_ready, RenderThreadNotifier::instance(), &RenderThreadNotifier::notify);
     connect(r->controller()->tile_scheduler(), &nucleus::tile_scheduler::GpuCacheTileScheduler::tile_expired, RenderThreadNotifier::instance(), &RenderThreadNotifier::notify);
@@ -157,41 +157,41 @@ QQuickFramebufferObject::Renderer* MyFrameBufferObject::createRenderer() const
     return r;
 }
 
-void MyFrameBufferObject::touchEvent(QTouchEvent* e)
+void TerrainRendererItem::touchEvent(QTouchEvent* e)
 {
     set_camera_operation_center(e->point(0).position());
     emit touch_made(nucleus::event_parameter::make(e));
     RenderThreadNotifier::instance()->notify();
 }
 
-void MyFrameBufferObject::mousePressEvent(QMouseEvent* e)
+void TerrainRendererItem::mousePressEvent(QMouseEvent* e)
 {
     set_camera_operation_center(e->position());
     emit mouse_pressed(nucleus::event_parameter::make(e));
     RenderThreadNotifier::instance()->notify();
 }
 
-void MyFrameBufferObject::mouseMoveEvent(QMouseEvent* e)
+void TerrainRendererItem::mouseMoveEvent(QMouseEvent* e)
 {
     set_camera_operation_center(e->position());
     emit mouse_moved(nucleus::event_parameter::make(e));
     RenderThreadNotifier::instance()->notify();
 }
 
-void MyFrameBufferObject::wheelEvent(QWheelEvent* e)
+void TerrainRendererItem::wheelEvent(QWheelEvent* e)
 {
     set_camera_operation_center(e->position());
     emit wheel_turned(nucleus::event_parameter::make(e));
     RenderThreadNotifier::instance()->notify();
 }
 
-void MyFrameBufferObject::set_position(double latitude, double longitude)
+void TerrainRendererItem::set_position(double latitude, double longitude)
 {
     emit position_set_by_user(latitude, longitude);
     RenderThreadNotifier::instance()->notify();
 }
 
-void MyFrameBufferObject::schedule_update()
+void TerrainRendererItem::schedule_update()
 {
     //    qDebug("void MyFrameBufferObject::schedule_update()");
     if (m_update_timer->isActive())
@@ -199,12 +199,12 @@ void MyFrameBufferObject::schedule_update()
     m_update_timer->start();
 }
 
-int MyFrameBufferObject::frame_limit() const
+int TerrainRendererItem::frame_limit() const
 {
     return m_frame_limit;
 }
 
-void MyFrameBufferObject::set_frame_limit(int new_frame_limit)
+void TerrainRendererItem::set_frame_limit(int new_frame_limit)
 {
     new_frame_limit = std::clamp(new_frame_limit, 1, 120);
     if (m_frame_limit == new_frame_limit)
@@ -214,12 +214,12 @@ void MyFrameBufferObject::set_frame_limit(int new_frame_limit)
     emit frame_limit_changed();
 }
 
-float MyFrameBufferObject::virtual_resolution_factor() const
+float TerrainRendererItem::virtual_resolution_factor() const
 {
     return m_virtual_resolution_factor;
 }
 
-void MyFrameBufferObject::set_virtual_resolution_factor(float new_virtual_resolution_factor)
+void TerrainRendererItem::set_virtual_resolution_factor(float new_virtual_resolution_factor)
 {
     if (qFuzzyCompare(m_virtual_resolution_factor, new_virtual_resolution_factor))
         return;
@@ -228,12 +228,12 @@ void MyFrameBufferObject::set_virtual_resolution_factor(float new_virtual_resolu
     schedule_update();
 }
 
-nucleus::camera::Definition MyFrameBufferObject::camera() const
+nucleus::camera::Definition TerrainRendererItem::camera() const
 {
     return m_camera;
 }
 
-void MyFrameBufferObject::set_read_only_camera(const nucleus::camera::Definition& new_camera)
+void TerrainRendererItem::set_read_only_camera(const nucleus::camera::Definition& new_camera)
 {
     // the camera is controlled by the rendering thread (i.e., movement, projection parameters, viewport size etc).
     // this method is only for copying the camera data to the gui thread for consumptino
@@ -243,12 +243,12 @@ void MyFrameBufferObject::set_read_only_camera(const nucleus::camera::Definition
     emit camera_changed();
 }
 
-int MyFrameBufferObject::frame_buffer_width() const
+int TerrainRendererItem::frame_buffer_width() const
 {
     return m_frame_buffer_width;
 }
 
-void MyFrameBufferObject::set_read_only_frame_buffer_width(int new_frame_buffer_width)
+void TerrainRendererItem::set_read_only_frame_buffer_width(int new_frame_buffer_width)
 {
     if (m_frame_buffer_width == new_frame_buffer_width)
         return;
@@ -256,12 +256,12 @@ void MyFrameBufferObject::set_read_only_frame_buffer_width(int new_frame_buffer_
     emit frame_buffer_width_changed();
 }
 
-int MyFrameBufferObject::frame_buffer_height() const
+int TerrainRendererItem::frame_buffer_height() const
 {
     return m_frame_buffer_height;
 }
 
-void MyFrameBufferObject::set_read_only_frame_buffer_height(int new_frame_buffer_height)
+void TerrainRendererItem::set_read_only_frame_buffer_height(int new_frame_buffer_height)
 {
     if (m_frame_buffer_height == new_frame_buffer_height)
         return;
@@ -269,12 +269,12 @@ void MyFrameBufferObject::set_read_only_frame_buffer_height(int new_frame_buffer
     emit frame_buffer_height_changed();
 }
 
-float MyFrameBufferObject::field_of_view() const
+float TerrainRendererItem::field_of_view() const
 {
     return m_field_of_view;
 }
 
-void MyFrameBufferObject::set_field_of_view(float new_field_of_view)
+void TerrainRendererItem::set_field_of_view(float new_field_of_view)
 {
     if (qFuzzyCompare(m_field_of_view, new_field_of_view))
         return;
@@ -283,12 +283,12 @@ void MyFrameBufferObject::set_field_of_view(float new_field_of_view)
     schedule_update();
 }
 
-QPointF MyFrameBufferObject::camera_operation_center() const
+QPointF TerrainRendererItem::camera_operation_center() const
 {
     return m_camera_operation_center;
 }
 
-void MyFrameBufferObject::set_camera_operation_center(QPointF new_camera_operation_center)
+void TerrainRendererItem::set_camera_operation_center(QPointF new_camera_operation_center)
 {
     if (m_camera_operation_center == new_camera_operation_center)
         return;
