@@ -35,6 +35,16 @@ Rectangle {
         }
     }
 
+    Image {
+        id: camera_operation_center
+        source: "qrc:/alpinemaps/app/icons/camera_operation_center.svg"
+        width: 16
+        height: 16
+        sourceSize: Qt.size(width, height)
+        x: renderer.camera_operation_center.x - width / 2
+        y: renderer.camera_operation_center.y - 60 - height / 2
+    }
+
     Repeater {
         id: label_view
         anchors.fill: parent

@@ -109,8 +109,7 @@ void Window::initialise_gpu()
     m_tile_manager->initilise_attribute_locations(m_shader_manager->tile_shader());
     m_screen_quad_geometry = gl_engine::helpers::create_screen_quad_geometry();
     m_framebuffer = std::make_unique<Framebuffer>(Framebuffer::DepthFormat::Int24, std::vector({ Framebuffer::ColourFormat::RGBA8 }));
-    m_depth_buffer = std::make_unique<Framebuffer>(Framebuffer::DepthFormat::Float32, std::vector({ Framebuffer::ColourFormat::Float32 }));
-    m_depth_buffer->resize(glm::vec2(3, 3));
+    m_depth_buffer = std::make_unique<Framebuffer>(Framebuffer::DepthFormat::Int24, std::vector({ Framebuffer::ColourFormat::Float32 }));
 }
 
 void Window::resize_framebuffer(int width, int height)
@@ -131,7 +130,7 @@ void Window::paint(QOpenGLFramebufferObject* framebuffer)
     m_frame_start = std::chrono::time_point_cast<ClockResolution>(Clock::now());
     QOpenGLExtraFunctions* f = QOpenGLContext::currentContext()->extraFunctions();
 
-    // DEPTH TEST
+    // DEPTH BUFFER
     m_camera.set_viewport_size(m_depth_buffer->size());
     m_depth_buffer->bind();
     f->glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
@@ -141,7 +140,7 @@ void Window::paint(QOpenGLFramebufferObject* framebuffer)
     m_shader_manager->depth_program()->bind();
     m_tile_manager->draw(m_shader_manager->depth_program(), m_camera);
     m_depth_buffer->unbind();
-    // END DEPTH TEST
+    // END DEPTH BUFFER
 
     m_camera.set_viewport_size(m_framebuffer->size());
     m_framebuffer->bind();

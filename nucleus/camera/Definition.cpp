@@ -192,6 +192,19 @@ void nucleus::camera::Definition::orbit(const glm::vec2& degrees)
     orbit(operation_centre(), degrees);
 }
 
+void nucleus::camera::Definition::orbit_clamped(const glm::dvec3& centre, const glm::dvec2& degrees)
+{
+    auto degFromUp = glm::degrees(glm::acos(glm::dot(z_axis(), glm::dvec3(0, 0, 1))));
+    auto degY = degrees.y;
+    if (degFromUp + degY > 179.0) {
+        degY = 179.0 - degFromUp;
+    }
+    else if (degFromUp + degY < 1.0) {
+        degY = 1.0 - degFromUp;
+    }
+    orbit(centre, glm::vec2(degrees.x, degY));
+}
+
 void nucleus::camera::Definition::zoom(double v)
 {
     move(z_axis() * v);

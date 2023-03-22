@@ -48,9 +48,8 @@ int format(Framebuffer::ColourFormat f)
 {
     switch (f) {
     case Framebuffer::ColourFormat::RGBA8:
-        return GL_RGBA;
     case Framebuffer::ColourFormat::Float32:
-        return GL_RED;
+        return GL_RGBA;
     }
     assert(false);
     return -1;
@@ -126,12 +125,11 @@ Framebuffer::Framebuffer(DepthFormat depth_format, std::vector<ColourFormat> col
     if (m_colour_formats.size() != 1)
         throw std::logic_error("not implemented");
 
-    {
-        m_colour_texture = std::make_unique<QOpenGLTexture>(QOpenGLTexture::Target::Target2D);
-        m_colour_texture->setFormat(internal_format_qt(m_colour_formats.front()));
-        m_colour_texture->setSize(int(m_size.x), int(m_size.y));
-        m_colour_texture->allocateStorage();
-    }
+    m_colour_texture = std::make_unique<QOpenGLTexture>(QOpenGLTexture::Target::Target2D);
+    m_colour_texture->setFormat(internal_format_qt(m_colour_formats.front()));
+    m_colour_texture->setSize(int(m_size.x), int(m_size.y));
+    m_colour_texture->allocateStorage();
+
     if (m_depth_format != DepthFormat::None) {
         m_depth_texture = std::make_unique<QOpenGLTexture>(QOpenGLTexture::Target::Target2D);
         m_depth_texture->setFormat(internal_format_qt(m_depth_format));
@@ -246,12 +244,12 @@ float Framebuffer::read_pixel(const glm::dvec2& normalised_device_coordinates)
 {
     QOpenGLExtraFunctions* f = QOpenGLContext::currentContext()->extraFunctions();
     bind();
-    float pixel;
+    float pixel[4];
     f->glReadPixels((normalised_device_coordinates.x + 1) / 2 * m_size.x,
-                    (normalised_device_coordinates.y + 1) / 2 * m_size.y,
-                    1, 1, format(m_colour_formats.front()), type(m_colour_formats.front()), &pixel);
+        (normalised_device_coordinates.y + 1) / 2 * m_size.y,
+        1, 1, format(m_colour_formats.front()), type(m_colour_formats.front()), &pixel);
     unbind();
-    return pixel;
+    return pixel[0];
 }
 
 void Framebuffer::unbind()

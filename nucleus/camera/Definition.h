@@ -55,6 +55,7 @@ public:
     void orbit(const glm::dvec3& centre, const glm::dvec2& degrees);
     // orbits around the intersection of negative z and 0 plane (temprorary only, until we can read the depth buffer)
     void orbit(const glm::vec2& degrees);
+    void orbit_clamped(const glm::dvec3& centre, const glm::dvec2& degrees);
     void zoom(double v);
 
     [[nodiscard]] const glm::uvec2& viewport_size() const;

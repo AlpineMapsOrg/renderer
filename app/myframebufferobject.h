@@ -34,6 +34,8 @@ class MyFrameBufferObject : public QQuickFramebufferObject
     Q_PROPERTY(nucleus::camera::Definition camera READ camera NOTIFY camera_changed)
     Q_PROPERTY(int frame_buffer_width READ frame_buffer_width NOTIFY frame_buffer_width_changed)
     Q_PROPERTY(int frame_buffer_height READ frame_buffer_height NOTIFY frame_buffer_height_changed)
+    Q_PROPERTY(float field_of_view READ field_of_view WRITE set_field_of_view NOTIFY field_of_view_changed)
+    Q_PROPERTY(QPointF camera_operation_center READ camera_operation_center WRITE set_camera_operation_center NOTIFY camera_operation_center_changed)
 
 public:
     explicit MyFrameBufferObject(QQuickItem *parent = 0);
@@ -59,6 +61,8 @@ signals:
     void frame_buffer_height_changed();
 
     void field_of_view_changed();
+
+    void camera_operation_center_changed();
 
 protected:
     void touchEvent(QTouchEvent*) override;
@@ -91,7 +95,11 @@ public:
     float field_of_view() const;
     void set_field_of_view(float new_field_of_view);
 
+    QPointF camera_operation_center() const;
+    void set_camera_operation_center(QPointF new_camera_operation_center);
+
 private:
+    QPointF m_camera_operation_center;
     float m_field_of_view = 75;
     int m_frame_limit = 60;
     float m_virtual_resolution_factor = 0.5f;
@@ -99,7 +107,6 @@ private:
     nucleus::camera::Definition m_camera;
     int m_frame_buffer_width = 0;
     int m_frame_buffer_height = 0;
-    Q_PROPERTY(float field_of_view READ field_of_view WRITE set_field_of_view NOTIFY field_of_view_changed)
 };
 
 #endif // MYFRAMEBUFFEROBJECT_H

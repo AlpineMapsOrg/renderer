@@ -25,6 +25,7 @@ set(ALP_NUCLEUS_SOURCES
     nucleus/tile_scheduler/GpuCacheTileScheduler.h nucleus/tile_scheduler/GpuCacheTileScheduler.cpp
     nucleus/tile_scheduler/SimplisticTileScheduler.h nucleus/tile_scheduler/SimplisticTileScheduler.cpp
     nucleus/TileLoadService.h nucleus/TileLoadService.cpp
+    nucleus/camera/CadInteraction.h nucleus/camera/CadInteraction.cpp
     nucleus/camera/Controller.h nucleus/camera/Controller.cpp
     nucleus/camera/CrapyInteraction.h nucleus/camera/CrapyInteraction.cpp
     nucleus/camera/Definition.h nucleus/camera/Definition.cpp
@@ -80,6 +81,7 @@ set(ALP_APP_QML
     app/Coordinates.qml
 )
 set(ALP_APP_ICONS
+    app/icons/camera_operation_center.svg
     app/icons/current_location.svg
     app/icons/mascot.png
     app/icons/menu.svg

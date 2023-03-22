@@ -16,19 +16,47 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *****************************************************************************/
 
-#include "FirstPersonInteraction.h"
+#include "CadInteraction.h"
 #include "AbstractDepthTester.h"
 
 #include <QDebug>
 
 namespace nucleus::camera {
 
-std::optional<Definition> FirstPersonInteraction::mouse_move_event(const event_parameter::Mouse& e, Definition camera, AbstractDepthTester* depth_tester)
+std::optional<Definition> CadInteraction::mouse_press_event(const event_parameter::Mouse& e, Definition camera, AbstractDepthTester* depth_tester)
+{
+    if (m_operation_centre.x == 0 && m_operation_centre.y == 0 && m_operation_centre.z == 0) {
+        m_operation_centre = depth_tester->position(glm::dvec2(0.0, 0.0));
+    }
+    return {};
+}
+
+std::optional<Definition> CadInteraction::mouse_move_event(const event_parameter::Mouse& e, Definition camera, AbstractDepthTester* depth_tester)
 {
 
-    if (e.buttons == Qt::LeftButton || e.buttons == Qt::MiddleButton) {
+    if (e.buttons == Qt::LeftButton) {
         const auto delta = e.point.position() - e.point.lastPosition();
-        camera.orbit_clamped(camera.position(), glm::vec2(delta.x(), delta.y()) * -0.1f);
+        float dist = glm::distance(camera.position(), m_operation_centre);
+        double moveSpeedModifier = 750.0;
+
+        m_operation_centre = m_operation_centre - camera.x_axis() * delta.x() * (dist / moveSpeedModifier);
+        m_operation_centre = m_operation_centre + camera.y_axis() * delta.y() * (dist / moveSpeedModifier);
+        camera.move(-camera.x_axis() * delta.x() * (dist / moveSpeedModifier));
+        camera.move(camera.y_axis() * delta.y() * (dist / moveSpeedModifier));
+    }
+    if (e.buttons == Qt::MiddleButton) {
+        const auto delta = e.point.position() - e.point.lastPosition();
+        camera.orbit_clamped(m_operation_centre, glm::vec2(delta.x(), delta.y()) * -0.1f);
+    }
+    if (e.buttons == Qt::RightButton) {
+        const auto delta = e.point.position() - e.point.lastPosition();
+        float dist = glm::distance(camera.position(), m_operation_centre);
+        float zoomDist = (delta.y() - delta.x()) * dist / 400.0;
+        if (zoomDist < dist) {
+            if (dist > 5.0f || zoomDist > 0.0f) { // always allow zoom out
+                camera.zoom(zoomDist);
+            }
+        }
     }
 
     if (e.buttons == Qt::NoButton)
@@ -37,7 +65,7 @@ std::optional<Definition> FirstPersonInteraction::mouse_move_event(const event_p
         return camera;
 }
 
-std::optional<Definition> FirstPersonInteraction::touch_event(const event_parameter::Touch& e, Definition camera, AbstractDepthTester* depth_tester)
+std::optional<Definition> CadInteraction::touch_event(const event_parameter::Touch& e, Definition camera, AbstractDepthTester* depth_tester)
 {
     glm::ivec2 first_touch = { e.points[0].position().x(), e.points[0].position().y() };
     glm::ivec2 second_touch;
@@ -89,35 +117,19 @@ std::optional<Definition> FirstPersonInteraction::touch_event(const event_parame
     return camera;
 }
 
-std::optional<Definition> FirstPersonInteraction::wheel_event(const event_parameter::Wheel& e, Definition camera, AbstractDepthTester* depth_tester)
+std::optional<Definition> CadInteraction::wheel_event(const event_parameter::Wheel& e, Definition camera, AbstractDepthTester* depth_tester)
 {
-    if (e.angle_delta.y() > 0) {
-        m_speed_modifyer = std::min(m_speed_modifyer * 1.3f, 4000.0f);
-    } else {
-        m_speed_modifyer = std::max(m_speed_modifyer / 1.3f, 1.0f);
+    if (m_operation_centre.x == 0 && m_operation_centre.y == 0 && m_operation_centre.z == 0) {
+        m_operation_centre = depth_tester->position(glm::dvec2(0.0, 0.0));
     }
-    return camera;
-}
 
-std::optional<Definition> FirstPersonInteraction::key_press_event(const QKeyCombination& e, Definition camera, AbstractDepthTester* ray_caster)
-{
-    if (e.key() == Qt::Key_W) {
-        camera.move(camera.z_axis() * -(double)m_speed_modifyer);
-    }
-    if (e.key() == Qt::Key_S) {
-        camera.move(camera.z_axis() * (double)m_speed_modifyer);
-    }
-    if (e.key() == Qt::Key_A) {
-        camera.pan(glm::vec2(1, 0) * m_speed_modifyer);
-    }
-    if (e.key() == Qt::Key_D) {
-        camera.pan(glm::vec2(-1, 0) * m_speed_modifyer);
-    }
-    if (e.key() == Qt::Key_E) {
-        camera.move(glm::dvec3(0, 0, m_speed_modifyer));
-    }
-    if (e.key() == Qt::Key_Q) {
-        camera.move(glm::dvec3(0, 0, -m_speed_modifyer));
+    float dist = glm::distance(camera.position(), m_operation_centre);
+    if (e.angle_delta.y() > 0) {
+        if (dist > 5.0f) {
+            camera.zoom(-dist / 10.0);
+        }
+    } else {
+        camera.zoom(dist / 10.0);
     }
     return camera;
 }

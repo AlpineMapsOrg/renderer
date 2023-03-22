@@ -33,16 +33,25 @@ std::optional<Definition> OrbitInteraction::mouse_move_event(const event_paramet
 {
 
     if (e.buttons == Qt::LeftButton) {
-        const auto delta = e.point.position() - e.point.lastPosition();
+        glm::dvec3 camRay = camera.ray_direction(camera.to_ndc({ e.point.position().x(), e.point.position().y() }));
+        double denom = glm::dot(glm::dvec3(0, 0, 1.0), camRay);
+        double distance = 0;
+        if (denom != 0) {
+            distance = glm::dot((m_operation_centre - camera.position()), glm::dvec3(0, 0, 1.0)) / denom;
+        }
+        auto mouseInWorld = camera.position() + (camRay * distance);
 
-        float distance = glm::distance(m_operation_centre, camera.position());
-        float dist = 1.0 * std::max((distance / 1200), 0.07f);
-
-        camera.pan(glm::vec2(delta.x(), delta.y()) * dist);
+        auto degFromUp = glm::degrees(glm::acos(glm::dot(camera.z_axis(), glm::dvec3(0, 0, 1))));
+        if (mouseInWorld.z > camera.position().z || degFromUp > 90.0f) {
+            const auto delta = e.point.position() - e.point.lastPosition();
+            camera.move(camera.x_axis() * -delta.x() + camera.y_axis() * delta.y());
+        } else {
+            camera.move(glm::dvec3(m_operation_centre.x - mouseInWorld.x, m_operation_centre.y - mouseInWorld.y, 0));
+        }
     }
     if (e.buttons == Qt::MiddleButton) {
         const auto delta = e.point.position() - e.point.lastPosition();
-        camera.orbit(m_operation_centre, glm::vec2(delta.x(), delta.y()) * -0.1f);
+        camera.orbit_clamped(m_operation_centre, glm::vec2(delta.x(), delta.y()) * -0.1f);
     }
     if (e.buttons == Qt::RightButton) {
         const auto delta = e.point.position() - e.point.lastPosition();
