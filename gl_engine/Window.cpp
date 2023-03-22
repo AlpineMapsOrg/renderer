@@ -230,10 +230,11 @@ void Window::update_debug_scheduler_stats(const QString& stats)
     m_debug_scheduler_stats = stats;
     emit update_requested();
 }
+
 float Window::depth(const glm::dvec2& normalised_device_coordinates)
 {
     m_camera.set_viewport_size(m_depth_buffer->size());
-    return m_depth_buffer->read_pixel(normalised_device_coordinates);
+    return m_depth_buffer->read_colour_attachment_pixel(0, normalised_device_coordinates)[0];
 }
 
 glm::dvec3 Window::position(const glm::dvec2& normalised_device_coordinates)
