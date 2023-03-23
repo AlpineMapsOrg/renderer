@@ -16,24 +16,25 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *****************************************************************************/
 
-#include "nucleus/TileScheduler.h"
-
 #include <unordered_set>
 
 #include <QSignalSpy>
 #include <QTest>
 #include <glm/glm.hpp>
 
-#include "nucleus/camera/Definition.h"
 #include "nucleus/Tile.h"
+#include "nucleus/camera/Definition.h"
 #include "nucleus/camera/stored_positions.h"
 #include "nucleus/srs.h"
+#include "nucleus/tile_scheduler/GpuCacheTileScheduler.h"
 
 using namespace nucleus;
 
 class TestTileScheduler : public QObject {
     Q_OBJECT
 protected:
+    using TileScheduler = nucleus::tile_scheduler::GpuCacheTileScheduler;
+
     QByteArray m_ortho_bytes;
     QByteArray m_height_bytes;
     std::unique_ptr<TileScheduler> m_scheduler;

@@ -18,35 +18,66 @@
 
 #pragma once
 
-#include "../TileScheduler.h"
+#include <memory>
+#include <unordered_map>
+#include <unordered_set>
+
+#include <QObject>
 #include <QTimer>
 
-namespace nucleus::tile_scheduler {
+#include "nucleus/camera/Definition.h"
+#include "sherpa/tile.h"
 
-class GpuCacheTileScheduler : public TileScheduler
-{
+namespace nucleus {
+struct Tile;
+}
+
+namespace nucleus::tile_scheduler {
+class AabbDecorator;
+using AabbDecoratorPtr = std::shared_ptr<AabbDecorator>;
+
+class GpuCacheTileScheduler : public QObject {
     Q_OBJECT
+public:
+    using TileSet = std::unordered_set<tile::Id, tile::Id::Hasher>;
+    using Tile2DataMap = std::unordered_map<tile::Id, std::shared_ptr<QByteArray>, tile::Id::Hasher>;
+
+    [[nodiscard]] const tile_scheduler::AabbDecoratorPtr& aabb_decorator() const;
+
+    [[nodiscard]] float permissible_screen_space_error() const;
+    void set_permissible_screen_space_error(float new_permissible_screen_space_error);
+
+public slots:
+    void set_aabb_decorator(const tile_scheduler::AabbDecoratorPtr& new_aabb_decorator);
+    void send_debug_scheduler_stats() const;
+    void key_press(const QKeyCombination&);
+
+signals:
+    void tile_requested(const tile::Id& tile_id) const;
+    void tile_ready(const std::shared_ptr<Tile>& tile) const;
+    void tile_expired(const tile::Id& tile_id) const;
+    void debug_scheduler_stats_updated(const QString& stats) const;
 
 public:
     GpuCacheTileScheduler();
     ~GpuCacheTileScheduler() override;
 
     [[nodiscard]] TileSet load_candidates(const nucleus::camera::Definition& camera, const AabbDecoratorPtr& aabb_decorator);
-    [[nodiscard]] size_t number_of_tiles_in_transit() const override;
-    [[nodiscard]] size_t number_of_waiting_height_tiles() const override;
-    [[nodiscard]] size_t number_of_waiting_ortho_tiles() const override;
-    [[nodiscard]] TileSet gpu_tiles() const override;
+    [[nodiscard]] size_t number_of_tiles_in_transit() const;
+    [[nodiscard]] size_t number_of_waiting_height_tiles() const;
+    [[nodiscard]] size_t number_of_waiting_ortho_tiles() const;
+    [[nodiscard]] TileSet gpu_tiles() const;
 
-    bool enabled() const override;
-    void set_enabled(bool newEnabled) override;
+    bool enabled() const;
+    void set_enabled(bool newEnabled);
 
 public slots:
-    void update_camera(const nucleus::camera::Definition& camera) override;
-    void receive_ortho_tile(tile::Id tile_id, std::shared_ptr<QByteArray> data) override;
-    void receive_height_tile(tile::Id tile_id, std::shared_ptr<QByteArray> data) override;
-    void notify_about_unavailable_ortho_tile(tile::Id tile_id) override;
-    void notify_about_unavailable_height_tile(tile::Id tile_id) override;
-    void print_debug_info() const override;
+    void update_camera(const nucleus::camera::Definition& camera);
+    void receive_ortho_tile(tile::Id tile_id, std::shared_ptr<QByteArray> data);
+    void receive_height_tile(tile::Id tile_id, std::shared_ptr<QByteArray> data);
+    void notify_about_unavailable_ortho_tile(tile::Id tile_id);
+    void notify_about_unavailable_height_tile(tile::Id tile_id);
+    void print_debug_info() const;
     void set_gpu_cache_size(unsigned);
     void set_max_n_simultaneous_requests(unsigned int new_max_n_simultaneous_requests);
     void purge_gpu_cache_from_old_tiles();
@@ -58,6 +89,9 @@ private slots:
 private:
     bool send_to_gpu_if_available(const tile::Id& tile_id);
     void remove_gpu_tiles(const std::vector<tile::Id>& tiles);
+
+    tile_scheduler::AabbDecoratorPtr m_aabb_decorator;
+    float m_permissible_screen_space_error = 2.0;
 
     static constexpr unsigned m_ortho_tile_size = 256;
     static constexpr unsigned m_height_tile_size = 64;
