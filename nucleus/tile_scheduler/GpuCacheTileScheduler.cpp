@@ -68,7 +68,10 @@ float GpuCacheTileScheduler::permissible_screen_space_error() const
 
 void GpuCacheTileScheduler::set_permissible_screen_space_error(float new_permissible_screen_space_error)
 {
-    m_permissible_screen_space_error = new_permissible_screen_space_error;
+    if (!qFuzzyCompare(m_permissible_screen_space_error, new_permissible_screen_space_error)) {
+        m_permissible_screen_space_error = new_permissible_screen_space_error;
+        schedule_update();
+    }
 }
 
 GpuCacheTileScheduler::GpuCacheTileScheduler()
@@ -162,8 +165,7 @@ void GpuCacheTileScheduler::update_camera(const nucleus::camera::Definition& cam
     if (!enabled())
         return;
     m_current_camera = camera;
-    if (!m_update_timer.isActive())
-        m_update_timer.start();
+    schedule_update();
 }
 
 void GpuCacheTileScheduler::do_update()
@@ -196,10 +198,16 @@ void GpuCacheTileScheduler::do_update()
         emit tile_requested(t);
     });
 
-    if (tiles_to_load.size() > n_available_load_slots && !m_update_timer.isActive())
-        m_update_timer.start();
+    if (tiles_to_load.size() > n_available_load_slots)
+        schedule_update();
 
     send_debug_scheduler_stats();
+}
+
+void GpuCacheTileScheduler::schedule_update()
+{
+    if (!m_update_timer.isActive())
+        m_update_timer.start();
 }
 
 void GpuCacheTileScheduler::receive_ortho_tile(tile::Id tile_id, std::shared_ptr<QByteArray> data)

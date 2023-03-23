@@ -66,10 +66,12 @@ public:
 
     void synchronize(QQuickFramebufferObject *item) Q_DECL_OVERRIDE
     {
+        // warning:
+        // you can only safely copy objects between main and render thread.
+        // the tile scheduler is in an extra thread, there will be races if you write to it.
         m_window = item->window();
         TerrainRendererItem* i = static_cast<TerrainRendererItem*>(item);
         //        m_controller->camera_controller()->set_virtual_resolution_factor(i->render_quality());
-        m_controller->tile_scheduler()->set_permissible_screen_space_error(2.0 / i->render_quality());
         m_glWindow->set_permissible_screen_space_error(2.0 / i->render_quality());
         m_controller->camera_controller()->set_viewport({ i->width(), i->height() });
         m_controller->camera_controller()->set_field_of_view(i->field_of_view());
@@ -96,7 +98,6 @@ public:
         qDebug() << "QOpenGLFramebufferObject *createFramebufferObject(const QSize& " << size << ")";
         m_window->beginExternalCommands();
         m_glWindow->resize_framebuffer(size.width(), size.height());
-        m_controller->camera_controller()->set_viewport({ size.width(), size.height() });
         m_window->endExternalCommands();
         QOpenGLFramebufferObjectFormat format;
         format.setSamples(1);
@@ -154,6 +155,12 @@ QQuickFramebufferObject::Renderer* TerrainRendererItem::createRenderer() const
     connect(this, &TerrainRendererItem::mouse_moved, r->controller()->camera_controller(), &nucleus::camera::Controller::mouse_move);
     connect(this, &TerrainRendererItem::wheel_turned, r->controller()->camera_controller(), &nucleus::camera::Controller::wheel_turn);
     connect(this, &TerrainRendererItem::position_set_by_user, r->controller()->camera_controller(), &nucleus::camera::Controller::set_latitude_longitude);
+
+    auto* const tile_scheduler = r->controller()->tile_scheduler();
+    connect(this, &TerrainRendererItem::render_quality_changed, r->controller()->tile_scheduler(), [=](float new_render_quality) {
+        const auto permissible_error = 2.0f / new_render_quality;
+        tile_scheduler->set_permissible_screen_space_error(permissible_error);
+    });
 
     connect(r->controller()->tile_scheduler(), &nucleus::tile_scheduler::GpuCacheTileScheduler::tile_ready, RenderThreadNotifier::instance(), &RenderThreadNotifier::notify);
     connect(r->controller()->tile_scheduler(), &nucleus::tile_scheduler::GpuCacheTileScheduler::tile_expired, RenderThreadNotifier::instance(), &RenderThreadNotifier::notify);
@@ -296,6 +303,6 @@ void TerrainRendererItem::set_render_quality(float new_render_quality)
     if (qFuzzyCompare(m_render_quality, new_render_quality))
         return;
     m_render_quality = new_render_quality;
-    emit render_quality_changed();
+    emit render_quality_changed(new_render_quality);
     schedule_update();
 }

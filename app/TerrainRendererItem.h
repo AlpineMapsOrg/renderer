@@ -57,7 +57,7 @@ signals:
     void camera_height_changed();
     void field_of_view_changed();
     void camera_operation_center_changed();
-    void render_quality_changed();
+    void render_quality_changed(float new_render_quality);
 
 protected:
     void touchEvent(QTouchEvent*) override;
