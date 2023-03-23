@@ -109,7 +109,7 @@ void Window::initialise_gpu()
     m_tile_manager->initilise_attribute_locations(m_shader_manager->tile_shader());
     m_screen_quad_geometry = gl_engine::helpers::create_screen_quad_geometry();
     m_framebuffer = std::make_unique<Framebuffer>(Framebuffer::DepthFormat::Int24, std::vector({ Framebuffer::ColourFormat::RGBA8 }));
-    m_depth_buffer = std::make_unique<Framebuffer>(Framebuffer::DepthFormat::Int24, std::vector({ Framebuffer::ColourFormat::Float32 }));
+    m_depth_buffer = std::make_unique<Framebuffer>(Framebuffer::DepthFormat::Int24, std::vector({ Framebuffer::ColourFormat::RGBA8 }));
 }
 
 void Window::resize_framebuffer(int width, int height)
@@ -234,7 +234,9 @@ void Window::update_debug_scheduler_stats(const QString& stats)
 float Window::depth(const glm::dvec2& normalised_device_coordinates)
 {
     m_camera.set_viewport_size(m_depth_buffer->size());
-    return m_depth_buffer->read_colour_attachment_pixel(0, normalised_device_coordinates)[0];
+    const auto read_float = float(m_depth_buffer->read_colour_attachment_pixel(0, normalised_device_coordinates)[0]) / 255.f;
+    const auto depth = std::exp(read_float * 13.f);
+    return depth;
 }
 
 glm::dvec3 Window::position(const glm::dvec2& normalised_device_coordinates)
