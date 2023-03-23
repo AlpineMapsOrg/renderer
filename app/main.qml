@@ -225,6 +225,7 @@ Window {
 
     TerrainRenderer {
         id: map
+        focus: true
         anchors.fill: parent
     }
 
