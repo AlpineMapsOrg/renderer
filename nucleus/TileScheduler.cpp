@@ -47,3 +47,16 @@ void TileScheduler::key_press(const QKeyCombination& e)
         qDebug("setting tile scheduler enabled = %d", int(enabled()));
     }
 }
+
+namespace nucleus {
+float TileScheduler::permissible_screen_space_error() const
+{
+    return m_permissible_screen_space_error;
+}
+
+void TileScheduler::set_permissible_screen_space_error(float new_permissible_screen_space_error)
+{
+    m_permissible_screen_space_error = new_permissible_screen_space_error;
+}
+
+}

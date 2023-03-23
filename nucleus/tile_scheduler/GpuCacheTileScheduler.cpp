@@ -85,7 +85,7 @@ TileScheduler::TileSet GpuCacheTileScheduler::load_candidates(const nucleus::cam
     std::unordered_set<tile::Id, tile::Id::Hasher> all_tiles;
     const auto all_leaves = quad_tree::onTheFlyTraverse(
         tile::Id { 0, { 0, 0 } },
-        tile_scheduler::refineFunctor(camera, aabb_decorator, 2.0, m_ortho_tile_size),
+        tile_scheduler::refineFunctor(camera, aabb_decorator, permissible_screen_space_error(), m_ortho_tile_size),
         [&all_tiles](const tile::Id& v) { all_tiles.insert(v); return v.children(); });
     std::vector<tile::Id> visible_leaves;
     visible_leaves.reserve(all_leaves.size());

@@ -45,6 +45,8 @@ public:
     [[nodiscard]] const std::vector<TileSet>& tiles() const;
     void draw(ShaderProgram* shader_program, const nucleus::camera::Definition& camera) const;
 
+    void set_permissible_screen_space_error(float new_permissible_screen_space_error);
+
 signals:
     void tiles_changed();
 

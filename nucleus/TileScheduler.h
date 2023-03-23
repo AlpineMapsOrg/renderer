@@ -1,6 +1,6 @@
 /*****************************************************************************
- * Alpine Terrain Builder
- * Copyright (C) 2022 alpinemaps.org
+ * Alpine Renderer
+ * Copyright (C) 2022 Adam Celarek
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -50,6 +50,9 @@ public:
     [[nodiscard]] virtual bool enabled() const = 0;
     [[nodiscard]] const tile_scheduler::AabbDecoratorPtr& aabb_decorator() const;
 
+    [[nodiscard]] float permissible_screen_space_error() const;
+    void set_permissible_screen_space_error(float new_permissible_screen_space_error);
+
 public slots:
     virtual void set_enabled(bool newEnabled) = 0;
     void set_aabb_decorator(const tile_scheduler::AabbDecoratorPtr& new_aabb_decorator);
@@ -70,5 +73,6 @@ signals:
 
 private:
     tile_scheduler::AabbDecoratorPtr m_aabb_decorator;
+    float m_permissible_screen_space_error = 2.0;
 };
 }

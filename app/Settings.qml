@@ -29,10 +29,10 @@ Rectangle {
         // when creating the this component, values are read from the renderer
         // after that we establish a binding, so this component can set values on the renderer
         frame_rate_slider.value = renderer.frame_limit
-        lod_slider.value = renderer.virtual_resolution_factor
+        lod_slider.value = renderer.render_quality
         fov_slider.value = renderer.field_of_view
         renderer.frame_limit = Qt.binding(function() { return frame_rate_slider.value })
-        renderer.virtual_resolution_factor = Qt.binding(function() { return lod_slider.value })
+        renderer.render_quality = Qt.binding(function() { return lod_slider.value })
         renderer.field_of_view = Qt.binding(function() { return fov_slider.value })
     }
 
@@ -107,7 +107,7 @@ Rectangle {
                     Layout.fillWidth: true
                     id: lod_slider
                     from: 0.1
-                    to: 1.0
+                    to: 2.0
                     stepSize: 0.1
                 }
                 Label {
