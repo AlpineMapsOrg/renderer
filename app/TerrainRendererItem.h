@@ -19,15 +19,14 @@
 **
 ****************************************************************************/
 
-#ifndef MYFRAMEBUFFEROBJECT_H
-#define MYFRAMEBUFFEROBJECT_H
+#ifndef TERRAINRENDERERITEM_H
+#define TERRAINRENDERERITEM_H
 
 #include "nucleus/camera/Definition.h"
 #include "nucleus/event_parameter.h"
 #include <QQuickFramebufferObject>
 
-class MyFrameBufferObject : public QQuickFramebufferObject
-{
+class TerrainRendererItem : public QQuickFramebufferObject {
     Q_OBJECT
     Q_PROPERTY(int frame_limit READ frame_limit WRITE set_frame_limit NOTIFY frame_limit_changed)
     Q_PROPERTY(float virtual_resolution_factor READ virtual_resolution_factor WRITE set_virtual_resolution_factor NOTIFY virtual_resolution_factor_changed)
@@ -38,8 +37,8 @@ class MyFrameBufferObject : public QQuickFramebufferObject
     Q_PROPERTY(QPointF camera_operation_center READ camera_operation_center WRITE set_camera_operation_center NOTIFY camera_operation_center_changed)
 
 public:
-    explicit MyFrameBufferObject(QQuickItem *parent = 0);
-    ~MyFrameBufferObject() override;
+    explicit TerrainRendererItem(QQuickItem* parent = 0);
+    ~TerrainRendererItem() override;
     Renderer *createRenderer() const Q_DECL_OVERRIDE;
 
 signals:
@@ -109,4 +108,4 @@ private:
     int m_frame_buffer_height = 0;
 };
 
-#endif // MYFRAMEBUFFEROBJECT_H
+#endif // TERRAINRENDERERITEM_H
