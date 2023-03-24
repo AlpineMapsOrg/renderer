@@ -81,7 +81,7 @@ set(ALP_APP_QML
     app/Coordinates.qml
 )
 set(ALP_APP_ICONS
-    app/icons/camera_operation_center.svg
+    app/icons/camera_operation_centre.svg
     app/icons/current_location.svg
     app/icons/mascot.png
     app/icons/menu.svg

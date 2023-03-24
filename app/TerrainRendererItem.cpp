@@ -70,11 +70,11 @@ public:
         TerrainRendererItem* i = static_cast<TerrainRendererItem*>(item);
         m_controller->camera_controller()->set_virtual_resolution_factor(i->virtual_resolution_factor());
         m_controller->camera_controller()->set_field_of_view(i->field_of_view());
-        const auto oc = m_controller->camera_controller()->get_operation_center();
+        const auto oc = m_controller->camera_controller()->get_operation_centre();
         if (oc.has_value()) {
-            i->set_camera_operation_center(QPointF(oc.value().x, oc.value().y));
+            i->set_camera_operation_centre(QPointF(oc.value().x, oc.value().y));
         } else {
-            i->set_camera_operation_center(QPointF(0, 0));
+            i->set_camera_operation_centre(QPointF(0, 0));
         }
         if (!(i->camera() == m_controller->camera_controller()->definition())) {
             const auto tmp_camera = m_controller->camera_controller()->definition();
@@ -292,15 +292,15 @@ void TerrainRendererItem::set_field_of_view(float new_field_of_view)
     schedule_update();
 }
 
-QPointF TerrainRendererItem::camera_operation_center() const
+QPointF TerrainRendererItem::camera_operation_centre() const
 {
-    return m_camera_operation_center;
+    return m_camera_operation_centre;
 }
 
-void TerrainRendererItem::set_camera_operation_center(QPointF new_camera_operation_center)
+void TerrainRendererItem::set_camera_operation_centre(QPointF new_camera_operation_centre)
 {
-    if (m_camera_operation_center == new_camera_operation_center)
+    if (m_camera_operation_centre == new_camera_operation_centre)
         return;
-    m_camera_operation_center = new_camera_operation_center;
-    emit camera_operation_center_changed();
+    m_camera_operation_centre = new_camera_operation_centre;
+    emit camera_operation_centre_changed();
 }
