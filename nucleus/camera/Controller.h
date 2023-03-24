@@ -40,6 +40,7 @@ public:
 
     [[nodiscard]] const Definition& definition() const;
     void set_interaction_style(std::unique_ptr<InteractionStyle> new_style);
+    std::optional<glm::vec2> get_operation_centre();
 
 public slots:
     void set_definition(const Definition& new_definition);

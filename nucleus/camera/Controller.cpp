@@ -165,6 +165,10 @@ void Controller::set_interaction_style(std::unique_ptr<InteractionStyle> new_sty
         m_interaction_style = std::make_unique<InteractionStyle>();
 }
 
+std::optional<glm::vec2> Controller::get_operation_centre(){
+    return m_interaction_style->get_operation_centre();
+}
+
 const Definition& Controller::definition() const
 {
     return m_definition;

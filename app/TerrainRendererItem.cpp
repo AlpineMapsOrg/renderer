@@ -70,6 +70,12 @@ public:
         TerrainRendererItem* i = static_cast<TerrainRendererItem*>(item);
         m_controller->camera_controller()->set_virtual_resolution_factor(i->virtual_resolution_factor());
         m_controller->camera_controller()->set_field_of_view(i->field_of_view());
+        const auto oc = m_controller->camera_controller()->get_operation_center();
+        if (oc.has_value()) {
+            i->set_camera_operation_center(QPointF(oc.value().x, oc.value().y));
+        } else {
+            i->set_camera_operation_center(QPointF(0, 0));
+        }
         if (!(i->camera() == m_controller->camera_controller()->definition())) {
             const auto tmp_camera = m_controller->camera_controller()->definition();
             QTimer::singleShot(0, i, [i, tmp_camera]() {
@@ -160,28 +166,24 @@ QQuickFramebufferObject::Renderer* TerrainRendererItem::createRenderer() const
 
 void TerrainRendererItem::touchEvent(QTouchEvent* e)
 {
-    set_camera_operation_center(e->point(0).position());
     emit touch_made(nucleus::event_parameter::make(e));
     RenderThreadNotifier::instance()->notify();
 }
 
 void TerrainRendererItem::mousePressEvent(QMouseEvent* e)
 {
-    set_camera_operation_center(e->position());
     emit mouse_pressed(nucleus::event_parameter::make(e));
     RenderThreadNotifier::instance()->notify();
 }
 
 void TerrainRendererItem::mouseMoveEvent(QMouseEvent* e)
 {
-    set_camera_operation_center(e->position());
     emit mouse_moved(nucleus::event_parameter::make(e));
     RenderThreadNotifier::instance()->notify();
 }
 
 void TerrainRendererItem::wheelEvent(QWheelEvent* e)
 {
-    set_camera_operation_center(e->position());
     emit wheel_turned(nucleus::event_parameter::make(e));
     RenderThreadNotifier::instance()->notify();
 }
