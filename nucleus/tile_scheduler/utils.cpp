@@ -28,11 +28,12 @@ void write(QFile* file, T value)
 }
 
 template <typename T>
-T read(QFile* file)
+std::optional<T> read(QFile* file)
 {
     T value;
     const auto bytes_read = file->read(reinterpret_cast<char*>(&value), sizeof(value));
-    assert(bytes_read == sizeof(value));
+    if (bytes_read != sizeof(value))
+        return {};
     return value;
 }
 }
@@ -61,13 +62,19 @@ nucleus::tile_scheduler::TileId2DataMap nucleus::tile_scheduler::utils::read_til
         return {};
 
     const auto size = read<size_t>(&file);
+    if (!size.has_value())
+        return {};
     nucleus::tile_scheduler::TileId2DataMap map;
-    map.reserve(size);
+    map.reserve(size.value());
     for (size_t i = 0; i < size; ++i) {
         const auto key = read<tile::Id>(&file);
         const auto data_size = read<qsizetype>(&file);
-        auto data = file.read(data_size);
-        map[key] = std::make_shared<QByteArray>(std::move(data));
+        if (!key.has_value() || !data_size.has_value())
+            return {};
+        auto data = file.read(data_size.value());
+        if (data.size() != data_size)
+            return {};
+        map[key.value()] = std::make_shared<QByteArray>(std::move(data));
     }
 
     return map;

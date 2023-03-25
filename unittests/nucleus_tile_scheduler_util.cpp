@@ -20,6 +20,8 @@
 
 #include <catch2/catch.hpp>
 
+#include <QFile>
+
 TEST_CASE("nucleus/tile_scheduler/utils: TileId2DataMap io")
 {
     const auto base_path = std::filesystem::path("./unittests_test_files");
@@ -64,6 +66,35 @@ TEST_CASE("nucleus/tile_scheduler/utils: TileId2DataMap io")
             REQUIRE(read_map.contains(key_value.first));
             CHECK(read_map.at(key_value.first) != key_value.second); // returns a different shared pointer
             CHECK(*read_map.at(key_value.first) == *key_value.second); // bytes are correct
+        }
+    }
+
+    SECTION("reading a file that is too short returns an empty map")
+    {
+        std::vector<qint64> bad_sizes = {
+            sizeof(size_t) + (sizeof(tile::Id) + sizeof(qsizetype)) * 4 + 4 * 3 + 2, // stop in last read byte array
+            68, // stop in read<T> (found by chance)
+            sizeof(size_t) + sizeof(tile::Id) + sizeof(qsizetype) + 3, // stop in read byte array (other read byte array)
+            sizeof(size_t) + sizeof(tile::Id) + 3
+        }; // stop in other read<T>
+
+        REQUIRE(!std::filesystem::exists(file_name));
+        nucleus::tile_scheduler::TileId2DataMap map;
+        map[tile::Id { 23, { 44, 55 } }] = std::make_shared<QByteArray>("1234");
+        map[tile::Id { 1, { 13, 46 } }] = std::make_shared<QByteArray>("1234");
+        map[tile::Id { 2, { 13, 46 } }] = std::make_shared<QByteArray>("1234");
+        map[tile::Id { 3, { 13, 46 } }] = std::make_shared<QByteArray>("1234");
+        nucleus::tile_scheduler::utils::write_tile_id_2_data_map(map, file_name);
+        for (const auto bad_size : bad_sizes) {
+            QFile file(file_name);
+            auto success = file.open(QIODevice::ReadWrite);
+            REQUIRE(success);
+            success = file.resize(bad_size);
+            REQUIRE(success);
+            file.close();
+
+            const auto read_map = nucleus::tile_scheduler::utils::read_tile_id_2_data_map(file_name);
+            CHECK(read_map.size() == 0);
         }
     }
 }
