@@ -51,7 +51,7 @@ public:
     void set_permissible_screen_space_error(float new_permissible_screen_space_error);
 
 public:
-    [[nodiscard]] TileSet load_candidates(const nucleus::camera::Definition& camera, const AabbDecoratorPtr& aabb_decorator);
+    [[nodiscard]] TileSet load_candidates(const nucleus::camera::Definition& camera, const AabbDecoratorPtr& aabb_decorator) const;
     [[nodiscard]] size_t number_of_tiles_in_transit() const;
     [[nodiscard]] size_t number_of_waiting_height_tiles() const;
     [[nodiscard]] size_t number_of_waiting_ortho_tiles() const;

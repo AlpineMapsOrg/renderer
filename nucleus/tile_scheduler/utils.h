@@ -35,7 +35,7 @@ using TileId2DataMap = std::unordered_map<tile::Id, std::shared_ptr<QByteArray>,
 class AabbDecorator {
     TileHeights tile_heights;
 public:
-    inline AabbDecorator(TileHeights tile_heights)
+    explicit inline AabbDecorator(TileHeights tile_heights)
         : tile_heights(std::move(tile_heights))
     {
     }

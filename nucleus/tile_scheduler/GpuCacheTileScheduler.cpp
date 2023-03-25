@@ -102,7 +102,7 @@ void GpuCacheTileScheduler::set_permissible_screen_space_error(float new_permiss
     }
 }
 
-GpuCacheTileScheduler::TileSet GpuCacheTileScheduler::load_candidates(const nucleus::camera::Definition& camera, const tile_scheduler::AabbDecoratorPtr& aabb_decorator)
+GpuCacheTileScheduler::TileSet GpuCacheTileScheduler::load_candidates(const nucleus::camera::Definition& camera, const tile_scheduler::AabbDecoratorPtr& aabb_decorator) const
 {
     std::unordered_set<tile::Id, tile::Id::Hasher> all_tiles;
     const auto all_leaves = quad_tree::onTheFlyTraverse(
