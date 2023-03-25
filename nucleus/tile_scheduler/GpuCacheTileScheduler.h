@@ -42,26 +42,15 @@ public:
     using TileSet = std::unordered_set<tile::Id, tile::Id::Hasher>;
     using Tile2DataMap = std::unordered_map<tile::Id, std::shared_ptr<QByteArray>, tile::Id::Hasher>;
 
+    GpuCacheTileScheduler();
+    ~GpuCacheTileScheduler() override;
+
     [[nodiscard]] const tile_scheduler::AabbDecoratorPtr& aabb_decorator() const;
 
     [[nodiscard]] float permissible_screen_space_error() const;
     void set_permissible_screen_space_error(float new_permissible_screen_space_error);
 
-public slots:
-    void set_aabb_decorator(const tile_scheduler::AabbDecoratorPtr& new_aabb_decorator);
-    void send_debug_scheduler_stats() const;
-    void key_press(const QKeyCombination&);
-
-signals:
-    void tile_requested(const tile::Id& tile_id) const;
-    void tile_ready(const std::shared_ptr<Tile>& tile) const;
-    void tile_expired(const tile::Id& tile_id) const;
-    void debug_scheduler_stats_updated(const QString& stats) const;
-
 public:
-    GpuCacheTileScheduler();
-    ~GpuCacheTileScheduler() override;
-
     [[nodiscard]] TileSet load_candidates(const nucleus::camera::Definition& camera, const AabbDecoratorPtr& aabb_decorator);
     [[nodiscard]] size_t number_of_tiles_in_transit() const;
     [[nodiscard]] size_t number_of_waiting_height_tiles() const;
@@ -71,7 +60,16 @@ public:
     bool enabled() const;
     void set_enabled(bool newEnabled);
 
+signals:
+    void tile_requested(const tile::Id& tile_id) const;
+    void tile_ready(const std::shared_ptr<Tile>& tile) const;
+    void tile_expired(const tile::Id& tile_id) const;
+    void debug_scheduler_stats_updated(const QString& stats) const;
+
 public slots:
+    void set_aabb_decorator(const tile_scheduler::AabbDecoratorPtr& new_aabb_decorator);
+    void send_debug_scheduler_stats() const;
+    void key_press(const QKeyCombination&);
     void update_camera(const nucleus::camera::Definition& camera);
     void receive_ortho_tile(tile::Id tile_id, std::shared_ptr<QByteArray> data);
     void receive_height_tile(tile::Id tile_id, std::shared_ptr<QByteArray> data);

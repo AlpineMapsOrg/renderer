@@ -33,47 +33,6 @@
 
 using nucleus::tile_scheduler::GpuCacheTileScheduler;
 
-const nucleus::tile_scheduler::AabbDecoratorPtr& GpuCacheTileScheduler::aabb_decorator() const
-{
-    return m_aabb_decorator;
-}
-
-void GpuCacheTileScheduler::set_aabb_decorator(const tile_scheduler::AabbDecoratorPtr& new_aabb_decorator)
-{
-    m_aabb_decorator = new_aabb_decorator;
-}
-
-void GpuCacheTileScheduler::send_debug_scheduler_stats() const
-{
-    const auto text = QString("Scheduler: %1 tiles in transit, %2 height, %3 ortho tiles in main cache, %4 tiles on gpu")
-                          .arg(number_of_tiles_in_transit())
-                          .arg(number_of_waiting_height_tiles())
-                          .arg(number_of_waiting_ortho_tiles())
-                          .arg(gpu_tiles().size());
-    emit debug_scheduler_stats_updated(text);
-}
-
-void GpuCacheTileScheduler::key_press(const QKeyCombination& e)
-{
-    if (e.key() == Qt::Key::Key_T) {
-        set_enabled(!enabled());
-        qDebug("setting tile scheduler enabled = %d", int(enabled()));
-    }
-}
-
-float GpuCacheTileScheduler::permissible_screen_space_error() const
-{
-    return m_permissible_screen_space_error;
-}
-
-void GpuCacheTileScheduler::set_permissible_screen_space_error(float new_permissible_screen_space_error)
-{
-    if (!qFuzzyCompare(m_permissible_screen_space_error, new_permissible_screen_space_error)) {
-        m_permissible_screen_space_error = new_permissible_screen_space_error;
-        schedule_update();
-    }
-}
-
 GpuCacheTileScheduler::GpuCacheTileScheduler()
     : m_construction_msec_since_epoch(uint64_t(std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now().time_since_epoch()).count()))
 {
@@ -125,6 +84,24 @@ GpuCacheTileScheduler::~GpuCacheTileScheduler()
     qDebug("~GpuCacheTileScheduler::GpuCacheTileScheduler()");
 }
 
+const nucleus::tile_scheduler::AabbDecoratorPtr& GpuCacheTileScheduler::aabb_decorator() const
+{
+    return m_aabb_decorator;
+}
+
+float GpuCacheTileScheduler::permissible_screen_space_error() const
+{
+    return m_permissible_screen_space_error;
+}
+
+void GpuCacheTileScheduler::set_permissible_screen_space_error(float new_permissible_screen_space_error)
+{
+    if (!qFuzzyCompare(m_permissible_screen_space_error, new_permissible_screen_space_error)) {
+        m_permissible_screen_space_error = new_permissible_screen_space_error;
+        schedule_update();
+    }
+}
+
 GpuCacheTileScheduler::TileSet GpuCacheTileScheduler::load_candidates(const nucleus::camera::Definition& camera, const tile_scheduler::AabbDecoratorPtr& aabb_decorator)
 {
     std::unordered_set<tile::Id, tile::Id::Hasher> all_tiles;
@@ -158,6 +135,29 @@ size_t GpuCacheTileScheduler::number_of_waiting_ortho_tiles() const
 GpuCacheTileScheduler::TileSet GpuCacheTileScheduler::gpu_tiles() const
 {
     return m_gpu_tiles;
+}
+
+void GpuCacheTileScheduler::set_aabb_decorator(const tile_scheduler::AabbDecoratorPtr& new_aabb_decorator)
+{
+    m_aabb_decorator = new_aabb_decorator;
+}
+
+void GpuCacheTileScheduler::send_debug_scheduler_stats() const
+{
+    const auto text = QString("Scheduler: %1 tiles in transit, %2 height, %3 ortho tiles in main cache, %4 tiles on gpu")
+                          .arg(number_of_tiles_in_transit())
+                          .arg(number_of_waiting_height_tiles())
+                          .arg(number_of_waiting_ortho_tiles())
+                          .arg(gpu_tiles().size());
+    emit debug_scheduler_stats_updated(text);
+}
+
+void GpuCacheTileScheduler::key_press(const QKeyCombination& e)
+{
+    if (e.key() == Qt::Key::Key_T) {
+        set_enabled(!enabled());
+        qDebug("setting tile scheduler enabled = %d", int(enabled()));
+    }
 }
 
 void GpuCacheTileScheduler::update_camera(const nucleus::camera::Definition& camera)
