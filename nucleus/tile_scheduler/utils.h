@@ -1,6 +1,6 @@
 /*****************************************************************************
- * Alpine Terrain Builder
- * Copyright (C) 2022 alpinemaps.org
+ * Alpine Terrain Renderer
+ * Copyright (C) 2022 Adam Celarek
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -18,6 +18,8 @@
 
 #pragma once
 
+#include <QByteArray>
+
 #include "nucleus/camera/Definition.h"
 #include "nucleus/srs.h"
 #include "sherpa/TileHeights.h"
@@ -27,6 +29,8 @@ namespace nucleus::tile_scheduler {
 
 class AabbDecorator;
 using AabbDecoratorPtr = std::shared_ptr<AabbDecorator>;
+
+using TileId2DataMap = std::unordered_map<tile::Id, std::shared_ptr<QByteArray>, tile::Id::Hasher>;
 
 class AabbDecorator {
     TileHeights tile_heights;
@@ -72,14 +76,12 @@ inline auto cameraFrustumContainsTile(const nucleus::camera::Definition& camera,
     // this test should be based only on the four frustum planes (top, left, bottom, right), because
     // the near and far planes are adjusted based on the loaded AABBs, and that results in  a chicken egg problem.
     const auto triangles = geometry::clip(geometry::triangulise(aabb), camera.four_clipping_planes());
-    if (triangles.empty())
-        return false;
-    return true;
+    return !triangles.empty();
 }
 
 inline auto refineFunctor(const nucleus::camera::Definition& camera, const AabbDecoratorPtr& aabb_decorator, double error_threshold_px, double tile_size = 256)
 {
-    const auto refine = [&camera, error_threshold_px, tile_size, aabb_decorator](const tile::Id& tile) {
+    auto refine = [&camera, error_threshold_px, tile_size, aabb_decorator](const tile::Id& tile) {
         if (tile.zoom_level >= 18)
             return false;
 
@@ -105,5 +107,10 @@ inline auto refineFunctor(const nucleus::camera::Definition& camera, const AabbD
         return clip_space_difference * 0.5 * camera.viewport_size().x >= error_threshold_px;
     };
     return refine;
+}
+
+namespace utils {
+    void write_tile_id_2_data_map(const TileId2DataMap& map, const std::filesystem::path& path);
+    TileId2DataMap read_tile_id_2_data_map(const std::filesystem::path& path);
 }
 }

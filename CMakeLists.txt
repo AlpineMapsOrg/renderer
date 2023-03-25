@@ -19,7 +19,7 @@ set(ALP_NUCLEUS_SOURCES
     nucleus/Raster.h
     nucleus/srs.h nucleus/srs.cpp
     nucleus/Tile.cpp nucleus/Tile.h
-    nucleus/tile_scheduler/utils.h
+    nucleus/tile_scheduler/utils.h nucleus/tile_scheduler/utils.cpp
     nucleus/tile_scheduler/DrawListGenerator.h nucleus/tile_scheduler/DrawListGenerator.cpp
     nucleus/tile_scheduler/GpuCacheTileScheduler.h nucleus/tile_scheduler/GpuCacheTileScheduler.cpp
     nucleus/TileLoadService.h nucleus/TileLoadService.cpp
@@ -104,6 +104,7 @@ if (ALP_UNITTESTS AND NOT EMSCRIPTEN)
         unittests/test_srs.cpp
         unittests/test_tile.cpp
         unittests/test_tile_conversion.cpp
+        unittests/nucleus_tile_scheduler_util.cpp
     )
     set(ALP_QT_UNITTESTS
         TileLoadService
