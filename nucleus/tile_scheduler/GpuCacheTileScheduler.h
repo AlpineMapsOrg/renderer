@@ -85,6 +85,7 @@ private slots:
     void do_update();
 
 private:
+    void read_disk_cache();
     void schedule_update();
     bool send_to_gpu_if_available(const tile::Id& tile_id);
     void remove_gpu_tiles(const std::vector<tile::Id>& tiles);

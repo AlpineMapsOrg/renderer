@@ -24,7 +24,8 @@ namespace {
 template <typename T>
 void write(QFile* file, T value)
 {
-    file->write(reinterpret_cast<const char*>(&value), sizeof(value));
+    const auto bytes_written = file->write(reinterpret_cast<const char*>(&value), sizeof(value));
+    assert(bytes_written == sizeof(value));
 }
 
 template <typename T>
@@ -49,7 +50,8 @@ void nucleus::tile_scheduler::utils::write_tile_id_2_data_map(const TileId2DataM
         write(&file, key_value.first);
         const auto data = key_value.second;
         write<qsizetype>(&file, data->size());
-        file.write(*data);
+        const auto bytes_written = file.write(*data);
+        assert(bytes_written == data->size());
     }
     file.close();
 }

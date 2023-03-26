@@ -23,6 +23,7 @@
 #include <unordered_set>
 
 #include <QBuffer>
+#include <QStandardPaths>
 
 #include "nucleus/Tile.h"
 #include "nucleus/tile_scheduler/utils.h"
@@ -82,6 +83,21 @@ GpuCacheTileScheduler::GpuCacheTileScheduler()
 GpuCacheTileScheduler::~GpuCacheTileScheduler()
 {
     qDebug("~GpuCacheTileScheduler::GpuCacheTileScheduler()");
+    const auto base_path = std::filesystem::path(QStandardPaths::writableLocation(QStandardPaths::CacheLocation).toStdString() + "/tile_cache");
+    std::filesystem::remove_all(base_path);
+    std::filesystem::create_directories(base_path);
+
+    {
+        const auto height_path = base_path / "height.alp";
+        qDebug("writing tile cache to %s", height_path.c_str());
+        utils::write_tile_id_2_data_map(m_received_height_tiles, height_path);
+    }
+
+    {
+        const auto ortho_path = base_path / "ortho.alp";
+        qDebug("writing tile cache to %s", ortho_path.c_str());
+        utils::write_tile_id_2_data_map(m_received_ortho_tiles, ortho_path);
+    }
 }
 
 const nucleus::tile_scheduler::AabbDecoratorPtr& GpuCacheTileScheduler::aabb_decorator() const
@@ -202,6 +218,17 @@ void GpuCacheTileScheduler::do_update()
         schedule_update();
 
     send_debug_scheduler_stats();
+}
+
+void GpuCacheTileScheduler::read_disk_cache()
+{
+    const auto base_path = std::filesystem::path(QStandardPaths::writableLocation(QStandardPaths::CacheLocation).toStdString() + "/tile_cache");
+    m_received_height_tiles = utils::read_tile_id_2_data_map(base_path / "height.alp");
+    m_received_ortho_tiles = utils::read_tile_id_2_data_map(base_path / "ortho.alp");
+    if (m_received_height_tiles.empty() || m_received_ortho_tiles.empty()) {
+        m_received_height_tiles = {};
+        m_received_ortho_tiles = {};
+    }
 }
 
 void GpuCacheTileScheduler::schedule_update()
