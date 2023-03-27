@@ -79,7 +79,7 @@ public slots:
 
 private slots:
     void schedule_update();
-    void multi_key_timer();
+    void key_timer();
 
 public:
     [[nodiscard]] int frame_limit() const;

@@ -162,7 +162,7 @@ QQuickFramebufferObject::Renderer* TerrainRendererItem::createRenderer() const
     connect(r->controller()->tile_scheduler(), &nucleus::tile_scheduler::GpuCacheTileScheduler::tile_ready, RenderThreadNotifier::instance(), &RenderThreadNotifier::notify);
     connect(r->controller()->tile_scheduler(), &nucleus::tile_scheduler::GpuCacheTileScheduler::tile_expired, RenderThreadNotifier::instance(), &RenderThreadNotifier::notify);
 
-    connect(m_timer, &QTimer::timeout, this, &TerrainRendererItem::multi_key_timer);
+    connect(m_timer, &QTimer::timeout, this, &TerrainRendererItem::key_timer);
     return r;
 }
 
@@ -216,7 +216,7 @@ void TerrainRendererItem::keyReleaseEvent(QKeyEvent* e)
     RenderThreadNotifier::instance()->notify();
 }
 
-void TerrainRendererItem::multi_key_timer()
+void TerrainRendererItem::key_timer()
 {
     emit key_pressed(QKeyCombination(Qt::Key_T)); // TODO replace this with "key update" call
     RenderThreadNotifier::instance()->notify();
