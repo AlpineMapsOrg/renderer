@@ -57,6 +57,7 @@ public slots:
     void mouse_move(const event_parameter::Mouse&);
     void wheel_turn(const event_parameter::Wheel&);
     void key_press(const QKeyCombination&);
+    void key_release(const QKeyCombination&);
     void touch(const event_parameter::Touch&);
 
 signals:

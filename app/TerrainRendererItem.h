@@ -25,6 +25,7 @@
 #include "nucleus/camera/Definition.h"
 #include "nucleus/event_parameter.h"
 #include <QQuickFramebufferObject>
+#include <QTimer>
 
 class TerrainRendererItem : public QQuickFramebufferObject {
     Q_OBJECT
@@ -50,6 +51,7 @@ signals:
     void wheel_turned(const nucleus::event_parameter::Wheel&) const;
     void touch_made(const nucleus::event_parameter::Touch&) const;
     void key_pressed(const QKeyCombination&) const;
+    void key_released(const QKeyCombination&) const;
     //    void viewport_changed(const glm::uvec2& new_viewport) const;
     void position_set_by_user(double new_latitude, double new_longitude);
 
@@ -70,12 +72,14 @@ protected:
     void mouseMoveEvent(QMouseEvent*) override;
     void wheelEvent(QWheelEvent*) override;
     void keyPressEvent(QKeyEvent*) override;
+    void keyReleaseEvent(QKeyEvent*) override;
 
 public slots:
     void set_position(double latitude, double longitude);
 
 private slots:
     void schedule_update();
+    void multi_key_timer();
 
 public:
     [[nodiscard]] int frame_limit() const;
@@ -108,6 +112,8 @@ private:
     nucleus::camera::Definition m_camera;
     int m_frame_buffer_width = 0;
     int m_frame_buffer_height = 0;
+    QTimer *m_timer = new QTimer(this);
+    int m_keys_pressed = 0;
 };
 
 #endif // TERRAINRENDERERITEM_H
