@@ -19,6 +19,7 @@
 #pragma once
 
 #include <QOpenGLWindow>
+#include <QTimer>
 #include <glm/glm.hpp>
 
 #include "gl_engine/Window.h"
@@ -52,7 +53,12 @@ signals:
     void touch_made(const nucleus::event_parameter::Touch&) const;
     void resized(const glm::uvec2&) const;
 
+private slots:
+    void key_timer();
+
 private:
     gl_engine::Window m_gl_window;
+    QTimer *m_timer = new QTimer(this);
+    int m_keys_pressed = 0;
 };
 
