@@ -42,6 +42,7 @@ protected:
     void mouseMoveEvent(QMouseEvent*) override;
     void wheelEvent(QWheelEvent*) override;
     void keyPressEvent(QKeyEvent*) override;
+    void keyReleaseEvent(QKeyEvent*) override;
     void touchEvent(QTouchEvent*) override;
 
 signals:

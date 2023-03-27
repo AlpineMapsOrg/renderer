@@ -63,6 +63,7 @@ public:
     void remove_tile(const tile::Id&) override;
     [[nodiscard]] nucleus::camera::AbstractDepthTester* depth_tester() override;
     void keyPressEvent(QKeyEvent*);
+    void keyReleaseEvent(QKeyEvent*);
 
 public slots:
     void update_camera(const nucleus::camera::Definition& new_definition) override;

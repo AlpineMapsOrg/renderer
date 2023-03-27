@@ -70,6 +70,11 @@ void Window::keyPressEvent(QKeyEvent* e)
     m_gl_window.keyPressEvent(e);
 }
 
+void Window::keyReleaseEvent(QKeyEvent* e)
+{
+    m_gl_window.keyReleaseEvent(e);
+}
+
 void Window::touchEvent(QTouchEvent* e)
 {
     emit touch_made(nucleus::event_parameter::make(e));

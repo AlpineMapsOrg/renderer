@@ -187,6 +187,12 @@ void Window::keyPressEvent(QKeyEvent* e)
 
     emit key_pressed(e->keyCombination());
 }
+
+void Window::keyReleaseEvent(QKeyEvent* e)
+{
+    emit key_released(e->keyCombination());
+}
+
 void Window::update_camera(const nucleus::camera::Definition& new_definition)
 {
     //    qDebug("void Window::update_camera(const nucleus::camera::Definition& new_definition)");
