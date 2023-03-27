@@ -20,7 +20,11 @@
 
 #include <catch2/catch.hpp>
 
+#include <QBuffer>
 #include <QFile>
+#include <QImage>
+
+#include "nucleus/utils/tile_conversion.h"
 
 TEST_CASE("nucleus/tile_scheduler/utils: TileId2DataMap io")
 {
@@ -95,6 +99,57 @@ TEST_CASE("nucleus/tile_scheduler/utils: TileId2DataMap io")
 
             const auto read_map = nucleus::tile_scheduler::utils::read_tile_id_2_data_map(file_name);
             CHECK(read_map.size() == 0);
+        }
+    }
+
+    SECTION("write and read of a qimage")
+    {
+        REQUIRE(!std::filesystem::exists(file_name));
+        nucleus::tile_scheduler::TileId2DataMap map;
+
+        QByteArray jpeg_image_array;
+        QByteArray png_image_array;
+        {
+            QImage image(QSize { int(256), int(256) }, QImage::Format_ARGB32);
+            image.fill(Qt::GlobalColor::white);
+            QBuffer buffer(&jpeg_image_array);
+            buffer.open(QIODevice::WriteOnly);
+            image.save(&buffer, "JPEG");
+        }
+        {
+            QImage image(QSize { int(64), int(64) }, QImage::Format_ARGB32);
+            image.fill(Qt::GlobalColor::white);
+            QBuffer buffer(&png_image_array);
+            buffer.open(QIODevice::WriteOnly);
+            image.save(&buffer, "PNG");
+        }
+
+        const auto jpeg_tile_id = tile::Id { 0, { 0, 0 } };
+        const auto png_tile_id = tile::Id { 1, { 0, 0 } };
+        map[jpeg_tile_id] = std::make_shared<QByteArray>(jpeg_image_array);
+        map[png_tile_id] = std::make_shared<QByteArray>(png_image_array);
+        nucleus::tile_scheduler::utils::write_tile_id_2_data_map(map, file_name);
+        const auto read_map = nucleus::tile_scheduler::utils::read_tile_id_2_data_map(file_name);
+        REQUIRE(read_map.size() == 2);
+        {
+            REQUIRE(read_map.contains(jpeg_tile_id));
+            REQUIRE(read_map.at(jpeg_tile_id));
+            const auto bytes = *read_map.at(jpeg_tile_id);
+            const auto read_image = nucleus::utils::tile_conversion::toQImage(*read_map.at(jpeg_tile_id));
+            CHECK(read_image.width() == 256);
+            CHECK(read_image.height() == 256);
+            CHECK(!read_image.isNull());
+            CHECK(read_image.constBits());
+            CHECK(read_image.pixel({ 55, 33 }) == qRgb(255, 255, 255));
+            CHECK(read_image.format() == QImage::Format_RGB32);
+        }
+        {
+            REQUIRE(read_map.contains(png_tile_id));
+            REQUIRE(read_map.at(png_tile_id));
+            const auto read_png = nucleus::utils::tile_conversion::qImage2uint16Raster(nucleus::utils::tile_conversion::toQImage(*read_map.at(png_tile_id)));
+            CHECK(read_png.width() == 64);
+            CHECK(read_png.height() == 64);
+            CHECK(*(read_png.begin() + 20 * 64 + 30) == 256 * 256 - 1);
         }
     }
 }

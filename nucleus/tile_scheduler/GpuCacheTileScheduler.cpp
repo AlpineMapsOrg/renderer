@@ -42,6 +42,8 @@ GpuCacheTileScheduler::GpuCacheTileScheduler()
     h.emplace({ 0, { 0, 0 } }, { 100, 4000 });
     set_aabb_decorator(tile_scheduler::AabbDecorator::make(std::move(h)));
 
+    read_disk_cache();
+
     qDebug("GpuCacheTileScheduler::GpuCacheTileScheduler()");
     {
         QImage default_tile(QSize { int(m_ortho_tile_size), int(m_ortho_tile_size) }, QImage::Format_ARGB32);
@@ -69,12 +71,12 @@ GpuCacheTileScheduler::GpuCacheTileScheduler()
 
     m_gpu_purge_timer.setParent(this); // must move to new threads together
     m_gpu_purge_timer.setSingleShot(true);
-    m_gpu_purge_timer.setInterval(5);
+    m_gpu_purge_timer.setInterval(50);
     connect(&m_gpu_purge_timer, &QTimer::timeout, this, &GpuCacheTileScheduler::purge_gpu_cache_from_old_tiles);
 
     m_update_timer.setParent(this); // must move to new threads together
     m_update_timer.setSingleShot(true);
-    m_update_timer.setInterval(2);
+    m_update_timer.setInterval(20);
     connect(&m_update_timer, &QTimer::timeout, this, &GpuCacheTileScheduler::do_update);
 
     m_main_cache_book.reserve(m_main_cache_size + 500); // reserve some more space for tiles in flight
@@ -210,6 +212,8 @@ void GpuCacheTileScheduler::do_update()
     std::sort(tiles_to_load.begin(), last_load_tile_iter);  // start loading low zoom tiles first
 
     std::for_each(tiles_to_load.begin(), last_load_tile_iter, [this](const auto& t) {
+        if (m_unavailable_tiles.contains(t))
+            return;
         m_pending_tile_requests.insert(t);
         emit tile_requested(t);
     });
@@ -253,12 +257,18 @@ void GpuCacheTileScheduler::receive_height_tile(tile::Id tile_id, std::shared_pt
 
 void GpuCacheTileScheduler::notify_about_unavailable_ortho_tile(tile::Id tile_id)
 {
-    receive_ortho_tile(tile_id, m_default_ortho_tile);
+    if (tile_id.zoom_level < 12)
+        receive_ortho_tile(tile_id, m_default_ortho_tile);
+    else
+        m_unavailable_tiles.insert(tile_id);
 }
 
 void GpuCacheTileScheduler::notify_about_unavailable_height_tile(tile::Id tile_id)
 {
-    receive_height_tile(tile_id, m_default_height_tile);
+    if (tile_id.zoom_level < 12)
+        receive_height_tile(tile_id, m_default_height_tile);
+    else
+        m_unavailable_tiles.insert(tile_id);
 }
 
 void GpuCacheTileScheduler::print_debug_info() const

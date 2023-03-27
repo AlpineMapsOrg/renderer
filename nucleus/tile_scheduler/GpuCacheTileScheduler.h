@@ -96,11 +96,12 @@ private:
     static constexpr unsigned m_ortho_tile_size = 256;
     static constexpr unsigned m_height_tile_size = 64;
     unsigned m_max_n_simultaneous_requests = 64;
-    static constexpr unsigned m_main_cache_size = 5000;
+    static constexpr unsigned m_main_cache_size = 50000;
 
     nucleus::camera::Definition m_current_camera;
     TileSet m_pending_tile_requests;
     TileSet m_gpu_tiles;
+    TileSet m_unavailable_tiles;
     Tile2DataMap m_received_ortho_tiles; // used as main cache
     Tile2DataMap m_received_height_tiles; // used as main cache
     std::unordered_map<tile::Id, unsigned, tile::Id::Hasher> m_main_cache_book;

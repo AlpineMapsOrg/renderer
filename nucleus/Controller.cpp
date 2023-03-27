@@ -70,6 +70,7 @@ Controller::Controller(AbstractRenderWindow* render_window)
 
 #ifdef ALP_ENABLE_THREADING
     m_scheduler_thread = std::make_unique<QThread>();
+    m_scheduler_thread->setObjectName("tile_scheduler_thread");
     m_terrain_service->moveToThread(m_scheduler_thread.get());
     m_ortho_service->moveToThread(m_scheduler_thread.get());
     m_tile_scheduler->moveToThread(m_scheduler_thread.get());
