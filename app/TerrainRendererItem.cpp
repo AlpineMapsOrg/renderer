@@ -72,9 +72,10 @@ public:
         m_controller->camera_controller()->set_field_of_view(i->field_of_view());
         const auto oc = m_controller->camera_controller()->get_operation_centre();
         if (oc.has_value()) {
+            i->set_camera_operation_centre_visibility(true);
             i->set_camera_operation_centre(QPointF(oc.value().x, oc.value().y));
         } else {
-            i->set_camera_operation_centre(QPointF(0, 0));
+            i->set_camera_operation_centre_visibility(false);
         }
         if (!(i->camera() == m_controller->camera_controller()->definition())) {
             const auto tmp_camera = m_controller->camera_controller()->definition();
@@ -331,4 +332,17 @@ void TerrainRendererItem::set_camera_operation_centre(QPointF new_camera_operati
         return;
     m_camera_operation_centre = new_camera_operation_centre;
     emit camera_operation_centre_changed();
+}
+
+bool TerrainRendererItem::camera_operation_centre_visibility() const
+{
+    return m_camera_operation_centre_visibility;
+}
+
+void TerrainRendererItem::set_camera_operation_centre_visibility(bool new_camera_operation_centre_visibility)
+{
+    if (m_camera_operation_centre_visibility == new_camera_operation_centre_visibility)
+        return;
+    m_camera_operation_centre_visibility = new_camera_operation_centre_visibility;
+    emit camera_operation_centre_visibility_changed();
 }

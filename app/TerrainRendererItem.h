@@ -36,6 +36,7 @@ class TerrainRendererItem : public QQuickFramebufferObject {
     Q_PROPERTY(int frame_buffer_height READ frame_buffer_height NOTIFY frame_buffer_height_changed)
     Q_PROPERTY(float field_of_view READ field_of_view WRITE set_field_of_view NOTIFY field_of_view_changed)
     Q_PROPERTY(QPointF camera_operation_centre READ camera_operation_centre WRITE set_camera_operation_centre NOTIFY camera_operation_centre_changed)
+    Q_PROPERTY(bool camera_operation_centre_visibility READ camera_operation_centre_visibility WRITE set_camera_operation_centre_visibility NOTIFY camera_operation_centre_visibility_changed)
 
 public:
     explicit TerrainRendererItem(QQuickItem* parent = 0);
@@ -65,6 +66,8 @@ signals:
     void field_of_view_changed();
 
     void camera_operation_centre_changed();
+
+    void camera_operation_centre_visibility_changed();
 
 protected:
     void touchEvent(QTouchEvent*) override;
@@ -103,8 +106,12 @@ public:
     QPointF camera_operation_centre() const;
     void set_camera_operation_centre(QPointF new_camera_operation_centre);
 
+    bool camera_operation_centre_visibility() const;
+    void set_camera_operation_centre_visibility(bool new_camera_operation_centre_visibility);
+
 private:
     QPointF m_camera_operation_centre;
+    bool m_camera_operation_centre_visibility = false;
     float m_field_of_view = 75;
     int m_frame_limit = 60;
     float m_virtual_resolution_factor = 0.5f;

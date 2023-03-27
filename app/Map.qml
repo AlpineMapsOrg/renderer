@@ -43,6 +43,7 @@ Rectangle {
         sourceSize: Qt.size(width, height)
         x: renderer.camera_operation_centre.x - width / 2
         y: renderer.camera_operation_centre.y - 60 - height / 2
+        visible: renderer.camera_operation_centre_visibility
     }
 
     Repeater {
