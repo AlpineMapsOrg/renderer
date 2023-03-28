@@ -24,9 +24,6 @@
 
 #include "srs.h"
 
-#ifdef ALP_USE_DISK_CACHE
-class QNetworkDiskCache;
-#endif
 class QNetworkAccessManager;
 
 namespace nucleus {
@@ -55,9 +52,6 @@ signals:
 
 private:
     std::shared_ptr<QNetworkAccessManager> m_network_manager;
-#ifdef ALP_USE_DISK_CACHE
-    std::unique_ptr<QNetworkDiskCache> m_disk_cache;
-#endif
     QString m_base_url;
     UrlPattern m_url_pattern;
     QString m_file_ending;

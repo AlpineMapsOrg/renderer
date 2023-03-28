@@ -22,32 +22,16 @@
 #include <QImage>
 #include <QNetworkAccessManager>
 #include <QNetworkReply>
-#ifdef ALP_USE_DISK_CACHE
-#include <QDir>
-#include <QNetworkDiskCache>
-#include <QRegularExpression>
-#include <QStandardPaths>
-#endif
 
 using nucleus::TileLoadService;
 
 TileLoadService::TileLoadService(const QString& base_url, UrlPattern url_pattern, const QString& file_ending, const LoadBalancingTargets& load_balancing_targets)
     : m_network_manager(new QNetworkAccessManager(this))
-#ifdef ALP_USE_DISK_CACHE
-    , m_disk_cache(new QNetworkDiskCache(this))
-#endif
     , m_base_url(base_url)
     , m_url_pattern(url_pattern)
     , m_file_ending(file_ending)
     , m_load_balancing_targets(load_balancing_targets)
 {
-#ifdef ALP_USE_DISK_CACHE
-    m_disk_cache->setCacheDirectory(QStandardPaths::writableLocation(QStandardPaths::CacheLocation) + "/" + QString(base_url).replace(QRegularExpression("\\W"), ""));
-    m_disk_cache->setMaximumCacheSize(1000 * 1024 * 1024); // 1000mib
-    m_network_manager->setCache(m_disk_cache.get());
-    qDebug("cache directory: %s", m_disk_cache->cacheDirectory().toStdString().c_str());
-    qDebug("maximum cache size: %lld", m_disk_cache->maximumCacheSize());
-#endif
 }
 
 TileLoadService::~TileLoadService()

@@ -160,10 +160,6 @@ qt_add_library(nucleus STATIC
 )
 
 target_include_directories(nucleus PRIVATE . PUBLIC ${CMAKE_SOURCE_DIR})
-#target_compile_definitions(nucleus PUBLIC GLM_ENABLE_EXPERIMENTAL)
-if (NOT EMSCRIPTEN)
-    target_compile_definitions(nucleus PUBLIC ALP_USE_DISK_CACHE)
-endif()
 target_link_libraries(nucleus PUBLIC sherpa Qt::Core Qt::Gui Qt6::Network Qt6::Svg)
 
 
