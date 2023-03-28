@@ -50,18 +50,18 @@ template <class... Ts>
 overloaded(Ts...) -> overloaded<Ts...>;
 }
 
-class MyFrameBufferObjectRenderer : public QQuickFramebufferObject::Renderer {
+class TerrainRenderer : public QQuickFramebufferObject::Renderer {
 public:
-    MyFrameBufferObjectRenderer()
+    TerrainRenderer()
     {
         m_glWindow = std::make_unique<gl_engine::Window>();
         m_glWindow->initialise_gpu();
         m_controller = std::make_unique<nucleus::Controller>(m_glWindow.get());
-        qDebug("MyFrameBufferObjectRenderer()");
+        qDebug("TerrainRendererItemRenderer()");
     }
-    ~MyFrameBufferObjectRenderer() override
+    ~TerrainRenderer() override
     {
-        qDebug("~MyFrameBufferObjectRenderer()");
+        qDebug("~TerrainRendererItemRenderer()");
     }
 
     void synchronize(QQuickFramebufferObject *item) Q_DECL_OVERRIDE
@@ -123,7 +123,7 @@ private:
     std::unique_ptr<nucleus::Controller> m_controller;
 };
 
-// MyFrameBufferObject implementation
+// TerrainRendererItem implementation
 
 TerrainRendererItem::TerrainRendererItem(QQuickItem* parent)
     : QQuickFramebufferObject(parent)
@@ -131,7 +131,7 @@ TerrainRendererItem::TerrainRendererItem(QQuickItem* parent)
 {
     m_update_timer->setSingleShot(true);
     m_update_timer->setInterval(1000 / m_frame_limit);
-    qDebug("MyFrameBufferObject::MyFrameBufferObject(QQuickItem* parent)");
+    qDebug("TerrainRendererItem::TerrainRendererItem(QQuickItem* parent)");
     qDebug() << "gui thread: " << QThread::currentThread();
     setMirrorVertically(true);
     setAcceptTouchEvents(true);
@@ -140,15 +140,15 @@ TerrainRendererItem::TerrainRendererItem(QQuickItem* parent)
 
 TerrainRendererItem::~TerrainRendererItem()
 {
-    qDebug("MyFrameBufferObject::~MyFrameBufferObject()");
+    qDebug("TerrainRendererItem::~TerrainRendererItem()");
 }
 
 QQuickFramebufferObject::Renderer* TerrainRendererItem::createRenderer() const
 {
-    qDebug("QQuickFramebufferObject::Renderer* MyFrameBufferObject::createRenderer() const");
+    qDebug("QQuickFramebufferObject::Renderer* TerrainRendererItem::createRenderer() const");
     qDebug() << "rendering thread: " << QThread::currentThread();
     // called on rendering thread.
-    auto* r = new MyFrameBufferObjectRenderer();
+    auto* r = new TerrainRenderer();
     connect(r->glWindow(), &nucleus::AbstractRenderWindow::update_requested, this, &TerrainRendererItem::schedule_update);
     connect(m_update_timer, &QTimer::timeout, this, &QQuickFramebufferObject::update);
 
@@ -231,7 +231,7 @@ void TerrainRendererItem::set_position(double latitude, double longitude)
 
 void TerrainRendererItem::schedule_update()
 {
-    //    qDebug("void MyFrameBufferObject::schedule_update()");
+    //    qDebug("void TerrainRendererItem::schedule_update()");
     if (m_update_timer->isActive())
         return;
     m_update_timer->start();
