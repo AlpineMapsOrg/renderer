@@ -51,7 +51,7 @@ public:
     void set_permissible_screen_space_error(float new_permissible_screen_space_error);
 
 public:
-    [[nodiscard]] TileSet load_candidates(const nucleus::camera::Definition& camera, const AabbDecoratorPtr& aabb_decorator) const;
+    [[nodiscard]] std::vector<tile::Id> load_candidates(const nucleus::camera::Definition& camera, const AabbDecoratorPtr& aabb_decorator) const;
     [[nodiscard]] size_t number_of_tiles_in_transit() const;
     [[nodiscard]] size_t number_of_waiting_height_tiles() const;
     [[nodiscard]] size_t number_of_waiting_ortho_tiles() const;
@@ -71,8 +71,8 @@ public slots:
     void send_debug_scheduler_stats() const;
     void key_press(const QKeyCombination&);
     void update_camera(const nucleus::camera::Definition& camera);
-    void receive_ortho_tile(tile::Id tile_id, std::shared_ptr<QByteArray> data);
-    void receive_height_tile(tile::Id tile_id, std::shared_ptr<QByteArray> data);
+    void receive_ortho_tile(const tile::Id& tile_id, const std::shared_ptr<QByteArray>& data);
+    void receive_height_tile(const tile::Id& tile_id, const std::shared_ptr<QByteArray>& data);
     void notify_about_unavailable_ortho_tile(tile::Id tile_id);
     void notify_about_unavailable_height_tile(tile::Id tile_id);
     void print_debug_info() const;
@@ -87,6 +87,7 @@ private slots:
 private:
     void read_disk_cache();
     void schedule_update();
+    void schedule_update_and_clear_pending_request_if_available(const tile::Id& tile_id);
     bool send_to_gpu_if_available(const tile::Id& tile_id);
     void remove_gpu_tiles(const std::vector<tile::Id>& tiles);
 
