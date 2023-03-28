@@ -168,3 +168,7 @@ void TileManager::set_aabb_decorator(const nucleus::tile_scheduler::AabbDecorato
     m_draw_list_generator.set_aabb_decorator(new_aabb_decorator);
 }
 
+void TileManager::set_permissible_screen_space_error(float new_permissible_screen_space_error)
+{
+    m_draw_list_generator.set_permissible_screen_space_error(new_permissible_screen_space_error);
+}

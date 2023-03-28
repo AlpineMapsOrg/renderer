@@ -64,6 +64,7 @@ public:
     [[nodiscard]] nucleus::camera::AbstractDepthTester* depth_tester() override;
     void keyPressEvent(QKeyEvent*);
     void keyReleaseEvent(QKeyEvent*);
+    void set_permissible_screen_space_error(float new_error) override;
 
 public slots:
     void update_camera(const nucleus::camera::Definition& new_definition) override;

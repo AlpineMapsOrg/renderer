@@ -94,15 +94,11 @@ int main(int argc, char* argv[])
 
     Window glWindow;
     nucleus::Controller controller(glWindow.render_window());
-    controller.camera_controller()->set_virtual_resolution_factor(1.0 / glWindow.devicePixelRatio());
 
     QObject::connect(&glWindow, &Window::mouse_moved, controller.camera_controller(), &nucleus::camera::Controller::mouse_move);
     QObject::connect(&glWindow, &Window::mouse_pressed, controller.camera_controller(), &nucleus::camera::Controller::mouse_press);
     QObject::connect(&glWindow, &Window::wheel_turned, controller.camera_controller(), &nucleus::camera::Controller::wheel_turn);
     QObject::connect(&glWindow, &Window::touch_made, controller.camera_controller(), &nucleus::camera::Controller::touch);
-    QObject::connect(&glWindow, &Window::screenChanged, controller.camera_controller(), [&controller](QScreen* screen) {
-        controller.camera_controller()->set_virtual_resolution_factor(1.0 / screen->devicePixelRatio());
-    });
     QObject::connect(&glWindow, &Window::resized, controller.camera_controller(), [&controller](glm::uvec2 new_size) {
         controller.camera_controller()->set_viewport(new_size);
     });

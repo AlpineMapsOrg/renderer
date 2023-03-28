@@ -17,6 +17,7 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *****************************************************************************/
 
+#define CATCH_CONFIG_ENABLE_BENCHMARKING
 #include <catch2/catch.hpp>
 #include <QGuiApplication>
 #include <QRgb>
@@ -47,28 +48,7 @@ ShaderProgram create_debug_shader()
     static const char* const fragment_source = R"(
     out lowp vec4 out_Color;
     void main() {
-        out_Color = vec4(0.2, 0.4, 0.6, 0.8);
-    })";
-    return ShaderProgram(vertex_source, fragment_source);
-}
-
-ShaderProgram create_debug_shader_float()
-{
-    static const char* const fragment_source = R"(
-    in highp vec2 texcoords;
-    out highp float out_Color;
-    void main() {
-        out_Color = texcoords.x * 50.0 - 0.499999;
-    })";
-    return ShaderProgram(vertex_source, fragment_source);
-}
-
-ShaderProgram create_debug_shader_float2()
-{
-    static const char* const fragment_source = R"(
-    out highp float out_Color;
-    void main() {
-        out_Color = 142000.5;
+        out_Color = vec4(0.2, 0.0, 1.0, 0.8);
     })";
     return ShaderProgram(vertex_source, fragment_source);
 }
@@ -96,7 +76,7 @@ TEST_CASE("gl framebuffer")
 
     QOpenGLExtraFunctions* f = c.extraFunctions();
     REQUIRE(f);
-    SECTION("rgba 32 bit")
+    SECTION("rgba8 bit")
     {
         Framebuffer b(Framebuffer::DepthFormat::None, { Framebuffer::ColourFormat::RGBA8 });
         b.resize({ 501, 211 });
@@ -114,63 +94,42 @@ TEST_CASE("gl framebuffer")
         bool good = true;
         for (int i = 0; i < tex.width(); ++i) {
             for (int j = 0; j < tex.height(); ++j) {
-                good = good && (tex.pixel(i, j) == qRgba(51, 102, 153, 204));
+                good = good && (tex.pixel(i, j) == qRgba(51, 0, 255, 204));
             }
         }
         CHECK(good);
     }
-
-    SECTION("float 32 bit")
+    SECTION("rgba8 bit read benchmark")
     {
-        Framebuffer b(Framebuffer::DepthFormat::None, { Framebuffer::ColourFormat::Float32 });
-        b.resize({ 50, 2 });
-        b.bind();
-        ShaderProgram shader = create_debug_shader_float();
-        shader.bind();
-        gl_engine::helpers::create_screen_quad_geometry().draw();
-
-        f->glFinish();
-        const QImage tex = b.read_colour_attachment(0);
-//        tex.save("/home/madam/Documents/work/tuw/alpinemaps/test.png");
-        Framebuffer::unbind();
-        REQUIRE(!tex.isNull());
-        CHECK(tex.width() == 50);
-        CHECK(tex.height() == 2);
-        for (int i = 0; i < tex.width(); ++i) {
-            for (int j = 0; j < tex.height(); ++j) {
-                const auto v = unsigned(qGray(tex.pixel(i, j)));
-                const auto t = unsigned(255 * (float(i) / (tex.width()-1)));
-                CHECK(v == t);
-            }
-        }
-    }
-
-    SECTION("read pixel")
-    {
-        Framebuffer b(Framebuffer::DepthFormat::None, { Framebuffer::ColourFormat::Float32 });
-        b.resize({ 3, 3 });
+        Framebuffer b(Framebuffer::DepthFormat::None, { Framebuffer::ColourFormat::RGBA8 });
+        b.resize({ 1920, 1080 });
         b.bind();
         ShaderProgram shader = create_debug_shader();
         shader.bind();
         gl_engine::helpers::create_screen_quad_geometry().draw();
 
-        float pixel = b.read_pixel(glm::dvec2(0, 0));
-
-        Framebuffer::unbind();
-        CHECK(pixel == 0.2f);
+        f->glFinish();
+        BENCHMARK("rgba8 bit read colour buffer")
+        {
+            return b.read_colour_attachment(0);
+        };
     }
-    SECTION("read pixel 2")
+
+    SECTION("read pixel")
     {
-        Framebuffer b(Framebuffer::DepthFormat::None, { Framebuffer::ColourFormat::Float32 });
-        b.resize({ 3, 3 });
+        Framebuffer b(Framebuffer::DepthFormat::None, { Framebuffer::ColourFormat::RGBA8 });
+        b.resize({ 1920, 1080 });
         b.bind();
-        ShaderProgram shader = create_debug_shader_float2();
+        ShaderProgram shader = create_debug_shader();
         shader.bind();
         gl_engine::helpers::create_screen_quad_geometry().draw();
 
-        float pixel = b.read_pixel(glm::dvec2(0, 0));
+        auto pixel = b.read_colour_attachment_pixel(0, glm::dvec2(0, 0));
 
         Framebuffer::unbind();
-        CHECK(pixel == 142000.5f);
+        CHECK(pixel[0] == unsigned(0.2f * 255));
+        CHECK(pixel[1] == unsigned(0.0f * 255));
+        CHECK(pixel[2] == unsigned(1.0f * 255));
+        CHECK(pixel[3] == unsigned(0.8f * 255));
     }
 }

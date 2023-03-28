@@ -19,6 +19,7 @@
 #include <chrono>
 #include <limits>
 
+#define CATCH_CONFIG_ENABLE_BENCHMARKING
 #define CATCH_CONFIG_MAIN
 #ifdef __MINGW32__
 #define DO_NOT_USE_WMAIN

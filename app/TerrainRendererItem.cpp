@@ -66,9 +66,14 @@ public:
 
     void synchronize(QQuickFramebufferObject *item) Q_DECL_OVERRIDE
     {
+        // warning:
+        // you can only safely copy objects between main and render thread.
+        // the tile scheduler is in an extra thread, there will be races if you write to it.
         m_window = item->window();
         TerrainRendererItem* i = static_cast<TerrainRendererItem*>(item);
-        m_controller->camera_controller()->set_virtual_resolution_factor(i->virtual_resolution_factor());
+        //        m_controller->camera_controller()->set_virtual_resolution_factor(i->render_quality());
+        m_glWindow->set_permissible_screen_space_error(2.0 / i->render_quality());
+        m_controller->camera_controller()->set_viewport({ i->width(), i->height() });
         m_controller->camera_controller()->set_field_of_view(i->field_of_view());
         const auto oc = m_controller->camera_controller()->get_operation_centre();
         if (oc.has_value()) {
@@ -77,12 +82,13 @@ public:
         } else {
             i->set_camera_operation_centre_visibility(false);
         }
+
         if (!(i->camera() == m_controller->camera_controller()->definition())) {
             const auto tmp_camera = m_controller->camera_controller()->definition();
             QTimer::singleShot(0, i, [i, tmp_camera]() {
                 i->set_read_only_camera(tmp_camera);
-                i->set_read_only_frame_buffer_width(tmp_camera.viewport_size().x);
-                i->set_read_only_frame_buffer_height(tmp_camera.viewport_size().y);
+                i->set_read_only_camera_width(tmp_camera.viewport_size().x);
+                i->set_read_only_camera_height(tmp_camera.viewport_size().y);
             });
         }
     }
@@ -99,7 +105,6 @@ public:
         qDebug() << "QOpenGLFramebufferObject *createFramebufferObject(const QSize& " << size << ")";
         m_window->beginExternalCommands();
         m_glWindow->resize_framebuffer(size.width(), size.height());
-        m_controller->camera_controller()->set_viewport({ size.width(), size.height() });
         m_window->endExternalCommands();
         QOpenGLFramebufferObjectFormat format;
         format.setSamples(1);
@@ -159,6 +164,12 @@ QQuickFramebufferObject::Renderer* TerrainRendererItem::createRenderer() const
     connect(this, &TerrainRendererItem::key_pressed, r->controller()->camera_controller(), &nucleus::camera::Controller::key_press);
     connect(this, &TerrainRendererItem::key_released, r->controller()->camera_controller(), &nucleus::camera::Controller::key_release);
     connect(this, &TerrainRendererItem::position_set_by_user, r->controller()->camera_controller(), &nucleus::camera::Controller::set_latitude_longitude);
+
+    auto* const tile_scheduler = r->controller()->tile_scheduler();
+    connect(this, &TerrainRendererItem::render_quality_changed, r->controller()->tile_scheduler(), [=](float new_render_quality) {
+        const auto permissible_error = 2.0f / new_render_quality;
+        tile_scheduler->set_permissible_screen_space_error(permissible_error);
+    });
 
     connect(r->controller()->tile_scheduler(), &nucleus::tile_scheduler::GpuCacheTileScheduler::tile_ready, RenderThreadNotifier::instance(), &RenderThreadNotifier::notify);
     connect(r->controller()->tile_scheduler(), &nucleus::tile_scheduler::GpuCacheTileScheduler::tile_expired, RenderThreadNotifier::instance(), &RenderThreadNotifier::notify);
@@ -252,20 +263,6 @@ void TerrainRendererItem::set_frame_limit(int new_frame_limit)
     emit frame_limit_changed();
 }
 
-float TerrainRendererItem::virtual_resolution_factor() const
-{
-    return m_virtual_resolution_factor;
-}
-
-void TerrainRendererItem::set_virtual_resolution_factor(float new_virtual_resolution_factor)
-{
-    if (qFuzzyCompare(m_virtual_resolution_factor, new_virtual_resolution_factor))
-        return;
-    m_virtual_resolution_factor = new_virtual_resolution_factor;
-    emit virtual_resolution_factor_changed();
-    schedule_update();
-}
-
 nucleus::camera::Definition TerrainRendererItem::camera() const
 {
     return m_camera;
@@ -281,30 +278,30 @@ void TerrainRendererItem::set_read_only_camera(const nucleus::camera::Definition
     emit camera_changed();
 }
 
-int TerrainRendererItem::frame_buffer_width() const
+int TerrainRendererItem::camera_width() const
 {
-    return m_frame_buffer_width;
+    return m_camera_width;
 }
 
-void TerrainRendererItem::set_read_only_frame_buffer_width(int new_frame_buffer_width)
+void TerrainRendererItem::set_read_only_camera_width(int new_camera_width)
 {
-    if (m_frame_buffer_width == new_frame_buffer_width)
+    if (m_camera_width == new_camera_width)
         return;
-    m_frame_buffer_width = new_frame_buffer_width;
-    emit frame_buffer_width_changed();
+    m_camera_width = new_camera_width;
+    emit camera_width_changed();
 }
 
-int TerrainRendererItem::frame_buffer_height() const
+int TerrainRendererItem::camera_height() const
 {
-    return m_frame_buffer_height;
+    return m_camera_height;
 }
 
-void TerrainRendererItem::set_read_only_frame_buffer_height(int new_frame_buffer_height)
+void TerrainRendererItem::set_read_only_camera_height(int new_camera_height)
 {
-    if (m_frame_buffer_height == new_frame_buffer_height)
+    if (m_camera_height == new_camera_height)
         return;
-    m_frame_buffer_height = new_frame_buffer_height;
-    emit frame_buffer_height_changed();
+    m_camera_height = new_camera_height;
+    emit camera_height_changed();
 }
 
 float TerrainRendererItem::field_of_view() const
@@ -345,4 +342,18 @@ void TerrainRendererItem::set_camera_operation_centre_visibility(bool new_camera
         return;
     m_camera_operation_centre_visibility = new_camera_operation_centre_visibility;
     emit camera_operation_centre_visibility_changed();
+}
+
+float TerrainRendererItem::render_quality() const
+{
+    return m_render_quality;
+}
+
+void TerrainRendererItem::set_render_quality(float new_render_quality)
+{
+    if (qFuzzyCompare(m_render_quality, new_render_quality))
+        return;
+    m_render_quality = new_render_quality;
+    emit render_quality_changed(new_render_quality);
+    schedule_update();
 }

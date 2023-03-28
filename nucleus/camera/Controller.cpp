@@ -54,14 +54,6 @@ void Controller::set_viewport(const glm::uvec2& new_viewport)
     update();
 }
 
-void Controller::set_virtual_resolution_factor(float new_factor)
-{
-    if (qFuzzyCompare(m_definition.virtual_resolution_factor(), new_factor))
-        return;
-    m_definition.set_virtual_resolution_factor(new_factor);
-    update();
-}
-
 void Controller::set_latitude_longitude(double latitude, double longitude)
 {
     const auto xy_world_space = srs::lat_long_to_world({ latitude, longitude });

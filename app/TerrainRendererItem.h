@@ -30,13 +30,13 @@
 class TerrainRendererItem : public QQuickFramebufferObject {
     Q_OBJECT
     Q_PROPERTY(int frame_limit READ frame_limit WRITE set_frame_limit NOTIFY frame_limit_changed)
-    Q_PROPERTY(float virtual_resolution_factor READ virtual_resolution_factor WRITE set_virtual_resolution_factor NOTIFY virtual_resolution_factor_changed)
     Q_PROPERTY(nucleus::camera::Definition camera READ camera NOTIFY camera_changed)
-    Q_PROPERTY(int frame_buffer_width READ frame_buffer_width NOTIFY frame_buffer_width_changed)
-    Q_PROPERTY(int frame_buffer_height READ frame_buffer_height NOTIFY frame_buffer_height_changed)
+    Q_PROPERTY(int camera_width READ camera_width NOTIFY camera_width_changed)
+    Q_PROPERTY(int camera_height READ camera_height NOTIFY camera_height_changed)
     Q_PROPERTY(float field_of_view READ field_of_view WRITE set_field_of_view NOTIFY field_of_view_changed)
     Q_PROPERTY(QPointF camera_operation_centre READ camera_operation_centre WRITE set_camera_operation_centre NOTIFY camera_operation_centre_changed)
     Q_PROPERTY(bool camera_operation_centre_visibility READ camera_operation_centre_visibility WRITE set_camera_operation_centre_visibility NOTIFY camera_operation_centre_visibility_changed)
+    Q_PROPERTY(float render_quality READ render_quality WRITE set_render_quality NOTIFY render_quality_changed)
 
 public:
     explicit TerrainRendererItem(QQuickItem* parent = 0);
@@ -57,17 +57,12 @@ signals:
     void position_set_by_user(double new_latitude, double new_longitude);
 
     void camera_changed();
-    void virtual_resolution_factor_changed();
-
-    void frame_buffer_width_changed();
-
-    void frame_buffer_height_changed();
-
+    void camera_width_changed();
+    void camera_height_changed();
     void field_of_view_changed();
-
     void camera_operation_centre_changed();
-
     void camera_operation_centre_visibility_changed();
+    void render_quality_changed(float new_render_quality);
 
 protected:
     void touchEvent(QTouchEvent*) override;
@@ -88,17 +83,14 @@ public:
     [[nodiscard]] int frame_limit() const;
     void set_frame_limit(int new_frame_limit);
 
-    [[nodiscard]] float virtual_resolution_factor() const;
-    void set_virtual_resolution_factor(float new_virtual_resolution_factor);
-
     [[nodiscard]] nucleus::camera::Definition camera() const;
     void set_read_only_camera(const nucleus::camera::Definition& new_camera); // implementation detail
 
-    int frame_buffer_width() const;
-    void set_read_only_frame_buffer_width(int new_frame_buffer_width);
+    int camera_width() const;
+    void set_read_only_camera_width(int new_camera_width);
 
-    int frame_buffer_height() const;
-    void set_read_only_frame_buffer_height(int new_frame_buffer_height);
+    int camera_height() const;
+    void set_read_only_camera_height(int new_camera_height);
 
     float field_of_view() const;
     void set_field_of_view(float new_field_of_view);
@@ -109,16 +101,20 @@ public:
     bool camera_operation_centre_visibility() const;
     void set_camera_operation_centre_visibility(bool new_camera_operation_centre_visibility);
 
+    float render_quality() const;
+    void set_render_quality(float new_render_quality);
+
 private:
     QPointF m_camera_operation_centre;
     bool m_camera_operation_centre_visibility = false;
     float m_field_of_view = 75;
     int m_frame_limit = 60;
-    float m_virtual_resolution_factor = 0.5f;
+    float m_render_quality = 0.5f;
+
     QTimer* m_update_timer = nullptr;
     nucleus::camera::Definition m_camera;
-    int m_frame_buffer_width = 0;
-    int m_frame_buffer_height = 0;
+    int m_camera_width = 0;
+    int m_camera_height = 0;
     QTimer *m_timer = new QTimer(this);
     int m_keys_pressed = 0;
 };

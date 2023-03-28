@@ -47,6 +47,7 @@ public:
     virtual void resize_framebuffer(int width, int height) = 0;
     virtual void paint(QOpenGLFramebufferObject* framebuffer = nullptr) = 0;
     virtual void deinit_gpu() = 0;
+    virtual void set_permissible_screen_space_error(float new_error) = 0;
     [[nodiscard]] virtual camera::AbstractDepthTester* depth_tester() = 0;
 
 public slots:

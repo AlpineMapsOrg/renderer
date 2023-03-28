@@ -216,16 +216,11 @@ const glm::uvec2& nucleus::camera::Definition::viewport_size() const
     return m_viewport_size;
 }
 
-glm::uvec2 nucleus::camera::Definition::virtual_resolution_size() const
-{
-    return { float(viewport_size().x) * m_virtual_resolution_factor, float(viewport_size().y) * m_virtual_resolution_factor };
-}
-
 glm::dvec2 nucleus::camera::Definition::to_ndc(const glm::dvec2& screen_space_coordinates) const
 {
     // https://doc.qt.io/qt-6/coordsys.html
     // https://registry.khronos.org/OpenGL-Refpages/gl4/html/glViewport.xhtml
-    return ((screen_space_coordinates / glm::dvec2(m_viewport_size)) * 2.0 - 1.0) * glm::dvec2 { 1.0, -1.0 };
+    return ((screen_space_coordinates / glm::dvec2(viewport_size())) * 2.0 - 1.0) * glm::dvec2 { 1.0, -1.0 };
 }
 
 float nucleus::camera::Definition::to_screen_space(float world_space_size, float world_space_distance) const
@@ -252,16 +247,6 @@ float Definition::field_of_view() const
 void Definition::set_field_of_view(float new_field_of_view_degrees)
 {
     set_perspective_params(new_field_of_view_degrees, m_viewport_size, m_near_clipping);
-}
-
-float Definition::virtual_resolution_factor() const
-{
-    return m_virtual_resolution_factor;
-}
-
-void Definition::set_virtual_resolution_factor(float new_virtual_resolution_factor)
-{
-    m_virtual_resolution_factor = new_virtual_resolution_factor;
 }
 
 bool Definition::operator==(const Definition& other) const

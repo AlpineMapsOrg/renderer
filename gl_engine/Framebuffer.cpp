@@ -49,8 +49,10 @@ int format(Framebuffer::ColourFormat f)
 {
     switch (f) {
     case Framebuffer::ColourFormat::RGBA8:
-    case Framebuffer::ColourFormat::Float32:
         return GL_RGBA;
+    case Framebuffer::ColourFormat::Float32:
+        assert(false); // reading Float32 is inefficient, see read_colour_attachment() for details.
+        break;
     }
     assert(false);
     return -1;
@@ -206,32 +208,17 @@ QImage Framebuffer::read_colour_attachment(unsigned index)
     if (index != 0)
         throw std::logic_error("not implemented");
 
+    // Float framebuffers can not be read efficiently on all environments.
+    // that is, reading float red channel crashes on linux webassembly, but reading it as rgba is inefficient on linux native (4x slower, yes I measured).
+    // i'm removing the old reading code altogether in order not to be tempted to use it in production (or by accident).
+    // if you need to read a float32 buffer, pack the float into rgba8 values!
+    assert(m_colour_formats.front() == ColourFormat::RGBA8);
+    if (m_colour_formats.front() != ColourFormat::RGBA8)
+        return {};
+
     bind();
     QOpenGLExtraFunctions* f = QOpenGLContext::currentContext()->extraFunctions();
     f->glReadBuffer(GL_COLOR_ATTACHMENT0);
-
-    if (m_colour_formats.front() == ColourFormat::Float32) {
-        std::vector<float> buffer;
-        buffer.resize(size_t(m_size.x) * size_t(m_size.y));
-        f->glReadPixels(0, 0, int(m_size.x), int(m_size.y), format(m_colour_formats.front()), type(m_colour_formats.front()), buffer.data());
-
-        QImage image(static_cast<int>(m_size.x), static_cast<int>(m_size.y), QImage::Format_Grayscale8);
-        const auto min_max = std::minmax_element(buffer.cbegin(), buffer.cend());
-        const auto min = *min_max.first;
-        const auto scale = *min_max.second - *min_max.first;
-//        const auto min = 0;
-//        const auto scale = 10;
-        for (unsigned j = 0; j < m_size.y; ++j) {
-            for (unsigned i = 0; i < m_size.x; ++i) {
-                float fv = buffer[j * m_size.x + i];
-                const auto v = uchar(std::min(255, std::max(0, int(255 * (fv - min) / scale))));
-                // i don't understand why, but setting bits directly didn't work.
-                image.setPixel(int(i), int(j), qRgb(v, v, v));
-            }
-        }
-        image.mirror();
-        return image;
-    }
 
     QImage image({ static_cast<int>(m_size.x), static_cast<int>(m_size.y) }, qimage_format(m_colour_formats.front()));
     assert(!image.isNull());
@@ -241,16 +228,25 @@ QImage Framebuffer::read_colour_attachment(unsigned index)
     return image;
 }
 
-float Framebuffer::read_pixel(const glm::dvec2& normalised_device_coordinates)
+std::array<uchar, 4> Framebuffer::read_colour_attachment_pixel(unsigned index, const glm::dvec2& normalised_device_coordinates)
 {
+    if (index != 0)
+        throw std::logic_error("not implemented");
+
+    assert(m_colour_formats.front() == ColourFormat::RGBA8);
+    if (m_colour_formats.front() != ColourFormat::RGBA8)
+        return {};
+
     QOpenGLExtraFunctions* f = QOpenGLContext::currentContext()->extraFunctions();
     bind();
-    float pixel[4];
-    f->glReadPixels((normalised_device_coordinates.x + 1) / 2 * m_size.x,
-        (normalised_device_coordinates.y + 1) / 2 * m_size.y,
-        1, 1, format(m_colour_formats.front()), type(m_colour_formats.front()), &pixel);
+    f->glReadBuffer(GL_COLOR_ATTACHMENT0);
+    std::array<uchar, 4> pixel;
+    f->glReadPixels(
+        int((normalised_device_coordinates.x + 1) / 2 * m_size.x),
+        int((normalised_device_coordinates.y + 1) / 2 * m_size.y),
+        1, 1, format(m_colour_formats.front()), type(m_colour_formats.front()), pixel.data());
     unbind();
-    return pixel[0];
+    return pixel;
 }
 
 void Framebuffer::unbind()

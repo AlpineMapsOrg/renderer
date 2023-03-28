@@ -19,11 +19,9 @@ set(ALP_NUCLEUS_SOURCES
     nucleus/Raster.h
     nucleus/srs.h nucleus/srs.cpp
     nucleus/Tile.cpp nucleus/Tile.h
-    nucleus/TileScheduler.h nucleus/TileScheduler.cpp
     nucleus/tile_scheduler/utils.h
     nucleus/tile_scheduler/DrawListGenerator.h nucleus/tile_scheduler/DrawListGenerator.cpp
     nucleus/tile_scheduler/GpuCacheTileScheduler.h nucleus/tile_scheduler/GpuCacheTileScheduler.cpp
-    nucleus/tile_scheduler/SimplisticTileScheduler.h nucleus/tile_scheduler/SimplisticTileScheduler.cpp
     nucleus/TileLoadService.h nucleus/TileLoadService.cpp
     nucleus/camera/CadInteraction.h nucleus/camera/CadInteraction.cpp
     nucleus/camera/Controller.h nucleus/camera/Controller.cpp
@@ -112,7 +110,6 @@ if (ALP_UNITTESTS AND NOT EMSCRIPTEN)
         camera_Controller_and_NearPlaneAdjuster
     )
     set(ALP_QT_SCHEDULER_UNITTESTS
-        SimplisticTileScheduler
         GpuCacheTileScheduler
     )
 endif()
