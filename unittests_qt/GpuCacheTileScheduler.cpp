@@ -42,6 +42,7 @@ private:
         h.emplace({ 0, { 0, 0 } }, { 100, 200 });
         sch->set_aabb_decorator(nucleus::tile_scheduler::AabbDecorator::make(std::move(h)));
         sch->set_max_n_simultaneous_requests(400);
+        sch->set_update_timeout(1);
         return sch;
     }
 
@@ -79,15 +80,15 @@ private slots:
 
     void expiresTiles()
     {
-        dynamic_cast<GpuCacheTileScheduler*>(m_scheduler.get())->set_gpu_cache_size(400);
-        dynamic_cast<GpuCacheTileScheduler*>(m_scheduler.get())->set_main_cache_size(500);
+        m_scheduler->set_gpu_cache_size(400);
+        m_scheduler->set_main_cache_size(500);
         QVERIFY(m_scheduler->gpu_tiles().empty());
         QVERIFY(m_scheduler->main_cache_book().size() == 1);
         connect(m_scheduler.get(), &TileScheduler::tile_requested, this, &TestTileScheduler::giveTiles);
         connect(this, &TestTileScheduler::orthoTileReady, m_scheduler.get(), &TileScheduler::receive_ortho_tile);
         connect(this, &TestTileScheduler::heightTileReady, m_scheduler.get(), &TileScheduler::receive_height_tile);
         m_scheduler->update_camera(test_cam);
-        QTest::qWait(100);
+        QTest::qWait(50); // several load cycles until all tiles are loaded
 
         {
             QSignalSpy spy(m_scheduler.get(), &TileScheduler::tile_expired);
@@ -96,7 +97,7 @@ private slots:
             nucleus::camera::Definition replacement_cam = nucleus::camera::stored_positions::westl_hochgrubach_spitze();
             replacement_cam.set_viewport_size({ 2560, 1440 });
             m_scheduler->update_camera(replacement_cam);
-            spy.wait(100);
+            spy.wait(20);
             for (const auto& tileExpireSignal : spy) {
                 const tile::Id tile = tileExpireSignal.at(0).value<tile::Id>();
                 QVERIFY(gpu_tiles.contains(tile));
@@ -111,7 +112,7 @@ private slots:
             nucleus::camera::Definition replacement_cam = nucleus::camera::stored_positions::stephansdom();
             replacement_cam.set_viewport_size({ 2560, 1440 });
             m_scheduler->update_camera(replacement_cam);
-            spy.wait(100);
+            spy.wait(20);
             for (const auto& tileExpireSignal : spy) {
                 const tile::Id tile = tileExpireSignal.at(0).value<tile::Id>();
                 QVERIFY(gpu_tiles.contains(tile));

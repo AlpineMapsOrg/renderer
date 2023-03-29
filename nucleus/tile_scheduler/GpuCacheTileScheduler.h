@@ -61,6 +61,9 @@ public:
     unsigned int main_cache_size();
     void set_main_cache_size(unsigned int new_main_cache_size);
 
+    unsigned int update_timeout() const;
+    void set_update_timeout(unsigned int new_update_timeout);
+
 signals:
     void tile_requested(const tile::Id& tile_id) const;
     void tile_ready(const std::shared_ptr<Tile>& tile) const;
@@ -117,5 +120,6 @@ private:
     const uint64_t m_construction_msec_since_epoch = 0;
     unsigned m_gpu_cache_size = 0;
     bool m_enabled = true;
+    unsigned m_update_timeout = 100;
 };
 }

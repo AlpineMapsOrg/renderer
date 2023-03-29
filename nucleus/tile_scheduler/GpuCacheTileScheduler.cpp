@@ -64,20 +64,18 @@ GpuCacheTileScheduler::GpuCacheTileScheduler()
         default_tile.save(&buffer, "PNG");
         m_default_height_tile = std::make_shared<QByteArray>(arr);
     }
-    m_main_cache_purge_timer.setParent(this); // must move to new threads together
-    m_main_cache_purge_timer.setSingleShot(true);
-    m_main_cache_purge_timer.setInterval(100);
-    connect(&m_main_cache_purge_timer, &QTimer::timeout, this, &GpuCacheTileScheduler::purge_main_cache_from_old_tiles);
-
-    m_gpu_purge_timer.setParent(this); // must move to new threads together
-    m_gpu_purge_timer.setSingleShot(true);
-    m_gpu_purge_timer.setInterval(50);
-    connect(&m_gpu_purge_timer, &QTimer::timeout, this, &GpuCacheTileScheduler::purge_gpu_cache_from_old_tiles);
-
-    m_update_timer.setParent(this); // must move to new threads together
-    m_update_timer.setSingleShot(true);
-    m_update_timer.setInterval(20);
-    connect(&m_update_timer, &QTimer::timeout, this, &GpuCacheTileScheduler::do_update);
+    {
+        m_main_cache_purge_timer.setParent(this); // must move to new threads together
+        m_gpu_purge_timer.setParent(this); // must move to new threads together
+        m_update_timer.setParent(this); // must move to new threads together
+        m_main_cache_purge_timer.setSingleShot(true);
+        m_gpu_purge_timer.setSingleShot(true);
+        m_update_timer.setSingleShot(true);
+        connect(&m_main_cache_purge_timer, &QTimer::timeout, this, &GpuCacheTileScheduler::purge_main_cache_from_old_tiles);
+        connect(&m_gpu_purge_timer, &QTimer::timeout, this, &GpuCacheTileScheduler::purge_gpu_cache_from_old_tiles);
+        connect(&m_update_timer, &QTimer::timeout, this, &GpuCacheTileScheduler::do_update);
+        set_update_timeout(m_update_timeout);
+    }
 
     m_main_cache_book.reserve(m_main_cache_size + 500); // reserve some more space for tiles in flight
     m_main_cache_book[tile::Id { 0, { 0, 0 } }.parent()] = 0; // used in send_to_gpu_if_available
@@ -386,6 +384,20 @@ void GpuCacheTileScheduler::remove_gpu_tiles(const std::vector<tile::Id>& tiles)
         emit tile_expired(id);
         m_gpu_tiles.erase(id);
     }
+}
+
+using namespace nucleus::tile_scheduler;
+unsigned int GpuCacheTileScheduler::update_timeout() const
+{
+    return m_update_timeout;
+}
+
+void GpuCacheTileScheduler::set_update_timeout(unsigned int new_update_timeout)
+{
+    m_update_timeout = new_update_timeout;
+    m_main_cache_purge_timer.setInterval(m_update_timeout);
+    m_gpu_purge_timer.setInterval(m_update_timeout);
+    m_update_timer.setInterval(m_update_timeout);
 }
 
 const std::unordered_map<tile::Id, unsigned int, tile::Id::Hasher>& GpuCacheTileScheduler::main_cache_book() const
