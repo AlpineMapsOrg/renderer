@@ -57,10 +57,9 @@ public:
     [[nodiscard]] const std::unordered_map<tile::Id, unsigned int, tile::Id::Hasher>& main_cache_book() const;
 
     bool enabled() const;
-    void set_enabled(bool newEnabled);
 
     unsigned int main_cache_size();
-    void set_main_cache_size(unsigned int newMain_cache_size);
+    void set_main_cache_size(unsigned int new_main_cache_size);
 
 signals:
     void tile_requested(const tile::Id& tile_id) const;
@@ -69,6 +68,7 @@ signals:
     void debug_scheduler_stats_updated(const QString& stats) const;
 
 public slots:
+    void set_enabled(bool new_enabled);
     void set_aabb_decorator(const tile_scheduler::AabbDecoratorPtr& new_aabb_decorator);
     void send_debug_scheduler_stats() const;
     void key_press(const QKeyCombination&);

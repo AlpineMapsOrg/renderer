@@ -183,8 +183,6 @@ void GpuCacheTileScheduler::key_press(const QKeyCombination& e)
 
 void GpuCacheTileScheduler::update_camera(const nucleus::camera::Definition& camera)
 {
-    if (!enabled())
-        return;
     m_current_camera = camera;
     schedule_update();
 }
@@ -241,7 +239,7 @@ void GpuCacheTileScheduler::read_disk_cache()
 
 void GpuCacheTileScheduler::schedule_update()
 {
-    if (!m_update_timer.isActive())
+    if (!m_update_timer.isActive() && enabled())
         m_update_timer.start();
 }
 
@@ -379,6 +377,7 @@ bool GpuCacheTileScheduler::enabled() const
 void GpuCacheTileScheduler::set_enabled(bool newEnabled)
 {
     m_enabled = newEnabled;
+    schedule_update();
 }
 
 void GpuCacheTileScheduler::remove_gpu_tiles(const std::vector<tile::Id>& tiles)

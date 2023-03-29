@@ -79,6 +79,7 @@ void Window::initialise_gpu()
     m_screen_quad_geometry = gl_engine::helpers::create_screen_quad_geometry();
     m_framebuffer = std::make_unique<Framebuffer>(Framebuffer::DepthFormat::Int24, std::vector({ Framebuffer::ColourFormat::RGBA8 }));
     m_depth_buffer = std::make_unique<Framebuffer>(Framebuffer::DepthFormat::Int24, std::vector({ Framebuffer::ColourFormat::RGBA8 }));
+    emit gpu_ready_changed(true);
 }
 
 void Window::resize_framebuffer(int width, int height)
@@ -227,6 +228,7 @@ glm::dvec3 Window::position(const glm::dvec2& normalised_device_coordinates)
 
 void Window::deinit_gpu()
 {
+    emit gpu_ready_changed(false);
     m_tile_manager.reset();
     m_debug_painter.reset();
     m_atmosphere.reset();
