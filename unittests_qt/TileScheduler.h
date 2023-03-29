@@ -27,6 +27,7 @@
 #include "nucleus/camera/stored_positions.h"
 #include "nucleus/srs.h"
 #include "nucleus/tile_scheduler/GpuCacheTileScheduler.h"
+#include "nucleus/utils/tile_conversion.h"
 
 using namespace nucleus;
 
@@ -67,12 +68,12 @@ protected slots:
         auto ortho_file = QFile(QString("%1%2").arg(ALP_TEST_DATA_DIR, "test-tile_ortho.jpeg"));
         ortho_file.open(QFile::ReadOnly);
         m_ortho_bytes = ortho_file.readAll();
-        QVERIFY(m_ortho_bytes.size() > 10);
+        QVERIFY(!nucleus::utils::tile_conversion::toQImage(m_ortho_bytes).isNull());
 
         auto height_file = QFile(QString("%1%2").arg(ALP_TEST_DATA_DIR, "test-tile.png"));
         height_file.open(QFile::ReadOnly);
         m_height_bytes = height_file.readAll();
-        QVERIFY(m_height_bytes.size() > 10);
+        QVERIFY(!nucleus::utils::tile_conversion::toQImage(m_height_bytes).isNull());
 
         test_cam.set_viewport_size({ 2560, 1440 });
     }
