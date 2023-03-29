@@ -21,6 +21,7 @@
 Window::Window()
 {
     connect(&m_gl_window, &gl_engine::Window::update_requested, this, qOverload<>(&QOpenGLWindow::update));
+    connect(m_timer, &QTimer::timeout, this, &Window::key_timer);
 }
 
 void Window::initializeGL()
@@ -67,10 +68,34 @@ void Window::wheelEvent(QWheelEvent* e)
 
 void Window::keyPressEvent(QKeyEvent* e)
 {
+    if (e->isAutoRepeat()) {
+        return;
+    }
+    m_keys_pressed++;
+    if (!m_timer->isActive()) {
+        m_timer->start(1000.0f/30.0f);
+    }
     m_gl_window.keyPressEvent(e);
+}
+
+void Window::keyReleaseEvent(QKeyEvent* e)
+{
+    if (e->isAutoRepeat()) {
+        return;
+    }
+    m_keys_pressed--;
+    if (m_keys_pressed <= 0) {
+        m_timer->stop();
+    }
+    m_gl_window.keyReleaseEvent(e);
 }
 
 void Window::touchEvent(QTouchEvent* e)
 {
     emit touch_made(nucleus::event_parameter::make(e));
+}
+
+void Window::key_timer()
+{
+    m_gl_window.keyPressEvent(new QKeyEvent(QEvent::KeyPress, Qt::Key_T, Qt::NoModifier)); // TODO replace this with "key update" call
 }

@@ -1,6 +1,7 @@
-﻿/*****************************************************************************
+/*****************************************************************************
  * Alpine Terrain Renderer
  * Copyright (C) 2022 Adam Celarek
+ * Copyright (C) 2023 Jakob Lindner
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -33,6 +34,7 @@ std::optional<Definition> OrbitInteraction::mouse_move_event(const event_paramet
 {
 
     if (e.buttons == Qt::LeftButton) {
+        m_operation_centre_screen = glm::vec2(e.point.position().x(), e.point.position().y());
         glm::dvec3 camRay = camera.ray_direction(camera.to_ndc({ e.point.position().x(), e.point.position().y() }));
         double denom = glm::dot(glm::dvec3(0, 0, 1.0), camRay);
         double distance = 0;
@@ -50,10 +52,12 @@ std::optional<Definition> OrbitInteraction::mouse_move_event(const event_paramet
         }
     }
     if (e.buttons == Qt::MiddleButton) {
+        m_operation_centre_screen = glm::vec2(e.point.pressPosition().x(), e.point.pressPosition().y());
         const auto delta = e.point.position() - e.point.lastPosition();
         camera.orbit_clamped(m_operation_centre, glm::vec2(delta.x(), delta.y()) * -0.1f);
     }
     if (e.buttons == Qt::RightButton) {
+        m_operation_centre_screen = glm::vec2(e.point.pressPosition().x(), e.point.pressPosition().y());
         const auto delta = e.point.position() - e.point.lastPosition();
 
         float distance = glm::distance(m_operation_centre, camera.position());
@@ -122,11 +126,16 @@ std::optional<Definition> OrbitInteraction::touch_event(const event_parameter::T
 
 std::optional<Definition> OrbitInteraction::wheel_event(const event_parameter::Wheel& e, Definition camera, AbstractDepthTester* depth_tester)
 {
+    m_operation_centre_screen = glm::vec2(e.point.position().x(), e.point.position().y());
     glm::dvec3 hit = depth_tester->position(camera.to_ndc({ e.point.position().x(), e.point.position().y() }));
     float distance = glm::distance(hit, camera.position());
 
     float dist = std::max((distance / 1500), 0.07f);
     camera.move(glm::normalize(hit - camera.position()) * (e.angle_delta.y() * (double)dist));
     return camera;
+}
+
+std::optional<glm::vec2> OrbitInteraction::get_operation_centre(){
+    return m_operation_centre_screen;
 }
 }

@@ -1,6 +1,7 @@
 /*****************************************************************************
  * Alpine Terrain Renderer
  * Copyright (C) 2022 Adam Celarek
+ * Copyright (C) 2023 Jakob Lindner
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -101,24 +102,57 @@ std::optional<Definition> FirstPersonInteraction::wheel_event(const event_parame
 
 std::optional<Definition> FirstPersonInteraction::key_press_event(const QKeyCombination& e, Definition camera, AbstractDepthTester* ray_caster)
 {
+    auto direction = glm::dvec3();
+    if (e.key() == Qt::Key_W || m_key_w) {
+        m_key_w = true;
+        direction -= camera.z_axis();
+    }
+    if (e.key() == Qt::Key_S || m_key_s) {
+        m_key_s = true;
+        direction += camera.z_axis();
+    }
+    if (e.key() == Qt::Key_A || m_key_a) {
+        m_key_a = true;
+        direction -= camera.x_axis();
+    }
+    if (e.key() == Qt::Key_D || m_key_d) {
+        m_key_d = true;
+        direction += camera.x_axis();
+    }
+    if (e.key() == Qt::Key_E || m_key_e) {
+        m_key_e = true;
+        direction += glm::dvec3(0, 0, 1);
+    }
+    if (e.key() == Qt::Key_Q || m_key_q) {
+        m_key_q = true;
+        direction -= glm::dvec3(0, 0, 1);
+    }
+    glm::normalize(direction);
+    camera.move(direction * (double)m_speed_modifyer);
+    return camera;
+}
+
+std::optional<Definition> FirstPersonInteraction::key_release_event(const QKeyCombination& e, Definition camera, AbstractDepthTester* ray_caster)
+{
     if (e.key() == Qt::Key_W) {
-        camera.move(camera.z_axis() * -(double)m_speed_modifyer);
+        m_key_w = false;
     }
     if (e.key() == Qt::Key_S) {
-        camera.move(camera.z_axis() * (double)m_speed_modifyer);
+        m_key_s = false;
     }
     if (e.key() == Qt::Key_A) {
-        camera.pan(glm::vec2(1, 0) * m_speed_modifyer);
+        m_key_a = false;
     }
     if (e.key() == Qt::Key_D) {
-        camera.pan(glm::vec2(-1, 0) * m_speed_modifyer);
+        m_key_d = false;
     }
     if (e.key() == Qt::Key_E) {
-        camera.move(glm::dvec3(0, 0, m_speed_modifyer));
+        m_key_e = false;
     }
     if (e.key() == Qt::Key_Q) {
-        camera.move(glm::dvec3(0, 0, -m_speed_modifyer));
+        m_key_q = false;
     }
     return camera;
 }
+
 }
