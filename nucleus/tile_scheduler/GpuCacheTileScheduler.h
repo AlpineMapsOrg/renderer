@@ -119,7 +119,7 @@ private:
     QTimer m_update_timer;
     const uint64_t m_construction_msec_since_epoch = 0;
     unsigned m_gpu_cache_size = 0;
-    bool m_enabled = true;
+    bool m_enabled = false;
     unsigned m_update_timeout = 100;
 };
 }

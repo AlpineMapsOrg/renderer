@@ -43,6 +43,7 @@ private:
         sch->set_aabb_decorator(nucleus::tile_scheduler::AabbDecorator::make(std::move(h)));
         sch->set_max_n_simultaneous_requests(400);
         sch->set_update_timeout(1);
+        sch->set_enabled(true);
         return sch;
     }
 
