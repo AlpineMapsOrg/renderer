@@ -389,7 +389,22 @@ void GpuCacheTileScheduler::remove_gpu_tiles(const std::vector<tile::Id>& tiles)
     }
 }
 
+const std::unordered_map<tile::Id, unsigned int, tile::Id::Hasher>& GpuCacheTileScheduler::main_cache_book() const
+{
+    return m_main_cache_book;
+}
+
 void GpuCacheTileScheduler::set_max_n_simultaneous_requests(unsigned int new_max_n_simultaneous_requests)
 {
     m_max_n_simultaneous_requests = new_max_n_simultaneous_requests;
+}
+
+unsigned int GpuCacheTileScheduler::main_cache_size()
+{
+    return m_main_cache_size;
+}
+
+void GpuCacheTileScheduler::set_main_cache_size(unsigned int newMain_cache_size)
+{
+    m_main_cache_size = newMain_cache_size;
 }

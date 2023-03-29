@@ -77,28 +77,48 @@ private slots:
         m_scheduler->update_camera(replacement_cam);
     }
 
-    void expiresOldGpuTiles()
+    void expiresTiles()
     {
         dynamic_cast<GpuCacheTileScheduler*>(m_scheduler.get())->set_gpu_cache_size(400);
+        dynamic_cast<GpuCacheTileScheduler*>(m_scheduler.get())->set_main_cache_size(500);
         QVERIFY(m_scheduler->gpu_tiles().empty());
+        QVERIFY(m_scheduler->main_cache_book().size() == 1);
         connect(m_scheduler.get(), &TileScheduler::tile_requested, this, &TestTileScheduler::giveTiles);
         connect(this, &TestTileScheduler::orthoTileReady, m_scheduler.get(), &TileScheduler::receive_ortho_tile);
         connect(this, &TestTileScheduler::heightTileReady, m_scheduler.get(), &TileScheduler::receive_height_tile);
         m_scheduler->update_camera(test_cam);
-        QTest::qWait(50);
-        // tiles are on the gpu
-        const auto gpu_tiles = m_scheduler->gpu_tiles();
+        QTest::qWait(100);
 
-        QSignalSpy spy(m_scheduler.get(), &TileScheduler::tile_expired);
-        nucleus::camera::Definition replacement_cam = nucleus::camera::stored_positions::westl_hochgrubach_spitze();
-        replacement_cam.set_viewport_size({ 2560, 1440 });
-        m_scheduler->update_camera(replacement_cam);
-        spy.wait(100);
-        QCOMPARE(m_scheduler->gpu_tiles().size(), 400); // 400 cached tiles should remain
-        for (const auto& tileExpireSignal : spy) {
-            const tile::Id tile = tileExpireSignal.at(0).value<tile::Id>();
-            QVERIFY(gpu_tiles.contains(tile));
+        {
+            QSignalSpy spy(m_scheduler.get(), &TileScheduler::tile_expired);
+            const auto gpu_tiles = m_scheduler->gpu_tiles();
+
+            nucleus::camera::Definition replacement_cam = nucleus::camera::stored_positions::westl_hochgrubach_spitze();
+            replacement_cam.set_viewport_size({ 2560, 1440 });
+            m_scheduler->update_camera(replacement_cam);
+            spy.wait(100);
+            for (const auto& tileExpireSignal : spy) {
+                const tile::Id tile = tileExpireSignal.at(0).value<tile::Id>();
+                QVERIFY(gpu_tiles.contains(tile));
+            }
         }
+        QCOMPARE(m_scheduler->gpu_tiles().size(), 400);
+        QCOMPARE(m_scheduler->main_cache_book().size(), unsigned(500 * 0.9));
+        {
+            QSignalSpy spy(m_scheduler.get(), &TileScheduler::tile_expired);
+            const auto gpu_tiles = m_scheduler->gpu_tiles();
+
+            nucleus::camera::Definition replacement_cam = nucleus::camera::stored_positions::stephansdom();
+            replacement_cam.set_viewport_size({ 2560, 1440 });
+            m_scheduler->update_camera(replacement_cam);
+            spy.wait(100);
+            for (const auto& tileExpireSignal : spy) {
+                const tile::Id tile = tileExpireSignal.at(0).value<tile::Id>();
+                QVERIFY(gpu_tiles.contains(tile));
+            }
+        }
+        QCOMPARE(m_scheduler->gpu_tiles().size(), 400);
+        QCOMPARE(m_scheduler->main_cache_book().size(), unsigned(500 * 0.9));
     }
 };
 

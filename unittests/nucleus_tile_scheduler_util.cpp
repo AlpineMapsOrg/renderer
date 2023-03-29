@@ -63,6 +63,8 @@ TEST_CASE("nucleus/tile_scheduler/utils: TileId2DataMap io")
         nucleus::tile_scheduler::TileId2DataMap map;
         map[tile::Id { 23, { 44, 55 } }] = std::make_shared<QByteArray>("1\02345ABCDabcd");
         map[tile::Id { 1, { 13, 46 } }] = std::make_shared<QByteArray>("1\02345Aabcd");
+        map[tile::Id { 2, { 13, 46 } }] = std::make_shared<QByteArray>("");
+        REQUIRE(map[tile::Id { 2, { 13, 46 } }]->size() == 0);
         nucleus::tile_scheduler::utils::write_tile_id_2_data_map(map, file_name);
         const auto read_map = nucleus::tile_scheduler::utils::read_tile_id_2_data_map(file_name);
         REQUIRE(read_map.size() == map.size());

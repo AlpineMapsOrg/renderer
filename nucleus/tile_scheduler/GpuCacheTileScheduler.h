@@ -49,16 +49,18 @@ public:
 
     [[nodiscard]] float permissible_screen_space_error() const;
     void set_permissible_screen_space_error(float new_permissible_screen_space_error);
-
-public:
     [[nodiscard]] std::vector<tile::Id> load_candidates(const nucleus::camera::Definition& camera, const AabbDecoratorPtr& aabb_decorator) const;
     [[nodiscard]] size_t number_of_tiles_in_transit() const;
     [[nodiscard]] size_t number_of_waiting_height_tiles() const;
     [[nodiscard]] size_t number_of_waiting_ortho_tiles() const;
     [[nodiscard]] TileSet gpu_tiles() const;
+    [[nodiscard]] const std::unordered_map<tile::Id, unsigned int, tile::Id::Hasher>& main_cache_book() const;
 
     bool enabled() const;
     void set_enabled(bool newEnabled);
+
+    unsigned int main_cache_size();
+    void set_main_cache_size(unsigned int newMain_cache_size);
 
 signals:
     void tile_requested(const tile::Id& tile_id) const;
@@ -97,7 +99,7 @@ private:
     static constexpr unsigned m_ortho_tile_size = 256;
     static constexpr unsigned m_height_tile_size = 64;
     unsigned m_max_n_simultaneous_requests = 64;
-    static constexpr unsigned m_main_cache_size = 50000;
+    unsigned m_main_cache_size = 50000;
 
     nucleus::camera::Definition m_current_camera;
     TileSet m_pending_tile_requests;
