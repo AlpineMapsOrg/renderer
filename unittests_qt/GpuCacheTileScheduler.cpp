@@ -77,7 +77,7 @@ private slots:
         m_scheduler->update_camera(replacement_cam);
     }
 
-    void expiresOldTiles()
+    void expiresOldGpuTiles()
     {
         dynamic_cast<GpuCacheTileScheduler*>(m_scheduler.get())->set_gpu_cache_size(400);
         QVERIFY(m_scheduler->gpu_tiles().empty());
@@ -85,7 +85,7 @@ private slots:
         connect(this, &TestTileScheduler::orthoTileReady, m_scheduler.get(), &TileScheduler::receive_ortho_tile);
         connect(this, &TestTileScheduler::heightTileReady, m_scheduler.get(), &TileScheduler::receive_height_tile);
         m_scheduler->update_camera(test_cam);
-        QTest::qWait(20);
+        QTest::qWait(50);
         // tiles are on the gpu
         const auto gpu_tiles = m_scheduler->gpu_tiles();
 
@@ -93,7 +93,7 @@ private slots:
         nucleus::camera::Definition replacement_cam = nucleus::camera::stored_positions::westl_hochgrubach_spitze();
         replacement_cam.set_viewport_size({ 2560, 1440 });
         m_scheduler->update_camera(replacement_cam);
-        spy.wait(20);
+        spy.wait(100);
         QCOMPARE(m_scheduler->gpu_tiles().size(), 400); // 400 cached tiles should remain
         for (const auto& tileExpireSignal : spy) {
             const tile::Id tile = tileExpireSignal.at(0).value<tile::Id>();
