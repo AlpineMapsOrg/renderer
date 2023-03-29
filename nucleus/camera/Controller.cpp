@@ -1,6 +1,7 @@
 /*****************************************************************************
  * Alpine Terrain Renderer
  * Copyright (C) 2022 Adam Celarek
+ * Copyright (C) 2023 Jakob Lindner
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -139,6 +140,16 @@ void Controller::key_press(const QKeyCombination& e)
     update();
 }
 
+void Controller::key_release(const QKeyCombination& e)
+{
+    const auto new_definition = m_interaction_style->key_release_event(e, m_definition, m_depth_tester);
+    if (!new_definition)
+        return;
+    m_definition = new_definition.value();
+    update();
+}
+
+
 void Controller::touch(const event_parameter::Touch& e)
 {
     const auto new_definition = m_interaction_style->touch_event(e, m_definition, m_depth_tester);
@@ -154,6 +165,10 @@ void Controller::set_interaction_style(std::unique_ptr<InteractionStyle> new_sty
         m_interaction_style = std::move(new_style);
     else
         m_interaction_style = std::make_unique<InteractionStyle>();
+}
+
+std::optional<glm::vec2> Controller::get_operation_centre(){
+    return m_interaction_style->get_operation_centre();
 }
 
 const Definition& Controller::definition() const

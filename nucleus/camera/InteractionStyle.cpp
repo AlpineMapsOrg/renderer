@@ -41,7 +41,17 @@ std::optional<Definition> InteractionStyle::key_press_event(const QKeyCombinatio
     return {};
 }
 
+std::optional<Definition> InteractionStyle::key_release_event(const QKeyCombination&, Definition, AbstractDepthTester*)
+{
+    return {};
+}
+
 std::optional<Definition> InteractionStyle::touch_event(const event_parameter::Touch&, Definition, AbstractDepthTester*)
+{
+    return {};
+}
+
+std::optional<glm::vec2> InteractionStyle::get_operation_centre()
 {
     return {};
 }
