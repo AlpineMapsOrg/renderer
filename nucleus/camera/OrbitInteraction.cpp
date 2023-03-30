@@ -27,6 +27,13 @@ namespace nucleus::camera {
 std::optional<Definition> OrbitInteraction::mouse_press_event(const event_parameter::Mouse& e, Definition camera, AbstractDepthTester* depth_tester)
 {
     m_operation_centre = depth_tester->position(camera.to_ndc({ e.point.pressPosition().x(), e.point.pressPosition().y() }));
+
+    auto degFromUp = glm::degrees(glm::acos(glm::dot(camera.z_axis(), glm::dvec3(0, 0, 1))));
+    if (m_operation_centre.z > camera.position().z || degFromUp > 80.0f) {
+        m_move_vertical = true;
+    } else {
+        m_move_vertical = false;
+    }
     return {};
 }
 
@@ -43,8 +50,7 @@ std::optional<Definition> OrbitInteraction::mouse_move_event(const event_paramet
         }
         auto mouseInWorld = camera.position() + (camRay * distance);
 
-        auto degFromUp = glm::degrees(glm::acos(glm::dot(camera.z_axis(), glm::dvec3(0, 0, 1))));
-        if (mouseInWorld.z > camera.position().z || degFromUp > 90.0f) {
+        if (m_move_vertical) {
             const auto delta = e.point.position() - e.point.lastPosition();
             camera.move(camera.x_axis() * -delta.x() + camera.y_axis() * delta.y());
         } else {
