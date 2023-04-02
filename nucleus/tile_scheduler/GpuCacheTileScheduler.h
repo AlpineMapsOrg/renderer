@@ -24,6 +24,7 @@
 
 #include <QObject>
 #include <QTimer>
+#include <filesystem> // must be below the qt includes: https://forum.qt.io/topic/132234/filesystem-in-c-17-and-q_object-conflicts/2
 
 #include "nucleus/camera/Definition.h"
 #include "sherpa/tile.h"
@@ -49,12 +50,13 @@ public:
 
     [[nodiscard]] float permissible_screen_space_error() const;
     void set_permissible_screen_space_error(float new_permissible_screen_space_error);
-    [[nodiscard]] std::vector<tile::Id> load_candidates(const nucleus::camera::Definition& camera, const AabbDecoratorPtr& aabb_decorator) const;
+    [[nodiscard]] std::vector<tile::Id> load_candidates() const;
     [[nodiscard]] size_t number_of_tiles_in_transit() const;
     [[nodiscard]] size_t number_of_waiting_height_tiles() const;
     [[nodiscard]] size_t number_of_waiting_ortho_tiles() const;
     [[nodiscard]] TileSet gpu_tiles() const;
     [[nodiscard]] const std::unordered_map<tile::Id, unsigned int, tile::Id::Hasher>& main_cache_book() const;
+    [[nodiscard]] static std::filesystem::path disk_cache_path();
 
     bool enabled() const;
 

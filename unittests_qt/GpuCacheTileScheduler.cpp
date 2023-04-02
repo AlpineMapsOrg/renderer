@@ -57,7 +57,7 @@ private slots:
     }
     void loadCandidates()
     {
-        const auto tile_list = dynamic_cast<GpuCacheTileScheduler*>(m_scheduler.get())->load_candidates(test_cam, m_scheduler->aabb_decorator());
+        const auto tile_list = dynamic_cast<GpuCacheTileScheduler*>(m_scheduler.get())->load_candidates();
         QVERIFY(!tile_list.empty());
     }
 

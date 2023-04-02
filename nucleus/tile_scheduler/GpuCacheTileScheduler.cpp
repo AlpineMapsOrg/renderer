@@ -84,7 +84,7 @@ GpuCacheTileScheduler::GpuCacheTileScheduler()
 GpuCacheTileScheduler::~GpuCacheTileScheduler()
 {
     qDebug("~GpuCacheTileScheduler::GpuCacheTileScheduler()");
-    const auto base_path = std::filesystem::path(QStandardPaths::writableLocation(QStandardPaths::CacheLocation).toStdString() + "/tile_cache");
+    const auto base_path = disk_cache_path();
     std::filesystem::remove_all(base_path);
     std::filesystem::create_directories(base_path);
 
@@ -119,12 +119,12 @@ void GpuCacheTileScheduler::set_permissible_screen_space_error(float new_permiss
     }
 }
 
-std::vector<tile::Id> GpuCacheTileScheduler::load_candidates(const nucleus::camera::Definition& camera, const tile_scheduler::AabbDecoratorPtr& aabb_decorator) const
+std::vector<tile::Id> GpuCacheTileScheduler::load_candidates() const
 {
     std::vector<tile::Id> all_inner_nodes;
     const auto all_leaves = quad_tree::onTheFlyTraverse(
         tile::Id { 0, { 0, 0 } },
-        tile_scheduler::refineFunctor(camera, aabb_decorator, permissible_screen_space_error(), m_ortho_tile_size),
+        tile_scheduler::refineFunctor(m_current_camera, this->aabb_decorator(), permissible_screen_space_error(), m_ortho_tile_size),
         [&all_inner_nodes](const tile::Id& v) { all_inner_nodes.push_back(v); return v.children(); });
 
     std::vector<tile::Id> all_tiles;
@@ -187,9 +187,7 @@ void GpuCacheTileScheduler::update_camera(const nucleus::camera::Definition& cam
 
 void GpuCacheTileScheduler::do_update()
 {
-    const auto aabb_decorator = this->aabb_decorator();
-
-    const auto load_candidates = this->load_candidates(m_current_camera, aabb_decorator); // ordered by construction
+    const auto load_candidates = this->load_candidates(); // ordered by construction
     std::vector<tile::Id> tiles_to_load;
     tiles_to_load.reserve(load_candidates.size());
     std::copy_if(load_candidates.begin(), load_candidates.end(), std::back_inserter(tiles_to_load), [this](const tile::Id& id) {
@@ -208,7 +206,7 @@ void GpuCacheTileScheduler::do_update()
     assert(n_load_requests <= tiles_to_load.size());
     const auto last_load_tile_iter = tiles_to_load.begin() + int(n_load_requests);
     std::nth_element(tiles_to_load.begin(), last_load_tile_iter, tiles_to_load.end());
-    std::sort(tiles_to_load.begin(), last_load_tile_iter);  // start loading low zoom tiles first
+    std::sort(tiles_to_load.begin(), last_load_tile_iter); // start loading low zoom tiles first
 
     std::for_each(tiles_to_load.begin(), last_load_tile_iter, [this](const auto& t) {
         if (m_unavailable_tiles.contains(t))
@@ -225,7 +223,7 @@ void GpuCacheTileScheduler::do_update()
 
 void GpuCacheTileScheduler::read_disk_cache()
 {
-    const auto base_path = std::filesystem::path(QStandardPaths::writableLocation(QStandardPaths::CacheLocation).toStdString() + "/tile_cache");
+    const auto base_path = disk_cache_path();
     qDebug("reading disk cache from: %s", base_path.c_str());
     m_received_height_tiles = utils::read_tile_id_2_data_map(base_path / "height.alp");
     m_received_ortho_tiles = utils::read_tile_id_2_data_map(base_path / "ortho.alp");
@@ -283,7 +281,7 @@ void GpuCacheTileScheduler::purge_gpu_cache_from_old_tiles()
     if (m_gpu_tiles.size() <= m_gpu_cache_size)
         return;
 
-    const auto necessary_tiles = load_candidates(m_current_camera, this->aabb_decorator());
+    const auto necessary_tiles = load_candidates();
     TileSet necessary_tiles_hashed(necessary_tiles.begin(), necessary_tiles.end());
 
     std::vector<tile::Id> unnecessary_tiles;
@@ -315,7 +313,7 @@ void GpuCacheTileScheduler::purge_main_cache_from_old_tiles()
     std::vector<std::pair<tile::Id, unsigned>> entries;
     entries.reserve(m_main_cache_book.size());
     std::copy(m_main_cache_book.begin(), m_main_cache_book.end(), std::back_inserter(entries));
-    const auto n_tiles_to_be_removed = m_main_cache_book.size() - size_t(m_main_cache_size * 0.9f); // make it a bit smaller than necessary, so this function is not called that often
+    const auto n_tiles_to_be_removed = m_main_cache_book.size() - size_t(float(m_main_cache_size) * 0.9f); // make it a bit smaller than necessary, so this function is not called that often
     assert(n_tiles_to_be_removed <= m_main_cache_book.size());
 
     const auto last_remove_tile_iter = entries.begin() + int(n_tiles_to_be_removed);
@@ -403,6 +401,11 @@ void GpuCacheTileScheduler::set_update_timeout(unsigned int new_update_timeout)
 const std::unordered_map<tile::Id, unsigned int, tile::Id::Hasher>& GpuCacheTileScheduler::main_cache_book() const
 {
     return m_main_cache_book;
+}
+
+std::filesystem::path GpuCacheTileScheduler::disk_cache_path()
+{
+    return QStandardPaths::writableLocation(QStandardPaths::CacheLocation).toStdString() + "/tile_cache";
 }
 
 void GpuCacheTileScheduler::set_max_n_simultaneous_requests(unsigned int new_max_n_simultaneous_requests)
