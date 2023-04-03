@@ -125,6 +125,23 @@ Rectangle {
     }
 
     RoundButton {
+        id: compass
+        width: 60
+        height: 60
+        icon {
+            source: "qrc:/alpinemaps/app/icons/compass.svg"
+            height: 32
+            width: 32
+        }
+        anchors {
+            right: parent.right
+            bottom: parent.bottom
+            rightMargin: 10
+            bottomMargin: 80
+        }
+    }
+
+    RoundButton {
         id: current_location
         width: 60
         height: 60
