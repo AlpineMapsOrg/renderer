@@ -75,6 +75,15 @@ public:
         m_glWindow->set_permissible_screen_space_error(2.0 / i->render_quality());
         m_controller->camera_controller()->set_viewport({ i->width(), i->height() });
         m_controller->camera_controller()->set_field_of_view(i->field_of_view());
+
+        auto cameraFrontAxis = m_controller->camera_controller()->definition().z_axis();
+        auto degFromNorth = glm::degrees(glm::acos(glm::dot(glm::normalize(glm::dvec3(cameraFrontAxis.x, cameraFrontAxis.y, 0)), glm::dvec3(0, -1, 0))));
+        if (cameraFrontAxis.x > 0) {
+            i->set_camera_rotation_from_north(degFromNorth);
+        } else {
+            i->set_camera_rotation_from_north(-degFromNorth);
+        }
+
         const auto oc = m_controller->camera_controller()->get_operation_centre();
         if (oc.has_value()) {
             i->set_camera_operation_centre_visibility(true);
@@ -316,6 +325,19 @@ void TerrainRendererItem::set_field_of_view(float new_field_of_view)
     m_field_of_view = new_field_of_view;
     emit field_of_view_changed();
     schedule_update();
+}
+
+float TerrainRendererItem::camera_rotation_from_north() const
+{
+    return m_camera_rotation_from_north;
+}
+
+void TerrainRendererItem::set_camera_rotation_from_north(float new_camera_rotation_from_north)
+{
+    if (qFuzzyCompare(m_camera_rotation_from_north, new_camera_rotation_from_north))
+        return;
+    m_camera_rotation_from_north = new_camera_rotation_from_north;
+    emit camera_rotation_from_north_changed();
 }
 
 QPointF TerrainRendererItem::camera_operation_centre() const

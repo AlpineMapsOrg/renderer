@@ -128,10 +128,11 @@ Rectangle {
         id: compass
         width: 60
         height: 60
+        rotation: renderer.camera_rotation_from_north
         icon {
             source: "qrc:/alpinemaps/app/icons/compass.svg"
-            height: 32
-            width: 32
+            height: 40
+            width: 40
         }
         anchors {
             right: parent.right
