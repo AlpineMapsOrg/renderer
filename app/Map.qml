@@ -130,6 +130,7 @@ Rectangle {
         height: 60
         rotation: renderer.camera_rotation_from_north
         onClicked: renderer.rotate_north()
+        focusPolicy: Qt.NoFocus
         icon {
             source: "qrc:/alpinemaps/app/icons/compass.svg"
             height: 40
@@ -148,6 +149,7 @@ Rectangle {
         width: 60
         height: 60
         checkable: true
+        focusPolicy: Qt.NoFocus
         icon {
             source: "qrc:/alpinemaps/app/icons/current_location.svg"
             height: 32
