@@ -100,7 +100,7 @@ std::optional<Definition> FirstPersonInteraction::wheel_event(const event_parame
     return camera;
 }
 
-std::optional<Definition> FirstPersonInteraction::key_press_event(const QKeyCombination& e, Definition camera, AbstractDepthTester* ray_caster)
+std::optional<Definition> FirstPersonInteraction::key_press_event(const QKeyCombination& e, Definition camera, AbstractDepthTester* depth_tester)
 {
     auto direction = glm::dvec3();
     if (e.key() == Qt::Key_W || m_key_w) {
@@ -132,7 +132,7 @@ std::optional<Definition> FirstPersonInteraction::key_press_event(const QKeyComb
     return camera;
 }
 
-std::optional<Definition> FirstPersonInteraction::key_release_event(const QKeyCombination& e, Definition camera, AbstractDepthTester* ray_caster)
+std::optional<Definition> FirstPersonInteraction::key_release_event(const QKeyCombination& e, Definition camera, AbstractDepthTester* depth_tester)
 {
     if (e.key() == Qt::Key_W) {
         m_key_w = false;

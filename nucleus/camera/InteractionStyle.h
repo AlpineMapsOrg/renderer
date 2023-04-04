@@ -32,12 +32,12 @@ class InteractionStyle
 {
 public:
     virtual ~InteractionStyle() = default;
-    virtual std::optional<Definition> mouse_press_event(const event_parameter::Mouse& e, Definition camera, AbstractDepthTester* ray_caster);
-    virtual std::optional<Definition> mouse_move_event(const event_parameter::Mouse& e, Definition camera, AbstractDepthTester* ray_caster);
-    virtual std::optional<Definition> wheel_event(const event_parameter::Wheel& e, Definition camera, AbstractDepthTester* ray_caster);
-    virtual std::optional<Definition> key_press_event(const QKeyCombination& e, Definition camera, AbstractDepthTester* ray_caster);
-    virtual std::optional<Definition> key_release_event(const QKeyCombination& e, Definition camera, AbstractDepthTester* ray_caster);
-    virtual std::optional<Definition> touch_event(const event_parameter::Touch& e, Definition camera, AbstractDepthTester* ray_caster);
+    virtual std::optional<Definition> mouse_press_event(const event_parameter::Mouse& e, Definition camera, AbstractDepthTester* depth_tester);
+    virtual std::optional<Definition> mouse_move_event(const event_parameter::Mouse& e, Definition camera, AbstractDepthTester* depth_tester);
+    virtual std::optional<Definition> wheel_event(const event_parameter::Wheel& e, Definition camera, AbstractDepthTester* depth_tester);
+    virtual std::optional<Definition> key_press_event(const QKeyCombination& e, Definition camera, AbstractDepthTester* depth_tester);
+    virtual std::optional<Definition> key_release_event(const QKeyCombination& e, Definition camera, AbstractDepthTester* depth_tester);
+    virtual std::optional<Definition> touch_event(const event_parameter::Touch& e, Definition camera, AbstractDepthTester* depth_tester);
     virtual std::optional<glm::vec2> get_operation_centre();
 };
 
