@@ -150,6 +150,8 @@ TerrainRendererItem::TerrainRendererItem(QQuickItem* parent)
     setMirrorVertically(true);
     setAcceptTouchEvents(true);
     setAcceptedMouseButtons(Qt::MouseButton::AllButtons);
+
+    connect(m_timer, &QTimer::timeout, this, &TerrainRendererItem::key_timer);
 }
 
 TerrainRendererItem::~TerrainRendererItem()
@@ -182,8 +184,6 @@ QQuickFramebufferObject::Renderer* TerrainRendererItem::createRenderer() const
 
     connect(r->controller()->tile_scheduler(), &nucleus::tile_scheduler::GpuCacheTileScheduler::tile_ready, RenderThreadNotifier::instance(), &RenderThreadNotifier::notify);
     connect(r->controller()->tile_scheduler(), &nucleus::tile_scheduler::GpuCacheTileScheduler::tile_expired, RenderThreadNotifier::instance(), &RenderThreadNotifier::notify);
-
-    connect(m_timer, &QTimer::timeout, this, &TerrainRendererItem::key_timer);
     return r;
 }
 
