@@ -66,6 +66,8 @@ public:
     unsigned int update_timeout() const;
     void set_update_timeout(unsigned int new_update_timeout);
 
+    const std::unordered_map<tile::Id, unsigned int, tile::Id::Hasher>& orphan_cache_book() const;
+
 signals:
     void tile_requested(const tile::Id& tile_id) const;
     void tile_ready(const std::shared_ptr<Tile>& tile) const;
@@ -87,6 +89,7 @@ public slots:
     void set_max_n_simultaneous_requests(unsigned int new_max_n_simultaneous_requests);
     void purge_gpu_cache_from_old_tiles();
     void purge_main_cache_from_old_tiles();
+    void purge_orphans();
 
 private slots:
     void do_update();
@@ -103,8 +106,8 @@ private:
 
     static constexpr unsigned m_ortho_tile_size = 256;
     static constexpr unsigned m_height_tile_size = 64;
-    unsigned m_max_n_simultaneous_requests = 64;
-    unsigned m_main_cache_size = 50000;
+    unsigned m_max_n_simultaneous_requests = 32;
+    unsigned m_main_cache_size = 1200;
 
     nucleus::camera::Definition m_current_camera;
     TileSet m_pending_tile_requests;
@@ -113,6 +116,7 @@ private:
     Tile2DataMap m_received_ortho_tiles; // used as main cache
     Tile2DataMap m_received_height_tiles; // used as main cache
     std::unordered_map<tile::Id, unsigned, tile::Id::Hasher> m_main_cache_book;
+    std::unordered_map<tile::Id, unsigned, tile::Id::Hasher> m_orphan_cache_book;
 
     std::shared_ptr<QByteArray> m_default_ortho_tile;
     std::shared_ptr<QByteArray> m_default_height_tile;

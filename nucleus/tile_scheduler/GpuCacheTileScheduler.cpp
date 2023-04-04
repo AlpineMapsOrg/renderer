@@ -32,7 +32,7 @@
 #include "sherpa/iterator.h"
 #include "sherpa/quad_tree.h"
 
-using nucleus::tile_scheduler::GpuCacheTileScheduler;
+using namespace nucleus::tile_scheduler;
 
 GpuCacheTileScheduler::GpuCacheTileScheduler()
     : m_construction_msec_since_epoch(uint64_t(std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now().time_since_epoch()).count()))
@@ -78,7 +78,6 @@ GpuCacheTileScheduler::GpuCacheTileScheduler()
     }
 
     m_main_cache_book.reserve(m_main_cache_size + 500); // reserve some more space for tiles in flight
-    m_main_cache_book[tile::Id { 0, { 0, 0 } }.parent()] = 0; // used in send_to_gpu_if_available
 }
 
 GpuCacheTileScheduler::~GpuCacheTileScheduler()
@@ -129,9 +128,13 @@ std::vector<tile::Id> GpuCacheTileScheduler::load_candidates() const
 
     std::vector<tile::Id> all_tiles;
     all_tiles.reserve(all_inner_nodes.size() + all_leaves.size());
-    std::merge(all_inner_nodes.begin(), all_inner_nodes.end(),
-        all_leaves.begin(), all_leaves.end(),
-        std::back_inserter(all_tiles));
+    std::copy(all_inner_nodes.begin(), all_inner_nodes.end(), std::back_inserter(all_tiles));
+    std::copy(all_leaves.begin(), all_leaves.end(), std::back_inserter(all_tiles));
+    std::sort(all_tiles.begin(), all_tiles.end());
+
+    //    std::merge(all_inner_nodes.begin(), all_inner_nodes.end(),
+    //        all_leaves.begin(), all_leaves.end(),
+    //        std::back_inserter(all_tiles));
 
     return all_tiles;
 }
@@ -163,11 +166,12 @@ void GpuCacheTileScheduler::set_aabb_decorator(const tile_scheduler::AabbDecorat
 
 void GpuCacheTileScheduler::send_debug_scheduler_stats() const
 {
-    const auto text = QString("Scheduler: %1 tiles in transit, %2 height, %3 ortho tiles in main cache, %4 tiles on gpu")
+    const auto text = QString("Scheduler: %1 tiles in transit, %2 height, %3 ortho tiles in main cache, %4 tiles on gpu, %5 orphans")
                           .arg(number_of_tiles_in_transit())
                           .arg(number_of_waiting_height_tiles())
                           .arg(number_of_waiting_ortho_tiles())
-                          .arg(gpu_tiles().size());
+                          .arg(gpu_tiles().size())
+                          .arg(orphan_cache_book().size());
     emit debug_scheduler_stats_updated(text);
 }
 
@@ -177,16 +181,30 @@ void GpuCacheTileScheduler::key_press(const QKeyCombination& e)
         set_enabled(!enabled());
         qDebug("setting tile scheduler enabled = %d", int(enabled()));
     }
+    if (e.key() == Qt::Key::Key_O) {
+        for (const auto& o : m_orphan_cache_book) {
+            qDebug("orphan: z: %u, c: %u/%u", o.first.zoom_level, o.first.coords.x, o.first.coords.y);
+        }
+        qDebug("=============================");
+    }
+    if (e.key() == Qt::Key::Key_P) {
+        for (const auto& o : m_pending_tile_requests) {
+            qDebug("pending: z: %u, c: %u/%u", o.zoom_level, o.coords.x, o.coords.y);
+        }
+        qDebug("=============================");
+    }
 }
 
 void GpuCacheTileScheduler::update_camera(const nucleus::camera::Definition& camera)
 {
+    qDebug("GpuCacheTileScheduler::update_camera()");
     m_current_camera = camera;
     schedule_update();
 }
 
 void GpuCacheTileScheduler::do_update()
 {
+    //    qDebug("GpuCacheTileScheduler::do_update(): 1 (cache book %lu, received %lu)", m_main_cache_book.size(), m_received_ortho_tiles.size());
     const auto load_candidates = this->load_candidates(); // ordered by construction
     std::vector<tile::Id> tiles_to_load;
     tiles_to_load.reserve(load_candidates.size());
@@ -208,6 +226,8 @@ void GpuCacheTileScheduler::do_update()
     std::nth_element(tiles_to_load.begin(), last_load_tile_iter, tiles_to_load.end());
     std::sort(tiles_to_load.begin(), last_load_tile_iter); // start loading low zoom tiles first
 
+    //    qDebug("GpuCacheTileScheduler::do_update(): 2 (cache book %lu, received %lu)", m_main_cache_book.size(), m_received_ortho_tiles.size());
+
     std::for_each(tiles_to_load.begin(), last_load_tile_iter, [this](const auto& t) {
         if (m_unavailable_tiles.contains(t))
             return;
@@ -218,6 +238,8 @@ void GpuCacheTileScheduler::do_update()
     if (tiles_to_load.size() > n_available_load_slots)
         schedule_update();
 
+    //    qDebug("GpuCacheTileScheduler::do_update(): 3 (cache book %lu, received %lu)", m_main_cache_book.size(), m_received_ortho_tiles.size());
+    purge_orphans();
     send_debug_scheduler_stats();
 }
 
@@ -241,18 +263,24 @@ void GpuCacheTileScheduler::schedule_update()
 
 void GpuCacheTileScheduler::receive_ortho_tile(const tile::Id& tile_id, const std::shared_ptr<QByteArray>& data)
 {
+    qDebug("GpuCacheTileScheduler::receive_ortho_tile(zoom: %u, x: %u, y: %u", tile_id.zoom_level, tile_id.coords.x, tile_id.coords.y);
     m_received_ortho_tiles[tile_id] = data;
+    const auto current_time = uint64_t(std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now().time_since_epoch()).count()) - m_construction_msec_since_epoch;
+    m_orphan_cache_book[tile_id] = current_time;
     schedule_update_and_clear_pending_request_if_available(tile_id);
 }
 
 void GpuCacheTileScheduler::receive_height_tile(const tile::Id& tile_id, const std::shared_ptr<QByteArray>& data)
 {
     m_received_height_tiles[tile_id] = data;
+    const auto current_time = uint64_t(std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now().time_since_epoch()).count()) - m_construction_msec_since_epoch;
+    m_orphan_cache_book[tile_id] = current_time;
     schedule_update_and_clear_pending_request_if_available(tile_id);
 }
 
 void GpuCacheTileScheduler::notify_about_unavailable_ortho_tile(tile::Id tile_id)
 {
+    qDebug("GpuCacheTileScheduler::notify_about_unavailable_ortho_tile(zoom: %u, x: %u, y: %u", tile_id.zoom_level, tile_id.coords.x, tile_id.coords.y);
     if (tile_id.zoom_level < 12)
         receive_ortho_tile(tile_id, m_default_ortho_tile);
     else
@@ -278,8 +306,10 @@ void GpuCacheTileScheduler::set_gpu_cache_size(unsigned tile_cache_size)
 
 void GpuCacheTileScheduler::purge_gpu_cache_from_old_tiles()
 {
+    qDebug("GpuCacheTileScheduler::purge_gpu_cache_from_old_tiles(): 1 (%lu)", m_gpu_tiles.size());
     if (m_gpu_tiles.size() <= m_gpu_cache_size)
         return;
+    qDebug("GpuCacheTileScheduler::purge_gpu_cache_from_old_tiles(): 2");
 
     const auto necessary_tiles = load_candidates();
     TileSet necessary_tiles_hashed(necessary_tiles.begin(), necessary_tiles.end());
@@ -292,6 +322,7 @@ void GpuCacheTileScheduler::purge_gpu_cache_from_old_tiles()
     if (n_tiles_to_be_removed >= unnecessary_tiles.size()) {
         remove_gpu_tiles(unnecessary_tiles); // cache too small. can't remove 'enough', so remove everything we can
         send_debug_scheduler_stats();
+        qDebug("GpuCacheTileScheduler::purge_gpu_cache_from_old_tiles(): 3.1 (%lu)", m_gpu_tiles.size());
         return;
     }
     const auto last_remove_tile_iter = unnecessary_tiles.begin() + int(n_tiles_to_be_removed);
@@ -303,29 +334,88 @@ void GpuCacheTileScheduler::purge_gpu_cache_from_old_tiles()
     unnecessary_tiles.resize(n_tiles_to_be_removed);
     remove_gpu_tiles(unnecessary_tiles);
     send_debug_scheduler_stats();
+    qDebug("GpuCacheTileScheduler::purge_gpu_cache_from_old_tiles(): 3.2 (%lu)", m_gpu_tiles.size());
 }
 
 void GpuCacheTileScheduler::purge_main_cache_from_old_tiles()
 {
+    qDebug("GpuCacheTileScheduler::purge_main_cache_from_old_tiles(): 1 (%lu, %lu)", m_main_cache_book.size(), m_received_ortho_tiles.size());
     if (m_main_cache_book.size() < m_main_cache_size)
         return;
+    qDebug("GpuCacheTileScheduler::purge_main_cache_from_old_tiles(): 2");
 
-    std::vector<std::pair<tile::Id, unsigned>> entries;
-    entries.reserve(m_main_cache_book.size());
-    std::copy(m_main_cache_book.begin(), m_main_cache_book.end(), std::back_inserter(entries));
+    const auto necessary_tiles = load_candidates();
+    TileSet necessary_tiles_hashed(necessary_tiles.begin(), necessary_tiles.end());
+
+    std::vector<std::pair<tile::Id, unsigned>> unnecessary_tiles;
+    unnecessary_tiles.reserve(m_main_cache_book.size());
+    std::copy_if(m_main_cache_book.cbegin(), m_main_cache_book.cend(), std::back_inserter(unnecessary_tiles), [&necessary_tiles_hashed](const auto& entry) {
+        return !necessary_tiles_hashed.contains(entry.first);
+    });
+
     const auto n_tiles_to_be_removed = m_main_cache_book.size() - size_t(float(m_main_cache_size) * 0.9f); // make it a bit smaller than necessary, so this function is not called that often
     assert(n_tiles_to_be_removed <= m_main_cache_book.size());
 
-    const auto last_remove_tile_iter = entries.begin() + int(n_tiles_to_be_removed);
-    assert(last_remove_tile_iter <= entries.end());
-    std::nth_element(entries.begin(), last_remove_tile_iter, entries.end(), [](const std::pair<tile::Id, unsigned>& a, const std::pair<tile::Id, unsigned>& b) {        
+    const auto last_remove_tile_iter = unnecessary_tiles.begin() + int(n_tiles_to_be_removed);
+    assert(last_remove_tile_iter <= unnecessary_tiles.end());
+
+    std::nth_element(unnecessary_tiles.begin(), last_remove_tile_iter, unnecessary_tiles.end(), [](const std::pair<tile::Id, unsigned>& a, const std::pair<tile::Id, unsigned>& b) {
+        if (a.first.zoom_level != b.first.zoom_level) {
+            return !(a.first.zoom_level < b.first.zoom_level);
+        }
         if (a.second != b.second)
             return a.second < b.second;
-        return a.first < b.first;
+        return !(a.first < b.first);
+    });
+
+    std::for_each(unnecessary_tiles.begin(), last_remove_tile_iter, [this](const std::pair<tile::Id, unsigned>& v) {
+        {
+            const auto id = v.first;
+            if (id.zoom_level == 1) {
+                const auto heights_contain = m_received_height_tiles.contains(id);
+                const auto orths_contain = m_received_ortho_tiles.contains(id);
+                const auto parent_in_cache = m_main_cache_book.contains(id.parent());
+                qDebug("");
+            }
+        }
+        m_main_cache_book.erase(v.first);
+        m_received_height_tiles.erase(v.first);
+        m_received_ortho_tiles.erase(v.first);
+    });
+    send_debug_scheduler_stats();
+    qDebug("GpuCacheTileScheduler::purge_main_cache_from_old_tiles(): 3 (%lu, %lu)", m_main_cache_book.size(), m_received_ortho_tiles.size());
+}
+
+void GpuCacheTileScheduler::purge_orphans()
+{
+    // orphans are received tiles that are not hooked into the cache.
+    // this happens e.g., when the camera moves fast and the tile is not necessary any more once it arrives.
+    std::vector<std::pair<tile::Id, unsigned>> entries;
+    entries.reserve(m_orphan_cache_book.size());
+    std::copy(m_orphan_cache_book.begin(), m_orphan_cache_book.end(), std::back_inserter(entries));
+    const auto n_tiles_to_be_removed = m_orphan_cache_book.size() - m_max_n_simultaneous_requests * 4;
+    if (n_tiles_to_be_removed > m_orphan_cache_book.size())
+        return;
+
+    const auto last_remove_tile_iter = entries.begin() + int(n_tiles_to_be_removed);
+    std::nth_element(entries.begin(), last_remove_tile_iter, entries.end(), [](const std::pair<tile::Id, unsigned>& a, const std::pair<tile::Id, unsigned>& b) {
+        if (a.second != b.second)
+            return a.second < b.second;
+        return !(a.first < b.first);
     });
 
     std::for_each(entries.begin(), last_remove_tile_iter, [this](const std::pair<tile::Id, unsigned>& v) {
-        m_main_cache_book.erase(v.first);
+        {
+            const auto id = v.first;
+            if (id.zoom_level == 1) {
+                const auto heights_contain = m_received_height_tiles.contains(id);
+                const auto orths_contain = m_received_ortho_tiles.contains(id);
+                const auto parent_in_cache = m_main_cache_book.contains(id.parent());
+                qDebug("");
+            }
+        }
+        assert(!m_main_cache_book.contains(v.first));
+        m_orphan_cache_book.erase(v.first);
         m_received_height_tiles.erase(v.first);
         m_received_ortho_tiles.erase(v.first);
     });
@@ -343,11 +433,20 @@ void GpuCacheTileScheduler::schedule_update_and_clear_pending_request_if_availab
 bool GpuCacheTileScheduler::send_to_gpu_if_available(const tile::Id& tile_id)
 {
     // m_main_cache_book[tile::Id { 0, { 0, 0 } }.parent()] = 0; (from the constructor)
-    if (m_received_height_tiles.contains(tile_id) && m_received_ortho_tiles.contains(tile_id) && m_main_cache_book.contains(tile_id.parent())) {
+    if (tile_id.zoom_level == 2 && tile_id.coords.x == 0) {
+        const auto heights_contain = m_received_height_tiles.contains(tile_id);
+        const auto orths_contain = m_received_ortho_tiles.contains(tile_id);
+        const auto parent_in_cache = m_main_cache_book.contains(tile_id.parent());
+        qDebug("");
+    }
+    if (m_received_height_tiles.contains(tile_id)
+        && m_received_ortho_tiles.contains(tile_id)
+        && (m_main_cache_book.contains(tile_id.parent()) || tile_id.parent().zoom_level > 1000)) {
         const auto current_time = uint64_t(std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now().time_since_epoch()).count()) - m_construction_msec_since_epoch;
         assert(current_time < std::numeric_limits<unsigned>::max());
-        const auto parent_time = m_main_cache_book.at(tile_id.parent());
+        const auto parent_time = (tile_id.parent().zoom_level < 1000) ? m_main_cache_book.at(tile_id.parent()) : 0;
         m_main_cache_book[tile_id] = std::max(unsigned(current_time), parent_time + 1);
+        m_orphan_cache_book.erase(tile_id);
 
         auto heightraster = nucleus::utils::tile_conversion::qImage2uint16Raster(nucleus::utils::tile_conversion::toQImage(*m_received_height_tiles[tile_id]));
         auto ortho = nucleus::utils::tile_conversion::toQImage(*m_received_ortho_tiles[tile_id]);
@@ -379,12 +478,22 @@ void GpuCacheTileScheduler::set_enabled(bool newEnabled)
 void GpuCacheTileScheduler::remove_gpu_tiles(const std::vector<tile::Id>& tiles)
 {
     for (const auto& id : tiles) {
+        if (id.zoom_level == 1) {
+            const auto heights_contain = m_received_height_tiles.contains(id);
+            const auto orths_contain = m_received_ortho_tiles.contains(id);
+            const auto parent_in_cache = m_main_cache_book.contains(id.parent());
+            qDebug("");
+        }
         emit tile_expired(id);
         m_gpu_tiles.erase(id);
     }
 }
 
-using namespace nucleus::tile_scheduler;
+const std::unordered_map<tile::Id, unsigned int, tile::Id::Hasher>& GpuCacheTileScheduler::orphan_cache_book() const
+{
+    return m_orphan_cache_book;
+}
+
 unsigned int GpuCacheTileScheduler::update_timeout() const
 {
     return m_update_timeout;

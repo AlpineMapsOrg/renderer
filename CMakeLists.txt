@@ -111,7 +111,7 @@ if (ALP_UNITTESTS AND NOT EMSCRIPTEN)
         camera_Controller_and_NearPlaneAdjuster
     )
     set(ALP_QT_SCHEDULER_UNITTESTS
-        GpuCacheTileScheduler
+        TestGpuCacheTileScheduler
     )
 endif()
 

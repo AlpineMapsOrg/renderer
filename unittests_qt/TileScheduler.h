@@ -80,6 +80,8 @@ protected slots:
 
     void init()
     {
+        m_scheduler.reset();
+        std::filesystem::remove_all(tile_scheduler::GpuCacheTileScheduler::disk_cache_path());
         m_scheduler = makeScheduler();
         m_given_tiles.clear();
         m_unavailable_tiles.clear();
