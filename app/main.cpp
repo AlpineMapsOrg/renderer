@@ -94,6 +94,7 @@ int main(int argc, char **argv)
         qDebug() << "root window not created!";
         return 1;
     }
+    root_window->showMaximized();
     RenderThreadNotifier::instance()->set_root_window(root_window);
 
     return app.exec();
