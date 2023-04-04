@@ -24,6 +24,7 @@
 #include "nucleus/camera/Definition.h"
 #include "nucleus/camera/FirstPersonInteraction.h"
 #include "nucleus/camera/OrbitInteraction.h"
+#include "nucleus/camera/RotateNorthInteraction.h"
 #include "nucleus/srs.h"
 
 namespace nucleus::camera {
@@ -131,6 +132,9 @@ void Controller::key_press(const QKeyCombination& e)
     }
     if (e.key() == Qt::Key_4) {
         set_interaction_style(std::make_unique<nucleus::camera::CrapyInteraction>());
+    }
+    if (e.key() == Qt::Key_C) {
+        set_interaction_style(std::make_unique<nucleus::camera::RotateNorthInteraction>());
     }
 
     const auto new_definition = m_interaction_style->key_press_event(e, m_definition, m_depth_tester);

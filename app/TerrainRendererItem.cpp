@@ -249,6 +249,25 @@ void TerrainRendererItem::set_position(double latitude, double longitude)
     RenderThreadNotifier::instance()->notify();
 }
 
+void TerrainRendererItem::rotate_north()
+{
+    if (m_animation_timer->isActive()) {
+        return;
+    }
+    emit key_pressed(QKeyCombination(Qt::Key_C));
+
+    m_animation_timer->singleShot(1000, this, &TerrainRendererItem::end_animation);
+    m_timer->start(1000.0f/30.0f);
+}
+
+void TerrainRendererItem::end_animation()
+{
+    if (m_keys_pressed == 0) {
+        m_timer->stop();
+    }
+    emit key_pressed(QKeyCombination(Qt::Key_1));
+}
+
 void TerrainRendererItem::schedule_update()
 {
     //    qDebug("void TerrainRendererItem::schedule_update()");

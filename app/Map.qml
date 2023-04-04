@@ -129,6 +129,7 @@ Rectangle {
         width: 60
         height: 60
         rotation: renderer.camera_rotation_from_north
+        onClicked: renderer.rotate_north()
         icon {
             source: "qrc:/alpinemaps/app/icons/compass.svg"
             height: 40

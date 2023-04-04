@@ -76,10 +76,12 @@ protected:
 
 public slots:
     void set_position(double latitude, double longitude);
+    void rotate_north();
 
 private slots:
     void schedule_update();
     void key_timer();
+    void end_animation();
 
 public:
     [[nodiscard]] int frame_limit() const;
@@ -122,6 +124,7 @@ private:
     int m_camera_width = 0;
     int m_camera_height = 0;
     QTimer *m_timer = new QTimer(this);
+    QTimer *m_animation_timer = new QTimer(this);
     int m_keys_pressed = 0;
 };
 
