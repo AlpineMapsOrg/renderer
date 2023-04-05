@@ -20,6 +20,10 @@
 #include <chrono>
 #include <limits>
 
+#include <QCoreApplication>
+#include <QTimer>
+#include <QtTest/QSignalSpy>
+
 #define CATCH_CONFIG_MAIN
 #ifdef __MINGW32__
 #define DO_NOT_USE_WMAIN
@@ -32,6 +36,11 @@ constexpr bool asserts_are_enabled = false;
 constexpr bool asserts_are_enabled = true;
 #endif
 
+namespace {
+int argc = 0;
+static QCoreApplication app = {argc, nullptr};
+} // namespace
+
 TEST_CASE("nucleus/main: check that asserts are enabled")
 {
     CHECK(asserts_are_enabled);
@@ -41,4 +50,15 @@ TEST_CASE("nucleus/main: check that NaNs are enabled (-ffast-math removes suppor
 {
     CHECK(std::isnan(std::numeric_limits<float>::quiet_NaN() * float(std::chrono::system_clock::now().time_since_epoch().count())));
     CHECK(std::isnan(double(std::numeric_limits<float>::quiet_NaN() * float(std::chrono::system_clock::now().time_since_epoch().count()))));
+}
+
+TEST_CASE("nucleus/main: qt signals and slots")
+{
+    QTimer t;
+    t.setSingleShot(true);
+    t.setInterval(1);
+    QSignalSpy spy(&t, &QTimer::timeout);
+    t.start();
+    spy.wait(20);
+    CHECK(spy.size() == 1);
 }

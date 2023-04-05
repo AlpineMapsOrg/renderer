@@ -105,10 +105,8 @@ if (ALP_UNITTESTS AND NOT EMSCRIPTEN)
         unittests/test_tile.cpp
         unittests/test_tile_conversion.cpp
         unittests/nucleus_tile_scheduler_util.cpp
-    )
-    set(ALP_QT_UNITTESTS
-        TileLoadService
-        camera_Controller_and_NearPlaneAdjuster
+        unittests/nucleus_tile_load_service.cpp
+        unittests/nucleus_camera_near_plane_adjuster.cpp
     )
     set(ALP_QT_SCHEDULER_UNITTESTS
         TestGpuCacheTileScheduler
@@ -268,7 +266,7 @@ install(TARGETS alpineapp
 #################################### unit tests for backend #######################################
 if (ALP_UNITTESTS AND NOT EMSCRIPTEN)
     add_executable(unittests ${ALP_CATCH_UNITTEST_SOURCES})
-    target_link_libraries(unittests PUBLIC nucleus Catch2::Catch2)
+    target_link_libraries(unittests PUBLIC nucleus Catch2::Catch2 Qt6::Test)
     target_compile_definitions(unittests PUBLIC "ALP_TEST_DATA_DIR=\"${CMAKE_SOURCE_DIR}/unittests/data/\"")
     if (ALP_ENABLE_ASSERTS)
         target_compile_options(unittests PUBLIC "-U NDEBUG")
@@ -283,16 +281,6 @@ if (ALP_UNITTESTS AND NOT EMSCRIPTEN)
 
     find_package(Qt6 REQUIRED COMPONENTS Test)
     enable_testing(true)
-    function(add_cute_test name)
-        add_executable(qtest_${name} unittests_qt/${name}.cpp)
-        add_test(NAME ${name} COMMAND qtest_${name})
-        target_link_libraries(qtest_${name} PUBLIC nucleus Qt6::Test)
-        target_compile_definitions(qtest_${name} PUBLIC "ALP_TEST_DATA_DIR=\"${CMAKE_SOURCE_DIR}/unittests/data/\"")
-    endfunction()
-    foreach(cute_test ${ALP_QT_UNITTESTS})
-        add_cute_test(${cute_test})
-    endforeach()
-
 
     function(add_cute_scheduler_test name)
         add_executable(qtest_${name} unittests_qt/${name}.cpp unittests_qt/TileScheduler.h)
