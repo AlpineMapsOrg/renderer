@@ -20,6 +20,7 @@
 
 #include <QByteArray>
 
+#include "constants.h"
 #include "nucleus/camera/Definition.h"
 #include "nucleus/srs.h"
 #include "sherpa/TileHeights.h"
@@ -110,6 +111,22 @@ inline auto refineFunctor(const nucleus::camera::Definition& camera, const AabbD
 }
 
 namespace utils {
+    // uint32 is good for close to 50 days
+    class Timestamper {
+        static uint64_t time_since_epoch()
+        {
+            return uint64_t(std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now().time_since_epoch()).count());
+        }
+        uint64_t m_creation_time = time_since_epoch();
+
+    public:
+        [[nodiscard]] constants::TimestampType stamp() const
+        {
+            assert(time_since_epoch() - m_creation_time < std::numeric_limits<unsigned>::max());
+            return constants::TimestampType(time_since_epoch() - m_creation_time);
+        }
+    };
+
     void write_tile_id_2_data_map(const TileId2DataMap& map, const std::filesystem::path& path);
     TileId2DataMap read_tile_id_2_data_map(const std::filesystem::path& path);
 }

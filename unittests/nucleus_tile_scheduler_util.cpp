@@ -23,10 +23,23 @@
 #include <QBuffer>
 #include <QFile>
 #include <QImage>
+#include <QThread>
 
 #include "nucleus/utils/tile_conversion.h"
 
-TEST_CASE("nucleus/tile_scheduler/utils: TileId2DataMap io")
+using namespace nucleus::tile_scheduler;
+
+TEST_CASE("nucleus/tile_scheduler/utils/timestamper")
+{
+    utils::Timestamper s;
+    QThread::msleep(10);
+    CHECK(std::abs(int(s.stamp()) - 10) <= 1);
+
+    QThread::msleep(5);
+    CHECK(std::abs(int(s.stamp()) - 15) <= 2);
+}
+
+TEST_CASE("nucleus/tile_scheduler/utils/TileId2DataMap io")
 {
     const auto base_path = std::filesystem::path("./unittests_test_files");
     std::filesystem::remove_all(base_path);
@@ -35,24 +48,24 @@ TEST_CASE("nucleus/tile_scheduler/utils: TileId2DataMap io")
 
     SECTION("interface")
     {
-        nucleus::tile_scheduler::TileId2DataMap map;
-        nucleus::tile_scheduler::utils::write_tile_id_2_data_map(map, file_name);
-        const auto read_map = nucleus::tile_scheduler::utils::read_tile_id_2_data_map(file_name);
+        TileId2DataMap map;
+        utils::write_tile_id_2_data_map(map, file_name);
+        const auto read_map = utils::read_tile_id_2_data_map(file_name);
         CHECK(read_map.size() == 0);
     }
 
     SECTION("missing file returns empty map")
     {
-        const auto read_map = nucleus::tile_scheduler::utils::read_tile_id_2_data_map(base_path / "missing");
+        const auto read_map = utils::read_tile_id_2_data_map(base_path / "missing");
         CHECK(read_map.empty());
     }
 
     SECTION("something written")
     {
         REQUIRE(!std::filesystem::exists(file_name));
-        nucleus::tile_scheduler::TileId2DataMap map;
+        TileId2DataMap map;
         map[tile::Id { 23, { 44, 55 } }] = std::make_shared<QByteArray>("1\02345ABCDabcd");
-        nucleus::tile_scheduler::utils::write_tile_id_2_data_map(map, file_name);
+        utils::write_tile_id_2_data_map(map, file_name);
         CHECK(std::filesystem::exists(file_name));
         CHECK(std::filesystem::file_size(file_name) > std::string("1\02345ABCDabcd").size());
     }
@@ -60,13 +73,13 @@ TEST_CASE("nucleus/tile_scheduler/utils: TileId2DataMap io")
     SECTION("write and read")
     {
         REQUIRE(!std::filesystem::exists(file_name));
-        nucleus::tile_scheduler::TileId2DataMap map;
+        TileId2DataMap map;
         map[tile::Id { 23, { 44, 55 } }] = std::make_shared<QByteArray>("1\02345ABCDabcd");
         map[tile::Id { 1, { 13, 46 } }] = std::make_shared<QByteArray>("1\02345Aabcd");
         map[tile::Id { 2, { 13, 46 } }] = std::make_shared<QByteArray>("");
         REQUIRE(map[tile::Id { 2, { 13, 46 } }]->size() == 0);
-        nucleus::tile_scheduler::utils::write_tile_id_2_data_map(map, file_name);
-        const auto read_map = nucleus::tile_scheduler::utils::read_tile_id_2_data_map(file_name);
+        utils::write_tile_id_2_data_map(map, file_name);
+        const auto read_map = utils::read_tile_id_2_data_map(file_name);
         REQUIRE(read_map.size() == map.size());
         for (const auto& key_value : map) {
             REQUIRE(read_map.contains(key_value.first));
@@ -85,12 +98,12 @@ TEST_CASE("nucleus/tile_scheduler/utils: TileId2DataMap io")
         }; // stop in other read<T>
 
         REQUIRE(!std::filesystem::exists(file_name));
-        nucleus::tile_scheduler::TileId2DataMap map;
+        TileId2DataMap map;
         map[tile::Id { 23, { 44, 55 } }] = std::make_shared<QByteArray>("1234");
         map[tile::Id { 1, { 13, 46 } }] = std::make_shared<QByteArray>("1234");
         map[tile::Id { 2, { 13, 46 } }] = std::make_shared<QByteArray>("1234");
         map[tile::Id { 3, { 13, 46 } }] = std::make_shared<QByteArray>("1234");
-        nucleus::tile_scheduler::utils::write_tile_id_2_data_map(map, file_name);
+        utils::write_tile_id_2_data_map(map, file_name);
         for (const auto bad_size : bad_sizes) {
             QFile file(file_name);
             auto success = file.open(QIODevice::ReadWrite);
@@ -99,7 +112,7 @@ TEST_CASE("nucleus/tile_scheduler/utils: TileId2DataMap io")
             REQUIRE(success);
             file.close();
 
-            const auto read_map = nucleus::tile_scheduler::utils::read_tile_id_2_data_map(file_name);
+            const auto read_map = utils::read_tile_id_2_data_map(file_name);
             CHECK(read_map.size() == 0);
         }
     }
@@ -107,7 +120,7 @@ TEST_CASE("nucleus/tile_scheduler/utils: TileId2DataMap io")
     SECTION("write and read of a qimage")
     {
         REQUIRE(!std::filesystem::exists(file_name));
-        nucleus::tile_scheduler::TileId2DataMap map;
+        TileId2DataMap map;
 
         QByteArray jpeg_image_array;
         QByteArray png_image_array;
@@ -130,8 +143,8 @@ TEST_CASE("nucleus/tile_scheduler/utils: TileId2DataMap io")
         const auto png_tile_id = tile::Id { 1, { 0, 0 } };
         map[jpeg_tile_id] = std::make_shared<QByteArray>(jpeg_image_array);
         map[png_tile_id] = std::make_shared<QByteArray>(png_image_array);
-        nucleus::tile_scheduler::utils::write_tile_id_2_data_map(map, file_name);
-        const auto read_map = nucleus::tile_scheduler::utils::read_tile_id_2_data_map(file_name);
+        utils::write_tile_id_2_data_map(map, file_name);
+        const auto read_map = utils::read_tile_id_2_data_map(file_name);
         REQUIRE(read_map.size() == 2);
         {
             REQUIRE(read_map.contains(jpeg_tile_id));

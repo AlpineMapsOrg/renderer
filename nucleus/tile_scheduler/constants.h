@@ -21,5 +21,6 @@
 namespace nucleus::tile_scheduler::constants {
 
 constexpr auto default_network_timeout = 8000;
+using TimestampType = unsigned;
 
 }
