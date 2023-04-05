@@ -33,7 +33,7 @@ class LayerAssembler : public QObject {
 
 public:
     explicit LayerAssembler(QObject* parent = nullptr);
-    [[nodiscard]] size_t n_cached_items() const;
+    [[nodiscard]] size_t n_items_in_flight() const;
 
 public slots:
     void load(const tile::Id& tile_id);

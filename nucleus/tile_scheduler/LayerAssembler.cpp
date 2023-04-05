@@ -25,7 +25,7 @@ LayerAssembler::LayerAssembler(QObject* parent)
 {
 }
 
-size_t LayerAssembler::n_cached_items() const
+size_t LayerAssembler::n_items_in_flight() const
 {
     return m_height_data.size() + m_ortho_data.size();
 }

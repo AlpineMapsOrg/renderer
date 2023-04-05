@@ -16,24 +16,34 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *****************************************************************************/
 
-#pragma once
+#include "QuadAssembler.h"
 
-#include "sherpa/tile.h"
+using namespace nucleus::tile_scheduler;
 
-#include <QByteArray>
-namespace nucleus::tile_scheduler::tile_types {
-
-struct LayeredTile
+QuadAssembler::QuadAssembler(QObject *parent)
+    : QObject{parent}
 {
-    tile::Id id;
-    std::shared_ptr<const QByteArray> ortho;
-    std::shared_ptr<const QByteArray> height;
-};
+}
 
-struct TileQuad {
-    tile::Id id;
-    unsigned n_tiles = 0;
-    std::array<LayeredTile, 4> tiles;
-};
+size_t QuadAssembler::n_items_in_flight() const
+{
+    return m_quads.size();
+}
 
-} // namespace nucleus::tile_scheduler::tile_types
+void QuadAssembler::load(const tile::Id& tile_id)
+{
+    m_quads[tile_id].id = tile_id;
+    for (const auto& child_id : tile_id.children()) {
+        emit tile_requested(child_id);
+    }
+}
+
+void QuadAssembler::deliver_tile(const tile_types::LayeredTile& tile)
+{
+    auto& quad = m_quads[tile.id.parent()];
+    quad.tiles[quad.n_tiles++] = tile;
+    if (quad.n_tiles == 4) {
+        emit quad_loaded(quad);
+        m_quads.erase(quad.id);
+    }
+}

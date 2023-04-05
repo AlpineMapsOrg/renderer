@@ -59,7 +59,7 @@ TEST_CASE("nucleus/tile_scheduler/layer assembler")
         REQUIRE(loaded_tile.height);
         CHECK(*loaded_tile.ortho == QByteArray("ortho"));
         CHECK(*loaded_tile.height == QByteArray("height"));
-        CHECK(assembler.n_cached_items() == 0);
+        CHECK(assembler.n_items_in_flight() == 0);
     }
 
     SECTION("assemble 2 (height, ortho)")
@@ -82,7 +82,7 @@ TEST_CASE("nucleus/tile_scheduler/layer assembler")
         REQUIRE(loaded_tile.height);
         CHECK(*loaded_tile.ortho == QByteArray("ortho"));
         CHECK(*loaded_tile.height == QByteArray("height"));
-        CHECK(assembler.n_cached_items() == 0);
+        CHECK(assembler.n_items_in_flight() == 0);
     }
 
     SECTION("assemble 3 (several tiles)")
@@ -101,19 +101,19 @@ TEST_CASE("nucleus/tile_scheduler/layer assembler")
         assembler.deliver_ortho(tile::Id { 1, { 0, 0 } }, std::make_shared<const QByteArray>("ortho 1"));
         assembler.deliver_height(tile::Id { 2, { 0, 0 } }, std::make_shared<const QByteArray>("height 2"));
         CHECK(spy_loaded.empty());
-        CHECK(assembler.n_cached_items() == 3);
+        CHECK(assembler.n_items_in_flight() == 3);
 
         assembler.deliver_ortho(tile::Id { 2, { 0, 0 } }, std::make_shared<const QByteArray>("ortho 2"));
         CHECK(spy_loaded.size() == 1);
-        CHECK(assembler.n_cached_items() == 2);
+        CHECK(assembler.n_items_in_flight() == 2);
 
         assembler.deliver_ortho(tile::Id { 0, { 0, 0 } }, std::make_shared<const QByteArray>("ortho 0"));
         CHECK(spy_loaded.size() == 2);
-        CHECK(assembler.n_cached_items() == 1);
+        CHECK(assembler.n_items_in_flight() == 1);
 
         assembler.deliver_height(tile::Id { 1, { 0, 0 } }, std::make_shared<const QByteArray>("height 1"));
         CHECK(spy_loaded.size() == 3);
-        CHECK(assembler.n_cached_items() == 0);
+        CHECK(assembler.n_items_in_flight() == 0);
 
         REQUIRE(spy_loaded.size() == 3);
         CHECK(spy_loaded.at(0).constFirst().value<LayeredTile>().id == tile::Id { 2, { 0, 0 } });
@@ -141,7 +141,7 @@ TEST_CASE("nucleus/tile_scheduler/layer assembler")
         REQUIRE(!loaded_tile.ortho);
         REQUIRE(loaded_tile.height);
         CHECK(*loaded_tile.height == QByteArray("height"));
-        CHECK(assembler.n_cached_items() == 0);
+        CHECK(assembler.n_items_in_flight() == 0);
     }
 
     SECTION("a layer (height) reported missing")
@@ -158,6 +158,6 @@ TEST_CASE("nucleus/tile_scheduler/layer assembler")
         REQUIRE(loaded_tile.ortho);
         REQUIRE(!loaded_tile.height);
         CHECK(*loaded_tile.ortho == QByteArray("orthgo"));
-        CHECK(assembler.n_cached_items() == 0);
+        CHECK(assembler.n_items_in_flight() == 0);
     }
 }
