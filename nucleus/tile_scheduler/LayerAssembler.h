@@ -20,16 +20,35 @@
 
 #include <QObject>
 
+#include "tile_types.h"
+
 namespace nucleus::tile_scheduler {
 
-class LayerAssembler : public QObject
-{
+class LayerAssembler : public QObject {
     Q_OBJECT
+    using TileId2DataMap = std::unordered_map<tile::Id, std::shared_ptr<const QByteArray>, tile::Id::Hasher>;
+
+    TileId2DataMap m_ortho_data;
+    TileId2DataMap m_height_data;
+
 public:
-    explicit LayerAssembler(QObject *parent = nullptr);
+    explicit LayerAssembler(QObject* parent = nullptr);
+    [[nodiscard]] size_t n_cached_items() const;
+
+public slots:
+    void load(const tile::Id& tile_id);
+    void deliver_ortho(const tile::Id& tile_id, const std::shared_ptr<const QByteArray>& ortho_data);
+    void deliver_height(const tile::Id& tile_id, const std::shared_ptr<const QByteArray>& height_data);
+
+    void report_missing_ortho(const tile::Id& tile_id);
+    void report_missing_height(const tile::Id& tile_id);
 
 signals:
+    void tile_requested(const tile::Id& tile_id);
+    void tile_loaded(const tile_types::LayeredTile& tile);
 
+private:
+    void check_and_emit(const tile::Id& tile_id);
 };
 
 } // namespace nucleus::tile_scheduler
