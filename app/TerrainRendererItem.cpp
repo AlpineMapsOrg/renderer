@@ -189,12 +189,14 @@ QQuickFramebufferObject::Renderer* TerrainRendererItem::createRenderer() const
 
 void TerrainRendererItem::touchEvent(QTouchEvent* e)
 {
+    this->setFocus(true);
     emit touch_made(nucleus::event_parameter::make(e));
     RenderThreadNotifier::instance()->notify();
 }
 
 void TerrainRendererItem::mousePressEvent(QMouseEvent* e)
 {
+    this->setFocus(true);
     emit mouse_pressed(nucleus::event_parameter::make(e));
     RenderThreadNotifier::instance()->notify();
 }
@@ -207,6 +209,7 @@ void TerrainRendererItem::mouseMoveEvent(QMouseEvent* e)
 
 void TerrainRendererItem::wheelEvent(QWheelEvent* e)
 {
+    this->setFocus(true);
     emit wheel_turned(nucleus::event_parameter::make(e));
     RenderThreadNotifier::instance()->notify();
 }

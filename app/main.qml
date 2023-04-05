@@ -90,7 +90,6 @@ Window {
 //                    font.weight: Font.ExtraBold
                     onAccepted: {
                         console.log("onAccepted")
-                        search_button.focus = true
                         if (text.length <= 2)
                             return
                         var xhr = new XMLHttpRequest
