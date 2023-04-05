@@ -180,4 +180,19 @@ TEST_CASE("nucleus/TileLoadService")
         QList<QVariant> arguments = spy.takeFirst();                     // take the first signal
         CHECK(arguments.at(0).value<tile::Id>() == unavailable_tile_id); // verify the first argument
     }
+
+    SECTION("notifies of timeouts")
+    {
+        TileLoadService service("https://alpinemaps.cg.tuwien.ac.at/tiles/alpine_png/",
+            TileLoadService::UrlPattern::ZYX,
+            ".png");
+        service.set_transfer_timeout(1);
+        QSignalSpy spy(&service, &TileLoadService::tile_unavailable);
+        tile::Id unavailable_tile_id = { .zoom_level = 90, .coords = { 273, 177 } };
+        service.load(unavailable_tile_id);
+        spy.wait(2);
+        REQUIRE(spy.count() == 1);
+        QList<QVariant> arguments = spy.takeFirst(); // take the first signal
+        CHECK(arguments.at(0).value<tile::Id>() == unavailable_tile_id); // verify the first argument
+    }
 }

@@ -23,7 +23,7 @@
 #include <QNetworkAccessManager>
 #include <QNetworkReply>
 
-using nucleus::TileLoadService;
+using namespace nucleus;
 
 TileLoadService::TileLoadService(const QString& base_url, UrlPattern url_pattern, const QString& file_ending, const LoadBalancingTargets& load_balancing_targets)
     : m_network_manager(new QNetworkAccessManager(this))
@@ -41,6 +41,7 @@ TileLoadService::~TileLoadService()
 void TileLoadService::load(const tile::Id& tile_id)
 {
     QNetworkRequest request(QUrl(build_tile_url(tile_id)));
+    request.setTransferTimeout(m_transfer_timeout);
     request.setAttribute(QNetworkRequest::CacheLoadControlAttribute, QNetworkRequest::PreferCache);
 
     QNetworkReply* reply = m_network_manager->get(request);
@@ -84,4 +85,14 @@ QString TileLoadService::build_tile_url(const tile::Id& tile_id) const
         return m_base_url.arg(m_load_balancing_targets[index]) + tile_address + m_file_ending;
     }
     return m_base_url + tile_address + m_file_ending;
+}
+
+unsigned int TileLoadService::transfer_timeout() const
+{
+    return m_transfer_timeout;
+}
+
+void TileLoadService::set_transfer_timeout(unsigned int new_transfer_timeout)
+{
+    m_transfer_timeout = new_transfer_timeout;
 }

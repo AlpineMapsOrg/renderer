@@ -23,6 +23,7 @@
 #include <QObject>
 
 #include "srs.h"
+#include "tile_scheduler/constants.h"
 
 class QNetworkAccessManager;
 
@@ -43,6 +44,9 @@ public:
     ~TileLoadService() override;
     [[nodiscard]] QString build_tile_url(const tile::Id& tile_id) const;
 
+    [[nodiscard]] unsigned int transfer_timeout() const;
+    void set_transfer_timeout(unsigned int new_transfer_timeout);
+
 public slots:
     void load(const tile::Id& tile_id);
 
@@ -51,6 +55,7 @@ signals:
     void tile_unavailable(tile::Id tile_id);
 
 private:
+    unsigned m_transfer_timeout = tile_scheduler::constants::default_network_timeout;
     std::shared_ptr<QNetworkAccessManager> m_network_manager;
     QString m_base_url;
     UrlPattern m_url_pattern;

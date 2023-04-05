@@ -23,6 +23,7 @@ set(ALP_NUCLEUS_SOURCES
     nucleus/tile_scheduler/DrawListGenerator.h nucleus/tile_scheduler/DrawListGenerator.cpp
     nucleus/tile_scheduler/GpuCacheTileScheduler.h nucleus/tile_scheduler/GpuCacheTileScheduler.cpp
     nucleus/tile_scheduler/LayerAssembler.h nucleus/tile_scheduler/LayerAssembler.cpp
+    nucleus/tile_scheduler/constants.h
     nucleus/TileLoadService.h nucleus/TileLoadService.cpp
     nucleus/camera/CadInteraction.h nucleus/camera/CadInteraction.cpp
     nucleus/camera/Controller.h nucleus/camera/Controller.cpp
