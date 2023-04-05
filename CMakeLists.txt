@@ -22,6 +22,7 @@ set(ALP_NUCLEUS_SOURCES
     nucleus/tile_scheduler/utils.h nucleus/tile_scheduler/utils.cpp
     nucleus/tile_scheduler/DrawListGenerator.h nucleus/tile_scheduler/DrawListGenerator.cpp
     nucleus/tile_scheduler/GpuCacheTileScheduler.h nucleus/tile_scheduler/GpuCacheTileScheduler.cpp
+    nucleus/tile_scheduler/LayerAssembler.h nucleus/tile_scheduler/LayerAssembler.cpp
     nucleus/TileLoadService.h nucleus/TileLoadService.cpp
     nucleus/camera/CadInteraction.h nucleus/camera/CadInteraction.cpp
     nucleus/camera/Controller.h nucleus/camera/Controller.cpp
@@ -107,6 +108,7 @@ if (ALP_UNITTESTS AND NOT EMSCRIPTEN)
         unittests/nucleus_tile_scheduler_util.cpp
         unittests/nucleus_tile_load_service.cpp
         unittests/nucleus_camera_near_plane_adjuster.cpp
+        unittests/nucleus_tile_scheduler_layer_assembler.cpp
     )
     set(ALP_QT_SCHEDULER_UNITTESTS
         TestGpuCacheTileScheduler
