@@ -23,17 +23,25 @@
 #include <QByteArray>
 namespace nucleus::tile_scheduler::tile_types {
 
-struct LayeredTile
-{
+template <typename T>
+concept NamedTile = requires(T t) {
+    {
+        t.id
+    } -> std::convertible_to<tile::Id>;
+};
+
+struct LayeredTile {
     tile::Id id;
     std::shared_ptr<const QByteArray> ortho;
     std::shared_ptr<const QByteArray> height;
 };
+static_assert(NamedTile<LayeredTile>);
 
 struct TileQuad {
     tile::Id id;
     unsigned n_tiles = 0;
     std::array<LayeredTile, 4> tiles;
 };
+static_assert(NamedTile<TileQuad>);
 
 } // namespace nucleus::tile_scheduler::tile_types

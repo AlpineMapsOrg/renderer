@@ -1,0 +1,123 @@
+/*****************************************************************************
+ * Alpine Terrain Renderer
+ * Copyright (C) 2023 Adam Celarek
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ *****************************************************************************/
+
+#pragma once
+
+#include "sherpa/tile.h"
+#include "tile_types.h"
+#include "utils.h"
+
+namespace nucleus::tile_scheduler {
+
+template <tile_types::NamedTile T>
+class Cache {
+    struct CacheObject {
+        uint64_t stamp;
+        T data;
+    };
+
+    std::unordered_map<tile::Id, CacheObject, tile::Id::Hasher> m_data;
+    unsigned m_capacity = 5000;
+
+public:
+    Cache() = default;
+    void insert(const std::vector<T>& tiles);
+    [[nodiscard]] bool contains(const tile::Id& id);
+    void set_capacity(unsigned capacity);
+    [[nodiscard]] unsigned n_cached_objects() const;
+    template <typename VisitorFunction>
+    void visit(const VisitorFunction& functor); // functor should return true, if the given tile should be marked visited. stops descending if false is returned.
+
+    void purge();
+
+private:
+    template <typename VisitorFunction>
+    void visit(const tile::Id& start_node, const VisitorFunction& functor, uint64_t stamp); // functor should return true, if the given tile should be marked visited. stops descending if false is returned.
+};
+
+template <tile_types::NamedTile T>
+void Cache<T>::insert(const std::vector<T>& tiles)
+{
+    const auto stamp = utils::time_since_epoch();
+    for (const T& t : tiles) {
+        m_data[t.id].stamp = stamp * 100 - t.id.zoom_level;
+        m_data[t.id].data = t;
+    }
+}
+
+template <tile_types::NamedTile T>
+bool Cache<T>::contains(const tile::Id& id)
+{
+    return m_data.contains(id);
+}
+
+template <tile_types::NamedTile T>
+void Cache<T>::set_capacity(unsigned int capacity)
+{
+    m_capacity = capacity;
+}
+
+template <tile_types::NamedTile T>
+unsigned int Cache<T>::n_cached_objects() const
+{
+    return m_data.size();
+}
+
+template <tile_types::NamedTile T>
+template <typename VisitorFunction>
+void Cache<T>::visit(const VisitorFunction& functor)
+{
+    const auto stamp = utils::time_since_epoch();
+    static_assert(requires { { functor(T()) } -> std::convertible_to<bool>; });
+    const auto root = tile::Id { 0, { 0, 0 } };
+    visit(root, functor, stamp);
+}
+
+template <tile_types::NamedTile T>
+template <typename VisitorFunction>
+void Cache<T>::visit(const tile::Id& node, const VisitorFunction& functor, uint64_t stamp)
+{
+    static_assert(requires { { functor(T()) } -> std::convertible_to<bool>; });
+    if (m_data.contains(node)) {
+        const auto should_continue = functor(m_data[node].data);
+        m_data[node].stamp = stamp * 100 - m_data[node].data.id.zoom_level;
+        if (!should_continue)
+            return;
+        const auto children = node.children();
+        for (const auto& id : children) {
+            visit(id, functor, stamp);
+        }
+    }
+}
+
+template <tile_types::NamedTile T>
+void Cache<T>::purge()
+{
+    if (m_capacity >= n_cached_objects())
+        return;
+    std::vector<std::pair<tile::Id, uint64_t>> tiles;
+    tiles.reserve(m_data.size());
+    std::ranges::transform(m_data, std::back_inserter(tiles), [](const auto& entry) { return std::make_pair(entry.first, entry.second.stamp); });
+    const auto nth_iter = tiles.begin() + m_capacity;
+    std::ranges::nth_element(tiles, nth_iter, std::ranges::greater(), &std::pair<tile::Id, uint64_t>::second);
+    std::ranges::for_each(nth_iter, tiles.end(), [this](const auto& v) {
+        m_data.erase(v.first);
+    });
+}
+
+} // namespace nucleus::tile_scheduler
