@@ -54,6 +54,7 @@ signals:
     void touch_made(const nucleus::event_parameter::Touch&) const;
     void key_pressed(const QKeyCombination&) const;
     void key_released(const QKeyCombination&) const;
+    void update_camera() const;
     //    void viewport_changed(const glm::uvec2& new_viewport) const;
     void position_set_by_user(double new_latitude, double new_longitude);
 

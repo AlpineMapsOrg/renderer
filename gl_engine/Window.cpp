@@ -193,6 +193,10 @@ void Window::keyReleaseEvent(QKeyEvent* e)
     emit key_released(e->keyCombination());
 }
 
+void Window::updateCameraEvent()
+{
+    emit update_camera_event();
+}
 
 void Window::set_permissible_screen_space_error(float new_error)
 {

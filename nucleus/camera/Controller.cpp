@@ -153,10 +153,18 @@ void Controller::key_release(const QKeyCombination& e)
     update();
 }
 
-
 void Controller::touch(const event_parameter::Touch& e)
 {
     const auto new_definition = m_interaction_style->touch_event(e, m_definition, m_depth_tester);
+    if (!new_definition)
+        return;
+    m_definition = new_definition.value();
+    update();
+}
+
+void Controller::update_camera()
+{
+    const auto new_definition = m_interaction_style->update(m_definition, m_depth_tester);
     if (!new_definition)
         return;
     m_definition = new_definition.value();

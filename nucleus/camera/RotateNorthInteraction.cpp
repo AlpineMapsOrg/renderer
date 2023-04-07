@@ -24,21 +24,19 @@
 
 namespace nucleus::camera {
 
-std::optional<Definition> RotateNorthInteraction::key_press_event(const QKeyCombination& e, Definition camera, AbstractDepthTester* depth_tester)
+std::optional<Definition> RotateNorthInteraction::update(Definition camera, AbstractDepthTester* depth_tester)
 {
-    if (e.key() == Qt::Key_T) {
-        qDebug() << "rotate " << m_degrees_from_north;
-        if (m_operation_centre.x == 0 && m_operation_centre.y == 0 && m_operation_centre.z == 0) {
-            m_operation_centre = depth_tester->position(glm::dvec2(0.0, 0.0));
+    qDebug() << "rotate " << m_degrees_from_north;
+    if (m_operation_centre.x == 0 && m_operation_centre.y == 0 && m_operation_centre.z == 0) {
+        m_operation_centre = depth_tester->position(glm::dvec2(0.0, 0.0));
 
-            auto cameraFrontAxis = camera.z_axis();
-            m_degrees_from_north = glm::degrees(glm::acos(glm::dot(glm::normalize(glm::dvec3(cameraFrontAxis.x, cameraFrontAxis.y, 0)), glm::dvec3(0, -1, 0))));
-        }
-        if (camera.z_axis().x > 0) {
-            camera.orbit(m_operation_centre, glm::vec2(-m_degrees_from_north / 20, 0));
-        } else {
-            camera.orbit(m_operation_centre, glm::vec2(m_degrees_from_north / 20, 0));
-        }
+        auto cameraFrontAxis = camera.z_axis();
+        m_degrees_from_north = glm::degrees(glm::acos(glm::dot(glm::normalize(glm::dvec3(cameraFrontAxis.x, cameraFrontAxis.y, 0)), glm::dvec3(0, -1, 0))));
+    }
+    if (camera.z_axis().x > 0) {
+        camera.orbit(m_operation_centre, glm::vec2(-m_degrees_from_north / 20, 0));
+    } else {
+        camera.orbit(m_operation_centre, glm::vec2(m_degrees_from_north / 20, 0));
     }
     return camera;
 }

@@ -81,6 +81,7 @@ Controller::Controller(AbstractRenderWindow* render_window)
     //    connect(m_render_window, &AbstractRenderWindow::wheel_turned, m_camera_controller.get(), &nucleus::camera::Controller::wheel_turn);
     connect(m_render_window, &AbstractRenderWindow::key_pressed, m_camera_controller.get(), &nucleus::camera::Controller::key_press);
     connect(m_render_window, &AbstractRenderWindow::key_released, m_camera_controller.get(), &nucleus::camera::Controller::key_release);
+    connect(m_render_window, &AbstractRenderWindow::update_camera_event, m_camera_controller.get(), &nucleus::camera::Controller::update_camera);
     //    connect(m_render_window, &AbstractRenderWindow::touch_made, m_camera_controller.get(), &nucleus::camera::Controller::touch);
     connect(m_render_window, &AbstractRenderWindow::key_pressed, m_tile_scheduler.get(), &GpuCacheTileScheduler::key_press);
 

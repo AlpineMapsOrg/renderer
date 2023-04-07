@@ -27,6 +27,6 @@ class RotateNorthInteraction : public InteractionStyle
     glm::dvec3 m_operation_centre = {};
     float m_degrees_from_north = 0;
 public:
-    std::optional<Definition> key_press_event(const QKeyCombination& e, Definition camera, AbstractDepthTester* depth_tester) override;
+    std::optional<Definition> update(Definition camera, AbstractDepthTester* depth_tester) override;
 };
 }

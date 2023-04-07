@@ -155,4 +155,29 @@ std::optional<Definition> FirstPersonInteraction::key_release_event(const QKeyCo
     return camera;
 }
 
+std::optional<Definition> FirstPersonInteraction::update(Definition camera, AbstractDepthTester* depth_tester)
+{
+    auto direction = glm::dvec3();
+    if (m_key_w) {
+        direction -= camera.z_axis();
+    }
+    if (m_key_s) {
+        direction += camera.z_axis();
+    }
+    if (m_key_a) {
+        direction -= camera.x_axis();
+    }
+    if (m_key_d) {
+        direction += camera.x_axis();
+    }
+    if (m_key_e) {
+        direction += glm::dvec3(0, 0, 1);
+    }
+    if (m_key_q) {
+        direction -= glm::dvec3(0, 0, 1);
+    }
+    glm::normalize(direction);
+    camera.move(direction * (double)m_speed_modifyer);
+    return camera;
+}
 }
