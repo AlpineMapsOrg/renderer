@@ -18,6 +18,8 @@
 
 #pragma once
 
+#include <vector>
+
 #include "sherpa/tile.h"
 #include "tile_types.h"
 #include "utils.h"
@@ -43,7 +45,7 @@ public:
     template <typename VisitorFunction>
     void visit(const VisitorFunction& functor); // functor should return true, if the given tile should be marked visited. stops descending if false is returned.
 
-    void purge();
+    std::vector<T> purge();
 
 private:
     template <typename VisitorFunction>
@@ -95,9 +97,9 @@ void Cache<T>::visit(const tile::Id& node, const VisitorFunction& functor, uint6
     static_assert(requires { { functor(T()) } -> std::convertible_to<bool>; });
     if (m_data.contains(node)) {
         const auto should_continue = functor(m_data[node].data);
-        m_data[node].stamp = stamp * 100 - m_data[node].data.id.zoom_level;
         if (!should_continue)
             return;
+        m_data[node].stamp = stamp * 100 - m_data[node].data.id.zoom_level;
         const auto children = node.children();
         for (const auto& id : children) {
             visit(id, functor, stamp);
@@ -106,18 +108,22 @@ void Cache<T>::visit(const tile::Id& node, const VisitorFunction& functor, uint6
 }
 
 template <tile_types::NamedTile T>
-void Cache<T>::purge()
+std::vector<T> Cache<T>::purge()
 {
     if (m_capacity >= n_cached_objects())
-        return;
+        return {};
     std::vector<std::pair<tile::Id, uint64_t>> tiles;
     tiles.reserve(m_data.size());
     std::ranges::transform(m_data, std::back_inserter(tiles), [](const auto& entry) { return std::make_pair(entry.first, entry.second.stamp); });
     const auto nth_iter = tiles.begin() + m_capacity;
     std::ranges::nth_element(tiles, nth_iter, std::ranges::greater(), &std::pair<tile::Id, uint64_t>::second);
-    std::ranges::for_each(nth_iter, tiles.end(), [this](const auto& v) {
+    std::vector<T> purged_tiles;
+    purged_tiles.reserve(tiles.size() - m_capacity);
+    std::ranges::for_each(nth_iter, tiles.end(), [this, &purged_tiles](const auto& v) {
+        purged_tiles.push_back(m_data[v.first].data);
         m_data.erase(v.first);
     });
+    return purged_tiles;
 }
 
 } // namespace nucleus::tile_scheduler
