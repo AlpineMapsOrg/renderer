@@ -54,7 +54,7 @@ public slots:
     void add_tile(const std::shared_ptr<nucleus::Tile>& tile);
     void remove_tile(const tile::Id& tile_id);
     void initilise_attribute_locations(ShaderProgram* program);
-    void set_aabb_decorator(const nucleus::tile_scheduler::AabbDecoratorPtr& new_aabb_decorator);
+    void set_aabb_decorator(const nucleus::tile_scheduler::utils::AabbDecoratorPtr& new_aabb_decorator);
 
 private:
     struct TileGLAttributeLocations {

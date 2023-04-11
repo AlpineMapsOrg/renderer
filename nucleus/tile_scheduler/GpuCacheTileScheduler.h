@@ -34,8 +34,10 @@ struct Tile;
 }
 
 namespace nucleus::tile_scheduler {
-class AabbDecorator;
-using AabbDecoratorPtr = std::shared_ptr<AabbDecorator>;
+namespace utils {
+    class AabbDecorator;
+    using AabbDecoratorPtr = std::shared_ptr<AabbDecorator>;
+}
 
 class GpuCacheTileScheduler : public QObject {
     Q_OBJECT
@@ -46,7 +48,7 @@ public:
     GpuCacheTileScheduler();
     ~GpuCacheTileScheduler() override;
 
-    [[nodiscard]] const tile_scheduler::AabbDecoratorPtr& aabb_decorator() const;
+    [[nodiscard]] const tile_scheduler::utils::AabbDecoratorPtr& aabb_decorator() const;
 
     [[nodiscard]] float permissible_screen_space_error() const;
     void set_permissible_screen_space_error(float new_permissible_screen_space_error);
@@ -76,7 +78,7 @@ signals:
 
 public slots:
     void set_enabled(bool new_enabled);
-    void set_aabb_decorator(const tile_scheduler::AabbDecoratorPtr& new_aabb_decorator);
+    void set_aabb_decorator(const tile_scheduler::utils::AabbDecoratorPtr& new_aabb_decorator);
     void send_debug_scheduler_stats() const;
     void key_press(const QKeyCombination&);
     void update_camera(const nucleus::camera::Definition& camera);
@@ -101,7 +103,7 @@ private:
     bool send_to_gpu_if_available(const tile::Id& tile_id);
     void remove_gpu_tiles(const std::vector<tile::Id>& tiles);
 
-    tile_scheduler::AabbDecoratorPtr m_aabb_decorator;
+    utils::AabbDecoratorPtr m_aabb_decorator;
     float m_permissible_screen_space_error = 2.0;
 
     static constexpr unsigned m_ortho_tile_size = 256;

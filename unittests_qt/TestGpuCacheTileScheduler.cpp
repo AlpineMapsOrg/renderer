@@ -41,7 +41,7 @@ private:
         auto sch = std::make_unique<GpuCacheTileScheduler>();
         TileHeights h;
         h.emplace({ 0, { 0, 0 } }, { 100, 4000 });
-        sch->set_aabb_decorator(nucleus::tile_scheduler::AabbDecorator::make(std::move(h)));
+        sch->set_aabb_decorator(nucleus::tile_scheduler::utils::AabbDecorator::make(std::move(h)));
         sch->set_max_n_simultaneous_requests(5000);
         sch->set_update_timeout(1);
         sch->set_enabled(true);

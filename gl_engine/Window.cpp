@@ -238,7 +238,7 @@ void Window::deinit_gpu()
     m_screen_quad_geometry = {};
 }
 
-void Window::set_aabb_decorator(const nucleus::tile_scheduler::AabbDecoratorPtr& new_aabb_decorator)
+void Window::set_aabb_decorator(const nucleus::tile_scheduler::utils::AabbDecoratorPtr& new_aabb_decorator)
 {
     assert(m_tile_manager);
     m_tile_manager->set_aabb_decorator(new_aabb_decorator);

@@ -30,7 +30,7 @@ struct Id;
 }
 
 namespace nucleus {
-namespace tile_scheduler {
+namespace tile_scheduler::utils {
     class AabbDecorator;
     using AabbDecoratorPtr = std::shared_ptr<AabbDecorator>;
 }
@@ -53,7 +53,7 @@ public:
 public slots:
     virtual void update_camera(const camera::Definition& new_definition) = 0;
     virtual void update_debug_scheduler_stats(const QString& stats) = 0;
-    virtual void set_aabb_decorator(const tile_scheduler::AabbDecoratorPtr&) = 0;
+    virtual void set_aabb_decorator(const tile_scheduler::utils::AabbDecoratorPtr&) = 0;
     virtual void add_tile(const std::shared_ptr<nucleus::Tile>&) = 0;
     virtual void remove_tile(const tile::Id&) = 0;
 

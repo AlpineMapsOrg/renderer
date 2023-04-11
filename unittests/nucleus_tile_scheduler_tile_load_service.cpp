@@ -27,7 +27,7 @@
 
 using namespace nucleus::tile_scheduler;
 
-TEST_CASE("nucleus/TileLoadService")
+TEST_CASE("nucleus/tile_scheduler/TileLoadService")
 {
     SECTION("build tile url")
     {

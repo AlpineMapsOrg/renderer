@@ -163,7 +163,7 @@ void TileManager::initilise_attribute_locations(ShaderProgram* program)
     m_attribute_locations.height = program->attribute_location("height");
 }
 
-void TileManager::set_aabb_decorator(const nucleus::tile_scheduler::AabbDecoratorPtr& new_aabb_decorator)
+void TileManager::set_aabb_decorator(const nucleus::tile_scheduler::utils::AabbDecoratorPtr& new_aabb_decorator)
 {
     m_draw_list_generator.set_aabb_decorator(new_aabb_decorator);
 }

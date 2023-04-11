@@ -62,7 +62,7 @@ Controller::Controller(AbstractRenderWindow* render_window)
         const auto open = file.open(QIODeviceBase::OpenModeFlag::ReadOnly);
         assert(open);
         const QByteArray data = file.readAll();
-        const auto decorator = nucleus::tile_scheduler::AabbDecorator::make(TileHeights::deserialise(data));
+        const auto decorator = nucleus::tile_scheduler::utils::AabbDecorator::make(TileHeights::deserialise(data));
         m_tile_scheduler->set_aabb_decorator(decorator);
         m_render_window->set_aabb_decorator(decorator);
     }
