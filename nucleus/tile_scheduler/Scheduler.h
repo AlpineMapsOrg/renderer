@@ -54,13 +54,15 @@ public:
 
 signals:
     void quads_requested(const std::vector<tile::Id>& id);
+    void quads_readied_for_gpu(const std::vector<tile_types::GpuTileQuad>& id);
 
 public slots:
     void update_camera(const nucleus::camera::Definition& camera);
     void receiver_quads(const std::vector<tile_types::TileQuad>& new_quads);
 
 private slots:
-    void do_update();
+    void send_quads_to_gpu();
+    void send_quad_requests();
 
 protected:
     void schedule_update();
@@ -69,12 +71,16 @@ protected:
 private:
     float m_permissible_screen_space_error = 2;
     unsigned m_update_timeout = 100;
-    unsigned m_ortho_tile_size = 256;
+    static constexpr unsigned m_ortho_tile_size = 256;
+    static constexpr unsigned m_height_tile_size = 64;
     bool m_enabled = false;
     std::unique_ptr<QTimer> m_update_timer;
     camera::Definition m_current_camera;
     utils::AabbDecoratorPtr m_aabb_decorator;
     Cache<tile_types::TileQuad> m_ram_cache;
+    Cache<tile_types::GpuCacheInfo> m_gpu_cached;
+    std::shared_ptr<QByteArray> m_default_ortho_tile;
+    std::shared_ptr<QByteArray> m_default_height_tile;
 };
 
 }

@@ -21,6 +21,13 @@
 #include "sherpa/tile.h"
 
 #include <QByteArray>
+
+class QImage;
+namespace nucleus {
+template <typename T>
+class Raster;
+}
+
 namespace nucleus::tile_scheduler::tile_types {
 
 template <typename T>
@@ -43,5 +50,24 @@ struct TileQuad {
     std::array<LayeredTile, 4> tiles;
 };
 static_assert(NamedTile<TileQuad>);
+
+struct GpuCacheInfo {
+    tile::Id id;
+};
+static_assert(NamedTile<GpuCacheInfo>);
+
+struct GpuLayeredTile {
+    tile::Id id;
+    tile::SrsAndHeightBounds bounds = {};
+    std::shared_ptr<const QImage> ortho;
+    std::shared_ptr<const nucleus::Raster<uint16_t>> height;
+};
+static_assert(NamedTile<LayeredTile>);
+
+struct GpuTileQuad {
+    tile::Id id;
+    std::array<GpuLayeredTile, 4> tiles;
+};
+static_assert(NamedTile<GpuTileQuad>);
 
 } // namespace nucleus::tile_scheduler::tile_types

@@ -18,8 +18,10 @@
 
 #include "Scheduler.h"
 #include "nucleus/tile_scheduler/utils.h"
+#include "nucleus/utils/tile_conversion.h"
 #include "sherpa/quad_tree.h"
 
+#include <QBuffer>
 #include <QTimer>
 
 using namespace nucleus::tile_scheduler;
@@ -29,7 +31,27 @@ Scheduler::Scheduler(QObject *parent)
 {
     m_update_timer = std::make_unique<QTimer>();
     m_update_timer->setSingleShot(true);
-    connect(m_update_timer.get(), &QTimer::timeout, this, &Scheduler::do_update);
+    connect(m_update_timer.get(), &QTimer::timeout, this, &Scheduler::send_quad_requests);
+
+    {
+        QImage default_tile(QSize { int(m_ortho_tile_size), int(m_ortho_tile_size) }, QImage::Format_ARGB32);
+        default_tile.fill(Qt::GlobalColor::white);
+        QByteArray arr;
+        QBuffer buffer(&arr);
+        buffer.open(QIODevice::WriteOnly);
+        default_tile.save(&buffer, "JPEG");
+        m_default_ortho_tile = std::make_shared<QByteArray>(arr);
+    }
+
+    {
+        QImage default_tile(QSize { int(m_height_tile_size), int(m_height_tile_size) }, QImage::Format_ARGB32);
+        default_tile.fill(Qt::GlobalColor::black);
+        QByteArray arr;
+        QBuffer buffer(&arr);
+        buffer.open(QIODevice::WriteOnly);
+        default_tile.save(&buffer, "PNG");
+        m_default_height_tile = std::make_shared<QByteArray>(arr);
+    }
 }
 
 Scheduler::~Scheduler() = default;
@@ -43,21 +65,62 @@ void Scheduler::update_camera(const camera::Definition& camera)
 void Scheduler::receiver_quads(const std::vector<tile_types::TileQuad>& new_quads)
 {
     m_ram_cache.insert(new_quads);
+    send_quads_to_gpu();
 }
 
-void Scheduler::do_update()
+void Scheduler::send_quads_to_gpu()
+{
+    std::vector<tile_types::GpuTileQuad> tiles_to_send;
+    m_ram_cache.visit([this, &tiles_to_send](const tile_types::TileQuad& quad) {
+        if (m_gpu_cached.contains(quad.id))
+            return true;
+        tile_types::GpuTileQuad gpu_quad;
+        gpu_quad.id = quad.id;
+        for (auto i = 0; i < quad.n_tiles; ++i) {
+            gpu_quad.tiles[i].id = quad.tiles[i].id;
+            gpu_quad.tiles[i].bounds = m_aabb_decorator->aabb(quad.tiles[i].id);
+
+            const auto* ortho_data = m_default_ortho_tile.get();
+            if (quad.tiles[i].ortho) {
+                ortho_data = quad.tiles[i].ortho.get();
+            }
+            auto ortho = nucleus::utils::tile_conversion::toQImage(*ortho_data);
+            gpu_quad.tiles[i].ortho = std::make_shared<QImage>(std::move(ortho));
+
+            const auto* height_data = m_default_height_tile.get();
+            if (quad.tiles[i].height) {
+                height_data = quad.tiles[i].height.get();
+            }
+            auto heightraster = nucleus::utils::tile_conversion::qImage2uint16Raster(nucleus::utils::tile_conversion::toQImage(*height_data));
+            gpu_quad.tiles[i].height = std::make_shared<nucleus::Raster<uint16_t>>(std::move(heightraster));
+        }
+        tiles_to_send.push_back(gpu_quad);
+        return true;
+    });
+    std::vector<tile_types::GpuCacheInfo> tiles_to_put_in_gpu_cache;
+    tiles_to_put_in_gpu_cache.reserve(tiles_to_send.size());
+    std::ranges::transform(tiles_to_send, std::back_inserter(tiles_to_put_in_gpu_cache), [](const tile_types::GpuTileQuad& t) {
+        return tile_types::GpuCacheInfo { t.id };
+    });
+    m_gpu_cached.insert(tiles_to_put_in_gpu_cache);
+
+    emit quads_readied_for_gpu(tiles_to_send);
+}
+
+void Scheduler::send_quad_requests()
 {
     auto currently_active_tiles = tiles_for_current_camera_position();
     std::erase_if(currently_active_tiles, [this](const tile::Id& id) {
         return m_ram_cache.contains(id);
     });
-    emit(quads_requested(currently_active_tiles));
+    emit quads_requested(currently_active_tiles);
 }
 
 void Scheduler::schedule_update()
 {
+    assert(m_update_timeout < std::numeric_limits<int>::max());
     if (m_enabled && !m_update_timer->isActive())
-        m_update_timer->start(m_update_timeout);
+        m_update_timer->start(int(m_update_timeout));
 }
 
 std::vector<tile::Id> Scheduler::tiles_for_current_camera_position() const
@@ -101,6 +164,7 @@ unsigned int Scheduler::update_timeout() const
 
 void Scheduler::set_update_timeout(unsigned new_update_timeout)
 {
+    assert(m_update_timeout < std::numeric_limits<int>::max());
     m_update_timeout = new_update_timeout;
     if (m_update_timer->isActive()) {
         m_update_timer->start(m_update_timeout);
