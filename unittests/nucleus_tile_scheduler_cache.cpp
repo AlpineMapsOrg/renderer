@@ -143,7 +143,7 @@ TEST_CASE("nucleus/tile_scheduler/cache")
         CHECK(cache.n_cached_objects() == 6);
         cache.set_capacity(3);
         const auto purged = cache.purge();
-        CHECK(purged.size() == 3);
+        REQUIRE(purged.size() == 3);
         CHECK(purged[0].id == tile::Id { 2, { 0, 0 } }); // order does not matter
         CHECK(purged[1].id == tile::Id { 6, { 4, 3 } });
         CHECK(purged[2].id == tile::Id { 3, { 0, 0 } });
@@ -167,7 +167,7 @@ TEST_CASE("nucleus/tile_scheduler/cache")
             TestTile { { 1, { 1, 1 } }, "green" },
         });
         const auto purged = cache.purge();
-        CHECK(purged.size() == 2);
+        REQUIRE(purged.size() == 2);
         CHECK(purged[0].id == tile::Id { 0, { 0, 0 } }); // order does not matter
         CHECK(purged[1].id == tile::Id { 1, { 0, 1 } });
         CHECK(cache.n_cached_objects() == 2);
@@ -193,7 +193,7 @@ TEST_CASE("nucleus/tile_scheduler/cache")
             return true;
         });
         const auto purged = cache.purge();
-        CHECK(purged.size() == 2);
+        REQUIRE(purged.size() == 2);
         CHECK(purged[0].id == tile::Id { 1, { 1, 0 } }); // order does not matter
         CHECK(purged[1].id == tile::Id { 1, { 0, 1 } });
         CHECK(cache.n_cached_objects() == 2);
@@ -230,7 +230,7 @@ TEST_CASE("nucleus/tile_scheduler/cache")
         });
         cache.set_capacity(2);
         const auto purged = cache.purge();
-        CHECK(purged.size() == 5);
+        REQUIRE(purged.size() == 5);
         CHECK(purged[0].data == "orange"); // order does not matter
         CHECK(purged[1].data == "orange");
         CHECK(purged[2].data == "orange");
@@ -239,5 +239,26 @@ TEST_CASE("nucleus/tile_scheduler/cache")
         CHECK(cache.n_cached_objects() == 2);
         CHECK(cache.contains({ 0, { 0, 0 } }));
         CHECK(cache.contains({ 1, { 0, 0 } }));
+    }
+
+    SECTION("insert: insert overwrites existing objects")
+    {
+        nucleus::tile_scheduler::Cache<TestTile> cache;
+        cache.insert({
+            TestTile { { 0, { 0, 0 } }, "green" },
+            TestTile { { 1, { 0, 1 } }, "green" },
+        });
+        cache.visit([](const TestTile& t) {
+            CHECK(t.data == "green");
+            return true;
+        });
+        cache.insert({
+            TestTile { { 0, { 0, 0 } }, "red" },
+            TestTile { { 1, { 0, 1 } }, "red" },
+        });
+        cache.visit([](const TestTile& t) {
+            CHECK(t.data == "red");
+            return true;
+        });
     }
 }
