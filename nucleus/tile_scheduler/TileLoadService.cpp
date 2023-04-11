@@ -23,7 +23,9 @@
 #include <QNetworkAccessManager>
 #include <QNetworkReply>
 
-using namespace nucleus;
+#include "../srs.h"
+
+using namespace nucleus::tile_scheduler;
 
 TileLoadService::TileLoadService(const QString& base_url, UrlPattern url_pattern, const QString& file_ending, const LoadBalancingTargets& load_balancing_targets)
     : m_network_manager(new QNetworkAccessManager(this))

@@ -22,12 +22,12 @@
 
 #include <QObject>
 
-#include "srs.h"
-#include "tile_scheduler/constants.h"
+#include "constants.h"
+#include "sherpa/tile.h"
 
 class QNetworkAccessManager;
 
-namespace nucleus {
+namespace nucleus::tile_scheduler {
 
 class TileLoadService : public QObject {
     Q_OBJECT

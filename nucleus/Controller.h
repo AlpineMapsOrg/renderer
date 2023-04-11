@@ -24,13 +24,13 @@
 
 namespace nucleus {
 class AbstractRenderWindow;
-class TileLoadService;
 namespace tile_scheduler {
-    class GpuCacheTileScheduler;
+class TileLoadService;
+class GpuCacheTileScheduler;
 }
 namespace camera {
-    class Controller;
-    class NearPlaneAdjuster;
+class Controller;
+class NearPlaneAdjuster;
 }
 
 class Controller : public QObject {
@@ -49,8 +49,8 @@ private:
 #ifdef ALP_ENABLE_THREADING
     std::unique_ptr<QThread> m_scheduler_thread;
 #endif
-    std::unique_ptr<TileLoadService> m_terrain_service;
-    std::unique_ptr<TileLoadService> m_ortho_service;
+    std::unique_ptr<tile_scheduler::TileLoadService> m_terrain_service;
+    std::unique_ptr<tile_scheduler::TileLoadService> m_ortho_service;
     std::unique_ptr<tile_scheduler::GpuCacheTileScheduler> m_tile_scheduler;
     std::unique_ptr<camera::Controller> m_camera_controller;
     std::unique_ptr<camera::NearPlaneAdjuster> m_near_plane_adjuster;

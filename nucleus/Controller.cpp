@@ -26,15 +26,15 @@
 #endif
 
 #include "AbstractRenderWindow.h"
-#include "nucleus/TileLoadService.h"
 #include "nucleus/camera/Controller.h"
 #include "nucleus/camera/NearPlaneAdjuster.h"
 #include "nucleus/camera/stored_positions.h"
 #include "nucleus/tile_scheduler/GpuCacheTileScheduler.h"
+#include "nucleus/tile_scheduler/TileLoadService.h"
 #include "nucleus/tile_scheduler/utils.h"
 #include "sherpa/TileHeights.h"
 
-using nucleus::tile_scheduler::GpuCacheTileScheduler;
+using namespace nucleus::tile_scheduler;
 
 namespace nucleus {
 Controller::Controller(AbstractRenderWindow* render_window)

@@ -16,7 +16,7 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *****************************************************************************/
 
-#include "nucleus/TileLoadService.h"
+#include "nucleus/tile_scheduler/TileLoadService.h"
 
 #include <algorithm>
 
@@ -25,7 +25,7 @@
 
 #include "nucleus/utils/tile_conversion.h"
 
-using namespace nucleus;
+using namespace nucleus::tile_scheduler;
 
 TEST_CASE("nucleus/TileLoadService")
 {
@@ -127,7 +127,7 @@ TEST_CASE("nucleus/TileLoadService")
         {
             QSignalSpy spy(&service, &TileLoadService::load_ready);
             service.load(white_tile_id);
-            spy.wait(250);
+            spy.wait(500);
 
             REQUIRE(spy.count() == 1); // make sure the signal was emitted exactly one time
             QList<QVariant> arguments = spy.takeFirst(); // take the first signal

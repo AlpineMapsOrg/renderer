@@ -27,7 +27,7 @@ set(ALP_NUCLEUS_SOURCES
     nucleus/tile_scheduler/constants.h
     nucleus/tile_scheduler/QuadAssembler.h nucleus/tile_scheduler/QuadAssembler.cpp
     nucleus/tile_scheduler/Cache.h
-    nucleus/TileLoadService.h nucleus/TileLoadService.cpp
+    nucleus/tile_scheduler/TileLoadService.h nucleus/tile_scheduler/TileLoadService.cpp
     nucleus/camera/CadInteraction.h nucleus/camera/CadInteraction.cpp
     nucleus/camera/Controller.h nucleus/camera/Controller.cpp
     nucleus/camera/CrapyInteraction.h nucleus/camera/CrapyInteraction.cpp
@@ -110,7 +110,7 @@ if (ALP_UNITTESTS AND NOT EMSCRIPTEN)
         unittests/test_tile.cpp
         unittests/test_tile_conversion.cpp
         unittests/nucleus_tile_scheduler_util.cpp
-        unittests/nucleus_tile_load_service.cpp
+        unittests/nucleus_tile_scheduler_tile_load_service.cpp
         unittests/nucleus_camera_near_plane_adjuster.cpp
         unittests/nucleus_tile_scheduler_layer_assembler.cpp
         unittests/nucleus_tile_scheduler_quad_assembler.cpp
