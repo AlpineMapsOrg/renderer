@@ -79,6 +79,48 @@ nucleus::tile_scheduler::tile_types::TileQuad example_tile_quad_for(const tile::
     }
     return cpu_quad;
 }
+
+std::vector<nucleus::tile_scheduler::tile_types::TileQuad> example_quads_for_steffl_and_gg()
+{
+    return {
+        example_tile_quad_for(tile::Id { 0, { 0, 0 } }),
+        example_tile_quad_for(tile::Id { 1, { 1, 1 } }),
+        example_tile_quad_for(tile::Id { 2, { 2, 2 } }),
+        example_tile_quad_for(tile::Id { 3, { 4, 5 } }),
+        example_tile_quad_for(tile::Id { 4, { 8, 10 } }),
+        example_tile_quad_for(tile::Id { 5, { 17, 20 } }),
+        example_tile_quad_for(tile::Id { 6, { 34, 41 } }),
+        example_tile_quad_for(tile::Id { 7, { 69, 83 } }), // stephans dom
+        example_tile_quad_for(tile::Id { 8, { 139, 167 } }),
+        example_tile_quad_for(tile::Id { 9, { 279, 334 } }),
+        example_tile_quad_for(tile::Id { 10, { 558, 668 } }),
+        example_tile_quad_for(tile::Id { 10, { 558, 669 } }),
+        example_tile_quad_for(tile::Id { 11, { 1117, 1337 } }),
+        example_tile_quad_for(tile::Id { 11, { 1117, 1338 } }),
+        example_tile_quad_for(tile::Id { 11, { 1116, 1337 } }),
+        example_tile_quad_for(tile::Id { 11, { 1116, 1338 } }),
+        example_tile_quad_for(tile::Id { 12, { 2234, 2675 } }),
+        example_tile_quad_for(tile::Id { 7, { 68, 83 } }), // grossglockner
+        example_tile_quad_for(tile::Id { 7, { 68, 82 } }),
+        example_tile_quad_for(tile::Id { 8, { 136, 166 } }),
+        example_tile_quad_for(tile::Id { 8, { 137, 166 } }),
+        example_tile_quad_for(tile::Id { 8, { 136, 165 } }),
+        example_tile_quad_for(tile::Id { 8, { 137, 165 } }),
+        example_tile_quad_for(tile::Id { 9, { 273, 332 } }),
+        example_tile_quad_for(tile::Id { 9, { 274, 332 } }),
+        example_tile_quad_for(tile::Id { 9, { 273, 331 } }),
+        example_tile_quad_for(tile::Id { 9, { 274, 331 } }),
+        example_tile_quad_for(tile::Id { 10, { 547, 664 } }),
+        example_tile_quad_for(tile::Id { 10, { 548, 664 } }),
+        example_tile_quad_for(tile::Id { 11, { 1095, 1328 } }),
+        example_tile_quad_for(tile::Id { 11, { 1096, 1328 } }),
+        example_tile_quad_for(tile::Id { 12, { 2191, 2657 } }),
+        example_tile_quad_for(tile::Id { 12, { 2192, 2657 } }),
+        example_tile_quad_for(tile::Id { 12, { 2191, 2656 } }),
+        example_tile_quad_for(tile::Id { 12, { 2192, 2656 } }),
+
+    };
+}
 }
 
 TEST_CASE("nucleus/tile_scheduler/Scheduler")
@@ -182,7 +224,7 @@ TEST_CASE("nucleus/tile_scheduler/Scheduler")
     SECTION("delivered quads are sent on to the gpu (with no repeat, only the ones in the tree)")
     {
         auto scheduler = default_scheduler();
-        QSignalSpy spy(scheduler.get(), &nucleus::tile_scheduler::Scheduler::quads_readied_for_gpu);
+        QSignalSpy spy(scheduler.get(), &nucleus::tile_scheduler::Scheduler::gpu_quads_updated);
         scheduler->receiver_quads({
             example_tile_quad_for(tile::Id { 0, { 0, 0 } }),
             example_tile_quad_for(tile::Id { 1, { 1, 1 } }),
@@ -200,19 +242,25 @@ TEST_CASE("nucleus/tile_scheduler/Scheduler")
 
         scheduler->receiver_quads({
             example_tile_quad_for(tile::Id { 3, { 4, 5 } }),
+            example_tile_quad_for(tile::Id { 5, { 17, 20 } }),
+            example_tile_quad_for(tile::Id { 6, { 34, 41 } }),
+            example_tile_quad_for(tile::Id { 7, { 69, 83 } }),
         });
         spy.wait(2);
         REQUIRE(spy.size() == 2);
         const auto new_gpu_quads = spy[1].front().value<std::vector<nucleus::tile_scheduler::tile_types::GpuTileQuad>>();
-        REQUIRE(new_gpu_quads.size() == 2);
+        REQUIRE(new_gpu_quads.size() == 5);
         CHECK(new_gpu_quads[0].id == tile::Id { 3, { 4, 5 } }); // order does not matter
         CHECK(new_gpu_quads[1].id == tile::Id { 4, { 8, 10 } });
+        CHECK(new_gpu_quads[2].id == tile::Id { 5, { 17, 20 } });
+        CHECK(new_gpu_quads[3].id == tile::Id { 6, { 34, 41 } });
+        CHECK(new_gpu_quads[4].id == tile::Id { 7, { 69, 83 } });
     }
 
     SECTION("tiles sent to the gpu are unpacked")
     {
         auto scheduler = default_scheduler();
-        QSignalSpy spy(scheduler.get(), &nucleus::tile_scheduler::Scheduler::quads_readied_for_gpu);
+        QSignalSpy spy(scheduler.get(), &nucleus::tile_scheduler::Scheduler::gpu_quads_updated);
         scheduler->receiver_quads({
             example_tile_quad_for({ 0, { 0, 0 } }, 4),
         });
@@ -245,7 +293,7 @@ TEST_CASE("nucleus/tile_scheduler/Scheduler")
     SECTION("incomplete tiles are replaced with default ones, when sending to gpu")
     {
         auto scheduler = default_scheduler();
-        QSignalSpy spy(scheduler.get(), &nucleus::tile_scheduler::Scheduler::quads_readied_for_gpu);
+        QSignalSpy spy(scheduler.get(), &nucleus::tile_scheduler::Scheduler::gpu_quads_updated);
         auto quads = example_tile_quad_for({ 0, { 0, 0 } }, 3);
         quads.tiles[2].ortho.reset();
         quads.tiles[2].height.reset();
@@ -265,6 +313,49 @@ TEST_CASE("nucleus/tile_scheduler/Scheduler")
             REQUIRE(gpu_quads[0].tiles[i].height);
             CHECK(gpu_quads[0].tiles[i].height->width() == 64);
             CHECK(gpu_quads[0].tiles[i].height->height() == 64);
+        }
+    }
+
+    SECTION("gpu quads are updated when serving from cache")
+    {
+        auto scheduler = default_scheduler();
+        QSignalSpy spy(scheduler.get(), &nucleus::tile_scheduler::Scheduler::gpu_quads_updated);
+        scheduler->receiver_quads(example_quads_for_steffl_and_gg());
+
+        scheduler->update_camera(nucleus::camera::stored_positions::stephansdom());
+        spy.wait(2);
+        CHECK(spy.size() == 1);
+
+        scheduler->update_camera(nucleus::camera::stored_positions::grossglockner());
+        spy.wait(2);
+        CHECK(spy.size() == 2);
+    }
+
+    SECTION("gpu quads don't exceede the limit")
+    {
+        auto scheduler = default_scheduler();
+        scheduler->set_gpu_quad_limit(17);
+        QSignalSpy spy(scheduler.get(), &nucleus::tile_scheduler::Scheduler::gpu_quads_updated);
+        scheduler->receiver_quads(example_quads_for_steffl_and_gg());
+
+        {
+            scheduler->update_camera(nucleus::camera::stored_positions::stephansdom());
+            spy.wait(2);
+            REQUIRE(spy.size() == 1);
+            const auto new_quads = spy[0][0].value<std::vector<nucleus::tile_scheduler::tile_types::GpuTileQuad>>();
+            const auto deleted_quads = spy[0][1].value<std::vector<tile::Id>>();
+            CHECK(new_quads.size() == 17);
+            CHECK(deleted_quads.size() == 0);
+        }
+
+        {
+            scheduler->update_camera(nucleus::camera::stored_positions::grossglockner());
+            spy.wait(2);
+            REQUIRE(spy.size() == 2);
+            const auto new_quads = spy[1][0].value<std::vector<nucleus::tile_scheduler::tile_types::GpuTileQuad>>();
+            const auto deleted_quads = spy[1][1].value<std::vector<tile::Id>>();
+            CHECK(new_quads.size() == deleted_quads.size());
+            CHECK(!new_quads.empty());
         }
     }
 }

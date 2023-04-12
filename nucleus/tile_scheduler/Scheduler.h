@@ -52,16 +52,18 @@ public:
 
     void set_aabb_decorator(const utils::AabbDecoratorPtr& new_aabb_decorator);
 
+    void set_gpu_quad_limit(unsigned int new_gpu_quad_limit);
+
 signals:
     void quads_requested(const std::vector<tile::Id>& id);
-    void quads_readied_for_gpu(const std::vector<tile_types::GpuTileQuad>& id);
+    void gpu_quads_updated(const std::vector<tile_types::GpuTileQuad>& new_quads, const std::vector<tile::Id>& deleted_quads);
 
 public slots:
     void update_camera(const nucleus::camera::Definition& camera);
     void receiver_quads(const std::vector<tile_types::TileQuad>& new_quads);
 
 private slots:
-    void send_quads_to_gpu();
+    void update_gpu_quads();
     void send_quad_requests();
 
 protected:
@@ -71,6 +73,7 @@ protected:
 private:
     float m_permissible_screen_space_error = 2;
     unsigned m_update_timeout = 100;
+    unsigned m_gpu_quad_limit = 250;
     static constexpr unsigned m_ortho_tile_size = 256;
     static constexpr unsigned m_height_tile_size = 64;
     bool m_enabled = false;

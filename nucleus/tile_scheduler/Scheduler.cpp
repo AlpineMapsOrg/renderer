@@ -23,6 +23,7 @@
 
 #include <QBuffer>
 #include <QTimer>
+#include <unordered_set>
 
 using namespace nucleus::tile_scheduler;
 
@@ -32,6 +33,7 @@ Scheduler::Scheduler(QObject *parent)
     m_update_timer = std::make_unique<QTimer>();
     m_update_timer->setSingleShot(true);
     connect(m_update_timer.get(), &QTimer::timeout, this, &Scheduler::send_quad_requests);
+    connect(m_update_timer.get(), &QTimer::timeout, this, &Scheduler::update_gpu_quads);
 
     {
         QImage default_tile(QSize { int(m_ortho_tile_size), int(m_ortho_tile_size) }, QImage::Format_ARGB32);
@@ -65,13 +67,13 @@ void Scheduler::update_camera(const camera::Definition& camera)
 void Scheduler::receiver_quads(const std::vector<tile_types::TileQuad>& new_quads)
 {
     m_ram_cache.insert(new_quads);
-    send_quads_to_gpu();
+    schedule_update();
 }
 
-void Scheduler::send_quads_to_gpu()
+void Scheduler::update_gpu_quads()
 {
-    std::vector<tile_types::GpuTileQuad> tiles_to_send;
-    m_ram_cache.visit([this, &tiles_to_send](const tile_types::TileQuad& quad) {
+    std::vector<tile_types::GpuTileQuad> new_gpu_quads;
+    m_ram_cache.visit([this, &new_gpu_quads](const tile_types::TileQuad& quad) {
         if (m_gpu_cached.contains(quad.id))
             return true;
         tile_types::GpuTileQuad gpu_quad;
@@ -94,17 +96,35 @@ void Scheduler::send_quads_to_gpu()
             auto heightraster = nucleus::utils::tile_conversion::qImage2uint16Raster(nucleus::utils::tile_conversion::toQImage(*height_data));
             gpu_quad.tiles[i].height = std::make_shared<nucleus::Raster<uint16_t>>(std::move(heightraster));
         }
-        tiles_to_send.push_back(gpu_quad);
+        new_gpu_quads.push_back(gpu_quad);
         return true;
     });
+
     std::vector<tile_types::GpuCacheInfo> tiles_to_put_in_gpu_cache;
-    tiles_to_put_in_gpu_cache.reserve(tiles_to_send.size());
-    std::ranges::transform(tiles_to_send, std::back_inserter(tiles_to_put_in_gpu_cache), [](const tile_types::GpuTileQuad& t) {
+    tiles_to_put_in_gpu_cache.reserve(new_gpu_quads.size());
+    std::ranges::transform(new_gpu_quads, std::back_inserter(tiles_to_put_in_gpu_cache), [](const tile_types::GpuTileQuad& t) {
         return tile_types::GpuCacheInfo { t.id };
     });
     m_gpu_cached.insert(tiles_to_put_in_gpu_cache);
+    const auto superfluous_quads = m_gpu_cached.purge();
 
-    emit quads_readied_for_gpu(tiles_to_send);
+    std::vector<tile::Id> superfluous_ids;
+    superfluous_ids.reserve(superfluous_quads.size());
+    std::ranges::transform(superfluous_quads, std::back_inserter(superfluous_ids), [](const tile_types::GpuCacheInfo& t) {
+        return t.id;
+    });
+
+    std::unordered_set<tile::Id, tile::Id::Hasher> superfluous_ids_set(superfluous_ids.cbegin(), superfluous_ids.cend());
+    std::erase_if(new_gpu_quads, [&superfluous_ids_set](const tile_types::GpuTileQuad& quad) {
+        if (superfluous_ids_set.contains(quad.id)) {
+            superfluous_ids_set.erase(quad.id);
+            return true;
+        }
+        return false;
+    });
+    superfluous_ids = { superfluous_ids_set.cbegin(), superfluous_ids_set.cend() };
+
+    emit gpu_quads_updated(new_gpu_quads, superfluous_ids);
 }
 
 void Scheduler::send_quad_requests()
@@ -134,6 +154,12 @@ std::vector<tile::Id> Scheduler::tiles_for_current_camera_position() const
     //    all_inner_nodes.reserve(all_inner_nodes.size() + all_leaves.size());
     //    std::copy(all_leaves.begin(), all_leaves.end(), std::back_inserter(all_inner_nodes));
     return all_inner_nodes;
+}
+
+void Scheduler::set_gpu_quad_limit(unsigned int new_gpu_quad_limit)
+{
+    m_gpu_quad_limit = new_gpu_quad_limit;
+    m_gpu_cached.set_capacity(m_gpu_quad_limit);
 }
 
 void Scheduler::set_aabb_decorator(const utils::AabbDecoratorPtr& new_aabb_decorator)
