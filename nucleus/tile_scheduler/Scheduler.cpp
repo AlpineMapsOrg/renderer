@@ -106,25 +106,28 @@ void Scheduler::update_gpu_quads()
         return tile_types::GpuCacheInfo { t.id };
     });
     m_gpu_cached.insert(tiles_to_put_in_gpu_cache);
-    const auto superfluous_quads = m_gpu_cached.purge();
 
-    std::vector<tile::Id> superfluous_ids;
-    superfluous_ids.reserve(superfluous_quads.size());
-    std::ranges::transform(superfluous_quads, std::back_inserter(superfluous_ids), [](const tile_types::GpuCacheInfo& t) {
-        return t.id;
+    m_gpu_cached.visit([this](const tile_types::GpuCacheInfo& quad) {
+        return true;
     });
 
-    std::unordered_set<tile::Id, tile::Id::Hasher> superfluous_ids_set(superfluous_ids.cbegin(), superfluous_ids.cend());
-    std::erase_if(new_gpu_quads, [&superfluous_ids_set](const tile_types::GpuTileQuad& quad) {
-        if (superfluous_ids_set.contains(quad.id)) {
-            superfluous_ids_set.erase(quad.id);
+    const auto superfluous_quads = m_gpu_cached.purge();
+
+    // elimitate double entries
+    std::unordered_set<tile::Id, tile::Id::Hasher> superfluous_ids;
+    superfluous_ids.reserve(superfluous_quads.size());
+    for (const auto& quad : superfluous_quads)
+        superfluous_ids.insert(quad.id);
+
+    std::erase_if(new_gpu_quads, [&superfluous_ids](const tile_types::GpuTileQuad& quad) {
+        if (superfluous_ids.contains(quad.id)) {
+            superfluous_ids.erase(quad.id);
             return true;
         }
         return false;
     });
-    superfluous_ids = { superfluous_ids_set.cbegin(), superfluous_ids_set.cend() };
 
-    emit gpu_quads_updated(new_gpu_quads, superfluous_ids);
+    emit gpu_quads_updated(new_gpu_quads, { superfluous_ids.cbegin(), superfluous_ids.cend() });
 }
 
 void Scheduler::send_quad_requests()

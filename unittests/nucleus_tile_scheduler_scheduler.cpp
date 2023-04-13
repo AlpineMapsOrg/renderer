@@ -22,6 +22,7 @@
 
 #include <QSignalSpy>
 #include <QThread>
+#include <unordered_set>
 
 #include "nucleus/camera/stored_positions.h"
 #include "nucleus/tile_scheduler/tile_types.h"
@@ -331,12 +332,14 @@ TEST_CASE("nucleus/tile_scheduler/Scheduler")
         CHECK(spy.size() == 2);
     }
 
-    SECTION("gpu quads don't exceede the limit")
+    SECTION("number of gpu quads doesn't exceede the limit")
     {
         auto scheduler = default_scheduler();
         scheduler->set_gpu_quad_limit(17);
         QSignalSpy spy(scheduler.get(), &nucleus::tile_scheduler::Scheduler::gpu_quads_updated);
         scheduler->receiver_quads(example_quads_for_steffl_and_gg());
+
+        std::unordered_set<tile::Id, tile::Id::Hasher> cached_tiles;
 
         {
             scheduler->update_camera(nucleus::camera::stored_positions::stephansdom());
@@ -346,6 +349,17 @@ TEST_CASE("nucleus/tile_scheduler/Scheduler")
             const auto deleted_quads = spy[0][1].value<std::vector<tile::Id>>();
             CHECK(new_quads.size() == 17);
             CHECK(deleted_quads.size() == 0);
+            nucleus::tile_scheduler::Cache<nucleus::tile_scheduler::tile_types::GpuTileQuad> test_cache;
+            test_cache.insert(new_quads);
+            auto n_tiles = 0;
+            test_cache.visit([&n_tiles](const auto&) {
+                n_tiles++;
+                return true;
+            });
+            CHECK(n_tiles == 17); // check that all are reachable
+            for (const auto& tile : new_quads) {
+                cached_tiles.insert(tile.id);
+            }
         }
 
         {
@@ -356,6 +370,53 @@ TEST_CASE("nucleus/tile_scheduler/Scheduler")
             const auto deleted_quads = spy[1][1].value<std::vector<tile::Id>>();
             CHECK(new_quads.size() == deleted_quads.size());
             CHECK(!new_quads.empty());
+
+            { // check that all are reachable
+                for (const auto& tile : new_quads) {
+                    cached_tiles.insert(tile.id);
+                }
+                for (const auto& id : deleted_quads) {
+                    cached_tiles.erase(id);
+                }
+                nucleus::tile_scheduler::Cache<nucleus::tile_scheduler::tile_types::GpuCacheInfo> test_cache;
+                for (const auto& id : cached_tiles) {
+                    test_cache.insert({ { id } });
+                }
+                auto n_tiles = 0;
+                test_cache.visit([&n_tiles](const auto&) {
+                    n_tiles++;
+                    return true;
+                });
+                CHECK(n_tiles == 17);
+            }
+            { // check for double entries
+                std::unordered_set<tile::Id, tile::Id::Hasher> deleted_quads_set(deleted_quads.cbegin(), deleted_quads.cend());
+                for (const auto& new_quad : new_quads) {
+                    CHECK(!deleted_quads_set.contains(new_quad.id));
+                }
+            }
         }
+    }
+
+    SECTION("gpu tiles are optimised for the current camera position")
+    {
+        auto scheduler = default_scheduler();
+        scheduler->set_gpu_quad_limit(17);
+        QSignalSpy spy(scheduler.get(), &nucleus::tile_scheduler::Scheduler::gpu_quads_updated);
+        scheduler->receiver_quads(example_quads_for_steffl_and_gg());
+
+        std::unordered_set<tile::Id, tile::Id::Hasher> cached_tiles;
+        scheduler->update_camera(nucleus::camera::stored_positions::stephansdom());
+        spy.wait(2);
+        REQUIRE(spy.size() == 1);
+        const auto new_quads = spy[0][0].value<std::vector<nucleus::tile_scheduler::tile_types::GpuTileQuad>>();
+        for (const auto& tile : new_quads) {
+            cached_tiles.insert(tile.id);
+        }
+        CHECK(cached_tiles.contains({ 11, { 1117, 1337 } }));
+        CHECK(cached_tiles.contains({ 11, { 1117, 1338 } }));
+        CHECK(cached_tiles.contains({ 11, { 1116, 1337 } }));
+        CHECK(cached_tiles.contains({ 11, { 1116, 1338 } }));
+        CHECK(cached_tiles.contains({ 12, { 2234, 2675 } }));
     }
 }
