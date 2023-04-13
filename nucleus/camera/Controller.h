@@ -58,7 +58,7 @@ public slots:
     void key_press(const QKeyCombination&);
     void key_release(const QKeyCombination&);
     void touch(const event_parameter::Touch&);
-    void update_camera();
+    void update_camera_request();
 
 signals:
     void definition_changed(const Definition& new_definition) const;

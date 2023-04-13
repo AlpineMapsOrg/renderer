@@ -162,7 +162,7 @@ void Controller::touch(const event_parameter::Touch& e)
     update();
 }
 
-void Controller::update_camera()
+void Controller::update_camera_request()
 {
     const auto new_definition = m_interaction_style->update(m_definition, m_depth_tester);
     if (!new_definition)

@@ -85,7 +85,7 @@ QQuickFramebufferObject::Renderer* TerrainRendererItem::createRenderer() const
     connect(this, &TerrainRendererItem::wheel_turned, r->controller()->camera_controller(), &nucleus::camera::Controller::wheel_turn);
     connect(this, &TerrainRendererItem::key_pressed, r->controller()->camera_controller(), &nucleus::camera::Controller::key_press);
     connect(this, &TerrainRendererItem::key_released, r->controller()->camera_controller(), &nucleus::camera::Controller::key_release);
-    connect(this, &TerrainRendererItem::update_camera, r->controller()->camera_controller(), &nucleus::camera::Controller::update_camera);
+    connect(this, &TerrainRendererItem::update_camera_requested, r->controller()->camera_controller(), &nucleus::camera::Controller::update_camera_request);
     connect(this, &TerrainRendererItem::position_set_by_user, r->controller()->camera_controller(), &nucleus::camera::Controller::set_latitude_longitude);
     connect(r, &TerrainRenderer::another_frame_requested, this, &TerrainRendererItem::schedule_update);
 
@@ -155,7 +155,7 @@ void TerrainRendererItem::keyReleaseEvent(QKeyEvent* e)
 
 void TerrainRendererItem::key_timer()
 {
-    emit update_camera();
+    emit update_camera_requested();
     RenderThreadNotifier::instance()->notify();
 }
 

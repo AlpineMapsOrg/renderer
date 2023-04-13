@@ -61,7 +61,7 @@ signals:
     void update_requested();
     void key_pressed(const QKeyCombination&) const;
     void key_released(const QKeyCombination&) const;
-    void update_camera_event() const;
+    void update_camera_requested() const;
 };
 
 }
