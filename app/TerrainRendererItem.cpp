@@ -33,11 +33,11 @@
 #include <QTimer>
 
 #include "RenderThreadNotifier.h"
+#include "TerrainRenderer.h"
 #include "gl_engine/Window.h"
-#include "nucleus/Controller.h"
 #include "nucleus/camera/Controller.h"
-
-#include <nucleus/tile_scheduler/GpuCacheTileScheduler.h>
+#include "nucleus/Controller.h"
+#include "nucleus/tile_scheduler/GpuCacheTileScheduler.h"
 
 namespace {
 // helper type for the visitor from https://en.cppreference.com/w/cpp/utility/variant/visit
@@ -49,95 +49,6 @@ struct overloaded : Ts... {
 template <class... Ts>
 overloaded(Ts...) -> overloaded<Ts...>;
 }
-
-class TerrainRenderer : public QQuickFramebufferObject::Renderer {
-public:
-    TerrainRenderer()
-    {
-        m_glWindow = std::make_unique<gl_engine::Window>();
-        m_glWindow->initialise_gpu();
-        m_controller = std::make_unique<nucleus::Controller>(m_glWindow.get());
-        qDebug("TerrainRendererItemRenderer()");
-    }
-    ~TerrainRenderer() override
-    {
-        qDebug("~TerrainRendererItemRenderer()");
-    }
-
-    void synchronize(QQuickFramebufferObject *item) Q_DECL_OVERRIDE
-    {
-        // warning:
-        // you can only safely copy objects between main and render thread.
-        // the tile scheduler is in an extra thread, there will be races if you write to it.
-        m_window = item->window();
-        TerrainRendererItem* i = static_cast<TerrainRendererItem*>(item);
-        //        m_controller->camera_controller()->set_virtual_resolution_factor(i->render_quality());
-        m_glWindow->set_permissible_screen_space_error(2.0 / i->render_quality());
-        m_controller->camera_controller()->set_viewport({ i->width(), i->height() });
-        m_controller->camera_controller()->set_field_of_view(i->field_of_view());
-
-        auto cameraFrontAxis = m_controller->camera_controller()->definition().z_axis();
-        auto degFromNorth = glm::degrees(glm::acos(glm::dot(glm::normalize(glm::dvec3(cameraFrontAxis.x, cameraFrontAxis.y, 0)), glm::dvec3(0, -1, 0))));
-        if (cameraFrontAxis.x > 0) {
-            i->set_camera_rotation_from_north(degFromNorth);
-        } else {
-            i->set_camera_rotation_from_north(-degFromNorth);
-        }
-
-        const auto oc = m_controller->camera_controller()->get_operation_centre();
-        if (oc.has_value()) {
-            i->set_camera_operation_centre_visibility(true);
-            i->set_camera_operation_centre(QPointF(oc.value().x, oc.value().y));
-        } else {
-            i->set_camera_operation_centre_visibility(false);
-        }
-
-        if (!(i->camera() == m_controller->camera_controller()->definition())) {
-            const auto tmp_camera = m_controller->camera_controller()->definition();
-            QTimer::singleShot(0, i, [i, tmp_camera]() {
-                i->set_read_only_camera(tmp_camera);
-                i->set_read_only_camera_width(tmp_camera.viewport_size().x);
-                i->set_read_only_camera_height(tmp_camera.viewport_size().y);
-            });
-        }
-    }
-
-    void render() Q_DECL_OVERRIDE
-    {
-        m_window->beginExternalCommands();
-        m_glWindow->paint(this->framebufferObject());
-        m_window->endExternalCommands();
-    }
-
-    QOpenGLFramebufferObject *createFramebufferObject(const QSize &size) Q_DECL_OVERRIDE
-    {
-        qDebug() << "QOpenGLFramebufferObject *createFramebufferObject(const QSize& " << size << ")";
-        m_window->beginExternalCommands();
-        m_glWindow->resize_framebuffer(size.width(), size.height());
-        m_window->endExternalCommands();
-        QOpenGLFramebufferObjectFormat format;
-        format.setSamples(1);
-        format.setAttachment(QOpenGLFramebufferObject::CombinedDepthStencil);
-        return new QOpenGLFramebufferObject(size, format);
-    }
-
-    [[nodiscard]] gl_engine::Window* glWindow() const
-    {
-        return m_glWindow.get();
-    }
-
-    [[nodiscard]] nucleus::Controller* controller() const
-    {
-        return m_controller.get();
-    }
-
-private:
-    QQuickWindow *m_window;
-    std::unique_ptr<gl_engine::Window> m_glWindow;
-    std::unique_ptr<nucleus::Controller> m_controller;
-};
-
-// TerrainRendererItem implementation
 
 TerrainRendererItem::TerrainRendererItem(QQuickItem* parent)
     : QQuickFramebufferObject(parent)
@@ -176,6 +87,7 @@ QQuickFramebufferObject::Renderer* TerrainRendererItem::createRenderer() const
     connect(this, &TerrainRendererItem::key_released, r->controller()->camera_controller(), &nucleus::camera::Controller::key_release);
     connect(this, &TerrainRendererItem::update_camera, r->controller()->camera_controller(), &nucleus::camera::Controller::update_camera);
     connect(this, &TerrainRendererItem::position_set_by_user, r->controller()->camera_controller(), &nucleus::camera::Controller::set_latitude_longitude);
+    connect(r, &TerrainRenderer::another_frame_requested, this, &TerrainRendererItem::schedule_update);
 
     auto* const tile_scheduler = r->controller()->tile_scheduler();
     connect(this, &TerrainRendererItem::render_quality_changed, r->controller()->tile_scheduler(), [=](float new_render_quality) {

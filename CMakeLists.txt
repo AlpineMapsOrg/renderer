@@ -71,6 +71,7 @@ set(ALP_APP_SOURCES
     app/RenderThreadNotifier.h app/RenderThreadNotifier.cpp
     app/TerrainRendererItem.h app/TerrainRendererItem.cpp
     app/GnssInformation.h app/GnssInformation.cpp
+    app/TerrainRenderer.h app/TerrainRenderer.cpp
 )
 set(ALP_APP_QML
     app/main.qml
