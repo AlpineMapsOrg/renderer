@@ -81,8 +81,7 @@ public slots:
 
 private slots:
     void schedule_update();
-    void key_timer();
-    void end_animation();
+    void update_camera_request();
 
 public:
     [[nodiscard]] int frame_limit() const;
@@ -124,9 +123,6 @@ private:
     nucleus::camera::Definition m_camera;
     int m_camera_width = 0;
     int m_camera_height = 0;
-    QTimer *m_timer = new QTimer(this);
-    QTimer *m_animation_timer = new QTimer(this);
-    int m_keys_pressed = 0;
 };
 
 #endif // TERRAINRENDERERITEM_H

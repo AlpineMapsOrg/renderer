@@ -85,7 +85,6 @@ void TerrainRenderer::render()
     m_glWindow->paint(this->framebufferObject());
     m_window->endExternalCommands();
     qDebug(".");
-    emit another_frame_requested();
 }
 
 QOpenGLFramebufferObject *TerrainRenderer::createFramebufferObject(const QSize &size)

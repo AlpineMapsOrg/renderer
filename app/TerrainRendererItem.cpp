@@ -62,7 +62,7 @@ TerrainRendererItem::TerrainRendererItem(QQuickItem* parent)
     setAcceptTouchEvents(true);
     setAcceptedMouseButtons(Qt::MouseButton::AllButtons);
 
-    connect(m_timer, &QTimer::timeout, this, &TerrainRendererItem::key_timer);
+    connect(m_update_timer, &QTimer::timeout, this, &TerrainRendererItem::update_camera_request);
 }
 
 TerrainRendererItem::~TerrainRendererItem()
@@ -87,7 +87,7 @@ QQuickFramebufferObject::Renderer* TerrainRendererItem::createRenderer() const
     connect(this, &TerrainRendererItem::key_released, r->controller()->camera_controller(), &nucleus::camera::Controller::key_release);
     connect(this, &TerrainRendererItem::update_camera_requested, r->controller()->camera_controller(), &nucleus::camera::Controller::update_camera_request);
     connect(this, &TerrainRendererItem::position_set_by_user, r->controller()->camera_controller(), &nucleus::camera::Controller::set_latitude_longitude);
-    connect(r, &TerrainRenderer::another_frame_requested, this, &TerrainRendererItem::schedule_update);
+    connect(r->controller()->camera_controller(), &nucleus::camera::Controller::definition_changed, this, &TerrainRendererItem::schedule_update);
 
     auto* const tile_scheduler = r->controller()->tile_scheduler();
     connect(this, &TerrainRendererItem::render_quality_changed, r->controller()->tile_scheduler(), [=](float new_render_quality) {
@@ -132,10 +132,6 @@ void TerrainRendererItem::keyPressEvent(QKeyEvent* e)
     if (e->isAutoRepeat()) {
         return;
     }
-    m_keys_pressed++;
-    if (!m_timer->isActive()) {
-        m_timer->start(1000.0f/30.0f);
-    }
     emit key_pressed(e->keyCombination());
     RenderThreadNotifier::instance()->notify();
 }
@@ -145,15 +141,11 @@ void TerrainRendererItem::keyReleaseEvent(QKeyEvent* e)
     if (e->isAutoRepeat()) {
         return;
     }
-    m_keys_pressed--;
-    if (m_keys_pressed <= 0) {
-        m_timer->stop();
-    }
     emit key_released(e->keyCombination());
     RenderThreadNotifier::instance()->notify();
 }
 
-void TerrainRendererItem::key_timer()
+void TerrainRendererItem::update_camera_request()
 {
     emit update_camera_requested();
     RenderThreadNotifier::instance()->notify();
@@ -167,21 +159,8 @@ void TerrainRendererItem::set_position(double latitude, double longitude)
 
 void TerrainRendererItem::rotate_north()
 {
-    if (m_animation_timer->isActive()) {
-        return;
-    }
     emit key_pressed(QKeyCombination(Qt::Key_C));
-
-    m_animation_timer->singleShot(1000, this, &TerrainRendererItem::end_animation);
-    m_timer->start(1000.0f/30.0f);
-}
-
-void TerrainRendererItem::end_animation()
-{
-    if (m_keys_pressed == 0) {
-        m_timer->stop();
-    }
-    emit key_pressed(QKeyCombination(Qt::Key_1));
+    emit update_camera_requested();
 }
 
 void TerrainRendererItem::schedule_update()

@@ -45,8 +45,6 @@ public:
     [[nodiscard]] gl_engine::Window* glWindow() const;
 
     [[nodiscard]] nucleus::Controller* controller() const;
-signals:
-    void another_frame_requested();
 
 private:
     QQuickWindow *m_window;
