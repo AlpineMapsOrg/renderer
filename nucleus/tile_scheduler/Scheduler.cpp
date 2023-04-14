@@ -72,10 +72,15 @@ void Scheduler::receiver_quads(const std::vector<tile_types::TileQuad>& new_quad
 
 void Scheduler::update_gpu_quads()
 {
+    const auto should_refine = tile_scheduler::utils::refineFunctor(m_current_camera, m_aabb_decorator, m_permissible_screen_space_error, m_ortho_tile_size);
     std::vector<tile_types::GpuTileQuad> new_gpu_quads;
-    m_ram_cache.visit([this, &new_gpu_quads](const tile_types::TileQuad& quad) {
+    m_ram_cache.visit([this, &new_gpu_quads, &should_refine](const tile_types::TileQuad& quad) {
+        if (!should_refine(quad.id))
+            return false;
         if (m_gpu_cached.contains(quad.id))
             return true;
+
+        // create GpuQuad based on cpu quad
         tile_types::GpuTileQuad gpu_quad;
         gpu_quad.id = quad.id;
         for (auto i = 0; i < quad.n_tiles; ++i) {
@@ -107,13 +112,13 @@ void Scheduler::update_gpu_quads()
     });
     m_gpu_cached.insert(tiles_to_put_in_gpu_cache);
 
-    m_gpu_cached.visit([this](const tile_types::GpuCacheInfo& quad) {
-        return true;
+    m_gpu_cached.visit([this, &should_refine](const tile_types::GpuCacheInfo& quad) {
+        return should_refine(quad.id);
     });
 
     const auto superfluous_quads = m_gpu_cached.purge();
 
-    // elimitate double entries
+    // elimitate double entries (happens when the gpu has not enough space for all quads selected above)
     std::unordered_set<tile::Id, tile::Id::Hasher> superfluous_ids;
     superfluous_ids.reserve(superfluous_quads.size());
     for (const auto& quad : superfluous_quads)

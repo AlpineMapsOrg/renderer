@@ -119,6 +119,10 @@ std::vector<nucleus::tile_scheduler::tile_types::TileQuad> example_quads_for_ste
         example_tile_quad_for(tile::Id { 12, { 2192, 2657 } }),
         example_tile_quad_for(tile::Id { 12, { 2191, 2656 } }),
         example_tile_quad_for(tile::Id { 12, { 2192, 2656 } }),
+        example_tile_quad_for(tile::Id { 13, { 4384, 5313 } }),
+        example_tile_quad_for(tile::Id { 13, { 4385, 5313 } }),
+        example_tile_quad_for(tile::Id { 13, { 4384, 5312 } }),
+        example_tile_quad_for(tile::Id { 13, { 4385, 5312 } }),
 
     };
 }
@@ -378,6 +382,7 @@ TEST_CASE("nucleus/tile_scheduler/Scheduler")
                 for (const auto& id : deleted_quads) {
                     cached_tiles.erase(id);
                 }
+                CHECK(cached_tiles.size() == 17);
                 nucleus::tile_scheduler::Cache<nucleus::tile_scheduler::tile_types::GpuCacheInfo> test_cache;
                 for (const auto& id : cached_tiles) {
                     test_cache.insert({ { id } });
