@@ -26,8 +26,8 @@ class RotateNorthInteraction : public InteractionStyle
 {
     glm::dvec3 m_operation_centre = {};
     float m_degrees_from_north = 0;
-    int m_counter = 20;
+    int m_remaining_duration = 20;
 public:
-    std::optional<Definition> update(Definition camera, AbstractDepthTester* depth_tester) override;
+    std::optional<Definition> update(std::chrono::milliseconds delta_time, Definition camera, AbstractDepthTester* depth_tester) override;
 };
 }

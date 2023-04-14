@@ -155,7 +155,7 @@ std::optional<Definition> FirstPersonInteraction::key_release_event(const QKeyCo
     return camera;
 }
 
-std::optional<Definition> FirstPersonInteraction::update(Definition camera, AbstractDepthTester* depth_tester)
+std::optional<Definition> FirstPersonInteraction::update(std::chrono::milliseconds delta_time, Definition camera, AbstractDepthTester* depth_tester)
 {
     if(!m_key_w && !m_key_s && !m_key_a && !m_key_d && !m_key_e && !m_key_q) {
         return {};

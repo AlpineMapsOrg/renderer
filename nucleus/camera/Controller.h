@@ -67,6 +67,7 @@ private:
     Definition m_definition;
     AbstractDepthTester* m_depth_tester;
     std::unique_ptr<InteractionStyle> m_interaction_style;
+    std::chrono::steady_clock::time_point m_last_frame_time;
 };
 
 }

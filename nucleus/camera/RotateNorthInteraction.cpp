@@ -24,24 +24,37 @@
 
 namespace nucleus::camera {
 
-std::optional<Definition> RotateNorthInteraction::update(Definition camera, AbstractDepthTester* depth_tester)
+std::optional<Definition> RotateNorthInteraction::update(std::chrono::milliseconds delta_time, Definition camera, AbstractDepthTester* depth_tester)
 {
     if (m_operation_centre.x == 0 && m_operation_centre.y == 0 && m_operation_centre.z == 0) {
         m_operation_centre = depth_tester->position(glm::dvec2(0.0, 0.0));
 
         auto cameraFrontAxis = camera.z_axis();
         m_degrees_from_north = glm::degrees(glm::acos(glm::dot(glm::normalize(glm::dvec3(cameraFrontAxis.x, cameraFrontAxis.y, 0)), glm::dvec3(0, -1, 0))));
+
+        m_remaining_duration = 1000; // animation duration
     }
-    qDebug() << "counter " << m_counter;
-    if (m_counter > 0) {
-        if (camera.z_axis().x > 0) {
-            camera.orbit(m_operation_centre, glm::vec2(-m_degrees_from_north / 20, 0));
-        } else {
-            camera.orbit(m_operation_centre, glm::vec2(m_degrees_from_north / 20, 0));
-        }
-        m_counter--;
-        return camera;
+
+    if (m_remaining_duration <= 0) {
+        return {};
     }
-    return {};
+
+    auto dt = 60;
+    if (delta_time.count() < 60) { // catches big steps
+        dt = delta_time.count();
+    }
+    if (m_remaining_duration - dt < 0) { // last step
+        dt = m_remaining_duration;
+    }
+    qDebug() << "el " << delta_time.count();
+    qDebug() << "dt " << dt;
+
+    if (camera.z_axis().x > 0) {
+        camera.orbit(m_operation_centre, glm::vec2(-m_degrees_from_north / 1000 * dt, 0));
+    } else {
+        camera.orbit(m_operation_centre, glm::vec2(m_degrees_from_north / 1000 * dt, 0));
+    }
+    m_remaining_duration -= dt;
+    return camera;
 }
 }

@@ -164,7 +164,11 @@ void Controller::touch(const event_parameter::Touch& e)
 
 void Controller::update_camera_request()
 {
-    const auto new_definition = m_interaction_style->update(m_definition, m_depth_tester);
+    auto now = std::chrono::steady_clock::now();
+    auto elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(now - m_last_frame_time);
+    m_last_frame_time = now;
+
+    const auto new_definition = m_interaction_style->update(elapsed, m_definition, m_depth_tester);
     if (!new_definition)
         return;
     m_definition = new_definition.value();
