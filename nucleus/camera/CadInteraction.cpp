@@ -56,6 +56,8 @@ std::optional<Definition> CadInteraction::mouse_move_event(const event_parameter
         if (zoomDist < dist) {
             if (dist > 5.0f || zoomDist > 0.0f) { // always allow zoom out
                 camera.zoom(zoomDist);
+            } else {
+                m_operation_centre = m_operation_centre - camera.z_axis() * 300.0;
             }
         }
     }
@@ -129,6 +131,8 @@ std::optional<Definition> CadInteraction::wheel_event(const event_parameter::Whe
     if (e.angle_delta.y() > 0) {
         if (dist > 5.0f) {
             camera.zoom(-dist / 10.0);
+        } else {
+            m_operation_centre = m_operation_centre - camera.z_axis() * 300.0;
         }
     } else {
         camera.zoom(dist / 10.0);
