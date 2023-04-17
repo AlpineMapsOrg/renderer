@@ -39,7 +39,7 @@ class Cache {
 public:
     Cache() = default;
     void insert(const std::vector<T>& tiles);
-    [[nodiscard]] bool contains(const tile::Id& id);
+    [[nodiscard]] bool contains(const tile::Id& id) const;
     void set_capacity(unsigned capacity);
     [[nodiscard]] unsigned n_cached_objects() const;
     template <typename VisitorFunction>
@@ -63,7 +63,7 @@ void Cache<T>::insert(const std::vector<T>& tiles)
 }
 
 template <tile_types::NamedTile T>
-bool Cache<T>::contains(const tile::Id& id)
+bool Cache<T>::contains(const tile::Id& id) const
 {
     return m_data.contains(id);
 }

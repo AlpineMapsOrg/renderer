@@ -35,6 +35,10 @@ Scheduler::Scheduler(QObject *parent)
     connect(m_update_timer.get(), &QTimer::timeout, this, &Scheduler::send_quad_requests);
     connect(m_update_timer.get(), &QTimer::timeout, this, &Scheduler::update_gpu_quads);
 
+    m_purge_timer = std::make_unique<QTimer>();
+    m_purge_timer->setSingleShot(true);
+    connect(m_purge_timer.get(), &QTimer::timeout, this, &Scheduler::purge_ram_cache);
+
     {
         QImage default_tile(QSize { int(m_ortho_tile_size), int(m_ortho_tile_size) }, QImage::Format_ARGB32);
         default_tile.fill(Qt::GlobalColor::white);
@@ -67,6 +71,7 @@ void Scheduler::update_camera(const camera::Definition& camera)
 void Scheduler::receiver_quads(const std::vector<tile_types::TileQuad>& new_quads)
 {
     m_ram_cache.insert(new_quads);
+    schedule_purge();
     schedule_update();
 }
 
@@ -144,11 +149,31 @@ void Scheduler::send_quad_requests()
     emit quads_requested(currently_active_tiles);
 }
 
+void Scheduler::purge_ram_cache()
+{
+    if (m_ram_cache.n_cached_objects() < unsigned(float(m_ram_quad_limit) * 1.1f))
+        return;
+
+    const auto should_refine = tile_scheduler::utils::refineFunctor(m_current_camera, m_aabb_decorator, m_permissible_screen_space_error, m_ortho_tile_size);
+    m_ram_cache.visit([&should_refine](const tile_types::TileQuad& quad) {
+        return should_refine(quad.id);
+    });
+    m_ram_cache.purge();
+}
+
 void Scheduler::schedule_update()
 {
     assert(m_update_timeout < std::numeric_limits<int>::max());
     if (m_enabled && !m_update_timer->isActive())
         m_update_timer->start(int(m_update_timeout));
+}
+
+void Scheduler::schedule_purge()
+{
+    assert(m_purge_timeout < std::numeric_limits<int>::max());
+    if (m_enabled && !m_purge_timer->isActive()) {
+        m_purge_timer->start(int(m_purge_timeout));
+    }
 }
 
 std::vector<tile::Id> Scheduler::tiles_for_current_camera_position() const
@@ -162,6 +187,27 @@ std::vector<tile::Id> Scheduler::tiles_for_current_camera_position() const
     //    all_inner_nodes.reserve(all_inner_nodes.size() + all_leaves.size());
     //    std::copy(all_leaves.begin(), all_leaves.end(), std::back_inserter(all_inner_nodes));
     return all_inner_nodes;
+}
+
+const Cache<tile_types::TileQuad>& Scheduler::ram_cache() const
+{
+    return m_ram_cache;
+}
+
+void Scheduler::set_purge_timeout(unsigned int new_purge_timeout)
+{
+    assert(new_purge_timeout < std::numeric_limits<int>::max());
+    m_purge_timeout = new_purge_timeout;
+
+    if (m_purge_timer->isActive()) {
+        m_purge_timer->start(int(m_update_timeout));
+    }
+}
+
+void Scheduler::set_ram_quad_limit(unsigned int new_ram_quad_limit)
+{
+    m_ram_quad_limit = new_ram_quad_limit;
+    m_ram_cache.set_capacity(new_ram_quad_limit);
 }
 
 void Scheduler::set_gpu_quad_limit(unsigned int new_gpu_quad_limit)
@@ -189,11 +235,6 @@ void Scheduler::set_enabled(bool new_enabled)
 {
     m_enabled = new_enabled;
     schedule_update();
-}
-
-unsigned int Scheduler::update_timeout() const
-{
-    return m_update_timeout;
 }
 
 void Scheduler::set_update_timeout(unsigned new_update_timeout)

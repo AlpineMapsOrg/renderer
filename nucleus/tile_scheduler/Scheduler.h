@@ -42,7 +42,6 @@ public:
     explicit Scheduler(QObject* parent = nullptr);
     ~Scheduler() override;
 
-    [[nodiscard]] unsigned int update_timeout() const;
     void set_update_timeout(unsigned int new_update_timeout);
 
     [[nodiscard]] bool enabled() const;
@@ -53,6 +52,12 @@ public:
     void set_aabb_decorator(const utils::AabbDecoratorPtr& new_aabb_decorator);
 
     void set_gpu_quad_limit(unsigned int new_gpu_quad_limit);
+
+    void set_ram_quad_limit(unsigned int new_ram_quad_limit);
+
+    void set_purge_timeout(unsigned int new_purge_timeout);
+
+    const Cache<tile_types::TileQuad>& ram_cache() const;
 
 signals:
     void quads_requested(const std::vector<tile::Id>& id);
@@ -65,19 +70,24 @@ public slots:
 private slots:
     void update_gpu_quads();
     void send_quad_requests();
+    void purge_ram_cache();
 
 protected:
     void schedule_update();
+    void schedule_purge();
     std::vector<tile::Id> tiles_for_current_camera_position() const;
 
 private:
     float m_permissible_screen_space_error = 2;
     unsigned m_update_timeout = 100;
+    unsigned m_purge_timeout = 1000;
     unsigned m_gpu_quad_limit = 250;
+    unsigned m_ram_quad_limit = 1000;
     static constexpr unsigned m_ortho_tile_size = 256;
     static constexpr unsigned m_height_tile_size = 64;
     bool m_enabled = false;
     std::unique_ptr<QTimer> m_update_timer;
+    std::unique_ptr<QTimer> m_purge_timer;
     camera::Definition m_current_camera;
     utils::AabbDecoratorPtr m_aabb_decorator;
     Cache<tile_types::TileQuad> m_ram_cache;

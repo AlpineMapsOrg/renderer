@@ -28,6 +28,7 @@
 #include "nucleus/tile_scheduler/tile_types.h"
 #include "nucleus/tile_scheduler/utils.h"
 #include "nucleus/utils/tile_conversion.h"
+#include "unittests/test_helpers.h"
 
 #include <sherpa/TileHeights.h>
 
@@ -423,5 +424,85 @@ TEST_CASE("nucleus/tile_scheduler/Scheduler")
         CHECK(cached_tiles.contains({ 11, { 1116, 1337 } }));
         CHECK(cached_tiles.contains({ 11, { 1116, 1338 } }));
         CHECK(cached_tiles.contains({ 12, { 2234, 2675 } }));
+    }
+
+    SECTION("ram tiles are purged")
+    {
+        auto scheduler = default_scheduler();
+        scheduler->set_ram_quad_limit(17);
+        scheduler->set_purge_timeout(1);
+        scheduler->receiver_quads(example_quads_for_steffl_and_gg());
+        test_helpers::process_events_for(2);
+        CHECK(scheduler->ram_cache().n_cached_objects() == 17);
+    }
+
+    SECTION("purging tiles based on camera")
+    {
+        auto scheduler = default_scheduler();
+        scheduler->set_ram_quad_limit(17);
+        scheduler->set_purge_timeout(1);
+        scheduler->update_camera(nucleus::camera::stored_positions::stephansdom());
+        scheduler->receiver_quads(example_quads_for_steffl_and_gg());
+        test_helpers::process_events_for(2);
+        CHECK(scheduler->ram_cache().n_cached_objects() == 17);
+        CHECK(scheduler->ram_cache().contains({ 11, { 1117, 1337 } }));
+        CHECK(scheduler->ram_cache().contains({ 11, { 1117, 1338 } }));
+        CHECK(scheduler->ram_cache().contains({ 11, { 1116, 1337 } }));
+        CHECK(scheduler->ram_cache().contains({ 11, { 1116, 1338 } }));
+        CHECK(scheduler->ram_cache().contains({ 12, { 2234, 2675 } }));
+    }
+
+    SECTION("purging ram tiles with tolerance")
+    {
+        auto scheduler = default_scheduler();
+        // example_quads_for_steffl_and_gg().size() == 39
+        const unsigned limit = 38;
+        assert(example_quads_for_steffl_and_gg().size() > limit);
+        scheduler->set_ram_quad_limit(limit);
+        scheduler->set_purge_timeout(1);
+        scheduler->receiver_quads(example_quads_for_steffl_and_gg());
+        test_helpers::process_events_for(2);
+        CHECK(scheduler->ram_cache().n_cached_objects() == example_quads_for_steffl_and_gg().size());
+        scheduler->receiver_quads({
+            example_tile_quad_for(tile::Id { 10, { 0, 0 } }),
+            example_tile_quad_for(tile::Id { 11, { 1, 1 } }),
+            example_tile_quad_for(tile::Id { 12, { 2, 2 } }),
+        });
+        test_helpers::process_events_for(2);
+        CHECK(scheduler->ram_cache().n_cached_objects() == limit);
+    }
+
+    SECTION("purging happens with a delay (collects purge events) and the timer is not restarted on tile delivery")
+    {
+        const auto time_multiplicator = 10;
+        auto scheduler = default_scheduler();
+        scheduler->set_purge_timeout(6 * time_multiplicator);
+        scheduler->set_ram_quad_limit(2);
+        scheduler->receiver_quads({
+            example_tile_quad_for(tile::Id { 0, { 0, 0 } }),
+            example_tile_quad_for(tile::Id { 1, { 1, 1 } }),
+            example_tile_quad_for(tile::Id { 2, { 2, 2 } }),
+        });
+        CHECK(scheduler->ram_cache().n_cached_objects() == 3);
+        test_helpers::process_events_for(2 * time_multiplicator);
+        CHECK(scheduler->ram_cache().n_cached_objects() == 3);
+        scheduler->receiver_quads({
+            example_tile_quad_for(tile::Id { 1, { 0, 0 } }),
+            example_tile_quad_for(tile::Id { 1, { 1, 0 } }),
+            example_tile_quad_for(tile::Id { 2, { 2, 1 } }),
+        });
+
+        CHECK(scheduler->ram_cache().n_cached_objects() == 6);
+        test_helpers::process_events_for(2 * time_multiplicator);
+        CHECK(scheduler->ram_cache().n_cached_objects() == 6);
+
+        scheduler->receiver_quads({
+            example_tile_quad_for(tile::Id { 1, { 0, 1 } }),
+            example_tile_quad_for(tile::Id { 2, { 1, 1 } }),
+            example_tile_quad_for(tile::Id { 2, { 1, 2 } }),
+        });
+        CHECK(scheduler->ram_cache().n_cached_objects() == 9);
+        test_helpers::process_events_for(3 * time_multiplicator);
+        CHECK(scheduler->ram_cache().n_cached_objects() == 2);
     }
 }

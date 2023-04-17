@@ -22,6 +22,9 @@
 
 #include <glm/glm.hpp>
 
+#include <QObject>
+#include <QSignalSpy>
+
 namespace test_helpers {
 class FailOnCopy {
     int v = 0;
@@ -60,4 +63,10 @@ bool equals(const glm::vec<n_dims, double>& a, const glm::vec<n_dims, double>& b
     return delta == Approx(0).scale(scale);
 }
 
+inline void process_events_for(int msecs)
+{
+    QObject dummy;
+    QSignalSpy spy(&dummy, &QObject::destroyed); // signal won't be called, so we wait for msecs milliseconds
+    spy.wait(msecs);
+}
 }
