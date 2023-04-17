@@ -27,8 +27,13 @@
 
 using namespace nucleus::tile_scheduler;
 
-Scheduler::Scheduler(QObject *parent)
-    : QObject{parent}
+Scheduler::Scheduler(QObject* parent)
+    : Scheduler { white_jpeg_tile(m_ortho_tile_size), black_png_tile(m_height_tile_size), parent }
+{
+}
+
+Scheduler::Scheduler(const QByteArray& default_ortho_tile, const QByteArray& default_height_tile, QObject* parent)
+    : QObject { parent }
 {
     m_update_timer = std::make_unique<QTimer>();
     m_update_timer->setSingleShot(true);
@@ -39,25 +44,8 @@ Scheduler::Scheduler(QObject *parent)
     m_purge_timer->setSingleShot(true);
     connect(m_purge_timer.get(), &QTimer::timeout, this, &Scheduler::purge_ram_cache);
 
-    {
-        QImage default_tile(QSize { int(m_ortho_tile_size), int(m_ortho_tile_size) }, QImage::Format_ARGB32);
-        default_tile.fill(Qt::GlobalColor::white);
-        QByteArray arr;
-        QBuffer buffer(&arr);
-        buffer.open(QIODevice::WriteOnly);
-        default_tile.save(&buffer, "JPEG");
-        m_default_ortho_tile = std::make_shared<QByteArray>(arr);
-    }
-
-    {
-        QImage default_tile(QSize { int(m_height_tile_size), int(m_height_tile_size) }, QImage::Format_ARGB32);
-        default_tile.fill(Qt::GlobalColor::black);
-        QByteArray arr;
-        QBuffer buffer(&arr);
-        buffer.open(QIODevice::WriteOnly);
-        default_tile.save(&buffer, "PNG");
-        m_default_height_tile = std::make_shared<QByteArray>(arr);
-    }
+    m_default_ortho_tile = std::make_shared<QByteArray>(default_ortho_tile);
+    m_default_height_tile = std::make_shared<QByteArray>(default_height_tile);
 }
 
 Scheduler::~Scheduler() = default;
@@ -192,6 +180,28 @@ std::vector<tile::Id> Scheduler::tiles_for_current_camera_position() const
 const Cache<tile_types::TileQuad>& Scheduler::ram_cache() const
 {
     return m_ram_cache;
+}
+
+QByteArray Scheduler::white_jpeg_tile(unsigned int size)
+{
+    QImage default_tile(QSize { int(size), int(size) }, QImage::Format_ARGB32);
+    default_tile.fill(Qt::GlobalColor::white);
+    QByteArray arr;
+    QBuffer buffer(&arr);
+    buffer.open(QIODevice::WriteOnly);
+    default_tile.save(&buffer, "JPEG");
+    return arr;
+}
+
+QByteArray Scheduler::black_png_tile(unsigned size)
+{
+    QImage default_tile(QSize { int(size), int(size) }, QImage::Format_ARGB32);
+    default_tile.fill(Qt::GlobalColor::black);
+    QByteArray arr;
+    QBuffer buffer(&arr);
+    buffer.open(QIODevice::WriteOnly);
+    default_tile.save(&buffer, "PNG");
+    return arr;
 }
 
 void Scheduler::set_purge_timeout(unsigned int new_purge_timeout)

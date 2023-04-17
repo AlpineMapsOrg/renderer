@@ -36,7 +36,10 @@
 namespace {
 std::unique_ptr<nucleus::tile_scheduler::Scheduler> default_scheduler()
 {
-    auto scheduler = std::make_unique<nucleus::tile_scheduler::Scheduler>();
+    static auto ortho_tile = nucleus::tile_scheduler::Scheduler::white_jpeg_tile(256);
+    static auto height_tile = nucleus::tile_scheduler::Scheduler::black_png_tile(64);
+
+    auto scheduler = std::make_unique<nucleus::tile_scheduler::Scheduler>(ortho_tile, height_tile);
     TileHeights h;
     h.emplace({ 0, { 0, 0 } }, { 100, 4000 });
     scheduler->set_aabb_decorator(nucleus::tile_scheduler::utils::AabbDecorator::make(std::move(h)));
@@ -133,6 +136,28 @@ std::vector<nucleus::tile_scheduler::tile_types::TileQuad> example_quads_for_ste
         example_tile_quad_for(tile::Id { 13, { 4384, 5312 } }),
         example_tile_quad_for(tile::Id { 13, { 4385, 5312 } }),
     };
+    return retval;
+}
+std::vector<nucleus::tile_scheduler::tile_types::TileQuad> example_quads_many()
+{
+    static std::vector<nucleus::tile_scheduler::tile_types::TileQuad> retval = []() {
+        auto scheduler = default_scheduler();
+        QSignalSpy spy(scheduler.get(), &nucleus::tile_scheduler::Scheduler::quads_requested);
+        auto camera = nucleus::camera::stored_positions::grossglockner();
+        camera.set_viewport_size({ 3840, 2160 });
+        scheduler->update_camera(camera);
+        spy.wait(2);
+        REQUIRE(spy.size() == 1);
+        const auto quad_ids = spy.front().front().value<std::vector<tile::Id>>();
+
+        std::vector<nucleus::tile_scheduler::tile_types::TileQuad> quads;
+        quads.reserve(quad_ids.size());
+        for (const auto& id : quad_ids) {
+            quads.push_back(example_tile_quad_for(id));
+        }
+
+        return quads;
+    }();
     return retval;
 }
 
@@ -518,9 +543,32 @@ TEST_CASE("nucleus/tile_scheduler/Scheduler")
 
 TEST_CASE("nucleus/tile_scheduler/Scheduler benchmarks")
 {
-    auto scheduler = default_scheduler();
-    BENCHMARK("receive quads")
+    auto camera = nucleus::camera::stored_positions::grossglockner();
+    camera.set_viewport_size({ 3840, 2160 });
+
+    BENCHMARK("construct")
     {
-        scheduler->receive_quads(example_quads_for_steffl_and_gg());
+        return default_scheduler();
+    };
+
+    BENCHMARK("request quads")
+    {
+        auto scheduler = default_scheduler();
+        scheduler->update_camera(camera);
+        scheduler->send_quad_requests();
+    };
+
+    BENCHMARK("receive " + std::to_string(example_quads_many().size()) + " quads")
+    {
+        auto scheduler = default_scheduler();
+        scheduler->receive_quads(example_quads_many());
+    };
+
+    BENCHMARK("receive " + std::to_string(example_quads_many().size()) + " quads + send to gpu")
+    {
+        auto scheduler = default_scheduler();
+        scheduler->update_camera(camera);
+        scheduler->receive_quads(example_quads_many());
+        scheduler->update_gpu_quads();
     };
 }

@@ -40,6 +40,7 @@ class Scheduler : public QObject {
     Q_OBJECT
 public:
     explicit Scheduler(QObject* parent = nullptr);
+    explicit Scheduler(const QByteArray& default_ortho_tile, const QByteArray& default_height_tile, QObject* parent = nullptr);
     ~Scheduler() override;
 
     void set_update_timeout(unsigned int new_update_timeout);
@@ -59,6 +60,9 @@ public:
 
     const Cache<tile_types::TileQuad>& ram_cache() const;
 
+    static QByteArray white_jpeg_tile(unsigned size);
+    static QByteArray black_png_tile(unsigned size);
+
 signals:
     void quads_requested(const std::vector<tile::Id>& id);
     void gpu_quads_updated(const std::vector<tile_types::GpuTileQuad>& new_quads, const std::vector<tile::Id>& deleted_quads);
@@ -66,8 +70,6 @@ signals:
 public slots:
     void update_camera(const nucleus::camera::Definition& camera);
     void receive_quads(const std::vector<tile_types::TileQuad>& new_quads);
-
-private slots:
     void update_gpu_quads();
     void send_quad_requests();
     void purge_ram_cache();
