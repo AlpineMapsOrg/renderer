@@ -127,6 +127,8 @@ std::vector<nucleus::tile_scheduler::tile_types::TileQuad> example_quads_for_ste
 
     };
 }
+
+constexpr auto timeout_multiplier = 5; // you might need to increase on slow machines.
 }
 
 TEST_CASE("nucleus/tile_scheduler/Scheduler")
@@ -151,32 +153,32 @@ TEST_CASE("nucleus/tile_scheduler/Scheduler")
     {
         auto scheduler = default_scheduler();
         scheduler->set_enabled(true);
-        scheduler->set_update_timeout(5);
+        scheduler->set_update_timeout(5 * timeout_multiplier);
 
         QSignalSpy spy(scheduler.get(), &nucleus::tile_scheduler::Scheduler::quads_requested);
         scheduler->update_camera(nucleus::camera::stored_positions::stephansdom());
         scheduler->update_camera(nucleus::camera::stored_positions::westl_hochgrubach_spitze());
-        spy.wait(2);
+        test_helpers::process_events_for(2 * timeout_multiplier);
         CHECK(spy.empty());
 
-        spy.wait(5);
+        test_helpers::process_events_for(5 * timeout_multiplier);
         CHECK(spy.size() == 1);
     }
 
     SECTION("timer is not restarted on camera updates && stops if nothing happens")
     {
         auto scheduler = default_scheduler();
-        scheduler->set_update_timeout(6);
+        scheduler->set_update_timeout(6 * timeout_multiplier);
         QSignalSpy spy(scheduler.get(), &nucleus::tile_scheduler::Scheduler::quads_requested);
         scheduler->update_camera(nucleus::camera::stored_positions::stephansdom());
-        spy.wait(2);
+        test_helpers::process_events_for(2 * timeout_multiplier);
         scheduler->update_camera(nucleus::camera::stored_positions::westl_hochgrubach_spitze());
-        spy.wait(2);
+        test_helpers::process_events_for(2 * timeout_multiplier);
         CHECK(spy.empty());
         scheduler->update_camera(nucleus::camera::stored_positions::grossglockner());
-        spy.wait(3);
+        test_helpers::process_events_for(3 * timeout_multiplier);
         CHECK(spy.size() == 1);
-        spy.wait(7);
+        test_helpers::process_events_for(7 * timeout_multiplier);
         CHECK(spy.size() == 1);
     }
 
@@ -474,9 +476,8 @@ TEST_CASE("nucleus/tile_scheduler/Scheduler")
 
     SECTION("purging happens with a delay (collects purge events) and the timer is not restarted on tile delivery")
     {
-        const auto time_multiplicator = 10;
         auto scheduler = default_scheduler();
-        scheduler->set_purge_timeout(6 * time_multiplicator);
+        scheduler->set_purge_timeout(6 * timeout_multiplier);
         scheduler->set_ram_quad_limit(2);
         scheduler->receive_quads({
             example_tile_quad_for(tile::Id { 0, { 0, 0 } }),
@@ -484,7 +485,7 @@ TEST_CASE("nucleus/tile_scheduler/Scheduler")
             example_tile_quad_for(tile::Id { 2, { 2, 2 } }),
         });
         CHECK(scheduler->ram_cache().n_cached_objects() == 3);
-        test_helpers::process_events_for(2 * time_multiplicator);
+        test_helpers::process_events_for(2 * timeout_multiplier);
         CHECK(scheduler->ram_cache().n_cached_objects() == 3);
         scheduler->receive_quads({
             example_tile_quad_for(tile::Id { 1, { 0, 0 } }),
@@ -493,7 +494,7 @@ TEST_CASE("nucleus/tile_scheduler/Scheduler")
         });
 
         CHECK(scheduler->ram_cache().n_cached_objects() == 6);
-        test_helpers::process_events_for(2 * time_multiplicator);
+        test_helpers::process_events_for(2 * timeout_multiplier);
         CHECK(scheduler->ram_cache().n_cached_objects() == 6);
 
         scheduler->receive_quads({
@@ -502,7 +503,7 @@ TEST_CASE("nucleus/tile_scheduler/Scheduler")
             example_tile_quad_for(tile::Id { 2, { 1, 2 } }),
         });
         CHECK(scheduler->ram_cache().n_cached_objects() == 9);
-        test_helpers::process_events_for(3 * time_multiplicator);
+        test_helpers::process_events_for(3 * timeout_multiplier);
         CHECK(scheduler->ram_cache().n_cached_objects() == 2);
     }
 }
