@@ -18,6 +18,7 @@
 
 #include "nucleus/tile_scheduler/Scheduler.h"
 
+#define CATCH_CONFIG_ENABLE_BENCHMARKING
 #include <catch2/catch.hpp>
 
 #include <QSignalSpy>
@@ -54,15 +55,22 @@ std::unique_ptr<nucleus::tile_scheduler::Scheduler> scheduler_with_aabb()
 
 std::pair<QByteArray, QByteArray> example_tile_data()
 {
-    auto ortho_file = QFile(QString("%1%2").arg(ALP_TEST_DATA_DIR, "test-tile_ortho.jpeg"));
-    ortho_file.open(QFile::ReadOnly);
-    const auto ortho_bytes = ortho_file.readAll();
-    REQUIRE(!nucleus::utils::tile_conversion::toQImage(ortho_bytes).isNull());
+    static const auto ortho_bytes = []() {
+        auto ortho_file = QFile(QString("%1%2").arg(ALP_TEST_DATA_DIR, "test-tile_ortho.jpeg"));
+        ortho_file.open(QFile::ReadOnly);
+        const auto ortho_bytes = ortho_file.readAll();
+        REQUIRE(!nucleus::utils::tile_conversion::toQImage(ortho_bytes).isNull());
+        return ortho_bytes;
+    }();
 
-    auto height_file = QFile(QString("%1%2").arg(ALP_TEST_DATA_DIR, "test-tile.png"));
-    height_file.open(QFile::ReadOnly);
-    const auto height_bytes = height_file.readAll();
-    REQUIRE(!nucleus::utils::tile_conversion::toQImage(height_bytes).isNull());
+    static const auto height_bytes = []() {
+        auto height_file = QFile(QString("%1%2").arg(ALP_TEST_DATA_DIR, "test-tile.png"));
+        height_file.open(QFile::ReadOnly);
+        const auto height_bytes = height_file.readAll();
+        REQUIRE(!nucleus::utils::tile_conversion::toQImage(height_bytes).isNull());
+        return height_bytes;
+    }();
+
     return std::make_pair(ortho_bytes, height_bytes);
 }
 
@@ -84,7 +92,7 @@ nucleus::tile_scheduler::tile_types::TileQuad example_tile_quad_for(const tile::
 
 std::vector<nucleus::tile_scheduler::tile_types::TileQuad> example_quads_for_steffl_and_gg()
 {
-    return {
+    static std::vector<nucleus::tile_scheduler::tile_types::TileQuad> retval = {
         example_tile_quad_for(tile::Id { 0, { 0, 0 } }),
         example_tile_quad_for(tile::Id { 1, { 1, 1 } }),
         example_tile_quad_for(tile::Id { 2, { 2, 2 } }),
@@ -124,11 +132,11 @@ std::vector<nucleus::tile_scheduler::tile_types::TileQuad> example_quads_for_ste
         example_tile_quad_for(tile::Id { 13, { 4385, 5313 } }),
         example_tile_quad_for(tile::Id { 13, { 4384, 5312 } }),
         example_tile_quad_for(tile::Id { 13, { 4385, 5312 } }),
-
     };
+    return retval;
 }
 
-constexpr auto timeout_multiplier = 5; // you might need to increase on slow machines.
+constexpr auto timeout_multiplier = 3; // you might need to increase on slow machines.
 }
 
 TEST_CASE("nucleus/tile_scheduler/Scheduler")
@@ -477,7 +485,7 @@ TEST_CASE("nucleus/tile_scheduler/Scheduler")
     SECTION("purging happens with a delay (collects purge events) and the timer is not restarted on tile delivery")
     {
         auto scheduler = default_scheduler();
-        scheduler->set_purge_timeout(6 * timeout_multiplier);
+        scheduler->set_purge_timeout(9 * timeout_multiplier);
         scheduler->set_ram_quad_limit(2);
         scheduler->receive_quads({
             example_tile_quad_for(tile::Id { 0, { 0, 0 } }),
@@ -485,7 +493,7 @@ TEST_CASE("nucleus/tile_scheduler/Scheduler")
             example_tile_quad_for(tile::Id { 2, { 2, 2 } }),
         });
         CHECK(scheduler->ram_cache().n_cached_objects() == 3);
-        test_helpers::process_events_for(2 * timeout_multiplier);
+        test_helpers::process_events_for(3 * timeout_multiplier);
         CHECK(scheduler->ram_cache().n_cached_objects() == 3);
         scheduler->receive_quads({
             example_tile_quad_for(tile::Id { 1, { 0, 0 } }),
@@ -494,7 +502,7 @@ TEST_CASE("nucleus/tile_scheduler/Scheduler")
         });
 
         CHECK(scheduler->ram_cache().n_cached_objects() == 6);
-        test_helpers::process_events_for(2 * timeout_multiplier);
+        test_helpers::process_events_for(3 * timeout_multiplier);
         CHECK(scheduler->ram_cache().n_cached_objects() == 6);
 
         scheduler->receive_quads({
@@ -503,7 +511,16 @@ TEST_CASE("nucleus/tile_scheduler/Scheduler")
             example_tile_quad_for(tile::Id { 2, { 1, 2 } }),
         });
         CHECK(scheduler->ram_cache().n_cached_objects() == 9);
-        test_helpers::process_events_for(3 * timeout_multiplier);
+        test_helpers::process_events_for(4 * timeout_multiplier);
         CHECK(scheduler->ram_cache().n_cached_objects() == 2);
     }
+}
+
+TEST_CASE("nucleus/tile_scheduler/Scheduler benchmarks")
+{
+    auto scheduler = default_scheduler();
+    BENCHMARK("receive quads")
+    {
+        scheduler->receive_quads(example_quads_for_steffl_and_gg());
+    };
 }
