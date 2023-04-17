@@ -204,7 +204,7 @@ TEST_CASE("nucleus/tile_scheduler/Scheduler")
     SECTION("delivered quads are not requested again")
     {
         auto scheduler = default_scheduler();
-        scheduler->receiver_quads({
+        scheduler->receive_quads({
             example_tile_quad_for(tile::Id { 0, { 0, 0 } }),
             example_tile_quad_for(tile::Id { 1, { 1, 1 } }),
             example_tile_quad_for(tile::Id { 2, { 2, 2 } }),
@@ -231,7 +231,7 @@ TEST_CASE("nucleus/tile_scheduler/Scheduler")
     {
         auto scheduler = default_scheduler();
         QSignalSpy spy(scheduler.get(), &nucleus::tile_scheduler::Scheduler::gpu_quads_updated);
-        scheduler->receiver_quads({
+        scheduler->receive_quads({
             example_tile_quad_for(tile::Id { 0, { 0, 0 } }),
             example_tile_quad_for(tile::Id { 1, { 1, 1 } }),
             example_tile_quad_for(tile::Id { 2, { 2, 2 } }),
@@ -246,7 +246,7 @@ TEST_CASE("nucleus/tile_scheduler/Scheduler")
         CHECK(gpu_quads[1].id == tile::Id { 1, { 1, 1 } });
         CHECK(gpu_quads[2].id == tile::Id { 2, { 2, 2 } });
 
-        scheduler->receiver_quads({
+        scheduler->receive_quads({
             example_tile_quad_for(tile::Id { 3, { 4, 5 } }),
             example_tile_quad_for(tile::Id { 5, { 17, 20 } }),
             example_tile_quad_for(tile::Id { 6, { 34, 41 } }),
@@ -267,7 +267,7 @@ TEST_CASE("nucleus/tile_scheduler/Scheduler")
     {
         auto scheduler = default_scheduler();
         QSignalSpy spy(scheduler.get(), &nucleus::tile_scheduler::Scheduler::gpu_quads_updated);
-        scheduler->receiver_quads({
+        scheduler->receive_quads({
             example_tile_quad_for({ 0, { 0, 0 } }, 4),
         });
         scheduler->update_camera(nucleus::camera::stored_positions::stephansdom());
@@ -304,7 +304,7 @@ TEST_CASE("nucleus/tile_scheduler/Scheduler")
         quads.tiles[2].ortho.reset();
         quads.tiles[2].height.reset();
 
-        scheduler->receiver_quads({
+        scheduler->receive_quads({
             quads,
         });
         scheduler->update_camera(nucleus::camera::stored_positions::stephansdom());
@@ -326,7 +326,7 @@ TEST_CASE("nucleus/tile_scheduler/Scheduler")
     {
         auto scheduler = default_scheduler();
         QSignalSpy spy(scheduler.get(), &nucleus::tile_scheduler::Scheduler::gpu_quads_updated);
-        scheduler->receiver_quads(example_quads_for_steffl_and_gg());
+        scheduler->receive_quads(example_quads_for_steffl_and_gg());
 
         scheduler->update_camera(nucleus::camera::stored_positions::stephansdom());
         spy.wait(2);
@@ -342,7 +342,7 @@ TEST_CASE("nucleus/tile_scheduler/Scheduler")
         auto scheduler = default_scheduler();
         scheduler->set_gpu_quad_limit(17);
         QSignalSpy spy(scheduler.get(), &nucleus::tile_scheduler::Scheduler::gpu_quads_updated);
-        scheduler->receiver_quads(example_quads_for_steffl_and_gg());
+        scheduler->receive_quads(example_quads_for_steffl_and_gg());
 
         std::unordered_set<tile::Id, tile::Id::Hasher> cached_tiles;
 
@@ -409,7 +409,7 @@ TEST_CASE("nucleus/tile_scheduler/Scheduler")
         auto scheduler = default_scheduler();
         scheduler->set_gpu_quad_limit(17);
         QSignalSpy spy(scheduler.get(), &nucleus::tile_scheduler::Scheduler::gpu_quads_updated);
-        scheduler->receiver_quads(example_quads_for_steffl_and_gg());
+        scheduler->receive_quads(example_quads_for_steffl_and_gg());
 
         std::unordered_set<tile::Id, tile::Id::Hasher> cached_tiles;
         scheduler->update_camera(nucleus::camera::stored_positions::stephansdom());
@@ -431,7 +431,7 @@ TEST_CASE("nucleus/tile_scheduler/Scheduler")
         auto scheduler = default_scheduler();
         scheduler->set_ram_quad_limit(17);
         scheduler->set_purge_timeout(1);
-        scheduler->receiver_quads(example_quads_for_steffl_and_gg());
+        scheduler->receive_quads(example_quads_for_steffl_and_gg());
         test_helpers::process_events_for(2);
         CHECK(scheduler->ram_cache().n_cached_objects() == 17);
     }
@@ -442,7 +442,7 @@ TEST_CASE("nucleus/tile_scheduler/Scheduler")
         scheduler->set_ram_quad_limit(17);
         scheduler->set_purge_timeout(1);
         scheduler->update_camera(nucleus::camera::stored_positions::stephansdom());
-        scheduler->receiver_quads(example_quads_for_steffl_and_gg());
+        scheduler->receive_quads(example_quads_for_steffl_and_gg());
         test_helpers::process_events_for(2);
         CHECK(scheduler->ram_cache().n_cached_objects() == 17);
         CHECK(scheduler->ram_cache().contains({ 11, { 1117, 1337 } }));
@@ -460,10 +460,10 @@ TEST_CASE("nucleus/tile_scheduler/Scheduler")
         assert(example_quads_for_steffl_and_gg().size() > limit);
         scheduler->set_ram_quad_limit(limit);
         scheduler->set_purge_timeout(1);
-        scheduler->receiver_quads(example_quads_for_steffl_and_gg());
+        scheduler->receive_quads(example_quads_for_steffl_and_gg());
         test_helpers::process_events_for(2);
         CHECK(scheduler->ram_cache().n_cached_objects() == example_quads_for_steffl_and_gg().size());
-        scheduler->receiver_quads({
+        scheduler->receive_quads({
             example_tile_quad_for(tile::Id { 10, { 0, 0 } }),
             example_tile_quad_for(tile::Id { 11, { 1, 1 } }),
             example_tile_quad_for(tile::Id { 12, { 2, 2 } }),
@@ -478,7 +478,7 @@ TEST_CASE("nucleus/tile_scheduler/Scheduler")
         auto scheduler = default_scheduler();
         scheduler->set_purge_timeout(6 * time_multiplicator);
         scheduler->set_ram_quad_limit(2);
-        scheduler->receiver_quads({
+        scheduler->receive_quads({
             example_tile_quad_for(tile::Id { 0, { 0, 0 } }),
             example_tile_quad_for(tile::Id { 1, { 1, 1 } }),
             example_tile_quad_for(tile::Id { 2, { 2, 2 } }),
@@ -486,7 +486,7 @@ TEST_CASE("nucleus/tile_scheduler/Scheduler")
         CHECK(scheduler->ram_cache().n_cached_objects() == 3);
         test_helpers::process_events_for(2 * time_multiplicator);
         CHECK(scheduler->ram_cache().n_cached_objects() == 3);
-        scheduler->receiver_quads({
+        scheduler->receive_quads({
             example_tile_quad_for(tile::Id { 1, { 0, 0 } }),
             example_tile_quad_for(tile::Id { 1, { 1, 0 } }),
             example_tile_quad_for(tile::Id { 2, { 2, 1 } }),
@@ -496,7 +496,7 @@ TEST_CASE("nucleus/tile_scheduler/Scheduler")
         test_helpers::process_events_for(2 * time_multiplicator);
         CHECK(scheduler->ram_cache().n_cached_objects() == 6);
 
-        scheduler->receiver_quads({
+        scheduler->receive_quads({
             example_tile_quad_for(tile::Id { 1, { 0, 1 } }),
             example_tile_quad_for(tile::Id { 2, { 1, 1 } }),
             example_tile_quad_for(tile::Id { 2, { 1, 2 } }),

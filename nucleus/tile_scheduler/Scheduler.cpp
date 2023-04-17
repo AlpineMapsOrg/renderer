@@ -68,7 +68,7 @@ void Scheduler::update_camera(const camera::Definition& camera)
     schedule_update();
 }
 
-void Scheduler::receiver_quads(const std::vector<tile_types::TileQuad>& new_quads)
+void Scheduler::receive_quads(const std::vector<tile_types::TileQuad>& new_quads)
 {
     m_ram_cache.insert(new_quads);
     schedule_purge();
