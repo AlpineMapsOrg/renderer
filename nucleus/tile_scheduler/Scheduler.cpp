@@ -80,6 +80,7 @@ void Scheduler::update_gpu_quads()
             gpu_quad.tiles[i].id = quad.tiles[i].id;
             gpu_quad.tiles[i].bounds = m_aabb_decorator->aabb(quad.tiles[i].id);
 
+            // unpacking the byte data takes long
             const auto* ortho_data = m_default_ortho_tile.get();
             if (quad.tiles[i].ortho) {
                 ortho_data = quad.tiles[i].ortho.get();

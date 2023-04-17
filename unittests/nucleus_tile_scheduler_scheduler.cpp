@@ -564,11 +564,20 @@ TEST_CASE("nucleus/tile_scheduler/Scheduler benchmarks")
         scheduler->receive_quads(example_quads_many());
     };
 
-    BENCHMARK("receive " + std::to_string(example_quads_many().size()) + " quads + send to gpu")
+    BENCHMARK("receive " + std::to_string(example_quads_for_steffl_and_gg().size()) + " quads + update_gpu_quads")
     {
         auto scheduler = default_scheduler();
         scheduler->update_camera(camera);
-        scheduler->receive_quads(example_quads_many());
+        scheduler->receive_quads(example_quads_for_steffl_and_gg());
+        // unpacking byte arrays takes long, hence only the smaller dataset
         scheduler->update_gpu_quads();
+    };
+
+    BENCHMARK("receive " + std::to_string(example_quads_many().size()) + " quads + purge_ram_cache")
+    {
+        auto scheduler = default_scheduler();
+        scheduler->update_camera(camera);
+        scheduler->receive_quads(example_quads_for_steffl_and_gg());
+        scheduler->purge_ram_cache();
     };
 }
