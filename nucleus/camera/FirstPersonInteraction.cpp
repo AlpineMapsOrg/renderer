@@ -180,7 +180,11 @@ std::optional<Definition> FirstPersonInteraction::update(std::chrono::millisecon
         direction -= glm::dvec3(0, 0, 1);
     }
     glm::normalize(direction);
-    camera.move(direction * (double)m_speed_modifyer);
+    double dt = 60;
+    if (delta_time.count() < dt) {
+        dt = delta_time.count();
+    }
+    camera.move(direction * (dt / 30 * m_speed_modifyer));
     return camera;
 }
 }
