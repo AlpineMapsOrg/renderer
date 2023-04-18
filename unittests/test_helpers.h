@@ -24,6 +24,7 @@
 
 #include <QObject>
 #include <QSignalSpy>
+#include <QTimer>
 
 namespace test_helpers {
 class FailOnCopy {
@@ -65,8 +66,10 @@ bool equals(const glm::vec<n_dims, double>& a, const glm::vec<n_dims, double>& b
 
 inline void process_events_for(int msecs)
 {
-    QObject dummy;
-    QSignalSpy spy(&dummy, &QObject::destroyed); // signal won't be called, so we wait for msecs milliseconds
-    spy.wait(msecs);
+    QTimer timer;
+    timer.setTimerType(Qt::TimerType::PreciseTimer);
+    timer.start(msecs);
+    QSignalSpy spy(&timer, &QTimer::timeout);
+    spy.wait(msecs * 2);
 }
 }
