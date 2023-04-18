@@ -62,6 +62,7 @@ public:
 
     static QByteArray white_jpeg_tile(unsigned size);
     static QByteArray black_png_tile(unsigned size);
+    static std::filesystem::path disk_cache_path();
 
 signals:
     void quads_requested(const std::vector<tile::Id>& id);
@@ -73,10 +74,12 @@ public slots:
     void update_gpu_quads();
     void send_quad_requests();
     void purge_ram_cache();
+    void persist_tiles();
 
 protected:
     void schedule_update();
     void schedule_purge();
+    void read_disk_cache();
     std::vector<tile::Id> tiles_for_current_camera_position() const;
 
 private:

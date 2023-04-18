@@ -44,7 +44,7 @@ public:
     [[nodiscard]] unsigned n_cached_objects() const;
     template <typename VisitorFunction>
     void visit(const VisitorFunction& functor); // functor should return true, if the given tile should be marked visited. stops descending if false is returned.
-
+    const T& peak_at(const tile::Id& id) const;
     std::vector<T> purge();
 
 private:
@@ -78,6 +78,12 @@ template <tile_types::NamedTile T>
 unsigned int Cache<T>::n_cached_objects() const
 {
     return m_data.size();
+}
+
+template <tile_types::NamedTile T>
+const T& Cache<T>::peak_at(const tile::Id& id) const
+{
+    return m_data.at(id).data;
 }
 
 template <tile_types::NamedTile T>

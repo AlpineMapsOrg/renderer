@@ -17,13 +17,16 @@
  *****************************************************************************/
 
 #include "Scheduler.h"
+
+#include <unordered_set>
+
+#include <QBuffer>
+#include <QStandardPaths>
+#include <QTimer>
+
 #include "nucleus/tile_scheduler/utils.h"
 #include "nucleus/utils/tile_conversion.h"
 #include "sherpa/quad_tree.h"
-
-#include <QBuffer>
-#include <QTimer>
-#include <unordered_set>
 
 using namespace nucleus::tile_scheduler;
 
@@ -46,6 +49,7 @@ Scheduler::Scheduler(const QByteArray& default_ortho_tile, const QByteArray& def
 
     m_default_ortho_tile = std::make_shared<QByteArray>(default_ortho_tile);
     m_default_height_tile = std::make_shared<QByteArray>(default_height_tile);
+    read_disk_cache();
 }
 
 Scheduler::~Scheduler() = default;
@@ -76,7 +80,7 @@ void Scheduler::update_gpu_quads()
         // create GpuQuad based on cpu quad
         tile_types::GpuTileQuad gpu_quad;
         gpu_quad.id = quad.id;
-        for (auto i = 0; i < quad.n_tiles; ++i) {
+        for (unsigned i = 0; i < quad.n_tiles; ++i) {
             gpu_quad.tiles[i].id = quad.tiles[i].id;
             gpu_quad.tiles[i].bounds = m_aabb_decorator->aabb(quad.tiles[i].id);
 
@@ -106,7 +110,7 @@ void Scheduler::update_gpu_quads()
     });
     m_gpu_cached.insert(tiles_to_put_in_gpu_cache);
 
-    m_gpu_cached.visit([this, &should_refine](const tile_types::GpuCacheInfo& quad) {
+    m_gpu_cached.visit([&should_refine](const tile_types::GpuCacheInfo& quad) {
         return should_refine(quad.id);
     });
 
@@ -150,6 +154,35 @@ void Scheduler::purge_ram_cache()
     m_ram_cache.purge();
 }
 
+void Scheduler::persist_tiles()
+{
+    const auto base_path = disk_cache_path();
+    std::filesystem::remove_all(base_path);
+    std::filesystem::create_directories(base_path);
+
+    TileId2DataMap ortho_tiles;
+    ortho_tiles.reserve(m_ram_cache.n_cached_objects() * 4llu);
+    TileId2DataMap height_tiles;
+    height_tiles.reserve(m_ram_cache.n_cached_objects() * 4llu);
+
+    m_ram_cache.visit([&ortho_tiles, &height_tiles](const tile_types::TileQuad& quad) {
+        for (unsigned i = 0; i < quad.n_tiles; ++i) {
+            const auto& tile = quad.tiles[i];
+            ortho_tiles[tile.id] = tile.ortho;
+            height_tiles[tile.id] = tile.height;
+        }
+        return true;
+    });
+
+    const auto height_path = base_path / "height.alp";
+    qDebug("writing tile cache to %s", height_path.c_str());
+    utils::write_tile_id_2_data_map(height_tiles, height_path);
+
+    const auto ortho_path = base_path / "ortho.alp";
+    qDebug("writing tile cache to %s", ortho_path.c_str());
+    utils::write_tile_id_2_data_map(ortho_tiles, ortho_path);
+}
+
 void Scheduler::schedule_update()
 {
     assert(m_update_timeout < std::numeric_limits<int>::max());
@@ -163,6 +196,47 @@ void Scheduler::schedule_purge()
     if (m_enabled && !m_purge_timer->isActive()) {
         m_purge_timer->start(int(m_purge_timeout));
     }
+}
+
+void Scheduler::read_disk_cache()
+{
+    const auto base_path = disk_cache_path();
+    qDebug("reading disk cache from: %s", base_path.c_str());
+    auto ortho_tiles = utils::read_tile_id_2_data_map(base_path / "ortho.alp");
+    auto height_tiles = utils::read_tile_id_2_data_map(base_path / "height.alp");
+    if (height_tiles.empty() || ortho_tiles.empty()) {
+        height_tiles = {};
+        ortho_tiles = {};
+    }
+    std::unordered_map<tile::Id, tile_types::LayeredTile, tile::Id::Hasher> layered_tiles;
+    layered_tiles.reserve(ortho_tiles.size());
+    for (const auto& v : ortho_tiles) {
+        const auto& id = v.first;
+        const auto& ortho = v.second;
+        if (!height_tiles.contains(id)) {
+            qWarning("inconsistent cache. missing id in height tiles");
+            return;
+        }
+        const auto& height = height_tiles.at(id);
+        layered_tiles[id] = tile_types::LayeredTile { id, ortho, height };
+    }
+
+    std::unordered_map<tile::Id, tile_types::TileQuad, tile::Id::Hasher> quads;
+    for (const auto& v : layered_tiles) {
+        auto& quad = quads[v.first.parent()];
+        if (quad.n_tiles >= 4) {
+            qWarning("inconsistent cache. quad.n_tiles >= 4");
+            return;
+        }
+        quad.id = v.first.parent();
+        quad.tiles[quad.n_tiles] = v.second;
+        ++quad.n_tiles;
+    }
+
+    std::vector<tile_types::TileQuad> quads_vector;
+    quads_vector.reserve(quads.size());
+    std::ranges::transform(quads, std::back_inserter(quads_vector), [](const auto& pair) { return pair.second; });
+    receive_quads(quads_vector);
 }
 
 std::vector<tile::Id> Scheduler::tiles_for_current_camera_position() const
@@ -203,6 +277,11 @@ QByteArray Scheduler::black_png_tile(unsigned size)
     buffer.open(QIODevice::WriteOnly);
     default_tile.save(&buffer, "PNG");
     return arr;
+}
+
+std::filesystem::path Scheduler::disk_cache_path()
+{
+    return QStandardPaths::writableLocation(QStandardPaths::CacheLocation).toStdString() + "/tile_cache";
 }
 
 void Scheduler::set_purge_timeout(unsigned int new_purge_timeout)

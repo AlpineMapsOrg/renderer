@@ -29,12 +29,14 @@
 #include "nucleus/tile_scheduler/tile_types.h"
 #include "nucleus/tile_scheduler/utils.h"
 #include "nucleus/utils/tile_conversion.h"
+#include "unittests/catch2_helpers.h"
 #include "unittests/test_helpers.h"
 
 #include <sherpa/TileHeights.h>
 
 namespace {
-std::unique_ptr<nucleus::tile_scheduler::Scheduler> default_scheduler()
+
+std::unique_ptr<nucleus::tile_scheduler::Scheduler> scheduler_with_disk_cache()
 {
     static auto ortho_tile = nucleus::tile_scheduler::Scheduler::white_jpeg_tile(256);
     static auto height_tile = nucleus::tile_scheduler::Scheduler::black_png_tile(64);
@@ -47,8 +49,15 @@ std::unique_ptr<nucleus::tile_scheduler::Scheduler> default_scheduler()
     scheduler->set_update_timeout(1);
     return scheduler;
 }
+
+std::unique_ptr<nucleus::tile_scheduler::Scheduler> default_scheduler()
+{
+    std::filesystem::remove_all(nucleus::tile_scheduler::Scheduler::disk_cache_path());
+    return scheduler_with_disk_cache();
+}
 std::unique_ptr<nucleus::tile_scheduler::Scheduler> scheduler_with_aabb()
 {
+    std::filesystem::remove_all(nucleus::tile_scheduler::Scheduler::disk_cache_path());
     auto scheduler = std::make_unique<nucleus::tile_scheduler::Scheduler>();
     TileHeights h;
     h.emplace({ 0, { 0, 0 } }, { 100, 4000 });
@@ -538,6 +547,49 @@ TEST_CASE("nucleus/tile_scheduler/Scheduler")
         CHECK(scheduler->ram_cache().n_cached_objects() == 9);
         test_helpers::process_events_for(4);
         CHECK(scheduler->ram_cache().n_cached_objects() == 2);
+    }
+
+    SECTION("persisting data works")
+    {
+        {
+            auto scheduler = default_scheduler();
+            scheduler->receive_quads({
+                example_tile_quad_for(tile::Id { 0, { 0, 0 } }),
+                example_tile_quad_for(tile::Id { 1, { 1, 1 } }),
+                example_tile_quad_for(tile::Id { 2, { 2, 2 } }),
+            });
+            scheduler->persist_tiles();
+        }
+        auto scheduler = scheduler_with_disk_cache();
+        CHECK(scheduler->ram_cache().n_cached_objects() == 3);
+
+        const auto ids = std::vector { tile::Id { 0, { 0, 0 } }, tile::Id { 1, { 1, 1 } }, tile::Id { 2, { 2, 2 } } };
+        for (const auto& id : ids) {
+            const auto example_quad = example_tile_quad_for(id);
+            REQUIRE(scheduler->ram_cache().contains(id));
+            REQUIRE(scheduler->ram_cache().peak_at(id).n_tiles == example_quad.n_tiles);
+            REQUIRE(scheduler->ram_cache().peak_at(id).id == id);
+            REQUIRE(id == example_quad.id);
+            for (unsigned i = 0; i < 4; ++i) {
+                CHECK(*scheduler->ram_cache().peak_at(id).tiles[i].height == *example_quad.tiles[i].height);
+                CHECK(*scheduler->ram_cache().peak_at(id).tiles[i].ortho == *example_quad.tiles[i].ortho);
+            }
+        }
+
+        CHECK(scheduler->ram_cache().peak_at(tile::Id { 0, { 0, 0 } }).tiles[0].id == tile::Id { 1, { 1, 1 } }); // order does not matter!
+        CHECK(scheduler->ram_cache().peak_at(tile::Id { 0, { 0, 0 } }).tiles[1].id == tile::Id { 1, { 0, 1 } });
+        CHECK(scheduler->ram_cache().peak_at(tile::Id { 0, { 0, 0 } }).tiles[2].id == tile::Id { 1, { 1, 0 } });
+        CHECK(scheduler->ram_cache().peak_at(tile::Id { 0, { 0, 0 } }).tiles[3].id == tile::Id { 1, { 0, 0 } });
+
+        CHECK(scheduler->ram_cache().peak_at(tile::Id { 1, { 1, 1 } }).tiles[0].id == tile::Id { 2, { 3, 3 } });
+        CHECK(scheduler->ram_cache().peak_at(tile::Id { 1, { 1, 1 } }).tiles[1].id == tile::Id { 2, { 2, 3 } });
+        CHECK(scheduler->ram_cache().peak_at(tile::Id { 1, { 1, 1 } }).tiles[2].id == tile::Id { 2, { 3, 2 } });
+        CHECK(scheduler->ram_cache().peak_at(tile::Id { 1, { 1, 1 } }).tiles[3].id == tile::Id { 2, { 2, 2 } });
+
+        CHECK(scheduler->ram_cache().peak_at(tile::Id { 2, { 2, 2 } }).tiles[0].id == tile::Id { 3, { 5, 5 } });
+        CHECK(scheduler->ram_cache().peak_at(tile::Id { 2, { 2, 2 } }).tiles[1].id == tile::Id { 3, { 4, 5 } });
+        CHECK(scheduler->ram_cache().peak_at(tile::Id { 2, { 2, 2 } }).tiles[2].id == tile::Id { 3, { 4, 4 } });
+        CHECK(scheduler->ram_cache().peak_at(tile::Id { 2, { 2, 2 } }).tiles[3].id == tile::Id { 3, { 5, 4 } });
     }
 }
 

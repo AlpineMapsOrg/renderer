@@ -28,7 +28,7 @@
 
 namespace nucleus::tile_scheduler {
 
-using TileId2DataMap = std::unordered_map<tile::Id, std::shared_ptr<QByteArray>, tile::Id::Hasher>;
+using TileId2DataMap = std::unordered_map<tile::Id, std::shared_ptr<const QByteArray>, tile::Id::Hasher>;
 
 inline glm::dvec3 nearestVertex(const nucleus::camera::Definition& camera, const std::vector<geometry::Triangle<3, double>>& triangles)
 {

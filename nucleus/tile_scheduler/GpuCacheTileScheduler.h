@@ -43,7 +43,7 @@ class GpuCacheTileScheduler : public QObject {
     Q_OBJECT
 public:
     using TileSet = std::unordered_set<tile::Id, tile::Id::Hasher>;
-    using Tile2DataMap = std::unordered_map<tile::Id, std::shared_ptr<QByteArray>, tile::Id::Hasher>;
+    using Tile2DataMap = std::unordered_map<tile::Id, std::shared_ptr<const QByteArray>, tile::Id::Hasher>;
 
     GpuCacheTileScheduler();
     ~GpuCacheTileScheduler() override;

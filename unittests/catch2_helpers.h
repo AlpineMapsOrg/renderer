@@ -17,12 +17,13 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *****************************************************************************/
 
-#ifndef CATCH2_HELPERS_H
-#define CATCH2_HELPERS_H
+#pragma once
 
 #include <catch2/catch.hpp>
 
 #include <glm/gtx/string_cast.hpp>
+
+#include "sherpa/tile.h"
 
 namespace Catch {
 
@@ -34,6 +35,37 @@ struct StringMaker<glm::vec<s, T>> {
         return glm::to_string(value);
     }
 };
+
+template <>
+struct StringMaker<tile::Id> {
+    static std::string convert(const tile::Id& value)
+    {
+        std::string scheme;
+        switch (value.scheme) {
+        case tile::Scheme::Tms:
+            scheme = "Tms";
+            break;
+        case tile::Scheme::SlippyMap:
+            scheme = "SlippyMap";
+            break;
+        }
+        return std::string("tile::Id{") + std::to_string(value.zoom_level) + ", " + glm::to_string(value.coords) + ", " + scheme + "}";
+    }
+};
 }
 
-#endif // CATCH2_HELPERS_H
+inline std::ostream& operator<<(std::ostream& os, const tile::Id& value)
+{
+    std::string scheme;
+    switch (value.scheme) {
+    case tile::Scheme::Tms:
+        scheme = "Tms";
+        break;
+    case tile::Scheme::SlippyMap:
+        scheme = "SlippyMap";
+        break;
+    }
+    std::string text = "tile::Id{" + std::to_string(value.zoom_level) + ", " + glm::to_string(value.coords) + ", " + scheme + "}";
+    os << text;
+    return os;
+}
