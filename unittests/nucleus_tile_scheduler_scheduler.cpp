@@ -85,7 +85,7 @@ nucleus::tile_scheduler::tile_types::TileQuad example_tile_quad_for(const tile::
     cpu_quad.id = id;
     cpu_quad.n_tiles = n_children;
     const auto example_data = example_tile_data();
-    for (auto i = 0; i < n_children; ++i) {
+    for (unsigned i = 0; i < n_children; ++i) {
         cpu_quad.tiles[i].id = children[i];
         cpu_quad.tiles[i].ortho = std::make_shared<const QByteArray>(example_data.first);
         cpu_quad.tiles[i].height = std::make_shared<const QByteArray>(example_data.second);
@@ -222,7 +222,7 @@ TEST_CASE("nucleus/tile_scheduler/Scheduler")
         scheduler->update_camera(nucleus::camera::stored_positions::stephansdom());
         spy.wait(2);
         REQUIRE(spy.size() == 1);
-        const auto quads = spy.front().front().value<std::vector<tile::Id>>();
+        const auto quads = spy.constFirst().constFirst().value<std::vector<tile::Id>>();
         REQUIRE(quads.size() >= 5);
         // high level tiles that contain stephansdom
         // according to https://www.maptiler.com/google-maps-coordinates-tile-bounds-projection/#4/6.45/50.74
@@ -248,7 +248,7 @@ TEST_CASE("nucleus/tile_scheduler/Scheduler")
         scheduler->update_camera(nucleus::camera::stored_positions::stephansdom());
         spy.wait(2);
         REQUIRE(spy.size() == 1);
-        const auto quads = spy.front().front().value<std::vector<tile::Id>>();
+        const auto quads = spy.constFirst().constFirst().value<std::vector<tile::Id>>();
         REQUIRE(quads.size() >= 5);
         // high level tiles that contain stephansdom
         // according to https://www.maptiler.com/google-maps-coordinates-tile-bounds-projection/#4/6.45/50.74
@@ -275,7 +275,7 @@ TEST_CASE("nucleus/tile_scheduler/Scheduler")
         scheduler->update_camera(nucleus::camera::stored_positions::stephansdom());
         spy.wait(2);
         REQUIRE(spy.size() == 1);
-        const auto gpu_quads = spy.front().front().value<std::vector<nucleus::tile_scheduler::tile_types::GpuTileQuad>>();
+        const auto gpu_quads = spy.constFirst().constFirst().value<std::vector<nucleus::tile_scheduler::tile_types::GpuTileQuad>>();
         REQUIRE(gpu_quads.size() == 3);
         CHECK(gpu_quads[0].id == tile::Id { 0, { 0, 0 } }); // order does not matter
         CHECK(gpu_quads[1].id == tile::Id { 1, { 1, 1 } });
@@ -308,7 +308,7 @@ TEST_CASE("nucleus/tile_scheduler/Scheduler")
         scheduler->update_camera(nucleus::camera::stored_positions::stephansdom());
         spy.wait(2);
         REQUIRE(spy.size() == 1);
-        const auto gpu_quads = spy.front().front().value<std::vector<nucleus::tile_scheduler::tile_types::GpuTileQuad>>();
+        const auto gpu_quads = spy.constFirst().constFirst().value<std::vector<nucleus::tile_scheduler::tile_types::GpuTileQuad>>();
         REQUIRE(gpu_quads.size() == 1);
         CHECK(gpu_quads[0].id == tile::Id { 0, { 0, 0 } });
         CHECK(gpu_quads[0].tiles[0].id == tile::Id { 1, { 0, 0 } });
@@ -345,7 +345,7 @@ TEST_CASE("nucleus/tile_scheduler/Scheduler")
         scheduler->update_camera(nucleus::camera::stored_positions::stephansdom());
         spy.wait(2);
         REQUIRE(spy.size() == 1);
-        const auto gpu_quads = spy.front().front().value<std::vector<nucleus::tile_scheduler::tile_types::GpuTileQuad>>();
+        const auto gpu_quads = spy.constFirst().constFirst().value<std::vector<nucleus::tile_scheduler::tile_types::GpuTileQuad>>();
         REQUIRE(gpu_quads.size() == 1);
         for (auto i = 0; i < 3; ++i) {
             REQUIRE(gpu_quads[0].tiles[i].ortho);
@@ -388,7 +388,7 @@ TEST_CASE("nucleus/tile_scheduler/Scheduler")
             const auto new_quads = spy[0][0].value<std::vector<nucleus::tile_scheduler::tile_types::GpuTileQuad>>();
             const auto deleted_quads = spy[0][1].value<std::vector<tile::Id>>();
             CHECK(new_quads.size() == 17);
-            CHECK(deleted_quads.size() == 0);
+            CHECK(deleted_quads.empty());
             nucleus::tile_scheduler::Cache<nucleus::tile_scheduler::tile_types::GpuTileQuad> test_cache;
             test_cache.insert(new_quads);
             auto n_tiles = 0;
