@@ -307,4 +307,8 @@ if (ALP_UNITTESTS AND NOT EMSCRIPTEN)
         add_cute_scheduler_test(${cute_test})
     endforeach()
 
+    if (MINGW)
+        target_compile_options(unittests_gl PUBLIC "-Wa,-mbig-obj")
+    endif()
+
 endif()

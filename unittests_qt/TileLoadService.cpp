@@ -82,7 +82,7 @@ private slots:
         // https://maps.wien.gv.at/basemap/bmaporthofoto30cm/normal/google3857/9/179/272.jpeg => should show Tirol
         const auto white_tile_id = tile::Id { .zoom_level = 9, .coords = { 273, 177 } };
         const auto tirol_tile_id = tile::Id { .zoom_level = 9, .coords = { 272, 179 } };
-        TileLoadService service("http://maps.wien.gv.at/basemap/bmaporthofoto30cm/normal/google3857/", TileLoadService::UrlPattern::ZYX, ".jpeg");
+        TileLoadService service("https://alpinemaps.cg.tuwien.ac.at/tiles/ortho/", TileLoadService::UrlPattern::ZYX, ".jpeg");
 
         {
             QSignalSpy spy(&service, &TileLoadService::load_ready);
@@ -119,7 +119,7 @@ private slots:
 
     void notifiesOfUnavailableTiles()
     {
-        TileLoadService service("http://maps.wien.gv.at/basemap/bmaporthofoto30cm/normal/google3857/", TileLoadService::UrlPattern::ZYX, ".jpeg");
+        TileLoadService service("https://alpinemaps.cg.tuwien.ac.at/tiles/ortho/", TileLoadService::UrlPattern::ZYX, ".jpeg");
         QSignalSpy spy(&service, &TileLoadService::tile_unavailable);
         tile::Id unavailable_tile_id = { .zoom_level = 90, .coords = { 273, 177 } };
         service.load(unavailable_tile_id);
