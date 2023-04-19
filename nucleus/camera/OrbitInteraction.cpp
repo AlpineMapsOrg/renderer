@@ -27,13 +27,19 @@ namespace nucleus::camera {
 std::optional<Definition> OrbitInteraction::mouse_press_event(const event_parameter::Mouse& e, Definition camera, AbstractDepthTester* depth_tester)
 {
     m_operation_centre = depth_tester->position(camera.to_ndc({ e.point.pressPosition().x(), e.point.pressPosition().y() }));
+
+    auto degFromUp = glm::degrees(glm::acos(glm::dot(camera.z_axis(), glm::dvec3(0, 0, 1))));
+    if (m_operation_centre.z > camera.position().z || degFromUp > 80.0f) {
+        m_move_vertical = true;
+    } else {
+        m_move_vertical = false;
+    }
     return {};
 }
 
 std::optional<Definition> OrbitInteraction::mouse_move_event(const event_parameter::Mouse& e, Definition camera, AbstractDepthTester* depth_tester)
 {
-
-    if (e.buttons == Qt::LeftButton) {
+    if (e.buttons == Qt::LeftButton && !m_key_ctrl && !m_key_alt) {
         m_operation_centre_screen = glm::vec2(e.point.position().x(), e.point.position().y());
         glm::dvec3 camRay = camera.ray_direction(camera.to_ndc({ e.point.position().x(), e.point.position().y() }));
         double denom = glm::dot(glm::dvec3(0, 0, 1.0), camRay);
@@ -43,20 +49,19 @@ std::optional<Definition> OrbitInteraction::mouse_move_event(const event_paramet
         }
         auto mouseInWorld = camera.position() + (camRay * distance);
 
-        auto degFromUp = glm::degrees(glm::acos(glm::dot(camera.z_axis(), glm::dvec3(0, 0, 1))));
-        if (mouseInWorld.z > camera.position().z || degFromUp > 90.0f) {
+        if (m_move_vertical) {
             const auto delta = e.point.position() - e.point.lastPosition();
             camera.move(camera.x_axis() * -delta.x() + camera.y_axis() * delta.y());
         } else {
             camera.move(glm::dvec3(m_operation_centre.x - mouseInWorld.x, m_operation_centre.y - mouseInWorld.y, 0));
         }
     }
-    if (e.buttons == Qt::MiddleButton) {
+    if (e.buttons == Qt::MiddleButton || (e.buttons == Qt::LeftButton && m_key_ctrl && !m_key_alt)) {
         m_operation_centre_screen = glm::vec2(e.point.pressPosition().x(), e.point.pressPosition().y());
         const auto delta = e.point.position() - e.point.lastPosition();
         camera.orbit_clamped(m_operation_centre, glm::vec2(delta.x(), delta.y()) * -0.1f);
     }
-    if (e.buttons == Qt::RightButton) {
+    if (e.buttons == Qt::RightButton || (e.buttons == Qt::LeftButton && !m_key_ctrl && m_key_alt)) {
         m_operation_centre_screen = glm::vec2(e.point.pressPosition().x(), e.point.pressPosition().y());
         const auto delta = e.point.position() - e.point.lastPosition();
 
@@ -132,6 +137,28 @@ std::optional<Definition> OrbitInteraction::wheel_event(const event_parameter::W
 
     float dist = std::max((distance / 1500), 0.07f);
     camera.move(glm::normalize(hit - camera.position()) * (e.angle_delta.y() * (double)dist));
+    return camera;
+}
+
+std::optional<Definition> OrbitInteraction::key_press_event(const QKeyCombination& e, Definition camera, AbstractDepthTester* depth_tester)
+{
+    if (e.key() == Qt::Key_Control) {
+        m_key_ctrl = true;
+    }
+    if (e.key() == Qt::Key_Alt) {
+        m_key_alt = true;
+    }
+    return camera;
+}
+
+std::optional<Definition> OrbitInteraction::key_release_event(const QKeyCombination& e, Definition camera, AbstractDepthTester* depth_tester)
+{
+    if (e.key() == Qt::Key_Control) {
+        m_key_ctrl = false;
+    }
+    if (e.key() == Qt::Key_Alt) {
+        m_key_alt = false;
+    }
     return camera;
 }
 

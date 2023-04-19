@@ -24,6 +24,7 @@
 #include "nucleus/camera/Definition.h"
 #include "nucleus/camera/FirstPersonInteraction.h"
 #include "nucleus/camera/OrbitInteraction.h"
+#include "nucleus/camera/RotateNorthInteraction.h"
 #include "nucleus/srs.h"
 
 namespace nucleus::camera {
@@ -132,6 +133,9 @@ void Controller::key_press(const QKeyCombination& e)
     if (e.key() == Qt::Key_4) {
         set_interaction_style(std::make_unique<nucleus::camera::CrapyInteraction>());
     }
+    if (e.key() == Qt::Key_C) {
+        set_interaction_style(std::make_unique<nucleus::camera::RotateNorthInteraction>());
+    }
 
     const auto new_definition = m_interaction_style->key_press_event(e, m_definition, m_depth_tester);
     if (!new_definition)
@@ -149,10 +153,22 @@ void Controller::key_release(const QKeyCombination& e)
     update();
 }
 
-
 void Controller::touch(const event_parameter::Touch& e)
 {
     const auto new_definition = m_interaction_style->touch_event(e, m_definition, m_depth_tester);
+    if (!new_definition)
+        return;
+    m_definition = new_definition.value();
+    update();
+}
+
+void Controller::update_camera_request()
+{
+    auto now = std::chrono::steady_clock::now();
+    auto elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(now - m_last_frame_time);
+    m_last_frame_time = now;
+
+    const auto new_definition = m_interaction_style->update(elapsed, m_definition, m_depth_tester);
     if (!new_definition)
         return;
     m_definition = new_definition.value();

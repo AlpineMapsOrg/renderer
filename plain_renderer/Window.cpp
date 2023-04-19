@@ -97,5 +97,5 @@ void Window::touchEvent(QTouchEvent* e)
 
 void Window::key_timer()
 {
-    m_gl_window.keyPressEvent(new QKeyEvent(QEvent::KeyPress, Qt::Key_T, Qt::NoModifier)); // TODO replace this with "key update" call
+    m_gl_window.updateCameraEvent();
 }

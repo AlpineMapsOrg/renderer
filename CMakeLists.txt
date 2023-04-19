@@ -31,6 +31,7 @@ set(ALP_NUCLEUS_SOURCES
     nucleus/camera/InteractionStyle.h nucleus/camera/InteractionStyle.cpp
     nucleus/camera/NearPlaneAdjuster.h nucleus/camera/NearPlaneAdjuster.cpp
     nucleus/camera/OrbitInteraction.h nucleus/camera/OrbitInteraction.cpp
+    nucleus/camera/RotateNorthInteraction.h nucleus/camera/RotateNorthInteraction.cpp
     nucleus/camera/AbstractDepthTester.h
     nucleus/camera/stored_positions.h
     nucleus/utils/terrain_mesh_index_generator.h
@@ -70,6 +71,7 @@ set(ALP_APP_SOURCES
     app/RenderThreadNotifier.h app/RenderThreadNotifier.cpp
     app/TerrainRendererItem.h app/TerrainRendererItem.cpp
     app/GnssInformation.h app/GnssInformation.cpp
+    app/TerrainRenderer.h app/TerrainRenderer.cpp
 )
 set(ALP_APP_QML
     app/main.qml
@@ -80,6 +82,7 @@ set(ALP_APP_QML
 )
 set(ALP_APP_ICONS
     app/icons/camera_operation_centre.svg
+    app/icons/compass.svg
     app/icons/current_location.svg
     app/icons/mascot.png
     app/icons/menu.svg

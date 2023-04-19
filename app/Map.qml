@@ -125,10 +125,31 @@ Rectangle {
     }
 
     RoundButton {
+        id: compass
+        width: 60
+        height: 60
+        rotation: renderer.camera_rotation_from_north
+        onClicked: renderer.rotate_north()
+        focusPolicy: Qt.NoFocus
+        icon {
+            source: "qrc:/alpinemaps/app/icons/compass.svg"
+            height: 40
+            width: 40
+        }
+        anchors {
+            right: parent.right
+            bottom: parent.bottom
+            rightMargin: 10
+            bottomMargin: 80
+        }
+    }
+
+    RoundButton {
         id: current_location
         width: 60
         height: 60
         checkable: true
+        focusPolicy: Qt.NoFocus
         icon {
             source: "qrc:/alpinemaps/app/icons/current_location.svg"
             height: 32
