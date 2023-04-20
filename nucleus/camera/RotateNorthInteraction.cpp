@@ -34,6 +34,8 @@ std::optional<Definition> RotateNorthInteraction::update(std::chrono::millisecon
 
         m_total_duration = m_degrees_from_north * 5 + 500;
         m_current_duration = 0;
+
+        m_operation_centre_screen = glm::vec2(camera.viewport_size().x / 2.0f, camera.viewport_size().y / 2.0f);
     }
 
     if (m_current_duration >= m_total_duration) {
@@ -57,6 +59,10 @@ std::optional<Definition> RotateNorthInteraction::update(std::chrono::millisecon
     }
     m_current_duration += dt;
     return camera;
+}
+
+std::optional<glm::vec2> RotateNorthInteraction::get_operation_centre(){
+    return m_operation_centre_screen;
 }
 
 float RotateNorthInteraction::ease_in_out(float t)

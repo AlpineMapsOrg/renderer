@@ -30,7 +30,9 @@ class RotateNorthInteraction : public InteractionStyle
     int m_current_duration = 0;
 public:
     std::optional<Definition> update(std::chrono::milliseconds delta_time, Definition camera, AbstractDepthTester* depth_tester) override;
+    std::optional<glm::vec2> get_operation_centre() override;
 private:
     float ease_in_out(float t);
+    glm::vec2 m_operation_centre_screen = {};
 };
 }
