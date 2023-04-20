@@ -21,6 +21,8 @@
 using nucleus::camera::Definition;
 using nucleus::camera::InteractionStyle;
 
+void InteractionStyle::reset_interaction(Definition, AbstractDepthTester*) {}
+
 std::optional<Definition> InteractionStyle::mouse_press_event(const nucleus::event_parameter::Mouse&, Definition, AbstractDepthTester*)
 {
     return {};

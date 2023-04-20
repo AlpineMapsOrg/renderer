@@ -24,18 +24,22 @@
 
 namespace nucleus::camera {
 
+void RotateNorthInteraction::reset_interaction(Definition camera, AbstractDepthTester* depth_tester)
+{
+    m_operation_centre = depth_tester->position(glm::dvec2(0.0, 0.0));
+    m_operation_centre_screen = glm::vec2(camera.viewport_size().x / 2.0f, camera.viewport_size().y / 2.0f);
+
+    auto cameraFrontAxis = camera.z_axis();
+    m_degrees_from_north = glm::degrees(glm::acos(glm::dot(glm::normalize(glm::dvec3(cameraFrontAxis.x, cameraFrontAxis.y, 0)), glm::dvec3(0, -1, 0))));
+
+    m_total_duration = m_degrees_from_north * 5 + 500;
+    m_current_duration = 0;
+}
+
 std::optional<Definition> RotateNorthInteraction::update(std::chrono::milliseconds delta_time, Definition camera, AbstractDepthTester* depth_tester)
 {
     if (m_operation_centre.x == 0 && m_operation_centre.y == 0 && m_operation_centre.z == 0) {
-        m_operation_centre = depth_tester->position(glm::dvec2(0.0, 0.0));
-
-        auto cameraFrontAxis = camera.z_axis();
-        m_degrees_from_north = glm::degrees(glm::acos(glm::dot(glm::normalize(glm::dvec3(cameraFrontAxis.x, cameraFrontAxis.y, 0)), glm::dvec3(0, -1, 0))));
-
-        m_total_duration = m_degrees_from_north * 5 + 500;
-        m_current_duration = 0;
-
-        m_operation_centre_screen = glm::vec2(camera.viewport_size().x / 2.0f, camera.viewport_size().y / 2.0f);
+        reset_interaction(camera, depth_tester);
     }
 
     if (m_current_duration >= m_total_duration) {

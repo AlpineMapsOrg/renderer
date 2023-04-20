@@ -96,6 +96,7 @@ void Controller::mouse_press(const event_parameter::Mouse& e)
 {
     if (m_animation_style) {
         m_animation_style.reset();
+        m_interaction_style->reset_interaction(m_definition, m_depth_tester);
     }
     const auto new_definition = m_interaction_style->mouse_press_event(e, m_definition, m_depth_tester);
     if (!new_definition)
@@ -117,6 +118,7 @@ void Controller::wheel_turn(const event_parameter::Wheel& e)
 {
     if (m_animation_style) {
         m_animation_style.reset();
+        m_interaction_style->reset_interaction(m_definition, m_depth_tester);
     }
 
     const auto new_definition = m_interaction_style->wheel_event(e, m_definition, m_depth_tester);
@@ -130,6 +132,7 @@ void Controller::key_press(const QKeyCombination& e)
 {
     if (m_animation_style) {
         m_animation_style.reset();
+        m_interaction_style->reset_interaction(m_definition, m_depth_tester);
     }
 
     if (e.key() == Qt::Key_1) {
@@ -187,6 +190,7 @@ void Controller::update_camera_request()
         const auto new_animation = m_animation_style->update(elapsed, m_definition, m_depth_tester);
         if (!new_animation) {
             m_animation_style.reset();
+            m_interaction_style->reset_interaction(m_definition, m_depth_tester);
             return;
         }
         m_definition = new_animation.value();

@@ -29,6 +29,7 @@ class RotateNorthInteraction : public InteractionStyle
     int m_total_duration = 1000;
     int m_current_duration = 0;
 public:
+    void reset_interaction(Definition camera, AbstractDepthTester* depth_tester) override;
     std::optional<Definition> update(std::chrono::milliseconds delta_time, Definition camera, AbstractDepthTester* depth_tester) override;
     std::optional<glm::vec2> get_operation_centre() override;
 private:
