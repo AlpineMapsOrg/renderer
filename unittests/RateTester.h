@@ -18,40 +18,24 @@
 
 #pragma once
 
-#include <unordered_set>
-
 #include <QObject>
 
-#include <sherpa/tile.h>
+#include "nucleus/tile_scheduler/RateLimiter.h"
 
-class QTimer;
+namespace unittests {
 
-namespace nucleus::tile_scheduler {
-
-class RateLimiter : public QObject
-{
+class RateTester : public QObject {
     Q_OBJECT
 
-    unsigned m_rate = 10;
-    unsigned m_rate_period_msecs = 100;
-    std::vector<tile::Id> m_request_queue;
-    std::vector<uint64_t> m_in_flight;
-    std::unique_ptr<QTimer> m_update_timer;
+    std::vector<uint64_t> m_events;
+    unsigned m_rate;
+    unsigned m_period;
 
 public:
-    explicit RateLimiter(QObject* parent = nullptr);
-    ~RateLimiter() override;
-    void set_limit(unsigned rate, unsigned period_msecs);
-    std::pair<unsigned, unsigned> limit() const;
-    size_t queue_size() const;
+    explicit RateTester(nucleus::tile_scheduler::RateLimiter* period);
+    ~RateTester() override;
 
 public slots:
-    void request_quad(const tile::Id& id);
-
-private slots:
-    void process_request_queue();
-
-signals:
-    void quad_requested(const tile::Id& tile_id);
+    void receive_quad_request(const tile::Id& id);
 };
 }

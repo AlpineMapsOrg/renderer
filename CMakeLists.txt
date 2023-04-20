@@ -121,6 +121,7 @@ if (ALP_UNITTESTS AND NOT EMSCRIPTEN)
         unittests/nucleus_tile_scheduler_scheduler.cpp
         unittests/nucleus_tile_scheduler_slot_limiter.cpp
         unittests/nucleus_tile_scheduler_rate_limiter.cpp
+        unittests/RateTester.h unittests/RateTester.cpp
     )
     set(ALP_QT_SCHEDULER_UNITTESTS
         TestGpuCacheTileScheduler

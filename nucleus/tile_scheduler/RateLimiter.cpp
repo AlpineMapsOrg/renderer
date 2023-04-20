@@ -20,6 +20,8 @@
 
 #include <QTimer>
 
+#include "utils.h"
+
 using namespace nucleus::tile_scheduler;
 
 RateLimiter::RateLimiter(QObject* parent)
@@ -40,26 +42,40 @@ void RateLimiter::set_limit(unsigned int rate, unsigned int period_msecs)
     m_rate_period_msecs = period_msecs;
 }
 
+std::pair<unsigned int, unsigned int> RateLimiter::limit() const
+{
+    return { m_rate, m_rate_period_msecs };
+}
+
+size_t RateLimiter::queue_size() const
+{
+    return m_request_queue.size();
+}
+
 void RateLimiter::request_quad(const tile::Id& id)
 {
-    if (m_in_flight.size() < m_rate) {
-        m_in_flight.push_back(0);
-        emit quad_requested(id);
-    } else {
-        m_request_queue.push_back(id);
-        m_update_timer->start(int(m_rate_period_msecs));
-    }
+    m_request_queue.push_back(id);
+    process_request_queue();
 }
 
 void RateLimiter::process_request_queue()
 {
-    unsigned in_flight = 0;
+    const auto current_msecs = utils::time_since_epoch();
+    std::erase_if(m_in_flight, [&current_msecs, this](const auto& x) { return x < current_msecs - m_rate_period_msecs; });
+    unsigned requested_now = 0;
     for (const auto& id : m_request_queue) {
-        emit quad_requested(id);
-        if (++in_flight >= m_rate)
+        if (m_in_flight.size() >= m_rate)
             break;
+        m_in_flight.push_back(current_msecs);
+        ++requested_now;
+        emit quad_requested(id);
     }
-    m_request_queue.erase(m_request_queue.cbegin(), m_request_queue.cbegin() + in_flight);
-    if (!m_request_queue.empty())
-        m_update_timer->start(int(m_rate_period_msecs));
+    m_request_queue.erase(m_request_queue.cbegin(), m_request_queue.cbegin() + requested_now);
+
+    if (!m_request_queue.empty()) {
+        const auto age_of_oldest_in_flight = current_msecs - m_in_flight.front();
+        assert(age_of_oldest_in_flight <= m_rate_period_msecs);
+
+        m_update_timer->start(int(1 + m_rate_period_msecs - age_of_oldest_in_flight));
+    }
 }
