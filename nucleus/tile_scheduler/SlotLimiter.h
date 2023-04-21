@@ -39,6 +39,8 @@ public:
     explicit SlotLimiter(QObject* parent = nullptr);
 
     void set_limit(unsigned int new_limit);
+    [[nodiscard]] unsigned int limit() const;
+    unsigned int slots_taken() const;
 
 public slots:
     void request_quads(const std::vector<tile::Id>& id);

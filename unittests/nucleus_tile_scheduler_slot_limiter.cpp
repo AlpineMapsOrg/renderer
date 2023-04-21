@@ -21,6 +21,7 @@
 #include <sherpa/tile.h>
 
 #include <QSignalSpy>
+#include <QThread>
 
 #include <nucleus/tile_scheduler/tile_types.h>
 
@@ -46,6 +47,7 @@ TEST_CASE("nucleus/tile_scheduler/slot limiter")
         REQUIRE(spy.size() == 2);
         CHECK(spy[0][0].value<tile::Id>() == tile::Id { 0, { 0, 0 } });
         CHECK(spy[1][0].value<tile::Id>() == tile::Id { 1, { 0, 0 } });
+        CHECK(sl.slots_taken() == 2);
     }
 
     SECTION("sends on requests only up to the limit of tile slots")
@@ -56,11 +58,13 @@ TEST_CASE("nucleus/tile_scheduler/slot limiter")
         sl.request_quads({ tile::Id { 0, { 0, 0 } },
             tile::Id { 1, { 0, 0 } },
             tile::Id { 1, { 0, 1 } } });
+        CHECK(sl.slots_taken() == 2);
         REQUIRE(spy.size() == 2);
         CHECK(spy[0][0].value<tile::Id>() == tile::Id { 0, { 0, 0 } });
         CHECK(spy[1][0].value<tile::Id>() == tile::Id { 1, { 0, 0 } });
 
         sl.request_quads({ tile::Id { 1, { 1, 0 } } });
+        CHECK(sl.slots_taken() == 2);
         CHECK(spy.size() == 2);
     }
 
@@ -70,23 +74,94 @@ TEST_CASE("nucleus/tile_scheduler/slot limiter")
         sl.set_limit(2);
         QSignalSpy spy(&sl, &SlotLimiter::quad_requested);
         sl.request_quads({ tile::Id { 0, { 0, 0 } },
-            tile::Id { 1, { 0, 0 } },
-            tile::Id { 1, { 0, 1 } },
-            tile::Id { 2, { 0, 0 } } });
+            tile::Id { 1, { 0, 0 } } });
+        CHECK(sl.slots_taken() == 2);
         REQUIRE(spy.size() == 2);
 
         sl.deliver_quad(tile_types::TileQuad { tile::Id { 0, { 0, 0 } } });
+        CHECK(sl.slots_taken() == 1);
+        sl.deliver_quad(tile_types::TileQuad { tile::Id { 1, { 0, 0 } } });
+        CHECK(sl.slots_taken() == 0);
+    }
+
+    SECTION("receiving tiles triggers processing of queue")
+    {
+        SlotLimiter sl;
+        sl.set_limit(2);
+        QSignalSpy spy(&sl, &SlotLimiter::quad_requested);
+        sl.request_quads({ tile::Id { 0, { 0, 0 } },
+            tile::Id { 1, { 0, 0 } },
+            tile::Id { 1, { 0, 1 } },
+            tile::Id { 2, { 0, 0 } } });
+        CHECK(sl.slots_taken() == 2);
+        REQUIRE(spy.size() == 2);
+
+        sl.deliver_quad(tile_types::TileQuad { tile::Id { 0, { 0, 0 } } });
+        CHECK(sl.slots_taken() == 2);
         REQUIRE(spy.size() == 3);
         CHECK(spy[2][0].value<tile::Id>() == tile::Id { 1, { 0, 1 } });
 
         sl.deliver_quad(tile_types::TileQuad { tile::Id { 1, { 0, 0 } } });
+        CHECK(sl.slots_taken() == 2);
         REQUIRE(spy.size() == 4);
         CHECK(spy[3][0].value<tile::Id>() == tile::Id { 2, { 0, 0 } });
 
         // running out of tile requests
         sl.deliver_quad(tile_types::TileQuad { tile::Id { 1, { 0, 1 } } });
+        CHECK(sl.slots_taken() == 1);
         sl.deliver_quad(tile_types::TileQuad { tile::Id { 2, { 0, 0 } } });
+        CHECK(sl.slots_taken() == 0);
         CHECK(spy.size() == 4);
+
+        sl.request_quads({ tile::Id { 0, { 0, 0 } },
+            tile::Id { 1, { 0, 0 } } });
+        CHECK(sl.slots_taken() == 2);
+        REQUIRE(spy.size() == 6);
+        CHECK(spy[4][0].value<tile::Id>() == tile::Id { 0, { 0, 0 } });
+        CHECK(spy[5][0].value<tile::Id>() == tile::Id { 1, { 0, 0 } });
+    }
+
+    SECTION("receiving tiles triggers processing of queue")
+    {
+        SlotLimiter sl;
+        sl.set_limit(2);
+        QSignalSpy spy(&sl, &SlotLimiter::quad_requested);
+        sl.request_quads({ tile::Id { 0, { 0, 0 } },
+            tile::Id { 1, { 0, 0 } },
+            tile::Id { 2, { 0, 0 } },
+            tile::Id { 3, { 0, 0 } },
+            tile::Id { 4, { 0, 0 } },
+            tile::Id { 5, { 0, 0 } },
+            tile::Id { 6, { 0, 0 } } });
+        CHECK(sl.slots_taken() == 2);
+        REQUIRE(spy.size() == 2);
+        CHECK(spy[0][0].value<tile::Id>() == tile::Id { 0, { 0, 0 } });
+        CHECK(spy[1][0].value<tile::Id>() == tile::Id { 1, { 0, 0 } });
+
+        for (unsigned i = 0; i < 5; ++i) {
+            sl.deliver_quad(tile_types::TileQuad { tile::Id { i, { 0, 0 } } });
+            CHECK(sl.slots_taken() == 2);
+
+            REQUIRE(spy.size() == 3 + i);
+            CHECK(spy[i + 2][0].value<tile::Id>() == tile::Id { i + 2, { 0, 0 } });
+        }
+        CHECK(sl.slots_taken() == 2);
+        REQUIRE(spy.size() == 7);
+        CHECK(spy[6][0].value<tile::Id>() == tile::Id { 6, { 0, 0 } });
+
+        // running out of tile requests
+        sl.deliver_quad(tile_types::TileQuad { tile::Id { 5, { 0, 0 } } });
+        CHECK(sl.slots_taken() == 1);
+        sl.deliver_quad(tile_types::TileQuad { tile::Id { 6, { 0, 0 } } });
+        CHECK(sl.slots_taken() == 0);
+        CHECK(spy.size() == 7);
+
+        sl.request_quads({ tile::Id { 0, { 0, 0 } },
+            tile::Id { 1, { 0, 0 } } });
+        CHECK(sl.slots_taken() == 2);
+        REQUIRE(spy.size() == 9);
+        CHECK(spy[7][0].value<tile::Id>() == tile::Id { 0, { 0, 0 } });
+        CHECK(spy[8][0].value<tile::Id>() == tile::Id { 1, { 0, 0 } });
     }
 
     SECTION("updating request list omits requesting in flight tiles again")
@@ -98,20 +173,31 @@ TEST_CASE("nucleus/tile_scheduler/slot limiter")
             tile::Id { 1, { 0, 0 } },
             tile::Id { 2, { 0, 0 } },
             tile::Id { 3, { 0, 0 } } });
+        CHECK(sl.slots_taken() == 2);
 
         REQUIRE(spy.size() == 2);
         sl.request_quads({ tile::Id { 0, { 0, 0 } }, // already requested
             tile::Id { 1, { 0, 0 } }, // already requested
             tile::Id { 2, { 1, 0 } }, // new, should go next
             tile::Id { 3, { 1, 0 } } }); // new, should go next
+        CHECK(sl.slots_taken() == 2);
 
         sl.deliver_quad(tile_types::TileQuad { tile::Id { 0, { 0, 0 } } });
+        CHECK(sl.slots_taken() == 2);
         REQUIRE(spy.size() == 3);
         CHECK(spy[2][0].value<tile::Id>() == tile::Id { 2, { 1, 0 } });
+        CHECK(sl.slots_taken() == 2);
 
         sl.deliver_quad(tile_types::TileQuad { tile::Id { 1, { 0, 0 } } });
+        CHECK(sl.slots_taken() == 2);
         REQUIRE(spy.size() == 4);
         CHECK(spy[3][0].value<tile::Id>() == tile::Id { 3, { 1, 0 } });
+
+        sl.deliver_quad(tile_types::TileQuad { tile::Id { 3, { 1, 0 } } });
+        CHECK(sl.slots_taken() == 1);
+
+        sl.deliver_quad(tile_types::TileQuad { tile::Id { 2, { 1, 0 } } });
+        CHECK(sl.slots_taken() == 0);
     }
 
     SECTION("delivered quads are sent on")

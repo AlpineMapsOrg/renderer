@@ -31,6 +31,16 @@ void SlotLimiter::set_limit(unsigned new_limit)
     m_limit = new_limit;
 }
 
+unsigned SlotLimiter::limit() const
+{
+    return m_limit;
+}
+
+unsigned SlotLimiter::slots_taken() const
+{
+    return m_in_flight.size();
+}
+
 void SlotLimiter::request_quads(const std::vector<tile::Id>& ids)
 {
     m_request_queue.clear();
@@ -48,9 +58,12 @@ void SlotLimiter::request_quads(const std::vector<tile::Id>& ids)
 
 void SlotLimiter::deliver_quad(const tile_types::TileQuad& tile)
 {
+    m_in_flight.erase(tile.id);
     emit quads_delivered({ tile });
     if (m_request_queue.empty())
         return;
+
+    m_in_flight.insert(m_request_queue.front());
     emit quad_requested(m_request_queue.front());
     m_request_queue.erase(m_request_queue.cbegin());
 }

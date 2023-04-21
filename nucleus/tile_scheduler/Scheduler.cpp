@@ -47,6 +47,10 @@ Scheduler::Scheduler(const QByteArray& default_ortho_tile, const QByteArray& def
     m_purge_timer->setSingleShot(true);
     connect(m_purge_timer.get(), &QTimer::timeout, this, &Scheduler::purge_ram_cache);
 
+    m_persist_timer = std::make_unique<QTimer>(this);
+    m_persist_timer->setSingleShot(true);
+    connect(m_persist_timer.get(), &QTimer::timeout, this, &Scheduler::persist_tiles);
+
     m_default_ortho_tile = std::make_shared<QByteArray>(default_ortho_tile);
     m_default_height_tile = std::make_shared<QByteArray>(default_height_tile);
     read_disk_cache();
@@ -65,6 +69,7 @@ void Scheduler::receive_quads(const std::vector<tile_types::TileQuad>& new_quads
     m_ram_cache.insert(new_quads);
     schedule_purge();
     schedule_update();
+    schedule_persist();
 }
 
 void Scheduler::update_gpu_quads()
@@ -168,8 +173,10 @@ void Scheduler::persist_tiles()
     m_ram_cache.visit([&ortho_tiles, &height_tiles](const tile_types::TileQuad& quad) {
         for (unsigned i = 0; i < quad.n_tiles; ++i) {
             const auto& tile = quad.tiles[i];
-            ortho_tiles[tile.id] = tile.ortho;
-            height_tiles[tile.id] = tile.height;
+            if (tile.ortho)
+                ortho_tiles[tile.id] = tile.ortho;
+            if (tile.height)
+                height_tiles[tile.id] = tile.height;
         }
         return true;
     });
@@ -195,6 +202,14 @@ void Scheduler::schedule_purge()
     assert(m_purge_timeout < std::numeric_limits<int>::max());
     if (m_enabled && !m_purge_timer->isActive()) {
         m_purge_timer->start(int(m_purge_timeout));
+    }
+}
+
+void Scheduler::schedule_persist()
+{
+    assert(m_persist_timeout < std::numeric_limits<int>::max());
+    if (!m_persist_timer->isActive()) {
+        m_persist_timer->start(int(m_persist_timeout));
     }
 }
 
@@ -235,7 +250,21 @@ void Scheduler::read_disk_cache()
 
     std::vector<tile_types::TileQuad> quads_vector;
     quads_vector.reserve(quads.size());
-    std::ranges::transform(quads, std::back_inserter(quads_vector), [](const auto& pair) { return pair.second; });
+    std::ranges::transform(quads, std::back_inserter(quads_vector), [this](const auto& pair) {
+        tile_types::TileQuad quad = pair.second;
+        const auto required_children = quad.id.children();
+        std::unordered_set<tile::Id, tile::Id::Hasher> missing_children = { required_children.begin(), required_children.end() };
+        for (unsigned i = 0; i < quad.n_tiles; ++i) {
+            missing_children.erase(quad.tiles[i].id);
+        }
+        for (const auto& missing_id : missing_children) {
+            quad.tiles[quad.n_tiles].id = missing_id;
+            quad.tiles[quad.n_tiles].ortho = m_default_ortho_tile;
+            quad.tiles[quad.n_tiles].height = m_default_height_tile;
+            quad.n_tiles++;
+        }
+        return quad;
+    });
     receive_quads(quads_vector);
 }
 
@@ -250,6 +279,21 @@ std::vector<tile::Id> Scheduler::tiles_for_current_camera_position() const
     //    all_inner_nodes.reserve(all_inner_nodes.size() + all_leaves.size());
     //    std::copy(all_leaves.begin(), all_leaves.end(), std::back_inserter(all_inner_nodes));
     return all_inner_nodes;
+}
+
+unsigned int Scheduler::persist_timeout() const
+{
+    return m_persist_timeout;
+}
+
+void Scheduler::set_persist_timeout(unsigned int new_persist_timeout)
+{
+    assert(new_persist_timeout < std::numeric_limits<int>::max());
+    m_persist_timeout = new_persist_timeout;
+
+    if (m_persist_timer->isActive()) {
+        m_persist_timer->start(int(m_persist_timeout));
+    }
 }
 
 const Cache<tile_types::TileQuad>& Scheduler::ram_cache() const

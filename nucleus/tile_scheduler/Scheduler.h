@@ -64,6 +64,9 @@ public:
     static QByteArray black_png_tile(unsigned size);
     static std::filesystem::path disk_cache_path();
 
+    [[nodiscard]] unsigned int persist_timeout() const;
+    void set_persist_timeout(unsigned int new_persist_timeout);
+
 signals:
     void quads_requested(const std::vector<tile::Id>& id);
     void gpu_quads_updated(const std::vector<tile_types::GpuTileQuad>& new_quads, const std::vector<tile::Id>& deleted_quads);
@@ -79,6 +82,7 @@ public slots:
 protected:
     void schedule_update();
     void schedule_purge();
+    void schedule_persist();
     void read_disk_cache();
     std::vector<tile::Id> tiles_for_current_camera_position() const;
 
@@ -86,6 +90,7 @@ private:
     float m_permissible_screen_space_error = 2;
     unsigned m_update_timeout = 100;
     unsigned m_purge_timeout = 1000;
+    unsigned m_persist_timeout = 10000;
     unsigned m_gpu_quad_limit = 250;
     unsigned m_ram_quad_limit = 1000;
     static constexpr unsigned m_ortho_tile_size = 256;
@@ -93,6 +98,7 @@ private:
     bool m_enabled = false;
     std::unique_ptr<QTimer> m_update_timer;
     std::unique_ptr<QTimer> m_purge_timer;
+    std::unique_ptr<QTimer> m_persist_timer;
     camera::Definition m_current_camera;
     utils::AabbDecoratorPtr m_aabb_decorator;
     Cache<tile_types::TileQuad> m_ram_cache;
