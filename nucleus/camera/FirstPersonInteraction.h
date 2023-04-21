@@ -21,6 +21,8 @@
 
 #include "InteractionStyle.h"
 
+#include <nucleus/utils/DeltaTime.h>
+
 namespace nucleus::camera {
 class FirstPersonInteraction : public InteractionStyle
 {
@@ -29,6 +31,7 @@ class FirstPersonInteraction : public InteractionStyle
     glm::ivec2 m_previous_second_touch = { -1, -1 };
     bool m_was_double_touch = false;
     float m_speed_modifyer = 13;
+    DeltaTime m_delta_time = DeltaTime();
     bool m_key_w = false;
     bool m_key_s = false;
     bool m_key_a = false;
@@ -41,6 +44,6 @@ public:
     std::optional<Definition> wheel_event(const event_parameter::Wheel& e, Definition camera, AbstractDepthTester* depth_tester) override;
     std::optional<Definition> key_press_event(const QKeyCombination& e, Definition camera, AbstractDepthTester* depth_tester) override;
     std::optional<Definition> key_release_event(const QKeyCombination& e, Definition camera, AbstractDepthTester* depth_tester) override;
-    std::optional<Definition> update(std::chrono::milliseconds, Definition camera, AbstractDepthTester* depth_tester) override;
+    std::optional<Definition> update(Definition camera, AbstractDepthTester* depth_tester) override;
 };
 }

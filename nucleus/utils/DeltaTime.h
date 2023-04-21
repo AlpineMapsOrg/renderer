@@ -1,6 +1,5 @@
 /*****************************************************************************
  * Alpine Terrain Renderer
- * Copyright (C) 2022 Adam Celarek
  * Copyright (C) 2023 Jakob Lindner
  *
  * This program is free software: you can redistribute it and/or modify
@@ -19,24 +18,15 @@
 
 #pragma once
 
-#include "InteractionStyle.h"
+#include <chrono>
 
-#include <nucleus/utils/DeltaTime.h>
-
-namespace nucleus::camera {
-class RotateNorthInteraction : public InteractionStyle
+class DeltaTime
 {
-    glm::dvec3 m_operation_centre = {};
-    float m_degrees_from_north = 0;
-    int m_total_duration = 1000;
-    int m_current_duration = 0;
-    DeltaTime m_delta_time = DeltaTime();
 public:
-    void reset_interaction(Definition camera, AbstractDepthTester* depth_tester) override;
-    std::optional<Definition> update(Definition camera, AbstractDepthTester* depth_tester) override;
-    std::optional<glm::vec2> get_operation_centre() override;
+    DeltaTime();
+    void reset();
+    std::chrono::milliseconds get();
+
 private:
-    float ease_in_out(float t);
-    glm::vec2 m_operation_centre_screen = {};
+    std::chrono::steady_clock::time_point m_last_frame;
 };
-}

@@ -182,12 +182,8 @@ void Controller::touch(const event_parameter::Touch& e)
 
 void Controller::update_camera_request()
 {
-    auto now = std::chrono::steady_clock::now();
-    auto elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(now - m_last_frame_time);
-    m_last_frame_time = now;
-
     if (m_animation_style) {
-        const auto new_animation = m_animation_style->update(elapsed, m_definition, m_depth_tester);
+        const auto new_animation = m_animation_style->update(m_definition, m_depth_tester);
         if (!new_animation) {
             m_animation_style.reset();
             m_interaction_style->reset_interaction(m_definition, m_depth_tester);
@@ -196,7 +192,7 @@ void Controller::update_camera_request()
         m_definition = new_animation.value();
         update();
     } else {
-        const auto new_definition = m_interaction_style->update(elapsed, m_definition, m_depth_tester);
+        const auto new_definition = m_interaction_style->update(m_definition, m_depth_tester);
         if (!new_definition)
             return;
         m_definition = new_definition.value();

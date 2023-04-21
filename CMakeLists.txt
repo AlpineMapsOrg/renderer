@@ -34,6 +34,7 @@ set(ALP_NUCLEUS_SOURCES
     nucleus/camera/RotateNorthInteraction.h nucleus/camera/RotateNorthInteraction.cpp
     nucleus/camera/AbstractDepthTester.h
     nucleus/camera/stored_positions.h
+    nucleus/utils/DeltaTime.h nucleus/utils/DeltaTime.cpp
     nucleus/utils/terrain_mesh_index_generator.h
     nucleus/utils/tile_conversion.h nucleus/utils/tile_conversion.cpp
     nucleus/map_label/MapLabelModel.h nucleus/map_label/MapLabelModel.cpp

@@ -34,9 +34,11 @@ void RotateNorthInteraction::reset_interaction(Definition camera, AbstractDepthT
 
     m_total_duration = m_degrees_from_north * 5 + 500;
     m_current_duration = 0;
+
+    m_delta_time.reset();
 }
 
-std::optional<Definition> RotateNorthInteraction::update(std::chrono::milliseconds delta_time, Definition camera, AbstractDepthTester* depth_tester)
+std::optional<Definition> RotateNorthInteraction::update(Definition camera, AbstractDepthTester* depth_tester)
 {
     if (m_operation_centre.x == 0 && m_operation_centre.y == 0 && m_operation_centre.z == 0) {
         reset_interaction(camera, depth_tester);
@@ -46,9 +48,9 @@ std::optional<Definition> RotateNorthInteraction::update(std::chrono::millisecon
         return {};
     }
 
-    auto dt = 60;
-    if (delta_time.count() < 60) { // catches big time steps
-        dt = delta_time.count();
+    auto dt = m_delta_time.get().count();
+    if (dt > 120) { // catches big time steps
+        dt = 120;
     }
     if (m_current_duration + dt > m_total_duration) { // last step
         dt = m_total_duration - m_current_duration;
