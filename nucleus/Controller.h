@@ -26,7 +26,7 @@ namespace nucleus {
 class AbstractRenderWindow;
 namespace tile_scheduler {
 class TileLoadService;
-class GpuCacheTileScheduler;
+class Scheduler;
 }
 namespace camera {
 class Controller;
@@ -41,7 +41,7 @@ public:
 
     camera::Controller* camera_controller() const;
 
-    tile_scheduler::GpuCacheTileScheduler* tile_scheduler() const;
+    tile_scheduler::Scheduler* tile_scheduler() const;
 
 private:
     AbstractRenderWindow* m_render_window;
@@ -51,7 +51,7 @@ private:
 #endif
     std::unique_ptr<tile_scheduler::TileLoadService> m_terrain_service;
     std::unique_ptr<tile_scheduler::TileLoadService> m_ortho_service;
-    std::unique_ptr<tile_scheduler::GpuCacheTileScheduler> m_tile_scheduler;
+    std::unique_ptr<tile_scheduler::Scheduler> m_tile_scheduler;
     std::unique_ptr<camera::Controller> m_camera_controller;
     std::unique_ptr<camera::NearPlaneAdjuster> m_near_plane_adjuster;
 };

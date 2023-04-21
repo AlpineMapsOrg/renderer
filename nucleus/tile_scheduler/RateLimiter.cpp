@@ -26,7 +26,7 @@ using namespace nucleus::tile_scheduler;
 
 RateLimiter::RateLimiter(QObject* parent)
     : QObject { parent }
-    , m_update_timer(std::make_unique<QTimer>())
+    , m_update_timer(std::make_unique<QTimer>(this))
 {
     m_update_timer->setSingleShot(true);
     connect(m_update_timer.get(), &QTimer::timeout, this, &RateLimiter::process_request_queue);

@@ -214,6 +214,12 @@ void Window::update_debug_scheduler_stats(const QString& stats)
     emit update_requested();
 }
 
+void Window::update_gpu_quads(const std::vector<nucleus::tile_scheduler::tile_types::GpuTileQuad>& new_quads, const std::vector<tile::Id>& deleted_quads)
+{
+    assert(m_tile_manager);
+    m_tile_manager->update_gpu_quads(new_quads, deleted_quads);
+}
+
 float Window::depth(const glm::dvec2& normalised_device_coordinates)
 {
     const auto read_float = float(m_depth_buffer->read_colour_attachment_pixel(0, normalised_device_coordinates)[0]) / 255.f;

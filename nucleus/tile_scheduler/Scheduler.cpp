@@ -38,12 +38,12 @@ Scheduler::Scheduler(QObject* parent)
 Scheduler::Scheduler(const QByteArray& default_ortho_tile, const QByteArray& default_height_tile, QObject* parent)
     : QObject { parent }
 {
-    m_update_timer = std::make_unique<QTimer>();
+    m_update_timer = std::make_unique<QTimer>(this);
     m_update_timer->setSingleShot(true);
     connect(m_update_timer.get(), &QTimer::timeout, this, &Scheduler::send_quad_requests);
     connect(m_update_timer.get(), &QTimer::timeout, this, &Scheduler::update_gpu_quads);
 
-    m_purge_timer = std::make_unique<QTimer>();
+    m_purge_timer = std::make_unique<QTimer>(this);
     m_purge_timer->setSingleShot(true);
     connect(m_purge_timer.get(), &QTimer::timeout, this, &Scheduler::purge_ram_cache);
 

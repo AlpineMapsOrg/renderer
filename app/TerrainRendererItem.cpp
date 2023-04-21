@@ -37,7 +37,7 @@
 #include "nucleus/Controller.h"
 #include "nucleus/camera/Controller.h"
 
-#include <nucleus/tile_scheduler/GpuCacheTileScheduler.h>
+#include <nucleus/tile_scheduler/Scheduler.h>
 
 namespace {
 // helper type for the visitor from https://en.cppreference.com/w/cpp/utility/variant/visit
@@ -171,8 +171,7 @@ QQuickFramebufferObject::Renderer* TerrainRendererItem::createRenderer() const
         tile_scheduler->set_permissible_screen_space_error(permissible_error);
     });
 
-    connect(r->controller()->tile_scheduler(), &nucleus::tile_scheduler::GpuCacheTileScheduler::tile_ready, RenderThreadNotifier::instance(), &RenderThreadNotifier::notify);
-    connect(r->controller()->tile_scheduler(), &nucleus::tile_scheduler::GpuCacheTileScheduler::tile_expired, RenderThreadNotifier::instance(), &RenderThreadNotifier::notify);
+    connect(r->controller()->tile_scheduler(), &nucleus::tile_scheduler::Scheduler::gpu_quads_updated, RenderThreadNotifier::instance(), &RenderThreadNotifier::notify);
 
     connect(m_timer, &QTimer::timeout, this, &TerrainRendererItem::key_timer);
     return r;
