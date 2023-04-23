@@ -31,8 +31,8 @@
 TerrainRenderer::TerrainRenderer()
 {
     m_glWindow = std::make_unique<gl_engine::Window>();
-    m_glWindow->initialise_gpu();
     m_controller = std::make_unique<nucleus::Controller>(m_glWindow.get());
+    m_glWindow->initialise_gpu();
     qDebug("TerrainRendererItemRenderer()");
 }
 
