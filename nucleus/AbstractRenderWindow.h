@@ -65,6 +65,7 @@ signals:
     void key_pressed(const QKeyCombination&) const;
     void key_released(const QKeyCombination&) const;
     void gpu_ready_changed(bool ready);
+    void update_camera_requested() const;
 };
 
 }

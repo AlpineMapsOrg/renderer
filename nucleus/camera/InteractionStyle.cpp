@@ -51,6 +51,11 @@ std::optional<Definition> InteractionStyle::touch_event(const event_parameter::T
     return {};
 }
 
+std::optional<Definition> InteractionStyle::update(std::chrono::milliseconds delta_time, Definition, AbstractDepthTester*)
+{
+    return {};
+}
+
 std::optional<glm::vec2> InteractionStyle::get_operation_centre()
 {
     return {};

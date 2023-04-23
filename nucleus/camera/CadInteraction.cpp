@@ -35,7 +35,7 @@ std::optional<Definition> CadInteraction::mouse_press_event(const event_paramete
 std::optional<Definition> CadInteraction::mouse_move_event(const event_parameter::Mouse& e, Definition camera, AbstractDepthTester* depth_tester)
 {
     m_operation_centre_screen = glm::vec2(camera.viewport_size().x / 2.0f, camera.viewport_size().y / 2.0f);
-    if (e.buttons == Qt::LeftButton) {
+    if (e.buttons == Qt::LeftButton && !m_key_ctrl && !m_key_alt) {
         const auto delta = e.point.position() - e.point.lastPosition();
         float dist = glm::distance(camera.position(), m_operation_centre);
         double moveSpeedModifier = 750.0;
@@ -45,17 +45,19 @@ std::optional<Definition> CadInteraction::mouse_move_event(const event_parameter
         camera.move(-camera.x_axis() * delta.x() * (dist / moveSpeedModifier));
         camera.move(camera.y_axis() * delta.y() * (dist / moveSpeedModifier));
     }
-    if (e.buttons == Qt::MiddleButton) {
+    if (e.buttons == Qt::MiddleButton || (e.buttons == Qt::LeftButton && m_key_ctrl && !m_key_alt)) {
         const auto delta = e.point.position() - e.point.lastPosition();
         camera.orbit_clamped(m_operation_centre, glm::vec2(delta.x(), delta.y()) * -0.1f);
     }
-    if (e.buttons == Qt::RightButton) {
+    if (e.buttons == Qt::RightButton || (e.buttons == Qt::LeftButton && !m_key_ctrl && m_key_alt)) {
         const auto delta = e.point.position() - e.point.lastPosition();
         float dist = glm::distance(camera.position(), m_operation_centre);
         float zoomDist = (delta.y() - delta.x()) * dist / 400.0;
         if (zoomDist < dist) {
             if (dist > 5.0f || zoomDist > 0.0f) { // always allow zoom out
                 camera.zoom(zoomDist);
+            } else {
+                m_operation_centre = m_operation_centre - camera.z_axis() * 300.0;
             }
         }
     }
@@ -129,9 +131,33 @@ std::optional<Definition> CadInteraction::wheel_event(const event_parameter::Whe
     if (e.angle_delta.y() > 0) {
         if (dist > 5.0f) {
             camera.zoom(-dist / 10.0);
+        } else {
+            m_operation_centre = m_operation_centre - camera.z_axis() * 300.0;
         }
     } else {
         camera.zoom(dist / 10.0);
+    }
+    return camera;
+}
+
+std::optional<Definition> CadInteraction::key_press_event(const QKeyCombination& e, Definition camera, AbstractDepthTester* depth_tester)
+{
+    if (e.key() == Qt::Key_Control) {
+        m_key_ctrl = true;
+    }
+    if (e.key() == Qt::Key_Alt) {
+        m_key_alt = true;
+    }
+    return camera;
+}
+
+std::optional<Definition> CadInteraction::key_release_event(const QKeyCombination& e, Definition camera, AbstractDepthTester* depth_tester)
+{
+    if (e.key() == Qt::Key_Control) {
+        m_key_ctrl = false;
+    }
+    if (e.key() == Qt::Key_Alt) {
+        m_key_alt = false;
     }
     return camera;
 }

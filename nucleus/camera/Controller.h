@@ -58,6 +58,7 @@ public slots:
     void key_press(const QKeyCombination&);
     void key_release(const QKeyCombination&);
     void touch(const event_parameter::Touch&);
+    void update_camera_request();
 
 signals:
     void definition_changed(const Definition& new_definition) const;
@@ -66,6 +67,7 @@ private:
     Definition m_definition;
     AbstractDepthTester* m_depth_tester;
     std::unique_ptr<InteractionStyle> m_interaction_style;
+    std::chrono::steady_clock::time_point m_last_frame_time;
 };
 
 }
