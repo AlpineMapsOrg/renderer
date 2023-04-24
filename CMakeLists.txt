@@ -101,6 +101,7 @@ if (ALP_UNITTESTS AND NOT EMSCRIPTEN)
         unittests/main.cpp
         unittests/catch2_helpers.h
         unittests/test_Camera.cpp
+        unittests/test_DeltaTime.cpp
         unittests/test_DrawListGenerator.cpp
         unittests/test_helpers.h
         unittests/test_raster.cpp
