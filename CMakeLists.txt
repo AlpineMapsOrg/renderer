@@ -21,7 +21,6 @@ set(ALP_NUCLEUS_SOURCES
     nucleus/Tile.cpp nucleus/Tile.h
     nucleus/tile_scheduler/utils.h nucleus/tile_scheduler/utils.cpp
     nucleus/tile_scheduler/DrawListGenerator.h nucleus/tile_scheduler/DrawListGenerator.cpp
-    nucleus/tile_scheduler/GpuCacheTileScheduler.h nucleus/tile_scheduler/GpuCacheTileScheduler.cpp
     nucleus/tile_scheduler/LayerAssembler.h nucleus/tile_scheduler/LayerAssembler.cpp
     nucleus/tile_scheduler/tile_types.h
     nucleus/tile_scheduler/constants.h
@@ -123,9 +122,6 @@ if (ALP_UNITTESTS AND NOT EMSCRIPTEN)
         unittests/nucleus_tile_scheduler_slot_limiter.cpp
         unittests/nucleus_tile_scheduler_rate_limiter.cpp
         unittests/RateTester.h unittests/RateTester.cpp
-    )
-    set(ALP_QT_SCHEDULER_UNITTESTS
-        TestGpuCacheTileScheduler
     )
 endif()
 
@@ -297,16 +293,6 @@ if (ALP_UNITTESTS AND NOT EMSCRIPTEN)
 
     find_package(Qt6 REQUIRED COMPONENTS Test)
     enable_testing(true)
-
-    function(add_cute_scheduler_test name)
-        add_executable(qtest_${name} unittests_qt/${name}.cpp unittests_qt/TileScheduler.h)
-        add_test(NAME qtest_${name} COMMAND ${name})
-        target_link_libraries(qtest_${name} PUBLIC nucleus Qt6::Test)
-        target_compile_definitions(qtest_${name} PUBLIC "ALP_TEST_DATA_DIR=\"${CMAKE_SOURCE_DIR}/unittests/data/\"")
-    endfunction()
-    foreach(cute_test ${ALP_QT_SCHEDULER_UNITTESTS})
-        add_cute_scheduler_test(${cute_test})
-    endforeach()
 
     if (MINGW)
         target_compile_options(unittests_gl PUBLIC "-Wa,-mbig-obj")

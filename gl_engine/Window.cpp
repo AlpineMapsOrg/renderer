@@ -117,7 +117,6 @@ void Window::paint(QOpenGLFramebufferObject* framebuffer)
     f->glClearColor(1.0, 0.0, 0.5, 1);
 
     f->glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
-    //    glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
 
     //    {
     //        m_shader_manager->bindDebugShader();
@@ -150,7 +149,6 @@ void Window::paint(QOpenGLFramebufferObject* framebuffer)
 
     m_shader_manager->release();
 
-//        glPolygonMode( GL_FRONT_AND_BACK, GL_FILL );
     f->glFinish(); // synchronization
     m_frame_end = std::chrono::time_point_cast<ClockResolution>(Clock::now());
 }

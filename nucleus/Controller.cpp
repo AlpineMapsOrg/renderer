@@ -28,7 +28,6 @@
 #include "AbstractRenderWindow.h"
 #include "nucleus/camera/Controller.h"
 #include "nucleus/camera/stored_positions.h"
-#include "nucleus/tile_scheduler/GpuCacheTileScheduler.h"
 #include "nucleus/tile_scheduler/LayerAssembler.h"
 #include "nucleus/tile_scheduler/QuadAssembler.h"
 #include "nucleus/tile_scheduler/RateLimiter.h"
@@ -48,9 +47,7 @@ Controller::Controller(AbstractRenderWindow* render_window)
     qRegisterMetaType<nucleus::event_parameter::Mouse>();
     qRegisterMetaType<nucleus::event_parameter::Wheel>();
 
-    //    m_camera_controller = std::make_unique<nucleus::camera::Controller>(nucleus::camera::stored_positions::westl_hochgrubach_spitze(), m_render_window->depth_tester());
     m_camera_controller = std::make_unique<nucleus::camera::Controller>(nucleus::camera::stored_positions::grossglockner(), m_render_window->depth_tester());
-    //    nucleus::camera::Controller camera_controller { nucleus::camera::stored_positions::stephansdom() };
 
     m_terrain_service = std::make_unique<TileLoadService>("https://alpinemaps.cg.tuwien.ac.at/tiles/alpine_png/", TileLoadService::UrlPattern::ZXY, ".png");
     //    m_ortho_service.reset(new TileLoadService("https://tiles.bergfex.at/styles/bergfex-osm/", TileLoadService::UrlPattern::ZXY_yPointingSouth, ".jpeg"));
@@ -100,15 +97,9 @@ Controller::Controller(AbstractRenderWindow* render_window)
     m_tile_scheduler->moveToThread(m_scheduler_thread.get());
     m_scheduler_thread->start();
 #endif
-    //    connect(m_render_window, &AbstractRenderWindow::viewport_changed, m_camera_controller.get(), &nucleus::camera::Controller::set_viewport);
-    //    connect(m_render_window, &AbstractRenderWindow::mouse_moved, m_camera_controller.get(), &nucleus::camera::Controller::mouse_move);
-    //    connect(m_render_window, &AbstractRenderWindow::mouse_pressed, m_camera_controller.get(), &nucleus::camera::Controller::mouse_press);
-    //    connect(m_render_window, &AbstractRenderWindow::wheel_turned, m_camera_controller.get(), &nucleus::camera::Controller::wheel_turn);
     connect(m_render_window, &AbstractRenderWindow::key_pressed, m_camera_controller.get(), &nucleus::camera::Controller::key_press);
     connect(m_render_window, &AbstractRenderWindow::key_released, m_camera_controller.get(), &nucleus::camera::Controller::key_release);
     connect(m_render_window, &AbstractRenderWindow::update_camera_requested, m_camera_controller.get(), &nucleus::camera::Controller::update_camera_request);
-    //    connect(m_render_window, &AbstractRenderWindow::touch_made, m_camera_controller.get(), &nucleus::camera::Controller::touch);
-    //    connect(m_render_window, &AbstractRenderWindow::key_pressed, m_tile_scheduler.get(), &GpuCacheTileScheduler::key_press);
     connect(m_render_window, &AbstractRenderWindow::gpu_ready_changed, m_tile_scheduler.get(), &Scheduler::set_enabled);
 
     // NOTICE ME!!!! READ THIS, IF YOU HAVE TROUBLES WITH SIGNALS NOT REACHING THE QML RENDERING THREAD!!!!111elevenone
@@ -120,7 +111,6 @@ Controller::Controller(AbstractRenderWindow* render_window)
 
     connect(m_tile_scheduler.get(), &Scheduler::gpu_quads_updated, m_render_window, &AbstractRenderWindow::update_gpu_quads);
     connect(m_tile_scheduler.get(), &Scheduler::gpu_quads_updated, m_render_window, &AbstractRenderWindow::update_requested);
-    //    connect(m_tile_scheduler.get(), &GpuCacheTileScheduler::debug_scheduler_stats_updated, m_render_window, &AbstractRenderWindow::update_debug_scheduler_stats);
 
 
     m_camera_controller->update();
