@@ -40,7 +40,6 @@ void NearPlaneAdjuster::update_camera(const Definition& new_definition)
     //    m_camera_position = new_position;
     //    update_near_plane();
 }
-}
 
 void NearPlaneAdjuster::add_tile(const std::shared_ptr<nucleus::Tile>& tile)
 {
