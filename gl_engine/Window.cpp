@@ -117,13 +117,7 @@ void Window::paint(QOpenGLFramebufferObject* framebuffer)
     f->glClearColor(1.0, 0.0, 0.5, 1);
 
     f->glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
-    f->glEnable(GL_DEPTH_TEST);
-    f->glDepthFunc(GL_LESS);
-////    glPolygonMode( GL_FRONT_AND_BACK, GL_LINE );
-
-    m_shader_manager->tile_shader()->bind();
-
-    m_tile_manager->draw(m_shader_manager->tile_shader(), m_camera);
+    //    glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
 
     //    {
     //        m_shader_manager->bindDebugShader();
@@ -138,6 +132,12 @@ void Window::paint(QOpenGLFramebufferObject* framebuffer)
     //    }
     m_shader_manager->atmosphere_bg_program()->bind();
     m_atmosphere->draw(m_shader_manager->atmosphere_bg_program(), m_camera, m_shader_manager->screen_quad_program(), m_framebuffer.get());
+
+    f->glEnable(GL_DEPTH_TEST);
+    f->glDepthFunc(GL_LESS);
+    f->glEnable(GL_BLEND);
+    m_shader_manager->tile_shader()->bind();
+    m_tile_manager->draw(m_shader_manager->tile_shader(), m_camera);
 
     m_framebuffer->unbind();
     if (framebuffer)

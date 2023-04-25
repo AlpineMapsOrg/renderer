@@ -80,8 +80,8 @@ private:
     glm::dmat4 m_camera_transformation;
     float m_field_of_view = 0; // degrees
     float m_distance_scaling_factor = 0;
-    float m_near_clipping = 10.0;
-    float m_far_clipping = 10'000'000;
+    float m_near_clipping = 1.0;
+    float m_far_clipping = 1'000'000;
     glm::uvec2 m_viewport_size = { 480, 270 };
 };
 
