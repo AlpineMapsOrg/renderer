@@ -30,7 +30,6 @@ class Scheduler;
 }
 namespace camera {
 class Controller;
-class NearPlaneAdjuster;
 }
 
 class Controller : public QObject {
@@ -53,6 +52,5 @@ private:
     std::unique_ptr<tile_scheduler::TileLoadService> m_ortho_service;
     std::unique_ptr<tile_scheduler::Scheduler> m_tile_scheduler;
     std::unique_ptr<camera::Controller> m_camera_controller;
-    std::unique_ptr<camera::NearPlaneAdjuster> m_near_plane_adjuster;
 };
 }

@@ -59,6 +59,12 @@ inline auto cameraFrustumContainsTile(const nucleus::camera::Definition& camera,
 }
 
 namespace utils {
+    inline tile::SrsAndHeightBounds make_bounds(const tile::Id& id, float min_height, float max_height)
+    {
+        const auto srs_bounds = srs::tile_bounds(id);
+        return { .min = { srs_bounds.min, min_height }, .max = { srs_bounds.max, max_height } };
+    }
+
     class AabbDecorator;
     using AabbDecoratorPtr = std::shared_ptr<AabbDecorator>;
     class AabbDecorator {
@@ -71,9 +77,8 @@ namespace utils {
         }
         inline tile::SrsAndHeightBounds aabb(const tile::Id& id)
         {
-            const auto bounds = srs::tile_bounds(id);
             const auto heights = tile_heights.query({ id.zoom_level, id.coords });
-            return { .min = { bounds.min, heights.first }, .max = { bounds.max, heights.second } };
+            return make_bounds(id, heights.first, heights.second);
         }
         static inline AabbDecoratorPtr make(TileHeights heights)
         {

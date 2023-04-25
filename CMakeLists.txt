@@ -37,7 +37,6 @@ set(ALP_NUCLEUS_SOURCES
     nucleus/camera/Definition.h nucleus/camera/Definition.cpp
     nucleus/camera/FirstPersonInteraction.h nucleus/camera/FirstPersonInteraction.cpp
     nucleus/camera/InteractionStyle.h nucleus/camera/InteractionStyle.cpp
-    nucleus/camera/NearPlaneAdjuster.h nucleus/camera/NearPlaneAdjuster.cpp
     nucleus/camera/OrbitInteraction.h nucleus/camera/OrbitInteraction.cpp
     nucleus/camera/RotateNorthInteraction.h nucleus/camera/RotateNorthInteraction.cpp
     nucleus/camera/AbstractDepthTester.h
@@ -117,7 +116,6 @@ if (ALP_UNITTESTS AND NOT EMSCRIPTEN)
         unittests/test_tile_conversion.cpp
         unittests/nucleus_tile_scheduler_util.cpp
         unittests/nucleus_tile_scheduler_tile_load_service.cpp
-        unittests/nucleus_camera_near_plane_adjuster.cpp
         unittests/nucleus_tile_scheduler_layer_assembler.cpp
         unittests/nucleus_tile_scheduler_quad_assembler.cpp
         unittests/nucleus_tile_scheduler_cache.cpp

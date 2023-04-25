@@ -27,7 +27,6 @@
 
 #include "AbstractRenderWindow.h"
 #include "nucleus/camera/Controller.h"
-#include "nucleus/camera/NearPlaneAdjuster.h"
 #include "nucleus/camera/stored_positions.h"
 #include "nucleus/tile_scheduler/GpuCacheTileScheduler.h"
 #include "nucleus/tile_scheduler/LayerAssembler.h"
@@ -93,8 +92,6 @@ Controller::Controller(AbstractRenderWindow* render_window)
         connect(sl, &SlotLimiter::quads_delivered, sch, &Scheduler::receive_quads);
     }
 
-    m_near_plane_adjuster = std::make_unique<nucleus::camera::NearPlaneAdjuster>();
-
 #ifdef ALP_ENABLE_THREADING
     m_scheduler_thread = std::make_unique<QThread>();
     m_scheduler_thread->setObjectName("tile_scheduler_thread");
@@ -119,16 +116,12 @@ Controller::Controller(AbstractRenderWindow* render_window)
     // At the time of writing, an additional connection from tile_ready and tile_expired to the notifier is made.
     // this only works if ALP_ENABLE_THREADING is on, i.e., the tile scheduler is on an extra thread. -> potential issue on webassembly
     connect(m_camera_controller.get(), &nucleus::camera::Controller::definition_changed, m_tile_scheduler.get(), &Scheduler::update_camera);
-    connect(m_camera_controller.get(), &nucleus::camera::Controller::definition_changed, m_near_plane_adjuster.get(), &nucleus::camera::NearPlaneAdjuster::update_camera);
     connect(m_camera_controller.get(), &nucleus::camera::Controller::definition_changed, m_render_window, &AbstractRenderWindow::update_camera);
 
     connect(m_tile_scheduler.get(), &Scheduler::gpu_quads_updated, m_render_window, &AbstractRenderWindow::update_gpu_quads);
     connect(m_tile_scheduler.get(), &Scheduler::gpu_quads_updated, m_render_window, &AbstractRenderWindow::update_requested);
-    //    connect(m_tile_scheduler.get(), &GpuCacheTileScheduler::tile_ready, m_near_plane_adjuster.get(), &nucleus::camera::NearPlaneAdjuster::add_tile);
-    //    connect(m_tile_scheduler.get(), &GpuCacheTileScheduler::tile_expired, m_near_plane_adjuster.get(), &nucleus::camera::NearPlaneAdjuster::remove_tile);
     //    connect(m_tile_scheduler.get(), &GpuCacheTileScheduler::debug_scheduler_stats_updated, m_render_window, &AbstractRenderWindow::update_debug_scheduler_stats);
 
-    connect(m_near_plane_adjuster.get(), &nucleus::camera::NearPlaneAdjuster::near_plane_changed, m_camera_controller.get(), &nucleus::camera::Controller::set_near_plane);
 
     m_camera_controller->update();
 }
