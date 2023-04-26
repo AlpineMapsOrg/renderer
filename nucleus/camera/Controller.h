@@ -39,7 +39,6 @@ public:
     explicit Controller(const Definition& camera, AbstractDepthTester* depth_tester);
 
     [[nodiscard]] const Definition& definition() const;
-    void set_interaction_style(std::unique_ptr<InteractionStyle> new_style);
     std::optional<glm::vec2> get_operation_centre();
 
 public slots:
@@ -64,9 +63,13 @@ signals:
     void definition_changed(const Definition& new_definition) const;
 
 private:
+    void set_interaction_style(std::unique_ptr<InteractionStyle> new_style);
+    void set_animation_style(std::unique_ptr<InteractionStyle> new_style);
+
     Definition m_definition;
     AbstractDepthTester* m_depth_tester;
     std::unique_ptr<InteractionStyle> m_interaction_style;
+    std::unique_ptr<InteractionStyle> m_animation_style;
     std::chrono::steady_clock::time_point m_last_frame_time;
 };
 

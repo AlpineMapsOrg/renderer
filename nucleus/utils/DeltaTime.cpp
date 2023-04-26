@@ -1,6 +1,5 @@
 /*****************************************************************************
  * Alpine Terrain Renderer
- * Copyright (C) 2022 Adam Celarek
  * Copyright (C) 2023 Jakob Lindner
  *
  * This program is free software: you can redistribute it and/or modify
@@ -17,26 +16,22 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *****************************************************************************/
 
-#pragma once
+#include "DeltaTime.h"
 
-#include "InteractionStyle.h"
-
-#include <nucleus/utils/DeltaTime.h>
-
-namespace nucleus::camera {
-class RotateNorthInteraction : public InteractionStyle
+DeltaTime::DeltaTime()
 {
-    glm::dvec3 m_operation_centre = {};
-    float m_degrees_from_north = 0;
-    int m_total_duration = 1000;
-    int m_current_duration = 0;
-    DeltaTime m_delta_time = DeltaTime();
-public:
-    void reset_interaction(Definition camera, AbstractDepthTester* depth_tester) override;
-    std::optional<Definition> update(Definition camera, AbstractDepthTester* depth_tester) override;
-    std::optional<glm::vec2> get_operation_centre() override;
-private:
-    float ease_in_out(float t);
-    glm::vec2 m_operation_centre_screen = {};
-};
+    m_last_frame = std::chrono::steady_clock::now();
+}
+
+void DeltaTime::reset()
+{
+    m_last_frame = std::chrono::steady_clock::now();
+}
+
+std::chrono::milliseconds DeltaTime::get()
+{
+    auto now = std::chrono::steady_clock::now();
+    auto elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(now - m_last_frame);
+    m_last_frame = now;
+    return elapsed;
 }

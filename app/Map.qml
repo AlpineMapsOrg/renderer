@@ -43,7 +43,7 @@ Rectangle {
         sourceSize: Qt.size(width, height)
         x: renderer.camera_operation_centre.x - width / 2
         y: renderer.camera_operation_centre.y - 60 - height / 2
-        visible: renderer.camera_operation_centre_visibility
+        visible: renderer.camera_operation_centre_visibility && punkt.checked
     }
 
     Repeater {
@@ -125,6 +125,21 @@ Rectangle {
     }
 
     RoundButton {
+        id: punkt
+        width: 60
+        height: 60
+        checkable: true
+        checked: true
+        focusPolicy: Qt.NoFocus
+        text: "punkt"
+        anchors {
+            right: parent.right
+            bottom: compass.top
+            rightMargin: 10
+            bottomMargin: 10
+        }
+    }
+    RoundButton {
         id: compass
         width: 60
         height: 60
@@ -138,9 +153,9 @@ Rectangle {
         }
         anchors {
             right: parent.right
-            bottom: parent.bottom
+            bottom: current_location.top
             rightMargin: 10
-            bottomMargin: 80
+            bottomMargin: 10
         }
     }
 
