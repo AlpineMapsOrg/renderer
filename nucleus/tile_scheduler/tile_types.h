@@ -18,6 +18,9 @@
 
 #pragma once
 
+#include <concepts>
+
+#include "nucleus/tile_scheduler/utils.h"
 #include "sherpa/tile.h"
 
 #include <QByteArray>
@@ -34,7 +37,7 @@ template <typename T>
 concept NamedTile = requires(T t) {
     {
         t.id
-    } -> std::convertible_to<tile::Id>;
+    } -> utils::convertible_to<tile::Id>;
 };
 
 struct LayeredTile {

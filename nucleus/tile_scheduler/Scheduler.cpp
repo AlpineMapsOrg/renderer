@@ -110,7 +110,7 @@ void Scheduler::update_gpu_quads()
 
     std::vector<tile_types::GpuCacheInfo> tiles_to_put_in_gpu_cache;
     tiles_to_put_in_gpu_cache.reserve(new_gpu_quads.size());
-    std::ranges::transform(new_gpu_quads, std::back_inserter(tiles_to_put_in_gpu_cache), [](const tile_types::GpuTileQuad& t) {
+    std::transform(new_gpu_quads.cbegin(), new_gpu_quads.cend(), std::back_inserter(tiles_to_put_in_gpu_cache), [](const tile_types::GpuTileQuad& t) {
         return tile_types::GpuCacheInfo { t.id };
     });
     m_gpu_cached.insert(tiles_to_put_in_gpu_cache);
@@ -250,7 +250,7 @@ void Scheduler::read_disk_cache()
 
     std::vector<tile_types::TileQuad> quads_vector;
     quads_vector.reserve(quads.size());
-    std::ranges::transform(quads, std::back_inserter(quads_vector), [this](const auto& pair) {
+    std::transform(quads.cbegin(), quads.cend(), std::back_inserter(quads_vector), [this](const auto& pair) {
         tile_types::TileQuad quad = pair.second;
         const auto required_children = quad.id.children();
         std::unordered_set<tile::Id, tile::Id::Hasher> missing_children = { required_children.begin(), required_children.end() };

@@ -18,6 +18,8 @@
 
 #pragma once
 
+#include <unordered_map>
+
 #include <QObject>
 
 #include "sherpa/tile.h"

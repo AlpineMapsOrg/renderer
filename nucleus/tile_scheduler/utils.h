@@ -59,6 +59,20 @@ inline auto cameraFrustumContainsTile(const nucleus::camera::Definition& camera,
 }
 
 namespace utils {
+#if defined(_LIBCPP_VERSION) && (_LIBCPP_VERSION < 15000)
+    // #define STRING2(x) #x
+    // #define STRING(x) STRING2(x)
+    // #pragma message STRING(_LIBCPP_VERSION)
+
+    // the android stl used by qt doesn't know concepts (it's at version 11.000 at the time of writing)
+    template <class T, class U>
+    concept convertible_to = std::is_convertible_v<T, U>;
+
+#else
+    template <class T, class U>
+    concept convertible_to = std::convertible_to<T, U>;
+#endif
+
     inline tile::SrsAndHeightBounds make_bounds(const tile::Id& id, float min_height, float max_height)
     {
         const auto srs_bounds = srs::tile_bounds(id);

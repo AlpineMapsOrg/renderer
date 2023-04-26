@@ -18,6 +18,7 @@
 
 #pragma once
 
+#include <algorithm>
 #include <vector>
 
 #include "sherpa/tile.h"
@@ -91,7 +92,7 @@ template <typename VisitorFunction>
 void Cache<T>::visit(const VisitorFunction& functor)
 {
     const auto stamp = utils::time_since_epoch();
-    static_assert(requires { { functor(T()) } -> std::convertible_to<bool>; });
+    static_assert(requires { { functor(T()) } -> utils::convertible_to<bool>; });
     const auto root = tile::Id { 0, { 0, 0 } };
     visit(root, functor, stamp);
 }
@@ -100,7 +101,7 @@ template <tile_types::NamedTile T>
 template <typename VisitorFunction>
 void Cache<T>::visit(const tile::Id& node, const VisitorFunction& functor, uint64_t stamp)
 {
-    static_assert(requires { { functor(T()) } -> std::convertible_to<bool>; });
+    static_assert(requires { { functor(T()) } -> utils::convertible_to<bool>; });
     if (m_data.contains(node)) {
         const auto should_continue = functor(m_data[node].data);
         if (!should_continue)
@@ -120,12 +121,12 @@ std::vector<T> Cache<T>::purge()
         return {};
     std::vector<std::pair<tile::Id, uint64_t>> tiles;
     tiles.reserve(m_data.size());
-    std::ranges::transform(m_data, std::back_inserter(tiles), [](const auto& entry) { return std::make_pair(entry.first, entry.second.stamp); });
+    std::transform(m_data.cbegin(), m_data.cend(), std::back_inserter(tiles), [](const auto& entry) { return std::make_pair(entry.first, entry.second.stamp); });
     const auto nth_iter = tiles.begin() + m_capacity;
-    std::ranges::nth_element(tiles, nth_iter, std::ranges::greater(), &std::pair<tile::Id, uint64_t>::second);
+    std::nth_element(tiles.begin(), nth_iter, tiles.end(), [](const auto& a, const auto& b) { return a.second > b.second; });
     std::vector<T> purged_tiles;
     purged_tiles.reserve(tiles.size() - m_capacity);
-    std::ranges::for_each(nth_iter, tiles.end(), [this, &purged_tiles](const auto& v) {
+    std::for_each(nth_iter, tiles.end(), [this, &purged_tiles](const auto& v) {
         purged_tiles.push_back(m_data[v.first].data);
         m_data.erase(v.first);
     });

@@ -237,11 +237,11 @@ TEST_CASE("nucleus/tile_scheduler/Scheduler")
         // at the time of writing:
         // the corresponding tile list generation code is tested only by visual inspection (of the rendered scene).
         // seems to work. the following are sanity checks.
-        CHECK(std::ranges::find(quads, tile::Id { 0, { 0, 0 } }) != quads.end());
-        CHECK(std::ranges::find(quads, tile::Id { 1, { 1, 1 } }) != quads.end());
-        CHECK(std::ranges::find(quads, tile::Id { 2, { 2, 2 } }) != quads.end());
-        CHECK(std::ranges::find(quads, tile::Id { 3, { 4, 5 } }) != quads.end());
-        CHECK(std::ranges::find(quads, tile::Id { 4, { 8, 10 } }) != quads.end());
+        CHECK(std::find(quads.cbegin(), quads.cend(), tile::Id { 0, { 0, 0 } }) != quads.end());
+        CHECK(std::find(quads.cbegin(), quads.cend(), tile::Id { 1, { 1, 1 } }) != quads.end());
+        CHECK(std::find(quads.cbegin(), quads.cend(), tile::Id { 2, { 2, 2 } }) != quads.end());
+        CHECK(std::find(quads.cbegin(), quads.cend(), tile::Id { 3, { 4, 5 } }) != quads.end());
+        CHECK(std::find(quads.cbegin(), quads.cend(), tile::Id { 4, { 8, 10 } }) != quads.end());
     }
 
     SECTION("delivered quads are not requested again")
@@ -263,11 +263,11 @@ TEST_CASE("nucleus/tile_scheduler/Scheduler")
         // at the time of writing:
         // the corresponding tile list generation code is tested only by visual inspection (of the rendered scene).
         // seems to work. the following are sanity checks.
-        CHECK(std::ranges::find(quads, tile::Id { 0, { 0, 0 } }) == quads.end());
-        CHECK(std::ranges::find(quads, tile::Id { 1, { 1, 1 } }) == quads.end());
-        CHECK(std::ranges::find(quads, tile::Id { 2, { 2, 2 } }) == quads.end());
-        CHECK(std::ranges::find(quads, tile::Id { 3, { 4, 5 } }) != quads.end());
-        CHECK(std::ranges::find(quads, tile::Id { 4, { 8, 10 } }) != quads.end());
+        CHECK(std::find(quads.cbegin(), quads.cend(), tile::Id { 0, { 0, 0 } }) == quads.end());
+        CHECK(std::find(quads.cbegin(), quads.cend(), tile::Id { 1, { 1, 1 } }) == quads.end());
+        CHECK(std::find(quads.cbegin(), quads.cend(), tile::Id { 2, { 2, 2 } }) == quads.end());
+        CHECK(std::find(quads.cbegin(), quads.cend(), tile::Id { 3, { 4, 5 } }) != quads.end());
+        CHECK(std::find(quads.cbegin(), quads.cend(), tile::Id { 4, { 8, 10 } }) != quads.end());
     }
 
     SECTION("delivered quads are sent on to the gpu (with no repeat, only the ones in the tree)")
