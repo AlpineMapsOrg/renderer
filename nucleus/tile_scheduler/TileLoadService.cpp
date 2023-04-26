@@ -22,6 +22,7 @@
 #include <QImage>
 #include <QNetworkAccessManager>
 #include <QNetworkReply>
+#include <QtVersionChecks>
 
 #include "../srs.h"
 
@@ -45,6 +46,9 @@ void TileLoadService::load(const tile::Id& tile_id)
     QNetworkRequest request(QUrl(build_tile_url(tile_id)));
     request.setTransferTimeout(m_transfer_timeout);
     request.setAttribute(QNetworkRequest::CacheLoadControlAttribute, QNetworkRequest::PreferCache);
+#if QT_VERSION >= QT_VERSION_CHECK(6, 5, 0)
+    request.setAttribute(QNetworkRequest::UseCredentialsAttribute, false);
+#endif
 
     QNetworkReply* reply = m_network_manager->get(request);
     connect(reply, &QNetworkReply::finished, [tile_id, reply, this]() {

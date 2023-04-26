@@ -269,9 +269,20 @@ if (ALP_ENABLE_POSITIONING)
     target_link_libraries(alpineapp PUBLIC Qt::Positioning)
     target_compile_definitions(alpineapp PUBLIC "ALP_ENABLE_GNSS")
 endif()
-set_property(TARGET alpineapp PROPERTY QT_ANDROID_EXTRA_LIBS
-    /home/madam/bin/Android/SDK/android_openssl/latest/arm64/libcrypto_1_1.so
-    /home/madam/bin/Android/SDK/android_openssl/latest/arm64/libssl_1_1.so)
+
+
+if (ANDROID)
+    FetchContent_Declare(
+      android_openssl
+      URL      https://github.com/KDAB/android_openssl/archive/refs/heads/master.zip
+      URL_HASH MD5=b5c3501237ce9f97dc072c950647d643
+      DOWNLOAD_EXTRACT_TIMESTAMP true
+    )
+    set(PROJECT_NAME alpineapp)
+    FetchContent_MakeAvailable(android_openssl)
+    set(PROJECT_NAME alpine-renderer)
+endif()
+
 install(TARGETS alpineapp
     BUNDLE DESTINATION .
     LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR})
