@@ -33,6 +33,7 @@ class CadInteraction : public InteractionStyle
     bool m_key_ctrl = false;
     bool m_key_alt = false;
 public:
+    void reset_interaction(Definition camera, AbstractDepthTester* depth_tester) override;
     std::optional<Definition> mouse_press_event(const event_parameter::Mouse& e, Definition camera, AbstractDepthTester* depth_tester) override;
     std::optional<Definition> mouse_move_event(const event_parameter::Mouse& e, Definition camera, AbstractDepthTester* depth_tester) override;
     std::optional<Definition> touch_event(const event_parameter::Touch& e, Definition camera, AbstractDepthTester* depth_tester) override;

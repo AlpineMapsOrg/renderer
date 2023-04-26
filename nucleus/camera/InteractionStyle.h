@@ -32,13 +32,14 @@ class InteractionStyle
 {
 public:
     virtual ~InteractionStyle() = default;
+    virtual void reset_interaction(Definition camera, AbstractDepthTester* depth_tester);
     virtual std::optional<Definition> mouse_press_event(const event_parameter::Mouse& e, Definition camera, AbstractDepthTester* depth_tester);
     virtual std::optional<Definition> mouse_move_event(const event_parameter::Mouse& e, Definition camera, AbstractDepthTester* depth_tester);
     virtual std::optional<Definition> wheel_event(const event_parameter::Wheel& e, Definition camera, AbstractDepthTester* depth_tester);
     virtual std::optional<Definition> key_press_event(const QKeyCombination& e, Definition camera, AbstractDepthTester* depth_tester);
     virtual std::optional<Definition> key_release_event(const QKeyCombination& e, Definition camera, AbstractDepthTester* depth_tester);
     virtual std::optional<Definition> touch_event(const event_parameter::Touch& e, Definition camera, AbstractDepthTester* depth_tester);
-    virtual std::optional<Definition> update(std::chrono::milliseconds delta_time, Definition camera, AbstractDepthTester* depth_tester);
+    virtual std::optional<Definition> update(Definition camera, AbstractDepthTester* depth_tester);
     virtual std::optional<glm::vec2> get_operation_centre();
 };
 

@@ -155,7 +155,7 @@ std::optional<Definition> FirstPersonInteraction::key_release_event(const QKeyCo
     return camera;
 }
 
-std::optional<Definition> FirstPersonInteraction::update(std::chrono::milliseconds delta_time, Definition camera, AbstractDepthTester* depth_tester)
+std::optional<Definition> FirstPersonInteraction::update(Definition camera, AbstractDepthTester* depth_tester)
 {
     if(!m_key_w && !m_key_s && !m_key_a && !m_key_d && !m_key_e && !m_key_q) {
         return {};
@@ -180,9 +180,9 @@ std::optional<Definition> FirstPersonInteraction::update(std::chrono::millisecon
         direction -= glm::dvec3(0, 0, 1);
     }
     glm::normalize(direction);
-    double dt = 60;
-    if (delta_time.count() < dt) {
-        dt = delta_time.count();
+    double dt = m_delta_time.get().count();
+    if (dt > 120) { // catches big time steps
+        dt = 120;
     }
     camera.move(direction * (dt / 30 * m_speed_modifyer));
     return camera;

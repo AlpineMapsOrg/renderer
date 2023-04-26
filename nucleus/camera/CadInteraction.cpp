@@ -24,17 +24,22 @@
 
 namespace nucleus::camera {
 
+void CadInteraction::reset_interaction(Definition camera, AbstractDepthTester* depth_tester)
+{
+    m_operation_centre = depth_tester->position(glm::dvec2(0.0, 0.0));
+    m_operation_centre_screen = glm::vec2(camera.viewport_size().x / 2.0f, camera.viewport_size().y / 2.0f);
+}
+
 std::optional<Definition> CadInteraction::mouse_press_event(const event_parameter::Mouse& e, Definition camera, AbstractDepthTester* depth_tester)
 {
     if (m_operation_centre.x == 0 && m_operation_centre.y == 0 && m_operation_centre.z == 0) {
-        m_operation_centre = depth_tester->position(glm::dvec2(0.0, 0.0));
+        reset_interaction(camera, depth_tester);
     }
     return {};
 }
 
 std::optional<Definition> CadInteraction::mouse_move_event(const event_parameter::Mouse& e, Definition camera, AbstractDepthTester* depth_tester)
 {
-    m_operation_centre_screen = glm::vec2(camera.viewport_size().x / 2.0f, camera.viewport_size().y / 2.0f);
     if (e.buttons == Qt::LeftButton && !m_key_ctrl && !m_key_alt) {
         const auto delta = e.point.position() - e.point.lastPosition();
         float dist = glm::distance(camera.position(), m_operation_centre);
@@ -122,9 +127,8 @@ std::optional<Definition> CadInteraction::touch_event(const event_parameter::Tou
 
 std::optional<Definition> CadInteraction::wheel_event(const event_parameter::Wheel& e, Definition camera, AbstractDepthTester* depth_tester)
 {
-    m_operation_centre_screen = glm::vec2(camera.viewport_size().x / 2.0f, camera.viewport_size().y / 2.0f);
     if (m_operation_centre.x == 0 && m_operation_centre.y == 0 && m_operation_centre.z == 0) {
-        m_operation_centre = depth_tester->position(glm::dvec2(0.0, 0.0));
+        reset_interaction(camera, depth_tester);
     }
 
     float dist = glm::distance(camera.position(), m_operation_centre);
