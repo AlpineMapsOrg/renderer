@@ -85,7 +85,7 @@ void TerrainRenderer::render()
     m_window->beginExternalCommands();
     m_glWindow->paint(this->framebufferObject());
     m_window->endExternalCommands();
-    qDebug() << "TerrainRenderer::render: " << QDateTime::currentDateTime().time().toString("ss.zzz");
+    //    qDebug() << "TerrainRenderer::render: " << QDateTime::currentDateTime().time().toString("ss.zzz");
 }
 
 QOpenGLFramebufferObject *TerrainRenderer::createFramebufferObject(const QSize &size)

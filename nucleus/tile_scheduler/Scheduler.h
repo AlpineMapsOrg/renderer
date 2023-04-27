@@ -91,8 +91,8 @@ private:
     unsigned m_update_timeout = 100;
     unsigned m_purge_timeout = 1000;
     unsigned m_persist_timeout = 10000;
-    unsigned m_gpu_quad_limit = 250;
-    unsigned m_ram_quad_limit = 1000;
+    unsigned m_gpu_quad_limit = 300;
+    unsigned m_ram_quad_limit = 15000;
     static constexpr unsigned m_ortho_tile_size = 256;
     static constexpr unsigned m_height_tile_size = 64;
     bool m_enabled = false;
