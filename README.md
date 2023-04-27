@@ -1,5 +1,5 @@
 # alpine-renderer
-A developer version is available at https://gataki.cg.tuwien.ac.at/. Be aware that it can break at any time.
+A developer version is available at https://alpinemaps.org, and an apk for android under https://alpinemaps.org/apk. Be aware that it can break at any time!
 
 We are in discord, talk to us!
 https://discord.gg/p8T9XzVwRa
