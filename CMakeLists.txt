@@ -4,11 +4,12 @@ project(alpine-renderer LANGUAGES CXX)
 option(ALP_UNITTESTS "include unit test targets in the buildsystem" ON)
 option(ALP_ENABLE_ADDRESS_SANITIZER "compiles atb with address sanitizer enabled (only debug, works only on g++ and clang)" OFF)
 option(ALP_ENABLE_THREAD_SANITIZER "compiles atb with thread sanitizer enabled (only debug, works only on g++ and clang)" OFF)
-option(ALP_ENABLE_THREADING "Puts the scheduler into an extra thread." OFF)
+option(ALP_ENABLE_THREADING "Puts the scheduler into an extra thread." ON)
 option(ALP_ENABLE_ASSERTS "enable asserts (do not define NDEBUG)" ON)
 option(ALP_ENABLE_POSITIONING "enable qt positinoing (gnss / gps)" OFF)
 set(ALP_INSTALL_DIR "${CMAKE_CURRENT_BINARY_DIR}" CACHE PATH "path to the install directory (for webassembly files, i.e., www directory)")
-option(ALP_USE_LLVM_LINKER "use lld (llvm) for linking. it's parallel and much faster, but not installed by default. if it's not installed, you'll get errors, that openmp or other stuff is not installed (hard to track down)" OFF)
+option(ALP_USE_LLVM_LINKER "use lld (llvm) for linking. it's parallel and much faster, but not installed by default.
+    if it's not installed, you'll get errors, that openmp or other stuff is not installed (hard to track down)" OFF)
 
 
 ############################################ sources ##############################################
@@ -91,7 +92,7 @@ set(ALP_APP_ICONS
     app/icons/camera_operation_centre.svg
     app/icons/compass.svg
     app/icons/current_location.svg
-    app/icons/mascot.png
+    app/icons/mascot.jpg
     app/icons/menu.svg
     app/icons/peak.svg
     app/icons/search.svg
@@ -204,8 +205,8 @@ set_target_properties(plain_renderer PROPERTIES
 target_link_libraries(plain_renderer PUBLIC gl_engine Qt::Gui)
 target_include_directories(plain_renderer PRIVATE .)
 
-qt_add_resources(plain_renderer "alpine_app_resources"
-    PREFIX "/resources"
+qt_add_resources(plain_renderer "height_data"
+    PREFIX "/map"
     BASE ${alpine_height_data_SOURCE_DIR}
     FILES ${alpine_height_data_SOURCE_DIR}/height_data.atb
 )
@@ -243,18 +244,48 @@ qt_add_executable(alpineapp
 qt_add_qml_module(alpineapp
     URI alpinemaps
     VERSION 1.0
+    NO_RESOURCE_TARGET_PATH
     QML_FILES ${ALP_APP_QML}
 )
-qt_add_resources(alpineapp "alpine_app_resources"
-    PREFIX "/resources"
+qt_add_resources(alpineapp "height_data"
+    PREFIX "/map"
     BASE ${alpine_height_data_SOURCE_DIR}
     FILES ${alpine_height_data_SOURCE_DIR}/height_data.atb
 )
 qt_add_resources(alpineapp "icons"
-    PREFIX "/alpinemaps/"
+    BASE "app"
+    PREFIX "/"
     FILES ${ALP_APP_ICONS}
 )
 qt_add_translations(alpineapp TS_FILES app/i18n/de.ts app/i18n/en.ts)
+
+FetchContent_Declare(
+  alpineapp_font
+  URL      https://github.com/adobe-fonts/source-sans/archive/refs/heads/release.zip
+  URL_HASH MD5=681612d5ad33731c512ce056d2ca2297
+  DOWNLOAD_EXTRACT_TIMESTAMP true
+)
+FetchContent_MakeAvailable(alpineapp_font)
+message(WARNING "alpineapp_font_SOURCE_DIR=${alpineapp_font_SOURCE_DIR}")
+qt_add_resources(alpineapp "fonts"
+    BASE ${alpineapp_font_SOURCE_DIR}/TTF/
+    PREFIX "/fonts"
+    FILES
+    ${alpineapp_font_SOURCE_DIR}/TTF/SourceSans3-BlackIt.ttf
+    ${alpineapp_font_SOURCE_DIR}/TTF/SourceSans3-BoldIt.ttf
+    ${alpineapp_font_SOURCE_DIR}/TTF/SourceSans3-ExtraLightIt.ttf
+    ${alpineapp_font_SOURCE_DIR}/TTF/SourceSans3-It.ttf
+    ${alpineapp_font_SOURCE_DIR}/TTF/SourceSans3-Light.ttf
+    ${alpineapp_font_SOURCE_DIR}/TTF/SourceSans3-Medium.ttf
+    ${alpineapp_font_SOURCE_DIR}/TTF/SourceSans3-SemiboldIt.ttf
+    ${alpineapp_font_SOURCE_DIR}/TTF/SourceSans3-Black.ttf
+    ${alpineapp_font_SOURCE_DIR}/TTF/SourceSans3-Bold.ttf
+    ${alpineapp_font_SOURCE_DIR}/TTF/SourceSans3-ExtraLight.ttf
+    ${alpineapp_font_SOURCE_DIR}/TTF/SourceSans3-LightIt.ttf
+    ${alpineapp_font_SOURCE_DIR}/TTF/SourceSans3-MediumIt.ttf
+    ${alpineapp_font_SOURCE_DIR}/TTF/SourceSans3-Regular.ttf
+    ${alpineapp_font_SOURCE_DIR}/TTF/SourceSans3-Semibold.ttf
+)
 
 set_target_properties(alpineapp PROPERTIES
 #    MACOSX_BUNDLE_GUI_IDENTIFIER my.example.com

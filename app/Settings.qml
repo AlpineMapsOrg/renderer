@@ -52,7 +52,6 @@ Rectangle {
                 fill: parent
                 margins: 10
             }
-
             RowLayout {
                 Button {
                     Layout.fillWidth: true

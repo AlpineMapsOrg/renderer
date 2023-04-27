@@ -44,7 +44,7 @@ Window {
                 height: 48
                 color: "#00FF0000"
                 Image {
-                    source: "qrc:/alpinemaps/app/icons/menu.svg"
+                    source: "qrc:/icons/menu.svg"
                     width: parent.width / 2
                     height: parent.height / 2
                     anchors.centerIn: parent
@@ -65,7 +65,7 @@ Window {
                 wrapMode: Label.Wrap
 //                background: Rectangle { color: "#99FF00FF" }
                 font.pointSize: 24
-                font.weight: Font.ExtraBold
+//                font.weight: Font.ExtraBold
                 Layout.fillWidth: true
             }
             Rectangle {
@@ -121,7 +121,7 @@ Window {
                     }
 
                     text: ""
-                    icon.source: "qrc:/alpinemaps/app/icons/search.svg"
+                    icon.source: "qrc:/icons/search.svg"
                     background: Rectangle { color: "#00FFFFFF" }
                     onClicked: {
                         console.log("round button pressed accepted")
@@ -212,10 +212,10 @@ Window {
 
             model: ListModel {
                 ListElement { title: qsTr("Map"); source: "map" }
-                ListElement { title: qsTr("Coordinates"); source: "qrc:/alpinemaps/app/Coordinates.qml" }
+                ListElement { title: qsTr("Coordinates"); source: "qrc:/app/Coordinates.qml" }
 //                ListElement { title: qsTr("Cached Content"); source: "" }
-                ListElement { title: qsTr("Settings"); source: "qrc:/alpinemaps/app/Settings.qml" }
-                ListElement { title: qsTr("About"); source: "qrc:/alpinemaps/app/About.qml" }
+                ListElement { title: qsTr("Settings"); source: "qrc:/app/Settings.qml" }
+                ListElement { title: qsTr("About"); source: "qrc:/app/About.qml" }
             }
 
             ScrollIndicator.vertical: ScrollIndicator { }
