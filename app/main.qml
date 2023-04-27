@@ -124,7 +124,7 @@ Window {
                     icon.source: "qrc:/icons/search.svg"
                     background: Rectangle { color: "#00FFFFFF" }
                     onClicked: {
-                        console.log("round button pressed accepted")
+                        search_input.accepted()
                     }
                 }
 
