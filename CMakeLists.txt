@@ -19,17 +19,23 @@ set(ALP_NUCLEUS_SOURCES
     nucleus/Raster.h
     nucleus/srs.h nucleus/srs.cpp
     nucleus/Tile.cpp nucleus/Tile.h
-    nucleus/tile_scheduler/utils.h
+    nucleus/tile_scheduler/utils.h nucleus/tile_scheduler/utils.cpp
     nucleus/tile_scheduler/DrawListGenerator.h nucleus/tile_scheduler/DrawListGenerator.cpp
-    nucleus/tile_scheduler/GpuCacheTileScheduler.h nucleus/tile_scheduler/GpuCacheTileScheduler.cpp
-    nucleus/TileLoadService.h nucleus/TileLoadService.cpp
+    nucleus/tile_scheduler/LayerAssembler.h nucleus/tile_scheduler/LayerAssembler.cpp
+    nucleus/tile_scheduler/tile_types.h
+    nucleus/tile_scheduler/constants.h
+    nucleus/tile_scheduler/QuadAssembler.h nucleus/tile_scheduler/QuadAssembler.cpp
+    nucleus/tile_scheduler/Cache.h
+    nucleus/tile_scheduler/TileLoadService.h nucleus/tile_scheduler/TileLoadService.cpp
+    nucleus/tile_scheduler/Scheduler.h nucleus/tile_scheduler/Scheduler.cpp
+    nucleus/tile_scheduler/SlotLimiter.h nucleus/tile_scheduler/SlotLimiter.cpp
+    nucleus/tile_scheduler/RateLimiter.h nucleus/tile_scheduler/RateLimiter.cpp
     nucleus/camera/CadInteraction.h nucleus/camera/CadInteraction.cpp
     nucleus/camera/Controller.h nucleus/camera/Controller.cpp
     nucleus/camera/CrapyInteraction.h nucleus/camera/CrapyInteraction.cpp
     nucleus/camera/Definition.h nucleus/camera/Definition.cpp
     nucleus/camera/FirstPersonInteraction.h nucleus/camera/FirstPersonInteraction.cpp
     nucleus/camera/InteractionStyle.h nucleus/camera/InteractionStyle.cpp
-    nucleus/camera/NearPlaneAdjuster.h nucleus/camera/NearPlaneAdjuster.cpp
     nucleus/camera/OrbitInteraction.h nucleus/camera/OrbitInteraction.cpp
     nucleus/camera/RotateNorthInteraction.h nucleus/camera/RotateNorthInteraction.cpp
     nucleus/camera/AbstractDepthTester.h
@@ -109,13 +115,15 @@ if (ALP_UNITTESTS AND NOT EMSCRIPTEN)
         unittests/test_srs.cpp
         unittests/test_tile.cpp
         unittests/test_tile_conversion.cpp
-    )
-    set(ALP_QT_UNITTESTS
-        TileLoadService
-        camera_Controller_and_NearPlaneAdjuster
-    )
-    set(ALP_QT_SCHEDULER_UNITTESTS
-        GpuCacheTileScheduler
+        unittests/nucleus_tile_scheduler_util.cpp
+        unittests/nucleus_tile_scheduler_tile_load_service.cpp
+        unittests/nucleus_tile_scheduler_layer_assembler.cpp
+        unittests/nucleus_tile_scheduler_quad_assembler.cpp
+        unittests/nucleus_tile_scheduler_cache.cpp
+        unittests/nucleus_tile_scheduler_scheduler.cpp
+        unittests/nucleus_tile_scheduler_slot_limiter.cpp
+        unittests/nucleus_tile_scheduler_rate_limiter.cpp
+        unittests/RateTester.h unittests/RateTester.cpp
     )
 endif()
 
@@ -164,10 +172,6 @@ qt_add_library(nucleus STATIC
 )
 
 target_include_directories(nucleus PRIVATE . PUBLIC ${CMAKE_SOURCE_DIR})
-#target_compile_definitions(nucleus PUBLIC GLM_ENABLE_EXPERIMENTAL)
-if (NOT EMSCRIPTEN)
-    target_compile_definitions(nucleus PUBLIC ALP_USE_DISK_CACHE)
-endif()
 target_link_libraries(nucleus PUBLIC sherpa Qt::Core Qt::Gui Qt6::Network Qt6::Svg)
 
 
@@ -265,9 +269,20 @@ if (ALP_ENABLE_POSITIONING)
     target_link_libraries(alpineapp PUBLIC Qt::Positioning)
     target_compile_definitions(alpineapp PUBLIC "ALP_ENABLE_GNSS")
 endif()
-set_property(TARGET alpineapp PROPERTY QT_ANDROID_EXTRA_LIBS
-    /home/madam/bin/Android/SDK/android_openssl/latest/arm64/libcrypto_1_1.so
-    /home/madam/bin/Android/SDK/android_openssl/latest/arm64/libssl_1_1.so)
+
+
+if (ANDROID)
+    FetchContent_Declare(
+      android_openssl
+      URL      https://github.com/KDAB/android_openssl/archive/refs/heads/master.zip
+      URL_HASH MD5=b5c3501237ce9f97dc072c950647d643
+      DOWNLOAD_EXTRACT_TIMESTAMP true
+    )
+    set(PROJECT_NAME alpineapp)
+    FetchContent_MakeAvailable(android_openssl)
+    set(PROJECT_NAME alpine-renderer)
+endif()
+
 install(TARGETS alpineapp
     BUNDLE DESTINATION .
     LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR})
@@ -276,7 +291,7 @@ install(TARGETS alpineapp
 #################################### unit tests for backend #######################################
 if (ALP_UNITTESTS AND NOT EMSCRIPTEN)
     add_executable(unittests ${ALP_CATCH_UNITTEST_SOURCES})
-    target_link_libraries(unittests PUBLIC nucleus Catch2::Catch2)
+    target_link_libraries(unittests PUBLIC nucleus Catch2::Catch2 Qt6::Test)
     target_compile_definitions(unittests PUBLIC "ALP_TEST_DATA_DIR=\"${CMAKE_SOURCE_DIR}/unittests/data/\"")
     if (ALP_ENABLE_ASSERTS)
         target_compile_options(unittests PUBLIC "-U NDEBUG")
@@ -291,26 +306,6 @@ if (ALP_UNITTESTS AND NOT EMSCRIPTEN)
 
     find_package(Qt6 REQUIRED COMPONENTS Test)
     enable_testing(true)
-    function(add_cute_test name)
-        add_executable(qtest_${name} unittests_qt/${name}.cpp)
-        add_test(NAME ${name} COMMAND qtest_${name})
-        target_link_libraries(qtest_${name} PUBLIC nucleus Qt6::Test)
-        target_compile_definitions(qtest_${name} PUBLIC "ALP_TEST_DATA_DIR=\"${CMAKE_SOURCE_DIR}/unittests/data/\"")
-    endfunction()
-    foreach(cute_test ${ALP_QT_UNITTESTS})
-        add_cute_test(${cute_test})
-    endforeach()
-
-
-    function(add_cute_scheduler_test name)
-        add_executable(qtest_${name} unittests_qt/${name}.cpp unittests_qt/TileScheduler.h)
-        add_test(NAME qtest_${name} COMMAND ${name})
-        target_link_libraries(qtest_${name} PUBLIC nucleus Qt6::Test)
-        target_compile_definitions(qtest_${name} PUBLIC "ALP_TEST_DATA_DIR=\"${CMAKE_SOURCE_DIR}/unittests/data/\"")
-    endfunction()
-    foreach(cute_test ${ALP_QT_SCHEDULER_UNITTESTS})
-        add_cute_scheduler_test(${cute_test})
-    endforeach()
 
     if (MINGW)
         target_compile_options(unittests_gl PUBLIC "-Wa,-mbig-obj")

@@ -1,6 +1,6 @@
 /*****************************************************************************
  * Alpine Terrain Renderer
- * Copyright (C) 2022 Adam Celarek
+ * Copyright (C) 2023 Adam Celarek
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -18,46 +18,32 @@
 
 #pragma once
 
-#include <memory>
-#include <vector>
+#include <unordered_map>
 
-#include <glm/glm.hpp>
 #include <QObject>
 
 #include "sherpa/tile.h"
+#include "tile_types.h"
 
-namespace nucleus {
-struct Tile;
-}
+namespace nucleus::tile_scheduler {
 
-namespace nucleus::camera {
-class Definition;
-
-class NearPlaneAdjuster : public QObject
-{
+class QuadAssembler : public QObject {
     Q_OBJECT
-public:
-    explicit NearPlaneAdjuster(QObject *parent = nullptr);
+    using TileId2QuadMap = std::unordered_map<tile::Id, tile_types::TileQuad, tile::Id::Hasher>;
 
-signals:
-    void near_plane_changed(float new_distance) const;
+    TileId2QuadMap m_quads;
+
+public:
+    explicit QuadAssembler(QObject* parent = nullptr);
+    [[nodiscard]] size_t n_items_in_flight() const;
 
 public slots:
-    void update_camera(const Definition& new_definition);
-    void add_tile(const std::shared_ptr<nucleus::Tile>& tile);
-    void remove_tile(const tile::Id& tile_id);
+    void load(const tile::Id& tile_id);
+    void deliver_tile(const tile_types::LayeredTile& tile);
 
-private:
-    void update_near_plane() const;
-
-    struct Object {
-        Object() = default;
-        Object(const tile::Id& id, const double& elevation) : id(id), elevation(elevation) {}
-        tile::Id id;
-        double elevation;
-    };
-    glm::dvec3 m_camera_position;
-    std::vector<Object> m_objects;
+signals:
+    void tile_requested(const tile::Id& tile_id);
+    void quad_loaded(const tile_types::TileQuad& tile);
 };
 
 }
