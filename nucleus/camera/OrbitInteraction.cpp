@@ -84,7 +84,7 @@ std::optional<Definition> OrbitInteraction::touch_event(const event_parameter::T
         const auto second_touch = glm::vec2(e.points[1].position().x(), e.points[1].position().y());
         const auto previous_first_touch = glm::vec2(e.points[0].lastPosition().x(), e.points[0].lastPosition().y());
         const auto previous_second_touch = glm::vec2(e.points[1].lastPosition().x(), e.points[1].lastPosition().y());
-        const auto pitch = -(current_centre.y() - previous_centre.y());
+        const auto pitch = -(current_centre.y() - previous_centre.y()) * 0.5;
 
         const auto previous_yaw_dir = glm::normalize(glm::vec2(previous_first_touch - previous_second_touch));
         const auto previous_yaw_angle = std::atan2(previous_yaw_dir.y, previous_yaw_dir.x);

@@ -26,6 +26,7 @@
 #include <QOpenGLContext>
 #include <QQmlApplicationEngine>
 #include <QQmlEngine>
+#include <QQuickStyle>
 #include <QQuickView>
 #include <QRunnable>
 #include <QSurfaceFormat>
@@ -44,6 +45,8 @@ int main(int argc, char **argv)
     //    QGuiApplication::setHighDpiScaleFactorRoundingPolicy(Qt::HighDpiScaleFactorRoundingPolicy::Floor);
     QQuickWindow::setGraphicsApi(QSGRendererInterface::GraphicsApi::OpenGLRhi);
     QGuiApplication app(argc, argv);
+    QQuickStyle::setStyle("Material");
+
     //    QLoggingCategory::setFilterRules("*.debug=true\n"
     //                                     "qt.qpa.fonts=true");
     //// output qrc files:
@@ -121,6 +124,7 @@ int main(int argc, char **argv)
         return 1;
     }
     root_window->showMaximized();
+    //root_window->showFullScreen();
     RenderThreadNotifier::instance()->set_root_window(root_window);
 
     return app.exec();

@@ -132,6 +132,7 @@ Rectangle {
         checked: true
         focusPolicy: Qt.NoFocus
         text: "punkt"
+        visible: false
         anchors {
             right: parent.right
             bottom: compass.top

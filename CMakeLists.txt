@@ -85,6 +85,8 @@ set(ALP_APP_QML
     app/main.qml
     app/About.qml
     app/Map.qml
+    app/SearchBox.qml
+    app/SearchResults.qml
     app/Settings.qml
     app/Coordinates.qml
 )

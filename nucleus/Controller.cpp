@@ -47,7 +47,7 @@ Controller::Controller(AbstractRenderWindow* render_window)
     qRegisterMetaType<nucleus::event_parameter::Mouse>();
     qRegisterMetaType<nucleus::event_parameter::Wheel>();
 
-    m_camera_controller = std::make_unique<nucleus::camera::Controller>(nucleus::camera::stored_positions::grossglockner(), m_render_window->depth_tester());
+    m_camera_controller = std::make_unique<nucleus::camera::Controller>(nucleus::camera::stored_positions::westl_hochgrubach_spitze(), m_render_window->depth_tester());
 
     m_terrain_service = std::make_unique<TileLoadService>("https://alpinemaps.cg.tuwien.ac.at/tiles/alpine_png/", TileLoadService::UrlPattern::ZXY, ".png");
     //    m_ortho_service.reset(new TileLoadService("https://tiles.bergfex.at/styles/bergfex-osm/", TileLoadService::UrlPattern::ZXY_yPointingSouth, ".jpeg"));
