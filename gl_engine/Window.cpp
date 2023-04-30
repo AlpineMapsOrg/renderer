@@ -34,6 +34,8 @@
 #include <QRandomGenerator>
 #include <QSequentialAnimationGroup>
 #include <QTimer>
+#include <QQuickOpenGLUtils>
+
 #include <glm/glm.hpp>
 
 #include "Atmosphere.h"
@@ -226,13 +228,114 @@ void Window::update_gpu_quads(const std::vector<nucleus::tile_scheduler::tile_ty
 float Window::depth(const glm::dvec2& normalised_device_coordinates)
 {
     const auto read_float = float(m_depth_buffer->read_colour_attachment_pixel(0, normalised_device_coordinates)[0]) / 255.f;
+    qDebug() << read_float;
     const auto depth = std::exp(read_float * 13.f);
     return depth;
+}
+
+float Window::depth(nucleus::camera::Definition camera)
+{
+//    QQuickOpenGLUtils::resetOpenGLState();
+//    reset_opengl_state();
+
+    std::unique_ptr<Framebuffer> depth_buffer = std::make_unique<Framebuffer>(Framebuffer::DepthFormat::Int24, std::vector({ Framebuffer::ColourFormat::RGBA8 }));
+    depth_buffer->resize({ 51, 51 });
+    QOpenGLExtraFunctions* f = QOpenGLContext::currentContext()->extraFunctions();
+
+    f->glClearColor(0, 0, 0, 0);
+    f->glDepthMask(true); // needed
+
+    camera.set_viewport_size(depth_buffer->size() * 20u);
+    depth_buffer->bind();
+    f->glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
+    f->glEnable(GL_DEPTH_TEST);
+    f->glDepthFunc(GL_LESS);
+
+    m_shader_manager->depth_program()->bind();
+    m_tile_manager->draw(m_shader_manager->depth_program(), camera);
+
+    const auto depth_raster = depth_buffer->read_colour_attachment2(0);
+    float depth_sum = 0;
+    float depth_min = std::numeric_limits<float>::max();
+    unsigned cnt = 0;
+    for (const auto& v : depth_raster) {
+        const auto read_float = float(v[0]) / 255.f;
+        const auto depth = std::exp(read_float * 13.f);
+        depth_sum += depth;
+        depth_min = std::min(depth_min, depth);
+        cnt++;
+    }
+//    for (float y = -1; y < 1; y+= 2.f / depth_buffer->size().y) {
+//        for (float x = -1; x < 1; x+= 2.f / depth_buffer->size().x) {
+//            const auto read_float = float(depth_buffer->read_colour_attachment_pixel(0, glm::dvec2(x, y))[0]) / 255.f;
+//            const auto depth = std::exp(read_float * 13.f);
+//            depth_sum += depth;
+//            cnt++;
+//        }
+//    }
+
+    depth_buffer->unbind();
+    f->glDepthMask(false);
+
+    m_shader_manager->release();
+    f->glFinish(); // synchronization
+//    depth_buffer.release();
+    return depth_min;//depth_sum / cnt;
 }
 
 glm::dvec3 Window::position(const glm::dvec2& normalised_device_coordinates)
 {
     return m_camera.position() + m_camera.ray_direction(normalised_device_coordinates) * (double)depth(normalised_device_coordinates);
+}
+
+void Window::reset_opengl_state()
+{
+    QOpenGLContext *ctx = QOpenGLContext::currentContext();
+    if (!ctx)
+        return;
+
+    QOpenGLFunctions *gl = ctx->functions();
+
+    gl->glBindBuffer(GL_ARRAY_BUFFER, 0);
+    gl->glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
+
+//    QOpenGLVertexArrayObjectHelper *vaoHelper = QOpenGLVertexArrayObjectHelper::vertexArrayObjectHelperForContext(ctx);
+//    if (vaoHelper->isValid())
+//        vaoHelper->glBindVertexArray(0);
+
+//    if (ctx->isOpenGLES() || (gl->openGLFeatures() & QOpenGLFunctions::FixedFunctionPipeline)) {
+//        int maxAttribs;
+//        gl->glGetIntegerv(GL_MAX_VERTEX_ATTRIBS, &maxAttribs);
+//        for (int i=0; i<maxAttribs; ++i) {
+//            gl->glVertexAttribPointer(i, 4, GL_FLOAT, GL_FALSE, 0, nullptr);
+//            gl->glDisableVertexAttribArray(i);
+//        }
+//    }
+
+//    gl->glActiveTexture(GL_TEXTURE0);
+//    gl->glBindTexture(GL_TEXTURE_2D, 0);
+
+//    gl->glDisable(GL_DEPTH_TEST);
+//    gl->glDisable(GL_STENCIL_TEST);
+//    gl->glDisable(GL_SCISSOR_TEST);
+
+    gl->glColorMask(true, true, true, true);
+    gl->glClearColor(0, 0, 0, 0);
+
+    gl->glDepthMask(true);
+    gl->glDepthFunc(GL_LESS);
+    gl->glClearDepthf(1);
+
+//    gl->glStencilMask(0xff);
+//    gl->glStencilOp(GL_KEEP, GL_KEEP, GL_KEEP);
+//    gl->glStencilFunc(GL_ALWAYS, 0, 0xff);
+
+//    gl->glDisable(GL_BLEND);
+//    gl->glBlendFunc(GL_ONE, GL_ZERO);
+
+    gl->glUseProgram(0);
+
+    QOpenGLFramebufferObject::bindDefault();
 }
 
 void Window::deinit_gpu()
@@ -268,4 +371,13 @@ void Window::remove_tile(const tile::Id& id)
 nucleus::camera::AbstractDepthTester* Window::depth_tester()
 {
     return this;
+}
+
+
+namespace gl_engine {
+void Window::setTest_quick_window(QQuickWindow *newTest_quick_window)
+{
+    m_test_quick_window = newTest_quick_window;
+}
+
 }

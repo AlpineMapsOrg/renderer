@@ -93,6 +93,7 @@ QOpenGLFramebufferObject *TerrainRenderer::createFramebufferObject(const QSize &
     m_window->beginExternalCommands();
     m_glWindow->resize_framebuffer(size.width(), size.height());
     m_window->endExternalCommands();
+    m_glWindow->setTest_quick_window(m_window);
     QOpenGLFramebufferObjectFormat format;
     format.setSamples(1);
     format.setAttachment(QOpenGLFramebufferObject::CombinedDepthStencil);

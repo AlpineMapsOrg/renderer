@@ -249,6 +249,30 @@ std::array<uchar, 4> Framebuffer::read_colour_attachment_pixel(unsigned index, c
     return pixel;
 }
 
+nucleus::Raster<std::array<uchar, 4> > Framebuffer::read_colour_attachment2(unsigned int index)
+{
+    if (index != 0)
+        throw std::logic_error("not implemented");
+
+    // Float framebuffers can not be read efficiently on all environments.
+    // that is, reading float red channel crashes on linux webassembly, but reading it as rgba is inefficient on linux native (4x slower, yes I measured).
+    // i'm removing the old reading code altogether in order not to be tempted to use it in production (or by accident).
+    // if you need to read a float32 buffer, pack the float into rgba8 values!
+    assert(m_colour_formats.front() == ColourFormat::RGBA8);
+    if (m_colour_formats.front() != ColourFormat::RGBA8)
+        return {};
+
+    bind();
+    QOpenGLExtraFunctions* f = QOpenGLContext::currentContext()->extraFunctions();
+    f->glReadBuffer(GL_COLOR_ATTACHMENT0);
+
+
+    nucleus::Raster<std::array<uchar, 4> > raster(m_size);
+    f->glReadPixels(0, 0, int(m_size.x), int(m_size.y), format(m_colour_formats.front()), type(m_colour_formats.front()), reinterpret_cast<void*>(&*raster.begin()));
+
+    return raster;
+}
+
 void Framebuffer::unbind()
 {
     QOpenGLFunctions* f = QOpenGLContext::currentContext()->functions();

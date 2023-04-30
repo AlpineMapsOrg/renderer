@@ -23,6 +23,7 @@
 #include <QOpenGLWindow>
 #include <QPainter>
 #include <QVector3D>
+#include <QtQuick/QQuickWindow>
 #include <chrono>
 #include <glm/glm.hpp>
 #include <memory>
@@ -56,6 +57,7 @@ public:
     void paintOverGL(QPainter* painter);
 
     [[nodiscard]] float depth(const glm::dvec2& normalised_device_coordinates) override;
+    [[nodiscard]] float depth(nucleus::camera::Definition camera) override;
     [[nodiscard]] glm::dvec3 position(const glm::dvec2& normalised_device_coordinates) override;
     void deinit_gpu() override;
     void set_aabb_decorator(const nucleus::tile_scheduler::utils::AabbDecoratorPtr&) override;
@@ -67,6 +69,8 @@ public:
     void updateCameraEvent();
     void set_permissible_screen_space_error(float new_error) override;
 
+    void setTest_quick_window(QQuickWindow *newTest_quick_window);
+
 public slots:
     void update_camera(const nucleus::camera::Definition& new_definition) override;
     void update_debug_scheduler_stats(const QString& stats) override;
@@ -76,6 +80,8 @@ private:
     using ClockResolution = std::chrono::microseconds;
     using Clock = std::chrono::steady_clock;
     using TimePoint = std::chrono::time_point<Clock, ClockResolution>;
+
+    void reset_opengl_state();
 
     std::unique_ptr<TileManager> m_tile_manager; // needs opengl context
     std::unique_ptr<DebugPainter> m_debug_painter; // needs opengl context
@@ -93,5 +99,6 @@ private:
     TimePoint m_frame_end;
     QString m_debug_text;
     QString m_debug_scheduler_stats;
+    QQuickWindow* m_test_quick_window = 0;
 };
 }

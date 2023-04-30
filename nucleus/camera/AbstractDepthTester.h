@@ -26,6 +26,7 @@ class Definition;
 class AbstractDepthTester {
 public:
     [[nodiscard]] virtual float depth(const glm::dvec2& normalised_device_coordinates) = 0;
+    [[nodiscard]] virtual float depth(Definition camera) = 0;
     [[nodiscard]] virtual glm::dvec3 position(const glm::dvec2& normalised_device_coordinates) = 0;
 
     //TODO implement this for other directions

@@ -18,6 +18,7 @@
  *****************************************************************************/
 
 #pragma once
+#include "nucleus/Raster.h"
 #include <vector>
 
 #include <QImage>
@@ -63,6 +64,7 @@ public:
     std::unique_ptr<QOpenGLTexture> take_and_replace_colour_attachment(unsigned index);
     QImage read_colour_attachment(unsigned index);
     std::array<uchar, 4> read_colour_attachment_pixel(unsigned index, const glm::dvec2& normalised_device_coordinates);
+    nucleus::Raster<std::array<uchar, 4>> read_colour_attachment2(unsigned index);
     static void unbind();
 
     glm::uvec2 size() const;

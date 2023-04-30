@@ -184,7 +184,7 @@ endif()
 
 ########################################### gl engine #############################################
 qt_add_library(gl_engine STATIC ${ALP_GL_SOURCES})
-target_link_libraries(gl_engine PUBLIC nucleus Qt::Core Qt::OpenGL)
+target_link_libraries(gl_engine PUBLIC nucleus Qt::Core Qt::OpenGL Qt6::Quick)
 target_include_directories(gl_engine PRIVATE .)
 
 qt_add_resources(gl_engine "gl_shaders"

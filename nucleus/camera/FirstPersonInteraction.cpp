@@ -19,6 +19,7 @@
 
 #include "FirstPersonInteraction.h"
 #include "AbstractDepthTester.h"
+#include "glm/gtx/string_cast.hpp"
 
 #include <QDebug>
 
@@ -184,7 +185,44 @@ std::optional<Definition> FirstPersonInteraction::update(Definition camera, Abst
     if (dt > 120) { // catches big time steps
         dt = 120;
     }
-    camera.move(direction * (dt / 30 * m_speed_modifyer));
+
+//    auto depthOld = depth_tester->depth(glm::dvec2(0, 0));
+//    qDebug() << "depthOld: " << depthOld;
+//    camera.set_viewport_size({100, 100});
+//    auto depthNew = depth_tester->depth(camera);
+//    qDebug() << "depthNew: " << depthNew;
+
+//    auto degFromDown = glm::degrees(glm::acos(glm::dot(camera.z_axis(), glm::dvec3(0, 0, 1))));
+//    //qDebug() << "deg from down: " << degFromDown;
+//    camera.orbit(camera.position(), glm::vec2(0, -degFromDown));
+//    auto height = depth_tester->depth(camera);
+//    qDebug() << "height: " << height;
+//    camera.orbit(camera.position(), glm::vec2(0, degFromDown));
+
+    Definition d = Definition(camera.position(), camera.position() + direction * 100.0);
+    d.set_field_of_view(35);
+    d.set_near_plane(0.01);
+    double depthDirection = depth_tester->depth(d);
+    qDebug() << "Depth: " << depthDirection;
+    qDebug() << "direction: " << glm::to_string(direction).c_str();
+
+    auto distance = dt / 30 * m_speed_modifyer;
+    if (depthDirection > 100) {
+        if (depthDirection - 100 > distance) {
+            camera.move(direction * distance);
+        } else {
+            camera.move(direction * (depthDirection - 100));
+        }
+    }
+    if (depthDirection == 1.0) {
+        camera.move(direction * distance);
+    }
+//    if (distance > depthDirection - 100) {
+//        camera.move(direction * (depthDirection - 100));
+//    } else {
+//        camera.move(direction * distance);
+//    }
+//    camera.move(direction * (dt / 30 * m_speed_modifyer));
     return camera;
 }
 }
