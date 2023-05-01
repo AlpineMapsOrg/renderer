@@ -263,9 +263,9 @@ qt_add_translations(alpineapp TS_FILES app/i18n/de.ts app/i18n/en.ts)
 
 FetchContent_Declare(
   alpineapp_font
+  DOWNLOAD_EXTRACT_TIMESTAMP true
   URL      https://github.com/adobe-fonts/source-sans/archive/refs/heads/release.zip
   URL_HASH MD5=681612d5ad33731c512ce056d2ca2297
-  DOWNLOAD_EXTRACT_TIMESTAMP true
 )
 FetchContent_MakeAvailable(alpineapp_font)
 message(WARNING "alpineapp_font_SOURCE_DIR=${alpineapp_font_SOURCE_DIR}")
@@ -307,9 +307,9 @@ endif()
 if (ANDROID)
     FetchContent_Declare(
       android_openssl
+      DOWNLOAD_EXTRACT_TIMESTAMP true
       URL      https://github.com/KDAB/android_openssl/archive/refs/heads/master.zip
       URL_HASH MD5=b5c3501237ce9f97dc072c950647d643
-      DOWNLOAD_EXTRACT_TIMESTAMP true
     )
     set(PROJECT_NAME alpineapp)
     FetchContent_MakeAvailable(android_openssl)
