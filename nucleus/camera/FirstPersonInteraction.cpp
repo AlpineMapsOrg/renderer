@@ -102,38 +102,35 @@ std::optional<Definition> FirstPersonInteraction::wheel_event(const event_parame
 
 std::optional<Definition> FirstPersonInteraction::key_press_event(const QKeyCombination& e, Definition camera, AbstractDepthTester* depth_tester)
 {
-    auto direction = glm::dvec3();
+    if (m_keys_pressed == 0) {
+        m_delta_time.reset();
+    }
+    m_keys_pressed++;
+
     if (e.key() == Qt::Key_W || m_key_w) {
         m_key_w = true;
-        direction -= camera.z_axis();
     }
     if (e.key() == Qt::Key_S || m_key_s) {
         m_key_s = true;
-        direction += camera.z_axis();
     }
     if (e.key() == Qt::Key_A || m_key_a) {
         m_key_a = true;
-        direction -= camera.x_axis();
     }
     if (e.key() == Qt::Key_D || m_key_d) {
         m_key_d = true;
-        direction += camera.x_axis();
     }
     if (e.key() == Qt::Key_E || m_key_e) {
         m_key_e = true;
-        direction += glm::dvec3(0, 0, 1);
     }
     if (e.key() == Qt::Key_Q || m_key_q) {
         m_key_q = true;
-        direction -= glm::dvec3(0, 0, 1);
     }
-    glm::normalize(direction);
-    camera.move(direction * (double)m_speed_modifyer);
     return camera;
 }
 
 std::optional<Definition> FirstPersonInteraction::key_release_event(const QKeyCombination& e, Definition camera, AbstractDepthTester* depth_tester)
 {
+    m_keys_pressed--;
     if (e.key() == Qt::Key_W) {
         m_key_w = false;
     }
@@ -157,7 +154,7 @@ std::optional<Definition> FirstPersonInteraction::key_release_event(const QKeyCo
 
 std::optional<Definition> FirstPersonInteraction::update(Definition camera, AbstractDepthTester* depth_tester)
 {
-    if(!m_key_w && !m_key_s && !m_key_a && !m_key_d && !m_key_e && !m_key_q) {
+    if (m_keys_pressed == 0) {
         return {};
     }
     auto direction = glm::dvec3();

@@ -38,6 +38,7 @@ class FirstPersonInteraction : public InteractionStyle
     bool m_key_d = false;
     bool m_key_e = false;
     bool m_key_q = false;
+    int m_keys_pressed = 0;
 public:
     std::optional<Definition> mouse_move_event(const event_parameter::Mouse& e, Definition camera, AbstractDepthTester* depth_tester) override;
     std::optional<Definition> touch_event(const event_parameter::Touch& e, Definition camera, AbstractDepthTester* depth_tester) override;
