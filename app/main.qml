@@ -20,7 +20,6 @@ import QtQuick
 import QtQuick.Controls
 import QtQuick.Layouts
 import Alpine
-import QtQuick.Controls.Universal
 
 Window {
     visible: true
@@ -44,7 +43,7 @@ Window {
                 height: 48
                 color: "#00FF0000"
                 Image {
-                    source: "qrc:/alpinemaps/app/icons/menu.svg"
+                    source: "qrc:/icons/menu.svg"
                     width: parent.width / 2
                     height: parent.height / 2
                     anchors.centerIn: parent
@@ -65,77 +64,22 @@ Window {
                 wrapMode: Label.Wrap
 //                background: Rectangle { color: "#99FF00FF" }
                 font.pointSize: 24
-                font.weight: Font.ExtraBold
+//                font.weight: Font.ExtraBold
                 Layout.fillWidth: true
             }
-            Rectangle {
+            SearchBox {
                 id: search
+                search_results: search_results
                 visible: menu_list_view.currentIndex === 0
-                color: "#AAFFFFFF"
-                radius: 100
-                Layout.fillWidth: true
-                height: 48
-                TextField {
-                    anchors {
-                        fill: parent
-                        leftMargin: 6
-                        rightMargin: 6
-                    }
-                    id: search_input
-                    placeholderText: "City or Mountain.."
-                    background: Rectangle{ color: "#00FFFFFF" }
-                    verticalAlignment: TextInput.AlignVCenter
-                    visible: menu_list_view.currentIndex === 0
-                    font.pointSize: 24
-//                    font.weight: Font.ExtraBold
-                    onAccepted: {
-                        console.log("onAccepted")
-                        if (text.length <= 2)
-                            return
-                        var xhr = new XMLHttpRequest
-                        xhr.onreadystatechange = function() {
-                            console.log("xhr.onreadystatechange")
-                            if (xhr.readyState === XMLHttpRequest.DONE) {
-                                console.log("xhr.readyState === XMLHttpRequest.DONE")
-                                var responseJSON = JSON.parse(xhr.responseText)
-                                search_results_view.model.clear()
-                                var feature_array = responseJSON.features  //JSONPath.jsonPath(responseJSON, ".features")
-                                for ( var index in feature_array ) {
-                                    var jo = feature_array[index];
-                                    search_results_view.model.append(jo);
-                                }
-
-                                search_results.visible = true
-                            }
-                        }
-                        xhr.open("GET", encodeURI("https://nominatim.openstreetmap.org/search?q=" + text + "&limit=5&countrycodes=at&format=geojson"))
-                        xhr.send()
-                    }
-                }
-                Button {
-                    id: search_button
-                    anchors {
-                        top: search_input.top
-                        bottom: search_input.bottom
-                        right: search_input.right
-                    }
-
-                    text: ""
-                    icon.source: "qrc:/alpinemaps/app/icons/search.svg"
-                    background: Rectangle { color: "#00FFFFFF" }
-                    onClicked: {
-                        console.log("round button pressed accepted")
-                    }
-                }
-
             }
         }
         z: 100
     }
 
-    Rectangle {
+    SearchResults {
         id: search_results
-        visible: false
+        map: map
+        search_height: search.height
         anchors {
             top: tool_bar.bottom
             bottom: root_window.contentItem.bottom
@@ -143,36 +87,6 @@ Window {
             right: root_window.contentItem.right
             margins: 10
         }
-        color: "#AAFFFFFF"
-        radius: search.height / 2
-        RoundButton {
-            anchors {
-                top: parent.top
-                right: parent.right
-            }
-            text: "X"
-            width: search.height
-            height: search.height
-            z: 110
-            onClicked: search_results.visible = false
-        }
-
-        ListView {
-            id: search_results_view
-            anchors.fill: parent
-            model: ListModel {}
-            delegate: ItemDelegate {
-                    width: search_results_view.width
-                    text: model.properties.display_name
-                    font.pixelSize: 20
-                    onClicked: {
-//                        console.log(model.geometry.coordinates[1] + "/" + model.geometry.coordinates[0])
-                        map.set_position(model.geometry.coordinates[1], model.geometry.coordinates[0])
-                        search_results.visible = false
-                    }
-            }
-        }
-        z: 100
     }
 
     Drawer {
@@ -212,10 +126,10 @@ Window {
 
             model: ListModel {
                 ListElement { title: qsTr("Map"); source: "map" }
-                ListElement { title: qsTr("Coordinates"); source: "qrc:/alpinemaps/app/Coordinates.qml" }
+                ListElement { title: qsTr("Coordinates"); source: "qrc:/app/Coordinates.qml" }
 //                ListElement { title: qsTr("Cached Content"); source: "" }
-                ListElement { title: qsTr("Settings"); source: "qrc:/alpinemaps/app/Settings.qml" }
-                ListElement { title: qsTr("About"); source: "qrc:/alpinemaps/app/About.qml" }
+                ListElement { title: qsTr("Settings"); source: "qrc:/app/Settings.qml" }
+                ListElement { title: qsTr("About"); source: "qrc:/app/About.qml" }
             }
 
             ScrollIndicator.vertical: ScrollIndicator { }

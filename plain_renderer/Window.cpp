@@ -73,7 +73,7 @@ void Window::keyPressEvent(QKeyEvent* e)
     }
     m_keys_pressed++;
     if (!m_timer->isActive()) {
-        m_timer->start(1000.0f/30.0f);
+        m_timer->start(1000.0f / 30.0f);
     }
     m_gl_window.keyPressEvent(e);
 }

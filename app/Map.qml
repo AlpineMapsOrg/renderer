@@ -37,7 +37,7 @@ Rectangle {
 
     Image {
         id: camera_operation_centre
-        source: "qrc:/alpinemaps/app/icons/camera_operation_centre.svg"
+        source: "qrc:/icons/camera_operation_centre.svg"
         width: 16
         height: 16
         sourceSize: Qt.size(width, height)
@@ -68,7 +68,7 @@ Rectangle {
             z:  50 * my_scale()
             Image {
                 id: icon
-                source: "qrc:/alpinemaps/app/icons/peak.svg"
+                source: "qrc:/icons/peak.svg"
                 width: 16 * my_scale()
                 height: 16 * my_scale()
                 sourceSize: Qt.size(width, height)
@@ -132,6 +132,7 @@ Rectangle {
         checked: true
         focusPolicy: Qt.NoFocus
         text: "punkt"
+        visible: false
         anchors {
             right: parent.right
             bottom: compass.top
@@ -147,7 +148,7 @@ Rectangle {
         onClicked: renderer.rotate_north()
         focusPolicy: Qt.NoFocus
         icon {
-            source: "qrc:/alpinemaps/app/icons/compass.svg"
+            source: "qrc:/icons/compass.svg"
             height: 40
             width: 40
         }
@@ -166,7 +167,7 @@ Rectangle {
         checkable: true
         focusPolicy: Qt.NoFocus
         icon {
-            source: "qrc:/alpinemaps/app/icons/current_location.svg"
+            source: "qrc:/icons/current_location.svg"
             height: 32
             width: 32
         }

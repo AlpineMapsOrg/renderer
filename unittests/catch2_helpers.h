@@ -17,12 +17,13 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *****************************************************************************/
 
-#ifndef CATCH2_HELPERS_H
-#define CATCH2_HELPERS_H
+#pragma once
 
 #include <catch2/catch.hpp>
 
 #include <glm/gtx/string_cast.hpp>
+
+#include "sherpa/tile.h"
 
 namespace Catch {
 
@@ -35,5 +36,3 @@ struct StringMaker<glm::vec<s, T>> {
     }
 };
 }
-
-#endif // CATCH2_HELPERS_H

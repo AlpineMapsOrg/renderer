@@ -30,22 +30,77 @@ Rectangle {
             margins: 10
         }
 
-        contentHeight: about_text.implicitHeight
-        contentWidth: about_text.width
+        contentHeight: about_content.height
+        contentWidth: about_content.width
         flickableDirection: Flickable.AutoFlickIfNeeded
-        Text {
-            id: about_text
-            width: about_root.width - 20
-            wrapMode: Text.Wrap
-            onLinkActivated: Qt.openUrlExternally(link)
 
-            text: qsTr("<h2>AlpineMaps.org</h2>"
-                       + "<p><img src=\"qrc:/alpinemaps/app/icons/mascot.png\" width=\"200\" height=\"212\" /><br /></ p>"
-                       + "<p>AlpineMaps.org is an open source application. It is released under the GNU General Public License (version 3 or any later version)."
-                       + "The source code is available on <a href=\"https://github.com/AlpineMapsOrg/renderer\">github.com/AlpineMapsOrg/renderer</a>.<p>"
-                       + "<p>The source of elevation and orthographic photo data is <a href=\"https://basemap.at\">basemap.at</a>, "
-                       + "it is licensed under the Open Government Data Austria license (CC-BY 4.0).</p>"
-                       + "<h3>Authors:</h3><p>Adam Celarek, Jakob Lindner<p>")
+        Rectangle {
+            id: about_content
+            width: logo.width + Math.max(alpine_text.width, maps_text.width) + 20
+            color: "#00FFFFFF"
+            height: about_text.implicitHeight + logo.height + 20
+            Image { id: logo; width: 120; height: 120; source: "qrc:/icons/mascot.jpg" }
+            Text {
+                id: alpine_text
+                anchors {
+                    left: logo.right
+                    top: logo.top
+                    leftMargin: 10
+                    topMargin: 0
+                    bottomMargin: 0
+                }
+                text: "Alpine"
+                font {
+                    weight: 800
+                    pixelSize: 50
+                }
+            }
+            Text {
+                id: maps_text
+                anchors {
+                    left: logo.right
+                    top: alpine_text.baseline
+                    leftMargin: 10
+                    topMargin: 10
+                    bottomMargin: 0
+                }
+                text: "Maps"
+                font {
+                    weight: 400
+                    pixelSize: 50
+                }
+            }
+            Text {
+                id: dotorg_text
+                anchors {
+                    left: maps_text.right
+                    baseline: maps_text.baseline
+                    leftMargin: 0
+                }
+                text: ".org"
+                font {
+                    weight: 100
+                    pixelSize: 30
+                }
+            }
+
+            Label {
+                id: about_text
+                anchors {
+                    left: logo.left
+                    top: logo.bottom
+                    topMargin: 10
+                }
+                width: about_root.width - 20
+                wrapMode: Text.Wrap
+                onLinkActivated: Qt.openUrlExternally(link)
+
+                text: qsTr("<p>AlpineMaps.org is an open source application. It is released under the GNU General Public License (version 3 or any later version). "
+                           + "The source code is available on <a href=\"https://github.com/AlpineMapsOrg/renderer\">github.com/AlpineMapsOrg/renderer</a>.</p>"
+                           + "<p>The source of elevation and orthographic photo data is <a href=\"https://basemap.at\">basemap.at</a>, "
+                           + "it is licensed under the Open Government Data Austria license (CC-BY 4.0).</p>"
+                           + "<h3>Authors:</h3><p>Adam Celarek, Jakob Lindner<p>")
+            }
         }
     }
 }

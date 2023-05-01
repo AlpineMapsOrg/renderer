@@ -18,9 +18,10 @@
 
 #include "TerrainRenderer.h"
 
-#include <QQuickWindow>
+#include <QDateTime>
 #include <QOpenGLFramebufferObject>
 #include <QOpenGLFramebufferObjectFormat>
+#include <QQuickWindow>
 
 #include "TerrainRendererItem.h"
 #include "gl_engine/Window.h"
@@ -31,8 +32,8 @@
 TerrainRenderer::TerrainRenderer()
 {
     m_glWindow = std::make_unique<gl_engine::Window>();
-    m_glWindow->initialise_gpu();
     m_controller = std::make_unique<nucleus::Controller>(m_glWindow.get());
+    m_glWindow->initialise_gpu();
     qDebug("TerrainRendererItemRenderer()");
 }
 
@@ -84,7 +85,7 @@ void TerrainRenderer::render()
     m_window->beginExternalCommands();
     m_glWindow->paint(this->framebufferObject());
     m_window->endExternalCommands();
-    qDebug() << "TerrainRenderer::render: " << QDateTime::currentDateTime().time().toString("ss.zzz");
+    //    qDebug() << "TerrainRenderer::render: " << QDateTime::currentDateTime().time().toString("ss.zzz");
 }
 
 QOpenGLFramebufferObject *TerrainRenderer::createFramebufferObject(const QSize &size)

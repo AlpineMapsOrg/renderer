@@ -22,32 +22,19 @@
 #include <QImage>
 #include <QNetworkAccessManager>
 #include <QNetworkReply>
-#ifdef ALP_USE_DISK_CACHE
-#include <QDir>
-#include <QNetworkDiskCache>
-#include <QRegularExpression>
-#include <QStandardPaths>
-#endif
+#include <QtVersionChecks>
 
-using nucleus::TileLoadService;
+#include "../srs.h"
+
+using namespace nucleus::tile_scheduler;
 
 TileLoadService::TileLoadService(const QString& base_url, UrlPattern url_pattern, const QString& file_ending, const LoadBalancingTargets& load_balancing_targets)
     : m_network_manager(new QNetworkAccessManager(this))
-#ifdef ALP_USE_DISK_CACHE
-    , m_disk_cache(new QNetworkDiskCache(this))
-#endif
     , m_base_url(base_url)
     , m_url_pattern(url_pattern)
     , m_file_ending(file_ending)
     , m_load_balancing_targets(load_balancing_targets)
 {
-#ifdef ALP_USE_DISK_CACHE
-    m_disk_cache->setCacheDirectory(QStandardPaths::writableLocation(QStandardPaths::CacheLocation) + "/" + QString(base_url).replace(QRegularExpression("\\W"), ""));
-    m_disk_cache->setMaximumCacheSize(1000 * 1024 * 1024); // 1000mib
-    m_network_manager->setCache(m_disk_cache.get());
-    qDebug("cache directory: %s", m_disk_cache->cacheDirectory().toStdString().c_str());
-    qDebug("maximum cache size: %lld", m_disk_cache->maximumCacheSize());
-#endif
 }
 
 TileLoadService::~TileLoadService()
@@ -57,7 +44,11 @@ TileLoadService::~TileLoadService()
 void TileLoadService::load(const tile::Id& tile_id)
 {
     QNetworkRequest request(QUrl(build_tile_url(tile_id)));
+    request.setTransferTimeout(m_transfer_timeout);
     request.setAttribute(QNetworkRequest::CacheLoadControlAttribute, QNetworkRequest::PreferCache);
+#if QT_VERSION >= QT_VERSION_CHECK(6, 5, 0)
+    request.setAttribute(QNetworkRequest::UseCredentialsAttribute, false);
+#endif
 
     QNetworkReply* reply = m_network_manager->get(request);
     connect(reply, &QNetworkReply::finished, [tile_id, reply, this]() {
@@ -100,4 +91,14 @@ QString TileLoadService::build_tile_url(const tile::Id& tile_id) const
         return m_base_url.arg(m_load_balancing_targets[index]) + tile_address + m_file_ending;
     }
     return m_base_url + tile_address + m_file_ending;
+}
+
+unsigned int TileLoadService::transfer_timeout() const
+{
+    return m_transfer_timeout;
+}
+
+void TileLoadService::set_transfer_timeout(unsigned int new_transfer_timeout)
+{
+    m_transfer_timeout = new_transfer_timeout;
 }

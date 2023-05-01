@@ -24,6 +24,10 @@ out lowp vec4 out_Color;
 
 highp vec3 calculate_atmospheric_light(highp vec3 ray_origin, highp vec3 ray_direction, highp float ray_length, highp vec3 original_colour, int n_numerical_integration_steps);
 
+highp float calculate_falloff(highp float dist, highp float from, highp float to) {
+    return clamp(1.0 - (dist - from) / (to - from), 0.0, 1.0);
+}
+
 void main() {
    highp vec3 origin = vec3(camera_position);
    highp vec4 ortho = texture(texture_sampler, uv);
@@ -31,5 +35,7 @@ void main() {
    highp vec3 ray_direction = pos_wrt_cam / dist;
 
    highp vec3 light_through_atmosphere = calculate_atmospheric_light(camera_position / 1000.0, ray_direction, dist / 1000.0, vec3(ortho), 10);
-   out_Color = vec4(light_through_atmosphere, 1.0);
+   highp float cos_f = dot(ray_direction, vec3(0.0, 0.0, 1.0));
+   highp float alpha = calculate_falloff(dist, 300000.0, 600000.0);//mix(, calculate_falloff(dist, 600000, 900000), 1-cos_f);
+   out_Color = vec4(light_through_atmosphere * alpha, alpha);
 }

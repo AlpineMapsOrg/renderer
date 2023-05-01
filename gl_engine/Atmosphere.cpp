@@ -31,8 +31,7 @@ void gl_engine::Atmosphere::draw(ShaderProgram* atmosphere_program, const nucleu
     m_framebuffer->unbind();
 
     out->bind();
-    f->glDepthFunc(GL_EQUAL);
     m_framebuffer->bind_colour_texture(0);
     copy_program->bind();
-    m_screen_quad_geometry.draw_with_depth_test();
+    m_screen_quad_geometry.draw();
 }

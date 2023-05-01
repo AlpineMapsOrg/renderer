@@ -30,4 +30,9 @@ inline nucleus::camera::Definition stephansdom()
 {
     return { { 1822577.0, 6141664.0 - 500, 171.28 + 500 }, { 1822577.0, 6141664.0, 171.28 } };
 }
+
+inline nucleus::camera::Definition grossglockner()
+{
+    return { { 1413228.4559138024 - 300, 5954302.742129561 - 400, 3798 + 100 }, { 1413228.4559138024, 5954302.742129561, 3798 - 100 } };
+}
 }

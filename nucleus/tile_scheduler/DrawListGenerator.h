@@ -32,13 +32,13 @@ public:
     DrawListGenerator();
 
     void set_permissible_screen_space_error(float new_permissible_screen_space_error);
-    void set_aabb_decorator(const AabbDecoratorPtr& new_aabb_decorator);
+    void set_aabb_decorator(const utils::AabbDecoratorPtr& new_aabb_decorator);
     void add_tile(const tile::Id& id);
     void remove_tile(const tile::Id& id);
     [[nodiscard]] TileSet generate_for(const camera::Definition& camera) const;
 
 private:
-    AabbDecoratorPtr m_aabb_decorator;
+    utils::AabbDecoratorPtr m_aabb_decorator;
     TileSet m_available_tiles;
     float m_permissible_screen_space_error = 2.0;
 };

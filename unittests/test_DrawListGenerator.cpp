@@ -33,7 +33,7 @@ TEST_CASE("nucleus/tile_scheduler/DrawListGenerator")
     camera.set_viewport_size({ 1920, 1080 });
 
     nucleus::tile_scheduler::DrawListGenerator draw_list_generator;
-    draw_list_generator.set_aabb_decorator(nucleus::tile_scheduler::AabbDecorator::make(std::move(h)));
+    draw_list_generator.set_aabb_decorator(nucleus::tile_scheduler::utils::AabbDecorator::make(std::move(h)));
 
     SECTION("root only")
     {
