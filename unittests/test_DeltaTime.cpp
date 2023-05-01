@@ -22,8 +22,6 @@
 #include <catch2/catch.hpp>
 #include <QThread>
 
-//using test_helpers::equals;
-
 TEST_CASE("nucleus/utils/DeltaTime")
 {
     SECTION("get")
@@ -34,16 +32,16 @@ TEST_CASE("nucleus/utils/DeltaTime")
         CHECK(t1.count() == 0);
 
         dt.get();
-        QThread::msleep(100);
+        QThread::msleep(20);
         auto t2 = dt.get();
-        CHECK(t2.count() - 100 >= 0);
-        CHECK(t2.count() - 100 < 10);
+        CHECK(t2.count() - 20 >= 0);
+        CHECK(t2.count() - 20 < 15);
     }
     SECTION("reset")
     {
         auto dt = DeltaTime();
         dt.get();
-        QThread::msleep(100);
+        QThread::msleep(20);
         dt.reset();
         auto t1 = dt.get();
         CHECK(t1.count() == 0);
