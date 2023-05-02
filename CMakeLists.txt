@@ -33,7 +33,6 @@ set(ALP_NUCLEUS_SOURCES
     nucleus/tile_scheduler/RateLimiter.h nucleus/tile_scheduler/RateLimiter.cpp
     nucleus/camera/CadInteraction.h nucleus/camera/CadInteraction.cpp
     nucleus/camera/Controller.h nucleus/camera/Controller.cpp
-    nucleus/camera/CrapyInteraction.h nucleus/camera/CrapyInteraction.cpp
     nucleus/camera/Definition.h nucleus/camera/Definition.cpp
     nucleus/camera/FirstPersonInteraction.h nucleus/camera/FirstPersonInteraction.cpp
     nucleus/camera/InteractionStyle.h nucleus/camera/InteractionStyle.cpp
