@@ -24,6 +24,7 @@
 #include "nucleus/camera/FirstPersonInteraction.h"
 #include "nucleus/camera/OrbitInteraction.h"
 #include "nucleus/camera/RotateNorthInteraction.h"
+#include "nucleus/camera/stored_positions.h"
 #include "nucleus/srs.h"
 
 namespace nucleus::camera {
@@ -145,6 +146,18 @@ void Controller::key_press(const QKeyCombination& e)
     }
     if (e.key() == Qt::Key_C) {
         set_animation_style(std::make_unique<nucleus::camera::RotateNorthInteraction>());
+    }
+    if (e.key() == Qt::Key_L) {
+        set_definition(stored_positions::sankt_wolfgang());
+        m_interaction_style->reset_interaction(m_definition, m_depth_tester);
+    }
+    if (e.key() == Qt::Key_K) {
+        set_definition(stored_positions::grubenkarspitze());
+        m_interaction_style->reset_interaction(m_definition, m_depth_tester);
+    }
+    if (e.key() == Qt::Key_J) {
+        set_definition(stored_positions::oetschergraeben());
+        m_interaction_style->reset_interaction(m_definition, m_depth_tester);
     }
 
     if (m_animation_style) {

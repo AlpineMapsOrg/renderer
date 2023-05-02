@@ -30,9 +30,20 @@ inline nucleus::camera::Definition stephansdom()
 {
     return { { 1822577.0, 6141664.0 - 500, 171.28 + 500 }, { 1822577.0, 6141664.0, 171.28 } };
 }
-
 inline nucleus::camera::Definition grossglockner()
 {
     return { { 1413228.4559138024 - 300, 5954302.742129561 - 400, 3798 + 100 }, { 1413228.4559138024, 5954302.742129561, 3798 - 100 } };
+}
+inline nucleus::camera::Definition sankt_wolfgang()
+{
+    return { { 1497054.5684504572, 6063356.00872615 - 500, 548 + 100 }, { 1497054.5684504572, 6063356.00872615, 548 } };
+}
+inline nucleus::camera::Definition grubenkarspitze()
+{
+    return { { 1282635.4180640853 + 300, 6004450.05623309 + 400, 2663 + 200 }, { 1282635.4180640853, 6004450.05623309, 2663 } };
+}
+inline nucleus::camera::Definition oetschergraeben()
+{
+    return { { 1701871.2995610011 + 100, 6082332.828420961 + 100, 630 + 200 }, { 1701871.2995610011, 6082332.828420961, 630 } };
 }
 }
