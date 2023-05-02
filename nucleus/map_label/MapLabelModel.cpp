@@ -40,6 +40,36 @@ MapLabelModel::MapLabelModel(QObject* parent)
     m_labels.push_back({ "Scheffauer", 47.5573214, 12.2418396, 2111, 8, 0, 0, 0 });
     m_labels.push_back({ "Maukspitze", 47.5588954, 12.3563668, 2231, 8, 0, 0, 0 });
     m_labels.push_back({ "Ellmauer Halt", 47.5616377, 12.3025296, 2342, 8, 0, 0, 0 });
+    m_labels.push_back({ "Schönfeldspitze", 47.45831, 12.93774, 2653, 8, 0, 0});
+    m_labels.push_back({ "Klosterwappen", 47.76706, 15.80450, 2076, 8, 0, 0});
+    m_labels.push_back({ "Großglockner", 47.07455, 12.69388, 3798, 8, 0, 0});
+    m_labels.push_back({ "Hochschwab", 47.61824, 15.14245, 2277, 8, 0, 0});
+
+    // Schafberg
+    m_labels.push_back({ "Schafberg", 47.77639, 13.43389, 1783, 8, 0, 0});
+    m_labels.push_back({ "Schafbergbahn Tal", 47.73963, 13.43980, 542, 5, 0, 0});
+    m_labels.push_back({ "Schafbergbahn Mitte", 47.76980, 13.42216, 1363, 5, 0, 0});
+    m_labels.push_back({ "Schafbergbahn Berg", 47.77512, 13.43400, 1732, 5, 0, 0});
+    m_labels.push_back({ "St. Wolfgang", 47.73787, 13.44827, 548, 6, 0, 0});
+    m_labels.push_back({ "Hoher Dachstein", 47.47519, 13.60569, 2995, 8, 0, 0});
+    m_labels.push_back({ "Brennerin", 47.81659, 13.57866, 1605, 8, 0, 0});
+    m_labels.push_back({ "Drachenwand", 47.81377, 13.34725, 1176, 8, 0, 0});
+    m_labels.push_back({ "Unterach", 47.80431, 13.48897, 477, 7, 0, 0});
+    m_labels.push_back({ "Krottensee", 47.78318, 13.38849, 577, 7, 0, 0});
+
+    // Ötschergräben
+    m_labels.push_back({ "Ötscher", 47.86186, 15.20251, 1893, 8, 0, 0});
+    m_labels.push_back({ "Kraftwerk Wienerbruck", 47.85239, 15.28817, 630, 4, 0, 0});
+    m_labels.push_back({ "Mirafall", 47.84454, 15.24895, 770, 4, 0, 0});
+    m_labels.push_back({ "Schleierfall", 47.84124, 15.21863, 800, 4, 0, 0});
+
+    // Grubenkarspitze
+    m_labels.push_back({ "Grubenkarspitze", 47.38078, 11.52211, 2663, 8, 0, 0});
+    m_labels.push_back({ "Sunntigerspitze", 47.36470, 11.48137, 2322, 6, 0, 0});
+    m_labels.push_back({ "Reps", 47.36612, 11.46206, 2160, 6, 0, 0});
+
+    // Gimpel
+    m_labels.push_back({ "Gimpel", 47.50127, 10.61249, 2176, 8, 0, 0});
 }
 
 int MapLabelModel::rowCount(const QModelIndex& parent) const
