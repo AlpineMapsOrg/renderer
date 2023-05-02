@@ -44,7 +44,8 @@ std::optional<Definition> OrbitInteraction::mouse_move_event(const event_paramet
     if (e.buttons == Qt::RightButton || (e.buttons == Qt::LeftButton && !m_key_ctrl && m_key_alt)) {
         m_operation_centre_screen = glm::vec2(e.point.pressPosition().x(), e.point.pressPosition().y());
         const auto delta = e.point.position() - e.point.lastPosition();
-        zoom((delta.y() - delta.x()) / 2.f, &camera, depth_tester);
+
+        zoom((delta.y() + delta.x()) / 4.f, &camera, depth_tester);
     }
 
     if (e.buttons == Qt::NoButton)

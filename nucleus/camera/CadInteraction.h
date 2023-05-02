@@ -21,6 +21,8 @@
 
 #include "InteractionStyle.h"
 
+#include <nucleus/utils/DeltaTime.h>
+
 namespace nucleus::camera {
 class CadInteraction : public InteractionStyle
 {
@@ -32,6 +34,7 @@ class CadInteraction : public InteractionStyle
     glm::vec2 m_operation_centre_screen = {};
     bool m_key_ctrl = false;
     bool m_key_alt = false;
+    DeltaTime m_delta_time = DeltaTime();
 public:
     void reset_interaction(Definition camera, AbstractDepthTester* depth_tester) override;
     std::optional<Definition> mouse_press_event(const event_parameter::Mouse& e, Definition camera, AbstractDepthTester* depth_tester) override;
