@@ -66,6 +66,7 @@ Rectangle {
             x: model.x * label_view.width / renderer.camera_width
             y: model.y * (label_view.height + 60) / renderer.camera_height - 60
             z:  50 * my_scale()
+            visible: model.importance >= 8 || label_visibility.checked
             Image {
                 id: icon
                 source: "qrc:/icons/peak.svg"
@@ -125,14 +126,31 @@ Rectangle {
     }
 
     RoundButton {
+        id: label_visibility
+        width: 60
+        height: 60
+        checkable: true
+        checked: true
+        focusPolicy: Qt.NoFocus
+        text: "Lab"
+        visible: true
+        anchors {
+            right: parent.right
+            bottom: punkt.top
+            rightMargin: 10
+            bottomMargin: 10
+        }
+    }
+
+    RoundButton {
         id: punkt
         width: 60
         height: 60
         checkable: true
         checked: true
         focusPolicy: Qt.NoFocus
-        text: "punkt"
-        visible: false
+        text: "Pkt"
+        visible: true
         anchors {
             right: parent.right
             bottom: compass.top
@@ -140,6 +158,7 @@ Rectangle {
             bottomMargin: 10
         }
     }
+
     RoundButton {
         id: compass
         width: 60
