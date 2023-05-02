@@ -55,23 +55,26 @@ std::optional<Definition> FirstPersonInteraction::key_press_event(const QKeyComb
     }
     m_keys_pressed++;
 
-    if (e.key() == Qt::Key_W || m_key_w) {
+    if (e.key() == Qt::Key_W) {
         m_key_w = true;
     }
-    if (e.key() == Qt::Key_S || m_key_s) {
+    if (e.key() == Qt::Key_S) {
         m_key_s = true;
     }
-    if (e.key() == Qt::Key_A || m_key_a) {
+    if (e.key() == Qt::Key_A) {
         m_key_a = true;
     }
-    if (e.key() == Qt::Key_D || m_key_d) {
+    if (e.key() == Qt::Key_D) {
         m_key_d = true;
     }
-    if (e.key() == Qt::Key_E || m_key_e) {
+    if (e.key() == Qt::Key_E) {
         m_key_e = true;
     }
-    if (e.key() == Qt::Key_Q || m_key_q) {
+    if (e.key() == Qt::Key_Q) {
         m_key_q = true;
+    }
+    if (e.key() == Qt::Key_Shift) {
+        m_key_shift = true;
     }
     return camera;
 }
@@ -96,6 +99,9 @@ std::optional<Definition> FirstPersonInteraction::key_release_event(const QKeyCo
     }
     if (e.key() == Qt::Key_Q) {
         m_key_q = false;
+    }
+    if (e.key() == Qt::Key_Shift) {
+        m_key_shift = false;
     }
     return camera;
 }
@@ -129,7 +135,11 @@ std::optional<Definition> FirstPersonInteraction::update(Definition camera, Abst
     if (dt > 120) { // catches big time steps
         dt = 120;
     }
-    camera.move(direction * (dt / 30 * m_speed_modifyer));
+    if (m_key_shift) {
+        camera.move(direction * (dt / 30 * m_speed_modifyer * 3));
+    } else {
+        camera.move(direction * (dt / 30 * m_speed_modifyer));
+    }
     return camera;
 }
 }
