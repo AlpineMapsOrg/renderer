@@ -57,7 +57,7 @@ std::optional<Definition> CadInteraction::mouse_move_event(const event_parameter
     if (e.buttons == Qt::RightButton || (e.buttons == Qt::LeftButton && !m_key_ctrl && m_key_alt)) {
         const auto delta = e.point.position() - e.point.lastPosition();
         float dist = glm::distance(camera.position(), m_operation_centre);
-        float zoomDist = (delta.y() - delta.x()) * dist / 400.0;
+        float zoomDist = -(delta.y() + delta.x()) * dist / 400.0;
         if (zoomDist < dist) {
             if (dist > 5.0f || zoomDist > 0.0f) { // always allow zoom out
                 camera.zoom(zoomDist);
