@@ -53,15 +53,15 @@ MapLabelModel::MapLabelModel(QObject* parent)
     m_labels.push_back({ "St. Wolfgang", 47.73787, 13.44827, 548, 6, 0, 0});
     m_labels.push_back({ "Hoher Dachstein", 47.47519, 13.60569, 2995, 8, 0, 0});
     m_labels.push_back({ "Brennerin", 47.81659, 13.57866, 1605, 8, 0, 0});
-    m_labels.push_back({ "Drachenwand", 47.81377, 13.34725, 1176, 8, 0, 0});
+    m_labels.push_back({ "Drachenwand", 47.81377, 13.34725, 1176, 7, 0, 0});
     m_labels.push_back({ "Unterach", 47.80431, 13.48897, 477, 7, 0, 0});
     m_labels.push_back({ "Krottensee", 47.78318, 13.38849, 577, 7, 0, 0});
 
     // Ötschergräben
     m_labels.push_back({ "Ötscher", 47.86186, 15.20251, 1893, 8, 0, 0});
-    m_labels.push_back({ "Kraftwerk Wienerbruck", 47.85239, 15.28817, 630, 4, 0, 0});
-    m_labels.push_back({ "Mirafall", 47.84454, 15.24895, 770, 4, 0, 0});
-    m_labels.push_back({ "Schleierfall", 47.84124, 15.21863, 800, 4, 0, 0});
+    m_labels.push_back({ "Kraftwerk Wienerbruck", 47.85239, 15.28817, 630, 6, 0, 0});
+    m_labels.push_back({ "Mirafall", 47.84454, 15.24895, 770, 6, 0, 0});
+    m_labels.push_back({ "Schleierfall", 47.84124, 15.21863, 800, 6, 0, 0});
 
     // Grubenkarspitze
     m_labels.push_back({ "Grubenkarspitze", 47.38078, 11.52211, 2663, 8, 0, 0});
@@ -70,6 +70,8 @@ MapLabelModel::MapLabelModel(QObject* parent)
 
     // Gimpel
     m_labels.push_back({ "Gimpel", 47.50127, 10.61249, 2176, 8, 0, 0});
+    m_labels.push_back({ "Rote Flüh", 47.49962, 10.60855, 2111, 6, 0, 0});
+    m_labels.push_back({ "Otto-Mayr-Hütte", 47.50934, 10.61872, 1530, 6, 0, 0});
 }
 
 int MapLabelModel::rowCount(const QModelIndex& parent) const

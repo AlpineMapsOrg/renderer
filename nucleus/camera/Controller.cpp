@@ -159,6 +159,10 @@ void Controller::key_press(const QKeyCombination& e)
         set_definition(stored_positions::oetschergraeben());
         m_interaction_style->reset_interaction(m_definition, m_depth_tester);
     }
+    if (e.key() == Qt::Key_H) {
+        set_definition(stored_positions::gimpel());
+        m_interaction_style->reset_interaction(m_definition, m_depth_tester);
+    }
 
     if (m_animation_style) {
         update();
