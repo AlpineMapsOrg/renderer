@@ -125,10 +125,10 @@ std::optional<Definition> FirstPersonInteraction::update(Definition camera, Abst
         direction += camera.x_axis();
     }
     if (m_key_e) {
-        direction += glm::dvec3(0, 0, 1);
+        direction += camera.y_axis();
     }
     if (m_key_q) {
-        direction -= glm::dvec3(0, 0, 1);
+        direction -= camera.y_axis();
     }
     glm::normalize(direction);
     double dt = m_delta_time.get().count();
