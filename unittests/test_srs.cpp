@@ -109,4 +109,32 @@ TEST_CASE("nucleus/srs")
         CHECK(srs::lat_long_to_world({ westl_hochgrubach_spitze_lat, westl_hochgrubach_spitze_long }).x == Approx(1822595.7412222677));
         CHECK(srs::lat_long_to_world({ westl_hochgrubach_spitze_lat, westl_hochgrubach_spitze_long }).y == Approx(6141644.553721141));
     }
+
+    SECTION("srs conversion two way")
+    {
+        {
+            constexpr double lat = 48.2086939;
+            constexpr double lon = 16.3726561;
+            CHECK(srs::world_to_lat_long(srs::lat_long_to_world({ lat, lon })).x == Approx(lat));
+            CHECK(srs::world_to_lat_long(srs::lat_long_to_world({ lat, lon })).y == Approx(lon));
+        }
+        {
+            constexpr double lat = 12.565;
+            constexpr double lon = -125.54;
+            CHECK(srs::world_to_lat_long(srs::lat_long_to_world({ lat, lon })).x == Approx(lat));
+            CHECK(srs::world_to_lat_long(srs::lat_long_to_world({ lat, lon })).y == Approx(lon));
+        }
+        {
+            constexpr double lat = -12.565;
+            constexpr double lon = -165.54;
+            CHECK(srs::world_to_lat_long(srs::lat_long_to_world({ lat, lon })).x == Approx(lat));
+            CHECK(srs::world_to_lat_long(srs::lat_long_to_world({ lat, lon })).y == Approx(lon));
+        }
+        {
+            constexpr double lat = -65.565;
+            constexpr double lon = 135.54;
+            CHECK(srs::world_to_lat_long(srs::lat_long_to_world({ lat, lon })).x == Approx(lat));
+            CHECK(srs::world_to_lat_long(srs::lat_long_to_world({ lat, lon })).y == Approx(lon));
+        }
+    }
 }

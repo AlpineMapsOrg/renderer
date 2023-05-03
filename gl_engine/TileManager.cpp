@@ -124,7 +124,7 @@ void TileManager::remove_tile(const tile::Id& tile_id)
 
 void TileManager::initilise_attribute_locations(ShaderProgram* program)
 {
-    m_attribute_locations.height = program->attribute_location("height");
+    m_attribute_locations.height = program->attribute_location("altitude");
 }
 
 void TileManager::set_aabb_decorator(const nucleus::tile_scheduler::utils::AabbDecoratorPtr& new_aabb_decorator)

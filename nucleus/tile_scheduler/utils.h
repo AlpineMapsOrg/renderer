@@ -76,7 +76,9 @@ namespace utils {
     inline tile::SrsAndHeightBounds make_bounds(const tile::Id& id, float min_height, float max_height)
     {
         const auto srs_bounds = srs::tile_bounds(id);
-        return { .min = { srs_bounds.min, min_height }, .max = { srs_bounds.max, max_height } };
+        const auto lat = float(srs::world_to_lat_long({ 0.0, std::max(srs_bounds.max.y, -srs_bounds.min.y) }).x);
+        const auto lat_height_factor = 1.f / std::cos(lat * 3.1415926535f / 180);
+        return { .min = { srs_bounds.min, min_height * lat_height_factor }, .max = { srs_bounds.max, max_height * lat_height_factor } };
     }
 
     class AabbDecorator;
