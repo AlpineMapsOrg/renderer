@@ -20,7 +20,12 @@ uniform highp vec3 camera_position;
 in highp vec3 pos_wrt_cam;
 out lowp vec4 out_Color;
 
+vec2 encode(highp float value) {
+    return vec2(value, fract(value * 255.f));
+}
+
 void main() {
    highp float dist = length(pos_wrt_cam);
-   out_Color = vec4(log(dist)/13.0, 0, 0, 0);
+   highp float depth = log(dist)/13.0;
+   out_Color = vec4(encode(depth), 0, 0);
 }

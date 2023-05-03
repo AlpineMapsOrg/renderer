@@ -53,6 +53,19 @@ ShaderProgram create_debug_shader()
     return ShaderProgram(vertex_source, fragment_source);
 }
 
+ShaderProgram create_encoder_shader(float v1, float v2)
+{
+    static const std::string fragment_source = R"(
+    out lowp vec4 out_Color;
+    vec2 encode(highp float value) {
+        return vec2(value, fract(value * 256.f));
+    }
+    void main() {
+        out_Color = vec4(encode()" + std::to_string(v1) + R"(), encode()" + std::to_string(v2) + R"());
+    })";
+    return ShaderProgram(vertex_source, fragment_source);
+}
+
 TEST_CASE("gl framebuffer")
 {
     int argc = 0;
@@ -131,5 +144,27 @@ TEST_CASE("gl framebuffer")
         CHECK(pixel[1] == unsigned(0.0f * 255));
         CHECK(pixel[2] == unsigned(1.0f * 255));
         CHECK(pixel[3] == unsigned(0.8f * 255));
+    }
+
+    SECTION("encode pixel")
+    {
+        const auto decode_pixel = [](const std::array<uchar, 4>& v) {
+            return glm::vec2(v[0] / 255.f + v[1] / (255.f * 256.f), v[2] / 255.f + v[3] / (255.f * 256.f));
+        };
+        const auto tuples = std::vector{std::pair{0.0f, 1.0f}, std::pair{0.5f, 0.9f}};
+        for (const auto& pair : tuples) {
+            Framebuffer b(Framebuffer::DepthFormat::None, { Framebuffer::ColourFormat::RGBA8 });
+            b.resize({ 1920, 1080 });
+            b.bind();
+            ShaderProgram shader = create_encoder_shader(pair.first, pair.second);
+            shader.bind();
+            gl_engine::helpers::create_screen_quad_geometry().draw();
+
+            auto pixel = b.read_colour_attachment_pixel(0, glm::dvec2(0, 0));
+
+            Framebuffer::unbind();
+            CHECK(decode_pixel(pixel).x == pair.first);
+            CHECK(decode_pixel(pixel).y == pair.second);
+        }
     }
 }

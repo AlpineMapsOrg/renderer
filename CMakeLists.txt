@@ -340,6 +340,7 @@ if (ALP_UNITTESTS AND NOT EMSCRIPTEN)
     enable_testing(true)
 
     if (MINGW)
+        target_compile_options(unittests PUBLIC "-Wa,-mbig-obj")
         target_compile_options(unittests_gl PUBLIC "-Wa,-mbig-obj")
     endif()
 
