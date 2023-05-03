@@ -48,6 +48,7 @@ set(ALP_NUCLEUS_SOURCES
     nucleus/map_label/MapLabel.h
     nucleus/map_label/AbstractMapLabelModel.h
     nucleus/map_label/CameraFilterProxyModel.h nucleus/map_label/CameraFilterProxyModel.cpp
+    nucleus/utils/bit_coding.h
 )
 set(ALP_GL_SOURCES
     gl_engine/Atmosphere.h gl_engine/Atmosphere.cpp

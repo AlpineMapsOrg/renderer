@@ -18,6 +18,10 @@
  *****************************************************************************/
 
 #define CATCH_CONFIG_ENABLE_BENCHMARKING
+
+#include <QFile>
+#include <iostream>
+
 #include <catch2/catch.hpp>
 #include <QGuiApplication>
 #include <QRgb>
@@ -29,6 +33,7 @@
 #include "gl_engine/Framebuffer.h"
 #include "gl_engine/ShaderProgram.h"
 #include "gl_engine/helpers.h"
+#include "nucleus/utils/bit_coding.h"
 
 using gl_engine::Framebuffer;
 using gl_engine::ShaderProgram;
@@ -55,14 +60,19 @@ ShaderProgram create_debug_shader()
 
 ShaderProgram create_encoder_shader(float v1, float v2)
 {
-    static const std::string fragment_source = R"(
+
+    std::string fragment_source;
+    QFile f(ALP_RESOURCES_PREFIX "gl_shaders/encoder.part");
+    f.open(QIODeviceBase::ReadOnly);
+    fragment_source = fragment_source + f.readAll().toStdString();
+    fragment_source = fragment_source + R"(
     out lowp vec4 out_Color;
-    vec2 encode(highp float value) {
-        return vec2(value, fract(value * 256.f));
-    }
+
     void main() {
-        out_Color = vec4(encode()" + std::to_string(v1) + R"(), encode()" + std::to_string(v2) + R"());
+        out_Color = vec4(encode()"
+        + std::to_string(v1) + R"(), encode()" + std::to_string(v2) + R"());
     })";
+    //    std::cout << fragment_source << std::endl;
     return ShaderProgram(vertex_source, fragment_source);
 }
 
@@ -148,10 +158,12 @@ TEST_CASE("gl framebuffer")
 
     SECTION("encode pixel")
     {
-        const auto decode_pixel = [](const std::array<uchar, 4>& v) {
-            return glm::vec2(v[0] / 255.f + v[1] / (255.f * 256.f), v[2] / 255.f + v[3] / (255.f * 256.f));
+        const auto tuples = std::vector {
+            std::pair { 0.0f, 1.0f },
+            std::pair { 255.0f / (256 * 256 - 1), 256.0f / (256 * 256 - 1) },
+            std::pair { 32768.0f / (256 * 256 - 1), 1.0f - 255.0f / (256 * 256 - 1) },
+            std::pair { 32767.0f / (256 * 256 - 1), 1.0f - 256.0f / (256 * 256 - 1) },
         };
-        const auto tuples = std::vector{std::pair{0.0f, 1.0f}, std::pair{0.5f, 0.9f}};
         for (const auto& pair : tuples) {
             Framebuffer b(Framebuffer::DepthFormat::None, { Framebuffer::ColourFormat::RGBA8 });
             b.resize({ 1920, 1080 });
@@ -160,11 +172,12 @@ TEST_CASE("gl framebuffer")
             shader.bind();
             gl_engine::helpers::create_screen_quad_geometry().draw();
 
-            auto pixel = b.read_colour_attachment_pixel(0, glm::dvec2(0, 0));
+            const auto pixel = b.read_colour_attachment_pixel(0, glm::dvec2(0, 0));
+            const auto decoded = nucleus::utils::bit_coding::to_f16f16(pixel);
 
             Framebuffer::unbind();
-            CHECK(decode_pixel(pixel).x == pair.first);
-            CHECK(decode_pixel(pixel).y == pair.second);
+            CHECK(decoded.x == Approx(pair.first));
+            CHECK(decoded.y == Approx(pair.second));
         }
     }
 }
