@@ -31,7 +31,7 @@ class FirstPersonInteraction : public InteractionStyle
     glm::ivec2 m_previous_second_touch = { -1, -1 };
     bool m_was_double_touch = false;
     float m_speed_modifyer = 13;
-    DeltaTime m_delta_time = DeltaTime();
+    utils::DeltaTime m_delta_time = {};
     bool m_key_w = false;
     bool m_key_s = false;
     bool m_key_a = false;

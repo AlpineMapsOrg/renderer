@@ -30,7 +30,7 @@ class RotateNorthInteraction : public InteractionStyle
     float m_degrees_from_north = 0;
     int m_total_duration = 1000;
     int m_current_duration = 0;
-    DeltaTime m_delta_time = DeltaTime();
+    utils::DeltaTime m_delta_time = {};
 public:
     void reset_interaction(Definition camera, AbstractDepthTester* depth_tester) override;
     std::optional<Definition> update(Definition camera, AbstractDepthTester* depth_tester) override;

@@ -20,6 +20,8 @@
 
 #include <chrono>
 
+namespace nucleus::utils {
+
 class DeltaTime
 {
 public:
@@ -30,3 +32,5 @@ public:
 private:
     std::chrono::steady_clock::time_point m_last_frame;
 };
+
+}

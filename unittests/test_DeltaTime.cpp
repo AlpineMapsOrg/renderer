@@ -22,6 +22,8 @@
 #include <catch2/catch.hpp>
 #include <QThread>
 
+using nucleus::utils::DeltaTime;
+
 TEST_CASE("nucleus/utils/DeltaTime")
 {
     SECTION("get")

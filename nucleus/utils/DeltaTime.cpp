@@ -18,6 +18,8 @@
 
 #include "DeltaTime.h"
 
+using namespace nucleus::utils;
+
 DeltaTime::DeltaTime()
 {
     m_last_frame = std::chrono::steady_clock::now();
