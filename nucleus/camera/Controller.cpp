@@ -20,7 +20,6 @@
 #include "Controller.h"
 
 #include "nucleus/camera/CadInteraction.h"
-#include "nucleus/camera/CrapyInteraction.h"
 #include "nucleus/camera/Definition.h"
 #include "nucleus/camera/FirstPersonInteraction.h"
 #include "nucleus/camera/OrbitInteraction.h"
@@ -143,9 +142,6 @@ void Controller::key_press(const QKeyCombination& e)
     }
     if (e.key() == Qt::Key_3) {
         set_interaction_style(std::make_unique<nucleus::camera::CadInteraction>());
-    }
-    if (e.key() == Qt::Key_4) {
-        set_interaction_style(std::make_unique<nucleus::camera::CrapyInteraction>());
     }
     if (e.key() == Qt::Key_C) {
         set_animation_style(std::make_unique<nucleus::camera::RotateNorthInteraction>());

@@ -51,8 +51,8 @@ ShaderManager::ShaderManager()
         ShaderProgram::Files({"gl_shaders/screen_pass.vert"}),
         ShaderProgram::Files({"gl_shaders/atmosphere_implementation.frag", "gl_shaders/atmosphere_bg.frag"}));
     m_depth_program = std::make_unique<ShaderProgram>(
-        ShaderProgram::Files({"gl_shaders/tile.vert"}),
-        ShaderProgram::Files({"gl_shaders/depth.frag"}));
+        ShaderProgram::Files({ "gl_shaders/tile.vert" }),
+        ShaderProgram::Files({ "gl_shaders/encoder.part", "gl_shaders/depth.frag" }));
 
     m_program_list.push_back(m_tile_program.get());
     m_program_list.push_back(m_debug_program.get());

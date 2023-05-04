@@ -33,7 +33,6 @@ set(ALP_NUCLEUS_SOURCES
     nucleus/tile_scheduler/RateLimiter.h nucleus/tile_scheduler/RateLimiter.cpp
     nucleus/camera/CadInteraction.h nucleus/camera/CadInteraction.cpp
     nucleus/camera/Controller.h nucleus/camera/Controller.cpp
-    nucleus/camera/CrapyInteraction.h nucleus/camera/CrapyInteraction.cpp
     nucleus/camera/Definition.h nucleus/camera/Definition.cpp
     nucleus/camera/FirstPersonInteraction.h nucleus/camera/FirstPersonInteraction.cpp
     nucleus/camera/InteractionStyle.h nucleus/camera/InteractionStyle.cpp
@@ -49,6 +48,7 @@ set(ALP_NUCLEUS_SOURCES
     nucleus/map_label/MapLabel.h
     nucleus/map_label/AbstractMapLabelModel.h
     nucleus/map_label/CameraFilterProxyModel.h nucleus/map_label/CameraFilterProxyModel.cpp
+    nucleus/utils/bit_coding.h
 )
 set(ALP_GL_SOURCES
     gl_engine/Atmosphere.h gl_engine/Atmosphere.cpp
@@ -341,6 +341,7 @@ if (ALP_UNITTESTS AND NOT EMSCRIPTEN)
     enable_testing(true)
 
     if (MINGW)
+        target_compile_options(unittests PUBLIC "-Wa,-mbig-obj")
         target_compile_options(unittests_gl PUBLIC "-Wa,-mbig-obj")
     endif()
 
