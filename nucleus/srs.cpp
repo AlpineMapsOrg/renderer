@@ -77,4 +77,12 @@ glm::dvec2 world_to_lat_long(const glm::dvec2& world_pos)
 
     return { latitude, longitude };
 }
+
+glm::dvec3 lat_long_alt_to_world(const glm::dvec3& lat_long_alt)
+{
+    const auto world_xy = lat_long_to_world({ lat_long_alt.x, lat_long_alt.y });
+    const auto lat_rad_ = lat_long_alt.x * pi / 180.0;
+    return { world_xy.x, world_xy.y, lat_long_alt.z / std::abs(std::cos(lat_rad_)) };
+}
+
 }

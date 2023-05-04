@@ -198,7 +198,7 @@ TEST_CASE("nucleus/tile_scheduler/Scheduler")
 
         QSignalSpy spy(scheduler.get(), &nucleus::tile_scheduler::Scheduler::quads_requested);
         scheduler->update_camera(nucleus::camera::stored_positions::stephansdom());
-        scheduler->update_camera(nucleus::camera::stored_positions::westl_hochgrubach_spitze());
+        scheduler->update_camera(nucleus::camera::stored_positions::oestl_hochgrubach_spitze());
         test_helpers::process_events_for(2);
         CHECK(spy.empty());
 
@@ -213,7 +213,7 @@ TEST_CASE("nucleus/tile_scheduler/Scheduler")
         QSignalSpy spy(scheduler.get(), &nucleus::tile_scheduler::Scheduler::quads_requested);
         scheduler->update_camera(nucleus::camera::stored_positions::stephansdom());
         test_helpers::process_events_for(2);
-        scheduler->update_camera(nucleus::camera::stored_positions::westl_hochgrubach_spitze());
+        scheduler->update_camera(nucleus::camera::stored_positions::oestl_hochgrubach_spitze());
         test_helpers::process_events_for(2);
         CHECK(spy.empty());
         scheduler->update_camera(nucleus::camera::stored_positions::grossglockner());

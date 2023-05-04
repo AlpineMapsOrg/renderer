@@ -29,7 +29,7 @@ TEST_CASE("nucleus/tile_scheduler/DrawListGenerator")
 {
     TileHeights h;
     h.emplace({ 0, { 0, 0 } }, { 100, 4000 });
-    auto camera = nucleus::camera::stored_positions::westl_hochgrubach_spitze();
+    auto camera = nucleus::camera::stored_positions::oestl_hochgrubach_spitze();
     camera.set_viewport_size({ 1920, 1080 });
 
     nucleus::tile_scheduler::DrawListGenerator draw_list_generator;

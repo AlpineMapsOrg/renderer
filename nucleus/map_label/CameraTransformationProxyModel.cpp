@@ -79,8 +79,7 @@ void CameraTransformationProxyModel::source_data_updated()
 void CameraTransformationProxyModel::recalculate_screen_space_data()
 {
     for (auto& label : m_labels) {
-        const auto world_xy = nucleus::srs::lat_long_to_world({ label.latitude, label.longitude });
-        const auto world_pos = glm::dvec3(world_xy, label.altitude);
+        const auto world_pos = nucleus::srs::lat_long_alt_to_world({ label.latitude, label.longitude, label.altitude });
 
         const auto distance = glm::distance(world_pos, m_camera.position());
         label.viewport_size = m_camera.to_screen_space(1, distance);
