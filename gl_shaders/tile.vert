@@ -29,7 +29,7 @@ layout(location = 0) in highp float altitude;
       const float cOriginShift = 20037508.342789244;
 
       float mercN = y * pi / cOriginShift;
-      float latRad = 2.f * (atan(exp(mercN)) - (pi / 4));
+      float latRad = 2.f * (atan(exp(mercN)) - (pi / 4.0));
       return latRad;
   }
 

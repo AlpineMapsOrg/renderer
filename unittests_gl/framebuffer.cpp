@@ -62,7 +62,7 @@ ShaderProgram create_encoder_shader(float v1, float v2)
 {
 
     std::string fragment_source;
-    QFile f(ALP_RESOURCES_PREFIX "gl_shaders/encoder.part");
+    QFile f(ALP_RESOURCES_PREFIX "gl_shaders/encoder.glsl");
     f.open(QIODeviceBase::ReadOnly);
     fragment_source = fragment_source + f.readAll().toStdString();
     fragment_source = fragment_source + R"(
