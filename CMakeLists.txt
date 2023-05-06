@@ -100,36 +100,34 @@ set(ALP_APP_ICONS
     app/icons/peak.svg
     app/icons/search.svg
 )
-if (ALP_UNITTESTS AND NOT EMSCRIPTEN)
-    set(ALP_CATCH_UNITTEST_GL_SOURCES
-        gl_engine/Framebuffer.h gl_engine/Framebuffer.cpp
-        gl_engine/ShaderProgram.h gl_engine/ShaderProgram.cpp
-        unittests_gl/main.cpp
-        unittests_gl/framebuffer.cpp
-    )
-    set(ALP_CATCH_UNITTEST_SOURCES
-        unittests/main.cpp
-        unittests/catch2_helpers.h
-        unittests/test_Camera.cpp
-        unittests/test_DeltaTime.cpp
-        unittests/test_DrawListGenerator.cpp
-        unittests/test_helpers.h
-        unittests/test_raster.cpp
-        unittests/test_terrain_mesh_index_generator.cpp
-        unittests/test_srs.cpp
-        unittests/test_tile.cpp
-        unittests/test_tile_conversion.cpp
-        unittests/nucleus_tile_scheduler_util.cpp
-        unittests/nucleus_tile_scheduler_tile_load_service.cpp
-        unittests/nucleus_tile_scheduler_layer_assembler.cpp
-        unittests/nucleus_tile_scheduler_quad_assembler.cpp
-        unittests/nucleus_tile_scheduler_cache.cpp
-        unittests/nucleus_tile_scheduler_scheduler.cpp
-        unittests/nucleus_tile_scheduler_slot_limiter.cpp
-        unittests/nucleus_tile_scheduler_rate_limiter.cpp
-        unittests/RateTester.h unittests/RateTester.cpp
-    )
-endif()
+set(ALP_CATCH_UNITTEST_GL_SOURCES
+    gl_engine/Framebuffer.h gl_engine/Framebuffer.cpp
+    gl_engine/ShaderProgram.h gl_engine/ShaderProgram.cpp
+    unittests_gl/main.cpp
+    unittests_gl/framebuffer.cpp
+)
+set(ALP_CATCH_UNITTEST_SOURCES
+    unittests/main.cpp
+    unittests/catch2_helpers.h
+    unittests/test_Camera.cpp
+    unittests/test_DeltaTime.cpp
+    unittests/test_DrawListGenerator.cpp
+    unittests/test_helpers.h
+    unittests/test_raster.cpp
+    unittests/test_terrain_mesh_index_generator.cpp
+    unittests/test_srs.cpp
+    unittests/test_tile.cpp
+    unittests/test_tile_conversion.cpp
+    unittests/nucleus_tile_scheduler_util.cpp
+    unittests/nucleus_tile_scheduler_tile_load_service.cpp
+    unittests/nucleus_tile_scheduler_layer_assembler.cpp
+    unittests/nucleus_tile_scheduler_quad_assembler.cpp
+    unittests/nucleus_tile_scheduler_cache.cpp
+    unittests/nucleus_tile_scheduler_scheduler.cpp
+    unittests/nucleus_tile_scheduler_slot_limiter.cpp
+    unittests/nucleus_tile_scheduler_rate_limiter.cpp
+    unittests/RateTester.h unittests/RateTester.cpp
+)
 
 include(FetchContent)
 FetchContent_Declare(
