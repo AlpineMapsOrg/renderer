@@ -267,7 +267,6 @@ FetchContent_Declare(
   URL_HASH MD5=681612d5ad33731c512ce056d2ca2297
 )
 FetchContent_MakeAvailable(alpineapp_font)
-message(WARNING "alpineapp_font_SOURCE_DIR=${alpineapp_font_SOURCE_DIR}")
 qt_add_resources(alpineapp "fonts"
     BASE ${alpineapp_font_SOURCE_DIR}/TTF/
     PREFIX "/fonts"
