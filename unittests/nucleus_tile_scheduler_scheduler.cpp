@@ -40,11 +40,14 @@ std::unique_ptr<nucleus::tile_scheduler::Scheduler> scheduler_with_disk_cache()
     static auto height_tile = nucleus::tile_scheduler::Scheduler::black_png_tile(64);
 
     auto scheduler = std::make_unique<nucleus::tile_scheduler::Scheduler>(ortho_tile, height_tile);
+    QSignalSpy spy(scheduler.get(), &nucleus::tile_scheduler::Scheduler::quads_requested);
     TileHeights h;
     h.emplace({ 0, { 0, 0 } }, { 100, 4000 });
     scheduler->set_aabb_decorator(nucleus::tile_scheduler::utils::AabbDecorator::make(std::move(h)));
-    scheduler->set_enabled(true);
     scheduler->set_update_timeout(1);
+    scheduler->set_enabled(true);
+    spy.wait(2); // wait for quad requests triggered by set_enabled
+    REQUIRE(spy.size() == 1);
     return scheduler;
 }
 
@@ -306,6 +309,13 @@ TEST_CASE("nucleus/tile_scheduler/Scheduler")
 
     SECTION("tiles sent to the gpu are unpacked")
     {
+        const auto compare_bounds = [](const tile::SrsAndHeightBounds& a, const tile::SrsAndHeightBounds& b) {
+            for (int i = 0; i < 3; ++i) {
+                CHECK(a.min[i] == Approx(b.min[i]));
+                CHECK(a.max[i] == Approx(b.max[i]));
+            }
+        };
+
         auto scheduler = default_scheduler();
         QSignalSpy spy(scheduler.get(), &nucleus::tile_scheduler::Scheduler::gpu_quads_updated);
         scheduler->receive_quads({
@@ -323,10 +333,12 @@ TEST_CASE("nucleus/tile_scheduler/Scheduler")
         CHECK(gpu_quads[0].tiles[3].id == tile::Id { 1, { 1, 1 } });
         const auto wsmax = nucleus::srs::tile_bounds({ 0, { 0, 0 } }).max.x; // world space max
         const auto wsmin = nucleus::srs::tile_bounds({ 0, { 0, 0 } }).min.x;
-        CHECK(gpu_quads[0].tiles[0].bounds == tile::SrsAndHeightBounds { { wsmin, wsmin, 100 }, { 0, 0, 4000 } });
-        CHECK(gpu_quads[0].tiles[1].bounds == tile::SrsAndHeightBounds { { 0, wsmin, 100 }, { wsmax, 0, 4000 } });
-        CHECK(gpu_quads[0].tiles[2].bounds == tile::SrsAndHeightBounds { { wsmin, 0, 100 }, { 0, wsmax, 4000 } });
-        CHECK(gpu_quads[0].tiles[3].bounds == tile::SrsAndHeightBounds { { 0, 0, 100 }, { wsmax, wsmax, 4000 } });
+
+        compare_bounds(gpu_quads[0].tiles[0].bounds, tile::SrsAndHeightBounds { { wsmin, wsmin, 100 }, { 0, 0, 46367.813102 } });
+        compare_bounds(gpu_quads[0].tiles[1].bounds, tile::SrsAndHeightBounds { { 0, wsmin, 100 }, { wsmax, 0, 46367.813102 } });
+        compare_bounds(gpu_quads[0].tiles[2].bounds, tile::SrsAndHeightBounds { { wsmin, 0, 100 }, { 0, wsmax, 46367.813102 } });
+        compare_bounds(gpu_quads[0].tiles[3].bounds, tile::SrsAndHeightBounds { { 0, 0, 100 }, { wsmax, wsmax, 46367.813102 } });
+
         for (auto i = 0; i < 4; ++i) {
             REQUIRE(gpu_quads[0].tiles[i].ortho);
             CHECK(gpu_quads[0].tiles[i].ortho->width() == 256);

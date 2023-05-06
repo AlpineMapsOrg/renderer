@@ -81,8 +81,17 @@ namespace utils {
         };
 
         const auto srs_bounds = srs::tile_bounds(id);
-        const auto max_altitude = comp_scaled_alt(std::max(srs_bounds.max.y, -srs_bounds.min.y), max_height);
-        const auto min_altitude = comp_scaled_alt(std::min(srs_bounds.min.y, -srs_bounds.max.y), min_height);
+        const auto max_world_y = [&srs_bounds]() {
+            return std::max(srs_bounds.max.y, -srs_bounds.min.y);
+        }();
+        const auto min_world_y = [&srs_bounds, &id]() {
+            if (id.zoom_level == 0)
+                return 0.;
+            return std::min(std::abs(srs_bounds.min.y), std::abs(srs_bounds.max.y));    // max can have a smaller abs value in the southern hemisphere
+        }();
+
+        const auto max_altitude = comp_scaled_alt(max_world_y, max_height);
+        const auto min_altitude = comp_scaled_alt(min_world_y, min_height);
         return { .min = { srs_bounds.min, min_altitude }, .max = { srs_bounds.max, max_altitude } };
     }
 
