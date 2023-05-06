@@ -15,10 +15,13 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *****************************************************************************/
-#include <catch2/catch.hpp>
+
+#include <catch2/catch_approx.hpp>
+#include <catch2/catch_test_macros.hpp>
 
 #include "nucleus/srs.h"
 
+using Catch::Approx;
 using namespace nucleus;
 
 TEST_CASE("nucleus/srs")

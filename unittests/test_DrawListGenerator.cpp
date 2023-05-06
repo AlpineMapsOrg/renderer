@@ -16,14 +16,12 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *****************************************************************************/
 
+#include <catch2/catch_test_macros.hpp>
+
 #include "nucleus/camera/stored_positions.h"
 #include "nucleus/tile_scheduler/DrawListGenerator.h"
 #include "nucleus/tile_scheduler/utils.h"
-
 #include "sherpa/TileHeights.h"
-#include <catch2/catch.hpp>
-
-
 
 TEST_CASE("nucleus/tile_scheduler/DrawListGenerator")
 {

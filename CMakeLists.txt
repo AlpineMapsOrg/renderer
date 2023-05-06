@@ -322,14 +322,14 @@ install(TARGETS alpineapp
 #################################### unit tests for backend #######################################
 if (ALP_UNITTESTS AND NOT EMSCRIPTEN)
     add_executable(unittests ${ALP_CATCH_UNITTEST_SOURCES})
-    target_link_libraries(unittests PUBLIC nucleus Catch2::Catch2 Qt6::Test)
+    target_link_libraries(unittests PUBLIC nucleus Catch2::Catch2WithMain Qt6::Test)
     target_compile_definitions(unittests PUBLIC "ALP_TEST_DATA_DIR=\"${CMAKE_SOURCE_DIR}/unittests/data/\"")
     if (ALP_ENABLE_ASSERTS)
         target_compile_options(unittests PUBLIC "-U NDEBUG")
     endif()
 
     qt_add_executable(unittests_gl ${ALP_CATCH_UNITTEST_GL_SOURCES})
-    target_link_libraries(unittests_gl PUBLIC nucleus Catch2::Catch2 Qt::Core Qt::Gui Qt::OpenGL)
+    target_link_libraries(unittests_gl PUBLIC nucleus Catch2::Catch2WithMain Qt::Core Qt::Gui Qt::OpenGL)
     target_compile_definitions(unittests_gl PUBLIC "ALP_RESOURCES_PREFIX=\"${CMAKE_SOURCE_DIR}/\"")
     if (ALP_ENABLE_ASSERTS)
         target_compile_options(unittests_gl PUBLIC "-U NDEBUG")

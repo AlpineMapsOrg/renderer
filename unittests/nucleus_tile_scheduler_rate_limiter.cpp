@@ -18,9 +18,8 @@
 
 #include <random>
 
-#include <catch2/catch.hpp>
-
 #include <QSignalSpy>
+#include <catch2/catch_test_macros.hpp>
 
 #include "nucleus/tile_scheduler/RateLimiter.h"
 #include "unittests/RateTester.h"

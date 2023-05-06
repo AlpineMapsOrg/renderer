@@ -19,7 +19,7 @@
 #include "nucleus/tile_scheduler/QuadAssembler.h"
 
 #include <QSignalSpy>
-#include <catch2/catch.hpp>
+#include <catch2/catch_test_macros.hpp>
 
 using namespace nucleus::tile_scheduler;
 

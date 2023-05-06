@@ -23,13 +23,7 @@
 #include <QCoreApplication>
 #include <QTimer>
 #include <QtTest/QSignalSpy>
-
-#define CATCH_CONFIG_MAIN
-#define CATCH_CONFIG_ENABLE_BENCHMARKING
-#ifdef __MINGW32__
-#define DO_NOT_USE_WMAIN
-#endif
-#include <catch2/catch.hpp>
+#include <catch2/catch_test_macros.hpp>
 
 #ifdef NDEBUG
 constexpr bool asserts_are_enabled = false;

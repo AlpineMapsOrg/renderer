@@ -16,9 +16,9 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *****************************************************************************/
 
-#include "nucleus/utils/terrain_mesh_index_generator.h"
+#include <catch2/catch_test_macros.hpp>
 
-#include <catch2/catch.hpp>
+#include "nucleus/utils/terrain_mesh_index_generator.h"
 
 TEST_CASE("nucleus/utils/terrain_mesh_index_generator")
 {

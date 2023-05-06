@@ -16,23 +16,21 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *****************************************************************************/
 
-#include "nucleus/tile_scheduler/Scheduler.h"
-
-#define CATCH_CONFIG_ENABLE_BENCHMARKING
-#include <catch2/catch.hpp>
-
-#include <QSignalSpy>
-#include <QThread>
 #include <unordered_set>
 
+#include <catch2/benchmark/catch_benchmark.hpp>
+#include <catch2/catch_test_macros.hpp>
+#include <QSignalSpy>
+#include <QThread>
+
 #include "nucleus/camera/stored_positions.h"
+#include "nucleus/tile_scheduler/Scheduler.h"
 #include "nucleus/tile_scheduler/tile_types.h"
 #include "nucleus/tile_scheduler/utils.h"
 #include "nucleus/utils/tile_conversion.h"
+#include "sherpa/TileHeights.h"
 #include "unittests/catch2_helpers.h"
 #include "unittests/test_helpers.h"
-
-#include <sherpa/TileHeights.h>
 
 namespace {
 

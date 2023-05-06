@@ -18,12 +18,13 @@
 
 #include "nucleus/tile_scheduler/Cache.h"
 
-#include <catch2/catch.hpp>
+#include <unordered_set>
+
+#include <QThread>
+#include <catch2/catch_test_macros.hpp>
 
 #include "sherpa/tile.h"
 
-#include <QThread>
-#include <unordered_set>
 
 namespace {
 struct TestTile {
@@ -48,7 +49,10 @@ TEST_CASE("nucleus/tile_scheduler/cache")
     SECTION("insert and visit")
     {
         nucleus::tile_scheduler::Cache<TestTile> cache;
-        cache.visit([](const TestTile& t) { CHECK(false); return true; });
+        cache.visit([](const TestTile &) {
+            CHECK(false);
+            return true;
+        });
         CHECK(!cache.contains({ 0, { 0, 0 } }));
         CHECK(!cache.contains({ 6, { 4, 3 } }));
         CHECK(cache.n_cached_objects() == 0);
@@ -189,9 +193,7 @@ TEST_CASE("nucleus/tile_scheduler/cache")
             TestTile { { 1, { 1, 0 } }, "newer" },
         });
         QThread::msleep(2);
-        cache.visit([](const TestTile& t) {
-            return true;
-        });
+        cache.visit([](const TestTile &) { return true; });
         const auto purged = cache.purge();
         REQUIRE(purged.size() == 2);
         CHECK(purged[0].id == tile::Id { 1, { 1, 0 } }); // order does not matter

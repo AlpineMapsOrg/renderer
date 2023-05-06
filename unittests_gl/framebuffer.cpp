@@ -19,22 +19,25 @@
 
 #define CATCH_CONFIG_ENABLE_BENCHMARKING
 
-#include <QFile>
 #include <iostream>
 
-#include <catch2/catch.hpp>
+#include <QFile>
 #include <QGuiApplication>
-#include <QRgb>
+#include <QOffscreenSurface>
 #include <QOpenGLDebugLogger>
 #include <QOpenGLExtraFunctions>
-#include <QOffscreenSurface>
+#include <QRgb>
 #include <QScreen>
+#include <catch2/benchmark/catch_benchmark.hpp>
+#include <catch2/catch_approx.hpp>
+#include <catch2/catch_test_macros.hpp>
 
 #include "gl_engine/Framebuffer.h"
 #include "gl_engine/ShaderProgram.h"
 #include "gl_engine/helpers.h"
 #include "nucleus/utils/bit_coding.h"
 
+using Catch::Approx;
 using gl_engine::Framebuffer;
 using gl_engine::ShaderProgram;
 

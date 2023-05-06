@@ -18,13 +18,15 @@
 
 #pragma once
 
-#include <catch2/catch.hpp>
+#include <catch2/catch_approx.hpp>
 
 #include <glm/glm.hpp>
 
 #include <QObject>
 #include <QSignalSpy>
 #include <QTimer>
+
+using Catch::Approx;
 
 namespace test_helpers {
 class FailOnCopy {

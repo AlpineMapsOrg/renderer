@@ -16,11 +16,10 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *****************************************************************************/
 
-#include "nucleus/Raster.h"
-
-#include <catch2/catch.hpp>
+#include <catch2/catch_test_macros.hpp>
 #include <glm/glm.hpp>
 
+#include "nucleus/Raster.h"
 #include "unittests/test_helpers.h"
 
 using nucleus::Raster;

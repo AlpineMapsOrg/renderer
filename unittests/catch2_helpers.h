@@ -19,8 +19,6 @@
 
 #pragma once
 
-#include <catch2/catch.hpp>
-
 #include <glm/gtx/string_cast.hpp>
 
 #include "sherpa/tile.h"

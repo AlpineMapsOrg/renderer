@@ -16,15 +16,14 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *****************************************************************************/
 
-#include "nucleus/tile_scheduler/utils.h"
-
-#include <catch2/catch.hpp>
 
 #include <QBuffer>
 #include <QFile>
 #include <QImage>
 #include <QThread>
+#include <catch2/catch_test_macros.hpp>
 
+#include "nucleus/tile_scheduler/utils.h"
 #include "nucleus/utils/tile_conversion.h"
 
 using namespace nucleus::tile_scheduler;
