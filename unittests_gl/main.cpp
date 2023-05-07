@@ -16,17 +16,32 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *****************************************************************************/
 
+#include <QCoreApplication>
+#include <QTimer>
 #include <chrono>
 #include <cmath>
 #include <limits>
 
 #include <catch2/catch_test_macros.hpp>
+#include <catch2/catch_session.hpp>
 
 #ifdef NDEBUG
 constexpr bool asserts_are_enabled = false;
 #else
 constexpr bool asserts_are_enabled = true;
 #endif
+
+
+int main( int argc, char* argv[] ) {
+    int qt_argc = 0;
+    static QCoreApplication app = {qt_argc, nullptr};
+
+    int result = Catch::Session().run( argc, argv );
+
+    QTimer::singleShot(0, &app, &QCoreApplication::quit);
+
+    return app.exec() + result;
+}
 
 TEST_CASE("gl/main: check that asserts are enabled")
 {

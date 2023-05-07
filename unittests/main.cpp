@@ -19,22 +19,50 @@
 
 #include <chrono>
 #include <limits>
+#include <iostream>
 
-#include <QCoreApplication>
+#include <QGuiApplication>
 #include <QTimer>
 #include <QtTest/QSignalSpy>
 #include <catch2/catch_test_macros.hpp>
+#include <catch2/catch_session.hpp>
+#include <catch2/reporters/catch_reporter_event_listener.hpp>
+#include <catch2/reporters/catch_reporter_registrars.hpp>
+
+class QtEventLoopCallAdapter : public Catch::EventListenerBase {
+public:
+    using EventListenerBase::EventListenerBase;
+
+    static std::string getDescription() {
+        return "Reporter that calls QCoreApplication::process events after every test case.";
+    }
+
+    void sectionStarting(const Catch::SectionInfo&) override {
+        QGuiApplication::processEvents(QEventLoop::AllEvents, 1);
+    }
+
+    void sectionEnded(const Catch::SectionStats&) override {
+        QGuiApplication::processEvents(QEventLoop::AllEvents, 1);
+    }
+};
+
+CATCH_REGISTER_LISTENER(QtEventLoopCallAdapter)
+
+int main( int argc, char* argv[] ) {
+    static QGuiApplication app = {argc, argv};
+
+    int result = Catch::Session().run( argc, argv );
+
+    QTimer::singleShot(0, &app, &QCoreApplication::quit);
+
+    return QGuiApplication::exec() + result;
+}
 
 #ifdef NDEBUG
 constexpr bool asserts_are_enabled = false;
 #else
 constexpr bool asserts_are_enabled = true;
 #endif
-
-namespace {
-int argc = 0;
-static QCoreApplication app = {argc, nullptr};
-} // namespace
 
 TEST_CASE("nucleus/main: check that asserts are enabled")
 {
