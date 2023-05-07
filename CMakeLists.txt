@@ -117,6 +117,11 @@ set(ALP_CATCH_UNITTEST_GL_SOURCES
     unittests_gl/main.cpp
     unittests_gl/framebuffer.cpp
 )
+set(ALP_CATCH_UNITTEST_DATA
+    unittests/data/170px-Jeune_bouquetin_de_face.jpg
+    unittests/data/test-tile_ortho.jpeg
+    unittests/data/test-tile.png
+)
 set(ALP_CATCH_UNITTEST_SOURCES
     unittests/main.cpp
     unittests/catch2_helpers.h
@@ -179,13 +184,18 @@ if (ALP_USE_LLVM_LINKER)
     string(APPEND CMAKE_EXE_LINKER_FLAGS " -fuse-ld=lld")
 endif()
 
+
+FetchContent_Declare(fmt GIT_REPOSITORY https://github.com/fmtlib/fmt.git)
+FetchContent_MakeAvailable(fmt)
+
+
 ############################################ nucleus ##############################################
 qt_add_library(nucleus STATIC
     ${ALP_NUCLEUS_SOURCES}
 )
 
 target_include_directories(nucleus PRIVATE . PUBLIC ${CMAKE_SOURCE_DIR})
-target_link_libraries(nucleus PUBLIC sherpa Qt::Core Qt::Gui Qt6::Network Qt6::Svg)
+target_link_libraries(nucleus PUBLIC sherpa Qt::Core Qt::Gui Qt6::Network Qt6::Svg fmt::fmt)
 
 
 if (ALP_ENABLE_ASSERTS)
@@ -337,8 +347,13 @@ endif()
 #################################### unit tests for backend #######################################
 if (ALP_UNITTESTS)
     qt_add_executable(unittests ${ALP_CATCH_UNITTEST_SOURCES})
+    qt_add_resources(unittests "test_data"
+        PREFIX "/test_data"
+        BASE ${CMAKE_SOURCE_DIR}/unittests/data/
+        FILES ${ALP_CATCH_UNITTEST_DATA}
+    )
     target_link_libraries(unittests PUBLIC nucleus Catch2::Catch2 Qt6::Test)
-    target_compile_definitions(unittests PUBLIC "ALP_TEST_DATA_DIR=\"${CMAKE_SOURCE_DIR}/unittests/data/\"")
+    target_compile_definitions(unittests PUBLIC "ALP_TEST_DATA_DIR=\":/test_data/\"")
     if (ALP_ENABLE_ASSERTS)
         target_compile_options(unittests PUBLIC "-U NDEBUG")
     endif()

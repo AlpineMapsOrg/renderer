@@ -27,7 +27,7 @@ namespace unittests {
 class RateTester : public QObject {
     Q_OBJECT
 
-    std::vector<uint64_t> m_events;
+    std::vector<int64_t> m_events;
     unsigned m_rate;
     unsigned m_period;
 

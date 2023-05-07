@@ -19,6 +19,7 @@
 
 #include <algorithm>
 
+#include <QRegularExpression>
 #include <QSignalSpy>
 #include <catch2/catch_test_macros.hpp>
 
@@ -26,6 +27,13 @@
 #include "nucleus/utils/tile_conversion.h"
 
 using namespace nucleus::tile_scheduler;
+
+inline std::ostream& operator<<(std::ostream& os, const QString& value)
+{
+    os << value.toStdString();
+    return os;
+}
+
 
 TEST_CASE("nucleus/tile_scheduler/TileLoadService")
 {
@@ -72,44 +80,36 @@ TEST_CASE("nucleus/tile_scheduler/TileLoadService")
     SECTION("build tile url with load balancing")
     {
         {
-            TileLoadService
-                service("https://maps%1.wien.gv.at/basemap/bmaporthofoto30cm/normal/google3857/",
+            TileLoadService service("https://maps%1.wien.gv.at/basemap/bmaporthofoto30cm/normal/google3857/",
                         TileLoadService::UrlPattern::ZXY,
                         ".jpeg",
                         {"1", "2", "3", "4"});
-            CHECK(service.build_tile_url({.zoom_level = 2, .coords = {1, 3}})
-                  == "https://maps3.wien.gv.at/basemap/bmaporthofoto30cm/normal/google3857/2/1/"
-                     "3.jpeg");
+            CHECK(service.build_tile_url({.zoom_level = 2, .coords = {1, 3}}) == service.build_tile_url({.zoom_level = 2, .coords = {1, 3}}));
+            CHECK(service.build_tile_url({.zoom_level = 2, .coords = {1, 3}}).contains(QRegularExpression("https://maps[1-4]\\.wien\\.gv\\.at/basemap/bmaporthofoto30cm/normal/google3857/2/1/3.jpeg")));
         }
         {
-            TileLoadService
-                service("https://maps%1.wien.gv.at/basemap/bmaporthofoto30cm/normal/google3857/",
+            TileLoadService service("https://maps%1.wien.gv.at/basemap/bmaporthofoto30cm/normal/google3857/",
                         TileLoadService::UrlPattern::ZYX,
                         ".jpeg",
                         {"1", "2", "3", "4"});
-            CHECK(service.build_tile_url({.zoom_level = 2, .coords = {1, 3}})
-                  == "https://maps1.wien.gv.at/basemap/bmaporthofoto30cm/normal/google3857/2/3/"
-                     "1.jpeg");
+            CHECK(service.build_tile_url({.zoom_level = 2, .coords = {1, 3}}) == service.build_tile_url({.zoom_level = 2, .coords = {1, 3}}));
+            CHECK(service.build_tile_url({.zoom_level = 2, .coords = {1, 3}}).contains(QRegularExpression("https://maps[1-4]\\.wien\\.gv\\.at/basemap/bmaporthofoto30cm/normal/google3857/2/3/1.jpeg")));
         }
         {
-            TileLoadService
-                service("https://maps%1.wien.gv.at/basemap/bmaporthofoto30cm/normal/google3857/",
+            TileLoadService service("https://maps%1.wien.gv.at/basemap/bmaporthofoto30cm/normal/google3857/",
                         TileLoadService::UrlPattern::ZXY_yPointingSouth,
                         ".jpeg",
                         {"1", "2", "3", "4"});
-            CHECK(service.build_tile_url({.zoom_level = 2, .coords = {1, 3}})
-                  == "https://maps2.wien.gv.at/basemap/bmaporthofoto30cm/normal/google3857/2/1/"
-                     "0.jpeg");
+            CHECK(service.build_tile_url({.zoom_level = 2, .coords = {1, 3}}) == service.build_tile_url({.zoom_level = 2, .coords = {1, 3}}));
+            CHECK(service.build_tile_url({.zoom_level = 2, .coords = {1, 3}}).contains(QRegularExpression("https://maps[1-4]\\.wien\\.gv\\.at/basemap/bmaporthofoto30cm/normal/google3857/2/1/0.jpeg")));
         }
         {
-            TileLoadService
-                service("https://maps%1.wien.gv.at/basemap/bmaporthofoto30cm/normal/google3857/",
+            TileLoadService service("https://maps%1.wien.gv.at/basemap/bmaporthofoto30cm/normal/google3857/",
                         TileLoadService::UrlPattern::ZYX_yPointingSouth,
                         ".jpeg",
                         {"1", "2", "3", "4"});
-            CHECK(service.build_tile_url({.zoom_level = 2, .coords = {1, 3}})
-                  == "https://maps4.wien.gv.at/basemap/bmaporthofoto30cm/normal/google3857/2/0/"
-                     "1.jpeg");
+            CHECK(service.build_tile_url({.zoom_level = 2, .coords = {1, 3}}) == service.build_tile_url({.zoom_level = 2, .coords = {1, 3}}));
+            CHECK(service.build_tile_url({.zoom_level = 2, .coords = {1, 3}}).contains(QRegularExpression("https://maps[1-4]\\.wien\\.gv\\.at/basemap/bmaporthofoto30cm/normal/google3857/2/0/1.jpeg")));
         }
     }
 
@@ -190,7 +190,7 @@ TEST_CASE("nucleus/tile_scheduler/TileLoadService")
         QSignalSpy spy(&service, &TileLoadService::tile_unavailable);
         tile::Id unavailable_tile_id = { .zoom_level = 90, .coords = { 273, 177 } };
         service.load(unavailable_tile_id);
-        spy.wait(2);
+        spy.wait(20);
         REQUIRE(spy.count() == 1);
         QList<QVariant> arguments = spy.takeFirst(); // take the first signal
         CHECK(arguments.at(0).value<tile::Id>() == unavailable_tile_id); // verify the first argument

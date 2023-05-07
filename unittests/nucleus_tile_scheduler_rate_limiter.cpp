@@ -25,6 +25,13 @@
 #include "unittests/RateTester.h"
 #include "unittests/test_helpers.h"
 
+
+#ifdef __EMSCRIPTEN__
+constexpr auto timing_multiplicator = 20;
+#else
+constexpr auto timing_multiplicator = 1;
+#endif
+
 TEST_CASE("nucleus/tile_scheduler/rate limiter")
 {
     using namespace nucleus::tile_scheduler;
@@ -43,7 +50,7 @@ TEST_CASE("nucleus/tile_scheduler/rate limiter")
     SECTION("sends on requests only up to the limit of tile slots")
     {
         RateLimiter rl;
-        rl.set_limit(2, 3);
+        rl.set_limit(2, 3 * timing_multiplicator);
         unittests::RateTester tester(&rl);
         QSignalSpy spy(&rl, &RateLimiter::quad_requested);
         rl.request_quad(tile::Id { 0, { 0, 0 } });
@@ -57,7 +64,7 @@ TEST_CASE("nucleus/tile_scheduler/rate limiter")
     SECTION("slots are freed up after some time and request queue is processed")
     {
         RateLimiter rl;
-        rl.set_limit(2, 4);
+        rl.set_limit(2, 4 * timing_multiplicator);
         unittests::RateTester tester(&rl);
         QSignalSpy spy(&rl, &RateLimiter::quad_requested);
         rl.request_quad(tile::Id { 0, { 0, 0 } });
@@ -67,9 +74,9 @@ TEST_CASE("nucleus/tile_scheduler/rate limiter")
         rl.request_quad(tile::Id { 4, { 0, 0 } });
         rl.request_quad(tile::Id { 5, { 0, 0 } });
         REQUIRE(spy.size() == 2);
-        test_helpers::process_events_for(6);
+        test_helpers::process_events_for(6 * timing_multiplicator);
         REQUIRE(spy.size() == 4);
-        test_helpers::process_events_for(4);
+        test_helpers::process_events_for(4 * timing_multiplicator);
         REQUIRE(spy.size() == 6);
         for (unsigned i = 0; i < 6; ++i)
             CHECK(spy[i][0].value<tile::Id>() == tile::Id { i, { 0, 0 } });
@@ -79,7 +86,7 @@ TEST_CASE("nucleus/tile_scheduler/rate limiter")
     {
         {
             RateLimiter rl;
-            rl.set_limit(2, 4);
+            rl.set_limit(2, 4 * timing_multiplicator);
             unittests::RateTester tester(&rl);
             QSignalSpy spy(&rl, &RateLimiter::quad_requested);
             rl.request_quad(tile::Id { 0, { 0, 0 } });
@@ -87,13 +94,13 @@ TEST_CASE("nucleus/tile_scheduler/rate limiter")
 
             rl.request_quad(tile::Id { 2, { 0, 0 } });
             CHECK(spy.size() == 2);
-            test_helpers::process_events_for(6);
+            test_helpers::process_events_for(6 * timing_multiplicator);
             CHECK(spy.size() == 3);
             rl.request_quad(tile::Id { 3, { 0, 0 } });
             CHECK(spy.size() == 4);
             rl.request_quad(tile::Id { 4, { 0, 0 } });
             rl.request_quad(tile::Id { 5, { 0, 0 } });
-            test_helpers::process_events_for(5);
+            test_helpers::process_events_for(5 * timing_multiplicator);
             CHECK(spy.size() == 6);
 
             for (unsigned i = 0; i < spy.size(); ++i)
@@ -101,21 +108,21 @@ TEST_CASE("nucleus/tile_scheduler/rate limiter")
         }
         {
             RateLimiter rl;
-            rl.set_limit(2, 10);
+            rl.set_limit(2, 10 * timing_multiplicator);
             unittests::RateTester tester(&rl);
             QSignalSpy spy(&rl, &RateLimiter::quad_requested);
             rl.request_quad(tile::Id { 0, { 0, 0 } }); // sent at t=0
             rl.request_quad(tile::Id { 1, { 0, 0 } }); // sent at t=0
             rl.request_quad(tile::Id { 2, { 0, 0 } }); // sent at t=11
             CHECK(spy.size() == 2);
-            test_helpers::process_events_for(12);
+            test_helpers::process_events_for(12 * timing_multiplicator);
             CHECK(spy.size() == 3);
             rl.request_quad(tile::Id { 3, { 0, 0 } }); // sent at t=12
             CHECK(spy.size() == 4);
             rl.request_quad(tile::Id { 4, { 0, 0 } }); // sent at t=22
             rl.request_quad(tile::Id { 5, { 0, 0 } }); // sent at t=23
             CHECK(spy.size() == 4);
-            test_helpers::process_events_for(12);
+            test_helpers::process_events_for(12 * timing_multiplicator);
             rl.request_quad(tile::Id { 6, { 0, 0 } });
             rl.request_quad(tile::Id { 7, { 0, 0 } });
             rl.request_quad(tile::Id { 8, { 0, 0 } });
@@ -126,7 +133,7 @@ TEST_CASE("nucleus/tile_scheduler/rate limiter")
         }
         {
             RateLimiter rl;
-            rl.set_limit(2, 10);
+            rl.set_limit(2, 10 * timing_multiplicator);
             unittests::RateTester tester(&rl);
             unsigned request_no = 0;
             const auto make_request = [&rl, &request_no]() {
@@ -135,31 +142,31 @@ TEST_CASE("nucleus/tile_scheduler/rate limiter")
             QSignalSpy spy(&rl, &RateLimiter::quad_requested);
             make_request();
             CHECK(spy.size() == 1);
-            test_helpers::process_events_for(2);
+            test_helpers::process_events_for(2 * timing_multiplicator);
 
             make_request();
             CHECK(spy.size() == 2);
-            test_helpers::process_events_for(2);
+            test_helpers::process_events_for(2 * timing_multiplicator);
 
             make_request();
             CHECK(spy.size() == 2);
-            test_helpers::process_events_for(2);
+            test_helpers::process_events_for(2 * timing_multiplicator);
 
             make_request();
             CHECK(spy.size() == 2);
-            test_helpers::process_events_for(2);
+            test_helpers::process_events_for(2 * timing_multiplicator);
 
             make_request();
             CHECK(spy.size() == 2);
-            test_helpers::process_events_for(3);
+            test_helpers::process_events_for(3 * timing_multiplicator);
             CHECK(spy.size() == 3);
 
             make_request();
             make_request();
-            test_helpers::process_events_for(2);
+            test_helpers::process_events_for(2 * timing_multiplicator);
             CHECK(spy.size() == 4);
 
-            test_helpers::process_events_for(30);
+            test_helpers::process_events_for(30 * timing_multiplicator);
             CHECK(spy.size() == request_no);
 
             for (unsigned i = 0; i < spy.size(); ++i)
@@ -171,7 +178,7 @@ TEST_CASE("nucleus/tile_scheduler/rate limiter")
         std::mt19937 mt(42);
         const auto test_for = [&mt](unsigned rate, unsigned period) {
             RateLimiter rl;
-            rl.set_limit(rate, period);
+            rl.set_limit(rate, period * timing_multiplicator);
             unittests::RateTester tester(&rl);
             unsigned request_no = 0;
             const auto make_request = [&rl, &request_no]() {
