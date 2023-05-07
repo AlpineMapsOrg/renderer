@@ -103,10 +103,7 @@ int main(int argc, char* argv[])
         controller.camera_controller()->set_viewport(new_size);
     });
 
-    if (running_in_browser)
-        glWindow.showFullScreen();
-    else
-        glWindow.showMaximized();
+    glWindow.showMaximized();
 
     // in web assembly, the gl window is resized before it is connected. need to set viewport manually.
     // native, however, glWindow has a zero size at this point.
