@@ -16,16 +16,13 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *****************************************************************************/
 
-#include <catch2/catch.hpp>
-
-#include <sherpa/tile.h>
-
 #include <QSignalSpy>
 #include <QThread>
-
-#include <nucleus/tile_scheduler/tile_types.h>
+#include <catch2/catch_test_macros.hpp>
 
 #include "nucleus/tile_scheduler/SlotLimiter.h"
+#include "nucleus/tile_scheduler/tile_types.h"
+#include "sherpa/tile.h"
 
 TEST_CASE("nucleus/tile_scheduler/slot limiter")
 {

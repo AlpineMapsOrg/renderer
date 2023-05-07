@@ -17,14 +17,10 @@
  *****************************************************************************/
 
 #include <chrono>
+#include <cmath>
 #include <limits>
 
-#define CATCH_CONFIG_ENABLE_BENCHMARKING
-#define CATCH_CONFIG_MAIN
-#ifdef __MINGW32__
-#define DO_NOT_USE_WMAIN
-#endif
-#include <catch2/catch.hpp>
+#include <catch2/catch_test_macros.hpp>
 
 #ifdef NDEBUG
 constexpr bool asserts_are_enabled = false;

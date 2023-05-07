@@ -16,12 +16,10 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *****************************************************************************/
 
-#include "nucleus/utils/tile_conversion.h"
-
-#include <catch2/catch.hpp>
-
 #include <QFile>
+#include <catch2/catch_test_macros.hpp>
 
+#include "nucleus/utils/tile_conversion.h"
 #include "unittests/catch2_helpers.h"
 
 namespace {

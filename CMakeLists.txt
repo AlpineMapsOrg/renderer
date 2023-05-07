@@ -69,6 +69,7 @@ set(ALP_GL_SHADERS
     gl_shaders/tile.frag
     gl_shaders/tile.vert
     gl_shaders/depth.frag
+    gl_shaders/encoder.glsl
 )
 set(ALP_PLAIN_RENDERER_SOURCES
     plain_renderer/main.cpp
@@ -99,36 +100,34 @@ set(ALP_APP_ICONS
     app/icons/peak.svg
     app/icons/search.svg
 )
-if (ALP_UNITTESTS AND NOT EMSCRIPTEN)
-    set(ALP_CATCH_UNITTEST_GL_SOURCES
-        gl_engine/Framebuffer.h gl_engine/Framebuffer.cpp
-        gl_engine/ShaderProgram.h gl_engine/ShaderProgram.cpp
-        unittests_gl/main.cpp
-        unittests_gl/framebuffer.cpp
-    )
-    set(ALP_CATCH_UNITTEST_SOURCES
-        unittests/main.cpp
-        unittests/catch2_helpers.h
-        unittests/test_Camera.cpp
-        unittests/test_DeltaTime.cpp
-        unittests/test_DrawListGenerator.cpp
-        unittests/test_helpers.h
-        unittests/test_raster.cpp
-        unittests/test_terrain_mesh_index_generator.cpp
-        unittests/test_srs.cpp
-        unittests/test_tile.cpp
-        unittests/test_tile_conversion.cpp
-        unittests/nucleus_tile_scheduler_util.cpp
-        unittests/nucleus_tile_scheduler_tile_load_service.cpp
-        unittests/nucleus_tile_scheduler_layer_assembler.cpp
-        unittests/nucleus_tile_scheduler_quad_assembler.cpp
-        unittests/nucleus_tile_scheduler_cache.cpp
-        unittests/nucleus_tile_scheduler_scheduler.cpp
-        unittests/nucleus_tile_scheduler_slot_limiter.cpp
-        unittests/nucleus_tile_scheduler_rate_limiter.cpp
-        unittests/RateTester.h unittests/RateTester.cpp
-    )
-endif()
+set(ALP_CATCH_UNITTEST_GL_SOURCES
+    gl_engine/Framebuffer.h gl_engine/Framebuffer.cpp
+    gl_engine/ShaderProgram.h gl_engine/ShaderProgram.cpp
+    unittests_gl/main.cpp
+    unittests_gl/framebuffer.cpp
+)
+set(ALP_CATCH_UNITTEST_SOURCES
+    unittests/main.cpp
+    unittests/catch2_helpers.h
+    unittests/test_Camera.cpp
+    unittests/test_DeltaTime.cpp
+    unittests/test_DrawListGenerator.cpp
+    unittests/test_helpers.h
+    unittests/test_raster.cpp
+    unittests/test_terrain_mesh_index_generator.cpp
+    unittests/test_srs.cpp
+    unittests/test_tile.cpp
+    unittests/test_tile_conversion.cpp
+    unittests/nucleus_tile_scheduler_util.cpp
+    unittests/nucleus_tile_scheduler_tile_load_service.cpp
+    unittests/nucleus_tile_scheduler_layer_assembler.cpp
+    unittests/nucleus_tile_scheduler_quad_assembler.cpp
+    unittests/nucleus_tile_scheduler_cache.cpp
+    unittests/nucleus_tile_scheduler_scheduler.cpp
+    unittests/nucleus_tile_scheduler_slot_limiter.cpp
+    unittests/nucleus_tile_scheduler_rate_limiter.cpp
+    unittests/RateTester.h unittests/RateTester.cpp
+)
 
 include(FetchContent)
 FetchContent_Declare(
@@ -263,12 +262,11 @@ qt_add_translations(alpineapp TS_FILES app/i18n/de.ts app/i18n/en.ts)
 
 FetchContent_Declare(
   alpineapp_font
+  DOWNLOAD_EXTRACT_TIMESTAMP true
   URL      https://github.com/adobe-fonts/source-sans/archive/refs/heads/release.zip
   URL_HASH MD5=681612d5ad33731c512ce056d2ca2297
-  DOWNLOAD_EXTRACT_TIMESTAMP true
 )
 FetchContent_MakeAvailable(alpineapp_font)
-message(WARNING "alpineapp_font_SOURCE_DIR=${alpineapp_font_SOURCE_DIR}")
 qt_add_resources(alpineapp "fonts"
     BASE ${alpineapp_font_SOURCE_DIR}/TTF/
     PREFIX "/fonts"
@@ -307,9 +305,9 @@ endif()
 if (ANDROID)
     FetchContent_Declare(
       android_openssl
+      DOWNLOAD_EXTRACT_TIMESTAMP true
       URL      https://github.com/KDAB/android_openssl/archive/refs/heads/master.zip
       URL_HASH MD5=b5c3501237ce9f97dc072c950647d643
-      DOWNLOAD_EXTRACT_TIMESTAMP true
     )
     set(PROJECT_NAME alpineapp)
     FetchContent_MakeAvailable(android_openssl)
@@ -324,14 +322,14 @@ install(TARGETS alpineapp
 #################################### unit tests for backend #######################################
 if (ALP_UNITTESTS AND NOT EMSCRIPTEN)
     add_executable(unittests ${ALP_CATCH_UNITTEST_SOURCES})
-    target_link_libraries(unittests PUBLIC nucleus Catch2::Catch2 Qt6::Test)
+    target_link_libraries(unittests PUBLIC nucleus Catch2::Catch2WithMain Qt6::Test)
     target_compile_definitions(unittests PUBLIC "ALP_TEST_DATA_DIR=\"${CMAKE_SOURCE_DIR}/unittests/data/\"")
     if (ALP_ENABLE_ASSERTS)
         target_compile_options(unittests PUBLIC "-U NDEBUG")
     endif()
 
     qt_add_executable(unittests_gl ${ALP_CATCH_UNITTEST_GL_SOURCES})
-    target_link_libraries(unittests_gl PUBLIC nucleus Catch2::Catch2 Qt::Core Qt::Gui Qt::OpenGL)
+    target_link_libraries(unittests_gl PUBLIC nucleus Catch2::Catch2WithMain Qt::Core Qt::Gui Qt::OpenGL)
     target_compile_definitions(unittests_gl PUBLIC "ALP_RESOURCES_PREFIX=\"${CMAKE_SOURCE_DIR}/\"")
     if (ALP_ENABLE_ASSERTS)
         target_compile_options(unittests_gl PUBLIC "-U NDEBUG")

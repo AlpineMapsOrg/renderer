@@ -17,10 +17,10 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *****************************************************************************/
 
-#include "nucleus/utils/DeltaTime.h"
-
-#include <catch2/catch.hpp>
 #include <QThread>
+#include <catch2/catch_test_macros.hpp>
+
+#include "nucleus/utils/DeltaTime.h"
 
 using nucleus::utils::DeltaTime;
 

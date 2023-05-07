@@ -19,7 +19,7 @@
 #include "nucleus/tile_scheduler/LayerAssembler.h"
 
 #include <QSignalSpy>
-#include <catch2/catch.hpp>
+#include <catch2/catch_test_macros.hpp>
 
 using nucleus::tile_scheduler::LayerAssembler;
 using nucleus::tile_scheduler::tile_types::LayeredTile;

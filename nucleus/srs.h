@@ -44,4 +44,6 @@ tile::SrsBounds tile_bounds(const tile::Id& tile);
 bool overlap(const tile::Id& a, const tile::Id& b);
 
 glm::dvec2 lat_long_to_world(const glm::dvec2& lat_long);
+glm::dvec3 lat_long_alt_to_world(const glm::dvec3& lat_long_alt);
+glm::dvec2 world_to_lat_long(const glm::dvec2& world_pos);
 }
