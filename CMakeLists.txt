@@ -114,6 +114,7 @@ set(ALP_APP_ICONS
 set(ALP_CATCH_UNITTEST_GL_SOURCES
     gl_engine/Framebuffer.h gl_engine/Framebuffer.cpp
     gl_engine/ShaderProgram.h gl_engine/ShaderProgram.cpp
+    unittests_gl/UnittestGlWindow.h unittests_gl/UnittestGlWindow.cpp
     unittests_gl/main.cpp
     unittests_gl/framebuffer.cpp
 )
@@ -359,6 +360,10 @@ if (ALP_UNITTESTS)
     endif()
 
     qt_add_executable(unittests_gl ${ALP_CATCH_UNITTEST_GL_SOURCES})
+    qt_add_resources(unittests_gl "gl_shaders"
+         PREFIX "/"
+         FILES ${ALP_GL_SHADERS}
+    )
     target_link_libraries(unittests_gl PUBLIC nucleus Catch2::Catch2 Qt::OpenGL)
     target_compile_definitions(unittests_gl PUBLIC "ALP_RESOURCES_PREFIX=\"${CMAKE_SOURCE_DIR}/\"")
     if (ALP_ENABLE_ASSERTS)

@@ -65,7 +65,7 @@ ShaderProgram create_encoder_shader(float v1, float v2)
 {
 
     std::string fragment_source;
-    QFile f(ALP_RESOURCES_PREFIX "gl_shaders/encoder.glsl");
+    QFile f(":/gl_shaders/encoder.glsl");
     f.open(QIODeviceBase::ReadOnly);
     fragment_source = fragment_source + f.readAll().toStdString();
     fragment_source = fragment_source + R"(
@@ -81,26 +81,8 @@ ShaderProgram create_encoder_shader(float v1, float v2)
 
 TEST_CASE("gl framebuffer")
 {
-    int argc = 0;
-    char argv_c = '\0';
-    std::array<char*, 1> argv = { &argv_c };
-    QGuiApplication app(argc, argv.data());
-    QOffscreenSurface surface;
-    surface.create();
-    const auto size = surface.size();
-    const auto screensize = surface.screen()->size();
-    QOpenGLContext c;
-    REQUIRE(c.create());
-    c.makeCurrent(&surface);
-    QOpenGLDebugLogger logger;
-    logger.initialize();
-    logger.disableMessages(QList<GLuint>({ 131185 }));
-    QObject::connect(&logger, &QOpenGLDebugLogger::messageLogged, [](const auto& message) {
-        qDebug() << message;
-    });
-    logger.startLogging(QOpenGLDebugLogger::SynchronousLogging);
-
-    QOpenGLExtraFunctions* f = c.extraFunctions();
+    const auto* c = QOpenGLContext::currentContext();
+    QOpenGLExtraFunctions* f = c->extraFunctions();
     REQUIRE(f);
     SECTION("rgba8 bit")
     {

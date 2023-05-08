@@ -39,7 +39,8 @@
       </center>
     </figure>
     <div id="qtcanvas" inputmode="none"></div>
-    <pre style="display: block; position: fixed; z-index: 2; top: 15px; bottom: 60px; left: 15px; right: 15px; background: rgba(0, 0, 0, 0.9); color: #fff; font-family: mono; padding: 10px; overflow: scroll;" id="console" />
+    <pre style="display: block; position: fixed; z-index: 2; top: 15px; bottom: 60px; left: 15px; right: 15px; background: rgba(0, 0, 0, 0.9); color: #fff; font-family: mono; padding: 10px; overflow: scroll;" id="console">running unittests:
+</pre>
     <div style="display: block; z-index: 1;  position: fixed;  bottom: 15px;  left: 15px;  padding: 8px 16px;  background: rgba(0,0,0,0.5);  color: #fff;  font-family: sans-serif;">This is GPL software, <a href="https://github.com/AlpineMapsOrg/renderer" style="color: #accbe8">sources</a>.</div>
 
     <script type="text/javascript" src="ansispan.js"></script>
@@ -49,18 +50,21 @@
           var spinner = document.querySelector('#qtspinner');
           var canvas = document.querySelector('#qtcanvas');
           var status = document.querySelector('#qtstatus');
+          var output_console = document.querySelector('#console');
 
           qtLoader = QtLoader({
               canvasElements : [canvas],
               showLoader: function(loaderStatus) {
                   spinner.style.display = 'block';
                   canvas.style.display = 'none';
+                  output_console.style.display = 'none';
                   status.innerHTML = loaderStatus + "...";
               },
               showError: function(errorText) {
                   status.innerHTML = errorText;
                   spinner.style.display = 'block';
                   canvas.style.display = 'none';
+                  output_console.style.display = 'none';
               },
               showExit: function() {
                   status.innerHTML = "Application exit";
@@ -70,19 +74,19 @@
                       status.innerHTML += " (" + qtLoader.exitText + ")";
                   spinner.style.display = 'block';
                   canvas.style.display = 'none';
+                  output_console.style.display = 'none';
               },
               showCanvas: function() {
                   spinner.style.display = 'none';
                   canvas.style.display = 'block';
+                  output_console.style.display = 'block';
               },
               moduleConfig: {
                   print: function(text) {
-                      var _console = document.querySelector('#console');
-                      _console.innerHTML += ansispan(text) + "<br /><!---" + text + "--->";
+                      output_console.innerHTML += ansispan(text) + "<br />";
                   },
                   printErr: function(text) {
-                      var _console = document.querySelector('#console');
-                      _console.innerHTML += ansispan(text) + "<br /><!---" + text + "--->";
+                      output_console.innerHTML += ansispan(text) + "<br />";
                   }
               }
           });
