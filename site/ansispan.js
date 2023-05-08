@@ -68,8 +68,8 @@ var ansispan = function (str) {
 
 ansispan.foregroundColors = {
   '30': 'black',
-  '31': 'red',
-  '32': 'green',
+  '31': '#f00',
+  '32': '#0f0',
   '33': 'yellow',
   '34': 'blue',
   '35': 'purple',

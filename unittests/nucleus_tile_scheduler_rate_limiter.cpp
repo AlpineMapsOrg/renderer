@@ -27,9 +27,9 @@
 
 
 #ifdef __EMSCRIPTEN__
-constexpr auto timing_multiplicator = 20;
+constexpr auto timing_multiplicator = 50;
 #else
-constexpr auto timing_multiplicator = 1;
+constexpr auto timing_multiplicator = 2;
 #endif
 
 TEST_CASE("nucleus/tile_scheduler/rate limiter")
@@ -78,8 +78,9 @@ TEST_CASE("nucleus/tile_scheduler/rate limiter")
         REQUIRE(spy.size() == 4);
         test_helpers::process_events_for(4 * timing_multiplicator);
         REQUIRE(spy.size() == 6);
-        for (unsigned i = 0; i < 6; ++i)
-            CHECK(spy[i][0].value<tile::Id>() == tile::Id { i, { 0, 0 } });
+
+        for (int i = 0; i < spy.size(); ++i)
+            CHECK(spy[i][0].value<tile::Id>() == tile::Id { unsigned(i), { 0, 0 } });
     }
 
     SECTION("request queue is handled correctly, when requests come in one after the other")
@@ -103,8 +104,8 @@ TEST_CASE("nucleus/tile_scheduler/rate limiter")
             test_helpers::process_events_for(5 * timing_multiplicator);
             CHECK(spy.size() == 6);
 
-            for (unsigned i = 0; i < spy.size(); ++i)
-                CHECK(spy[i][0].value<tile::Id>() == tile::Id { i, { 0, 0 } });
+            for (int i = 0; i < spy.size(); ++i)
+                CHECK(spy[i][0].value<tile::Id>() == tile::Id { unsigned(i), { 0, 0 } });
         }
         {
             RateLimiter rl;
@@ -128,8 +129,8 @@ TEST_CASE("nucleus/tile_scheduler/rate limiter")
             rl.request_quad(tile::Id { 8, { 0, 0 } });
             CHECK(spy.size() == 6);
 
-            for (unsigned i = 0; i < spy.size(); ++i)
-                CHECK(spy[i][0].value<tile::Id>() == tile::Id { i, { 0, 0 } });
+            for (int i = 0; i < spy.size(); ++i)
+                CHECK(spy[i][0].value<tile::Id>() == tile::Id { unsigned(i), { 0, 0 } });
         }
         {
             RateLimiter rl;
@@ -167,10 +168,10 @@ TEST_CASE("nucleus/tile_scheduler/rate limiter")
             CHECK(spy.size() == 4);
 
             test_helpers::process_events_for(30 * timing_multiplicator);
-            CHECK(spy.size() == request_no);
+            CHECK(unsigned(spy.size()) == request_no);
 
-            for (unsigned i = 0; i < spy.size(); ++i)
-                CHECK(spy[i][0].value<tile::Id>() == tile::Id { i, { 0, 0 } });
+            for (int i = 0; i < spy.size(); ++i)
+                CHECK(spy[i][0].value<tile::Id>() == tile::Id { unsigned(i), { 0, 0 } });
         }
     }
     SECTION("fuzzy load test")
@@ -186,20 +187,20 @@ TEST_CASE("nucleus/tile_scheduler/rate limiter")
             };
             QSignalSpy spy(&rl, &RateLimiter::quad_requested);
 
-            unsigned n_requests = 0;
-            unsigned processing_time = 0;
+//            unsigned n_requests = 0;
+//            unsigned processing_time = 0;
             for (unsigned iteration = 0; iteration < 200; ++iteration) {
                 const auto rnd_request_count = std::uniform_int_distribution<unsigned>(1, rate)(mt);
-                n_requests += rnd_request_count;
+//                n_requests += rnd_request_count;
                 for (unsigned i = 0; i < rnd_request_count; ++i) {
                     make_request();
                 }
                 auto rnd_processing_time = std::uniform_int_distribution<unsigned>(0, period)(mt);
-                processing_time += rnd_processing_time;
+//                processing_time += rnd_processing_time;
                 test_helpers::process_events_for(rnd_processing_time);
                 if (std::uniform_real_distribution<float>(0.0f, 1.0f)(mt) < 0.10f) {
                     while (rl.queue_size()) {
-                        processing_time += period;
+//                        processing_time += period;
                         test_helpers::process_events_for(period);
                     }
                 }
@@ -207,18 +208,14 @@ TEST_CASE("nucleus/tile_scheduler/rate limiter")
             //            qDebug("rate: %d, period: %d, max r/p: %f, requests: %d in %dmsecs (%f r/msec)",
             //                rate, period, float(rate) / period, n_requests, processing_time, float(n_requests) / processing_time);
 
-            for (unsigned i = 0; i < spy.size(); ++i)
-                CHECK(spy[i][0].value<tile::Id>() == tile::Id { i, { 0, 0 } });
+            for (int i = 0; i < spy.size(); ++i)
+                CHECK(spy[i][0].value<tile::Id>() == tile::Id { unsigned(i), { 0, 0 } });
         };
 
-        for (const auto rate : { 1, /*2, 3, 5,*/ 7 /*, 13*/ }) {
-            for (const auto period : { 1 /*, 2, 3*/, 5 /*, 7*/ }) {
+        for (const unsigned rate : { 1u, /*2, 3, 5,*/ 7u /*, 13*/ }) {
+            for (const unsigned period : { 1u /*, 2, 3*/, 5u /*, 7*/ }) {
                 test_for(rate, period);
             }
         }
-
-        //        for (const auto i : { 1, 2, 3 }) {
-        //            test_for(25 * i, 10 * i);
-        //        }
     }
 }

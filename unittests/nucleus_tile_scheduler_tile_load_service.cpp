@@ -120,14 +120,14 @@ TEST_CASE("nucleus/tile_scheduler/TileLoadService")
         const auto white_tile_id = tile::Id{.zoom_level = 9, .coords = {273, 177}};
         const auto tirol_tile_id = tile::Id{.zoom_level = 9, .coords = {272, 179}};
         TileLoadService
-            service("http://maps.wien.gv.at/basemap/bmaporthofoto30cm/normal/google3857/",
+            service("https://mapsneu.wien.gv.at/basemap/bmaporthofoto30cm/normal/google3857/",
                     TileLoadService::UrlPattern::ZYX,
                     ".jpeg");
 
         {
             QSignalSpy spy(&service, &TileLoadService::load_ready);
             service.load(white_tile_id);
-            spy.wait(500);
+            spy.wait(10000);
 
             REQUIRE(spy.count() == 1); // make sure the signal was emitted exactly one time
             QList<QVariant> arguments = spy.takeFirst(); // take the first signal
@@ -148,7 +148,7 @@ TEST_CASE("nucleus/tile_scheduler/TileLoadService")
         {
             QSignalSpy spy(&service, &TileLoadService::load_ready);
             service.load(tirol_tile_id);
-            spy.wait(500);
+            spy.wait(10000);
 
             REQUIRE(spy.count() == 1); // make sure the signal was emitted exactly one time
             QList<QVariant> arguments = spy.takeFirst(); // take the first signal
@@ -160,10 +160,9 @@ TEST_CASE("nucleus/tile_scheduler/TileLoadService")
             const auto image = nucleus::utils::tile_conversion::toQImage(*image_bytes);
             REQUIRE(image.sizeInBytes() > 0); // verify the first argument
             // manually checked. comparing the sum should find regressions. this test will fail when the file changes.
-            image.save("/home/madam/Documents/work/tuw/alpinemaps/"
-                       "build-alpine-renderer-Desktop_Qt_6_2_3_GCC_64bit-Debug/test.jpeg");
-            CHECK(std::accumulate(image.constBits(), image.constBits() + image.sizeInBytes(), 0LLu)
-                  == 34880685LLu); // don't know what it will sum up to, but certainly not zero..
+//            image.save("/home/madam/Documents/work/tuw/alpinemaps/"
+//                       "build-alpine-renderer-Desktop_Qt_6_2_3_GCC_64bit-Debug/test.jpeg");
+            CHECK(std::accumulate(image.constBits(), image.constBits() + image.sizeInBytes(), 0LLu) == 34880685LLu); // don't know what it will sum up to, but certainly not zero..
         }
     }
 
@@ -173,9 +172,11 @@ TEST_CASE("nucleus/tile_scheduler/TileLoadService")
                                 TileLoadService::UrlPattern::ZYX,
                                 ".png");
         QSignalSpy spy(&service, &TileLoadService::tile_unavailable);
+        QSignalSpy spy2(&service, &TileLoadService::load_ready);
         tile::Id unavailable_tile_id = {.zoom_level = 90, .coords = {273, 177}};
         service.load(unavailable_tile_id);
-        spy.wait(250);
+        spy.wait(10000);
+        CHECK(spy2.count() == 0);
         REQUIRE(spy.count() == 1);
         QList<QVariant> arguments = spy.takeFirst();                     // take the first signal
         CHECK(arguments.at(0).value<tile::Id>() == unavailable_tile_id); // verify the first argument

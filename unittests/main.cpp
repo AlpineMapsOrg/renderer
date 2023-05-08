@@ -19,7 +19,7 @@
 
 #include <chrono>
 #include <limits>
-#include <iostream>
+#include <cstdio>
 
 #include <QGuiApplication>
 #include <QTimer>
@@ -28,34 +28,39 @@
 #include <catch2/catch_session.hpp>
 #include <catch2/reporters/catch_reporter_event_listener.hpp>
 #include <catch2/reporters/catch_reporter_registrars.hpp>
+#include <catch2/catch_test_case_info.hpp>
 
-class QtEventLoopCallAdapter : public Catch::EventListenerBase {
+#ifdef __EMSCRIPTEN__
+#include <fmt/core.h>
+
+
+class ProgressPrinter : public Catch::EventListenerBase {
 public:
     using EventListenerBase::EventListenerBase;
 
     static std::string getDescription() {
-        return "Reporter that calls QCoreApplication::process events after every test case.";
+        return "Reporter that reports the progress after every test case.";
     }
 
-    void sectionStarting(const Catch::SectionInfo&) override {
-        QGuiApplication::processEvents(QEventLoop::AllEvents, 1);
-    }
-
-    void sectionEnded(const Catch::SectionStats&) override {
-        QGuiApplication::processEvents(QEventLoop::AllEvents, 1);
+    void testCaseEnded(const Catch::TestCaseStats& status) override {
+        fmt::print("test case: {:<100}", status.testInfo->name);
+        if (status.totals.testCases.allOk())
+            fmt::println("\033[0;32mpassed {:>4} of {:>4}\033[0m", status.totals.assertions.passed, status.totals.assertions.total());
+        else
+            fmt::println("\033[0;31mfailed {:>4} of {:>4}\033[0m", status.totals.assertions.failed, status.totals.assertions.total());
+        std::fflush(stdout);
     }
 };
 
-CATCH_REGISTER_LISTENER(QtEventLoopCallAdapter)
+CATCH_REGISTER_LISTENER(ProgressPrinter)
+#endif
 
 int main( int argc, char* argv[] ) {
-    static QGuiApplication app = {argc, argv};
-
+    int argc_qt = 0;
+    QGuiApplication app = {argc_qt, argv};
     int result = Catch::Session().run( argc, argv );
-
-    QTimer::singleShot(0, &app, &QCoreApplication::quit);
-
-    return QGuiApplication::exec() + result;
+    std::fflush(stdout);
+    return result;
 }
 
 #ifdef NDEBUG
