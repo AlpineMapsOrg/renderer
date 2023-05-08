@@ -1,6 +1,5 @@
 /*****************************************************************************
  * Alpine Terrain Renderer
- * Copyright (C) 2022 Adam Celarek
  * Copyright (C) 2023 Jakob Lindner
  *
  * This program is free software: you can redistribute it and/or modify
@@ -17,33 +16,31 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *****************************************************************************/
 
-#include <QThread>
-#include <catch2/catch_test_macros.hpp>
+#include "Stopwatch.h"
 
-#include "nucleus/utils/DeltaTime.h"
+using namespace nucleus::utils;
 
-TEST_CASE("nucleus/utils/DeltaTime")
+Stopwatch::Stopwatch()
 {
-    SECTION("get")
-    {
-        auto dt = DeltaTime();
-        dt.get();
-        auto t1 = dt.get();
-        CHECK(t1.count() == 0);
+    restart();
+}
 
-        dt.get();
-        QThread::msleep(20);
-        auto t2 = dt.get();
-        CHECK(t2.count() - 20 >= 0);
-        CHECK(t2.count() - 20 < 15);
-    }
-    SECTION("reset")
-    {
-        auto dt = DeltaTime();
-        dt.get();
-        QThread::msleep(20);
-        dt.reset();
-        auto t1 = dt.get();
-        CHECK(t1.count() == 0);
-    }
+void Stopwatch::restart()
+{
+    m_start = std::chrono::steady_clock::now();
+    m_lap_start = m_start;
+}
+
+std::chrono::milliseconds Stopwatch::lap()
+{
+    auto now = std::chrono::steady_clock::now();
+    auto elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(now - m_lap_start);
+    m_lap_start = now;
+    return elapsed;
+}
+
+std::chrono::milliseconds Stopwatch::total()
+{
+    auto now = std::chrono::steady_clock::now();
+    return std::chrono::duration_cast<std::chrono::milliseconds>(now - m_start);;
 }
