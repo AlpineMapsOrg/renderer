@@ -1,7 +1,6 @@
 /*****************************************************************************
  * Alpine Terrain Renderer
- * Copyright (C) 2022 Adam Celarek
- * Copyright (C) 2023 Jakob Lindner
+ * Copyright (C) 2023 Adam Celarek
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -17,33 +16,19 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *****************************************************************************/
 
-#include "nucleus/utils/DeltaTime.h"
+#pragma once
 
-#include <catch2/catch.hpp>
-#include <QThread>
+#include <QOpenGLWindow>
 
-TEST_CASE("nucleus/utils/DeltaTime")
+class UnittestGlWindow : public QOpenGLWindow
 {
-    SECTION("get")
-    {
-        auto dt = DeltaTime();
-        dt.get();
-        auto t1 = dt.get();
-        CHECK(t1.count() == 0);
+    Q_OBJECT
+    int m_argc = 0;
+    char** m_argv = nullptr;
+public:
+    explicit UnittestGlWindow(int argc, char** argv);
 
-        dt.get();
-        QThread::msleep(20);
-        auto t2 = dt.get();
-        CHECK(t2.count() - 20 >= 0);
-        CHECK(t2.count() - 20 < 15);
-    }
-    SECTION("reset")
-    {
-        auto dt = DeltaTime();
-        dt.get();
-        QThread::msleep(20);
-        dt.reset();
-        auto t1 = dt.get();
-        CHECK(t1.count() == 0);
-    }
-}
+public:
+    void initializeGL() override;
+};
+

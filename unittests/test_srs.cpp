@@ -15,10 +15,13 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *****************************************************************************/
-#include <catch2/catch.hpp>
+
+#include <catch2/catch_approx.hpp>
+#include <catch2/catch_test_macros.hpp>
 
 #include "nucleus/srs.h"
 
+using Catch::Approx;
 using namespace nucleus;
 
 TEST_CASE("nucleus/srs")
@@ -108,5 +111,81 @@ TEST_CASE("nucleus/srs")
         constexpr double westl_hochgrubach_spitze_long = 16.3726561;
         CHECK(srs::lat_long_to_world({ westl_hochgrubach_spitze_lat, westl_hochgrubach_spitze_long }).x == Approx(1822595.7412222677));
         CHECK(srs::lat_long_to_world({ westl_hochgrubach_spitze_lat, westl_hochgrubach_spitze_long }).y == Approx(6141644.553721141));
+    }
+
+    SECTION("srs conversion two way")
+    {
+        {
+            constexpr double lat = 48.2086939;
+            constexpr double lon = 16.3726561;
+            CHECK(srs::world_to_lat_long(srs::lat_long_to_world({ lat, lon })).x == Approx(lat));
+            CHECK(srs::world_to_lat_long(srs::lat_long_to_world({ lat, lon })).y == Approx(lon));
+        }
+        {
+            constexpr double lat = 12.565;
+            constexpr double lon = -125.54;
+            CHECK(srs::world_to_lat_long(srs::lat_long_to_world({ lat, lon })).x == Approx(lat));
+            CHECK(srs::world_to_lat_long(srs::lat_long_to_world({ lat, lon })).y == Approx(lon));
+        }
+        {
+            constexpr double lat = -12.565;
+            constexpr double lon = -165.54;
+            CHECK(srs::world_to_lat_long(srs::lat_long_to_world({ lat, lon })).x == Approx(lat));
+            CHECK(srs::world_to_lat_long(srs::lat_long_to_world({ lat, lon })).y == Approx(lon));
+        }
+        {
+            constexpr double lat = -65.565;
+            constexpr double lon = 135.54;
+            CHECK(srs::world_to_lat_long(srs::lat_long_to_world({ lat, lon })).x == Approx(lat));
+            CHECK(srs::world_to_lat_long(srs::lat_long_to_world({ lat, lon })).y == Approx(lon));
+        }
+    }
+
+    SECTION("srs conversion with height")
+    {
+        constexpr double pi = 3.141592653589793238462643383279502884197169399375105820974944;
+        CHECK(srs::lat_long_alt_to_world({ 0, 0, 10.0 }).x == Approx(0));
+        CHECK(srs::lat_long_alt_to_world({ 0, 0, 10.0 }).y == Approx(0).scale(20037508));
+        CHECK(srs::lat_long_alt_to_world({ 0, 0, 10.0 }).z == Approx(10).scale(20037508));
+
+        {
+            constexpr double lat = 48.2086939;
+            constexpr double lon = 16.3726561;
+            constexpr double alt = 100.0;
+            CHECK(srs::lat_long_alt_to_world({ lat, lon, alt }).x == Approx(srs::lat_long_to_world({ lat, lon }).x).scale(1000));
+            CHECK(srs::lat_long_alt_to_world({ lat, lon, alt }).y == Approx(srs::lat_long_to_world({ lat, lon }).y).scale(1000));
+            CHECK(srs::lat_long_alt_to_world({ lat, lon, alt }).z >= Approx(alt));
+            CHECK(srs::lat_long_alt_to_world({ lat, lon, alt }).z == Approx(alt / std::abs(std::cos(lat * pi / 180.0))));
+        }
+
+        {
+            constexpr double lat = 38.2086939;
+            constexpr double lon = -116.3726561;
+            constexpr double alt = 200.0;
+            CHECK(srs::lat_long_alt_to_world({ lat, lon, alt }).x == Approx(srs::lat_long_to_world({ lat, lon }).x).scale(1000));
+            CHECK(srs::lat_long_alt_to_world({ lat, lon, alt }).y == Approx(srs::lat_long_to_world({ lat, lon }).y).scale(1000));
+            CHECK(srs::lat_long_alt_to_world({ lat, lon, alt }).z >= Approx(alt));
+            CHECK(srs::lat_long_alt_to_world({ lat, lon, alt }).z == Approx(alt / std::abs(std::cos(lat * pi / 180.0))));
+        }
+
+        {
+            constexpr double lat = -70.2086939;
+            constexpr double lon = 26.3726561;
+            constexpr double alt = 1000.0;
+            CHECK(srs::lat_long_alt_to_world({ lat, lon, alt }).x == Approx(srs::lat_long_to_world({ lat, lon }).x).scale(1000));
+            CHECK(srs::lat_long_alt_to_world({ lat, lon, alt }).y == Approx(srs::lat_long_to_world({ lat, lon }).y).scale(1000));
+            CHECK(srs::lat_long_alt_to_world({ lat, lon, alt }).z >= Approx(alt));
+            CHECK(srs::lat_long_alt_to_world({ lat, lon, alt }).z == Approx(alt / std::abs(std::cos(lat * pi / 180.0))));
+        }
+
+        {
+            constexpr double lat = -60.2086939;
+            constexpr double lon = -96.3726561;
+            constexpr double alt = 4000.0;
+            CHECK(srs::lat_long_alt_to_world({ lat, lon, alt }).x == Approx(srs::lat_long_to_world({ lat, lon }).x).scale(1000));
+            CHECK(srs::lat_long_alt_to_world({ lat, lon, alt }).y == Approx(srs::lat_long_to_world({ lat, lon }).y).scale(1000));
+            CHECK(srs::lat_long_alt_to_world({ lat, lon, alt }).z >= Approx(alt));
+            CHECK(srs::lat_long_alt_to_world({ lat, lon, alt }).z == Approx(alt / std::abs(std::cos(lat * pi / 180.0))));
+        }
     }
 }

@@ -63,7 +63,26 @@ glm::dvec2 lat_long_to_world(const glm::dvec2& lat_long)
 
     // get y value
     const auto mercN = std::log(std::tan((pi / 4) + (latRad / 2)));
+    const auto dd = cOriginShift;
     const auto y = cOriginShift * mercN / pi;
     return { x, y };
 }
+
+glm::dvec2 world_to_lat_long(const glm::dvec2& world_pos)
+{
+    const auto mercN = world_pos.y * pi / cOriginShift;
+    const auto latRad = 2.0 * (std::atan(exp(mercN)) - (pi / 4.0));
+    const auto latitude = latRad * 180 / pi;
+    const auto longitude = (world_pos.x + cOriginShift) / (cOriginShift / 180) - 180;
+
+    return { latitude, longitude };
+}
+
+glm::dvec3 lat_long_alt_to_world(const glm::dvec3& lat_long_alt)
+{
+    const auto world_xy = lat_long_to_world({ lat_long_alt.x, lat_long_alt.y });
+    const auto lat_rad_ = lat_long_alt.x * pi / 180.0;
+    return { world_xy.x, world_xy.y, lat_long_alt.z / std::abs(std::cos(lat_rad_)) };
+}
+
 }

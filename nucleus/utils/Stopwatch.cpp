@@ -16,17 +16,31 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *****************************************************************************/
 
-#pragma once
+#include "Stopwatch.h"
 
-#include <chrono>
+using namespace nucleus::utils;
 
-class DeltaTime
+Stopwatch::Stopwatch()
 {
-public:
-    DeltaTime();
-    void reset();
-    std::chrono::milliseconds get();
+    restart();
+}
 
-private:
-    std::chrono::steady_clock::time_point m_last_frame;
-};
+void Stopwatch::restart()
+{
+    m_start = std::chrono::steady_clock::now();
+    m_lap_start = m_start;
+}
+
+std::chrono::milliseconds Stopwatch::lap()
+{
+    auto now = std::chrono::steady_clock::now();
+    auto elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(now - m_lap_start);
+    m_lap_start = now;
+    return elapsed;
+}
+
+std::chrono::milliseconds Stopwatch::total()
+{
+    auto now = std::chrono::steady_clock::now();
+    return std::chrono::duration_cast<std::chrono::milliseconds>(now - m_start);;
+}

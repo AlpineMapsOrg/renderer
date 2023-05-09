@@ -216,7 +216,7 @@ void Scheduler::schedule_persist()
 void Scheduler::read_disk_cache()
 {
     const auto base_path = disk_cache_path();
-    qDebug("reading disk cache from: %s", base_path.c_str());
+//    qDebug("reading disk cache from: %s", base_path.c_str());
     auto ortho_tiles = utils::read_tile_id_2_data_map(base_path / "ortho.alp");
     auto height_tiles = utils::read_tile_id_2_data_map(base_path / "height.alp");
     if (height_tiles.empty() || ortho_tiles.empty()) {

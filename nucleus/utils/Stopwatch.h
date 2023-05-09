@@ -16,22 +16,23 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *****************************************************************************/
 
-#include "DeltaTime.h"
+#pragma once
 
-DeltaTime::DeltaTime()
-{
-    m_last_frame = std::chrono::steady_clock::now();
-}
+#include <chrono>
 
-void DeltaTime::reset()
-{
-    m_last_frame = std::chrono::steady_clock::now();
-}
+namespace nucleus::utils {
 
-std::chrono::milliseconds DeltaTime::get()
+class Stopwatch
 {
-    auto now = std::chrono::steady_clock::now();
-    auto elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(now - m_last_frame);
-    m_last_frame = now;
-    return elapsed;
+public:
+    Stopwatch();
+    void restart();
+    std::chrono::milliseconds lap();
+    std::chrono::milliseconds total();
+
+private:
+    std::chrono::steady_clock::time_point m_lap_start;
+    std::chrono::steady_clock::time_point m_start;
+};
+
 }

@@ -16,10 +16,10 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *****************************************************************************/
 
+
+#include <catch2/catch_test_macros.hpp>
+
 #include "nucleus/camera/Definition.h"
-
-#include <catch2/catch.hpp>
-
 #include "sherpa/geometry.h"
 #include "unittests/test_helpers.h"
 

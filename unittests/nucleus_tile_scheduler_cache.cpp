@@ -16,14 +16,16 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *****************************************************************************/
 
+#include "fmt/core.h"
 #include "nucleus/tile_scheduler/Cache.h"
 
-#include <catch2/catch.hpp>
+#include <unordered_set>
+
+#include <QThread>
+#include <catch2/catch_test_macros.hpp>
 
 #include "sherpa/tile.h"
 
-#include <QThread>
-#include <unordered_set>
 
 namespace {
 struct TestTile {
@@ -48,7 +50,10 @@ TEST_CASE("nucleus/tile_scheduler/cache")
     SECTION("insert and visit")
     {
         nucleus::tile_scheduler::Cache<TestTile> cache;
-        cache.visit([](const TestTile& t) { CHECK(false); return true; });
+        cache.visit([](const TestTile &) {
+            CHECK(false);
+            return true;
+        });
         CHECK(!cache.contains({ 0, { 0, 0 } }));
         CHECK(!cache.contains({ 6, { 4, 3 } }));
         CHECK(cache.n_cached_objects() == 0);
@@ -144,9 +149,9 @@ TEST_CASE("nucleus/tile_scheduler/cache")
         cache.set_capacity(3);
         const auto purged = cache.purge();
         REQUIRE(purged.size() == 3);
-        CHECK(purged[0].id == tile::Id { 2, { 0, 0 } }); // order does not matter
-        CHECK(purged[1].id == tile::Id { 6, { 4, 3 } });
-        CHECK(purged[2].id == tile::Id { 3, { 0, 0 } });
+        CHECK(std::find_if(purged.cbegin(), purged.cend(), [](const auto& v) { return v.id == tile::Id { 2, { 0, 0 } };}) != purged.cend());
+        CHECK(std::find_if(purged.cbegin(), purged.cend(), [](const auto& v) { return v.id == tile::Id { 6, { 4, 3 } };}) != purged.cend());
+        CHECK(std::find_if(purged.cbegin(), purged.cend(), [](const auto& v) { return v.id == tile::Id { 3, { 0, 0 } };}) != purged.cend());
         CHECK(cache.n_cached_objects() == 3);
         CHECK(cache.contains({ 0, { 0, 0 } }));
         CHECK(cache.contains({ 1, { 0, 0 } }));
@@ -188,17 +193,18 @@ TEST_CASE("nucleus/tile_scheduler/cache")
             TestTile { { 1, { 0, 1 } }, "newer" },
             TestTile { { 1, { 1, 0 } }, "newer" },
         });
+        const std::unordered_set<tile::Id, tile::Id::Hasher> newer_tiles = {{ 1, { 0, 0 } }, { 1, { 0, 1 } }, { 1, { 1, 0 } }};
         QThread::msleep(2);
-        cache.visit([](const TestTile& t) {
-            return true;
-        });
+        cache.visit([](const TestTile &) { return true; });
         const auto purged = cache.purge();
         REQUIRE(purged.size() == 2);
-        CHECK(purged[0].id == tile::Id { 1, { 1, 0 } }); // order does not matter
-        CHECK(purged[1].id == tile::Id { 1, { 0, 1 } });
+        for (const auto& t : purged) {
+            CHECK(!cache.contains(t.id));
+            CHECK(newer_tiles.contains(t.id));
+        }
+        CHECK(purged[0].id != purged[1].id);
         CHECK(cache.n_cached_objects() == 2);
         CHECK(cache.contains({ 0, { 0, 0 } }));
-        CHECK(cache.contains({ 1, { 0, 0 } })); // might be any of the other newer elements
     }
 
     SECTION("purge: visited elements are purged later than others")
@@ -231,11 +237,14 @@ TEST_CASE("nucleus/tile_scheduler/cache")
         cache.set_capacity(2);
         const auto purged = cache.purge();
         REQUIRE(purged.size() == 5);
-        CHECK(purged[0].data == "orange"); // order does not matter
-        CHECK(purged[1].data == "orange");
-        CHECK(purged[2].data == "orange");
-        CHECK(purged[3].data == "orange");
-        CHECK(purged[4].data == "red");
+        unsigned cnt_orange = 0;
+        unsigned cnt_red = 0;
+        for (const auto& t : purged) {
+            cnt_orange += t.data == "orange";
+            cnt_red += t.data == "red";
+        }
+        CHECK(cnt_orange == 4);
+        CHECK(cnt_red == 1);
         CHECK(cache.n_cached_objects() == 2);
         CHECK(cache.contains({ 0, { 0, 0 } }));
         CHECK(cache.contains({ 1, { 0, 0 } }));

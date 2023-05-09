@@ -16,11 +16,11 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *****************************************************************************/
 
-#include "RateTester.h"
-
 #include <chrono>
 
-#include <catch2/catch.hpp>
+#include <catch2/catch_test_macros.hpp>
+
+#include "RateTester.h"
 
 using namespace unittests;
 
@@ -36,9 +36,9 @@ RateTester::~RateTester()
     for (auto i = m_events.cbegin(); i != m_events.cend(); ++i) {
         unsigned n_events_in_time_frame = 1;
         const auto event_time = *i;
-        for (auto j = std::reverse_iterator(i); j != m_events.rend(); j++) {
-            assert(*j < event_time);
-            if (event_time - *j < m_period * 1'000'000)
+        for (auto j = std::reverse_iterator<decltype(i)>(i); j != m_events.rend(); j++) {
+            assert(*j <= event_time);
+            if (event_time - *j < m_period * 1'000'000ll)
                 ++n_events_in_time_frame;
             else
                 break;

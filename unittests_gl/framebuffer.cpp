@@ -18,18 +18,26 @@
  *****************************************************************************/
 
 #define CATCH_CONFIG_ENABLE_BENCHMARKING
-#include <catch2/catch.hpp>
+
+#include <iostream>
+
+#include <QFile>
 #include <QGuiApplication>
-#include <QRgb>
+#include <QOffscreenSurface>
 #include <QOpenGLDebugLogger>
 #include <QOpenGLExtraFunctions>
-#include <QOffscreenSurface>
+#include <QRgb>
 #include <QScreen>
+#include <catch2/benchmark/catch_benchmark.hpp>
+#include <catch2/catch_approx.hpp>
+#include <catch2/catch_test_macros.hpp>
 
 #include "gl_engine/Framebuffer.h"
 #include "gl_engine/ShaderProgram.h"
 #include "gl_engine/helpers.h"
+#include "nucleus/utils/bit_coding.h"
 
+using Catch::Approx;
 using gl_engine::Framebuffer;
 using gl_engine::ShaderProgram;
 
@@ -53,28 +61,28 @@ ShaderProgram create_debug_shader()
     return ShaderProgram(vertex_source, fragment_source);
 }
 
+ShaderProgram create_encoder_shader(float v1, float v2)
+{
+
+    std::string fragment_source;
+    QFile f(":/gl_shaders/encoder.glsl");
+    f.open(QIODeviceBase::ReadOnly);
+    fragment_source = fragment_source + f.readAll().toStdString();
+    fragment_source = fragment_source + R"(
+    out lowp vec4 out_Color;
+
+    void main() {
+        out_Color = vec4(encode()"
+        + std::to_string(v1) + R"(), encode()" + std::to_string(v2) + R"());
+    })";
+    //    std::cout << fragment_source << std::endl;
+    return ShaderProgram(vertex_source, fragment_source);
+}
+
 TEST_CASE("gl framebuffer")
 {
-    int argc = 0;
-    char argv_c = '\0';
-    std::array<char*, 1> argv = { &argv_c };
-    QGuiApplication app(argc, argv.data());
-    QOffscreenSurface surface;
-    surface.create();
-    const auto size = surface.size();
-    const auto screensize = surface.screen()->size();
-    QOpenGLContext c;
-    REQUIRE(c.create());
-    c.makeCurrent(&surface);
-    QOpenGLDebugLogger logger;
-    logger.initialize();
-    logger.disableMessages(QList<GLuint>({ 131185 }));
-    QObject::connect(&logger, &QOpenGLDebugLogger::messageLogged, [](const auto& message) {
-        qDebug() << message;
-    });
-    logger.startLogging(QOpenGLDebugLogger::SynchronousLogging);
-
-    QOpenGLExtraFunctions* f = c.extraFunctions();
+    const auto* c = QOpenGLContext::currentContext();
+    QOpenGLExtraFunctions* f = c->extraFunctions();
     REQUIRE(f);
     SECTION("rgba8 bit")
     {
@@ -131,5 +139,30 @@ TEST_CASE("gl framebuffer")
         CHECK(pixel[1] == unsigned(0.0f * 255));
         CHECK(pixel[2] == unsigned(1.0f * 255));
         CHECK(pixel[3] == unsigned(0.8f * 255));
+    }
+
+    SECTION("encode pixel")
+    {
+        const auto tuples = std::vector {
+            std::pair { 0.0f, 1.0f },
+            std::pair { 255.0f / (256 * 256 - 1), 256.0f / (256 * 256 - 1) },
+            std::pair { 32768.0f / (256 * 256 - 1), 1.0f - 255.0f / (256 * 256 - 1) },
+            std::pair { 32767.0f / (256 * 256 - 1), 1.0f - 256.0f / (256 * 256 - 1) },
+        };
+        for (const auto& pair : tuples) {
+            Framebuffer b(Framebuffer::DepthFormat::None, { Framebuffer::ColourFormat::RGBA8 });
+            b.resize({ 1920, 1080 });
+            b.bind();
+            ShaderProgram shader = create_encoder_shader(pair.first, pair.second);
+            shader.bind();
+            gl_engine::helpers::create_screen_quad_geometry().draw();
+
+            const auto pixel = b.read_colour_attachment_pixel(0, glm::dvec2(0, 0));
+            const auto decoded = nucleus::utils::bit_coding::to_f16f16(pixel);
+
+            Framebuffer::unbind();
+            CHECK(decoded.x == Approx(pair.first));
+            CHECK(decoded.y == Approx(pair.second));
+        }
     }
 }
