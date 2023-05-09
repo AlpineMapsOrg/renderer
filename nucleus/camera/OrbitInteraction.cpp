@@ -119,6 +119,9 @@ std::optional<Definition> OrbitInteraction::key_press_event(const QKeyCombinatio
     if (e.key() == Qt::Key_Alt) {
         m_key_alt = true;
     }
+    if (e.key() == Qt::Key_Shift) {
+        m_key_shift = true;
+    }
     return camera;
 }
 
@@ -129,6 +132,9 @@ std::optional<Definition> OrbitInteraction::key_release_event(const QKeyCombinat
     }
     if (e.key() == Qt::Key_Alt) {
         m_key_alt = false;
+    }
+    if (e.key() == Qt::Key_Shift) {
+        m_key_shift = false;
     }
     return camera;
 }
@@ -160,7 +166,7 @@ void OrbitInteraction::pan(const QPointF& position, const QPointF& last_position
     }
     auto mouseInWorld = camera->position() + (camRay * distance);
 
-    if (m_move_vertical) {
+    if (m_move_vertical || m_key_shift) {
         const auto delta = position - last_position;
         camera->move(camera->x_axis() * -delta.x() + camera->y_axis() * delta.y());
     } else {
