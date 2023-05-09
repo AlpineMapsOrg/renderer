@@ -1,6 +1,6 @@
 /*****************************************************************************
  * Alpine Terrain Renderer
- * Copyright (C) 2023 Jakob Lindner
+ * Copyright (C) 2023 Adam Celarek
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -16,24 +16,19 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *****************************************************************************/
 
-#include "DeltaTime.h"
+#pragma once
 
-using namespace nucleus::utils;
+#include <QOpenGLWindow>
 
-DeltaTime::DeltaTime()
+class UnittestGlWindow : public QOpenGLWindow
 {
-    m_last_frame = std::chrono::steady_clock::now();
-}
+    Q_OBJECT
+    int m_argc = 0;
+    char** m_argv = nullptr;
+public:
+    explicit UnittestGlWindow(int argc, char** argv);
 
-void DeltaTime::reset()
-{
-    m_last_frame = std::chrono::steady_clock::now();
-}
+public:
+    void initializeGL() override;
+};
 
-std::chrono::milliseconds DeltaTime::get()
-{
-    auto now = std::chrono::steady_clock::now();
-    auto elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(now - m_last_frame);
-    m_last_frame = now;
-    return elapsed;
-}

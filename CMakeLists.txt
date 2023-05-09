@@ -4,12 +4,23 @@ project(alpine-renderer LANGUAGES CXX)
 option(ALP_UNITTESTS "include unit test targets in the buildsystem" ON)
 option(ALP_ENABLE_ADDRESS_SANITIZER "compiles atb with address sanitizer enabled (only debug, works only on g++ and clang)" OFF)
 option(ALP_ENABLE_THREAD_SANITIZER "compiles atb with thread sanitizer enabled (only debug, works only on g++ and clang)" OFF)
-option(ALP_ENABLE_THREADING "Puts the scheduler into an extra thread." ON)
 option(ALP_ENABLE_ASSERTS "enable asserts (do not define NDEBUG)" ON)
-option(ALP_ENABLE_POSITIONING "enable qt positinoing (gnss / gps)" OFF)
-set(ALP_INSTALL_DIR "${CMAKE_CURRENT_BINARY_DIR}" CACHE PATH "path to the install directory (for webassembly files, i.e., www directory)")
-option(ALP_USE_LLVM_LINKER "use lld (llvm) for linking. it's parallel and much faster, but not installed by default.
-    if it's not installed, you'll get errors, that openmp or other stuff is not installed (hard to track down)" OFF)
+
+if (EMSCRIPTEN)
+    set(ALP_WWW_INSTALL_DIR "${CMAKE_CURRENT_BINARY_DIR}" CACHE PATH "path to the install directory (for webassembly files, i.e., www directory)")
+    option(ALP_ENABLE_THREADING "Puts the scheduler into an extra thread." OFF)
+else()
+    option(ALP_ENABLE_THREADING "Puts the scheduler into an extra thread." ON)
+endif()
+
+if (NOT EMSCRIPTEN)
+    option(ALP_ENABLE_POSITIONING "enable qt positioning (gnss / gps)" ON)
+endif()
+
+if (UNIX AND NOT EMSCRIPTEN AND NOT ANDROID)
+    option(ALP_USE_LLVM_LINKER "use lld (llvm) for linking. it's parallel and much faster, but not installed by default.
+        if it's not installed, you'll get errors, that openmp or other stuff is not installed (hard to track down)" OFF)
+endif()
 
 
 ############################################ sources ##############################################
@@ -40,7 +51,7 @@ set(ALP_NUCLEUS_SOURCES
     nucleus/camera/RotateNorthInteraction.h nucleus/camera/RotateNorthInteraction.cpp
     nucleus/camera/AbstractDepthTester.h
     nucleus/camera/stored_positions.h
-    nucleus/utils/DeltaTime.h nucleus/utils/DeltaTime.cpp
+    nucleus/utils/Stopwatch.h nucleus/utils/Stopwatch.cpp
     nucleus/utils/terrain_mesh_index_generator.h
     nucleus/utils/tile_conversion.h nucleus/utils/tile_conversion.cpp
     nucleus/map_label/MapLabelModel.h nucleus/map_label/MapLabelModel.cpp
@@ -103,14 +114,20 @@ set(ALP_APP_ICONS
 set(ALP_CATCH_UNITTEST_GL_SOURCES
     gl_engine/Framebuffer.h gl_engine/Framebuffer.cpp
     gl_engine/ShaderProgram.h gl_engine/ShaderProgram.cpp
+    unittests_gl/UnittestGlWindow.h unittests_gl/UnittestGlWindow.cpp
     unittests_gl/main.cpp
     unittests_gl/framebuffer.cpp
+)
+set(ALP_CATCH_UNITTEST_DATA
+    unittests/data/170px-Jeune_bouquetin_de_face.jpg
+    unittests/data/test-tile_ortho.jpeg
+    unittests/data/test-tile.png
 )
 set(ALP_CATCH_UNITTEST_SOURCES
     unittests/main.cpp
     unittests/catch2_helpers.h
     unittests/test_Camera.cpp
-    unittests/test_DeltaTime.cpp
+    unittests/nucleus_utils_stopwatch.cpp
     unittests/test_DrawListGenerator.cpp
     unittests/test_helpers.h
     unittests/test_raster.cpp
@@ -168,13 +185,18 @@ if (ALP_USE_LLVM_LINKER)
     string(APPEND CMAKE_EXE_LINKER_FLAGS " -fuse-ld=lld")
 endif()
 
+
+FetchContent_Declare(fmt GIT_REPOSITORY https://github.com/fmtlib/fmt.git)
+FetchContent_MakeAvailable(fmt)
+
+
 ############################################ nucleus ##############################################
 qt_add_library(nucleus STATIC
     ${ALP_NUCLEUS_SOURCES}
 )
 
 target_include_directories(nucleus PRIVATE . PUBLIC ${CMAKE_SOURCE_DIR})
-target_link_libraries(nucleus PUBLIC sherpa Qt::Core Qt::Gui Qt6::Network Qt6::Svg)
+target_link_libraries(nucleus PUBLIC sherpa Qt::Core Qt::Gui Qt6::Network Qt6::Svg fmt::fmt)
 
 
 if (ALP_ENABLE_ASSERTS)
@@ -186,7 +208,7 @@ endif()
 
 ########################################### gl engine #############################################
 qt_add_library(gl_engine STATIC ${ALP_GL_SOURCES})
-target_link_libraries(gl_engine PUBLIC nucleus Qt::Core Qt::OpenGL)
+target_link_libraries(gl_engine PUBLIC nucleus Qt::OpenGL)
 target_include_directories(gl_engine PRIVATE .)
 
 qt_add_resources(gl_engine "gl_shaders"
@@ -203,7 +225,7 @@ set_target_properties(plain_renderer PROPERTIES
     WIN32_EXECUTABLE TRUE
     MACOSX_BUNDLE TRUE
 )
-target_link_libraries(plain_renderer PUBLIC gl_engine Qt::Gui)
+target_link_libraries(plain_renderer PUBLIC gl_engine)
 target_include_directories(plain_renderer PRIVATE .)
 
 qt_add_resources(plain_renderer "height_data"
@@ -212,27 +234,21 @@ qt_add_resources(plain_renderer "height_data"
     FILES ${alpine_height_data_SOURCE_DIR}/height_data.atb
 )
 
-message(NOTICE "ALP_INSTALL_DIR = ${ALP_INSTALL_DIR}")
-if (NOT EMSCRIPTEN)
-    install(TARGETS plain_renderer
-        RUNTIME DESTINATION "${ALP_INSTALL_DIR}"
-        BUNDLE DESTINATION "${ALP_INSTALL_DIR}"
-        LIBRARY DESTINATION "${ALP_INSTALL_DIR}"
-    )
-else ()
-    configure_file(site/index.html index.html COPYONLY)
+if (EMSCRIPTEN)
+    message(NOTICE "ALP_WWW_INSTALL_DIR = ${ALP_WWW_INSTALL_DIR}")
+    configure_file(site/plain_renderer.html plain_renderer.html COPYONLY)
     configure_file(site/mascot.png mascot.png COPYONLY)
     set(ALP_INSTALL_FILES
         "$<TARGET_FILE_DIR:plain_renderer>/plain_renderer.js"
         "$<TARGET_FILE_DIR:plain_renderer>/plain_renderer.wasm"
         "$<TARGET_FILE_DIR:plain_renderer>/qtloader.js"
-        "${CMAKE_SOURCE_DIR}/site/index.html"
+        "${CMAKE_SOURCE_DIR}/site/plain_renderer.html"
         "${CMAKE_SOURCE_DIR}/site/mascot.png"
     )
     if (ALP_ENABLE_THREADING)
         list(APPEND ALP_INSTALL_FILES "$<TARGET_FILE_DIR:plain_renderer>/plain_renderer.worker.js")
     endif()
-    install(FILES ${ALP_INSTALL_FILES} DESTINATION ${ALP_INSTALL_DIR})
+    install(FILES ${ALP_INSTALL_FILES} DESTINATION ${ALP_WWW_INSTALL_DIR})
 
 endif()
 
@@ -312,24 +328,43 @@ if (ANDROID)
     set(PROJECT_NAME alpineapp)
     FetchContent_MakeAvailable(android_openssl)
     set(PROJECT_NAME alpine-renderer)
+
+    install(TARGETS alpineapp
+        BUNDLE DESTINATION .
+        LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR})
 endif()
 
-install(TARGETS alpineapp
-    BUNDLE DESTINATION .
-    LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR})
+if (EMSCRIPTEN)
+    set(ALP_INSTALL_FILES
+        "$<TARGET_FILE_DIR:alpineapp>/alpineapp.js"
+        "$<TARGET_FILE_DIR:alpineapp>/alpineapp.wasm"
+        "$<TARGET_FILE_DIR:alpineapp>/alpineapp.html"
+        "$<TARGET_FILE_DIR:alpineapp>/qtloader.js"
+    )
+    install(FILES ${ALP_INSTALL_FILES} DESTINATION ${ALP_WWW_INSTALL_DIR})
+endif()
 
 
 #################################### unit tests for backend #######################################
-if (ALP_UNITTESTS AND NOT EMSCRIPTEN)
-    add_executable(unittests ${ALP_CATCH_UNITTEST_SOURCES})
-    target_link_libraries(unittests PUBLIC nucleus Catch2::Catch2WithMain Qt6::Test)
-    target_compile_definitions(unittests PUBLIC "ALP_TEST_DATA_DIR=\"${CMAKE_SOURCE_DIR}/unittests/data/\"")
+if (ALP_UNITTESTS)
+    qt_add_executable(unittests ${ALP_CATCH_UNITTEST_SOURCES})
+    qt_add_resources(unittests "test_data"
+        PREFIX "/test_data"
+        BASE ${CMAKE_SOURCE_DIR}/unittests/data/
+        FILES ${ALP_CATCH_UNITTEST_DATA}
+    )
+    target_link_libraries(unittests PUBLIC nucleus Catch2::Catch2 Qt6::Test)
+    target_compile_definitions(unittests PUBLIC "ALP_TEST_DATA_DIR=\":/test_data/\"")
     if (ALP_ENABLE_ASSERTS)
         target_compile_options(unittests PUBLIC "-U NDEBUG")
     endif()
 
     qt_add_executable(unittests_gl ${ALP_CATCH_UNITTEST_GL_SOURCES})
-    target_link_libraries(unittests_gl PUBLIC nucleus Catch2::Catch2WithMain Qt::Core Qt::Gui Qt::OpenGL)
+    qt_add_resources(unittests_gl "gl_shaders"
+         PREFIX "/"
+         FILES ${ALP_GL_SHADERS}
+    )
+    target_link_libraries(unittests_gl PUBLIC nucleus Catch2::Catch2 Qt::OpenGL)
     target_compile_definitions(unittests_gl PUBLIC "ALP_RESOURCES_PREFIX=\"${CMAKE_SOURCE_DIR}/\"")
     if (ALP_ENABLE_ASSERTS)
         target_compile_options(unittests_gl PUBLIC "-U NDEBUG")
@@ -341,6 +376,41 @@ if (ALP_UNITTESTS AND NOT EMSCRIPTEN)
     if (MINGW)
         target_compile_options(unittests PUBLIC "-Wa,-mbig-obj")
         target_compile_options(unittests_gl PUBLIC "-Wa,-mbig-obj")
+    endif()
+
+    if (EMSCRIPTEN)
+        target_compile_options(unittests PUBLIC -fexceptions)
+        target_link_options(unittests PUBLIC -sASYNCIFY -Os -fexceptions)
+#        target_link_options(unittests PUBLIC --shell-file ${CMAKE_SOURCE_DIR}/site/unittest_shell.html)
+#        target_link_options(unittests_gl PUBLIC --shell-file ${CMAKE_SOURCE_DIR}/site/unittest_shell.html)
+#        set_target_properties(unittests unittests_gl PROPERTIES SUFFIX ".html")
+
+
+        configure_file(site/unittests.html unittests.html COPYONLY)
+        configure_file(site/unittests_gl.html unittests_gl.html COPYONLY)
+        configure_file(site/ansispan.js ansispan.js COPYONLY)
+        set(ALP_INSTALL_FILES
+            "$<TARGET_FILE_DIR:unittests>/unittests.js"
+            "$<TARGET_FILE_DIR:unittests>/unittests.wasm"
+            "$<TARGET_FILE_DIR:unittests>/qtloader.js"
+            "$<TARGET_FILE_DIR:unittests_gl>/unittests_gl.js"
+            "$<TARGET_FILE_DIR:unittests_gl>/unittests_gl.wasm"
+            "$<TARGET_FILE_DIR:unittests_gl>/qtloader.js"
+            "${CMAKE_SOURCE_DIR}/site/unittests.html"
+            "${CMAKE_SOURCE_DIR}/site/unittests_gl.html"
+            "${CMAKE_SOURCE_DIR}/site/ansispan.js"
+            "${CMAKE_SOURCE_DIR}/site/mascot.png"
+        )
+
+#        set(ALP_INSTALL_FILES
+#            "$<TARGET_FILE_DIR:unittests>/unittests.js"
+#            "$<TARGET_FILE_DIR:unittests>/unittests.wasm"
+#            "$<TARGET_FILE_DIR:unittests>/unittests.html"
+#            "$<TARGET_FILE_DIR:unittests_gl>/unittests_gl.js"
+#            "$<TARGET_FILE_DIR:unittests_gl>/unittests_gl.wasm"
+#            "$<TARGET_FILE_DIR:unittests_gl>/unittests_gl.html"
+#        )
+        install(FILES ${ALP_INSTALL_FILES} DESTINATION ${ALP_WWW_INSTALL_DIR})
     endif()
 
 endif()

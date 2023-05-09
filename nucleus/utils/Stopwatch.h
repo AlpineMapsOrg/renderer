@@ -1,6 +1,5 @@
 /*****************************************************************************
  * Alpine Terrain Renderer
- * Copyright (C) 2022 Adam Celarek
  * Copyright (C) 2023 Jakob Lindner
  *
  * This program is free software: you can redistribute it and/or modify
@@ -17,35 +16,23 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *****************************************************************************/
 
-#include <QThread>
-#include <catch2/catch_test_macros.hpp>
+#pragma once
 
-#include "nucleus/utils/DeltaTime.h"
+#include <chrono>
 
-using nucleus::utils::DeltaTime;
+namespace nucleus::utils {
 
-TEST_CASE("nucleus/utils/DeltaTime")
+class Stopwatch
 {
-    SECTION("get")
-    {
-        auto dt = DeltaTime();
-        dt.get();
-        auto t1 = dt.get();
-        CHECK(t1.count() == 0);
+public:
+    Stopwatch();
+    void restart();
+    std::chrono::milliseconds lap();
+    std::chrono::milliseconds total();
 
-        dt.get();
-        QThread::msleep(20);
-        auto t2 = dt.get();
-        CHECK(t2.count() - 20 >= 0);
-        CHECK(t2.count() - 20 < 15);
-    }
-    SECTION("reset")
-    {
-        auto dt = DeltaTime();
-        dt.get();
-        QThread::msleep(20);
-        dt.reset();
-        auto t1 = dt.get();
-        CHECK(t1.count() == 0);
-    }
+private:
+    std::chrono::steady_clock::time_point m_lap_start;
+    std::chrono::steady_clock::time_point m_start;
+};
+
 }

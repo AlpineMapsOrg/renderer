@@ -16,26 +16,36 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *****************************************************************************/
 
-#pragma once
+#include "UnittestGlWindow.h"
 
-#include <QObject>
+#include <QOpenGLDebugLogger>
+#include <cstdio>
 
-#include "nucleus/tile_scheduler/RateLimiter.h"
+#include <QTimer>
+#include <QGuiApplication>
+#include <catch2/catch_session.hpp>
 
-namespace unittests {
+UnittestGlWindow::UnittestGlWindow(int argc, char** argv) : QOpenGLWindow{}, m_argc(argc), m_argv(argv)
+{
 
-class RateTester : public QObject {
-    Q_OBJECT
+}
 
-    std::vector<int64_t> m_events;
-    unsigned m_rate;
-    unsigned m_period;
 
-public:
-    explicit RateTester(nucleus::tile_scheduler::RateLimiter* period);
-    ~RateTester() override;
+void UnittestGlWindow::initializeGL()
+{
+    QOpenGLDebugLogger logger;
+    logger.initialize();
+    logger.disableMessages(QList<GLuint>({ 131185 }));
+    QObject::connect(&logger, &QOpenGLDebugLogger::messageLogged, [](const auto& message) {
+        qDebug() << message;
+    });
+    logger.startLogging(QOpenGLDebugLogger::SynchronousLogging);
 
-public slots:
-    void receive_quad_request(const tile::Id& id);
-};
+    int result = Catch::Session().run(m_argc, m_argv);
+    std::fflush(stdout);
+
+    if (result != 0)
+        exit(result);
+
+    QTimer::singleShot(0, QGuiApplication::instance(), &QCoreApplication::quit);
 }

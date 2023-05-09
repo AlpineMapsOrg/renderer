@@ -51,7 +51,7 @@ std::optional<Definition> FirstPersonInteraction::wheel_event(const event_parame
 std::optional<Definition> FirstPersonInteraction::key_press_event(const QKeyCombination& e, Definition camera, AbstractDepthTester* depth_tester)
 {
     if (m_keys_pressed == 0) {
-        m_delta_time.reset();
+        m_stopwatch.restart();
     }
     m_keys_pressed++;
 
@@ -131,7 +131,7 @@ std::optional<Definition> FirstPersonInteraction::update(Definition camera, Abst
         direction -= camera.y_axis();
     }
     glm::normalize(direction);
-    double dt = m_delta_time.get().count();
+    double dt = m_stopwatch.lap().count();
     if (dt > 120) { // catches big time steps
         dt = 120;
     }

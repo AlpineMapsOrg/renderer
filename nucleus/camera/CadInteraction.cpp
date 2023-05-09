@@ -35,7 +35,7 @@ std::optional<Definition> CadInteraction::mouse_press_event(const event_paramete
     if (m_operation_centre.x == 0 && m_operation_centre.y == 0 && m_operation_centre.z == 0) {
         reset_interaction(camera, depth_tester);
     }
-    if (e.buttons == Qt::LeftButton && m_delta_time.get().count() < 300) {
+    if (e.buttons == Qt::LeftButton && m_stopwatch.lap().count() < 300) {
         qDebug() << "double click";
         auto new_operation_centre = depth_tester->position(camera.to_ndc({ e.point.position().x(), e.point.position().y() }));
         //auto move_vector = m_operation_centre - new_operation_centre;

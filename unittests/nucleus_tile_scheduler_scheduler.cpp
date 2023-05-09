@@ -171,6 +171,12 @@ std::vector<nucleus::tile_scheduler::tile_types::TileQuad> example_quads_many()
     return retval;
 }
 
+#ifdef __EMSCRIPTEN__
+constexpr auto timing_multiplicator = 10;
+#else
+constexpr auto timing_multiplicator = 1;
+#endif
+
 }
 
 TEST_CASE("nucleus/tile_scheduler/Scheduler")
@@ -195,32 +201,32 @@ TEST_CASE("nucleus/tile_scheduler/Scheduler")
     {
         auto scheduler = default_scheduler();
         scheduler->set_enabled(true);
-        scheduler->set_update_timeout(5);
+        scheduler->set_update_timeout(5 * timing_multiplicator);
 
         QSignalSpy spy(scheduler.get(), &nucleus::tile_scheduler::Scheduler::quads_requested);
         scheduler->update_camera(nucleus::camera::stored_positions::stephansdom());
         scheduler->update_camera(nucleus::camera::stored_positions::oestl_hochgrubach_spitze());
-        test_helpers::process_events_for(2);
+        test_helpers::process_events_for(2 * timing_multiplicator);
         CHECK(spy.empty());
 
-        test_helpers::process_events_for(5);
+        test_helpers::process_events_for(5 * timing_multiplicator);
         CHECK(spy.size() == 1);
     }
 
     SECTION("timer is not restarted on camera updates && stops if nothing happens")
     {
         auto scheduler = default_scheduler();
-        scheduler->set_update_timeout(6);
+        scheduler->set_update_timeout(6 * timing_multiplicator);
         QSignalSpy spy(scheduler.get(), &nucleus::tile_scheduler::Scheduler::quads_requested);
         scheduler->update_camera(nucleus::camera::stored_positions::stephansdom());
-        test_helpers::process_events_for(2);
+        test_helpers::process_events_for(2 * timing_multiplicator);
         scheduler->update_camera(nucleus::camera::stored_positions::oestl_hochgrubach_spitze());
-        test_helpers::process_events_for(2);
+        test_helpers::process_events_for(2 * timing_multiplicator);
         CHECK(spy.empty());
         scheduler->update_camera(nucleus::camera::stored_positions::grossglockner());
-        test_helpers::process_events_for(3);
+        test_helpers::process_events_for(3 * timing_multiplicator);
         CHECK(spy.size() == 1);
-        test_helpers::process_events_for(7);
+        test_helpers::process_events_for(7 * timing_multiplicator);
         CHECK(spy.size() == 1);
     }
 
@@ -528,8 +534,8 @@ TEST_CASE("nucleus/tile_scheduler/Scheduler")
     SECTION("purging happens with a delay (collects purge events) and the timer is not restarted on tile delivery")
     {
         auto scheduler = default_scheduler();
-        scheduler->set_purge_timeout(9);
-        scheduler->set_update_timeout(20); // sending quads to gpu takes long and makes tight timing impossible in debug mode
+        scheduler->set_purge_timeout(9 * timing_multiplicator);
+        scheduler->set_update_timeout(20 * timing_multiplicator); // sending quads to gpu takes long and makes tight timing impossible in debug mode
         scheduler->set_ram_quad_limit(2);
         scheduler->receive_quads({
             example_tile_quad_for(tile::Id { 0, { 0, 0 } }),
@@ -537,7 +543,7 @@ TEST_CASE("nucleus/tile_scheduler/Scheduler")
             example_tile_quad_for(tile::Id { 2, { 2, 2 } }),
         });
         CHECK(scheduler->ram_cache().n_cached_objects() == 3);
-        test_helpers::process_events_for(3);
+        test_helpers::process_events_for(3 * timing_multiplicator);
         CHECK(scheduler->ram_cache().n_cached_objects() == 3);
         scheduler->receive_quads({
             example_tile_quad_for(tile::Id { 1, { 0, 0 } }),
@@ -546,7 +552,7 @@ TEST_CASE("nucleus/tile_scheduler/Scheduler")
         });
 
         CHECK(scheduler->ram_cache().n_cached_objects() == 6);
-        test_helpers::process_events_for(3);
+        test_helpers::process_events_for(3 * timing_multiplicator);
         CHECK(scheduler->ram_cache().n_cached_objects() == 6);
 
         scheduler->receive_quads({
@@ -555,7 +561,7 @@ TEST_CASE("nucleus/tile_scheduler/Scheduler")
             example_tile_quad_for(tile::Id { 2, { 1, 2 } }),
         });
         CHECK(scheduler->ram_cache().n_cached_objects() == 9);
-        test_helpers::process_events_for(4);
+        test_helpers::process_events_for(4 * timing_multiplicator);
         CHECK(scheduler->ram_cache().n_cached_objects() == 2);
     }
 
