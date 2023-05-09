@@ -46,6 +46,7 @@ set(ALP_NUCLEUS_SOURCES
     nucleus/camera/Controller.h nucleus/camera/Controller.cpp
     nucleus/camera/Definition.h nucleus/camera/Definition.cpp
     nucleus/camera/FirstPersonInteraction.h nucleus/camera/FirstPersonInteraction.cpp
+    nucleus/camera/FirstPersonInteraction2.h nucleus/camera/FirstPersonInteraction2.cpp
     nucleus/camera/InteractionStyle.h nucleus/camera/InteractionStyle.cpp
     nucleus/camera/OrbitInteraction.h nucleus/camera/OrbitInteraction.cpp
     nucleus/camera/RotateNorthInteraction.h nucleus/camera/RotateNorthInteraction.cpp
