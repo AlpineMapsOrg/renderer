@@ -97,8 +97,8 @@ nucleus::tile_scheduler::tile_types::TileQuad example_tile_quad_for(const tile::
     const auto example_data = example_tile_data();
     for (unsigned i = 0; i < n_children; ++i) {
         cpu_quad.tiles[i].id = children[i];
-        cpu_quad.tiles[i].ortho = std::make_shared<const QByteArray>(example_data.first);
-        cpu_quad.tiles[i].height = std::make_shared<const QByteArray>(example_data.second);
+        cpu_quad.tiles[i].ortho = std::make_shared<QByteArray>(example_data.first);
+        cpu_quad.tiles[i].height = std::make_shared<QByteArray>(example_data.second);
     }
     return cpu_quad;
 }

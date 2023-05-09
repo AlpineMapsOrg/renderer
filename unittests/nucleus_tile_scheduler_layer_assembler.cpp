@@ -45,11 +45,11 @@ TEST_CASE("nucleus/tile_scheduler/layer assembler")
 
         assembler.load(tile::Id { 0, { 0, 0 } });
 
-        assembler.deliver_ortho(tile::Id { 0, { 0, 0 } }, std::make_shared<const QByteArray>("ortho"));
+        assembler.deliver_ortho(tile::Id { 0, { 0, 0 } }, std::make_shared<QByteArray>("ortho"));
         CHECK(spy_requested.size() == 1);
         CHECK(spy_loaded.empty());
 
-        assembler.deliver_height(tile::Id { 0, { 0, 0 } }, std::make_shared<const QByteArray>("height"));
+        assembler.deliver_height(tile::Id { 0, { 0, 0 } }, std::make_shared<QByteArray>("height"));
 
         CHECK(spy_requested.size() == 1);
         REQUIRE(spy_loaded.size() == 1);
@@ -68,11 +68,11 @@ TEST_CASE("nucleus/tile_scheduler/layer assembler")
         QSignalSpy spy_loaded(&assembler, &LayerAssembler::tile_loaded);
         assembler.load(tile::Id { 0, { 0, 0 } });
 
-        assembler.deliver_height(tile::Id { 0, { 0, 0 } }, std::make_shared<const QByteArray>("height"));
+        assembler.deliver_height(tile::Id { 0, { 0, 0 } }, std::make_shared<QByteArray>("height"));
         CHECK(spy_requested.size() == 1);
         CHECK(spy_loaded.empty());
 
-        assembler.deliver_ortho(tile::Id { 0, { 0, 0 } }, std::make_shared<const QByteArray>("ortho"));
+        assembler.deliver_ortho(tile::Id { 0, { 0, 0 } }, std::make_shared<QByteArray>("ortho"));
 
         CHECK(spy_requested.size() == 1);
         REQUIRE(spy_loaded.size() == 1);
@@ -97,21 +97,21 @@ TEST_CASE("nucleus/tile_scheduler/layer assembler")
             CHECK(spy_requested.at(i).constFirst().value<tile::Id>() == tile::Id { unsigned(i), { 0, 0 } });
         }
 
-        assembler.deliver_height(tile::Id { 0, { 0, 0 } }, std::make_shared<const QByteArray>("height 0"));
-        assembler.deliver_ortho(tile::Id { 1, { 0, 0 } }, std::make_shared<const QByteArray>("ortho 1"));
-        assembler.deliver_height(tile::Id { 2, { 0, 0 } }, std::make_shared<const QByteArray>("height 2"));
+        assembler.deliver_height(tile::Id { 0, { 0, 0 } }, std::make_shared<QByteArray>("height 0"));
+        assembler.deliver_ortho(tile::Id { 1, { 0, 0 } }, std::make_shared<QByteArray>("ortho 1"));
+        assembler.deliver_height(tile::Id { 2, { 0, 0 } }, std::make_shared<QByteArray>("height 2"));
         CHECK(spy_loaded.empty());
         CHECK(assembler.n_items_in_flight() == 3);
 
-        assembler.deliver_ortho(tile::Id { 2, { 0, 0 } }, std::make_shared<const QByteArray>("ortho 2"));
+        assembler.deliver_ortho(tile::Id { 2, { 0, 0 } }, std::make_shared<QByteArray>("ortho 2"));
         CHECK(spy_loaded.size() == 1);
         CHECK(assembler.n_items_in_flight() == 2);
 
-        assembler.deliver_ortho(tile::Id { 0, { 0, 0 } }, std::make_shared<const QByteArray>("ortho 0"));
+        assembler.deliver_ortho(tile::Id { 0, { 0, 0 } }, std::make_shared<QByteArray>("ortho 0"));
         CHECK(spy_loaded.size() == 2);
         CHECK(assembler.n_items_in_flight() == 1);
 
-        assembler.deliver_height(tile::Id { 1, { 0, 0 } }, std::make_shared<const QByteArray>("height 1"));
+        assembler.deliver_height(tile::Id { 1, { 0, 0 } }, std::make_shared<QByteArray>("height 1"));
         CHECK(spy_loaded.size() == 3);
         CHECK(assembler.n_items_in_flight() == 0);
 
@@ -132,7 +132,7 @@ TEST_CASE("nucleus/tile_scheduler/layer assembler")
         QSignalSpy spy_loaded(&assembler, &LayerAssembler::tile_loaded);
         assembler.load(tile::Id { 0, { 0, 0 } });
 
-        assembler.deliver_height(tile::Id { 0, { 0, 0 } }, std::make_shared<const QByteArray>("height"));
+        assembler.deliver_height(tile::Id { 0, { 0, 0 } }, std::make_shared<QByteArray>("height"));
         assembler.report_missing_ortho(tile::Id { 0, { 0, 0 } });
 
         REQUIRE(spy_loaded.size() == 1);
@@ -149,7 +149,7 @@ TEST_CASE("nucleus/tile_scheduler/layer assembler")
         QSignalSpy spy_loaded(&assembler, &LayerAssembler::tile_loaded);
         assembler.load(tile::Id { 0, { 0, 0 } });
 
-        assembler.deliver_ortho(tile::Id { 0, { 0, 0 } }, std::make_shared<const QByteArray>("orthgo"));
+        assembler.deliver_ortho(tile::Id { 0, { 0, 0 } }, std::make_shared<QByteArray>("orthgo"));
         assembler.report_missing_height(tile::Id { 0, { 0, 0 } });
 
         REQUIRE(spy_loaded.size() == 1);

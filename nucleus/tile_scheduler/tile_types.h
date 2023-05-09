@@ -42,8 +42,8 @@ concept NamedTile = requires(T t) {
 
 struct LayeredTile {
     tile::Id id;
-    std::shared_ptr<const QByteArray> ortho;
-    std::shared_ptr<const QByteArray> height;
+    std::shared_ptr<QByteArray> ortho;
+    std::shared_ptr<QByteArray> height;
 };
 static_assert(NamedTile<LayeredTile>);
 

@@ -20,10 +20,30 @@
 
 #include <algorithm>
 #include <vector>
+#include <filesystem>
+
+#include <QFile>
+#include <zpp_bits.h>
 
 #include "sherpa/tile.h"
 #include "tile_types.h"
 #include "utils.h"
+
+namespace glm {
+
+template<typename T>
+constexpr auto serialize(auto & archive, const glm::vec<2, T> & vec)
+{
+    return archive(vec.x, vec.y);
+}
+
+template<typename T>
+constexpr auto serialize(auto & archive, glm::vec<2, T> & vec)
+{
+    return archive(vec.x, vec.y);
+}
+
+}
 
 namespace nucleus::tile_scheduler {
 
@@ -47,6 +67,8 @@ public:
     void visit(const VisitorFunction& functor); // functor should return true, if the given tile should be marked visited. stops descending if false is returned.
     const T& peak_at(const tile::Id& id) const;
     std::vector<T> purge();
+    void write_to_disk(const std::filesystem::path& path);
+    void read_from_disk(const std::filesystem::path& path);
 
 private:
     template <typename VisitorFunction>
@@ -85,6 +107,40 @@ template <tile_types::NamedTile T>
 const T& Cache<T>::peak_at(const tile::Id& id) const
 {
     return m_data.at(id).data;
+}
+
+template<tile_types::NamedTile T>
+void Cache<T>::write_to_disk(const std::filesystem::__cxx11::path& path)
+{
+    unsigned version = 0;
+    QByteArray data;
+    zpp::bits::out out(data);
+    out(version).or_throw();
+    out(m_data).or_throw();
+
+    QFile file(path);
+    const auto success = file.open(QIODeviceBase::WriteOnly);
+    if (!success)
+        throw std::runtime_error("Couldn't open cache file for writing!");
+
+    file.write(data);
+}
+
+template<tile_types::NamedTile T>
+void Cache<T>::read_from_disk(const std::filesystem::__cxx11::path& path)
+{
+
+    QFile file(path);
+    const auto success = file.open(QIODeviceBase::ReadOnly);
+    if (!success)
+        throw std::runtime_error("Couldn't open cache file for reading!");
+    const auto data = file.readAll();
+    zpp::bits::in in(data);
+    auto version = unsigned(-1);
+    in(version).or_throw();
+    if (version != 0)
+        throw std::runtime_error("Cache file has incompatible version.");
+    in(m_data);
 }
 
 template <tile_types::NamedTile T>

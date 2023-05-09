@@ -19,6 +19,7 @@
 #include "fmt/core.h"
 #include "nucleus/tile_scheduler/Cache.h"
 
+#include <QStandardPaths>
 #include <unordered_set>
 
 #include <QThread>
@@ -31,6 +32,15 @@ namespace {
 struct TestTile {
     tile::Id id;
     std::string data;
+};
+struct DiskWriteTestTileInner {
+    tile::Id id;
+    std::shared_ptr<QByteArray> data;
+};
+struct DiskWriteTestTile {
+    tile::Id id;
+    unsigned n_children = 0;
+    std::array<DiskWriteTestTileInner, 4> tiles;
 };
 }
 
@@ -269,5 +279,56 @@ TEST_CASE("nucleus/tile_scheduler/cache")
             CHECK(t.data == "red");
             return true;
         });
+    }
+
+    SECTION("write to disk and read back") {
+        const auto path = std::filesystem::path(QStandardPaths::writableLocation(QStandardPaths::CacheLocation).toStdString()) / "test_tile_cache.alp";
+        std::filesystem::remove_all(path);
+        {
+            const auto create_test_tile = [](const tile::Id& id) {
+                auto t = DiskWriteTestTile {id, 0, {}};
+
+                for (const auto& child_id : id.children()) {
+                    std::stringstream ss;
+                    ss << child_id;
+                    t.tiles[t.n_children++] = {child_id, std::make_shared<QByteArray>(ss.str().c_str())};
+                }
+                return t;
+            };
+
+            nucleus::tile_scheduler::Cache<DiskWriteTestTile> cache;
+            cache.insert({create_test_tile({0, {0, 0}}),
+                          create_test_tile({1, {1, 0}}),
+                          create_test_tile({1, {1, 1}}),
+                          create_test_tile({56, {20, 564}}),
+                         });
+
+            cache.write_to_disk(path);
+        }
+        {
+            nucleus::tile_scheduler::Cache<DiskWriteTestTile> cache;
+            const auto verify_tile = [&cache](const tile::Id& id) {
+                REQUIRE(cache.contains(id));
+                const auto& tile = cache.peak_at(id);
+                CHECK(tile.id == id);
+                CHECK(tile.n_children == 4);
+                const auto ref_children = id.children();
+                for (unsigned i = 0; i < 4; ++i) {
+                    CHECK(tile.tiles[i].id == ref_children[i]);
+                    REQUIRE(tile.tiles[i].data);
+                    std::stringstream ss;
+                    ss << ref_children[i];
+                    QByteArray ref_ba(ss.str().c_str());
+                    CHECK(*(tile.tiles[i].data) == ref_ba);
+                }
+            };
+
+            cache.read_from_disk(path);
+            verify_tile({0, {0, 0}});
+            verify_tile({1, {1, 0}});
+            verify_tile({1, {1, 1}});
+            verify_tile({56, {20, 564}});
+
+        }
     }
 }

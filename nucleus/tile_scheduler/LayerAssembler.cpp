@@ -35,13 +35,13 @@ void LayerAssembler::load(const tile::Id& tile_id)
     emit tile_requested(tile_id);
 }
 
-void LayerAssembler::deliver_ortho(const tile::Id& tile_id, const std::shared_ptr<const QByteArray>& ortho_data)
+void LayerAssembler::deliver_ortho(const tile::Id& tile_id, const std::shared_ptr<QByteArray>& ortho_data)
 {
     m_ortho_data[tile_id] = ortho_data;
     check_and_emit(tile_id);
 }
 
-void LayerAssembler::deliver_height(const tile::Id& tile_id, const std::shared_ptr<const QByteArray>& height_data)
+void LayerAssembler::deliver_height(const tile::Id& tile_id, const std::shared_ptr<QByteArray>& height_data)
 {
     m_height_data[tile_id] = height_data;
     check_and_emit(tile_id);
