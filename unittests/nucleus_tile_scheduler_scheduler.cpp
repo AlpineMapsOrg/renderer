@@ -360,8 +360,8 @@ TEST_CASE("nucleus/tile_scheduler/Scheduler")
         auto scheduler = default_scheduler();
         QSignalSpy spy(scheduler.get(), &nucleus::tile_scheduler::Scheduler::gpu_quads_updated);
         auto quads = example_tile_quad_for({ 0, { 0, 0 } }, 3);
-        quads.tiles[2].ortho.reset();
-        quads.tiles[2].height.reset();
+        quads.tiles[2].ortho->resize(0);
+        quads.tiles[2].height->resize(0);
 
         scheduler->receive_quads({
             quads,
@@ -592,20 +592,20 @@ TEST_CASE("nucleus/tile_scheduler/Scheduler")
             }
         }
 
-        CHECK(scheduler->ram_cache().peak_at(tile::Id { 0, { 0, 0 } }).tiles[0].id == tile::Id { 1, { 1, 1 } }); // order does not matter!
-        CHECK(scheduler->ram_cache().peak_at(tile::Id { 0, { 0, 0 } }).tiles[1].id == tile::Id { 1, { 0, 1 } });
-        CHECK(scheduler->ram_cache().peak_at(tile::Id { 0, { 0, 0 } }).tiles[2].id == tile::Id { 1, { 1, 0 } });
-        CHECK(scheduler->ram_cache().peak_at(tile::Id { 0, { 0, 0 } }).tiles[3].id == tile::Id { 1, { 0, 0 } });
+        CHECK(scheduler->ram_cache().peak_at(tile::Id { 0, { 0, 0 } }).tiles[0].id == tile::Id { 1, { 0, 0 } }); // order does not matter!
+        CHECK(scheduler->ram_cache().peak_at(tile::Id { 0, { 0, 0 } }).tiles[1].id == tile::Id { 1, { 1, 0 } });
+        CHECK(scheduler->ram_cache().peak_at(tile::Id { 0, { 0, 0 } }).tiles[2].id == tile::Id { 1, { 0, 1 } });
+        CHECK(scheduler->ram_cache().peak_at(tile::Id { 0, { 0, 0 } }).tiles[3].id == tile::Id { 1, { 1, 1 } });
 
-        CHECK(scheduler->ram_cache().peak_at(tile::Id { 1, { 1, 1 } }).tiles[0].id == tile::Id { 2, { 3, 3 } });
-        CHECK(scheduler->ram_cache().peak_at(tile::Id { 1, { 1, 1 } }).tiles[1].id == tile::Id { 2, { 2, 3 } });
-        CHECK(scheduler->ram_cache().peak_at(tile::Id { 1, { 1, 1 } }).tiles[2].id == tile::Id { 2, { 3, 2 } });
-        CHECK(scheduler->ram_cache().peak_at(tile::Id { 1, { 1, 1 } }).tiles[3].id == tile::Id { 2, { 2, 2 } });
+        CHECK(scheduler->ram_cache().peak_at(tile::Id { 1, { 1, 1 } }).tiles[0].id == tile::Id { 2, { 2, 2 } });
+        CHECK(scheduler->ram_cache().peak_at(tile::Id { 1, { 1, 1 } }).tiles[1].id == tile::Id { 2, { 3, 2 } });
+        CHECK(scheduler->ram_cache().peak_at(tile::Id { 1, { 1, 1 } }).tiles[2].id == tile::Id { 2, { 2, 3 } });
+        CHECK(scheduler->ram_cache().peak_at(tile::Id { 1, { 1, 1 } }).tiles[3].id == tile::Id { 2, { 3, 3 } });
 
-        CHECK(scheduler->ram_cache().peak_at(tile::Id { 2, { 2, 2 } }).tiles[0].id == tile::Id { 3, { 5, 5 } });
-        CHECK(scheduler->ram_cache().peak_at(tile::Id { 2, { 2, 2 } }).tiles[1].id == tile::Id { 3, { 4, 5 } });
-        CHECK(scheduler->ram_cache().peak_at(tile::Id { 2, { 2, 2 } }).tiles[2].id == tile::Id { 3, { 4, 4 } });
-        CHECK(scheduler->ram_cache().peak_at(tile::Id { 2, { 2, 2 } }).tiles[3].id == tile::Id { 3, { 5, 4 } });
+        CHECK(scheduler->ram_cache().peak_at(tile::Id { 2, { 2, 2 } }).tiles[0].id == tile::Id { 3, { 4, 4 } });
+        CHECK(scheduler->ram_cache().peak_at(tile::Id { 2, { 2, 2 } }).tiles[1].id == tile::Id { 3, { 5, 4 } });
+        CHECK(scheduler->ram_cache().peak_at(tile::Id { 2, { 2, 2 } }).tiles[2].id == tile::Id { 3, { 4, 5 } });
+        CHECK(scheduler->ram_cache().peak_at(tile::Id { 2, { 2, 2 } }).tiles[3].id == tile::Id { 3, { 5, 5 } });
     }
 }
 

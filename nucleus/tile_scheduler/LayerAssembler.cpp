@@ -49,13 +49,13 @@ void LayerAssembler::deliver_height(const tile::Id& tile_id, const std::shared_p
 
 void LayerAssembler::report_missing_ortho(const tile::Id& tile_id)
 {
-    m_ortho_data[tile_id] = {};
+    m_ortho_data[tile_id] = std::make_shared<QByteArray>();
     check_and_emit(tile_id);
 }
 
 void LayerAssembler::report_missing_height(const tile::Id& tile_id)
 {
-    m_height_data[tile_id] = {};
+    m_height_data[tile_id] = std::make_shared<QByteArray>();
     check_and_emit(tile_id);
 }
 

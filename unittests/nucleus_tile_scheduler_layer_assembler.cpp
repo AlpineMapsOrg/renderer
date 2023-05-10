@@ -138,8 +138,8 @@ TEST_CASE("nucleus/tile_scheduler/layer assembler")
         REQUIRE(spy_loaded.size() == 1);
         auto loaded_tile = spy_loaded.constFirst().constFirst().value<LayeredTile>();
         CHECK(loaded_tile.id == tile::Id { 0, { 0, 0 } });
-        REQUIRE(!loaded_tile.ortho);
-        REQUIRE(loaded_tile.height);
+        REQUIRE(!loaded_tile.ortho->size());
+        REQUIRE(loaded_tile.height->size());
         CHECK(*loaded_tile.height == QByteArray("height"));
         CHECK(assembler.n_items_in_flight() == 0);
     }
@@ -155,8 +155,8 @@ TEST_CASE("nucleus/tile_scheduler/layer assembler")
         REQUIRE(spy_loaded.size() == 1);
         auto loaded_tile = spy_loaded.constFirst().constFirst().value<LayeredTile>();
         CHECK(loaded_tile.id == tile::Id { 0, { 0, 0 } });
-        REQUIRE(loaded_tile.ortho);
-        REQUIRE(!loaded_tile.height);
+        REQUIRE(loaded_tile.ortho->size());
+        REQUIRE(!loaded_tile.height->size());
         CHECK(*loaded_tile.ortho == QByteArray("orthgo"));
         CHECK(assembler.n_items_in_flight() == 0);
     }

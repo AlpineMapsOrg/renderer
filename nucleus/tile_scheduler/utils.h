@@ -162,8 +162,5 @@ namespace utils {
             return constants::TimestampType(time_since_epoch() - m_creation_time);
         }
     };
-
-    void write_tile_id_2_data_map(const TileId2DataMap& map, const std::filesystem::path& path);
-    TileId2DataMap read_tile_id_2_data_map(const std::filesystem::path& path);
 }
 }
