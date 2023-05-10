@@ -290,7 +290,8 @@ TEST_CASE("nucleus/tile_scheduler/cache")
 
                 for (const auto& child_id : id.children()) {
                     std::stringstream ss;
-                    ss << child_id;
+                    for (int i = 0; i < 1000; ++i)
+                        ss << child_id;
                     t.tiles[t.n_children++] = {child_id, std::make_shared<QByteArray>(ss.str().c_str())};
                 }
                 return t;
@@ -298,10 +299,14 @@ TEST_CASE("nucleus/tile_scheduler/cache")
 
             nucleus::tile_scheduler::Cache<DiskWriteTestTile> cache;
             cache.insert({create_test_tile({0, {0, 0}}),
-                          create_test_tile({1, {1, 0}}),
-                          create_test_tile({1, {1, 1}}),
-                          create_test_tile({56, {20, 564}}),
-                         });
+                          create_test_tile({356, {20, 564}}),});
+            for (unsigned i = 1; i < 1000; ++i) {
+                  cache.insert({create_test_tile({i, {0, 0}}),
+                                create_test_tile({i, {1, 0}}),
+                                create_test_tile({i, {1, 1}}),
+                                create_test_tile({i, {0, 1}}),
+                               });
+              }
 
             cache.write_to_disk(path);
         }
@@ -317,7 +322,8 @@ TEST_CASE("nucleus/tile_scheduler/cache")
                     CHECK(tile.tiles[i].id == ref_children[i]);
                     REQUIRE(tile.tiles[i].data);
                     std::stringstream ss;
-                    ss << ref_children[i];
+                    for (int j = 0; j < 1000; ++j)
+                        ss << ref_children[i];
                     QByteArray ref_ba(ss.str().c_str());
                     CHECK(*(tile.tiles[i].data) == ref_ba);
                 }
@@ -325,10 +331,13 @@ TEST_CASE("nucleus/tile_scheduler/cache")
 
             cache.read_from_disk(path);
             verify_tile({0, {0, 0}});
-            verify_tile({1, {1, 0}});
-            verify_tile({1, {1, 1}});
-            verify_tile({56, {20, 564}});
-
+            verify_tile({356, {20, 564}});
+            for (unsigned i = 1; i < 1000; ++i) {
+                  verify_tile({i, {0, 0}});
+                  verify_tile({i, {1, 0}});
+                  verify_tile({i, {1, 1}});
+                  verify_tile({i, {0, 1}});
+            }
         }
     }
 }

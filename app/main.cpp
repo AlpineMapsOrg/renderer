@@ -45,6 +45,8 @@ int main(int argc, char **argv)
     //    QGuiApplication::setHighDpiScaleFactorRoundingPolicy(Qt::HighDpiScaleFactorRoundingPolicy::Floor);
     QQuickWindow::setGraphicsApi(QSGRendererInterface::GraphicsApi::OpenGLRhi);
     QGuiApplication app(argc, argv);
+    QCoreApplication::setOrganizationName("AlpineMaps.org");
+    QCoreApplication::setApplicationName("AlpineApp");
     QQuickStyle::setStyle("Material");
 
     //    QLoggingCategory::setFilterRules("*.debug=true\n"

@@ -73,6 +73,8 @@
 int main(int argc, char* argv[])
 {
     QGuiApplication app(argc, argv);
+    QCoreApplication::setOrganizationName("AlpineMaps.org");
+    QCoreApplication::setApplicationName("PlainRenderer");
 
     QSurfaceFormat fmt;
     fmt.setDepthBufferSize(24);

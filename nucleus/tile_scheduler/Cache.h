@@ -140,7 +140,7 @@ void Cache<T>::read_from_disk(const std::filesystem::__cxx11::path& path)
     in(version).or_throw();
     if (version != 0)
         throw std::runtime_error("Cache file has incompatible version.");
-    in(m_data);
+    in(m_data).or_throw();
 }
 
 template <tile_types::NamedTile T>

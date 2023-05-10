@@ -57,8 +57,9 @@ CATCH_REGISTER_LISTENER(ProgressPrinter)
 #endif
 
 int main( int argc, char* argv[] ) {
-    int argc_qt = 0;
+    int argc_qt = 1;
     QGuiApplication app = {argc_qt, argv};
+    QCoreApplication::setOrganizationName("AlpineMaps.org");
     int result = Catch::Session().run( argc, argv );
     std::fflush(stdout);
     return result;

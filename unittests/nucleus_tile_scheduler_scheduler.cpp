@@ -648,4 +648,21 @@ TEST_CASE("nucleus/tile_scheduler/Scheduler benchmarks")
         scheduler->receive_quads(example_quads_for_steffl_and_gg());
         scheduler->purge_ram_cache();
     };
+
+    BENCHMARK("write cache to disk") {
+        auto scheduler = default_scheduler();
+        for (unsigned i = 1; i < 100; ++i) {
+              scheduler->receive_quads({example_tile_quad_for({i, {0, 0}}),
+                                        example_tile_quad_for({i, {1, 0}}),
+                                        example_tile_quad_for({i, {1, 1}}),
+                                        example_tile_quad_for({i, {0, 1}}),
+                                       });
+        }
+        scheduler->persist_tiles();
+    };
+
+    BENCHMARK("read cache from disk") {
+        auto scheduler = scheduler_with_disk_cache();
+    };
+    std::filesystem::remove_all(nucleus::tile_scheduler::Scheduler::disk_cache_path());
 }
