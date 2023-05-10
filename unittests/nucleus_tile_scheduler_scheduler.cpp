@@ -651,6 +651,7 @@ TEST_CASE("nucleus/tile_scheduler/Scheduler benchmarks")
 
     BENCHMARK("write cache to disk") {
         auto scheduler = default_scheduler();
+        scheduler->receive_quads({example_tile_quad_for({0, {0, 0}}),});
         for (unsigned i = 1; i < 100; ++i) {
               scheduler->receive_quads({example_tile_quad_for({i, {0, 0}}),
                                         example_tile_quad_for({i, {1, 0}}),
@@ -664,5 +665,5 @@ TEST_CASE("nucleus/tile_scheduler/Scheduler benchmarks")
     BENCHMARK("read cache from disk") {
         auto scheduler = scheduler_with_disk_cache();
     };
-    std::filesystem::remove_all(nucleus::tile_scheduler::Scheduler::disk_cache_path());
+//    std::filesystem::remove_all(nucleus::tile_scheduler::Scheduler::disk_cache_path());
 }
