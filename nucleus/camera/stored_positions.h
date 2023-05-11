@@ -40,18 +40,22 @@ inline nucleus::camera::Definition grossglockner()
 }
 inline nucleus::camera::Definition sankt_wolfgang()
 {
-    return { { 1497054.5684504572, 6063356.00872615 - 500, 548 + 100 }, { 1497054.5684504572, 6063356.00872615, 548 } };
+    const auto coords = srs::lat_long_alt_to_world({ 47.73963, 13.43980, 542 });
+    return { { coords.x, coords.y - 500, coords.z + 100 }, { coords.x, coords.y, coords.z } };
 }
 inline nucleus::camera::Definition grubenkarspitze()
 {
-    return { { 1282635.4180640853 + 300, 6004450.05623309 + 400, 2663 + 200 }, { 1282635.4180640853, 6004450.05623309, 2663 } };
+    const auto coords = srs::lat_long_alt_to_world({ 47.38078, 11.52211, 2663 });
+    return { { coords.x + 300, coords.y + 400, coords.z + 200 }, { coords.x, coords.y, coords.z } };
 }
 inline nucleus::camera::Definition oetschergraeben()
 {
-    return { { 1701871.2995610011 + 100, 6082332.828420961 + 100, 630 + 200 }, { 1701871.2995610011, 6082332.828420961, 630 } };
+    const auto coords = srs::lat_long_alt_to_world({ 47.85239, 15.28817, 630 });
+    return { { coords.x + 100, coords.y + 100, coords.z + 200 }, { coords.x, coords.y, coords.z } };
 }
 inline nucleus::camera::Definition gimpel()
 {
-    return { { 1181376.9828487078 - 900, 6024281.384489921 + 400, 2176 + 200 }, { 1181376.9828487078, 6024281.384489921, 2176 - 50 } };
+    const auto coords = srs::lat_long_alt_to_world({ 47.50127, 10.61249, 2176 });
+    return { { coords.x - 900, coords.y + 400, coords.z + 200 }, { coords.x, coords.y, coords.z - 50 } };
 }
 }
