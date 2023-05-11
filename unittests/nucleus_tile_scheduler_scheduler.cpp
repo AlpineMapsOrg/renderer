@@ -34,7 +34,7 @@
 
 namespace {
 
-std::unique_ptr<nucleus::tile_scheduler::Scheduler> scheduler_with_disk_cache()
+std::unique_ptr<nucleus::tile_scheduler::Scheduler> default_scheduler()
 {
     static auto ortho_tile = nucleus::tile_scheduler::Scheduler::white_jpeg_tile(256);
     static auto height_tile = nucleus::tile_scheduler::Scheduler::black_png_tile(64);
@@ -51,11 +51,13 @@ std::unique_ptr<nucleus::tile_scheduler::Scheduler> scheduler_with_disk_cache()
     return scheduler;
 }
 
-std::unique_ptr<nucleus::tile_scheduler::Scheduler> default_scheduler()
+std::unique_ptr<nucleus::tile_scheduler::Scheduler> scheduler_with_disk_cache()
 {
-    std::filesystem::remove_all(nucleus::tile_scheduler::Scheduler::disk_cache_path());
-    return scheduler_with_disk_cache();
+    auto sch = default_scheduler();
+    sch->read_disk_cache();
+    return sch;
 }
+
 std::unique_ptr<nucleus::tile_scheduler::Scheduler> scheduler_with_aabb()
 {
     std::filesystem::remove_all(nucleus::tile_scheduler::Scheduler::disk_cache_path());
@@ -516,7 +518,8 @@ TEST_CASE("nucleus/tile_scheduler/Scheduler")
         auto scheduler = default_scheduler();
         // example_quads_for_steffl_and_gg().size() == 39
         const unsigned limit = 38;
-        assert(example_quads_for_steffl_and_gg().size() > limit);
+        REQUIRE(example_quads_for_steffl_and_gg().size() > limit);
+        REQUIRE(example_quads_for_steffl_and_gg().size() == 39);
         scheduler->set_ram_quad_limit(limit);
         scheduler->set_purge_timeout(1);
         scheduler->receive_quads(example_quads_for_steffl_and_gg());
@@ -649,7 +652,7 @@ TEST_CASE("nucleus/tile_scheduler/Scheduler benchmarks")
         scheduler->purge_ram_cache();
     };
 
-    BENCHMARK("write cache to disk") {
+    {
         auto scheduler = default_scheduler();
         scheduler->receive_quads({example_tile_quad_for({0, {0, 0}}),});
         for (unsigned i = 1; i < 100; ++i) {
@@ -659,11 +662,13 @@ TEST_CASE("nucleus/tile_scheduler/Scheduler benchmarks")
                                         example_tile_quad_for({i, {0, 1}}),
                                        });
         }
-        scheduler->persist_tiles();
-    };
+        BENCHMARK("write cache to disk") {
+            scheduler->persist_tiles();
+        };
+    }
 
     BENCHMARK("read cache from disk") {
         auto scheduler = scheduler_with_disk_cache();
     };
-//    std::filesystem::remove_all(nucleus::tile_scheduler::Scheduler::disk_cache_path());
+    std::filesystem::remove_all(nucleus::tile_scheduler::Scheduler::disk_cache_path());
 }

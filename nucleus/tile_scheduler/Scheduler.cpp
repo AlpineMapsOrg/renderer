@@ -23,6 +23,8 @@
 #include <QBuffer>
 #include <QStandardPaths>
 #include <QTimer>
+#include <fmt/core.h>
+#include <fmt/chrono.h>
 
 #include "nucleus/tile_scheduler/utils.h"
 #include "nucleus/utils/tile_conversion.h"
@@ -53,7 +55,6 @@ Scheduler::Scheduler(const QByteArray& default_ortho_tile, const QByteArray& def
 
     m_default_ortho_tile = std::make_shared<QByteArray>(default_ortho_tile);
     m_default_height_tile = std::make_shared<QByteArray>(default_height_tile);
-    read_disk_cache();
 }
 
 Scheduler::~Scheduler() = default;
@@ -119,6 +120,7 @@ void Scheduler::update_gpu_quads()
         return should_refine(quad.id);
     });
 
+    m_gpu_cached.set_capacity(m_gpu_quad_limit);
     const auto superfluous_quads = m_gpu_cached.purge();
 
     // elimitate double entries (happens when the gpu has not enough space for all quads selected above)
@@ -149,13 +151,15 @@ void Scheduler::send_quad_requests()
 
 void Scheduler::purge_ram_cache()
 {
-    if (m_ram_cache.n_cached_objects() < unsigned(float(m_ram_quad_limit) * 1.1f))
+    if (m_ram_cache.n_cached_objects() <= unsigned(float(m_ram_quad_limit) * 1.05f)){
         return;
+    }
 
     const auto should_refine = tile_scheduler::utils::refineFunctor(m_current_camera, m_aabb_decorator, m_permissible_screen_space_error, m_ortho_tile_size);
     m_ram_cache.visit([&should_refine](const tile_types::TileQuad& quad) {
         return should_refine(quad.id);
     });
+    m_ram_cache.set_capacity(m_ram_quad_limit);
     m_ram_cache.purge();
 }
 
@@ -281,13 +285,11 @@ void Scheduler::set_purge_timeout(unsigned int new_purge_timeout)
 void Scheduler::set_ram_quad_limit(unsigned int new_ram_quad_limit)
 {
     m_ram_quad_limit = new_ram_quad_limit;
-    m_ram_cache.set_capacity(new_ram_quad_limit);
 }
 
 void Scheduler::set_gpu_quad_limit(unsigned int new_gpu_quad_limit)
 {
     m_gpu_quad_limit = new_gpu_quad_limit;
-    m_gpu_cached.set_capacity(m_gpu_quad_limit);
 }
 
 void Scheduler::set_aabb_decorator(const utils::AabbDecoratorPtr& new_aabb_decorator)
