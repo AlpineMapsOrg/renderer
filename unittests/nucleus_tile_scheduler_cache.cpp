@@ -41,7 +41,16 @@ struct DiskWriteTestTile {
     tile::Id id;
     unsigned n_children = 0;
     std::array<DiskWriteTestTileInner, 4> tiles;
+    static constexpr std::array<char, 25> version_information = {"DiskWriteTestTile"};
 };
+static_assert(nucleus::tile_scheduler::tile_types::SerialisableTile<DiskWriteTestTile>);
+struct DiskWriteTestTile2 {
+    tile::Id id;
+    unsigned n_children = 0;
+    std::array<DiskWriteTestTileInner, 4> tiles;
+    static constexpr const std::array<char, 25> version_information = {"DiskWriteTestTile2"};
+};
+static_assert(nucleus::tile_scheduler::tile_types::SerialisableTile<DiskWriteTestTile2>);
 }
 
 TEST_CASE("nucleus/tile_scheduler/cache")
@@ -281,21 +290,21 @@ TEST_CASE("nucleus/tile_scheduler/cache")
         });
     }
 
+    const auto create_test_tile = [](const tile::Id& id) {
+        auto t = DiskWriteTestTile {id, 0, {}};
+
+        for (const auto& child_id : id.children()) {
+            std::stringstream ss;
+            for (int i = 0; i < 1000; ++i)
+                ss << child_id;
+            t.tiles[t.n_children++] = {child_id, std::make_shared<QByteArray>(ss.str().c_str())};
+        }
+        return t;
+    };
     SECTION("write to disk and read back") {
         const auto path = std::filesystem::path(QStandardPaths::writableLocation(QStandardPaths::CacheLocation).toStdString()) / "test_tile_cache.alp";
         std::filesystem::remove_all(path);
         {
-            const auto create_test_tile = [](const tile::Id& id) {
-                auto t = DiskWriteTestTile {id, 0, {}};
-
-                for (const auto& child_id : id.children()) {
-                    std::stringstream ss;
-                    for (int i = 0; i < 1000; ++i)
-                        ss << child_id;
-                    t.tiles[t.n_children++] = {child_id, std::make_shared<QByteArray>(ss.str().c_str())};
-                }
-                return t;
-            };
 
             nucleus::tile_scheduler::Cache<DiskWriteTestTile> cache;
             cache.insert({create_test_tile({0, {0, 0}}),
@@ -307,7 +316,6 @@ TEST_CASE("nucleus/tile_scheduler/cache")
                                 create_test_tile({i, {0, 1}}),
                                });
               }
-
             cache.write_to_disk(path);
         }
         {
@@ -338,6 +346,22 @@ TEST_CASE("nucleus/tile_scheduler/cache")
                   verify_tile({i, {1, 1}});
                   verify_tile({i, {0, 1}});
             }
+        }
+        std::filesystem::remove_all(path);
+    }
+
+    SECTION("reading disk cache back fails on bad version") {
+        const auto path = std::filesystem::path(QStandardPaths::writableLocation(QStandardPaths::CacheLocation).toStdString()) / "test_tile_cache.alp";
+        std::filesystem::remove_all(path);
+        {
+            nucleus::tile_scheduler::Cache<DiskWriteTestTile> cache;
+            cache.insert({create_test_tile({0, {0, 0}}),
+                          create_test_tile({356, {20, 564}}),});
+            cache.write_to_disk(path);
+        }
+        {
+            nucleus::tile_scheduler::Cache<DiskWriteTestTile2> cache;
+            CHECK_THROWS(cache.read_from_disk(path));
         }
     }
 }

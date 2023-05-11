@@ -23,6 +23,7 @@
 #include <filesystem>
 
 #include <QFile>
+#include <fmt/format.h>
 #include <zpp_bits.h>
 
 #include "sherpa/tile.h"
@@ -67,6 +68,7 @@ public:
     void visit(const VisitorFunction& functor); // functor should return true, if the given tile should be marked visited. stops descending if false is returned.
     const T& peak_at(const tile::Id& id) const;
     std::vector<T> purge();
+
     void write_to_disk(const std::filesystem::path& path);
     void read_from_disk(const std::filesystem::path& path);
 
@@ -109,38 +111,118 @@ const T& Cache<T>::peak_at(const tile::Id& id) const
     return m_data.at(id).data;
 }
 
-template<tile_types::NamedTile T>
-void Cache<T>::write_to_disk(const std::filesystem::__cxx11::path& path)
-{
-    unsigned version = 0;
-    QByteArray data;
-    zpp::bits::out out(data);
-    out(version).or_throw();
-    out(m_data).or_throw();
+//template<tile_types::NamedTile T>
+//void Cache<T>::write_to_disk(const std::filesystem::path& path)
+//{
+//    unsigned version = 0;
+//    QByteArray data;
+//    zpp::bits::out out(data);
+//    out(version).or_throw();
+//    out(m_data).or_throw();
 
+//    QFile file(path);
+//    const auto success = file.open(QIODeviceBase::WriteOnly);
+//    if (!success)
+//        throw std::runtime_error("Couldn't open cache file for writing!");
+
+//    file.write(data);
+//}
+
+template<tile_types::NamedTile T>
+void Cache<T>::write_to_disk(const std::filesystem::path& path) {
+    assert(tile_types::SerialisableTile<T>);
     QFile file(path);
     const auto success = file.open(QIODeviceBase::WriteOnly);
     if (!success)
-        throw std::runtime_error("Couldn't open cache file for writing!");
+        throw std::runtime_error("Couldn't open file for writing!");
 
-    file.write(data);
+    {
+        std::vector<char> meta_data_bytes;
+        zpp::bits::out out(meta_data_bytes);
+        const std::remove_cvref_t<decltype(T::version_information)> version = T::version_information;
+        out(version).or_throw();
+        u_int32_t n_tiles = m_data.size();
+        out(n_tiles).or_throw();
+        file.write(meta_data_bytes.data(), qint64(meta_data_bytes.size()));
+    }
+    std::vector<char> size_info_bytes;
+    std::vector<char> cache_object_bytes;
+    for (const auto& item : m_data) {
+        zpp::bits::out out(cache_object_bytes);
+        zpp::bits::out out_size(size_info_bytes);
+        out(item.second).or_throw();
+        const auto bytes_written = u_int32_t(cache_object_bytes.size());
+        out_size(bytes_written).or_throw();
+        file.write(size_info_bytes.data(), qint64(size_info_bytes.size()));
+        file.write(cache_object_bytes.data(), qint64(cache_object_bytes.size()));
+        cache_object_bytes.resize(0);
+        size_info_bytes.resize(0);
+    }
 }
 
-template<tile_types::NamedTile T>
-void Cache<T>::read_from_disk(const std::filesystem::__cxx11::path& path)
-{
+//template<tile_types::NamedTile T>
+//void Cache<T>::read_from_disk(const std::filesystem::__cxx11::path& path)
+//{
 
+//    QFile file(path);
+//    const auto success = file.open(QIODeviceBase::ReadOnly);
+//    if (!success)
+//        throw std::runtime_error("Couldn't open cache file for reading!");
+//    const auto data = file.readAll();
+//    zpp::bits::in in(data);
+//    auto version = unsigned(-1);
+//    in(version).or_throw();
+//    if (version != 0)
+//        throw std::runtime_error("Cache file has incompatible version.");
+//    in(m_data).or_throw();
+//}
+
+template<tile_types::NamedTile T>
+void Cache<T>::read_from_disk(const std::filesystem::path& path)
+{
+    assert(tile_types::SerialisableTile<T>);
     QFile file(path);
     const auto success = file.open(QIODeviceBase::ReadOnly);
     if (!success)
         throw std::runtime_error("Couldn't open cache file for reading!");
-    const auto data = file.readAll();
-    zpp::bits::in in(data);
-    auto version = unsigned(-1);
-    in(version).or_throw();
-    if (version != 0)
-        throw std::runtime_error("Cache file has incompatible version.");
-    in(m_data).or_throw();
+
+    {
+        std::remove_cvref_t<decltype(T::version_information)> version_info = {};
+        auto n_tiles = u_int32_t(-1);
+        std::vector<char> meta_data_bytes (sizeof(version_info) + sizeof(n_tiles));
+        file.read(meta_data_bytes.data(), qint64(meta_data_bytes.size()));
+        zpp::bits::in in(meta_data_bytes);
+        in(version_info).or_throw();
+
+        if (version_info != T::version_information) {
+            version_info[version_info.size() - 1] = 0;  // make sure that the string is 0 terminated.
+            throw std::runtime_error(fmt::format("Cache file has incompatible version! Disk version is '{}', but we expected '{}'.",
+                                                 version_info.data(),
+                                                 T::version_information.data()));
+        }
+
+        in(n_tiles).or_throw();
+        assert(n_tiles != u_int32_t(-1));
+        m_data.reserve(n_tiles);
+    }
+
+    std::vector<char> size_info_bytes(sizeof(u_int32_t));
+    std::vector<char> cache_object_bytes;
+    while(file.read(size_info_bytes.data(), qint64(size_info_bytes.size()))) {
+        zpp::bits::in in_size(size_info_bytes);
+        u_int32_t bytes_to_read = 0;
+        in_size(bytes_to_read).or_throw();
+
+        cache_object_bytes.resize(bytes_to_read);
+        const auto bytes_read = file.read(cache_object_bytes.data(), qint64(cache_object_bytes.size()));
+        if (bytes_read != bytes_to_read)
+            throw std::runtime_error("Cache file corrupted!");
+
+        zpp::bits::in in(cache_object_bytes);
+        CacheObject d;
+        in(d).or_throw();
+        m_data[d.data.id] = d;
+    }
 }
 
 template <tile_types::NamedTile T>

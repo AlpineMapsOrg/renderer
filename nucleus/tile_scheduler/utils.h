@@ -18,6 +18,10 @@
 
 #pragma once
 
+#if !(defined(_LIBCPP_VERSION) && (_LIBCPP_VERSION >= 15000))
+#include <concepts>
+#endif
+
 #include <QByteArray>
 
 #include "constants.h"
@@ -68,9 +72,20 @@ namespace utils {
     template <class T, class U>
     concept convertible_to = std::is_convertible_v<T, U>;
 
+    namespace detail {
+        template< class T, class U >
+        concept SameHelper = std::is_same_v<T, U>;
+    }
+
+    template< class T, class U >
+    concept same_as = detail::SameHelper<T, U> && detail::SameHelper<U, T>;
+
 #else
     template <class T, class U>
     concept convertible_to = std::convertible_to<T, U>;
+
+    template <class T, class U>
+    concept same_as = std::same_as<T, U>;
 #endif
 
     inline tile::SrsAndHeightBounds make_bounds(const tile::Id& id, float min_height, float max_height)
