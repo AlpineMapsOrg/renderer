@@ -59,14 +59,15 @@ Rectangle {
             function my_scale() {
 
                 let distance_scale = Math.max(0.4, model.size)
-                let importance_scale = model.importance / 10;
+                let importance_scale = (model.importance - renderer.label_set) / 10;
                 let min_scale = 0.1;
                 return (min_scale + (1.0-min_scale) * importance_scale) * distance_scale * 2.0;
             }
             x: model.x * label_view.width / renderer.camera_width
             y: model.y * (label_view.height + 60) / renderer.camera_height - 60
             z:  50 * my_scale()
-            visible: model.importance >= 8 || label_visibility.checked
+//            visible: model.importance < 10 && label_visibility.checked
+            visible: model.importance - renderer.label_set >= 0 && model.importance - renderer.label_set < 10 && label_visibility.checked
             Image {
                 id: icon
                 source: "qrc:/icons/peak.svg"

@@ -140,6 +140,18 @@ Window {
         id: map
         focus: true
         anchors.fill: parent
+        property int label_set: 0
+
+        Keys.onPressed: (event) => {
+                            if (event.key === Qt.Key_L) label_set = 10;
+                            if (event.key === Qt.Key_K) label_set = 20;
+                            if (event.key === Qt.Key_J) label_set = 30;
+                            if (event.key === Qt.Key_H) label_set = 0;
+                            if (event.key === Qt.Key_G) label_set = 50;
+                            if (event.key === Qt.Key_F) label_set = 60;
+                            if (event.key === Qt.Key_N) label_set = 90;
+                            if (event.key === Qt.Key_M) label_set = 0;
+                        }
     }
 
     StackView {

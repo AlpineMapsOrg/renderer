@@ -156,14 +156,22 @@ void Controller::key_press(const QKeyCombination& e)
         m_interaction_style->reset_interaction(m_definition, m_depth_tester);
     }
     if (e.key() == Qt::Key_K) {
-        set_definition(stored_positions::grubenkarspitze());
+        set_definition(stored_positions::sankt_wolfgang());
         m_interaction_style->reset_interaction(m_definition, m_depth_tester);
     }
     if (e.key() == Qt::Key_J) {
-        set_definition(stored_positions::oetschergraeben());
+        set_definition(stored_positions::grubenkarspitze());
         m_interaction_style->reset_interaction(m_definition, m_depth_tester);
     }
     if (e.key() == Qt::Key_H) {
+        set_definition(stored_positions::grossglockner());
+        m_interaction_style->reset_interaction(m_definition, m_depth_tester);
+    }
+    if (e.key() == Qt::Key_G) {
+        set_definition(stored_positions::oetschergraeben());
+        m_interaction_style->reset_interaction(m_definition, m_depth_tester);
+    }
+    if (e.key() == Qt::Key_F) {
         set_definition(stored_positions::gimpel());
         m_interaction_style->reset_interaction(m_definition, m_depth_tester);
     }
