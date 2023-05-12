@@ -60,11 +60,7 @@ Controller::Controller(AbstractRenderWindow* render_window)
     m_tile_scheduler = std::make_unique<nucleus::tile_scheduler::Scheduler>();
     m_tile_scheduler->read_disk_cache();
     m_tile_scheduler->set_gpu_quad_limit(400);
-#ifdef __EMSCRIPTEN__
-    m_tile_scheduler->set_ram_quad_limit(1000);
-#else
     m_tile_scheduler->set_ram_quad_limit(12000);
-#endif
     {
         QFile file(":/map/height_data.atb");
         const auto open = file.open(QIODeviceBase::OpenModeFlag::ReadOnly);

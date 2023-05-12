@@ -269,7 +269,7 @@ std::filesystem::path Scheduler::disk_cache_path()
 {
     const auto base_path = std::filesystem::path(QStandardPaths::writableLocation(QStandardPaths::CacheLocation).toStdString());
     std::filesystem::create_directories(base_path);
-    return  base_path / "tile_cache.alp";
+    return  base_path / "tile_cache";
 }
 
 void Scheduler::set_purge_timeout(unsigned int new_purge_timeout)

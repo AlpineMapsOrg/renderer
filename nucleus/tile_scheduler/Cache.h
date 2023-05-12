@@ -21,6 +21,7 @@
 #include <algorithm>
 #include <vector>
 #include <filesystem>
+#include <unordered_set>
 
 #include <QFile>
 #include <fmt/format.h>
@@ -56,6 +57,7 @@ class Cache {
     };
 
     std::unordered_map<tile::Id, CacheObject, tile::Id::Hasher> m_data;
+    std::unordered_set<tile::Id, tile::Id::Hasher> m_disk_cached;
     unsigned m_capacity = 5000;
 
 public:
@@ -111,89 +113,55 @@ const T& Cache<T>::peak_at(const tile::Id& id) const
     return m_data.at(id).data;
 }
 
-//template<tile_types::NamedTile T>
-//void Cache<T>::write_to_disk(const std::filesystem::path& path)
-//{
-//    unsigned version = 0;
-//    QByteArray data;
-//    zpp::bits::out out(data);
-//    out(version).or_throw();
-//    out(m_data).or_throw();
-
-//    QFile file(path);
-//    const auto success = file.open(QIODeviceBase::WriteOnly);
-//    if (!success)
-//        throw std::runtime_error("Couldn't open cache file for writing!");
-
-//    file.write(data);
-//}
-
 template<tile_types::NamedTile T>
-void Cache<T>::write_to_disk(const std::filesystem::path& path) {
+void Cache<T>::write_to_disk(const std::filesystem::path& base_path) {
     assert(tile_types::SerialisableTile<T>);
-    QFile file(path);
-    const auto success = file.open(QIODeviceBase::WriteOnly);
-    if (!success)
-        throw std::runtime_error("Couldn't open file for writing!");
+    std::filesystem::create_directories(base_path);
+    const auto path_to = [&base_path](const tile::Id& id) {
+        return base_path / fmt::format("{}_{}_{}.alp_tile", id.zoom_level, id.coords.x, id.coords.y);
+    };
 
-    {
-        std::vector<char> meta_data_bytes;
-        zpp::bits::out out(meta_data_bytes);
+    for (const auto& id : m_disk_cached) {
+        if (m_data.contains(id))
+            continue;
+        std::filesystem::remove(path_to(id));
+    }
+
+    for (const auto& item : m_data) {
+        const tile::Id& id = item.first;
+        if (m_disk_cached.contains(id))
+            continue;
+        const auto path = path_to(id);
+        QFile file(path);
+        const auto success = file.open(QIODeviceBase::WriteOnly);
+        if (!success)
+            throw std::runtime_error(fmt::format("Couldn't open file '{}' for writing!", path.string()));
+
+        std::vector<char> bytes;
+        zpp::bits::out out(bytes);
         const std::remove_cvref_t<decltype(T::version_information)> version = T::version_information;
         out(version).or_throw();
-        u_int32_t n_tiles = m_data.size();
-        out(n_tiles).or_throw();
-        file.write(meta_data_bytes.data(), qint64(meta_data_bytes.size()));
-    }
-    std::vector<char> size_info_bytes;
-    std::vector<char> cache_object_bytes;
-    for (const auto& item : m_data) {
-        zpp::bits::out out(cache_object_bytes);
-        zpp::bits::out out_size(size_info_bytes);
         out(item.second).or_throw();
-        const auto bytes_written = u_int32_t(cache_object_bytes.size());
-        out_size(bytes_written).or_throw();
-        file.write(size_info_bytes.data(), qint64(size_info_bytes.size()));
-        file.write(cache_object_bytes.data(), qint64(cache_object_bytes.size()));
-        cache_object_bytes.resize(0);
-        size_info_bytes.resize(0);
+        file.write(bytes.data(), qint64(bytes.size()));
+        m_disk_cached.insert(id);
     }
 }
-
-//template<tile_types::NamedTile T>
-//void Cache<T>::read_from_disk(const std::filesystem::__cxx11::path& path)
-//{
-
-//    QFile file(path);
-//    const auto success = file.open(QIODeviceBase::ReadOnly);
-//    if (!success)
-//        throw std::runtime_error("Couldn't open cache file for reading!");
-//    const auto data = file.readAll();
-//    zpp::bits::in in(data);
-//    auto version = unsigned(-1);
-//    in(version).or_throw();
-//    if (version != 0)
-//        throw std::runtime_error("Cache file has incompatible version.");
-//    in(m_data).or_throw();
-//}
 
 template<tile_types::NamedTile T>
 void Cache<T>::read_from_disk(const std::filesystem::path& path)
 {
     assert(tile_types::SerialisableTile<T>);
-    QFile file(path);
-    const auto success = file.open(QIODeviceBase::ReadOnly);
-    if (!success)
-        throw std::runtime_error("Couldn't open cache file for reading!");
+    for (const auto & entry : std::filesystem::directory_iterator(path)) {
+        QFile file(entry.path());
+        const auto success = file.open(QIODeviceBase::ReadOnly);
+        if (!success)
+            throw std::runtime_error(fmt::format("Couldn't open cache file '{}' for reading!", entry.path().string()));
 
-    {
+        const auto bytes = file.readAll();
+        zpp::bits::in in(bytes);
+
         std::remove_cvref_t<decltype(T::version_information)> version_info = {};
-        auto n_tiles = u_int32_t(-1);
-        std::vector<char> meta_data_bytes (sizeof(version_info) + sizeof(n_tiles));
-        file.read(meta_data_bytes.data(), qint64(meta_data_bytes.size()));
-        zpp::bits::in in(meta_data_bytes);
         in(version_info).or_throw();
-
         if (version_info != T::version_information) {
             version_info[version_info.size() - 1] = 0;  // make sure that the string is 0 terminated.
             throw std::runtime_error(fmt::format("Cache file has incompatible version! Disk version is '{}', but we expected '{}'.",
@@ -201,27 +169,10 @@ void Cache<T>::read_from_disk(const std::filesystem::path& path)
                                                  T::version_information.data()));
         }
 
-        in(n_tiles).or_throw();
-        assert(n_tiles != u_int32_t(-1));
-        m_data.reserve(n_tiles);
-    }
-
-    std::vector<char> size_info_bytes(sizeof(u_int32_t));
-    std::vector<char> cache_object_bytes;
-    while(file.read(size_info_bytes.data(), qint64(size_info_bytes.size()))) {
-        zpp::bits::in in_size(size_info_bytes);
-        u_int32_t bytes_to_read = 0;
-        in_size(bytes_to_read).or_throw();
-
-        cache_object_bytes.resize(bytes_to_read);
-        const auto bytes_read = file.read(cache_object_bytes.data(), qint64(cache_object_bytes.size()));
-        if (bytes_read != bytes_to_read)
-            throw std::runtime_error("Cache file corrupted!");
-
-        zpp::bits::in in(cache_object_bytes);
         CacheObject d;
         in(d).or_throw();
         m_data[d.data.id] = d;
+        m_disk_cached.insert(d.data.id);
     }
 }
 
