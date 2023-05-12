@@ -47,14 +47,20 @@ MapLabelModel::MapLabelModel(QObject* parent)
     m_labels.push_back({ "Großglockner", 47.07455, 12.69388, 3798, 9, 0, 0});
     m_labels.push_back({ "Wildspitze", 46.88524, 10.86728, 3768, 9, 0, 0});
     m_labels.push_back({ "Großvenediger", 47.10927, 12.34534, 3657, 9, 0, 0});
+    m_labels.push_back({ "Hochalmspitze", 47.01533, 13.32050, 3360, 9, 0, 0});
+    m_labels.push_back({ "Piz Buin", 46.84412, 10.11889, 3312, 9, 0, 0});
     m_labels.push_back({ "Hoher Dachstein", 47.47519, 13.60569, 2995, 8, 0, 0});
+    m_labels.push_back({ "Valluga", 47.15757, 10.21309, 2811, 8, 0, 0});
     m_labels.push_back({ "Birkkarspitze", 47.41129, 11.43765, 2749, 8, 0, 0});
     m_labels.push_back({ "Schönfeldspitze", 47.45831, 12.93774, 2653, 8, 0, 0});
     m_labels.push_back({ "Großer Priel", 47.71694, 14.06325, 2515, 8, 0, 0});
     m_labels.push_back({ "Ellmauer Halt", 47.5616377, 12.3025296, 2342, 8, 0, 0, 0 });
     m_labels.push_back({ "Hochschwab", 47.61824, 15.14245, 2277, 8, 0, 0});
     m_labels.push_back({ "Klosterwappen", 47.76706, 15.80450, 2076, 8, 0, 0});
-    m_labels.push_back({ "Ötscher", 47.86186, 15.20251, 1893, 8, 0, 0});
+    m_labels.push_back({ "Ötscher", 47.86186, 15.20251, 1893, 7, 0, 0});
+    m_labels.push_back({ "Schafberg", 47.77639, 13.43389, 1783, 7, 0, 0});
+    m_labels.push_back({ "Geschriebenstein", 47.35283, 16.43372, 884, 7, 0, 0});
+    m_labels.push_back({ "Hermannskogel", 48.27072, 16.29456, 544, 7, 0, 0});
 
     // Schafbergbahn
     m_labels.push_back({ "Schafbergbahn Tal", 47.73963, 13.43980, 542, 16, 0, 0});
