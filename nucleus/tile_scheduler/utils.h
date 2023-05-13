@@ -120,7 +120,7 @@ namespace utils {
             : tile_heights(std::move(tile_heights))
         {
         }
-        inline tile::SrsAndHeightBounds aabb(const tile::Id& id)
+        inline tile::SrsAndHeightBounds aabb(const tile::Id& id) const
         {
             const auto heights = tile_heights.query({ id.zoom_level, id.coords });
             return make_bounds(id, heights.first, heights.second);

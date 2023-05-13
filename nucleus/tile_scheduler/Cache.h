@@ -181,7 +181,7 @@ template <typename VisitorFunction>
 void Cache<T>::visit(const VisitorFunction& functor)
 {
     const auto stamp = utils::time_since_epoch();
-    static_assert(requires { { functor(T()) } -> utils::convertible_to<bool>; });
+    static_assert(requires { { functor(T()) } -> utils::convertible_to<bool>; }, "VisitorFunction must accept a const NamedTile and return a bool.");
     const auto root = tile::Id { 0, { 0, 0 } };
     visit(root, functor, stamp);
 }
