@@ -134,54 +134,59 @@ void Cache<T>::write_to_disk(const std::filesystem::path& base_path) {
     assert(tile_types::SerialisableTile<T>);
     std::filesystem::create_directories(base_path);
 
-    std::unordered_map<tile::Id, MetaData, tile::Id::Hasher> disk_cached_old;
-    std::swap(m_disk_cached, disk_cached_old);
-    m_disk_cached.reserve(m_data.size());
+    try {
+        std::unordered_map<tile::Id, MetaData, tile::Id::Hasher> disk_cached_old;
+        std::swap(m_disk_cached, disk_cached_old);
+        m_disk_cached.reserve(m_data.size());
 
-    // removing disk cache items, that were removed or updated in ram
-    for (const auto& item : disk_cached_old) {
-        const tile::Id& id = item.first;
-        const MetaData& meta = item.second;
-        if (m_data.contains(id) && m_data.at(id).meta.created == meta.created) {
-            continue;
+        // removing disk cache items, that were removed or updated in ram
+        for (const auto& item : disk_cached_old) {
+            const tile::Id& id = item.first;
+            const MetaData& meta = item.second;
+            if (m_data.contains(id) && m_data.at(id).meta.created == meta.created) {
+                continue;
+            }
+            std::filesystem::remove(tile_path(base_path, id));
         }
-        std::filesystem::remove(tile_path(base_path, id));
-    }
 
-    // write new or updated items to disk
-    for (const auto& item : m_data) {
-        const tile::Id& id = item.first;
-        const CacheObject& cache_object = item.second;
-        m_disk_cached[id] = cache_object.meta;
+        // write new or updated items to disk
+        for (const auto& item : m_data) {
+            const tile::Id& id = item.first;
+            const CacheObject& cache_object = item.second;
+            m_disk_cached[id] = cache_object.meta;
 
-        if (disk_cached_old.contains(id) && disk_cached_old.at(id).created == cache_object.meta.created)
-            continue;
-        const auto path = tile_path(base_path, id);
+            if (disk_cached_old.contains(id) && disk_cached_old.at(id).created == cache_object.meta.created)
+                continue;
+            const auto path = tile_path(base_path, id);
+
+            std::vector<char> bytes;
+            zpp::bits::out out(bytes);
+            const std::remove_cvref_t<decltype(T::version_information)> version = T::version_information;
+            out(version).or_throw();
+            out(cache_object.data).or_throw();
+            QFile file(path);
+            const auto success = file.open(QIODeviceBase::WriteOnly);
+            if (!success)
+                throw std::runtime_error(fmt::format("Couldn't open file '{}' for writing!", path.string()));
+            file.write(bytes.data(), qint64(bytes.size()));
+        }
 
         std::vector<char> bytes;
         zpp::bits::out out(bytes);
         const std::remove_cvref_t<decltype(T::version_information)> version = T::version_information;
         out(version).or_throw();
-        out(cache_object.data).or_throw();
+        out(m_disk_cached).or_throw();
+
+        const auto path = meta_info_path(base_path);
         QFile file(path);
         const auto success = file.open(QIODeviceBase::WriteOnly);
         if (!success)
             throw std::runtime_error(fmt::format("Couldn't open file '{}' for writing!", path.string()));
         file.write(bytes.data(), qint64(bytes.size()));
+    } catch (...) {
+        m_disk_cached.clear();
+        throw;
     }
-
-    std::vector<char> bytes;
-    zpp::bits::out out(bytes);
-    const std::remove_cvref_t<decltype(T::version_information)> version = T::version_information;
-    out(version).or_throw();
-    out(m_disk_cached).or_throw();
-
-    const auto path = meta_info_path(base_path);
-    QFile file(path);
-    const auto success = file.open(QIODeviceBase::WriteOnly);
-    if (!success)
-        throw std::runtime_error(fmt::format("Couldn't open file '{}' for writing!", path.string()));
-    file.write(bytes.data(), qint64(bytes.size()));
 }
 
 template<tile_types::NamedTile T>
@@ -202,36 +207,42 @@ void Cache<T>::read_from_disk(const std::filesystem::path& base_path)
 
     m_data.clear();
     m_disk_cached.clear();
-    {
-        const auto path = meta_info_path(base_path);
-        QFile file(path);
-        const auto success = file.open(QIODeviceBase::ReadOnly);
-        if (!success)
-            throw std::runtime_error(fmt::format("Couldn't open file '{}' for writing!", path.string()));
-        const auto bytes = file.readAll();
-        zpp::bits::in in(bytes);
-        check_version(&in, path);
-        in(m_disk_cached).or_throw();
-    }
+    try {
+        {
+            const auto path = meta_info_path(base_path);
+            QFile file(path);
+            const auto success = file.open(QIODeviceBase::ReadOnly);
+            if (!success)
+                throw std::runtime_error(fmt::format("Couldn't open file '{}' for writing!", path.string()));
+            const auto bytes = file.readAll();
+            zpp::bits::in in(bytes);
+            check_version(&in, path);
+            in(m_disk_cached).or_throw();
+        }
 
-    for (const auto & entry : m_disk_cached) {
-        const tile::Id& id = entry.first;
-        const MetaData& meta = entry.second;
+        for (const auto & entry : m_disk_cached) {
+            const tile::Id& id = entry.first;
+            const MetaData& meta = entry.second;
 
-        const auto path = tile_path(base_path, id);
-        QFile file(path);
-        const auto success = file.open(QIODeviceBase::ReadOnly);
-        if (!success)
-            throw std::runtime_error(fmt::format("Couldn't open cache file '{}' for reading!", path.string()));
+            const auto path = tile_path(base_path, id);
+            QFile file(path);
+            const auto success = file.open(QIODeviceBase::ReadOnly);
+            if (!success)
+                throw std::runtime_error(fmt::format("Couldn't open cache file '{}' for reading!", path.string()));
 
-        const auto bytes = file.readAll();
-        zpp::bits::in in(bytes);
-        check_version(&in, path);
+            const auto bytes = file.readAll();
+            zpp::bits::in in(bytes);
+            check_version(&in, path);
 
-        CacheObject d;
-        in(d.data).or_throw();
-        d.meta = meta;
-        m_data[d.data.id] = d;
+            CacheObject d;
+            in(d.data).or_throw();
+            d.meta = meta;
+            m_data[d.data.id] = d;
+        }
+    } catch (...) {
+        m_disk_cached.clear();
+        m_data.clear();
+        throw;
     }
 }
 
