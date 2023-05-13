@@ -39,6 +39,7 @@ struct DiskWriteTestTileInner {
 };
 struct DiskWriteTestTile {
     tile::Id id;
+    int meta_data = 0;
     unsigned n_children = 0;
     std::array<DiskWriteTestTileInner, 4> tiles;
     static constexpr std::array<char, 25> version_information = {"DiskWriteTestTile"};
@@ -290,8 +291,8 @@ TEST_CASE("nucleus/tile_scheduler/cache")
         });
     }
 
-    const auto create_test_tile = [](const tile::Id& id) {
-        auto t = DiskWriteTestTile {id, 0, {}};
+    const auto create_test_tile = [](const tile::Id& id, int meta_data = 0) {
+        auto t = DiskWriteTestTile {id, meta_data, 0, {}};
 
         for (const auto& child_id : id.children()) {
             std::stringstream ss;
@@ -301,10 +302,11 @@ TEST_CASE("nucleus/tile_scheduler/cache")
         }
         return t;
     };
-    const auto verify_tile = [](const auto& cache, const tile::Id& id) {
+    const auto verify_tile = [](const auto& cache, const tile::Id& id, int meta_data = 0) {
         REQUIRE(cache.contains(id));
         const auto& tile = cache.peak_at(id);
         CHECK(tile.id == id);
+        CHECK(tile.meta_data == meta_data);
         CHECK(tile.n_children == 4);
         const auto ref_children = id.children();
         for (unsigned i = 0; i < 4; ++i) {
@@ -410,6 +412,30 @@ TEST_CASE("nucleus/tile_scheduler/cache")
             verify_tile(cache, {0, {0, 0}});
             verify_tile(cache, {1, {0, 0}});
             verify_tile(cache, {2, {0, 0}});
+        }
+        std::filesystem::remove_all(path);
+    }
+
+    SECTION("disk cached tiles are updated when a tile is updated") {
+        const auto path = std::filesystem::path(QStandardPaths::writableLocation(QStandardPaths::CacheLocation).toStdString()) / "test_tile_cache";
+        std::filesystem::remove_all(path);
+        {
+            nucleus::tile_scheduler::Cache<DiskWriteTestTile> cache;
+            cache.insert({create_test_tile({0, {0, 0}}, 1),
+                          create_test_tile({1, {0, 0}}, 1),});
+            cache.write_to_disk(path);
+
+            QThread::msleep(2);
+            cache.insert({create_test_tile({0, {0, 0}}, 2),
+                          create_test_tile({1, {0, 0}}, 2),});
+            cache.write_to_disk(path);
+        }
+        {
+            nucleus::tile_scheduler::Cache<DiskWriteTestTile> cache;
+            cache.read_from_disk(path);
+            CHECK(cache.n_cached_objects() == 2);
+            verify_tile(cache, {0, {0, 0}}, 2);
+            verify_tile(cache, {1, {0, 0}}, 2);
         }
         std::filesystem::remove_all(path);
     }
