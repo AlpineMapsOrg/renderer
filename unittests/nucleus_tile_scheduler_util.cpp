@@ -46,16 +46,6 @@ TEST_CASE("nucleus/tile_scheduler/utils/make_bounds altitude correction")
     }
 }
 
-TEST_CASE("nucleus/tile_scheduler/utils/timestamper")
-{
-    utils::Timestamper s;
-    QThread::msleep(10);
-    CHECK(std::abs(int(s.stamp()) - 10) <= 1);
-
-    QThread::msleep(5);
-    CHECK(std::abs(int(s.stamp()) - 15) <= 2);
-}
-
 TEST_CASE("nucleus/tile_scheduler/utils/TileId2DataMap io")
 {
     const auto base_path = std::filesystem::path("./unittests_test_files");

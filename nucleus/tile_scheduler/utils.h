@@ -150,18 +150,6 @@ namespace utils {
     {
         return uint64_t(std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now().time_since_epoch()).count());
     }
-    // uint32 is good for close to 50 days
-    class Timestamper {
-
-        uint64_t m_creation_time = time_since_epoch();
-
-    public:
-        [[nodiscard]] constants::TimestampType stamp() const
-        {
-            assert(time_since_epoch() - m_creation_time < std::numeric_limits<unsigned>::max());
-            return constants::TimestampType(time_since_epoch() - m_creation_time);
-        }
-    };
 
     void write_tile_id_2_data_map(const TileId2DataMap& map, const std::filesystem::path& path);
     TileId2DataMap read_tile_id_2_data_map(const std::filesystem::path& path);
