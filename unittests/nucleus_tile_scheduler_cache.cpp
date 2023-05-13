@@ -16,15 +16,15 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *****************************************************************************/
 
-#include "fmt/core.h"
-#include "nucleus/tile_scheduler/Cache.h"
-
-#include <QStandardPaths>
 #include <unordered_set>
+#include <sstream>
 
-#include <QThread>
 #include <catch2/catch_test_macros.hpp>
+#include <fmt/core.h>
+#include <QStandardPaths>
+#include <QThread>
 
+#include "nucleus/tile_scheduler/Cache.h"
 #include "sherpa/tile.h"
 
 
