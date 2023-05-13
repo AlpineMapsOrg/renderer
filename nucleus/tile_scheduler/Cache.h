@@ -82,6 +82,16 @@ public:
 private:
     template <typename VisitorFunction>
     void visit(const tile::Id& start_node, const VisitorFunction& functor, uint64_t visited_stamp); // functor should return true, if the given tile should be marked visited. stops descending if false is returned.
+
+    static std::filesystem::path tile_path(const std::filesystem::path& base_path, const tile::Id& id)
+    {
+        return base_path / fmt::format("{}_{}_{}.alp_tile", id.zoom_level, id.coords.x, id.coords.y);
+    }
+
+    static std::filesystem::path meta_info_path(const std::filesystem::path& base_path)
+    {
+        return base_path / "meta_info.alp";
+    }
 };
 
 template <tile_types::NamedTile T>
@@ -124,12 +134,6 @@ void Cache<T>::write_to_disk(const std::filesystem::path& base_path) {
     assert(tile_types::SerialisableTile<T>);
     std::filesystem::create_directories(base_path);
 
-    const auto path_to = [&base_path](const tile::Id& id) {
-        return base_path / fmt::format("{}_{}_{}.alp_tile", id.zoom_level, id.coords.x, id.coords.y);
-    };
-    const auto path_to_meta_info = [&base_path]() {
-        return base_path / "meta_info.alp";
-    };
     std::unordered_map<tile::Id, MetaData, tile::Id::Hasher> disk_cached_old;
     std::swap(m_disk_cached, disk_cached_old);
     m_disk_cached.reserve(m_data.size());
@@ -141,7 +145,7 @@ void Cache<T>::write_to_disk(const std::filesystem::path& base_path) {
         if (m_data.contains(id) && m_data.at(id).meta.created == meta.created) {
             continue;
         }
-        std::filesystem::remove(path_to(id));
+        std::filesystem::remove(tile_path(base_path, id));
     }
 
     // write new or updated items to disk
@@ -152,7 +156,7 @@ void Cache<T>::write_to_disk(const std::filesystem::path& base_path) {
 
         if (disk_cached_old.contains(id) && disk_cached_old.at(id).created == cache_object.meta.created)
             continue;
-        const auto path = path_to(id);
+        const auto path = tile_path(base_path, id);
 
         std::vector<char> bytes;
         zpp::bits::out out(bytes);
@@ -172,7 +176,7 @@ void Cache<T>::write_to_disk(const std::filesystem::path& base_path) {
     out(version).or_throw();
     out(m_disk_cached).or_throw();
 
-    const auto path = path_to_meta_info();
+    const auto path = meta_info_path(base_path);
     QFile file(path);
     const auto success = file.open(QIODeviceBase::WriteOnly);
     if (!success)
@@ -184,13 +188,6 @@ template<tile_types::NamedTile T>
 void Cache<T>::read_from_disk(const std::filesystem::path& base_path)
 {
     assert(tile_types::SerialisableTile<T>);
-
-    const auto path_to = [&base_path](const tile::Id& id) {
-        return base_path / fmt::format("{}_{}_{}.alp_tile", id.zoom_level, id.coords.x, id.coords.y);
-    };
-    const auto path_to_meta_info = [&base_path]() {
-        return base_path / "meta_info.alp";
-    };
     const auto check_version = [](auto* in, const auto& path) {
         std::remove_cvref_t<decltype(T::version_information)> version_info = {};
         (*in)(version_info).or_throw();
@@ -206,7 +203,7 @@ void Cache<T>::read_from_disk(const std::filesystem::path& base_path)
     m_data.clear();
     m_disk_cached.clear();
     {
-        const auto path = path_to_meta_info();
+        const auto path = meta_info_path(base_path);
         QFile file(path);
         const auto success = file.open(QIODeviceBase::ReadOnly);
         if (!success)
@@ -221,7 +218,7 @@ void Cache<T>::read_from_disk(const std::filesystem::path& base_path)
         const tile::Id& id = entry.first;
         const MetaData& meta = entry.second;
 
-        const auto path = path_to(id);
+        const auto path = tile_path(base_path, id);
         QFile file(path);
         const auto success = file.open(QIODeviceBase::ReadOnly);
         if (!success)
