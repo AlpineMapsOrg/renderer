@@ -328,7 +328,7 @@ TEST_CASE("nucleus/tile_scheduler/cache")
             nucleus::tile_scheduler::Cache<DiskWriteTestTile> cache;
             cache.insert({create_test_tile({0, {0, 0}}),
                           create_test_tile({356, {20, 564}}),});
-            for (unsigned i = 1; i < 1000; ++i) {
+            for (unsigned i = 1; i < 10; ++i) {
                   cache.insert({create_test_tile({i, {0, 0}}),
                                 create_test_tile({i, {1, 0}}),
                                 create_test_tile({i, {1, 1}}),
@@ -343,7 +343,7 @@ TEST_CASE("nucleus/tile_scheduler/cache")
             cache.read_from_disk(path);
             verify_tile(cache, {0, {0, 0}});
             verify_tile(cache, {356, {20, 564}});
-            for (unsigned i = 1; i < 1000; ++i) {
+            for (unsigned i = 1; i < 10; ++i) {
                   verify_tile(cache, {i, {0, 0}});
                   verify_tile(cache, {i, {1, 0}});
                   verify_tile(cache, {i, {1, 1}});

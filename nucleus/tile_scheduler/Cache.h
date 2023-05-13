@@ -51,8 +51,12 @@ namespace nucleus::tile_scheduler {
 
 template <tile_types::NamedTile T>
 class Cache {
-    struct CacheObject {
+    struct MetaData {
         uint64_t stamp;
+    };
+
+    struct CacheObject {
+        MetaData meta;
         T data;
     };
 
@@ -84,7 +88,7 @@ void Cache<T>::insert(const std::vector<T>& tiles)
 {
     const auto stamp = utils::time_since_epoch();
     for (const T& t : tiles) {
-        m_data[t.id].stamp = stamp * 100 - t.id.zoom_level;
+        m_data[t.id].meta.stamp = stamp * 100 - t.id.zoom_level;
         m_data[t.id].data = t;
     }
 }
@@ -117,8 +121,12 @@ template<tile_types::NamedTile T>
 void Cache<T>::write_to_disk(const std::filesystem::path& base_path) {
     assert(tile_types::SerialisableTile<T>);
     std::filesystem::create_directories(base_path);
+
     const auto path_to = [&base_path](const tile::Id& id) {
         return base_path / fmt::format("{}_{}_{}.alp_tile", id.zoom_level, id.coords.x, id.coords.y);
+    };
+    const auto path_to_meta_info = [&base_path]() {
+        return base_path / "meta_info.alp";
     };
 
     for (const auto& id : m_disk_cached) {
@@ -127,50 +135,97 @@ void Cache<T>::write_to_disk(const std::filesystem::path& base_path) {
         std::filesystem::remove(path_to(id));
     }
 
+    std::unordered_map<tile::Id, MetaData, tile::Id::Hasher> meta_data;
     for (const auto& item : m_data) {
         const tile::Id& id = item.first;
+        const CacheObject& cache_object = item.second;
+        meta_data[id] = cache_object.meta;
+
         if (m_disk_cached.contains(id))
             continue;
         const auto path = path_to(id);
-        QFile file(path);
-        const auto success = file.open(QIODeviceBase::WriteOnly);
-        if (!success)
-            throw std::runtime_error(fmt::format("Couldn't open file '{}' for writing!", path.string()));
 
         std::vector<char> bytes;
         zpp::bits::out out(bytes);
         const std::remove_cvref_t<decltype(T::version_information)> version = T::version_information;
         out(version).or_throw();
-        out(item.second).or_throw();
+        out(cache_object.data).or_throw();
+        QFile file(path);
+        const auto success = file.open(QIODeviceBase::WriteOnly);
+        if (!success)
+            throw std::runtime_error(fmt::format("Couldn't open file '{}' for writing!", path.string()));
         file.write(bytes.data(), qint64(bytes.size()));
+
         m_disk_cached.insert(id);
     }
+
+    std::vector<char> bytes;
+    zpp::bits::out out(bytes);
+    const std::remove_cvref_t<decltype(T::version_information)> version = T::version_information;
+    out(version).or_throw();
+    out(meta_data).or_throw();
+
+    const auto path = path_to_meta_info();
+    QFile file(path);
+    const auto success = file.open(QIODeviceBase::WriteOnly);
+    if (!success)
+        throw std::runtime_error(fmt::format("Couldn't open file '{}' for writing!", path.string()));
+    file.write(bytes.data(), qint64(bytes.size()));
 }
 
 template<tile_types::NamedTile T>
-void Cache<T>::read_from_disk(const std::filesystem::path& path)
+void Cache<T>::read_from_disk(const std::filesystem::path& base_path)
 {
     assert(tile_types::SerialisableTile<T>);
-    for (const auto & entry : std::filesystem::directory_iterator(path)) {
-        QFile file(entry.path());
-        const auto success = file.open(QIODeviceBase::ReadOnly);
-        if (!success)
-            throw std::runtime_error(fmt::format("Couldn't open cache file '{}' for reading!", entry.path().string()));
 
-        const auto bytes = file.readAll();
-        zpp::bits::in in(bytes);
-
+    const auto path_to = [&base_path](const tile::Id& id) {
+        return base_path / fmt::format("{}_{}_{}.alp_tile", id.zoom_level, id.coords.x, id.coords.y);
+    };
+    const auto path_to_meta_info = [&base_path]() {
+        return base_path / "meta_info.alp";
+    };
+    const auto check_version = [](auto* in, const auto& path) {
         std::remove_cvref_t<decltype(T::version_information)> version_info = {};
-        in(version_info).or_throw();
+        (*in)(version_info).or_throw();
         if (version_info != T::version_information) {
             version_info[version_info.size() - 1] = 0;  // make sure that the string is 0 terminated.
-            throw std::runtime_error(fmt::format("Cache file has incompatible version! Disk version is '{}', but we expected '{}'.",
+            throw std::runtime_error(fmt::format("Cache file '{}' has incompatible version! Disk version is '{}', but we expected '{}'.",
+                                                 path.string(),
                                                  version_info.data(),
                                                  T::version_information.data()));
         }
+    };
+
+    std::unordered_map<tile::Id, MetaData, tile::Id::Hasher> meta_data;
+    {
+        const auto path = path_to_meta_info();
+        QFile file(path);
+        const auto success = file.open(QIODeviceBase::ReadOnly);
+        if (!success)
+            throw std::runtime_error(fmt::format("Couldn't open file '{}' for writing!", path.string()));
+        const auto bytes = file.readAll();
+        zpp::bits::in in(bytes);
+        check_version(&in, path);
+        in(meta_data);
+    }
+
+    for (const auto & entry : meta_data) {
+        const tile::Id& id = entry.first;
+        const MetaData& meta = entry.second;
+
+        const auto path = path_to(id);
+        QFile file(path);
+        const auto success = file.open(QIODeviceBase::ReadOnly);
+        if (!success)
+            throw std::runtime_error(fmt::format("Couldn't open cache file '{}' for reading!", path.string()));
+
+        const auto bytes = file.readAll();
+        zpp::bits::in in(bytes);
+        check_version(&in, path);
 
         CacheObject d;
-        in(d).or_throw();
+        in(d.data).or_throw();
+        d.meta = meta;
         m_data[d.data.id] = d;
         m_disk_cached.insert(d.data.id);
     }
@@ -195,7 +250,7 @@ void Cache<T>::visit(const tile::Id& node, const VisitorFunction& functor, uint6
         const auto should_continue = functor(m_data[node].data);
         if (!should_continue)
             return;
-        m_data[node].stamp = stamp * 100 - m_data[node].data.id.zoom_level;
+        m_data[node].meta.stamp = stamp * 100 - m_data[node].data.id.zoom_level;
         const auto children = node.children();
         for (const auto& id : children) {
             visit(id, functor, stamp);
@@ -210,7 +265,7 @@ std::vector<T> Cache<T>::purge()
         return {};
     std::vector<std::pair<tile::Id, uint64_t>> tiles;
     tiles.reserve(m_data.size());
-    std::transform(m_data.cbegin(), m_data.cend(), std::back_inserter(tiles), [](const auto& entry) { return std::make_pair(entry.first, entry.second.stamp); });
+    std::transform(m_data.cbegin(), m_data.cend(), std::back_inserter(tiles), [](const auto& entry) { return std::make_pair(entry.first, entry.second.meta.stamp); });
     const auto nth_iter = tiles.begin() + m_capacity;
     std::nth_element(tiles.begin(), nth_iter, tiles.end(), [](const auto& a, const auto& b) { return a.second > b.second; });
     std::vector<T> purged_tiles;

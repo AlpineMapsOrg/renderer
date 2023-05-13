@@ -54,7 +54,7 @@ struct TileQuad {
     tile::Id id;
     unsigned n_tiles = 0;
     std::array<LayeredTile, 4> tiles;
-    static constexpr std::array<char, 25> version_information = {"TileQuad, version 0.1"};
+    static constexpr std::array<char, 25> version_information = {"TileQuad, version 0.2"};
 };
 static_assert(NamedTile<TileQuad>);
 static_assert(SerialisableTile<TileQuad>);
