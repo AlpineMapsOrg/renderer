@@ -134,6 +134,14 @@ void Cache<T>::write_to_disk(const std::filesystem::path& base_path) {
     assert(tile_types::SerialisableTile<T>);
     std::filesystem::create_directories(base_path);
 
+    const auto write = [](const auto& bytes, const auto& path) {
+        QFile file(path);
+        const auto success = file.open(QIODeviceBase::WriteOnly);
+        if (!success)
+            throw std::runtime_error(fmt::format("Couldn't open file '{}' for writing!", path.string()));
+        file.write(bytes.data(), qint64(bytes.size()));
+    };
+
     try {
         std::unordered_map<tile::Id, MetaData, tile::Id::Hasher> disk_cached_old;
         std::swap(m_disk_cached, disk_cached_old);
@@ -157,18 +165,14 @@ void Cache<T>::write_to_disk(const std::filesystem::path& base_path) {
 
             if (disk_cached_old.contains(id) && disk_cached_old.at(id).created == cache_object.meta.created)
                 continue;
-            const auto path = tile_path(base_path, id);
 
             std::vector<char> bytes;
             zpp::bits::out out(bytes);
             const std::remove_cvref_t<decltype(T::version_information)> version = T::version_information;
             out(version).or_throw();
             out(cache_object.data).or_throw();
-            QFile file(path);
-            const auto success = file.open(QIODeviceBase::WriteOnly);
-            if (!success)
-                throw std::runtime_error(fmt::format("Couldn't open file '{}' for writing!", path.string()));
-            file.write(bytes.data(), qint64(bytes.size()));
+
+            write(bytes, tile_path(base_path, id));
         }
 
         std::vector<char> bytes;
@@ -177,12 +181,7 @@ void Cache<T>::write_to_disk(const std::filesystem::path& base_path) {
         out(version).or_throw();
         out(m_disk_cached).or_throw();
 
-        const auto path = meta_info_path(base_path);
-        QFile file(path);
-        const auto success = file.open(QIODeviceBase::WriteOnly);
-        if (!success)
-            throw std::runtime_error(fmt::format("Couldn't open file '{}' for writing!", path.string()));
-        file.write(bytes.data(), qint64(bytes.size()));
+        write(bytes, meta_info_path(base_path));
     } catch (...) {
         m_disk_cached.clear();
         throw;
@@ -204,17 +203,20 @@ void Cache<T>::read_from_disk(const std::filesystem::path& base_path)
                                                  T::version_information.data()));
         }
     };
+    const auto read_all = [](const auto& path) {
+        QFile file(path);
+        const auto success = file.open(QIODeviceBase::ReadOnly);
+        if (!success)
+            throw std::runtime_error(fmt::format("Couldn't open file '{}' for writing!", path.string()));
+        return file.readAll();
+    };
 
     m_data.clear();
     m_disk_cached.clear();
     try {
         {
             const auto path = meta_info_path(base_path);
-            QFile file(path);
-            const auto success = file.open(QIODeviceBase::ReadOnly);
-            if (!success)
-                throw std::runtime_error(fmt::format("Couldn't open file '{}' for writing!", path.string()));
-            const auto bytes = file.readAll();
+            const auto bytes = read_all(path);
             zpp::bits::in in(bytes);
             check_version(&in, path);
             in(m_disk_cached).or_throw();
@@ -225,12 +227,7 @@ void Cache<T>::read_from_disk(const std::filesystem::path& base_path)
             const MetaData& meta = entry.second;
 
             const auto path = tile_path(base_path, id);
-            QFile file(path);
-            const auto success = file.open(QIODeviceBase::ReadOnly);
-            if (!success)
-                throw std::runtime_error(fmt::format("Couldn't open cache file '{}' for reading!", path.string()));
-
-            const auto bytes = file.readAll();
+            const auto bytes = read_all(path);
             zpp::bits::in in(bytes);
             check_version(&in, path);
 
