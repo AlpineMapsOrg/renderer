@@ -52,7 +52,8 @@ namespace nucleus::tile_scheduler {
 template <tile_types::NamedTile T>
 class Cache {
     struct MetaData {
-        uint64_t stamp;
+        uint64_t visited;
+        uint64_t created;
     };
 
     struct CacheObject {
@@ -61,7 +62,7 @@ class Cache {
     };
 
     std::unordered_map<tile::Id, CacheObject, tile::Id::Hasher> m_data;
-    std::unordered_set<tile::Id, tile::Id::Hasher> m_disk_cached;
+    std::unordered_map<tile::Id, MetaData, tile::Id::Hasher> m_disk_cached;
     unsigned m_capacity = 5000;
 
 public:
@@ -80,15 +81,16 @@ public:
 
 private:
     template <typename VisitorFunction>
-    void visit(const tile::Id& start_node, const VisitorFunction& functor, uint64_t stamp); // functor should return true, if the given tile should be marked visited. stops descending if false is returned.
+    void visit(const tile::Id& start_node, const VisitorFunction& functor, uint64_t visited_stamp); // functor should return true, if the given tile should be marked visited. stops descending if false is returned.
 };
 
 template <tile_types::NamedTile T>
 void Cache<T>::insert(const std::vector<T>& tiles)
 {
-    const auto stamp = utils::time_since_epoch();
+    const auto time_stamp = utils::time_since_epoch();
     for (const T& t : tiles) {
-        m_data[t.id].meta.stamp = stamp * 100 - t.id.zoom_level;
+        m_data[t.id].meta.visited = time_stamp * 100 - t.id.zoom_level;
+        m_data[t.id].meta.created = time_stamp;
         m_data[t.id].data = t;
     }
 }
@@ -128,20 +130,27 @@ void Cache<T>::write_to_disk(const std::filesystem::path& base_path) {
     const auto path_to_meta_info = [&base_path]() {
         return base_path / "meta_info.alp";
     };
+    std::unordered_map<tile::Id, MetaData, tile::Id::Hasher> disk_cached_old;
+    std::swap(m_disk_cached, disk_cached_old);
+    m_disk_cached.reserve(m_data.size());
 
-    for (const auto& id : m_disk_cached) {
-        if (m_data.contains(id))
+    // removing disk cache items, that were removed or updated in ram
+    for (const auto& item : disk_cached_old) {
+        const tile::Id& id = item.first;
+        const MetaData& meta = item.second;
+        if (m_data.contains(id) && m_data.at(id).meta.created == meta.created) {
             continue;
+        }
         std::filesystem::remove(path_to(id));
     }
 
-    std::unordered_map<tile::Id, MetaData, tile::Id::Hasher> meta_data;
+    // write new or updated items to disk
     for (const auto& item : m_data) {
         const tile::Id& id = item.first;
         const CacheObject& cache_object = item.second;
-        meta_data[id] = cache_object.meta;
+        m_disk_cached[id] = cache_object.meta;
 
-        if (m_disk_cached.contains(id))
+        if (disk_cached_old.contains(id) && disk_cached_old.at(id).created == cache_object.meta.created)
             continue;
         const auto path = path_to(id);
 
@@ -155,15 +164,13 @@ void Cache<T>::write_to_disk(const std::filesystem::path& base_path) {
         if (!success)
             throw std::runtime_error(fmt::format("Couldn't open file '{}' for writing!", path.string()));
         file.write(bytes.data(), qint64(bytes.size()));
-
-        m_disk_cached.insert(id);
     }
 
     std::vector<char> bytes;
     zpp::bits::out out(bytes);
     const std::remove_cvref_t<decltype(T::version_information)> version = T::version_information;
     out(version).or_throw();
-    out(meta_data).or_throw();
+    out(m_disk_cached).or_throw();
 
     const auto path = path_to_meta_info();
     QFile file(path);
@@ -196,7 +203,8 @@ void Cache<T>::read_from_disk(const std::filesystem::path& base_path)
         }
     };
 
-    std::unordered_map<tile::Id, MetaData, tile::Id::Hasher> meta_data;
+    m_data.clear();
+    m_disk_cached.clear();
     {
         const auto path = path_to_meta_info();
         QFile file(path);
@@ -206,10 +214,10 @@ void Cache<T>::read_from_disk(const std::filesystem::path& base_path)
         const auto bytes = file.readAll();
         zpp::bits::in in(bytes);
         check_version(&in, path);
-        in(meta_data);
+        in(m_disk_cached).or_throw();
     }
 
-    for (const auto & entry : meta_data) {
+    for (const auto & entry : m_disk_cached) {
         const tile::Id& id = entry.first;
         const MetaData& meta = entry.second;
 
@@ -227,7 +235,6 @@ void Cache<T>::read_from_disk(const std::filesystem::path& base_path)
         in(d.data).or_throw();
         d.meta = meta;
         m_data[d.data.id] = d;
-        m_disk_cached.insert(d.data.id);
     }
 }
 
@@ -235,25 +242,25 @@ template <tile_types::NamedTile T>
 template <typename VisitorFunction>
 void Cache<T>::visit(const VisitorFunction& functor)
 {
-    const auto stamp = utils::time_since_epoch();
+    const auto visited = utils::time_since_epoch();
     static_assert(requires { { functor(T()) } -> utils::convertible_to<bool>; }, "VisitorFunction must accept a const NamedTile and return a bool.");
     const auto root = tile::Id { 0, { 0, 0 } };
-    visit(root, functor, stamp);
+    visit(root, functor, visited);
 }
 
 template <tile_types::NamedTile T>
 template <typename VisitorFunction>
-void Cache<T>::visit(const tile::Id& node, const VisitorFunction& functor, uint64_t stamp)
+void Cache<T>::visit(const tile::Id& node, const VisitorFunction& functor, uint64_t visited_stamp)
 {
     static_assert(requires { { functor(T()) } -> utils::convertible_to<bool>; });
     if (m_data.contains(node)) {
         const auto should_continue = functor(m_data[node].data);
         if (!should_continue)
             return;
-        m_data[node].meta.stamp = stamp * 100 - m_data[node].data.id.zoom_level;
+        m_data[node].meta.visited = visited_stamp * 100 - m_data[node].data.id.zoom_level;
         const auto children = node.children();
         for (const auto& id : children) {
-            visit(id, functor, stamp);
+            visit(id, functor, visited_stamp);
         }
     }
 }
@@ -265,7 +272,7 @@ std::vector<T> Cache<T>::purge()
         return {};
     std::vector<std::pair<tile::Id, uint64_t>> tiles;
     tiles.reserve(m_data.size());
-    std::transform(m_data.cbegin(), m_data.cend(), std::back_inserter(tiles), [](const auto& entry) { return std::make_pair(entry.first, entry.second.meta.stamp); });
+    std::transform(m_data.cbegin(), m_data.cend(), std::back_inserter(tiles), [](const auto& entry) { return std::make_pair(entry.first, entry.second.meta.visited); });
     const auto nth_iter = tiles.begin() + m_capacity;
     std::nth_element(tiles.begin(), nth_iter, tiles.end(), [](const auto& a, const auto& b) { return a.second > b.second; });
     std::vector<T> purged_tiles;

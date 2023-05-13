@@ -439,4 +439,63 @@ TEST_CASE("nucleus/tile_scheduler/cache")
         }
         std::filesystem::remove_all(path);
     }
+
+
+    SECTION("cache doesn't remember items that were in cache and on disk, but later deleted") {
+        const auto path = std::filesystem::path(QStandardPaths::writableLocation(QStandardPaths::CacheLocation).toStdString()) / "test_tile_cache";
+        std::filesystem::remove_all(path);
+        {
+            nucleus::tile_scheduler::Cache<DiskWriteTestTile> cache;
+            cache.insert({create_test_tile({0, {0, 0}}),
+                          create_test_tile({1, {0, 0}}),
+                          create_test_tile({2, {0, 0}}),
+                          create_test_tile({3, {0, 0}}),});
+            cache.write_to_disk(path);
+            cache.set_capacity(2);
+            cache.purge();
+            CHECK(cache.n_cached_objects() == 2);
+            verify_tile(cache, {0, {0, 0}});
+            verify_tile(cache, {1, {0, 0}});
+            cache.write_to_disk(path);
+            {
+                nucleus::tile_scheduler::Cache<DiskWriteTestTile> cache;
+                cache.read_from_disk(path);
+                CHECK(cache.n_cached_objects() == 2);
+                verify_tile(cache, {0, {0, 0}});
+                verify_tile(cache, {1, {0, 0}});
+            }
+            cache.insert({create_test_tile({2, {0, 0}}),
+                          create_test_tile({3, {0, 0}}),});
+            CHECK(cache.n_cached_objects() == 4);
+            verify_tile(cache, {0, {0, 0}});
+            verify_tile(cache, {1, {0, 0}});
+            verify_tile(cache, {2, {0, 0}});
+            verify_tile(cache, {3, {0, 0}});
+
+            cache.write_to_disk(path);
+            {
+                nucleus::tile_scheduler::Cache<DiskWriteTestTile> cache;
+                cache.read_from_disk(path);
+                CHECK(cache.n_cached_objects() == 4);
+                verify_tile(cache, {0, {0, 0}});
+                verify_tile(cache, {1, {0, 0}});
+                verify_tile(cache, {2, {0, 0}});
+                verify_tile(cache, {3, {0, 0}});
+            }
+            cache.visit([](const auto&){return true;});
+            cache.purge();
+            CHECK(cache.n_cached_objects() == 2);
+            verify_tile(cache, {0, {0, 0}});
+            verify_tile(cache, {1, {0, 0}});
+            cache.write_to_disk(path);
+            {
+                nucleus::tile_scheduler::Cache<DiskWriteTestTile> cache;
+                cache.read_from_disk(path);
+                CHECK(cache.n_cached_objects() == 2);
+                verify_tile(cache, {0, {0, 0}});
+                verify_tile(cache, {1, {0, 0}});
+            }
+        }
+        std::filesystem::remove_all(path);
+    }
 }
