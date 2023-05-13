@@ -39,11 +39,11 @@
 
 namespace nucleus::utils::terrain_mesh_index_generator {
 
-// generates a triangle strip for the surface.
-// i.e., for the example 0, 4, 1, 5, 2, 6, 3, 7, 7, 11, 6, 10, 5, 9, 4, 8, 8, 12, ..
-// triangles (3, 7, 7), (7, 7, 11), (4, 8, 9), and (8, 8, 12) are degenerate intentionally.
+// generates a triangle strip for the surface. this corrected version should respect the winding order
+// i.e., for the example 0, 4, 1, 5, 2, 6, 3, 7, 7, 4, 4, 8, 5, 9, 6, 10, 7, 11, 11, 8, 8, ..
+// triangles (3, 7, 7), (7, 7, 4), (4, 4, 8), (11, 11, 8) etc are degenerate intentionally.
 // this keeps the strip running, and shouldn't be visible.
-template <typename Index>
+template<typename Index>
 std::vector<Index> surface_quads(unsigned vertex_side_length)
 {
     assert(vertex_side_length >= 2);
@@ -51,14 +51,55 @@ std::vector<Index> surface_quads(unsigned vertex_side_length)
     std::vector<Index> indices;
     const auto height = vertex_side_length;
     const auto width = vertex_side_length;
+
+    const auto index_for = [&width, &height](auto row, auto col) { return col + row * width; };
+
     for (size_t row = 0; row < height - 1; row++) {
-        const bool left2right = (row & 1) == 0;
-        const size_t start = left2right ? 0 : width - 1;
-        for (size_t col = start; col < width; left2right ? col++ : col--) {
-            indices.push_back(col + row * width);
-            indices.push_back(col + (row + 1) * width);
+        for (size_t col = 0; col < width; col++) {
+            indices.push_back(index_for(row, col));
+            indices.push_back(index_for(row + 1, col));
         }
+        indices.push_back(index_for(row + 1, width - 1));
+        indices.push_back(index_for(row + 1, 0));
     }
+    indices.resize(indices.size() - 2);
+    return indices;
+}
+
+template<typename Index>
+std::vector<Index> surface_quads_with_curtains(unsigned vertex_side_length)
+{
+    assert(vertex_side_length >= 2);
+    assert(vertex_side_length * vertex_side_length < std::numeric_limits<Index>::max());
+    std::vector<Index> indices = surface_quads<Index>(vertex_side_length);
+    const auto height = vertex_side_length;
+    const auto width = vertex_side_length;
+    const auto index_for = [&width, &height](auto row, auto col) { return col + row * width; };
+    auto curtain_index = indices.back() + 1;
+    const auto first_curtain_index = curtain_index;
+
+    for (size_t row = height - 1; row >= 1; row--) {
+        indices.push_back(index_for(row, width - 1));
+        indices.push_back(curtain_index++);
+    }
+
+    for (size_t col = width - 1; col >= 1; col--) {
+        indices.push_back(index_for(0, col));
+        indices.push_back(curtain_index++);
+    }
+
+    for (size_t row = 0; row < height - 1; row++) {
+        indices.push_back(index_for(row, 0));
+        indices.push_back(curtain_index++);
+    }
+
+    for (size_t col = 0; col < width - 1; col++) {
+        indices.push_back(index_for(height - 1, col));
+        indices.push_back(curtain_index++);
+    }
+    indices.push_back(index_for(height - 1, width - 1));
+    indices.push_back(first_curtain_index);
+
     return indices;
 }
 }

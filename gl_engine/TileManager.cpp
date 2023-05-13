@@ -27,6 +27,7 @@
 #include "ShaderProgram.h"
 #include "nucleus/Tile.h"
 #include "nucleus/camera/Definition.h"
+#include "nucleus/camera/stored_positions.h"
 #include "nucleus/utils/terrain_mesh_index_generator.h"
 
 using gl_engine::TileManager;
@@ -51,6 +52,34 @@ std::vector<glm::vec4> boundsArray(const TileSet& tileset, const glm::dvec3& cam
     }
     return ret;
 }
+
+template <typename T>
+std::vector<T> prepare_altitude_buffer(const nucleus::Raster<T>& alti_map)
+{
+    // add heights for curtains
+    auto alti_buffer = alti_map.buffer();
+    alti_buffer.reserve(alti_buffer.size() + alti_map.width() * 2 - 2 + alti_map.height() * 2 - 2);
+    const auto height = alti_map.height();
+    const auto width = alti_map.width();
+
+    for (size_t row = height - 1; row >= 1; row--) {
+        alti_buffer.push_back(alti_map.pixel({ width - 1, row }));
+    }
+
+    for (size_t col = width - 1; col >= 1; col--) {
+        alti_buffer.push_back(alti_map.pixel({ col, 0 }));
+    }
+
+    for (size_t row = 0; row < height - 1; row++) {
+        alti_buffer.push_back(alti_map.pixel({ 0, row }));
+    }
+
+    for (size_t col = 0; col < width - 1; col++) {
+        alti_buffer.push_back(alti_map.pixel({ col, height - 1 }));
+    }
+
+    return alti_buffer;
+}
 }
 
 TileManager::TileManager(QObject* parent)
@@ -60,9 +89,10 @@ TileManager::TileManager(QObject* parent)
 
 void TileManager::init()
 {
+    using nucleus::utils::terrain_mesh_index_generator::surface_quads_with_curtains;
     assert(QOpenGLContext::currentContext());
     for (auto i = 0; i < MAX_TILES_PER_TILESET; ++i) {
-        const auto indices = nucleus::utils::terrain_mesh_index_generator::surface_quads<uint16_t>(N_EDGE_VERTICES);
+        const auto indices = surface_quads_with_curtains<uint16_t>(N_EDGE_VERTICES);
         auto index_buffer = std::make_unique<QOpenGLBuffer>(QOpenGLBuffer::IndexBuffer);
         index_buffer->create();
         index_buffer->bind();
@@ -93,6 +123,7 @@ void TileManager::draw(ShaderProgram* shader_program, const nucleus::camera::Def
     for (const auto& tileset : tiles()) {
         if (!draw_tiles.contains(tileset.tiles.front().first))
             continue;
+
         tileset.vao->bind();
         shader_program->set_uniform_array("bounds", boundsArray(tileset, camera.position()));
         tileset.ortho_texture->bind(0);
@@ -151,8 +182,9 @@ void TileManager::add_tile(const tile::Id& id, tile::SrsAndHeightBounds bounds, 
         tileset.heightmap_buffer = std::make_unique<QOpenGLBuffer>(QOpenGLBuffer::VertexBuffer);
         tileset.heightmap_buffer->create();
         tileset.heightmap_buffer->bind();
-        tileset.heightmap_buffer->setUsagePattern(QOpenGLBuffer::DynamicDraw);
-        tileset.heightmap_buffer->allocate(height_map.buffer().data(), bufferLengthInBytes(height_map.buffer()));
+        tileset.heightmap_buffer->setUsagePattern(QOpenGLBuffer::StaticDraw);
+        auto height_buffer = prepare_altitude_buffer(height_map);
+        tileset.heightmap_buffer->allocate(height_buffer.data(), bufferLengthInBytes(height_buffer));
         f->glEnableVertexAttribArray(GLuint(m_attribute_locations.height));
         f->glVertexAttribPointer(GLuint(m_attribute_locations.height), /*size*/ 1, /*type*/ GL_UNSIGNED_SHORT, /*normalised*/ GL_TRUE, /*stride*/ 0, nullptr);
 
