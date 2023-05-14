@@ -34,9 +34,9 @@ class TerrainRendererItem : public QQuickFramebufferObject {
     Q_PROPERTY(int camera_width READ camera_width NOTIFY camera_width_changed)
     Q_PROPERTY(int camera_height READ camera_height NOTIFY camera_height_changed)
     Q_PROPERTY(float field_of_view READ field_of_view WRITE set_field_of_view NOTIFY field_of_view_changed)
-    Q_PROPERTY(float camera_rotation_from_north READ camera_rotation_from_north WRITE set_camera_rotation_from_north NOTIFY camera_rotation_from_north_changed)
-    Q_PROPERTY(QPointF camera_operation_centre READ camera_operation_centre WRITE set_camera_operation_centre NOTIFY camera_operation_centre_changed)
-    Q_PROPERTY(bool camera_operation_centre_visibility READ camera_operation_centre_visibility WRITE set_camera_operation_centre_visibility NOTIFY camera_operation_centre_visibility_changed)
+    Q_PROPERTY(float camera_rotation_from_north READ camera_rotation_from_north NOTIFY camera_rotation_from_north_changed)
+    Q_PROPERTY(QPointF camera_operation_centre READ camera_operation_centre NOTIFY camera_operation_centre_changed)
+    Q_PROPERTY(bool camera_operation_centre_visibility READ camera_operation_centre_visibility NOTIFY camera_operation_centre_visibility_changed)
     Q_PROPERTY(float render_quality READ render_quality WRITE set_render_quality NOTIFY render_quality_changed)
 
 public:
