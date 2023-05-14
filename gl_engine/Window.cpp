@@ -99,7 +99,9 @@ void Window::resize_framebuffer(int width, int height)
 void Window::paint(QOpenGLFramebufferObject* framebuffer)
 {
     m_frame_start = std::chrono::time_point_cast<ClockResolution>(Clock::now());
-    QOpenGLExtraFunctions* f = QOpenGLContext::currentContext()->extraFunctions();
+    QOpenGLExtraFunctions *f = QOpenGLContext::currentContext()->extraFunctions();
+    f->glEnable(GL_CULL_FACE);
+    f->glCullFace(GL_BACK);
 
     // DEPTH BUFFER
     m_camera.set_viewport_size(m_depth_buffer->size());
@@ -119,19 +121,11 @@ void Window::paint(QOpenGLFramebufferObject* framebuffer)
 
     f->glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
 
-    //    {
-    //        m_shader_manager->bindDebugShader();
-    //        m_debug_painter->activate(m_shader_manager->debugShader(), world_view_projection_matrix);
-    //        const auto position = m_camera.position();
-    //        const auto direction_tl = m_camera.ray_direction({ -1, 1 });
-    //        const auto direction_tr = m_camera.ray_direction({ 1, 1 });
-    //        std::vector<glm::vec3> debug_cam_lines = { position + direction_tl * 10000.0,
-    //            position,
-    //            position + direction_tr * 10000.0 };
-    //        m_debug_painter->drawLineStrip(debug_cam_lines);
-    //    }
     m_shader_manager->atmosphere_bg_program()->bind();
-    m_atmosphere->draw(m_shader_manager->atmosphere_bg_program(), m_camera, m_shader_manager->screen_quad_program(), m_framebuffer.get());
+    m_atmosphere->draw(m_shader_manager->atmosphere_bg_program(),
+                       m_camera,
+                       m_shader_manager->screen_quad_program(),
+                       m_framebuffer.get());
 
     f->glEnable(GL_DEPTH_TEST);
     f->glDepthFunc(GL_LESS);
@@ -226,7 +220,8 @@ void Window::update_gpu_quads(const std::vector<nucleus::tile_scheduler::tile_ty
 
 float Window::depth(const glm::dvec2& normalised_device_coordinates)
 {
-    const auto read_float = nucleus::utils::bit_coding::to_f16f16(m_depth_buffer->read_colour_attachment_pixel(0, normalised_device_coordinates))[0];
+    const auto read_float = float(m_depth_buffer->read_colour_attachment_pixel(0, normalised_device_coordinates)[0]) / 255.f;
+    //    const auto read_float = nucleus::utils::bit_coding::to_f16f16(m_depth_buffer->read_colour_attachment_pixel(0, normalised_device_coordinates))[0];
     const auto depth = std::exp(read_float * 13.f);
     return depth;
 }

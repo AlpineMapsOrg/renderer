@@ -23,11 +23,7 @@
 #include "nucleus/utils/Stopwatch.h"
 
 
-#ifdef __EMSCRIPTEN__
 constexpr auto timing_multiplicator = 5ll;
-#else
-constexpr auto timing_multiplicator = 1ll;
-#endif
 
 TEST_CASE("nucleus/utils/Stopwatch")
 {

@@ -56,6 +56,8 @@ public:
     [[nodiscard]] size_t width() const { return m_width; }
     [[nodiscard]] size_t height() const { return m_height; }
     [[nodiscard]] size_t buffer_length() const { return m_data.size(); }
+    [[nodiscard]] const T& pixel(const glm::uvec2& position) const { return m_data[position.x + m_width * position.y]; }
+    [[nodiscard]] T& pixel(const glm::uvec2& position) { return m_data[position.x + m_width * position.y]; }
 
     auto begin() { return m_data.begin(); }
     auto end() { return m_data.end(); }
