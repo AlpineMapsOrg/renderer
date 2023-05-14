@@ -43,5 +43,6 @@ public:
     std::optional<Definition> key_press_event(const QKeyCombination& e, Definition camera, AbstractDepthTester* depth_tester) override;
     std::optional<Definition> key_release_event(const QKeyCombination& e, Definition camera, AbstractDepthTester* depth_tester) override;
     std::optional<glm::vec2> get_operation_centre() override;
+    std::optional<float> get_operation_centre_distance(Definition camera) override;
 };
 }

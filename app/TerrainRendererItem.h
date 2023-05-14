@@ -37,6 +37,7 @@ class TerrainRendererItem : public QQuickFramebufferObject {
     Q_PROPERTY(float camera_rotation_from_north READ camera_rotation_from_north NOTIFY camera_rotation_from_north_changed)
     Q_PROPERTY(QPointF camera_operation_centre READ camera_operation_centre NOTIFY camera_operation_centre_changed)
     Q_PROPERTY(bool camera_operation_centre_visibility READ camera_operation_centre_visibility NOTIFY camera_operation_centre_visibility_changed)
+    Q_PROPERTY(float camera_operation_centre_distance READ camera_operation_centre_distance NOTIFY camera_operation_centre_distance_changed)
     Q_PROPERTY(float render_quality READ render_quality WRITE set_render_quality NOTIFY render_quality_changed)
 
 public:
@@ -65,6 +66,7 @@ signals:
     void camera_rotation_from_north_changed();
     void camera_operation_centre_changed();
     void camera_operation_centre_visibility_changed();
+    void camera_operation_centre_distance_changed();
     void render_quality_changed(float new_render_quality);
 
 protected:
@@ -108,6 +110,9 @@ public:
     bool camera_operation_centre_visibility() const;
     void set_camera_operation_centre_visibility(bool new_camera_operation_centre_visibility);
 
+    float camera_operation_centre_distance() const;
+    void set_camera_operation_centre_distance(float new_camera_operation_centre_distance);
+
     float render_quality() const;
     void set_render_quality(float new_render_quality);
 
@@ -115,6 +120,7 @@ private:
     float m_camera_rotation_from_north = 0;
     QPointF m_camera_operation_centre;
     bool m_camera_operation_centre_visibility = false;
+    float m_camera_operation_centre_distance = 1;
     float m_field_of_view = 75;
     int m_frame_limit = 60;
     float m_render_quality = 0.5f;
