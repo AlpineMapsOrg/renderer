@@ -158,18 +158,24 @@ void OrbitInteraction::start(const QPointF& position, const Definition& camera, 
 void OrbitInteraction::pan(const QPointF& position, const QPointF& last_position, Definition* camera, AbstractDepthTester* depth_tester)
 {
     m_operation_centre_screen = glm::vec2(position.x(), position.y());
-    glm::dvec3 camRay = camera->ray_direction(camera->to_ndc({ position.x(), position.y() }));
-    double denom = glm::dot(glm::dvec3(0, 0, 1.0), camRay);
-    double distance = 0;
-    if (denom != 0) {
-        distance = glm::dot((m_operation_centre - camera->position()), glm::dvec3(0, 0, 1.0)) / denom;
-    }
-    auto mouseInWorld = camera->position() + (camRay * distance);
 
     if (m_move_vertical || m_key_shift) {
-        const auto delta = position - last_position;
-        camera->move(camera->x_axis() * -delta.x() + camera->y_axis() * delta.y());
+        glm::dvec3 camRay = camera->ray_direction(camera->to_ndc({ position.x(), position.y() }));
+        double denom = glm::dot(camera->z_axis(), camRay);
+        double distance = 0;
+        if (denom != 0) {
+            distance = glm::dot((m_operation_centre - camera->position()), camera->z_axis()) / denom;
+        }
+        auto mouseInWorld = camera->position() + (camRay * distance);
+        camera->move(glm::dvec3(m_operation_centre.x - mouseInWorld.x, m_operation_centre.y - mouseInWorld.y, m_operation_centre.z - mouseInWorld.z));
     } else {
+        glm::dvec3 camRay = camera->ray_direction(camera->to_ndc({ position.x(), position.y() }));
+        double denom = glm::dot(glm::dvec3(0, 0, 1.0), camRay);
+        double distance = 0;
+        if (denom != 0) {
+            distance = glm::dot((m_operation_centre - camera->position()), glm::dvec3(0, 0, 1.0)) / denom;
+        }
+        auto mouseInWorld = camera->position() + (camRay * distance);
         camera->move(glm::dvec3(m_operation_centre.x - mouseInWorld.x, m_operation_centre.y - mouseInWorld.y, 0));
     }
 }

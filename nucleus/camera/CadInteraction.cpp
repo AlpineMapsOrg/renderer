@@ -125,4 +125,8 @@ std::optional<Definition> CadInteraction::key_release_event(const QKeyCombinatio
 std::optional<glm::vec2> CadInteraction::get_operation_centre(){
     return m_operation_centre_screen;
 }
+
+std::optional<float> CadInteraction::get_operation_centre_distance(Definition camera){
+    return glm::distance(m_operation_centre, camera.position());
+}
 }

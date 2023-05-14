@@ -248,6 +248,13 @@ std::optional<glm::vec2> Controller::get_operation_centre(){
     return m_interaction_style->get_operation_centre();
 }
 
+std::optional<float> Controller::get_operation_centre_distance(){
+    if (m_animation_style) {
+        return m_animation_style->get_operation_centre_distance(m_definition);
+    }
+    return m_interaction_style->get_operation_centre_distance(m_definition);
+}
+
 const Definition& Controller::definition() const
 {
     return m_definition;
