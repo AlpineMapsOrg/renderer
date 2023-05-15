@@ -38,24 +38,69 @@ inline nucleus::camera::Definition grossglockner()
     const auto coords = srs::lat_long_alt_to_world({ 47.07386676653372, 12.694470292406267, 3798 });
     return { { coords.x - 300, coords.y - 400, coords.z + 100 }, { coords.x, coords.y, coords.z - 100 } };
 }
-inline nucleus::camera::Definition sankt_wolfgang()
+inline nucleus::camera::Definition dachstein()
+{
+    const auto coords = srs::lat_long_alt_to_world({ 47.47519, 13.60569, 2995 });
+    return { { coords.x, coords.y - 1000, coords.z + 300 }, { coords.x, coords.y, coords.z - 100 } };
+}
+inline nucleus::camera::Definition roadA()
 {
     const auto coords = srs::lat_long_alt_to_world({ 47.73963, 13.43980, 542 });
-    return { { coords.x, coords.y - 500, coords.z + 100 }, { coords.x, coords.y, coords.z } };
+    return { { coords.x, coords.y - 400, coords.z + 100 }, { coords.x, coords.y, coords.z } };
 }
-inline nucleus::camera::Definition grubenkarspitze()
+inline nucleus::camera::Definition roadB()
+{
+    const auto coords = srs::lat_long_alt_to_world({ 47.14249, 12.81251, 1660 });
+    return { { coords.x, coords.y + 300, coords.z + 70 }, { coords.x, coords.y, coords.z } };
+}
+inline nucleus::camera::Definition roadC()
+{
+    const auto coords = srs::lat_long_alt_to_world({ 47.06347, 12.81843, 1870 });
+    return { { coords.x - 100, coords.y - 200, coords.z + 50 }, { coords.x, coords.y, coords.z } };
+}
+inline nucleus::camera::Definition grubenkarspitzeA()
 {
     const auto coords = srs::lat_long_alt_to_world({ 47.38078, 11.52211, 2663 });
-    return { { coords.x + 300, coords.y + 400, coords.z + 200 }, { coords.x, coords.y, coords.z } };
+    return { { coords.x + 300, coords.y + 400, coords.z + 200 }, { coords.x, coords.y, coords.z - 20} };
 }
-inline nucleus::camera::Definition oetschergraeben()
+inline nucleus::camera::Definition grubenkarspitzeB()
+{
+    const auto coords = srs::lat_long_alt_to_world({ 47.38078, 11.52211, 2663 });
+    return { { coords.x + 300, coords.y - 300, coords.z + 200 }, { coords.x, coords.y, coords.z - 20 } };
+}
+inline nucleus::camera::Definition grubenkarspitzeC()
+{
+    const auto coords = srs::lat_long_alt_to_world({ 47.38078, 11.52211, 2663 });
+    return { { coords.x - 400, coords.y + 100, coords.z + 200 }, { coords.x, coords.y, coords.z - 20 } };
+}
+inline nucleus::camera::Definition ravineA()
 {
     const auto coords = srs::lat_long_alt_to_world({ 47.85239, 15.28817, 630 });
-    return { { coords.x + 100, coords.y + 100, coords.z + 200 }, { coords.x, coords.y, coords.z } };
+    return { { coords.x + 80, coords.y + 80, coords.z + 100 }, { coords.x, coords.y, coords.z } };
 }
-inline nucleus::camera::Definition gimpel()
+inline nucleus::camera::Definition ravineB()
+{
+    const auto coords = srs::lat_long_alt_to_world({ 47.85621, 15.28423, 610 });
+    return { { coords.x + 100, coords.y, coords.z + 100 }, { coords.x, coords.y, coords.z } };
+}
+inline nucleus::camera::Definition ravineC()
+{
+    const auto coords = srs::lat_long_alt_to_world({ 48.37488, 13.94198, 300 });
+    return { { coords.x, coords.y - 100, coords.z + 100 }, { coords.x, coords.y, coords.z } };
+}
+inline nucleus::camera::Definition pathA()
 {
     const auto coords = srs::lat_long_alt_to_world({ 47.50127, 10.61249, 2176 });
-    return { { coords.x - 900, coords.y + 400, coords.z + 200 }, { coords.x, coords.y, coords.z - 50 } };
+    return { { coords.x, coords.y - 200, coords.z + 4000 }, { coords.x, coords.y, coords.z } };
+}
+inline nucleus::camera::Definition pathB()
+{
+    const auto coords = srs::lat_long_alt_to_world({ 47.45723, 11.77804, 2261 });
+    return { { coords.x, coords.y - 200, coords.z + 4000 }, { coords.x, coords.y, coords.z } };
+}
+inline nucleus::camera::Definition pathC()
+{
+    const auto coords = srs::lat_long_alt_to_world({ 47.04033, 10.51186, 3004 });
+    return { { coords.x, coords.y - 200, coords.z + 4000 }, { coords.x, coords.y, coords.z } };
 }
 }

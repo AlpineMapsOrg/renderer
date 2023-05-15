@@ -137,42 +137,99 @@ void Controller::key_press(const QKeyCombination& e)
     }
 
     if (e.key() == Qt::Key_1) {
+        qDebug() << "orbit";
         set_interaction_style(std::make_unique<nucleus::camera::OrbitInteraction>());
     }
     if (e.key() == Qt::Key_2) {
+        qDebug() << "first person";
         set_interaction_style(std::make_unique<nucleus::camera::FirstPersonInteraction>());
     }
     if (e.key() == Qt::Key_3) {
+        qDebug() << "cad";
         set_interaction_style(std::make_unique<nucleus::camera::CadInteraction>());
     }
     if (e.key() == Qt::Key_4) {
+        qDebug() << "first person 2";
         set_interaction_style(std::make_unique<nucleus::camera::FirstPersonInteraction2>());
     }
+
     if (e.key() == Qt::Key_C) {
+        qDebug() << "compass";
         set_animation_style(std::make_unique<nucleus::camera::RotateNorthInteraction>());
     }
+
+    if (e.key() == Qt::Key_P) {
+        qDebug() << "dachstein";
+        set_definition(stored_positions::dachstein());
+        m_interaction_style->reset_interaction(m_definition, m_depth_tester);
+    }
     if (e.key() == Qt::Key_L) {
-        set_definition(stored_positions::sankt_wolfgang());
-        m_interaction_style->reset_interaction(m_definition, m_depth_tester);
-    }
-    if (e.key() == Qt::Key_K) {
-        set_definition(stored_positions::sankt_wolfgang());
-        m_interaction_style->reset_interaction(m_definition, m_depth_tester);
-    }
-    if (e.key() == Qt::Key_J) {
-        set_definition(stored_positions::grubenkarspitze());
-        m_interaction_style->reset_interaction(m_definition, m_depth_tester);
-    }
-    if (e.key() == Qt::Key_H) {
+        qDebug() << "großglockner";
         set_definition(stored_positions::grossglockner());
         m_interaction_style->reset_interaction(m_definition, m_depth_tester);
     }
-    if (e.key() == Qt::Key_G) {
-        set_definition(stored_positions::oetschergraeben());
+
+    if (e.key() == Qt::Key_O) {
+        qDebug() << "train A";
+        set_definition(stored_positions::roadA());
         m_interaction_style->reset_interaction(m_definition, m_depth_tester);
     }
-    if (e.key() == Qt::Key_F) {
-        set_definition(stored_positions::gimpel());
+    if (e.key() == Qt::Key_K) {
+        qDebug() << "train B";
+        set_definition(stored_positions::roadB());
+        m_interaction_style->reset_interaction(m_definition, m_depth_tester);
+    }
+    if (e.key() == Qt::Key_M) {
+        qDebug() << "train C";
+        set_definition(stored_positions::roadC());
+        m_interaction_style->reset_interaction(m_definition, m_depth_tester);
+    }
+
+    if (e.key() == Qt::Key_I) {
+        qDebug() << "ridge A";
+        set_definition(stored_positions::grubenkarspitzeA());
+        m_interaction_style->reset_interaction(m_definition, m_depth_tester);
+    }
+    if (e.key() == Qt::Key_J) {
+        qDebug() << "ridge B";
+        set_definition(stored_positions::grubenkarspitzeB());
+        m_interaction_style->reset_interaction(m_definition, m_depth_tester);
+    }
+    if (e.key() == Qt::Key_N) {
+        qDebug() << "ridge C";
+        set_definition(stored_positions::grubenkarspitzeC());
+        m_interaction_style->reset_interaction(m_definition, m_depth_tester);
+    }
+
+    if (e.key() == Qt::Key_U) {
+        qDebug() << "ravine A";
+        set_definition(stored_positions::ravineA());
+        m_interaction_style->reset_interaction(m_definition, m_depth_tester);
+    }
+    if (e.key() == Qt::Key_H) {
+        qDebug() << "ravine B";
+        set_definition(stored_positions::ravineB());
+        m_interaction_style->reset_interaction(m_definition, m_depth_tester);
+    }
+    if (e.key() == Qt::Key_B) {
+        qDebug() << "ravine C";
+        set_definition(stored_positions::ravineC());
+        m_interaction_style->reset_interaction(m_definition, m_depth_tester);
+    }
+
+    if (e.key() == Qt::Key_T) {
+        qDebug() << "path A";
+        set_definition(stored_positions::pathA());
+        m_interaction_style->reset_interaction(m_definition, m_depth_tester);
+    }
+    if (e.key() == Qt::Key_G) {
+        qDebug() << "path B";
+        set_definition(stored_positions::pathB());
+        m_interaction_style->reset_interaction(m_definition, m_depth_tester);
+    }
+    if (e.key() == Qt::Key_V) {
+        qDebug() << "path C";
+        set_definition(stored_positions::pathC());
         m_interaction_style->reset_interaction(m_definition, m_depth_tester);
     }
 

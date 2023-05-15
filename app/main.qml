@@ -143,14 +143,23 @@ Window {
         property int label_set: 0
 
         Keys.onPressed: (event) => {
-                            if (event.key === Qt.Key_L) label_set = 10;
+                            if (event.key === Qt.Key_L) label_set = 0;
+                            if (event.key === Qt.Key_O) label_set = 10;
                             if (event.key === Qt.Key_K) label_set = 20;
-                            if (event.key === Qt.Key_J) label_set = 30;
-                            if (event.key === Qt.Key_H) label_set = 0;
-                            if (event.key === Qt.Key_G) label_set = 50;
-                            if (event.key === Qt.Key_F) label_set = 60;
-                            if (event.key === Qt.Key_N) label_set = 90;
-                            if (event.key === Qt.Key_M) label_set = 0;
+                            if (event.key === Qt.Key_M) label_set = 30;
+                            if (event.key === Qt.Key_I) label_set = 40;
+                            if (event.key === Qt.Key_J) label_set = 50;
+                            if (event.key === Qt.Key_N) label_set = 60;
+                            if (event.key === Qt.Key_U) label_set = 70;
+                            if (event.key === Qt.Key_H) label_set = 80;
+                            if (event.key === Qt.Key_B) label_set = 90;
+                            if (event.key === Qt.Key_T) label_set = 100;
+                            if (event.key === Qt.Key_G) label_set = 110;
+                            if (event.key === Qt.Key_V) label_set = 120;
+                            if (event.key === Qt.Key_8) label_set = 130;
+                            if (event.key === Qt.Key_9) label_set = 140;
+                            if (event.key === Qt.Key_0) label_set = 150;
+                            if (event.key === Qt.Key_P) label_set = 200;
                         }
     }
 
