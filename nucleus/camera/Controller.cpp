@@ -158,6 +158,11 @@ void Controller::key_press(const QKeyCombination& e)
         set_animation_style(std::make_unique<nucleus::camera::RotateNorthInteraction>());
     }
 
+    if (e.key() == Qt::Key_0) {
+        qDebug() << "sandbox";
+        set_definition(stored_positions::oestl_hochgrubach_spitze());
+        m_interaction_style->reset_interaction(m_definition, m_depth_tester);
+    }
     if (e.key() == Qt::Key_P) {
         qDebug() << "dachstein";
         set_definition(stored_positions::dachstein());

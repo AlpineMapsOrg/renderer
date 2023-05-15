@@ -36,12 +36,12 @@ MapLabelModel::MapLabelModel(QObject* parent)
     //    float viewport_size;
 
     // Training Set
-    m_labels.push_back({ "Ackerlspitze", 47.559125, 12.347188, 2329, 97, 0, 0, 0 });
-    m_labels.push_back({ "Westliche Hochgrubachspitze", 47.5583658, 12.3433997, 2277, 94, 0, 0, 0 });
-    m_labels.push_back({ "Östliche Hochgrubachspitze", 47.5587933, 12.3450985, 2284, 94, 0, 0, 0 });
-    m_labels.push_back({ "Scheffauer", 47.5573214, 12.2418396, 2111, 97, 0, 0, 0 });
-    m_labels.push_back({ "Maukspitze", 47.5588954, 12.3563668, 2231, 97, 0, 0, 0 });
-    m_labels.push_back({ "Ellmauer Halt", 47.5616377, 12.3025296, 2342, 98, 0, 0, 0 });
+    m_labels.push_back({ "Ackerlspitze", 47.559125, 12.347188, 2329, 197, 0, 0, 0 });
+    m_labels.push_back({ "Westliche Hochgrubachspitze", 47.5583658, 12.3433997, 2277, 194, 0, 0, 0 });
+    m_labels.push_back({ "Östliche Hochgrubachspitze", 47.5587933, 12.3450985, 2284, 194, 0, 0, 0 });
+    m_labels.push_back({ "Scheffauer", 47.5573214, 12.2418396, 2111, 197, 0, 0, 0 });
+    m_labels.push_back({ "Maukspitze", 47.5588954, 12.3563668, 2231, 197, 0, 0, 0 });
+    m_labels.push_back({ "Ellmauer Halt", 47.5616377, 12.3025296, 2342, 198, 0, 0, 0 });
 
     // Big mountains
     m_labels.push_back({ "Großglockner", 47.07455, 12.69388, 3798, 9, 0, 0});

@@ -156,9 +156,7 @@ Window {
                             if (event.key === Qt.Key_T) label_set = 100;
                             if (event.key === Qt.Key_G) label_set = 110;
                             if (event.key === Qt.Key_V) label_set = 120;
-                            if (event.key === Qt.Key_8) label_set = 130;
-                            if (event.key === Qt.Key_9) label_set = 140;
-                            if (event.key === Qt.Key_0) label_set = 150;
+                            if (event.key === Qt.Key_0) label_set = 190;
                             if (event.key === Qt.Key_P) label_set = 200;
                         }
     }
