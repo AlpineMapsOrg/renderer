@@ -134,39 +134,39 @@ Rectangle {
         }
     }
 
-    RoundButton {
-        id: label_visibility
-        width: 60
-        height: 60
-        checkable: true
-        checked: true
-        focusPolicy: Qt.NoFocus
-        text: "Lab"
-        visible: true
-        anchors {
-            right: parent.right
-            bottom: punkt.top
-            rightMargin: 10
-            bottomMargin: 10
-        }
-    }
+//    RoundButton {
+//        id: label_visibility
+//        width: 60
+//        height: 60
+//        checkable: true
+//        checked: true
+//        focusPolicy: Qt.NoFocus
+//        text: "Lab"
+//        visible: true
+//        anchors {
+//            right: parent.right
+//            bottom: punkt.top
+//            rightMargin: 10
+//            bottomMargin: 10
+//        }
+//    }
 
-    RoundButton {
-        id: punkt
-        width: 60
-        height: 60
-        checkable: true
-        checked: true
-        focusPolicy: Qt.NoFocus
-        text: "Pkt"
-        visible: true
-        anchors {
-            right: parent.right
-            bottom: compass.top
-            rightMargin: 10
-            bottomMargin: 10
-        }
-    }
+//    RoundButton {
+//        id: punkt
+//        width: 60
+//        height: 60
+//        checkable: true
+//        checked: true
+//        focusPolicy: Qt.NoFocus
+//        text: "Pkt"
+//        visible: true
+//        anchors {
+//            right: parent.right
+//            bottom: compass.top
+//            rightMargin: 10
+//            bottomMargin: 10
+//        }
+//    }
 
     RoundButton {
         id: compass
@@ -182,27 +182,28 @@ Rectangle {
         }
         anchors {
             right: parent.right
-            bottom: current_location.top
+//            bottom: current_location.top
+            bottom: parent.bottom
             rightMargin: 10
             bottomMargin: 10
         }
     }
 
-    RoundButton {
-        id: current_location
-        width: 60
-        height: 60
-        checkable: true
-        focusPolicy: Qt.NoFocus
-        icon {
-            source: "qrc:/icons/current_location.svg"
-            height: 32
-            width: 32
-        }
-        anchors {
-            right: parent.right
-            bottom: parent.bottom
-            margins: 10
-        }
-    }
+//    RoundButton {
+//        id: current_location
+//        width: 60
+//        height: 60
+//        checkable: true
+//        focusPolicy: Qt.NoFocus
+//        icon {
+//            source: "qrc:/icons/current_location.svg"
+//            height: 32
+//            width: 32
+//        }
+//        anchors {
+//            right: parent.right
+//            bottom: parent.bottom
+//            margins: 10
+//        }
+//    }
 }

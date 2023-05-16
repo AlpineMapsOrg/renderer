@@ -67,27 +67,27 @@ Window {
 //                font.weight: Font.ExtraBold
                 Layout.fillWidth: true
             }
-            SearchBox {
-                id: search
-                search_results: search_results
-                visible: menu_list_view.currentIndex === 0
-            }
+//            SearchBox {
+//                id: search
+//                search_results: search_results
+//                visible: menu_list_view.currentIndex === 0
+//            }
         }
         z: 100
     }
 
-    SearchResults {
-        id: search_results
-        map: map
-        search_height: search.height
-        anchors {
-            top: tool_bar.bottom
-            bottom: root_window.contentItem.bottom
-            left: root_window.contentItem.left
-            right: root_window.contentItem.right
-            margins: 10
-        }
-    }
+//    SearchResults {
+//        id: search_results
+//        map: map
+//        search_height: search.height
+//        anchors {
+//            top: tool_bar.bottom
+//            bottom: root_window.contentItem.bottom
+//            left: root_window.contentItem.left
+//            right: root_window.contentItem.right
+//            margins: 10
+//        }
+//    }
 
     Drawer {
         id: menu
