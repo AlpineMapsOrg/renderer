@@ -27,6 +27,7 @@ class OrbitInteraction : public InteractionStyle
     glm::dvec3 m_operation_centre = {};
     glm::vec2 m_operation_centre_screen = {};
     bool m_move_vertical = false;
+    bool m_no_movement = false;
     bool m_key_ctrl = false;
     bool m_key_alt = false;
     bool m_key_shift = false;

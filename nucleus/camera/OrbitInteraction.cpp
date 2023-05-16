@@ -148,6 +148,15 @@ void OrbitInteraction::start(const QPointF& position, const Definition& camera, 
     m_operation_centre = depth_tester->position(camera.to_ndc({ position.x(), position.y() }));
 
     m_move_vertical = false;
+
+    glm::dvec3 camRay = camera.ray_direction(camera.to_ndc({ position.x(), position.y() }));
+    auto degFromDown = glm::degrees(glm::acos(glm::dot(camRay, glm::dvec3(0, 0, 1))));
+    if (degFromDown < 92.0f) {
+        m_no_movement = true;
+    } else {
+        m_no_movement = false;
+    }
+
 //    auto degFromUp = glm::degrees(glm::acos(glm::dot(camera.z_axis(), glm::dvec3(0, 0, 1))));
 //    if (m_operation_centre.z > camera.position().z || degFromUp > 80.0f) {
 //        m_move_vertical = true;
@@ -169,7 +178,7 @@ void OrbitInteraction::pan(const QPointF& position, const QPointF& last_position
         }
         auto mouseInWorld = camera->position() + (camRay * distance);
         camera->move(glm::dvec3(m_operation_centre.x - mouseInWorld.x, m_operation_centre.y - mouseInWorld.y, m_operation_centre.z - mouseInWorld.z));
-    } else {
+    } else if (!m_no_movement) {
         glm::dvec3 camRay = camera->ray_direction(camera->to_ndc({ position.x(), position.y() }));
 
         auto degFromDown = glm::degrees(glm::acos(glm::dot(camRay, glm::dvec3(0, 0, 1))));
