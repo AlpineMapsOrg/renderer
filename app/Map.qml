@@ -170,15 +170,15 @@ Rectangle {
 
     RoundButton {
         id: compass
-        width: 60
-        height: 60
+        width: 80
+        height: 80
         rotation: renderer.camera_rotation_from_north
         onClicked: renderer.rotate_north()
         focusPolicy: Qt.NoFocus
         icon {
             source: "qrc:/icons/compass.svg"
-            height: 40
-            width: 40
+            height: 60
+            width: 60
         }
         anchors {
             right: parent.right
