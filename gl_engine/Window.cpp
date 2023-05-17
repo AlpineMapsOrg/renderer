@@ -103,8 +103,9 @@ void Window::paint(QOpenGLFramebufferObject* framebuffer)
     f->glEnable(GL_CULL_FACE);
     f->glCullFace(GL_BACK);
 
+    m_camera.set_viewport_size(m_framebuffer->size());
+
     // DEPTH BUFFER
-    m_camera.set_viewport_size(m_depth_buffer->size());
     m_depth_buffer->bind();
     f->glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
     f->glEnable(GL_DEPTH_TEST);
@@ -115,7 +116,6 @@ void Window::paint(QOpenGLFramebufferObject* framebuffer)
     m_depth_buffer->unbind();
     // END DEPTH BUFFER
 
-    m_camera.set_viewport_size(m_framebuffer->size());
     m_framebuffer->bind();
     f->glClearColor(1.0, 0.0, 0.5, 1);
 
