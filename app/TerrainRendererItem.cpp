@@ -287,7 +287,6 @@ void TerrainRendererItem::set_camera_operation_centre_distance(float new_camera_
 {
     if (m_camera_operation_centre_distance == new_camera_operation_centre_distance)
         return;
-    qDebug() << new_camera_operation_centre_distance;
     m_camera_operation_centre_distance = new_camera_operation_centre_distance;
     emit camera_operation_centre_distance_changed();
 }
