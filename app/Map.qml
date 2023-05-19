@@ -69,7 +69,7 @@ Rectangle {
                 let distance_scale = Math.max(0.4, model.size)
                 let importance_scale = (model.importance - renderer.label_set) / 10;
                 let min_scale = 0.1;
-                return (min_scale + (1.0-min_scale) * importance_scale) * distance_scale * 2.0;
+                return Math.min((min_scale + (1.0-min_scale) * importance_scale) * distance_scale * 2.0, 100.0);
             }
             x: model.x * label_view.width / renderer.camera_width
             y: model.y * (label_view.height + 60) / renderer.camera_height - 60
