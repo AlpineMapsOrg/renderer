@@ -37,8 +37,8 @@ QByteArray versionedShaderCode(const QByteArray& src)
 void set_qrc_or_path_prefix(ShaderProgram::Files* files)
 {
     QString prefix = ":/";
-    if (!QOpenGLContext::currentContext()->isOpenGLES())
-        prefix = ALP_RESOURCES_PREFIX;
+//    if (!QOpenGLContext::currentContext()->isOpenGLES())
+//        prefix = ALP_RESOURCES_PREFIX;
 
     for (auto& path : *files) {
         path.prepend(prefix);
