@@ -145,6 +145,7 @@ set(ALP_CATCH_UNITTEST_SOURCES
     unittests/nucleus_tile_scheduler_slot_limiter.cpp
     unittests/nucleus_tile_scheduler_rate_limiter.cpp
     unittests/RateTester.h unittests/RateTester.cpp
+    unittests/test_zppbits.cpp
 )
 
 include(FetchContent)
@@ -188,7 +189,10 @@ endif()
 
 
 FetchContent_Declare(fmt GIT_REPOSITORY https://github.com/fmtlib/fmt.git)
-FetchContent_MakeAvailable(fmt)
+FetchContent_Declare(zppbits GIT_REPOSITORY https://github.com/eyalz800/zpp_bits.git GIT_TAG main)
+FetchContent_MakeAvailable(fmt zppbits)
+add_library(zppbits INTERFACE)
+target_include_directories(zppbits INTERFACE ${zppbits_SOURCE_DIR})
 
 
 ############################################ nucleus ##############################################
@@ -197,7 +201,7 @@ qt_add_library(nucleus STATIC
 )
 
 target_include_directories(nucleus PRIVATE . PUBLIC ${CMAKE_SOURCE_DIR})
-target_link_libraries(nucleus PUBLIC sherpa Qt::Core Qt::Gui Qt6::Network Qt6::Svg fmt::fmt)
+target_link_libraries(nucleus PUBLIC sherpa Qt::Core Qt::Gui Qt6::Network Qt6::Svg fmt::fmt zppbits)
 
 
 if (ALP_ENABLE_ASSERTS)
