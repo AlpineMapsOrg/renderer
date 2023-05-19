@@ -291,6 +291,19 @@ void TerrainRendererItem::set_camera_operation_centre_distance(float new_camera_
     emit camera_operation_centre_distance_changed();
 }
 
+float TerrainRendererItem::camera_speed() const
+{
+    return m_camera_speed;
+}
+
+void TerrainRendererItem::set_camera_speed(float new_camera_speed)
+{
+    if (m_camera_speed == new_camera_speed)
+        return;
+    m_camera_speed = new_camera_speed;
+    emit camera_speed_changed();
+}
+
 float TerrainRendererItem::render_quality() const
 {
     return m_render_quality;

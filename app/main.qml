@@ -141,8 +141,13 @@ Window {
         focus: true
         anchors.fill: parent
         property int label_set: 0
+        property bool speed_visible: false
 
         Keys.onPressed: (event) => {
+                            if (event.key === Qt.Key_1) speed_visible = false;
+                            if (event.key === Qt.Key_2) speed_visible = true;
+                            if (event.key === Qt.Key_3) speed_visible = false;
+
                             if (event.key === Qt.Key_L) label_set = 0;
                             if (event.key === Qt.Key_O) label_set = 10;
                             if (event.key === Qt.Key_K) label_set = 20;

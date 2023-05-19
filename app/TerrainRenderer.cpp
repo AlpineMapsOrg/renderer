@@ -75,6 +75,10 @@ void TerrainRenderer::synchronize(QQuickFramebufferObject *item)
     } else {
         i->set_camera_operation_centre_visibility(false);
     }
+    const auto speed = m_controller->camera_controller()->get_speed();
+    if (speed.has_value()) {
+        i->set_camera_speed(speed.value());
+    }
 
     if (!(i->camera() == m_controller->camera_controller()->definition())) {
         const auto tmp_camera = m_controller->camera_controller()->definition();

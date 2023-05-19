@@ -29,7 +29,7 @@ class FirstPersonInteraction : public InteractionStyle
     glm::ivec2 m_previous_first_touch = { -1, -1 };
     glm::ivec2 m_previous_second_touch = { -1, -1 };
     utils::Stopwatch m_stopwatch = {};
-    float m_speed_modifyer = 13;
+    float m_speed_modifyer = 1;
     int m_keys_pressed = 0;
     bool m_was_double_touch = false;
     bool m_key_w = false;
@@ -45,5 +45,6 @@ public:
     std::optional<Definition> key_press_event(const QKeyCombination& e, Definition camera, AbstractDepthTester* depth_tester) override;
     std::optional<Definition> key_release_event(const QKeyCombination& e, Definition camera, AbstractDepthTester* depth_tester) override;
     std::optional<Definition> update(Definition camera, AbstractDepthTester* depth_tester) override;
+    std::optional<float> get_speed() override;
 };
 }

@@ -42,6 +42,7 @@ public:
     virtual std::optional<Definition> update(Definition camera, AbstractDepthTester* depth_tester);
     virtual std::optional<glm::vec2> get_operation_centre();
     virtual std::optional<float> get_operation_centre_distance(Definition camera);
+    virtual std::optional<float> get_speed();
 };
 
 }

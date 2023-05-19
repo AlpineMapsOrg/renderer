@@ -41,9 +41,29 @@ std::optional<Definition> FirstPersonInteraction::mouse_move_event(const event_p
 std::optional<Definition> FirstPersonInteraction::wheel_event(const event_parameter::Wheel& e, Definition camera, AbstractDepthTester* depth_tester)
 {
     if (e.angle_delta.y() > 0) {
-        m_speed_modifyer = std::min(m_speed_modifyer * 1.3f, 4000.0f);
+//        m_speed_modifyer = std::min(m_speed_modifyer * 1.3f, 4000.0f);
+
+        if (m_speed_modifyer >= 40.0f) {
+            m_speed_modifyer = std::min(m_speed_modifyer + 10.0f, 90.0f);
+        } else if (m_speed_modifyer >= 10.0f) {
+            m_speed_modifyer = std::min(m_speed_modifyer + 3.0f, 40.0f);
+        } else if (m_speed_modifyer >= 1.0f) {
+            m_speed_modifyer = std::min(m_speed_modifyer + 0.3f, 10.0f);
+        } else {
+            m_speed_modifyer = std::min(m_speed_modifyer + 0.1f, 1.0f);
+        }
     } else {
-        m_speed_modifyer = std::max(m_speed_modifyer / 1.3f, 1.0f);
+//        m_speed_modifyer = std::max(m_speed_modifyer / 1.3f, 1.0f);
+
+        if (m_speed_modifyer <= 1.0f) {
+            m_speed_modifyer = std::max(m_speed_modifyer - 0.1f, 0.1f);
+        } else if (m_speed_modifyer <= 10.0f) {
+            m_speed_modifyer = std::max(m_speed_modifyer - 0.3f, 1.0f);
+        } else if (m_speed_modifyer <= 40.0f) {
+            m_speed_modifyer = std::max(m_speed_modifyer - 3.0f, 10.0f);
+        } else {
+            m_speed_modifyer = std::max(m_speed_modifyer - 10.0f, 40.0f);
+        }
     }
     return camera;
 }
@@ -136,10 +156,14 @@ std::optional<Definition> FirstPersonInteraction::update(Definition camera, Abst
         dt = 120;
     }
     if (m_key_shift) {
-        camera.move(direction * (dt / 30 * m_speed_modifyer * 3));
+        camera.move(direction * (dt / 30 * m_speed_modifyer * 30));
     } else {
-        camera.move(direction * (dt / 30 * m_speed_modifyer));
+        camera.move(direction * (dt / 30 * m_speed_modifyer * 10));
     }
     return camera;
+}
+
+std::optional<float> FirstPersonInteraction::get_speed(){
+    return m_speed_modifyer;
 }
 }

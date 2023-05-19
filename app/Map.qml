@@ -169,6 +169,22 @@ Rectangle {
 //    }
 
     RoundButton {
+        id: speed
+        width: 80
+        height: 80
+        focusPolicy: Qt.NoFocus
+        text: renderer.camera_speed.toFixed(1)
+        font.pixelSize: 26
+        visible: renderer.speed_visible
+        anchors {
+            right: parent.right
+            bottom: compass.top
+            rightMargin: 10
+            bottomMargin: 10
+        }
+    }
+
+    RoundButton {
         id: compass
         width: 80
         height: 80

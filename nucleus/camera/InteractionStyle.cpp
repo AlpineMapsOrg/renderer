@@ -67,3 +67,8 @@ std::optional<float> InteractionStyle::get_operation_centre_distance(Definition)
 {
     return {};
 }
+
+std::optional<float> InteractionStyle::get_speed()
+{
+    return {};
+}

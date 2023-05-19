@@ -317,6 +317,13 @@ std::optional<float> Controller::get_operation_centre_distance(){
     return m_interaction_style->get_operation_centre_distance(m_definition);
 }
 
+std::optional<float> Controller::get_speed(){
+    if (m_animation_style) {
+        return m_animation_style->get_speed();
+    }
+    return m_interaction_style->get_speed();
+}
+
 const Definition& Controller::definition() const
 {
     return m_definition;

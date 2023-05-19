@@ -38,6 +38,7 @@ class TerrainRendererItem : public QQuickFramebufferObject {
     Q_PROPERTY(QPointF camera_operation_centre READ camera_operation_centre NOTIFY camera_operation_centre_changed)
     Q_PROPERTY(bool camera_operation_centre_visibility READ camera_operation_centre_visibility NOTIFY camera_operation_centre_visibility_changed)
     Q_PROPERTY(float camera_operation_centre_distance READ camera_operation_centre_distance NOTIFY camera_operation_centre_distance_changed)
+    Q_PROPERTY(float camera_speed READ camera_speed NOTIFY camera_speed_changed)
     Q_PROPERTY(float render_quality READ render_quality WRITE set_render_quality NOTIFY render_quality_changed)
 
 public:
@@ -67,6 +68,7 @@ signals:
     void camera_operation_centre_changed();
     void camera_operation_centre_visibility_changed();
     void camera_operation_centre_distance_changed();
+    void camera_speed_changed();
     void render_quality_changed(float new_render_quality);
 
 protected:
@@ -113,6 +115,9 @@ public:
     float camera_operation_centre_distance() const;
     void set_camera_operation_centre_distance(float new_camera_operation_centre_distance);
 
+    float camera_speed() const;
+    void set_camera_speed(float new_camera_speed);
+
     float render_quality() const;
     void set_render_quality(float new_render_quality);
 
@@ -121,6 +126,7 @@ private:
     QPointF m_camera_operation_centre;
     bool m_camera_operation_centre_visibility = false;
     float m_camera_operation_centre_distance = 1;
+    float m_camera_speed = 1;
     float m_field_of_view = 60;
     int m_frame_limit = 60;
     float m_render_quality = 1.0f;
