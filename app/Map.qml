@@ -51,7 +51,7 @@ Rectangle {
         sourceSize: Qt.size(width, height)
         x: renderer.camera_operation_centre.x - width / 2
         y: renderer.camera_operation_centre.y - 60 - height / 2
-        visible: renderer.camera_operation_centre_visibility && punkt.checked
+        visible: renderer.camera_operation_centre_visibility // && punkt.checked
     }
 
     Repeater {
@@ -75,7 +75,7 @@ Rectangle {
             y: model.y * (label_view.height + 60) / renderer.camera_height - 60
             z:  50 * my_scale()
 //            visible: model.importance < 10 && label_visibility.checked
-            visible: model.importance - renderer.label_set >= 0 && model.importance - renderer.label_set < 10 && label_visibility.checked
+            visible: model.importance - renderer.label_set >= 0 && model.importance - renderer.label_set < 10// && label_visibility.checked
             Image {
                 id: icon
                 source: "qrc:/icons/peak.svg"
