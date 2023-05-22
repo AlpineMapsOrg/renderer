@@ -12,7 +12,7 @@ or a normal clone and
 `git submodule init && git submodule update`
 
 After that it should be a normal cmake project. that is, you run cmake to generate a project or build file and then run your favourite tool.
-We use Qt Creator (with mingw on Windows), which is the only tested setup atm and makes setup of Android and WebAssembly builds reasonably easy. If you have questions, please open a new [discussion] (https://github.com/AlpineMapsOrg/renderer/discussions).
+We use Qt Creator (with mingw on Windows), which is the only tested setup atm and makes setup of Android and WebAssembly builds reasonably easy. If you have questions, please open a new [discussion](https://github.com/AlpineMapsOrg/renderer/discussions).
 
 # dependencies for the native and android build
 * Qt 6.5.0 (!), or greater
