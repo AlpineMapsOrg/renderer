@@ -4,18 +4,21 @@ A developer version is available at https://alpinemaps.org, and an apk for andro
 We are in discord, talk to us!
 https://discord.gg/p8T9XzVwRa
 
-# cloning
+# cloning and building
 `git clone --recurse-submodules git@github.com:AlpineMapsOrg/renderer.git`
 
 or a normal clone and
 
 `git submodule init && git submodule update`
 
+After that it should be a normal cmake project. that is, you run cmake to generate a project or build file and then run your favourite tool.
+We use Qt Creator (with mingw on Windows), which is the only tested setup atm and makes setup of Android and WebAssembly builds reasonably easy. If you have questions, please open a new [discussion] (https://github.com/AlpineMapsOrg/renderer/discussions).
+
 # dependencies for the native and android build
 * Qt 6.5.0 (!), or greater
 * OpenGL
-* Catch2 (version 2.x, not 3.x!) and GLM will be pulled as git submodules.
 * Qt Positioning and qt5 compatibility modules
+* some other dependencies will be pulled during building
 
 # for building the WebAssembly version:
 * Qt 6.5.1 (!), or greater (there is an important bug fix in the unreleased 6.5.1, without it, you can't search. so either use 6.6 from the installer or use 6.5 and live without search)
