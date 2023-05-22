@@ -63,9 +63,15 @@ void TerrainRenderer::synchronize(QQuickFramebufferObject *item)
     }
 
     const auto oc = m_controller->camera_controller()->get_operation_centre();
+    const auto oc_distance = m_controller->camera_controller()->get_operation_centre_distance();
     if (oc.has_value()) {
         i->set_camera_operation_centre_visibility(true);
         i->set_camera_operation_centre(QPointF(oc.value().x, oc.value().y));
+        if (oc_distance.has_value()) {
+            i->set_camera_operation_centre_distance(oc_distance.value());
+        } else {
+            i->set_camera_operation_centre_distance(-1);
+        }
     } else {
         i->set_camera_operation_centre_visibility(false);
     }

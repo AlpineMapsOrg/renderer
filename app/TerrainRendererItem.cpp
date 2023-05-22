@@ -278,6 +278,19 @@ void TerrainRendererItem::set_camera_operation_centre_visibility(bool new_camera
     emit camera_operation_centre_visibility_changed();
 }
 
+float TerrainRendererItem::camera_operation_centre_distance() const
+{
+    return m_camera_operation_centre_distance;
+}
+
+void TerrainRendererItem::set_camera_operation_centre_distance(float new_camera_operation_centre_distance)
+{
+    if (m_camera_operation_centre_distance == new_camera_operation_centre_distance)
+        return;
+    m_camera_operation_centre_distance = new_camera_operation_centre_distance;
+    emit camera_operation_centre_distance_changed();
+}
+
 float TerrainRendererItem::render_quality() const
 {
     return m_render_quality;

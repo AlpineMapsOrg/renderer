@@ -40,6 +40,7 @@ public:
 
     [[nodiscard]] const Definition& definition() const;
     std::optional<glm::vec2> get_operation_centre();
+    std::optional<float> get_operation_centre_distance();
 
 public slots:
     void set_definition(const Definition& new_definition);
