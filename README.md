@@ -1,5 +1,5 @@
 # alpine-renderer
-A developer version is available at https://alpinemaps.org, and an apk for android under https://alpinemaps.org/apk. Be aware that it can break at any time!
+A developer version is available at [alpinemaps.org](https://alpinemaps.org), and an apk for android under https://alpinemaps.org/apk. Be aware that it can break at any time!
 
 We are in discord, talk to us!
 https://discord.gg/p8T9XzVwRa
@@ -22,7 +22,7 @@ We use Qt Creator (with mingw on Windows), which is the only tested setup atm an
 
 # for building the WebAssembly version:
 * Qt 6.5.1 (!), or greater (there is an important bug fix in the unreleased 6.5.1, without it, you can't search. so either use 6.6 from the installer or use 6.5 and live without search)
-* WebAssembly version compatible with the Qt version (https://doc-snapshots.qt.io/qt6-dev/wasm.html#installing-emscripten)
+* [WebAssembly version compatible with the Qt version](https://doc-snapshots.qt.io/qt6-dev/wasm.html#installing-emscripten)
 * The threaded version doesn't seem to work atm, so use the non-threaded!
 
 # code style
