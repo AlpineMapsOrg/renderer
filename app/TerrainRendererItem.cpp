@@ -90,7 +90,7 @@ QQuickFramebufferObject::Renderer* TerrainRendererItem::createRenderer() const
 
     auto* const tile_scheduler = r->controller()->tile_scheduler();
     connect(this, &TerrainRendererItem::render_quality_changed, r->controller()->tile_scheduler(), [=](float new_render_quality) {
-        const auto permissible_error = 2.0f / new_render_quality;
+        const auto permissible_error = 1.0f / new_render_quality;
         tile_scheduler->set_permissible_screen_space_error(permissible_error);
     });
 
