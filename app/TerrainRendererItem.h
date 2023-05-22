@@ -127,7 +127,7 @@ private:
     bool m_camera_operation_centre_visibility = false;
     float m_camera_operation_centre_distance = 1;
     float m_camera_speed = 1;
-    float m_field_of_view = 60;
+    float m_field_of_view = 65;
     int m_frame_limit = 60;
     float m_render_quality = 1.0f;
 
