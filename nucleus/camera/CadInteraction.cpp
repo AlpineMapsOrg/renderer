@@ -35,12 +35,11 @@ std::optional<Definition> CadInteraction::mouse_press_event(const event_paramete
     if (m_operation_centre.x == 0 && m_operation_centre.y == 0 && m_operation_centre.z == 0) {
         reset_interaction(camera, depth_tester);
     }
-    if (e.buttons == Qt::LeftButton && m_stopwatch.lap().count() < 300) {
-        qDebug() << "double click";
-        auto new_operation_centre = depth_tester->position(camera.to_ndc({ e.point.position().x(), e.point.position().y() }));
-        //auto move_vector = m_operation_centre - new_operation_centre;
-        camera.move(new_operation_centre - m_operation_centre);
-        m_operation_centre = new_operation_centre;
+    if (e.buttons == Qt::LeftButton && m_stopwatch.lap().count() < 300) { // double click
+        m_interpolation_start = m_operation_centre;
+        m_interpolation_target = depth_tester->position(camera.to_ndc({ e.point.position().x(), e.point.position().y() }));
+        m_interpolation_duration = 0;
+
         return camera;
     }
     return {};
@@ -122,7 +121,35 @@ std::optional<Definition> CadInteraction::key_release_event(const QKeyCombinatio
     return camera;
 }
 
+std::optional<Definition> CadInteraction::update(Definition camera, AbstractDepthTester* depthTester)
+{
+    int total_duration = 90;
+
+    if (m_interpolation_duration >= total_duration) {
+        return {};
+    }
+
+    auto dt = m_stopwatch.lap().count();
+
+    if (m_interpolation_duration + dt > total_duration) { // last step
+        dt = total_duration - m_interpolation_duration;
+    }
+
+    auto total_move = m_interpolation_target - m_interpolation_start;
+    double step = (double)dt / total_duration;
+
+    camera.move(total_move * step);
+    m_operation_centre = m_operation_centre + total_move * step;
+
+    m_interpolation_duration += dt;
+    return camera;
+}
+
 std::optional<glm::vec2> CadInteraction::get_operation_centre(){
     return m_operation_centre_screen;
+}
+
+std::optional<float> CadInteraction::get_operation_centre_distance(Definition camera){
+    return glm::distance(m_operation_centre, camera.position());
 }
 }

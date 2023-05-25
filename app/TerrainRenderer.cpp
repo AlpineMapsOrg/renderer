@@ -50,7 +50,7 @@ void TerrainRenderer::synchronize(QQuickFramebufferObject *item)
     m_window = item->window();
     TerrainRendererItem* i = static_cast<TerrainRendererItem*>(item);
     //        m_controller->camera_controller()->set_virtual_resolution_factor(i->render_quality());
-    m_glWindow->set_permissible_screen_space_error(2.0 / i->render_quality());
+    m_glWindow->set_permissible_screen_space_error(1.0 / i->render_quality());
     m_controller->camera_controller()->set_viewport({ i->width(), i->height() });
     m_controller->camera_controller()->set_field_of_view(i->field_of_view());
 
@@ -63,9 +63,15 @@ void TerrainRenderer::synchronize(QQuickFramebufferObject *item)
     }
 
     const auto oc = m_controller->camera_controller()->get_operation_centre();
+    const auto oc_distance = m_controller->camera_controller()->get_operation_centre_distance();
     if (oc.has_value()) {
         i->set_camera_operation_centre_visibility(true);
         i->set_camera_operation_centre(QPointF(oc.value().x, oc.value().y));
+        if (oc_distance.has_value()) {
+            i->set_camera_operation_centre_distance(oc_distance.value());
+        } else {
+            i->set_camera_operation_centre_distance(-1);
+        }
     } else {
         i->set_camera_operation_centre_visibility(false);
     }

@@ -90,7 +90,7 @@ QQuickFramebufferObject::Renderer* TerrainRendererItem::createRenderer() const
 
     auto* const tile_scheduler = r->controller()->tile_scheduler();
     connect(this, &TerrainRendererItem::render_quality_changed, r->controller()->tile_scheduler(), [=](float new_render_quality) {
-        const auto permissible_error = 2.0f / new_render_quality;
+        const auto permissible_error = 1.0f / new_render_quality;
         tile_scheduler->set_permissible_screen_space_error(permissible_error);
     });
 
@@ -276,6 +276,19 @@ void TerrainRendererItem::set_camera_operation_centre_visibility(bool new_camera
         return;
     m_camera_operation_centre_visibility = new_camera_operation_centre_visibility;
     emit camera_operation_centre_visibility_changed();
+}
+
+float TerrainRendererItem::camera_operation_centre_distance() const
+{
+    return m_camera_operation_centre_distance;
+}
+
+void TerrainRendererItem::set_camera_operation_centre_distance(float new_camera_operation_centre_distance)
+{
+    if (m_camera_operation_centre_distance == new_camera_operation_centre_distance)
+        return;
+    m_camera_operation_centre_distance = new_camera_operation_centre_distance;
+    emit camera_operation_centre_distance_changed();
 }
 
 float TerrainRendererItem::render_quality() const

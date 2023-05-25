@@ -29,6 +29,7 @@ class OrbitInteraction : public InteractionStyle
     bool m_move_vertical = false;
     bool m_key_ctrl = false;
     bool m_key_alt = false;
+    bool m_key_shift = false;
 public:
     std::optional<Definition> mouse_press_event(const event_parameter::Mouse& e, Definition camera, AbstractDepthTester* depth_tester) override;
     std::optional<Definition> mouse_move_event(const event_parameter::Mouse& e, Definition camera, AbstractDepthTester* depth_tester) override;

@@ -133,30 +133,20 @@ namespace utils {
 
     inline auto refineFunctor(const nucleus::camera::Definition& camera, const AabbDecoratorPtr& aabb_decorator, double error_threshold_px, double tile_size = 256)
     {
+        constexpr auto sqrt2 = 1.414213562373095;
         auto refine = [&camera, error_threshold_px, tile_size, aabb_decorator](const tile::Id& tile) {
             if (tile.zoom_level >= 18)
                 return false;
 
-            const auto tile_aabb = aabb_decorator->aabb(tile);
+            const auto aabb = aabb_decorator->aabb(tile);
 
-            // this test should be based only on the four frustum planes (top, left, bottom, right), because
-            // the near and far planes are adjusted based on the loaded AABBs, and that results in  a chicken egg problem.
-            const auto triangles = geometry::clip(geometry::triangulise(tile_aabb), camera.four_clipping_planes());
-            if (triangles.empty())
+            if (!cameraFrustumContainsTile(camera, aabb))
                 return false;
-            const auto nearest_point = glm::dvec4(nearestVertex(camera, triangles), 1);
-            const auto aabb_width = tile_aabb.size().x;
-            const auto other_point_axis = camera.x_axis();
-            const auto other_point = nearest_point + glm::dvec4(other_point_axis * aabb_width / tile_size, 0);
-            const auto vp_mat = camera.world_view_projection_matrix();
 
-            auto nearest_screenspace = vp_mat * nearest_point;
-            nearest_screenspace /= nearest_screenspace.w;
-            auto other_screenspace = vp_mat * other_point;
-            other_screenspace /= other_screenspace.w;
-            const auto clip_space_difference = length(glm::dvec2(nearest_screenspace - other_screenspace));
+            const auto distance = geometry::distance(aabb, camera.position());
+            const auto pixel_size = sqrt2 * aabb.size().x / tile_size;
 
-            return clip_space_difference * 0.5 * camera.viewport_size().x >= error_threshold_px;
+            return camera.to_screen_space(pixel_size, distance) >= error_threshold_px;
         };
         return refine;
     }
