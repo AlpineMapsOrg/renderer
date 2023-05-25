@@ -172,7 +172,7 @@ void Scheduler::persist_tiles()
         if (diff > std::chrono::milliseconds(50))
             fmt::println(stderr, "Scheduler::persist_tiles took {} for {} quads.", std::chrono::duration_cast<std::chrono::milliseconds>(diff), m_ram_cache.n_cached_objects());
     } catch (const std::runtime_error& e) {
-        qDebug("Writing tiles to disk into %s failed: %s.", disk_cache_path().c_str(), e.what());
+        qDebug("Writing tiles to disk into %s failed: %s. Removing all files.", disk_cache_path().c_str(), e.what());
         std::filesystem::remove_all(disk_cache_path());
     }
 }
@@ -205,7 +205,7 @@ void Scheduler::read_disk_cache()
     try {
         m_ram_cache.read_from_disk(disk_cache_path());
     } catch (const std::runtime_error& e) {
-        qDebug("Reading tiles from disk cache (%s) failed: \n%s\nRemoving the file.", disk_cache_path().c_str(), e.what());
+        qDebug("Reading tiles from disk cache (%s) failed: \n%s\nRemoving all files.", disk_cache_path().c_str(), e.what());
         std::filesystem::remove_all(disk_cache_path());
     }
 }
