@@ -132,11 +132,6 @@ void TileManager::draw(ShaderProgram* shader_program, const nucleus::camera::Def
     f->glBindVertexArray(0);
 }
 
-void TileManager::add_tile(const std::shared_ptr<nucleus::Tile>& tile)
-{
-    add_tile(tile->id, tile->bounds, tile->orthotexture, tile->height_map);
-}
-
 void TileManager::remove_tile(const tile::Id& tile_id)
 {
     if (!QOpenGLContext::currentContext()) // can happen during shutdown.

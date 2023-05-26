@@ -54,7 +54,6 @@ signals:
 
 public slots:
     void update_gpu_quads(const std::vector<nucleus::tile_scheduler::tile_types::GpuTileQuad>& new_quads, const std::vector<tile::Id>& deleted_quads);
-    void add_tile(const std::shared_ptr<nucleus::Tile>& tile);
     void remove_tile(const tile::Id& tile_id);
     void initilise_attribute_locations(ShaderProgram* program);
     void set_aabb_decorator(const nucleus::tile_scheduler::utils::AabbDecoratorPtr& new_aabb_decorator);
