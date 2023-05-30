@@ -207,7 +207,7 @@ void Cache<T>::read_from_disk(const std::filesystem::path& base_path)
         QFile file(path);
         const auto success = file.open(QIODeviceBase::ReadOnly);
         if (!success)
-            throw std::runtime_error(fmt::format("Couldn't open file '{}' for writing!", path.string()));
+            throw std::runtime_error(fmt::format("Couldn't open file '{}' for reading!", path.string()));
         return file.readAll();
     };
 
