@@ -126,9 +126,7 @@ int main(int argc, char **argv)
         return 1;
     }
 
-#ifdef __EMSCRIPTEN__
-    root_window->showFullScreen();
-#else
+#if (defined(__linux) && !defined(__ANDROID__)) || defined(_WIN32) || defined(_WIN64)
     root_window->showMaximized();
 #endif
 
