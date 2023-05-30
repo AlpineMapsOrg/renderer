@@ -349,12 +349,20 @@ if (EMSCRIPTEN)
         "$<TARGET_FILE_DIR:alpineapp>/alpineapp.html"
         "$<TARGET_FILE_DIR:alpineapp>/qtloader.js"
     )
+
+    if (ALP_ENABLE_THREADING)
+        list(APPEND ALP_INSTALL_FILES "$<TARGET_FILE_DIR:alpineapp>/alpineapp.worker.js")
+    endif()
     install(FILES ${ALP_INSTALL_FILES} DESTINATION ${ALP_WWW_INSTALL_DIR})
 endif()
 
 
 #################################### unit tests for backend #######################################
 if (ALP_UNITTESTS)
+    if (EMSCRIPTEN AND ALP_ENABLE_THREADING)
+        target_compile_options(Catch2 PRIVATE -pthread)
+    endif()
+
     qt_add_executable(unittests ${ALP_CATCH_UNITTEST_SOURCES})
     qt_add_resources(unittests "test_data"
         PREFIX "/test_data"
@@ -397,6 +405,7 @@ if (ALP_UNITTESTS)
     endif()
 
     if (EMSCRIPTEN)
+        # asyncify required for running nested event loops in some of the tests
         target_link_options(unittests PUBLIC -sASYNCIFY -Os)
 
         configure_file(site/unittests.html unittests.html COPYONLY)
