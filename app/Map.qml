@@ -173,6 +173,7 @@ Rectangle {
         width: 60
         height: 60
         checkable: true
+        highlighted: checked
         focusPolicy: Qt.NoFocus
         icon {
             source: "qrc:/icons/current_location.svg"
