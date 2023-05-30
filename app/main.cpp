@@ -125,8 +125,13 @@ int main(int argc, char **argv)
         qDebug() << "root window not created!";
         return 1;
     }
+
+#ifdef __EMSCRIPTEN__
+    root_window->showFullScreen();
+#else
     root_window->showMaximized();
-    //root_window->showFullScreen();
+#endif
+
     RenderThreadNotifier::instance()->set_root_window(root_window);
 
     return app.exec();

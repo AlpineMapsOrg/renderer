@@ -98,7 +98,7 @@ TEST_CASE("nucleus/srs")
 
     SECTION("srs conversion")
     {
-        CHECK(srs::lat_long_to_world({ 0, 0 }).x == Approx(0));
+        CHECK(srs::lat_long_to_world({ 0, 0 }).x == Approx(0).scale(20037508));
         CHECK(srs::lat_long_to_world({ 0, 0 }).y == Approx(0).scale(20037508));
 
         constexpr double maxLat = 85.05112878;
@@ -144,7 +144,7 @@ TEST_CASE("nucleus/srs")
     SECTION("srs conversion with height")
     {
         constexpr double pi = 3.141592653589793238462643383279502884197169399375105820974944;
-        CHECK(srs::lat_long_alt_to_world({ 0, 0, 10.0 }).x == Approx(0));
+        CHECK(srs::lat_long_alt_to_world({ 0, 0, 10.0 }).x == Approx(0).scale(20037508));
         CHECK(srs::lat_long_alt_to_world({ 0, 0, 10.0 }).y == Approx(0).scale(20037508));
         CHECK(srs::lat_long_alt_to_world({ 0, 0, 10.0 }).z == Approx(10).scale(20037508));
 
