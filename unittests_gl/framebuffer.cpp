@@ -75,7 +75,7 @@ ShaderProgram create_encoder_shader(float v1, float v2)
         out_Color = vec4(encode()"
         + std::to_string(v1) + R"(), encode()" + std::to_string(v2) + R"());
     })";
-    //    std::cout << fragment_source << std::endl;
+//    qDebug("%s", fragment_source.c_str());
     return ShaderProgram(vertex_source, fragment_source);
 }
 
