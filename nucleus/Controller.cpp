@@ -59,8 +59,9 @@ Controller::Controller(AbstractRenderWindow* render_window)
         "https://mapsneu.wien.gv.at/basemap/bmaporthofoto30cm/normal/google3857/", TileLoadService::UrlPattern::ZYX_yPointingSouth, ".jpeg"));
 
     m_tile_scheduler = std::make_unique<nucleus::tile_scheduler::Scheduler>();
+    m_tile_scheduler->read_disk_cache();
     m_tile_scheduler->set_gpu_quad_limit(500);
-    m_tile_scheduler->set_ram_quad_limit(2000);
+    m_tile_scheduler->set_ram_quad_limit(12000);
     {
         QFile file(":/map/height_data.atb");
         const auto open = file.open(QIODeviceBase::OpenModeFlag::ReadOnly);

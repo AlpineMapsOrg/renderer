@@ -57,10 +57,21 @@ CATCH_REGISTER_LISTENER(ProgressPrinter)
 #endif
 
 int main( int argc, char* argv[] ) {
-    int argc_qt = 0;
+    int argc_qt = 1;
     QGuiApplication app = {argc_qt, argv};
+    QCoreApplication::setOrganizationName("AlpineMaps.org");
+#ifdef __ANDROID__
+    std::vector<char*> argv_2;
+    for (int i = 0; i < argc; ++i) {
+        argv_2.push_back(argv[i]);
+    }
+    std::array<char, 20> logcat_switch = {"-o %debug"};
+    argv_2.push_back(logcat_switch.data());
+    int argc_2 = argc + 1;
+    int result = Catch::Session().run( argc_2, argv_2.data() );
+#else
     int result = Catch::Session().run( argc, argv );
-    std::fflush(stdout);
+#endif
     return result;
 }
 

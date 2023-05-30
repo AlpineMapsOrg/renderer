@@ -28,7 +28,7 @@ namespace nucleus::tile_scheduler {
 
 class LayerAssembler : public QObject {
     Q_OBJECT
-    using TileId2DataMap = std::unordered_map<tile::Id, std::shared_ptr<const QByteArray>, tile::Id::Hasher>;
+    using TileId2DataMap = std::unordered_map<tile::Id, std::shared_ptr<QByteArray>, tile::Id::Hasher>;
 
     TileId2DataMap m_ortho_data;
     TileId2DataMap m_height_data;
@@ -39,8 +39,8 @@ public:
 
 public slots:
     void load(const tile::Id& tile_id);
-    void deliver_ortho(const tile::Id& tile_id, const std::shared_ptr<const QByteArray>& ortho_data);
-    void deliver_height(const tile::Id& tile_id, const std::shared_ptr<const QByteArray>& height_data);
+    void deliver_ortho(const tile::Id& tile_id, const std::shared_ptr<QByteArray>& ortho_data);
+    void deliver_height(const tile::Id& tile_id, const std::shared_ptr<QByteArray>& height_data);
 
     void report_missing_ortho(const tile::Id& tile_id);
     void report_missing_height(const tile::Id& tile_id);

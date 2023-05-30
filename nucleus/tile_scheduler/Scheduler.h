@@ -67,6 +67,8 @@ public:
     [[nodiscard]] unsigned int persist_timeout() const;
     void set_persist_timeout(unsigned int new_persist_timeout);
 
+    void read_disk_cache();
+
 signals:
     void quads_requested(const std::vector<tile::Id>& id);
     void gpu_quads_updated(const std::vector<tile_types::GpuTileQuad>& new_quads, const std::vector<tile::Id>& deleted_quads);
@@ -83,7 +85,6 @@ protected:
     void schedule_update();
     void schedule_purge();
     void schedule_persist();
-    void read_disk_cache();
     std::vector<tile::Id> tiles_for_current_camera_position() const;
 
 private:

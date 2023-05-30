@@ -18,8 +18,6 @@
 
 #pragma once
 
-#include <concepts>
-
 #include "nucleus/tile_scheduler/utils.h"
 #include "sherpa/tile.h"
 
@@ -40,10 +38,15 @@ concept NamedTile = requires(T t) {
     } -> utils::convertible_to<tile::Id>;
 };
 
+template <typename T>
+concept SerialisableTile = requires(T t) {
+    requires std::is_same<std::remove_reference_t<decltype(T::version_information)>, const std::array<char, 25>>::value;
+};
+
 struct LayeredTile {
     tile::Id id;
-    std::shared_ptr<const QByteArray> ortho;
-    std::shared_ptr<const QByteArray> height;
+    std::shared_ptr<QByteArray> ortho;
+    std::shared_ptr<QByteArray> height;
 };
 static_assert(NamedTile<LayeredTile>);
 
@@ -51,8 +54,10 @@ struct TileQuad {
     tile::Id id;
     unsigned n_tiles = 0;
     std::array<LayeredTile, 4> tiles;
+    static constexpr std::array<char, 25> version_information = {"TileQuad, version 0.2"};
 };
 static_assert(NamedTile<TileQuad>);
+static_assert(SerialisableTile<TileQuad>);
 
 struct GpuCacheInfo {
     tile::Id id;

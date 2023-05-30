@@ -162,13 +162,6 @@ set(CMAKE_AUTOMOC ON)
 set(CMAKE_AUTORCC ON)
 set(CMAKE_AUTOUIC ON)
 
-if (ALP_ENABLE_POSITIONING)
-    find_package(Qt6 REQUIRED COMPONENTS Core Gui OpenGL Network Quick QuickControls2 LinguistTools Svg Positioning Core5Compat)
-else()
-    find_package(Qt6 REQUIRED COMPONENTS Core Gui OpenGL Network Quick QuickControls2 LinguistTools Svg Core5Compat)
-endif()
-add_subdirectory(sherpa)    # pulls in Catch2 and glm
-
 
 if (ALP_ENABLE_ADDRESS_SANITIZER)
     message(NOTICE "building with address sanitizer enabled")
@@ -186,6 +179,26 @@ if (ALP_USE_LLVM_LINKER)
     string(APPEND CMAKE_EXE_LINKER_FLAGS " -fuse-ld=lld")
 endif()
 
+########################################### dependencies #################################################
+find_package(Qt6 REQUIRED COMPONENTS Core Gui OpenGL Network Quick QuickControls2 LinguistTools Svg Core5Compat)
+if (ALP_ENABLE_POSITIONING)
+    find_package(Qt6 REQUIRED COMPONENTS Positioning)
+endif()
+if (ALP_UNITTESTS)
+    find_package(Qt6 REQUIRED COMPONENTS Test)
+endif()
+
+add_subdirectory(sherpa)    # pulls in Catch2 and glm
+
+if (ANDROID)
+    FetchContent_Declare(
+      android_openssl
+      DOWNLOAD_EXTRACT_TIMESTAMP true
+      URL      https://github.com/AlpineMapsOrg/android_openssl/archive/refs/heads/master.zip
+      URL_HASH MD5=3bc2ef11f914784089f58f1e7e3024e7
+    )
+    FetchContent_MakeAvailable(android_openssl)
+endif()
 
 FetchContent_Declare(fmt GIT_REPOSITORY https://github.com/fmtlib/fmt.git)
 FetchContent_Declare(zppbits GIT_REPOSITORY https://github.com/eyalz800/zpp_bits.git GIT_TAG main)
@@ -200,7 +213,7 @@ qt_add_library(nucleus STATIC
 )
 
 target_include_directories(nucleus PRIVATE . PUBLIC ${CMAKE_SOURCE_DIR})
-target_link_libraries(nucleus PUBLIC sherpa Qt::Core Qt::Gui Qt6::Network Qt6::Svg fmt::fmt zppbits)
+target_link_libraries(nucleus PUBLIC sherpa Qt::Core Qt::Gui Qt::Network Qt::Svg fmt::fmt zppbits)
 
 
 if (ALP_ENABLE_ASSERTS)
@@ -308,14 +321,9 @@ qt_add_resources(alpineapp "fonts"
 )
 
 set_target_properties(alpineapp PROPERTIES
-#    MACOSX_BUNDLE_GUI_IDENTIFIER my.example.com
-#    MACOSX_BUNDLE_BUNDLE_VERSION ${PROJECT_VERSION}
-#    MACOSX_BUNDLE_SHORT_VERSION_STRING ${PROJECT_VERSION_MAJOR}.${PROJECT_VERSION_MINOR}
-#    MACOSX_BUNDLE TRUE
-#    WIN32_EXECUTABLE TRUE
     QT_ANDROID_PACKAGE_SOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/android
 )
-target_link_libraries(alpineapp PUBLIC gl_engine Qt::Quick Qt::QuickControls2 Qt6::Core5Compat)
+target_link_libraries(alpineapp PUBLIC nucleus gl_engine Qt::Quick Qt::QuickControls2 Qt::Core5Compat Qt::Positioning)
 if (ALP_ENABLE_POSITIONING)
     target_link_libraries(alpineapp PUBLIC Qt::Positioning)
     target_compile_definitions(alpineapp PUBLIC "ALP_ENABLE_GNSS")
@@ -323,19 +331,11 @@ endif()
 
 
 if (ANDROID)
-    FetchContent_Declare(
-      android_openssl
-      DOWNLOAD_EXTRACT_TIMESTAMP true
-      URL      https://github.com/KDAB/android_openssl/archive/refs/heads/master.zip
-      URL_HASH MD5=b5c3501237ce9f97dc072c950647d643
-    )
-    set(PROJECT_NAME alpineapp)
-    FetchContent_MakeAvailable(android_openssl)
-    set(PROJECT_NAME alpine-renderer)
+    android_add_openssl_to_targets(alpineapp)
 
     install(TARGETS alpineapp
-        BUNDLE DESTINATION .
-        LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR})
+        LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
+        RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR})
 endif()
 
 if (EMSCRIPTEN)
@@ -357,7 +357,7 @@ if (ALP_UNITTESTS)
         BASE ${CMAKE_SOURCE_DIR}/unittests/data/
         FILES ${ALP_CATCH_UNITTEST_DATA}
     )
-    target_link_libraries(unittests PUBLIC nucleus Catch2::Catch2 Qt6::Test)
+    target_link_libraries(unittests PUBLIC nucleus Catch2::Catch2 Qt::Test)
     target_compile_definitions(unittests PUBLIC "ALP_TEST_DATA_DIR=\":/test_data/\"")
     if (ALP_ENABLE_ASSERTS)
         target_compile_options(unittests PUBLIC "-U NDEBUG")
@@ -374,8 +374,18 @@ if (ALP_UNITTESTS)
         target_compile_options(unittests_gl PUBLIC "-U NDEBUG")
     endif()
 
-    find_package(Qt6 REQUIRED COMPONENTS Test)
     enable_testing(true)
+
+    if (ANDROID)
+        android_add_openssl_to_targets(alpineapp)
+
+        install(TARGETS unittests
+            LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
+            RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR})
+        install(TARGETS unittests_gl
+            LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
+            RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR})
+    endif()
 
     if (MINGW)
         target_compile_options(unittests PUBLIC "-Wa,-mbig-obj")
@@ -385,10 +395,6 @@ if (ALP_UNITTESTS)
     if (EMSCRIPTEN)
         target_compile_options(unittests PUBLIC -fexceptions)
         target_link_options(unittests PUBLIC -sASYNCIFY -Os -fexceptions)
-#        target_link_options(unittests PUBLIC --shell-file ${CMAKE_SOURCE_DIR}/site/unittest_shell.html)
-#        target_link_options(unittests_gl PUBLIC --shell-file ${CMAKE_SOURCE_DIR}/site/unittest_shell.html)
-#        set_target_properties(unittests unittests_gl PROPERTIES SUFFIX ".html")
-
 
         configure_file(site/unittests.html unittests.html COPYONLY)
         configure_file(site/unittests_gl.html unittests_gl.html COPYONLY)
@@ -405,15 +411,6 @@ if (ALP_UNITTESTS)
             "${CMAKE_SOURCE_DIR}/site/ansispan.js"
             "${CMAKE_SOURCE_DIR}/site/mascot.png"
         )
-
-#        set(ALP_INSTALL_FILES
-#            "$<TARGET_FILE_DIR:unittests>/unittests.js"
-#            "$<TARGET_FILE_DIR:unittests>/unittests.wasm"
-#            "$<TARGET_FILE_DIR:unittests>/unittests.html"
-#            "$<TARGET_FILE_DIR:unittests_gl>/unittests_gl.js"
-#            "$<TARGET_FILE_DIR:unittests_gl>/unittests_gl.wasm"
-#            "$<TARGET_FILE_DIR:unittests_gl>/unittests_gl.html"
-#        )
         install(FILES ${ALP_INSTALL_FILES} DESTINATION ${ALP_WWW_INSTALL_DIR})
     endif()
 

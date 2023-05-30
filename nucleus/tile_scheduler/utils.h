@@ -18,6 +18,10 @@
 
 #pragma once
 
+#if !(defined(_LIBCPP_VERSION) && (_LIBCPP_VERSION >= 15000))
+#include <concepts>
+#endif
+
 #include <QByteArray>
 
 #include "constants.h"
@@ -28,7 +32,7 @@
 
 namespace nucleus::tile_scheduler {
 
-using TileId2DataMap = std::unordered_map<tile::Id, std::shared_ptr<const QByteArray>, tile::Id::Hasher>;
+using TileId2DataMap = std::unordered_map<tile::Id, std::shared_ptr<QByteArray>, tile::Id::Hasher>;
 
 inline glm::dvec3 nearestVertex(const nucleus::camera::Definition& camera, const std::vector<geometry::Triangle<3, double>>& triangles)
 {
@@ -68,9 +72,20 @@ namespace utils {
     template <class T, class U>
     concept convertible_to = std::is_convertible_v<T, U>;
 
+    namespace detail {
+        template< class T, class U >
+        concept SameHelper = std::is_same_v<T, U>;
+    }
+
+    template< class T, class U >
+    concept same_as = detail::SameHelper<T, U> && detail::SameHelper<U, T>;
+
 #else
     template <class T, class U>
     concept convertible_to = std::convertible_to<T, U>;
+
+    template <class T, class U>
+    concept same_as = std::same_as<T, U>;
 #endif
 
     inline tile::SrsAndHeightBounds make_bounds(const tile::Id& id, float min_height, float max_height)
@@ -105,7 +120,7 @@ namespace utils {
             : tile_heights(std::move(tile_heights))
         {
         }
-        inline tile::SrsAndHeightBounds aabb(const tile::Id& id)
+        inline tile::SrsAndHeightBounds aabb(const tile::Id& id) const
         {
             const auto heights = tile_heights.query({ id.zoom_level, id.coords });
             return make_bounds(id, heights.first, heights.second);
@@ -138,10 +153,7 @@ namespace utils {
 
     static uint64_t time_since_epoch()
     {
-        return uint64_t(std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now().time_since_epoch()).count());
+        return uint64_t(std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch()).count());
     }
-
-    void write_tile_id_2_data_map(const TileId2DataMap& map, const std::filesystem::path& path);
-    TileId2DataMap read_tile_id_2_data_map(const std::filesystem::path& path);
 }
 }

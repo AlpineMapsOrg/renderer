@@ -27,7 +27,7 @@
 
 
 #ifdef __EMSCRIPTEN__
-constexpr auto timing_multiplicator = 50;
+constexpr auto timing_multiplicator = 100;
 #else
 constexpr auto timing_multiplicator = 2;
 #endif

@@ -61,9 +61,9 @@ void SlotLimiter::deliver_quad(const tile_types::TileQuad& tile)
     m_in_flight.erase(tile.id);
     const auto is_complete = [](const tile_types::TileQuad& tile) { // untested + likely doesn't work for border areas (if only part of the quad is available).
         for (int i = 0; i < 4; ++i) {
-            if (!tile.tiles[i].height)
+            if (tile.tiles[i].height->size() == 0)
                 return false;
-            if (!tile.tiles[i].ortho)
+            if (tile.tiles[i].ortho->size() == 0)
                 return false;
         }
         return true;
