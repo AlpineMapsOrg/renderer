@@ -107,21 +107,21 @@ TEST_CASE("gl framebuffer")
         }
         CHECK(good);
     }
-//    SECTION("rgba8 bit read benchmark")
-//    {
-//        Framebuffer b(Framebuffer::DepthFormat::None, { Framebuffer::ColourFormat::RGBA8 });
-//        b.resize({ 1920, 1080 });
-//        b.bind();
-//        ShaderProgram shader = create_debug_shader();
-//        shader.bind();
-//        gl_engine::helpers::create_screen_quad_geometry().draw();
+    SECTION("rgba8 bit read benchmark")
+    {
+        Framebuffer b(Framebuffer::DepthFormat::None, { Framebuffer::ColourFormat::RGBA8 });
+        b.resize({ 1920, 1080 });
+        b.bind();
+        ShaderProgram shader = create_debug_shader();
+        shader.bind();
+        gl_engine::helpers::create_screen_quad_geometry().draw();
 
-//        f->glFinish();
-//        BENCHMARK("rgba8 bit read colour buffer")
-//        {
-//            return b.read_colour_attachment(0);
-//        };
-//    }
+        f->glFinish();
+        BENCHMARK("rgba8 bit read colour buffer")
+        {
+            return b.read_colour_attachment(0);
+        };
+    }
 
     SECTION("read pixel")
     {

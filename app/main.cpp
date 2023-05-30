@@ -125,8 +125,11 @@ int main(int argc, char **argv)
         qDebug() << "root window not created!";
         return 1;
     }
+
+#if (defined(__linux) && !defined(__ANDROID__)) || defined(_WIN32) || defined(_WIN64)
     root_window->showMaximized();
-    //root_window->showFullScreen();
+#endif
+
     RenderThreadNotifier::instance()->set_root_window(root_window);
 
     return app.exec();

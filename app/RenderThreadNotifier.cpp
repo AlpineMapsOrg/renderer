@@ -46,13 +46,18 @@ void RenderThreadNotifier::set_root_window(QQuickWindow* root_window)
 
 void RenderThreadNotifier::notify()
 {
+    // On webassembly, rendering happens in the main thread (even in the threaded version).
+    // I don't understand why, but using the notification blocks the main thread after some time. Hence disableing it.
+#ifndef __EMSCRIPTEN__
     if (QThread::currentThread() != QCoreApplication::instance()->thread())
         qDebug() << "RenderThreadNotifier::notify() current thread: " << QThread::currentThread() << "  this.thread: " << this->thread();
     assert(QThread::currentThread() == QCoreApplication::instance()->thread());
     assert(m_root_window != nullptr);
 
     auto* runnable = QRunnable::create([]() {
+//        qDebug() << "QCoreApplication::processEvents called on: " << QThread::currentThread() << "(" << QThread::currentThread()->objectName() << ")";
         QCoreApplication::processEvents(QEventLoop::AllEvents, 0);
     });
     m_root_window->scheduleRenderJob(runnable, QQuickWindow::RenderStage::NoStage);
+#endif
 }

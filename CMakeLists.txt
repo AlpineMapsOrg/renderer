@@ -216,6 +216,10 @@ target_include_directories(nucleus PRIVATE . PUBLIC ${CMAKE_SOURCE_DIR})
 target_link_libraries(nucleus PUBLIC sherpa Qt::Core Qt::Gui Qt::Network Qt::Svg fmt::fmt zppbits)
 
 
+if (EMSCRIPTEN)
+    target_compile_options(nucleus PUBLIC -fexceptions)
+    target_link_options(nucleus PUBLIC -fexceptions)
+endif()
 if (ALP_ENABLE_ASSERTS)
     target_compile_options(nucleus PUBLIC "-U NDEBUG")
 endif()
@@ -323,7 +327,7 @@ qt_add_resources(alpineapp "fonts"
 set_target_properties(alpineapp PROPERTIES
     QT_ANDROID_PACKAGE_SOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/android
 )
-target_link_libraries(alpineapp PUBLIC nucleus gl_engine Qt::Quick Qt::QuickControls2 Qt::Core5Compat Qt::Positioning)
+target_link_libraries(alpineapp PUBLIC nucleus gl_engine Qt::Quick Qt::QuickControls2 Qt::Core5Compat)
 if (ALP_ENABLE_POSITIONING)
     target_link_libraries(alpineapp PUBLIC Qt::Positioning)
     target_compile_definitions(alpineapp PUBLIC "ALP_ENABLE_GNSS")
@@ -345,12 +349,20 @@ if (EMSCRIPTEN)
         "$<TARGET_FILE_DIR:alpineapp>/alpineapp.html"
         "$<TARGET_FILE_DIR:alpineapp>/qtloader.js"
     )
+
+    if (ALP_ENABLE_THREADING)
+        list(APPEND ALP_INSTALL_FILES "$<TARGET_FILE_DIR:alpineapp>/alpineapp.worker.js")
+    endif()
     install(FILES ${ALP_INSTALL_FILES} DESTINATION ${ALP_WWW_INSTALL_DIR})
 endif()
 
 
 #################################### unit tests for backend #######################################
 if (ALP_UNITTESTS)
+    if (EMSCRIPTEN AND ALP_ENABLE_THREADING)
+        target_compile_options(Catch2 PRIVATE -pthread)
+    endif()
+
     qt_add_executable(unittests ${ALP_CATCH_UNITTEST_SOURCES})
     qt_add_resources(unittests "test_data"
         PREFIX "/test_data"
@@ -393,8 +405,8 @@ if (ALP_UNITTESTS)
     endif()
 
     if (EMSCRIPTEN)
-        target_compile_options(unittests PUBLIC -fexceptions)
-        target_link_options(unittests PUBLIC -sASYNCIFY -Os -fexceptions)
+        # asyncify required for running nested event loops in some of the tests
+        target_link_options(unittests PUBLIC -sASYNCIFY -Os)
 
         configure_file(site/unittests.html unittests.html COPYONLY)
         configure_file(site/unittests_gl.html unittests_gl.html COPYONLY)
