@@ -75,7 +75,7 @@ ShaderProgram create_encoder_shader(float v1, float v2)
         out_Color = vec4(encode()"
         + std::to_string(v1) + R"(), encode()" + std::to_string(v2) + R"());
     })";
-    //    std::cout << fragment_source << std::endl;
+//    qDebug("%s", fragment_source.c_str());
     return ShaderProgram(vertex_source, fragment_source);
 }
 
@@ -107,21 +107,21 @@ TEST_CASE("gl framebuffer")
         }
         CHECK(good);
     }
-    SECTION("rgba8 bit read benchmark")
-    {
-        Framebuffer b(Framebuffer::DepthFormat::None, { Framebuffer::ColourFormat::RGBA8 });
-        b.resize({ 1920, 1080 });
-        b.bind();
-        ShaderProgram shader = create_debug_shader();
-        shader.bind();
-        gl_engine::helpers::create_screen_quad_geometry().draw();
+//    SECTION("rgba8 bit read benchmark")
+//    {
+//        Framebuffer b(Framebuffer::DepthFormat::None, { Framebuffer::ColourFormat::RGBA8 });
+//        b.resize({ 1920, 1080 });
+//        b.bind();
+//        ShaderProgram shader = create_debug_shader();
+//        shader.bind();
+//        gl_engine::helpers::create_screen_quad_geometry().draw();
 
-        f->glFinish();
-        BENCHMARK("rgba8 bit read colour buffer")
-        {
-            return b.read_colour_attachment(0);
-        };
-    }
+//        f->glFinish();
+//        BENCHMARK("rgba8 bit read colour buffer")
+//        {
+//            return b.read_colour_attachment(0);
+//        };
+//    }
 
     SECTION("read pixel")
     {
