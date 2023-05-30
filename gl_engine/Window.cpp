@@ -130,7 +130,7 @@ void Window::paint(QOpenGLFramebufferObject* framebuffer)
     f->glEnable(GL_DEPTH_TEST);
     f->glDepthFunc(GL_LESS);
     f->glEnable(GL_BLEND);
-    f->glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+    f->glBlendFunc(GL_ONE, GL_ONE_MINUS_SRC_ALPHA);
     m_shader_manager->tile_shader()->bind();
     m_tile_manager->draw(m_shader_manager->tile_shader(), m_camera);
 
