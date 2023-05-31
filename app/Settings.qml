@@ -43,7 +43,6 @@ Rectangle {
             left: settings_root.left
             right: settings_root.right
             bottom: settings_root.bottom
-            margins: 10
         }
 
         ColumnLayout {
@@ -51,22 +50,6 @@ Rectangle {
             anchors {
                 fill: parent
                 margins: 10
-            }
-            RowLayout {
-                Button {
-                    Layout.fillWidth: true
-                    text: qsTr("Quit")
-                    onClicked: {
-                        Qt.callLater(Qt.quit)
-                    }
-                }
-                Button {
-                    Layout.fillWidth: true
-                    text: qsTr("Update")
-                    onClicked: {
-                        renderer.update()
-                    }
-                }
             }
             RowLayout {
                 Label {

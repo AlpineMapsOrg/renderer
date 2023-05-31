@@ -103,6 +103,7 @@ set(ALP_APP_QML
     app/SearchResults.qml
     app/Settings.qml
     app/Coordinates.qml
+    app/RoundMapButton.qml
 )
 set(ALP_APP_ICONS
     app/icons/camera_operation_centre.svg

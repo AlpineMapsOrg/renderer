@@ -148,42 +148,39 @@ Rectangle {
             bottomMargin: 10
         }
     }
-    RoundButton {
+    RoundMapButton {
         id: compass
-        width: 60
-        height: 60
         rotation: renderer.camera_rotation_from_north
+        icon_source: "qrc:/icons/compass.svg"
         onClicked: renderer.rotate_north()
-        focusPolicy: Qt.NoFocus
-        icon {
-            source: "qrc:/icons/compass.svg"
-            height: 40
-            width: 40
-        }
+
         anchors {
             right: parent.right
             bottom: current_location.top
-            rightMargin: 10
-            bottomMargin: 10
+            margins: 16
         }
     }
 
-    RoundButton {
+    RoundMapButton {
         id: current_location
-        width: 60
-        height: 60
-        checkable: true
-        highlighted: checked
-        focusPolicy: Qt.NoFocus
-        icon {
-            source: "qrc:/icons/current_location.svg"
-            height: 32
-            width: 32
-        }
         anchors {
             right: parent.right
             bottom: parent.bottom
-            margins: 10
+            margins: 16
+        }
+        checkable: true
+        icon_source: "qrc:/icons/current_location.svg"
+    }
+
+    Connections {
+        enabled: current_location.checked
+        target: renderer
+        function onMouse_pressed() {
+            current_location.checked = false;
+        }
+
+        function onTouch_made() {
+            current_location.checked = false;
         }
     }
 }
