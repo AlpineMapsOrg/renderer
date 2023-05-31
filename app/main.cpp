@@ -25,6 +25,7 @@
 #include <QLoggingCategory>
 #include <QOpenGLContext>
 #include <QQmlApplicationEngine>
+#include <QQmlContext>
 #include <QQmlEngine>
 #include <QQuickStyle>
 #include <QQuickView>
@@ -35,6 +36,7 @@
 #include <QTranslator>
 
 #include "GnssInformation.h"
+#include "HotReloader.h"
 #include "RenderThreadNotifier.h"
 #include "TerrainRendererItem.h"
 #include "nucleus/map_label/CameraTransformationProxyModel.h"
@@ -107,8 +109,12 @@ int main(int argc, char **argv)
 
     QQmlApplicationEngine engine;
 
+    HotReloader hotreloader(&engine, ALP_QML_SOURCE_DIR);
+    engine.rootContext()->setContextProperty("_hotreloader", &hotreloader);
+    engine.rootContext()->setContextProperty("_qmlPath", ALP_QML_SOURCE_DIR);
+
     RenderThreadNotifier::instance();
-    const QUrl url(u"qrc:/app/main.qml"_qs);
+    const QUrl url(u"qrc:/app/main_loader.qml"_qs);
     QObject::connect(
         &engine, &QQmlApplicationEngine::objectCreated,
         &app, [](QObject* obj, const QUrl& objUrl) {

@@ -92,9 +92,11 @@ set(ALP_APP_SOURCES
     app/TerrainRendererItem.h app/TerrainRendererItem.cpp
     app/GnssInformation.h app/GnssInformation.cpp
     app/TerrainRenderer.h app/TerrainRenderer.cpp
+    app/HotReloader.h app/HotReloader.cpp
 )
 set(ALP_APP_QML
-    app/main.qml
+    app/main_loader.qml
+    app/Main.qml
     app/About.qml
     app/Map.qml
     app/SearchBox.qml
@@ -333,6 +335,11 @@ if (ALP_ENABLE_POSITIONING)
     target_compile_definitions(alpineapp PUBLIC "ALP_ENABLE_GNSS")
 endif()
 
+if (ANDROID OR EMSCRIPTEN)
+    target_compile_definitions(alpineapp PUBLIC ALP_QML_SOURCE_DIR="qrc:/")
+else()
+    target_compile_definitions(alpineapp PUBLIC ALP_QML_SOURCE_DIR="file:/${CMAKE_CURRENT_SOURCE_DIR}")
+endif()
 
 if (ANDROID)
     android_add_openssl_to_targets(alpineapp)
