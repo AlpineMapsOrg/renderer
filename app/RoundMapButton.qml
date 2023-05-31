@@ -4,16 +4,17 @@ import QtQuick.Controls.Material
 Rectangle {
     property alias checkable: button.checkable
     property alias checked: button.checked
+    property alias rotation: button.rotation
     signal clicked()
     property string icon_source: ""
-    width: 46
-    height: 46
+    width: 50
+    height: 50
     radius: width
-    color: Material.backgroundColor
+    color: button.checked ? Material.accentColor : Material.backgroundColor
     RoundButton {
         id: button
-        width: 60
-        height: 60
+        width: parent.width + 10
+        height: parent.height + 10
         highlighted: checked
         focusPolicy: Qt.NoFocus
         icon {
