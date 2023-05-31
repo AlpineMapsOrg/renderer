@@ -17,7 +17,7 @@
  *****************************************************************************/
 
 import QtQuick
-import QtQuick.Controls
+import QtQuick.Controls.Material
 import QtQuick.Layouts
 import Alpine
 import Qt5Compat.GraphicalEffects

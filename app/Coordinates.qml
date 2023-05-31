@@ -17,7 +17,7 @@
  *****************************************************************************/
 
 import QtQuick
-import QtQuick.Controls
+import QtQuick.Controls.Material
 import QtQuick.Layouts
 import Alpine
 
@@ -39,6 +39,7 @@ Rectangle {
         }
         width: 200
         height: 200
+        color: Qt.alpha(Material.backgroundColor, 0.7)
 
         ColumnLayout {
             anchors.fill: parent

@@ -17,7 +17,7 @@
  *****************************************************************************/
 
 import QtQuick
-import QtQuick.Controls
+import QtQuick.Controls.Material
 import QtQuick.Layouts
 import Alpine
 
@@ -25,10 +25,13 @@ Window {
     visible: true
     id: root_window
 
+    Material.theme: Material.Dark
+//    Material.accent: Material.System
+
     Rectangle {
         id: tool_bar
         height: 60
-        color: main_stack_view.depth === 1 ? "#00FF00FF" : "#AAFFFFFF"
+        color: main_stack_view.depth === 1 ? "#00FF00FF" : Qt.alpha(Material.backgroundColor, 0.7)
         anchors {
             left: parent.left
             right: parent.right

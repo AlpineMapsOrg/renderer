@@ -17,7 +17,7 @@
  *****************************************************************************/
 
 import QtQuick
-import QtQuick.Controls
+import QtQuick.Controls.Material
 import QtQuick.Layouts
 import Alpine
 
@@ -37,7 +37,7 @@ Rectangle {
     }
 
     Rectangle {
-        color: "#88FFFFFF"
+        color: Qt.alpha(Material.backgroundColor, 0.7)
         height: layout.implicitHeight + 20
         anchors {
             left: settings_root.left

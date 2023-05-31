@@ -47,7 +47,6 @@ int main(int argc, char **argv)
     QGuiApplication app(argc, argv);
     QCoreApplication::setOrganizationName("AlpineMaps.org");
     QCoreApplication::setApplicationName("AlpineApp");
-    QQuickStyle::setStyle("Material");
 
     //    QLoggingCategory::setFilterRules("*.debug=true\n"
     //                                     "qt.qpa.fonts=true");
