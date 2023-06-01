@@ -24,34 +24,6 @@ endif()
 
 
 ############################################ sources ##############################################
-set(ALP_APP_SOURCES
-    app/main.cpp
-    app/RenderThreadNotifier.h app/RenderThreadNotifier.cpp
-    app/TerrainRendererItem.h app/TerrainRendererItem.cpp
-    app/GnssInformation.h app/GnssInformation.cpp
-    app/TerrainRenderer.h app/TerrainRenderer.cpp
-    app/HotReloader.h app/HotReloader.cpp
-)
-set(ALP_APP_QML
-    app/main_loader.qml
-    app/Main.qml
-    app/About.qml
-    app/Map.qml
-    app/SearchBox.qml
-    app/SearchResults.qml
-    app/Settings.qml
-    app/Coordinates.qml
-    app/RoundMapButton.qml
-)
-set(ALP_APP_ICONS
-    app/icons/camera_operation_centre.svg
-    app/icons/compass.svg
-    app/icons/current_location.svg
-    app/icons/mascot.jpg
-    app/icons/menu.svg
-    app/icons/peak.svg
-    app/icons/search.svg
-)
 set(ALP_CATCH_UNITTEST_GL_SOURCES
     unittests_gl/UnittestGlWindow.h unittests_gl/UnittestGlWindow.cpp
     unittests_gl/main.cpp
@@ -86,15 +58,6 @@ set(ALP_CATCH_UNITTEST_SOURCES
     unittests/test_zppbits.cpp
 )
 
-include(FetchContent)
-FetchContent_Declare(
-  alpine_height_data
-  URL      https://gataki.cg.tuwien.ac.at/tiles/alpine_png2/height_data.atb
-  DOWNLOAD_NO_EXTRACT true
-  URL_HASH MD5=f5458b48ade5d6aaf980fcfc5b6be29a
-)
-FetchContent_MakeAvailable(alpine_height_data)
-
 ########################################### setup #################################################
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_AUTOMOC ON)
@@ -127,7 +90,24 @@ if (ALP_UNITTESTS)
     find_package(Qt6 REQUIRED COMPONENTS Test)
 endif()
 
-add_subdirectory(sherpa)    # pulls in Catch2 and glm
+
+include(FetchContent)
+FetchContent_Declare(
+  alpine_height_data
+  URL      https://gataki.cg.tuwien.ac.at/tiles/alpine_png2/height_data.atb
+  DOWNLOAD_NO_EXTRACT true
+  URL_HASH MD5=f5458b48ade5d6aaf980fcfc5b6be29a
+)
+FetchContent_Declare(
+  alpineapp_fonts
+  DOWNLOAD_EXTRACT_TIMESTAMP true
+  URL      https://github.com/adobe-fonts/source-sans/archive/refs/heads/release.zip
+  URL_HASH MD5=681612d5ad33731c512ce056d2ca2297
+)
+FetchContent_Declare(fmt GIT_REPOSITORY https://github.com/fmtlib/fmt.git)
+FetchContent_Declare(zppbits GIT_REPOSITORY https://github.com/eyalz800/zpp_bits.git GIT_TAG main)
+
+FetchContent_MakeAvailable(alpine_height_data alpineapp_fonts fmt zppbits)
 
 if (ANDROID)
     FetchContent_Declare(
@@ -139,105 +119,15 @@ if (ANDROID)
     FetchContent_MakeAvailable(android_openssl)
 endif()
 
-FetchContent_Declare(fmt GIT_REPOSITORY https://github.com/fmtlib/fmt.git)
-FetchContent_Declare(zppbits GIT_REPOSITORY https://github.com/eyalz800/zpp_bits.git GIT_TAG main)
-FetchContent_MakeAvailable(fmt zppbits)
 add_library(zppbits INTERFACE)
 target_include_directories(zppbits INTERFACE ${zppbits_SOURCE_DIR})
 
 
+add_subdirectory(sherpa)    # pulls in Catch2 and glm
 add_subdirectory(nucleus)
 add_subdirectory(gl_engine)
 add_subdirectory(plain_renderer)
-
-
-########################################### app render frontend #############################################
-
-qt_add_executable(alpineapp
-    ${ALP_APP_SOURCES}
-)
-
-qt_add_qml_module(alpineapp
-    URI alpinemaps
-    VERSION 1.0
-    NO_RESOURCE_TARGET_PATH
-    QML_FILES ${ALP_APP_QML}
-)
-qt_add_resources(alpineapp "height_data"
-    PREFIX "/map"
-    BASE ${alpine_height_data_SOURCE_DIR}
-    FILES ${alpine_height_data_SOURCE_DIR}/height_data.atb
-)
-qt_add_resources(alpineapp "icons"
-    BASE "app"
-    PREFIX "/"
-    FILES ${ALP_APP_ICONS}
-)
-qt_add_translations(alpineapp TS_FILES app/i18n/de.ts app/i18n/en.ts)
-
-FetchContent_Declare(
-  alpineapp_font
-  DOWNLOAD_EXTRACT_TIMESTAMP true
-  URL      https://github.com/adobe-fonts/source-sans/archive/refs/heads/release.zip
-  URL_HASH MD5=681612d5ad33731c512ce056d2ca2297
-)
-FetchContent_MakeAvailable(alpineapp_font)
-qt_add_resources(alpineapp "fonts"
-    BASE ${alpineapp_font_SOURCE_DIR}/TTF/
-    PREFIX "/fonts"
-    FILES
-    ${alpineapp_font_SOURCE_DIR}/TTF/SourceSans3-BlackIt.ttf
-    ${alpineapp_font_SOURCE_DIR}/TTF/SourceSans3-BoldIt.ttf
-    ${alpineapp_font_SOURCE_DIR}/TTF/SourceSans3-ExtraLightIt.ttf
-    ${alpineapp_font_SOURCE_DIR}/TTF/SourceSans3-It.ttf
-    ${alpineapp_font_SOURCE_DIR}/TTF/SourceSans3-Light.ttf
-    ${alpineapp_font_SOURCE_DIR}/TTF/SourceSans3-Medium.ttf
-    ${alpineapp_font_SOURCE_DIR}/TTF/SourceSans3-SemiboldIt.ttf
-    ${alpineapp_font_SOURCE_DIR}/TTF/SourceSans3-Black.ttf
-    ${alpineapp_font_SOURCE_DIR}/TTF/SourceSans3-Bold.ttf
-    ${alpineapp_font_SOURCE_DIR}/TTF/SourceSans3-ExtraLight.ttf
-    ${alpineapp_font_SOURCE_DIR}/TTF/SourceSans3-LightIt.ttf
-    ${alpineapp_font_SOURCE_DIR}/TTF/SourceSans3-MediumIt.ttf
-    ${alpineapp_font_SOURCE_DIR}/TTF/SourceSans3-Regular.ttf
-    ${alpineapp_font_SOURCE_DIR}/TTF/SourceSans3-Semibold.ttf
-)
-
-set_target_properties(alpineapp PROPERTIES
-    QT_ANDROID_PACKAGE_SOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/android
-)
-target_link_libraries(alpineapp PUBLIC nucleus gl_engine Qt::Quick Qt::QuickControls2 Qt::Core5Compat)
-if (ALP_ENABLE_POSITIONING)
-    target_link_libraries(alpineapp PUBLIC Qt::Positioning)
-    target_compile_definitions(alpineapp PUBLIC "ALP_ENABLE_GNSS")
-endif()
-
-if (ANDROID OR EMSCRIPTEN)
-    target_compile_definitions(alpineapp PUBLIC ALP_QML_SOURCE_DIR="qrc://")
-else()
-    target_compile_definitions(alpineapp PUBLIC ALP_QML_SOURCE_DIR="file:/${CMAKE_CURRENT_SOURCE_DIR}")
-endif()
-
-if (ANDROID)
-    android_add_openssl_to_targets(alpineapp)
-
-    install(TARGETS alpineapp
-        LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
-        RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR})
-endif()
-
-if (EMSCRIPTEN)
-    set(ALP_INSTALL_FILES
-        "$<TARGET_FILE_DIR:alpineapp>/alpineapp.js"
-        "$<TARGET_FILE_DIR:alpineapp>/alpineapp.wasm"
-        "$<TARGET_FILE_DIR:alpineapp>/alpineapp.html"
-        "$<TARGET_FILE_DIR:alpineapp>/qtloader.js"
-    )
-
-    if (ALP_ENABLE_THREADING)
-        list(APPEND ALP_INSTALL_FILES "$<TARGET_FILE_DIR:alpineapp>/alpineapp.worker.js")
-    endif()
-    install(FILES ${ALP_INSTALL_FILES} DESTINATION ${ALP_WWW_INSTALL_DIR})
-endif()
+add_subdirectory(app)
 
 
 #################################### unit tests for backend #######################################

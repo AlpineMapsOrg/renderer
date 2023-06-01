@@ -30,15 +30,15 @@ ApplicationWindow {
     Loader {
         id: mainLoader
         anchors.fill: parent
-        source: _qmlPath + "/app/Main.qml"
+        source: _qmlPath + "Main.qml"
     }
 
     Connections{
         target: _hotreloader
-        onWatched_source_changed: {
+        function onWatched_source_changed() {
             mainLoader.active = false;
             _hotreloader.clear_cache();
-            mainLoader.setSource(_qmlPath+ "/app/Main.qml")
+            mainLoader.setSource(_qmlPath+ "Main.qml")
             mainLoader.active = true;
         }
     }

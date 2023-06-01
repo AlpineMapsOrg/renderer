@@ -52,7 +52,7 @@ int main(int argc, char **argv)
 
     //    QLoggingCategory::setFilterRules("*.debug=true\n"
     //                                     "qt.qpa.fonts=true");
-    //// output qrc files:
+    // output qrc files:
     //    QDirIterator it(":", QDirIterator::Subdirectories);
     //    while (it.hasNext()) {
     //        qDebug() << it.next();
@@ -114,7 +114,6 @@ int main(int argc, char **argv)
     engine.rootContext()->setContextProperty("_qmlPath", ALP_QML_SOURCE_DIR);
 
     RenderThreadNotifier::instance();
-    const QUrl url(u"qrc:/app/main_loader.qml"_qs);
     QObject::connect(
         &engine, &QQmlApplicationEngine::objectCreated,
         &app, [](QObject* obj, const QUrl& objUrl) {
@@ -124,7 +123,7 @@ int main(int argc, char **argv)
             }
         },
         Qt::QueuedConnection);
-    engine.load(url);
+    engine.load(QUrl(ALP_QML_SOURCE_DIR "main_loader.qml"));
     QQuickWindow* root_window = dynamic_cast<QQuickWindow*>(engine.rootObjects().first());
     if (root_window == nullptr) {
         qDebug() << "root window not created!";
