@@ -25,37 +25,13 @@ endif()
 
 ############################################ sources ##############################################
 set(ALP_CATCH_UNITTEST_GL_SOURCES
-    unittests_gl/UnittestGlWindow.h unittests_gl/UnittestGlWindow.cpp
-    unittests_gl/main.cpp
-    unittests_gl/framebuffer.cpp
+
 )
 set(ALP_CATCH_UNITTEST_DATA
-    unittests/data/170px-Jeune_bouquetin_de_face.jpg
-    unittests/data/test-tile_ortho.jpeg
-    unittests/data/test-tile.png
+
 )
 set(ALP_CATCH_UNITTEST_SOURCES
-    unittests/main.cpp
-    unittests/catch2_helpers.h
-    unittests/test_Camera.cpp
-    unittests/nucleus_utils_stopwatch.cpp
-    unittests/test_DrawListGenerator.cpp
-    unittests/test_helpers.h
-    unittests/test_raster.cpp
-    unittests/test_terrain_mesh_index_generator.cpp
-    unittests/test_srs.cpp
-    unittests/test_tile.cpp
-    unittests/test_tile_conversion.cpp
-    unittests/nucleus_tile_scheduler_util.cpp
-    unittests/nucleus_tile_scheduler_tile_load_service.cpp
-    unittests/nucleus_tile_scheduler_layer_assembler.cpp
-    unittests/nucleus_tile_scheduler_quad_assembler.cpp
-    unittests/nucleus_tile_scheduler_cache.cpp
-    unittests/nucleus_tile_scheduler_scheduler.cpp
-    unittests/nucleus_tile_scheduler_slot_limiter.cpp
-    unittests/nucleus_tile_scheduler_rate_limiter.cpp
-    unittests/RateTester.h unittests/RateTester.cpp
-    unittests/test_zppbits.cpp
+
 )
 
 ########################################### setup #################################################
@@ -136,62 +112,18 @@ if (ALP_UNITTESTS)
         target_compile_options(Catch2 PRIVATE -pthread)
     endif()
 
-    qt_add_executable(unittests ${ALP_CATCH_UNITTEST_SOURCES})
-    qt_add_resources(unittests "test_data"
-        PREFIX "/test_data"
-        BASE ${CMAKE_SOURCE_DIR}/unittests/data/
-        FILES ${ALP_CATCH_UNITTEST_DATA}
-    )
-    target_link_libraries(unittests PUBLIC nucleus Catch2::Catch2 Qt::Test)
-    target_compile_definitions(unittests PUBLIC "ALP_TEST_DATA_DIR=\":/test_data/\"")
-    if (ALP_ENABLE_ASSERTS)
-        target_compile_options(unittests PUBLIC "-U NDEBUG")
-    endif()
+    function(alp_setup_unittest)
+        if (ANDROID)
+            install(TARGETS ${ARGV0}
+                LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
+                RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR})
+        endif()
 
-    qt_add_executable(unittests_gl ${ALP_CATCH_UNITTEST_GL_SOURCES})
-    target_link_libraries(unittests_gl PUBLIC nucleus gl_engine Catch2::Catch2)
-    if (ALP_ENABLE_ASSERTS)
-        target_compile_options(unittests_gl PUBLIC "-U NDEBUG")
-    endif()
+        if (MINGW)
+            target_compile_options(${ARGV0} PUBLIC "-Wa,-mbig-obj")
+        endif()
+    endfunction()
 
-    enable_testing(true)
-
-    if (ANDROID)
-        android_add_openssl_to_targets(alpineapp)
-
-        install(TARGETS unittests
-            LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
-            RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR})
-        install(TARGETS unittests_gl
-            LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
-            RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR})
-    endif()
-
-    if (MINGW)
-        target_compile_options(unittests PUBLIC "-Wa,-mbig-obj")
-        target_compile_options(unittests_gl PUBLIC "-Wa,-mbig-obj")
-    endif()
-
-    if (EMSCRIPTEN)
-        # asyncify required for running nested event loops in some of the tests
-        target_link_options(unittests PUBLIC -sASYNCIFY -Os)
-
-        configure_file(site/unittests.html unittests.html COPYONLY)
-        configure_file(site/unittests_gl.html unittests_gl.html COPYONLY)
-        configure_file(site/ansispan.js ansispan.js COPYONLY)
-        set(ALP_INSTALL_FILES
-            "$<TARGET_FILE_DIR:unittests>/unittests.js"
-            "$<TARGET_FILE_DIR:unittests>/unittests.wasm"
-            "$<TARGET_FILE_DIR:unittests>/qtloader.js"
-            "$<TARGET_FILE_DIR:unittests_gl>/unittests_gl.js"
-            "$<TARGET_FILE_DIR:unittests_gl>/unittests_gl.wasm"
-            "$<TARGET_FILE_DIR:unittests_gl>/qtloader.js"
-            "${CMAKE_SOURCE_DIR}/site/unittests.html"
-            "${CMAKE_SOURCE_DIR}/site/unittests_gl.html"
-            "${CMAKE_SOURCE_DIR}/site/ansispan.js"
-            "${CMAKE_SOURCE_DIR}/site/mascot.png"
-        )
-        install(FILES ${ALP_INSTALL_FILES} DESTINATION ${ALP_WWW_INSTALL_DIR})
-    endif()
-
+    add_subdirectory(unittests)
+    add_subdirectory(unittests_gl)
 endif()
