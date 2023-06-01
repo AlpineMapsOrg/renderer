@@ -31,6 +31,7 @@ ApplicationWindow {
         id: mainLoader
         anchors.fill: parent
         source: _qmlPath + "Main.qml"
+        focus: true
     }
 
     Connections{
