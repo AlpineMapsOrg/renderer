@@ -56,4 +56,8 @@ if (EMSCRIPTEN)
         "${CMAKE_SOURCE_DIR}/site/ansispan.js"
         "${CMAKE_SOURCE_DIR}/site/mascot.png"
         DESTINATION ${ALP_WWW_INSTALL_DIR})
+
+    if (ALP_ENABLE_THREADING)
+        install(FILES "$<TARGET_FILE_DIR:unittests_nucleus>/unittests_nucleus.worker.js" DESTINATION ${ALP_WWW_INSTALL_DIR})
+    endif()
 endif()
