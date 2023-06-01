@@ -21,6 +21,8 @@
 using nucleus::camera::Definition;
 using nucleus::camera::InteractionStyle;
 
+void InteractionStyle::reset_interaction(Definition, AbstractDepthTester*) {}
+
 std::optional<Definition> InteractionStyle::mouse_press_event(const nucleus::event_parameter::Mouse&, Definition, AbstractDepthTester*)
 {
     return {};
@@ -51,7 +53,17 @@ std::optional<Definition> InteractionStyle::touch_event(const event_parameter::T
     return {};
 }
 
+std::optional<Definition> InteractionStyle::update(Definition, AbstractDepthTester*)
+{
+    return {};
+}
+
 std::optional<glm::vec2> InteractionStyle::get_operation_centre()
+{
+    return {};
+}
+
+std::optional<float> InteractionStyle::get_operation_centre_distance(Definition)
 {
     return {};
 }

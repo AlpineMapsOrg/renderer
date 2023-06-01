@@ -18,9 +18,16 @@
 
 #pragma once
 
-#include <catch2/catch.hpp>
+#include <catch2/catch_test_macros.hpp>
+#include <catch2/catch_approx.hpp>
 
 #include <glm/glm.hpp>
+
+#include <QObject>
+#include <QSignalSpy>
+#include <QTimer>
+
+using Catch::Approx;
 
 namespace test_helpers {
 class FailOnCopy {
@@ -60,4 +67,12 @@ bool equals(const glm::vec<n_dims, double>& a, const glm::vec<n_dims, double>& b
     return delta == Approx(0).scale(scale);
 }
 
+inline void process_events_for(unsigned msecs)
+{
+    QTimer timer;
+    timer.setTimerType(Qt::TimerType::PreciseTimer);
+    timer.start(int(msecs));
+    QSignalSpy spy(&timer, &QTimer::timeout);
+    spy.wait(int(msecs * 2));
+}
 }

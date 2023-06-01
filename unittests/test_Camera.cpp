@@ -16,10 +16,10 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *****************************************************************************/
 
+
+#include <catch2/catch_test_macros.hpp>
+
 #include "nucleus/camera/Definition.h"
-
-#include <catch2/catch.hpp>
-
 #include "sherpa/geometry.h"
 #include "unittests/test_helpers.h"
 
@@ -221,7 +221,7 @@ TEST_CASE("nucleus/camera: Definition")
             CHECK(equals(clipping_panes[0].normal, glm::normalize(glm::dvec3(1, 0, 0))));
             CHECK(clipping_panes[0].distance == Approx(-0.5));
             CHECK(equals(clipping_panes[1].normal, glm::normalize(glm::dvec3(-1, 0, 0))));
-            CHECK(clipping_panes[1].distance == Approx(50'000));
+            CHECK(clipping_panes[1].distance == Approx(500'000));
             // top and down
             CHECK(equals(clipping_panes[2].normal, glm::normalize(glm::dvec3(1, 0, -1))));
             CHECK(clipping_panes[2].distance == Approx(0).scale(1));
@@ -242,7 +242,7 @@ TEST_CASE("nucleus/camera: Definition")
             CHECK(equals(clipping_panes[0].normal, glm::normalize(glm::dvec3(-1, -1, 0))));
             CHECK(clipping_panes[0].distance == Approx(std::sqrt(200.0) - 0.5));
             CHECK(equals(clipping_panes[1].normal, glm::normalize(glm::dvec3(1, 1, 0))));
-            CHECK(clipping_panes[1].distance == Approx(50'000.0 - std::sqrt(200.0)));
+            CHECK(clipping_panes[1].distance == Approx(500'000.0 - std::sqrt(200.0)));
             // top and down
             CHECK(equals(clipping_panes[2].normal, glm::normalize(glm::dvec3(-0.5, -0.5, -std::sqrt(0.5)))));
             CHECK(clipping_panes[2].distance == Approx(10).scale(1));

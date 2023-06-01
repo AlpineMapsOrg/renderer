@@ -19,15 +19,24 @@
 #pragma once
 
 #include "Definition.h"
+#include "nucleus/srs.h"
 
 namespace nucleus::camera::stored_positions {
 // coordinate transformer: https://epsg.io/transform#s_srs=4326&t_srs=3857&x=16.3726561&y=48.2086939
-inline nucleus::camera::Definition westl_hochgrubach_spitze()
+inline nucleus::camera::Definition oestl_hochgrubach_spitze()
 {
-    return { { 1374755.7, 6033683.4 - 500, 2277.0 + 500 }, { 1374755.7, 6033683.4, 2277.0 } };
+    const auto coords = srs::lat_long_alt_to_world({ 47.5587933, 12.3450985, 2277.0 });
+    return { { coords.x, coords.y - 500, coords.z + 500 }, coords };
 }
 inline nucleus::camera::Definition stephansdom()
 {
-    return { { 1822577.0, 6141664.0 - 500, 171.28 + 500 }, { 1822577.0, 6141664.0, 171.28 } };
+    const auto coords = srs::lat_long_alt_to_world({ 48.20851144787232, 16.373082444395656, 171.28 });
+    return { { coords.x, coords.y - 500, coords.z + 500 }, coords };
+}
+
+inline nucleus::camera::Definition grossglockner()
+{
+    const auto coords = srs::lat_long_alt_to_world({ 47.07386676653372, 12.694470292406267, 3798 });
+    return { { coords.x - 300, coords.y - 400, coords.z + 100 }, { coords.x, coords.y, coords.z - 100 } };
 }
 }

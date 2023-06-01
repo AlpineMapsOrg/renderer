@@ -27,6 +27,7 @@
 #include "ShaderProgram.h"
 #include "nucleus/Tile.h"
 #include "nucleus/camera/Definition.h"
+#include "nucleus/camera/stored_positions.h"
 #include "nucleus/utils/terrain_mesh_index_generator.h"
 
 using gl_engine::TileManager;
@@ -51,6 +52,34 @@ std::vector<glm::vec4> boundsArray(const TileSet& tileset, const glm::dvec3& cam
     }
     return ret;
 }
+
+template <typename T>
+std::vector<T> prepare_altitude_buffer(const nucleus::Raster<T>& alti_map)
+{
+    // add heights for curtains
+    auto alti_buffer = alti_map.buffer();
+    alti_buffer.reserve(alti_buffer.size() + alti_map.width() * 2 - 2 + alti_map.height() * 2 - 2);
+    const auto height = alti_map.height();
+    const auto width = alti_map.width();
+
+    for (size_t row = height - 1; row >= 1; row--) {
+        alti_buffer.push_back(alti_map.pixel({ width - 1, row }));
+    }
+
+    for (size_t col = width - 1; col >= 1; col--) {
+        alti_buffer.push_back(alti_map.pixel({ col, 0 }));
+    }
+
+    for (size_t row = 0; row < height - 1; row++) {
+        alti_buffer.push_back(alti_map.pixel({ 0, row }));
+    }
+
+    for (size_t col = 0; col < width - 1; col++) {
+        alti_buffer.push_back(alti_map.pixel({ col, height - 1 }));
+    }
+
+    return alti_buffer;
+}
 }
 
 TileManager::TileManager(QObject* parent)
@@ -60,9 +89,10 @@ TileManager::TileManager(QObject* parent)
 
 void TileManager::init()
 {
+    using nucleus::utils::terrain_mesh_index_generator::surface_quads_with_curtains;
     assert(QOpenGLContext::currentContext());
     for (auto i = 0; i < MAX_TILES_PER_TILESET; ++i) {
-        const auto indices = nucleus::utils::terrain_mesh_index_generator::surface_quads<uint16_t>(N_EDGE_VERTICES);
+        const auto indices = surface_quads_with_curtains<uint16_t>(N_EDGE_VERTICES);
         auto index_buffer = std::make_unique<QOpenGLBuffer>(QOpenGLBuffer::IndexBuffer);
         index_buffer->create();
         index_buffer->bind();
@@ -93,53 +123,13 @@ void TileManager::draw(ShaderProgram* shader_program, const nucleus::camera::Def
     for (const auto& tileset : tiles()) {
         if (!draw_tiles.contains(tileset.tiles.front().first))
             continue;
+
         tileset.vao->bind();
         shader_program->set_uniform_array("bounds", boundsArray(tileset, camera.position()));
         tileset.ortho_texture->bind(0);
         f->glDrawElements(GL_TRIANGLE_STRIP, tileset.gl_element_count, tileset.gl_index_type, nullptr);
     }
     f->glBindVertexArray(0);
-}
-
-void TileManager::add_tile(const std::shared_ptr<nucleus::Tile>& tile)
-{
-    if (!QOpenGLContext::currentContext()) // can happen during shutdown.
-        return;
-
-    assert(m_attribute_locations.height != -1);
-    auto* f = QOpenGLContext::currentContext()->extraFunctions();
-    // need to call GLWindow::makeCurrent, when calling through signals?
-    // find an empty slot => todo, for now just create a new tile every time.
-    // setup / copy data to gpu
-    TileSet tileset;
-    tileset.tiles.emplace_back(tile->id, tile::SrsBounds(tile->bounds));
-    tileset.vao = std::make_unique<QOpenGLVertexArrayObject>();
-    tileset.vao->create();
-    tileset.vao->bind();
-    { // vao state
-        tileset.heightmap_buffer = std::make_unique<QOpenGLBuffer>(QOpenGLBuffer::VertexBuffer);
-        tileset.heightmap_buffer->create();
-        tileset.heightmap_buffer->bind();
-        tileset.heightmap_buffer->setUsagePattern(QOpenGLBuffer::DynamicDraw);
-        tileset.heightmap_buffer->allocate(tile->height_map.buffer().data(), bufferLengthInBytes(tile->height_map.buffer()));
-        f->glEnableVertexAttribArray(GLuint(m_attribute_locations.height));
-        f->glVertexAttribPointer(GLuint(m_attribute_locations.height), /*size*/ 1, /*type*/ GL_UNSIGNED_SHORT, /*normalised*/ GL_TRUE, /*stride*/ 0, nullptr);
-
-        m_index_buffers[0].first->bind();
-        tileset.gl_element_count = int(m_index_buffers[0].second);
-        tileset.gl_index_type = GL_UNSIGNED_SHORT;
-    }
-    tileset.vao->release();
-    tileset.ortho_texture = std::make_unique<QOpenGLTexture>(tile->orthotexture);
-    tileset.ortho_texture->setMaximumAnisotropy(m_max_anisotropy);
-    tileset.ortho_texture->setWrapMode(QOpenGLTexture::WrapMode::ClampToEdge);
-    tileset.ortho_texture->setMinMagFilters(QOpenGLTexture::Filter::LinearMipMapLinear, QOpenGLTexture::Filter::Linear);
-
-    // add to m_gpu_tiles
-    m_gpu_tiles.push_back(std::move(tileset));
-    m_draw_list_generator.add_tile(tile->id);
-
-    emit tiles_changed();
 }
 
 void TileManager::remove_tile(const tile::Id& tile_id)
@@ -160,15 +150,75 @@ void TileManager::remove_tile(const tile::Id& tile_id)
 
 void TileManager::initilise_attribute_locations(ShaderProgram* program)
 {
-    m_attribute_locations.height = program->attribute_location("height");
+    m_attribute_locations.height = program->attribute_location("altitude");
 }
 
-void TileManager::set_aabb_decorator(const nucleus::tile_scheduler::AabbDecoratorPtr& new_aabb_decorator)
+void TileManager::set_aabb_decorator(const nucleus::tile_scheduler::utils::AabbDecoratorPtr& new_aabb_decorator)
 {
     m_draw_list_generator.set_aabb_decorator(new_aabb_decorator);
+}
+
+void TileManager::add_tile(const tile::Id& id, tile::SrsAndHeightBounds bounds, const QImage& ortho_texture, const nucleus::Raster<uint16_t>& height_map)
+{
+    if (!QOpenGLContext::currentContext()) // can happen during shutdown.
+        return;
+
+    assert(m_attribute_locations.height != -1);
+    auto* f = QOpenGLContext::currentContext()->extraFunctions();
+    // need to call GLWindow::makeCurrent, when calling through signals?
+    // find an empty slot => todo, for now just create a new tile every time.
+    // setup / copy data to gpu
+    TileSet tileset;
+    tileset.tiles.emplace_back(id, tile::SrsBounds(bounds));
+    tileset.vao = std::make_unique<QOpenGLVertexArrayObject>();
+    tileset.vao->create();
+    tileset.vao->bind();
+    { // vao state
+        tileset.heightmap_buffer = std::make_unique<QOpenGLBuffer>(QOpenGLBuffer::VertexBuffer);
+        tileset.heightmap_buffer->create();
+        tileset.heightmap_buffer->bind();
+        tileset.heightmap_buffer->setUsagePattern(QOpenGLBuffer::StaticDraw);
+        auto height_buffer = prepare_altitude_buffer(height_map);
+        tileset.heightmap_buffer->allocate(height_buffer.data(), bufferLengthInBytes(height_buffer));
+        f->glEnableVertexAttribArray(GLuint(m_attribute_locations.height));
+        f->glVertexAttribPointer(GLuint(m_attribute_locations.height), /*size*/ 1, /*type*/ GL_UNSIGNED_SHORT, /*normalised*/ GL_TRUE, /*stride*/ 0, nullptr);
+
+        m_index_buffers[0].first->bind();
+        tileset.gl_element_count = int(m_index_buffers[0].second);
+        tileset.gl_index_type = GL_UNSIGNED_SHORT;
+    }
+    tileset.vao->release();
+    tileset.ortho_texture = std::make_unique<QOpenGLTexture>(ortho_texture);
+    tileset.ortho_texture->setMaximumAnisotropy(m_max_anisotropy);
+    tileset.ortho_texture->setWrapMode(QOpenGLTexture::WrapMode::ClampToEdge);
+    tileset.ortho_texture->setMinMagFilters(QOpenGLTexture::Filter::LinearMipMapLinear, QOpenGLTexture::Filter::Linear);
+
+    // add to m_gpu_tiles
+    m_gpu_tiles.push_back(std::move(tileset));
+    m_draw_list_generator.add_tile(id);
+
+    emit tiles_changed();
 }
 
 void TileManager::set_permissible_screen_space_error(float new_permissible_screen_space_error)
 {
     m_draw_list_generator.set_permissible_screen_space_error(new_permissible_screen_space_error);
+}
+
+void TileManager::update_gpu_quads(const std::vector<nucleus::tile_scheduler::tile_types::GpuTileQuad>& new_quads, const std::vector<tile::Id>& deleted_quads)
+{
+    for (const auto& quad : new_quads) {
+        for (const auto& tile : quad.tiles) {
+            // test for validity
+            assert(tile.id.zoom_level < 100);
+            assert(tile.height);
+            assert(tile.ortho);
+            add_tile(tile.id, tile.bounds, *tile.ortho, *tile.height);
+        }
+    }
+    for (const auto& quad : deleted_quads) {
+        for (const auto& id : quad.children()) {
+            remove_tile(id);
+        }
+    }
 }

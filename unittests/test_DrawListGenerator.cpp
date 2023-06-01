@@ -16,24 +16,22 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *****************************************************************************/
 
+#include <catch2/catch_test_macros.hpp>
+
 #include "nucleus/camera/stored_positions.h"
 #include "nucleus/tile_scheduler/DrawListGenerator.h"
 #include "nucleus/tile_scheduler/utils.h"
-
 #include "sherpa/TileHeights.h"
-#include <catch2/catch.hpp>
-
-
 
 TEST_CASE("nucleus/tile_scheduler/DrawListGenerator")
 {
     TileHeights h;
     h.emplace({ 0, { 0, 0 } }, { 100, 4000 });
-    auto camera = nucleus::camera::stored_positions::westl_hochgrubach_spitze();
+    auto camera = nucleus::camera::stored_positions::oestl_hochgrubach_spitze();
     camera.set_viewport_size({ 1920, 1080 });
 
     nucleus::tile_scheduler::DrawListGenerator draw_list_generator;
-    draw_list_generator.set_aabb_decorator(nucleus::tile_scheduler::AabbDecorator::make(std::move(h)));
+    draw_list_generator.set_aabb_decorator(nucleus::tile_scheduler::utils::AabbDecorator::make(std::move(h)));
 
     SECTION("root only")
     {

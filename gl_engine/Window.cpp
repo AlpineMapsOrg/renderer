@@ -44,6 +44,7 @@
 #include "TileManager.h"
 #include "Window.h"
 #include "helpers.h"
+#include "nucleus/utils/bit_coding.h"
 
 using gl_engine::Window;
 
@@ -79,6 +80,7 @@ void Window::initialise_gpu()
     m_screen_quad_geometry = gl_engine::helpers::create_screen_quad_geometry();
     m_framebuffer = std::make_unique<Framebuffer>(Framebuffer::DepthFormat::Int24, std::vector({ Framebuffer::ColourFormat::RGBA8 }));
     m_depth_buffer = std::make_unique<Framebuffer>(Framebuffer::DepthFormat::Int24, std::vector({ Framebuffer::ColourFormat::RGBA8 }));
+    emit gpu_ready_changed(true);
 }
 
 void Window::resize_framebuffer(int width, int height)
@@ -97,10 +99,13 @@ void Window::resize_framebuffer(int width, int height)
 void Window::paint(QOpenGLFramebufferObject* framebuffer)
 {
     m_frame_start = std::chrono::time_point_cast<ClockResolution>(Clock::now());
-    QOpenGLExtraFunctions* f = QOpenGLContext::currentContext()->extraFunctions();
+    QOpenGLExtraFunctions *f = QOpenGLContext::currentContext()->extraFunctions();
+    f->glEnable(GL_CULL_FACE);
+    f->glCullFace(GL_BACK);
+
+    m_camera.set_viewport_size(m_framebuffer->size());
 
     // DEPTH BUFFER
-    m_camera.set_viewport_size(m_depth_buffer->size());
     m_depth_buffer->bind();
     f->glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
     f->glEnable(GL_DEPTH_TEST);
@@ -111,32 +116,23 @@ void Window::paint(QOpenGLFramebufferObject* framebuffer)
     m_depth_buffer->unbind();
     // END DEPTH BUFFER
 
-    m_camera.set_viewport_size(m_framebuffer->size());
     m_framebuffer->bind();
     f->glClearColor(1.0, 0.0, 0.5, 1);
 
     f->glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
+
+    m_shader_manager->atmosphere_bg_program()->bind();
+    m_atmosphere->draw(m_shader_manager->atmosphere_bg_program(),
+                       m_camera,
+                       m_shader_manager->screen_quad_program(),
+                       m_framebuffer.get());
+
     f->glEnable(GL_DEPTH_TEST);
     f->glDepthFunc(GL_LESS);
-////    glPolygonMode( GL_FRONT_AND_BACK, GL_LINE );
-
+    f->glEnable(GL_BLEND);
+    f->glBlendFunc(GL_ONE, GL_ONE_MINUS_SRC_ALPHA);
     m_shader_manager->tile_shader()->bind();
-
     m_tile_manager->draw(m_shader_manager->tile_shader(), m_camera);
-
-    //    {
-    //        m_shader_manager->bindDebugShader();
-    //        m_debug_painter->activate(m_shader_manager->debugShader(), world_view_projection_matrix);
-    //        const auto position = m_camera.position();
-    //        const auto direction_tl = m_camera.ray_direction({ -1, 1 });
-    //        const auto direction_tr = m_camera.ray_direction({ 1, 1 });
-    //        std::vector<glm::vec3> debug_cam_lines = { position + direction_tl * 10000.0,
-    //            position,
-    //            position + direction_tr * 10000.0 };
-    //        m_debug_painter->drawLineStrip(debug_cam_lines);
-    //    }
-    m_shader_manager->atmosphere_bg_program()->bind();
-    m_atmosphere->draw(m_shader_manager->atmosphere_bg_program(), m_camera, m_shader_manager->screen_quad_program(), m_framebuffer.get());
 
     m_framebuffer->unbind();
     if (framebuffer)
@@ -148,7 +144,6 @@ void Window::paint(QOpenGLFramebufferObject* framebuffer)
 
     m_shader_manager->release();
 
-//        glPolygonMode( GL_FRONT_AND_BACK, GL_FILL );
     f->glFinish(); // synchronization
     m_frame_end = std::chrono::time_point_cast<ClockResolution>(Clock::now());
 }
@@ -193,6 +188,10 @@ void Window::keyReleaseEvent(QKeyEvent* e)
     emit key_released(e->keyCombination());
 }
 
+void Window::updateCameraEvent()
+{
+    emit update_camera_requested();
+}
 
 void Window::set_permissible_screen_space_error(float new_error)
 {
@@ -213,9 +212,15 @@ void Window::update_debug_scheduler_stats(const QString& stats)
     emit update_requested();
 }
 
+void Window::update_gpu_quads(const std::vector<nucleus::tile_scheduler::tile_types::GpuTileQuad>& new_quads, const std::vector<tile::Id>& deleted_quads)
+{
+    assert(m_tile_manager);
+    m_tile_manager->update_gpu_quads(new_quads, deleted_quads);
+}
+
 float Window::depth(const glm::dvec2& normalised_device_coordinates)
 {
-    const auto read_float = float(m_depth_buffer->read_colour_attachment_pixel(0, normalised_device_coordinates)[0]) / 255.f;
+    const auto read_float = nucleus::utils::bit_coding::to_f16f16(m_depth_buffer->read_colour_attachment_pixel(0, normalised_device_coordinates))[0];
     const auto depth = std::exp(read_float * 13.f);
     return depth;
 }
@@ -227,6 +232,7 @@ glm::dvec3 Window::position(const glm::dvec2& normalised_device_coordinates)
 
 void Window::deinit_gpu()
 {
+    emit gpu_ready_changed(false);
     m_tile_manager.reset();
     m_debug_painter.reset();
     m_atmosphere.reset();
@@ -236,16 +242,10 @@ void Window::deinit_gpu()
     m_screen_quad_geometry = {};
 }
 
-void Window::set_aabb_decorator(const nucleus::tile_scheduler::AabbDecoratorPtr& new_aabb_decorator)
+void Window::set_aabb_decorator(const nucleus::tile_scheduler::utils::AabbDecoratorPtr& new_aabb_decorator)
 {
     assert(m_tile_manager);
     m_tile_manager->set_aabb_decorator(new_aabb_decorator);
-}
-
-void Window::add_tile(const std::shared_ptr<nucleus::Tile>& tile)
-{
-    assert(m_tile_manager);
-    m_tile_manager->add_tile(tile);
 }
 
 void Window::remove_tile(const tile::Id& id)

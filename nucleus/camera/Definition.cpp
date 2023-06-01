@@ -145,8 +145,8 @@ void nucleus::camera::Definition::set_perspective_params(float fov_degrees, cons
 {
     m_distance_scaling_factor = 1.f / std::tan(0.5f * fov_degrees * 3.1415926535897932384626433f / 180);
     m_near_clipping = near_plane;
-    m_far_clipping = near_plane * 100'000;
-    m_far_clipping = std::min(m_far_clipping, 1'000'000.f);     // will be obscured by atmosphere anyways + depth based atmosphere will have numerical issues (show background atmosphere)
+    m_far_clipping = near_plane * 1'000'000;
+    m_far_clipping = std::min(m_far_clipping, 1'000'000'000.f); // will be obscured by atmosphere anyways + depth based atmosphere will have numerical issues (show background atmosphere)
     m_viewport_size = viewport_size;
     m_field_of_view = fov_degrees;
     m_projection_matrix = glm::perspective(

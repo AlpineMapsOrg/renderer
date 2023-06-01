@@ -39,8 +39,8 @@ public:
     explicit Controller(const Definition& camera, AbstractDepthTester* depth_tester);
 
     [[nodiscard]] const Definition& definition() const;
-    void set_interaction_style(std::unique_ptr<InteractionStyle> new_style);
     std::optional<glm::vec2> get_operation_centre();
+    std::optional<float> get_operation_centre_distance();
 
 public slots:
     void set_definition(const Definition& new_definition);
@@ -58,14 +58,20 @@ public slots:
     void key_press(const QKeyCombination&);
     void key_release(const QKeyCombination&);
     void touch(const event_parameter::Touch&);
+    void update_camera_request();
 
 signals:
     void definition_changed(const Definition& new_definition) const;
 
 private:
+    void set_interaction_style(std::unique_ptr<InteractionStyle> new_style);
+    void set_animation_style(std::unique_ptr<InteractionStyle> new_style);
+
     Definition m_definition;
     AbstractDepthTester* m_depth_tester;
     std::unique_ptr<InteractionStyle> m_interaction_style;
+    std::unique_ptr<InteractionStyle> m_animation_style;
+    std::chrono::steady_clock::time_point m_last_frame_time;
 };
 
 }

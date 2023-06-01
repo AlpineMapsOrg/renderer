@@ -19,10 +19,15 @@
 **
 ****************************************************************************/
 
+#include <QDirIterator>
+#include <QFontDatabase>
 #include <QGuiApplication>
+#include <QLoggingCategory>
 #include <QOpenGLContext>
 #include <QQmlApplicationEngine>
+#include <QQmlContext>
 #include <QQmlEngine>
+#include <QQuickStyle>
 #include <QQuickView>
 #include <QRunnable>
 #include <QSurfaceFormat>
@@ -31,6 +36,7 @@
 #include <QTranslator>
 
 #include "GnssInformation.h"
+#include "HotReloader.h"
 #include "RenderThreadNotifier.h"
 #include "TerrainRendererItem.h"
 #include "nucleus/map_label/CameraTransformationProxyModel.h"
@@ -41,6 +47,32 @@ int main(int argc, char **argv)
     //    QGuiApplication::setHighDpiScaleFactorRoundingPolicy(Qt::HighDpiScaleFactorRoundingPolicy::Floor);
     QQuickWindow::setGraphicsApi(QSGRendererInterface::GraphicsApi::OpenGLRhi);
     QGuiApplication app(argc, argv);
+    QCoreApplication::setOrganizationName("AlpineMaps.org");
+    QCoreApplication::setApplicationName("AlpineApp");
+
+    //    QLoggingCategory::setFilterRules("*.debug=true\n"
+    //                                     "qt.qpa.fonts=true");
+    //// output qrc files:
+    //    QDirIterator it(":", QDirIterator::Subdirectories);
+    //    while (it.hasNext()) {
+    //        qDebug() << it.next();
+    //    }
+
+    //    qDebug() << ":: before adding fonts::" << QFontDatabase::families().size();
+    //    for (const auto& entry : QFontDatabase::families()) {
+    //        qDebug() << entry;
+    //    }
+    for (const auto& entry : QDir(":/fonts").entryInfoList()) {
+        //        qDebug() << entry.filePath() << " -> " <<
+        QFontDatabase::addApplicationFont(entry.filePath());
+    }
+    //    qDebug() << ":: after adding fonts::" << QFontDatabase::families().size();
+    //    for (const auto& entry : QFontDatabase::families()) {
+    //        qDebug() << entry;
+    //    }
+
+    QFont fon("Source Sans 3");
+    app.setFont(fon);
 
     QTranslator translator;
     const QStringList uiLanguages = QLocale::system().uiLanguages();
@@ -77,8 +109,12 @@ int main(int argc, char **argv)
 
     QQmlApplicationEngine engine;
 
+    HotReloader hotreloader(&engine, ALP_QML_SOURCE_DIR);
+    engine.rootContext()->setContextProperty("_hotreloader", &hotreloader);
+    engine.rootContext()->setContextProperty("_qmlPath", ALP_QML_SOURCE_DIR);
+
     RenderThreadNotifier::instance();
-    const QUrl url(u"qrc:/alpinemaps/app/main.qml"_qs);
+    const QUrl url(u"qrc:/app/main_loader.qml"_qs);
     QObject::connect(
         &engine, &QQmlApplicationEngine::objectCreated,
         &app, [](QObject* obj, const QUrl& objUrl) {
@@ -94,7 +130,11 @@ int main(int argc, char **argv)
         qDebug() << "root window not created!";
         return 1;
     }
+
+#if (defined(__linux) && !defined(__ANDROID__)) || defined(_WIN32) || defined(_WIN64)
     root_window->showMaximized();
+#endif
+
     RenderThreadNotifier::instance()->set_root_window(root_window);
 
     return app.exec();

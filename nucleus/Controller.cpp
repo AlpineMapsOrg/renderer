@@ -26,15 +26,18 @@
 #endif
 
 #include "AbstractRenderWindow.h"
-#include "nucleus/TileLoadService.h"
 #include "nucleus/camera/Controller.h"
-#include "nucleus/camera/NearPlaneAdjuster.h"
 #include "nucleus/camera/stored_positions.h"
-#include "nucleus/tile_scheduler/GpuCacheTileScheduler.h"
+#include "nucleus/tile_scheduler/LayerAssembler.h"
+#include "nucleus/tile_scheduler/QuadAssembler.h"
+#include "nucleus/tile_scheduler/RateLimiter.h"
+#include "nucleus/tile_scheduler/Scheduler.h"
+#include "nucleus/tile_scheduler/SlotLimiter.h"
+#include "nucleus/tile_scheduler/TileLoadService.h"
 #include "nucleus/tile_scheduler/utils.h"
 #include "sherpa/TileHeights.h"
 
-using nucleus::tile_scheduler::GpuCacheTileScheduler;
+using namespace nucleus::tile_scheduler;
 
 namespace nucleus {
 Controller::Controller(AbstractRenderWindow* render_window)
@@ -44,69 +47,81 @@ Controller::Controller(AbstractRenderWindow* render_window)
     qRegisterMetaType<nucleus::event_parameter::Mouse>();
     qRegisterMetaType<nucleus::event_parameter::Wheel>();
 
-    m_camera_controller = std::make_unique<nucleus::camera::Controller>(nucleus::camera::stored_positions::westl_hochgrubach_spitze(), m_render_window->depth_tester());
-    //    nucleus::camera::Controller camera_controller { nucleus::camera::stored_positions::stephansdom() };
+    m_camera_controller = std::make_unique<nucleus::camera::Controller>(
+        nucleus::camera::stored_positions::grossglockner(), m_render_window->depth_tester());
 
     m_terrain_service = std::make_unique<TileLoadService>("https://alpinemaps.cg.tuwien.ac.at/tiles/alpine_png/", TileLoadService::UrlPattern::ZXY, ".png");
     //    m_ortho_service.reset(new TileLoadService("https://tiles.bergfex.at/styles/bergfex-osm/", TileLoadService::UrlPattern::ZXY_yPointingSouth, ".jpeg"));
     //    m_ortho_service.reset(new TileLoadService("https://alpinemaps.cg.tuwien.ac.at/tiles/ortho/", TileLoadService::UrlPattern::ZYX_yPointingSouth, ".jpeg"));
+    //    m_ortho_service.reset(new TileLoadService(
+    //        "https://maps%1.wien.gv.at/basemap/bmaporthofoto30cm/normal/google3857/", TileLoadService::UrlPattern::ZYX_yPointingSouth, ".jpeg", { "", "1", "2", "3", "4" }));
     m_ortho_service.reset(new TileLoadService(
-        "https://maps%1.wien.gv.at/basemap/bmaporthofoto30cm/normal/google3857/", TileLoadService::UrlPattern::ZYX_yPointingSouth, ".jpeg", { "", "1", "2", "3", "4" }));
+        "https://mapsneu.wien.gv.at/basemap/bmaporthofoto30cm/normal/google3857/", TileLoadService::UrlPattern::ZYX_yPointingSouth, ".jpeg"));
 
-    m_tile_scheduler = std::make_unique<nucleus::tile_scheduler::GpuCacheTileScheduler>();
-    m_tile_scheduler->set_gpu_cache_size(1000);
-
+    m_tile_scheduler = std::make_unique<nucleus::tile_scheduler::Scheduler>();
+    m_tile_scheduler->read_disk_cache();
+    m_tile_scheduler->set_gpu_quad_limit(500);
+    m_tile_scheduler->set_ram_quad_limit(12000);
     {
-        QFile file(":/resources/height_data.atb");
+        QFile file(":/map/height_data.atb");
         const auto open = file.open(QIODeviceBase::OpenModeFlag::ReadOnly);
         assert(open);
         const QByteArray data = file.readAll();
-        const auto decorator = nucleus::tile_scheduler::AabbDecorator::make(TileHeights::deserialise(data));
+        const auto decorator = nucleus::tile_scheduler::utils::AabbDecorator::make(TileHeights::deserialise(data));
         m_tile_scheduler->set_aabb_decorator(decorator);
         m_render_window->set_aabb_decorator(decorator);
     }
+    {
+        auto* sch = m_tile_scheduler.get();
+        SlotLimiter* sl = new SlotLimiter(sch);
+        RateLimiter* rl = new RateLimiter(sch);
+        QuadAssembler* qa = new QuadAssembler(sch);
+        LayerAssembler* la = new LayerAssembler(sch);
+        connect(sch, &Scheduler::quads_requested, sl, &SlotLimiter::request_quads);
+        connect(sl, &SlotLimiter::quad_requested, rl, &RateLimiter::request_quad);
+        connect(rl, &RateLimiter::quad_requested, qa, &QuadAssembler::load);
+        connect(qa, &QuadAssembler::tile_requested, la, &LayerAssembler::load);
+        connect(la, &LayerAssembler::tile_requested, m_ortho_service.get(), &TileLoadService::load);
+        connect(la, &LayerAssembler::tile_requested, m_terrain_service.get(), &TileLoadService::load);
 
-    m_near_plane_adjuster = std::make_unique<nucleus::camera::NearPlaneAdjuster>();
+        connect(m_ortho_service.get(), &TileLoadService::load_ready, la, &LayerAssembler::deliver_ortho);
+        connect(m_ortho_service.get(), &TileLoadService::tile_unavailable, la, &LayerAssembler::report_missing_ortho);
+        connect(m_terrain_service.get(), &TileLoadService::load_ready, la, &LayerAssembler::deliver_height);
+        connect(m_terrain_service.get(), &TileLoadService::tile_unavailable, la, &LayerAssembler::report_missing_height);
+        connect(la, &LayerAssembler::tile_loaded, qa, &QuadAssembler::deliver_tile);
+        connect(qa, &QuadAssembler::quad_loaded, sl, &SlotLimiter::deliver_quad);
+        connect(sl, &SlotLimiter::quads_delivered, sch, &Scheduler::receive_quads);
+    }
 
 #ifdef ALP_ENABLE_THREADING
     m_scheduler_thread = std::make_unique<QThread>();
+    m_scheduler_thread->setObjectName("tile_scheduler_thread");
+    qDebug() << "scheduler thread: " << m_scheduler_thread.get();
+#ifdef __EMSCRIPTEN__ // make request from main thread on webassembly due to QTBUG-109396
+    m_terrain_service->moveToThread(QCoreApplication::instance()->thread());
+    m_ortho_service->moveToThread(QCoreApplication::instance()->thread());
+#else
     m_terrain_service->moveToThread(m_scheduler_thread.get());
     m_ortho_service->moveToThread(m_scheduler_thread.get());
+#endif
     m_tile_scheduler->moveToThread(m_scheduler_thread.get());
     m_scheduler_thread->start();
 #endif
-    //    connect(m_render_window, &AbstractRenderWindow::viewport_changed, m_camera_controller.get(), &nucleus::camera::Controller::set_viewport);
-    //    connect(m_render_window, &AbstractRenderWindow::mouse_moved, m_camera_controller.get(), &nucleus::camera::Controller::mouse_move);
-    //    connect(m_render_window, &AbstractRenderWindow::mouse_pressed, m_camera_controller.get(), &nucleus::camera::Controller::mouse_press);
-    //    connect(m_render_window, &AbstractRenderWindow::wheel_turned, m_camera_controller.get(), &nucleus::camera::Controller::wheel_turn);
     connect(m_render_window, &AbstractRenderWindow::key_pressed, m_camera_controller.get(), &nucleus::camera::Controller::key_press);
     connect(m_render_window, &AbstractRenderWindow::key_released, m_camera_controller.get(), &nucleus::camera::Controller::key_release);
-    //    connect(m_render_window, &AbstractRenderWindow::touch_made, m_camera_controller.get(), &nucleus::camera::Controller::touch);
-    connect(m_render_window, &AbstractRenderWindow::key_pressed, m_tile_scheduler.get(), &GpuCacheTileScheduler::key_press);
+    connect(m_render_window, &AbstractRenderWindow::update_camera_requested, m_camera_controller.get(), &nucleus::camera::Controller::update_camera_request);
+    connect(m_render_window, &AbstractRenderWindow::gpu_ready_changed, m_tile_scheduler.get(), &Scheduler::set_enabled);
 
     // NOTICE ME!!!! READ THIS, IF YOU HAVE TROUBLES WITH SIGNALS NOT REACHING THE QML RENDERING THREAD!!!!111elevenone
-    // In Qt 6.4 and earlier the rendering thread goes to sleep. See RenderThreadNotifier.
+    // In Qt the rendering thread goes to sleep (at least until Qt 6.5, See RenderThreadNotifier).
     // At the time of writing, an additional connection from tile_ready and tile_expired to the notifier is made.
     // this only works if ALP_ENABLE_THREADING is on, i.e., the tile scheduler is on an extra thread. -> potential issue on webassembly
-    connect(m_camera_controller.get(), &nucleus::camera::Controller::definition_changed, m_tile_scheduler.get(), &GpuCacheTileScheduler::update_camera);
-    connect(m_camera_controller.get(), &nucleus::camera::Controller::definition_changed, m_near_plane_adjuster.get(), &nucleus::camera::NearPlaneAdjuster::update_camera);
+    connect(m_camera_controller.get(), &nucleus::camera::Controller::definition_changed, m_tile_scheduler.get(), &Scheduler::update_camera);
     connect(m_camera_controller.get(), &nucleus::camera::Controller::definition_changed, m_render_window, &AbstractRenderWindow::update_camera);
 
-    connect(m_tile_scheduler.get(), &GpuCacheTileScheduler::tile_requested, m_terrain_service.get(), &TileLoadService::load);
-    connect(m_tile_scheduler.get(), &GpuCacheTileScheduler::tile_requested, m_ortho_service.get(), &TileLoadService::load);
-    connect(m_tile_scheduler.get(), &GpuCacheTileScheduler::tile_ready, m_render_window, &AbstractRenderWindow::add_tile);
-    connect(m_tile_scheduler.get(), &GpuCacheTileScheduler::tile_ready, m_near_plane_adjuster.get(), &nucleus::camera::NearPlaneAdjuster::add_tile);
-    connect(m_tile_scheduler.get(), &GpuCacheTileScheduler::tile_ready, m_render_window, &AbstractRenderWindow::update_requested);
-    connect(m_tile_scheduler.get(), &GpuCacheTileScheduler::tile_expired, m_render_window, &AbstractRenderWindow::remove_tile);
-    connect(m_tile_scheduler.get(), &GpuCacheTileScheduler::tile_expired, m_near_plane_adjuster.get(), &nucleus::camera::NearPlaneAdjuster::remove_tile);
-    connect(m_tile_scheduler.get(), &GpuCacheTileScheduler::debug_scheduler_stats_updated, m_render_window, &AbstractRenderWindow::update_debug_scheduler_stats);
+    connect(m_tile_scheduler.get(), &Scheduler::gpu_quads_updated, m_render_window, &AbstractRenderWindow::update_gpu_quads);
+    connect(m_tile_scheduler.get(), &Scheduler::gpu_quads_updated, m_render_window, &AbstractRenderWindow::update_requested);
 
-    connect(m_ortho_service.get(), &TileLoadService::load_ready, m_tile_scheduler.get(), &GpuCacheTileScheduler::receive_ortho_tile);
-    connect(m_ortho_service.get(), &TileLoadService::tile_unavailable, m_tile_scheduler.get(), &GpuCacheTileScheduler::notify_about_unavailable_ortho_tile);
-    connect(m_terrain_service.get(), &TileLoadService::load_ready, m_tile_scheduler.get(), &GpuCacheTileScheduler::receive_height_tile);
-    connect(m_terrain_service.get(), &TileLoadService::tile_unavailable, m_tile_scheduler.get(), &GpuCacheTileScheduler::notify_about_unavailable_height_tile);
-
-    connect(m_near_plane_adjuster.get(), &nucleus::camera::NearPlaneAdjuster::near_plane_changed, m_camera_controller.get(), &nucleus::camera::Controller::set_near_plane);
 
     m_camera_controller->update();
 }
@@ -124,7 +139,7 @@ camera::Controller* Controller::camera_controller() const
     return m_camera_controller.get();
 }
 
-tile_scheduler::GpuCacheTileScheduler* Controller::tile_scheduler() const
+Scheduler* Controller::tile_scheduler() const
 {
     return m_tile_scheduler.get();
 }

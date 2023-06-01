@@ -17,7 +17,7 @@
  *****************************************************************************/
 
 import QtQuick
-import QtQuick.Controls
+import QtQuick.Controls.Material
 import QtQuick.Layouts
 import Alpine
 import Qt5Compat.GraphicalEffects
@@ -36,14 +36,22 @@ Rectangle {
     }
 
     Image {
+        function oc_scale() {
+            if (renderer.camera_operation_centre_distance < 0) {
+                return 1;
+            }
+            let max_dist = 1000;
+            let scale = 1 + Math.pow((1 - (Math.min(max_dist, renderer.camera_operation_centre_distance) / max_dist)) * 1.6, 6);
+            return scale;
+        }
         id: camera_operation_centre
-        source: "qrc:/alpinemaps/app/icons/camera_operation_centre.svg"
-        width: 16
-        height: 16
+        source: "qrc:/icons/camera_operation_centre.svg"
+        width: 16 * oc_scale()
+        height: 16 * oc_scale()
         sourceSize: Qt.size(width, height)
         x: renderer.camera_operation_centre.x - width / 2
         y: renderer.camera_operation_centre.y - 60 - height / 2
-        visible: renderer.camera_operation_centre_visibility
+        visible: renderer.camera_operation_centre_visibility && punkt.checked
     }
 
     Repeater {
@@ -68,7 +76,7 @@ Rectangle {
             z:  50 * my_scale()
             Image {
                 id: icon
-                source: "qrc:/alpinemaps/app/icons/peak.svg"
+                source: "qrc:/icons/peak.svg"
                 width: 16 * my_scale()
                 height: 16 * my_scale()
                 sourceSize: Qt.size(width, height)
@@ -125,19 +133,54 @@ Rectangle {
     }
 
     RoundButton {
-        id: current_location
+        id: punkt
         width: 60
         height: 60
         checkable: true
-        icon {
-            source: "qrc:/alpinemaps/app/icons/current_location.svg"
-            height: 32
-            width: 32
+        checked: true
+        focusPolicy: Qt.NoFocus
+        text: "punkt"
+        visible: false
+        anchors {
+            right: parent.right
+            bottom: compass.top
+            rightMargin: 10
+            bottomMargin: 10
         }
+    }
+    RoundMapButton {
+        id: compass
+        rotation: renderer.camera_rotation_from_north
+        icon_source: "qrc:/icons/compass.svg"
+        onClicked: renderer.rotate_north()
+
+        anchors {
+            right: parent.right
+            bottom: current_location.top
+            margins: 16
+        }
+    }
+
+    RoundMapButton {
+        id: current_location
         anchors {
             right: parent.right
             bottom: parent.bottom
-            margins: 10
+            margins: 16
+        }
+        checkable: true
+        icon_source: "qrc:/icons/current_location.svg"
+    }
+
+    Connections {
+        enabled: current_location.checked
+        target: renderer
+        function onMouse_pressed() {
+            current_location.checked = false;
+        }
+
+        function onTouch_made() {
+            current_location.checked = false;
         }
     }
 }

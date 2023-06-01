@@ -20,10 +20,10 @@
 #include "Controller.h"
 
 #include "nucleus/camera/CadInteraction.h"
-#include "nucleus/camera/CrapyInteraction.h"
 #include "nucleus/camera/Definition.h"
 #include "nucleus/camera/FirstPersonInteraction.h"
 #include "nucleus/camera/OrbitInteraction.h"
+#include "nucleus/camera/RotateNorthInteraction.h"
 #include "nucleus/srs.h"
 
 namespace nucleus::camera {
@@ -93,6 +93,10 @@ void Controller::update() const
 
 void Controller::mouse_press(const event_parameter::Mouse& e)
 {
+    if (m_animation_style) {
+        m_animation_style.reset();
+        m_interaction_style->reset_interaction(m_definition, m_depth_tester);
+    }
     const auto new_definition = m_interaction_style->mouse_press_event(e, m_definition, m_depth_tester);
     if (!new_definition)
         return;
@@ -111,6 +115,11 @@ void Controller::mouse_move(const event_parameter::Mouse& e)
 
 void Controller::wheel_turn(const event_parameter::Wheel& e)
 {
+    if (m_animation_style) {
+        m_animation_style.reset();
+        m_interaction_style->reset_interaction(m_definition, m_depth_tester);
+    }
+
     const auto new_definition = m_interaction_style->wheel_event(e, m_definition, m_depth_tester);
     if (!new_definition)
         return;
@@ -120,6 +129,11 @@ void Controller::wheel_turn(const event_parameter::Wheel& e)
 
 void Controller::key_press(const QKeyCombination& e)
 {
+    if (m_animation_style) {
+        m_animation_style.reset();
+        m_interaction_style->reset_interaction(m_definition, m_depth_tester);
+    }
+
     if (e.key() == Qt::Key_1) {
         set_interaction_style(std::make_unique<nucleus::camera::OrbitInteraction>());
     }
@@ -129,15 +143,19 @@ void Controller::key_press(const QKeyCombination& e)
     if (e.key() == Qt::Key_3) {
         set_interaction_style(std::make_unique<nucleus::camera::CadInteraction>());
     }
-    if (e.key() == Qt::Key_4) {
-        set_interaction_style(std::make_unique<nucleus::camera::CrapyInteraction>());
+    if (e.key() == Qt::Key_C) {
+        set_animation_style(std::make_unique<nucleus::camera::RotateNorthInteraction>());
     }
 
-    const auto new_definition = m_interaction_style->key_press_event(e, m_definition, m_depth_tester);
-    if (!new_definition)
-        return;
-    m_definition = new_definition.value();
-    update();
+    if (m_animation_style) {
+        update();
+    } else {
+        const auto new_definition = m_interaction_style->key_press_event(e, m_definition, m_depth_tester);
+        if (!new_definition)
+            return;
+        m_definition = new_definition.value();
+        update();
+    }
 }
 
 void Controller::key_release(const QKeyCombination& e)
@@ -149,7 +167,6 @@ void Controller::key_release(const QKeyCombination& e)
     update();
 }
 
-
 void Controller::touch(const event_parameter::Touch& e)
 {
     const auto new_definition = m_interaction_style->touch_event(e, m_definition, m_depth_tester);
@@ -157,6 +174,26 @@ void Controller::touch(const event_parameter::Touch& e)
         return;
     m_definition = new_definition.value();
     update();
+}
+
+void Controller::update_camera_request()
+{
+    if (m_animation_style) {
+        const auto new_animation = m_animation_style->update(m_definition, m_depth_tester);
+        if (!new_animation) {
+            m_animation_style.reset();
+            m_interaction_style->reset_interaction(m_definition, m_depth_tester);
+            return;
+        }
+        m_definition = new_animation.value();
+        update();
+    } else {
+        const auto new_definition = m_interaction_style->update(m_definition, m_depth_tester);
+        if (!new_definition)
+            return;
+        m_definition = new_definition.value();
+        update();
+    }
 }
 
 void Controller::set_interaction_style(std::unique_ptr<InteractionStyle> new_style)
@@ -167,8 +204,26 @@ void Controller::set_interaction_style(std::unique_ptr<InteractionStyle> new_sty
         m_interaction_style = std::make_unique<InteractionStyle>();
 }
 
+void Controller::set_animation_style(std::unique_ptr<InteractionStyle> new_style)
+{
+    if (new_style)
+        m_animation_style = std::move(new_style);
+    else
+        m_animation_style = std::make_unique<InteractionStyle>();
+}
+
 std::optional<glm::vec2> Controller::get_operation_centre(){
+    if (m_animation_style) {
+        return m_animation_style->get_operation_centre();
+    }
     return m_interaction_style->get_operation_centre();
+}
+
+std::optional<float> Controller::get_operation_centre_distance(){
+    if (m_animation_style) {
+        return m_animation_style->get_operation_centre_distance(m_definition);
+    }
+    return m_interaction_style->get_operation_centre_distance(m_definition);
 }
 
 const Definition& Controller::definition() const

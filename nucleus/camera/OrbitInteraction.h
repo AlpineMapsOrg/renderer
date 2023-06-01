@@ -24,17 +24,25 @@
 namespace nucleus::camera {
 class OrbitInteraction : public InteractionStyle
 {
-    glm::ivec2 m_previous_mouse_pos = { -1, -1 };
-    glm::ivec2 m_previous_first_touch = { -1, -1 };
-    glm::ivec2 m_previous_second_touch = { -1, -1 };
-    bool m_was_double_touch = false;
     glm::dvec3 m_operation_centre = {};
     glm::vec2 m_operation_centre_screen = {};
+    bool m_move_vertical = false;
+    bool m_key_ctrl = false;
+    bool m_key_alt = false;
+    bool m_key_shift = false;
 public:
     std::optional<Definition> mouse_press_event(const event_parameter::Mouse& e, Definition camera, AbstractDepthTester* depth_tester) override;
     std::optional<Definition> mouse_move_event(const event_parameter::Mouse& e, Definition camera, AbstractDepthTester* depth_tester) override;
     std::optional<Definition> touch_event(const event_parameter::Touch& e, Definition camera, AbstractDepthTester* depth_tester) override;
     std::optional<Definition> wheel_event(const event_parameter::Wheel& e, Definition camera, AbstractDepthTester* depth_tester) override;
+    std::optional<Definition> key_press_event(const QKeyCombination& e, Definition camera, AbstractDepthTester* depth_tester) override;
+    std::optional<Definition> key_release_event(const QKeyCombination& e, Definition camera, AbstractDepthTester* depth_tester) override;
     std::optional<glm::vec2> get_operation_centre() override;
+
+private:
+    void start(const QPointF& position, const Definition& camera, AbstractDepthTester* depth_tester);
+    void pan(const QPointF& position, const QPointF& last_position, Definition* camera, AbstractDepthTester* depth_tester);
+    void orbit(const QPointF& position, const QPointF& last_position, Definition* camera, AbstractDepthTester* depth_tester);
+    void zoom(float amount, Definition* camera, AbstractDepthTester* depth_tester);
 };
 }

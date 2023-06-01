@@ -38,58 +38,6 @@ std::optional<Definition> FirstPersonInteraction::mouse_move_event(const event_p
         return camera;
 }
 
-std::optional<Definition> FirstPersonInteraction::touch_event(const event_parameter::Touch& e, Definition camera, AbstractDepthTester* depth_tester)
-{
-    glm::ivec2 first_touch = { e.points[0].position().x(), e.points[0].position().y() };
-    glm::ivec2 second_touch;
-    if (e.points.size() >= 2)
-        second_touch = { e.points[1].position().x(), e.points[1].position().y() };
-
-    // ugly code, but it prevents the following:
-    // touch 1 at pos a, touch 2 at pos b
-    // release touch 1, touch 2 becomes new touch 1. movement from b to a is initiated.
-    if (m_was_double_touch) {
-        m_previous_first_touch = first_touch;
-    }
-    m_was_double_touch = false;
-
-    if (e.is_end_event) {
-        m_was_double_touch = e.points.size() >= 2;
-        return {};
-    }
-    if (e.is_begin_event) {
-        m_previous_first_touch = first_touch;
-        m_previous_second_touch = second_touch;
-        return {};
-    }
-    // touch move
-    if (e.points.size() == 1) {
-        const auto delta = first_touch - m_previous_first_touch;
-        camera.pan(glm::vec2(delta) * 10.0f);
-    }
-    if (e.points.size() == 2) {
-        const auto previous_centre = (m_previous_first_touch + m_previous_second_touch) / 2;
-        const auto current_centre = (first_touch + second_touch) / 2;
-        const auto pitch = -(current_centre - previous_centre).y;
-
-        const auto previous_yaw_dir = glm::normalize(glm::vec2(m_previous_first_touch - m_previous_second_touch));
-        const auto previous_yaw_angle = std::atan2(previous_yaw_dir.y, previous_yaw_dir.x);
-        const auto current_yaw_dir = glm::normalize(glm::vec2(first_touch - second_touch));
-        const auto current_yaw_angle = std::atan2(current_yaw_dir.y, current_yaw_dir.x);
-//        qDebug() << "prev: " << previous_yaw_angle << ", curr: " << current_yaw_angle;
-
-        const auto yaw = (current_yaw_angle - previous_yaw_angle) * 600;
-        camera.orbit(glm::vec2(yaw, pitch) * 0.1f);
-
-        const auto previous_dist = glm::length(glm::vec2(m_previous_first_touch - m_previous_second_touch));
-        const auto current_dist = glm::length(glm::vec2(first_touch - second_touch));
-        camera.zoom((previous_dist - current_dist) * 10);
-    }
-    m_previous_first_touch = first_touch;
-    m_previous_second_touch = second_touch;
-    return camera;
-}
-
 std::optional<Definition> FirstPersonInteraction::wheel_event(const event_parameter::Wheel& e, Definition camera, AbstractDepthTester* depth_tester)
 {
     if (e.angle_delta.y() > 0) {
@@ -100,40 +48,40 @@ std::optional<Definition> FirstPersonInteraction::wheel_event(const event_parame
     return camera;
 }
 
-std::optional<Definition> FirstPersonInteraction::key_press_event(const QKeyCombination& e, Definition camera, AbstractDepthTester* ray_caster)
+std::optional<Definition> FirstPersonInteraction::key_press_event(const QKeyCombination& e, Definition camera, AbstractDepthTester* depth_tester)
 {
-    auto direction = glm::dvec3();
-    if (e.key() == Qt::Key_W || m_key_w) {
+    if (m_keys_pressed == 0) {
+        m_stopwatch.restart();
+    }
+    m_keys_pressed++;
+
+    if (e.key() == Qt::Key_W) {
         m_key_w = true;
-        direction -= camera.z_axis();
     }
-    if (e.key() == Qt::Key_S || m_key_s) {
+    if (e.key() == Qt::Key_S) {
         m_key_s = true;
-        direction += camera.z_axis();
     }
-    if (e.key() == Qt::Key_A || m_key_a) {
+    if (e.key() == Qt::Key_A) {
         m_key_a = true;
-        direction -= camera.x_axis();
     }
-    if (e.key() == Qt::Key_D || m_key_d) {
+    if (e.key() == Qt::Key_D) {
         m_key_d = true;
-        direction += camera.x_axis();
     }
-    if (e.key() == Qt::Key_E || m_key_e) {
+    if (e.key() == Qt::Key_E) {
         m_key_e = true;
-        direction += glm::dvec3(0, 0, 1);
     }
-    if (e.key() == Qt::Key_Q || m_key_q) {
+    if (e.key() == Qt::Key_Q) {
         m_key_q = true;
-        direction -= glm::dvec3(0, 0, 1);
     }
-    glm::normalize(direction);
-    camera.move(direction * (double)m_speed_modifyer);
+    if (e.key() == Qt::Key_Shift) {
+        m_key_shift = true;
+    }
     return camera;
 }
 
-std::optional<Definition> FirstPersonInteraction::key_release_event(const QKeyCombination& e, Definition camera, AbstractDepthTester* ray_caster)
+std::optional<Definition> FirstPersonInteraction::key_release_event(const QKeyCombination& e, Definition camera, AbstractDepthTester* depth_tester)
 {
+    m_keys_pressed--;
     if (e.key() == Qt::Key_W) {
         m_key_w = false;
     }
@@ -152,7 +100,46 @@ std::optional<Definition> FirstPersonInteraction::key_release_event(const QKeyCo
     if (e.key() == Qt::Key_Q) {
         m_key_q = false;
     }
+    if (e.key() == Qt::Key_Shift) {
+        m_key_shift = false;
+    }
     return camera;
 }
 
+std::optional<Definition> FirstPersonInteraction::update(Definition camera, AbstractDepthTester* depth_tester)
+{
+    if (m_keys_pressed == 0) {
+        return {};
+    }
+    auto direction = glm::dvec3();
+    if (m_key_w) {
+        direction -= camera.z_axis();
+    }
+    if (m_key_s) {
+        direction += camera.z_axis();
+    }
+    if (m_key_a) {
+        direction -= camera.x_axis();
+    }
+    if (m_key_d) {
+        direction += camera.x_axis();
+    }
+    if (m_key_e) {
+        direction += camera.y_axis();
+    }
+    if (m_key_q) {
+        direction -= camera.y_axis();
+    }
+    glm::normalize(direction);
+    double dt = m_stopwatch.lap().count();
+    if (dt > 120) { // catches big time steps
+        dt = 120;
+    }
+    if (m_key_shift) {
+        camera.move(direction * (dt / 30 * m_speed_modifyer * 3));
+    } else {
+        camera.move(direction * (dt / 30 * m_speed_modifyer));
+    }
+    return camera;
+}
 }

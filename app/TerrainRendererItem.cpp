@@ -33,11 +33,11 @@
 #include <QTimer>
 
 #include "RenderThreadNotifier.h"
+#include "TerrainRenderer.h"
 #include "gl_engine/Window.h"
-#include "nucleus/Controller.h"
 #include "nucleus/camera/Controller.h"
-
-#include <nucleus/tile_scheduler/GpuCacheTileScheduler.h>
+#include "nucleus/Controller.h"
+#include <nucleus/tile_scheduler/Scheduler.h>
 
 namespace {
 // helper type for the visitor from https://en.cppreference.com/w/cpp/utility/variant/visit
@@ -50,86 +50,6 @@ template <class... Ts>
 overloaded(Ts...) -> overloaded<Ts...>;
 }
 
-class TerrainRenderer : public QQuickFramebufferObject::Renderer {
-public:
-    TerrainRenderer()
-    {
-        m_glWindow = std::make_unique<gl_engine::Window>();
-        m_glWindow->initialise_gpu();
-        m_controller = std::make_unique<nucleus::Controller>(m_glWindow.get());
-        qDebug("TerrainRendererItemRenderer()");
-    }
-    ~TerrainRenderer() override
-    {
-        qDebug("~TerrainRendererItemRenderer()");
-    }
-
-    void synchronize(QQuickFramebufferObject *item) Q_DECL_OVERRIDE
-    {
-        // warning:
-        // you can only safely copy objects between main and render thread.
-        // the tile scheduler is in an extra thread, there will be races if you write to it.
-        m_window = item->window();
-        TerrainRendererItem* i = static_cast<TerrainRendererItem*>(item);
-        //        m_controller->camera_controller()->set_virtual_resolution_factor(i->render_quality());
-        m_glWindow->set_permissible_screen_space_error(2.0 / i->render_quality());
-        m_controller->camera_controller()->set_viewport({ i->width(), i->height() });
-        m_controller->camera_controller()->set_field_of_view(i->field_of_view());
-        const auto oc = m_controller->camera_controller()->get_operation_centre();
-        if (oc.has_value()) {
-            i->set_camera_operation_centre_visibility(true);
-            i->set_camera_operation_centre(QPointF(oc.value().x, oc.value().y));
-        } else {
-            i->set_camera_operation_centre_visibility(false);
-        }
-
-        if (!(i->camera() == m_controller->camera_controller()->definition())) {
-            const auto tmp_camera = m_controller->camera_controller()->definition();
-            QTimer::singleShot(0, i, [i, tmp_camera]() {
-                i->set_read_only_camera(tmp_camera);
-                i->set_read_only_camera_width(tmp_camera.viewport_size().x);
-                i->set_read_only_camera_height(tmp_camera.viewport_size().y);
-            });
-        }
-    }
-
-    void render() Q_DECL_OVERRIDE
-    {
-        m_window->beginExternalCommands();
-        m_glWindow->paint(this->framebufferObject());
-        m_window->endExternalCommands();
-    }
-
-    QOpenGLFramebufferObject *createFramebufferObject(const QSize &size) Q_DECL_OVERRIDE
-    {
-        qDebug() << "QOpenGLFramebufferObject *createFramebufferObject(const QSize& " << size << ")";
-        m_window->beginExternalCommands();
-        m_glWindow->resize_framebuffer(size.width(), size.height());
-        m_window->endExternalCommands();
-        QOpenGLFramebufferObjectFormat format;
-        format.setSamples(1);
-        format.setAttachment(QOpenGLFramebufferObject::CombinedDepthStencil);
-        return new QOpenGLFramebufferObject(size, format);
-    }
-
-    [[nodiscard]] gl_engine::Window* glWindow() const
-    {
-        return m_glWindow.get();
-    }
-
-    [[nodiscard]] nucleus::Controller* controller() const
-    {
-        return m_controller.get();
-    }
-
-private:
-    QQuickWindow *m_window;
-    std::unique_ptr<gl_engine::Window> m_glWindow;
-    std::unique_ptr<nucleus::Controller> m_controller;
-};
-
-// TerrainRendererItem implementation
-
 TerrainRendererItem::TerrainRendererItem(QQuickItem* parent)
     : QQuickFramebufferObject(parent)
     , m_update_timer(new QTimer(this))
@@ -141,6 +61,8 @@ TerrainRendererItem::TerrainRendererItem(QQuickItem* parent)
     setMirrorVertically(true);
     setAcceptTouchEvents(true);
     setAcceptedMouseButtons(Qt::MouseButton::AllButtons);
+
+    connect(m_update_timer, &QTimer::timeout, this, &TerrainRendererItem::update_camera_request);
 }
 
 TerrainRendererItem::~TerrainRendererItem()
@@ -163,29 +85,29 @@ QQuickFramebufferObject::Renderer* TerrainRendererItem::createRenderer() const
     connect(this, &TerrainRendererItem::wheel_turned, r->controller()->camera_controller(), &nucleus::camera::Controller::wheel_turn);
     connect(this, &TerrainRendererItem::key_pressed, r->controller()->camera_controller(), &nucleus::camera::Controller::key_press);
     connect(this, &TerrainRendererItem::key_released, r->controller()->camera_controller(), &nucleus::camera::Controller::key_release);
+    connect(this, &TerrainRendererItem::update_camera_requested, r->controller()->camera_controller(), &nucleus::camera::Controller::update_camera_request);
     connect(this, &TerrainRendererItem::position_set_by_user, r->controller()->camera_controller(), &nucleus::camera::Controller::set_latitude_longitude);
 
     auto* const tile_scheduler = r->controller()->tile_scheduler();
     connect(this, &TerrainRendererItem::render_quality_changed, r->controller()->tile_scheduler(), [=](float new_render_quality) {
-        const auto permissible_error = 2.0f / new_render_quality;
+        const auto permissible_error = 1.0f / new_render_quality;
         tile_scheduler->set_permissible_screen_space_error(permissible_error);
     });
 
-    connect(r->controller()->tile_scheduler(), &nucleus::tile_scheduler::GpuCacheTileScheduler::tile_ready, RenderThreadNotifier::instance(), &RenderThreadNotifier::notify);
-    connect(r->controller()->tile_scheduler(), &nucleus::tile_scheduler::GpuCacheTileScheduler::tile_expired, RenderThreadNotifier::instance(), &RenderThreadNotifier::notify);
-
-    connect(m_timer, &QTimer::timeout, this, &TerrainRendererItem::key_timer);
+    connect(r->controller()->tile_scheduler(), &nucleus::tile_scheduler::Scheduler::gpu_quads_updated, RenderThreadNotifier::instance(), &RenderThreadNotifier::notify);
     return r;
 }
 
 void TerrainRendererItem::touchEvent(QTouchEvent* e)
 {
+    this->setFocus(true);
     emit touch_made(nucleus::event_parameter::make(e));
     RenderThreadNotifier::instance()->notify();
 }
 
 void TerrainRendererItem::mousePressEvent(QMouseEvent* e)
 {
+    this->setFocus(true);
     emit mouse_pressed(nucleus::event_parameter::make(e));
     RenderThreadNotifier::instance()->notify();
 }
@@ -198,6 +120,7 @@ void TerrainRendererItem::mouseMoveEvent(QMouseEvent* e)
 
 void TerrainRendererItem::wheelEvent(QWheelEvent* e)
 {
+    this->setFocus(true);
     emit wheel_turned(nucleus::event_parameter::make(e));
     RenderThreadNotifier::instance()->notify();
 }
@@ -206,10 +129,6 @@ void TerrainRendererItem::keyPressEvent(QKeyEvent* e)
 {
     if (e->isAutoRepeat()) {
         return;
-    }
-    m_keys_pressed++;
-    if (!m_timer->isActive()) {
-        m_timer->start(1000.0f/30.0f);
     }
     emit key_pressed(e->keyCombination());
     RenderThreadNotifier::instance()->notify();
@@ -220,17 +139,13 @@ void TerrainRendererItem::keyReleaseEvent(QKeyEvent* e)
     if (e->isAutoRepeat()) {
         return;
     }
-    m_keys_pressed--;
-    if (m_keys_pressed <= 0) {
-        m_timer->stop();
-    }
     emit key_released(e->keyCombination());
     RenderThreadNotifier::instance()->notify();
 }
 
-void TerrainRendererItem::key_timer()
+void TerrainRendererItem::update_camera_request()
 {
-    emit key_pressed(QKeyCombination(Qt::Key_T)); // TODO replace this with "key update" call
+    emit update_camera_requested();
     RenderThreadNotifier::instance()->notify();
 }
 
@@ -238,6 +153,12 @@ void TerrainRendererItem::set_position(double latitude, double longitude)
 {
     emit position_set_by_user(latitude, longitude);
     RenderThreadNotifier::instance()->notify();
+}
+
+void TerrainRendererItem::rotate_north()
+{
+    emit key_pressed(QKeyCombination(Qt::Key_C));
+    emit update_camera_requested();
 }
 
 void TerrainRendererItem::schedule_update()
@@ -318,6 +239,19 @@ void TerrainRendererItem::set_field_of_view(float new_field_of_view)
     schedule_update();
 }
 
+float TerrainRendererItem::camera_rotation_from_north() const
+{
+    return m_camera_rotation_from_north;
+}
+
+void TerrainRendererItem::set_camera_rotation_from_north(float new_camera_rotation_from_north)
+{
+    if (qFuzzyCompare(m_camera_rotation_from_north, new_camera_rotation_from_north))
+        return;
+    m_camera_rotation_from_north = new_camera_rotation_from_north;
+    emit camera_rotation_from_north_changed();
+}
+
 QPointF TerrainRendererItem::camera_operation_centre() const
 {
     return m_camera_operation_centre;
@@ -342,6 +276,19 @@ void TerrainRendererItem::set_camera_operation_centre_visibility(bool new_camera
         return;
     m_camera_operation_centre_visibility = new_camera_operation_centre_visibility;
     emit camera_operation_centre_visibility_changed();
+}
+
+float TerrainRendererItem::camera_operation_centre_distance() const
+{
+    return m_camera_operation_centre_distance;
+}
+
+void TerrainRendererItem::set_camera_operation_centre_distance(float new_camera_operation_centre_distance)
+{
+    if (m_camera_operation_centre_distance == new_camera_operation_centre_distance)
+        return;
+    m_camera_operation_centre_distance = new_camera_operation_centre_distance;
+    emit camera_operation_centre_distance_changed();
 }
 
 float TerrainRendererItem::render_quality() const

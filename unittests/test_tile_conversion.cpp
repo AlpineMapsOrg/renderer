@@ -16,12 +16,10 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *****************************************************************************/
 
-#include "nucleus/utils/tile_conversion.h"
-
-#include <catch2/catch.hpp>
-
 #include <QFile>
+#include <catch2/catch_test_macros.hpp>
 
+#include "nucleus/utils/tile_conversion.h"
 #include "unittests/catch2_helpers.h"
 
 namespace {
@@ -138,9 +136,9 @@ TEST_CASE("nucleus/utils/tile_conversion")
         QByteArray ba = file.readAll();
         REQUIRE(ba.size() > 0);
         const auto raster = nucleus::utils::tile_conversion::qImage2uint16Raster(nucleus::utils::tile_conversion::toQImage(ba));
-        CHECK(raster.width() == 256);
-        CHECK(raster.height() == 256);
-        CHECK(raster.buffer()[0] == 24 * 256 + 44);
-        CHECK(raster.buffer()[1] == 23 * 256 + 186);
+        CHECK(raster.width() == 64);
+        CHECK(raster.height() == 64);
+        CHECK(raster.buffer()[0] == 23 * 256 + 216);
+        CHECK(raster.buffer()[1] == 22 * 256 + 33);
     }
 }

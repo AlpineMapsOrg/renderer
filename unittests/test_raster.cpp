@@ -16,11 +16,10 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *****************************************************************************/
 
-#include "nucleus/Raster.h"
-
-#include <catch2/catch.hpp>
+#include <catch2/catch_test_macros.hpp>
 #include <glm/glm.hpp>
 
+#include "nucleus/Raster.h"
 #include "unittests/test_helpers.h"
 
 using nucleus::Raster;
@@ -81,5 +80,26 @@ TEST_CASE("nucleus/Raster")
             check &= v == i++;
         }
         CHECK(check);
+    }
+
+    SECTION("pixel access")
+    {
+        Raster<int> raster({ 3, 4 });
+        int i = 0;
+        for (auto& v : raster) {
+            v = i++;
+        }
+        CHECK(raster.pixel({ 0, 0 }) == 0);
+        CHECK(raster.pixel({ 1, 0 }) == 1);
+        CHECK(raster.pixel({ 2, 0 }) == 2);
+        CHECK(raster.pixel({ 0, 1 }) == 3);
+        CHECK(raster.pixel({ 1, 1 }) == 4);
+        CHECK(raster.pixel({ 2, 1 }) == 5);
+        CHECK(raster.pixel({ 2, 3 }) == i - 1);
+
+        raster.pixel({ 2, 1 }) = 21;
+        raster.pixel({ 2, 2 }) = 22;
+        CHECK(raster.pixel({ 2, 1 }) == 21);
+        CHECK(raster.pixel({ 2, 2 }) == 22);
     }
 }

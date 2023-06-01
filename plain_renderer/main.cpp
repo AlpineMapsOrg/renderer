@@ -73,12 +73,13 @@
 int main(int argc, char* argv[])
 {
     QGuiApplication app(argc, argv);
+    QCoreApplication::setOrganizationName("AlpineMaps.org");
+    QCoreApplication::setApplicationName("PlainRenderer");
 
     QSurfaceFormat fmt;
     fmt.setDepthBufferSize(24);
     fmt.setOption(QSurfaceFormat::DebugContext);
 
-    bool running_in_browser = false;
     // Request OpenGL 3.3 core or OpenGL ES 3.0.
     if (QOpenGLContext::openGLModuleType() == QOpenGLContext::LibGL) {
         qDebug("Requesting 3.3 core context");
@@ -87,7 +88,6 @@ int main(int argc, char* argv[])
     } else {
         qDebug("Requesting 3.0 context");
         fmt.setVersion(3, 0);
-        running_in_browser = true;
     }
 
     QSurfaceFormat::setDefaultFormat(fmt);
@@ -103,10 +103,11 @@ int main(int argc, char* argv[])
         controller.camera_controller()->set_viewport(new_size);
     });
 
-    if (running_in_browser)
-        glWindow.showFullScreen();
-    else
-        glWindow.showMaximized();
+#if (defined(__linux) && !defined(__ANDROID__)) || defined(_WIN32) || defined(_WIN64)
+    glWindow.showMaximized();
+#else
+    glWindow.show();
+#endif
 
     // in web assembly, the gl window is resized before it is connected. need to set viewport manually.
     // native, however, glWindow has a zero size at this point.
