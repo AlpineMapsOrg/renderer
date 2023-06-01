@@ -96,8 +96,14 @@ Controller::Controller(AbstractRenderWindow* render_window)
 #ifdef ALP_ENABLE_THREADING
     m_scheduler_thread = std::make_unique<QThread>();
     m_scheduler_thread->setObjectName("tile_scheduler_thread");
+    qDebug() << "scheduler thread: " << m_scheduler_thread.get();
+#ifdef __EMSCRIPTEN__ // make request from main thread on webassembly due to QTBUG-109396
+    m_terrain_service->moveToThread(QCoreApplication::instance()->thread());
+    m_ortho_service->moveToThread(QCoreApplication::instance()->thread());
+#else
     m_terrain_service->moveToThread(m_scheduler_thread.get());
     m_ortho_service->moveToThread(m_scheduler_thread.get());
+#endif
     m_tile_scheduler->moveToThread(m_scheduler_thread.get());
     m_scheduler_thread->start();
 #endif
@@ -107,7 +113,7 @@ Controller::Controller(AbstractRenderWindow* render_window)
     connect(m_render_window, &AbstractRenderWindow::gpu_ready_changed, m_tile_scheduler.get(), &Scheduler::set_enabled);
 
     // NOTICE ME!!!! READ THIS, IF YOU HAVE TROUBLES WITH SIGNALS NOT REACHING THE QML RENDERING THREAD!!!!111elevenone
-    // In Qt 6.4 and earlier the rendering thread goes to sleep. See RenderThreadNotifier.
+    // In Qt the rendering thread goes to sleep (at least until Qt 6.5, See RenderThreadNotifier).
     // At the time of writing, an additional connection from tile_ready and tile_expired to the notifier is made.
     // this only works if ALP_ENABLE_THREADING is on, i.e., the tile scheduler is on an extra thread. -> potential issue on webassembly
     connect(m_camera_controller.get(), &nucleus::camera::Controller::definition_changed, m_tile_scheduler.get(), &Scheduler::update_camera);

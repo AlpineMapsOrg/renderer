@@ -23,6 +23,5 @@ out lowp vec4 out_Color;
 void main() {
    highp float dist = length(pos_wrt_cam);
    highp float depth = log(dist)/13.0;
-   out_Color = vec4(depth, 0, 0, 0);
-//   out_Color = vec4(encode(depth), 0, 0);
+   out_Color = vec4(encode(depth), 0, 0);
 }
