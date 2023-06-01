@@ -24,64 +24,7 @@ endif()
 
 
 ############################################ sources ##############################################
-set(ALP_NUCLEUS_SOURCES
-    nucleus/AbstractRenderWindow.h nucleus/AbstractRenderWindow.cpp
-    nucleus/Controller.h nucleus/Controller.cpp
-    nucleus/event_parameter.h
-    nucleus/Raster.h
-    nucleus/srs.h nucleus/srs.cpp
-    nucleus/Tile.cpp nucleus/Tile.h
-    nucleus/tile_scheduler/utils.h nucleus/tile_scheduler/utils.cpp
-    nucleus/tile_scheduler/DrawListGenerator.h nucleus/tile_scheduler/DrawListGenerator.cpp
-    nucleus/tile_scheduler/LayerAssembler.h nucleus/tile_scheduler/LayerAssembler.cpp
-    nucleus/tile_scheduler/tile_types.h
-    nucleus/tile_scheduler/constants.h
-    nucleus/tile_scheduler/QuadAssembler.h nucleus/tile_scheduler/QuadAssembler.cpp
-    nucleus/tile_scheduler/Cache.h
-    nucleus/tile_scheduler/TileLoadService.h nucleus/tile_scheduler/TileLoadService.cpp
-    nucleus/tile_scheduler/Scheduler.h nucleus/tile_scheduler/Scheduler.cpp
-    nucleus/tile_scheduler/SlotLimiter.h nucleus/tile_scheduler/SlotLimiter.cpp
-    nucleus/tile_scheduler/RateLimiter.h nucleus/tile_scheduler/RateLimiter.cpp
-    nucleus/camera/CadInteraction.h nucleus/camera/CadInteraction.cpp
-    nucleus/camera/Controller.h nucleus/camera/Controller.cpp
-    nucleus/camera/Definition.h nucleus/camera/Definition.cpp
-    nucleus/camera/FirstPersonInteraction.h nucleus/camera/FirstPersonInteraction.cpp
-    nucleus/camera/InteractionStyle.h nucleus/camera/InteractionStyle.cpp
-    nucleus/camera/OrbitInteraction.h nucleus/camera/OrbitInteraction.cpp
-    nucleus/camera/RotateNorthInteraction.h nucleus/camera/RotateNorthInteraction.cpp
-    nucleus/camera/AbstractDepthTester.h
-    nucleus/camera/stored_positions.h
-    nucleus/utils/Stopwatch.h nucleus/utils/Stopwatch.cpp
-    nucleus/utils/terrain_mesh_index_generator.h
-    nucleus/utils/tile_conversion.h nucleus/utils/tile_conversion.cpp
-    nucleus/map_label/MapLabelModel.h nucleus/map_label/MapLabelModel.cpp
-    nucleus/map_label/CameraTransformationProxyModel.h nucleus/map_label/CameraTransformationProxyModel.cpp
-    nucleus/map_label/MapLabel.h
-    nucleus/map_label/AbstractMapLabelModel.h
-    nucleus/map_label/CameraFilterProxyModel.h nucleus/map_label/CameraFilterProxyModel.cpp
-    nucleus/utils/bit_coding.h
-)
-set(ALP_GL_SOURCES
-    gl_engine/Atmosphere.h gl_engine/Atmosphere.cpp
-    gl_engine/Framebuffer.h gl_engine/Framebuffer.cpp
-    gl_engine/ShaderManager.h gl_engine/ShaderManager.cpp
-    gl_engine/TileManager.h gl_engine/TileManager.cpp
-    gl_engine/TileSet.h
-    gl_engine/Window.cpp gl_engine/Window.h
-    gl_engine/DebugPainter.h gl_engine/DebugPainter.cpp
-    gl_engine/helpers.h
-    gl_engine/ShaderProgram.h gl_engine/ShaderProgram.cpp
-)
-set(ALP_GL_SHADERS
-    gl_shaders/atmosphere_bg.frag
-    gl_shaders/atmosphere_implementation.frag
-    gl_shaders/screen_copy.frag
-    gl_shaders/screen_pass.vert
-    gl_shaders/tile.frag
-    gl_shaders/tile.vert
-    gl_shaders/depth.frag
-    gl_shaders/encoder.glsl
-)
+
 set(ALP_PLAIN_RENDERER_SOURCES
     plain_renderer/main.cpp
     plain_renderer/Window.h plain_renderer/Window.cpp
@@ -115,8 +58,6 @@ set(ALP_APP_ICONS
     app/icons/search.svg
 )
 set(ALP_CATCH_UNITTEST_GL_SOURCES
-    gl_engine/Framebuffer.h gl_engine/Framebuffer.cpp
-    gl_engine/ShaderProgram.h gl_engine/ShaderProgram.cpp
     unittests_gl/UnittestGlWindow.h unittests_gl/UnittestGlWindow.cpp
     unittests_gl/main.cpp
     unittests_gl/framebuffer.cpp
@@ -210,36 +151,8 @@ add_library(zppbits INTERFACE)
 target_include_directories(zppbits INTERFACE ${zppbits_SOURCE_DIR})
 
 
-############################################ nucleus ##############################################
-qt_add_library(nucleus STATIC
-    ${ALP_NUCLEUS_SOURCES}
-)
-
-target_include_directories(nucleus PRIVATE . PUBLIC ${CMAKE_SOURCE_DIR})
-target_link_libraries(nucleus PUBLIC sherpa Qt::Core Qt::Gui Qt::Network Qt::Svg fmt::fmt zppbits)
-
-
-if (EMSCRIPTEN)
-    target_compile_options(nucleus PUBLIC -fexceptions)
-    target_link_options(nucleus PUBLIC -fexceptions)
-endif()
-if (ALP_ENABLE_ASSERTS)
-    target_compile_options(nucleus PUBLIC "-U NDEBUG")
-endif()
-if (ALP_ENABLE_THREADING)
-    target_compile_definitions(nucleus PUBLIC "ALP_ENABLE_THREADING")
-endif()
-
-########################################### gl engine #############################################
-qt_add_library(gl_engine STATIC ${ALP_GL_SOURCES})
-target_link_libraries(gl_engine PUBLIC nucleus Qt::OpenGL)
-target_include_directories(gl_engine PRIVATE .)
-
-qt_add_resources(gl_engine "gl_shaders"
-     PREFIX "/"
-     FILES ${ALP_GL_SHADERS}
-)
-target_compile_definitions(gl_engine PUBLIC "ALP_RESOURCES_PREFIX=\"${CMAKE_SOURCE_DIR}/\"")
+add_subdirectory(nucleus)
+add_subdirectory(gl_engine)
 
 ########################################### plain render frontend #############################################
 qt_add_executable(plain_renderer
@@ -384,12 +297,7 @@ if (ALP_UNITTESTS)
     endif()
 
     qt_add_executable(unittests_gl ${ALP_CATCH_UNITTEST_GL_SOURCES})
-    qt_add_resources(unittests_gl "gl_shaders"
-         PREFIX "/"
-         FILES ${ALP_GL_SHADERS}
-    )
-    target_link_libraries(unittests_gl PUBLIC nucleus Catch2::Catch2 Qt::OpenGL)
-    target_compile_definitions(unittests_gl PUBLIC "ALP_RESOURCES_PREFIX=\"${CMAKE_SOURCE_DIR}/\"")
+    target_link_libraries(unittests_gl PUBLIC nucleus gl_engine Catch2::Catch2)
     if (ALP_ENABLE_ASSERTS)
         target_compile_options(unittests_gl PUBLIC "-U NDEBUG")
     endif()
