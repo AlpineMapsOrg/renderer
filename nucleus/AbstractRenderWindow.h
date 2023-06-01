@@ -56,7 +56,6 @@ public slots:
     virtual void update_camera(const camera::Definition& new_definition) = 0;
     virtual void update_debug_scheduler_stats(const QString& stats) = 0;
     virtual void set_aabb_decorator(const tile_scheduler::utils::AabbDecoratorPtr&) = 0;
-    virtual void add_tile(const std::shared_ptr<nucleus::Tile>&) = 0;
     virtual void remove_tile(const tile::Id&) = 0;
     virtual void update_gpu_quads(const std::vector<tile_scheduler::tile_types::GpuTileQuad>& new_quads, const std::vector<tile::Id>& deleted_quads) = 0;
 

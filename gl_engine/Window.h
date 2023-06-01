@@ -59,7 +59,6 @@ public:
     [[nodiscard]] glm::dvec3 position(const glm::dvec2& normalised_device_coordinates) override;
     void deinit_gpu() override;
     void set_aabb_decorator(const nucleus::tile_scheduler::utils::AabbDecoratorPtr&) override;
-    void add_tile(const std::shared_ptr<nucleus::Tile>&) override;
     void remove_tile(const tile::Id&) override;
     [[nodiscard]] nucleus::camera::AbstractDepthTester* depth_tester() override;
     void keyPressEvent(QKeyEvent*);

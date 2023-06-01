@@ -248,12 +248,6 @@ void Window::set_aabb_decorator(const nucleus::tile_scheduler::utils::AabbDecora
     m_tile_manager->set_aabb_decorator(new_aabb_decorator);
 }
 
-void Window::add_tile(const std::shared_ptr<nucleus::Tile>& tile)
-{
-    assert(m_tile_manager);
-    m_tile_manager->add_tile(tile);
-}
-
 void Window::remove_tile(const tile::Id& id)
 {
     assert(m_tile_manager);
