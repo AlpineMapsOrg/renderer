@@ -4,8 +4,8 @@ import QtQuick.Layouts
 import Alpine
 
 Item {
-
-    Material.theme: Material.System
+    property int theme: Material.System
+    property int accent: Material.Pink
 
     Rectangle {
         id: tool_bar

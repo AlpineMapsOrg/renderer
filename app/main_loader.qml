@@ -23,9 +23,9 @@ import Alpine
 
 ApplicationWindow {
     visible: true
-
-//    Material.theme: Material.Light
-//    Material.accent: Material.System
+    property alias loaded_item: mainLoader.item
+    Material.theme: loaded_item ? loaded_item.theme : Material.System
+    Material.accent: loaded_item ? loaded_item.accent : Material.Pink
 
     Loader {
         id: mainLoader
