@@ -11,35 +11,35 @@ qt_add_executable(alpineapp
 )
 
 qt_add_qml_module(alpineapp
-    URI alpinemaps
+    URI app
     VERSION 1.0
+    RESOURCE_PREFIX /qt/qml
     QML_FILES
-    main_loader.qml
-    Main.qml
-    About.qml
-    Map.qml
-    SearchBox.qml
-    SearchResults.qml
-    Settings.qml
-    Coordinates.qml
-    RoundMapButton.qml
+        main_loader.qml
+        Main.qml
+        About.qml
+        Map.qml
+        SearchBox.qml
+        SearchResults.qml
+        Settings.qml
+        Coordinates.qml
+        RoundMapButton.qml
+    RESOURCES
+        icons/camera_operation_centre.svg
+        icons/compass.svg
+        icons/current_location.svg
+        icons/mascot.jpg
+        icons/menu.svg
+        icons/peak.svg
+        icons/search.svg
 )
+
 qt_add_resources(alpineapp "height_data"
     PREFIX "/map"
     BASE ${alpine_height_data_SOURCE_DIR}
     FILES ${alpine_height_data_SOURCE_DIR}/height_data.atb
 )
-qt_add_resources(alpineapp "icons"
-    PREFIX "/"
-    FILES 
-    icons/camera_operation_centre.svg
-    icons/compass.svg
-    icons/current_location.svg
-    icons/mascot.jpg
-    icons/menu.svg
-    icons/peak.svg
-    icons/search.svg
-)
+
 qt_add_translations(alpineapp TS_FILES
     i18n/de.ts
     i18n/en.ts
@@ -96,8 +96,8 @@ if (EMSCRIPTEN)
         "$<TARGET_FILE_DIR:alpineapp>/qtloader.js"
     )
 
-    if (ALP_ENABLE_THREADING)
-        list(APPEND ALP_INSTALL_FILES "$<TARGET_FILE_DIR:alpineapp>/alpineapp.worker.js")
-    endif()
-    install(FILES ${ALP_INSTALL_FILES} DESTINATION ${ALP_WWW_INSTALL_DIR})
+if (ALP_ENABLE_THREADING)
+    list(APPEND ALP_INSTALL_FILES "$<TARGET_FILE_DIR:alpineapp>/alpineapp.worker.js")
+endif()
+install(FILES ${ALP_INSTALL_FILES} DESTINATION ${ALP_WWW_INSTALL_DIR})
 endif()

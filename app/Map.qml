@@ -45,7 +45,7 @@ Rectangle {
             return scale;
         }
         id: camera_operation_centre
-        source: "qrc:/icons/camera_operation_centre.svg"
+        source: "icons/camera_operation_centre.svg"
         width: 16 * oc_scale()
         height: 16 * oc_scale()
         sourceSize: Qt.size(width, height)
@@ -151,7 +151,7 @@ Rectangle {
     RoundMapButton {
         id: compass
         rotation: renderer.camera_rotation_from_north
-        icon_source: "qrc:/icons/compass.svg"
+        icon_source: "icons/compass.svg"
         onClicked: renderer.rotate_north()
 
         anchors {
@@ -169,7 +169,7 @@ Rectangle {
             margins: 16
         }
         checkable: true
-        icon_source: "qrc:/icons/current_location.svg"
+        icon_source: "icons/current_location.svg"
     }
 
     Connections {

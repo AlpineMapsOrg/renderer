@@ -25,7 +25,7 @@ Item {
                 height: 48
                 color: "#00FF0000"
                 Image {
-                    source: "qrc:/icons/menu.svg"
+                    source: "icons/menu.svg"
                     width: parent.width / 2
                     height: parent.height / 2
                     anchors.centerIn: parent
