@@ -75,7 +75,7 @@ if (ALP_ENABLE_POSITIONING)
 endif()
 
 if (ANDROID OR EMSCRIPTEN)
-    target_compile_definitions(alpineapp PUBLIC ALP_QML_SOURCE_DIR="qrc:///alpinemaps/")
+    target_compile_definitions(alpineapp PUBLIC ALP_QML_SOURCE_DIR="qrc:///qt/qml/app/")
 else()
     target_compile_definitions(alpineapp PUBLIC ALP_QML_SOURCE_DIR="file:/${CMAKE_CURRENT_SOURCE_DIR}/")
 endif()
