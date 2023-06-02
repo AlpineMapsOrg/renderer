@@ -35,11 +35,11 @@ MapLabelModel::MapLabelModel(QObject* parent)
     //    float viewport_y;
     //    float viewport_size;
     m_labels.push_back({ "Ackerlspitze", 47.559125, 12.347188, 2329, 8, 0, 0, 0 });
-    m_labels.push_back({ "Westliche Hochgrubachspitze", 47.5583658, 12.3433997, 2277, 4, 0, 0, 0 });
-    m_labels.push_back({ "Östliche Hochgrubachspitze", 47.5587933, 12.3450985, 2284, 4, 0, 0, 0 });
+    m_labels.push_back({ "Westliche Hochgrubachspitze", 47.5583658, 12.3433997, 2277, 6, 0, 0, 0 });
+    m_labels.push_back({ "Östliche Hochgrubachspitze", 47.5587933, 12.3450985, 2284, 6, 0, 0, 0 });
     m_labels.push_back({ "Scheffauer", 47.5573214, 12.2418396, 2111, 8, 0, 0, 0 });
     m_labels.push_back({ "Maukspitze", 47.5588954, 12.3563668, 2231, 8, 0, 0, 0 });
-    m_labels.push_back({ "Ellmauer Halt", 47.5616377, 12.3025296, 2342, 8, 0, 0, 0 });
+    m_labels.push_back({ "Ellmauer Halt", 47.5616377, 12.3025296, 2342, 9, 0, 0, 0 });
 }
 
 int MapLabelModel::rowCount(const QModelIndex& parent) const

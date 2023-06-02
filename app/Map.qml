@@ -20,7 +20,6 @@ import QtQuick
 import QtQuick.Controls.Material
 import QtQuick.Layouts
 import Alpine
-import Qt5Compat.GraphicalEffects
 
 Rectangle {
     id: map_gui
@@ -64,19 +63,34 @@ Rectangle {
         }
 
         delegate: Rectangle {
+            id: delegate_root
+            property int horizontal_text_margin: 40
+            property int vertical_text_margin: 10
+            property real alpha_value: my_alpha()
+            visible: alpha_value > 0
             function my_scale() {
-
-                let distance_scale = Math.max(0.4, model.size)
                 let importance_scale = model.importance / 10;
-                let min_scale = 0.1;
-                return (min_scale + (1.0-min_scale) * importance_scale) * distance_scale * 2.0;
+                let distance_scale = model.size + 0.3
+                return importance_scale * (importance_scale + 0.5) * distance_scale
+            }
+            function my_alpha() {
+                let alpha = my_scale();
+                if (alpha < 0.37)
+                    alpha = 0.0;
+                else if (alpha < 0.47)
+                    alpha = (alpha - 0.37) / 0.1;
+                else if (alpha > 3)
+                    alpha = 1 - (Math.min(alpha, 4) - 3);
+                else
+                    alpha = 1;
+                return Math.min(alpha, 0.7);
             }
             x: model.x * label_view.width / renderer.camera_width
             y: model.y * (label_view.height + 60) / renderer.camera_height - 60
             z:  50 * my_scale()
             Image {
                 id: icon
-                source: "qrc:/icons/peak.svg"
+                source: "icons/peak.svg"
                 width: 16 * my_scale()
                 height: 16 * my_scale()
                 sourceSize: Qt.size(width, height)
@@ -89,44 +103,18 @@ Rectangle {
                 id: text_rect
                 x: -(width) / 2
                 y: -icon.height - 20 * my_scale() - (height) / 2
-                color: "#00FFFFFF"
-                width: text.implicitWidth + 10
-                height: text.implicitHeight + 5
-
-                Glow {
-                    anchors.fill: text
-                    source: text
-                    color: "#CCCCCC"
-                    radius: 3
-                    samples: 5
-                    scale: text.scale
-                }
-//                Row {
-//                    Text { font.pointSize: 24; text: "Normal" }
-//                    Text { font.pointSize: 24; text: "Raised"; style: Text.Raised; styleColor: "#AAAAAA" }
-//                    Text { font.pointSize: 24; text: "Outline";style: Text.Outline; styleColor: "red" }
-//                    Text { font.pointSize: 24; text: "Sunken"; style: Text.Sunken; styleColor: "#AAAAAA" }
-//                }
+                color: Qt.alpha(Material.backgroundColor, delegate_root.alpha_value)
+                width: label_text.width + horizontal_text_margin
+                height: label_text.height + vertical_text_margin
+                scale: my_scale()
+                radius: height
                 Text {
-                    anchors.fill: parent
-                    id: text
-                    color: "#000000"
+                    anchors.centerIn: parent
+                    id: label_text
+                    color: Qt.alpha(Material.primaryTextColor, delegate_root.alpha_value)
                     text: model.text + "(" + model.altitude + "m)"
-                    font.pixelSize: 20 * my_scale()
-                    scale: 20 * my_scale() / font.pixelSize
+                    font.pixelSize: 25
                 }
-//                Text {
-//                    anchors {
-//                        horizontalCenter: text_rect
-//                        bottom: text.top
-//                    }
-//                    id: text2
-//                    color: "#000000"
-//                    text: model.text + "(" + model.altitude + "m)"
-//                    font.pixelSize: 20 * my_scale()
-//                    style: Text.Outline; styleColor: "#CCCCCC"
-////                    scale: 20 * my_scale() / font.pixelSize
-//                }
             }
 
         }
