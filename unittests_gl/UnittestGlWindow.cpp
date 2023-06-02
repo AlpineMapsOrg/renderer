@@ -58,5 +58,7 @@ void UnittestGlWindow::initializeGL()
     if (result != 0)
         exit(result);
 
-    QTimer::singleShot(0, QGuiApplication::instance(), &QCoreApplication::quit);
+#ifndef __EMSCRIPTEN__
+    QTimer::singleShot(0, QGuiApplication::instance(), &QCoreApplication::quit); // memory problems on webassembly and qt 6.5.1
+#endif
 }
