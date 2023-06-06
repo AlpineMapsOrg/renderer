@@ -32,7 +32,7 @@ class Raster;
 namespace nucleus::tile_scheduler::tile_types {
 
 struct NetworkInfo {
-    enum class Status {
+    enum class Status : uint64_t {  // NetworkInfo will be padded by 4 bytes even when usign 32bit int. clear the warning.
         Good = 0,
         NotFound = 1,
         NetworkError = 1,
@@ -76,6 +76,7 @@ static_assert(NamedTile<TileLayer>);
 
 struct LayeredTile {
     tile::Id id;
+    NetworkInfo network_info;
     std::shared_ptr<QByteArray> ortho;
     std::shared_ptr<QByteArray> height;
 };
