@@ -31,6 +31,30 @@ class Raster;
 
 namespace nucleus::tile_scheduler::tile_types {
 
+struct NetworkInfo {
+    enum class Status {
+        Good = 0,
+        NotFound = 1,
+        NetworkError = 1,
+
+    };
+    Status status;
+    uint64_t timestamp;
+    template <typename... Ts>
+    static NetworkInfo join(const Ts&... infos)
+    {
+        const auto info_array = std::array<NetworkInfo, sizeof...(Ts)>{infos...};
+        Status status = Status::Good;
+        uint64_t timestamp = std::numeric_limits<uint64_t>::max();
+        for (const auto& i : info_array) {
+            status = std::max(status, i.status);
+            timestamp = std::min(timestamp, i.timestamp);
+        }
+        return {status, timestamp};
+    }
+
+};
+
 template <typename T>
 concept NamedTile = requires(T t) {
     {
@@ -42,6 +66,13 @@ template <typename T>
 concept SerialisableTile = requires(T t) {
     requires std::is_same<std::remove_reference_t<decltype(T::version_information)>, const std::array<char, 25>>::value;
 };
+
+struct TileLayer {
+    tile::Id id;
+    NetworkInfo network_info;
+    std::shared_ptr<QByteArray> data;
+};
+static_assert(NamedTile<TileLayer>);
 
 struct LayeredTile {
     tile::Id id;

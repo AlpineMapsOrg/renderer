@@ -23,7 +23,7 @@
 #include <QObject>
 
 #include "constants.h"
-#include "sherpa/tile.h"
+#include "tile_types.h"
 
 class QNetworkAccessManager;
 
@@ -52,6 +52,7 @@ public slots:
 
 signals:
     void load_ready(tile::Id tile_id, std::shared_ptr<QByteArray> data);
+    void load_finished(tile_types::TileLayer tile);
     void tile_unavailable(tile::Id tile_id);
 
 private:

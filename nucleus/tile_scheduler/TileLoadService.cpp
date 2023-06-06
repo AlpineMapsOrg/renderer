@@ -37,14 +37,12 @@ TileLoadService::TileLoadService(const QString& base_url, UrlPattern url_pattern
 {
 }
 
-TileLoadService::~TileLoadService()
-{
-}
+TileLoadService::~TileLoadService() = default;
 
 void TileLoadService::load(const tile::Id& tile_id)
 {
     QNetworkRequest request(QUrl(build_tile_url(tile_id)));
-    request.setTransferTimeout(m_transfer_timeout);
+    request.setTransferTimeout(int(m_transfer_timeout));
     request.setAttribute(QNetworkRequest::CacheLoadControlAttribute, QNetworkRequest::PreferCache);
 #if QT_VERSION >= QT_VERSION_CHECK(6, 5, 0)
     request.setAttribute(QNetworkRequest::UseCredentialsAttribute, false);
@@ -52,15 +50,20 @@ void TileLoadService::load(const tile::Id& tile_id)
 
     QNetworkReply* reply = m_network_manager->get(request);
     connect(reply, &QNetworkReply::finished, [tile_id, reply, this]() {
-        const auto url = reply->url();
         const auto error = reply->error();
+        const auto timestamp = utils::time_since_epoch();
         if (error == QNetworkReply::NoError) {
             auto tile = std::make_shared<QByteArray>(reply->readAll());
+            emit load_finished({tile_id, {tile_types::NetworkInfo::Status::Good, timestamp}, tile});
             emit load_ready(tile_id, std::move(tile));
-        } else {
-            //            qDebug() << "Loading of tile " << url << " failed: " << error;
+        } else if (error == QNetworkReply::ContentNotFoundError) {
+            auto tile = std::make_shared<QByteArray>();
+            emit load_finished({tile_id, {tile_types::NetworkInfo::Status::NotFound, timestamp}, tile});
             emit tile_unavailable(tile_id);
-            // do we need better error handling?
+        } else {
+            auto tile = std::make_shared<QByteArray>();
+            emit load_finished({tile_id, {tile_types::NetworkInfo::Status::NetworkError, timestamp}, tile});
+            emit tile_unavailable(tile_id);
         }
         reply->deleteLater();
     });
@@ -86,7 +89,7 @@ QString TileLoadService::build_tile_url(const tile::Id& tile_id) const
     }
     if (!m_load_balancing_targets.empty()) {
         const unsigned hash = qHash(tile_address) % 1024;
-        const auto index = unsigned((float(hash) / 1024.1f) * m_load_balancing_targets.size());
+        const auto index = unsigned((float(hash) / 1024.1f) * float(m_load_balancing_targets.size()));
         assert(index < m_load_balancing_targets.size());
         return m_base_url.arg(m_load_balancing_targets[index]) + tile_address + m_file_ending;
     }
@@ -100,5 +103,6 @@ unsigned int TileLoadService::transfer_timeout() const
 
 void TileLoadService::set_transfer_timeout(unsigned int new_transfer_timeout)
 {
+    assert(new_transfer_timeout < std::numeric_limits<int>::max());
     m_transfer_timeout = new_transfer_timeout;
 }
