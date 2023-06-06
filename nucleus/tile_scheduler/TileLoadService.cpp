@@ -55,15 +55,12 @@ void TileLoadService::load(const tile::Id& tile_id)
         if (error == QNetworkReply::NoError) {
             auto tile = std::make_shared<QByteArray>(reply->readAll());
             emit load_finished({tile_id, {tile_types::NetworkInfo::Status::Good, timestamp}, tile});
-            emit load_ready(tile_id, std::move(tile));
         } else if (error == QNetworkReply::ContentNotFoundError) {
             auto tile = std::make_shared<QByteArray>();
             emit load_finished({tile_id, {tile_types::NetworkInfo::Status::NotFound, timestamp}, tile});
-            emit tile_unavailable(tile_id);
         } else {
             auto tile = std::make_shared<QByteArray>();
             emit load_finished({tile_id, {tile_types::NetworkInfo::Status::NetworkError, timestamp}, tile});
-            emit tile_unavailable(tile_id);
         }
         reply->deleteLater();
     });

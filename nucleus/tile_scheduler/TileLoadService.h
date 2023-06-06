@@ -51,9 +51,7 @@ public slots:
     void load(const tile::Id& tile_id);
 
 signals:
-    void load_ready(tile::Id tile_id, std::shared_ptr<QByteArray> data);
     void load_finished(tile_types::TileLayer tile);
-    void tile_unavailable(tile::Id tile_id);
 
 private:
     unsigned m_transfer_timeout = tile_scheduler::constants::default_network_timeout;
