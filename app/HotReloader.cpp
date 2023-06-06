@@ -27,8 +27,8 @@ HotReloader::HotReloader(QQmlApplicationEngine* engine, QString directory, QObje
 {
     m_watcher = new QFileSystemWatcher(this);
     directory.replace("file:/", "");
-    m_watcher->addPath(directory + "/app");
-    qDebug("watching %s/app", directory.toStdString().c_str());
+    m_watcher->addPath(directory);
+    qDebug("watching %s", directory.toStdString().c_str());
 
     connect(m_watcher, &QFileSystemWatcher::directoryChanged, this, [this, &engine](const QString& path) {
         qDebug("watched_source_changed");

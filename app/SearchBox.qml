@@ -76,7 +76,7 @@ Rectangle {
         }
 
         text: ""
-        icon.source: "qrc:/icons/search.svg"
+        icon.source: "icons/search.svg"
         background: Rectangle { color: "#00FFFFFF" }
         onClicked: {
             search_input.accepted()

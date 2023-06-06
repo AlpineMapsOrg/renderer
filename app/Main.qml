@@ -4,8 +4,8 @@ import QtQuick.Layouts
 import Alpine
 
 Item {
-
-    Material.theme: Material.System
+    property int theme: Material.System
+    property int accent: Material.Orange
 
     Rectangle {
         id: tool_bar
@@ -25,7 +25,7 @@ Item {
                 height: 48
                 color: "#00FF0000"
                 Image {
-                    source: "qrc:/icons/menu.svg"
+                    source: "icons/menu.svg"
                     width: parent.width / 2
                     height: parent.height / 2
                     anchors.centerIn: parent
@@ -90,10 +90,10 @@ Item {
 
             model: ListModel {
                 ListElement { title: qsTr("Map"); source: "map" }
-                ListElement { title: qsTr("Coordinates"); source: "/app/Coordinates.qml" }
+                ListElement { title: qsTr("Coordinates"); source: "Coordinates.qml" }
 //                ListElement { title: qsTr("Cached Content"); source: "" }
-                ListElement { title: qsTr("Settings"); source: "/app/Settings.qml" }
-                ListElement { title: qsTr("About"); source: "/app/About.qml" }
+                ListElement { title: qsTr("Settings"); source: "Settings.qml" }
+                ListElement { title: qsTr("About"); source: "About.qml" }
             }
 
             ScrollIndicator.vertical: ScrollIndicator { }

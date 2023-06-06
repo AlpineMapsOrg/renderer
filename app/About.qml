@@ -39,7 +39,7 @@ Rectangle {
             width: logo.width + Math.max(alpine_text.width, maps_text.width) + 20
             color: "#00FFFFFF"
             height: about_text.implicitHeight + logo.height + 20
-            Image { id: logo; width: 120; height: 120; source: "qrc:/icons/mascot.jpg" }
+            Image { id: logo; width: 120; height: 120; source: "icons/mascot.jpg" }
             Text {
                 id: alpine_text
                 anchors {

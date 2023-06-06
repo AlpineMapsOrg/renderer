@@ -23,22 +23,23 @@ import Alpine
 
 ApplicationWindow {
     visible: true
-
-//    Material.theme: Material.Light
-//    Material.accent: Material.System
+    property alias loaded_item: mainLoader.item
+    Material.theme: loaded_item ? loaded_item.theme : Material.System
+    Material.accent: loaded_item ? loaded_item.accent : Material.Pink
 
     Loader {
         id: mainLoader
         anchors.fill: parent
-        source: _qmlPath + "/app/Main.qml"
+        source: _qmlPath + "Main.qml"
+        focus: true
     }
 
     Connections{
         target: _hotreloader
-        onWatched_source_changed: {
+        function onWatched_source_changed() {
             mainLoader.active = false;
             _hotreloader.clear_cache();
-            mainLoader.setSource(_qmlPath+ "/app/Main.qml")
+            mainLoader.setSource(_qmlPath+ "Main.qml")
             mainLoader.active = true;
         }
     }
