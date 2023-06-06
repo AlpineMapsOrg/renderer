@@ -28,9 +28,9 @@ namespace {
 tile_types::LayeredTile good_tile(const tile::Id& id, const char* ortho_bytes, const char* height_bytes) {
     return {id, {NetworkInfo::Status::Good, utils::time_since_epoch()}, std::make_shared<QByteArray>(ortho_bytes), std::make_shared<QByteArray>(height_bytes)};
 }
-//TileLayer missing_tile(const tile::Id& id) {
-//    return {id, {NetworkInfo::Status::NotFound, utils::time_since_epoch()}, std::make_shared<QByteArray>()};
-//}
+tile_types::LayeredTile missing_tile(const tile::Id& id) {
+    return {id, {NetworkInfo::Status::NotFound, utils::time_since_epoch()}, std::make_shared<QByteArray>(), std::make_shared<QByteArray>()};
+}
 }
 
 TEST_CASE("nucleus/tile_scheduler/quad assembler")
@@ -76,6 +76,7 @@ TEST_CASE("nucleus/tile_scheduler/quad assembler")
 
         auto loaded_tile = spy_loaded.constFirst().constFirst().value<tile_types::TileQuad>();
         CHECK(loaded_tile.id == tile::Id { 0, { 0, 0 } });
+        CHECK(loaded_tile.network_info().status == NetworkInfo::Status::Good);
         REQUIRE(loaded_tile.n_tiles == 4);
         CHECK(loaded_tile.tiles[0].id == tile::Id { 1, { 0, 0 } }); // order should not matter
         CHECK(loaded_tile.tiles[1].id == tile::Id { 1, { 0, 1 } });
@@ -202,5 +203,34 @@ TEST_CASE("nucleus/tile_scheduler/quad assembler")
                 CHECK(*tile.ortho == QByteArray((std::string("ortho ") + number).c_str()));
             }
         }
+    }
+
+
+    SECTION("assemble 4 (including missing tiles)")
+    {
+        CHECK(assembler.n_items_in_flight() == 0);
+        QSignalSpy spy_loaded(&assembler, &QuadAssembler::quad_loaded);
+
+        assembler.load(tile::Id { 0, { 0, 0 } });
+
+        assembler.deliver_tile(good_tile({ 1, { 0, 0 } }, "ortho 100", "height 100"));
+        CHECK(spy_loaded.empty());
+        CHECK(assembler.n_items_in_flight() == 1);
+
+        assembler.deliver_tile(missing_tile({ 1, { 0, 1 } }));
+        CHECK(spy_loaded.empty());
+        CHECK(assembler.n_items_in_flight() == 1);
+
+        assembler.deliver_tile(good_tile({ 1, { 1, 0 } }, "ortho 110", "height 110"));
+        CHECK(spy_loaded.empty());
+        CHECK(assembler.n_items_in_flight() == 1);
+
+        assembler.deliver_tile(good_tile({ 1, { 1, 1 } }, "ortho 111", "height 111"));
+        CHECK(spy_loaded.size() == 1);
+        CHECK(assembler.n_items_in_flight() == 0);
+
+        auto loaded_tile = spy_loaded.constFirst().constFirst().value<tile_types::TileQuad>();
+        CHECK(loaded_tile.id == tile::Id { 0, { 0, 0 } });
+        CHECK(loaded_tile.network_info().status == NetworkInfo::Status::NotFound);
     }
 }
