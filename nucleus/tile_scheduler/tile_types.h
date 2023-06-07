@@ -32,10 +32,10 @@ class Raster;
 namespace nucleus::tile_scheduler::tile_types {
 
 struct NetworkInfo {
-    enum class Status : uint64_t {  // NetworkInfo will be padded by 4 bytes even when usign 32bit int. clear the warning.
+    enum class Status : uint64_t { // NetworkInfo will be padded by 4 bytes even when usign 32bit int. clear the warning.
         Good = 0,
         NotFound = 1,
-        NetworkError = 1,
+        NetworkError = 2,
 
     };
     Status status;

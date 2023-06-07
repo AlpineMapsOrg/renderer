@@ -58,18 +58,17 @@ void SlotLimiter::request_quads(const std::vector<tile::Id>& ids)
 
 void SlotLimiter::deliver_quad(const tile_types::TileQuad& tile)
 {
+    using Status = tile_types::NetworkInfo::Status;
     m_in_flight.erase(tile.id);
-    const auto is_complete = [](const tile_types::TileQuad& tile) { // untested + likely doesn't work for border areas (if only part of the quad is available).
-        for (int i = 0; i < 4; ++i) {
-            if (tile.tiles[i].height->size() == 0)
-                return false;
-            if (tile.tiles[i].ortho->size() == 0)
-                return false;
-        }
-        return true;
-    };
-    if (tile.id.zoom_level < 10 || is_complete(tile))
+    switch (tile.network_info().status) {
+    case Status::Good:
+    case Status::NotFound:
         emit quads_delivered({ tile });
+        break;
+    case Status::NetworkError:
+        // do not send on, but clear the slot.
+        break;
+    }
     if (m_request_queue.empty())
         return;
 
