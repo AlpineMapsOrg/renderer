@@ -70,6 +70,7 @@ public slots:
     void update_camera(const nucleus::camera::Definition& new_definition) override;
     void update_debug_scheduler_stats(const QString& stats) override;
     void update_gpu_quads(const std::vector<nucleus::tile_scheduler::tile_types::GpuTileQuad>& new_quads, const std::vector<tile::Id>& deleted_quads) override;
+    void key_press(const QKeyCombination& e); // Slot to connect key-events to
 
 private:
     using ClockResolution = std::chrono::microseconds;

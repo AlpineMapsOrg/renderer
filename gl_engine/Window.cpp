@@ -167,6 +167,11 @@ void Window::paintOverGL(QPainter* painter)
     painter->drawRect(int(text_bb.right()) + 5, 8, 12, 12);
 }
 
+void Window::key_press(const QKeyCombination& e) {
+    QKeyEvent ev = QKeyEvent(QEvent::Type::KeyPress, e.key(), e.keyboardModifiers());
+    this->keyPressEvent(&ev);
+}
+
 void Window::keyPressEvent(QKeyEvent* e)
 {
     if (e->key() == Qt::Key::Key_F5) {

@@ -94,6 +94,8 @@ QQuickFramebufferObject::Renderer* TerrainRendererItem::createRenderer() const
         tile_scheduler->set_permissible_screen_space_error(permissible_error);
     });
 
+    connect(this, &TerrainRendererItem::key_pressed, r->glWindow(), &gl_engine::Window::key_press);
+
     connect(r->controller()->tile_scheduler(), &nucleus::tile_scheduler::Scheduler::gpu_quads_updated, RenderThreadNotifier::instance(), &RenderThreadNotifier::notify);
     return r;
 }
