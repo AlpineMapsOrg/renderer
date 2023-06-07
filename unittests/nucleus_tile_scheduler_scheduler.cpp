@@ -33,6 +33,7 @@
 #include "unittests/test_helpers.h"
 
 using nucleus::tile_scheduler::Scheduler;
+using namespace nucleus::tile_scheduler::tile_types;
 
 namespace {
 
@@ -91,7 +92,7 @@ std::pair<QByteArray, QByteArray> example_tile_data()
     return std::make_pair(ortho_bytes, height_bytes);
 }
 
-nucleus::tile_scheduler::tile_types::TileQuad example_tile_quad_for(const tile::Id& id, unsigned n_children = 4)
+nucleus::tile_scheduler::tile_types::TileQuad example_tile_quad_for(const tile::Id& id, unsigned n_children = 4, NetworkInfo::Status status = NetworkInfo::Status::Good)
 {
     const auto children = id.children();
     REQUIRE(n_children <= 4);
@@ -104,6 +105,7 @@ nucleus::tile_scheduler::tile_types::TileQuad example_tile_quad_for(const tile::
         cpu_quad.tiles[i].ortho = std::make_shared<QByteArray>(example_data.first);
         cpu_quad.tiles[i].height = std::make_shared<QByteArray>(example_data.second);
     }
+    cpu_quad.tiles[0].network_info.status = status;
     return cpu_quad;
 }
 
@@ -274,6 +276,28 @@ TEST_CASE("nucleus/tile_scheduler/Scheduler")
         // seems to work. the following are sanity checks.
         CHECK(std::find(quads.cbegin(), quads.cend(), tile::Id { 0, { 0, 0 } }) == quads.end());
         CHECK(std::find(quads.cbegin(), quads.cend(), tile::Id { 1, { 1, 1 } }) == quads.end());
+        CHECK(std::find(quads.cbegin(), quads.cend(), tile::Id { 2, { 2, 2 } }) == quads.end());
+        CHECK(std::find(quads.cbegin(), quads.cend(), tile::Id { 3, { 4, 5 } }) != quads.end());
+        CHECK(std::find(quads.cbegin(), quads.cend(), tile::Id { 4, { 8, 10 } }) != quads.end());
+    }
+
+    SECTION("network failed tiles are ignored, not found tiles are not ignored")
+    {
+        auto scheduler = default_scheduler();
+        scheduler->receive_quad(example_tile_quad_for(tile::Id { 0, { 0, 0 } }, 4, NetworkInfo::Status::NotFound));
+        scheduler->receive_quad(example_tile_quad_for(tile::Id { 1, { 1, 1 } }, 4, NetworkInfo::Status::NetworkError));
+        scheduler->receive_quad(example_tile_quad_for(tile::Id { 2, { 2, 2 } }, 4, NetworkInfo::Status::NotFound));
+        scheduler->receive_quad(example_tile_quad_for(tile::Id { 3, { 4, 5 } }, 4, NetworkInfo::Status::NetworkError));
+        QSignalSpy spy(scheduler.get(), &Scheduler::quads_requested);
+        scheduler->update_camera(nucleus::camera::stored_positions::stephansdom());
+        spy.wait(2);
+        REQUIRE(spy.size() == 1);
+        const auto quads = spy.constFirst().constFirst().value<std::vector<tile::Id>>();
+        REQUIRE(quads.size() >= 5);
+        // high level tiles that contain stephansdom
+        // according to https://www.maptiler.com/google-maps-coordinates-tile-bounds-projection/#4/6.45/50.74
+        CHECK(std::find(quads.cbegin(), quads.cend(), tile::Id { 0, { 0, 0 } }) == quads.end());
+        CHECK(std::find(quads.cbegin(), quads.cend(), tile::Id { 1, { 1, 1 } }) != quads.end());
         CHECK(std::find(quads.cbegin(), quads.cend(), tile::Id { 2, { 2, 2 } }) == quads.end());
         CHECK(std::find(quads.cbegin(), quads.cend(), tile::Id { 3, { 4, 5 } }) != quads.end());
         CHECK(std::find(quads.cbegin(), quads.cend(), tile::Id { 4, { 8, 10 } }) != quads.end());

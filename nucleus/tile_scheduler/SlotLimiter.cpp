@@ -58,17 +58,8 @@ void SlotLimiter::request_quads(const std::vector<tile::Id>& ids)
 
 void SlotLimiter::deliver_quad(const tile_types::TileQuad& tile)
 {
-    using Status = tile_types::NetworkInfo::Status;
     m_in_flight.erase(tile.id);
-    switch (tile.network_info().status) {
-    case Status::Good:
-    case Status::NotFound:
-        emit quad_delivered(tile);
-        break;
-    case Status::NetworkError:
-        // do not send on, but clear the slot.
-        break;
-    }
+    emit quad_delivered(tile);
     if (m_request_queue.empty())
         return;
 

@@ -67,10 +67,22 @@ void Scheduler::update_camera(const camera::Definition& camera)
 
 void Scheduler::receive_quad(const tile_types::TileQuad& new_quad)
 {
-    m_ram_cache.insert(new_quad);
-    schedule_purge();
-    schedule_update();
-    schedule_persist();
+    using Status = tile_types::NetworkInfo::Status;
+    switch (new_quad.network_info().status) {
+    case Status::Good:
+    case Status::NotFound:
+        m_ram_cache.insert(new_quad);
+        schedule_purge();
+        schedule_update();
+        schedule_persist();
+        break;
+    case Status::NetworkError:
+        // do not persist the tile.
+        // do not reschedule retrieval (wait for user input or a reconnect signal).
+        // do not purge (nothing was added, so no need to check).
+        // do nothing.
+        break;
+    }
 }
 
 void Scheduler::update_gpu_quads()
