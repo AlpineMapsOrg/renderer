@@ -257,6 +257,19 @@ TEST_CASE("nucleus/tile_scheduler/Scheduler")
         CHECK(std::find(quads.cbegin(), quads.cend(), tile::Id { 4, { 8, 10 } }) != quads.end());
     }
 
+    SECTION("quads are not requested if there is no network")
+    {
+        auto scheduler = default_scheduler();
+        scheduler->set_network_reachability(QNetworkInformation::Reachability::Disconnected);
+        QSignalSpy spy(scheduler.get(), &Scheduler::quads_requested);
+        scheduler->update_camera(nucleus::camera::stored_positions::stephansdom());
+        spy.wait(2);
+        REQUIRE(spy.size() == 0);
+        scheduler->set_network_reachability(QNetworkInformation::Reachability::Online);
+        spy.wait(2);
+        REQUIRE(spy.size() == 1);
+    }
+
     SECTION("delivered quads are not requested again")
     {
         auto scheduler = default_scheduler();

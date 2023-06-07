@@ -20,6 +20,7 @@
 
 #include <memory>
 
+#include <QNetworkInformation>
 #include <QObject>
 
 #include "nucleus/camera/Definition.h"
@@ -76,6 +77,7 @@ signals:
 public slots:
     void update_camera(const nucleus::camera::Definition& camera);
     void receive_quad(const tile_types::TileQuad& new_quad);
+    void set_network_reachability(QNetworkInformation::Reachability reachability);
     void update_gpu_quads();
     void send_quad_requests();
     void purge_ram_cache();
@@ -97,6 +99,7 @@ private:
     static constexpr unsigned m_ortho_tile_size = 256;
     static constexpr unsigned m_height_tile_size = 64;
     bool m_enabled = false;
+    bool m_network_requests_enabled = true;
     std::unique_ptr<QTimer> m_update_timer;
     std::unique_ptr<QTimer> m_purge_timer;
     std::unique_ptr<QTimer> m_persist_timer;
@@ -107,5 +110,4 @@ private:
     std::shared_ptr<QByteArray> m_default_ortho_tile;
     std::shared_ptr<QByteArray> m_default_height_tile;
 };
-
 }

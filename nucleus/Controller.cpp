@@ -90,6 +90,11 @@ Controller::Controller(AbstractRenderWindow* render_window)
         connect(qa, &QuadAssembler::quad_loaded, sl, &SlotLimiter::deliver_quad);
         connect(sl, &SlotLimiter::quad_delivered, sch, &Scheduler::receive_quad);
     }
+    if (QNetworkInformation::loadDefaultBackend() && QNetworkInformation::instance()) {
+        QNetworkInformation* n = QNetworkInformation::instance();
+        m_tile_scheduler->set_network_reachability(n->reachability());
+        connect(n, &QNetworkInformation::reachabilityChanged, m_tile_scheduler.get(), &Scheduler::set_network_reachability);
+    }
 
 #ifdef ALP_ENABLE_THREADING
     m_scheduler_thread = std::make_unique<QThread>();

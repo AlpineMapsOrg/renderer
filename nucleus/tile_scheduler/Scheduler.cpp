@@ -21,10 +21,12 @@
 #include <unordered_set>
 
 #include <QBuffer>
+#include <QDebug>
+#include <QNetworkInformation>
 #include <QStandardPaths>
 #include <QTimer>
-#include <fmt/core.h>
 #include <fmt/chrono.h>
+#include <fmt/core.h>
 
 #include "nucleus/tile_scheduler/utils.h"
 #include "nucleus/utils/tile_conversion.h"
@@ -92,6 +94,25 @@ void Scheduler::receive_quad(const tile_types::TileQuad& new_quad)
         // do not reschedule retrieval (wait for user input or a reconnect signal).
         // do not purge (nothing was added, so no need to check).
         // do nothing.
+        break;
+    }
+#endif
+}
+
+void Scheduler::set_network_reachability(QNetworkInformation::Reachability reachability)
+{
+    switch (reachability) {
+    case QNetworkInformation::Reachability::Online:
+    case QNetworkInformation::Reachability::Local:
+    case QNetworkInformation::Reachability::Site:
+    case QNetworkInformation::Reachability::Unknown:
+        qDebug() << "enabling network";
+        m_network_requests_enabled = true;
+        schedule_update();
+        break;
+    case QNetworkInformation::Reachability::Disconnected:
+        qDebug() << "disabling network";
+        m_network_requests_enabled = false;
         break;
     }
 }
@@ -162,6 +183,8 @@ void Scheduler::update_gpu_quads()
 
 void Scheduler::send_quad_requests()
 {
+    if (!m_network_requests_enabled)
+        return;
     auto currently_active_tiles = tiles_for_current_camera_position();
     std::erase_if(currently_active_tiles, [this](const tile::Id& id) {
         return m_ram_cache.contains(id);
