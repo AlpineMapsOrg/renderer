@@ -88,7 +88,7 @@ Controller::Controller(AbstractRenderWindow* render_window)
         connect(m_terrain_service.get(), &TileLoadService::load_finished, la, &LayerAssembler::deliver_height);
         connect(la, &LayerAssembler::tile_loaded, qa, &QuadAssembler::deliver_tile);
         connect(qa, &QuadAssembler::quad_loaded, sl, &SlotLimiter::deliver_quad);
-        connect(sl, &SlotLimiter::quads_delivered, sch, &Scheduler::receive_quads);
+        connect(sl, &SlotLimiter::quad_delivered, sch, &Scheduler::receive_quad);
     }
 
 #ifdef ALP_ENABLE_THREADING

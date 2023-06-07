@@ -48,7 +48,7 @@ public slots:
 
 signals:
     void quad_requested(const tile::Id& tile_id);
-    void quads_delivered(const std::vector<tile_types::TileQuad>& id);
+    void quad_delivered(const tile_types::TileQuad& id);
 };
 
 }

@@ -75,7 +75,7 @@ signals:
 
 public slots:
     void update_camera(const nucleus::camera::Definition& camera);
-    void receive_quads(const std::vector<tile_types::TileQuad>& new_quads);
+    void receive_quad(const tile_types::TileQuad& new_quad);
     void update_gpu_quads();
     void send_quad_requests();
     void purge_ram_cache();

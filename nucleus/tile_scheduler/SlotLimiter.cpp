@@ -63,7 +63,7 @@ void SlotLimiter::deliver_quad(const tile_types::TileQuad& tile)
     switch (tile.network_info().status) {
     case Status::Good:
     case Status::NotFound:
-        emit quads_delivered({ tile });
+        emit quad_delivered(tile);
         break;
     case Status::NetworkError:
         // do not send on, but clear the slot.

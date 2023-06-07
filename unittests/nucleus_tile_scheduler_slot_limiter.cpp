@@ -200,29 +200,27 @@ TEST_CASE("nucleus/tile_scheduler/slot limiter")
     SECTION("delivered quads are sent on")
     {
         SlotLimiter sl;
-        QSignalSpy spy(&sl, &SlotLimiter::quads_delivered);
+        QSignalSpy spy(&sl, &SlotLimiter::quad_delivered);
         sl.deliver_quad(tile_types::TileQuad { tile::Id { 0, { 0, 0 } }, 4, {} });
         REQUIRE(spy.size() == 1);
-        CHECK(spy[0][0].value<std::vector<tile_types::TileQuad>>()[0].id == tile::Id { 0, { 0, 0 } });
+        CHECK(spy[0][0].value<tile_types::TileQuad>().id == tile::Id { 0, { 0, 0 } });
 
         sl.deliver_quad(tile_types::TileQuad { tile::Id { 1, { 2, 3 } }, 4, {} });
         REQUIRE(spy.size() == 2);
-        CHECK(spy[1][0].value<std::vector<tile_types::TileQuad>>()[0].id == tile::Id { 1, { 2, 3 } });
+        CHECK(spy[1][0].value<tile_types::TileQuad>().id == tile::Id { 1, { 2, 3 } });
     }
 
     SECTION("quads that were not found are sent on") // this should go to the scheduler. separation of concerns!!
     {
         SlotLimiter sl;
-        QSignalSpy spy(&sl, &SlotLimiter::quads_delivered);
+        QSignalSpy spy(&sl, &SlotLimiter::quad_delivered);
         auto quad_containing_not_found = tile_types::TileQuad { tile::Id { 0, { 0, 0 } }, 4, {} };
         quad_containing_not_found.tiles[1].network_info.status = tile_types::NetworkInfo::Status::NotFound;
         sl.deliver_quad(quad_containing_not_found);
         {
             REQUIRE(spy.size() == 1);
             REQUIRE(spy[0].size() == 1);
-            const auto quads = spy[0][0].value<std::vector<tile_types::TileQuad>>();
-            REQUIRE(quads.size() == 1);
-            CHECK(quads[0].id == tile::Id { 0, { 0, 0 } });
+            CHECK(spy[0][0].value<tile_types::TileQuad>().id == tile::Id { 0, { 0, 0 } });
         }
 
         quad_containing_not_found.id = { 18, { 2, 3 } };
@@ -230,16 +228,14 @@ TEST_CASE("nucleus/tile_scheduler/slot limiter")
         {
             REQUIRE(spy.size() == 2);
             REQUIRE(spy[1].size() == 1);
-            const auto quads = spy[1][0].value<std::vector<tile_types::TileQuad>>();
-            REQUIRE(quads.size() == 1);
-            CHECK(quads[0].id == tile::Id { 18, { 2, 3 } });
+            CHECK(spy[1][0].value<tile_types::TileQuad>().id == tile::Id { 18, { 2, 3 } });
         }
     }
 
     SECTION("quads that are broken due to network errors are discarded")
     {
         SlotLimiter sl;
-        QSignalSpy spy(&sl, &SlotLimiter::quads_delivered);
+        QSignalSpy spy(&sl, &SlotLimiter::quad_delivered);
         auto quad_containing_not_found = tile_types::TileQuad { tile::Id { 0, { 0, 0 } }, 4, {} };
         quad_containing_not_found.tiles[1].network_info.status = tile_types::NetworkInfo::Status::NetworkError;
         sl.deliver_quad(quad_containing_not_found);
