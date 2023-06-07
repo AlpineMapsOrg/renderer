@@ -418,7 +418,10 @@ TEST_CASE("nucleus/tile_scheduler/Scheduler")
             CHECK(new_quads.size() == 17);
             CHECK(deleted_quads.empty());
             nucleus::tile_scheduler::Cache<nucleus::tile_scheduler::tile_types::GpuTileQuad> test_cache;
-            test_cache.insert(new_quads);
+
+            for (const auto& q : new_quads)
+                test_cache.insert(q);
+
             auto n_tiles = 0;
             test_cache.visit([&n_tiles](const auto&) {
                 n_tiles++;

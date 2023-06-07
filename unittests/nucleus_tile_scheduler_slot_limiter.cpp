@@ -210,7 +210,7 @@ TEST_CASE("nucleus/tile_scheduler/slot limiter")
         CHECK(spy[1][0].value<std::vector<tile_types::TileQuad>>()[0].id == tile::Id { 1, { 2, 3 } });
     }
 
-    SECTION("quads that were not found are sent on")
+    SECTION("quads that were not found are sent on") // this should go to the scheduler. separation of concerns!!
     {
         SlotLimiter sl;
         QSignalSpy spy(&sl, &SlotLimiter::quads_delivered);

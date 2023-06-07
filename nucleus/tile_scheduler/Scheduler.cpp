@@ -67,7 +67,9 @@ void Scheduler::update_camera(const camera::Definition& camera)
 
 void Scheduler::receive_quads(const std::vector<tile_types::TileQuad>& new_quads)
 {
-    m_ram_cache.insert(new_quads);
+    for (const auto& q : new_quads) {
+        m_ram_cache.insert(q);
+    }
     schedule_purge();
     schedule_update();
     schedule_persist();
@@ -109,12 +111,9 @@ void Scheduler::update_gpu_quads()
         return true;
     });
 
-    std::vector<tile_types::GpuCacheInfo> tiles_to_put_in_gpu_cache;
-    tiles_to_put_in_gpu_cache.reserve(new_gpu_quads.size());
-    std::transform(new_gpu_quads.cbegin(), new_gpu_quads.cend(), std::back_inserter(tiles_to_put_in_gpu_cache), [](const tile_types::GpuTileQuad& t) {
-        return tile_types::GpuCacheInfo { t.id };
-    });
-    m_gpu_cached.insert(tiles_to_put_in_gpu_cache);
+    for (const auto& q : new_gpu_quads) {
+        m_gpu_cached.insert(tile_types::GpuCacheInfo { q.id });
+    }
 
     m_gpu_cached.visit([&should_refine](const tile_types::GpuCacheInfo& quad) {
         return should_refine(quad.id);
