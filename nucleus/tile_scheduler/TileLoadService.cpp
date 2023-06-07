@@ -59,6 +59,7 @@ void TileLoadService::load(const tile::Id& tile_id)
             auto tile = std::make_shared<QByteArray>();
             emit load_finished({tile_id, {tile_types::NetworkInfo::Status::NotFound, timestamp}, tile});
         } else {
+            //            qDebug() << reply->url() << ": " << error;
             auto tile = std::make_shared<QByteArray>();
             emit load_finished({tile_id, {tile_types::NetworkInfo::Status::NetworkError, timestamp}, tile});
         }

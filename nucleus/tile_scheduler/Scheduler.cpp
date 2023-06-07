@@ -68,6 +68,17 @@ void Scheduler::update_camera(const camera::Definition& camera)
 void Scheduler::receive_quad(const tile_types::TileQuad& new_quad)
 {
     using Status = tile_types::NetworkInfo::Status;
+#ifdef __EMSCRIPTEN__
+    // webassembly doesn't report 404 (well, probably it does, but not if there is a cors failure as well).
+    // so we'll simply treat any 404 as network error.
+    // however, we need to pass tiles with zoomlevel < 10, otherwise the top of the tree won't be built.
+    if (new_quad.network_info().status == Status::Good || new_quad.id.zoom_level < 10) {
+        m_ram_cache.insert(new_quad);
+        schedule_purge();
+        schedule_update();
+        schedule_persist();
+    }
+#else
     switch (new_quad.network_info().status) {
     case Status::Good:
     case Status::NotFound:

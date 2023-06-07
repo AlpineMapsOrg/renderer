@@ -186,7 +186,8 @@ TEST_CASE("nucleus/tile_scheduler/TileLoadService")
             CHECK(std::accumulate(image.constBits(), image.constBits() + image.sizeInBytes(), 0LLu) == 34'880'685LLu);
         }
     }
-
+#ifndef __EMSCRIPTEN__
+    // this one doesn't work in emscripten, because 404s often also cause cors errors, which qt doesn't see.
     SECTION("notifies of unavailable tiles")
     {
         TileLoadService service("https://alpinemaps.cg.tuwien.ac.at/tiles/alpine_png/",
@@ -208,6 +209,7 @@ TEST_CASE("nucleus/tile_scheduler/TileLoadService")
         const auto image = nucleus::utils::tile_conversion::toQImage(*tile.data);
         REQUIRE(image.sizeInBytes() == 0);
     }
+#endif
 
     SECTION("notifies of network error")
     {
