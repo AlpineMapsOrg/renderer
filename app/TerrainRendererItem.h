@@ -24,6 +24,7 @@
 
 #include "nucleus/camera/Definition.h"
 #include "nucleus/event_parameter.h"
+#include "gl_engine/UniformBufferObjects.h"
 #include <QQuickFramebufferObject>
 #include <QTimer>
 
@@ -38,7 +39,8 @@ class TerrainRendererItem : public QQuickFramebufferObject {
     Q_PROPERTY(QPointF camera_operation_centre READ camera_operation_centre NOTIFY camera_operation_centre_changed)
     Q_PROPERTY(bool camera_operation_centre_visibility READ camera_operation_centre_visibility NOTIFY camera_operation_centre_visibility_changed)
     Q_PROPERTY(float camera_operation_centre_distance READ camera_operation_centre_distance NOTIFY camera_operation_centre_distance_changed)
-    Q_PROPERTY(float render_quality READ render_quality WRITE set_render_quality NOTIFY render_quality_changed)
+    Q_PROPERTY(float render_quality READ render_quality WRITE set_render_quality NOTIFY render_quality_changed)    
+    Q_PROPERTY(gl_engine::uboSharedConfig shared_config MEMBER m_shared_config NOTIFY shared_config_changed)
 
 public:
     explicit TerrainRendererItem(QQuickItem* parent = 0);
@@ -58,6 +60,8 @@ signals:
     void update_camera_requested() const;
     //    void viewport_changed(const glm::uvec2& new_viewport) const;
     void position_set_by_user(double new_latitude, double new_longitude);
+
+    void shared_config_changed(gl_engine::uboSharedConfig new_shared_config);
 
     void camera_changed();
     void camera_width_changed();
@@ -124,6 +128,9 @@ private:
     float m_field_of_view = 75;
     int m_frame_limit = 60;
     float m_render_quality = 0.5f;
+
+    gl_engine::uboSharedConfig m_shared_config;
+
 
     QTimer* m_update_timer = nullptr;
     nucleus::camera::Definition m_camera;

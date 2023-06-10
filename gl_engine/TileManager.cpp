@@ -126,6 +126,8 @@ void TileManager::draw(ShaderProgram* shader_program, const nucleus::camera::Def
 
         tileset.vao->bind();
         shader_program->set_uniform_array("bounds", boundsArray(tileset, camera.position()));
+        shader_program->set_uniform("tileset_id", (int)((tileset.tiles[0].first.coords[0] + tileset.tiles[0].first.coords[1])));
+        shader_program->set_uniform("tileset_zoomlevel", tileset.tiles[0].first.zoom_level);
         tileset.ortho_texture->bind(0);
         f->glDrawElements(GL_TRIANGLE_STRIP, tileset.gl_element_count, tileset.gl_index_type, nullptr);
     }

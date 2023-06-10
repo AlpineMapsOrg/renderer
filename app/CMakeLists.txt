@@ -24,6 +24,7 @@ qt_add_qml_module(alpineapp
         Settings.qml
         Coordinates.qml
         RoundMapButton.qml
+        DebugWindow.qml
     RESOURCES
         icons/camera_operation_centre.svg
         icons/compass.svg

@@ -1,6 +1,7 @@
 import QtQuick
 import QtQuick.Controls.Material
 import QtQuick.Layouts
+import QtQuick.Dialogs
 import Alpine
 
 Item {
@@ -118,7 +119,6 @@ Item {
             menu.close()
         }
     }
-    Component.onCompleted: menu.change_page(0)
 
     TerrainRenderer {
         id: map
@@ -139,5 +139,13 @@ Item {
             renderer: map
         }
     }
+
+    DebugWindow {}
+
+     //property TerrainRenderer renderer
+    Component.onCompleted: {
+        menu.change_page(0)
+    }
+
 }
 

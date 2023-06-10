@@ -1,0 +1,11 @@
+--- nucleus/camera/Controller.cpp
++++ nucleus/camera/Controller.cpp
+@@ -26,8 +26,6 @@
+ #include "nucleus/camera/RotateNorthInteraction.h"
+ #include "nucleus/srs.h"
+ 
+-#include<QDebug>
+-
+ namespace nucleus::camera {
+ Controller::Controller(const Definition& camera, AbstractDepthTester* depth_tester)
+     : m_definition(camera)

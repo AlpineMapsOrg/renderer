@@ -80,6 +80,11 @@ void Window::initialise_gpu()
     m_screen_quad_geometry = gl_engine::helpers::create_screen_quad_geometry();
     m_framebuffer = std::make_unique<Framebuffer>(Framebuffer::DepthFormat::Int24, std::vector({ Framebuffer::ColourFormat::RGBA8 }));
     m_depth_buffer = std::make_unique<Framebuffer>(Framebuffer::DepthFormat::Int24, std::vector({ Framebuffer::ColourFormat::RGBA8 }));
+
+    m_shared_config_ubo = std::make_unique<gl_engine::UniformBuffer<gl_engine::uboSharedConfig>>(0, "shared_config");
+    m_shared_config_ubo->init();
+    m_shared_config_ubo->bind_to_shader(m_shader_manager->tile_shader());
+
     emit gpu_ready_changed(true);
 }
 
@@ -165,6 +170,14 @@ void Window::paintOverGL(QPainter* painter)
     painter->drawText(10, 60, m_debug_text);
     painter->setBrush(QBrush(QColor(random_u32)));
     painter->drawRect(int(text_bb.right()) + 5, 8, 12, 12);
+}
+
+void Window::shared_config_changed(gl_engine::uboSharedConfig ubo) {
+    m_shared_config_ubo->data = ubo;
+    //m_shared_config_ubo->data.setProperty("sun_light", QVector4D(2.0, 0.0, 0.0, newIntensity));
+    //m_shared_config_ubo->data.m_sun_light[3] = newIntensity;
+    m_shared_config_ubo->update_gpu_data();
+    emit update_requested();
 }
 
 void Window::key_press(const QKeyCombination& e) {

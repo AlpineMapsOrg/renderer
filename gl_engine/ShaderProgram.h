@@ -8,6 +8,7 @@
 #include <glm/glm.hpp>
 #include <QOpenGLShaderProgram>
 #include <QUrl>
+#include <QDebug>
 
 namespace gl_engine {
 class ShaderProgram {
@@ -27,6 +28,8 @@ public:
     int attribute_location(const std::string& name);
     void bind();
     void release();
+
+    void set_uniform_block(const std::string& name, GLuint location);
 
     void set_uniform(const std::string& name, const glm::mat4& matrix);
     void set_uniform(const std::string& name, const glm::vec2& vector);

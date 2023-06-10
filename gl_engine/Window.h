@@ -31,6 +31,8 @@
 #include "nucleus/AbstractRenderWindow.h"
 #include "nucleus/camera/AbstractDepthTester.h"
 #include "nucleus/camera/Definition.h"
+#include "UniformBuffer.h"
+#include "UniformBufferObjects.h"
 
 class QOpenGLTexture;
 class QOpenGLShaderProgram;
@@ -71,6 +73,7 @@ public slots:
     void update_debug_scheduler_stats(const QString& stats) override;
     void update_gpu_quads(const std::vector<nucleus::tile_scheduler::tile_types::GpuTileQuad>& new_quads, const std::vector<tile::Id>& deleted_quads) override;
     void key_press(const QKeyCombination& e); // Slot to connect key-events to
+    void shared_config_changed(gl_engine::uboSharedConfig ubo);
 
 private:
     using ClockResolution = std::chrono::microseconds;
@@ -83,6 +86,9 @@ private:
     std::unique_ptr<ShaderManager> m_shader_manager;
     std::unique_ptr<Framebuffer> m_framebuffer;
     std::unique_ptr<Framebuffer> m_depth_buffer;
+
+    std::unique_ptr<gl_engine::UniformBuffer<gl_engine::uboSharedConfig>> m_shared_config_ubo;
+
     gl_engine::helpers::ScreenQuadGeometry m_screen_quad_geometry;
 
     nucleus::camera::Definition m_camera;
