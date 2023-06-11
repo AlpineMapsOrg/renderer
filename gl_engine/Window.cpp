@@ -26,6 +26,7 @@
 #include <QOpenGLContext>
 #include <QOpenGLDebugLogger>
 #include <QOpenGLExtraFunctions>
+
 #include <QOpenGLFramebufferObject>
 #include <QOpenGLShaderProgram>
 #include <QOpenGLTexture>
@@ -36,6 +37,8 @@
 #include <QTimer>
 #include <glm/glm.hpp>
 
+#include <QOpenGLFunctions_3_3_Core> // for timer queries
+
 #include "Atmosphere.h"
 #include "DebugPainter.h"
 #include "Framebuffer.h"
@@ -45,8 +48,10 @@
 #include "Window.h"
 #include "helpers.h"
 #include "nucleus/utils/bit_coding.h"
+#include "AsyncQueryTimerManager.h"
 
 using gl_engine::Window;
+using gl_engine::UniformBuffer;
 
 Window::Window()
     : m_camera({ 1822577.0, 6141664.0 - 500, 171.28 + 500 }, { 1822577.0, 6141664.0, 171.28 }) // should point right at the stephansdom
@@ -85,6 +90,12 @@ void Window::initialise_gpu()
     m_shared_config_ubo->init();
     m_shared_config_ubo->bind_to_shader(m_shader_manager->tile_shader());
 
+    m_timer = std::make_unique<gl_engine::AsyncQueryTimerManager>();
+    m_timer->add_timer("Depth");
+    m_timer->add_timer("Atmosphere");
+    m_timer->add_timer("Tiles");
+    m_timer->add_timer("Compose");
+
     emit gpu_ready_changed(true);
 }
 
@@ -110,6 +121,8 @@ void Window::paint(QOpenGLFramebufferObject* framebuffer)
 
     m_camera.set_viewport_size(m_framebuffer->size());
 
+
+
     // DEPTH BUFFER
     m_depth_buffer->bind();
     f->glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
@@ -117,9 +130,12 @@ void Window::paint(QOpenGLFramebufferObject* framebuffer)
     f->glDepthFunc(GL_LESS);
 
     m_shader_manager->depth_program()->bind();
+    m_timer->start_timer(0);
     m_tile_manager->draw(m_shader_manager->depth_program(), m_camera);
+    m_timer->stop_timer();
     m_depth_buffer->unbind();
     // END DEPTH BUFFER
+
 
     m_framebuffer->bind();
     f->glClearColor(1.0, 0.0, 0.5, 1);
@@ -127,17 +143,21 @@ void Window::paint(QOpenGLFramebufferObject* framebuffer)
     f->glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
 
     m_shader_manager->atmosphere_bg_program()->bind();
+    m_timer->start_timer(1);
     m_atmosphere->draw(m_shader_manager->atmosphere_bg_program(),
                        m_camera,
                        m_shader_manager->screen_quad_program(),
                        m_framebuffer.get());
-
+    m_timer->stop_timer();
     f->glEnable(GL_DEPTH_TEST);
     f->glDepthFunc(GL_LESS);
     f->glEnable(GL_BLEND);
     f->glBlendFunc(GL_ONE, GL_ONE_MINUS_SRC_ALPHA);
+
     m_shader_manager->tile_shader()->bind();
+    m_timer->start_timer(2);
     m_tile_manager->draw(m_shader_manager->tile_shader(), m_camera);
+    m_timer->stop_timer();
 
     m_framebuffer->unbind();
     if (framebuffer)
@@ -145,11 +165,19 @@ void Window::paint(QOpenGLFramebufferObject* framebuffer)
 
     m_shader_manager->screen_quad_program()->bind();
     m_framebuffer->bind_colour_texture(0);
+    m_timer->start_timer(3);
     m_screen_quad_geometry.draw();
+    m_timer->stop_timer();
 
     m_shader_manager->release();
 
+    // Note Fetches results from last frame
+    // The "problem" with this approach is that we don't have a
+    // render loop running.
+    m_timer->fetch_results();
+
     f->glFinish(); // synchronization
+
     m_frame_end = std::chrono::time_point_cast<ClockResolution>(Clock::now());
 }
 

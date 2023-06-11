@@ -31,8 +31,8 @@
 #include "nucleus/AbstractRenderWindow.h"
 #include "nucleus/camera/AbstractDepthTester.h"
 #include "nucleus/camera/Definition.h"
-#include "UniformBuffer.h"
 #include "UniformBufferObjects.h"
+#include "UniformBuffer.h"
 
 class QOpenGLTexture;
 class QOpenGLShaderProgram;
@@ -41,10 +41,12 @@ class QOpenGLVertexArrayObject;
 class TileManager;
 
 namespace gl_engine {
+
 class DebugPainter;
 class ShaderManager;
 class Framebuffer;
 class Atmosphere;
+class AsyncQueryTimerManager;
 
 class Window : public nucleus::AbstractRenderWindow, public nucleus::camera::AbstractDepthTester {
     Q_OBJECT
@@ -80,6 +82,8 @@ private:
     using Clock = std::chrono::steady_clock;
     using TimePoint = std::chrono::time_point<Clock, ClockResolution>;
 
+    std::unique_ptr<AsyncQueryTimerManager> m_timer; // needs opengl context
+
     std::unique_ptr<TileManager> m_tile_manager; // needs opengl context
     std::unique_ptr<DebugPainter> m_debug_painter; // needs opengl context
     std::unique_ptr<Atmosphere> m_atmosphere; // needs opengl context
@@ -87,9 +91,9 @@ private:
     std::unique_ptr<Framebuffer> m_framebuffer;
     std::unique_ptr<Framebuffer> m_depth_buffer;
 
-    std::unique_ptr<gl_engine::UniformBuffer<gl_engine::uboSharedConfig>> m_shared_config_ubo;
+    std::unique_ptr<UniformBuffer<uboSharedConfig>> m_shared_config_ubo; // needs opengl context
 
-    gl_engine::helpers::ScreenQuadGeometry m_screen_quad_geometry;
+    helpers::ScreenQuadGeometry m_screen_quad_geometry;
 
     nucleus::camera::Definition m_camera;
 
@@ -100,4 +104,5 @@ private:
     QString m_debug_text;
     QString m_debug_scheduler_stats;
 };
-}
+
+} // namespace
