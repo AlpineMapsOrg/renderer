@@ -186,8 +186,9 @@ void Scheduler::send_quad_requests()
     if (!m_network_requests_enabled)
         return;
     auto currently_active_tiles = tiles_for_current_camera_position();
-    std::erase_if(currently_active_tiles, [this](const tile::Id& id) {
-        return m_ram_cache.contains(id);
+    const auto current_time = utils::time_since_epoch();
+    std::erase_if(currently_active_tiles, [this, current_time](const tile::Id& id) {
+        return m_ram_cache.contains(id) && m_ram_cache.peak_at(id).network_info().timestamp + m_retirement_age_for_tile_cache > current_time;
     });
     emit quads_requested(currently_active_tiles);
 }
@@ -264,6 +265,11 @@ std::vector<tile::Id> Scheduler::tiles_for_current_camera_position() const
     //    all_inner_nodes.reserve(all_inner_nodes.size() + all_leaves.size());
     //    std::copy(all_leaves.begin(), all_leaves.end(), std::back_inserter(all_inner_nodes));
     return all_inner_nodes;
+}
+
+void Scheduler::set_retirement_age_for_tile_cache(unsigned int new_retirement_age_for_tile_cache)
+{
+    m_retirement_age_for_tile_cache = new_retirement_age_for_tile_cache;
 }
 
 unsigned int Scheduler::persist_timeout() const

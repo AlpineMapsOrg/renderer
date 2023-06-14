@@ -70,6 +70,8 @@ public:
 
     void read_disk_cache();
 
+    void set_retirement_age_for_tile_cache(unsigned int new_retirement_age_for_tile_cache);
+
 signals:
     void quads_requested(const std::vector<tile::Id>& id);
     void gpu_quads_updated(const std::vector<tile_types::GpuTileQuad>& new_quads, const std::vector<tile::Id>& deleted_quads);
@@ -90,6 +92,7 @@ protected:
     std::vector<tile::Id> tiles_for_current_camera_position() const;
 
 private:
+    unsigned m_retirement_age_for_tile_cache = 10u * 24u * 3600u * 1000u; // 10 days
     float m_permissible_screen_space_error = 2;
     unsigned m_update_timeout = 100;
     unsigned m_purge_timeout = 1000;

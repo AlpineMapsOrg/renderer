@@ -105,6 +105,7 @@ nucleus::tile_scheduler::tile_types::TileQuad example_tile_quad_for(const tile::
         cpu_quad.tiles[i].ortho = std::make_shared<QByteArray>(example_data.first);
         cpu_quad.tiles[i].height = std::make_shared<QByteArray>(example_data.second);
         cpu_quad.tiles[i].network_info.status = status;
+        cpu_quad.tiles[i].network_info.timestamp = nucleus::tile_scheduler::utils::time_since_epoch();
     }
     return cpu_quad;
 }
@@ -317,6 +318,35 @@ TEST_CASE("nucleus/tile_scheduler/Scheduler")
 #endif
         CHECK(std::find(quads.cbegin(), quads.cend(), tile::Id { 2, { 2, 2 } }) == quads.end());
         CHECK(std::find(quads.cbegin(), quads.cend(), tile::Id { 4, { 8, 10 } }) != quads.end());
+    }
+
+    SECTION("delivered tiles are requested again after they get too old")
+    {
+        auto scheduler = default_scheduler();
+        scheduler->set_retirement_age_for_tile_cache(5);
+        scheduler->receive_quad(example_tile_quad_for(tile::Id { 0, { 0, 0 } }, 4, NetworkInfo::Status::Good));
+        scheduler->receive_quad(example_tile_quad_for(tile::Id { 1, { 1, 1 } }, 4, NetworkInfo::Status::NotFound));
+
+        QSignalSpy spy(scheduler.get(), &Scheduler::quads_requested);
+        scheduler->update_camera(nucleus::camera::stored_positions::stephansdom());
+        scheduler->send_quad_requests();
+        {
+            REQUIRE(spy.size() == 1);
+            const auto quads = spy.constFirst().constFirst().value<std::vector<tile::Id>>();
+            // not found, as already in cache
+            CHECK(std::find(quads.cbegin(), quads.cend(), tile::Id { 0, { 0, 0 } }) == quads.end());
+            CHECK(std::find(quads.cbegin(), quads.cend(), tile::Id { 1, { 1, 1 } }) == quads.end());
+        }
+
+        QThread::msleep(10);
+        scheduler->send_quad_requests();
+        {
+            REQUIRE(spy.size() == 2);
+            const auto quads = spy.constLast().constFirst().value<std::vector<tile::Id>>();
+            // found, as cache version is to old and should be updated
+            CHECK(std::find(quads.cbegin(), quads.cend(), tile::Id { 0, { 0, 0 } }) != quads.end());
+            CHECK(std::find(quads.cbegin(), quads.cend(), tile::Id { 1, { 1, 1 } }) != quads.end());
+        }
     }
 
     SECTION("delivered quads are sent on to the gpu (with no repeat, only the ones in the tree)")
