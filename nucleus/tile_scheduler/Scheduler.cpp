@@ -88,6 +88,8 @@ void Scheduler::receive_quad(const tile_types::TileQuad& new_quad)
         schedule_purge();
         schedule_update();
         schedule_persist();
+        emit quad_received(new_quad.id);
+        update_stats();
         break;
     case Status::NetworkError:
         // do not persist the tile.
@@ -179,6 +181,7 @@ void Scheduler::update_gpu_quads()
     });
 
     emit gpu_quads_updated(new_gpu_quads, { superfluous_ids.cbegin(), superfluous_ids.cend() });
+    update_stats();
 }
 
 void Scheduler::send_quad_requests()
@@ -205,6 +208,7 @@ void Scheduler::purge_ram_cache()
     });
     m_ram_cache.set_capacity(m_ram_quad_limit);
     m_ram_cache.purge();
+    update_stats();
 }
 
 void Scheduler::persist_tiles()
@@ -244,10 +248,18 @@ void Scheduler::schedule_persist()
     }
 }
 
+void Scheduler::update_stats()
+{
+    m_statistics.n_tiles_in_ram_cache = m_ram_cache.n_cached_objects();
+    m_statistics.n_tiles_in_gpu_cache = m_gpu_cached.n_cached_objects();
+    emit statistics_updated(m_statistics);
+}
+
 void Scheduler::read_disk_cache()
 {
     try {
         m_ram_cache.read_from_disk(disk_cache_path());
+        update_stats();
     } catch (const std::runtime_error& e) {
         qDebug("Reading tiles from disk cache (%s) failed: \n%s\nRemoving all files.", disk_cache_path().c_str(), e.what());
         std::filesystem::remove_all(disk_cache_path());

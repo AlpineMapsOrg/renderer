@@ -722,6 +722,18 @@ TEST_CASE("nucleus/tile_scheduler/Scheduler")
         }
         std::filesystem::remove_all(Scheduler::disk_cache_path());
     }
+
+    SECTION("notification, when a tile is received")
+    {
+        auto scheduler = default_scheduler();
+        QSignalSpy spy(scheduler.get(), &Scheduler::quad_received);
+        scheduler->receive_quad(example_tile_quad_for(tile::Id { 0, { 0, 0 } }));
+        REQUIRE(spy.size() == 1);
+        scheduler->receive_quad(example_tile_quad_for(tile::Id { 1, { 1, 1 } }));
+        REQUIRE(spy.size() == 2);
+        CHECK(spy[0][0].value<tile::Id>() == tile::Id { 0, { 0, 0 } });
+        CHECK(spy[1][0].value<tile::Id>() == tile::Id { 1, { 1, 1 } });
+    }
 }
 
 TEST_CASE("nucleus/tile_scheduler/Scheduler benchmarks")

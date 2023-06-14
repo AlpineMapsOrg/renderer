@@ -40,6 +40,11 @@ namespace utils {
 class Scheduler : public QObject {
     Q_OBJECT
 public:
+    struct Statistics {
+        unsigned n_tiles_in_ram_cache = 0;
+        unsigned n_tiles_in_gpu_cache = 0;
+    };
+
     explicit Scheduler(QObject* parent = nullptr);
     explicit Scheduler(const QByteArray& default_ortho_tile, const QByteArray& default_height_tile, QObject* parent = nullptr);
     ~Scheduler() override;
@@ -73,7 +78,9 @@ public:
     void set_retirement_age_for_tile_cache(unsigned int new_retirement_age_for_tile_cache);
 
 signals:
-    void quads_requested(const std::vector<tile::Id>& id);
+    void statistics_updated(Statistics stats);
+    void quad_received(const tile::Id& ids);
+    void quads_requested(const std::vector<tile::Id>& ids);
     void gpu_quads_updated(const std::vector<tile_types::GpuTileQuad>& new_quads, const std::vector<tile::Id>& deleted_quads);
 
 public slots:
@@ -89,6 +96,7 @@ protected:
     void schedule_update();
     void schedule_purge();
     void schedule_persist();
+    void update_stats();
     std::vector<tile::Id> tiles_for_current_camera_position() const;
 
 private:
@@ -103,6 +111,7 @@ private:
     static constexpr unsigned m_height_tile_size = 64;
     bool m_enabled = false;
     bool m_network_requests_enabled = true;
+    Statistics m_statistics;
     std::unique_ptr<QTimer> m_update_timer;
     std::unique_ptr<QTimer> m_purge_timer;
     std::unique_ptr<QTimer> m_persist_timer;
