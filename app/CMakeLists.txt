@@ -81,7 +81,7 @@ else()
 endif()
 
 if (ANDROID)
-    android_add_openssl_to_targets(alpineapp)
+    add_android_openssl_libraries_to(alpineapp)
 
     install(TARGETS alpineapp
         LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}

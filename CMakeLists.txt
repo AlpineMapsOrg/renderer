@@ -88,10 +88,11 @@ if (ANDROID)
     FetchContent_Declare(
       android_openssl
       DOWNLOAD_EXTRACT_TIMESTAMP true
-      URL      https://github.com/AlpineMapsOrg/android_openssl/archive/refs/heads/master.zip
-      URL_HASH MD5=3bc2ef11f914784089f58f1e7e3024e7
+      URL      https://github.com/AlpineMapsOrg/android_openssl/archive/refs/heads/issams_fixes.zip
+#      URL_HASH MD5=88dd38c0fc94a195ae3f29412cfdcf2b
     )
     FetchContent_MakeAvailable(android_openssl)
+    include(${android_openssl_SOURCE_DIR}/android_openssl.cmake)
 endif()
 
 add_library(zppbits INTERFACE)
