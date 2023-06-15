@@ -427,13 +427,11 @@ TEST_CASE("nucleus/tile_scheduler/Scheduler")
     {
         auto scheduler = default_scheduler();
         QSignalSpy spy(scheduler.get(), &Scheduler::gpu_quads_updated);
-        auto quads = example_tile_quad_for({ 0, { 0, 0 } }, 3);
-        quads.tiles[2].ortho->resize(0);
-        quads.tiles[2].height->resize(0);
+        auto quad = example_tile_quad_for({ 0, { 0, 0 } }, 3);
+        quad.tiles[2].ortho->resize(0);
+        quad.tiles[2].height->resize(0);
         
-        scheduler->receive_quad({
-            quads,
-        });
+        scheduler->receive_quad(quad);
         scheduler->update_camera(nucleus::camera::stored_positions::stephansdom());
         spy.wait(2);
         REQUIRE(spy.size() == 1);
