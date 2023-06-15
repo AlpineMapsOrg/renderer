@@ -26,7 +26,7 @@ We use Qt Creator (with mingw on Windows), which is the only tested setup atm an
 ## Building the WebAssembly version:
 * Atm, none of the Qt versions works perfectly in all browsers
 * In Qt 6.5.0 there is no search
-* In Qt 6.5.1 touch doesn't work on Firefox, and the Keyboard doesn't work on touch notebooks (#33, #34)
+* In Qt 6.5.1 touch doesn't work on Firefox, and the Keyboard doesn't work on touch notebooks (issues #33, #34)
 * [WebAssembly version compatible with the Qt version](https://doc-snapshots.qt.io/qt6-dev/wasm.html#installing-emscripten)
 * The threaded version doesn't seem to work atm, so use the non-threaded!
 
