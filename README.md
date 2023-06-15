@@ -21,8 +21,8 @@ We use Qt Creator (with mingw on Windows), which is the only tested setup atm an
 * Some other dependencies will be pulled automatically during building.
 
 ## Building the android version
-Due to a (bug)[https://bugreports.qt.io/browse/QTBUG-113851] in the Qt/cmake/gradle build system for android, you need to delete all `libc.so` files from the build dir before rebuilding (yes! no, that's not a joke).
-There is a script that does that in linux (renderer/android/workaround_qt_cmake_build_bug.sh)[https://github.com/AlpineMapsOrg/renderer/blob/main/android/workaround_qt_cmake_build_bug.sh], please don't run it anywhere important, definitely not as root;) ). You can add it as a custom build step before everything else in qt creator (in the %{buildDir} working directory).
+Due to a [bug](https://bugreports.qt.io/browse/QTBUG-113851) in the Qt/cmake/gradle build system for android, you need to delete all `libc.so` files from the build dir before rebuilding (yes! no, that's not a joke).
+There is a script that does that in linux [renderer/android/workaround_qt_cmake_build_bug.sh](https://github.com/AlpineMapsOrg/renderer/blob/main/android/workaround_qt_cmake_build_bug.sh), please don't run it anywhere important, definitely not as root;) ). You can add it as a custom build step before everything else in qt creator (in the %{buildDir} working directory).
 
 ## Building the WebAssembly version:
 * Use Qt 6.5.1 (!) or greater (there is an important bug fix in the unreleased 6.5.1, without it, you can't use the search.
