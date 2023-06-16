@@ -132,7 +132,8 @@ void Scheduler::update_gpu_quads()
         // create GpuQuad based on cpu quad
         tile_types::GpuTileQuad gpu_quad;
         gpu_quad.id = quad.id;
-        for (unsigned i = 0; i < quad.n_tiles; ++i) {
+        assert(quad.n_tiles == 4);
+        for (unsigned i = 0; i < 4; ++i) {
             gpu_quad.tiles[i].id = quad.tiles[i].id;
             gpu_quad.tiles[i].bounds = m_aabb_decorator->aabb(quad.tiles[i].id);
 
