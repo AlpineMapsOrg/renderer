@@ -44,8 +44,8 @@ target_link_libraries(nucleus PUBLIC sherpa Qt::Core Qt::Gui Qt::Network Qt::Svg
 
 
 if (EMSCRIPTEN)
-    target_compile_options(nucleus PUBLIC -fexceptions)
-    target_link_options(nucleus PUBLIC -fexceptions)
+    target_compile_options(nucleus PUBLIC -fexceptions -O3)
+    target_link_options(nucleus PUBLIC -fexceptions -O3)
 endif()
 if (ALP_ENABLE_ASSERTS)
     target_compile_options(nucleus PUBLIC "-U NDEBUG")

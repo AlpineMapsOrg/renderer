@@ -67,7 +67,7 @@ class Cache {
 
 public:
     Cache() = default;
-    void insert(const std::vector<T>& tiles);
+    void insert(const T& tile);
     [[nodiscard]] bool contains(const tile::Id& id) const;
     void set_capacity(unsigned capacity);
     [[nodiscard]] unsigned n_cached_objects() const;
@@ -95,14 +95,12 @@ private:
 };
 
 template <tile_types::NamedTile T>
-void Cache<T>::insert(const std::vector<T>& tiles)
+void Cache<T>::insert(const T& tile)
 {
     const auto time_stamp = utils::time_since_epoch();
-    for (const T& t : tiles) {
-        m_data[t.id].meta.visited = time_stamp * 100 - t.id.zoom_level;
-        m_data[t.id].meta.created = time_stamp;
-        m_data[t.id].data = t;
-    }
+    m_data[tile.id].meta.visited = time_stamp * 100 - tile.id.zoom_level;
+    m_data[tile.id].meta.created = time_stamp;
+    m_data[tile.id].data = tile;
 }
 
 template <tile_types::NamedTile T>

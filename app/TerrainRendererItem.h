@@ -39,6 +39,10 @@ class TerrainRendererItem : public QQuickFramebufferObject {
     Q_PROPERTY(bool camera_operation_centre_visibility READ camera_operation_centre_visibility NOTIFY camera_operation_centre_visibility_changed)
     Q_PROPERTY(float camera_operation_centre_distance READ camera_operation_centre_distance NOTIFY camera_operation_centre_distance_changed)
     Q_PROPERTY(float render_quality READ render_quality WRITE set_render_quality NOTIFY render_quality_changed)
+    Q_PROPERTY(unsigned int in_flight_tiles READ in_flight_tiles NOTIFY in_flight_tiles_changed)
+    Q_PROPERTY(unsigned int queued_tiles READ queued_tiles NOTIFY queued_tiles_changed)
+    Q_PROPERTY(unsigned int cached_tiles READ cached_tiles NOTIFY cached_tiles_changed)
+    Q_PROPERTY(unsigned int tile_cache_size READ tile_cache_size WRITE set_tile_cache_size NOTIFY tile_cache_size_changed)
 
 public:
     explicit TerrainRendererItem(QQuickItem* parent = 0);
@@ -68,6 +72,14 @@ signals:
     void camera_operation_centre_visibility_changed();
     void camera_operation_centre_distance_changed();
     void render_quality_changed(float new_render_quality);
+
+    void in_flight_tiles_changed(unsigned new_n);
+
+    void queued_tiles_changed(unsigned new_n);
+
+    void cached_tiles_changed(unsigned new_n);
+
+    void tile_cache_size_changed(unsigned new_cache_size);
 
 protected:
     void touchEvent(QTouchEvent*) override;
@@ -116,14 +128,30 @@ public:
     float render_quality() const;
     void set_render_quality(float new_render_quality);
 
+    [[nodiscard]] unsigned int in_flight_tiles() const;
+    void set_in_flight_tiles(unsigned int new_in_flight_tiles);
+
+    [[nodiscard]] unsigned int queued_tiles() const;
+    void set_queued_tiles(unsigned int new_queued_tiles);
+
+    [[nodiscard]] unsigned int cached_tiles() const;
+    void set_cached_tiles(unsigned int new_cached_tiles);
+
+    [[nodiscard]] unsigned int tile_cache_size() const;
+    void set_tile_cache_size(unsigned int new_tile_cache_size);
+
 private:
     float m_camera_rotation_from_north = 0;
     QPointF m_camera_operation_centre;
     bool m_camera_operation_centre_visibility = false;
     float m_camera_operation_centre_distance = 1;
-    float m_field_of_view = 75;
+    float m_field_of_view = 60;
     int m_frame_limit = 60;
     float m_render_quality = 0.5f;
+    unsigned m_tile_cache_size = 12000;
+    unsigned m_cached_tiles = 0;
+    unsigned m_queued_tiles = 0;
+    unsigned m_in_flight_tiles = 0;
 
     QTimer* m_update_timer = nullptr;
     nucleus::camera::Definition m_camera;

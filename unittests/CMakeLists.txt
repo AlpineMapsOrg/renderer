@@ -39,7 +39,7 @@ target_compile_definitions(unittests_nucleus PUBLIC "ALP_TEST_DATA_DIR=\":/test_
 alp_setup_unittest(unittests_nucleus)
 
 if (ANDROID)
-    android_add_openssl_to_targets(unittests_nucleus)
+    add_android_openssl_libraries_to(unittests_nucleus)
 endif()
 
 if (EMSCRIPTEN)

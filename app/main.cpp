@@ -23,6 +23,7 @@
 #include <QFontDatabase>
 #include <QGuiApplication>
 #include <QLoggingCategory>
+#include <QNetworkInformation>
 #include <QOpenGLContext>
 #include <QQmlApplicationEngine>
 #include <QQmlContext>
@@ -49,14 +50,15 @@ int main(int argc, char **argv)
     QGuiApplication app(argc, argv);
     QCoreApplication::setOrganizationName("AlpineMaps.org");
     QCoreApplication::setApplicationName("AlpineApp");
+    QNetworkInformation::loadDefaultBackend(); // load here, so it sits on the correct thread.
 
     //    QLoggingCategory::setFilterRules("*.debug=true\n"
     //                                     "qt.qpa.fonts=true");
     // output qrc files:
-    QDirIterator it(":", QDirIterator::Subdirectories);
-    while (it.hasNext()) {
-        qDebug() << it.next();
-    }
+    //    QDirIterator it(":", QDirIterator::Subdirectories);
+    //    while (it.hasNext()) {
+    //        qDebug() << it.next();
+    //    }
 
     //    qDebug() << ":: before adding fonts::" << QFontDatabase::families().size();
     //    for (const auto& entry : QFontDatabase::families()) {
