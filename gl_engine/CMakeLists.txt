@@ -13,7 +13,7 @@ qt_add_library(gl_engine STATIC
     ShaderProgram.h ShaderProgram.cpp
     UniformBufferObjects.h
     UniformBuffer.h UniformBuffer.cpp
-    AsyncQueryTimerManager.h AsyncQueryTimerManager.cpp
+    TimerManager.h TimerManager.cpp
 )
 target_link_libraries(gl_engine PUBLIC nucleus Qt::OpenGL)
 target_include_directories(gl_engine PRIVATE .)

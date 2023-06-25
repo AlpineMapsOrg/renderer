@@ -46,7 +46,7 @@ class DebugPainter;
 class ShaderManager;
 class Framebuffer;
 class Atmosphere;
-class AsyncQueryTimerManager;
+class TimerManager;
 
 class Window : public nucleus::AbstractRenderWindow, public nucleus::camera::AbstractDepthTester {
     Q_OBJECT
@@ -82,7 +82,7 @@ private:
     using Clock = std::chrono::steady_clock;
     using TimePoint = std::chrono::time_point<Clock, ClockResolution>;
 
-    std::unique_ptr<AsyncQueryTimerManager> m_timer; // needs opengl context
+    std::unique_ptr<TimerManager> m_timer; // needs opengl context
 
     std::unique_ptr<TileManager> m_tile_manager; // needs opengl context
     std::unique_ptr<DebugPainter> m_debug_painter; // needs opengl context

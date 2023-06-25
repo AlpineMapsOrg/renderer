@@ -8,10 +8,6 @@ import Alpine
 Rectangle {
     property int menu_height: map.height - 230
     property int menu_width: 320
-    property var ubo_shared_config: {
-        sun_light: [1.0,1.0,1.0,1.0]
-        sun_light_dir: [1.0,-1.0,-1.0,0.0]
-    }
 
     //signal light_intensity_changed(newValue: float)
 
@@ -56,7 +52,6 @@ Rectangle {
             }
 
             GridLayout {
-                id: grid
                 columns: 2
 
                 Label {
@@ -128,6 +123,7 @@ Rectangle {
 
                 Label { text: "Material:" }
                 Label {
+                    property bool initialized: false
                     padding: 5
                     Layout.fillWidth: true;
                     Rectangle{
@@ -144,10 +140,14 @@ Rectangle {
                     Component.onCompleted: {
                         var tmp = map.shared_config.material_color;
                         color = Qt.rgba(tmp.x, tmp.y, tmp.z, 1.0);
+                        initialized = true;
+                        onColorChanged();
                     }
                     onColorChanged: {
-                        text = color.toString();
-                        map.shared_config.material_color = Qt.vector4d(color.r, color.g, color.b, map.shared_config.material_color.w)
+                        if (initialized) {
+                            text = color.toString();
+                            map.shared_config.material_color = Qt.vector4d(color.r, color.g, color.b, map.shared_config.material_color.w)
+                        }
                     }
                 }
 
@@ -210,5 +210,4 @@ Rectangle {
         }
     }
 }
-
 

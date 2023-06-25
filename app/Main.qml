@@ -142,9 +142,12 @@ Item {
 
     DebugWindow {}
 
+    StatsWindow {}
+
      //property TerrainRenderer renderer
     Component.onCompleted: {
         menu.change_page(0)
+        console.log(map.timer_manager.timer_names);
     }
 
 }

@@ -21,7 +21,8 @@
 
 #include <QDirIterator>
 #include <QFontDatabase>
-#include <QGuiApplication>
+//#include <QGuiApplication>
+#include <QApplication>
 #include <QLoggingCategory>
 #include <QOpenGLContext>
 #include <QQmlApplicationEngine>
@@ -39,6 +40,7 @@
 #include "HotReloader.h"
 #include "RenderThreadNotifier.h"
 #include "TerrainRendererItem.h"
+#include "TimerFrontendManager.h"
 #include "nucleus/map_label/CameraTransformationProxyModel.h"
 #include "nucleus/map_label/MapLabelModel.h"
 
@@ -46,7 +48,7 @@ int main(int argc, char **argv)
 {
     //    QGuiApplication::setHighDpiScaleFactorRoundingPolicy(Qt::HighDpiScaleFactorRoundingPolicy::Floor);
     QQuickWindow::setGraphicsApi(QSGRendererInterface::GraphicsApi::OpenGLRhi);
-    QGuiApplication app(argc, argv);
+    QApplication app(argc, argv);
     QCoreApplication::setOrganizationName("AlpineMaps.org");
     QCoreApplication::setApplicationName("AlpineApp");
 

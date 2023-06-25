@@ -25,8 +25,10 @@
 #include "nucleus/camera/Definition.h"
 #include "nucleus/event_parameter.h"
 #include "gl_engine/UniformBufferObjects.h"
+#include "TimerFrontendManager.h"
 #include <QQuickFramebufferObject>
 #include <QTimer>
+#include <map>
 
 class TerrainRendererItem : public QQuickFramebufferObject {
     Q_OBJECT
@@ -41,6 +43,7 @@ class TerrainRendererItem : public QQuickFramebufferObject {
     Q_PROPERTY(float camera_operation_centre_distance READ camera_operation_centre_distance NOTIFY camera_operation_centre_distance_changed)
     Q_PROPERTY(float render_quality READ render_quality WRITE set_render_quality NOTIFY render_quality_changed)    
     Q_PROPERTY(gl_engine::uboSharedConfig shared_config MEMBER m_shared_config NOTIFY shared_config_changed)
+    Q_PROPERTY(TimerFrontendManager timer_manager MEMBER m_timer_manager)
 
 public:
     explicit TerrainRendererItem(QQuickItem* parent = 0);
@@ -136,6 +139,8 @@ private:
     nucleus::camera::Definition m_camera;
     int m_camera_width = 0;
     int m_camera_height = 0;
+
+    TimerFrontendManager m_timer_manager;
 };
 
 #endif // TERRAINRENDERERITEM_H
