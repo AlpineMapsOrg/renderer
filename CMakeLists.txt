@@ -22,18 +22,6 @@ if (UNIX AND NOT EMSCRIPTEN AND NOT ANDROID)
         if it's not installed, you'll get errors, that openmp or other stuff is not installed (hard to track down)" OFF)
 endif()
 
-
-############################################ sources ##############################################
-set(ALP_CATCH_UNITTEST_GL_SOURCES
-
-)
-set(ALP_CATCH_UNITTEST_DATA
-
-)
-set(ALP_CATCH_UNITTEST_SOURCES
-
-)
-
 ########################################### setup #################################################
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_AUTOMOC ON)
@@ -99,14 +87,13 @@ add_library(zppbits INTERFACE)
 target_include_directories(zppbits INTERFACE ${zppbits_SOURCE_DIR})
 
 
+########################################### projects #################################################
 add_subdirectory(sherpa)    # pulls in Catch2 and glm
 add_subdirectory(nucleus)
 add_subdirectory(gl_engine)
 add_subdirectory(plain_renderer)
 add_subdirectory(app)
 
-
-#################################### unit tests for backend #######################################
 if (ALP_UNITTESTS)
     if (EMSCRIPTEN AND ALP_ENABLE_THREADING)
         target_compile_options(Catch2 PRIVATE -pthread)
