@@ -55,7 +55,7 @@ Rectangle {
                 right: settings_root.right
                 top: parent.top
             }
-            contentWidth: 1000
+            contentWidth: parent.width
             position: TabBar.Header
             TabButton {
                 text: qsTr("View")
