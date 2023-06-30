@@ -271,12 +271,17 @@ std::vector<tile::Id> Scheduler::tiles_for_current_camera_position() const
 {
     std::vector<tile::Id> all_inner_nodes;
     const auto all_leaves = quad_tree::onTheFlyTraverse(
-        tile::Id { 0, { 0, 0 } },
-        tile_scheduler::utils::refineFunctor(m_current_camera, m_aabb_decorator, m_permissible_screen_space_error, m_ortho_tile_size),
-        [&all_inner_nodes](const tile::Id& v) { all_inner_nodes.push_back(v); return v.children(); });
+        tile::Id{0, {0, 0}},
+        tile_scheduler::utils::refineFunctor(m_current_camera,
+                                             m_aabb_decorator,
+                                             m_permissible_screen_space_error,
+                                             m_ortho_tile_size),
+        [&all_inner_nodes](const tile::Id &v) {
+            all_inner_nodes.push_back(v);
+            return v.children();
+        });
 
-    //    all_inner_nodes.reserve(all_inner_nodes.size() + all_leaves.size());
-    //    std::copy(all_leaves.begin(), all_leaves.end(), std::back_inserter(all_inner_nodes));
+    // not adding leaves, because they we will be fetching quads, which also fetch their children
     return all_inner_nodes;
 }
 
