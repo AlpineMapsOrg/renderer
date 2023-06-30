@@ -91,8 +91,8 @@ void main() {
 
     vec3 fragColor = mix(conf.material_color.rgb, ortho.rgb, conf.material_color.a); // vec3(1.0)
     vec3 phong_illumination = calculate_illumination(fragColor, origin, pos_wrt_cam, normal);
-    light_through_atmosphere = calculate_atmospheric_light(camera_position / 1000.0, ray_direction, dist / 1000.0, fragColor, 10);
-    vec3 color = phong_illumination * light_through_atmosphere;
+    light_through_atmosphere = calculate_atmospheric_light(camera_position / 1000.0, ray_direction, dist / 1000.0, phong_illumination * fragColor, 10);
+    vec3 color = light_through_atmosphere;
 
     out_Color = vec4(color * alpha, alpha);
 

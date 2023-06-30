@@ -110,7 +110,7 @@ const std::vector<TileSet>& TileManager::tiles() const
     return m_gpu_tiles;
 }
 
-void TileManager::draw(ShaderProgram* shader_program, const nucleus::camera::Definition& camera) const
+void TileManager::draw(ShaderProgram* shader_program, const nucleus::camera::Definition& camera, TimerManager* timer_manager) const
 {
     QOpenGLExtraFunctions* f = QOpenGLContext::currentContext()->extraFunctions();
     shader_program->set_uniform("n_edge_vertices", N_EDGE_VERTICES);
@@ -119,7 +119,9 @@ void TileManager::draw(ShaderProgram* shader_program, const nucleus::camera::Def
     shader_program->set_uniform("texture_sampler", 0);
 //    shader_program->set_uniform("texture_sampler", 0);
 
+    timer_manager->start_timer("tile_generator");
     const auto draw_tiles = m_draw_list_generator.generate_for(camera);
+    timer_manager->stop_timer("tile_generator");
     for (const auto& tileset : tiles()) {
         if (!draw_tiles.contains(tileset.tiles.front().first))
             continue;

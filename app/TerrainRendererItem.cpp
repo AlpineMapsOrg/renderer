@@ -54,6 +54,7 @@ TerrainRendererItem::TerrainRendererItem(QQuickItem* parent)
     : QQuickFramebufferObject(parent)
     , m_update_timer(new QTimer(this))
 {
+    m_timer_manager = new TimerFrontendManager();
     m_update_timer->setSingleShot(true);
     m_update_timer->setInterval(1000 / m_frame_limit);
     qDebug("TerrainRendererItem::TerrainRendererItem(QQuickItem* parent)");
@@ -67,6 +68,7 @@ TerrainRendererItem::TerrainRendererItem(QQuickItem* parent)
 
 TerrainRendererItem::~TerrainRendererItem()
 {
+    delete m_timer_manager;
     qDebug("TerrainRendererItem::~TerrainRendererItem()");
 }
 
@@ -98,6 +100,7 @@ QQuickFramebufferObject::Renderer* TerrainRendererItem::createRenderer() const
     connect(this, &TerrainRendererItem::key_pressed, r->glWindow(), &gl_engine::Window::key_press);
     connect(this, &TerrainRendererItem::shared_config_changed, r->glWindow(), &gl_engine::Window::shared_config_changed);
 
+    connect(r->glWindow(), &gl_engine::Window::report_measurements, this->m_timer_manager, &TimerFrontendManager::receive_measurements);
 
     connect(r->controller()->tile_scheduler(), &nucleus::tile_scheduler::Scheduler::gpu_quads_updated, RenderThreadNotifier::instance(), &RenderThreadNotifier::notify);
     return r;

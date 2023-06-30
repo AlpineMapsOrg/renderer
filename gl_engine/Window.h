@@ -23,6 +23,7 @@
 #include <QOpenGLWindow>
 #include <QPainter>
 #include <QVector3D>
+#include <QMap>
 #include <chrono>
 #include <glm/glm.hpp>
 #include <memory>
@@ -47,6 +48,7 @@ class ShaderManager;
 class Framebuffer;
 class Atmosphere;
 class TimerManager;
+class qTimerReport;
 
 class Window : public nucleus::AbstractRenderWindow, public nucleus::camera::AbstractDepthTester {
     Q_OBJECT
@@ -77,11 +79,10 @@ public slots:
     void key_press(const QKeyCombination& e); // Slot to connect key-events to
     void shared_config_changed(gl_engine::uboSharedConfig ubo);
 
-private:
-    using ClockResolution = std::chrono::microseconds;
-    using Clock = std::chrono::steady_clock;
-    using TimePoint = std::chrono::time_point<Clock, ClockResolution>;
+signals:
+    void report_measurements(QList<gl_engine::qTimerReport> values);
 
+private:
     std::unique_ptr<TimerManager> m_timer; // needs opengl context
 
     std::unique_ptr<TileManager> m_tile_manager; // needs opengl context
@@ -99,8 +100,6 @@ private:
 
     int m_frame = 0;
     bool m_initialised = false;
-    TimePoint m_frame_start;
-    TimePoint m_frame_end;
     QString m_debug_text;
     QString m_debug_scheduler_stats;
 };

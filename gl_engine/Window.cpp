@@ -91,11 +91,12 @@ void Window::initialise_gpu()
     m_shared_config_ubo->bind_to_shader(m_shader_manager->tile_shader());
 
     m_timer = std::make_unique<gl_engine::TimerManager>();
-    m_timer->add_timer("Frame", gl_engine::TimerTypes::CPU);
-    m_timer->add_timer("Depth", gl_engine::TimerTypes::GPU);
-    m_timer->add_timer("Atmosphere", gl_engine::TimerTypes::GPU);
-    m_timer->add_timer("Tiles", gl_engine::TimerTypes::GPU);
-    m_timer->add_timer("Compose", gl_engine::TimerTypes::GPU);
+    m_timer->add_timer("frame", gl_engine::TimerTypes::CPU, "CPU");
+    m_timer->add_timer("depth", gl_engine::TimerTypes::GPUAsync, "GPU");
+    m_timer->add_timer("atmosphere", gl_engine::TimerTypes::GPUAsync, "GPU");
+    m_timer->add_timer("tiles", gl_engine::TimerTypes::GPUAsync, "GPU", 120);
+    m_timer->add_timer("compose", gl_engine::TimerTypes::GPUAsync, "GPU");
+    m_timer->add_timer("tile_generator", gl_engine::TimerTypes::CPU, "CPU");
 
     emit gpu_ready_changed(true);
 }
@@ -115,15 +116,14 @@ void Window::resize_framebuffer(int width, int height)
 
 void Window::paint(QOpenGLFramebufferObject* framebuffer)
 {
-    m_frame_start = std::chrono::time_point_cast<ClockResolution>(Clock::now());
-    m_timer->start_timer("Frame");
+    m_timer->start_timer("frame");
+
     QOpenGLExtraFunctions *f = QOpenGLContext::currentContext()->extraFunctions();
+
     f->glEnable(GL_CULL_FACE);
     f->glCullFace(GL_BACK);
 
     m_camera.set_viewport_size(m_framebuffer->size());
-
-
 
     // DEPTH BUFFER
     m_depth_buffer->bind();
@@ -132,9 +132,9 @@ void Window::paint(QOpenGLFramebufferObject* framebuffer)
     f->glDepthFunc(GL_LESS);
 
     m_shader_manager->depth_program()->bind();
-    m_timer->start_timer("Depth");
-    m_tile_manager->draw(m_shader_manager->depth_program(), m_camera);
-    m_timer->stop_timer("Depth");
+    m_timer->start_timer("depth");
+    m_tile_manager->draw(m_shader_manager->depth_program(), m_camera, m_timer.get());
+    m_timer->stop_timer("depth");
     m_depth_buffer->unbind();
     // END DEPTH BUFFER
 
@@ -145,21 +145,21 @@ void Window::paint(QOpenGLFramebufferObject* framebuffer)
     f->glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
 
     m_shader_manager->atmosphere_bg_program()->bind();
-    m_timer->start_timer("Atmosphere");
+    m_timer->start_timer("atmosphere");
     m_atmosphere->draw(m_shader_manager->atmosphere_bg_program(),
                        m_camera,
                        m_shader_manager->screen_quad_program(),
                        m_framebuffer.get());
-    m_timer->stop_timer("Atmosphere");
+    m_timer->stop_timer("atmosphere");
     f->glEnable(GL_DEPTH_TEST);
     f->glDepthFunc(GL_LESS);
     f->glEnable(GL_BLEND);
     f->glBlendFunc(GL_ONE, GL_ONE_MINUS_SRC_ALPHA);
 
     m_shader_manager->tile_shader()->bind();
-    m_timer->start_timer("Tiles");
-    m_tile_manager->draw(m_shader_manager->tile_shader(), m_camera);
-    m_timer->stop_timer("Tiles");
+    m_timer->start_timer("tiles");
+    m_tile_manager->draw(m_shader_manager->tile_shader(), m_camera, m_timer.get());
+    m_timer->stop_timer("tiles");
 
     m_framebuffer->unbind();
     if (framebuffer)
@@ -167,28 +167,25 @@ void Window::paint(QOpenGLFramebufferObject* framebuffer)
 
     m_shader_manager->screen_quad_program()->bind();
     m_framebuffer->bind_colour_texture(0);
-    m_timer->start_timer("Compose");
+    m_timer->start_timer("compose");
     m_screen_quad_geometry.draw();
-    m_timer->stop_timer("Compose");
+    m_timer->stop_timer("compose");
 
     m_shader_manager->release();
 
-    f->glFinish(); // synchronization
 
-    m_timer->stop_timer("Frame");
+    m_timer->stop_timer("frame");
 
-    // Everything should be available by now, because we are synchronising
-    m_timer->fetch_results();
-
-    m_frame_end = std::chrono::time_point_cast<ClockResolution>(Clock::now());
+    // Everything should be available by now, because we are synchronising with glFinish
+    QList<gl_engine::qTimerReport> new_values = m_timer->fetch_results();
+    if (new_values.size() > 0) {
+        emit report_measurements(new_values);
+    }
 }
 
 void Window::paintOverGL(QPainter* painter)
 {
-    const auto frame_duration = (m_frame_end - m_frame_start);
-    const auto frame_duration_float = double(frame_duration.count()) / 1000.;
-    const auto frame_duration_text = QString("Last frame: %1ms, draw indicator: ")
-                                         .arg(QString::asprintf("%04.1f", frame_duration_float));
+    const auto frame_duration_text = QString("draw indicator: ");
 
     const auto random_u32 = QRandomGenerator::global()->generate();
 
