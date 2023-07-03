@@ -69,7 +69,10 @@ DrawListGenerator::TileSet DrawListGenerator::generate_for(const nucleus::camera
     TileSet visible_leaves;
     visible_leaves.reserve(all_leaves.size());
 
-    const auto is_visible = [&camera, this](const tile::Id &tile) {
+    const auto is_visible = [&camera, this](const tile::Id& tile) {
+        const auto new_visibility = tile_scheduler::utils::camera_frustum_contains_tile(camera, m_aabb_decorator->aabb(tile));
+        const auto old_visibility = tile_scheduler::utils::camera_frustum_contains_tile_old(camera, m_aabb_decorator->aabb(tile));
+        assert(old_visibility == new_visibility);
         return tile_scheduler::utils::camera_frustum_contains_tile(camera, m_aabb_decorator->aabb(tile));
     };
 

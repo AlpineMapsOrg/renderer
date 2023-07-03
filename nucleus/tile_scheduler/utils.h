@@ -123,45 +123,77 @@ namespace utils {
         }
     };
 
-    inline auto camera_frustum_contains_tile(const nucleus::camera::Definition& camera, const tile::SrsAndHeightBounds& aabb)
+
+    inline auto camera_frustum_contains_tile_old(const nucleus::camera::Definition& camera, const tile::SrsAndHeightBounds& aabb)
     {
-        if (aabb.contains(camera.position()))
-            return true;
-
-
-        const auto inside_old = [](const tile::SrsAndHeightBounds& box, const auto& planes)
-        {
-            const auto triangles = geometry::clip(geometry::triangulise(box), planes);
-            return !triangles.empty();
-        };
-
-        const auto inside = [] (const tile::SrsAndHeightBounds& box, const auto& planes)
-        {
-            // based on https://bruop.github.io/improved_frustum_culling/
-            const auto cs = corners(box);
-            for (const auto& p : planes) {
-                if (std::none_of(cs.begin(), cs.end(), [&p](const auto& c) { return distance(p, c) > 0; }))
-                    return false;
-            }
-            return true;
-        };
-
-        bool camera_inside = aabb.contains(camera.position());
-        bool new_inside = inside(aabb, camera.clipping_planes());
-
-        const auto aabb_m_cam_pos = geometry::Aabb<3, float>{aabb.min - camera.position(),
-                                                             aabb.max - camera.position()};
-        auto cam_copy = camera;
-        cam_copy.move(-cam_copy.position());
-        const auto clipping_planes_prime = cam_copy.clipping_planes();
+        //        if (aabb.contains(camera.position()))
+        //            return true;
 
         const auto clipping_planes = camera.clipping_planes();
-        const auto four_clipping_planes = camera.four_clipping_planes();
-        const auto triangles = clip(geometry::triangulise(aabb),
-                                    camera.four_clipping_planes());
-        bool old_inside = !triangles.empty();
-        assert(new_inside == old_inside || old_inside || camera_inside);
-        return new_inside;
+        const auto triangles = geometry::clip(geometry::triangulise(aabb), clipping_planes);
+        return !triangles.empty();
+    }
+
+    inline auto camera_frustum_contains_tile(const nucleus::camera::Definition& camera, const tile::SrsAndHeightBounds& aabb)
+    {
+        // based on https://bruop.github.io/improved_frustum_culling/
+
+        // todo: pull out frustum creation
+        const auto frustum = camera.frustum();
+        for (const auto& p : frustum.corners)
+            if (aabb.contains(p))
+                return true;
+
+        const auto corners = geometry::corners(aabb);
+        for (const auto& p : frustum.clipping_planes) {
+            if (std::none_of(corners.begin(), corners.end(), [&p](const auto& c) { return distance(p, c) > 0; }))
+                return false;
+        }
+
+        const auto aabb_corner_in_direction = [&aabb](const glm::dvec3& direction) {
+            glm::dvec3 p = aabb.min;
+            if (direction.x > 0) p.x = aabb.max.x;
+            if (direction.y > 0) p.x = aabb.max.y;
+            if (direction.z > 0) p.x = aabb.max.z;
+            return p;
+        };
+
+        const auto frustum_edges = std::array {
+            frustum.corners[4] - frustum.corners[0],
+            frustum.corners[5] - frustum.corners[1],
+            frustum.corners[6] - frustum.corners[2],
+            frustum.corners[7] - frustum.corners[3],
+            frustum.corners[1] - frustum.corners[0],
+            frustum.corners[3] - frustum.corners[0]
+        };
+
+        constexpr auto aabb_edges = std::array {
+            glm::dvec3 { 1., 0., 0. },
+            glm::dvec3 { 0., 1., 0. },
+            glm::dvec3 { 0., 0., 1. }
+        };
+
+        for (const auto& fe : frustum_edges) {
+            for (const auto& ae : aabb_edges) {
+                const glm::dvec3 direction = glm::cross(fe, ae);
+                if (std::abs(direction.x) < geometry::epsilon<double>
+                    && std::abs(direction.y) < geometry::epsilon<double>
+                    && std::abs(direction.z) < geometry::epsilon<double>)
+                    continue;
+                const auto aabb_corner = aabb_corner_in_direction(direction);
+                const auto distance = -glm::dot(direction, aabb_corner);
+
+                const auto p = geometry::Plane<double> { direction, distance };
+                if (std::none_of(frustum.corners.begin(), frustum.corners.end(), [&p](const auto& c) { return geometry::distance(p, c) > 0; })) {
+                    std::none_of(frustum.corners.begin(), frustum.corners.end(), [&p](const auto& c) {
+                        const auto distance = geometry::distance(p, c);
+                        return geometry::distance(p, c) > 0;
+                    });
+                    return false;
+                }
+            }
+        }
+        return true;
     }
 
     inline auto refine_functor_float(const nucleus::camera::Definition &camera,
@@ -176,6 +208,10 @@ namespace utils {
                     return false;
 
                 auto aabb = aabb_decorator->aabb(tile);
+
+                const auto new_visibility = tile_scheduler::utils::camera_frustum_contains_tile(camera, aabb);
+                const auto old_visibility = tile_scheduler::utils::camera_frustum_contains_tile_old(camera, aabb);
+                assert(old_visibility == new_visibility);
 
                 if (!camera_frustum_contains_tile(camera, aabb))
                     return false;
@@ -201,6 +237,10 @@ namespace utils {
                 return false;
 
             const auto aabb = aabb_decorator->aabb(tile);
+
+            const auto new_visibility = tile_scheduler::utils::camera_frustum_contains_tile(camera, aabb);
+            const auto old_visibility = tile_scheduler::utils::camera_frustum_contains_tile_old(camera, aabb);
+            assert(old_visibility == new_visibility);
 
             if (!camera_frustum_contains_tile(camera, aabb))
                 return false;

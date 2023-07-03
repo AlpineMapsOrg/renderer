@@ -92,24 +92,37 @@ TEST_CASE("tile_scheduler/utils/refine_functor")
 
 
 TEST_CASE("tile_scheduler/utils/camera frustum tile test") {
-    SECTION("case 1") {
+    QFile file(":/map/height_data.atb");
+    const auto open = file.open(QIODeviceBase::OpenModeFlag::ReadOnly);
+    assert(open);
+    const QByteArray data = file.readAll();
+    const auto decorator = nucleus::tile_scheduler::utils::AabbDecorator::make(
+        TileHeights::deserialise(data));
+
+    SECTION("case 1")
+    {
         auto cam = nucleus::camera::Definition(glm::dvec3{0, 0, 0}, glm::dvec3{0, 1, 0});
         cam.set_viewport_size({100, 100});
         cam.set_field_of_view(90);
         cam.set_near_plane(0.01f);
 
-        CHECK(nucleus::tile_scheduler::utils::camera_frustum_contains_tile(cam, tile::SrsAndHeightBounds{{-1., 10., -1.}, {1., 10., 1.}}));
-        CHECK(nucleus::tile_scheduler::utils::camera_frustum_contains_tile(cam, tile::SrsAndHeightBounds{{0., 0., 0.}, {1., 1., 1.}}));
-        CHECK(nucleus::tile_scheduler::utils::camera_frustum_contains_tile(cam, tile::SrsAndHeightBounds{{-10., -10., -10.}, {10., 1., 10.}}));
-        CHECK(!nucleus::tile_scheduler::utils::camera_frustum_contains_tile(cam, tile::SrsAndHeightBounds{{-10., -10., -10.}, {10., -1., 10.}}));
-        CHECK(!nucleus::tile_scheduler::utils::camera_frustum_contains_tile(cam, tile::SrsAndHeightBounds{{-10., 0., -10.}, {-9., 1., -9.}}));
+        CHECK(nucleus::tile_scheduler::utils::camera_frustum_contains_tile(cam, tile::SrsAndHeightBounds { { -1., 10., -1. }, { 1., 10., 1. } }));
+        CHECK(nucleus::tile_scheduler::utils::camera_frustum_contains_tile(cam, tile::SrsAndHeightBounds { { 0., 0., 0. }, { 1., 1., 1. } }));
+        CHECK(nucleus::tile_scheduler::utils::camera_frustum_contains_tile(cam, tile::SrsAndHeightBounds { { -10., -10., -10. }, { 10., 1., 10. } }));
+        CHECK(!nucleus::tile_scheduler::utils::camera_frustum_contains_tile(cam, tile::SrsAndHeightBounds { { -10., -10., -10. }, { 10., -1., 10. } }));
+        CHECK(!nucleus::tile_scheduler::utils::camera_frustum_contains_tile(cam, tile::SrsAndHeightBounds { { -10., 0., -10. }, { -9., 1., -9. } }));
     }
     SECTION("case 2") {
         auto cam = nucleus::camera::stored_positions::wien();
         cam.set_viewport_size({1920, 1080});
         cam.set_field_of_view(60);
 
-        CHECK(!nucleus::tile_scheduler::utils::camera_frustum_contains_tile(cam, tile::SrsAndHeightBounds{{1878516.4071364924, 5635549.221409474, 0.0},
-                                                                                                          {2504688.5428486564, 6261721.357121637, 1157.4707507122087}}));
+        CHECK(!nucleus::tile_scheduler::utils::camera_frustum_contains_tile_old(cam,
+            tile::SrsAndHeightBounds { { 1878516.4071364924, 5635549.221409474, 0.0 }, { 2504688.5428486564, 6261721.357121637, 1157.4707507122087 } }));
+        CHECK(!nucleus::tile_scheduler::utils::camera_frustum_contains_tile(cam,
+            tile::SrsAndHeightBounds { { 1878516.4071364924, 5635549.221409474, 0.0 }, { 2504688.5428486564, 6261721.357121637, 1157.4707507122087 } }));
+
+        CHECK(nucleus::tile_scheduler::utils::camera_frustum_contains_tile(cam, decorator->aabb({ 3, { 4, 4 } }))
+            == nucleus::tile_scheduler::utils::camera_frustum_contains_tile_old(cam, decorator->aabb({ 3, { 4, 4 } })));
     }
 }
