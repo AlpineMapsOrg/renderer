@@ -20,11 +20,14 @@
 #include <QFile>
 #include <QImage>
 #include <QThread>
+#include <catch2/benchmark/catch_benchmark.hpp>
 #include <catch2/catch_approx.hpp>
 #include <catch2/catch_test_macros.hpp>
 
+#include "nucleus/camera/stored_positions.h"
 #include "nucleus/tile_scheduler/utils.h"
 #include "nucleus/utils/tile_conversion.h"
+#include "sherpa/quad_tree.h"
 
 using Catch::Approx;
 using namespace nucleus::tile_scheduler;
@@ -46,3 +49,42 @@ TEST_CASE("nucleus/tile_scheduler/utils/make_bounds altitude correction")
     }
 }
 
+TEST_CASE("tile_scheduler/utils/refine_functor")
+{
+    // todo: optimise / benchmark refine functor
+    // todo: optimise / benchmark draw list generator
+    auto camera = nucleus::camera::stored_positions::stephansdom_closeup();
+
+    QFile file(":/map/height_data.atb");
+    const auto open = file.open(QIODeviceBase::OpenModeFlag::ReadOnly);
+    assert(open);
+    const QByteArray data = file.readAll();
+    const auto decorator = nucleus::tile_scheduler::utils::AabbDecorator::make(
+        TileHeights::deserialise(data));
+
+    const auto refine_functor = utils::refineFunctor(camera, decorator, 1.0);
+    const auto all_leaves = quad_tree::onTheFlyTraverse(
+        tile::Id{0, {0, 0}},
+        [](const tile::Id &v) { return v.zoom_level < 6; },
+        [](const tile::Id &v) { return v.children(); });
+
+    std::cout << "num leaves: " << all_leaves.size() << std::endl;
+    BENCHMARK("refine functor double")
+    {
+        auto retval = true;
+        for (const auto &id : all_leaves) {
+            retval = retval && !refine_functor(id);
+        }
+        return retval;
+    };
+
+    const auto refine_functor_float = utils::refine_functor_float(camera, decorator, 1.0);
+    BENCHMARK("refine functor float")
+    {
+        auto retval = true;
+        for (const auto &id : all_leaves) {
+            retval = retval && !refine_functor_float(id);
+        }
+        return retval;
+    };
+}

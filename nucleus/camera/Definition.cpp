@@ -106,17 +106,32 @@ glm::dvec3 nucleus::camera::Definition::ray_direction(const glm::dvec2& normalis
     return glm::normalize(glm::dvec3(inverse_view_matrix * normalised_unprojected) - position());
 }
 
-std::vector<geometry::Plane<double>> nucleus::camera::Definition::clipping_planes() const
+std::array<geometry::Plane<double>, 6> nucleus::camera::Definition::clipping_planes() const
 {
-    std::vector<geometry::Plane<double>> clipping_panes;
+    std::array<geometry::Plane<double>, 6> clipping_panes;
+
     // front and back
     const auto p0 = position() + -z_axis() * double(m_near_clipping);
-    clipping_panes.push_back({ .normal = -z_axis(), .distance = -dot(-z_axis(), p0) });
+    clipping_panes[0] = {.normal = -z_axis(), .distance = -dot(-z_axis(), p0)};
     const auto p1 = position() + -z_axis() * double(m_far_clipping);
-    clipping_panes.push_back({ .normal = z_axis(), .distance = -dot(z_axis(), p1) });
+    clipping_panes[1] = {.normal = z_axis(), .distance = -dot(z_axis(), p1)};
 
-    const auto four = four_clipping_planes();
-    std::copy(four.begin(), four.end(), std::back_inserter(clipping_panes));
+    const auto clippingPane = [this](const glm::dvec2& a, const glm::dvec2& b) {
+        const auto v_a = ray_direction(a);
+        const auto v_b = ray_direction(b);
+        const auto normal = glm::normalize(cross(v_a, v_b));
+        const auto distance = -dot(normal, position());
+        return geometry::Plane<double>{normal, distance};
+    };
+
+    // top and down
+    clipping_panes[2] = clippingPane({-1, 1}, {1, 1});
+    clipping_panes[3] = clippingPane({1, -1}, {-1, -1});
+
+    // left and right
+    clipping_panes[4] = clippingPane({-1, -1}, {-1, 1});
+    clipping_panes[5] = clippingPane({1, 1}, {1, -1});
+
     return clipping_panes;
 }
 
@@ -130,6 +145,7 @@ std::vector<geometry::Plane<double>> nucleus::camera::Definition::four_clipping_
         return geometry::Plane<double> { normal, distance };
     };
     std::vector<geometry::Plane<double>> clipping_panes;
+    clipping_panes.reserve(4);
 
     // top and down
     clipping_panes.push_back(clippingPane({ -1, 1 }, { 1, 1 }));

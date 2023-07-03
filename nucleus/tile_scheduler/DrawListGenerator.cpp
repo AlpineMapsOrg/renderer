@@ -52,10 +52,13 @@ void DrawListGenerator::remove_tile(const tile::Id& id)
 
 DrawListGenerator::TileSet DrawListGenerator::generate_for(const nucleus::camera::Definition& camera) const
 {
-    const auto tile_refine_functor = tile_scheduler::utils::refineFunctor(camera, m_aabb_decorator, m_permissible_screen_space_error);
-    const auto draw_refine_functor = [&tile_refine_functor, this](const tile::Id& tile) {
+    const auto tile_refine_functor
+        = tile_scheduler::utils::refineFunctor(camera,
+                                               m_aabb_decorator,
+                                               m_permissible_screen_space_error);
+    const auto draw_refine_functor = [&tile_refine_functor, this](const tile::Id &tile) {
         bool all = true;
-        for (const auto& child : tile.children()) {
+        for (const auto &child : tile.children()) {
             all = all && m_available_tiles.contains(child);
         }
         //        all = all || tile.zoom_level < 10;
@@ -66,7 +69,7 @@ DrawListGenerator::TileSet DrawListGenerator::generate_for(const nucleus::camera
     TileSet visible_leaves;
     visible_leaves.reserve(all_leaves.size());
 
-    const auto is_visible = [&camera, this](const tile::Id& tile) {
+    const auto is_visible = [&camera, this](const tile::Id &tile) {
         return tile_scheduler::cameraFrustumContainsTile(camera, m_aabb_decorator->aabb(tile));
     };
 

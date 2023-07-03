@@ -58,8 +58,26 @@ inline auto cameraFrustumContainsTile(const nucleus::camera::Definition& camera,
 {
     // this test should be based only on the four frustum planes (top, left, bottom, right), because
     // the near and far planes are adjusted based on the loaded AABBs, and that results in  a chicken egg problem.
-    const auto triangles = geometry::clip(geometry::triangulise(aabb), camera.four_clipping_planes());
-    return !triangles.empty();
+
+    //        if (aabb.contains(camera.position()))
+    //            return true;
+
+    bool camera_inside = aabb.contains(camera.position());
+    bool new_inside = geometry::inside(aabb, camera.clipping_planes());
+
+    const auto aabb_m_cam_pos = geometry::Aabb<3, float>{aabb.min - camera.position(),
+                                                         aabb.max - camera.position()};
+    auto cam_copy = camera;
+    cam_copy.move(-cam_copy.position());
+    const auto clipping_planes_prime = cam_copy.clipping_planes();
+
+    const auto clipping_planes = camera.clipping_planes();
+    const auto four_clipping_planes = camera.four_clipping_planes();
+    const auto triangles = geometry::clip(geometry::triangulise(aabb),
+                                          camera.four_clipping_planes());
+    bool old_inside = !triangles.empty();
+    assert(new_inside == old_inside || old_inside || camera_inside);
+    return new_inside;
 }
 
 namespace utils {
@@ -131,7 +149,36 @@ namespace utils {
         }
     };
 
-    inline auto refineFunctor(const nucleus::camera::Definition& camera, const AabbDecoratorPtr& aabb_decorator, double error_threshold_px, double tile_size = 256)
+    inline auto refine_functor_float(const nucleus::camera::Definition &camera,
+                                     const AabbDecoratorPtr &aabb_decorator,
+                                     float error_threshold_px,
+                                     float tile_size = 256)
+    {
+        constexpr auto sqrt2 = 1.414213562373095f;
+        auto refine =
+            [&camera, error_threshold_px, tile_size, aabb_decorator](const tile::Id &tile) {
+                if (tile.zoom_level >= 18)
+                    return false;
+
+                auto aabb = aabb_decorator->aabb(tile);
+
+                if (!cameraFrustumContainsTile(camera, aabb))
+                    return false;
+                const auto aabb_float = geometry::Aabb<3, float>{aabb.min - camera.position(),
+                                                                 aabb.max - camera.position()};
+
+                const auto distance = geometry::distance(aabb_float, glm::vec3{0, 0, 0});
+                const auto pixel_size = sqrt2 * aabb_float.size().x / tile_size;
+
+                return camera.to_screen_space(pixel_size, distance) >= error_threshold_px;
+            };
+        return refine;
+    }
+
+    inline auto refineFunctor(const nucleus::camera::Definition &camera,
+                              const AabbDecoratorPtr &aabb_decorator,
+                              double error_threshold_px,
+                              double tile_size = 256)
     {
         constexpr auto sqrt2 = 1.414213562373095;
         auto refine = [&camera, error_threshold_px, tile_size, aabb_decorator](const tile::Id& tile) {
