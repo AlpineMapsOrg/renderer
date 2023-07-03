@@ -54,32 +54,6 @@ inline glm::dvec3 nearestVertex(const nucleus::camera::Definition& camera, const
     return nearest_point;
 }
 
-inline auto cameraFrustumContainsTile(const nucleus::camera::Definition& camera, const tile::SrsAndHeightBounds& aabb)
-{
-    // this test should be based only on the four frustum planes (top, left, bottom, right), because
-    // the near and far planes are adjusted based on the loaded AABBs, and that results in  a chicken egg problem.
-
-    //        if (aabb.contains(camera.position()))
-    //            return true;
-
-    bool camera_inside = aabb.contains(camera.position());
-    bool new_inside = geometry::inside(aabb, camera.clipping_planes());
-
-    const auto aabb_m_cam_pos = geometry::Aabb<3, float>{aabb.min - camera.position(),
-                                                         aabb.max - camera.position()};
-    auto cam_copy = camera;
-    cam_copy.move(-cam_copy.position());
-    const auto clipping_planes_prime = cam_copy.clipping_planes();
-
-    const auto clipping_planes = camera.clipping_planes();
-    const auto four_clipping_planes = camera.four_clipping_planes();
-    const auto triangles = geometry::clip(geometry::triangulise(aabb),
-                                          camera.four_clipping_planes());
-    bool old_inside = !triangles.empty();
-    assert(new_inside == old_inside || old_inside || camera_inside);
-    return new_inside;
-}
-
 namespace utils {
 #if defined(_LIBCPP_VERSION) && (_LIBCPP_VERSION < 15000)
     // #define STRING2(x) #x
@@ -149,6 +123,47 @@ namespace utils {
         }
     };
 
+    inline auto camera_frustum_contains_tile(const nucleus::camera::Definition& camera, const tile::SrsAndHeightBounds& aabb)
+    {
+        if (aabb.contains(camera.position()))
+            return true;
+
+
+        const auto inside_old = [](const tile::SrsAndHeightBounds& box, const auto& planes)
+        {
+            const auto triangles = geometry::clip(geometry::triangulise(box), planes);
+            return !triangles.empty();
+        };
+
+        const auto inside = [] (const tile::SrsAndHeightBounds& box, const auto& planes)
+        {
+            // based on https://bruop.github.io/improved_frustum_culling/
+            const auto cs = corners(box);
+            for (const auto& p : planes) {
+                if (std::none_of(cs.begin(), cs.end(), [&p](const auto& c) { return distance(p, c) > 0; }))
+                    return false;
+            }
+            return true;
+        };
+
+        bool camera_inside = aabb.contains(camera.position());
+        bool new_inside = inside(aabb, camera.clipping_planes());
+
+        const auto aabb_m_cam_pos = geometry::Aabb<3, float>{aabb.min - camera.position(),
+                                                             aabb.max - camera.position()};
+        auto cam_copy = camera;
+        cam_copy.move(-cam_copy.position());
+        const auto clipping_planes_prime = cam_copy.clipping_planes();
+
+        const auto clipping_planes = camera.clipping_planes();
+        const auto four_clipping_planes = camera.four_clipping_planes();
+        const auto triangles = clip(geometry::triangulise(aabb),
+                                    camera.four_clipping_planes());
+        bool old_inside = !triangles.empty();
+        assert(new_inside == old_inside || old_inside || camera_inside);
+        return new_inside;
+    }
+
     inline auto refine_functor_float(const nucleus::camera::Definition &camera,
                                      const AabbDecoratorPtr &aabb_decorator,
                                      float error_threshold_px,
@@ -162,7 +177,7 @@ namespace utils {
 
                 auto aabb = aabb_decorator->aabb(tile);
 
-                if (!cameraFrustumContainsTile(camera, aabb))
+                if (!camera_frustum_contains_tile(camera, aabb))
                     return false;
                 const auto aabb_float = geometry::Aabb<3, float>{aabb.min - camera.position(),
                                                                  aabb.max - camera.position()};
@@ -187,7 +202,7 @@ namespace utils {
 
             const auto aabb = aabb_decorator->aabb(tile);
 
-            if (!cameraFrustumContainsTile(camera, aabb))
+            if (!camera_frustum_contains_tile(camera, aabb))
                 return false;
 
             const auto distance = geometry::distance(aabb, camera.position());

@@ -106,33 +106,58 @@ glm::dvec3 nucleus::camera::Definition::ray_direction(const glm::dvec2& normalis
     return glm::normalize(glm::dvec3(inverse_view_matrix * normalised_unprojected) - position());
 }
 
-std::array<geometry::Plane<double>, 6> nucleus::camera::Definition::clipping_planes() const
+nucleus::camera::Frustum nucleus::camera::Definition::frustum() const
 {
-    std::array<geometry::Plane<double>, 6> clipping_panes;
-
+    nucleus::camera::Frustum frustum;
     // front and back
     const auto p0 = position() + -z_axis() * double(m_near_clipping);
-    clipping_panes[0] = {.normal = -z_axis(), .distance = -dot(-z_axis(), p0)};
+    frustum.clipping_planes[0] = {.normal = -z_axis(), .distance = -dot(-z_axis(), p0)};
     const auto p1 = position() + -z_axis() * double(m_far_clipping);
-    clipping_panes[1] = {.normal = z_axis(), .distance = -dot(z_axis(), p1)};
+    frustum.clipping_planes[1] = {.normal = z_axis(), .distance = -dot(z_axis(), p1)};
 
-    const auto clippingPane = [this](const glm::dvec2& a, const glm::dvec2& b) {
-        const auto v_a = ray_direction(a);
-        const auto v_b = ray_direction(b);
+    constexpr auto tl = glm::dvec2{-1, 1};
+    constexpr auto bl = glm::dvec2{-1, -1};
+    constexpr auto br = glm::dvec2{1, -1};
+    constexpr auto tr = glm::dvec2{1, 1};
+
+    const auto ray_tl = ray_direction(tl);
+    const auto ray_bl = ray_direction(bl);
+    const auto ray_br = ray_direction(br);
+    const auto ray_tr = ray_direction(tr);
+
+
+    const auto clippingPane = [this](const glm::dvec3& v_a, const glm::dvec3& v_b) {
         const auto normal = glm::normalize(cross(v_a, v_b));
         const auto distance = -dot(normal, position());
         return geometry::Plane<double>{normal, distance};
     };
 
     // top and down
-    clipping_panes[2] = clippingPane({-1, 1}, {1, 1});
-    clipping_panes[3] = clippingPane({1, -1}, {-1, -1});
+    frustum.clipping_planes[2] = clippingPane(ray_tl, ray_tr);
+    frustum.clipping_planes[3] = clippingPane(ray_br, ray_bl);
 
     // left and right
-    clipping_panes[4] = clippingPane({-1, -1}, {-1, 1});
-    clipping_panes[5] = clippingPane({1, 1}, {1, -1});
+    frustum.clipping_planes[4] = clippingPane(ray_bl, ray_tl);
+    frustum.clipping_planes[5] = clippingPane(ray_tr, ray_br);
 
-    return clipping_panes;
+    // near corners
+    frustum.corners[0] = geometry::intersection(geometry::Line<3, double>{position(), ray_tl}, frustum.clipping_planes[0]).value();
+    frustum.corners[1] = geometry::intersection(geometry::Line<3, double>{position(), ray_bl}, frustum.clipping_planes[0]).value();
+    frustum.corners[2] = geometry::intersection(geometry::Line<3, double>{position(), ray_br}, frustum.clipping_planes[0]).value();
+    frustum.corners[3] = geometry::intersection(geometry::Line<3, double>{position(), ray_tr}, frustum.clipping_planes[0]).value();
+
+    // far corners
+    frustum.corners[4] = geometry::intersection(geometry::Line<3, double>{position(), ray_tl}, frustum.clipping_planes[1]).value();
+    frustum.corners[5] = geometry::intersection(geometry::Line<3, double>{position(), ray_bl}, frustum.clipping_planes[1]).value();
+    frustum.corners[6] = geometry::intersection(geometry::Line<3, double>{position(), ray_br}, frustum.clipping_planes[1]).value();
+    frustum.corners[7] = geometry::intersection(geometry::Line<3, double>{position(), ray_tr}, frustum.clipping_planes[1]).value();
+
+    return frustum;
+}
+
+std::array<geometry::Plane<double>, 6> nucleus::camera::Definition::clipping_planes() const
+{
+    return frustum().clipping_planes;
 }
 
 std::vector<geometry::Plane<double>> nucleus::camera::Definition::four_clipping_planes() const

@@ -23,6 +23,7 @@
 #include <catch2/benchmark/catch_benchmark.hpp>
 #include <catch2/catch_approx.hpp>
 #include <catch2/catch_test_macros.hpp>
+#include <nucleus/camera/Definition.h>
 
 #include "nucleus/camera/stored_positions.h"
 #include "nucleus/tile_scheduler/utils.h"
@@ -68,7 +69,6 @@ TEST_CASE("tile_scheduler/utils/refine_functor")
         [](const tile::Id &v) { return v.zoom_level < 6; },
         [](const tile::Id &v) { return v.children(); });
 
-    std::cout << "num leaves: " << all_leaves.size() << std::endl;
     BENCHMARK("refine functor double")
     {
         auto retval = true;
@@ -87,4 +87,29 @@ TEST_CASE("tile_scheduler/utils/refine_functor")
         }
         return retval;
     };
+}
+
+
+
+TEST_CASE("tile_scheduler/utils/camera frustum tile test") {
+    SECTION("case 1") {
+        auto cam = nucleus::camera::Definition(glm::dvec3{0, 0, 0}, glm::dvec3{0, 1, 0});
+        cam.set_viewport_size({100, 100});
+        cam.set_field_of_view(90);
+        cam.set_near_plane(0.01f);
+
+        CHECK(nucleus::tile_scheduler::utils::camera_frustum_contains_tile(cam, tile::SrsAndHeightBounds{{-1., 10., -1.}, {1., 10., 1.}}));
+        CHECK(nucleus::tile_scheduler::utils::camera_frustum_contains_tile(cam, tile::SrsAndHeightBounds{{0., 0., 0.}, {1., 1., 1.}}));
+        CHECK(nucleus::tile_scheduler::utils::camera_frustum_contains_tile(cam, tile::SrsAndHeightBounds{{-10., -10., -10.}, {10., 1., 10.}}));
+        CHECK(!nucleus::tile_scheduler::utils::camera_frustum_contains_tile(cam, tile::SrsAndHeightBounds{{-10., -10., -10.}, {10., -1., 10.}}));
+        CHECK(!nucleus::tile_scheduler::utils::camera_frustum_contains_tile(cam, tile::SrsAndHeightBounds{{-10., 0., -10.}, {-9., 1., -9.}}));
+    }
+    SECTION("case 2") {
+        auto cam = nucleus::camera::stored_positions::wien();
+        cam.set_viewport_size({1920, 1080});
+        cam.set_field_of_view(60);
+
+        CHECK(!nucleus::tile_scheduler::utils::camera_frustum_contains_tile(cam, tile::SrsAndHeightBounds{{1878516.4071364924, 5635549.221409474, 0.0},
+                                                                                                          {2504688.5428486564, 6261721.357121637, 1157.4707507122087}}));
+    }
 }

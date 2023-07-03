@@ -255,4 +255,83 @@ TEST_CASE("nucleus/camera: Definition")
             CHECK(clipping_panes[5].distance == Approx(10).scale(1));
         }
     }
+
+    SECTION("frustum")
+    {
+        { // camera in origin
+            auto c = nucleus::camera::Definition({ 0, 0, 0 }, { 1, 0, 0 });
+            c.set_perspective_params(90, { 100, 100 }, 0.5);
+            const auto frustum = c.frustum();
+
+            // planes
+            // front and back
+            CHECK(equals(frustum.clipping_planes[0].normal, glm::normalize(glm::dvec3(1, 0, 0))));
+            CHECK(frustum.clipping_planes[0].distance == Approx(-0.5));
+            CHECK(equals(frustum.clipping_planes[1].normal, glm::normalize(glm::dvec3(-1, 0, 0))));
+            CHECK(frustum.clipping_planes[1].distance == Approx(500'000));
+            // top and down
+            CHECK(equals(frustum.clipping_planes[2].normal, glm::normalize(glm::dvec3(1, 0, -1))));
+            CHECK(frustum.clipping_planes[2].distance == Approx(0).scale(1));
+            CHECK(equals(frustum.clipping_planes[3].normal, glm::normalize(glm::dvec3(1, 0, 1))));
+            CHECK(frustum.clipping_planes[3].distance == Approx(0).scale(1));
+            // left and right
+            CHECK(equals(frustum.clipping_planes[4].normal, glm::normalize(glm::dvec3(1, -1, 0))));
+            CHECK(frustum.clipping_planes[4].distance == Approx(0).scale(1));
+            CHECK(equals(frustum.clipping_planes[5].normal, glm::normalize(glm::dvec3(1, 1, 0))));
+            CHECK(frustum.clipping_planes[5].distance == Approx(0).scale(1));
+
+            // corners
+            // front plane
+            CHECK(equals(frustum.corners[0], glm::dvec3(0.5, 0.5, 0.5)));  // tl
+            CHECK(equals(frustum.corners[1], glm::dvec3(0.5, 0.5, -0.5)));  // bl err
+            CHECK(equals(frustum.corners[2], glm::dvec3(0.5, -0.5, -0.5)));  // br err
+            CHECK(equals(frustum.corners[3], glm::dvec3(0.5, -0.5, 0.5)));  // tr
+
+            // back plane
+            CHECK(equals(frustum.corners[4], glm::dvec3(0.5, 0.5, 0.5) * 1'000'000.0));  // tl
+            CHECK(equals(frustum.corners[5], glm::dvec3(0.5, 0.5, -0.5) * 1'000'000.0));  // bl
+            CHECK(equals(frustum.corners[6], glm::dvec3(0.5, -0.5, -0.5) * 1'000'000.0));  // br
+            CHECK(equals(frustum.corners[7], glm::dvec3(0.5, -0.5, 0.5) * 1'000'000.0));  // tr
+        }
+        { // camera somewhere else
+            auto c = nucleus::camera::Definition({ 10, 10, 0 }, { 0, 0, 0 });
+            c.set_perspective_params(90, { 100, 100 }, 0.5);
+            const auto frustum = c.frustum();
+            // front and back
+            CHECK(equals(frustum.clipping_planes[0].normal, glm::normalize(glm::dvec3(-1, -1, 0))));
+            CHECK(frustum.clipping_planes[0].distance == Approx(std::sqrt(200.0) - 0.5));
+            CHECK(equals(frustum.clipping_planes[1].normal, glm::normalize(glm::dvec3(1, 1, 0))));
+            CHECK(frustum.clipping_planes[1].distance == Approx(500'000.0 - std::sqrt(200.0)));
+            // top and down
+            CHECK(equals(frustum.clipping_planes[2].normal, glm::normalize(glm::dvec3(-0.5, -0.5, -std::sqrt(0.5)))));
+            CHECK(frustum.clipping_planes[2].distance == Approx(10).scale(1));
+            CHECK(equals(frustum.clipping_planes[3].normal, glm::normalize(glm::dvec3(-0.5, -0.5, std::sqrt(0.5)))));
+            CHECK(frustum.clipping_planes[3].distance == Approx(10).scale(1));
+            // left and right
+            CHECK(equals(frustum.clipping_planes[4].normal, glm::normalize(glm::dvec3(-1, 0, 0))));
+            CHECK(frustum.clipping_planes[4].distance == Approx(10).scale(1));
+            CHECK(equals(frustum.clipping_planes[5].normal, glm::normalize(glm::dvec3(0, -1, 0))));
+            CHECK(frustum.clipping_planes[5].distance == Approx(10).scale(1));
+
+
+            // corners // the order of corners is ccw, starting from top left, front plane -> back plane
+            const auto front = frustum.clipping_planes[0];
+            const auto back = frustum.clipping_planes[1];
+            const auto top = frustum.clipping_planes[2];
+            const auto bottom = frustum.clipping_planes[3];
+            const auto left = frustum.clipping_planes[4];
+            const auto right = frustum.clipping_planes[5];
+            // front plane
+            CHECK(equals(frustum.corners[0], geometry::intersection(geometry::intersection(left, top).value(), front).value()));  // tl
+            CHECK(equals(frustum.corners[1], geometry::intersection(geometry::intersection(left, bottom).value(), front).value()));  // bl
+            CHECK(equals(frustum.corners[2], geometry::intersection(geometry::intersection(right, bottom).value(), front).value()));  // br
+            CHECK(equals(frustum.corners[3], geometry::intersection(geometry::intersection(right, top).value(), front).value()));  // tr
+
+            // back plane
+            CHECK(equals(frustum.corners[4], geometry::intersection(geometry::intersection(left, top).value(), back).value()));  // tl
+            CHECK(equals(frustum.corners[5], geometry::intersection(geometry::intersection(left, bottom).value(), back).value()));  // bl
+            CHECK(equals(frustum.corners[6], geometry::intersection(geometry::intersection(right, bottom).value(), back).value()));  // br
+            CHECK(equals(frustum.corners[7], geometry::intersection(geometry::intersection(right, top).value(), back).value()));  // tr
+        }
+    }
 }
