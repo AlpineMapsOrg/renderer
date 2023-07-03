@@ -31,7 +31,7 @@ We use Qt Creator (with mingw on Windows), which is the only tested setup atm an
 * The threaded version doesn't seem to work atm, so use the non-threaded!
 
 # Code style
-* class names are CamelCase, method and variable names are snake_case.
+* class names are CamelCase, method, function and variable names are snake_case.
 * class attributes have an m_ prefix and are usually private, struct attributes don't and are usually public.
 * structs are usually small, simple, and have no or only few methods. they never have inheritance.
 * files are CamelCase if the content is a CamelCase class. otherwise they are snake_case, and have a snake_case namespace with stuff.
