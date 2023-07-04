@@ -37,6 +37,28 @@ using namespace nucleus::tile_scheduler::tile_types;
 
 namespace {
 
+std::unique_ptr<Scheduler> scheduler_with_true_heights()
+{
+    static auto ortho_tile = Scheduler::white_jpeg_tile(256);
+    static auto height_tile = Scheduler::black_png_tile(64);
+
+    auto scheduler = std::make_unique<Scheduler>(ortho_tile, height_tile);
+    QSignalSpy spy(scheduler.get(), &Scheduler::quads_requested);
+
+    QFile file(":/map/height_data.atb");
+    const auto open = file.open(QIODeviceBase::OpenModeFlag::ReadOnly);
+    assert(open);
+    const QByteArray data = file.readAll();
+    const auto decorator = nucleus::tile_scheduler::utils::AabbDecorator::make(
+        TileHeights::deserialise(data));
+    scheduler->set_aabb_decorator(decorator);
+    scheduler->set_update_timeout(1);
+    scheduler->set_enabled(true);
+    spy.wait(2); // wait for quad requests triggered by set_enabled
+    REQUIRE(spy.size() == 1);
+    return scheduler;
+}
+
 std::unique_ptr<Scheduler> default_scheduler()
 {
     static auto ortho_tile = Scheduler::white_jpeg_tile(256);
@@ -184,7 +206,7 @@ constexpr auto timing_multiplicator = 10;
 constexpr auto timing_multiplicator = 1;
 #endif
 
-}
+} // namespace
 
 TEST_CASE("nucleus/tile_scheduler/Scheduler")
 {
@@ -255,7 +277,18 @@ TEST_CASE("nucleus/tile_scheduler/Scheduler")
         CHECK(std::find(quads.cbegin(), quads.cend(), tile::Id { 1, { 1, 1 } }) != quads.end());
         CHECK(std::find(quads.cbegin(), quads.cend(), tile::Id { 2, { 2, 2 } }) != quads.end());
         CHECK(std::find(quads.cbegin(), quads.cend(), tile::Id { 3, { 4, 5 } }) != quads.end());
-        CHECK(std::find(quads.cbegin(), quads.cend(), tile::Id { 4, { 8, 10 } }) != quads.end());
+        CHECK(std::find(quads.cbegin(), quads.cend(), tile::Id{4, {8, 10}}) != quads.end());
+
+        // currently we have tiles up until zoom level 18 for the depth tiles
+        // so max quad tile level is 17.
+        CHECK(std::find_if(quads.cbegin(),
+                           quads.cend(),
+                           [](const tile::Id &id) { return id.zoom_level == 17; })
+              != quads.end());
+        CHECK(std::find_if(quads.cbegin(),
+                           quads.cend(),
+                           [](const tile::Id &id) { return id.zoom_level == 18; })
+              == quads.end());
     }
 
     SECTION("quads are not requested if there is no network")
@@ -408,10 +441,10 @@ TEST_CASE("nucleus/tile_scheduler/Scheduler")
         const auto wsmax = nucleus::srs::tile_bounds({ 0, { 0, 0 } }).max.x; // world space max
         const auto wsmin = nucleus::srs::tile_bounds({ 0, { 0, 0 } }).min.x;
 
-        compare_bounds(gpu_quads[0].tiles[0].bounds, tile::SrsAndHeightBounds { { wsmin, wsmin, 100 }, { 0, 0, 46367.813102 } });
-        compare_bounds(gpu_quads[0].tiles[1].bounds, tile::SrsAndHeightBounds { { 0, wsmin, 100 }, { wsmax, 0, 46367.813102 } });
-        compare_bounds(gpu_quads[0].tiles[2].bounds, tile::SrsAndHeightBounds { { wsmin, 0, 100 }, { 0, wsmax, 46367.813102 } });
-        compare_bounds(gpu_quads[0].tiles[3].bounds, tile::SrsAndHeightBounds { { 0, 0, 100 }, { wsmax, wsmax, 46367.813102 } });
+        compare_bounds(gpu_quads[0].tiles[0].bounds, tile::SrsAndHeightBounds { { wsmin, wsmin, 100 - 0.5 }, { 0, 0, 46367.813102 } });
+        compare_bounds(gpu_quads[0].tiles[1].bounds, tile::SrsAndHeightBounds { { 0, wsmin, 100 - 0.5 }, { wsmax, 0, 46367.813102 } });
+        compare_bounds(gpu_quads[0].tiles[2].bounds, tile::SrsAndHeightBounds { { wsmin, 0, 100 - 0.5 }, { 0, wsmax, 46367.813102 } });
+        compare_bounds(gpu_quads[0].tiles[3].bounds, tile::SrsAndHeightBounds { { 0, 0, 100 - 0.5 }, { wsmax, wsmax, 46367.813102 } });
 
         for (auto i = 0; i < 4; ++i) {
             REQUIRE(gpu_quads[0].tiles[i].ortho);
@@ -741,15 +774,17 @@ TEST_CASE("nucleus/tile_scheduler/Scheduler benchmarks")
 
     BENCHMARK("construct")
     {
-        return default_scheduler();
+        return scheduler_with_true_heights();
     };
 
-    BENCHMARK("request quads")
     {
-        auto scheduler = default_scheduler();
-        scheduler->update_camera(camera);
-        scheduler->send_quad_requests();
-    };
+        auto scheduler = scheduler_with_true_heights();
+        BENCHMARK("request quads")
+        {
+            scheduler->update_camera(camera);
+            scheduler->send_quad_requests();
+        };
+    }
 
     BENCHMARK("receive " + std::to_string(example_quads_many().size()) + " quads")
     {
