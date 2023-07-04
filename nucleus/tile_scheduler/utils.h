@@ -185,6 +185,16 @@ namespace utils {
             return std::make_pair(min, max);
         };
 
+        const auto frustum_and_aabb_ranges_overlap_along_direction = [&](const glm::dvec3& direction) {
+            const auto aabb_range = aabb_range_along_direction(direction);
+            const auto frustum_range = frustum_range_along_direction(direction);
+            if (frustum_range.second <= aabb_range.first)
+                return false;
+            if (frustum_range.first >= aabb_range.second)
+                return false;
+            return true;
+        };
+
         const auto frustum_edges = std::array {
             glm::normalize(frustum.corners[4] - frustum.corners[0]),
             glm::normalize(frustum.corners[5] - frustum.corners[1]),
@@ -200,6 +210,11 @@ namespace utils {
             glm::dvec3 { 0., 0., 1. }
         };
 
+        for (const auto& direction : aabb_edges) {
+            if (!frustum_and_aabb_ranges_overlap_along_direction(direction))
+                return false;
+        }
+
         for (const auto& fe : frustum_edges) {
             for (const auto& ae : aabb_edges) {
                 const glm::dvec3 direction = glm::cross(fe, ae);
@@ -207,11 +222,7 @@ namespace utils {
                     && std::abs(direction.y) < geometry::epsilon<double>
                     && std::abs(direction.z) < geometry::epsilon<double>)
                     continue; // parallel
-                const auto aabb_range = aabb_range_along_direction(direction);
-                const auto frustum_range = frustum_range_along_direction(direction);
-                if (frustum_range.second < aabb_range.first)
-                    return false;
-                if (frustum_range.first > aabb_range.second)
+                if (!frustum_and_aabb_ranges_overlap_along_direction(direction))
                     return false;
             }
         }
