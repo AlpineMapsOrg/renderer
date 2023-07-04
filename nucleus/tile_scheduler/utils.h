@@ -84,8 +84,22 @@ namespace utils {
     inline tile::SrsAndHeightBounds make_bounds(const tile::Id& id, float min_height, float max_height)
     {
         const auto comp_scaled_alt = [](auto world_y, auto altitude) {
-            const auto lat = srs::world_to_lat_long({ 0.0, world_y }).x;
-            return srs::lat_long_alt_to_world({ lat, 0.0, altitude }).z;
+            // unoptimised version:
+            //            const auto lat = srs::world_to_lat_long({ 0.0, world_y }).x;
+            //            return srs::lat_long_alt_to_world({ lat, 0.0, altitude }).z;
+
+            // optimised version:
+            constexpr double pi = 3.1415926535897932384626433;
+            constexpr unsigned int cSemiMajorAxis = 6378137;
+            constexpr double cEarthCircumference = 2 * pi * cSemiMajorAxis;
+            constexpr double cOriginShift = cEarthCircumference / 2.0;
+
+            const auto mercN = world_y * pi / cOriginShift;
+            const auto latRad = 2.0 * (std::atan(exp(mercN)) - (pi / 4.0));
+            const auto lat = latRad * 180 / pi;
+
+            const auto lat_rad = lat * pi / 180.0;
+            return altitude / std::abs(std::cos(lat_rad));
         };
 
         const auto srs_bounds = srs::tile_bounds(id);
@@ -99,7 +113,7 @@ namespace utils {
         }();
 
         const auto max_altitude = comp_scaled_alt(max_world_y, max_height);
-        const auto min_altitude = comp_scaled_alt(min_world_y, min_height);
+        const auto min_altitude = min_height; // we are allowed to be conservative with the AABBs! old code: comp_scaled_alt(min_world_y, min_height);
         return { .min = { srs_bounds.min, min_altitude }, .max = { srs_bounds.max, max_altitude } };
     }
 
