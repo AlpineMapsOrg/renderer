@@ -37,15 +37,15 @@ TEST_CASE("nucleus/tile_scheduler/utils/make_bounds altitude correction")
 {
     SECTION("root tile") {
         const auto bounds = utils::make_bounds(tile::Id{0, {0, 0}}, 100, 1000);
-        CHECK(bounds.min.z == Approx(100).scale(100));
+        CHECK(bounds.min.z == Approx(100 - 0.5).scale(100));
         CHECK(bounds.max.z > 1000);
     }
     SECTION("tile from equator") {
         auto bounds = utils::make_bounds(tile::Id{1, {0, 1}}, 100, 1000); // top left
-        CHECK(bounds.min.z == Approx(100).scale(100));
+        CHECK(bounds.min.z == Approx(100 - 0.5).scale(100));
         CHECK(bounds.max.z > 1000);
         bounds = utils::make_bounds(tile::Id{1, {0, 0}}, 100, 1000); // bottom left
-        CHECK(bounds.min.z == Approx(100).scale(100));
+        CHECK(bounds.min.z == Approx(100 - 0.5).scale(100));
         CHECK(bounds.max.z > 1000);
     }
 }

@@ -83,37 +83,38 @@ namespace utils {
 
     inline tile::SrsAndHeightBounds make_bounds(const tile::Id& id, float min_height, float max_height)
     {
-        const auto comp_scaled_alt = [](auto world_y, auto altitude) {
+        const auto comp_scaled_alt = [](float world_y, float altitude) {
             // unoptimised version:
             //            const auto lat = srs::world_to_lat_long({ 0.0, world_y }).x;
             //            return srs::lat_long_alt_to_world({ lat, 0.0, altitude }).z;
 
             // optimised version:
             constexpr double pi = 3.1415926535897932384626433;
+            constexpr auto pi_f = float(pi);
             constexpr unsigned int cSemiMajorAxis = 6378137;
             constexpr double cEarthCircumference = 2 * pi * cSemiMajorAxis;
             constexpr double cOriginShift = cEarthCircumference / 2.0;
 
-            const auto mercN = world_y * pi / cOriginShift;
-            const auto latRad = 2.0 * (std::atan(exp(mercN)) - (pi / 4.0));
-            const auto lat = latRad * 180 / pi;
+            const float mercN = world_y * float(pi / cOriginShift);
+            const float latRad = 2.0f * (std::atan(std::exp(mercN)) - (pi_f / 4.0f));
+            const float lat = latRad * 180 / pi_f;
 
-            const auto lat_rad = lat * pi / 180.0;
+            const float lat_rad = lat * pi_f / 180.0f;
             return altitude / std::abs(std::cos(lat_rad));
         };
 
         const auto srs_bounds = srs::tile_bounds(id);
         const auto max_world_y = [&srs_bounds]() {
-            return std::max(srs_bounds.max.y, -srs_bounds.min.y);
+            return float(std::max(srs_bounds.max.y, -srs_bounds.min.y));
         }();
-        const auto min_world_y = [&srs_bounds, &id]() {
-            if (id.zoom_level == 0)
-                return 0.;
-            return std::min(std::abs(srs_bounds.min.y), std::abs(srs_bounds.max.y));    // max can have a smaller abs value in the southern hemisphere
-        }();
+        //        const auto min_world_y = [&srs_bounds, &id]() {
+        //            if (id.zoom_level == 0)
+        //                return 0.;
+        //            return std::min(std::abs(srs_bounds.min.y), std::abs(srs_bounds.max.y));    // max can have a smaller abs value in the southern hemisphere
+        //        }();
 
-        const auto max_altitude = comp_scaled_alt(max_world_y, max_height);
-        const auto min_altitude = min_height; // we are allowed to be conservative with the AABBs! old code: comp_scaled_alt(min_world_y, min_height);
+        const auto max_altitude = comp_scaled_alt(max_world_y, max_height) + 0.5f; // +0.5 to account for float inaccuracy
+        const auto min_altitude = min_height - 0.5f; // we are allowed to be conservative with the AABBs! old code: comp_scaled_alt(min_world_y, min_height);
         return { .min = { srs_bounds.min, min_altitude }, .max = { srs_bounds.max, max_altitude } };
     }
 

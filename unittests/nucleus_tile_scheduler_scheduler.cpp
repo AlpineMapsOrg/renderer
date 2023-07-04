@@ -441,10 +441,10 @@ TEST_CASE("nucleus/tile_scheduler/Scheduler")
         const auto wsmax = nucleus::srs::tile_bounds({ 0, { 0, 0 } }).max.x; // world space max
         const auto wsmin = nucleus::srs::tile_bounds({ 0, { 0, 0 } }).min.x;
 
-        compare_bounds(gpu_quads[0].tiles[0].bounds, tile::SrsAndHeightBounds { { wsmin, wsmin, 100 }, { 0, 0, 46367.813102 } });
-        compare_bounds(gpu_quads[0].tiles[1].bounds, tile::SrsAndHeightBounds { { 0, wsmin, 100 }, { wsmax, 0, 46367.813102 } });
-        compare_bounds(gpu_quads[0].tiles[2].bounds, tile::SrsAndHeightBounds { { wsmin, 0, 100 }, { 0, wsmax, 46367.813102 } });
-        compare_bounds(gpu_quads[0].tiles[3].bounds, tile::SrsAndHeightBounds { { 0, 0, 100 }, { wsmax, wsmax, 46367.813102 } });
+        compare_bounds(gpu_quads[0].tiles[0].bounds, tile::SrsAndHeightBounds { { wsmin, wsmin, 100 - 0.5 }, { 0, 0, 46367.813102 } });
+        compare_bounds(gpu_quads[0].tiles[1].bounds, tile::SrsAndHeightBounds { { 0, wsmin, 100 - 0.5 }, { wsmax, 0, 46367.813102 } });
+        compare_bounds(gpu_quads[0].tiles[2].bounds, tile::SrsAndHeightBounds { { wsmin, 0, 100 - 0.5 }, { 0, wsmax, 46367.813102 } });
+        compare_bounds(gpu_quads[0].tiles[3].bounds, tile::SrsAndHeightBounds { { 0, 0, 100 - 0.5 }, { wsmax, wsmax, 46367.813102 } });
 
         for (auto i = 0; i < 4; ++i) {
             REQUIRE(gpu_quads[0].tiles[i].ortho);
