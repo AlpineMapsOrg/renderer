@@ -148,28 +148,11 @@ namespace utils {
 
     inline auto camera_frustum_contains_tile(const nucleus::camera::Frustum& frustum, const tile::SrsAndHeightBounds& aabb)
     {
-        // based on https://bruop.github.io/improved_frustum_culling/
-
-        const auto corners = geometry::corners(aabb);
-        bool all_inside = true;
-        for (const auto& p : frustum.clipping_planes) {
-            if (std::none_of(corners.begin(), corners.end(), [&p, &all_inside](const auto& c) {
-                    bool inside = distance(p, c) > 0;
-                    all_inside = all_inside && inside;
-                    return inside;
-                }))
-                return false;
-        }
-
-        // most of the time spent in the code above.
-        // the benchmark changes only from 9.4 -> 9.2ms if stopping here (i.e., returning true)
-
-        if (all_inside)
-            return true;
-
-        for (const auto& p : frustum.corners)
-            if (aabb.contains(p))
-                return true;
+        // loosely based on https://bruop.github.io/improved_frustum_culling/
+        struct Range {
+            double min;
+            double max;
+        };
 
         const auto aabb_corner_in_direction = [&aabb](const glm::dvec3& direction) {
             glm::dvec3 p = aabb.min;
@@ -181,13 +164,30 @@ namespace utils {
                 p.z = aabb.max.z;
             return p;
         };
+        const auto ranges_overlap = [](const Range& a, const Range& b) {
+            return a.min <= b.max && b.min <= a.max;
+        };
+
+        bool all_inside = true;
+        for (const auto& p : frustum.clipping_planes) {
+            if (distance(p, aabb_corner_in_direction(p.normal)) <= 0)
+                return false;
+            all_inside = all_inside && (distance(p, aabb_corner_in_direction(-p.normal)) > 0);
+        }
+
+        if (all_inside)
+            return true;
+
+        for (const auto& p : frustum.corners)
+            if (aabb.contains(p))
+                return true;
 
         const auto position_along_direction = [](const glm::dvec3& position, const glm::dvec3& direction) { return glm::dot(position, direction); };
 
         const auto aabb_range_along_direction = [&](const glm::dvec3& direction) {
             const auto a = position_along_direction(aabb_corner_in_direction(direction), direction);
             const auto b = position_along_direction(aabb_corner_in_direction(-direction), direction);
-            return std::make_pair(std::min(a, b), std::max(a, b));
+            return Range { std::min(a, b), std::max(a, b) };
         };
 
         const auto frustum_range_along_direction = [&](const glm::dvec3& direction) {
@@ -200,17 +200,13 @@ namespace utils {
                 if (p > max)
                     max = p;
             }
-            return std::make_pair(min, max);
+            return Range { min, max };
         };
 
         const auto frustum_and_aabb_ranges_overlap_along_direction = [&](const glm::dvec3& direction) {
             const auto aabb_range = aabb_range_along_direction(direction);
             const auto frustum_range = frustum_range_along_direction(direction);
-            if (frustum_range.second <= aabb_range.first)
-                return false;
-            if (frustum_range.first >= aabb_range.second)
-                return false;
-            return true;
+            return ranges_overlap(aabb_range, frustum_range);
         };
 
         const auto frustum_edges = std::array {
