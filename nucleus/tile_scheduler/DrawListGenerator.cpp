@@ -18,8 +18,6 @@
 
 #include "DrawListGenerator.h"
 
-#include <QDebug>
-
 #include "sherpa/iterator.h"
 #include "sherpa/quad_tree.h"
 
@@ -73,18 +71,7 @@ DrawListGenerator::TileSet DrawListGenerator::generate_for(const nucleus::camera
     const auto camera_frustum = camera.frustum();
 
     const auto is_visible = [&camera, camera_frustum, this](const tile::Id& tile) {
-        //        const auto new_visibility = tile_scheduler::utils::camera_frustum_contains_tile(camera_frustum, m_aabb_decorator->aabb(tile));
-        const auto old_visibility = tile_scheduler::utils::camera_frustum_contains_tile_old(camera_frustum, m_aabb_decorator->aabb(tile));
-        //        if (old_visibility != new_visibility) {
-        //            qDebug() << "old_visibility != new_visibility";
-        //            qDebug() << "tile: " << tile.coords.x << "/" << tile.coords.y << "/" << tile.zoom_level;
-        //            qDebug() << "camera.position: " << camera.position().x << "/" << camera.position().y << "/" << camera.position().z;
-        //            qDebug() << "camera.z_axis: " << camera.z_axis().x << "/" << camera.z_axis().y << "/" << camera.z_axis().z;
-        //            qDebug() << "camera.fov: " << camera.field_of_view() << ", camera.viewport_size: " << camera.viewport_size().x << "/" << camera.viewport_size().y;
-        //        }
-
-        //        assert(old_visibility == new_visibility);
-        return old_visibility;
+        return tile_scheduler::utils::camera_frustum_contains_tile(camera_frustum, m_aabb_decorator->aabb(tile));
     };
 
     std::copy_if(all_leaves.begin(), all_leaves.end(), sherpa::unordered_inserter(visible_leaves), is_visible);

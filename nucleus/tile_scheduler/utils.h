@@ -23,7 +23,6 @@
 #endif
 
 #include <QByteArray>
-#include <QDebug>
 
 #include "constants.h"
 #include "nucleus/camera/Definition.h"
@@ -256,19 +255,7 @@ namespace utils {
                     return false;
 
                 auto aabb = aabb_decorator->aabb(tile);
-
-                //                const auto new_visibility = tile_scheduler::utils::camera_frustum_contains_tile(camera_frustum, aabb);
-                const auto old_visibility = tile_scheduler::utils::camera_frustum_contains_tile_old(camera_frustum, aabb);
-                //                if (old_visibility != new_visibility) {
-                //                    qDebug() << "old_visibility != new_visibility";
-                //                    qDebug() << "tile: " << tile.coords.x << "/" << tile.coords.y << "/" << tile.zoom_level;
-                //                    qDebug() << "camera.position: " << camera.position().x << "/" << camera.position().y << "/" << camera.position().z;
-                //                    qDebug() << "camera.z_axis: " << camera.z_axis().x << "/" << camera.z_axis().y << "/" << camera.z_axis().z;
-                //                    qDebug() << "camera.fov: " << camera.field_of_view() << ", camera.viewport_size: " << camera.viewport_size().x << "/" << camera.viewport_size().y;
-                //                }
-                //                assert(old_visibility == new_visibility);
-
-                if (!old_visibility)
+                if (!tile_scheduler::utils::camera_frustum_contains_tile(camera_frustum, aabb))
                     return false;
                 const auto aabb_float = geometry::Aabb<3, float>{aabb.min - camera.position(),
                                                                  aabb.max - camera.position()};
@@ -293,19 +280,7 @@ namespace utils {
                 return false;
 
             const auto aabb = aabb_decorator->aabb(tile);
-
-            //            const auto new_visibility = tile_scheduler::utils::camera_frustum_contains_tile(camera_frustum, aabb);
-            const auto old_visibility = tile_scheduler::utils::camera_frustum_contains_tile_old(camera_frustum, aabb);
-            //            if (old_visibility != new_visibility) {
-            //                qDebug() << "old_visibility != new_visibility";
-            //                qDebug() << "tile: " << tile.coords.x << "/" << tile.coords.y << "/" << tile.zoom_level;
-            //                qDebug() << "camera.position: " << camera.position().x << "/" << camera.position().y << "/" << camera.position().z;
-            //                qDebug() << "camera.z_axis: " << camera.z_axis().x << "/" << camera.z_axis().y << "/" << camera.z_axis().z;
-            //                qDebug() << "camera.fov: " << camera.field_of_view() << ", camera.viewport_size: " << camera.viewport_size().x << "/" << camera.viewport_size().y;
-            //            }
-            //            assert(old_visibility == new_visibility);
-
-            if (!old_visibility)
+            if (!tile_scheduler::utils::camera_frustum_contains_tile(camera_frustum, aabb))
                 return false;
 
             const auto distance = geometry::distance(aabb, camera.position());
