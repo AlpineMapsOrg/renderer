@@ -96,10 +96,7 @@ namespace utils {
             constexpr double cOriginShift = cEarthCircumference / 2.0;
 
             const float mercN = world_y * float(pi / cOriginShift);
-            const float latRad = 2.0f * (std::atan(std::exp(mercN)) - (pi_f / 4.0f));
-            const float lat = latRad * 180 / pi_f;
-
-            const float lat_rad = lat * pi_f / 180.0f;
+            const float lat_rad = 2.0f * (std::atan(std::exp(mercN)) - float(pi / 4.0));
             return altitude / std::abs(std::cos(lat_rad));
         };
 
