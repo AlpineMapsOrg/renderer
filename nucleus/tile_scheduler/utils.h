@@ -149,22 +149,49 @@ namespace utils {
             if (std::none_of(corners.begin(), corners.end(), [&p](const auto& c) { return distance(p, c) > 0; }))
                 return false;
         }
+        // todo: if all_of_all return true
 
         const auto aabb_corner_in_direction = [&aabb](const glm::dvec3& direction) {
             glm::dvec3 p = aabb.min;
-            if (direction.x > 0) p.x = aabb.max.x;
-            if (direction.y > 0) p.x = aabb.max.y;
-            if (direction.z > 0) p.x = aabb.max.z;
+            if (direction.x > 0)
+                p.x = aabb.max.x;
+            if (direction.y > 0)
+                p.y = aabb.max.y;
+            if (direction.z > 0)
+                p.z = aabb.max.z;
             return p;
         };
 
+        const auto position_along_direction = [](const glm::dvec3& position, const glm::dvec3& direction) { return glm::dot(position, direction); };
+
+        const auto aabb_range_along_direction = [&](const glm::dvec3& direction) {
+            const auto corner_a = aabb_corner_in_direction(direction);
+            const auto corner_b = aabb_corner_in_direction(-direction);
+            const auto a = position_along_direction(aabb_corner_in_direction(direction), direction);
+            const auto b = position_along_direction(aabb_corner_in_direction(-direction), direction);
+            return std::make_pair(std::min(a, b), std::max(a, b));
+        };
+
+        const auto frustum_range_along_direction = [&](const glm::dvec3& direction) {
+            double min = std::numeric_limits<double>::max();
+            double max = std::numeric_limits<double>::lowest();
+            for (const auto& c : frustum.corners) {
+                const auto p = position_along_direction(c, direction);
+                if (p < min)
+                    min = p;
+                if (p > max)
+                    max = p;
+            }
+            return std::make_pair(min, max);
+        };
+
         const auto frustum_edges = std::array {
-            frustum.corners[4] - frustum.corners[0],
-            frustum.corners[5] - frustum.corners[1],
-            frustum.corners[6] - frustum.corners[2],
-            frustum.corners[7] - frustum.corners[3],
-            frustum.corners[1] - frustum.corners[0],
-            frustum.corners[3] - frustum.corners[0]
+            glm::normalize(frustum.corners[4] - frustum.corners[0]),
+            glm::normalize(frustum.corners[5] - frustum.corners[1]),
+            glm::normalize(frustum.corners[6] - frustum.corners[2]),
+            glm::normalize(frustum.corners[7] - frustum.corners[3]),
+            glm::normalize(frustum.corners[1] - frustum.corners[0]),
+            glm::normalize(frustum.corners[3] - frustum.corners[0])
         };
 
         constexpr auto aabb_edges = std::array {
@@ -179,18 +206,13 @@ namespace utils {
                 if (std::abs(direction.x) < geometry::epsilon<double>
                     && std::abs(direction.y) < geometry::epsilon<double>
                     && std::abs(direction.z) < geometry::epsilon<double>)
-                    continue;
-                const auto aabb_corner = aabb_corner_in_direction(direction);
-                const auto distance = -glm::dot(direction, aabb_corner);
-
-                const auto p = geometry::Plane<double> { direction, distance };
-                if (std::none_of(frustum.corners.begin(), frustum.corners.end(), [&p](const auto& c) { return geometry::distance(p, c) > 0; })) {
-                    std::none_of(frustum.corners.begin(), frustum.corners.end(), [&p](const auto& c) {
-                        const auto distance = geometry::distance(p, c);
-                        return geometry::distance(p, c) > 0;
-                    });
+                    continue; // parallel
+                const auto aabb_range = aabb_range_along_direction(direction);
+                const auto frustum_range = frustum_range_along_direction(direction);
+                if (frustum_range.second < aabb_range.first)
                     return false;
-                }
+                if (frustum_range.first > aabb_range.second)
+                    return false;
             }
         }
         return true;

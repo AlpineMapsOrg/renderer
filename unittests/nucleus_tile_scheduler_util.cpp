@@ -106,7 +106,7 @@ TEST_CASE("tile_scheduler/utils/camera frustum tile test") {
         cam.set_field_of_view(90);
         cam.set_near_plane(0.01f);
 
-        CHECK(nucleus::tile_scheduler::utils::camera_frustum_contains_tile(cam, tile::SrsAndHeightBounds { { -1., 10., -1. }, { 1., 10., 1. } }));
+        CHECK(nucleus::tile_scheduler::utils::camera_frustum_contains_tile(cam, tile::SrsAndHeightBounds { { -1., 9., -1. }, { 1., 10., 1. } }));
         CHECK(nucleus::tile_scheduler::utils::camera_frustum_contains_tile(cam, tile::SrsAndHeightBounds { { 0., 0., 0. }, { 1., 1., 1. } }));
         CHECK(nucleus::tile_scheduler::utils::camera_frustum_contains_tile(cam, tile::SrsAndHeightBounds { { -10., -10., -10. }, { 10., 1., 10. } }));
         CHECK(!nucleus::tile_scheduler::utils::camera_frustum_contains_tile(cam, tile::SrsAndHeightBounds { { -10., -10., -10. }, { 10., -1., 10. } }));
@@ -124,5 +124,14 @@ TEST_CASE("tile_scheduler/utils/camera frustum tile test") {
 
         CHECK(nucleus::tile_scheduler::utils::camera_frustum_contains_tile(cam, decorator->aabb({ 3, { 4, 4 } }))
             == nucleus::tile_scheduler::utils::camera_frustum_contains_tile_old(cam, decorator->aabb({ 3, { 4, 4 } })));
+    }
+    SECTION("case 3")
+    {
+        auto cam = nucleus::camera::Definition({ 1.76106e+06, 6.07163e+06, 2510.08 },
+            glm::dvec3 { 1.76106e+06, 6.07163e+06, 2510.08 } - glm::dvec3 { 0.9759, 0.19518, 0.09759 });
+        cam.set_viewport_size({ 2561, 1369 });
+        cam.set_field_of_view(60);
+        CHECK(nucleus::tile_scheduler::utils::camera_frustum_contains_tile(cam, decorator->aabb({ 10, { 557, 667 } }))
+            == nucleus::tile_scheduler::utils::camera_frustum_contains_tile_old(cam, decorator->aabb({ 10, { 557, 667 } })));
     }
 }
