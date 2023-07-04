@@ -23,6 +23,7 @@
 #endif
 
 #include <QByteArray>
+#include <QDebug>
 
 #include "constants.h"
 #include "nucleus/camera/Definition.h"
@@ -123,23 +124,19 @@ namespace utils {
         }
     };
 
-
-    inline auto camera_frustum_contains_tile_old(const nucleus::camera::Definition& camera, const tile::SrsAndHeightBounds& aabb)
+    inline auto camera_frustum_contains_tile_old(const nucleus::camera::Frustum& frustum, const tile::SrsAndHeightBounds& aabb)
     {
-        //        if (aabb.contains(camera.position()))
-        //            return true;
+        for (const auto& p : frustum.corners)
+            if (aabb.contains(p))
+                return true;
 
-        const auto clipping_planes = camera.clipping_planes();
-        const auto triangles = geometry::clip(geometry::triangulise(aabb), clipping_planes);
+        const auto triangles = geometry::clip(geometry::triangulise(aabb), frustum.clipping_planes);
         return !triangles.empty();
     }
 
-    inline auto camera_frustum_contains_tile(const nucleus::camera::Definition& camera, const tile::SrsAndHeightBounds& aabb)
+    inline auto camera_frustum_contains_tile(const nucleus::camera::Frustum& frustum, const tile::SrsAndHeightBounds& aabb)
     {
         // based on https://bruop.github.io/improved_frustum_culling/
-
-        // todo: pull out frustum creation
-        const auto frustum = camera.frustum();
         for (const auto& p : frustum.corners)
             if (aabb.contains(p))
                 return true;
@@ -165,8 +162,6 @@ namespace utils {
         const auto position_along_direction = [](const glm::dvec3& position, const glm::dvec3& direction) { return glm::dot(position, direction); };
 
         const auto aabb_range_along_direction = [&](const glm::dvec3& direction) {
-            const auto corner_a = aabb_corner_in_direction(direction);
-            const auto corner_b = aabb_corner_in_direction(-direction);
             const auto a = position_along_direction(aabb_corner_in_direction(direction), direction);
             const auto b = position_along_direction(aabb_corner_in_direction(-direction), direction);
             return std::make_pair(std::min(a, b), std::max(a, b));
@@ -235,18 +230,26 @@ namespace utils {
                                      float tile_size = 256)
     {
         constexpr auto sqrt2 = 1.414213562373095f;
+        const auto camera_frustum = camera.frustum();
         auto refine =
-            [&camera, error_threshold_px, tile_size, aabb_decorator](const tile::Id &tile) {
+            [camera_frustum, camera, error_threshold_px, tile_size, aabb_decorator](const tile::Id& tile) {
                 if (tile.zoom_level >= 18)
                     return false;
 
                 auto aabb = aabb_decorator->aabb(tile);
 
-                const auto new_visibility = tile_scheduler::utils::camera_frustum_contains_tile(camera, aabb);
-                const auto old_visibility = tile_scheduler::utils::camera_frustum_contains_tile_old(camera, aabb);
+                const auto new_visibility = tile_scheduler::utils::camera_frustum_contains_tile(camera_frustum, aabb);
+                const auto old_visibility = tile_scheduler::utils::camera_frustum_contains_tile_old(camera_frustum, aabb);
+                if (old_visibility != new_visibility) {
+                    qDebug() << "old_visibility != new_visibility";
+                    qDebug() << "tile: " << tile.coords.x << "/" << tile.coords.y << "/" << tile.zoom_level;
+                    qDebug() << "camera.position: " << camera.position().x << "/" << camera.position().y << "/" << camera.position().z;
+                    qDebug() << "camera.z_axis: " << camera.z_axis().x << "/" << camera.z_axis().y << "/" << camera.z_axis().z;
+                    qDebug() << "camera.fov: " << camera.field_of_view() << ", camera.viewport_size: " << camera.viewport_size().x << "/" << camera.viewport_size().y;
+                }
                 assert(old_visibility == new_visibility);
 
-                if (!camera_frustum_contains_tile(camera, aabb))
+                if (!camera_frustum_contains_tile(camera_frustum, aabb))
                     return false;
                 const auto aabb_float = geometry::Aabb<3, float>{aabb.min - camera.position(),
                                                                  aabb.max - camera.position()};
@@ -265,17 +268,25 @@ namespace utils {
                               double tile_size = 256)
     {
         constexpr auto sqrt2 = 1.414213562373095;
-        auto refine = [&camera, error_threshold_px, tile_size, aabb_decorator](const tile::Id& tile) {
+        const auto camera_frustum = camera.frustum();
+        auto refine = [&camera, camera_frustum, error_threshold_px, tile_size, aabb_decorator](const tile::Id& tile) {
             if (tile.zoom_level >= 18)
                 return false;
 
             const auto aabb = aabb_decorator->aabb(tile);
 
-            const auto new_visibility = tile_scheduler::utils::camera_frustum_contains_tile(camera, aabb);
-            const auto old_visibility = tile_scheduler::utils::camera_frustum_contains_tile_old(camera, aabb);
+            const auto new_visibility = tile_scheduler::utils::camera_frustum_contains_tile(camera_frustum, aabb);
+            const auto old_visibility = tile_scheduler::utils::camera_frustum_contains_tile_old(camera_frustum, aabb);
+            if (old_visibility != new_visibility) {
+                qDebug() << "old_visibility != new_visibility";
+                qDebug() << "tile: " << tile.coords.x << "/" << tile.coords.y << "/" << tile.zoom_level;
+                qDebug() << "camera.position: " << camera.position().x << "/" << camera.position().y << "/" << camera.position().z;
+                qDebug() << "camera.z_axis: " << camera.z_axis().x << "/" << camera.z_axis().y << "/" << camera.z_axis().z;
+                qDebug() << "camera.fov: " << camera.field_of_view() << ", camera.viewport_size: " << camera.viewport_size().x << "/" << camera.viewport_size().y;
+            }
             assert(old_visibility == new_visibility);
 
-            if (!camera_frustum_contains_tile(camera, aabb))
+            if (!camera_frustum_contains_tile(camera_frustum, aabb))
                 return false;
 
             const auto distance = geometry::distance(aabb, camera.position());
