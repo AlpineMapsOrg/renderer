@@ -79,6 +79,7 @@ void Scheduler::receive_quad(const tile_types::TileQuad& new_quad)
         schedule_purge();
         schedule_update();
         schedule_persist();
+        emit quad_received(new_quad.id);
     }
 #else
     switch (new_quad.network_info().status) {
