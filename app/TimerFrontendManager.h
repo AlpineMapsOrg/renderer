@@ -15,6 +15,7 @@ class TimerFrontendObject : public QObject {
     Q_PROPERTY(QString group READ get_group)
     Q_PROPERTY(float last_measurement READ get_last_measurement)
     Q_PROPERTY(float average READ get_average)
+    Q_PROPERTY(float quick_average READ get_quick_average)
     Q_PROPERTY(QColor color READ get_color)
     Q_PROPERTY(QList<float> measurements MEMBER m_measurements)
 
@@ -37,38 +38,17 @@ public:
 
     static int timer_color_index;
 
-    void add_measurement(float value) {
-        m_measurements.append(value);
-        if (m_measurements.size() > m_queue_size) {
-            m_measurements.removeFirst();
-        }
-    }
-
-    float get_last_measurement() {
-        return m_measurements[m_measurements.length() - 1];
-    }
-
-    float get_average() {
-        float sum = 0.0f;
-        for (int i=0; i<m_measurements.count(); i++) {
-            sum += m_measurements[i];
-        }
-        return sum / m_measurements.size();
-    }
+    void add_measurement(float value);
+    float get_last_measurement();
+    float get_average();
+    float get_quick_average() { return m_quick_average; }
 
 
     QString get_name() { return m_name; }
     QString get_group() { return m_group; }
     QColor get_color() { return m_color;    }
 
-    TimerFrontendObject(const QString& name, const QString& group, const int queue_size = 30 )
-        :m_queue_size(queue_size), m_name(name), m_group(group)
-    {
-        m_color = timer_colors[timer_color_index++ % (sizeof(timer_colors) / sizeof(timer_colors[0]))];
-        //m_color.setHsv(rand()%359, 255, 255);
-        //m_color = QColor(rand()%255, rand()%255, rand()%255);
-    }
-
+    TimerFrontendObject(const QString& name, const QString& group, const int queue_size = 30, const float average_weight = 1.0/30.0f, const float first_value = 0.0 );
 
     bool operator!=(const TimerFrontendObject& rhs) const
     {
@@ -81,6 +61,9 @@ private:
     QString m_group;
     QList<float> m_measurements;
     QColor m_color;
+    float m_new_weight = 1.0/30.0;
+    float m_old_weight = 29.0/30.0;
+    float m_quick_average = 0.0f;
     int m_queue_size = 30;
 
 };

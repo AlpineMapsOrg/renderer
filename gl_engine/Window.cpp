@@ -36,9 +36,6 @@
 #include <QSequentialAnimationGroup>
 #include <QTimer>
 #include <glm/glm.hpp>
-
-#include <QOpenGLFunctions_3_3_Core> // for timer queries
-
 #include "Atmosphere.h"
 #include "DebugPainter.h"
 #include "Framebuffer.h"
@@ -91,13 +88,14 @@ void Window::initialise_gpu()
     m_shared_config_ubo->bind_to_shader(m_shader_manager->tile_shader());
 
     m_timer = std::make_unique<gl_engine::TimerManager>();
-    m_timer->add_timer("frame", gl_engine::TimerTypes::CPU, "CPU");
+
     m_timer->add_timer("depth", gl_engine::TimerTypes::GPUAsync, "GPU");
     m_timer->add_timer("atmosphere", gl_engine::TimerTypes::GPUAsync, "GPU");
-    m_timer->add_timer("tiles", gl_engine::TimerTypes::GPUAsync, "GPU", 120);
+    m_timer->add_timer("tiles", gl_engine::TimerTypes::GPUAsync, "GPU");
     m_timer->add_timer("compose", gl_engine::TimerTypes::GPUAsync, "GPU");
-    m_timer->add_timer("tile_generator", gl_engine::TimerTypes::CPU, "CPU");
-
+    m_timer->add_timer("cpu_total", gl_engine::TimerTypes::CPU, "TOTAL", 240);
+    m_timer->add_timer("gpu_total", gl_engine::TimerTypes::GPUAsync, "TOTAL", 240);
+    m_timer->add_timer("all", gl_engine::TimerTypes::CPU, "TOTAL");
     emit gpu_ready_changed(true);
 }
 
@@ -109,14 +107,15 @@ void Window::resize_framebuffer(int width, int height)
     QOpenGLFunctions* f = QOpenGLContext::currentContext()->functions();
     m_framebuffer->resize({ width, height });
     m_atmosphere->resize({ width, height });
-    m_depth_buffer->resize({ width / 4, height / 4 });
+    m_depth_buffer->resize({ width, height });
 
     f->glViewport(0, 0, width, height);
 }
 
 void Window::paint(QOpenGLFramebufferObject* framebuffer)
 {
-    m_timer->start_timer("frame");
+    m_timer->start_timer("cpu_total");
+    m_timer->start_timer("gpu_total");
 
     QOpenGLExtraFunctions *f = QOpenGLContext::currentContext()->extraFunctions();
 
@@ -133,7 +132,7 @@ void Window::paint(QOpenGLFramebufferObject* framebuffer)
 
     m_shader_manager->depth_program()->bind();
     m_timer->start_timer("depth");
-    m_tile_manager->draw(m_shader_manager->depth_program(), m_camera, m_timer.get());
+    m_tile_manager->draw(m_shader_manager->depth_program(), m_camera);
     m_timer->stop_timer("depth");
     m_depth_buffer->unbind();
     // END DEPTH BUFFER
@@ -158,7 +157,7 @@ void Window::paint(QOpenGLFramebufferObject* framebuffer)
 
     m_shader_manager->tile_shader()->bind();
     m_timer->start_timer("tiles");
-    m_tile_manager->draw(m_shader_manager->tile_shader(), m_camera, m_timer.get());
+    m_tile_manager->draw(m_shader_manager->tile_shader(), m_camera);
     m_timer->stop_timer("tiles");
 
     m_framebuffer->unbind();
@@ -174,13 +173,19 @@ void Window::paint(QOpenGLFramebufferObject* framebuffer)
     m_shader_manager->release();
 
 
-    m_timer->stop_timer("frame");
+    m_timer->stop_timer("cpu_total");
+    m_timer->stop_timer("gpu_total");
+    m_timer->stop_timer("all");
 
     // Everything should be available by now, because we are synchronising with glFinish
     QList<gl_engine::qTimerReport> new_values = m_timer->fetch_results();
     if (new_values.size() > 0) {
         emit report_measurements(new_values);
     }
+
+    m_timer->start_timer("all");
+
+    emit update_requested();
 }
 
 void Window::paintOverGL(QPainter* painter)
@@ -201,8 +206,6 @@ void Window::paintOverGL(QPainter* painter)
 
 void Window::shared_config_changed(gl_engine::uboSharedConfig ubo) {
     m_shared_config_ubo->data = ubo;
-    //m_shared_config_ubo->data.setProperty("sun_light", QVector4D(2.0, 0.0, 0.0, newIntensity));
-    //m_shared_config_ubo->data.m_sun_light[3] = newIntensity;
     m_shared_config_ubo->update_gpu_data();
     emit update_requested();
 }

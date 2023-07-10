@@ -6,9 +6,36 @@
 
 int TimerFrontendObject::timer_color_index = 0;
 
+void TimerFrontendObject::add_measurement(float value) {
+    m_quick_average = m_quick_average * m_old_weight + value * m_new_weight;
+    m_measurements.append(value);
+    if (m_measurements.size() > m_queue_size) m_measurements.removeFirst();
+}
+
+float TimerFrontendObject::get_last_measurement() {
+    return m_measurements[m_measurements.length() - 1];
+}
+
+float TimerFrontendObject::get_average() {
+    float sum = 0.0f;
+    for (int i=0; i<m_measurements.count(); i++) {
+        sum += m_measurements[i];
+    }
+    return sum / m_measurements.size();
+}
+
+TimerFrontendObject::TimerFrontendObject(const QString& name, const QString& group, const int queue_size, const float average_weight, const float first_value)
+    :m_queue_size(queue_size), m_name(name), m_group(group)
+{
+    m_color = timer_colors[timer_color_index++ % (sizeof(timer_colors) / sizeof(timer_colors[0]))];
+    m_new_weight = average_weight;
+    m_old_weight = 1.0 - m_new_weight;
+    m_quick_average = first_value;
+}
+
+
 TimerFrontendManager::TimerFrontendManager()
 {
-
 }
 
 TimerFrontendManager::~TimerFrontendManager()
@@ -23,7 +50,7 @@ void TimerFrontendManager::receive_measurements(QList<gl_engine::qTimerReport> v
     for (const auto& report : values) {
         const char* name = report.timer->get_name().c_str();
         if (!m_timer_map.contains(name)) {
-            auto tfo = new TimerFrontendObject(name, report.timer->get_group().c_str(), report.timer->get_queue_size());
+            auto tfo = new TimerFrontendObject(name, report.timer->get_group().c_str(), report.timer->get_queue_size(), report.timer->get_average_weight(), report.value);
             m_timer.append(tfo);
             m_timer_map.insert(name, tfo);
         }

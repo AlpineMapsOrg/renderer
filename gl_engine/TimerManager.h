@@ -19,81 +19,57 @@ enum class TimerTypes { CPU, GPU, GPUAsync };
 class GeneralTimer {
 
 public:
+
+    GeneralTimer(const std::string& name, const std::string& group, int queue_size, float average_weight);
+
     // Starts time-measurement
-    void start() {
-        //assert(m_state == TimerStates::READY);
-        _start();
-        m_state = TimerStates::RUNNING;
-    }
+    void start();
 
     // Stops time-measurement
-    void stop() {
-        //assert(m_state == TimerStates::RUNNING);
-        _stop();
-        m_state = TimerStates::STOPPED;
-    }
+    void stop();
 
     // Fetches the result of the measuring and adds it to the average
-    bool fetch_result() {
-        if (m_state == TimerStates::STOPPED) {
-            float val = _fetch_result();
-            add_measurement(val);
-            m_state = TimerStates::READY;
-            return true;
-        }
-        return false;
-    }
+    bool fetch_result();
 
-    virtual void _start() = 0;
-    virtual void _stop() = 0;
-    virtual float _fetch_result() = 0;
+
 
     const std::string& get_name()       {   return this->m_name;                    }
     const std::string& get_group()      {   return this->m_group;                   }
     float get_last_measurement()        {   return this->m_last_measurement;        }
-    float get_average()                 {   return this->m_avg_measurement;         }
     int get_queue_size()                {   return this->m_queue_size;              }
+    float get_average_weight()          {   return this->m_average_weight;          }
 
-    GeneralTimer(const std::string& name, const std::string& group, int queue_size)
-        :m_name(name), m_group(group), m_queue_size(queue_size)
-    {
-        m_new_weight = 1.0f / (float)queue_size;
-        m_old_weight = 1.0f - m_new_weight;
-    }
 
 protected:
     // a custom identifying name for this timer
     std::string m_name;
     std::string m_group;
     int m_queue_size;
+    float m_average_weight;
+
+    virtual void _start() = 0;
+    virtual void _stop() = 0;
+    virtual float _fetch_result() = 0;
 
 private:
 
     TimerStates m_state = TimerStates::READY;
-    float m_new_weight = 1.0/30.0;
-    float m_old_weight = 29.0/30.0;
     float m_last_measurement = 0.0f;
-    float m_avg_measurement = 0.0f;
-
-    // Adds a measurement by calculating avg and overwriting last measurement
-    // value has to be in milliseconds
-    void add_measurement(float value) {
-        this->m_last_measurement = value;
-        this->m_avg_measurement = this->m_avg_measurement * m_old_weight + value * m_new_weight;
-    }
 };
 
 /// The HostTimer class measures times on the c++ side using the std::chronos library
 class HostTimer : public GeneralTimer {
 public:
-    HostTimer(const std::string& name, const std::string& group, int queue_size);
+    HostTimer(const std::string& name, const std::string& group, int queue_size, float average_weight);
 
+protected:
     // starts front-buffer query
     void _start() override;
     // stops front-buffer query and toggles indices
     void _stop() override;
     // fetches back-buffer query
     float _fetch_result() override;
+
 private:
     std::chrono::time_point<std::chrono::high_resolution_clock> m_ticks[2];
 };
@@ -102,15 +78,17 @@ private:
 /// otherwise the query result might not be yet available
 class GpuSyncQueryTimer : public GeneralTimer {
 public:
-    GpuSyncQueryTimer(const std::string& name, const std::string& group, int queue_size);
+    GpuSyncQueryTimer(const std::string& name, const std::string& group, int queue_size, float average_weight);
     ~GpuSyncQueryTimer();
 
+protected:
     // starts front-buffer query
     void _start() override;
     // stops front-buffer query and toggles indices
     void _stop() override;
     // fetches back-buffer query
     float _fetch_result() override;
+
 private:
     QOpenGLTimerQuery* qTmr[2];
 };
@@ -121,9 +99,10 @@ private:
 class GpuAsyncQueryTimer : public GeneralTimer {
 
 public:
-    GpuAsyncQueryTimer(const std::string& name, const std::string& group, int queue_size);
+    GpuAsyncQueryTimer(const std::string& name, const std::string& group, int queue_size, float average_weight);
     ~GpuAsyncQueryTimer();
 
+protected:
     // starts front-buffer query
     void _start() override;
     // stops front-buffer query and toggles indices
@@ -134,10 +113,6 @@ public:
 private:
     // four timers for front and backbuffer (à start-, endtime)
     QOpenGLTimerQuery* m_qTmr[4];
-
-    // true when backbuffer query ready to be fetched
-    bool m_full_backbuffer = false;
-
     int m_current_fb_offset = 0;
     int m_current_bb_offset = 2;
 
@@ -159,10 +134,7 @@ class TimerManager
 public:
     TimerManager();
 
-    std::shared_ptr<GeneralTimer> add_timer(const std::string& name, TimerTypes type, const std::string& group = "", int queue_size = 30);
-
-    // Starts the timer with m_current_running_timer_ind + 1
-    //void start_next();
+    std::shared_ptr<GeneralTimer> add_timer(const std::string& name, TimerTypes type, const std::string& group = "", int queue_size = 120, float average_weight = 1.0f/30.0f);
 
     // Start specific timer defined by position in timer list
     void start_timer(const std::string &name);

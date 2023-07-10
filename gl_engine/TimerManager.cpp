@@ -5,8 +5,35 @@
 
 namespace gl_engine {
 
-HostTimer::HostTimer(const std::string &name, const std::string& group, int queue_size)
-    :GeneralTimer(name, group, queue_size)
+GeneralTimer::GeneralTimer(const std::string& name, const std::string& group, int queue_size, float average_weight)
+    :m_name(name), m_group(group), m_queue_size(queue_size), m_average_weight(average_weight)
+{
+}
+
+void GeneralTimer::start() {
+    //assert(m_state == TimerStates::READY);
+    _start();
+    m_state = TimerStates::RUNNING;
+}
+
+void GeneralTimer::stop() {
+    //assert(m_state == TimerStates::RUNNING);
+    _stop();
+    m_state = TimerStates::STOPPED;
+}
+
+bool GeneralTimer::fetch_result() {
+    if (m_state == TimerStates::STOPPED) {
+        float val = _fetch_result();
+        this->m_last_measurement = val;
+        m_state = TimerStates::READY;
+        return true;
+    }
+    return false;
+}
+
+HostTimer::HostTimer(const std::string &name, const std::string& group, int queue_size, const float average_weight)
+    :GeneralTimer(name, group, queue_size, average_weight)
 {
 }
 
@@ -23,8 +50,8 @@ float HostTimer::_fetch_result() {
     return ((float)(diff.count() * 1000.0));
 }
 
-GpuSyncQueryTimer::GpuSyncQueryTimer(const std::string &name, const std::string& group, int queue_size)
-    :GeneralTimer(name, group, queue_size)
+GpuSyncQueryTimer::GpuSyncQueryTimer(const std::string &name, const std::string& group, int queue_size, const float average_weight)
+    :GeneralTimer(name, group, queue_size, average_weight)
 {
     for (int i = 0; i < 2; i++) {
         qTmr[i] = new QOpenGLTimerQuery(QOpenGLContext::currentContext());
@@ -57,8 +84,8 @@ float GpuSyncQueryTimer::_fetch_result() {
 }
 
 
-GpuAsyncQueryTimer::GpuAsyncQueryTimer(const std::string& name, const std::string& group, int queue_size)
-    :GeneralTimer(name, group, queue_size)
+GpuAsyncQueryTimer::GpuAsyncQueryTimer(const std::string& name, const std::string& group, int queue_size, const float average_weight)
+    :GeneralTimer(name, group, queue_size, average_weight)
 {
     for (int i = 0; i < 4; i++) {
         m_qTmr[i] = new QOpenGLTimerQuery(QOpenGLContext::currentContext());
@@ -120,20 +147,20 @@ QList<qTimerReport> TimerManager::fetch_results()
     return std::move(new_values);
 }
 
-std::shared_ptr<GeneralTimer> TimerManager::add_timer(const std::string &name, TimerTypes type, const std::string& group, int queue_size) {
+std::shared_ptr<GeneralTimer> TimerManager::add_timer(const std::string &name, TimerTypes type, const std::string& group, int queue_size, float average_weight) {
     std::shared_ptr<GeneralTimer> tmr_base;
     switch(type) {
 
     case TimerTypes::CPU:
-        tmr_base = static_pointer_cast<GeneralTimer>(std::make_shared<HostTimer>(name, group, queue_size));
+        tmr_base = static_pointer_cast<GeneralTimer>(std::make_shared<HostTimer>(name, group, queue_size, average_weight));
         break;
 
     case TimerTypes::GPU:
-        tmr_base = static_pointer_cast<GeneralTimer>(std::make_shared<GpuSyncQueryTimer>(name, group, queue_size));
+        tmr_base = static_pointer_cast<GeneralTimer>(std::make_shared<GpuSyncQueryTimer>(name, group, queue_size, average_weight));
         break;
 
     case TimerTypes::GPUAsync:
-        tmr_base = static_pointer_cast<GeneralTimer>(std::make_shared<GpuAsyncQueryTimer>(name, group, queue_size));
+        tmr_base = static_pointer_cast<GeneralTimer>(std::make_shared<GpuAsyncQueryTimer>(name, group, queue_size, average_weight));
         break;
     }
 

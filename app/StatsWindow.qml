@@ -10,8 +10,6 @@ Rectangle {
     property int infomenu_height: 380
     property int infomenu_width: 270
 
-    //signal light_intensity_changed(newValue: float)
-
     id: statsMenu
     width: infomenu_width
     height: infomenu_height
@@ -60,8 +58,9 @@ Rectangle {
             radius: 10
             ChartView {
                 id: piechart
-                anchors.fill: parent;
-                legend.alignment: Qt.AlignBottom
+                width: parent.width;
+                height: parent.height - 20;
+                y: 20;
                 legend.visible: false
                 visible: false
                 backgroundColor: "transparent"
@@ -74,14 +73,21 @@ Rectangle {
             }
             ChartView {
                 id: linechart
-                anchors.fill: parent;
+                width: parent.width;
+                height: parent.height - 20;
+                y: 20;
                 backgroundColor: "transparent"
+                legend.visible: false
                 antialiasing: true
+                axes: [
+                    ValueAxis {
+                        id: xAxis; min: 0.0; max: 120.0;
+                    },
+                    ValueAxis {
+                        id: yAxis; min: 0.0; max: 100.0;
+                    }
+                ]
                 theme: ChartView.ChartThemeDark
-                LineSeries {
-                    id: lineSeries
-                    name: "LineSeries"
-                }
             }
 
             Rectangle {
@@ -151,19 +157,19 @@ Rectangle {
             dialog_title.text = title;
             piechart.visible = false;
             linechart.visible = true;
-            lineSeries.clear();
-            lineSeries.color = color;
+            linechart.removeAllSeries();
+            var series = linechart.createSeries(ChartView.SeriesTypeLine, "Test", xAxis, yAxis);
+            series.clear();
+            series.color = color;
             var minY = 1000, maxY = -1;
             for (var i = 0; i < valuesX.length; i++) {
                 minY = Math.min(minY, valuesY[i]);
                 maxY = Math.max(maxY, valuesY[i]);
-                lineSeries.append(valuesX[i], valuesY[i]);
+                series.append(valuesX[i], valuesY[i]);
             }
-            lineSeries.axisX.max = i;
-            lineSeries.axisY.max = maxY;
-            lineSeries.axisY.min = minY;
-            linechart.update();
-            linechart.axisY(lineSeries);
+            xAxis.max = i;
+            yAxis.max = maxY;
+            yAxis.min = minY;
             if (!graph_dialog.visible) {
                 graph_dialog.visible = true;
                 in_animation.start();
@@ -332,7 +338,7 @@ Rectangle {
                         // Create new gui object
                         create_timing_gui_object(ele);
                     }
-                    items[ele.name].timeLabelObject.text = ele.last_measurement.toFixed(2) + " (Ø " + ele.average.toFixed(2) + ") [ms]";
+                    items[ele.name].timeLabelObject.text = ele.last_measurement.toFixed(2) + " (Ø " + ele.quick_average.toFixed(2) + ") [ms]";
                 }
 
                 Connections {
