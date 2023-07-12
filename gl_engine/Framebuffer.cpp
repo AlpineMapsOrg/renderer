@@ -167,9 +167,9 @@ void Framebuffer::resize(const glm::uvec2& new_size)
         m_depth_texture->destroy();
         m_depth_texture->setFormat(QOpenGLTexture::TextureFormat::D32F);
         m_depth_texture->setSize(int(m_size.x), int(m_size.y));
-        m_colour_texture->setAutoMipMapGenerationEnabled(false);
-        m_colour_texture->setMinMagFilters(QOpenGLTexture::Filter::Linear, QOpenGLTexture::Filter::Linear);
-        m_colour_texture->setWrapMode(QOpenGLTexture::WrapMode::ClampToEdge);
+        m_depth_texture->setAutoMipMapGenerationEnabled(false);
+        m_depth_texture->setMinMagFilters(QOpenGLTexture::Filter::Linear, QOpenGLTexture::Filter::Linear);
+        m_depth_texture->setWrapMode(QOpenGLTexture::WrapMode::ClampToEdge);
         m_depth_texture->allocateStorage();
     }
     reset_fbo();
@@ -184,11 +184,7 @@ void Framebuffer::bind()
 
 void Framebuffer::bind_colour_texture(unsigned index)
 {
-    if (index != 0)
-        throw std::logic_error("not implemented");
-
-    QOpenGLFunctions* f = QOpenGLContext::currentContext()->functions();
-    f->glBindTexture(GL_TEXTURE_2D, m_colour_texture->textureId());
+    m_colour_texture->bind(index);
 }
 
 std::unique_ptr<QOpenGLTexture> Framebuffer::take_and_replace_colour_attachment(unsigned index)

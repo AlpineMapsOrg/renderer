@@ -45,4 +45,5 @@ void main() {
    highp vec3 light_through_atmosphere = calculate_atmospheric_light(camera_position / 1000.0, ray_direction, ray_length, background_colour, 1000);
 
    out_Color = vec4(light_through_atmosphere, 1.0);
+   //out_Color = vec4(1.0, 0.0, 0.0, 1.0);
 }

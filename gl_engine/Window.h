@@ -27,6 +27,7 @@
 #include <chrono>
 #include <glm/glm.hpp>
 #include <memory>
+#include <QOpenGLFunctions_3_3_Core>
 
 #include "helpers.h"
 #include "nucleus/AbstractRenderWindow.h"
@@ -100,6 +101,7 @@ private:
 
     int m_frame = 0;
     bool m_initialised = false;
+    bool m_render_looped = false;
     QString m_debug_text;
     QString m_debug_scheduler_stats;
 };

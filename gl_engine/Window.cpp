@@ -27,6 +27,8 @@
 #include <QOpenGLDebugLogger>
 #include <QOpenGLExtraFunctions>
 
+#include <QOpenGLVersionFunctionsFactory>
+
 #include <QOpenGLFramebufferObject>
 #include <QOpenGLShaderProgram>
 #include <QOpenGLTexture>
@@ -96,6 +98,8 @@ void Window::initialise_gpu()
     m_timer->add_timer("cpu_total", gl_engine::TimerTypes::CPU, "TOTAL", 240);
     m_timer->add_timer("gpu_total", gl_engine::TimerTypes::GPUAsync, "TOTAL", 240);
     m_timer->add_timer("all", gl_engine::TimerTypes::CPU, "TOTAL");
+
+
     emit gpu_ready_changed(true);
 }
 
@@ -107,7 +111,7 @@ void Window::resize_framebuffer(int width, int height)
     QOpenGLFunctions* f = QOpenGLContext::currentContext()->functions();
     m_framebuffer->resize({ width, height });
     m_atmosphere->resize({ width, height });
-    m_depth_buffer->resize({ width, height });
+    m_depth_buffer->resize({ width / 4.0, height / 4.0 });
 
     f->glViewport(0, 0, width, height);
 }
@@ -118,6 +122,8 @@ void Window::paint(QOpenGLFramebufferObject* framebuffer)
     m_timer->start_timer("gpu_total");
 
     QOpenGLExtraFunctions *f = QOpenGLContext::currentContext()->extraFunctions();
+
+    auto funcs = QOpenGLVersionFunctionsFactory::get<QOpenGLFunctions_3_3_Core>(QOpenGLContext::currentContext());
 
     f->glEnable(GL_CULL_FACE);
     f->glCullFace(GL_BACK);
@@ -155,16 +161,21 @@ void Window::paint(QOpenGLFramebufferObject* framebuffer)
     f->glEnable(GL_BLEND);
     f->glBlendFunc(GL_ONE, GL_ONE_MINUS_SRC_ALPHA);
 
+    if (funcs && m_shared_config_ubo->data.m_wireframe_mode > 0) funcs->glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+
     m_shader_manager->tile_shader()->bind();
     m_timer->start_timer("tiles");
     m_tile_manager->draw(m_shader_manager->tile_shader(), m_camera);
     m_timer->stop_timer("tiles");
+
+    if (funcs && m_shared_config_ubo->data.m_wireframe_mode > 0) funcs->glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
 
     m_framebuffer->unbind();
     if (framebuffer)
         framebuffer->bind();
 
     m_shader_manager->screen_quad_program()->bind();
+    m_shader_manager->screen_quad_program()->set_uniform("texture_sampler", 0);
     m_framebuffer->bind_colour_texture(0);
     m_timer->start_timer("compose");
     m_screen_quad_geometry.draw();
@@ -175,7 +186,9 @@ void Window::paint(QOpenGLFramebufferObject* framebuffer)
 
     m_timer->stop_timer("cpu_total");
     m_timer->stop_timer("gpu_total");
-    m_timer->stop_timer("all");
+    if (m_render_looped) {
+        m_timer->stop_timer("all");
+    }
 
     // Everything should be available by now, because we are synchronising with glFinish
     QList<gl_engine::qTimerReport> new_values = m_timer->fetch_results();
@@ -183,9 +196,11 @@ void Window::paint(QOpenGLFramebufferObject* framebuffer)
         emit report_measurements(new_values);
     }
 
-    m_timer->start_timer("all");
+    if (m_render_looped) {
+        m_timer->start_timer("all");
+        emit update_requested();
+    }
 
-    emit update_requested();
 }
 
 void Window::paintOverGL(QPainter* painter)
@@ -221,6 +236,17 @@ void Window::keyPressEvent(QKeyEvent* e)
         m_shader_manager->reload_shaders();
         qDebug("all shaders reloaded");
         emit update_requested();
+    }
+    if (e->key() == Qt::Key::Key_F6) {
+        if (this->m_render_looped) {
+            this->m_render_looped = false;
+            qDebug("Rendering loop exited");
+        } else {
+            this->m_render_looped = true;
+            qDebug("Rendering loop started");
+        }
+        emit update_requested();
+
     }
     if (e->key() == Qt::Key::Key_F11
         || (e->key() == Qt::Key_P && e->modifiers() == Qt::ControlModifier)

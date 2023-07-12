@@ -69,6 +69,63 @@ Rectangle {
                     }
                 }
 
+                Label { text: "Wireframe:" }
+                ComboBox {
+                    Layout.fillWidth: true;
+                    model: ["disabled", "with shading", "white"]
+                    Component.onCompleted:  currentIndex = map.shared_config.wireframe_mode;
+                    onCurrentValueChanged:  map.shared_config.wireframe_mode = currentIndex;
+                }
+
+                Label { text: "Normals:" }
+                ComboBox {
+                    Layout.fillWidth: true;
+                    model: ["per Fragment", "Finite-Difference"]
+                    currentIndex: 1
+                    Component.onCompleted:  currentIndex = map.shared_config.normal_mode;
+                    onCurrentValueChanged:  map.shared_config.normal_mode = currentIndex;
+                }
+
+
+                Rectangle {
+                    Layout.fillWidth: true;
+                    Layout.columnSpan: 2;
+                    color: Qt.alpha("white", 0.1)
+                    height: 30
+                    border { width:1; color:Qt.alpha( "white", 0.5); }
+                    radius: 5
+                    Label {
+                        x: 10; y: 3
+                        text: "Curtains"
+                        font.pixelSize:16
+                    }
+                }
+                Label { text: "Mode:" }
+                ComboBox {
+                    Layout.fillWidth: true;
+                    model: ["Off", "Normal", "Highlighted", "Hide Rest"]
+                    currentIndex: 1
+                    Component.onCompleted:  currentIndex = map.shared_config.curtain_settings.x;
+                    onCurrentValueChanged:  map.shared_config.curtain_settings.x = currentIndex;
+                }
+                Label { text: "Height:" }
+                ComboBox {
+                    Layout.fillWidth: true;
+                    model: ["Fixed", "Automatic"];
+                    currentIndex: 1
+                    Component.onCompleted:  currentIndex = map.shared_config.curtain_settings.y;
+                    onCurrentValueChanged:  map.shared_config.curtain_settings.y = currentIndex;
+                }
+                Label { text: "Ref.-Height:" }
+                Slider {
+                    from: 1.0
+                    to: 500.0
+                    stepSize: 1.0
+                    Layout.fillWidth: true;
+                    Component.onCompleted: this.value = map.shared_config.curtain_settings.z;
+                    onMoved: map.shared_config.curtain_settings.z = this.value;
+                }
+
                 Rectangle {
                     Layout.fillWidth: true;
                     Layout.columnSpan: 2;
@@ -81,9 +138,20 @@ Rectangle {
                         text: "Phong-Shading"
                         font.pixelSize:16
                     }
+                    CheckBox {
+                        checked: true
+                        x: menu_width - this.width - 30
+                        y: -10
+                        Component.onCompleted: {
+                            this.checked = map.shared_config.phong_enabled;
+                        }
+                        onCheckStateChanged: {
+                            map.shared_config.phong_enabled = this.checked;
+                        }
+                    }
                 }
 
-                Label { text: "Light:" }
+                Label { text: "Light-Color:" }
                 RowLayout {
                     Label {
                         padding: 5
@@ -120,6 +188,60 @@ Rectangle {
                     onMoved: map.shared_config.sun_light.w = this.value;
 
                 }
+
+                Label { text: "Light-Direction:" }
+                RowLayout {
+                    function update_sun_position() {
+                        let phi = sun_phi.value * Math.PI / 180.0;
+                        let theta = sun_theta.value * Math.PI / 180.0;
+                        let dir = Qt.vector3d(-Math.sin(theta) * Math.cos(phi), -Math.sin(theta) * Math.sin(phi), -Math.cos(theta));
+                        dir = dir.normalized();
+                        map.shared_config.sun_light_dir = Qt.vector4d(dir.x, dir.y, dir.z, 1.0);
+                    }
+                    Dial {
+                        id: sun_phi
+                        implicitHeight: 75
+                        implicitWidth: 70
+                        stepSize: 5
+                        value: 135
+                        wrap: true
+                        onValueChanged: {
+                            children[0].text = value + "°";
+                            parent.update_sun_position();
+                        }
+                        from: 0
+                        to: 360
+                        snapMode: Dial.SnapOnRelease
+                        Label {
+                            x: parent.width / 2 - this.width / 2
+                            y: parent.height / 2 - this.height / 2
+                            text: parent.value + "°"
+                        }
+                    }
+                    Slider {
+                        id: sun_theta
+                        from: -110
+                        to: 110
+                        implicitHeight: 75
+                        orientation: Qt.Vertical
+                        value: 45
+                        onValueChanged: {
+                            children[0].text = value + "°";
+                            parent.update_sun_position();
+                        }
+                        snapMode: Slider.SnapOnRelease
+                        stepSize: 5
+                        Label {
+                            x: 40
+                            y: parent.height / 2 - this.height / 2
+                            text: parent.value + "°"
+                        }
+
+                    }
+                    Component.onCompleted: update_sun_position()
+                }
+
+
 
                 Label { text: "Material:" }
                 Label {
@@ -178,7 +300,8 @@ Rectangle {
 
                 Label { text: "Overlay:" }
                 ComboBox {
-                    model: ["None", "Normals", "Tiles", "Zoomlevel", "Triangles"]
+                    Layout.fillWidth: true;
+                    model: ["None", "Ortho-Picture", "Normals", "Tiles", "Zoomlevel", "Vertex-ID", "Vertex Height-Sample"]
                     Component.onCompleted:  currentIndex = map.shared_config.debug_overlay;
                     onCurrentValueChanged:  map.shared_config.debug_overlay = currentIndex;
                 }

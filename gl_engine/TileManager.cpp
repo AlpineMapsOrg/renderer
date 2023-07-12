@@ -116,8 +116,8 @@ void TileManager::draw(ShaderProgram* shader_program, const nucleus::camera::Def
     shader_program->set_uniform("n_edge_vertices", N_EDGE_VERTICES);
     shader_program->set_uniform("matrix", camera.local_view_projection_matrix(camera.position()));
     shader_program->set_uniform("camera_position", glm::vec3(camera.position()));
-    shader_program->set_uniform("texture_sampler", 0);
-//    shader_program->set_uniform("texture_sampler", 0);
+    shader_program->set_uniform("texture_sampler", 2);
+    shader_program->set_uniform("height_sampler", 1);
 
     const auto draw_tiles = m_draw_list_generator.generate_for(camera);
     for (const auto& tileset : tiles()) {
@@ -128,7 +128,8 @@ void TileManager::draw(ShaderProgram* shader_program, const nucleus::camera::Def
         shader_program->set_uniform_array("bounds", boundsArray(tileset, camera.position()));
         shader_program->set_uniform("tileset_id", (int)((tileset.tiles[0].first.coords[0] + tileset.tiles[0].first.coords[1])));
         shader_program->set_uniform("tileset_zoomlevel", tileset.tiles[0].first.zoom_level);
-        tileset.ortho_texture->bind(0);
+        tileset.ortho_texture->bind(2);
+        tileset.heightmap_texture->bind(1);
         f->glDrawElements(GL_TRIANGLE_STRIP, tileset.gl_element_count, tileset.gl_index_type, nullptr);
     }
     f->glBindVertexArray(0);
@@ -160,7 +161,7 @@ void TileManager::set_aabb_decorator(const nucleus::tile_scheduler::utils::AabbD
     m_draw_list_generator.set_aabb_decorator(new_aabb_decorator);
 }
 
-void TileManager::add_tile(const tile::Id& id, tile::SrsAndHeightBounds bounds, const QImage& ortho_texture, const nucleus::Raster<uint16_t>& height_map)
+void TileManager::add_tile(const tile::Id& id, tile::SrsAndHeightBounds bounds, const QImage& ortho_texture, const nucleus::Raster<uint16_t>& height_map, const QImage& height_texture)
 {
     if (!QOpenGLContext::currentContext()) // can happen during shutdown.
         return;
@@ -195,6 +196,10 @@ void TileManager::add_tile(const tile::Id& id, tile::SrsAndHeightBounds bounds, 
     tileset.ortho_texture->setWrapMode(QOpenGLTexture::WrapMode::ClampToEdge);
     tileset.ortho_texture->setMinMagFilters(QOpenGLTexture::Filter::LinearMipMapLinear, QOpenGLTexture::Filter::Linear);
 
+    tileset.heightmap_texture = std::make_unique<QOpenGLTexture>(height_texture);
+    tileset.heightmap_texture->setWrapMode(QOpenGLTexture::WrapMode::ClampToEdge);
+    tileset.heightmap_texture->setMinMagFilters(QOpenGLTexture::Filter::LinearMipMapLinear, QOpenGLTexture::Filter::Linear);
+
     // add to m_gpu_tiles
     m_gpu_tiles.push_back(std::move(tileset));
     m_draw_list_generator.add_tile(id);
@@ -215,7 +220,8 @@ void TileManager::update_gpu_quads(const std::vector<nucleus::tile_scheduler::ti
             assert(tile.id.zoom_level < 100);
             assert(tile.height);
             assert(tile.ortho);
-            add_tile(tile.id, tile.bounds, *tile.ortho, *tile.height);
+            assert(tile.height_image);
+            add_tile(tile.id, tile.bounds, *tile.ortho, *tile.height, *tile.height_image);
         }
     }
     for (const auto& quad : deleted_quads) {
