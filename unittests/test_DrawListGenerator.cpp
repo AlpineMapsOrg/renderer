@@ -16,12 +16,16 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *****************************************************************************/
 
+#include <catch2/benchmark/catch_benchmark.hpp>
 #include <catch2/catch_test_macros.hpp>
+
+#include <QFile>
 
 #include "nucleus/camera/stored_positions.h"
 #include "nucleus/tile_scheduler/DrawListGenerator.h"
 #include "nucleus/tile_scheduler/utils.h"
 #include "sherpa/TileHeights.h"
+#include "sherpa/quad_tree.h"
 
 TEST_CASE("nucleus/tile_scheduler/DrawListGenerator")
 {
@@ -75,4 +79,61 @@ TEST_CASE("nucleus/tile_scheduler/DrawListGenerator")
         CHECK(list.contains(tile::Id { 0, { 0, 0 } }));
     }
 
+}
+
+TEST_CASE("nucleus/tile_scheduler/DrawListGenerator benchmark")
+{
+    std::vector<tile::Id> all_inner_nodes;
+    quad_tree::onTheFlyTraverse(
+        tile::Id{0, {0, 0}},
+        [](const tile::Id &v) { return v.zoom_level < 7; },
+        [&all_inner_nodes](const tile::Id &v) {
+            all_inner_nodes.push_back(v);
+            return v.children();
+        });
+
+    QFile file(":/map/height_data.atb");
+    const auto open = file.open(QIODeviceBase::OpenModeFlag::ReadOnly);
+    assert(open);
+    const QByteArray data = file.readAll();
+    const auto decorator = nucleus::tile_scheduler::utils::AabbDecorator::make(
+        TileHeights::deserialise(data));
+
+    const auto camera_positions = std::vector{
+        nucleus::camera::stored_positions::karwendel(),
+        nucleus::camera::stored_positions::grossglockner(),
+        nucleus::camera::stored_positions::oestl_hochgrubach_spitze(),
+        nucleus::camera::stored_positions::schneeberg(),
+        nucleus::camera::stored_positions::wien(),
+        nucleus::camera::stored_positions::stephansdom(),
+    };
+    for (const auto &camera_position : camera_positions) {
+        quad_tree::onTheFlyTraverse(tile::Id{0, {0, 0}},
+                                    nucleus::tile_scheduler::utils::refineFunctor(camera_position,
+                                                                                  decorator,
+                                                                                  1),
+                                    [&all_inner_nodes](const tile::Id &v) {
+                                        all_inner_nodes.push_back(v);
+                                        return v.children();
+                                    });
+    }
+
+    nucleus::tile_scheduler::DrawListGenerator draw_list_generator;
+    draw_list_generator.set_aabb_decorator(decorator);
+    for (const auto &id : all_inner_nodes) {
+        draw_list_generator.add_tile(id);
+    }
+
+    BENCHMARK("generate_for")
+    {
+        nucleus::tile_scheduler::DrawListGenerator::TileSet set;
+        for (const auto &camera_position : camera_positions) {
+            const auto list = draw_list_generator.generate_for(camera_position);
+            set.reserve(set.size() + list.size());
+            for (const auto &id : list) {
+                set.insert(id);
+            }
+        }
+        return set;
+    };
 }

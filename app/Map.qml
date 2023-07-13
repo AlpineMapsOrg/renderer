@@ -35,11 +35,11 @@ Rectangle {
     }
 
     Image {
-        function oc_scale() {
+        function oc_scale() : float {
             if (renderer.camera_operation_centre_distance < 0) {
-                return 1;
+                return 1.0;
             }
-            let max_dist = 1000;
+            let max_dist = 1000.0;
             let scale = 1 + Math.pow((1 - (Math.min(max_dist, renderer.camera_operation_centre_distance) / max_dist)) * 1.6, 6);
             return scale;
         }
@@ -68,12 +68,12 @@ Rectangle {
             property int vertical_text_margin: 10
             property real alpha_value: my_alpha()
             visible: alpha_value > 0
-            function my_scale() {
+            function my_scale() : float {
                 let importance_scale = model.importance / 10;
                 let distance_scale = model.size + 0.3
                 return importance_scale * (importance_scale + 0.5) * distance_scale
             }
-            function my_alpha() {
+            function my_alpha() : float {
                 let alpha = my_scale();
                 if (alpha < 0.37)
                     alpha = 0.0;

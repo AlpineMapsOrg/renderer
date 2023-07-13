@@ -21,10 +21,12 @@
 #include <unordered_set>
 
 #include <QBuffer>
+#include <QDebug>
+#include <QNetworkInformation>
 #include <QStandardPaths>
 #include <QTimer>
-#include <fmt/core.h>
 #include <fmt/chrono.h>
+#include <fmt/core.h>
 
 #include "nucleus/tile_scheduler/utils.h"
 #include "nucleus/utils/tile_conversion.h"
@@ -65,12 +67,57 @@ void Scheduler::update_camera(const camera::Definition& camera)
     schedule_update();
 }
 
-void Scheduler::receive_quads(const std::vector<tile_types::TileQuad>& new_quads)
+void Scheduler::receive_quad(const tile_types::TileQuad& new_quad)
 {
-    m_ram_cache.insert(new_quads);
-    schedule_purge();
-    schedule_update();
-    schedule_persist();
+    using Status = tile_types::NetworkInfo::Status;
+#ifdef __EMSCRIPTEN__
+    // webassembly doesn't report 404 (well, probably it does, but not if there is a cors failure as well).
+    // so we'll simply treat any 404 as network error.
+    // however, we need to pass tiles with zoomlevel < 10, otherwise the top of the tree won't be built.
+    if (new_quad.network_info().status == Status::Good || new_quad.id.zoom_level < 10) {
+        m_ram_cache.insert(new_quad);
+        schedule_purge();
+        schedule_update();
+        schedule_persist();
+        emit quad_received(new_quad.id);
+    }
+#else
+    switch (new_quad.network_info().status) {
+    case Status::Good:
+    case Status::NotFound:
+        m_ram_cache.insert(new_quad);
+        schedule_purge();
+        schedule_update();
+        schedule_persist();
+        emit quad_received(new_quad.id);
+        update_stats();
+        break;
+    case Status::NetworkError:
+        // do not persist the tile.
+        // do not reschedule retrieval (wait for user input or a reconnect signal).
+        // do not purge (nothing was added, so no need to check).
+        // do nothing.
+        break;
+    }
+#endif
+}
+
+void Scheduler::set_network_reachability(QNetworkInformation::Reachability reachability)
+{
+    switch (reachability) {
+    case QNetworkInformation::Reachability::Online:
+    case QNetworkInformation::Reachability::Local:
+    case QNetworkInformation::Reachability::Site:
+    case QNetworkInformation::Reachability::Unknown:
+        qDebug() << "enabling network";
+        m_network_requests_enabled = true;
+        schedule_update();
+        break;
+    case QNetworkInformation::Reachability::Disconnected:
+        qDebug() << "disabling network";
+        m_network_requests_enabled = false;
+        break;
+    }
 }
 
 void Scheduler::update_gpu_quads()
@@ -86,7 +133,8 @@ void Scheduler::update_gpu_quads()
         // create GpuQuad based on cpu quad
         tile_types::GpuTileQuad gpu_quad;
         gpu_quad.id = quad.id;
-        for (unsigned i = 0; i < quad.n_tiles; ++i) {
+        assert(quad.n_tiles == 4);
+        for (unsigned i = 0; i < 4; ++i) {
             gpu_quad.tiles[i].id = quad.tiles[i].id;
             gpu_quad.tiles[i].bounds = m_aabb_decorator->aabb(quad.tiles[i].id);
 
@@ -113,12 +161,9 @@ void Scheduler::update_gpu_quads()
         return true;
     });
 
-    std::vector<tile_types::GpuCacheInfo> tiles_to_put_in_gpu_cache;
-    tiles_to_put_in_gpu_cache.reserve(new_gpu_quads.size());
-    std::transform(new_gpu_quads.cbegin(), new_gpu_quads.cend(), std::back_inserter(tiles_to_put_in_gpu_cache), [](const tile_types::GpuTileQuad& t) {
-        return tile_types::GpuCacheInfo { t.id };
-    });
-    m_gpu_cached.insert(tiles_to_put_in_gpu_cache);
+    for (const auto& q : new_gpu_quads) {
+        m_gpu_cached.insert(tile_types::GpuCacheInfo { q.id });
+    }
 
     m_gpu_cached.visit([&should_refine](const tile_types::GpuCacheInfo& quad) {
         return should_refine(quad.id);
@@ -142,13 +187,17 @@ void Scheduler::update_gpu_quads()
     });
 
     emit gpu_quads_updated(new_gpu_quads, { superfluous_ids.cbegin(), superfluous_ids.cend() });
+    update_stats();
 }
 
 void Scheduler::send_quad_requests()
 {
+    if (!m_network_requests_enabled)
+        return;
     auto currently_active_tiles = tiles_for_current_camera_position();
-    std::erase_if(currently_active_tiles, [this](const tile::Id& id) {
-        return m_ram_cache.contains(id);
+    const auto current_time = utils::time_since_epoch();
+    std::erase_if(currently_active_tiles, [this, current_time](const tile::Id& id) {
+        return m_ram_cache.contains(id) && m_ram_cache.peak_at(id).network_info().timestamp + m_retirement_age_for_tile_cache > current_time;
     });
     emit quads_requested(currently_active_tiles);
 }
@@ -165,6 +214,7 @@ void Scheduler::purge_ram_cache()
     });
     m_ram_cache.set_capacity(m_ram_quad_limit);
     m_ram_cache.purge();
+    update_stats();
 }
 
 void Scheduler::persist_tiles()
@@ -204,10 +254,18 @@ void Scheduler::schedule_persist()
     }
 }
 
+void Scheduler::update_stats()
+{
+    m_statistics.n_tiles_in_ram_cache = m_ram_cache.n_cached_objects();
+    m_statistics.n_tiles_in_gpu_cache = m_gpu_cached.n_cached_objects();
+    emit statistics_updated(m_statistics);
+}
+
 void Scheduler::read_disk_cache()
 {
     try {
         m_ram_cache.read_from_disk(disk_cache_path());
+        update_stats();
     } catch (const std::runtime_error& e) {
         qDebug("Reading tiles from disk cache (%s) failed: \n%s\nRemoving all files.", disk_cache_path().c_str(), e.what());
         std::filesystem::remove_all(disk_cache_path());
@@ -218,13 +276,23 @@ std::vector<tile::Id> Scheduler::tiles_for_current_camera_position() const
 {
     std::vector<tile::Id> all_inner_nodes;
     const auto all_leaves = quad_tree::onTheFlyTraverse(
-        tile::Id { 0, { 0, 0 } },
-        tile_scheduler::utils::refineFunctor(m_current_camera, m_aabb_decorator, m_permissible_screen_space_error, m_ortho_tile_size),
-        [&all_inner_nodes](const tile::Id& v) { all_inner_nodes.push_back(v); return v.children(); });
+        tile::Id{0, {0, 0}},
+        tile_scheduler::utils::refineFunctor(m_current_camera,
+                                             m_aabb_decorator,
+                                             m_permissible_screen_space_error,
+                                             m_ortho_tile_size),
+        [&all_inner_nodes](const tile::Id &v) {
+            all_inner_nodes.push_back(v);
+            return v.children();
+        });
 
-    //    all_inner_nodes.reserve(all_inner_nodes.size() + all_leaves.size());
-    //    std::copy(all_leaves.begin(), all_leaves.end(), std::back_inserter(all_inner_nodes));
+    // not adding leaves, because they we will be fetching quads, which also fetch their children
     return all_inner_nodes;
+}
+
+void Scheduler::set_retirement_age_for_tile_cache(unsigned int new_retirement_age_for_tile_cache)
+{
+    m_retirement_age_for_tile_cache = new_retirement_age_for_tile_cache;
 }
 
 unsigned int Scheduler::persist_timeout() const

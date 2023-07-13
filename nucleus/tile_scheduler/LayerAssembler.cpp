@@ -30,39 +30,43 @@ size_t LayerAssembler::n_items_in_flight() const
     return m_height_data.size() + m_ortho_data.size();
 }
 
+tile_types::LayeredTile LayerAssembler::join(const tile_types::TileLayer& ortho_tile, const tile_types::TileLayer& height_tile)
+{
+    assert(ortho_tile.id == height_tile.id);
+    const auto network_info = tile_types::NetworkInfo::join(ortho_tile.network_info, height_tile.network_info);
+    const auto data_filter = [&network_info](const auto& d) {
+        if (network_info.status == tile_types::NetworkInfo::Status::Good)
+            return d;
+        return std::make_shared<QByteArray>();
+    };
+
+    return {ortho_tile.id,
+            network_info,
+            data_filter(ortho_tile.data),
+            data_filter(height_tile.data)};
+}
+
 void LayerAssembler::load(const tile::Id& tile_id)
 {
     emit tile_requested(tile_id);
 }
 
-void LayerAssembler::deliver_ortho(const tile::Id& tile_id, const std::shared_ptr<QByteArray>& ortho_data)
+void LayerAssembler::deliver_ortho(const tile_types::TileLayer& tile)
 {
-    m_ortho_data[tile_id] = ortho_data;
-    check_and_emit(tile_id);
+    m_ortho_data[tile.id] = tile;
+    check_and_emit(tile.id);
 }
 
-void LayerAssembler::deliver_height(const tile::Id& tile_id, const std::shared_ptr<QByteArray>& height_data)
+void LayerAssembler::deliver_height(const tile_types::TileLayer& tile)
 {
-    m_height_data[tile_id] = height_data;
-    check_and_emit(tile_id);
-}
-
-void LayerAssembler::report_missing_ortho(const tile::Id& tile_id)
-{
-    m_ortho_data[tile_id] = std::make_shared<QByteArray>();
-    check_and_emit(tile_id);
-}
-
-void LayerAssembler::report_missing_height(const tile::Id& tile_id)
-{
-    m_height_data[tile_id] = std::make_shared<QByteArray>();
-    check_and_emit(tile_id);
+    m_height_data[tile.id] = tile;
+    check_and_emit(tile.id);
 }
 
 void LayerAssembler::check_and_emit(const tile::Id& tile_id)
 {
     if (m_ortho_data.contains(tile_id) && m_height_data.contains(tile_id)) {
-        emit tile_loaded({ .id = tile_id, .ortho = m_ortho_data[tile_id], .height = m_height_data[tile_id] });
+        emit tile_loaded(join(m_ortho_data[tile_id], m_height_data[tile_id]));
         m_ortho_data.erase(tile_id);
         m_height_data.erase(tile_id);
     }

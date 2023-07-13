@@ -31,6 +31,30 @@ class Raster;
 
 namespace nucleus::tile_scheduler::tile_types {
 
+struct NetworkInfo {
+    enum class Status : uint64_t { // NetworkInfo will be padded by 4 bytes even when usign 32bit int. clear the warning.
+        Good = 0,
+        NotFound = 1,
+        NetworkError = 2,
+
+    };
+    Status status;
+    uint64_t timestamp;
+    template <typename... Ts>
+    static NetworkInfo join(const Ts&... infos)
+    {
+        const auto info_array = std::array<NetworkInfo, sizeof...(Ts)>{infos...};
+        Status status = Status::Good;
+        uint64_t timestamp = std::numeric_limits<uint64_t>::max();
+        for (const auto& i : info_array) {
+            status = std::max(status, i.status);
+            timestamp = std::min(timestamp, i.timestamp);
+        }
+        return {status, timestamp};
+    }
+
+};
+
 template <typename T>
 concept NamedTile = requires(T t) {
     {
@@ -43,8 +67,16 @@ concept SerialisableTile = requires(T t) {
     requires std::is_same<std::remove_reference_t<decltype(T::version_information)>, const std::array<char, 25>>::value;
 };
 
+struct TileLayer {
+    tile::Id id;
+    NetworkInfo network_info;
+    std::shared_ptr<QByteArray> data;
+};
+static_assert(NamedTile<TileLayer>);
+
 struct LayeredTile {
     tile::Id id;
+    NetworkInfo network_info;
     std::shared_ptr<QByteArray> ortho;
     std::shared_ptr<QByteArray> height;
 };
@@ -54,7 +86,10 @@ struct TileQuad {
     tile::Id id;
     unsigned n_tiles = 0;
     std::array<LayeredTile, 4> tiles;
-    static constexpr std::array<char, 25> version_information = {"TileQuad, version 0.2"};
+    NetworkInfo network_info() const {
+        return NetworkInfo::join(tiles[0].network_info, tiles[1].network_info, tiles[2].network_info, tiles[3].network_info);
+    }
+    static constexpr std::array<char, 25> version_information = {"TileQuad, version 0.3"};
 };
 static_assert(NamedTile<TileQuad>);
 static_assert(SerialisableTile<TileQuad>);

@@ -60,7 +60,7 @@ TEST_CASE("nucleus/tile_scheduler/cache")
     {
         nucleus::tile_scheduler::Cache<TestTile> cache;
         cache.set_capacity(5);
-        cache.insert({ TestTile { { 0, { 0, 0 } }, "root" } });
+        cache.insert(TestTile { { 0, { 0, 0 } }, "root" });
         CHECK(cache.contains({ 0, { 0, 0 } }));
         CHECK(cache.n_cached_objects() == 1);
         cache.visit([](const TestTile&) { return false; });
@@ -77,10 +77,8 @@ TEST_CASE("nucleus/tile_scheduler/cache")
         CHECK(!cache.contains({ 0, { 0, 0 } }));
         CHECK(!cache.contains({ 6, { 4, 3 } }));
         CHECK(cache.n_cached_objects() == 0);
-        cache.insert({
-            TestTile { { 0, { 0, 0 } }, "green" },
-            TestTile { { 6, { 4, 3 } }, "red" }, // yes, tiles going in do not need to be connected to the tree. and no, they won't be visited.
-        });
+        cache.insert(TestTile { { 0, { 0, 0 } }, "green" });
+        cache.insert(TestTile { { 6, { 4, 3 } }, "red" }); // yes, tiles going in do not need to be connected to the tree. and no, they won't be visited
         CHECK(cache.n_cached_objects() == 2);
         CHECK(cache.contains({ 0, { 0, 0 } }));
         CHECK(cache.contains({ 6, { 4, 3 } }));
@@ -93,10 +91,9 @@ TEST_CASE("nucleus/tile_scheduler/cache")
         });
         CHECK(visited.size() == 1);
 
-        cache.insert({
-            TestTile { { 1, { 0, 0 } }, "green" },
-            TestTile { { 1, { 1, 0 } }, "green" },
-        });
+        cache.insert(TestTile { { 1, { 0, 0 } }, "green" });
+        cache.insert(TestTile { { 1, { 1, 0 } }, "green" });
+
         visited = {};
         cache.visit([&visited](const TestTile& t) {
             CHECK(t.data == "green");
@@ -108,10 +105,9 @@ TEST_CASE("nucleus/tile_scheduler/cache")
         CHECK(visited.contains({ 1, { 0, 0 } }));
         CHECK(visited.contains({ 1, { 1, 0 } }));
 
-        cache.insert({
-            TestTile { { 2, { 0, 0 } }, "green" },
-            TestTile { { 3, { 0, 0 } }, "green" },
-        });
+        cache.insert(TestTile { { 2, { 0, 0 } }, "green" });
+        cache.insert(TestTile { { 3, { 0, 0 } }, "green" });
+
         visited = {};
         cache.visit([&visited](const TestTile& t) {
             CHECK(t.data == "green");
@@ -129,15 +125,13 @@ TEST_CASE("nucleus/tile_scheduler/cache")
     SECTION("visit can refuse to visit certain tiles")
     {
         nucleus::tile_scheduler::Cache<TestTile> cache;
-        cache.insert({
-            TestTile { { 0, { 0, 0 } }, "green" },
-            TestTile { { 1, { 0, 0 } }, "orange" },
-            TestTile { { 1, { 0, 1 } }, "orange" },
-            TestTile { { 1, { 1, 0 } }, "orange" },
-            TestTile { { 1, { 1, 1 } }, "orange" },
-            TestTile { { 2, { 0, 0 } }, "red" },
-            TestTile { { 6, { 4, 3 } }, "red" }, // yes, tiles going in do not need to be connected to the tree. and no, they won't be visited.
-        });
+        cache.insert(TestTile { { 0, { 0, 0 } }, "green" });
+        cache.insert(TestTile { { 1, { 0, 0 } }, "orange" });
+        cache.insert(TestTile { { 1, { 0, 1 } }, "orange" });
+        cache.insert(TestTile { { 1, { 1, 0 } }, "orange" });
+        cache.insert(TestTile { { 1, { 1, 1 } }, "orange" });
+        cache.insert(TestTile { { 2, { 0, 0 } }, "red" });
+        cache.insert(TestTile { { 6, { 4, 3 } }, "red" });
 
         std::unordered_set<tile::Id, tile::Id::Hasher> visited;
         cache.visit([&visited](const TestTile& t) {
@@ -156,14 +150,13 @@ TEST_CASE("nucleus/tile_scheduler/cache")
     SECTION("purge: all elements equal, large zoom levels first")
     {
         nucleus::tile_scheduler::Cache<TestTile> cache;
-        cache.insert({
-            TestTile { { 0, { 0, 0 } }, "green" },
-            TestTile { { 6, { 4, 3 } }, "red" },
-            TestTile { { 1, { 0, 0 } }, "green" },
-            TestTile { { 1, { 1, 0 } }, "green" },
-            TestTile { { 2, { 0, 0 } }, "green" },
-            TestTile { { 3, { 0, 0 } }, "green" },
-        });
+        cache.insert(TestTile { { 0, { 0, 0 } }, "green" });
+        cache.insert(TestTile { { 6, { 4, 3 } }, "red" });
+        cache.insert(TestTile { { 1, { 0, 0 } }, "green" });
+        cache.insert(TestTile { { 1, { 1, 0 } }, "green" });
+        cache.insert(TestTile { { 2, { 0, 0 } }, "green" });
+        cache.insert(TestTile { { 3, { 0, 0 } }, "green" });
+
         cache.purge(); // default capacity is large enough for 6
         CHECK(cache.n_cached_objects() == 6);
         cache.set_capacity(3);
@@ -182,15 +175,14 @@ TEST_CASE("nucleus/tile_scheduler/cache")
     {
         nucleus::tile_scheduler::Cache<TestTile> cache;
         cache.set_capacity(2);
-        cache.insert({
-            TestTile { { 0, { 0, 0 } }, "red" },
-            TestTile { { 1, { 0, 1 } }, "red" },
-        });
+
+        cache.insert(TestTile { { 0, { 0, 0 } }, "red" });
+        cache.insert(TestTile { { 1, { 0, 1 } }, "red" });
         QThread::msleep(2);
-        cache.insert({
-            TestTile { { 1, { 0, 0 } }, "green" },
-            TestTile { { 1, { 1, 1 } }, "green" },
-        });
+
+        cache.insert(TestTile { { 1, { 0, 0 } }, "green" });
+        cache.insert(TestTile { { 1, { 1, 1 } }, "green" });
+
         const auto purged = cache.purge();
         REQUIRE(purged.size() == 2);
         CHECK(purged[0].id == tile::Id { 0, { 0, 0 } }); // order does not matter
@@ -204,16 +196,14 @@ TEST_CASE("nucleus/tile_scheduler/cache")
     {
         nucleus::tile_scheduler::Cache<TestTile> cache;
         cache.set_capacity(2);
-        cache.insert({
-            TestTile { { 0, { 0, 0 } }, "older" },
-        });
+        cache.insert(TestTile { { 0, { 0, 0 } }, "older" });
+
         QThread::msleep(2);
-        cache.insert({
-            TestTile { { 1, { 0, 0 } }, "newer" },
-            TestTile { { 1, { 0, 1 } }, "newer" },
-            TestTile { { 1, { 1, 0 } }, "newer" },
-        });
-        const std::unordered_set<tile::Id, tile::Id::Hasher> newer_tiles = {{ 1, { 0, 0 } }, { 1, { 0, 1 } }, { 1, { 1, 0 } }};
+        cache.insert(TestTile { { 1, { 0, 0 } }, "newer" });
+        cache.insert(TestTile { { 1, { 0, 1 } }, "newer" });
+        cache.insert(TestTile { { 1, { 1, 0 } }, "newer" });
+
+        const std::unordered_set<tile::Id, tile::Id::Hasher> newer_tiles = { { 1, { 0, 0 } }, { 1, { 0, 1 } }, { 1, { 1, 0 } } };
         QThread::msleep(2);
         cache.visit([](const TestTile &) { return true; });
         const auto purged = cache.purge();
@@ -230,24 +220,21 @@ TEST_CASE("nucleus/tile_scheduler/cache")
     SECTION("purge: visited elements are purged later than others")
     {
         nucleus::tile_scheduler::Cache<TestTile> cache;
-        cache.insert({
-            TestTile { { 0, { 0, 0 } }, "green" },
-            TestTile { { 2, { 0, 0 } }, "orange" },
-        });
+        cache.insert(TestTile { { 0, { 0, 0 } }, "green" });
+        cache.insert(TestTile { { 2, { 0, 0 } }, "orange" });
+
         QThread::msleep(2);
-        cache.insert({
-            TestTile { { 1, { 0, 0 } }, "green" },
-            TestTile { { 1, { 1, 0 } }, "orange" },
-            TestTile { { 1, { 1, 1 } }, "orange" },
-        });
+        cache.insert(TestTile { { 1, { 0, 0 } }, "green" });
+        cache.insert(TestTile { { 1, { 1, 0 } }, "orange" });
+        cache.insert(TestTile { { 1, { 1, 1 } }, "orange" });
+
         QThread::msleep(2);
-        cache.insert({
-            TestTile { { 1, { 0, 1 } }, "orange" },
-            TestTile { { 6, { 4, 3 } }, "red" }, // yes, tiles going in do not need to be connected to the tree. and no, they won't be visited.
-        });
+        cache.insert(TestTile { { 1, { 0, 1 } }, "orange" });
+        cache.insert(TestTile { { 6, { 4, 3 } }, "red" });
         CHECK(cache.n_cached_objects() == 7);
 
         QThread::msleep(2);
+
         std::unordered_set<tile::Id, tile::Id::Hasher> visited;
         cache.visit([&visited](const TestTile& t) {
             CHECK(t.data != "red");
@@ -273,18 +260,17 @@ TEST_CASE("nucleus/tile_scheduler/cache")
     SECTION("insert: insert overwrites existing objects")
     {
         nucleus::tile_scheduler::Cache<TestTile> cache;
-        cache.insert({
-            TestTile { { 0, { 0, 0 } }, "green" },
-            TestTile { { 1, { 0, 1 } }, "green" },
-        });
+        cache.insert(TestTile { { 0, { 0, 0 } }, "green" });
+        cache.insert(TestTile { { 1, { 0, 1 } }, "green" });
+
         cache.visit([](const TestTile& t) {
             CHECK(t.data == "green");
             return true;
         });
-        cache.insert({
-            TestTile { { 0, { 0, 0 } }, "red" },
-            TestTile { { 1, { 0, 1 } }, "red" },
-        });
+
+        cache.insert(TestTile { { 0, { 0, 0 } }, "red" });
+        cache.insert(TestTile { { 1, { 0, 1 } }, "red" });
+
         cache.visit([](const TestTile& t) {
             CHECK(t.data == "red");
             return true;
@@ -324,17 +310,15 @@ TEST_CASE("nucleus/tile_scheduler/cache")
         const auto path = std::filesystem::path(QStandardPaths::writableLocation(QStandardPaths::CacheLocation).toStdString()) / "test_tile_cache";
         std::filesystem::remove_all(path);
         {
-
             nucleus::tile_scheduler::Cache<DiskWriteTestTile> cache;
-            cache.insert({create_test_tile({0, {0, 0}}),
-                          create_test_tile({356, {20, 564}}),});
+            cache.insert(create_test_tile({ 0, { 0, 0 } }));
+            cache.insert(create_test_tile({ 356, { 20, 564 } }));
             for (unsigned i = 1; i < 10; ++i) {
-                  cache.insert({create_test_tile({i, {0, 0}}),
-                                create_test_tile({i, {1, 0}}),
-                                create_test_tile({i, {1, 1}}),
-                                create_test_tile({i, {0, 1}}),
-                               });
-              }
+                cache.insert(create_test_tile({ i, { 0, 0 } }));
+                cache.insert(create_test_tile({ i, { 1, 0 } }));
+                cache.insert(create_test_tile({ i, { 1, 1 } }));
+                cache.insert(create_test_tile({ i, { 0, 1 } }));
+            }
             cache.write_to_disk(path);
         }
         {
@@ -358,8 +342,8 @@ TEST_CASE("nucleus/tile_scheduler/cache")
         std::filesystem::remove_all(path);
         {
             nucleus::tile_scheduler::Cache<DiskWriteTestTile> cache;
-            cache.insert({create_test_tile({0, {0, 0}}),
-                          create_test_tile({356, {20, 564}}),});
+            cache.insert(create_test_tile({ 0, { 0, 0 } }));
+            cache.insert(create_test_tile({ 356, { 20, 564 } }));
             cache.write_to_disk(path);
         }
         {
@@ -374,8 +358,8 @@ TEST_CASE("nucleus/tile_scheduler/cache")
         std::filesystem::remove_all(path);
         {
             nucleus::tile_scheduler::Cache<DiskWriteTestTile> cache;
-            cache.insert({create_test_tile({0, {0, 0}}),
-                          create_test_tile({1, {0, 0}}),});
+            cache.insert(create_test_tile({ 0, { 0, 0 } }));
+            cache.insert(create_test_tile({ 1, { 0, 0 } }));
             cache.write_to_disk(path);
         }
         {
@@ -384,8 +368,8 @@ TEST_CASE("nucleus/tile_scheduler/cache")
             CHECK(cache.n_cached_objects() == 2);
             verify_tile(cache, {0, {0, 0}});
             verify_tile(cache, {1, {0, 0}});
-            cache.insert({create_test_tile({2, {0, 0}}),
-                          create_test_tile({3, {0, 0}}),});
+            cache.insert(create_test_tile({ 2, { 0, 0 } }));
+            cache.insert(create_test_tile({ 3, { 0, 0 } }));
             cache.write_to_disk(path);
         }
         {
@@ -421,13 +405,13 @@ TEST_CASE("nucleus/tile_scheduler/cache")
         std::filesystem::remove_all(path);
         {
             nucleus::tile_scheduler::Cache<DiskWriteTestTile> cache;
-            cache.insert({create_test_tile({0, {0, 0}}, 1),
-                          create_test_tile({1, {0, 0}}, 1),});
+            cache.insert(create_test_tile({ 0, { 0, 0 } }, 1));
+            cache.insert(create_test_tile({ 1, { 0, 0 } }, 1));
             cache.write_to_disk(path);
 
             QThread::msleep(2);
-            cache.insert({create_test_tile({0, {0, 0}}, 2),
-                          create_test_tile({1, {0, 0}}, 2),});
+            cache.insert(create_test_tile({ 0, { 0, 0 } }, 2));
+            cache.insert(create_test_tile({ 1, { 0, 0 } }, 2));
             cache.write_to_disk(path);
         }
         {
@@ -446,10 +430,10 @@ TEST_CASE("nucleus/tile_scheduler/cache")
         std::filesystem::remove_all(path);
         {
             nucleus::tile_scheduler::Cache<DiskWriteTestTile> cache;
-            cache.insert({create_test_tile({0, {0, 0}}),
-                          create_test_tile({1, {0, 0}}),
-                          create_test_tile({2, {0, 0}}),
-                          create_test_tile({3, {0, 0}}),});
+            cache.insert(create_test_tile({ 3, { 0, 0 } }));
+            cache.insert(create_test_tile({ 2, { 0, 0 } }));
+            cache.insert(create_test_tile({ 1, { 0, 0 } }));
+            cache.insert(create_test_tile({ 0, { 0, 0 } }));
             cache.write_to_disk(path);
             cache.set_capacity(2);
             cache.purge();
@@ -464,8 +448,8 @@ TEST_CASE("nucleus/tile_scheduler/cache")
                 verify_tile(cache, {0, {0, 0}});
                 verify_tile(cache, {1, {0, 0}});
             }
-            cache.insert({create_test_tile({2, {0, 0}}),
-                          create_test_tile({3, {0, 0}}),});
+            cache.insert(create_test_tile({ 2, { 0, 0 } }));
+            cache.insert(create_test_tile({ 3, { 0, 0 } }));
             CHECK(cache.n_cached_objects() == 4);
             verify_tile(cache, {0, {0, 0}});
             verify_tile(cache, {1, {0, 0}});

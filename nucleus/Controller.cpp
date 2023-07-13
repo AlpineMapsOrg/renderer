@@ -47,8 +47,9 @@ Controller::Controller(AbstractRenderWindow* render_window)
     qRegisterMetaType<nucleus::event_parameter::Mouse>();
     qRegisterMetaType<nucleus::event_parameter::Wheel>();
 
-    m_camera_controller = std::make_unique<nucleus::camera::Controller>(
-        nucleus::camera::stored_positions::oestl_hochgrubach_spitze(), m_render_window->depth_tester());
+    m_camera_controller
+        = std::make_unique<nucleus::camera::Controller>(nucleus::camera::stored_positions::oestl_hochgrubach_spitze(),
+            m_render_window->depth_tester());
 
     m_terrain_service = std::make_unique<TileLoadService>("https://alpinemaps.cg.tuwien.ac.at/tiles/alpine_png/", TileLoadService::UrlPattern::ZXY, ".png");
     //    m_ortho_service.reset(new TileLoadService("https://tiles.bergfex.at/styles/bergfex-osm/", TileLoadService::UrlPattern::ZXY_yPointingSouth, ".jpeg"));
@@ -84,13 +85,16 @@ Controller::Controller(AbstractRenderWindow* render_window)
         connect(la, &LayerAssembler::tile_requested, m_ortho_service.get(), &TileLoadService::load);
         connect(la, &LayerAssembler::tile_requested, m_terrain_service.get(), &TileLoadService::load);
 
-        connect(m_ortho_service.get(), &TileLoadService::load_ready, la, &LayerAssembler::deliver_ortho);
-        connect(m_ortho_service.get(), &TileLoadService::tile_unavailable, la, &LayerAssembler::report_missing_ortho);
-        connect(m_terrain_service.get(), &TileLoadService::load_ready, la, &LayerAssembler::deliver_height);
-        connect(m_terrain_service.get(), &TileLoadService::tile_unavailable, la, &LayerAssembler::report_missing_height);
+        connect(m_ortho_service.get(), &TileLoadService::load_finished, la, &LayerAssembler::deliver_ortho);
+        connect(m_terrain_service.get(), &TileLoadService::load_finished, la, &LayerAssembler::deliver_height);
         connect(la, &LayerAssembler::tile_loaded, qa, &QuadAssembler::deliver_tile);
         connect(qa, &QuadAssembler::quad_loaded, sl, &SlotLimiter::deliver_quad);
-        connect(sl, &SlotLimiter::quads_delivered, sch, &Scheduler::receive_quads);
+        connect(sl, &SlotLimiter::quad_delivered, sch, &Scheduler::receive_quad);
+    }
+    if (QNetworkInformation::loadDefaultBackend() && QNetworkInformation::instance()) {
+        QNetworkInformation* n = QNetworkInformation::instance();
+        m_tile_scheduler->set_network_reachability(n->reachability());
+        connect(n, &QNetworkInformation::reachabilityChanged, m_tile_scheduler.get(), &Scheduler::set_network_reachability);
     }
 
 #ifdef ALP_ENABLE_THREADING

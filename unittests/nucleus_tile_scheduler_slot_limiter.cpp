@@ -200,13 +200,13 @@ TEST_CASE("nucleus/tile_scheduler/slot limiter")
     SECTION("delivered quads are sent on")
     {
         SlotLimiter sl;
-        QSignalSpy spy(&sl, &SlotLimiter::quads_delivered);
-        sl.deliver_quad(tile_types::TileQuad { tile::Id { 0, { 0, 0 } } });
+        QSignalSpy spy(&sl, &SlotLimiter::quad_delivered);
+        sl.deliver_quad(tile_types::TileQuad { tile::Id { 0, { 0, 0 } }, 4, {} });
         REQUIRE(spy.size() == 1);
-        CHECK(spy[0][0].value<std::vector<tile_types::TileQuad>>()[0].id == tile::Id { 0, { 0, 0 } });
+        CHECK(spy[0][0].value<tile_types::TileQuad>().id == tile::Id { 0, { 0, 0 } });
 
-        sl.deliver_quad(tile_types::TileQuad { tile::Id { 1, { 2, 3 } } });
+        sl.deliver_quad(tile_types::TileQuad { tile::Id { 1, { 2, 3 } }, 4, {} });
         REQUIRE(spy.size() == 2);
-        CHECK(spy[1][0].value<std::vector<tile_types::TileQuad>>()[0].id == tile::Id { 1, { 2, 3 } });
+        CHECK(spy[1][0].value<tile_types::TileQuad>().id == tile::Id { 1, { 2, 3 } });
     }
 }

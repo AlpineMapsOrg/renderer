@@ -91,9 +91,19 @@ QQuickFramebufferObject::Renderer* TerrainRendererItem::createRenderer() const
     connect(this, &TerrainRendererItem::position_set_by_user, r->controller()->camera_controller(), &nucleus::camera::Controller::set_latitude_longitude);
 
     auto* const tile_scheduler = r->controller()->tile_scheduler();
-    connect(this, &TerrainRendererItem::render_quality_changed, r->controller()->tile_scheduler(), [=](float new_render_quality) {
+    connect(this, &TerrainRendererItem::render_quality_changed, tile_scheduler, [=](float new_render_quality) {
         const auto permissible_error = 1.0f / new_render_quality;
         tile_scheduler->set_permissible_screen_space_error(permissible_error);
+    });
+    connect(this, &TerrainRendererItem::tile_cache_size_changed, tile_scheduler, &nucleus::tile_scheduler::Scheduler::set_ram_quad_limit);
+    connect(tile_scheduler, &nucleus::tile_scheduler::Scheduler::quads_requested, this, [this](const std::vector<tile::Id>& ids) {
+        const_cast<TerrainRendererItem*>(this)->set_queued_tiles(ids.size());
+    });
+    connect(tile_scheduler, &nucleus::tile_scheduler::Scheduler::quad_received, this, [this]() {
+        const_cast<TerrainRendererItem*>(this)->set_queued_tiles(std::max(this->queued_tiles(), 1u) - 1);
+    });
+    connect(tile_scheduler, &nucleus::tile_scheduler::Scheduler::statistics_updated, this, [this](const nucleus::tile_scheduler::Scheduler::Statistics& stats) {
+        const_cast<TerrainRendererItem*>(this)->set_cached_tiles(stats.n_tiles_in_ram_cache);
     });
 
     // connect glWindow for shader reload hotkey F5
@@ -103,6 +113,7 @@ QQuickFramebufferObject::Renderer* TerrainRendererItem::createRenderer() const
     connect(r->glWindow(), &gl_engine::Window::report_measurements, this->m_timer_manager, &TimerFrontendManager::receive_measurements);
 
     connect(r->controller()->tile_scheduler(), &nucleus::tile_scheduler::Scheduler::gpu_quads_updated, RenderThreadNotifier::instance(), &RenderThreadNotifier::notify);
+    connect(tile_scheduler, &nucleus::tile_scheduler::Scheduler::gpu_quads_updated, RenderThreadNotifier::instance(), &RenderThreadNotifier::notify);
     return r;
 }
 
@@ -311,4 +322,56 @@ void TerrainRendererItem::set_render_quality(float new_render_quality)
     m_render_quality = new_render_quality;
     emit render_quality_changed(new_render_quality);
     schedule_update();
+}
+
+unsigned int TerrainRendererItem::in_flight_tiles() const
+{
+    return m_in_flight_tiles;
+}
+
+void TerrainRendererItem::set_in_flight_tiles(unsigned int new_in_flight_tiles)
+{
+    if (m_in_flight_tiles == new_in_flight_tiles)
+        return;
+    m_in_flight_tiles = new_in_flight_tiles;
+    emit in_flight_tiles_changed(m_in_flight_tiles);
+}
+
+unsigned int TerrainRendererItem::queued_tiles() const
+{
+    return m_queued_tiles;
+}
+
+void TerrainRendererItem::set_queued_tiles(unsigned int new_queued_tiles)
+{
+    if (m_queued_tiles == new_queued_tiles)
+        return;
+    m_queued_tiles = new_queued_tiles;
+    emit queued_tiles_changed(m_queued_tiles);
+}
+
+unsigned int TerrainRendererItem::cached_tiles() const
+{
+    return m_cached_tiles;
+}
+
+void TerrainRendererItem::set_cached_tiles(unsigned int new_cached_tiles)
+{
+    if (m_cached_tiles == new_cached_tiles)
+        return;
+    m_cached_tiles = new_cached_tiles;
+    emit cached_tiles_changed(m_cached_tiles);
+}
+
+unsigned int TerrainRendererItem::tile_cache_size() const
+{
+    return m_tile_cache_size;
+}
+
+void TerrainRendererItem::set_tile_cache_size(unsigned int new_tile_cache_size)
+{
+    if (m_tile_cache_size == new_tile_cache_size)
+        return;
+    m_tile_cache_size = new_tile_cache_size;
+    emit tile_cache_size_changed(m_tile_cache_size);
 }

@@ -22,24 +22,11 @@ if (UNIX AND NOT EMSCRIPTEN AND NOT ANDROID)
         if it's not installed, you'll get errors, that openmp or other stuff is not installed (hard to track down)" OFF)
 endif()
 
-
-############################################ sources ##############################################
-set(ALP_CATCH_UNITTEST_GL_SOURCES
-
-)
-set(ALP_CATCH_UNITTEST_DATA
-
-)
-set(ALP_CATCH_UNITTEST_SOURCES
-
-)
-
 ########################################### setup #################################################
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_AUTOMOC ON)
 set(CMAKE_AUTORCC ON)
 set(CMAKE_AUTOUIC ON)
-
 
 if (ALP_ENABLE_ADDRESS_SANITIZER)
     message(NOTICE "building with address sanitizer enabled")
@@ -89,24 +76,24 @@ if (ANDROID)
     FetchContent_Declare(
       android_openssl
       DOWNLOAD_EXTRACT_TIMESTAMP true
-      URL      https://github.com/AlpineMapsOrg/android_openssl/archive/refs/heads/master.zip
-      URL_HASH MD5=3bc2ef11f914784089f58f1e7e3024e7
+      URL      https://github.com/AlpineMapsOrg/android_openssl/archive/refs/heads/issams_fixes.zip
+#      URL_HASH MD5=88dd38c0fc94a195ae3f29412cfdcf2b
     )
     FetchContent_MakeAvailable(android_openssl)
+    include(${android_openssl_SOURCE_DIR}/android_openssl.cmake)
 endif()
 
 add_library(zppbits INTERFACE)
 target_include_directories(zppbits INTERFACE ${zppbits_SOURCE_DIR})
 
 
+########################################### projects #################################################
 add_subdirectory(sherpa)    # pulls in Catch2 and glm
 add_subdirectory(nucleus)
 add_subdirectory(gl_engine)
 add_subdirectory(plain_renderer)
 add_subdirectory(app)
 
-
-#################################### unit tests for backend #######################################
 if (ALP_UNITTESTS)
     if (EMSCRIPTEN AND ALP_ENABLE_THREADING)
         target_compile_options(Catch2 PRIVATE -pthread)

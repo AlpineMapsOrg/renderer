@@ -25,6 +25,11 @@ qt_add_executable(unittests_nucleus
     test_zppbits.cpp
 )
 
+qt_add_resources(unittests_nucleus "height_data"
+    PREFIX "/map"
+    BASE ${alpine_height_data_SOURCE_DIR}
+    FILES ${alpine_height_data_SOURCE_DIR}/height_data.atb
+)
 qt_add_resources(unittests_nucleus "test_data"
     PREFIX "/test_data"
     BASE ${CMAKE_CURRENT_SOURCE_DIR}/data/
@@ -39,7 +44,7 @@ target_compile_definitions(unittests_nucleus PUBLIC "ALP_TEST_DATA_DIR=\":/test_
 alp_setup_unittest(unittests_nucleus)
 
 if (ANDROID)
-    android_add_openssl_to_targets(unittests_nucleus)
+    add_android_openssl_libraries_to(unittests_nucleus)
 endif()
 
 if (EMSCRIPTEN)
