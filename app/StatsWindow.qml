@@ -18,7 +18,7 @@ Rectangle {
     border { width:3; color:Qt.alpha( "white", 0.5); }
     radius: 10
 
-    x: 10
+    x: map.width - infomenu_width - 10
     y: 0 + tool_bar.height + 10
     Drag.active: statsMenuMouse.drag.active
     MouseArea {
@@ -29,7 +29,7 @@ Rectangle {
 
     Pane {
         id: graph_dialog
-        x: statsMenu.width
+        x: - this.width
         y: -10
         z: 1
         visible: false
@@ -106,15 +106,16 @@ Rectangle {
             }
 
             Rectangle {
-                anchors.left: parent.left;
+                anchors.right: parent.right;
                 height: 80;
                 width: 20;
+                //x: parent.width - this.width;
                 y: parent.height / 2 - height / 2;
                 color: Qt.alpha( "white", 0.5);
                 radius: 2
                 opacity: 0.5;
                 Label {
-                    text: "<\n<\n<"
+                    text: ">\n>\n>"
                     font.pixelSize:12
                     font.bold: true
                     x: 7

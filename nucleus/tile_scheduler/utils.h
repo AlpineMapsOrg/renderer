@@ -140,7 +140,6 @@ namespace utils {
         for (const auto& p : frustum.corners)
             if (aabb.contains(p))
                 return true;
-
         const auto triangles = geometry::clip(geometry::triangulise(aabb), frustum.clipping_planes);
         return !triangles.empty();
     }

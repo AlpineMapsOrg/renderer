@@ -6,7 +6,7 @@ import QtQuick.Dialogs
 import Alpine
 
 Rectangle {
-    property int menu_height: map.height - 230
+    property int menu_height: map.height - 30 - tool_bar.height
     property int menu_width: 320
 
     //signal light_intensity_changed(newValue: float)
@@ -19,7 +19,7 @@ Rectangle {
     border { width:3; color:Qt.alpha( "white", 0.5); }
     radius: 10
 
-    x: map.width - menu_width - 10
+    x: 10
     y: 0 + tool_bar.height + 10
     Drag.active: mouseArea.drag.active
     MouseArea {
