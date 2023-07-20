@@ -49,24 +49,20 @@ layout(location = 0) in highp float altitude;
             row = (n_edge_vertices - 1) - curtain_vertex_id;
             col = (n_edge_vertices - 1);
         }
-        else if (curtain_vertex_id >= n_edge_vertices && curtain_vertex_id < 2 * n_edge_vertices) {
+        else if (curtain_vertex_id >= n_edge_vertices && curtain_vertex_id < 2 * n_edge_vertices - 1) {
             // northern
             row = 0;
-            col = (n_edge_vertices - 1) - (curtain_vertex_id - n_edge_vertices);
+            col = (n_edge_vertices - 1) - (curtain_vertex_id - n_edge_vertices) - 1;
         }
-        else if (curtain_vertex_id >= 2 * n_edge_vertices && curtain_vertex_id < 3 * n_edge_vertices) {
+        else if (curtain_vertex_id >= 2 * n_edge_vertices - 1 && curtain_vertex_id < 3 * n_edge_vertices - 2) {
             // western
-            row = curtain_vertex_id - 2 * n_edge_vertices;
+            row = curtain_vertex_id - 2 * n_edge_vertices + 2;
             col = 0;
         }
-        else if (curtain_vertex_id >= 3 * n_edge_vertices && curtain_vertex_id < 4 * n_edge_vertices) {
-            // western
-            row = (n_edge_vertices - 1);
-            col = curtain_vertex_id - 3 * n_edge_vertices;
-        }
         else {
-            row = (n_edge_vertices - 1) / 2;
-            col = (n_edge_vertices - 1) / 2;
+            // southern
+            row = (n_edge_vertices - 1);
+            col = curtain_vertex_id - 3 * n_edge_vertices + 3;
         }
     }
     float pos_wrt_cam_y = float(n_edge_vertices - row - 1) * tile_width + bounds[geometry_id].y;
