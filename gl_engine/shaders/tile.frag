@@ -38,8 +38,11 @@ in lowp vec2 uv;
 in highp vec3 pos_wrt_cam;
 in highp vec3 var_normal;
 in float is_curtain;
-flat in vec3 vertex_color;
+//flat in vec3 vertex_color;
+in vec3 vertex_color;
+in float drop_frag;
 out lowp vec4 out_Color;
+in vec3 debug_overlay_color;
 
 highp vec3 calculate_atmospheric_light(highp vec3 ray_origin, highp vec3 ray_direction, highp float ray_length, highp vec3 original_colour, int n_numerical_integration_steps);
 
@@ -142,6 +145,10 @@ void main() {
         out_Color = mix(out_Color, overlayColor, conf.debug_overlay_strength);
     }
 
+    if (length(debug_overlay_color) > 0.0)
+        out_Color = vec4(mix(debug_overlay_color, out_Color.rgb, 0.5), 1.0);
+
+    //out_Color = vec4(uv.rg, 0.0, 1.0);
     /*if (is_curtain > 0) {
         out_Color = vec4(1.0, 0.0, 0.0, 1.0);
     }*/

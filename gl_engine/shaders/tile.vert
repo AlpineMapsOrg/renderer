@@ -44,7 +44,10 @@ out lowp vec2 uv;
 out highp vec3 pos_wrt_cam;
 out highp vec3 var_normal;
 out float is_curtain;
-flat out vec3 vertex_color;
+//flat out vec3 vertex_color;
+out vec3 vertex_color;
+
+out vec3 debug_overlay_color;
 
 float y_to_lat(float y) {
     const float pi = 3.1415926535897932384626433;
@@ -78,22 +81,30 @@ float altitude_from_color(vec4 color) {
 
 vec3 normal_by_finite_difference_method(vec2 uv, float edge_vertices_count, float tile_width, float tile_height, float altitude_correction_factor) {
     // from here: https://stackoverflow.com/questions/6656358/calculating-normals-in-a-triangle-mesh/21660173#21660173
-    vec2 offset = vec2(1.0, 0.0) / edge_vertices_count;
+    vec2 offset = vec2(1.0, 0.0) / (edge_vertices_count);
     // NOTE: The following code ensures that on the edges of the tile we take the normals from the vertex thats inset by one vertex
+
+/*
     if (uv.x - offset.x < 0.0) uv = uv + offset; // left edge case
     if (uv.y - offset.x < 0.0) uv = uv + offset.yx; // top edge case
     if (uv.x + offset.x > 1.0) uv = uv - offset; // right edge case
-    if (uv.y + offset.x > 1.0) uv = uv - offset.yx; // bottom edge case
-    float hL = altitude_from_color(texture(height_sampler, uv - offset.xy)) * altitude_correction_factor;
+    if (uv.y + offset.x > 1.0) uv = uv - offset.yx; // bottom edge case*/
 
+
+
+    //if (uv.y == 0.0) debug_overlay_color = texture(height_sampler, uv).rgb;
+    float height = tile_width + tile_height;
+    float hL = altitude_from_color(texture(height_sampler, uv - offset.xy)) * altitude_correction_factor;
     float hR = altitude_from_color(texture(height_sampler, uv + offset.xy)) * altitude_correction_factor;
     float hD = altitude_from_color(texture(height_sampler, uv + offset.yx)) * altitude_correction_factor;
     float hU = altitude_from_color(texture(height_sampler, uv - offset.yx)) * altitude_correction_factor;
-    return normalize(vec3(hL - hR, hD - hU, tile_width + tile_height));
+
+    return normalize(vec3(hL - hR, hD - hU, height));
 }
 
 void main() {
     int geometry_id = 0;
+    debug_overlay_color = vec3(0.0);
     float edge_vertices_count = float(n_edge_vertices - 1);
     // Note: The following is actually not the tile_width but the primitive/cell width/height
     float tile_width = (bounds[geometry_id].z - bounds[geometry_id].x) / edge_vertices_count;
@@ -157,7 +168,7 @@ void main() {
         var_normal = normal_by_finite_difference_method(uv, edge_vertices_count, tile_width, tile_height, altitude_correction_factor);
     }
 
-
+    //if (uv.x == 1.0) debug_overlay_color = vec3(1.0, 0.0, 0.0);
 
     gl_Position = matrix * vec4(pos_wrt_cam, 1);
 

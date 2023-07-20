@@ -195,10 +195,11 @@ void TileManager::add_tile(const tile::Id& id, tile::SrsAndHeightBounds bounds, 
     tileset.ortho_texture->setMaximumAnisotropy(m_max_anisotropy);
     tileset.ortho_texture->setWrapMode(QOpenGLTexture::WrapMode::ClampToEdge);
     tileset.ortho_texture->setMinMagFilters(QOpenGLTexture::Filter::LinearMipMapLinear, QOpenGLTexture::Filter::Linear);
+    tileset.ortho_texture->generateMipMaps();
 
     tileset.heightmap_texture = std::make_unique<QOpenGLTexture>(height_texture);
     tileset.heightmap_texture->setWrapMode(QOpenGLTexture::WrapMode::ClampToEdge);
-    tileset.heightmap_texture->setMinMagFilters(QOpenGLTexture::Filter::LinearMipMapLinear, QOpenGLTexture::Filter::Linear);
+    tileset.heightmap_texture->setMinMagFilters(QOpenGLTexture::Filter::Nearest, QOpenGLTexture::Filter::Nearest);
 
     // add to m_gpu_tiles
     m_gpu_tiles.push_back(std::move(tileset));
