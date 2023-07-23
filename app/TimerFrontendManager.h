@@ -6,6 +6,7 @@
 #include <QList>
 #include <QString>
 #include <QColor>
+#include <QVector3D>
 
 #include "gl_engine/TimerManager.h"
 
@@ -17,7 +18,7 @@ class TimerFrontendObject : public QObject {
     Q_PROPERTY(float average READ get_average)
     Q_PROPERTY(float quick_average READ get_quick_average)
     Q_PROPERTY(QColor color READ get_color)
-    Q_PROPERTY(QList<float> measurements MEMBER m_measurements)
+    Q_PROPERTY(QList<QVector3D> measurements MEMBER m_measurements)
 
 public:
 
@@ -38,7 +39,7 @@ public:
 
     static int timer_color_index;
 
-    void add_measurement(float value);
+    void add_measurement(float value, int frame);
     float get_last_measurement();
     float get_average();
     float get_quick_average() { return m_quick_average; }
@@ -59,7 +60,7 @@ public:
 private:
     QString m_name;
     QString m_group;
-    QList<float> m_measurements;
+    QList<QVector3D> m_measurements;
     QColor m_color;
     float m_new_weight = 1.0/30.0;
     float m_old_weight = 29.0/30.0;
@@ -91,6 +92,7 @@ signals:
 private:
     QList<TimerFrontendObject*> m_timer;
     QMap<QString, TimerFrontendObject*> m_timer_map;
+    static int current_frame;
 
 };
 

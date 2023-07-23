@@ -37,7 +37,6 @@ Rectangle {
 
         property string type: 'line';
         onTypeChanged: {
-            console.log ("type changed");
             if (type === 'line') {
                 piechart.visible = false;
                 linechart.visible = true;
@@ -104,53 +103,77 @@ Rectangle {
                 theme: ChartView.ChartThemeDark
             }
 
-            Rectangle {
-                anchors.left: parent.left;
-                anchors.right: parent.right;
-                height: 40;
-                color: Qt.alpha( "white", 0.2);
-                Label {
-                    id: dialog_title
-                    x: 15; y: 8
-                    text: "Statistics"
-                    font.pixelSize:18
-                    font.bold: true
-                }
-                radius: 10
+            Label {
+                id: dialog_title
+                x: 15; y: 10
+                text: "Frame-Graph"
+                font.pixelSize:18
+                font.bold: true;
+                opacity: 0.8
             }
 
-            Rectangle {
-                anchors.right: parent.right;
-                height: 80;
-                width: 20;
-                //x: parent.width - this.width;
-                y: parent.height / 2 - height / 2;
-                color: Qt.alpha( "white", 0.5);
-                radius: 2
-                opacity: 0.5;
-                Label {
-                    text: ">\n>\n>"
-                    font.pixelSize:12
-                    font.bold: true
-                    x: 7
-                    y: 16
-                }
-                MouseArea {
-                    anchors.fill: parent
-                    hoverEnabled: true
-                    cursorShape: Qt.PointingHandCursor;
-                    onEntered: parent.opacity = 0.8;
-                    onExited: parent.opacity = 0.5;
-                    onClicked: graph_dialog.type = graph_dialog.type === "pie" ? "line" : "pie";
+            RowLayout {
+                x: parent.width - width - 5;
+                y: 5;
+
+                Rectangle {
+                    id: cb_avg;
+                    property bool checked: false;
+                    height: 30; width: 30; radius: 20;
+                    color: checked ? Qt.alpha("white", 0.1) : "transparent";
+                    Label {
+                        text: "⌀"
+                        font.pixelSize:40
+                        color: parent.checked ? "orange" : "white";
+                        x: parent.width / 2 - width / 2;
+                        y: parent.height / 2 - height / 2 - 5;
+                    }
+                    MouseArea {
+                        anchors.fill: parent
+                        hoverEnabled: true
+                        cursorShape: Qt.PointingHandCursor;
+                        onEntered: parent.color = Qt.alpha( "white", 0.5);
+                        onExited: parent.color = parent.checked ? Qt.alpha("white", 0.1) : "transparent";
+                        onClicked: {
+                            parent.checked = !parent.checked;
+                        }
+                    }
                 }
 
+                Rectangle {
+                    height: 30; width: 30; radius: 20;
+                    color: "transparent";
+                    Label {
+                        font.family: "Webdings"
+                        text: "y"
+                        font.pixelSize:24
+                        x: parent.width / 2 - width / 2;
+                        y: parent.height / 2 - height / 2;
+                    }
+                    MouseArea {
+                        anchors.fill: parent
+                        hoverEnabled: true
+                        cursorShape: Qt.PointingHandCursor;
+                        onEntered: parent.color = Qt.alpha( "white", 0.5);
+                        onExited: parent.color = "transparent";
+                        onClicked: {
+                            let newType = graph_dialog.type === "pie" ? "line" : "pie";
+                            graph_dialog.type = newType;
+                            parent.children[0].text = newType === "pie" ? "" : "y";
+                        }
+                    }
+                }
+
+
             }
+
+
 
         }
 
         function refreshGraph() {
             // Check wether graph should be visible
-            if (stats_timing.open_timers.size > 0) {
+            if (Object.keys(stats_timing.open_timers).length > 0) {
                 if (!visible) {
                     graph_dialog.visible = true;
                     in_animation.start();
@@ -171,20 +194,22 @@ Rectangle {
         function refreshLineGraph() {
             linechart.removeAllSeries();
             var minY = 1000, maxY = -1;
-            var maxX = -1;
+            var minX = 1000000, maxX = -1;
             for (var key in stats_timing.open_timers) {
                 let tmr = stats_timing.open_timers[key].element;
                 let series = linechart.createSeries(ChartView.SeriesTypeLine, tmr.name, xAxis, yAxis);
                 series.color = tmr.color;
                 for (var i = 0; i < tmr.measurements.length; i++) {
                     let val = tmr.measurements[i];
-                    minY = Math.min(minY, val); maxY = Math.max(maxY, val); maxX = Math.max(i, maxX);
-                    series.append(i, val);
+                    let x = val.x;
+                    let y = cb_avg.checked ? val.z : val.y;
+                    minY = Math.min(minY, y); maxY = Math.max(maxY, y);
+                    maxX = Math.max(maxX, x); minX = Math.min(minX, x);
+                    series.append(x, y);
                 }
             }
-            xAxis.max = maxX;
-            yAxis.max = maxY;
-            yAxis.min = minY;
+            xAxis.min = minX; xAxis.max = maxX;
+            yAxis.max = maxY; yAxis.min = minY;
         }
 
         function refreshPieGraph() {
@@ -192,7 +217,7 @@ Rectangle {
             var sum = 0.0;
             var values = {};
             for (var key in stats_timing.open_timers) {
-                values[key] = stats_timing.open_timers[key].element.average;
+                values[key] = cb_avg.checked ? stats_timing.open_timers[key].element.average : stats_timing.open_timers[key].element.last_measurement;
                 sum += values[key];
             }
             var i = 0;
@@ -278,11 +303,7 @@ Rectangle {
                 function timer_checkbox_changed() {
                     // Go through all the checkboxes and build current open_timers array
                     open_timers = {};
-                    for (var key in items) {
-                        if (items[key].colorIndicatorObject.checked === true) {
-                            open_timers[key] = items[key];
-                        }
-                    }
+                    for (var key in items) if (items[key].colorIndicatorObject.checked === true) open_timers[key] = items[key];
                     graph_dialog.refreshGraph();
                 }
 
@@ -292,15 +313,9 @@ Rectangle {
                     for (var key in items) if (items[key].element.group === name) sum_timers_in_group++;
                     for (key in open_timers) if (open_timers[key].element.group === name) sum_timers_in_group--;
                     if (sum_timers_in_group > 0) { // not all timers are active -> activate all
-                        for (key in items) if (items[key].element.group === name) {
-                                items[key].colorIndicatorObject.checked = true;
-                            }
+                        for (key in items) if (items[key].element.group === name) items[key].colorIndicatorObject.checked = true;
                     } else { // all timers of this group are already activated -> deactivate all
-                        for (key in items) {
-                            if (items[key].element.group === name) {
-                                items[key].colorIndicatorObject.checked = false;
-                            }
-                        }
+                        for (key in items) if (items[key].element.group === name) items[key].colorIndicatorObject.checked = false;
                     }
                     timer_checkbox_changed();
                 }
@@ -350,6 +365,7 @@ Rectangle {
                                                                     property int size: 12;
                                                                     property color color: "red";
                                                                     implicitWidth: size; implicitHeight: size;
+                                                                    onCheckStateChanged: indicator.color = checked ? color : Qt.alpha( "white", 0.5);
                                                                     indicator: Rectangle {
                                                                         implicitWidth: parent.size; implicitHeight: parent.size; radius: 3;
                                                                         color: parent.checked ? parent.color : Qt.alpha( "white", 0.5);

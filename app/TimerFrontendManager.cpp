@@ -6,20 +6,20 @@
 
 int TimerFrontendObject::timer_color_index = 0;
 
-void TimerFrontendObject::add_measurement(float value) {
+void TimerFrontendObject::add_measurement(float value, int frame) {
     m_quick_average = m_quick_average * m_old_weight + value * m_new_weight;
-    m_measurements.append(value);
+    m_measurements.append(QVector3D((float)frame, value, m_quick_average));
     if (m_measurements.size() > m_queue_size) m_measurements.removeFirst();
 }
 
 float TimerFrontendObject::get_last_measurement() {
-    return m_measurements[m_measurements.length() - 1];
+    return m_measurements[m_measurements.length() - 1].y();
 }
 
 float TimerFrontendObject::get_average() {
     float sum = 0.0f;
     for (int i=0; i<m_measurements.count(); i++) {
-        sum += m_measurements[i];
+        sum += m_measurements[i].y();
     }
     return sum / m_measurements.size();
 }
@@ -45,6 +45,7 @@ TimerFrontendManager::~TimerFrontendManager()
     }
 }
 
+int TimerFrontendManager::current_frame = 0;
 void TimerFrontendManager::receive_measurements(QList<gl_engine::qTimerReport> values)
 {
     for (const auto& report : values) {
@@ -54,7 +55,7 @@ void TimerFrontendManager::receive_measurements(QList<gl_engine::qTimerReport> v
             m_timer.append(tfo);
             m_timer_map.insert(name, tfo);
         }
-        m_timer_map[name]->add_measurement(report.value);
+        m_timer_map[name]->add_measurement(report.value, current_frame++);
     }
     emit updateTimingList(m_timer);
 }
