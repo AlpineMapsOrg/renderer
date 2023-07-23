@@ -35,6 +35,20 @@ Rectangle {
         visible: false
         background: transparent
 
+        property string type: 'line';
+        onTypeChanged: {
+            console.log ("type changed");
+            if (type === 'line') {
+                piechart.visible = false;
+                linechart.visible = true;
+                refreshLineGraph();
+            } else if (type === 'pie') {
+                piechart.visible = true;
+                linechart.visible = false;
+                refreshPieGraph();
+            }
+        }
+
         NumberAnimation on opacity {
             id: in_animation
             running: false
@@ -127,53 +141,69 @@ Rectangle {
                     cursorShape: Qt.PointingHandCursor;
                     onEntered: parent.opacity = 0.8;
                     onExited: parent.opacity = 0.5;
-                    onClicked: graph_dialog.hideGraph();
+                    onClicked: graph_dialog.type = graph_dialog.type === "pie" ? "line" : "pie";
                 }
 
             }
 
         }
 
-        function showPieGraph(title, labels, values, colors) {
-            dialog_title.text = title;
-            piechart.visible = true;
-            linechart.visible = false;
-            pieSeries.clear();
-            var sum = 0.0;
-            for (var i = 0; i < labels.length; i++) sum += values[i];
-            for (i = 0; i < labels.length; i++) {
-                pieSeries.append(labels[i], values[i]);
-                pieSeries.at(i).labelPosition = PieSlice.LabelOutside;
-                pieSeries.at(i).labelVisible = true;
-                pieSeries.at(i).label = (values[i] / sum * 100).toFixed(2) + " %";
-                pieSeries.at(i).color = colors[i];
+        function refreshGraph() {
+            // Check wether graph should be visible
+            if (stats_timing.open_timers.size > 0) {
+                if (!visible) {
+                    graph_dialog.visible = true;
+                    in_animation.start();
+                }
+            } else if (visible) {
+                out_animation.start();
+                return;
             }
-            if (!graph_dialog.visible) {
-                graph_dialog.visible = true;
-                in_animation.start();
+
+            // refresh data:
+            if (type === 'line') {
+                refreshLineGraph();
+            } else if (type === 'pie') {
+                refreshPieGraph();
             }
         }
 
-        function showLineGraph(title, valuesX, valuesY, color) {
-            dialog_title.text = title;
-            piechart.visible = false;
-            linechart.visible = true;
+        function refreshLineGraph() {
             linechart.removeAllSeries();
-            var series = linechart.createSeries(ChartView.SeriesTypeLine, "Test", xAxis, yAxis);
-            series.clear();
-            series.color = color;
             var minY = 1000, maxY = -1;
-            for (var i = 0; i < valuesX.length; i++) {
-                minY = Math.min(minY, valuesY[i]);
-                maxY = Math.max(maxY, valuesY[i]);
-                series.append(valuesX[i], valuesY[i]);
+            var maxX = -1;
+            for (var key in stats_timing.open_timers) {
+                let tmr = stats_timing.open_timers[key].element;
+                let series = linechart.createSeries(ChartView.SeriesTypeLine, tmr.name, xAxis, yAxis);
+                series.color = tmr.color;
+                for (var i = 0; i < tmr.measurements.length; i++) {
+                    let val = tmr.measurements[i];
+                    minY = Math.min(minY, val); maxY = Math.max(maxY, val); maxX = Math.max(i, maxX);
+                    series.append(i, val);
+                }
             }
-            xAxis.max = i;
+            xAxis.max = maxX;
             yAxis.max = maxY;
             yAxis.min = minY;
-            if (!graph_dialog.visible) {
-                graph_dialog.visible = true;
-                in_animation.start();
+        }
+
+        function refreshPieGraph() {
+            pieSeries.clear();
+            var sum = 0.0;
+            var values = {};
+            for (var key in stats_timing.open_timers) {
+                values[key] = stats_timing.open_timers[key].element.average;
+                sum += values[key];
+            }
+            var i = 0;
+            for (key in stats_timing.open_timers) {
+                let tmr = stats_timing.open_timers[key].element;
+                pieSeries.append(tmr.name, values[key]);
+                pieSeries.at(i).labelPosition = PieSlice.LabelOutside;
+                pieSeries.at(i).labelVisible = true;
+                pieSeries.at(i).label = (values[key] / sum * 100).toFixed(2) + " %";
+                pieSeries.at(i).color = tmr.color;
+                i++;
             }
         }
 
@@ -233,6 +263,7 @@ Rectangle {
                     id: stats_timing_layout;
                 }
 
+                // Timer to decouple graph refreshes from the current frame time. (It's not necessary to update the graph at the same speed)
                 Timer {
                     id: dialog_refresh_delay_timer;
                     interval: 100; running: false; repeat: false;
@@ -242,64 +273,64 @@ Rectangle {
                 property variant items: ({})
                 property variant groups: ({})
                 property variant currently_open_entity: null
+                property variant open_timers: ({})
 
-                function show_group_dialog(group_name) {
-                    var labels = [], values = [], colors = [];
+                function timer_checkbox_changed() {
+                    // Go through all the checkboxes and build current open_timers array
+                    open_timers = {};
                     for (var key in items) {
-                        var item = items[key];
-                        if (item.element.group === group_name) {
-                            labels.push(item.element.name);
-                            values.push(item.element.average);
-                            colors.push(item.element.color);
+                        if (items[key].colorIndicatorObject.checked === true) {
+                            open_timers[key] = items[key];
                         }
                     }
-                    graph_dialog.showPieGraph(group_name + " timing-group" , labels, values, colors);
-                    currently_open_entity = groups[group_name];
+                    graph_dialog.refreshGraph();
                 }
 
-                function show_timer_dialog(timer_name) {
-                    var xvalues = [], yvalues = [];
-                    var ticks = items[timer_name].element.measurements;
-                    for (var i = 0 ; i < ticks.length; i++) {
-                        xvalues.push(i);
-                        yvalues.push(ticks[i]);
+                function group_clicked(name) {
+                    // Check wether all of the timers of the group are already checked:
+                    var sum_timers_in_group = 0;
+                    for (var key in items) if (items[key].element.group === name) sum_timers_in_group++;
+                    for (key in open_timers) if (open_timers[key].element.group === name) sum_timers_in_group--;
+                    if (sum_timers_in_group > 0) { // not all timers are active -> activate all
+                        for (key in items) if (items[key].element.group === name) {
+                                items[key].colorIndicatorObject.checked = true;
+                            }
+                    } else { // all timers of this group are already activated -> deactivate all
+                        for (key in items) {
+                            if (items[key].element.group === name) {
+                                items[key].colorIndicatorObject.checked = false;
+                            }
+                        }
                     }
-                    graph_dialog.showLineGraph(timer_name + " timing", xvalues, yvalues, items[timer_name].element.color);
-                    currently_open_entity = items[timer_name];
+                    timer_checkbox_changed();
                 }
 
                 function refresh_dialog() {
-                    if (graph_dialog.visible) {
-                        if (currently_open_entity.hasOwnProperty("groupName")) {
-                            show_group_dialog(currently_open_entity.groupName);
-                        } else {
-                            show_timer_dialog(currently_open_entity.element.name);
-                        }
-                    }
+                    graph_dialog.refreshGraph();
                 }
 
                 function create_group_gui_object(name) {
                     const groupLabel = Qt.createQmlObject(`import QtQuick; import QtQuick.Controls.Material; import QtQuick.Layouts;
-                                                            Label {
-                                                                text: "` + name + `:";
-                                                                font.pixelSize:14;
-                                                                font.bold: true;
+                                                          Label {
+                                                          text: "` + name + `:";
+                                                          font.pixelSize:14;
+                                                          font.bold: true;
 
                                                           MouseArea {
-                                                              anchors.fill: parent;
+                                                          anchors.fill: parent;
                                                           hoverEnabled: true;
                                                           cursorShape: Qt.PointingHandCursor;
                                                           onEntered: parent.font.underline = true;
                                                           onExited: parent.font.underline = false;
-                                                            onClicked: { stats_timing.show_group_dialog("` + name + `") }
+                                                          onClicked: { stats_timing.group_clicked("` + name + `") }
                                                           }
-                                                            }`, stats_timing_layout, "dynamic");
+                                                          }`, stats_timing_layout, "dynamic");
                     const groupContainer = Qt.createQmlObject(`import QtQuick; import QtQuick.Controls.Material; import QtQuick.Layouts;
-                                                            GridLayout {
-                                                                columns: 3
-                                                                columnSpacing: 5
-                                                                Layout.fillWidth: true;
-                                                            }`, stats_timing_layout, "dynamic");
+                                                              GridLayout {
+                                                              columns: 3
+                                                              columnSpacing: 5
+                                                              Layout.fillWidth: true;
+                                                              }`, stats_timing_layout, "dynamic");
                     groups[name] = {
                         groupName: name,
                         groupLabel: groupLabel,
@@ -314,18 +345,32 @@ Rectangle {
                     }
                     const groupContainer = groups[ele.group].groupContainer;
 
-                    const colorIndicatorObject = Qt.createQmlObject(`import QtQuick; Rectangle {width: 10; height: 10}`, groupContainer, "dynamic");
+                    const colorIndicatorObject = Qt.createQmlObject(`import QtQuick; import QtQuick.Controls.Material;
+                                                                    CheckBox {
+                                                                    property int size: 12;
+                                                                    property color color: "red";
+                                                                    implicitWidth: size; implicitHeight: size;
+                                                                    indicator: Rectangle {
+                                                                        implicitWidth: parent.size; implicitHeight: parent.size; radius: 3;
+                                                                        color: parent.checked ? parent.color : Qt.alpha( "white", 0.5);
+                                                                        border.color: "white";
+                                                                        MouseArea { anchors.fill: parent;
+                                                                            hoverEnabled: true;
+                                                                            cursorShape: Qt.PointingHandCursor;
+                                                                            onEntered: parent.color = parent.parent.checked ? parent.parent.color : Qt.alpha(parent.parent.color, 0.5);
+                                                                            onExited: parent.color = parent.parent.checked ? parent.parent.color : Qt.alpha( "white", 0.5);
+                                                                            onClicked: {
+                                                                                parent.parent.checked = !parent.parent.checked;
+                                                                                parent.color = parent.parent.checked ? parent.parent.color : Qt.alpha(parent.parent.color, 0.5);
+                                                                                stats_timing.timer_checkbox_changed();
+                                                                            }
+                                                                        }
+                                                                    }
+                                                                }`, groupContainer, "dynamic");
                     colorIndicatorObject.color = ele.color;
                     const labelObject = Qt.createQmlObject(`import QtQuick; import QtQuick.Controls.Material; Label {text: "Atmosphere: "}`, groupContainer, "dynamic");
                     labelObject.text = ele.name;
-                    const timeLabelObject = Qt.createQmlObject(`import QtQuick; import QtQuick.Controls.Material; Label { font.bold: true; text: "1.23 (Ø 2.34) [ms]"; MouseArea {
-                                                               anchors.fill: parent;
-                                                           hoverEnabled: true;
-                                                           cursorShape: Qt.PointingHandCursor;
-                                                           onEntered: parent.font.underline = true;
-                                                           onExited: parent.font.underline = false;
-                                                             onClicked: stats_timing.show_timer_dialog("` + ele.name + `");
-                                                           }}`, groupContainer, "dynamic");
+                    const timeLabelObject = Qt.createQmlObject(`import QtQuick; import QtQuick.Controls.Material; Label { font.bold: true; text: "1.23 (Ø 2.34) [ms]"; }`, groupContainer, "dynamic");
                     items[ele.name] = {
                         colorIndicatorObject: colorIndicatorObject,
                         labelObject: labelObject,
