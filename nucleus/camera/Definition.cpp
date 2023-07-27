@@ -44,10 +44,7 @@ nucleus::camera::Definition::Definition()
 
 nucleus::camera::Definition::Definition(const glm::dvec3& position, const glm::dvec3& view_at_point) // : m_position(position)
 {
-    m_camera_transformation = glm::inverse(glm::lookAt(position, view_at_point, { 0, 0, 1 }));
-    if (std::isnan(m_camera_transformation[0][0])) {
-        m_camera_transformation = glm::inverse(glm::lookAt(position, view_at_point, { 0, 1, 0 }));
-    }
+    look_at(position, view_at_point);
 
     set_perspective_params(75, m_viewport_size, m_near_clipping);
 }
@@ -229,11 +226,6 @@ void nucleus::camera::Definition::orbit(const glm::dvec3& centre, const glm::dve
     move(centre);
 }
 
-void nucleus::camera::Definition::orbit(const glm::vec2& degrees)
-{
-    orbit(operation_centre(), degrees);
-}
-
 void nucleus::camera::Definition::orbit_clamped(const glm::dvec3& centre, const glm::dvec2& degrees)
 {
     auto degFromUp = glm::degrees(glm::acos(glm::dot(z_axis(), glm::dvec3(0, 0, 1))));
@@ -250,6 +242,16 @@ void nucleus::camera::Definition::orbit_clamped(const glm::dvec3& centre, const 
 void nucleus::camera::Definition::zoom(double v)
 {
     move(z_axis() * v);
+}
+
+void nucleus::camera::Definition::look_at(const glm::dvec3& camera_position,
+                                          const glm::dvec3& view_at_point)
+{
+    m_camera_transformation = glm::inverse(glm::lookAt(camera_position, view_at_point, {0, 0, 1}));
+    if (std::isnan(m_camera_transformation[0][0])) {
+        m_camera_transformation = glm::inverse(
+            glm::lookAt(camera_position, view_at_point, {0, 1, 0}));
+    }
 }
 
 const glm::uvec2& nucleus::camera::Definition::viewport_size() const

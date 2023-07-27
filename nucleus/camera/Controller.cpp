@@ -56,10 +56,12 @@ void Controller::set_viewport(const glm::uvec2& new_viewport)
 
 void Controller::set_latitude_longitude(double latitude, double longitude)
 {
-    const auto xy_world_space = srs::lat_long_to_world({ latitude, longitude });
-    move({ xy_world_space.x - m_definition.position().x,
-        xy_world_space.y - m_definition.position().y,
-        0.0 });
+    const auto xy_world_space = srs::lat_long_to_world({latitude, longitude});
+    const auto look_at_point = glm::dvec3(xy_world_space, 150);
+    const auto camera_position = look_at_point + glm::normalize(glm::dvec3{0, -1, 1}) * 5000.;
+
+    m_definition.look_at(camera_position, look_at_point);
+    update();
 }
 
 void Controller::set_field_of_view(float fov_degrees)

@@ -58,10 +58,9 @@ public:
     void pan(const glm::dvec2& v);
     void move(const glm::dvec3& v);
     void orbit(const glm::dvec3& centre, const glm::dvec2& degrees);
-    // orbits around the intersection of negative z and 0 plane (temprorary only, until we can read the depth buffer)
-    void orbit(const glm::vec2& degrees);
     void orbit_clamped(const glm::dvec3& centre, const glm::dvec2& degrees);
     void zoom(double v);
+    void look_at(const glm::dvec3& camera_position, const glm::dvec3& view_at_point);
 
     [[nodiscard]] const glm::uvec2& viewport_size() const;
     // screen space is assumed in the qt way, i.e., origin is top left (https://doc.qt.io/qt-6/coordsys.html)
