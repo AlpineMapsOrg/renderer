@@ -123,41 +123,18 @@ void Scheduler::set_network_reachability(QNetworkInformation::Reachability reach
 void Scheduler::update_gpu_quads()
 {
     const auto should_refine = tile_scheduler::utils::refineFunctor(m_current_camera, m_aabb_decorator, m_permissible_screen_space_error, m_ortho_tile_size);
-    std::vector<tile_types::GpuTileQuad> new_gpu_quads;
-    m_ram_cache.visit([this, &new_gpu_quads, &should_refine](const tile_types::TileQuad& quad) {
+    std::vector<tile_types::TileQuad> gpu_candidates;
+    m_ram_cache.visit([this, &gpu_candidates, &should_refine](const tile_types::TileQuad& quad) {
         if (!should_refine(quad.id))
             return false;
         if (m_gpu_cached.contains(quad.id))
             return true;
 
-        // create GpuQuad based on cpu quad
-        tile_types::GpuTileQuad gpu_quad;
-        gpu_quad.id = quad.id;
-        assert(quad.n_tiles == 4);
-        for (unsigned i = 0; i < 4; ++i) {
-            gpu_quad.tiles[i].id = quad.tiles[i].id;
-            gpu_quad.tiles[i].bounds = m_aabb_decorator->aabb(quad.tiles[i].id);
-
-            // unpacking the byte data takes long
-            const auto* ortho_data = m_default_ortho_tile.get();
-            if (quad.tiles[i].ortho->size()) {
-                ortho_data = quad.tiles[i].ortho.get();
-            }
-            auto ortho = nucleus::utils::tile_conversion::toQImage(*ortho_data);
-            gpu_quad.tiles[i].ortho = std::make_shared<QImage>(std::move(ortho));
-
-            const auto* height_data = m_default_height_tile.get();
-            if (quad.tiles[i].height->size()) {
-                height_data = quad.tiles[i].height.get();
-            }
-            auto heightraster = nucleus::utils::tile_conversion::qImage2uint16Raster(nucleus::utils::tile_conversion::toQImage(*height_data));
-            gpu_quad.tiles[i].height = std::make_shared<nucleus::Raster<uint16_t>>(std::move(heightraster));
-        }
-        new_gpu_quads.push_back(gpu_quad);
+        gpu_candidates.push_back(quad);
         return true;
     });
 
-    for (const auto& q : new_gpu_quads) {
+    for (const auto& q : gpu_candidates) {
         m_gpu_cached.insert(tile_types::GpuCacheInfo { q.id });
     }
 
@@ -174,13 +151,47 @@ void Scheduler::update_gpu_quads()
     for (const auto& quad : superfluous_quads)
         superfluous_ids.insert(quad.id);
 
-    std::erase_if(new_gpu_quads, [&superfluous_ids](const tile_types::GpuTileQuad& quad) {
+    std::erase_if(gpu_candidates, [&superfluous_ids](const auto& quad) {
         if (superfluous_ids.contains(quad.id)) {
             superfluous_ids.erase(quad.id);
             return true;
         }
         return false;
     });
+
+    std::vector<tile_types::GpuTileQuad> new_gpu_quads;
+    new_gpu_quads.reserve(gpu_candidates.size());
+    std::transform(gpu_candidates.cbegin(),
+                   gpu_candidates.cend(),
+                   std::back_inserter(new_gpu_quads),
+                   [this](const auto& quad) {
+                       // create GpuQuad based on cpu quad
+                       tile_types::GpuTileQuad gpu_quad;
+                       gpu_quad.id = quad.id;
+                       assert(quad.n_tiles == 4);
+                       for (unsigned i = 0; i < 4; ++i) {
+                           gpu_quad.tiles[i].id = quad.tiles[i].id;
+                           gpu_quad.tiles[i].bounds = m_aabb_decorator->aabb(quad.tiles[i].id);
+
+                           // unpacking the byte data takes long
+                           const auto* ortho_data = m_default_ortho_tile.get();
+                           if (quad.tiles[i].ortho->size()) {
+                               ortho_data = quad.tiles[i].ortho.get();
+                           }
+                           auto ortho = nucleus::utils::tile_conversion::toQImage(*ortho_data);
+                           gpu_quad.tiles[i].ortho = std::make_shared<QImage>(std::move(ortho));
+
+                           const auto* height_data = m_default_height_tile.get();
+                           if (quad.tiles[i].height->size()) {
+                               height_data = quad.tiles[i].height.get();
+                           }
+                           auto heightraster = nucleus::utils::tile_conversion::qImage2uint16Raster(
+                               nucleus::utils::tile_conversion::toQImage(*height_data));
+                           gpu_quad.tiles[i].height = std::make_shared<nucleus::Raster<uint16_t>>(
+                               std::move(heightraster));
+                       }
+                       return gpu_quad;
+                   });
 
     emit gpu_quads_updated(new_gpu_quads, { superfluous_ids.cbegin(), superfluous_ids.cend() });
     update_stats();
