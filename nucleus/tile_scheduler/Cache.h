@@ -19,9 +19,11 @@
 #pragma once
 
 #include <algorithm>
-#include <vector>
 #include <filesystem>
+#include <mutex>
+#include <shared_mutex>
 #include <unordered_set>
+#include <vector>
 
 #include <QFile>
 #include <fmt/format.h>
@@ -49,8 +51,10 @@ constexpr auto serialize(auto & archive, glm::vec<2, T> & vec)
 
 namespace nucleus::tile_scheduler {
 
-template <tile_types::NamedTile T>
-class Cache {
+/// This class is thread safe. be careful with the visit method as it writes the cache and therefore locks an internal mutex.
+template<tile_types::NamedTile T>
+class Cache
+{
     struct MetaData {
         uint64_t visited;
         uint64_t created;
@@ -62,15 +66,18 @@ class Cache {
     };
 
     std::unordered_map<tile::Id, CacheObject, tile::Id::Hasher> m_data;
+    mutable std::shared_mutex m_data_mutex;
     std::unordered_map<tile::Id, MetaData, tile::Id::Hasher> m_disk_cached;
+    mutable std::shared_mutex m_disk_cached_mutex;
 
 public:
     Cache() = default;
     void insert(const T& tile);
     [[nodiscard]] bool contains(const tile::Id& id) const;
     [[nodiscard]] unsigned n_cached_objects() const;
-    template <typename VisitorFunction>
-    void visit(const VisitorFunction& functor); // functor should return true, if the given tile should be marked visited. stops descending if false is returned.
+    /// functor should return true, if the given tile should be marked visited. stops descending if false is returned. don't do heavy lifting in the functort, as it blocks all other access!
+    template<typename VisitorFunction>
+    void visit(const VisitorFunction& functor);
     const T& peak_at(const tile::Id& id) const;
     std::vector<T> purge(unsigned remaining_capacity);
 
@@ -78,8 +85,10 @@ public:
     void read_from_disk(const std::filesystem::path& path);
 
 private:
-    template <typename VisitorFunction>
-    void visit(const tile::Id& start_node, const VisitorFunction& functor, uint64_t visited_stamp); // functor should return true, if the given tile should be marked visited. stops descending if false is returned.
+    template<typename VisitorFunction>
+    void visit(const tile::Id& start_node,
+               const VisitorFunction& functor,
+               uint64_t visited_stamp); // must stay private or protected by mutex
 
     static std::filesystem::path tile_path(const std::filesystem::path& base_path, const tile::Id& id)
     {
@@ -95,6 +104,7 @@ private:
 template <tile_types::NamedTile T>
 void Cache<T>::insert(const T& tile)
 {
+    auto locker = std::scoped_lock(m_data_mutex);
     const auto time_stamp = utils::time_since_epoch();
     m_data[tile.id].meta.visited = time_stamp * 100 - tile.id.zoom_level;
     m_data[tile.id].meta.created = time_stamp;
@@ -104,25 +114,34 @@ void Cache<T>::insert(const T& tile)
 template <tile_types::NamedTile T>
 bool Cache<T>::contains(const tile::Id& id) const
 {
+    auto locker = std::shared_lock(m_data_mutex);
     return m_data.contains(id);
 }
 
 template <tile_types::NamedTile T>
 unsigned int Cache<T>::n_cached_objects() const
 {
+    auto locker = std::shared_lock(m_data_mutex);
     return m_data.size();
 }
 
 template <tile_types::NamedTile T>
 const T& Cache<T>::peak_at(const tile::Id& id) const
 {
+    auto locker = std::shared_lock(m_data_mutex);
     return m_data.at(id).data;
 }
 
 template<tile_types::NamedTile T>
 void Cache<T>::write_to_disk(const std::filesystem::path& base_path) {
-    assert(tile_types::SerialisableTile<T>);
+    static_assert(tile_types::SerialisableTile<T>);
     std::filesystem::create_directories(base_path);
+    std::unordered_map<tile::Id, CacheObject, tile::Id::Hasher> data;
+    {
+        auto locker = std::scoped_lock(m_data_mutex);
+        data = m_data; // copies only metadata and references to tiles
+    }
+    auto locker = std::scoped_lock(m_disk_cached_mutex);
 
     const auto write = [](const auto& bytes, const auto& path) {
         QFile file(path);
@@ -135,20 +154,20 @@ void Cache<T>::write_to_disk(const std::filesystem::path& base_path) {
     try {
         std::unordered_map<tile::Id, MetaData, tile::Id::Hasher> disk_cached_old;
         std::swap(m_disk_cached, disk_cached_old);
-        m_disk_cached.reserve(m_data.size());
+        m_disk_cached.reserve(data.size());
 
         // removing disk cache items, that were removed or updated in ram
         for (const auto& item : disk_cached_old) {
             const tile::Id& id = item.first;
             const MetaData& meta = item.second;
-            if (m_data.contains(id) && m_data.at(id).meta.created == meta.created) {
+            if (data.contains(id) && data.at(id).meta.created == meta.created) {
                 continue;
             }
             std::filesystem::remove(tile_path(base_path, id));
         }
 
         // write new or updated items to disk
-        for (const auto& item : m_data) {
+        for (const auto& item : data) {
             const tile::Id& id = item.first;
             const CacheObject& cache_object = item.second;
             m_disk_cached[id] = cache_object.meta;
@@ -181,6 +200,7 @@ void Cache<T>::write_to_disk(const std::filesystem::path& base_path) {
 template<tile_types::NamedTile T>
 void Cache<T>::read_from_disk(const std::filesystem::path& base_path)
 {
+    auto locker = std::scoped_lock(m_data_mutex, m_disk_cached_mutex);
     assert(tile_types::SerialisableTile<T>);
     const auto check_version = [](auto* in, const auto& path) {
         std::remove_cvref_t<decltype(T::version_information)> version_info = {};
@@ -237,6 +257,7 @@ template <tile_types::NamedTile T>
 template <typename VisitorFunction>
 void Cache<T>::visit(const VisitorFunction& functor)
 {
+    auto locker = std::scoped_lock(m_data_mutex);
     const auto visited = utils::time_since_epoch();
     static_assert(requires { { functor(T()) } -> utils::convertible_to<bool>; }, "VisitorFunction must accept a const NamedTile and return a bool.");
     const auto root = tile::Id { 0, { 0, 0 } };
@@ -263,6 +284,7 @@ void Cache<T>::visit(const tile::Id& node, const VisitorFunction& functor, uint6
 template<tile_types::NamedTile T>
 std::vector<T> Cache<T>::purge(unsigned remaining_capacity)
 {
+    auto locker = std::scoped_lock(m_data_mutex);
     if (remaining_capacity >= m_data.size())
         return {};
     std::vector<std::pair<tile::Id, uint64_t>> tiles;
