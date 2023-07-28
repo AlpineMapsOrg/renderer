@@ -63,18 +63,16 @@ class Cache {
 
     std::unordered_map<tile::Id, CacheObject, tile::Id::Hasher> m_data;
     std::unordered_map<tile::Id, MetaData, tile::Id::Hasher> m_disk_cached;
-    unsigned m_capacity = 5000;
 
 public:
     Cache() = default;
     void insert(const T& tile);
     [[nodiscard]] bool contains(const tile::Id& id) const;
-    void set_capacity(unsigned capacity);
     [[nodiscard]] unsigned n_cached_objects() const;
     template <typename VisitorFunction>
     void visit(const VisitorFunction& functor); // functor should return true, if the given tile should be marked visited. stops descending if false is returned.
     const T& peak_at(const tile::Id& id) const;
-    std::vector<T> purge();
+    std::vector<T> purge(unsigned remaining_capacity);
 
     void write_to_disk(const std::filesystem::path& path);
     void read_from_disk(const std::filesystem::path& path);
@@ -107,12 +105,6 @@ template <tile_types::NamedTile T>
 bool Cache<T>::contains(const tile::Id& id) const
 {
     return m_data.contains(id);
-}
-
-template <tile_types::NamedTile T>
-void Cache<T>::set_capacity(unsigned int capacity)
-{
-    m_capacity = capacity;
 }
 
 template <tile_types::NamedTile T>
@@ -268,18 +260,18 @@ void Cache<T>::visit(const tile::Id& node, const VisitorFunction& functor, uint6
     }
 }
 
-template <tile_types::NamedTile T>
-std::vector<T> Cache<T>::purge()
+template<tile_types::NamedTile T>
+std::vector<T> Cache<T>::purge(unsigned remaining_capacity)
 {
-    if (m_capacity >= n_cached_objects())
+    if (remaining_capacity >= m_data.size())
         return {};
     std::vector<std::pair<tile::Id, uint64_t>> tiles;
     tiles.reserve(m_data.size());
     std::transform(m_data.cbegin(), m_data.cend(), std::back_inserter(tiles), [](const auto& entry) { return std::make_pair(entry.first, entry.second.meta.visited); });
-    const auto nth_iter = tiles.begin() + m_capacity;
+    const auto nth_iter = tiles.begin() + remaining_capacity;
     std::nth_element(tiles.begin(), nth_iter, tiles.end(), [](const auto& a, const auto& b) { return a.second > b.second; });
     std::vector<T> purged_tiles;
-    purged_tiles.reserve(tiles.size() - m_capacity);
+    purged_tiles.reserve(tiles.size() - remaining_capacity);
     std::for_each(nth_iter, tiles.end(), [this, &purged_tiles](const auto& v) {
         purged_tiles.push_back(m_data[v.first].data);
         m_data.erase(v.first);

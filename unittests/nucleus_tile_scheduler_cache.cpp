@@ -59,12 +59,11 @@ TEST_CASE("nucleus/tile_scheduler/cache")
     SECTION("api")
     {
         nucleus::tile_scheduler::Cache<TestTile> cache;
-        cache.set_capacity(5);
         cache.insert(TestTile { { 0, { 0, 0 } }, "root" });
         CHECK(cache.contains({ 0, { 0, 0 } }));
         CHECK(cache.n_cached_objects() == 1);
         cache.visit([](const TestTile&) { return false; });
-        std::vector<TestTile> removed_tiles = cache.purge();
+        std::vector<TestTile> removed_tiles = cache.purge(5);
     }
 
     SECTION("insert and visit")
@@ -157,10 +156,9 @@ TEST_CASE("nucleus/tile_scheduler/cache")
         cache.insert(TestTile { { 2, { 0, 0 } }, "green" });
         cache.insert(TestTile { { 3, { 0, 0 } }, "green" });
 
-        cache.purge(); // default capacity is large enough for 6
+        CHECK(cache.purge(6).size() == 0);
         CHECK(cache.n_cached_objects() == 6);
-        cache.set_capacity(3);
-        const auto purged = cache.purge();
+        const auto purged = cache.purge(3);
         REQUIRE(purged.size() == 3);
         CHECK(std::find_if(purged.cbegin(), purged.cend(), [](const auto& v) { return v.id == tile::Id { 2, { 0, 0 } };}) != purged.cend());
         CHECK(std::find_if(purged.cbegin(), purged.cend(), [](const auto& v) { return v.id == tile::Id { 6, { 4, 3 } };}) != purged.cend());
@@ -174,7 +172,6 @@ TEST_CASE("nucleus/tile_scheduler/cache")
     SECTION("purge: elements coming in earlier are purged first")
     {
         nucleus::tile_scheduler::Cache<TestTile> cache;
-        cache.set_capacity(2);
 
         cache.insert(TestTile { { 0, { 0, 0 } }, "red" });
         cache.insert(TestTile { { 1, { 0, 1 } }, "red" });
@@ -183,7 +180,7 @@ TEST_CASE("nucleus/tile_scheduler/cache")
         cache.insert(TestTile { { 1, { 0, 0 } }, "green" });
         cache.insert(TestTile { { 1, { 1, 1 } }, "green" });
 
-        const auto purged = cache.purge();
+        const auto purged = cache.purge(2);
         REQUIRE(purged.size() == 2);
         CHECK(purged[0].id == tile::Id { 0, { 0, 0 } }); // order does not matter
         CHECK(purged[1].id == tile::Id { 1, { 0, 1 } });
@@ -195,7 +192,6 @@ TEST_CASE("nucleus/tile_scheduler/cache")
     SECTION("purge: visit updates the time")
     {
         nucleus::tile_scheduler::Cache<TestTile> cache;
-        cache.set_capacity(2);
         cache.insert(TestTile { { 0, { 0, 0 } }, "older" });
 
         QThread::msleep(2);
@@ -206,7 +202,7 @@ TEST_CASE("nucleus/tile_scheduler/cache")
         const std::unordered_set<tile::Id, tile::Id::Hasher> newer_tiles = { { 1, { 0, 0 } }, { 1, { 0, 1 } }, { 1, { 1, 0 } } };
         QThread::msleep(2);
         cache.visit([](const TestTile &) { return true; });
-        const auto purged = cache.purge();
+        const auto purged = cache.purge(2);
         REQUIRE(purged.size() == 2);
         for (const auto& t : purged) {
             CHECK(!cache.contains(t.id));
@@ -241,8 +237,7 @@ TEST_CASE("nucleus/tile_scheduler/cache")
             visited.insert(t.id);
             return t.data == "green";
         });
-        cache.set_capacity(2);
-        const auto purged = cache.purge();
+        const auto purged = cache.purge(2);
         REQUIRE(purged.size() == 5);
         unsigned cnt_orange = 0;
         unsigned cnt_red = 0;
@@ -381,8 +376,7 @@ TEST_CASE("nucleus/tile_scheduler/cache")
             verify_tile(cache, {2, {0, 0}});
             verify_tile(cache, {3, {0, 0}});
             cache.visit([](const auto&){return true;});
-            cache.set_capacity(3);
-            cache.purge();
+            cache.purge(3);
             CHECK(cache.n_cached_objects() == 3);
             verify_tile(cache, {0, {0, 0}});
             verify_tile(cache, {1, {0, 0}});
@@ -435,8 +429,7 @@ TEST_CASE("nucleus/tile_scheduler/cache")
             cache.insert(create_test_tile({ 1, { 0, 0 } }));
             cache.insert(create_test_tile({ 0, { 0, 0 } }));
             cache.write_to_disk(path);
-            cache.set_capacity(2);
-            cache.purge();
+            cache.purge(2);
             CHECK(cache.n_cached_objects() == 2);
             verify_tile(cache, {0, {0, 0}});
             verify_tile(cache, {1, {0, 0}});
@@ -467,7 +460,7 @@ TEST_CASE("nucleus/tile_scheduler/cache")
                 verify_tile(cache, {3, {0, 0}});
             }
             cache.visit([](const auto&){return true;});
-            cache.purge();
+            cache.purge(2);
             CHECK(cache.n_cached_objects() == 2);
             verify_tile(cache, {0, {0, 0}});
             verify_tile(cache, {1, {0, 0}});

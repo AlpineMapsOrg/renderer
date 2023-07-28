@@ -142,8 +142,7 @@ void Scheduler::update_gpu_quads()
         return should_refine(quad.id);
     });
 
-    m_gpu_cached.set_capacity(m_gpu_quad_limit);
-    const auto superfluous_quads = m_gpu_cached.purge();
+    const auto superfluous_quads = m_gpu_cached.purge(m_gpu_quad_limit);
 
     // elimitate double entries (happens when the gpu has not enough space for all quads selected above)
     std::unordered_set<tile::Id, tile::Id::Hasher> superfluous_ids;
@@ -216,11 +215,9 @@ void Scheduler::purge_ram_cache()
     }
 
     const auto should_refine = tile_scheduler::utils::refineFunctor(m_current_camera, m_aabb_decorator, m_permissible_screen_space_error, m_ortho_tile_size);
-    m_ram_cache.visit([&should_refine](const tile_types::TileQuad& quad) {
-        return should_refine(quad.id);
-    });
-    m_ram_cache.set_capacity(m_ram_quad_limit);
-    m_ram_cache.purge();
+    m_ram_cache.visit(
+        [&should_refine](const tile_types::TileQuad& quad) { return should_refine(quad.id); });
+    m_ram_cache.purge(m_ram_quad_limit);
     update_stats();
 }
 
