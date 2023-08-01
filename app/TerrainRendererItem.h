@@ -48,6 +48,7 @@ class TerrainRendererItem : public QQuickFramebufferObject {
     Q_PROPERTY(unsigned int queued_tiles READ queued_tiles NOTIFY queued_tiles_changed)
     Q_PROPERTY(unsigned int cached_tiles READ cached_tiles NOTIFY cached_tiles_changed)
     Q_PROPERTY(unsigned int tile_cache_size READ tile_cache_size WRITE set_tile_cache_size NOTIFY tile_cache_size_changed)
+    Q_PROPERTY(bool render_looped READ render_looped WRITE set_render_looped NOTIFY render_looped_changed)
 
 public:
     explicit TerrainRendererItem(QQuickItem* parent = 0);
@@ -69,6 +70,7 @@ signals:
     void position_set_by_user(double new_latitude, double new_longitude);
 
     void shared_config_changed(gl_engine::uboSharedConfig new_shared_config);
+    void render_looped_changed(bool new_render_looped);
 
     void camera_changed();
     void camera_width_changed();
@@ -135,6 +137,9 @@ public:
     float render_quality() const;
     void set_render_quality(float new_render_quality);
 
+    bool render_looped() const;
+    void set_render_looped(bool new_render_looped);
+
     [[nodiscard]] unsigned int in_flight_tiles() const;
     void set_in_flight_tiles(unsigned int new_in_flight_tiles);
 
@@ -159,6 +164,7 @@ private:
     unsigned m_cached_tiles = 0;
     unsigned m_queued_tiles = 0;
     unsigned m_in_flight_tiles = 0;
+    bool m_render_looped = false;
 
     gl_engine::uboSharedConfig m_shared_config;
 

@@ -113,9 +113,9 @@ int main(int argc, char **argv)
 
     QQmlApplicationEngine engine;
 
-    HotReloader hotreloader(&engine, ALP_QML_SOURCE_DIR);
+    HotReloader hotreloader(&engine, "");
     engine.rootContext()->setContextProperty("_hotreloader", &hotreloader);
-    engine.rootContext()->setContextProperty("_qmlPath", ALP_QML_SOURCE_DIR);
+    engine.rootContext()->setContextProperty("_qmlPath", "");
 
     RenderThreadNotifier::instance();
     QObject::connect(
@@ -127,7 +127,7 @@ int main(int argc, char **argv)
             }
         },
         Qt::QueuedConnection);
-    engine.load(QUrl(ALP_QML_SOURCE_DIR "main_loader.qml"));
+    engine.load(QUrl("app/main_loader.qml"));
     QQuickWindow* root_window = dynamic_cast<QQuickWindow*>(engine.rootObjects().first());
     if (root_window == nullptr) {
         qDebug() << "root window not created!";

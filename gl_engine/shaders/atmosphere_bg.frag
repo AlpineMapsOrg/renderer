@@ -22,7 +22,7 @@ uniform highp mat4 inversed_projection_matrix;
 uniform highp mat4 inversed_view_matrix;
 in lowp vec2 texcoords;
 in highp vec3 pos_wrt_cam;
-out lowp vec4 out_Color;
+layout (location = 0) out lowp vec4 out_Color;
 
 //const highp float infinity = 1.0 / 0.0;   // gives a warning on webassembly (and other angle based products)
 const highp float infinity = 3.40282e+38;   // https://godbolt.org/z/9o9PdbGqW

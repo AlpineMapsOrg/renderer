@@ -43,7 +43,7 @@ void set_qrc_or_path_prefix(ShaderProgram::Files* files)
     QString prefix = ":/gl_shaders/";
     if (!QOpenGLContext::currentContext()->isOpenGLES())
         prefix = ALP_RESOURCES_PREFIX;
-
+    //prefix = "shaders/";
     for (auto& path : *files) {
         path.prepend(prefix);
     }

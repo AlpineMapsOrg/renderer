@@ -34,6 +34,9 @@ layout (std140) uniform shared_config {
     float debug_overlay_strength;
 } conf;
 
+layout (location = 0) out lowp vec4 out_Color;
+layout (location = 1) out lowp vec4 out_Depth;
+
 in lowp vec2 uv;
 in highp vec3 pos_wrt_cam;
 in highp vec3 var_normal;
@@ -41,8 +44,9 @@ in float is_curtain;
 //flat in vec3 vertex_color;
 in vec3 vertex_color;
 in float drop_frag;
-out lowp vec4 out_Color;
 in vec3 debug_overlay_color;
+
+
 
 highp vec3 calculate_atmospheric_light(highp vec3 ray_origin, highp vec3 ray_direction, highp float ray_length, highp vec3 original_colour, int n_numerical_integration_steps);
 
@@ -88,6 +92,13 @@ vec3 normal_by_fragment_position_interpolation() {
     return normalize(cross(dFdxPos, dFdyPos));
 }
 
+lowp vec2 encode(highp float value) {
+    mediump uint scaled = uint(value * 65535.f + 0.5f);
+    mediump uint r = scaled >> 8u;
+    mediump uint b = scaled & 255u;
+    return vec2(float(r) / 255.f, float(b) / 255.f);
+}
+
 void main() {
     if (conf.wireframe_mode == 2u) {
         out_Color = vec4(1.0, 1.0, 1.0, 1.0);
@@ -105,6 +116,10 @@ void main() {
             discard;
         }
     }
+
+    highp float dist = length(pos_wrt_cam);
+    highp float depth = log(dist)/13.0;
+    out_Depth = vec4(encode(depth), 0, 0);
 
     highp vec4 ortho = texture(texture_sampler, uv);
     vec3 normal = vec3(0.0);

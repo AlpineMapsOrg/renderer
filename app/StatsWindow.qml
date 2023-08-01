@@ -118,15 +118,16 @@ Rectangle {
 
                 Rectangle {
                     id: cb_avg;
-                    property bool checked: false;
+                    property bool checked: true;
                     height: 30; width: 30; radius: 20;
                     color: checked ? Qt.alpha("white", 0.1) : "transparent";
                     Label {
                         text: "⌀"
-                        font.pixelSize:40
+                        font.family: "Helvetica"
+                        font.pixelSize:30
                         color: parent.checked ? "orange" : "white";
                         x: parent.width / 2 - width / 2;
-                        y: parent.height / 2 - height / 2 - 5;
+                        y: parent.height / 2 - height / 2 - 2;
                     }
                     MouseArea {
                         anchors.fill: parent
@@ -136,6 +137,7 @@ Rectangle {
                         onExited: parent.color = parent.checked ? Qt.alpha("white", 0.1) : "transparent";
                         onClicked: {
                             parent.checked = !parent.checked;
+                            graph_dialog.refreshGraph();
                         }
                     }
                 }
@@ -419,6 +421,7 @@ Rectangle {
 
             CheckBox {
                 text: "Benchmark Mode"
+                onCheckStateChanged: map.render_looped = checked
             }
 
         }

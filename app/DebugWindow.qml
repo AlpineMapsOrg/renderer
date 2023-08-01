@@ -189,6 +189,43 @@ Rectangle {
 
                 }
 
+                Label { text: "Amb.-Color:" }
+                RowLayout {
+                    Label {
+                        padding: 5
+                        Layout.fillWidth: true;
+                        Rectangle{
+                            anchors.fill: parent
+                            color: "transparent"
+                            border { width:1; color:Qt.alpha( "white", 0.5); }
+                            radius: 5
+                        }
+                        MouseArea{
+                            anchors.fill: parent
+                            cursorShape: Qt.PointingHandCursor
+                            onClicked: colorDialog.open_for(parent)
+                        }
+                        Component.onCompleted: {
+                            var tmp = map.shared_config.amb_light;
+                            color = Qt.rgba(tmp.x, tmp.y, tmp.z, 1.0);
+                        }
+                        onColorChanged: {
+                            text = color.toString();
+                            map.shared_config.amb_light = Qt.vector4d(color.r, color.g, color.b, map.shared_config.amb_light.w);
+                        }
+                    }
+                }
+
+                Label { text: "Amb.-Intensity:" }
+                Slider {
+                    from: 0.01
+                    to: 1.00
+                    value: 0.05
+                    Layout.fillWidth: true
+                    Component.onCompleted: this.value = map.shared_config.amb_light.w;
+                    onMoved: map.shared_config.amb_light.w = this.value;
+                }
+
                 Label { text: "Light-Direction:" }
                 RowLayout {
                     function update_sun_position() {

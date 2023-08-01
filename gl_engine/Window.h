@@ -79,6 +79,7 @@ public slots:
     void update_gpu_quads(const std::vector<nucleus::tile_scheduler::tile_types::GpuTileQuad>& new_quads, const std::vector<tile::Id>& deleted_quads) override;
     void key_press(const QKeyCombination& e); // Slot to connect key-events to
     void shared_config_changed(gl_engine::uboSharedConfig ubo);
+    void render_looped_changed(bool render_looped_flag);
 
 signals:
     void report_measurements(QList<gl_engine::qTimerReport> values);
@@ -90,8 +91,8 @@ private:
     std::unique_ptr<DebugPainter> m_debug_painter; // needs opengl context
     std::unique_ptr<Atmosphere> m_atmosphere; // needs opengl context
     std::unique_ptr<ShaderManager> m_shader_manager;
-    std::unique_ptr<Framebuffer> m_framebuffer;
-    std::unique_ptr<Framebuffer> m_depth_buffer;
+    std::unique_ptr<Framebuffer> m_gbuffer;
+    //std::unique_ptr<Framebuffer> m_depth_buffer;
 
     std::unique_ptr<UniformBuffer<uboSharedConfig>> m_shared_config_ubo; // needs opengl context
 

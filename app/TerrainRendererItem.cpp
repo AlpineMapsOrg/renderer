@@ -109,6 +109,7 @@ QQuickFramebufferObject::Renderer* TerrainRendererItem::createRenderer() const
     // connect glWindow for shader reload hotkey F5
     connect(this, &TerrainRendererItem::key_pressed, r->glWindow(), &gl_engine::Window::key_press);
     connect(this, &TerrainRendererItem::shared_config_changed, r->glWindow(), &gl_engine::Window::shared_config_changed);
+    connect(this, &TerrainRendererItem::render_looped_changed, r->glWindow(), &gl_engine::Window::render_looped_changed);
 
     connect(r->glWindow(), &gl_engine::Window::report_measurements, this->m_timer_manager, &TimerFrontendManager::receive_measurements);
 
@@ -321,6 +322,17 @@ void TerrainRendererItem::set_render_quality(float new_render_quality)
         return;
     m_render_quality = new_render_quality;
     emit render_quality_changed(new_render_quality);
+    schedule_update();
+}
+
+bool TerrainRendererItem::render_looped() const {
+    return m_render_looped;
+}
+
+void TerrainRendererItem::set_render_looped(bool new_render_looped) {
+    if (new_render_looped == m_render_looped) return;
+    m_render_looped = new_render_looped;
+    emit render_looped_changed(m_render_looped);
     schedule_update();
 }
 

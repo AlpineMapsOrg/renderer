@@ -50,17 +50,25 @@ private:
     DepthFormat m_depth_format;
     std::vector<ColourFormat> m_colour_formats;
     std::unique_ptr<QOpenGLTexture> m_depth_texture;
-    std::unique_ptr<QOpenGLTexture> m_colour_texture;
+    std::vector<std::unique_ptr<QOpenGLTexture>> m_colour_textures;
+    //std::unique_ptr<QOpenGLTexture> m_colour_texture;
     unsigned m_frame_buffer = -1;
     glm::uvec2 m_size;
+    // Recreates the OpenGL-Texture for the given index. An index of -1 recreates the depth-buffer.
+    void recreate_texture(int index);
+    // Calls recreate_texture for all the buffers that are attached to this FBO (depth and colour)
+    void recreate_all_textures();
 
 public:
     Framebuffer(DepthFormat depth_format, std::vector<ColourFormat> colour_formats);
     ~Framebuffer();
     void resize(const glm::uvec2& new_size);
     void bind();
-    void bind_colour_texture(unsigned index);
+    void bind_colour_texture(unsigned index = 0, unsigned location = 0);
+
+    [[deprecated("Not in use, untested...")]]
     std::unique_ptr<QOpenGLTexture> take_and_replace_colour_attachment(unsigned index);
+
     QImage read_colour_attachment(unsigned index);
     std::array<uchar, 4> read_colour_attachment_pixel(unsigned index, const glm::dvec2& normalised_device_coordinates);
     static void unbind();
