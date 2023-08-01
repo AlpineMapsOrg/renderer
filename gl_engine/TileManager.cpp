@@ -116,7 +116,7 @@ bool compareInterval(std::pair<float, const TileSet*> t1, std::pair<float, const
     //return (i1.start < i2.start);
 }
 
-void TileManager::draw(ShaderProgram* shader_program, const nucleus::camera::Definition& camera) const
+void TileManager::draw(ShaderProgram* shader_program, const nucleus::camera::Definition& camera, bool sort_tiles) const
 {
     QOpenGLExtraFunctions* f = QOpenGLContext::currentContext()->extraFunctions();
     shader_program->set_uniform("n_edge_vertices", N_EDGE_VERTICES);
@@ -127,6 +127,7 @@ void TileManager::draw(ShaderProgram* shader_program, const nucleus::camera::Def
 
     const auto draw_tiles = m_draw_list_generator.generate_for(camera);
 
+
     // Get distances to camera
     auto campos = camera.position();
     std::vector<std::pair<float, const TileSet*>> tile_list;
@@ -134,14 +135,16 @@ void TileManager::draw(ShaderProgram* shader_program, const nucleus::camera::Def
         float dist = 0.0;
         if (!draw_tiles.contains(tileset.tiles.front().first))
             continue;
-        glm::vec2 pos_wrt_cam = glm::vec2(
-            tileset.tiles[0].second.min.x - campos.x,
-            tileset.tiles[0].second.min.y - campos.y
-            );
-        dist = glm::length(pos_wrt_cam);
+        if (sort_tiles) {
+            glm::vec2 pos_wrt_cam = glm::vec2(
+                tileset.tiles[0].second.min.x - campos.x,
+                tileset.tiles[0].second.min.y - campos.y
+                );
+            dist = glm::length(pos_wrt_cam);
+        }
         tile_list.push_back(std::pair<float, const TileSet*>(dist, &tileset));
     }
-    std::sort(tile_list.begin(), tile_list.end(), compareInterval);
+    if (sort_tiles) std::sort(tile_list.begin(), tile_list.end(), compareInterval);
 
     for (const auto& tileset : tile_list) {
         tileset.second->vao->bind();

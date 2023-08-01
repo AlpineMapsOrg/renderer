@@ -94,8 +94,8 @@ void Window::initialise_gpu()
     m_timer->add_timer("atmosphere", gl_engine::TimerTypes::GPUAsync, "GPU");
     m_timer->add_timer("tiles", gl_engine::TimerTypes::GPUAsync, "GPU");
     m_timer->add_timer("compose", gl_engine::TimerTypes::GPUAsync, "GPU");
-    m_timer->add_timer("cpu_total", gl_engine::TimerTypes::CPU, "TOTAL", 240);
-    m_timer->add_timer("gpu_total", gl_engine::TimerTypes::GPUAsync, "TOTAL", 240);
+    m_timer->add_timer("cpu_total", gl_engine::TimerTypes::CPU, "TOTAL");
+    m_timer->add_timer("gpu_total", gl_engine::TimerTypes::GPUAsync, "TOTAL");
     m_timer->add_timer("all", gl_engine::TimerTypes::CPU, "TOTAL");
 
 
@@ -169,7 +169,7 @@ void Window::paint(QOpenGLFramebufferObject* framebuffer)
 
     m_shader_manager->tile_shader()->bind();
     m_timer->start_timer("tiles");
-    m_tile_manager->draw(m_shader_manager->tile_shader(), m_camera);
+    m_tile_manager->draw(m_shader_manager->tile_shader(), m_camera, m_sort_tiles);
     m_timer->stop_timer("tiles");
 
     if (funcs && m_shared_config_ubo->data.m_wireframe_mode > 0) funcs->glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
@@ -253,7 +253,16 @@ void Window::keyPressEvent(QKeyEvent* e)
             qDebug("Rendering loop started");
         }
         emit update_requested();
-
+    }
+    if (e->key() == Qt::Key::Key_F7) {
+        if (this->m_sort_tiles) {
+            this->m_sort_tiles = false;
+            qDebug("Tile-Sorting deactivated");
+        } else {
+            this->m_sort_tiles = true;
+            qDebug("Tile-Sorting active");
+        }
+        emit update_requested();
     }
     if (e->key() == Qt::Key::Key_F11
         || (e->key() == Qt::Key_P && e->modifiers() == Qt::ControlModifier)

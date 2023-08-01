@@ -134,7 +134,7 @@ class TimerManager
 public:
     TimerManager();
 
-    std::shared_ptr<GeneralTimer> add_timer(const std::string& name, TimerTypes type, const std::string& group = "", int queue_size = 120, float average_weight = 1.0f/30.0f);
+    std::shared_ptr<GeneralTimer> add_timer(const std::string& name, TimerTypes type, const std::string& group = "", int queue_size = 240, float average_weight = 1.0f/60.0f);
 
     // Start specific timer defined by position in timer list
     void start_timer(const std::string &name);
