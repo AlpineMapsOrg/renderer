@@ -25,7 +25,6 @@
 #include <QOpenGLVertexArrayObject>
 
 #include "ShaderProgram.h"
-#include "nucleus/Tile.h"
 #include "nucleus/camera/Definition.h"
 #include "nucleus/camera/stored_positions.h"
 #include "nucleus/utils/terrain_mesh_index_generator.h"
@@ -110,6 +109,13 @@ const std::vector<TileSet>& TileManager::tiles() const
     return m_gpu_tiles;
 }
 
+// Compares two intervals according to starting times.
+bool compareInterval(std::pair<float, const TileSet*> t1, std::pair<float, const TileSet*> t2)
+{
+    return (t1.first < t2.first);
+    //return (i1.start < i2.start);
+}
+
 void TileManager::draw(ShaderProgram* shader_program, const nucleus::camera::Definition& camera) const
 {
     QOpenGLExtraFunctions* f = QOpenGLContext::currentContext()->extraFunctions();
@@ -120,17 +126,31 @@ void TileManager::draw(ShaderProgram* shader_program, const nucleus::camera::Def
     shader_program->set_uniform("height_sampler", 1);
 
     const auto draw_tiles = m_draw_list_generator.generate_for(camera);
+
+    // Get distances to camera
+    auto campos = camera.position();
+    std::vector<std::pair<float, const TileSet*>> tile_list;
     for (const auto& tileset : tiles()) {
+        float dist = 0.0;
         if (!draw_tiles.contains(tileset.tiles.front().first))
             continue;
+        glm::vec2 pos_wrt_cam = glm::vec2(
+            tileset.tiles[0].second.min.x - campos.x,
+            tileset.tiles[0].second.min.y - campos.y
+            );
+        dist = glm::length(pos_wrt_cam);
+        tile_list.push_back(std::pair<float, const TileSet*>(dist, &tileset));
+    }
+    std::sort(tile_list.begin(), tile_list.end(), compareInterval);
 
-        tileset.vao->bind();
-        shader_program->set_uniform_array("bounds", boundsArray(tileset, camera.position()));
-        shader_program->set_uniform("tileset_id", (int)((tileset.tiles[0].first.coords[0] + tileset.tiles[0].first.coords[1])));
-        shader_program->set_uniform("tileset_zoomlevel", tileset.tiles[0].first.zoom_level);
-        tileset.ortho_texture->bind(2);
-        tileset.heightmap_texture->bind(1);
-        f->glDrawElements(GL_TRIANGLE_STRIP, tileset.gl_element_count, tileset.gl_index_type, nullptr);
+    for (const auto& tileset : tile_list) {
+        tileset.second->vao->bind();
+        shader_program->set_uniform_array("bounds", boundsArray(*tileset.second, camera.position()));
+        shader_program->set_uniform("tileset_id", (int)((tileset.second->tiles[0].first.coords[0] + tileset.second->tiles[0].first.coords[1])));
+        shader_program->set_uniform("tileset_zoomlevel", tileset.second->tiles[0].first.zoom_level);
+        tileset.second->ortho_texture->bind(2);
+        tileset.second->heightmap_texture->bind(1);
+        f->glDrawElements(GL_TRIANGLE_STRIP, tileset.second->gl_element_count, tileset.second->gl_index_type, nullptr);
     }
     f->glBindVertexArray(0);
 }
