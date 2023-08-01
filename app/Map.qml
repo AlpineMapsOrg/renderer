@@ -112,7 +112,7 @@ Rectangle {
                     anchors.centerIn: parent
                     id: label_text
                     color: Qt.alpha(Material.primaryTextColor, delegate_root.alpha_value)
-                    text: model.text + "(" + model.altitude + "m)"
+                    text: model.text + " (" + model.altitude + "m)"
                     font.pixelSize: 25
                 }
             }

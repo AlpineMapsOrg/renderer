@@ -109,11 +109,9 @@ const std::vector<TileSet>& TileManager::tiles() const
     return m_gpu_tiles;
 }
 
-// Compares two intervals according to starting times.
-bool compareInterval(std::pair<float, const TileSet*> t1, std::pair<float, const TileSet*> t2)
+bool compareTileSetPair(std::pair<float, const TileSet*> t1, std::pair<float, const TileSet*> t2)
 {
     return (t1.first < t2.first);
-    //return (i1.start < i2.start);
 }
 
 void TileManager::draw(ShaderProgram* shader_program, const nucleus::camera::Definition& camera, bool sort_tiles) const
@@ -144,7 +142,7 @@ void TileManager::draw(ShaderProgram* shader_program, const nucleus::camera::Def
         }
         tile_list.push_back(std::pair<float, const TileSet*>(dist, &tileset));
     }
-    if (sort_tiles) std::sort(tile_list.begin(), tile_list.end(), compareInterval);
+    if (sort_tiles) std::sort(tile_list.begin(), tile_list.end(), compareTileSetPair);
 
     for (const auto& tileset : tile_list) {
         tileset.second->vao->bind();
