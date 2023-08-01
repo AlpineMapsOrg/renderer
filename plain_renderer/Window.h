@@ -45,6 +45,7 @@ protected:
     void keyPressEvent(QKeyEvent*) override;
     void keyReleaseEvent(QKeyEvent*) override;
     void touchEvent(QTouchEvent*) override;
+    void closeEvent(QCloseEvent*) override;
 
 signals:
     void mouse_pressed(const nucleus::event_parameter::Mouse&) const;
@@ -57,8 +58,9 @@ private slots:
     void key_timer();
 
 private:
-    gl_engine::Window m_gl_window;
+    gl_engine::Window* m_gl_window = nullptr;
     QTimer *m_timer = new QTimer(this);
     int m_keys_pressed = 0;
+    bool m_closing = false;
 };
 
