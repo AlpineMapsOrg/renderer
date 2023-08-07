@@ -46,13 +46,13 @@ public:
 private:
     AbstractRenderWindow* m_render_window;
     QNetworkAccessManager m_network_manager;
-    std::unique_ptr<DataQuerier> m_data_querier;
 #ifdef ALP_ENABLE_THREADING
     std::unique_ptr<QThread> m_scheduler_thread;
 #endif
     std::unique_ptr<tile_scheduler::TileLoadService> m_terrain_service;
     std::unique_ptr<tile_scheduler::TileLoadService> m_ortho_service;
     std::unique_ptr<tile_scheduler::Scheduler> m_tile_scheduler;
+    std::unique_ptr<DataQuerier> m_data_querier;
     std::unique_ptr<camera::Controller> m_camera_controller;
 };
 }
