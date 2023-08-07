@@ -29,6 +29,10 @@
 #include "Definition.h"
 #include "InteractionStyle.h"
 
+namespace nucleus {
+class DataQuerier;
+}
+
 namespace nucleus::camera {
 class AbstractDepthTester;
 
@@ -36,7 +40,9 @@ class Controller : public QObject
 {
     Q_OBJECT
 public:
-    explicit Controller(const Definition& camera, AbstractDepthTester* depth_tester);
+    explicit Controller(const Definition& camera,
+                        AbstractDepthTester* depth_tester,
+                        DataQuerier* data_querier);
 
     [[nodiscard]] const Definition& definition() const;
     std::optional<glm::vec2> get_operation_centre();
@@ -69,6 +75,7 @@ private:
 
     Definition m_definition;
     AbstractDepthTester* m_depth_tester;
+    DataQuerier* m_data_querier;
     std::unique_ptr<InteractionStyle> m_interaction_style;
     std::unique_ptr<InteractionStyle> m_animation_style;
     std::chrono::steady_clock::time_point m_last_frame_time;

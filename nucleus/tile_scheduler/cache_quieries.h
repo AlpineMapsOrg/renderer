@@ -26,9 +26,7 @@
 
 namespace nucleus::tile_scheduler::cache_queries {
 
-float query_altitude(
-    nucleus::tile_scheduler::Cache<nucleus::tile_scheduler::tile_types::TileQuad>* cache,
-    const glm::dvec2& lat_long)
+inline float query_altitude(MemoryCache* cache, const glm::dvec2& lat_long)
 {
     const auto world_space = srs::lat_long_to_world(lat_long);
     nucleus::tile_scheduler::tile_types::TileQuad selected_quad;
@@ -48,8 +46,8 @@ float query_altitude(
             assert(!height_tile.isNull());
             if (height_tile.isNull())
                 return 1000;
-            const auto x = uv.x * height_tile.width();
-            const auto y = uv.y * height_tile.height();
+            const auto x = int(uv.x * height_tile.width());
+            const auto y = int(uv.y * height_tile.height());
             const auto rgb = QColor(height_tile.pixel(x, y));
             return sherpa::height_encoding::to_float({rgb.red(), rgb.green(), rgb.blue()});
         }

@@ -24,6 +24,7 @@
 
 namespace nucleus {
 class AbstractRenderWindow;
+class DataQuerier;
 namespace tile_scheduler {
 class TileLoadService;
 class Scheduler;
@@ -45,6 +46,7 @@ public:
 private:
     AbstractRenderWindow* m_render_window;
     QNetworkAccessManager m_network_manager;
+    std::unique_ptr<DataQuerier> m_data_querier;
 #ifdef ALP_ENABLE_THREADING
     std::unique_ptr<QThread> m_scheduler_thread;
 #endif

@@ -319,6 +319,11 @@ const Cache<tile_types::TileQuad>& Scheduler::ram_cache() const
     return m_ram_cache;
 }
 
+Cache<tile_types::TileQuad>& Scheduler::ram_cache()
+{
+    return m_ram_cache;
+}
+
 QByteArray Scheduler::white_jpeg_tile(unsigned int size)
 {
     QImage default_tile(QSize { int(size), int(size) }, QImage::Format_ARGB32);

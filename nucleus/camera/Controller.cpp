@@ -19,6 +19,7 @@
 
 #include "Controller.h"
 
+#include "nucleus/DataQuerier.h"
 #include "nucleus/camera/CadInteraction.h"
 #include "nucleus/camera/Definition.h"
 #include "nucleus/camera/FirstPersonInteraction.h"
@@ -27,9 +28,12 @@
 #include "nucleus/srs.h"
 
 namespace nucleus::camera {
-Controller::Controller(const Definition& camera, AbstractDepthTester* depth_tester)
+Controller::Controller(const Definition& camera,
+                       AbstractDepthTester* depth_tester,
+                       DataQuerier* data_querier)
     : m_definition(camera)
     , m_depth_tester(depth_tester)
+    , m_data_querier(data_querier)
     , m_interaction_style(std::make_unique<InteractionStyle>())
 {
     set_interaction_style(std::make_unique<nucleus::camera::OrbitInteraction>());
@@ -57,7 +61,8 @@ void Controller::set_viewport(const glm::uvec2& new_viewport)
 void Controller::set_latitude_longitude(double latitude, double longitude)
 {
     const auto xy_world_space = srs::lat_long_to_world({latitude, longitude});
-    const auto look_at_point = glm::dvec3(xy_world_space, 150);
+    const auto look_at_point = glm::dvec3(xy_world_space,
+                                          m_data_querier->get_altitude({latitude, longitude}));
     const auto camera_position = look_at_point + glm::normalize(glm::dvec3{0, -1, 1}) * 5000.;
 
     m_definition.look_at(camera_position, look_at_point);

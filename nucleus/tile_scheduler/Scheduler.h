@@ -65,6 +65,7 @@ public:
     void set_purge_timeout(unsigned int new_purge_timeout);
 
     const Cache<tile_types::TileQuad>& ram_cache() const;
+    Cache<tile_types::TileQuad>& ram_cache();
 
     static QByteArray white_jpeg_tile(unsigned size);
     static QByteArray black_png_tile(unsigned size);
