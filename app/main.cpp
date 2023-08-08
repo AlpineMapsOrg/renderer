@@ -45,6 +45,8 @@
 #include "nucleus/map_label/CameraTransformationProxyModel.h"
 #include "nucleus/map_label/MapLabelModel.h"
 
+#include "nucleus/camera/PositionStorage.h"
+
 int main(int argc, char **argv)
 {
     //    QGuiApplication::setHighDpiScaleFactorRoundingPolicy(Qt::HighDpiScaleFactorRoundingPolicy::Floor);
@@ -116,6 +118,7 @@ int main(int argc, char **argv)
     HotReloader hotreloader(&engine, "");
     engine.rootContext()->setContextProperty("_hotreloader", &hotreloader);
     engine.rootContext()->setContextProperty("_qmlPath", "");
+    engine.rootContext()->setContextProperty("_positionList", QVariant::fromValue(nucleus::camera::PositionStorage::instance()->getPositionList()));
 
     RenderThreadNotifier::instance();
     QObject::connect(

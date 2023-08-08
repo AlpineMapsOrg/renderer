@@ -28,6 +28,8 @@
 #include "TimerFrontendManager.h"
 #include <QQuickFramebufferObject>
 #include <QTimer>
+#include <QList>
+#include <QString>
 #include <map>
 
 class TerrainRendererItem : public QQuickFramebufferObject {
@@ -49,6 +51,7 @@ class TerrainRendererItem : public QQuickFramebufferObject {
     Q_PROPERTY(unsigned int cached_tiles READ cached_tiles NOTIFY cached_tiles_changed)
     Q_PROPERTY(unsigned int tile_cache_size READ tile_cache_size WRITE set_tile_cache_size NOTIFY tile_cache_size_changed)
     Q_PROPERTY(bool render_looped READ render_looped WRITE set_render_looped NOTIFY render_looped_changed)
+    Q_PROPERTY(unsigned int selected_camera_position_index MEMBER m_selected_camera_position_index WRITE set_selected_camera_position_index)
 
 public:
     explicit TerrainRendererItem(QQuickItem* parent = 0);
@@ -68,6 +71,7 @@ signals:
     void update_camera_requested() const;
     //    void viewport_changed(const glm::uvec2& new_viewport) const;
     void position_set_by_user(double new_latitude, double new_longitude);
+    void camera_definition_set_by_user(const nucleus::camera::Definition&) const;
 
     void shared_config_changed(gl_engine::uboSharedConfig new_shared_config);
     void render_looped_changed(bool new_render_looped);
@@ -140,6 +144,8 @@ public:
     bool render_looped() const;
     void set_render_looped(bool new_render_looped);
 
+    void set_selected_camera_position_index(unsigned value);
+
     [[nodiscard]] unsigned int in_flight_tiles() const;
     void set_in_flight_tiles(unsigned int new_in_flight_tiles);
 
@@ -164,6 +170,7 @@ private:
     unsigned m_cached_tiles = 0;
     unsigned m_queued_tiles = 0;
     unsigned m_in_flight_tiles = 0;
+    unsigned int m_selected_camera_position_index = 0;
     bool m_render_looped = false;
 
     gl_engine::uboSharedConfig m_shared_config;

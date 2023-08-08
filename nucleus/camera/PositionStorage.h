@@ -20,6 +20,11 @@
 
 #include "Definition.h"
 #include "nucleus/srs.h"
+#include <map>
+#include <QDebug>
+
+#include <QList>
+#include <QString>
 
 namespace nucleus::camera::stored_positions {
 // coordinate transformer: https://epsg.io/transform#s_srs=4326&t_srs=3857&x=16.3726561&y=48.2086939
@@ -45,6 +50,12 @@ inline nucleus::camera::Definition grossglockner()
     return { { coords.x - 300, coords.y - 400, coords.z + 100 }, { coords.x, coords.y, coords.z - 100 } };
 }
 
+inline nucleus::camera::Definition grossglockner_topdown()
+{
+    const auto coords = srs::lat_long_alt_to_world({ 47.07386676653372, 12.694470292406267, 3798 });
+    return { { coords.x , coords.y , coords.z + 3000 }, { coords.x, coords.y, coords.z } };
+}
+
 inline nucleus::camera::Definition schneeberg()
 {
     const auto coords = srs::lat_long_alt_to_world({47.767163598, 15.804663448, 2076});
@@ -62,4 +73,58 @@ inline nucleus::camera::Definition wien()
     const auto coords = srs::lat_long_alt_to_world({48.20851144787232, 16.373082444395656, 171.28});
     return {{coords.x + 10'000, coords.y + 2'000, coords.z + 1'000}, coords};
 }
+
 } // namespace nucleus::camera::stored_positions
+
+namespace nucleus::camera {
+
+class PositionStorage {
+
+private:
+    PositionStorage() {
+        _positions.insert({"hochgrubach_spitze", nucleus::camera::stored_positions::oestl_hochgrubach_spitze()});
+        _positions.insert({"stephansdom", nucleus::camera::stored_positions::stephansdom()});
+        _positions.insert({"stephansdom_closeup", nucleus::camera::stored_positions::stephansdom_closeup()});
+        _positions.insert({"grossglockner", nucleus::camera::stored_positions::grossglockner()});
+        _positions.insert({"grossglockner_topdown", nucleus::camera::stored_positions::grossglockner_topdown()});
+        _positions.insert({"schneeberg", nucleus::camera::stored_positions::schneeberg()});
+        _positions.insert({"karwendel", nucleus::camera::stored_positions::karwendel()});
+        _positions.insert({"wien", nucleus::camera::stored_positions::wien()});
+    }
+    static PositionStorage* _instance;
+    std::map<std::string, nucleus::camera::Definition> _positions;
+
+public:
+    PositionStorage(PositionStorage &other) = delete;
+    void operator=(const PositionStorage &) = delete;
+    static PositionStorage *instance();
+    nucleus::camera::Definition get(const std::string& name) {
+        auto it = _positions.find(name);
+        if (it != _positions.end()) {
+            return it->second;
+        } else {
+            qWarning() << "Position by name" << name << "not existing.";
+        }
+        return {};
+    }
+
+    nucleus::camera::Definition get_by_index(unsigned id) {
+        unsigned i = 0;
+        for (const auto& kv : _positions) {
+            if (i == id) return kv.second;
+            i++;
+        }
+        qWarning() << "Position at index" << id <<  "non existing";
+        return {};
+    }
+
+    QList<QString> getPositionList() {
+        QList<QString> res;
+        for (const auto& kv : _positions) {
+            res.append(kv.first.c_str());
+        }
+        return res;
+    }
+};
+
+}

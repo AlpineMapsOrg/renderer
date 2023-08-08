@@ -49,6 +49,8 @@
 #include "nucleus/utils/bit_coding.h"
 #include "TimerManager.h"
 
+#include "nucleus/camera/PositionStorage.h"
+
 using gl_engine::Window;
 using gl_engine::UniformBuffer;
 

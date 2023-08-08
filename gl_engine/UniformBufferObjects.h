@@ -36,7 +36,7 @@ namespace gl_engine {
         // rgb...Color of the phong-material, a...opacity of ortho picture
         QVector4D m_material_color = QVector4D(0.5, 0.5, 0.5, 0.5);
         // amb, diff, spec, shininess
-        QVector4D m_material_light_response = QVector4D(1.5, 3.0, 0.5, 32.0);
+        QVector4D m_material_light_response = QVector4D(1.5, 3.0, 0.0, 32.0);
         // mode (0=disabled, 1=normal, 2=highlight), height_mode, fixed_height, unused
         QVector4D m_curtain_settings = QVector4D(1.0, 0.0, 500.0, 0.0);
 

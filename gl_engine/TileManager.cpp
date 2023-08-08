@@ -26,7 +26,6 @@
 
 #include "ShaderProgram.h"
 #include "nucleus/camera/Definition.h"
-#include "nucleus/camera/stored_positions.h"
 #include "nucleus/utils/terrain_mesh_index_generator.h"
 
 using gl_engine::TileManager;

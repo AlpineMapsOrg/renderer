@@ -40,7 +40,7 @@ MapLabelModel::MapLabelModel(QObject* parent)
     m_labels.push_back({ "Scheffauer", 47.5573214, 12.2418396, 2111, 8, 0, 0, 0 });
     m_labels.push_back({ "Maukspitze", 47.5588954, 12.3563668, 2231, 8, 0, 0, 0 });
     m_labels.push_back({ "Ellmauer Halt", 47.5616377, 12.3025296, 2342, 9, 0, 0, 0 });
-    m_labels.push_back({ "Großglockner", 47.073889329946525, 12.69450030408592, 3798, 8, 0, 0, 0 });
+    m_labels.push_back({ "Großglockner", 47.074513, 12.693912, 3798, 8, 0, 0, 0 });
 }
 
 int MapLabelModel::rowCount(const QModelIndex& parent) const

@@ -27,7 +27,7 @@ qt_add_library(nucleus STATIC
     camera/OrbitInteraction.h camera/OrbitInteraction.cpp
     camera/RotateNorthInteraction.h camera/RotateNorthInteraction.cpp
     camera/AbstractDepthTester.h
-    camera/stored_positions.h
+    camera/PositionStorage.h camera/PositionStorage.cpp
     utils/Stopwatch.h utils/Stopwatch.cpp
     utils/terrain_mesh_index_generator.h
     utils/tile_conversion.h utils/tile_conversion.cpp

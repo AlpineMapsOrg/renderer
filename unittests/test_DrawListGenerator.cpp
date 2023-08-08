@@ -21,7 +21,7 @@
 
 #include <QFile>
 
-#include "nucleus/camera/stored_positions.h"
+#include "nucleus/camera/PositionStorage.h"
 #include "nucleus/tile_scheduler/DrawListGenerator.h"
 #include "nucleus/tile_scheduler/utils.h"
 #include "sherpa/TileHeights.h"

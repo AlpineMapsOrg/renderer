@@ -19,12 +19,17 @@
 
 #include "Controller.h"
 
+#include <QDebug>
+
 #include "nucleus/camera/CadInteraction.h"
 #include "nucleus/camera/Definition.h"
 #include "nucleus/camera/FirstPersonInteraction.h"
 #include "nucleus/camera/OrbitInteraction.h"
 #include "nucleus/camera/RotateNorthInteraction.h"
 #include "nucleus/srs.h"
+
+#include "AbstractDepthTester.h"
+#include <glm/gtx/string_cast.hpp>
 
 namespace nucleus::camera {
 Controller::Controller(const Definition& camera, AbstractDepthTester* depth_tester)
@@ -97,6 +102,9 @@ void Controller::mouse_press(const event_parameter::Mouse& e)
         m_animation_style.reset();
         m_interaction_style->reset_interaction(m_definition, m_depth_tester);
     }
+    auto pos = m_depth_tester->position(m_definition.to_ndc({ e.point.position().x(), e.point.position().y() }));
+    auto coord = srs::world_to_lat_long(glm::dvec2(pos.x, pos.y));
+    qDebug() << glm::to_string(coord);
     const auto new_definition = m_interaction_style->mouse_press_event(e, m_definition, m_depth_tester);
     if (!new_definition)
         return;

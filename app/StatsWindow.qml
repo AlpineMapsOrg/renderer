@@ -7,7 +7,7 @@ import QtQuick.Dialogs
 import Alpine
 
 Rectangle {
-    property int infomenu_height: 380
+    property int infomenu_height: map.height - 30 - tool_bar.height -100
     property int infomenu_width: 270
 
     id: statsMenu
@@ -424,7 +424,34 @@ Rectangle {
                 onCheckStateChanged: map.render_looped = checked
             }
 
+            GridLayout {
+                columns: 2
+
+                Rectangle {
+                    Layout.fillWidth: true;
+                    Layout.columnSpan: 2;
+                    color: Qt.alpha("white", 0.1)
+                    height: 30
+                    border { width:1; color:Qt.alpha( "white", 0.5); }
+                    radius: 5
+                    Label {
+                        x: 10; y: 3
+                        text: "Camera"
+                        font.pixelSize:16
+                    }
+                }
+
+                Label { text: "Cam.-Pos.:" }
+                ComboBox {
+                    Layout.fillWidth: true;
+                    model: _positionList    // set in main.cpp
+                    currentIndex: 0
+                    onCurrentIndexChanged: map.selected_camera_position_index = currentIndex;
+                }
+
+            }
         }
+
 
     }
 

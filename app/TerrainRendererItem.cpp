@@ -39,6 +39,8 @@
 #include "nucleus/Controller.h"
 #include <nucleus/tile_scheduler/Scheduler.h>
 
+#include "nucleus/camera/PositionStorage.h"
+
 namespace {
 // helper type for the visitor from https://en.cppreference.com/w/cpp/utility/variant/visit
 template <class... Ts>
@@ -89,6 +91,8 @@ QQuickFramebufferObject::Renderer* TerrainRendererItem::createRenderer() const
     connect(this, &TerrainRendererItem::key_released, r->controller()->camera_controller(), &nucleus::camera::Controller::key_release);
     connect(this, &TerrainRendererItem::update_camera_requested, r->controller()->camera_controller(), &nucleus::camera::Controller::update_camera_request);
     connect(this, &TerrainRendererItem::position_set_by_user, r->controller()->camera_controller(), &nucleus::camera::Controller::set_latitude_longitude);
+    connect(this, &TerrainRendererItem::camera_definition_set_by_user, r->controller()->camera_controller(), &nucleus::camera::Controller::set_definition);
+    //connect(this, &TerrainRendererItem::ind)
 
     auto* const tile_scheduler = r->controller()->tile_scheduler();
     connect(this, &TerrainRendererItem::render_quality_changed, tile_scheduler, [=](float new_render_quality) {
@@ -121,14 +125,16 @@ QQuickFramebufferObject::Renderer* TerrainRendererItem::createRenderer() const
 void TerrainRendererItem::touchEvent(QTouchEvent* e)
 {
     this->setFocus(true);
-    emit touch_made(nucleus::event_parameter::make(e));
+    auto ep = nucleus::event_parameter::make(e);
+    emit touch_made(ep);
     RenderThreadNotifier::instance()->notify();
 }
 
 void TerrainRendererItem::mousePressEvent(QMouseEvent* e)
 {
     this->setFocus(true);
-    emit mouse_pressed(nucleus::event_parameter::make(e));
+    auto ep = nucleus::event_parameter::make(e);
+    emit mouse_pressed(ep);
     RenderThreadNotifier::instance()->notify();
 }
 
@@ -334,6 +340,12 @@ void TerrainRendererItem::set_render_looped(bool new_render_looped) {
     m_render_looped = new_render_looped;
     emit render_looped_changed(m_render_looped);
     schedule_update();
+}
+
+void TerrainRendererItem::set_selected_camera_position_index(unsigned value) {
+
+    schedule_update();
+    emit camera_definition_set_by_user(nucleus::camera::PositionStorage::instance()->get_by_index(value));
 }
 
 unsigned int TerrainRendererItem::in_flight_tiles() const

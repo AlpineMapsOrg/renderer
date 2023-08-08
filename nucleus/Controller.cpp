@@ -27,7 +27,7 @@
 
 #include "AbstractRenderWindow.h"
 #include "nucleus/camera/Controller.h"
-#include "nucleus/camera/stored_positions.h"
+#include "nucleus/camera/PositionStorage.h"
 #include "nucleus/tile_scheduler/LayerAssembler.h"
 #include "nucleus/tile_scheduler/QuadAssembler.h"
 #include "nucleus/tile_scheduler/RateLimiter.h"
@@ -48,7 +48,7 @@ Controller::Controller(AbstractRenderWindow* render_window)
     qRegisterMetaType<nucleus::event_parameter::Wheel>();
 
     m_camera_controller
-        = std::make_unique<nucleus::camera::Controller>(nucleus::camera::stored_positions::oestl_hochgrubach_spitze(),
+        = std::make_unique<nucleus::camera::Controller>(nucleus::camera::PositionStorage::instance()->get("grossglockner"),
             m_render_window->depth_tester());
 
     m_terrain_service = std::make_unique<TileLoadService>("https://alpinemaps.cg.tuwien.ac.at/tiles/alpine_png/", TileLoadService::UrlPattern::ZXY, ".png");
