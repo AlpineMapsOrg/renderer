@@ -84,7 +84,7 @@ void Window::initialise_gpu()
     m_tile_manager->init();
     m_tile_manager->initilise_attribute_locations(m_shader_manager->tile_shader());
     m_screen_quad_geometry = gl_engine::helpers::create_screen_quad_geometry();
-    m_gbuffer = std::make_unique<Framebuffer>(Framebuffer::DepthFormat::Int24, std::vector({ Framebuffer::ColourFormat::RGBA8, Framebuffer::ColourFormat::RGBA8 }));
+    m_gbuffer = std::make_unique<Framebuffer>(Framebuffer::DepthFormat::Int24, std::vector({ Framebuffer::ColourFormat::RGBA8, Framebuffer::ColourFormat::RGBA8, Framebuffer::ColourFormat::RGB16F }));
 
     m_shared_config_ubo = std::make_unique<gl_engine::UniformBuffer<gl_engine::uboSharedConfig>>(0, "shared_config");
     m_shared_config_ubo->init();
@@ -149,19 +149,21 @@ void Window::paint(QOpenGLFramebufferObject* framebuffer)
     */
 
     m_gbuffer->bind();
-    f->glClearColor(1.0, 0.0, 0.5, 1);
+    f->glClearColor(0.0, 0.0, 0.0, 1);
 
     f->glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
 
+    /*
     m_shader_manager->atmosphere_bg_program()->bind();
     m_timer->start_timer("atmosphere");
     m_atmosphere->draw(m_shader_manager->atmosphere_bg_program(),
                        m_camera,
                        m_shader_manager->screen_quad_program(),
                        m_gbuffer.get());
-    m_timer->stop_timer("atmosphere");
+    m_timer->stop_timer("atmosphere");*/
     f->glEnable(GL_DEPTH_TEST);
     f->glDepthFunc(GL_LESS);
+
 
     // Note: We need blending mode for atmosphere (later in color pass)
     //f->glEnable(GL_BLEND);
