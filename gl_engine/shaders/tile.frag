@@ -152,6 +152,11 @@ void main() {
         out_Color = vec4(color * alpha, alpha);
     }
 
+    vec3 d_color = debug_overlay_color;
+    vec3 pos_ws = pos_wrt_cam - camera_position;
+    //if (depth > 0.95) d_color = vec3(1.0,0.0,0.0);
+    //d_color = vec3(1.0,0.0,0.0);
+
     if (conf.debug_overlay_strength > 0.0 && conf.debug_overlay > 0u) {
         vec4 overlayColor = vec4(0.0);
         if (conf.debug_overlay == 1u) overlayColor = ortho;
@@ -160,8 +165,8 @@ void main() {
         out_Color = mix(out_Color, overlayColor, conf.debug_overlay_strength);
     }
 
-    if (length(debug_overlay_color) > 0.0)
-        out_Color = vec4(mix(debug_overlay_color, out_Color.rgb, 0.5), 1.0);
+    if (length(d_color) > 0.0)
+        out_Color = vec4(d_color, 1.0);
 
     //out_Color = vec4(uv.rg, 0.0, 1.0);
     /*if (is_curtain > 0) {

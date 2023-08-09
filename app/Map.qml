@@ -33,7 +33,7 @@ Rectangle {
             renderer.set_position(gnss.latitude, gnss.longitude)
         }
     }
-
+/*
     Image {
         function oc_scale() : float {
             if (renderer.camera_operation_centre_distance < 0) {
@@ -50,6 +50,17 @@ Rectangle {
         sourceSize: Qt.size(width, height)
         x: renderer.camera_operation_centre.x - width / 2
         y: renderer.camera_operation_centre.y - 60 - height / 2
+        visible: renderer.camera_operation_centre_visibility && punkt.checked
+    }*/
+
+    Rectangle {
+        width: 12
+        height: 12
+        x: renderer.camera_operation_centre.x - width / 2
+        y: renderer.camera_operation_centre.y - 60 - height / 2
+        color: Qt.alpha(Material.backgroundColor, 0.7);
+        border { width:2; color:Qt.alpha( "white", 0.5); }
+        radius: 16
         visible: renderer.camera_operation_centre_visibility && punkt.checked
     }
 

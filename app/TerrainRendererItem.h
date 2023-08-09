@@ -30,6 +30,7 @@
 #include <QTimer>
 #include <QList>
 #include <QString>
+#include <QVector3D>
 #include <map>
 
 class TerrainRendererItem : public QQuickFramebufferObject {
@@ -94,6 +95,8 @@ signals:
 
     void tile_cache_size_changed(unsigned new_cache_size);
 
+    void gui_update_global_cursor_pos(double latitude, double longitude, double altitude);
+
 protected:
     void touchEvent(QTouchEvent*) override;
     void mousePressEvent(QMouseEvent*) override;
@@ -105,10 +108,12 @@ protected:
 public slots:
     void set_position(double latitude, double longitude);
     void rotate_north();
+    void read_global_position(glm::dvec3 latlonalt);
 
 private slots:
     void schedule_update();
     void update_camera_request();
+
 
 public:
     [[nodiscard]] int frame_limit() const;

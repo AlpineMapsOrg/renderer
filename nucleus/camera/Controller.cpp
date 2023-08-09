@@ -98,13 +98,13 @@ void Controller::update() const
 
 void Controller::mouse_press(const event_parameter::Mouse& e)
 {
+    report_global_cursor_position(e.point.position());
+
     if (m_animation_style) {
         m_animation_style.reset();
         m_interaction_style->reset_interaction(m_definition, m_depth_tester);
     }
-    auto pos = m_depth_tester->position(m_definition.to_ndc({ e.point.position().x(), e.point.position().y() }));
-    auto coord = srs::world_to_lat_long(glm::dvec2(pos.x, pos.y));
-    qDebug() << glm::to_string(coord);
+
     const auto new_definition = m_interaction_style->mouse_press_event(e, m_definition, m_depth_tester);
     if (!new_definition)
         return;
@@ -117,6 +117,7 @@ void Controller::mouse_move(const event_parameter::Mouse& e)
     const auto new_definition = m_interaction_style->mouse_move_event(e, m_definition, m_depth_tester);
     if (!new_definition)
         return;
+
     m_definition = new_definition.value();
 
     update();
@@ -234,6 +235,12 @@ std::optional<float> Controller::get_operation_centre_distance(){
         return m_animation_style->get_operation_centre_distance(m_definition);
     }
     return m_interaction_style->get_operation_centre_distance(m_definition);
+}
+
+void Controller::report_global_cursor_position(const QPointF& screen_pos) {
+    auto pos = m_depth_tester->position(m_definition.to_ndc({ screen_pos.x(), screen_pos.y() }));
+    auto coord = srs::world_to_lat_long_alt(pos);
+    emit global_cursor_position_changed(coord);
 }
 
 const Definition& Controller::definition() const

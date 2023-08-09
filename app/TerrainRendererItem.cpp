@@ -92,6 +92,7 @@ QQuickFramebufferObject::Renderer* TerrainRendererItem::createRenderer() const
     connect(this, &TerrainRendererItem::update_camera_requested, r->controller()->camera_controller(), &nucleus::camera::Controller::update_camera_request);
     connect(this, &TerrainRendererItem::position_set_by_user, r->controller()->camera_controller(), &nucleus::camera::Controller::set_latitude_longitude);
     connect(this, &TerrainRendererItem::camera_definition_set_by_user, r->controller()->camera_controller(), &nucleus::camera::Controller::set_definition);
+    connect(r->controller()->camera_controller(), &nucleus::camera::Controller::global_cursor_position_changed, this, &TerrainRendererItem::read_global_position);
     //connect(this, &TerrainRendererItem::ind)
 
     auto* const tile_scheduler = r->controller()->tile_scheduler();
@@ -173,6 +174,10 @@ void TerrainRendererItem::update_camera_request()
 {
     emit update_camera_requested();
     RenderThreadNotifier::instance()->notify();
+}
+
+void TerrainRendererItem::read_global_position(glm::dvec3 latlonalt) {
+    emit gui_update_global_cursor_pos(latlonalt.x, latlonalt.y, latlonalt.z);
 }
 
 void TerrainRendererItem::set_position(double latitude, double longitude)

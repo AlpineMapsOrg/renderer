@@ -24,6 +24,7 @@
 #include <QObject>
 
 #include <glm/glm.hpp>
+#include <QVector3D>
 
 #include "../event_parameter.h"
 #include "Definition.h"
@@ -41,6 +42,7 @@ public:
     [[nodiscard]] const Definition& definition() const;
     std::optional<glm::vec2> get_operation_centre();
     std::optional<float> get_operation_centre_distance();
+    void report_global_cursor_position(const QPointF& screen_pos);
 
 public slots:
     void set_definition(const Definition& new_definition);
@@ -62,6 +64,7 @@ public slots:
 
 signals:
     void definition_changed(const Definition& new_definition) const;
+    void global_cursor_position_changed(glm::dvec3 pos) const;
 
 private:
     void set_interaction_style(std::unique_ptr<InteractionStyle> new_style);

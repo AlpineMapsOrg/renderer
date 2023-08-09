@@ -7,7 +7,7 @@ import QtQuick.Dialogs
 import Alpine
 
 Rectangle {
-    property int infomenu_height: map.height - 30 - tool_bar.height -100
+    property int infomenu_height: map.height - 30 - tool_bar.height - 130
     property int infomenu_width: 270
 
     id: statsMenu
@@ -441,12 +441,42 @@ Rectangle {
                     }
                 }
 
-                Label { text: "Cam.-Pos.:" }
+                Label { text: "Preset:" }
                 ComboBox {
                     Layout.fillWidth: true;
                     model: _positionList    // set in main.cpp
                     currentIndex: 0
                     onCurrentIndexChanged: map.selected_camera_position_index = currentIndex;
+                }
+
+                Rectangle {
+                    Layout.fillWidth: true;
+                    Layout.columnSpan: 2;
+                    color: Qt.alpha("white", 0.1)
+                    height: 30
+                    border { width:1; color:Qt.alpha( "white", 0.5); }
+                    radius: 5
+                    Label {
+                        x: 10; y: 3
+                        text: "Cursor"
+                        font.pixelSize:16
+                    }
+                }
+                Label { text: "Latitude:" }
+                Label { text: "0.0 °"; id: cursor_lat; font.bold: true; }
+                Label { text: "Longitude:" }
+                Label { text: "0.0 °"; id: cursor_lon; font.bold: true; }
+                Label { text: "Altitude:" }
+                Label { text: "0.0 m"; id: cursor_alt; font.bold: true; }
+
+                Connections {
+                    target: map
+                    // Gets invoked whenever new frame time data is available
+                    function onGui_update_global_cursor_pos(lat,lon,alt) {
+                        cursor_lat.text = lat.toFixed(5) + " °";
+                        cursor_lon.text = lon.toFixed(5) + " °";
+                        cursor_alt.text = alt.toFixed(2) + " m";
+                    }
                 }
 
             }
