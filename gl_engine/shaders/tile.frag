@@ -153,9 +153,6 @@ void main() {
     }
 
     vec3 d_color = debug_overlay_color;
-    vec3 pos_ws = pos_wrt_cam - camera_position;
-    //if (depth > 0.95) d_color = vec3(1.0,0.0,0.0);
-    //d_color = vec3(1.0,0.0,0.0);
 
     if (conf.debug_overlay_strength > 0.0 && conf.debug_overlay > 0u) {
         vec4 overlayColor = vec4(0.0);
@@ -168,8 +165,26 @@ void main() {
     if (length(d_color) > 0.0)
         out_Color = vec4(d_color, 1.0);
 
-    //out_Color = vec4(uv.rg, 0.0, 1.0);
-    /*if (is_curtain > 0) {
-        out_Color = vec4(1.0, 0.0, 0.0, 1.0);
-    }*/
+    //float dist = length(pos_wrt_cam);
+    float alpha = 1.0 - min((dist / 10000.0), 1.0);
+    float line_width = (2.0 + dist / 5000.0) * 5.0;
+    // Calculate steepness based on fragment normal (this alone gives woobly results)
+    float steepness = (1.0 - dot(normal, vec3(0.0,0.0,1.0))) / 2.0;
+    // Discretize the steepness -> Doesnt work
+    //float steepness_discretized = int(steepness * 10.0f) / 10.0f;
+
+    line_width = line_width * max(0.01,steepness);
+
+    if (alpha > 0.05)
+    {
+        float alt = pos_wrt_cam.z + camera_position.z;
+        float alt_rest = (alt - int(alt / 100.0) * 100.0) - line_width / 2.0;
+        if (alt_rest < line_width) {
+            out_Color = mix(out_Color, vec4(out_Color.r - 0.2, out_Color.g - 0.2, out_Color.b - 0.2, 1.0), alpha);
+        }
+    }
+    //out_Color = vec4(steepness, steepness, steepness, 1.0);
+
+    //out_Color = vec4(gl_FragCoord.x, gl_FragCoord.y, 0.0, 1.0) / 1000.0;
+    //out_Color = vec4(pos_wrt_cam / 1000.0, 1.0);
 }
