@@ -23,7 +23,7 @@
 #include "nucleus/utils/Stopwatch.h"
 
 namespace nucleus::camera {
-class RotateNorthInteraction : public InteractionStyle
+class RotateNorthAnimation : public InteractionStyle
 {
     glm::dvec3 m_operation_centre = {};
     utils::Stopwatch m_stopwatch = {};

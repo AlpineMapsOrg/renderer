@@ -39,6 +39,7 @@ public:
     Definition(const glm::dvec3& position, const glm::dvec3& view_at_point);
     [[nodiscard]] glm::dmat4 camera_matrix() const;
     [[nodiscard]] glm::dmat4 camera_space_to_world_matrix() const;
+    void set_camera_space_to_world_matrix(const glm::dmat4& new_camera_transformation);
     [[nodiscard]] glm::dmat4 projection_matrix() const;
     // transforms from webmercator to clip space. You should use this matrix only in double precision.
     [[nodiscard]] glm::dmat4 world_view_projection_matrix() const;

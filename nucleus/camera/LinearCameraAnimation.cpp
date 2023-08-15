@@ -17,61 +17,54 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *****************************************************************************/
 
-#include "RotateNorthInteraction.h"
+#include "LinearCameraAnimation.h"
 #include "AbstractDepthTester.h"
 
 #include <QDebug>
 
 namespace nucleus::camera {
 
-void RotateNorthInteraction::reset_interaction(Definition camera, AbstractDepthTester* depth_tester)
+LinearCameraAnimation::LinearCameraAnimation(Definition start, Definition end)
+    : m_start(start.camera_space_to_world_matrix())
+    , m_end(end.camera_space_to_world_matrix())
+{}
+
+void LinearCameraAnimation::reset_interaction(Definition camera, AbstractDepthTester* depth_tester)
 {
-    m_operation_centre = depth_tester->position(glm::dvec2(0.0, 0.0));
-    m_operation_centre_screen = glm::vec2(camera.viewport_size().x / 2.0f, camera.viewport_size().y / 2.0f);
-
-    auto cameraFrontAxis = camera.z_axis();
-    m_degrees_from_north = glm::degrees(glm::acos(glm::dot(glm::normalize(glm::dvec3(cameraFrontAxis.x, cameraFrontAxis.y, 0)), glm::dvec3(0, -1, 0))));
-
-    m_total_duration = m_degrees_from_north * 5 + 500;
     m_current_duration = 0;
-
     m_stopwatch.restart();
 }
 
-std::optional<Definition> RotateNorthInteraction::update(Definition camera, AbstractDepthTester* depth_tester)
+std::optional<Definition> LinearCameraAnimation::update(Definition camera,
+                                                        AbstractDepthTester* depth_tester)
 {
-    if (m_operation_centre.x == 0 && m_operation_centre.y == 0 && m_operation_centre.z == 0) {
-        reset_interaction(camera, depth_tester);
-    }
-
     if (m_current_duration >= m_total_duration) {
         return {};
     }
 
     auto dt = m_stopwatch.lap().count();
-    if (dt > 120) { // catches big time steps
-        dt = 120;
-    }
     if (m_current_duration + dt > m_total_duration) { // last step
         dt = m_total_duration - m_current_duration;
     }
 
-    float dt_eased = ease_in_out(((float)m_current_duration + dt) / m_total_duration) - ease_in_out((float)m_current_duration / m_total_duration);
+    const float t_eased = ease_in_out((m_current_duration + float(dt)) / float(m_total_duration));
+    qDebug() << "LinearCameraAnimation::update t_eased=" << t_eased;
 
-    if (camera.z_axis().x > 0) {
-        camera.orbit(m_operation_centre, glm::vec2(-m_degrees_from_north * dt_eased, 0));
-    } else {
-        camera.orbit(m_operation_centre, glm::vec2(m_degrees_from_north * dt_eased, 0));
-    }
     m_current_duration += dt;
+
+    const auto mix_factor = t_eased; //m_current_duration / float(m_total_duration);
+    const auto new_matrix = m_start * double(1 - mix_factor) + m_end * double(mix_factor);
+    camera.set_camera_space_to_world_matrix(new_matrix);
+
     return camera;
 }
 
-std::optional<glm::vec2> RotateNorthInteraction::get_operation_centre(){
+std::optional<glm::vec2> LinearCameraAnimation::get_operation_centre()
+{
     return m_operation_centre_screen;
 }
 
-float RotateNorthInteraction::ease_in_out(float t)
+float LinearCameraAnimation::ease_in_out(float t)
 {
     const float p = 0.3f;
     if (t < 0.5f) {

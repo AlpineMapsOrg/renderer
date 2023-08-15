@@ -25,7 +25,7 @@ qt_add_library(nucleus STATIC
     camera/FirstPersonInteraction.h camera/FirstPersonInteraction.cpp
     camera/InteractionStyle.h camera/InteractionStyle.cpp
     camera/OrbitInteraction.h camera/OrbitInteraction.cpp
-    camera/RotateNorthInteraction.h camera/RotateNorthInteraction.cpp
+    camera/RotateNorthAnimation.h camera/RotateNorthAnimation.cpp
     camera/AbstractDepthTester.h
     camera/stored_positions.h
     utils/Stopwatch.h utils/Stopwatch.cpp
@@ -39,6 +39,7 @@ qt_add_library(nucleus STATIC
     utils/bit_coding.h
     tile_scheduler/cache_quieries.h
     DataQuerier.h DataQuerier.cpp
+    camera/LinearCameraAnimation.h camera/LinearCameraAnimation.cpp
 )
 
 target_include_directories(nucleus PRIVATE . PUBLIC ${CMAKE_SOURCE_DIR})
