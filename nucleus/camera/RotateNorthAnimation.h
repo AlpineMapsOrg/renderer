@@ -19,11 +19,11 @@
 
 #pragma once
 
-#include "InteractionStyle.h"
+#include "AnimationStyle.h"
 #include "nucleus/utils/Stopwatch.h"
 
 namespace nucleus::camera {
-class RotateNorthAnimation : public InteractionStyle
+class RotateNorthAnimation : public AnimationStyle
 {
     glm::dvec3 m_operation_centre = {};
     utils::Stopwatch m_stopwatch = {};
@@ -31,9 +31,9 @@ class RotateNorthAnimation : public InteractionStyle
     int m_total_duration = 1000;
     int m_current_duration = 0;
 public:
-    void reset_interaction(Definition camera, AbstractDepthTester* depth_tester) override;
+    RotateNorthAnimation(Definition camera, AbstractDepthTester* depth_tester);
     std::optional<Definition> update(Definition camera, AbstractDepthTester* depth_tester) override;
-    std::optional<glm::vec2> get_operation_centre() override;
+    std::optional<glm::vec2> operation_centre() override;
 private:
     float ease_in_out(float t);
     glm::vec2 m_operation_centre_screen = {};

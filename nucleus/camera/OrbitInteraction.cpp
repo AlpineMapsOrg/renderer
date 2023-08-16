@@ -139,7 +139,7 @@ std::optional<Definition> OrbitInteraction::key_release_event(const QKeyCombinat
     return camera;
 }
 
-std::optional<glm::vec2> OrbitInteraction::get_operation_centre(){
+std::optional<glm::vec2> OrbitInteraction::operation_centre(){
     return m_operation_centre_screen;
 }
 

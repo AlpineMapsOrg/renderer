@@ -1,7 +1,6 @@
 /*****************************************************************************
  * Alpine Terrain Renderer
- * Copyright (C) 2022 Adam Celarek
- * Copyright (C) 2023 Jakob Lindner
+ * Copyright (C) 2023 Adam Celarek
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -17,26 +16,18 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *****************************************************************************/
 
-#pragma once
-
 #include "AnimationStyle.h"
-#include "nucleus/utils/Stopwatch.h"
 
-namespace nucleus::camera {
-class LinearCameraAnimation : public AnimationStyle
+using namespace nucleus::camera;
+
+std::optional<Definition> AnimationStyle::update(Definition, AbstractDepthTester*) {}
+
+std::optional<glm::vec2> AnimationStyle::operation_centre()
 {
-    utils::Stopwatch m_stopwatch = {};
-    glm::dmat4 m_start;
-    glm::dmat4 m_end;
+    return {};
+}
 
-    int m_total_duration = 250;
-    float m_current_duration = 0;
-
-public:
-    LinearCameraAnimation(Definition start, Definition end);
-    std::optional<Definition> update(Definition camera, AbstractDepthTester* depth_tester) override;
-
-private:
-    float ease_in_out(float t);
-};
+std::optional<float> AnimationStyle::operation_centre_distance(Definition)
+{
+    return {};
 }

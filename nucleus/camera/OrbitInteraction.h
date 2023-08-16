@@ -37,7 +37,7 @@ public:
     std::optional<Definition> wheel_event(const event_parameter::Wheel& e, Definition camera, AbstractDepthTester* depth_tester) override;
     std::optional<Definition> key_press_event(const QKeyCombination& e, Definition camera, AbstractDepthTester* depth_tester) override;
     std::optional<Definition> key_release_event(const QKeyCombination& e, Definition camera, AbstractDepthTester* depth_tester) override;
-    std::optional<glm::vec2> get_operation_centre() override;
+    std::optional<glm::vec2> operation_centre() override;
 
 private:
     void start(const QPointF& position, const Definition& camera, AbstractDepthTester* depth_tester);

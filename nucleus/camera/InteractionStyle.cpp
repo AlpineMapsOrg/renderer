@@ -58,12 +58,12 @@ std::optional<Definition> InteractionStyle::update(Definition, AbstractDepthTest
     return {};
 }
 
-std::optional<glm::vec2> InteractionStyle::get_operation_centre()
+std::optional<glm::vec2> InteractionStyle::operation_centre()
 {
     return {};
 }
 
-std::optional<float> InteractionStyle::get_operation_centre_distance(Definition)
+std::optional<float> InteractionStyle::operation_centre_distance(Definition)
 {
     return {};
 }

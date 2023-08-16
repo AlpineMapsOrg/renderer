@@ -22,12 +22,12 @@
 #include <memory>
 
 #include <QObject>
-
 #include <glm/glm.hpp>
 
-#include "../event_parameter.h"
+#include "AnimationStyle.h"
 #include "Definition.h"
 #include "InteractionStyle.h"
+#include "nucleus/event_parameter.h"
 
 namespace nucleus {
 class DataQuerier;
@@ -45,14 +45,14 @@ public:
                         DataQuerier* data_querier);
 
     [[nodiscard]] const Definition& definition() const;
-    std::optional<glm::vec2> get_operation_centre();
-    std::optional<float> get_operation_centre_distance();
+    std::optional<glm::vec2> operation_centre();
+    std::optional<float> operation_centre_distance();
 
 public slots:
     void set_definition(const Definition& new_definition);
     void set_near_plane(float distance);
     void set_viewport(const glm::uvec2& new_viewport);
-    void set_latitude_longitude(double latitude, double longitude);
+    void fly_to_latitude_longitude(double latitude, double longitude);
     void set_field_of_view(float fov_degrees);
     void move(const glm::dvec3& v);
     void orbit(const glm::dvec3& centre, const glm::dvec2& degrees);
@@ -70,14 +70,12 @@ signals:
     void definition_changed(const Definition& new_definition) const;
 
 private:
-    void set_interaction_style(std::unique_ptr<InteractionStyle> new_style);
-    void set_animation_style(std::unique_ptr<InteractionStyle> new_style);
 
     Definition m_definition;
     AbstractDepthTester* m_depth_tester;
     DataQuerier* m_data_querier;
     std::unique_ptr<InteractionStyle> m_interaction_style;
-    std::unique_ptr<InteractionStyle> m_animation_style;
+    std::unique_ptr<AnimationStyle> m_animation_style;
     std::chrono::steady_clock::time_point m_last_frame_time;
 };
 

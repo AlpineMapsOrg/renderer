@@ -40,6 +40,7 @@ qt_add_library(nucleus STATIC
     tile_scheduler/cache_quieries.h
     DataQuerier.h DataQuerier.cpp
     camera/LinearCameraAnimation.h camera/LinearCameraAnimation.cpp
+    camera/AnimationStyle.h camera/AnimationStyle.cpp
 )
 
 target_include_directories(nucleus PRIVATE . PUBLIC ${CMAKE_SOURCE_DIR})
