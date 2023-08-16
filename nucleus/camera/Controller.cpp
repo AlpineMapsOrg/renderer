@@ -73,6 +73,12 @@ void Controller::fly_to_latitude_longitude(double latitude, double longitude)
     update();
 }
 
+void Controller::rotate_north()
+{
+    m_animation_style = std::make_unique<RotateNorthAnimation>(m_definition, m_depth_tester);
+    update();
+}
+
 void Controller::set_field_of_view(float fov_degrees)
 {
     if (qFuzzyCompare(m_definition.field_of_view(), fov_degrees))
@@ -157,9 +163,6 @@ void Controller::key_press(const QKeyCombination& e)
     }
     if (e.key() == Qt::Key_3) {
         m_interaction_style = std::make_unique<CadInteraction>();
-    }
-    if (e.key() == Qt::Key_C) {
-        m_animation_style = std::make_unique<RotateNorthAnimation>(m_definition, m_depth_tester);
     }
 
     const auto new_definition = m_interaction_style->key_press_event(e,

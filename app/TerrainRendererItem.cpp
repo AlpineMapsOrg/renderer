@@ -62,7 +62,10 @@ TerrainRendererItem::TerrainRendererItem(QQuickItem* parent)
     setAcceptTouchEvents(true);
     setAcceptedMouseButtons(Qt::MouseButton::AllButtons);
 
-    connect(m_update_timer, &QTimer::timeout, this, &TerrainRendererItem::update_camera_request);
+    connect(m_update_timer, &QTimer::timeout, this, [this]() {
+        emit update_camera_requested();
+        RenderThreadNotifier::instance()->notify();
+    });
 }
 
 TerrainRendererItem::~TerrainRendererItem()
@@ -87,6 +90,10 @@ QQuickFramebufferObject::Renderer* TerrainRendererItem::createRenderer() const
     connect(this, &TerrainRendererItem::key_released, r->controller()->camera_controller(), &nucleus::camera::Controller::key_release);
     connect(this, &TerrainRendererItem::update_camera_requested, r->controller()->camera_controller(), &nucleus::camera::Controller::update_camera_request);
     connect(this, &TerrainRendererItem::position_set_by_user, r->controller()->camera_controller(), &nucleus::camera::Controller::fly_to_latitude_longitude);
+    connect(this,
+            &TerrainRendererItem::rotation_north_requested,
+            r->controller()->camera_controller(),
+            &nucleus::camera::Controller::rotate_north);
 
     auto* const tile_scheduler = r->controller()->tile_scheduler();
     connect(this, &TerrainRendererItem::render_quality_changed, tile_scheduler, [=](float new_render_quality) {
@@ -153,12 +160,6 @@ void TerrainRendererItem::keyReleaseEvent(QKeyEvent* e)
     RenderThreadNotifier::instance()->notify();
 }
 
-void TerrainRendererItem::update_camera_request()
-{
-    emit update_camera_requested();
-    RenderThreadNotifier::instance()->notify();
-}
-
 void TerrainRendererItem::set_position(double latitude, double longitude)
 {
     emit position_set_by_user(latitude, longitude);
@@ -167,8 +168,8 @@ void TerrainRendererItem::set_position(double latitude, double longitude)
 
 void TerrainRendererItem::rotate_north()
 {
-    emit key_pressed(QKeyCombination(Qt::Key_C));
-    emit update_camera_requested();
+    emit rotation_north_requested();
+    RenderThreadNotifier::instance()->notify();
 }
 
 void TerrainRendererItem::schedule_update()

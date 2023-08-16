@@ -53,6 +53,7 @@ public slots:
     void set_near_plane(float distance);
     void set_viewport(const glm::uvec2& new_viewport);
     void fly_to_latitude_longitude(double latitude, double longitude);
+    void rotate_north();
     void set_field_of_view(float fov_degrees);
     void move(const glm::dvec3& v);
     void orbit(const glm::dvec3& centre, const glm::dvec2& degrees);

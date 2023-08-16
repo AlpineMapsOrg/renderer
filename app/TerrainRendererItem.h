@@ -63,6 +63,7 @@ signals:
     //    void viewport_changed(const glm::uvec2& new_viewport) const;
     void position_set_by_user(double new_latitude, double new_longitude);
 
+    void rotation_north_requested();
     void camera_changed();
     void camera_width_changed();
     void camera_height_changed();
@@ -95,7 +96,6 @@ public slots:
 
 private slots:
     void schedule_update();
-    void update_camera_request();
 
 public:
     [[nodiscard]] int frame_limit() const;
