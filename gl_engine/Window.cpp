@@ -84,7 +84,7 @@ void Window::initialise_gpu()
     m_tile_manager->init();
     m_tile_manager->initilise_attribute_locations(m_shader_manager->tile_shader());
     m_screen_quad_geometry = gl_engine::helpers::create_screen_quad_geometry();
-    m_gbuffer = std::make_unique<Framebuffer>(Framebuffer::DepthFormat::Int24, std::vector({ Framebuffer::ColourFormat::RGBA8, Framebuffer::ColourFormat::RGBA8, Framebuffer::ColourFormat::RGB16F }));
+    m_gbuffer = std::make_unique<Framebuffer>(Framebuffer::DepthFormat::Int24, std::vector({ Framebuffer::ColourFormat::RGBA8, Framebuffer::ColourFormat::RGBA8, Framebuffer::ColourFormat::RGBA16F, Framebuffer::ColourFormat::RGB16F }));
 
     m_shared_config_ubo = std::make_unique<gl_engine::UniformBuffer<gl_engine::uboSharedConfig>>(0, "shared_config");
     m_shared_config_ubo->init();
@@ -182,9 +182,24 @@ void Window::paint(QOpenGLFramebufferObject* framebuffer)
     if (framebuffer)
         framebuffer->bind();
 
-    m_shader_manager->screen_quad_program()->bind();
-    m_shader_manager->screen_quad_program()->set_uniform("texture_sampler", 0);
+    auto p = m_shader_manager->compose_program();
+    p->bind();
+    //m_shader_manager->screen_quad_program()->bind();
+    p->set_uniform("texin_albedo", 0);
     m_gbuffer->bind_colour_texture(0, 0);
+    p->set_uniform("texin_depth", 1);
+    m_gbuffer->bind_colour_texture(1, 1);
+    p->set_uniform("texin_normal", 2);
+    m_gbuffer->bind_colour_texture(2, 2);
+    p->set_uniform("texin_position", 3);
+    m_gbuffer->bind_colour_texture(3, 3);
+
+    auto camera_position = m_camera.position();
+    p->set_uniform("camera_position", glm::vec3(camera_position));
+
+    auto inv_view_projection_matrix = glm::inverse(m_camera.local_view_projection_matrix(m_camera.position()));
+    p->set_uniform("inv_view_projection_matrix", inv_view_projection_matrix);
+
     m_timer->start_timer("compose");
     m_screen_quad_geometry.draw();
     m_timer->stop_timer("compose");

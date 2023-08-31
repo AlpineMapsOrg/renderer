@@ -34,9 +34,10 @@ layout (std140) uniform shared_config {
     float debug_overlay_strength;
 } conf;
 
-layout (location = 0) out lowp vec4 out_Albedo;
-layout (location = 1) out lowp vec4 out_Depth;
-layout (location = 2) out vec3 out_Normal;
+layout (location = 0) out lowp vec4 texout_albedo;
+layout (location = 1) out lowp vec4 texout_depth;
+layout (location = 2) out highp vec4 texout_normal;    // a = dist
+layout (location = 3) out highp vec3 texout_position;
 
 in lowp vec2 uv;
 in highp vec3 pos_wrt_cam;
@@ -54,38 +55,6 @@ highp float calculate_falloff(highp float dist, highp float from, highp float to
     return clamp(1.0 - (dist - from) / (to - from), 0.0, 1.0);
 }
 
-// Calculates the diffuse and specular illumination contribution for the given
-// parameters according to the Blinn-Phong lighting model.
-// All parameters must be normalized.
-vec3 calc_blinn_phong_contribution(vec3 toLight, vec3 toEye, vec3 normal, vec3 diffFactor, vec3 specFactor, float specShininess)
-{
-    float nDotL = max(0.0, dot(normal, toLight)); // lambertian coefficient
-    vec3 h = normalize(toLight + toEye);
-    float nDotH = max(0.0, dot(normal, h));
-    float specPower = pow(nDotH, specShininess);
-    vec3 diffuse = diffFactor * nDotL; // component-wise product
-    vec3 specular = specFactor * specPower;
-    return diffuse + specular;
-}
-
-// Calculates the blinn phong illumination for the given fragment
-vec3 calculate_illumination(vec3 albedo, vec3 eyePos, vec3 fragPos, vec3 fragNorm) {
-    vec4 mMaterialLightReponse = conf.material_light_response;
-    vec3 dirColor = conf.sun_light.rgb * conf.sun_light.a;
-    vec3 ambient = mMaterialLightReponse.x * albedo;
-    vec3 diff = mMaterialLightReponse.y * albedo;
-    vec3 spec = mMaterialLightReponse.zzz;
-    float shini = mMaterialLightReponse.w;
-
-    vec3 ambientIllumination = ambient * conf.amb_light.rgb * conf.amb_light.a; // The color of the ambient light
-
-    vec3 toLightDirWS = -normalize(conf.sun_light_dir.xyz);
-    vec3 toEyeNrmWS = normalize(eyePos - fragPos);
-    vec3 diffAndSpecIllumination = dirColor * calc_blinn_phong_contribution(toLightDirWS, toEyeNrmWS, fragNorm, diff, spec, shini);
-
-    return ambientIllumination + diffAndSpecIllumination;
-}
-
 vec3 normal_by_fragment_position_interpolation() {
     vec3 dFdxPos = dFdx(pos_wrt_cam);
     vec3 dFdyPos = dFdy(pos_wrt_cam);
@@ -101,12 +70,12 @@ lowp vec2 encode(highp float value) {
 
 void main() {
     if (conf.wireframe_mode == 2u) {
-        out_Albedo = vec4(1.0, 1.0, 1.0, 1.0);
+        texout_albedo = vec4(1.0, 1.0, 1.0, 1.0);
         return;
     }
     if (is_curtain > 0) {
         if (conf.curtain_settings.x == 2.0) {
-            out_Albedo = vec4(1.0, 0.0, 0.0, 1.0);
+            texout_albedo = vec4(1.0, 0.0, 0.0, 1.0);
             return;
         } else if (conf.curtain_settings.x == 0.0) {
             discard;
@@ -117,9 +86,11 @@ void main() {
         }
     }
 
+    texout_position = pos_wrt_cam;
+
     highp float dist = length(pos_wrt_cam);
     highp float depth = log(dist)/13.0;
-    out_Depth = vec4(encode(depth), 0, 0);
+    texout_depth = vec4(encode(depth), 0, 0);
 
 
     vec3 normal = vec3(0.0);
@@ -128,10 +99,11 @@ void main() {
     } else {
         normal = var_normal;
     }
-    out_Normal = normal;
+    texout_normal = vec4(normal, dist);
 
     highp vec4 ortho = texture(texture_sampler, uv);
-    out_Albedo = ortho;
+    texout_albedo = ortho;
+
 
     /*
     if (conf.debug_overlay_strength < 1.0f || conf.debug_overlay == 0u) {
@@ -148,12 +120,12 @@ void main() {
         vec3 phong_illumination = vec3(1.0);
         if (conf.phong_enabled) {
             fragColor = mix(conf.material_color.rgb, fragColor, conf.material_color.a);
-            phong_illumination = calculate_illumination(fragColor, origin, pos_wrt_cam, normal);
+            phong_illumination = calculate_illumination(fragColor, origin, pos_wrt_cam, normal, conf.sun_light, conf.amb_light, conf.sun_light_dir.xyz, conf.material_light_response);
         }
         light_through_atmosphere = calculate_atmospheric_light(camera_position / 1000.0, ray_direction, dist / 1000.0, phong_illumination * fragColor, 10);
         vec3 color = light_through_atmosphere;
 
-        out_Albedo = vec4(color * alpha, alpha);
+        texout_albedo = vec4(color * alpha, alpha);
     }
 
     vec3 d_color = debug_overlay_color;
@@ -163,11 +135,11 @@ void main() {
         if (conf.debug_overlay == 1u) overlayColor = ortho;
         else if (conf.debug_overlay == 2u) overlayColor = vec4(normal * 0.5 + 0.5, 1.0);
         else overlayColor = vec4(vertex_color, 1.0);
-        out_Albedo = mix(out_Albedo, overlayColor, conf.debug_overlay_strength);
+        texout_albedo = mix(texout_albedo, overlayColor, conf.debug_overlay_strength);
     }
 
     if (length(d_color) > 0.0)
-        out_Albedo = vec4(d_color, 1.0);
+        texout_albedo = vec4(d_color, 1.0);
 */
     // == HEIGHT LINES ==============
     /*
@@ -183,13 +155,13 @@ void main() {
         float alt = pos_wrt_cam.z + camera_position.z;
         float alt_rest = (alt - int(alt / 100.0) * 100.0) - line_width / 2.0;
         if (alt_rest < line_width) {
-            out_Albedo = mix(out_Albedo, vec4(out_Albedo.r - 0.2, out_Albedo.g - 0.2, out_Albedo.b - 0.2, 1.0), alpha);
+            texout_albedo = mix(texout_albedo, vec4(texout_albedo.r - 0.2, texout_albedo.g - 0.2, texout_albedo.b - 0.2, 1.0), alpha);
         }
     }*/
 
 
-    //out_Albedo = vec4(steepness, steepness, steepness, 1.0);
+    //texout_albedo = vec4(steepness, steepness, steepness, 1.0);
 
-    //out_Albedo = vec4(gl_FragCoord.x, gl_FragCoord.y, 0.0, 1.0) / 1000.0;
-    //out_Albedo = vec4(pos_wrt_cam / 1000.0, 1.0);
+    //texout_albedo = vec4(gl_FragCoord.x, gl_FragCoord.y, 0.0, 1.0) / 1000.0;
+    //texout_albedo = vec4(pos_wrt_cam / 1000.0, 1.0);
 }

@@ -42,6 +42,8 @@ QOpenGLTexture::TextureFormat internal_format_qt(Framebuffer::ColourFormat f)
         return QOpenGLTexture::TextureFormat::R32F;
     case Framebuffer::ColourFormat::RGB16F:
         return QOpenGLTexture::TextureFormat::RGB16F;
+    case Framebuffer::ColourFormat::RGBA16F:
+        return QOpenGLTexture::TextureFormat::RGBA16F;
     }
     assert(false);
     return QOpenGLTexture::TextureFormat::NoFormat;
@@ -57,6 +59,8 @@ int format(Framebuffer::ColourFormat f)
         break;
     case Framebuffer::ColourFormat::RGB16F:
         return GL_RGB16F;
+    case Framebuffer::ColourFormat::RGBA16F:
+        return GL_RGBA16F;
     }
     assert(false);
     return -1;
@@ -87,6 +91,8 @@ int type(Framebuffer::ColourFormat f)
     case Framebuffer::ColourFormat::Float32:
         return GL_FLOAT;
     case Framebuffer::ColourFormat::RGB16F:
+        return GL_HALF_FLOAT;
+    case Framebuffer::ColourFormat::RGBA16F:
         return GL_HALF_FLOAT;
     }
     assert(false);
@@ -121,6 +127,8 @@ QImage::Format qimage_format(Framebuffer::ColourFormat f)
         throw std::logic_error("unsupported, QImage does not support float32");
     case Framebuffer::ColourFormat::RGB16F:
         return QImage::Format_RGB16;
+    case Framebuffer::ColourFormat::RGBA16F:
+        return QImage::Format_RGBA16FPx4; // not sure
     }
 
     assert(false);

@@ -54,12 +54,16 @@ ShaderManager::ShaderManager()
         = std::make_unique<ShaderProgram>(ShaderProgram::Files({ "tile.vert" }),
             ShaderProgram::Files({ "encoder.glsl",
                 "depth.frag" }));
+    m_compose_program = std::make_unique<ShaderProgram>(
+        ShaderProgram::Files({"screen_pass.vert"}),
+        ShaderProgram::Files({"atmosphere_implementation.frag","compose.frag"}));
 
     m_program_list.push_back(m_tile_program.get());
     m_program_list.push_back(m_debug_program.get());
     m_program_list.push_back(m_screen_quad_program.get());
     m_program_list.push_back(m_atmosphere_bg_program.get());
     m_program_list.push_back(m_depth_program.get());
+    m_program_list.push_back(m_compose_program.get());
 }
 
 ShaderManager::~ShaderManager() = default;
@@ -72,6 +76,11 @@ ShaderProgram* ShaderManager::tile_shader() const
 ShaderProgram* ShaderManager::debug_shader() const
 {
     return m_debug_program.get();
+}
+
+ShaderProgram* ShaderManager::compose_program() const
+{
+    return m_compose_program.get();
 }
 
 ShaderProgram* ShaderManager::screen_quad_program() const

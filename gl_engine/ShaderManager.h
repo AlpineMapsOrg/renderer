@@ -35,6 +35,7 @@ public:
     [[nodiscard]] ShaderProgram* screen_quad_program() const;
     [[nodiscard]] ShaderProgram* atmosphere_bg_program() const;
     [[nodiscard]] ShaderProgram* depth_program() const;
+    [[nodiscard]] ShaderProgram* compose_program() const;
     void release();
 public slots:
     void reload_shaders();
@@ -47,5 +48,6 @@ private:
     std::unique_ptr<ShaderProgram> m_screen_quad_program;
     std::unique_ptr<ShaderProgram> m_atmosphere_bg_program;
     std::unique_ptr<ShaderProgram> m_depth_program;
+    std::unique_ptr<ShaderProgram> m_compose_program;
 };
 }
