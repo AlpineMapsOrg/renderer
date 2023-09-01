@@ -38,7 +38,6 @@
 #include <QSequentialAnimationGroup>
 #include <QTimer>
 #include <glm/glm.hpp>
-#include "Atmosphere.h"
 #include "DebugPainter.h"
 #include "Framebuffer.h"
 #include "ShaderManager.h"
@@ -48,6 +47,8 @@
 #include "helpers.h"
 #include "nucleus/utils/bit_coding.h"
 #include "TimerManager.h"
+
+#include <glm/gtx/transform.hpp>
 
 using gl_engine::Window;
 using gl_engine::UniformBuffer;
@@ -77,12 +78,13 @@ void Window::initialise_gpu()
 
     m_debug_painter = std::make_unique<DebugPainter>();
     m_shader_manager = std::make_unique<ShaderManager>();
-    m_atmosphere = std::make_unique<Atmosphere>();
 
     m_tile_manager->init();
     m_tile_manager->initilise_attribute_locations(m_shader_manager->tile_shader());
     m_screen_quad_geometry = gl_engine::helpers::create_screen_quad_geometry();
     m_gbuffer = std::make_unique<Framebuffer>(Framebuffer::DepthFormat::Int24, std::vector({ Framebuffer::ColourFormat::RGBA8, Framebuffer::ColourFormat::RGBA8, Framebuffer::ColourFormat::RGBA16F, Framebuffer::ColourFormat::RGB16F }));
+
+    m_atmospherebuffer = std::make_unique<Framebuffer>(Framebuffer::DepthFormat::None, std::vector({ Framebuffer::ColourFormat::RGBA8 }));
 
     m_shared_config_ubo = std::make_unique<gl_engine::UniformBuffer<gl_engine::uboSharedConfig>>(0, "shared_config");
     m_shared_config_ubo->init();
@@ -110,7 +112,7 @@ void Window::resize_framebuffer(int width, int height)
     QOpenGLFunctions* f = QOpenGLContext::currentContext()->functions();
     if (f) {
         m_gbuffer->resize({ width, height });
-        m_atmosphere->resize({ width, height });
+        m_atmospherebuffer->resize({ 1, height });
 
         f->glViewport(0, 0, width, height);
     }
@@ -123,6 +125,7 @@ void Window::paint(QOpenGLFramebufferObject* framebuffer)
 
     QOpenGLExtraFunctions *f = QOpenGLContext::currentContext()->extraFunctions();
 
+    // for wireframe mode
     auto funcs = QOpenGLVersionFunctionsFactory::get<QOpenGLFunctions_3_3_Core>(QOpenGLContext::currentContext());
 
     f->glEnable(GL_CULL_FACE);
@@ -130,41 +133,32 @@ void Window::paint(QOpenGLFramebufferObject* framebuffer)
 
     m_camera.set_viewport_size(m_gbuffer->size());
 
-    /*
-    // DEPTH BUFFER
-    m_depth_buffer->bind();
-    f->glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
-    f->glEnable(GL_DEPTH_TEST);
-    f->glDepthFunc(GL_LESS);
+    // DRAW ATMOSPHERIC BACKGROUND
+    m_atmospherebuffer->bind();
+    f->glClearColor(0.0, 0.0, 0.0, 1.0);
+    f->glClear(GL_COLOR_BUFFER_BIT);
+    f->glDisable(GL_DEPTH_TEST);
+    f->glDepthFunc(GL_ALWAYS);
 
-    m_shader_manager->depth_program()->bind();
-    m_timer->start_timer("depth");
-    m_tile_manager->draw(m_shader_manager->depth_program(), m_camera);
-    m_timer->stop_timer("depth");
-    m_depth_buffer->unbind();
-    // END DEPTH BUFFER
-    */
+    auto p = m_shader_manager->atmosphere_bg_program();
+    p->bind();
+    p->set_uniform("inversed_projection_matrix", glm::inverse(m_camera.projection_matrix()));
+    p->set_uniform("inversed_view_matrix", glm::translate(-m_camera.position()) * m_camera.camera_space_to_world_matrix());
+    p->set_uniform("camera_position", glm::vec3(m_camera.position()));
 
-    m_gbuffer->bind();
-    f->glClearColor(0.0, 0.0, 0.0, 1);
-
-    f->glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
-
-    /*
-    m_shader_manager->atmosphere_bg_program()->bind();
     m_timer->start_timer("atmosphere");
-    m_atmosphere->draw(m_shader_manager->atmosphere_bg_program(),
-                       m_camera,
-                       m_shader_manager->screen_quad_program(),
-                       m_gbuffer.get());
-    m_timer->stop_timer("atmosphere");*/
+    m_screen_quad_geometry.draw();
+    m_timer->stop_timer("atmosphere");
+
+
+    // DRAW GBUFFER
+    m_gbuffer->bind();
+
+    f->glClearColor(0.0, 0.0, 0.0, 0.0);
+    f->glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
+
     f->glEnable(GL_DEPTH_TEST);
     f->glDepthFunc(GL_LESS);
-
-
-    // Note: We need blending mode for atmosphere (later in color pass)
-    //f->glEnable(GL_BLEND);
-    //f->glBlendFunc(GL_ONE, GL_ONE_MINUS_SRC_ALPHA);
 
     if (funcs && m_shared_config_ubo->data.m_wireframe_mode > 0) funcs->glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
 
@@ -179,7 +173,7 @@ void Window::paint(QOpenGLFramebufferObject* framebuffer)
     if (framebuffer)
         framebuffer->bind();
 
-    auto p = m_shader_manager->compose_program();
+    p = m_shader_manager->compose_program();
     p->bind();
     //m_shader_manager->screen_quad_program()->bind();
     p->set_uniform("texin_albedo", 0);
@@ -190,6 +184,8 @@ void Window::paint(QOpenGLFramebufferObject* framebuffer)
     m_gbuffer->bind_colour_texture(2, 2);
     p->set_uniform("texin_position", 3);
     m_gbuffer->bind_colour_texture(3, 3);
+    p->set_uniform("texin_atmosphere", 4);
+    m_atmospherebuffer->bind_colour_texture(0, 4);
 
     auto camera_position = m_camera.position();
     p->set_uniform("camera_position", glm::vec3(camera_position));
@@ -341,7 +337,6 @@ void Window::deinit_gpu()
     emit gpu_ready_changed(false);
     m_tile_manager.reset();
     m_debug_painter.reset();
-    m_atmosphere.reset();
     m_shader_manager.reset();
     m_gbuffer.reset();
     m_screen_quad_geometry = {};

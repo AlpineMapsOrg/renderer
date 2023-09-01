@@ -29,6 +29,7 @@ uniform sampler2D texin_albedo;
 uniform sampler2D texin_depth;
 uniform sampler2D texin_normal;
 uniform sampler2D texin_position;
+uniform sampler2D texin_atmosphere;
 
 layout (location = 0) out lowp vec4 out_Color;
 
@@ -69,7 +70,9 @@ vec3 calculate_illumination(vec3 albedo, vec3 eyePos, vec3 fragPos, vec3 fragNor
 }
 
 void main() {
-    lowp vec3 albedo = texture(texin_albedo, texcoords).xyz;
+    lowp vec4 albedo_alpha = texture(texin_albedo, texcoords);
+    lowp vec3 albedo = albedo_alpha.rgb;
+    lowp float alpha = albedo_alpha.a;
     lowp vec2 depth_encoded = texture(texin_depth, texcoords).xy;
     highp vec4 normal_dist = texture(texin_normal, texcoords);
     highp vec3 pos_wrt_cam = texture(texin_position, texcoords).xyz;
@@ -82,30 +85,35 @@ void main() {
     //highp float dist = exp(depth_true * 13.0f);
 
 
+    highp vec3 shaded_color = vec3(0.0f);
+
     if (conf.debug_overlay_strength < 1.0f || conf.debug_overlay == 0u) {
         highp vec3 origin = vec3(camera_position);
 
-        highp float dist = length(pos_wrt_cam);
+        //highp float dist = length(pos_wrt_cam);
         highp vec3 ray_direction = pos_wrt_cam / dist;
 
         highp vec3 light_through_atmosphere = calculate_atmospheric_light(camera_position / 1000.0, ray_direction, dist / 1000.0, albedo, 10);
-        highp float cos_f = dot(ray_direction, vec3(0.0, 0.0, 1.0));
-        highp float alpha = calculate_falloff(dist, 300000.0, 600000.0);
 
-        vec3 fragColor = albedo;
-        vec3 phong_illumination = vec3(1.0);
+        shaded_color = albedo;
         if (conf.phong_enabled) {
-            fragColor = mix(conf.material_color.rgb, fragColor, conf.material_color.a);
-            phong_illumination = calculate_illumination(fragColor, origin, pos_wrt_cam, normal, conf.sun_light, conf.amb_light, conf.sun_light_dir.xyz, conf.material_light_response);
+            shaded_color = calculate_illumination(shaded_color, origin, pos_wrt_cam, normal, conf.sun_light, conf.amb_light, conf.sun_light_dir.xyz, conf.material_light_response);
         }
-        light_through_atmosphere = calculate_atmospheric_light(camera_position / 1000.0, ray_direction, dist / 1000.0, phong_illumination * fragColor, 10);
-        vec3 color = light_through_atmosphere;
-
-        out_Color = vec4(color * alpha, alpha);
+        shaded_color = calculate_atmospheric_light(camera_position / 1000.0, ray_direction, dist / 1000.0, shaded_color, 10);
+        shaded_color = max(vec3(0.0), shaded_color);
     }
 
-    // == HEIGHT LINES ==============
+    // Blend with atmospheric background:
+    // Note: Alpha value gets calculated in gbuffer stage since the depth doesnt seem
+    // to be accurate enough at such far distances!
+    lowp vec3 atmoshperic_color = texture(texin_atmosphere, texcoords).rgb;
+    out_Color = vec4(mix(atmoshperic_color, shaded_color, alpha), 1.0);
 
+    //out_Color = vec4(atmoshperic_color * (1.0 - alpha),1.0);
+    //out_Color = vec4(vec3(alpha), 1.0);
+
+    // == HEIGHT LINES ==============
+/*
     float alpha = 1.0 - min((dist / 10000.0), 1.0);
     float line_width = (2.0 + dist / 5000.0) * 5.0;
     // Calculate steepness based on fragment normal (this alone gives woobly results)
@@ -120,7 +128,7 @@ void main() {
         if (alt_rest < line_width) {
             out_Color = mix(out_Color, vec4(out_Color.r - 0.2, out_Color.g - 0.2, out_Color.b - 0.2, 1.0), alpha);
         }
-    }
+    }*/
 
     //out_Color = vec4(albedo * pos_wrt_cam, 1.0) * normal_dist * depth_encoded.x;
     //if (abs(dist_decoded - dist) > 1.0) {

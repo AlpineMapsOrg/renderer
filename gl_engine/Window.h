@@ -47,7 +47,6 @@ namespace gl_engine {
 class DebugPainter;
 class ShaderManager;
 class Framebuffer;
-class Atmosphere;
 class TimerManager;
 class qTimerReport;
 
@@ -89,9 +88,10 @@ private:
 
     std::unique_ptr<TileManager> m_tile_manager; // needs opengl context
     std::unique_ptr<DebugPainter> m_debug_painter; // needs opengl context
-    std::unique_ptr<Atmosphere> m_atmosphere; // needs opengl context
     std::unique_ptr<ShaderManager> m_shader_manager;
+
     std::unique_ptr<Framebuffer> m_gbuffer;
+    std::unique_ptr<Framebuffer> m_atmospherebuffer;
     //std::unique_ptr<Framebuffer> m_depth_buffer;
 
     std::unique_ptr<UniformBuffer<uboSharedConfig>> m_shared_config_ubo; // needs opengl context

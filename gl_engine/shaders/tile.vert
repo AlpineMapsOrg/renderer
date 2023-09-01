@@ -17,6 +17,7 @@
  *****************************************************************************/
 
 #include "shared_config.glsl"
+#include "hashing.glsl"
 
 layout(location = 0) in highp float altitude;
 
@@ -44,22 +45,6 @@ float y_to_lat(float y) {
     float mercN = y * pi / cOriginShift;
     float latRad = 2.f * (atan(exp(mercN)) - (pi / 4.0));
     return latRad;
-}
-
-uint compute_hash(uint a)
-{
-   uint b = (a+2127912214u) + (a<<12u);
-   b = (b^3345072700u) ^ (b>>19u);
-   b = (b+374761393u) + (b<<5u);
-   b = (b+3551683692u) ^ (b<<9u);
-   b = (b+4251993797u) + (b<<3u);
-   b = (b^3042660105u) ^ (b>>16u);
-   return b;
-}
-
-vec3 color_from_id_hash(uint a) {
-    uint hash = compute_hash(a);
-    return vec3(float(hash & 255u), float((hash >> 8u) & 255u), float((hash >> 16u) & 255u)) / 255.0;
 }
 
 

@@ -16,7 +16,6 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *****************************************************************************/
 
-#include "atmosphere_implementation.glsl"
 #include "shared_config.glsl"
 
 uniform highp vec3 camera_position;
@@ -36,9 +35,6 @@ in float is_curtain;
 in vec3 vertex_color;
 in float drop_frag;
 in vec3 debug_overlay_color;
-
-
-highp vec3 calculate_atmospheric_light(highp vec3 ray_origin, highp vec3 ray_direction, highp float ray_length, highp vec3 original_colour, int n_numerical_integration_steps);
 
 highp float calculate_falloff(highp float dist, highp float from, highp float to) {
     return clamp(1.0 - (dist - from) / (to - from), 0.0, 1.0);
@@ -90,8 +86,11 @@ void main() {
     }
     texout_normal = vec4(normal, dist);
 
-    highp vec4 ortho = texture(texture_sampler, uv);
-    texout_albedo = ortho;
+    lowp vec3 fragColor = texture(texture_sampler, uv).rgb;
+    fragColor = mix(conf.material_color.rgb, fragColor, conf.material_color.a);
+    highp float alpha = calculate_falloff(dist, 300000.0, 600000.0);
+    texout_albedo = vec4(fragColor, alpha);
+    //texout_albedo = vec4(alpha);
 
 
     /*
@@ -131,8 +130,7 @@ void main() {
         texout_albedo = vec4(d_color, 1.0);
 */
     // == HEIGHT LINES ==============
-    /*
-    float alpha = 1.0 - min((dist / 10000.0), 1.0);
+    /*float alpha = 1.0 - min((dist / 10000.0), 1.0);
     float line_width = (2.0 + dist / 5000.0) * 5.0;
     // Calculate steepness based on fragment normal (this alone gives woobly results)
     float steepness = (1.0 - dot(normal, vec3(0.0,0.0,1.0))) / 2.0;
@@ -147,10 +145,4 @@ void main() {
             texout_albedo = mix(texout_albedo, vec4(texout_albedo.r - 0.2, texout_albedo.g - 0.2, texout_albedo.b - 0.2, 1.0), alpha);
         }
     }*/
-
-
-    //texout_albedo = vec4(steepness, steepness, steepness, 1.0);
-
-    //texout_albedo = vec4(gl_FragCoord.x, gl_FragCoord.y, 0.0, 1.0) / 1000.0;
-    //texout_albedo = vec4(pos_wrt_cam / 1000.0, 1.0);
 }

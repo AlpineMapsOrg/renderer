@@ -2,7 +2,6 @@ cmake_minimum_required(VERSION 3.21)
 project(alpine-renderer-gl_engine LANGUAGES CXX)
 
 qt_add_library(gl_engine STATIC
-    Atmosphere.h Atmosphere.cpp
     Framebuffer.h Framebuffer.cpp
     ShaderManager.h ShaderManager.cpp
     TileManager.h TileManager.cpp
@@ -32,5 +31,7 @@ qt_add_resources(gl_engine "shaders"
     shaders/encoder.glsl
     shaders/compose.frag
     shaders/shared_config.glsl
+    shaders/hashing.glsl
+    shaders/ssao.frag
 )
 target_compile_definitions(gl_engine PUBLIC ALP_RESOURCES_PREFIX="${CMAKE_CURRENT_SOURCE_DIR}/shaders/")
