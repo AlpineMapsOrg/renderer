@@ -23,7 +23,7 @@ qt_add_resources(gl_engine "shaders"
     BASE "shaders/"
     FILES
     shaders/atmosphere_bg.frag
-    shaders/atmosphere_implementation.frag
+    shaders/atmosphere_implementation.glsl
     shaders/screen_copy.frag
     shaders/screen_pass.vert
     shaders/tile.frag
@@ -31,5 +31,6 @@ qt_add_resources(gl_engine "shaders"
     shaders/depth.frag
     shaders/encoder.glsl
     shaders/compose.frag
+    shaders/shared_config.glsl
 )
 target_compile_definitions(gl_engine PUBLIC ALP_RESOURCES_PREFIX="${CMAKE_CURRENT_SOURCE_DIR}/shaders/")

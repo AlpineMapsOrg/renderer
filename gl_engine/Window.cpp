@@ -49,8 +49,6 @@
 #include "nucleus/utils/bit_coding.h"
 #include "TimerManager.h"
 
-#include "nucleus/camera/PositionStorage.h"
-
 using gl_engine::Window;
 using gl_engine::UniformBuffer;
 
@@ -145,7 +143,6 @@ void Window::paint(QOpenGLFramebufferObject* framebuffer)
     m_timer->stop_timer("depth");
     m_depth_buffer->unbind();
     // END DEPTH BUFFER
-
     */
 
     m_gbuffer->bind();

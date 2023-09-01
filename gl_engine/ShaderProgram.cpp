@@ -1,6 +1,8 @@
 #include "ShaderProgram.h"
 
 #include <QFile>
+#include <QTextStream>
+#include <QRegularExpression>
 #include <QOpenGLContext>
 #include <QOpenGLShader>
 #include <QOpenGLExtraFunctions>
@@ -13,61 +15,80 @@ using gl_engine::ShaderProgram;
 
 namespace {
 
-QByteArray create_shader_code(const ShaderProgram::Files& files)
-{
-    QByteArray code;
-    for (const QString& url : files) {
-        QFile f(url);
-        f.open(QIODeviceBase::ReadOnly);
-        code.append(f.readAll());
+QString get_qrc_or_path_prefix() {
+    QString prefix = ":/gl_shaders/";
+    if (!QOpenGLContext::currentContext()->isOpenGLES())
+        prefix = ALP_RESOURCES_PREFIX;
+    return prefix;
+}
+
+QString load_shader_code(const QString file_name) {
+    QString code;
+    QString line;
+    QString extended_file_name = file_name;
+    extended_file_name.prepend(get_qrc_or_path_prefix());
+    QFile file(extended_file_name);
+
+    QRegularExpression re(R"RX(#include "(?<file>[\w\d\W ]*?)")RX");
+    re.setPatternOptions(QRegularExpression::CaseInsensitiveOption);
+
+    if (file.open(QIODevice::ReadOnly | QIODevice::Text)) {
+        QTextStream stream(&file);
+        while (!stream.atEnd()) {
+            line = stream.readLine();
+            QString line_command = line.trimmed();
+
+            // HANDLE INCLUDES
+            bool line_handled = false;
+            if (line_command.startsWith("#include", Qt::CaseInsensitive)) {
+                QRegularExpressionMatch match = re.match(line);
+                if (match.hasMatch()) {
+                    QString includeFileName = match.captured("file");
+                    //includeFileName.prepend(get_qrc_or_path_prefix());
+                    code.append("//" + line + ": \n");
+                    code.append(load_shader_code(includeFileName));
+                    line_handled = true;
+                }
+            }
+
+            if (!line_handled)
+                code.append(line + "\n");
+        }
+    } else {
+        qDebug() << "Error opening shader file @" << extended_file_name;
+        assert(false);
     }
     return code;
+}
+
+QString getShaderCodeVersion() {
+    if (QOpenGLContext::currentContext()->isOpenGLES())
+        return "#version 300 es\n";
+    else
+        return "#version 330\n";
 }
 
 QByteArray versionedShaderCode(const QByteArray& src)
 {
     QByteArray versionedSrc;
-
-    if (QOpenGLContext::currentContext()->isOpenGLES())
-        versionedSrc.append(QByteArrayLiteral("#version 300 es\n"));
-    else
-        versionedSrc.append(QByteArrayLiteral("#version 330\n"));
-
+    versionedSrc.append(getShaderCodeVersion().toLocal8Bit());
     versionedSrc.append(src);
     return versionedSrc;
 }
 
-
-void set_qrc_or_path_prefix(ShaderProgram::Files* files)
-{
-    QString prefix = ":/gl_shaders/";
-    if (!QOpenGLContext::currentContext()->isOpenGLES())
-        prefix = ALP_RESOURCES_PREFIX;
-    //prefix = "shaders/";
-    for (auto& path : *files) {
-        path.prepend(prefix);
-    }
-}
+QByteArray versionedShaderCode(const QString& src) {
+    QByteArray versionedSrc;
+    versionedSrc.append(getShaderCodeVersion().toLocal8Bit());
+    versionedSrc.append(src.toLocal8Bit());
+    return versionedSrc;
 }
 
-ShaderProgram::ShaderProgram(const std::string& vetex_shader_source, const std::string& fragment_shader_source)
-{
-    auto program = std::make_unique<QOpenGLShaderProgram>();
-    program->addShaderFromSourceCode(QOpenGLShader::Vertex, versionedShaderCode(vetex_shader_source.c_str()));
-    program->addShaderFromSourceCode(QOpenGLShader::Fragment, versionedShaderCode(fragment_shader_source.c_str()));
-    {
-        const auto link_success = program->link();
-        assert(link_success);
-    }
-    m_q_shader_program = std::move(program);
 }
 
-ShaderProgram::ShaderProgram(Files vertex_shader_parts, Files fragment_shader_parts)
-    : m_vertex_shader_parts(std::move(vertex_shader_parts))
-    , m_fragment_shader_parts(std::move(fragment_shader_parts))
+
+ShaderProgram::ShaderProgram(QString vertex_shader, QString fragment_shader, ShaderCodeSource code_source)
+    : m_code_source(code_source), m_vertex_shader(vertex_shader), m_fragment_shader(fragment_shader)
 {
-    set_qrc_or_path_prefix(&m_vertex_shader_parts);
-    set_qrc_or_path_prefix(&m_fragment_shader_parts);
     reload();
     assert(m_q_shader_program);
 }
@@ -148,13 +169,18 @@ void ShaderProgram::set_uniform_array(const std::string& name, const std::vector
 
 void ShaderProgram::reload()
 {
-    if (m_vertex_shader_parts.empty() || m_fragment_shader_parts.empty())
-        return;
-
+    QString vertexCode, fragmentCode;
+    if (m_code_source == ShaderCodeSource::PLAINTEXT) {
+        vertexCode = m_vertex_shader;
+        fragmentCode = m_fragment_shader;
+    } else if(m_code_source == ShaderCodeSource::FILE) {
+        vertexCode = load_shader_code(m_vertex_shader);
+        fragmentCode = load_shader_code(m_fragment_shader);
+    }
     auto program = std::make_unique<QOpenGLShaderProgram>();
     bool success = true;
-    success = success && program->addShaderFromSourceCode(QOpenGLShader::Vertex, versionedShaderCode(create_shader_code(m_vertex_shader_parts)));
-    success = success && program->addShaderFromSourceCode(QOpenGLShader::Fragment, versionedShaderCode(create_shader_code(m_fragment_shader_parts)));
+    success = success && program->addShaderFromSourceCode(QOpenGLShader::Vertex, versionedShaderCode(vertexCode));
+    success = success && program->addShaderFromSourceCode(QOpenGLShader::Fragment, versionedShaderCode(fragmentCode));
     success = success && program->link();
     if (success) {
         m_q_shader_program = std::move(program);

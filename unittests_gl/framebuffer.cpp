@@ -58,7 +58,8 @@ ShaderProgram create_debug_shader()
     void main() {
         out_Color = vec4(0.2, 0.0, 1.0, 0.8);
     })";
-    return ShaderProgram(vertex_source, fragment_source);
+    ShaderProgram tmp(vertex_source, fragment_source, gl_engine::ShaderCodeSource::PLAINTEXT);
+    return tmp;
 }
 
 ShaderProgram create_encoder_shader(float v1, float v2)
@@ -76,7 +77,8 @@ ShaderProgram create_encoder_shader(float v1, float v2)
         + std::to_string(v1) + R"(), encode()" + std::to_string(v2) + R"());
     })";
 //    qDebug("%s", fragment_source.c_str());
-    return ShaderProgram(vertex_source, fragment_source);
+    ShaderProgram tmp(vertex_source, QString(fragment_source.c_str()), gl_engine::ShaderCodeSource::PLAINTEXT);
+    return tmp;
 }
 
 TEST_CASE("gl framebuffer")

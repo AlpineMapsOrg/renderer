@@ -16,23 +16,12 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *****************************************************************************/
 
+#include "atmosphere_implementation.glsl"
+#include "shared_config.glsl"
+
 uniform highp vec3 camera_position;
 
 uniform sampler2D texture_sampler;
-
-layout (std140) uniform shared_config {
-    vec4 sun_light;
-    vec4 sun_light_dir;
-    vec4 amb_light;
-    vec4 material_color;
-    vec4 material_light_response;
-    vec4 curtain_settings;
-    bool phong_enabled;
-    uint wireframe_mode;
-    uint normal_mode;
-    uint debug_overlay;
-    float debug_overlay_strength;
-} conf;
 
 layout (location = 0) out lowp vec4 texout_albedo;
 layout (location = 1) out lowp vec4 texout_depth;

@@ -16,6 +16,8 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *****************************************************************************/
 
+#include "atmosphere_implementation.glsl"
+
 #line 2
 uniform highp vec3 camera_position;
 uniform highp mat4 inversed_projection_matrix;

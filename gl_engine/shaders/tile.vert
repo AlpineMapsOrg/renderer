@@ -16,19 +16,7 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *****************************************************************************/
 
-layout (std140) uniform shared_config {
-    vec4 sun_light;
-    vec4 sun_light_dir;
-    vec4 amb_light;
-    vec4 material_color;
-    vec4 material_light_response;
-    vec4 curtain_settings;
-    bool phong_enabled;
-    uint wireframe_mode;
-    uint normal_mode;
-    uint debug_overlay;
-    float debug_overlay_strength;
-} conf;
+#include "shared_config.glsl"
 
 layout(location = 0) in highp float altitude;
 

@@ -11,19 +11,24 @@
 #include <QDebug>
 
 namespace gl_engine {
+
+enum class ShaderCodeSource {
+    PLAINTEXT,
+    FILE
+};
+
 class ShaderProgram {
-public:
-    using Files = std::vector<QString>;
 private:
     std::unordered_map<std::string, int> m_cached_uniforms;
     std::unordered_map<std::string, int> m_cached_attribs;
     std::unique_ptr<QOpenGLShaderProgram> m_q_shader_program;
-    Files m_vertex_shader_parts;
-    Files m_fragment_shader_parts;
+    QString m_vertex_shader;    // either filename or native shader code
+    QString m_fragment_shader;  // either filename or native shader code
+    ShaderCodeSource m_code_source;
 
 public:
-    ShaderProgram(const std::string& vetex_shader_source, const std::string& fragment_shader_source);
-    ShaderProgram(Files vertex_shader_parts, Files fragment_shader_parts);
+    //ShaderProgram() {};
+    ShaderProgram(QString vertex_shader, QString fragment_shader, ShaderCodeSource code_source = ShaderCodeSource::FILE);
 
     int attribute_location(const std::string& name);
     void bind();

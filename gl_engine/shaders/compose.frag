@@ -16,24 +16,14 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *****************************************************************************/
 
+#include "atmosphere_implementation.glsl"
+#include "encoder.glsl"
+#include "shared_config.glsl"
+
 in highp vec2 texcoords;
 
 uniform highp vec3 camera_position;
 uniform highp mat4 inv_view_projection_matrix;
-
-layout (std140) uniform shared_config {
-    vec4 sun_light;
-    vec4 sun_light_dir;
-    vec4 amb_light;
-    vec4 material_color;
-    vec4 material_light_response;
-    vec4 curtain_settings;
-    bool phong_enabled;
-    uint wireframe_mode;
-    uint normal_mode;
-    uint debug_overlay;
-    float debug_overlay_strength;
-} conf;
 
 uniform sampler2D texin_albedo;
 uniform sampler2D texin_depth;
@@ -41,23 +31,6 @@ uniform sampler2D texin_normal;
 uniform sampler2D texin_position;
 
 layout (location = 0) out lowp vec4 out_Color;
-
-lowp vec2 encode(highp float value) {
-    mediump uint scaled = uint(value * 65535.f + 0.5f);
-    mediump uint r = scaled >> 8u;
-    mediump uint b = scaled & 255u;
-    return vec2(float(r) / 255.f, float(b) / 255.f);
-}
-
-highp float d_2u8_to_f16(mediump uint v1, mediump uint v2) {
-    return ((v1 << 8u) | v2 ) / 65535.f;
-}
-
-highp float decode(lowp vec2 value) {
-    mediump uint r = mediump uint(value.x * 255.0f);
-    mediump uint g = mediump uint(value.y * 255.0f);
-    return d_2u8_to_f16(r,g);
-}
 
 highp float calculate_falloff(highp float dist, highp float from, highp float to) {
     return clamp(1.0 - (dist - from) / (to - from), 0.0, 1.0);
