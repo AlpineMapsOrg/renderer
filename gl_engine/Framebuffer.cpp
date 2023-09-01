@@ -36,6 +36,8 @@ namespace {
 QOpenGLTexture::TextureFormat internal_format_qt(Framebuffer::ColourFormat f)
 {
     switch (f) {
+    case Framebuffer::ColourFormat::R8:
+        return QOpenGLTexture::TextureFormat::R8_UNorm;
     case Framebuffer::ColourFormat::RGBA8:
         return QOpenGLTexture::TextureFormat::RGBA8_UNorm;
     case Framebuffer::ColourFormat::Float32:
@@ -52,6 +54,8 @@ QOpenGLTexture::TextureFormat internal_format_qt(Framebuffer::ColourFormat f)
 int format(Framebuffer::ColourFormat f)
 {
     switch (f) {
+    case Framebuffer::ColourFormat::R8:
+        return GL_R;
     case Framebuffer::ColourFormat::RGBA8:
         return GL_RGBA;
     case Framebuffer::ColourFormat::Float32:
@@ -86,6 +90,8 @@ QOpenGLTexture::TextureFormat internal_format_qt(Framebuffer::DepthFormat f)
 int type(Framebuffer::ColourFormat f)
 {
     switch (f) {
+    case Framebuffer::ColourFormat::R8:
+        return GL_UNSIGNED_BYTE;
     case Framebuffer::ColourFormat::RGBA8:
         return GL_UNSIGNED_BYTE;
     case Framebuffer::ColourFormat::Float32:
@@ -121,6 +127,8 @@ QImage::Format qimage_format(Framebuffer::ColourFormat f)
 {
 
     switch (f) {
+    case Framebuffer::ColourFormat::R8:
+        return QImage::Format_Grayscale8;
     case Framebuffer::ColourFormat::RGBA8:
         return QImage::Format_RGBA8888;
     case Framebuffer::ColourFormat::Float32:

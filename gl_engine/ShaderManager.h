@@ -34,6 +34,8 @@ public:
     [[nodiscard]] ShaderProgram* screen_quad_program() const;
     [[nodiscard]] ShaderProgram* atmosphere_bg_program() const;
     [[nodiscard]] ShaderProgram* compose_program() const;
+    [[nodiscard]] ShaderProgram* ssao_program() const;
+    std::shared_ptr<ShaderProgram> shared_ssao_program() { return m_ssao_program; }
     void release();
 public slots:
     void reload_shaders();
@@ -45,5 +47,6 @@ private:
     std::unique_ptr<ShaderProgram> m_screen_quad_program;
     std::unique_ptr<ShaderProgram> m_atmosphere_bg_program;
     std::unique_ptr<ShaderProgram> m_compose_program;
+    std::shared_ptr<ShaderProgram> m_ssao_program;
 };
 }

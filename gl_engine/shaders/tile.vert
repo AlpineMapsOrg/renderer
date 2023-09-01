@@ -21,7 +21,10 @@
 
 layout(location = 0) in highp float altitude;
 
-uniform highp mat4 matrix;
+uniform highp mat4 view_proj_matrix;
+uniform highp mat4 view_matrix;
+uniform highp mat4 proj_matrix;
+
 uniform highp vec3 camera_position;
 uniform highp vec4 bounds[32];
 uniform int n_edge_vertices;
@@ -30,8 +33,10 @@ uniform int tileset_zoomlevel;
 uniform sampler2D height_sampler;
 
 out lowp vec2 uv;
-out highp vec3 pos_wrt_cam;
+out highp vec3 var_pos_wrt_cam;
+out highp vec3 var_pos_vs;
 out highp vec3 var_normal;
+out highp vec3 var_normal_vs;
 out float is_curtain;
 //flat out vec3 vertex_color;
 out vec3 vertex_color;
@@ -110,36 +115,38 @@ void main() {
             col = curtain_vertex_id - 3 * n_edge_vertices + 3;
         }
     }
-    float pos_wrt_cam_y = (edge_vertices_count - row) * tile_width + bounds[geometry_id].y;
-    float pos_y = pos_wrt_cam_y + camera_position.y;
+    float var_pos_wrt_cam_y = (edge_vertices_count - row) * tile_width + bounds[geometry_id].y;
+    float pos_y = var_pos_wrt_cam_y + camera_position.y;
     float altitude_correction_factor = 65536.0 * 0.125 / cos(y_to_lat(pos_y)); // https://github.com/AlpineMapsOrg/renderer/issues/5
 
     uv = vec2(col / edge_vertices_count, row / edge_vertices_count);
 
     float adjusted_altitude = altitude * altitude_correction_factor;
 
-    pos_wrt_cam = vec3(float(col) * tile_width + bounds[geometry_id].x,
-                       pos_wrt_cam_y,
+    var_pos_wrt_cam = vec3(float(col) * tile_width + bounds[geometry_id].x,
+                       var_pos_wrt_cam_y,
                        adjusted_altitude - camera_position.z);
 
     if (curtain_vertex_id >= 0) {
         float curtain_height = conf.curtain_settings.z;
         if (conf.curtain_settings.y == 1.0) {
             // NOTE: This is definitely subject for improvement!
-            float dist_factor = clamp(length(pos_wrt_cam) / 100000.0, 0.2, 1.0);
+            float dist_factor = clamp(length(var_pos_wrt_cam) / 100000.0, 0.2, 1.0);
             curtain_height *= dist_factor;
         }
-        pos_wrt_cam.z = pos_wrt_cam.z - curtain_height;
+        var_pos_wrt_cam.z = var_pos_wrt_cam.z - curtain_height;
     }
 
 
     if (conf.normal_mode == 1u) {
         var_normal = normal_by_finite_difference_method(uv, edge_vertices_count, tile_width, tile_height, altitude_correction_factor);
+        var_normal_vs = vec3(view_matrix * vec4(var_normal, 0.0));
     }
 
     //if (uv.x == 1.0) debug_overlay_color = vec3(1.0, 0.0, 0.0);
 
-    gl_Position = matrix * vec4(pos_wrt_cam, 1);
+    gl_Position = view_proj_matrix * vec4(var_pos_wrt_cam, 1);
+    var_pos_vs = (view_matrix * vec4(var_pos_wrt_cam, 1)).xyz;
 
     if (conf.debug_overlay == 3u) vertex_color = color_from_id_hash(uint(tileset_id));
     else if (conf.debug_overlay == 4u) vertex_color = color_from_id_hash(uint(tileset_zoomlevel));

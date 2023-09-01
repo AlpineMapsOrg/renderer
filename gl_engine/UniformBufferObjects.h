@@ -28,11 +28,11 @@ namespace gl_engine {
         Q_GADGET
             public:
         // rgb...Color, a...intensity
-        QVector4D m_sun_light = QVector4D(1.0, 1.0, 1.0, 1.0);
+        QVector4D m_sun_light = QVector4D(1.0, 1.0, 1.0, 0.5);
         // The direction of the light/sun in WS (northwest lighting at 45 degrees)
         QVector4D m_sun_light_dir = QVector4D(1.0, -1.0, -1.0, 0.0).normalized();
         // rgb...Color, a...intensity
-        QVector4D m_amb_light = QVector4D(1.0, 1.0, 1.0, 0.05);
+        QVector4D m_amb_light = QVector4D(1.0, 1.0, 1.0, 0.5);
         // rgb...Color of the phong-material, a...opacity of ortho picture
         QVector4D m_material_color = QVector4D(0.5, 0.5, 0.5, 0.5);
         // amb, diff, spec, shininess

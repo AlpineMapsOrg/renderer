@@ -30,6 +30,7 @@ uniform sampler2D texin_depth;
 uniform sampler2D texin_normal;
 uniform sampler2D texin_position;
 uniform sampler2D texin_atmosphere;
+uniform sampler2D texin_ssao;
 
 layout (location = 0) out lowp vec4 out_Color;
 
@@ -52,7 +53,7 @@ vec3 calc_blinn_phong_contribution(vec3 toLight, vec3 toEye, vec3 normal, vec3 d
 }
 
 // Calculates the blinn phong illumination for the given fragment
-vec3 calculate_illumination(vec3 albedo, vec3 eyePos, vec3 fragPos, vec3 fragNorm, vec4 dirLight, vec4 ambLight, vec3 dirDirection, vec4 material) {
+vec3 calculate_illumination(vec3 albedo, vec3 eyePos, vec3 fragPos, vec3 fragNorm, vec4 dirLight, vec4 ambLight, vec3 dirDirection, vec4 material, float ao) {
     vec3 dirColor = dirLight.rgb * dirLight.a;
     vec3 ambColor = ambLight.rgb * ambLight.a;
     vec3 ambient = material.r * albedo;
@@ -60,7 +61,7 @@ vec3 calculate_illumination(vec3 albedo, vec3 eyePos, vec3 fragPos, vec3 fragNor
     vec3 spec = material.bbb;
     float shini = material.a;
 
-    vec3 ambientIllumination = ambient * ambColor;
+    vec3 ambientIllumination = ambient * ambColor * ao;
 
     vec3 toLightDirWS = -normalize(dirDirection);
     vec3 toEyeNrmWS = normalize(eyePos - fragPos);
@@ -76,6 +77,7 @@ void main() {
     lowp vec2 depth_encoded = texture(texin_depth, texcoords).xy;
     highp vec4 normal_dist = texture(texin_normal, texcoords);
     highp vec3 pos_wrt_cam = texture(texin_position, texcoords).xyz;
+    highp float ssao = texture(texin_ssao, texcoords).r;
     highp vec3 normal = normal_dist.xyz;
     highp float dist = normal_dist.w;
 
@@ -83,7 +85,6 @@ void main() {
     //highp float depth_decoded = decode(depth_encoded);
     //highp float dist_decoded = exp(depth_decoded * 13.0f);
     //highp float dist = exp(depth_true * 13.0f);
-
 
     highp vec3 shaded_color = vec3(0.0f);
 
@@ -97,7 +98,7 @@ void main() {
 
         shaded_color = albedo;
         if (conf.phong_enabled) {
-            shaded_color = calculate_illumination(shaded_color, origin, pos_wrt_cam, normal, conf.sun_light, conf.amb_light, conf.sun_light_dir.xyz, conf.material_light_response);
+            shaded_color = calculate_illumination(shaded_color, origin, pos_wrt_cam, normal, conf.sun_light, conf.amb_light, conf.sun_light_dir.xyz, conf.material_light_response, ssao);
         }
         shaded_color = calculate_atmospheric_light(camera_position / 1000.0, ray_direction, dist / 1000.0, shaded_color, 10);
         shaded_color = max(vec3(0.0), shaded_color);
@@ -108,6 +109,8 @@ void main() {
     // to be accurate enough at such far distances!
     lowp vec3 atmoshperic_color = texture(texin_atmosphere, texcoords).rgb;
     out_Color = vec4(mix(atmoshperic_color, shaded_color, alpha), 1.0);
+
+    out_Color = vec4(vec3(ssao), 1.0);
 
     //out_Color = vec4(atmoshperic_color * (1.0 - alpha),1.0);
     //out_Color = vec4(vec3(alpha), 1.0);

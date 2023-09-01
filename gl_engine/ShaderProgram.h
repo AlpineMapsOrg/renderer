@@ -45,6 +45,7 @@ public:
     void set_uniform(const std::string& name, float value);
 
     void set_uniform_array(const std::string& name, const std::vector<glm::vec4>& array);
+    void set_uniform_array(const std::string& name, const std::vector<glm::vec3>& array);
 public slots:
     void reload();
 private:

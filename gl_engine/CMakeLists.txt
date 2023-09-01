@@ -13,6 +13,7 @@ qt_add_library(gl_engine STATIC
     UniformBufferObjects.h
     UniformBuffer.h UniformBuffer.cpp
     TimerManager.h TimerManager.cpp
+    SSAO.h SSAO.cpp
 )
 target_link_libraries(gl_engine PUBLIC nucleus Qt::OpenGL)
 target_include_directories(gl_engine PRIVATE .)

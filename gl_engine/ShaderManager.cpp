@@ -32,14 +32,21 @@ ShaderManager::ShaderManager()
     m_screen_quad_program = std::make_unique<ShaderProgram>("screen_pass.vert", "screen_copy.frag");
     m_atmosphere_bg_program = std::make_unique<ShaderProgram>("screen_pass.vert", "atmosphere_bg.frag");
     m_compose_program = std::make_unique<ShaderProgram>("screen_pass.vert", "compose.frag");
+    m_ssao_program = std::make_shared<ShaderProgram>("screen_pass.vert", "ssao.frag");
 
     m_program_list.push_back(m_tile_program.get());
     m_program_list.push_back(m_screen_quad_program.get());
     m_program_list.push_back(m_atmosphere_bg_program.get());
     m_program_list.push_back(m_compose_program.get());
+    m_program_list.push_back(m_ssao_program.get());
 }
 
 ShaderManager::~ShaderManager() = default;
+
+ShaderProgram* ShaderManager::ssao_program() const
+{
+    return m_ssao_program.get();
+}
 
 ShaderProgram* ShaderManager::tile_shader() const
 {

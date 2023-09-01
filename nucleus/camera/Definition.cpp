@@ -72,6 +72,11 @@ glm::dmat4 nucleus::camera::Definition::world_view_projection_matrix() const
     return m_projection_matrix * camera_matrix();
 }
 
+glm::mat4 nucleus::camera::Definition::local_view_matrix() const
+{
+    return camera_matrix() * glm::translate(this->position());
+}
+
 glm::mat4 nucleus::camera::Definition::local_view_projection_matrix(const glm::dvec3& origin_offset) const
 {
     return glm::mat4(m_projection_matrix * camera_matrix() * glm::translate(origin_offset));

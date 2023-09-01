@@ -42,6 +42,7 @@ public:
         Float32
     };
     enum class ColourFormat {
+        R8,
         RGBA8,
         RGB16F,
         RGBA16F,

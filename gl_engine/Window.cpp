@@ -47,6 +47,7 @@
 #include "helpers.h"
 #include "nucleus/utils/bit_coding.h"
 #include "TimerManager.h"
+#include "SSAO.h"
 
 #include <glm/gtx/transform.hpp>
 
@@ -90,9 +91,11 @@ void Window::initialise_gpu()
     m_shared_config_ubo->init();
     m_shared_config_ubo->bind_to_shader(m_shader_manager->tile_shader());
 
+    m_ssao = std::make_unique<gl_engine::SSAO>(m_shader_manager->shared_ssao_program());
+
     m_timer = std::make_unique<gl_engine::TimerManager>();
 
-    //m_timer->add_timer("depth", gl_engine::TimerTypes::GPUAsync, "GPU");
+    m_timer->add_timer("ssao", gl_engine::TimerTypes::GPUAsync, "GPU");
     m_timer->add_timer("atmosphere", gl_engine::TimerTypes::GPUAsync, "GPU");
     m_timer->add_timer("tiles", gl_engine::TimerTypes::GPUAsync, "GPU");
     m_timer->add_timer("compose", gl_engine::TimerTypes::GPUAsync, "GPU");
@@ -113,6 +116,7 @@ void Window::resize_framebuffer(int width, int height)
     if (f) {
         m_gbuffer->resize({ width, height });
         m_atmospherebuffer->resize({ 1, height });
+        m_ssao->resize({width, height});
 
         f->glViewport(0, 0, width, height);
     }
@@ -170,6 +174,11 @@ void Window::paint(QOpenGLFramebufferObject* framebuffer)
     if (funcs && m_shared_config_ubo->data.m_wireframe_mode > 0) funcs->glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
 
     m_gbuffer->unbind();
+
+    m_timer->start_timer("ssao");
+    m_ssao->draw(m_gbuffer.get(), &m_screen_quad_geometry, m_camera);
+    m_timer->stop_timer("ssao");
+
     if (framebuffer)
         framebuffer->bind();
 
@@ -186,6 +195,8 @@ void Window::paint(QOpenGLFramebufferObject* framebuffer)
     m_gbuffer->bind_colour_texture(3, 3);
     p->set_uniform("texin_atmosphere", 4);
     m_atmospherebuffer->bind_colour_texture(0, 4);
+    p->set_uniform("texin_ssao", 5);
+    m_ssao->bind_ssao_texture(5);
 
     auto camera_position = m_camera.position();
     p->set_uniform("camera_position", glm::vec3(camera_position));
