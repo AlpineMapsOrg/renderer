@@ -113,7 +113,7 @@ void main() {
         if (conf.debug_overlay == 1u) overlayColor = vec4(vec3(ssao), 1.0);
         out_Color = mix(out_Color, overlayColor, conf.debug_overlay_strength);
     }
-    out_Color = vec4(vec3(ssao), 1.0);
+    //out_Color = vec4(vec3(ssao), 1.0);
     //out_Color = vec4(atmoshperic_color * (1.0 - alpha),1.0);
     //out_Color = vec4(vec3(alpha), 1.0);
 

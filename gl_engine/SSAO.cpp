@@ -46,14 +46,6 @@ SSAO::SSAO(std::shared_ptr<ShaderProgram> program)
     m_ssao_noise_texture->setWrapMode(QOpenGLTexture::WrapMode::Repeat);
     m_ssao_noise_texture->allocateStorage();
     m_ssao_noise_texture->setData(QOpenGLTexture::RGB, QOpenGLTexture::Float32, &ssaoNoise[0]);
-    /*
-    f->glGenTextures(1, &m_noise_texture_gpu_id);
-    f->glBindTexture(GL_TEXTURE_2D, m_noise_texture_gpu_id);
-    f->glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA32F, 4, 4, 0, GL_RGB, GL_FLOAT, &ssaoNoise[0]);
-    f->glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-    f->glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-    f->glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
-    f->glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);*/
 
     // GENERATE FRAMEBUFFER
     m_ssaobuffer = std::make_unique<Framebuffer>(Framebuffer::DepthFormat::None, std::vector({Framebuffer::ColourFormat::R8}));
