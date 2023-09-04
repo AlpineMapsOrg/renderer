@@ -17,12 +17,7 @@
  *****************************************************************************/
 
 #include "shared_config.glsl"
-
-uniform highp mat4 view_proj_matrix;
-uniform highp mat4 view_matrix;
-uniform highp mat4 proj_matrix;
-
-uniform highp vec3 camera_position;
+#include "camera_config.glsl"
 
 uniform sampler2D texture_sampler;
 
@@ -33,9 +28,7 @@ layout (location = 3) out highp vec3 texout_position;
 
 in lowp vec2 uv;
 in highp vec3 var_pos_wrt_cam;
-in highp vec3 var_pos_vs;
 in highp vec3 var_normal;
-in highp vec3 var_normal_vs;
 in float is_curtain;
 //flat in vec3 vertex_color;
 in vec3 vertex_color;
@@ -78,7 +71,6 @@ void main() {
     }
 
     texout_position = var_pos_wrt_cam;
-    texout_position = var_pos_vs;
 
     highp float dist = length(var_pos_wrt_cam);
     highp float depth = log(dist)/13.0;
@@ -86,32 +78,23 @@ void main() {
 
 
     vec3 normal = vec3(0.0);
-    vec3 normal_vs = vec3(0.0);
-    if (conf.normal_mode == 0u) {
-        normal = normal_by_fragment_position_interpolation();
-        normal_vs = vec3(view_matrix * vec4(normal, 0.0));
-    } else {
-        normal = var_normal;
-        normal_vs = var_normal_vs;
-    }
+    if (conf.normal_mode == 0u) normal = normal_by_fragment_position_interpolation();
+    else normal = var_normal;
     texout_normal = vec4(normal, dist);
-    texout_normal = vec4(normal_vs, dist);
 
     lowp vec3 fragColor = texture(texture_sampler, uv).rgb;
     fragColor = mix(conf.material_color.rgb, fragColor, conf.material_color.a);
     highp float alpha = calculate_falloff(dist, 300000.0, 600000.0);
     texout_albedo = vec4(fragColor, alpha);
-    //texout_albedo = vec4(alpha);
-
 
     /*
     if (conf.debug_overlay_strength < 1.0f || conf.debug_overlay == 0u) {
-        highp vec3 origin = vec3(camera_position);
+        highp vec3 origin = vec3(camera.position);
 
         highp float dist = length(var_pos_wrt_cam);
         highp vec3 ray_direction = var_pos_wrt_cam / dist;
 
-        highp vec3 light_through_atmosphere = calculate_atmospheric_light(camera_position / 1000.0, ray_direction, dist / 1000.0, vec3(ortho), 10);
+        highp vec3 light_through_atmosphere = calculate_atmospheric_light(camera.position / 1000.0, ray_direction, dist / 1000.0, vec3(ortho), 10);
         highp float cos_f = dot(ray_direction, vec3(0.0, 0.0, 1.0));
         highp float alpha = calculate_falloff(dist, 300000.0, 600000.0);
 
@@ -121,7 +104,7 @@ void main() {
             fragColor = mix(conf.material_color.rgb, fragColor, conf.material_color.a);
             phong_illumination = calculate_illumination(fragColor, origin, var_pos_wrt_cam, normal, conf.sun_light, conf.amb_light, conf.sun_light_dir.xyz, conf.material_light_response);
         }
-        light_through_atmosphere = calculate_atmospheric_light(camera_position / 1000.0, ray_direction, dist / 1000.0, phong_illumination * fragColor, 10);
+        light_through_atmosphere = calculate_atmospheric_light(camera.position / 1000.0, ray_direction, dist / 1000.0, phong_illumination * fragColor, 10);
         vec3 color = light_through_atmosphere;
 
         texout_albedo = vec4(color * alpha, alpha);
@@ -150,7 +133,7 @@ void main() {
     line_width = line_width * max(0.01,steepness);
     if (alpha > 0.05)
     {
-        float alt = var_pos_wrt_cam.z + camera_position.z;
+        float alt = var_pos_wrt_cam.z + camera.position.z;
         float alt_rest = (alt - int(alt / 100.0) * 100.0) - line_width / 2.0;
         if (alt_rest < line_width) {
             texout_albedo = mix(texout_albedo, vec4(texout_albedo.r - 0.2, texout_albedo.g - 0.2, texout_albedo.b - 0.2, 1.0), alpha);

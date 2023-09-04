@@ -98,6 +98,7 @@ private:
     std::unique_ptr<SSAO> m_ssao;
 
     std::unique_ptr<UniformBuffer<uboSharedConfig>> m_shared_config_ubo; // needs opengl context
+    std::unique_ptr<UniformBuffer<uboCameraConfig>> m_camera_config_ubo;
 
     helpers::ScreenQuadGeometry m_screen_quad_geometry;
 

@@ -20,6 +20,7 @@
 
 #include <QObject>
 #include <QVector4D>
+#include <glm/glm.hpp>
 
 namespace gl_engine {
 
@@ -48,6 +49,7 @@ namespace gl_engine {
         // 0...nothing, 1...ortho, 2...normals, 3...tiles, 4...zoomlevel, 5...vertex-ID, 6...vertex heightmap
         unsigned int m_debug_overlay = 0;
         float m_debug_overlay_strength = 0.5;
+        glm::vec3 buffer3;
 
         Q_PROPERTY(QVector4D sun_light MEMBER m_sun_light)
         Q_PROPERTY(QVector4D sun_light_dir MEMBER m_sun_light_dir)
@@ -70,6 +72,29 @@ namespace gl_engine {
             // Since thats the only time this operator gets called (by the QT moc) we'll just return true.
             return true;
         }
+
+    };
+
+    struct uboCameraConfig {
+
+    public:
+        // Camera Position
+        glm::vec4 position;
+        // Camera View Matrix
+        glm::mat4 view_matrix;
+        // Camera Projection Matrix
+        glm::mat4 proj_matrix;
+        // Camera View-Projection Matrix
+        glm::mat4 view_proj_matrix;
+        // Camera Inverse View-Projection Matrix
+        glm::mat4 inv_view_proj_matrix;
+        // Camera Inverse View Matrix
+        glm::mat4 inv_view_matrix;
+        // Camera Inverse Projection Matrix
+        glm::mat4 inv_proj_matrix;
+        // Viewport Size in Pixel
+        glm::vec2 viewport_size;
+        glm::vec2 buffer2;
 
     };
 

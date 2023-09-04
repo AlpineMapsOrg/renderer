@@ -89,7 +89,11 @@ void Window::initialise_gpu()
 
     m_shared_config_ubo = std::make_unique<gl_engine::UniformBuffer<gl_engine::uboSharedConfig>>(0, "shared_config");
     m_shared_config_ubo->init();
-    m_shared_config_ubo->bind_to_shader(m_shader_manager->tile_shader());
+    m_shared_config_ubo->bind_to_shader(m_shader_manager->all());
+
+    m_camera_config_ubo = std::make_unique<gl_engine::UniformBuffer<gl_engine::uboCameraConfig>>(1, "camera_config");
+    m_camera_config_ubo->init();
+    m_camera_config_ubo->bind_to_shader(m_shader_manager->all());
 
     m_ssao = std::make_unique<gl_engine::SSAO>(m_shader_manager->shared_ssao_program());
 
@@ -127,6 +131,8 @@ void Window::paint(QOpenGLFramebufferObject* framebuffer)
     m_timer->start_timer("cpu_total");
     m_timer->start_timer("gpu_total");
 
+    m_camera.set_viewport_size(m_gbuffer->size());
+
     QOpenGLExtraFunctions *f = QOpenGLContext::currentContext()->extraFunctions();
 
     // for wireframe mode
@@ -135,7 +141,20 @@ void Window::paint(QOpenGLFramebufferObject* framebuffer)
     f->glEnable(GL_CULL_FACE);
     f->glCullFace(GL_BACK);
 
-    m_camera.set_viewport_size(m_gbuffer->size());
+    // UPDATE CAMERA UNIFORM BUFFER
+    // NOTE: Could also just be done on camera or viewport change!
+    uboCameraConfig* cc = &m_camera_config_ubo->data;
+    cc->position = glm::vec4(m_camera.position(), 1.0);
+    cc->view_matrix = m_camera.local_view_matrix();
+    cc->proj_matrix = m_camera.projection_matrix();
+    cc->view_proj_matrix = cc->proj_matrix * cc->view_matrix;
+    cc->inv_view_proj_matrix = glm::inverse(cc->view_proj_matrix);
+    cc->inv_view_matrix = glm::inverse(cc->view_matrix);
+    cc->inv_proj_matrix = glm::inverse(cc->proj_matrix);
+    cc->viewport_size = m_gbuffer->size();
+    m_camera_config_ubo->update_gpu_data();
+
+
 
     // DRAW ATMOSPHERIC BACKGROUND
     m_atmospherebuffer->bind();
@@ -146,9 +165,6 @@ void Window::paint(QOpenGLFramebufferObject* framebuffer)
 
     auto p = m_shader_manager->atmosphere_bg_program();
     p->bind();
-    p->set_uniform("inversed_projection_matrix", glm::inverse(m_camera.projection_matrix()));
-    p->set_uniform("inversed_view_matrix", glm::translate(-m_camera.position()) * m_camera.camera_space_to_world_matrix());
-    p->set_uniform("camera_position", glm::vec3(m_camera.position()));
 
     m_timer->start_timer("atmosphere");
     m_screen_quad_geometry.draw();
@@ -184,7 +200,6 @@ void Window::paint(QOpenGLFramebufferObject* framebuffer)
 
     p = m_shader_manager->compose_program();
     p->bind();
-    //m_shader_manager->screen_quad_program()->bind();
     p->set_uniform("texin_albedo", 0);
     m_gbuffer->bind_colour_texture(0, 0);
     p->set_uniform("texin_depth", 1);
@@ -197,12 +212,6 @@ void Window::paint(QOpenGLFramebufferObject* framebuffer)
     m_atmospherebuffer->bind_colour_texture(0, 4);
     p->set_uniform("texin_ssao", 5);
     m_ssao->bind_ssao_texture(5);
-
-    auto camera_position = m_camera.position();
-    p->set_uniform("camera_position", glm::vec3(camera_position));
-
-    auto inv_view_projection_matrix = glm::inverse(m_camera.local_view_projection_matrix(m_camera.position()));
-    p->set_uniform("inv_view_projection_matrix", inv_view_projection_matrix);
 
     m_timer->start_timer("compose");
     m_screen_quad_geometry.draw();
@@ -265,6 +274,9 @@ void Window::keyPressEvent(QKeyEvent* e)
     if (e->key() == Qt::Key::Key_F5) {
         m_shader_manager->reload_shaders();
         qDebug("all shaders reloaded");
+        // NOTE: UBOs need to be reattached to the programs!
+        m_shared_config_ubo->bind_to_shader(m_shader_manager->all());
+        m_camera_config_ubo->bind_to_shader(m_shader_manager->all());
         emit update_requested();
     }
     if (e->key() == Qt::Key::Key_F6) {

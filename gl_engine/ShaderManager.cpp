@@ -68,6 +68,9 @@ ShaderProgram* ShaderManager::atmosphere_bg_program() const
     return m_atmosphere_bg_program.get();
 }
 
+std::vector<ShaderProgram*> ShaderManager::all() const {
+    return m_program_list;
+}
 
 void ShaderManager::release()
 {

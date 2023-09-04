@@ -114,11 +114,12 @@ void ShaderProgram::release()
 void ShaderProgram::set_uniform_block(const std::string& name, GLuint location)
 {
     QOpenGLExtraFunctions* f = QOpenGLContext::currentContext()->extraFunctions();
-    auto shaders = m_q_shader_program->shaders();
-    for (int i = 0 ; i < shaders.count(); i++) {
-        GLuint sId = shaders[i]->shaderId();
-        unsigned int ubi = f->glGetUniformBlockIndex(sId, name.c_str());
-        f->glUniformBlockBinding(sId, ubi, location);
+    auto pId = m_q_shader_program->programId();
+    unsigned int ubi = f->glGetUniformBlockIndex(pId, name.c_str());
+    if (ubi == GL_INVALID_INDEX) {
+        //qDebug() << "Uniform Block " << name << " not found in program " << pId;
+    } else {
+        f->glUniformBlockBinding(pId, ubi, location);
     }
 }
 

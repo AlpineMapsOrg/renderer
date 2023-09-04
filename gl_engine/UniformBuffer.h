@@ -19,6 +19,7 @@
 #pragma once
 
 #include <glm/glm.hpp>
+#include <vector>
 #include <QOpenGLContext>
 class QOpenGLExtraFunctions;
 
@@ -36,6 +37,7 @@ public:
 
     // Set Uniform Block Index (necessary because old opengl...)
     void bind_to_shader(ShaderProgram* shader);
+    void bind_to_shader(std::vector<ShaderProgram*> shaders);
 
     // Refills the GPU Buffer
     void update_gpu_data();
@@ -56,7 +58,7 @@ public:
 
 private:
 
-    const std::string& m_name;  // name of the uniform in the shader
+    std::string m_name;  // name of the uniform in the shader
     GLuint m_location;          // the binding point/location
     GLuint m_id;                // the gpu buffer ID
 

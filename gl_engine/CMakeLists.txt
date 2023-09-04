@@ -32,6 +32,7 @@ qt_add_resources(gl_engine "shaders"
     shaders/encoder.glsl
     shaders/compose.frag
     shaders/shared_config.glsl
+    shaders/camera_config.glsl
     shaders/hashing.glsl
     shaders/ssao.frag
 )

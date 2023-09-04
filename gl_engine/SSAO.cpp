@@ -75,7 +75,6 @@ void SSAO::draw(Framebuffer* gbuffer, helpers::ScreenQuadGeometry* geometry, con
     p->set_uniform("texin_noise", 2);
     m_ssao_noise_texture->bind(2);
     p->set_uniform_array("samples", this->m_ssao_kernel);
-    p->set_uniform("proj_matrix", camera.projection_matrix());
     geometry->draw();
     m_ssaobuffer->unbind();
 

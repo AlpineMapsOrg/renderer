@@ -46,6 +46,12 @@ template <typename T> void gl_engine::UniformBuffer<T>::bind_to_shader(ShaderPro
     shader->set_uniform_block(m_name, m_location);
 }
 
+template <typename T> void gl_engine::UniformBuffer<T>::bind_to_shader(std::vector<ShaderProgram*> shader) {
+    for (auto* sp : shader) {
+        sp->set_uniform_block(m_name, m_location);
+    }
+}
+
 template <typename T> void gl_engine::UniformBuffer<T>::update_gpu_data() {
     m_f->glBindBuffer(GL_UNIFORM_BUFFER, m_id);
     // WARNING: entry_point() has to exist on all ubo structs or classes! (better: make abstract General UBO class)
@@ -53,5 +59,6 @@ template <typename T> void gl_engine::UniformBuffer<T>::update_gpu_data() {
     m_f->glBindBuffer(GL_UNIFORM_BUFFER, 0);
 }
 
-
+// IMPORTANT: All possible Template Classes need to be defined here:
 template class gl_engine::UniformBuffer<gl_engine::uboSharedConfig>;
+template class gl_engine::UniformBuffer<gl_engine::uboCameraConfig>;

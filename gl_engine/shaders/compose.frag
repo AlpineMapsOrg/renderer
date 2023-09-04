@@ -19,11 +19,9 @@
 #include "atmosphere_implementation.glsl"
 #include "encoder.glsl"
 #include "shared_config.glsl"
+#include "camera_config.glsl"
 
 in highp vec2 texcoords;
-
-uniform highp vec3 camera_position;
-uniform highp mat4 inv_view_projection_matrix;
 
 uniform sampler2D texin_albedo;
 uniform sampler2D texin_depth;
@@ -89,18 +87,18 @@ void main() {
     highp vec3 shaded_color = vec3(0.0f);
 
     if (conf.debug_overlay_strength < 1.0f || conf.debug_overlay == 0u) {
-        highp vec3 origin = vec3(camera_position);
+        highp vec3 origin = vec3(camera.position);
 
         //highp float dist = length(pos_wrt_cam);
         highp vec3 ray_direction = pos_wrt_cam / dist;
 
-        highp vec3 light_through_atmosphere = calculate_atmospheric_light(camera_position / 1000.0, ray_direction, dist / 1000.0, albedo, 10);
+        highp vec3 light_through_atmosphere = calculate_atmospheric_light(origin / 1000.0, ray_direction, dist / 1000.0, albedo, 10);
 
         shaded_color = albedo;
         if (conf.phong_enabled) {
             shaded_color = calculate_illumination(shaded_color, origin, pos_wrt_cam, normal, conf.sun_light, conf.amb_light, conf.sun_light_dir.xyz, conf.material_light_response, ssao);
         }
-        shaded_color = calculate_atmospheric_light(camera_position / 1000.0, ray_direction, dist / 1000.0, shaded_color, 10);
+        shaded_color = calculate_atmospheric_light(origin / 1000.0, ray_direction, dist / 1000.0, shaded_color, 10);
         shaded_color = max(vec3(0.0), shaded_color);
     }
 
@@ -110,8 +108,12 @@ void main() {
     lowp vec3 atmoshperic_color = texture(texin_atmosphere, texcoords).rgb;
     out_Color = vec4(mix(atmoshperic_color, shaded_color, alpha), 1.0);
 
+    if (conf.debug_overlay_strength > 0.0 && conf.debug_overlay > 0u) {
+        vec4 overlayColor = vec4(0.0);
+        if (conf.debug_overlay == 1u) overlayColor = vec4(vec3(ssao), 1.0);
+        out_Color = mix(out_Color, overlayColor, conf.debug_overlay_strength);
+    }
     out_Color = vec4(vec3(ssao), 1.0);
-
     //out_Color = vec4(atmoshperic_color * (1.0 - alpha),1.0);
     //out_Color = vec4(vec3(alpha), 1.0);
 
@@ -126,7 +128,7 @@ void main() {
     line_width = line_width * max(0.01,steepness);
     if (alpha > 0.05)
     {
-        float alt = pos_wrt_cam.z + camera_position.z;
+        float alt = pos_wrt_cam.z + camera.position.z;
         float alt_rest = (alt - int(alt / 100.0) * 100.0) - line_width / 2.0;
         if (alt_rest < line_width) {
             out_Color = mix(out_Color, vec4(out_Color.r - 0.2, out_Color.g - 0.2, out_Color.b - 0.2, 1.0), alpha);
