@@ -101,7 +101,7 @@ void Window::initialise_gpu()
     m_camera_config_ubo->init();
     m_camera_config_ubo->bind_to_shader(m_shader_manager->all());
 
-    m_ssao = std::make_unique<gl_engine::SSAO>(m_shader_manager->shared_ssao_program());
+    m_ssao = std::make_unique<gl_engine::SSAO>(m_shader_manager->shared_ssao_program(), m_shader_manager->shared_ssao_blur_program());
 
     m_timer = std::make_unique<gl_engine::TimerManager>();
 

@@ -9,8 +9,8 @@
 
 namespace gl_engine {
 
-SSAO::SSAO(std::shared_ptr<ShaderProgram> program)
-    :m_ssao_program(program)
+SSAO::SSAO(std::shared_ptr<ShaderProgram> program, std::shared_ptr<ShaderProgram> blur_program)
+    :m_ssao_program(program), m_ssao_blur_program(blur_program)
 {
      m_f = QOpenGLContext::currentContext()->extraFunctions();
 
@@ -38,6 +38,7 @@ SSAO::SSAO(std::shared_ptr<ShaderProgram> program)
 
     // GENERATE FRAMEBUFFER
     m_ssaobuffer = std::make_unique<Framebuffer>(Framebuffer::DepthFormat::None, std::vector({Framebuffer::ColourFormat::R8}));
+    m_ssao_blurbuffer = std::make_unique<Framebuffer>(Framebuffer::DepthFormat::None, std::vector({Framebuffer::ColourFormat::R8}));
 }
 
 void SSAO::recreate_kernel(unsigned int size) {
@@ -66,7 +67,6 @@ SSAO::~SSAO() {
 
 void SSAO::draw(Framebuffer* gbuffer, helpers::ScreenQuadGeometry* geometry, const nucleus::camera::Definition& camera, unsigned int kernel_size) {
     m_ssaobuffer->bind();
-    m_f->glClear(GL_COLOR_BUFFER_BIT);
     auto p = m_ssao_program.get();
     p->bind();
     p->set_uniform("texin_position", 0);
@@ -80,10 +80,29 @@ void SSAO::draw(Framebuffer* gbuffer, helpers::ScreenQuadGeometry* geometry, con
     geometry->draw();
     m_ssaobuffer->unbind();
 
+    p = m_ssao_blur_program.get();
+    p->bind();
+    p->set_uniform("texin_ssao", 0);
+
+    // BLUR HORIZONTAL
+    m_ssao_blurbuffer->bind();
+    m_ssaobuffer->bind_colour_texture(0,0);
+    p->set_uniform("direction", 0);
+    geometry->draw();
+    m_ssao_blurbuffer->unbind();
+
+    // BLUR VERTICAL
+    m_ssaobuffer->bind();
+    m_ssao_blurbuffer->bind_colour_texture(0,0);
+    p->set_uniform("direction", 1);
+    geometry->draw();
+    m_ssaobuffer->unbind();
+
 }
 
 void SSAO::resize(glm::uvec2 vp_size) {
     m_ssaobuffer->resize(vp_size);
+    m_ssao_blurbuffer->resize(vp_size);
 }
 
 void SSAO::bind_ssao_texture(unsigned int location) {

@@ -35,5 +35,6 @@ qt_add_resources(gl_engine "shaders"
     shaders/camera_config.glsl
     shaders/hashing.glsl
     shaders/ssao.frag
+    shaders/ssao_blur.frag
 )
 target_compile_definitions(gl_engine PUBLIC ALP_RESOURCES_PREFIX="${CMAKE_CURRENT_SOURCE_DIR}/shaders/")

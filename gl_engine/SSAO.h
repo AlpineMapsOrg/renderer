@@ -18,7 +18,7 @@ class SSAO
 {
 public:
 
-    SSAO(std::shared_ptr<ShaderProgram> program);
+    SSAO(std::shared_ptr<ShaderProgram> program, std::shared_ptr<ShaderProgram> blur_program);
 
     // deletes the GPU Buffer
     ~SSAO();
@@ -35,7 +35,9 @@ private:
     std::vector<glm::vec3> m_ssao_kernel;
     std::unique_ptr<QOpenGLTexture> m_ssao_noise_texture;
     std::unique_ptr<Framebuffer> m_ssaobuffer;
+    std::unique_ptr<Framebuffer> m_ssao_blurbuffer;
     std::shared_ptr<ShaderProgram> m_ssao_program;
+    std::shared_ptr<ShaderProgram> m_ssao_blur_program;
     QOpenGLExtraFunctions *m_f;
 
     void recreate_kernel(unsigned int size = 64);

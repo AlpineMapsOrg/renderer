@@ -35,8 +35,10 @@ public:
     [[nodiscard]] ShaderProgram* atmosphere_bg_program() const;
     [[nodiscard]] ShaderProgram* compose_program() const;
     [[nodiscard]] ShaderProgram* ssao_program() const;
+    [[nodiscard]] ShaderProgram* ssao_blur_program() const;
     [[nodiscard]] std::vector<ShaderProgram*> all() const;
     std::shared_ptr<ShaderProgram> shared_ssao_program() { return m_ssao_program; }
+    std::shared_ptr<ShaderProgram> shared_ssao_blur_program() { return m_ssao_blur_program; }
     void release();
 public slots:
     void reload_shaders();
@@ -49,5 +51,6 @@ private:
     std::unique_ptr<ShaderProgram> m_atmosphere_bg_program;
     std::unique_ptr<ShaderProgram> m_compose_program;
     std::shared_ptr<ShaderProgram> m_ssao_program;
+    std::shared_ptr<ShaderProgram> m_ssao_blur_program;
 };
 }
