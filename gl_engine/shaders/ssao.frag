@@ -43,15 +43,11 @@ void main()
     vec2 noiseScale = camera.viewport_size / 4.0;
 
     // get input for SSAO algorithm
-    vec3 pos_wrt_cam = texture(texin_position, texcoords).xyz;
+    vec3 pos_cws = texture(texin_position, texcoords).xyz;
     vec4 normal_dist = texture(texin_normal, texcoords);
     vec3 normal_ws = normalize(normal_dist.xyz);
     float dist = normal_dist.w;
 
-    vec3 pos_vs = vec3(camera.view_matrix * vec4(pos_wrt_cam, 1.0));
-    vec3 normal_vs = vec3(camera.view_matrix * vec4(normal_ws, 0.0));
-    //vec3 pos_vs = texture(texin_position, texcoords).xyz;
-    //vec3 normal_vs = normalize(texture(texin_normal, texcoords).xyz);
     vec3 randomVec = normalize(texture(texin_noise, texcoords * noiseScale).xyz);
 
     // Depth dependet radius.
@@ -64,38 +60,35 @@ void main()
     if (falloff < 0.01) {
         occlusion = 0.0;
     } else {
-        // create TBN change-of-basis matrix: from tangent-space to view-space
-        vec3 tangent = normalize(randomVec - normal_vs * dot(randomVec, normal_vs));
-        vec3 bitangent = cross(normal_vs, tangent);
-        mat3 TBN = mat3(tangent, bitangent, normal_vs);
-        // iterate over the sample kernel and calculate occlusion factor
+        // create TBN change-of-basis matrix: from tangent-space to camera-world-space
+        vec3 tangent = normalize(randomVec - normal_ws * dot(randomVec, normal_ws));
+        vec3 bitangent = cross(normal_ws, tangent);
+        mat3 TBN = mat3(tangent, bitangent, normal_ws);
 
+        // iterate over the sample kernel and calculate occlusion factor
         for(int i = 0; i < kernelSize; ++i)
         {
             // get sample position
-            vec3 samplePos = TBN * samples[i]; // from tangent to view-space
-            samplePos = pos_vs + samplePos * radius;
+            vec3 sample_pos_cws = TBN * samples[i];
+            sample_pos_cws = pos_cws + sample_pos_cws * radius;
+            float sample_gt_dist = length(sample_pos_cws);
 
-            // project sample position (to sample texture) (to get position on screen/texture)
-            vec4 offset = vec4(samplePos, 1.0);
-            offset = camera.proj_matrix * offset; // from view to clip-space
-            offset.xyz /= offset.w; // perspective divide
-            offset.xyz = offset.xyz * 0.5 + 0.5; // transform to range 0.0 - 1.0
+            // project sample position (to sample texture)
+            vec3 sample_pos_ndc = ws_to_ndc(sample_pos_cws);
 
-            // get sample depth
-            float sampleDepth = vec3(camera.view_matrix * vec4(texture(texin_position, offset.xy).xyz, 1.0)).z;
-            //float sampleDepth = texture(texin_position, offset.xy).z; // get depth value of kernel sample
+            // get actual distance to camera of fragment (currently saved inside normal texture)
+            float sample_dist = texture(texin_normal, sample_pos_ndc.xy).w;
 
             // range check & accumulate
-            float rangeCheck = smoothstep(0.0, 1.0, radius / abs(pos_vs.z - sampleDepth));
-            occlusion += (sampleDepth >= samplePos.z + bias ? 1.0 : 0.0) * rangeCheck;
+            float rangeCheck = 1.0;
+            if (true) {
+                rangeCheck = smoothstep(0.0, 1.0, radius / abs(dist - sample_dist));
+            }
+            occlusion += (sample_gt_dist >= sample_dist + bias ? 1.0 : 0.0) * rangeCheck;
         }
         occlusion = 1.0 - (occlusion / kernelSize);
         occlusion = occlusion * occlusion * falloff;
     }
-
     out_color = occlusion;
-    //out_color = falloff;
 }
-
 

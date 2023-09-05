@@ -27,3 +27,11 @@ layout (std140) uniform camera_config {
     highp vec2 viewport_size;
     highp vec2 buffer2;
 } camera;
+
+// Converts the given world coordinates (relative to camera) to the
+// normalised device coordinates (range [0,1])
+highp vec3 ws_to_ndc(highp vec3 pos_ws) {
+    vec4 tmp = camera.view_proj_matrix * vec4(pos_ws, 1.0); // from ws to clip-space
+    tmp.xyz /= tmp.w; // perspective divide
+    return tmp.xyz * 0.5 + 0.5; // transform to range 0.0 - 1.0
+}
