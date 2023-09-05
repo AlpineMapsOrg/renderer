@@ -28,5 +28,9 @@ layout (std140) uniform shared_config {
     uint normal_mode;
     uint debug_overlay;
     float debug_overlay_strength;
-    vec3 buffer3;
+    bool ssao_enabled;
+    uint ssao_kernel;
+    bool ssao_range_check;
+    float ssao_falloff_to_value;
+    vec3 buff;
 } conf;

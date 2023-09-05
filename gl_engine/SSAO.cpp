@@ -15,22 +15,11 @@ SSAO::SSAO(std::shared_ptr<ShaderProgram> program)
      m_f = QOpenGLContext::currentContext()->extraFunctions();
 
     // GENERATE SAMPLE KERNEL
-    std::uniform_real_distribution<float> randomFloats(0.0, 1.0); // generates random floats between 0.0 and 1.0
-    std::default_random_engine generator;
-    for (unsigned int i = 0; i < 64; ++i)
-    {
-        glm::vec3 sample(randomFloats(generator) * 2.0 - 1.0, randomFloats(generator) * 2.0 - 1.0, randomFloats(generator));
-        sample = glm::normalize(sample);
-        sample *= randomFloats(generator);
-        float scale = float(i) / 64.0f;
-
-        // scale samples s.t. they're more aligned to center of kernel
-        scale = std::lerp(0.1f, 1.0f, scale * scale);
-        sample *= scale;
-        m_ssao_kernel.push_back(sample);
-    }
+    recreate_kernel();
 
     // GENERATE NOISE TEXTURE
+    std::uniform_real_distribution<float> randomFloats(0.0, 1.0); // generates random floats between 0.0 and 1.0
+    std::default_random_engine generator;
     std::vector<glm::vec3> ssaoNoise;
     for (unsigned int i = 0; i < 16; i++)
     {
@@ -51,11 +40,31 @@ SSAO::SSAO(std::shared_ptr<ShaderProgram> program)
     m_ssaobuffer = std::make_unique<Framebuffer>(Framebuffer::DepthFormat::None, std::vector({Framebuffer::ColourFormat::R8}));
 }
 
+void SSAO::recreate_kernel(unsigned int size) {
+    assert(size <= MAX_SSAO_KERNEL_SIZE);
+    std::uniform_real_distribution<float> randomFloats(0.0, 1.0); // generates random floats between 0.0 and 1.0
+    std::default_random_engine generator;
+    m_ssao_kernel.clear();
+    m_ssao_kernel.reserve(size);
+    for (unsigned int i = 0; i < size; ++i)
+    {
+        glm::vec3 sample(randomFloats(generator) * 2.0 - 1.0, randomFloats(generator) * 2.0 - 1.0, randomFloats(generator));
+        sample = glm::normalize(sample);
+        sample *= randomFloats(generator);
+        float scale = float(i) / size;
+
+        // scale samples s.t. they're more aligned to center of kernel
+        scale = std::lerp(0.1f, 1.0f, scale * scale);
+        sample *= scale;
+        m_ssao_kernel.push_back(sample);
+    }
+}
+
 SSAO::~SSAO() {
 
 }
 
-void SSAO::draw(Framebuffer* gbuffer, helpers::ScreenQuadGeometry* geometry, const nucleus::camera::Definition& camera) {
+void SSAO::draw(Framebuffer* gbuffer, helpers::ScreenQuadGeometry* geometry, const nucleus::camera::Definition& camera, unsigned int kernel_size) {
     m_ssaobuffer->bind();
     m_f->glClear(GL_COLOR_BUFFER_BIT);
     auto p = m_ssao_program.get();
@@ -66,6 +75,7 @@ void SSAO::draw(Framebuffer* gbuffer, helpers::ScreenQuadGeometry* geometry, con
     gbuffer->bind_colour_texture(2,1);
     p->set_uniform("texin_noise", 2);
     m_ssao_noise_texture->bind(2);
+    if (kernel_size != m_ssao_kernel.size()) recreate_kernel(kernel_size);
     p->set_uniform_array("samples", this->m_ssao_kernel);
     geometry->draw();
     m_ssaobuffer->unbind();

@@ -85,10 +85,10 @@ void Window::initialise_gpu()
     m_screen_quad_geometry = gl_engine::helpers::create_screen_quad_geometry();
     m_gbuffer = std::make_unique<Framebuffer>(Framebuffer::DepthFormat::Int24,
                                               std::vector({
-                                                           Framebuffer::ColourFormat::RGBA8,    //
-                                                           Framebuffer::ColourFormat::RGBA8,
-                                                           Framebuffer::ColourFormat::RGBA16F,
-                                                           Framebuffer::ColourFormat::RGB16F
+                                                           Framebuffer::ColourFormat::RGBA8,    // Albedo
+                                                           Framebuffer::ColourFormat::RGBA8,    // Encoded Depth
+                                                           Framebuffer::ColourFormat::RGBA16F,  // Normal + Dist
+                                                           Framebuffer::ColourFormat::RGB16F    // Position CWS
                                               }));
 
     m_atmospherebuffer = std::make_unique<Framebuffer>(Framebuffer::DepthFormat::None, std::vector({ Framebuffer::ColourFormat::RGBA8 }));
@@ -197,9 +197,11 @@ void Window::paint(QOpenGLFramebufferObject* framebuffer)
 
     m_gbuffer->unbind();
 
-    m_timer->start_timer("ssao");
-    m_ssao->draw(m_gbuffer.get(), &m_screen_quad_geometry, m_camera);
-    m_timer->stop_timer("ssao");
+    if (m_shared_config_ubo->data.m_ssao_enabled) {
+        m_timer->start_timer("ssao");
+        m_ssao->draw(m_gbuffer.get(), &m_screen_quad_geometry, m_camera, m_shared_config_ubo->data.m_ssao_kernel);
+        m_timer->stop_timer("ssao");
+    }
 
     if (framebuffer)
         framebuffer->bind();

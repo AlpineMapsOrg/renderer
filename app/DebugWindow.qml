@@ -180,9 +180,8 @@ Rectangle {
 
                 Label { text: "Light-Intensity:" }
                 Slider {
-                    from: 0.01
-                    to: 5.00
-                    value: 1.0
+                    from: 0.00
+                    to: 1.00
                     Layout.fillWidth: true
                     Component.onCompleted: this.value = map.shared_config.sun_light.w;
                     onMoved: map.shared_config.sun_light.w = this.value;
@@ -220,7 +219,7 @@ Rectangle {
                 Slider {
                     from: 0.01
                     to: 1.00
-                    value: 0.05
+                    value: 0.5
                     Layout.fillWidth: true
                     Component.onCompleted: this.value = map.shared_config.amb_light.w;
                     onMoved: map.shared_config.amb_light.w = this.value;
@@ -319,6 +318,52 @@ Rectangle {
                      Layout.fillWidth: true;
                      Component.onCompleted: value = map.shared_config.material_color.w;
                      onMoved: map.shared_config.material_color.w = value;
+                }
+
+                Rectangle {
+                    Layout.fillWidth: true;
+                    Layout.columnSpan: 2;
+                    color: Qt.alpha("white", 0.1)
+                    height: 30
+                    border { width:1; color:Qt.alpha( "white", 0.5); }
+                    radius: 5
+                    Label {
+                        x: 10; y: 3
+                        text: "SSAO"
+                        font.pixelSize:16
+                    }
+                    CheckBox {
+                        x: menu_width - this.width - 30
+                        y: -10
+                        Component.onCompleted: this.checked = map.shared_config.ssao_enabled;
+                        onCheckStateChanged: map.shared_config.ssao_enabled = this.checked;
+                    }
+                }
+
+                Label { text: "Kernel-Size:" }
+                Slider {
+                    from: 5
+                    to: 64
+                    Layout.fillWidth: true;
+                    Component.onCompleted: value = map.shared_config.ssao_kernel;
+                    onMoved: map.shared_config.ssao_kernel = value;
+                }
+
+                Label { text: "Falloff-To:" }
+                Slider {
+                    from: 0
+                    to: 100
+                    Layout.fillWidth: true;
+                    Component.onCompleted: value = map.shared_config.ssao_falloff_to_value * 100;
+                    onMoved: map.shared_config.ssao_falloff_to_value = value / 100;
+                }
+
+                CheckBox {
+                    text: "Range-Check"
+                    Layout.fillWidth: true;
+                    Layout.columnSpan: 2;
+                    Component.onCompleted: this.checked = map.shared_config.ssao_range_check;
+                    onCheckStateChanged: map.shared_config.ssao_range_check = this.checked;
                 }
 
                 Rectangle {

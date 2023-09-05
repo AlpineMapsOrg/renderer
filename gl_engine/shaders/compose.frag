@@ -75,7 +75,8 @@ void main() {
     lowp vec2 depth_encoded = texture(texin_depth, texcoords).xy;
     highp vec4 normal_dist = texture(texin_normal, texcoords);
     highp vec3 pos_wrt_cam = texture(texin_position, texcoords).xyz;
-    highp float ssao = texture(texin_ssao, texcoords).r;
+    highp float amb_occlusion = 1.0;
+    if (conf.ssao_enabled) amb_occlusion = texture(texin_ssao, texcoords).r;
     highp vec3 normal = normal_dist.xyz;
     highp float dist = normal_dist.w;
 
@@ -96,7 +97,7 @@ void main() {
 
         shaded_color = albedo;
         if (conf.phong_enabled) {
-            shaded_color = calculate_illumination(shaded_color, origin, pos_wrt_cam, normal, conf.sun_light, conf.amb_light, conf.sun_light_dir.xyz, conf.material_light_response, ssao);
+            shaded_color = calculate_illumination(shaded_color, origin, pos_wrt_cam, normal, conf.sun_light, conf.amb_light, conf.sun_light_dir.xyz, conf.material_light_response, amb_occlusion);
         }
         shaded_color = calculate_atmospheric_light(origin / 1000.0, ray_direction, dist / 1000.0, shaded_color, 10);
         shaded_color = max(vec3(0.0), shaded_color);
@@ -110,7 +111,7 @@ void main() {
 
     if (conf.debug_overlay_strength > 0.0 && conf.debug_overlay > 0u) {
         vec4 overlayColor = vec4(0.0);
-        if (conf.debug_overlay == 1u) overlayColor = vec4(vec3(ssao), 1.0);
+        if (conf.debug_overlay == 1u) overlayColor = vec4(vec3(amb_occlusion), 1.0);
         out_Color = mix(out_Color, overlayColor, conf.debug_overlay_strength);
     }
     //out_Color = vec4(vec3(ssao), 1.0);

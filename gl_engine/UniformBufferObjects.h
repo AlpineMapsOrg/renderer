@@ -29,13 +29,13 @@ namespace gl_engine {
         Q_GADGET
             public:
         // rgb...Color, a...intensity
-        QVector4D m_sun_light = QVector4D(1.0, 1.0, 1.0, 0.5);
+        QVector4D m_sun_light = QVector4D(1.0, 1.0, 1.0, 0.25);
         // The direction of the light/sun in WS (northwest lighting at 45 degrees)
         QVector4D m_sun_light_dir = QVector4D(1.0, -1.0, -1.0, 0.0).normalized();
         // rgb...Color, a...intensity
         QVector4D m_amb_light = QVector4D(1.0, 1.0, 1.0, 0.5);
         // rgb...Color of the phong-material, a...opacity of ortho picture
-        QVector4D m_material_color = QVector4D(0.5, 0.5, 0.5, 0.5);
+        QVector4D m_material_color = QVector4D(0.5, 0.5, 0.5, 1.0);
         // amb, diff, spec, shininess
         QVector4D m_material_light_response = QVector4D(1.5, 3.0, 0.0, 32.0);
         // mode (0=disabled, 1=normal, 2=highlight), height_mode, fixed_height, unused
@@ -49,7 +49,14 @@ namespace gl_engine {
         // 0...nothing, 1...ortho, 2...normals, 3...tiles, 4...zoomlevel, 5...vertex-ID, 6...vertex heightmap
         unsigned int m_debug_overlay = 0;
         float m_debug_overlay_strength = 0.5;
-        glm::vec3 buffer3;
+
+        bool m_ssao_enabled = true;
+        unsigned int m_ssao_kernel = 32;
+        bool m_ssao_range_check = true;
+        float m_ssao_falloff_to_value = 0.0;
+
+        glm::vec3 buff;
+
 
         Q_PROPERTY(QVector4D sun_light MEMBER m_sun_light)
         Q_PROPERTY(QVector4D sun_light_dir MEMBER m_sun_light_dir)
@@ -62,8 +69,10 @@ namespace gl_engine {
         Q_PROPERTY(unsigned int debug_overlay MEMBER m_debug_overlay)
         Q_PROPERTY(float debug_overlay_strength MEMBER m_debug_overlay_strength)
         Q_PROPERTY(unsigned int wireframe_mode MEMBER m_wireframe_mode)
-
-
+        Q_PROPERTY(bool ssao_enabled MEMBER m_ssao_enabled)
+        Q_PROPERTY(unsigned int ssao_kernel MEMBER m_ssao_kernel)
+        Q_PROPERTY(bool ssao_range_check MEMBER m_ssao_range_check)
+        Q_PROPERTY(float ssao_falloff_to_value MEMBER m_ssao_falloff_to_value)
 
         bool operator!=(const uboSharedConfig& rhs) const
         {

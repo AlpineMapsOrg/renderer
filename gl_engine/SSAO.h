@@ -4,6 +4,8 @@
 #include "helpers.h"
 #include "nucleus/camera/Definition.h"
 
+#define MAX_SSAO_KERNEL_SIZE 64 // ALSO CHANGE IN ssao.frag
+
 class QOpenGLTexture;
 class QOpenGLExtraFunctions;
 
@@ -21,7 +23,8 @@ public:
     // deletes the GPU Buffer
     ~SSAO();
 
-    void draw(Framebuffer* gbuffer, helpers::ScreenQuadGeometry* geometry, const nucleus::camera::Definition& camera);
+    void draw(Framebuffer* gbuffer, helpers::ScreenQuadGeometry* geometry,
+              const nucleus::camera::Definition& camera, unsigned int kernel_size);
 
     void resize(glm::uvec2 vp_size);
 
@@ -34,6 +37,8 @@ private:
     std::unique_ptr<Framebuffer> m_ssaobuffer;
     std::shared_ptr<ShaderProgram> m_ssao_program;
     QOpenGLExtraFunctions *m_f;
+
+    void recreate_kernel(unsigned int size = 64);
 
 };
 
