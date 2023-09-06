@@ -34,6 +34,7 @@ ShaderManager::ShaderManager()
     m_compose_program = std::make_unique<ShaderProgram>("screen_pass.vert", "compose.frag");
     m_ssao_program = std::make_shared<ShaderProgram>("screen_pass.vert", "ssao.frag");
     m_ssao_blur_program = std::make_shared<ShaderProgram>("screen_pass.vert", "ssao_blur.frag");
+    m_shadowmap_program = std::make_unique<ShaderProgram>("shadowmap.vert", "shadowmap.frag");
 
     m_program_list.push_back(m_tile_program.get());
     m_program_list.push_back(m_screen_quad_program.get());
@@ -41,43 +42,10 @@ ShaderManager::ShaderManager()
     m_program_list.push_back(m_compose_program.get());
     m_program_list.push_back(m_ssao_program.get());
     m_program_list.push_back(m_ssao_blur_program.get());
+    m_program_list.push_back(m_shadowmap_program.get());
 }
 
 ShaderManager::~ShaderManager() = default;
-
-ShaderProgram* ShaderManager::ssao_blur_program() const
-{
-    return m_ssao_blur_program.get();
-}
-
-ShaderProgram* ShaderManager::ssao_program() const
-{
-    return m_ssao_program.get();
-}
-
-ShaderProgram* ShaderManager::tile_shader() const
-{
-    return m_tile_program.get();
-}
-
-ShaderProgram* ShaderManager::compose_program() const
-{
-    return m_compose_program.get();
-}
-
-ShaderProgram* ShaderManager::screen_quad_program() const
-{
-    return m_screen_quad_program.get();
-}
-
-ShaderProgram* ShaderManager::atmosphere_bg_program() const
-{
-    return m_atmosphere_bg_program.get();
-}
-
-std::vector<ShaderProgram*> ShaderManager::all() const {
-    return m_program_list;
-}
 
 void ShaderManager::release()
 {

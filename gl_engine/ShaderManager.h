@@ -30,15 +30,17 @@ class ShaderManager : public QObject {
 public:
     ShaderManager();
     ~ShaderManager() override;
-    [[nodiscard]] ShaderProgram* tile_shader() const;
-    [[nodiscard]] ShaderProgram* screen_quad_program() const;
-    [[nodiscard]] ShaderProgram* atmosphere_bg_program() const;
-    [[nodiscard]] ShaderProgram* compose_program() const;
-    [[nodiscard]] ShaderProgram* ssao_program() const;
-    [[nodiscard]] ShaderProgram* ssao_blur_program() const;
-    [[nodiscard]] std::vector<ShaderProgram*> all() const;
-    std::shared_ptr<ShaderProgram> shared_ssao_program() { return m_ssao_program; }
-    std::shared_ptr<ShaderProgram> shared_ssao_blur_program() { return m_ssao_blur_program; }
+    [[nodiscard]] ShaderProgram* tile_shader() const            { return m_tile_program.get(); }
+    [[nodiscard]] ShaderProgram* screen_quad_program() const    { return m_screen_quad_program.get(); }
+    [[nodiscard]] ShaderProgram* atmosphere_bg_program() const  { return m_atmosphere_bg_program.get(); }
+    [[nodiscard]] ShaderProgram* compose_program() const        { return m_compose_program.get(); }
+    [[nodiscard]] ShaderProgram* ssao_program() const           { return m_ssao_program.get(); }
+    [[nodiscard]] ShaderProgram* ssao_blur_program() const      { return m_ssao_blur_program.get(); }
+    [[nodiscard]] ShaderProgram* shadowmap_program() const      { return m_shadowmap_program.get(); }
+    [[nodiscard]] std::vector<ShaderProgram*> all() const       { return m_program_list; }
+    std::shared_ptr<ShaderProgram> shared_ssao_program()        { return m_ssao_program; }
+    std::shared_ptr<ShaderProgram> shared_ssao_blur_program()   { return m_ssao_blur_program; }
+    std::shared_ptr<ShaderProgram> shared_shadowmap_program()   { return m_shadowmap_program; }
     void release();
 public slots:
     void reload_shaders();
@@ -52,5 +54,6 @@ private:
     std::unique_ptr<ShaderProgram> m_compose_program;
     std::shared_ptr<ShaderProgram> m_ssao_program;
     std::shared_ptr<ShaderProgram> m_ssao_blur_program;
+    std::shared_ptr<ShaderProgram> m_shadowmap_program;
 };
 }

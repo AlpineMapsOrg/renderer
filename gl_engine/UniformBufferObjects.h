@@ -21,6 +21,7 @@
 #include <QObject>
 #include <QVector4D>
 #include <glm/glm.hpp>
+#include "ShadowMapping.h"
 
 namespace gl_engine {
 
@@ -32,6 +33,7 @@ namespace gl_engine {
         QVector4D m_sun_light = QVector4D(1.0, 1.0, 1.0, 0.25);
         // The direction of the light/sun in WS (northwest lighting at 45 degrees)
         QVector4D m_sun_light_dir = QVector4D(1.0, -1.0, -1.0, 0.0).normalized();
+        QVector4D m_sun_pos = QVector4D(1.0, 1.0, 3000.0, 1.0);
         // rgb...Color, a...intensity
         QVector4D m_amb_light = QVector4D(1.0, 1.0, 1.0, 0.5);
         // rgb...Color of the phong-material, a...opacity of ortho picture
@@ -53,9 +55,11 @@ namespace gl_engine {
         bool m_ssao_enabled = true;
         unsigned int m_ssao_kernel = 32;
         bool m_ssao_range_check = true;
-        float m_ssao_falloff_to_value = 0.0;
+        float m_ssao_falloff_to_value = 0.5;
 
-        glm::vec3 buff;
+        bool m_height_lines_enabled = false;
+
+        glm::vec2 buff;
 
 
         Q_PROPERTY(QVector4D sun_light MEMBER m_sun_light)
@@ -73,6 +77,7 @@ namespace gl_engine {
         Q_PROPERTY(unsigned int ssao_kernel MEMBER m_ssao_kernel)
         Q_PROPERTY(bool ssao_range_check MEMBER m_ssao_range_check)
         Q_PROPERTY(float ssao_falloff_to_value MEMBER m_ssao_falloff_to_value)
+        Q_PROPERTY(bool height_lines_enabled MEMBER m_height_lines_enabled)
 
         bool operator!=(const uboSharedConfig& rhs) const
         {
@@ -85,8 +90,6 @@ namespace gl_engine {
     };
 
     struct uboCameraConfig {
-
-    public:
         // Camera Position
         glm::vec4 position;
         // Camera View Matrix
@@ -105,6 +108,13 @@ namespace gl_engine {
         glm::vec2 viewport_size;
         glm::vec2 buffer2;
 
+    };
+
+    struct uboShadowConfig {
+        glm::mat4 light_space_view_proj_matrix[SHADOW_CASCADES];
+        float cascade_planes[SHADOW_CASCADES_ALIGNED] = {0,0,0,0,0,0,0,0};
+        glm::vec2 shadowmap_size;
+        glm::vec2 buff;
     };
 
 }

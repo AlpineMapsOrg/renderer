@@ -135,6 +135,25 @@ Rectangle {
                     radius: 5
                     Label {
                         x: 10; y: 3
+                        text: "Height-Lines"
+                        font.pixelSize:16
+                    }
+                    CheckBox {
+                        x: menu_width - this.width - 30; y: -10
+                        Component.onCompleted: this.checked = map.shared_config.height_lines_enabled;
+                        onCheckStateChanged: map.shared_config.height_lines_enabled = this.checked;
+                    }
+                }
+
+                Rectangle {
+                    Layout.fillWidth: true;
+                    Layout.columnSpan: 2;
+                    color: Qt.alpha("white", 0.1)
+                    height: 30
+                    border { width:1; color:Qt.alpha( "white", 0.5); }
+                    radius: 5
+                    Label {
+                        x: 10; y: 3
                         text: "Phong-Shading"
                         font.pixelSize:16
                     }
@@ -383,7 +402,7 @@ Rectangle {
                 Label { text: "Overlay:" }
                 ComboBox {
                     Layout.fillWidth: true;
-                    model: ["None", "Ortho-Picture", "Normals", "Tiles", "Zoomlevel", "Vertex-ID", "Vertex Height-Sample"]
+                    model: ["None", "Ortho-Picture", "Normals", "Tiles", "Zoomlevel", "Vertex-ID", "Vertex Height-Sample", "SSAO Buffer"]
                     Component.onCompleted:  currentIndex = map.shared_config.debug_overlay;
                     onCurrentValueChanged:  map.shared_config.debug_overlay = currentIndex;
                 }

@@ -16,23 +16,12 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *****************************************************************************/
 
-layout (std140) uniform shared_config {
-    vec4 sun_light;
-    vec4 sun_light_dir;
-    vec4 sun_pos;
-    vec4 amb_light;
-    vec4 material_color;
-    vec4 material_light_response;
-    vec4 curtain_settings;
-    bool phong_enabled;
-    uint wireframe_mode;
-    uint normal_mode;
-    uint debug_overlay;
-    float debug_overlay_strength;
-    bool ssao_enabled;
-    uint ssao_kernel;
-    bool ssao_range_check;
-    float ssao_falloff_to_value;
-    bool height_lines_enabled;
+const int SHADOW_CASCADES = 4;             // HAS TO BE THE SAME AS IN ShadowMapping.h!!
+const int SHADOW_CASCADES_ALIGNED = 8;     // either 4,8,12,16,...
+
+layout (std140) uniform shadow_config {
+    highp mat4 light_space_view_proj_matrix[SHADOW_CASCADES];
+    highp float cascade_planes[SHADOW_CASCADES_ALIGNED];
+    vec2 shadowmap_size;
     vec2 buff;
-} conf;
+} shadow;

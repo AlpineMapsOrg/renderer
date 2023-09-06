@@ -19,6 +19,7 @@
 #include "atmosphere_implementation.glsl"
 #include "encoder.glsl"
 #include "shared_config.glsl"
+#include "shadow_config.glsl"
 #include "camera_config.glsl"
 
 in highp vec2 texcoords;
@@ -29,6 +30,11 @@ uniform sampler2D texin_normal;
 uniform sampler2D texin_position;
 uniform sampler2D texin_atmosphere;
 uniform sampler2D texin_ssao;
+
+uniform sampler2D texin_csm1;
+uniform sampler2D texin_csm2;
+uniform sampler2D texin_csm3;
+uniform sampler2D texin_csm4;
 
 layout (location = 0) out lowp vec4 out_Color;
 
@@ -51,7 +57,7 @@ vec3 calc_blinn_phong_contribution(vec3 toLight, vec3 toEye, vec3 normal, vec3 d
 }
 
 // Calculates the blinn phong illumination for the given fragment
-vec3 calculate_illumination(vec3 albedo, vec3 eyePos, vec3 fragPos, vec3 fragNorm, vec4 dirLight, vec4 ambLight, vec3 dirDirection, vec4 material, float ao) {
+vec3 calculate_illumination(vec3 albedo, vec3 eyePos, vec3 fragPos, vec3 fragNorm, vec4 dirLight, vec4 ambLight, vec3 dirDirection, vec4 material, float ao, float shadow_term) {
     vec3 dirColor = dirLight.rgb * dirLight.a;
     vec3 ambColor = ambLight.rgb * ambLight.a;
     vec3 ambient = material.r * albedo;
@@ -65,7 +71,55 @@ vec3 calculate_illumination(vec3 albedo, vec3 eyePos, vec3 fragPos, vec3 fragNor
     vec3 toEyeNrmWS = normalize(eyePos - fragPos);
     vec3 diffAndSpecIllumination = dirColor * calc_blinn_phong_contribution(toLightDirWS, toEyeNrmWS, fragNorm, diff, spec, shini);
 
-    return ambientIllumination + diffAndSpecIllumination;
+    return ambientIllumination + diffAndSpecIllumination * (1.0 - shadow_term);
+}
+
+float sample_shadow_texture(int layer, vec2 texcoords) {
+    switch (layer) {
+        case 0: return texture2D(texin_csm1, texcoords).r;
+        case 1: return texture2D(texin_csm2, texcoords).r;
+        case 2: return texture2D(texin_csm3, texcoords).r;
+        case 3: return texture2D(texin_csm4, texcoords).r;
+        default: return 0.0;
+    }
+}
+
+float csm_shadow_term(vec4 pos_cws, vec3 normal_ws) {
+    // SELECT LAYER
+    vec4 pos_vs = camera.view_matrix * pos_cws;
+    float depth_cam = abs(pos_vs.z);
+
+    int layer = -1;
+    for (int i = 0; i < SHADOW_CASCADES; i++) {
+        if (depth_cam < shadow.cascade_planes[i + 1]) {
+            layer = i;
+            break;
+        }
+    }
+    if (layer == -1) layer = SHADOW_CASCADES - 1;
+
+    vec4 pos_ls = shadow.light_space_view_proj_matrix[layer] * pos_cws;
+    vec3 pos_ls_ndc = pos_ls.xyz / pos_ls.w * 0.5 + 0.5;
+
+    float depth_ls = pos_ls_ndc.z;
+    if (depth_ls > 1.0) return 0.0;
+
+    // calculate bias based on depth resolution and slope
+    float bias = max(0.05 * (1.0 - dot(normal_ws, conf.sun_light_dir.xyz)), 0.005); // ToDo: Make sure - is correct
+    const float biasModifier = 0.5f;
+    bias *= 1.0 / (shadow.cascade_planes[layer + 1] * biasModifier);
+    bias = 0.05;
+
+    float term = 0.0;
+    vec2 texelSize = 1.0 / shadow.shadowmap_size;
+    for (int x = -1; x <= 1; ++x) {
+        for (int y = -1; y <= 1; ++y) {
+            float pcfDepth = sample_shadow_texture(layer, pos_ls_ndc.xy + vec2(x,y) * texelSize);
+            term += (depth_ls - bias) > pcfDepth ? 1.0 : 0.0;
+        }
+    }
+    term /= 9.0;
+    return term;
 }
 
 void main() {
@@ -76,6 +130,7 @@ void main() {
     highp vec4 normal_dist = texture(texin_normal, texcoords);
     highp vec3 pos_wrt_cam = texture(texin_position, texcoords).xyz;
     highp float amb_occlusion = 1.0;
+    highp float shadow_term = 0.0;
     if (conf.ssao_enabled) amb_occlusion = texture(texin_ssao, texcoords).r;
     highp vec3 normal = normal_dist.xyz;
     highp float dist = normal_dist.w;
@@ -95,9 +150,14 @@ void main() {
 
         highp vec3 light_through_atmosphere = calculate_atmospheric_light(origin / 1000.0, ray_direction, dist / 1000.0, albedo, 10);
 
+
+        if (true) {
+            shadow_term = csm_shadow_term(vec4(pos_wrt_cam, 1.0), normal);
+        }
+
         shaded_color = albedo;
         if (conf.phong_enabled) {
-            shaded_color = calculate_illumination(shaded_color, origin, pos_wrt_cam, normal, conf.sun_light, conf.amb_light, conf.sun_light_dir.xyz, conf.material_light_response, amb_occlusion);
+            shaded_color = calculate_illumination(shaded_color, origin, pos_wrt_cam, normal, conf.sun_light, conf.amb_light, conf.sun_light_dir.xyz, conf.material_light_response, amb_occlusion, shadow_term);
         }
         shaded_color = calculate_atmospheric_light(origin / 1000.0, ray_direction, dist / 1000.0, shaded_color, 10);
         shaded_color = max(vec3(0.0), shaded_color);
@@ -111,9 +171,27 @@ void main() {
 
     if (conf.debug_overlay_strength > 0.0 && conf.debug_overlay > 0u) {
         vec4 overlayColor = vec4(0.0);
-        if (conf.debug_overlay == 1u) overlayColor = vec4(vec3(amb_occlusion), 1.0);
+        if (conf.debug_overlay == 7u) overlayColor = vec4(vec3(amb_occlusion), 1.0);
         out_Color = mix(out_Color, overlayColor, conf.debug_overlay_strength);
     }
+
+    out_Color = vec4(shadow_term);
+
+    // OVERLAY SHADOW MAPS
+    float wsize = 0.2;
+    float invwsize = 1.0/wsize;
+    if (texcoords.x < wsize) {
+        if (texcoords.y < wsize) {
+            out_Color = texture2D(texin_csm1, (texcoords - vec2(0.0, wsize*0)) * invwsize).rrrr;
+        } else if (texcoords.y < wsize * 2) {
+            out_Color = texture2D(texin_csm2, (texcoords - vec2(0.0, wsize*1)) * invwsize).rrrr;
+        } else if (texcoords.y < wsize * 3) {
+            out_Color = texture2D(texin_csm3, (texcoords - vec2(0.0, wsize*2)) * invwsize).rrrr;
+        } else if (texcoords.y < wsize * 4) {
+            out_Color = texture2D(texin_csm4, (texcoords - vec2(0.0, wsize*3)) * invwsize).rrrr;
+        }
+    }
+
     //out_Color = vec4(vec3(ssao), 1.0);
     //out_Color = vec4(atmoshperic_color * (1.0 - alpha),1.0);
     //out_Color = vec4(vec3(alpha), 1.0);

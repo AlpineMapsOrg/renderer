@@ -48,7 +48,9 @@
 #include "nucleus/utils/bit_coding.h"
 #include "TimerManager.h"
 #include "SSAO.h"
+#include "ShadowMapping.h"
 
+#include <glm/glm.hpp>
 #include <glm/gtx/transform.hpp>
 
 using gl_engine::Window;
@@ -84,33 +86,41 @@ void Window::initialise_gpu()
     m_tile_manager->initilise_attribute_locations(m_shader_manager->tile_shader());
     m_screen_quad_geometry = gl_engine::helpers::create_screen_quad_geometry();
     m_gbuffer = std::make_unique<Framebuffer>(Framebuffer::DepthFormat::Int24,
-                                              std::vector({
-                                                           Framebuffer::ColourFormat::RGBA8,    // Albedo
-                                                           Framebuffer::ColourFormat::RGBA8,    // Encoded Depth
-                                                           Framebuffer::ColourFormat::RGBA16F,  // Normal + Dist
-                                                           Framebuffer::ColourFormat::RGB16F    // Position CWS
-                                              }));
+                                              std::vector{
+                                                  TextureDefinition{ Framebuffer::ColourFormat::RGBA8 },    // Albedo
+                                                  TextureDefinition{ Framebuffer::ColourFormat::RGBA8 },    // Encoded Depth
+                                                  TextureDefinition{ Framebuffer::ColourFormat::RGBA16F },  // Normal + Dist
+                                                  TextureDefinition{ Framebuffer::ColourFormat::RGB16F }    // Position CWS
+                                              });
 
-    m_atmospherebuffer = std::make_unique<Framebuffer>(Framebuffer::DepthFormat::None, std::vector({ Framebuffer::ColourFormat::RGBA8 }));
+    m_atmospherebuffer = std::make_unique<Framebuffer>(Framebuffer::DepthFormat::None, std::vector{ TextureDefinition{Framebuffer::ColourFormat::RGBA8} });
 
-    m_shared_config_ubo = std::make_unique<gl_engine::UniformBuffer<gl_engine::uboSharedConfig>>(0, "shared_config");
+    m_shared_config_ubo = std::make_shared<gl_engine::UniformBuffer<gl_engine::uboSharedConfig>>(0, "shared_config");
     m_shared_config_ubo->init();
     m_shared_config_ubo->bind_to_shader(m_shader_manager->all());
 
-    m_camera_config_ubo = std::make_unique<gl_engine::UniformBuffer<gl_engine::uboCameraConfig>>(1, "camera_config");
+    m_camera_config_ubo = std::make_shared<gl_engine::UniformBuffer<gl_engine::uboCameraConfig>>(1, "camera_config");
     m_camera_config_ubo->init();
     m_camera_config_ubo->bind_to_shader(m_shader_manager->all());
 
+    m_shadow_config_ubo = std::make_shared<gl_engine::UniformBuffer<gl_engine::uboShadowConfig>>(2, "shadow_config");
+    m_shadow_config_ubo->init();
+    m_shadow_config_ubo->bind_to_shader(m_shader_manager->all());
+
     m_ssao = std::make_unique<gl_engine::SSAO>(m_shader_manager->shared_ssao_program(), m_shader_manager->shared_ssao_blur_program());
+
+    m_shadowmapping = std::make_unique<gl_engine::ShadowMapping>(m_shader_manager->shared_shadowmap_program(), m_shadow_config_ubo, m_shared_config_ubo);
 
     m_timer = std::make_unique<gl_engine::TimerManager>();
 
     m_timer->add_timer("ssao", gl_engine::TimerTypes::GPUAsync, "GPU");
     m_timer->add_timer("atmosphere", gl_engine::TimerTypes::GPUAsync, "GPU");
     m_timer->add_timer("tiles", gl_engine::TimerTypes::GPUAsync, "GPU");
+    m_timer->add_timer("shadowmap", gl_engine::TimerTypes::GPUAsync, "GPU");
     m_timer->add_timer("compose", gl_engine::TimerTypes::GPUAsync, "GPU");
     m_timer->add_timer("cpu_total", gl_engine::TimerTypes::CPU, "TOTAL");
     m_timer->add_timer("gpu_total", gl_engine::TimerTypes::GPUAsync, "TOTAL");
+    m_timer->add_timer("draw_list", gl_engine::TimerTypes::CPU, "CPU");
     m_timer->add_timer("all", gl_engine::TimerTypes::CPU, "TOTAL");
 
 
@@ -161,7 +171,6 @@ void Window::paint(QOpenGLFramebufferObject* framebuffer)
     m_camera_config_ubo->update_gpu_data();
 
 
-
     // DRAW ATMOSPHERIC BACKGROUND
     m_atmospherebuffer->bind();
     f->glClearColor(0.0, 0.0, 0.0, 1.0);
@@ -177,6 +186,17 @@ void Window::paint(QOpenGLFramebufferObject* framebuffer)
     m_timer->stop_timer("atmosphere");
 
 
+    // Generate Draw-List
+    // Note: Could also just be done on camera change
+    m_timer->start_timer("draw_list");
+    const auto draw_tiles = m_tile_manager->generate_tilelist(m_camera);
+    m_timer->stop_timer("draw_list");
+
+    // DRAW SHADOWMAP
+    m_timer->start_timer("shadowmap");
+    m_shadowmapping->draw(m_tile_manager.get(), draw_tiles, m_camera);
+    m_timer->stop_timer("shadowmap");
+
     // DRAW GBUFFER
     m_gbuffer->bind();
 
@@ -190,7 +210,7 @@ void Window::paint(QOpenGLFramebufferObject* framebuffer)
 
     m_shader_manager->tile_shader()->bind();
     m_timer->start_timer("tiles");
-    m_tile_manager->draw(m_shader_manager->tile_shader(), m_camera, m_sort_tiles);
+    m_tile_manager->draw(m_shader_manager->tile_shader(), m_camera, draw_tiles, m_sort_tiles, m_camera.position());
     m_timer->stop_timer("tiles");
 
     if (funcs && m_shared_config_ubo->data.m_wireframe_mode > 0) funcs->glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
@@ -220,6 +240,7 @@ void Window::paint(QOpenGLFramebufferObject* framebuffer)
     m_atmospherebuffer->bind_colour_texture(0, 4);
     p->set_uniform("texin_ssao", 5);
     m_ssao->bind_ssao_texture(5);
+    m_shadowmapping->bind_shadow_maps(p, 6);
 
     m_timer->start_timer("compose");
     m_screen_quad_geometry.draw();
@@ -248,6 +269,7 @@ void Window::paint(QOpenGLFramebufferObject* framebuffer)
 
 void Window::paintOverGL(QPainter* painter)
 {
+    /*
     const auto frame_duration_text = QString("draw indicator: ");
 
     const auto random_u32 = QRandomGenerator::global()->generate();
@@ -259,7 +281,7 @@ void Window::paintOverGL(QPainter* painter)
     painter->drawText(10, 40, m_debug_scheduler_stats);
     painter->drawText(10, 60, m_debug_text);
     painter->setBrush(QBrush(QColor(random_u32)));
-    painter->drawRect(int(text_bb.right()) + 5, 8, 12, 12);
+    painter->drawRect(int(text_bb.right()) + 5, 8, 12, 12);*/
 }
 
 void Window::shared_config_changed(gl_engine::uboSharedConfig ubo) {
@@ -285,6 +307,7 @@ void Window::keyPressEvent(QKeyEvent* e)
         // NOTE: UBOs need to be reattached to the programs!
         m_shared_config_ubo->bind_to_shader(m_shader_manager->all());
         m_camera_config_ubo->bind_to_shader(m_shader_manager->all());
+        m_shadow_config_ubo->bind_to_shader(m_shader_manager->all());
         emit update_requested();
     }
     if (e->key() == Qt::Key::Key_F6) {

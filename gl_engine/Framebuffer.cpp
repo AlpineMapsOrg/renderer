@@ -28,9 +28,8 @@
 #include <GLES3/gl3.h>
 #endif
 
-using gl_engine::Framebuffer;
 
-namespace {
+namespace gl_engine {
 
 // https://registry.khronos.org/OpenGL-Refpages/es3.0/html/glTexImage2D.xhtml
 QOpenGLTexture::TextureFormat internal_format_qt(Framebuffer::ColourFormat f)
@@ -142,7 +141,7 @@ QImage::Format qimage_format(Framebuffer::ColourFormat f)
     assert(false);
     return QImage::Format_Invalid;
 }
-}
+
 
 void Framebuffer::recreate_texture(int index) {
     if (index == -1) {
@@ -157,11 +156,12 @@ void Framebuffer::recreate_texture(int index) {
         }
     } else {
         m_colour_textures[index]->destroy();
-        m_colour_textures[index]->setFormat(internal_format_qt(m_colour_formats[index]));
+        m_colour_textures[index]->setFormat(internal_format_qt(m_colour_definitions[index].format));
         m_colour_textures[index]->setSize(int(m_size.x), int(m_size.y));
-        m_colour_textures[index]->setAutoMipMapGenerationEnabled(false);
-        m_colour_textures[index]->setMinMagFilters(QOpenGLTexture::Filter::Linear, QOpenGLTexture::Filter::Linear);
-        m_colour_textures[index]->setWrapMode(QOpenGLTexture::WrapMode::ClampToEdge);
+        m_colour_textures[index]->setAutoMipMapGenerationEnabled(m_colour_definitions[index].autoMipMapGeneration);
+        m_colour_textures[index]->setMinMagFilters(m_colour_definitions[index].minFilter, m_colour_definitions[index].magFilter);
+        m_colour_textures[index]->setWrapMode(m_colour_definitions[index].wrapMode);
+        m_colour_textures[index]->setBorderColor(m_colour_definitions[index].borderColor);
         m_colour_textures[index]->allocateStorage();
     }
 }
@@ -173,18 +173,20 @@ void Framebuffer::recreate_all_textures() {
 }
 
 
-Framebuffer::Framebuffer(DepthFormat depth_format, std::vector<ColourFormat> colour_formats)
+Framebuffer::Framebuffer(DepthFormat depth_format, std::vector<TextureDefinition> colour_definitions, glm::uvec2 init_size)
     : m_depth_format(depth_format),
-    m_colour_formats(std::move(colour_formats)),
-    m_size(4, 4)
+    m_colour_definitions(std::move(colour_definitions)),
+    m_size(init_size)
 {
 
-    for (int i = 0; i < m_colour_formats.size(); i++) {
-        m_colour_textures.push_back(std::move(std::make_unique<QOpenGLTexture>(QOpenGLTexture::Target::Target2D)));
+    for (int i = 0; i < m_colour_definitions.size(); i++) {
+        auto colorTexture = std::make_unique<QOpenGLTexture>(QOpenGLTexture::Target::Target2D);
+        m_colour_textures.push_back(std::move(colorTexture));
     }
     if (m_depth_format != DepthFormat::None) {
         m_depth_texture = std::make_unique<QOpenGLTexture>(QOpenGLTexture::Target::Target2D);
     }
+
     recreate_all_textures();
     QOpenGLFunctions* f = QOpenGLContext::currentContext()->functions();
     f->glBindTexture(GL_TEXTURE_2D, 0);
@@ -232,21 +234,23 @@ QImage Framebuffer::read_colour_attachment(unsigned index)
 {
     assert(index >= 0 && index < m_colour_textures.size());
 
+    auto texFormat = m_colour_definitions[index].format;
+
     // Float framebuffers can not be read efficiently on all environments.
     // that is, reading float red channel crashes on linux webassembly, but reading it as rgba is inefficient on linux native (4x slower, yes I measured).
     // i'm removing the old reading code altogether in order not to be tempted to use it in production (or by accident).
     // if you need to read a float32 buffer, pack the float into rgba8 values!
-    assert(m_colour_formats[index] == ColourFormat::RGBA8);
-    if (m_colour_formats[index] != ColourFormat::RGBA8)
+    assert(texFormat == ColourFormat::RGBA8);
+    if (texFormat != ColourFormat::RGBA8)
         return {};
 
     bind();
     QOpenGLExtraFunctions* f = QOpenGLContext::currentContext()->extraFunctions();
     f->glReadBuffer(GL_COLOR_ATTACHMENT0 + index);
 
-    QImage image({ static_cast<int>(m_size.x), static_cast<int>(m_size.y) }, qimage_format(m_colour_formats[index]));
+    QImage image({ static_cast<int>(m_size.x), static_cast<int>(m_size.y) }, qimage_format(texFormat));
     assert(!image.isNull());
-    f->glReadPixels(0, 0, int(m_size.x), int(m_size.y), format(m_colour_formats[index]), type(m_colour_formats[index]), image.bits());
+    f->glReadPixels(0, 0, int(m_size.x), int(m_size.y), format(texFormat), type(texFormat), image.bits());
     image.mirror();
 
     return image;
@@ -255,8 +259,10 @@ QImage Framebuffer::read_colour_attachment(unsigned index)
 std::array<uchar, 4> Framebuffer::read_colour_attachment_pixel(unsigned index, const glm::dvec2& normalised_device_coordinates)
 {
     assert(index >= 0 && index < m_colour_textures.size());
-    assert(m_colour_formats[index] == ColourFormat::RGBA8);
-    if (m_colour_formats[index] != ColourFormat::RGBA8)
+
+    auto texFormat = m_colour_definitions[index].format;
+    assert(texFormat == ColourFormat::RGBA8);
+    if (texFormat != ColourFormat::RGBA8)
         return {};
 
     QOpenGLExtraFunctions* f = QOpenGLContext::currentContext()->extraFunctions();
@@ -266,7 +272,7 @@ std::array<uchar, 4> Framebuffer::read_colour_attachment_pixel(unsigned index, c
     f->glReadPixels(
         int((normalised_device_coordinates.x + 1) / 2 * m_size.x),
         int((normalised_device_coordinates.y + 1) / 2 * m_size.y),
-        1, 1, format(m_colour_formats[index]), type(m_colour_formats[index]), pixel.data());
+        1, 1, format(texFormat), type(texFormat), pixel.data());
     unbind();
     return pixel;
 }
@@ -296,7 +302,7 @@ void Framebuffer::reset_fbo()
     assert(f->glCheckFramebufferStatus(GL_FRAMEBUFFER) == GL_FRAMEBUFFER_COMPLETE);
 }
 
-namespace gl_engine {
+
 glm::uvec2 Framebuffer::size() const
 {
     return m_size;

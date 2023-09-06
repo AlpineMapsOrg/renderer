@@ -62,3 +62,4 @@ template <typename T> void gl_engine::UniformBuffer<T>::update_gpu_data() {
 // IMPORTANT: All possible Template Classes need to be defined here:
 template class gl_engine::UniformBuffer<gl_engine::uboSharedConfig>;
 template class gl_engine::UniformBuffer<gl_engine::uboCameraConfig>;
+template class gl_engine::UniformBuffer<gl_engine::uboShadowConfig>;

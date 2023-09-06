@@ -124,19 +124,21 @@ void main() {
         texout_albedo = vec4(d_color, 1.0);
 */
     // == HEIGHT LINES ==============
-    /*float alpha = 1.0 - min((dist / 10000.0), 1.0);
-    float line_width = (2.0 + dist / 5000.0) * 5.0;
-    // Calculate steepness based on fragment normal (this alone gives woobly results)
-    float steepness = (1.0 - dot(normal, vec3(0.0,0.0,1.0))) / 2.0;
-    // Discretize the steepness -> Doesnt work
-    //float steepness_discretized = int(steepness * 10.0f) / 10.0f;
-    line_width = line_width * max(0.01,steepness);
-    if (alpha > 0.05)
-    {
-        float alt = var_pos_wrt_cam.z + camera.position.z;
-        float alt_rest = (alt - int(alt / 100.0) * 100.0) - line_width / 2.0;
-        if (alt_rest < line_width) {
-            texout_albedo = mix(texout_albedo, vec4(texout_albedo.r - 0.2, texout_albedo.g - 0.2, texout_albedo.b - 0.2, 1.0), alpha);
+    if (conf.height_lines_enabled) {
+        float alpha_line = 1.0 - min((dist / 10000.0), 1.0);
+        float line_width = (2.0 + dist / 5000.0) * 5.0;
+        // Calculate steepness based on fragment normal (this alone gives woobly results)
+        float steepness = (1.0 - dot(normal, vec3(0.0,0.0,1.0))) / 2.0;
+        // Discretize the steepness -> Doesnt work
+        //float steepness_discretized = int(steepness * 10.0f) / 10.0f;
+        line_width = line_width * max(0.01,steepness);
+        if (alpha_line > 0.05)
+        {
+            float alt = var_pos_wrt_cam.z + camera.position.z;
+            float alt_rest = (alt - int(alt / 100.0) * 100.0) - line_width / 2.0;
+            if (alt_rest < line_width) {
+                texout_albedo = mix(texout_albedo, vec4(texout_albedo.r - 0.2, texout_albedo.g - 0.2, texout_albedo.b - 0.2, 1.0), alpha_line);
+            }
         }
-    }*/
+    }
 }

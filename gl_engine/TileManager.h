@@ -47,7 +47,9 @@ public:
     void init(); // needs OpenGL context
 
     [[nodiscard]] const std::vector<TileSet>& tiles() const;
-    void draw(ShaderProgram* shader_program, const nucleus::camera::Definition& camera, bool sort_tiles) const;
+    void draw(ShaderProgram* shader_program, const nucleus::camera::Definition& camera, const nucleus::tile_scheduler::DrawListGenerator::TileSet draw_tiles, bool sort_tiles, glm::dvec3 sort_position) const;
+
+    const nucleus::tile_scheduler::DrawListGenerator::TileSet generate_tilelist(const nucleus::camera::Definition& camera) const;
 
     void set_permissible_screen_space_error(float new_permissible_screen_space_error);
 
@@ -79,5 +81,6 @@ private:
     TileGLAttributeLocations m_attribute_locations;
     unsigned m_tiles_per_set = 1;
     nucleus::tile_scheduler::DrawListGenerator m_draw_list_generator;
+    const nucleus::tile_scheduler::DrawListGenerator::TileSet m_last_draw_list; // buffer last generated draw list
 };
 }

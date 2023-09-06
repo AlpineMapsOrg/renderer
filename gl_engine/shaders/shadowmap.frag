@@ -1,6 +1,6 @@
 /*****************************************************************************
  * Alpine Terrain Renderer
- * Copyright (C) 2022 Adam Celarek, Gerald Kimmersdorfer
+ * Copyright (C) 2022 Adam Celarek
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -16,23 +16,10 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *****************************************************************************/
 
-layout (std140) uniform shared_config {
-    vec4 sun_light;
-    vec4 sun_light_dir;
-    vec4 sun_pos;
-    vec4 amb_light;
-    vec4 material_color;
-    vec4 material_light_response;
-    vec4 curtain_settings;
-    bool phong_enabled;
-    uint wireframe_mode;
-    uint normal_mode;
-    uint debug_overlay;
-    float debug_overlay_strength;
-    bool ssao_enabled;
-    uint ssao_kernel;
-    bool ssao_range_check;
-    float ssao_falloff_to_value;
-    bool height_lines_enabled;
-    vec2 buff;
-} conf;
+layout (location = 0) out highp float texout_depth;
+
+in highp vec3 var_pos_wrt_cam;
+
+void main() {
+    texout_depth = gl_FragCoord.z;
+}

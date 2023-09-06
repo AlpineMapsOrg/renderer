@@ -88,7 +88,7 @@ TEST_CASE("gl framebuffer")
     REQUIRE(f);
     SECTION("rgba8 bit")
     {
-        Framebuffer b(Framebuffer::DepthFormat::None, { Framebuffer::ColourFormat::RGBA8 });
+        Framebuffer b(Framebuffer::DepthFormat::None, { {Framebuffer::ColourFormat::RGBA8} });
         b.resize({ 501, 211 });
         b.bind();
         ShaderProgram shader = create_debug_shader();
@@ -111,7 +111,7 @@ TEST_CASE("gl framebuffer")
     }
     SECTION("rgba8 bit read benchmark")
     {
-        Framebuffer b(Framebuffer::DepthFormat::None, { Framebuffer::ColourFormat::RGBA8 });
+        Framebuffer b(Framebuffer::DepthFormat::None, { {Framebuffer::ColourFormat::RGBA8} });
         b.resize({ 1920, 1080 });
         b.bind();
         ShaderProgram shader = create_debug_shader();
@@ -127,7 +127,7 @@ TEST_CASE("gl framebuffer")
 
     SECTION("read pixel")
     {
-        Framebuffer b(Framebuffer::DepthFormat::None, { Framebuffer::ColourFormat::RGBA8 });
+        Framebuffer b(Framebuffer::DepthFormat::None, { {Framebuffer::ColourFormat::RGBA8} });
         b.resize({ 1920, 1080 });
         b.bind();
         ShaderProgram shader = create_debug_shader();
@@ -152,7 +152,7 @@ TEST_CASE("gl framebuffer")
             std::pair { 32767.0f / (256 * 256 - 1), 1.0f - 256.0f / (256 * 256 - 1) },
         };
         for (const auto& pair : tuples) {
-            Framebuffer b(Framebuffer::DepthFormat::None, { Framebuffer::ColourFormat::RGBA8 });
+            Framebuffer b(Framebuffer::DepthFormat::None, { { Framebuffer::ColourFormat::RGBA8 } });
             b.resize({ 1920, 1080 });
             b.bind();
             ShaderProgram shader = create_encoder_shader(pair.first, pair.second);

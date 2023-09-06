@@ -22,6 +22,8 @@
 
 #include <QImage>
 #include <glm/glm.hpp>
+#include <QOpenGLTexture>
+#include <QColor>
 
 
 // There is QOpenGLFramebufferObject, but its API lacks the following:
@@ -29,9 +31,11 @@
 // - resize (while keeping all parametres)
 // - limited depth / colour formats (to ease the pain of managing)
 
-class QOpenGLTexture;
 
 namespace gl_engine {
+
+struct TextureDefinition;
+
 class Framebuffer
 {
 public:
@@ -51,7 +55,8 @@ public:
 
 private:
     DepthFormat m_depth_format;
-    std::vector<ColourFormat> m_colour_formats;
+    std::vector<TextureDefinition> m_colour_definitions;
+
     std::unique_ptr<QOpenGLTexture> m_depth_texture;
     std::vector<std::unique_ptr<QOpenGLTexture>> m_colour_textures;
     //std::unique_ptr<QOpenGLTexture> m_colour_texture;
@@ -63,7 +68,7 @@ private:
     void recreate_all_textures();
 
 public:
-    Framebuffer(DepthFormat depth_format, std::vector<ColourFormat> colour_formats);
+    Framebuffer(DepthFormat depth_format, std::vector<TextureDefinition> colour_definitions, glm::uvec2 init_size = {4,4});
     ~Framebuffer();
     void resize(const glm::uvec2& new_size);
     void bind();
@@ -81,4 +86,14 @@ public:
 private:
     void reset_fbo();
 };
+
+struct TextureDefinition {
+    Framebuffer::ColourFormat format = Framebuffer::ColourFormat::RGBA8;
+    QOpenGLTexture::Filter minFilter = QOpenGLTexture::Filter::Linear;
+    QOpenGLTexture::Filter magFilter = QOpenGLTexture::Filter::Linear;
+    QOpenGLTexture::WrapMode wrapMode = QOpenGLTexture::WrapMode::ClampToEdge;
+    QColor borderColor = QColor(0.0f, 0.0f, 0.0f, 1.0f);
+    bool autoMipMapGeneration = false;
+};
+
 }

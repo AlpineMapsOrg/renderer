@@ -50,6 +50,7 @@ class Framebuffer;
 class TimerManager;
 class qTimerReport;
 class SSAO;
+class ShadowMapping;
 
 class Window : public nucleus::AbstractRenderWindow, public nucleus::camera::AbstractDepthTester {
     Q_OBJECT
@@ -93,12 +94,13 @@ private:
 
     std::unique_ptr<Framebuffer> m_gbuffer;
     std::unique_ptr<Framebuffer> m_atmospherebuffer;
-    //std::unique_ptr<Framebuffer> m_depth_buffer;
 
     std::unique_ptr<SSAO> m_ssao;
+    std::unique_ptr<ShadowMapping> m_shadowmapping;
 
-    std::unique_ptr<UniformBuffer<uboSharedConfig>> m_shared_config_ubo; // needs opengl context
-    std::unique_ptr<UniformBuffer<uboCameraConfig>> m_camera_config_ubo;
+    std::shared_ptr<UniformBuffer<uboSharedConfig>> m_shared_config_ubo; // needs opengl context
+    std::shared_ptr<UniformBuffer<uboCameraConfig>> m_camera_config_ubo;
+    std::shared_ptr<UniformBuffer<uboShadowConfig>> m_shadow_config_ubo;
 
     helpers::ScreenQuadGeometry m_screen_quad_geometry;
 
