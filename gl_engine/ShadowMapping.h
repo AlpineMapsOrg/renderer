@@ -8,10 +8,9 @@
 #include "nucleus/tile_scheduler/DrawListGenerator.h"
 #include "UniformBuffer.h"
 
-#define SHADOWMAP_WIDTH 2048
-#define SHADOWMAP_HEIGHT 2048
+#define SHADOWMAP_WIDTH 4096
+#define SHADOWMAP_HEIGHT 4096
 #define SHADOW_CASCADES 4           // HAS TO BE THE SAME AS IN shadow_config.glsl!!
-#define SHADOW_CASCADES_ALIGNED 8   // either 4,8,12,16,...
 
 class QOpenGLTexture;
 class QOpenGLExtraFunctions;

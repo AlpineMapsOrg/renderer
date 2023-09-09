@@ -27,6 +27,9 @@ uniform highp vec4 bounds[32];
 uniform int n_edge_vertices;
 uniform sampler2D height_sampler;
 
+//---------
+out lowp vec2 uv;
+//---------
 out highp vec3 var_pos_wrt_cam;
 
 uniform int current_layer;
@@ -78,13 +81,16 @@ void main() {
     float pos_y = var_pos_wrt_cam_y + camera.position.y;
     float altitude_correction_factor = 65536.0 * 0.125 / cos(y_to_lat(pos_y)); // https://github.com/AlpineMapsOrg/renderer/issues/5
 
+    //---------
+    uv = vec2(col / edge_vertices_count, row / edge_vertices_count);
+    //---------
+
     float adjusted_altitude = altitude * altitude_correction_factor;
 
     var_pos_wrt_cam = vec3(float(col) * tile_width + bounds[geometry_id].x,
                        var_pos_wrt_cam_y,
                        adjusted_altitude - camera.position.z);
 
-    /* No curtains for shadow rendering
     if (curtain_vertex_id >= 0) {
         float curtain_height = conf.curtain_settings.z;
         if (conf.curtain_settings.y == 1.0) {
@@ -93,7 +99,7 @@ void main() {
             curtain_height *= dist_factor;
         }
         var_pos_wrt_cam.z = var_pos_wrt_cam.z - curtain_height;
-    }*/
+    }
 
 
     gl_Position = shadow.light_space_view_proj_matrix[current_layer] * vec4(var_pos_wrt_cam, 1);

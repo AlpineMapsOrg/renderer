@@ -21,6 +21,7 @@
 #include "shared_config.glsl"
 #include "shadow_config.glsl"
 #include "camera_config.glsl"
+#include "hashing.glsl"
 
 in highp vec2 texcoords;
 
@@ -84,6 +85,8 @@ float sample_shadow_texture(int layer, vec2 texcoords) {
     }
 }
 
+vec3 debug_color = vec3(0.0);
+
 float csm_shadow_term(vec4 pos_cws, vec3 normal_ws) {
     // SELECT LAYER
     vec4 pos_vs = camera.view_matrix * pos_cws;
@@ -98,6 +101,8 @@ float csm_shadow_term(vec4 pos_cws, vec3 normal_ws) {
     }
     if (layer == -1) layer = SHADOW_CASCADES - 1;
 
+    debug_color = color_from_id_hash(uint(layer));
+
     vec4 pos_ls = shadow.light_space_view_proj_matrix[layer] * pos_cws;
     vec3 pos_ls_ndc = pos_ls.xyz / pos_ls.w * 0.5 + 0.5;
 
@@ -105,10 +110,13 @@ float csm_shadow_term(vec4 pos_cws, vec3 normal_ws) {
     if (depth_ls > 1.0) return 0.0;
 
     // calculate bias based on depth resolution and slope
-    float bias = max(0.05 * (1.0 - dot(normal_ws, conf.sun_light_dir.xyz)), 0.005); // ToDo: Make sure - is correct
-    const float biasModifier = 0.5f;
+    float bias = max(0.05 * (1.0 - dot(normal_ws, -conf.sun_light_dir.xyz)), 0.005); // ToDo: Make sure - is correct
+
+    float dist = length(pos_cws.xyz);
+    float biasModifier = 1.0 / dist * 10; // make depth dependent
+    biasModifier = 0.005;
     bias *= 1.0 / (shadow.cascade_planes[layer + 1] * biasModifier);
-    bias = 0.05;
+    //bias = 0.0005;
 
     float term = 0.0;
     vec2 texelSize = 1.0 / shadow.shadowmap_size;
@@ -150,7 +158,6 @@ void main() {
 
         highp vec3 light_through_atmosphere = calculate_atmospheric_light(origin / 1000.0, ray_direction, dist / 1000.0, albedo, 10);
 
-
         if (true) {
             shadow_term = csm_shadow_term(vec4(pos_wrt_cam, 1.0), normal);
         }
@@ -175,10 +182,11 @@ void main() {
         out_Color = mix(out_Color, overlayColor, conf.debug_overlay_strength);
     }
 
-    out_Color = vec4(shadow_term);
+    //out_Color = mix(vec4(debug_color, 1.0), out_Color, 0.5);
+    //out_Color = vec4(shadow_term);
 
     // OVERLAY SHADOW MAPS
-    float wsize = 0.2;
+    float wsize = 0.25;
     float invwsize = 1.0/wsize;
     if (texcoords.x < wsize) {
         if (texcoords.y < wsize) {

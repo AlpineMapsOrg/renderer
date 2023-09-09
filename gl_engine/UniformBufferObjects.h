@@ -112,7 +112,7 @@ namespace gl_engine {
 
     struct uboShadowConfig {
         glm::mat4 light_space_view_proj_matrix[SHADOW_CASCADES];
-        float cascade_planes[SHADOW_CASCADES_ALIGNED] = {0,0,0,0,0,0,0,0};
+        glm::vec4 cascade_planes[SHADOW_CASCADES + 1];  // vec4 necessary because of alignment (only x will be used)
         glm::vec2 shadowmap_size;
         glm::vec2 buff;
     };

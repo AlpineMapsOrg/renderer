@@ -45,23 +45,24 @@ void ShadowMapping::draw(
 
     float far_plane = 100000; // Similar to camera?
     float near_plane = camera.near_plane(); // Similar to camera?
-    m_shadow_config->data.cascade_planes[0] = near_plane;
-    m_shadow_config->data.cascade_planes[1] = far_plane / 50.0f;
-    m_shadow_config->data.cascade_planes[2] = far_plane / 25.0f;
-    m_shadow_config->data.cascade_planes[3] = far_plane / 10.0f;
-    m_shadow_config->data.cascade_planes[4] = far_plane;
+    m_shadow_config->data.cascade_planes[0].x = near_plane;
+    m_shadow_config->data.cascade_planes[1].x = far_plane / 50.0f;
+    m_shadow_config->data.cascade_planes[2].x = far_plane / 25.0f;
+    m_shadow_config->data.cascade_planes[3].x = far_plane / 10.0f;
+    m_shadow_config->data.cascade_planes[4].x = far_plane;
     m_shadow_config->data.shadowmap_size = glm::vec2(SHADOWMAP_WIDTH, SHADOWMAP_HEIGHT);
 
     auto qlight_dir = m_shared_config->data.m_sun_light_dir;
     auto light_dir = -glm::vec3(qlight_dir.x(), qlight_dir.y(), qlight_dir.z());
 
     for (size_t i = 0; i < SHADOW_CASCADES; ++i)
-        m_shadow_config->data.light_space_view_proj_matrix[i] = getLightSpaceMatrix(m_shadow_config->data.cascade_planes[i], m_shadow_config->data.cascade_planes[i + 1], camera, light_dir);
+        m_shadow_config->data.light_space_view_proj_matrix[i] = getLightSpaceMatrix(m_shadow_config->data.cascade_planes[i].x, m_shadow_config->data.cascade_planes[i + 1].x, camera, light_dir);
 
     m_shadow_config->update_gpu_data();
 
     m_f->glEnable(GL_DEPTH_TEST);
     m_f->glDepthFunc(GL_LESS);
+    m_f->glDisable(GL_CULL_FACE);
     m_f->glViewport(0, 0, SHADOWMAP_WIDTH, SHADOWMAP_HEIGHT);
     for (int i = 0; i < SHADOW_CASCADES; i++) {
         m_shadowmapbuffer[i]->bind();
@@ -69,9 +70,11 @@ void ShadowMapping::draw(
         m_f->glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
         m_shadow_program->bind();
         m_shadow_program->set_uniform("current_layer", i);
-        tile_manager->draw(m_shadow_program.get(), camera, draw_tileset, false, glm::dvec3(0.0));
+
+        tile_manager->draw(m_shadow_program.get(), camera, draw_tileset, true, glm::dvec3(0.0));
         m_shadowmapbuffer[i]->unbind();
     }
+    m_f->glEnable(GL_CULL_FACE);
     m_f->glViewport(0, 0, camera.viewport_size().x, camera.viewport_size().y);
 }
 

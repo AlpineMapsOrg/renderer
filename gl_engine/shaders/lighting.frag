@@ -1,6 +1,6 @@
 /*****************************************************************************
  * Alpine Terrain Renderer
- * Copyright (C) 2022 Adam Celarek, Gerald Kimmersdorfer
+ * Copyright (C) 2022 Adam Celarek
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -16,12 +16,25 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *****************************************************************************/
 
-const int SHADOW_CASCADES = 4;             // HAS TO BE THE SAME AS IN ShadowMapping.h!!
-//const int SHADOW_CASCADES_ALIGNED = 2;     // either 4,8,12,16,...
+in highp vec2 texcoords;
 
-layout (std140) uniform shadow_config {
-    highp mat4 light_space_view_proj_matrix[SHADOW_CASCADES];
-    float cascade_planes[SHADOW_CASCADES + 1];
-    vec2 shadowmap_size;
-    vec2 buff;
-} shadow;
+uniform sampler2D tex_Albedo;
+uniform sampler2D tex_Depth;
+uniform sampler2D tex_Normal;
+
+layout (location = 0) out lowp vec4 out_Color;
+
+void main() {
+    vec3 albedo = texture(tex_Albedo, texcoords).rgb;
+    vec3 normal = texture(tex_Normal, texcoords).rgb;
+    vec2 depth_encoded = texture(tex_Depth, texcoords).xy;
+
+    out_Color = vec4(depth_encoded, 0.0, 1.0);
+    if (texcoords.x < 0.6) out_Color = vec4(normal, 1.0);
+    if (texcoords.x < 0.3) out_Color = vec4(albedo, 1.0);
+
+    out_Color = vec4(albedo, 1.0);
+
+
+
+}
