@@ -20,7 +20,10 @@
 
 using namespace nucleus::camera;
 
-std::optional<Definition> AnimationStyle::update(Definition, AbstractDepthTester*) {}
+std::optional<Definition> AnimationStyle::update(Definition, AbstractDepthTester*)
+{
+    return {};
+}
 
 std::optional<glm::vec2> AnimationStyle::operation_centre()
 {
