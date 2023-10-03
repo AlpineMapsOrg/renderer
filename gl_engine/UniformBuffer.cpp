@@ -21,6 +21,7 @@
 #include <QOpenGLExtraFunctions>
 #include "ShaderProgram.h"
 #include "UniformBufferObjects.h"
+#include <QDebug>
 
 template <typename T> gl_engine::UniformBuffer<T>::UniformBuffer(GLuint location, const std::string& name):
     m_location(location), m_name(name)
@@ -35,6 +36,10 @@ template <typename T> gl_engine::UniformBuffer<T>::~UniformBuffer() {
 template <typename T> void gl_engine::UniformBuffer<T>::init() {
     m_f->glGenBuffers(1, &m_id);
     m_f->glBindBuffer(GL_UNIFORM_BUFFER, m_id);
+
+    auto size = sizeof(T);
+    qDebug() << m_name << size;
+
     m_f->glBufferData(GL_UNIFORM_BUFFER, sizeof(T), NULL, GL_STATIC_DRAW);
     m_f->glBindBuffer(GL_UNIFORM_BUFFER, 0);
 
@@ -55,6 +60,7 @@ template <typename T> void gl_engine::UniformBuffer<T>::bind_to_shader(std::vect
 template <typename T> void gl_engine::UniformBuffer<T>::update_gpu_data() {
     m_f->glBindBuffer(GL_UNIFORM_BUFFER, m_id);
     // WARNING: entry_point() has to exist on all ubo structs or classes! (better: make abstract General UBO class)
+
     m_f->glBufferSubData(GL_UNIFORM_BUFFER, 0, sizeof(T), &data);
     m_f->glBindBuffer(GL_UNIFORM_BUFFER, 0);
 }

@@ -124,6 +124,9 @@ Item {
         id: map
         focus: true
         anchors.fill: parent
+        onHud_visible_changed: function(new_hud_visible) {
+            tool_bar.visible = new_hud_visible;
+        }
     }
 
     StackView {

@@ -18,6 +18,13 @@ Rectangle {
     border { width:3; color:Qt.alpha( "white", 0.5); }
     radius: 10
 
+    Connections {
+        target: map
+        function onHud_visible_changed(hud_visible) {
+            statsMenu.visible = hud_visible;
+        }
+    }
+
     x: map.width - infomenu_width - 10
     y: 0 + tool_bar.height + 10
     Drag.active: statsMenuMouse.drag.active

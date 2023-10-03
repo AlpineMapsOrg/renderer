@@ -32,7 +32,10 @@ layout (std140) uniform shared_config {
     bool ssao_enabled;
     uint ssao_kernel;
     bool ssao_range_check;
+    uint ssao_blur_kernel_size;
     float ssao_falloff_to_value;
     bool height_lines_enabled;
-    vec2 buff;
+    bool csm_enabled;
+    bool overlay_shadowmaps;
+    vec3 padding;
 } conf;

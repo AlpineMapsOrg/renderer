@@ -19,6 +19,13 @@ Rectangle {
     border { width:3; color:Qt.alpha( "white", 0.5); }
     radius: 10
 
+    Connections {
+        target: map
+        function onHud_visible_changed(hud_visible) {
+            debugMenu.visible = hud_visible;
+        }
+    }
+
     x: 10
     y: 0 + tool_bar.height + 10
     Drag.active: mouseArea.drag.active
@@ -377,6 +384,18 @@ Rectangle {
                     onMoved: map.shared_config.ssao_falloff_to_value = value / 100;
                 }
 
+                Label { text: "Blur-Size:" }
+                Slider {
+                    from: 0
+                    to: 2
+                    stepSize: 1
+                    snapMode: Slider.SnapAlways
+                    Layout.fillWidth: true;
+                    Component.onCompleted: value = map.shared_config.ssao_blur_kernel_size;
+                    onMoved: map.shared_config.ssao_blur_kernel_size = value;
+                }
+
+
                 CheckBox {
                     text: "Range-Check"
                     Layout.fillWidth: true;
@@ -384,6 +403,36 @@ Rectangle {
                     Component.onCompleted: this.checked = map.shared_config.ssao_range_check;
                     onCheckStateChanged: map.shared_config.ssao_range_check = this.checked;
                 }
+
+                Rectangle {
+                    Layout.fillWidth: true;
+                    Layout.columnSpan: 2;
+                    color: Qt.alpha("white", 0.1)
+                    height: 30
+                    border { width:1; color:Qt.alpha( "white", 0.5); }
+                    radius: 5
+                    Label {
+                        x: 10; y: 3
+                        text: "CSM"
+                        font.pixelSize:16
+                    }
+                    CheckBox {
+                        x: menu_width - this.width - 30
+                        y: -10
+                        Component.onCompleted: this.checked = map.shared_config.csm_enabled;
+                        onCheckStateChanged: map.shared_config.csm_enabled = this.checked;
+                    }
+                }
+
+                CheckBox {
+                    text: "Overlay Shadow-Maps"
+                    Layout.fillWidth: true;
+                    Layout.columnSpan: 2;
+                    Component.onCompleted: this.checked = map.shared_config.overlay_shadowmaps;
+                    onCheckStateChanged: map.shared_config.overlay_shadowmaps = this.checked;
+                }
+
+
 
                 Rectangle {
                     Layout.fillWidth: true;

@@ -157,6 +157,9 @@ void TerrainRendererItem::keyPressEvent(QKeyEvent* e)
     if (e->isAutoRepeat()) {
         return;
     }
+    if (e->key() == Qt::Key::Key_H) {
+        set_hud_visible(!m_hud_visible);
+    }
     emit key_pressed(e->keyCombination());
     RenderThreadNotifier::instance()->notify();
 }
@@ -345,6 +348,12 @@ void TerrainRendererItem::set_render_looped(bool new_render_looped) {
     m_render_looped = new_render_looped;
     emit render_looped_changed(m_render_looped);
     schedule_update();
+}
+
+void TerrainRendererItem::set_hud_visible(bool new_hud_visible) {
+    if (new_hud_visible == m_hud_visible) return;
+    m_hud_visible = new_hud_visible;
+    emit hud_visible_changed(m_hud_visible);
 }
 
 void TerrainRendererItem::set_selected_camera_position_index(unsigned value) {

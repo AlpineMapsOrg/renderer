@@ -27,25 +27,35 @@ uniform sampler2D texin_ssao;
 
 uniform int direction;  // direction of blur, 0 = horizontal, 1 = vertical
 
-const float offset[3] = float[](0.0, 1.3846153846, 3.2307692308);
-const float weight[3] = float[](0.2270270270, 0.3162162162, 0.0702702703);
+const float offset[6] = float[](
+        0.0,
+        0.0, 1.087,
+        0.0, 1.3846153846, 3.2307692308);
+const float weight[6] = float[](
+        1.0,
+        0.4992, 0.2504,
+        0.2270270270, 0.3162162162, 0.0702702703);
+
 
 // Efficient gaussian blur with linear sampling
 // https://www.rastergrid.com/blog/2010/09/efficient-gaussian-blur-with-linear-sampling/
 void main()
 {
-    out_ssao = texture2D(texin_ssao, texcoords).x * weight[0];
+    int level = int(conf.ssao_blur_kernel_size);
+    int aO = int(floor((float(level)+1.0)*(float(level)+1.0)/2.0-1.0));
+    out_ssao = texture(texin_ssao, texcoords).x * weight[aO+0];
+    if (level == 0) return;
     if (direction == 0) {
         float scale_fact = 1.0 / camera.viewport_size.x;
-        for (int i = 1; i < 3; i++) {
-            out_ssao += texture2D(texin_ssao, texcoords + vec2(0.0, offset[i]) * scale_fact).r * weight[i];
-            out_ssao += texture2D(texin_ssao, texcoords - vec2(0.0, offset[i]) * scale_fact).r * weight[i];
+        for (int i = 1; i < level + 1; i++) {
+            out_ssao += texture(texin_ssao, texcoords + vec2(0.0, offset[aO+i]) * scale_fact).r * weight[aO+i];
+            out_ssao += texture(texin_ssao, texcoords - vec2(0.0, offset[aO+i]) * scale_fact).r * weight[aO+i];
         }
     } else {
         float scale_fact = 1.0 / camera.viewport_size.y;
-        for (int i = 1; i < 3; i++) {
-            out_ssao += texture2D(texin_ssao, texcoords + vec2(offset[i], 0.0) * scale_fact).r * weight[i];
-            out_ssao += texture2D(texin_ssao, texcoords - vec2(offset[i], 0.0) * scale_fact).r * weight[i];
+        for (int i = 1; i < level + 1; i++) {
+            out_ssao += texture(texin_ssao, texcoords + vec2(offset[aO+i], 0.0) * scale_fact).r * weight[aO+i];
+            out_ssao += texture(texin_ssao, texcoords - vec2(offset[aO+i], 0.0) * scale_fact).r * weight[aO+i];
         }
     }
 }

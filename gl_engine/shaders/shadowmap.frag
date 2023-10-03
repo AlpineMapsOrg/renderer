@@ -27,6 +27,6 @@ uniform sampler2D texture_sampler;
 
 void main() {
     texout_depth = gl_FragCoord.z;
-    /*vec3 tmp = texture2D(texture_sampler, uv).rgb;
+    /*vec3 tmp = texture(texture_sampler, uv).rgb;
     texout_depth = ( tmp.x + tmp.y + tmp.z ) / 3.0;*/
 }

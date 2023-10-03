@@ -31,8 +31,6 @@ qt_add_library(nucleus STATIC
     utils/Stopwatch.h utils/Stopwatch.cpp
     utils/terrain_mesh_index_generator.h
     utils/tile_conversion.h utils/tile_conversion.cpp
-    utils/NoaaSolarCalculator.h utils/NoaaSolarCalculator.cpp
-    utils/Date.h utils/Date.cpp
     map_label/MapLabelModel.h map_label/MapLabelModel.cpp
     map_label/CameraTransformationProxyModel.h map_label/CameraTransformationProxyModel.cpp
     map_label/MapLabel.h

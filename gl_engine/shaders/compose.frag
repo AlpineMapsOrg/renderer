@@ -77,10 +77,10 @@ vec3 calculate_illumination(vec3 albedo, vec3 eyePos, vec3 fragPos, vec3 fragNor
 
 float sample_shadow_texture(int layer, vec2 texcoords) {
     switch (layer) {
-        case 0: return texture2D(texin_csm1, texcoords).r;
-        case 1: return texture2D(texin_csm2, texcoords).r;
-        case 2: return texture2D(texin_csm3, texcoords).r;
-        case 3: return texture2D(texin_csm4, texcoords).r;
+        case 0: return texture(texin_csm1, texcoords).r;
+        case 1: return texture(texin_csm2, texcoords).r;
+        case 2: return texture(texin_csm3, texcoords).r;
+        case 3: return texture(texin_csm4, texcoords).r;
         default: return 0.0;
     }
 }
@@ -158,7 +158,7 @@ void main() {
 
         highp vec3 light_through_atmosphere = calculate_atmospheric_light(origin / 1000.0, ray_direction, dist / 1000.0, albedo, 10);
 
-        if (true) {
+        if (conf.csm_enabled) {
             shadow_term = csm_shadow_term(vec4(pos_wrt_cam, 1.0), normal);
         }
 
@@ -186,19 +186,22 @@ void main() {
     //out_Color = vec4(shadow_term);
 
     // OVERLAY SHADOW MAPS
-    float wsize = 0.25;
-    float invwsize = 1.0/wsize;
-    if (texcoords.x < wsize) {
-        if (texcoords.y < wsize) {
-            out_Color = texture2D(texin_csm1, (texcoords - vec2(0.0, wsize*0)) * invwsize).rrrr;
-        } else if (texcoords.y < wsize * 2) {
-            out_Color = texture2D(texin_csm2, (texcoords - vec2(0.0, wsize*1)) * invwsize).rrrr;
-        } else if (texcoords.y < wsize * 3) {
-            out_Color = texture2D(texin_csm3, (texcoords - vec2(0.0, wsize*2)) * invwsize).rrrr;
-        } else if (texcoords.y < wsize * 4) {
-            out_Color = texture2D(texin_csm4, (texcoords - vec2(0.0, wsize*3)) * invwsize).rrrr;
+    if (conf.overlay_shadowmaps) {
+        float wsize = 0.25;
+        float invwsize = 1.0/wsize;
+        if (texcoords.x < wsize) {
+            if (texcoords.y < wsize) {
+                out_Color = texture(texin_csm1, (texcoords - vec2(0.0, wsize*0)) * invwsize).rrrr;
+            } else if (texcoords.y < wsize * 2) {
+                out_Color = texture(texin_csm2, (texcoords - vec2(0.0, wsize*1)) * invwsize).rrrr;
+            } else if (texcoords.y < wsize * 3) {
+                out_Color = texture(texin_csm3, (texcoords - vec2(0.0, wsize*2)) * invwsize).rrrr;
+            } else if (texcoords.y < wsize * 4) {
+                out_Color = texture(texin_csm4, (texcoords - vec2(0.0, wsize*3)) * invwsize).rrrr;
+            }
         }
     }
+
 
     //out_Color = vec4(vec3(ssao), 1.0);
     //out_Color = vec4(atmoshperic_color * (1.0 - alpha),1.0);

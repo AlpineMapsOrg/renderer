@@ -56,10 +56,16 @@ inline nucleus::camera::Definition grossglockner_topdown()
     return { { coords.x , coords.y , coords.z + 3000 }, { coords.x, coords.y, coords.z } };
 }
 
+inline nucleus::camera::Definition grossglockner_shadow()
+{
+    const auto coords = srs::lat_long_alt_to_world({ 47.07386676653372, 12.694470292406267, 3798 });
+    return { { coords.x + 1800, coords.y + 400 , coords.z + 650 }, { coords.x, coords.y, coords.z } };
+}
+
 inline nucleus::camera::Definition schneeberg()
 {
     const auto coords = srs::lat_long_alt_to_world({47.767163598, 15.804663448, 2076});
-    return {{coords.x + 3000, coords.y - 100, coords.z + 100}, {coords.x, coords.y, coords.z - 100}};
+    return {{coords.x + 2500, coords.y - 100, coords.z + 100}, {coords.x, coords.y, coords.z - 100}};
 }
 
 inline nucleus::camera::Definition karwendel()
@@ -67,6 +73,12 @@ inline nucleus::camera::Definition karwendel()
     const auto coords = srs::lat_long_alt_to_world({47.416665, 11.4666648, 2000});
     return {{coords.x + 5000, coords.y + 2000, coords.z + 1000},
             {coords.x, coords.y, coords.z - 100}};
+}
+inline nucleus::camera::Definition weichtalhaus()
+{
+    const auto coords_lookat = srs::lat_long_alt_to_world({47.74977, 15.77830, 1000});
+    const auto coords_position = srs::lat_long_alt_to_world({47.74562, 15.75643, 1400});
+    return {coords_position,coords_lookat};
 }
 inline nucleus::camera::Definition wien()
 {
@@ -90,6 +102,8 @@ private:
         _positions.insert({"schneeberg", nucleus::camera::stored_positions::schneeberg()});
         _positions.insert({"karwendel", nucleus::camera::stored_positions::karwendel()});
         _positions.insert({"wien", nucleus::camera::stored_positions::wien()});
+        _positions.insert({"grossglockner_shadow", nucleus::camera::stored_positions::grossglockner_shadow()});
+        _positions.insert({"weichtalhaus", nucleus::camera::stored_positions::weichtalhaus()});
     }
     static PositionStorage* _instance;
     std::map<std::string, nucleus::camera::Definition> _positions;

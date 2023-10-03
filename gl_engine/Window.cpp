@@ -53,6 +53,8 @@
 #include <glm/glm.hpp>
 #include <glm/gtx/transform.hpp>
 
+#include "UniformBufferObjects.h"
+
 using gl_engine::Window;
 using gl_engine::UniformBuffer;
 
@@ -62,6 +64,7 @@ Window::Window()
     qDebug("Window::Window()");
     m_tile_manager = std::make_unique<TileManager>();
     QTimer::singleShot(1, [this]() { emit update_requested(); });
+    //qDebug() << "test" << sizeof(gl_engine::uboTest);
 }
 
 Window::~Window()
@@ -193,9 +196,11 @@ void Window::paint(QOpenGLFramebufferObject* framebuffer)
     m_timer->stop_timer("draw_list");
 
     // DRAW SHADOWMAP
-    m_timer->start_timer("shadowmap");
-    m_shadowmapping->draw(m_tile_manager.get(), draw_tiles, m_camera);
-    m_timer->stop_timer("shadowmap");
+    if (m_shared_config_ubo->data.m_csm_enabled) {
+        m_timer->start_timer("shadowmap");
+        m_shadowmapping->draw(m_tile_manager.get(), draw_tiles, m_camera);
+        m_timer->stop_timer("shadowmap");
+    }
 
     // DRAW GBUFFER
     m_gbuffer->bind();
@@ -219,7 +224,8 @@ void Window::paint(QOpenGLFramebufferObject* framebuffer)
 
     if (m_shared_config_ubo->data.m_ssao_enabled) {
         m_timer->start_timer("ssao");
-        m_ssao->draw(m_gbuffer.get(), &m_screen_quad_geometry, m_camera, m_shared_config_ubo->data.m_ssao_kernel);
+        m_ssao->draw(m_gbuffer.get(), &m_screen_quad_geometry, m_camera,
+                     m_shared_config_ubo->data.m_ssao_kernel, m_shared_config_ubo->data.m_ssao_blur_kernel_size);
         m_timer->stop_timer("ssao");
     }
 

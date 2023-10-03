@@ -24,7 +24,7 @@ public:
     ~SSAO();
 
     void draw(Framebuffer* gbuffer, helpers::ScreenQuadGeometry* geometry,
-              const nucleus::camera::Definition& camera, unsigned int kernel_size);
+              const nucleus::camera::Definition& camera, unsigned int kernel_size, unsigned int blur_level);
 
     void resize(glm::uvec2 vp_size);
 

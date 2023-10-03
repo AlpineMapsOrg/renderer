@@ -65,7 +65,8 @@ SSAO::~SSAO() {
 
 }
 
-void SSAO::draw(Framebuffer* gbuffer, helpers::ScreenQuadGeometry* geometry, const nucleus::camera::Definition& camera, unsigned int kernel_size) {
+void SSAO::draw(Framebuffer* gbuffer, helpers::ScreenQuadGeometry* geometry,
+                const nucleus::camera::Definition& camera, unsigned int kernel_size, unsigned int blur_level) {
     m_ssaobuffer->bind();
     auto p = m_ssao_program.get();
     p->bind();
@@ -80,23 +81,25 @@ void SSAO::draw(Framebuffer* gbuffer, helpers::ScreenQuadGeometry* geometry, con
     geometry->draw();
     m_ssaobuffer->unbind();
 
-    p = m_ssao_blur_program.get();
-    p->bind();
-    p->set_uniform("texin_ssao", 0);
+    if (blur_level > 0) {
+        p = m_ssao_blur_program.get();
+        p->bind();
+        p->set_uniform("texin_ssao", 0);
 
-    // BLUR HORIZONTAL
-    m_ssao_blurbuffer->bind();
-    m_ssaobuffer->bind_colour_texture(0,0);
-    p->set_uniform("direction", 0);
-    geometry->draw();
-    m_ssao_blurbuffer->unbind();
+        // BLUR HORIZONTAL
+        m_ssao_blurbuffer->bind();
+        m_ssaobuffer->bind_colour_texture(0,0);
+        p->set_uniform("direction", 0);
+        geometry->draw();
+        m_ssao_blurbuffer->unbind();
 
-    // BLUR VERTICAL
-    m_ssaobuffer->bind();
-    m_ssao_blurbuffer->bind_colour_texture(0,0);
-    p->set_uniform("direction", 1);
-    geometry->draw();
-    m_ssaobuffer->unbind();
+        // BLUR VERTICAL
+        m_ssaobuffer->bind();
+        m_ssao_blurbuffer->bind_colour_texture(0,0);
+        p->set_uniform("direction", 1);
+        geometry->draw();
+        m_ssaobuffer->unbind();
+    }
 
 }
 

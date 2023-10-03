@@ -182,4 +182,12 @@ Rectangle {
             current_location.checked = false;
         }
     }
+
+    Connections {
+        target: map
+        function onHud_visible_changed(hud_visible) {
+            current_location.visible = hud_visible;
+            compass.visible = hud_visible;
+        }
+    }
 }
