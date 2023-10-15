@@ -11,6 +11,7 @@ qt_add_library(gl_engine STATIC
     DebugPainter.h DebugPainter.cpp
     helpers.h
     ShaderProgram.h ShaderProgram.cpp
+    PolyLine.h PolyLine.cpp
 )
 target_link_libraries(gl_engine PUBLIC nucleus Qt::OpenGL)
 target_include_directories(gl_engine PRIVATE .)
