@@ -314,12 +314,16 @@ TEST_CASE("nucleus/tile_scheduler/cache")
                 cache.insert(create_test_tile({ i, { 1, 1 } }));
                 cache.insert(create_test_tile({ i, { 0, 1 } }));
             }
-            cache.write_to_disk(path);
+            const auto r = cache.write_to_disk(path);
+            std::string err;
+            if (!r.has_value())
+                err = r.error();
+            CHECK(r.has_value());
         }
         {
             nucleus::tile_scheduler::Cache<DiskWriteTestTile> cache;
 
-            cache.read_from_disk(path);
+            CHECK(cache.read_from_disk(path).has_value());
             verify_tile(cache, {0, {0, 0}});
             verify_tile(cache, {356, {20, 564}});
             for (unsigned i = 1; i < 10; ++i) {
@@ -339,11 +343,11 @@ TEST_CASE("nucleus/tile_scheduler/cache")
             nucleus::tile_scheduler::Cache<DiskWriteTestTile> cache;
             cache.insert(create_test_tile({ 0, { 0, 0 } }));
             cache.insert(create_test_tile({ 356, { 20, 564 } }));
-            cache.write_to_disk(path);
+            CHECK(cache.write_to_disk(path).has_value());
         }
         {
             nucleus::tile_scheduler::Cache<DiskWriteTestTile2> cache;
-            CHECK_THROWS(cache.read_from_disk(path));
+            CHECK(!cache.read_from_disk(path).has_value());
         }
         std::filesystem::remove_all(path);
     }
@@ -355,21 +359,21 @@ TEST_CASE("nucleus/tile_scheduler/cache")
             nucleus::tile_scheduler::Cache<DiskWriteTestTile> cache;
             cache.insert(create_test_tile({ 0, { 0, 0 } }));
             cache.insert(create_test_tile({ 1, { 0, 0 } }));
-            cache.write_to_disk(path);
+            CHECK(cache.write_to_disk(path).has_value());
         }
         {
             nucleus::tile_scheduler::Cache<DiskWriteTestTile> cache;
-            cache.read_from_disk(path);
+            CHECK(cache.read_from_disk(path).has_value());
             CHECK(cache.n_cached_objects() == 2);
             verify_tile(cache, {0, {0, 0}});
             verify_tile(cache, {1, {0, 0}});
             cache.insert(create_test_tile({ 2, { 0, 0 } }));
             cache.insert(create_test_tile({ 3, { 0, 0 } }));
-            cache.write_to_disk(path);
+            CHECK(cache.write_to_disk(path).has_value());
         }
         {
             nucleus::tile_scheduler::Cache<DiskWriteTestTile> cache;
-            cache.read_from_disk(path);
+            CHECK(cache.read_from_disk(path).has_value());
             CHECK(cache.n_cached_objects() == 4);
             verify_tile(cache, {0, {0, 0}});
             verify_tile(cache, {1, {0, 0}});
@@ -380,12 +384,12 @@ TEST_CASE("nucleus/tile_scheduler/cache")
             CHECK(cache.n_cached_objects() == 3);
             verify_tile(cache, {0, {0, 0}});
             verify_tile(cache, {1, {0, 0}});
-            verify_tile(cache, {2, {0, 0}});
-            cache.write_to_disk(path);
+            verify_tile(cache, { 2, { 0, 0 } });
+            CHECK(cache.write_to_disk(path).has_value());
         }
         {
             nucleus::tile_scheduler::Cache<DiskWriteTestTile> cache;
-            cache.read_from_disk(path);
+            CHECK(cache.read_from_disk(path).has_value());
             CHECK(cache.n_cached_objects() == 3);
             verify_tile(cache, {0, {0, 0}});
             verify_tile(cache, {1, {0, 0}});
@@ -401,16 +405,16 @@ TEST_CASE("nucleus/tile_scheduler/cache")
             nucleus::tile_scheduler::Cache<DiskWriteTestTile> cache;
             cache.insert(create_test_tile({ 0, { 0, 0 } }, 1));
             cache.insert(create_test_tile({ 1, { 0, 0 } }, 1));
-            cache.write_to_disk(path);
+            CHECK(cache.write_to_disk(path).has_value());
 
             QThread::msleep(2);
             cache.insert(create_test_tile({ 0, { 0, 0 } }, 2));
             cache.insert(create_test_tile({ 1, { 0, 0 } }, 2));
-            cache.write_to_disk(path);
+            CHECK(cache.write_to_disk(path).has_value());
         }
         {
             nucleus::tile_scheduler::Cache<DiskWriteTestTile> cache;
-            cache.read_from_disk(path);
+            CHECK(cache.read_from_disk(path).has_value());
             CHECK(cache.n_cached_objects() == 2);
             verify_tile(cache, {0, {0, 0}}, 2);
             verify_tile(cache, {1, {0, 0}}, 2);
@@ -428,15 +432,15 @@ TEST_CASE("nucleus/tile_scheduler/cache")
             cache.insert(create_test_tile({ 2, { 0, 0 } }));
             cache.insert(create_test_tile({ 1, { 0, 0 } }));
             cache.insert(create_test_tile({ 0, { 0, 0 } }));
-            cache.write_to_disk(path);
+            CHECK(cache.write_to_disk(path).has_value());
             cache.purge(2);
             CHECK(cache.n_cached_objects() == 2);
             verify_tile(cache, {0, {0, 0}});
-            verify_tile(cache, {1, {0, 0}});
-            cache.write_to_disk(path);
+            verify_tile(cache, { 1, { 0, 0 } });
+            CHECK(cache.write_to_disk(path).has_value());
             {
                 nucleus::tile_scheduler::Cache<DiskWriteTestTile> cache;
-                cache.read_from_disk(path);
+                CHECK(cache.read_from_disk(path).has_value());
                 CHECK(cache.n_cached_objects() == 2);
                 verify_tile(cache, {0, {0, 0}});
                 verify_tile(cache, {1, {0, 0}});
@@ -449,10 +453,10 @@ TEST_CASE("nucleus/tile_scheduler/cache")
             verify_tile(cache, {2, {0, 0}});
             verify_tile(cache, {3, {0, 0}});
 
-            cache.write_to_disk(path);
+            CHECK(cache.write_to_disk(path).has_value());
             {
                 nucleus::tile_scheduler::Cache<DiskWriteTestTile> cache;
-                cache.read_from_disk(path);
+                CHECK(cache.read_from_disk(path).has_value());
                 CHECK(cache.n_cached_objects() == 4);
                 verify_tile(cache, {0, {0, 0}});
                 verify_tile(cache, {1, {0, 0}});
@@ -464,10 +468,10 @@ TEST_CASE("nucleus/tile_scheduler/cache")
             CHECK(cache.n_cached_objects() == 2);
             verify_tile(cache, {0, {0, 0}});
             verify_tile(cache, {1, {0, 0}});
-            cache.write_to_disk(path);
+            CHECK(cache.write_to_disk(path).has_value());
             {
                 nucleus::tile_scheduler::Cache<DiskWriteTestTile> cache;
-                cache.read_from_disk(path);
+                CHECK(cache.read_from_disk(path).has_value());
                 CHECK(cache.n_cached_objects() == 2);
                 verify_tile(cache, {0, {0, 0}});
                 verify_tile(cache, {1, {0, 0}});
