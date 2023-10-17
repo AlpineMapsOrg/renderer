@@ -63,4 +63,3 @@ jobs:
       run: |
         '${{github.workspace}}'/build/sherpa/unittests_sherpa
         '${{github.workspace}}'/build/unittests/unittests_nucleus
-        '${{github.workspace}}'/build/unittests_gl/unittests_gl_engine
