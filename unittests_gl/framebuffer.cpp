@@ -51,14 +51,14 @@ void main() {
     texcoords = 0.5 * gl_Position.xy + vec2(0.5);
 })";
 
-ShaderProgram create_debug_shader()
+ShaderProgram create_debug_shader(const char* fragmentShaderOverride = nullptr)
 {
     static const char* const fragment_source = R"(
     out lowp vec4 out_Color;
     void main() {
         out_Color = vec4(0.2, 0.0, 1.0, 0.8);
     })";
-    ShaderProgram tmp(vertex_source, fragment_source, gl_engine::ShaderCodeSource::PLAINTEXT);
+    ShaderProgram tmp(vertex_source, fragmentShaderOverride ? fragmentShaderOverride : fragment_source, gl_engine::ShaderCodeSource::PLAINTEXT);
     return tmp;
 }
 
@@ -108,6 +108,27 @@ TEST_CASE("gl framebuffer")
             }
         }
         CHECK(good);
+    }
+    SECTION("rg16ui color format")
+    {
+        Framebuffer b(Framebuffer::DepthFormat::None, { {Framebuffer::ColourFormat::RG16UI} });
+        b.resize({ 4, 4 });
+        b.bind();
+        ShaderProgram shader = create_debug_shader( R"(
+            out highp uvec2 out_Color;
+            void main() {
+                out_Color = uvec2(1u, 65535u);
+            }
+        )");
+        shader.bind();
+        gl_engine::helpers::create_screen_quad_geometry().draw();
+
+        QOpenGLExtraFunctions* f = QOpenGLContext::currentContext()->extraFunctions();
+        f->glReadBuffer(GL_COLOR_ATTACHMENT0);
+        glm::u16vec2 value_at_0_0;
+        f->glReadPixels(0, 0, 1, 1, GL_RG_INTEGER, GL_UNSIGNED_SHORT, &value_at_0_0[0]);
+        CHECK(value_at_0_0.y == 65535u);
+        CHECK(value_at_0_0.x == 1u);
     }
     SECTION("rgba8 bit read benchmark")
     {

@@ -101,7 +101,8 @@ void Window::initialise_gpu()
                                                   TextureDefinition{ Framebuffer::ColourFormat::RGBA8 },    // Albedo
                                                   TextureDefinition{ Framebuffer::ColourFormat::RGBA8 },    // Encoded Depth
                                                   TextureDefinition{ Framebuffer::ColourFormat::RGBA16F },  // Normal + Dist
-                                                  TextureDefinition{ Framebuffer::ColourFormat::RGB16F }    // Position CWS
+                                                  TextureDefinition{ Framebuffer::ColourFormat::RGB16F },    // Position CWS
+                                                  TextureDefinition{ Framebuffer::ColourFormat::RG16UI }    // Octahedron Normals
                                               });
 
     m_atmospherebuffer = std::make_unique<Framebuffer>(Framebuffer::DepthFormat::None, std::vector{ TextureDefinition{Framebuffer::ColourFormat::RGBA8} });

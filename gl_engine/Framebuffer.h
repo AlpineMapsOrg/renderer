@@ -47,9 +47,8 @@ public:
     };
     enum class ColourFormat {
         R8,
-        R16UI,
         RGBA8,
-        RGBA16UI,
+        RG16UI,
         RGB16F,         // NOT COLOR RENDERABLE ON OPENGLES
         RGBA16F,        // NOT COLOR RENDERABLE ON OPENGLES
         Float32         // NOT COLOR RENDERABLE ON OPENGLES

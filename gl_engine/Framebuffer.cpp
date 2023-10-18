@@ -29,7 +29,10 @@
 #endif
 
 
+
 namespace gl_engine {
+
+
 
 // https://registry.khronos.org/OpenGL-Refpages/es3.0/html/glTexImage2D.xhtml
 QOpenGLTexture::TextureFormat internal_format_qt(Framebuffer::ColourFormat f)
@@ -39,14 +42,14 @@ QOpenGLTexture::TextureFormat internal_format_qt(Framebuffer::ColourFormat f)
         return QOpenGLTexture::TextureFormat::R8_UNorm;
     case Framebuffer::ColourFormat::RGBA8:
         return QOpenGLTexture::TextureFormat::RGBA8_UNorm;
+    case Framebuffer::ColourFormat::RG16UI:
+        return QOpenGLTexture::TextureFormat::RG16U;
     case Framebuffer::ColourFormat::Float32:
         return QOpenGLTexture::TextureFormat::R32F;
     case Framebuffer::ColourFormat::RGB16F:
         return QOpenGLTexture::TextureFormat::RGB16F;
     case Framebuffer::ColourFormat::RGBA16F:
         return QOpenGLTexture::TextureFormat::RGBA16F;
-    case Framebuffer::ColourFormat::RGBA16UI:
-        return QOpenGLTexture::TextureFormat::RGBA16U;
     }
     assert(false);
     return QOpenGLTexture::TextureFormat::NoFormat;
@@ -59,6 +62,8 @@ int format(Framebuffer::ColourFormat f)
         return GL_RED;
     case Framebuffer::ColourFormat::RGBA8:
         return GL_RGBA;
+    case Framebuffer::ColourFormat::RG16UI:
+        return GL_RG_INTEGER; //GL_RG16UI
     case Framebuffer::ColourFormat::Float32:
         assert(false); // reading Float32 is inefficient, see read_colour_attachment() for details.
         break;
@@ -66,8 +71,6 @@ int format(Framebuffer::ColourFormat f)
         return GL_RGB16F;
     case Framebuffer::ColourFormat::RGBA16F:
         return GL_RGBA16F;
-    case Framebuffer::ColourFormat::RGBA16UI:
-        return GL_RGB16UI;
     }
     assert(false);
     return -1;
@@ -95,12 +98,12 @@ int type(Framebuffer::ColourFormat f)
     switch (f) {
     case Framebuffer::ColourFormat::R8: case Framebuffer::ColourFormat::RGBA8:
         return GL_UNSIGNED_BYTE;
+    case Framebuffer::ColourFormat::RG16UI:
+        return GL_UNSIGNED_SHORT;
     case Framebuffer::ColourFormat::Float32:
         return GL_FLOAT;
     case Framebuffer::ColourFormat::RGB16F: case Framebuffer::ColourFormat::RGBA16F:
         return GL_HALF_FLOAT;
-    case Framebuffer::ColourFormat::RGBA16UI:
-        return GL_UNSIGNED_SHORT;
     }
     assert(false);
     return -1;
@@ -133,11 +136,13 @@ QImage::Format qimage_format(Framebuffer::ColourFormat f)
     case Framebuffer::ColourFormat::RGBA8:
         return QImage::Format_RGBA8888;
     case Framebuffer::ColourFormat::Float32:
-        throw std::logic_error("unsupported, QImage does not support float32");
+        throw std::logic_error("unsupported, QImage does not support Float32");
     case Framebuffer::ColourFormat::RGB16F:
         return QImage::Format_RGB16;
     case Framebuffer::ColourFormat::RGBA16F:
         return QImage::Format_RGBA16FPx4; // not sure
+    case Framebuffer::ColourFormat::RG16UI:
+        throw std::logic_error("unsupported, QImage does not support RG16UI");
     }
 
     assert(false);
@@ -244,9 +249,8 @@ QImage Framebuffer::read_colour_attachment(unsigned index)
     // that is, reading float red channel crashes on linux webassembly, but reading it as rgba is inefficient on linux native (4x slower, yes I measured).
     // i'm removing the old reading code altogether in order not to be tempted to use it in production (or by accident).
     // if you need to read a float32 buffer, pack the float into rgba8 values!
-    assert(texFormat == ColourFormat::RGBA8);
     if (texFormat != ColourFormat::RGBA8)
-        return {};
+        qWarning() << "Reading back a different texture format than RGBA8 is not recommended.";
 
     bind();
     QOpenGLExtraFunctions* f = QOpenGLContext::currentContext()->extraFunctions();
