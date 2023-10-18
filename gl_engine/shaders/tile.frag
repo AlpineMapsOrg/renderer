@@ -18,13 +18,16 @@
 
 #include "shared_config.glsl"
 #include "camera_config.glsl"
+#include "encoder.glsl"
 
 uniform sampler2D texture_sampler;
 
 layout (location = 0) out lowp vec4 texout_albedo;
-layout (location = 1) out lowp vec4 texout_depth;
-layout (location = 2) out highp vec4 texout_normal;    // a = dist
+layout (location = 1) out lowp vec4 texout_depth2;
+layout (location = 2) out highp vec4 texout_normal2;    // a = dist
 layout (location = 3) out highp vec3 texout_position;
+layout (location = 4) out highp uvec2 texout_normal;
+layout (location = 5) out highp uint texout_depth;
 
 in lowp vec2 uv;
 in highp vec3 var_pos_wrt_cam;
@@ -43,13 +46,6 @@ highp vec3 normal_by_fragment_position_interpolation() {
     highp vec3 dFdxPos = dFdx(var_pos_wrt_cam);
     highp vec3 dFdyPos = dFdy(var_pos_wrt_cam);
     return normalize(cross(dFdxPos, dFdyPos));
-}
-
-lowp vec2 encode(highp float value) {
-    mediump uint scaled = uint(value * 65535.f + 0.5f);
-    mediump uint r = scaled >> 8u;
-    mediump uint b = scaled & 255u;
-    return vec2(float(r) / 255.f, float(b) / 255.f);
 }
 
 lowp const int steepness_bins = 9;
@@ -87,13 +83,15 @@ void main() {
 
     highp float dist = length(var_pos_wrt_cam);
     highp float depth = log(dist)/13.0;
-    texout_depth = vec4(encode(depth), 0, 0);
+    texout_depth2 = vec4(encode(depth), 0, 0);
+    texout_depth = depthCSEncode1u32(gl_FragCoord.z);
 
 
     highp vec3 normal = vec3(0.0);
     if (conf.normal_mode == 0u) normal = normal_by_fragment_position_interpolation();
     else normal = var_normal;
-    texout_normal = vec4(normal, dist);
+    texout_normal2 = vec4(normal, dist);
+    texout_normal = octNormalEncode2u16(normal);
 
     lowp vec3 fragColor = texture(texture_sampler, uv).rgb;
     fragColor = mix(conf.material_color.rgb, fragColor, conf.material_color.a);

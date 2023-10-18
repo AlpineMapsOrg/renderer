@@ -51,6 +51,7 @@ public:
         RG16UI,
         RGB16F,         // NOT COLOR RENDERABLE ON OPENGLES
         RGBA16F,        // NOT COLOR RENDERABLE ON OPENGLES
+        R32UI,
         Float32         // NOT COLOR RENDERABLE ON OPENGLES
     };
 
@@ -79,7 +80,17 @@ public:
     std::unique_ptr<QOpenGLTexture> take_and_replace_colour_attachment(unsigned index);
 
     QImage read_colour_attachment(unsigned index);
+
+    // Returns the data at the given pixel. Only works for RGBA8 textures, but is memory safe.
     std::array<uchar, 4> read_colour_attachment_pixel(unsigned index, const glm::dvec2& normalised_device_coordinates);
+
+    // Writes the data of the given pixel inside the target buffer
+    // WARNING: Does not check wether enough storage is allocated. So make sure
+    // you use the correct type for the given texture. A typed
+    // function would be prefered instead of this.
+    void read_colour_attachment_pixel(unsigned index, const glm::dvec2& normalised_device_coordinates, void* target);
+
+
     static void unbind();
 
     glm::uvec2 size() const;

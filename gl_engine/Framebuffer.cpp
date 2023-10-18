@@ -50,6 +50,8 @@ QOpenGLTexture::TextureFormat internal_format_qt(Framebuffer::ColourFormat f)
         return QOpenGLTexture::TextureFormat::RGB16F;
     case Framebuffer::ColourFormat::RGBA16F:
         return QOpenGLTexture::TextureFormat::RGBA16F;
+    case Framebuffer::ColourFormat::R32UI:
+        return QOpenGLTexture::TextureFormat::R32U;
     }
     assert(false);
     return QOpenGLTexture::TextureFormat::NoFormat;
@@ -71,6 +73,8 @@ int format(Framebuffer::ColourFormat f)
         return GL_RGB16F;
     case Framebuffer::ColourFormat::RGBA16F:
         return GL_RGBA16F;
+    case Framebuffer::ColourFormat::R32UI:
+        return GL_RED_INTEGER;
     }
     assert(false);
     return -1;
@@ -104,6 +108,8 @@ int type(Framebuffer::ColourFormat f)
         return GL_FLOAT;
     case Framebuffer::ColourFormat::RGB16F: case Framebuffer::ColourFormat::RGBA16F:
         return GL_HALF_FLOAT;
+    case Framebuffer::ColourFormat::R32UI:
+        return GL_UNSIGNED_INT;
     }
     assert(false);
     return -1;
@@ -135,14 +141,10 @@ QImage::Format qimage_format(Framebuffer::ColourFormat f)
         return QImage::Format_Grayscale8;
     case Framebuffer::ColourFormat::RGBA8:
         return QImage::Format_RGBA8888;
-    case Framebuffer::ColourFormat::Float32:
-        throw std::logic_error("unsupported, QImage does not support Float32");
     case Framebuffer::ColourFormat::RGB16F:
         return QImage::Format_RGB16;
-    case Framebuffer::ColourFormat::RGBA16F:
-        return QImage::Format_RGBA16FPx4; // not sure
-    case Framebuffer::ColourFormat::RG16UI:
-        throw std::logic_error("unsupported, QImage does not support RG16UI");
+    default:
+         throw std::logic_error("unsupported, QImage does not support the color format of the texture");
     }
 
     assert(false);
@@ -283,6 +285,22 @@ std::array<uchar, 4> Framebuffer::read_colour_attachment_pixel(unsigned index, c
         1, 1, format(texFormat), type(texFormat), pixel.data());
     unbind();
     return pixel;
+}
+
+void Framebuffer::read_colour_attachment_pixel(unsigned index, const glm::dvec2& normalised_device_coordinates, void* target)
+{
+    assert(index >= 0 && index < m_colour_textures.size());
+
+    auto texFormat = m_colour_definitions[index].format;
+
+    QOpenGLExtraFunctions* f = QOpenGLContext::currentContext()->extraFunctions();
+    bind();
+    f->glReadBuffer(GL_COLOR_ATTACHMENT0 + index);
+    f->glReadPixels(
+        int((normalised_device_coordinates.x + 1) / 2 * m_size.x),
+        int((normalised_device_coordinates.y + 1) / 2 * m_size.y),
+        1, 1, format(texFormat), type(texFormat), target);
+    unbind();
 }
 
 void Framebuffer::unbind()

@@ -18,6 +18,7 @@
 
 #include "camera_config.glsl"
 #include "shared_config.glsl"
+#include "encoder.glsl"
 
 const lowp uint MAX_SSAO_KERNEL_SIZE = 64u;   // also change in SSAO.h
 
@@ -26,8 +27,9 @@ layout (location = 0) out highp float out_color;
 in highp vec2 texcoords;
 
 uniform highp sampler2D texin_position;
-uniform highp sampler2D texin_normal;
+uniform highp sampler2D texin_normal2;
 uniform highp sampler2D texin_noise;
+uniform highp usampler2D texin_normal;
 
 uniform highp vec3 samples[MAX_SSAO_KERNEL_SIZE];
 
@@ -42,8 +44,8 @@ void main()
 
     // get input for SSAO algorithm
     highp vec3 pos_cws = texture(texin_position, texcoords).xyz;
-    highp vec4 normal_dist = texture(texin_normal, texcoords);
-    highp vec3 normal_ws = normalize(normal_dist.xyz);
+    highp vec4 normal_dist = texture(texin_normal2, texcoords);
+    highp vec3 normal_ws = octNormalDecode2u16(texture(texin_normal, texcoords).xy);
     highp float dist = normal_dist.w;
 
     highp vec3 randomVec = normalize(texture(texin_noise, texcoords * noiseScale).xyz);
@@ -75,7 +77,7 @@ void main()
             highp vec3 sample_pos_ndc = ws_to_ndc(sample_pos_cws);
 
             // get actual distance to camera of fragment (currently saved inside normal texture)
-            highp float sample_dist = texture(texin_normal, sample_pos_ndc.xy).w;
+            highp float sample_dist = texture(texin_normal2, sample_pos_ndc.xy).w;
 
             // range check & accumulate
             highp float rangeCheck = 1.0;

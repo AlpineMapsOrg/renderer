@@ -96,13 +96,14 @@ void Window::initialise_gpu()
     m_tile_manager->init();
     m_tile_manager->initilise_attribute_locations(m_shader_manager->tile_shader());
     m_screen_quad_geometry = gl_engine::helpers::create_screen_quad_geometry();
-    m_gbuffer = std::make_unique<Framebuffer>(Framebuffer::DepthFormat::Int24,
+    m_gbuffer = std::make_unique<Framebuffer>(Framebuffer::DepthFormat::Float32,
                                               std::vector{
-                                                  TextureDefinition{ Framebuffer::ColourFormat::RGBA8 },    // Albedo
-                                                  TextureDefinition{ Framebuffer::ColourFormat::RGBA8 },    // Encoded Depth
-                                                  TextureDefinition{ Framebuffer::ColourFormat::RGBA16F },  // Normal + Dist
-                                                  TextureDefinition{ Framebuffer::ColourFormat::RGB16F },    // Position CWS
-                                                  TextureDefinition{ Framebuffer::ColourFormat::RG16UI }    // Octahedron Normals
+                                                  TextureDefinition{ Framebuffer::ColourFormat::RGBA8   },      // Albedo
+                                                  TextureDefinition{ Framebuffer::ColourFormat::RGBA8   },      // Encoded Depth
+                                                  TextureDefinition{ Framebuffer::ColourFormat::RGBA16F },      // Normal + Dist
+                                                  TextureDefinition{ Framebuffer::ColourFormat::RGB16F  },      // Position CWS
+                                                  TextureDefinition{ Framebuffer::ColourFormat::RG16UI  },      // Octahedron Normals
+                                                  TextureDefinition{ Framebuffer::ColourFormat::R32UI   }       // NEW DEPTH
                                               });
 
     m_atmospherebuffer = std::make_unique<Framebuffer>(Framebuffer::DepthFormat::None, std::vector{ TextureDefinition{Framebuffer::ColourFormat::RGBA8} });

@@ -64,7 +64,6 @@ ShaderProgram create_debug_shader(const char* fragmentShaderOverride = nullptr)
 
 ShaderProgram create_encoder_shader(float v1, float v2)
 {
-
     std::string fragment_source;
     QFile f(":/gl_shaders/encoder.glsl");
     f.open(QIODeviceBase::ReadOnly);
@@ -112,24 +111,67 @@ TEST_CASE("gl framebuffer")
     SECTION("rg16ui color format")
     {
         Framebuffer b(Framebuffer::DepthFormat::None, { {Framebuffer::ColourFormat::RG16UI} });
-        b.resize({ 4, 4 });
         b.bind();
         ShaderProgram shader = create_debug_shader( R"(
             out highp uvec2 out_Color;
-            void main() {
-                out_Color = uvec2(1u, 65535u);
-            }
+            void main() { out_Color = uvec2(1u, 65535u); }
         )");
         shader.bind();
         gl_engine::helpers::create_screen_quad_geometry().draw();
-
-        QOpenGLExtraFunctions* f = QOpenGLContext::currentContext()->extraFunctions();
-        f->glReadBuffer(GL_COLOR_ATTACHMENT0);
         glm::u16vec2 value_at_0_0;
-        f->glReadPixels(0, 0, 1, 1, GL_RG_INTEGER, GL_UNSIGNED_SHORT, &value_at_0_0[0]);
+        b.read_colour_attachment_pixel(0, glm::dvec2(-1.0, -1.0), &value_at_0_0[0]);
         CHECK(value_at_0_0.y == 65535u);
         CHECK(value_at_0_0.x == 1u);
     }
+    SECTION("r32ui color format")
+    {
+        Framebuffer b(Framebuffer::DepthFormat::None, { {Framebuffer::ColourFormat::R32UI} });
+        b.bind();
+        ShaderProgram shader = create_debug_shader( R"(
+            out highp uint out_Color;
+            void main() { out_Color = 4294967295u; }
+        )");
+        shader.bind();
+        gl_engine::helpers::create_screen_quad_geometry().draw();
+        glm::u32vec1 value_at_0_0;
+        b.read_colour_attachment_pixel(0, glm::dvec2(-1.0, -1.0), &value_at_0_0[0]);
+        CHECK(value_at_0_0.x == 4294967295u);
+    }
+    SECTION("r32ui bit pixel read benchmark")
+    {
+        Framebuffer b(Framebuffer::DepthFormat::None, { {Framebuffer::ColourFormat::R32UI} });
+        b.bind();
+        ShaderProgram shader = create_debug_shader( R"(
+            out highp uint out_Color;
+            void main() { out_Color = 4294967295u; }
+        )");
+        shader.bind();
+        gl_engine::helpers::create_screen_quad_geometry().draw();
+        f->glFinish();
+
+        BENCHMARK("r32ui bit pixel read colour buffer")
+        {
+            glm::u32vec1 value_at_0_0;
+            b.read_colour_attachment_pixel(0, glm::dvec2(-1.0, -1.0), &value_at_0_0[0]);
+        };
+    }
+    SECTION("rgba8 bit pixel read benchmark")
+    {
+        Framebuffer b(Framebuffer::DepthFormat::None, { {Framebuffer::ColourFormat::RGBA8} });
+        b.bind();
+        ShaderProgram shader = create_debug_shader();
+        shader.bind();
+        gl_engine::helpers::create_screen_quad_geometry().draw();
+        f->glFinish();
+
+        BENCHMARK("rgba8 bit pixel read colour buffer")
+        {
+            glm::u8vec4 value_at_0_0;
+            b.read_colour_attachment_pixel(0, glm::dvec2(-1.0, -1.0), &value_at_0_0[0]);
+        };
+    }
+#ifndef __EMSCRIPTEN__
+    // NOTE: Tests dont terminate on webgl for me if this benchmark is enabled. The function is not in use anyway...
     SECTION("rgba8 bit read benchmark")
     {
         Framebuffer b(Framebuffer::DepthFormat::None, { {Framebuffer::ColourFormat::RGBA8} });
@@ -145,21 +187,7 @@ TEST_CASE("gl framebuffer")
             return b.read_colour_attachment(0);
         };
     }
-    SECTION("rgba8 bit read benchmark")
-    {
-        Framebuffer b(Framebuffer::DepthFormat::None, { {Framebuffer::ColourFormat::RGBA8} });
-        b.resize({ 1920, 1080 });
-        b.bind();
-        ShaderProgram shader = create_debug_shader();
-        shader.bind();
-        gl_engine::helpers::create_screen_quad_geometry().draw();
-
-        f->glFinish();
-        BENCHMARK("rgba8 bit read colour buffer")
-        {
-            return b.read_colour_attachment(0);
-        };
-    }
+#endif
     SECTION("read pixel")
     {
         Framebuffer b(Framebuffer::DepthFormat::None, { {Framebuffer::ColourFormat::RGBA8} });
@@ -200,5 +228,18 @@ TEST_CASE("gl framebuffer")
             CHECK(decoded.x == Approx(pair.first));
             CHECK(decoded.y == Approx(pair.second));
         }
+    }
+    SECTION("f32 depth buffer")
+    {
+        Framebuffer b(Framebuffer::DepthFormat::Float32, { {Framebuffer::ColourFormat::R32UI} });
+        b.resize({1920, 1080});
+        b.bind();
+        ShaderProgram shader = create_debug_shader( R"(
+            out highp uint out_Color;
+            void main() { out_Color = uint(gl_FragCoord.z * 4294967295.0); }
+        )");
+        shader.bind();
+        gl_engine::helpers::create_screen_quad_geometry().draw();
+        f->glFinish();
     }
 }
