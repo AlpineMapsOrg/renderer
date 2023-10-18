@@ -29,19 +29,19 @@ layout (location = 3) out highp vec3 texout_position;
 in lowp vec2 uv;
 in highp vec3 var_pos_wrt_cam;
 in highp vec3 var_normal;
-in float is_curtain;
+in highp float is_curtain;
 //flat in vec3 vertex_color;
-in vec3 vertex_color;
-in float drop_frag;
-in vec3 debug_overlay_color;
+in highp vec3 vertex_color;
+in highp float drop_frag;
+in highp vec3 debug_overlay_color;
 
 highp float calculate_falloff(highp float dist, highp float from, highp float to) {
     return clamp(1.0 - (dist - from) / (to - from), 0.0, 1.0);
 }
 
-vec3 normal_by_fragment_position_interpolation() {
-    vec3 dFdxPos = dFdx(var_pos_wrt_cam);
-    vec3 dFdyPos = dFdy(var_pos_wrt_cam);
+highp vec3 normal_by_fragment_position_interpolation() {
+    highp vec3 dFdxPos = dFdx(var_pos_wrt_cam);
+    highp vec3 dFdyPos = dFdy(var_pos_wrt_cam);
     return normalize(cross(dFdxPos, dFdyPos));
 }
 
@@ -57,7 +57,7 @@ void main() {
         texout_albedo = vec4(1.0, 1.0, 1.0, 1.0);
         return;
     }
-    if (is_curtain > 0) {
+    if (is_curtain > 0.0) {
         if (conf.curtain_settings.x == 2.0) {
             texout_albedo = vec4(1.0, 0.0, 0.0, 1.0);
             return;
@@ -77,7 +77,7 @@ void main() {
     texout_depth = vec4(encode(depth), 0, 0);
 
 
-    vec3 normal = vec3(0.0);
+    highp vec3 normal = vec3(0.0);
     if (conf.normal_mode == 0u) normal = normal_by_fragment_position_interpolation();
     else normal = var_normal;
     texout_normal = vec4(normal, dist);
@@ -124,18 +124,18 @@ void main() {
         texout_albedo = vec4(d_color, 1.0);
 */
     // == HEIGHT LINES ==============
-    if (conf.height_lines_enabled) {
-        float alpha_line = 1.0 - min((dist / 10000.0), 1.0);
-        float line_width = (2.0 + dist / 5000.0) * 5.0;
+    if (bool(conf.height_lines_enabled)) {
+        highp float alpha_line = 1.0 - min((dist / 10000.0), 1.0);
+        highp float line_width = (2.0 + dist / 5000.0) * 5.0;
         // Calculate steepness based on fragment normal (this alone gives woobly results)
-        float steepness = (1.0 - dot(normal, vec3(0.0,0.0,1.0))) / 2.0;
+        highp float steepness = (1.0 - dot(normal, vec3(0.0,0.0,1.0))) / 2.0;
         // Discretize the steepness -> Doesnt work
         //float steepness_discretized = int(steepness * 10.0f) / 10.0f;
         line_width = line_width * max(0.01,steepness);
         if (alpha_line > 0.05)
         {
-            float alt = var_pos_wrt_cam.z + camera.position.z;
-            float alt_rest = (alt - int(alt / 100.0) * 100.0) - line_width / 2.0;
+            highp float alt = var_pos_wrt_cam.z + camera.position.z;
+            highp float alt_rest = (alt - float(int(alt / 100.0)) * 100.0) - line_width / 2.0;
             if (alt_rest < line_width) {
                 texout_albedo = mix(texout_albedo, vec4(texout_albedo.r - 0.2, texout_albedo.g - 0.2, texout_albedo.b - 0.2, 1.0), alpha_line);
             }

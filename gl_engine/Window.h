@@ -27,7 +27,6 @@
 #include <chrono>
 #include <glm/glm.hpp>
 #include <memory>
-#include <QOpenGLFunctions_3_3_Core>
 
 #include "helpers.h"
 #include "nucleus/AbstractRenderWindow.h"

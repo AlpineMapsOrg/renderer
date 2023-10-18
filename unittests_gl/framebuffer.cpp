@@ -124,7 +124,21 @@ TEST_CASE("gl framebuffer")
             return b.read_colour_attachment(0);
         };
     }
+    SECTION("rgba8 bit read benchmark")
+    {
+        Framebuffer b(Framebuffer::DepthFormat::None, { {Framebuffer::ColourFormat::RGBA8} });
+        b.resize({ 1920, 1080 });
+        b.bind();
+        ShaderProgram shader = create_debug_shader();
+        shader.bind();
+        gl_engine::helpers::create_screen_quad_geometry().draw();
 
+        f->glFinish();
+        BENCHMARK("rgba8 bit read colour buffer")
+        {
+            return b.read_colour_attachment(0);
+        };
+    }
     SECTION("read pixel")
     {
         Framebuffer b(Framebuffer::DepthFormat::None, { {Framebuffer::ColourFormat::RGBA8} });
@@ -142,7 +156,6 @@ TEST_CASE("gl framebuffer")
         CHECK(pixel[2] == unsigned(1.0f * 255));
         CHECK(pixel[3] == unsigned(0.8f * 255));
     }
-
     SECTION("encode pixel")
     {
         const auto tuples = std::vector {

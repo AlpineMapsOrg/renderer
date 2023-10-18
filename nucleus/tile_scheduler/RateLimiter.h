@@ -36,8 +36,8 @@ class RateLimiter : public QObject
     // hence we are reducing the period
     // the rate limiter also counts quads, not tiles
     // 25k tiles per 15min are ~416 quads in 1min
-    unsigned m_rate = 416 / 2;
-    unsigned m_rate_period_msecs = 1000 * 60 / 2;
+    unsigned m_rate = 100;
+    unsigned m_rate_period_msecs = 1000;
     std::vector<tile::Id> m_request_queue;
     std::vector<uint64_t> m_in_flight;
     std::unique_ptr<QTimer> m_update_timer;

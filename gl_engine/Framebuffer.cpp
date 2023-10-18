@@ -45,6 +45,8 @@ QOpenGLTexture::TextureFormat internal_format_qt(Framebuffer::ColourFormat f)
         return QOpenGLTexture::TextureFormat::RGB16F;
     case Framebuffer::ColourFormat::RGBA16F:
         return QOpenGLTexture::TextureFormat::RGBA16F;
+    case Framebuffer::ColourFormat::RGBA16UI:
+        return QOpenGLTexture::TextureFormat::RGBA16U;
     }
     assert(false);
     return QOpenGLTexture::TextureFormat::NoFormat;
@@ -54,7 +56,7 @@ int format(Framebuffer::ColourFormat f)
 {
     switch (f) {
     case Framebuffer::ColourFormat::R8:
-        return GL_R;
+        return GL_RED;
     case Framebuffer::ColourFormat::RGBA8:
         return GL_RGBA;
     case Framebuffer::ColourFormat::Float32:
@@ -64,6 +66,8 @@ int format(Framebuffer::ColourFormat f)
         return GL_RGB16F;
     case Framebuffer::ColourFormat::RGBA16F:
         return GL_RGBA16F;
+    case Framebuffer::ColourFormat::RGBA16UI:
+        return GL_RGB16UI;
     }
     assert(false);
     return -1;
@@ -89,16 +93,14 @@ QOpenGLTexture::TextureFormat internal_format_qt(Framebuffer::DepthFormat f)
 int type(Framebuffer::ColourFormat f)
 {
     switch (f) {
-    case Framebuffer::ColourFormat::R8:
-        return GL_UNSIGNED_BYTE;
-    case Framebuffer::ColourFormat::RGBA8:
+    case Framebuffer::ColourFormat::R8: case Framebuffer::ColourFormat::RGBA8:
         return GL_UNSIGNED_BYTE;
     case Framebuffer::ColourFormat::Float32:
         return GL_FLOAT;
-    case Framebuffer::ColourFormat::RGB16F:
+    case Framebuffer::ColourFormat::RGB16F: case Framebuffer::ColourFormat::RGBA16F:
         return GL_HALF_FLOAT;
-    case Framebuffer::ColourFormat::RGBA16F:
-        return GL_HALF_FLOAT;
+    case Framebuffer::ColourFormat::RGBA16UI:
+        return GL_UNSIGNED_SHORT;
     }
     assert(false);
     return -1;
@@ -161,7 +163,9 @@ void Framebuffer::recreate_texture(int index) {
         m_colour_textures[index]->setAutoMipMapGenerationEnabled(m_colour_definitions[index].autoMipMapGeneration);
         m_colour_textures[index]->setMinMagFilters(m_colour_definitions[index].minFilter, m_colour_definitions[index].magFilter);
         m_colour_textures[index]->setWrapMode(m_colour_definitions[index].wrapMode);
+#ifndef __EMSCRIPTEN__
         m_colour_textures[index]->setBorderColor(m_colour_definitions[index].borderColor);
+#endif
         m_colour_textures[index]->allocateStorage();
     }
 }

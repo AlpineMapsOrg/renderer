@@ -20,13 +20,6 @@ layout (location = 0) out highp float texout_depth;
 
 in highp vec3 var_pos_wrt_cam;
 
-//---------
-in lowp vec2 uv;
-uniform sampler2D texture_sampler;
-//---------
-
 void main() {
     texout_depth = gl_FragCoord.z;
-    /*vec3 tmp = texture(texture_sampler, uv).rgb;
-    texout_depth = ( tmp.x + tmp.y + tmp.z ) / 3.0;*/
 }

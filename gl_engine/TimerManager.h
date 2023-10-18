@@ -7,7 +7,10 @@
 #include<chrono>
 
 #include<QMap>
+
+#ifndef __EMSCRIPTEN__
 #include <QOpenGLTimerQuery>
+#endif
 
 class QOpenGLExtraFunctions;
 
@@ -74,6 +77,8 @@ private:
     std::chrono::time_point<std::chrono::high_resolution_clock> m_ticks[2];
 };
 
+#ifndef __EMSCRIPTEN__
+
 /// The SyncQueryTimer class can only be fetched after cpu-gpu synchronization
 /// otherwise the query result might not be yet available
 class GpuSyncQueryTimer : public GeneralTimer {
@@ -117,6 +122,8 @@ private:
     int m_current_bb_offset = 2;
 
 };
+#endif
+
 
 struct qTimerReport {
     // value inside timer could be different by now, thats why we send a copy of the value
@@ -127,6 +134,8 @@ struct qTimerReport {
     // memory issue at deconstruction time of the app.
     std::shared_ptr<GeneralTimer> timer;
 };
+
+
 
 class TimerManager
 {

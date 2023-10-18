@@ -16,12 +16,12 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *****************************************************************************/
 
-const int SHADOW_CASCADES = 4;             // HAS TO BE THE SAME AS IN ShadowMapping.h!!
+const highp int SHADOW_CASCADES = 4;             // HAS TO BE THE SAME AS IN ShadowMapping.h!!
 //const int SHADOW_CASCADES_ALIGNED = 2;     // either 4,8,12,16,...
 
 layout (std140) uniform shadow_config {
     highp mat4 light_space_view_proj_matrix[SHADOW_CASCADES];
-    float cascade_planes[SHADOW_CASCADES + 1];
-    vec2 shadowmap_size;
-    vec2 buff;
+    highp float cascade_planes[SHADOW_CASCADES + 1];
+    highp vec2 shadowmap_size;
+    highp vec2 buff;
 } shadow;

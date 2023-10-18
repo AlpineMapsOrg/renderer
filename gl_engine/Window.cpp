@@ -55,6 +55,10 @@
 
 #include "UniformBufferObjects.h"
 
+#ifndef __EMSCRIPTEN__
+#include <QOpenGLFunctions_3_3_Core>
+#endif
+
 using gl_engine::Window;
 using gl_engine::UniformBuffer;
 
@@ -74,6 +78,10 @@ Window::~Window()
 
 void Window::initialise_gpu()
 {
+    QOpenGLExtraFunctions* f = QOpenGLContext::currentContext()->extraFunctions();
+    if (f->hasOpenGLFeature(QOpenGLExtraFunctions::OpenGLFeature::MultipleRenderTargets)) {
+    }
+
     QOpenGLDebugLogger* logger = new QOpenGLDebugLogger(this);
     logger->initialize();
     connect(logger, &QOpenGLDebugLogger::messageLogged, [](const auto& message) {
@@ -155,7 +163,9 @@ void Window::paint(QOpenGLFramebufferObject* framebuffer)
     QOpenGLExtraFunctions *f = QOpenGLContext::currentContext()->extraFunctions();
 
     // for wireframe mode
+    #ifndef __EMSCRIPTEN__
     auto funcs = QOpenGLVersionFunctionsFactory::get<QOpenGLFunctions_3_3_Core>(QOpenGLContext::currentContext());
+    #endif
 
     f->glEnable(GL_CULL_FACE);
     f->glCullFace(GL_BACK);
@@ -211,14 +221,18 @@ void Window::paint(QOpenGLFramebufferObject* framebuffer)
     f->glEnable(GL_DEPTH_TEST);
     f->glDepthFunc(GL_LESS);
 
+    #ifndef __EMSCRIPTEN__
     if (funcs && m_shared_config_ubo->data.m_wireframe_mode > 0) funcs->glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+    #endif
 
     m_shader_manager->tile_shader()->bind();
     m_timer->start_timer("tiles");
     m_tile_manager->draw(m_shader_manager->tile_shader(), m_camera, draw_tiles, m_sort_tiles, m_camera.position());
     m_timer->stop_timer("tiles");
 
+    #ifndef __EMSCRIPTEN__
     if (funcs && m_shared_config_ubo->data.m_wireframe_mode > 0) funcs->glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+    #endif
 
     m_gbuffer->unbind();
 

@@ -6,11 +6,11 @@ lowp vec2 encode(highp float value) {
 }
 
 highp float d_2u8_to_f16(mediump uint v1, mediump uint v2) {
-    return ((v1 << 8u) | v2 ) / 65535.f;
+    return float((v1 << 8u) | v2 ) / 65535.f;
 }
 
 highp float decode(lowp vec2 value) {
-    mediump uint r = mediump uint(value.x * 255.0f);
-    mediump uint g = mediump uint(value.y * 255.0f);
+    mediump uint r = uint(value.x * 255.0f);
+    mediump uint g = uint(value.y * 255.0f);
     return d_2u8_to_f16(r,g);
 }

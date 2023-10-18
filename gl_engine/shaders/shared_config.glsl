@@ -17,25 +17,25 @@
  *****************************************************************************/
 
 layout (std140) uniform shared_config {
-    vec4 sun_light;
-    vec4 sun_light_dir;
-    vec4 sun_pos;
-    vec4 amb_light;
-    vec4 material_color;
-    vec4 material_light_response;
-    vec4 curtain_settings;
-    bool phong_enabled;
-    uint wireframe_mode;
-    uint normal_mode;
-    uint debug_overlay;
-    float debug_overlay_strength;
-    bool ssao_enabled;
-    uint ssao_kernel;
-    bool ssao_range_check;
-    uint ssao_blur_kernel_size;
-    float ssao_falloff_to_value;
-    bool height_lines_enabled;
-    bool csm_enabled;
-    bool overlay_shadowmaps;
-    vec3 padding;
+    highp vec4 sun_light;
+    highp vec4 sun_light_dir;
+    highp vec4 sun_pos;
+    highp vec4 amb_light;
+    highp vec4 material_color;
+    highp vec4 material_light_response;
+    highp vec4 curtain_settings;
+    highp uint phong_enabled;
+    highp uint wireframe_mode;
+    highp uint normal_mode;
+    highp uint debug_overlay;
+    highp float debug_overlay_strength;
+    highp uint ssao_enabled;
+    highp uint ssao_kernel;
+    highp uint ssao_range_check;
+    highp uint ssao_blur_kernel_size;
+    highp float ssao_falloff_to_value;
+    highp uint height_lines_enabled;
+    highp uint csm_enabled;
+    highp uint overlay_shadowmaps;
+    highp vec3 padding;
 } conf;

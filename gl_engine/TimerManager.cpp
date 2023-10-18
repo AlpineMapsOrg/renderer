@@ -50,6 +50,8 @@ float HostTimer::_fetch_result() {
     return ((float)(diff.count() * 1000.0));
 }
 
+#ifndef __EMSCRIPTEN__
+
 GpuSyncQueryTimer::GpuSyncQueryTimer(const std::string &name, const std::string& group, int queue_size, const float average_weight)
     :GeneralTimer(name, group, queue_size, average_weight)
 {
@@ -122,6 +124,8 @@ float GpuAsyncQueryTimer::_fetch_result() {
     return elapsed_time / 1000000.0f;
 }
 
+#endif
+
 TimerManager::TimerManager()
 {
 }
@@ -154,7 +158,7 @@ std::shared_ptr<GeneralTimer> TimerManager::add_timer(const std::string &name, T
     case TimerTypes::CPU:
         tmr_base = static_pointer_cast<GeneralTimer>(std::make_shared<HostTimer>(name, group, queue_size, average_weight));
         break;
-
+#ifndef __EMSCRIPTEN__
     case TimerTypes::GPU:
         tmr_base = static_pointer_cast<GeneralTimer>(std::make_shared<GpuSyncQueryTimer>(name, group, queue_size, average_weight));
         break;
@@ -162,6 +166,9 @@ std::shared_ptr<GeneralTimer> TimerManager::add_timer(const std::string &name, T
     case TimerTypes::GPUAsync:
         tmr_base = static_pointer_cast<GeneralTimer>(std::make_shared<GpuAsyncQueryTimer>(name, group, queue_size, average_weight));
         break;
+#endif
+    default:
+        qDebug() << "Timertype " << (int)type << " not supported on current target";
     }
 
     m_timer[name] = tmr_base;

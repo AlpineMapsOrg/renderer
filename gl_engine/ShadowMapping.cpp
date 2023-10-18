@@ -25,8 +25,12 @@ ShadowMapping::ShadowMapping(std::shared_ptr<ShaderProgram> program, std::shared
                                     Framebuffer::ColourFormat::Float32,
                                     QOpenGLTexture::Filter::Nearest,
                                     QOpenGLTexture::Filter::Nearest,
+#ifndef __EMSCRIPTEN__
                                     QOpenGLTexture::WrapMode::ClampToBorder,
                                     QColor(1.0f, 1.0f, 1.0f, 1.0f), false
+#else
+                                    QOpenGLTexture::WrapMode::ClampToEdge
+#endif
                 }
             },
             glm::uvec2(SHADOWMAP_WIDTH, SHADOWMAP_HEIGHT)

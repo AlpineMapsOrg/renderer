@@ -15,10 +15,12 @@ using gl_engine::ShaderProgram;
 
 namespace {
 
+
+
 QString get_qrc_or_path_prefix() {
     QString prefix = ":/gl_shaders/";
     if (!QOpenGLContext::currentContext()->isOpenGLES())
-        prefix = ALP_RESOURCES_PREFIX;
+        prefix = ALP_RESOURCES_PREFIX; // FOR NATIVE BUILD: prefix = "shaders/";
     return prefix;
 }
 
@@ -29,7 +31,7 @@ QString load_shader_code(const QString file_name) {
     extended_file_name.prepend(get_qrc_or_path_prefix());
     QFile file(extended_file_name);
 
-    QRegularExpression re(R"RX(#include "(?<file>[\w\d\W ]*?)")RX");
+    static QRegularExpression re(R"RX(#include "(?<file>[\w\d\W ]*?)")RX");
     re.setPatternOptions(QRegularExpression::CaseInsensitiveOption);
 
     if (file.open(QIODevice::ReadOnly | QIODevice::Text)) {
@@ -177,22 +179,51 @@ void ShaderProgram::set_uniform_array(const std::string& name, const std::vector
     m_q_shader_program->setUniformValueArray(uniform_location, reinterpret_cast<const float*>(array.data()), int(array.size()), 3);
 }
 
+// Helper function because i get frustrated with the shader compile errors...
+// I want the actual line that an error relates to also outputed...
+void outputMeaningfullErrors(const QString& qtLog, const QString& code, const QString& file) {
+    QStringList code_lines = code.split('\n');
+    qCritical() << "Compiling Error(s) @file: " << file;
+#ifndef __EMSCRIPTEN__
+    static QRegularExpression re(R"RX((\d+)\((\d+)\) : (.+))RX");
+#else
+    static QRegularExpression re(R"RX(ERROR: (\d+):(\d+): (.+))RX");
+#endif
+    re.setPatternOptions(QRegularExpression::CaseInsensitiveOption);
+    QRegularExpressionMatchIterator matchIterator = re.globalMatch(qtLog);
+    while (matchIterator.hasNext()) {
+        QRegularExpressionMatch match = matchIterator.next();
+
+        QString error_message = match.captured(3);
+        auto line_number = match.captured(2).toInt();
+
+        if (line_number >= 0 && line_number < code_lines.size()) {
+            qCritical() << error_message << " on following line: " << "\n\r" << code_lines[line_number].trimmed();
+        } else {
+            qCritical() << "Error " << error_message << " appeared on line number which exceeds the input code string.";
+        }
+    }
+}
+
 void ShaderProgram::reload()
 {
     QString vertexCode, fragmentCode;
     if (m_code_source == ShaderCodeSource::PLAINTEXT) {
-        vertexCode = m_vertex_shader;
-        fragmentCode = m_fragment_shader;
+        vertexCode = versionedShaderCode(m_vertex_shader);
+        fragmentCode = versionedShaderCode(m_fragment_shader);
     } else if(m_code_source == ShaderCodeSource::FILE) {
-        vertexCode = load_shader_code(m_vertex_shader);
-        fragmentCode = load_shader_code(m_fragment_shader);
+        vertexCode = versionedShaderCode(load_shader_code(m_vertex_shader));
+        fragmentCode = versionedShaderCode(load_shader_code(m_fragment_shader));
     }
     auto program = std::make_unique<QOpenGLShaderProgram>();
-    bool success = true;
-    success = success && program->addShaderFromSourceCode(QOpenGLShader::Vertex, versionedShaderCode(vertexCode));
-    success = success && program->addShaderFromSourceCode(QOpenGLShader::Fragment, versionedShaderCode(fragmentCode));
-    success = success && program->link();
-    if (success) {
+    if (!program->addShaderFromSourceCode(QOpenGLShader::Vertex, vertexCode)) {
+        outputMeaningfullErrors(program->log(), vertexCode, m_vertex_shader);
+    } else if (!program->addShaderFromSourceCode(QOpenGLShader::Fragment, fragmentCode)) {
+        outputMeaningfullErrors(program->log(), fragmentCode, m_fragment_shader);
+    } else if (!program->link()) {
+        qDebug() << "error linking shader " << m_vertex_shader << "and" << m_fragment_shader;
+    } else {
+        // NO ERROR
         m_q_shader_program = std::move(program);
         m_cached_attribs.clear();
         m_cached_uniforms.clear();

@@ -16,9 +16,9 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *****************************************************************************/
 
-uint compute_hash(uint a)
+highp uint compute_hash(highp uint a)
 {
-   uint b = (a+2127912214u) + (a<<12u);
+   highp uint b = (a+2127912214u) + (a<<12u);
    b = (b^3345072700u) ^ (b>>19u);
    b = (b+374761393u) + (b<<5u);
    b = (b+3551683692u) ^ (b<<9u);
@@ -27,7 +27,7 @@ uint compute_hash(uint a)
    return b;
 }
 
-vec3 color_from_id_hash(uint a) {
-    uint hash = compute_hash(a);
+highp vec3 color_from_id_hash(highp uint a) {
+    highp uint hash = compute_hash(a);
     return vec3(float(hash & 255u), float((hash >> 8u) & 255u), float((hash >> 16u) & 255u)) / 255.0;
 }
