@@ -176,7 +176,7 @@ void main() {
     lowp vec3 atmoshperic_color = texture(texin_atmosphere, texcoords).rgb;
     out_Color = vec4(mix(atmoshperic_color, shaded_color, alpha), 1.0);
 
-    if (conf.debug_overlay_strength > 0.0 && conf.debug_overlay > 0u) {
+    if (conf.debug_overlay_strength > 0.0 && conf.debug_overlay > 6u) {
         highp vec4 overlayColor = vec4(0.0);
         if (conf.debug_overlay == 7u) overlayColor = vec4(vec3(amb_occlusion), 1.0);
         out_Color = mix(out_Color, overlayColor, conf.debug_overlay_strength);

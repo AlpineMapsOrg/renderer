@@ -52,6 +52,19 @@ lowp vec2 encode(highp float value) {
     return vec2(float(r) / 255.f, float(b) / 255.f);
 }
 
+lowp const int steepness_bins = 9;
+highp const vec4 steepness_color_map[steepness_bins] = vec4[](
+    vec4(254.0/255.0, 249.0/255.0, 249.0/255.0, 1.0),
+    vec4(51.0/255.0, 249.0/255.0, 49.0/255.0, 1.0),
+    vec4(242.0/255.0, 228.0/255.0, 44.0/255.0, 1.0),
+    vec4(255.0/255.0, 169.0/255.0, 45.0/255.0, 1.0),
+    vec4(255.0/255.0, 48.0/255.0, 45.0/255.0, 1.0),
+    vec4(255.0/255.0, 79.0/255.0, 249.0/255.0, 1.0),
+    vec4(183.0/255.0, 69.0/255.0, 253.0/255.0, 1.0),
+    vec4(135.0/255.0, 44.0/255.0, 253.0/255.0, 1.0),
+    vec4(49.0/255.0, 49.0/255.0, 253.0/255.0, 1.0)
+);
+
 void main() {
     if (conf.wireframe_mode == 2u) {
         texout_albedo = vec4(1.0, 1.0, 1.0, 1.0);
@@ -88,28 +101,6 @@ void main() {
     texout_albedo = vec4(fragColor, alpha);
 
     /*
-    if (conf.debug_overlay_strength < 1.0f || conf.debug_overlay == 0u) {
-        highp vec3 origin = vec3(camera.position);
-
-        highp float dist = length(var_pos_wrt_cam);
-        highp vec3 ray_direction = var_pos_wrt_cam / dist;
-
-        highp vec3 light_through_atmosphere = calculate_atmospheric_light(camera.position / 1000.0, ray_direction, dist / 1000.0, vec3(ortho), 10);
-        highp float cos_f = dot(ray_direction, vec3(0.0, 0.0, 1.0));
-        highp float alpha = calculate_falloff(dist, 300000.0, 600000.0);
-
-        vec3 fragColor = ortho.rgb;
-        vec3 phong_illumination = vec3(1.0);
-        if (conf.phong_enabled) {
-            fragColor = mix(conf.material_color.rgb, fragColor, conf.material_color.a);
-            phong_illumination = calculate_illumination(fragColor, origin, var_pos_wrt_cam, normal, conf.sun_light, conf.amb_light, conf.sun_light_dir.xyz, conf.material_light_response);
-        }
-        light_through_atmosphere = calculate_atmospheric_light(camera.position / 1000.0, ray_direction, dist / 1000.0, phong_illumination * fragColor, 10);
-        vec3 color = light_through_atmosphere;
-
-        texout_albedo = vec4(color * alpha, alpha);
-    }
-
     vec3 d_color = debug_overlay_color;
 
     if (conf.debug_overlay_strength > 0.0 && conf.debug_overlay > 0u) {
@@ -123,9 +114,18 @@ void main() {
     if (length(d_color) > 0.0)
         texout_albedo = vec4(d_color, 1.0);
 */
+
+
+    if (conf.debug_overlay == 1u) {
+        highp float steepness = (1.0 - dot(normal, vec3(0.0,0.0,1.0)));
+        highp float alpha_line = 1.0 - min((dist / 20000.0), 1.0);
+        lowp int bin_index = int(steepness * float(steepness_bins - 1) + 0.5);
+        texout_albedo = vec4(mix(texout_albedo.rgb, steepness_color_map[bin_index].rgb, steepness_color_map[bin_index].a * conf.debug_overlay_strength * alpha_line), texout_albedo.a);
+    }
+
     // == HEIGHT LINES ==============
     if (bool(conf.height_lines_enabled)) {
-        highp float alpha_line = 1.0 - min((dist / 10000.0), 1.0);
+        highp float alpha_line = 1.0 - min((dist / 20000.0), 1.0);
         highp float line_width = (2.0 + dist / 5000.0) * 5.0;
         // Calculate steepness based on fragment normal (this alone gives woobly results)
         highp float steepness = (1.0 - dot(normal, vec3(0.0,0.0,1.0))) / 2.0;

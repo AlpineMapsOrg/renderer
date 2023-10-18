@@ -79,7 +79,7 @@ void main()
 
             // range check & accumulate
             highp float rangeCheck = 1.0;
-            if (bool(conf.ssao_range_check)) {
+            if (bool(conf.ssao_range_check) || (dist - sample_dist) > 3000.0) {
                 rangeCheck = smoothstep(0.0, 1.0, radius / abs(dist - sample_dist));
             }
             occlusion += (sample_gt_dist >= sample_dist + bias ? 1.0 : 0.0) * rangeCheck;
