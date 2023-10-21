@@ -70,14 +70,13 @@ void SSAO::draw(Framebuffer* gbuffer, helpers::ScreenQuadGeometry* geometry,
     m_ssaobuffer->bind();
     auto p = m_ssao_program.get();
     p->bind();
-    p->set_uniform("texin_position", 0);
-    gbuffer->bind_colour_texture(3,0);
-    p->set_uniform("texin_normal2", 1);
-    gbuffer->bind_colour_texture(2,1);
+    p->set_uniform("texin_depth", 0);
+    gbuffer->bind_depth_texture(0);
+    p->set_uniform("texin_normal", 1);
+    gbuffer->bind_colour_texture(1,1);
     p->set_uniform("texin_noise", 2);
     m_ssao_noise_texture->bind(2);
-    p->set_uniform("texin_normal", 3);
-    gbuffer->bind_colour_texture(4,3);
+
     if (kernel_size != m_ssao_kernel.size()) recreate_kernel(kernel_size);
     p->set_uniform_array("samples", this->m_ssao_kernel);
     geometry->draw();

@@ -47,6 +47,7 @@ public:
     };
     enum class ColourFormat {
         R8,
+        RGB8,
         RGBA8,
         RG16UI,
         RGB16F,         // NOT COLOR RENDERABLE ON OPENGLES
@@ -75,6 +76,7 @@ public:
     void resize(const glm::uvec2& new_size);
     void bind();
     void bind_colour_texture(unsigned index = 0, unsigned location = 0);
+    void bind_depth_texture(unsigned location = 0);
 
     [[deprecated("Not in use, untested...")]]
     std::unique_ptr<QOpenGLTexture> take_and_replace_colour_attachment(unsigned index);
@@ -90,6 +92,12 @@ public:
     // function would be prefered instead of this.
     void read_colour_attachment_pixel(unsigned index, const glm::dvec2& normalised_device_coordinates, void* target);
 
+    // Writes the data of the given pixel of the depth attachment inside the target buffer
+    // WARNING: Does not check wether enough storage is allocated. So make sure
+    // you use the correct type for the given texture. A typed
+    // function would be prefered instead of this.
+    // WARNING2: No support on WebGL 2.0 or OpenGL ES 3.0
+    void read_depth_attachment_pixel(const glm::dvec2& normalised_device_coordinates, void* target);
 
     static void unbind();
 

@@ -45,7 +45,6 @@
 #include "TileManager.h"
 #include "Window.h"
 #include "helpers.h"
-#include "nucleus/utils/bit_coding.h"
 #include "TimerManager.h"
 #include "SSAO.h"
 #include "ShadowMapping.h"
@@ -98,12 +97,9 @@ void Window::initialise_gpu()
     m_screen_quad_geometry = gl_engine::helpers::create_screen_quad_geometry();
     m_gbuffer = std::make_unique<Framebuffer>(Framebuffer::DepthFormat::Float32,
                                               std::vector{
-                                                  TextureDefinition{ Framebuffer::ColourFormat::RGBA8   },      // Albedo
-                                                  TextureDefinition{ Framebuffer::ColourFormat::RGBA8   },      // Encoded Depth
-                                                  TextureDefinition{ Framebuffer::ColourFormat::RGBA16F },      // Normal + Dist
-                                                  TextureDefinition{ Framebuffer::ColourFormat::RGB16F  },      // Position CWS
+                                                  TextureDefinition{ Framebuffer::ColourFormat::RGB8   },       // Albedo
                                                   TextureDefinition{ Framebuffer::ColourFormat::RG16UI  },      // Octahedron Normals
-                                                  TextureDefinition{ Framebuffer::ColourFormat::R32UI   }       // NEW DEPTH
+                                                  TextureDefinition{ Framebuffer::ColourFormat::R32UI   }       // NEW ENCODED DEPTH
                                               });
 
     m_atmospherebuffer = std::make_unique<Framebuffer>(Framebuffer::DepthFormat::None, std::vector{ TextureDefinition{Framebuffer::ColourFormat::RGBA8} });
@@ -218,10 +214,12 @@ void Window::paint(QOpenGLFramebufferObject* framebuffer)
     m_gbuffer->bind();
 
     f->glClearColor(0.0, 0.0, 0.0, 0.0);
+    f->glClearDepthf(0.0f); // for reverse z
     f->glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
 
     f->glEnable(GL_DEPTH_TEST);
-    f->glDepthFunc(GL_LESS);
+    f->glDepthFunc(GL_GREATER); // for reverse z
+    //f->glDepthFunc(GL_LESS);
 
     #ifndef __EMSCRIPTEN__
     if (funcs && m_shared_config_ubo->data.m_wireframe_mode > 0) funcs->glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
@@ -252,9 +250,9 @@ void Window::paint(QOpenGLFramebufferObject* framebuffer)
     p->bind();
     p->set_uniform("texin_albedo", 0);
     m_gbuffer->bind_colour_texture(0, 0);
-    p->set_uniform("texin_depth", 1);
+    p->set_uniform("texin_depthold", 1);
     m_gbuffer->bind_colour_texture(1, 1);
-    p->set_uniform("texin_normal", 2);
+    p->set_uniform("texin_normalold", 2);
     m_gbuffer->bind_colour_texture(2, 2);
     p->set_uniform("texin_position", 3);
     m_gbuffer->bind_colour_texture(3, 3);
@@ -262,7 +260,12 @@ void Window::paint(QOpenGLFramebufferObject* framebuffer)
     m_atmospherebuffer->bind_colour_texture(0, 4);
     p->set_uniform("texin_ssao", 5);
     m_ssao->bind_ssao_texture(5);
-    m_shadowmapping->bind_shadow_maps(p, 6);
+    p->set_uniform("texin_depth", 6);
+    m_gbuffer->bind_depth_texture(6);
+    p->set_uniform("texin_normal", 7);
+    m_gbuffer->bind_colour_texture(4, 7);
+    m_shadowmapping->bind_shadow_maps(p, 10);
+
 
     m_timer->start_timer("compose");
     m_screen_quad_geometry.draw();
@@ -398,8 +401,9 @@ void Window::update_gpu_quads(const std::vector<nucleus::tile_scheduler::tile_ty
 
 float Window::depth(const glm::dvec2& normalised_device_coordinates)
 {
-    const auto read_floats = nucleus::utils::bit_coding::to_f16f16(m_gbuffer->read_colour_attachment_pixel(1, normalised_device_coordinates));
-    const auto depth = std::exp(read_floats[0] * 13.f);
+    uint32_t fakeNormalizedDepth;
+    m_gbuffer->read_colour_attachment_pixel(5, normalised_device_coordinates, &fakeNormalizedDepth);
+    const auto depth = float(std::exp(double(fakeNormalizedDepth) / 4294967295.0 * 13.0));
     return depth;
 }
 

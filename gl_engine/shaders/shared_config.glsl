@@ -16,6 +16,8 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *****************************************************************************/
 
+#define FARPLANE_DEPTH_VALUE 0.0  // cause of reverse Z
+
 layout (std140) uniform shared_config {
     highp vec4 sun_light;
     highp vec4 sun_light_dir;

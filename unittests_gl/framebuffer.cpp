@@ -44,9 +44,7 @@ using gl_engine::ShaderProgram;
 static const char* const vertex_source = R"(
 out highp vec2 texcoords;
 void main() {
-    vec2 vertices[3]=vec2[3](vec2(-1.0, -1.0),
-                             vec2(3.0, -1.0),
-                             vec2(-1.0, 3.0));
+    vec2 vertices[3]=vec2[3](vec2(-1.0, -1.0), vec2(3.0, -1.0), vec2(-1.0, 3.0));
     gl_Position = vec4(vertices[gl_VertexID], 0.0, 1.0);
     texcoords = 0.5 * gl_Position.xy + vec2(0.5);
 })";
@@ -87,8 +85,7 @@ TEST_CASE("gl framebuffer")
     REQUIRE(f);
     SECTION("rgba8 bit")
     {
-        Framebuffer b(Framebuffer::DepthFormat::None, { {Framebuffer::ColourFormat::RGBA8} });
-        b.resize({ 501, 211 });
+        Framebuffer b(Framebuffer::DepthFormat::None, { {Framebuffer::ColourFormat::RGBA8} }, { 501, 211 });
         b.bind();
         ShaderProgram shader = create_debug_shader();
         shader.bind();
@@ -174,8 +171,7 @@ TEST_CASE("gl framebuffer")
     // NOTE: Tests dont terminate on webgl for me if this benchmark is enabled. The function is not in use anyway...
     SECTION("rgba8 bit read benchmark")
     {
-        Framebuffer b(Framebuffer::DepthFormat::None, { {Framebuffer::ColourFormat::RGBA8} });
-        b.resize({ 1920, 1080 });
+        Framebuffer b(Framebuffer::DepthFormat::None, { {Framebuffer::ColourFormat::RGBA8} }, { 1920, 1080 });
         b.bind();
         ShaderProgram shader = create_debug_shader();
         shader.bind();
@@ -190,8 +186,7 @@ TEST_CASE("gl framebuffer")
 #endif
     SECTION("read pixel")
     {
-        Framebuffer b(Framebuffer::DepthFormat::None, { {Framebuffer::ColourFormat::RGBA8} });
-        b.resize({ 1920, 1080 });
+        Framebuffer b(Framebuffer::DepthFormat::None, { {Framebuffer::ColourFormat::RGBA8} }, { 1920, 1080 });
         b.bind();
         ShaderProgram shader = create_debug_shader();
         shader.bind();
@@ -214,8 +209,7 @@ TEST_CASE("gl framebuffer")
             std::pair { 32767.0f / (256 * 256 - 1), 1.0f - 256.0f / (256 * 256 - 1) },
         };
         for (const auto& pair : tuples) {
-            Framebuffer b(Framebuffer::DepthFormat::None, { { Framebuffer::ColourFormat::RGBA8 } });
-            b.resize({ 1920, 1080 });
+            Framebuffer b(Framebuffer::DepthFormat::None, { { Framebuffer::ColourFormat::RGBA8 } }, { 1920, 1080 });
             b.bind();
             ShaderProgram shader = create_encoder_shader(pair.first, pair.second);
             shader.bind();
@@ -231,15 +225,68 @@ TEST_CASE("gl framebuffer")
     }
     SECTION("f32 depth buffer")
     {
-        Framebuffer b(Framebuffer::DepthFormat::Float32, { {Framebuffer::ColourFormat::R32UI} });
-        b.resize({1920, 1080});
+        QOpenGLExtraFunctions* f = QOpenGLContext::currentContext()->extraFunctions();
+        Framebuffer b(Framebuffer::DepthFormat::Float32, {});
         b.bind();
-        ShaderProgram shader = create_debug_shader( R"(
-            out highp uint out_Color;
-            void main() { out_Color = uint(gl_FragCoord.z * 4294967295.0); }
+        f->glClearDepthf(0.9);
+        f->glClear(GL_DEPTH_BUFFER_BIT);
+        f->glDepthFunc(GL_ALWAYS);
+        ShaderProgram p1 = create_debug_shader( R"(
+            void main() {
+                gl_FragDepth = 0.5;
+            }
         )");
-        shader.bind();
+        p1.bind();
+        gl_engine::helpers::create_screen_quad_geometry().draw_with_depth_test();
+        f->glFinish();
+        // Now lets try to use it as an input texture
+        Framebuffer b2(Framebuffer::DepthFormat::None, {{ Framebuffer::ColourFormat::R32UI }});
+        b2.bind();
+        ShaderProgram p2 = create_debug_shader(R"(
+            in highp vec2 texcoords;
+            out highp uint out_Color;
+            uniform highp sampler2D texin_depth;
+            void main() {
+                highp float depth = texture(texin_depth, texcoords).r;
+                out_Color = uint(depth * 4294967295.0);
+            }
+        )");
+        p2.bind();
+        p2.set_uniform("texin_depth", 0);
+        b.bind_depth_texture(0);
         gl_engine::helpers::create_screen_quad_geometry().draw();
         f->glFinish();
+        glm::u32vec1 value_at_0_0;
+        b2.read_colour_attachment_pixel(0, glm::dvec2(-1.0, -1.0), &value_at_0_0[0]);
+        CHECK(value_at_0_0.x == 2147483648); // equals 0.5
     }
+    /* DEPTH BUFFER READBACK NOT SUPPORTED ON OPENGL ES AND WEBGL
+    SECTION("f32 depth buffer readback")
+    {
+        QOpenGLExtraFunctions* f = QOpenGLContext::currentContext()->extraFunctions();
+        Framebuffer b(Framebuffer::DepthFormat::Float32, {});
+        b.bind();
+        f->glClearDepthf(0.5);
+        f->glClear(GL_DEPTH_BUFFER_BIT);
+        f->glFinish();
+        // Now lets try to read it back
+        glm::vec1 value_at_0_0;
+        b.read_depth_attachment_pixel(glm::dvec2(-1.0, -1.0), &value_at_0_0[0]);
+        CHECK(value_at_0_0.x == Approx(0.5F));
+    }
+    SECTION("f32 depth buffer readback benchmark")
+    {
+        QOpenGLExtraFunctions* f = QOpenGLContext::currentContext()->extraFunctions();
+        Framebuffer b(Framebuffer::DepthFormat::Float32, {});
+        b.bind();
+        f->glClearDepthf(0.5);
+        f->glClear(GL_DEPTH_BUFFER_BIT);
+        f->glFinish();
+
+        BENCHMARK("f32 depth buffer readback benchmark")
+        {
+            glm::vec1 value_at_0_0;
+            b.read_depth_attachment_pixel(glm::dvec2(-1.0, -1.0), &value_at_0_0[0]);
+        };
+    }*/
 }

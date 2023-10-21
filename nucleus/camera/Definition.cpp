@@ -187,6 +187,17 @@ std::vector<geometry::Plane<double>> nucleus::camera::Definition::four_clipping_
     return clipping_panes;
 }
 
+// for reverse z: https://nlguillemot.wordpress.com/2016/12/07/reversed-z-in-opengl/
+glm::mat4 MakeInfReversedZProjRH(float fovY_radians, float aspectWbyH, float zNear)
+{
+    float f = 1.0f / tan(fovY_radians / 2.0f);
+    return glm::mat4(
+        f / aspectWbyH, 0.0f,  0.0f,  0.0f,
+        0.0f,    f,  0.0f,  0.0f,
+        0.0f, 0.0f,  0.0f, -1.0f,
+        0.0f, 0.0f, zNear,  0.0f);
+}
+
 void nucleus::camera::Definition::set_perspective_params(float fov_degrees, const glm::uvec2& viewport_size, float near_plane)
 {
     m_distance_scaling_factor = 1.f / std::tan(0.5f * fov_degrees * 3.1415926535897932384626433f / 180);
@@ -200,6 +211,8 @@ void nucleus::camera::Definition::set_perspective_params(float fov_degrees, cons
         double(viewport_size.x) / double(viewport_size.y),
         double(m_near_clipping),
         double(m_far_clipping));
+    m_projection_matrix = MakeInfReversedZProjRH(glm::radians(double(fov_degrees)), double(viewport_size.x) / double(viewport_size.y), m_near_clipping);
+
 }
 
 void nucleus::camera::Definition::set_near_plane(float near_plane)

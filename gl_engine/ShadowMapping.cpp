@@ -67,7 +67,6 @@ void ShadowMapping::draw(
     m_f->glEnable(GL_DEPTH_TEST);
     m_f->glDepthFunc(GL_LESS);
     m_f->glDisable(GL_CULL_FACE);
-    m_f->glViewport(0, 0, SHADOWMAP_WIDTH, SHADOWMAP_HEIGHT);
     for (int i = 0; i < SHADOW_CASCADES; i++) {
         m_shadowmapbuffer[i]->bind();
         m_f->glClearColor(0, 0, 0, 0);

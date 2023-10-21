@@ -26,10 +26,9 @@ layout (location = 0) out highp float out_color;
 
 in highp vec2 texcoords;
 
-uniform highp sampler2D texin_position;
-uniform highp sampler2D texin_normal2;
-uniform highp sampler2D texin_noise;
+uniform highp sampler2D texin_depth;
 uniform highp usampler2D texin_normal;
+uniform highp sampler2D texin_noise;
 
 uniform highp vec3 samples[MAX_SSAO_KERNEL_SIZE];
 

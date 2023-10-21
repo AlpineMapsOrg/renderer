@@ -23,11 +23,8 @@
 uniform sampler2D texture_sampler;
 
 layout (location = 0) out lowp vec4 texout_albedo;
-layout (location = 1) out lowp vec4 texout_depth2;
-layout (location = 2) out highp vec4 texout_normal2;    // a = dist
-layout (location = 3) out highp vec3 texout_position;
-layout (location = 4) out highp uvec2 texout_normal;
-layout (location = 5) out highp uint texout_depth;
+layout (location = 1) out highp uvec2 texout_normal;
+layout (location = 2) out highp uint texout_depth;
 
 in lowp vec2 uv;
 in highp vec3 var_pos_wrt_cam;
@@ -63,12 +60,12 @@ highp const vec4 steepness_color_map[steepness_bins] = vec4[](
 
 void main() {
     if (conf.wireframe_mode == 2u) {
-        texout_albedo = vec4(1.0, 1.0, 1.0, 1.0);
+        texout_albedo = vec3(1.0, 1.0, 1.0);
         return;
     }
     if (is_curtain > 0.0) {
         if (conf.curtain_settings.x == 2.0) {
-            texout_albedo = vec4(1.0, 0.0, 0.0, 1.0);
+            texout_albedo = vec3(1.0, 0.0, 0.0);
             return;
         } else if (conf.curtain_settings.x == 0.0) {
             discard;
@@ -79,24 +76,19 @@ void main() {
         }
     }
 
-    texout_position = var_pos_wrt_cam;
-
+    // Encode distance for readback
     highp float dist = length(var_pos_wrt_cam);
-    highp float depth = log(dist)/13.0;
-    texout_depth2 = vec4(encode(depth), 0, 0);
-    texout_depth = depthCSEncode1u32(gl_FragCoord.z);
+    texout_depth = depthWSEncode1u32(dist);
 
-
+    // Encode normal
     highp vec3 normal = vec3(0.0);
     if (conf.normal_mode == 0u) normal = normal_by_fragment_position_interpolation();
     else normal = var_normal;
-    texout_normal2 = vec4(normal, dist);
     texout_normal = octNormalEncode2u16(normal);
 
     lowp vec3 fragColor = texture(texture_sampler, uv).rgb;
     fragColor = mix(conf.material_color.rgb, fragColor, conf.material_color.a);
-    highp float alpha = calculate_falloff(dist, 300000.0, 600000.0);
-    texout_albedo = vec4(fragColor, alpha);
+    texout_albedo = fragColor;
 
     /*
     vec3 d_color = debug_overlay_color;
@@ -118,7 +110,7 @@ void main() {
         highp float steepness = (1.0 - dot(normal, vec3(0.0,0.0,1.0)));
         highp float alpha_line = 1.0 - min((dist / 20000.0), 1.0);
         lowp int bin_index = int(steepness * float(steepness_bins - 1) + 0.5);
-        texout_albedo = vec4(mix(texout_albedo.rgb, steepness_color_map[bin_index].rgb, steepness_color_map[bin_index].a * conf.debug_overlay_strength * alpha_line), texout_albedo.a);
+        texout_albedo = mix(texout_albedo.rgb, steepness_color_map[bin_index].rgb, steepness_color_map[bin_index].a * conf.debug_overlay_strength * alpha_line);
     }
 
     // == HEIGHT LINES ==============

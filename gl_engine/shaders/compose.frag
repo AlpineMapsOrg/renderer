@@ -26,11 +26,15 @@
 in highp vec2 texcoords;
 
 uniform sampler2D texin_albedo;
-uniform lowp sampler2D texin_depth;
-uniform highp sampler2D texin_normal;
+uniform lowp sampler2D texin_depthold;
+uniform highp sampler2D texin_normalold;
+
 uniform highp sampler2D texin_position;
 uniform sampler2D texin_atmosphere;
 uniform sampler2D texin_ssao;
+uniform highp sampler2D texin_depth;
+
+uniform highp usampler2D texin_normal;
 
 uniform highp sampler2D texin_csm1;
 uniform highp sampler2D texin_csm2;
@@ -131,36 +135,41 @@ highp float csm_shadow_term(highp vec4 pos_cws, highp vec3 normal_ws) {
 }
 
 void main() {
-    lowp vec4 albedo_alpha = texture(texin_albedo, texcoords);
-    lowp vec3 albedo = albedo_alpha.rgb;
-    lowp float alpha = albedo_alpha.a;
-    lowp vec2 depth_encoded = texture(texin_depth, texcoords).xy;
-    highp vec4 normal_dist = texture(texin_normal, texcoords);
-    highp vec3 pos_wrt_cam = texture(texin_position, texcoords).xyz;
-    highp float amb_occlusion = 1.0;
-    highp float shadow_term = 0.0;
-    if (bool(conf.ssao_enabled)) amb_occlusion = texture(texin_ssao, texcoords).r;
-    highp vec3 normal = normal_dist.xyz;
-    highp float dist = normal_dist.w;
+    lowp vec4 albedo = texture(texin_albedo, texcoords).rgb;
 
-    // DECODE DEPTH
-    //highp float depth_decoded = decode(depth_encoded);
-    //highp float dist_decoded = exp(depth_decoded * 13.0f);
-    //highp float dist = exp(depth_true * 13.0f);
+
+    // Reconstruct position from depth buffer
+    highp float depth_cs = texture(texin_depth, texcoords).x;
+    highp vec3 pos_wrt_cam = vec3(0.0);
+    highp float dist = -1.0;        // Distance to camera
+    lowp float alpha = 0.0;         // Alpha-Value for Tile-Overlay (distant linear falloff)
+    if (depth_cs != FARPLANE_DEPTH_VALUE) {
+        pos_wrt_cam = depth_cs_to_pos_ws(depth_cs, texcoords);
+        dist = length(pos_wrt_cam);
+        alpha = calculate_falloff(dist, 300000.0, 600000.0);
+    }
+
+    highp vec3 normal = octNormalDecode2u16(texture(texin_normal, texcoords).xy);
 
     highp vec3 shaded_color = vec3(0.0f);
 
-    if (conf.debug_overlay_strength < 1.0f || conf.debug_overlay == 0u) {
+    // Don't do shading if not visible anyway and also don't for pixels where there is no geometry (depth==0.0)
+    bool do_shading = (conf.debug_overlay_strength < 1.0f || conf.debug_overlay == 0u) && depth_cs != FARPLANE_DEPTH_VALUE;
+    if (do_shading) {
         highp vec3 origin = vec3(camera.position);
 
-        //highp float dist = length(pos_wrt_cam);
         highp vec3 ray_direction = pos_wrt_cam / dist;
 
         highp vec3 light_through_atmosphere = calculate_atmospheric_light(origin / 1000.0, ray_direction, dist / 1000.0, albedo, 10);
 
+        highp float shadow_term = 0.0;
         if (bool(conf.csm_enabled)) {
             shadow_term = csm_shadow_term(vec4(pos_wrt_cam, 1.0), normal);
         }
+
+        // Gather ambient occlusion from ssao texture
+        highp float amb_occlusion = 1.0;
+        if (bool(conf.ssao_enabled)) amb_occlusion = texture(texin_ssao, texcoords).r;
 
         shaded_color = albedo;
         if (bool(conf.phong_enabled)) {
@@ -171,19 +180,13 @@ void main() {
     }
 
     // Blend with atmospheric background:
-    // Note: Alpha value gets calculated in gbuffer stage since the depth doesnt seem
-    // to be accurate enough at such far distances!
     lowp vec3 atmoshperic_color = texture(texin_atmosphere, texcoords).rgb;
     out_Color = vec4(mix(atmoshperic_color, shaded_color, alpha), 1.0);
 
-    if (conf.debug_overlay_strength > 0.0 && conf.debug_overlay > 6u) {
-        highp vec4 overlayColor = vec4(0.0);
-        if (conf.debug_overlay == 7u) overlayColor = vec4(vec3(amb_occlusion), 1.0);
-        out_Color = mix(out_Color, overlayColor, conf.debug_overlay_strength);
+    if (conf.debug_overlay_strength > 0.0 && conf.debug_overlay > 0u) {
+        highp vec4 overlayColor = vec4(-1.0);
+        if (overlayColor.x > 0) out_Color = mix(out_Color, overlayColor, conf.debug_overlay_strength);
     }
-
-    //out_Color = mix(vec4(debug_color, 1.0), out_Color, 0.5);
-    //out_Color = vec4(shadow_term);
 
     // OVERLAY SHADOW MAPS
     if (bool(conf.overlay_shadowmaps)) {
@@ -201,32 +204,4 @@ void main() {
             }
         }
     }
-
-
-    //out_Color = vec4(vec3(ssao), 1.0);
-    //out_Color = vec4(atmoshperic_color * (1.0 - alpha),1.0);
-    //out_Color = vec4(vec3(alpha), 1.0);
-
-    // == HEIGHT LINES ==============
-/*
-    float alpha = 1.0 - min((dist / 10000.0), 1.0);
-    float line_width = (2.0 + dist / 5000.0) * 5.0;
-    // Calculate steepness based on fragment normal (this alone gives woobly results)
-    float steepness = (1.0 - dot(normal, vec3(0.0,0.0,1.0))) / 2.0;
-    // Discretize the steepness -> Doesnt work
-    //float steepness_discretized = int(steepness * 10.0f) / 10.0f;
-    line_width = line_width * max(0.01,steepness);
-    if (alpha > 0.05)
-    {
-        float alt = pos_wrt_cam.z + camera.position.z;
-        float alt_rest = (alt - int(alt / 100.0) * 100.0) - line_width / 2.0;
-        if (alt_rest < line_width) {
-            out_Color = mix(out_Color, vec4(out_Color.r - 0.2, out_Color.g - 0.2, out_Color.b - 0.2, 1.0), alpha);
-        }
-    }*/
-
-    //out_Color = vec4(albedo * pos_wrt_cam, 1.0) * normal_dist * depth_encoded.x;
-    //if (abs(dist_decoded - dist) > 1.0) {
-    //    out_Color = vec4(1.0, 0.0, 0.0,1.0);
-    //}
 }

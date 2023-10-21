@@ -1,3 +1,4 @@
+// delete
 lowp vec2 encode(highp float value) {
     mediump uint scaled = uint(value * 65535.f + 0.5f);
     mediump uint r = scaled >> 8u;
@@ -5,29 +6,34 @@ lowp vec2 encode(highp float value) {
     return vec2(float(r) / 255.f, float(b) / 255.f);
 }
 
+// delete
 highp float d_2u8_to_f16(mediump uint v1, mediump uint v2) {
     return float((v1 << 8u) | v2 ) / 65535.f;
 }
 
+// delete
 highp float decode(lowp vec2 value) {
     mediump uint r = uint(value.x * 255.0f);
     mediump uint g = uint(value.y * 255.0f);
     return d_2u8_to_f16(r,g);
 }
 
-// DEPTH ENCODE
-highp float linearize_depth(highp float d,highp float zNear, highp float zFar)
-{
-    return (2.0 * zNear) / (zFar + zNear - d * (zFar - zNear));
+// ===== DEPTH ENCODE =====
+// NOTE: Only positions up to e^13 = 442413 are in between [0,1]
+// Thats not perfect, but I'll leave it as it is...
+// Better would be to normalize it in between near and farplane
+// or just use the cs Depth immediately.
+highp float fakeNormalizeWSDepth(highp float depth) {
+    return log(depth) / 13.0;
 }
-
-highp uint depthCSEncode1u32(highp float depth) {
-    depth = linearize_depth(depth, 1.0f, 1000000000.0f);
-    return uint(depth * 4294967295.0);
+highp float fakeUnNormalizeWSDepth(highp float ndepth) {
+    return exp(13.0 * ndepth);
 }
-
-highp float depthCSDecode1u32(highp uint depth32) {
-    return float(depth32) / 4294967295.0;
+highp uint depthWSEncode1u32(highp float depth) {
+    return uint(fakeNormalizeWSDepth(depth) * 4294967295.0);
+}
+highp float depthWSDecode1u32(highp uint depth32) {
+    return fakeUnNormalizeWSDepth(float(depth32) / 4294967295.0);
 }
 
 // OCTAHEDRON MAPPING FOR NORMALS

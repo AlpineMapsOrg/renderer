@@ -40,6 +40,8 @@ QOpenGLTexture::TextureFormat internal_format_qt(Framebuffer::ColourFormat f)
     switch (f) {
     case Framebuffer::ColourFormat::R8:
         return QOpenGLTexture::TextureFormat::R8_UNorm;
+    case Framebuffer::ColourFormat::RGB8:
+        return QOpenGLTexture::TextureFormat::RGB8_UNorm;
     case Framebuffer::ColourFormat::RGBA8:
         return QOpenGLTexture::TextureFormat::RGBA8_UNorm;
     case Framebuffer::ColourFormat::RG16UI:
@@ -62,6 +64,8 @@ int format(Framebuffer::ColourFormat f)
     switch (f) {
     case Framebuffer::ColourFormat::R8:
         return GL_RED;
+    case Framebuffer::ColourFormat::RGB8:
+        return GL_RGB;
     case Framebuffer::ColourFormat::RGBA8:
         return GL_RGBA;
     case Framebuffer::ColourFormat::RG16UI:
@@ -77,6 +81,12 @@ int format(Framebuffer::ColourFormat f)
         return GL_RED_INTEGER;
     }
     assert(false);
+    return -1;
+}
+
+int format(Framebuffer::DepthFormat f)
+{
+    if (f != Framebuffer::DepthFormat::None) return GL_DEPTH_COMPONENT;
     return -1;
 }
 
@@ -100,7 +110,7 @@ QOpenGLTexture::TextureFormat internal_format_qt(Framebuffer::DepthFormat f)
 int type(Framebuffer::ColourFormat f)
 {
     switch (f) {
-    case Framebuffer::ColourFormat::R8: case Framebuffer::ColourFormat::RGBA8:
+    case Framebuffer::ColourFormat::R8: case Framebuffer::ColourFormat::RGBA8: case Framebuffer::ColourFormat::RGB8:
         return GL_UNSIGNED_BYTE;
     case Framebuffer::ColourFormat::RG16UI:
         return GL_UNSIGNED_SHORT;
@@ -141,6 +151,8 @@ QImage::Format qimage_format(Framebuffer::ColourFormat f)
         return QImage::Format_Grayscale8;
     case Framebuffer::ColourFormat::RGBA8:
         return QImage::Format_RGBA8888;
+    case Framebuffer::ColourFormat::RGB8:
+        return QImage::Format_RGB888;
     case Framebuffer::ColourFormat::RGB16F:
         return QImage::Format_RGB16;
     default:
@@ -159,8 +171,9 @@ void Framebuffer::recreate_texture(int index) {
             m_depth_texture->setFormat(internal_format_qt(m_depth_format));
             m_depth_texture->setSize(int(m_size.x), int(m_size.y));
             m_depth_texture->setAutoMipMapGenerationEnabled(false);
-            m_depth_texture->setMinMagFilters(QOpenGLTexture::Filter::Linear, QOpenGLTexture::Filter::Linear);
-            m_depth_texture->setWrapMode(QOpenGLTexture::WrapMode::ClampToEdge);
+            // No filtering of depth buffer possible in OpenGLES and WebGL!!!!
+            m_depth_texture->setMinMagFilters(QOpenGLTexture::Filter::Nearest, QOpenGLTexture::Filter::Nearest);
+            m_depth_texture->setWrapMode(QOpenGLTexture::WrapMode::ClampToBorder);
             m_depth_texture->allocateStorage();
         }
     } else {
@@ -233,6 +246,12 @@ void Framebuffer::bind_colour_texture(unsigned index, unsigned location)
     m_colour_textures[index]->bind(location);
 }
 
+void Framebuffer::bind_depth_texture(unsigned location)
+{
+    assert(m_depth_format != DepthFormat::None);
+    m_depth_texture->bind(location);
+}
+
 std::unique_ptr<QOpenGLTexture> Framebuffer::take_and_replace_colour_attachment(unsigned index)
 {
     std::unique_ptr<QOpenGLTexture> tmp = std::move(m_colour_textures[index]);
@@ -296,6 +315,19 @@ void Framebuffer::read_colour_attachment_pixel(unsigned index, const glm::dvec2&
     QOpenGLExtraFunctions* f = QOpenGLContext::currentContext()->extraFunctions();
     bind();
     f->glReadBuffer(GL_COLOR_ATTACHMENT0 + index);
+    f->glReadPixels(
+        int((normalised_device_coordinates.x + 1) / 2 * m_size.x),
+        int((normalised_device_coordinates.y + 1) / 2 * m_size.y),
+        1, 1, format(texFormat), type(texFormat), target);
+    unbind();
+}
+
+void Framebuffer::read_depth_attachment_pixel(const glm::dvec2& normalised_device_coordinates, void* target)
+{
+    auto texFormat = m_depth_format;
+
+    QOpenGLExtraFunctions* f = QOpenGLContext::currentContext()->extraFunctions();
+    bind();
     f->glReadPixels(
         int((normalised_device_coordinates.x + 1) / 2 * m_size.x),
         int((normalised_device_coordinates.y + 1) / 2 * m_size.y),

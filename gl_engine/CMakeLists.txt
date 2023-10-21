@@ -29,7 +29,6 @@ qt_add_resources(gl_engine "shaders"
     shaders/screen_pass.vert
     shaders/tile.frag
     shaders/tile.vert
-    shaders/depth.frag
     shaders/encoder.glsl
     shaders/compose.frag
     shaders/shared_config.glsl
