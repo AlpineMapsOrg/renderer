@@ -36,6 +36,7 @@ highp float depthWSDecode1u32(highp uint depth32) {
     return fakeUnNormalizeWSDepth(float(depth32) / 4294967295.0);
 }
 
+
 // OCTAHEDRON MAPPING FOR NORMALS
 // https://knarkowicz.wordpress.com/2014/04/16/octahedron-normal-vector-encoding/
 highp vec2 octWrap( highp vec2 v )

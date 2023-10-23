@@ -19,20 +19,8 @@ ShadowMapping::ShadowMapping(std::shared_ptr<ShaderProgram> program, std::shared
      m_f = QOpenGLContext::currentContext()->extraFunctions();
     for (int i = 0; i < SHADOW_CASCADES; i++) {
         m_shadowmapbuffer.push_back(std::make_unique<Framebuffer>(
-            Framebuffer::DepthFormat::Int24,
-            std::vector{
-                        TextureDefinition{
-                                    Framebuffer::ColourFormat::Float32,
-                                    QOpenGLTexture::Filter::Nearest,
-                                    QOpenGLTexture::Filter::Nearest,
-#ifndef __EMSCRIPTEN__
-                                    QOpenGLTexture::WrapMode::ClampToBorder,
-                                    QColor(1.0f, 1.0f, 1.0f, 1.0f), false
-#else
-                                    QOpenGLTexture::WrapMode::ClampToEdge
-#endif
-                }
-            },
+            Framebuffer::DepthFormat::Float32,
+            std::vector<TextureDefinition>{}, // no colour texture needed (=> depth only)
             glm::uvec2(SHADOWMAP_WIDTH, SHADOWMAP_HEIGHT)
             ));
     }
@@ -46,6 +34,9 @@ void ShadowMapping::draw(
         TileManager* tile_manager,
         const nucleus::tile_scheduler::DrawListGenerator::TileSet draw_tileset,
         const nucleus::camera::Definition& camera) {
+
+    // NOTE: ReverseZ is not necessary for ShadowMapping since a directional light is using an orthographic projection
+    // and therefore the distribution of depth is linear anyway.
 
     float far_plane = 100000; // Similar to camera?
     float near_plane = camera.near_plane(); // Similar to camera?
@@ -70,7 +61,7 @@ void ShadowMapping::draw(
     for (int i = 0; i < SHADOW_CASCADES; i++) {
         m_shadowmapbuffer[i]->bind();
         m_f->glClearColor(0, 0, 0, 0);
-        m_f->glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
+        m_f->glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
         m_shadow_program->bind();
         m_shadow_program->set_uniform("current_layer", i);
 
@@ -87,7 +78,7 @@ void ShadowMapping::bind_shadow_maps(ShaderProgram* p, unsigned int start_locati
         uname.append(std::to_string(i+1));
         unsigned int location = start_location + i;
         p->set_uniform(uname, location);
-        m_shadowmapbuffer[i]->bind_colour_texture(0, location);
+        m_shadowmapbuffer[i]->bind_depth_texture(location);
     }
 }
 

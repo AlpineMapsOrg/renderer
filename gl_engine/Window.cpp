@@ -67,7 +67,6 @@ Window::Window()
     qDebug("Window::Window()");
     m_tile_manager = std::make_unique<TileManager>();
     QTimer::singleShot(1, [this]() { emit update_requested(); });
-    //qDebug() << "test" << sizeof(gl_engine::uboTest);
 }
 
 Window::~Window()
@@ -99,7 +98,7 @@ void Window::initialise_gpu()
                                               std::vector{
                                                   TextureDefinition{ Framebuffer::ColourFormat::RGB8   },       // Albedo
                                                   TextureDefinition{ Framebuffer::ColourFormat::RG16UI  },      // Octahedron Normals
-                                                  TextureDefinition{ Framebuffer::ColourFormat::R32UI   }       // NEW ENCODED DEPTH
+                                                  TextureDefinition{ Framebuffer::ColourFormat::R32UI   }       // Discretized Encoded Depth for readback
                                               });
 
     m_atmospherebuffer = std::make_unique<Framebuffer>(Framebuffer::DepthFormat::None, std::vector{ TextureDefinition{Framebuffer::ColourFormat::RGBA8} });
@@ -248,24 +247,17 @@ void Window::paint(QOpenGLFramebufferObject* framebuffer)
 
     p = m_shader_manager->compose_program();
     p->bind();
-    p->set_uniform("texin_albedo", 0);
-    m_gbuffer->bind_colour_texture(0, 0);
-    p->set_uniform("texin_depthold", 1);
-    m_gbuffer->bind_colour_texture(1, 1);
-    p->set_uniform("texin_normalold", 2);
-    m_gbuffer->bind_colour_texture(2, 2);
-    p->set_uniform("texin_position", 3);
-    m_gbuffer->bind_colour_texture(3, 3);
-    p->set_uniform("texin_atmosphere", 4);
-    m_atmospherebuffer->bind_colour_texture(0, 4);
-    p->set_uniform("texin_ssao", 5);
-    m_ssao->bind_ssao_texture(5);
-    p->set_uniform("texin_depth", 6);
-    m_gbuffer->bind_depth_texture(6);
-    p->set_uniform("texin_normal", 7);
-    m_gbuffer->bind_colour_texture(4, 7);
+    p->set_uniform("texin_depth", 0);
+    m_gbuffer->bind_depth_texture(0);
+    p->set_uniform("texin_albedo", 1);
+    m_gbuffer->bind_colour_texture(0, 1);
+    p->set_uniform("texin_normal", 2);
+    m_gbuffer->bind_colour_texture(1, 2);
+    p->set_uniform("texin_atmosphere", 3);
+    m_atmospherebuffer->bind_colour_texture(0, 3);
+    p->set_uniform("texin_ssao", 4);
+    m_ssao->bind_ssao_texture(4);
     m_shadowmapping->bind_shadow_maps(p, 10);
-
 
     m_timer->start_timer("compose");
     m_screen_quad_geometry.draw();
@@ -402,7 +394,7 @@ void Window::update_gpu_quads(const std::vector<nucleus::tile_scheduler::tile_ty
 float Window::depth(const glm::dvec2& normalised_device_coordinates)
 {
     uint32_t fakeNormalizedDepth;
-    m_gbuffer->read_colour_attachment_pixel(5, normalised_device_coordinates, &fakeNormalizedDepth);
+    m_gbuffer->read_colour_attachment_pixel(2, normalised_device_coordinates, &fakeNormalizedDepth);
     const auto depth = float(std::exp(double(fakeNormalizedDepth) / 4294967295.0 * 13.0));
     return depth;
 }

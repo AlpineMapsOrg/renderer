@@ -25,21 +25,17 @@
 
 in highp vec2 texcoords;
 
-uniform sampler2D texin_albedo;
-uniform lowp sampler2D texin_depthold;
-uniform highp sampler2D texin_normalold;
+uniform highp sampler2D texin_depth;        // f32vec1
+uniform sampler2D texin_albedo;             // 8vec3
+uniform highp usampler2D texin_normal;      // u16vec2
 
-uniform highp sampler2D texin_position;
-uniform sampler2D texin_atmosphere;
-uniform sampler2D texin_ssao;
-uniform highp sampler2D texin_depth;
+uniform sampler2D texin_atmosphere;         // 8vec3
+uniform sampler2D texin_ssao;               // 8vec1
 
-uniform highp usampler2D texin_normal;
-
-uniform highp sampler2D texin_csm1;
-uniform highp sampler2D texin_csm2;
-uniform highp sampler2D texin_csm3;
-uniform highp sampler2D texin_csm4;
+uniform highp sampler2D texin_csm1;         // f32vec1
+uniform highp sampler2D texin_csm2;         // f32vec1
+uniform highp sampler2D texin_csm3;         // f32vec1
+uniform highp sampler2D texin_csm4;         // f32vec1
 
 layout (location = 0) out lowp vec4 out_Color;
 
@@ -89,7 +85,7 @@ highp float sample_shadow_texture(lowp int layer, highp vec2 texcoords) {
     }
 }
 
-highp vec3 debug_color = vec3(0.0);
+highp vec4 overlay_color = vec4(-1.0);
 
 highp float csm_shadow_term(highp vec4 pos_cws, highp vec3 normal_ws) {
     // SELECT LAYER
@@ -103,24 +99,43 @@ highp float csm_shadow_term(highp vec4 pos_cws, highp vec3 normal_ws) {
             break;
         }
     }
-    if (layer == -1) layer = SHADOW_CASCADES - 1;
+    if (conf.debug_overlay == 1u) overlay_color = vec4(color_from_id_hash(uint(layer)), 1.0);
 
-    debug_color = color_from_id_hash(uint(layer));
+    highp float depth_fallof_from = shadow.cascade_planes[SHADOW_CASCADES - 1] + (shadow.cascade_planes[SHADOW_CASCADES - 0] - shadow.cascade_planes[SHADOW_CASCADES - 1]) / 2.0;
+    highp float depth_fallof_to = shadow.cascade_planes[SHADOW_CASCADES - 0];
+    highp float alpha = calculate_falloff(depth_cam, depth_fallof_from, depth_fallof_to);
+    /*
+    if (depth_cam > shadow.cascade_planes[SHADOW_CASCADES - 1])
+    if (layer == -1) { // outside all shadow maps
+        return 1.0; // per default in shadow
+    }*/
 
     highp vec4 pos_ls = shadow.light_space_view_proj_matrix[layer] * pos_cws;
     highp vec3 pos_ls_ndc = pos_ls.xyz / pos_ls.w * 0.5 + 0.5;
 
     highp float depth_ls = pos_ls_ndc.z;
-    if (depth_ls > 1.0) return 0.0;
+    //if (depth_ls > 1.0) return 0.0; //not necessary because orthogonal
 
     // calculate bias based on depth resolution and slope
     highp float bias = max(0.05 * (1.0 - dot(normal_ws, -conf.sun_light_dir.xyz)), 0.005); // ToDo: Make sure - is correct
 
     highp float dist = length(pos_cws.xyz);
-    highp float biasModifier = 1.0 / dist * 10.0; // make depth dependent
-    biasModifier = 0.005;
+    highp float biasModifier = 1.0;
+
+    if (layer == 0) {
+        biasModifier = 1.0 / dist * 50.0;
+    } else if (layer == 1) {
+        biasModifier = 1.0 / dist * 50.0;
+    } else if (layer == 2) {
+        biasModifier = 1.0 / dist * 25.0;
+    } else if (layer == 3) {
+        biasModifier = 1.0 / dist * 15.0;
+    }
+    if (dist < 500.0) biasModifier = biasModifier / 10.0;
+    //biasModifier = 0.005;
     bias *= 1.0 / (shadow.cascade_planes[layer + 1] * biasModifier);
     //bias = 0.0005;
+    //bias = biasModifier;
 
     highp float term = 0.0;
     highp vec2 texelSize = 1.0 / shadow.shadowmap_size;
@@ -131,12 +146,11 @@ highp float csm_shadow_term(highp vec4 pos_cws, highp vec3 normal_ws) {
         }
     }
     term /= 9.0;
-    return term;
+    return mix(term, 1.0, 1.0-alpha);
 }
 
 void main() {
-    lowp vec4 albedo = texture(texin_albedo, texcoords).rgb;
-
+    lowp vec3 albedo = texture(texin_albedo, texcoords).rgb;
 
     // Reconstruct position from depth buffer
     highp float depth_cs = texture(texin_depth, texcoords).x;
@@ -152,9 +166,12 @@ void main() {
     highp vec3 normal = octNormalDecode2u16(texture(texin_normal, texcoords).xy);
 
     highp vec3 shaded_color = vec3(0.0f);
+    highp float amb_occlusion = 1.0;
+    // Gather ambient occlusion from ssao texture
+    if (bool(conf.ssao_enabled)) amb_occlusion = texture(texin_ssao, texcoords).r;
 
     // Don't do shading if not visible anyway and also don't for pixels where there is no geometry (depth==0.0)
-    bool do_shading = (conf.debug_overlay_strength < 1.0f || conf.debug_overlay == 0u) && depth_cs != FARPLANE_DEPTH_VALUE;
+    bool do_shading = depth_cs != FARPLANE_DEPTH_VALUE;
     if (do_shading) {
         highp vec3 origin = vec3(camera.position);
 
@@ -166,10 +183,6 @@ void main() {
         if (bool(conf.csm_enabled)) {
             shadow_term = csm_shadow_term(vec4(pos_wrt_cam, 1.0), normal);
         }
-
-        // Gather ambient occlusion from ssao texture
-        highp float amb_occlusion = 1.0;
-        if (bool(conf.ssao_enabled)) amb_occlusion = texture(texin_ssao, texcoords).r;
 
         shaded_color = albedo;
         if (bool(conf.phong_enabled)) {
@@ -183,10 +196,8 @@ void main() {
     lowp vec3 atmoshperic_color = texture(texin_atmosphere, texcoords).rgb;
     out_Color = vec4(mix(atmoshperic_color, shaded_color, alpha), 1.0);
 
-    if (conf.debug_overlay_strength > 0.0 && conf.debug_overlay > 0u) {
-        highp vec4 overlayColor = vec4(-1.0);
-        if (overlayColor.x > 0) out_Color = mix(out_Color, overlayColor, conf.debug_overlay_strength);
-    }
+    if (conf.debug_overlay == 7u) overlay_color = vec4(vec3(amb_occlusion), 1.0);
+    if (overlay_color.x > 0.0) out_Color = mix(out_Color, overlay_color, conf.debug_overlay_strength * overlay_color.a);
 
     // OVERLAY SHADOW MAPS
     if (bool(conf.overlay_shadowmaps)) {

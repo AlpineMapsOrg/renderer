@@ -455,7 +455,6 @@ Rectangle {
                     currentIndex: 0
                     onCurrentIndexChanged: map.selected_camera_position_index = currentIndex;
                 }
-
                 Rectangle {
                     Layout.fillWidth: true;
                     Layout.columnSpan: 2;

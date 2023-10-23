@@ -22,7 +22,7 @@
 
 uniform sampler2D texture_sampler;
 
-layout (location = 0) out lowp vec4 texout_albedo;
+layout (location = 0) out lowp vec3 texout_albedo;
 layout (location = 1) out highp uvec2 texout_normal;
 layout (location = 2) out highp uint texout_depth;
 
@@ -45,6 +45,7 @@ highp vec3 normal_by_fragment_position_interpolation() {
     return normalize(cross(dFdxPos, dFdyPos));
 }
 
+/*
 lowp const int steepness_bins = 9;
 highp const vec4 steepness_color_map[steepness_bins] = vec4[](
     vec4(254.0/255.0, 249.0/255.0, 249.0/255.0, 1.0),
@@ -56,7 +57,7 @@ highp const vec4 steepness_color_map[steepness_bins] = vec4[](
     vec4(183.0/255.0, 69.0/255.0, 253.0/255.0, 1.0),
     vec4(135.0/255.0, 44.0/255.0, 253.0/255.0, 1.0),
     vec4(49.0/255.0, 49.0/255.0, 253.0/255.0, 1.0)
-);
+);*/
 
 void main() {
     if (conf.wireframe_mode == 2u) {
@@ -103,7 +104,7 @@ void main() {
 
     if (length(d_color) > 0.0)
         texout_albedo = vec4(d_color, 1.0);
-*/
+
 
 
     if (conf.debug_overlay == 1u) {
@@ -111,7 +112,7 @@ void main() {
         highp float alpha_line = 1.0 - min((dist / 20000.0), 1.0);
         lowp int bin_index = int(steepness * float(steepness_bins - 1) + 0.5);
         texout_albedo = mix(texout_albedo.rgb, steepness_color_map[bin_index].rgb, steepness_color_map[bin_index].a * conf.debug_overlay_strength * alpha_line);
-    }
+    }*/
 
     // == HEIGHT LINES ==============
     if (bool(conf.height_lines_enabled)) {
@@ -127,7 +128,7 @@ void main() {
             highp float alt = var_pos_wrt_cam.z + camera.position.z;
             highp float alt_rest = (alt - float(int(alt / 100.0)) * 100.0) - line_width / 2.0;
             if (alt_rest < line_width) {
-                texout_albedo = mix(texout_albedo, vec4(texout_albedo.r - 0.2, texout_albedo.g - 0.2, texout_albedo.b - 0.2, 1.0), alpha_line);
+                texout_albedo = mix(texout_albedo, vec3(texout_albedo.r - 0.2, texout_albedo.g - 0.2, texout_albedo.b - 0.2), alpha_line);
             }
         }
     }

@@ -38,20 +38,27 @@ highp float calculate_falloff(highp float dist, highp float from, highp float to
 
 void main()
 {
+    // Reconstruct position from depth buffer
+    highp float depth_cs = texture(texin_depth, texcoords).x;
+    if (depth_cs == FARPLANE_DEPTH_VALUE) {
+        out_color = conf.ssao_falloff_to_value;
+        return;
+    }
+
+    highp vec3 pos_cws = depth_cs_to_pos_ws(depth_cs, texcoords);
+    highp float dist = length(pos_cws);        // Distance to camera
+
     // tile noise texture over screen based on screen dimensions divided by noise size
     highp vec2 noiseScale = camera.viewport_size / 4.0;
 
     // get input for SSAO algorithm
-    highp vec3 pos_cws = texture(texin_position, texcoords).xyz;
-    highp vec4 normal_dist = texture(texin_normal2, texcoords);
     highp vec3 normal_ws = octNormalDecode2u16(texture(texin_normal, texcoords).xy);
-    highp float dist = normal_dist.w;
-
     highp vec3 randomVec = normalize(texture(texin_noise, texcoords * noiseScale).xyz);
 
     // Depth dependet radius.
-    highp float radius = dist / 10.0 + 10.0;
-    highp float bias = radius / 1000.0;
+    highp float radius = dist / 10.0 + 20.0;// / 10.0 + 50.0; //dist / 10.0 + 10.0;
+    highp float bias = radius / 1000.0; //radius / 1000.0; //0.0000001; //radius / 1000.0;
+
     lowp int kernel = int(conf.ssao_kernel);
 
     highp float falloff = calculate_falloff(dist, 50000.0, 65000.0);
@@ -67,7 +74,11 @@ void main()
         // iterate over the sample kernel and calculate occlusion factor
         for(lowp int i = 0; i < kernel; ++i)
         {
-            // get sample position
+            // NOTE: Sadly a lot of transformations are happening in the following code. The issue
+            // is that we should compare in worldspace because the depth buffer is nonlinear.
+            // There is definitely a better solution out there :D
+
+            // get sample position in world space
             highp vec3 sample_pos_cws = TBN * samples[i];
             sample_pos_cws = pos_cws + sample_pos_cws * radius;
             highp float sample_gt_dist = length(sample_pos_cws);
@@ -75,18 +86,18 @@ void main()
             // project sample position (to sample texture)
             highp vec3 sample_pos_ndc = ws_to_ndc(sample_pos_cws);
 
-            // get actual distance to camera of fragment (currently saved inside normal texture)
-            highp float sample_dist = texture(texin_normal2, sample_pos_ndc.xy).w;
+            // get actual depth and actual distance to camera
+            highp float sample_depth_cs = texture(texin_depth, sample_pos_ndc.xy).x;
+            highp float sample_dist = length(depth_cs_to_pos_ws(sample_depth_cs, sample_pos_ndc.xy));
 
             // range check & accumulate
             highp float rangeCheck = 1.0;
-            if (bool(conf.ssao_range_check) || (dist - sample_dist) > 3000.0) {
+            if (bool(conf.ssao_range_check)) {
                 rangeCheck = smoothstep(0.0, 1.0, radius / abs(dist - sample_dist));
             }
             occlusion += (sample_gt_dist >= sample_dist + bias ? 1.0 : 0.0) * rangeCheck;
         }
         occlusion = 1.0 - (occlusion / float(kernel));
-
     }
     occlusion = occlusion * occlusion * occlusion;
     out_color = mix(conf.ssao_falloff_to_value, occlusion, falloff);
