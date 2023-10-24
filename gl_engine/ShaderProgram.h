@@ -17,6 +17,11 @@ enum class ShaderCodeSource {
     FILE
 };
 
+enum class ShaderType {
+    VERTEX,
+    FRAGMENT
+};
+
 class ShaderProgram {
 private:
     std::unordered_map<std::string, int> m_cached_uniforms;
@@ -51,6 +56,8 @@ public slots:
 private:
     template <typename T>
     void set_uniform_template(const std::string& name, T value);
+
+    QString load_and_preprocess_shader_code(gl_engine::ShaderType type);
 
 };
 }

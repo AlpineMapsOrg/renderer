@@ -211,7 +211,7 @@ void nucleus::camera::Definition::set_perspective_params(float fov_degrees, cons
         double(viewport_size.x) / double(viewport_size.y),
         double(m_near_clipping),
         double(m_far_clipping));
-    m_projection_matrix = MakeInfReversedZProjRH(glm::radians(double(fov_degrees)), double(viewport_size.x) / double(viewport_size.y), m_near_clipping);
+    //m_projection_matrix = MakeInfReversedZProjRH(glm::radians(double(fov_degrees)), double(viewport_size.x) / double(viewport_size.y), m_near_clipping); // for reverse z
 
 }
 

@@ -24,7 +24,9 @@
 #include "ShadowMapping.h"
 
 // NOTE: BOOLEANS BEHAVE WEIRD! JUST DONT USE THEM AND STICK TO 32bit Formats!!
-// STD140 ALIGNMENT! USE PADDING IF NECESSARY
+// STD140 ALIGNMENT! USE PADDING IF NECESSARY. EVERY BLOCK OF SAME TYPE MUST BE PADDED
+// TO 16 BYTE! (QPropertys don't matter)
+// ANOTHER TIP: Stay away from vec3... always...
 namespace gl_engine {
 
 struct uboSharedConfig {
@@ -45,7 +47,12 @@ public:
     // mode (0=disabled, 1=normal, 2=highlight), height_mode, fixed_height, unused
     QVector4D m_curtain_settings = QVector4D(1.0, 0.0, 500.0, 0.0);
 
-    GLuint m_phong_enabled = true;
+    GLfloat m_debug_overlay_strength = 0.5;
+    GLfloat m_ssao_falloff_to_value = 0.5;
+    GLfloat padf1 = 0.0;
+    GLfloat padf2 = 0.0;
+
+    GLuint m_phong_enabled = false;
     // 0...disabled, 1...with shading, 2...white
     GLuint m_wireframe_mode = 0;
     // 0...per fragment, 1...FDM
@@ -53,38 +60,37 @@ public:
     // 0...nothing, 1...ortho, 2...normals, 3...tiles, 4...zoomlevel, 5...vertex-ID, 6...vertex heightmap
     GLuint m_debug_overlay = 0;
 
-    GLfloat m_debug_overlay_strength = 0.5;
-    GLuint m_ssao_enabled = true;
+    GLuint m_ssao_enabled = false;
     GLuint m_ssao_kernel = 32;
     GLuint m_ssao_range_check = true;
-
     GLuint m_ssao_blur_kernel_size = 1;
-    GLfloat m_ssao_falloff_to_value = 0.5;
+
     GLuint m_height_lines_enabled = false;
-    GLuint m_csm_enabled = true;
-
+    GLuint m_csm_enabled = false;
     GLuint m_overlay_shadowmaps = false;
-    glm::vec3 padding;
+    GLuint padu1;
 
+    // WARNING: Don't move the following Q_PROPERTIES to the top, otherwise the MOC
+    // will do weird things with the data alignment!!
     Q_PROPERTY(QVector4D sun_light MEMBER m_sun_light)
     Q_PROPERTY(QVector4D sun_light_dir MEMBER m_sun_light_dir)
     Q_PROPERTY(QVector4D amb_light MEMBER m_amb_light)
     Q_PROPERTY(QVector4D material_color MEMBER m_material_color)
     Q_PROPERTY(QVector4D material_light_response MEMBER m_material_light_response)
     Q_PROPERTY(QVector4D curtain_settings MEMBER m_curtain_settings)
-        Q_PROPERTY(bool phong_enabled MEMBER m_phong_enabled)
+    Q_PROPERTY(bool phong_enabled MEMBER m_phong_enabled)
     Q_PROPERTY(unsigned int wireframe_mode MEMBER m_wireframe_mode)
-        Q_PROPERTY(unsigned int normal_mode MEMBER m_normal_mode)
-        Q_PROPERTY(unsigned int debug_overlay MEMBER m_debug_overlay)
-           Q_PROPERTY(float debug_overlay_strength MEMBER m_debug_overlay_strength)
-        Q_PROPERTY(bool ssao_enabled MEMBER m_ssao_enabled)
-        Q_PROPERTY(unsigned int ssao_kernel MEMBER m_ssao_kernel)
-        Q_PROPERTY(bool ssao_range_check MEMBER m_ssao_range_check)
-        Q_PROPERTY(unsigned int ssao_blur_kernel_size MEMBER m_ssao_blur_kernel_size)
-        Q_PROPERTY(float ssao_falloff_to_value MEMBER m_ssao_falloff_to_value)
-        Q_PROPERTY(bool height_lines_enabled MEMBER m_height_lines_enabled)
-        Q_PROPERTY(bool csm_enabled MEMBER m_csm_enabled)
-        Q_PROPERTY(bool overlay_shadowmaps MEMBER m_overlay_shadowmaps)
+    Q_PROPERTY(unsigned int normal_mode MEMBER m_normal_mode)
+    Q_PROPERTY(unsigned int debug_overlay MEMBER m_debug_overlay)
+    Q_PROPERTY(float debug_overlay_strength MEMBER m_debug_overlay_strength)
+    Q_PROPERTY(bool ssao_enabled MEMBER m_ssao_enabled)
+    Q_PROPERTY(unsigned int ssao_kernel MEMBER m_ssao_kernel)
+    Q_PROPERTY(bool ssao_range_check MEMBER m_ssao_range_check)
+    Q_PROPERTY(unsigned int ssao_blur_kernel_size MEMBER m_ssao_blur_kernel_size)
+    Q_PROPERTY(float ssao_falloff_to_value MEMBER m_ssao_falloff_to_value)
+    Q_PROPERTY(bool height_lines_enabled MEMBER m_height_lines_enabled)
+    Q_PROPERTY(bool csm_enabled MEMBER m_csm_enabled)
+    Q_PROPERTY(bool overlay_shadowmaps MEMBER m_overlay_shadowmaps)
 
     bool operator!=(const uboSharedConfig& rhs) const
     {
@@ -122,6 +128,19 @@ public:
         glm::vec4 cascade_planes[SHADOW_CASCADES + 1];  // vec4 necessary because of alignment (only x will be used)
         glm::vec2 shadowmap_size;
         glm::vec2 buff;
+    };
+
+    // This struct is only used for unit tests
+    struct uboTestConfig {
+        Q_GADGET
+    public:
+        QVector4D m_tv4 = QVector4D(0.1, 0.2, 0.3, 0.4);
+        GLfloat m_tf32 = 0.5f;
+        GLuint m_tu32 = 201u;
+        Q_PROPERTY(QVector4D tv4 MEMBER m_tv4)
+        Q_PROPERTY(float tf32 MEMBER m_tf32)
+        Q_PROPERTY(unsigned int tu32 MEMBER m_tu32)
+        bool operator!=(const uboSharedConfig& rhs) const { return true; }
     };
 
 }

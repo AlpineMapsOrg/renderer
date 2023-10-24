@@ -16,7 +16,8 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *****************************************************************************/
 
-#define FARPLANE_DEPTH_VALUE 0.0  // cause of reverse Z
+//#define FARPLANE_DEPTH_VALUE 0.0  // cause of reverse Z
+#define FARPLANE_DEPTH_VALUE 1.0
 
 layout (std140) uniform shared_config {
     highp vec4 sun_light;
@@ -26,18 +27,24 @@ layout (std140) uniform shared_config {
     highp vec4 material_color;
     highp vec4 material_light_response;
     highp vec4 curtain_settings;
+
+    highp float debug_overlay_strength;
+    highp float ssao_falloff_to_value;
+    highp float padf1;
+    highp float padf2;
+
     highp uint phong_enabled;
     highp uint wireframe_mode;
     highp uint normal_mode;
     highp uint debug_overlay;
-    highp float debug_overlay_strength;
+
     highp uint ssao_enabled;
     highp uint ssao_kernel;
     highp uint ssao_range_check;
     highp uint ssao_blur_kernel_size;
-    highp float ssao_falloff_to_value;
+
     highp uint height_lines_enabled;
     highp uint csm_enabled;
     highp uint overlay_shadowmaps;
-    highp vec3 padding;
+    highp uint padu1;
 } conf;

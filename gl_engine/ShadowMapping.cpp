@@ -58,16 +58,17 @@ void ShadowMapping::draw(
     m_f->glEnable(GL_DEPTH_TEST);
     m_f->glDepthFunc(GL_LESS);
     m_f->glDisable(GL_CULL_FACE);
+    m_shadow_program->bind();
     for (int i = 0; i < SHADOW_CASCADES; i++) {
         m_shadowmapbuffer[i]->bind();
         m_f->glClearColor(0, 0, 0, 0);
         m_f->glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-        m_shadow_program->bind();
-        m_shadow_program->set_uniform("current_layer", i);
 
+        m_shadow_program->set_uniform("current_layer", i);
         tile_manager->draw(m_shadow_program.get(), camera, draw_tileset, true, glm::dvec3(0.0));
         m_shadowmapbuffer[i]->unbind();
     }
+    m_shadow_program->release();
     m_f->glEnable(GL_CULL_FACE);
     m_f->glViewport(0, 0, camera.viewport_size().x, camera.viewport_size().y);
 }

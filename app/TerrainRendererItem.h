@@ -46,7 +46,7 @@ class TerrainRendererItem : public QQuickFramebufferObject {
     Q_PROPERTY(float camera_operation_centre_distance READ camera_operation_centre_distance NOTIFY camera_operation_centre_distance_changed)
     Q_PROPERTY(float render_quality READ render_quality WRITE set_render_quality NOTIFY render_quality_changed)    
     Q_PROPERTY(gl_engine::uboSharedConfig shared_config MEMBER m_shared_config NOTIFY shared_config_changed)
-    Q_PROPERTY(TimerFrontendManager* timer_manager MEMBER m_timer_manager)
+    Q_PROPERTY(TimerFrontendManager* timer_manager MEMBER m_timer_manager CONSTANT)
     Q_PROPERTY(unsigned int in_flight_tiles READ in_flight_tiles NOTIFY in_flight_tiles_changed)
     Q_PROPERTY(unsigned int queued_tiles READ queued_tiles NOTIFY queued_tiles_changed)
     Q_PROPERTY(unsigned int cached_tiles READ cached_tiles NOTIFY cached_tiles_changed)

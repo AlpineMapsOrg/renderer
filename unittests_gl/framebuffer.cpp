@@ -105,6 +105,26 @@ TEST_CASE("gl framebuffer")
         }
         CHECK(good);
     }
+    // Only color renderable on WEBGL with EXT_color_buffer_float extension
+    SECTION("rgba32f color format")
+    {
+        Framebuffer b(Framebuffer::DepthFormat::None, { {Framebuffer::ColourFormat::RGBA32F} });
+        b.bind();
+        ShaderProgram shader = create_debug_shader( R"(
+            out highp vec4 out_Color;
+            void main() {
+                out_Color = vec4(1.0, 20000.0, 600000000.0, 15000000000.0);
+            }
+        )");
+        shader.bind();
+        gl_engine::helpers::create_screen_quad_geometry().draw();
+        glm::vec4 value_at_0_0;
+        b.read_colour_attachment_pixel(0, glm::dvec2(-1.0, -1.0), &value_at_0_0[0]);
+        CHECK(value_at_0_0.x == Approx(1.0f));
+        CHECK(value_at_0_0.y == Approx(20000.0f));
+        CHECK(value_at_0_0.z == Approx(600000000.0f));
+        CHECK(value_at_0_0.w == Approx(15000000000.0f));
+    }
     SECTION("rg16ui color format")
     {
         Framebuffer b(Framebuffer::DepthFormat::None, { {Framebuffer::ColourFormat::RG16UI} });

@@ -15,52 +15,11 @@ using gl_engine::ShaderProgram;
 
 namespace {
 
-
-
 QString get_qrc_or_path_prefix() {
     QString prefix = ":/gl_shaders/";
     if (!QOpenGLContext::currentContext()->isOpenGLES())
         prefix = ALP_RESOURCES_PREFIX; // FOR NATIVE BUILD: prefix = "shaders/";
     return prefix;
-}
-
-QString load_shader_code(const QString file_name) {
-    QString code;
-    QString line;
-    QString extended_file_name = file_name;
-    extended_file_name.prepend(get_qrc_or_path_prefix());
-    QFile file(extended_file_name);
-
-    static QRegularExpression re(R"RX(#include "(?<file>[\w\d\W ]*?)")RX");
-    re.setPatternOptions(QRegularExpression::CaseInsensitiveOption);
-
-    if (file.open(QIODevice::ReadOnly | QIODevice::Text)) {
-        QTextStream stream(&file);
-        while (!stream.atEnd()) {
-            line = stream.readLine();
-            QString line_command = line.trimmed();
-
-            // HANDLE INCLUDES
-            bool line_handled = false;
-            if (line_command.startsWith("#include", Qt::CaseInsensitive)) {
-                QRegularExpressionMatch match = re.match(line);
-                if (match.hasMatch()) {
-                    QString includeFileName = match.captured("file");
-                    //includeFileName.prepend(get_qrc_or_path_prefix());
-                    code.append("//" + line + ": \n");
-                    code.append(load_shader_code(includeFileName));
-                    line_handled = true;
-                }
-            }
-
-            if (!line_handled)
-                code.append(line + "\n");
-        }
-    } else {
-        qDebug() << "Error opening shader file @" << extended_file_name;
-        assert(false);
-    }
-    return code;
 }
 
 QString getShaderCodeVersion() {
@@ -85,6 +44,50 @@ QByteArray versionedShaderCode(const QString& src) {
     return versionedSrc;
 }
 
+QString readFileContent(const QString& filename) {
+    QFile file(get_qrc_or_path_prefix() + filename);
+    // Try to open the file in read-only mode
+    if (!file.open(QIODevice::ReadOnly | QIODevice::Text)) {
+        // Couldn't open the file; log the error.
+        qCritical() << "Cannot open file:" << filename << "for reading:" << file.errorString();
+        return QString();
+    }
+    // Read all content at once
+    QTextStream in(&file);
+    QString content = in.readAll();
+    // Check for reading errors
+    if (in.status() != QTextStream::Ok) {
+        qCritical() << "Error reading file:" << filename << ":" << in.status();
+        file.close();
+        return QString();
+    }
+    file.close();
+    return content;
+}
+
+void preprocessShaderContentInPlace(QString& base) {
+    static QRegularExpression re(R"RX(^\s*#\s*include\s+"(?<file>[^"]+)")RX");
+    re.setPatternOptions(QRegularExpression::CaseInsensitiveOption);
+    re.setPatternOptions(QRegularExpression::MultilineOption);
+
+    // Create an iterator to go through matches in the text
+    QRegularExpressionMatchIterator i = re.globalMatch(base);
+
+    int positionOffset = 0;
+    while (i.hasNext()) {
+        QRegularExpressionMatch match = i.next();
+        // Get the whole matched string
+        QString includeFileName = match.captured("file");
+        QString includeContent = readFileContent(includeFileName);
+        preprocessShaderContentInPlace(includeContent);
+        int position = match.capturedStart(0) + positionOffset;
+        base.remove(position, match.capturedLength(0));
+        // Insert the new text
+        base.insert(position, includeContent);
+        positionOffset += includeContent.length() - match.capturedLength(0);
+    }
+}
+
 }
 
 
@@ -92,6 +95,7 @@ ShaderProgram::ShaderProgram(QString vertex_shader, QString fragment_shader, Sha
     : m_code_source(code_source), m_vertex_shader(vertex_shader), m_fragment_shader(fragment_shader)
 {
     reload();
+    if (!m_q_shader_program) qCritical() << "Da passt was nicht";
     assert(m_q_shader_program);
 }
 
@@ -207,14 +211,8 @@ void outputMeaningfullErrors(const QString& qtLog, const QString& code, const QS
 
 void ShaderProgram::reload()
 {
-    QString vertexCode, fragmentCode;
-    if (m_code_source == ShaderCodeSource::PLAINTEXT) {
-        vertexCode = versionedShaderCode(m_vertex_shader);
-        fragmentCode = versionedShaderCode(m_fragment_shader);
-    } else if(m_code_source == ShaderCodeSource::FILE) {
-        vertexCode = versionedShaderCode(load_shader_code(m_vertex_shader));
-        fragmentCode = versionedShaderCode(load_shader_code(m_fragment_shader));
-    }
+    QString vertexCode = load_and_preprocess_shader_code(gl_engine::ShaderType::VERTEX);
+    QString fragmentCode = load_and_preprocess_shader_code(gl_engine::ShaderType::FRAGMENT);
     auto program = std::make_unique<QOpenGLShaderProgram>();
     if (!program->addShaderFromSourceCode(QOpenGLShader::Vertex, vertexCode)) {
         outputMeaningfullErrors(program->log(), vertexCode, m_vertex_shader);
@@ -238,4 +236,12 @@ void ShaderProgram::set_uniform_template(const std::string& name, T value)
 
     const auto uniform_location = m_cached_uniforms.at(name);
     m_q_shader_program->setUniformValue(uniform_location, gl_engine::helpers::toQtType(value));
+}
+
+QString ShaderProgram::load_and_preprocess_shader_code(gl_engine::ShaderType type) {
+    QString code = type == gl_engine::ShaderType::VERTEX ? m_vertex_shader : m_fragment_shader;
+    if (m_code_source == ShaderCodeSource::FILE) code = readFileContent(code);
+    else if (m_code_source == ShaderCodeSource::PLAINTEXT) code = code;
+    preprocessShaderContentInPlace(code);
+    return versionedShaderCode(code);
 }

@@ -54,6 +54,8 @@ QOpenGLTexture::TextureFormat internal_format_qt(Framebuffer::ColourFormat f)
         return QOpenGLTexture::TextureFormat::RGBA16F;
     case Framebuffer::ColourFormat::R32UI:
         return QOpenGLTexture::TextureFormat::R32U;
+    case Framebuffer::ColourFormat::RGBA32F:
+        return QOpenGLTexture::TextureFormat::RGBA32F;
     }
     assert(false);
     return QOpenGLTexture::TextureFormat::NoFormat;
@@ -70,15 +72,16 @@ int format(Framebuffer::ColourFormat f)
         return GL_RGBA;
     case Framebuffer::ColourFormat::RG16UI:
         return GL_RG_INTEGER; //GL_RG16UI
-    case Framebuffer::ColourFormat::Float32:
-        assert(false); // reading Float32 is inefficient, see read_colour_attachment() for details.
-        break;
+    case Framebuffer::ColourFormat::Float32: // reading Float32 is inefficient, see read_colour_attachment() for details.
+        return GL_RED;
     case Framebuffer::ColourFormat::RGB16F:
-        return GL_RGB16F;
+        return GL_RGB;
     case Framebuffer::ColourFormat::RGBA16F:
-        return GL_RGBA16F;
+        return GL_RGBA;
     case Framebuffer::ColourFormat::R32UI:
         return GL_RED_INTEGER;
+    case Framebuffer::ColourFormat::RGBA32F:
+        return GL_RGBA;
     }
     assert(false);
     return -1;
@@ -114,7 +117,7 @@ int type(Framebuffer::ColourFormat f)
         return GL_UNSIGNED_BYTE;
     case Framebuffer::ColourFormat::RG16UI:
         return GL_UNSIGNED_SHORT;
-    case Framebuffer::ColourFormat::Float32:
+    case Framebuffer::ColourFormat::Float32: case Framebuffer::ColourFormat::RGBA32F:
         return GL_FLOAT;
     case Framebuffer::ColourFormat::RGB16F: case Framebuffer::ColourFormat::RGBA16F:
         return GL_HALF_FLOAT;
@@ -173,7 +176,9 @@ void Framebuffer::recreate_texture(int index) {
             m_depth_texture->setAutoMipMapGenerationEnabled(false);
             // No filtering of depth buffer possible in OpenGLES and WebGL!!!!
             m_depth_texture->setMinMagFilters(QOpenGLTexture::Filter::Nearest, QOpenGLTexture::Filter::Nearest);
+#ifndef __EMSCRIPTEN__
             m_depth_texture->setWrapMode(QOpenGLTexture::WrapMode::ClampToBorder);
+#endif
             m_depth_texture->allocateStorage();
         }
     } else {
@@ -182,8 +187,8 @@ void Framebuffer::recreate_texture(int index) {
         m_colour_textures[index]->setSize(int(m_size.x), int(m_size.y));
         m_colour_textures[index]->setAutoMipMapGenerationEnabled(m_colour_definitions[index].autoMipMapGeneration);
         m_colour_textures[index]->setMinMagFilters(m_colour_definitions[index].minFilter, m_colour_definitions[index].magFilter);
-        m_colour_textures[index]->setWrapMode(m_colour_definitions[index].wrapMode);
 #ifndef __EMSCRIPTEN__
+        m_colour_textures[index]->setWrapMode(m_colour_definitions[index].wrapMode);
         m_colour_textures[index]->setBorderColor(m_colour_definitions[index].borderColor);
 #endif
         m_colour_textures[index]->allocateStorage();

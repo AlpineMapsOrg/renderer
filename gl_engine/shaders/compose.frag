@@ -23,7 +23,10 @@
 #include "camera_config.glsl"
 #include "hashing.glsl"
 
+layout (location = 0) out lowp vec4 out_Color;
+
 in highp vec2 texcoords;
+
 
 uniform highp sampler2D texin_depth;        // f32vec1
 uniform sampler2D texin_albedo;             // 8vec3
@@ -37,7 +40,7 @@ uniform highp sampler2D texin_csm2;         // f32vec1
 uniform highp sampler2D texin_csm3;         // f32vec1
 uniform highp sampler2D texin_csm4;         // f32vec1
 
-layout (location = 0) out lowp vec4 out_Color;
+
 
 highp float calculate_falloff(highp float dist, highp float from, highp float to) {
     return clamp(1.0 - (dist - from) / (to - from), 0.0, 1.0);
@@ -104,11 +107,6 @@ highp float csm_shadow_term(highp vec4 pos_cws, highp vec3 normal_ws) {
     highp float depth_fallof_from = shadow.cascade_planes[SHADOW_CASCADES - 1] + (shadow.cascade_planes[SHADOW_CASCADES - 0] - shadow.cascade_planes[SHADOW_CASCADES - 1]) / 2.0;
     highp float depth_fallof_to = shadow.cascade_planes[SHADOW_CASCADES - 0];
     highp float alpha = calculate_falloff(depth_cam, depth_fallof_from, depth_fallof_to);
-    /*
-    if (depth_cam > shadow.cascade_planes[SHADOW_CASCADES - 1])
-    if (layer == -1) { // outside all shadow maps
-        return 1.0; // per default in shadow
-    }*/
 
     highp vec4 pos_ls = shadow.light_space_view_proj_matrix[layer] * pos_cws;
     highp vec3 pos_ls_ndc = pos_ls.xyz / pos_ls.w * 0.5 + 0.5;
@@ -118,7 +116,6 @@ highp float csm_shadow_term(highp vec4 pos_cws, highp vec3 normal_ws) {
 
     // calculate bias based on depth resolution and slope
     highp float bias = max(0.05 * (1.0 - dot(normal_ws, -conf.sun_light_dir.xyz)), 0.005); // ToDo: Make sure - is correct
-
     highp float dist = length(pos_cws.xyz);
     highp float biasModifier = 1.0;
 
@@ -134,8 +131,6 @@ highp float csm_shadow_term(highp vec4 pos_cws, highp vec3 normal_ws) {
     if (dist < 500.0) biasModifier = biasModifier / 10.0;
     //biasModifier = 0.005;
     bias *= 1.0 / (shadow.cascade_planes[layer + 1] * biasModifier);
-    //bias = 0.0005;
-    //bias = biasModifier;
 
     highp float term = 0.0;
     highp vec2 texelSize = 1.0 / shadow.shadowmap_size;

@@ -99,6 +99,7 @@ void Window::initialise_gpu()
                                                   TextureDefinition{ Framebuffer::ColourFormat::RGB8   },       // Albedo
                                                   TextureDefinition{ Framebuffer::ColourFormat::RG16UI  },      // Octahedron Normals
                                                   TextureDefinition{ Framebuffer::ColourFormat::R32UI   }       // Discretized Encoded Depth for readback
+                                                  //TextureDefinition{ Framebuffer::ColourFormat::RGBA32F}
                                               });
 
     m_atmospherebuffer = std::make_unique<Framebuffer>(Framebuffer::DepthFormat::None, std::vector{ TextureDefinition{Framebuffer::ColourFormat::RGBA8} });
@@ -150,8 +151,28 @@ void Window::resize_framebuffer(int width, int height)
     }
 }
 
+gl_engine::ShaderProgram create_debug_shader(const char* fragmentShaderOverride = nullptr)
+{
+    static const char* const fragment_source = R"(
+    out lowp vec4 out_Color;
+    void main() {
+        out_Color = vec4(0.2, 0.0, 1.0, 0.8);
+    })";
+    static const char* const vertex_source = R"(
+out highp vec2 texcoords;
+void main() {
+    vec2 vertices[3]=vec2[3](vec2(-1.0, -1.0), vec2(3.0, -1.0), vec2(-1.0, 3.0));
+    gl_Position = vec4(vertices[gl_VertexID], 0.0, 1.0);
+    texcoords = 0.5 * gl_Position.xy + vec2(0.5);
+})";
+    gl_engine::ShaderProgram tmp(vertex_source, fragmentShaderOverride ? fragmentShaderOverride : fragment_source, gl_engine::ShaderCodeSource::PLAINTEXT);
+    return tmp;
+}
+
+//static int paintCalls = 0;
 void Window::paint(QOpenGLFramebufferObject* framebuffer)
 {
+    //if (paintCalls++ > 0) return;
     m_timer->start_timer("cpu_total");
     m_timer->start_timer("gpu_total");
 
@@ -187,14 +208,14 @@ void Window::paint(QOpenGLFramebufferObject* framebuffer)
     f->glClear(GL_COLOR_BUFFER_BIT);
     f->glDisable(GL_DEPTH_TEST);
     f->glDepthFunc(GL_ALWAYS);
-
+    f->glViewport(0, 0, 1, cc->viewport_size.y);
     auto p = m_shader_manager->atmosphere_bg_program();
     p->bind();
-
     m_timer->start_timer("atmosphere");
     m_screen_quad_geometry.draw();
     m_timer->stop_timer("atmosphere");
-
+    p->release();
+    f->glViewport(0, 0, cc->viewport_size.x, cc->viewport_size.y);
 
     // Generate Draw-List
     // Note: Could also just be done on camera change
@@ -202,23 +223,34 @@ void Window::paint(QOpenGLFramebufferObject* framebuffer)
     const auto draw_tiles = m_tile_manager->generate_tilelist(m_camera);
     m_timer->stop_timer("draw_list");
 
-    // DRAW SHADOWMAP
+    // DRAW SHADOWMAPS
     if (m_shared_config_ubo->data.m_csm_enabled) {
         m_timer->start_timer("shadowmap");
         m_shadowmapping->draw(m_tile_manager.get(), draw_tiles, m_camera);
         m_timer->stop_timer("shadowmap");
     }
 
+
     // DRAW GBUFFER
     m_gbuffer->bind();
 
-    f->glClearColor(0.0, 0.0, 0.0, 0.0);
-    f->glClearDepthf(0.0f); // for reverse z
-    f->glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
+    // Clear Albedo-Buffer
+    const GLfloat clearAlbedoColor[4] = {0.0f, 0.0f, 0.0f, 0.0f};
+    f->glClearBufferfv(GL_COLOR, 0, clearAlbedoColor);
+    // Clear Normals-Buffer
+    const GLuint clearNormalColor[2] = {0u, 0u};
+    f->glClearBufferuiv(GL_COLOR, 1, clearNormalColor);
+    // Clear Encoded-Depth Buffer
+    const GLuint clearEncDepthColor[1] = {0u};
+    f->glClearBufferuiv(GL_COLOR, 2, clearEncDepthColor);
+    // Clear Depth-Buffer
+    //f->glClearDepthf(0.0f); // for reverse z
+    f->glClear(GL_DEPTH_BUFFER_BIT);
+
 
     f->glEnable(GL_DEPTH_TEST);
-    f->glDepthFunc(GL_GREATER); // for reverse z
-    //f->glDepthFunc(GL_LESS);
+    //f->glDepthFunc(GL_GREATER); // for reverse z
+    f->glDepthFunc(GL_LESS);
 
     #ifndef __EMSCRIPTEN__
     if (funcs && m_shared_config_ubo->data.m_wireframe_mode > 0) funcs->glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
@@ -235,6 +267,9 @@ void Window::paint(QOpenGLFramebufferObject* framebuffer)
 
     m_gbuffer->unbind();
 
+    m_shader_manager->tile_shader()->release();
+
+
     if (m_shared_config_ubo->data.m_ssao_enabled) {
         m_timer->start_timer("ssao");
         m_ssao->draw(m_gbuffer.get(), &m_screen_quad_geometry, m_camera,
@@ -242,10 +277,31 @@ void Window::paint(QOpenGLFramebufferObject* framebuffer)
         m_timer->stop_timer("ssao");
     }
 
+    /*
+    static ShaderProgram p1 = create_debug_shader( R"(
+            uniform sampler2D texin_albedo;             // 8vec3
+            layout (location = 0) out lowp vec4 out_Color;
+            in highp vec2 texcoords;
+            void main() {
+                highp vec4 texin = texture(texin_albedo, texcoords);
+                //out_Color = vec4(texin.rgb, 1.0);
+                out_Color = vec4(texcoords.x, texcoords.y, texin.x, 1.0);
+            }
+        )");
+
+    if (framebuffer)
+        framebuffer->bind();
+    p1.bind();
+    p1.set_uniform("texin_albedo", 0);
+    m_gbuffer->bind_colour_texture(0, 0);
+    m_screen_quad_geometry.draw();
+    */
+
     if (framebuffer)
         framebuffer->bind();
 
     p = m_shader_manager->compose_program();
+
     p->bind();
     p->set_uniform("texin_depth", 0);
     m_gbuffer->bind_depth_texture(0);
@@ -257,14 +313,12 @@ void Window::paint(QOpenGLFramebufferObject* framebuffer)
     m_atmospherebuffer->bind_colour_texture(0, 3);
     p->set_uniform("texin_ssao", 4);
     m_ssao->bind_ssao_texture(4);
-    m_shadowmapping->bind_shadow_maps(p, 10);
+
+    m_shadowmapping->bind_shadow_maps(p, 5);
 
     m_timer->start_timer("compose");
     m_screen_quad_geometry.draw();
     m_timer->stop_timer("compose");
-
-    m_shader_manager->release();
-
 
     m_timer->stop_timer("cpu_total");
     m_timer->stop_timer("gpu_total");

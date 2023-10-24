@@ -37,8 +37,7 @@ template <typename T> void gl_engine::UniformBuffer<T>::init() {
     m_f->glGenBuffers(1, &m_id);
     m_f->glBindBuffer(GL_UNIFORM_BUFFER, m_id);
 
-    auto size = sizeof(T);
-    qDebug() << m_name << size;
+    //qDebug() << "Size of" << m_name << std::to_string(sizeof(T)) << "byte";
 
     m_f->glBufferData(GL_UNIFORM_BUFFER, sizeof(T), NULL, GL_STATIC_DRAW);
     m_f->glBindBuffer(GL_UNIFORM_BUFFER, 0);
@@ -61,6 +60,8 @@ template <typename T> void gl_engine::UniformBuffer<T>::update_gpu_data() {
     m_f->glBindBuffer(GL_UNIFORM_BUFFER, m_id);
     // WARNING: entry_point() has to exist on all ubo structs or classes! (better: make abstract General UBO class)
 
+    //qDebug() << "Uploaded" << m_name << std::to_string(sizeof(T)) << "byte";
+
     m_f->glBufferSubData(GL_UNIFORM_BUFFER, 0, sizeof(T), &data);
     m_f->glBindBuffer(GL_UNIFORM_BUFFER, 0);
 }
@@ -69,3 +70,4 @@ template <typename T> void gl_engine::UniformBuffer<T>::update_gpu_data() {
 template class gl_engine::UniformBuffer<gl_engine::uboSharedConfig>;
 template class gl_engine::UniformBuffer<gl_engine::uboCameraConfig>;
 template class gl_engine::UniformBuffer<gl_engine::uboShadowConfig>;
+template class gl_engine::UniformBuffer<gl_engine::uboTestConfig>;

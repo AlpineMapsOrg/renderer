@@ -40,7 +40,9 @@ Rectangle {
         y: -10
         z: 1
         visible: false
-        background: transparent
+        background: Rectangle {
+            color: "transparent"
+        }
 
         property string type: 'line';
         onTypeChanged: {
@@ -291,7 +293,9 @@ Rectangle {
             Pane {
                 //Layout.preferredHeight: 50;
                 Layout.fillWidth: true;
-                background: transparent;
+                background: Rectangle {
+                    color: "transparent"
+                }
                 id: stats_timing;
                 ColumnLayout {
                     id: stats_timing_layout;

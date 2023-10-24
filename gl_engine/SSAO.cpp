@@ -81,6 +81,7 @@ void SSAO::draw(Framebuffer* gbuffer, helpers::ScreenQuadGeometry* geometry,
     p->set_uniform_array("samples", this->m_ssao_kernel);
     geometry->draw();
     m_ssaobuffer->unbind();
+    p->release();
 
     if (blur_level > 0) {
         p = m_ssao_blur_program.get();
@@ -100,6 +101,7 @@ void SSAO::draw(Framebuffer* gbuffer, helpers::ScreenQuadGeometry* geometry,
         p->set_uniform("direction", 1);
         geometry->draw();
         m_ssaobuffer->unbind();
+        p->release();
     }
 
 }

@@ -132,12 +132,14 @@ TimerManager::TimerManager()
 
 void TimerManager::start_timer(const std::string &name)
 {
-    m_timer[name]->start();
+    auto it = m_timer.find(name);
+    if (it != m_timer.end()) m_timer[name]->start();
 }
 
 void TimerManager::stop_timer(const std::string &name)
 {
-    m_timer[name]->stop();
+    auto it = m_timer.find(name);
+    if (it != m_timer.end()) m_timer[name]->stop();
 }
 
 QList<qTimerReport> TimerManager::fetch_results()
@@ -169,6 +171,7 @@ std::shared_ptr<GeneralTimer> TimerManager::add_timer(const std::string &name, T
 #endif
     default:
         qDebug() << "Timertype " << (int)type << " not supported on current target";
+        return nullptr;
     }
 
     m_timer[name] = tmr_base;

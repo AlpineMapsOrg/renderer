@@ -153,6 +153,7 @@ void TileManager::draw(ShaderProgram* shader_program, const nucleus::camera::Def
         f->glDrawElements(GL_TRIANGLE_STRIP, tileset.second->gl_element_count, tileset.second->gl_index_type, nullptr);
     }
     f->glBindVertexArray(0);
+    shader_program->release();
 }
 
 void TileManager::remove_tile(const tile::Id& tile_id)
