@@ -42,6 +42,7 @@
 #include "ShaderManager.h"
 #include "ShaderProgram.h"
 #include "TileManager.h"
+#include "TrackManager.h"
 #include "Window.h"
 #include "helpers.h"
 #include "nucleus/utils/bit_coding.h"
@@ -53,6 +54,7 @@ Window::Window()
 {
     qDebug("Window::Window()");
     m_tile_manager = std::make_unique<TileManager>();
+    m_track_manager = std::make_unique<TrackManager>();
     QTimer::singleShot(1, [this]() { emit update_requested(); });
 }
 

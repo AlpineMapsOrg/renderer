@@ -17,31 +17,22 @@
  *****************************************************************************/
 
 #include "PolyLine.h"
-#include "ShaderProgram.h"
+#include "helpers.h"
 
 namespace gl_engine {
 
-static const char* const debugVertexShaderSource = R"(
-  layout(location = 0) in vec4 a_position;
-  uniform highp mat4 matrix;
-  void main() {
-    gl_Position = matrix * a_position;
-  })";
-
-static const char* const debugFragmentShaderSource = R"(
-  out lowp vec4 out_Color;
-  void main() {
-     out_Color = vec4(1.0, 0.0, 0.0, 1.0);
-  })";
-
-PolyLine::PolyLine(const std::vector<glm::vec3>& points) 
-    : m_shader(std::make_unique<ShaderProgram>(debugVertexShaderSource, debugFragmentShaderSource))
+PolyLine::PolyLine(const std::vector<glm::vec3>& points)
+    : vertex_count(points.size())
 {
-    // TODO
+    vao->create();
+    vao->bind();
+
+    vbo->create();
+    vbo->bind();
+    vbo->setUsagePattern(QOpenGLBuffer::StreamDraw);
+    vbo->allocate(points.data(), helpers::bufferLengthInBytes(points));
+
+    vao->release();
 }
 
-void PolyLine::draw() const {
-    // TODO
-}
-
-}
+} // namespace gl_engine

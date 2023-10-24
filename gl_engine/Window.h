@@ -37,6 +37,7 @@ class QOpenGLShaderProgram;
 class QOpenGLBuffer;
 class QOpenGLVertexArrayObject;
 class TileManager;
+class TrackManager;
 
 namespace gl_engine {
 class DebugPainter;
@@ -79,6 +80,7 @@ private:
     std::unique_ptr<TileManager> m_tile_manager; // needs opengl context
     std::unique_ptr<DebugPainter> m_debug_painter; // needs opengl context
     std::unique_ptr<Atmosphere> m_atmosphere; // needs opengl context
+    std::unique_ptr<TrackManager> m_track_manager; // needs opengl context
     std::unique_ptr<ShaderManager> m_shader_manager;
     std::unique_ptr<Framebuffer> m_framebuffer;
     std::unique_ptr<Framebuffer> m_depth_buffer;

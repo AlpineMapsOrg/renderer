@@ -18,21 +18,31 @@
 
 #pragma once
 
+#include <QObject>
 #include <memory>
-#include <vector>
+#include <nucleus/camera/Definition.h>
 
-#include <glm/glm.hpp>
+#include "PolyLine.h"
+#include "ShaderProgram.h"
 
-#include <QOpenGLBuffer>
-#include <QOpenGLVertexArrayObject>
+class QOpenGLShaderProgram;
 
 namespace gl_engine {
+class ShaderProgram;
 
-struct PolyLine {
-    PolyLine(const std::vector<glm::vec3>& points);
-    GLsizei vertex_count;
-    std::unique_ptr<QOpenGLVertexArrayObject> vao;
-    std::unique_ptr<QOpenGLBuffer> vbo;
+class TrackManager : public QObject {
+    Q_OBJECT
+public:
+    explicit TrackManager(QObject* parent = nullptr);
+
+    void init();
+    void draw(const nucleus::camera::Definition& camera) const;
+
+    // void add_track();
+    // void remove_track();
+
+private:
+    std::unique_ptr<ShaderProgram> m_shader;
+    std::vector<PolyLine> m_tracks;
 };
-
 } // namespace gl_engine
