@@ -1,5 +1,10 @@
 #include "ShaderProgram.h"
 
+// If true the shaders will be loaded from the given WEBGL_SHADER_DOWNLOAD_URL
+// and can be reloaded inside the APP without the need for recompilation
+#define WEBGL_SHADER_DOWNLOAD_ACCESS false
+#define WEBGL_SHADER_DOWNLOAD_URL "http://127.0.0.1:5500/"
+
 #include <QFile>
 #include <QTextStream>
 #include <QRegularExpression>
@@ -8,6 +13,14 @@
 #include <QOpenGLExtraFunctions>
 
 #include <QDebug>
+
+// FOR DOWNLOADING SHADERS
+#if WEBGL_SHADER_DOWNLOAD_ACCESS //&& __EMSCRIPTEN__
+#include <QNetworkAccessManager>
+#include <QNetworkRequest>
+#include <QNetworkReply>
+#include <QEventLoop>
+#endif
 
 #include "helpers.h"
 
@@ -43,7 +56,35 @@ QByteArray versionedShaderCode(const QString& src) {
     versionedSrc.append(src.toLocal8Bit());
     return versionedSrc;
 }
+#if WEBGL_SHADER_DOWNLOAD_ACCESS //&& __EMSCRIPTEN__
+QString downloadFileContent(const QUrl &url) {
+    QNetworkAccessManager manager;
+    QEventLoop loop;
+    QString fileContent;
 
+    QNetworkRequest request(url);
+    QNetworkReply* reply = manager.get(request);
+
+    // Connect the finished signal of the reply to our event loop's quit slot.
+    QObject::connect(reply, &QNetworkReply::finished, &loop, &QEventLoop::quit);
+    loop.exec(); // This will block until the reply emits the finished signal.
+
+    if (reply->error() == QNetworkReply::NoError) {
+        fileContent = reply->readAll();
+    } else {
+        // Handle the error or simply log it.
+        qWarning("Download error: %s", qPrintable(reply->errorString()));
+    }
+
+    reply->deleteLater(); // Schedule the reply object for deletion.
+
+    return fileContent;
+}
+// If WEBGL_SHADER_DOWNLOAD_ACCESS then download the file
+QString readFileContent(const QString& filename) {
+    return downloadFileContent(QUrl(WEBGL_SHADER_DOWNLOAD_URL + filename));
+}
+#else
 QString readFileContent(const QString& filename) {
     QFile file(get_qrc_or_path_prefix() + filename);
     // Try to open the file in read-only mode
@@ -64,6 +105,7 @@ QString readFileContent(const QString& filename) {
     file.close();
     return content;
 }
+#endif
 
 void preprocessShaderContentInPlace(QString& base) {
     static QRegularExpression re(R"RX(^\s*#\s*include\s+"(?<file>[^"]+)")RX");
@@ -95,7 +137,6 @@ ShaderProgram::ShaderProgram(QString vertex_shader, QString fragment_shader, Sha
     : m_code_source(code_source), m_vertex_shader(vertex_shader), m_fragment_shader(fragment_shader)
 {
     reload();
-    if (!m_q_shader_program) qCritical() << "Da passt was nicht";
     assert(m_q_shader_program);
 }
 

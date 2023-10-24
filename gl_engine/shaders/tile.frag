@@ -91,23 +91,18 @@ void main() {
     fragColor = mix(conf.material_color.rgb, fragColor, conf.material_color.a);
     texout_albedo = fragColor;
 
-    /*
-    vec3 d_color = debug_overlay_color;
 
-    if (conf.debug_overlay_strength > 0.0 && conf.debug_overlay > 0u) {
-        vec4 overlayColor = vec4(0.0);
-        if (conf.debug_overlay == 1u) overlayColor = ortho;
-        else if (conf.debug_overlay == 2u) overlayColor = vec4(normal * 0.5 + 0.5, 1.0);
-        else overlayColor = vec4(vertex_color, 1.0);
+
+    if (conf.debug_overlay > 0u && conf.debug_overlay < 7u) {
+        highp vec3 overlayColor = vec3(0.0);
+        if (conf.debug_overlay == 1u) overlayColor = fragColor;
+        else if (conf.debug_overlay == 2u) overlayColor = normal * 0.5 + 0.5;
+        else overlayColor = vertex_color;
         texout_albedo = mix(texout_albedo, overlayColor, conf.debug_overlay_strength);
     }
 
-    if (length(d_color) > 0.0)
-        texout_albedo = vec4(d_color, 1.0);
-
-
-
-    if (conf.debug_overlay == 1u) {
+/*
+    if (conf.debug_overlay == 4u) {
         highp float steepness = (1.0 - dot(normal, vec3(0.0,0.0,1.0)));
         highp float alpha_line = 1.0 - min((dist / 20000.0), 1.0);
         lowp int bin_index = int(steepness * float(steepness_bins - 1) + 0.5);

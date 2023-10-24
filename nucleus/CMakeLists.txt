@@ -37,6 +37,7 @@ qt_add_library(nucleus STATIC
     map_label/AbstractMapLabelModel.h
     map_label/CameraFilterProxyModel.h map_label/CameraFilterProxyModel.cpp
     utils/bit_coding.h
+    utils/FileDownloader.h utils/FileDownloader.cpp
 )
 
 target_include_directories(nucleus PRIVATE . PUBLIC ${CMAKE_SOURCE_DIR})
