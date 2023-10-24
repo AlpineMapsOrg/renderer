@@ -41,6 +41,7 @@ qt_add_library(nucleus STATIC
     DataQuerier.h DataQuerier.cpp
     camera/LinearCameraAnimation.h camera/LinearCameraAnimation.cpp
     camera/AnimationStyle.h camera/AnimationStyle.cpp
+    Track.h Track.cpp
 )
 
 target_include_directories(nucleus PRIVATE . PUBLIC ${CMAKE_SOURCE_DIR})
