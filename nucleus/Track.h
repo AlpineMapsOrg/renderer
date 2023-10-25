@@ -14,13 +14,21 @@ namespace gpx {
 
     using TrackPoint = glm::dvec3; // TODO: time?
     using TrackSegment = std::vector<TrackPoint>;
+    using TrackType = std::vector<TrackSegment>;
 
     struct Gpx {
-        std::vector<TrackSegment> track;
+        TrackType track;
     };
 
     std::unique_ptr<Gpx> parse(const QString& path);
 
 } // namespace gpx
+
+struct Track {
+    Track(const gpx::Gpx& gpx);
+    std::vector<glm::vec3> points;
+};
+
+std::vector<glm::vec3> to_world_points(const gpx::Gpx& gpx);
 
 } // namespace nucleus

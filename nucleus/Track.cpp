@@ -39,10 +39,7 @@ namespace gpx {
 
     std::unique_ptr<Gpx> parse(const QString& path)
     {
-
         std::unique_ptr<Gpx> gpx = std::make_unique<Gpx>();
-
-        unsigned track_segment = 0;
 
         QFile file(path);
 
@@ -68,8 +65,7 @@ namespace gpx {
                     }
 
                     TrackPoint track_point = parse_trackpoint(xmlReader);
-                    TrackSegment& current_segment = gpx->track.back();
-                    current_segment.push_back(track_point);
+                    gpx->track.back().push_back(track_point);
 
                 } else if (name == QString("trkseg")) {
                     gpx->track.push_back(TrackSegment());
@@ -99,4 +95,38 @@ namespace gpx {
         return gpx;
     }
 } // namespace gpx
+
+Track::Track(const gpx::Gpx& gpx)
+{
+    std::vector<glm::dvec3> combined;
+
+    for (const gpx::TrackSegment& segment : gpx.track) {
+        combined.insert(combined.end(), segment.begin(), segment.end());
+    }
+
+    std::vector<glm::vec3> track(combined.size());
+
+    points.reserve(combined.size());
+
+    for (int i = 0; i < combined.size(); i++) {
+        points[i] = glm::vec3(srs::lat_long_alt_to_world(combined[i]));
+    }
+}
+
+std::vector<glm::vec3> to_world_points(const gpx::Gpx& gpx)
+{
+    std::vector<glm::dvec3> track;
+
+    for (const gpx::TrackSegment& segment : gpx.track) {
+        track.insert(track.end(), segment.begin(), segment.end());
+    }
+
+    std::vector<glm::vec3> points(track.size());
+
+    for (int i = 0; i < track.size(); i++) {
+        points[i] = glm::vec3(srs::lat_long_alt_to_world(track[i]));
+    }
+
+    return points;
+}
 } // namespace nucleus
