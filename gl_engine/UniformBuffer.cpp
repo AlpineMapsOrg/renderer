@@ -21,7 +21,12 @@
 #include <QOpenGLExtraFunctions>
 #include "ShaderProgram.h"
 #include "UniformBufferObjects.h"
+#include "nucleus/utils/Base64Codec.h"
+
 #include <QDebug>
+#include <QByteArray>
+#include <QDataStream>
+#include <QIODevice>
 
 template <typename T> gl_engine::UniformBuffer<T>::UniformBuffer(GLuint location, const std::string& name):
     m_location(location), m_name(name)
@@ -58,12 +63,24 @@ template <typename T> void gl_engine::UniformBuffer<T>::bind_to_shader(std::vect
 
 template <typename T> void gl_engine::UniformBuffer<T>::update_gpu_data() {
     m_f->glBindBuffer(GL_UNIFORM_BUFFER, m_id);
-    // WARNING: entry_point() has to exist on all ubo structs or classes! (better: make abstract General UBO class)
-
-    //qDebug() << "Uploaded" << m_name << std::to_string(sizeof(T)) << "byte";
-
     m_f->glBufferSubData(GL_UNIFORM_BUFFER, 0, sizeof(T), &data);
     m_f->glBindBuffer(GL_UNIFORM_BUFFER, 0);
+}
+
+template <typename T> QString gl_engine::UniformBuffer<T>::data_as_string() {
+    QByteArray buffer;
+    QDataStream out_stream(&buffer, QIODevice::WriteOnly);
+    out_stream << data;
+    return QString(buffer.toBase64());
+}
+
+template <typename T> bool gl_engine::UniformBuffer<T>::data_from_string(const QString& base64String) {
+    QByteArray buffer = QByteArray::fromBase64(base64String.toUtf8());
+    QDataStream inStream(&buffer, QIODevice::ReadOnly);
+    T deserializedData;
+    inStream >> deserializedData;
+    data = deserializedData;
+    return true; // ToDo error handling?
 }
 
 // IMPORTANT: All possible Template Classes need to be defined here:

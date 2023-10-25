@@ -29,7 +29,7 @@ uniform highp int tileset_zoomlevel;
 uniform highp sampler2D height_sampler;
 
 out lowp vec2 uv;
-out highp vec3 var_pos_wrt_cam;
+out highp vec3 var_pos_cws;
 out highp vec3 var_normal;
 out highp float is_curtain;
 //flat out vec3 vertex_color;
@@ -44,7 +44,6 @@ highp float y_to_lat(highp float y) {
     highp float latRad = 2.f * (atan(exp(mercN)) - (pi / 4.0));
     return latRad;
 }
-
 
 highp float altitude_from_color(highp vec4 color) {
     return (color.r + color.g / 255.0);
@@ -99,26 +98,26 @@ void main() {
         }
     }
     // Note: May be enough to calculate altitude_correction_factor per tile on CPU:
-    float var_pos_wrt_cam_y = float(edge_vertices_count_int - row) * float(tile_width) + bounds[geometry_id].y;
-    float pos_y = var_pos_wrt_cam_y + camera.position.y;
+    float var_pos_cws_y = float(edge_vertices_count_int - row) * float(tile_width) + bounds[geometry_id].y;
+    float pos_y = var_pos_cws_y + camera.position.y;
     float altitude_correction_factor = 65536.0 * 0.125 / cos(y_to_lat(pos_y)); // https://github.com/AlpineMapsOrg/renderer/issues/5
 
     uv = vec2(float(col) / edge_vertices_count_float, float(row) / edge_vertices_count_float);
 
     float adjusted_altitude = altitude * altitude_correction_factor;
 
-    var_pos_wrt_cam = vec3(float(col) * tile_width + bounds[geometry_id].x,
-                       var_pos_wrt_cam_y,
+    var_pos_cws = vec3(float(col) * tile_width + bounds[geometry_id].x,
+                       var_pos_cws_y,
                        adjusted_altitude - camera.position.z);
 
     if (curtain_vertex_id >= 0) {
         float curtain_height = conf.curtain_settings.z;
         if (conf.curtain_settings.y == 1.0) {
             // NOTE: This is definitely subject for improvement!
-            float dist_factor = clamp(length(var_pos_wrt_cam) / 100000.0, 0.2, 1.0);
+            float dist_factor = clamp(length(var_pos_cws) / 100000.0, 0.2, 1.0);
             curtain_height *= dist_factor;
         }
-        var_pos_wrt_cam.z = var_pos_wrt_cam.z - curtain_height;
+        var_pos_cws.z = var_pos_cws.z - curtain_height;
     }
 
 
@@ -126,7 +125,7 @@ void main() {
         var_normal = normal_by_finite_difference_method(uv, edge_vertices_count_float, tile_width, tile_height, altitude_correction_factor);
     }
 
-    gl_Position = camera.view_proj_matrix * vec4(var_pos_wrt_cam, 1);
+    gl_Position = camera.view_proj_matrix * vec4(var_pos_cws, 1);
 
     if (conf.debug_overlay == 3u) vertex_color = color_from_id_hash(uint(tileset_id));
     else if (conf.debug_overlay == 4u) vertex_color = color_from_id_hash(uint(tileset_zoomlevel));

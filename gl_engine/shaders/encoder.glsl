@@ -1,22 +1,3 @@
-// delete
-lowp vec2 encode(highp float value) {
-    mediump uint scaled = uint(value * 65535.f + 0.5f);
-    mediump uint r = scaled >> 8u;
-    mediump uint b = scaled & 255u;
-    return vec2(float(r) / 255.f, float(b) / 255.f);
-}
-
-// delete
-highp float d_2u8_to_f16(mediump uint v1, mediump uint v2) {
-    return float((v1 << 8u) | v2 ) / 65535.f;
-}
-
-// delete
-highp float decode(lowp vec2 value) {
-    mediump uint r = uint(value.x * 255.0f);
-    mediump uint g = uint(value.y * 255.0f);
-    return d_2u8_to_f16(r,g);
-}
 
 // ===== DEPTH ENCODE =====
 // NOTE: Only positions up to e^13 = 442413 are in between [0,1]
@@ -37,10 +18,9 @@ highp float depthWSDecode1u32(highp uint depth32) {
 }
 
 
-// OCTAHEDRON MAPPING FOR NORMALS
+// ===== OCTAHEDRON MAPPING FOR NORMALS =====
 // https://knarkowicz.wordpress.com/2014/04/16/octahedron-normal-vector-encoding/
-highp vec2 octWrap( highp vec2 v )
-{
+highp vec2 octWrap( highp vec2 v ) {
     return ( 1.0 - abs( v.yx ) ) * ( ( v.x >= 0.0 && v.y >= 0.0 ) ? 1.0 : -1.0 );
 }
 

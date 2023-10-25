@@ -10,7 +10,7 @@ qt_add_library(gl_engine STATIC
     DebugPainter.h DebugPainter.cpp
     helpers.h
     ShaderProgram.h ShaderProgram.cpp
-    UniformBufferObjects.h
+    UniformBufferObjects.h UniformBufferObjects.cpp
     UniformBuffer.h UniformBuffer.cpp
     TimerManager.h TimerManager.cpp
     SSAO.h SSAO.cpp

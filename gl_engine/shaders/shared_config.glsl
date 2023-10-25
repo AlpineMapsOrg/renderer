@@ -22,7 +22,6 @@
 layout (std140) uniform shared_config {
     highp vec4 sun_light;
     highp vec4 sun_light_dir;
-    highp vec4 sun_pos;
     highp vec4 amb_light;
     highp vec4 material_color;
     highp vec4 material_light_response;

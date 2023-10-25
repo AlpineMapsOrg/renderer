@@ -23,11 +23,12 @@
 uniform sampler2D texture_sampler;
 
 layout (location = 0) out lowp vec3 texout_albedo;
-layout (location = 1) out highp uvec2 texout_normal;
-layout (location = 2) out highp uint texout_depth;
+layout (location = 1) out highp vec4 texout_position;
+layout (location = 2) out highp uvec2 texout_normal;
+layout (location = 3) out highp uint texout_depth;
 
 in lowp vec2 uv;
-in highp vec3 var_pos_wrt_cam;
+in highp vec3 var_pos_cws;
 in highp vec3 var_normal;
 in highp float is_curtain;
 //flat in vec3 vertex_color;
@@ -40,8 +41,8 @@ highp float calculate_falloff(highp float dist, highp float from, highp float to
 }
 
 highp vec3 normal_by_fragment_position_interpolation() {
-    highp vec3 dFdxPos = dFdx(var_pos_wrt_cam);
-    highp vec3 dFdyPos = dFdy(var_pos_wrt_cam);
+    highp vec3 dFdxPos = dFdx(var_pos_cws);
+    highp vec3 dFdyPos = dFdy(var_pos_cws);
     return normalize(cross(dFdxPos, dFdyPos));
 }
 
@@ -60,6 +61,7 @@ highp const vec4 steepness_color_map[steepness_bins] = vec4[](
 );*/
 
 void main() {
+    // ToDo: Fix the following. They are not correct... (no normal for only curtains?)
     if (conf.wireframe_mode == 2u) {
         texout_albedo = vec3(1.0, 1.0, 1.0);
         return;
@@ -77,22 +79,27 @@ void main() {
         }
     }
 
-    // Encode distance for readback
-    highp float dist = length(var_pos_wrt_cam);
-    texout_depth = depthWSEncode1u32(dist);
+    // Write Albedo (ortho picture) in gbuffer
+    lowp vec3 fragColor = texture(texture_sampler, uv).rgb;
+    fragColor = mix(conf.material_color.rgb, fragColor, conf.material_color.a);
+    texout_albedo = fragColor;
 
-    // Encode normal
+    // Write Position (and distance) in gbuffer
+    highp float dist = length(var_pos_cws);
+    texout_position = vec4(var_pos_cws, dist);
+
+    // Write and encode normal in gbuffer
     highp vec3 normal = vec3(0.0);
     if (conf.normal_mode == 0u) normal = normal_by_fragment_position_interpolation();
     else normal = var_normal;
     texout_normal = octNormalEncode2u16(normal);
 
-    lowp vec3 fragColor = texture(texture_sampler, uv).rgb;
-    fragColor = mix(conf.material_color.rgb, fragColor, conf.material_color.a);
-    texout_albedo = fragColor;
+    // Write and encode distance for readback
+    texout_depth = depthWSEncode1u32(dist);
 
-
-
+    // HANDLE OVERLAYS (and mix it with the albedo color) THAT CAN JUST BE DONE IN THIS STAGE
+    // (because of DATA thats not forwarded)
+    // NOTE: Performancewise its generally better to handle overlays in the compose step! (screenspace effect)
     if (conf.debug_overlay > 0u && conf.debug_overlay < 7u) {
         highp vec3 overlayColor = vec3(0.0);
         if (conf.debug_overlay == 1u) overlayColor = fragColor;
@@ -101,15 +108,8 @@ void main() {
         texout_albedo = mix(texout_albedo, overlayColor, conf.debug_overlay_strength);
     }
 
-/*
-    if (conf.debug_overlay == 4u) {
-        highp float steepness = (1.0 - dot(normal, vec3(0.0,0.0,1.0)));
-        highp float alpha_line = 1.0 - min((dist / 20000.0), 1.0);
-        lowp int bin_index = int(steepness * float(steepness_bins - 1) + 0.5);
-        texout_albedo = mix(texout_albedo.rgb, steepness_color_map[bin_index].rgb, steepness_color_map[bin_index].a * conf.debug_overlay_strength * alpha_line);
-    }*/
 
-    // == HEIGHT LINES ==============
+    // == HEIGHT LINES ============== TODO: Move to compose
     if (bool(conf.height_lines_enabled)) {
         highp float alpha_line = 1.0 - min((dist / 20000.0), 1.0);
         highp float line_width = (2.0 + dist / 5000.0) * 5.0;
@@ -120,7 +120,7 @@ void main() {
         line_width = line_width * max(0.01,steepness);
         if (alpha_line > 0.05)
         {
-            highp float alt = var_pos_wrt_cam.z + camera.position.z;
+            highp float alt = var_pos_cws.z + camera.position.z;
             highp float alt_rest = (alt - float(int(alt / 100.0)) * 100.0) - line_width / 2.0;
             if (alt_rest < line_width) {
                 texout_albedo = mix(texout_albedo, vec3(texout_albedo.r - 0.2, texout_albedo.g - 0.2, texout_albedo.b - 0.2), alpha_line);

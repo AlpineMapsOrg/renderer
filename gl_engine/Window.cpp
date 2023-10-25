@@ -94,12 +94,21 @@ void Window::initialise_gpu()
     m_tile_manager->init();
     m_tile_manager->initilise_attribute_locations(m_shader_manager->tile_shader());
     m_screen_quad_geometry = gl_engine::helpers::create_screen_quad_geometry();
+    // NOTE to position buffer: The position can not be recalculated by depth alone. (given the numerical resolution of the depth buffer and
+    // our massive view spektrum). ReverseZ would be an option but isnt possible on WebGL and OpenGL ES (since their depth buffer is aligned from -1...1)
+    // I implemented reverse Z at some point natively (just look for the comments "for ReverseZ" in the whole solution). Even with reverse Z the
+    // reconstruction of the position inside the illumination shaders is not perfect though. Thats why we have this 4x32bit position buffer.
+    // Also don't try to reconstruct the position from the discretized Encoded Depth buffer. Thats wrong for a lot of reasons and it should purely be
+    // used for screen interaction on close surfaces.
+    // NEXT NOTE in regards to distance: I save the distance inside the position buffer to not have to calculate it all of the time
+    // by the position. IMPORTANT: I also reset it to -1 such that i know when a pixel was not processed in tile shader!!
+    // ANOTHER IMPORTANT NOTE: RGB32f, RGB16f are not supported by OpenGL ES and/or WebGL
     m_gbuffer = std::make_unique<Framebuffer>(Framebuffer::DepthFormat::Float32,
                                               std::vector{
-                                                  TextureDefinition{ Framebuffer::ColourFormat::RGB8   },       // Albedo
+                                                  TextureDefinition{ Framebuffer::ColourFormat::RGB8    },      // Albedo
+                                                  TextureDefinition{ Framebuffer::ColourFormat::RGBA32F },      // Position WCS and distance (distance is optional, but i use it directly for a little speed improvement)
                                                   TextureDefinition{ Framebuffer::ColourFormat::RG16UI  },      // Octahedron Normals
-                                                  TextureDefinition{ Framebuffer::ColourFormat::R32UI   }       // Discretized Encoded Depth for readback
-                                                  //TextureDefinition{ Framebuffer::ColourFormat::RGBA32F}
+                                                  TextureDefinition{ Framebuffer::ColourFormat::R32UI   }       // Discretized Encoded Depth for readback IMPORTANT: IF YOU MOVE THIS YOU HAVE TO ADAPT THE GET DEPTH FUNCTION
                                               });
 
     m_atmospherebuffer = std::make_unique<Framebuffer>(Framebuffer::DepthFormat::None, std::vector{ TextureDefinition{Framebuffer::ColourFormat::RGBA8} });
@@ -151,28 +160,8 @@ void Window::resize_framebuffer(int width, int height)
     }
 }
 
-gl_engine::ShaderProgram create_debug_shader(const char* fragmentShaderOverride = nullptr)
-{
-    static const char* const fragment_source = R"(
-    out lowp vec4 out_Color;
-    void main() {
-        out_Color = vec4(0.2, 0.0, 1.0, 0.8);
-    })";
-    static const char* const vertex_source = R"(
-out highp vec2 texcoords;
-void main() {
-    vec2 vertices[3]=vec2[3](vec2(-1.0, -1.0), vec2(3.0, -1.0), vec2(-1.0, 3.0));
-    gl_Position = vec4(vertices[gl_VertexID], 0.0, 1.0);
-    texcoords = 0.5 * gl_Position.xy + vec2(0.5);
-})";
-    gl_engine::ShaderProgram tmp(vertex_source, fragmentShaderOverride ? fragmentShaderOverride : fragment_source, gl_engine::ShaderCodeSource::PLAINTEXT);
-    return tmp;
-}
-
-//static int paintCalls = 0;
 void Window::paint(QOpenGLFramebufferObject* framebuffer)
 {
-    //if (paintCalls++ > 0) return;
     m_timer->start_timer("cpu_total");
     m_timer->start_timer("gpu_total");
 
@@ -230,19 +219,21 @@ void Window::paint(QOpenGLFramebufferObject* framebuffer)
         m_timer->stop_timer("shadowmap");
     }
 
-
     // DRAW GBUFFER
     m_gbuffer->bind();
 
     // Clear Albedo-Buffer
-    const GLfloat clearAlbedoColor[4] = {0.0f, 0.0f, 0.0f, 0.0f};
+    const GLfloat clearAlbedoColor[3] = {0.0f, 0.0f, 0.0f};
     f->glClearBufferfv(GL_COLOR, 0, clearAlbedoColor);
+    // Clear Position-Buffer (IMPORTANT [4] to <0, such that i know by sign if fragment was processed)
+    const GLfloat clearPositionColor[4] = {0.0f, 0.0f, 0.0f, -1.0f};
+    f->glClearBufferfv(GL_COLOR, 1, clearPositionColor);
     // Clear Normals-Buffer
     const GLuint clearNormalColor[2] = {0u, 0u};
-    f->glClearBufferuiv(GL_COLOR, 1, clearNormalColor);
+    f->glClearBufferuiv(GL_COLOR, 2, clearNormalColor);
     // Clear Encoded-Depth Buffer
     const GLuint clearEncDepthColor[1] = {0u};
-    f->glClearBufferuiv(GL_COLOR, 2, clearEncDepthColor);
+    f->glClearBufferuiv(GL_COLOR, 3, clearEncDepthColor);
     // Clear Depth-Buffer
     //f->glClearDepthf(0.0f); // for reverse z
     f->glClear(GL_DEPTH_BUFFER_BIT);
@@ -303,12 +294,12 @@ void Window::paint(QOpenGLFramebufferObject* framebuffer)
     p = m_shader_manager->compose_program();
 
     p->bind();
-    p->set_uniform("texin_depth", 0);
-    m_gbuffer->bind_depth_texture(0);
-    p->set_uniform("texin_albedo", 1);
-    m_gbuffer->bind_colour_texture(0, 1);
+    p->set_uniform("texin_albedo", 0);
+    m_gbuffer->bind_colour_texture(0, 0);
+    p->set_uniform("texin_position", 1);
+    m_gbuffer->bind_colour_texture(1, 1);
     p->set_uniform("texin_normal", 2);
-    m_gbuffer->bind_colour_texture(1, 2);
+    m_gbuffer->bind_colour_texture(2, 2);
     p->set_uniform("texin_atmosphere", 3);
     m_atmospherebuffer->bind_colour_texture(0, 3);
     p->set_uniform("texin_ssao", 4);
@@ -448,7 +439,7 @@ void Window::update_gpu_quads(const std::vector<nucleus::tile_scheduler::tile_ty
 float Window::depth(const glm::dvec2& normalised_device_coordinates)
 {
     uint32_t fakeNormalizedDepth;
-    m_gbuffer->read_colour_attachment_pixel(2, normalised_device_coordinates, &fakeNormalizedDepth);
+    m_gbuffer->read_colour_attachment_pixel(3, normalised_device_coordinates, &fakeNormalizedDepth);
     const auto depth = float(std::exp(double(fakeNormalizedDepth) / 4294967295.0 * 13.0));
     return depth;
 }

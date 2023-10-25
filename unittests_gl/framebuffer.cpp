@@ -60,24 +60,6 @@ ShaderProgram create_debug_shader(const char* fragmentShaderOverride = nullptr)
     return tmp;
 }
 
-ShaderProgram create_encoder_shader(float v1, float v2)
-{
-    std::string fragment_source;
-    QFile f(":/gl_shaders/encoder.glsl");
-    f.open(QIODeviceBase::ReadOnly);
-    fragment_source = fragment_source + f.readAll().toStdString();
-    fragment_source = fragment_source + R"(
-    out lowp vec4 out_Color;
-
-    void main() {
-        out_Color = vec4(encode()"
-        + std::to_string(v1) + R"(), encode()" + std::to_string(v2) + R"());
-    })";
-//    qDebug("%s", fragment_source.c_str());
-    ShaderProgram tmp(vertex_source, QString(fragment_source.c_str()), gl_engine::ShaderCodeSource::PLAINTEXT);
-    return tmp;
-}
-
 TEST_CASE("gl framebuffer")
 {
     const auto* c = QOpenGLContext::currentContext();
@@ -219,29 +201,6 @@ TEST_CASE("gl framebuffer")
         CHECK(pixel[1] == unsigned(0.0f * 255));
         CHECK(pixel[2] == unsigned(1.0f * 255));
         CHECK(pixel[3] == unsigned(0.8f * 255));
-    }
-    SECTION("encode pixel")
-    {
-        const auto tuples = std::vector {
-            std::pair { 0.0f, 1.0f },
-            std::pair { 255.0f / (256 * 256 - 1), 256.0f / (256 * 256 - 1) },
-            std::pair { 32768.0f / (256 * 256 - 1), 1.0f - 255.0f / (256 * 256 - 1) },
-            std::pair { 32767.0f / (256 * 256 - 1), 1.0f - 256.0f / (256 * 256 - 1) },
-        };
-        for (const auto& pair : tuples) {
-            Framebuffer b(Framebuffer::DepthFormat::None, { { Framebuffer::ColourFormat::RGBA8 } }, { 1920, 1080 });
-            b.bind();
-            ShaderProgram shader = create_encoder_shader(pair.first, pair.second);
-            shader.bind();
-            gl_engine::helpers::create_screen_quad_geometry().draw();
-
-            const auto pixel = b.read_colour_attachment_pixel(0, glm::dvec2(0, 0));
-            const auto decoded = nucleus::utils::bit_coding::to_f16f16(pixel);
-
-            Framebuffer::unbind();
-            CHECK(decoded.x == Approx(pair.first));
-            CHECK(decoded.y == Approx(pair.second));
-        }
     }
     SECTION("f32 depth buffer")
     {

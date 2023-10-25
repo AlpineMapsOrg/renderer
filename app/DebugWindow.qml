@@ -258,6 +258,7 @@ Rectangle {
                         let theta = sun_theta.value * Math.PI / 180.0;
                         let dir = Qt.vector3d(-Math.sin(theta) * Math.cos(phi), -Math.sin(theta) * Math.sin(phi), -Math.cos(theta));
                         dir = dir.normalized();
+                        console.log("sunlight dir", dir);
                         map.shared_config.sun_light_dir = Qt.vector4d(dir.x, dir.y, dir.z, 1.0);
                     }
                     Dial {

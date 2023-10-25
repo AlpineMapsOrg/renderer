@@ -53,8 +53,8 @@ public:
         RGB16F,         // NOT COLOR RENDERABLE ON OPENGLES
         RGBA16F,        // NOT COLOR RENDERABLE ON OPENGLES
         R32UI,
-        Float32,         // NOT COLOR RENDERABLE ON OPENGLES
-        RGBA32F,        // NOT COLOR RENDERABLE ON OPENGLES
+        Float32,        // NOT COLOR RENDERABLE ON OPENGLES
+        RGBA32F,        // NOT COLOR RENDERABLE ON OPENGLES (weirdly it works, maybe because of extension, that qt activates?)
     };
 
 private:
