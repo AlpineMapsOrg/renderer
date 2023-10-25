@@ -21,9 +21,12 @@
 #include <QObject>
 #include <memory>
 #include <nucleus/camera/Definition.h>
+#include <nucleus/Track.h>
 
 #include "PolyLine.h"
 #include "ShaderProgram.h"
+
+
 
 class QOpenGLShaderProgram;
 
@@ -38,7 +41,7 @@ public:
     void init();
     void draw(const nucleus::camera::Definition& camera) const;
 
-    // void add_track();
+    void add_track(const nucleus::gpx::Gpx& gpx);
     // void remove_track();
 
 private:

@@ -67,4 +67,11 @@ void TrackManager::draw(const nucleus::camera::Definition& camera) const
 
     m_shader->release();
 }
+
+void TrackManager::add_track(const nucleus::gpx::Gpx& gpx)
+{
+    auto points = nucleus::to_world_points(gpx);
+    PolyLine polyline(points);
+    m_tracks.push_back(std::move(polyline));
+}
 } // namespace gl_engine
