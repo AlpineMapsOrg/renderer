@@ -23,13 +23,15 @@ namespace gl_engine {
 
 PolyLine::PolyLine(const std::vector<glm::vec3>& points)
     : vertex_count(points.size())
+    , vao(std::make_unique<QOpenGLVertexArrayObject>())
+    , vbo(std::make_unique<QOpenGLBuffer>())
 {
     vao->create();
     vao->bind();
 
     vbo->create();
     vbo->bind();
-    vbo->setUsagePattern(QOpenGLBuffer::StreamDraw);
+    vbo->setUsagePattern(QOpenGLBuffer::DynamicDraw);
     vbo->allocate(points.data(), helpers::bufferLengthInBytes(points));
 
     vao->release();
