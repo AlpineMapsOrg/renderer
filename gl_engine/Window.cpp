@@ -34,6 +34,7 @@
 #include <QRandomGenerator>
 #include <QSequentialAnimationGroup>
 #include <QTimer>
+#include <QFileDialog>
 #include <glm/glm.hpp>
 
 #include "Atmosphere.h"
@@ -218,6 +219,15 @@ void Window::update_gpu_quads(const std::vector<nucleus::tile_scheduler::tile_ty
 {
     assert(m_tile_manager);
     m_tile_manager->update_gpu_quads(new_quads, deleted_quads);
+}
+
+void Window::open_file()
+{
+    QString file_name = QFileDialog::getOpenFilename(this, "Open GPX File");
+    if(!file_name.isEmpty())
+    {
+        // TODO: load file
+    }
 }
 
 float Window::depth(const glm::dvec2& normalised_device_coordinates)
