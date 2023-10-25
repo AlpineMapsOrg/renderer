@@ -66,12 +66,12 @@ public:
     void keyReleaseEvent(QKeyEvent*);
     void updateCameraEvent();
     void set_permissible_screen_space_error(float new_error) override;
+    void open_file();
 
 public slots:
     void update_camera(const nucleus::camera::Definition& new_definition) override;
     void update_debug_scheduler_stats(const QString& stats) override;
     void update_gpu_quads(const std::vector<nucleus::tile_scheduler::tile_types::GpuTileQuad>& new_quads, const std::vector<tile::Id>& deleted_quads) override;
-    void open_file();
 
 private:
     using ClockResolution = std::chrono::microseconds;

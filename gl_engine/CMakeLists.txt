@@ -14,7 +14,7 @@ qt_add_library(gl_engine STATIC
     PolyLine.h PolyLine.cpp
     TrackManager.h TrackManager.cpp
 )
-target_link_libraries(gl_engine PUBLIC nucleus Qt::OpenGL)
+target_link_libraries(gl_engine PUBLIC nucleus Qt::OpenGL Qt::Widgets)
 target_include_directories(gl_engine PRIVATE .)
 
 qt_add_resources(gl_engine "shaders"

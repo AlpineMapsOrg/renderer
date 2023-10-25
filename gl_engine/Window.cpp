@@ -223,7 +223,8 @@ void Window::update_gpu_quads(const std::vector<nucleus::tile_scheduler::tile_ty
 
 void Window::open_file()
 {
-    QString file_name = QFileDialog::getOpenFilename(this, "Open GPX File");
+    qDebug() << "Open File\n";
+    QString file_name = QFileDialog::getOpenFileName(nullptr, QString("Open GPX File"));
     if(!file_name.isEmpty())
     {
         // TODO: load file
