@@ -172,6 +172,12 @@ void TerrainRendererItem::rotate_north()
     RenderThreadNotifier::instance()->notify();
 }
 
+void TerrainRendererItem::add_track(const QString& track)
+{
+    qDebug() << "Add Track was clicked: " << track;
+    // TODO: open file dialog
+}
+
 void TerrainRendererItem::schedule_update()
 {
     //    qDebug("void TerrainRendererItem::schedule_update()");

@@ -93,6 +93,7 @@ protected:
 public slots:
     void set_position(double latitude, double longitude);
     void rotate_north();
+    void add_track(const QString& track);
 
 private slots:
     void schedule_update();
