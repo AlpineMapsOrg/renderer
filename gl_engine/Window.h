@@ -66,7 +66,7 @@ public:
     void keyReleaseEvent(QKeyEvent*);
     void updateCameraEvent();
     void set_permissible_screen_space_error(float new_error) override;
-    void open_file();
+    void open_track_file(const QString& file_path);
 
 public slots:
     void update_camera(const nucleus::camera::Definition& new_definition) override;
