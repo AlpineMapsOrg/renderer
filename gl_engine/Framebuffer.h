@@ -110,8 +110,8 @@ private:
 
 struct TextureDefinition {
     Framebuffer::ColourFormat format = Framebuffer::ColourFormat::RGBA8;
-    QOpenGLTexture::Filter minFilter = QOpenGLTexture::Filter::Linear;
-    QOpenGLTexture::Filter magFilter = QOpenGLTexture::Filter::Linear;
+    QOpenGLTexture::Filter minFilter = QOpenGLTexture::Filter::Nearest;
+    QOpenGLTexture::Filter magFilter = QOpenGLTexture::Filter::Nearest;
     QOpenGLTexture::WrapMode wrapMode = QOpenGLTexture::WrapMode::ClampToEdge;
     QColor borderColor = QColor(0.0f, 0.0f, 0.0f, 1.0f);
     bool autoMipMapGeneration = false;

@@ -44,8 +44,8 @@ class TerrainRendererItem : public QQuickFramebufferObject {
     Q_PROPERTY(QPointF camera_operation_centre READ camera_operation_centre NOTIFY camera_operation_centre_changed)
     Q_PROPERTY(bool camera_operation_centre_visibility READ camera_operation_centre_visibility NOTIFY camera_operation_centre_visibility_changed)
     Q_PROPERTY(float camera_operation_centre_distance READ camera_operation_centre_distance NOTIFY camera_operation_centre_distance_changed)
-    Q_PROPERTY(float render_quality READ render_quality WRITE set_render_quality NOTIFY render_quality_changed)    
-    Q_PROPERTY(gl_engine::uboSharedConfig shared_config MEMBER m_shared_config NOTIFY shared_config_changed)
+    Q_PROPERTY(float render_quality READ render_quality WRITE set_render_quality NOTIFY render_quality_changed)
+    Q_PROPERTY(gl_engine::uboSharedConfig shared_config READ shared_config WRITE set_shared_config NOTIFY shared_config_changed)
     Q_PROPERTY(TimerFrontendManager* timer_manager MEMBER m_timer_manager CONSTANT)
     Q_PROPERTY(unsigned int in_flight_tiles READ in_flight_tiles NOTIFY in_flight_tiles_changed)
     Q_PROPERTY(unsigned int queued_tiles READ queued_tiles NOTIFY queued_tiles_changed)
@@ -99,6 +99,7 @@ signals:
 
     void gui_update_global_cursor_pos(double latitude, double longitude, double altitude);
 
+
 protected:
     void touchEvent(QTouchEvent*) override;
     void mousePressEvent(QMouseEvent*) override;
@@ -150,6 +151,9 @@ public:
 
     bool render_looped() const;
     void set_render_looped(bool new_render_looped);
+
+    gl_engine::uboSharedConfig shared_config() const;
+    void set_shared_config(gl_engine::uboSharedConfig new_shared_config);
 
     bool hud_visible() const { return m_hud_visible; }
     void set_hud_visible(bool new_hud_visible);

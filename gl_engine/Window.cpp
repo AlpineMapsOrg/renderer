@@ -18,6 +18,7 @@
  *****************************************************************************/
 
 #include <array>
+#include <QCoreApplication>
 
 #include <QDebug>
 #include <QImage>
@@ -53,6 +54,7 @@
 #include <glm/gtx/transform.hpp>
 
 #include "UniformBufferObjects.h"
+#include "nucleus/utils/UrlModifier.h"
 
 #ifndef __EMSCRIPTEN__
 #include <QOpenGLFunctions_3_3_Core>
@@ -90,6 +92,12 @@ void Window::initialise_gpu()
 
     m_debug_painter = std::make_unique<DebugPainter>();
     m_shader_manager = std::make_unique<ShaderManager>();
+
+    nucleus::utils::UrlModifier::init();
+
+    auto um = nucleus::utils::UrlModifier::get();
+    auto init_conf_ubob64 = um->get_query_item(URL_PARAMETER_KEY_CONFIG);
+
 
     m_tile_manager->init();
     m_tile_manager->initilise_attribute_locations(m_shader_manager->tile_shader());
@@ -251,6 +259,7 @@ void Window::paint(QOpenGLFramebufferObject* framebuffer)
     m_timer->start_timer("tiles");
     m_tile_manager->draw(m_shader_manager->tile_shader(), m_camera, draw_tiles, m_sort_tiles, m_camera.position());
     m_timer->stop_timer("tiles");
+    m_shader_manager->tile_shader()->release();
 
     #ifndef __EMSCRIPTEN__
     if (funcs && m_shared_config_ubo->data.m_wireframe_mode > 0) funcs->glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
@@ -363,19 +372,25 @@ void Window::key_press(const QKeyCombination& e) {
 
 void Window::keyPressEvent(QKeyEvent* e)
 {
-#if WEBGL_SHADER_DOWNLOAD_ACCESS
-    if (e->key() == Qt::Key::Key_F4) {
-        ShaderProgram::reset_download_cache();
-    }
-#endif
     if (e->key() == Qt::Key::Key_F5) {
-        m_shader_manager->reload_shaders();
-        qDebug("all shaders reloaded");
-        // NOTE: UBOs need to be reattached to the programs!
-        m_shared_config_ubo->bind_to_shader(m_shader_manager->all());
-        m_camera_config_ubo->bind_to_shader(m_shader_manager->all());
-        m_shadow_config_ubo->bind_to_shader(m_shader_manager->all());
-        emit update_requested();
+        auto do_reload = [this]() {
+            m_shader_manager->reload_shaders();
+            qDebug("all shaders reloaded");
+            // NOTE: UBOs need to be reattached to the programs!
+            m_shared_config_ubo->bind_to_shader(m_shader_manager->all());
+            m_camera_config_ubo->bind_to_shader(m_shader_manager->all());
+            m_shadow_config_ubo->bind_to_shader(m_shader_manager->all());
+            emit update_requested();
+        };
+#if WEBGL_SHADER_DOWNLOAD_ACCESS
+        // Reload shaders from the web and afterwards do the reload
+        ShaderProgram::web_download_shader_files_and_put_in_cache(do_reload);
+#else
+        // Reset shader cache. The shaders will then be reload from file
+        ShaderProgram::reset_shader_cache();
+        do_reload();
+#endif
+
     }
     if (e->key() == Qt::Key::Key_F6) {
         if (this->m_render_looped) {

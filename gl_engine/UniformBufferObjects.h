@@ -23,6 +23,11 @@
 #include <glm/glm.hpp>
 #include "ShadowMapping.h"
 
+#include <QByteArray>
+#include <QDataStream>
+#include <QIODevice>
+
+#include "nucleus/utils/UrlModifier.h"
 // NOTE: BOOLEANS BEHAVE WEIRD! JUST DONT USE THEM AND STICK TO 32bit Formats!!
 // STD140 ALIGNMENT! USE PADDING IF NECESSARY. EVERY BLOCK OF SAME TYPE MUST BE PADDED
 // TO 16 BYTE! (QPropertys don't matter)
@@ -60,7 +65,7 @@ public:
     // 0...nothing, 1...ortho, 2...normals, 3...tiles, 4...zoomlevel, 5...vertex-ID, 6...vertex heightmap
     GLuint m_debug_overlay = 0;
 
-    GLuint m_ssao_enabled = false;
+    GLuint m_ssao_enabled = true;
     GLuint m_ssao_kernel = 32;
     GLuint m_ssao_range_check = true;
     GLuint m_ssao_blur_kernel_size = 1;
@@ -68,7 +73,7 @@ public:
     GLuint m_height_lines_enabled = false;
     GLuint m_csm_enabled = false;
     GLuint m_overlay_shadowmaps = false;
-    GLuint padu1;
+    GLuint padu1 = 0;
 
     // WARNING: Don't move the following Q_PROPERTIES to the top, otherwise the MOC
     // will do weird things with the data alignment!!
@@ -98,10 +103,19 @@ public:
 
     bool operator!=(const uboSharedConfig& rhs) const
     {
-        // Note: It's possible to implement some compare function here, but in our case we just assume
-        // that there are gonna be changes that need to be propagated from the UI to the render thread.
-        // Since thats the only time this operator gets called (by the QT moc) we'll just return true.
-        return true;
+        // NOTE: I'll do a hack here! I know that our data needs to be vec4 aligned, therefore I
+        // compare whole 64bit uints as this should be quite fast on the machine.
+        int size_64bit_packages = sizeof(uboSharedConfig) / 8;
+        assert(size_64bit_packages * 8 == sizeof(uboSharedConfig)); // make sure its really (at least) vec2 aligned
+        const uint64_t* lhs_64 = reinterpret_cast<const uint64_t*>(this);
+        const uint64_t* rhs_64 = reinterpret_cast<const uint64_t*>(&rhs);
+        for (int i = 0; i < size_64bit_packages; i++) {
+            if (lhs_64[i] != rhs_64[i]) return true;
+        }
+        // Note: If you don't like the above you can also just return true all the time!
+        // We only need this comparison when configuration has changed anyway. That shouldn't
+        // be that often.
+        return false;
     }
 
 };
@@ -159,5 +173,38 @@ public:
 
 QDataStream& operator<<(QDataStream& out, const uboTestConfig& data);
 QDataStream& operator>>(QDataStream& in, uboTestConfig& data);
+
+
+
+// Returns String representation of buffer data (Base64)
+template <typename T>
+QString ubo_as_string(T ubo) {
+    QByteArray buffer;
+    QDataStream out_stream(&buffer, QIODevice::WriteOnly);
+    out_stream << ubo;
+    auto compressedData = qCompress(buffer, 9);
+    auto b64Data = compressedData.toBase64();
+    auto b64String = QString(b64Data);
+    auto b64StringUrlSafe = nucleus::utils::UrlModifier::b64_to_urlsafe_b64(b64String);
+    return b64StringUrlSafe;
+}
+
+// Loads the given base 64 encoded string as the buffer data
+template <typename T>
+T ubo_from_string(const QString& base64StringUrlSafe, bool* successful = nullptr) {
+    T ubo;
+    if (successful) *successful = true;
+    auto b64String = nucleus::utils::UrlModifier::urlsafe_b64_to_b64(base64StringUrlSafe);
+    QByteArray buffer = QByteArray::fromBase64(b64String.toUtf8());
+    buffer = qUncompress(buffer);
+    if (buffer.size() < sizeof(T)) {
+        qWarning() << "Data in given base64string too short for type size. Standard Type will be returned...";
+        if (successful) *successful = false;
+        return ubo;
+    }
+    QDataStream inStream(&buffer, QIODevice::ReadOnly);
+    inStream >> ubo;
+    return ubo;
+}
 
 }

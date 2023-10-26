@@ -66,7 +66,7 @@ highp vec3 calculate_illumination(highp vec3 albedo, highp vec3 eyePos, highp ve
     highp vec3 ambColor = ambLight.rgb * ambLight.a;
     highp vec3 ambient = material.r * albedo;
     highp vec3 diff = material.g * albedo;
-    highp vec3 spec = material.bbb;
+    highp vec3 spec = vec3(material.b);
     highp float shini = material.a;
 
     highp vec3 ambientIllumination = ambient * ambColor * ao;
@@ -204,7 +204,4 @@ void main() {
             }
         }
     }
-
-    //out_Color = vec4(abs(pos_cws) / 3000.0, 1.0);
-    //out_Color = vec4(1.0, 0.0, 0.0, 1.0);
 }

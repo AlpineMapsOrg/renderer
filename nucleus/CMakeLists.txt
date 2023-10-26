@@ -31,13 +31,13 @@ qt_add_library(nucleus STATIC
     utils/Stopwatch.h utils/Stopwatch.cpp
     utils/terrain_mesh_index_generator.h
     utils/tile_conversion.h utils/tile_conversion.cpp
+    utils/UrlModifier.h utils/UrlModifier.cpp
+    utils/bit_coding.h
     map_label/MapLabelModel.h map_label/MapLabelModel.cpp
     map_label/CameraTransformationProxyModel.h map_label/CameraTransformationProxyModel.cpp
     map_label/MapLabel.h
     map_label/AbstractMapLabelModel.h
     map_label/CameraFilterProxyModel.h map_label/CameraFilterProxyModel.cpp
-    utils/bit_coding.h
-    utils/Base64Codec.h
 )
 
 target_include_directories(nucleus PRIVATE . PUBLIC ${CMAKE_SOURCE_DIR})

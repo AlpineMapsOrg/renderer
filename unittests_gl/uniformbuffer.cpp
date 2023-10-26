@@ -179,16 +179,35 @@ TEST_CASE("gl uniformbuffer")
         b.read_colour_attachment_pixel(0, glm::dvec2(-1.0, -1.0), &value_at_0_0[0]);
         CHECK(value_at_0_0.x == 1u);
     }
-
-    SECTION("encode shared buffer as base64 string")
+    SECTION("encode decode shared buffer as base64 string")
     {
-        auto byteLength = sizeof(gl_engine::uboShadowConfig);
-        auto ubo = std::make_unique<gl_engine::UniformBuffer<gl_engine::uboShadowConfig>>(0, "shared_config");
+        auto byteLength = sizeof(gl_engine::uboSharedConfig);
+        auto ubo = std::make_unique<gl_engine::UniformBuffer<gl_engine::uboSharedConfig>>(0, "shared_config");
         QByteArray before_encode_decode((char*)(void*)&ubo->data, byteLength);
         auto encoded = ubo->data_as_string();
         bool result = ubo->data_from_string(encoded);
         CHECK(result == true);
         QByteArray after_encode_decode((char*)(void*)&ubo->data, byteLength);
         CHECK(before_encode_decode == after_encode_decode);
+    }
+    SECTION("encode decode test buffer as base64 string")
+    {
+        auto byteLength = sizeof(gl_engine::uboTestConfig);
+        auto ubo = std::make_unique<gl_engine::UniformBuffer<gl_engine::uboTestConfig>>(0, "test_config");
+        QByteArray before_encode_decode((char*)(void*)&ubo->data, byteLength);
+        auto encoded = ubo->data_as_string();
+        bool result = ubo->data_from_string(encoded);
+        CHECK(result == true);
+        QByteArray after_encode_decode((char*)(void*)&ubo->data, byteLength);
+        CHECK(before_encode_decode == after_encode_decode);
+    }
+    SECTION("test comparison operator for shared config")
+    {
+        gl_engine::uboSharedConfig ubo1;
+        gl_engine::uboSharedConfig ubo2;
+        gl_engine::uboSharedConfig ubo3;
+        ubo3.m_overlay_shadowmaps = 200;
+        CHECK((ubo1 != ubo2) == false);
+        CHECK((ubo1 != ubo3) == true);
     }
 }

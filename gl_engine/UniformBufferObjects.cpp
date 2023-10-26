@@ -20,6 +20,7 @@
 
 namespace gl_engine {
 
+// IMPORTANT: Also serialize padding!
 QDataStream& operator<<(QDataStream& out, const uboSharedConfig& data){
     out
         << data.m_sun_light
@@ -30,6 +31,8 @@ QDataStream& operator<<(QDataStream& out, const uboSharedConfig& data){
         << data.m_curtain_settings
         << data.m_debug_overlay_strength
         << data.m_ssao_falloff_to_value
+        << data.padf1
+        << data.padf2
         << data.m_phong_enabled
         << data.m_wireframe_mode
         << data.m_normal_mode
@@ -40,7 +43,8 @@ QDataStream& operator<<(QDataStream& out, const uboSharedConfig& data){
         << data.m_ssao_blur_kernel_size
         << data.m_height_lines_enabled
         << data.m_csm_enabled
-        << data.m_overlay_shadowmaps;
+        << data.m_overlay_shadowmaps
+        << data.padu1;
     return out;
 }
 
@@ -54,6 +58,8 @@ QDataStream& operator>>(QDataStream& in, uboSharedConfig& data) {
         >> data.m_curtain_settings
         >> data.m_debug_overlay_strength
         >> data.m_ssao_falloff_to_value
+        >> data.padf1
+        >> data.padf2
         >> data.m_phong_enabled
         >> data.m_wireframe_mode
         >> data.m_normal_mode
@@ -64,7 +70,8 @@ QDataStream& operator>>(QDataStream& in, uboSharedConfig& data) {
         >> data.m_ssao_blur_kernel_size
         >> data.m_height_lines_enabled
         >> data.m_csm_enabled
-        >> data.m_overlay_shadowmaps;
+        >> data.m_overlay_shadowmaps
+        >> data.padu1;
     return in;
 }
 
@@ -72,6 +79,18 @@ QDataStream& operator<<(QDataStream& out, const uboCameraConfig& data) { return 
 QDataStream& operator>>(QDataStream& in, uboCameraConfig& data) { return in; }
 QDataStream& operator<<(QDataStream& out, const uboShadowConfig& data) { return out; }
 QDataStream& operator>>(QDataStream& in, uboShadowConfig& data) { return in; }
-QDataStream& operator<<(QDataStream& out, const uboTestConfig& data) { return out; }
-QDataStream& operator>>(QDataStream& in, uboTestConfig& data) { return in; }
+QDataStream& operator<<(QDataStream& out, const uboTestConfig& data) {
+    out
+        << data.m_tv4
+        << data.m_tf32
+        << data.m_tu32;
+    return out;
+}
+QDataStream& operator>>(QDataStream& in, uboTestConfig& data) {
+    in
+        >> data.m_tv4
+        >> data.m_tf32
+        >> data.m_tu32;
+    return in;
+}
 }

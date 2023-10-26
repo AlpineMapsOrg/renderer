@@ -11,7 +11,6 @@
 
 // FOR DOWNLOADING SHADERS
 #if WEBGL_SHADER_DOWNLOAD_ACCESS //&& __EMSCRIPTEN__
-#include <QNetworkAccessManager>
 #include <QNetworkRequest>
 #include <QNetworkReply>
 #endif
@@ -74,68 +73,65 @@ void ShaderProgram::preprocess_shader_content_inplace(QString& base) {
 }
 
 // ========== STATIC DECLARATIONS =====================
+std::map<QString, QString> ShaderProgram::shader_file_cache = {};
+
 #if WEBGL_SHADER_DOWNLOAD_ACCESS
 
-std::map<QUrl, QString> ShaderProgram::web_file_cache_old = {};
-std::map<QUrl, QString> ShaderProgram::web_file_cache = {};
-std::unique_ptr<QNetworkAccessManager> ShaderProgram::web_network_manager = std::make_unique<QNetworkAccessManager>();
+std::map<QString, QString> ShaderProgram::web_download_file_cache = {};
+std::unique_ptr<QNetworkAccessManager> ShaderProgram::web_network_manager = nullptr;
 
-QString ShaderProgram::web_download_file_content(const QString& name) {
-    auto url = QUrl(WEBGL_SHADER_DOWNLOAD_URL + name);
+void ShaderProgram::web_download_shader_files_and_put_in_cache(std::function<void()> callback) {
+    // Initialize network manager on correct thread:
+    if (!web_network_manager) web_network_manager = std::make_unique<QNetworkAccessManager>();
 
-    // Is the file in cache?
-    auto it = web_file_cache.find(url);
-    if (it != web_file_cache.end()) {
-        //qDebug() << url << "read from filecache";
-        return it->second;
-    }
+    for (const auto& cache_entry : shader_file_cache) {
+        auto name = cache_entry.first;
+        auto url = QUrl(WEBGL_SHADER_DOWNLOAD_URL + name);
 
-    QNetworkRequest request(url);
-    request.setTransferTimeout(WEBGL_SHADER_DOWNLOAD_TIMEOUT);
-    // IMPORTANT: QNetworkRequest::AlwaysNetwork doesn't seem to be supported for WebAssembly!!!
-    request.setAttribute(QNetworkRequest::CacheLoadControlAttribute, QNetworkRequest::PreferNetwork);
-#if QT_VERSION >= QT_VERSION_CHECK(6, 5, 0)
-    request.setAttribute(QNetworkRequest::UseCredentialsAttribute, false);
+        QNetworkRequest request(url);
+        request.setTransferTimeout(WEBGL_SHADER_DOWNLOAD_TIMEOUT);
+        // IMPORTANT: QNetworkRequest::AlwaysNetwork doesn't seem to be supported for WebAssembly!!!
+        request.setAttribute(QNetworkRequest::CacheLoadControlAttribute, QNetworkRequest::PreferNetwork);
+#if QT_VERSION >= QT_VERSION_CHECK(6, 5, 0) // Don't know if i need that but i copied it from the TileLoadService
+        request.setAttribute(QNetworkRequest::UseCredentialsAttribute, false);
 #endif
-    QNetworkReply* reply = web_network_manager->get(request);
-    QObject::connect(reply, &QNetworkReply::finished, [reply, url]() {
-        if (reply->error() == QNetworkReply::NoError) {
-            //qDebug() << url << "put into filecache";
-            web_file_cache[url] = reply->readAll();
-        } else {
-            // Handle the error or simply log it.
-            qWarning("Download error: %s", qPrintable(reply->errorString()));
-        }
-        reply->deleteLater(); // Schedule the reply object for deletion.
-    });
+        QNetworkReply* reply = web_network_manager->get(request);
+        //qDebug() << "requested file " << name;
+        QObject::connect(reply, &QNetworkReply::finished, [reply, name, callback]() {
+            if (reply->error() == QNetworkReply::NoError) {
+                //qDebug() << name << "put into filecache";
+                web_download_file_cache[name] = reply->readAll();
+            } else {
+                qWarning("Download error: %s", qPrintable(reply->errorString()));
+                web_download_file_cache[name] = ""; // Just so that the overall count in web_download_file_cache will be correct
+            }
+            reply->deleteLater(); // Schedule the reply object for deletion.
 
-    // Check wether the file is in the old file cache:
-    it = web_file_cache_old.find(url);
-    if (it != web_file_cache_old.end()) {
-        //qDebug() << url << "read from old filecache";
-        return it->second;
+            if (web_download_file_cache.size() == shader_file_cache.size()) {
+                //qDebug() << "All files are downloaded!";
+                shader_file_cache = std::move(web_download_file_cache);
+                web_download_file_cache.clear(); // might not be necessary because of move
+                callback();
+            }
+        });
     }
-    // In this case return the local version
-    //qDebug() << url << "read from local storage";
-    return read_file_content_local(name);
+}
+#endif
+
+void ShaderProgram::reset_shader_cache() {
+    shader_file_cache.clear();
 }
 
 QString ShaderProgram::read_file_content(const QString& name) {
-    return web_download_file_content(name);
+    // Check for cached version:
+    auto it = shader_file_cache.find(name);
+    if (it != shader_file_cache.end()) return it->second;
+    // if not in cache lets hope its local:
+    auto content = read_file_content_local(name);
+    // now put it in cache:
+    shader_file_cache[name] = content;
+    return content;
 }
-void ShaderProgram::reset_download_cache() {
-    web_file_cache_old = std::move(web_file_cache);
-    web_file_cache.clear();
-    qDebug() << "reset file cache (" << web_file_cache_old.size() << " entries)";
-}
-
-#else
-
-QString ShaderProgram::read_file_content(const QString& name) {
-    return read_file_content_local(name);
-}
-
-#endif
 
 QString ShaderProgram::read_file_content_local(const QString& name) {
     QFile file(get_qrc_or_path_prefix() + name);

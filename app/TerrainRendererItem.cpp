@@ -40,6 +40,7 @@
 #include <nucleus/tile_scheduler/Scheduler.h>
 
 #include "nucleus/camera/PositionStorage.h"
+#include "nucleus/utils/UrlModifier.h"
 
 namespace {
 // helper type for the visitor from https://en.cppreference.com/w/cpp/utility/variant/visit
@@ -64,6 +65,16 @@ TerrainRendererItem::TerrainRendererItem(QQuickItem* parent)
     setMirrorVertically(true);
     setAcceptTouchEvents(true);
     setAcceptedMouseButtons(Qt::MouseButton::AllButtons);
+
+    // INITIALIZE shared config with URL parameter:
+    auto urlmodifier = nucleus::utils::UrlModifier::get();
+    bool param_available = false;
+    auto config_base64_string = urlmodifier->get_query_item(URL_PARAMETER_KEY_CONFIG, &param_available);
+    if (param_available) {
+        qInfo() << "Initialize config with:" << config_base64_string;
+        auto tmp = gl_engine::ubo_from_string<gl_engine::uboSharedConfig>(config_base64_string);
+        m_shared_config = tmp;
+    }
 
     connect(m_update_timer, &QTimer::timeout, this, &TerrainRendererItem::update_camera_request);
 }
@@ -348,6 +359,20 @@ void TerrainRendererItem::set_render_looped(bool new_render_looped) {
     m_render_looped = new_render_looped;
     emit render_looped_changed(m_render_looped);
     schedule_update();
+}
+
+gl_engine::uboSharedConfig TerrainRendererItem::shared_config() const {
+    return m_shared_config;
+}
+
+void TerrainRendererItem::set_shared_config(gl_engine::uboSharedConfig new_shared_config) {
+    if (m_shared_config != new_shared_config) {
+        m_shared_config = new_shared_config;
+        // Lets update the URL: (TODO: schedule URL update, we don't need to update all the time)
+        auto data_string = gl_engine::ubo_as_string(m_shared_config);
+        nucleus::utils::UrlModifier::get()->set_query_item(URL_PARAMETER_KEY_CONFIG, data_string);
+        emit shared_config_changed(m_shared_config);
+    }
 }
 
 void TerrainRendererItem::set_hud_visible(bool new_hud_visible) {

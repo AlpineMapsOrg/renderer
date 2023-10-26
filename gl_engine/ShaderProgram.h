@@ -1,5 +1,11 @@
 #pragma once
 
+// If true the shaders will be loaded from the given WEBGL_SHADER_DOWNLOAD_URL
+// and can be reloaded inside the APP without the need for recompilation
+#define WEBGL_SHADER_DOWNLOAD_ACCESS true
+#define WEBGL_SHADER_DOWNLOAD_URL "http://localhost:5500/"
+#define WEBGL_SHADER_DOWNLOAD_TIMEOUT 8000
+
 #include <vector>
 #include <unordered_map>
 #include <string>
@@ -10,13 +16,11 @@
 #include <QOpenGLShaderProgram>
 #include <QUrl>
 #include <QDebug>
-#include <QNetworkAccessManager>
 
-// If true the shaders will be loaded from the given WEBGL_SHADER_DOWNLOAD_URL
-// and can be reloaded inside the APP without the need for recompilation
-#define WEBGL_SHADER_DOWNLOAD_ACCESS true
-#define WEBGL_SHADER_DOWNLOAD_URL "http://localhost:5500/"
-#define WEBGL_SHADER_DOWNLOAD_TIMEOUT 8000
+#if WEBGL_SHADER_DOWNLOAD_ACCESS
+#include <functional>
+#include <QNetworkAccessManager>
+#endif
 
 namespace gl_engine {
 
@@ -40,13 +44,23 @@ private:
     ShaderCodeSource m_code_source;
 
 #if WEBGL_SHADER_DOWNLOAD_ACCESS
-    static std::map<QUrl, QString> web_file_cache_old;
-    static std::map<QUrl, QString> web_file_cache;
+    // A temporary cache for the downloaded shader files.
+    static std::map<QString, QString> web_download_file_cache;
+    // Shared NetworkAccessManager for downloading files
     static std::unique_ptr<QNetworkAccessManager> web_network_manager;
-    static QString web_download_file_content(const QString& name);
 #endif
+    // A storage for the content of the shader files, such that includes
+    // don't have to be read several times. It also allows for overriding
+    // content by download if WEBGL_SHADER_DOWNLOAD_ACCESS is true
+    static std::map<QString, QString> shader_file_cache;
 
+    // Helper function which returns the content of the given shader file
+    // as string. Parameter name has to be the name of the shader, eg. "tile.frag".
     static QString read_file_content_local(const QString& name);
+
+    // Returns the content of the given shader file as string. If a cached version
+    // exists inside shader_file_cache it will return the cached version. If not
+    // it will attempt to read it from file, and add it to cache afterwards.
     static QString read_file_content(const QString& name);
 
     static QString get_qrc_or_path_prefix();
@@ -76,9 +90,14 @@ public:
     void set_uniform_array(const std::string& name, const std::vector<glm::vec4>& array);
     void set_uniform_array(const std::string& name, const std::vector<glm::vec3>& array);
 
+    static void reset_shader_cache();
+
 #if WEBGL_SHADER_DOWNLOAD_ACCESS
-    static void reset_download_cache();
+    // Redownloads all files inside the shader_file_cache from the
+    // WEBGL_SHADER_DOWNLOAD_URL location, and executes the callback when done
+    static void web_download_shader_files_and_put_in_cache(std::function<void()> callback);
 #endif
+
 public slots:
     void reload();
 private:

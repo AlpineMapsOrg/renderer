@@ -6,7 +6,6 @@ qt_add_executable(unittests_nucleus
     catch2_helpers.h
     test_Camera.cpp
     nucleus_utils_stopwatch.cpp
-    nucleus_utils_Base64Codec.cpp
     test_DrawListGenerator.cpp
     test_helpers.h
     test_raster.cpp

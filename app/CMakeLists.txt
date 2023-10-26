@@ -27,6 +27,7 @@ qt_add_qml_module(alpineapp
         RoundMapButton.qml
         DebugWindow.qml
         StatsWindow.qml
+        components/ValSlider.qml
     RESOURCES
         icons/camera_operation_centre.svg
         icons/compass.svg

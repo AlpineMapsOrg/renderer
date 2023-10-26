@@ -21,8 +21,6 @@
 #include <QOpenGLExtraFunctions>
 #include "ShaderProgram.h"
 #include "UniformBufferObjects.h"
-#include "nucleus/utils/Base64Codec.h"
-
 #include <QDebug>
 #include <QByteArray>
 #include <QDataStream>
@@ -68,19 +66,14 @@ template <typename T> void gl_engine::UniformBuffer<T>::update_gpu_data() {
 }
 
 template <typename T> QString gl_engine::UniformBuffer<T>::data_as_string() {
-    QByteArray buffer;
-    QDataStream out_stream(&buffer, QIODevice::WriteOnly);
-    out_stream << data;
-    return QString(buffer.toBase64());
+    return ubo_as_string(data);
 }
 
 template <typename T> bool gl_engine::UniformBuffer<T>::data_from_string(const QString& base64String) {
-    QByteArray buffer = QByteArray::fromBase64(base64String.toUtf8());
-    QDataStream inStream(&buffer, QIODevice::ReadOnly);
-    T deserializedData;
-    inStream >> deserializedData;
-    data = deserializedData;
-    return true; // ToDo error handling?
+    bool result = true;
+    auto newData = ubo_from_string<T>(base64String,&result);
+    if (result) data = newData;
+    return result;
 }
 
 // IMPORTANT: All possible Template Classes need to be defined here:

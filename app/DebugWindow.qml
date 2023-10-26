@@ -4,8 +4,25 @@ import QtQuick.Controls.Material
 import QtQuick.Layouts
 import QtQuick.Dialogs
 import Alpine
+import "components"
 
 Rectangle {
+
+    component LabeledImage: Column {
+            property alias source: image.source
+            property alias caption: text.text
+
+            Image {
+                id: image
+                width: 50
+                height: 50
+            }
+            Text {
+                id: text
+                font.bold: true
+            }
+        }
+
     property int menu_height: map.height - 30 - tool_bar.height
     property int menu_width: 320
 
@@ -93,7 +110,6 @@ Rectangle {
                     onCurrentValueChanged:  map.shared_config.normal_mode = currentIndex;
                 }
 
-
                 Rectangle {
                     Layout.fillWidth: true;
                     Layout.columnSpan: 2;
@@ -124,11 +140,8 @@ Rectangle {
                     onCurrentValueChanged:  map.shared_config.curtain_settings.y = currentIndex;
                 }
                 Label { text: "Ref.-Height:" }
-                Slider {
-                    from: 1.0
-                    to: 500.0
-                    stepSize: 1.0
-                    Layout.fillWidth: true;
+                ValSlider {
+                    from: 1.0; to: 500.0; stepSize: 1.0;
                     Component.onCompleted: this.value = map.shared_config.curtain_settings.z;
                     onMoved: map.shared_config.curtain_settings.z = this.value;
                 }
@@ -182,6 +195,7 @@ Rectangle {
                     Label {
                         padding: 5
                         Layout.fillWidth: true;
+                        color: Qt.rgba(0.0, 0.0, 0.0, 1.0);
                         Rectangle{
                             anchors.fill: parent
                             color: "transparent"
@@ -205,13 +219,10 @@ Rectangle {
                 }
 
                 Label { text: "Light-Intensity:" }
-                Slider {
-                    from: 0.00
-                    to: 1.00
-                    Layout.fillWidth: true
+                ValSlider {
+                    from: 0.0; to: 1.0;
                     Component.onCompleted: this.value = map.shared_config.sun_light.w;
                     onMoved: map.shared_config.sun_light.w = this.value;
-
                 }
 
                 Label { text: "Amb.-Color:" }
@@ -242,11 +253,8 @@ Rectangle {
                 }
 
                 Label { text: "Amb.-Intensity:" }
-                Slider {
-                    from: 0.01
-                    to: 1.00
-                    value: 0.5
-                    Layout.fillWidth: true
+                ValSlider {
+                    from: 0.01; to: 1.0; stepSize: 0.01;
                     Component.onCompleted: this.value = map.shared_config.amb_light.w;
                     onMoved: map.shared_config.amb_light.w = this.value;
                 }
@@ -338,13 +346,10 @@ Rectangle {
 
 
                 Label { text: "Ortho-Mix:" }
-                Slider {
-                    id: slider_ortho_mix
-                    from: 0.0
-                    to: 1.0
-                     Layout.fillWidth: true;
-                     Component.onCompleted: value = map.shared_config.material_color.w;
-                     onMoved: map.shared_config.material_color.w = value;
+                ValSlider {
+                    from: 0.00; to: 1.0; stepSize: 0.01;
+                    Component.onCompleted: value = map.shared_config.material_color.w;
+                    onMoved: map.shared_config.material_color.w = value;
                 }
 
                 Rectangle {
@@ -368,34 +373,25 @@ Rectangle {
                 }
 
                 Label { text: "Kernel-Size:" }
-                Slider {
-                    from: 5
-                    to: 64
-                    Layout.fillWidth: true;
+                ValSlider {
+                    from: 5; to: 64; stepSize: 1;
                     Component.onCompleted: value = map.shared_config.ssao_kernel;
                     onMoved: map.shared_config.ssao_kernel = value;
                 }
 
                 Label { text: "Falloff-To:" }
-                Slider {
-                    from: 0
-                    to: 100
-                    Layout.fillWidth: true;
-                    Component.onCompleted: value = map.shared_config.ssao_falloff_to_value * 100;
-                    onMoved: map.shared_config.ssao_falloff_to_value = value / 100;
+                ValSlider {
+                    from: 0.0; to: 1.0; stepSize: 0.01;
+                    Component.onCompleted: value = map.shared_config.ssao_falloff_to_value;
+                    onMoved: map.shared_config.ssao_falloff_to_value = value;
                 }
 
                 Label { text: "Blur-Size:" }
-                Slider {
-                    from: 0
-                    to: 2
-                    stepSize: 1
-                    snapMode: Slider.SnapAlways
-                    Layout.fillWidth: true;
+                ValSlider {
+                    from: 0; to: 2; stepSize: 1; snapMode: Slider.SnapAlways;
                     Component.onCompleted: value = map.shared_config.ssao_blur_kernel_size;
                     onMoved: map.shared_config.ssao_blur_kernel_size = value;
                 }
-
 
                 CheckBox {
                     text: "Range-Check"
