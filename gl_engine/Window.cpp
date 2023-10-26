@@ -222,15 +222,12 @@ void Window::update_gpu_quads(const std::vector<nucleus::tile_scheduler::tile_ty
 
 void Window::open_track_file(const QString& file_path)
 {
-    qDebug() << "Open File\n";
-#if 0
-    // this does not work, as we are not in a QApplication context
-    QString file_name = QFileDialog::getOpenFileName(nullptr, QString("Open GPX File"));
-    if(!file_name.isEmpty())
+    qDebug() << "Open Track File: " << file_path;
+    std::unique_ptr<nucleus::gpx::Gpx> gpx = nucleus::gpx::parse(file_path);
+    if (gpx != nullptr)
     {
-        // TODO: load file
+        m_track_manager->add_track(*gpx);
     }
-#endif
 }
 
 float Window::depth(const glm::dvec2& normalised_device_coordinates)

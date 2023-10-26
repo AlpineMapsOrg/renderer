@@ -95,6 +95,11 @@ QQuickFramebufferObject::Renderer* TerrainRendererItem::createRenderer() const
             r->controller()->camera_controller(),
             &nucleus::camera::Controller::rotate_north);
 
+    connect(this, 
+            &TerrainRendererItem::track_added_by_user, 
+            r->glWindow(),
+            &gl_engine::Window::open_track_file);
+
     auto* const tile_scheduler = r->controller()->tile_scheduler();
     connect(this, &TerrainRendererItem::render_quality_changed, tile_scheduler, [=](float new_render_quality) {
         const auto permissible_error = 1.0f / new_render_quality;
@@ -175,7 +180,8 @@ void TerrainRendererItem::rotate_north()
 void TerrainRendererItem::add_track(const QString& track)
 {
     qDebug() << "Add Track was clicked: " << track;
-    // TODO: open file dialog
+    emit track_added_by_user(track);
+    RenderThreadNotifier::instance()->notify();
 }
 
 void TerrainRendererItem::schedule_update()

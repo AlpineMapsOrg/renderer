@@ -32,6 +32,7 @@ qt_add_qml_module(alpineapp
         icons/menu.svg
         icons/peak.svg
         icons/search.svg
+        icons/plus.svg
 )
 
 qt_add_resources(alpineapp "height_data"

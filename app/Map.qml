@@ -123,6 +123,7 @@ Rectangle {
 
     FileDialog  {
         id: file_dialog
+        nameFilters: ["GPX files (*.gpx *.xml)"]
         currentFolder: StandardPaths.standardLocations(StandardPaths.PicturesLocation)[0]
         onAccepted: renderer.add_track(selectedFile)
     }
@@ -154,7 +155,7 @@ Rectangle {
             margins: 16
         }
         checkable: true
-        icon_source: "icons/current_location.svg" // TODO: change this icon
+        icon_source: "icons/plus.svg" // TODO: change this icon
     }
 
     RoundMapButton {
