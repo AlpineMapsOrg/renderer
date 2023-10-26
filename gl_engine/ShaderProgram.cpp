@@ -1,10 +1,5 @@
 #include "ShaderProgram.h"
 
-// If true the shaders will be loaded from the given WEBGL_SHADER_DOWNLOAD_URL
-// and can be reloaded inside the APP without the need for recompilation
-#define WEBGL_SHADER_DOWNLOAD_ACCESS false
-#define WEBGL_SHADER_DOWNLOAD_URL "http://127.0.0.1:5500/"
-
 #include <QFile>
 #include <QTextStream>
 #include <QRegularExpression>
@@ -19,95 +14,43 @@
 #include <QNetworkAccessManager>
 #include <QNetworkRequest>
 #include <QNetworkReply>
-#include <QEventLoop>
 #endif
 
 #include "helpers.h"
 
 using gl_engine::ShaderProgram;
 
-namespace {
 
-QString get_qrc_or_path_prefix() {
+QString ShaderProgram::get_qrc_or_path_prefix() {
     QString prefix = ":/gl_shaders/";
     if (!QOpenGLContext::currentContext()->isOpenGLES())
         prefix = ALP_RESOURCES_PREFIX; // FOR NATIVE BUILD: prefix = "shaders/";
     return prefix;
 }
 
-QString getShaderCodeVersion() {
+QString ShaderProgram::get_shader_code_version() {
     if (QOpenGLContext::currentContext()->isOpenGLES())
         return "#version 300 es\n";
     else
         return "#version 330\n";
 }
 
-QByteArray versionedShaderCode(const QByteArray& src)
+QByteArray ShaderProgram::make_versioned_shader_code(const QByteArray& src)
 {
     QByteArray versionedSrc;
-    versionedSrc.append(getShaderCodeVersion().toLocal8Bit());
+    versionedSrc.append(get_shader_code_version().toLocal8Bit());
     versionedSrc.append(src);
     return versionedSrc;
 }
 
-QByteArray versionedShaderCode(const QString& src) {
+QByteArray ShaderProgram::make_versioned_shader_code(const QString& src) {
     QByteArray versionedSrc;
-    versionedSrc.append(getShaderCodeVersion().toLocal8Bit());
+    versionedSrc.append(get_shader_code_version().toLocal8Bit());
     versionedSrc.append(src.toLocal8Bit());
     return versionedSrc;
 }
-#if WEBGL_SHADER_DOWNLOAD_ACCESS //&& __EMSCRIPTEN__
-QString downloadFileContent(const QUrl &url) {
-    QNetworkAccessManager manager;
-    QEventLoop loop;
-    QString fileContent;
 
-    QNetworkRequest request(url);
-    QNetworkReply* reply = manager.get(request);
-
-    // Connect the finished signal of the reply to our event loop's quit slot.
-    QObject::connect(reply, &QNetworkReply::finished, &loop, &QEventLoop::quit);
-    loop.exec(); // This will block until the reply emits the finished signal.
-
-    if (reply->error() == QNetworkReply::NoError) {
-        fileContent = reply->readAll();
-    } else {
-        // Handle the error or simply log it.
-        qWarning("Download error: %s", qPrintable(reply->errorString()));
-    }
-
-    reply->deleteLater(); // Schedule the reply object for deletion.
-
-    return fileContent;
-}
-// If WEBGL_SHADER_DOWNLOAD_ACCESS then download the file
-QString readFileContent(const QString& filename) {
-    return downloadFileContent(QUrl(WEBGL_SHADER_DOWNLOAD_URL + filename));
-}
-#else
-QString readFileContent(const QString& filename) {
-    QFile file(get_qrc_or_path_prefix() + filename);
-    // Try to open the file in read-only mode
-    if (!file.open(QIODevice::ReadOnly | QIODevice::Text)) {
-        // Couldn't open the file; log the error.
-        qCritical() << "Cannot open file:" << filename << "for reading:" << file.errorString();
-        return QString();
-    }
-    // Read all content at once
-    QTextStream in(&file);
-    QString content = in.readAll();
-    // Check for reading errors
-    if (in.status() != QTextStream::Ok) {
-        qCritical() << "Error reading file:" << filename << ":" << in.status();
-        file.close();
-        return QString();
-    }
-    file.close();
-    return content;
-}
-#endif
-
-void preprocessShaderContentInPlace(QString& base) {
+void ShaderProgram::preprocess_shader_content_inplace(QString& base) {
     static QRegularExpression re(R"RX(^\s*#\s*include\s+"(?<file>[^"]+)")RX");
     re.setPatternOptions(QRegularExpression::CaseInsensitiveOption);
     re.setPatternOptions(QRegularExpression::MultilineOption);
@@ -120,8 +63,8 @@ void preprocessShaderContentInPlace(QString& base) {
         QRegularExpressionMatch match = i.next();
         // Get the whole matched string
         QString includeFileName = match.captured("file");
-        QString includeContent = readFileContent(includeFileName);
-        preprocessShaderContentInPlace(includeContent);
+        QString includeContent = read_file_content(includeFileName);
+        preprocess_shader_content_inplace(includeContent);
         int position = match.capturedStart(0) + positionOffset;
         base.remove(position, match.capturedLength(0));
         // Insert the new text
@@ -130,7 +73,88 @@ void preprocessShaderContentInPlace(QString& base) {
     }
 }
 
+// ========== STATIC DECLARATIONS =====================
+#if WEBGL_SHADER_DOWNLOAD_ACCESS
+
+std::map<QUrl, QString> ShaderProgram::web_file_cache_old = {};
+std::map<QUrl, QString> ShaderProgram::web_file_cache = {};
+std::unique_ptr<QNetworkAccessManager> ShaderProgram::web_network_manager = std::make_unique<QNetworkAccessManager>();
+
+QString ShaderProgram::web_download_file_content(const QString& name) {
+    auto url = QUrl(WEBGL_SHADER_DOWNLOAD_URL + name);
+
+    // Is the file in cache?
+    auto it = web_file_cache.find(url);
+    if (it != web_file_cache.end()) {
+        //qDebug() << url << "read from filecache";
+        return it->second;
+    }
+
+    QNetworkRequest request(url);
+    request.setTransferTimeout(WEBGL_SHADER_DOWNLOAD_TIMEOUT);
+    // IMPORTANT: QNetworkRequest::AlwaysNetwork doesn't seem to be supported for WebAssembly!!!
+    request.setAttribute(QNetworkRequest::CacheLoadControlAttribute, QNetworkRequest::PreferNetwork);
+#if QT_VERSION >= QT_VERSION_CHECK(6, 5, 0)
+    request.setAttribute(QNetworkRequest::UseCredentialsAttribute, false);
+#endif
+    QNetworkReply* reply = web_network_manager->get(request);
+    QObject::connect(reply, &QNetworkReply::finished, [reply, url]() {
+        if (reply->error() == QNetworkReply::NoError) {
+            //qDebug() << url << "put into filecache";
+            web_file_cache[url] = reply->readAll();
+        } else {
+            // Handle the error or simply log it.
+            qWarning("Download error: %s", qPrintable(reply->errorString()));
+        }
+        reply->deleteLater(); // Schedule the reply object for deletion.
+    });
+
+    // Check wether the file is in the old file cache:
+    it = web_file_cache_old.find(url);
+    if (it != web_file_cache_old.end()) {
+        //qDebug() << url << "read from old filecache";
+        return it->second;
+    }
+    // In this case return the local version
+    //qDebug() << url << "read from local storage";
+    return read_file_content_local(name);
 }
+
+QString ShaderProgram::read_file_content(const QString& name) {
+    return web_download_file_content(name);
+}
+void ShaderProgram::reset_download_cache() {
+    web_file_cache_old = std::move(web_file_cache);
+    web_file_cache.clear();
+    qDebug() << "reset file cache (" << web_file_cache_old.size() << " entries)";
+}
+
+#else
+
+QString ShaderProgram::read_file_content(const QString& name) {
+    return read_file_content_local(name);
+}
+
+#endif
+
+QString ShaderProgram::read_file_content_local(const QString& name) {
+    QFile file(get_qrc_or_path_prefix() + name);
+    if (!file.open(QIODevice::ReadOnly | QIODevice::Text)) {
+        qCritical() << "Cannot open file:" << name << "for reading:" << file.errorString();
+        return QString();
+    }
+    QTextStream in(&file);
+    QString content = in.readAll();
+    if (in.status() != QTextStream::Ok) {
+        qCritical() << "Error reading file:" << name << ":" << in.status();
+        file.close();
+        return QString();
+    }
+    file.close();
+    return content;
+}
+
+// =========== MEMBER DECLARATIONS =======================
 
 
 ShaderProgram::ShaderProgram(QString vertex_shader, QString fragment_shader, ShaderCodeSource code_source)
@@ -147,6 +171,8 @@ int ShaderProgram::attribute_location(const std::string& name)
 
     return m_cached_attribs.at(name);
 }
+
+
 
 void ShaderProgram::bind()
 {
@@ -281,8 +307,8 @@ void ShaderProgram::set_uniform_template(const std::string& name, T value)
 
 QString ShaderProgram::load_and_preprocess_shader_code(gl_engine::ShaderType type) {
     QString code = type == gl_engine::ShaderType::VERTEX ? m_vertex_shader : m_fragment_shader;
-    if (m_code_source == ShaderCodeSource::FILE) code = readFileContent(code);
+    if (m_code_source == ShaderCodeSource::FILE) code = read_file_content(code);
     else if (m_code_source == ShaderCodeSource::PLAINTEXT) code = code;
-    preprocessShaderContentInPlace(code);
-    return versionedShaderCode(code);
+    preprocess_shader_content_inplace(code);
+    return make_versioned_shader_code(code);
 }

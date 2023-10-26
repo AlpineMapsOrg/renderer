@@ -363,6 +363,11 @@ void Window::key_press(const QKeyCombination& e) {
 
 void Window::keyPressEvent(QKeyEvent* e)
 {
+#if WEBGL_SHADER_DOWNLOAD_ACCESS
+    if (e->key() == Qt::Key::Key_F4) {
+        ShaderProgram::reset_download_cache();
+    }
+#endif
     if (e->key() == Qt::Key::Key_F5) {
         m_shader_manager->reload_shaders();
         qDebug("all shaders reloaded");
