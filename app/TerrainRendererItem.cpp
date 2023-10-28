@@ -76,7 +76,10 @@ TerrainRendererItem::TerrainRendererItem(QQuickItem* parent)
         set_shared_config(tmp);
     }
 
-    connect(m_update_timer, &QTimer::timeout, this, &TerrainRendererItem::update_camera_request);
+    connect(m_update_timer, &QTimer::timeout, this, [this]() {
+        emit update_camera_requested();
+        RenderThreadNotifier::instance()->notify();
+    });
 }
 
 TerrainRendererItem::~TerrainRendererItem()
@@ -101,7 +104,11 @@ QQuickFramebufferObject::Renderer* TerrainRendererItem::createRenderer() const
     connect(this, &TerrainRendererItem::key_pressed, r->controller()->camera_controller(), &nucleus::camera::Controller::key_press);
     connect(this, &TerrainRendererItem::key_released, r->controller()->camera_controller(), &nucleus::camera::Controller::key_release);
     connect(this, &TerrainRendererItem::update_camera_requested, r->controller()->camera_controller(), &nucleus::camera::Controller::update_camera_request);
-    connect(this, &TerrainRendererItem::position_set_by_user, r->controller()->camera_controller(), &nucleus::camera::Controller::set_latitude_longitude);
+    connect(this, &TerrainRendererItem::position_set_by_user, r->controller()->camera_controller(), &nucleus::camera::Controller::fly_to_latitude_longitude);
+    connect(this,
+            &TerrainRendererItem::rotation_north_requested,
+            r->controller()->camera_controller(),
+            &nucleus::camera::Controller::rotate_north);
     connect(this, &TerrainRendererItem::camera_definition_set_by_user, r->controller()->camera_controller(), &nucleus::camera::Controller::set_definition);
     connect(r->controller()->camera_controller(), &nucleus::camera::Controller::global_cursor_position_changed, this, &TerrainRendererItem::read_global_position);
     //connect(this, &TerrainRendererItem::ind)
@@ -142,16 +149,14 @@ QQuickFramebufferObject::Renderer* TerrainRendererItem::createRenderer() const
 void TerrainRendererItem::touchEvent(QTouchEvent* e)
 {
     this->setFocus(true);
-    auto ep = nucleus::event_parameter::make(e);
-    emit touch_made(ep);
+    emit touch_made(nucleus::event_parameter::make(e));
     RenderThreadNotifier::instance()->notify();
 }
 
 void TerrainRendererItem::mousePressEvent(QMouseEvent* e)
 {
     this->setFocus(true);
-    auto ep = nucleus::event_parameter::make(e);
-    emit mouse_pressed(ep);
+    emit mouse_pressed(nucleus::event_parameter::make(e));
     RenderThreadNotifier::instance()->notify();
 }
 
@@ -207,8 +212,8 @@ void TerrainRendererItem::set_position(double latitude, double longitude)
 
 void TerrainRendererItem::rotate_north()
 {
-    emit key_pressed(QKeyCombination(Qt::Key_C));
-    emit update_camera_requested();
+    emit rotation_north_requested();
+    RenderThreadNotifier::instance()->notify();
 }
 
 void TerrainRendererItem::schedule_update()

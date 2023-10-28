@@ -26,9 +26,14 @@
 #include <glm/glm.hpp>
 #include <QVector3D>
 
-#include "../event_parameter.h"
+#include "AnimationStyle.h"
 #include "Definition.h"
 #include "InteractionStyle.h"
+#include "nucleus/event_parameter.h"
+
+namespace nucleus {
+class DataQuerier;
+}
 
 namespace nucleus::camera {
 class AbstractDepthTester;
@@ -37,18 +42,22 @@ class Controller : public QObject
 {
     Q_OBJECT
 public:
-    explicit Controller(const Definition& camera, AbstractDepthTester* depth_tester);
+    explicit Controller(const Definition& camera,
+                        AbstractDepthTester* depth_tester,
+                        DataQuerier* data_querier);
 
     [[nodiscard]] const Definition& definition() const;
-    std::optional<glm::vec2> get_operation_centre();
-    std::optional<float> get_operation_centre_distance();
-    void report_global_cursor_position(const QPointF& screen_pos);
+    std::optional<glm::vec2> operation_centre();
+    std::optional<float> operation_centre_distance();
+
+	void report_global_cursor_position(const QPointF& screen_pos);
 
 public slots:
     void set_definition(const Definition& new_definition);
     void set_near_plane(float distance);
     void set_viewport(const glm::uvec2& new_viewport);
-    void set_latitude_longitude(double latitude, double longitude);
+    void fly_to_latitude_longitude(double latitude, double longitude);
+    void rotate_north();
     void set_field_of_view(float fov_degrees);
     void move(const glm::dvec3& v);
     void orbit(const glm::dvec3& centre, const glm::dvec2& degrees);
@@ -72,8 +81,9 @@ private:
 
     Definition m_definition;
     AbstractDepthTester* m_depth_tester;
+    DataQuerier* m_data_querier;
     std::unique_ptr<InteractionStyle> m_interaction_style;
-    std::unique_ptr<InteractionStyle> m_animation_style;
+    std::unique_ptr<AnimationStyle> m_animation_style;
     std::chrono::steady_clock::time_point m_last_frame_time;
 };
 

@@ -79,6 +79,7 @@ signals:
     void render_looped_changed(bool new_render_looped);
     void hud_visible_changed(bool new_hud_visible);
 
+    void rotation_north_requested();
     void camera_changed();
     void camera_width_changed();
     void camera_height_changed();
@@ -115,7 +116,6 @@ public slots:
 
 private slots:
     void schedule_update();
-    void update_camera_request();
 
 
 public:

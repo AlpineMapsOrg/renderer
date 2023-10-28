@@ -106,7 +106,7 @@ struct GpuLayeredTile {
     std::shared_ptr<const nucleus::Raster<uint16_t>> height;
     std::shared_ptr<const QImage> height_image;
 };
-static_assert(NamedTile<LayeredTile>);
+static_assert(NamedTile<GpuLayeredTile>);
 
 struct GpuTileQuad {
     tile::Id id;

@@ -1,6 +1,7 @@
 /*****************************************************************************
  * Alpine Terrain Renderer
- * Copyright (C) 2023 Adam Celarek
+ * Copyright (C) 2022 Adam Celarek
+ * Copyright (C) 2023 Jakob Lindner
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -18,39 +19,24 @@
 
 #pragma once
 
-#include <unordered_set>
+#include "AnimationStyle.h"
+#include "nucleus/utils/Stopwatch.h"
 
-#include <QObject>
-
-#include <sherpa/tile.h>
-
-class QTimer;
-
-namespace nucleus::tile_scheduler {
-
-class RateLimiter : public QObject
+namespace nucleus::camera {
+class LinearCameraAnimation : public AnimationStyle
 {
-    Q_OBJECT
-    unsigned m_rate = 100;
-    unsigned m_rate_period_msecs = 1000;
-    std::vector<tile::Id> m_request_queue;
-    std::vector<uint64_t> m_in_flight;
-    std::unique_ptr<QTimer> m_update_timer;
+    utils::Stopwatch m_stopwatch = {};
+    glm::dmat4 m_start;
+    glm::dmat4 m_end;
+
+    int m_total_duration = 250;
+    float m_current_duration = 0;
 
 public:
-    explicit RateLimiter(QObject* parent = nullptr);
-    ~RateLimiter() override;
-    void set_limit(unsigned rate, unsigned period_msecs);
-    std::pair<unsigned, unsigned> limit() const;
-    size_t queue_size() const;
+    LinearCameraAnimation(Definition start, Definition end);
+    std::optional<Definition> update(Definition camera, AbstractDepthTester* depth_tester) override;
 
-public slots:
-    void request_quad(const tile::Id& id);
-
-private slots:
-    void process_request_queue();
-
-signals:
-    void quad_requested(const tile::Id& tile_id);
+private:
+    float ease_in_out(float t);
 };
 }

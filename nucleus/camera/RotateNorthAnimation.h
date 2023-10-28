@@ -1,6 +1,7 @@
 /*****************************************************************************
  * Alpine Terrain Renderer
- * Copyright (C) 2023 Adam Celarek
+ * Copyright (C) 2022 Adam Celarek
+ * Copyright (C) 2023 Jakob Lindner
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -18,39 +19,23 @@
 
 #pragma once
 
-#include <unordered_set>
+#include "AnimationStyle.h"
+#include "nucleus/utils/Stopwatch.h"
 
-#include <QObject>
-
-#include <sherpa/tile.h>
-
-class QTimer;
-
-namespace nucleus::tile_scheduler {
-
-class RateLimiter : public QObject
+namespace nucleus::camera {
+class RotateNorthAnimation : public AnimationStyle
 {
-    Q_OBJECT
-    unsigned m_rate = 100;
-    unsigned m_rate_period_msecs = 1000;
-    std::vector<tile::Id> m_request_queue;
-    std::vector<uint64_t> m_in_flight;
-    std::unique_ptr<QTimer> m_update_timer;
-
+    glm::dvec3 m_operation_centre = {};
+    utils::Stopwatch m_stopwatch = {};
+    float m_degrees_from_north = 0;
+    int m_total_duration = 1000;
+    int m_current_duration = 0;
 public:
-    explicit RateLimiter(QObject* parent = nullptr);
-    ~RateLimiter() override;
-    void set_limit(unsigned rate, unsigned period_msecs);
-    std::pair<unsigned, unsigned> limit() const;
-    size_t queue_size() const;
-
-public slots:
-    void request_quad(const tile::Id& id);
-
-private slots:
-    void process_request_queue();
-
-signals:
-    void quad_requested(const tile::Id& tile_id);
+    RotateNorthAnimation(Definition camera, AbstractDepthTester* depth_tester);
+    std::optional<Definition> update(Definition camera, AbstractDepthTester* depth_tester) override;
+    std::optional<glm::vec2> operation_centre() override;
+private:
+    float ease_in_out(float t);
+    glm::vec2 m_operation_centre_screen = {};
 };
 }

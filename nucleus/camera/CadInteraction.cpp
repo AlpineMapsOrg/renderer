@@ -145,11 +145,11 @@ std::optional<Definition> CadInteraction::update(Definition camera, AbstractDept
     return camera;
 }
 
-std::optional<glm::vec2> CadInteraction::get_operation_centre(){
+std::optional<glm::vec2> CadInteraction::operation_centre(){
     return m_operation_centre_screen;
 }
 
-std::optional<float> CadInteraction::get_operation_centre_distance(Definition camera){
+std::optional<float> CadInteraction::operation_centre_distance(Definition camera){
     return glm::distance(m_operation_centre, camera.position());
 }
 }

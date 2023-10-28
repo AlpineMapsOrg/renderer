@@ -18,39 +18,18 @@
 
 #pragma once
 
-#include <unordered_set>
+#include "tile_scheduler/Cache.h"
 
-#include <QObject>
+namespace nucleus {
 
-#include <sherpa/tile.h>
-
-class QTimer;
-
-namespace nucleus::tile_scheduler {
-
-class RateLimiter : public QObject
+class DataQuerier
 {
-    Q_OBJECT
-    unsigned m_rate = 100;
-    unsigned m_rate_period_msecs = 1000;
-    std::vector<tile::Id> m_request_queue;
-    std::vector<uint64_t> m_in_flight;
-    std::unique_ptr<QTimer> m_update_timer;
+    tile_scheduler::MemoryCache* m_memory_cache = nullptr;
 
 public:
-    explicit RateLimiter(QObject* parent = nullptr);
-    ~RateLimiter() override;
-    void set_limit(unsigned rate, unsigned period_msecs);
-    std::pair<unsigned, unsigned> limit() const;
-    size_t queue_size() const;
+    DataQuerier(tile_scheduler::MemoryCache* cache);
 
-public slots:
-    void request_quad(const tile::Id& id);
-
-private slots:
-    void process_request_queue();
-
-signals:
-    void quad_requested(const tile::Id& tile_id);
+    [[nodiscard]] float get_altitude(const glm::dvec2& lat_long) const;
 };
-}
+
+} // namespace nucleus

@@ -17,20 +17,23 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *****************************************************************************/
 
-#include "RotateNorthInteraction.h"
+#include "RotateNorthAnimation.h"
 #include "AbstractDepthTester.h"
 
 #include <QDebug>
 
 namespace nucleus::camera {
 
-void RotateNorthInteraction::reset_interaction(Definition camera, AbstractDepthTester* depth_tester)
+RotateNorthAnimation::RotateNorthAnimation(Definition camera, AbstractDepthTester* depth_tester)
 {
     m_operation_centre = depth_tester->position(glm::dvec2(0.0, 0.0));
-    m_operation_centre_screen = glm::vec2(camera.viewport_size().x / 2.0f, camera.viewport_size().y / 2.0f);
+    m_operation_centre_screen = glm::vec2(camera.viewport_size().x / 2.0f,
+                                          camera.viewport_size().y / 2.0f);
 
     auto cameraFrontAxis = camera.z_axis();
-    m_degrees_from_north = glm::degrees(glm::acos(glm::dot(glm::normalize(glm::dvec3(cameraFrontAxis.x, cameraFrontAxis.y, 0)), glm::dvec3(0, -1, 0))));
+    m_degrees_from_north = glm::degrees(
+        glm::acos(glm::dot(glm::normalize(glm::dvec3(cameraFrontAxis.x, cameraFrontAxis.y, 0)),
+                           glm::dvec3(0, -1, 0))));
 
     m_total_duration = m_degrees_from_north * 5 + 500;
     m_current_duration = 0;
@@ -38,12 +41,8 @@ void RotateNorthInteraction::reset_interaction(Definition camera, AbstractDepthT
     m_stopwatch.restart();
 }
 
-std::optional<Definition> RotateNorthInteraction::update(Definition camera, AbstractDepthTester* depth_tester)
+std::optional<Definition> RotateNorthAnimation::update(Definition camera, AbstractDepthTester* depth_tester)
 {
-    if (m_operation_centre.x == 0 && m_operation_centre.y == 0 && m_operation_centre.z == 0) {
-        reset_interaction(camera, depth_tester);
-    }
-
     if (m_current_duration >= m_total_duration) {
         return {};
     }
@@ -67,11 +66,12 @@ std::optional<Definition> RotateNorthInteraction::update(Definition camera, Abst
     return camera;
 }
 
-std::optional<glm::vec2> RotateNorthInteraction::get_operation_centre(){
+std::optional<glm::vec2> RotateNorthAnimation::operation_centre()
+{
     return m_operation_centre_screen;
 }
 
-float RotateNorthInteraction::ease_in_out(float t)
+float RotateNorthAnimation::ease_in_out(float t)
 {
     const float p = 0.3f;
     if (t < 0.5f) {

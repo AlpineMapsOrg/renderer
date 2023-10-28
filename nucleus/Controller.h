@@ -24,6 +24,7 @@
 
 namespace nucleus {
 class AbstractRenderWindow;
+class DataQuerier;
 namespace tile_scheduler {
 class TileLoadService;
 class Scheduler;
@@ -51,6 +52,7 @@ private:
     std::unique_ptr<tile_scheduler::TileLoadService> m_terrain_service;
     std::unique_ptr<tile_scheduler::TileLoadService> m_ortho_service;
     std::unique_ptr<tile_scheduler::Scheduler> m_tile_scheduler;
+    std::unique_ptr<DataQuerier> m_data_querier;
     std::unique_ptr<camera::Controller> m_camera_controller;
 };
 }

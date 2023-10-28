@@ -16,41 +16,21 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *****************************************************************************/
 
-#pragma once
+#include "AnimationStyle.h"
 
-#include <unordered_set>
+using namespace nucleus::camera;
 
-#include <QObject>
-
-#include <sherpa/tile.h>
-
-class QTimer;
-
-namespace nucleus::tile_scheduler {
-
-class RateLimiter : public QObject
+std::optional<Definition> AnimationStyle::update(Definition, AbstractDepthTester*)
 {
-    Q_OBJECT
-    unsigned m_rate = 100;
-    unsigned m_rate_period_msecs = 1000;
-    std::vector<tile::Id> m_request_queue;
-    std::vector<uint64_t> m_in_flight;
-    std::unique_ptr<QTimer> m_update_timer;
+    return {};
+}
 
-public:
-    explicit RateLimiter(QObject* parent = nullptr);
-    ~RateLimiter() override;
-    void set_limit(unsigned rate, unsigned period_msecs);
-    std::pair<unsigned, unsigned> limit() const;
-    size_t queue_size() const;
+std::optional<glm::vec2> AnimationStyle::operation_centre()
+{
+    return {};
+}
 
-public slots:
-    void request_quad(const tile::Id& id);
-
-private slots:
-    void process_request_queue();
-
-signals:
-    void quad_requested(const tile::Id& tile_id);
-};
+std::optional<float> AnimationStyle::operation_centre_distance(Definition)
+{
+    return {};
 }

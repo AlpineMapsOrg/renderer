@@ -113,8 +113,8 @@ if (EMSCRIPTEN)
         "$<TARGET_FILE_DIR:alpineapp>/qtloader.js"
     )
 
-if (ALP_ENABLE_THREADING)
-    list(APPEND ALP_INSTALL_FILES "$<TARGET_FILE_DIR:alpineapp>/alpineapp.worker.js")
-endif()
-install(FILES ${ALP_INSTALL_FILES} DESTINATION ${ALP_WWW_INSTALL_DIR})
+    if (ALP_ENABLE_THREADING)
+        list(APPEND ALP_INSTALL_FILES "$<TARGET_FILE_DIR:alpineapp>/alpineapp.worker.js")
+    endif()
+    install(FILES ${ALP_INSTALL_FILES} DESTINATION ${ALP_WWW_INSTALL_DIR})
 endif()

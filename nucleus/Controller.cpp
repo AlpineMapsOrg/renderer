@@ -17,6 +17,7 @@
  *****************************************************************************/
 
 #include "Controller.h"
+#include "DataQuerier.h"
 
 #include <QCoreApplication>
 #include <QFile>
@@ -47,10 +48,6 @@ Controller::Controller(AbstractRenderWindow* render_window)
     qRegisterMetaType<nucleus::event_parameter::Mouse>();
     qRegisterMetaType<nucleus::event_parameter::Wheel>();
 
-    m_camera_controller
-        = std::make_unique<nucleus::camera::Controller>(nucleus::camera::PositionStorage::instance()->get("grossglockner"),
-            m_render_window->depth_tester());
-
     m_terrain_service = std::make_unique<TileLoadService>("https://alpinemaps.cg.tuwien.ac.at/tiles/alpine_png/", TileLoadService::UrlPattern::ZXY, ".png");
     //    m_ortho_service.reset(new TileLoadService("https://tiles.bergfex.at/styles/bergfex-osm/", TileLoadService::UrlPattern::ZXY_yPointingSouth, ".jpeg"));
     //    m_ortho_service.reset(new TileLoadService("https://alpinemaps.cg.tuwien.ac.at/tiles/ortho/", TileLoadService::UrlPattern::ZYX_yPointingSouth, ".jpeg"));
@@ -72,6 +69,11 @@ Controller::Controller(AbstractRenderWindow* render_window)
         m_tile_scheduler->set_aabb_decorator(decorator);
         m_render_window->set_aabb_decorator(decorator);
     }
+    m_data_querier = std::make_unique<DataQuerier>(&m_tile_scheduler->ram_cache());
+    m_camera_controller = std::make_unique<nucleus::camera::Controller>(
+        nucleus::camera::PositionStorage::instance()->get("grossglockner"),
+        m_render_window->depth_tester(),
+        m_data_querier.get());
     {
         auto* sch = m_tile_scheduler.get();
         SlotLimiter* sl = new SlotLimiter(sch);
@@ -126,7 +128,9 @@ Controller::Controller(AbstractRenderWindow* render_window)
     connect(m_tile_scheduler.get(), &Scheduler::gpu_quads_updated, m_render_window, &AbstractRenderWindow::update_gpu_quads);
     connect(m_tile_scheduler.get(), &Scheduler::gpu_quads_updated, m_render_window, &AbstractRenderWindow::update_requested);
 
-
+    /// @todo: finish tile/cache_querier: find rgb to float, probably move to sherpa; finsih test tile generator for a specified height; finish tests + impl
+    /// @todo: use cache_querier for target location altitude, and use for look at
+    /// @todo: make fly to animation, modelled on rotation.
     m_camera_controller->update();
 }
 

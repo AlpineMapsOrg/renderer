@@ -1,6 +1,15 @@
 cmake_minimum_required(VERSION 3.21)
 project(alpine-renderer-nucleus LANGUAGES CXX)
 
+include(FetchContent)
+set(EXPECTED_BUILD_TESTS OFF CACHE BOOL "Enable tl::expected tests")
+FetchContent_Declare(tl_expected
+    URL      https://github.com/TartanLlama/expected/archive/refs/tags/v1.1.0.zip
+    URL_HASH MD5=cbc9465bb0e9328c821fc3cf89ec7711
+    DOWNLOAD_EXTRACT_TIMESTAMP true
+)
+FetchContent_MakeAvailable(tl_expected)
+
 qt_add_library(nucleus STATIC
     AbstractRenderWindow.h AbstractRenderWindow.cpp
     Controller.h Controller.cpp
@@ -25,7 +34,7 @@ qt_add_library(nucleus STATIC
     camera/FirstPersonInteraction.h camera/FirstPersonInteraction.cpp
     camera/InteractionStyle.h camera/InteractionStyle.cpp
     camera/OrbitInteraction.h camera/OrbitInteraction.cpp
-    camera/RotateNorthInteraction.h camera/RotateNorthInteraction.cpp
+    camera/RotateNorthAnimation.h camera/RotateNorthAnimation.cpp
     camera/AbstractDepthTester.h
     camera/PositionStorage.h camera/PositionStorage.cpp
     utils/Stopwatch.h utils/Stopwatch.cpp
@@ -38,15 +47,20 @@ qt_add_library(nucleus STATIC
     map_label/MapLabel.h
     map_label/AbstractMapLabelModel.h
     map_label/CameraFilterProxyModel.h map_label/CameraFilterProxyModel.cpp
+    utils/bit_coding.h
+    tile_scheduler/cache_quieries.h
+    DataQuerier.h DataQuerier.cpp
+    camera/LinearCameraAnimation.h camera/LinearCameraAnimation.cpp
+    camera/AnimationStyle.h camera/AnimationStyle.cpp
 )
 
 target_include_directories(nucleus PRIVATE . PUBLIC ${CMAKE_SOURCE_DIR})
-target_link_libraries(nucleus PUBLIC sherpa Qt::Core Qt::Gui Qt::Network Qt::Svg fmt::fmt zppbits)
+target_link_libraries(nucleus PUBLIC sherpa Qt::Core Qt::Gui Qt::Network Qt::Svg fmt::fmt zppbits expected)
 
 
 if (EMSCRIPTEN)
-    target_compile_options(nucleus PUBLIC -fexceptions -O3)
-    target_link_options(nucleus PUBLIC -fexceptions -O3)
+    target_compile_options(nucleus PUBLIC -O3)
+    target_link_options(nucleus PUBLIC -O3)
 endif()
 if (ALP_ENABLE_ASSERTS)
     target_compile_options(nucleus PUBLIC "-U NDEBUG")

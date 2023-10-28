@@ -23,6 +23,7 @@ qt_add_executable(unittests_nucleus
     nucleus_tile_scheduler_rate_limiter.cpp
     RateTester.h RateTester.cpp
     test_zppbits.cpp
+    cache_queries.cpp
 )
 
 qt_add_resources(unittests_nucleus "height_data"
