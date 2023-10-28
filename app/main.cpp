@@ -52,8 +52,9 @@ int main(int argc, char **argv)
     //    QGuiApplication::setHighDpiScaleFactorRoundingPolicy(Qt::HighDpiScaleFactorRoundingPolicy::Floor);
     QQuickWindow::setGraphicsApi(QSGRendererInterface::GraphicsApi::OpenGLRhi);
     QApplication app(argc, argv);
+    app.setWindowIcon(QIcon("app/icons/favicon.ico"));
     QCoreApplication::setOrganizationName("AlpineMaps.org");
-    QCoreApplication::setApplicationName("AlpineApp");
+    QCoreApplication::setApplicationName("Alpine Maps");
     QNetworkInformation::loadDefaultBackend(); // load here, so it sits on the correct thread.
 
     //    QLoggingCategory::setFilterRules("*.debug=true\n"

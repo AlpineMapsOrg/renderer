@@ -75,7 +75,7 @@ signals:
     void position_set_by_user(double new_latitude, double new_longitude);
     void camera_definition_set_by_user(const nucleus::camera::Definition&) const;
 
-    void shared_config_changed(gl_engine::uboSharedConfig new_shared_config);
+    void shared_config_changed(gl_engine::uboSharedConfig new_shared_config) const;
     void render_looped_changed(bool new_render_looped);
     void hud_visible_changed(bool new_hud_visible);
 

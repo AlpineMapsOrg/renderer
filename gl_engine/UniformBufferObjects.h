@@ -45,19 +45,19 @@ public:
     //QVector4D m_sun_pos = QVector4D(1.0, 1.0, 3000.0, 1.0);
     // rgb...Color, a...intensity
     QVector4D m_amb_light = QVector4D(1.0, 1.0, 1.0, 0.5);
-    // rgb...Color of the phong-material, a...opacity of ortho picture
-    QVector4D m_material_color = QVector4D(0.5, 0.5, 0.5, 1.0);
+    // rgba...Color of the phong-material (if a 0 -> ortho picture)
+    QVector4D m_material_color = QVector4D(0.5, 0.5, 0.5, 0.0);
     // amb, diff, spec, shininess
     QVector4D m_material_light_response = QVector4D(1.5, 3.0, 0.0, 32.0);
-    // mode (0=disabled, 1=normal, 2=highlight), height_mode, fixed_height, unused
-    QVector4D m_curtain_settings = QVector4D(1.0, 0.0, 500.0, 0.0);
+    // mode (0=disabled, 1=normal, 2=highlight), height_mode, height_reference, unused
+    QVector4D m_curtain_settings = QVector4D(1.0, 0.0, 150.0, 0.0);
 
     GLfloat m_debug_overlay_strength = 0.5;
     GLfloat m_ssao_falloff_to_value = 0.5;
     GLfloat padf1 = 0.0;
     GLfloat padf2 = 0.0;
 
-    GLuint m_phong_enabled = false;
+    GLuint m_phong_enabled = true;
     // 0...disabled, 1...with shading, 2...white
     GLuint m_wireframe_mode = 0;
     // 0...per fragment, 1...FDM
@@ -71,7 +71,7 @@ public:
     GLuint m_ssao_blur_kernel_size = 1;
 
     GLuint m_height_lines_enabled = false;
-    GLuint m_csm_enabled = false;
+    GLuint m_csm_enabled = true;
     GLuint m_overlay_shadowmaps = false;
     GLuint padu1 = 0;
 

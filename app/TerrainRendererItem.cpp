@@ -73,7 +73,7 @@ TerrainRendererItem::TerrainRendererItem(QQuickItem* parent)
     if (param_available) {
         qInfo() << "Initialize config with:" << config_base64_string;
         auto tmp = gl_engine::ubo_from_string<gl_engine::uboSharedConfig>(config_base64_string);
-        m_shared_config = tmp;
+        set_shared_config(tmp);
     }
 
     connect(m_update_timer, &QTimer::timeout, this, &TerrainRendererItem::update_camera_request);
@@ -131,6 +131,11 @@ QQuickFramebufferObject::Renderer* TerrainRendererItem::createRenderer() const
 
     connect(r->controller()->tile_scheduler(), &nucleus::tile_scheduler::Scheduler::gpu_quads_updated, RenderThreadNotifier::instance(), &RenderThreadNotifier::notify);
     connect(tile_scheduler, &nucleus::tile_scheduler::Scheduler::gpu_quads_updated, RenderThreadNotifier::instance(), &RenderThreadNotifier::notify);
+
+    // Maybe shared config is already different (by loading from url)
+    // so lets notify the Renderer here to replace the current configuration!
+    emit shared_config_changed(m_shared_config);
+
     return r;
 }
 

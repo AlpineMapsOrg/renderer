@@ -25,6 +25,8 @@
 
 #define URL_PARAMETER_KEY_CONFIG "config"
 
+//#define URLQUERY_DEFAULT "AAABEHjas__AAAb26PQFKP0AQu-H0c8WzEvAph6dfgCjBQQUsNEwdT8gtAMHAwpwcMBurkO9A4o6hD0MuAAjEobxFdDk4AAAEGIdhQ"
+#define URLQUERY_DEFAULT ""
 namespace nucleus::utils {
 
 class UrlModifier {
@@ -48,7 +50,7 @@ protected:
     static UrlModifier* singleton;
 
 private:
-    QUrl base_url = QUrl("https://fancymaps.org/?config=AAABEHjas__AAAb26PQFKP0AQu-H0c8WzEvAph6dfgCjBQQUsNEwdT8gtAMHAwpwcMBurkO9A4o6hD0M-AAjFMPYCkhijMgKARBKHYU");
+    QUrl base_url = QUrl(QString("https://fancymaps.org/") + URLQUERY_DEFAULT);
     QMap<QString, QString> parameters;
 };
 

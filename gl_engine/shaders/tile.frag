@@ -81,7 +81,7 @@ void main() {
 
     // Write Albedo (ortho picture) in gbuffer
     lowp vec3 fragColor = texture(texture_sampler, uv).rgb;
-    fragColor = mix(conf.material_color.rgb, fragColor, conf.material_color.a);
+    fragColor = mix(fragColor, conf.material_color.rgb, conf.material_color.a);
     texout_albedo = fragColor;
 
     // Write Position (and distance) in gbuffer

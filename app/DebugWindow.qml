@@ -7,26 +7,8 @@ import Alpine
 import "components"
 
 Rectangle {
-
-    component LabeledImage: Column {
-            property alias source: image.source
-            property alias caption: text.text
-
-            Image {
-                id: image
-                width: 50
-                height: 50
-            }
-            Text {
-                id: text
-                font.bold: true
-            }
-        }
-
     property int menu_height: map.height - 30 - tool_bar.height
     property int menu_width: 320
-
-    //signal light_intensity_changed(newValue: float)
 
     id: debugMenu
     width: menu_width
@@ -40,6 +22,29 @@ Rectangle {
         target: map
         function onHud_visible_changed(hud_visible) {
             debugMenu.visible = hud_visible;
+        }
+        function onShared_config_changed(conf) {
+            wireframe_mode.currentIndex = conf.wireframe_mode;
+            normal_mode.currentIndex = conf.normal_mode;
+            curtain_settings_mode.currentIndex = conf.curtain_settings.x;
+            curtain_settings_height_mode.currentIndex = conf.curtain_settings.y;
+            curtain_settings_height_reference.value = conf.curtain_settings.z;
+            height_lines_enabled.checked = conf.height_lines_enabled;
+            phong_enabled.checked = conf.phong_enabled;
+            sun_light_color.color = Qt.rgba(conf.sun_light.x, conf.sun_light.y, conf.sun_light.z, 1.0);
+            sun_light_intensity.value = conf.sun_light.w;
+            amb_light_color.color = Qt.rgba(conf.amb_light.x, conf.amb_light.y, conf.amb_light.z, 1.0);
+            amb_light_intensity.value = conf.amb_light.w;
+            material_color.color = Qt.rgba(conf.material_color.x, conf.material_color.y, conf.material_color.z, conf.material_color.w);
+            ssao_enabled.checked = conf.ssao_enabled;
+            ssao_kernel.value = conf.ssao_kernel;
+            ssao_falloff_to_value.value = conf.ssao_falloff_to_value;
+            ssao_blur_kernel_size.value = conf.ssao_blur_kernel_size;
+            ssao_range_check.checked = conf.ssao_range_check;
+            csm_enabled.checked = conf.csm_enabled;
+            overlay_shadowmaps.checked = conf.overlay_shadowmaps;
+            debug_overlay.currentIndex = conf.debug_overlay;
+            debug_overlay_strength.value = conf.debug_overlay_strength;
         }
     }
 
@@ -58,7 +63,6 @@ Rectangle {
         height: menu_height - 20
         clip: true
         ColumnLayout {
-
             Rectangle {
                 Layout.fillWidth: true;
                 Layout.columnSpan: 2;
@@ -81,33 +85,28 @@ Rectangle {
                 Label {
                     text: "Detail:"
                 }
-                Slider {
-                    id: lod_slider_debug
-                    from: 0.1
-                    to: 2.0
-                    stepSize: 0.1
-                    Layout.fillWidth: true;
-                    Component.onCompleted: {
-                        lod_slider_debug.value = map.render_quality
-                        map.render_quality = Qt.binding(function() { return lod_slider_debug.value })
-                    }
+                ValSlider {
+                    from: 0.1; to: 2.0; stepSize: 0.1;
+                    Component.onCompleted: this.value = map.render_quality;
+                    onMoved: map.render_quality = this.value;
                 }
 
                 Label { text: "Wireframe:" }
                 ComboBox {
+                    id: wireframe_mode;
                     Layout.fillWidth: true;
-                    model: ["disabled", "with shading", "white"]
-                    Component.onCompleted:  currentIndex = map.shared_config.wireframe_mode;
-                    onCurrentValueChanged:  map.shared_config.wireframe_mode = currentIndex;
+                    model: ["disabled", "with shading", "white"];
+                    currentIndex: 0; // Init with 0 necessary otherwise onCurrentIndexChanged gets emited on startup (because def:-1)!
+                    onCurrentIndexChanged:  map.shared_config.wireframe_mode = currentIndex;
                 }
 
                 Label { text: "Normals:" }
                 ComboBox {
+                    id: normal_mode;
                     Layout.fillWidth: true;
-                    model: ["per Fragment", "Finite-Difference"]
-                    currentIndex: 1
-                    Component.onCompleted:  currentIndex = map.shared_config.normal_mode;
-                    onCurrentValueChanged:  map.shared_config.normal_mode = currentIndex;
+                    model: ["per Fragment", "Finite-Difference"];
+                    currentIndex: 0; // Init with 0 necessary otherwise onCurrentIndexChanged gets emited on startup (because def:-1)!
+                    onCurrentIndexChanged:  map.shared_config.normal_mode = currentIndex;
                 }
 
                 Rectangle {
@@ -125,24 +124,24 @@ Rectangle {
                 }
                 Label { text: "Mode:" }
                 ComboBox {
+                    id: curtain_settings_mode;
                     Layout.fillWidth: true;
                     model: ["Off", "Normal", "Highlighted", "Hide Rest"]
-                    currentIndex: 1
-                    Component.onCompleted:  currentIndex = map.shared_config.curtain_settings.x;
-                    onCurrentValueChanged:  map.shared_config.curtain_settings.x = currentIndex;
+                    currentIndex: 0; // Init with 0 necessary otherwise onCurrentIndexChanged gets emited on startup (because def:-1)!
+                    onCurrentIndexChanged:  map.shared_config.curtain_settings.x = currentIndex;
                 }
                 Label { text: "Height:" }
                 ComboBox {
+                    id: curtain_settings_height_mode;
                     Layout.fillWidth: true;
                     model: ["Fixed", "Automatic"];
-                    currentIndex: 1
-                    Component.onCompleted:  currentIndex = map.shared_config.curtain_settings.y;
-                    onCurrentValueChanged:  map.shared_config.curtain_settings.y = currentIndex;
+                    currentIndex: 0; // Init with 0 necessary otherwise onCurrentIndexChanged gets emited on startup (because def:-1)!
+                    onCurrentIndexChanged:  map.shared_config.curtain_settings.y = currentIndex;
                 }
                 Label { text: "Ref.-Height:" }
                 ValSlider {
+                    id: curtain_settings_height_reference;
                     from: 1.0; to: 500.0; stepSize: 1.0;
-                    Component.onCompleted: this.value = map.shared_config.curtain_settings.z;
                     onMoved: map.shared_config.curtain_settings.z = this.value;
                 }
 
@@ -159,8 +158,8 @@ Rectangle {
                         font.pixelSize:16
                     }
                     CheckBox {
+                        id: height_lines_enabled;
                         x: menu_width - this.width - 30; y: -10
-                        Component.onCompleted: this.checked = map.shared_config.height_lines_enabled;
                         onCheckStateChanged: map.shared_config.height_lines_enabled = this.checked;
                     }
                 }
@@ -178,84 +177,36 @@ Rectangle {
                         font.pixelSize:16
                     }
                     CheckBox {
-                        checked: true
-                        x: menu_width - this.width - 30
-                        y: -10
-                        Component.onCompleted: {
-                            this.checked = map.shared_config.phong_enabled;
-                        }
-                        onCheckStateChanged: {
-                            map.shared_config.phong_enabled = this.checked;
-                        }
+                        id: phong_enabled;
+                        x: menu_width - this.width - 30;
+                        y: -10;
+                        onCheckStateChanged: map.shared_config.phong_enabled = this.checked;
                     }
                 }
 
-                Label { text: "Light-Color:" }
-                RowLayout {
-                    Label {
-                        padding: 5
-                        Layout.fillWidth: true;
-                        color: Qt.rgba(0.0, 0.0, 0.0, 1.0);
-                        Rectangle{
-                            anchors.fill: parent
-                            color: "transparent"
-                            border { width:1; color:Qt.alpha( "white", 0.5); }
-                            radius: 5
-                        }
-                        MouseArea{
-                            anchors.fill: parent
-                            cursorShape: Qt.PointingHandCursor
-                            onClicked: colorDialog.open_for(parent)
-                        }
-                        Component.onCompleted: {
-                            var tmp = map.shared_config.sun_light;
-                            color = Qt.rgba(tmp.x, tmp.y, tmp.z, 1.0);
-                        }
-                        onColorChanged: {
-                            text = color.toString();
-                            map.shared_config.sun_light = Qt.vector4d(color.r, color.g, color.b, map.shared_config.sun_light.w)
-                        }
-                    }
+                Label { text: "Light-Colors:" }
+                ColorPicker {
+                    id: sun_light_color;
+                    onColorChanged: map.shared_config.sun_light = Qt.vector4d(color.r, color.g, color.b, map.shared_config.sun_light.w);
                 }
 
                 Label { text: "Light-Intensity:" }
                 ValSlider {
+                    id: sun_light_intensity;
                     from: 0.0; to: 1.0;
-                    Component.onCompleted: this.value = map.shared_config.sun_light.w;
                     onMoved: map.shared_config.sun_light.w = this.value;
                 }
 
                 Label { text: "Amb.-Color:" }
-                RowLayout {
-                    Label {
-                        padding: 5
-                        Layout.fillWidth: true;
-                        Rectangle{
-                            anchors.fill: parent
-                            color: "transparent"
-                            border { width:1; color:Qt.alpha( "white", 0.5); }
-                            radius: 5
-                        }
-                        MouseArea{
-                            anchors.fill: parent
-                            cursorShape: Qt.PointingHandCursor
-                            onClicked: colorDialog.open_for(parent)
-                        }
-                        Component.onCompleted: {
-                            var tmp = map.shared_config.amb_light;
-                            color = Qt.rgba(tmp.x, tmp.y, tmp.z, 1.0);
-                        }
-                        onColorChanged: {
-                            text = color.toString();
-                            map.shared_config.amb_light = Qt.vector4d(color.r, color.g, color.b, map.shared_config.amb_light.w);
-                        }
-                    }
+                ColorPicker {
+                    id: amb_light_color;
+                    onColorChanged: map.shared_config.amb_light = Qt.vector4d(color.r, color.g, color.b, map.shared_config.amb_light.w);
                 }
 
                 Label { text: "Amb.-Intensity:" }
                 ValSlider {
+                    id: amb_light_intensity;
                     from: 0.01; to: 1.0; stepSize: 0.01;
-                    Component.onCompleted: this.value = map.shared_config.amb_light.w;
                     onMoved: map.shared_config.amb_light.w = this.value;
                 }
 
@@ -312,46 +263,13 @@ Rectangle {
                     Component.onCompleted: update_sun_position()
                 }
 
-
-
-                Label { text: "Material:" }
-                Label {
-                    property bool initialized: false
-                    padding: 5
-                    Layout.fillWidth: true;
-                    Rectangle{
-                        anchors.fill: parent
-                        color: "transparent"
-                        border { width:1; color:Qt.alpha( "white", 0.5); }
-                        radius: 5
-                    }
-                    MouseArea{
-                        anchors.fill: parent
-                        cursorShape: Qt.PointingHandCursor
-                        onClicked: colorDialog.open_for(parent)
-                    }
-                    Component.onCompleted: {
-                        var tmp = map.shared_config.material_color;
-                        color = Qt.rgba(tmp.x, tmp.y, tmp.z, 1.0);
-                        initialized = true;
-                        onColorChanged();
-                    }
-                    onColorChanged: {
-                        if (initialized) {
-                            text = color.toString();
-                            map.shared_config.material_color = Qt.vector4d(color.r, color.g, color.b, map.shared_config.material_color.w)
-                        }
-                    }
+                Label { text: "Mat.-Color:" }
+                ColorPicker {
+                    id: material_color;
+                    onColorChanged: map.shared_config.material_color = Qt.vector4d(color.r, color.g, color.b, color.a);
                 }
 
-
-                Label { text: "Ortho-Mix:" }
-                ValSlider {
-                    from: 0.00; to: 1.0; stepSize: 0.01;
-                    Component.onCompleted: value = map.shared_config.material_color.w;
-                    onMoved: map.shared_config.material_color.w = value;
-                }
-
+                // TODO hier weiter!
                 Rectangle {
                     Layout.fillWidth: true;
                     Layout.columnSpan: 2;
@@ -365,39 +283,39 @@ Rectangle {
                         font.pixelSize:16
                     }
                     CheckBox {
+                        id: ssao_enabled;
                         x: menu_width - this.width - 30
                         y: -10
-                        Component.onCompleted: this.checked = map.shared_config.ssao_enabled;
                         onCheckStateChanged: map.shared_config.ssao_enabled = this.checked;
                     }
                 }
 
                 Label { text: "Kernel-Size:" }
                 ValSlider {
+                    id: ssao_kernel;
                     from: 5; to: 64; stepSize: 1;
-                    Component.onCompleted: value = map.shared_config.ssao_kernel;
                     onMoved: map.shared_config.ssao_kernel = value;
                 }
 
                 Label { text: "Falloff-To:" }
                 ValSlider {
+                    id: ssao_falloff_to_value;
                     from: 0.0; to: 1.0; stepSize: 0.01;
-                    Component.onCompleted: value = map.shared_config.ssao_falloff_to_value;
                     onMoved: map.shared_config.ssao_falloff_to_value = value;
                 }
 
                 Label { text: "Blur-Size:" }
                 ValSlider {
+                    id: ssao_blur_kernel_size;
                     from: 0; to: 2; stepSize: 1; snapMode: Slider.SnapAlways;
-                    Component.onCompleted: value = map.shared_config.ssao_blur_kernel_size;
                     onMoved: map.shared_config.ssao_blur_kernel_size = value;
                 }
 
                 CheckBox {
+                    id: ssao_range_check;
                     text: "Range-Check"
                     Layout.fillWidth: true;
                     Layout.columnSpan: 2;
-                    Component.onCompleted: this.checked = map.shared_config.ssao_range_check;
                     onCheckStateChanged: map.shared_config.ssao_range_check = this.checked;
                 }
 
@@ -414,22 +332,20 @@ Rectangle {
                         font.pixelSize:16
                     }
                     CheckBox {
+                        id: csm_enabled;
                         x: menu_width - this.width - 30
                         y: -10
-                        Component.onCompleted: this.checked = map.shared_config.csm_enabled;
                         onCheckStateChanged: map.shared_config.csm_enabled = this.checked;
                     }
                 }
 
                 CheckBox {
+                    id: overlay_shadowmaps;
                     text: "Overlay Shadow-Maps"
                     Layout.fillWidth: true;
                     Layout.columnSpan: 2;
-                    Component.onCompleted: this.checked = map.shared_config.overlay_shadowmaps;
                     onCheckStateChanged: map.shared_config.overlay_shadowmaps = this.checked;
                 }
-
-
 
                 Rectangle {
                     Layout.fillWidth: true;
@@ -440,44 +356,29 @@ Rectangle {
                     radius: 5
                     Label {
                         x: 10; y: 3
-                        text: "Debug"
+                        text: "Overlays"
                         font.pixelSize:16
                     }
                 }
 
-                Label { text: "Overlay:" }
+                Label { text: "Pre-Shading:" }
                 ComboBox {
+                    id: debug_overlay;
+                    currentIndex: 0; // Init with 0 necessary otherwise onCurrentIndexChanged gets emited on startup (because def:-1)!
                     Layout.fillWidth: true;
                     model: ["None", "Ortho-Picture", "Normals", "Tiles", "Zoomlevel", "Vertex-ID", "Vertex Height-Sample", "SSAO Buffer"]
-                    Component.onCompleted:  currentIndex = map.shared_config.debug_overlay;
-                    onCurrentValueChanged:  map.shared_config.debug_overlay = currentIndex;
+                    onCurrentIndexChanged:  map.shared_config.debug_overlay = currentIndex;
                 }
 
                 Label { text: "Strength:" }
-                Slider {
-                    id: slider_overlay_strength
-                    from: 0.0
-                    to: 1.0
-                     Layout.fillWidth: true;
-                     Component.onCompleted: this.value = map.shared_config.debug_overlay_strength;
-                     onMoved: map.shared_config.debug_overlay_strength = value;
+                ValSlider {
+                    id: debug_overlay_strength;
+                    from: 0.0; to: 1.0; stepSize:  0.01;
+                    onMoved: map.shared_config.debug_overlay_strength = value;
                 }
             }
         }
     }
 
-    ColorDialog {
-        property Label target
-        id: colorDialog
-        options: ColorDialog.ShowAlphaChannel
-        function open_for(target) {
-            selectedColor = target.color;
-            this.target = target;
-            this.open();
-        }
-        onAccepted: {
-            target.color = selectedColor
-        }
-    }
 }
 

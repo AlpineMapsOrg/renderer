@@ -33,25 +33,6 @@ Rectangle {
             renderer.set_position(gnss.latitude, gnss.longitude)
         }
     }
-/*
-    Image {
-        function oc_scale() : float {
-            if (renderer.camera_operation_centre_distance < 0) {
-                return 1.0;
-            }
-            let max_dist = 1000.0;
-            let scale = 1 + Math.pow((1 - (Math.min(max_dist, renderer.camera_operation_centre_distance) / max_dist)) * 1.6, 6);
-            return scale;
-        }
-        id: camera_operation_centre
-        source: "icons/camera_operation_centre.svg"
-        width: 16 * oc_scale()
-        height: 16 * oc_scale()
-        sourceSize: Qt.size(width, height)
-        x: renderer.camera_operation_centre.x - width / 2
-        y: renderer.camera_operation_centre.y - 60 - height / 2
-        visible: renderer.camera_operation_centre_visibility && punkt.checked
-    }*/
 
     Rectangle {
         width: 12

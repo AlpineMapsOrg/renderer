@@ -4,14 +4,16 @@ import QtQuick.Layouts
 import QtQuick.Dialogs
 import Alpine
 
+import "components"
+
 Item {
-    property int theme: Material.System
+    property int theme: Material.Light //Material.System
     property int accent: Material.Orange
 
     Rectangle {
         id: tool_bar
         height: 60
-        color: main_stack_view.depth === 1 ? "#00FF00FF" : Qt.alpha(Material.backgroundColor, 0.7)
+        color: main_stack_view.depth === 1 ? "#01FF00FF" : Qt.alpha(Material.backgroundColor, 0.7)
         anchors {
             left: parent.left
             right: parent.right
@@ -42,7 +44,6 @@ Item {
             Label {
                 id: page_title
                 text: ""
-                visible: menu_list_view.currentIndex !== 0
                 wrapMode: Label.Wrap
                 font.pointSize: 24
                 Layout.fillWidth: true
@@ -50,7 +51,6 @@ Item {
             SearchBox {
                 id: search
                 search_results: search_results
-                visible: menu_list_view.currentIndex === 0
             }
         }
         z: 100
@@ -69,55 +69,69 @@ Item {
         }
     }
 
-    Drawer {
+    PageDrawer {
         id: menu
-        width: Math.min(parent.width, parent.height) / 3 * 2
-        height: parent.height
-        interactive: true
 
-        ListView {
-            id: menu_list_view
-            currentIndex: 0
-            anchors.fill: parent
+        iconTitle: "Alpine Maps"
+        iconSource: "../icons/favicon_256.png"
+        iconSubtitle: qsTr ("Version 0.8 Alpha")
 
-            delegate: ItemDelegate {
-                width: menu_list_view.width
-                text: model.title
-                highlighted: ListView.isCurrentItem
-                onClicked: {
-                    menu.change_page(index)
-                }
-            }
-
-            model: ListModel {
-                ListElement { title: qsTr("Map"); source: "map" }
-                ListElement { title: qsTr("Coordinates"); source: "Coordinates.qml" }
-//                ListElement { title: qsTr("Cached Content"); source: "" }
-                ListElement { title: qsTr("Settings"); source: "Settings.qml" }
-                ListElement { title: qsTr("About"); source: "About.qml" }
-            }
-
-            ScrollIndicator.vertical: ScrollIndicator { }
+        actions: {
+            0: function() { change_page("map", qsTr("Map")) },
+            1: function() { change_page("Coordinates.qml", qsTr("Coordinates")) },
+            2: function() { change_page("Settings.qml", qsTr("Settings")) },
+            5: function() { change_page("About.qml", qsTr("About")) }
         }
 
-        function change_page(index) {
-            menu_list_view.currentIndex = index
-            var model = menu_list_view.model.get(index)
+        items: ListModel {
+            id: pagesModel
 
-            if (model.source === "map") {
-                if (main_stack_view.depth >= 1)
-                    main_stack_view.pop()
-                menu.close()
-                return;
+            ListElement {
+                pageTitle: qsTr ("Map")
+                pageIcon: "../icons/minimal/mountain.png"
             }
 
-            if (main_stack_view.depth === 1)
-                main_stack_view.push(_qmlPath + model.source, {renderer: map})
-            else
-                main_stack_view.replace(_qmlPath + model.source, {renderer: map})
-            page_title.text = model.title
+            ListElement {
+                pageTitle: qsTr ("Coordinates")
+                pageIcon: "../icons/minimal/location.png"
+            }
+
+            ListElement {
+                pageTitle: qsTr ("Settings")
+                pageIcon: "../icons/minimal/settings.png"
+            }
+
+            ListElement {
+                spacer: true
+            }
+
+            ListElement {
+                separator: true
+            }
+
+            ListElement {
+                pageTitle: qsTr ("About")
+                pageIcon: "../icons/minimal/information.png"
+            }
+        }
+    }
+
+    function change_page(source, title) {
+        if (source === "map") {
+            if (main_stack_view.depth >= 1) main_stack_view.pop()
             menu.close()
+            page_title.visible = false
+            search.visible = true
+            return
         }
+        if (main_stack_view.depth === 1)
+            main_stack_view.push(_qmlPath + source, {renderer: map})
+        else
+            main_stack_view.replace(_qmlPath + source, {renderer: map})
+        page_title.visible = true
+        search.visible = false
+        page_title.text = title
+        menu.close()
     }
 
     TerrainRenderer {
@@ -143,10 +157,11 @@ Item {
         }
     }
 
+    /*
     DebugWindow {}
 
     StatsWindow {}
-
+*/
      //property TerrainRenderer renderer
     Component.onCompleted: {
         menu.change_page(0)
