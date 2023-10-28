@@ -30,25 +30,13 @@
 #include "Polyline.h"
 #include "ShaderProgram.h"
 
-static const char *const debugVertexShaderSource = R"(
-  layout(location = 0) in vec3 a_position;
-  uniform highp mat4 matrix;
-  void main() {
-    //gl_Position = matrix * vec4(a_position, 1.0);
-    gl_Position = vec4(a_position, 1.0);
-  })";
-
-static const char *const debugFragmentShaderSource = R"(
-  out lowp vec4 out_Color;
-  void main() {
-     out_Color = vec4(1.0, 0.0, 0.0, 1.0);
-  })";
-
 namespace gl_engine
 {
 
     TrackManager::TrackManager(QObject *parent)
-        : QObject(parent), m_shader(std::make_unique<ShaderProgram>(debugVertexShaderSource, debugFragmentShaderSource))
+        : QObject(parent), m_shader(std::make_unique<ShaderProgram>(
+                               ShaderProgram::Files({"track.vert"}),
+                               ShaderProgram::Files({"track.frag"})))
     {
     }
 
@@ -61,23 +49,17 @@ namespace gl_engine
     {
         // std::cout << "TrackManager::draw\n";
         QOpenGLExtraFunctions *f = QOpenGLContext::currentContext()->extraFunctions();
-        
-        m_shader->bind();
-        m_shader->set_uniform("matrix", camera.local_view_projection_matrix(camera.position()));
-        // m_shader->set_uniform("camera_position", glm::vec3(camera.position()));
 
+        auto matrix = camera.local_view_projection_matrix(camera.position());
+
+        m_shader->bind();
+        m_shader->set_uniform("matrix", matrix);
+        m_shader->set_uniform("camera_position", glm::vec3(camera.position()));
 
         for (const PolyLine &track : m_tracks)
         {
-            std::cout << "draw polyline " << track.point_count << std::endl;
             track.vao->bind();
             f->glDrawArrays(GL_LINE_STRIP, 0, track.point_count);
-            
-            GLenum err = f->glGetError();
-            if (err != GL_NO_ERROR)
-            {
-                std::cout << "GL error\n";
-            }
         }
 
         m_shader->release();
@@ -119,11 +101,11 @@ namespace gl_engine
 
         polyline.vao->release();
 
-            GLenum err = f->glGetError();
-            if (err != GL_NO_ERROR)
-            {
-                std::cout << "GL error\n";
-            }
+        GLenum err = f->glGetError();
+        if (err != GL_NO_ERROR)
+        {
+            std::cout << "GL error\n";
+        }
 
         m_tracks.push_back(std::move(polyline));
     }
