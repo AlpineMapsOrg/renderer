@@ -34,7 +34,8 @@ static const char *const debugVertexShaderSource = R"(
   layout(location = 0) in vec3 a_position;
   uniform highp mat4 matrix;
   void main() {
-    gl_Position = matrix * vec4(a_position, 1.0);
+    //gl_Position = matrix * vec4(a_position, 1.0);
+    gl_Position = vec4(a_position, 1.0);
   })";
 
 static const char *const debugFragmentShaderSource = R"(
@@ -87,7 +88,16 @@ namespace gl_engine
         QOpenGLExtraFunctions *f = QOpenGLContext::currentContext()->extraFunctions();
 
         qDebug() << "TrackManager::add_track()\n";
+
+#if 0
         std::vector<glm::vec3> points = nucleus::to_world_points(gpx);
+#else
+
+        std::vector<glm::vec3> points = {
+            {-.25, .25, 0},
+            {.25, .25, 0},
+        };
+#endif
 
         PolyLine polyline;
 
