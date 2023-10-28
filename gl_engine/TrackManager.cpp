@@ -17,61 +17,104 @@
  *****************************************************************************/
 
 #include "TrackManager.h"
+#include "helpers.h"
 
+#include <QOpenGLBuffer>
+#include <QOpenGLContext>
 #include <QOpenGLExtraFunctions>
-#include <QOpenGLFunctions>
 #include <QOpenGLShaderProgram>
+#include <QOpenGLVertexArrayObject>
+
+#include <iostream> // TODO: remove this
 
 #include "Polyline.h"
 #include "ShaderProgram.h"
 
-static const char* const debugVertexShaderSource = R"(
-  layout(location = 0) in vec4 a_position;
+static const char *const debugVertexShaderSource = R"(
+  layout(location = 0) in vec3 a_position;
   uniform highp mat4 matrix;
   void main() {
-    gl_Position = matrix * a_position;
+    gl_Position = matrix * vec4(a_position, 1.0);
   })";
 
-static const char* const debugFragmentShaderSource = R"(
+static const char *const debugFragmentShaderSource = R"(
   out lowp vec4 out_Color;
   void main() {
      out_Color = vec4(1.0, 0.0, 0.0, 1.0);
   })";
 
-namespace gl_engine {
-
-TrackManager::TrackManager(QObject* parent)
-    : QObject(parent)
-    , m_shader(std::make_unique<ShaderProgram>(debugVertexShaderSource, debugFragmentShaderSource))
+namespace gl_engine
 {
-}
 
-void TrackManager::init()
-{
-    assert(QOpenGLContext::currentContext());
-}
-
-void TrackManager::draw(const nucleus::camera::Definition& camera) const
-{
-    m_shader->bind();
-    m_shader->set_uniform("matrix", camera.local_view_projection_matrix(camera.position()));
-    m_shader->set_uniform("camera_position", glm::vec3(camera.position()));
-
-    QOpenGLExtraFunctions* f = QOpenGLContext::currentContext()->extraFunctions();
-
-    for (const PolyLine& track : m_tracks) {
-        track.vao->bind();
-        f->glDrawArrays(GL_LINE_STRIP, 0U, track.vertex_count);
-        track.vao->release();
+    TrackManager::TrackManager(QObject *parent)
+        : QObject(parent), m_shader(std::make_unique<ShaderProgram>(debugVertexShaderSource, debugFragmentShaderSource))
+    {
     }
 
-    m_shader->release();
-}
+    void TrackManager::init()
+    {
+        assert(QOpenGLContext::currentContext());
+    }
 
-void TrackManager::add_track(const nucleus::gpx::Gpx& gpx)
-{
-    auto points = nucleus::to_world_points(gpx);
-    PolyLine polyline(points);
-    m_tracks.push_back(std::move(polyline));
-}
+    void TrackManager::draw(const nucleus::camera::Definition &camera) const
+    {
+        // std::cout << "TrackManager::draw\n";
+        QOpenGLExtraFunctions *f = QOpenGLContext::currentContext()->extraFunctions();
+        
+        m_shader->bind();
+        m_shader->set_uniform("matrix", camera.local_view_projection_matrix(camera.position()));
+        // m_shader->set_uniform("camera_position", glm::vec3(camera.position()));
+
+
+        for (const PolyLine &track : m_tracks)
+        {
+            std::cout << "draw polyline " << track.point_count << std::endl;
+            track.vao->bind();
+            f->glDrawArrays(GL_LINE_STRIP, 0, track.point_count);
+            
+            GLenum err = f->glGetError();
+            if (err != GL_NO_ERROR)
+            {
+                std::cout << "GL error\n";
+            }
+        }
+
+        m_shader->release();
+    }
+
+    void TrackManager::add_track(const nucleus::gpx::Gpx &gpx)
+    {
+        QOpenGLExtraFunctions *f = QOpenGLContext::currentContext()->extraFunctions();
+
+        qDebug() << "TrackManager::add_track()\n";
+        std::vector<glm::vec3> points = nucleus::to_world_points(gpx);
+
+        PolyLine polyline;
+
+        polyline.vao = std::make_unique<QOpenGLVertexArrayObject>();
+        polyline.vao->create();
+        polyline.vao->bind();
+
+        polyline.vbo = std::make_unique<QOpenGLBuffer>(QOpenGLBuffer::VertexBuffer);
+        polyline.vbo->create();
+        polyline.vbo->bind();
+        polyline.vbo->setUsagePattern(QOpenGLBuffer::StaticDraw);
+        polyline.vbo->allocate(points.data(), helpers::bufferLengthInBytes(points));
+
+        const auto position_attrib_location = m_shader->attribute_location("a_position");
+        f->glEnableVertexAttribArray(position_attrib_location);
+        f->glVertexAttribPointer(position_attrib_location, 3, GL_FLOAT, GL_FALSE, 0, nullptr);
+
+        polyline.point_count = points.size();
+
+        polyline.vao->release();
+
+            GLenum err = f->glGetError();
+            if (err != GL_NO_ERROR)
+            {
+                std::cout << "GL error\n";
+            }
+
+        m_tracks.push_back(std::move(polyline));
+    }
 } // namespace gl_engine

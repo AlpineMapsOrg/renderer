@@ -122,19 +122,25 @@ void Window::paint(QOpenGLFramebufferObject* framebuffer)
     f->glClearColor(1.0, 0.0, 0.5, 1);
 
     f->glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
-
+#if 0
     m_shader_manager->atmosphere_bg_program()->bind();
     m_atmosphere->draw(m_shader_manager->atmosphere_bg_program(),
                        m_camera,
                        m_shader_manager->screen_quad_program(),
                        m_framebuffer.get());
+#endif
 
     f->glEnable(GL_DEPTH_TEST);
     f->glDepthFunc(GL_LESS);
     f->glEnable(GL_BLEND);
     f->glBlendFunc(GL_ONE, GL_ONE_MINUS_SRC_ALPHA);
+
+#if 1
     m_shader_manager->tile_shader()->bind();
     m_tile_manager->draw(m_shader_manager->tile_shader(), m_camera);
+#endif
+
+    m_track_manager->draw(m_camera);
 
     m_framebuffer->unbind();
     if (framebuffer)
@@ -222,9 +228,11 @@ void Window::update_gpu_quads(const std::vector<nucleus::tile_scheduler::tile_ty
 
 void Window::open_track_file(const QString& file_path)
 {
-    qDebug() << "Open Track File: " << file_path;
+    qDebug() << "Window::open_track_file" << file_path;
+
     std::unique_ptr<nucleus::gpx::Gpx> gpx = nucleus::gpx::parse(file_path);
-    if (gpx != nullptr)
+
+    if (gpx != nullptr) 
     {
         m_track_manager->add_track(*gpx);
     }

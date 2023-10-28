@@ -30,6 +30,7 @@
 #include <QOpenGLFramebufferObjectFormat>
 #include <QQuickWindow>
 #include <QThread>
+#include <QDir>
 #include <QTimer>
 
 #include "RenderThreadNotifier.h"
@@ -179,9 +180,15 @@ void TerrainRendererItem::rotate_north()
 
 void TerrainRendererItem::add_track(const QString& track)
 {
-    qDebug() << "Add Track was clicked: " << track;
-    emit track_added_by_user(track);
-    RenderThreadNotifier::instance()->notify();
+    qDebug() << "TerrainRendererItem::add_track" << track;
+    QUrl url(track);
+
+    if (url.isLocalFile()) {
+        emit track_added_by_user(QDir::toNativeSeparators(url.toLocalFile()));
+        RenderThreadNotifier::instance()->notify();
+    } else {
+        qDebug() << "is not local file\n";
+    }
 }
 
 void TerrainRendererItem::schedule_update()

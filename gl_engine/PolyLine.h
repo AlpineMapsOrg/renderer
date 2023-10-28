@@ -29,10 +29,11 @@
 namespace gl_engine {
 
 struct PolyLine {
+    PolyLine();
     PolyLine(const std::vector<glm::vec3>& points);
-    GLsizei vertex_count;
-    std::unique_ptr<QOpenGLVertexArrayObject> vao;
-    std::unique_ptr<QOpenGLBuffer> vbo;
+    GLsizei point_count;
+    std::unique_ptr<QOpenGLVertexArrayObject> vao = nullptr;
+    std::unique_ptr<QOpenGLBuffer> vbo = nullptr;
 };
 
 } // namespace gl_engine

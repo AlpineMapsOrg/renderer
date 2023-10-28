@@ -2,6 +2,7 @@
 
 #include <srs.h>
 
+#include <iostream>
 #include <glm/gtx/io.hpp>
 
 #include <QDebug>
@@ -15,10 +16,12 @@ namespace gpx {
     {
         TrackPoint point;
 
-        double lat = xmlReader.attributes().value("lat").toDouble();
-        double lon = xmlReader.attributes().value("lon").toDouble();
+        double latitude = xmlReader.attributes().value("lat").toDouble();
+        double longitude = xmlReader.attributes().value("lon").toDouble();
 
-        point.x = lat, point.z = lon;
+        point.x = latitude;
+        point.y = longitude;
+        point.z = 0;
 
 #if 1
         while (!xmlReader.atEnd() && !xmlReader.hasError()) {
@@ -26,7 +29,8 @@ namespace gpx {
 
             if (token == QXmlStreamReader::StartElement) {
                 if (xmlReader.name() == QString("ele")) {
-                    point.y = xmlReader.readElementText().toDouble();
+                    float elevation = xmlReader.readElementText().toDouble();
+                    point.z = elevation;
                 }
 
                 break;
@@ -125,8 +129,11 @@ std::vector<glm::vec3> to_world_points(const gpx::Gpx& gpx)
 
     for (int i = 0; i < track.size(); i++) {
         points[i] = glm::vec3(srs::lat_long_alt_to_world(track[i]));
+        // std::cout << points[i] << std::endl;
     }
 
+    std::cout << points[0] << std::endl;
+    std::cout << points[1] << std::endl;
     return points;
 }
 } // namespace nucleus
