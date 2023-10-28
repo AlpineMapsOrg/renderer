@@ -32,7 +32,7 @@ class RateLimiter : public QObject
 {
     Q_OBJECT
     unsigned m_rate = 100;
-    unsigned m_rate_period_msecs = 1000;
+    unsigned m_rate_period_msecs = 1000 * 1;
     std::vector<tile::Id> m_request_queue;
     std::vector<uint64_t> m_in_flight;
     std::unique_ptr<QTimer> m_update_timer;

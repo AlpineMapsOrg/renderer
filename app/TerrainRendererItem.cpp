@@ -194,12 +194,6 @@ void TerrainRendererItem::keyReleaseEvent(QKeyEvent* e)
     RenderThreadNotifier::instance()->notify();
 }
 
-void TerrainRendererItem::update_camera_request()
-{
-    emit update_camera_requested();
-    RenderThreadNotifier::instance()->notify();
-}
-
 void TerrainRendererItem::read_global_position(glm::dvec3 latlonalt) {
     emit gui_update_global_cursor_pos(latlonalt.x, latlonalt.y, latlonalt.z);
 }

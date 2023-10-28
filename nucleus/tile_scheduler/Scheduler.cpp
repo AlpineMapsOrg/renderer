@@ -184,6 +184,9 @@ void Scheduler::update_gpu_quads()
                            if (quad.tiles[i].height->size()) {
                                height_data = quad.tiles[i].height.get();
                            }
+                           auto heightimage = nucleus::utils::tile_conversion::toQImage(*height_data);
+                           gpu_quad.tiles[i].height_image = std::make_shared<QImage>(std::move(heightimage));
+                           //TODO: We dont need height in VBO anymore!!! Delete at some point!!
                            auto heightraster = nucleus::utils::tile_conversion::qImage2uint16Raster(
                                nucleus::utils::tile_conversion::toQImage(*height_data));
                            gpu_quad.tiles[i].height = std::make_shared<nucleus::Raster<uint16_t>>(

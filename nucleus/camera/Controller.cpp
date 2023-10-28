@@ -229,21 +229,6 @@ void Controller::update_camera_request()
 
 std::optional<glm::vec2> Controller::operation_centre()
 {
-    if (new_style)
-        m_interaction_style = std::move(new_style);
-    else
-        m_interaction_style = std::make_unique<InteractionStyle>();
-}
-
-void Controller::set_animation_style(std::unique_ptr<InteractionStyle> new_style)
-{
-    if (new_style)
-        m_animation_style = std::move(new_style);
-    else
-        m_animation_style = std::make_unique<InteractionStyle>();
-}
-
-std::optional<glm::vec2> Controller::get_operation_centre(){
     if (m_animation_style) {
         return m_animation_style->operation_centre();
     }
