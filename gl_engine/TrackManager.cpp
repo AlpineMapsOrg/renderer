@@ -47,12 +47,9 @@ namespace gl_engine
 
     void TrackManager::draw(const nucleus::camera::Definition &camera) const
     {
-        // std::cout << "TrackManager::draw\n";
         QOpenGLExtraFunctions *f = QOpenGLContext::currentContext()->extraFunctions();
 
         auto matrix = camera.local_view_projection_matrix(camera.position());
-
-        //std::cout << camera.position() << std::endl;
 
         m_shader->bind();
         m_shader->set_uniform("matrix", matrix);
