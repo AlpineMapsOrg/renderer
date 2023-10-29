@@ -52,6 +52,8 @@ namespace gl_engine
 
         auto matrix = camera.local_view_projection_matrix(camera.position());
 
+        //std::cout << camera.position() << std::endl;
+
         m_shader->bind();
         m_shader->set_uniform("matrix", matrix);
         m_shader->set_uniform("camera_position", glm::vec3(camera.position()));
@@ -71,7 +73,7 @@ namespace gl_engine
 
         qDebug() << "TrackManager::add_track()\n";
 
-#if 0
+#if 1
         std::vector<glm::vec3> points = nucleus::to_world_points(gpx);
 #else
 
@@ -100,12 +102,6 @@ namespace gl_engine
         polyline.point_count = points.size();
 
         polyline.vao->release();
-
-        GLenum err = f->glGetError();
-        if (err != GL_NO_ERROR)
-        {
-            std::cout << "GL error\n";
-        }
 
         m_tracks.push_back(std::move(polyline));
     }
