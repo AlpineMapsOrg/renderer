@@ -15,18 +15,18 @@ Item {
     RowLayout {
         anchors.fill: parent
         spacing: 0
+        Slider {
+            id: slider;
+            Layout.preferredWidth: root.width - 50
+            onMoved: root.moved()
+        }
         Label {
             id: label;
-            Layout.preferredWidth: 30
+            Layout.preferredWidth: 50
             text: Math.round(slider.value * 100) / 100;
             font.underline: true;
         }
-        Slider {
-            id: slider;
-            Layout.preferredWidth: root.width - 30
-            onMoved: root.moved()
-        }
     }
-    height: slider.height;
+    height: slider.implicitHeight;
     Layout.fillWidth: true;
 }

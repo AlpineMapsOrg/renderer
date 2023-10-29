@@ -1,6 +1,6 @@
 /*****************************************************************************
  * Alpine Terrain Renderer
- * Copyright (C) 2022 Adam Celarek
+ * Copyright (C) 2022 Gerald Kimmersdorfer
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -22,6 +22,7 @@
 #include "shadow_config.glsl"
 #include "camera_config.glsl"
 #include "hashing.glsl"
+#include "overlay_steepness.glsl"
 
 layout (location = 0) out lowp vec4 out_Color;
 
@@ -39,8 +40,6 @@ uniform highp sampler2D texin_csm1;         // f32vec1
 uniform highp sampler2D texin_csm2;         // f32vec1
 uniform highp sampler2D texin_csm3;         // f32vec1
 uniform highp sampler2D texin_csm4;         // f32vec1
-
-
 
 highp float calculate_falloff(highp float dist, highp float from, highp float to) {
     return clamp(1.0 - (dist - from) / (to - from), 0.0, 1.0);
@@ -78,6 +77,8 @@ highp vec3 calculate_illumination(highp vec3 albedo, highp vec3 eyePos, highp ve
     return ambientIllumination + diffAndSpecIllumination * (1.0 - shadow_term);
 }
 
+// Because of limited support I didn't use texture arrays, therefore
+// we need this selector function to sample from a specified shadowmap level
 highp float sample_shadow_texture(lowp int layer, highp vec2 texcoords) {
     switch (layer) {
         case 0: return texture(texin_csm1, texcoords).r;
@@ -88,21 +89,18 @@ highp float sample_shadow_texture(lowp int layer, highp vec2 texcoords) {
     }
 }
 
-highp vec4 overlay_color = vec4(-1.0);
-
-highp float csm_shadow_term(highp vec4 pos_cws, highp vec3 normal_ws) {
+highp float csm_shadow_term(highp vec4 pos_cws, highp vec3 normal_ws, out lowp int layer) {
     // SELECT LAYER
     highp vec4 pos_vs = camera.view_matrix * pos_cws;
     highp float depth_cam = abs(pos_vs.z);
 
-    lowp int layer = -1;
+    layer = -1;
     for (lowp int i = 0; i < SHADOW_CASCADES; i++) {
         if (depth_cam < shadow.cascade_planes[i + 1]) {
             layer = i;
             break;
         }
     }
-    if (conf.debug_overlay == 1u) overlay_color = vec4(color_from_id_hash(uint(layer)), 1.0);
 
     highp float depth_fallof_from = shadow.cascade_planes[SHADOW_CASCADES - 1] + (shadow.cascade_planes[SHADOW_CASCADES - 0] - shadow.cascade_planes[SHADOW_CASCADES - 1]) / 2.0;
     highp float depth_fallof_to = shadow.cascade_planes[SHADOW_CASCADES - 0];
@@ -161,6 +159,8 @@ void main() {
     // Gather ambient occlusion from ssao texture
     if (bool(conf.ssao_enabled)) amb_occlusion = texture(texin_ssao, texcoords).r;
 
+    lowp int sampled_shadow_layer = -1;
+
     // Don't do shading if not visible anyway and also don't for pixels where there is no geometry (depth==0.0)
     if (dist > 0.0) {
         highp vec3 origin = vec3(camera.position);
@@ -170,7 +170,20 @@ void main() {
 
         highp float shadow_term = 0.0;
         if (bool(conf.csm_enabled)) {
-            shadow_term = csm_shadow_term(vec4(pos_cws, 1.0), normal);
+            shadow_term = csm_shadow_term(vec4(pos_cws, 1.0), normal, sampled_shadow_layer);
+        }
+
+        // NOTE: PRESHADING OVERLAY ONLY APPLIED ON TILES NOT ON BACKGROUND!!!
+        if (!bool(conf.overlay_postshading_enabled) && conf.overlay_mode >= 100u) {
+            lowp vec4 overlay_color = vec4(0.0);
+            switch(conf.overlay_mode) {
+                case 100u: overlay_color = vec4(normal * 0.5 + 0.5, 1.0); break;
+                case 101u: overlay_color = overlay_steepness(normal, dist); break;
+                case 102u: overlay_color = vec4(vec3(amb_occlusion), 1.0); break;
+                case 103u: overlay_color = vec4(color_from_id_hash(uint(sampled_shadow_layer)), 1.0); break;
+            }
+            overlay_color.a *= conf.overlay_strength;
+            albedo = mix(albedo, overlay_color.rgb, overlay_color.a);
         }
 
         shaded_color = albedo;
@@ -185,11 +198,20 @@ void main() {
     lowp vec3 atmoshperic_color = texture(texin_atmosphere, texcoords).rgb;
     out_Color = vec4(mix(atmoshperic_color, shaded_color, alpha), 1.0);
 
-    if (conf.debug_overlay == 7u) overlay_color = vec4(vec3(amb_occlusion), 1.0);
-    if (overlay_color.x > 0.0) out_Color = mix(out_Color, overlay_color, conf.debug_overlay_strength * overlay_color.a);
+    if (bool(conf.overlay_postshading_enabled) && conf.overlay_mode >= 100u) {
+        lowp vec4 overlay_color = vec4(0.0);
+        switch(conf.overlay_mode) {
+            case 100u: overlay_color = vec4(normal * 0.5 + 0.5, 1.0); break;
+            case 101u: overlay_color = overlay_steepness(normal, dist); break;
+            case 102u: overlay_color = vec4(vec3(amb_occlusion), 1.0); break;
+            case 103u: overlay_color = vec4(color_from_id_hash(uint(sampled_shadow_layer)), 1.0); break;
+        }
+        overlay_color.a *= conf.overlay_strength;
+        out_Color = vec4(mix(out_Color.rgb, overlay_color.rgb, overlay_color.a), out_Color.a);
+    }
 
     // OVERLAY SHADOW MAPS
-    if (bool(conf.overlay_shadowmaps)) {
+    if (bool(conf.overlay_shadowmaps_enabled)) {
         highp float wsize = 0.25;
         highp float invwsize = 1.0/wsize;
         if (texcoords.x < wsize) {

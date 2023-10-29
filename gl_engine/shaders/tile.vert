@@ -1,6 +1,6 @@
 /*****************************************************************************
  * Alpine Terrain Renderer
- * Copyright (C) 2022 Adam Celarek
+ * Copyright (C) 2022 Gerald Kimmersdorfer
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -28,13 +28,11 @@ uniform highp int tileset_id;
 uniform highp int tileset_zoomlevel;
 uniform highp sampler2D height_sampler;
 
-out lowp vec2 uv;
+out highp vec2 uv;
 out highp vec3 var_pos_cws;
 out highp vec3 var_normal;
-out highp float is_curtain;
-//flat out vec3 vertex_color;
-out highp vec3 vertex_color;
-out highp vec3 debug_overlay_color;
+flat out lowp uint is_curtain;
+flat out lowp vec3 vertex_color;
 
 highp float y_to_lat(highp float y) {
     const highp float pi = 3.1415926535897932384626433;
@@ -63,7 +61,6 @@ highp vec3 normal_by_finite_difference_method(vec2 uv, float edge_vertices_count
 
 void main() {
     int geometry_id = 0;
-    debug_overlay_color = vec3(0.0);
     int edge_vertices_count_int = n_edge_vertices - 1;
     float edge_vertices_count_float = float(edge_vertices_count_int);
     // Note: The following is actually not the tile_width but the primitive/cell width/height
@@ -72,10 +69,10 @@ void main() {
     int row = gl_VertexID / n_edge_vertices;
     int col = gl_VertexID - (row * n_edge_vertices);
     int curtain_vertex_id = gl_VertexID - n_edge_vertices * n_edge_vertices;
-    is_curtain = 0.0;
+    is_curtain = 0u;
     if (curtain_vertex_id >= 0) {
         // curtains
-        is_curtain = 1.0;
+        is_curtain = 1u;
         if (curtain_vertex_id < n_edge_vertices) {
             // eastern
             row = (n_edge_vertices - 1) - curtain_vertex_id;
@@ -127,8 +124,11 @@ void main() {
 
     gl_Position = camera.view_proj_matrix * vec4(var_pos_cws, 1);
 
-    if (conf.debug_overlay == 3u) vertex_color = color_from_id_hash(uint(tileset_id));
-    else if (conf.debug_overlay == 4u) vertex_color = color_from_id_hash(uint(tileset_zoomlevel));
-    else if (conf.debug_overlay == 5u) vertex_color = color_from_id_hash(uint(gl_VertexID));
-    else if (conf.debug_overlay == 6u) vertex_color = texture(height_sampler, uv).rgb;
+    vertex_color = vec3(0.0);
+    switch(conf.overlay_mode) {
+        case 2u: vertex_color = color_from_id_hash(uint(tileset_id)); break;
+        case 3u: vertex_color = color_from_id_hash(uint(tileset_zoomlevel)); break;
+        case 4u: vertex_color = color_from_id_hash(uint(gl_VertexID)); break;
+        case 5u: vertex_color = texture(height_sampler, uv).rgb; break;
+    }
 }

@@ -29,22 +29,22 @@ QDataStream& operator<<(QDataStream& out, const uboSharedConfig& data){
         << data.m_material_color
         << data.m_material_light_response
         << data.m_curtain_settings
-        << data.m_debug_overlay_strength
+        << data.m_overlay_strength
         << data.m_ssao_falloff_to_value
         << data.padf1
         << data.padf2
         << data.m_phong_enabled
         << data.m_wireframe_mode
         << data.m_normal_mode
-        << data.m_debug_overlay
+        << data.m_overlay_mode
+        << data.m_overlay_postshading_enabled
         << data.m_ssao_enabled
         << data.m_ssao_kernel
         << data.m_ssao_range_check
         << data.m_ssao_blur_kernel_size
         << data.m_height_lines_enabled
         << data.m_csm_enabled
-        << data.m_overlay_shadowmaps
-        << data.padu1;
+        << data.m_overlay_shadowmaps_enabled;
     return out;
 }
 
@@ -56,22 +56,22 @@ QDataStream& operator>>(QDataStream& in, uboSharedConfig& data) {
         >> data.m_material_color
         >> data.m_material_light_response
         >> data.m_curtain_settings
-        >> data.m_debug_overlay_strength
+        >> data.m_overlay_strength
         >> data.m_ssao_falloff_to_value
         >> data.padf1
         >> data.padf2
         >> data.m_phong_enabled
         >> data.m_wireframe_mode
         >> data.m_normal_mode
-        >> data.m_debug_overlay
+        >> data.m_overlay_mode
+        >> data.m_overlay_postshading_enabled
         >> data.m_ssao_enabled
         >> data.m_ssao_kernel
         >> data.m_ssao_range_check
         >> data.m_ssao_blur_kernel_size
         >> data.m_height_lines_enabled
         >> data.m_csm_enabled
-        >> data.m_overlay_shadowmaps
-        >> data.padu1;
+        >> data.m_overlay_shadowmaps_enabled;
     return in;
 }
 

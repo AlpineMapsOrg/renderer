@@ -8,7 +8,7 @@ import "components"
 
 Item {
     property int theme: Material.Light //Material.System
-    property int accent: Material.Orange
+    property int accent: Material.Green
 
     Rectangle {
         id: tool_bar
@@ -125,9 +125,9 @@ Item {
             return
         }
         if (main_stack_view.depth === 1)
-            main_stack_view.push(_qmlPath + source, {renderer: map})
+            main_stack_view.push(_qmlPath + source)
         else
-            main_stack_view.replace(_qmlPath + source, {renderer: map})
+            main_stack_view.replace(_qmlPath + source)
         page_title.visible = true
         search.visible = false
         page_title.text = title
@@ -157,7 +157,7 @@ Item {
         }
     }
 
-    /*
+/*
     DebugWindow {}
 
     StatsWindow {}

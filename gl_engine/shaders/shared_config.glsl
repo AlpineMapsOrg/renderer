@@ -1,6 +1,6 @@
 /*****************************************************************************
  * Alpine Terrain Renderer
- * Copyright (C) 2022 Adam Celarek, Gerald Kimmersdorfer
+ * Copyright (C) 2022 Gerald Kimmersdorfer
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -27,7 +27,7 @@ layout (std140) uniform shared_config {
     highp vec4 material_light_response;
     highp vec4 curtain_settings;
 
-    highp float debug_overlay_strength;
+    highp float overlay_strength;
     highp float ssao_falloff_to_value;
     highp float padf1;
     highp float padf2;
@@ -35,15 +35,15 @@ layout (std140) uniform shared_config {
     highp uint phong_enabled;
     highp uint wireframe_mode;
     highp uint normal_mode;
-    highp uint debug_overlay;
+    highp uint overlay_mode;
 
+    highp uint overlay_postshading_enabled;
     highp uint ssao_enabled;
     highp uint ssao_kernel;
     highp uint ssao_range_check;
-    highp uint ssao_blur_kernel_size;
 
+    highp uint ssao_blur_kernel_size;
     highp uint height_lines_enabled;
     highp uint csm_enabled;
-    highp uint overlay_shadowmaps;
-    highp uint padu1;
+    highp uint overlay_shadowmaps_enabled;
 } conf;

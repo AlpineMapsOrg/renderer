@@ -1,6 +1,6 @@
 /*****************************************************************************
  * Alpine Terrain Renderer
- * Copyright (C) 2022 Adam Celarek
+ * Copyright (C) 2022 Gerald Kimmersdorfer
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -27,14 +27,11 @@ layout (location = 1) out highp vec4 texout_position;
 layout (location = 2) out highp uvec2 texout_normal;
 layout (location = 3) out highp uint texout_depth;
 
-in lowp vec2 uv;
+in highp vec2 uv;
 in highp vec3 var_pos_cws;
 in highp vec3 var_normal;
-in highp float is_curtain;
-//flat in vec3 vertex_color;
-in highp vec3 vertex_color;
-in highp float drop_frag;
-in highp vec3 debug_overlay_color;
+flat in lowp uint is_curtain;
+flat in lowp vec3 vertex_color;
 
 highp float calculate_falloff(highp float dist, highp float from, highp float to) {
     return clamp(1.0 - (dist - from) / (to - from), 0.0, 1.0);
@@ -46,27 +43,13 @@ highp vec3 normal_by_fragment_position_interpolation() {
     return normalize(cross(dFdxPos, dFdyPos));
 }
 
-/*
-lowp const int steepness_bins = 9;
-highp const vec4 steepness_color_map[steepness_bins] = vec4[](
-    vec4(254.0/255.0, 249.0/255.0, 249.0/255.0, 1.0),
-    vec4(51.0/255.0, 249.0/255.0, 49.0/255.0, 1.0),
-    vec4(242.0/255.0, 228.0/255.0, 44.0/255.0, 1.0),
-    vec4(255.0/255.0, 169.0/255.0, 45.0/255.0, 1.0),
-    vec4(255.0/255.0, 48.0/255.0, 45.0/255.0, 1.0),
-    vec4(255.0/255.0, 79.0/255.0, 249.0/255.0, 1.0),
-    vec4(183.0/255.0, 69.0/255.0, 253.0/255.0, 1.0),
-    vec4(135.0/255.0, 44.0/255.0, 253.0/255.0, 1.0),
-    vec4(49.0/255.0, 49.0/255.0, 253.0/255.0, 1.0)
-);*/
-
 void main() {
     // ToDo: Fix the following. They are not correct... (no normal for only curtains?)
     if (conf.wireframe_mode == 2u) {
         texout_albedo = vec3(1.0, 1.0, 1.0);
         return;
     }
-    if (is_curtain > 0.0) {
+    if (is_curtain > 0u) {
         if (conf.curtain_settings.x == 2.0) {
             texout_albedo = vec3(1.0, 0.0, 0.0);
             return;
@@ -100,12 +83,13 @@ void main() {
     // HANDLE OVERLAYS (and mix it with the albedo color) THAT CAN JUST BE DONE IN THIS STAGE
     // (because of DATA thats not forwarded)
     // NOTE: Performancewise its generally better to handle overlays in the compose step! (screenspace effect)
-    if (conf.debug_overlay > 0u && conf.debug_overlay < 7u) {
-        highp vec3 overlayColor = vec3(0.0);
-        if (conf.debug_overlay == 1u) overlayColor = fragColor;
-        else if (conf.debug_overlay == 2u) overlayColor = normal * 0.5 + 0.5;
-        else overlayColor = vertex_color;
-        texout_albedo = mix(texout_albedo, overlayColor, conf.debug_overlay_strength);
+    if (conf.overlay_mode > 0u && conf.overlay_mode < 100u) {
+        lowp vec3 overlay_color = vec3(0.0);
+        switch(conf.overlay_mode) {
+            case 1u: overlay_color = normal * 0.5 + 0.5; break;
+            default: overlay_color = vertex_color;
+        }
+        texout_albedo = mix(texout_albedo, overlay_color, conf.overlay_strength);
     }
 
 

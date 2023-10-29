@@ -206,7 +206,7 @@ TEST_CASE("gl uniformbuffer")
         gl_engine::uboSharedConfig ubo1;
         gl_engine::uboSharedConfig ubo2;
         gl_engine::uboSharedConfig ubo3;
-        ubo3.m_overlay_shadowmaps = 200;
+        ubo3.m_overlay_shadowmaps_enabled = 200;
         CHECK((ubo1 != ubo2) == false);
         CHECK((ubo1 != ubo3) == true);
     }
