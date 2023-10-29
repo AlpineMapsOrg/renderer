@@ -192,23 +192,23 @@ void TerrainRendererItem::add_track(const QString& track)
 #if 0
         emit track_added_by_user(QDir::toNativeSeparators(url.toLocalFile()));
 #else
-        std::unique_ptr<nucleus::gpx::Gpx> track = nucleus::gpx::parse(url.toLocalFile());
+        std::unique_ptr<nucleus::gpx::Gpx> gpx = nucleus::gpx::parse(url.toLocalFile());
 
-        if (track != nullptr)
+        if (gpx != nullptr)
         {
-            emit gpx_track_added_by_user(*track);
-            // TODO: add track to window
-            // TODO: maybe fly to start position?
+            emit gpx_track_added_by_user(*gpx);
 
-            glm::dvec3 start = track->track[0][0];
-            emit position_set_by_user(start.x, start.y);
-
+            if (0 < gpx->track.size() && 0 < gpx->track[0].size())
+            {
+                glm::dvec3 track_start = gpx->track[0][0];
+                emit position_set_by_user(track_start.x, track_start.y);
+            }
+        } else {
+            qDebug("Coud not parse GPX file!");
         }
 
 #endif
         RenderThreadNotifier::instance()->notify();
-    } else {
-        qDebug() << "is not local file\n";
     }
 }
 
