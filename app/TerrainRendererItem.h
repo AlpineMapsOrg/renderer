@@ -24,6 +24,7 @@
 
 #include "nucleus/camera/Definition.h"
 #include "nucleus/event_parameter.h"
+#include "nucleus/Track.h"
 #include <QQuickFramebufferObject>
 #include <QTimer>
 
@@ -63,6 +64,7 @@ signals:
     //    void viewport_changed(const glm::uvec2& new_viewport) const;
     void position_set_by_user(double new_latitude, double new_longitude);
     void track_added_by_user(const QString& track_path);
+    void gpx_track_added_by_user(const nucleus::gpx::Gpx& track);
 
     void rotation_north_requested();
     void camera_changed();

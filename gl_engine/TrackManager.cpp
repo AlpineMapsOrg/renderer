@@ -49,6 +49,12 @@ namespace gl_engine
     {
         QOpenGLExtraFunctions *f = QOpenGLContext::currentContext()->extraFunctions();
 
+#if 0
+        /* glLineWidth() is not guaranteed to be supported */
+        float line_width = 3.0f;
+        f->glLineWidth(line_width);
+#endif
+
         auto matrix = camera.local_view_projection_matrix(camera.position());
 
         m_shader->bind();

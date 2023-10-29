@@ -136,6 +136,7 @@ void Window::paint(QOpenGLFramebufferObject* framebuffer)
     m_shader_manager->tile_shader()->bind();
     m_tile_manager->draw(m_shader_manager->tile_shader(), m_camera);
 
+    /* draw tracks on top */
     f->glClear(GL_DEPTH_BUFFER_BIT);
     m_track_manager->draw(m_camera);
 
@@ -235,6 +236,11 @@ void Window::open_track_file(const QString& file_path)
     }
 }
 
+void Window::add_gpx_track(const nucleus::gpx::Gpx& track)
+{
+    m_track_manager->add_track(track);
+}
+
 float Window::depth(const glm::dvec2& normalised_device_coordinates)
 {
     const auto read_float = nucleus::utils::bit_coding::to_f16f16(m_depth_buffer->read_colour_attachment_pixel(0, normalised_device_coordinates))[0];
@@ -256,6 +262,7 @@ void Window::deinit_gpu()
     m_shader_manager.reset();
     m_framebuffer.reset();
     m_depth_buffer.reset();
+    m_track_manager.reset();
     m_screen_quad_geometry = {};
 }
 

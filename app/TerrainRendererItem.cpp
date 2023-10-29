@@ -101,6 +101,11 @@ QQuickFramebufferObject::Renderer* TerrainRendererItem::createRenderer() const
             r->glWindow(),
             &gl_engine::Window::open_track_file);
 
+    connect(this, 
+            &TerrainRendererItem::gpx_track_added_by_user, 
+            r->glWindow(),
+            &gl_engine::Window::add_gpx_track);
+
     auto* const tile_scheduler = r->controller()->tile_scheduler();
     connect(this, &TerrainRendererItem::render_quality_changed, tile_scheduler, [=](float new_render_quality) {
         const auto permissible_error = 1.0f / new_render_quality;
@@ -184,7 +189,23 @@ void TerrainRendererItem::add_track(const QString& track)
     QUrl url(track);
 
     if (url.isLocalFile()) {
+#if 0
         emit track_added_by_user(QDir::toNativeSeparators(url.toLocalFile()));
+#else
+        std::unique_ptr<nucleus::gpx::Gpx> track = nucleus::gpx::parse(url.toLocalFile());
+
+        if (track != nullptr)
+        {
+            emit gpx_track_added_by_user(*track);
+            // TODO: add track to window
+            // TODO: maybe fly to start position?
+
+            glm::dvec3 start = track->track[0][0];
+            emit position_set_by_user(start.x, start.y);
+
+        }
+
+#endif
         RenderThreadNotifier::instance()->notify();
     } else {
         qDebug() << "is not local file\n";

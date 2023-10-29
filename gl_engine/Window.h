@@ -31,6 +31,7 @@
 #include "nucleus/AbstractRenderWindow.h"
 #include "nucleus/camera/AbstractDepthTester.h"
 #include "nucleus/camera/Definition.h"
+#include "nucleus/Track.h"
 
 class QOpenGLTexture;
 class QOpenGLShaderProgram;
@@ -67,6 +68,7 @@ public:
     void updateCameraEvent();
     void set_permissible_screen_space_error(float new_error) override;
     void open_track_file(const QString& file_path);
+    void add_gpx_track(const nucleus::gpx::Gpx& track);
 
 public slots:
     void update_camera(const nucleus::camera::Definition& new_definition) override;
