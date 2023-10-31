@@ -34,11 +34,10 @@ SetPanel {
         curtain_settings_height_reference.value = conf.curtain_settings.z;
         height_lines_enabled.checked = conf.height_lines_enabled;
         phong_enabled.checked = conf.phong_enabled;
-        sun_light_color.color = Qt.rgba(conf.sun_light.x, conf.sun_light.y, conf.sun_light.z, 1.0);
-        sun_light_intensity.value = conf.sun_light.w;
-        amb_light_color.color = Qt.rgba(conf.amb_light.x, conf.amb_light.y, conf.amb_light.z, 1.0);
-        amb_light_intensity.value = conf.amb_light.w;
+        sun_light_color.color = Qt.rgba(conf.sun_light.x, conf.sun_light.y, conf.sun_light.z, conf.sun_light.w);
+        amb_light_color.color = Qt.rgba(conf.amb_light.x, conf.amb_light.y, conf.amb_light.z, conf.amb_light.w);
         material_color.color = Qt.rgba(conf.material_color.x, conf.material_color.y, conf.material_color.z, conf.material_color.w);
+        material_light_response.vector = conf.material_light_response;
         ssao_enabled.checked = conf.ssao_enabled;
         ssao_kernel.value = conf.ssao_kernel;
         ssao_falloff_to_value.value = conf.ssao_falloff_to_value;
@@ -173,30 +172,16 @@ SetPanel {
         checkBoxEnabled: true
         onCheckedChanged: map.shared_config.phong_enabled = this.checked;
 
-        Label { text: "Light-Colors:" }
+        Label { text: "Dir.-Light:" }
         ColorPicker {
             id: sun_light_color;
-            onColorChanged: map.shared_config.sun_light = Qt.vector4d(color.r, color.g, color.b, map.shared_config.sun_light.w);
+            onColorChanged: map.shared_config.sun_light = Qt.vector4d(color.r, color.g, color.b, color.a);
         }
 
-        Label { text: "Light-Intensity:" }
-        ValSlider {
-            id: sun_light_intensity;
-            from: 0.0; to: 1.0;
-            onMoved: map.shared_config.sun_light.w = this.value;
-        }
-
-        Label { text: "Amb.-Color:" }
+        Label { text: "Amb.-Light:" }
         ColorPicker {
             id: amb_light_color;
-            onColorChanged: map.shared_config.amb_light = Qt.vector4d(color.r, color.g, color.b, map.shared_config.amb_light.w);
-        }
-
-        Label { text: "Amb.-Intensity:" }
-        ValSlider {
-            id: amb_light_intensity;
-            from: 0.01; to: 1.0; stepSize: 0.01;
-            onMoved: map.shared_config.amb_light.w = this.value;
+            onColorChanged: map.shared_config.amb_light = Qt.vector4d(color.r, color.g, color.b, color.a);
         }
 
         Label { text: "Light-Direction:" }
@@ -255,6 +240,17 @@ SetPanel {
         ColorPicker {
             id: material_color;
             onColorChanged: map.shared_config.material_color = Qt.vector4d(color.r, color.g, color.b, color.a);
+        }
+
+        Label { text: "Light-Response:" }
+        VectorEditor {
+            id: material_light_response;
+            vector: map.shared_config.material_light_response;
+            onVectorChanged: map.shared_config.material_light_response = vector;
+            dialogTitle: "Material Light-Response";
+            elementNames: ["Ambient", "Diffuse", "Specular", "Shininess"];
+            elementFroms: [0.0, 0.0, 0.0, 0.0]
+            elementTos: [5.0, 5.0, 5.0, 128.0]
         }
 
     }

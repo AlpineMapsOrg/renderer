@@ -164,6 +164,7 @@ void main() {
     // Don't do shading if not visible anyway and also don't for pixels where there is no geometry (depth==0.0)
     if (dist > 0.0) {
         highp vec3 origin = vec3(camera.position);
+        highp vec3 pos_ws = pos_cws + origin;
         highp vec3 ray_direction = pos_cws / dist;
 
         highp vec3 light_through_atmosphere = calculate_atmospheric_light(origin / 1000.0, ray_direction, dist / 1000.0, albedo, 10);
@@ -188,7 +189,7 @@ void main() {
 
         shaded_color = albedo;
         if (bool(conf.phong_enabled)) {
-            shaded_color = calculate_illumination(shaded_color, origin, pos_cws, normal, conf.sun_light, conf.amb_light, conf.sun_light_dir.xyz, conf.material_light_response, amb_occlusion, shadow_term);
+            shaded_color = calculate_illumination(shaded_color, origin, pos_ws, normal, conf.sun_light, conf.amb_light, conf.sun_light_dir.xyz, conf.material_light_response, amb_occlusion, shadow_term);
         }
         shaded_color = calculate_atmospheric_light(origin / 1000.0, ray_direction, dist / 1000.0, shaded_color, 10);
         shaded_color = max(vec3(0.0), shaded_color);

@@ -42,6 +42,7 @@ qt_add_qml_module(alpineapp
         components/DrawerButton.qml
         components/DrawerSeparator.qml
         components/DrawerSpacer.qml
+        components/VectorEditor.qml
     RESOURCES
         icons/camera_operation_centre.svg
         icons/compass.svg

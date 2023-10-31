@@ -6,17 +6,13 @@ import QtQuick.Dialogs
 
 Item {
     id: root;
+
     property color color;
-    /*
-    property alias from: slider.from;
-    property alias to: slider.to;
-    property alias stepSize: slider.stepSize;
-    property alias value: slider.value;
-    property alias snapMode: slider.snapMode;
-    signal moved();*/
+    property bool alphaEnabled: true;
 
     onColorChanged: {
         label.text = color.toString().toUpperCase();
+        slider.value = color.a;
     }
 
     RowLayout {
@@ -31,22 +27,32 @@ Item {
         Label {
             id: label;
             padding: 5;
-            Layout.fillWidth: true;
+            Layout.fillWidth: !alphaEnabled;
             text: "#FFFFFFF";
             font.underline: true;
+
+            MouseArea{
+                anchors.fill: parent
+                cursorShape: Qt.PointingHandCursor
+                onClicked: {
+                    colorDialog.selectedColor = root.color;
+                    colorDialog.open();
+                }
+            }
+        }
+        Slider {
+            id: slider;
+            from: 0.0; to: 1.0; stepSize: 0.01;
+            Layout.fillWidth: true;
+            visible: alphaEnabled;
+            onValueChanged: color.a = value;
+            implicitHeight: label.implicitHeight;
         }
     }
-    MouseArea{
-        anchors.fill: parent
-        cursorShape: Qt.PointingHandCursor
-        onClicked: {
-            colorDialog.selectedColor = root.color;
-            colorDialog.open();
-        }
-    }
+
     ColorDialog {
         id: colorDialog
-        options: ColorDialog.ShowAlphaChannel
+        options: alphaEnabled ? ColorDialog.ShowAlphaChannel : 0
         onAccepted: root.color = selectedColor
     }
     height: label.height;
