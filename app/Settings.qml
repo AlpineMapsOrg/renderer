@@ -65,7 +65,7 @@ Rectangle {
             background: Rectangle {
                 gradient: Gradient {
                     GradientStop { position: 0.0; color: Qt.rgba(0.0, 0.0, 0.0, 0.0) }
-                    GradientStop { position: 1.0; color: Qt.rgba(0.0, 0.0, 0.0, 0.1) }
+                    GradientStop { position: 1.0; color: Qt.rgba(1.0, 1.0, 1.0, 0.2) }
                 }
             }
 
@@ -96,11 +96,13 @@ Rectangle {
                 bottom: parent.bottom
             }
             background: Rectangle {
-                color: Qt.rgba(0.0, 0.0, 0.0, 0.1)
+                color: Qt.rgba(1.0, 1.0, 1.0, 0.2)
             }
 
             GeneralSettings {}
-            GlSettings {}
+            GlSettings {
+
+            }
         }
     }
 }

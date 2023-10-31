@@ -71,7 +71,6 @@ public:
 
     void set_viewport_size(const glm::uvec2& new_viewport_size);
 
-
     bool operator==(const Definition& other) const;
 
     float field_of_view() const;

@@ -17,7 +17,7 @@
  *****************************************************************************/
 
 const lowp int steepness_bins = 9;
-const highp vec4 steepness_color_map[steepness_bins] = vec4[](
+const lowp vec4 steepness_color_map[steepness_bins] = vec4[](
     vec4(254.0/255.0, 249.0/255.0, 249.0/255.0, 1.0),
     vec4(51.0/255.0, 249.0/255.0, 49.0/255.0, 1.0),
     vec4(242.0/255.0, 228.0/255.0, 44.0/255.0, 1.0),

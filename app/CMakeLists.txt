@@ -31,12 +31,17 @@ qt_add_qml_module(alpineapp
         GlSettings.qml
         components/ValSlider.qml
         components/ColorPicker.qml
-        components/DrawerItem.qml
         components/PageDrawer.qml
         components/SvgImage.qml
         components/SetGroup.qml
         components/SetDivider.qml
         components/SetPanel.qml
+        components/SetTitle.qml
+        components/Window.qml
+        components/GraphWindow.qml
+        components/DrawerButton.qml
+        components/DrawerSeparator.qml
+        components/DrawerSpacer.qml
     RESOURCES
         icons/camera_operation_centre.svg
         icons/compass.svg
@@ -51,6 +56,7 @@ qt_add_qml_module(alpineapp
         icons/minimal/location.png
         icons/minimal/mountain.png
         icons/minimal/settings.png
+        icons/minimal/charts.png
 )
 
 qt_add_resources(alpineapp "height_data"

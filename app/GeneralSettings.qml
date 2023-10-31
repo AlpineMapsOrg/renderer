@@ -68,26 +68,5 @@ SetPanel {
                     from: 1000; to: 20000; stepSize: 1000;
                 }
 
-                Label {
-                    text: qsTr("Cachedd:")
-                }
-                ProgressBar {
-                    Layout.fillWidth: true
-                    id: cache_fill_slider
-                    from: 0
-                    to: cache_size_slider.value
-                    value: map.cached_tiles
-                }
-
-                Label {
-                    text: qsTr("Queued:")
-                }
-                ProgressBar {
-                    Layout.fillWidth: true
-                    id: queued_slider
-                    from: 0
-                    to: 200
-                    value: map.queued_tiles
-                }
             }
 }

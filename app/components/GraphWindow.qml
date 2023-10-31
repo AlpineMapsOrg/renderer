@@ -13,8 +13,8 @@ Item {
     Layout.preferredHeight: rootlayout.implicitHeight
 
     onCheckedChanged: {
-        if (checked) groupchildren.visible = true
-        else groupchildren.visible = false
+        if (checked) groupchildren.opacity = 1.0
+        else groupchildren.opacity = 0.3
     }
 
     ColumnLayout {

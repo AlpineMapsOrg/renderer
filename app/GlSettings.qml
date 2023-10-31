@@ -94,19 +94,19 @@ SetPanel {
 
         Label {
             text: "Strength:"
-            opacity: overlay_strength.opacity;
+            visible: overlay_strength.visible;
         }
         ValSlider {
             id: overlay_strength;
             from: 0.0; to: 1.0; stepSize:  0.01;
-            opacity: overlay_mode.currentValue === 0 ? 0.5 : 1.0;
+            visible: overlay_mode.currentValue > 0
             onMoved: map.shared_config.overlay_strength = value;
         }
 
         CheckBox {
             id: overlay_postshading_enabled;
             text: "overlay post shading"
-            opacity: overlay_mode.currentValue < 100 ? 0.5 : 1.0;
+            visible: overlay_mode.currentValue >= 100
             Layout.fillWidth: true;
             Layout.columnSpan: 2;
             onCheckStateChanged: map.shared_config.overlay_postshading_enabled = this.checked;
@@ -206,7 +206,6 @@ SetPanel {
                 let theta = sun_theta.value * Math.PI / 180.0;
                 let dir = Qt.vector3d(-Math.sin(theta) * Math.cos(phi), -Math.sin(theta) * Math.sin(phi), -Math.cos(theta));
                 dir = dir.normalized();
-                console.log("sunlight dir", dir);
                 map.shared_config.sun_light_dir = Qt.vector4d(dir.x, dir.y, dir.z, 1.0);
             }
             Dial {
@@ -289,7 +288,7 @@ SetPanel {
 
         CheckBox {
             id: ssao_range_check;
-            text: "Range-sCheck"
+            text: "Range-Check"
             Layout.fillWidth: true;
             Layout.columnSpan: 2;
             onCheckStateChanged: map.shared_config.ssao_range_check = this.checked;

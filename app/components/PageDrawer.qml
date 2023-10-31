@@ -4,66 +4,60 @@ import QtQuick.Controls.Material
 import Alpine
 
 Drawer {
-    id: drawer
+    default property alias content: item_layout.children
 
-    implicitHeight: parent.height
-    implicitWidth: Math.min (parent.width > parent.height ? 400 : 300,
+    id: drawer
+    implicitHeight: map.height
+    width: Math.min (parent.width > parent.height ? 400 : 300,
                              Math.min (parent.width, parent.height) * 0.90)
 
-    property string iconTitle: ""
-    property string iconSource: ""
-    property string iconSubtitle: ""
-    property size iconSize: Qt.size (72, 72)
-    property color iconBgColorLeft: "#FFFFFF"
-    property color iconBgColorRight: "#ebf8f2"
+    property string bannerTitle: ""
+    property string bannerSubtitle: ""
+    property string bannerIconSource: ""
+    property size bannerIconSize: Qt.size (72, 72)
 
-    property alias items: listView.model
-    property alias index: listView.currentIndex
+    property color iconBgColorLeft: Material.backgroundColor
+    property color iconBgColorRight: Qt.alpha(Material.accentColor, 0.2)
+
+    property int selectedButtonId: -1
+    function handleClick(button) {
+        if (button.selectable) {
+            if (selectedButtonId !== button.bid) {
+                selectedButtonId = button.bid
+                button.clicked();
+
+                for (var i = 0; i < content.length; i++) {
+                    if (typeof content[i].evaluateBackgroundColor !== "undefined")
+                        content[i].evaluateBackgroundColor(false);
+                }
+            }
+        } else {
+            button.clicked();
+        }
+        drawer.close();
+    }
 
     background: Rectangle {
         anchors.fill: parent
-        color:  Qt.alpha(Material.backgroundColor, 0.9)
-        radius: 0  // Adjust this value to modify the rounded border
+        color:  Qt.alpha(Material.backgroundColor, 0.8)
     }
     topPadding: 0
     bottomPadding: 0
 
-    onIndexChanged: {
-        var isSpacer = false
-        var isSeparator = false
-        var item = items.get (index)
-
-        if (typeof (item) !== "undefined") {
-            if (typeof (item.spacer) !== "undefined")
-                isSpacer = item.spacer
-
-            if (typeof (item.separator) !== "undefined")
-                isSpacer = item.separator
-
-            if (!isSpacer && !isSeparator)
-                actions [index]()
-        }
-    }
-
-    property var actions
-
-    //
-    // Main layout of the drawer
-    //
     ColumnLayout {
         spacing: 0
         anchors.margins: 0
         anchors.fill: parent
 
         //
-        // Icon controls
+        // BANNER
         //
         Rectangle {
             z: 1
             height: 120
-            id: iconRect
+            id: banner
             Layout.fillWidth: true
-
+            Layout.alignment: Qt.AlignTop
             Rectangle {
                 anchors.fill: parent
                 gradient: Gradient {
@@ -83,8 +77,8 @@ Drawer {
                 }
 
                 Image {
-                    source: iconSource
-                    sourceSize: iconSize
+                    source: bannerIconSource
+                    sourceSize: bannerIconSize
                 }
 
                 ColumnLayout {
@@ -98,7 +92,7 @@ Drawer {
 
                     Label {
                         color: "#1b1b1b"
-                        text: iconTitle
+                        text: bannerTitle
                         font.weight: Font.Medium
                         font.pixelSize: 24
                     }
@@ -106,7 +100,7 @@ Drawer {
                     Label {
                         color: "#1b1b1b"
                         opacity: 0.87
-                        text: iconSubtitle
+                        text: bannerSubtitle
                         font.pixelSize: 14
                     }
 
@@ -123,30 +117,23 @@ Drawer {
         }
 
         //
-        // Page selector
+        // ITEMS
         //
-        ListView {
-            z: 0
-            id: listView
-            currentIndex: -1
+        ScrollView {
             Layout.fillWidth: true
             Layout.fillHeight: true
-            Component.onCompleted: currentIndex = 0
 
-            delegate: DrawerItem {
-                model: items
-                width: parent.width
-                pageSelector: listView
-
-                onClicked: {
-                    if (listView.currentIndex !== index)
-                        listView.currentIndex = index
-
-                    drawer.close()
-                }
+            Item {
+                anchors.fill: parent
             }
 
-            ScrollIndicator.vertical: ScrollIndicator { }
+            ColumnLayout {
+                property alias parentDrawer: drawer
+                id: item_layout
+                spacing: 0
+                anchors.margins: 0
+                anchors.fill: parent
+            }
         }
     }
 }

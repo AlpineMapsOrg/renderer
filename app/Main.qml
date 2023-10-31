@@ -7,6 +7,7 @@ import Alpine
 import "components"
 
 Item {
+    id: main
     property int theme: Material.Light //Material.System
     property int accent: Material.Green
 
@@ -72,54 +73,56 @@ Item {
     PageDrawer {
         id: menu
 
-        iconTitle: "Alpine Maps"
-        iconSource: "../icons/favicon_256.png"
-        iconSubtitle: qsTr ("Version 0.8 Alpha")
+        bannerTitle: "Alpine Maps"
+        bannerIconSource: "../icons/favicon_256.png"
+        bannerSubtitle: qsTr ("Version 0.8 Alpha")
+        selectedButtonId: 0
 
-        actions: {
-            0: function() { change_page("map", qsTr("Map")) },
-            1: function() { change_page("Coordinates.qml", qsTr("Coordinates")) },
-            2: function() { change_page("Settings.qml", qsTr("Settings")) },
-            5: function() { change_page("About.qml", qsTr("About")) }
+        DrawerSeparator {}
+
+        DrawerButton {
+            bid: 0
+            text: qsTr ("Map")
+            iconSource: "../icons/minimal/mountain.png"
+            onClicked: change_page("map", qsTr("Map"))
         }
 
-        items: ListModel {
-            id: pagesModel
-
-            ListElement {
-                pageTitle: qsTr ("Map")
-                pageIcon: "../icons/minimal/mountain.png"
-            }
-
-            ListElement {
-                pageTitle: qsTr ("Coordinates")
-                pageIcon: "../icons/minimal/location.png"
-            }
-
-            ListElement {
-                pageTitle: qsTr ("Settings")
-                pageIcon: "../icons/minimal/settings.png"
-            }
-
-            ListElement {
-                spacer: true
-            }
-
-            ListElement {
-                separator: true
-            }
-
-            ListElement {
-                pageTitle: qsTr ("About")
-                pageIcon: "../icons/minimal/information.png"
-            }
+        DrawerButton {
+            text: qsTr ("Coordinates")
+            iconSource: "../icons/minimal/location.png"
+            onClicked: change_page("Coordinates.qml", qsTr("Coordinates"))
         }
+
+        DrawerButton {
+            text: qsTr ("Settings")
+            iconSource: "../icons/minimal/settings.png"
+            onClicked: change_page("Settings.qml", qsTr("Settings"))
+        }
+
+        DrawerSeparator {}
+
+        DrawerButton {
+            text: stats_window.visible ? qsTr ("Hide Statistics") : qsTr("Statistics")
+            iconSource: "../icons/minimal/charts.png"
+            selectable: false
+            onClicked: stats_window.visible = !stats_window.visible
+        }
+
+        DrawerSpacer {}
+
+        DrawerSeparator {}
+
+        DrawerButton {
+            text: qsTr ("About")
+            iconSource: "../icons/minimal/information.png"
+            onClicked: change_page("About.qml", qsTr("About"))
+        }
+
     }
 
     function change_page(source, title) {
         if (source === "map") {
             if (main_stack_view.depth >= 1) main_stack_view.pop()
-            menu.close()
             page_title.visible = false
             search.visible = true
             return
@@ -131,8 +134,8 @@ Item {
         page_title.visible = true
         search.visible = false
         page_title.text = title
-        menu.close()
     }
+
 
     TerrainRenderer {
         id: map
@@ -140,6 +143,12 @@ Item {
         anchors.fill: parent
         onHud_visible_changed: function(new_hud_visible) {
             tool_bar.visible = new_hud_visible;
+        }
+
+        Keys.onPressed: {
+            if (event.key === Qt.Key_S) {
+                stats_window.visible = !stats_window.visible
+            }
         }
     }
 
@@ -157,14 +166,17 @@ Item {
         }
     }
 
-/*
-    DebugWindow {}
 
-    StatsWindow {}
-*/
+    //DebugWindow {}
+
+    StatsWindow {
+        id: stats_window
+        visible: false
+    }
+
      //property TerrainRenderer renderer
     Component.onCompleted: {
-        menu.change_page(0)
+        change_page("map")
     }
 
 }
