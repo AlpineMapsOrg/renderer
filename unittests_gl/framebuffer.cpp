@@ -37,6 +37,10 @@
 #include "gl_engine/helpers.h"
 #include "nucleus/utils/bit_coding.h"
 
+#ifdef ANDROID
+#include "GLES3/gl3.h"
+#endif
+
 using Catch::Approx;
 using gl_engine::Framebuffer;
 using gl_engine::ShaderProgram;
@@ -107,6 +111,84 @@ TEST_CASE("gl framebuffer")
         CHECK(value_at_0_0.z == Approx(600000000.0f));
         CHECK(value_at_0_0.w == Approx(15000000000.0f));
     }
+
+    SECTION("rg16 direct texture test")
+    {
+        GLsizei width = 64;
+        GLsizei height = 64;
+        GLenum error;
+
+        // Generate the texture
+        GLuint textureID;
+        f->glGenTextures(1, &textureID);
+        f->glBindTexture(GL_TEXTURE_2D, textureID);
+        error = f->glGetError();
+        CHECK(error == GL_NO_ERROR);
+        if (error != GL_NO_ERROR) {
+            qCritical() << "Texture generation or binding failed with error" << error;
+        }
+
+        // Create an array filled with the value 400 for each RG component
+        GLushort data[width * height * 2];
+        for (int i = 0; i < width * height * 2; i += 2) {
+            data[i] = 400;     // R component
+            data[i + 1] = 400; // G component
+        }
+
+        // Define the texture image
+        f->glTexImage2D(GL_TEXTURE_2D, 0, GL_RG16UI, width, height, 0, GL_RG_INTEGER, GL_UNSIGNED_SHORT, data);
+        error = f->glGetError();
+        CHECK(error == GL_NO_ERROR);
+        if (error != GL_NO_ERROR) {
+            qCritical() << "glTexImage2D failed with error" << error;
+        }
+
+        // Set the texture parameters
+        f->glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+        f->glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+        f->glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+        f->glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+
+        // Unbind the texture
+        f->glBindTexture(GL_TEXTURE_2D, 0);
+    }
+    SECTION("rg16 QOpenGLTexture test")
+    {
+        GLsizei width = 64;
+        GLsizei height = 64;
+
+        // Create the texture object
+        QOpenGLTexture texture(QOpenGLTexture::Target2D);
+        texture.setFormat(QOpenGLTexture::RG16U);
+        texture.setSize(width, height);
+
+        // IMPORTANT: We have to manually define PixelFormat and PixelType. The default won't work for the OpenGL ES implementation!
+        texture.allocateStorage(QOpenGLTexture::PixelFormat::RG_Integer, QOpenGLTexture::PixelType::UInt16);
+
+        // Fill the array with the value 400 for each RG component
+        GLushort data[width * height * 2];
+        for (int i = 0; i < width * height * 2; i += 2) {
+            data[i] = 400;     // R component
+            data[i + 1] = 400; // G component
+        }
+
+        // Upload the data to the texture
+        texture.setData(0, QOpenGLTexture::PixelFormat::RG_Integer, QOpenGLTexture::PixelType::UInt16, data);
+
+        // Set the texture parameters
+        texture.setMinificationFilter(QOpenGLTexture::Nearest);
+        texture.setMagnificationFilter(QOpenGLTexture::Nearest);
+        texture.setWrapMode(QOpenGLTexture::ClampToEdge);
+
+
+        // Check for errors
+        GLenum error = f->glGetError();
+        CHECK(error == GL_NO_ERROR);
+        if (error != GL_NO_ERROR) {
+            qCritical() << "An error occurred while setting up the texture:" << error;
+        }
+    }
+
     SECTION("rg16ui color format")
     {
         Framebuffer b(Framebuffer::DepthFormat::None, { {Framebuffer::ColourFormat::RG16UI} });

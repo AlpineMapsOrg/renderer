@@ -56,9 +56,14 @@
 #include "UniformBufferObjects.h"
 #include "nucleus/utils/UrlModifier.h"
 
-#ifndef __EMSCRIPTEN__
-#include <QOpenGLFunctions_3_3_Core>
+#if (defined(__linux) && !defined(__ANDROID__)) || defined(_WIN32) || defined(_WIN64)
+#include <QOpenGLFunctions_3_3_Core>    // for wireframe mode
 #endif
+
+#if defined(__ANDROID__)
+#include <GLES3/gl3.h>  // for GL ENUMS! DONT EXACTLY KNOW WHY I NEED THIS HERE! (on other platforms it works without)
+#endif
+
 
 using gl_engine::Window;
 using gl_engine::UniformBuffer;
@@ -177,10 +182,9 @@ void Window::paint(QOpenGLFramebufferObject* framebuffer)
 
     QOpenGLExtraFunctions *f = QOpenGLContext::currentContext()->extraFunctions();
 
-    // for wireframe mode
-    #ifndef __EMSCRIPTEN__
-    auto funcs = QOpenGLVersionFunctionsFactory::get<QOpenGLFunctions_3_3_Core>(QOpenGLContext::currentContext());
-    #endif
+#if (defined(__linux) && !defined(__ANDROID__)) || defined(_WIN32) || defined(_WIN64)
+    auto funcs = QOpenGLVersionFunctionsFactory::get<QOpenGLFunctions_3_3_Core>(QOpenGLContext::currentContext()); // for wireframe mode
+#endif
 
     f->glEnable(GL_CULL_FACE);
     f->glCullFace(GL_BACK);
@@ -251,9 +255,9 @@ void Window::paint(QOpenGLFramebufferObject* framebuffer)
     //f->glDepthFunc(GL_GREATER); // for reverse z
     f->glDepthFunc(GL_LESS);
 
-    #ifndef __EMSCRIPTEN__
+#if (defined(__linux) && !defined(__ANDROID__)) || defined(_WIN32) || defined(_WIN64)
     if (funcs && m_shared_config_ubo->data.m_wireframe_mode > 0) funcs->glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
-    #endif
+#endif
 
     m_shader_manager->tile_shader()->bind();
     m_timer->start_timer("tiles");
@@ -261,9 +265,9 @@ void Window::paint(QOpenGLFramebufferObject* framebuffer)
     m_timer->stop_timer("tiles");
     m_shader_manager->tile_shader()->release();
 
-    #ifndef __EMSCRIPTEN__
+#if (defined(__linux) && !defined(__ANDROID__)) || defined(_WIN32) || defined(_WIN64)
     if (funcs && m_shared_config_ubo->data.m_wireframe_mode > 0) funcs->glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
-    #endif
+#endif
 
     m_gbuffer->unbind();
 
@@ -276,26 +280,6 @@ void Window::paint(QOpenGLFramebufferObject* framebuffer)
                      m_shared_config_ubo->data.m_ssao_kernel, m_shared_config_ubo->data.m_ssao_blur_kernel_size);
         m_timer->stop_timer("ssao");
     }
-
-    /*
-    static ShaderProgram p1 = create_debug_shader( R"(
-            uniform sampler2D texin_albedo;             // 8vec3
-            layout (location = 0) out lowp vec4 out_Color;
-            in highp vec2 texcoords;
-            void main() {
-                highp vec4 texin = texture(texin_albedo, texcoords);
-                //out_Color = vec4(texin.rgb, 1.0);
-                out_Color = vec4(texcoords.x, texcoords.y, texin.x, 1.0);
-            }
-        )");
-
-    if (framebuffer)
-        framebuffer->bind();
-    p1.bind();
-    p1.set_uniform("texin_albedo", 0);
-    m_gbuffer->bind_colour_texture(0, 0);
-    m_screen_quad_geometry.draw();
-    */
 
     if (framebuffer)
         framebuffer->bind();

@@ -8,7 +8,7 @@
 
 #include<QMap>
 
-#ifndef __EMSCRIPTEN__
+#if (defined(__linux) && !defined(__ANDROID__)) || defined(_WIN32) || defined(_WIN64) // only on native
 #include <QOpenGLTimerQuery>
 #endif
 
@@ -77,7 +77,7 @@ private:
     std::chrono::time_point<std::chrono::high_resolution_clock> m_ticks[2];
 };
 
-#ifndef __EMSCRIPTEN__
+#if (defined(__linux) && !defined(__ANDROID__)) || defined(_WIN32) || defined(_WIN64) // only on native
 
 /// The SyncQueryTimer class can only be fetched after cpu-gpu synchronization
 /// otherwise the query result might not be yet available

@@ -25,6 +25,9 @@
 #include <QByteArray>
 #include <QDataStream>
 #include <QIODevice>
+#if defined(__ANDROID__)
+#include <GLES3/gl3.h>  // for GL_UNIFORM_BUFFER! DONT EXACTLY KNOW WHY I NEED THIS HERE! (on other platforms it works without)
+#endif
 
 template <typename T> gl_engine::UniformBuffer<T>::UniformBuffer(GLuint location, const std::string& name):
     m_location(location), m_name(name)

@@ -71,7 +71,7 @@ int format(Framebuffer::ColourFormat f)
     case Framebuffer::ColourFormat::RGBA8:
         return GL_RGBA;
     case Framebuffer::ColourFormat::RG16UI:
-        return GL_RG_INTEGER; //GL_RG16UI
+        return QOpenGLTexture::PixelFormat::RG_Integer;
     case Framebuffer::ColourFormat::Float32: // reading Float32 is inefficient, see read_colour_attachment() for details.
         return GL_RED;
     case Framebuffer::ColourFormat::RGB16F:
@@ -116,7 +116,7 @@ int type(Framebuffer::ColourFormat f)
     case Framebuffer::ColourFormat::R8: case Framebuffer::ColourFormat::RGBA8: case Framebuffer::ColourFormat::RGB8:
         return GL_UNSIGNED_BYTE;
     case Framebuffer::ColourFormat::RG16UI:
-        return GL_UNSIGNED_SHORT;
+        return QOpenGLTexture::PixelType::UInt16;
     case Framebuffer::ColourFormat::Float32: case Framebuffer::ColourFormat::RGBA32F:
         return GL_FLOAT;
     case Framebuffer::ColourFormat::RGB16F: case Framebuffer::ColourFormat::RGBA16F:
@@ -176,7 +176,9 @@ void Framebuffer::recreate_texture(int index) {
             m_depth_texture->setAutoMipMapGenerationEnabled(false);
             // No filtering of depth buffer possible in OpenGLES and WebGL!!!!
             m_depth_texture->setMinMagFilters(QOpenGLTexture::Filter::Nearest, QOpenGLTexture::Filter::Nearest);
-#ifndef __EMSCRIPTEN__
+#if (defined(__linux) && !defined(__ANDROID__)) || defined(_WIN32) || defined(_WIN64)
+            // No support on WebGL and OpenGL ES for Border (Warning: On those platforms we just ignore the wrap mode)
+            // Feel free to make this code better!!
             m_depth_texture->setWrapMode(QOpenGLTexture::WrapMode::ClampToBorder);
 #endif
             m_depth_texture->allocateStorage();
@@ -187,11 +189,15 @@ void Framebuffer::recreate_texture(int index) {
         m_colour_textures[index]->setSize(int(m_size.x), int(m_size.y));
         m_colour_textures[index]->setAutoMipMapGenerationEnabled(m_colour_definitions[index].autoMipMapGeneration);
         m_colour_textures[index]->setMinMagFilters(m_colour_definitions[index].minFilter, m_colour_definitions[index].magFilter);
-#ifndef __EMSCRIPTEN__
+#if (defined(__linux) && !defined(__ANDROID__)) || defined(_WIN32) || defined(_WIN64)
+        // No support on WebGL and OpenGL ES for Border (Warning: On those platforms we just ignore the wrap mode)
+        // Feel free to make this code better!!
         m_colour_textures[index]->setWrapMode(m_colour_definitions[index].wrapMode);
         m_colour_textures[index]->setBorderColor(m_colour_definitions[index].borderColor);
 #endif
-        m_colour_textures[index]->allocateStorage();
+        // NOTE: If format and type not specifically defined in the following function it will crash for uint-textures
+        // on OpenGL ES (Android). Might be a bug with the default of QOpenGLTexture on that platform.
+        m_colour_textures[index]->allocateStorage((QOpenGLTexture::PixelFormat)format(m_colour_definitions[index].format), (QOpenGLTexture::PixelType)type(m_colour_definitions[index].format));
     }
 }
 

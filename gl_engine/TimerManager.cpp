@@ -50,7 +50,7 @@ float HostTimer::_fetch_result() {
     return ((float)(diff.count() * 1000.0));
 }
 
-#ifndef __EMSCRIPTEN__
+#if (defined(__linux) && !defined(__ANDROID__)) || defined(_WIN32) || defined(_WIN64) // only on native
 
 GpuSyncQueryTimer::GpuSyncQueryTimer(const std::string &name, const std::string& group, int queue_size, const float average_weight)
     :GeneralTimer(name, group, queue_size, average_weight)
@@ -160,7 +160,7 @@ std::shared_ptr<GeneralTimer> TimerManager::add_timer(const std::string &name, T
     case TimerTypes::CPU:
         tmr_base = static_pointer_cast<GeneralTimer>(std::make_shared<HostTimer>(name, group, queue_size, average_weight));
         break;
-#ifndef __EMSCRIPTEN__
+#if (defined(__linux) && !defined(__ANDROID__)) || defined(_WIN32) || defined(_WIN64) // only on native
     case TimerTypes::GPU:
         tmr_base = static_pointer_cast<GeneralTimer>(std::make_shared<GpuSyncQueryTimer>(name, group, queue_size, average_weight));
         break;

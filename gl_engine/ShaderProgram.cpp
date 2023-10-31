@@ -6,11 +6,14 @@
 #include <QOpenGLContext>
 #include <QOpenGLShader>
 #include <QOpenGLExtraFunctions>
-
 #include <QDebug>
 
+#if defined(__ANDROID__)
+#include <GLES3/gl3.h>  // for GL_INVALID_INDEX! DONT EXACTLY KNOW WHY I NEED THIS HERE! (on other platforms it works without)
+#endif
+
 // FOR DOWNLOADING SHADERS
-#if WEBGL_SHADER_DOWNLOAD_ACCESS //&& __EMSCRIPTEN__
+#if WEBGL_SHADER_DOWNLOAD_ACCESS
 #include <QNetworkRequest>
 #include <QNetworkReply>
 #endif
