@@ -5,6 +5,7 @@
 #define WEBGL_SHADER_DOWNLOAD_ACCESS true
 #define WEBGL_SHADER_DOWNLOAD_URL "http://localhost:5500/"
 #define WEBGL_SHADER_DOWNLOAD_TIMEOUT 8000
+// ALP_ENABLE_SHADER_WEB_HOTRELOAD
 
 #include <vector>
 #include <unordered_map>

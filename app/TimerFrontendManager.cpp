@@ -1,5 +1,4 @@
 #include "TimerFrontendManager.h"
-#include "gl_engine/TimerManager.h"
 
 #include <QMap>
 #include <QDebug>
@@ -46,7 +45,7 @@ TimerFrontendManager::~TimerFrontendManager()
 }
 
 int TimerFrontendManager::current_frame = 0;
-void TimerFrontendManager::receive_measurements(QList<gl_engine::qTimerReport> values)
+void TimerFrontendManager::receive_measurements(QList<nucleus::timing::TimerReport> values)
 {
     for (const auto& report : values) {
         const char* name = report.timer->get_name().c_str();

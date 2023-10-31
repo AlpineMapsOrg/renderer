@@ -8,7 +8,7 @@
 #include <QColor>
 #include <QVector3D>
 
-#include "gl_engine/TimerManager.h"
+#include "nucleus/timing/TimerManager.h"
 
 class TimerFrontendObject : public QObject {
     Q_OBJECT
@@ -84,7 +84,7 @@ public:
     bool operator!=(const TimerFrontendManager& other);
 
 public slots:
-    void receive_measurements(QList<gl_engine::qTimerReport> values);
+    void receive_measurements(QList<nucleus::timing::TimerReport> values);
 
 signals:
     void updateTimingList(QList<TimerFrontendObject*> data);

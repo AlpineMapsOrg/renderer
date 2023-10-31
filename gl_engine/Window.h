@@ -35,6 +35,8 @@
 #include "UniformBufferObjects.h"
 #include "UniformBuffer.h"
 
+#include "nucleus/timing/TimerManager.h"
+
 class QOpenGLTexture;
 class QOpenGLShaderProgram;
 class QOpenGLBuffer;
@@ -46,8 +48,6 @@ namespace gl_engine {
 class DebugPainter;
 class ShaderManager;
 class Framebuffer;
-class TimerManager;
-class qTimerReport;
 class SSAO;
 class ShadowMapping;
 
@@ -82,11 +82,9 @@ public slots:
     void render_looped_changed(bool render_looped_flag);
 
 signals:
-    void report_measurements(QList<gl_engine::qTimerReport> values);
+    void report_measurements(QList<nucleus::timing::TimerReport> values);
 
 private:
-    std::unique_ptr<TimerManager> m_timer; // needs opengl context
-
     std::unique_ptr<TileManager> m_tile_manager; // needs opengl context
     std::unique_ptr<DebugPainter> m_debug_painter; // needs opengl context
     std::unique_ptr<ShaderManager> m_shader_manager;
@@ -111,6 +109,8 @@ private:
     bool m_sort_tiles = true;
     QString m_debug_text;
     QString m_debug_scheduler_stats;
+
+    nucleus::timing::TimerManager* m_timer;
 };
 
 } // namespace

@@ -12,9 +12,9 @@ qt_add_library(gl_engine STATIC
     ShaderProgram.h ShaderProgram.cpp
     UniformBufferObjects.h UniformBufferObjects.cpp
     UniformBuffer.h UniformBuffer.cpp
-    TimerManager.h TimerManager.cpp
     SSAO.h SSAO.cpp
     ShadowMapping.h ShadowMapping.cpp
+    GpuAsyncQueryTimer.h GpuAsyncQueryTimer.cpp
 )
 target_link_libraries(gl_engine PUBLIC nucleus Qt::OpenGL)
 target_include_directories(gl_engine PRIVATE .)

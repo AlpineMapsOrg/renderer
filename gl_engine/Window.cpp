@@ -46,7 +46,6 @@
 #include "TileManager.h"
 #include "Window.h"
 #include "helpers.h"
-#include "TimerManager.h"
 #include "SSAO.h"
 #include "ShadowMapping.h"
 
@@ -54,6 +53,14 @@
 #include <glm/gtx/transform.hpp>
 
 #include "UniformBufferObjects.h"
+
+#include "nucleus/timing/TimerManager.h"
+#include "nucleus/timing/TimerInterface.h"
+#include "nucleus/timing/CpuTimer.h"
+#if (defined(__linux) && !defined(__ANDROID__)) || defined(_WIN32) || defined(_WIN64)
+#include "GpuAsyncQueryTimer.h"
+#endif
+
 #include "nucleus/utils/UrlModifier.h"
 
 #if (defined(__linux) && !defined(__ANDROID__)) || defined(_WIN32) || defined(_WIN64)
@@ -142,18 +149,21 @@ void Window::initialise_gpu()
 
     m_shadowmapping = std::make_unique<gl_engine::ShadowMapping>(m_shader_manager->shared_shadowmap_program(), m_shadow_config_ubo, m_shared_config_ubo);
 
-    m_timer = std::make_unique<gl_engine::TimerManager>();
+    m_timer = nucleus::timing::TimerManager::getInstance();
 
-    m_timer->add_timer("ssao", gl_engine::TimerTypes::GPUAsync, "GPU");
-    m_timer->add_timer("atmosphere", gl_engine::TimerTypes::GPUAsync, "GPU");
-    m_timer->add_timer("tiles", gl_engine::TimerTypes::GPUAsync, "GPU");
-    m_timer->add_timer("shadowmap", gl_engine::TimerTypes::GPUAsync, "GPU");
-    m_timer->add_timer("compose", gl_engine::TimerTypes::GPUAsync, "GPU");
-    m_timer->add_timer("cpu_total", gl_engine::TimerTypes::CPU, "TOTAL");
-    m_timer->add_timer("gpu_total", gl_engine::TimerTypes::GPUAsync, "TOTAL");
-    m_timer->add_timer("draw_list", gl_engine::TimerTypes::CPU, "CPU");
-    m_timer->add_timer("all", gl_engine::TimerTypes::CPU, "TOTAL");
+    // GPU Timing Queries not supported on OpenGL ES or Web GL
+#if (defined(__linux) && !defined(__ANDROID__)) || defined(_WIN32) || defined(_WIN64)
+    m_timer->add_timer(static_cast<nucleus::timing::TimerInterface*>(new GpuAsyncQueryTimer("ssao", "GPU", 240, 1.0f/60.0f)));
+    m_timer->add_timer(static_cast<nucleus::timing::TimerInterface*>(new GpuAsyncQueryTimer("atmosphere", "GPU", 240, 1.0f/60.0f)));
+    m_timer->add_timer(static_cast<nucleus::timing::TimerInterface*>(new GpuAsyncQueryTimer("tiles", "GPU", 240, 1.0f/60.0f)));
+    m_timer->add_timer(static_cast<nucleus::timing::TimerInterface*>(new GpuAsyncQueryTimer("shadowmap", "GPU", 240, 1.0f/60.0f)));
+    m_timer->add_timer(static_cast<nucleus::timing::TimerInterface*>(new GpuAsyncQueryTimer("compose", "GPU", 240, 1.0f/60.0f)));
 
+    m_timer->add_timer(static_cast<nucleus::timing::TimerInterface*>(new GpuAsyncQueryTimer("gpu_total", "TOTAL", 240, 1.0f/60.0f)));
+#endif
+    m_timer->add_timer(static_cast<nucleus::timing::TimerInterface*>(new nucleus::timing::CpuTimer("cpu_total", "TOTAL", 240, 1.0f/60.0f)));
+
+    m_timer->add_timer(static_cast<nucleus::timing::TimerInterface*>(new nucleus::timing::CpuTimer("cpu_b2b", "TOTAL", 240, 1.0f/60.0f)));
 
     emit gpu_ready_changed(true);
 }
@@ -307,16 +317,16 @@ void Window::paint(QOpenGLFramebufferObject* framebuffer)
     m_timer->stop_timer("cpu_total");
     m_timer->stop_timer("gpu_total");
     if (m_render_looped) {
-        m_timer->stop_timer("all");
+        m_timer->stop_timer("cpu_b2b");
     }
 
-    QList<gl_engine::qTimerReport> new_values = m_timer->fetch_results();
+    QList<nucleus::timing::TimerReport> new_values = m_timer->fetch_results();
     if (new_values.size() > 0) {
         emit report_measurements(new_values);
     }
 
     if (m_render_looped) {
-        m_timer->start_timer("all");
+        m_timer->start_timer("cpu_b2b");
         emit update_requested();
     }
 

@@ -28,8 +28,6 @@
 #include "nucleus/Tile.h"
 #include "nucleus/tile_scheduler/DrawListGenerator.h"
 
-#include "TimerManager.h"
-
 namespace camera {
 class Definition;
 }

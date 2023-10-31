@@ -52,6 +52,9 @@ qt_add_library(nucleus STATIC
     DataQuerier.h DataQuerier.cpp
     camera/LinearCameraAnimation.h camera/LinearCameraAnimation.cpp
     camera/AnimationStyle.h camera/AnimationStyle.cpp
+    timing/TimerManager.h timing/TimerManager.cpp
+    timing/TimerInterface.h timing/TimerInterface.cpp
+    timing/CpuTimer.h timing/CpuTimer.cpp
 )
 
 target_include_directories(nucleus PRIVATE . PUBLIC ${CMAKE_SOURCE_DIR})
