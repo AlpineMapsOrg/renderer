@@ -199,6 +199,8 @@ void main() {
     lowp vec3 atmoshperic_color = texture(texin_atmosphere, texcoords).rgb;
     out_Color = vec4(mix(atmoshperic_color, shaded_color, alpha), 1.0);
 
+    //out_Color = vec4(1.0, 0.0, 0.0, 1.0);
+
     if (bool(conf.overlay_postshading_enabled) && conf.overlay_mode >= 100u) {
         lowp vec4 overlay_color = vec4(0.0);
         switch(conf.overlay_mode) {

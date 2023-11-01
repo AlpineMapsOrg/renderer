@@ -13,7 +13,7 @@
 #endif
 
 // FOR DOWNLOADING SHADERS
-#if WEBGL_SHADER_DOWNLOAD_ACCESS
+#if ALP_ENABLE_SHADER_NETWORK_HOTRELOAD
 #include <QNetworkRequest>
 #include <QNetworkReply>
 #endif
@@ -78,7 +78,7 @@ void ShaderProgram::preprocess_shader_content_inplace(QString& base) {
 // ========== STATIC DECLARATIONS =====================
 std::map<QString, QString> ShaderProgram::shader_file_cache = {};
 
-#if WEBGL_SHADER_DOWNLOAD_ACCESS
+#if ALP_ENABLE_SHADER_NETWORK_HOTRELOAD
 
 std::map<QString, QString> ShaderProgram::web_download_file_cache = {};
 std::unique_ptr<QNetworkAccessManager> ShaderProgram::web_network_manager = nullptr;
@@ -89,10 +89,10 @@ void ShaderProgram::web_download_shader_files_and_put_in_cache(std::function<voi
 
     for (const auto& cache_entry : shader_file_cache) {
         auto name = cache_entry.first;
-        auto url = QUrl(WEBGL_SHADER_DOWNLOAD_URL + name);
+        auto url = QUrl(ALP_SHADER_NETWORK_URL + name);
 
         QNetworkRequest request(url);
-        request.setTransferTimeout(WEBGL_SHADER_DOWNLOAD_TIMEOUT);
+        request.setTransferTimeout(500);
         // IMPORTANT: QNetworkRequest::AlwaysNetwork doesn't seem to be supported for WebAssembly!!!
         request.setAttribute(QNetworkRequest::CacheLoadControlAttribute, QNetworkRequest::PreferNetwork);
 #if QT_VERSION >= QT_VERSION_CHECK(6, 5, 0) // Don't know if i need that but i copied it from the TileLoadService
@@ -105,8 +105,8 @@ void ShaderProgram::web_download_shader_files_and_put_in_cache(std::function<voi
                 //qDebug() << name << "put into filecache";
                 web_download_file_cache[name] = reply->readAll();
             } else {
-                qWarning("Download error: %s", qPrintable(reply->errorString()));
-                web_download_file_cache[name] = ""; // Just so that the overall count in web_download_file_cache will be correct
+                qWarning("Error at downloading file (%s). Local file will be reload.",  qPrintable(reply->errorString()));
+                web_download_file_cache[name] = read_file_content_local(name); // Just so that the overall count in web_download_file_cache will be correct
             }
             reply->deleteLater(); // Schedule the reply object for deletion.
 

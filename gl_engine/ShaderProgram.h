@@ -1,12 +1,5 @@
 #pragma once
 
-// If true the shaders will be loaded from the given WEBGL_SHADER_DOWNLOAD_URL
-// and can be reloaded inside the APP without the need for recompilation
-#define WEBGL_SHADER_DOWNLOAD_ACCESS true
-#define WEBGL_SHADER_DOWNLOAD_URL "http://localhost:5500/"
-#define WEBGL_SHADER_DOWNLOAD_TIMEOUT 8000
-// ALP_ENABLE_SHADER_WEB_HOTRELOAD
-
 #include <vector>
 #include <unordered_map>
 #include <string>
@@ -18,7 +11,7 @@
 #include <QUrl>
 #include <QDebug>
 
-#if WEBGL_SHADER_DOWNLOAD_ACCESS
+#if ALP_ENABLE_SHADER_NETWORK_HOTRELOAD
 #include <functional>
 #include <QNetworkAccessManager>
 #endif
@@ -44,7 +37,7 @@ private:
     QString m_fragment_shader;  // either filename or native shader code
     ShaderCodeSource m_code_source;
 
-#if WEBGL_SHADER_DOWNLOAD_ACCESS
+#if ALP_ENABLE_SHADER_NETWORK_HOTRELOAD
     // A temporary cache for the downloaded shader files.
     static std::map<QString, QString> web_download_file_cache;
     // Shared NetworkAccessManager for downloading files
@@ -52,7 +45,7 @@ private:
 #endif
     // A storage for the content of the shader files, such that includes
     // don't have to be read several times. It also allows for overriding
-    // content by download if WEBGL_SHADER_DOWNLOAD_ACCESS is true
+    // content by download if ALP_ENABLE_SHADER_NETWORK_HOTRELOAD is true
     static std::map<QString, QString> shader_file_cache;
 
     // Helper function which returns the content of the given shader file
@@ -93,7 +86,7 @@ public:
 
     static void reset_shader_cache();
 
-#if WEBGL_SHADER_DOWNLOAD_ACCESS
+#if ALP_ENABLE_SHADER_NETWORK_HOTRELOAD
     // Redownloads all files inside the shader_file_cache from the
     // WEBGL_SHADER_DOWNLOAD_URL location, and executes the callback when done
     static void web_download_shader_files_and_put_in_cache(std::function<void()> callback);

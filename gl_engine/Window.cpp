@@ -376,7 +376,7 @@ void Window::keyPressEvent(QKeyEvent* e)
             m_shadow_config_ubo->bind_to_shader(m_shader_manager->all());
             emit update_requested();
         };
-#if WEBGL_SHADER_DOWNLOAD_ACCESS
+#if ALP_ENABLE_SHADER_NETWORK_HOTRELOAD
         // Reload shaders from the web and afterwards do the reload
         ShaderProgram::web_download_shader_files_and_put_in_cache(do_reload);
 #else
