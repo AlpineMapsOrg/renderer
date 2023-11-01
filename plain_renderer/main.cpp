@@ -62,6 +62,7 @@
 #include "nucleus/Controller.h"
 #include "nucleus/camera/Controller.h"
 
+
 // This example demonstrates easy, cross-platform usage of OpenGL ES 3.0 functions via
 // QOpenGLExtraFunctions in an application that works identically on desktop platforms
 // with OpenGL 3.3 and mobile/embedded devices with OpenGL ES 3.0.
@@ -72,6 +73,41 @@
 
 int main(int argc, char* argv[])
 {
+    // Test sun calculator
+/*
+    spa_data sdata;
+    sdata.year = 2023;
+    sdata.month = 11;
+    sdata.day = 01;
+    sdata.hour = 12;
+    sdata.minute = 00;
+    sdata.second = 00;
+    sdata.delta_ut1 = 0;
+    sdata.delta_t = 0;
+    sdata.timezone = 1;
+    sdata.longitude = 12.694470292406267;
+    sdata.latitude = 47.07386676653372;
+    sdata.elevation = 3798.0;
+    sdata.pressure = 1013.25;
+    sdata.temperature = 7.0;
+    sdata.slope = 0.0;
+    sdata.azm_rotation = 0.0;
+    sdata.atmos_refract = 0.0;
+    sdata.function = SPA_ZA;
+
+    for (int hour = 0; hour <=24 ; hour++) {
+        spa_data sdatatmp = sdata;
+        sdatatmp.hour = hour;
+        spa_calculate(&sdatatmp);
+        std::cout << "=== FOR HOUR " << hour << " ===" << std::endl;
+        std::cout << "Zenith:          " << sdatatmp.zenith << std::endl;
+        std::cout << "Azimuth:         " << sdatatmp.azimuth << std::endl;
+    }
+
+
+
+    return 0;*/
+
     QGuiApplication app(argc, argv);
     QCoreApplication::setOrganizationName("AlpineMaps.org");
     QCoreApplication::setApplicationName("PlainRenderer");

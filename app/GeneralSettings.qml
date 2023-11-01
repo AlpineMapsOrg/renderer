@@ -31,11 +31,82 @@ SetPanel {
         lod_slider.value = map.render_quality
         fov_slider.value = map.field_of_view
         cache_size_slider.value = map.tile_cache_size
+
         map.frame_limit = Qt.binding(function() { return frame_rate_slider.value })
         map.render_quality = Qt.binding(function() { return lod_slider.value })
         map.field_of_view = Qt.binding(function() { return fov_slider.value })
         map.tile_cache_size = Qt.binding(function() { return cache_size_slider.value })
+        datetimegroup.initializePropertys();
         responsive_update()
+    }
+
+    SetGroup {
+        name: qsTr("Date and Time")
+        id: datetimegroup
+
+        property bool initialized: false;
+
+        function initializePropertys() {
+            var jdt = new Date(map.selected_datetime);
+            currentTime.value = jdt.getHours() + jdt.getMinutes() / 60;
+            currentDate.selectedDate = jdt;
+            initialized = true;
+        }
+
+        function updateMapDateTimeProperty() {
+            if (!initialized) return;
+            let jsDate = currentDate.selectedDate;
+            jsDate.setHours(currentTime.hours);
+            jsDate.setMinutes(currentTime.minutes);
+            map.selected_datetime = jsDate;
+        }
+
+        Label { text: qsTr("Date:") }
+        DatePicker {
+            id: currentDate;
+            onSelectedDateChanged: {
+                datetimegroup.updateMapDateTimeProperty();
+            }
+        }
+
+        Label { text: qsTr("Time:") }
+        ValSlider {
+            property int hours;
+            property int minutes;
+            id: currentTime;
+            from: 0.0; to: 24.0; stepSize: 1 / (60 / 15); // in 15 min steps
+            onMoved: {
+                //console.log("because of Time");
+                datetimegroup.updateMapDateTimeProperty();
+            }
+            formatCallback: function (value) {
+                let h = parseInt(value);
+                hours = h;
+                let m = parseInt((value - h) * 60);
+                minutes = m;
+                return  String(h).padStart(2, '0') + ":" + String(m).padStart(2, '0');
+            }
+        }
+
+        CheckBox {
+            id: link_gl_settings;
+            text: "Link GL Sun Configuration"
+            Layout.fillWidth: true;
+            Layout.columnSpan: 2;
+            checked: map.link_gl_sundirection;
+            onCheckStateChanged: map.link_gl_sundirection = this.checked;
+        }
+
+        Label { text: qsTr("Sun Angles:"); visible:  map.link_gl_sundirection; }
+        Label {
+            visible: map.link_gl_sundirection;
+            text: {
+                return "Az(" + map.sun_angles.x.toFixed(2) + "°) , Ze(" + map.sun_angles.y.toFixed(2) + "°)";
+            }
+        }
+
+
+
     }
 
     SetGroup {

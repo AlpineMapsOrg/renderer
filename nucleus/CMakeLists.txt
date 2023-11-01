@@ -42,6 +42,7 @@ qt_add_library(nucleus STATIC
     utils/tile_conversion.h utils/tile_conversion.cpp
     utils/UrlModifier.h utils/UrlModifier.cpp
     utils/bit_coding.h
+    utils/sun_calculations.h utils/sun_calculations.cpp
     map_label/MapLabelModel.h map_label/MapLabelModel.cpp
     map_label/CameraTransformationProxyModel.h map_label/CameraTransformationProxyModel.cpp
     map_label/MapLabel.h

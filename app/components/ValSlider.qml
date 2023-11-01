@@ -10,7 +10,12 @@ Item {
     property alias stepSize: slider.stepSize;
     property alias value: slider.value;
     property alias snapMode: slider.snapMode;
+    property var formatCallback: defaultFormatCallback;
     signal moved();
+
+    function defaultFormatCallback(value) {
+        return Math.round(slider.value * 100) / 100;
+    }
 
     RowLayout {
         anchors.fill: parent
@@ -23,7 +28,9 @@ Item {
         Label {
             id: label;
             Layout.preferredWidth: 50
-            text: Math.round(slider.value * 100) / 100;
+            text: {
+                return root.formatCallback(root.value);
+            }
             font.underline: true;
         }
     }

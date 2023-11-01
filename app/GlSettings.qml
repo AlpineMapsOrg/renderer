@@ -185,55 +185,10 @@ SetPanel {
         }
 
         Label { text: "Light-Direction:" }
-        RowLayout {
-            function update_sun_position() {
-                let phi = sun_phi.value * Math.PI / 180.0;
-                let theta = sun_theta.value * Math.PI / 180.0;
-                let dir = Qt.vector3d(-Math.sin(theta) * Math.cos(phi), -Math.sin(theta) * Math.sin(phi), -Math.cos(theta));
-                dir = dir.normalized();
-                map.shared_config.sun_light_dir = Qt.vector4d(dir.x, dir.y, dir.z, 1.0);
-            }
-            Dial {
-                id: sun_phi
-                implicitHeight: 75
-                implicitWidth: 70
-                stepSize: 5
-                value: 135
-                wrap: true
-                onValueChanged: {
-                    children[0].text = value + "°";
-                    parent.update_sun_position();
-                }
-                from: 0
-                to: 360
-                snapMode: Dial.SnapOnRelease
-                Label {
-                    x: parent.width / 2 - this.width / 2
-                    y: parent.height / 2 - this.height / 2
-                    text: parent.value + "°"
-                }
-            }
-            Slider {
-                id: sun_theta
-                from: -110
-                to: 110
-                implicitHeight: 75
-                orientation: Qt.Vertical
-                value: 45
-                onValueChanged: {
-                    children[0].text = value + "°";
-                    parent.update_sun_position();
-                }
-                snapMode: Slider.SnapOnRelease
-                stepSize: 5
-                Label {
-                    x: 40
-                    y: parent.height / 2 - this.height / 2
-                    text: parent.value + "°"
-                }
-
-            }
-            Component.onCompleted: update_sun_position()
+        SunAnglePicker {
+            sun_angles: map.sun_angles
+            onSun_anglesChanged: map.sun_angles = sun_angles;
+            enabled: !map.link_gl_sundirection
         }
 
         Label { text: "Mat.-Color:" }

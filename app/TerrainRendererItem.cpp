@@ -32,6 +32,9 @@
 #include <QThread>
 #include <QTimer>
 
+#include <glm/glm.hpp>
+#include <glm/gtx/string_cast.hpp>
+
 #include "RenderThreadNotifier.h"
 #include "TerrainRenderer.h"
 #include "gl_engine/Window.h"
@@ -39,6 +42,8 @@
 #include "nucleus/Controller.h"
 #include <nucleus/tile_scheduler/Scheduler.h>
 
+#include "nucleus/srs.h" // for calculation of lat long from cam pos
+#include "nucleus/utils/sun_calculations.h"
 #include "nucleus/camera/PositionStorage.h"
 #include "nucleus/utils/UrlModifier.h"
 
@@ -76,6 +81,8 @@ TerrainRendererItem::TerrainRendererItem(QQuickItem* parent)
         set_shared_config(tmp);
     }
 
+    selected_datetime_changed(QDateTime());
+
     connect(m_update_timer, &QTimer::timeout, this, [this]() {
         emit update_camera_requested();
         RenderThreadNotifier::instance()->notify();
@@ -109,6 +116,10 @@ QQuickFramebufferObject::Renderer* TerrainRendererItem::createRenderer() const
             &TerrainRendererItem::rotation_north_requested,
             r->controller()->camera_controller(),
             &nucleus::camera::Controller::rotate_north);
+
+    // Connect definition change to aquire camera position for sun angle calculation
+    connect(r->controller()->camera_controller(), &nucleus::camera::Controller::definition_changed, this, &TerrainRendererItem::camera_definition_changed);
+
     connect(this, &TerrainRendererItem::camera_definition_set_by_user, r->controller()->camera_controller(), &nucleus::camera::Controller::set_definition);
     connect(r->controller()->camera_controller(), &nucleus::camera::Controller::global_cursor_position_changed, this, &TerrainRendererItem::read_global_position);
     //connect(this, &TerrainRendererItem::ind)
@@ -196,6 +207,12 @@ void TerrainRendererItem::keyReleaseEvent(QKeyEvent* e)
 
 void TerrainRendererItem::read_global_position(glm::dvec3 latlonalt) {
     emit gui_update_global_cursor_pos(latlonalt.x, latlonalt.y, latlonalt.z);
+}
+
+void TerrainRendererItem::camera_definition_changed(const nucleus::camera::Definition& new_definition)
+{
+    m_last_camera_latlonalt = nucleus::srs::world_to_lat_long_alt(new_definition.position());
+    recalculate_sun_angles();
 }
 
 void TerrainRendererItem::set_position(double latitude, double longitude)
@@ -441,4 +458,48 @@ void TerrainRendererItem::set_tile_cache_size(unsigned int new_tile_cache_size)
         return;
     m_tile_cache_size = new_tile_cache_size;
     emit tile_cache_size_changed(m_tile_cache_size);
+}
+
+QDateTime TerrainRendererItem::selected_datetime() const
+{
+    return m_selected_datetime;
+}
+
+void TerrainRendererItem::set_selected_datetime(QDateTime new_datetime)
+{
+    if (m_selected_datetime != new_datetime) {
+        m_selected_datetime = new_datetime;
+        emit selected_datetime_changed(m_selected_datetime);
+        recalculate_sun_angles();
+    }
+}
+
+QVector2D TerrainRendererItem::sun_angles() const {
+    return m_sun_angles;
+}
+
+void TerrainRendererItem::set_sun_angles(QVector2D new_sunAngles) {
+    if (new_sunAngles == m_sun_angles) return;
+    m_sun_angles = new_sunAngles;
+    emit sun_angles_changed(m_sun_angles);
+
+    // Update the direction inside the gls shared_config
+    auto newDir = nucleus::utils::sun_calculations::sun_rays_direction_from_sun_angles(glm::vec2(m_sun_angles.x(), m_sun_angles.y()));
+    QVector4D newDirUboEntry(newDir.x, newDir.y, newDir.z, m_shared_config.m_sun_light_dir.w());
+    m_shared_config.m_sun_light_dir = newDirUboEntry;
+    emit shared_config_changed(m_shared_config);
+}
+
+void TerrainRendererItem::set_link_gl_sundirection(bool newValue) {
+    if (newValue == m_link_gl_sundirection) return;
+    m_link_gl_sundirection = newValue;
+    emit link_gl_sundirection_changed(m_link_gl_sundirection);
+}
+
+void TerrainRendererItem::recalculate_sun_angles() {
+    // Calculate sun angles
+    if (m_link_gl_sundirection) {
+        auto angles = nucleus::utils::sun_calculations::calculate_sun_angles(m_selected_datetime, m_last_camera_latlonalt);
+        set_sun_angles(QVector2D(angles.x, angles.y));
+    }
 }

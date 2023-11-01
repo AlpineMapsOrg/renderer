@@ -31,6 +31,8 @@
 #include <QList>
 #include <QString>
 #include <QVector3D>
+#include <QVector2D>
+#include <QDateTime>
 #include <map>
 
 class TerrainRendererItem : public QQuickFramebufferObject {
@@ -54,6 +56,9 @@ class TerrainRendererItem : public QQuickFramebufferObject {
     Q_PROPERTY(bool render_looped READ render_looped WRITE set_render_looped NOTIFY render_looped_changed)
     Q_PROPERTY(unsigned int selected_camera_position_index MEMBER m_selected_camera_position_index WRITE set_selected_camera_position_index)
     Q_PROPERTY(bool hud_visible READ hud_visible WRITE set_hud_visible NOTIFY hud_visible_changed)
+    Q_PROPERTY(QDateTime selected_datetime READ selected_datetime WRITE set_selected_datetime NOTIFY selected_datetime_changed)
+    Q_PROPERTY(QVector2D sun_angles READ sun_angles WRITE set_sun_angles NOTIFY sun_angles_changed)
+    Q_PROPERTY(bool link_gl_sundirection READ link_gl_sundirection WRITE set_link_gl_sundirection NOTIFY link_gl_sundirection_changed)
 
 public:
     explicit TerrainRendererItem(QQuickItem* parent = 0);
@@ -100,6 +105,9 @@ signals:
 
     void gui_update_global_cursor_pos(double latitude, double longitude, double altitude);
 
+    void selected_datetime_changed(QDateTime newDateTime);
+    void sun_angles_changed(QVector2D newSunAngles);
+    void link_gl_sundirection_changed(bool newValue);
 
 protected:
     void touchEvent(QTouchEvent*) override;
@@ -113,6 +121,7 @@ public slots:
     void set_position(double latitude, double longitude);
     void rotate_north();
     void read_global_position(glm::dvec3 latlonalt);
+    void camera_definition_changed(const nucleus::camera::Definition& new_definition); // gets called whenever camera changes
 
 private slots:
     void schedule_update();
@@ -172,7 +181,18 @@ public:
     [[nodiscard]] unsigned int tile_cache_size() const;
     void set_tile_cache_size(unsigned int new_tile_cache_size);
 
+    QDateTime selected_datetime() const;
+    void set_selected_datetime(QDateTime new_datetime);
+
+    QVector2D sun_angles() const;
+    void set_sun_angles(QVector2D new_sunAngles);
+
+    bool link_gl_sundirection() const { return m_link_gl_sundirection; }
+    void set_link_gl_sundirection(bool newValue);
+
 private:
+    void recalculate_sun_angles();
+
     float m_camera_rotation_from_north = 0;
     QPointF m_camera_operation_centre;
     bool m_camera_operation_centre_visibility = false;
@@ -187,6 +207,8 @@ private:
     unsigned int m_selected_camera_position_index = 0;
     bool m_render_looped = false;
     bool m_hud_visible = true;
+    bool m_link_gl_sundirection = true;
+    QDateTime m_selected_datetime = QDateTime::currentDateTime();
 
     gl_engine::uboSharedConfig m_shared_config;
 
@@ -197,6 +219,8 @@ private:
     int m_camera_height = 0;
 
     TimerFrontendManager* m_timer_manager;
+    QVector2D m_sun_angles; // azimuth and zenith
+    glm::dvec3 m_last_camera_latlonalt;
 };
 
 #endif // TERRAINRENDERERITEM_H

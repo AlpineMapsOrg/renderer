@@ -43,6 +43,9 @@ qt_add_qml_module(alpineapp
         components/DrawerSeparator.qml
         components/DrawerSpacer.qml
         components/VectorEditor.qml
+        components/DatePicker.qml
+        components/DateMonthTablePicker.qml
+        components/SunAnglePicker.qml
     RESOURCES
         icons/camera_operation_centre.svg
         icons/compass.svg

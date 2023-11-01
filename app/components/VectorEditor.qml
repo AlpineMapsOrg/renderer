@@ -1,6 +1,5 @@
 import QtQuick
 import QtQuick.Controls.Material
-//import QtQuick.Controls.Imagine
 import QtQuick.Layouts
 
 Item {
@@ -20,7 +19,6 @@ Item {
         if ('z' in vector && typeof vector.z === 'number') tmp++;
         if ('w' in vector && typeof vector.w === 'number') tmp++;
         vectorSize = tmp;
-        console.log("new vectorSize:", v_size);
     }
 
     function vector_to_string() {
