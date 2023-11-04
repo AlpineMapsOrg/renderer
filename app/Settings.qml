@@ -26,28 +26,37 @@ import "components"
 Rectangle {
     id: settings_root
     color: "#00FFFFFF"
-    onWidthChanged: responsive_update()
-    onHeightChanged: responsive_update()
 
     function responsive_update() {
         var newWidth = 400;
-        if (settings_root.width < 600) newWidth = 300;
-        else if (settings_root.width < 300) newWidth = settings_root.width;
+        if (main.width < 600) newWidth = 300;
+        else if (main.width < 300) newWidth = settings_root.width;
         settings_frame.width = newWidth;
-        if (settings_root.width >= settings_root.height) {
+        if (main.width >= main.height) {
             // landscape
             settings_frame.anchors.left = undefined;
             settings_frame.height = settings_root.height;
         } else {
             // portrait
             settings_frame.anchors.left = settings_root.left;
-            let new_height = settings_root.height / 2.0;
-            if (settings_root.height < 400) new_height = settings_root.height / 1.3;
-            else if (settings_root.height < 700) new_height = settings_root.height / 1.5;
+            let new_height = main.height / 2.0;
+            if (!stats_window.visible) {
+                if (main.height < 400) new_height = main.height / 1.3;
+                else if (main.height < 700) new_height = main.height / 1.5;
+            }
             settings_frame.height = new_height
         }
     }
 
+    Connections {
+        target: main
+        function onWidthChanged() {
+            responsive_update();
+        }
+        function onHeightChanged() {
+            responsive_update();
+        }
+    }
 
     Rectangle {
         id: settings_frame

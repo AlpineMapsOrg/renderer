@@ -12,13 +12,10 @@ Rectangle {
     id: statsMenu
 
     property int innerMargin: 10
-    property int maxHeight: main.height - tool_bar.height - 2*innerMargin
+    property int maxHeight:  main.height - tool_bar.height - 2*innerMargin
 
-    width: 270
-    x: 10
-    y: tool_bar.height + innerMargin
-    implicitHeight: main_content.height
     color:  Qt.alpha(Material.backgroundColor, 0.7)
+
     function responsive_update() {
         x = 10
         if (map.width >= map.height) {
@@ -27,15 +24,34 @@ Rectangle {
             height = main_content.height
             width = 300
         } else {
-            y = parseInt(main.height / 2.0)
-            statsMenu.anchors.margins = 0
-            height = main.height / 2.0
-            maxHeight = height
-            width = main.width - 2 * innerMargin
+            // usually on mobile devices (portrait mode)
+            if (main.selectedPage === "settings") {
+                y = tool_bar.height + innerMargin
+                height = main.height - main.height / 2.0 - tool_bar.height - 2 * innerMargin
+                maxHeight = height
+                width = main.width - 2 * innerMargin
+            } else {
+                y = parseInt(main.height / 2.0)
+                height = main.height / 2.0
+                maxHeight = height
+                width = main.width - 2 * innerMargin
+            }
+
+
         }
     }
 
     Component.onCompleted: responsive_update()
+
+    Connections {
+        target: main
+        function onWidthChanged() {
+            responsive_update();
+        }
+        function onHeightChanged() {
+            responsive_update();
+        }
+    }
 
     Connections {
         target: map
@@ -46,12 +62,6 @@ Rectangle {
             cursor_lat.text = lat.toFixed(5) + " °";
             cursor_lon.text = lon.toFixed(5) + " °";
             cursor_alt.text = alt.toFixed(2) + " m";
-        }
-        function onWidthChanged() {
-            responsive_update();
-        }
-        function onHeightChanged() {
-            responsive_update();
         }
     }
 
@@ -105,7 +115,6 @@ Rectangle {
                     visible: false
                     backgroundColor: "transparent"
                     antialiasing: true
-                    //theme: ChartView.ChartThemeDark
                     PieSeries {
                         id: pieSeries
                         size: 0.65
@@ -127,7 +136,6 @@ Rectangle {
                             id: yAxis; min: 0.0; max: 100.0;
                         }
                     ]
-                    //theme: ChartView.ChartThemeDark
                 }
 
                 Label {
@@ -195,15 +203,23 @@ Rectangle {
                 }
             }
 
+            function _showGraphWindow() {
+                graph_dialog.visible = true;
+                in_animation.start();
+            }
+
+            function _hideGraphWindow() {
+                out_animation.start();
+            }
+
             function refreshGraph() {
                 // Check wether graph should be visible
                 if (Object.keys(stats_timing.open_timers).length > 0) {
                     if (!visible) {
-                        graph_dialog.visible = true;
-                        in_animation.start();
+                        _showGraphWindow();
                     }
                 } else if (visible) {
-                    out_animation.start();
+                    _hideGraphWindow();
                     return;
                 }
 
@@ -286,6 +302,8 @@ Rectangle {
 
                 padding: 0
                 Layout.columnSpan: 2
+                Layout.fillWidth: true;
+                Layout.preferredHeight: stats_timing_layout.implicitHeight;
 
                 background: Rectangle {
                     color: "transparent"
@@ -293,6 +311,9 @@ Rectangle {
 
                 ColumnLayout {
                     id: stats_timing_layout;
+                    anchors.fill: parent;
+
+                    implicitHeight: 0
                 }
 
                 // Timer to decouple graph refreshes from the current frame time. (It's not necessary to update the graph at the same speed)

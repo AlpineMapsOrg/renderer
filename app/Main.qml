@@ -8,8 +8,10 @@ import "components"
 
 Item {
     id: main
-    property int theme: Material.Light //Material.System
+    property int theme: Material.Light      //Material.System
     property int accent: Material.Green
+    property string selectedPage: "map";
+
 
     Rectangle {
         id: tool_bar
@@ -105,7 +107,7 @@ Item {
             text: stats_window.visible ? qsTr ("Hide Statistics") : qsTr("Statistics")
             iconSource: "../icons/minimal/charts.png"
             selectable: false
-            onClicked: stats_window.visible = !stats_window.visible
+            onClicked: toggleStatsWindow();
         }
 
         DrawerSpacer {}
@@ -121,6 +123,8 @@ Item {
     }
 
     function change_page(source, title) {
+        selectedPage = source.toLowerCase().replace(".qml", "");
+        if (selectedPage !== "map" && selectedPage !== "settings") stats_window.visible = false;
         if (source === "map") {
             if (main_stack_view.depth >= 1) main_stack_view.pop()
             page_title.visible = false
@@ -134,6 +138,12 @@ Item {
         page_title.visible = true
         search.visible = false
         page_title.text = title
+        main.onWidthChanged(); // trigger responsive updates manually
+    }
+
+    function toggleStatsWindow() {
+        stats_window.visible = !stats_window.visible
+        main.onWidthChanged(); // trigger responsive updates manually
     }
 
 
@@ -145,9 +155,9 @@ Item {
             tool_bar.visible = new_hud_visible;
         }
 
-        Keys.onPressed: {
+        Keys.onPressed: function(event){
             if (event.key === Qt.Key_S) {
-                stats_window.visible = !stats_window.visible
+                toggleStatsWindow();
             }
         }
     }
