@@ -71,22 +71,15 @@ TerrainRendererItem::TerrainRendererItem(QQuickItem* parent)
     setAcceptTouchEvents(true);
     setAcceptedMouseButtons(Qt::MouseButton::AllButtons);
 
-    // INITIALIZE shared config with URL parameter:
-    auto urlmodifier = nucleus::utils::UrlModifier::get();
-    bool param_available = false;
-    auto config_base64_string = urlmodifier->get_query_item(URL_PARAMETER_KEY_CONFIG, &param_available);
-    if (param_available) {
-        qInfo() << "Initialize config with:" << config_base64_string;
-        auto tmp = gl_engine::ubo_from_string<gl_engine::uboSharedConfig>(config_base64_string);
-        set_shared_config(tmp);
-    }
-
     selected_datetime_changed(QDateTime());
 
     connect(m_update_timer, &QTimer::timeout, this, [this]() {
         emit update_camera_requested();
         RenderThreadNotifier::instance()->notify();
     });
+
+    connect(this, &TerrainRendererItem::init_after_creation, this, &TerrainRendererItem::init_after_creation_slot);
+
 }
 
 TerrainRendererItem::~TerrainRendererItem()
@@ -112,10 +105,7 @@ QQuickFramebufferObject::Renderer* TerrainRendererItem::createRenderer() const
     connect(this, &TerrainRendererItem::key_released, r->controller()->camera_controller(), &nucleus::camera::Controller::key_release);
     connect(this, &TerrainRendererItem::update_camera_requested, r->controller()->camera_controller(), &nucleus::camera::Controller::update_camera_request);
     connect(this, &TerrainRendererItem::position_set_by_user, r->controller()->camera_controller(), &nucleus::camera::Controller::fly_to_latitude_longitude);
-    connect(this,
-            &TerrainRendererItem::rotation_north_requested,
-            r->controller()->camera_controller(),
-            &nucleus::camera::Controller::rotate_north);
+    connect(this, &TerrainRendererItem::rotation_north_requested, r->controller()->camera_controller(), &nucleus::camera::Controller::rotate_north);
 
     // Connect definition change to aquire camera position for sun angle calculation
     connect(r->controller()->camera_controller(), &nucleus::camera::Controller::definition_changed, this, &TerrainRendererItem::camera_definition_changed);
@@ -152,9 +142,9 @@ QQuickFramebufferObject::Renderer* TerrainRendererItem::createRenderer() const
     connect(r->controller()->tile_scheduler(), &nucleus::tile_scheduler::Scheduler::gpu_quads_updated, RenderThreadNotifier::instance(), &RenderThreadNotifier::notify);
     connect(tile_scheduler, &nucleus::tile_scheduler::Scheduler::gpu_quads_updated, RenderThreadNotifier::instance(), &RenderThreadNotifier::notify);
 
-    // Maybe shared config is already different (by loading from url)
-    // so lets notify the Renderer here to replace the current configuration!
-    emit shared_config_changed(m_shared_config);
+    // We now have to initialize everything based on the url, but we need to do this on the thread this instance
+    // belongs to. (gui thread?) Therefore we use the following signal to signal the init process
+    emit init_after_creation();
 
     return r;
 }
@@ -213,9 +203,21 @@ void TerrainRendererItem::read_global_position(glm::dvec3 latlonalt) {
 
 void TerrainRendererItem::camera_definition_changed(const nucleus::camera::Definition& new_definition)
 {
-    m_last_camera_latlonalt = nucleus::srs::world_to_lat_long_alt(new_definition.position());
+    auto camPositionWS = new_definition.position();
+    m_last_camera_latlonalt = nucleus::srs::world_to_lat_long_alt(camPositionWS);
+
+    // Calculate an arbitrary lookat point infront of the camera
+    glm::dvec3 lookAtPosition = new_definition.calculate_lookat_position(1000.0);
+    m_last_camera_lookat_latlonalt = nucleus::srs::world_to_lat_long_alt(lookAtPosition);
+
+    auto campos_as_string = nucleus::utils::UrlModifier::latlonalt_to_urlsafe_string(m_last_camera_latlonalt);
+    auto lookat_as_string = nucleus::utils::UrlModifier::latlonalt_to_urlsafe_string(m_last_camera_lookat_latlonalt);
+    nucleus::utils::UrlModifier::get()->set_query_item(URL_PARAMETER_KEY_CAM_POS, campos_as_string);
+    nucleus::utils::UrlModifier::get()->set_query_item(URL_PARAMETER_KEY_CAM_LOOKAT, lookat_as_string);
+
     recalculate_sun_angles();
 }
+
 
 void TerrainRendererItem::set_position(double latitude, double longitude)
 {
@@ -504,4 +506,33 @@ void TerrainRendererItem::recalculate_sun_angles() {
         auto angles = nucleus::utils::sun_calculations::calculate_sun_angles(m_selected_datetime, m_last_camera_latlonalt);
         set_sun_angles(QVector2D(angles.x, angles.y));
     }
+}
+
+void TerrainRendererItem::init_after_creation_slot() {
+    // INITIALIZE shared config with URL parameter:
+    auto urlmodifier = nucleus::utils::UrlModifier::get();
+    bool param_available = false;
+    auto config_base64_string = urlmodifier->get_query_item(URL_PARAMETER_KEY_CONFIG, &param_available);
+    if (param_available) {
+        qInfo() << "Initialize config with:" << config_base64_string;
+        auto tmp = gl_engine::ubo_from_string<gl_engine::uboSharedConfig>(config_base64_string);
+        set_shared_config(tmp);
+    }
+
+    auto campos_string = urlmodifier->get_query_item(URL_PARAMETER_KEY_CAM_POS);
+    auto camlookat_string = urlmodifier->get_query_item(URL_PARAMETER_KEY_CAM_LOOKAT);
+    if (!campos_string.isEmpty() && !camlookat_string.isEmpty()) {
+        // INITIALIZE camera definition from URL parameters
+        qInfo() << "Initialize camera with pos :" << campos_string << "lookat :" << camlookat_string;
+        auto campos_latlonalt = nucleus::utils::UrlModifier::urlsafe_string_to_dvec3(campos_string);
+        auto lookat_latlonalt = nucleus::utils::UrlModifier::urlsafe_string_to_dvec3(camlookat_string);
+        auto campos_ws = nucleus::srs::lat_long_alt_to_world(campos_latlonalt);
+        auto lookat_ws = nucleus::srs::lat_long_alt_to_world(lookat_latlonalt);
+        auto newDefinition = nucleus::camera::Definition(campos_ws, lookat_ws);
+        emit camera_definition_set_by_user(newDefinition);
+    }
+
+    // Maybe shared config is already different (by loading from url)
+    // so lets notify the Renderer here to replace the current configuration!
+    emit shared_config_changed(m_shared_config);
 }

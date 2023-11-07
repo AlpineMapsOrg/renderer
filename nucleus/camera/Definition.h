@@ -69,6 +69,9 @@ public:
     [[nodiscard]] glm::dvec2 to_ndc(const glm::dvec2& screen_space_coordinates) const;
     [[nodiscard]] float to_screen_space(float world_space_size, float world_space_distance) const;
 
+    // Calculates an arbritrary lookat position at a given WS distance infront of the camera
+    glm::dvec3 calculate_lookat_position(double distance) const;
+
     void set_viewport_size(const glm::uvec2& new_viewport_size);
 
     bool operator==(const Definition& other) const;

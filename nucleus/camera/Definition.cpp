@@ -298,6 +298,15 @@ float Definition::to_screen_space(float world_space_size, float world_space_dist
     return m_viewport_size.y * 0.5f * world_space_size * m_distance_scaling_factor / world_space_distance;
 }
 
+glm::dvec3 Definition::calculate_lookat_position(double distance) const {
+    auto view_matrix = camera_matrix();
+    // This gets us the right, up and backwards vectors from the view matrix
+    glm::dvec3 f(view_matrix[0][2], view_matrix[1][2], view_matrix[2][2]);
+    // Now invert the direction to get the actual 'forward' direction
+    glm::dvec3 forward = -glm::normalize(f);
+    return position() + distance * forward;
+}
+
 glm::dvec3 Definition::operation_centre() const
 {
     // a ray going through the middle pixel, intersecting with the z == 0 pane

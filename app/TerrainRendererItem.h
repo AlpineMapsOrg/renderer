@@ -110,6 +110,9 @@ signals:
     void link_gl_sundirection_changed(bool newValue);
 
     void reload_shader();
+    void test_button_press();
+
+    void init_after_creation() const;
 
 protected:
     void touchEvent(QTouchEvent*) override;
@@ -127,6 +130,7 @@ public slots:
 
 private slots:
     void schedule_update();
+    void init_after_creation_slot();
 
 
 public:
@@ -223,6 +227,7 @@ private:
     TimerFrontendManager* m_timer_manager;
     QVector2D m_sun_angles; // azimuth and zenith
     glm::dvec3 m_last_camera_latlonalt;
+    glm::dvec3 m_last_camera_lookat_latlonalt;
 };
 
 #endif // TERRAINRENDERERITEM_H

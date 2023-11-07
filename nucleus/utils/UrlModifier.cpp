@@ -47,13 +47,40 @@ QString UrlModifier::urlsafe_b64_to_b64(const QString& urlsafeb64) {
     QString base64 = urlsafeb64;
     base64.replace('-', '+');
     base64.replace('_', '/');
-
     // Add padding '=' characters if necessary to make the length a multiple of 4
     while (base64.length() % 4 != 0) {
         base64.append('=');
     }
-
     return base64;
+}
+
+QString UrlModifier::dvec3_to_urlsafe_string(const glm::dvec3& vec, int precision) {
+    return QString("%1_%2_%3").arg(QString::number(vec.x, 'f', precision), QString::number(vec.y, 'f', precision), QString::number(vec.z, 'f', precision));
+}
+
+QString UrlModifier::latlonalt_to_urlsafe_string(const glm::dvec3& vec) {
+    return QString("%1_%2_%3").arg(QString::number(vec.x, 'f', 6), QString::number(vec.y, 'f', 6), QString::number(vec.z, 'f', 2));
+}
+
+glm::dvec3 UrlModifier::urlsafe_string_to_dvec3(const QString& str) {
+    QStringList parts = str.split('_');
+
+    // Make sure we have exactly 3 parts, corresponding to x, y, and z
+    if (parts.size() != 3) {
+        throw std::invalid_argument("The input string does not represent a glm::dvec3");
+    }
+
+    bool okX, okY, okZ;
+    double x = parts[0].toDouble(&okX);
+    double y = parts[1].toDouble(&okY);
+    double z = parts[2].toDouble(&okZ);
+
+    // Check if all conversions were successful
+    if (!okX || !okY || !okZ) {
+        throw std::invalid_argument("One of the components is not a valid double value");
+    }
+
+    return glm::dvec3(x, y, z);
 }
 
 void UrlModifier::init() {
@@ -74,6 +101,10 @@ UrlModifier::UrlModifier() {
     for (auto& pair : query.queryItems()){
         parameters[pair.first] = pair.second;
     }
+
+    write_out_delay_timer.setSingleShot(true);
+    connect(&write_out_delay_timer, &QTimer::timeout, this, &UrlModifier::write_out_url);
+    connect(this, &UrlModifier::start_writeout_delay, this, &UrlModifier::start_writeout_delay_slot);
 }
 
 QString UrlModifier::get_query_item(const QString& name, bool* parameter_found) {
@@ -96,17 +127,7 @@ QString get_resource_identifier_from_url(const QUrl& url) {
 
 void UrlModifier::set_query_item(const QString& name, const QString& value) {
     parameters[name] = value;
-
-#ifdef __EMSCRIPTEN__
-    auto resID = get_resource_identifier_from_url(get_url());
-    EM_ASM_({
-        var newPath = UTF8ToString($0);
-        history.pushState({}, "", newPath);
-    }, resID.toStdString().c_str());
-#else
-    //auto resID = get_resource_identifier_from_url(get_url());
-    //qDebug() << "url:" << resID;
-#endif
+    emit start_writeout_delay(URL_WRITEOUT_DELAY);
 }
 
 QUrl UrlModifier::get_url() {
@@ -118,5 +139,21 @@ QUrl UrlModifier::get_url() {
     return QUrl(base_url);
 }
 
+void UrlModifier::start_writeout_delay_slot(int duration) {
+    write_out_delay_timer.start(duration);
+}
+
+void UrlModifier::write_out_url() {
+#ifdef __EMSCRIPTEN__
+    auto resID = get_resource_identifier_from_url(get_url());
+    EM_ASM_({
+        var newPath = UTF8ToString($0);
+        history.pushState({}, "", newPath);
+    }, resID.toStdString().c_str());
+#else
+    auto resID = get_resource_identifier_from_url(get_url());
+    qDebug() << "url:" << resID;
+#endif
+}
 
 }
