@@ -110,6 +110,13 @@ Item {
             onClicked: toggleStatsWindow();
         }
 
+        DrawerButton {
+            text: qsTr("Reload Shaders")
+            iconSource: "../icons/minimal/reload3d.png"
+            selectable: false
+            onClicked: map.reload_shader();
+        }
+
         DrawerSpacer {}
 
         DrawerSeparator {}

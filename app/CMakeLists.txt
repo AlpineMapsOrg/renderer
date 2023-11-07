@@ -61,6 +61,7 @@ qt_add_qml_module(alpineapp
         icons/minimal/mountain.png
         icons/minimal/settings.png
         icons/minimal/charts.png
+        icons/minimal/reload3d.png
 )
 
 qt_add_resources(alpineapp "height_data"

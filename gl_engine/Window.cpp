@@ -359,6 +359,26 @@ void Window::render_looped_changed(bool render_looped_flag) {
     m_render_looped = render_looped_flag;
 }
 
+void Window::reload_shader() {
+    auto do_reload = [this]() {
+        m_shader_manager->reload_shaders();
+        // NOTE: UBOs need to be reattached to the programs!
+        m_shared_config_ubo->bind_to_shader(m_shader_manager->all());
+        m_camera_config_ubo->bind_to_shader(m_shader_manager->all());
+        m_shadow_config_ubo->bind_to_shader(m_shader_manager->all());
+        qDebug("all shaders reloaded");
+        emit update_requested();
+    };
+#if ALP_ENABLE_SHADER_NETWORK_HOTRELOAD
+    // Reload shaders from the web and afterwards do the reload
+    ShaderProgram::web_download_shader_files_and_put_in_cache(do_reload);
+#else
+      // Reset shader cache. The shaders will then be reload from file
+    ShaderProgram::reset_shader_cache();
+    do_reload();
+#endif
+}
+
 void Window::key_press(const QKeyCombination& e) {
     QKeyEvent ev = QKeyEvent(QEvent::Type::KeyPress, e.key(), e.keyboardModifiers());
     this->keyPressEvent(&ev);
@@ -366,26 +386,7 @@ void Window::key_press(const QKeyCombination& e) {
 
 void Window::keyPressEvent(QKeyEvent* e)
 {
-    if (e->key() == Qt::Key::Key_F5) {
-        auto do_reload = [this]() {
-            m_shader_manager->reload_shaders();
-            qDebug("all shaders reloaded");
-            // NOTE: UBOs need to be reattached to the programs!
-            m_shared_config_ubo->bind_to_shader(m_shader_manager->all());
-            m_camera_config_ubo->bind_to_shader(m_shader_manager->all());
-            m_shadow_config_ubo->bind_to_shader(m_shader_manager->all());
-            emit update_requested();
-        };
-#if ALP_ENABLE_SHADER_NETWORK_HOTRELOAD
-        // Reload shaders from the web and afterwards do the reload
-        ShaderProgram::web_download_shader_files_and_put_in_cache(do_reload);
-#else
-        // Reset shader cache. The shaders will then be reload from file
-        ShaderProgram::reset_shader_cache();
-        do_reload();
-#endif
-
-    }
+    if (e->key() == Qt::Key::Key_F5) this->reload_shader();
     if (e->key() == Qt::Key::Key_F6) {
         if (this->m_render_looped) {
             this->m_render_looped = false;

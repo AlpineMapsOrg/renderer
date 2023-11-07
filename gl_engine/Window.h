@@ -80,6 +80,7 @@ public slots:
     void key_press(const QKeyCombination& e); // Slot to connect key-events to
     void shared_config_changed(gl_engine::uboSharedConfig ubo);
     void render_looped_changed(bool render_looped_flag);
+    void reload_shader();
 
 signals:
     void report_measurements(QList<nucleus::timing::TimerReport> values);

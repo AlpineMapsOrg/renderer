@@ -109,6 +109,8 @@ signals:
     void sun_angles_changed(QVector2D newSunAngles);
     void link_gl_sundirection_changed(bool newValue);
 
+    void reload_shader();
+
 protected:
     void touchEvent(QTouchEvent*) override;
     void mousePressEvent(QMouseEvent*) override;
