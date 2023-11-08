@@ -85,19 +85,19 @@ Item {
         DrawerButton {
             bid: 0
             text: qsTr ("Map")
-            iconSource: "../icons/minimal/mountain.png"
+            iconSource: "../icons/material/map.svg"
             onClicked: change_page("map", qsTr("Map"))
         }
 
         DrawerButton {
             text: qsTr ("Coordinates")
-            iconSource: "../icons/minimal/location.png"
+            iconSource: "../icons/material/pin_drop.svg"
             onClicked: change_page("Coordinates.qml", qsTr("Coordinates"))
         }
 
         DrawerButton {
             text: qsTr ("Settings")
-            iconSource: "../icons/minimal/settings.png"
+            iconSource: "../icons/material/settings.svg"
             onClicked: change_page("Settings.qml", qsTr("Settings"))
         }
 
@@ -105,14 +105,14 @@ Item {
 
         DrawerButton {
             text: stats_window.visible ? qsTr ("Hide Statistics") : qsTr("Statistics")
-            iconSource: "../icons/minimal/charts.png"
+            iconSource: "../icons/material/monitoring.svg"
             selectable: false
             onClicked: toggleStatsWindow();
         }
 
         DrawerButton {
             text: qsTr("Reload Shaders")
-            iconSource: "../icons/minimal/reload3d.png"
+            iconSource: "../icons/material/3d_rotation.svg"
             selectable: false
             onClicked: map.reload_shader();
         }
@@ -123,7 +123,7 @@ Item {
 
         DrawerButton {
             text: qsTr ("About")
-            iconSource: "../icons/minimal/information.png"
+            iconSource: "../icons/material/info.svg"
             onClicked: change_page("About.qml", qsTr("About"))
         }
 

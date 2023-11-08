@@ -56,12 +56,12 @@ qt_add_qml_module(alpineapp
         icons/search.svg
         icons/favicon.ico
         icons/favicon_256.png
-        icons/minimal/information.png
-        icons/minimal/location.png
-        icons/minimal/mountain.png
-        icons/minimal/settings.png
-        icons/minimal/charts.png
-        icons/minimal/reload3d.png
+        icons/material/monitoring.svg
+        icons/material/3d_rotation.svg
+        icons/material/map.svg
+        icons/material/pin_drop.svg
+        icons/material/settings.svg
+        icons/material/info.svg
 )
 
 qt_add_resources(alpineapp "height_data"
