@@ -1,6 +1,7 @@
 /*****************************************************************************
  * Alpine Terrain Renderer
- * Copyright (C) 2023 Adam Celarek
+ * Copyright (C) 2023 Adam Celerek
+ * Copyright (C) 2023 Gerald Kimmersdorfer
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -20,6 +21,8 @@ import QtQuick
 import QtQuick.Controls.Material
 import QtQuick.Layouts
 import Alpine
+
+import "components"
 
 Rectangle {
     id: map_gui

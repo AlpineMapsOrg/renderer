@@ -24,21 +24,17 @@ qt_add_qml_module(alpineapp
         SearchResults.qml
         Settings.qml
         Coordinates.qml
-        RoundMapButton.qml
-        DebugWindow.qml
         StatsWindow.qml
         GeneralSettings.qml
         GlSettings.qml
         components/ValSlider.qml
         components/ColorPicker.qml
         components/PageDrawer.qml
-        components/SvgImage.qml
         components/SetGroup.qml
         components/SetDivider.qml
         components/SetPanel.qml
         components/SetTitle.qml
         components/Window.qml
-        components/GraphWindow.qml
         components/DrawerButton.qml
         components/DrawerSeparator.qml
         components/DrawerSpacer.qml
@@ -46,6 +42,7 @@ qt_add_qml_module(alpineapp
         components/DatePicker.qml
         components/DateMonthTablePicker.qml
         components/SunAnglePicker.qml
+        components/RoundMapButton.qml
     RESOURCES
         icons/camera_operation_centre.svg
         icons/compass.svg

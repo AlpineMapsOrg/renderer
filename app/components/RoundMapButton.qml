@@ -1,6 +1,6 @@
 /*****************************************************************************
  * Alpine Terrain Renderer
- * Copyright (C) 2023 Gerald Kimmersdorfer
+ * Copyright (C) 2023 Adam Celerek
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -18,10 +18,29 @@
 
 import QtQuick
 import QtQuick.Controls.Material
-import QtQuick.Layouts
 
 Rectangle {
-    Layout.fillWidth: true;
-    Layout.preferredHeight: 1;
-    color: Material.dividerColor;
+    property alias checkable: button.checkable
+    property alias checked: button.checked
+    property alias rotation: button.rotation
+    signal clicked()
+    property string icon_source: ""
+    width: 50
+    height: 50
+    radius: width
+    color: button.checked ? Material.accentColor : Material.backgroundColor
+    RoundButton {
+        id: button
+        width: parent.width + 10
+        height: parent.height + 10
+        highlighted: checked
+        focusPolicy: Qt.NoFocus
+        icon {
+            source: icon_source
+            height: 38
+            width: 38
+        }
+        onClicked: parent.clicked()
+        anchors.centerIn: parent
+    }
 }
