@@ -25,16 +25,6 @@
 
 namespace nucleus::timing {
 
-std::unique_ptr<TimerManager> TimerManager::instance = nullptr;
-std::once_flag TimerManager::onceInitFlag;
-
-TimerManager* TimerManager::getInstance() {
-    std::call_once(onceInitFlag, []() {
-        instance.reset(new TimerManager());
-    });
-    return instance.get();
-}
-
 TimerManager::TimerManager()
 {
 }
@@ -77,11 +67,10 @@ QList<TimerReport> TimerManager::fetch_results()
     return std::move(new_values);
 }
 
-std::shared_ptr<TimerInterface> TimerManager::add_timer(TimerInterface* tmr) {
-    std::shared_ptr<TimerInterface> tmr_shared(tmr);
-    m_timer[tmr_shared->get_name()] = tmr_shared;
-    m_timer_in_order.push_back(tmr_shared);
-    return tmr_shared;
+std::shared_ptr<TimerInterface> TimerManager::add_timer(std::shared_ptr<TimerInterface> tmr) {
+    m_timer[tmr->get_name()] = tmr;
+    m_timer_in_order.push_back(tmr);
+    return tmr;
 }
 
 }

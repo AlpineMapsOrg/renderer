@@ -41,15 +41,23 @@ float TimerFrontendObject::get_average() {
     return sum / m_measurements.size();
 }
 
-TimerFrontendObject::TimerFrontendObject(const QString& name, const QString& group, const int queue_size, const float average_weight, const float first_value)
-    :m_queue_size(queue_size), m_name(name), m_group(group)
+TimerFrontendObject::TimerFrontendObject(QObject* parent, const QString& name, const QString& group, const int queue_size, const float average_weight, const float first_value)
+    :QObject(parent), m_queue_size(queue_size), m_name(name), m_group(group)
 {
     m_color = timer_colors[timer_color_index++ % (sizeof(timer_colors) / sizeof(timer_colors[0]))];
     m_new_weight = average_weight;
     m_old_weight = 1.0 - m_new_weight;
     m_quick_average = first_value;
+#ifdef ALP_ENABLE_TRACK_OBJECT_LIFECYCLE
+    qDebug() << "TimerFrontendObject(name=" << m_name << ")";
+#endif
 }
 
+TimerFrontendObject::~TimerFrontendObject() {
+#ifdef ALP_ENABLE_TRACK_OBJECT_LIFECYCLE
+    qDebug() << "~TimerFrontendObject(name=" << m_name << ")";
+#endif
+}
 
 TimerFrontendManager::TimerFrontendManager(QObject* parent)
     :QObject(parent)
@@ -58,9 +66,9 @@ TimerFrontendManager::TimerFrontendManager(QObject* parent)
 
 TimerFrontendManager::~TimerFrontendManager()
 {
-    for (int i = 0; i < m_timer.count(); i++) {
-        delete m_timer[i];
-    }
+#ifdef ALP_ENABLE_TRACK_OBJECT_LIFECYCLE
+    qDebug("~TimerFrontendManager()");
+#endif
 }
 
 int TimerFrontendManager::current_frame = 0;
@@ -69,7 +77,7 @@ void TimerFrontendManager::receive_measurements(QList<nucleus::timing::TimerRepo
     for (const auto& report : values) {
         const char* name = report.timer->get_name().c_str();
         if (!m_timer_map.contains(name)) {
-            auto tfo = new TimerFrontendObject(name, report.timer->get_group().c_str(), report.timer->get_queue_size(), report.timer->get_average_weight(), report.value);
+            auto tfo = new TimerFrontendObject(this, name, report.timer->get_group().c_str(), report.timer->get_queue_size(), report.timer->get_average_weight(), report.value);
             m_timer.append(tfo);
             m_timer_map.insert(name, tfo);
         }
@@ -81,6 +89,9 @@ void TimerFrontendManager::receive_measurements(QList<nucleus::timing::TimerRepo
 TimerFrontendManager::TimerFrontendManager(const TimerFrontendManager &src)
     :m_timer(src.m_timer)
 {
+#ifdef ALP_ENABLE_TRACK_OBJECT_LIFECYCLE
+    qDebug() << "TimerFrontendManager()";
+#endif
 }
 
 TimerFrontendManager& TimerFrontendManager::operator =(const TimerFrontendManager& other) {

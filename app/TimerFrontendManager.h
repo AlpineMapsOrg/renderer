@@ -30,12 +30,12 @@
 
 class TimerFrontendObject : public QObject {
     Q_OBJECT
-    Q_PROPERTY(QString name READ get_name)
-    Q_PROPERTY(QString group READ get_group)
-    Q_PROPERTY(float last_measurement READ get_last_measurement)
-    Q_PROPERTY(float average READ get_average)
-    Q_PROPERTY(float quick_average READ get_quick_average)
-    Q_PROPERTY(QColor color READ get_color)
+    Q_PROPERTY(QString name READ get_name CONSTANT)
+    Q_PROPERTY(QString group READ get_group CONSTANT)
+    Q_PROPERTY(float last_measurement READ get_last_measurement CONSTANT)
+    Q_PROPERTY(float average READ get_average CONSTANT)
+    Q_PROPERTY(float quick_average READ get_quick_average CONSTANT)
+    Q_PROPERTY(QColor color READ get_color CONSTANT)
     Q_PROPERTY(QList<QVector3D> measurements MEMBER m_measurements)
 
 public:
@@ -67,7 +67,8 @@ public:
     QString get_group() { return m_group; }
     QColor get_color() { return m_color;    }
 
-    TimerFrontendObject(const QString& name, const QString& group, const int queue_size = 30, const float average_weight = 1.0/30.0f, const float first_value = 0.0 );
+    TimerFrontendObject(QObject* parent, const QString& name, const QString& group, const int queue_size = 30, const float average_weight = 1.0/30.0f, const float first_value = 0.0 );
+    ~TimerFrontendObject();
 
     bool operator!=(const TimerFrontendObject& rhs) const
     {

@@ -81,6 +81,9 @@ glm::dvec3 UrlModifier::urlsafe_string_to_dvec3(const QString& str) {
 UrlModifier::UrlModifier(QObject* parent)
     :QObject(parent)
 {
+#ifdef ALP_ENABLE_TRACK_OBJECT_LIFECYCLE
+    qDebug("nucleus::utils::UrlModifier()");
+#endif
 #ifdef __EMSCRIPTEN__
     emscripten::val location = emscripten::val::global("location");
     auto href = location["href"].as<std::string>();
@@ -99,7 +102,9 @@ UrlModifier::UrlModifier(QObject* parent)
 }
 
 UrlModifier::~UrlModifier() {
+#ifdef ALP_ENABLE_TRACK_OBJECT_LIFECYCLE
     qDebug("~nucleus::utils::UrlModifier()");
+#endif
 }
 
 QString UrlModifier::get_query_item(const QString& name, bool* parameter_found) {
@@ -128,6 +133,7 @@ void UrlModifier::set_query_item(const QString& name, const QString& value) {
     // be to make a signal/slot for set_query_item. But then again: Is it
     // necessary? Maybe you can resolve the thread issue on a higher level.
     write_out_delay_timer.start(URL_WRITEOUT_DELAY);
+    //write_out_url();
 }
 
 QUrl UrlModifier::get_url() {

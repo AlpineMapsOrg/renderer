@@ -44,7 +44,6 @@
 #include "nucleus/map_label/MapLabelModel.h"
 
 #include "nucleus/camera/PositionStorage.h"
-#include "nucleus/utils/UrlModifier.h"
 
 int main(int argc, char **argv)
 {
@@ -94,7 +93,6 @@ int main(int argc, char **argv)
     fmt.setDepthBufferSize(24);
     fmt.setOption(QSurfaceFormat::DebugContext);
 
-    bool running_in_browser = false;
     // Request OpenGL 3.3 core or OpenGL ES 3.0.
     if (QOpenGLContext::openGLModuleType() == QOpenGLContext::LibGL) {
         qDebug("Requesting 3.3 core context");
@@ -103,7 +101,6 @@ int main(int argc, char **argv)
     } else {
         qDebug("Requesting 3.0 context");
         fmt.setVersion(3, 0);
-        running_in_browser = true;
     }
 
     QSurfaceFormat::setDefaultFormat(fmt);
@@ -142,8 +139,6 @@ int main(int argc, char **argv)
 #endif
 
     RenderThreadNotifier::instance()->set_root_window(root_window);
-
-
 
     return app.exec();
 }

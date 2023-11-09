@@ -134,7 +134,7 @@ Rectangle {
     RoundMapButton {
         id: compass
         rotation: renderer.camera_rotation_from_north
-        icon_source: "icons/compass.svg"
+        icon_source: "../icons/compass.svg"
         onClicked: renderer.rotate_north()
 
         anchors {
@@ -152,7 +152,7 @@ Rectangle {
             margins: 16
         }
         checkable: true
-        icon_source: "icons/current_location.svg"
+        icon_source: "../icons/current_location.svg"
     }
 
     Connections {

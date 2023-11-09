@@ -76,14 +76,15 @@ using gl_engine::UniformBuffer;
 Window::Window()
     : m_camera({ 1822577.0, 6141664.0 - 500, 171.28 + 500 }, { 1822577.0, 6141664.0, 171.28 }) // should point right at the stephansdom
 {
-    qDebug("Window::Window()");
     m_tile_manager = std::make_unique<TileManager>();
     QTimer::singleShot(1, [this]() { emit update_requested(); });
 }
 
 Window::~Window()
 {
-    qDebug("~Window::Window()");
+#ifdef ALP_ENABLE_TRACK_OBJECT_LIFECYCLE
+    qDebug("gl_engine::~Window()");
+#endif
 }
 
 void Window::initialise_gpu()
@@ -141,19 +142,24 @@ void Window::initialise_gpu()
 
     m_shadowmapping = std::make_unique<gl_engine::ShadowMapping>(m_shader_manager->shared_shadowmap_program(), m_shadow_config_ubo, m_shared_config_ubo);
 
-    m_timer = nucleus::timing::TimerManager::getInstance();
+    {   // INITIALIZE CPU AND GPU TIMER
+        using namespace std;
+        using nucleus::timing::TimerInterface;
+        using nucleus::timing::CpuTimer;
+        m_timer = std::make_unique<nucleus::timing::TimerManager>();
 
-    // GPU Timing Queries not supported on OpenGL ES or Web GL
+// GPU Timing Queries not supported on OpenGL ES or Web GL
 #if (defined(__linux) && !defined(__ANDROID__)) || defined(_WIN32) || defined(_WIN64)
-    m_timer->add_timer(static_cast<nucleus::timing::TimerInterface*>(new GpuAsyncQueryTimer("ssao", "GPU", 240, 1.0f/60.0f)));
-    m_timer->add_timer(static_cast<nucleus::timing::TimerInterface*>(new GpuAsyncQueryTimer("atmosphere", "GPU", 240, 1.0f/60.0f)));
-    m_timer->add_timer(static_cast<nucleus::timing::TimerInterface*>(new GpuAsyncQueryTimer("tiles", "GPU", 240, 1.0f/60.0f)));
-    m_timer->add_timer(static_cast<nucleus::timing::TimerInterface*>(new GpuAsyncQueryTimer("shadowmap", "GPU", 240, 1.0f/60.0f)));
-    m_timer->add_timer(static_cast<nucleus::timing::TimerInterface*>(new GpuAsyncQueryTimer("compose", "GPU", 240, 1.0f/60.0f)));
-    m_timer->add_timer(static_cast<nucleus::timing::TimerInterface*>(new GpuAsyncQueryTimer("gpu_total", "TOTAL", 240, 1.0f/60.0f)));
+        m_timer->add_timer(static_pointer_cast<TimerInterface>(make_shared<GpuAsyncQueryTimer>("ssao", "GPU", 240, 1.0f/60.0f)));
+        m_timer->add_timer(static_pointer_cast<TimerInterface>(make_shared<GpuAsyncQueryTimer>("atmosphere", "GPU", 240, 1.0f/60.0f)));
+        m_timer->add_timer(static_pointer_cast<TimerInterface>(make_shared<GpuAsyncQueryTimer>("tiles", "GPU", 240, 1.0f/60.0f)));
+        m_timer->add_timer(static_pointer_cast<TimerInterface>(make_shared<GpuAsyncQueryTimer>("shadowmap", "GPU", 240, 1.0f/60.0f)));
+        m_timer->add_timer(static_pointer_cast<TimerInterface>(make_shared<GpuAsyncQueryTimer>("compose", "GPU", 240, 1.0f/60.0f)));
+        m_timer->add_timer(static_pointer_cast<TimerInterface>(make_shared<GpuAsyncQueryTimer>("gpu_total", "TOTAL", 240, 1.0f/60.0f)));
 #endif
-    m_timer->add_timer(static_cast<nucleus::timing::TimerInterface*>(new nucleus::timing::CpuTimer("cpu_total", "TOTAL", 240, 1.0f/60.0f)));
-    m_timer->add_timer(static_cast<nucleus::timing::TimerInterface*>(new nucleus::timing::CpuTimer("cpu_b2b", "TOTAL", 240, 1.0f/60.0f)));
+        m_timer->add_timer(static_pointer_cast<TimerInterface>(make_shared<CpuTimer>("cpu_total", "TOTAL", 240, 1.0f/60.0f)));
+        m_timer->add_timer(static_pointer_cast<TimerInterface>(make_shared<CpuTimer>("cpu_b2b", "TOTAL", 240, 1.0f/60.0f)));
+    }
 
     emit gpu_ready_changed(true);
 }

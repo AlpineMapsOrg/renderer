@@ -58,17 +58,20 @@ TerrainRendererItem::TerrainRendererItem(QQuickItem* parent)
     : QQuickFramebufferObject(parent)
     , m_update_timer(new QTimer(this))
 {
-    m_timer_manager = new TimerFrontendManager(this);
+#ifdef ALP_ENABLE_TRACK_OBJECT_LIFECYCLE
+    qDebug("TerrainRendererItem()");
+#endif
+    //qDebug() << "gui thread: " << QThread::currentThread();
+
+    m_timer_manager = new TimerFrontendManager();
     m_url_modifier = std::make_unique<nucleus::utils::UrlModifier>();
     m_update_timer->setSingleShot(true);
     m_update_timer->setInterval(1000 / m_frame_limit);
-    qDebug("TerrainRendererItem::TerrainRendererItem(QQuickItem* parent)");
-    qDebug() << "gui thread: " << QThread::currentThread();
     setMirrorVertically(true);
     setAcceptTouchEvents(true);
     setAcceptedMouseButtons(Qt::MouseButton::AllButtons);
 
-    selected_datetime_changed(QDateTime());
+    emit selected_datetime_changed(QDateTime());
 
     connect(m_update_timer, &QTimer::timeout, this, [this]() {
         emit update_camera_requested();
@@ -78,9 +81,13 @@ TerrainRendererItem::TerrainRendererItem(QQuickItem* parent)
     connect(this, &TerrainRendererItem::init_after_creation, this, &TerrainRendererItem::init_after_creation_slot);
 }
 
+
 TerrainRendererItem::~TerrainRendererItem()
 {
-    qDebug("TerrainRendererItem::~TerrainRendererItem()");
+    delete m_timer_manager;
+#ifdef ALP_ENABLE_TRACK_OBJECT_LIFECYCLE
+    qDebug("~TerrainRendererItem()");
+#endif
 }
 
 QQuickFramebufferObject::Renderer* TerrainRendererItem::createRenderer() const

@@ -34,12 +34,16 @@ TerrainRenderer::TerrainRenderer()
     m_glWindow = std::make_unique<gl_engine::Window>();
     m_controller = std::make_unique<nucleus::Controller>(m_glWindow.get());
     m_glWindow->initialise_gpu();
+#ifdef ALP_ENABLE_TRACK_OBJECT_LIFECYCLE
     qDebug("TerrainRendererItemRenderer()");
+#endif
 }
 
 TerrainRenderer::~TerrainRenderer()
 {
-    qDebug("~TerrainRendererItemRenderer()");
+#ifdef ALP_ENABLE_TRACK_OBJECT_LIFECYCLE
+    qDebug("~TerrainRenderer()");
+#endif
 }
 
 void TerrainRenderer::synchronize(QQuickFramebufferObject *item)
