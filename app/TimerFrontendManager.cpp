@@ -51,7 +51,8 @@ TimerFrontendObject::TimerFrontendObject(const QString& name, const QString& gro
 }
 
 
-TimerFrontendManager::TimerFrontendManager()
+TimerFrontendManager::TimerFrontendManager(QObject* parent)
+    :QObject(parent)
 {
 }
 
@@ -80,7 +81,6 @@ void TimerFrontendManager::receive_measurements(QList<nucleus::timing::TimerRepo
 TimerFrontendManager::TimerFrontendManager(const TimerFrontendManager &src)
     :m_timer(src.m_timer)
 {
-
 }
 
 TimerFrontendManager& TimerFrontendManager::operator =(const TimerFrontendManager& other) {

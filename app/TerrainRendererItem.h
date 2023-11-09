@@ -217,7 +217,6 @@ private:
 
     gl_engine::uboSharedConfig m_shared_config;
 
-
     QTimer* m_update_timer = nullptr;
     nucleus::camera::Definition m_camera;
     int m_camera_width = 0;
@@ -227,6 +226,11 @@ private:
     QVector2D m_sun_angles; // azimuth and zenith
     glm::dvec3 m_last_camera_latlonalt;
     glm::dvec3 m_last_camera_lookat_latlonalt;
+
+    // Note: This was originaly a singleton. But that introduces some issues
+    // with the multi-thread nature of this app. So far the url modifier is
+    // only necessary in this class and on this thread, so we'll use it here.
+    std::unique_ptr<nucleus::utils::UrlModifier> m_url_modifier;
 };
 
 #endif // TERRAINRENDERERITEM_H

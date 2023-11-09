@@ -95,7 +95,7 @@ public:
 //TimerFrontendManager(QObject *parent = nullptr);
     TimerFrontendManager(const TimerFrontendManager& src);
     ~TimerFrontendManager();
-    TimerFrontendManager();
+    TimerFrontendManager(QObject* parent = nullptr);
 
     // Copy assignment
     TimerFrontendManager& operator=(const TimerFrontendManager& other);

@@ -19,6 +19,7 @@
 #pragma once
 
 #include <string>
+#include <QDebug>
 
 namespace nucleus::timing {
 
@@ -29,6 +30,10 @@ class TimerInterface {
 public:
 
     TimerInterface(const std::string& name, const std::string& group, int queue_size, float average_weight);
+
+    ~TimerInterface() {
+        qDebug() << "~nucleus::timing::TimerInterface(name=" << get_name() << ")";
+    }
 
     // Starts time-measurement
     void start();

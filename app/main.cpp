@@ -106,10 +106,6 @@ int main(int argc, char **argv)
         running_in_browser = true;
     }
 
-    // Initialize URL Modifier (if EMSCRIPTEN reads and decodes URL parameter)
-    // Note: could be extended to read cmdline arg on native
-    nucleus::utils::UrlModifier::init();
-
     QSurfaceFormat::setDefaultFormat(fmt);
 
     qmlRegisterType<TerrainRendererItem>("Alpine", 42, 0, "TerrainRenderer");

@@ -39,8 +39,6 @@ class UrlModifier : public QObject {
     Q_OBJECT
 
 public:
-    static UrlModifier* get();
-    static void init();
 
     static QString b64_to_urlsafe_b64(const QString& b64string);
     static QString urlsafe_b64_to_b64(const QString& urlsafeb64);
@@ -50,24 +48,15 @@ public:
 
     static QString latlonalt_to_urlsafe_string(const glm::dvec3& vec);
 
-    UrlModifier(const UrlModifier&) = delete;
-    UrlModifier& operator=(const UrlModifier&) = delete;
+
+    UrlModifier(QObject* parent = nullptr);
+    ~UrlModifier();
 
     QString get_query_item(const QString& name, bool* parameter_found = nullptr);
     void set_query_item(const QString& name, const QString& value);
     QUrl get_url();
 
-protected:
-    UrlModifier();
-
-    static UrlModifier* singleton;
-
-signals:
-    void start_writeout_delay(int duration);
-
 private slots:
-    // gets called by write_out_delay_timer
-    void start_writeout_delay_slot(int duration);
     void write_out_url();
 
 private:

@@ -21,7 +21,6 @@
 #include "TerrainRendererItem.h"
 
 #include <memory>
-
 #include <QDebug>
 #include <QOpenGLContext>
 #include <QOpenGLExtraFunctions>
@@ -30,7 +29,6 @@
 #include <QQuickWindow>
 #include <QThread>
 #include <QTimer>
-
 #include <glm/glm.hpp>
 #include <glm/gtx/string_cast.hpp>
 
@@ -39,9 +37,8 @@
 #include "gl_engine/Window.h"
 #include "nucleus/camera/Controller.h"
 #include "nucleus/Controller.h"
-#include <nucleus/tile_scheduler/Scheduler.h>
-
-#include "nucleus/srs.h" // for calculation of lat long from cam pos
+#include "nucleus/tile_scheduler/Scheduler.h"
+#include "nucleus/srs.h"
 #include "nucleus/utils/sun_calculations.h"
 #include "nucleus/camera/PositionStorage.h"
 #include "nucleus/utils/UrlModifier.h"
@@ -61,7 +58,8 @@ TerrainRendererItem::TerrainRendererItem(QQuickItem* parent)
     : QQuickFramebufferObject(parent)
     , m_update_timer(new QTimer(this))
 {
-    m_timer_manager = new TimerFrontendManager();
+    m_timer_manager = new TimerFrontendManager(this);
+    m_url_modifier = std::make_unique<nucleus::utils::UrlModifier>();
     m_update_timer->setSingleShot(true);
     m_update_timer->setInterval(1000 / m_frame_limit);
     qDebug("TerrainRendererItem::TerrainRendererItem(QQuickItem* parent)");
@@ -78,12 +76,10 @@ TerrainRendererItem::TerrainRendererItem(QQuickItem* parent)
     });
 
     connect(this, &TerrainRendererItem::init_after_creation, this, &TerrainRendererItem::init_after_creation_slot);
-
 }
 
 TerrainRendererItem::~TerrainRendererItem()
 {
-    delete m_timer_manager;
     qDebug("TerrainRendererItem::~TerrainRendererItem()");
 }
 
@@ -211,8 +207,8 @@ void TerrainRendererItem::camera_definition_changed(const nucleus::camera::Defin
 
     auto campos_as_string = nucleus::utils::UrlModifier::latlonalt_to_urlsafe_string(m_last_camera_latlonalt);
     auto lookat_as_string = nucleus::utils::UrlModifier::latlonalt_to_urlsafe_string(m_last_camera_lookat_latlonalt);
-    nucleus::utils::UrlModifier::get()->set_query_item(URL_PARAMETER_KEY_CAM_POS, campos_as_string);
-    nucleus::utils::UrlModifier::get()->set_query_item(URL_PARAMETER_KEY_CAM_LOOKAT, lookat_as_string);
+    m_url_modifier->set_query_item(URL_PARAMETER_KEY_CAM_POS, campos_as_string);
+    m_url_modifier->set_query_item(URL_PARAMETER_KEY_CAM_LOOKAT, lookat_as_string);
 
     recalculate_sun_angles();
 }
@@ -392,9 +388,8 @@ gl_engine::uboSharedConfig TerrainRendererItem::shared_config() const {
 void TerrainRendererItem::set_shared_config(gl_engine::uboSharedConfig new_shared_config) {
     if (m_shared_config != new_shared_config) {
         m_shared_config = new_shared_config;
-        // Lets update the URL: (TODO: schedule URL update, we don't need to update all the time)
         auto data_string = gl_engine::ubo_as_string(m_shared_config);
-        nucleus::utils::UrlModifier::get()->set_query_item(URL_PARAMETER_KEY_CONFIG, data_string);
+        m_url_modifier->set_query_item(URL_PARAMETER_KEY_CONFIG, data_string);
         emit shared_config_changed(m_shared_config);
     }
 }
@@ -509,7 +504,7 @@ void TerrainRendererItem::recalculate_sun_angles() {
 
 void TerrainRendererItem::init_after_creation_slot() {
     // INITIALIZE shared config with URL parameter:
-    auto urlmodifier = nucleus::utils::UrlModifier::get();
+    auto urlmodifier = m_url_modifier.get();
     bool param_available = false;
     auto config_base64_string = urlmodifier->get_query_item(URL_PARAMETER_KEY_CONFIG, &param_available);
     if (param_available) {

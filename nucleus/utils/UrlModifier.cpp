@@ -28,12 +28,6 @@
 
 namespace nucleus::utils {
 
-UrlModifier* UrlModifier::singleton = nullptr;
-
-UrlModifier* UrlModifier::get() {
-    assert(singleton);
-    return singleton;
-}
 
 QString UrlModifier::b64_to_urlsafe_b64(const QString& b64string) {
     QString urlSafe = b64string;
@@ -83,12 +77,10 @@ glm::dvec3 UrlModifier::urlsafe_string_to_dvec3(const QString& str) {
     return glm::dvec3(x, y, z);
 }
 
-void UrlModifier::init() {
-    singleton = new UrlModifier();
-}
 
-
-UrlModifier::UrlModifier() {
+UrlModifier::UrlModifier(QObject* parent)
+    :QObject(parent)
+{
 #ifdef __EMSCRIPTEN__
     emscripten::val location = emscripten::val::global("location");
     auto href = location["href"].as<std::string>();
@@ -104,7 +96,10 @@ UrlModifier::UrlModifier() {
 
     write_out_delay_timer.setSingleShot(true);
     connect(&write_out_delay_timer, &QTimer::timeout, this, &UrlModifier::write_out_url);
-    connect(this, &UrlModifier::start_writeout_delay, this, &UrlModifier::start_writeout_delay_slot);
+}
+
+UrlModifier::~UrlModifier() {
+    qDebug("~nucleus::utils::UrlModifier()");
 }
 
 QString UrlModifier::get_query_item(const QString& name, bool* parameter_found) {
@@ -127,7 +122,12 @@ QString get_resource_identifier_from_url(const QUrl& url) {
 
 void UrlModifier::set_query_item(const QString& name, const QString& value) {
     parameters[name] = value;
-    emit start_writeout_delay(URL_WRITEOUT_DELAY);
+    // Note: If you get the error that the timer can't be started from
+    // a different thread, PLS think about if its absolutely necessary to
+    // make this class thread safe. If so the easiest solution would prob.
+    // be to make a signal/slot for set_query_item. But then again: Is it
+    // necessary? Maybe you can resolve the thread issue on a higher level.
+    write_out_delay_timer.start(URL_WRITEOUT_DELAY);
 }
 
 QUrl UrlModifier::get_url() {
@@ -137,10 +137,6 @@ QUrl UrlModifier::get_url() {
     }
     base_url.setQuery(newQuery);
     return QUrl(base_url);
-}
-
-void UrlModifier::start_writeout_delay_slot(int duration) {
-    write_out_delay_timer.start(duration);
 }
 
 void UrlModifier::write_out_url() {

@@ -61,8 +61,6 @@
 #include "GpuAsyncQueryTimer.h"
 #endif
 
-#include "nucleus/utils/UrlModifier.h"
-
 #if (defined(__linux) && !defined(__ANDROID__)) || defined(_WIN32) || defined(_WIN64)
 #include <QOpenGLFunctions_3_3_Core>    // for wireframe mode
 #endif
@@ -104,12 +102,6 @@ void Window::initialise_gpu()
 
     m_debug_painter = std::make_unique<DebugPainter>();
     m_shader_manager = std::make_unique<ShaderManager>();
-
-    nucleus::utils::UrlModifier::init();
-
-    auto um = nucleus::utils::UrlModifier::get();
-    auto init_conf_ubob64 = um->get_query_item(URL_PARAMETER_KEY_CONFIG);
-
 
     m_tile_manager->init();
     m_tile_manager->initilise_attribute_locations(m_shader_manager->tile_shader());
@@ -158,11 +150,9 @@ void Window::initialise_gpu()
     m_timer->add_timer(static_cast<nucleus::timing::TimerInterface*>(new GpuAsyncQueryTimer("tiles", "GPU", 240, 1.0f/60.0f)));
     m_timer->add_timer(static_cast<nucleus::timing::TimerInterface*>(new GpuAsyncQueryTimer("shadowmap", "GPU", 240, 1.0f/60.0f)));
     m_timer->add_timer(static_cast<nucleus::timing::TimerInterface*>(new GpuAsyncQueryTimer("compose", "GPU", 240, 1.0f/60.0f)));
-
     m_timer->add_timer(static_cast<nucleus::timing::TimerInterface*>(new GpuAsyncQueryTimer("gpu_total", "TOTAL", 240, 1.0f/60.0f)));
 #endif
     m_timer->add_timer(static_cast<nucleus::timing::TimerInterface*>(new nucleus::timing::CpuTimer("cpu_total", "TOTAL", 240, 1.0f/60.0f)));
-
     m_timer->add_timer(static_cast<nucleus::timing::TimerInterface*>(new nucleus::timing::CpuTimer("cpu_b2b", "TOTAL", 240, 1.0f/60.0f)));
 
     emit gpu_ready_changed(true);
