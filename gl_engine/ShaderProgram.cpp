@@ -45,7 +45,7 @@ using gl_engine::ShaderProgram;
 QString ShaderProgram::get_qrc_or_path_prefix() {
     QString prefix = ":/gl_shaders/";
     if (!QOpenGLContext::currentContext()->isOpenGLES())
-        prefix = ALP_RESOURCES_PREFIX; // FOR NATIVE BUILD: prefix = "shaders/";
+        prefix = ALP_RESOURCES_PREFIX; // FOR NATIVE BUILD: ALP_RESOURCES_PREFIX = "shaders/";
     return prefix;
 }
 
