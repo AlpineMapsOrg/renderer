@@ -52,7 +52,6 @@ int main(int argc, char **argv)
     QApplication app(argc, argv);
     app.setWindowIcon(QIcon("app/icons/favicon.ico"));
     QCoreApplication::setOrganizationName("AlpineMaps.org");
-    QCoreApplication::setApplicationName("Alpine Maps");
     QNetworkInformation::loadDefaultBackend(); // load here, so it sits on the correct thread.
 
     //    QLoggingCategory::setFilterRules("*.debug=true\n"

@@ -90,8 +90,7 @@ Window::~Window()
 void Window::initialise_gpu()
 {
     QOpenGLExtraFunctions* f = QOpenGLContext::currentContext()->extraFunctions();
-    if (f->hasOpenGLFeature(QOpenGLExtraFunctions::OpenGLFeature::MultipleRenderTargets)) {
-    }
+    assert(f->hasOpenGLFeature(QOpenGLExtraFunctions::OpenGLFeature::MultipleRenderTargets));
 
     QOpenGLDebugLogger* logger = new QOpenGLDebugLogger(this);
     logger->initialize();
@@ -144,21 +143,20 @@ void Window::initialise_gpu()
 
     {   // INITIALIZE CPU AND GPU TIMER
         using namespace std;
-        using nucleus::timing::TimerInterface;
         using nucleus::timing::CpuTimer;
         m_timer = std::make_unique<nucleus::timing::TimerManager>();
 
 // GPU Timing Queries not supported on OpenGL ES or Web GL
 #if (defined(__linux) && !defined(__ANDROID__)) || defined(_WIN32) || defined(_WIN64)
-        m_timer->add_timer(static_pointer_cast<TimerInterface>(make_shared<GpuAsyncQueryTimer>("ssao", "GPU", 240, 1.0f/60.0f)));
-        m_timer->add_timer(static_pointer_cast<TimerInterface>(make_shared<GpuAsyncQueryTimer>("atmosphere", "GPU", 240, 1.0f/60.0f)));
-        m_timer->add_timer(static_pointer_cast<TimerInterface>(make_shared<GpuAsyncQueryTimer>("tiles", "GPU", 240, 1.0f/60.0f)));
-        m_timer->add_timer(static_pointer_cast<TimerInterface>(make_shared<GpuAsyncQueryTimer>("shadowmap", "GPU", 240, 1.0f/60.0f)));
-        m_timer->add_timer(static_pointer_cast<TimerInterface>(make_shared<GpuAsyncQueryTimer>("compose", "GPU", 240, 1.0f/60.0f)));
-        m_timer->add_timer(static_pointer_cast<TimerInterface>(make_shared<GpuAsyncQueryTimer>("gpu_total", "TOTAL", 240, 1.0f/60.0f)));
+        m_timer->add_timer(make_shared<GpuAsyncQueryTimer>("ssao", "GPU", 240, 1.0f/60.0f));
+        m_timer->add_timer(make_shared<GpuAsyncQueryTimer>("atmosphere", "GPU", 240, 1.0f/60.0f));
+        m_timer->add_timer(make_shared<GpuAsyncQueryTimer>("tiles", "GPU", 240, 1.0f/60.0f));
+        m_timer->add_timer(make_shared<GpuAsyncQueryTimer>("shadowmap", "GPU", 240, 1.0f/60.0f));
+        m_timer->add_timer(make_shared<GpuAsyncQueryTimer>("compose", "GPU", 240, 1.0f/60.0f));
+        m_timer->add_timer(make_shared<GpuAsyncQueryTimer>("gpu_total", "TOTAL", 240, 1.0f/60.0f));
 #endif
-        m_timer->add_timer(static_pointer_cast<TimerInterface>(make_shared<CpuTimer>("cpu_total", "TOTAL", 240, 1.0f/60.0f)));
-        m_timer->add_timer(static_pointer_cast<TimerInterface>(make_shared<CpuTimer>("cpu_b2b", "TOTAL", 240, 1.0f/60.0f)));
+        m_timer->add_timer(make_shared<CpuTimer>("cpu_total", "TOTAL", 240, 1.0f/60.0f));
+        m_timer->add_timer(make_shared<CpuTimer>("cpu_b2b", "TOTAL", 240, 1.0f/60.0f));
     }
 
     emit gpu_ready_changed(true);
@@ -170,13 +168,12 @@ void Window::resize_framebuffer(int width, int height)
         return;
 
     QOpenGLFunctions* f = QOpenGLContext::currentContext()->functions();
-    if (f) {
-        m_gbuffer->resize({ width, height });
-        m_atmospherebuffer->resize({ 1, height });
-        m_ssao->resize({width, height});
+    if (!f) return;
+    m_gbuffer->resize({ width, height });
+    m_atmospherebuffer->resize({ 1, height });
+    m_ssao->resize({width, height});
 
-        f->glViewport(0, 0, width, height);
-    }
+    f->glViewport(0, 0, width, height);
 }
 
 void Window::paint(QOpenGLFramebufferObject* framebuffer)

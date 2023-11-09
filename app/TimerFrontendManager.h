@@ -93,14 +93,9 @@ class TimerFrontendManager : public QObject
     Q_OBJECT
 
 public:
-//TimerFrontendManager(QObject *parent = nullptr);
     TimerFrontendManager(const TimerFrontendManager& src);
     ~TimerFrontendManager();
     TimerFrontendManager(QObject* parent = nullptr);
-
-    // Copy assignment
-    TimerFrontendManager& operator=(const TimerFrontendManager& other);
-    bool operator!=(const TimerFrontendManager& other);
 
 public slots:
     void receive_measurements(QList<nucleus::timing::TimerReport> values);

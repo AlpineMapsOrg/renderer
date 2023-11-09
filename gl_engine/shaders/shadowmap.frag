@@ -16,10 +16,5 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *****************************************************************************/
 
-//layout (location = 0) out highp float texout_depth;
-
-//in highp vec3 var_pos_wrt_cam;
-
 void main() {
-    //texout_depth = gl_FragCoord.z;
 }

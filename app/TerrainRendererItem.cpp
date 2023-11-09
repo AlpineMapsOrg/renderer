@@ -63,7 +63,7 @@ TerrainRendererItem::TerrainRendererItem(QQuickItem* parent)
 #endif
     //qDebug() << "gui thread: " << QThread::currentThread();
 
-    m_timer_manager = new TimerFrontendManager();
+    m_timer_manager = new TimerFrontendManager(this);
     m_url_modifier = std::make_unique<nucleus::utils::UrlModifier>();
     m_update_timer->setSingleShot(true);
     m_update_timer->setInterval(1000 / m_frame_limit);
@@ -84,7 +84,6 @@ TerrainRendererItem::TerrainRendererItem(QQuickItem* parent)
 
 TerrainRendererItem::~TerrainRendererItem()
 {
-    delete m_timer_manager;
 #ifdef ALP_ENABLE_TRACK_OBJECT_LIFECYCLE
     qDebug("~TerrainRendererItem()");
 #endif

@@ -93,16 +93,3 @@ TimerFrontendManager::TimerFrontendManager(const TimerFrontendManager &src)
     qDebug() << "TimerFrontendManager()";
 #endif
 }
-
-TimerFrontendManager& TimerFrontendManager::operator =(const TimerFrontendManager& other) {
-    // Guard self assignment
-    if (this == &other)
-        return *this;
-
-    this->m_timer = other.m_timer;
-    return *this;
-}
-
-bool TimerFrontendManager::operator != (const TimerFrontendManager& other) {
-    return this->m_timer.size() != other.m_timer.size();
-}
