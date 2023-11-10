@@ -25,7 +25,7 @@
 #include <catch2/catch_test_macros.hpp>
 #include <nucleus/camera/Definition.h>
 
-#include "nucleus/camera/stored_positions.h"
+#include "nucleus/camera/PositionStorage.h"
 #include "nucleus/tile_scheduler/utils.h"
 #include "nucleus/utils/tile_conversion.h"
 #include "sherpa/quad_tree.h"

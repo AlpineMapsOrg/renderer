@@ -1,6 +1,6 @@
-/*****************************************************************************
- * Alpine Terrain Builder
- * Copyright (C) 2022 alpinemaps.org
+ /*****************************************************************************
+ * Alpine Renderer
+ * Copyright (C) 2022 Adam Celarek
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by

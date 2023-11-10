@@ -1,6 +1,7 @@
-/*****************************************************************************
- * Alpine Terrain Builder
- * Copyright (C) 2022 alpinemaps.org
+ /*****************************************************************************
+ * Alpine Terrain Renderer
+ * Copyright (C) 2023 Adam Celerek
+ * Copyright (C) 2023 Gerald Kimmersdorfer
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -45,6 +46,7 @@ struct TileSet {
 
     std::unique_ptr<QOpenGLTexture> ortho_texture;
     std::unique_ptr<QOpenGLBuffer> heightmap_buffer;
+    std::unique_ptr<QOpenGLTexture> heightmap_texture;
     std::unique_ptr<QOpenGLVertexArrayObject> vao;
     std::vector<std::pair<tile::Id, tile::SrsBounds>> tiles;
     int gl_element_count = -1;

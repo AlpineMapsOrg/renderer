@@ -5,6 +5,11 @@ option(ALP_UNITTESTS "include unit test targets in the buildsystem" ON)
 option(ALP_ENABLE_ADDRESS_SANITIZER "compiles atb with address sanitizer enabled (only debug, works only on g++ and clang)" OFF)
 option(ALP_ENABLE_THREAD_SANITIZER "compiles atb with thread sanitizer enabled (only debug, works only on g++ and clang)" OFF)
 option(ALP_ENABLE_ASSERTS "enable asserts (do not define NDEBUG)" ON)
+option(ALP_ENABLE_TRACK_OBJECT_LIFECYCLE "enables debug cmd printout of constructors & deconstructors if implemented" OFF)
+
+if(ALP_ENABLE_TRACK_OBJECT_LIFECYCLE)
+    add_definitions(-DALP_ENABLE_TRACK_OBJECT_LIFECYCLE)
+endif()
 
 if (EMSCRIPTEN)
     set(ALP_WWW_INSTALL_DIR "${CMAKE_CURRENT_BINARY_DIR}" CACHE PATH "path to the install directory (for webassembly files, i.e., www directory)")

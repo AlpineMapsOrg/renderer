@@ -36,10 +36,13 @@ qt_add_library(nucleus STATIC
     camera/OrbitInteraction.h camera/OrbitInteraction.cpp
     camera/RotateNorthAnimation.h camera/RotateNorthAnimation.cpp
     camera/AbstractDepthTester.h
-    camera/stored_positions.h
+    camera/PositionStorage.h camera/PositionStorage.cpp
     utils/Stopwatch.h utils/Stopwatch.cpp
     utils/terrain_mesh_index_generator.h
     utils/tile_conversion.h utils/tile_conversion.cpp
+    utils/UrlModifier.h utils/UrlModifier.cpp
+    utils/bit_coding.h
+    utils/sun_calculations.h utils/sun_calculations.cpp
     map_label/MapLabelModel.h map_label/MapLabelModel.cpp
     map_label/CameraTransformationProxyModel.h map_label/CameraTransformationProxyModel.cpp
     map_label/MapLabel.h
@@ -50,6 +53,9 @@ qt_add_library(nucleus STATIC
     DataQuerier.h DataQuerier.cpp
     camera/LinearCameraAnimation.h camera/LinearCameraAnimation.cpp
     camera/AnimationStyle.h camera/AnimationStyle.cpp
+    timing/TimerManager.h timing/TimerManager.cpp
+    timing/TimerInterface.h timing/TimerInterface.cpp
+    timing/CpuTimer.h timing/CpuTimer.cpp
 )
 
 target_include_directories(nucleus PRIVATE . PUBLIC ${CMAKE_SOURCE_DIR})

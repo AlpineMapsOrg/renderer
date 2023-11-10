@@ -1,6 +1,7 @@
 /*****************************************************************************
  * Alpine Terrain Renderer
- * Copyright (C) 2023 Adam Celarek
+ * Copyright (C) 2023 Adam Celerek
+ * Copyright (C) 2023 Gerald Kimmersdorfer
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -21,6 +22,8 @@ import QtQuick.Controls.Material
 import QtQuick.Layouts
 import Alpine
 
+import "components"
+
 Rectangle {
     id: map_gui
     color: "#00000000"
@@ -34,22 +37,14 @@ Rectangle {
         }
     }
 
-    Image {
-        function oc_scale() : float {
-            if (renderer.camera_operation_centre_distance < 0) {
-                return 1.0;
-            }
-            let max_dist = 1000.0;
-            let scale = 1 + Math.pow((1 - (Math.min(max_dist, renderer.camera_operation_centre_distance) / max_dist)) * 1.6, 6);
-            return scale;
-        }
-        id: camera_operation_centre
-        source: "icons/camera_operation_centre.svg"
-        width: 16 * oc_scale()
-        height: 16 * oc_scale()
-        sourceSize: Qt.size(width, height)
+    Rectangle {
+        width: 12
+        height: 12
         x: renderer.camera_operation_centre.x - width / 2
         y: renderer.camera_operation_centre.y - 60 - height / 2
+        color: Qt.alpha(Material.backgroundColor, 0.7);
+        border { width:2; color:Qt.alpha( "white", 0.5); }
+        radius: 16
         visible: renderer.camera_operation_centre_visibility && punkt.checked
     }
 
@@ -112,7 +107,7 @@ Rectangle {
                     anchors.centerIn: parent
                     id: label_text
                     color: Qt.alpha(Material.primaryTextColor, delegate_root.alpha_value)
-                    text: model.text + "(" + model.altitude + "m)"
+                    text: model.text + " (" + model.altitude + "m)"
                     font.pixelSize: 25
                 }
             }
@@ -139,7 +134,7 @@ Rectangle {
     RoundMapButton {
         id: compass
         rotation: renderer.camera_rotation_from_north
-        icon_source: "icons/compass.svg"
+        icon_source: "../icons/compass.svg"
         onClicked: renderer.rotate_north()
 
         anchors {
@@ -157,7 +152,7 @@ Rectangle {
             margins: 16
         }
         checkable: true
-        icon_source: "icons/current_location.svg"
+        icon_source: "../icons/current_location.svg"
     }
 
     Connections {
@@ -169,6 +164,14 @@ Rectangle {
 
         function onTouch_made() {
             current_location.checked = false;
+        }
+    }
+
+    Connections {
+        target: map
+        function onHud_visible_changed(hud_visible) {
+            current_location.visible = hud_visible;
+            compass.visible = hud_visible;
         }
     }
 }

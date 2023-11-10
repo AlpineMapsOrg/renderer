@@ -1,7 +1,8 @@
-/*****************************************************************************
- * Alpine Terrain Renderer
+ /*****************************************************************************
+ * Alpine Renderer
  * Copyright (C) 2022 Adam Celarek
  * Copyright (C) 2023 Jakob Lindner
+ * Copyright (C) 2023 Gerald Kimmersdorfer
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -16,8 +17,9 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *****************************************************************************/
-
 #include "Controller.h"
+
+#include <QDebug>
 
 #include "CadInteraction.h"
 #include "Definition.h"
@@ -27,6 +29,9 @@
 #include "RotateNorthAnimation.h"
 #include "nucleus/DataQuerier.h"
 #include "nucleus/srs.h"
+
+#include "AbstractDepthTester.h"
+#include <glm/gtx/string_cast.hpp>
 
 using namespace nucleus::camera;
 
@@ -110,10 +115,13 @@ void Controller::update() const
 
 void Controller::mouse_press(const event_parameter::Mouse& e)
 {
+    report_global_cursor_position(e.point.position());
+
     if (m_animation_style) {
         m_animation_style.reset();
         m_interaction_style->reset_interaction(m_definition, m_depth_tester);
     }
+
     const auto new_definition = m_interaction_style->mouse_press_event(e, m_definition, m_depth_tester);
     if (!new_definition)
         return;
@@ -130,7 +138,9 @@ void Controller::mouse_move(const event_parameter::Mouse& e)
     const auto new_definition = m_interaction_style->mouse_move_event(e, m_definition, m_depth_tester);
     if (!new_definition)
         return;
+
     m_definition = new_definition.value();
+
     update();
 }
 
@@ -233,6 +243,12 @@ std::optional<float> Controller::operation_centre_distance()
     return m_interaction_style->operation_centre_distance(m_definition);
 }
 
+void Controller::report_global_cursor_position(const QPointF& screen_pos) {
+    auto pos = m_depth_tester->position(m_definition.to_ndc({ screen_pos.x(), screen_pos.y() }));
+    auto coord = srs::world_to_lat_long_alt(pos);
+    emit global_cursor_position_changed(coord);
+}
+
 const Definition& Controller::definition() const
 {
     return m_definition;
@@ -246,3 +262,4 @@ void Controller::set_definition(const Definition& new_definition)
     m_definition = new_definition;
     update();
 }
+

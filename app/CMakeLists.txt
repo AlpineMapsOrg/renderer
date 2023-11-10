@@ -8,6 +8,7 @@ qt_add_executable(alpineapp
     GnssInformation.h GnssInformation.cpp
     TerrainRenderer.h TerrainRenderer.cpp
     HotReloader.h HotReloader.cpp
+    TimerFrontendManager.h TimerFrontendManager.cpp
 )
 
 qt_add_qml_module(alpineapp
@@ -23,7 +24,25 @@ qt_add_qml_module(alpineapp
         SearchResults.qml
         Settings.qml
         Coordinates.qml
-        RoundMapButton.qml
+        StatsWindow.qml
+        GeneralSettings.qml
+        GlSettings.qml
+        components/ValSlider.qml
+        components/ColorPicker.qml
+        components/PageDrawer.qml
+        components/SetGroup.qml
+        components/SetDivider.qml
+        components/SetPanel.qml
+        components/SetTitle.qml
+        components/Window.qml
+        components/DrawerButton.qml
+        components/DrawerSeparator.qml
+        components/DrawerSpacer.qml
+        components/VectorEditor.qml
+        components/DatePicker.qml
+        components/DateMonthTablePicker.qml
+        components/SunAnglePicker.qml
+        components/RoundMapButton.qml
     RESOURCES
         icons/camera_operation_centre.svg
         icons/compass.svg
@@ -32,6 +51,14 @@ qt_add_qml_module(alpineapp
         icons/menu.svg
         icons/peak.svg
         icons/search.svg
+        icons/favicon.ico
+        icons/favicon_256.png
+        icons/material/monitoring.svg
+        icons/material/3d_rotation.svg
+        icons/material/map.svg
+        icons/material/pin_drop.svg
+        icons/material/settings.svg
+        icons/material/info.svg
 )
 
 qt_add_resources(alpineapp "height_data"
@@ -64,6 +91,9 @@ qt_add_resources(alpineapp "fonts"
     ${alpineapp_fonts_SOURCE_DIR}/TTF/SourceSans3-Regular.ttf
     ${alpineapp_fonts_SOURCE_DIR}/TTF/SourceSans3-Semibold.ttf
 )
+
+find_package(Qt6 REQUIRED COMPONENTS Charts)
+target_link_libraries(alpineapp PRIVATE Qt6::Charts)
 
 set_target_properties(alpineapp PROPERTIES
     QT_ANDROID_PACKAGE_SOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/android

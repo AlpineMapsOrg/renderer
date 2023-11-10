@@ -1,7 +1,8 @@
-/*****************************************************************************
- * Alpine Terrain Renderer
+ /*****************************************************************************
+ * Alpine Renderer
  * Copyright (C) 2022 Adam Celarek
  * Copyright (C) 2023 Jakob Lindner
+ * Copyright (C) 2023 Gerald Kimmersdorfer
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -70,6 +71,11 @@ void Definition::set_camera_space_to_world_matrix(const glm::dmat4& new_camera_t
 glm::dmat4 Definition::projection_matrix() const
 {
     return m_projection_matrix;
+}
+
+glm::mat4 Definition::local_view_matrix() const
+{
+    return camera_matrix() * glm::translate(this->position());
 }
 
 glm::dmat4 Definition::world_view_projection_matrix() const
@@ -187,6 +193,17 @@ std::vector<geometry::Plane<double>> Definition::four_clipping_planes() const
     return clipping_panes;
 }
 
+// for reverse z: https://nlguillemot.wordpress.com/2016/12/07/reversed-z-in-opengl/
+glm::mat4 MakeInfReversedZProjRH(float fovY_radians, float aspectWbyH, float zNear)
+{
+    float f = 1.0f / tan(fovY_radians / 2.0f);
+    return glm::mat4(
+        f / aspectWbyH, 0.0f,  0.0f,  0.0f,
+        0.0f,    f,  0.0f,  0.0f,
+        0.0f, 0.0f,  0.0f, -1.0f,
+        0.0f, 0.0f, zNear,  0.0f);
+}
+
 void Definition::set_perspective_params(float fov_degrees,
                                         const glm::uvec2& viewport_size,
                                         float near_plane)
@@ -202,6 +219,8 @@ void Definition::set_perspective_params(float fov_degrees,
         double(viewport_size.x) / double(viewport_size.y),
         double(m_near_clipping),
         double(m_far_clipping));
+    //m_projection_matrix = MakeInfReversedZProjRH(glm::radians(double(fov_degrees)), double(viewport_size.x) / double(viewport_size.y), m_near_clipping); // for reverse z
+
 }
 
 void Definition::set_near_plane(float near_plane)
@@ -278,6 +297,15 @@ glm::dvec2 Definition::to_ndc(const glm::dvec2& screen_space_coordinates) const
 float Definition::to_screen_space(float world_space_size, float world_space_distance) const
 {
     return m_viewport_size.y * 0.5f * world_space_size * m_distance_scaling_factor / world_space_distance;
+}
+
+glm::dvec3 Definition::calculate_lookat_position(double distance) const {
+    auto view_matrix = camera_matrix();
+    // This gets us the right, up and backwards vectors from the view matrix
+    glm::dvec3 f(view_matrix[0][2], view_matrix[1][2], view_matrix[2][2]);
+    // Now invert the direction to get the actual 'forward' direction
+    glm::dvec3 forward = -glm::normalize(f);
+    return position() + distance * forward;
 }
 
 glm::dvec3 Definition::operation_centre() const

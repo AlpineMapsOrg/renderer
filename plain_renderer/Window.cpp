@@ -20,35 +20,46 @@
 
 Window::Window()
 {
-    connect(&m_gl_window, &gl_engine::Window::update_requested, this, qOverload<>(&QOpenGLWindow::update));
+    m_gl_window = new gl_engine::Window();
+    connect(m_gl_window, &gl_engine::Window::update_requested, this, qOverload<>(&QOpenGLWindow::update));
     connect(m_timer, &QTimer::timeout, this, &Window::key_timer);
 }
 
 void Window::initializeGL()
 {
-    m_gl_window.initialise_gpu();
+    m_gl_window->initialise_gpu();
 }
 
 void Window::resizeGL(int w, int h)
 {
-    m_gl_window.resize_framebuffer(w * devicePixelRatio(), h * devicePixelRatio());
-    emit resized({ w, h });
+    if (m_gl_window) {
+        m_gl_window->resize_framebuffer(w * devicePixelRatio(), h * devicePixelRatio());
+        emit resized({ w, h });
+    }
 }
 
 void Window::paintGL()
 {
-    m_gl_window.paint();
+    m_gl_window->paint();
 }
 
 void Window::paintOverGL()
 {
     QPainter p(this);
-    m_gl_window.paintOverGL(&p);
+    m_gl_window->paintOverGL(&p);
 }
 
 gl_engine::Window* Window::render_window()
 {
-    return &m_gl_window;
+    return m_gl_window;
+}
+
+void Window::closeEvent(QCloseEvent* e) {
+    // NOTE: The following fixes the bug where the plain_renderer crashes if m_gl_window was set as a direct member variable
+    // For some reason in this case the QOpenGLContext was not available anymore before deleting the m_gl_window. Thats why it crashed
+    // when exiting. Deleting m_gl_window manually inside the closeEvent fixes this bug:
+    delete m_gl_window;
+    m_gl_window = nullptr;
 }
 
 void Window::mousePressEvent(QMouseEvent* e)
@@ -75,7 +86,8 @@ void Window::keyPressEvent(QKeyEvent* e)
     if (!m_timer->isActive()) {
         m_timer->start(1000.0f / 30.0f);
     }
-    m_gl_window.keyPressEvent(e);
+    if (m_gl_window)
+        m_gl_window->keyPressEvent(e);
 }
 
 void Window::keyReleaseEvent(QKeyEvent* e)
@@ -87,7 +99,7 @@ void Window::keyReleaseEvent(QKeyEvent* e)
     if (m_keys_pressed <= 0) {
         m_timer->stop();
     }
-    m_gl_window.keyReleaseEvent(e);
+    if (m_gl_window) m_gl_window->keyReleaseEvent(e);
 }
 
 void Window::touchEvent(QTouchEvent* e)
@@ -97,5 +109,5 @@ void Window::touchEvent(QTouchEvent* e)
 
 void Window::key_timer()
 {
-    m_gl_window.updateCameraEvent();
+    if (m_gl_window) m_gl_window->updateCameraEvent();
 }

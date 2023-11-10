@@ -23,7 +23,7 @@
 #include <QSignalSpy>
 #include <QThread>
 
-#include "nucleus/camera/stored_positions.h"
+#include "nucleus/camera/PositionStorage.h"
 #include "nucleus/tile_scheduler/Scheduler.h"
 #include "nucleus/tile_scheduler/tile_types.h"
 #include "nucleus/tile_scheduler/utils.h"

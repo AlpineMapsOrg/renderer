@@ -1,7 +1,8 @@
-/*****************************************************************************
- * Alpine Terrain Renderer
+ /*****************************************************************************
+ * Alpine Renderer
  * Copyright (C) 2022 Adam Celarek
  * Copyright (C) 2023 Jakob Lindner
+ * Copyright (C) 2023 Gerald Kimmersdorfer
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -45,6 +46,7 @@ public:
     [[nodiscard]] glm::dmat4 world_view_projection_matrix() const;
     // transforms form the local coordinate system (webmercator shifted by origin_offset) to clip space.
     [[nodiscard]] glm::mat4 local_view_projection_matrix(const glm::dvec3& origin_offset) const;
+    [[nodiscard]] glm::mat4 local_view_matrix() const;
     [[nodiscard]] glm::dvec3 position() const;
     [[nodiscard]] glm::dvec3 x_axis() const;
     [[nodiscard]] glm::dvec3 y_axis() const;
@@ -68,8 +70,10 @@ public:
     [[nodiscard]] glm::dvec2 to_ndc(const glm::dvec2& screen_space_coordinates) const;
     [[nodiscard]] float to_screen_space(float world_space_size, float world_space_distance) const;
 
-    void set_viewport_size(const glm::uvec2& new_viewport_size);
+    // Calculates an arbritrary lookat position at a given WS distance infront of the camera
+    glm::dvec3 calculate_lookat_position(double distance) const;
 
+    void set_viewport_size(const glm::uvec2& new_viewport_size);
 
     bool operator==(const Definition& other) const;
 

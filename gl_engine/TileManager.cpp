@@ -1,6 +1,7 @@
-/*****************************************************************************
+ /*****************************************************************************
  * Alpine Renderer
- * Copyright (C) 2022 Adam Celarek
+ * Copyright (C) 2023 Adam Celarek
+ * Copyright (C) 2023 Gerald Kimmersdorfer
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -15,7 +16,6 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *****************************************************************************/
-
 #include "TileManager.h"
 
 #include <QOpenGLBuffer>
@@ -25,9 +25,7 @@
 #include <QOpenGLVertexArrayObject>
 
 #include "ShaderProgram.h"
-#include "nucleus/Tile.h"
 #include "nucleus/camera/Definition.h"
-#include "nucleus/camera/stored_positions.h"
 #include "nucleus/utils/terrain_mesh_index_generator.h"
 
 using gl_engine::TileManager;
@@ -110,24 +108,49 @@ const std::vector<TileSet>& TileManager::tiles() const
     return m_gpu_tiles;
 }
 
-void TileManager::draw(ShaderProgram* shader_program, const nucleus::camera::Definition& camera) const
+bool compareTileSetPair(std::pair<float, const TileSet*> t1, std::pair<float, const TileSet*> t2)
+{
+    return (t1.first < t2.first);
+}
+
+const nucleus::tile_scheduler::DrawListGenerator::TileSet TileManager::generate_tilelist(const nucleus::camera::Definition& camera) const {
+    return m_draw_list_generator.generate_for(camera);
+}
+
+void TileManager::draw(ShaderProgram* shader_program, const nucleus::camera::Definition& camera,
+                       const nucleus::tile_scheduler::DrawListGenerator::TileSet draw_tiles,
+                       bool sort_tiles, glm::dvec3 sort_position) const
 {
     QOpenGLExtraFunctions* f = QOpenGLContext::currentContext()->extraFunctions();
     shader_program->set_uniform("n_edge_vertices", N_EDGE_VERTICES);
-    shader_program->set_uniform("matrix", camera.local_view_projection_matrix(camera.position()));
-    shader_program->set_uniform("camera_position", glm::vec3(camera.position()));
-    shader_program->set_uniform("texture_sampler", 0);
-//    shader_program->set_uniform("texture_sampler", 0);
+    shader_program->set_uniform("texture_sampler", 2);
+    shader_program->set_uniform("height_sampler", 1);
 
-    const auto draw_tiles = m_draw_list_generator.generate_for(camera);
+    // Sort depending on distance to sort_position
+    std::vector<std::pair<float, const TileSet*>> tile_list;
     for (const auto& tileset : tiles()) {
+        float dist = 0.0;
         if (!draw_tiles.contains(tileset.tiles.front().first))
             continue;
+        if (sort_tiles) {
+            glm::vec2 pos_wrt = glm::vec2(
+                tileset.tiles[0].second.min.x - sort_position.x,
+                tileset.tiles[0].second.min.y - sort_position.y
+                );
+            dist = glm::length(pos_wrt);
+        }
+        tile_list.push_back(std::pair<float, const TileSet*>(dist, &tileset));
+    }
+    if (sort_tiles) std::sort(tile_list.begin(), tile_list.end(), compareTileSetPair);
 
-        tileset.vao->bind();
-        shader_program->set_uniform_array("bounds", boundsArray(tileset, camera.position()));
-        tileset.ortho_texture->bind(0);
-        f->glDrawElements(GL_TRIANGLE_STRIP, tileset.gl_element_count, tileset.gl_index_type, nullptr);
+    for (const auto& tileset : tile_list) {
+        tileset.second->vao->bind();
+        shader_program->set_uniform_array("bounds", boundsArray(*tileset.second, camera.position()));
+        shader_program->set_uniform("tileset_id", (int)((tileset.second->tiles[0].first.coords[0] + tileset.second->tiles[0].first.coords[1])));
+        shader_program->set_uniform("tileset_zoomlevel", tileset.second->tiles[0].first.zoom_level);
+        tileset.second->ortho_texture->bind(2);
+        tileset.second->heightmap_texture->bind(1);
+        f->glDrawElements(GL_TRIANGLE_STRIP, tileset.second->gl_element_count, tileset.second->gl_index_type, nullptr);
     }
     f->glBindVertexArray(0);
 }
@@ -158,7 +181,7 @@ void TileManager::set_aabb_decorator(const nucleus::tile_scheduler::utils::AabbD
     m_draw_list_generator.set_aabb_decorator(new_aabb_decorator);
 }
 
-void TileManager::add_tile(const tile::Id& id, tile::SrsAndHeightBounds bounds, const QImage& ortho_texture, const nucleus::Raster<uint16_t>& height_map)
+void TileManager::add_tile(const tile::Id& id, tile::SrsAndHeightBounds bounds, const QImage& ortho_texture, const nucleus::Raster<uint16_t>& height_map, const QImage& height_texture)
 {
     if (!QOpenGLContext::currentContext()) // can happen during shutdown.
         return;
@@ -192,6 +215,11 @@ void TileManager::add_tile(const tile::Id& id, tile::SrsAndHeightBounds bounds, 
     tileset.ortho_texture->setMaximumAnisotropy(m_max_anisotropy);
     tileset.ortho_texture->setWrapMode(QOpenGLTexture::WrapMode::ClampToEdge);
     tileset.ortho_texture->setMinMagFilters(QOpenGLTexture::Filter::LinearMipMapLinear, QOpenGLTexture::Filter::Linear);
+    tileset.ortho_texture->generateMipMaps();
+
+    tileset.heightmap_texture = std::make_unique<QOpenGLTexture>(height_texture);
+    tileset.heightmap_texture->setWrapMode(QOpenGLTexture::WrapMode::ClampToEdge);
+    tileset.heightmap_texture->setMinMagFilters(QOpenGLTexture::Filter::Nearest, QOpenGLTexture::Filter::Nearest);
 
     // add to m_gpu_tiles
     m_gpu_tiles.push_back(std::move(tileset));
@@ -213,7 +241,8 @@ void TileManager::update_gpu_quads(const std::vector<nucleus::tile_scheduler::ti
             assert(tile.id.zoom_level < 100);
             assert(tile.height);
             assert(tile.ortho);
-            add_tile(tile.id, tile.bounds, *tile.ortho, *tile.height);
+            assert(tile.height_image);
+            add_tile(tile.id, tile.bounds, *tile.ortho, *tile.height, *tile.height_image);
         }
     }
     for (const auto& quad : deleted_quads) {

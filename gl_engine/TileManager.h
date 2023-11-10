@@ -1,6 +1,7 @@
-/*****************************************************************************
- * Alpine Terrain Builder
- * Copyright (C) 2022 alpinemaps.org
+ /*****************************************************************************
+ * Alpine Terrain Renderer
+ * Copyright (C) 2023 Adam Celerek
+ * Copyright (C) 2023 Gerald Kimmersdorfer
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -45,7 +46,9 @@ public:
     void init(); // needs OpenGL context
 
     [[nodiscard]] const std::vector<TileSet>& tiles() const;
-    void draw(ShaderProgram* shader_program, const nucleus::camera::Definition& camera) const;
+    void draw(ShaderProgram* shader_program, const nucleus::camera::Definition& camera, const nucleus::tile_scheduler::DrawListGenerator::TileSet draw_tiles, bool sort_tiles, glm::dvec3 sort_position) const;
+
+    const nucleus::tile_scheduler::DrawListGenerator::TileSet generate_tilelist(const nucleus::camera::Definition& camera) const;
 
     void set_permissible_screen_space_error(float new_permissible_screen_space_error);
 
@@ -59,7 +62,7 @@ public slots:
     void set_aabb_decorator(const nucleus::tile_scheduler::utils::AabbDecoratorPtr& new_aabb_decorator);
 
 private:
-    void add_tile(const tile::Id& id, tile::SrsAndHeightBounds bounds, const QImage& ortho, const nucleus::Raster<uint16_t>& heights);
+    void add_tile(const tile::Id& id, tile::SrsAndHeightBounds bounds, const QImage& ortho, const nucleus::Raster<uint16_t>& heights, const QImage& height_texture);
     struct TileGLAttributeLocations {
         int height = -1;
     };
@@ -77,5 +80,6 @@ private:
     TileGLAttributeLocations m_attribute_locations;
     unsigned m_tiles_per_set = 1;
     nucleus::tile_scheduler::DrawListGenerator m_draw_list_generator;
+    const nucleus::tile_scheduler::DrawListGenerator::TileSet m_last_draw_list; // buffer last generated draw list
 };
 }

@@ -5,6 +5,7 @@ qt_add_executable(unittests_gl_engine
     UnittestGlWindow.h UnittestGlWindow.cpp
     main.cpp
     framebuffer.cpp
+    uniformbuffer.cpp
 )
 
 target_link_libraries(unittests_gl_engine PUBLIC gl_engine Catch2::Catch2)

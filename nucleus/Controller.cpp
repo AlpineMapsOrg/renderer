@@ -28,7 +28,7 @@
 
 #include "AbstractRenderWindow.h"
 #include "nucleus/camera/Controller.h"
-#include "nucleus/camera/stored_positions.h"
+#include "nucleus/camera/PositionStorage.h"
 #include "nucleus/tile_scheduler/LayerAssembler.h"
 #include "nucleus/tile_scheduler/QuadAssembler.h"
 #include "nucleus/tile_scheduler/RateLimiter.h"
@@ -54,7 +54,7 @@ Controller::Controller(AbstractRenderWindow* render_window)
     //    m_ortho_service.reset(new TileLoadService(
     //        "https://maps%1.wien.gv.at/basemap/bmaporthofoto30cm/normal/google3857/", TileLoadService::UrlPattern::ZYX_yPointingSouth, ".jpeg", { "", "1", "2", "3", "4" }));
     m_ortho_service.reset(new TileLoadService(
-        "https://mapsneu.wien.gv.at/basemap/bmaporthofoto30cm/normal/google3857/", TileLoadService::UrlPattern::ZYX_yPointingSouth, ".jpeg"));
+        "https://gataki.cg.tuwien.ac.at/raw/basemap/tiles/", TileLoadService::UrlPattern::ZYX_yPointingSouth, ".jpeg"));
 
     m_tile_scheduler = std::make_unique<nucleus::tile_scheduler::Scheduler>();
     m_tile_scheduler->read_disk_cache();
@@ -71,7 +71,7 @@ Controller::Controller(AbstractRenderWindow* render_window)
     }
     m_data_querier = std::make_unique<DataQuerier>(&m_tile_scheduler->ram_cache());
     m_camera_controller = std::make_unique<nucleus::camera::Controller>(
-        nucleus::camera::stored_positions::oestl_hochgrubach_spitze(),
+        nucleus::camera::PositionStorage::instance()->get("grossglockner"),
         m_render_window->depth_tester(),
         m_data_querier.get());
     {

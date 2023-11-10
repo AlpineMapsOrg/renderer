@@ -1,27 +1,27 @@
-/****************************************************************************
-**
-** Copyright (C) 2017 Klarälvdalens Datakonsult AB, a KDAB Group company.
-** Author: Giuseppe D'Angelo
-** Contact: info@kdab.com
-**
-** This program is free software: you can redistribute it and/or modify
-** it under the terms of the GNU Lesser General Public License as published by
-** the Free Software Foundation, either version 3 of the License, or
-** (at your option) any later version.
-**
-** This program is distributed in the hope that it will be useful,
-** but WITHOUT ANY WARRANTY; without even the implied warranty of
-** MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-** GNU Lesser General Public License for more details.
-**
-** You should have received a copy of the GNU Lesser General Public License
-** along with this program.  If not, see <http://www.gnu.org/licenses/>.
-**
-****************************************************************************/
+/*****************************************************************************
+ * Alpine Terrain Renderer
+ * Copyright (C) 2017 Klarälvdalens Datakonsult AB, a KDAB Group company (Giuseppe D'Angelo)
+ * Copyright (C) 2023 Adam Celarek
+ * Copyright (C) 2023 Gerald Kimmersdorfer
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ *****************************************************************************/
 
 #include <QDirIterator>
 #include <QFontDatabase>
-#include <QGuiApplication>
+//#include <QGuiApplication>
+#include <QApplication>
 #include <QLoggingCategory>
 #include <QNetworkInformation>
 #include <QOpenGLContext>
@@ -43,11 +43,14 @@
 #include "nucleus/map_label/CameraTransformationProxyModel.h"
 #include "nucleus/map_label/MapLabelModel.h"
 
+#include "nucleus/camera/PositionStorage.h"
+
 int main(int argc, char **argv)
 {
     //    QGuiApplication::setHighDpiScaleFactorRoundingPolicy(Qt::HighDpiScaleFactorRoundingPolicy::Floor);
     QQuickWindow::setGraphicsApi(QSGRendererInterface::GraphicsApi::OpenGLRhi);
-    QGuiApplication app(argc, argv);
+    QApplication app(argc, argv);
+    app.setWindowIcon(QIcon("app/icons/favicon.ico"));
     QCoreApplication::setOrganizationName("AlpineMaps.org");
     QCoreApplication::setApplicationName("AlpineApp");
     QNetworkInformation::loadDefaultBackend(); // load here, so it sits on the correct thread.
@@ -90,7 +93,6 @@ int main(int argc, char **argv)
     fmt.setDepthBufferSize(24);
     fmt.setOption(QSurfaceFormat::DebugContext);
 
-    bool running_in_browser = false;
     // Request OpenGL 3.3 core or OpenGL ES 3.0.
     if (QOpenGLContext::openGLModuleType() == QOpenGLContext::LibGL) {
         qDebug("Requesting 3.3 core context");
@@ -99,7 +101,6 @@ int main(int argc, char **argv)
     } else {
         qDebug("Requesting 3.0 context");
         fmt.setVersion(3, 0);
-        running_in_browser = true;
     }
 
     QSurfaceFormat::setDefaultFormat(fmt);
@@ -111,9 +112,10 @@ int main(int argc, char **argv)
 
     QQmlApplicationEngine engine;
 
-    HotReloader hotreloader(&engine, ALP_QML_SOURCE_DIR);
+    HotReloader hotreloader(&engine, ALP_QML_SOURCE_DIR); // FOR NATIVE BUILD ALP_QML_SOURCE_DIR="app/";
     engine.rootContext()->setContextProperty("_hotreloader", &hotreloader);
-    engine.rootContext()->setContextProperty("_qmlPath", ALP_QML_SOURCE_DIR);
+    engine.rootContext()->setContextProperty("_qmlPath", "");
+    engine.rootContext()->setContextProperty("_positionList", QVariant::fromValue(nucleus::camera::PositionStorage::instance()->getPositionList()));
 
     RenderThreadNotifier::instance();
     QObject::connect(
@@ -125,7 +127,7 @@ int main(int argc, char **argv)
             }
         },
         Qt::QueuedConnection);
-    engine.load(QUrl(ALP_QML_SOURCE_DIR "main_loader.qml"));
+    engine.load(QUrl(ALP_QML_SOURCE_DIR "main_loader.qml")); // FOR NATIVE BUILD ALP_QML_SOURCE_DIR="app/";
     QQuickWindow* root_window = dynamic_cast<QQuickWindow*>(engine.rootObjects().first());
     if (root_window == nullptr) {
         qDebug() << "root window not created!";
