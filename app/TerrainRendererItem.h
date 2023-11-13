@@ -25,6 +25,7 @@
 #include "nucleus/event_parameter.h"
 #include "gl_engine/UniformBufferObjects.h"
 #include "TimerFrontendManager.h"
+#include "nucleus/Track.h"
 #include <QQuickFramebufferObject>
 #include <QTimer>
 #include <QList>
@@ -77,11 +78,6 @@ signals:
     void update_camera_requested() const;
     //    void viewport_changed(const glm::uvec2& new_viewport) const;
     void position_set_by_user(double new_latitude, double new_longitude);
-    void camera_definition_set_by_user(const nucleus::camera::Definition&) const;
-
-    void shared_config_changed(gl_engine::uboSharedConfig new_shared_config) const;
-    void render_looped_changed(bool new_render_looped);
-    void hud_visible_changed(bool new_hud_visible);
 
     void rotation_north_requested();
     void camera_changed();
@@ -124,8 +120,6 @@ protected:
 public slots:
     void set_position(double latitude, double longitude);
     void rotate_north();
-    void read_global_position(glm::dvec3 latlonalt);
-    void camera_definition_changed(const nucleus::camera::Definition& new_definition); // gets called whenever camera changes
 
 private slots:
     void schedule_update();

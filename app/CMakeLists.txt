@@ -59,6 +59,7 @@ qt_add_qml_module(alpineapp
         icons/material/pin_drop.svg
         icons/material/settings.svg
         icons/material/info.svg
+        icons/plus.svg
 )
 
 qt_add_resources(alpineapp "height_data"

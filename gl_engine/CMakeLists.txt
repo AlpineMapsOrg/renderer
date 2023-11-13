@@ -21,6 +21,8 @@ qt_add_library(gl_engine STATIC
     SSAO.h SSAO.cpp
     ShadowMapping.h ShadowMapping.cpp
     GpuAsyncQueryTimer.h GpuAsyncQueryTimer.cpp
+    PolyLine.h PolyLine.cpp
+    TrackManager.h TrackManager.cpp
 )
 target_link_libraries(gl_engine PUBLIC nucleus Qt::OpenGL)
 target_include_directories(gl_engine PRIVATE .)
@@ -46,6 +48,8 @@ qt_add_resources(gl_engine "shaders"
     shaders/shadowmap.frag
     shaders/shadow_config.glsl
     shaders/overlay_steepness.glsl
+    shaders/polyline.vert
+    shaders/polyline.frag
 )
 target_compile_definitions(gl_engine PUBLIC ALP_RESOURCES_PREFIX="${CMAKE_CURRENT_SOURCE_DIR}/shaders/")
 

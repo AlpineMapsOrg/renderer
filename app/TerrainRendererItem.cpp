@@ -28,6 +28,7 @@
 #include <QOpenGLFramebufferObjectFormat>
 #include <QQuickWindow>
 #include <QThread>
+#include <QDir>
 #include <QTimer>
 #include <glm/glm.hpp>
 #include <glm/gtx/string_cast.hpp>
@@ -114,6 +115,16 @@ QQuickFramebufferObject::Renderer* TerrainRendererItem::createRenderer() const
     connect(this, &TerrainRendererItem::camera_definition_set_by_user, r->controller()->camera_controller(), &nucleus::camera::Controller::set_definition);
     connect(r->controller()->camera_controller(), &nucleus::camera::Controller::global_cursor_position_changed, this, &TerrainRendererItem::read_global_position);
     //connect(this, &TerrainRendererItem::ind)
+
+    connect(this, 
+            &TerrainRendererItem::track_added_by_user, 
+            r->glWindow(),
+            &gl_engine::Window::open_track_file);
+
+    connect(this, 
+            &TerrainRendererItem::gpx_track_added_by_user, 
+            r->glWindow(),
+            &gl_engine::Window::add_gpx_track);
 
     auto* const tile_scheduler = r->controller()->tile_scheduler();
     connect(this, &TerrainRendererItem::render_quality_changed, tile_scheduler, [=](float new_render_quality) {
@@ -230,6 +241,35 @@ void TerrainRendererItem::rotate_north()
 {
     emit rotation_north_requested();
     RenderThreadNotifier::instance()->notify();
+}
+
+void TerrainRendererItem::add_track(const QString& track)
+{
+    qDebug() << "TerrainRendererItem::add_track" << track;
+    QUrl url(track);
+
+    if (url.isLocalFile()) {
+#if 0
+        emit track_added_by_user(QDir::toNativeSeparators(url.toLocalFile()));
+#else
+        std::unique_ptr<nucleus::gpx::Gpx> gpx = nucleus::gpx::parse(url.toLocalFile());
+
+        if (gpx != nullptr)
+        {
+            emit gpx_track_added_by_user(*gpx);
+
+            if (0 < gpx->track.size() && 0 < gpx->track[0].size())
+            {
+                glm::dvec3 track_start = gpx->track[0][0];
+                emit position_set_by_user(track_start.x, track_start.y);
+            }
+        } else {
+            qDebug("Coud not parse GPX file!");
+        }
+
+#endif
+        RenderThreadNotifier::instance()->notify();
+    }
 }
 
 void TerrainRendererItem::schedule_update()

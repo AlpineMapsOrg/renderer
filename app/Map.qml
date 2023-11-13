@@ -20,6 +20,7 @@
 import QtQuick
 import QtQuick.Controls.Material
 import QtQuick.Layouts
+import QtQuick.Dialogs
 import Alpine
 
 import "components"
@@ -115,6 +116,13 @@ Rectangle {
         }
     }
 
+    FileDialog  {
+        id: file_dialog
+        nameFilters: ["GPX files (*.gpx *.xml)"]
+        currentFolder: StandardPaths.standardLocations(StandardPaths.PicturesLocation)[0]
+        onAccepted: renderer.add_track(selectedFile)
+    }
+
     RoundButton {
         id: punkt
         width: 60
@@ -131,6 +139,20 @@ Rectangle {
             bottomMargin: 10
         }
     }
+    
+    RoundMapButton {
+        id: add_track
+        onClicked: file_dialog.open();
+
+        anchors {
+            right: parent.right
+            bottom: compass.top
+            margins: 16
+        }
+        checkable: true
+        icon_source: "icons/plus.svg" // TODO: change this icon
+    }
+
     RoundMapButton {
         id: compass
         rotation: renderer.camera_rotation_from_north
@@ -154,6 +176,8 @@ Rectangle {
         checkable: true
         icon_source: "../icons/current_location.svg"
     }
+
+
 
     Connections {
         enabled: current_location.checked

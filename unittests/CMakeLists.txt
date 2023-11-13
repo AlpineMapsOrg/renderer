@@ -24,6 +24,7 @@ qt_add_executable(unittests_nucleus
     RateTester.h RateTester.cpp
     test_zppbits.cpp
     cache_queries.cpp
+    test_track.cpp
 )
 
 qt_add_resources(unittests_nucleus "height_data"
@@ -38,6 +39,8 @@ qt_add_resources(unittests_nucleus "test_data"
     data/170px-Jeune_bouquetin_de_face.jpg
     data/test-tile_ortho.jpeg
     data/test-tile.png
+    data/husarentempel.gpx
+    data/wikipedia.gpx
 )
 target_link_libraries(unittests_nucleus PUBLIC nucleus Catch2::Catch2 Qt::Test)
 target_compile_definitions(unittests_nucleus PUBLIC "ALP_TEST_DATA_DIR=\":/test_data/\"")

@@ -33,6 +33,7 @@
 #include "nucleus/AbstractRenderWindow.h"
 #include "nucleus/camera/AbstractDepthTester.h"
 #include "nucleus/camera/Definition.h"
+#include "nucleus/Track.h"
 #include "UniformBufferObjects.h"
 #include "UniformBuffer.h"
 

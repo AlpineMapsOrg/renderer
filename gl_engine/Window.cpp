@@ -44,6 +44,7 @@
 #include "ShaderManager.h"
 #include "ShaderProgram.h"
 #include "TileManager.h"
+#include "TrackManager.h"
 #include "Window.h"
 #include "helpers.h"
 #include "SSAO.h"
@@ -77,6 +78,7 @@ Window::Window()
     : m_camera({ 1822577.0, 6141664.0 - 500, 171.28 + 500 }, { 1822577.0, 6141664.0, 171.28 }) // should point right at the stephansdom
 {
     m_tile_manager = std::make_unique<TileManager>();
+    m_track_manager = std::make_unique<TrackManager>();
     QTimer::singleShot(1, [this]() { emit update_requested(); });
 }
 
@@ -268,22 +270,26 @@ void Window::paint(QOpenGLFramebufferObject* framebuffer)
     m_timer->stop_timer("tiles");
     m_shader_manager->tile_shader()->release();
 
-#if (defined(__linux) && !defined(__ANDROID__)) || defined(_WIN32) || defined(_WIN64)
-    if (funcs && m_shared_config_ubo->data.m_wireframe_mode > 0) funcs->glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
-#endif
+    f->glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
+    m_shader_manager->atmosphere_bg_program()->bind();
+    m_atmosphere->draw(m_shader_manager->atmosphere_bg_program(),
+                       m_camera,
+                       m_shader_manager->screen_quad_program(),
+                       m_framebuffer.get());
 
-    m_gbuffer->unbind();
+    f->glEnable(GL_DEPTH_TEST);
+    f->glDepthFunc(GL_LESS);
+    f->glEnable(GL_BLEND);
+    f->glBlendFunc(GL_ONE, GL_ONE_MINUS_SRC_ALPHA);
 
-    m_shader_manager->tile_shader()->release();
+    m_shader_manager->tile_shader()->bind();
+    m_tile_manager->draw(m_shader_manager->tile_shader(), m_camera);
 
+    /* draw tracks on top */
+    f->glClear(GL_DEPTH_BUFFER_BIT);
+    m_track_manager->draw(m_camera);
 
-    if (m_shared_config_ubo->data.m_ssao_enabled) {
-        m_timer->start_timer("ssao");
-        m_ssao->draw(m_gbuffer.get(), &m_screen_quad_geometry, m_camera,
-                     m_shared_config_ubo->data.m_ssao_kernel, m_shared_config_ubo->data.m_ssao_blur_kernel_size);
-        m_timer->stop_timer("ssao");
-    }
-
+    m_framebuffer->unbind();
     if (framebuffer)
         framebuffer->bind();
 
@@ -444,6 +450,23 @@ void Window::update_gpu_quads(const std::vector<nucleus::tile_scheduler::tile_ty
     m_tile_manager->update_gpu_quads(new_quads, deleted_quads);
 }
 
+void Window::open_track_file(const QString& file_path)
+{
+    qDebug() << "Window::open_track_file" << file_path;
+
+    std::unique_ptr<nucleus::gpx::Gpx> gpx = nucleus::gpx::parse(file_path);
+
+    if (gpx != nullptr) 
+    {
+        m_track_manager->add_track(*gpx);
+    }
+}
+
+void Window::add_gpx_track(const nucleus::gpx::Gpx& track)
+{
+    m_track_manager->add_track(track);
+}
+
 float Window::depth(const glm::dvec2& normalised_device_coordinates)
 {
     uint32_t fakeNormalizedDepth;
@@ -463,7 +486,9 @@ void Window::deinit_gpu()
     m_tile_manager.reset();
     m_debug_painter.reset();
     m_shader_manager.reset();
-    m_gbuffer.reset();
+    m_framebuffer.reset();
+    m_depth_buffer.reset();
+    m_track_manager.reset();
     m_screen_quad_geometry = {};
 }
 
