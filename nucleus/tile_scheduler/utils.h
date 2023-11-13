@@ -27,8 +27,8 @@
 #include "constants.h"
 #include "nucleus/camera/Definition.h"
 #include "nucleus/srs.h"
-#include "sherpa/TileHeights.h"
-#include "sherpa/geometry.h"
+#include "radix/TileHeights.h"
+#include "radix/geometry.h"
 
 namespace nucleus::tile_scheduler {
 

@@ -20,7 +20,7 @@
 #include "nucleus/tile_scheduler/Scheduler.h"
 #include "nucleus/tile_scheduler/cache_quieries.h"
 #include "nucleus/tile_scheduler/tile_types.h"
-#include "sherpa/height_encoding.h"
+#include "radix/height_encoding.h"
 
 #include <catch2/catch_test_macros.hpp>
 
@@ -34,7 +34,7 @@ namespace {
 QByteArray png_tile(unsigned size, float altitude)
 {
     QImage tile(QSize{int(size), int(size)}, QImage::Format_ARGB32);
-    const auto rgb = sherpa::height_encoding::to_rgb(altitude);
+    const auto rgb = radix::height_encoding::to_rgb(altitude);
     tile.fill(QColor(rgb.x, rgb.y, rgb.z));
     QByteArray arr;
     QBuffer buffer(&arr);

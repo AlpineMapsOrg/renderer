@@ -20,7 +20,7 @@
 #include <catch2/catch_test_macros.hpp>
 
 #include "nucleus/camera/Definition.h"
-#include "sherpa/geometry.h"
+#include "radix/geometry.h"
 #include "unittests/test_helpers.h"
 
 using test_helpers::equals;

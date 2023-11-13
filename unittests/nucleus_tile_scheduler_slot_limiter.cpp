@@ -22,7 +22,7 @@
 
 #include "nucleus/tile_scheduler/SlotLimiter.h"
 #include "nucleus/tile_scheduler/tile_types.h"
-#include "sherpa/tile.h"
+#include "radix/tile.h"
 
 TEST_CASE("nucleus/tile_scheduler/slot limiter")
 {

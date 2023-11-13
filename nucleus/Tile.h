@@ -4,7 +4,7 @@
 #include <glm/glm.hpp>
 
 #include "Raster.h"
-#include "sherpa/tile.h"
+#include "radix/tile.h"
 
 namespace nucleus {
 struct Tile {
