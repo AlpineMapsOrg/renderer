@@ -54,9 +54,6 @@ find_package(Qt6 REQUIRED COMPONENTS Core Gui OpenGL Network Quick QuickControls
 if (ALP_ENABLE_POSITIONING)
     find_package(Qt6 REQUIRED COMPONENTS Positioning)
 endif()
-if (ALP_UNITTESTS)
-    find_package(Qt6 REQUIRED COMPONENTS Test)
-endif()
 
 
 include(FetchContent)
