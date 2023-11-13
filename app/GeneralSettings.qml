@@ -106,16 +106,6 @@ SetPanel {
             }
         }
 
-        Label {
-            Layout.columnSpan: 2;
-            color: "red";
-            text: "The sun calculation for now is just an approximation which is partly valid for the 01.08.2023 around Großglockner!"
-            wrapMode: Label.WordWrap
-            Layout.fillWidth: true;
-        }
-
-
-
     }
 
     SetGroup {
