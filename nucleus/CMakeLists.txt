@@ -26,14 +26,29 @@ else()
     endif()
 endif()
 
+message("###################ALP_EXTERN_DIR = ${ALP_EXTERN_DIR}")
 set(EXPECTED_BUILD_TESTS OFF CACHE BOOL "Enable tl::expected tests")
 FetchContent_Declare(tl_expected
+    DOWNLOAD_EXTRACT_TIMESTAMP true
     URL             https://github.com/TartanLlama/expected/archive/refs/tags/v1.1.0.zip
     URL_HASH        MD5=cbc9465bb0e9328c821fc3cf89ec7711
     SOURCE_DIR      ${CMAKE_SOURCE_DIR}/${ALP_EXTERN_DIR}/tl_expected
-    DOWNLOAD_DIR    ${CMAKE_SOURCE_DIR}/${ALP_EXTERN_DIR}/tl_expected
 )
-FetchContent_MakeAvailable(tl_expected)
+FetchContent_Declare(fmt
+    DOWNLOAD_EXTRACT_TIMESTAMP true
+    URL             https://github.com/fmtlib/fmt/releases/download/10.1.0/fmt-10.1.0.zip
+    URL_HASH        MD5=56eaffa1e2a2afe29e9cb2348a446e63
+    SOURCE_DIR      ${CMAKE_SOURCE_DIR}/${ALP_EXTERN_DIR}/fmt
+)
+FetchContent_Declare(zppbits
+    DOWNLOAD_EXTRACT_TIMESTAMP true
+    URL             https://github.com/eyalz800/zpp_bits/archive/refs/heads/main.zip
+    SOURCE_DIR      ${CMAKE_SOURCE_DIR}/${ALP_EXTERN_DIR}/zppbits
+)
+FetchContent_MakeAvailable(tl_expected fmt zppbits)
+
+add_library(zppbits INTERFACE)
+target_include_directories(zppbits INTERFACE ${zppbits_SOURCE_DIR})
 
 qt_add_library(nucleus STATIC
     AbstractRenderWindow.h AbstractRenderWindow.cpp

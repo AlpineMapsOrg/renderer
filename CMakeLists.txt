@@ -6,6 +6,7 @@ option(ALP_ENABLE_ADDRESS_SANITIZER "compiles atb with address sanitizer enabled
 option(ALP_ENABLE_THREAD_SANITIZER "compiles atb with thread sanitizer enabled (only debug, works only on g++ and clang)" OFF)
 option(ALP_ENABLE_ASSERTS "enable asserts (do not define NDEBUG)" ON)
 option(ALP_ENABLE_TRACK_OBJECT_LIFECYCLE "enables debug cmd printout of constructors & deconstructors if implemented" OFF)
+option(ALP_USE_NOISY_CMAKE_DOWNLOAD "we download quite a lot when running cmake the first time. if this option is off, it may look like cmake stalled." ON)
 
 set(ALP_EXTERN_DIR "extern" CACHE STRING "name of the directory to store external libraries, fonts etc..")
 
@@ -35,7 +36,11 @@ set(CMAKE_AUTOMOC ON)
 set(CMAKE_AUTORCC ON)
 set(CMAKE_AUTOUIC ON)
 
-set(FETCHCONTENT_QUIET FALSE)
+if (ALP_USE_NOISY_CMAKE_DOWNLOAD)
+    set(FETCHCONTENT_QUIET FALSE)
+else()
+    set(FETCHCONTENT_QUIET TRUE)
+endif()
 
 if (ALP_ENABLE_ADDRESS_SANITIZER)
     message(NOTICE "building with address sanitizer enabled")
@@ -62,24 +67,20 @@ if (ALP_UNITTESTS)
     find_package(Qt6 REQUIRED COMPONENTS Test)
 endif()
 
-
 include(FetchContent)
-FetchContent_Declare(
-  alpine_height_data
-  URL      https://gataki.cg.tuwien.ac.at/tiles/alpine_png2/height_data.atb
-  DOWNLOAD_NO_EXTRACT true
-  URL_HASH MD5=f5458b48ade5d6aaf980fcfc5b6be29a
+FetchContent_Declare(alpine_height_data
+    DOWNLOAD_NO_EXTRACT true
+    URL             https://gataki.cg.tuwien.ac.at/tiles/alpine_png2/height_data.atb
+    URL_HASH        MD5=f5458b48ade5d6aaf980fcfc5b6be29a
+    SOURCE_DIR      ${CMAKE_SOURCE_DIR}/${ALP_EXTERN_DIR}/alpine_height_data
 )
-FetchContent_Declare(
-  alpineapp_fonts
+FetchContent_Declare(alpineapp_fonts
   DOWNLOAD_EXTRACT_TIMESTAMP true
-  URL      https://github.com/adobe-fonts/source-sans/archive/refs/heads/release.zip
-  URL_HASH MD5=681612d5ad33731c512ce056d2ca2297
+  URL               https://github.com/adobe-fonts/source-sans/archive/refs/heads/release.zip
+  URL_HASH          MD5=681612d5ad33731c512ce056d2ca2297
+  SOURCE_DIR        ${CMAKE_SOURCE_DIR}/${ALP_EXTERN_DIR}/alpineapp_fonts
 )
-FetchContent_Declare(fmt GIT_REPOSITORY https://github.com/fmtlib/fmt.git GIT_PROGRESS TRUE)
-FetchContent_Declare(zppbits GIT_REPOSITORY https://github.com/eyalz800/zpp_bits.git GIT_TAG main GIT_PROGRESS TRUE)
-
-FetchContent_MakeAvailable(alpine_height_data alpineapp_fonts fmt zppbits)
+FetchContent_MakeAvailable(alpine_height_data alpineapp_fonts)
 
 if (ANDROID)
     FetchContent_Declare(
@@ -91,8 +92,6 @@ if (ANDROID)
     include(${android_openssl_SOURCE_DIR}/android_openssl.cmake)
 endif()
 
-add_library(zppbits INTERFACE)
-target_include_directories(zppbits INTERFACE ${zppbits_SOURCE_DIR})
 
 
 ########################################### projects #################################################
