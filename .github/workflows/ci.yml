@@ -50,7 +50,7 @@ jobs:
         arch: ${{ matrix.arch }}
         dir: '${{github.workspace}}/qt'
         install-deps: 'true'
-        modules: qtcharts, qtpositioning
+        modules: 'qtcharts qtpositioning'
     
     - name: Configure
       env:
