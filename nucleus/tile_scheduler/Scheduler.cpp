@@ -30,7 +30,7 @@
 
 #include "nucleus/tile_scheduler/utils.h"
 #include "nucleus/utils/tile_conversion.h"
-#include "sherpa/quad_tree.h"
+#include "radix/quad_tree.h"
 
 using namespace nucleus::tile_scheduler;
 

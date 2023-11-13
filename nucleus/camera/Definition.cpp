@@ -25,7 +25,7 @@
 #include <QDebug>
 #include <glm/gtx/transform.hpp>
 
-#include "sherpa/geometry.h"
+#include "radix/geometry.h"
 
 // camera space in opengl / webgl:
 // origin:

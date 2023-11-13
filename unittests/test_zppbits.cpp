@@ -22,7 +22,7 @@
 #include <zpp_bits.h>
 #include <catch2/catch_test_macros.hpp>
 
-#include "sherpa/tile.h"
+#include "radix/tile.h"
 
 namespace {
 
