@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.21)
+cmake_minimum_required(VERSION 3.24)
 project(alpine-renderer LANGUAGES CXX)
 
 option(ALP_UNITTESTS "include unit test targets in the buildsystem" ON)
@@ -6,6 +6,8 @@ option(ALP_ENABLE_ADDRESS_SANITIZER "compiles atb with address sanitizer enabled
 option(ALP_ENABLE_THREAD_SANITIZER "compiles atb with thread sanitizer enabled (only debug, works only on g++ and clang)" OFF)
 option(ALP_ENABLE_ASSERTS "enable asserts (do not define NDEBUG)" ON)
 option(ALP_ENABLE_TRACK_OBJECT_LIFECYCLE "enables debug cmd printout of constructors & deconstructors if implemented" OFF)
+
+set(ALP_EXTERN_DIR "extern" CACHE STRING "name of the directory to store external libraries, fonts etc..")
 
 if(ALP_ENABLE_TRACK_OBJECT_LIFECYCLE)
     add_definitions(-DALP_ENABLE_TRACK_OBJECT_LIFECYCLE)
@@ -80,7 +82,6 @@ FetchContent_MakeAvailable(alpine_height_data alpineapp_fonts fmt zppbits)
 if (ANDROID)
     FetchContent_Declare(
       android_openssl
-      DOWNLOAD_EXTRACT_TIMESTAMP true
       URL      https://github.com/AlpineMapsOrg/android_openssl/archive/refs/heads/issams_fixes.zip
 #      URL_HASH MD5=88dd38c0fc94a195ae3f29412cfdcf2b
     )
@@ -93,7 +94,6 @@ target_include_directories(zppbits INTERFACE ${zppbits_SOURCE_DIR})
 
 
 ########################################### projects #################################################
-add_subdirectory(sherpa)    # pulls in Catch2 and glm
 add_subdirectory(nucleus)
 add_subdirectory(gl_engine)
 add_subdirectory(plain_renderer)

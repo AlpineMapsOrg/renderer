@@ -5,34 +5,33 @@ option(ALP_AUTOUPDATE_RADIX "Keeps whack up-to-date with origin/main, but preven
 
 include(FetchContent)
 
-message("ALP_EXTERN_DIR=${ALP_EXTERN_DIR}")
 if(ALP_AUTOUPDATE_RADIX)
     FetchContent_Declare(radix
-        GIT_REPOSITORY  https://github.com/AlpineMapsOrg/renderer.git
+        GIT_REPOSITORY  https://github.com/AlpineMapsOrg/radix.git
         GIT_TAG         origin/main
-        SOURCE_DIR      ${CMAKE_SOURCE_DIR}/extern/radix
+        SOURCE_DIR      ${CMAKE_SOURCE_DIR}/${ALP_EXTERN_DIR}/radix
         SOURCE_SUBDIR   src
     )
     FetchContent_MakeAvailable(radix)
 else()
-    if (NOT EXISTS ${CMAKE_SOURCE_DIR}/extern/radix)
+    if (NOT EXISTS ${CMAKE_SOURCE_DIR}/${ALP_EXTERN_DIR}/radix)
         FetchContent_Declare(radix
             GIT_REPOSITORY  git@github.com:AlpineMapsOrg/radix.git
             GIT_TAG         main
-            SOURCE_DIR      ${CMAKE_SOURCE_DIR}/extern/radix
+            SOURCE_DIR      ${CMAKE_SOURCE_DIR}/${ALP_EXTERN_DIR}/radix
         )
         FetchContent_MakeAvailable(radix)
     else()
-        add_subdirectory(${CMAKE_SOURCE_DIR}/extern/radix ${CMAKE_BINARY_DIR}/_deps/radix-build)
+        add_subdirectory(${CMAKE_SOURCE_DIR}/${ALP_EXTERN_DIR}/radix ${CMAKE_BINARY_DIR}/_deps/radix-build)
     endif()
 endif()
 
 set(EXPECTED_BUILD_TESTS OFF CACHE BOOL "Enable tl::expected tests")
 FetchContent_Declare(tl_expected
-    URL      https://github.com/TartanLlama/expected/archive/refs/tags/v1.1.0.zip
-    URL_HASH MD5=cbc9465bb0e9328c821fc3cf89ec7711
-    DOWNLOAD_EXTRACT_TIMESTAMP true
-    SOURCE_DIR      ${CMAKE_SOURCE_DIR}/extern/tl_expected
+    URL             https://github.com/TartanLlama/expected/archive/refs/tags/v1.1.0.zip
+    URL_HASH        MD5=cbc9465bb0e9328c821fc3cf89ec7711
+    SOURCE_DIR      ${CMAKE_SOURCE_DIR}/${ALP_EXTERN_DIR}/tl_expected
+    DOWNLOAD_DIR    ${CMAKE_SOURCE_DIR}/${ALP_EXTERN_DIR}/tl_expected
 )
 FetchContent_MakeAvailable(tl_expected)
 
@@ -85,7 +84,7 @@ qt_add_library(nucleus STATIC
 )
 
 target_include_directories(nucleus PRIVATE . PUBLIC ${CMAKE_SOURCE_DIR})
-target_link_libraries(nucleus PUBLIC sherpa Qt::Core Qt::Gui Qt::Network Qt::Svg fmt::fmt zppbits expected)
+target_link_libraries(nucleus PUBLIC radix Qt::Core Qt::Gui Qt::Network Qt::Svg fmt::fmt zppbits expected)
 
 
 if (EMSCRIPTEN)
