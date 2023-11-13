@@ -40,6 +40,13 @@ jobs:
         install: mingw-w64-x86_64-toolchain mingw-w64-x86_64-cmake
         msystem: mingw64
         release: false
+        
+    - name: Install MSYS2
+      if: matrix.os == 'ubuntu-latest'
+      run: |
+           sudo apt-get install libgl1-mesa-dev libxcb1-dev libxkbcommon-x11-dev libx11-xcb-dev libxcb-cursor0 libzstd-dev -y;
+           sudo apt-get install cmake ninja-build pkgconf libtool -y;
+           sudo apt-get install appstream -y;
     
     - name: Install Qt
       uses: jurplel/install-qt-action@v3
