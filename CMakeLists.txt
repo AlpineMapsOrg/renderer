@@ -35,6 +35,8 @@ set(CMAKE_AUTOMOC ON)
 set(CMAKE_AUTORCC ON)
 set(CMAKE_AUTOUIC ON)
 
+set(FETCHCONTENT_QUIET FALSE)
+
 if (ALP_ENABLE_ADDRESS_SANITIZER)
     message(NOTICE "building with address sanitizer enabled")
     set (CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -fno-omit-frame-pointer -fsanitize=address")
@@ -74,8 +76,8 @@ FetchContent_Declare(
   URL      https://github.com/adobe-fonts/source-sans/archive/refs/heads/release.zip
   URL_HASH MD5=681612d5ad33731c512ce056d2ca2297
 )
-FetchContent_Declare(fmt GIT_REPOSITORY https://github.com/fmtlib/fmt.git)
-FetchContent_Declare(zppbits GIT_REPOSITORY https://github.com/eyalz800/zpp_bits.git GIT_TAG main)
+FetchContent_Declare(fmt GIT_REPOSITORY https://github.com/fmtlib/fmt.git GIT_PROGRESS TRUE)
+FetchContent_Declare(zppbits GIT_REPOSITORY https://github.com/eyalz800/zpp_bits.git GIT_TAG main GIT_PROGRESS TRUE)
 
 FetchContent_MakeAvailable(alpine_height_data alpineapp_fonts fmt zppbits)
 
