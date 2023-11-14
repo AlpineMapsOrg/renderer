@@ -78,6 +78,8 @@ signals:
     void update_camera_requested() const;
     //    void viewport_changed(const glm::uvec2& new_viewport) const;
     void position_set_by_user(double new_latitude, double new_longitude);
+    void track_added_by_user(const QString& track_path);
+    void gpx_track_added_by_user(const nucleus::gpx::Gpx& track);
 
     void rotation_north_requested();
     void camera_changed();
@@ -120,6 +122,8 @@ protected:
 public slots:
     void set_position(double latitude, double longitude);
     void rotate_north();
+    void add_track(const QString& track);
+
 
 private slots:
     void schedule_update();

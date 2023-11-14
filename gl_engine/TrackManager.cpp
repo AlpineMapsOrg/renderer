@@ -34,9 +34,7 @@ namespace gl_engine
 {
 
     TrackManager::TrackManager(QObject *parent)
-        : QObject(parent), m_shader(std::make_unique<ShaderProgram>(
-                               ShaderProgram::Files({"polyline.vert"}),
-                               ShaderProgram::Files({"polyline.frag"})))
+        : QObject(parent), m_shader(std::make_unique<ShaderProgram>("polyline.vert", "polyline.frag"))
     {
     }
 

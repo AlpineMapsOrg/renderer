@@ -270,26 +270,22 @@ void Window::paint(QOpenGLFramebufferObject* framebuffer)
     m_timer->stop_timer("tiles");
     m_shader_manager->tile_shader()->release();
 
-    f->glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
-    m_shader_manager->atmosphere_bg_program()->bind();
-    m_atmosphere->draw(m_shader_manager->atmosphere_bg_program(),
-                       m_camera,
-                       m_shader_manager->screen_quad_program(),
-                       m_framebuffer.get());
+#if (defined(__linux) && !defined(__ANDROID__)) || defined(_WIN32) || defined(_WIN64)
+    if (funcs && m_shared_config_ubo->data.m_wireframe_mode > 0) funcs->glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+#endif
 
-    f->glEnable(GL_DEPTH_TEST);
-    f->glDepthFunc(GL_LESS);
-    f->glEnable(GL_BLEND);
-    f->glBlendFunc(GL_ONE, GL_ONE_MINUS_SRC_ALPHA);
+    m_gbuffer->unbind();
 
-    m_shader_manager->tile_shader()->bind();
-    m_tile_manager->draw(m_shader_manager->tile_shader(), m_camera);
+    m_shader_manager->tile_shader()->release();
 
-    /* draw tracks on top */
-    f->glClear(GL_DEPTH_BUFFER_BIT);
-    m_track_manager->draw(m_camera);
 
-    m_framebuffer->unbind();
+    if (m_shared_config_ubo->data.m_ssao_enabled) {
+        m_timer->start_timer("ssao");
+        m_ssao->draw(m_gbuffer.get(), &m_screen_quad_geometry, m_camera,
+                     m_shared_config_ubo->data.m_ssao_kernel, m_shared_config_ubo->data.m_ssao_blur_kernel_size);
+        m_timer->stop_timer("ssao");
+    }
+
     if (framebuffer)
         framebuffer->bind();
 
@@ -486,9 +482,7 @@ void Window::deinit_gpu()
     m_tile_manager.reset();
     m_debug_painter.reset();
     m_shader_manager.reset();
-    m_framebuffer.reset();
-    m_depth_buffer.reset();
-    m_track_manager.reset();
+    m_gbuffer.reset();
     m_screen_quad_geometry = {};
 }
 
@@ -507,4 +501,4 @@ void Window::remove_tile(const tile::Id& id)
 nucleus::camera::AbstractDepthTester* Window::depth_tester()
 {
     return this;
-}
+}  

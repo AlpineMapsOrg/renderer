@@ -44,6 +44,7 @@ class QOpenGLShaderProgram;
 class QOpenGLBuffer;
 class QOpenGLVertexArrayObject;
 class TileManager;
+class TrackManager;
 
 namespace gl_engine {
 
