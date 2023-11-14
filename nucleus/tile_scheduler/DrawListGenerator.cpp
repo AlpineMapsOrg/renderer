@@ -18,8 +18,8 @@
 
 #include "DrawListGenerator.h"
 
-#include "sherpa/iterator.h"
-#include "sherpa/quad_tree.h"
+#include "radix/iterator.h"
+#include "radix/quad_tree.h"
 
 using nucleus::tile_scheduler::DrawListGenerator;
 
@@ -74,6 +74,6 @@ DrawListGenerator::TileSet DrawListGenerator::generate_for(const nucleus::camera
         return tile_scheduler::utils::camera_frustum_contains_tile(camera_frustum, m_aabb_decorator->aabb(tile));
     };
 
-    std::copy_if(all_leaves.begin(), all_leaves.end(), sherpa::unordered_inserter(visible_leaves), is_visible);
+    std::copy_if(all_leaves.begin(), all_leaves.end(), radix::unordered_inserter(visible_leaves), is_visible);
     return visible_leaves;
 }

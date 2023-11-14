@@ -21,7 +21,7 @@
 
 #include <glm/gtx/string_cast.hpp>
 
-#include "sherpa/tile.h"
+#include "radix/tile.h"
 
 namespace Catch {
 

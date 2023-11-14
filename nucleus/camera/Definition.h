@@ -24,14 +24,13 @@
 #include <vector>
 
 #include <glm/glm.hpp>
-#include <sherpa/geometry.h>
+#include <radix/geometry.h>
 
+ namespace nucleus::camera {
 
-namespace nucleus::camera {
-
-struct Frustum {
-    std::array<geometry::Plane<double>, 6> clipping_planes; // the order of clipping panes is front, back, top, down, left, and right
-    std::array<glm::dvec3, 8> corners; // the order of corners is ccw, starting from top left, front plane -> back plane
+ struct Frustum {
+     std::array<geometry::Plane<double>, 6> clipping_planes; // the order of clipping panes is front, back, top, down, left, and right
+     std::array<glm::dvec3, 8> corners; // the order of corners is ccw, starting from top left, front plane -> back plane
 };
 
 class Definition {

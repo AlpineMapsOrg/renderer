@@ -25,7 +25,7 @@
 #include <QThread>
 
 #include "nucleus/tile_scheduler/Cache.h"
-#include "sherpa/tile.h"
+#include "radix/tile.h"
 
 
 namespace {

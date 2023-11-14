@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.21)
+cmake_minimum_required(VERSION 3.24)
 project(alpine-renderer-plain_renderer LANGUAGES CXX)
 
 qt_add_executable(plain_renderer
