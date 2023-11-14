@@ -63,9 +63,6 @@ find_package(Qt6 REQUIRED COMPONENTS Core Gui OpenGL Network Quick QuickControls
 if (ALP_ENABLE_POSITIONING)
     find_package(Qt6 REQUIRED COMPONENTS Positioning)
 endif()
-if (ALP_UNITTESTS)
-    find_package(Qt6 REQUIRED COMPONENTS Test)
-endif()
 
 include(FetchContent)
 FetchContent_Declare(alpine_height_data
@@ -80,6 +77,7 @@ FetchContent_Declare(alpineapp_fonts
   URL_HASH          MD5=681612d5ad33731c512ce056d2ca2297
   SOURCE_DIR        ${CMAKE_SOURCE_DIR}/${ALP_EXTERN_DIR}/alpineapp_fonts
 )
+
 FetchContent_MakeAvailable(alpine_height_data alpineapp_fonts)
 
 if (ANDROID)
@@ -92,19 +90,23 @@ if (ANDROID)
     include(${android_openssl_SOURCE_DIR}/android_openssl.cmake)
 endif()
 
-
-
-########################################### projects #################################################
 add_subdirectory(nucleus)
 add_subdirectory(gl_engine)
 add_subdirectory(plain_renderer)
 add_subdirectory(app)
 
 if (ALP_UNITTESTS)
+    find_package(Qt6 REQUIRED COMPONENTS Test)
+    FetchContent_Declare(catch2
+        DOWNLOAD_EXTRACT_TIMESTAMP true
+        URL             https://github.com/catchorg/Catch2/archive/refs/tags/v3.4.0.tar.gz
+        URL_HASH        MD5=2c802a4938ed842e2942c60d1d231bb7
+        SOURCE_DIR      ${CMAKE_SOURCE_DIR}/extern/Catch2
+    )
+    FetchContent_MakeAvailable(catch2)
     if (EMSCRIPTEN AND ALP_ENABLE_THREADING)
         target_compile_options(Catch2 PRIVATE -pthread)
     endif()
-
     function(alp_setup_unittest)
         if (ANDROID)
             install(TARGETS ${ARGV0}
