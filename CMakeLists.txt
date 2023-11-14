@@ -72,10 +72,9 @@ FetchContent_Declare(alpine_height_data
     SOURCE_DIR      ${CMAKE_SOURCE_DIR}/${ALP_EXTERN_DIR}/alpine_height_data
 )
 FetchContent_Declare(alpineapp_fonts
-  DOWNLOAD_EXTRACT_TIMESTAMP true
-  URL               https://github.com/adobe-fonts/source-sans/archive/refs/heads/release.zip
-  URL_HASH          MD5=681612d5ad33731c512ce056d2ca2297
-  SOURCE_DIR        ${CMAKE_SOURCE_DIR}/${ALP_EXTERN_DIR}/alpineapp_fonts
+    GIT_REPOSITORY  https://github.com/AlpineMapsOrg/fonts.git
+    GIT_TAG         origin/main
+    SOURCE_DIR      ${CMAKE_SOURCE_DIR}/${ALP_EXTERN_DIR}/alpineapp_fonts
 )
 
 FetchContent_MakeAvailable(alpine_height_data alpineapp_fonts)
