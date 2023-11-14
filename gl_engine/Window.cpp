@@ -270,6 +270,10 @@ void Window::paint(QOpenGLFramebufferObject* framebuffer)
     m_timer->stop_timer("tiles");
     m_shader_manager->tile_shader()->release();
 
+    /* draw tracks on top */
+    f->glClear(GL_DEPTH_BUFFER_BIT);
+    m_track_manager->draw(m_camera);
+
 #if (defined(__linux) && !defined(__ANDROID__)) || defined(_WIN32) || defined(_WIN64)
     if (funcs && m_shared_config_ubo->data.m_wireframe_mode > 0) funcs->glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
 #endif
@@ -277,7 +281,6 @@ void Window::paint(QOpenGLFramebufferObject* framebuffer)
     m_gbuffer->unbind();
 
     m_shader_manager->tile_shader()->release();
-
 
     if (m_shared_config_ubo->data.m_ssao_enabled) {
         m_timer->start_timer("ssao");

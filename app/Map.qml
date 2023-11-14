@@ -150,7 +150,7 @@ Rectangle {
             margins: 16
         }
         checkable: true
-        icon_source: "icons/plus.svg" // TODO: change this icon
+        icon_source: "../icons/plus.svg"
     }
 
     RoundMapButton {
