@@ -83,7 +83,7 @@ Item {
         }
 
         Item {
-            width: 36 - (2 * spacing)
+            width: 36 - (2 * parent.spacing)
         }
 
         Label {

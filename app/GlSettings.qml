@@ -188,7 +188,7 @@ SetPanel {
         SunAnglePicker {
             sun_angles: map.sun_angles
             onSun_anglesChanged: map.sun_angles = sun_angles;
-            enabled: !map.link_gl_sundirection
+            enabled: !map.settings.gl_sundir_date_link;
         }
 
         Label { text: "Mat.-Color:" }
