@@ -21,7 +21,7 @@
 #include <QObject>
 #include <memory>
 #include <nucleus/camera/Definition.h>
-#include <nucleus/Track.h>
+#include <nucleus/GPX.h>
 
 #include "PolyLine.h"
 #include "ShaderProgram.h"

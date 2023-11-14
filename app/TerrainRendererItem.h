@@ -25,7 +25,7 @@
 #include "nucleus/event_parameter.h"
 #include "gl_engine/UniformBufferObjects.h"
 #include "TimerFrontendManager.h"
-#include "nucleus/Track.h"
+#include "nucleus/GPX.h"
 #include <QQuickFramebufferObject>
 #include <QTimer>
 #include <QList>
