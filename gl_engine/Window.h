@@ -90,6 +90,7 @@ signals:
 private:
     std::unique_ptr<TileManager> m_tile_manager; // needs opengl context
     std::unique_ptr<DebugPainter> m_debug_painter; // needs opengl context
+    std::unique_ptr<TrackManager> m_track_manager; // needs opengl context
     std::unique_ptr<ShaderManager> m_shader_manager;
 
     std::unique_ptr<Framebuffer> m_gbuffer;
