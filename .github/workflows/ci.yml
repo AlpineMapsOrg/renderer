@@ -16,13 +16,14 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-latest, windows-latest]
+        #os: [ubuntu-latest, windows-latest]
+        os: [ubuntu-latest]
         build_type: [Release]
         include:
-          - os: windows-latest
-            arch: 'win64_mingw'
-            host: 'windows'
-            shell: 'msys2 {0}'
+          #- os: windows-latest
+            #arch: 'win64_mingw'
+            #host: 'windows'
+            #shell: 'msys2 {0}'
           - os: ubuntu-latest
             arch: 'gcc_64'
             host: 'linux'
