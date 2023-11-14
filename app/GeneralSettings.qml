@@ -29,12 +29,12 @@ SetPanel {
         // when creating the this component, values are read from the renderer
         // after that we establish a binding, so this component can set values on the renderer
         frame_rate_slider.value = map.frame_limit
-        lod_slider.value = map.render_quality
+        lod_slider.value = map.settings.render_quality
         fov_slider.value = map.field_of_view
         cache_size_slider.value = map.tile_cache_size
 
         map.frame_limit = Qt.binding(function() { return frame_rate_slider.value })
-        map.render_quality = Qt.binding(function() { return lod_slider.value })
+        map.settings.render_quality = Qt.binding(function() { return lod_slider.value })
         map.field_of_view = Qt.binding(function() { return fov_slider.value })
         map.tile_cache_size = Qt.binding(function() { return cache_size_slider.value })
         datetimegroup.initializePropertys();
@@ -48,7 +48,7 @@ SetPanel {
         property bool initialized: false;
 
         function initializePropertys() {
-            var jdt = new Date(map.selected_datetime);
+            var jdt = new Date(map.settings.datetime);
             currentTime.value = jdt.getHours() + jdt.getMinutes() / 60;
             currentDate.selectedDate = jdt;
             initialized = true;
@@ -59,7 +59,7 @@ SetPanel {
             let jsDate = currentDate.selectedDate;
             jsDate.setHours(currentTime.hours);
             jsDate.setMinutes(currentTime.minutes);
-            map.selected_datetime = jsDate;
+            map.settings.datetime = jsDate;
         }
 
         Label { text: qsTr("Date:") }
@@ -77,7 +77,6 @@ SetPanel {
             id: currentTime;
             from: 0.0; to: 24.0; stepSize: 1 / (60 / 15); // in 15 min steps
             onMoved: {
-                //console.log("because of Time");
                 datetimegroup.updateMapDateTimeProperty();
             }
             formatCallback: function (value) {
@@ -94,13 +93,13 @@ SetPanel {
             text: "Link GL Sun Configuration"
             Layout.fillWidth: true;
             Layout.columnSpan: 2;
-            checked: map.link_gl_sundirection;
-            onCheckStateChanged: map.link_gl_sundirection = this.checked;
+            checked: map.settings.gl_sundir_date_link;
+            onCheckStateChanged: map.settings.gl_sundir_date_link = this.checked;
         }
 
-        Label { text: qsTr("Sun Angles:"); visible:  map.link_gl_sundirection; }
+        Label { text: qsTr("Sun Angles:"); visible:  map.settings.gl_sundir_date_link; }
         Label {
-            visible: map.link_gl_sundirection;
+            visible: map.settings.gl_sundir_date_link;
             text: {
                 return "Az(" + map.sun_angles.x.toFixed(2) + "°) , Ze(" + map.sun_angles.y.toFixed(2) + "°)";
             }

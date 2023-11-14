@@ -8,7 +8,9 @@ qt_add_executable(alpineapp
     GnssInformation.h GnssInformation.cpp
     TerrainRenderer.h TerrainRenderer.cpp
     HotReloader.h HotReloader.cpp
-    TimerFrontendManager.h TimerFrontendManager.cpp
+    AppSettings.h AppSettings.cpp
+    timing/TimerFrontendManager.h timing/TimerFrontendManager.cpp
+    timing/TimerFrontendObject.h timing/TimerFrontendObject.cpp
 )
 
 qt_add_qml_module(alpineapp

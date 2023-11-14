@@ -23,14 +23,18 @@
 #include <QMap>
 #include <QString>
 #include <QTimer>
+#include <QDateTime>
 #include <glm/glm.hpp>
 
 #define URL_PARAMETER_KEY_CONFIG "config"
 #define URL_PARAMETER_KEY_CAM_POS "campos"
 #define URL_PARAMETER_KEY_CAM_LOOKAT "lookat"
+#define URL_PARAMETER_KEY_DATETIME "date"
+#define URL_PARAMETER_KEY_QUALITY "quality"
 
 //#define URLQUERY_DEFAULT "AAABEHjas__AAAb26PQFKP0AQu-H0c8WzEvAph6dfgCjBQQUsNEwdT8gtAMHAwpwcMBurkO9A4o6hD0MuAAjEobxFdDk4AAAEGIdhQ"
 //#define URLQUERY_DEFAULT "?campos=48.207237_16.373009_337.51&lookat=48.212005_16.373096_-65.41" // stephansdom
+//#define URLQUERY_DEFAULT "?date=2022-11-14T11%3A45%3A02"
 #define URLQUERY_DEFAULT ""
 #define URL_WRITEOUT_DELAY 100
 namespace nucleus::utils {
@@ -47,6 +51,9 @@ public:
     static glm::dvec3 urlsafe_string_to_dvec3(const QString& str);
 
     static QString latlonalt_to_urlsafe_string(const glm::dvec3& vec);
+
+    static QString qdatetime_to_urlsafe_string(const QDateTime& date);
+    static QDateTime urlsafe_string_to_qdatetime(const QString& str);
 
 
     UrlModifier(QObject* parent = nullptr);
