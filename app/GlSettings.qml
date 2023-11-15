@@ -185,9 +185,14 @@ SetPanel {
         }
 
         Label { text: "Light-Direction:" }
-        SunAnglePicker {
-            sun_angles: map.sun_angles
-            onSun_anglesChanged: map.sun_angles = sun_angles;
+        VectorEditor {
+            vector: map.sun_angles;
+            onVectorChanged: map.sun_angles = vector;
+            dialogTitle: "Sun Light Direction";
+            elementNames: ["Azimuth", "Zenith"];
+            elementFroms: [0.0, -180.0];
+            elementTos: [360.0, 180.0];
+            dim: false;
             enabled: !map.settings.gl_sundir_date_link;
         }
 
@@ -206,6 +211,7 @@ SetPanel {
             elementNames: ["Ambient", "Diffuse", "Specular", "Shininess"];
             elementFroms: [0.0, 0.0, 0.0, 0.0]
             elementTos: [5.0, 5.0, 5.0, 128.0]
+            dim: false;
         }
 
     }

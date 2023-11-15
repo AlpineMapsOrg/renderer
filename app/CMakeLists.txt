@@ -36,14 +36,12 @@ qt_add_qml_module(alpineapp
         components/SetDivider.qml
         components/SetPanel.qml
         components/SetTitle.qml
-        components/Window.qml
         components/DrawerButton.qml
         components/DrawerSeparator.qml
         components/DrawerSpacer.qml
         components/VectorEditor.qml
         components/DatePicker.qml
         components/DateMonthTablePicker.qml
-        components/SunAnglePicker.qml
         components/RoundMapButton.qml
     RESOURCES
         icons/camera_operation_centre.svg
