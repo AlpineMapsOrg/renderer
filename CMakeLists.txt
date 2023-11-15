@@ -6,7 +6,6 @@ option(ALP_ENABLE_ADDRESS_SANITIZER "compiles atb with address sanitizer enabled
 option(ALP_ENABLE_THREAD_SANITIZER "compiles atb with thread sanitizer enabled (only debug, works only on g++ and clang)" OFF)
 option(ALP_ENABLE_ASSERTS "enable asserts (do not define NDEBUG)" ON)
 option(ALP_ENABLE_TRACK_OBJECT_LIFECYCLE "enables debug cmd printout of constructors & deconstructors if implemented" OFF)
-option(ALP_USE_NOISY_CMAKE_DOWNLOAD "we download quite a lot when running cmake the first time. if this option is off, it may look like cmake stalled." ON)
 
 set(ALP_EXTERN_DIR "extern" CACHE STRING "name of the directory to store external libraries, fonts etc..")
 
@@ -36,12 +35,6 @@ set(CMAKE_AUTOMOC ON)
 set(CMAKE_AUTORCC ON)
 set(CMAKE_AUTOUIC ON)
 
-if (ALP_USE_NOISY_CMAKE_DOWNLOAD)
-    set(FETCHCONTENT_QUIET FALSE)
-else()
-    set(FETCHCONTENT_QUIET TRUE)
-endif()
-
 if (ALP_ENABLE_ADDRESS_SANITIZER)
     message(NOTICE "building with address sanitizer enabled")
     set (CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -fno-omit-frame-pointer -fsanitize=address")
@@ -64,28 +57,12 @@ if (ALP_ENABLE_POSITIONING)
     find_package(Qt6 REQUIRED COMPONENTS Positioning)
 endif()
 
-include(FetchContent)
-FetchContent_Declare(alpine_height_data
-    DOWNLOAD_NO_EXTRACT true
-    URL             https://gataki.cg.tuwien.ac.at/tiles/alpine_png2/height_data.atb
-    URL_HASH        MD5=f5458b48ade5d6aaf980fcfc5b6be29a
-    SOURCE_DIR      ${CMAKE_SOURCE_DIR}/${ALP_EXTERN_DIR}/alpine_height_data
-)
-FetchContent_Declare(alpineapp_fonts
-    GIT_REPOSITORY  https://github.com/AlpineMapsOrg/fonts.git
-    GIT_TAG         origin/main
-    SOURCE_DIR      ${CMAKE_SOURCE_DIR}/${ALP_EXTERN_DIR}/alpineapp_fonts
-)
-
-FetchContent_MakeAvailable(alpine_height_data alpineapp_fonts)
+include(cmake/alp_add_git_repository.cmake)
+alp_add_git_repository(renderer_static_data URL https://github.com/AlpineMapsOrg/renderer_static_data.git COMMITISH origin/main DO_NOT_ADD_SUBPROJECT)
+alp_add_git_repository(alpineapp_fonts URL https://github.com/AlpineMapsOrg/fonts.git COMMITISH origin/main DO_NOT_ADD_SUBPROJECT)
 
 if (ANDROID)
-    FetchContent_Declare(
-      android_openssl
-      URL      https://github.com/AlpineMapsOrg/android_openssl/archive/refs/heads/issams_fixes.zip
-#      URL_HASH MD5=88dd38c0fc94a195ae3f29412cfdcf2b
-    )
-    FetchContent_MakeAvailable(android_openssl)
+    alp_add_git_repository(android_openssl URL https://github.com/AlpineMapsOrg/android_openssl.git COMMITISH origin/master DO_NOT_ADD_SUBPROJECT)
     include(${android_openssl_SOURCE_DIR}/android_openssl.cmake)
 endif()
 
@@ -96,13 +73,10 @@ add_subdirectory(app)
 
 if (ALP_UNITTESTS)
     find_package(Qt6 REQUIRED COMPONENTS Test)
-    FetchContent_Declare(catch2
-        DOWNLOAD_EXTRACT_TIMESTAMP true
-        URL             https://github.com/catchorg/Catch2/archive/refs/tags/v3.4.0.tar.gz
-        URL_HASH        MD5=2c802a4938ed842e2942c60d1d231bb7
-        SOURCE_DIR      ${CMAKE_SOURCE_DIR}/extern/Catch2
-    )
-    FetchContent_MakeAvailable(catch2)
+    if (NOT TARGET Catch2)
+        alp_add_git_repository(catch2 URL https://github.com/catchorg/Catch2.git COMMITISH v3.4.0)
+    endif()
+
     if (EMSCRIPTEN AND ALP_ENABLE_THREADING)
         target_compile_options(Catch2 PRIVATE -pthread)
     endif()

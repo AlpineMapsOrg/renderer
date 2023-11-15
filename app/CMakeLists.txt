@@ -63,8 +63,8 @@ qt_add_qml_module(alpineapp
 
 qt_add_resources(alpineapp "height_data"
     PREFIX "/map"
-    BASE ${alpine_height_data_SOURCE_DIR}
-    FILES ${alpine_height_data_SOURCE_DIR}/height_data.atb
+    BASE ${renderer_static_data_SOURCE_DIR}
+    FILES ${renderer_static_data_SOURCE_DIR}/height_data.atb
 )
 
 qt_add_translations(alpineapp TS_FILES

@@ -14,8 +14,8 @@ target_include_directories(plain_renderer PRIVATE .)
 
 qt_add_resources(plain_renderer "height_data"
     PREFIX "/map"
-    BASE ${alpine_height_data_SOURCE_DIR}
-    FILES ${alpine_height_data_SOURCE_DIR}/height_data.atb
+    BASE ${renderer_static_data_SOURCE_DIR}
+    FILES ${renderer_static_data_SOURCE_DIR}/height_data.atb
 )
 
 if (EMSCRIPTEN)
