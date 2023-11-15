@@ -32,8 +32,7 @@ qt_add_qml_module(alpineapp
         components/ValSlider.qml
         components/ColorPicker.qml
         components/PageDrawer.qml
-        components/SetGroup.qml
-        components/SetDivider.qml
+        components/CheckGroup.qml
         components/SetPanel.qml
         components/SetTitle.qml
         components/DrawerButton.qml

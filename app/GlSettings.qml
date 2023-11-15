@@ -64,7 +64,7 @@ SetPanel {
         }
     }
 
-    SetGroup {
+    CheckGroup {
 
         Label { text: "Overlay:" }
         ComboBox {
@@ -131,7 +131,7 @@ SetPanel {
 
     }
 
-    SetGroup {
+    CheckGroup {
         name: "Curtains"
         Label { text: "Mode:" }
         ComboBox {
@@ -159,14 +159,14 @@ SetPanel {
         }
     }
 
-    SetGroup {
+    CheckGroup {
         name: "Height-Lines"
         id: height_lines_enabled
         checkBoxEnabled: true
         onCheckedChanged: map.shared_config.height_lines_enabled = this.checked;
     }
 
-    SetGroup {
+    CheckGroup {
         name: "Shading"
         id: phong_enabled
         checkBoxEnabled: true
@@ -216,7 +216,7 @@ SetPanel {
 
     }
 
-    SetGroup {
+    CheckGroup {
         id: ssao_enabled
         name: "Ambient Occlusion"
         checkBoxEnabled: true
@@ -253,7 +253,7 @@ SetPanel {
 
     }
 
-    SetGroup {
+    CheckGroup {
         id: csm_enabled
         checkBoxEnabled: true
         onCheckedChanged: map.shared_config.csm_enabled = this.checked;

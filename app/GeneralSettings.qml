@@ -41,7 +41,7 @@ SetPanel {
         responsive_update()
     }
 
-    SetGroup {
+    CheckGroup {
         name: qsTr("Date and Time")
         id: datetimegroup
 
@@ -107,7 +107,7 @@ SetPanel {
 
     }
 
-    SetGroup {
+    CheckGroup {
         name: qsTr("Camera")
         Label { text: qsTr("Field of view:") }
         ValSlider {
@@ -128,7 +128,7 @@ SetPanel {
                 }
             }
 
-            SetGroup {
+            CheckGroup {
                 name: qsTr("Cache & Network")
 
                 Label { text: qsTr("Cache size:") }
