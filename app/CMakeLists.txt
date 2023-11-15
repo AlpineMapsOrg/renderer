@@ -92,13 +92,11 @@ qt_add_resources(alpineapp "fonts"
     ${alpineapp_fonts_SOURCE_DIR}/SourceSans/SourceSans3-Semibold.ttf
 )
 
-find_package(Qt6 REQUIRED COMPONENTS Charts)
-target_link_libraries(alpineapp PRIVATE Qt6::Charts)
 
 set_target_properties(alpineapp PROPERTIES
     QT_ANDROID_PACKAGE_SOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/android
 )
-target_link_libraries(alpineapp PUBLIC nucleus gl_engine Qt::Quick Qt::QuickControls2)
+target_link_libraries(alpineapp PUBLIC nucleus gl_engine Qt::Quick Qt::QuickControls2 Qt::Charts)
 if (ALP_ENABLE_POSITIONING)
     target_link_libraries(alpineapp PUBLIC Qt::Positioning)
     target_compile_definitions(alpineapp PUBLIC "ALP_ENABLE_GNSS")
