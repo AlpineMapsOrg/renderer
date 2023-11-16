@@ -44,6 +44,7 @@
 #include "nucleus/map_label/MapLabelModel.h"
 
 #include "nucleus/camera/PositionStorage.h"
+#include "nucleus/version.h"
 
 int main(int argc, char **argv)
 {
@@ -117,7 +118,7 @@ int main(int argc, char **argv)
     engine.rootContext()->setContextProperty("_hotreloader", &hotreloader);
     engine.rootContext()->setContextProperty("_qmlPath", "");
     engine.rootContext()->setContextProperty("_positionList", QVariant::fromValue(nucleus::camera::PositionStorage::instance()->getPositionList()));
-    engine.rootContext()->setContextProperty("_alpine_renderer_version", ALP_VERSION_STRING);
+    engine.rootContext()->setContextProperty("_alpine_renderer_version", nucleus::version);
 
     RenderThreadNotifier::instance();
     QObject::connect(

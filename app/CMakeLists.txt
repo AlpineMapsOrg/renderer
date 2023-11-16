@@ -127,9 +127,6 @@ else()
     target_compile_definitions(alpineapp PUBLIC ALP_QML_SOURCE_DIR="file:/${CMAKE_CURRENT_SOURCE_DIR}/")
 endif()
 
-alp_generate_version_string(ALP_VERSION_STRING)
-target_compile_definitions(alpineapp PUBLIC ALP_VERSION_STRING="${ALP_VERSION_STRING}")
-
 if (ANDROID)
     add_android_openssl_libraries_to(alpineapp)
 

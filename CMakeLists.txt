@@ -76,7 +76,6 @@ if (ALP_ENABLE_POSITIONING)
 endif()
 
 include(cmake/alp_add_git_repository.cmake)
-include(cmake/alp_generate_version_string.cmake)
 alp_add_git_repository(renderer_static_data URL https://github.com/AlpineMapsOrg/renderer_static_data.git COMMITISH origin/main DO_NOT_ADD_SUBPROJECT)
 alp_add_git_repository(alpineapp_fonts URL https://github.com/AlpineMapsOrg/fonts.git COMMITISH origin/main DO_NOT_ADD_SUBPROJECT)
 

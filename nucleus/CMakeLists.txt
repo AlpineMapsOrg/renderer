@@ -2,6 +2,7 @@
 # Alpine Terrain Renderer
 # Copyright (C) 2023 Adam Celarek <family name at cg tuwien ac at>
 # Copyright (C) 2023 Gerald Kimmersdorfer
+# Copyright (C) 2015 Taylor Braun-Jones (via github.com/nocnokneo/cmake-git-versioning-example)
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -82,6 +83,13 @@ qt_add_library(nucleus STATIC
 target_include_directories(nucleus PRIVATE . PUBLIC ${CMAKE_SOURCE_DIR})
 target_link_libraries(nucleus PUBLIC radix Qt::Core Qt::Gui Qt::Network Qt::Svg fmt::fmt zppbits tl_expected)
 
+add_custom_target(version_header
+    ${CMAKE_COMMAND} -D SRC=${CMAKE_CURRENT_SOURCE_DIR}/version.h.in
+                     -D DST=${CMAKE_BINARY_DIR}/alp_version_header_include/nucleus/version.h
+                     -P ${CMAKE_SOURCE_DIR}/cmake/alp_generate_version_header.cmake
+)
+add_dependencies(nucleus version_header)
+target_include_directories(nucleus PUBLIC ${CMAKE_BINARY_DIR}/alp_version_header_include)
 
 if (EMSCRIPTEN)
     target_compile_options(nucleus PUBLIC -O3)

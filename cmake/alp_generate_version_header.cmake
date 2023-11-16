@@ -1,6 +1,7 @@
 #############################################################################
 # Alpine Terrain Renderer
 # Copyright (C) 2023 Adam Celarek <family name at cg tuwien ac at>
+# Copyright (C) 2015 Taylor Braun-Jones (via github.com/nocnokneo/cmake-git-versioning-example)
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -15,22 +16,22 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #############################################################################
-
-
+ 
 find_package(Git 2.22 REQUIRED)
 
-function(alp_generate_version_string output_variable)
-    execute_process(COMMAND ${GIT_EXECUTABLE} describe --tags --dirty=-d --abbrev=1
-        WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
-        RESULT_VARIABLE git_version_result
-        OUTPUT_STRIP_TRAILING_WHITESPACE
-        OUTPUT_VARIABLE git_version)
+get_filename_component(SRC_DIR ${SRC} DIRECTORY)
 
-    if (${git_version_result})
-        message(WARNING "Retrieving version string from git was not successfull. Setting it to 'vUnknown'")
-        set(${output_variable} "vUnknown" PARENT_SCOPE)
-    else()
-        string(REPLACE "-" "." git_version ${git_version})
-        set(${output_variable} ${git_version} PARENT_SCOPE)
-    endif()
-endfunction()
+execute_process(COMMAND ${GIT_EXECUTABLE} describe --tags --dirty=-d --abbrev=1
+    WORKING_DIRECTORY ${SRC_DIR}
+    RESULT_VARIABLE git_version_result
+    OUTPUT_STRIP_TRAILING_WHITESPACE
+    OUTPUT_VARIABLE ALP_VERSION)
+
+if (${git_version_result})
+    message(WARNING "Retrieving version string from git was not successfull. Setting it to 'vUnknown'")
+    set(${output_variable} "vUnknown" PARENT_SCOPE)
+else()
+    string(REPLACE "-" "." ALP_VERSION ${ALP_VERSION})
+endif()
+
+configure_file(${SRC} ${DST} @ONLY)
