@@ -32,6 +32,25 @@ target_include_directories(zppbits INTERFACE ${zppbits_SOURCE_DIR})
 add_library(tl_expected INTERFACE)
 target_include_directories(tl_expected INTERFACE ${tl_expected_SOURCE_DIR}/include)
 
+execute_process(COMMAND ${CMAKE_COMMAND}
+    -D ALP_VERSION_HEADER_SRC=${CMAKE_CURRENT_SOURCE_DIR}/version.h.in
+    -D ALP_VERSION_HEADER_DST=${CMAKE_BINARY_DIR}/alp_version_header_include/nucleus/version.h
+    -P ${CMAKE_SOURCE_DIR}/cmake/alp_generate_version_header.cmake
+    RESULT_VARIABLE alp_version_header_result)
+if (${alp_version_header_result})
+    message(FATAL_ERROR "Generating the version header failed")
+endif()
+
+add_custom_target(version_header
+    ${CMAKE_COMMAND} -D ALP_VERSION_HEADER_SRC=${CMAKE_CURRENT_SOURCE_DIR}/version.h.in
+                     -D ALP_VERSION_HEADER_DST=${CMAKE_BINARY_DIR}/alp_version_header_include/nucleus/version.h
+                     -P ${CMAKE_SOURCE_DIR}/cmake/alp_generate_version_header.cmake
+)
+
+add_library(nucleus_version STATIC ${CMAKE_BINARY_DIR}/alp_version_header_include/nucleus/version.h)
+add_dependencies(nucleus_version version_header)
+target_include_directories(nucleus_version PUBLIC ${CMAKE_BINARY_DIR}/alp_version_header_include)
+
 qt_add_library(nucleus STATIC
     AbstractRenderWindow.h AbstractRenderWindow.cpp
     Controller.h Controller.cpp
@@ -81,15 +100,7 @@ qt_add_library(nucleus STATIC
 )
 
 target_include_directories(nucleus PRIVATE . PUBLIC ${CMAKE_SOURCE_DIR})
-target_link_libraries(nucleus PUBLIC radix Qt::Core Qt::Gui Qt::Network Qt::Svg fmt::fmt zppbits tl_expected)
-
-add_custom_target(version_header
-    ${CMAKE_COMMAND} -D SRC=${CMAKE_CURRENT_SOURCE_DIR}/version.h.in
-                     -D DST=${CMAKE_BINARY_DIR}/alp_version_header_include/nucleus/version.h
-                     -P ${CMAKE_SOURCE_DIR}/cmake/alp_generate_version_header.cmake
-)
-add_dependencies(nucleus version_header)
-target_include_directories(nucleus PUBLIC ${CMAKE_BINARY_DIR}/alp_version_header_include)
+target_link_libraries(nucleus PUBLIC radix Qt::Core Qt::Gui Qt::Network Qt::Svg fmt::fmt zppbits tl_expected nucleus_version)
 
 if (EMSCRIPTEN)
     target_compile_options(nucleus PUBLIC -O3)
