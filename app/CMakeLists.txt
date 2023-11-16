@@ -1,3 +1,22 @@
+#############################################################################
+# Alpine Terrain Renderer
+# Copyright (C) 2023 Adam Celarek <family name at cg tuwien ac at>
+# Copyright (C) 2023 Gerald Kimmersdorfer
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <http://www.gnu.org/licenses/>.
+#############################################################################
+
 cmake_minimum_required(VERSION 3.24)
 project(alpine-renderer-app LANGUAGES CXX)
 
@@ -62,8 +81,8 @@ qt_add_qml_module(alpineapp
 
 qt_add_resources(alpineapp "height_data"
     PREFIX "/map"
-    BASE ${alpine_height_data_SOURCE_DIR}
-    FILES ${alpine_height_data_SOURCE_DIR}/height_data.atb
+    BASE ${renderer_static_data_SOURCE_DIR}
+    FILES ${renderer_static_data_SOURCE_DIR}/height_data.atb
 )
 
 qt_add_translations(alpineapp TS_FILES
@@ -72,32 +91,30 @@ qt_add_translations(alpineapp TS_FILES
 )
 
 qt_add_resources(alpineapp "fonts"
-    BASE ${alpineapp_fonts_SOURCE_DIR}/TTF/
+    BASE ${alpineapp_fonts_SOURCE_DIR}/SourceSans/
     PREFIX "/fonts"
     FILES
-    ${alpineapp_fonts_SOURCE_DIR}/TTF/SourceSans3-BlackIt.ttf
-    ${alpineapp_fonts_SOURCE_DIR}/TTF/SourceSans3-BoldIt.ttf
-    ${alpineapp_fonts_SOURCE_DIR}/TTF/SourceSans3-ExtraLightIt.ttf
-    ${alpineapp_fonts_SOURCE_DIR}/TTF/SourceSans3-It.ttf
-    ${alpineapp_fonts_SOURCE_DIR}/TTF/SourceSans3-Light.ttf
-    ${alpineapp_fonts_SOURCE_DIR}/TTF/SourceSans3-Medium.ttf
-    ${alpineapp_fonts_SOURCE_DIR}/TTF/SourceSans3-SemiboldIt.ttf
-    ${alpineapp_fonts_SOURCE_DIR}/TTF/SourceSans3-Black.ttf
-    ${alpineapp_fonts_SOURCE_DIR}/TTF/SourceSans3-Bold.ttf
-    ${alpineapp_fonts_SOURCE_DIR}/TTF/SourceSans3-ExtraLight.ttf
-    ${alpineapp_fonts_SOURCE_DIR}/TTF/SourceSans3-LightIt.ttf
-    ${alpineapp_fonts_SOURCE_DIR}/TTF/SourceSans3-MediumIt.ttf
-    ${alpineapp_fonts_SOURCE_DIR}/TTF/SourceSans3-Regular.ttf
-    ${alpineapp_fonts_SOURCE_DIR}/TTF/SourceSans3-Semibold.ttf
+    ${alpineapp_fonts_SOURCE_DIR}/SourceSans/SourceSans3-BlackIt.ttf
+    ${alpineapp_fonts_SOURCE_DIR}/SourceSans/SourceSans3-BoldIt.ttf
+    ${alpineapp_fonts_SOURCE_DIR}/SourceSans/SourceSans3-ExtraLightIt.ttf
+    ${alpineapp_fonts_SOURCE_DIR}/SourceSans/SourceSans3-It.ttf
+    ${alpineapp_fonts_SOURCE_DIR}/SourceSans/SourceSans3-Light.ttf
+    ${alpineapp_fonts_SOURCE_DIR}/SourceSans/SourceSans3-Medium.ttf
+    ${alpineapp_fonts_SOURCE_DIR}/SourceSans/SourceSans3-SemiboldIt.ttf
+    ${alpineapp_fonts_SOURCE_DIR}/SourceSans/SourceSans3-Black.ttf
+    ${alpineapp_fonts_SOURCE_DIR}/SourceSans/SourceSans3-Bold.ttf
+    ${alpineapp_fonts_SOURCE_DIR}/SourceSans/SourceSans3-ExtraLight.ttf
+    ${alpineapp_fonts_SOURCE_DIR}/SourceSans/SourceSans3-LightIt.ttf
+    ${alpineapp_fonts_SOURCE_DIR}/SourceSans/SourceSans3-MediumIt.ttf
+    ${alpineapp_fonts_SOURCE_DIR}/SourceSans/SourceSans3-Regular.ttf
+    ${alpineapp_fonts_SOURCE_DIR}/SourceSans/SourceSans3-Semibold.ttf
 )
 
-find_package(Qt6 REQUIRED COMPONENTS Charts)
-target_link_libraries(alpineapp PRIVATE Qt6::Charts)
 
 set_target_properties(alpineapp PROPERTIES
     QT_ANDROID_PACKAGE_SOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/android
 )
-target_link_libraries(alpineapp PUBLIC nucleus gl_engine Qt::Quick Qt::QuickControls2)
+target_link_libraries(alpineapp PUBLIC nucleus gl_engine Qt::Quick Qt::QuickControls2 Qt::Charts)
 if (ALP_ENABLE_POSITIONING)
     target_link_libraries(alpineapp PUBLIC Qt::Positioning)
     target_compile_definitions(alpineapp PUBLIC "ALP_ENABLE_GNSS")

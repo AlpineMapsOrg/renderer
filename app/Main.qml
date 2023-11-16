@@ -96,7 +96,7 @@ Item {
 
         bannerTitle: "Alpine Maps"
         bannerIconSource: "../icons/favicon_256.png"
-        bannerSubtitle: qsTr ("Version 0.8 Alpha")
+        bannerSubtitle: _alpine_renderer_version
         selectedButtonId: 0
 
         DrawerSeparator {}

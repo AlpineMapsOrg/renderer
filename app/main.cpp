@@ -44,6 +44,7 @@
 #include "nucleus/map_label/MapLabelModel.h"
 
 #include "nucleus/camera/PositionStorage.h"
+#include "nucleus/version.h"
 
 int main(int argc, char **argv)
 {
@@ -53,6 +54,7 @@ int main(int argc, char **argv)
     app.setWindowIcon(QIcon("app/icons/favicon.ico"));
     QCoreApplication::setOrganizationName("AlpineMaps.org");
     QCoreApplication::setApplicationName("AlpineApp");
+    QGuiApplication::setApplicationDisplayName("Alpine Maps");
     QNetworkInformation::loadDefaultBackend(); // load here, so it sits on the correct thread.
 
     //    QLoggingCategory::setFilterRules("*.debug=true\n"
@@ -116,6 +118,7 @@ int main(int argc, char **argv)
     engine.rootContext()->setContextProperty("_hotreloader", &hotreloader);
     engine.rootContext()->setContextProperty("_qmlPath", "");
     engine.rootContext()->setContextProperty("_positionList", QVariant::fromValue(nucleus::camera::PositionStorage::instance()->getPositionList()));
+    engine.rootContext()->setContextProperty("_alpine_renderer_version", QString::fromStdString(nucleus::version()));
 
     RenderThreadNotifier::instance();
     QObject::connect(

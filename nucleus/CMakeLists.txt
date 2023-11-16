@@ -1,54 +1,54 @@
+#############################################################################
+# Alpine Terrain Renderer
+# Copyright (C) 2023 Adam Celarek <family name at cg tuwien ac at>
+# Copyright (C) 2023 Gerald Kimmersdorfer
+# Copyright (C) 2015 Taylor Braun-Jones (via github.com/nocnokneo/cmake-git-versioning-example)
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <http://www.gnu.org/licenses/>.
+#############################################################################
+
 cmake_minimum_required(VERSION 3.24)
 project(alpine-renderer-nucleus LANGUAGES CXX)
 
-option(ALP_AUTOUPDATE_RADIX "Keeps whack up-to-date with origin/main, but prevents local edits. Change to OFF if you want to edit radix" TRUE)
-
-include(FetchContent)
-
-if(ALP_AUTOUPDATE_RADIX)
-    FetchContent_Declare(radix
-        GIT_REPOSITORY  https://github.com/AlpineMapsOrg/radix.git
-        GIT_TAG         origin/main
-        SOURCE_DIR      ${CMAKE_SOURCE_DIR}/${ALP_EXTERN_DIR}/radix
-        SOURCE_SUBDIR   src
-    )
-    FetchContent_MakeAvailable(radix)
-else()
-    if (NOT EXISTS ${CMAKE_SOURCE_DIR}/${ALP_EXTERN_DIR}/radix)
-        FetchContent_Declare(radix
-            GIT_REPOSITORY  git@github.com:AlpineMapsOrg/radix.git
-            GIT_TAG         main
-            SOURCE_DIR      ${CMAKE_SOURCE_DIR}/${ALP_EXTERN_DIR}/radix
-        )
-        FetchContent_MakeAvailable(radix)
-    else()
-        add_subdirectory(${CMAKE_SOURCE_DIR}/${ALP_EXTERN_DIR}/radix ${CMAKE_BINARY_DIR}/_deps/radix-build)
-    endif()
-endif()
-
-message("###################ALP_EXTERN_DIR = ${ALP_EXTERN_DIR}")
-set(EXPECTED_BUILD_TESTS OFF CACHE BOOL "Enable tl::expected tests")
-FetchContent_Declare(tl_expected
-    DOWNLOAD_EXTRACT_TIMESTAMP true
-    URL             https://github.com/TartanLlama/expected/archive/refs/tags/v1.1.0.zip
-    URL_HASH        MD5=cbc9465bb0e9328c821fc3cf89ec7711
-    SOURCE_DIR      ${CMAKE_SOURCE_DIR}/${ALP_EXTERN_DIR}/tl_expected
-)
-FetchContent_Declare(fmt
-    DOWNLOAD_EXTRACT_TIMESTAMP true
-    URL             https://github.com/fmtlib/fmt/releases/download/10.1.0/fmt-10.1.0.zip
-    URL_HASH        MD5=56eaffa1e2a2afe29e9cb2348a446e63
-    SOURCE_DIR      ${CMAKE_SOURCE_DIR}/${ALP_EXTERN_DIR}/fmt
-)
-FetchContent_Declare(zppbits
-    DOWNLOAD_EXTRACT_TIMESTAMP true
-    URL             https://github.com/eyalz800/zpp_bits/archive/refs/heads/main.zip
-    SOURCE_DIR      ${CMAKE_SOURCE_DIR}/${ALP_EXTERN_DIR}/zppbits
-)
-FetchContent_MakeAvailable(tl_expected fmt zppbits)
+alp_add_git_repository(radix URL https://github.com/AlpineMapsOrg/radix.git COMMITISH origin/main)
+alp_add_git_repository(tl_expected URL https://github.com/TartanLlama/expected.git COMMITISH v1.1.0 DO_NOT_ADD_SUBPROJECT)
+alp_add_git_repository(fmt URL https://github.com/fmtlib/fmt.git COMMITISH 10.1.1)
+alp_add_git_repository(zppbits URL https://github.com/eyalz800/zpp_bits.git COMMITISH v4.4.20 DO_NOT_ADD_SUBPROJECT)
 
 add_library(zppbits INTERFACE)
 target_include_directories(zppbits INTERFACE ${zppbits_SOURCE_DIR})
+
+add_library(tl_expected INTERFACE)
+target_include_directories(tl_expected INTERFACE ${tl_expected_SOURCE_DIR}/include)
+
+set(alp_version_out ${CMAKE_BINARY_DIR}/alp_version/nucleus/version.cpp)
+
+# cmake tests for existance of ${alp_version_out}.do_always_run. since it's always missing, cmake tries to generate it using this command.
+# this makes sure, that the command is always run. ${alp_version_out} is not always updated, so nucleus_version is only recompiled
+# if the version really changes.
+add_custom_command(
+    OUTPUT ${alp_version_out} ${alp_version_out}.do_always_run
+    COMMAND ${CMAKE_COMMAND} -D ALP_VERSION_TEMPLATE=${CMAKE_CURRENT_SOURCE_DIR}/version.cpp.in
+                             -D ALP_VERSION_DESTINATION=${alp_version_out}
+                             -P ${CMAKE_SOURCE_DIR}/cmake/alp_generate_version_file.cmake
+    COMMENT "Updating ${alp_version_out}"
+)
+
+add_library(nucleus_version STATIC
+    version.h
+    ${alp_version_out}
+)
 
 qt_add_library(nucleus STATIC
     AbstractRenderWindow.h AbstractRenderWindow.cpp
@@ -99,8 +99,7 @@ qt_add_library(nucleus STATIC
 )
 
 target_include_directories(nucleus PRIVATE . PUBLIC ${CMAKE_SOURCE_DIR})
-target_link_libraries(nucleus PUBLIC radix Qt::Core Qt::Gui Qt::Network Qt::Svg fmt::fmt zppbits expected)
-
+target_link_libraries(nucleus PUBLIC radix Qt::Core Qt::Gui Qt::Network Qt::Svg fmt::fmt zppbits tl_expected nucleus_version)
 
 if (EMSCRIPTEN)
     target_compile_options(nucleus PUBLIC -O3)
