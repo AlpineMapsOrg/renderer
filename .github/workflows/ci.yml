@@ -37,7 +37,7 @@ jobs:
       if: matrix.os == 'windows-latest'
       uses: msys2/setup-msys2@v2
       with:
-        install: mingw-w64-x86_64-toolchain mingw-w64-x86_64-cmake
+        install: mingw-w64-x86_64-toolchain mingw-w64-x86_64-cmake git
         msystem: mingw64
         release: false
     
