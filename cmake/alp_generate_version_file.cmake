@@ -23,11 +23,10 @@ get_filename_component(ALP_VERSION_TEMPLATE_DIR ${ALP_VERSION_TEMPLATE} DIRECTOR
 
 execute_process(COMMAND ${GIT_EXECUTABLE} describe --tags --dirty=-d --abbrev=1
     WORKING_DIRECTORY ${ALP_VERSION_TEMPLATE_DIR}
-    RESULT_VARIABLE git_version_result
     OUTPUT_STRIP_TRAILING_WHITESPACE
     OUTPUT_VARIABLE ALP_VERSION)
 
-if (${git_version_result})
+if (ALP_VERSION EQUAL "")
     message(WARNING "Retrieving version string from git was not successfull. Setting it to 'vUnknown'")
     set(${output_variable} "vUnknown" PARENT_SCOPE)
 else()
