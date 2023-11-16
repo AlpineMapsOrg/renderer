@@ -19,10 +19,10 @@
  
 find_package(Git 2.22 REQUIRED)
 
-get_filename_component(ALP_VERSION_HEADER_SRC_DIR ${ALP_VERSION_HEADER_SRC} DIRECTORY)
+get_filename_component(ALP_VERSION_TEMPLATE_DIR ${ALP_VERSION_TEMPLATE} DIRECTORY)
 
 execute_process(COMMAND ${GIT_EXECUTABLE} describe --tags --dirty=-d --abbrev=1
-    WORKING_DIRECTORY ${ALP_VERSION_HEADER_SRC_DIR}
+    WORKING_DIRECTORY ${ALP_VERSION_TEMPLATE_DIR}
     RESULT_VARIABLE git_version_result
     OUTPUT_STRIP_TRAILING_WHITESPACE
     OUTPUT_VARIABLE ALP_VERSION)
@@ -31,7 +31,8 @@ if (${git_version_result})
     message(WARNING "Retrieving version string from git was not successfull. Setting it to 'vUnknown'")
     set(${output_variable} "vUnknown" PARENT_SCOPE)
 else()
+    string(REPLACE "-g" "." ALP_VERSION ${ALP_VERSION})
     string(REPLACE "-" "." ALP_VERSION ${ALP_VERSION})
 endif()
 
-configure_file(${ALP_VERSION_HEADER_SRC} ${ALP_VERSION_HEADER_DST} @ONLY)
+configure_file(${ALP_VERSION_TEMPLATE} ${ALP_VERSION_DESTINATION} @ONLY)

@@ -32,24 +32,23 @@ target_include_directories(zppbits INTERFACE ${zppbits_SOURCE_DIR})
 add_library(tl_expected INTERFACE)
 target_include_directories(tl_expected INTERFACE ${tl_expected_SOURCE_DIR}/include)
 
-execute_process(COMMAND ${CMAKE_COMMAND}
-    -D ALP_VERSION_HEADER_SRC=${CMAKE_CURRENT_SOURCE_DIR}/version.h.in
-    -D ALP_VERSION_HEADER_DST=${CMAKE_BINARY_DIR}/alp_version_header_include/nucleus/version.h
-    -P ${CMAKE_SOURCE_DIR}/cmake/alp_generate_version_header.cmake
-    RESULT_VARIABLE alp_version_header_result)
-if (${alp_version_header_result})
-    message(FATAL_ERROR "Generating the version header failed")
-endif()
+set(alp_version_out ${CMAKE_BINARY_DIR}/alp_version/nucleus/version.cpp)
 
-add_custom_target(version_header
-    ${CMAKE_COMMAND} -D ALP_VERSION_HEADER_SRC=${CMAKE_CURRENT_SOURCE_DIR}/version.h.in
-                     -D ALP_VERSION_HEADER_DST=${CMAKE_BINARY_DIR}/alp_version_header_include/nucleus/version.h
-                     -P ${CMAKE_SOURCE_DIR}/cmake/alp_generate_version_header.cmake
+# cmake tests for existance of ${alp_version_out}.do_always_run. since it's always missing, cmake tries to generate it using this command.
+# this makes sure, that the command is always run. ${alp_version_out} is not always updated, so nucleus_version is only recompiled
+# if the version really changes.
+add_custom_command(
+    OUTPUT ${alp_version_out} ${alp_version_out}.do_always_run
+    COMMAND ${CMAKE_COMMAND} -D ALP_VERSION_TEMPLATE=${CMAKE_CURRENT_SOURCE_DIR}/version.cpp.in
+                             -D ALP_VERSION_DESTINATION=${alp_version_out}
+                             -P ${CMAKE_SOURCE_DIR}/cmake/alp_generate_version_file.cmake
+    COMMENT "Updating ${alp_version_out}"
 )
 
-add_library(nucleus_version STATIC ${CMAKE_BINARY_DIR}/alp_version_header_include/nucleus/version.h)
-add_dependencies(nucleus_version version_header)
-target_include_directories(nucleus_version PUBLIC ${CMAKE_BINARY_DIR}/alp_version_header_include)
+add_library(nucleus_version STATIC
+    version.h
+    ${alp_version_out}
+)
 
 qt_add_library(nucleus STATIC
     AbstractRenderWindow.h AbstractRenderWindow.cpp

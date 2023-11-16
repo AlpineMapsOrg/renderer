@@ -118,7 +118,7 @@ int main(int argc, char **argv)
     engine.rootContext()->setContextProperty("_hotreloader", &hotreloader);
     engine.rootContext()->setContextProperty("_qmlPath", "");
     engine.rootContext()->setContextProperty("_positionList", QVariant::fromValue(nucleus::camera::PositionStorage::instance()->getPositionList()));
-    engine.rootContext()->setContextProperty("_alpine_renderer_version", nucleus::version);
+    engine.rootContext()->setContextProperty("_alpine_renderer_version", QString::fromStdString(nucleus::version()));
 
     RenderThreadNotifier::instance();
     QObject::connect(
