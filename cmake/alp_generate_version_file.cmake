@@ -25,8 +25,8 @@ execute_process(COMMAND ${GIT_EXECUTABLE} describe --tags --dirty=-d --abbrev=1
     WORKING_DIRECTORY ${ALP_VERSION_TEMPLATE_DIR}
     OUTPUT_STRIP_TRAILING_WHITESPACE
     OUTPUT_VARIABLE ALP_VERSION)
-
-if (ALP_VERSION EQUAL "")
+    
+if (ALP_VERSION STREQUAL "")
     message(WARNING "Retrieving version string from git was not successfull. Setting it to 'vUnknown'")
     set(${output_variable} "vUnknown" PARENT_SCOPE)
 else()
