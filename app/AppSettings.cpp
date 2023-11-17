@@ -26,19 +26,22 @@ AppSettings::AppSettings(QObject* parent, std::shared_ptr<nucleus::utils::UrlMod
 #ifdef ALP_ENABLE_TRACK_OBJECT_LIFECYCLE
     qDebug() << "AppSettings()";
 #endif
+    /* UNCOMMENT TO ENABLE LOCAL SETTINGS SAVE
     QSettings settings;
     m_datetime = settings.value("app/datetime", QDateTime::currentDateTime()).toDateTime();
     m_gl_sundir_date_link = settings.value("app/gl_sundir_date_link", true).toBool();
-    m_render_quality = settings.value("app/render_quality", 0.5f).toFloat();
+    m_render_quality = settings.value("app/render_quality", 0.5f).toFloat();*/
     load_from_url();
 }
 
 AppSettings::~AppSettings() {
+    /* UNCOMMENT TO ENABLE LOCAL SETTINGS SAVE
     QSettings settings;
     settings.setValue("app/datetime", m_datetime);
     settings.setValue("app/gl_sundir_date_link", m_gl_sundir_date_link);
     settings.setValue("app/render_quality", m_render_quality);
     settings.sync();
+*/
 #ifdef ALP_ENABLE_TRACK_OBJECT_LIFECYCLE
     qDebug() << "~AppSettings()";
 #endif

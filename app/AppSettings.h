@@ -56,11 +56,11 @@ public:
 
 private:
     // Stores date and time for the current rendering (in use for eg. Shadows)
-    QDateTime m_datetime;
+    QDateTime m_datetime = QDateTime::currentDateTime();
     // if true the sun light direction will be evaluated based on m_datetime
-    bool m_gl_sundir_date_link;
+    bool m_gl_sundir_date_link = true;
     // Value which defines the quality of tiles being fetched (values from [0.1-2.0] make sense)
-    float m_render_quality;
+    float m_render_quality = 0.5;
 
     // Parents instance of UrlModififer
     std::shared_ptr<nucleus::utils::UrlModifier> m_url_modifier;
