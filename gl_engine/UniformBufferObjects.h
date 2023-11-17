@@ -56,19 +56,19 @@ public:
     GLfloat padf1 = 0.0;
     GLfloat padf2 = 0.0;
 
-    GLuint m_phong_enabled = true;
+    GLuint m_phong_enabled = false;
     GLuint m_wireframe_mode = 0;                    // 0...disabled, 1...with shading, 2...white
     GLuint m_normal_mode = 1;                       // 0...per fragment, 1...FDM
     GLuint m_overlay_mode = 0;                      // see GlSettings.qml for list of modes
 
     GLuint m_overlay_postshading_enabled = false;   // see GlSettings.qml for more details
-    GLuint m_ssao_enabled = true;
+    GLuint m_ssao_enabled = false;
     GLuint m_ssao_kernel = 32;
     GLuint m_ssao_range_check = true;
 
     GLuint m_ssao_blur_kernel_size = 1;
     GLuint m_height_lines_enabled = false;
-    GLuint m_csm_enabled = true;
+    GLuint m_csm_enabled = false;
     GLuint m_overlay_shadowmaps_enabled = false;
 
     // WARNING: Don't move the following Q_PROPERTIES to the top, otherwise the MOC
