@@ -64,21 +64,25 @@ TerrainRendererItem::TerrainRendererItem(QQuickItem* parent)
     //qDebug() << "gui thread: " << QThread::currentThread();
 
     m_timer_manager = new TimerFrontendManager(this);
-    m_url_modifier = std::make_unique<nucleus::utils::UrlModifier>();
+    m_url_modifier = std::make_shared<nucleus::utils::UrlModifier>();
+
+    m_settings = new AppSettings(this, m_url_modifier);
+    connect(m_settings, &AppSettings::datetime_changed, this, &TerrainRendererItem::datetime_changed);
+    connect(m_settings, &AppSettings::gl_sundir_date_link_changed, this, &TerrainRendererItem::gl_sundir_date_link_changed);
+    connect(m_settings, &AppSettings::render_quality_changed, this, &TerrainRendererItem::schedule_update);
+
     m_update_timer->setSingleShot(true);
     m_update_timer->setInterval(1000 / m_frame_limit);
     setMirrorVertically(true);
     setAcceptTouchEvents(true);
     setAcceptedMouseButtons(Qt::MouseButton::AllButtons);
 
-    emit selected_datetime_changed(QDateTime());
-
     connect(m_update_timer, &QTimer::timeout, this, [this]() {
         emit update_camera_requested();
         RenderThreadNotifier::instance()->notify();
     });
 
-    connect(this, &TerrainRendererItem::init_after_creation, this, &TerrainRendererItem::init_after_creation_slot);
+    connect(this, &TerrainRendererItem::init_after_creation, this, &TerrainRendererItem::init_after_creation_slot);  
 }
 
 
@@ -116,7 +120,7 @@ QQuickFramebufferObject::Renderer* TerrainRendererItem::createRenderer() const
     //connect(this, &TerrainRendererItem::ind)
 
     auto* const tile_scheduler = r->controller()->tile_scheduler();
-    connect(this, &TerrainRendererItem::render_quality_changed, tile_scheduler, [=](float new_render_quality) {
+    connect(this->m_settings, &AppSettings::render_quality_changed, tile_scheduler, [=](float new_render_quality) {
         const auto permissible_error = 1.0f / new_render_quality;
         tile_scheduler->set_permissible_screen_space_error(permissible_error);
     });
@@ -362,20 +366,6 @@ void TerrainRendererItem::set_camera_operation_centre_distance(float new_camera_
     emit camera_operation_centre_distance_changed();
 }
 
-float TerrainRendererItem::render_quality() const
-{
-    return m_render_quality;
-}
-
-void TerrainRendererItem::set_render_quality(float new_render_quality)
-{
-    if (qFuzzyCompare(m_render_quality, new_render_quality))
-        return;
-    m_render_quality = new_render_quality;
-    emit render_quality_changed(new_render_quality);
-    schedule_update();
-}
-
 bool TerrainRendererItem::render_looped() const {
     return m_render_looped;
 }
@@ -464,20 +454,6 @@ void TerrainRendererItem::set_tile_cache_size(unsigned int new_tile_cache_size)
     emit tile_cache_size_changed(m_tile_cache_size);
 }
 
-QDateTime TerrainRendererItem::selected_datetime() const
-{
-    return m_selected_datetime;
-}
-
-void TerrainRendererItem::set_selected_datetime(QDateTime new_datetime)
-{
-    if (m_selected_datetime != new_datetime) {
-        m_selected_datetime = new_datetime;
-        emit selected_datetime_changed(m_selected_datetime);
-        recalculate_sun_angles();
-    }
-}
-
 QVector2D TerrainRendererItem::sun_angles() const {
     return m_sun_angles;
 }
@@ -494,16 +470,10 @@ void TerrainRendererItem::set_sun_angles(QVector2D new_sunAngles) {
     emit shared_config_changed(m_shared_config);
 }
 
-void TerrainRendererItem::set_link_gl_sundirection(bool newValue) {
-    if (newValue == m_link_gl_sundirection) return;
-    m_link_gl_sundirection = newValue;
-    emit link_gl_sundirection_changed(m_link_gl_sundirection);
-}
-
 void TerrainRendererItem::recalculate_sun_angles() {
     // Calculate sun angles
-    if (m_link_gl_sundirection) {
-        auto angles = nucleus::utils::sun_calculations::calculate_sun_angles(m_selected_datetime, m_last_camera_latlonalt);
+    if (m_settings->gl_sundir_date_link()) {
+        auto angles = nucleus::utils::sun_calculations::calculate_sun_angles(m_settings->datetime(), m_last_camera_latlonalt);
         set_sun_angles(QVector2D(angles.x, angles.y));
     }
 }
@@ -535,4 +505,12 @@ void TerrainRendererItem::init_after_creation_slot() {
     // Maybe shared config is already different (by loading from url)
     // so lets notify the Renderer here to replace the current configuration!
     emit shared_config_changed(m_shared_config);
+}
+
+void TerrainRendererItem::datetime_changed(const QDateTime& new_datetime) {
+    recalculate_sun_angles();
+}
+
+void TerrainRendererItem::gl_sundir_date_link_changed(bool new_value) {
+    recalculate_sun_angles();
 }

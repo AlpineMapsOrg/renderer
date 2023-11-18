@@ -303,11 +303,9 @@ Rectangle {
             right: parent.right
         }
 
-        SetTitle {
-            title: "Statistics"
-        }
+        SetTitle { title: "Statistics" }
 
-        SetGroup {
+        CheckGroup {
             name: "Frame Profiler"
 
             Pane {
@@ -460,7 +458,7 @@ Rectangle {
                         }
                     }
         }
-        SetGroup {
+        CheckGroup {
             id: cursor_group
             name: "Cursor"
 
@@ -473,7 +471,7 @@ Rectangle {
             Label { text: "Altitude:" }
             Label { text: "0.0 m"; id: cursor_alt; font.bold: true; }
         }
-        SetGroup {
+        CheckGroup {
             name: "Cache & Network"
 
             Label {

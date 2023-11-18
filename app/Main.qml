@@ -182,7 +182,7 @@ Item {
         }
 
         Keys.onPressed: function(event){
-            if (event.key === Qt.Key_S) {
+            if (event.key === Qt.Key_F8) {
                 toggleStatsWindow();
             }
         }

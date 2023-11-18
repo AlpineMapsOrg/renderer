@@ -16,17 +16,13 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *****************************************************************************/
 
-#ifndef TIMERFRONTENDMANAGER_H
-#define TIMERFRONTENDMANAGER_H
+#pragma once
 
 #include <QObject>
-#include <QMap>
 #include <QList>
 #include <QString>
 #include <QColor>
 #include <QVector3D>
-
-#include "nucleus/timing/TimerManager.h"
 
 class TimerFrontendObject : public QObject {
     Q_OBJECT
@@ -87,28 +83,3 @@ private:
     int m_queue_size = 30;
 
 };
-
-class TimerFrontendManager : public QObject
-{
-    Q_OBJECT
-
-public:
-    TimerFrontendManager(const TimerFrontendManager& src);
-    ~TimerFrontendManager();
-    TimerFrontendManager(QObject* parent = nullptr);
-
-public slots:
-    void receive_measurements(QList<nucleus::timing::TimerReport> values);
-
-signals:
-    void updateTimingList(QList<TimerFrontendObject*> data);
-
-private:
-    QList<TimerFrontendObject*> m_timer;
-    QMap<QString, TimerFrontendObject*> m_timer_map;
-    static int current_frame;
-
-};
-
-
-#endif // TIMERFRONTENDMANAGER_H

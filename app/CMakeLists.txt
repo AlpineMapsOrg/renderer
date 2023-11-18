@@ -27,7 +27,9 @@ qt_add_executable(alpineapp
     GnssInformation.h GnssInformation.cpp
     TerrainRenderer.h TerrainRenderer.cpp
     HotReloader.h HotReloader.cpp
-    TimerFrontendManager.h TimerFrontendManager.cpp
+    AppSettings.h AppSettings.cpp
+    timing/TimerFrontendManager.h timing/TimerFrontendManager.cpp
+    timing/TimerFrontendObject.h timing/TimerFrontendObject.cpp
 )
 
 qt_add_qml_module(alpineapp
@@ -49,18 +51,15 @@ qt_add_qml_module(alpineapp
         components/ValSlider.qml
         components/ColorPicker.qml
         components/PageDrawer.qml
-        components/SetGroup.qml
-        components/SetDivider.qml
+        components/CheckGroup.qml
         components/SetPanel.qml
         components/SetTitle.qml
-        components/Window.qml
         components/DrawerButton.qml
         components/DrawerSeparator.qml
         components/DrawerSpacer.qml
         components/VectorEditor.qml
         components/DatePicker.qml
         components/DateMonthTablePicker.qml
-        components/SunAnglePicker.qml
         components/RoundMapButton.qml
     RESOURCES
         icons/camera_operation_centre.svg

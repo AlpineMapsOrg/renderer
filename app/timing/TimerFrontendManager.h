@@ -16,12 +16,34 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *****************************************************************************/
 
-import QtQuick
-import QtQuick.Controls.Material
-import QtQuick.Layouts
+#pragma once
 
-Rectangle {
-    Layout.fillWidth: true;
-    Layout.preferredHeight: 1;
-    color: Material.dividerColor;
-}
+#include <QObject>
+#include <QMap>
+#include <QList>
+#include <QString>
+
+#include "nucleus/timing/TimerManager.h"
+#include "TimerFrontendObject.h"
+
+class TimerFrontendManager : public QObject
+{
+    Q_OBJECT
+
+public:
+    TimerFrontendManager(const TimerFrontendManager& src);
+    ~TimerFrontendManager();
+    TimerFrontendManager(QObject* parent = nullptr);
+
+public slots:
+    void receive_measurements(QList<nucleus::timing::TimerReport> values);
+
+signals:
+    void updateTimingList(QList<TimerFrontendObject*> data);
+
+private:
+    QList<TimerFrontendObject*> m_timer;
+    QMap<QString, TimerFrontendObject*> m_timer_map;
+    static int current_frame;
+
+};

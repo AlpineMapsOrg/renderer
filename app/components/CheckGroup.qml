@@ -25,7 +25,7 @@ Item {
     property alias name: groupname.text;
     property alias checked: checkbox.checked;
     property bool checkBoxEnabled: false;
-    id: setgroup
+    id: root
     Layout.fillWidth: true
     Layout.topMargin: 20
     Layout.preferredHeight: rootlayout.implicitHeight
@@ -40,7 +40,7 @@ Item {
         anchors.fill: parent
         RowLayout {
             id: header
-            visible: setgroup.name !== ""
+            visible: root.name !== ""
             Layout.alignment: Qt.AlignVCenter
             Rectangle {
                 Layout.preferredHeight: 2
@@ -48,7 +48,7 @@ Item {
                 color: Material.color(Material.Grey)
                 CheckBox {
                     id: checkbox
-                    visible: setgroup.checkBoxEnabled
+                    visible: root.checkBoxEnabled
                     y: -this.height/2
                     Component.onCompleted: {
                         // NOTE: CAN BREAK IF QT DEFINITION OF CHECKBOX CHANGES

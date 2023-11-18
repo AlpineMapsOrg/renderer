@@ -38,13 +38,21 @@ Rectangle {
     }
 
     Rectangle {
-        width: 12
-        height: 12
+        function oc_scale() : float {
+            if (renderer.camera_operation_centre_distance < 0) {
+                return 1.0;
+            }
+            let max_dist = 1000.0;
+            let scale = 1 + Math.pow((1 - (Math.min(max_dist, renderer.camera_operation_centre_distance) / max_dist)) * 1.6, 6);
+            return scale;
+        }
+        width: 16 * oc_scale()
+        height: 16 * oc_scale()
         x: renderer.camera_operation_centre.x - width / 2
         y: renderer.camera_operation_centre.y - 60 - height / 2
         color: Qt.alpha(Material.backgroundColor, 0.7);
-        border { width:2; color:Qt.alpha( "white", 0.5); }
-        radius: 16
+        border { width:2; color:Qt.alpha( "black", 0.5); }
+        radius: 16 * oc_scale()
         visible: renderer.camera_operation_centre_visibility && punkt.checked
     }
 

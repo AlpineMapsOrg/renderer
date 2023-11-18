@@ -77,6 +77,16 @@ glm::dvec3 UrlModifier::urlsafe_string_to_dvec3(const QString& str) {
     return glm::dvec3(x, y, z);
 }
 
+QString UrlModifier::qdatetime_to_urlsafe_string(const QDateTime& date) {
+    auto str = date.toString(Qt::DateFormat::ISODate);
+    return QUrl::toPercentEncoding(str);
+}
+
+QDateTime UrlModifier::urlsafe_string_to_qdatetime(const QString& str) {
+    auto decstr = QUrl::fromPercentEncoding(str.toUtf8());
+    return QDateTime::fromString(decstr, Qt::DateFormat::ISODate);
+}
+
 
 UrlModifier::UrlModifier(QObject* parent)
     :QObject(parent)

@@ -64,7 +64,7 @@ SetPanel {
         }
     }
 
-    SetGroup {
+    CheckGroup {
 
         Label { text: "Overlay:" }
         ComboBox {
@@ -131,7 +131,7 @@ SetPanel {
 
     }
 
-    SetGroup {
+    CheckGroup {
         name: "Curtains"
         Label { text: "Mode:" }
         ComboBox {
@@ -159,14 +159,14 @@ SetPanel {
         }
     }
 
-    SetGroup {
+    CheckGroup {
         name: "Height-Lines"
         id: height_lines_enabled
         checkBoxEnabled: true
         onCheckedChanged: map.shared_config.height_lines_enabled = this.checked;
     }
 
-    SetGroup {
+    CheckGroup {
         name: "Shading"
         id: phong_enabled
         checkBoxEnabled: true
@@ -185,10 +185,15 @@ SetPanel {
         }
 
         Label { text: "Light-Direction:" }
-        SunAnglePicker {
-            sun_angles: map.sun_angles
-            onSun_anglesChanged: map.sun_angles = sun_angles;
-            enabled: !map.link_gl_sundirection
+        VectorEditor {
+            vector: map.sun_angles;
+            onVectorChanged: map.sun_angles = vector;
+            dialogTitle: "Sun Light Direction";
+            elementNames: ["Azimuth", "Zenith"];
+            elementFroms: [0.0, -180.0];
+            elementTos: [360.0, 180.0];
+            dim: false;
+            enabled: !map.settings.gl_sundir_date_link;
         }
 
         Label { text: "Mat.-Color:" }
@@ -206,11 +211,12 @@ SetPanel {
             elementNames: ["Ambient", "Diffuse", "Specular", "Shininess"];
             elementFroms: [0.0, 0.0, 0.0, 0.0]
             elementTos: [5.0, 5.0, 5.0, 128.0]
+            dim: false;
         }
 
     }
 
-    SetGroup {
+    CheckGroup {
         id: ssao_enabled
         name: "Ambient Occlusion"
         checkBoxEnabled: true
@@ -247,7 +253,7 @@ SetPanel {
 
     }
 
-    SetGroup {
+    CheckGroup {
         id: csm_enabled
         checkBoxEnabled: true
         onCheckedChanged: map.shared_config.csm_enabled = this.checked;
