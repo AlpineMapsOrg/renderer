@@ -78,6 +78,7 @@ endif()
 include(cmake/alp_add_git_repository.cmake)
 alp_add_git_repository(renderer_static_data URL https://github.com/AlpineMapsOrg/renderer_static_data.git COMMITISH origin/main DO_NOT_ADD_SUBPROJECT)
 alp_add_git_repository(alpineapp_fonts URL https://github.com/AlpineMapsOrg/fonts.git COMMITISH origin/main DO_NOT_ADD_SUBPROJECT)
+alp_add_git_repository(qml_catch2_console URL https://github.com/AlpineMapsOrg/qml_catch2_console.git COMMITISH origin/main)
 
 if (ANDROID)
     alp_add_git_repository(android_openssl URL https://github.com/AlpineMapsOrg/android_openssl.git COMMITISH origin/master DO_NOT_ADD_SUBPROJECT)
@@ -90,14 +91,6 @@ add_subdirectory(plain_renderer)
 add_subdirectory(app)
 
 if (ALP_UNITTESTS)
-    find_package(Qt6 REQUIRED COMPONENTS Test)
-    if (NOT TARGET Catch2)
-        alp_add_git_repository(catch2 URL https://github.com/catchorg/Catch2.git COMMITISH v3.4.0)
-    endif()
-
-    if (EMSCRIPTEN AND ALP_ENABLE_THREADING)
-        target_compile_options(Catch2 PRIVATE -pthread)
-    endif()
     function(alp_setup_unittest)
         if (ANDROID)
             install(TARGETS ${ARGV0}
