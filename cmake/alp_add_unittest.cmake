@@ -28,11 +28,21 @@ endif()
 include(${qml_catch2_console_SOURCE_DIR}/src/qml_catch2_console.cmake)
 
 function(alp_add_unittest name)
+    if(EMSCRIPTEN)
+        add_qml_catch2_console_unittests(${name} ${ARGN})
+        set(ALP_INSTALL_FILES
+            "$<TARGET_FILE_DIR:${name}>/${name}.js"
+            "$<TARGET_FILE_DIR:${name}>/${name}.wasm"
+            "$<TARGET_FILE_DIR:${name}>/${name}.html"
+            "$<TARGET_FILE_DIR:${name}>/qtloader.js"
+        )
 
-if(EMSCRIPTEN)
-    add_qml_catch2_console_unittests(${name} ${ARGN})
-else()
-endif()
-
-
+        if (ALP_ENABLE_THREADING)
+            list(APPEND ALP_INSTALL_FILES "$<TARGET_FILE_DIR:${name}>/${name}.worker.js")
+        endif()
+        install(FILES ${ALP_INSTALL_FILES} DESTINATION ${ALP_WWW_INSTALL_DIR})
+    else()
+        qt_add_executable(${name} ${ARGN} ${CMAKE_SOURCE_DIR}/unittests/main.cpp)
+        target_link_libraries(${name} PUBLIC Catch2::Catch2)
+    endif()
 endfunction()

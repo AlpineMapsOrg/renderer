@@ -19,8 +19,7 @@
 cmake_minimum_required(VERSION 3.24)
 project(alpine-renderer-unittests_nucleus LANGUAGES CXX)
 
-qt_add_executable(unittests_nucleus
-    main.cpp
+alp_add_unittest(unittests_nucleus
     catch2_helpers.h
     test_Camera.cpp
     nucleus_utils_stopwatch.cpp
@@ -60,28 +59,7 @@ qt_add_resources(unittests_nucleus "test_data"
 target_link_libraries(unittests_nucleus PUBLIC nucleus Catch2::Catch2 Qt::Test)
 target_compile_definitions(unittests_nucleus PUBLIC "ALP_TEST_DATA_DIR=\":/test_data/\"")
 
-alp_setup_unittest(unittests_nucleus)
-
 if (ANDROID)
-    add_android_openssl_libraries_to(unittests_nucleus)
+    add_android_openssl_libraries(unittests_nucleus)
 endif()
 
-if (EMSCRIPTEN)
-    # asyncify required for running nested event loops in some of the tests
-    target_link_options(unittests_nucleus PUBLIC -sASYNCIFY -Os)
-    configure_file(${CMAKE_SOURCE_DIR}/site/unittests.html unittests.html COPYONLY)
-    configure_file(${CMAKE_SOURCE_DIR}/site/ansispan.js ansispan.js COPYONLY)
-    
-    install(FILES 
-        "$<TARGET_FILE_DIR:unittests_nucleus>/unittests_nucleus.js"
-        "$<TARGET_FILE_DIR:unittests_nucleus>/unittests_nucleus.wasm"
-        "$<TARGET_FILE_DIR:unittests_nucleus>/qtloader.js"
-        "${CMAKE_SOURCE_DIR}/site/unittests.html"
-        "${CMAKE_SOURCE_DIR}/site/ansispan.js"
-        "${CMAKE_SOURCE_DIR}/site/mascot.png"
-        DESTINATION ${ALP_WWW_INSTALL_DIR})
-
-    if (ALP_ENABLE_THREADING)
-        install(FILES "$<TARGET_FILE_DIR:unittests_nucleus>/unittests_nucleus.worker.js" DESTINATION ${ALP_WWW_INSTALL_DIR})
-    endif()
-endif()

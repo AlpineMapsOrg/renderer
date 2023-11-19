@@ -78,10 +78,9 @@ endif()
 include(cmake/alp_add_git_repository.cmake)
 alp_add_git_repository(renderer_static_data URL https://github.com/AlpineMapsOrg/renderer_static_data.git COMMITISH origin/main DO_NOT_ADD_SUBPROJECT)
 alp_add_git_repository(alpineapp_fonts URL https://github.com/AlpineMapsOrg/fonts.git COMMITISH origin/main DO_NOT_ADD_SUBPROJECT)
-alp_add_git_repository(qml_catch2_console URL https://github.com/AlpineMapsOrg/qml_catch2_console.git COMMITISH origin/main)
 
 if (ANDROID)
-    alp_add_git_repository(android_openssl URL https://github.com/AlpineMapsOrg/android_openssl.git COMMITISH origin/master DO_NOT_ADD_SUBPROJECT)
+    alp_add_git_repository(android_openssl URL https://github.com/KDAB/android_openssl.git COMMITISH origin/master DO_NOT_ADD_SUBPROJECT)
     include(${android_openssl_SOURCE_DIR}/android_openssl.cmake)
 endif()
 
@@ -91,6 +90,9 @@ add_subdirectory(plain_renderer)
 add_subdirectory(app)
 
 if (ALP_UNITTESTS)
+    alp_add_git_repository(qml_catch2_console URL https://github.com/AlpineMapsOrg/qml_catch2_console.git COMMITISH origin/main DO_NOT_ADD_SUBPROJECT)
+    include(cmake/alp_add_unittest.cmake)
+
     function(alp_setup_unittest)
         if (ANDROID)
             install(TARGETS ${ARGV0}
