@@ -67,10 +67,10 @@ jobs:
     - name: Configure
       env:
         CMAKE_PREFIX_PATH: ${{env.Qt6_Dir}}/lib/cmake
-      run: cmake  -G Ninja -DCMAKE_BUILD_TYPE=${{env.BUILD_TYPE}} -DALP_ENABLE_POSITIONING=false -B '${{github.workspace}}'/build
+      run: cmake -G Ninja -DCMAKE_BUILD_TYPE=${{env.BUILD_TYPE}} -DALP_ENABLE_POSITIONING=false -B ./build
 
     - name: Build
-      run: cmake --build '${{github.workspace}}'/build
+      run: cmake --build ./build
 
     - name: Test on Linux
       if: matrix.os == 'ubuntu-latest'
@@ -79,28 +79,28 @@ jobs:
         QT_DEBUG_PLUGINS: 1
         DISPLAY: 1
       run: |
-        '${{github.workspace}}'/build/alp_external/radix/unittests/unittests_radix
-        '${{github.workspace}}'/build/unittests/nucleus/unittests_nucleus
+        ./build/alp_external/radix/unittests/unittests_radix
+        ./build/unittests/nucleus/unittests_nucleus
         Xvfb :1 -screen 0 1024x768x16 &
-        '${{github.workspace}}'/build/unittests/gl_engine/unittests_gl_engine
+        ./build/unittests/gl_engine/unittests_gl_engine
 
     - name: Test radix on Windows
       if: matrix.os == 'windows-latest'
       env:
         QT_DEBUG_PLUGINS: 1
       run: |
-        '${{github.workspace}}'/build/alp_external/radix/unittests/unittests_radix.exe
+        ./build/alp_external/radix/unittests/unittests_radix.exe
         
     - name: Test nucleus on Windows
       if: matrix.os == 'windows-latest'
       env:
         QT_DEBUG_PLUGINS: 1
       run: |
-        '${{github.workspace}}'/build/unittests/unittests_nucleus.exe
+        ./build/unittests/unittests_nucleus.exe
         
     - name: Test gl_engine on Windows
       if: matrix.os == 'windows-latest'
       env:
         QT_DEBUG_PLUGINS: 1
       run: |
-        '${{github.workspace}}'/build/unittests/unittests_gl_engine.exe
+        ./build/unittests/unittests_gl_engine.exe
