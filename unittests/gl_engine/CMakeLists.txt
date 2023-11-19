@@ -21,7 +21,7 @@ cmake_minimum_required(VERSION 3.24)
 project(alpine-renderer-unittests_gl_engine LANGUAGES CXX)
 
 alp_add_unittest(unittests_gl_engine
-    UnittestGlWindow.h UnittestGlWindow.cpp
+    UnittestGLContext.h UnittestGLContext.cpp
     framebuffer.cpp
     uniformbuffer.cpp
 )

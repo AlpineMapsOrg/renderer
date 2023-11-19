@@ -71,6 +71,9 @@ endif()
 
 ########################################### dependencies #################################################
 find_package(Qt6 REQUIRED COMPONENTS Core Gui OpenGL Network Quick QuickControls2 LinguistTools Svg Charts)
+qt_policy(
+    SET QTP0002 NEW
+)
 if (ALP_ENABLE_POSITIONING)
     find_package(Qt6 REQUIRED COMPONENTS Positioning)
 endif()
@@ -90,21 +93,5 @@ add_subdirectory(plain_renderer)
 add_subdirectory(app)
 
 if (ALP_UNITTESTS)
-    alp_add_git_repository(qml_catch2_console URL https://github.com/AlpineMapsOrg/qml_catch2_console.git COMMITISH origin/main DO_NOT_ADD_SUBPROJECT)
-    include(cmake/alp_add_unittest.cmake)
-
-    function(alp_setup_unittest)
-        if (ANDROID)
-            install(TARGETS ${ARGV0}
-                LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
-                RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR})
-        endif()
-
-        if (MINGW)
-            target_compile_options(${ARGV0} PUBLIC "-Wa,-mbig-obj")
-        endif()
-    endfunction()
-
     add_subdirectory(unittests)
-    add_subdirectory(unittests_gl)
 endif()

@@ -17,15 +17,7 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *****************************************************************************/
 
-#include <chrono>
-#include <limits>
-#include <cstdio>
-#include <iostream>
-
 #include <QGuiApplication>
-#include <QTimer>
-#include <QtTest/QSignalSpy>
-#include <catch2/catch_test_macros.hpp>
 #include <catch2/catch_session.hpp>
 
 int main( int argc, char* argv[] ) {
@@ -45,32 +37,4 @@ int main( int argc, char* argv[] ) {
     int result = Catch::Session().run( argc, argv );
 #endif
     return result;
-}
-
-#ifdef NDEBUG
-constexpr bool asserts_are_enabled = false;
-#else
-constexpr bool asserts_are_enabled = true;
-#endif
-
-TEST_CASE("nucleus/main: check that asserts are enabled")
-{
-    CHECK(asserts_are_enabled);
-}
-
-TEST_CASE("nucleus/main: check that NaNs are enabled (-ffast-math removes support, -fno-finite-math-only puts it back in)")
-{
-    CHECK(std::isnan(std::numeric_limits<float>::quiet_NaN() * float(std::chrono::system_clock::now().time_since_epoch().count())));
-    CHECK(std::isnan(double(std::numeric_limits<float>::quiet_NaN() * float(std::chrono::system_clock::now().time_since_epoch().count()))));
-}
-
-TEST_CASE("nucleus/main: qt signals and slots")
-{
-    QTimer t;
-    t.setSingleShot(true);
-    t.setInterval(1);
-    QSignalSpy spy(&t, &QTimer::timeout);
-    t.start();
-    spy.wait(20);
-    CHECK(spy.size() == 1);
 }

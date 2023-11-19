@@ -38,6 +38,8 @@
 #include "gl_engine/helpers.h"
 #include "nucleus/utils/bit_coding.h"
 
+#include "UnittestGLContext.h"
+
 #ifdef ANDROID
 #include "GLES3/gl3.h"
 #endif
@@ -67,6 +69,7 @@ ShaderProgram create_debug_shader(const char* fragmentShaderOverride = nullptr)
 
 TEST_CASE("gl framebuffer")
 {
+    UnittestGLContext::initialise();
     const auto* c = QOpenGLContext::currentContext();
     QOpenGLExtraFunctions* f = c->extraFunctions();
     REQUIRE(f);
