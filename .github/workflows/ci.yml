@@ -61,6 +61,9 @@ jobs:
       run: cmake --build '${{github.workspace}}'/build
 
     - name: Test
+      env:
+        QT_DEBUG_PLUGINS: 1
       run: |
+        '${{github.workspace}}'/build/alp_external/radix/unittests/unittests_radix
         '${{github.workspace}}'/build/unittests/nucleus/unittests_nucleus
         '${{github.workspace}}'/build/unittests/gl_engine/unittests_gl_engine
