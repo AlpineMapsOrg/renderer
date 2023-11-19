@@ -23,10 +23,12 @@ jobs:
             arch: 'win64_mingw'
             host: 'windows'
             shell: 'msys2 {0}'
+            binary_ending: '.exe'
           - os: ubuntu-latest
             arch: 'gcc_64'
             host: 'linux'
             shell: 'bash'
+            binary_ending: ''
 
     steps:
     - uses: actions/checkout@v3
@@ -68,6 +70,6 @@ jobs:
       env:
         QT_DEBUG_PLUGINS: 1
       run: |
-        '${{github.workspace}}'/build/alp_external/radix/unittests/unittests_radix
-        '${{github.workspace}}'/build/unittests/nucleus/unittests_nucleus
-        '${{github.workspace}}'/build/unittests/gl_engine/unittests_gl_engine
+        '${{github.workspace}}'/build/alp_external/radix/unittests/unittests_radix${{ matrix.binary_ending }}
+        '${{github.workspace}}'/build/unittests/nucleus/unittests_nucleus${{ matrix.binary_ending }}
+        '${{github.workspace}}'/build/unittests/gl_engine/unittests_gl_engine${{ matrix.binary_ending }}
