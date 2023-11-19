@@ -22,7 +22,8 @@ jobs:
           - os: windows-latest
             arch: 'win64_mingw'
             host: 'windows'
-            shell: 'msys2 {0}'
+            shell: 'cmd'
+            #shell: 'msys2 {0}'
           - os: ubuntu-latest
             arch: 'gcc_64'
             host: 'linux'
@@ -66,7 +67,7 @@ jobs:
     - name: Configure
       env:
         CMAKE_PREFIX_PATH: ${{env.Qt6_Dir}}/lib/cmake
-      run: cmake -G Ninja -DCMAKE_BUILD_TYPE=${{env.BUILD_TYPE}} -DALP_ENABLE_POSITIONING=false -B '${{github.workspace}}'/build
+      run: cmake  -G Ninja -DCMAKE_BUILD_TYPE=${{env.BUILD_TYPE}} -DALP_ENABLE_POSITIONING=false -B '${{github.workspace}}'/build
 
     - name: Build
       run: cmake --build '${{github.workspace}}'/build
