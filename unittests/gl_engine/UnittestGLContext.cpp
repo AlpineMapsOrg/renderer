@@ -62,6 +62,7 @@ UnittestGLContext::UnittestGLContext()
         });
         logger.startLogging(QOpenGLDebugLogger::SynchronousLogging);
     }
+    CHECK(false);
 }
 
 void UnittestGLContext::initialise()
