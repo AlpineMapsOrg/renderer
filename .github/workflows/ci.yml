@@ -40,6 +40,10 @@ jobs:
         install: mingw-w64-x86_64-toolchain mingw-w64-x86_64-cmake git
         msystem: mingw64
         release: false
+        
+    - name: Install Linux Dependencies
+      if: matrix.os == 'ubuntu-latest'
+      run: run: sudo apt-get install -y build-essential libgl1-mesa-dev
     
     - name: Install Qt
       uses: jurplel/install-qt-action@v3
