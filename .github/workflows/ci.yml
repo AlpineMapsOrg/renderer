@@ -23,7 +23,6 @@ jobs:
             arch: 'win64_mingw'
             host: 'windows'
             shell: 'msys2 {0}'
-            binary_ending: '.exe'
           - os: ubuntu-latest
             arch: 'gcc_64'
             host: 'linux'
@@ -66,12 +65,23 @@ jobs:
     - name: Build
       run: cmake --build '${{github.workspace}}'/build
 
-    - name: Test
+    - name: Test on Linux
+      if: matrix.os == 'ubuntu-latest'
+      env:
+        QT_DEBUG_PLUGINS: 1
+      run: |
+        '${{github.workspace}}'/build/alp_external/radix/unittests/unittests_radix
+        '${{github.workspace}}'/build/unittests/nucleus/unittests_nucleus
+        #'${{github.workspace}}'/build/unittests/gl_engine/unittests_gl_engine
+
+    - name: Test on Windows
+      if: matrix.os == 'ubuntu-latest'
       env:
         QT_DEBUG_PLUGINS: 1
       run: |
         ls '${{github.workspace}}'/build/unittests/
+        echo "==="
         ls '${{github.workspace}}'/build/unittests/nucleus
-        '${{github.workspace}}'/build/alp_external/radix/unittests/unittests_radix${{ matrix.binary_ending }}
-        '${{github.workspace}}'/build/unittests/nucleus/unittests_nucleus${{ matrix.binary_ending }}
-        #'${{github.workspace}}'/build/unittests/gl_engine/unittests_gl_engine${{ matrix.binary_ending }} # unsupported for now
+        '${{github.workspace}}'/build/alp_external/radix/unittests/unittests_radix.exe
+        '${{github.workspace}}'/build/unittests/unittests_nucleus.exe
+        '${{github.workspace}}'/build/unittests/unittests_gl_engine.exe
