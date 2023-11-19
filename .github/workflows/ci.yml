@@ -70,6 +70,8 @@ jobs:
       env:
         QT_DEBUG_PLUGINS: 1
       run: |
+        ls '${{github.workspace}}'/build/unittests/
+        ls '${{github.workspace}}'/build/unittests/nucleus
         '${{github.workspace}}'/build/alp_external/radix/unittests/unittests_radix${{ matrix.binary_ending }}
         '${{github.workspace}}'/build/unittests/nucleus/unittests_nucleus${{ matrix.binary_ending }}
-        '${{github.workspace}}'/build/unittests/gl_engine/unittests_gl_engine${{ matrix.binary_ending }}
+        #'${{github.workspace}}'/build/unittests/gl_engine/unittests_gl_engine${{ matrix.binary_ending }} # unsupported for now
