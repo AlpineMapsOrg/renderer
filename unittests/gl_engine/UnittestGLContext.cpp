@@ -42,20 +42,13 @@ UnittestGLContext::UnittestGLContext()
         surface_format.setVersion(3, 0);
     }
 
-    CHECK(1 == 0);
-
     QSurfaceFormat::setDefaultFormat(surface_format);
     m_context.setFormat(surface_format);
 
-    CHECK(1 == 0);
     surface.create();
-    CHECK(2 == 0);
     const auto r = m_context.create();
-    CHECK(3 == 0);
     assert(r);
-    CHECK(4 == 0);
     m_context.makeCurrent(&surface);
-    CHECK(5 == 0);
 
     QOpenGLDebugLogger logger;
     const auto debug_logger_supported = logger.initialize();
@@ -70,7 +63,6 @@ UnittestGLContext::UnittestGLContext()
         });
         logger.startLogging(QOpenGLDebugLogger::SynchronousLogging);
     }
-    CHECK(false);
 }
 
 void UnittestGLContext::initialise()
