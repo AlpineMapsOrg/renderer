@@ -75,7 +75,7 @@ jobs:
         #'${{github.workspace}}'/build/unittests/gl_engine/unittests_gl_engine
 
     - name: Test on Windows
-      if: matrix.os == 'ubuntu-latest'
+      if: matrix.os == 'windows-latest'
       env:
         QT_DEBUG_PLUGINS: 1
       run: |
