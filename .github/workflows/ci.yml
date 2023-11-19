@@ -62,5 +62,5 @@ jobs:
 
     - name: Test
       run: |
-        '${{github.workspace}}'/build/unittests/unittests_nucleus
-        '${{github.workspace}}'/build/unittests_gl/unittests_gl_engine
+        '${{github.workspace}}'/build/unittests/nucleus/unittests_nucleus
+        '${{github.workspace}}'/build/unittests/gl_engine/unittests_gl_engine
