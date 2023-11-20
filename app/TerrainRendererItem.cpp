@@ -181,6 +181,9 @@ void TerrainRendererItem::wheelEvent(QWheelEvent* e)
     RenderThreadNotifier::instance()->notify();
 }
 
+#if (defined(__linux) && !defined(__ANDROID__)) || defined(_WIN32) || defined(_WIN64)
+Qt::WindowState oldState = Qt::WindowNoState;
+#endif
 void TerrainRendererItem::keyPressEvent(QKeyEvent* e)
 {
     if (e->isAutoRepeat()) {
@@ -188,6 +191,22 @@ void TerrainRendererItem::keyPressEvent(QKeyEvent* e)
     }
     if (e->key() == Qt::Key::Key_H) {
         set_hud_visible(!m_hud_visible);
+    }
+    if (e->key() == Qt::Key::Key_F11) {
+#if (defined(__linux) && !defined(__ANDROID__)) || defined(_WIN32) || defined(_WIN64)
+        auto rw = RenderThreadNotifier::instance()->get_root_window();
+        bool isExFull = rw->flags() & Qt::FramelessWindowHint;
+        if (isExFull) {
+            rw->setWindowState(oldState);
+            rw->setFlag(Qt::FramelessWindowHint, false);
+        } else {
+            rw->setWindowStates(Qt::WindowFullScreen);
+            rw->setFlag(Qt::FramelessWindowHint, true);
+            oldState = rw->windowState();
+        }
+#else
+        qWarning() << "Switching to native Fullscreen is only supported on Desktop-builds";
+#endif
     }
     emit key_pressed(e->keyCombination());
     RenderThreadNotifier::instance()->notify();
