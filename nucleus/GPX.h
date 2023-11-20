@@ -32,4 +32,6 @@ struct Track {
 
 std::vector<glm::vec3> to_world_points(const gpx::Gpx& gpx);
 
+std::vector<glm::vec3> to_world_ribbon(const std::vector<glm::vec3>& points);
+
 } // namespace nucleus

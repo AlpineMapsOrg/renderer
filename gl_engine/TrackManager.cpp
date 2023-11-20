@@ -47,6 +47,8 @@ namespace gl_engine
     {
         QOpenGLExtraFunctions *f = QOpenGLContext::currentContext()->extraFunctions();
 
+        f->glDisable(GL_CULL_FACE);
+
 #if 0
         /* glLineWidth() is not guaranteed to be supported */
         float line_width = 3.0f;
@@ -62,10 +64,12 @@ namespace gl_engine
         for (const PolyLine &track : m_tracks)
         {
             track.vao->bind();
-            f->glDrawArrays(GL_LINE_STRIP, 0, track.point_count);
+            //f->glDrawArrays(GL_LINE_STRIP, 0, track.point_count);
+            f->glDrawArrays(GL_TRIANGLES, 0, (track.point_count - 1) * 3);
         }
 
         m_shader->release();
+        f->glEnable(GL_CULL_FACE);
     }
 
     void TrackManager::add_track(const nucleus::gpx::Gpx &gpx)
@@ -74,15 +78,9 @@ namespace gl_engine
 
         qDebug() << "TrackManager::add_track()\n";
 
-#if 1
         std::vector<glm::vec3> points = nucleus::to_world_points(gpx);
-#else
 
-        std::vector<glm::vec3> points = {
-            {-.25, .25, 0},
-            {.25, .25, 0},
-        };
-#endif
+        std::vector<glm::vec3> ribbon = nucleus::to_world_ribbon(points);
 
         PolyLine polyline;
 
@@ -94,7 +92,11 @@ namespace gl_engine
         polyline.vbo->create();
         polyline.vbo->bind();
         polyline.vbo->setUsagePattern(QOpenGLBuffer::StaticDraw);
+#if 0
         polyline.vbo->allocate(points.data(), helpers::bufferLengthInBytes(points));
+#else
+        polyline.vbo->allocate(ribbon.data(), helpers::bufferLengthInBytes(ribbon));
+#endif
 
         const auto position_attrib_location = m_shader->attribute_location("a_position");
         f->glEnableVertexAttribArray(position_attrib_location);
