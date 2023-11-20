@@ -20,7 +20,7 @@
 #include <glm/glm.hpp>
 
 #include "nucleus/Raster.h"
-#include "unittests/test_helpers.h"
+#include "test_helpers.h"
 
 using nucleus::Raster;
 

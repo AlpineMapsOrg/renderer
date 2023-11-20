@@ -21,7 +21,7 @@
 
 #include "nucleus/camera/Definition.h"
 #include "radix/geometry.h"
-#include "unittests/test_helpers.h"
+#include "test_helpers.h"
 
 using test_helpers::equals;
 

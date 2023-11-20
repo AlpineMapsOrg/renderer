@@ -23,14 +23,14 @@
 #include <QSignalSpy>
 #include <QThread>
 
+#include "catch2_helpers.h"
 #include "nucleus/camera/PositionStorage.h"
 #include "nucleus/tile_scheduler/Scheduler.h"
 #include "nucleus/tile_scheduler/tile_types.h"
 #include "nucleus/tile_scheduler/utils.h"
 #include "nucleus/utils/tile_conversion.h"
 #include "radix/TileHeights.h"
-#include "unittests/catch2_helpers.h"
-#include "unittests/test_helpers.h"
+#include "test_helpers.h"
 
 using nucleus::tile_scheduler::Scheduler;
 using namespace nucleus::tile_scheduler::tile_types;

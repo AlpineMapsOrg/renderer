@@ -21,10 +21,9 @@
 #include <QSignalSpy>
 #include <catch2/catch_test_macros.hpp>
 
+#include "RateTester.h"
 #include "nucleus/tile_scheduler/RateLimiter.h"
-#include "unittests/RateTester.h"
-#include "unittests/test_helpers.h"
-
+#include "test_helpers.h"
 
 #ifdef __EMSCRIPTEN__
 constexpr auto timing_multiplicator = 200;

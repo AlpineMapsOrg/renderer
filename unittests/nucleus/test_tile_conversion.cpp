@@ -19,8 +19,8 @@
 #include <QFile>
 #include <catch2/catch_test_macros.hpp>
 
+#include "catch2_helpers.h"
 #include "nucleus/utils/tile_conversion.h"
-#include "unittests/catch2_helpers.h"
 
 namespace {
 auto check_alpine_raster_format_for(const glm::u8vec4& v)

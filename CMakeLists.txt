@@ -71,6 +71,9 @@ endif()
 
 ########################################### dependencies #################################################
 find_package(Qt6 REQUIRED COMPONENTS Core Gui OpenGL Network Quick QuickControls2 LinguistTools Svg Charts)
+qt_policy(
+    SET QTP0002 NEW
+)
 if (ALP_ENABLE_POSITIONING)
     find_package(Qt6 REQUIRED COMPONENTS Positioning)
 endif()
@@ -80,7 +83,7 @@ alp_add_git_repository(renderer_static_data URL https://github.com/AlpineMapsOrg
 alp_add_git_repository(alpineapp_fonts URL https://github.com/AlpineMapsOrg/fonts.git COMMITISH origin/main DO_NOT_ADD_SUBPROJECT)
 
 if (ANDROID)
-    alp_add_git_repository(android_openssl URL https://github.com/AlpineMapsOrg/android_openssl.git COMMITISH origin/master DO_NOT_ADD_SUBPROJECT)
+    alp_add_git_repository(android_openssl URL https://github.com/KDAB/android_openssl.git COMMITISH origin/master DO_NOT_ADD_SUBPROJECT)
     include(${android_openssl_SOURCE_DIR}/android_openssl.cmake)
 endif()
 
@@ -90,26 +93,5 @@ add_subdirectory(plain_renderer)
 add_subdirectory(app)
 
 if (ALP_UNITTESTS)
-    find_package(Qt6 REQUIRED COMPONENTS Test)
-    if (NOT TARGET Catch2)
-        alp_add_git_repository(catch2 URL https://github.com/catchorg/Catch2.git COMMITISH v3.4.0)
-    endif()
-
-    if (EMSCRIPTEN AND ALP_ENABLE_THREADING)
-        target_compile_options(Catch2 PRIVATE -pthread)
-    endif()
-    function(alp_setup_unittest)
-        if (ANDROID)
-            install(TARGETS ${ARGV0}
-                LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
-                RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR})
-        endif()
-
-        if (MINGW)
-            target_compile_options(${ARGV0} PUBLIC "-Wa,-mbig-obj")
-        endif()
-    endfunction()
-
     add_subdirectory(unittests)
-    add_subdirectory(unittests_gl)
 endif()
