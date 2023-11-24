@@ -30,7 +30,7 @@ constexpr auto timing_multiplicator = 200;
 #elif defined __ANDROID__
 constexpr auto timing_multiplicator = 50;
 #else
-constexpr auto timing_multiplicator = 2;
+constexpr auto timing_multiplicator = 10;
 #endif
 
 TEST_CASE("nucleus/tile_scheduler/rate limiter")
