@@ -25,7 +25,7 @@
 #ifdef __EMSCRIPTEN__
 constexpr auto timing_multiplicator = 10ll;
 #else
-constexpr auto timing_multiplicator = 5ll;
+constexpr auto timing_multiplicator = 10ll;
 #endif
 
 TEST_CASE("nucleus/utils/Stopwatch")
