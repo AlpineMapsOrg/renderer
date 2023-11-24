@@ -93,18 +93,18 @@ jobs:
       env:
         QT_DEBUG_PLUGINS: 1
       run: |
-        ./build/alp_external/radix/unittests/unittests_radix.exe
+        start ./build/alp_external/radix/unittests/unittests_radix.exe
         
     - name: Test nucleus on Windows
       if: matrix.os == 'windows-latest'
       env:
         QT_DEBUG_PLUGINS: 1
       run: |
-        ./build/unittests/unittests_nucleus.exe
+        start ./build/unittests/unittests_nucleus.exe
         
     - name: Test gl_engine on Windows
       if: matrix.os == 'windows-latest'
       env:
         QT_DEBUG_PLUGINS: 1
       run: |
-        ./build/unittests/unittests_gl_engine.exe
+        start ./build/unittests/unittests_gl_engine.exe
