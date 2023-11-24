@@ -23,6 +23,7 @@ import Alpine
 
 ApplicationWindow {
     visible: true
+    id: application_window
     property alias loaded_item: mainLoader.item
     Material.theme: loaded_item ? loaded_item.theme : Material.System
     Material.accent: loaded_item ? loaded_item.accent : Material.Pink
@@ -32,6 +33,20 @@ ApplicationWindow {
         anchors.fill: parent
         source: _qmlPath + "Main.qml"
         focus: true
+    }
+
+    Shortcut {
+        property int old_visiblity: application_window.visibility
+        sequences: ["F11"]
+        onActivated: {
+            if (application_window.visibility === Window.FullScreen){
+                application_window.visibility = old_visiblity;
+            }
+            else {
+                old_visiblity = application_window.visibility
+                application_window.visibility = Window.FullScreen
+            }
+        }
     }
 
     Connections{
