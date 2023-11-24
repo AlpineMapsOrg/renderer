@@ -18,17 +18,22 @@
 
 #pragma once
 
+#include <QOffscreenSurface>
 #include <QOpenGLWindow>
 
-class UnittestGlWindow : public QOpenGLWindow
+class UnittestGLContext
 {
-    Q_OBJECT
-    int m_argc = 0;
-    char** m_argv = nullptr;
 public:
-    explicit UnittestGlWindow(int argc, char** argv);
+    static void initialise();
+    UnittestGLContext(UnittestGLContext const&) = delete;
+    UnittestGLContext(UnittestGLContext const&&) = delete;
+    void operator=(UnittestGLContext const&) = delete;
+    void operator=(UnittestGLContext const&&) = delete;
 
-public:
-    void initializeGL() override;
+private:
+    UnittestGLContext();
+    ~UnittestGLContext() = default;
+
+    QOpenGLContext m_context;
+    QOffscreenSurface surface;
 };
-

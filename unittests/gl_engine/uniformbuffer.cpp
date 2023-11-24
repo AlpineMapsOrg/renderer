@@ -37,6 +37,8 @@
 #include "gl_engine/UniformBufferObjects.h"
 #include "gl_engine/helpers.h"
 
+#include "UnittestGLContext.h"
+
 using Catch::Approx;
 using gl_engine::Framebuffer;
 using gl_engine::ShaderProgram;
@@ -62,6 +64,8 @@ ShaderProgram create_debug_shader2(const char* fragmentShaderOverride = nullptr)
 
 TEST_CASE("gl uniformbuffer")
 {
+    UnittestGLContext::initialise();
+
     const auto* c = QOpenGLContext::currentContext();
     QOpenGLExtraFunctions* f = c->extraFunctions();
     REQUIRE(f);
