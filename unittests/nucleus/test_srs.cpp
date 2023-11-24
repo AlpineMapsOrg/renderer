@@ -187,5 +187,15 @@ TEST_CASE("nucleus/srs")
             CHECK(srs::lat_long_alt_to_world({ lat, lon, alt }).z >= Approx(alt));
             CHECK(srs::lat_long_alt_to_world({ lat, lon, alt }).z == Approx(alt / std::abs(std::cos(lat * pi / 180.0))));
         }
+
+        {
+            constexpr double lat = -60.2086939;
+            constexpr double lon = -96.3726561;
+            constexpr double alt = 4000.0;
+            const auto real_coords = glm::dvec3 { lat, lon, alt };
+            CHECK(srs::world_to_lat_long_alt(srs::lat_long_alt_to_world(real_coords)).x == Approx(real_coords.x).scale(1000));
+            CHECK(srs::world_to_lat_long_alt(srs::lat_long_alt_to_world(real_coords)).y == Approx(real_coords.y).scale(1000));
+            CHECK(srs::world_to_lat_long_alt(srs::lat_long_alt_to_world(real_coords)).z == Approx(real_coords.z).scale(1000));
+        }
     }
 }
