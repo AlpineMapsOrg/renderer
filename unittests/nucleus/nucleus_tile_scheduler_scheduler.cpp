@@ -203,7 +203,7 @@ std::vector<nucleus::tile_scheduler::tile_types::TileQuad> example_quads_many()
 #ifdef __EMSCRIPTEN__
 constexpr auto timing_multiplicator = 10;
 #else
-constexpr auto timing_multiplicator = 1;
+constexpr auto timing_multiplicator = 5;
 #endif
 
 } // namespace
