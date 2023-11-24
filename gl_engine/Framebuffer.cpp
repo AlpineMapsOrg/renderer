@@ -358,16 +358,17 @@ void Framebuffer::reset_fbo()
     QOpenGLExtraFunctions* f = QOpenGLContext::currentContext()->extraFunctions();
     //QOpenGLFunctions* f = QOpenGLContext::currentContext()->functions();
     f->glBindFramebuffer(GL_FRAMEBUFFER, m_frame_buffer);
-    unsigned int draw_attachments[m_colour_textures.size()];
-    for (int i = 0; i < m_colour_textures.size(); i++) {
-        draw_attachments[i] = GL_COLOR_ATTACHMENT0 + i;
-        f->glFramebufferTexture2D(GL_FRAMEBUFFER, draw_attachments[i], GL_TEXTURE_2D, m_colour_textures[i]->textureId(), 0);
+    // unsigned int draw_attachments[m_colour_textures.size()];
+    std::vector<unsigned> draw_attachments;
+    for (unsigned i = 0; i < m_colour_textures.size(); i++) {
+        draw_attachments.push_back(GL_COLOR_ATTACHMENT0 + i);
+        f->glFramebufferTexture2D(GL_FRAMEBUFFER, draw_attachments.back(), GL_TEXTURE_2D, m_colour_textures[i]->textureId(), 0);
     }
     if (m_depth_format != DepthFormat::None)
         f->glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, m_depth_texture->textureId(), 0);
 
     // Tell OpenGL how many attachments to use
-    f->glDrawBuffers(m_colour_textures.size(), draw_attachments);
+    f->glDrawBuffers(m_colour_textures.size(), draw_attachments.data());
 
     assert(f->glCheckFramebufferStatus(GL_FRAMEBUFFER) == GL_FRAMEBUFFER_COMPLETE);
 }

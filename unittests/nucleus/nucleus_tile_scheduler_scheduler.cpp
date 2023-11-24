@@ -202,6 +202,8 @@ std::vector<nucleus::tile_scheduler::tile_types::TileQuad> example_quads_many()
 
 #ifdef __EMSCRIPTEN__
 constexpr auto timing_multiplicator = 10;
+#elif defined _MSC_VER
+constexpr auto timing_multiplicator = 20;
 #else
 constexpr auto timing_multiplicator = 1;
 #endif

@@ -24,6 +24,8 @@
 
 #ifdef __EMSCRIPTEN__
 constexpr auto timing_multiplicator = 10ll;
+#elif defined _MSC_VER
+constexpr auto timing_multiplicator = 10ll;
 #else
 constexpr auto timing_multiplicator = 5ll;
 #endif
