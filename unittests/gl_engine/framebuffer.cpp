@@ -171,14 +171,15 @@ TEST_CASE("gl framebuffer")
         texture.allocateStorage(QOpenGLTexture::PixelFormat::RG_Integer, QOpenGLTexture::PixelType::UInt16);
 
         // Fill the array with the value 400 for each RG component
-        GLushort data[width * height * 2];
+        std::vector<GLushort> data;
+        data.resize(width * height * 2);
         for (int i = 0; i < width * height * 2; i += 2) {
             data[i] = 400;     // R component
             data[i + 1] = 400; // G component
         }
 
         // Upload the data to the texture
-        texture.setData(0, QOpenGLTexture::PixelFormat::RG_Integer, QOpenGLTexture::PixelType::UInt16, data);
+        texture.setData(0, QOpenGLTexture::PixelFormat::RG_Integer, QOpenGLTexture::PixelType::UInt16, data.data());
 
         // Set the texture parameters
         texture.setMinificationFilter(QOpenGLTexture::Nearest);
