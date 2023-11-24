@@ -24,8 +24,10 @@
 
 #ifdef __EMSCRIPTEN__
 constexpr auto timing_multiplicator = 10ll;
-#else
+#elif defined _MSC_VER
 constexpr auto timing_multiplicator = 10ll;
+#else
+constexpr auto timing_multiplicator = 5ll;
 #endif
 
 TEST_CASE("nucleus/utils/Stopwatch")
