@@ -17,21 +17,20 @@ jobs:
       fail-fast: false
       matrix:
         #os: [ubuntu-latest]
-        #os: [ubuntu-latest, windows-latest]
-        os: [windows-latest]
+        os: [ubuntu-latest, windows-latest]
+        #os: [windows-latest]
         build_type: [Release]
         include:
           - os: windows-latest
-            #arch: 'win64_mingw'
             arch: 'win64_msvc2019_64'
             host: 'windows'
             shell: 'powershell'
             #shell: 'cmd'
             #shell: 'msys2 {0}'
-          #- os: ubuntu-latest
-            #arch: 'gcc_64'
-            #host: 'linux'
-            #shell: 'bash'
+          - os: ubuntu-latest
+            arch: 'gcc_64'
+            host: 'linux'
+            shell: 'bash'
 
     steps:
     - uses: actions/checkout@v3
