@@ -29,10 +29,12 @@ We use Qt Creator (with mingw on Windows), which is the only tested setup atm an
 # Code style
 * class names are CamelCase, method, function and variable names are snake_case.
 * class attributes have an m_ prefix and are usually private, struct attributes don't and are usually public.
+* use `void set_attribute(int value)` and `int attribute() const` for setters and getters (that is, avoid the get_). Use [the Qt recommendations](https://wiki.qt.io/API_Design_Principles#Naming_Boolean_Getters,_Setters,_and_Properties) for naming boolean getters.
 * structs are usually small, simple, and have no or only few methods. they never have inheritance.
 * files are CamelCase if the content is a CamelCase class. otherwise they are snake_case, and have a snake_case namespace with stuff.
 * the folder/structure.h is reflected in namespace folder::structure{ .. }
 * indent with space only, indent 4 spaces
 * ideally, use the clang-format file provided with the project
   (in case you use Qt Creator, go to Preferences -> C++ -> Code Style: Formatting mode: Full, Format while typing, Format edited code on file save, don't override formatting)
+* follow the [Qt recommendations](https://wiki.qt.io/API_Design_Principles) and the [c++ core guidelines](https://isocpp.github.io/CppCoreGuidelines/CppCoreGuidelines) everywhere else.
 
