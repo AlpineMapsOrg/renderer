@@ -264,7 +264,7 @@ void Window::paint(QOpenGLFramebufferObject* framebuffer)
 
     m_shader_manager->tile_shader()->bind();
     m_timer->start_timer("tiles");
-    m_tile_manager->draw(m_shader_manager->tile_shader(), m_camera, draw_tiles, m_sort_tiles, m_camera.position());
+    m_tile_manager->draw(m_shader_manager->tile_shader(), m_camera, draw_tiles, true, m_camera.position());
     m_timer->stop_timer("tiles");
     m_shader_manager->tile_shader()->release();
 
@@ -387,16 +387,6 @@ void Window::keyPressEvent(QKeyEvent* e)
         } else {
             this->m_render_looped = true;
             qDebug("Rendering loop started");
-        }
-        emit update_requested();
-    }
-    if (e->key() == Qt::Key::Key_F7) {
-        if (this->m_sort_tiles) {
-            this->m_sort_tiles = false;
-            qDebug("Tile-Sorting deactivated");
-        } else {
-            this->m_sort_tiles = true;
-            qDebug("Tile-Sorting active");
         }
         emit update_requested();
     }

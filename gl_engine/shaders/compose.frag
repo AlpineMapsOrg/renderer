@@ -215,13 +215,13 @@ void main() {
 
     // OVERLAY SHADOW MAPS
     if (bool(conf.overlay_shadowmaps_enabled)) {
-        highp float wsize = 1.0 / SHADOW_CASCADES;
+        highp float wsize = 1.0 / float(SHADOW_CASCADES);
         highp float invwsize = 1.0/wsize;
         if (texcoords.x < wsize) {
             for (int i = 0 ; i < SHADOW_CASCADES; i++)
             {
                 if (texcoords.y < wsize * float(i+1)) {
-                    highp float val = sample_shadow_texture(i, (texcoords - vec2(0.0, wsize*i)) * invwsize);
+                    highp float val = sample_shadow_texture(i, (texcoords - vec2(0.0, wsize*float(i))) * invwsize);
                     out_Color = vec4(val, val, val, 1.0);
                     break;
                 }
