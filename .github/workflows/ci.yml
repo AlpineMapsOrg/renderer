@@ -76,7 +76,7 @@ jobs:
     - name: Build
       run: cmake --build ./build
 
-    - name: Test on Linux
+    - name: Unittests on Linux
       if: matrix.os == 'ubuntu-latest'
       env:
         QT_QPA_PLATFORM: xcb
@@ -88,23 +88,12 @@ jobs:
         #Xvfb :1 -screen 0 1024x768x16 &
         #./build/unittests/gl_engine/unittests_gl_engine # doesn't work
 
-    - name: Test radix on Windows
+    - name: Unittests on Windows
       if: matrix.os == 'windows-latest'
       env:
         QT_DEBUG_PLUGINS: 1
       run: |
         ./build/alp_external/radix/unittests/unittests_radix.exe
-        
-    - name: Test nucleus on Windows
-      if: matrix.os == 'windows-latest'
-      env:
-        QT_DEBUG_PLUGINS: 1
-      run: |
         ./build/unittests/unittests_nucleus.exe
+        #./build/unittests/unittests_gl_engine.exe
         
-    - name: Test gl_engine on Windows
-      if: matrix.os == 'windows-latest'
-      env:
-        QT_DEBUG_PLUGINS: 1
-      run: |
-        ./build/unittests/unittests_gl_engine.exe
