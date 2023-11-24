@@ -25,8 +25,8 @@ jobs:
             #arch: 'win64_mingw'
             arch: 'win64_msvc2019_64'
             host: 'windows'
-            shell: 'cmd'
-            #shell: 'msys2 {0}'
+            #shell: 'cmd'
+            shell: 'msys2 {0}'
           #- os: ubuntu-latest
             #arch: 'gcc_64'
             #host: 'linux'
@@ -44,13 +44,13 @@ jobs:
       if: matrix.os == 'windows-latest'
       uses: ilammy/msvc-dev-cmd@v1
     
-    #- name: Install MSYS2
-      #if: matrix.os == 'windows-latest'
-      #uses: msys2/setup-msys2@v2
-      #with:
-        #install: mingw-w64-x86_64-toolchain mingw-w64-x86_64-cmake git
-        #msystem: mingw64
-        #release: false
+    - name: Install MSYS2
+      if: matrix.os == 'windows-latest'
+      uses: msys2/setup-msys2@v2
+      with:
+        install: mingw-w64-x86_64-toolchain mingw-w64-x86_64-cmake git
+        msystem: mingw64
+        release: false
         
     - name: Install Linux Dependencies
       if: matrix.os == 'ubuntu-latest'
@@ -93,18 +93,18 @@ jobs:
       env:
         QT_DEBUG_PLUGINS: 1
       run: |
-        start ./build/alp_external/radix/unittests/unittests_radix.exe
+        ./build/alp_external/radix/unittests/unittests_radix.exe
         
     - name: Test nucleus on Windows
       if: matrix.os == 'windows-latest'
       env:
         QT_DEBUG_PLUGINS: 1
       run: |
-        start ./build/unittests/unittests_nucleus.exe
+        ./build/unittests/unittests_nucleus.exe
         
     - name: Test gl_engine on Windows
       if: matrix.os == 'windows-latest'
       env:
         QT_DEBUG_PLUGINS: 1
       run: |
-        start ./build/unittests/unittests_gl_engine.exe
+        ./build/unittests/unittests_gl_engine.exe
