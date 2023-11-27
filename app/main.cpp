@@ -48,7 +48,6 @@
 
 int main(int argc, char **argv)
 {
-    //    QGuiApplication::setHighDpiScaleFactorRoundingPolicy(Qt::HighDpiScaleFactorRoundingPolicy::Floor);
     QQuickWindow::setGraphicsApi(QSGRendererInterface::GraphicsApi::OpenGLRhi);
     QApplication app(argc, argv);
     app.setWindowIcon(QIcon("app/icons/favicon.ico"));
