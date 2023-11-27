@@ -10,10 +10,10 @@ https://discord.gg/p8T9XzVwRa
 After that it should be a normal cmake project. That is, you run cmake to generate a project or build file and then run your favourite tool. All dependencies should be pulled automatically into `renderer/external` while you run CMake. 
 We use Qt Creator (with mingw on Windows), which is the only tested setup atm and makes setup of Android and WebAssembly builds reasonably easy. If you have questions, please open a new [discussion](https://github.com/AlpineMapsOrg/renderer/discussions).
 
-## Dependencies for the native and android build
-* Qt 6.5.0, or greater
+## Dependencies
+* Qt 6.6.0, or greater
 * OpenGL
-* Qt Positioning and qt5 compatibility modules
+* Qt Positioning and Charts modules
 * Some other dependencies will be pulled automatically during building.
 
 ## Building the android version
@@ -21,10 +21,10 @@ We use Qt Creator (with mingw on Windows), which is the only tested setup atm an
 
 ## Building the WebAssembly version:
 * Atm, none of the Qt versions works perfectly in all browsers
-* In Qt 6.5.0 there is no search
-* In Qt 6.5.1 touch doesn't work on Firefox, and the Keyboard doesn't work on touch notebooks (issues #33, #34)
+* In Qt 6.6 touch doesn't work on Firefox (issues #33)
 * [WebAssembly version compatible with the Qt version](https://doc-snapshots.qt.io/qt6-dev/wasm.html#installing-emscripten)
 * The threaded version doesn't seem to work atm, so use the non-threaded!
+* There are a number of other bugs, we track them with the upstream tag.
 
 # Code style
 * class names are CamelCase, method, function and variable names are snake_case.
