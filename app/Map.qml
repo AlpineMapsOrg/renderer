@@ -38,7 +38,7 @@ Rectangle {
     }
 
     Rectangle {
-        function oc_scale() : float {
+        function oc_scale() : real {
             if (renderer.camera_operation_centre_distance < 0) {
                 return 1.0;
             }
@@ -71,12 +71,12 @@ Rectangle {
             property int vertical_text_margin: 10
             property real alpha_value: my_alpha()
             visible: alpha_value > 0
-            function my_scale() : float {
+            function my_scale() : real {
                 let importance_scale = model.importance / 10;
                 let distance_scale = model.size + 0.3
                 return importance_scale * (importance_scale + 0.5) * distance_scale
             }
-            function my_alpha() : float {
+            function my_alpha() : real {
                 let alpha = my_scale();
                 if (alpha < 0.37)
                     alpha = 0.0;
