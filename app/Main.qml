@@ -124,6 +124,7 @@ Item {
 
         DrawerButton {
             text: stats_window.visible ? qsTr ("Hide Statistics") : qsTr("Statistics")
+            hotkey: "F8"
             iconSource: "../icons/material/monitoring.svg"
             selectable: false
             onClicked: toggleStatsWindow();
@@ -132,6 +133,7 @@ Item {
         DrawerButton {
             text: qsTr("Reload Shaders")
             iconSource: "../icons/material/3d_rotation.svg"
+            hotkey: "F6"
             selectable: false
             onClicked: map.reload_shader();
         }
