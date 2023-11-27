@@ -1,7 +1,6 @@
 /*****************************************************************************
  * Alpine Terrain Renderer
  * Copyright (C) 2023 Adam Celarek
- * Copyright (C) 2024 Gerald Kimmersdorfer
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -52,7 +51,6 @@ public:
 
     // should be called only once
     void set_root_window(QQuickWindow* root_window);
-    QQuickWindow* get_root_window() { return m_root_window; }
 
 public slots:
     /// this one is not thread safe and should be called only on the main thread (e.g., via a signals and slots connection)
