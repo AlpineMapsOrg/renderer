@@ -113,7 +113,7 @@ highp float csm_shadow_term(highp vec4 pos_cws, highp vec3 normal_ws, out lowp i
     //if (depth_ls > 1.0) return 0.0; //not necessary because orthogonal
 
     // calculate bias based on depth resolution and slope
-    highp float bias = max(0.05 * (1.0 - dot(normal_ws, -conf.sun_light_dir.xyz)), 0.005); // ToDo: Make sure - is correct
+    highp float bias = max(0.05 * (1.0 - dot(normal_ws, -conf.sun_light_dir.xyz)), 0.005);
     highp float dist = length(pos_cws.xyz);
     highp float biasModifier = 1.0;
 
@@ -215,18 +215,37 @@ void main() {
 
     // OVERLAY SHADOW MAPS
     if (bool(conf.overlay_shadowmaps_enabled)) {
-        highp float wsize = 0.25;
+        highp float wsize = 1.0 / float(SHADOW_CASCADES);
         highp float invwsize = 1.0/wsize;
         if (texcoords.x < wsize) {
-            if (texcoords.y < wsize) {
-                out_Color = texture(texin_csm1, (texcoords - vec2(0.0, wsize*0.0)) * invwsize).rrrr;
-            } else if (texcoords.y < wsize * 2.0) {
-                out_Color = texture(texin_csm2, (texcoords - vec2(0.0, wsize*1.0)) * invwsize).rrrr;
-            } else if (texcoords.y < wsize * 3.0) {
-                out_Color = texture(texin_csm3, (texcoords - vec2(0.0, wsize*2.0)) * invwsize).rrrr;
-            } else if (texcoords.y < wsize * 4.0) {
-                out_Color = texture(texin_csm4, (texcoords - vec2(0.0, wsize*3.0)) * invwsize).rrrr;
+            for (int i = 0 ; i < SHADOW_CASCADES; i++)
+            {
+                if (texcoords.y < wsize * float(i+1)) {
+                    highp float val = sample_shadow_texture(i, (texcoords - vec2(0.0, wsize*float(i))) * invwsize);
+                    out_Color = vec4(val, val, val, 1.0);
+                    break;
+                }
             }
         }
     }
+
+    // == HEIGHT LINES ==============
+    if (bool(conf.height_lines_enabled) && dist > 0.0) {
+        highp float alpha_line = 1.0 - min((dist / 20000.0), 1.0);
+        highp float line_width = (2.0 + dist / 5000.0) * 5.0;
+        // Calculate steepness based on fragment normal (this alone gives woobly results)
+        highp float steepness = (1.0 - dot(normal, vec3(0.0,0.0,1.0))) / 2.0;
+        // Discretize the steepness -> Doesnt work
+        //float steepness_discretized = int(steepness * 10.0f) / 10.0f;
+        line_width = line_width * max(0.01,steepness);
+        if (alpha_line > 0.05)
+        {
+            highp float alt = pos_cws.z + camera.position.z;
+            highp float alt_rest = (alt - float(int(alt / 100.0)) * 100.0) - line_width / 2.0;
+            if (alt_rest < line_width) {
+                out_Color = vec4(mix(out_Color.rgb, vec3(out_Color.r - 0.2, out_Color.g - 0.2, out_Color.b - 0.2), alpha_line), out_Color.a);
+            }
+        }
+    }
+
 }

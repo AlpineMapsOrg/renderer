@@ -459,6 +459,18 @@ Rectangle {
                     }
         }
         CheckGroup {
+            id: camera_group
+            name: "Camera"
+
+            Label { text: "Preset:" }
+            ComboBox {
+                Layout.fillWidth: true;
+                model: _positionList    // set in main.cpp
+                currentIndex: 0
+                onCurrentIndexChanged: map.selected_camera_position_index = currentIndex;
+            }
+        }
+        CheckGroup {
             id: cursor_group
             name: "Cursor"
 

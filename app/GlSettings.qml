@@ -264,7 +264,7 @@ SetPanel {
             text: "Overlay Shadow-Maps"
             Layout.fillWidth: true;
             Layout.columnSpan: 2;
-            onCheckStateChanged: map.shared_config.overlay_shadowmaps = this.checked;
+            onCheckStateChanged: map.shared_config.overlay_shadowmaps_enabled = this.checked;
         }
     }
 
