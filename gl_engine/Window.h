@@ -29,12 +29,12 @@
 #include <glm/glm.hpp>
 #include <memory>
 
+#include "UniformBuffer.h"
+#include "UniformBufferObjects.h"
 #include "helpers.h"
 #include "nucleus/AbstractRenderWindow.h"
 #include "nucleus/camera/AbstractDepthTester.h"
 #include "nucleus/camera/Definition.h"
-#include "UniformBufferObjects.h"
-#include "UniformBuffer.h"
 
 #include "nucleus/timing/TimerManager.h"
 
@@ -43,6 +43,7 @@ class QOpenGLShaderProgram;
 class QOpenGLBuffer;
 class QOpenGLVertexArrayObject;
 class TileManager;
+class MapLabelManager;
 
 namespace gl_engine {
 
@@ -90,6 +91,7 @@ private:
     std::unique_ptr<TileManager> m_tile_manager; // needs opengl context
     std::unique_ptr<DebugPainter> m_debug_painter; // needs opengl context
     std::unique_ptr<ShaderManager> m_shader_manager;
+    std::unique_ptr<MapLabelManager> m_map_label_manager;
 
     std::unique_ptr<Framebuffer> m_gbuffer;
     std::unique_ptr<Framebuffer> m_atmospherebuffer;
