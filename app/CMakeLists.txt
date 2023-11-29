@@ -49,6 +49,7 @@ qt_add_qml_module(alpineapp
         GeneralSettings.qml
         GlSettings.qml
         components/ValSlider.qml
+        components/ValRangeSlider.qml
         components/ColorPicker.qml
         components/PageDrawer.qml
         components/CheckGroup.qml
