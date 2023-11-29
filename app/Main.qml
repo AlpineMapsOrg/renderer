@@ -212,6 +212,15 @@ Item {
         visible: false
     }
 
+    Image {
+        x: 0
+        y: map.height - 128
+        width: 128
+        height: 128
+        source: "icons/presets/snow.png"
+        fillMode: Image.PreserveAspectFit
+    }
+
      //property TerrainRenderer renderer
     Component.onCompleted: {
         change_page("map")

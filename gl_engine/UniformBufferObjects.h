@@ -48,12 +48,12 @@ struct uboSharedConfig {
     Q_GADGET
 public:
     // rgb...Color, a...intensity
-    QVector4D m_sun_light = QVector4D(1.0, 1.0, 1.0, 0.25);
+    QVector4D m_sun_light = QVector4D(1.0, 1.0, 1.0, 0.15);
     // The direction of the light/sun in WS (northwest lighting at 45 degrees)
     QVector4D m_sun_light_dir = QVector4D(1.0, -1.0, -1.0, 0.0).normalized();
     //QVector4D m_sun_pos = QVector4D(1.0, 1.0, 3000.0, 1.0);
     // rgb...Color, a...intensity
-    QVector4D m_amb_light = QVector4D(1.0, 1.0, 1.0, 0.5);
+    QVector4D m_amb_light = QVector4D(1.0, 1.0, 1.0, 0.4);
     // rgba...Color of the phong-material (if a 0 -> ortho picture)
     QVector4D m_material_color = QVector4D(0.5, 0.5, 0.5, 0.0);
     // amb, diff, spec, shininess

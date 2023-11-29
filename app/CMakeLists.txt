@@ -78,6 +78,9 @@ qt_add_qml_module(alpineapp
         icons/material/pin_drop.svg
         icons/material/settings.svg
         icons/material/info.svg
+        icons/presets/basic.png
+        icons/presets/shaded.png
+        icons/presets/snow.png
 )
 
 qt_add_resources(alpineapp "height_data"
