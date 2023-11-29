@@ -15,8 +15,21 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *****************************************************************************/
+uniform sampler2D texture_sampler;
+
+in highp vec2 texcoords;
 
 layout (location = 0) out lowp vec4 out_Color;
+vec3 fontColor = vec3(0.1);
+
 void main() {
-    out_Color = vec4(1.0, 0.0, 0.0, 1.0);
+    if(texcoords.x < 10.0)
+    {
+        float font = texture2D(texture_sampler, texcoords).r;
+        out_Color = vec4(fontColor, font);
+    }
+    else
+    {
+        out_Color = vec4(1.0,1.0, 1.0, 0.25);
+    }
 }
