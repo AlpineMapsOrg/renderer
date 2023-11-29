@@ -26,6 +26,8 @@ layout (std140) uniform shared_config {
     highp vec4 material_color;
     highp vec4 material_light_response;
     highp vec4 curtain_settings;
+    highp vec4 snow_settings_angle;
+    highp vec4 snow_settings_alt;
 
     highp float overlay_strength;
     highp float ssao_falloff_to_value;

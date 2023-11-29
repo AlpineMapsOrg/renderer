@@ -20,7 +20,7 @@
 namespace gl_engine {
 
 // IMPORTANT: Also serialize padding!
-QDataStream& operator<<(QDataStream& out, const uboSharedConfig& data){
+void serialize_ubo(QDataStream& out, const uboSharedConfig& data) {
     out
         << data.m_sun_light
         << data.m_sun_light_dir
@@ -28,6 +28,8 @@ QDataStream& operator<<(QDataStream& out, const uboSharedConfig& data){
         << data.m_material_color
         << data.m_material_light_response
         << data.m_curtain_settings
+        << data.m_snow_settings_angle   // added on 2023-11-29 (v2) for snow cover
+        << data.m_snow_settings_alt     // added on 2023-11-29 (v2) for snow cover
         << data.m_overlay_strength
         << data.m_ssao_falloff_to_value
         << data.padf1
@@ -44,17 +46,20 @@ QDataStream& operator<<(QDataStream& out, const uboSharedConfig& data){
         << data.m_height_lines_enabled
         << data.m_csm_enabled
         << data.m_overlay_shadowmaps_enabled;
-    return out;
 }
 
-QDataStream& operator>>(QDataStream& in, uboSharedConfig& data) {
+void unserialize_ubo(QDataStream& in, uboSharedConfig& data, uint32_t version) {
     in
         >> data.m_sun_light
         >> data.m_sun_light_dir
         >> data.m_amb_light
         >> data.m_material_color
         >> data.m_material_light_response
-        >> data.m_curtain_settings
+        >> data.m_curtain_settings;
+    if (version >= 2) {
+        in >> data.m_snow_settings_angle >> data.m_snow_settings_alt;     // added on 2023-11-29 for snow cover
+    }
+    in
         >> data.m_overlay_strength
         >> data.m_ssao_falloff_to_value
         >> data.padf1
@@ -71,25 +76,14 @@ QDataStream& operator>>(QDataStream& in, uboSharedConfig& data) {
         >> data.m_height_lines_enabled
         >> data.m_csm_enabled
         >> data.m_overlay_shadowmaps_enabled;
-    return in;
 }
 
-QDataStream& operator<<(QDataStream& out, const uboCameraConfig& data) { return out; }
-QDataStream& operator>>(QDataStream& in, uboCameraConfig& data) { return in; }
-QDataStream& operator<<(QDataStream& out, const uboShadowConfig& data) { return out; }
-QDataStream& operator>>(QDataStream& in, uboShadowConfig& data) { return in; }
-QDataStream& operator<<(QDataStream& out, const uboTestConfig& data) {
-    out
-        << data.m_tv4
-        << data.m_tf32
-        << data.m_tu32;
-    return out;
+void serialize_ubo(QDataStream& out, const uboTestConfig& data) {
+    out << data.m_tv4 << data.m_tf32 << data.m_tu32;
 }
-QDataStream& operator>>(QDataStream& in, uboTestConfig& data) {
-    in
-        >> data.m_tv4
-        >> data.m_tf32
-        >> data.m_tu32;
-    return in;
+
+void unserialize_ubo(QDataStream& in, uboTestConfig& data, uint32_t version) {
+    in >> data.m_tv4 >> data.m_tf32 >> data.m_tu32;
 }
+
 }

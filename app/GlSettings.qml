@@ -48,7 +48,17 @@ SetPanel {
         overlay_mode.currentIndex = overlay_mode.indexOfValue(conf.overlay_mode);
         overlay_strength.value = conf.overlay_strength;
         overlay_postshading_enabled.checked = conf.overlay_postshading_enabled;
+
+        snow_enabled.checked = conf.snow_settings_angle.x;
+        snow_settings_angle.first.value = conf.snow_settings_angle.y;
+        snow_settings_angle.second.value = conf.snow_settings_angle.z;
+        snow_settings_angle_blend.value = conf.snow_settings_angle.w;
+        snow_settings_alt_min.value = conf.snow_settings_alt.x;
+        snow_settings_alt_var.value = conf.snow_settings_alt.y;
+        snow_settings_alt_blend.value = conf.snow_settings_alt.z;
+        snow_settings_specular.value = conf.snow_settings_alt.w;
     }
+
 
     Component.onCompleted: update_control_values()
 
@@ -164,6 +174,57 @@ SetPanel {
         id: height_lines_enabled
         checkBoxEnabled: true
         onCheckedChanged: map.shared_config.height_lines_enabled = this.checked;
+    }
+
+    CheckGroup {
+        name: "Snow cover"
+        id: snow_enabled
+        checkBoxEnabled: true
+        onCheckedChanged: map.shared_config.snow_settings_angle.x = this.checked;
+
+        Label { text: "Angle:" }
+        ValRangeSlider {
+            id: snow_settings_angle;
+            from: 0.0; to: 90.0; stepSize: 0.1;
+            first.onMoved: map.shared_config.snow_settings_angle.y = this.first.value;
+            second.onMoved: map.shared_config.snow_settings_angle.z = this.second.value;
+        }
+
+        Label { text: "Angle Blend:" }
+        ValSlider {
+            id: snow_settings_angle_blend;
+            from: 0.0; to: 90.0; stepSize: 0.01;
+            onMoved: map.shared_config.snow_settings_angle.w = this.value;
+        }
+
+        Label { text: "Snow-Line:" }
+        ValSlider {
+            id: snow_settings_alt_min;
+            from: 0.0; to: 4000.0; stepSize: 1.0;
+            onMoved: map.shared_config.snow_settings_alt.x = this.value;
+        }
+
+        Label { text: "Snow-Line Variation:" }
+        ValSlider {
+            id: snow_settings_alt_var;
+            from: 0.0; to: 1000.0; stepSize: 1.0;
+            onMoved: map.shared_config.snow_settings_alt.y = this.value;
+        }
+
+        Label { text: "Snow-Line Blend:" }
+        ValSlider {
+            id: snow_settings_alt_blend;
+            from: 0.0; to: 1000.0; stepSize: 1.0;
+            onMoved: map.shared_config.snow_settings_alt.z = this.value;
+        }
+
+        Label { text: "Snow Specular:" }
+        ValSlider {
+            id: snow_settings_specular;
+            from: 0.0; to: 5.0; stepSize: 0.1;
+            onMoved: map.shared_config.snow_settings_alt.w = this.value;
+        }
+
     }
 
     CheckGroup {
