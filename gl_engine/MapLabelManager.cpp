@@ -20,15 +20,24 @@
 #include "ShaderProgram.h"
 #include "qopenglextrafunctions.h"
 
+#include <QDirIterator>
+#include <QFile>
 #include <QThread>
 #include <QTimer>
 #include <glm/gtx/matrix_decompose.hpp>
+
+#include <iostream>
+#include <string>
+
+#define STBTT_STATIC
+#define STB_TRUETYPE_IMPLEMENTATION
+#include "stb_truetype.h"
 
 namespace gl_engine {
 
 MapLabelManager::MapLabelManager()
 {
-    //    std::string text;
+    //    const char8_t text;
     //    double latitude;
     //    double longitude;
     //    float altitude;
@@ -55,6 +64,7 @@ MapLabelManager::MapLabelManager()
     m_labels.push_back({ "Valluga", 47.15757, 10.21309, 2811, 6 });
     m_labels.push_back({ "Birkkarspitze", 47.41129, 11.43765, 2749, 6 });
     m_labels.push_back({ "Schafberg", 47.77639, 13.43389, 1783, 6 });
+
     m_labels.push_back({ "Grubenkarspitze", 47.38078, 11.52211, 2663, 6 });
     m_labels.push_back({ "Gimpel", 47.50127, 10.61249, 2176, 6 });
     m_labels.push_back({ "Seekarlspitze", 47.45723, 11.77804, 2261, 6 });
@@ -67,20 +77,50 @@ MapLabelManager::MapLabelManager()
 void MapLabelManager::init()
 {
     QOpenGLExtraFunctions* f = QOpenGLContext::currentContext()->extraFunctions();
+    createFont(f);
 
     for (auto& label : m_labels) {
-        label.init(f);
+        label.init(f, m_character_data, 32, 255);
     }
 }
 
-void MapLabelManager::draw(ShaderProgram* shader_program, const nucleus::camera::Definition& camera, glm::dvec3 sort_position) const
+void MapLabelManager::createFont(QOpenGLExtraFunctions* f)
+{
+    QFile file(":/fonts/SourceSans3-Medium.ttf");
+    const auto open = file.open(QIODeviceBase::OpenModeFlag::ReadOnly);
+    assert(open);
+    const QByteArray data = file.readAll();
+    uint8_t* temp_bitmap = new uint8_t[512 * 512];
+    // renders 223 ascii characters (characters 32-255) into temp_bitmap -> should include all commonly used german characters
+    // additionally stores font info (coordinates + size) in m_character_data
+    stbtt_BakeFontBitmap(reinterpret_cast<const uint8_t*>(data.constData()), 0, MapLabel::font_size, temp_bitmap, 512, 512, 32, 223, m_character_data);
+
+    font_texture = std::make_unique<QOpenGLTexture>(QOpenGLTexture::Target2D);
+    font_texture->setMinMagFilters(QOpenGLTexture::Linear, QOpenGLTexture::Linear);
+    font_texture->setWrapMode(QOpenGLTexture::WrapMode::ClampToEdge);
+    font_texture->create();
+
+    font_texture->setSize(512, 512, 1);
+    font_texture->setFormat(QOpenGLTexture::R8_UNorm);
+    font_texture->allocateStorage();
+    font_texture->setData(QOpenGLTexture::Red, QOpenGLTexture::UInt8, temp_bitmap);
+}
+
+void MapLabelManager::draw(ShaderProgram* shader_program, const nucleus::camera::Definition& camera) const
 {
     QOpenGLExtraFunctions* f = QOpenGLContext::currentContext()->extraFunctions();
 
+    f->glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+    f->glEnable(GL_BLEND);
+
     glm::mat4 inv_view_rot = glm::inverse(camera.local_view_matrix());
     shader_program->set_uniform("inv_view_rot", inv_view_rot);
+    font_texture->bind(2);
+    shader_program->set_uniform("texture_sampler", 2);
 
-    m_labels[0].draw(shader_program, camera, f);
+    for (auto& label : m_labels) {
+        label.draw(shader_program, camera, f);
+    }
 }
 
 } // namespace gl_engine

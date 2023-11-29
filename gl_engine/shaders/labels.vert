@@ -18,23 +18,21 @@
 
 #include "camera_config.glsl"
 
-layout (location = 0) in vec3 pos;
+layout (location = 0) in vec2 pos;
+layout (location = 1) in vec2 vtexcoords;
+out highp vec2 texcoords;
+
 uniform highp vec3 label_position;
 uniform highp mat4 inv_view_rot;
 uniform highp mat4 scale_matrix;
 void main() {
-    // TODO here view_proj_matrix is local.... -> we have to translate by camera
-//    mat3 invViewRot = inverse(mat3(camera.view_matrix));
-//    vec4 rotationless_pos =  (inv_proj_scale * inv_view_rot * vec4(pos,1.0)); // remove rotation from position -> since we want to always face the camera
-//    vec4 rotationless_pos =  (scale_matrix * inv_view_rot * vec4(pos,1.0)); // remove rotation from position -> since we want to always face the camera
-//    vec4 rotationless_pos =  (scale_matrix * vec4(pos,1.0)); // remove rotation from position -> since we want to always face the camera
-//    rotationless_pos /= rotationless_pos.w;
-    vec4 rotationless_pos =  (inv_view_rot * scale_matrix * vec4(pos,1.0)); // remove rotation from position -> since we want to always face the camera
+    vec4 rotationless_pos =  (inv_view_rot * scale_matrix * vec4(pos,0.0,1.0)); // remove rotation from position -> since we want to always face the camera
     rotationless_pos /= rotationless_pos.w;
 
     vec4 p = camera.view_proj_matrix * (vec4(label_position + rotationless_pos.xyz - camera.position.xyz, 1.0));
     p /= p.w;
     gl_Position = p;
 
-
+    // pass through
+    texcoords = vtexcoords;
 }

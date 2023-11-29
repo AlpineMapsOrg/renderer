@@ -18,8 +18,6 @@
 
 #pragma once
 
-#include <string>
-
 #include "ShaderProgram.h"
 #include "qopenglextrafunctions.h"
 
@@ -27,6 +25,8 @@
 #include <QOpenGLVertexArrayObject>
 
 #include "nucleus/camera/Definition.h"
+
+#include "stb_truetype.h"
 
 namespace gl_engine {
 
@@ -39,14 +39,20 @@ public:
         , m_altitude(altitude)
         , m_importance(importance) {};
 
-    void init(QOpenGLExtraFunctions* f);
+    void init(QOpenGLExtraFunctions* f, stbtt_bakedchar* character_data, int char_start, int char_end);
     void draw(ShaderProgram* shader_program, const nucleus::camera::Definition& camera, QOpenGLExtraFunctions* f) const;
 
+    constexpr static float font_size = 30.0f;
+
 private:
+    void create_label_style(QOpenGLExtraFunctions* f, float text_width, int& index_offset, float offset_x, float offset_y);
+
     std::vector<unsigned int> m_indices;
     std::vector<GLfloat> m_vertices;
+    std::vector<GLfloat> m_uvs;
 
     std::unique_ptr<QOpenGLBuffer> m_vertex_buffer;
+    std::unique_ptr<QOpenGLBuffer> m_uv_buffer;
     std::unique_ptr<QOpenGLBuffer> m_index_buffer;
     std::unique_ptr<QOpenGLVertexArrayObject> m_vao;
 

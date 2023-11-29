@@ -22,6 +22,10 @@
 #include "nucleus/camera/Definition.h"
 #include <vector>
 
+#include <QOpenGLTexture>
+
+#include "stb_truetype.h"
+
 namespace camera {
 class Definition;
 }
@@ -29,16 +33,28 @@ class Definition;
 namespace gl_engine {
 class ShaderProgram;
 
+struct RenderableCharDefinition {
+    float width;
+    float height;
+    float uv_x;
+    float uv_y;
+    float uv_width;
+    float uv_height;
+};
+
 class MapLabelManager {
 
 public:
     explicit MapLabelManager();
 
-public:
     void init();
-    void draw(ShaderProgram* shader_program, const nucleus::camera::Definition& camera, glm::dvec3 sort_position) const;
+    void createFont(QOpenGLExtraFunctions* f);
+    void draw(ShaderProgram* shader_program, const nucleus::camera::Definition& camera) const;
 
 private:
     std::vector<MapLabel> m_labels;
+
+    std::unique_ptr<QOpenGLTexture> font_texture;
+    stbtt_bakedchar m_character_data[223]; // stores 223 ascii characters (characters 32-255) -> should include all commonly used german characters
 };
 } // namespace gl_engine
