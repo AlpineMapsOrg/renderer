@@ -27,6 +27,16 @@
 #include <QIODevice>
 
 #include "nucleus/utils/UrlModifier.h"
+
+// NOTE: The following constant gets serialized at the beginning of the data. This way
+//      we can adapt the deserializing method to also support links that were created
+//      in older versions of the Alpine Maps APP. That means:
+// IMPORTANT: Whenever changes on the shared config are done and merged upstream (such that it replaces
+//      the current instance on alpinemaps.org) this version number needs to be raised and the deserializing
+//      method needs to be adapted to work in a backwards compatible fashion!
+//      NOTE: THIS FUNCTIONALITY WAS NOT IN PLACE FOR VERSION 1. Those links therefore (in the best case) don't work anymore.
+#define CURRENT_UBO_VERSION 2
+
 // NOTE: BOOLEANS BEHAVE WEIRD! JUST DONT USE THEM AND STICK TO 32bit Formats!!
 // STD140 ALIGNMENT! USE PADDING IF NECESSARY. EVERY BLOCK OF SAME TYPE MUST BE PADDED
 // TO 16 BYTE! (QPropertys don't matter)
@@ -38,18 +48,20 @@ struct uboSharedConfig {
     Q_GADGET
 public:
     // rgb...Color, a...intensity
-    QVector4D m_sun_light = QVector4D(1.0, 1.0, 1.0, 0.25);
+    QVector4D m_sun_light = QVector4D(1.0, 1.0, 1.0, 0.15);
     // The direction of the light/sun in WS (northwest lighting at 45 degrees)
     QVector4D m_sun_light_dir = QVector4D(1.0, -1.0, -1.0, 0.0).normalized();
     //QVector4D m_sun_pos = QVector4D(1.0, 1.0, 3000.0, 1.0);
     // rgb...Color, a...intensity
-    QVector4D m_amb_light = QVector4D(1.0, 1.0, 1.0, 0.5);
+    QVector4D m_amb_light = QVector4D(1.0, 1.0, 1.0, 0.4);
     // rgba...Color of the phong-material (if a 0 -> ortho picture)
     QVector4D m_material_color = QVector4D(0.5, 0.5, 0.5, 0.0);
     // amb, diff, spec, shininess
     QVector4D m_material_light_response = QVector4D(1.5, 3.0, 0.0, 32.0);
-    // mode (0=disabled, 1=normal, 2=highlight), height_mode, height_reference, unused
-    QVector4D m_curtain_settings = QVector4D(1.0, 0.0, 150.0, 0.0);
+    // enabled, min angle, max angle, angle blend space
+    QVector4D m_snow_settings_angle = QVector4D(0.0, 0.0, 30.0, 5.0);
+    // min altitude (snowline), variating altitude, altitude blend space, spec addition
+    QVector4D m_snow_settings_alt = QVector4D(1000.0, 200.0, 200.0, 1.0);
 
     GLfloat m_overlay_strength = 0.5;
     GLfloat m_ssao_falloff_to_value = 0.5;
@@ -57,19 +69,19 @@ public:
     GLfloat padf2 = 0.0;
 
     GLuint m_phong_enabled = false;
-    GLuint m_wireframe_mode = 0;                    // 0...disabled, 1...with shading, 2...white
-    GLuint m_normal_mode = 1;                       // 0...per fragment, 1...FDM
+    GLuint m_normal_mode = 0;                       // 0...per fragment, 1...FDM
     GLuint m_overlay_mode = 0;                      // see GlSettings.qml for list of modes
-
     GLuint m_overlay_postshading_enabled = false;   // see GlSettings.qml for more details
+
     GLuint m_ssao_enabled = false;
     GLuint m_ssao_kernel = 32;
     GLuint m_ssao_range_check = true;
-
     GLuint m_ssao_blur_kernel_size = 1;
+
     GLuint m_height_lines_enabled = false;
     GLuint m_csm_enabled = false;
     GLuint m_overlay_shadowmaps_enabled = false;
+    GLuint m_padi1 = 0;
 
     // WARNING: Don't move the following Q_PROPERTIES to the top, otherwise the MOC
     // will do weird things with the data alignment!!
@@ -78,22 +90,22 @@ public:
     Q_PROPERTY(QVector4D amb_light MEMBER m_amb_light)
     Q_PROPERTY(QVector4D material_color MEMBER m_material_color)
     Q_PROPERTY(QVector4D material_light_response MEMBER m_material_light_response)
-    Q_PROPERTY(QVector4D curtain_settings MEMBER m_curtain_settings)
+    Q_PROPERTY(QVector4D snow_settings_angle MEMBER m_snow_settings_angle)
+    Q_PROPERTY(QVector4D snow_settings_alt MEMBER m_snow_settings_alt)
 
     Q_PROPERTY(float overlay_strength MEMBER m_overlay_strength)
     Q_PROPERTY(float ssao_falloff_to_value MEMBER m_ssao_falloff_to_value)
 
     Q_PROPERTY(bool phong_enabled MEMBER m_phong_enabled)
-    Q_PROPERTY(unsigned int wireframe_mode MEMBER m_wireframe_mode)
     Q_PROPERTY(unsigned int normal_mode MEMBER m_normal_mode)
     Q_PROPERTY(unsigned int overlay_mode MEMBER m_overlay_mode)
-
     Q_PROPERTY(bool overlay_postshading_enabled MEMBER m_overlay_postshading_enabled)
+
     Q_PROPERTY(bool ssao_enabled MEMBER m_ssao_enabled)
     Q_PROPERTY(unsigned int ssao_kernel MEMBER m_ssao_kernel)
     Q_PROPERTY(bool ssao_range_check MEMBER m_ssao_range_check)
-
     Q_PROPERTY(unsigned int ssao_blur_kernel_size MEMBER m_ssao_blur_kernel_size)
+
     Q_PROPERTY(bool height_lines_enabled MEMBER m_height_lines_enabled)
     Q_PROPERTY(bool csm_enabled MEMBER m_csm_enabled)
     Q_PROPERTY(bool overlay_shadowmaps_enabled MEMBER m_overlay_shadowmaps_enabled)
@@ -117,10 +129,6 @@ public:
 
 };
 
-// FOR SERIALIZATION
-QDataStream& operator<<(QDataStream& out, const uboSharedConfig& data);
-QDataStream& operator>>(QDataStream& in, uboSharedConfig& data);
-
 struct uboCameraConfig {
     // Camera Position
     glm::vec4 position;
@@ -142,9 +150,6 @@ struct uboCameraConfig {
 
 };
 
-QDataStream& operator<<(QDataStream& out, const uboCameraConfig& data);
-QDataStream& operator>>(QDataStream& in, uboCameraConfig& data);
-
 struct uboShadowConfig {
     glm::mat4 light_space_view_proj_matrix[SHADOW_CASCADES];
     glm::vec4 cascade_planes[SHADOW_CASCADES + 1];  // vec4 necessary because of alignment (only x will be used)
@@ -152,8 +157,6 @@ struct uboShadowConfig {
     glm::vec2 buff;
 };
 
-QDataStream& operator<<(QDataStream& out, const uboShadowConfig& data);
-QDataStream& operator>>(QDataStream& in, uboShadowConfig& data);
 
 // This struct is only used for unit tests
 struct uboTestConfig {
@@ -168,17 +171,27 @@ public:
     bool operator!=(const uboSharedConfig& rhs) const { return true; }
 };
 
-QDataStream& operator<<(QDataStream& out, const uboTestConfig& data);
-QDataStream& operator>>(QDataStream& in, uboTestConfig& data);
+// FOR SERIALIZATION
+// NOTE: The following are the default serialize functions. (nothing happens) If the functionality is needed
+// have a look at how you have to override those functions for the specific ubos.
+template <typename T> void serialize_ubo(QDataStream& out, const T& data) { }
+template <typename T> void unserialize_ubo(QDataStream& in, T& data, uint32_t version) { }
 
+// override for shared_config
+void serialize_ubo(QDataStream& out, const uboSharedConfig& data);
+void unserialize_ubo(QDataStream& in, uboSharedConfig& data, uint32_t version);
 
+// override for test_config
+void serialize_ubo(QDataStream& out, const uboTestConfig& data);
+void unserialize_ubo(QDataStream& in, uboTestConfig& data, uint32_t version);
 
 // Returns String representation of buffer data (Base64)
 template <typename T>
 QString ubo_as_string(T ubo) {
     QByteArray buffer;
     QDataStream out_stream(&buffer, QIODevice::WriteOnly);
-    out_stream << ubo;
+    out_stream << (uint32_t)CURRENT_UBO_VERSION; // serialize version number first
+    serialize_ubo(out_stream, ubo);
     auto compressedData = qCompress(buffer, 9);
     auto b64Data = compressedData.toBase64();
     auto b64String = QString(b64Data);
@@ -194,13 +207,16 @@ T ubo_from_string(const QString& base64StringUrlSafe, bool* successful = nullptr
     auto b64String = nucleus::utils::UrlModifier::urlsafe_b64_to_b64(base64StringUrlSafe);
     QByteArray buffer = QByteArray::fromBase64(b64String.toUtf8());
     buffer = qUncompress(buffer);
-    if (buffer.size() < sizeof(T)) {
-        qWarning() << "Data in given base64string too short for type size. Standard Type will be returned...";
+    // NOTE: buffer size is not equal to sizeof(T)! Qt also saves qt dependent version information.
+    QDataStream inStream(&buffer, QIODevice::ReadOnly);
+    uint32_t version;
+    inStream >> version;
+    if (version > CURRENT_UBO_VERSION || version == 0) {
+        qWarning() << "UBO data string has an invalid version number (" << version << "). Default ubo will be used...";
         if (successful) *successful = false;
         return ubo;
     }
-    QDataStream inStream(&buffer, QIODevice::ReadOnly);
-    inStream >> ubo;
+    unserialize_ubo(inStream, ubo, version);
     return ubo;
 }
 

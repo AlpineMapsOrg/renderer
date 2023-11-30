@@ -16,6 +16,10 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *****************************************************************************/
 
+highp float calculate_falloff(highp float dist, highp float from, highp float to) {
+    return clamp(1.0 - (dist - from) / (to - from), 0.0, 1.0);
+}
+
 #include "atmosphere_implementation.glsl"
 #include "encoder.glsl"
 #include "shared_config.glsl"
@@ -23,6 +27,7 @@
 #include "camera_config.glsl"
 #include "hashing.glsl"
 #include "overlay_steepness.glsl"
+#include "snow.glsl"
 
 layout (location = 0) out lowp vec4 out_Color;
 
@@ -41,9 +46,6 @@ uniform highp sampler2D texin_csm2;         // f32vec1
 uniform highp sampler2D texin_csm3;         // f32vec1
 uniform highp sampler2D texin_csm4;         // f32vec1
 
-highp float calculate_falloff(highp float dist, highp float from, highp float to) {
-    return clamp(1.0 - (dist - from) / (to - from), 0.0, 1.0);
-}
 
 // Calculates the diffuse and specular illumination contribution for the given
 // parameters according to the Blinn-Phong lighting model.
@@ -166,12 +168,19 @@ void main() {
         highp vec3 origin = vec3(camera.position);
         highp vec3 pos_ws = pos_cws + origin;
         highp vec3 ray_direction = pos_cws / dist;
+        highp vec4 material_light_response = conf.material_light_response;
 
         highp vec3 light_through_atmosphere = calculate_atmospheric_light(origin / 1000.0, ray_direction, dist / 1000.0, albedo, 10);
 
         highp float shadow_term = 0.0;
         if (bool(conf.csm_enabled)) {
             shadow_term = csm_shadow_term(vec4(pos_cws, 1.0), normal, sampled_shadow_layer);
+        }
+
+        if (bool(conf.snow_settings_angle.x)) {
+            lowp vec4 overlay_color = overlay_snow(normal, pos_ws, dist);
+            material_light_response.z += conf.snow_settings_alt.w * overlay_color.a;
+            albedo = mix(albedo, overlay_color.rgb, overlay_color.a);
         }
 
         // NOTE: PRESHADING OVERLAY ONLY APPLIED ON TILES NOT ON BACKGROUND!!!
@@ -189,7 +198,7 @@ void main() {
 
         shaded_color = albedo;
         if (bool(conf.phong_enabled)) {
-            shaded_color = calculate_illumination(shaded_color, origin, pos_ws, normal, conf.sun_light, conf.amb_light, conf.sun_light_dir.xyz, conf.material_light_response, amb_occlusion, shadow_term);
+            shaded_color = calculate_illumination(shaded_color, origin, pos_ws, normal, conf.sun_light, conf.amb_light, conf.sun_light_dir.xyz, material_light_response, amb_occlusion, shadow_term);
         }
         shaded_color = calculate_atmospheric_light(origin / 1000.0, ray_direction, dist / 1000.0, shaded_color, 10);
         shaded_color = max(vec3(0.0), shaded_color);
@@ -198,8 +207,6 @@ void main() {
     // Blend with atmospheric background:
     lowp vec3 atmoshperic_color = texture(texin_atmosphere, texcoords).rgb;
     out_Color = vec4(mix(atmoshperic_color, shaded_color, alpha), 1.0);
-
-    //out_Color = vec4(1.0, 0.0, 0.0, 1.0);
 
     if (bool(conf.overlay_postshading_enabled) && conf.overlay_mode >= 100u) {
         lowp vec4 overlay_color = vec4(0.0);

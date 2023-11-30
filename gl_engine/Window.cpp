@@ -259,7 +259,7 @@ void Window::paint(QOpenGLFramebufferObject* framebuffer)
     f->glDepthFunc(GL_LESS);
 
 #if (defined(__linux) && !defined(__ANDROID__)) || defined(_WIN32) || defined(_WIN64)
-    if (funcs && m_shared_config_ubo->data.m_wireframe_mode > 0) funcs->glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+    if (funcs && m_wireframe_enabled) funcs->glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
 #endif
 
     m_shader_manager->tile_shader()->bind();
@@ -269,7 +269,7 @@ void Window::paint(QOpenGLFramebufferObject* framebuffer)
     m_shader_manager->tile_shader()->release();
 
 #if (defined(__linux) && !defined(__ANDROID__)) || defined(_WIN32) || defined(_WIN64)
-    if (funcs && m_shared_config_ubo->data.m_wireframe_mode > 0) funcs->glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+    if (funcs && m_wireframe_enabled) funcs->glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
 #endif
 
     m_gbuffer->unbind();
@@ -389,6 +389,10 @@ void Window::keyPressEvent(QKeyEvent* e)
             qDebug("Rendering loop started");
         }
         emit update_requested();
+    }
+    if (e->key() == Qt::Key::Key_F7) {
+        m_wireframe_enabled = !m_wireframe_enabled;
+        qDebug(m_render_looped ? "Wireframe enabled" : "Wireframe disabled");
     }
     if (e->key() == Qt::Key::Key_F11
         || (e->key() == Qt::Key_P && e->modifiers() == Qt::ControlModifier)

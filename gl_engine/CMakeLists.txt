@@ -65,6 +65,7 @@ qt_add_resources(gl_engine "shaders"
     shaders/shadowmap.frag
     shaders/shadow_config.glsl
     shaders/overlay_steepness.glsl
+    shaders/snow.glsl
 )
 target_compile_definitions(gl_engine PUBLIC ALP_RESOURCES_PREFIX="${CMAKE_CURRENT_SOURCE_DIR}/shaders/")
 

@@ -73,9 +73,6 @@ Rectangle {
 
     Connections {
         target: map
-        function onHud_visible_changed(hud_visible) {
-            statsMenu.visible = hud_visible;
-        }
         function onGui_update_global_cursor_pos(lat,lon,alt) {
             cursor_lat.text = lat.toFixed(5) + " °";
             cursor_lon.text = lon.toFixed(5) + " °";
@@ -295,7 +292,7 @@ Rectangle {
             }
         }
 
-    SetPanel {
+    SettingsPanel {
         id: main_content
         maxHeight: statsMenu.maxHeight // needs to be set directly because parents height is dependent
         anchors {
@@ -303,7 +300,7 @@ Rectangle {
             right: parent.right
         }
 
-        SetTitle { title: "Statistics" }
+        SettingsTitle { title: "Statistics" }
 
         CheckGroup {
             name: "Frame Profiler"
