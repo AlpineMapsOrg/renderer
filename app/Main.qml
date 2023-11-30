@@ -123,6 +123,14 @@ Item {
         DrawerSeparator {}
 
         DrawerButton {
+            text: qsTr("Reload Shaders")
+            iconSource: "../icons/material/3d_rotation.svg"
+            hotkey: "F6"
+            selectable: false
+            onClicked: map.reload_shader();
+        }
+
+        DrawerButton {
             text: stats_window.visible ? qsTr ("Hide Statistics") : qsTr("Statistics")
             hotkey: "F8"
             iconSource: "../icons/material/monitoring.svg"
@@ -131,12 +139,13 @@ Item {
         }
 
         DrawerButton {
-            text: qsTr("Reload Shaders")
-            iconSource: "../icons/material/3d_rotation.svg"
-            hotkey: "F6"
+            text: qsTr("Hide User Interface")
+            iconSource: "../icons/material/visibility_off.svg"
+            hotkey: "F10"
             selectable: false
-            onClicked: map.reload_shader();
+            onClicked: map.hud_visible = false;
         }
+
 
         DrawerSpacer {}
 
@@ -180,16 +189,28 @@ Item {
 
 
     TerrainRenderer {
+        property var allLvl1HudElements: [tool_bar, main_stack_view, stats_window, fab_group]
+        property var _hudElementsVisibility: []
         id: map
         focus: true
         anchors.fill: parent
-        onHud_visible_changed: function(new_hud_visible) {
-            tool_bar.visible = new_hud_visible;
-        }
-
         Keys.onPressed: function(event){
             if (event.key === Qt.Key_F8) {
                 toggleStatsWindow();
+            }
+        }
+
+        onHud_visible_changed: function(new_hud_visible) {
+            if (new_hud_visible) { // show all items
+                for (let i1 = 0; i1 < allLvl1HudElements.length; i1++) {
+                    allLvl1HudElements[i1].visible = _hudElementsVisibility[i1];
+                }
+            } else { // hide all items and save their state
+                _hudElementsVisibility = [];
+                for (let i = 0; i < allLvl1HudElements.length; i++) {
+                    _hudElementsVisibility.push(allLvl1HudElements[i].visible);
+                    allLvl1HudElements[i].visible = false;
+                }
             }
         }
     }
@@ -219,7 +240,7 @@ Item {
 
 
     FABGroup {
-
+        id: fab_group
     }
 
      //property TerrainRenderer renderer

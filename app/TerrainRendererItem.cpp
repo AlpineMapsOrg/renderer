@@ -186,7 +186,7 @@ void TerrainRendererItem::keyPressEvent(QKeyEvent* e)
     if (e->isAutoRepeat()) {
         return;
     }
-    if (e->key() == Qt::Key::Key_H) {
+    if (e->key() == Qt::Key::Key_F10) {
         set_hud_visible(!m_hud_visible);
     }
     emit key_pressed(e->keyCombination());
