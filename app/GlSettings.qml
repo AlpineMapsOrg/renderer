@@ -27,11 +27,7 @@ SetPanel {
 
     function update_control_values() {
         let conf = map.shared_config;
-        wireframe_mode.currentIndex = conf.wireframe_mode;
         normal_mode.currentIndex = conf.normal_mode;
-        curtain_settings_mode.currentIndex = conf.curtain_settings.x;
-        curtain_settings_height_mode.currentIndex = conf.curtain_settings.y;
-        curtain_settings_height_reference.value = conf.curtain_settings.z;
         height_lines_enabled.checked = conf.height_lines_enabled;
         phong_enabled.checked = conf.phong_enabled;
         sun_light_color.color = Qt.rgba(conf.sun_light.x, conf.sun_light.y, conf.sun_light.z, conf.sun_light.w);
@@ -121,15 +117,6 @@ SetPanel {
             onCheckStateChanged: map.shared_config.overlay_postshading_enabled = this.checked;
         }
 
-        Label { text: "Wireframe:" }
-        ComboBox {
-            id: wireframe_mode;
-            Layout.fillWidth: true;
-            model: ["disabled", "with shading", "white"];
-            currentIndex: 0; // Init with 0 necessary otherwise onCurrentIndexChanged gets emited on startup (because def:-1)!
-            onCurrentIndexChanged:  map.shared_config.wireframe_mode = currentIndex;
-        }
-
         Label { text: "Normals:" }
         ComboBox {
             id: normal_mode;
@@ -137,35 +124,6 @@ SetPanel {
             model: ["per Fragment", "Finite-Difference"];
             currentIndex: 0; // Init with 0 necessary otherwise onCurrentIndexChanged gets emited on startup (because def:-1)!
             onCurrentIndexChanged:  map.shared_config.normal_mode = currentIndex;
-        }
-
-    }
-
-    CheckGroup {
-        name: "Curtains"
-        Label { text: "Mode:" }
-        ComboBox {
-            id: curtain_settings_mode;
-            Layout.fillWidth: true;
-            model: ["Off", "Normal", "Highlighted", "Hide Rest"]
-            currentIndex: 0; // Init with 0 necessary otherwise onCurrentIndexChanged gets emited on startup (because def:-1)!
-            onCurrentIndexChanged:  map.shared_config.curtain_settings.x = currentIndex;
-        }
-
-        Label { text: "Height:" }
-        ComboBox {
-            id: curtain_settings_height_mode;
-            Layout.fillWidth: true;
-            model: ["Fixed", "Automatic"];
-            currentIndex: 0; // Init with 0 necessary otherwise onCurrentIndexChanged gets emited on startup (because def:-1)!
-            onCurrentIndexChanged:  map.shared_config.curtain_settings.y = currentIndex;
-        }
-
-        Label { text: "Ref.-Height:" }
-        ValSlider {
-            id: curtain_settings_height_reference;
-            from: 1.0; to: 500.0; stepSize: 1.0;
-            onMoved: map.shared_config.curtain_settings.z = this.value;
         }
     }
 

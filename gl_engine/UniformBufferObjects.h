@@ -58,8 +58,6 @@ public:
     QVector4D m_material_color = QVector4D(0.5, 0.5, 0.5, 0.0);
     // amb, diff, spec, shininess
     QVector4D m_material_light_response = QVector4D(1.5, 3.0, 0.0, 32.0);
-    // mode (0=disabled, 1=normal, 2=highlight), height_mode, height_reference, unused
-    QVector4D m_curtain_settings = QVector4D(1.0, 1.0, 200.0, 0.0);
     // enabled, min angle, max angle, angle blend space
     QVector4D m_snow_settings_angle = QVector4D(0.0, 0.0, 30.0, 5.0);
     // min altitude (snowline), variating altitude, altitude blend space, spec addition
@@ -71,19 +69,19 @@ public:
     GLfloat padf2 = 0.0;
 
     GLuint m_phong_enabled = false;
-    GLuint m_wireframe_mode = 0;                    // 0...disabled, 1...with shading, 2...white
     GLuint m_normal_mode = 0;                       // 0...per fragment, 1...FDM
     GLuint m_overlay_mode = 0;                      // see GlSettings.qml for list of modes
-
     GLuint m_overlay_postshading_enabled = false;   // see GlSettings.qml for more details
+
     GLuint m_ssao_enabled = false;
     GLuint m_ssao_kernel = 32;
     GLuint m_ssao_range_check = true;
-
     GLuint m_ssao_blur_kernel_size = 1;
+
     GLuint m_height_lines_enabled = false;
     GLuint m_csm_enabled = false;
     GLuint m_overlay_shadowmaps_enabled = false;
+    GLuint m_padi1 = 0;
 
     // WARNING: Don't move the following Q_PROPERTIES to the top, otherwise the MOC
     // will do weird things with the data alignment!!
@@ -92,7 +90,6 @@ public:
     Q_PROPERTY(QVector4D amb_light MEMBER m_amb_light)
     Q_PROPERTY(QVector4D material_color MEMBER m_material_color)
     Q_PROPERTY(QVector4D material_light_response MEMBER m_material_light_response)
-    Q_PROPERTY(QVector4D curtain_settings MEMBER m_curtain_settings)
     Q_PROPERTY(QVector4D snow_settings_angle MEMBER m_snow_settings_angle)
     Q_PROPERTY(QVector4D snow_settings_alt MEMBER m_snow_settings_alt)
 
@@ -100,16 +97,15 @@ public:
     Q_PROPERTY(float ssao_falloff_to_value MEMBER m_ssao_falloff_to_value)
 
     Q_PROPERTY(bool phong_enabled MEMBER m_phong_enabled)
-    Q_PROPERTY(unsigned int wireframe_mode MEMBER m_wireframe_mode)
     Q_PROPERTY(unsigned int normal_mode MEMBER m_normal_mode)
     Q_PROPERTY(unsigned int overlay_mode MEMBER m_overlay_mode)
-
     Q_PROPERTY(bool overlay_postshading_enabled MEMBER m_overlay_postshading_enabled)
+
     Q_PROPERTY(bool ssao_enabled MEMBER m_ssao_enabled)
     Q_PROPERTY(unsigned int ssao_kernel MEMBER m_ssao_kernel)
     Q_PROPERTY(bool ssao_range_check MEMBER m_ssao_range_check)
-
     Q_PROPERTY(unsigned int ssao_blur_kernel_size MEMBER m_ssao_blur_kernel_size)
+
     Q_PROPERTY(bool height_lines_enabled MEMBER m_height_lines_enabled)
     Q_PROPERTY(bool csm_enabled MEMBER m_csm_enabled)
     Q_PROPERTY(bool overlay_shadowmaps_enabled MEMBER m_overlay_shadowmaps_enabled)

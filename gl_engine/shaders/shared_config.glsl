@@ -19,13 +19,17 @@
 //#define FARPLANE_DEPTH_VALUE 0.0  // cause of reverse Z
 #define FARPLANE_DEPTH_VALUE 1.0
 
+// NOTE: Previously (~v23.11) the curtain settings were exposed to the GUI.
+#define CURTAIN_DEBUG_MODE 0            // 0 normal (show curtains), 1 highlight curtains, 2 only show curtains
+#define CURTAIN_HEIGHT_MODE 1           // 0 fixed (reference = height of curtain), 1 depth dependent
+#define CURTAIN_REFERENCE_HEIGHT 200.0
+
 layout (std140) uniform shared_config {
     highp vec4 sun_light;
     highp vec4 sun_light_dir;
     highp vec4 amb_light;
     highp vec4 material_color;
     highp vec4 material_light_response;
-    highp vec4 curtain_settings;
     highp vec4 snow_settings_angle;
     highp vec4 snow_settings_alt;
 
@@ -35,17 +39,17 @@ layout (std140) uniform shared_config {
     highp float padf2;
 
     highp uint phong_enabled;
-    highp uint wireframe_mode;
     highp uint normal_mode;
     highp uint overlay_mode;
-
     highp uint overlay_postshading_enabled;
+
     highp uint ssao_enabled;
     highp uint ssao_kernel;
     highp uint ssao_range_check;
-
     highp uint ssao_blur_kernel_size;
+
     highp uint height_lines_enabled;
     highp uint csm_enabled;
     highp uint overlay_shadowmaps_enabled;
+    highp uint padi1;
 } conf;

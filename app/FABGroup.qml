@@ -94,7 +94,7 @@ ColumnLayout {
 
                 FAButton {
                     image: "../icons/presets/basic.png"
-                    onClicked: map.set_gl_preset("AAABVHjaY2BgYLL_wAAGGPRhY2EHIL3_1sRPCSD-6yYtMP8y37QHDAiAU__NmTMXgOgHDAIMWGi4_h8Q2oGDAQU4OGA31yGTAS9wsIPSIlC63wFFH4yGm_sAlSYBKAAxIxTDAQAHqCOM")
+                    onClicked: map.set_gl_preset("AAABIHjaY2BgYLL_wAAGGPRhY2EHEP303YEDIPrZPr0FQHr_EU-HBAYEwKn_5syZIPX2DxgEGLDQcP0_ILQDBwMKcHBgwAoc7KC0CJTuhyh0yGRAoeHueIBK4wAKQMwIxXAAAFQuIIw")
                     size: parent.height
                     image_size: 42
                     image_opacity: 1.0
@@ -105,7 +105,7 @@ ColumnLayout {
 
                 FAButton {
                     image: "../icons/presets/shaded.png"
-                    onClicked: map.set_gl_preset("AAABVHjaY2BgYLL_wAAGGPSRapEGIL3_1sRPCSD-6yYtBxD_Mt-0BwwIgFP_HY07CiD6AYMAAxYarv8HhHbgYEABDg7YzXXIZMALHOygtAiU7ndA0Qej4eY-QKWxAEY0GsZWgNIo8gALIiNv")
+                    onClicked: map.set_gl_preset("AAABIHjaY2BgYLL_wAAGGPRhY2EHEP1s0rwEMG32D0TvPxS4yIEBAXDqvzlz5gIQ_YBBgAELDdf_A0I7cDCgAAcHBqzAwQ5Ki0DpfohCh0wGFBrujgeoNBAwQjEyXwFNHEwDAMaIIAM")
                     size: parent.height
                     image_size: 42
                     image_opacity: 1.0
@@ -116,7 +116,7 @@ ColumnLayout {
 
                 FAButton {
                     image: "../icons/presets/snow.png"
-                    onClicked: map.set_gl_preset("AAABVHjaY2BgYLL_wAAGGPRhY2EHIL3_1sQLB0D8101mIPH9l_maExgQAKf-mzNnLgDRDxgEGLDQcP0_ILQDBwMKcHDAbq5DJqo6mDhcnx2UFoHS_Q4o-mA03NwHqDQWwIhGw9gKUBpFHgAbsyQ2")
+                    onClicked: map.set_gl_preset("AAABIHjaY2BgYLL_wAAGGPRhY2EHEP1s0rwEMG32D0TvPxS4yIEBAXDqvzlz5gIQ_YBBgAELDdf_A0I7cDCgAAcHVPPg4nZQWgRK90MUOmQyoNBwdzxApYGAEYqR-Qpo4mAaAFhrITI")
                     size: parent.height
                     image_size: 42
                     image_opacity: 1.0

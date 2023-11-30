@@ -31,7 +31,9 @@ layout (location = 3) out highp uint texout_depth;
 in highp vec2 uv;
 in highp vec3 var_pos_cws;
 in highp vec3 var_normal;
-flat in lowp uint is_curtain;
+#if CURTAIN_DEBUG_MODE > 0
+in lowp float is_curtain;
+#endif
 flat in lowp vec3 vertex_color;
 
 highp float calculate_falloff(highp float dist, highp float from, highp float to) {
@@ -45,23 +47,11 @@ highp vec3 normal_by_fragment_position_interpolation() {
 }
 
 void main() {
-    // ToDo: Fix the following. They are not correct... (no normal for only curtains?)
-    if (conf.wireframe_mode == 2u) {
-        texout_albedo = vec3(1.0, 1.0, 1.0);
-        return;
+#if CURTAIN_DEBUG_MODE == 2
+    if (is_curtain == 0.0) {
+        discard;
     }
-    if (is_curtain > 0u) {
-        if (conf.curtain_settings.x == 2.0) {
-            texout_albedo = vec3(1.0, 0.0, 0.0);
-            return;
-        } else if (conf.curtain_settings.x == 0.0) {
-            discard;
-        }
-    } else {
-        if (conf.curtain_settings.x == 3.0) {
-            discard;
-        }
-    }
+#endif
 
     // Write Albedo (ortho picture) in gbuffer
     lowp vec3 fragColor = texture(texture_sampler, uv).rgb;
@@ -92,5 +82,12 @@ void main() {
         }
         texout_albedo = mix(texout_albedo, overlay_color, conf.overlay_strength);
     }
+
+#if CURTAIN_DEBUG_MODE == 1
+    if (is_curtain > 0.0) {
+        texout_albedo = vec3(1.0, 0.0, 0.0);
+        return;
+    }
+#endif
 
 }
