@@ -177,6 +177,12 @@ void main() {
             shadow_term = csm_shadow_term(vec4(pos_cws, 1.0), normal, sampled_shadow_layer);
         }
 
+        if (bool(conf.snow_settings_angle.x)) {
+            lowp vec4 overlay_color = overlay_snow(normal, pos_ws, dist);
+            material_light_response.z += conf.snow_settings_alt.w * overlay_color.a;
+            albedo = mix(albedo, overlay_color.rgb, overlay_color.a);
+        }
+
         // NOTE: PRESHADING OVERLAY ONLY APPLIED ON TILES NOT ON BACKGROUND!!!
         if (!bool(conf.overlay_postshading_enabled) && conf.overlay_mode >= 100u) {
             lowp vec4 overlay_color = vec4(0.0);
@@ -187,12 +193,6 @@ void main() {
                 case 103u: overlay_color = vec4(color_from_id_hash(uint(sampled_shadow_layer)), 1.0); break;
             }
             overlay_color.a *= conf.overlay_strength;
-            albedo = mix(albedo, overlay_color.rgb, overlay_color.a);
-        }
-
-        if (bool(conf.snow_settings_angle.x)) {
-            lowp vec4 overlay_color = overlay_snow(normal, pos_ws, dist);
-            material_light_response.z += conf.snow_settings_alt.w * overlay_color.a;
             albedo = mix(albedo, overlay_color.rgb, overlay_color.a);
         }
 

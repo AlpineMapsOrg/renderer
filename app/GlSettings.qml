@@ -98,6 +98,15 @@ SetPanel {
         }
 
         Label {
+            visible: overlay_mode.currentValue > 0 && overlay_mode.currentValue < 100 && snow_enabled.checked
+            text: "This overlay does not work in combination with the snow cover activated!"
+            color: "red"
+            wrapMode: Text.WordWrap
+            Layout.preferredWidth: parent.width
+            Layout.columnSpan: 2
+        }
+
+        Label {
             text: "Strength:"
             visible: overlay_strength.visible;
         }
