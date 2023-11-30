@@ -30,6 +30,11 @@
 #include "Polyline.h"
 #include "ShaderProgram.h"
 
+#define USE_POINTS 0
+#define USE_RIBBON 1
+
+#define RENDER_STRATEGY USE_RIBBON
+
 namespace gl_engine
 {
 
@@ -49,12 +54,6 @@ namespace gl_engine
 
         f->glDisable(GL_CULL_FACE);
 
-#if 0
-        /* glLineWidth() is not guaranteed to be supported */
-        float line_width = 3.0f;
-        f->glLineWidth(line_width);
-#endif
-
         auto matrix = camera.local_view_projection_matrix(camera.position());
 
         m_shader->bind();
@@ -64,8 +63,13 @@ namespace gl_engine
         for (const PolyLine &track : m_tracks)
         {
             track.vao->bind();
-            //f->glDrawArrays(GL_LINE_STRIP, 0, track.point_count);
+#if (RENDER_STRATEGY == USE_POINTS)
+            f->glDrawArrays(GL_LINE_STRIP, 0, track.point_count);
+#elif(RENDER_STRATEGY == USE_RIBBON)
             f->glDrawArrays(GL_TRIANGLES, 0, (track.point_count - 1) * 3);
+#else
+#error Unknown Render Strategy
+#endif
         }
 
         m_shader->release();
@@ -80,7 +84,13 @@ namespace gl_engine
 
         std::vector<glm::vec3> points = nucleus::to_world_points(gpx);
 
-        std::vector<glm::vec3> ribbon = nucleus::to_world_ribbon(points);
+#if (RENDER_STRATEGY == USE_RIBBON)
+        std::vector<glm::vec3> ribbon = nucleus::to_world_ribbon(points, 10.0f);
+#endif
+
+#if 0
+        std::vector<glm::vec3> normls;
+#endif
 
         PolyLine polyline;
 
@@ -92,10 +102,13 @@ namespace gl_engine
         polyline.vbo->create();
         polyline.vbo->bind();
         polyline.vbo->setUsagePattern(QOpenGLBuffer::StaticDraw);
-#if 0
+
+#if (RENDER_STRATEGY == USE_POINTS)
         polyline.vbo->allocate(points.data(), helpers::bufferLengthInBytes(points));
-#else
+#elif (RENDER_STRATEGY == USE_RIBBON)
         polyline.vbo->allocate(ribbon.data(), helpers::bufferLengthInBytes(ribbon));
+#else
+#error Unknown Render Strategy
 #endif
 
         const auto position_attrib_location = m_shader->attribute_location("a_position");

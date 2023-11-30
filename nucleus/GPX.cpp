@@ -137,11 +137,11 @@ std::vector<glm::vec3> to_world_points(const gpx::Gpx& gpx)
     return points;
 }
 
-std::vector<glm::vec3> to_world_ribbon(const std::vector<glm::vec3>& points)
+std::vector<glm::vec3> to_world_ribbon(const std::vector<glm::vec3>& points, float width)
 {
     std::vector<glm::vec3> ribbon;
 
-    const glm::vec3 offset = glm::vec3(0.0f, 0.0f, 3.0f);
+    const glm::vec3 offset = glm::vec3(0.0f, 0.0f, width);
 
     for (size_t i = 0; i < points.size() - 1U; i++)
     {

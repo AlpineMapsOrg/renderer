@@ -20,28 +20,5 @@
 #include "helpers.h"
 
 namespace gl_engine {
-  PolyLine::PolyLine()
-  {
-  }
-
-PolyLine::PolyLine(const std::vector<glm::vec3>& points)
-    : point_count(points.size())
-#if 0
-    , vao(std::make_unique<QOpenGLVertexArrayObject>())
-    , vbo(std::make_unique<QOpenGLBuffer>(QOpenGLBuffer::VertexBuffer))
-#endif
-{
-#if 0
-    vao->create();
-    vao->bind();
-
-    vbo->create();
-    vbo->bind();
-    vbo->setUsagePattern(QOpenGLBuffer::DynamicDraw);
-    vbo->allocate(points.data(), helpers::bufferLengthInBytes(points));
-
-    vao->release();
-#endif
-}
 
 } // namespace gl_engine

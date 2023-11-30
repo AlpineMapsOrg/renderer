@@ -29,8 +29,6 @@
 namespace gl_engine {
 
 struct PolyLine {
-    PolyLine();
-    PolyLine(const std::vector<glm::vec3>& points);
     GLsizei point_count;
     std::unique_ptr<QOpenGLVertexArrayObject> vao = nullptr;
     std::unique_ptr<QOpenGLBuffer> vbo = nullptr;
