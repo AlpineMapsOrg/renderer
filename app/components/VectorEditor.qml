@@ -95,7 +95,8 @@ Item {
             Text { text: elementNames[1] + ": "; visible: vectorSize > 1}
             ValSlider {
                 id: edit2
-                from: elementFroms[1]; to: elementTos[1];
+                from: vectorSize > 1 ? elementFroms[1] : 0
+                to: vectorSize > 1 ? elementTos[1] : 1
                 visible: vectorSize > 1
                 onMoved: {
                     root.vector.y = value;
@@ -106,7 +107,8 @@ Item {
             Text { text: elementNames[2] + ": "; visible: vectorSize > 2 }
             ValSlider {
                 id: edit3
-                from: elementFroms[2]; to: elementTos[2];
+                from: vectorSize > 2 ? elementFroms[2] : 0
+                to: vectorSize > 2 ? elementTos[2] : 1
                 visible: vectorSize > 2
                 onMoved: {
                     root.vector.z = value;
@@ -117,7 +119,8 @@ Item {
             Text { text: elementNames[3] + ": "; visible: vectorSize > 3 }
             ValSlider {
                 id: edit4
-                from: elementFroms[3]; to: elementTos[3];
+                from: vectorSize > 3 ? elementFroms[3] : 0
+                to: vectorSize > 3 ? elementTos[3] : 1
                 visible: vectorSize > 3
                 onMoved: {
                     root.vector.w = value;
