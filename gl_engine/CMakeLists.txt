@@ -25,6 +25,8 @@ project(alpine-renderer-gl_engine LANGUAGES CXX)
 option(ALP_ENABLE_SHADER_NETWORK_HOTRELOAD "reload shader files per HTTP request. Allows Hot-Reload on Android/WebGL" OFF)
 set(ALP_SHADER_NETWORK_URL "http://localhost:5500/" CACHE STRING "url location, which points to the shaders directory for network hot reload")
 
+# stb_truetype.h is a single file library (source: https://github.com/nothings/stb/blob/master/stb_truetype.h)
+
 #http://localhost:5500/
 qt_add_library(gl_engine STATIC
     Framebuffer.h Framebuffer.cpp
@@ -40,6 +42,10 @@ qt_add_library(gl_engine STATIC
     SSAO.h SSAO.cpp
     ShadowMapping.h ShadowMapping.cpp
     GpuAsyncQueryTimer.h GpuAsyncQueryTimer.cpp
+    MapLabelManager.h MapLabelManager.cpp
+    MapLabel.h MapLabel.cpp
+    stb_truetype.h
+
 )
 target_link_libraries(gl_engine PUBLIC nucleus Qt::OpenGL)
 target_include_directories(gl_engine PRIVATE .)
@@ -65,6 +71,8 @@ qt_add_resources(gl_engine "shaders"
     shaders/shadowmap.frag
     shaders/shadow_config.glsl
     shaders/overlay_steepness.glsl
+    shaders/labels.frag
+    shaders/labels.vert
 )
 target_compile_definitions(gl_engine PUBLIC ALP_RESOURCES_PREFIX="${CMAKE_CURRENT_SOURCE_DIR}/shaders/")
 

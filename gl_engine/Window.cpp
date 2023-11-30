@@ -30,6 +30,16 @@
 
 #include <QOpenGLVersionFunctionsFactory>
 
+#include "DebugPainter.h"
+#include "Framebuffer.h"
+#include "MapLabelManager.h"
+#include "SSAO.h"
+#include "ShaderManager.h"
+#include "ShaderProgram.h"
+#include "ShadowMapping.h"
+#include "TileManager.h"
+#include "Window.h"
+#include "helpers.h"
 #include <QOpenGLFramebufferObject>
 #include <QOpenGLShaderProgram>
 #include <QOpenGLTexture>
@@ -39,15 +49,6 @@
 #include <QSequentialAnimationGroup>
 #include <QTimer>
 #include <glm/glm.hpp>
-#include "DebugPainter.h"
-#include "Framebuffer.h"
-#include "ShaderManager.h"
-#include "ShaderProgram.h"
-#include "TileManager.h"
-#include "Window.h"
-#include "helpers.h"
-#include "SSAO.h"
-#include "ShadowMapping.h"
 
 #include <glm/glm.hpp>
 #include <glm/gtx/transform.hpp>
@@ -62,22 +63,22 @@
 #endif
 
 #if (defined(__linux) && !defined(__ANDROID__)) || defined(_WIN32) || defined(_WIN64)
-#include <QOpenGLFunctions_3_3_Core>    // for wireframe mode
+#include <QOpenGLFunctions_3_3_Core> // for wireframe mode
 #endif
 
 #if defined(__ANDROID__)
-#include <GLES3/gl3.h>  // for GL ENUMS! DONT EXACTLY KNOW WHY I NEED THIS HERE! (on other platforms it works without)
+#include <GLES3/gl3.h> // for GL ENUMS! DONT EXACTLY KNOW WHY I NEED THIS HERE! (on other platforms it works without)
 #endif
 
+ using gl_engine::Window;
+ using gl_engine::UniformBuffer;
 
-using gl_engine::Window;
-using gl_engine::UniformBuffer;
-
-Window::Window()
-    : m_camera({ 1822577.0, 6141664.0 - 500, 171.28 + 500 }, { 1822577.0, 6141664.0, 171.28 }) // should point right at the stephansdom
-{
-    m_tile_manager = std::make_unique<TileManager>();
-    QTimer::singleShot(1, [this]() { emit update_requested(); });
+ Window::Window()
+     : m_camera({ 1822577.0, 6141664.0 - 500, 171.28 + 500 }, { 1822577.0, 6141664.0, 171.28 }) // should point right at the stephansdom
+ {
+     m_tile_manager = std::make_unique<TileManager>();
+     m_map_label_manager = std::make_unique<MapLabelManager>();
+     QTimer::singleShot(1, [this]() { emit update_requested(); });
 }
 
 Window::~Window()
@@ -141,6 +142,8 @@ void Window::initialise_gpu()
 
     m_shadowmapping = std::make_unique<gl_engine::ShadowMapping>(m_shader_manager->shared_shadowmap_program(), m_shadow_config_ubo, m_shared_config_ubo);
 
+    m_map_label_manager->init();
+
     {   // INITIALIZE CPU AND GPU TIMER
         using namespace std;
         using nucleus::timing::CpuTimer;
@@ -153,6 +156,7 @@ void Window::initialise_gpu()
         m_timer->add_timer(make_shared<GpuAsyncQueryTimer>("tiles", "GPU", 240, 1.0f/60.0f));
         m_timer->add_timer(make_shared<GpuAsyncQueryTimer>("shadowmap", "GPU", 240, 1.0f/60.0f));
         m_timer->add_timer(make_shared<GpuAsyncQueryTimer>("compose", "GPU", 240, 1.0f/60.0f));
+        m_timer->add_timer(make_shared<GpuAsyncQueryTimer>("labels", "GPU", 240, 1.0f / 60.0f));
         m_timer->add_timer(make_shared<GpuAsyncQueryTimer>("gpu_total", "TOTAL", 240, 1.0f/60.0f));
 #endif
         m_timer->add_timer(make_shared<CpuTimer>("cpu_total", "TOTAL", 240, 1.0f/60.0f));
@@ -276,7 +280,6 @@ void Window::paint(QOpenGLFramebufferObject* framebuffer)
 
     m_shader_manager->tile_shader()->release();
 
-
     if (m_shared_config_ubo->data.m_ssao_enabled) {
         m_timer->start_timer("ssao");
         m_ssao->draw(m_gbuffer.get(), &m_screen_quad_geometry, m_camera,
@@ -306,6 +309,15 @@ void Window::paint(QOpenGLFramebufferObject* framebuffer)
     m_timer->start_timer("compose");
     m_screen_quad_geometry.draw();
     m_timer->stop_timer("compose");
+
+    // DRAW LABELS
+
+    m_shader_manager->labels_program()->bind();
+    m_timer->start_timer("labels");
+    //    m_screen_quad_geometry.draw();
+    m_map_label_manager->draw(m_shader_manager->labels_program(), m_camera);
+    m_timer->stop_timer("labels");
+    m_shader_manager->labels_program()->release();
 
     m_timer->stop_timer("cpu_total");
     m_timer->stop_timer("gpu_total");
