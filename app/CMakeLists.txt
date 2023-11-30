@@ -65,9 +65,6 @@ qt_add_qml_module(alpineapp
         components/RoundMapButton.qml
         components/FAButton.qml
     RESOURCES
-        icons/camera_operation_centre.svg
-        icons/compass.svg
-        icons/current_location.svg
         icons/mascot.jpg
         icons/menu.svg
         icons/peak.svg
