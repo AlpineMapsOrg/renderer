@@ -24,7 +24,7 @@ import Alpine
 
 import "components"
 
-SetPanel {
+SettingsPanel {
     Component.onCompleted: {
         // when creating the this component, values are read from the renderer
         // after that we establish a binding, so this component can set values on the renderer
@@ -71,7 +71,7 @@ SetPanel {
         }
 
         Label { text: qsTr("Time:") }
-        ValSlider {
+        LabledSlider {
             property int hours;
             property int minutes;
             id: currentTime;
@@ -110,19 +110,19 @@ SetPanel {
     CheckGroup {
         name: qsTr("Camera")
         Label { text: qsTr("Field of view:") }
-        ValSlider {
+        LabledSlider {
                     id: fov_slider;
                     from: 15; to: 120; stepSize: 1;
                 }
 
                 Label { text: qsTr("Frame limiter:") }
-                ValSlider {
+                LabledSlider {
                     id: frame_rate_slider;
                     from: 2; to: 120; stepSize: 1;
                 }
 
                 Label { text: qsTr("Level of detail:") }
-                ValSlider {
+                LabledSlider {
                     id: lod_slider;
                     from: 0.1; to: 2.0; stepSize: 0.1;
                 }
@@ -132,7 +132,7 @@ SetPanel {
                 name: qsTr("Cache & Network")
 
                 Label { text: qsTr("Cache size:") }
-                ValSlider {
+                LabledSlider {
                     id: cache_size_slider;
                     from: 1000; to: 20000; stepSize: 1000;
                 }

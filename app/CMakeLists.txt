@@ -48,22 +48,21 @@ qt_add_qml_module(alpineapp
         StatsWindow.qml
         GeneralSettings.qml
         GlSettings.qml
-        FABGroup.qml
-        components/ValSlider.qml
-        components/ValRangeSlider.qml
+        FloatingActionButtonGroup.qml
+        components/LabledSlider.qml
+        components/LabledRangeSlider.qml
         components/ColorPicker.qml
         components/PageDrawer.qml
         components/CheckGroup.qml
-        components/SetPanel.qml
-        components/SetTitle.qml
+        components/SettingsPanel.qml
+        components/SettingsTitle.qml
         components/DrawerButton.qml
         components/DrawerSeparator.qml
         components/DrawerSpacer.qml
         components/VectorEditor.qml
         components/DatePicker.qml
         components/DateMonthTablePicker.qml
-        components/RoundMapButton.qml
-        components/FAButton.qml
+        components/FloatingActionButton.qml
     RESOURCES
         icons/mascot.jpg
         icons/menu.svg

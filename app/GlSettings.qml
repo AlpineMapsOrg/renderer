@@ -23,7 +23,7 @@ import Alpine
 
 import "components"
 
-SetPanel {
+SettingsPanel {
 
     function update_control_values() {
         let conf = map.shared_config;
@@ -110,7 +110,7 @@ SetPanel {
             text: "Strength:"
             visible: overlay_strength.visible;
         }
-        ValSlider {
+        LabledSlider {
             id: overlay_strength;
             from: 0.0; to: 1.0; stepSize:  0.01;
             visible: overlay_mode.currentValue > 0
@@ -150,7 +150,7 @@ SetPanel {
         onCheckedChanged: map.shared_config.snow_settings_angle.x = this.checked;
 
         Label { text: "Angle:" }
-        ValRangeSlider {
+        LabledRangeSlider {
             id: snow_settings_angle;
             from: 0.0; to: 90.0; stepSize: 0.1;
             first.onMoved: map.shared_config.snow_settings_angle.y = this.first.value;
@@ -158,35 +158,35 @@ SetPanel {
         }
 
         Label { text: "Angle Blend:" }
-        ValSlider {
+        LabledSlider {
             id: snow_settings_angle_blend;
             from: 0.0; to: 90.0; stepSize: 0.01;
             onMoved: map.shared_config.snow_settings_angle.w = this.value;
         }
 
         Label { text: "Snow-Line:" }
-        ValSlider {
+        LabledSlider {
             id: snow_settings_alt_min;
             from: 0.0; to: 4000.0; stepSize: 1.0;
             onMoved: map.shared_config.snow_settings_alt.x = this.value;
         }
 
         Label { text: "Snow-Line Variation:" }
-        ValSlider {
+        LabledSlider {
             id: snow_settings_alt_var;
             from: 0.0; to: 1000.0; stepSize: 1.0;
             onMoved: map.shared_config.snow_settings_alt.y = this.value;
         }
 
         Label { text: "Snow-Line Blend:" }
-        ValSlider {
+        LabledSlider {
             id: snow_settings_alt_blend;
             from: 0.0; to: 1000.0; stepSize: 1.0;
             onMoved: map.shared_config.snow_settings_alt.z = this.value;
         }
 
         Label { text: "Snow Specular:" }
-        ValSlider {
+        LabledSlider {
             id: snow_settings_specular;
             from: 0.0; to: 5.0; stepSize: 0.1;
             onMoved: map.shared_config.snow_settings_alt.w = this.value;
@@ -251,21 +251,21 @@ SetPanel {
         onCheckedChanged: map.shared_config.ssao_enabled = this.checked;
 
         Label { text: "Kernel-Size:" }
-        ValSlider {
+        LabledSlider {
             id: ssao_kernel;
             from: 5; to: 64; stepSize: 1;
             onMoved: map.shared_config.ssao_kernel = value;
         }
 
         Label { text: "Falloff-To:" }
-        ValSlider {
+        LabledSlider {
             id: ssao_falloff_to_value;
             from: 0.0; to: 1.0; stepSize: 0.01;
             onMoved: map.shared_config.ssao_falloff_to_value = value;
         }
 
         Label { text: "Blur-Size:" }
-        ValSlider {
+        LabledSlider {
             id: ssao_blur_kernel_size;
             from: 0; to: 2; stepSize: 1; snapMode: Slider.SnapAlways;
             onMoved: map.shared_config.ssao_blur_kernel_size = value;

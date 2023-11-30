@@ -83,7 +83,7 @@ Item {
             }
 
             Text { text: elementNames[0] + ": " }
-            ValSlider {
+            LabledSlider {
                 id: edit1
                 from: elementFroms[0]; to: elementTos[0];
                 onMoved: {
@@ -93,7 +93,7 @@ Item {
             }
 
             Text { text: elementNames[1] + ": "; visible: vectorSize > 1}
-            ValSlider {
+            LabledSlider {
                 id: edit2
                 from: vectorSize > 1 ? elementFroms[1] : 0
                 to: vectorSize > 1 ? elementTos[1] : 1
@@ -105,7 +105,7 @@ Item {
             }
 
             Text { text: elementNames[2] + ": "; visible: vectorSize > 2 }
-            ValSlider {
+            LabledSlider {
                 id: edit3
                 from: vectorSize > 2 ? elementFroms[2] : 0
                 to: vectorSize > 2 ? elementTos[2] : 1
@@ -117,7 +117,7 @@ Item {
             }
 
             Text { text: elementNames[3] + ": "; visible: vectorSize > 3 }
-            ValSlider {
+            LabledSlider {
                 id: edit4
                 from: vectorSize > 3 ? elementFroms[3] : 0
                 to: vectorSize > 3 ? elementTos[3] : 1

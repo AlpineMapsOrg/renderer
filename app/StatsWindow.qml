@@ -292,7 +292,7 @@ Rectangle {
             }
         }
 
-    SetPanel {
+    SettingsPanel {
         id: main_content
         maxHeight: statsMenu.maxHeight // needs to be set directly because parents height is dependent
         anchors {
@@ -300,7 +300,7 @@ Rectangle {
             right: parent.right
         }
 
-        SetTitle { title: "Statistics" }
+        SettingsTitle { title: "Statistics" }
 
         CheckGroup {
             name: "Frame Profiler"

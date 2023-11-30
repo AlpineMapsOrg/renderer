@@ -146,7 +146,6 @@ Item {
             onClicked: map.hud_visible = false;
         }
 
-
         DrawerSpacer {}
 
         DrawerSeparator {}
@@ -230,16 +229,12 @@ Item {
         }
     }
 
-
-    //DebugWindow {}
-
     StatsWindow {
         id: stats_window
         visible: false
     }
 
-
-    FABGroup {
+    FloatingActionButtonGroup {
         id: fab_group
     }
 
