@@ -26,13 +26,17 @@ find_package(Git 2.22 REQUIRED)
 
 function(alp_add_git_repository name)
     set(options DO_NOT_ADD_SUBPROJECT)
-    set(oneValueArgs URL COMMITISH)
+    set(oneValueArgs URL COMMITISH DESTINATION_PATH)
     set(multiValueArgs )
     cmake_parse_arguments(PARSE_ARGV 1 PARAM "${options}" "${oneValueArgs}" "${multiValueArgs}")
 
     file(MAKE_DIRECTORY ${CMAKE_SOURCE_DIR}/${ALP_EXTERN_DIR} )
     set(repo_dir ${CMAKE_SOURCE_DIR}/${ALP_EXTERN_DIR}/${name})
     set(short_repo_dir ${ALP_EXTERN_DIR}/${name})
+    if (DEFINED PARAM_DESTINATION_PATH AND NOT PARAM_DESTINATION_PATH STREQUAL "")
+        set(repo_dir ${CMAKE_SOURCE_DIR}/${PARAM_DESTINATION_PATH})
+        set(short_repo_dir ${PARAM_DESTINATION_PATH})
+    endif()
 
     set(${name}_SOURCE_DIR "${repo_dir}" PARENT_SCOPE)
 
@@ -70,8 +74,7 @@ function(alp_add_git_repository name)
         endif()
     else()
         message(STATUS "Clonging ${PARAM_URL} to ${short_repo_dir}.")
-        execute_process(COMMAND ${GIT_EXECUTABLE} clone --recurse-submodules ${PARAM_URL} ${name}
-            WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}/${ALP_EXTERN_DIR}
+        execute_process(COMMAND ${GIT_EXECUTABLE} clone --recurse-submodules ${PARAM_URL} ${repo_dir}
             RESULT_VARIABLE GIT_CLONE_RESULT)
         if (NOT ${GIT_CLONE_RESULT})
             execute_process(COMMAND ${GIT_EXECUTABLE} checkout --quiet ${PARAM_COMMITISH}
