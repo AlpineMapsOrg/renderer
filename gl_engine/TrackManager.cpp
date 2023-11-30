@@ -30,10 +30,11 @@
 #include "Polyline.h"
 #include "ShaderProgram.h"
 
-#define USE_POINTS 0
-#define USE_RIBBON 1
+#define USE_POINTS                      0
+#define USE_RIBBON                      1
+#define USE_RIBBON_WITH_NORMALS         2
 
-#define RENDER_STRATEGY USE_RIBBON
+#define RENDER_STRATEGY USE_RIBBON_WITH_NORMALS
 
 namespace gl_engine
 {
@@ -63,12 +64,11 @@ namespace gl_engine
         for (const PolyLine &track : m_tracks)
         {
             track.vao->bind();
+
 #if (RENDER_STRATEGY == USE_POINTS)
             f->glDrawArrays(GL_LINE_STRIP, 0, track.point_count);
-#elif(RENDER_STRATEGY == USE_RIBBON)
-            f->glDrawArrays(GL_TRIANGLES, 0, (track.point_count - 1) * 3);
 #else
-#error Unknown Render Strategy
+            f->glDrawArrays(GL_TRIANGLES, 0, (track.point_count - 1) * 3);
 #endif
         }
 
@@ -83,13 +83,12 @@ namespace gl_engine
         qDebug() << "TrackManager::add_track()\n";
 
         std::vector<glm::vec3> points = nucleus::to_world_points(gpx);
+        size_t point_count = points.size();
 
 #if (RENDER_STRATEGY == USE_RIBBON)
         std::vector<glm::vec3> ribbon = nucleus::to_world_ribbon(points, 10.0f);
-#endif
-
-#if 0
-        std::vector<glm::vec3> normls;
+#elif (RENDER_STRATEGY == USE_RIBBON_WITH_NORMALS)
+        std::vector<glm::vec3> ribbon = nucleus::to_world_ribbon_with_normals(points, 0.0f);
 #endif
 
         PolyLine polyline;
@@ -105,7 +104,7 @@ namespace gl_engine
 
 #if (RENDER_STRATEGY == USE_POINTS)
         polyline.vbo->allocate(points.data(), helpers::bufferLengthInBytes(points));
-#elif (RENDER_STRATEGY == USE_RIBBON)
+#elif (RENDER_STRATEGY == USE_RIBBON || RENDER_STRATEGY == USE_RIBBON_WITH_NORMALS)
         polyline.vbo->allocate(ribbon.data(), helpers::bufferLengthInBytes(ribbon));
 #else
 #error Unknown Render Strategy
@@ -113,9 +112,27 @@ namespace gl_engine
 
         const auto position_attrib_location = m_shader->attribute_location("a_position");
         f->glEnableVertexAttribArray(position_attrib_location);
-        f->glVertexAttribPointer(position_attrib_location, 3, GL_FLOAT, GL_FALSE, 0, nullptr);
 
-        polyline.point_count = points.size();
+#if (RENDER_STRATEGY == USE_POINTS || RENDER_STRATEGY == USE_RIBBON)
+        f->glVertexAttribPointer(position_attrib_location, 3, GL_FLOAT, GL_FALSE, 1 * sizeof(glm::vec3), nullptr);
+#endif
+
+#if (RENDER_STRATEGY == USE_RIBBON_WITH_NORMALS)
+
+        f->glVertexAttribPointer(position_attrib_location, 3, GL_FLOAT, GL_FALSE, 2 * sizeof(glm::vec3), nullptr);
+
+        const auto normal_attrib_location = m_shader->attribute_location("a_normal");
+        f->glEnableVertexAttribArray(normal_attrib_location);
+        f->glVertexAttribPointer(normal_attrib_location, 3, GL_FLOAT, GL_FALSE, 2 * sizeof(glm::vec3), (void*)(sizeof(glm::vec3)));
+#endif
+
+
+        // glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 2 * sizeof(glm::vec2), (void *)0);
+        // glEnableVertexAttribArray(0);
+        // glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 2 * sizeof(glm::vec2), (void *)(sizeof(glm::vec2)));
+        // glEnableVertexAttribArray(1);
+
+        polyline.point_count = point_count;
 
         polyline.vao->release();
 

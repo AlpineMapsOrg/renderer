@@ -166,4 +166,38 @@ std::vector<glm::vec3> to_world_ribbon(const std::vector<glm::vec3>& points, flo
 }
 
 
+std::vector<glm::vec3> to_world_ribbon_with_normals(const std::vector<glm::vec3>& points, float width)
+{
+    std::vector<glm::vec3> ribbon;
+
+    const glm::vec3 offset = glm::vec3(0.0f, 0.0f, width);
+
+    for (size_t i = 0; i < points.size() - 1U; i++)
+    {
+        auto a = points[i];
+        auto b = points[i + 1];
+
+        // normal is negative for vertices below the original line
+        auto normal = glm::normalize(b - a);
+        //auto normal = glm::vec3();
+
+        // triangle 1
+        ribbon.insert(ribbon.end(), {
+            a + offset,  normal,
+            b - offset, -normal,
+            a - offset, -normal
+        });
+
+        // triangle 2
+        ribbon.insert(ribbon.end(), {
+            a + offset,  normal,
+            b + offset,  normal,
+            b - offset, -normal
+        });
+    }
+    return ribbon;
+
+
+}
+
 } // namespace nucleus
