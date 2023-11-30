@@ -29,14 +29,6 @@ Rectangle {
     color: "#00000000"
     property TerrainRenderer renderer
 
-    GnssInformation {
-        id: gnss
-        enabled: current_location.checked
-        onInformation_updated: {
-            renderer.set_position(gnss.latitude, gnss.longitude)
-        }
-    }
-
     Rectangle {
         function oc_scale() : real {
             if (renderer.camera_operation_centre_distance < 0) {
@@ -53,7 +45,7 @@ Rectangle {
         color: Qt.alpha(Material.backgroundColor, 0.7);
         border { width:2; color:Qt.alpha( "black", 0.5); }
         radius: 16 * oc_scale()
-        visible: renderer.camera_operation_centre_visibility && punkt.checked
+        visible: renderer.camera_operation_centre_visibility
     }
 
     Repeater {
@@ -123,63 +115,4 @@ Rectangle {
         }
     }
 
-    RoundButton {
-        id: punkt
-        width: 60
-        height: 60
-        checkable: true
-        checked: true
-        focusPolicy: Qt.NoFocus
-        text: "punkt"
-        visible: false
-        anchors {
-            right: parent.right
-            bottom: compass.top
-            rightMargin: 10
-            bottomMargin: 10
-        }
-    }
-    RoundMapButton {
-        id: compass
-        rotation: renderer.camera_rotation_from_north
-        icon_source: "../icons/compass.svg"
-        onClicked: renderer.rotate_north()
-
-        anchors {
-            right: parent.right
-            bottom: current_location.top
-            margins: 16
-        }
-    }
-
-    RoundMapButton {
-        id: current_location
-        anchors {
-            right: parent.right
-            bottom: parent.bottom
-            margins: 16
-        }
-        checkable: true
-        icon_source: "../icons/current_location.svg"
-    }
-
-    Connections {
-        enabled: current_location.checked
-        target: renderer
-        function onMouse_pressed() {
-            current_location.checked = false;
-        }
-
-        function onTouch_made() {
-            current_location.checked = false;
-        }
-    }
-
-    Connections {
-        target: map
-        function onHud_visible_changed(hud_visible) {
-            current_location.visible = hud_visible;
-            compass.visible = hud_visible;
-        }
-    }
 }

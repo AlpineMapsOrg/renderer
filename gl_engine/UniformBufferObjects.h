@@ -35,7 +35,7 @@
 //      the current instance on alpinemaps.org) this version number needs to be raised and the deserializing
 //      method needs to be adapted to work in a backwards compatible fashion!
 //      NOTE: THIS FUNCTIONALITY WAS NOT IN PLACE FOR VERSION 1. Those links therefore (in the best case) don't work anymore.
-#define CURRENT_UBO_VERSION 1
+#define CURRENT_UBO_VERSION 2
 
 // NOTE: BOOLEANS BEHAVE WEIRD! JUST DONT USE THEM AND STICK TO 32bit Formats!!
 // STD140 ALIGNMENT! USE PADDING IF NECESSARY. EVERY BLOCK OF SAME TYPE MUST BE PADDED
@@ -59,7 +59,7 @@ public:
     // amb, diff, spec, shininess
     QVector4D m_material_light_response = QVector4D(1.5, 3.0, 0.0, 32.0);
     // mode (0=disabled, 1=normal, 2=highlight), height_mode, height_reference, unused
-    QVector4D m_curtain_settings = QVector4D(1.0, 0.0, 150.0, 0.0);
+    QVector4D m_curtain_settings = QVector4D(1.0, 1.0, 200.0, 0.0);
     // enabled, min angle, max angle, angle blend space
     QVector4D m_snow_settings_angle = QVector4D(0.0, 0.0, 30.0, 5.0);
     // min altitude (snowline), variating altitude, altitude blend space, spec addition
@@ -72,7 +72,7 @@ public:
 
     GLuint m_phong_enabled = false;
     GLuint m_wireframe_mode = 0;                    // 0...disabled, 1...with shading, 2...white
-    GLuint m_normal_mode = 1;                       // 0...per fragment, 1...FDM
+    GLuint m_normal_mode = 0;                       // 0...per fragment, 1...FDM
     GLuint m_overlay_mode = 0;                      // see GlSettings.qml for list of modes
 
     GLuint m_overlay_postshading_enabled = false;   // see GlSettings.qml for more details

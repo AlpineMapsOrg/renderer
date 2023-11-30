@@ -48,6 +48,7 @@ qt_add_qml_module(alpineapp
         StatsWindow.qml
         GeneralSettings.qml
         GlSettings.qml
+        FABGroup.qml
         components/ValSlider.qml
         components/ValRangeSlider.qml
         components/ColorPicker.qml
@@ -62,6 +63,7 @@ qt_add_qml_module(alpineapp
         components/DatePicker.qml
         components/DateMonthTablePicker.qml
         components/RoundMapButton.qml
+        components/FAButton.qml
     RESOURCES
         icons/camera_operation_centre.svg
         icons/compass.svg
@@ -78,6 +80,12 @@ qt_add_qml_module(alpineapp
         icons/material/pin_drop.svg
         icons/material/settings.svg
         icons/material/info.svg
+        icons/material/format_paint.svg
+        icons/material/location_searching.svg
+        icons/material/my_location.svg
+        icons/material/navigation.svg
+        icons/material/navigation_offset.svg
+        icons/material/chevron_left.svg
         icons/presets/basic.png
         icons/presets/shaded.png
         icons/presets/snow.png

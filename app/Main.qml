@@ -152,17 +152,21 @@ Item {
 
     function change_page(source, title) {
         selectedPage = source.toLowerCase().replace(".qml", "");
-        if (selectedPage !== "map" && selectedPage !== "settings") stats_window.visible = false;
+        if (selectedPage !== "map" && selectedPage !== "settings") {
+            stats_window.visible = false;
+        }
         if (source === "map") {
             if (main_stack_view.depth >= 1) main_stack_view.pop()
             page_title.visible = false
             search.visible = true
+            main_stack_view.selectedPage = selectedPage
             return
         }
         if (main_stack_view.depth === 1)
             main_stack_view.push(_qmlPath + source)
         else
             main_stack_view.replace(_qmlPath + source)
+        main_stack_view.selectedPage = selectedPage
         page_title.visible = true
         search.visible = false
         page_title.text = title
@@ -191,6 +195,7 @@ Item {
     }
 
     StackView {
+        property string selectedPage: "map"
         id: main_stack_view
         anchors {
             top: tool_bar.bottom
@@ -212,13 +217,9 @@ Item {
         visible: false
     }
 
-    Image {
-        x: 0
-        y: map.height - 128
-        width: 128
-        height: 128
-        source: "icons/presets/snow.png"
-        fillMode: Image.PreserveAspectFit
+
+    FABGroup {
+
     }
 
      //property TerrainRenderer renderer
