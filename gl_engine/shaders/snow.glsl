@@ -22,24 +22,24 @@
 #define ORIGIN_SHIFT 20037508.3427892430765884
 #define PI 3.1415926535897932384626433
 
-mediump float mod289(mediump float x)   {   return x - floor(x * (1.0 / 289.0)) * 289.0;    }
-mediump vec4 mod289(mediump vec4 x)     {   return x - floor(x * (1.0 / 289.0)) * 289.0;    }
-mediump vec4 perm(mediump vec4 x)       {   return mod289(((x * 34.0) + 1.0) * x);          }
+highp float mod289(highp float x)   {   return x - floor(x * (1.0 / 289.0)) * 289.0;    }
+highp vec4 mod289(highp vec4 x)     {   return x - floor(x * (1.0 / 289.0)) * 289.0;    }
+highp vec4 perm(highp vec4 x)       {   return mod289(((x * 34.0) + 1.0) * x);          }
 
-mediump float noise(mediump vec3 p){
-    mediump vec3 a = floor(p);
-    mediump vec3 d = p - a;
+highp float noise(highp vec3 p){
+    highp vec3 a = floor(p);
+    highp vec3 d = p - a;
     d = d * d * (3.0 - 2.0 * d);
-    mediump vec4 b = a.xxyy + vec4(0.0, 1.0, 0.0, 1.0);
-    mediump vec4 k1 = perm(b.xyxy);
-    mediump vec4 k2 = perm(k1.xyxy + b.zzww);
-    mediump vec4 c = k2 + a.zzzz;
-    mediump vec4 k3 = perm(c);
-    mediump vec4 k4 = perm(c + 1.0);
-    mediump vec4 o1 = fract(k3 * (1.0 / 41.0));
-    mediump vec4 o2 = fract(k4 * (1.0 / 41.0));
-    mediump vec4 o3 = o2 * d.z + o1 * (1.0 - d.z);
-    mediump vec2 o4 = o3.yw * d.x + o3.xz * (1.0 - d.x);
+    highp vec4 b = a.xxyy + vec4(0.0, 1.0, 0.0, 1.0);
+    highp vec4 k1 = perm(b.xyxy);
+    highp vec4 k2 = perm(k1.xyxy + b.zzww);
+    highp vec4 c = k2 + a.zzzz;
+    highp vec4 k3 = perm(c);
+    highp vec4 k4 = perm(c + 1.0);
+    highp vec4 o1 = fract(k3 * (1.0 / 41.0));
+    highp vec4 o2 = fract(k4 * (1.0 / 41.0));
+    highp vec4 o3 = o2 * d.z + o1 * (1.0 - d.z);
+    highp vec2 o4 = o3.yw * d.x + o3.xz * (1.0 - d.x);
     return o4.y * d.y + o4.x * (1.0 - d.y);
 }
 
