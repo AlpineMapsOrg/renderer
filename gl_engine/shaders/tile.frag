@@ -26,7 +26,7 @@ uniform sampler2D texture_sampler;
 layout (location = 0) out lowp vec3 texout_albedo;
 layout (location = 1) out highp vec4 texout_position;
 layout (location = 2) out highp uvec2 texout_normal;
-layout (location = 3) out highp uint texout_depth;
+layout (location = 3) out lowp vec4 texout_depth;
 
 in highp vec2 uv;
 in highp vec3 var_pos_cws;
@@ -69,7 +69,7 @@ void main() {
     texout_normal = octNormalEncode2u16(normal);
 
     // Write and encode distance for readback
-    texout_depth = depthWSEncode1u32(dist);
+    texout_depth = vec4(depthWSEncode2n8(dist), 0.0, 0.0);
 
     // HANDLE OVERLAYS (and mix it with the albedo color) THAT CAN JUST BE DONE IN THIS STAGE
     // (because of DATA thats not forwarded)
