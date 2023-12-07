@@ -24,7 +24,7 @@
 
 #include <QOpenGLTexture>
 
-#include "stb_truetype.h"
+#include "stb_slim/stb_truetype.h"
 
 namespace camera {
 class Definition;

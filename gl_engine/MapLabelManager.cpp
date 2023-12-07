@@ -31,7 +31,7 @@
 
 #define STBTT_STATIC
 #define STB_TRUETYPE_IMPLEMENTATION
-#include "stb_truetype.h"
+#include "stb_slim/stb_truetype.h"
 
 namespace gl_engine {
 
