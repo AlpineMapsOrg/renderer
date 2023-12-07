@@ -179,12 +179,12 @@ void MapLabel::create_label_style(QOpenGLExtraFunctions* f, float text_width, in
     m_uvs.push_back(100);
 
     m_uvs.push_back(100);
-    m_uvs.push_back(100);
+    m_uvs.push_back(101);
 
-    m_uvs.push_back(100);
-    m_uvs.push_back(100);
+    m_uvs.push_back(101);
+    m_uvs.push_back(101);
 
-    m_uvs.push_back(100);
+    m_uvs.push_back(101);
     m_uvs.push_back(100);
 
     m_indices.push_back(index_offset);

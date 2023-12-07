@@ -26,7 +26,7 @@
 
 #include "nucleus/camera/Definition.h"
 
-#include "stb_truetype.h"
+#include "stb_slim/stb_truetype.h"
 
 namespace gl_engine {
 
