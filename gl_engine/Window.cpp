@@ -207,6 +207,7 @@ void Window::paint(QOpenGLFramebufferObject* framebuffer)
     cc->inv_view_matrix = glm::inverse(cc->view_matrix);
     cc->inv_proj_matrix = glm::inverse(cc->proj_matrix);
     cc->viewport_size = m_gbuffer->size();
+    cc->distance_scaling_factor = m_camera.distance_scale_factor();
     m_camera_config_ubo->update_gpu_data();
 
 

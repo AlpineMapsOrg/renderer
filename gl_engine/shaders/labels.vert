@@ -18,20 +18,31 @@
 
 #include "camera_config.glsl"
 
+const float nearLabel = 100.0;
+const float farLabel = 500000.0;
+
 layout (location = 0) in vec2 pos;
 layout (location = 1) in vec2 vtexcoords;
 out highp vec2 texcoords;
 
 uniform highp vec3 label_position;
 uniform highp mat4 inv_view_rot;
-uniform highp mat4 scale_matrix;
 void main() {
-    vec4 rotationless_pos =  (inv_view_rot * scale_matrix * vec4(pos,0.0,1.0)); // remove rotation from position -> since we want to always face the camera
+    float dist = length(label_position - camera.position.xyz);
+    // remove distance scaling of labels
+    float scale = dist / (camera.viewport_size.y * 0.5 * camera.distance_scaling_factor);
+
+    // apply "soft" distance scaling depending on near/far label values
+    float dist_scale = 1.0 - ((dist - nearLabel) / (farLabel - nearLabel)) * 0.4f;
+    scale *= (dist_scale * dist_scale);
+
+    // remove rotation from position -> since we want to always face the camera
+    // and apply the scaling
+    vec4 rotationless_pos = (inv_view_rot * vec4(pos * scale,0.0,1.0));
     rotationless_pos /= rotationless_pos.w;
 
-    vec4 p = camera.view_proj_matrix * (vec4(label_position + rotationless_pos.xyz - camera.position.xyz, 1.0));
-    p /= p.w;
-    gl_Position = p;
+    // apply camera matrix and position the label depending on world/camera position
+    gl_Position = camera.view_proj_matrix * (vec4(label_position + rotationless_pos.xyz - camera.position.xyz, 1.0));
 
     // pass through
     texcoords = vtexcoords;

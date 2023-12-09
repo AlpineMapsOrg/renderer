@@ -227,27 +227,17 @@ void MapLabel::create_label_style(QOpenGLExtraFunctions* f, float text_width, in
 void MapLabel::draw(ShaderProgram* shader_program, const nucleus::camera::Definition& camera, QOpenGLExtraFunctions* f) const
 {
 
+    // only draw labels that are not too near/far from camera
     float dist = glm::length(m_label_position - glm::vec3(camera.position()));
-
     const float nearLabel = 100.0;
     const float farLabel = 500000.0;
 
     if (dist > nearLabel && dist < farLabel) {
-
-        // uniform scaling regardless of distance between label and camera
-        float uniform_scale = 1.0 / camera.to_screen_space(1, dist);
-
-        // "soft" scaling -> farther labels are slightly smaller than nearer
-        float dist_scale = 1.0 - ((dist - nearLabel) / (farLabel - nearLabel)) * 0.4f;
-        dist_scale *= dist_scale;
-
         m_vao->bind();
-        glm::mat4 scale_matrix = glm::scale(glm::vec3(uniform_scale * dist_scale));
 
-        shader_program->set_uniform("scale_matrix", scale_matrix);
         shader_program->set_uniform("label_position", m_label_position);
-
         f->glDrawElements(GL_TRIANGLES, m_indices.size(), GL_UNSIGNED_INT, 0);
+
         m_vao->release();
     }
 }

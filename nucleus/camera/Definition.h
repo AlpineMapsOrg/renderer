@@ -54,6 +54,7 @@ public:
     [[nodiscard]] Frustum frustum() const;
     [[nodiscard]] std::array<geometry::Plane<double>, 6> clipping_planes() const;
     [[nodiscard]] std::vector<geometry::Plane<double>> four_clipping_planes() const;
+    [[nodiscard]] float distance_scale_factor() const;
     void set_perspective_params(float fov_degrees, const glm::uvec2& viewport_size, float near_plane);
     void set_near_plane(float near_plane);
     [[nodiscard]] float near_plane() const;

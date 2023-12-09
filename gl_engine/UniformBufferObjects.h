@@ -138,8 +138,9 @@ struct uboCameraConfig {
     glm::mat4 inv_proj_matrix;
     // Viewport Size in Pixel
     glm::vec2 viewport_size;
-    glm::vec2 buffer2;
-
+    // the distance scaling factor of the camera
+    float distance_scaling_factor;
+    float buffer2;
 };
 
 QDataStream& operator<<(QDataStream& out, const uboCameraConfig& data);
