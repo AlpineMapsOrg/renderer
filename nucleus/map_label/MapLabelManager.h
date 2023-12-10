@@ -16,14 +16,29 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *****************************************************************************/
 
-#include "CameraFilterProxyModel.h"
+#pragma once
 
-namespace nucleus::map_label {
+#include "MapLabel.h"
+#include <vector>
 
-CameraFilterProxyModel::CameraFilterProxyModel(QObject *parent)
-    : QAbstractProxyModel{parent}
-{
+#include "stb_slim/stb_truetype.h"
 
-}
+namespace nucleus {
+class MapLabelManager {
+public:
+    explicit MapLabelManager();
 
-}
+    void init();
+    void createFont();
+
+    const uint8_t* font_bitmap() const;
+    const std::vector<MapLabel>& labels() const;
+    const std::vector<unsigned int>& indices() const;
+
+private:
+    std::vector<MapLabel> m_labels;
+    stbtt_bakedchar m_character_data[223]; // stores 223 ascii characters (characters 32-255) -> should include all commonly used german characters
+    uint8_t* m_font_bitmap;
+    std::vector<unsigned int> m_indices;
+};
+} // namespace nucleus

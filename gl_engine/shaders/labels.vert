@@ -21,11 +21,15 @@
 const float nearLabel = 100.0;
 const float farLabel = 500000.0;
 
-layout (location = 0) in vec2 pos;
-layout (location = 1) in vec2 vtexcoords;
+
+vec2 offset_mask[4] = vec2[4](vec2(0,0), vec2(0,1), vec2(1,1), vec2(1,0));
+
+layout (location = 0) in vec4 pos;
+layout (location = 1) in vec4 vtexcoords;
+layout (location = 2) in vec3 label_position;
+
 out highp vec2 texcoords;
 
-uniform highp vec3 label_position;
 uniform highp mat4 inv_view_rot;
 void main() {
     float dist = length(label_position - camera.position.xyz);
@@ -38,12 +42,13 @@ void main() {
 
     // remove rotation from position -> since we want to always face the camera
     // and apply the scaling
-    vec4 rotationless_pos = (inv_view_rot * vec4(pos * scale,0.0,1.0));
+
+    vec4 rotationless_pos = (inv_view_rot * vec4((pos.xy + pos.zw*offset_mask[gl_VertexID]) * scale,0.0,1.0));
     rotationless_pos /= rotationless_pos.w;
 
     // apply camera matrix and position the label depending on world/camera position
     gl_Position = camera.view_proj_matrix * (vec4(label_position + rotationless_pos.xyz - camera.position.xyz, 1.0));
 
     // pass through
-    texcoords = vtexcoords;
+    texcoords = vtexcoords.xy + vtexcoords.zw * offset_mask[gl_VertexID];
 }

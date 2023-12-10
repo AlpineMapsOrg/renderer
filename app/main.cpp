@@ -40,8 +40,6 @@
 #include "HotReloader.h"
 #include "RenderThreadNotifier.h"
 #include "TerrainRendererItem.h"
-#include "nucleus/map_label/CameraTransformationProxyModel.h"
-#include "nucleus/map_label/MapLabelModel.h"
 
 #include "nucleus/camera/PositionStorage.h"
 #include "nucleus/version.h"
@@ -108,8 +106,6 @@ int main(int argc, char **argv)
 
     qmlRegisterType<TerrainRendererItem>("Alpine", 42, 0, "TerrainRenderer");
     qmlRegisterType<GnssInformation>("Alpine", 42, 0, "GnssInformation");
-    qmlRegisterType<nucleus::map_label::MapLabelModel>("Alpine", 42, 0, "LabelModel");
-    qmlRegisterType<nucleus::map_label::CameraTransformationProxyModel>("Alpine", 42, 0, "CameraTransformationProxyModel");
 
     QQmlApplicationEngine engine;
 

@@ -24,76 +24,63 @@
 #include <QFile>
 #include <QThread>
 #include <QTimer>
-#include <glm/gtx/matrix_decompose.hpp>
 
 #include <iostream>
 #include <string>
 
-#define STBTT_STATIC
-#define STB_TRUETYPE_IMPLEMENTATION
-#include "stb_slim/stb_truetype.h"
+#include "nucleus/map_label/MapLabel.h"
 
 namespace gl_engine {
 
 MapLabelManager::MapLabelManager()
 {
-    //    const char8_t text;
-    //    double latitude;
-    //    double longitude;
-    //    float altitude;
-    //    float importance;
-    m_labels.push_back({ "Großglockner", 47.07455, 12.69388, 3798, 14 });
-    m_labels.push_back({ "Piz Buin", 46.84412, 10.11889, 3312, 10 });
-    m_labels.push_back({ "Hoher Dachstein", 47.47519, 13.60569, 2995, 10 });
-    m_labels.push_back({ "Großer Priel", 47.71694, 14.06325, 2515, 10 });
-    m_labels.push_back({ "Hermannskogel", 48.27072, 16.29456, 544, 10 });
-    m_labels.push_back({ "Klosterwappen", 47.76706, 15.80450, 2076, 10 });
-    m_labels.push_back({ "Ötscher", 47.86186, 15.20251, 1893, 10 });
-    m_labels.push_back({ "Ellmauer Halt", 47.5616377, 12.3025296, 2342, 10 });
-    m_labels.push_back({ "Wildspitze", 46.88524, 10.86728, 3768, 10 });
-    m_labels.push_back({ "Großvenediger", 47.10927, 12.34534, 3657, 10 });
-    m_labels.push_back({ "Hochalmspitze", 47.01533, 13.32050, 3360, 10 });
-    m_labels.push_back({ "Geschriebenstein", 47.35283, 16.43372, 884, 10 });
-
-    m_labels.push_back({ "Ackerlspitze", 47.559125, 12.347188, 2329, 8 });
-    m_labels.push_back({ "Scheffauer", 47.5573214, 12.2418396, 2111, 8 });
-    m_labels.push_back({ "Maukspitze", 47.5588954, 12.3563668, 2231, 8 });
-    m_labels.push_back({ "Schönfeldspitze", 47.45831, 12.93774, 2653, 8 });
-    m_labels.push_back({ "Hochschwab", 47.61824, 15.14245, 2277, 8 });
-
-    m_labels.push_back({ "Valluga", 47.15757, 10.21309, 2811, 6 });
-    m_labels.push_back({ "Birkkarspitze", 47.41129, 11.43765, 2749, 6 });
-    m_labels.push_back({ "Schafberg", 47.77639, 13.43389, 1783, 6 });
-
-    m_labels.push_back({ "Grubenkarspitze", 47.38078, 11.52211, 2663, 6 });
-    m_labels.push_back({ "Gimpel", 47.50127, 10.61249, 2176, 6 });
-    m_labels.push_back({ "Seekarlspitze", 47.45723, 11.77804, 2261, 6 });
-    m_labels.push_back({ "Furgler", 47.04033, 10.51186, 3004, 6 });
-
-    m_labels.push_back({ "Westliche Hochgrubachspitze", 47.5583658, 12.3433997, 2277, 5 });
-    m_labels.push_back({ "Östliche Hochgrubachspitze", 47.5587933, 12.3450985, 2284, 5 });
 }
-
 void MapLabelManager::init()
 {
-    QOpenGLExtraFunctions* f = QOpenGLContext::currentContext()->extraFunctions();
-    createFont(f);
+    m_mapLabelhandler.init();
 
-    for (auto& label : m_labels) {
-        label.init(f, m_character_data, 32, 255);
+    m_vao = std::make_unique<QOpenGLVertexArrayObject>();
+    m_vao->create();
+    m_vao->bind();
+
+    m_index_buffer = std::make_unique<QOpenGLBuffer>(QOpenGLBuffer::IndexBuffer);
+    m_index_buffer->create();
+    m_index_buffer->bind();
+    m_index_buffer->setUsagePattern(QOpenGLBuffer::StaticDraw);
+    m_index_buffer->allocate(m_mapLabelhandler.indices().data(), m_mapLabelhandler.indices().size() * sizeof(unsigned int));
+
+    m_vertex_buffer = std::make_unique<QOpenGLBuffer>(QOpenGLBuffer::VertexBuffer);
+    m_vertex_buffer->create();
+    m_vertex_buffer->bind();
+    m_vertex_buffer->setUsagePattern(QOpenGLBuffer::StaticDraw);
+
+    std::vector<nucleus::MapLabel::VertexData> allLabels;
+    for (const auto& label : m_mapLabelhandler.labels()) {
+        allLabels.insert(allLabels.end(), label.vertices().begin(), label.vertices().end());
     }
-}
 
-void MapLabelManager::createFont(QOpenGLExtraFunctions* f)
-{
-    QFile file(":/fonts/SourceSans3-Medium.ttf");
-    const auto open = file.open(QIODeviceBase::OpenModeFlag::ReadOnly);
-    assert(open);
-    const QByteArray data = file.readAll();
-    uint8_t* temp_bitmap = new uint8_t[512 * 512];
-    // renders 223 ascii characters (characters 32-255) into temp_bitmap -> should include all commonly used german characters
-    // additionally stores font info (coordinates + size) in m_character_data
-    stbtt_BakeFontBitmap(reinterpret_cast<const uint8_t*>(data.constData()), 0, MapLabel::font_size, temp_bitmap, 512, 512, 32, 223, m_character_data);
+    m_vertex_buffer->allocate(allLabels.data(), allLabels.size() * sizeof(nucleus::MapLabel::VertexData));
+    m_instance_count = allLabels.size();
+
+    QOpenGLExtraFunctions* f = QOpenGLContext::currentContext()->extraFunctions();
+
+    // vertex positions
+    f->glEnableVertexAttribArray(0);
+    f->glVertexAttribPointer(0, 4, GL_FLOAT, GL_FALSE, sizeof(nucleus::MapLabel::VertexData), nullptr);
+    f->glVertexAttribDivisor(0, 1); // buffer is active for 1 instance (for the whole quad)
+    // uvs
+    f->glEnableVertexAttribArray(1);
+    f->glVertexAttribPointer(1, 4, GL_FLOAT, GL_FALSE, sizeof(nucleus::MapLabel::VertexData), (GLvoid*)(sizeof(glm::vec4)));
+    f->glVertexAttribDivisor(1, 1); // buffer is active for 1 instance (for the whole quad)
+    // world position
+    f->glEnableVertexAttribArray(2);
+    f->glVertexAttribPointer(2, 3, GL_FLOAT, GL_FALSE, sizeof(nucleus::MapLabel::VertexData), (GLvoid*)(sizeof(glm::vec4) * 2));
+    f->glVertexAttribDivisor(2, 1); // buffer is active for 1 instance (for the whole quad)
+
+    m_vao->release();
+
+    // load the font texture
+    const uint8_t* temp_bitmap = m_mapLabelhandler.font_bitmap();
 
     font_texture = std::make_unique<QOpenGLTexture>(QOpenGLTexture::Target2D);
     font_texture->setMinMagFilters(QOpenGLTexture::Linear, QOpenGLTexture::Linear);
@@ -115,12 +102,14 @@ void MapLabelManager::draw(ShaderProgram* shader_program, const nucleus::camera:
 
     glm::mat4 inv_view_rot = glm::inverse(camera.local_view_matrix());
     shader_program->set_uniform("inv_view_rot", inv_view_rot);
-    font_texture->bind(2);
-    shader_program->set_uniform("texture_sampler", 2);
+    font_texture->bind(3);
+    shader_program->set_uniform("texture_sampler", 3);
 
-    for (auto& label : m_labels) {
-        label.draw(shader_program, camera, f);
-    }
+    m_vao->bind();
+
+    f->glDrawElementsInstanced(GL_TRIANGLES, m_mapLabelhandler.indices().size(), GL_UNSIGNED_INT, 0, m_instance_count);
+
+    m_vao->release();
 }
 
 } // namespace gl_engine

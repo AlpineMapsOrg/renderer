@@ -18,55 +18,46 @@
 
 #pragma once
 
-#include <QString>
-#include <QVariant>
-#include <Qt>
+#include <glm/glm.hpp>
+#include <string>
+#include <vector>
 
-namespace nucleus::map_label {
+#include "stb_slim/stb_truetype.h"
 
-struct MapLabel {
-    enum class Role {
-        Text = Qt::UserRole,
-        Latitde,
-        Longitude,
-        Altitude,
-        Importance,
-        ViewportX,
-        ViewportY,
-        ViewportSize
+namespace nucleus {
+
+class MapLabel {
+
+public:
+    struct VertexData {
+        glm::vec4 position; // start_x, start_y, offset_x, offset_y
+        glm::vec4 uv; // start_u, start_v, offset_u, offset_v
+        glm::vec3 world_position;
     };
 
-    QString text;
-    double latitude;
-    double longitude;
-    float altitude;
-    float importance;
-    float viewport_x;
-    float viewport_y;
-    float viewport_size;
+    MapLabel(std::string text, double latitude, double longitude, float altitude, float importance)
+        : m_text(text)
+        , m_latitude(latitude)
+        , m_longitude(longitude)
+        , m_altitude(altitude)
+        , m_importance(importance) {};
 
-    QVariant get(Role r) const
-    {
-        switch (r) {
-        case Role::Text:
-            return text;
-        case Role::Latitde:
-            return latitude;
-        case Role::Longitude:
-            return longitude;
-        case Role::Altitude:
-            return altitude;
-        case Role::Importance:
-            return importance;
-        case Role::ViewportX:
-            return viewport_x;
-        case Role::ViewportY:
-            return viewport_y;
-        case Role::ViewportSize:
-            return viewport_size;
-        }
-        return {};
-    }
+    void init(stbtt_bakedchar* character_data, int char_start, int char_end);
+
+    constexpr static float font_size = 30.0f;
+    constexpr static float icon_size = 30.0f;
+
+    const std::vector<VertexData>& vertices() const;
+
+private:
+    std::vector<VertexData> m_vertices;
+
+    std::string m_text;
+    double m_latitude;
+    double m_longitude;
+    float m_altitude;
+    float m_importance;
+
+    glm::vec3 m_label_position;
 };
-
-}
+} // namespace nucleus

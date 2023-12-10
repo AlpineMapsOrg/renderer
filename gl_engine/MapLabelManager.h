@@ -18,13 +18,12 @@
 
 #pragma once
 
-#include "MapLabel.h"
 #include "nucleus/camera/Definition.h"
-#include <vector>
+#include "nucleus/map_label/MapLabelManager.h"
 
+#include <QOpenGLBuffer>
 #include <QOpenGLTexture>
-
-#include "stb_slim/stb_truetype.h"
+#include <QOpenGLVertexArrayObject>
 
 namespace camera {
 class Definition;
@@ -33,28 +32,22 @@ class Definition;
 namespace gl_engine {
 class ShaderProgram;
 
-struct RenderableCharDefinition {
-    float width;
-    float height;
-    float uv_x;
-    float uv_y;
-    float uv_width;
-    float uv_height;
-};
-
 class MapLabelManager {
 
 public:
     explicit MapLabelManager();
 
     void init();
-    void createFont(QOpenGLExtraFunctions* f);
     void draw(ShaderProgram* shader_program, const nucleus::camera::Definition& camera) const;
 
 private:
-    std::vector<MapLabel> m_labels;
-
     std::unique_ptr<QOpenGLTexture> font_texture;
-    stbtt_bakedchar m_character_data[223]; // stores 223 ascii characters (characters 32-255) -> should include all commonly used german characters
+
+    std::unique_ptr<QOpenGLBuffer> m_vertex_buffer;
+    std::unique_ptr<QOpenGLBuffer> m_index_buffer;
+    std::unique_ptr<QOpenGLVertexArrayObject> m_vao;
+
+    nucleus::MapLabelManager m_mapLabelhandler;
+    unsigned long m_instance_count;
 };
 } // namespace gl_engine

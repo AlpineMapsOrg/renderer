@@ -21,6 +21,7 @@
 cmake_minimum_required(VERSION 3.24)
 project(alpine-renderer-nucleus LANGUAGES CXX)
 
+alp_add_git_repository(stb_slim URL https://github.com/LucasDworschak/stb_slim.git COMMITISH origin/main)
 alp_add_git_repository(radix URL https://github.com/AlpineMapsOrg/radix.git COMMITISH origin/main)
 alp_add_git_repository(tl_expected URL https://github.com/TartanLlama/expected.git COMMITISH v1.1.0 DO_NOT_ADD_SUBPROJECT)
 if (NOT TARGET fmt)
@@ -85,11 +86,8 @@ qt_add_library(nucleus STATIC
     utils/UrlModifier.h utils/UrlModifier.cpp
     utils/bit_coding.h
     utils/sun_calculations.h utils/sun_calculations.cpp
-    map_label/MapLabelModel.h map_label/MapLabelModel.cpp
-    map_label/CameraTransformationProxyModel.h map_label/CameraTransformationProxyModel.cpp
-    map_label/MapLabel.h
-    map_label/AbstractMapLabelModel.h
-    map_label/CameraFilterProxyModel.h map_label/CameraFilterProxyModel.cpp
+    map_label/MapLabel.h map_label/MapLabel.cpp
+    map_label/MapLabelManager.h map_label/MapLabelManager.cpp
     utils/bit_coding.h
     tile_scheduler/cache_quieries.h
     DataQuerier.h DataQuerier.cpp
@@ -101,7 +99,7 @@ qt_add_library(nucleus STATIC
 )
 
 target_include_directories(nucleus PRIVATE . PUBLIC ${CMAKE_SOURCE_DIR})
-target_link_libraries(nucleus PUBLIC radix Qt::Core Qt::Gui Qt::Network Qt::Svg fmt::fmt zppbits tl_expected nucleus_version)
+target_link_libraries(nucleus PUBLIC radix Qt::Core Qt::Gui Qt::Network Qt::Svg fmt::fmt zppbits tl_expected nucleus_version stb_slim)
 
 if (EMSCRIPTEN)
     target_compile_options(nucleus PUBLIC -O3)
