@@ -85,7 +85,7 @@ void MapLabelManager::init()
     createFont();
 
     for (auto& label : m_labels) {
-        label.init(m_character_data, 32, 255);
+        label.init(m_character_data, &m_fontinfo, 32, 255);
     }
 }
 
@@ -95,6 +95,10 @@ void MapLabelManager::createFont()
     const auto open = file.open(QIODeviceBase::OpenModeFlag::ReadOnly);
     assert(open);
     const QByteArray data = file.readAll();
+
+    const auto font_init = stbtt_InitFont(&m_fontinfo, reinterpret_cast<const uint8_t*>(data.constData()), stbtt_GetFontOffsetForIndex(reinterpret_cast<const uint8_t*>(data.constData()), 0));
+    assert(font_init);
+
     m_font_bitmap = new uint8_t[512 * 512];
     // renders 223 ascii characters (characters 32-255) into temp_bitmap -> should include all commonly used german characters
     // additionally stores font info (coordinates + size) in m_character_data

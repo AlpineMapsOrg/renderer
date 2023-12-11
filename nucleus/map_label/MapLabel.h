@@ -42,7 +42,7 @@ public:
         , m_altitude(altitude)
         , m_importance(importance) {};
 
-    void init(stbtt_bakedchar* character_data, int char_start, int char_end);
+    void init(const stbtt_bakedchar* character_data, const stbtt_fontinfo* fontinfo, int char_start, int char_end);
 
     constexpr static float font_size = 30.0f;
     constexpr static float icon_size = 30.0f;
@@ -50,6 +50,9 @@ public:
     const std::vector<VertexData>& vertices() const;
 
 private:
+    std::vector<int> inline createCharList(std::string text);
+    std::vector<float> inline createTextMeta(const stbtt_bakedchar* character_data, const stbtt_fontinfo* fontinfo, std::vector<int> safe_chars, float& text_width);
+
     std::vector<VertexData> m_vertices;
 
     std::string m_text;

@@ -37,6 +37,7 @@ public:
 
 private:
     std::vector<MapLabel> m_labels;
+    stbtt_fontinfo m_fontinfo;
     stbtt_bakedchar m_character_data[223]; // stores 223 ascii characters (characters 32-255) -> should include all commonly used german characters
     uint8_t* m_font_bitmap;
     std::vector<unsigned int> m_indices;
