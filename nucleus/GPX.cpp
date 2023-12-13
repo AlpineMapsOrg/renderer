@@ -194,20 +194,14 @@ std::vector<glm::vec3> to_world_ribbon_with_normals(const std::vector<glm::vec3>
         }
 #endif
 
-        //auto normal = glm::vec3();
-
-        // triangle 1
         ribbon.insert(ribbon.end(), {
+            a - offset, -tangent,
             a + offset,  tangent,
-            b - offset, -tangent,
-            a - offset, -tangent
         });
 
-        // triangle 2
         ribbon.insert(ribbon.end(), {
-            a + offset,  tangent,
+            b - offset, -tangent,
             b + offset,  tangent,
-            b - offset, -tangent
         });
     }
     return ribbon;

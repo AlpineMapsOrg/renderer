@@ -79,7 +79,7 @@ namespace gl_engine
 #if (RENDER_STRATEGY == USE_POINTS)
             f->glDrawArrays(GL_LINE_STRIP, 0, track.point_count);
 #else
-            f->glDrawArrays(GL_TRIANGLE_STRIP, 0, (track.point_count - 1) * 3);
+            f->glDrawArrays(GL_TRIANGLE_STRIP, 0, track.point_count * 2);
 #endif
         }
 
