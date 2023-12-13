@@ -133,7 +133,7 @@ namespace gl_engine
 
         f->glVertexAttribPointer(position_attrib_location, 3, GL_FLOAT, GL_FALSE, 2 * sizeof(glm::vec3), nullptr);
 
-        const auto normal_attrib_location = m_shader->attribute_location("a_normal");
+        const auto normal_attrib_location = m_shader->attribute_location("a_tangent");
         f->glEnableVertexAttribArray(normal_attrib_location);
         f->glVertexAttribPointer(normal_attrib_location, 3, GL_FLOAT, GL_FALSE, 2 * sizeof(glm::vec3), (void*)(sizeof(glm::vec3)));
 #endif
