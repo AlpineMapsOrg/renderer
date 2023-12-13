@@ -180,28 +180,9 @@ std::vector<glm::vec3> to_world_ribbon_with_normals(const std::vector<glm::vec3>
         // tangent is negative for vertices below the original line
         glm::vec3 tangent = glm::normalize(b - a);
 
-#if 0
-        if (i ==  0)
-        {
-
-        } else if (i == points.size() - 1U)
-        {
-
-        }
-        else 
-        {
-
-        }
-#endif
-
         ribbon.insert(ribbon.end(), {
             a - offset, -tangent,
             a + offset,  tangent,
-        });
-
-        ribbon.insert(ribbon.end(), {
-            b - offset, -tangent,
-            b + offset,  tangent,
         });
     }
     return ribbon;
