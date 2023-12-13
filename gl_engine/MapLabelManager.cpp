@@ -80,8 +80,6 @@ void MapLabelManager::init()
     m_vao->release();
 
     // load the font texture
-    const uint8_t* temp_bitmap = m_mapLabelhandler.font_bitmap();
-
     font_texture = std::make_unique<QOpenGLTexture>(QOpenGLTexture::Target2D);
     font_texture->setMinMagFilters(QOpenGLTexture::Linear, QOpenGLTexture::Linear);
     font_texture->setWrapMode(QOpenGLTexture::WrapMode::ClampToEdge);
@@ -90,7 +88,16 @@ void MapLabelManager::init()
     font_texture->setSize(512, 512, 1);
     font_texture->setFormat(QOpenGLTexture::R8_UNorm);
     font_texture->allocateStorage();
-    font_texture->setData(QOpenGLTexture::Red, QOpenGLTexture::UInt8, temp_bitmap);
+    font_texture->setData(QOpenGLTexture::Red, QOpenGLTexture::UInt8, m_mapLabelhandler.font_bitmap());
+
+    // load the icon texture
+    QImage icon = m_mapLabelhandler.icon();
+    icon_texture = std::make_unique<QOpenGLTexture>(icon);
+    icon_texture->setMinificationFilter(QOpenGLTexture::LinearMipMapLinear);
+    icon_texture->setMagnificationFilter(QOpenGLTexture::Linear);
+    //    icon_texture->setMinMagFilters(QOpenGLTexture::Linear, QOpenGLTexture::Linear);
+    //    icon_texture->setWrapMode(QOpenGLTexture::WrapMode::MirroredRepeat);
+    icon_texture->create();
 }
 
 void MapLabelManager::draw(ShaderProgram* shader_program, const nucleus::camera::Definition& camera) const
@@ -102,8 +109,12 @@ void MapLabelManager::draw(ShaderProgram* shader_program, const nucleus::camera:
 
     glm::mat4 inv_view_rot = glm::inverse(camera.local_view_matrix());
     shader_program->set_uniform("inv_view_rot", inv_view_rot);
+
     font_texture->bind(3);
-    shader_program->set_uniform("texture_sampler", 3);
+    shader_program->set_uniform("font_sampler", 3);
+
+    icon_texture->bind(4);
+    shader_program->set_uniform("icon_sampler", 4);
 
     m_vao->bind();
 

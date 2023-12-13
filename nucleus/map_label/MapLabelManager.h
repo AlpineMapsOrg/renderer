@@ -19,6 +19,7 @@
 #pragma once
 
 #include "MapLabel.h"
+#include <QImage>
 #include <vector>
 
 #include "stb_slim/stb_truetype.h"
@@ -34,12 +35,17 @@ public:
     const uint8_t* font_bitmap() const;
     const std::vector<MapLabel>& labels() const;
     const std::vector<unsigned int>& indices() const;
+    const QImage& icon() const;
 
 private:
     std::vector<MapLabel> m_labels;
+
     stbtt_fontinfo m_fontinfo;
     stbtt_bakedchar m_character_data[223]; // stores 223 ascii characters (characters 32-255) -> should include all commonly used german characters
     uint8_t* m_font_bitmap;
+
     std::vector<unsigned int> m_indices;
+
+    QImage m_icon;
 };
 } // namespace nucleus

@@ -45,7 +45,7 @@ public:
     void init(const stbtt_bakedchar* character_data, const stbtt_fontinfo* fontinfo, int char_start, int char_end);
 
     constexpr static float font_size = 30.0f;
-    constexpr static float icon_size = 30.0f;
+    constexpr static glm::vec2 icon_size = glm::vec2(30.0f);
 
     const std::vector<VertexData>& vertices() const;
 

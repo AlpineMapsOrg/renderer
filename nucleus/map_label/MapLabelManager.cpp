@@ -20,6 +20,10 @@
 
 #include <QDirIterator>
 #include <QFile>
+#include <QIcon>
+#include <QPainter>
+#include <QSize>
+#include <QSvgRenderer>
 #include <QThread>
 #include <QTimer>
 #include <glm/gtx/matrix_decompose.hpp>
@@ -87,6 +91,9 @@ void MapLabelManager::init()
     for (auto& label : m_labels) {
         label.init(m_character_data, &m_fontinfo, 32, 255);
     }
+
+    // paint svg icon into the an image of appropriate size
+    m_icon = QIcon(QString(":/qt/qml/app/icons/peak.svg")).pixmap(QSize(MapLabel::icon_size.x, MapLabel::icon_size.y)).toImage();
 }
 
 void MapLabelManager::createFont()
@@ -118,6 +125,11 @@ const std::vector<MapLabel>& MapLabelManager::labels() const
 const std::vector<unsigned int>& MapLabelManager::indices() const
 {
     return m_indices;
+}
+
+const QImage& MapLabelManager::icon() const
+{
+    return m_icon;
 }
 
 } // namespace nucleus

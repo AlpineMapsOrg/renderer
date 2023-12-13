@@ -49,8 +49,8 @@ void MapLabel::init(const stbtt_bakedchar* character_data, const stbtt_fontinfo*
     offset_x -= text_width / 2.0;
 
     // label icon
-    m_vertices.push_back({ glm::vec4(-icon_size / 2.0, icon_size / 2.0, icon_size, -icon_size), // vertex position + offset
-        glm::vec4(10, 10, 1, 1), // uv position + offset
+    m_vertices.push_back({ glm::vec4(-icon_size.x / 2.0, icon_size.y / 2.0, icon_size.x, -icon_size.y), // vertex position + offset
+        glm::vec4(10.0, 10.0, 1, 1), // uv position + offset
         m_label_position });
 
     for (int i = 0; i < safe_chars.size(); i++) {
