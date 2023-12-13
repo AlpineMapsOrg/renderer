@@ -1,5 +1,5 @@
 layout(location = 0) in highp vec3 a_position;
-layout(location = 1) in highp vec3 a_normal;
+layout(location = 1) in highp vec3 a_tangent;
 
 uniform highp mat4 matrix; // view projection matrix
 uniform highp vec3 camera_position;
@@ -16,9 +16,8 @@ void main() {
   vec3 view_dir = normalize(camera_position - a_position);
 
 
-  vec3 normal = a_normal;
 
-  vec3 displacement = cross(normal, view_dir);
+  vec3 displacement = cross(a_tangent, view_dir);
 
   world_pos += displacement * width;
 
