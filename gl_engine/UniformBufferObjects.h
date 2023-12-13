@@ -62,13 +62,13 @@ public:
     GLuint m_overlay_mode = 0;                      // see GlSettings.qml for list of modes
 
     GLuint m_overlay_postshading_enabled = false;   // see GlSettings.qml for more details
-    GLuint m_ssao_enabled = true;
+    GLuint m_ssao_enabled = false;
     GLuint m_ssao_kernel = 32;
     GLuint m_ssao_range_check = true;
 
     GLuint m_ssao_blur_kernel_size = 1;
     GLuint m_height_lines_enabled = false;
-    GLuint m_csm_enabled = true;
+    GLuint m_csm_enabled = false;
     GLuint m_overlay_shadowmaps_enabled = false;
 
     // WARNING: Don't move the following Q_PROPERTIES to the top, otherwise the MOC

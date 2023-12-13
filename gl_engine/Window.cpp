@@ -122,7 +122,8 @@ void Window::initialise_gpu()
                                                   TextureDefinition{ Framebuffer::ColourFormat::RGB8    },      // Albedo
                                                   TextureDefinition{ Framebuffer::ColourFormat::RGBA32F },      // Position WCS and distance (distance is optional, but i use it directly for a little speed improvement)
                                                   TextureDefinition{ Framebuffer::ColourFormat::RG16UI  },      // Octahedron Normals
-                                                  TextureDefinition{ Framebuffer::ColourFormat::R32UI   }       // Discretized Encoded Depth for readback IMPORTANT: IF YOU MOVE THIS YOU HAVE TO ADAPT THE GET DEPTH FUNCTION
+                                                  TextureDefinition{ Framebuffer::ColourFormat::R32UI   },      // Discretized Encoded Depth for readback IMPORTANT: IF YOU MOVE THIS YOU HAVE TO ADAPT THE GET DEPTH FUNCTION
+                                                  TextureDefinition{ Framebuffer::ColourFormat::R32I    }       // VertexID
                                               });
 
     m_atmospherebuffer = std::make_unique<Framebuffer>(Framebuffer::DepthFormat::None, std::vector{ TextureDefinition{Framebuffer::ColourFormat::RGBA8} });

@@ -214,6 +214,7 @@ SetPanel {
         id: ssao_enabled
         name: "Ambient Occlusion"
         checkBoxEnabled: true
+        checked: false
         onCheckedChanged: map.shared_config.ssao_enabled = this.checked;
 
         Label { text: "Kernel-Size:" }
@@ -250,6 +251,7 @@ SetPanel {
     SetGroup {
         id: csm_enabled
         checkBoxEnabled: true
+        checked: false
         onCheckedChanged: map.shared_config.csm_enabled = this.checked;
         name: "Shadow Mapping"
 

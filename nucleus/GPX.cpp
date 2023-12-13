@@ -177,22 +177,37 @@ std::vector<glm::vec3> to_world_ribbon_with_normals(const std::vector<glm::vec3>
         auto a = points[i];
         auto b = points[i + 1];
 
-        // normal is negative for vertices below the original line
-        auto normal = glm::normalize(b - a);
+        // tangent is negative for vertices below the original line
+        glm::vec3 tangent = glm::normalize(b - a);
+
+#if 0
+        if (i ==  0)
+        {
+
+        } else if (i == points.size() - 1U)
+        {
+
+        }
+        else 
+        {
+
+        }
+#endif
+
         //auto normal = glm::vec3();
 
         // triangle 1
         ribbon.insert(ribbon.end(), {
-            a + offset,  normal,
-            b - offset, -normal,
-            a - offset, -normal
+            a + offset,  tangent,
+            b - offset, -tangent,
+            a - offset, -tangent
         });
 
         // triangle 2
         ribbon.insert(ribbon.end(), {
-            a + offset,  normal,
-            b + offset,  normal,
-            b - offset, -normal
+            a + offset,  tangent,
+            b + offset,  tangent,
+            b - offset, -tangent
         });
     }
     return ribbon;

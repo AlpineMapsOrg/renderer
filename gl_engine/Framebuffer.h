@@ -56,6 +56,7 @@ public:
         R32UI,
         Float32,        // NOT COLOR RENDERABLE ON OPENGLES
         RGBA32F,        // NOT COLOR RENDERABLE ON OPENGLES (weirdly it works, maybe because of extension, that qt activates?)
+        R32I,
     };
 
 private:

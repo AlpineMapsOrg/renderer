@@ -57,6 +57,8 @@ QOpenGLTexture::TextureFormat internal_format_qt(Framebuffer::ColourFormat f)
         return QOpenGLTexture::TextureFormat::R32U;
     case Framebuffer::ColourFormat::RGBA32F:
         return QOpenGLTexture::TextureFormat::RGBA32F;
+    case Framebuffer::ColourFormat::R32I:
+        return QOpenGLTexture::TextureFormat::R32I;
     }
     assert(false);
     return QOpenGLTexture::TextureFormat::NoFormat;
@@ -83,6 +85,8 @@ int format(Framebuffer::ColourFormat f)
         return GL_RED_INTEGER;
     case Framebuffer::ColourFormat::RGBA32F:
         return GL_RGBA;
+    case Framebuffer::ColourFormat::R32I:
+        return GL_RED_INTEGER;
     }
     assert(false);
     return -1;
@@ -124,7 +128,10 @@ int type(Framebuffer::ColourFormat f)
         return GL_HALF_FLOAT;
     case Framebuffer::ColourFormat::R32UI:
         return GL_UNSIGNED_INT;
+    case Framebuffer::ColourFormat::R32I:
+        return GL_INT;
     }
+   
     assert(false);
     return -1;
 }

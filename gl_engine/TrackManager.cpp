@@ -24,6 +24,11 @@
 #include <QOpenGLExtraFunctions>
 #include <QOpenGLShaderProgram>
 #include <QOpenGLVertexArrayObject>
+#include <QOpenGLVersionFunctionsFactory>
+
+#if (defined(__linux) && !defined(__ANDROID__)) || defined(_WIN32) || defined(_WIN64)
+#include <QOpenGLFunctions_3_3_Core>    // for wireframe mode
+#endif
 
 #include <iostream> // TODO: remove this
 
@@ -52,14 +57,20 @@ namespace gl_engine
     void TrackManager::draw(const nucleus::camera::Definition &camera) const
     {
         QOpenGLExtraFunctions *f = QOpenGLContext::currentContext()->extraFunctions();
+        //QOpenGLFunctions *f2 = QOpenGLContext::currentContext()->functions();;
+        auto funcs = QOpenGLVersionFunctionsFactory::get<QOpenGLFunctions_3_3_Core>(QOpenGLContext::currentContext()); // for wireframe mode
 
         f->glDisable(GL_CULL_FACE);
+#if 1
+        funcs->glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+#endif
 
         auto matrix = camera.local_view_projection_matrix(camera.position());
 
         m_shader->bind();
         m_shader->set_uniform("matrix", matrix);
         m_shader->set_uniform("camera_position", glm::vec3(camera.position()));
+        m_shader->set_uniform("width", 10.0f);
 
         for (const PolyLine &track : m_tracks)
         {
@@ -68,12 +79,13 @@ namespace gl_engine
 #if (RENDER_STRATEGY == USE_POINTS)
             f->glDrawArrays(GL_LINE_STRIP, 0, track.point_count);
 #else
-            f->glDrawArrays(GL_TRIANGLES, 0, (track.point_count - 1) * 3);
+            f->glDrawArrays(GL_TRIANGLE_STRIP, 0, (track.point_count - 1) * 3);
 #endif
         }
 
         m_shader->release();
         f->glEnable(GL_CULL_FACE);
+        funcs->glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
     }
 
     void TrackManager::add_track(const nucleus::gpx::Gpx &gpx)
