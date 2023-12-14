@@ -17,7 +17,7 @@ void main() {
 
   const vec3 up = vec3(0,0,1);
 
-#if 0
+#if 1
   vec3 view_dir = normalize(camera_position - a_position);
 #else
   vec3 view_dir = up;

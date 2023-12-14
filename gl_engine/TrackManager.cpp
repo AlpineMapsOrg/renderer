@@ -70,7 +70,7 @@ namespace gl_engine
         m_shader->bind();
         m_shader->set_uniform("matrix", matrix);
         m_shader->set_uniform("camera_position", glm::vec3(camera.position()));
-        m_shader->set_uniform("width", 10.0f);
+        m_shader->set_uniform("width", width);
 
         for (const PolyLine &track : m_tracks)
         {

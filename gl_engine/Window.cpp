@@ -132,6 +132,8 @@ void Window::initialise_gpu()
     m_shared_config_ubo->init();
     m_shared_config_ubo->bind_to_shader(m_shader_manager->all());
 
+    //m_shadow_config_ubo->bind_to_shader({ m_track_manager->get_shader() });
+
     m_camera_config_ubo = std::make_shared<gl_engine::UniformBuffer<gl_engine::uboCameraConfig>>(1, "camera_config");
     m_camera_config_ubo->init();
     m_camera_config_ubo->bind_to_shader(m_shader_manager->all());
@@ -463,6 +465,12 @@ void Window::open_track_file(const QString& file_path)
     {
         m_track_manager->add_track(*gpx);
     }
+}
+
+void Window::set_track_width(float width)
+{
+    qDebug() << "Window::set_track_width " << width;
+    m_track_manager->width = width;
 }
 
 void Window::add_gpx_track(const nucleus::gpx::Gpx& track)

@@ -264,4 +264,14 @@ SetPanel {
         }
     }
 
+    SetGroup {
+        name: "Track Options"
+        
+        Label { text: "Track-Width:" }
+        ValSlider {
+            id: track_width;
+            from: 1; to: 32; stepSize: 1;
+            onMoved: map.track_width = value;
+        }
+    }
 }

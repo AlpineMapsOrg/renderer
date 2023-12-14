@@ -146,6 +146,7 @@ QQuickFramebufferObject::Renderer* TerrainRendererItem::createRenderer() const
     connect(this, &TerrainRendererItem::key_pressed, r->glWindow(), &gl_engine::Window::key_press);
     connect(this, &TerrainRendererItem::shared_config_changed, r->glWindow(), &gl_engine::Window::shared_config_changed);
     connect(this, &TerrainRendererItem::render_looped_changed, r->glWindow(), &gl_engine::Window::render_looped_changed);
+    connect(this, &TerrainRendererItem::track_width_changed, r->glWindow(), &gl_engine::Window::set_track_width);
     // connect glWindow for shader hotreload by frontend button
     connect(this, &TerrainRendererItem::reload_shader, r->glWindow(), &gl_engine::Window::reload_shader);
 
@@ -242,6 +243,14 @@ void TerrainRendererItem::rotate_north()
     emit rotation_north_requested();
     RenderThreadNotifier::instance()->notify();
 }
+
+#if 0
+void TerrainRendererItem::set_track_width(float width) 
+{
+    qDebug() << "TerrainRendererItem::set_track_width " << width;
+    emit track_width_set_by_user(width);
+}
+#endif
 
 void TerrainRendererItem::add_track(const QString& track)
 {
@@ -348,6 +357,20 @@ void TerrainRendererItem::set_field_of_view(float new_field_of_view)
     m_field_of_view = new_field_of_view;
     emit field_of_view_changed();
     schedule_update();
+}
+
+void TerrainRendererItem::set_track_width(float width)
+{
+    qDebug() << "TerrainRendererItem::set_track_width(" << width << ")";
+    m_track_width = width;
+    emit track_width_changed(width);
+    RenderThreadNotifier::instance()->notify();
+    // TODO: request update
+}
+
+float TerrainRendererItem::track_width() const
+{
+    return m_track_width;
 }
 
 float TerrainRendererItem::camera_rotation_from_north() const

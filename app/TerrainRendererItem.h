@@ -59,6 +59,7 @@ class TerrainRendererItem : public QQuickFramebufferObject {
     Q_PROPERTY(QDateTime selected_datetime READ selected_datetime WRITE set_selected_datetime NOTIFY selected_datetime_changed)
     Q_PROPERTY(QVector2D sun_angles READ sun_angles WRITE set_sun_angles NOTIFY sun_angles_changed)
     Q_PROPERTY(bool link_gl_sundirection READ link_gl_sundirection WRITE set_link_gl_sundirection NOTIFY link_gl_sundirection_changed)
+    Q_PROPERTY(float track_width READ track_width WRITE set_track_width NOTIFY track_width_changed)
 
 public:
     explicit TerrainRendererItem(QQuickItem* parent = 0);
@@ -79,6 +80,7 @@ signals:
     //    void viewport_changed(const glm::uvec2& new_viewport) const;
     void position_set_by_user(double new_latitude, double new_longitude);
     void camera_definition_set_by_user(const nucleus::camera::Definition&) const;
+    void track_width_changed(float width);
 
     void shared_config_changed(gl_engine::uboSharedConfig new_shared_config) const;
     void render_looped_changed(bool new_render_looped);
@@ -131,6 +133,7 @@ public slots:
     void read_global_position(glm::dvec3 latlonalt);
     void camera_definition_changed(const nucleus::camera::Definition& new_definition); // gets called whenever camera changes
     void add_track(const QString& track);
+    //void set_track_width(float width);
 
 
 private slots:
@@ -153,6 +156,9 @@ public:
 
     float field_of_view() const;
     void set_field_of_view(float new_field_of_view);
+
+    float track_width() const;
+    void set_track_width(float width);
 
     float camera_rotation_from_north() const;
     void set_camera_rotation_from_north(float new_camera_rotation_from_north);
@@ -209,6 +215,7 @@ private:
     bool m_camera_operation_centre_visibility = false;
     float m_camera_operation_centre_distance = 1;
     float m_field_of_view = 60;
+    float m_track_width = 5;
     int m_frame_limit = 60;
     float m_render_quality = 0.5f;
     unsigned m_tile_cache_size = 12000;

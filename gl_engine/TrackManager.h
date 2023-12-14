@@ -44,8 +44,15 @@ public:
     void add_track(const nucleus::gpx::Gpx& gpx);
     // void remove_track();
 
+    float width = 5.0f;
+
+    ShaderProgram* get_shader() {
+        return m_shader.get();
+    }
+
 private:
     std::unique_ptr<ShaderProgram> m_shader;
     std::vector<PolyLine> m_tracks;
+
 };
 } // namespace gl_engine
