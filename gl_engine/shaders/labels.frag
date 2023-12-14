@@ -22,12 +22,16 @@ in highp vec2 texcoords;
 
 layout (location = 0) out lowp vec4 out_Color;
 vec3 fontColor = vec3(0.1);
+vec3 outlineColor = vec3(0.9);
+
 
 void main() {
     if(texcoords.x < 2.0)
     {
-        float font = texture2D(font_sampler, texcoords).r;
-        out_Color = vec4(fontColor, font);
+        float outline_mask = texture2D(font_sampler, texcoords).g;
+        float font_mask = texture2D(font_sampler, texcoords).r;
+
+        out_Color = vec4(mix(outlineColor, fontColor, font_mask), outline_mask);
     }
     else
     {

@@ -18,49 +18,17 @@
 
 #pragma once
 
-#include "MapLabel.h"
-#include <QImage>
+#include <string>
 #include <vector>
 
-#include "stb_slim/stb_truetype.h"
-
-#include <unordered_map>
-
 namespace nucleus {
-class MapLabelManager {
+
+class CharUtils
+{
 public:
-    explicit MapLabelManager();
-    ~MapLabelManager();
+    CharUtils();
 
-    void init();
-    void createFont();
-
-    const uint8_t* font_bitmap() const;
-    const std::vector<MapLabel>& labels() const;
-    const std::vector<unsigned int>& indices() const;
-    const QImage& font_atlas() const;
-    const QImage& icon() const;
-
-private:
-    void bake_font();
-
-    std::vector<MapLabel> m_labels;
-
-    stbtt_fontinfo m_fontinfo;
-    uint8_t* m_font_bitmap;
-
-    static constexpr glm::vec2 m_font_outline = glm::vec2(2, 2);
-    static constexpr glm::vec2 m_font_padding = glm::vec2(2, 2);
-
-    void inline make_outline(uint8_t* temp_bitmap, int lasty);
-
-    std::vector<unsigned int> m_indices;
-
-    std::unordered_map<int, const MapLabel::CharData> m_char_data;
-
-    QImage m_font_atlas;
-    QImage m_icon;
-
-    QSize m_font_atlas_size;
+    static const std::vector<int> string_to_unicode_int_list(std::string text);
 };
+
 } // namespace nucleus

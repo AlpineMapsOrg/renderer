@@ -24,11 +24,17 @@
 
 #include "stb_slim/stb_truetype.h"
 
+#include <unordered_map>
+
 namespace nucleus {
 
 class MapLabel {
 
 public:
+    struct CharData {
+        unsigned short x, y, width, height; // coordinates of bbox in bitmap
+        float xadvance, xoff, yoff;
+    };
     struct VertexData {
         glm::vec4 position; // start_x, start_y, offset_x, offset_y
         glm::vec4 uv; // start_u, start_v, offset_u, offset_v
@@ -42,7 +48,7 @@ public:
         , m_altitude(altitude)
         , m_importance(importance) {};
 
-    void init(const stbtt_bakedchar* character_data, const stbtt_fontinfo* fontinfo, int char_start, int char_end);
+    void init(const std::unordered_map<int, const MapLabel::CharData>& character_data, const stbtt_fontinfo* fontinfo);
 
     constexpr static float font_size = 30.0f;
     constexpr static glm::vec2 icon_size = glm::vec2(30.0f);
@@ -50,8 +56,7 @@ public:
     const std::vector<VertexData>& vertices() const;
 
 private:
-    std::vector<int> inline createCharList(std::string text);
-    std::vector<float> inline createTextMeta(const stbtt_bakedchar* character_data, const stbtt_fontinfo* fontinfo, std::vector<int> safe_chars, float& text_width);
+    std::vector<float> inline createTextMeta(const std::unordered_map<int, const MapLabel::CharData>& character_data, const stbtt_fontinfo* fontinfo, std::vector<int> safe_chars, float& text_width);
 
     std::vector<VertexData> m_vertices;
 

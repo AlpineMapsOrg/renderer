@@ -23,9 +23,11 @@
 #include <glm/gtx/transform.hpp>
 #include <string>
 
+#include "CharUtils.h"
+
 namespace nucleus {
 
-void MapLabel::init(const stbtt_bakedchar* character_data, const stbtt_fontinfo* fontinfo, int char_start, int char_end)
+void MapLabel::init(const std::unordered_map<int, const MapLabel::CharData>& character_data, const stbtt_fontinfo* fontinfo)
 {
     float offset_x = 0;
     float offset_y = -font_size / 2.0f + 75.0;
@@ -41,7 +43,7 @@ void MapLabel::init(const stbtt_bakedchar* character_data, const stbtt_fontinfo*
 
     m_label_position = nucleus::srs::lat_long_alt_to_world({ m_latitude, m_longitude, m_altitude });
 
-    std::vector<int> safe_chars = createCharList(rendered_text);
+    std::vector<int> safe_chars = CharUtils::string_to_unicode_int_list(rendered_text);
     float text_width = 0;
     std::vector<float> kerningOffsets = createTextMeta(character_data, fontinfo, safe_chars, text_width);
 
@@ -54,12 +56,11 @@ void MapLabel::init(const stbtt_bakedchar* character_data, const stbtt_fontinfo*
         m_label_position });
 
     for (int i = 0; i < safe_chars.size(); i++) {
-        const stbtt_bakedchar* b = character_data + int(safe_chars[i]) - 32;
-        float char_width = b->x1 - b->x0;
-        float char_height = b->y0 - b->y1;
 
-        m_vertices.push_back({ glm::vec4(offset_x + kerningOffsets[i] + b->xoff, offset_y - b->yoff, char_width, char_height), // vertex position + offset
-            glm::vec4(b->x0 * uv_width_norm, b->y0 * uv_width_norm, (b->x1 - b->x0) * uv_width_norm, (b->y1 - b->y0) * uv_width_norm), // uv position + offset
+        const MapLabel::CharData b = character_data.at(safe_chars[i]);
+
+        m_vertices.push_back({ glm::vec4(offset_x + kerningOffsets[i] + b.xoff, offset_y - b.yoff, b.width, -b.height), // vertex position + offset
+            glm::vec4(b.x * uv_width_norm, b.y * uv_width_norm, b.width * uv_width_norm, b.height * uv_width_norm), // uv position + offset
             m_label_position });
     }
 }
@@ -69,56 +70,34 @@ const std::vector<MapLabel::VertexData>& MapLabel::vertices() const
     return m_vertices;
 }
 
-// we are working with more then ascii chars -> but qt has some problems detecting them correctly -> separates those into two individual chars
-// therefore we combine them back together in here
-std::vector<int> inline MapLabel::createCharList(std::string text)
-{
-    std::vector<int> safe_chars;
-    bool special_char = false;
-
-    for (int i = 0; i < text.size(); i++) {
-        if (int(text[i]) == -61) {
-            // we are parsing a special char -> next char in line shows us what exactly it is
-            special_char = true;
-            continue;
-        }
-
-        int char_index = int(text[i]);
-        if (special_char) {
-            char_index += 320;
-            special_char = false;
-        }
-        safe_chars.push_back(char_index);
-    }
-
-    return std::move(safe_chars);
-}
-
 // calculate char offsets and text width
-std::vector<float> inline MapLabel::createTextMeta(const stbtt_bakedchar* character_data, const stbtt_fontinfo* fontinfo, std::vector<int> safe_chars, float& text_width)
+std::vector<float> inline MapLabel::createTextMeta(const std::unordered_map<int, const MapLabel::CharData>& character_data, const stbtt_fontinfo* fontinfo, std::vector<int> safe_chars, float& text_width)
 {
     std::vector<float> kerningOffsets;
 
     float scale = stbtt_ScaleForPixelHeight(fontinfo, font_size);
     float xOffset = 0;
     for (int i = 0; i < safe_chars.size(); i++) {
+        //        std::cout << "checking: " << safe_chars[i] << std::endl;
+        assert(character_data.contains(safe_chars[i]));
 
         int advance, lsb;
         stbtt_GetCodepointHMetrics(fontinfo, safe_chars[i], &advance, &lsb);
 
         kerningOffsets.push_back(xOffset);
 
-        xOffset += (advance * scale);
+        xOffset += advance * scale;
         if (i + 1 < safe_chars.size())
             xOffset += scale * stbtt_GetCodepointKernAdvance(fontinfo, safe_chars[i], safe_chars[i + 1]);
     }
     kerningOffsets.push_back(xOffset);
 
     { // get width of last char
-        const stbtt_bakedchar* b = character_data + int(safe_chars[safe_chars.size() - 1]) - 32;
-        float char_width = b->x1 - b->x0;
+        //        std::cout << "checking: " << safe_chars[safe_chars.size() - 1] << std::endl;
+        assert(character_data.contains(safe_chars[safe_chars.size() - 1]));
+        const MapLabel::CharData b = character_data.at(safe_chars[safe_chars.size() - 1]);
 
-        text_width = xOffset + char_width;
+        text_width = xOffset + b.width;
     }
 
     return std::move(kerningOffsets);

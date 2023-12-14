@@ -80,15 +80,18 @@ void MapLabelManager::init()
     m_vao->release();
 
     // load the font texture
-    font_texture = std::make_unique<QOpenGLTexture>(QOpenGLTexture::Target2D);
-    font_texture->setMinMagFilters(QOpenGLTexture::Linear, QOpenGLTexture::Linear);
-    font_texture->setWrapMode(QOpenGLTexture::WrapMode::ClampToEdge);
-    font_texture->create();
+    font_texture = std::make_unique<QOpenGLTexture>(m_mapLabelhandler.font_atlas());
+    font_texture->setMinificationFilter(QOpenGLTexture::LinearMipMapLinear);
+    font_texture->setMagnificationFilter(QOpenGLTexture::Linear);
+    //    font_texture = std::make_unique<QOpenGLTexture>(QOpenGLTexture::Target2D);
+    //    font_texture->setMinMagFilters(QOpenGLTexture::Linear, QOpenGLTexture::Linear);
+    //    font_texture->setWrapMode(QOpenGLTexture::WrapMode::ClampToEdge);
+    //    font_texture->create();
 
-    font_texture->setSize(512, 512, 1);
-    font_texture->setFormat(QOpenGLTexture::R8_UNorm);
-    font_texture->allocateStorage();
-    font_texture->setData(QOpenGLTexture::Red, QOpenGLTexture::UInt8, m_mapLabelhandler.font_bitmap());
+    //    font_texture->setSize(512, 512, 1);
+    //    font_texture->setFormat(QOpenGLTexture::R8_UNorm);
+    //    font_texture->allocateStorage();
+    //    font_texture->setData(QOpenGLTexture::Red, QOpenGLTexture::UInt8, m_mapLabelhandler.font_bitmap());
 
     // load the icon texture
     QImage icon = m_mapLabelhandler.icon();
