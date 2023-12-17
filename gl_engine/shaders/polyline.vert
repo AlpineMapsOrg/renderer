@@ -47,7 +47,7 @@ void main() {
   vec2 direction = normalize(next_screen - current_screen);
   vec2 normal = vec2(-direction.y, direction.x);
 
-  vec4 offset = vec4(normal * orientation, 0, 1);
+  vec4 offset = vec4(normal * orientation, 0, 0);
   gl_Position = current_projected + offset * width;
 
 #endif
