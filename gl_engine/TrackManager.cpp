@@ -79,7 +79,7 @@ namespace gl_engine
 #if (RENDER_STRATEGY == USE_POINTS)
             f->glDrawArrays(GL_LINE_STRIP, 0, track.point_count);
 #else
-            f->glDrawArrays(GL_TRIANGLE_STRIP, 0, track.point_count * 2);
+            f->glDrawArrays(GL_TRIANGLE_STRIP, 0, track.point_count * 2 - 1);
 #endif
         }
 
@@ -131,12 +131,17 @@ namespace gl_engine
 
 #if (RENDER_STRATEGY == USE_RIBBON_WITH_NORMALS)
 
-        f->glVertexAttribPointer(position_attrib_location, 3, GL_FLOAT, GL_FALSE, 2 * sizeof(glm::vec3), nullptr);
+        f->glVertexAttribPointer(position_attrib_location, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(glm::vec3), nullptr);
 
         const auto normal_attrib_location = m_shader->attribute_location("a_tangent");
         f->glEnableVertexAttribArray(normal_attrib_location);
-        f->glVertexAttribPointer(normal_attrib_location, 3, GL_FLOAT, GL_FALSE, 2 * sizeof(glm::vec3), (void*)(sizeof(glm::vec3)));
+        f->glVertexAttribPointer(normal_attrib_location, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(glm::vec3), (void*)(sizeof(glm::vec3)));
 #endif
+
+        const auto next_position_attrib_location = m_shader->attribute_location("a_next_position");
+        f->glEnableVertexAttribArray(next_position_attrib_location);
+        f->glVertexAttribPointer(next_position_attrib_location, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(glm::vec3), (void*)( 2 * sizeof(glm::vec3)));
+
 
 
         // glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 2 * sizeof(glm::vec2), (void *)0);

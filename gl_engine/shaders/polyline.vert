@@ -1,5 +1,6 @@
 layout(location = 0) in highp vec3 a_position;
 layout(location = 1) in highp vec3 a_tangent;
+layout(location = 2) in highp vec3 a_next_position;
 
 uniform highp mat4 matrix; // view projection matrix
 uniform highp vec3 camera_position;

@@ -365,6 +365,7 @@ void TerrainRendererItem::set_track_width(float width)
     m_track_width = width;
     emit track_width_changed(width);
     RenderThreadNotifier::instance()->notify();
+    schedule_update();
     // TODO: request update
 }
 

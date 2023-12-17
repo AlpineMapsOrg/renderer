@@ -148,18 +148,10 @@ std::vector<glm::vec3> to_world_ribbon(const std::vector<glm::vec3>& points, flo
         auto a = points[i];
         auto b = points[i + 1];
 
-        // triangle 1
-        ribbon.insert(ribbon.end(), {
-            a + offset,
-            b - offset,
-            a - offset
-        });
-
         // triangle 2
         ribbon.insert(ribbon.end(), {
+            a - offset,
             a + offset,
-            b + offset,
-            b - offset
         });
     }
     return ribbon;
@@ -181,8 +173,8 @@ std::vector<glm::vec3> to_world_ribbon_with_normals(const std::vector<glm::vec3>
         glm::vec3 tangent = glm::normalize(b - a);
 
         ribbon.insert(ribbon.end(), {
-            a - offset, -tangent,
-            a + offset,  tangent,
+            a - offset, -tangent, b,
+            a + offset,  tangent, b,
         });
     }
     return ribbon;
