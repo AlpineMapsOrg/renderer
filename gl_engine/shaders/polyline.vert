@@ -14,7 +14,6 @@ out vec3 color;
 
 void main() {
   vertex_id = gl_VertexID;
-  color = vec3(0.69, 0.12, 0.09);
 
   // could be done on cpu
   vec3 position = a_position - camera_position; 
@@ -26,19 +25,14 @@ void main() {
   vec3 view_dir = normalize(camera_position - a_position);
 
 #if (SCREEN_SPACE == 0)
-  vec3 offset = cross(a_tangent, view_dir);
 
+  color = vec3(0,1,0);
+  vec3 offset = cross(a_tangent, view_dir);
   gl_Position = matrix * vec4(position + offset * width, 1);
 
-#if 1
-  if (gl_VertexID % 2 == 0) {
-    color = vec3(1,0,0);
-  } else {
-    color = vec3(0,1,0);
-  }
-#endif
-
 #else
+
+  color = vec3(1,0,0);
 
   vec2 aspect_vec = vec2(aspect, 1);
 
@@ -48,16 +42,7 @@ void main() {
   vec2 current_screen = current_projected.xy / current_projected.w * aspect_vec;
   vec2 next_screen = next_projected.xy / next_projected.w * aspect_vec;
 
-
-  float orientation;
-
-  if (gl_VertexID % 2 == 0) {
-    orientation = +1;
-    //color = vec3(1,1,0);
-  } else {
-    orientation = -1;
-    //color = vec3(0,1,1);
-  }
+  float orientation = (gl_VertexID % 2 == 0) ? +1 : -1;
 
   vec2 direction = normalize(next_screen - current_screen);
   vec2 normal = vec2(-direction.y, direction.x);
