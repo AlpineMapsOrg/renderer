@@ -1,3 +1,6 @@
+
+#include "overlay_steepness.glsl"
+
 layout(location = 0) in highp vec3 a_position;
 layout(location = 1) in highp vec3 a_tangent;
 layout(location = 2) in highp vec3 a_next_position;
@@ -25,7 +28,8 @@ void main() {
   float horizontal_distance = length(vec3(dir.xy, 0));
   float elevation_difference = abs(next.z - position.z);
   float gradient = elevation_difference / horizontal_distance;
-  color = mix(vec3(0,1,0), vec3(1,0,0), gradient);
+
+  color = gradient_color(clamp(gradient, 0, 1));
 
 #if (SCREEN_SPACE == 0)
 
