@@ -71,6 +71,7 @@ namespace gl_engine
         m_shader->set_uniform("matrix", matrix);
         m_shader->set_uniform("camera_position", glm::vec3(camera.position()));
         m_shader->set_uniform("width", width);
+        m_shader->set_uniform("aspect", 16.0f / 9.0f); // TODO: make this dynamic
 
         for (const PolyLine &track : m_tracks)
         {
@@ -79,7 +80,7 @@ namespace gl_engine
 #if (RENDER_STRATEGY == USE_POINTS)
             f->glDrawArrays(GL_LINE_STRIP, 0, track.point_count);
 #else
-            f->glDrawArrays(GL_TRIANGLE_STRIP, 0, track.point_count * 2 - 1);
+            f->glDrawArrays(GL_TRIANGLE_STRIP, 0, track.point_count * 2 - 2);
 #endif
         }
 
