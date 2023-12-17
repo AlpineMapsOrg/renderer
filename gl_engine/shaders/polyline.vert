@@ -10,6 +10,8 @@ uniform highp float aspect;
 flat out int vertex_id;
 out vec3 color;
 
+#define SCREEN_SPACE 1
+
 void main() {
   vertex_id = gl_VertexID;
   color = vec3(0.69, 0.12, 0.09);
@@ -21,15 +23,9 @@ void main() {
   /* the sign of the normal is flipped for vertices that are under the 
   original points, so we displace in the correct direction. */
 
-  const vec3 up = vec3(0,0,1);
-
-#if 1
   vec3 view_dir = normalize(camera_position - a_position);
-#else
-  vec3 view_dir = up;
-#endif
 
-#if 0
+#if (SCREEN_SPACE == 0)
   vec3 offset = cross(a_tangent, view_dir);
 
   gl_Position = matrix * vec4(position + offset * width, 1);
@@ -44,7 +40,7 @@ void main() {
 
 #else
 
-  vec2 aspect_vec = vec2(aspect, 1.0f);
+  vec2 aspect_vec = vec2(aspect, 1);
 
   vec4 current_projected = matrix * vec4(position, 1);
   vec4 next_projected = matrix * vec4(next, 1);
@@ -53,24 +49,21 @@ void main() {
   vec2 next_screen = next_projected.xy / next_projected.w * aspect_vec;
 
 
-  float orientation = -1;
+  float orientation;
 
   if (gl_VertexID % 2 == 0) {
     orientation = +1;
-    color = vec3(1,0,0);
+    //color = vec3(1,1,0);
   } else {
     orientation = -1;
-    color = vec3(0,1,0);
+    //color = vec3(0,1,1);
   }
 
-  vec2 dir = normalize(next_screen - current_screen);
+  vec2 direction = normalize(next_screen - current_screen);
+  vec2 normal = vec2(-direction.y, direction.x);
 
-  vec2 perp = vec2(-dir.y, dir.x);
-
-  vec4 offset = vec4(perp * orientation, 0, 1);
+  vec4 offset = vec4(normal * orientation, 0, 1);
   gl_Position = current_projected + offset * width;
 
-
-  //gl_Position = current_projected;
 #endif
 }
