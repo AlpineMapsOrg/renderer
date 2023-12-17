@@ -361,12 +361,9 @@ void TerrainRendererItem::set_field_of_view(float new_field_of_view)
 
 void TerrainRendererItem::set_track_width(float width)
 {
-    qDebug() << "TerrainRendererItem::set_track_width(" << width << ")";
     m_track_width = width;
     emit track_width_changed(width);
-    RenderThreadNotifier::instance()->notify();
     schedule_update();
-    // TODO: request update
 }
 
 float TerrainRendererItem::track_width() const
