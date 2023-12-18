@@ -71,7 +71,7 @@ const std::vector<MapLabel::VertexData>& MapLabel::vertices() const
 }
 
 // calculate char offsets and text width
-std::vector<float> inline MapLabel::createTextMeta(const std::unordered_map<int, const MapLabel::CharData>& character_data, const stbtt_fontinfo* fontinfo, std::vector<int> safe_chars, float& text_width)
+std::vector<float> inline MapLabel::createTextMeta(const std::unordered_map<int, const MapLabel::CharData>& character_data, const stbtt_fontinfo* fontinfo, std::vector<int>& safe_chars, float& text_width)
 {
     std::vector<float> kerningOffsets;
 

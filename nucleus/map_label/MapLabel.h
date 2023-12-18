@@ -56,7 +56,7 @@ public:
     const std::vector<VertexData>& vertices() const;
 
 private:
-    std::vector<float> inline createTextMeta(const std::unordered_map<int, const MapLabel::CharData>& character_data, const stbtt_fontinfo* fontinfo, std::vector<int> safe_chars, float& text_width);
+    std::vector<float> inline createTextMeta(const std::unordered_map<int, const MapLabel::CharData>& character_data, const stbtt_fontinfo* fontinfo, std::vector<int>& safe_chars, float& text_width);
 
     std::vector<VertexData> m_vertices;
 
