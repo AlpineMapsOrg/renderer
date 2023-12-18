@@ -78,6 +78,10 @@ std::vector<float> inline MapLabel::createTextMeta(const std::unordered_map<int,
     float scale = stbtt_ScaleForPixelHeight(fontinfo, font_size);
     float xOffset = 0;
     for (int i = 0; i < safe_chars.size(); i++) {
+        if (!character_data.contains(safe_chars[i])) {
+            std::cout << "character with unicode index(Dec: " << safe_chars[i] << ") cannot be shown -> please add it to nucleus/map_label/MapLabelManager.h.all_char_list" << std::endl;
+            safe_chars[i] = 32; // replace with space character
+        }
         //        std::cout << "checking: " << safe_chars[i] << std::endl;
         assert(character_data.contains(safe_chars[i]));
 
@@ -93,8 +97,10 @@ std::vector<float> inline MapLabel::createTextMeta(const std::unordered_map<int,
     kerningOffsets.push_back(xOffset);
 
     { // get width of last char
-        //        std::cout << "checking: " << safe_chars[safe_chars.size() - 1] << std::endl;
-        assert(character_data.contains(safe_chars[safe_chars.size() - 1]));
+        if (!character_data.contains(safe_chars[safe_chars.size() - 1])) {
+            std::cout << "character with unicode index(Dec: " << safe_chars[safe_chars.size() - 1] << ") cannot be shown -> please add it to nucleus/map_label/MapLabelManager.h.all_char_list" << std::endl;
+            safe_chars[safe_chars.size() - 1] = 32; // replace with space character
+        }
         const MapLabel::CharData b = character_data.at(safe_chars[safe_chars.size() - 1]);
 
         text_width = xOffset + b.width;

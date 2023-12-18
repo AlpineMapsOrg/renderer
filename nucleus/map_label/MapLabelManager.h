@@ -35,14 +35,14 @@ public:
     void init();
     void createFont();
 
-    const uint8_t* font_bitmap() const;
     const std::vector<MapLabel>& labels() const;
     const std::vector<unsigned int>& indices() const;
     const QImage& font_atlas() const;
     const QImage& icon() const;
 
 private:
-    void bake_font();
+    // list of all characters that will be available (will be rendered to the font_atlas)
+    const std::string all_char_list = " ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789()[]{},;.:-_!\"§$%&/\\=+-*/#'~°^<>|@€´`öÖüÜäÄß";
 
     std::vector<MapLabel> m_labels;
 

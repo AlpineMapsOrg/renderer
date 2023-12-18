@@ -147,8 +147,6 @@ void inline MapLabelManager::make_outline(uint8_t* temp_bitmap, int lasty)
 
 void MapLabelManager::createFont()
 {
-    const std::string all_chars = " ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789()[]{},;.:-_!\"§$%&/\\=+-*/#'~°^<>|@€´`öÖüÜäÄß";
-
     // load ttf file
     QFile file(":/fonts/SourceSans3-Medium.ttf");
     const auto open = file.open(QIODeviceBase::OpenModeFlag::ReadOnly);
@@ -161,7 +159,7 @@ void MapLabelManager::createFont()
 
     uint8_t* temp_bitmap = new uint8_t[m_font_atlas_size.width() * m_font_atlas_size.height()];
 
-    const std::vector<int> safe_chars = CharUtils::string_to_unicode_int_list(all_chars);
+    const std::vector<int> safe_chars = CharUtils::string_to_unicode_int_list(all_char_list);
 
     float scale = stbtt_ScaleForPixelHeight(&m_fontinfo, MapLabel::font_size);
     STBTT_memset(temp_bitmap, 0, m_font_atlas_size.width() * m_font_atlas_size.height()); // background of 0 around pixel
@@ -172,9 +170,8 @@ void MapLabelManager::createFont()
 
     for (const int& c : safe_chars) {
         // code adapted from stbtt_BakeFontBitmap()
-        int advance, lsb, x0, y0, x1, y1, glyph_width, glyph_height;
+        int x0, y0, x1, y1, glyph_width, glyph_height;
         const int glyph_index = stbtt_FindGlyphIndex(&m_fontinfo, c);
-        stbtt_GetGlyphHMetrics(&m_fontinfo, glyph_index, &advance, &lsb);
         stbtt_GetGlyphBitmapBox(&m_fontinfo, glyph_index, scale, scale, &x0, &y0, &x1, &y1);
 
         glyph_width = x1 - x0;
@@ -189,7 +186,7 @@ void MapLabelManager::createFont()
         }
 
         stbtt_MakeGlyphBitmap(&m_fontinfo, temp_bitmap + x + y * m_font_atlas_size.width(), glyph_width, glyph_height, m_font_atlas_size.width(), scale, scale, glyph_index);
-        m_char_data.emplace(c, MapLabel::CharData { (unsigned short)(x - m_font_outline.x), (unsigned short)(y - m_font_outline.y), (unsigned short)(glyph_width + m_font_outline.x * 2), (unsigned short)(glyph_height + m_font_outline.y * 2), scale * advance, (float)x0 - m_font_outline.x, (float)y0 - m_font_outline.y });
+        m_char_data.emplace(c, MapLabel::CharData { (unsigned short)(x - m_font_outline.x), (unsigned short)(y - m_font_outline.y), (unsigned short)(glyph_width + m_font_outline.x * 2), (unsigned short)(glyph_height + m_font_outline.y * 2), (float)x0 - m_font_outline.x, (float)y0 - m_font_outline.y });
 
         x = x + glyph_width + 2 * m_font_outline.x + m_font_padding.x;
         if (y + glyph_height + m_font_outline.y + m_font_padding.y > bottom_y)
@@ -202,12 +199,7 @@ void MapLabelManager::createFont()
 
     // create a qimage with the data
     m_font_atlas = QImage(m_font_bitmap, m_font_atlas_size.width(), m_font_atlas_size.height(), QImage::Format_RGB888);
-    m_font_atlas.save("yeah.png");
-}
-
-const uint8_t* MapLabelManager::font_bitmap() const
-{
-    return m_font_bitmap;
+    //    m_font_atlas.save("font_atlas.png");
 }
 
 const std::vector<MapLabel>& MapLabelManager::labels() const

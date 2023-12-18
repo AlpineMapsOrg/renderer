@@ -47,8 +47,8 @@ private:
     std::unique_ptr<QOpenGLBuffer> m_vertex_buffer;
     std::unique_ptr<QOpenGLBuffer> m_index_buffer;
     std::unique_ptr<QOpenGLVertexArrayObject> m_vao;
-
-    nucleus::MapLabelManager m_mapLabelhandler;
+    
+    nucleus::MapLabelManager m_mapLabelManager;
     unsigned long m_instance_count;
 };
 } // namespace gl_engine

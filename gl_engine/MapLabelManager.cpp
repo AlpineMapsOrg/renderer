@@ -37,7 +37,7 @@ MapLabelManager::MapLabelManager()
 }
 void MapLabelManager::init()
 {
-    m_mapLabelhandler.init();
+    m_mapLabelManager.init();
 
     m_vao = std::make_unique<QOpenGLVertexArrayObject>();
     m_vao->create();
@@ -47,7 +47,7 @@ void MapLabelManager::init()
     m_index_buffer->create();
     m_index_buffer->bind();
     m_index_buffer->setUsagePattern(QOpenGLBuffer::StaticDraw);
-    m_index_buffer->allocate(m_mapLabelhandler.indices().data(), m_mapLabelhandler.indices().size() * sizeof(unsigned int));
+    m_index_buffer->allocate(m_mapLabelManager.indices().data(), m_mapLabelManager.indices().size() * sizeof(unsigned int));
 
     m_vertex_buffer = std::make_unique<QOpenGLBuffer>(QOpenGLBuffer::VertexBuffer);
     m_vertex_buffer->create();
@@ -55,7 +55,7 @@ void MapLabelManager::init()
     m_vertex_buffer->setUsagePattern(QOpenGLBuffer::StaticDraw);
 
     std::vector<nucleus::MapLabel::VertexData> allLabels;
-    for (const auto& label : m_mapLabelhandler.labels()) {
+    for (const auto& label : m_mapLabelManager.labels()) {
         allLabels.insert(allLabels.end(), label.vertices().begin(), label.vertices().end());
     }
 
@@ -80,27 +80,15 @@ void MapLabelManager::init()
     m_vao->release();
 
     // load the font texture
-    font_texture = std::make_unique<QOpenGLTexture>(m_mapLabelhandler.font_atlas());
+    font_texture = std::make_unique<QOpenGLTexture>(m_mapLabelManager.font_atlas());
     font_texture->setMinificationFilter(QOpenGLTexture::LinearMipMapLinear);
     font_texture->setMagnificationFilter(QOpenGLTexture::Linear);
-    //    font_texture = std::make_unique<QOpenGLTexture>(QOpenGLTexture::Target2D);
-    //    font_texture->setMinMagFilters(QOpenGLTexture::Linear, QOpenGLTexture::Linear);
-    //    font_texture->setWrapMode(QOpenGLTexture::WrapMode::ClampToEdge);
-    //    font_texture->create();
-
-    //    font_texture->setSize(512, 512, 1);
-    //    font_texture->setFormat(QOpenGLTexture::R8_UNorm);
-    //    font_texture->allocateStorage();
-    //    font_texture->setData(QOpenGLTexture::Red, QOpenGLTexture::UInt8, m_mapLabelhandler.font_bitmap());
 
     // load the icon texture
-    QImage icon = m_mapLabelhandler.icon();
+    QImage icon = m_mapLabelManager.icon();
     icon_texture = std::make_unique<QOpenGLTexture>(icon);
     icon_texture->setMinificationFilter(QOpenGLTexture::LinearMipMapLinear);
     icon_texture->setMagnificationFilter(QOpenGLTexture::Linear);
-    //    icon_texture->setMinMagFilters(QOpenGLTexture::Linear, QOpenGLTexture::Linear);
-    //    icon_texture->setWrapMode(QOpenGLTexture::WrapMode::MirroredRepeat);
-    icon_texture->create();
 }
 
 void MapLabelManager::draw(ShaderProgram* shader_program, const nucleus::camera::Definition& camera) const
@@ -112,6 +100,7 @@ void MapLabelManager::draw(ShaderProgram* shader_program, const nucleus::camera:
 
     glm::mat4 inv_view_rot = glm::inverse(camera.local_view_matrix());
     shader_program->set_uniform("inv_view_rot", inv_view_rot);
+    shader_program->set_uniform("label_dist_scaling", false);
 
     font_texture->bind(3);
     shader_program->set_uniform("font_sampler", 3);
@@ -121,7 +110,7 @@ void MapLabelManager::draw(ShaderProgram* shader_program, const nucleus::camera:
 
     m_vao->bind();
 
-    f->glDrawElementsInstanced(GL_TRIANGLES, m_mapLabelhandler.indices().size(), GL_UNSIGNED_INT, 0, m_instance_count);
+    f->glDrawElementsInstanced(GL_TRIANGLES, m_mapLabelManager.indices().size(), GL_UNSIGNED_INT, 0, m_instance_count);
 
     m_vao->release();
 }
