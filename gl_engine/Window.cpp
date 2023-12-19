@@ -312,10 +312,9 @@ void Window::paint(QOpenGLFramebufferObject* framebuffer)
     m_timer->stop_timer("compose");
 
     // DRAW LABELS
-
     m_shader_manager->labels_program()->bind();
     m_timer->start_timer("labels");
-    m_map_label_manager->draw(m_shader_manager->labels_program(), m_camera);
+    m_map_label_manager->draw(m_gbuffer.get(), m_shader_manager->labels_program(), m_camera);
     m_timer->stop_timer("labels");
     m_shader_manager->labels_program()->release();
 

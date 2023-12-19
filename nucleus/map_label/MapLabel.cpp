@@ -18,12 +18,8 @@
 
 #include "MapLabel.h"
 
-#include "nucleus/srs.h"
-#include <glm/glm.hpp>
-#include <glm/gtx/transform.hpp>
-#include <string>
-
 #include "CharUtils.h"
+#include "srs.h"
 
 namespace nucleus {
 
@@ -41,37 +37,37 @@ void MapLabel::init(const std::unordered_map<int, const MapLabel::CharData>& cha
     altitude_text = altitude_text.substr(0, altitude_text.find("."));
     std::string rendered_text = m_text + " (" + altitude_text + "m)";
 
-    m_label_position = nucleus::srs::lat_long_alt_to_world({ m_latitude, m_longitude, m_altitude });
+    glm::vec3 label_position = nucleus::srs::lat_long_alt_to_world({ m_latitude, m_longitude, m_altitude });
 
     std::vector<int> safe_chars = CharUtils::string_to_unicode_int_list(rendered_text);
     float text_width = 0;
-    std::vector<float> kerningOffsets = createTextMeta(character_data, fontinfo, safe_chars, text_width);
+    std::vector<float> kerningOffsets = create_text_meta(character_data, fontinfo, safe_chars, text_width);
 
     // center the text around the center
     offset_x -= text_width / 2.0;
 
     // label icon
-    m_vertices.push_back({ glm::vec4(-icon_size.x / 2.0, icon_size.y / 2.0, icon_size.x, -icon_size.y), // vertex position + offset
+    m_vertex_data.push_back({ glm::vec4(-icon_size.x / 2.0, icon_size.y / 2.0, icon_size.x, -icon_size.y), // vertex position + offset
         glm::vec4(10.0, 10.0, 1, 1), // uv position + offset
-        m_label_position });
+        label_position, m_importance });
 
     for (int i = 0; i < safe_chars.size(); i++) {
 
         const MapLabel::CharData b = character_data.at(safe_chars[i]);
 
-        m_vertices.push_back({ glm::vec4(offset_x + kerningOffsets[i] + b.xoff, offset_y - b.yoff, b.width, -b.height), // vertex position + offset
+        m_vertex_data.push_back({ glm::vec4(offset_x + kerningOffsets[i] + b.xoff, offset_y - b.yoff, b.width, -b.height), // vertex position + offset
             glm::vec4(b.x * uv_width_norm, b.y * uv_width_norm, b.width * uv_width_norm, b.height * uv_width_norm), // uv position + offset
-            m_label_position });
+            label_position, m_importance });
     }
 }
 
-const std::vector<MapLabel::VertexData>& MapLabel::vertices() const
+const std::vector<MapLabel::VertexData>& MapLabel::vertex_data() const
 {
-    return m_vertices;
+    return m_vertex_data;
 }
 
 // calculate char offsets and text width
-std::vector<float> inline MapLabel::createTextMeta(const std::unordered_map<int, const MapLabel::CharData>& character_data, const stbtt_fontinfo* fontinfo, std::vector<int>& safe_chars, float& text_width)
+std::vector<float> inline MapLabel::create_text_meta(const std::unordered_map<int, const MapLabel::CharData>& character_data, const stbtt_fontinfo* fontinfo, std::vector<int>& safe_chars, float& text_width)
 {
     std::vector<float> kerningOffsets;
 

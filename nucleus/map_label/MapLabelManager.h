@@ -33,7 +33,6 @@ public:
     ~MapLabelManager();
 
     void init();
-    void createFont();
 
     const std::vector<MapLabel>& labels() const;
     const std::vector<unsigned int>& indices() const;
@@ -44,23 +43,22 @@ private:
     // list of all characters that will be available (will be rendered to the font_atlas)
     const std::string all_char_list = " ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789()[]{},;.:-_!\"§$%&/\\=+-*/#'~°^<>|@€´`öÖüÜäÄß";
 
-    std::vector<MapLabel> m_labels;
-
-    stbtt_fontinfo m_fontinfo;
-    uint8_t* m_font_bitmap;
-
     static constexpr glm::vec2 m_font_outline = glm::vec2(2, 2);
     static constexpr glm::vec2 m_font_padding = glm::vec2(2, 2);
+    static constexpr QSize m_font_atlas_size = QSize(512, 512);
 
-    void inline make_outline(uint8_t* temp_bitmap, int lasty);
-
+    std::vector<MapLabel> m_labels;
     std::vector<unsigned int> m_indices;
 
     std::unordered_map<int, const MapLabel::CharData> m_char_data;
 
+    stbtt_fontinfo m_fontinfo;
+    uint8_t* m_font_bitmap;
+
+    void create_font();
+    void inline make_outline(uint8_t* temp_bitmap, int lasty);
+
     QImage m_font_atlas;
     QImage m_icon;
-
-    QSize m_font_atlas_size;
 };
 } // namespace nucleus

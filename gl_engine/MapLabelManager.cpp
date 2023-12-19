@@ -20,14 +20,6 @@
 #include "ShaderProgram.h"
 #include "qopenglextrafunctions.h"
 
-#include <QDirIterator>
-#include <QFile>
-#include <QThread>
-#include <QTimer>
-
-#include <iostream>
-#include <string>
-
 #include "nucleus/map_label/MapLabel.h"
 
 namespace gl_engine {
@@ -56,7 +48,7 @@ void MapLabelManager::init()
 
     std::vector<nucleus::MapLabel::VertexData> allLabels;
     for (const auto& label : m_mapLabelManager.labels()) {
-        allLabels.insert(allLabels.end(), label.vertices().begin(), label.vertices().end());
+        allLabels.insert(allLabels.end(), label.vertex_data().begin(), label.vertex_data().end());
     }
 
     m_vertex_buffer->allocate(allLabels.data(), allLabels.size() * sizeof(nucleus::MapLabel::VertexData));
@@ -74,8 +66,12 @@ void MapLabelManager::init()
     f->glVertexAttribDivisor(1, 1); // buffer is active for 1 instance (for the whole quad)
     // world position
     f->glEnableVertexAttribArray(2);
-    f->glVertexAttribPointer(2, 3, GL_FLOAT, GL_FALSE, sizeof(nucleus::MapLabel::VertexData), (GLvoid*)(sizeof(glm::vec4) * 2));
+    f->glVertexAttribPointer(2, 3, GL_FLOAT, GL_FALSE, sizeof(nucleus::MapLabel::VertexData), (GLvoid*)((sizeof(glm::vec4) * 2)));
     f->glVertexAttribDivisor(2, 1); // buffer is active for 1 instance (for the whole quad)
+    // label importance
+    f->glEnableVertexAttribArray(3);
+    f->glVertexAttribPointer(3, 1, GL_FLOAT, GL_FALSE, sizeof(nucleus::MapLabel::VertexData), (GLvoid*)((sizeof(glm::vec4) * 2 + (sizeof(glm::vec3)))));
+    f->glVertexAttribDivisor(3, 1); // buffer is active for 1 instance (for the whole quad)
 
     m_vao->release();
 
@@ -91,7 +87,7 @@ void MapLabelManager::init()
     icon_texture->setMagnificationFilter(QOpenGLTexture::Linear);
 }
 
-void MapLabelManager::draw(ShaderProgram* shader_program, const nucleus::camera::Definition& camera) const
+void MapLabelManager::draw(Framebuffer* gbuffer, ShaderProgram* shader_program, const nucleus::camera::Definition& camera) const
 {
     QOpenGLExtraFunctions* f = QOpenGLContext::currentContext()->extraFunctions();
 
@@ -102,11 +98,14 @@ void MapLabelManager::draw(ShaderProgram* shader_program, const nucleus::camera:
     shader_program->set_uniform("inv_view_rot", inv_view_rot);
     shader_program->set_uniform("label_dist_scaling", false);
 
-    font_texture->bind(3);
-    shader_program->set_uniform("font_sampler", 3);
+    shader_program->set_uniform("texin_depth", 0);
+    gbuffer->bind_colour_texture(1, 0);
 
-    icon_texture->bind(4);
-    shader_program->set_uniform("icon_sampler", 4);
+    shader_program->set_uniform("font_sampler", 1);
+    font_texture->bind(1);
+
+    shader_program->set_uniform("icon_sampler", 2);
+    icon_texture->bind(2);
 
     m_vao->bind();
 

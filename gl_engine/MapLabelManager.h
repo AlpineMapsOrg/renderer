@@ -18,6 +18,7 @@
 
 #pragma once
 
+#include "Framebuffer.h"
 #include "nucleus/camera/Definition.h"
 #include "nucleus/map_label/MapLabelManager.h"
 
@@ -38,7 +39,7 @@ public:
     explicit MapLabelManager();
 
     void init();
-    void draw(ShaderProgram* shader_program, const nucleus::camera::Definition& camera) const;
+    void draw(Framebuffer* gbuffer, ShaderProgram* shader_program, const nucleus::camera::Definition& camera) const;
 
 private:
     std::unique_ptr<QOpenGLTexture> font_texture;

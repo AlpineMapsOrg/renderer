@@ -33,12 +33,13 @@ class MapLabel {
 public:
     struct CharData {
         unsigned short x, y, width, height; // coordinates of bbox in bitmap
-        float xoff, yoff;
+        float xoff, yoff; // position offsets for e.g. lower/uppercase
     };
     struct VertexData {
         glm::vec4 position; // start_x, start_y, offset_x, offset_y
         glm::vec4 uv; // start_u, start_v, offset_u, offset_v
         glm::vec3 world_position;
+        float importance;
     };
 
     MapLabel(std::string text, double latitude, double longitude, float altitude, float importance)
@@ -53,19 +54,17 @@ public:
     constexpr static float font_size = 30.0f;
     constexpr static glm::vec2 icon_size = glm::vec2(30.0f);
 
-    const std::vector<VertexData>& vertices() const;
+    const std::vector<VertexData>& vertex_data() const;
 
 private:
-    std::vector<float> inline createTextMeta(const std::unordered_map<int, const MapLabel::CharData>& character_data, const stbtt_fontinfo* fontinfo, std::vector<int>& safe_chars, float& text_width);
+    std::vector<float> inline create_text_meta(const std::unordered_map<int, const MapLabel::CharData>& character_data, const stbtt_fontinfo* fontinfo, std::vector<int>& safe_chars, float& text_width);
 
-    std::vector<VertexData> m_vertices;
+    std::vector<VertexData> m_vertex_data;
 
     std::string m_text;
     double m_latitude;
     double m_longitude;
     float m_altitude;
     float m_importance;
-
-    glm::vec3 m_label_position;
 };
 } // namespace nucleus
