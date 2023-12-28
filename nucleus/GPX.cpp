@@ -100,23 +100,6 @@ namespace gpx {
     }
 } // namespace gpx
 
-Track::Track(const gpx::Gpx& gpx)
-{
-    std::vector<glm::dvec3> combined;
-
-    for (const gpx::TrackSegment& segment : gpx.track) {
-        combined.insert(combined.end(), segment.begin(), segment.end());
-    }
-
-    std::vector<glm::vec3> track(combined.size());
-
-    points.reserve(combined.size());
-
-    for (int i = 0; i < combined.size(); i++) {
-        points[i] = glm::vec3(srs::lat_long_alt_to_world(combined[i]));
-    }
-}
-
 std::vector<glm::vec3> to_world_points(const gpx::Gpx& gpx)
 {
     std::vector<glm::dvec3> track;
@@ -129,7 +112,6 @@ std::vector<glm::vec3> to_world_points(const gpx::Gpx& gpx)
 
     for (int i = 0; i < track.size(); i++) {
         points[i] = glm::vec3(srs::lat_long_alt_to_world(track[i]));
-        // std::cout << points[i] << std::endl;
     }
 
     std::cout << points[0] << std::endl;
@@ -180,6 +162,40 @@ std::vector<glm::vec3> to_world_ribbon_with_normals(const std::vector<glm::vec3>
     return ribbon;
 
 
+}
+
+// 1 dimensional gaussian 
+float gaussian_1D(float x, float sigma = 1.0f) 
+{
+    return (1.0 / std::sqrt(2 * M_PI * sigma)) * std::exp(-(x * x) / (2 * (sigma * sigma)));
+}
+
+void gaussian_filter(std::vector<glm::vec3>& points, float sigma)
+{
+    const int radius = 2;
+    const int kernel_size = (radius * 2) + 1;
+    float kernel[kernel_size];
+    float kernel_sum = 0.0f;
+
+    // create kernel 
+    for (int x = -radius; x <= radius; x++)
+    {
+        kernel[x + radius] = gaussian_1D(static_cast<float>(x), sigma);
+        kernel_sum += kernel[x + radius];
+    }
+
+    // normalize kernel
+    for (int i = 0; i < kernel_size; i++) kernel[i] /= kernel_sum;
+
+    for (int i = radius; i < points.size() - radius; i++)
+    {
+        glm::vec3 value(0.0f);
+
+        for (int j = -radius; j <= radius; j++) 
+            value += points[i + j] * kernel[j + radius];
+
+        points[i] = value;
+    }
 }
 
 } // namespace nucleus

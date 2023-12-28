@@ -25,15 +25,12 @@ namespace gpx {
 
 } // namespace gpx
 
-struct Track {
-    Track(const gpx::Gpx& gpx);
-    std::vector<glm::vec3> points;
-};
-
 std::vector<glm::vec3> to_world_points(const gpx::Gpx& gpx);
 
 std::vector<glm::vec3> to_world_ribbon(const std::vector<glm::vec3>& points, float width);
 
 std::vector<glm::vec3> to_world_ribbon_with_normals(const std::vector<glm::vec3>& points, float width);
+
+void gaussian_filter(std::vector<glm::vec3>& points, float sigma = 1.0f);
 
 } // namespace nucleus

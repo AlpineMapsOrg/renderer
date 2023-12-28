@@ -270,7 +270,7 @@ SetPanel {
         Label { text: "Track-Width:" }
         ValSlider {
             id: track_width;
-            from: 1; to: 32; stepSize: 1;
+            from: 1; to: 32; stepSize: 1; value: 5;
             onMoved: map.track_width = value;
         }
     }

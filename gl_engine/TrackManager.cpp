@@ -41,6 +41,8 @@
 
 #define RENDER_STRATEGY USE_RIBBON_WITH_NORMALS
 
+#define WIREFRAME 0
+
 namespace gl_engine
 {
 
@@ -57,11 +59,9 @@ namespace gl_engine
     void TrackManager::draw(const nucleus::camera::Definition &camera) const
     {
         QOpenGLExtraFunctions *f = QOpenGLContext::currentContext()->extraFunctions();
-        //QOpenGLFunctions *f2 = QOpenGLContext::currentContext()->functions();;
         auto funcs = QOpenGLVersionFunctionsFactory::get<QOpenGLFunctions_3_3_Core>(QOpenGLContext::currentContext()); // for wireframe mode
 
-        f->glDisable(GL_CULL_FACE);
-#if 1
+#if WIREFRAME
         funcs->glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
 #endif
 
@@ -85,7 +85,6 @@ namespace gl_engine
         }
 
         m_shader->release();
-        f->glEnable(GL_CULL_FACE);
         funcs->glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
     }
 
@@ -96,6 +95,10 @@ namespace gl_engine
         qDebug() << "TrackManager::add_track()\n";
 
         std::vector<glm::vec3> points = nucleus::to_world_points(gpx);
+
+        // reduce variance in points
+        nucleus::gaussian_filter(points, 1.0f);
+
         size_t point_count = points.size();
 
 #if (RENDER_STRATEGY == USE_RIBBON)
@@ -139,16 +142,12 @@ namespace gl_engine
         f->glVertexAttribPointer(normal_attrib_location, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(glm::vec3), (void*)(sizeof(glm::vec3)));
 #endif
 
+#if 1
         const auto next_position_attrib_location = m_shader->attribute_location("a_next_position");
+        assert(next_position_attrib_location <= 29);
         f->glEnableVertexAttribArray(next_position_attrib_location);
-        f->glVertexAttribPointer(next_position_attrib_location, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(glm::vec3), (void*)( 2 * sizeof(glm::vec3)));
-
-
-
-        // glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 2 * sizeof(glm::vec2), (void *)0);
-        // glEnableVertexAttribArray(0);
-        // glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 2 * sizeof(glm::vec2), (void *)(sizeof(glm::vec2)));
-        // glEnableVertexAttribArray(1);
+        f->glVertexAttribPointer(next_position_attrib_location, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(glm::vec3), (void*)(2 * sizeof(glm::vec3)));
+#endif
 
         polyline.point_count = point_count;
 
