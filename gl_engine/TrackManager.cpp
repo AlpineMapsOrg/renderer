@@ -74,9 +74,11 @@ namespace gl_engine
         m_shader->set_uniform("width", width);
         m_shader->set_uniform("aspect", 16.0f / 9.0f); // TODO: make this dynamic
         m_shader->set_uniform("visualize_steepness", false); // TODO: make this dynamic
+        m_shader->set_uniform("texin_vertices", 6);
 
         for (const PolyLine &track : m_tracks)
         {
+            track.data_texture->bind(6);
             track.vao->bind();
 
 #if (RENDER_STRATEGY == USE_POINTS)
@@ -111,7 +113,19 @@ namespace gl_engine
         std::vector<glm::vec3> ribbon = nucleus::to_world_ribbon_with_normals(points, 0.0f);
 #endif
 
+
+        std::vector<glm::vec3> basic_ribbon = nucleus::to_world_ribbon(points, 0.0f);
+
         PolyLine polyline;
+
+        polyline.data_texture = std::make_unique<QOpenGLTexture>(QOpenGLTexture::Target::Target2D);
+        polyline.data_texture->setFormat(QOpenGLTexture::TextureFormat::RGB32F);
+        polyline.data_texture->setSize(basic_ribbon.size(), 1);
+        polyline.data_texture->setAutoMipMapGenerationEnabled(false);
+        polyline.data_texture->setMinMagFilters(QOpenGLTexture::Filter::Nearest, QOpenGLTexture::Filter::Nearest);
+        polyline.data_texture->setWrapMode(QOpenGLTexture::WrapMode::Repeat);
+        polyline.data_texture->allocateStorage();
+        polyline.data_texture->setData(QOpenGLTexture::RGB, QOpenGLTexture::Float32, basic_ribbon.data());
 
         polyline.vao = std::make_unique<QOpenGLVertexArrayObject>();
         polyline.vao->create();

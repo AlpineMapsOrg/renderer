@@ -25,6 +25,7 @@
 
 #include <QOpenGLBuffer>
 #include <QOpenGLVertexArrayObject>
+#include <QOpenGLTexture>
 
 namespace gl_engine {
 
@@ -32,6 +33,7 @@ struct PolyLine {
     GLsizei point_count;
     std::unique_ptr<QOpenGLVertexArrayObject> vao = nullptr;
     std::unique_ptr<QOpenGLBuffer> vbo = nullptr;
+    std::unique_ptr<QOpenGLTexture> data_texture;
 };
 
 } // namespace gl_engine

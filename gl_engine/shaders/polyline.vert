@@ -10,6 +10,7 @@ uniform highp vec3 camera_position;
 uniform highp float width;
 uniform highp float aspect;
 uniform highp bool visualize_steepness;
+uniform highp sampler2D texin_vertices;
 
 flat out int vertex_id;
 out vec3 color;
@@ -19,8 +20,10 @@ out vec3 color;
 void main() {
   vertex_id = gl_VertexID;
 
+  highp vec3 tex_position = texelFetch(texin_vertices, ivec2(gl_VertexID, 0), 0).xyz; 
+
   // could be done on cpu
-  vec3 position = a_position - camera_position; 
+  vec3 position = tex_position - camera_position; 
   vec3 next = a_next_position - camera_position;
 
   vec3 view_dir = normalize(camera_position - a_position);
