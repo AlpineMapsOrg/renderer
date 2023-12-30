@@ -9,6 +9,7 @@ uniform highp mat4 matrix; // view projection matrix
 uniform highp vec3 camera_position;
 uniform highp float width;
 uniform highp float aspect;
+uniform highp bool visualize_steepness;
 
 flat out int vertex_id;
 out vec3 color;
@@ -24,12 +25,16 @@ void main() {
 
   vec3 view_dir = normalize(camera_position - a_position);
 
-  vec3 dir = next - position;
-  float horizontal_distance = length(vec3(dir.xy, 0));
-  float elevation_difference = abs(next.z - position.z);
-  float gradient = elevation_difference / horizontal_distance;
 
-  color = gradient_color(clamp(gradient, 0, 1));
+  if (visualize_steepness) {
+    vec3 dir = next - position;
+    float horizontal_distance = length(vec3(dir.xy, 0));
+    float elevation_difference = abs(next.z - position.z);
+    float gradient = elevation_difference / horizontal_distance;
+    color = gradient_color(clamp(gradient, 0, 1));
+  } else {
+    color = vec3(1,0,0);
+  }
 
 #if (SCREEN_SPACE == 0)
 

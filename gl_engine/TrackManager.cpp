@@ -41,7 +41,8 @@
 
 #define RENDER_STRATEGY USE_RIBBON_WITH_NORMALS
 
-#define WIREFRAME 0
+#define WIREFRAME                       0
+#define SMOOTH_POINTS                   1
 
 namespace gl_engine
 {
@@ -72,6 +73,7 @@ namespace gl_engine
         m_shader->set_uniform("camera_position", glm::vec3(camera.position()));
         m_shader->set_uniform("width", width);
         m_shader->set_uniform("aspect", 16.0f / 9.0f); // TODO: make this dynamic
+        m_shader->set_uniform("visualize_steepness", false); // TODO: make this dynamic
 
         for (const PolyLine &track : m_tracks)
         {
@@ -97,7 +99,9 @@ namespace gl_engine
         std::vector<glm::vec3> points = nucleus::to_world_points(gpx);
 
         // reduce variance in points
+#if (SMOOTH_POINTS == 1)
         nucleus::gaussian_filter(points, 1.0f);
+#endif
 
         size_t point_count = points.size();
 
