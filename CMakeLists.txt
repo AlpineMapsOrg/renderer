@@ -70,7 +70,7 @@ FetchContent_Declare(
   alpineapp_fonts
   DOWNLOAD_EXTRACT_TIMESTAMP true
   URL      https://github.com/adobe-fonts/source-sans/archive/refs/heads/release.zip
-  URL_HASH MD5=681612d5ad33731c512ce056d2ca2297
+  URL_HASH MD5=bb6d9452a122995605376daff91a192e
 )
 FetchContent_Declare(fmt GIT_REPOSITORY https://github.com/fmtlib/fmt.git)
 FetchContent_Declare(zppbits GIT_REPOSITORY https://github.com/eyalz800/zpp_bits.git GIT_TAG main)
