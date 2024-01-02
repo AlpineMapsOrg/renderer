@@ -283,6 +283,7 @@ void outputMeaningfullErrors(const QString& qtLog, const QString& code, const QS
     // effectively, we don't see any error
     std::cerr << "Compiling Error(s) @file: " << file.toStdString() << "\n" << qtLog.toStdString() << std::endl;
     fflush(stderr);
+    fflush(stdout);
     return;
 #else
     static QRegularExpression re(R"RX(ERROR: (\d+):(\d+): (.+))RX");
@@ -319,6 +320,7 @@ void ShaderProgram::reload()
         // effectively, we don't see any error
         std::cerr << "error linking shader " << m_vertex_shader.toStdString() << "and" << m_fragment_shader.toStdString() << std::endl;
         fflush(stderr);
+        fflush(stdout);
 #else
         qCritical() << "error linking shader " << m_vertex_shader.toStdString() << "and" << m_fragment_shader.toStdString();
 #endif
