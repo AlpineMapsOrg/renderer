@@ -274,9 +274,7 @@ void ShaderProgram::set_uniform_array(const std::string& name, const std::vector
 // I want the actual line that an error relates to also outputed...
 void outputMeaningfullErrors(const QString& qtLog, const QString& code, const QString& file)
 {
-#ifndef __EMSCRIPTEN__
-    static QRegularExpression re(R"RX((\d+)\((\d+)\) : (.+))RX");
-#elif defined(_MSC_VER)
+#if defined(_MSC_VER)
     // msvc has a different error text (matchers don't work)
     // when using msvc in github ci qDebug/Critical don't print when an assert fails
     // effectively, we don't see any error
@@ -284,6 +282,8 @@ void outputMeaningfullErrors(const QString& qtLog, const QString& code, const QS
     fflush(stderr);
     fflush(stdout);
     return;
+#elif !defined(__EMSCRIPTEN__)
+    static QRegularExpression re(R"RX((\d+)\((\d+)\) : (.+))RX");
 #else
     static QRegularExpression re(R"RX(ERROR: (\d+):(\d+): (.+))RX");
 #endif
