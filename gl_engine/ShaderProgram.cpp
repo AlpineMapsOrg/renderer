@@ -181,8 +181,6 @@ ShaderProgram::ShaderProgram(QString vertex_shader, QString fragment_shader, Sha
     : m_code_source(code_source), m_vertex_shader(vertex_shader), m_fragment_shader(fragment_shader)
 {
     reload();
-    fflush(stdout);
-    fflush(stderr);
     assert(m_q_shader_program);
 }
 
@@ -276,7 +274,12 @@ void ShaderProgram::set_uniform_array(const std::string& name, const std::vector
 // I want the actual line that an error relates to also outputed...
 void outputMeaningfullErrors(const QString& qtLog, const QString& code, const QString& file) {
     QStringList code_lines = code.split('\n');
+    // #if defined(_MSC_VER)
     std::cerr << "Compiling Error(s) @file: " << file.toStdString() << "\n" << qtLog.toStdString();
+    fflush(stdout);
+    fflush(stderr);
+    return;
+// #endif
 #ifndef __EMSCRIPTEN__
     static QRegularExpression re(R"RX((\d+)\((\d+)\) : (.+))RX");
 #else
