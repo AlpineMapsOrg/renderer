@@ -181,46 +181,6 @@ ShaderProgram::ShaderProgram(QString vertex_shader, QString fragment_shader, Sha
     : m_code_source(code_source), m_vertex_shader(vertex_shader), m_fragment_shader(fragment_shader)
 {
     reload();
-    qDebug() << "qDebug test test test test test test test test test test test test test test test test test test test test test";
-    qDebug() << "qDebug test test test test test test test test test test test test test test test test test test test test test";
-    qDebug() << "qDebug test test test test test test test test test test test test test test test test test test test test test";
-    qDebug() << "qDebug test test test test test test test test test test test test test test test test test test test test test";
-    qDebug() << "qDebug test test test test test test test test test test test test test test test test test test test test test";
-    qDebug() << "qDebug test test test test test test test test test test test test test test test test test test test test test";
-    qDebug() << "qDebug test test test test test test test test test test test test test test test test test test test test test";
-    qDebug() << "qDebug test test test test test test test test test test test test test test test test test test test test test";
-    qDebug() << "qDebug test test test test test test test test test test test test test test test test test test test test test";
-    qDebug() << "qDebug test test test test test test test test test test test test test test test test test test test test test";
-    qDebug() << "qDebug test test test test test test test test test test test test test test test test test test test test test";
-    qDebug() << "qDebug test test test test test test test test test test test test test test test test test test test test test";
-    qDebug() << "qDebug test test test test test test test test test test test test test test test test test test test test test";
-    qDebug() << "qDebug test test test test test test test test test test test test test test test test test test test test test";
-    qDebug() << "qDebug test test test test test test test test test test test test test test test test test test test test test";
-    qDebug() << "qDebug test test test test test test test test test test test test test test test test test test test test test";
-    qDebug() << "qDebug test test test test test test test test test test test test test test test test test test test test test";
-    qDebug() << "qDebug test test test test test test test test test test test test test test test test test test test test test";
-    qDebug() << "qDebug test test test test test test test test test test test test test test test test test test test test test";
-    qDebug() << "qDebug test test test test test test test test test test test test test test test test test test test test test";
-    qDebug() << "qDebug test test test test test test test test test test test test test test test test test test test test test";
-    qDebug() << "qDebug test test test test test test test test test test test test test test test test test test test test test";
-    qDebug() << "qDebug test test test test test test test test test test test test test test test test test test test test test";
-    qDebug() << "qDebug test test test test test test test test test test test test test test test test test test test test test";
-    qCritical() << "qCritical test test test test test test test test test test test test test test test test test test test test";
-    qCritical() << "qCritical test test test test test test test test test test test test test test test test test test test test";
-    qCritical() << "qCritical test test test test test test test test test test test test test test test test test test test test";
-    qCritical() << "qCritical test test test test test test test test test test test test test test test test test test test test";
-    qCritical() << "qCritical test test test test test test test test test test test test test test test test test test test test";
-    qCritical() << "qCritical test test test test test test test test test test test test test test test test test test test test";
-    qCritical() << "qCritical test test test test test test test test test test test test test test test test test test test test";
-    qCritical() << "qCritical test test test test test test test test test test test test test test test test test test test test";
-    qCritical() << "qCritical test test test test test test test test test test test test test test test test test test test test";
-    qCritical() << "qCritical test test test test test test test test test test test test test test test test test test test test";
-    qCritical() << "qCritical test test test test test test test test test test test test test test test test test test test test";
-    qCritical() << "qCritical test test test test test test test test test test test test test test test test test test test test";
-    qCritical() << "qCritical test test test test test test test test test test test test test test test test test test test test";
-    qCritical() << "qCritical test test test test test test test test test test test test test test test test test test test test";
-    std::cout << "should print std::cout" << std::endl;
-    std::cerr << "should print std::cerr" << std::endl;
     fflush(stdout);
     fflush(stderr);
     assert(m_q_shader_program);
@@ -316,7 +276,7 @@ void ShaderProgram::set_uniform_array(const std::string& name, const std::vector
 // I want the actual line that an error relates to also outputed...
 void outputMeaningfullErrors(const QString& qtLog, const QString& code, const QString& file) {
     QStringList code_lines = code.split('\n');
-    qCritical() << "Compiling Error(s) @file: " << file;
+    std::cerr << "Compiling Error(s) @file: " << file.toStdString();
 #ifndef __EMSCRIPTEN__
     static QRegularExpression re(R"RX((\d+)\((\d+)\) : (.+))RX");
 #else
@@ -331,9 +291,10 @@ void outputMeaningfullErrors(const QString& qtLog, const QString& code, const QS
         auto line_number = match.captured(2).toInt();
 
         if (line_number >= 0 && line_number < code_lines.size()) {
-            qCritical() << error_message << " on following line: " << "\n\r" << code_lines[line_number].trimmed();
+            std::cerr << error_message.toStdString() << " on following line: "
+                      << "\n\r" << code_lines[line_number].trimmed().toStdString();
         } else {
-            qCritical() << "Error " << error_message << " appeared on line number which exceeds the input code string.";
+            std::cerr << "Error " << error_message.toStdString() << " appeared on line number which exceeds the input code string.";
         }
     }
 }
@@ -348,7 +309,7 @@ void ShaderProgram::reload()
     } else if (!program->addShaderFromSourceCode(QOpenGLShader::Fragment, fragmentCode)) {
         outputMeaningfullErrors(program->log(), fragmentCode, m_fragment_shader);
     } else if (!program->link()) {
-        qDebug() << "error linking shader " << m_vertex_shader << "and" << m_fragment_shader;
+        std::cerr << "error linking shader " << m_vertex_shader.toStdString() << "and" << m_fragment_shader.toStdString();
     } else {
         // NO ERROR
         m_q_shader_program = std::move(program);
