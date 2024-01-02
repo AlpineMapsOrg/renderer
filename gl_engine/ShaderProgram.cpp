@@ -272,9 +272,8 @@ void ShaderProgram::set_uniform_array(const std::string& name, const std::vector
 
 // Helper function because i get frustrated with the shader compile errors...
 // I want the actual line that an error relates to also outputed...
-void outputMeaningfullErrors(const QString& qtLog, const QString& code, const QString& file) {
-    QStringList code_lines = code.split('\n');
-    qCritical() << "Compiling Error(s) @file: " << file.toStdString();
+void outputMeaningfullErrors(const QString& qtLog, const QString& code, const QString& file)
+{
 #ifndef __EMSCRIPTEN__
     static QRegularExpression re(R"RX((\d+)\((\d+)\) : (.+))RX");
 #elif defined(_MSC_VER)
@@ -289,6 +288,8 @@ void outputMeaningfullErrors(const QString& qtLog, const QString& code, const QS
     static QRegularExpression re(R"RX(ERROR: (\d+):(\d+): (.+))RX");
 #endif
     re.setPatternOptions(QRegularExpression::CaseInsensitiveOption);
+    QStringList code_lines = code.split('\n');
+    qCritical() << "Compiling Error(s) @file: " << file.toStdString();
     QRegularExpressionMatchIterator matchIterator = re.globalMatch(qtLog);
     while (matchIterator.hasNext()) {
         QRegularExpressionMatch match = matchIterator.next();
