@@ -17,12 +17,12 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *****************************************************************************/
 
-#include <QCoreApplication>
+#include <QGuiApplication>
 #include <catch2/catch_session.hpp>
 
 int main( int argc, char* argv[] ) {
     int argc_qt = 1;
-    QCoreApplication app = {argc_qt, argv};
+    QGuiApplication app = {argc_qt, argv};
     QCoreApplication::setOrganizationName("AlpineMaps.org");
 #ifdef __ANDROID__
     std::vector<char*> argv_2;

@@ -19,6 +19,7 @@
 #include "UnittestGLContext.h"
 
 #include <cstdio>
+#include <memory>
 
 #include <QGuiApplication>
 #include <QOffscreenSurface>
@@ -67,5 +68,6 @@ UnittestGLContext::UnittestGLContext()
 
 void UnittestGLContext::initialise()
 {
-    static UnittestGLContext s_instance;
+    static std::unique_ptr<UnittestGLContext> s_instance = std::unique_ptr<UnittestGLContext>(new UnittestGLContext());
+    QObject::connect(QCoreApplication::instance(), &QCoreApplication::destroyed, []() { s_instance.reset(); });
 }
