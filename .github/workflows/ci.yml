@@ -92,12 +92,10 @@ jobs:
       if: matrix.os == 'ubuntu-latest'
       env:
         QT_QPA_PLATFORM: offscreen
-        QT_DEBUG_PLUGINS: 1
         DISPLAY: :1
       run: |
         ./build/alp_external/radix/unittests/unittests_radix
         ./build/unittests/nucleus/unittests_nucleus
-        Xvfb :1 -screen 0 1024x768x16 &
         ./build/unittests/gl_engine/unittests_gl_engine # doesn't work
 
     - name: Unittests on Windows
