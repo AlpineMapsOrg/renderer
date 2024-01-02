@@ -181,8 +181,6 @@ ShaderProgram::ShaderProgram(QString vertex_shader, QString fragment_shader, Sha
     : m_code_source(code_source), m_vertex_shader(vertex_shader), m_fragment_shader(fragment_shader)
 {
     reload();
-    fflush(stdout);
-    fflush(stderr);
     assert(m_q_shader_program);
 }
 
@@ -280,6 +278,9 @@ void outputMeaningfullErrors(const QString& qtLog, const QString& code, const QS
 #ifndef __EMSCRIPTEN__
     static QRegularExpression re(R"RX((\d+)\((\d+)\) : (.+))RX");
 #elif defined(_MSC_VER)
+    // msvc has a different error text (matchers don't work)
+    // when using msvc in github ci qDebug/Critical don't print when an assert fails
+    // effectively, we don't see any error
     std::cerr << "Compiling Error(s) @file: " << file.toStdString() << "\n" << qtLog.toStdString();
     return;
 #else
