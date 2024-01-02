@@ -281,7 +281,7 @@ void outputMeaningfullErrors(const QString& qtLog, const QString& code, const QS
     // msvc has a different error text (matchers don't work)
     // when using msvc in github ci qDebug/Critical don't print when an assert fails
     // effectively, we don't see any error
-    std::cerr << "Compiling Error(s) @file: " << file.toStdString() << "\n" << qtLog.toStdString();
+    std::cerr << "Compiling Error(s) @file: " << file.toStdString() << "\n" << qtLog.toStdString() << std::endl;
     return;
 #else
     static QRegularExpression re(R"RX(ERROR: (\d+):(\d+): (.+))RX");
