@@ -318,6 +318,7 @@ void ShaderProgram::reload()
         // when using msvc in github ci qDebug/Critical don't print when an assert fails
         // effectively, we don't see any error
         std::cerr << "error linking shader " << m_vertex_shader.toStdString() << "and" << m_fragment_shader.toStdString() << std::endl;
+        fflush(stderr);
 #else
         qCritical() << "error linking shader " << m_vertex_shader.toStdString() << "and" << m_fragment_shader.toStdString();
 #endif
