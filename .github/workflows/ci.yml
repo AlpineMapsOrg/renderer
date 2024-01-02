@@ -54,7 +54,17 @@ jobs:
         
     - name: Install Linux Dependencies
       if: matrix.os == 'ubuntu-latest'
-      run: sudo apt-get install -y build-essential libgl1-mesa-dev libxcb-cursor-dev xorg-dev libxrandr-dev libxcursor-dev libudev-dev libopenal-dev libflac-dev libvorbis-dev libgl1-mesa-dev libegl1-mesa-dev libdrm-dev libgbm-dev xvfb libxcb-cursor0
+      run: sudo apt-get install -y build-essential libgl1-mesa-dev libxcb-cursor-dev xorg-dev libxrandr-dev libxcursor-dev libudev-dev libopenal-dev libflac-dev libvorbis-dev libgl1-mesa-dev libegl1-mesa-dev libdrm-dev libgbm-dev xvfb libxcb-cursor0 libxcb-icccm4 libxcb-image0 libxcb-keysyms1 libxcb-render-util0
+      
+    - name: Install Mesa
+      if: matrix.os == 'windows-latest'
+      shell: cmd
+      run: |
+          curl.exe -L --output mesa.7z --url https://github.com/pal1000/mesa-dist-win/releases/download/20.3.2/mesa3d-20.3.2-release-msvc.7z
+          "C:\Program Files\7-Zip\7z.exe" x mesa.7z
+          mklink opengl32.dll "x64\opengl32.dll"
+          mklink libglapi.dll "x64\libglapi.dll"
+      working-directory: build\tests\Debug
     
     - name: Install Qt
       uses: jurplel/install-qt-action@v3
