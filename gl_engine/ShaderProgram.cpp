@@ -282,7 +282,8 @@ void outputMeaningfullErrors(const QString& qtLog, const QString& code, const QS
     fflush(stderr);
     fflush(stdout);
     return;
-#elif !defined(__EMSCRIPTEN__)
+#else
+#if !defined(__EMSCRIPTEN__)
     static QRegularExpression re(R"RX((\d+)\((\d+)\) : (.+))RX");
 #else
     static QRegularExpression re(R"RX(ERROR: (\d+):(\d+): (.+))RX");
@@ -304,6 +305,7 @@ void outputMeaningfullErrors(const QString& qtLog, const QString& code, const QS
             qCritical() << "Error " << error_message.toStdString() << " appeared on line number which exceeds the input code string.";
         }
     }
+#endif
 }
 
 void ShaderProgram::reload()
