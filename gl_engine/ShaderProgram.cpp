@@ -276,7 +276,7 @@ void ShaderProgram::set_uniform_array(const std::string& name, const std::vector
 // I want the actual line that an error relates to also outputed...
 void outputMeaningfullErrors(const QString& qtLog, const QString& code, const QString& file) {
     QStringList code_lines = code.split('\n');
-    std::cerr << "Compiling Error(s) @file: " << file.toStdString();
+    std::cerr << "Compiling Error(s) @file: " << file.toStdString() << "\n" << qtLog.toStdString();
 #ifndef __EMSCRIPTEN__
     static QRegularExpression re(R"RX((\d+)\((\d+)\) : (.+))RX");
 #else
