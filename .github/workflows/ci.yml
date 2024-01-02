@@ -104,6 +104,7 @@ jobs:
       if: matrix.os == 'windows-latest'
       env:
         QT_DEBUG_PLUGINS: 1
+        MESA_GL_VERSION_OVERRIDE: 3.3
       run: |
         ./build/alp_external/radix/unittests/unittests_radix.exe
         ./build/unittests/unittests_nucleus.exe
