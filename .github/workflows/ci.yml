@@ -104,6 +104,7 @@ jobs:
       if: matrix.os == 'windows-latest'
       env:
         QT_DEBUG_PLUGINS: 1
+        QT_QPA_PLATFORM: offscreen
       run: |
         ./build/alp_external/radix/unittests/unittests_radix.exe
         ./build/unittests/unittests_nucleus.exe
