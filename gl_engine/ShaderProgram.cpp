@@ -179,6 +179,8 @@ ShaderProgram::ShaderProgram(QString vertex_shader, QString fragment_shader, Sha
     : m_code_source(code_source), m_vertex_shader(vertex_shader), m_fragment_shader(fragment_shader)
 {
     reload();
+    qDebug() << "qDebug test";
+    qCritical() << "qCritical test";
     assert(m_q_shader_program);
 }
 
