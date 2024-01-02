@@ -19,6 +19,8 @@
 
 #include "ShaderProgram.h"
 
+#include <iostream>
+
 #include <QFile>
 #include <QTextStream>
 #include <QRegularExpression>
@@ -181,6 +183,8 @@ ShaderProgram::ShaderProgram(QString vertex_shader, QString fragment_shader, Sha
     reload();
     qDebug() << "qDebug test";
     qCritical() << "qCritical test";
+    std::cout << "should print std::cout" << std::endl;
+    std::cerr << "should print std::cerr" << std::endl;
     fflush(stdout);
     fflush(stderr);
     assert(m_q_shader_program);
