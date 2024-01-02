@@ -85,8 +85,8 @@ jobs:
       run: |
         ./build/alp_external/radix/unittests/unittests_radix
         ./build/unittests/nucleus/unittests_nucleus
-        #Xvfb :1 -screen 0 1024x768x16 &
-        #./build/unittests/gl_engine/unittests_gl_engine # doesn't work
+        Xvfb :1 -screen 0 1024x768x16 &
+        ./build/unittests/gl_engine/unittests_gl_engine # doesn't work
 
     - name: Unittests on Windows
       if: matrix.os == 'windows-latest'
@@ -95,5 +95,5 @@ jobs:
       run: |
         ./build/alp_external/radix/unittests/unittests_radix.exe
         ./build/unittests/unittests_nucleus.exe
-        #./build/unittests/unittests_gl_engine.exe
+        ./build/unittests/unittests_gl_engine.exe
         
