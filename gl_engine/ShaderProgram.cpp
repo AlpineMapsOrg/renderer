@@ -314,7 +314,13 @@ void ShaderProgram::reload()
     } else if (!program->addShaderFromSourceCode(QOpenGLShader::Fragment, fragmentCode)) {
         outputMeaningfullErrors(program->log(), fragmentCode, m_fragment_shader);
     } else if (!program->link()) {
+#ifdef _MSC_VER
+        // when using msvc in github ci qDebug/Critical don't print when an assert fails
+        // effectively, we don't see any error
+        std::cerr << "error linking shader " << m_vertex_shader.toStdString() << "and" << m_fragment_shader.toStdString() << std::endl;
+#else
         qCritical() << "error linking shader " << m_vertex_shader.toStdString() << "and" << m_fragment_shader.toStdString();
+#endif
     } else {
         // NO ERROR
         m_q_shader_program = std::move(program);
