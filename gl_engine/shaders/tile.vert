@@ -32,7 +32,9 @@ uniform highp sampler2D height_sampler;
 out highp vec2 uv;
 out highp vec3 var_pos_cws;
 out highp vec3 var_normal;
-flat out lowp uint is_curtain;
+#if CURTAIN_DEBUG_MODE > 0
+out lowp float is_curtain;
+#endif
 flat out lowp vec3 vertex_color;
 
 highp float y_to_lat(highp float y) {
@@ -70,10 +72,12 @@ void main() {
     int row = gl_VertexID / n_edge_vertices;
     int col = gl_VertexID - (row * n_edge_vertices);
     int curtain_vertex_id = gl_VertexID - n_edge_vertices * n_edge_vertices;
-    is_curtain = 0u;
+#if CURTAIN_DEBUG_MODE > 0
+    is_curtain = 0.0;
+    if (curtain_vertex_id >= 0) is_curtain = 1.0;
+#endif
     if (curtain_vertex_id >= 0) {
         // curtains
-        is_curtain = 1u;
         if (curtain_vertex_id < n_edge_vertices) {
             // eastern
             row = (n_edge_vertices - 1) - curtain_vertex_id;
@@ -109,12 +113,12 @@ void main() {
                        adjusted_altitude - camera.position.z);
 
     if (curtain_vertex_id >= 0) {
-        float curtain_height = conf.curtain_settings.z;
-        if (conf.curtain_settings.y == 1.0) {
-            // NOTE: This is definitely subject for improvement!
-            float dist_factor = clamp(length(var_pos_cws) / 100000.0, 0.2, 1.0);
-            curtain_height *= dist_factor;
-        }
+        float curtain_height = CURTAIN_REFERENCE_HEIGHT;
+#if CURTAIN_HEIGHT_MODE == 1
+        // NOTE: This is definitely subject for improvement! (Perfect would be a function of the neighbouring zoomlevels!)
+        float dist_factor = clamp(length(var_pos_cws) / 100000.0, 0.2, 1.0);
+        curtain_height *= dist_factor;
+#endif
         var_pos_cws.z = var_pos_cws.z - curtain_height;
     }
 

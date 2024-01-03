@@ -27,8 +27,6 @@ uniform highp vec4 bounds[32];
 uniform highp int n_edge_vertices;
 uniform highp sampler2D height_sampler;
 
-out highp vec3 var_pos_wrt_cam;
-
 uniform lowp int current_layer;
 
 highp float y_to_lat(highp float y) {
@@ -70,26 +68,25 @@ void main() {
         }
     }
     // Note: May be enough to calculate altitude_correction_factor per tile on CPU:
-    highp float var_pos_wrt_cam_y = float(edge_vertices_count_int - row) * float(tile_width) + bounds[geometry_id].y;
-    highp float pos_y = var_pos_wrt_cam_y + camera.position.y;
+    highp float var_pos_cws_y = float(edge_vertices_count_int - row) * float(tile_width) + bounds[geometry_id].y;
+    highp float pos_y = var_pos_cws_y + camera.position.y;
     highp float altitude_correction_factor = 65536.0 * 0.125 / cos(y_to_lat(pos_y)); // https://github.com/AlpineMapsOrg/renderer/issues/5
 
     highp float adjusted_altitude = altitude * altitude_correction_factor;
 
-    var_pos_wrt_cam = vec3(float(col) * tile_width + bounds[geometry_id].x,
-                       var_pos_wrt_cam_y,
+    highp vec3 var_pos_cws = vec3(float(col) * tile_width + bounds[geometry_id].x,
+                       var_pos_cws_y,
                        adjusted_altitude - camera.position.z);
 
     if (curtain_vertex_id >= 0) {
-        highp float curtain_height = conf.curtain_settings.z;
-        if (conf.curtain_settings.y == 1.0) {
-            // NOTE: This is definitely subject for improvement!
-            highp float dist_factor = clamp(length(var_pos_wrt_cam) / 100000.0, 0.2, 1.0);
-            curtain_height *= dist_factor;
-        }
-        var_pos_wrt_cam.z = var_pos_wrt_cam.z - curtain_height;
+        float curtain_height = CURTAIN_REFERENCE_HEIGHT;
+#if CURTAIN_HEIGHT_MODE == 1
+        float dist_factor = clamp(length(var_pos_cws) / 100000.0, 0.2, 1.0);
+        curtain_height *= dist_factor;
+#endif
+        var_pos_cws.z = var_pos_cws.z - curtain_height;
     }
 
 
-    gl_Position = shadow.light_space_view_proj_matrix[current_layer] * vec4(var_pos_wrt_cam, 1);
+    gl_Position = shadow.light_space_view_proj_matrix[current_layer] * vec4(var_pos_cws, 1);
 }

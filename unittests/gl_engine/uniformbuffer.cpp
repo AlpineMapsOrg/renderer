@@ -111,14 +111,14 @@ TEST_CASE("gl uniformbuffer")
             out highp uint out_Number;
             void main() {
                 out_Number = 0u;
-                if (conf.wireframe_mode == 22u) out_Number = 1u;
+                if (conf.phong_enabled == 22u) out_Number = 1u;
             }
         )");
         auto ubo = std::make_unique<gl_engine::UniformBuffer<gl_engine::uboSharedConfig>>(0, "shared_config");
         ubo->init();
         ubo->bind_to_shader(&shader);
 
-        ubo->data.m_wireframe_mode = 22;
+        ubo->data.m_phong_enabled = 22;
         ubo->update_gpu_data();
 
         b.bind();

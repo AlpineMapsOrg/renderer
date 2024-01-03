@@ -1,6 +1,5 @@
 /*****************************************************************************
  * Alpine Terrain Renderer
- * Copyright (C) 2023 Adam Celerek
  * Copyright (C) 2023 Gerald Kimmersdorfer
  *
  * This program is free software: you can redistribute it and/or modify
@@ -20,32 +19,38 @@
 import QtQuick
 import QtQuick.Controls.Material
 import QtQuick.Layouts
-import Alpine
 
-import "components"
+Item {
+    id: root;
+    property alias from: slider.from;
+    property alias to: slider.to;
+    property alias stepSize: slider.stepSize;
+    property alias first: slider.first;
+    property alias second: slider.second;
+    property alias snapMode: slider.snapMode;
+    property var formatCallback: defaultFormatCallback;
+    signal moved();
 
-Rectangle {
-    id: map_gui
-    color: "#00000000"
-    property TerrainRenderer renderer
-
-    Rectangle {
-        function oc_scale() : real {
-            if (renderer.camera_operation_centre_distance < 0) {
-                return 1.0;
-            }
-            let max_dist = 1000.0;
-            let scale = 1 + Math.pow((1 - (Math.min(max_dist, renderer.camera_operation_centre_distance) / max_dist)) * 1.6, 6);
-            return scale;
-        }
-        width: 16 * oc_scale()
-        height: 16 * oc_scale()
-        x: renderer.camera_operation_centre.x - width / 2
-        y: renderer.camera_operation_centre.y - 60 - height / 2
-        color: Qt.alpha(Material.backgroundColor, 0.7);
-        border { width:2; color:Qt.alpha( "black", 0.5); }
-        radius: 16 * oc_scale()
-        visible: renderer.camera_operation_centre_visibility
+    function defaultFormatCallback(value) {
+        return Math.round(slider.first.value) + " - " + Math.round(slider.second.value);
     }
 
+    RowLayout {
+        anchors.fill: parent
+        spacing: 0
+        RangeSlider {
+            id: slider;
+            Layout.preferredWidth: root.width - 50
+        }
+        Label {
+            id: label;
+            Layout.preferredWidth: 50
+            text: {
+                return root.formatCallback(root.value);
+            }
+            font.underline: true;
+        }
+    }
+    height: slider.implicitHeight;
+    Layout.fillWidth: true;
 }

@@ -44,11 +44,6 @@ alp_add_unittest(unittests_nucleus
     bits_and_pieces.cpp
 )
 
-target_sources(unittests_nucleus
-  PRIVATE
-    bits_and_pieces.cpp
-)
-
 qt_add_resources(unittests_nucleus "height_data"
     PREFIX "/map"
     BASE ${renderer_static_data_SOURCE_DIR}

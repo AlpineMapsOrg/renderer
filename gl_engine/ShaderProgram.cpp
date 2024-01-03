@@ -19,6 +19,8 @@
 
 #include "ShaderProgram.h"
 
+#include <iostream>
+
 #include <QFile>
 #include <QTextStream>
 #include <QRegularExpression>
@@ -270,15 +272,25 @@ void ShaderProgram::set_uniform_array(const std::string& name, const std::vector
 
 // Helper function because i get frustrated with the shader compile errors...
 // I want the actual line that an error relates to also outputed...
-void outputMeaningfullErrors(const QString& qtLog, const QString& code, const QString& file) {
-    QStringList code_lines = code.split('\n');
-    qCritical() << "Compiling Error(s) @file: " << file;
-#ifndef __EMSCRIPTEN__
+void outputMeaningfullErrors(const QString& qtLog, const QString& code, const QString& file)
+{
+#if defined(_MSC_VER)
+    // msvc has a different error text (matchers don't work)
+    // when using msvc in github ci qDebug/Critical don't print when an assert fails
+    // effectively, we don't see any error
+    std::cerr << "Compiling Error(s) @file: " << file.toStdString() << "\n" << qtLog.toStdString() << std::endl;
+    fflush(stderr);
+    fflush(stdout);
+    return;
+#else
+#if !defined(__EMSCRIPTEN__)
     static QRegularExpression re(R"RX((\d+)\((\d+)\) : (.+))RX");
 #else
     static QRegularExpression re(R"RX(ERROR: (\d+):(\d+): (.+))RX");
 #endif
     re.setPatternOptions(QRegularExpression::CaseInsensitiveOption);
+    QStringList code_lines = code.split('\n');
+    qCritical() << "Compiling Error(s) @file: " << file.toStdString();
     QRegularExpressionMatchIterator matchIterator = re.globalMatch(qtLog);
     while (matchIterator.hasNext()) {
         QRegularExpressionMatch match = matchIterator.next();
@@ -287,11 +299,13 @@ void outputMeaningfullErrors(const QString& qtLog, const QString& code, const QS
         auto line_number = match.captured(2).toInt();
 
         if (line_number >= 0 && line_number < code_lines.size()) {
-            qCritical() << error_message << " on following line: " << "\n\r" << code_lines[line_number].trimmed();
+            qCritical() << error_message.toStdString() << " on following line: "
+                        << "\n\r" << code_lines[line_number].trimmed().toStdString();
         } else {
-            qCritical() << "Error " << error_message << " appeared on line number which exceeds the input code string.";
+            qCritical() << "Error " << error_message.toStdString() << " appeared on line number which exceeds the input code string.";
         }
     }
+#endif
 }
 
 void ShaderProgram::reload()
@@ -304,7 +318,15 @@ void ShaderProgram::reload()
     } else if (!program->addShaderFromSourceCode(QOpenGLShader::Fragment, fragmentCode)) {
         outputMeaningfullErrors(program->log(), fragmentCode, m_fragment_shader);
     } else if (!program->link()) {
-        qDebug() << "error linking shader " << m_vertex_shader << "and" << m_fragment_shader;
+#ifdef _MSC_VER
+        // when using msvc in github ci qDebug/Critical don't print when an assert fails
+        // effectively, we don't see any error
+        std::cerr << "error linking shader " << m_vertex_shader.toStdString() << "and" << m_fragment_shader.toStdString() << std::endl;
+        fflush(stderr);
+        fflush(stdout);
+#else
+        qCritical() << "error linking shader " << m_vertex_shader.toStdString() << "and" << m_fragment_shader.toStdString();
+#endif
     } else {
         // NO ERROR
         m_q_shader_program = std::move(program);

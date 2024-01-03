@@ -120,6 +120,7 @@ protected:
 public slots:
     void set_position(double latitude, double longitude);
     void rotate_north();
+    void set_gl_preset(const QString& preset_b64_string);
     void read_global_position(glm::dvec3 latlonalt);
     void camera_definition_changed(const nucleus::camera::Definition& new_definition); // gets called whenever camera changes
 
@@ -188,6 +189,7 @@ public:
 
 private:
     void recalculate_sun_angles();
+    void update_gl_sun_dir_from_sun_angles(gl_engine::uboSharedConfig& ubo);
 
     float m_camera_rotation_from_north = 0;
     QPointF m_camera_operation_centre;

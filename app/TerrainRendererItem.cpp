@@ -186,7 +186,7 @@ void TerrainRendererItem::keyPressEvent(QKeyEvent* e)
     if (e->isAutoRepeat()) {
         return;
     }
-    if (e->key() == Qt::Key::Key_H) {
+    if (e->key() == Qt::Key::Key_F10) {
         set_hud_visible(!m_hud_visible);
     }
     emit key_pressed(e->keyCombination());
@@ -234,6 +234,14 @@ void TerrainRendererItem::rotate_north()
 {
     emit rotation_north_requested();
     RenderThreadNotifier::instance()->notify();
+}
+
+void TerrainRendererItem::set_gl_preset(const QString& preset_b64_string) {
+    qInfo() << "Override config with:" << preset_b64_string;
+    auto tmp = gl_engine::ubo_from_string<gl_engine::uboSharedConfig>(preset_b64_string);
+    // Update light direction if sunlink is true. Otherwise shadows will not work on first frame
+    if (m_settings->gl_sundir_date_link()) update_gl_sun_dir_from_sun_angles(tmp);
+    set_shared_config(tmp);
 }
 
 void TerrainRendererItem::schedule_update()
@@ -464,9 +472,7 @@ void TerrainRendererItem::set_sun_angles(QVector2D new_sunAngles) {
     emit sun_angles_changed(m_sun_angles);
 
     // Update the direction inside the gls shared_config
-    auto newDir = nucleus::utils::sun_calculations::sun_rays_direction_from_sun_angles(glm::vec2(m_sun_angles.x(), m_sun_angles.y()));
-    QVector4D newDirUboEntry(newDir.x, newDir.y, newDir.z, m_shared_config.m_sun_light_dir.w());
-    m_shared_config.m_sun_light_dir = newDirUboEntry;
+    update_gl_sun_dir_from_sun_angles(m_shared_config);
     emit shared_config_changed(m_shared_config);
 }
 
@@ -478,16 +484,18 @@ void TerrainRendererItem::recalculate_sun_angles() {
     }
 }
 
+void TerrainRendererItem::update_gl_sun_dir_from_sun_angles(gl_engine::uboSharedConfig& ubo) {
+    auto newDir = nucleus::utils::sun_calculations::sun_rays_direction_from_sun_angles(glm::vec2(m_sun_angles.x(), m_sun_angles.y()));
+    QVector4D newDirUboEntry(newDir.x, newDir.y, newDir.z, ubo.m_sun_light_dir.w());
+    ubo.m_sun_light_dir = newDirUboEntry;
+}
+
 void TerrainRendererItem::init_after_creation_slot() {
     // INITIALIZE shared config with URL parameter:
     auto urlmodifier = m_url_modifier.get();
     bool param_available = false;
     auto config_base64_string = urlmodifier->get_query_item(URL_PARAMETER_KEY_CONFIG, &param_available);
-    if (param_available) {
-        qInfo() << "Initialize config with:" << config_base64_string;
-        auto tmp = gl_engine::ubo_from_string<gl_engine::uboSharedConfig>(config_base64_string);
-        set_shared_config(tmp);
-    }
+    if (param_available) set_gl_preset(config_base64_string);
 
     auto campos_string = urlmodifier->get_query_item(URL_PARAMETER_KEY_CAM_POS);
     auto camlookat_string = urlmodifier->get_query_item(URL_PARAMETER_KEY_CAM_LOOKAT);

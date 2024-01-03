@@ -32,7 +32,6 @@ public:
 
 private:
     UnittestGLContext();
-    ~UnittestGLContext() = default;
 
     QOpenGLContext m_context;
     QOffscreenSurface surface;
