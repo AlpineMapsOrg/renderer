@@ -1,6 +1,7 @@
 #############################################################################
 # Alpine Terrain Renderer
 # Copyright (C) 2023 Adam Celarek <family name at cg tuwien ac at>
+# Copyright (C) 2024 Lucas Dworschak
 # Copyright (C) 2023 Gerald Kimmersdorfer
 # Copyright (C) 2015 Taylor Braun-Jones (via github.com/nocnokneo/cmake-git-versioning-example)
 #
@@ -21,7 +22,7 @@
 cmake_minimum_required(VERSION 3.24)
 project(alpine-renderer-nucleus LANGUAGES CXX)
 
-alp_add_git_repository(stb_slim URL git@github.com:AlpineMapsOrg/stb_slim.git COMMITISH origin/main)
+alp_add_git_repository(stb_slim URL https://github.com/AlpineMapsOrg/stb_slim.git COMMITISH origin/main)
 alp_add_git_repository(radix URL https://github.com/AlpineMapsOrg/radix.git COMMITISH origin/main)
 alp_add_git_repository(tl_expected URL https://github.com/TartanLlama/expected.git COMMITISH v1.1.0 DO_NOT_ADD_SUBPROJECT)
 if (NOT TARGET fmt)

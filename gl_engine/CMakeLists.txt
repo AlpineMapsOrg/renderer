@@ -2,6 +2,7 @@
 # Alpine Terrain Renderer
 # Copyright (C) 2023 Adam Celarek <family name at cg tuwien ac at>
 # Copyright (C) 2023 Gerald Kimmersdorfer
+# Copyright (C) 2024 Lucas Dworschak
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
