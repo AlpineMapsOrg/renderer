@@ -28,9 +28,13 @@ if (NOT TARGET fmt)
     alp_add_git_repository(fmt URL https://github.com/fmtlib/fmt.git COMMITISH 10.1.1)
 endif()
 alp_add_git_repository(zppbits URL https://github.com/eyalz800/zpp_bits.git COMMITISH v4.4.20 DO_NOT_ADD_SUBPROJECT)
+alp_add_git_repository(goofy_tc URL https://github.com/AlpineMapsOrgDependencies/Goofy_slim.git COMMITISH main DO_NOT_ADD_SUBPROJECT)
 
 add_library(zppbits INTERFACE)
 target_include_directories(zppbits SYSTEM INTERFACE ${zppbits_SOURCE_DIR})
+
+add_library(goofy_tc INTERFACE)
+target_include_directories(goofy_tc INTERFACE ${goofy_tc_SOURCE_DIR})
 
 add_library(tl_expected INTERFACE)
 target_include_directories(tl_expected INTERFACE ${tl_expected_SOURCE_DIR}/include)
@@ -96,10 +100,11 @@ qt_add_library(nucleus STATIC
     timing/TimerManager.h timing/TimerManager.cpp
     timing/TimerInterface.h timing/TimerInterface.cpp
     timing/CpuTimer.h timing/CpuTimer.cpp
+    utils/texture_compression.h utils/texture_compression.cpp
 )
 
 target_include_directories(nucleus PRIVATE . PUBLIC ${CMAKE_SOURCE_DIR})
-target_link_libraries(nucleus PUBLIC radix Qt::Core Qt::Gui Qt::Network Qt::Svg fmt::fmt zppbits tl_expected nucleus_version stb_slim)
+target_link_libraries(nucleus PUBLIC radix Qt::Core Qt::Gui Qt::Network Qt::Svg fmt::fmt zppbits tl_expected nucleus_version stb_slim goofy_tc)
 
 # if (EMSCRIPTEN)
 #     # target_compile_options(nucleus PUBLIC -fwasm-exceptions)

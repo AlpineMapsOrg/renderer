@@ -23,6 +23,7 @@ alp_add_unittest(unittests_gl_engine
     UnittestGLContext.h UnittestGLContext.cpp
     framebuffer.cpp
     uniformbuffer.cpp
+    compressed_textures.cpp
 )
 
 target_link_libraries(unittests_gl_engine PUBLIC gl_engine)
