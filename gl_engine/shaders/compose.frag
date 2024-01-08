@@ -41,6 +41,9 @@ uniform highp sampler2D texin_csm2;         // f32vec1
 uniform highp sampler2D texin_csm3;         // f32vec1
 uniform highp sampler2D texin_csm4;         // f32vec1
 
+uniform highp sampler2D texin_track;            // f32vec3
+uniform highp usampler2D texin_track_vert_id;    
+
 highp float calculate_falloff(highp float dist, highp float from, highp float to) {
     return clamp(1.0 - (dist - from) / (to - from), 0.0, 1.0);
 }
@@ -229,4 +232,32 @@ void main() {
             }
         }
     }
+
+    // start track calculation:
+    // TODO: check if i can read the vertex_id
+    // TODO: do ray-sphere or ray-cylinder intersections
+    // TODO: consider fov and aspect ratio
+
+
+
+    vec3 ray_origin = vec3(0,0,0);
+    vec3 ray_target = vec3(texcoords.x,texcoords.y,1);
+    vec3 ray_direction = normalize(ray_target - ray_origin);
+
+#if 0
+    highp float vertex_id_float = texture(texin_track_vert_id, texcoords).r;
+    uint vertex_id = uint(vertex_id_float * 4294967295.0);
+#else
+    highp uint vertex_id = texture(texin_track_vert_id, texcoords).r;
+#endif
+
+    //highp vec3 track_vert = texelFetch(texin_track, ivec2(int(vertex_id), 0), 0).xyz; 
+
+
+    //if (vertex_id > 0 || vertex_id_float > 0) {
+    if (vertex_id > 0) {
+        out_Color = vec4(1,1,0,1); // yellow
+    } 
+
+    //out_Color = vec4(nearest_vertex_id, 1);
 }

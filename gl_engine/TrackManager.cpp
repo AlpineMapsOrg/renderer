@@ -74,11 +74,11 @@ namespace gl_engine
         m_shader->set_uniform("width", width);
         m_shader->set_uniform("aspect", 16.0f / 9.0f); // TODO: make this dynamic
         m_shader->set_uniform("visualize_steepness", false); // TODO: make this dynamic
-        m_shader->set_uniform("texin_vertices", 6);
+        m_shader->set_uniform("texin_vertices", 8);
 
         for (const PolyLine &track : m_tracks)
         {
-            track.data_texture->bind(6);
+            track.data_texture->bind(8);
             track.vao->bind();
 
 #if (RENDER_STRATEGY == USE_POINTS)
@@ -123,7 +123,7 @@ namespace gl_engine
         polyline.data_texture->setSize(basic_ribbon.size(), 1);
         polyline.data_texture->setAutoMipMapGenerationEnabled(false);
         polyline.data_texture->setMinMagFilters(QOpenGLTexture::Filter::Nearest, QOpenGLTexture::Filter::Nearest);
-        polyline.data_texture->setWrapMode(QOpenGLTexture::WrapMode::Repeat);
+        polyline.data_texture->setWrapMode(QOpenGLTexture::WrapMode::ClampToEdge);
         polyline.data_texture->allocateStorage();
         polyline.data_texture->setData(QOpenGLTexture::RGB, QOpenGLTexture::Float32, basic_ribbon.data());
 

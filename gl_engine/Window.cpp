@@ -123,7 +123,7 @@ void Window::initialise_gpu()
                                                   TextureDefinition{ Framebuffer::ColourFormat::RGBA32F },      // Position WCS and distance (distance is optional, but i use it directly for a little speed improvement)
                                                   TextureDefinition{ Framebuffer::ColourFormat::RG16UI  },      // Octahedron Normals
                                                   TextureDefinition{ Framebuffer::ColourFormat::R32UI   },      // Discretized Encoded Depth for readback IMPORTANT: IF YOU MOVE THIS YOU HAVE TO ADAPT THE GET DEPTH FUNCTION
-                                                  TextureDefinition{ Framebuffer::ColourFormat::R32I    }       // VertexID
+                                                  TextureDefinition{ Framebuffer::ColourFormat::R32UI   },      // VertexID
                                               });
 
     m_atmospherebuffer = std::make_unique<Framebuffer>(Framebuffer::DepthFormat::None, std::vector{ TextureDefinition{Framebuffer::ColourFormat::RGBA8} });
@@ -307,11 +307,19 @@ void Window::paint(QOpenGLFramebufferObject* framebuffer)
     m_gbuffer->bind_colour_texture(1, 1);
     p->set_uniform("texin_normal", 2);
     m_gbuffer->bind_colour_texture(2, 2);
+
     p->set_uniform("texin_atmosphere", 3);
     m_atmospherebuffer->bind_colour_texture(0, 3);
+
     p->set_uniform("texin_ssao", 4);
     m_ssao->bind_ssao_texture(4);
 
+    // ok, since i can 
+    // we need to be careful to choose a high enough location so it is not overwritten with shadow cascades 
+    p->set_uniform("texin_track_vert_id", 16);
+    m_gbuffer->bind_colour_texture(4, 16);
+
+    /* texture units 5 - 8 */
     m_shadowmapping->bind_shadow_maps(p, 5);
 
     m_timer->start_timer("compose");

@@ -1,9 +1,9 @@
 
 #include "overlay_steepness.glsl"
 
-layout(location = 0) in highp vec3 a_position;
-layout(location = 1) in highp vec3 a_tangent;
-layout(location = 2) in highp vec3 a_next_position;
+//layout(location = 0) in highp vec3 a_position;
+//layout(location = 1) in highp vec3 a_tangent;
+//layout(location = 2) in highp vec3 a_next_position;
 
 uniform highp mat4 matrix; // view projection matrix
 uniform highp vec3 camera_position;
@@ -20,13 +20,15 @@ out vec3 color;
 void main() {
   vertex_id = gl_VertexID;
 
+  // edge case handled by ClampToEdge 
   highp vec3 tex_position = texelFetch(texin_vertices, ivec2(gl_VertexID, 0), 0).xyz; 
+  highp vec3 tex_next_position = texelFetch(texin_vertices, ivec2(gl_VertexID + 2, 0), 0).xyz;
 
   // could be done on cpu
   vec3 position = tex_position - camera_position; 
-  vec3 next = a_next_position - camera_position;
+  vec3 next = tex_next_position - camera_position;
 
-  vec3 view_dir = normalize(camera_position - a_position);
+  vec3 view_dir = normalize(camera_position - tex_position);
 
 
   if (visualize_steepness) {
