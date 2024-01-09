@@ -158,10 +158,11 @@ QUrl UrlModifier::get_url() {
 void UrlModifier::write_out_url() {
 #ifdef __EMSCRIPTEN__
     auto resID = get_resource_identifier_from_url(get_url());
-    EM_ASM_({
+    EM_ASM({
         var newPath = UTF8ToString($0);
         history.pushState({}, "", newPath);
-    }, resID.toStdString().c_str());
+    },
+        resID.toStdString().c_str());
 #else
     auto resID = get_resource_identifier_from_url(get_url());
     qDebug() << "url:" << resID;

@@ -80,6 +80,8 @@ void GnssInformation::position_updated(const QGeoPositionInfo& position)
     m_horizontal_accuracy = position.attribute(QGeoPositionInfo::Attribute::HorizontalAccuracy);
     m_timestamp = position.timestamp();
     emit information_updated();
+#else
+    Q_UNUSED(position);
 #endif
 }
 
