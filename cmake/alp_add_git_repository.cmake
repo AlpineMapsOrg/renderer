@@ -1,5 +1,5 @@
 #############################################################################
-# Alpine Terrain Renderer
+# Alpine Radix
 # Copyright (C) 2023 Adam Celarek <family name at cg tuwien ac at>
 #
 # This program is free software: you can redistribute it and/or modify
@@ -25,7 +25,7 @@ find_package(Git 2.22 REQUIRED)
 # with upstream.
 
 function(alp_add_git_repository name)
-    set(options DO_NOT_ADD_SUBPROJECT)
+    set(options DO_NOT_ADD_SUBPROJECT NOT_SYSTEM)
     set(oneValueArgs URL COMMITISH DESTINATION_PATH)
     set(multiValueArgs )
     cmake_parse_arguments(PARSE_ARGV 1 PARAM "${options}" "${oneValueArgs}" "${multiValueArgs}")
@@ -91,6 +91,10 @@ function(alp_add_git_repository name)
     endif()
 
     if (NOT ${PARAM_DO_NOT_ADD_SUBPROJECT})
-        add_subdirectory(${repo_dir} ${CMAKE_BINARY_DIR}/alp_external/${name})
+        if (NOT ${PARAM_NOT_SYSTEM})
+            add_subdirectory(${repo_dir} ${CMAKE_BINARY_DIR}/alp_external/${name})
+        else()
+            add_subdirectory(${repo_dir} ${CMAKE_BINARY_DIR}/alp_external/${name} SYSTEM)
+        endif()
     endif()
 endfunction()
