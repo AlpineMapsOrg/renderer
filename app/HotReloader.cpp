@@ -22,15 +22,15 @@
 #include <QQmlApplicationEngine>
 
 HotReloader::HotReloader(QQmlApplicationEngine* engine, QString directory, QObject* parent)
-    : m_engine(engine)
-    , QObject { parent }
+    : QObject { parent }
+    , m_engine(engine)
 {
     m_watcher = new QFileSystemWatcher(this);
     directory.replace("file:/", "");
     m_watcher->addPath(directory);
     qDebug("watching %s", directory.toStdString().c_str());
 
-    connect(m_watcher, &QFileSystemWatcher::directoryChanged, this, [this, &engine](const QString& path) {
+    connect(m_watcher, &QFileSystemWatcher::directoryChanged, this, [this](const QString&) {
         qDebug("watched_source_changed");
         emit watched_source_changed();
     });

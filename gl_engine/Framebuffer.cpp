@@ -167,9 +167,9 @@ QImage::Format qimage_format(Framebuffer::ColourFormat f)
     return QImage::Format_Invalid;
 }
 
-
-void Framebuffer::recreate_texture(int index) {
-    if (index == -1) {
+void Framebuffer::recreate_texture(size_t index)
+{
+    if (index == size_t(-1)) {
         if (m_depth_format != DepthFormat::None) {
             m_depth_texture->destroy();
             m_depth_texture->setFormat(internal_format_qt(m_depth_format));
@@ -203,8 +203,8 @@ void Framebuffer::recreate_texture(int index) {
 }
 
 void Framebuffer::recreate_all_textures() {
-    recreate_texture(-1);
-    for (int i = 0; i < m_colour_textures.size(); i++)
+    recreate_texture(size_t(-1));
+    for (size_t i = 0; i < m_colour_textures.size(); i++)
         recreate_texture(i);
 }
 
@@ -215,7 +215,7 @@ Framebuffer::Framebuffer(DepthFormat depth_format, std::vector<TextureDefinition
     m_size(init_size)
 {
 
-    for (int i = 0; i < m_colour_definitions.size(); i++) {
+    for (size_t i = 0; i < m_colour_definitions.size(); i++) {
         auto colorTexture = std::make_unique<QOpenGLTexture>(QOpenGLTexture::Target::Target2D);
         m_colour_textures.push_back(std::move(colorTexture));
     }
@@ -254,7 +254,7 @@ void Framebuffer::bind()
 
 void Framebuffer::bind_colour_texture(unsigned index, unsigned location)
 {
-    assert(index >= 0 && index < m_colour_textures.size());
+    assert(index < m_colour_textures.size());
     m_colour_textures[index]->bind(location);
 }
 
@@ -269,12 +269,12 @@ std::unique_ptr<QOpenGLTexture> Framebuffer::take_and_replace_colour_attachment(
     std::unique_ptr<QOpenGLTexture> tmp = std::move(m_colour_textures[index]);
     m_colour_textures[index] = std::make_unique<QOpenGLTexture>(QOpenGLTexture::Target::Target2D);
     recreate_texture(index);
-    return std::move(tmp);
+    return tmp;
 }
 
 QImage Framebuffer::read_colour_attachment(unsigned index)
 {
-    assert(index >= 0 && index < m_colour_textures.size());
+    assert(index < m_colour_textures.size());
 
     auto texFormat = m_colour_definitions[index].format;
 
@@ -299,7 +299,7 @@ QImage Framebuffer::read_colour_attachment(unsigned index)
 
 std::array<uchar, 4> Framebuffer::read_colour_attachment_pixel(unsigned index, const glm::dvec2& normalised_device_coordinates)
 {
-    assert(index >= 0 && index < m_colour_textures.size());
+    assert(index < m_colour_textures.size());
 
     auto texFormat = m_colour_definitions[index].format;
     assert(texFormat == ColourFormat::RGBA8);
@@ -320,7 +320,7 @@ std::array<uchar, 4> Framebuffer::read_colour_attachment_pixel(unsigned index, c
 
 void Framebuffer::read_colour_attachment_pixel(unsigned index, const glm::dvec2& normalised_device_coordinates, void* target)
 {
-    assert(index >= 0 && index < m_colour_textures.size());
+    assert(index < m_colour_textures.size());
 
     auto texFormat = m_colour_definitions[index].format;
 

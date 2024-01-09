@@ -27,7 +27,7 @@ namespace nucleus::camera {
 void CadInteraction::reset_interaction(Definition camera, AbstractDepthTester* depth_tester)
 {
     m_operation_centre = depth_tester->position(glm::dvec2(0.0, 0.0));
-    m_operation_centre_screen = glm::vec2(camera.viewport_size().x / 2.0f, camera.viewport_size().y / 2.0f);
+    m_operation_centre_screen = glm::vec2(float(camera.viewport_size().x) / 2.0f, float(camera.viewport_size().y) / 2.0f);
 }
 
 std::optional<Definition> CadInteraction::mouse_press_event(const event_parameter::Mouse& e, Definition camera, AbstractDepthTester* depth_tester)
@@ -45,11 +45,11 @@ std::optional<Definition> CadInteraction::mouse_press_event(const event_paramete
     return {};
 }
 
-std::optional<Definition> CadInteraction::mouse_move_event(const event_parameter::Mouse& e, Definition camera, AbstractDepthTester* depth_tester)
+std::optional<Definition> CadInteraction::mouse_move_event(const event_parameter::Mouse& e, Definition camera, AbstractDepthTester*)
 {
     if (e.buttons == Qt::LeftButton && !m_key_ctrl && !m_key_alt) {
         const auto delta = e.point.position() - e.point.lastPosition();
-        float dist = glm::distance(camera.position(), m_operation_centre);
+        double dist = glm::distance(camera.position(), m_operation_centre);
         double moveSpeedModifier = 750.0;
 
         m_operation_centre = m_operation_centre - camera.x_axis() * delta.x() * (dist / moveSpeedModifier);
@@ -63,10 +63,10 @@ std::optional<Definition> CadInteraction::mouse_move_event(const event_parameter
     }
     if (e.buttons == Qt::RightButton || (e.buttons == Qt::LeftButton && !m_key_ctrl && m_key_alt)) {
         const auto delta = e.point.position() - e.point.lastPosition();
-        float dist = glm::distance(camera.position(), m_operation_centre);
-        float zoomDist = -(delta.y() + delta.x()) * dist / 400.0;
+        double dist = glm::distance(camera.position(), m_operation_centre);
+        double zoomDist = -(delta.y() + delta.x()) * dist / 400.0;
         if (zoomDist < dist) {
-            if (dist > 5.0f || zoomDist > 0.0f) { // always allow zoom out
+            if (dist > 5.0 || zoomDist > 0.0) { // always allow zoom out
                 camera.zoom(zoomDist);
             } else {
                 m_operation_centre = m_operation_centre - camera.z_axis() * 300.0;
@@ -86,9 +86,9 @@ std::optional<Definition> CadInteraction::wheel_event(const event_parameter::Whe
         reset_interaction(camera, depth_tester);
     }
 
-    float dist = glm::distance(camera.position(), m_operation_centre);
+    double dist = glm::distance(camera.position(), m_operation_centre);
     if (e.angle_delta.y() > 0) {
-        if (dist > 5.0f) {
+        if (dist > 5.0) {
             camera.zoom(-dist / 10.0);
         } else {
             m_operation_centre = m_operation_centre - camera.z_axis() * 300.0;
@@ -99,7 +99,7 @@ std::optional<Definition> CadInteraction::wheel_event(const event_parameter::Whe
     return camera;
 }
 
-std::optional<Definition> CadInteraction::key_press_event(const QKeyCombination& e, Definition camera, AbstractDepthTester* depth_tester)
+std::optional<Definition> CadInteraction::key_press_event(const QKeyCombination& e, Definition camera, AbstractDepthTester*)
 {
     if (e.key() == Qt::Key_Control) {
         m_key_ctrl = true;
@@ -110,7 +110,7 @@ std::optional<Definition> CadInteraction::key_press_event(const QKeyCombination&
     return camera;
 }
 
-std::optional<Definition> CadInteraction::key_release_event(const QKeyCombination& e, Definition camera, AbstractDepthTester* depth_tester)
+std::optional<Definition> CadInteraction::key_release_event(const QKeyCombination& e, Definition camera, AbstractDepthTester*)
 {
     if (e.key() == Qt::Key_Control) {
         m_key_ctrl = false;
@@ -121,7 +121,7 @@ std::optional<Definition> CadInteraction::key_release_event(const QKeyCombinatio
     return camera;
 }
 
-std::optional<Definition> CadInteraction::update(Definition camera, AbstractDepthTester* depthTester)
+std::optional<Definition> CadInteraction::update(Definition camera, AbstractDepthTester*)
 {
     int total_duration = 90;
 

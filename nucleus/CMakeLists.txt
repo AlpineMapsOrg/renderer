@@ -29,7 +29,7 @@ endif()
 alp_add_git_repository(zppbits URL https://github.com/eyalz800/zpp_bits.git COMMITISH v4.4.20 DO_NOT_ADD_SUBPROJECT)
 
 add_library(zppbits INTERFACE)
-target_include_directories(zppbits INTERFACE ${zppbits_SOURCE_DIR})
+target_include_directories(zppbits SYSTEM INTERFACE ${zppbits_SOURCE_DIR})
 
 add_library(tl_expected INTERFACE)
 target_include_directories(tl_expected INTERFACE ${tl_expected_SOURCE_DIR}/include)

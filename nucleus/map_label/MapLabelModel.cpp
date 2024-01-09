@@ -65,7 +65,7 @@ MapLabelModel::MapLabelModel(QObject* parent)
     m_labels.push_back({ "Östliche Hochgrubachspitze",  47.5587933, 12.3450985, 2284, 5, 0, 0, 0});
 }
 
-int MapLabelModel::rowCount(const QModelIndex& parent) const
+int MapLabelModel::rowCount(const QModelIndex&) const
 {
     return m_labels.size();
 }

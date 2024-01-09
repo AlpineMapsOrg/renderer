@@ -59,9 +59,9 @@ TEST_CASE("tile_scheduler/utils/refine_functor")
     QFile file(":/map/height_data.atb");
     const auto open = file.open(QIODeviceBase::OpenModeFlag::ReadOnly);
     assert(open);
+    Q_UNUSED(open);
     const QByteArray data = file.readAll();
-    const auto decorator = nucleus::tile_scheduler::utils::AabbDecorator::make(
-        TileHeights::deserialise(data));
+    const auto decorator = nucleus::tile_scheduler::utils::AabbDecorator::make(TileHeights::deserialise(data));
 
     const auto refine_functor = utils::refineFunctor(camera, decorator, 1.0);
     const auto all_leaves = quad_tree::onTheFlyTraverse(
@@ -94,6 +94,7 @@ TEST_CASE("tile_scheduler/utils/camera_frustum_contains_tile")
     QFile file(":/map/height_data.atb");
     const auto open = file.open(QIODeviceBase::OpenModeFlag::ReadOnly);
     assert(open);
+    Q_UNUSED(open);
     const QByteArray data = file.readAll();
     const auto decorator = nucleus::tile_scheduler::utils::AabbDecorator::make(
         TileHeights::deserialise(data));
@@ -149,6 +150,7 @@ TEST_CASE("tile_scheduler/utils/camera_frustum_contains_tile")
         QFile file(":/map/height_data.atb");
         const auto open = file.open(QIODeviceBase::OpenModeFlag::ReadOnly);
         assert(open);
+        Q_UNUSED(open);
         const QByteArray data = file.readAll();
         const auto decorator = nucleus::tile_scheduler::utils::AabbDecorator::make(
             TileHeights::deserialise(data));

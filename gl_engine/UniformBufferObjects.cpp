@@ -99,8 +99,8 @@ void serialize_ubo(QDataStream& out, const uboTestConfig& data) {
     out << data.m_tv4 << data.m_tf32 << data.m_tu32;
 }
 
-void unserialize_ubo(QDataStream& in, uboTestConfig& data, uint32_t version) {
+void unserialize_ubo(QDataStream& in, uboTestConfig& data, uint32_t /*version*/)
+{
     in >> data.m_tv4 >> data.m_tf32 >> data.m_tu32;
 }
-
 }
