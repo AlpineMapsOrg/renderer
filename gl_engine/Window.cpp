@@ -255,6 +255,9 @@ void Window::paint(QOpenGLFramebufferObject* framebuffer)
     // Clear Encoded-Depth Buffer
     const GLuint clearEncDepthColor[1] = {0u};
     f->glClearBufferuiv(GL_COLOR, 3, clearEncDepthColor);
+    // Clear Track VertexID
+    f->glClearBufferuiv(GL_COLOR, 4, clearEncDepthColor);
+
     // Clear Depth-Buffer
     //f->glClearDepthf(0.0f); // for reverse z
     f->glClear(GL_DEPTH_BUFFER_BIT);
@@ -318,6 +321,13 @@ void Window::paint(QOpenGLFramebufferObject* framebuffer)
     // we need to be careful to choose a high enough location so it is not overwritten with shadow cascades 
     p->set_uniform("texin_track_vert_id", 16);
     m_gbuffer->bind_colour_texture(4, 16);
+
+    auto* track_texture = m_track_manager->track_texture();
+    
+    if (track_texture != nullptr) {
+        track_texture->bind(15);
+        p->set_uniform("texin_track", 15);
+    }
 
     /* texture units 5 - 8 */
     m_shadowmapping->bind_shadow_maps(p, 5);

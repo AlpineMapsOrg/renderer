@@ -57,6 +57,15 @@ namespace gl_engine
         assert(QOpenGLContext::currentContext());
     }
 
+
+    QOpenGLTexture* TrackManager::track_texture()
+    {
+        if (m_tracks.size() == 0) {
+            return nullptr;
+        }
+        return m_tracks[0].data_texture.get();
+    }
+
     void TrackManager::draw(const nucleus::camera::Definition &camera) const
     {
         QOpenGLExtraFunctions *f = QOpenGLContext::currentContext()->extraFunctions();

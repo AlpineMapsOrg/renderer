@@ -50,6 +50,8 @@ public:
         return m_shader.get();
     }
 
+    QOpenGLTexture* track_texture();
+
 private:
     std::unique_ptr<ShaderProgram> m_shader;
     std::vector<PolyLine> m_tracks;

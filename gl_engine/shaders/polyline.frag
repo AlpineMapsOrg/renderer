@@ -11,6 +11,6 @@ flat in highp int vertex_id;
 
 void main() {
     texout_vertex_id = uint(vertex_id);
-    texout_albedo = color;
+    //texout_albedo = color;
     //texout_albedo = vec3(vertex_id % 10, vertex_id % 100, 0);
 }

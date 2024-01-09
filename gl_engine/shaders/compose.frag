@@ -48,6 +48,38 @@ highp float calculate_falloff(highp float dist, highp float from, highp float to
     return clamp(1.0 - (dist - from) / (to - from), 0.0, 1.0);
 }
 
+#define INF 1e9
+
+struct Ray {
+    vec3 origin;
+    vec3 direction;
+};
+
+struct Sphere {
+    vec3 position;
+    float radius;
+};
+
+float intersect(Ray r, Sphere s) {
+    vec3 op = s.position - r.origin;
+    float eps = 0.001;
+    float b = dot(op, r.direction);
+    float det = b * b - dot(op, op) + s.radius * s.radius;
+    if (det < 0.0)
+        return INF;
+
+    det = sqrt(det);
+    float t1 = b - det;
+    if (t1 > eps)
+        return t1;
+
+    float t2 = b + det;
+    if (t2 > eps)
+        return t2;
+
+    return INF;
+}
+
 // Calculates the diffuse and specular illumination contribution for the given
 // parameters according to the Blinn-Phong lighting model.
 // All parameters must be normalized.
@@ -239,25 +271,31 @@ void main() {
     // TODO: consider fov and aspect ratio
 
 
-
-    vec3 ray_origin = vec3(0,0,0);
-    vec3 ray_target = vec3(texcoords.x,texcoords.y,1);
-    vec3 ray_direction = normalize(ray_target - ray_origin);
-
-#if 0
-    highp float vertex_id_float = texture(texin_track_vert_id, texcoords).r;
-    uint vertex_id = uint(vertex_id_float * 4294967295.0);
-#else
+    // track vertex id
     highp uint vertex_id = texture(texin_track_vert_id, texcoords).r;
-#endif
 
-    //highp vec3 track_vert = texelFetch(texin_track, ivec2(int(vertex_id), 0), 0).xyz; 
+    // track vertex position
+    highp vec3 track_vert = texelFetch(texin_track, ivec2(int(vertex_id), 0), 0).xyz; 
 
+    //highp vec3 pos_dist = texture(texin_position, texcoords).xyz;
 
-    //if (vertex_id > 0 || vertex_id_float > 0) {
     if (vertex_id > 0) {
-        out_Color = vec4(1,1,0,1); // yellow
-    } 
+        //out_Color = vec4(color_from_id_hash(vertex_id), 1);
 
-    //out_Color = vec4(nearest_vertex_id, 1);
+        Sphere sphere;
+        sphere.position = track_vert;
+        sphere.radius = 10;
+
+        Ray ray;
+        highp vec3 pos_ws = pos_cws + origin;
+        ray.origin = vec3(camera.position);
+        ray.direction = pos_cws / dist;
+
+
+        float t = intersect(ray, sphere);
+
+        if (0 < t && t < INF) {
+            out_Color = vec4(0,1,0,1); // green
+        }
+    } 
 }
