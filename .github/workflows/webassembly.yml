@@ -116,8 +116,12 @@ jobs:
       uses: actions/upload-pages-artifact@v3
       with:
         path: ${{ steps.strings.outputs.install-dir }}
+        
+    - name: Debug output
+      run: echo ${{ github.event_name }}
 
   deploy:
+    if: github.event_name == 'push'
     needs: build
     environment:
       name: github-pages
