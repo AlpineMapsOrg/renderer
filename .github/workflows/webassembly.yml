@@ -53,7 +53,7 @@ jobs:
         arch: wasm_singlethread
         dir: '${{github.workspace}}/qt'
         install-deps: 'true'
-        modules: 'qtcharts qtpositioning'
+        modules: 'qtcharts'
 
     - name: Make qt webassembly binaries executable
       run: |
