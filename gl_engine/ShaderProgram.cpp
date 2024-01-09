@@ -325,9 +325,10 @@ void ShaderProgram::set_uniform_template(const std::string& name, T value)
 }
 
 QString ShaderProgram::load_and_preprocess_shader_code(gl_engine::ShaderType type) {
-    QString code = type == gl_engine::ShaderType::VERTEX ? m_vertex_shader : m_fragment_shader;
-    if (m_code_source == ShaderCodeSource::FILE) code = read_file_content(code);
-    else if (m_code_source == ShaderCodeSource::PLAINTEXT) code = code;
+    QString code = (type == gl_engine::ShaderType::VERTEX) ? m_vertex_shader : m_fragment_shader;
+    if (m_code_source == ShaderCodeSource::FILE)
+        code = read_file_content(code);
+
     preprocess_shader_content_inplace(code);
     return make_versioned_shader_code(code);
 }
