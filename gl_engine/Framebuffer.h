@@ -68,7 +68,7 @@ private:
     unsigned m_frame_buffer = -1;
     glm::uvec2 m_size;
     // Recreates the OpenGL-Texture for the given index. An index of -1 recreates the depth-buffer.
-    void recreate_texture(int index);
+    void recreate_texture(size_t index);
     // Calls recreate_texture for all the buffers that are attached to this FBO (depth and colour)
     void recreate_all_textures();
 

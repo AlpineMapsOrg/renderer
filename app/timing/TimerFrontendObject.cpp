@@ -41,11 +41,14 @@ float TimerFrontendObject::get_average() {
 }
 
 TimerFrontendObject::TimerFrontendObject(QObject* parent, const QString& name, const QString& group, const int queue_size, const float average_weight, const float first_value)
-    :QObject(parent), m_queue_size(queue_size), m_name(name), m_group(group)
+    : QObject(parent)
+    , m_name(name)
+    , m_group(group)
+    , m_queue_size(queue_size)
 {
     m_color = timer_colors[timer_color_index++ % (sizeof(timer_colors) / sizeof(timer_colors[0]))];
     m_new_weight = average_weight;
-    m_old_weight = 1.0 - m_new_weight;
+    m_old_weight = 1.0f - m_new_weight;
     m_quick_average = first_value;
 #ifdef ALP_ENABLE_TRACK_OBJECT_LIFECYCLE
     qDebug() << "TimerFrontendObject(name=" << m_name << ")";

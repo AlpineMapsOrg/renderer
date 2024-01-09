@@ -52,7 +52,7 @@ std::vector<Index> surface_quads(unsigned vertex_side_length)
     const auto height = vertex_side_length;
     const auto width = vertex_side_length;
 
-    const auto index_for = [&width, &height](auto row, auto col) { return col + row * width; };
+    const auto index_for = [&width](auto row, auto col) { return col + row * width; };
 
     for (size_t row = 0; row < height - 1; row++) {
         for (size_t col = 0; col < width; col++) {
@@ -74,7 +74,7 @@ std::vector<Index> surface_quads_with_curtains(unsigned vertex_side_length)
     std::vector<Index> indices = surface_quads<Index>(vertex_side_length);
     const auto height = vertex_side_length;
     const auto width = vertex_side_length;
-    const auto index_for = [&width, &height](auto row, auto col) { return col + row * width; };
+    const auto index_for = [&width](auto row, auto col) { return col + row * width; };
     auto curtain_index = indices.back() + 1;
     const auto first_curtain_index = curtain_index;
 

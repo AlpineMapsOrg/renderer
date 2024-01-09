@@ -95,9 +95,9 @@ TEST_CASE("nucleus/tile_scheduler/DrawListGenerator benchmark")
     QFile file(":/map/height_data.atb");
     const auto open = file.open(QIODeviceBase::OpenModeFlag::ReadOnly);
     assert(open);
+    Q_UNUSED(open);
     const QByteArray data = file.readAll();
-    const auto decorator = nucleus::tile_scheduler::utils::AabbDecorator::make(
-        TileHeights::deserialise(data));
+    const auto decorator = nucleus::tile_scheduler::utils::AabbDecorator::make(TileHeights::deserialise(data));
 
     const auto camera_positions = std::vector{
         nucleus::camera::stored_positions::karwendel(),

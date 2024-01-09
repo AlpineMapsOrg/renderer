@@ -176,9 +176,10 @@ QString ShaderProgram::read_file_content_local(const QString& name) {
 
 // =========== MEMBER DECLARATIONS =======================
 
-
 ShaderProgram::ShaderProgram(QString vertex_shader, QString fragment_shader, ShaderCodeSource code_source)
-    : m_code_source(code_source), m_vertex_shader(vertex_shader), m_fragment_shader(fragment_shader)
+    : m_vertex_shader(vertex_shader)
+    , m_fragment_shader(fragment_shader)
+    , m_code_source(code_source)
 {
     reload();
     assert(m_q_shader_program);

@@ -26,16 +26,12 @@ namespace nucleus::camera {
 
 class CadInteraction : public InteractionStyle
 {
-    glm::ivec2 m_previous_mouse_pos = { -1, -1 };
-    glm::ivec2 m_previous_first_touch = { -1, -1 };
-    glm::ivec2 m_previous_second_touch = { -1, -1 };
     glm::dvec3 m_operation_centre = {};
     glm::vec2 m_operation_centre_screen = {};
     utils::Stopwatch m_stopwatch = {};
     glm::dvec3 m_interpolation_start = {};
     glm::dvec3 m_interpolation_target = {};
     int m_interpolation_duration = 120;
-    bool m_was_double_touch = false;
     bool m_key_ctrl = false;
     bool m_key_alt = false;
 public:

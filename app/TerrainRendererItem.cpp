@@ -126,7 +126,7 @@ QQuickFramebufferObject::Renderer* TerrainRendererItem::createRenderer() const
     });
     connect(this, &TerrainRendererItem::tile_cache_size_changed, tile_scheduler, &nucleus::tile_scheduler::Scheduler::set_ram_quad_limit);
     connect(tile_scheduler, &nucleus::tile_scheduler::Scheduler::quads_requested, this, [this](const std::vector<tile::Id>& ids) {
-        const_cast<TerrainRendererItem*>(this)->set_queued_tiles(ids.size());
+        const_cast<TerrainRendererItem*>(this)->set_queued_tiles(unsigned(ids.size()));
     });
     connect(tile_scheduler, &nucleus::tile_scheduler::Scheduler::quad_received, this, [this]() {
         const_cast<TerrainRendererItem*>(this)->set_queued_tiles(std::max(this->queued_tiles(), 1u) - 1);
@@ -515,10 +515,12 @@ void TerrainRendererItem::init_after_creation_slot() {
     emit shared_config_changed(m_shared_config);
 }
 
-void TerrainRendererItem::datetime_changed(const QDateTime& new_datetime) {
+void TerrainRendererItem::datetime_changed(const QDateTime&)
+{
     recalculate_sun_angles();
 }
 
-void TerrainRendererItem::gl_sundir_date_link_changed(bool new_value) {
+void TerrainRendererItem::gl_sundir_date_link_changed(bool)
+{
     recalculate_sun_angles();
 }

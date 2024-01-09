@@ -27,27 +27,25 @@ namespace nucleus::camera {
 RotateNorthAnimation::RotateNorthAnimation(Definition camera, AbstractDepthTester* depth_tester)
 {
     m_operation_centre = depth_tester->position(glm::dvec2(0.0, 0.0));
-    m_operation_centre_screen = glm::vec2(camera.viewport_size().x / 2.0f,
-                                          camera.viewport_size().y / 2.0f);
+    m_operation_centre_screen = glm::vec2(float(camera.viewport_size().x) / 2.0f,
+        float(camera.viewport_size().y) / 2.0f);
 
     auto cameraFrontAxis = camera.z_axis();
-    m_degrees_from_north = glm::degrees(
-        glm::acos(glm::dot(glm::normalize(glm::dvec3(cameraFrontAxis.x, cameraFrontAxis.y, 0)),
-                           glm::dvec3(0, -1, 0))));
+    m_degrees_from_north = glm::degrees(glm::acos(glm::dot(glm::normalize(glm::vec3(cameraFrontAxis.x, cameraFrontAxis.y, 0)), glm::vec3(0, -1, 0))));
 
-    m_total_duration = m_degrees_from_north * 5 + 500;
+    m_total_duration = int(m_degrees_from_north * 5.f + 500.f);
     m_current_duration = 0;
 
     m_stopwatch.restart();
 }
 
-std::optional<Definition> RotateNorthAnimation::update(Definition camera, AbstractDepthTester* depth_tester)
+std::optional<Definition> RotateNorthAnimation::update(Definition camera, AbstractDepthTester*)
 {
     if (m_current_duration >= m_total_duration) {
         return {};
     }
 
-    auto dt = m_stopwatch.lap().count();
+    auto dt = int(m_stopwatch.lap().count());
     if (dt > 120) { // catches big time steps
         dt = 120;
     }
@@ -55,7 +53,7 @@ std::optional<Definition> RotateNorthAnimation::update(Definition camera, Abstra
         dt = m_total_duration - m_current_duration;
     }
 
-    float dt_eased = ease_in_out(((float)m_current_duration + dt) / m_total_duration) - ease_in_out((float)m_current_duration / m_total_duration);
+    float dt_eased = ease_in_out((float(m_current_duration + dt)) / float(m_total_duration)) - ease_in_out(float(m_current_duration) / float(m_total_duration));
 
     if (camera.z_axis().x > 0) {
         camera.orbit(m_operation_centre, glm::vec2(-m_degrees_from_north * dt_eased, 0));
