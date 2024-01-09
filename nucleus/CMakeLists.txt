@@ -114,7 +114,9 @@ if (ALP_ENABLE_THREADING)
 endif()
 
 if (MSVC)
-    target_compile_options(nucleus PUBLIC /W4 /WX)
+    target_compile_options(nucleus PUBLIC /W4 #[[/WX]])
+    # /WX fails with an unreachable code warning/error in zpp_bits.h. the system property doesn't seem to work (even though it appears in the build log as
+    # -external:ID:\a\renderer\renderer\extern\zppbits -external:W0
 else()
     target_compile_options(nucleus PUBLIC -Wall -Wextra -pedantic -Werror)
     if (EMSCRIPTEN)
