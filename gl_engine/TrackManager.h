@@ -44,7 +44,7 @@ public:
     void add_track(const nucleus::gpx::Gpx& gpx);
     // void remove_track();
 
-    float width = 5.0f;
+    float width = 25.0f;
 
     ShaderProgram* get_shader() {
         return m_shader.get();

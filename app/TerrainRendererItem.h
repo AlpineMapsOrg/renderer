@@ -215,7 +215,7 @@ private:
     bool m_camera_operation_centre_visibility = false;
     float m_camera_operation_centre_distance = 1;
     float m_field_of_view = 60;
-    float m_track_width = 5;
+    float m_track_width = 25;
     int m_frame_limit = 60;
     float m_render_quality = 0.5f;
     unsigned m_tile_cache_size = 12000;
