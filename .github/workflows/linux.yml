@@ -41,6 +41,11 @@ jobs:
     - name: Install Linux Dependencies
       run: |
         sudo apt-get install -y build-essential ninja-build clang-15 libgl1-mesa-dev libxcb-cursor-dev xorg-dev libxrandr-dev libxcursor-dev libudev-dev libopenal-dev libflac-dev libvorbis-dev libgl1-mesa-dev libegl1-mesa-dev libdrm-dev libgbm-dev xvfb libxcb-cursor0 libxcb-icccm4 libxcb-image0 libxcb-keysyms1 libxcb-render-util0
+        apt list --installed | grep libstdc++
+        sudo apt-get update
+        sudo apt-get upgrade -y
+        apt list --installed | grep libstdc++
+        
 
     - name: Install Qt
       uses: jurplel/install-qt-action@v3
@@ -64,6 +69,8 @@ jobs:
         -DCMAKE_BUILD_TYPE=${{env.BUILD_TYPE}} 
         -DALP_ENABLE_POSITIONING=false 
         -DALP_ENABLE_ASSERTS=ON
+        -DALP_ENABLE_ADDRESS_SANITIZER=ON
+        -DCMAKE_BUILD_TYPE=Debug
         -B ./build
 
     - name: Build
