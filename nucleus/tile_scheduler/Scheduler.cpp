@@ -235,7 +235,7 @@ void Scheduler::persist_tiles()
 
     if (!r.has_value()) {
         qDebug() << QString("Writing tiles to disk into %1 failed: %2. Removing all files.")
-                        .arg(QString::fromStdString(disk_cache_path()))
+                        .arg(QString::fromStdString(disk_cache_path().string()))
                         .arg(QString::fromStdString(r.error()));
         std::filesystem::remove_all(disk_cache_path());
     }
@@ -278,7 +278,7 @@ void Scheduler::read_disk_cache()
         update_stats();
     } else {
         qDebug() << QString("Reading tiles from disk cache (%s) failed: \n%s\nRemoving all files.")
-                        .arg(QString::fromStdString(disk_cache_path()))
+                        .arg(QString::fromStdString(disk_cache_path().string()))
                         .arg(QString::fromStdString(r.error()));
         std::filesystem::remove_all(disk_cache_path());
     }
