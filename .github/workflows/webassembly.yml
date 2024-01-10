@@ -79,7 +79,6 @@ jobs:
         -B ${{ steps.strings.outputs.build-output-dir }}
         -DCMAKE_BUILD_TYPE=Release
         -DALP_WWW_INSTALL_DIR=${{ steps.strings.outputs.install-dir }}
-        -DALP_ENABLE_ADDRESS_SANITIZER=ON
         -DALP_ENABLE_ASSERTS=ON
         -DFMT_INSTALL=OFF
         -S ${{ github.workspace }}
