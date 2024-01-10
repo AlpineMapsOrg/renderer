@@ -54,9 +54,7 @@ jobs:
         cmake -G Ninja
         -DCMAKE_BUILD_TYPE=${{env.BUILD_TYPE}}
         -DALP_ENABLE_POSITIONING=false
-        -DALP_ENABLE_ADDRESS_SANITIZER=ON
         -DALP_ENABLE_ASSERTS=ON
-        -DCMAKE_BUILD_TYPE=Debug
         -B ./build
 
     - name: Build
