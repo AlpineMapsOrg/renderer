@@ -65,6 +65,7 @@ jobs:
         -DALP_ENABLE_POSITIONING=false 
         -DALP_ENABLE_ADDRESS_SANITIZER=ON
         -DALP_ENABLE_ASSERTS=ON
+        -DCMAKE_BUILD_TYPE=Debug
         -B ./build
 
     - name: Build
