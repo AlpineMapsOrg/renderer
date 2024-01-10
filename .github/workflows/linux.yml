@@ -18,8 +18,8 @@ jobs:
             CC: '/usr/bin/gcc'
             CXX: '/usr/bin/g++'
           - compiler: clang
-            CC: '/usr/bin/clang'
-            CXX: '/usr/bin/clang++'
+            CC: '/usr/bin/clang-15'
+            CXX: '/usr/bin/clang++-15'
             
     runs-on: ubuntu-latest
 
@@ -30,7 +30,7 @@ jobs:
         
     - name: Install Linux Dependencies
       run: |
-        sudo apt-get install -y build-essential ninja-build libgl1-mesa-dev libxcb-cursor-dev xorg-dev libxrandr-dev libxcursor-dev libudev-dev libopenal-dev libflac-dev libvorbis-dev libgl1-mesa-dev libegl1-mesa-dev libdrm-dev libgbm-dev xvfb libxcb-cursor0 libxcb-icccm4 libxcb-image0 libxcb-keysyms1 libxcb-render-util0
+        sudo apt-get install -y build-essential ninja-build clang-15 libgl1-mesa-dev libxcb-cursor-dev xorg-dev libxrandr-dev libxcursor-dev libudev-dev libopenal-dev libflac-dev libvorbis-dev libgl1-mesa-dev libegl1-mesa-dev libdrm-dev libgbm-dev xvfb libxcb-cursor0 libxcb-icccm4 libxcb-image0 libxcb-keysyms1 libxcb-render-util0
 
     - name: Install Qt
       uses: jurplel/install-qt-action@v3
