@@ -1,0 +1,66 @@
+name: Linux tests
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+
+jobs:
+  build:
+    strategy:
+      fail-fast: false
+      matrix:
+        compiler: [gcc, clang]
+        build_type: [Release]
+        include:
+          - compiler: gcc
+            CC: '/usr/bin/gcc'
+            CXX: '/usr/bin/g++'
+          - compiler: clang
+            CC: '/usr/bin/clang'
+            CXX: '/usr/bin/clang++'
+            
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v3
+      with:
+        submodules: 'true'
+        
+    - name: Install Linux Dependencies
+      run: |
+        sudo apt-get install -y build-essential ninja-build libgl1-mesa-dev libxcb-cursor-dev xorg-dev libxrandr-dev libxcursor-dev libudev-dev libopenal-dev libflac-dev libvorbis-dev libgl1-mesa-dev libegl1-mesa-dev libdrm-dev libgbm-dev xvfb libxcb-cursor0 libxcb-icccm4 libxcb-image0 libxcb-keysyms1 libxcb-render-util0
+
+    - name: Install Qt
+      uses: jurplel/install-qt-action@v3
+      with:
+        aqtversion: '==3.1.*'
+        version: '6.6.1'
+        host: 'linux'
+        target: 'desktop'
+        arch: 'gcc_64'
+        dir: '${{github.workspace}}/qt'
+        install-deps: 'true'
+        modules: 'qtcharts qtpositioning'
+    
+    - name: Configure
+      env:
+        CC: ${{ matrix.CC }}
+        CXX: ${{ matrix.CXX }}
+        CMAKE_PREFIX_PATH: ${{env.Qt6_Dir}}/lib/cmake
+      run: cmake -G Ninja -DCMAKE_BUILD_TYPE=${{env.BUILD_TYPE}} -DALP_ENABLE_POSITIONING=false -B ./build
+
+    - name: Build
+      run: cmake --build ./build
+
+    - name: Unittests on Linux
+      env:
+        QT_QPA_PLATFORM: offscreen
+        DISPLAY: :1
+      run: |
+        ./build/alp_external/radix/unittests/unittests_radix
+        ./build/unittests/nucleus/unittests_nucleus
+        Xvfb :1 -screen 0 1024x768x16 &
+        sleep 5
+        ./build/unittests/gl_engine/unittests_gl_engine
