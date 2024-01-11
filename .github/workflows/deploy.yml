@@ -135,46 +135,29 @@ jobs:
     - name: Create artifact
       uses: actions/upload-artifact@v4
       with:
-        name: install_files_${{ matrix.qtarch }}
+        name: files_${{ matrix.qtarch }}
         path: ${{ github.workspace }}/install/
         if-no-files-found: error
 
-    #- name: Create index.html
-      #run: |
-        #echo "<html>" >> ${{ steps.strings.outputs.install-dir }}/index.html
-        #echo "  <head>" >> ${{ steps.strings.outputs.install-dir }}/index.html
-        #echo "    <title>AlpineMaps build</title>" >> ${{ steps.strings.outputs.install-dir }}/index.html
-        #echo "  </head>" >> ${{ steps.strings.outputs.install-dir }}/index.html
-        #echo "  <body>" >> ${{ steps.strings.outputs.install-dir }}/index.html
-        #echo "  <ul>" >> ${{ steps.strings.outputs.install-dir }}/index.html
-        #echo "    <li><a href="./alpineapp.html">AlpineMaps App</li>" >> ${{ steps.strings.outputs.install-dir }}/index.html
-        #echo "    <li><a href="./plain_renderer.html">plain renderer</li>" >> ${{ steps.strings.outputs.install-dir }}/index.html
-        #echo "    <li><a href="./unittests_radix.html">unittests_radix</li>" >> ${{ steps.strings.outputs.install-dir }}/index.html
-        #echo "    <li><a href="./unittests_nucleus.html">unittests_nucleus</li>" >> ${{ steps.strings.outputs.install-dir }}/index.html
-        #echo "    <li><a href="./unittests_gl_engine.html">unittests_gl_engine</li>" >> ${{ steps.strings.outputs.install-dir }}/index.html
-        #echo "    </ul>" >> ${{ steps.strings.outputs.install-dir }}/index.html
-        #echo "  </body>" >> ${{ steps.strings.outputs.install-dir }}/index.html
-        #echo "</html>" >> ${{ steps.strings.outputs.install-dir }}/index.html
-        #echo "" >> ${{ steps.strings.outputs.install-dir }}/index.html
+  deploy:
+    if: github.event_name == 'push'
+    needs: build
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    runs-on: ubuntu-latest
+    steps:
+    - name: Download artifacts
+      uses: actions/download-artifact@v4
+      with:
+        path: $GITHUB_WORKSPACE/github_page
 
-    #- name: Create Pages artifact
-      #uses: actions/upload-pages-artifact@v3
-      #with:
-        #path: ${{ steps.strings.outputs.install-dir }}
+    - name: List Files
+      run: |
+        tree -d $GITHUB_WORKSPACE/github_page/
         
-    #- name: Debug output
-      #run: echo ${{ github.event_name }}
-
-  #deploy:
-    #if: github.event_name == 'push'
-    #needs: build
-    #environment:
-      #name: github-pages
-      #url: ${{ steps.deployment.outputs.page_url }}
-    #runs-on: ubuntu-latest
-    #steps:
-    #- name: Setup Pages
-      #uses: actions/configure-pages@v4
+    - name: Setup Pages
+      uses: actions/configure-pages@v4
 
     #- name: Deploy to GitHub Pages
       #id: deployment
