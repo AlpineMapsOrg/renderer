@@ -29,9 +29,12 @@ jobs:
           - qtarch: wasm_singlethread
             qttarget: 'desktop'
             qtmodules: 'qtcharts'
+            additional_build_flags: '--target install'
           - qtarch: wasm_multithread
             qttarget: 'desktop'
             qtmodules: 'qtcharts'
+            additional_cmake_flags: '-DALP_ENABLE_THREADING=ON'
+            additional_build_flags: '--target install'
           - qtarch: android_arm64_v8a
             qttarget: 'android'
             qtmodules: 'qtcharts qtpositioning'
@@ -104,10 +107,15 @@ jobs:
         -DALP_WWW_INSTALL_DIR=${{ steps.strings.outputs.install-dir }}
         -DALP_ENABLE_ASSERTS=ON
         -DFMT_INSTALL=OFF
+        ${{ matrix.additional_cmake_flags }}
         -S ${{ github.workspace }}
 
     - name: Build
-      run: cmake --build ${{ steps.strings.outputs.build-output-dir }} --target install
+      run: cmake --build ${{ steps.strings.outputs.build-output-dir }} ${{ matrix.additional_build_flags }}
+      
+    - name: Copy android packages
+      if: matrix.qttarget == 'android'
+      run: cp -r ${{ steps.strings.outputs.build-output-dir }}/app/android-build//build/outputs/apk ${{ steps.strings.outputs.install-dir }}
 
     - name: Create artifact
       uses: actions/upload-artifact@v4
