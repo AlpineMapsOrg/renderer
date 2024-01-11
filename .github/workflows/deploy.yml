@@ -115,7 +115,9 @@ jobs:
       
     - name: Copy android packages
       if: matrix.qttarget == 'android'
-      run: cp -r ${{ steps.strings.outputs.build-output-dir }}/app/android-build//build/outputs/apk ${{ steps.strings.outputs.install-dir }}
+      run: |
+        mkdir -p ${{ steps.strings.outputs.install-dir }}
+        cp -r ${{ steps.strings.outputs.build-output-dir }}/app/android-build/build/outputs/apk/release/* ${{ steps.strings.outputs.install-dir }}
 
     - name: Create artifact
       uses: actions/upload-artifact@v4
