@@ -115,7 +115,7 @@ jobs:
 
     - name: Signing Android package
       if: matrix.qttarget == 'android'
-      uses: Tlaster/android-sign@v1
+      uses: r0adkll/sign-android-release@v1
       with:
         releaseDirectory: |
           ${{ steps.strings.outputs.build-output-dir }}/app/android-build/build/outputs/apk/release/
