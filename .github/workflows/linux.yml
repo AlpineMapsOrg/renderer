@@ -70,9 +70,17 @@ jobs:
         -B ./build
 
     - name: Build
-      run: cmake --build ./build
+      env:
+        CC: ${{ matrix.CC }}
+        CXX: ${{ matrix.CXX }}
+      run: |
+        ls -lt ./build
+        cmake --build ./build
 
     - name: Don't close loaded libraries for better sanitizer output
+      env:
+        CC: ${{ matrix.CC }}
+        CXX: ${{ matrix.CXX }}
       run: |
         echo "#include <stdio.h>" >> dlclose.c
         echo "int dlclose(void*) { return 0; }" >> dlclose.c
