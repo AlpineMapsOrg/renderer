@@ -76,7 +76,7 @@ jobs:
       run: |
         echo "#include <stdio.h>" >> dlclose.c
         echo "int dlclose(void*) { return 0; }" >> dlclose.c
-        clang++ --shared dlclose.c -o libdlclose.so
+        $CXX --shared dlclose.c -o libdlclose.so
       
     - name: Unittests on Linux
       env:
