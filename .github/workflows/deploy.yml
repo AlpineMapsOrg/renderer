@@ -82,7 +82,7 @@ jobs:
         chmod u+x ${Qt6_DIR}/bin/*
 
     - name: Verify emcc
-      if: matrix.qttarget == desktop
+      if: matrix.qttarget == 'desktop'
       run: emcc -v
 
     - name: Set reusable strings
