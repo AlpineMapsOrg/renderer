@@ -122,7 +122,7 @@ jobs:
     - name: Create artifact
       uses: actions/upload-artifact@v4
       with:
-        name: install_files
+        name: install_files_${{ matrix.qtarch }}
         path: ${{ github.workspace }}/install/
         if-no-files-found: error
 
