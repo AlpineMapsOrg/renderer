@@ -27,12 +27,3 @@ alp_add_unittest(unittests_gl_engine
 
 target_link_libraries(unittests_gl_engine PUBLIC gl_engine)
 
-if (ALP_ENABLE_ADDRESS_SANITIZER)
-    message(NOTICE "building with address sanitizer enabled")
-    if(MSVC)
-        target_compile_options (unittests_gl_engine PUBLIC /fsanitize=address)
-    else()
-        target_compile_options(unittests_gl_engine PUBLIC -fno-omit-frame-pointer -fsanitize=address)
-        target_link_options(unittests_gl_engine PUBLIC -fno-omit-frame-pointer -fsanitize=address)
-    endif()
-endif()
