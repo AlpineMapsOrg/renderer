@@ -53,7 +53,7 @@ jobs:
         dir: '${{github.workspace}}/qt'
         install-deps: 'true'
         modules: 'qtcharts qtpositioning'
-    
+
     - name: Configure
       env:
         CC: ${{ matrix.CC }}
@@ -72,12 +72,20 @@ jobs:
     - name: Build
       run: cmake --build ./build
 
+    - name: Don't close loaded libraries for better sanitizer output
+      run: |
+        echo "#include <stdio.h>" >> dlclose.c
+        echo "int dlclose(void*) { return 0; }" >> dlclose.c
+        clang++ --shared dlclose.c -o libdlclose.so
+      
     - name: Unittests on Linux
       env:
         QT_QPA_PLATFORM: offscreen
         DISPLAY: :1
+        LD_PRELOAD: ./libdlclose.so
         LSAN_OPTIONS: suppressions=./sanitizer_supressions/linux_leak.supp
       run: |
+        ll
         ./build/alp_external/radix/unittests/unittests_radix
         ./build/unittests/nucleus/unittests_nucleus
         Xvfb :1 -screen 0 1024x768x16 &
