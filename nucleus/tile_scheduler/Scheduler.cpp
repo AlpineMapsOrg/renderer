@@ -277,7 +277,7 @@ void Scheduler::read_disk_cache()
     if (r.has_value()) {
         update_stats();
     } else {
-        qDebug() << QString("Reading tiles from disk cache (%s) failed: \n%s\nRemoving all files.")
+        qDebug() << QString("Reading tiles from disk cache (%1) failed: \n%2\nRemoving all files.")
                         .arg(QString::fromStdString(disk_cache_path().string()))
                         .arg(QString::fromStdString(r.error()));
         std::filesystem::remove_all(disk_cache_path());
