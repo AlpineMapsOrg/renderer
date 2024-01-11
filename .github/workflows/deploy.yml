@@ -112,6 +112,19 @@ jobs:
 
     - name: Build
       run: cmake --build ${{ steps.strings.outputs.build-output-dir }} ${{ matrix.additional_build_flags }}
+
+    - name: Signing Android package
+      if: matrix.qttarget == 'android'
+      uses: Tlaster/android-sign@v1
+      with:
+        releaseDirectory: |
+          ${{ steps.strings.outputs.build-output-dir }}/app/android-build/build/outputs/apk/release/
+        signingKeyBase64: ${{ secrets.SIGNINGKEYBASE64 }}
+        output: ${{ steps.strings.outputs.build-output-dir }}/app/android-build/build/outputs/apk/release/signed
+        alias: alpinemaps
+        keyStorePassword: ${{ secrets.KEYSTOREPASSWORD }}
+      env:
+        BUILD_TOOLS_VERSION: "30.0.2"
       
     - name: Copy android packages
       if: matrix.qttarget == 'android'
