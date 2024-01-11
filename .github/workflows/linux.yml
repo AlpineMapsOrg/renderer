@@ -74,7 +74,6 @@ jobs:
         CC: ${{ matrix.CC }}
         CXX: ${{ matrix.CXX }}
       run: |
-        ls -lt ./build
         cmake --build ./build
 
     - name: Don't close loaded libraries for better sanitizer output
@@ -93,7 +92,6 @@ jobs:
         LD_PRELOAD: ./libdlclose.so
         LSAN_OPTIONS: suppressions=./sanitizer_supressions/linux_leak.supp
       run: |
-        ls -l
         ./build/alp_external/radix/unittests/unittests_radix
         ./build/unittests/nucleus/unittests_nucleus
         Xvfb :1 -screen 0 1024x768x16 &
