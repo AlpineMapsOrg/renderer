@@ -59,7 +59,17 @@ qt_add_resources(unittests_nucleus "test_data"
 target_link_libraries(unittests_nucleus PUBLIC nucleus Catch2::Catch2 Qt::Test)
 target_compile_definitions(unittests_nucleus PUBLIC "ALP_TEST_DATA_DIR=\":/test_data/\"")
 
+
 if (ANDROID)
     add_android_openssl_libraries(unittests_nucleus)
 endif()
 
+if (ALP_ENABLE_ADDRESS_SANITIZER)
+    message(NOTICE "building with address sanitizer enabled")
+    if(MSVC)
+        target_compile_options (unittests_nucleus PUBLIC /fsanitize=address)
+    else()
+        target_compile_options(unittests_nucleus PUBLIC -fno-omit-frame-pointer -fsanitize=address)
+        target_link_options(unittests_nucleus PUBLIC -fno-omit-frame-pointer -fsanitize=address)
+    endif()
+endif()

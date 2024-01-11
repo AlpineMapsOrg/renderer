@@ -51,3 +51,13 @@ if (EMSCRIPTEN)
     install(FILES ${ALP_INSTALL_FILES} DESTINATION ${ALP_WWW_INSTALL_DIR})
 
 endif()
+
+if (ALP_ENABLE_ADDRESS_SANITIZER)
+    message(NOTICE "building with address sanitizer enabled")
+    if(MSVC)
+        target_compile_options (plain_renderer PUBLIC /fsanitize=address)
+    else()
+        target_compile_options(plain_renderer PUBLIC -fno-omit-frame-pointer -fsanitize=address)
+        target_link_options(plain_renderer PUBLIC -fno-omit-frame-pointer -fsanitize=address)
+    endif()
+endif()
