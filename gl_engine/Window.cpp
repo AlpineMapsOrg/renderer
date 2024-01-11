@@ -249,8 +249,8 @@ void Window::paint(QOpenGLFramebufferObject* framebuffer)
     const GLuint clearNormalColor[2] = {0u, 0u};
     f->glClearBufferuiv(GL_COLOR, 2, clearNormalColor);
     // Clear Encoded-Depth Buffer
-    const GLuint clearEncDepthColor[1] = {0u};
-    f->glClearBufferuiv(GL_COLOR, 3, clearEncDepthColor);
+    const GLfloat clearEncDepthColor[] = { 0.0f, 0.0f, 0.0f, 0.0f };
+    f->glClearBufferfv(GL_COLOR, 3, clearEncDepthColor);
     // Clear Depth-Buffer
     //f->glClearDepthf(0.0f); // for reverse z
     f->glClear(GL_DEPTH_BUFFER_BIT);
