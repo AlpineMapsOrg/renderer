@@ -1,4 +1,4 @@
-name: "webassembly"
+name: "Deploy"
 on:
   push:
     branches: [ "main" ]
