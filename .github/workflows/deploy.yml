@@ -143,18 +143,23 @@ jobs:
     - name: Download artifacts
       uses: actions/download-artifact@v4
       with:
-        path: $GITHUB_WORKSPACE/github_page
+        path: ${{github.workspace}}/github_page
 
     - name: List Files
       run: |
         tree -d $GITHUB_WORKSPACE/github_page/
         
+    - name: Generate Directory Listings
+        uses: jayanta525/github-pages-directory-listing@v4.0.0
+        with:
+          FOLDER: ${{github.workspace}}/github_page
+        
     - name: Setup Pages
       uses: actions/configure-pages@v4
 
-    #- name: Deploy to GitHub Pages
-      #id: deployment
-      #uses: actions/deploy-pages@v4
+    - name: Deploy to GitHub Pages
+      id: deployment
+      uses: actions/deploy-pages@v4
 
-    #- name: Debug output
-      #run: echo ${{ steps.deployment.outputs.page_url }}
+    - name: Deployed url
+      run: echo ${{ steps.deployment.outputs.page_url }}
