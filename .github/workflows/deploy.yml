@@ -116,11 +116,30 @@ jobs:
       run: cmake --build ${{ steps.strings.outputs.build-output-dir }} ${{ matrix.additional_build_flags }}
 
     - name: Signing Android package
-      if: matrix.qttarget == 'android'
+      env: 
+        secret_test: ${{ secrets.KEYSTOREPASSWORD }}
+      if: matrix.qttarget == 'android' && ${{ env.secret_test != '' }}
       run: |
         echo ${{ secrets.SIGNINGKEYBASE64 }} > release.keystore.base64
         base64 -d release.keystore.base64 > release.keystore
         $QT_HOST_PATH/bin/androiddeployqt --input ${{ steps.strings.outputs.build-output-dir }}/app/android-alpineapp-deployment-settings.json --output ${{ steps.strings.outputs.build-output-dir }}/app/android-build --android-platform android-33 --gradle --release --sign release.keystore alpinemaps --storepass ${{ secrets.KEYSTOREPASSWORD }}
+        
+    - name: Readme why Android package was not signed
+      env: 
+        secret_test: ${{ secrets.KEYSTOREPASSWORD }}
+      if: matrix.qttarget == 'android' && ${{ env.secret_test == '' }}
+      run: |
+        echo "Well, the apk wasn't signed because there is no key to sign it with in your repository (the one this was created in)." >> ${{ steps.strings.outputs.build-output-dir }}/app/android-build/build/outputs/apk/release/read_me_in_case_you_wonder_why_the_apk_is_not_signed.txt
+        echo "" >> ${{ steps.strings.outputs.build-output-dir }}/app/android-build/build/outputs/apk/release/read_me_in_case_you_wonder_why_the_apk_is_not_signed.txt
+        echo "These are the steps to generate such a key:" >> ${{ steps.strings.outputs.build-output-dir }}/app/android-build/build/outputs/apk/release/read_me_in_case_you_wonder_why_the_apk_is_not_signed.txt
+        echo "- https://stackoverflow.com/questions/3997748/how-can-i-create-a-keystore. Use 'alpinemaps' as the alias!" >> ${{ steps.strings.outputs.build-output-dir }}/app/android-build/build/outputs/apk/release/read_me_in_case_you_wonder_why_the_apk_is_not_signed.txt
+        echo "- If you have the android dev setup ready in Qt Creator, you can also create the keystore via Projects (on the left side toolboar) -> Android Qt ... -> Build -> Build Steps -> Build Android APK -> Application Signature -> Create.  Use 'alpinemaps' as the alias!" >> ${{ steps.strings.outputs.build-output-dir }}/app/android-build/build/outputs/apk/release/read_me_in_case_you_wonder_why_the_apk_is_not_signed.txt
+        echo "- Then you have to encode the keystore in base64, e.g., on linux via 'base64 keystorefile > keystorefile.base64'" >> ${{ steps.strings.outputs.build-output-dir }}/app/android-build/build/outputs/apk/release/read_me_in_case_you_wonder_why_the_apk_is_not_signed.txt
+        echo "- Finally, create the following secrets in github -> your repo -> Settings -> Secrets and variables -> Actions -> Repository secrets" >> ${{ steps.strings.outputs.build-output-dir }}/app/android-build/build/outputs/apk/release/read_me_in_case_you_wonder_why_the_apk_is_not_signed.txt
+        echo "  SIGNINGKEYBASE64 = the base64 encoded key" >> ${{ steps.strings.outputs.build-output-dir }}/app/android-build/build/outputs/apk/release/read_me_in_case_you_wonder_why_the_apk_is_not_signed.txt
+        echo "  KEYSTOREPASSWORD = the password used to create the keystore" >> ${{ steps.strings.outputs.build-output-dir }}/app/android-build/build/outputs/apk/release/read_me_in_case_you_wonder_why_the_apk_is_not_signed.txt
+        echo "" >> ${{ steps.strings.outputs.build-output-dir }}/app/android-build/build/outputs/apk/release/read_me_in_case_you_wonder_why_the_apk_is_not_signed.txt
+        echo "Oh, and I hope this saved your day ;)" >> ${{ steps.strings.outputs.build-output-dir }}/app/android-build/build/outputs/apk/release/read_me_in_case_you_wonder_why_the_apk_is_not_signed.txt
       
     - name: Copy android packages
       if: matrix.qttarget == 'android'
