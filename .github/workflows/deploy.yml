@@ -164,10 +164,6 @@ jobs:
       uses: jayanta525/github-pages-directory-listing@v4.0.0
       with:
         FOLDER: github_page
-
-    - name: List Files
-      run: |
-        tree $GITHUB_WORKSPACE/github_page/
     
     - name: Create Pages artifact
       uses: actions/upload-pages-artifact@v3
@@ -181,5 +177,3 @@ jobs:
       id: deployment
       uses: actions/deploy-pages@v4
 
-    - name: Deployed url
-      run: echo ${{ steps.deployment.outputs.page_url }}
