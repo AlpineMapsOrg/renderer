@@ -62,9 +62,9 @@ jobs:
       run: >
         cmake -G Ninja 
         -DCMAKE_BUILD_TYPE=${{env.BUILD_TYPE}} 
-        -DALP_ENABLE_POSITIONING=false 
         -DALP_ENABLE_ASSERTS=ON
         -DALP_ENABLE_ADDRESS_SANITIZER=ON
+        -DALP_ENABLE_APP_SHUTDOWN_AFTER_60S=ON
         -DCMAKE_BUILD_TYPE=Debug
         -DALP_USE_LLVM_LINKER=ON
         -B ./build
@@ -98,3 +98,4 @@ jobs:
         Xvfb :1 -screen 0 1024x768x16 &
         sleep 5
         ./build/unittests/gl_engine/unittests_gl_engine
+        ./build/app/alpineapp
