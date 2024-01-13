@@ -158,7 +158,7 @@ jobs:
     - name: Generate Directory Listings
       uses: jayanta525/github-pages-directory-listing@v4.0.0
       with:
-        FOLDER: ${{github.workspace}}/github_page
+        FOLDER: github_page
     
     - name: Create Pages artifact
       uses: actions/upload-pages-artifact@v3
