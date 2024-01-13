@@ -153,7 +153,7 @@ jobs:
 
     - name: List Files
       run: |
-        tree -d $GITHUB_WORKSPACE/github_page/
+        tree $GITHUB_WORKSPACE/github_page/
         
     - name: Generate Directory Listings
       uses: jayanta525/github-pages-directory-listing@v4.0.0
