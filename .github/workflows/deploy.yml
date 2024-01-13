@@ -115,16 +115,10 @@ jobs:
 
     - name: Signing Android package
       if: matrix.qttarget == 'android'
-      uses: r0adkll/sign-android-release@v1
-      with:
-        releaseDirectory: |
-          ${{ steps.strings.outputs.build-output-dir }}/app/android-build/build/outputs/apk/release/
-        signingKeyBase64: ${{ secrets.SIGNINGKEYBASE64 }}
-        output: ${{ steps.strings.outputs.build-output-dir }}/app/android-build/build/outputs/apk/release/signed
-        alias: alpinemaps
-        keyStorePassword: ${{ secrets.KEYSTOREPASSWORD }}
-      env:
-        BUILD_TOOLS_VERSION: "30.0.2"
+      run: |
+        echo ${{ secrets.SIGNINGKEYBASE64 }} > release.keystore.base64
+        base64 -d release.keystore.base64 > release.keystore
+        $QT_HOST_PATH/bin/androiddeployqt --input ${{ steps.strings.outputs.build-output-dir }}/app/android-alpineapp-deployment-settings.json --output ${{ steps.strings.outputs.build-output-dir }}/app/android-build --android-platform android-33 --gradle --release --sign release.keystore alpinemaps --storepass ${{ secrets.KEYSTOREPASSWORD }}
       
     - name: Copy android packages
       if: matrix.qttarget == 'android'
