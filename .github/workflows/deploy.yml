@@ -60,7 +60,6 @@ jobs:
         arch: gcc_64
         dir: '${{github.workspace}}/qt'
         install-deps: 'true'
-        modules: 'qtcharts qtpositioning'
 
     - name: Set QT_HOST_PATH
       run: echo "QT_HOST_PATH=${Qt6_DIR}" >> "$GITHUB_ENV"
