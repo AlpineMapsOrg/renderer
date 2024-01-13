@@ -140,10 +140,16 @@ jobs:
       url: ${{ steps.deployment.outputs.page_url }}
     runs-on: ubuntu-latest
     steps:
+    
     - name: Download artifacts
       uses: actions/download-artifact@v4
       with:
-        path: ${{github.workspace}}/github_page
+        path: ${{github.workspace}}/downloaded
+    
+    - name: Move into place
+      run: |
+        mkdir $GITHUB_WORKSPACE/github_page
+        mv $GITHUB_WORKSPACE/downloaded/*/* $GITHUB_WORKSPACE/github_page/
 
     - name: List Files
       run: |
