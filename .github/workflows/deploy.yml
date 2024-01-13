@@ -150,15 +150,15 @@ jobs:
       run: |
         mkdir $GITHUB_WORKSPACE/github_page
         mv $GITHUB_WORKSPACE/downloaded/*/* $GITHUB_WORKSPACE/github_page/
-
-    - name: List Files
-      run: |
-        tree $GITHUB_WORKSPACE/github_page/
         
     - name: Generate Directory Listings
       uses: jayanta525/github-pages-directory-listing@v4.0.0
       with:
         FOLDER: github_page
+
+    - name: List Files
+      run: |
+        tree $GITHUB_WORKSPACE/github_page/
     
     - name: Create Pages artifact
       uses: actions/upload-pages-artifact@v3
