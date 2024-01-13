@@ -43,7 +43,9 @@ jobs:
             qtmodules: 'qtcharts qtpositioning'
           
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v4
+      with:
+        fetch-tags: true
     
     - uses: mymindstorm/setup-emsdk@v13
       if: matrix.qttarget == 'desktop'
