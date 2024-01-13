@@ -28,7 +28,7 @@ execute_process(COMMAND ${GIT_EXECUTABLE} describe --tags --dirty=-d --abbrev=1
     
 if (ALP_VERSION STREQUAL "")
     message(WARNING "Retrieving version string from git was not successfull. Setting it to 'vUnknown'")
-    set(${OUTPUT_VARIABLE} "vUnknown" PARENT_SCOPE)
+    set(ALP_VERSION "vUnknown")
 else()
     string(REPLACE "-g" "." ALP_VERSION ${ALP_VERSION})
     string(REPLACE "-" "." ALP_VERSION ${ALP_VERSION})
