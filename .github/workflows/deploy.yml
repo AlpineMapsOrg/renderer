@@ -150,9 +150,9 @@ jobs:
         tree -d $GITHUB_WORKSPACE/github_page/
         
     - name: Generate Directory Listings
-        uses: jayanta525/github-pages-directory-listing@v4.0.0
-        with:
-          FOLDER: ${{github.workspace}}/github_page
+      uses: jayanta525/github-pages-directory-listing@v4.0.0
+      with:
+        FOLDER: ${{github.workspace}}/github_page
         
     - name: Setup Pages
       uses: actions/configure-pages@v4
