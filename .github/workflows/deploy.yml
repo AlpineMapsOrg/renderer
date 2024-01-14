@@ -41,9 +41,8 @@ jobs:
             qtmodules: 'qtcharts qtpositioning'
           
     steps:
-
     - name: Install dependencies
-      run: sudo apt-get install -y build-essential ninja-build lftp
+      run: sudo apt-get install -y build-essential ninja-build
         
     - uses: actions/checkout@v4
       with:
@@ -161,7 +160,10 @@ jobs:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
     runs-on: ubuntu-latest
+    
     steps:
+    - name: Install dependencies
+      run: sudo apt-get install -y lftp
     
     - name: Download artifacts
       uses: actions/download-artifact@v4
