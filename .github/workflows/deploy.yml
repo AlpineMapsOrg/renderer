@@ -180,7 +180,7 @@ jobs:
         mkdir $GITHUB_WORKSPACE/github_page
         mv $GITHUB_WORKSPACE/downloaded/*/* $GITHUB_WORKSPACE/github_page/
         
-    - name: Upload to alpinemaps.org/cd
+    - name: Upload to an FTP host
       env: 
         FTP_USER: ${{ secrets.FTP_USER }}
         FTP_PASS: ${{ secrets.FTP_PASS }}
