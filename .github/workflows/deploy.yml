@@ -11,8 +11,6 @@ permissions:
   pages: write
   id-token: write
 
-# Allow only one concurrent deployment, skipping runs queued between the run in-progress and latest queued.
-# However, do NOT cancel in-progress runs as we want to allow these production deployments to complete.
 concurrency:
   group: "deploy"
   cancel-in-progress: true
@@ -43,6 +41,9 @@ jobs:
             qtmodules: 'qtcharts qtpositioning'
           
     steps:
+    - name: Install dependencies
+      run: sudo apt-get install -y build-essential ninja-build
+        
     - uses: actions/checkout@v4
       with:
         fetch-depth: 0
@@ -66,9 +67,6 @@ jobs:
 
     - name: Set QT_HOST_PATH
       run: echo "QT_HOST_PATH=${Qt6_DIR}" >> "$GITHUB_ENV"
-
-    - name: Install Linux Dependencies
-      run: sudo apt-get install -y build-essential ninja-build
 
     - name: Install Qt crosscompile target version
       uses: jurplel/install-qt-action@v3
@@ -95,8 +93,8 @@ jobs:
       id: strings
       shell: bash
       run: |
-        echo "build-output-dir=${{ github.workspace }}/build_${{ matrix.qtarch }}" >> "$GITHUB_OUTPUT"
-        echo "install-dir=${{ github.workspace }}/install/${{ matrix.qtarch }}" >> "$GITHUB_OUTPUT"
+        echo "build-output-dir=${{ github.workspace }}/build_${{ matrix.qtarch }}" >> $GITHUB_OUTPUT
+        echo "install-dir=${{ github.workspace }}/install/${{ matrix.qtarch }}" >> $GITHUB_OUTPUT
 
     - name: Configure CMake
       env:
@@ -161,7 +159,16 @@ jobs:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
     runs-on: ubuntu-latest
+    
     steps:
+    - name: Install dependencies
+      run: sudo apt-get install -y lftp
+      
+    - name: Clone repository (only for version number)
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+        fetch-tags: true
     
     - name: Download artifacts
       uses: actions/download-artifact@v4
@@ -173,6 +180,19 @@ jobs:
         mkdir $GITHUB_WORKSPACE/github_page
         mv $GITHUB_WORKSPACE/downloaded/*/* $GITHUB_WORKSPACE/github_page/
         
+    - name: Upload to an FTP host
+      env: 
+        FTP_USER: ${{ secrets.FTP_USER }}
+        FTP_PASS: ${{ secrets.FTP_PASS }}
+        FTP_HOST: ${{ secrets.FTP_HOST }}
+      if: env.FTP_HOST != ''
+      run: |
+        lftp -c "
+        set ftp:ssl-force true;
+        open -u $FTP_USER,$FTP_PASS $FTP_HOST;
+        mirror -R -e -v -n $GITHUB_WORKSPACE/github_page/. ./alpinemaps_$(git describe --tags --dirty=-d --abbrev=1);
+        "
+      
     - name: Fix headers for wasm_multithread
       run: |
         cd $GITHUB_WORKSPACE/github_page/wasm_multithread

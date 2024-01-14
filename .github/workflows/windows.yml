@@ -6,6 +6,10 @@ on:
   pull_request:
     branches: [ "main" ]
 
+concurrency:
+  group: "windows"
+  cancel-in-progress: true
+  
 jobs:
   build:
     runs-on: windows-latest
