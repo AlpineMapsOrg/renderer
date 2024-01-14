@@ -1,7 +1,7 @@
 # alpine-renderer
 This is the software behind [alpinemaps.org](https://alpinemaps.org).
 
-A developer version (trunk) is released [here]([https://alpinemaps.org](https://alpinemapsorg.github.io/renderer/)), including APKs for android. Be aware that it can break at any time!
+A developer version (trunk) is released [here](https://alpinemapsorg.github.io/renderer/), including APKs for android. Be aware that it can break at any time!
 
 We are in discord, talk to us!
 https://discord.gg/p8T9XzVwRa
