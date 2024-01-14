@@ -41,6 +41,14 @@ jobs:
             qtmodules: 'qtcharts qtpositioning'
           
     steps:
+    - name: Test ssh/scp
+      run: |
+        echo home=$HOME
+        tree -a $HOME
+        ssh -V
+        scp
+        exit 42
+        
     - uses: actions/checkout@v4
       with:
         fetch-depth: 0
