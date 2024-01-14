@@ -94,8 +94,9 @@ jobs:
       id: strings
       shell: bash
       run: |
-        echo "build-output-dir=${{ github.workspace }}/build_${{ matrix.qtarch }}" >> "$GITHUB_OUTPUT"
-        echo "install-dir=${{ github.workspace }}/install/${{ matrix.qtarch }}" >> "$GITHUB_OUTPUT"
+        echo "build-output-dir=${{ github.workspace }}/build_${{ matrix.qtarch }}" >> $GITHUB_OUTPUT
+        echo "install-dir=${{ github.workspace }}/install/${{ matrix.qtarch }}" >> $GITHUB_OUTPUT
+        echo "DEPLOYMENT_VERSION_NAME=$(git describe --tags --dirty=-d --abbrev=1)" >> $GITHUB_ENV
 
     - name: Configure CMake
       env:
@@ -179,7 +180,6 @@ jobs:
         FTP_HOST: ${{ secrets.FTP_HOST }}
       if: env.FTP_HOST != ''
       run: |
-        DEPLOYMENT_VERSION_NAME=$(git describe --tags --dirty=-d --abbrev=1)
         lftp -c "
         set ftp:ssl-force true;
         open -u $FTP_USER,$FTP_PASS $FTP_HOST;
