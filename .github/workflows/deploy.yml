@@ -39,6 +39,8 @@ jobs:
           - qtarch: android_armv7
             qttarget: 'android'
             qtmodules: 'qtcharts qtpositioning'
+    outputs:
+      deployment_version_name: ${{ steps.strings.deployment_version_name }}
           
     steps:
     - name: Install dependencies
@@ -95,7 +97,7 @@ jobs:
       run: |
         echo "build-output-dir=${{ github.workspace }}/build_${{ matrix.qtarch }}" >> $GITHUB_OUTPUT
         echo "install-dir=${{ github.workspace }}/install/${{ matrix.qtarch }}" >> $GITHUB_OUTPUT
-        echo "DEPLOYMENT_VERSION_NAME=$(git describe --tags --dirty=-d --abbrev=1)" >> $GITHUB_ENV
+        echo "deployment_version_name=$(git describe --tags --dirty=-d --abbrev=1)" >> $GITHUB_OUTPUT
 
     - name: Configure CMake
       env:
@@ -180,6 +182,7 @@ jobs:
         FTP_USER: ${{ secrets.FTP_USER }}
         FTP_PASS: ${{ secrets.FTP_PASS }}
         FTP_HOST: ${{ secrets.FTP_HOST }}
+        DEPLOYMENT_VERSION_NAME: ${{ jobs.build.deployment_version_name }}
       if: env.FTP_HOST != ''
       run: |
         lftp -c "
