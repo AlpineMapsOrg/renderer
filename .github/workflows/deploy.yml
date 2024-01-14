@@ -182,7 +182,7 @@ jobs:
         FTP_USER: ${{ secrets.FTP_USER }}
         FTP_PASS: ${{ secrets.FTP_PASS }}
         FTP_HOST: ${{ secrets.FTP_HOST }}
-        DEPLOYMENT_VERSION_NAME: ${{ jobs.build.deployment_version_name }}
+        DEPLOYMENT_VERSION_NAME: ${{ needs.build.outputs.deployment_version_name }}
       if: env.FTP_HOST != ''
       run: |
         lftp -c "
