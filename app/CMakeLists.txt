@@ -68,7 +68,7 @@ qt_add_qml_module(alpineapp
         icons/peak.svg
         icons/search.svg
         icons/favicon.ico
-        icons/favicon_256.png
+        icons/icon.svg
         icons/material/monitoring.svg
         icons/material/3d_rotation.svg
         icons/material/map.svg
@@ -85,6 +85,7 @@ qt_add_qml_module(alpineapp
         icons/presets/basic.png
         icons/presets/shaded.png
         icons/presets/snow.png
+
 )
 
 qt_add_resources(alpineapp "height_data"
