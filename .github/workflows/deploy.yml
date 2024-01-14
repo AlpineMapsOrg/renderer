@@ -41,10 +41,14 @@ jobs:
             qtmodules: 'qtcharts qtpositioning'
           
     steps:
+
+    - name: Install dependencies
+      run: sudo apt-get install -y build-essential ninja-build openssh-client
+      
     - name: Test ssh/scp
       run: |
         echo home=$HOME
-        tree -a $HOME
+        tree -aL 2 $HOME
         ssh -V
         scp
         exit 42
@@ -72,9 +76,6 @@ jobs:
 
     - name: Set QT_HOST_PATH
       run: echo "QT_HOST_PATH=${Qt6_DIR}" >> "$GITHUB_ENV"
-
-    - name: Install Linux Dependencies
-      run: sudo apt-get install -y build-essential ninja-build
 
     - name: Install Qt crosscompile target version
       uses: jurplel/install-qt-action@v3
