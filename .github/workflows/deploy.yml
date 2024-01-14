@@ -43,15 +43,7 @@ jobs:
     steps:
 
     - name: Install dependencies
-      run: sudo apt-get install -y build-essential ninja-build openssh-client
-      
-    - name: Test ssh/scp
-      run: |
-        echo home=$HOME
-        tree -aL 2 $HOME
-        ssh -V
-        scp
-        exit 42
+      run: sudo apt-get install -y build-essential ninja-build lftp
         
     - uses: actions/checkout@v4
       with:
@@ -180,6 +172,20 @@ jobs:
         mkdir $GITHUB_WORKSPACE/github_page
         mv $GITHUB_WORKSPACE/downloaded/*/* $GITHUB_WORKSPACE/github_page/
         
+    - name: Upload to alpinemaps.org/cd
+      env: 
+        FTP_USER: ${{ secrets.FTP_USER }}
+        FTP_PASS: ${{ secrets.FTP_PASS }}
+        FTP_HOST: ${{ secrets.FTP_HOST }}
+      if: env.FTP_HOST != ''
+      run: |
+        DEPLOYMENT_VERSION_NAME=$(git describe --tags --dirty=-d --abbrev=1)
+        lftp -c "
+        set ftp:ssl-force true;
+        open -u $FTP_USER,$FTP_PASS $FTP_HOST;
+        mirror -R -e -v -n $GITHUB_WORKSPACE/github_page/. ./$DEPLOYMENT_VERSION_NAME;
+        "
+      
     - name: Fix headers for wasm_multithread
       run: |
         cd $GITHUB_WORKSPACE/github_page/wasm_multithread
