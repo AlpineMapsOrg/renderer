@@ -27,8 +27,8 @@ import "components"
 
 Item {
     id: main
-    property int theme: Material.Light      //Material.System
-    property int accent: Material.Green
+    property int theme: Material.Light
+    property int accent: Material.BlueGrey
     property string selectedPage: "map";
 
 

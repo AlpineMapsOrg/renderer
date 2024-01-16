@@ -187,10 +187,11 @@ jobs:
         FTP_HOST: ${{ secrets.FTP_HOST }}
       if: env.FTP_HOST != ''
       run: |
+        reponame=$(echo $GITHUB_REPOSITORY  | grep -oE "[^/]*$")
         lftp -c "
         set ftp:ssl-force true;
         open -u $FTP_USER,$FTP_PASS $FTP_HOST;
-        mirror -R -e -v -n $GITHUB_WORKSPACE/github_page/. ./alpinemaps_$(git describe --tags --dirty=-d --abbrev=1);
+        mirror -R -e -v -n $GITHUB_WORKSPACE/github_page/. ./${reponame}_$(git describe --tags --dirty=-d --abbrev=1);
         "
       
     - name: Fix headers for wasm_multithread
