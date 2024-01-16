@@ -93,8 +93,14 @@ jobs:
       id: strings
       shell: bash
       run: |
-        echo "build-output-dir=${{ github.workspace }}/build_${{ matrix.qtarch }}" >> $GITHUB_OUTPUT
-        echo "install-dir=${{ github.workspace }}/install/${{ matrix.qtarch }}" >> $GITHUB_OUTPUT
+        BUILD_DIR="build"
+        APK_TARGET="app"
+        echo "BUILD_DIR=$BUILD_DIR" >> $GITHUB_ENV
+        echo "APK_TARGET=$APK_TARGET" >> $GITHUB_ENV
+        
+        echo "INSTALL_DIR=install/${{ matrix.qtarch }}" >> $GITHUB_ENV
+        echo "APK_DIR=$BUILD_DIR/$APK_TARGET/android-build/build/outputs/apk/" >> $GITHUB_ENV
+        echo "ANDROID_BUILD_DIR=$BUILD_DIR/$APK_TARGET/android-build/" >> $GITHUB_ENV
 
     - name: Configure CMake
       env:
@@ -102,16 +108,16 @@ jobs:
       run: >
         ${Qt6_DIR}/bin/qt-cmake
         -G Ninja
-        -B ${{ steps.strings.outputs.build-output-dir }}
+        -B $BUILD_DIR
         -DCMAKE_BUILD_TYPE=Release
-        -DALP_WWW_INSTALL_DIR=${{ steps.strings.outputs.install-dir }}
+        -DALP_WWW_INSTALL_DIR=$INSTALL_DIR
         -DALP_ENABLE_ASSERTS=ON
         -DFMT_INSTALL=OFF
         ${{ matrix.additional_cmake_flags }}
         -S ${{ github.workspace }}
 
     - name: Build
-      run: cmake --build ${{ steps.strings.outputs.build-output-dir }} ${{ matrix.additional_build_flags }}
+      run: cmake --build $BUILD_DIR ${{ matrix.additional_build_flags }}
 
     - name: Signing Android package
       env: 
@@ -120,30 +126,31 @@ jobs:
       run: |
         echo ${{ secrets.SIGNINGKEYBASE64 }} > release.keystore.base64
         base64 -d release.keystore.base64 > release.keystore
-        $QT_HOST_PATH/bin/androiddeployqt --input ${{ steps.strings.outputs.build-output-dir }}/app/android-alpineapp-deployment-settings.json --output ${{ steps.strings.outputs.build-output-dir }}/app/android-build --android-platform android-33 --gradle --release --sign release.keystore alpinemaps --storepass ${{ secrets.KEYSTOREPASSWORD }}
+        $QT_HOST_PATH/bin/androiddeployqt --input $BUILD_DIR/$APK_TARGET/android-alpineapp-deployment-settings.json --output $ANDROID_BUILD_DIR --android-platform android-33 --gradle --release --sign release.keystore alpinemaps --storepass ${{ secrets.KEYSTOREPASSWORD }}
         
     - name: Readme why Android package was not signed
       env: 
         secret_test: ${{ secrets.KEYSTOREPASSWORD }}
       if: matrix.qttarget == 'android' && env.secret_test == ''
       run: |
-        echo "Well, the apk wasn't signed because there is no key to sign it with in your repository (the one this was created in)." >> ${{ steps.strings.outputs.build-output-dir }}/app/android-build/build/outputs/apk/release/read_me_in_case_you_wonder_why_the_apk_is_not_signed.txt
-        echo "" >> ${{ steps.strings.outputs.build-output-dir }}/app/android-build/build/outputs/apk/release/read_me_in_case_you_wonder_why_the_apk_is_not_signed.txt
-        echo "These are the steps to generate such a key:" >> ${{ steps.strings.outputs.build-output-dir }}/app/android-build/build/outputs/apk/release/read_me_in_case_you_wonder_why_the_apk_is_not_signed.txt
-        echo "- https://stackoverflow.com/questions/3997748/how-can-i-create-a-keystore. Use 'alpinemaps' as the alias!" >> ${{ steps.strings.outputs.build-output-dir }}/app/android-build/build/outputs/apk/release/read_me_in_case_you_wonder_why_the_apk_is_not_signed.txt
-        echo "- If you have the android dev setup ready in Qt Creator, you can also create the keystore via Projects (on the left side toolboar) -> Android Qt ... -> Build -> Build Steps -> Build Android APK -> Application Signature -> Create.  Use 'alpinemaps' as the alias!" >> ${{ steps.strings.outputs.build-output-dir }}/app/android-build/build/outputs/apk/release/read_me_in_case_you_wonder_why_the_apk_is_not_signed.txt
-        echo "- Then you have to encode the keystore in base64, e.g., on linux via 'base64 keystorefile > keystorefile.base64'" >> ${{ steps.strings.outputs.build-output-dir }}/app/android-build/build/outputs/apk/release/read_me_in_case_you_wonder_why_the_apk_is_not_signed.txt
-        echo "- Finally, create the following secrets in github -> your repo -> Settings -> Secrets and variables -> Actions -> Repository secrets" >> ${{ steps.strings.outputs.build-output-dir }}/app/android-build/build/outputs/apk/release/read_me_in_case_you_wonder_why_the_apk_is_not_signed.txt
-        echo "  SIGNINGKEYBASE64 = the base64 encoded key" >> ${{ steps.strings.outputs.build-output-dir }}/app/android-build/build/outputs/apk/release/read_me_in_case_you_wonder_why_the_apk_is_not_signed.txt
-        echo "  KEYSTOREPASSWORD = the password used to create the keystore" >> ${{ steps.strings.outputs.build-output-dir }}/app/android-build/build/outputs/apk/release/read_me_in_case_you_wonder_why_the_apk_is_not_signed.txt
-        echo "" >> ${{ steps.strings.outputs.build-output-dir }}/app/android-build/build/outputs/apk/release/read_me_in_case_you_wonder_why_the_apk_is_not_signed.txt
-        echo "Oh, and I hope this saved your day ;)" >> ${{ steps.strings.outputs.build-output-dir }}/app/android-build/build/outputs/apk/release/read_me_in_case_you_wonder_why_the_apk_is_not_signed.txt
+        README_PATH=$APK_DIR/read_me_in_case_you_wonder_why_the_apk_is_not_signed.txt
+        echo "Well, the apk wasn't signed because there is no key to sign it with in your repository (the one this was created in)." >> $README_PATH
+        echo "" >> $README_PATH
+        echo "These are the steps to generate such a key:" >> $README_PATH
+        echo "- https://stackoverflow.com/questions/3997748/how-can-i-create-a-keystore. Use 'alpinemaps' as the alias!" >> $README_PATH
+        echo "- If you have the android dev setup ready in Qt Creator, you can also create the keystore via Projects (on the left side toolboar) -> Android Qt ... -> Build -> Build Steps -> Build Android APK -> Application Signature -> Create.  Use 'alpinemaps' as the alias!" >> $README_PATH
+        echo "- Then you have to encode the keystore in base64, e.g., on linux via 'base64 keystorefile > keystorefile.base64'" >> $README_PATH
+        echo "- Finally, create the following secrets in github -> your repo -> Settings -> Secrets and variables -> Actions -> Repository secrets" >> $README_PATH
+        echo "  SIGNINGKEYBASE64 = the base64 encoded key" >> $README_PATH
+        echo "  KEYSTOREPASSWORD = the password used to create the keystore" >> $README_PATH
+        echo "" >> $README_PATH
+        echo "Oh, and I hope this saved your day ;)" >> $README_PATH
       
     - name: Copy android packages
       if: matrix.qttarget == 'android'
       run: |
-        mkdir -p ${{ steps.strings.outputs.install-dir }}
-        cp -r ${{ steps.strings.outputs.build-output-dir }}/app/android-build/build/outputs/apk/release/* ${{ steps.strings.outputs.install-dir }}
+        mkdir -p $INSTALL_DIR
+        cp -r $APK_DIR/* $INSTALL_DIR
 
     - name: Create artifact
       uses: actions/upload-artifact@v4
