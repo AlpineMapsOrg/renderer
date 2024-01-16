@@ -249,7 +249,7 @@ void main() {
     highp vec3 track_vert = texelFetch(texin_track, ivec2(int(vertex_id), 0), 0).xyz; 
 
     if (vertex_id > 0) {
-        //out_Color = vec4(color_from_id_hash(vertex_id), 1);
+        out_Color = vec4(color_from_id_hash(vertex_id), 1);
 
         Sphere sphere;
         sphere.position = track_vert;
@@ -262,13 +262,12 @@ void main() {
         ray.direction = pos_cws / dist;
 
 
-        float t = intersect(ray, sphere);
+        float t = INF;
+        vec3 point;
+        bool i = IntersectRaySphere(ray, sphere, t, point);
 
-        if (0 < t && t < INF) {
-
-            highp vec3 point = ray.origin + ray.direction * t;
+        if (i) {
             highp vec3 normal = (point - sphere.position) / sphere.radius;
-            //out_Color = vec4(0,1,0,1); // green
             highp vec3 normal_color = (normal + vec3(1)) / vec3(2);
             out_Color = vec4(normal_color, 1);
         }
