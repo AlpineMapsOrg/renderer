@@ -17,7 +17,6 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #############################################################################
 
-cmake_minimum_required(VERSION 3.24)
 project(alpine-renderer-app LANGUAGES CXX)
 
 qt_add_executable(alpineapp

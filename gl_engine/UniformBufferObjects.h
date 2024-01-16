@@ -163,20 +163,22 @@ struct uboShadowConfig {
 struct uboTestConfig {
     Q_GADGET
 public:
-    QVector4D m_tv4 = QVector4D(0.1, 0.2, 0.3, 0.4);
+    QVector4D m_tv4 = QVector4D(0.1f, 0.2f, 0.3f, 0.4f);
     GLfloat m_tf32 = 0.5f;
     GLuint m_tu32 = 201u;
     Q_PROPERTY(QVector4D tv4 MEMBER m_tv4)
     Q_PROPERTY(float tf32 MEMBER m_tf32)
     Q_PROPERTY(unsigned int tu32 MEMBER m_tu32)
-    bool operator!=(const uboSharedConfig& rhs) const { return true; }
+    bool operator!=(const uboSharedConfig&) const { return true; }
 };
 
 // FOR SERIALIZATION
 // NOTE: The following are the default serialize functions. (nothing happens) If the functionality is needed
 // have a look at how you have to override those functions for the specific ubos.
-template <typename T> void serialize_ubo(QDataStream& out, const T& data) { }
-template <typename T> void unserialize_ubo(QDataStream& in, T& data, uint32_t version) { }
+template <typename T>
+void serialize_ubo(QDataStream& /*out*/, const T& /*data*/) { }
+template <typename T>
+void unserialize_ubo(QDataStream& /*in*/, T& /*data*/, uint32_t /*version*/) { }
 
 // override for shared_config
 void serialize_ubo(QDataStream& out, const uboSharedConfig& data);

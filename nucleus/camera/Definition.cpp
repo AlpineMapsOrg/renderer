@@ -301,7 +301,7 @@ glm::dvec2 Definition::to_ndc(const glm::dvec2& screen_space_coordinates) const
 
 float Definition::to_screen_space(float world_space_size, float world_space_distance) const
 {
-    return m_viewport_size.y * 0.5f * world_space_size * m_distance_scaling_factor / world_space_distance;
+    return float(m_viewport_size.y) * 0.5f * world_space_size * m_distance_scaling_factor / world_space_distance;
 }
 
 glm::dvec3 Definition::calculate_lookat_position(double distance) const {

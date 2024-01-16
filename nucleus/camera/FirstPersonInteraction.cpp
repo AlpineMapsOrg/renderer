@@ -24,7 +24,7 @@
 
 namespace nucleus::camera {
 
-std::optional<Definition> FirstPersonInteraction::mouse_move_event(const event_parameter::Mouse& e, Definition camera, AbstractDepthTester* depth_tester)
+std::optional<Definition> FirstPersonInteraction::mouse_move_event(const event_parameter::Mouse& e, Definition camera, AbstractDepthTester*)
 {
 
     if (e.buttons == Qt::LeftButton || e.buttons == Qt::MiddleButton) {
@@ -38,7 +38,7 @@ std::optional<Definition> FirstPersonInteraction::mouse_move_event(const event_p
         return camera;
 }
 
-std::optional<Definition> FirstPersonInteraction::wheel_event(const event_parameter::Wheel& e, Definition camera, AbstractDepthTester* depth_tester)
+std::optional<Definition> FirstPersonInteraction::wheel_event(const event_parameter::Wheel& e, Definition camera, AbstractDepthTester*)
 {
     if (e.angle_delta.y() > 0) {
         m_speed_modifyer = std::min(m_speed_modifyer * 1.3f, 4000.0f);
@@ -48,7 +48,7 @@ std::optional<Definition> FirstPersonInteraction::wheel_event(const event_parame
     return camera;
 }
 
-std::optional<Definition> FirstPersonInteraction::key_press_event(const QKeyCombination& e, Definition camera, AbstractDepthTester* depth_tester)
+std::optional<Definition> FirstPersonInteraction::key_press_event(const QKeyCombination& e, Definition camera, AbstractDepthTester*)
 {
     if (m_keys_pressed == 0) {
         m_stopwatch.restart();
@@ -79,7 +79,7 @@ std::optional<Definition> FirstPersonInteraction::key_press_event(const QKeyComb
     return camera;
 }
 
-std::optional<Definition> FirstPersonInteraction::key_release_event(const QKeyCombination& e, Definition camera, AbstractDepthTester* depth_tester)
+std::optional<Definition> FirstPersonInteraction::key_release_event(const QKeyCombination& e, Definition camera, AbstractDepthTester*)
 {
     m_keys_pressed--;
     if (e.key() == Qt::Key_W) {
@@ -106,7 +106,7 @@ std::optional<Definition> FirstPersonInteraction::key_release_event(const QKeyCo
     return camera;
 }
 
-std::optional<Definition> FirstPersonInteraction::update(Definition camera, AbstractDepthTester* depth_tester)
+std::optional<Definition> FirstPersonInteraction::update(Definition camera, AbstractDepthTester*)
 {
     if (m_keys_pressed == 0) {
         return {};

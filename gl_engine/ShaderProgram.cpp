@@ -176,9 +176,10 @@ QString ShaderProgram::read_file_content_local(const QString& name) {
 
 // =========== MEMBER DECLARATIONS =======================
 
-
 ShaderProgram::ShaderProgram(QString vertex_shader, QString fragment_shader, ShaderCodeSource code_source)
-    : m_code_source(code_source), m_vertex_shader(vertex_shader), m_fragment_shader(fragment_shader)
+    : m_vertex_shader(vertex_shader)
+    , m_fragment_shader(fragment_shader)
+    , m_code_source(code_source)
 {
     reload();
     assert(m_q_shader_program);
@@ -346,9 +347,10 @@ void ShaderProgram::set_uniform_template(const std::string& name, T value)
 }
 
 QString ShaderProgram::load_and_preprocess_shader_code(gl_engine::ShaderType type) {
-    QString code = type == gl_engine::ShaderType::VERTEX ? m_vertex_shader : m_fragment_shader;
-    if (m_code_source == ShaderCodeSource::FILE) code = read_file_content(code);
-    else if (m_code_source == ShaderCodeSource::PLAINTEXT) code = code;
+    QString code = (type == gl_engine::ShaderType::VERTEX) ? m_vertex_shader : m_fragment_shader;
+    if (m_code_source == ShaderCodeSource::FILE)
+        code = read_file_content(code);
+
     preprocess_shader_content_inplace(code);
     return make_versioned_shader_code(code);
 }

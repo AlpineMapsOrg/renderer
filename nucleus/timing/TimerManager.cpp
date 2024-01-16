@@ -64,7 +64,7 @@ QList<TimerReport> TimerManager::fetch_results()
             new_values.push_back({ tmr->get_last_measurement(), tmr });
         }
     }
-    return std::move(new_values);
+    return new_values;
 }
 
 std::shared_ptr<TimerInterface> TimerManager::add_timer(std::shared_ptr<TimerInterface> tmr) {

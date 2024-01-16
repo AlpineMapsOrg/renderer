@@ -18,7 +18,6 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #############################################################################
 
-cmake_minimum_required(VERSION 3.24)
 project(alpine-renderer-gl_engine LANGUAGES CXX)
 
 # If true the shaders will be loaded from the given ALP_SHADER_NETWORK_URL and can be reloaded

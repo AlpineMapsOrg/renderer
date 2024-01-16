@@ -29,9 +29,6 @@ void MapLabel::init(const std::unordered_map<int, const MapLabel::CharData>& cha
     float offset_y = -font_size / 2.0f + 75.0;
 
     float uv_width_norm = 1.0f / 512.0f;
-    float uv_height_norm = 1.0f / 512.0f;
-
-    const float text_spacing = 1.0f;
 
     std::string altitude_text = std::to_string(m_altitude);
     altitude_text = altitude_text.substr(0, altitude_text.find("."));
@@ -51,7 +48,7 @@ void MapLabel::init(const std::unordered_map<int, const MapLabel::CharData>& cha
         glm::vec4(10.0, 10.0, 1, 1), // uv position + offset
         label_position, m_importance });
 
-    for (int i = 0; i < safe_chars.size(); i++) {
+    for (unsigned long long i = 0; i < safe_chars.size(); i++) {
 
         const MapLabel::CharData b = character_data.at(safe_chars[i]);
 
@@ -73,7 +70,7 @@ std::vector<float> inline MapLabel::create_text_meta(const std::unordered_map<in
 
     float scale = stbtt_ScaleForPixelHeight(fontinfo, font_size);
     float xOffset = 0;
-    for (int i = 0; i < safe_chars.size(); i++) {
+    for (unsigned long long i = 0; i < safe_chars.size(); i++) {
         if (!character_data.contains(safe_chars[i])) {
             std::cout << "character with unicode index(Dec: " << safe_chars[i] << ") cannot be shown -> please add it to nucleus/map_label/MapLabelManager.h.all_char_list" << std::endl;
             safe_chars[i] = 32; // replace with space character
@@ -102,7 +99,7 @@ std::vector<float> inline MapLabel::create_text_meta(const std::unordered_map<in
         text_width = xOffset + b.width;
     }
 
-    return std::move(kerningOffsets);
+    return kerningOffsets;
 }
 
 } // namespace nucleus

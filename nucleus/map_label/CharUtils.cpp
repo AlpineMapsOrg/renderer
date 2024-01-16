@@ -26,7 +26,6 @@ namespace nucleus {
 const std::vector<int> CharUtils::string_to_unicode_int_list(std::string text)
 {
     std::vector<int> safe_chars;
-    bool special_char = false;
 
     // utf-8 decoding explanation: https://dl.acm.org/doi/pdf/10.17487/RFC3629 (page 4)
     int unicode2_test = 0b11000000; // next unicode char contains 2 bytes
@@ -43,7 +42,7 @@ const std::vector<int> CharUtils::string_to_unicode_int_list(std::string text)
     constexpr int unicode_shift = 6;
     int current_unicode_char_index = 0;
 
-    for (int i = 0; i < text.size(); i++) {
+    for (unsigned long long i = 0; i < text.size(); i++) {
         int char_index = int(text[i]);
 
         // we have a unicode char -> that stretches multiple bytes
@@ -76,7 +75,7 @@ const std::vector<int> CharUtils::string_to_unicode_int_list(std::string text)
         }
     }
 
-    return std::move(safe_chars);
+    return safe_chars;
 }
 
 } // namespace nucleus

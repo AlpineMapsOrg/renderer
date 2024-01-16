@@ -16,7 +16,6 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #############################################################################
 
-cmake_minimum_required(VERSION 3.24)
 project(alpine-renderer-unittests LANGUAGES CXX)
 
 alp_add_git_repository(qml_catch2_console URL https://github.com/AlpineMapsOrg/qml_catch2_console.git COMMITISH origin/main DO_NOT_ADD_SUBPROJECT)

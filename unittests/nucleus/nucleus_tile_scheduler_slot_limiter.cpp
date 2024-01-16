@@ -139,8 +139,8 @@ TEST_CASE("nucleus/tile_scheduler/slot limiter")
             sl.deliver_quad(tile_types::TileQuad { tile::Id { i, { 0, 0 } } });
             CHECK(sl.slots_taken() == 2);
 
-            REQUIRE(spy.size() == 3 + i);
-            CHECK(spy[i + 2][0].value<tile::Id>() == tile::Id { i + 2, { 0, 0 } });
+            REQUIRE(spy.size() == int(3 + i));
+            CHECK(spy[int(i + 2)][0].value<tile::Id>() == tile::Id { i + 2, { 0, 0 } });
         }
         CHECK(sl.slots_taken() == 2);
         REQUIRE(spy.size() == 7);

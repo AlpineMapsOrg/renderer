@@ -45,11 +45,3 @@ void TimerFrontendManager::receive_measurements(QList<nucleus::timing::TimerRepo
     }
     emit updateTimingList(m_timer);
 }
-
-TimerFrontendManager::TimerFrontendManager(const TimerFrontendManager &src)
-    :m_timer(src.m_timer)
-{
-#ifdef ALP_ENABLE_TRACK_OBJECT_LIFECYCLE
-    qDebug() << "TimerFrontendManager()";
-#endif
-}

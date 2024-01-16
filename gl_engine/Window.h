@@ -63,7 +63,6 @@ public:
     void initialise_gpu() override;
     void resize_framebuffer(int w, int h) override;
     void paint(QOpenGLFramebufferObject* framebuffer = nullptr) override;
-    void paintOverGL(QPainter* painter);
 
     [[nodiscard]] float depth(const glm::dvec2& normalised_device_coordinates) override;
     [[nodiscard]] glm::dvec3 position(const glm::dvec2& normalised_device_coordinates) override;

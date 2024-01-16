@@ -66,7 +66,7 @@ public:
     TimerFrontendObject(QObject* parent, const QString& name, const QString& group, const int queue_size = 30, const float average_weight = 1.0/30.0f, const float first_value = 0.0 );
     ~TimerFrontendObject();
 
-    bool operator!=(const TimerFrontendObject& rhs) const
+    bool operator!=(const TimerFrontendObject&) const
     {
         // ToDo compare for difference
         return true;

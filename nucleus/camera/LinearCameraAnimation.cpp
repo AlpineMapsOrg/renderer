@@ -32,8 +32,7 @@ LinearCameraAnimation::LinearCameraAnimation(Definition start, Definition end)
     m_stopwatch.restart();
 }
 
-std::optional<Definition> LinearCameraAnimation::update(Definition camera,
-                                                        AbstractDepthTester* depth_tester)
+std::optional<Definition> LinearCameraAnimation::update(Definition camera, AbstractDepthTester*)
 {
     if (m_current_duration >= m_total_duration) {
         return {};

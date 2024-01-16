@@ -64,6 +64,7 @@ Controller::Controller(AbstractRenderWindow* render_window)
         QFile file(":/map/height_data.atb");
         const auto open = file.open(QIODeviceBase::OpenModeFlag::ReadOnly);
         assert(open);
+        Q_UNUSED(open);
         const QByteArray data = file.readAll();
         const auto decorator = nucleus::tile_scheduler::utils::AabbDecorator::make(TileHeights::deserialise(data));
         m_tile_scheduler->set_aabb_decorator(decorator);

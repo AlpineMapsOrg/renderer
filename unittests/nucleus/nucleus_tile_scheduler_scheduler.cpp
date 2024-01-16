@@ -48,6 +48,7 @@ std::unique_ptr<Scheduler> scheduler_with_true_heights()
     QFile file(":/map/height_data.atb");
     const auto open = file.open(QIODeviceBase::OpenModeFlag::ReadOnly);
     assert(open);
+    Q_UNUSED(open);
     const QByteArray data = file.readAll();
     const auto decorator = nucleus::tile_scheduler::utils::AabbDecorator::make(
         TileHeights::deserialise(data));

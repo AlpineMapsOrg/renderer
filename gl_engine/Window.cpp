@@ -94,6 +94,7 @@ void Window::initialise_gpu()
 {
     QOpenGLExtraFunctions* f = QOpenGLContext::currentContext()->extraFunctions();
     assert(f->hasOpenGLFeature(QOpenGLExtraFunctions::OpenGLFeature::MultipleRenderTargets));
+    Q_UNUSED(f);
 
     QOpenGLDebugLogger* logger = new QOpenGLDebugLogger(this);
     logger->initialize();
@@ -335,24 +336,6 @@ void Window::paint(QOpenGLFramebufferObject* framebuffer)
         m_timer->start_timer("cpu_b2b");
         emit update_requested();
     }
-
-}
-
-void Window::paintOverGL(QPainter* painter)
-{
-    /*
-    const auto frame_duration_text = QString("draw indicator: ");
-
-    const auto random_u32 = QRandomGenerator::global()->generate();
-
-    painter->setFont(QFont("Helvetica", 12));
-    painter->setPen(Qt::white);
-    QRect text_bb = painter->boundingRect(10, 20, 1, 15, Qt::TextSingleLine, frame_duration_text);
-    painter->drawText(10, 20, frame_duration_text);
-    painter->drawText(10, 40, m_debug_scheduler_stats);
-    painter->drawText(10, 60, m_debug_text);
-    painter->setBrush(QBrush(QColor(random_u32)));
-    painter->drawRect(int(text_bb.right()) + 5, 8, 12, 12);*/
 }
 
 void Window::shared_config_changed(gl_engine::uboSharedConfig ubo) {

@@ -31,9 +31,8 @@ class TimerFrontendManager : public QObject
     Q_OBJECT
 
 public:
-    TimerFrontendManager(const TimerFrontendManager& src);
-    ~TimerFrontendManager();
     TimerFrontendManager(QObject* parent = nullptr);
+    ~TimerFrontendManager() override;
 
 public slots:
     void receive_measurements(QList<nucleus::timing::TimerReport> values);

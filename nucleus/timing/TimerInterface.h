@@ -30,12 +30,12 @@ class TimerInterface {
 public:
 
     TimerInterface(const std::string& name, const std::string& group, int queue_size, float average_weight);
-
+    virtual ~TimerInterface()
+    {
 #ifdef ALP_ENABLE_TRACK_OBJECT_LIFECYCLE
-    ~TimerInterface() {
         qDebug() << "nucleus::timing::~TimerInterface(name=" << get_name() << ")";
-    }
 #endif
+    }
 
     // Starts time-measurement
     void start();

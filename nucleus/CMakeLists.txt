@@ -19,11 +19,12 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #############################################################################
 
-cmake_minimum_required(VERSION 3.24)
 project(alpine-renderer-nucleus LANGUAGES CXX)
 
+
 alp_add_git_repository(stb_slim URL https://github.com/AlpineMapsOrg/stb_slim.git COMMITISH origin/main)
-alp_add_git_repository(radix URL https://github.com/AlpineMapsOrg/radix.git COMMITISH origin/main)
+alp_add_git_repository(radix URL https://github.com/AlpineMapsOrg/radix.git COMMITISH origin/main NOT_SYSTEM)
+
 alp_add_git_repository(tl_expected URL https://github.com/TartanLlama/expected.git COMMITISH v1.1.0 DO_NOT_ADD_SUBPROJECT)
 if (NOT TARGET fmt)
     alp_add_git_repository(fmt URL https://github.com/fmtlib/fmt.git COMMITISH 10.1.1)
@@ -31,7 +32,7 @@ endif()
 alp_add_git_repository(zppbits URL https://github.com/eyalz800/zpp_bits.git COMMITISH v4.4.20 DO_NOT_ADD_SUBPROJECT)
 
 add_library(zppbits INTERFACE)
-target_include_directories(zppbits INTERFACE ${zppbits_SOURCE_DIR})
+target_include_directories(zppbits SYSTEM INTERFACE ${zppbits_SOURCE_DIR})
 
 add_library(tl_expected INTERFACE)
 target_include_directories(tl_expected INTERFACE ${tl_expected_SOURCE_DIR}/include)
@@ -112,4 +113,15 @@ if (ALP_ENABLE_ASSERTS)
 endif()
 if (ALP_ENABLE_THREADING)
     target_compile_definitions(nucleus PUBLIC "ALP_ENABLE_THREADING")
+endif()
+
+if (MSVC)
+    target_compile_options(nucleus PUBLIC /W4 #[[/WX]])
+    # /WX fails with an unreachable code warning/error in zpp_bits.h. the system property doesn't seem to work (even though it appears in the build log as
+    # -external:ID:\a\renderer\renderer\extern\zppbits -external:W0
+else()
+    target_compile_options(nucleus PUBLIC -Wall -Wextra -pedantic -Werror)
+    if (EMSCRIPTEN)
+        target_compile_options(nucleus PUBLIC -Wno-dollar-in-identifier-extension)
+    endif()
 endif()

@@ -49,6 +49,7 @@ UnittestGLContext::UnittestGLContext()
     surface.create();
     const auto r = m_context.create();
     assert(r);
+    Q_UNUSED(r);
     m_context.makeCurrent(&surface);
 
     QOpenGLDebugLogger logger;

@@ -43,18 +43,13 @@ void Window::paintGL()
     m_gl_window->paint();
 }
 
-void Window::paintOverGL()
-{
-    QPainter p(this);
-    m_gl_window->paintOverGL(&p);
-}
-
 gl_engine::Window* Window::render_window()
 {
     return m_gl_window;
 }
 
-void Window::closeEvent(QCloseEvent* e) {
+void Window::closeEvent(QCloseEvent*)
+{
     // NOTE: The following fixes the bug where the plain_renderer crashes if m_gl_window was set as a direct member variable
     // For some reason in this case the QOpenGLContext was not available anymore before deleting the m_gl_window. Thats why it crashed
     // when exiting. Deleting m_gl_window manually inside the closeEvent fixes this bug:
