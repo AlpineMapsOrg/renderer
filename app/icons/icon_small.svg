@@ -8,10 +8,10 @@
    version="1.1"
    id="svg5"
    inkscape:version="1.3.2 (091e20e, 2023-11-25)"
-   sodipodi:docname="icon.svg"
-   inkscape:export-filename="/home/madam/Documents/work/tuw/alpinemaps/renderer/app/icons/icon_512.png"
-   inkscape:export-xdpi="130.048"
-   inkscape:export-ydpi="130.048"
+   sodipodi:docname="icon_small.svg"
+   inkscape:export-filename="../android/res/drawable-ldpi/icon_n.png"
+   inkscape:export-xdpi="8.1280003"
+   inkscape:export-ydpi="8.1280003"
    xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
    xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
    xmlns="http://www.w3.org/2000/svg"
@@ -27,11 +27,11 @@
      inkscape:document-units="mm"
      showgrid="false"
      inkscape:zoom="2"
-     inkscape:cx="109.25"
+     inkscape:cx="109"
      inkscape:cy="192.5"
-     inkscape:window-width="2560"
-     inkscape:window-height="1369"
-     inkscape:window-x="2560"
+     inkscape:window-width="1920"
+     inkscape:window-height="1171"
+     inkscape:window-x="5120"
      inkscape:window-y="0"
      inkscape:window-maximized="1"
      inkscape:current-layer="layer1"
@@ -63,17 +63,17 @@
          sodipodi:nodetypes="cccc" />
       <path
          style="color:#000000;fill:#000000;-inkscape-stroke:none"
-         d="M 156.19474,68.126085 55.349629,272.60413 80.407961,294.43495 169.55576,71.662973 Z"
+         d="M 143.597,83.954925 55.349629,272.60413 80.407961,294.43495 167.48453,83.954925 Z"
          id="path869"
          sodipodi:nodetypes="ccccc" />
       <path
          style="color:#000000;fill:#000000;-inkscape-stroke:none"
-         d="m 209.30319,73.471058 -59.60311,250.601702 33.43151,6.32287 39.25894,-237.384487 28.16374,5.667052 93.77839,160.229175 16.21226,-26.38589 -99.5274,-151.001981 z"
+         d="m 209.30319,73.471058 -59.60311,250.601702 33.43151,6.32287 45.77908,-227.78727 17.26646,2.75394 98.15553,153.54507 16.21226,-26.38589 -99.5274,-151.001981 z"
          id="path2"
          sodipodi:nodetypes="ccccccccc" />
       <path
          style="color:#000000;fill:#000000;-inkscape-stroke:none"
-         d="M 163.02824,56.888865 23.73752,156.68443 v 39.80702 l 134.80787,-116.831326 38.37965,70.074086 10.53828,-32.03209 z"
+         d="M 163.02824,56.888865 23.73752,156.68443 v 39.80702 l 132.73233,-104.130391 40.45519,57.373151 10.53828,-32.03209 z"
          id="path1847"
          sodipodi:nodetypes="ccccccc" />
     </g>
