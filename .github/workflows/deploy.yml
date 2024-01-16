@@ -89,8 +89,6 @@ jobs:
       run: emcc -v
 
     - name: Set reusable strings
-      # Turn repeated input strings (such as the build output directory) into step outputs. These step outputs can be used throughout the workflow file.
-      id: strings
       shell: bash
       run: |
         BUILD_DIR="build"
@@ -101,6 +99,7 @@ jobs:
         echo "INSTALL_DIR=install/${{ matrix.qtarch }}" >> $GITHUB_ENV
         echo "APK_DIR=$BUILD_DIR/$APK_TARGET/android-build/build/outputs/apk/" >> $GITHUB_ENV
         echo "ANDROID_BUILD_DIR=$BUILD_DIR/$APK_TARGET/android-build/" >> $GITHUB_ENV
+        echo "DEPLOYMENT_SETTINGS=BUILD_DIR/$APK_TARGET/android-alpineapp-deployment-settings.json" >> $GITHUB_ENV
 
     - name: Configure CMake
       env:
@@ -126,7 +125,7 @@ jobs:
       run: |
         echo ${{ secrets.SIGNINGKEYBASE64 }} > release.keystore.base64
         base64 -d release.keystore.base64 > release.keystore
-        $QT_HOST_PATH/bin/androiddeployqt --input $BUILD_DIR/$APK_TARGET/android-alpineapp-deployment-settings.json --output $ANDROID_BUILD_DIR --android-platform android-33 --gradle --release --sign release.keystore alpinemaps --storepass ${{ secrets.KEYSTOREPASSWORD }}
+        $QT_HOST_PATH/bin/androiddeployqt --input $DEPLOYMENT_SETTINGS --output $ANDROID_BUILD_DIR --android-platform android-33 --gradle --release --sign release.keystore alpinemaps --storepass ${{ secrets.KEYSTOREPASSWORD }}
         
     - name: Readme why Android package was not signed
       env: 
