@@ -18,7 +18,7 @@
 
 project(alpine-renderer-unittests LANGUAGES CXX)
 
-alp_add_git_repository(qml_catch2_console URL https://github.com/AlpineMapsOrg/qml_catch2_console.git COMMITISH origin/main DO_NOT_ADD_SUBPROJECT)
+alp_add_git_repository(qml_catch2_console URL https://github.com/AlpineMapsOrg/qml_catch2_console.git COMMITISH v24.01.17 DO_NOT_ADD_SUBPROJECT)
 include(${CMAKE_SOURCE_DIR}/cmake/alp_add_unittest.cmake)
 
 add_subdirectory(nucleus)
