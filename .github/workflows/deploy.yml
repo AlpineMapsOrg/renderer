@@ -99,7 +99,7 @@ jobs:
         echo "INSTALL_DIR=install/${{ matrix.qtarch }}" >> $GITHUB_ENV
         echo "APK_DIR=$BUILD_DIR/$APK_TARGET/android-build/build/outputs/apk/" >> $GITHUB_ENV
         echo "ANDROID_BUILD_DIR=$BUILD_DIR/$APK_TARGET/android-build/" >> $GITHUB_ENV
-        echo "DEPLOYMENT_SETTINGS=BUILD_DIR/$APK_TARGET/android-alpineapp-deployment-settings.json" >> $GITHUB_ENV
+        echo "DEPLOYMENT_SETTINGS=$BUILD_DIR/$APK_TARGET/android-alpineapp-deployment-settings.json" >> $GITHUB_ENV
 
     - name: Configure CMake
       env:
