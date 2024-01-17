@@ -1,3 +1,5 @@
+#include "intersection.glsl"
+
 layout (location = 0) out lowp vec3 texout_albedo;
 layout (location = 1) out highp vec4 texout_position;
 layout (location = 2) out highp uvec2 texout_normal;

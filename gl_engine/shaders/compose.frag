@@ -247,13 +247,14 @@ void main() {
 
     // track vertex position
     highp vec3 track_vert = texelFetch(texin_track, ivec2(int(vertex_id), 0), 0).xyz; 
+    highp vec3 next_track_vert = texelFetch(texin_track, ivec2(int(vertex_id) + 3, 0), 0).xyz; 
 
     if (vertex_id > 0) {
         out_Color = vec4(color_from_id_hash(vertex_id), 1);
 
         Sphere sphere;
         sphere.position = track_vert;
-        sphere.radius = 10;
+        sphere.radius = 7;
 
         Ray ray;
         highp vec3 origin = vec3(camera.position);
@@ -264,11 +265,25 @@ void main() {
 
         float t = INF;
         vec3 point;
+#if 1
         bool i = IntersectRaySphere(ray, sphere, t, point);
+#else
+        Capsule c;
+        c.p = track_vert;
+        c.q = next_track_vert;
+        c.radius = 5;
+        t = intersect_capsule(ray.origin, ray.direction, c.p, c.q, c.radius);
+        //point = ray.origin + ray.direction * t;
+        //bool i = 0 < i;
+#endif
 
-        if (i) {
+        if (0 < t && t < INF) {
+#if 0
             highp vec3 normal = (point - sphere.position) / sphere.radius;
             highp vec3 normal_color = (normal + vec3(1)) / vec3(2);
+#else
+            highp vec3 normal_color = vec3(1,0,0);
+#endif
             out_Color = vec4(normal_color, 1);
         }
     } 
