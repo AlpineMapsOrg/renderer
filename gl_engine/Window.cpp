@@ -278,7 +278,7 @@ void Window::paint(QOpenGLFramebufferObject* framebuffer)
     m_shader_manager->tile_shader()->release();
 
     /* draw tracks on top */
-    //f->glClear(GL_DEPTH_BUFFER_BIT);
+    f->glClear(GL_DEPTH_BUFFER_BIT);
     m_timer->start_timer("tracks");
     m_track_manager->draw(m_camera);
     m_timer->stop_timer("tracks");

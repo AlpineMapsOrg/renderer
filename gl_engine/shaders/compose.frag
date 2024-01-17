@@ -299,6 +299,15 @@ void main() {
             highp vec3 normal_color = vec3(1,0,0);
 #endif
             out_Color = vec4(normal_color, 1);
+#if 1
+            float t = max(t1, t2);
+
+            if (t < dist) {
+                out_Color = vec4(0,1,0,1);
+            } else {
+                out_Color = vec4(1,0,1,1);
+            }
+#endif
         }
     } 
 }
