@@ -23,21 +23,21 @@ flat in highp float opacity;
 
 layout (location = 0) out lowp vec4 out_Color;
 
-vec3 fontColor = vec3(0.1);
-vec3 outlineColor = vec3(0.9);
+lowp vec3 fontColor = vec3(0.1f);
+lowp vec3 outlineColor = vec3(0.9f);
 
 void main() {
 
-    if(texcoords.x < 2.0)
+    if(texcoords.x < 2.0f)
     {
-        float outline_mask = texture(font_sampler, texcoords).g;
-        float font_mask = texture(font_sampler, texcoords).r;
+        mediump float outline_mask = texture(font_sampler, texcoords).g;
+        mediump float font_mask = texture(font_sampler, texcoords).r;
 
         out_Color = vec4(mix(outlineColor, fontColor, font_mask), outline_mask);
     }
     else
     {
-        out_Color = texture2D(icon_sampler, texcoords-vec2(10.0,10.0));
+        out_Color = texture(icon_sampler, texcoords-vec2(10.0f,10.0f));
     }
 
     // apply opacity calculated in vertex shader (opacity from occlusion and distance)
