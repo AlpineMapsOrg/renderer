@@ -30,8 +30,8 @@ void main() {
 
     if(texcoords.x < 2.0)
     {
-        float outline_mask = texture2D(font_sampler, texcoords).g;
-        float font_mask = texture2D(font_sampler, texcoords).r;
+        float outline_mask = texture(font_sampler, texcoords).g;
+        float font_mask = texture(font_sampler, texcoords).r;
 
         out_Color = vec4(mix(outlineColor, fontColor, font_mask), outline_mask);
     }
