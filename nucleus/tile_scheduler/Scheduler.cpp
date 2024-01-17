@@ -25,8 +25,6 @@
 #include <QNetworkInformation>
 #include <QStandardPaths>
 #include <QTimer>
-#include <fmt/chrono.h>
-#include <fmt/core.h>
 
 #include "nucleus/tile_scheduler/utils.h"
 #include "nucleus/utils/tile_conversion.h"
@@ -229,11 +227,16 @@ void Scheduler::persist_tiles()
     const auto start = std::chrono::steady_clock::now();
     const auto r = m_ram_cache.write_to_disk(disk_cache_path());
     const auto diff = std::chrono::steady_clock::now() - start;
+
     if (diff > std::chrono::milliseconds(50))
-        fmt::println(stderr, "Scheduler::persist_tiles took {} for {} quads.", std::chrono::duration_cast<std::chrono::milliseconds>(diff), m_ram_cache.n_cached_objects());
+        qDebug() << QString("Scheduler::persist_tiles took %1ms for %2 quads.")
+                        .arg(std::chrono::duration_cast<std::chrono::milliseconds>(diff).count())
+                        .arg(m_ram_cache.n_cached_objects());
 
     if (!r.has_value()) {
-        qDebug("Writing tiles to disk into %s failed: %s. Removing all files.", disk_cache_path().c_str(), r.error().c_str());
+        qDebug() << QString("Writing tiles to disk into %1 failed: %2. Removing all files.")
+                        .arg(QString::fromStdString(disk_cache_path().string()))
+                        .arg(QString::fromStdString(r.error()));
         std::filesystem::remove_all(disk_cache_path());
     }
 }
@@ -274,7 +277,9 @@ void Scheduler::read_disk_cache()
     if (r.has_value()) {
         update_stats();
     } else {
-        qDebug("Reading tiles from disk cache (%s) failed: \n%s\nRemoving all files.", disk_cache_path().c_str(), r.error().c_str());
+        qDebug() << QString("Reading tiles from disk cache (%1) failed: \n%2\nRemoving all files.")
+                        .arg(QString::fromStdString(disk_cache_path().string()))
+                        .arg(QString::fromStdString(r.error()));
         std::filesystem::remove_all(disk_cache_path());
     }
 }

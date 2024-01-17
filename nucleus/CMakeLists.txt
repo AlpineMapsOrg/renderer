@@ -21,10 +21,8 @@
 
 project(alpine-renderer-nucleus LANGUAGES CXX)
 
-
 alp_add_git_repository(stb_slim URL https://github.com/AlpineMapsOrg/stb_slim.git COMMITISH origin/main)
-alp_add_git_repository(radix URL https://github.com/AlpineMapsOrg/radix.git COMMITISH origin/main NOT_SYSTEM)
-
+alp_add_git_repository(radix URL https://github.com/AlpineMapsOrg/radix.git COMMITISH v24.01.17 NOT_SYSTEM)
 alp_add_git_repository(tl_expected URL https://github.com/TartanLlama/expected.git COMMITISH v1.1.0 DO_NOT_ADD_SUBPROJECT)
 if (NOT TARGET fmt)
     alp_add_git_repository(fmt URL https://github.com/fmtlib/fmt.git COMMITISH 10.1.1)
@@ -104,13 +102,10 @@ qt_add_library(nucleus STATIC
 target_include_directories(nucleus PRIVATE . PUBLIC ${CMAKE_SOURCE_DIR})
 target_link_libraries(nucleus PUBLIC radix Qt::Core Qt::Gui Qt::Network Qt::Svg fmt::fmt zppbits tl_expected nucleus_version stb_slim)
 
-if (EMSCRIPTEN)
-    target_compile_options(nucleus PUBLIC -O3)
-    target_link_options(nucleus PUBLIC -O3)
-endif()
-if (ALP_ENABLE_ASSERTS)
-    target_compile_options(nucleus PUBLIC "-U NDEBUG")
-endif()
+# if (EMSCRIPTEN)
+#     # target_compile_options(nucleus PUBLIC -fwasm-exceptions)
+#     # target_link_options(nucleus PUBLIC -fwasm-exceptions)
+# endif()
 if (ALP_ENABLE_THREADING)
     target_compile_definitions(nucleus PUBLIC "ALP_ENABLE_THREADING")
 endif()

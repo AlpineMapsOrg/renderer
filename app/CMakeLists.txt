@@ -68,7 +68,7 @@ qt_add_qml_module(alpineapp
         icons/peak.svg
         icons/search.svg
         icons/favicon.ico
-        icons/favicon_256.png
+        icons/icon.svg
         icons/material/monitoring.svg
         icons/material/3d_rotation.svg
         icons/material/map.svg
@@ -85,6 +85,7 @@ qt_add_qml_module(alpineapp
         icons/presets/basic.png
         icons/presets/shaded.png
         icons/presets/snow.png
+
 )
 
 qt_add_resources(alpineapp "height_data"
@@ -126,6 +127,9 @@ target_link_libraries(alpineapp PUBLIC nucleus gl_engine Qt::Quick Qt::QuickCont
 if (ALP_ENABLE_POSITIONING)
     target_link_libraries(alpineapp PUBLIC Qt::Positioning)
     target_compile_definitions(alpineapp PUBLIC "ALP_ENABLE_GNSS")
+endif()
+if (ALP_ENABLE_APP_SHUTDOWN_AFTER_60S)
+    target_compile_definitions(alpineapp PUBLIC "ALP_APP_SHUTDOWN_AFTER_60S")
 endif()
 
 if (ANDROID OR EMSCRIPTEN)

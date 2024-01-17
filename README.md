@@ -1,5 +1,7 @@
 # alpine-renderer
-A developer version is available at [alpinemaps.org](https://alpinemaps.org), and an apk for android under https://alpinemaps.org/apk. Be aware that it can break at any time!
+This is the software behind [alpinemaps.org](https://alpinemaps.org).
+
+A developer version (trunk) is released [here](https://alpinemapsorg.github.io/renderer/), including APKs for android. Be aware that it can break at any time!
 
 We are in discord, talk to us!
 https://discord.gg/p8T9XzVwRa
@@ -7,8 +9,8 @@ https://discord.gg/p8T9XzVwRa
 # Cloning and building
 `git clone git@github.com:AlpineMapsOrg/renderer.git`
 
-After that it should be a normal cmake project. That is, you run cmake to generate a project or build file and then run your favourite tool. All dependencies should be pulled automatically into `renderer/external` while you run CMake. 
-We use Qt Creator (with mingw on Windows), which is the only tested setup atm and makes setup of Android and WebAssembly builds reasonably easy. If you have questions, please open a new [discussion](https://github.com/AlpineMapsOrg/renderer/discussions).
+After that it should be a normal cmake project. That is, you run cmake to generate a project or build file and then run your favourite tool. All dependencies should be pulled automatically while you run CMake. 
+We use Qt Creator (with mingw on Windows), which is the only tested setup atm and makes setup of Android and WebAssembly builds reasonably easy. If you have questions, please go to discord.
 
 ## Dependencies
 * Qt 6.6.0, or greater
@@ -45,3 +47,11 @@ We use Qt Creator (with mingw on Windows), which is the only tested setup atm an
   (in case you use Qt Creator, go to Preferences -> C++ -> Code Style: Formatting mode: Full, Format while typing, Format edited code on file save, don't override formatting)
 * follow the [Qt recommendations](https://wiki.qt.io/API_Design_Principles) and the [c++ core guidelines](https://isocpp.github.io/CppCoreGuidelines/CppCoreGuidelines) everywhere else.
 
+# Developer workflow
+* Fork this repository.
+* Work in branches or your main.
+* Make pull requests from your main branch.
+* Github Actions will run the unit tests and creating packages for the browser and Android.
+* Make sure that the unit tests run through.
+* We will also look at the browser version during the pull request.
+* Ideally you'll also setup the signing keys for Android packages ([instructions](https://github.com/AlpineMapsOrg/renderer/blob/main/creating_apk_keys.md)).

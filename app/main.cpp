@@ -135,8 +135,12 @@ int main(int argc, char **argv)
 #if (defined(__linux) && !defined(__ANDROID__)) || defined(_WIN32) || defined(_WIN64)
     root_window->showMaximized();
 #endif
+#ifdef ALP_APP_SHUTDOWN_AFTER_60S
+    QTimer::singleShot(60000, &app, &QCoreApplication::quit);
+#endif
 
-    RenderThreadNotifier::instance()->set_root_window(root_window);
+    RenderThreadNotifier::instance()
+        ->set_root_window(root_window);
 
     return app.exec();
 }

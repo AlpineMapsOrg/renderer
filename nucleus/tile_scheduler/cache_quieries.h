@@ -47,7 +47,7 @@ inline float query_altitude(MemoryCache* cache, const glm::dvec2& lat_long)
             if (height_tile.isNull())
                 return 1000;
             const auto x = int(uv.x * height_tile.width());
-            const auto y = int(uv.y * height_tile.height());
+            const auto y = int((1 - uv.y) * height_tile.height());
             const auto rgb = QColor(height_tile.pixel(x, y));
             return radix::height_encoding::to_float({rgb.red(), rgb.green(), rgb.blue()});
         }

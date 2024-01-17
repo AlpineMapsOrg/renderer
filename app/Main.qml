@@ -27,8 +27,8 @@ import "components"
 
 Item {
     id: main
-    property int theme: Material.Light      //Material.System
-    property int accent: Material.Green
+    property int theme: Material.Light
+    property int accent: Material.BlueGrey
     property string selectedPage: "map";
 
 
@@ -95,7 +95,7 @@ Item {
         id: menu
 
         bannerTitle: "Alpine Maps"
-        bannerIconSource: "../icons/favicon_256.png"
+        bannerIconSource: "../icons/icon.svg"
         bannerSubtitle: _alpine_renderer_version
         selectedButtonId: 0
 
