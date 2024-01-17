@@ -90,7 +90,6 @@ jobs:
     - name: Signing Android packages
       run: |
         keytool -genkey -v -keystore alp.keystore -alias alpinemaps -keyalg RSA -sigalg SHA1withRSA -keysize 2048 -validity 10000 -keypass asdfasdf -storepass asdfasdf -dname "CN=Franz, OU=IT, O=Furz, L=Rattenberg, ST=Tirol, C=AT"
-        $QT_HOST_PATH/bin/androiddeployqt --input $BUILD_DIR/app/android-alpineapp-deployment-settings.json                                  --output $BUILD_DIR/apk/app --android-platform android-33 --gradle --release --sign alp.keystore alpinemaps --storepass asdfasdf
         $QT_HOST_PATH/bin/androiddeployqt --input $BUILD_DIR/unittests/gl_engine/android-unittests_gl_engine-deployment-settings.json        --output $BUILD_DIR/apk/gl_engine --android-platform android-33 --gradle --release --sign alp.keystore alpinemaps --storepass asdfasdf
         $QT_HOST_PATH/bin/androiddeployqt --input $BUILD_DIR/unittests/nucleus/android-unittests_nucleus-deployment-settings.json            --output $BUILD_DIR/apk/nucleus --android-platform android-33 --gradle --release --sign alp.keystore alpinemaps --storepass asdfasdf
         $QT_HOST_PATH/bin/androiddeployqt --input $BUILD_DIR/alp_external/radix/unittests/android-unittests_radix-deployment-settings.json   --output $BUILD_DIR/apk/radix --android-platform android-33 --gradle --release --sign alp.keystore alpinemaps --storepass asdfasdf
@@ -123,7 +122,6 @@ jobs:
       run: |
         adb devices
         
-        #adb $BUILD_DIR/apk/app/android-build-release-signed.apk
         #adb $BUILD_DIR/apk/test_qml_catch2_console.apk
         #adb $BUILD_DIR/apk/test_qml_catch2_console.apk
         #adb $BUILD_DIR/apk/test_qml_catch2_console.apk
