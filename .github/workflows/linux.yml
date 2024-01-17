@@ -65,7 +65,7 @@ jobs:
         CMAKE_PREFIX_PATH: ${{env.Qt6_Dir}}/lib/cmake
       run: >
         cmake -G Ninja 
-        -DCMAKE_BUILD_TYPE=${{env.BUILD_TYPE}} 
+        -DCMAKE_BUILD_TYPE=${{matrix.BUILD_TYPE}} 
         -DALP_ENABLE_ASSERTS=ON
         -DALP_ENABLE_ADDRESS_SANITIZER=ON
         -DALP_ENABLE_APP_SHUTDOWN_AFTER_60S=ON
