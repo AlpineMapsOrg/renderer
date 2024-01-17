@@ -49,7 +49,6 @@ We use Qt Creator (with mingw on Windows), which is the only tested setup atm an
 
 # Developer workflow
 * Fork this repository.
-* Enable github pages from actions (Repository Settings -> Pages -> Source -> GitHub Actions)
 * Work in branches or your main.
 * Make pull requests from your main branch.
 * Github Actions will run the unit tests and create packages for the browser and Android and deploy them to your_username.github.io/your_clone_name/.
