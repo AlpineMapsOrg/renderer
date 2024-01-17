@@ -86,6 +86,11 @@ jobs:
     - name: Build
       run: |
         cmake --build $BUILD_DIR
+        
+    - name: Debug output
+      if: always()
+      run: |
+        cat tree $BUILD_DIR/apk
 
     - name: Signing Android packages
       run: |
