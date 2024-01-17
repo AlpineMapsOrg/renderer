@@ -268,27 +268,30 @@ void main() {
         ray.direction = pos_cws / dist;
 
 
-        float t = INF;
         vec3 point;
 #if 0
+        float t = INF;
         bool i = IntersectRaySphere(ray, sphere, t, point);
 #else
-        Capsule c;
-        c.p = track_vert;
-        c.q = next_track_vert;
-        c.radius = 5;
-        t = intersect_capsule(ray.origin, ray.direction, c.p, c.q, c.radius);
+
+        Capsule c1;
+        c1.p = track_vert;
+        c1.q = next_track_vert;
+        c1.radius = 5;
+
+        float t1 = intersect_capsule(ray.origin, ray.direction, c1.p, c1.q, c1.radius);
 
         Capsule c2;
         c2.p = prev_track_vert;
         c2.q = track_vert;
         c2.radius = 5;
+
         float t2 = intersect_capsule(ray.origin, ray.direction, c2.p, c2.q, c2.radius);
-        //point = ray.origin + ray.direction * t;
-        //bool i = 0 < i;
+
+        point = ray.origin + ray.direction * min(t1, t2);
 #endif
 
-        if ((0 < t && t < INF) || (0 < t2 && t2 < INF)) {
+        if ((0 < t1 && t1 < INF) || (0 < t2 && t2 < INF)) {
 #if 0
             highp vec3 normal = (point - sphere.position) / sphere.radius;
             highp vec3 normal_color = (normal + vec3(1)) / vec3(2);

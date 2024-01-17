@@ -13,7 +13,8 @@ struct Sphere {
 
 // a Capsule is defined by two points, p and q, and a radius
 struct Capsule {
-    vec3 p, q;
+    vec3 p;
+    vec3 q;
     float radius;
 };
 
