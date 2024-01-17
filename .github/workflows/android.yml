@@ -90,7 +90,7 @@ jobs:
     - name: Debug output
       if: always()
       run: |
-        cat tree $BUILD_DIR/apk
+        tree $BUILD_DIR
 
     - name: Signing Android packages
       run: |
