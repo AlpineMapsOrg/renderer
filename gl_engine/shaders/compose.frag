@@ -246,11 +246,16 @@ void main() {
     highp uint vertex_id = texture(texin_track_vert_id, texcoords).r;
 
     // track vertex position
-    highp vec3 track_vert = texelFetch(texin_track, ivec2(int(vertex_id), 0), 0).xyz; 
-    highp vec3 next_track_vert = texelFetch(texin_track, ivec2(int(vertex_id) + 3, 0), 0).xyz; 
+    highp vec3 track_vert = texelFetch(texin_track, ivec2(int(vertex_id - 1), 0), 0).xyz; 
+    highp vec3 next_track_vert = texelFetch(texin_track, ivec2(int(vertex_id), 0), 0).xyz; 
+    highp vec3 prev_track_vert = texelFetch(texin_track, ivec2(int(vertex_id - 2), 0), 0).xyz; 
+
+    
 
     if (vertex_id > 0) {
-        out_Color = vec4(color_from_id_hash(vertex_id), 1);
+        
+        // visualize fragemnts
+        //out_Color = vec4(color_from_id_hash(vertex_id), 1);
 
         Sphere sphere;
         sphere.position = track_vert;
@@ -265,7 +270,7 @@ void main() {
 
         float t = INF;
         vec3 point;
-#if 1
+#if 0
         bool i = IntersectRaySphere(ray, sphere, t, point);
 #else
         Capsule c;
@@ -273,11 +278,17 @@ void main() {
         c.q = next_track_vert;
         c.radius = 5;
         t = intersect_capsule(ray.origin, ray.direction, c.p, c.q, c.radius);
+
+        Capsule c2;
+        c2.p = prev_track_vert;
+        c2.q = track_vert;
+        c2.radius = 5;
+        float t2 = intersect_capsule(ray.origin, ray.direction, c2.p, c2.q, c2.radius);
         //point = ray.origin + ray.direction * t;
         //bool i = 0 < i;
 #endif
 
-        if (0 < t && t < INF) {
+        if ((0 < t && t < INF) || (0 < t2 && t2 < INF)) {
 #if 0
             highp vec3 normal = (point - sphere.position) / sphere.radius;
             highp vec3 normal_color = (normal + vec3(1)) / vec3(2);
