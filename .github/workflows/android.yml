@@ -132,8 +132,8 @@ jobs:
         adb shell am start -W -n org.qtproject.example.unittests_nucleus/org.qtproject.qt.android.bindings.QtActivity
         
         while [ "$(adb shell dumpsys window windows | grep -i "unittests_nucleus" | wc -l | tr -d '[:space:]')" -ne 0 ]; do sleep 2; done && echo "Execution finished."
-        adb logcat -d -s libunittests_nucleus_arm64-v8a.so
-        adb logcat -d -s libunittests_nucleus_arm64-v8a.so | grep -q "Catch::Session finished with exit code 0" || exit 1
+        adb logcat -d -s libunittests_nucleus_x86_64.so
+        adb logcat -d -s libunittests_nucleus_x86_64.so | grep -q "Catch::Session finished with exit code 0" || exit 1
       
     - name: Run unittests_radix on emulator
       run: |
@@ -144,8 +144,8 @@ jobs:
         adb shell am start -W -n org.qtproject.example.unittests_radix/org.qtproject.qt.android.bindings.QtActivity
         
         while [ "$(adb shell dumpsys window windows | grep -i "unittests_radix" | wc -l | tr -d '[:space:]')" -ne 0 ]; do sleep 2; done && echo "Execution finished."
-        adb logcat -d -s libunittests_radix_arm64-v8a.so.so
-        adb logcat -d -s libunittests_radix_arm64-v8a.so.so | grep -q "Catch::Session finished with exit code 0" || exit 1
+        adb logcat -d -s libunittests_radix_x86_64.so.so
+        adb logcat -d -s libunittests_radix_x86_64.so.so | grep -q "Catch::Session finished with exit code 0" || exit 1
       
     - name: Run unittests_gl_engine on emulator
       run: |
@@ -156,5 +156,5 @@ jobs:
         adb shell am start -W -n org.qtproject.example.unittests_gl_engine/org.qtproject.qt.android.bindings.QtActivity
         
         while [ "$(adb shell dumpsys window windows | grep -i "unittests_gl_engine" | wc -l | tr -d '[:space:]')" -ne 0 ]; do sleep 2; done && echo "Execution finished."
-        adb logcat -d -s libunittests_gl_engine_arm64-v8a.so
-        adb logcat -d -s libunittests_gl_engine_arm64-v8a.so | grep -q "Catch::Session finished with exit code 0" || exit 1
+        adb logcat -d -s libunittests_gl_engine_x86_64.so
+        adb logcat -d -s libunittests_gl_engine_x86_64.so | grep -q "Catch::Session finished with exit code 0" || exit 1
