@@ -118,7 +118,7 @@ jobs:
     - name: Build
       run: cmake --build $BUILD_DIR ${{ matrix.additional_build_flags }}
 
-    - name: Signing Android package
+    - name: Signing Android package with common key
       env: 
         secret_test: ${{ secrets.KEYSTOREPASSWORD }}
       if: matrix.qttarget == 'android' && env.secret_test != ''
@@ -127,15 +127,20 @@ jobs:
         base64 -d release.keystore.base64 > release.keystore
         $QT_HOST_PATH/bin/androiddeployqt --input $DEPLOYMENT_SETTINGS --output $ANDROID_BUILD_DIR --android-platform android-33 --gradle --release --sign release.keystore alpinemaps --storepass ${{ secrets.KEYSTOREPASSWORD }}
         
-    - name: Readme why Android package was not signed
+    - name: Signing Android packages with generated key
       env: 
         secret_test: ${{ secrets.KEYSTOREPASSWORD }}
       if: matrix.qttarget == 'android' && env.secret_test == ''
       run: |
-        README_PATH=$APK_DIR/read_me_in_case_you_wonder_why_the_apk_is_not_signed.txt
-        echo "Well, the apk wasn't signed because there is no key to sign it with in your repository (the one this was created in)." >> $README_PATH
+        keytool -genkey -v -keystore alp.keystore -alias alpinemaps -keyalg RSA -sigalg SHA1withRSA -keysize 2048 -validity 10000 -keypass asdfasdf -storepass asdfasdf -dname "CN=Franz, OU=IT, O=Furz, L=Rattenberg, ST=Tirol, C=AT"
+        $QT_HOST_PATH/bin/androiddeployqt --input $DEPLOYMENT_SETTINGS --output $ANDROID_BUILD_DIR --android-platform android-33 --gradle --release --sign release.keystore alpinemaps --storepass asdfasdf
+        
+        README_PATH=$APK_DIR/read_me.txt
+        echo "The apk was signed with a generated key which changes every time the apk is generated. This means, that android might refuse to install it if another apk with the same app was installed previously. You'll have to deinstall it. Doing so will delete all settings and cache." >> $README_PATH
         echo "" >> $README_PATH
-        echo "These are the steps to generate such a key:" >> $README_PATH
+        echo "In order to prevent that, you have to generate your own key or use our public key:" >> $README_PATH
+        echo "" >> $README_PATH
+        echo "To generate your own key:" >> $README_PATH
         echo "- https://stackoverflow.com/questions/3997748/how-can-i-create-a-keystore. Use 'alpinemaps' as the alias!" >> $README_PATH
         echo "- If you have the android dev setup ready in Qt Creator, you can also create the keystore via Projects (on the left side toolboar) -> Android Qt ... -> Build -> Build Steps -> Build Android APK -> Application Signature -> Create.  Use 'alpinemaps' as the alias!" >> $README_PATH
         echo "- Then you have to encode the keystore in base64, e.g., on linux via 'base64 keystorefile > keystorefile.base64'" >> $README_PATH
@@ -143,7 +148,9 @@ jobs:
         echo "  SIGNINGKEYBASE64 = the base64 encoded key" >> $README_PATH
         echo "  KEYSTOREPASSWORD = the password used to create the keystore" >> $README_PATH
         echo "" >> $README_PATH
-        echo "Oh, and I hope this saved your day ;)" >> $README_PATH
+        echo "To use our public key, go to https://github.com/AlpineMapsOrg/renderer/blob/main/creating_apk_keys.md" >> $README_PATH
+        echo "" >> $README_PATH
+        echo "Oh, and I hope this saved your day :)" >> $README_PATH
       
     - name: Copy android packages
       if: matrix.qttarget == 'android'
