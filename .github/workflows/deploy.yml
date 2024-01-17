@@ -225,8 +225,6 @@ jobs:
     
     - name: Setup Pages
       uses: actions/configure-pages@v4
-      with:
-        enablement: true
 
     - name: Deploy to GitHub Pages
       id: deployment
