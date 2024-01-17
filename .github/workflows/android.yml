@@ -95,9 +95,9 @@ jobs:
     - name: Signing Android packages
       run: |
         keytool -genkey -v -keystore alp.keystore -alias alpinemaps -keyalg RSA -sigalg SHA1withRSA -keysize 2048 -validity 10000 -keypass asdfasdf -storepass asdfasdf -dname "CN=Franz, OU=IT, O=Furz, L=Rattenberg, ST=Tirol, C=AT"
-        $QT_HOST_PATH/bin/androiddeployqt --input $BUILD_DIR/unittests/gl_engine/android-unittests_gl_engine-deployment-settings.json        --output $BUILD_DIR/apk/gl_engine --android-platform android-33 --gradle --release --sign alp.keystore alpinemaps --storepass asdfasdf
-        $QT_HOST_PATH/bin/androiddeployqt --input $BUILD_DIR/unittests/nucleus/android-unittests_nucleus-deployment-settings.json            --output $BUILD_DIR/apk/nucleus --android-platform android-33 --gradle --release --sign alp.keystore alpinemaps --storepass asdfasdf
-        $QT_HOST_PATH/bin/androiddeployqt --input $BUILD_DIR/alp_external/radix/unittests/android-unittests_radix-deployment-settings.json   --output $BUILD_DIR/apk/radix --android-platform android-33 --gradle --release --sign alp.keystore alpinemaps --storepass asdfasdf
+        $QT_HOST_PATH/bin/androiddeployqt --input $BUILD_DIR/unittests/gl_engine/android-unittests_gl_engine-deployment-settings.json        --output $BUILD_DIR/unittests/gl_engine/android-build --android-platform android-33 --gradle --release --sign alp.keystore alpinemaps --storepass asdfasdf
+        $QT_HOST_PATH/bin/androiddeployqt --input $BUILD_DIR/unittests/nucleus/android-unittests_nucleus-deployment-settings.json            --output $BUILD_DIR/unittests/nucleus/android-build --android-platform android-33 --gradle --release --sign alp.keystore alpinemaps --storepass asdfasdf
+        $QT_HOST_PATH/bin/androiddeployqt --input $BUILD_DIR/alp_external/radix/unittests/android-unittests_radix-deployment-settings.json   --output $BUILD_DIR/alp_external/radix/unittests/android-build --android-platform android-33 --gradle --release --sign alp.keystore alpinemaps --storepass asdfasdf
 
     - name: Add avdmanager and sdkmanager to system PATH
       run: |
@@ -121,17 +121,40 @@ jobs:
     - name: Debug output
       if: always()
       run: |
-        cat tree $BUILD_DIR/apk
+        tree $BUILD_DIR
       
-    - name: Run on emulator
+    - name: Run unittests_nucleus on emulator
       run: |
         adb devices
         
-        #adb $BUILD_DIR/apk/test_qml_catch2_console.apk
-        #adb $BUILD_DIR/apk/test_qml_catch2_console.apk
-        #adb $BUILD_DIR/apk/test_qml_catch2_console.apk
+        adb install $BUILD_DIR/unittests/nucleus/android-build/build/outputs/apk/release/android-build-release-signed.apk
         
-        #adb shell am start -W -n org.qtproject.example.test_qml_catch2_console/org.qtproject.qt.android.bindings.QtActivity
-        #while [ "$(adb shell dumpsys window windows | grep -i "test_qml_catch2_console" | wc -l | tr -d '[:space:]')" -ne 0 ]; do sleep 2; done && echo "Condition met. Exiting loop."
-        #adb logcat -d -s libtest_qml_catch2_console_x86_64.so
-        #adb logcat -d -s libtest_qml_catch2_console_x86_64.so | grep -q "Catch::Session finished with exit code 0" || exit 1
+        adb shell am start -W -n org.qtproject.example.unittests_nucleus/org.qtproject.qt.android.bindings.QtActivity
+        
+        while [ "$(adb shell dumpsys window windows | grep -i "unittests_nucleus" | wc -l | tr -d '[:space:]')" -ne 0 ]; do sleep 2; done && echo "Execution finished."
+        adb logcat -d -s libunittests_nucleus_arm64-v8a.so
+        adb logcat -d -s libunittests_nucleus_arm64-v8a.so | grep -q "Catch::Session finished with exit code 0" || exit 1
+      
+    - name: Run unittests_radix on emulator
+      run: |
+        adb devices
+        
+        adb install $BUILD_DIR/alp_external/radix/unittests/android-build/build/outputs/apk/release/android-build-release-signed.apk
+        
+        adb shell am start -W -n org.qtproject.example.unittests_radix/org.qtproject.qt.android.bindings.QtActivity
+        
+        while [ "$(adb shell dumpsys window windows | grep -i "unittests_radix" | wc -l | tr -d '[:space:]')" -ne 0 ]; do sleep 2; done && echo "Execution finished."
+        adb logcat -d -s libunittests_radix_arm64-v8a.so.so
+        adb logcat -d -s libunittests_radix_arm64-v8a.so.so | grep -q "Catch::Session finished with exit code 0" || exit 1
+      
+    - name: Run unittests_gl_engine on emulator
+      run: |
+        adb devices
+        
+        adb install $BUILD_DIR/unittests/gl_engine/android-build/build/outputs/apk/release/android-build-release-signed.apk
+        
+        adb shell am start -W -n org.qtproject.example.unittests_gl_engine/org.qtproject.qt.android.bindings.QtActivity
+        
+        while [ "$(adb shell dumpsys window windows | grep -i "unittests_gl_engine" | wc -l | tr -d '[:space:]')" -ne 0 ]; do sleep 2; done && echo "Execution finished."
+        adb logcat -d -s libunittests_gl_engine_arm64-v8a.so
+        adb logcat -d -s libunittests_gl_engine_arm64-v8a.so | grep -q "Catch::Session finished with exit code 0" || exit 1
