@@ -37,6 +37,16 @@ using namespace nucleus::tile_scheduler::tile_types;
 
 namespace {
 
+#ifdef __EMSCRIPTEN__
+constexpr auto timing_multiplicator = 10;
+#elif defined _MSC_VER
+constexpr auto timing_multiplicator = 20;
+#elif defined __ANDROID__
+constexpr auto timing_multiplicator = 10;
+#else
+constexpr auto timing_multiplicator = 1;
+#endif
+
 std::unique_ptr<Scheduler> scheduler_with_true_heights()
 {
     static auto ortho_tile = Scheduler::white_jpeg_tile(256);
@@ -55,7 +65,7 @@ std::unique_ptr<Scheduler> scheduler_with_true_heights()
     scheduler->set_aabb_decorator(decorator);
     scheduler->set_update_timeout(1);
     scheduler->set_enabled(true);
-    spy.wait(2); // wait for quad requests triggered by set_enabled
+    spy.wait(2 * timing_multiplicator); // wait for quad requests triggered by set_enabled
     REQUIRE(spy.size() == 1);
     return scheduler;
 }
@@ -72,7 +82,7 @@ std::unique_ptr<Scheduler> default_scheduler()
     scheduler->set_aabb_decorator(nucleus::tile_scheduler::utils::AabbDecorator::make(std::move(h)));
     scheduler->set_update_timeout(1);
     scheduler->set_enabled(true);
-    spy.wait(2); // wait for quad requests triggered by set_enabled
+    spy.wait(2 * timing_multiplicator); // wait for quad requests triggered by set_enabled
     REQUIRE(spy.size() == 1);
     return scheduler;
 }
@@ -186,7 +196,7 @@ std::vector<nucleus::tile_scheduler::tile_types::TileQuad> example_quads_many()
         auto camera = nucleus::camera::stored_positions::grossglockner();
         camera.set_viewport_size({ 3840, 2160 });
         scheduler->update_camera(camera);
-        spy.wait(2);
+        spy.wait(2 * timing_multiplicator);
         REQUIRE(spy.size() == 1);
         const auto quad_ids = spy.front().front().value<std::vector<tile::Id>>();
 
@@ -201,16 +211,6 @@ std::vector<nucleus::tile_scheduler::tile_types::TileQuad> example_quads_many()
     return retval;
 }
 
-#ifdef __EMSCRIPTEN__
-constexpr auto timing_multiplicator = 10;
-#elif defined _MSC_VER
-constexpr auto timing_multiplicator = 20;
-#elif defined __ANDROID__
-constexpr auto timing_multiplicator = 10;
-#else
-constexpr auto timing_multiplicator = 1;
-#endif
-
 } // namespace
 
 TEST_CASE("nucleus/tile_scheduler/Scheduler")
@@ -223,11 +223,11 @@ TEST_CASE("nucleus/tile_scheduler/Scheduler")
 
         QSignalSpy spy(scheduler.get(), &Scheduler::quads_requested);
         scheduler->update_camera(nucleus::camera::stored_positions::stephansdom());
-        spy.wait(2);
+        spy.wait(2 * timing_multiplicator);
         CHECK(spy.empty());
 
         scheduler->set_enabled(true);
-        spy.wait(2);
+        spy.wait(2 * timing_multiplicator);
         CHECK(!spy.empty());
     }
 
@@ -269,7 +269,7 @@ TEST_CASE("nucleus/tile_scheduler/Scheduler")
         auto scheduler = default_scheduler();
         QSignalSpy spy(scheduler.get(), &Scheduler::quads_requested);
         scheduler->update_camera(nucleus::camera::stored_positions::stephansdom());
-        spy.wait(2);
+        spy.wait(2 * timing_multiplicator);
         REQUIRE(spy.size() == 1);
         const auto quads = spy.constFirst().constFirst().value<std::vector<tile::Id>>();
         REQUIRE(quads.size() >= 5);
@@ -302,10 +302,10 @@ TEST_CASE("nucleus/tile_scheduler/Scheduler")
         scheduler->set_network_reachability(QNetworkInformation::Reachability::Disconnected);
         QSignalSpy spy(scheduler.get(), &Scheduler::quads_requested);
         scheduler->update_camera(nucleus::camera::stored_positions::stephansdom());
-        spy.wait(2);
+        spy.wait(2 * timing_multiplicator);
         REQUIRE(spy.size() == 0);
         scheduler->set_network_reachability(QNetworkInformation::Reachability::Online);
-        spy.wait(2);
+        spy.wait(2 * timing_multiplicator);
         REQUIRE(spy.size() == 1);
     }
 
@@ -317,7 +317,7 @@ TEST_CASE("nucleus/tile_scheduler/Scheduler")
         scheduler->receive_quad(example_tile_quad_for(tile::Id { 2, { 2, 2 } }));
         QSignalSpy spy(scheduler.get(), &Scheduler::quads_requested);
         scheduler->update_camera(nucleus::camera::stored_positions::stephansdom());
-        spy.wait(2);
+        spy.wait(2 * timing_multiplicator);
         REQUIRE(spy.size() == 1);
         const auto quads = spy.constFirst().constFirst().value<std::vector<tile::Id>>();
         REQUIRE(quads.size() >= 5);
@@ -342,7 +342,7 @@ TEST_CASE("nucleus/tile_scheduler/Scheduler")
         scheduler->receive_quad(example_tile_quad_for(tile::Id { 3, { 4, 5 } }, 4, NetworkInfo::Status::NetworkError));
         QSignalSpy spy(scheduler.get(), &Scheduler::quads_requested);
         scheduler->update_camera(nucleus::camera::stored_positions::stephansdom());
-        spy.wait(2);
+        spy.wait(2 * timing_multiplicator);
         REQUIRE(spy.size() == 1);
         const auto quads = spy.constFirst().constFirst().value<std::vector<tile::Id>>();
         REQUIRE(quads.size() >= 5);
@@ -376,7 +376,7 @@ TEST_CASE("nucleus/tile_scheduler/Scheduler")
             CHECK(std::find(quads.cbegin(), quads.cend(), tile::Id { 1, { 1, 1 } }) == quads.end());
         }
 
-        QThread::msleep(10);
+        QThread::msleep(10 * timing_multiplicator);
         scheduler->send_quad_requests();
         {
             REQUIRE(spy.size() == 2);
@@ -396,7 +396,7 @@ TEST_CASE("nucleus/tile_scheduler/Scheduler")
         scheduler->receive_quad(example_tile_quad_for(tile::Id { 2, { 2, 2 } }));
         scheduler->receive_quad(example_tile_quad_for(tile::Id { 4, { 8, 10 } }));
         scheduler->update_camera(nucleus::camera::stored_positions::stephansdom());
-        spy.wait(2);
+        spy.wait(2 * timing_multiplicator);
         REQUIRE(spy.size() == 1);
         const auto gpu_quads = spy.constFirst().constFirst().value<std::vector<nucleus::tile_scheduler::tile_types::GpuTileQuad>>();
         REQUIRE(gpu_quads.size() == 3);
@@ -408,7 +408,7 @@ TEST_CASE("nucleus/tile_scheduler/Scheduler")
         scheduler->receive_quad(example_tile_quad_for(tile::Id { 5, { 17, 20 } }));
         scheduler->receive_quad(example_tile_quad_for(tile::Id { 6, { 34, 41 } }));
         scheduler->receive_quad(example_tile_quad_for(tile::Id { 7, { 69, 83 } }));
-        spy.wait(2);
+        spy.wait(2 * timing_multiplicator);
         REQUIRE(spy.size() == 2);
         const auto new_gpu_quads = spy[1].front().value<std::vector<nucleus::tile_scheduler::tile_types::GpuTileQuad>>();
         REQUIRE(new_gpu_quads.size() == 5);
@@ -434,7 +434,7 @@ TEST_CASE("nucleus/tile_scheduler/Scheduler")
             example_tile_quad_for({ 0, { 0, 0 } }, 4),
         });
         scheduler->update_camera(nucleus::camera::stored_positions::stephansdom());
-        spy.wait(2);
+        spy.wait(2 * timing_multiplicator);
         REQUIRE(spy.size() == 1);
         const auto gpu_quads = spy.constFirst().constFirst().value<std::vector<nucleus::tile_scheduler::tile_types::GpuTileQuad>>();
         REQUIRE(gpu_quads.size() == 1);
@@ -493,11 +493,11 @@ TEST_CASE("nucleus/tile_scheduler/Scheduler")
             scheduler->receive_quad(q);
 
         scheduler->update_camera(nucleus::camera::stored_positions::stephansdom());
-        spy.wait(2);
+        spy.wait(2 * timing_multiplicator);
         CHECK(spy.size() == 1);
 
         scheduler->update_camera(nucleus::camera::stored_positions::grossglockner());
-        spy.wait(2);
+        spy.wait(2 * timing_multiplicator);
         CHECK(spy.size() == 2);
     }
 
@@ -513,7 +513,7 @@ TEST_CASE("nucleus/tile_scheduler/Scheduler")
 
         {
             scheduler->update_camera(nucleus::camera::stored_positions::stephansdom());
-            spy.wait(2);
+            spy.wait(2 * timing_multiplicator);
             REQUIRE(spy.size() == 1);
             const auto new_quads = spy[0][0].value<std::vector<nucleus::tile_scheduler::tile_types::GpuTileQuad>>();
             const auto deleted_quads = spy[0][1].value<std::vector<tile::Id>>();
@@ -537,7 +537,7 @@ TEST_CASE("nucleus/tile_scheduler/Scheduler")
 
         {
             scheduler->update_camera(nucleus::camera::stored_positions::grossglockner());
-            spy.wait(2);
+            spy.wait(2 * timing_multiplicator);
             REQUIRE(spy.size() == 2);
             const auto new_quads = spy[1][0].value<std::vector<nucleus::tile_scheduler::tile_types::GpuTileQuad>>();
             const auto deleted_quads = spy[1][1].value<std::vector<tile::Id>>();
@@ -582,7 +582,7 @@ TEST_CASE("nucleus/tile_scheduler/Scheduler")
 
         std::unordered_set<tile::Id, tile::Id::Hasher> cached_tiles;
         scheduler->update_camera(nucleus::camera::stored_positions::stephansdom());
-        spy.wait(2);
+        spy.wait(2 * timing_multiplicator);
         REQUIRE(spy.size() == 1);
         const auto new_quads = spy[0][0].value<std::vector<nucleus::tile_scheduler::tile_types::GpuTileQuad>>();
         for (const auto& tile : new_quads) {

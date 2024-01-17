@@ -28,7 +28,7 @@
 #ifdef __EMSCRIPTEN__
 constexpr auto timing_multiplicator = 200;
 #elif defined __ANDROID__
-constexpr auto timing_multiplicator = 50;
+constexpr auto timing_multiplicator = 100;
 #elif defined _MSC_VER
 constexpr auto timing_multiplicator = 50;
 #else
