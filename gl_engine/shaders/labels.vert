@@ -95,9 +95,12 @@ void main() {
     // apply "soft" distance scaling depending on near/far label values (if option is set as uniform)
     if(label_dist_scaling)
     {
-        float dist_scale = 1.0 - ((dist - nearLabel) / (interpolatedFarLabelDistance - nearLabel)) * 0.4f;
+        float dist_scale = 1.0 - ((dist - nearLabel) / (farLabel1 - nearLabel)) * 0.4f;
         scale *= (dist_scale * dist_scale);
     }
+
+    // importance based scaling
+    scale *= (importance + 1.5) / 2.5;
 
     // remove rotation from position -> since we want to always face the camera; and apply the scaling
     vec4 rotationless_pos = (inv_view_rot * vec4((pos.xy + pos.zw*offset_mask[gl_VertexID]) * scale,0.0,1.0));

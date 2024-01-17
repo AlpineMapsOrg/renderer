@@ -18,6 +18,7 @@
 
 #include "MapLabelManager.h"
 
+#include <QDebug>
 #include <QFile>
 #include <QIcon>
 #include <QSize>
@@ -34,7 +35,8 @@
 namespace nucleus {
 
 MapLabelManager::MapLabelManager()
-    : m_font_atlas(m_font_atlas_size, QImage::Format_RGB32)
+    : m_font_bitmap(m_font_atlas_size.width() * m_font_atlas_size.height() * m_channel_count)
+    , m_font_atlas(m_font_atlas_size, QImage::Format_RGB32)
 {
     //    const char8_t text;
     //    double latitude;
@@ -73,11 +75,6 @@ MapLabelManager::MapLabelManager()
     m_labels.push_back({ "Östliche Hochgrubachspitze", 47.5587933, 12.3450985, 2284, 0 });
 }
 
-MapLabelManager::~MapLabelManager()
-{
-    delete[] m_font_bitmap;
-}
-
 void MapLabelManager::init()
 {
     m_indices.push_back(0);
@@ -91,27 +88,23 @@ void MapLabelManager::init()
     create_font();
 
     for (auto& label : m_labels) {
-        label.init(m_char_data, &m_fontinfo);
+        label.init(m_char_data, &m_fontinfo, uv_width_norm);
     }
 
     // paint svg icon into the an image of appropriate size
     m_icon = QIcon(QString(":/qt/qml/app/icons/peak.svg")).pixmap(QSize(MapLabel::icon_size.x, MapLabel::icon_size.y)).toImage();
 }
 
-void inline MapLabelManager::make_outline(uint8_t* temp_bitmap, int lasty)
+void inline MapLabelManager::make_outline(std::vector<uint8_t>& temp_bitmap, const int lasty)
 {
-    // create the final font bitmap (3 channels -> 1 for font; 1 for outline; the last channel is empty)
-    const int channels = 3;
-    m_font_bitmap = new uint8_t[m_font_atlas_size.width() * m_font_atlas_size.height() * channels];
-    // set everything to 0
-    memset(m_font_bitmap, 0, m_font_atlas_size.width() * m_font_atlas_size.height() * channels);
+    std::fill(m_font_bitmap.begin(), m_font_bitmap.end(), 0);
 
-    const int outline_bit_count = 4 * (m_font_outline.x - 1) * (m_font_outline.y - 1) + 2 * (m_font_outline.x - 1) + 2 * (m_font_outline.y - 1) + 1;
-    int* outline_mask = new int[outline_bit_count];
+    constexpr int outline_bit_count = 4 * (m_font_outline.x - 1) * (m_font_outline.y - 1) + 2 * (m_font_outline.x - 1) + 2 * (m_font_outline.y - 1) + 1;
+    int outline_mask[outline_bit_count];
     int index = 0;
     for (int i = -m_font_outline.y + 1; i < m_font_outline.y; i++) {
         for (int j = -m_font_outline.x + 1; j < m_font_outline.x; j++) {
-            outline_mask[index++] = (i * m_font_atlas_size.width() + j) * channels + 1;
+            outline_mask[index++] = (i * m_font_atlas_size.width() + j) * m_channel_count + 1;
         }
     }
 
@@ -120,8 +113,9 @@ void inline MapLabelManager::make_outline(uint8_t* temp_bitmap, int lasty)
 
     for (int i = 0; i < lasty; ++i) {
         for (int j = 0; j < m_font_atlas_size.width(); ++j) {
+
             const uint8_t value = temp_bitmap[(i * m_font_atlas_size.width() + j)];
-            const int current_index = (i * m_font_atlas_size.width() + j) * channels;
+            const int current_index = (i * m_font_atlas_size.width() + j) * m_channel_count;
             m_font_bitmap[current_index] = value;
 
             // add the outline to the outline channel
@@ -140,8 +134,6 @@ void inline MapLabelManager::make_outline(uint8_t* temp_bitmap, int lasty)
             }
         }
     }
-
-    delete[] outline_mask;
 }
 
 void MapLabelManager::create_font()
@@ -156,12 +148,12 @@ void MapLabelManager::create_font()
     const auto font_init = stbtt_InitFont(&m_fontinfo, reinterpret_cast<const uint8_t*>(data.constData()), stbtt_GetFontOffsetForIndex(reinterpret_cast<const uint8_t*>(data.constData()), 0));
     assert(font_init);
 
-    uint8_t* temp_bitmap = new uint8_t[m_font_atlas_size.width() * m_font_atlas_size.height()];
+    std::vector<uint8_t> temp_bitmap(m_font_atlas_size.width() * m_font_atlas_size.height());
+    std::fill(temp_bitmap.begin(), temp_bitmap.end(), 0);
 
     const std::vector<int> safe_chars = CharUtils::string_to_unicode_int_list(all_char_list);
 
     float scale = stbtt_ScaleForPixelHeight(&m_fontinfo, MapLabel::font_size);
-    STBTT_memset(temp_bitmap, 0, m_font_atlas_size.width() * m_font_atlas_size.height()); // background of 0 around pixel
 
     int x = m_font_outline.x + m_font_padding.x;
     int y = m_font_outline.y + m_font_padding.y;
@@ -179,12 +171,12 @@ void MapLabelManager::create_font()
             y = bottom_y, x = 2 * m_font_outline.x + m_font_padding.x; // advance to next row
         if (y + glyph_height + m_font_outline.y + m_font_padding.y >= m_font_atlas_size.height()) // check if it fits vertically AFTER potentially moving to next row
         {
-            std::cout << "Font doesnt fit into bitmap" << std::endl;
+            qDebug() << "Font doesnt fit into bitmap";
             assert(false);
             break; // doesnt fit in image
         }
 
-        stbtt_MakeGlyphBitmap(&m_fontinfo, temp_bitmap + x + y * m_font_atlas_size.width(), glyph_width, glyph_height, m_font_atlas_size.width(), scale, scale, glyph_index);
+        stbtt_MakeGlyphBitmap(&m_fontinfo, temp_bitmap.data() + x + y * m_font_atlas_size.width(), glyph_width, glyph_height, m_font_atlas_size.width(), scale, scale, glyph_index);
         m_char_data.emplace(c, MapLabel::CharData { (unsigned short)(x - m_font_outline.x), (unsigned short)(y - m_font_outline.y), (unsigned short)(glyph_width + m_font_outline.x * 2), (unsigned short)(glyph_height + m_font_outline.y * 2), (float)x0 - m_font_outline.x, (float)y0 - m_font_outline.y });
 
         x = x + glyph_width + 2 * m_font_outline.x + m_font_padding.x;
@@ -194,11 +186,9 @@ void MapLabelManager::create_font()
 
     make_outline(temp_bitmap, bottom_y);
 
-    delete[] temp_bitmap;
-
     // create a qimage with the data
-    m_font_atlas = QImage(m_font_bitmap, m_font_atlas_size.width(), m_font_atlas_size.height(), QImage::Format_RGB888);
-    //    m_font_atlas.save("font_atlas.png");
+    m_font_atlas = QImage(m_font_bitmap.data(), m_font_atlas_size.width(), m_font_atlas_size.height(), QImage::Format_RGB888);
+    // m_font_atlas.save("font_atlas.png");
 }
 
 const std::vector<MapLabel>& MapLabelManager::labels() const

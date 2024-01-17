@@ -21,14 +21,16 @@
 #include "CharUtils.h"
 #include "srs.h"
 
+#include <qDebug>
+
+#include "stb_slim/stb_truetype.h"
+
 namespace nucleus {
 
-void MapLabel::init(const std::unordered_map<int, const MapLabel::CharData>& character_data, const stbtt_fontinfo* fontinfo)
+void MapLabel::init(const std::unordered_map<int, const MapLabel::CharData>& character_data, const stbtt_fontinfo* fontinfo, const float uv_width_norm)
 {
-    float offset_x = 0;
-    float offset_y = -font_size / 2.0f + 75.0;
-
-    float uv_width_norm = 1.0f / 512.0f;
+    float offset_x = 0.0f;
+    constexpr float offset_y = -font_size / 2.0f + 75.0f;
 
     std::string altitude_text = std::to_string(m_altitude);
     altitude_text = altitude_text.substr(0, altitude_text.find("."));
@@ -72,10 +74,10 @@ std::vector<float> inline MapLabel::create_text_meta(const std::unordered_map<in
     float xOffset = 0;
     for (unsigned long long i = 0; i < safe_chars.size(); i++) {
         if (!character_data.contains(safe_chars[i])) {
-            std::cout << "character with unicode index(Dec: " << safe_chars[i] << ") cannot be shown -> please add it to nucleus/map_label/MapLabelManager.h.all_char_list" << std::endl;
+            qDebug() << "character with unicode index(Dec: " << safe_chars[i] << ") cannot be shown -> please add it to nucleus/map_label/MapLabelManager.h.all_char_list";
             safe_chars[i] = 32; // replace with space character
         }
-        //        std::cout << "checking: " << safe_chars[i] << std::endl;
+
         assert(character_data.contains(safe_chars[i]));
 
         int advance, lsb;
@@ -91,7 +93,7 @@ std::vector<float> inline MapLabel::create_text_meta(const std::unordered_map<in
 
     { // get width of last char
         if (!character_data.contains(safe_chars[safe_chars.size() - 1])) {
-            std::cout << "character with unicode index(Dec: " << safe_chars[safe_chars.size() - 1] << ") cannot be shown -> please add it to nucleus/map_label/MapLabelManager.h.all_char_list" << std::endl;
+            qDebug() << "character with unicode index(Dec: " << safe_chars[safe_chars.size() - 1] << ") cannot be shown -> please add it to nucleus/map_label/MapLabelManager.h.all_char_list";
             safe_chars[safe_chars.size() - 1] = 32; // replace with space character
         }
         const MapLabel::CharData b = character_data.at(safe_chars[safe_chars.size() - 1]);

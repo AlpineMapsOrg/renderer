@@ -22,9 +22,9 @@
 #include <string>
 #include <vector>
 
-#include "stb_slim/stb_truetype.h"
-
 #include <unordered_map>
+
+struct stbtt_fontinfo;
 
 namespace nucleus {
 
@@ -47,9 +47,11 @@ public:
         , m_latitude(latitude)
         , m_longitude(longitude)
         , m_altitude(altitude)
-        , m_importance(importance) {};
+        , m_importance(importance)
+    {
+    }
 
-    void init(const std::unordered_map<int, const MapLabel::CharData>& character_data, const stbtt_fontinfo* fontinfo);
+    void init(const std::unordered_map<int, const MapLabel::CharData>& character_data, const stbtt_fontinfo* fontinfo, const float uv_width_norm);
 
     constexpr static float font_size = 30.0f;
     constexpr static glm::vec2 icon_size = glm::vec2(30.0f);
