@@ -21,7 +21,7 @@
 #include "CharUtils.h"
 #include "srs.h"
 
-#include <qDebug>
+#include <QDebug>
 
 #include "stb_slim/stb_truetype.h"
 
