@@ -73,6 +73,8 @@ MapLabelManager::MapLabelManager()
 
     m_labels.push_back({ "Westliche Hochgrubachspitze", 47.5583658, 12.3433997, 2277, 0 });
     m_labels.push_back({ "Östliche Hochgrubachspitze", 47.5587933, 12.3450985, 2284, 0 });
+
+    init();
 }
 
 void MapLabelManager::init()

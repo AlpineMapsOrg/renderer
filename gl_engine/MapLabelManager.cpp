@@ -29,8 +29,6 @@ MapLabelManager::MapLabelManager()
 }
 void MapLabelManager::init()
 {
-    m_mapLabelManager.init();
-
     m_vao = std::make_unique<QOpenGLVertexArrayObject>();
     m_vao->create();
     m_vao->bind();

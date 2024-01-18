@@ -32,12 +32,13 @@ class MapLabelManager {
 public:
     explicit MapLabelManager();
 
-    void init();
-
     const std::vector<MapLabel>& labels() const;
     const std::vector<unsigned int>& indices() const;
     const QImage& font_atlas() const;
     const QImage& icon() const;
+
+private:
+    void init();
 
 private:
     // list of all characters that will be available (will be rendered to the font_atlas)
