@@ -41,8 +41,10 @@ namespace {
 constexpr auto timing_multiplicator = 10;
 #elif defined _MSC_VER
 constexpr auto timing_multiplicator = 20;
+#elif defined(__ANDROID__) && (defined(__i386__) || defined(__x86_64__))
+constexpr auto timing_multiplicator = 50;
 #elif defined __ANDROID__
-constexpr auto timing_multiplicator = 10;
+constexpr auto timing_multiplicator = 1;
 #else
 constexpr auto timing_multiplicator = 1;
 #endif
