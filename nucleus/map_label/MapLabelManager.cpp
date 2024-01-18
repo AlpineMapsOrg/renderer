@@ -163,12 +163,12 @@ void MapLabelManager::create_font()
 
     for (const int& c : safe_chars) {
         // code adapted from stbtt_BakeFontBitmap()
-        int x0, y0, x1, y1, glyph_width, glyph_height;
+        int x0, y0, x1, y1;
         const int glyph_index = stbtt_FindGlyphIndex(&m_fontinfo, c);
         stbtt_GetGlyphBitmapBox(&m_fontinfo, glyph_index, scale, scale, &x0, &y0, &x1, &y1);
 
-        glyph_width = x1 - x0;
-        glyph_height = y1 - y0;
+        const auto glyph_width = x1 - x0;
+        const auto glyph_height = y1 - y0;
         if (x + glyph_width + 2 * m_font_outline.x + m_font_padding.x >= m_font_atlas_size.width())
             y = bottom_y, x = 2 * m_font_outline.x + m_font_padding.x; // advance to next row
         if (y + glyph_height + m_font_outline.y + m_font_padding.y >= m_font_atlas_size.height()) // check if it fits vertically AFTER potentially moving to next row

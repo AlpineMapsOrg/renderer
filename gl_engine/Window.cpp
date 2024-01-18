@@ -120,12 +120,12 @@ void Window::initialise_gpu()
     // by the position. IMPORTANT: I also reset it to -1 such that i know when a pixel was not processed in tile shader!!
     // ANOTHER IMPORTANT NOTE: RGB32f, RGB16f are not supported by OpenGL ES and/or WebGL
     m_gbuffer = std::make_unique<Framebuffer>(Framebuffer::DepthFormat::Float32,
-                                              std::vector{
-                                                  TextureDefinition{ Framebuffer::ColourFormat::RGB8    },      // Albedo
-                                                  TextureDefinition{ Framebuffer::ColourFormat::RGBA32F },      // Position WCS and distance (distance is optional, but i use it directly for a little speed improvement)
-                                                  TextureDefinition{ Framebuffer::ColourFormat::RG16UI  },      // Octahedron Normals
-                                                  TextureDefinition{ Framebuffer::ColourFormat::RGBA8   }       // Discretized Encoded Depth for readback IMPORTANT: IF YOU MOVE THIS YOU HAVE TO ADAPT THE GET DEPTH FUNCTION
-                                              });
+        std::vector {
+            TextureDefinition { Framebuffer::ColourFormat::RGBA8 }, // Albedo
+            TextureDefinition { Framebuffer::ColourFormat::RGBA32F }, // Position WCS and distance (distance is optional, but i use it directly for a little speed improvement)
+            TextureDefinition { Framebuffer::ColourFormat::RG16UI }, // Octahedron Normals
+            TextureDefinition { Framebuffer::ColourFormat::RGBA8 } // Discretized Encoded Depth for readback IMPORTANT: IF YOU MOVE THIS YOU HAVE TO ADAPT THE GET DEPTH FUNCTION
+        });
 
     m_atmospherebuffer = std::make_unique<Framebuffer>(Framebuffer::DepthFormat::None, std::vector{ TextureDefinition{Framebuffer::ColourFormat::RGBA8} });
 
@@ -192,10 +192,6 @@ void Window::paint(QOpenGLFramebufferObject* framebuffer)
 
     QOpenGLExtraFunctions *f = QOpenGLContext::currentContext()->extraFunctions();
 
-#if (defined(__linux) && !defined(__ANDROID__)) || defined(_WIN32) || defined(_WIN64)
-    auto funcs = QOpenGLVersionFunctionsFactory::get<QOpenGLFunctions_3_3_Core>(QOpenGLContext::currentContext()); // for wireframe mode
-#endif
-
     f->glEnable(GL_CULL_FACE);
     f->glCullFace(GL_BACK);
 
@@ -245,29 +241,32 @@ void Window::paint(QOpenGLFramebufferObject* framebuffer)
     // DRAW GBUFFER
     m_gbuffer->bind();
 
-    // Clear Albedo-Buffer
-    const GLfloat clearAlbedoColor[3] = {0.0f, 0.0f, 0.0f};
-    f->glClearBufferfv(GL_COLOR, 0, clearAlbedoColor);
-    // Clear Position-Buffer (IMPORTANT [4] to <0, such that i know by sign if fragment was processed)
-    const GLfloat clearPositionColor[4] = {0.0f, 0.0f, 0.0f, -1.0f};
-    f->glClearBufferfv(GL_COLOR, 1, clearPositionColor);
-    // Clear Normals-Buffer
-    const GLuint clearNormalColor[2] = {0u, 0u};
-    f->glClearBufferuiv(GL_COLOR, 2, clearNormalColor);
-    // Clear Encoded-Depth Buffer
-    const GLfloat clearEncDepthColor[] = { 0.0f, 0.0f, 0.0f, 0.0f };
-    f->glClearBufferfv(GL_COLOR, 3, clearEncDepthColor);
-    // Clear Depth-Buffer
-    //f->glClearDepthf(0.0f); // for reverse z
-    f->glClear(GL_DEPTH_BUFFER_BIT);
-
+    {
+        // Clear Albedo-Buffer
+        const GLfloat clearAlbedoColor[] = { 0.0f, 0.0f, 0.0f, 1.0f };
+        f->glClearBufferfv(GL_COLOR, 0, clearAlbedoColor);
+        // Clear Position-Buffer (IMPORTANT [4] to <0, such that i know by sign if fragment was processed)
+        const GLfloat clearPositionColor[4] = { 0.0f, 0.0f, 0.0f, -1.0f };
+        f->glClearBufferfv(GL_COLOR, 1, clearPositionColor);
+        // Clear Normals-Buffer
+        const GLuint clearNormalColor[2] = { 0u, 0u };
+        f->glClearBufferuiv(GL_COLOR, 2, clearNormalColor);
+        // Clear Encoded-Depth Buffer
+        const GLfloat clearEncDepthColor[] = { 0.0f, 0.0f, 0.0f, 0.0f };
+        f->glClearBufferfv(GL_COLOR, 3, clearEncDepthColor);
+        // Clear Depth-Buffer
+        // f->glClearDepthf(0.0f); // for reverse z
+        f->glClear(GL_DEPTH_BUFFER_BIT);
+    }
 
     f->glEnable(GL_DEPTH_TEST);
-    //f->glDepthFunc(GL_GREATER); // for reverse z
+    // f->glDepthFunc(GL_GREATER); // for reverse z
     f->glDepthFunc(GL_LESS);
 
 #if (defined(__linux) && !defined(__ANDROID__)) || defined(_WIN32) || defined(_WIN64)
-    if (funcs && m_wireframe_enabled) funcs->glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+    auto funcs = QOpenGLVersionFunctionsFactory::get<QOpenGLFunctions_3_3_Core>(QOpenGLContext::currentContext()); // for wireframe mode
+    if (funcs && m_wireframe_enabled)
+        funcs->glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
 #endif
 
     m_shader_manager->tile_shader()->bind();
@@ -277,7 +276,8 @@ void Window::paint(QOpenGLFramebufferObject* framebuffer)
     m_shader_manager->tile_shader()->release();
 
 #if (defined(__linux) && !defined(__ANDROID__)) || defined(_WIN32) || defined(_WIN64)
-    if (funcs && m_wireframe_enabled) funcs->glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+    if (funcs && m_wireframe_enabled)
+        funcs->glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
 #endif
 
     m_gbuffer->unbind();
@@ -286,8 +286,7 @@ void Window::paint(QOpenGLFramebufferObject* framebuffer)
 
     if (m_shared_config_ubo->data.m_ssao_enabled) {
         m_timer->start_timer("ssao");
-        m_ssao->draw(m_gbuffer.get(), &m_screen_quad_geometry, m_camera,
-                     m_shared_config_ubo->data.m_ssao_kernel, m_shared_config_ubo->data.m_ssao_blur_kernel_size);
+        m_ssao->draw(m_gbuffer.get(), &m_screen_quad_geometry, m_camera, m_shared_config_ubo->data.m_ssao_kernel, m_shared_config_ubo->data.m_ssao_blur_kernel_size);
         m_timer->stop_timer("ssao");
     }
 
@@ -315,11 +314,11 @@ void Window::paint(QOpenGLFramebufferObject* framebuffer)
     m_timer->stop_timer("compose");
 
     // DRAW LABELS
-    m_shader_manager->labels_program()->bind();
     m_timer->start_timer("labels");
+    m_shader_manager->labels_program()->bind();
     m_map_label_manager->draw(m_gbuffer.get(), m_shader_manager->labels_program(), m_camera);
-    m_timer->stop_timer("labels");
     m_shader_manager->labels_program()->release();
+    m_timer->stop_timer("labels");
 
     m_timer->stop_timer("cpu_total");
     m_timer->stop_timer("gpu_total");
