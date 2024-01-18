@@ -182,8 +182,8 @@ TEST_CASE("nucleus/tile_scheduler/cache")
 
         const auto purged = cache.purge(2);
         REQUIRE(purged.size() == 2);
-        CHECK(purged[0].id == tile::Id { 0, { 0, 0 } }); // order does not matter
-        CHECK(purged[1].id == tile::Id { 1, { 0, 1 } });
+        CHECK(std::find_if(purged.cbegin(), purged.cend(), [](const auto& t) { return t.id == tile::Id { 0, { 0, 0 } }; }) != purged.end());
+        CHECK(std::find_if(purged.cbegin(), purged.cend(), [](const auto& t) { return t.id == tile::Id { 1, { 0, 1 } }; }) != purged.end());
         CHECK(cache.n_cached_objects() == 2);
         CHECK(cache.contains({ 1, { 0, 0 } }));
         CHECK(cache.contains({ 1, { 1, 1 } }));
