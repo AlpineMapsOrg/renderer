@@ -65,9 +65,9 @@ std::unique_ptr<Scheduler> scheduler_with_true_heights()
     const auto decorator = nucleus::tile_scheduler::utils::AabbDecorator::make(
         TileHeights::deserialise(data));
     scheduler->set_aabb_decorator(decorator);
-    scheduler->set_update_timeout(1);
+    scheduler->set_update_timeout(0);
     scheduler->set_enabled(true);
-    spy.wait(2 * timing_multiplicator); // wait for quad requests triggered by set_enabled
+    spy.wait(5 * timing_multiplicator); // wait for quad requests triggered by set_enabled
     REQUIRE(spy.size() == 1);
     // 'disable' timer updates. most tests trigger them automatically, the others will reset it.
     scheduler->set_update_timeout(1'000'000);

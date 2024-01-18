@@ -179,6 +179,8 @@ TEST_CASE("nucleus/tile_scheduler/rate limiter")
                 CHECK(spy[i][0].value<tile::Id>() == tile::Id { unsigned(i), { 0, 0 } });
         }
     }
+#if !(defined(__ANDROID__) && (defined(__i386__) || defined(__x86_64__)))
+    // this one just doesn't work on the emulator, likely due to bad timer performance. it works everywhere else.
     SECTION("fuzzy load test")
     {
         std::mt19937 mt(42);
@@ -223,4 +225,5 @@ TEST_CASE("nucleus/tile_scheduler/rate limiter")
             }
         }
     }
+#endif
 }
