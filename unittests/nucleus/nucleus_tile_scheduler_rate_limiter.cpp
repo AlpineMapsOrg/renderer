@@ -28,7 +28,7 @@
 #ifdef __EMSCRIPTEN__
 constexpr auto timing_multiplicator = 200;
 #elif defined(__ANDROID__) && (defined(__i386__) || defined(__x86_64__))
-constexpr auto timing_multiplicator = 500;
+constexpr auto timing_multiplicator = 50;
 #elif defined __ANDROID__
 constexpr auto timing_multiplicator = 50;
 #elif defined _MSC_VER
@@ -200,13 +200,13 @@ TEST_CASE("nucleus/tile_scheduler/rate limiter")
                 for (unsigned i = 0; i < rnd_request_count; ++i) {
                     make_request();
                 }
-                auto rnd_processing_time = std::uniform_int_distribution<unsigned>(0, period)(mt);
-//                processing_time += rnd_processing_time;
+                auto rnd_processing_time = std::uniform_int_distribution<unsigned>(0, period * timing_multiplicator)(mt);
+                //                processing_time += rnd_processing_time;
                 test_helpers::process_events_for(rnd_processing_time);
                 if (std::uniform_real_distribution<float>(0.0f, 1.0f)(mt) < 0.10f) {
                     while (rl.queue_size()) {
-//                        processing_time += period;
-                        test_helpers::process_events_for(period);
+                        test_helpers::process_events_for(period * timing_multiplicator);
+                        // processing_time += period;
                     }
                 }
             }
