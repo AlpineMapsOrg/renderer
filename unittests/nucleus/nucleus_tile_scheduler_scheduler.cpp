@@ -453,7 +453,7 @@ TEST_CASE("nucleus/tile_scheduler/Scheduler")
         compare_bounds(gpu_quads[0].tiles[2].bounds, tile::SrsAndHeightBounds { { wsmin, 0, 100 - 0.5 }, { 0, wsmax, 46367.813102 } });
         compare_bounds(gpu_quads[0].tiles[3].bounds, tile::SrsAndHeightBounds { { 0, 0, 100 - 0.5 }, { wsmax, wsmax, 46367.813102 } });
 
-        for (auto i = 0; i < 4; ++i) {
+        for (auto i = 0u; i < 4; ++i) {
             REQUIRE(gpu_quads[0].tiles[i].ortho);
             CHECK(gpu_quads[0].tiles[i].ortho->width() == 256);
             CHECK(gpu_quads[0].tiles[i].ortho->height() == 256);
@@ -477,7 +477,7 @@ TEST_CASE("nucleus/tile_scheduler/Scheduler")
         REQUIRE(spy.size() == 1);
         const auto gpu_quads = spy.constFirst().constFirst().value<std::vector<nucleus::tile_scheduler::tile_types::GpuTileQuad>>();
         REQUIRE(gpu_quads.size() == 1);
-        for (auto i = 0; i < 3; ++i) {
+        for (auto i = 0u; i < 3; ++i) {
             REQUIRE(gpu_quads[0].tiles[i].ortho);
             CHECK(gpu_quads[0].tiles[i].ortho->width() == 256);
             CHECK(gpu_quads[0].tiles[i].ortho->height() == 256);
