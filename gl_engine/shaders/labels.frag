@@ -18,22 +18,32 @@
 uniform sampler2D font_sampler;
 uniform sampler2D icon_sampler;
 
+uniform bool drawing_outline;
+
 in highp vec2 texcoords;
 flat in highp float opacity;
 
 layout (location = 0) out lowp vec4 out_Color;
 
-lowp vec3 fontColor = vec3(0.1f);
+lowp vec3 fontColor = vec3(0.0f);
 lowp vec3 outlineColor = vec3(0.9f);
 
 void main() {
 
     if(texcoords.x < 2.0f)
     {
-        mediump float outline_mask = texture(font_sampler, texcoords).g;
-        mediump float font_mask = texture(font_sampler, texcoords).r;
+        if (drawing_outline) {
+            mediump float outline_mask = texture(font_sampler, texcoords).g;
+            out_Color = vec4(outlineColor * outline_mask, outline_mask);
 
-        out_Color = vec4(mix(outlineColor, fontColor, font_mask), outline_mask);
+        }
+        else {
+            mediump float font_mask = texture(font_sampler, texcoords).r;
+            out_Color = vec4(fontColor * font_mask, font_mask);
+            // mediump float outline_mask = texture(font_sampler, texcoords).g;
+            // mediump float font_mask = texture(font_sampler, texcoords).r;
+            // out_Color = vec4(mix(outlineColor, fontColor, font_mask), outline_mask);
+        }
     }
     else
     {

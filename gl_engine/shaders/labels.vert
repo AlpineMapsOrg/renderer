@@ -103,11 +103,11 @@ void main() {
     scale *= (importance + 1.5f) / 2.5f;
 
     // remove rotation from position -> since we want to always face the camera; and apply the scaling
-    vec4 rotationless_pos = (inv_view_rot * vec4((pos.xy + pos.zw*offset_mask[gl_VertexID]) * scale,0.0f,1.0f));
+    vec4 rotationless_pos = (inv_view_rot * vec4((pos.xy + pos.zw * offset_mask[gl_VertexID]) * scale, 0.0f, 1.0f));
     rotationless_pos /= rotationless_pos.w;
 
     // apply camera matrix and position the label depending on world/camera position
-    gl_Position = camera.view_proj_matrix * vec4((label_position - camera.position.xyz) + rotationless_pos.xyz, 1.0f);
+    gl_Position = camera.view_proj_matrix * vec4((label_position + vec3(0, 5, 0) - camera.position.xyz) + rotationless_pos.xyz, 1.0f);
 
     // get opacity from occlusion
     opacity = determineLabelOcclusionVisibilty(dist);
@@ -121,11 +121,11 @@ void main() {
     {
         gl_Position = vec4(10.0f,10.0f,10.0f,1.0f);
     }
-    else if(opacity <= 0.57f)
-    {
-        // fade only between opacity 0.37 to 0.57
-        opacity = (opacity-0.37f) / 0.2f;
-    }
+    // else if(opacity <= 0.57f)
+    // {
+    //     // fade only between opacity 0.37 to 0.57
+    //     opacity = (opacity-0.37f) / 0.2f;
+    // }
     else
     {
         opacity = 1.0f;

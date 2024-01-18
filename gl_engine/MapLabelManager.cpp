@@ -91,10 +91,11 @@ void MapLabelManager::draw(Framebuffer* gbuffer, ShaderProgram* shader_program, 
 
     f->glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
     f->glEnable(GL_BLEND);
+    f->glDisable(GL_DEPTH_TEST);
 
     glm::mat4 inv_view_rot = glm::inverse(camera.local_view_matrix());
     shader_program->set_uniform("inv_view_rot", inv_view_rot);
-    shader_program->set_uniform("label_dist_scaling", false);
+    shader_program->set_uniform("label_dist_scaling", true);
 
     shader_program->set_uniform("texin_depth", 0);
     gbuffer->bind_colour_texture(1, 0);
@@ -107,6 +108,11 @@ void MapLabelManager::draw(Framebuffer* gbuffer, ShaderProgram* shader_program, 
 
     m_vao->bind();
 
+    // if the labels wouldn't collide, we could use an extra buffer, one draw call and
+    // f->glBlendEquationSeparate(GL_MIN, GL_MAX);
+    shader_program->set_uniform("drawing_outline", true);
+    f->glDrawElementsInstanced(GL_TRIANGLES, m_mapLabelManager.indices().size(), GL_UNSIGNED_INT, 0, m_instance_count);
+    shader_program->set_uniform("drawing_outline", false);
     f->glDrawElementsInstanced(GL_TRIANGLES, m_mapLabelManager.indices().size(), GL_UNSIGNED_INT, 0, m_instance_count);
 
     m_vao->release();

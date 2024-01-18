@@ -29,8 +29,8 @@ namespace nucleus {
 
 void MapLabel::init(const std::unordered_map<int, const MapLabel::CharData>& character_data, const stbtt_fontinfo* fontinfo, const float uv_width_norm)
 {
-    float offset_x = 0.0f;
-    constexpr float offset_y = -font_size / 2.0f + 75.0f;
+    constexpr float offset_y = -font_size / 2.0f + 65.0f;
+    constexpr float icon_offset_y = 10;
 
     std::string altitude_text = std::to_string(m_altitude);
     altitude_text = altitude_text.substr(0, altitude_text.find("."));
@@ -43,11 +43,11 @@ void MapLabel::init(const std::unordered_map<int, const MapLabel::CharData>& cha
     std::vector<float> kerningOffsets = create_text_meta(character_data, fontinfo, safe_chars, text_width);
 
     // center the text around the center
-    offset_x -= text_width / 2.0;
+    const auto offset_x = -text_width / 2.0f;
 
     // label icon
-    m_vertex_data.push_back({ glm::vec4(-icon_size.x / 2.0, icon_size.y / 2.0, icon_size.x, -icon_size.y), // vertex position + offset
-        glm::vec4(10.0, 10.0, 1, 1), // uv position + offset
+    m_vertex_data.push_back({ glm::vec4(-icon_size.x / 2.0f, icon_size.y / 2.0f + icon_offset_y, icon_size.x, -icon_size.y + 1), // vertex position + offset
+        glm::vec4(10.0f, 10.0f, 1, 1), // uv position + offset
         label_position, m_importance });
 
     for (unsigned long long i = 0; i < safe_chars.size(); i++) {

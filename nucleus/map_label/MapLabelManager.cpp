@@ -141,7 +141,7 @@ void inline MapLabelManager::make_outline(std::vector<uint8_t>& temp_bitmap, con
 void MapLabelManager::create_font()
 {
     // load ttf file
-    QFile file(":/fonts/SourceSans3-Medium.ttf");
+    QFile file(":/fonts/SourceSans3-Bold.ttf");
     const auto open = file.open(QIODeviceBase::OpenModeFlag::ReadOnly);
     assert(open);
     const QByteArray data = file.readAll();

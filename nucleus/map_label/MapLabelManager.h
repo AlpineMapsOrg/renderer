@@ -44,8 +44,8 @@ private:
     // list of all characters that will be available (will be rendered to the font_atlas)
     static constexpr auto all_char_list = " ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789()[]{},;.:-_!\"§$%&/\\=+-*/#'~°^<>|@€´`öÖüÜäÄß";
 
-    static constexpr glm::ivec2 m_font_outline = glm::ivec2(2, 2);
-    static constexpr glm::ivec2 m_font_padding = glm::ivec2(2, 2);
+    static constexpr glm::ivec2 m_font_outline = glm::ivec2(3, 3);
+    static constexpr glm::ivec2 m_font_padding = m_font_outline;
     static constexpr QSize m_font_atlas_size = QSize(512, 512);
     static constexpr float uv_width_norm = 1.0f / m_font_atlas_size.width();
 
