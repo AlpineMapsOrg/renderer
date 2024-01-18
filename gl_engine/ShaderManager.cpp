@@ -30,7 +30,7 @@ using gl_engine::ShaderProgram;
 ShaderManager::ShaderManager()
 {
     m_tile_program = std::make_unique<ShaderProgram>("tile.vert", "tile.frag");
-    m_screen_quad_program = std::make_unique<ShaderProgram>("screen_pass.vert", "screen_copy.frag");
+    m_screen_copy = std::make_unique<ShaderProgram>("screen_pass.vert", "screen_copy.frag");
     m_atmosphere_bg_program = std::make_unique<ShaderProgram>("screen_pass.vert", "atmosphere_bg.frag");
     m_compose_program = std::make_unique<ShaderProgram>("screen_pass.vert", "compose.frag");
     m_ssao_program = std::make_shared<ShaderProgram>("screen_pass.vert", "ssao.frag");
@@ -39,7 +39,7 @@ ShaderManager::ShaderManager()
     m_labels_program = std::make_unique<ShaderProgram>("labels.vert", "labels.frag");
 
     m_program_list.push_back(m_tile_program.get());
-    m_program_list.push_back(m_screen_quad_program.get());
+    m_program_list.push_back(m_screen_copy.get());
     m_program_list.push_back(m_atmosphere_bg_program.get());
     m_program_list.push_back(m_compose_program.get());
     m_program_list.push_back(m_ssao_program.get());

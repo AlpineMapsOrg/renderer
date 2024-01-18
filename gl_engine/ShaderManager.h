@@ -32,7 +32,7 @@ public:
     ShaderManager();
     ~ShaderManager() override;
     [[nodiscard]] ShaderProgram* tile_shader() const            { return m_tile_program.get(); }
-    [[nodiscard]] ShaderProgram* screen_quad_program() const    { return m_screen_quad_program.get(); }
+    [[nodiscard]] ShaderProgram* screen_copy_program() const { return m_screen_copy.get(); }
     [[nodiscard]] ShaderProgram* atmosphere_bg_program() const  { return m_atmosphere_bg_program.get(); }
     [[nodiscard]] ShaderProgram* compose_program() const        { return m_compose_program.get(); }
     [[nodiscard]] ShaderProgram* ssao_program() const           { return m_ssao_program.get(); }
@@ -51,7 +51,7 @@ signals:
 private:
     std::vector<ShaderProgram*> m_program_list;
     std::unique_ptr<ShaderProgram> m_tile_program;
-    std::unique_ptr<ShaderProgram> m_screen_quad_program;
+    std::unique_ptr<ShaderProgram> m_screen_copy;
     std::unique_ptr<ShaderProgram> m_atmosphere_bg_program;
     std::unique_ptr<ShaderProgram> m_compose_program;
     std::shared_ptr<ShaderProgram> m_ssao_program;
