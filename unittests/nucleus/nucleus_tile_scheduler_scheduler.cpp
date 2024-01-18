@@ -609,7 +609,7 @@ TEST_CASE("nucleus/tile_scheduler/Scheduler")
         scheduler->set_purge_timeout(1);
         for (const auto& q : example_quads_for_steffl_and_gg())
             scheduler->receive_quad(q);
-        test_helpers::process_events_for(2);
+        test_helpers::process_events_for(2 * timing_multiplicator);
         CHECK(scheduler->ram_cache().n_cached_objects() == 17);
     }
 
@@ -621,7 +621,7 @@ TEST_CASE("nucleus/tile_scheduler/Scheduler")
         scheduler->update_camera(nucleus::camera::stored_positions::stephansdom());
         for (const auto& q : example_quads_for_steffl_and_gg())
             scheduler->receive_quad(q);
-        test_helpers::process_events_for(2);
+        test_helpers::process_events_for(2 * timing_multiplicator);
         CHECK(scheduler->ram_cache().n_cached_objects() == 17);
         CHECK(scheduler->ram_cache().contains({ 11, { 1117, 1337 } }));
         CHECK(scheduler->ram_cache().contains({ 11, { 1117, 1338 } }));
@@ -638,15 +638,14 @@ TEST_CASE("nucleus/tile_scheduler/Scheduler")
         REQUIRE(example_quads_for_steffl_and_gg().size() > limit);
         REQUIRE(example_quads_for_steffl_and_gg().size() == 39);
         scheduler->set_ram_quad_limit(limit);
-        scheduler->set_purge_timeout(1);
         for (const auto& q : example_quads_for_steffl_and_gg())
             scheduler->receive_quad(q);
-        test_helpers::process_events_for(2);
+        scheduler->purge_ram_cache();
         CHECK(scheduler->ram_cache().n_cached_objects() == example_quads_for_steffl_and_gg().size());
         scheduler->receive_quad(example_tile_quad_for(tile::Id { 10, { 0, 0 } }));
         scheduler->receive_quad(example_tile_quad_for(tile::Id { 11, { 1, 1 } }));
         scheduler->receive_quad(example_tile_quad_for(tile::Id { 12, { 2, 2 } }));
-        test_helpers::process_events_for(2);
+        scheduler->purge_ram_cache();
         CHECK(scheduler->ram_cache().n_cached_objects() == limit);
     }
 
