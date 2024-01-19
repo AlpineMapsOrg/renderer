@@ -128,6 +128,8 @@ void Window::initialise_gpu()
         });
 
     m_atmospherebuffer = std::make_unique<Framebuffer>(Framebuffer::DepthFormat::None, std::vector{ TextureDefinition{Framebuffer::ColourFormat::RGBA8} });
+    m_decoration_buffer = std::make_unique<Framebuffer>(Framebuffer::DepthFormat::None, std::vector { TextureDefinition { Framebuffer::ColourFormat::RGBA8 } });
+    f->glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, m_gbuffer->depth_texture()->textureId(), 0);
 
     m_shared_config_ubo = std::make_shared<gl_engine::UniformBuffer<gl_engine::uboSharedConfig>>(0, "shared_config");
     m_shared_config_ubo->init();
@@ -177,6 +179,9 @@ void Window::resize_framebuffer(int width, int height)
     QOpenGLFunctions* f = QOpenGLContext::currentContext()->functions();
     if (!f) return;
     m_gbuffer->resize({ width, height });
+    m_decoration_buffer->resize({ width, height });
+    f->glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, m_gbuffer->depth_texture()->textureId(), 0);
+
     m_atmospherebuffer->resize({ 1, height });
     m_ssao->resize({width, height});
 
@@ -315,9 +320,26 @@ void Window::paint(QOpenGLFramebufferObject* framebuffer)
 
     // DRAW LABELS
     m_timer->start_timer("labels");
-    m_shader_manager->labels_program()->bind();
-    m_map_label_manager->draw(m_gbuffer.get(), m_shader_manager->labels_program(), m_camera);
-    m_shader_manager->labels_program()->release();
+    {
+        m_decoration_buffer->bind();
+        const GLfloat clearAlbedoColor[] = { 0.0f, 0.0f, 0.0f, 0.0f };
+        f->glClearBufferfv(GL_COLOR, 0, clearAlbedoColor);
+        f->glEnable(GL_DEPTH_TEST);
+        f->glDepthFunc(GL_LEQUAL);
+        // f->glDepthMask(GL_FALSE);
+        m_shader_manager->labels_program()->bind();
+        m_map_label_manager->draw(m_gbuffer.get(), m_shader_manager->labels_program(), m_camera);
+        m_shader_manager->labels_program()->release();
+
+        if (framebuffer)
+            framebuffer->bind();
+        m_shader_manager->screen_copy_program()->bind();
+        m_decoration_buffer->bind_colour_texture(0, 0);
+        f->glEnable(GL_BLEND);
+        f->glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+        m_screen_quad_geometry.draw();
+    }
+
     m_timer->stop_timer("labels");
 
     m_timer->stop_timer("cpu_total");

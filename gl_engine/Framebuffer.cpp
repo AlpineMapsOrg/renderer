@@ -241,7 +241,6 @@ void Framebuffer::resize(const glm::uvec2& new_size)
     m_size = new_size;
     recreate_all_textures();
     reset_fbo();
-    unbind();
 }
 
 void Framebuffer::bind()
@@ -270,6 +269,11 @@ std::unique_ptr<QOpenGLTexture> Framebuffer::take_and_replace_colour_attachment(
     m_colour_textures[index] = std::make_unique<QOpenGLTexture>(QOpenGLTexture::Target::Target2D);
     recreate_texture(index);
     return tmp;
+}
+
+QOpenGLTexture* Framebuffer::depth_texture()
+{
+    return m_depth_texture.get();
 }
 
 QImage Framebuffer::read_colour_attachment(unsigned index)

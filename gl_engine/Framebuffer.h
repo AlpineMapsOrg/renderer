@@ -83,6 +83,8 @@ public:
     [[deprecated("Not in use, untested...")]]
     std::unique_ptr<QOpenGLTexture> take_and_replace_colour_attachment(unsigned index);
 
+    QOpenGLTexture* depth_texture();
+
     QImage read_colour_attachment(unsigned index);
 
     // Returns the data at the given pixel. Only works for RGBA8 textures, but is memory safe.

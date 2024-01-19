@@ -22,6 +22,9 @@ uniform bool drawing_outline;
 
 in highp vec2 texcoords;
 flat in highp float opacity;
+flat in highp float distance;
+in highp vec4 gl_FragCoord;
+out highp float gl_FragDepth;
 
 layout (location = 0) out lowp vec4 out_Color;
 
@@ -34,22 +37,30 @@ void main() {
     {
         if (drawing_outline) {
             mediump float outline_mask = texture(font_sampler, texcoords).g;
+            if (outline_mask < 150.0 / 255.0)
+                discard;
             out_Color = vec4(outlineColor * outline_mask, outline_mask);
-
+            gl_FragDepth = gl_FragCoord.z;
         }
         else {
             mediump float font_mask = texture(font_sampler, texcoords).r;
+            if (font_mask < 10.0 / 255.0)
+                discard;
             out_Color = vec4(fontColor * font_mask, font_mask);
             // mediump float outline_mask = texture(font_sampler, texcoords).g;
             // mediump float font_mask = texture(font_sampler, texcoords).r;
             // out_Color = vec4(mix(outlineColor, fontColor, font_mask), outline_mask);
+            gl_FragDepth = gl_FragCoord.z - 0.00001f;
         }
     }
     else
     {
-        out_Color = texture(icon_sampler, texcoords-vec2(10.0f,10.0f));
+        vec4 icon_sample = texture(icon_sampler, texcoords-vec2(10.0f,10.0f));
+        if (icon_sample.a < 150.0 / 255.0)
+            discard;
+        out_Color = icon_sample;
+        gl_FragDepth = gl_FragCoord.z;
     }
 
     // apply opacity calculated in vertex shader (opacity from occlusion and distance)
-    out_Color.w = out_Color.w * opacity;
 }

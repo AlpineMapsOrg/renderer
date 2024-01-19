@@ -94,6 +94,7 @@ private:
     std::unique_ptr<MapLabelManager> m_map_label_manager;
 
     std::unique_ptr<Framebuffer> m_gbuffer;
+    std::unique_ptr<Framebuffer> m_decoration_buffer;
     std::unique_ptr<Framebuffer> m_atmospherebuffer;
 
     std::unique_ptr<SSAO> m_ssao;

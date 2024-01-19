@@ -91,7 +91,6 @@ void MapLabelManager::draw(Framebuffer* gbuffer, ShaderProgram* shader_program, 
 
     f->glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
     f->glEnable(GL_BLEND);
-    f->glDisable(GL_DEPTH_TEST);
 
     glm::mat4 inv_view_rot = glm::inverse(camera.local_view_matrix());
     shader_program->set_uniform("inv_view_rot", inv_view_rot);

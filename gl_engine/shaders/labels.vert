@@ -43,6 +43,7 @@ layout (location = 3) in float importance;
 
 out highp vec2 texcoords;
 flat out highp float opacity;
+flat out highp float distance;
 
 float determineLabelOcclusionVisibilty(float dist)
 {
@@ -86,6 +87,7 @@ float determineLabelOcclusionVisibilty(float dist)
 
 void main() {
     float dist = length(label_position - camera.position.xyz);
+    distance = dist;
     // remove distance scaling of labels
     float scale = dist / (camera.viewport_size.y * 0.5f * camera.distance_scaling_factor);
 
