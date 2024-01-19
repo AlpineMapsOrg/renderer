@@ -23,8 +23,6 @@ uniform bool drawing_outline;
 in highp vec2 texcoords;
 flat in highp float opacity;
 flat in highp float distance;
-in highp vec4 gl_FragCoord;
-out highp float gl_FragDepth;
 
 layout (location = 0) out lowp vec4 out_Color;
 
