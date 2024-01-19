@@ -52,7 +52,7 @@ void main() {
     }
     else
     {
-        vec4 icon_sample = texture(icon_sampler, texcoords-vec2(10.0f,10.0f));
+        lowp vec4 icon_sample = texture(icon_sampler, texcoords-vec2(10.0f,10.0f));
         if (icon_sample.a < 150.0 / 255.0)
             discard;
         out_Color = icon_sample;

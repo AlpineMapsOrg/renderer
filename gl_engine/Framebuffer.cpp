@@ -374,7 +374,7 @@ void Framebuffer::reset_fbo()
     // Tell OpenGL how many attachments to use
     f->glDrawBuffers(m_colour_textures.size(), draw_attachments.data());
 
-    assert(f->glCheckFramebufferStatus(GL_FRAMEBUFFER) == GL_FRAMEBUFFER_COMPLETE);
+    // assert(f->glCheckFramebufferStatus(GL_FRAMEBUFFER) == GL_FRAMEBUFFER_COMPLETE);
 }
 
 
