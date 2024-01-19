@@ -1,6 +1,7 @@
 /*****************************************************************************
  * Alpine Terrain Renderer
  * Copyright (C) 2024 Lucas Dworschak
+ * Copyright (C) 2024 Adam Celarek
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -21,8 +22,6 @@ uniform sampler2D icon_sampler;
 uniform bool drawing_outline;
 
 in highp vec2 texcoords;
-flat in highp float opacity;
-flat in highp float distance;
 
 layout (location = 0) out lowp vec4 out_Color;
 
