@@ -396,7 +396,7 @@ TEST_CASE("nucleus/tile_scheduler/Scheduler")
     SECTION("delivered quads are sent on to the gpu (with no repeat, only the ones in the tree)")
     {
         auto scheduler = default_scheduler();
-        scheduler->set_update_timeout(1);
+        scheduler->set_update_timeout(1 * timing_multiplicator);
         QSignalSpy spy(scheduler.get(), &Scheduler::gpu_quads_updated);
         scheduler->receive_quad(example_tile_quad_for(tile::Id { 0, { 0, 0 } }));
         scheduler->receive_quad(example_tile_quad_for(tile::Id { 1, { 1, 1 } }));
@@ -617,11 +617,11 @@ TEST_CASE("nucleus/tile_scheduler/Scheduler")
     {
         auto scheduler = default_scheduler();
         scheduler->set_ram_quad_limit(17);
-        scheduler->set_purge_timeout(1);
+        scheduler->set_purge_timeout(2 * timing_multiplicator);
         scheduler->update_camera(nucleus::camera::stored_positions::stephansdom());
         for (const auto& q : example_quads_for_steffl_and_gg())
             scheduler->receive_quad(q);
-        test_helpers::process_events_for(2 * timing_multiplicator);
+        test_helpers::process_events_for(3 * timing_multiplicator);
         CHECK(scheduler->ram_cache().n_cached_objects() == 17);
         CHECK(scheduler->ram_cache().contains({ 11, { 1117, 1337 } }));
         CHECK(scheduler->ram_cache().contains({ 11, { 1117, 1338 } }));
