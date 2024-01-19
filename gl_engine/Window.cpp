@@ -183,17 +183,13 @@ void Window::resize_framebuffer(int width, int height)
     f->glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, m_gbuffer->depth_texture()->textureId(), 0);
 
     m_atmospherebuffer->resize({ 1, height });
-    m_ssao->resize({width, height});
-
-    f->glViewport(0, 0, width, height);
+    m_ssao->resize({ width, height });
 }
 
 void Window::paint(QOpenGLFramebufferObject* framebuffer)
 {
     m_timer->start_timer("cpu_total");
     m_timer->start_timer("gpu_total");
-
-    m_camera.set_viewport_size(m_gbuffer->size());
 
     QOpenGLExtraFunctions *f = QOpenGLContext::currentContext()->extraFunctions();
 
@@ -210,7 +206,7 @@ void Window::paint(QOpenGLFramebufferObject* framebuffer)
     cc->inv_view_proj_matrix = glm::inverse(cc->view_proj_matrix);
     cc->inv_view_matrix = glm::inverse(cc->view_matrix);
     cc->inv_proj_matrix = glm::inverse(cc->proj_matrix);
-    cc->viewport_size = m_gbuffer->size();
+    cc->viewport_size = m_camera.viewport_size();
     cc->distance_scaling_factor = m_camera.distance_scale_factor();
     m_camera_config_ubo->update_gpu_data();
 
@@ -221,14 +217,12 @@ void Window::paint(QOpenGLFramebufferObject* framebuffer)
     f->glClear(GL_COLOR_BUFFER_BIT);
     f->glDisable(GL_DEPTH_TEST);
     f->glDepthFunc(GL_ALWAYS);
-    f->glViewport(0, 0, 1, cc->viewport_size.y);
     auto p = m_shader_manager->atmosphere_bg_program();
     p->bind();
     m_timer->start_timer("atmosphere");
     m_screen_quad_geometry.draw();
     m_timer->stop_timer("atmosphere");
     p->release();
-    f->glViewport(0, 0, cc->viewport_size.x, cc->viewport_size.y);
 
     // Generate Draw-List
     // Note: Could also just be done on camera change
