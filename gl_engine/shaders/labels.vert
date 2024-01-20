@@ -39,25 +39,22 @@ layout (location = 3) in float importance;
 
 out highp vec2 texcoords;
 
-bool label_visible() {
-    highp vec3 relative_to_cam = label_position - camera.position.xyz;
-    float dist = length(relative_to_cam);
-
-    if (dist < 500.0)
+bool label_visible(highp vec3 relative_to_cam, float dist_to_cam) {
+    if (dist_to_cam < 500.0)
         return false;
 
-    if (importance < 0.2 && dist > 3000.0)
+    if (importance < 0.2 && dist_to_cam > 3000.0)
         return false;
-    if (importance < 0.4 && dist > 20000.0)
+    if (importance < 0.4 && dist_to_cam > 20000.0)
         return false;
-    if (importance < 0.6 && dist > 250000.0)
+    if (importance < 0.6 && dist_to_cam > 250000.0)
         return false;
-    if (importance < 0.8 && dist > 500000.0)
+    if (importance < 0.8 && dist_to_cam > 500000.0)
         return false;
 
-    vec3 peakLookup = ws_to_ndc(relative_to_cam) + vec3(0.0f, 0.1, 0.0f);
+    vec3 peakLookup = ws_to_ndc(relative_to_cam) + vec3(0.0f, 0.1f, 0.0f);
     float depth = texture(texin_depth, peakLookup.xy).w;
-    if(depth <= 0.001f || depth > (dist-200.0f))
+    if(depth <= 0.001f || depth > (dist_to_cam-200.0f))
     {
         return true;
     }
@@ -65,25 +62,26 @@ bool label_visible() {
 }
 
 void main() {
-    float dist = length(label_position - camera.position.xyz);
-    float scale = 2.0;
+    highp vec3 relative_to_cam = label_position - camera.position.xyz;
+    float dist_to_cam = length(relative_to_cam);
+    float scale = 2.0f;
 
     // apply "soft" distance scaling depending on near/far label values (if option is set as uniform)
     if(label_dist_scaling)
     {
-        float dist_scale = 1.0f - ((dist - nearLabel) / (farLabel1 - nearLabel)) * 0.4f;
+        float dist_scale = 1.0f - ((dist_to_cam - nearLabel) / (farLabel1 - nearLabel)) * 0.4f;
         scale *= (dist_scale * dist_scale);
     }
 
     // importance based scaling
     scale *= (importance + 1.5f) / 2.5f;
 
-    if (label_visible()) {
-        gl_Position = camera.view_proj_matrix * vec4(label_position + vec3(0, 5, 0) - camera.position.xyz, 1.0f);
+    if (label_visible(relative_to_cam, dist_to_cam)) {
+        gl_Position = camera.view_proj_matrix * vec4(label_position - camera.position.xyz, 1.0f);
         gl_Position /= gl_Position.w;
-        gl_Position += vec4((pos.xy + pos.zw * offset_mask[gl_VertexID & 3]) * vec2(1.0 / camera.viewport_size.x, 1.0 / camera.viewport_size.y), 0.0f, 0.0f) * scale;
+        gl_Position += vec4((pos.xy + pos.zw * offset_mask[gl_VertexID & 3]) * vec2(1.0f / camera.viewport_size.x, 1.0f / camera.viewport_size.y), 0.0f, 0.0f) * scale;
         // uv coordinates
-        texcoords = vtexcoords.xy + vtexcoords.zw * offset_mask[gl_VertexID];
+        texcoords = vtexcoords.xy + vtexcoords.zw * offset_mask[gl_VertexID & 3];
     }
     else {
         gl_Position = vec4(10.0f, 10.0f, 10.0f, 1.0f);

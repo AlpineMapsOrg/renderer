@@ -30,7 +30,7 @@ namespace nucleus {
 void MapLabel::init(const std::unordered_map<int, const MapLabel::CharData>& character_data, const stbtt_fontinfo* fontinfo, const float uv_width_norm)
 {
     constexpr float offset_y = -font_size / 2.0f + 65.0f;
-    constexpr float icon_offset_y = 10;
+    constexpr float icon_offset_y = 10.0f;
 
     std::string altitude_text = std::to_string(m_altitude);
     altitude_text = altitude_text.substr(0, altitude_text.find("."));
