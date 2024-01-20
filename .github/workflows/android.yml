@@ -129,21 +129,6 @@ jobs:
       run: |
         tree $BUILD_DIR
       
-    - name: Run unittests_nucleus on emulator
-      run: |
-        adb devices
-        
-        adb install $BUILD_DIR/unittests/nucleus/android-build/build/outputs/apk/release/android-build-release-signed.apk
-        
-        adb shell am start -W -n org.qtproject.example.unittests_nucleus/org.qtproject.qt.android.bindings.QtActivity
-        
-        while [ "$(adb shell dumpsys window windows | grep -i "unittests_nucleus" | wc -l | tr -d '[:space:]')" -ne 0 ]; do sleep 2; done && echo "Execution finished."
-        adb logcat -d -s libunittests_nucleus_x86_64.so
-        
-        # usually the tests are saying exit with 0 and then they die. that happens even if we return 1 from main.
-        # so instead we print something after finishing the tests and check it here.
-        adb logcat -d -s libunittests_nucleus_x86_64.so | grep -q "Catch::Session finished with exit code 0" || exit 1
-      
     - name: Run unittests_radix on emulator
       run: |
         adb devices
@@ -168,6 +153,21 @@ jobs:
         adb logcat -d -s libunittests_gl_engine_x86_64.so
         adb logcat -d -s libunittests_gl_engine_x86_64.so | grep -q "Catch::Session finished with exit code 0" || exit 1
 
+    - name: Run unittests_nucleus on emulator
+      run: |
+        adb devices
+        
+        adb install $BUILD_DIR/unittests/nucleus/android-build/build/outputs/apk/release/android-build-release-signed.apk
+        
+        adb shell am start -W -n org.qtproject.example.unittests_nucleus/org.qtproject.qt.android.bindings.QtActivity
+        
+        while [ "$(adb shell dumpsys window windows | grep -i "unittests_nucleus" | wc -l | tr -d '[:space:]')" -ne 0 ]; do sleep 2; done && echo "Execution finished."
+        adb logcat -d -s libunittests_nucleus_x86_64.so
+        
+        # usually the tests are saying exit with 0 and then they die. that happens even if we return 1 from main.
+        # so instead we print something after finishing the tests and check it here.
+        adb logcat -d -s libunittests_nucleus_x86_64.so | grep -q "Catch::Session finished with exit code 0" || exit 1
+      
       
     - name: Run alpine app on emulator
       run: |
