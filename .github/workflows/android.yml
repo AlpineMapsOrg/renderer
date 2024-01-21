@@ -18,7 +18,7 @@ env:
   API_LEVEL: 33
   ANDROID_BUILD_TOOLS_VERSION: 34.0.0
   ANDROID_SDK_PACKAGES: system-images;android-33;google_apis_playstore;x86_64 platforms;android-33 build-tools;34.0.0 platform-tools emulator
-  EMULATOR_TIMEOUT: 350
+  EMULATOR_TIMEOUT: 900
   EMULATOR_NAME: nexus
 
 jobs:
@@ -140,18 +140,6 @@ jobs:
         while [ "$(adb shell dumpsys window windows | grep -i "unittests_radix" | wc -l | tr -d '[:space:]')" -ne 0 ]; do sleep 2; done && echo "Execution finished."
         adb logcat -d -s libunittests_radix_x86_64.so
         adb logcat -d -s libunittests_radix_x86_64.so | grep -q "Catch::Session finished with exit code 0" || exit 1
-      
-    - name: Run unittests_gl_engine on emulator
-      run: |
-        adb devices
-        
-        adb install $BUILD_DIR/unittests/gl_engine/android-build/build/outputs/apk/release/android-build-release-signed.apk
-        
-        adb shell am start -W -n org.qtproject.example.unittests_gl_engine/org.qtproject.qt.android.bindings.QtActivity
-        
-        while [ "$(adb shell dumpsys window windows | grep -i "unittests_gl_engine" | wc -l | tr -d '[:space:]')" -ne 0 ]; do sleep 2; done && echo "Execution finished."
-        adb logcat -d -s libunittests_gl_engine_x86_64.so
-        adb logcat -d -s libunittests_gl_engine_x86_64.so | grep -q "Catch::Session finished with exit code 0" || exit 1
 
     - name: Run unittests_nucleus on emulator
       run: |
@@ -168,6 +156,17 @@ jobs:
         # so instead we print something after finishing the tests and check it here.
         adb logcat -d -s libunittests_nucleus_x86_64.so | grep -q "Catch::Session finished with exit code 0" || exit 1
       
+    - name: Run unittests_gl_engine on emulator
+      run: |
+        adb devices
+        
+        adb install $BUILD_DIR/unittests/gl_engine/android-build/build/outputs/apk/release/android-build-release-signed.apk
+        
+        adb shell am start -W -n org.qtproject.example.unittests_gl_engine/org.qtproject.qt.android.bindings.QtActivity
+        
+        while [ "$(adb shell dumpsys window windows | grep -i "unittests_gl_engine" | wc -l | tr -d '[:space:]')" -ne 0 ]; do sleep 2; done && echo "Execution finished."
+        adb logcat -d -s libunittests_gl_engine_x86_64.so
+        adb logcat -d -s libunittests_gl_engine_x86_64.so | grep -q "Catch::Session finished with exit code 0" || exit 1
       
     - name: Run alpine app on emulator
       run: |
