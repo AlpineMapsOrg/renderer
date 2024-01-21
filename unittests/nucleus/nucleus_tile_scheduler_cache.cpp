@@ -150,11 +150,11 @@ TEST_CASE("nucleus/tile_scheduler/cache")
     {
         nucleus::tile_scheduler::Cache<TestTile> cache;
         cache.insert(TestTile { { 0, { 0, 0 } }, "green" });
-        cache.insert(TestTile { { 6, { 4, 3 } }, "red" });
         cache.insert(TestTile { { 1, { 0, 0 } }, "green" });
         cache.insert(TestTile { { 1, { 1, 0 } }, "green" });
         cache.insert(TestTile { { 2, { 0, 0 } }, "green" });
         cache.insert(TestTile { { 3, { 0, 0 } }, "green" });
+        cache.insert(TestTile { { 6, { 4, 3 } }, "red" });
 
         CHECK(cache.purge(6).size() == 0);
         CHECK(cache.n_cached_objects() == 6);
