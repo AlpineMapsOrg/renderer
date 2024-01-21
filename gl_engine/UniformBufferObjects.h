@@ -110,23 +110,8 @@ public:
     Q_PROPERTY(bool csm_enabled MEMBER m_csm_enabled)
     Q_PROPERTY(bool overlay_shadowmaps_enabled MEMBER m_overlay_shadowmaps_enabled)
 
-    bool operator!=(const uboSharedConfig& rhs) const
-    {
-        // NOTE: I'll do a hack here! I know that our data needs to be vec4 aligned, therefore I
-        // compare whole 64bit uints as this should be quite fast on the machine.
-        int size_64bit_packages = sizeof(uboSharedConfig) / 8;
-        assert(size_64bit_packages * 8 == sizeof(uboSharedConfig)); // make sure its really (at least) vec2 aligned
-        const uint64_t* lhs_64 = reinterpret_cast<const uint64_t*>(this);
-        const uint64_t* rhs_64 = reinterpret_cast<const uint64_t*>(&rhs);
-        for (int i = 0; i < size_64bit_packages; i++) {
-            if (lhs_64[i] != rhs_64[i]) return true;
-        }
-        // Note: If you don't like the above you can also just return true all the time!
-        // We only need this comparison when configuration has changed anyway. That shouldn't
-        // be that often.
-        return false;
-    }
-
+    bool operator==(const uboSharedConfig&) const = default;
+    bool operator!=(const uboSharedConfig&) const = default;
 };
 
 struct uboCameraConfig {

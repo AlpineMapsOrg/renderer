@@ -1,0 +1,181 @@
+name: "Android"
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+
+
+# Allow only one concurrent deployment, skipping runs queued between the run in-progress and latest queued.
+# However, do NOT cancel in-progress runs as we want to allow these production deployments to complete.
+concurrency:
+  group: "android"
+  cancel-in-progress: true
+  
+env:
+  ANDROID_ARCH: x86_64
+  ANDROID_TARGET: google_apis_playstore
+  API_LEVEL: 33
+  ANDROID_BUILD_TOOLS_VERSION: 34.0.0
+  ANDROID_SDK_PACKAGES: system-images;android-33;google_apis_playstore;x86_64 platforms;android-33 build-tools;34.0.0 platform-tools emulator
+  EMULATOR_TIMEOUT: 900
+  EMULATOR_NAME: nexus
+
+jobs:
+  build:
+    runs-on: macos-latest
+    steps:
+    - uses: actions/checkout@v3
+
+    - name: Install dependencies
+      run: |
+        brew install tree
+        
+    - name: Setup JDK
+      uses: actions/setup-java@v4
+      with:
+        distribution: 'temurin'
+        java-version: '17'
+    
+    - name: Install Qt native version (required for cross compilation)
+      uses: jurplel/install-qt-action@v3
+      with:
+        aqtversion: '==3.1.*'
+        version: '6.6.1'
+        host: mac
+        target: 'desktop'
+        arch: clang_64
+        dir: '${{github.workspace}}/qt'
+        install-deps: 'true'
+
+    - name: Set QT_HOST_PATH
+      run: echo "QT_HOST_PATH=${Qt6_DIR}" >> "$GITHUB_ENV"
+
+    - name: Install Qt Android version
+      uses: jurplel/install-qt-action@v3
+      with:
+        aqtversion: '==3.1.*'
+        version: '6.6.1'
+        host: mac
+        target: 'android'
+        arch: android_x86_64
+        dir: '${{github.workspace}}/qt'
+        install-deps: 'true'
+        modules: 'qtcharts qtpositioning'
+
+    - name: Make qt binaries executable
+      run: |
+        chmod u+x ${Qt6_DIR}/bin/*
+
+    - name: Set environment variables
+      shell: bash
+      run: |
+        BUILD_DIR="build"
+        echo "BUILD_DIR=$BUILD_DIR" >> $GITHUB_ENV
+
+    - name: Configure
+      env:
+        CMAKE_PREFIX_PATH: ${{env.Qt6_DIR}}/lib/cmake
+      run: >
+        ${Qt6_DIR}/bin/qt-cmake
+        -B $BUILD_DIR
+        -DCMAKE_BUILD_TYPE=Release
+        -DALP_ENABLE_APP_SHUTDOWN_AFTER_60S=ON
+        -DALP_ENABLE_ASSERTS=ON
+        -S ${{ github.workspace }}
+
+    - name: Build
+      run: |
+        cmake --build $BUILD_DIR
+        
+    - name: Debug output
+      if: always()
+      run: |
+        tree $BUILD_DIR
+
+    - name: Signing Android packages
+      run: |
+        keytool -genkey -v -keystore alp.keystore -alias alpinemaps -keyalg RSA -sigalg SHA1withRSA -keysize 2048 -validity 10000 -keypass asdfasdf -storepass asdfasdf -dname "CN=Franz, OU=IT, O=Furz, L=Rattenberg, ST=Tirol, C=AT"
+        
+        ANDROID_DEPLOY="$QT_HOST_PATH/bin/androiddeployqt --input"
+        DEPLOY_PARAMS="--android-platform android-33 --gradle --release --sign alp.keystore alpinemaps --storepass asdfasdf"
+        
+        $ANDROID_DEPLOY $BUILD_DIR/app/android-alpineapp-deployment-settings.json                                --output $BUILD_DIR/app/android-build/                         $DEPLOY_PARAMS
+        $ANDROID_DEPLOY $BUILD_DIR/unittests/nucleus/android-unittests_nucleus-deployment-settings.json          --output $BUILD_DIR/unittests/nucleus/android-build            $DEPLOY_PARAMS
+        $ANDROID_DEPLOY $BUILD_DIR/unittests/gl_engine/android-unittests_gl_engine-deployment-settings.json      --output $BUILD_DIR/unittests/gl_engine/android-build          $DEPLOY_PARAMS
+        $ANDROID_DEPLOY $BUILD_DIR/alp_external/radix/unittests/android-unittests_radix-deployment-settings.json --output $BUILD_DIR/alp_external/radix/unittests/android-build $DEPLOY_PARAMS
+
+    - name: Add avdmanager and sdkmanager to system PATH
+      run: |
+          echo "$ANDROID_HOME/cmdline-tools/latest/bin:$ANDROID_HOME/emulator:$ANDROID_HOME/tools:$ANDROID_HOME/platform-tools:$ANDROID_HOME/build-tools/${{ env.ANDROID_BUILD_TOOLS_VERSION }}" >> $GITHUB_PATH
+
+    - name: Install Sdk
+      run: |
+         yes Y | sdkmanager --licenses
+         sdkmanager --install ${ANDROID_SDK_PACKAGES}
+  
+    - name: Build emulator
+      run: |
+          echo "no" | avdmanager --verbose create avd --force -n $EMULATOR_NAME --abi "${ANDROID_TARGET}/${ANDROID_ARCH}" -k "system-images;android-${API_LEVEL};${ANDROID_TARGET};${ANDROID_ARCH}"
+
+    - name: Launch emulator
+      run: |
+        wget https://raw.githubusercontent.com/amrsa1/android-emulator-workflow/main/start_emu_headless.sh
+        chmod +x ./start_emu_headless.sh
+        EMULATOR_TIMEOUT=$EMULATOR_TIMEOUT EMULATOR_NAME=$EMULATOR_NAME ./start_emu_headless.sh
+        
+    - name: Debug output
+      if: always()
+      run: |
+        tree $BUILD_DIR
+      
+    - name: Run unittests_radix on emulator
+      run: |
+        adb devices
+        
+        adb install $BUILD_DIR/alp_external/radix/unittests/android-build/build/outputs/apk/release/android-build-release-signed.apk
+        
+        adb shell am start -W -n org.qtproject.example.unittests_radix/org.qtproject.qt.android.bindings.QtActivity
+        
+        while [ "$(adb shell dumpsys window windows | grep -i "unittests_radix" | wc -l | tr -d '[:space:]')" -ne 0 ]; do sleep 2; done && echo "Execution finished."
+        adb logcat -d -s libunittests_radix_x86_64.so
+        adb logcat -d -s libunittests_radix_x86_64.so | grep -q "Catch::Session finished with exit code 0" || exit 1
+
+    - name: Run unittests_nucleus on emulator
+      run: |
+        adb devices
+        
+        adb install $BUILD_DIR/unittests/nucleus/android-build/build/outputs/apk/release/android-build-release-signed.apk
+        
+        adb shell am start -W -n org.qtproject.example.unittests_nucleus/org.qtproject.qt.android.bindings.QtActivity
+        
+        while [ "$(adb shell dumpsys window windows | grep -i "unittests_nucleus" | wc -l | tr -d '[:space:]')" -ne 0 ]; do sleep 2; done && echo "Execution finished."
+        adb logcat -d -s libunittests_nucleus_x86_64.so
+        
+        # usually the tests are saying exit with 0 and then they die. that happens even if we return 1 from main.
+        # so instead we print something after finishing the tests and check it here.
+        adb logcat -d -s libunittests_nucleus_x86_64.so | grep -q "Catch::Session finished with exit code 0" || exit 1
+      
+    - name: Run unittests_gl_engine on emulator
+      run: |
+        adb devices
+        
+        adb install $BUILD_DIR/unittests/gl_engine/android-build/build/outputs/apk/release/android-build-release-signed.apk
+        
+        adb shell am start -W -n org.qtproject.example.unittests_gl_engine/org.qtproject.qt.android.bindings.QtActivity
+        
+        while [ "$(adb shell dumpsys window windows | grep -i "unittests_gl_engine" | wc -l | tr -d '[:space:]')" -ne 0 ]; do sleep 2; done && echo "Execution finished."
+        adb logcat -d -s libunittests_gl_engine_x86_64.so
+        adb logcat -d -s libunittests_gl_engine_x86_64.so | grep -q "Catch::Session finished with exit code 0" || exit 1
+      
+    - name: Run alpine app on emulator
+      run: |
+        adb devices
+        
+        adb install $BUILD_DIR/app/android-build/build/outputs/apk/release/android-build-release-signed.apk
+        
+        adb shell am start -W -n org.alpinemaps.app/org.qtproject.qt.android.bindings.QtActivity
+        
+        while [ "$(adb shell dumpsys window windows | grep -i "org\.alpinemaps\.app" | wc -l | tr -d '[:space:]')" -ne 0 ]; do sleep 2; done && echo "Execution finished."
+        adb logcat -d -s AlpineApp
+        adb logcat -d -s AlpineApp | grep -q "AlpineApp shuts down after 60s." || exit 1

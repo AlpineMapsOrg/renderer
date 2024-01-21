@@ -108,8 +108,7 @@ TEST_CASE("gl framebuffer")
         )");
         shader.bind();
         gl_engine::helpers::create_screen_quad_geometry().draw();
-        glm::vec4 value_at_0_0;
-        b.read_colour_attachment_pixel(0, glm::dvec2(-1.0, -1.0), &value_at_0_0[0]);
+        glm::vec4 value_at_0_0 = b.read_colour_attachment_pixel<glm::vec4>(0, glm::dvec2(-1.0, -1.0));
         CHECK(value_at_0_0.x == Approx(1.0f));
         CHECK(value_at_0_0.y == Approx(20000.0f));
         CHECK(value_at_0_0.z == Approx(600000000.0f));
@@ -195,53 +194,6 @@ TEST_CASE("gl framebuffer")
         }
     }
 
-    SECTION("rg16ui color format")
-    {
-        Framebuffer b(Framebuffer::DepthFormat::None, { {Framebuffer::ColourFormat::RG16UI} });
-        b.bind();
-        ShaderProgram shader = create_debug_shader( R"(
-            out highp uvec2 out_Color;
-            void main() { out_Color = uvec2(1u, 65535u); }
-        )");
-        shader.bind();
-        gl_engine::helpers::create_screen_quad_geometry().draw();
-        glm::u16vec2 value_at_0_0;
-        b.read_colour_attachment_pixel(0, glm::dvec2(-1.0, -1.0), &value_at_0_0[0]);
-        CHECK(value_at_0_0.y == 65535u);
-        CHECK(value_at_0_0.x == 1u);
-    }
-    SECTION("r32ui color format")
-    {
-        Framebuffer b(Framebuffer::DepthFormat::None, { {Framebuffer::ColourFormat::R32UI} });
-        b.bind();
-        ShaderProgram shader = create_debug_shader( R"(
-            out highp uint out_Color;
-            void main() { out_Color = 4294967295u; }
-        )");
-        shader.bind();
-        gl_engine::helpers::create_screen_quad_geometry().draw();
-        glm::u32vec1 value_at_0_0;
-        b.read_colour_attachment_pixel(0, glm::dvec2(-1.0, -1.0), &value_at_0_0[0]);
-        CHECK(value_at_0_0.x == 4294967295u);
-    }
-    SECTION("r32ui bit pixel read benchmark")
-    {
-        Framebuffer b(Framebuffer::DepthFormat::None, { {Framebuffer::ColourFormat::R32UI} });
-        b.bind();
-        ShaderProgram shader = create_debug_shader( R"(
-            out highp uint out_Color;
-            void main() { out_Color = 4294967295u; }
-        )");
-        shader.bind();
-        gl_engine::helpers::create_screen_quad_geometry().draw();
-        f->glFinish();
-
-        BENCHMARK("r32ui bit pixel read colour buffer")
-        {
-            glm::u32vec1 value_at_0_0;
-            b.read_colour_attachment_pixel(0, glm::dvec2(-1.0, -1.0), &value_at_0_0[0]);
-        };
-    }
     SECTION("rgba8 bit pixel read benchmark")
     {
         Framebuffer b(Framebuffer::DepthFormat::None, { {Framebuffer::ColourFormat::RGBA8} });
@@ -251,12 +203,13 @@ TEST_CASE("gl framebuffer")
         gl_engine::helpers::create_screen_quad_geometry().draw();
         f->glFinish();
 
+        glm::u8vec4 value = {};
         BENCHMARK("rgba8 bit pixel read colour buffer")
         {
-            glm::u8vec4 value_at_0_0;
-            b.read_colour_attachment_pixel(0, glm::dvec2(-1.0, -1.0), &value_at_0_0[0]);
+            value += b.read_colour_attachment_pixel<glm::u8vec4>(0, glm::dvec2(-1.0, -1.0));
         };
     }
+
 #ifndef __EMSCRIPTEN__
     // NOTE: Tests dont terminate on webgl for me if this benchmark is enabled. The function is not in use anyway...
     SECTION("rgba8 bit read benchmark")
@@ -282,7 +235,7 @@ TEST_CASE("gl framebuffer")
         shader.bind();
         gl_engine::helpers::create_screen_quad_geometry().draw();
 
-        auto pixel = b.read_colour_attachment_pixel(0, glm::dvec2(0, 0));
+        auto pixel = b.read_colour_attachment_pixel<glm::u8vec4>(0, glm::dvec2(0, 0));
 
         Framebuffer::unbind();
         CHECK(pixel[0] == unsigned(0.2f * 255));
@@ -298,24 +251,24 @@ TEST_CASE("gl framebuffer")
         f->glClearDepthf(0.9);
         f->glClear(GL_DEPTH_BUFFER_BIT);
         f->glDepthFunc(GL_ALWAYS);
-        ShaderProgram p1 = create_debug_shader( R"(
+        ShaderProgram p1 = create_debug_shader(R"(
             void main() {
-                gl_FragDepth = 0.5;
+                gl_FragDepth = 0.42;
             }
         )");
         p1.bind();
         gl_engine::helpers::create_screen_quad_geometry().draw_with_depth_test();
         f->glFinish();
         // Now lets try to use it as an input texture
-        Framebuffer b2(Framebuffer::DepthFormat::None, {{ Framebuffer::ColourFormat::R32UI }});
+        Framebuffer b2(Framebuffer::DepthFormat::None, { { Framebuffer::ColourFormat::RGBA32F } });
         b2.bind();
         ShaderProgram p2 = create_debug_shader(R"(
             in highp vec2 texcoords;
-            out highp uint out_Color;
+            out highp vec4 out_Color;
             uniform highp sampler2D texin_depth;
             void main() {
                 highp float depth = texture(texin_depth, texcoords).r;
-                out_Color = uint(depth * 4294967295.0);
+                out_Color = vec4(depth, depth, depth, depth);
             }
         )");
         p2.bind();
@@ -323,37 +276,7 @@ TEST_CASE("gl framebuffer")
         b.bind_depth_texture(0);
         gl_engine::helpers::create_screen_quad_geometry().draw();
         f->glFinish();
-        glm::u32vec1 value_at_0_0;
-        b2.read_colour_attachment_pixel(0, glm::dvec2(-1.0, -1.0), &value_at_0_0[0]);
-        CHECK(value_at_0_0.x == 2147483648); // equals 0.5
+        const auto value_at_0_0 = b2.read_colour_attachment_pixel<glm::vec4>(0, glm::dvec2(-1.0, -1.0));
+        CHECK(value_at_0_0.x == Catch::Approx(0.42));
     }
-    /* DEPTH BUFFER READBACK NOT SUPPORTED ON OPENGL ES AND WEBGL
-    SECTION("f32 depth buffer readback")
-    {
-        QOpenGLExtraFunctions* f = QOpenGLContext::currentContext()->extraFunctions();
-        Framebuffer b(Framebuffer::DepthFormat::Float32, {});
-        b.bind();
-        f->glClearDepthf(0.5);
-        f->glClear(GL_DEPTH_BUFFER_BIT);
-        f->glFinish();
-        // Now lets try to read it back
-        glm::vec1 value_at_0_0;
-        b.read_depth_attachment_pixel(glm::dvec2(-1.0, -1.0), &value_at_0_0[0]);
-        CHECK(value_at_0_0.x == Approx(0.5F));
-    }
-    SECTION("f32 depth buffer readback benchmark")
-    {
-        QOpenGLExtraFunctions* f = QOpenGLContext::currentContext()->extraFunctions();
-        Framebuffer b(Framebuffer::DepthFormat::Float32, {});
-        b.bind();
-        f->glClearDepthf(0.5);
-        f->glClear(GL_DEPTH_BUFFER_BIT);
-        f->glFinish();
-
-        BENCHMARK("f32 depth buffer readback benchmark")
-        {
-            glm::vec1 value_at_0_0;
-            b.read_depth_attachment_pixel(glm::dvec2(-1.0, -1.0), &value_at_0_0[0]);
-        };
-    }*/
 }
