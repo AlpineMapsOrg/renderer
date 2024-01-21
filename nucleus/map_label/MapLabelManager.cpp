@@ -22,15 +22,15 @@
 #include <QFile>
 #include <QIcon>
 #include <QSize>
+#include <QStringLiteral>
 
-#include "CharUtils.h"
-
-#include <iostream>
 #include <string>
 
 #define STBTT_STATIC
 #define STB_TRUETYPE_IMPLEMENTATION
 #include "stb_slim/stb_truetype.h"
+
+using namespace Qt::Literals::StringLiterals;
 
 namespace nucleus {
 
@@ -43,36 +43,36 @@ MapLabelManager::MapLabelManager()
     //    double longitude;
     //    float altitude;
     //    float importance;  // 1 -> most important; 0 -> least important
-    m_labels.push_back({ "Großglockner", 47.07455, 12.69388, 3798, 1 });
-    m_labels.push_back({ "Piz Buin", 46.84412, 10.11889, 3312, 0.56 });
-    m_labels.push_back({ "Hoher Dachstein", 47.47519, 13.60569, 2995, 0.56 });
-    m_labels.push_back({ "Großer Priel", 47.71694, 14.06325, 2515, 0.56 });
-    m_labels.push_back({ "Hermannskogel", 48.27072, 16.29456, 544, 0.56 });
-    m_labels.push_back({ "Klosterwappen", 47.76706, 15.80450, 2076, 0.56 });
-    m_labels.push_back({ "Ötscher", 47.86186, 15.20251, 1893, 0.56 });
-    m_labels.push_back({ "Ellmauer Halt", 47.5616377, 12.3025296, 2342, 0.56 });
-    m_labels.push_back({ "Wildspitze", 46.88524, 10.86728, 3768, 0.56 });
-    m_labels.push_back({ "Großvenediger", 47.10927, 12.34534, 3657, 0.56 });
-    m_labels.push_back({ "Hochalmspitze", 47.01533, 13.32050, 3360, 0.56 });
-    m_labels.push_back({ "Geschriebenstein", 47.35283, 16.43372, 884, 0.56 });
+    m_labels.push_back({ u"Großglockner"_s, 47.07455, 12.69388, 3798, 1 });
+    m_labels.push_back({ u"Piz Buin"_s, 46.84412, 10.11889, 3312, 0.56f });
+    m_labels.push_back({ u"Hoher Dachstein"_s, 47.47519, 13.60569, 2995, 0.56f });
+    m_labels.push_back({ u"Großer Priel"_s, 47.71694, 14.06325, 2515, 0.56f });
+    m_labels.push_back({ u"Hermannskogel"_s, 48.27072, 16.29456, 544, 0.56f });
+    m_labels.push_back({ u"Klosterwappen"_s, 47.76706, 15.80450, 2076, 0.56f });
+    m_labels.push_back({ u"Ötscher"_s, 47.86186, 15.20251, 1893, 0.56f });
+    m_labels.push_back({ u"Ellmauer Halt"_s, 47.5616377, 12.3025296, 2342, 0.56f });
+    m_labels.push_back({ u"Wildspitze"_s, 46.88524, 10.86728, 3768, 0.56f });
+    m_labels.push_back({ u"Großvenediger"_s, 47.10927, 12.34534, 3657, 0.56f });
+    m_labels.push_back({ u"Hochalmspitze"_s, 47.01533, 13.32050, 3360, 0.56f });
+    m_labels.push_back({ u"Geschriebenstein"_s, 47.35283, 16.43372, 884, 0.56f });
 
-    m_labels.push_back({ "Ackerlspitze", 47.559125, 12.347188, 2329, 0.33 });
-    m_labels.push_back({ "Scheffauer", 47.5573214, 12.2418396, 2111, 0.33 });
-    m_labels.push_back({ "Maukspitze", 47.5588954, 12.3563668, 2231, 0.33 });
-    m_labels.push_back({ "Schönfeldspitze", 47.45831, 12.93774, 2653, 0.33 });
-    m_labels.push_back({ "Hochschwab", 47.61824, 15.14245, 2277, 0.33 });
+    m_labels.push_back({ u"Ackerlspitze"_s, 47.559125, 12.347188, 2329, 0.33f });
+    m_labels.push_back({ u"Scheffauer"_s, 47.5573214, 12.2418396, 2111, 0.33f });
+    m_labels.push_back({ u"Maukspitze"_s, 47.5588954, 12.3563668, 2231, 0.33f });
+    m_labels.push_back({ u"Schönfeldspitze"_s, 47.45831, 12.93774, 2653, 0.33f });
+    m_labels.push_back({ u"Hochschwab"_s, 47.61824, 15.14245, 2277, 0.33f });
 
-    m_labels.push_back({ "Valluga", 47.15757, 10.21309, 2811, 0.11 });
-    m_labels.push_back({ "Birkkarspitze", 47.41129, 11.43765, 2749, 0.11 });
-    m_labels.push_back({ "Schafberg", 47.77639, 13.43389, 1783, 0.11 });
+    m_labels.push_back({ u"Valluga"_s, 47.15757, 10.21309, 2811, 0.11f });
+    m_labels.push_back({ u"Birkkarspitze"_s, 47.41129, 11.43765, 2749, 0.11f });
+    m_labels.push_back({ u"Schafberg"_s, 47.77639, 13.43389, 1783, 0.11f });
 
-    m_labels.push_back({ "Grubenkarspitze", 47.38078, 11.52211, 2663, 0.11 });
-    m_labels.push_back({ "Gimpel", 47.50127, 10.61249, 2176, 0.11 });
-    m_labels.push_back({ "Seekarlspitze", 47.45723, 11.77804, 2261, 0.11 });
-    m_labels.push_back({ "Furgler", 47.04033, 10.51186, 3004, 0.11 });
+    m_labels.push_back({ u"Grubenkarspitze"_s, 47.38078, 11.52211, 2663, 0.11f });
+    m_labels.push_back({ u"Gimpel"_s, 47.50127, 10.61249, 2176, 0.11f });
+    m_labels.push_back({ u"Seekarlspitze"_s, 47.45723, 11.77804, 2261, 0.11f });
+    m_labels.push_back({ u"Furgler"_s, 47.04033, 10.51186, 3004, 0.11f });
 
-    m_labels.push_back({ "Westliche Hochgrubachspitze", 47.5583658, 12.3433997, 2277, 0 });
-    m_labels.push_back({ "Östliche Hochgrubachspitze", 47.5587933, 12.3450985, 2284, 0 });
+    m_labels.push_back({ u"Westliche Hochgrubachspitze"_s, 47.5583658, 12.3433997, 2277, 0 });
+    m_labels.push_back({ u"Östliche Hochgrubachspitze"_s, 47.5587933, 12.3450985, 2284, 0 });
 
     init();
 }
@@ -153,7 +153,7 @@ void MapLabelManager::create_font()
     std::vector<uint8_t> temp_bitmap(m_font_atlas_size.width() * m_font_atlas_size.height());
     std::fill(temp_bitmap.begin(), temp_bitmap.end(), 0);
 
-    const std::vector<int> safe_chars = CharUtils::string_to_unicode_int_list(all_char_list);
+    const auto safe_chars = all_char_list.toStdU16String();
 
     float scale = stbtt_ScaleForPixelHeight(&m_fontinfo, MapLabel::font_size);
 
@@ -161,7 +161,7 @@ void MapLabelManager::create_font()
     int y = m_font_outline.y + m_font_padding.y;
     int bottom_y = m_font_outline.y + m_font_padding.y;
 
-    for (const int& c : safe_chars) {
+    for (const char16_t& c : safe_chars) {
         // code adapted from stbtt_BakeFontBitmap()
         int x0, y0, x1, y1;
         const int glyph_index = stbtt_FindGlyphIndex(&m_fontinfo, c);

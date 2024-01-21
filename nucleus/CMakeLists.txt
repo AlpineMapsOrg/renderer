@@ -96,7 +96,6 @@ qt_add_library(nucleus STATIC
     timing/TimerManager.h timing/TimerManager.cpp
     timing/TimerInterface.h timing/TimerInterface.cpp
     timing/CpuTimer.h timing/CpuTimer.cpp
-    map_label/CharUtils.h map_label/CharUtils.cpp
 )
 
 target_include_directories(nucleus PRIVATE . PUBLIC ${CMAKE_SOURCE_DIR})

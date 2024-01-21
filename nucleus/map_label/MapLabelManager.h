@@ -42,7 +42,7 @@ private:
 
 private:
     // list of all characters that will be available (will be rendered to the font_atlas)
-    static constexpr auto all_char_list = " ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789()[]{},;.:-_!\"§$%&/\\=+-*/#'~°^<>|@€´`öÖüÜäÄß";
+    const QString all_char_list = QString::fromUtf16(u" ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789()[]{},;.:-_!\"§$%&/\\=+-*/#'~°^<>|@€´`öÖüÜäÄß");
 
     static constexpr glm::ivec2 m_font_outline = glm::ivec2(3, 3);
     static constexpr glm::ivec2 m_font_padding = m_font_outline;
@@ -55,7 +55,7 @@ private:
     std::vector<MapLabel> m_labels;
     std::vector<unsigned int> m_indices;
 
-    std::unordered_map<int, const MapLabel::CharData> m_char_data;
+    std::unordered_map<char16_t, const MapLabel::CharData> m_char_data;
 
     stbtt_fontinfo m_fontinfo;
     std::vector<uint8_t> m_font_bitmap;

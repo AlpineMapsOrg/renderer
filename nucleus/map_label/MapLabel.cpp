@@ -18,7 +18,6 @@
 
 #include "MapLabel.h"
 
-#include "CharUtils.h"
 #include "srs.h"
 
 #include <QDebug>
@@ -27,20 +26,18 @@
 
 namespace nucleus {
 
-void MapLabel::init(const std::unordered_map<int, const MapLabel::CharData>& character_data, const stbtt_fontinfo* fontinfo, const float uv_width_norm)
+void MapLabel::init(const std::unordered_map<char16_t, const CharData>& character_data, const stbtt_fontinfo* fontinfo, const float uv_width_norm)
 {
     constexpr float offset_y = -font_size / 2.0f + 65.0f;
     constexpr float icon_offset_y = 10.0f;
 
-    std::string altitude_text = std::to_string(m_altitude);
-    altitude_text = altitude_text.substr(0, altitude_text.find("."));
-    std::string rendered_text = m_text + " (" + altitude_text + "m)";
+    QString rendered_text = QString("%1 (%2m)").arg(m_text).arg(double(m_altitude), 0, 'f', 0);
 
     glm::vec3 label_position = nucleus::srs::lat_long_alt_to_world({ m_latitude, m_longitude, m_altitude });
 
-    std::vector<int> safe_chars = CharUtils::string_to_unicode_int_list(rendered_text);
+    auto safe_chars = rendered_text.toStdU16String();
     float text_width = 0;
-    std::vector<float> kerningOffsets = create_text_meta(character_data, fontinfo, safe_chars, text_width);
+    std::vector<float> kerningOffsets = create_text_meta(character_data, fontinfo, &safe_chars, &text_width);
 
     // center the text around the center
     const auto offset_x = -text_width / 2.0f;
@@ -66,39 +63,39 @@ const std::vector<MapLabel::VertexData>& MapLabel::vertex_data() const
 }
 
 // calculate char offsets and text width
-std::vector<float> inline MapLabel::create_text_meta(const std::unordered_map<int, const MapLabel::CharData>& character_data, const stbtt_fontinfo* fontinfo, std::vector<int>& safe_chars, float& text_width)
+std::vector<float> inline MapLabel::create_text_meta(const std::unordered_map<char16_t, const MapLabel::CharData>& character_data, const stbtt_fontinfo* fontinfo, std::u16string* safe_chars, float* text_width)
 {
     std::vector<float> kerningOffsets;
 
     float scale = stbtt_ScaleForPixelHeight(fontinfo, font_size);
     float xOffset = 0;
-    for (unsigned long long i = 0; i < safe_chars.size(); i++) {
-        if (!character_data.contains(safe_chars[i])) {
+    for (unsigned long long i = 0; i < safe_chars->size(); i++) {
+        if (!character_data.contains(safe_chars->at(i))) {
             qDebug() << "character with unicode index(Dec: " << safe_chars[i] << ") cannot be shown -> please add it to nucleus/map_label/MapLabelManager.h.all_char_list";
             safe_chars[i] = 32; // replace with space character
         }
 
-        assert(character_data.contains(safe_chars[i]));
+        assert(character_data.contains(safe_chars->at(i)));
 
         int advance, lsb;
-        stbtt_GetCodepointHMetrics(fontinfo, safe_chars[i], &advance, &lsb);
+        stbtt_GetCodepointHMetrics(fontinfo, int(safe_chars->at(i)), &advance, &lsb);
 
         kerningOffsets.push_back(xOffset);
 
-        xOffset += advance * scale;
-        if (i + 1 < safe_chars.size())
-            xOffset += scale * stbtt_GetCodepointKernAdvance(fontinfo, safe_chars[i], safe_chars[i + 1]);
+        xOffset += float(advance) * scale;
+        if (i + 1 < safe_chars->size())
+            xOffset += scale * float(stbtt_GetCodepointKernAdvance(fontinfo, int(safe_chars->at(i)), int(safe_chars->at(i + 1))));
     }
     kerningOffsets.push_back(xOffset);
 
     { // get width of last char
-        if (!character_data.contains(safe_chars[safe_chars.size() - 1])) {
-            qDebug() << "character with unicode index(Dec: " << safe_chars[safe_chars.size() - 1] << ") cannot be shown -> please add it to nucleus/map_label/MapLabelManager.h.all_char_list";
-            safe_chars[safe_chars.size() - 1] = 32; // replace with space character
+        if (!character_data.contains(safe_chars->back())) {
+            qDebug() << "character with unicode index(Dec: " << safe_chars->back() << ") cannot be shown -> please add it to nucleus/map_label/MapLabelManager.h.all_char_list";
+            safe_chars->back() = 32; // replace with space character
         }
-        const MapLabel::CharData b = character_data.at(safe_chars[safe_chars.size() - 1]);
+        const MapLabel::CharData b = character_data.at(safe_chars->back());
 
-        text_width = xOffset + b.width;
+        *text_width = xOffset + b.width;
     }
 
     return kerningOffsets;

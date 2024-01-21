@@ -22,6 +22,7 @@
 #include <string>
 #include <vector>
 
+#include <QString>
 #include <unordered_map>
 
 struct stbtt_fontinfo;
@@ -42,7 +43,7 @@ public:
         float importance;
     };
 
-    MapLabel(std::string text, double latitude, double longitude, float altitude, float importance)
+    MapLabel(QString text, double latitude, double longitude, float altitude, float importance)
         : m_text(text)
         , m_latitude(latitude)
         , m_longitude(longitude)
@@ -51,7 +52,7 @@ public:
     {
     }
 
-    void init(const std::unordered_map<int, const MapLabel::CharData>& character_data, const stbtt_fontinfo* fontinfo, const float uv_width_norm);
+    void init(const std::unordered_map<char16_t, const MapLabel::CharData>& character_data, const stbtt_fontinfo* fontinfo, const float uv_width_norm);
 
     constexpr static float font_size = 30.0f;
     constexpr static glm::vec2 icon_size = glm::vec2(30.0f);
@@ -59,11 +60,11 @@ public:
     const std::vector<VertexData>& vertex_data() const;
 
 private:
-    std::vector<float> inline create_text_meta(const std::unordered_map<int, const MapLabel::CharData>& character_data, const stbtt_fontinfo* fontinfo, std::vector<int>& safe_chars, float& text_width);
+    std::vector<float> inline create_text_meta(const std::unordered_map<char16_t, const CharData>& character_data, const stbtt_fontinfo* fontinfo, std::u16string* safe_chars, float* text_width);
 
     std::vector<VertexData> m_vertex_data;
 
-    std::string m_text;
+    QString m_text;
     double m_latitude;
     double m_longitude;
     float m_altitude;
