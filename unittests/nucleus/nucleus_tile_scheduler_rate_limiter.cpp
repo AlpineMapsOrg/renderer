@@ -25,9 +25,9 @@
 #include "nucleus/tile_scheduler/RateLimiter.h"
 #include "test_helpers.h"
 
+#if !(defined(__ANDROID__) && (defined(__i386__) || defined(__x86_64__)))
+
 #ifdef __EMSCRIPTEN__
-constexpr auto timing_multiplicator = 200;
-#elif defined(__ANDROID__) && (defined(__i386__) || defined(__x86_64__))
 constexpr auto timing_multiplicator = 200;
 #elif defined __ANDROID__
 constexpr auto timing_multiplicator = 50;
@@ -37,7 +37,6 @@ constexpr auto timing_multiplicator = 50;
 constexpr auto timing_multiplicator = 10;
 #endif
 
-#if !(defined(__ANDROID__) && (defined(__i386__) || defined(__x86_64__)))
 // this one just doesn't work on the emulator, likely due to bad timer performance. it works everywhere else.
 TEST_CASE("nucleus/tile_scheduler/rate limiter")
 {
