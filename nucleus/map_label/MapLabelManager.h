@@ -19,6 +19,7 @@
 #pragma once
 
 #include "MapLabel.h"
+#include "nucleus/vector_tiles/VectorTileManager.h"
 
 #include <QImage>
 #include <vector>
@@ -65,5 +66,7 @@ private:
 
     QImage m_font_atlas;
     QImage m_icon;
+
+    VectorTileManager m_vector_tile_manager;
 };
 } // namespace nucleus

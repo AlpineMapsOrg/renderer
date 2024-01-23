@@ -38,6 +38,8 @@ void MapLabel::init(const std::unordered_map<int, const MapLabel::CharData>& cha
 
     glm::vec3 label_position = nucleus::srs::lat_long_alt_to_world({ m_latitude, m_longitude, m_altitude });
 
+    std::cout << m_text << ": " << label_position.x << ", " << label_position.y << std::endl;
+
     std::vector<int> safe_chars = CharUtils::string_to_unicode_int_list(rendered_text);
     float text_width = 0;
     std::vector<float> kerningOffsets = create_text_meta(character_data, fontinfo, safe_chars, text_width);

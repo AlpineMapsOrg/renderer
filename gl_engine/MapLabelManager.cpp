@@ -22,6 +22,8 @@
 
 #include "nucleus/map_label/MapLabel.h"
 
+#include "radix/tile.h"
+
 namespace gl_engine {
 
 MapLabelManager::MapLabelManager()
@@ -85,7 +87,7 @@ void MapLabelManager::init()
     icon_texture->setMagnificationFilter(QOpenGLTexture::Linear);
 }
 
-void MapLabelManager::draw(Framebuffer* gbuffer, ShaderProgram* shader_program, const nucleus::camera::Definition& camera) const
+void MapLabelManager::draw(Framebuffer* gbuffer, ShaderProgram* shader_program, const nucleus::camera::Definition& camera, const nucleus::tile_scheduler::DrawListGenerator::TileSet draw_tiles) const
 {
     QOpenGLExtraFunctions* f = QOpenGLContext::currentContext()->extraFunctions();
 
@@ -104,6 +106,15 @@ void MapLabelManager::draw(Framebuffer* gbuffer, ShaderProgram* shader_program, 
 
     shader_program->set_uniform("icon_sampler", 2);
     icon_texture->bind(2);
+
+    draw_tiles.size(); // TODO remove this -> only here to remove the erro that parameter is not used
+    // for (auto tile : draw_tiles) { // TODO remove this again -> only here to see which tile coords we are looking at
+
+    // basemap uses google/slippyMap tile ids -> but using the "to" method to convert the whole tile only because we are "inverting" the y coordinate is a bit excessive
+    // -> it should be possible to easily convert the y coordinate just before we are loading the tile from basemap and use the widely used TMS tilesystem everywhere else
+    // tile::Id t = tile.to(tile::Scheme::SlippyMap);
+    // std::cout << "tileinfo: coords: " << t << std::endl;
+    // }
 
     m_vao->bind();
 

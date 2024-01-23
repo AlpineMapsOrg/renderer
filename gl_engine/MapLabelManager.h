@@ -22,6 +22,8 @@
 #include "nucleus/camera/Definition.h"
 #include "nucleus/map_label/MapLabelManager.h"
 
+#include "nucleus/tile_scheduler/DrawListGenerator.h"
+
 #include <QOpenGLBuffer>
 #include <QOpenGLTexture>
 #include <QOpenGLVertexArrayObject>
@@ -39,7 +41,7 @@ public:
     explicit MapLabelManager();
 
     void init();
-    void draw(Framebuffer* gbuffer, ShaderProgram* shader_program, const nucleus::camera::Definition& camera) const;
+    void draw(Framebuffer* gbuffer, ShaderProgram* shader_program, const nucleus::camera::Definition& camera, const nucleus::tile_scheduler::DrawListGenerator::TileSet draw_tiles) const;
 
 private:
     std::unique_ptr<QOpenGLTexture> font_texture;
