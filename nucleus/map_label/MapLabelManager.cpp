@@ -144,10 +144,11 @@ void MapLabelManager::create_font()
     QFile file(":/fonts/SourceSans3-Bold.ttf");
     const auto open = file.open(QIODeviceBase::OpenModeFlag::ReadOnly);
     assert(open);
-    const QByteArray data = file.readAll();
+    m_font_file = file.readAll();
 
     // init font and get info about the dimensions
-    const auto font_init = stbtt_InitFont(&m_fontinfo, reinterpret_cast<const uint8_t*>(data.constData()), stbtt_GetFontOffsetForIndex(reinterpret_cast<const uint8_t*>(data.constData()), 0));
+    const auto font_init = stbtt_InitFont(&m_fontinfo, reinterpret_cast<const uint8_t*>(m_font_file.constData()),
+        stbtt_GetFontOffsetForIndex(reinterpret_cast<const uint8_t*>(m_font_file.constData()), 0));
     assert(font_init);
 
     std::vector<uint8_t> temp_bitmap(m_font_atlas_size.width() * m_font_atlas_size.height());

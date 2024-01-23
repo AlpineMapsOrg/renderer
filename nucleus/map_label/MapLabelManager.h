@@ -58,6 +58,7 @@ private:
     std::unordered_map<char16_t, const MapLabel::CharData> m_char_data;
 
     stbtt_fontinfo m_fontinfo;
+    QByteArray m_font_file;
     std::vector<uint8_t> m_font_bitmap;
 
     void create_font();
