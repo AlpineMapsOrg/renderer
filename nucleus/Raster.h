@@ -19,6 +19,7 @@
 #pragma once
 
 #include <cassert>
+#include <cstdint>
 #include <vector>
 
 #include <glm/glm.hpp>
@@ -52,12 +53,34 @@ public:
         , m_height(size.y)
     {
     }
-    const auto& buffer() const { return m_data; }
+    Raster(const glm::uvec2& size, const T& fill_value)
+        : m_data(size.x * size.y, fill_value)
+        , m_width(size.x)
+        , m_height(size.y)
+    {
+    }
+
+    [[nodiscard]] const auto& buffer() const { return m_data; }
+    [[nodiscard]] auto& buffer() { return m_data; }
     [[nodiscard]] size_t width() const { return m_width; }
     [[nodiscard]] size_t height() const { return m_height; }
+    [[nodiscard]] glm::uvec2 size() const { return { m_width, m_height }; }
     [[nodiscard]] size_t buffer_length() const { return m_data.size(); }
     [[nodiscard]] const T& pixel(const glm::uvec2& position) const { return m_data[position.x + m_width * position.y]; }
     [[nodiscard]] T& pixel(const glm::uvec2& position) { return m_data[position.x + m_width * position.y]; }
+
+    [[nodiscard]] const uint8_t& byte(const uintptr_t& index) const
+    {
+        assert(index < m_data.size() * sizeof(T));
+        return *(reinterpret_cast<uint8_t*>(m_data.data()) + index);
+    }
+    [[nodiscard]] uint8_t& byte(const uintptr_t& index)
+    {
+        assert(index < m_data.size() * sizeof(T));
+        return *(reinterpret_cast<uint8_t*>(m_data.data()) + index);
+    }
+
+    void fill(const T& value) { std::fill(begin(), end(), value); }
 
     auto begin() { return m_data.begin(); }
     auto end() { return m_data.end(); }
@@ -65,5 +88,8 @@ public:
     auto end() const { return m_data.end(); }
     auto cbegin() const { return m_data.cbegin(); }
     auto cend() const { return m_data.cend(); }
+
+    const T* data() const { return m_data.data(); }
+    T* data() { return m_data.data(); }
 };
 }

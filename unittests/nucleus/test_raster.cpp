@@ -102,4 +102,21 @@ TEST_CASE("nucleus/Raster")
         CHECK(raster.pixel({ 2, 1 }) == 21);
         CHECK(raster.pixel({ 2, 2 }) == 22);
     }
+
+    SECTION("create filled")
+    {
+        Raster<int> raster({ 3, 4 }, 421);
+        for (int p : raster) {
+            CHECK(p == 421);
+        }
+    }
+
+    SECTION("fill")
+    {
+        Raster<int> raster({ 3, 4 }, 421);
+        raster.fill(657);
+        for (int p : raster) {
+            CHECK(p == 657);
+        }
+    }
 }
