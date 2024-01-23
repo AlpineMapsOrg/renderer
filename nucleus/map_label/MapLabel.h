@@ -33,7 +33,7 @@ class MapLabel {
 
 public:
     struct CharData {
-        unsigned short x, y, width, height; // coordinates of bbox in bitmap
+        uint16_t x, y, width, height; // coordinates of bbox in bitmap
         float xoff, yoff; // position offsets for e.g. lower/uppercase
     };
     struct VertexData {
