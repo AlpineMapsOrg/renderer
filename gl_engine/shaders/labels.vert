@@ -40,9 +40,6 @@ layout (location = 3) in float importance;
 out highp vec2 texcoords;
 
 bool label_visible(highp vec3 relative_to_cam, float dist_to_cam) {
-    if (dist_to_cam < 500.0)
-        return false;
-
     if (importance < 0.2 && dist_to_cam > 3000.0)
         return false;
     if (importance < 0.4 && dist_to_cam > 20000.0)
