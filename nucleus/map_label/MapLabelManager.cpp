@@ -87,11 +87,12 @@ void MapLabelManager::init()
     m_indices.push_back(2);
     m_indices.push_back(3);
 
-    const Raster<glm::u8vec3> raster = make_outline(make_font_raster());
+    const auto raster = make_outline(make_font_raster());
     m_rgba_raster = { raster.size(), { 255, 255, 0, 255 } };
     std::transform(raster.cbegin(), raster.cend(), m_rgba_raster.begin(), [](const auto& v) { return glm::u8vec4(v.x, v.y, 0, 255); });
 
     m_font_atlas = QImage(m_rgba_raster.bytes(), m_font_atlas_size.width(), m_font_atlas_size.height(), QImage::Format_RGBA8888);
+    m_font_atlas.save("font_atlas.png");
 
     for (auto& label : m_labels) {
         label.init(m_char_data, &m_fontinfo, uv_width_norm);
@@ -164,76 +165,38 @@ Raster<uint8_t> MapLabelManager::make_font_raster()
     return raster;
 }
 
-Raster<glm::u8vec3> MapLabelManager::make_outline(const Raster<uint8_t>& temp_bitmap)
+Raster<glm::u8vec2> MapLabelManager::make_outline(const Raster<uint8_t>& input)
 {
-    // auto font_bitmap = Raster<glm::u8vec2>(input.size(), { 0, 0 });
-    // unsigned outline_margin = unsigned(std::ceil(m_font_outline));
+    auto font_bitmap = Raster<glm::u8vec2>(input.size(), { 0, 0 });
+    unsigned outline_margin = unsigned(std::ceil(m_font_outline));
 
-    // for (unsigned y = 0; y < font_bitmap.height(); ++y) {
-    //     for (unsigned x = 0; x < m_font_atlas_size.width(); ++x) {
+    const auto aa_circle = [&](const glm::uvec2& centre, const glm::uvec2& px) {
+        float distance = glm::distance(glm::vec2(centre), glm::vec2(px));
+        float v = glm::smoothstep(m_font_outline - 1.5f, m_font_outline, distance);
+        return uint8_t((1 - v) * 255);
+    };
 
-    //         const uint8_t value = input.pixel({ x, y });
+    for (unsigned y = 0; y < font_bitmap.height(); ++y) {
+        for (unsigned x = 0; x < m_font_atlas_size.width(); ++x) {
 
-    //         font_bitmap.pixel({ x, y }).x = value;
-    //         if (value < 120)
-    //             continue;
+            const uint8_t value = input.pixel({ x, y });
 
-    //         for (unsigned j = y - outline_margin; j < y + outline_margin; ++j) {
-    //             if (j >= font_bitmap.height())
-    //                 continue;
-    //             for (unsigned i = x - outline_margin; i < x + outline_margin; ++i) {
-    //                 if (i >= font_bitmap.width())
-    //                     continue;
-    //                 float distance = glm::distance(glm::vec2(x, y), glm::vec2(i, j));
-    //                 if (distance <= m_font_outline)
-    //                     font_bitmap.pixel({ i, j }).y = std::max(value, font_bitmap.pixel({ i, j }).y);
-    //             }
-    //         }
-    //     }
-    // }
+            font_bitmap.pixel({ x, y }).x = value;
+            if (value < 120)
+                continue;
 
-    Raster<glm::u8vec3> m_font_bitmap(temp_bitmap.size(), {});
-
-    constexpr auto m_channel_count = 3;
-    constexpr int outline_margin = unsigned(3);
-    constexpr int outline_bit_count = 4 * (outline_margin - 1) * (outline_margin - 1) + 2 * (outline_margin - 1) + 2 * (outline_margin - 1) + 1;
-    int outline_mask[outline_bit_count];
-    int index = 0;
-    for (int i = -outline_margin + 1; i < outline_margin; i++) {
-        for (int j = -outline_margin + 1; j < outline_margin; j++) {
-            outline_mask[index++] = (i * m_font_atlas_size.width() + j) * m_channel_count + 1;
-        }
-    }
-
-    // value that is added to the outline
-    constexpr uint8_t outline_damp_factor = 50;
-
-    for (int i = 0; i < m_font_atlas_size.height(); ++i) {
-        for (int j = 0; j < m_font_atlas_size.width(); ++j) {
-
-            const uint8_t value = temp_bitmap.pixel({ j, i });
-            const int current_index = (i * m_font_atlas_size.width() + j) * m_channel_count;
-            m_font_bitmap.byte(current_index) = value;
-
-            // add the outline to the outline channel
-            if (value != 0) {
-                // if the current pixel is part of the font itself -> be fully visible
-                m_font_bitmap.byte(current_index + 1) = 255;
-                // calculate the outline for the outer parts
-                for (int k = 0; k < outline_bit_count; k++) {
-                    // increase the value by a factor
-                    uint8_t current_outline_value = m_font_bitmap.byte(outline_mask[k] + current_index) + outline_damp_factor;
-                    if (current_outline_value < outline_damp_factor) // clamp the value (since we are working with uint8 -> values over 255 will flow over -> we
-                                                                     // therefore check for a value below the damp_factor)
-                        current_outline_value = 255;
-
-                    m_font_bitmap.byte(outline_mask[k] + current_index) = current_outline_value;
+            for (unsigned j = y - outline_margin; j < y + outline_margin; ++j) {
+                if (j >= font_bitmap.height())
+                    continue;
+                for (unsigned i = x - outline_margin; i < x + outline_margin; ++i) {
+                    if (i >= font_bitmap.width())
+                        continue;
+                    font_bitmap.pixel({ i, j }).y = std::max(aa_circle({ x, y }, { i, j }), font_bitmap.pixel({ i, j }).y);
                 }
             }
         }
     }
-
-    return m_font_bitmap;
+    return font_bitmap;
 }
 
 const std::vector<MapLabel>& MapLabelManager::labels() const
@@ -250,9 +213,6 @@ const QImage& MapLabelManager::icon() const
 {
     return m_icon;
 }
-const QImage& MapLabelManager::font_atlas() const
-{
-    return m_font_atlas;
-}
+const QImage& MapLabelManager::font_atlas() const { return m_font_atlas; }
 
 } // namespace nucleus

@@ -40,7 +40,7 @@ public:
 private:
     void init();
     Raster<uint8_t> make_font_raster();
-    Raster<glm::u8vec3> make_outline(const Raster<uint8_t>& font_bitmap);
+    Raster<glm::u8vec2> make_outline(const Raster<uint8_t>& font_bitmap);
 
 private:
     // list of all characters that will be available (will be rendered to the font_atlas)
@@ -48,7 +48,7 @@ private:
 
     // static constexpr glm::ivec2 m_font_outline = glm::ivec2(3, 3);
     static constexpr glm::ivec2 m_font_padding = glm::ivec2(3, 3);
-    static constexpr float m_font_outline = 3;
+    static constexpr float m_font_outline = 4.5;
     static constexpr QSize m_font_atlas_size = QSize(512, 512);
     static constexpr float uv_width_norm = 1.0f / m_font_atlas_size.width();
 
