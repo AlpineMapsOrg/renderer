@@ -72,13 +72,15 @@ public:
     [[nodiscard]] const uint8_t& byte(const uintptr_t& index) const
     {
         assert(index < m_data.size() * sizeof(T));
-        return *(reinterpret_cast<uint8_t*>(m_data.data()) + index);
+        return *(reinterpret_cast<const uint8_t*>(m_data.data()) + index);
     }
     [[nodiscard]] uint8_t& byte(const uintptr_t& index)
     {
         assert(index < m_data.size() * sizeof(T));
         return *(reinterpret_cast<uint8_t*>(m_data.data()) + index);
     }
+    [[nodiscard]] const uint8_t* bytes() const { return reinterpret_cast<const uint8_t*>(m_data.data()); }
+    [[nodiscard]] uint8_t* bytes() { return reinterpret_cast<uint8_t*>(m_data.data()); }
 
     void fill(const T& value) { std::fill(begin(), end(), value); }
 
