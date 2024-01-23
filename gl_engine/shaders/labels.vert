@@ -76,7 +76,7 @@ void main() {
     if (label_visible(relative_to_cam, dist_to_cam)) {
         gl_Position = camera.view_proj_matrix * vec4(relative_to_cam + vec3(0.0, 0.0, 5.0), 1.0f);
         gl_Position /= gl_Position.w;
-        gl_Position += vec4((pos.xy + pos.zw * offset_mask[gl_VertexID & 3]) * vec2(1.0f / camera.viewport_size.x, 1.0f / camera.viewport_size.y), 0.0f, 0.0f) * scale;
+        gl_Position += vec4((pos.xy + pos.zw * offset_mask[gl_VertexID & 3]) * vec2(0.5f / camera.viewport_size.x, 0.5f / camera.viewport_size.y), 0.0f, 0.0f) * scale;
         // uv coordinates
         texcoords = vtexcoords.xy + vtexcoords.zw * offset_mask[gl_VertexID & 3];
     }

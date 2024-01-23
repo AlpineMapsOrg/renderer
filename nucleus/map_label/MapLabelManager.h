@@ -47,8 +47,8 @@ private:
     const QString all_char_list = QString::fromUtf16(u" ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789()[]{},;.:-_!\"§$%&/\\=+-*/#'~°^<>|@€´`öÖüÜäÄß");
 
     // static constexpr glm::ivec2 m_font_outline = glm::ivec2(3, 3);
-    static constexpr glm::ivec2 m_font_padding = glm::ivec2(3, 3);
-    static constexpr float m_font_outline = 4.5;
+    static constexpr float m_font_outline = 7.2f;
+    static constexpr glm::ivec2 m_font_padding = glm::ivec2(2, 2);
     static constexpr QSize m_font_atlas_size = QSize(512, 512);
     static constexpr float uv_width_norm = 1.0f / m_font_atlas_size.width();
 

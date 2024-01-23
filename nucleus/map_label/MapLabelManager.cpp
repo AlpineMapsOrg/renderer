@@ -92,7 +92,7 @@ void MapLabelManager::init()
     std::transform(raster.cbegin(), raster.cend(), m_rgba_raster.begin(), [](const auto& v) { return glm::u8vec4(v.x, v.y, 0, 255); });
 
     m_font_atlas = QImage(m_rgba_raster.bytes(), m_font_atlas_size.width(), m_font_atlas_size.height(), QImage::Format_RGBA8888);
-    m_font_atlas.save("font_atlas.png");
+    // m_font_atlas.save("font_atlas.png");
 
     for (auto& label : m_labels) {
         label.init(m_char_data, &m_fontinfo, uv_width_norm);
@@ -121,7 +121,7 @@ Raster<uint8_t> MapLabelManager::make_font_raster()
 
     float scale = stbtt_ScaleForPixelHeight(&m_fontinfo, MapLabel::font_size);
 
-    int outline_margin = int(3);
+    int outline_margin = int(std::ceil(m_font_outline));
     int x = outline_margin + m_font_padding.x;
     int y = outline_margin + m_font_padding.y;
     int bottom_y = outline_margin + m_font_padding.y;

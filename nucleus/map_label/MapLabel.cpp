@@ -28,8 +28,8 @@ namespace nucleus {
 
 void MapLabel::init(const std::unordered_map<char16_t, const CharData>& character_data, const stbtt_fontinfo* fontinfo, const float uv_width_norm)
 {
-    constexpr float offset_y = -font_size / 2.0f + 65.0f;
-    constexpr float icon_offset_y = 10.0f;
+    constexpr float offset_y = -font_size / 2.0f + 100.0f;
+    constexpr float icon_offset_y = 15.0f;
 
     QString rendered_text = QString("%1 (%2m)").arg(m_text).arg(double(m_altitude), 0, 'f', 0);
 
