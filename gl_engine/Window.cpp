@@ -277,6 +277,19 @@ void Window::paint(QOpenGLFramebufferObject* framebuffer)
     m_timer->stop_timer("tiles");
     m_shader_manager->tile_shader()->release();
 
+
+    ShaderProgram* track_shader = m_track_manager->get_shader();
+    track_shader->bind();
+    track_shader->set_uniform("texin_position", 1);
+    m_gbuffer->bind_colour_texture(1, 1);
+
+#if 1
+    glm::vec2 size = glm::vec2(static_cast<float>(m_gbuffer->size().x),static_cast<float>(m_gbuffer->size().y));
+    track_shader->set_uniform("resolution", size);
+#else
+    track_shader->set_uniform("resolution", glm::vec2(m_gbuffer->size()));
+#endif
+
     /* draw tracks on top */
     f->glClear(GL_DEPTH_BUFFER_BIT);
     m_timer->start_timer("tracks");

@@ -263,15 +263,19 @@ void main() {
 
         Ray ray;
         highp vec3 origin = vec3(camera.position);
-        highp vec3 pos_ws = pos_cws + origin;
         ray.origin = origin;
         ray.direction = pos_cws / dist;
 
 
-        vec3 point;
 #if 0
         float t = INF;
-        bool i = IntersectRaySphere(ray, sphere, t, point);
+        vec3 point;
+
+        if (IntersectRaySphere(ray, sphere, t, point)) {
+            highp vec3 normal = (point - sphere.position) / sphere.radius;
+            highp vec3 normal_color = (normal + vec3(1)) / vec3(2);
+            out_Color = vec4(normal_color, 1);
+        }
 #else
 
         Capsule c1;
@@ -288,26 +292,19 @@ void main() {
 
         float t2 = intersect_capsule(ray.origin, ray.direction, c2.p, c2.q, c2.radius);
 
-        point = ray.origin + ray.direction * min(t1, t2);
-#endif
 
         if ((0 < t1 && t1 < INF) || (0 < t2 && t2 < INF)) {
+
 #if 0
-            highp vec3 normal = (point - sphere.position) / sphere.radius;
-            highp vec3 normal_color = (normal + vec3(1)) / vec3(2);
-#else
-            highp vec3 normal_color = vec3(1,0,0);
-#endif
-            out_Color = vec4(normal_color, 1);
-#if 1
             float t = max(t1, t2);
 
             if (t < dist) {
-                out_Color = vec4(0,1,0,1);
+                out_Color = vec4(1,0,0,1);
             } else {
-                out_Color = vec4(1,0,1,1);
+                out_Color = vec4(0,0,1,1);
             }
 #endif
         }
+#endif
     } 
 }

@@ -83,7 +83,7 @@ namespace gl_engine
         m_shader->set_uniform("width", width);
         m_shader->set_uniform("aspect", 16.0f / 9.0f); // TODO: make this dynamic
         m_shader->set_uniform("visualize_steepness", false); // TODO: make this dynamic
-        m_shader->set_uniform("texin_vertices", 8);
+        m_shader->set_uniform("texin_track", 8);
 
         for (const PolyLine &track : m_tracks)
         {

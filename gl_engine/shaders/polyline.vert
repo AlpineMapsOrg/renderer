@@ -10,7 +10,7 @@ uniform highp vec3 camera_position;
 uniform highp float width;
 uniform highp float aspect;
 uniform highp bool visualize_steepness;
-uniform highp sampler2D texin_vertices;
+uniform highp sampler2D texin_track;
 
 flat out int vertex_id;
 out vec3 color;
@@ -21,8 +21,8 @@ void main() {
   vertex_id = gl_VertexID;
 
   // edge case handled by ClampToEdge 
-  highp vec3 tex_position = texelFetch(texin_vertices, ivec2(gl_VertexID, 0), 0).xyz; 
-  highp vec3 tex_next_position = texelFetch(texin_vertices, ivec2(gl_VertexID + 2, 0), 0).xyz;
+  highp vec3 tex_position = texelFetch(texin_track, ivec2(gl_VertexID, 0), 0).xyz; 
+  highp vec3 tex_next_position = texelFetch(texin_track, ivec2(gl_VertexID + 2, 0), 0).xyz;
 
   // could be done on cpu
   vec3 position = tex_position - camera_position; 
