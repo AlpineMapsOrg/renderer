@@ -25,6 +25,8 @@
 #include "nucleus/tile_scheduler/RateLimiter.h"
 #include "test_helpers.h"
 
+#if !(defined(__ANDROID__) && (defined(__i386__) || defined(__x86_64__)))
+
 #ifdef __EMSCRIPTEN__
 constexpr auto timing_multiplicator = 200;
 #elif defined __ANDROID__
@@ -35,6 +37,7 @@ constexpr auto timing_multiplicator = 50;
 constexpr auto timing_multiplicator = 10;
 #endif
 
+// this one just doesn't work on the emulator, likely due to bad timer performance. it works everywhere else.
 TEST_CASE("nucleus/tile_scheduler/rate limiter")
 {
     using namespace nucleus::tile_scheduler;
@@ -177,6 +180,7 @@ TEST_CASE("nucleus/tile_scheduler/rate limiter")
                 CHECK(spy[i][0].value<tile::Id>() == tile::Id { unsigned(i), { 0, 0 } });
         }
     }
+
     SECTION("fuzzy load test")
     {
         std::mt19937 mt(42);
@@ -198,13 +202,13 @@ TEST_CASE("nucleus/tile_scheduler/rate limiter")
                 for (unsigned i = 0; i < rnd_request_count; ++i) {
                     make_request();
                 }
-                auto rnd_processing_time = std::uniform_int_distribution<unsigned>(0, period)(mt);
-//                processing_time += rnd_processing_time;
+                auto rnd_processing_time = std::uniform_int_distribution<unsigned>(0, period * timing_multiplicator)(mt);
+                //                processing_time += rnd_processing_time;
                 test_helpers::process_events_for(rnd_processing_time);
                 if (std::uniform_real_distribution<float>(0.0f, 1.0f)(mt) < 0.10f) {
                     while (rl.queue_size()) {
-//                        processing_time += period;
-                        test_helpers::process_events_for(period);
+                        test_helpers::process_events_for(period * timing_multiplicator);
+                        // processing_time += period;
                     }
                 }
             }
@@ -222,3 +226,4 @@ TEST_CASE("nucleus/tile_scheduler/rate limiter")
         }
     }
 }
+#endif

@@ -136,7 +136,10 @@ int main(int argc, char **argv)
     root_window->showMaximized();
 #endif
 #ifdef ALP_APP_SHUTDOWN_AFTER_60S
-    QTimer::singleShot(60000, &app, &QCoreApplication::quit);
+    QTimer::singleShot(60000, &app, []() {
+        qDebug() << "AlpineApp shuts down after 60s.";
+        QGuiApplication::quit();
+    });
 #endif
 
     RenderThreadNotifier::instance()

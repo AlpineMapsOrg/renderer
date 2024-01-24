@@ -451,7 +451,7 @@ void Window::update_gpu_quads(const std::vector<nucleus::tile_scheduler::tile_ty
 
 float Window::depth(const glm::dvec2& normalised_device_coordinates)
 {
-    const auto read_float = nucleus::utils::bit_coding::to_f16f16(m_gbuffer->read_colour_attachment_pixel(3, normalised_device_coordinates))[0];
+    const auto read_float = nucleus::utils::bit_coding::to_f16f16(m_gbuffer->read_colour_attachment_pixel<glm::u8vec4>(3, normalised_device_coordinates))[0];
     const auto depth = std::exp(read_float * 13.f);
     return depth;
 }

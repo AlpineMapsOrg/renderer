@@ -24,7 +24,7 @@
 #include <glm/glm.hpp>
 
 namespace nucleus::utils::bit_coding {
-inline glm::vec2 to_f16f16(const std::array<uint8_t, 4>& v)
+inline glm::vec2 to_f16f16(const glm::u8vec4& v)
 {
     const auto dec = [](uint8_t v1, uint8_t v2) {
         return float((v1 << 8) | v2) / 65535.f;

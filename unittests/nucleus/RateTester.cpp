@@ -38,7 +38,7 @@ RateTester::~RateTester()
         const auto event_time = *i;
         for (auto j = std::reverse_iterator<decltype(i)>(i); j != m_events.rend(); j++) {
             assert(*j <= event_time);
-            if (event_time - *j < m_period * 1'000'000ll)
+            if (event_time - *j < m_period * 1'000ll)
                 ++n_events_in_time_frame;
             else
                 break;
@@ -50,5 +50,5 @@ RateTester::~RateTester()
 void RateTester::receive_quad_request(const tile::Id& id)
 {
     CHECK(id.zoom_level == m_events.size());
-    m_events.push_back(std::chrono::duration_cast<std::chrono::nanoseconds>(std::chrono::high_resolution_clock::now().time_since_epoch()).count());
+    m_events.push_back(std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::high_resolution_clock::now().time_since_epoch()).count());
 }

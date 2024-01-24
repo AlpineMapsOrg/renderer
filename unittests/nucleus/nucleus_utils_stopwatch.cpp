@@ -26,6 +26,8 @@
 constexpr auto timing_multiplicator = 10ll;
 #elif defined _MSC_VER
 constexpr auto timing_multiplicator = 10ll;
+#elif defined(__ANDROID__) && (defined(__i386__) || defined(__x86_64__))
+constexpr auto timing_multiplicator = 100ll;
 #else
 constexpr auto timing_multiplicator = 5ll;
 #endif
@@ -35,7 +37,11 @@ TEST_CASE("nucleus/utils/Stopwatch")
     SECTION("lap")
     {
         auto dt = nucleus::utils::Stopwatch();
+#if defined(__ANDROID__) && (defined(__i386__) || defined(__x86_64__))
+        CHECK(dt.lap().count() < 100); // for some reason the emulator needs around 60msec to get consecutive time measurements!
+#else
         CHECK(dt.lap().count() == 0);
+#endif
         QThread::msleep(5 * timing_multiplicator);
         auto t2 = dt.lap();
         CHECK(t2.count() >= 5 * timing_multiplicator);
@@ -59,6 +65,10 @@ TEST_CASE("nucleus/utils/Stopwatch")
         auto dt = nucleus::utils::Stopwatch();
         QThread::msleep(5);
         dt.restart();
+#if defined(__ANDROID__) && (defined(__i386__) || defined(__x86_64__))
+        CHECK(dt.lap().count() < 100); // for some reason the emulator needs around 60msec to get consecutive time measurements!
+#else
         CHECK(dt.lap().count() == 0);
+#endif
     }
 }
