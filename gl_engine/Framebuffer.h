@@ -80,6 +80,8 @@ public:
     void bind_colour_texture(unsigned index = 0, unsigned location = 0);
     void bind_depth_texture(unsigned location = 0);
 
+    QOpenGLTexture* depth_texture();
+
     QImage read_colour_attachment(unsigned index);
 
     // this is implemented for glm::vec4 and glm::u8vec4, as these are the only formats tested to support by all platforms

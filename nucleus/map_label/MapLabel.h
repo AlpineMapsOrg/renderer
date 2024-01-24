@@ -1,6 +1,6 @@
 /*****************************************************************************
  * Alpine Terrain Renderer
- * Copyright (C) 2023 Adam Celarek
+ * Copyright (C) 2024 Lucas Dworschak
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -18,55 +18,56 @@
 
 #pragma once
 
+#include <glm/glm.hpp>
+#include <string>
+#include <vector>
+
 #include <QString>
-#include <QVariant>
-#include <Qt>
+#include <unordered_map>
 
-namespace nucleus::map_label {
+struct stbtt_fontinfo;
 
-struct MapLabel {
-    enum class Role {
-        Text = Qt::UserRole,
-        Latitde,
-        Longitude,
-        Altitude,
-        Importance,
-        ViewportX,
-        ViewportY,
-        ViewportSize
+namespace nucleus {
+
+class MapLabel {
+
+public:
+    struct CharData {
+        uint16_t x, y, width, height; // coordinates of bbox in bitmap
+        float xoff, yoff; // position offsets for e.g. lower/uppercase
+    };
+    struct VertexData {
+        glm::vec4 position; // start_x, start_y, offset_x, offset_y
+        glm::vec4 uv; // start_u, start_v, offset_u, offset_v
+        glm::vec3 world_position;
+        float importance;
     };
 
-    QString text;
-    double latitude;
-    double longitude;
-    float altitude;
-    float importance;
-    float viewport_x;
-    float viewport_y;
-    float viewport_size;
-
-    QVariant get(Role r) const
+    MapLabel(QString text, double latitude, double longitude, float altitude, float importance)
+        : m_text(text)
+        , m_latitude(latitude)
+        , m_longitude(longitude)
+        , m_altitude(altitude)
+        , m_importance(importance)
     {
-        switch (r) {
-        case Role::Text:
-            return text;
-        case Role::Latitde:
-            return latitude;
-        case Role::Longitude:
-            return longitude;
-        case Role::Altitude:
-            return altitude;
-        case Role::Importance:
-            return importance;
-        case Role::ViewportX:
-            return viewport_x;
-        case Role::ViewportY:
-            return viewport_y;
-        case Role::ViewportSize:
-            return viewport_size;
-        }
-        return {};
     }
-};
 
-}
+    void init(const std::unordered_map<char16_t, const MapLabel::CharData>& character_data, const stbtt_fontinfo* fontinfo, const float uv_width_norm);
+
+    constexpr static float font_size = 60.0f;
+    constexpr static glm::vec2 icon_size = glm::vec2(50.0f);
+
+    const std::vector<VertexData>& vertex_data() const;
+
+private:
+    std::vector<float> inline create_text_meta(const std::unordered_map<char16_t, const CharData>& character_data, const stbtt_fontinfo* fontinfo, std::u16string* safe_chars, float* text_width);
+
+    std::vector<VertexData> m_vertex_data;
+
+    QString m_text;
+    double m_latitude;
+    double m_longitude;
+    float m_altitude;
+    float m_importance;
+};
+} // namespace nucleus

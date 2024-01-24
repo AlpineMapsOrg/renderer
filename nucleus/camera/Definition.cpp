@@ -193,6 +193,11 @@ std::vector<geometry::Plane<double>> Definition::four_clipping_planes() const
     return clipping_panes;
 }
 
+float Definition::distance_scale_factor() const
+{
+    return m_distance_scaling_factor;
+}
+
 // for reverse z: https://nlguillemot.wordpress.com/2016/12/07/reversed-z-in-opengl/
 glm::mat4 MakeInfReversedZProjRH(float fovY_radians, float aspectWbyH, float zNear)
 {

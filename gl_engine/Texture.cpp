@@ -1,6 +1,6 @@
 /*****************************************************************************
  * Alpine Terrain Renderer
- * Copyright (C) 2023 Adam Celarek
+ * Copyright (C) 2024 Adam Celarek
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -16,17 +16,28 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *****************************************************************************/
 
-#pragma once
+#include "Texture.h"
 
-#include <vector>
+#include <QOpenGLFunctions>
 
-#include "MapLabel.h"
+gl_engine::Texture::Texture(Target target)
+    : m_target(target)
+{
+    QOpenGLFunctions* f = QOpenGLContext::currentContext()->functions();
+    f->glGenTextures(1, &m_id);
+    bind(0);
+}
 
-namespace nucleus::map_label {
+gl_engine::Texture::~Texture()
+{
 
-class AbstractMapLabelModel {
-public:
-    [[nodiscard]] virtual std::vector<MapLabel> data() const = 0;
-};
+    QOpenGLFunctions* f = QOpenGLContext::currentContext()->functions();
+    f->glDeleteTextures(1, &m_id);
+}
 
+void gl_engine::Texture::bind(unsigned int texture_unit)
+{
+    QOpenGLFunctions* f = QOpenGLContext::currentContext()->functions();
+    f->glActiveTexture(GL_TEXTURE0 + texture_unit);
+    f->glBindTexture(GLenum(m_target), m_id);
 }

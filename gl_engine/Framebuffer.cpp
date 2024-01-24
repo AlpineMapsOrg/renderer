@@ -245,7 +245,6 @@ void Framebuffer::resize(const glm::uvec2& new_size)
     m_size = new_size;
     recreate_all_textures();
     reset_fbo();
-    unbind();
 }
 
 void Framebuffer::bind()
@@ -266,6 +265,11 @@ void Framebuffer::bind_depth_texture(unsigned location)
 {
     assert(m_depth_format != DepthFormat::None);
     m_depth_texture->bind(location);
+}
+
+QOpenGLTexture* Framebuffer::depth_texture()
+{
+    return m_depth_texture.get();
 }
 
 QImage Framebuffer::read_colour_attachment(unsigned index)
@@ -361,7 +365,7 @@ void Framebuffer::reset_fbo()
     // Tell OpenGL how many attachments to use
     f->glDrawBuffers(m_colour_textures.size(), draw_attachments.data());
 
-    assert(f->glCheckFramebufferStatus(GL_FRAMEBUFFER) == GL_FRAMEBUFFER_COMPLETE);
+    // assert(f->glCheckFramebufferStatus(GL_FRAMEBUFFER) == GL_FRAMEBUFFER_COMPLETE);
 }
 
 

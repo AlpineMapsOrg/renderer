@@ -25,7 +25,8 @@ layout (std140) uniform camera_config {
     highp mat4 inv_view_matrix;
     highp mat4 inv_proj_matrix;
     highp vec2 viewport_size;
-    highp vec2 buffer2;
+    highp float distance_scaling_factor;
+    highp float buffer2;
 } camera;
 
 // Converts the given world coordinates (relative to camera) to the
