@@ -1,6 +1,6 @@
 /*****************************************************************************
  * Alpine Terrain Renderer
- * Copyright (C) 2024 Lucas Dworschak
+ * Copyright (C) 2024 Adam Celarek
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -18,39 +18,21 @@
 
 #pragma once
 
-#include <QOpenGLBuffer>
-#include <QOpenGLTexture>
-#include <QOpenGLVertexArrayObject>
-
-#include "Framebuffer.h"
-#include "Texture.h"
-#include "nucleus/camera/Definition.h"
-#include "nucleus/map_label/MapLabelManager.h"
-
-namespace camera {
-class Definition;
-}
+#include <qopengl.h>
 
 namespace gl_engine {
-class ShaderProgram;
-
-class MapLabelManager {
+class Texture {
+public:
+    enum class Target : GLenum { _2d = GL_TEXTURE_2D, _2dArray = GL_TEXTURE_2D_ARRAY };
 
 public:
-    explicit MapLabelManager();
+    Texture(Target target);
+    ~Texture();
 
-    void init();
-    void draw(Framebuffer* gbuffer, ShaderProgram* shader_program, const nucleus::camera::Definition& camera) const;
+    void bind(unsigned texture_unit);
 
 private:
-    std::unique_ptr<Texture> m_font_texture;
-    std::unique_ptr<QOpenGLTexture> m_icon_texture;
-
-    std::unique_ptr<QOpenGLBuffer> m_vertex_buffer;
-    std::unique_ptr<QOpenGLBuffer> m_index_buffer;
-    std::unique_ptr<QOpenGLVertexArrayObject> m_vao;
-    
-    nucleus::MapLabelManager m_mapLabelManager;
-    unsigned long m_instance_count;
+    GLuint m_id = -1;
+    Target m_target = Target::_2d;
 };
 } // namespace gl_engine

@@ -41,7 +41,7 @@ qt_add_library(gl_engine STATIC
     ShadowMapping.h ShadowMapping.cpp
     GpuAsyncQueryTimer.h GpuAsyncQueryTimer.cpp
     MapLabelManager.h MapLabelManager.cpp
-
+    Texture.h Texture.cpp
 )
 target_link_libraries(gl_engine PUBLIC nucleus Qt::OpenGL)
 target_include_directories(gl_engine PRIVATE .)
