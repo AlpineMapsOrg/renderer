@@ -61,7 +61,7 @@ TEST_CASE("nucleus/Raster")
     SECTION("move vector into raster")
     {
         std::vector<test_helpers::FailOnCopy> vector(1);
-        const Raster<test_helpers::FailOnCopy> raster(std::move(vector), 1);
+        const Raster<test_helpers::FailOnCopy> raster(1, std::move(vector));
         CHECK(raster.width() == 1);
         CHECK(raster.height() == 1);
     }

@@ -34,7 +34,7 @@ class Raster {
 
 public:
     Raster() = default;
-    Raster(std::vector<T>&& vector, size_t square_side_length)
+    Raster(size_t square_side_length, std::vector<T>&& vector)
         : m_data(std::move(vector))
         , m_width(square_side_length)
         , m_height(square_side_length)
