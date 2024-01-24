@@ -34,7 +34,7 @@ public:
 
     const std::vector<MapLabel>& labels() const;
     const std::vector<unsigned int>& indices() const;
-    const QImage& font_atlas() const;
+    const Raster<glm::u8vec2>& font_atlas() const;
     const QImage& icon() const;
 
 private:
@@ -60,8 +60,7 @@ private:
     stbtt_fontinfo m_fontinfo;
     QByteArray m_font_file;
 
-    Raster<glm::u8vec4> m_rgba_raster;
-    QImage m_font_atlas;
+    Raster<glm::u8vec2> m_font_atlas;
     QImage m_icon;
 };
 } // namespace nucleus

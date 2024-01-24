@@ -74,9 +74,14 @@ void MapLabelManager::init()
     m_vao->release();
 
     // load the font texture
-    font_texture = std::make_unique<QOpenGLTexture>(m_mapLabelManager.font_atlas());
+    const auto& font_atlas = m_mapLabelManager.font_atlas();
+    font_texture = std::make_unique<QOpenGLTexture>(QOpenGLTexture::Target::Target2D);
+    font_texture->setSize(int(font_atlas.width()), int(font_atlas.height()));
+    font_texture->setFormat(QOpenGLTexture::TextureFormat::RG8_UNorm);
+    font_texture->allocateStorage(QOpenGLTexture::PixelFormat::RG, QOpenGLTexture::PixelType::UInt8);
     font_texture->setMinificationFilter(QOpenGLTexture::LinearMipMapLinear);
     font_texture->setMagnificationFilter(QOpenGLTexture::Linear);
+    font_texture->setData(QOpenGLTexture::PixelFormat::RG, QOpenGLTexture::PixelType::UInt8, font_atlas.bytes());
 
     // load the icon texture
     QImage icon = m_mapLabelManager.icon();

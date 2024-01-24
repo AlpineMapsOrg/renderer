@@ -36,7 +36,6 @@ using namespace Qt::Literals::StringLiterals;
 namespace nucleus {
 
 MapLabelManager::MapLabelManager()
-    : m_font_atlas(m_font_atlas_size, QImage::Format_RGB32)
 {
     //    const char8_t text;
     //    double latitude;
@@ -87,12 +86,14 @@ void MapLabelManager::init()
     m_indices.push_back(2);
     m_indices.push_back(3);
 
-    const auto raster = make_outline(make_font_raster());
-    m_rgba_raster = { raster.size(), { 255, 255, 0, 255 } };
-    std::transform(raster.cbegin(), raster.cend(), m_rgba_raster.begin(), [](const auto& v) { return glm::u8vec4(v.x, v.y, 0, 255); });
+    m_font_atlas = make_outline(make_font_raster());
+    {
+        Raster<glm::u8vec4> rgba_raster = { m_font_atlas.size(), { 255, 255, 0, 255 } };
+        std::transform(m_font_atlas.cbegin(), m_font_atlas.cend(), rgba_raster.begin(), [](const auto& v) { return glm::u8vec4(v.x, v.y, 0, 255); });
 
-    m_font_atlas = QImage(m_rgba_raster.bytes(), m_font_atlas_size.width(), m_font_atlas_size.height(), QImage::Format_RGBA8888);
-    // m_font_atlas.save("font_atlas.png");
+        const auto debug_out = QImage(rgba_raster.bytes(), m_font_atlas_size.width(), m_font_atlas_size.height(), QImage::Format_RGBA8888);
+        debug_out.save("font_atlas.png");
+    }
 
     for (auto& label : m_labels) {
         label.init(m_char_data, &m_fontinfo, uv_width_norm);
@@ -213,6 +214,6 @@ const QImage& MapLabelManager::icon() const
 {
     return m_icon;
 }
-const QImage& MapLabelManager::font_atlas() const { return m_font_atlas; }
+const Raster<glm::u8vec2>& MapLabelManager::font_atlas() const { return m_font_atlas; }
 
 } // namespace nucleus
