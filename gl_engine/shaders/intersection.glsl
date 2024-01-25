@@ -71,6 +71,16 @@ bool IntersectRayCylinder(in Ray r, in Capsule c, inout float t, inout vec3 q) {
 }
 
 // https://www.shadertoy.com/view/Xt3SzX
+vec3 capsule_normal( in vec3 pos, in vec3 a, in vec3 b, in float r )
+{
+    vec3  ba = b - a;
+    vec3  pa = pos - a;
+    float h = clamp(dot(pa,ba)/dot(ba,ba),0.0,1.0);
+    return (pa - h*ba)/r;
+}
+
+
+// https://www.shadertoy.com/view/Xt3SzX
 // https://iquilezles.org/articles/intersectors/
 float intersect_capsule( in vec3 ro, in vec3 rd, in vec3 pa, in vec3 pb, in float ra )
 {
