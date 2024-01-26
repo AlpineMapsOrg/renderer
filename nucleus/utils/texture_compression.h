@@ -19,10 +19,9 @@
 #pragma once
 
 #include <QImage>
-#include <vector>
+#include <nucleus/Raster.h>
 
 namespace nucleus::utils::texture_compression {
 
-std::vector<u_char> to_dxt1(const QImage& image);
-
+std::vector<uint8_t> to_dxt1(const QImage& image);
 }

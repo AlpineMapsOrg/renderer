@@ -19,6 +19,7 @@
 #include <QPainter>
 #include <GoofyTC/goofy_tc.h>
 #include <catch2/catch_test_macros.hpp>
+#include <gl_engine/Texture.h>
 
 #include "UnittestGLContext.h"
 #include "gl_engine/Framebuffer.h"
@@ -58,7 +59,7 @@ TEST_CASE("gl compressed textures")
     QOpenGLExtraFunctions* f = c->extraFunctions();
     REQUIRE(f);
 
-    QImage test_texture(256, 256, QImage::Format_RGBA8888);
+    QImage test_texture(256, 256, QImage::Format_ARGB32);
     test_texture.fill(qRgba(0, 0, 0, 255));
     {
         QPainter painter(&test_texture);
@@ -77,7 +78,7 @@ TEST_CASE("gl compressed textures")
     SECTION("compression")
     {
         const auto compressed = nucleus::utils::texture_compression::to_dxt1(test_texture);
-        CHECK(compressed.size() == 256 * 256 * 2);
+        CHECK(compressed.size() == 256 * 128);
     }
 
     SECTION("verify test methodology")
@@ -101,7 +102,7 @@ TEST_CASE("gl compressed textures")
         gl_engine::helpers::create_screen_quad_geometry().draw();
 
         const QImage render_result = b.read_colour_attachment(0);
-        render_result.save("render_result.png");
+        // render_result.save("render_result.png");
         Framebuffer::unbind();
         REQUIRE(!render_result.isNull());
         CHECK(render_result.width() == test_texture.width());
@@ -121,13 +122,23 @@ TEST_CASE("gl compressed textures")
     {
         Framebuffer b(Framebuffer::DepthFormat::None, {{Framebuffer::ColourFormat::RGBA8}}, {256, 256});
         b.bind();
-        QOpenGLTexture opengl_texture(QOpenGLTexture::Target2D);
-        opengl_texture.setSize(256, 256);
-        opengl_texture.setFormat(QOpenGLTexture::TextureFormat::RGBA_DXT1);
-        // opengl_texture.setCompressedData();
-        opengl_texture.setWrapMode(QOpenGLTexture::WrapMode::ClampToBorder);
-        opengl_texture.setMinMagFilters(QOpenGLTexture::Filter::Nearest, QOpenGLTexture::Filter::Nearest);
-        opengl_texture.bind();
+
+        const auto compressed = nucleus::utils::texture_compression::to_dxt1(test_texture);
+        gl_engine::Texture opengl_texture(gl_engine::Texture::Target::_2d);
+        opengl_texture.bind(0);
+        f->glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
+        f->glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+        f->glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+        f->glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+        f->glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+        f->glCompressedTexImage2D(GL_TEXTURE_2D,
+                                  0,
+                                  GL_COMPRESSED_RGB_S3TC_DXT1_EXT,
+                                  test_texture.width(),
+                                  test_texture.height(),
+                                  0,
+                                  compressed.size(),
+                                  compressed.data());
 
         ShaderProgram shader = create_debug_shader(R"(
             uniform sampler2D texture_sampler;
