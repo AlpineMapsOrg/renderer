@@ -39,21 +39,16 @@ public:
     explicit TrackManager(QObject* parent = nullptr);
 
     void init();
-    void draw(const nucleus::camera::Definition& camera) const;
+    void draw(const nucleus::camera::Definition& camera, ShaderProgram* shader) const;
 
-    void add_track(const nucleus::gpx::Gpx& gpx);
+    void add_track(const nucleus::gpx::Gpx& gpx, ShaderProgram* shader);
     // void remove_track();
 
     float width = 25.0f;
 
-    ShaderProgram* get_shader() {
-        return m_shader.get();
-    }
-
     QOpenGLTexture* track_texture();
 
 private:
-    std::unique_ptr<ShaderProgram> m_shader;
     std::vector<PolyLine> m_tracks;
 
 };

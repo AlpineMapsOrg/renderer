@@ -278,7 +278,7 @@ void Window::paint(QOpenGLFramebufferObject* framebuffer)
     m_shader_manager->tile_shader()->release();
 
 
-    ShaderProgram* track_shader = m_track_manager->get_shader();
+    ShaderProgram* track_shader = m_shader_manager->track_program();
     track_shader->bind();
     track_shader->set_uniform("texin_position", 1);
     m_gbuffer->bind_colour_texture(1, 1);
@@ -293,7 +293,7 @@ void Window::paint(QOpenGLFramebufferObject* framebuffer)
     /* draw tracks on top */
     f->glClear(GL_DEPTH_BUFFER_BIT);
     m_timer->start_timer("tracks");
-    m_track_manager->draw(m_camera);
+    m_track_manager->draw(m_camera, track_shader);
     m_timer->stop_timer("tracks");
 
 #if (defined(__linux) && !defined(__ANDROID__)) || defined(_WIN32) || defined(_WIN64)
@@ -494,7 +494,7 @@ void Window::open_track_file(const QString& file_path)
 
     if (gpx != nullptr) 
     {
-        m_track_manager->add_track(*gpx);
+        m_track_manager->add_track(*gpx, m_shader_manager->track_program());
     }
 }
 
@@ -506,7 +506,7 @@ void Window::set_track_width(float width)
 
 void Window::add_gpx_track(const nucleus::gpx::Gpx& track)
 {
-    m_track_manager->add_track(track);
+    m_track_manager->add_track(track, m_shader_manager->track_program());
 }
 
 float Window::depth(const glm::dvec2& normalised_device_coordinates)

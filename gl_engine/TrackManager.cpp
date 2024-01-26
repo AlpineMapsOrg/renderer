@@ -48,7 +48,7 @@ namespace gl_engine
 {
 
     TrackManager::TrackManager(QObject *parent)
-        : QObject(parent), m_shader(std::make_unique<ShaderProgram>("polyline.vert", "polyline.frag"))
+        : QObject(parent)
     {
     }
 
@@ -66,7 +66,7 @@ namespace gl_engine
         return m_tracks[0].data_texture.get();
     }
 
-    void TrackManager::draw(const nucleus::camera::Definition &camera) const
+    void TrackManager::draw(const nucleus::camera::Definition &camera, ShaderProgram* shader) const
     {
         QOpenGLExtraFunctions *f = QOpenGLContext::currentContext()->extraFunctions();
         auto funcs = QOpenGLVersionFunctionsFactory::get<QOpenGLFunctions_3_3_Core>(QOpenGLContext::currentContext()); // for wireframe mode
@@ -77,13 +77,13 @@ namespace gl_engine
 
         auto matrix = camera.local_view_projection_matrix(camera.position());
 
-        m_shader->bind();
-        m_shader->set_uniform("matrix", matrix);
-        m_shader->set_uniform("camera_position", glm::vec3(camera.position()));
-        m_shader->set_uniform("width", width);
-        m_shader->set_uniform("aspect", 16.0f / 9.0f); // TODO: make this dynamic
-        m_shader->set_uniform("visualize_steepness", false); // TODO: make this dynamic
-        m_shader->set_uniform("texin_track", 8);
+        shader->bind();
+        shader->set_uniform("matrix", matrix);
+        shader->set_uniform("camera_position", glm::vec3(camera.position()));
+        shader->set_uniform("width", width);
+        shader->set_uniform("aspect", 16.0f / 9.0f); // TODO: make this dynamic
+        shader->set_uniform("visualize_steepness", false); // TODO: make this dynamic
+        shader->set_uniform("texin_track", 8);
 
         for (const PolyLine &track : m_tracks)
         {
@@ -97,11 +97,11 @@ namespace gl_engine
 #endif
         }
 
-        m_shader->release();
+        shader->release();
         funcs->glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
     }
 
-    void TrackManager::add_track(const nucleus::gpx::Gpx &gpx)
+    void TrackManager::add_track(const nucleus::gpx::Gpx &gpx, ShaderProgram* shader)
     {
         QOpenGLExtraFunctions *f = QOpenGLContext::currentContext()->extraFunctions();
 
@@ -153,7 +153,7 @@ namespace gl_engine
 #error Unknown Render Strategy
 #endif
 
-        const auto position_attrib_location = m_shader->attribute_location("a_position");
+        const auto position_attrib_location = shader->attribute_location("a_position");
         f->glEnableVertexAttribArray(position_attrib_location);
 
 #if (RENDER_STRATEGY == USE_POINTS || RENDER_STRATEGY == USE_RIBBON)
@@ -164,13 +164,13 @@ namespace gl_engine
 
         f->glVertexAttribPointer(position_attrib_location, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(glm::vec3), nullptr);
 
-        const auto normal_attrib_location = m_shader->attribute_location("a_tangent");
+        const auto normal_attrib_location = shader->attribute_location("a_tangent");
         f->glEnableVertexAttribArray(normal_attrib_location);
         f->glVertexAttribPointer(normal_attrib_location, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(glm::vec3), (void*)(sizeof(glm::vec3)));
 #endif
 
 #if 1
-        const auto next_position_attrib_location = m_shader->attribute_location("a_next_position");
+        const auto next_position_attrib_location = shader->attribute_location("a_next_position");
         assert(next_position_attrib_location <= 29);
         f->glEnableVertexAttribArray(next_position_attrib_location);
         f->glVertexAttribPointer(next_position_attrib_location, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(glm::vec3), (void*)(2 * sizeof(glm::vec3)));

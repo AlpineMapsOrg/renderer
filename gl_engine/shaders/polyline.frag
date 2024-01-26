@@ -107,17 +107,13 @@ void main() {
         vec3 red = vec3(1,0,0);
         vec3 blue = vec3(0,0,1);
 
-        float diff = t - dist;
+        float diff = dist - t;
 
-        if (diff < 0) {
-            texout_albedo = color;
+        if (diff > 0) {
+            texout_albedo = mix(red, blue, diff / (capsule_radius * 2));
         } else {
             discard;
-            //texout_albedo = normal * 0.5;
         }
-
-
-
 
         //texout_albedo = vec3(0,1,0);
     } else {
