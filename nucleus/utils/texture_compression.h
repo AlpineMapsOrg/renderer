@@ -24,4 +24,5 @@
 namespace nucleus::utils::texture_compression {
 
 std::vector<uint8_t> to_dxt1(const QImage& image);
+std::vector<uint8_t> to_etc1(const QImage& image);
 }
