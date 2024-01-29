@@ -20,6 +20,9 @@
 #include <GoofyTC/goofy_tc.h>
 #include <catch2/catch_test_macros.hpp>
 #include <gl_engine/Texture.h>
+#ifdef ANDROID
+#include <GLES3/gl3.h>
+#endif
 
 #include "UnittestGLContext.h"
 #include "gl_engine/Framebuffer.h"

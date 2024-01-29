@@ -35,6 +35,7 @@ target_include_directories(zppbits SYSTEM INTERFACE ${zppbits_SOURCE_DIR})
 
 add_library(goofy_tc INTERFACE)
 target_include_directories(goofy_tc INTERFACE ${goofy_tc_SOURCE_DIR})
+set_target_properties(goofy_tc PROPERTIES SYSTEM true)
 
 add_library(tl_expected INTERFACE)
 target_include_directories(tl_expected INTERFACE ${tl_expected_SOURCE_DIR}/include)
