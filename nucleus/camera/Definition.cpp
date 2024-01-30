@@ -294,6 +294,7 @@ glm::dvec2 Definition::to_ndc(const glm::dvec2& screen_space_coordinates) const
     return ((screen_space_coordinates / glm::dvec2(viewport_size())) * 2.0 - 1.0) * glm::dvec2 { 1.0, -1.0 };
 }
 
+// interesting 
 float Definition::to_screen_space(float world_space_size, float world_space_distance) const
 {
     return m_viewport_size.y * 0.5f * world_space_size * m_distance_scaling_factor / world_space_distance;

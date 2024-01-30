@@ -30,7 +30,7 @@ layout (location = 3) out highp uint texout_depth;
 layout (location = 4) out highp uint texout_vertex_id;
 
 in highp vec2 uv;
-in highp vec3 var_pos_cws;
+in highp vec3 var_pos_cws; // camera world space?
 in highp vec3 var_normal;
 flat in lowp uint is_curtain;
 flat in lowp vec3 vertex_color;

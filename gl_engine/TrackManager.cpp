@@ -41,7 +41,7 @@
 
 #define RENDER_STRATEGY USE_RIBBON_WITH_NORMALS
 
-#define WIREFRAME                       0
+#define WIREFRAME                       1
 #define SMOOTH_POINTS                   1
 
 namespace gl_engine
@@ -93,8 +93,15 @@ namespace gl_engine
 #if (RENDER_STRATEGY == USE_POINTS)
             f->glDrawArrays(GL_LINE_STRIP, 0, track.point_count);
 #else
+            funcs->glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+            shader->set_uniform("enable_intersection", true);
             f->glDrawArrays(GL_TRIANGLE_STRIP, 0, track.point_count * 2 - 2);
-#endif
+
+            funcs->glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+            shader->set_uniform("enable_intersection", false);
+            f->glDrawArrays(GL_TRIANGLE_STRIP, 0, track.point_count * 2 - 2);
+                
+           #endif
         }
 
         shader->release();

@@ -15,6 +15,7 @@ flat in highp int vertex_id;
 uniform highp sampler2D texin_track;
 uniform highp sampler2D texin_position;
 uniform highp vec3 camera_position;
+uniform bool enable_intersection;
 
 uniform highp vec2 resolution;
 
@@ -24,10 +25,14 @@ bool check_collision(float t) {
 
 void main() {
     texout_vertex_id = uint(vertex_id);
-    //texout_albedo = color;
     // intersect here?
     // attenuation?
     // specular hightlight?
+
+    if (!enable_intersection) {
+
+        texout_albedo = vec3(1,0,0);
+    } else {
 
     //texout_albedo = vec4(color_from_id_hash(vertex_id), 1).rgb;
 
@@ -111,8 +116,10 @@ void main() {
 
         if (diff > 0) {
             texout_albedo = mix(red, blue, diff / (capsule_radius * 2));
+            //texout_albedo = normal;
         } else {
-            discard;
+            texout_albedo = red;
+            //discard;
         }
 
         //texout_albedo = vec3(0,1,0);
@@ -125,6 +132,7 @@ void main() {
 #endif
 
 
+    }
 
 
 
