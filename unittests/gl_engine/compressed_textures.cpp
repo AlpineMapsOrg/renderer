@@ -195,9 +195,12 @@ TEST_CASE("gl compressed textures")
                 return 0;
             return ext.COMPRESSED_RGB_ETC1_WEBGL;
         });
+        qDebug() << "gl_texture_format from js: " << gl_texture_format;
         // clang-format on
-        if (gl_texture_format == 0)
+        if (gl_texture_format == 0) {
             gl_texture_format = GL_COMPRESSED_RGB8_ETC2; // not on mobile
+            qDebug() << "gl_texture_format from GL_COMPRESSED_RGB8_ETC2: " << gl_texture_format;
+        }
 #else
         constexpr auto gl_texture_format = GL_COMPRESSED_RGB8_ETC2;
 #endif
