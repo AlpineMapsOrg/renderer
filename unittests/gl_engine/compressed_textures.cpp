@@ -23,6 +23,10 @@
 #ifdef ANDROID
 #include <GLES3/gl3.h>
 #endif
+#ifdef __EMSCRIPTEN__
+#include <emscripten.h>
+#include <emscripten/val.h>
+#endif
 
 #include "UnittestGLContext.h"
 #include "gl_engine/Framebuffer.h"
@@ -181,6 +185,14 @@ TEST_CASE("gl compressed textures")
     {
         Framebuffer b(Framebuffer::DepthFormat::None, {{Framebuffer::ColourFormat::RGBA8}}, {256, 256});
         b.bind();
+#ifdef __EMSCRIPTEN__
+        int gl_texture_format = EM_ASM_INT({
+            const ext = gl.getExtension("WEBGL_compressed_texture_etc1");
+            return ext.COMPRESSED_RGB_ETC1_WEBGL;
+        });
+#else
+        constexpr gl_texture_format = GL_COMPRESSED_RGB8_ETC2;
+#endif
 
         const auto compressed = nucleus::utils::texture_compression::to_etc1(test_texture);
         gl_engine::Texture opengl_texture(gl_engine::Texture::Target::_2d);
@@ -192,7 +204,7 @@ TEST_CASE("gl compressed textures")
         f->glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
         f->glCompressedTexImage2D(GL_TEXTURE_2D,
                                   0,
-                                  GL_COMPRESSED_RGB8_ETC2,
+                                  gl_texture_format,
                                   test_texture.width(),
                                   test_texture.height(),
                                   0,
