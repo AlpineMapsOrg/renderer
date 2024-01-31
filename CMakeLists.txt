@@ -1,4 +1,22 @@
-cmake_minimum_required(VERSION 3.21)
+#############################################################################
+# Alpine Terrain Renderer
+# Copyright (C) 2023 Adam Celarek <family name at cg tuwien ac at>
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <http://www.gnu.org/licenses/>.
+#############################################################################
+
+cmake_minimum_required(VERSION 3.25)
 project(alpine-renderer LANGUAGES CXX)
 
 option(ALP_UNITTESTS "include unit test targets in the buildsystem" ON)
@@ -6,6 +24,9 @@ option(ALP_ENABLE_ADDRESS_SANITIZER "compiles atb with address sanitizer enabled
 option(ALP_ENABLE_THREAD_SANITIZER "compiles atb with thread sanitizer enabled (only debug, works only on g++ and clang)" OFF)
 option(ALP_ENABLE_ASSERTS "enable asserts (do not define NDEBUG)" ON)
 option(ALP_ENABLE_TRACK_OBJECT_LIFECYCLE "enables debug cmd printout of constructors & deconstructors if implemented" OFF)
+option(ALP_ENABLE_APP_SHUTDOWN_AFTER_60S "Shuts down the app after 60S, used for CI testing with asan." OFF)
+
+set(ALP_EXTERN_DIR "extern" CACHE STRING "name of the directory to store external libraries, fonts etc..")
 
 if(ALP_ENABLE_TRACK_OBJECT_LIFECYCLE)
     add_definitions(-DALP_ENABLE_TRACK_OBJECT_LIFECYCLE)
@@ -50,72 +71,30 @@ if (ALP_USE_LLVM_LINKER)
 endif()
 
 ########################################### dependencies #################################################
-find_package(Qt6 REQUIRED COMPONENTS Core Gui OpenGL Network Quick QuickControls2 LinguistTools Svg)
+find_package(Qt6 REQUIRED COMPONENTS Core Gui OpenGL Network Quick QuickControls2 LinguistTools Svg Charts)
+qt_policy(
+    SET QTP0002 NEW
+)
 if (ALP_ENABLE_POSITIONING)
     find_package(Qt6 REQUIRED COMPONENTS Positioning)
 endif()
-if (ALP_UNITTESTS)
-    find_package(Qt6 REQUIRED COMPONENTS Test)
-endif()
 
+include(cmake/alp_add_git_repository.cmake)
+alp_add_git_repository(renderer_static_data URL https://github.com/AlpineMapsOrg/renderer_static_data.git COMMITISH v23.11 DO_NOT_ADD_SUBPROJECT)
+alp_add_git_repository(alpineapp_fonts URL https://github.com/AlpineMapsOrg/fonts.git COMMITISH v23.11 DO_NOT_ADD_SUBPROJECT)
+alp_add_git_repository(doc URL https://github.com/AlpineMapsOrg/documentation.git COMMITISH origin/main DO_NOT_ADD_SUBPROJECT DESTINATION_PATH doc)
 
-include(FetchContent)
-FetchContent_Declare(
-  alpine_height_data
-  URL      https://gataki.cg.tuwien.ac.at/tiles/alpine_png2/height_data.atb
-  DOWNLOAD_NO_EXTRACT true
-  URL_HASH MD5=f5458b48ade5d6aaf980fcfc5b6be29a
-)
-FetchContent_Declare(
-  alpineapp_fonts
-  DOWNLOAD_EXTRACT_TIMESTAMP true
-  URL      https://github.com/adobe-fonts/source-sans/archive/refs/heads/release.zip
-  URL_HASH MD5=bb6d9452a122995605376daff91a192e
-)
-FetchContent_Declare(fmt GIT_REPOSITORY https://github.com/fmtlib/fmt.git)
-FetchContent_Declare(zppbits GIT_REPOSITORY https://github.com/eyalz800/zpp_bits.git GIT_TAG main)
-
-FetchContent_MakeAvailable(alpine_height_data alpineapp_fonts fmt zppbits)
 
 if (ANDROID)
-    FetchContent_Declare(
-      android_openssl
-      DOWNLOAD_EXTRACT_TIMESTAMP true
-      URL      https://github.com/AlpineMapsOrg/android_openssl/archive/refs/heads/issams_fixes.zip
-#      URL_HASH MD5=88dd38c0fc94a195ae3f29412cfdcf2b
-    )
-    FetchContent_MakeAvailable(android_openssl)
+    alp_add_git_repository(android_openssl URL https://github.com/KDAB/android_openssl.git COMMITISH origin/master DO_NOT_ADD_SUBPROJECT)
     include(${android_openssl_SOURCE_DIR}/android_openssl.cmake)
 endif()
 
-add_library(zppbits INTERFACE)
-target_include_directories(zppbits INTERFACE ${zppbits_SOURCE_DIR})
-
-
-########################################### projects #################################################
-add_subdirectory(sherpa)    # pulls in Catch2 and glm
 add_subdirectory(nucleus)
 add_subdirectory(gl_engine)
 add_subdirectory(plain_renderer)
 add_subdirectory(app)
 
 if (ALP_UNITTESTS)
-    if (EMSCRIPTEN AND ALP_ENABLE_THREADING)
-        target_compile_options(Catch2 PRIVATE -pthread)
-    endif()
-
-    function(alp_setup_unittest)
-        if (ANDROID)
-            install(TARGETS ${ARGV0}
-                LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
-                RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR})
-        endif()
-
-        if (MINGW)
-            target_compile_options(${ARGV0} PUBLIC "-Wa,-mbig-obj")
-        endif()
-    endfunction()
-
     add_subdirectory(unittests)
-    add_subdirectory(unittests_gl)
 endif()

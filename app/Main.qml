@@ -27,8 +27,8 @@ import "components"
 
 Item {
     id: main
-    property int theme: Material.Light      //Material.System
-    property int accent: Material.Green
+    property int theme: Material.Light
+    property int accent: Material.BlueGrey
     property string selectedPage: "map";
 
 
@@ -95,8 +95,8 @@ Item {
         id: menu
 
         bannerTitle: "Alpine Maps"
-        bannerIconSource: "../icons/favicon_256.png"
-        bannerSubtitle: qsTr ("Version 0.8 Alpha")
+        bannerIconSource: "../icons/icon.svg"
+        bannerSubtitle: _alpine_renderer_version
         selectedButtonId: 0
 
         DrawerSeparator {}
@@ -123,17 +123,27 @@ Item {
         DrawerSeparator {}
 
         DrawerButton {
+            text: qsTr("Reload Shaders")
+            iconSource: "../icons/material/3d_rotation.svg"
+            hotkey: "F6"
+            selectable: false
+            onClicked: map.reload_shader();
+        }
+
+        DrawerButton {
             text: stats_window.visible ? qsTr ("Hide Statistics") : qsTr("Statistics")
+            hotkey: "F8"
             iconSource: "../icons/material/monitoring.svg"
             selectable: false
             onClicked: toggleStatsWindow();
         }
 
         DrawerButton {
-            text: qsTr("Reload Shaders")
-            iconSource: "../icons/material/3d_rotation.svg"
+            text: qsTr("Hide User Interface")
+            iconSource: "../icons/material/visibility_off.svg"
+            hotkey: "F10"
             selectable: false
-            onClicked: map.reload_shader();
+            onClicked: map.hud_visible = false;
         }
 
         DrawerSpacer {}
@@ -150,17 +160,21 @@ Item {
 
     function change_page(source, title) {
         selectedPage = source.toLowerCase().replace(".qml", "");
-        if (selectedPage !== "map" && selectedPage !== "settings") stats_window.visible = false;
+        if (selectedPage !== "map" && selectedPage !== "settings") {
+            stats_window.visible = false;
+        }
         if (source === "map") {
             if (main_stack_view.depth >= 1) main_stack_view.pop()
             page_title.visible = false
             search.visible = true
+            main_stack_view.selectedPage = selectedPage
             return
         }
         if (main_stack_view.depth === 1)
             main_stack_view.push(_qmlPath + source)
         else
             main_stack_view.replace(_qmlPath + source)
+        main_stack_view.selectedPage = selectedPage
         page_title.visible = true
         search.visible = false
         page_title.text = title
@@ -174,21 +188,34 @@ Item {
 
 
     TerrainRenderer {
+        property var allLvl1HudElements: [tool_bar, main_stack_view, stats_window, fab_group]
+        property var _hudElementsVisibility: []
         id: map
         focus: true
         anchors.fill: parent
-        onHud_visible_changed: function(new_hud_visible) {
-            tool_bar.visible = new_hud_visible;
+        Keys.onPressed: function(event){
+            if (event.key === Qt.Key_F8) {
+                toggleStatsWindow();
+            }
         }
 
-        Keys.onPressed: function(event){
-            if (event.key === Qt.Key_S) {
-                toggleStatsWindow();
+        onHud_visible_changed: function(new_hud_visible) {
+            if (new_hud_visible) { // show all items
+                for (let i1 = 0; i1 < allLvl1HudElements.length; i1++) {
+                    allLvl1HudElements[i1].visible = _hudElementsVisibility[i1];
+                }
+            } else { // hide all items and save their state
+                _hudElementsVisibility = [];
+                for (let i = 0; i < allLvl1HudElements.length; i++) {
+                    _hudElementsVisibility.push(allLvl1HudElements[i].visible);
+                    allLvl1HudElements[i].visible = false;
+                }
             }
         }
     }
 
     StackView {
+        property string selectedPage: "map"
         id: main_stack_view
         anchors {
             top: tool_bar.bottom
@@ -202,12 +229,13 @@ Item {
         }
     }
 
-
-    //DebugWindow {}
-
     StatsWindow {
         id: stats_window
         visible: false
+    }
+
+    FloatingActionButtonGroup {
+        id: fab_group
     }
 
      //property TerrainRenderer renderer

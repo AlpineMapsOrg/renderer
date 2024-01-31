@@ -26,7 +26,7 @@
 #include <QOpenGLTexture>
 #include <QOpenGLVertexArrayObject>
 
-#include "sherpa/tile.h"
+#include "radix/tile.h"
 
 // we want to be flexible and have the ability to draw several tiles at once.
 // GpuTileSets can have an arbitrary number of slots, each slot is an index in the corresponding

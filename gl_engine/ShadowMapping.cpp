@@ -87,7 +87,6 @@ void ShadowMapping::draw(
     }
     m_shadow_program->release();
     m_f->glEnable(GL_CULL_FACE);
-    m_f->glViewport(0, 0, camera.viewport_size().x, camera.viewport_size().y);
 }
 
 void ShadowMapping::bind_shadow_maps(ShaderProgram* p, unsigned int start_location) {

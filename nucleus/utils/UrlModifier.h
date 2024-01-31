@@ -23,14 +23,20 @@
 #include <QMap>
 #include <QString>
 #include <QTimer>
+#include <QDateTime>
 #include <glm/glm.hpp>
 
 #define URL_PARAMETER_KEY_CONFIG "config"
 #define URL_PARAMETER_KEY_CAM_POS "campos"
 #define URL_PARAMETER_KEY_CAM_LOOKAT "lookat"
+#define URL_PARAMETER_KEY_DATETIME "date"
+#define URL_PARAMETER_KEY_QUALITY "quality"
 
 //#define URLQUERY_DEFAULT "AAABEHjas__AAAb26PQFKP0AQu-H0c8WzEvAph6dfgCjBQQUsNEwdT8gtAMHAwpwcMBurkO9A4o6hD0MuAAjEobxFdDk4AAAEGIdhQ"
 //#define URLQUERY_DEFAULT "?campos=48.207237_16.373009_337.51&lookat=48.212005_16.373096_-65.41" // stephansdom
+//#define URLQUERY_DEFAULT "?date=2022-11-14T11%3A45%3A02"
+//#define URLQUERY_DEFAULT "?campos=47.370311_11.452865_2679.02&config=AAABUHjas__AAAb26PTB1xMfgOizXN8WgOj7Z5sUgPT-V2c3KzAggD0u_Zf6gxpA9AMGAQYsNFz_DwjtwMGAAhwcUM2DiycdQOFjyNtBaREo3Q8xyCGTAYWGu_MBKo0FMKLRMLYClEaRBwDpcSV9&date=2023-08-08T14%3A15%3A00&lookat=47.376271_11.452865_2543.19"
+//#define URLQUERY_DEFAULT "?config=AAABEHjas__AAAb26PQFBgEw_bp_D5h-YD37AJDeP3dDzAIGBLDHpf8BVP8j4UkKYFr7E5i-q3pXAVndDwjtwAHl38hKBtnj4IBqHgw4JB1A4QPtQaGxAEY0GsZWgNIo8gCq2CLk"
 #define URLQUERY_DEFAULT ""
 #define URL_WRITEOUT_DELAY 100
 namespace nucleus::utils {
@@ -47,6 +53,9 @@ public:
     static glm::dvec3 urlsafe_string_to_dvec3(const QString& str);
 
     static QString latlonalt_to_urlsafe_string(const glm::dvec3& vec);
+
+    static QString qdatetime_to_urlsafe_string(const QDateTime& date);
+    static QDateTime urlsafe_string_to_qdatetime(const QString& str);
 
 
     UrlModifier(QObject* parent = nullptr);

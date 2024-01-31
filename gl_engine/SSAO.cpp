@@ -83,7 +83,8 @@ SSAO::~SSAO() {
 }
 
 void SSAO::draw(Framebuffer* gbuffer, helpers::ScreenQuadGeometry* geometry,
-                const nucleus::camera::Definition& camera, unsigned int kernel_size, unsigned int blur_level) {
+    const nucleus::camera::Definition&, unsigned int kernel_size, unsigned int blur_level)
+{
     m_ssaobuffer->bind();
     auto p = m_ssao_program.get();
     p->bind();
@@ -120,7 +121,6 @@ void SSAO::draw(Framebuffer* gbuffer, helpers::ScreenQuadGeometry* geometry,
         m_ssaobuffer->unbind();
         p->release();
     }
-
 }
 
 void SSAO::resize(glm::uvec2 vp_size) {

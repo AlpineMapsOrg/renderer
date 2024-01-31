@@ -36,8 +36,8 @@ RateLimiter::~RateLimiter() = default;
 
 void RateLimiter::set_limit(unsigned int rate, unsigned int period_msecs)
 {
-    assert(rate < std::numeric_limits<int>::max());
-    assert(period_msecs < std::numeric_limits<int>::max());
+    assert(rate < unsigned(std::numeric_limits<int>::max()));
+    assert(period_msecs < unsigned(std::numeric_limits<int>::max()));
     m_rate = rate;
     m_rate_period_msecs = period_msecs;
 }

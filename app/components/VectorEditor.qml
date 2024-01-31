@@ -25,10 +25,12 @@ Item {
 
     property var vector: Qt.vector4d(0.0, 0.0, 0.0, 0.0);
     property int vectorSize: -1;
-    property alias dialogTitle: editDialog.title;
+    property string dialogTitle: "";
+    property alias dim: editDialog.dim;
     property var elementNames: ["X", "Y", "Z", "W"];
     property var elementFroms: [0.0, 0.0, 0.0, 0.0];
     property var elementTos: [1.0, 1.0, 1.0, 1.0];
+    property bool enabled: true;
 
     function evaluate_v_size() {
         var tmp = 0;
@@ -54,24 +56,34 @@ Item {
     }
 
     // Define the Dialog
-    Dialog {
+    Popup {
         id: editDialog
         modal: true
         anchors.centerIn: Overlay.overlay
-        width: 300
+        width: map.width < 600 ? map.width - 40 : 500
         background: Rectangle {
-            color: Material.backgroundColor
-            radius: 0
+            color: Qt.alpha(Material.backgroundColor, 0.9)
+            border.width: editDialog.dim ? 0 : 2
+            border.color: Qt.alpha(Material.dropShadowColor, 0.5)
         }
-
+        padding: 20
         visible: false
 
         // Content of the Dialog
         GridLayout {
             anchors.fill: parent
             columns: 2
+
+            Text {
+                Layout.columnSpan: 2
+                text: root.dialogTitle
+                visible: root.dialogTitle !== ""
+                font.pixelSize: 24
+
+            }
+
             Text { text: elementNames[0] + ": " }
-            ValSlider {
+            LabledSlider {
                 id: edit1
                 from: elementFroms[0]; to: elementTos[0];
                 onMoved: {
@@ -81,9 +93,10 @@ Item {
             }
 
             Text { text: elementNames[1] + ": "; visible: vectorSize > 1}
-            ValSlider {
+            LabledSlider {
                 id: edit2
-                from: elementFroms[1]; to: elementTos[1];
+                from: vectorSize > 1 ? elementFroms[1] : 0
+                to: vectorSize > 1 ? elementTos[1] : 1
                 visible: vectorSize > 1
                 onMoved: {
                     root.vector.y = value;
@@ -92,9 +105,10 @@ Item {
             }
 
             Text { text: elementNames[2] + ": "; visible: vectorSize > 2 }
-            ValSlider {
+            LabledSlider {
                 id: edit3
-                from: elementFroms[2]; to: elementTos[2];
+                from: vectorSize > 2 ? elementFroms[2] : 0
+                to: vectorSize > 2 ? elementTos[2] : 1
                 visible: vectorSize > 2
                 onMoved: {
                     root.vector.z = value;
@@ -103,9 +117,10 @@ Item {
             }
 
             Text { text: elementNames[3] + ": "; visible: vectorSize > 3 }
-            ValSlider {
+            LabledSlider {
                 id: edit4
-                from: elementFroms[3]; to: elementTos[3];
+                from: vectorSize > 3 ? elementFroms[3] : 0
+                to: vectorSize > 3 ? elementTos[3] : 1
                 visible: vectorSize > 3
                 onMoved: {
                     root.vector.w = value;
@@ -120,13 +135,15 @@ Item {
         id: label;
         padding: 5;
         text: "#FFFFFFF";
+        opacity: root.enabled ? 1.0 : 0.5;
         font.underline: true;
         Layout.fillWidth: true;
 
         MouseArea{
             anchors.fill: parent
-            cursorShape: Qt.PointingHandCursor
+            cursorShape: root.enabled ? Qt.PointingHandCursor : Qt.ForbiddenCursor
             onClicked: {
+                if (!root.enabled) return;
                 edit1.value = root.vector.x
                 if (vectorSize > 1) edit2.value = root.vector.y
                 if (vectorSize > 2) edit3.value = root.vector.z

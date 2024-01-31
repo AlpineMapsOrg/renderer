@@ -1,4 +1,23 @@
-cmake_minimum_required(VERSION 3.21)
+#############################################################################
+# Alpine Terrain Renderer
+# Copyright (C) 2023 Adam Celarek <family name at cg tuwien ac at>
+# Copyright (C) 2023 Gerald Kimmersdorfer
+# Copyright (C) 2024 Lucas Dworschak
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <http://www.gnu.org/licenses/>.
+#############################################################################
+
 project(alpine-renderer-gl_engine LANGUAGES CXX)
 
 # If true the shaders will be loaded from the given ALP_SHADER_NETWORK_URL and can be reloaded
@@ -21,6 +40,8 @@ qt_add_library(gl_engine STATIC
     SSAO.h SSAO.cpp
     ShadowMapping.h ShadowMapping.cpp
     GpuAsyncQueryTimer.h GpuAsyncQueryTimer.cpp
+    MapLabelManager.h MapLabelManager.cpp
+    Texture.h Texture.cpp
     PolyLine.h PolyLine.cpp
     TrackManager.h TrackManager.cpp
 )
@@ -48,8 +69,6 @@ qt_add_resources(gl_engine "shaders"
     shaders/shadowmap.frag
     shaders/shadow_config.glsl
     shaders/overlay_steepness.glsl
-    shaders/polyline.vert
-    shaders/polyline.frag
 )
 target_compile_definitions(gl_engine PUBLIC ALP_RESOURCES_PREFIX="${CMAKE_CURRENT_SOURCE_DIR}/shaders/")
 

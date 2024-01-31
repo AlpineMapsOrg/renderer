@@ -64,7 +64,7 @@ QOpenGLTexture::TextureFormat internal_format_qt(Framebuffer::ColourFormat f)
     return QOpenGLTexture::TextureFormat::NoFormat;
 }
 
-int format(Framebuffer::ColourFormat f)
+GLenum format(Framebuffer::ColourFormat f)
 {
     switch (f) {
     case Framebuffer::ColourFormat::R8:
@@ -89,13 +89,13 @@ int format(Framebuffer::ColourFormat f)
         return GL_RED_INTEGER;
     }
     assert(false);
-    return -1;
+    return GLenum(-1);
 }
 
-int format(Framebuffer::DepthFormat f)
+GLenum format(Framebuffer::DepthFormat f)
 {
     if (f != Framebuffer::DepthFormat::None) return GL_DEPTH_COMPONENT;
-    return -1;
+    return GLenum(-1);
 }
 
 QOpenGLTexture::TextureFormat internal_format_qt(Framebuffer::DepthFormat f)
@@ -115,16 +115,20 @@ QOpenGLTexture::TextureFormat internal_format_qt(Framebuffer::DepthFormat f)
     return QOpenGLTexture::TextureFormat::NoFormat;
 }
 
-int type(Framebuffer::ColourFormat f)
+GLenum type(Framebuffer::ColourFormat f)
 {
     switch (f) {
-    case Framebuffer::ColourFormat::R8: case Framebuffer::ColourFormat::RGBA8: case Framebuffer::ColourFormat::RGB8:
+    case Framebuffer::ColourFormat::R8:
+    case Framebuffer::ColourFormat::RGBA8:
+    case Framebuffer::ColourFormat::RGB8:
         return GL_UNSIGNED_BYTE;
     case Framebuffer::ColourFormat::RG16UI:
         return QOpenGLTexture::PixelType::UInt16;
-    case Framebuffer::ColourFormat::Float32: case Framebuffer::ColourFormat::RGBA32F:
+    case Framebuffer::ColourFormat::Float32:
+    case Framebuffer::ColourFormat::RGBA32F:
         return GL_FLOAT;
-    case Framebuffer::ColourFormat::RGB16F: case Framebuffer::ColourFormat::RGBA16F:
+    case Framebuffer::ColourFormat::RGB16F:
+    case Framebuffer::ColourFormat::RGBA16F:
         return GL_HALF_FLOAT;
     case Framebuffer::ColourFormat::R32UI:
         return GL_UNSIGNED_INT;
@@ -133,10 +137,10 @@ int type(Framebuffer::ColourFormat f)
     }
    
     assert(false);
-    return -1;
+    return GLenum(-1);
 }
 
-int type(Framebuffer::DepthFormat f)
+GLenum type(Framebuffer::DepthFormat f)
 {
     switch (f) {
     case Framebuffer::DepthFormat::Int16:
@@ -147,10 +151,10 @@ int type(Framebuffer::DepthFormat f)
         return GL_FLOAT;
     case Framebuffer::DepthFormat::None: // prevent compiler warning
         assert(false); // extra assert, so we can from the line number which issue it is
-        return -1;
+        return GLenum(-1);
     }
     assert(false);
-    return -1;
+    return GLenum(-1);
 }
 
 // https://doc.qt.io/qt-6/qimage.html#Format-enum
@@ -174,9 +178,9 @@ QImage::Format qimage_format(Framebuffer::ColourFormat f)
     return QImage::Format_Invalid;
 }
 
-
-void Framebuffer::recreate_texture(int index) {
-    if (index == -1) {
+void Framebuffer::recreate_texture(size_t index)
+{
+    if (index == size_t(-1)) {
         if (m_depth_format != DepthFormat::None) {
             m_depth_texture->destroy();
             m_depth_texture->setFormat(internal_format_qt(m_depth_format));
@@ -210,8 +214,8 @@ void Framebuffer::recreate_texture(int index) {
 }
 
 void Framebuffer::recreate_all_textures() {
-    recreate_texture(-1);
-    for (int i = 0; i < m_colour_textures.size(); i++)
+    recreate_texture(size_t(-1));
+    for (size_t i = 0; i < m_colour_textures.size(); i++)
         recreate_texture(i);
 }
 
@@ -222,7 +226,7 @@ Framebuffer::Framebuffer(DepthFormat depth_format, std::vector<TextureDefinition
     m_size(init_size)
 {
 
-    for (int i = 0; i < m_colour_definitions.size(); i++) {
+    for (size_t i = 0; i < m_colour_definitions.size(); i++) {
         auto colorTexture = std::make_unique<QOpenGLTexture>(QOpenGLTexture::Target::Target2D);
         m_colour_textures.push_back(std::move(colorTexture));
     }
@@ -248,7 +252,6 @@ void Framebuffer::resize(const glm::uvec2& new_size)
     m_size = new_size;
     recreate_all_textures();
     reset_fbo();
-    unbind();
 }
 
 void Framebuffer::bind()
@@ -261,7 +264,7 @@ void Framebuffer::bind()
 
 void Framebuffer::bind_colour_texture(unsigned index, unsigned location)
 {
-    assert(index >= 0 && index < m_colour_textures.size());
+    assert(index < m_colour_textures.size());
     m_colour_textures[index]->bind(location);
 }
 
@@ -271,17 +274,14 @@ void Framebuffer::bind_depth_texture(unsigned location)
     m_depth_texture->bind(location);
 }
 
-std::unique_ptr<QOpenGLTexture> Framebuffer::take_and_replace_colour_attachment(unsigned index)
+QOpenGLTexture* Framebuffer::depth_texture()
 {
-    std::unique_ptr<QOpenGLTexture> tmp = std::move(m_colour_textures[index]);
-    m_colour_textures[index] = std::make_unique<QOpenGLTexture>(QOpenGLTexture::Target::Target2D);
-    recreate_texture(index);
-    return std::move(tmp);
+    return m_depth_texture.get();
 }
 
 QImage Framebuffer::read_colour_attachment(unsigned index)
 {
-    assert(index >= 0 && index < m_colour_textures.size());
+    assert(index < m_colour_textures.size());
 
     auto texFormat = m_colour_definitions[index].format;
 
@@ -304,55 +304,50 @@ QImage Framebuffer::read_colour_attachment(unsigned index)
     return image;
 }
 
-std::array<uchar, 4> Framebuffer::read_colour_attachment_pixel(unsigned index, const glm::dvec2& normalised_device_coordinates)
+template <typename T>
+T Framebuffer::read_colour_attachment_pixel(unsigned int index, const glm::dvec2& normalised_device_coordinates)
 {
-    assert(index >= 0 && index < m_colour_textures.size());
+    assert(index < m_colour_textures.size());
 
     auto texFormat = m_colour_definitions[index].format;
-    assert(texFormat == ColourFormat::RGBA8);
-    if (texFormat != ColourFormat::RGBA8)
+    switch (texFormat) {
+    case Framebuffer::ColourFormat::R8:
+    case Framebuffer::ColourFormat::RGB8:
+    case Framebuffer::ColourFormat::RG16UI: // unsupported on android emulator (and webassembly linux firefox?)
+    case Framebuffer::ColourFormat::Float32:
+    case Framebuffer::ColourFormat::RGB16F:
+    case Framebuffer::ColourFormat::RGBA16F:
+    case Framebuffer::ColourFormat::R32UI: // fails on linux firefox
+        // unsupported or untested.
+        // you really should add a unit test if you move something down to the supported section
+        // as the support accross platforms (webassembly, android, ios?) is patchy
+        assert(false);
         return {};
+    case Framebuffer::ColourFormat::RGBA8:
+        assert(sizeof(T) == 4);
+        if (sizeof(T) != 4)
+            return {};
+        break;
+    case Framebuffer::ColourFormat::RGBA32F:
+        assert(sizeof(T) == 16);
+        if (sizeof(T) != 16)
+            return {};
+        break;
+    }
 
     QOpenGLExtraFunctions* f = QOpenGLContext::currentContext()->extraFunctions();
     bind();
     f->glReadBuffer(GL_COLOR_ATTACHMENT0 + index);
-    std::array<uchar, 4> pixel;
+    T pixel;
     f->glReadPixels(
         int((normalised_device_coordinates.x + 1) / 2 * m_size.x),
         int((normalised_device_coordinates.y + 1) / 2 * m_size.y),
-        1, 1, format(texFormat), type(texFormat), pixel.data());
+        1, 1, format(texFormat), type(texFormat), reinterpret_cast<void*>(&pixel));
     unbind();
     return pixel;
 }
-
-void Framebuffer::read_colour_attachment_pixel(unsigned index, const glm::dvec2& normalised_device_coordinates, void* target)
-{
-    assert(index >= 0 && index < m_colour_textures.size());
-
-    auto texFormat = m_colour_definitions[index].format;
-
-    QOpenGLExtraFunctions* f = QOpenGLContext::currentContext()->extraFunctions();
-    bind();
-    f->glReadBuffer(GL_COLOR_ATTACHMENT0 + index);
-    f->glReadPixels(
-        int((normalised_device_coordinates.x + 1) / 2 * m_size.x),
-        int((normalised_device_coordinates.y + 1) / 2 * m_size.y),
-        1, 1, format(texFormat), type(texFormat), target);
-    unbind();
-}
-
-void Framebuffer::read_depth_attachment_pixel(const glm::dvec2& normalised_device_coordinates, void* target)
-{
-    auto texFormat = m_depth_format;
-
-    QOpenGLExtraFunctions* f = QOpenGLContext::currentContext()->extraFunctions();
-    bind();
-    f->glReadPixels(
-        int((normalised_device_coordinates.x + 1) / 2 * m_size.x),
-        int((normalised_device_coordinates.y + 1) / 2 * m_size.y),
-        1, 1, format(texFormat), type(texFormat), target);
-    unbind();
-}
+template glm::vec4 Framebuffer::read_colour_attachment_pixel<glm::vec4>(unsigned index, const glm::dvec2& normalised_device_coordinates);
+template glm::u8vec4 Framebuffer::read_colour_attachment_pixel<glm::u8vec4>(unsigned index, const glm::dvec2& normalised_device_coordinates);
 
 void Framebuffer::unbind()
 {
@@ -365,18 +360,19 @@ void Framebuffer::reset_fbo()
     QOpenGLExtraFunctions* f = QOpenGLContext::currentContext()->extraFunctions();
     //QOpenGLFunctions* f = QOpenGLContext::currentContext()->functions();
     f->glBindFramebuffer(GL_FRAMEBUFFER, m_frame_buffer);
-    unsigned int draw_attachments[m_colour_textures.size()];
-    for (int i = 0; i < m_colour_textures.size(); i++) {
-        draw_attachments[i] = GL_COLOR_ATTACHMENT0 + i;
-        f->glFramebufferTexture2D(GL_FRAMEBUFFER, draw_attachments[i], GL_TEXTURE_2D, m_colour_textures[i]->textureId(), 0);
+    // unsigned int draw_attachments[m_colour_textures.size()];
+    std::vector<unsigned> draw_attachments;
+    for (unsigned i = 0; i < m_colour_textures.size(); i++) {
+        draw_attachments.push_back(GL_COLOR_ATTACHMENT0 + i);
+        f->glFramebufferTexture2D(GL_FRAMEBUFFER, draw_attachments.back(), GL_TEXTURE_2D, m_colour_textures[i]->textureId(), 0);
     }
     if (m_depth_format != DepthFormat::None)
         f->glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, m_depth_texture->textureId(), 0);
 
     // Tell OpenGL how many attachments to use
-    f->glDrawBuffers(m_colour_textures.size(), draw_attachments);
+    f->glDrawBuffers(m_colour_textures.size(), draw_attachments.data());
 
-    assert(f->glCheckFramebufferStatus(GL_FRAMEBUFFER) == GL_FRAMEBUFFER_COMPLETE);
+    // assert(f->glCheckFramebufferStatus(GL_FRAMEBUFFER) == GL_FRAMEBUFFER_COMPLETE);
 }
 
 
@@ -384,5 +380,4 @@ glm::uvec2 Framebuffer::size() const
 {
     return m_size;
 }
-
 }

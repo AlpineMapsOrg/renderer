@@ -74,13 +74,13 @@ std::optional<Definition> OrbitInteraction::touch_event(const event_parameter::T
         return camera;
     }
     if (e.points.size() == 2) {
-        const auto current_centre = (e.points[0].position() + e.points[1].position()) * 0.5f;
+        const auto current_centre = (e.points[0].position() + e.points[1].position()) * 0.5;
         if (e.points[0].state() == QEventPoint::State::Pressed || e.points[1].state() == QEventPoint::State::Pressed) {
             m_operation_centre_screen = { current_centre.x(), current_centre.y() };
             start(current_centre, camera, depth_tester);
             return {};
         }
-        const auto previous_centre = (e.points[0].lastPosition() + e.points[1].lastPosition()) * 0.5f;
+        const auto previous_centre = (e.points[0].lastPosition() + e.points[1].lastPosition()) * 0.5;
         const auto first_touch = glm::vec2(e.points[0].position().x(), e.points[0].position().y());
         const auto second_touch = glm::vec2(e.points[1].position().x(), e.points[1].position().y());
         const auto previous_first_touch = glm::vec2(e.points[0].lastPosition().x(), e.points[0].lastPosition().y());
@@ -92,7 +92,7 @@ std::optional<Definition> OrbitInteraction::touch_event(const event_parameter::T
         const auto current_yaw_dir = glm::normalize(glm::vec2(first_touch - second_touch));
         const auto current_yaw_angle = std::atan2(current_yaw_dir.y, current_yaw_dir.x);
 
-        const auto yaw = (current_yaw_angle - previous_yaw_angle) * 360 / glm::pi<double>();
+        const auto yaw = (current_yaw_angle - previous_yaw_angle) * 360 / glm::pi<float>();
         camera.orbit_clamped(m_operation_centre, glm::vec2(yaw, pitch));
 
         const auto previous_dist = glm::length(glm::vec2(previous_first_touch - previous_second_touch));
@@ -107,11 +107,11 @@ std::optional<Definition> OrbitInteraction::wheel_event(const event_parameter::W
 {
     m_operation_centre_screen = glm::vec2(e.point.position().x(), e.point.position().y());
     start(e.point.position(), camera, depth_tester);
-    zoom(e.angle_delta.y() / 15.f, &camera, depth_tester);
+    zoom(float(e.angle_delta.y()) / 15.f, &camera, depth_tester);
     return camera;
 }
 
-std::optional<Definition> OrbitInteraction::key_press_event(const QKeyCombination& e, Definition camera, AbstractDepthTester* depth_tester)
+std::optional<Definition> OrbitInteraction::key_press_event(const QKeyCombination& e, Definition camera, AbstractDepthTester*)
 {
     if (e.key() == Qt::Key_Control) {
         m_key_ctrl = true;
@@ -125,7 +125,7 @@ std::optional<Definition> OrbitInteraction::key_press_event(const QKeyCombinatio
     return camera;
 }
 
-std::optional<Definition> OrbitInteraction::key_release_event(const QKeyCombination& e, Definition camera, AbstractDepthTester* depth_tester)
+std::optional<Definition> OrbitInteraction::key_release_event(const QKeyCombination& e, Definition camera, AbstractDepthTester*)
 {
     if (e.key() == Qt::Key_Control) {
         m_key_ctrl = false;
@@ -148,14 +148,14 @@ void OrbitInteraction::start(const QPointF& position, const Definition& camera, 
     m_operation_centre = depth_tester->position(camera.to_ndc({ position.x(), position.y() }));
 
     auto degFromUp = glm::degrees(glm::acos(glm::dot(camera.z_axis(), glm::dvec3(0, 0, 1))));
-    if (m_operation_centre.z > camera.position().z || degFromUp > 80.0f) {
+    if (m_operation_centre.z > camera.position().z || degFromUp > 80.0) {
         m_move_vertical = true;
     } else {
         m_move_vertical = false;
     }
 }
 
-void OrbitInteraction::pan(const QPointF& position, const QPointF& last_position, Definition* camera, AbstractDepthTester* depth_tester)
+void OrbitInteraction::pan(const QPointF& position, const QPointF&, Definition* camera, AbstractDepthTester*)
 {
     m_operation_centre_screen = glm::vec2(position.x(), position.y());
 
@@ -180,9 +180,9 @@ void OrbitInteraction::pan(const QPointF& position, const QPointF& last_position
     }
 }
 
-void OrbitInteraction::zoom(float amount, Definition* camera, AbstractDepthTester* depth_tester)
+void OrbitInteraction::zoom(float amount, Definition* camera, AbstractDepthTester*)
 {
-    float distance = glm::distance(m_operation_centre, camera->position());
+    auto distance = float(glm::distance(m_operation_centre, camera->position()));
     distance = std::max(distance / 100, 0.07f);
     camera->move(glm::normalize(m_operation_centre - camera->position()) * double(amount * distance));
 }

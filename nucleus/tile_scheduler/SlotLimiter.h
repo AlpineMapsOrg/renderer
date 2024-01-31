@@ -22,7 +22,7 @@
 
 #include <QObject>
 
-#include <sherpa/tile.h>
+#include <radix/tile.h>
 
 #include "tile_types.h"
 

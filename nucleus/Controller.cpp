@@ -36,7 +36,7 @@
 #include "nucleus/tile_scheduler/SlotLimiter.h"
 #include "nucleus/tile_scheduler/TileLoadService.h"
 #include "nucleus/tile_scheduler/utils.h"
-#include "sherpa/TileHeights.h"
+#include "radix/TileHeights.h"
 
 using namespace nucleus::tile_scheduler;
 
@@ -64,6 +64,7 @@ Controller::Controller(AbstractRenderWindow* render_window)
         QFile file(":/map/height_data.atb");
         const auto open = file.open(QIODeviceBase::OpenModeFlag::ReadOnly);
         assert(open);
+        Q_UNUSED(open);
         const QByteArray data = file.readAll();
         const auto decorator = nucleus::tile_scheduler::utils::AabbDecorator::make(TileHeights::deserialise(data));
         m_tile_scheduler->set_aabb_decorator(decorator);
@@ -128,9 +129,6 @@ Controller::Controller(AbstractRenderWindow* render_window)
     connect(m_tile_scheduler.get(), &Scheduler::gpu_quads_updated, m_render_window, &AbstractRenderWindow::update_gpu_quads);
     connect(m_tile_scheduler.get(), &Scheduler::gpu_quads_updated, m_render_window, &AbstractRenderWindow::update_requested);
 
-    /// @todo: finish tile/cache_querier: find rgb to float, probably move to sherpa; finsih test tile generator for a specified height; finish tests + impl
-    /// @todo: use cache_querier for target location altitude, and use for look at
-    /// @todo: make fly to animation, modelled on rotation.
     m_camera_controller->update();
 }
 

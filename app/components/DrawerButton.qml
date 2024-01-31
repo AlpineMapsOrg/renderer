@@ -25,6 +25,7 @@ Item {
     id: root
     property alias iconSource: icon.source
     property alias text: label.text
+    property alias hotkey: hotkey.text
     property int innerPadding: 14
     property bool selectable: true
     property int bid: {
@@ -83,16 +84,35 @@ Item {
         }
 
         Item {
-            width: 36 - (2 * spacing)
+            width: 36 - (2 * parent.spacing)
         }
 
         Label {
             id: label
             opacity: 0.87
             font.pixelSize: 14
-            text: qsTr("Map")
             Layout.fillWidth: true
             font.weight: Font.Medium
         }
+
+        Rectangle {
+            width: hotkey.width+15;
+            height: hotkey.height+5;
+            opacity: 0.30
+            border.color: "black"  // Set border color
+            border.width: 2        // Set border width
+            radius: 3
+            color: "transparent"
+            visible: root.hotkey !== ""
+            Label {
+                id: hotkey
+                font.pixelSize: 14
+                anchors.centerIn: parent
+                font.weight: Font.Medium
+
+            }
+        }
+
+
     }
 }

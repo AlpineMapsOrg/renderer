@@ -66,10 +66,10 @@ private:
     std::unique_ptr<QOpenGLTexture> m_depth_texture;
     std::vector<std::unique_ptr<QOpenGLTexture>> m_colour_textures;
     //std::unique_ptr<QOpenGLTexture> m_colour_texture;
-    unsigned m_frame_buffer = -1;
+    unsigned m_frame_buffer = unsigned(-1);
     glm::uvec2 m_size;
     // Recreates the OpenGL-Texture for the given index. An index of -1 recreates the depth-buffer.
-    void recreate_texture(int index);
+    void recreate_texture(size_t index);
     // Calls recreate_texture for all the buffers that are attached to this FBO (depth and colour)
     void recreate_all_textures();
 
@@ -81,26 +81,13 @@ public:
     void bind_colour_texture(unsigned index = 0, unsigned location = 0);
     void bind_depth_texture(unsigned location = 0);
 
-    [[deprecated("Not in use, untested...")]]
-    std::unique_ptr<QOpenGLTexture> take_and_replace_colour_attachment(unsigned index);
+    QOpenGLTexture* depth_texture();
 
     QImage read_colour_attachment(unsigned index);
 
-    // Returns the data at the given pixel. Only works for RGBA8 textures, but is memory safe.
-    std::array<uchar, 4> read_colour_attachment_pixel(unsigned index, const glm::dvec2& normalised_device_coordinates);
-
-    // Writes the data of the given pixel inside the target buffer
-    // WARNING: Does not check wether enough storage is allocated. So make sure
-    // you use the correct type for the given texture. A typed
-    // function would be prefered instead of this.
-    void read_colour_attachment_pixel(unsigned index, const glm::dvec2& normalised_device_coordinates, void* target);
-
-    // Writes the data of the given pixel of the depth attachment inside the target buffer
-    // WARNING: Does not check wether enough storage is allocated. So make sure
-    // you use the correct type for the given texture. A typed
-    // function would be prefered instead of this.
-    // WARNING2: No support on WebGL 2.0 or OpenGL ES 3.0
-    void read_depth_attachment_pixel(const glm::dvec2& normalised_device_coordinates, void* target);
+    // this is implemented for glm::vec4 and glm::u8vec4, as these are the only formats tested to support by all platforms
+    template <typename T>
+    T read_colour_attachment_pixel(unsigned index, const glm::dvec2& normalised_device_coordinates);
 
     static void unbind();
 
@@ -119,4 +106,6 @@ struct TextureDefinition {
     bool autoMipMapGeneration = false;
 };
 
+extern template glm::vec4 Framebuffer::read_colour_attachment_pixel<glm::vec4>(unsigned index, const glm::dvec2& normalised_device_coordinates);
+extern template glm::u8vec4 Framebuffer::read_colour_attachment_pixel<glm::u8vec4>(unsigned index, const glm::dvec2& normalised_device_coordinates);
 }

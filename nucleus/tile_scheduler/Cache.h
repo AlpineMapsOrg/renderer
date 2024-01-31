@@ -30,7 +30,7 @@
 #include <tl/expected.hpp>
 #include <zpp_bits.h>
 
-#include "sherpa/tile.h"
+#include "radix/tile.h"
 #include "tile_types.h"
 #include "utils.h"
 
@@ -125,7 +125,7 @@ template <tile_types::NamedTile T>
 unsigned int Cache<T>::n_cached_objects() const
 {
     auto locker = std::shared_lock(m_data_mutex);
-    return m_data.size();
+    return unsigned(m_data.size());
 }
 
 template <tile_types::NamedTile T>

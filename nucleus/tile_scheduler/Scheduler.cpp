@@ -25,12 +25,10 @@
 #include <QNetworkInformation>
 #include <QStandardPaths>
 #include <QTimer>
-#include <fmt/chrono.h>
-#include <fmt/core.h>
 
 #include "nucleus/tile_scheduler/utils.h"
 #include "nucleus/utils/tile_conversion.h"
-#include "sherpa/quad_tree.h"
+#include "radix/quad_tree.h"
 
 using namespace nucleus::tile_scheduler;
 
@@ -229,25 +227,30 @@ void Scheduler::persist_tiles()
     const auto start = std::chrono::steady_clock::now();
     const auto r = m_ram_cache.write_to_disk(disk_cache_path());
     const auto diff = std::chrono::steady_clock::now() - start;
+
     if (diff > std::chrono::milliseconds(50))
-        fmt::println(stderr, "Scheduler::persist_tiles took {} for {} quads.", std::chrono::duration_cast<std::chrono::milliseconds>(diff), m_ram_cache.n_cached_objects());
+        qDebug() << QString("Scheduler::persist_tiles took %1ms for %2 quads.")
+                        .arg(std::chrono::duration_cast<std::chrono::milliseconds>(diff).count())
+                        .arg(m_ram_cache.n_cached_objects());
 
     if (!r.has_value()) {
-        qDebug("Writing tiles to disk into %s failed: %s. Removing all files.", disk_cache_path().c_str(), r.error().c_str());
+        qDebug() << QString("Writing tiles to disk into %1 failed: %2. Removing all files.")
+                        .arg(QString::fromStdString(disk_cache_path().string()))
+                        .arg(QString::fromStdString(r.error()));
         std::filesystem::remove_all(disk_cache_path());
     }
 }
 
 void Scheduler::schedule_update()
 {
-    assert(m_update_timeout < std::numeric_limits<int>::max());
+    assert(m_update_timeout < unsigned(std::numeric_limits<int>::max()));
     if (m_enabled && !m_update_timer->isActive())
         m_update_timer->start(int(m_update_timeout));
 }
 
 void Scheduler::schedule_purge()
 {
-    assert(m_purge_timeout < std::numeric_limits<int>::max());
+    assert(m_purge_timeout < unsigned(std::numeric_limits<int>::max()));
     if (m_enabled && !m_purge_timer->isActive()) {
         m_purge_timer->start(int(m_purge_timeout));
     }
@@ -255,7 +258,7 @@ void Scheduler::schedule_purge()
 
 void Scheduler::schedule_persist()
 {
-    assert(m_persist_timeout < std::numeric_limits<int>::max());
+    assert(m_persist_timeout < unsigned(std::numeric_limits<int>::max()));
     if (!m_persist_timer->isActive()) {
         m_persist_timer->start(int(m_persist_timeout));
     }
@@ -274,7 +277,9 @@ void Scheduler::read_disk_cache()
     if (r.has_value()) {
         update_stats();
     } else {
-        qDebug("Reading tiles from disk cache (%s) failed: \n%s\nRemoving all files.", disk_cache_path().c_str(), r.error().c_str());
+        qDebug() << QString("Reading tiles from disk cache (%1) failed: \n%2\nRemoving all files.")
+                        .arg(QString::fromStdString(disk_cache_path().string()))
+                        .arg(QString::fromStdString(r.error()));
         std::filesystem::remove_all(disk_cache_path());
     }
 }
@@ -309,7 +314,7 @@ unsigned int Scheduler::persist_timeout() const
 
 void Scheduler::set_persist_timeout(unsigned int new_persist_timeout)
 {
-    assert(new_persist_timeout < std::numeric_limits<int>::max());
+    assert(new_persist_timeout < unsigned(std::numeric_limits<int>::max()));
     m_persist_timeout = new_persist_timeout;
 
     if (m_persist_timer->isActive()) {
@@ -358,7 +363,7 @@ std::filesystem::path Scheduler::disk_cache_path()
 
 void Scheduler::set_purge_timeout(unsigned int new_purge_timeout)
 {
-    assert(new_purge_timeout < std::numeric_limits<int>::max());
+    assert(new_purge_timeout < unsigned(std::numeric_limits<int>::max()));
     m_purge_timeout = new_purge_timeout;
 
     if (m_purge_timer->isActive()) {
@@ -399,7 +404,7 @@ void Scheduler::set_enabled(bool new_enabled)
 
 void Scheduler::set_update_timeout(unsigned new_update_timeout)
 {
-    assert(m_update_timeout < std::numeric_limits<int>::max());
+    assert(m_update_timeout < unsigned(std::numeric_limits<int>::max()));
     m_update_timeout = new_update_timeout;
     if (m_update_timer->isActive()) {
         m_update_timer->start(m_update_timeout);

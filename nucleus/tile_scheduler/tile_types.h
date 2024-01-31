@@ -19,7 +19,7 @@
 #pragma once
 
 #include "nucleus/tile_scheduler/utils.h"
-#include "sherpa/tile.h"
+#include "radix/tile.h"
 
 #include <QByteArray>
 
@@ -85,7 +85,7 @@ static_assert(NamedTile<LayeredTile>);
 struct TileQuad {
     tile::Id id;
     unsigned n_tiles = 0;
-    std::array<LayeredTile, 4> tiles;
+    std::array<LayeredTile, 4> tiles = {};
     NetworkInfo network_info() const {
         return NetworkInfo::join(tiles[0].network_info, tiles[1].network_info, tiles[2].network_info, tiles[3].network_info);
     }

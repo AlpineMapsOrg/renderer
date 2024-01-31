@@ -73,9 +73,6 @@ Rectangle {
 
     Connections {
         target: map
-        function onHud_visible_changed(hud_visible) {
-            statsMenu.visible = hud_visible;
-        }
         function onGui_update_global_cursor_pos(lat,lon,alt) {
             cursor_lat.text = lat.toFixed(5) + " °";
             cursor_lon.text = lon.toFixed(5) + " °";
@@ -295,7 +292,7 @@ Rectangle {
             }
         }
 
-    SetPanel {
+    SettingsPanel {
         id: main_content
         maxHeight: statsMenu.maxHeight // needs to be set directly because parents height is dependent
         anchors {
@@ -303,11 +300,9 @@ Rectangle {
             right: parent.right
         }
 
-        SetTitle {
-            title: "Statistics"
-        }
+        SettingsTitle { title: "Statistics" }
 
-        SetGroup {
+        CheckGroup {
             name: "Frame Profiler"
 
             Pane {
@@ -460,7 +455,19 @@ Rectangle {
                         }
                     }
         }
-        SetGroup {
+        CheckGroup {
+            id: camera_group
+            name: "Camera"
+
+            Label { text: "Preset:" }
+            ComboBox {
+                Layout.fillWidth: true;
+                model: _positionList    // set in main.cpp
+                currentIndex: 0
+                onCurrentIndexChanged: map.selected_camera_position_index = currentIndex;
+            }
+        }
+        CheckGroup {
             id: cursor_group
             name: "Cursor"
 
@@ -473,7 +480,7 @@ Rectangle {
             Label { text: "Altitude:" }
             Label { text: "0.0 m"; id: cursor_alt; font.bold: true; }
         }
-        SetGroup {
+        CheckGroup {
             name: "Cache & Network"
 
             Label {

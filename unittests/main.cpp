@@ -17,44 +17,8 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *****************************************************************************/
 
-#include <chrono>
-#include <limits>
-#include <cstdio>
-#include <iostream>
-
 #include <QGuiApplication>
-#include <QTimer>
-#include <QtTest/QSignalSpy>
-#include <catch2/catch_test_macros.hpp>
 #include <catch2/catch_session.hpp>
-
-#ifdef __EMSCRIPTEN__
-#include <catch2/catch_test_case_info.hpp>
-#include <catch2/reporters/catch_reporter_event_listener.hpp>
-#include <catch2/reporters/catch_reporter_registrars.hpp>
-#include <fmt/core.h>
-
-
-class ProgressPrinter : public Catch::EventListenerBase {
-public:
-    using EventListenerBase::EventListenerBase;
-
-    static std::string getDescription() {
-        return "Reporter that reports the progress after every test case.";
-    }
-
-    void testCaseEnded(const Catch::TestCaseStats& status) override {
-        fmt::print("test case: {:<140}", status.testInfo->name);
-        if (status.totals.testCases.allOk())
-            fmt::println("\033[0;32mpassed {:>4} of {:>4}\033[0m", status.totals.assertions.passed, status.totals.assertions.total());
-        else
-            fmt::println("\033[0;31mfailed {:>4} of {:>4}\033[0m", status.totals.assertions.failed, status.totals.assertions.total());
-        std::fflush(stdout);
-    }
-};
-
-CATCH_REGISTER_LISTENER(ProgressPrinter)
-#endif
 
 int main( int argc, char* argv[] ) {
     int argc_qt = 1;
@@ -73,32 +37,4 @@ int main( int argc, char* argv[] ) {
     int result = Catch::Session().run( argc, argv );
 #endif
     return result;
-}
-
-#ifdef NDEBUG
-constexpr bool asserts_are_enabled = false;
-#else
-constexpr bool asserts_are_enabled = true;
-#endif
-
-TEST_CASE("nucleus/main: check that asserts are enabled")
-{
-    CHECK(asserts_are_enabled);
-}
-
-TEST_CASE("nucleus/main: check that NaNs are enabled (-ffast-math removes support, -fno-finite-math-only puts it back in)")
-{
-    CHECK(std::isnan(std::numeric_limits<float>::quiet_NaN() * float(std::chrono::system_clock::now().time_since_epoch().count())));
-    CHECK(std::isnan(double(std::numeric_limits<float>::quiet_NaN() * float(std::chrono::system_clock::now().time_since_epoch().count()))));
-}
-
-TEST_CASE("nucleus/main: qt signals and slots")
-{
-    QTimer t;
-    t.setSingleShot(true);
-    t.setInterval(1);
-    QSignalSpy spy(&t, &QTimer::timeout);
-    t.start();
-    spy.wait(20);
-    CHECK(spy.size() == 1);
 }

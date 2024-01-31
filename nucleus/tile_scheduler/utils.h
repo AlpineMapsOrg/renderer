@@ -27,8 +27,8 @@
 #include "constants.h"
 #include "nucleus/camera/Definition.h"
 #include "nucleus/srs.h"
-#include "sherpa/TileHeights.h"
-#include "sherpa/geometry.h"
+#include "radix/TileHeights.h"
+#include "radix/geometry.h"
 
 namespace nucleus::tile_scheduler {
 
@@ -89,7 +89,6 @@ namespace utils {
 
             // optimised version:
             constexpr double pi = 3.1415926535897932384626433;
-            constexpr auto pi_f = float(pi);
             constexpr unsigned int cSemiMajorAxis = 6378137;
             constexpr double cEarthCircumference = 2 * pi * cSemiMajorAxis;
             constexpr double cOriginShift = cEarthCircumference / 2.0;
@@ -267,10 +266,10 @@ namespace utils {
         return refine;
     }
 
-    inline auto refineFunctor(const nucleus::camera::Definition &camera,
-                              const AabbDecoratorPtr &aabb_decorator,
-                              double error_threshold_px,
-                              double tile_size = 256)
+    inline auto refineFunctor(const nucleus::camera::Definition& camera,
+        const AabbDecoratorPtr& aabb_decorator,
+        float error_threshold_px,
+        double tile_size = 256)
     {
         constexpr auto sqrt2 = 1.414213562373095;
         const auto camera_frustum = camera.frustum();
@@ -282,15 +281,15 @@ namespace utils {
             if (!tile_scheduler::utils::camera_frustum_contains_tile(camera_frustum, aabb))
                 return false;
 
-            const auto distance = geometry::distance(aabb, camera.position());
-            const auto pixel_size = sqrt2 * aabb.size().x / tile_size;
+            const auto distance = float(geometry::distance(aabb, camera.position()));
+            const auto pixel_size = float(sqrt2 * aabb.size().x / tile_size);
 
             return camera.to_screen_space(pixel_size, distance) >= error_threshold_px;
         };
         return refine;
     }
 
-    static uint64_t time_since_epoch()
+    inline uint64_t time_since_epoch()
     {
         return uint64_t(std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch()).count());
     }

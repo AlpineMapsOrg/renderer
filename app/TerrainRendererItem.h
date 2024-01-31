@@ -18,8 +18,7 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *****************************************************************************/
 
-#ifndef TERRAINRENDERERITEM_H
-#define TERRAINRENDERERITEM_H
+#pragma once
 
 #include "nucleus/camera/Definition.h"
 #include "nucleus/event_parameter.h"
@@ -46,9 +45,9 @@ class TerrainRendererItem : public QQuickFramebufferObject {
     Q_PROPERTY(QPointF camera_operation_centre READ camera_operation_centre NOTIFY camera_operation_centre_changed)
     Q_PROPERTY(bool camera_operation_centre_visibility READ camera_operation_centre_visibility NOTIFY camera_operation_centre_visibility_changed)
     Q_PROPERTY(float camera_operation_centre_distance READ camera_operation_centre_distance NOTIFY camera_operation_centre_distance_changed)
-    Q_PROPERTY(float render_quality READ render_quality WRITE set_render_quality NOTIFY render_quality_changed)
     Q_PROPERTY(gl_engine::uboSharedConfig shared_config READ shared_config WRITE set_shared_config NOTIFY shared_config_changed)
     Q_PROPERTY(TimerFrontendManager* timer_manager MEMBER m_timer_manager CONSTANT)
+    Q_PROPERTY(AppSettings* settings MEMBER m_settings CONSTANT)
     Q_PROPERTY(unsigned int in_flight_tiles READ in_flight_tiles NOTIFY in_flight_tiles_changed)
     Q_PROPERTY(unsigned int queued_tiles READ queued_tiles NOTIFY queued_tiles_changed)
     Q_PROPERTY(unsigned int cached_tiles READ cached_tiles NOTIFY cached_tiles_changed)
@@ -56,10 +55,8 @@ class TerrainRendererItem : public QQuickFramebufferObject {
     Q_PROPERTY(bool render_looped READ render_looped WRITE set_render_looped NOTIFY render_looped_changed)
     Q_PROPERTY(unsigned int selected_camera_position_index MEMBER m_selected_camera_position_index WRITE set_selected_camera_position_index)
     Q_PROPERTY(bool hud_visible READ hud_visible WRITE set_hud_visible NOTIFY hud_visible_changed)
-    Q_PROPERTY(QDateTime selected_datetime READ selected_datetime WRITE set_selected_datetime NOTIFY selected_datetime_changed)
     Q_PROPERTY(QVector2D sun_angles READ sun_angles WRITE set_sun_angles NOTIFY sun_angles_changed)
     Q_PROPERTY(bool link_gl_sundirection READ link_gl_sundirection WRITE set_link_gl_sundirection NOTIFY link_gl_sundirection_changed)
-    Q_PROPERTY(float track_width READ track_width WRITE set_track_width NOTIFY track_width_changed)
 
 public:
     explicit TerrainRendererItem(QQuickItem* parent = 0);
@@ -110,12 +107,9 @@ signals:
 
     void gui_update_global_cursor_pos(double latitude, double longitude, double altitude);
 
-    void selected_datetime_changed(QDateTime newDateTime);
     void sun_angles_changed(QVector2D newSunAngles);
-    void link_gl_sundirection_changed(bool newValue);
 
     void reload_shader();
-    void test_button_press();
 
     void init_after_creation() const;
 
@@ -130,6 +124,7 @@ protected:
 public slots:
     void set_position(double latitude, double longitude);
     void rotate_north();
+    void set_gl_preset(const QString& preset_b64_string);
     void read_global_position(glm::dvec3 latlonalt);
     void camera_definition_changed(const nucleus::camera::Definition& new_definition); // gets called whenever camera changes
     void add_track(const QString& track);
@@ -139,6 +134,8 @@ public slots:
 private slots:
     void schedule_update();
     void init_after_creation_slot();
+    void datetime_changed(const QDateTime& new_datetime);
+    void gl_sundir_date_link_changed(bool new_value);
 
 
 public:
@@ -172,9 +169,6 @@ public:
     float camera_operation_centre_distance() const;
     void set_camera_operation_centre_distance(float new_camera_operation_centre_distance);
 
-    float render_quality() const;
-    void set_render_quality(float new_render_quality);
-
     bool render_looped() const;
     void set_render_looped(bool new_render_looped);
 
@@ -198,17 +192,14 @@ public:
     [[nodiscard]] unsigned int tile_cache_size() const;
     void set_tile_cache_size(unsigned int new_tile_cache_size);
 
-    QDateTime selected_datetime() const;
-    void set_selected_datetime(QDateTime new_datetime);
-
     QVector2D sun_angles() const;
     void set_sun_angles(QVector2D new_sunAngles);
 
-    bool link_gl_sundirection() const { return m_link_gl_sundirection; }
-    void set_link_gl_sundirection(bool newValue);
+    const AppSettings* settings() { return m_settings; }
 
 private:
     void recalculate_sun_angles();
+    void update_gl_sun_dir_from_sun_angles(gl_engine::uboSharedConfig& ubo);
 
     float m_camera_rotation_from_north = 0;
     QPointF m_camera_operation_centre;
@@ -217,7 +208,6 @@ private:
     float m_field_of_view = 60;
     float m_track_width = 25;
     int m_frame_limit = 60;
-    float m_render_quality = 0.5f;
     unsigned m_tile_cache_size = 12000;
     unsigned m_cached_tiles = 0;
     unsigned m_queued_tiles = 0;
@@ -225,7 +215,6 @@ private:
     unsigned int m_selected_camera_position_index = 0;
     bool m_render_looped = false;
     bool m_hud_visible = true;
-    bool m_link_gl_sundirection = true;
     QDateTime m_selected_datetime = QDateTime::currentDateTime();
 
     gl_engine::uboSharedConfig m_shared_config;
@@ -236,6 +225,7 @@ private:
     int m_camera_height = 0;
 
     TimerFrontendManager* m_timer_manager;
+    AppSettings* m_settings;
     QVector2D m_sun_angles; // azimuth and zenith
     glm::dvec3 m_last_camera_latlonalt;
     glm::dvec3 m_last_camera_lookat_latlonalt;
@@ -243,7 +233,5 @@ private:
     // Note: This was originaly a singleton. But that introduces some issues
     // with the multi-thread nature of this app. So far the url modifier is
     // only necessary in this class and on this thread, so we'll use it here.
-    std::unique_ptr<nucleus::utils::UrlModifier> m_url_modifier;
+    std::shared_ptr<nucleus::utils::UrlModifier> m_url_modifier;
 };
-
-#endif // TERRAINRENDERERITEM_H

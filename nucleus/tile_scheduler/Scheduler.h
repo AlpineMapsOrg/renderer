@@ -24,7 +24,7 @@
 #include <QObject>
 
 #include "nucleus/camera/Definition.h"
-#include "sherpa/tile.h"
+#include "radix/tile.h"
 
 #include "Cache.h"
 #include "tile_types.h"

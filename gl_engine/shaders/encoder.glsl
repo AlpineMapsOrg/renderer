@@ -25,14 +25,12 @@
 highp float fakeNormalizeWSDepth(highp float depth) {
     return log(depth) / 13.0;
 }
-highp float fakeUnNormalizeWSDepth(highp float ndepth) {
-    return exp(13.0 * ndepth);
-}
-highp uint depthWSEncode1u32(highp float depth) {
-    return uint(fakeNormalizeWSDepth(depth) * 4294967295.0);
-}
-highp float depthWSDecode1u32(highp uint depth32) {
-    return fakeUnNormalizeWSDepth(float(depth32) / 4294967295.0);
+lowp vec2 depthWSEncode2n8(highp float depth) {
+    highp float value = fakeNormalizeWSDepth(depth);
+    mediump uint scaled = uint(value * 65535.f + 0.5f);
+    mediump uint r = scaled >> 8u;
+    mediump uint b = scaled & 255u;
+    return vec2(float(r) / 255.f, float(b) / 255.f);
 }
 
 // ===== OCTAHEDRON MAPPING FOR NORMALS =====

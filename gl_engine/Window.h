@@ -1,8 +1,9 @@
- /*****************************************************************************
+/*****************************************************************************
  * Alpine Renderer
  * Copyright (C) 2022 Adam Celarek
  * Copyright (C) 2023 Jakob Lindner
  * Copyright (C) 2023 Gerald Kimmersdorfer
+ * Copyright (C) 2024 Lucas Dworschak
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -29,6 +30,8 @@
 #include <glm/glm.hpp>
 #include <memory>
 
+#include "UniformBuffer.h"
+#include "UniformBufferObjects.h"
 #include "helpers.h"
 #include "nucleus/AbstractRenderWindow.h"
 #include "nucleus/camera/AbstractDepthTester.h"
@@ -45,6 +48,7 @@ class QOpenGLBuffer;
 class QOpenGLVertexArrayObject;
 class TileManager;
 class TrackManager;
+class MapLabelManager;
 
 namespace gl_engine {
 
@@ -63,7 +67,6 @@ public:
     void initialise_gpu() override;
     void resize_framebuffer(int w, int h) override;
     void paint(QOpenGLFramebufferObject* framebuffer = nullptr) override;
-    void paintOverGL(QPainter* painter);
 
     [[nodiscard]] float depth(const glm::dvec2& normalised_device_coordinates) override;
     [[nodiscard]] glm::dvec3 position(const glm::dvec2& normalised_device_coordinates) override;
@@ -97,8 +100,10 @@ private:
     std::unique_ptr<DebugPainter> m_debug_painter; // needs opengl context
     std::unique_ptr<TrackManager> m_track_manager; // needs opengl context
     std::unique_ptr<ShaderManager> m_shader_manager;
+    std::unique_ptr<MapLabelManager> m_map_label_manager;
 
     std::unique_ptr<Framebuffer> m_gbuffer;
+    std::unique_ptr<Framebuffer> m_decoration_buffer;
     std::unique_ptr<Framebuffer> m_atmospherebuffer;
 
     std::unique_ptr<SSAO> m_ssao;
@@ -115,7 +120,7 @@ private:
     int m_frame = 0;
     bool m_initialised = false;
     bool m_render_looped = false;
-    bool m_sort_tiles = true;
+    bool m_wireframe_enabled = false;
     QString m_debug_text;
     QString m_debug_scheduler_stats;
 

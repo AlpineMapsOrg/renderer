@@ -40,19 +40,18 @@
 #include "HotReloader.h"
 #include "RenderThreadNotifier.h"
 #include "TerrainRendererItem.h"
-#include "nucleus/map_label/CameraTransformationProxyModel.h"
-#include "nucleus/map_label/MapLabelModel.h"
 
 #include "nucleus/camera/PositionStorage.h"
+#include "nucleus/version.h"
 
 int main(int argc, char **argv)
 {
-    //    QGuiApplication::setHighDpiScaleFactorRoundingPolicy(Qt::HighDpiScaleFactorRoundingPolicy::Floor);
     QQuickWindow::setGraphicsApi(QSGRendererInterface::GraphicsApi::OpenGLRhi);
     QApplication app(argc, argv);
     app.setWindowIcon(QIcon("app/icons/favicon.ico"));
     QCoreApplication::setOrganizationName("AlpineMaps.org");
     QCoreApplication::setApplicationName("AlpineApp");
+    QGuiApplication::setApplicationDisplayName("Alpine Maps");
     QNetworkInformation::loadDefaultBackend(); // load here, so it sits on the correct thread.
 
     //    QLoggingCategory::setFilterRules("*.debug=true\n"
@@ -107,8 +106,6 @@ int main(int argc, char **argv)
 
     qmlRegisterType<TerrainRendererItem>("Alpine", 42, 0, "TerrainRenderer");
     qmlRegisterType<GnssInformation>("Alpine", 42, 0, "GnssInformation");
-    qmlRegisterType<nucleus::map_label::MapLabelModel>("Alpine", 42, 0, "LabelModel");
-    qmlRegisterType<nucleus::map_label::CameraTransformationProxyModel>("Alpine", 42, 0, "CameraTransformationProxyModel");
 
     QQmlApplicationEngine engine;
 
@@ -116,6 +113,7 @@ int main(int argc, char **argv)
     engine.rootContext()->setContextProperty("_hotreloader", &hotreloader);
     engine.rootContext()->setContextProperty("_qmlPath", "");
     engine.rootContext()->setContextProperty("_positionList", QVariant::fromValue(nucleus::camera::PositionStorage::instance()->getPositionList()));
+    engine.rootContext()->setContextProperty("_alpine_renderer_version", QString::fromStdString(nucleus::version()));
 
     RenderThreadNotifier::instance();
     QObject::connect(
@@ -137,8 +135,15 @@ int main(int argc, char **argv)
 #if (defined(__linux) && !defined(__ANDROID__)) || defined(_WIN32) || defined(_WIN64)
     root_window->showMaximized();
 #endif
+#ifdef ALP_APP_SHUTDOWN_AFTER_60S
+    QTimer::singleShot(60000, &app, []() {
+        qDebug() << "AlpineApp shuts down after 60s.";
+        QGuiApplication::quit();
+    });
+#endif
 
-    RenderThreadNotifier::instance()->set_root_window(root_window);
+    RenderThreadNotifier::instance()
+        ->set_root_window(root_window);
 
     return app.exec();
 }

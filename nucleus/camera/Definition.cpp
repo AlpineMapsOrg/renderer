@@ -25,7 +25,7 @@
 #include <QDebug>
 #include <glm/gtx/transform.hpp>
 
-#include "sherpa/geometry.h"
+#include "radix/geometry.h"
 
 // camera space in opengl / webgl:
 // origin:
@@ -193,6 +193,11 @@ std::vector<geometry::Plane<double>> Definition::four_clipping_planes() const
     return clipping_panes;
 }
 
+float Definition::distance_scale_factor() const
+{
+    return m_distance_scaling_factor;
+}
+
 // for reverse z: https://nlguillemot.wordpress.com/2016/12/07/reversed-z-in-opengl/
 glm::mat4 MakeInfReversedZProjRH(float fovY_radians, float aspectWbyH, float zNear)
 {
@@ -297,7 +302,7 @@ glm::dvec2 Definition::to_ndc(const glm::dvec2& screen_space_coordinates) const
 // interesting 
 float Definition::to_screen_space(float world_space_size, float world_space_distance) const
 {
-    return m_viewport_size.y * 0.5f * world_space_size * m_distance_scaling_factor / world_space_distance;
+    return float(m_viewport_size.y) * 0.5f * world_space_size * m_distance_scaling_factor / world_space_distance;
 }
 
 glm::dvec3 Definition::calculate_lookat_position(double distance) const {

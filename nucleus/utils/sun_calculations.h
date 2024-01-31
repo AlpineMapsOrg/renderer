@@ -26,6 +26,7 @@ namespace nucleus::utils::sun_calculations {
 //Convenience function to calculate azimuth and zenith given latlongalt and datetime
 glm::vec2 calculate_sun_angles(const QDateTime& dt, glm::dvec3 latlongalt);
 
+// Calculates direction vector for the given set of sun_angles (azimuth and zenith)
 glm::vec3 sun_rays_direction_from_sun_angles(const glm::vec2& sun_angles);
 
 }

@@ -16,6 +16,10 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *****************************************************************************/
 
+highp float calculate_falloff(highp float dist, highp float from, highp float to) {
+    return clamp(1.0 - (dist - from) / (to - from), 0.0, 1.0);
+}
+
 #include "atmosphere_implementation.glsl"
 #include "encoder.glsl"
 #include "shared_config.glsl"
@@ -24,6 +28,7 @@
 #include "hashing.glsl"
 #include "overlay_steepness.glsl"
 #include "intersection.glsl"
+#include "snow.glsl"
 
 #line 1
 layout (location = 0) out lowp vec4 out_Color;
@@ -45,11 +50,6 @@ uniform highp sampler2D texin_csm4;         // f32vec1
 
 uniform highp sampler2D texin_track;            // f32vec3
 uniform highp usampler2D texin_track_vert_id;    
-
-highp float calculate_falloff(highp float dist, highp float from, highp float to) {
-    return clamp(1.0 - (dist - from) / (to - from), 0.0, 1.0);
-}
-
 
 
 // Calculates the diffuse and specular illumination contribution for the given
@@ -120,7 +120,7 @@ highp float csm_shadow_term(highp vec4 pos_cws, highp vec3 normal_ws, out lowp i
     //if (depth_ls > 1.0) return 0.0; //not necessary because orthogonal
 
     // calculate bias based on depth resolution and slope
-    highp float bias = max(0.05 * (1.0 - dot(normal_ws, -conf.sun_light_dir.xyz)), 0.005); // ToDo: Make sure - is correct
+    highp float bias = max(0.05 * (1.0 - dot(normal_ws, -conf.sun_light_dir.xyz)), 0.005);
     highp float dist = length(pos_cws.xyz);
     highp float biasModifier = 1.0;
 
@@ -173,12 +173,19 @@ void main() {
         highp vec3 origin = vec3(camera.position);
         highp vec3 pos_ws = pos_cws + origin;
         highp vec3 ray_direction = pos_cws / dist;
+        highp vec4 material_light_response = conf.material_light_response;
 
         highp vec3 light_through_atmosphere = calculate_atmospheric_light(origin / 1000.0, ray_direction, dist / 1000.0, albedo, 10);
 
         highp float shadow_term = 0.0;
         if (bool(conf.csm_enabled)) {
             shadow_term = csm_shadow_term(vec4(pos_cws, 1.0), normal, sampled_shadow_layer);
+        }
+
+        if (bool(conf.snow_settings_angle.x)) {
+            lowp vec4 overlay_color = overlay_snow(normal, pos_ws, dist);
+            material_light_response.z += conf.snow_settings_alt.w * overlay_color.a;
+            albedo = mix(albedo, overlay_color.rgb, overlay_color.a);
         }
 
         // NOTE: PRESHADING OVERLAY ONLY APPLIED ON TILES NOT ON BACKGROUND!!!
@@ -196,7 +203,7 @@ void main() {
 
         shaded_color = albedo;
         if (bool(conf.phong_enabled)) {
-            shaded_color = calculate_illumination(shaded_color, origin, pos_ws, normal, conf.sun_light, conf.amb_light, conf.sun_light_dir.xyz, conf.material_light_response, amb_occlusion, shadow_term);
+            shaded_color = calculate_illumination(shaded_color, origin, pos_ws, normal, conf.sun_light, conf.amb_light, conf.sun_light_dir.xyz, material_light_response, amb_occlusion, shadow_term);
         }
         shaded_color = calculate_atmospheric_light(origin / 1000.0, ray_direction, dist / 1000.0, shaded_color, 10);
         shaded_color = max(vec3(0.0), shaded_color);
@@ -205,8 +212,6 @@ void main() {
     // Blend with atmospheric background:
     lowp vec3 atmoshperic_color = texture(texin_atmosphere, texcoords).rgb;
     out_Color = vec4(mix(atmoshperic_color, shaded_color, alpha), 1.0);
-
-    //out_Color = vec4(1.0, 0.0, 0.0, 1.0);
 
     if (bool(conf.overlay_postshading_enabled) && conf.overlay_mode >= 100u) {
         lowp vec4 overlay_color = vec4(0.0);
@@ -222,89 +227,37 @@ void main() {
 
     // OVERLAY SHADOW MAPS
     if (bool(conf.overlay_shadowmaps_enabled)) {
-        highp float wsize = 0.25;
+        highp float wsize = 1.0 / float(SHADOW_CASCADES);
         highp float invwsize = 1.0/wsize;
         if (texcoords.x < wsize) {
-            if (texcoords.y < wsize) {
-                out_Color = texture(texin_csm1, (texcoords - vec2(0.0, wsize*0.0)) * invwsize).rrrr;
-            } else if (texcoords.y < wsize * 2.0) {
-                out_Color = texture(texin_csm2, (texcoords - vec2(0.0, wsize*1.0)) * invwsize).rrrr;
-            } else if (texcoords.y < wsize * 3.0) {
-                out_Color = texture(texin_csm3, (texcoords - vec2(0.0, wsize*2.0)) * invwsize).rrrr;
-            } else if (texcoords.y < wsize * 4.0) {
-                out_Color = texture(texin_csm4, (texcoords - vec2(0.0, wsize*3.0)) * invwsize).rrrr;
+            for (int i = 0 ; i < SHADOW_CASCADES; i++)
+            {
+                if (texcoords.y < wsize * float(i+1)) {
+                    highp float val = sample_shadow_texture(i, (texcoords - vec2(0.0, wsize*float(i))) * invwsize);
+                    out_Color = vec4(val, val, val, 1.0);
+                    break;
+                }
             }
         }
     }
 
-    // start track calculation:
-    // TODO: check if i can read the vertex_id
-    // TODO: do ray-sphere or ray-cylinder intersections
-    // TODO: consider fov and aspect ratio
-
-    // track vertex id
-    highp uint vertex_id = texture(texin_track_vert_id, texcoords).r;
-
-    // track vertex position
-    highp vec3 track_vert = texelFetch(texin_track, ivec2(int(vertex_id - 1), 0), 0).xyz; 
-    highp vec3 next_track_vert = texelFetch(texin_track, ivec2(int(vertex_id), 0), 0).xyz; 
-    highp vec3 prev_track_vert = texelFetch(texin_track, ivec2(int(vertex_id - 2), 0), 0).xyz; 
-
-    
-
-    if (vertex_id > 0) {
-        
-        // visualize fragemnts
-        //out_Color = vec4(color_from_id_hash(vertex_id), 1);
-
-        Sphere sphere;
-        sphere.position = track_vert;
-        sphere.radius = 7;
-
-        Ray ray;
-        highp vec3 origin = vec3(camera.position);
-        ray.origin = origin;
-        ray.direction = pos_cws / dist;
-
-
-#if 0
-        float t = INF;
-        vec3 point;
-
-        if (IntersectRaySphere(ray, sphere, t, point)) {
-            highp vec3 normal = (point - sphere.position) / sphere.radius;
-            highp vec3 normal_color = (normal + vec3(1)) / vec3(2);
-            out_Color = vec4(normal_color, 1);
-        }
-#else
-
-        Capsule c1;
-        c1.p = track_vert;
-        c1.q = next_track_vert;
-        c1.radius = 5;
-
-        float t1 = intersect_capsule(ray.origin, ray.direction, c1.p, c1.q, c1.radius);
-
-        Capsule c2;
-        c2.p = prev_track_vert;
-        c2.q = track_vert;
-        c2.radius = 5;
-
-        float t2 = intersect_capsule(ray.origin, ray.direction, c2.p, c2.q, c2.radius);
-
-
-        if ((0 < t1 && t1 < INF) || (0 < t2 && t2 < INF)) {
-
-#if 0
-            float t = max(t1, t2);
-
-            if (t < dist) {
-                out_Color = vec4(1,0,0,1);
-            } else {
-                out_Color = vec4(0,0,1,1);
+    // == HEIGHT LINES ==============
+    if (bool(conf.height_lines_enabled) && dist > 0.0) {
+        highp float alpha_line = 1.0 - min((dist / 20000.0), 1.0);
+        highp float line_width = (2.0 + dist / 5000.0) * 5.0;
+        // Calculate steepness based on fragment normal (this alone gives woobly results)
+        highp float steepness = (1.0 - dot(normal, vec3(0.0,0.0,1.0))) / 2.0;
+        // Discretize the steepness -> Doesnt work
+        //float steepness_discretized = int(steepness * 10.0f) / 10.0f;
+        line_width = line_width * max(0.01,steepness);
+        if (alpha_line > 0.05)
+        {
+            highp float alt = pos_cws.z + camera.position.z;
+            highp float alt_rest = (alt - float(int(alt / 100.0)) * 100.0) - line_width / 2.0;
+            if (alt_rest < line_width) {
+                out_Color = vec4(mix(out_Color.rgb, vec3(out_Color.r - 0.2, out_Color.g - 0.2, out_Color.b - 0.2), alpha_line), out_Color.a);
             }
-#endif
         }
-#endif
-    } 
+    }
+
 }

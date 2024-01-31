@@ -38,7 +38,7 @@ unsigned SlotLimiter::limit() const
 
 unsigned SlotLimiter::slots_taken() const
 {
-    return m_in_flight.size();
+    return unsigned(m_in_flight.size());
 }
 
 void SlotLimiter::request_quads(const std::vector<tile::Id>& ids)

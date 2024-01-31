@@ -38,8 +38,8 @@ namespace gl_engine {
 class Framebuffer;
 class ShaderProgram;
 class TileManager;
-class uboSharedConfig;
-class uboShadowConfig;
+struct uboSharedConfig;
+struct uboShadowConfig;
 
 class ShadowMapping
 {

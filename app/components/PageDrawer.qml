@@ -28,6 +28,7 @@ Drawer {
     implicitHeight: map.height
     width: Math.min (parent.width > parent.height ? 400 : 300,
                              Math.min (parent.width, parent.height) * 0.90)
+    Material.elevation: 2;
 
     property string bannerTitle: ""
     property string bannerSubtitle: ""
