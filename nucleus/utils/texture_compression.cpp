@@ -58,7 +58,7 @@ std::vector<uint8_t> nucleus::utils::texture_compression::to_etc1(const QImage& 
 {
     if (qimage.format() != QImage::Format_RGBA8888 && qimage.format() != QImage::Format_RGBX8888) {
         // format is ARGB32 most of the time. we could implement on-the-fly transformation in goofy::compressDXT1 if this is too slow.
-        return to_dxt1(qimage.convertedTo(QImage::Format_RGBX8888));
+        return to_etc1(qimage.convertedTo(QImage::Format_RGBX8888));
     }
     assert(qimage.width() == qimage.height());
     assert(qimage.width() % 16 == 0);
