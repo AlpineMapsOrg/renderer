@@ -186,12 +186,20 @@ TEST_CASE("gl compressed textures")
         Framebuffer b(Framebuffer::DepthFormat::None, {{Framebuffer::ColourFormat::RGBA8}}, {256, 256});
         b.bind();
 #ifdef __EMSCRIPTEN__
+        // clang-format off
         int gl_texture_format = EM_ASM_INT({
+            var canvas = document.createElement('canvas');
+            var gl = canvas.getContext("webgl2");
             const ext = gl.getExtension("WEBGL_compressed_texture_etc1");
+            if (ext === null)
+                return 0;
             return ext.COMPRESSED_RGB_ETC1_WEBGL;
         });
+        // clang-format on
+        if (gl_texture_format == 0)
+            gl_texture_format = GL_COMPRESSED_RGB8_ETC2; // not on mobile
 #else
-        constexpr gl_texture_format = GL_COMPRESSED_RGB8_ETC2;
+        constexpr auto gl_texture_format = GL_COMPRESSED_RGB8_ETC2;
 #endif
 
         const auto compressed = nucleus::utils::texture_compression::to_etc1(test_texture);
