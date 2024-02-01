@@ -17,8 +17,16 @@
  *****************************************************************************/
 
 #include "Texture.h"
+#include "nucleus/utils/texture_compression.h"
 
 #include <QOpenGLFunctions>
+#ifdef __EMSCRIPTEN__
+#include <emscripten.h>
+#include <emscripten/val.h>
+#endif
+#ifdef ANDROID
+#include <GLES3/gl3.h>
+#endif
 
 gl_engine::Texture::Texture(Target target)
     : m_target(target)
@@ -40,4 +48,56 @@ void gl_engine::Texture::bind(unsigned int texture_unit)
     QOpenGLFunctions* f = QOpenGLContext::currentContext()->functions();
     f->glActiveTexture(GL_TEXTURE0 + texture_unit);
     f->glBindTexture(GLenum(m_target), m_id);
+}
+
+GLenum gl_engine::Texture::compressed_texture_format()
+{
+    // select between
+    // DXT1, also called s3tc, old desktop compression
+    // ETC1, old mobile compression
+#if defined(__EMSCRIPTEN__)
+    // clang-format off
+    static int gl_texture_format = EM_ASM_INT({
+        var canvas = document.createElement('canvas');
+        var gl = canvas.getContext("webgl2");
+        const ext = gl.getExtension("WEBGL_compressed_texture_etc1");
+        if (ext === null)
+            return 0;
+        return ext.COMPRESSED_RGB_ETC1_WEBGL;
+    });
+    qDebug() << "gl_texture_format from js: " << gl_texture_format;
+    // clang-format on
+    if (gl_texture_format == 0) {
+        gl_texture_format = GL_COMPRESSED_RGB_S3TC_DXT1_EXT; // not on mobile
+    }
+    return gl_texture_format;
+#elif defined(__ANDROID__)
+    return GL_COMPRESSED_RGB8_ETC2;
+#else
+    return GL_COMPRESSED_RGB_S3TC_DXT1_EXT;
+#endif
+}
+
+std::vector<uint8_t> gl_engine::Texture::compress(const QImage& image)
+{
+#if defined(__EMSCRIPTEN__)
+    // clang-format off
+    static const int gl_texture_format = EM_ASM_INT({
+        var canvas = document.createElement('canvas');
+        var gl = canvas.getContext("webgl2");
+        const ext = gl.getExtension("WEBGL_compressed_texture_etc1");
+        if (ext === null)
+            return 0;
+        return ext.COMPRESSED_RGB_ETC1_WEBGL;
+    });
+    // clang-format on
+    if (gl_texture_format == 0) {
+        return nucleus::utils::texture_compression::to_dxt1(image);
+    }
+    return nucleus::utils::texture_compression::to_etc1(image);
+#elif defined(__ANDROID__)
+    return nucleus::utils::texture_compression::to_etc1(image);
+#else
+    return nucleus::utils::texture_compression::to_dxt1(image);
+#endif
 }

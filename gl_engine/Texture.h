@@ -18,6 +18,7 @@
 
 #pragma once
 
+#include <QImage>
 #include <qopengl.h>
 
 namespace gl_engine {
@@ -30,9 +31,12 @@ public:
     ~Texture();
 
     void bind(unsigned texture_unit);
+    static GLenum compressed_texture_format();
+    static std::vector<uint8_t> compress(const QImage& image);
 
 private:
     GLuint m_id = -1;
     Target m_target = Target::_2d;
 };
+
 } // namespace gl_engine
