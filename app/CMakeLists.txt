@@ -31,6 +31,8 @@ qt_add_executable(alpineapp
     timing/TimerFrontendObject.h timing/TimerFrontendObject.cpp
 )
 
+
+
 qt_add_qml_module(alpineapp
     URI app
     VERSION 1.0
@@ -44,7 +46,6 @@ qt_add_qml_module(alpineapp
         SearchResults.qml
         Settings.qml
         Coordinates.qml
-        StatsWindow.qml
         GeneralSettings.qml
         GlSettings.qml
         FloatingActionButtonGroup.qml
@@ -123,7 +124,13 @@ qt_add_resources(alpineapp "fonts"
 set_target_properties(alpineapp PROPERTIES
     QT_ANDROID_PACKAGE_SOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/android
 )
-target_link_libraries(alpineapp PUBLIC nucleus gl_engine Qt::Quick Qt::QuickControls2 Qt::Charts)
+target_link_libraries(alpineapp PUBLIC gl_engine Qt::Quick Qt::QuickControls2)
+if (ALP_ENABLE_DEBUG_GUI)
+    message(WARNING building alpine app with debug gui)
+    qt_target_qml_sources(alpineapp QML_FILES StatsWindow.qml)
+    target_link_libraries(alpineapp PUBLIC Qt::Charts Qt::Widgets)
+    target_compile_definitions(alpineapp PUBLIC ALP_ENABLE_DEBUG_GUI)
+endif()
 if (ALP_ENABLE_POSITIONING)
     target_link_libraries(alpineapp PUBLIC Qt::Positioning)
     target_compile_definitions(alpineapp PUBLIC "ALP_ENABLE_GNSS")
