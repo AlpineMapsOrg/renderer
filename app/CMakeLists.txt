@@ -103,20 +103,20 @@ qt_add_resources(alpineapp "fonts"
     BASE ${alpineapp_fonts_SOURCE_DIR}/SourceSans/
     PREFIX "/fonts"
     FILES
-    ${alpineapp_fonts_SOURCE_DIR}/SourceSans/SourceSans3-BlackIt.ttf
-    ${alpineapp_fonts_SOURCE_DIR}/SourceSans/SourceSans3-BoldIt.ttf
-    ${alpineapp_fonts_SOURCE_DIR}/SourceSans/SourceSans3-ExtraLightIt.ttf
-    ${alpineapp_fonts_SOURCE_DIR}/SourceSans/SourceSans3-It.ttf
+    # ${alpineapp_fonts_SOURCE_DIR}/SourceSans/SourceSans3-BlackIt.ttf
+    # ${alpineapp_fonts_SOURCE_DIR}/SourceSans/SourceSans3-BoldIt.ttf
+    # ${alpineapp_fonts_SOURCE_DIR}/SourceSans/SourceSans3-ExtraLightIt.ttf
+    # ${alpineapp_fonts_SOURCE_DIR}/SourceSans/SourceSans3-It.ttf
     ${alpineapp_fonts_SOURCE_DIR}/SourceSans/SourceSans3-Light.ttf
-    ${alpineapp_fonts_SOURCE_DIR}/SourceSans/SourceSans3-Medium.ttf
-    ${alpineapp_fonts_SOURCE_DIR}/SourceSans/SourceSans3-SemiboldIt.ttf
-    ${alpineapp_fonts_SOURCE_DIR}/SourceSans/SourceSans3-Black.ttf
+    # ${alpineapp_fonts_SOURCE_DIR}/SourceSans/SourceSans3-Medium.ttf
+    # ${alpineapp_fonts_SOURCE_DIR}/SourceSans/SourceSans3-SemiboldIt.ttf
+    # ${alpineapp_fonts_SOURCE_DIR}/SourceSans/SourceSans3-Black.ttf
     ${alpineapp_fonts_SOURCE_DIR}/SourceSans/SourceSans3-Bold.ttf
-    ${alpineapp_fonts_SOURCE_DIR}/SourceSans/SourceSans3-ExtraLight.ttf
-    ${alpineapp_fonts_SOURCE_DIR}/SourceSans/SourceSans3-LightIt.ttf
-    ${alpineapp_fonts_SOURCE_DIR}/SourceSans/SourceSans3-MediumIt.ttf
+    # ${alpineapp_fonts_SOURCE_DIR}/SourceSans/SourceSans3-ExtraLight.ttf
+    # ${alpineapp_fonts_SOURCE_DIR}/SourceSans/SourceSans3-LightIt.ttf
+    # ${alpineapp_fonts_SOURCE_DIR}/SourceSans/SourceSans3-MediumIt.ttf
     ${alpineapp_fonts_SOURCE_DIR}/SourceSans/SourceSans3-Regular.ttf
-    ${alpineapp_fonts_SOURCE_DIR}/SourceSans/SourceSans3-Semibold.ttf
+    # ${alpineapp_fonts_SOURCE_DIR}/SourceSans/SourceSans3-Semibold.ttf
 )
 
 
