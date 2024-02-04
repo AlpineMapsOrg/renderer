@@ -23,8 +23,9 @@
 #include "nucleus/camera/Definition.h"
 #include "nucleus/event_parameter.h"
 #include "gl_engine/UniformBufferObjects.h"
-#include "TimerFrontendManager.h"
+#include "timing/TimerFrontendManager.h"
 #include "nucleus/GPX.h"
+#include "AppSettings.h"
 #include <QQuickFramebufferObject>
 #include <QTimer>
 #include <QList>
@@ -56,7 +57,7 @@ class TerrainRendererItem : public QQuickFramebufferObject {
     Q_PROPERTY(unsigned int selected_camera_position_index MEMBER m_selected_camera_position_index WRITE set_selected_camera_position_index)
     Q_PROPERTY(bool hud_visible READ hud_visible WRITE set_hud_visible NOTIFY hud_visible_changed)
     Q_PROPERTY(QVector2D sun_angles READ sun_angles WRITE set_sun_angles NOTIFY sun_angles_changed)
-    Q_PROPERTY(bool link_gl_sundirection READ link_gl_sundirection WRITE set_link_gl_sundirection NOTIFY link_gl_sundirection_changed)
+    // Q_PROPERTY(bool link_gl_sundirection READ link_gl_sundirection WRITE set_link_gl_sundirection NOTIFY link_gl_sundirection_changed)
 
 public:
     explicit TerrainRendererItem(QQuickItem* parent = 0);

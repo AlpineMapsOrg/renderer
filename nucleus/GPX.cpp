@@ -110,7 +110,7 @@ std::vector<glm::vec3> to_world_points(const gpx::Gpx& gpx)
 
     std::vector<glm::vec3> points(track.size());
 
-    for (int i = 0; i < track.size(); i++) {
+    for (auto i = 0U; i < track.size(); i++) {
         points[i] = glm::vec3(srs::lat_long_alt_to_world(track[i]));
     }
 
@@ -125,10 +125,9 @@ std::vector<glm::vec3> to_world_ribbon(const std::vector<glm::vec3>& points, flo
 
     const glm::vec3 offset = glm::vec3(0.0f, 0.0f, width);
 
-    for (size_t i = 0; i < points.size() - 1U; i++)
+    for (auto i = 0U; i < points.size() - 1U; i++)
     {
         auto a = points[i];
-        auto b = points[i + 1];
 
         // triangle 2
         ribbon.insert(ribbon.end(), {
@@ -187,7 +186,7 @@ void gaussian_filter(std::vector<glm::vec3>& points, float sigma)
     // normalize kernel
     for (int i = 0; i < kernel_size; i++) kernel[i] /= kernel_sum;
 
-    for (int i = radius; i < points.size() - radius; i++)
+    for (int i = radius; i < static_cast<int>(points.size()) - radius; i++)
     {
         glm::vec3 value(0.0f);
 

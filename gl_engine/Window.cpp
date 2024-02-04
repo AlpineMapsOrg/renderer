@@ -39,6 +39,7 @@
 #include "ShaderProgram.h"
 #include "ShadowMapping.h"
 #include "TileManager.h"
+#include "TrackManager.h"
 #include "Window.h"
 #include "helpers.h"
 #include <QOpenGLFramebufferObject>
@@ -50,16 +51,6 @@
 #include <QSequentialAnimationGroup>
 #include <QTimer>
 #include <glm/glm.hpp>
-#include "DebugPainter.h"
-#include "Framebuffer.h"
-#include "ShaderManager.h"
-#include "ShaderProgram.h"
-#include "TileManager.h"
-#include "Window.h"
-#include "helpers.h"
-#include "SSAO.h"
-#include "ShadowMapping.h"
-
 #include <glm/glm.hpp>
 #include <glm/gtx/transform.hpp>
 
@@ -135,7 +126,7 @@ void Window::initialise_gpu()
             TextureDefinition { Framebuffer::ColourFormat::RGBA32F }, // Position WCS and distance (distance is optional, but i use it directly for a little speed improvement)
             TextureDefinition { Framebuffer::ColourFormat::RG16UI }, // Octahedron Normals
             TextureDefinition { Framebuffer::ColourFormat::RGBA8 }, // Discretized Encoded Depth for readback IMPORTANT: IF YOU MOVE THIS YOU HAVE TO ADAPT THE GET DEPTH FUNCTION
-            TextureDefinition{ Framebuffer::ColourFormat::R32UI   },      // VertexID
+            TextureDefinition{ Framebuffer::ColourFormat::R32UI },      // VertexID
         });
 
     m_atmospherebuffer = std::make_unique<Framebuffer>(Framebuffer::DepthFormat::None, std::vector{ TextureDefinition{Framebuffer::ColourFormat::RGBA8} });
@@ -268,8 +259,8 @@ void Window::paint(QOpenGLFramebufferObject* framebuffer)
         const GLfloat clearEncDepthColor[] = { 0.0f, 0.0f, 0.0f, 0.0f };
         f->glClearBufferfv(GL_COLOR, 3, clearEncDepthColor);
         // Clear Track VertexID
-        f->glClearBufferuiv(GL_COLOR, 4, clearEncDepthColor);
-
+        const GLuint clearVertexIdColor[4] = {0};
+        f->glClearBufferuiv(GL_COLOR, 4, clearVertexIdColor);
         // Clear Depth-Buffer
         // f->glClearDepthf(0.0f); // for reverse z
         f->glClear(GL_DEPTH_BUFFER_BIT);

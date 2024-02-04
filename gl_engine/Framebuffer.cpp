@@ -318,6 +318,7 @@ T Framebuffer::read_colour_attachment_pixel(unsigned int index, const glm::dvec2
     case Framebuffer::ColourFormat::RGB16F:
     case Framebuffer::ColourFormat::RGBA16F:
     case Framebuffer::ColourFormat::R32UI: // fails on linux firefox
+    case Framebuffer::ColourFormat::R32I:
         // unsupported or untested.
         // you really should add a unit test if you move something down to the supported section
         // as the support accross platforms (webassembly, android, ios?) is patchy
