@@ -31,7 +31,6 @@
 #include <QQmlApplicationEngine>
 #include <QQmlContext>
 #include <QQmlEngine>
-#include <QQuickStyle>
 #include <QQuickView>
 #include <QRunnable>
 #include <QSurfaceFormat>
