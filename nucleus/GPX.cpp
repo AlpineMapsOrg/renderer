@@ -138,6 +138,25 @@ std::vector<glm::vec3> to_world_ribbon(const std::vector<glm::vec3>& points, flo
     return ribbon;
 }
 
+std::vector<glm::vec3> to_triangle_ribbon(const std::vector<glm::vec3>& points, float width)
+{
+    std::vector<glm::vec3> ribbon;
+
+    const glm::vec3 offset = glm::vec3(0.0f, 0.0f, width);
+
+    for (std::size_t i = 0; i < points.size() - 1U; ++i)
+    {
+        glm::vec3 a = points[i];
+        glm::vec3 b = points[i + 1];
+
+        ribbon.insert(ribbon.end(), {
+            a - offset, a + offset, b - offset, // triangle 1
+            b - offset, b + offset, a + offset, // triangle 2
+        });
+
+    }
+    return ribbon;
+}
 
 std::vector<glm::vec3> to_world_ribbon_with_normals(const std::vector<glm::vec3>& points, float width)
 {
@@ -163,20 +182,20 @@ std::vector<glm::vec3> to_world_ribbon_with_normals(const std::vector<glm::vec3>
 
 }
 
-// 1 dimensional gaussian 
-float gaussian_1D(float x, float sigma = 1.0f) 
+// 1 dimensional gaussian
+float gaussian_1D(float x, float sigma = 1.0f)
 {
     return (1.0 / std::sqrt(2 * M_PI * sigma)) * std::exp(-(x * x) / (2 * (sigma * sigma)));
 }
 
-void gaussian_filter(std::vector<glm::vec3>& points, float sigma)
+void apply_gaussian_filter(std::vector<glm::vec3>& points, float sigma)
 {
     const int radius = 2;
     const int kernel_size = (radius * 2) + 1;
     float kernel[kernel_size];
     float kernel_sum = 0.0f;
 
-    // create kernel 
+    // create kernel
     for (int x = -radius; x <= radius; x++)
     {
         kernel[x + radius] = gaussian_1D(static_cast<float>(x), sigma);
@@ -190,7 +209,7 @@ void gaussian_filter(std::vector<glm::vec3>& points, float sigma)
     {
         glm::vec3 value(0.0f);
 
-        for (int j = -radius; j <= radius; j++) 
+        for (int j = -radius; j <= radius; j++)
             value += points[i + j] * kernel[j + radius];
 
         points[i] = value;

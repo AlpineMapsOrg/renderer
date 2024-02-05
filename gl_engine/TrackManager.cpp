@@ -90,9 +90,6 @@ namespace gl_engine
             track.data_texture->bind(8);
             track.vao->bind();
 
-#if (RENDER_STRATEGY == USE_POINTS)
-            f->glDrawArrays(GL_LINE_STRIP, 0, track.point_count);
-#else
             funcs->glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
             shader->set_uniform("enable_intersection", true);
             f->glDrawArrays(GL_TRIANGLE_STRIP, 0, track.point_count * 2 - 2);
@@ -100,8 +97,6 @@ namespace gl_engine
             funcs->glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
             shader->set_uniform("enable_intersection", false);
             f->glDrawArrays(GL_TRIANGLE_STRIP, 0, track.point_count * 2 - 2);
-                
-           #endif
         }
 
         shader->release();
@@ -110,30 +105,25 @@ namespace gl_engine
 
     void TrackManager::add_track(const nucleus::gpx::Gpx &gpx, ShaderProgram* shader)
     {
-        QOpenGLExtraFunctions *f = QOpenGLContext::currentContext()->extraFunctions();
+        //QOpenGLExtraFunctions *f = QOpenGLContext::currentContext()->extraFunctions();
+        (void)shader;
 
-        qDebug() << "TrackManager::add_track()\n";
-
+        // transform from latitude and longitude into renderer world
+        // coordinates
         std::vector<glm::vec3> points = nucleus::to_world_points(gpx);
 
         // reduce variance in points
-#if (SMOOTH_POINTS == 1)
-        nucleus::gaussian_filter(points, 1.0f);
-#endif
+        nucleus::apply_gaussian_filter(points, 1.0f);
 
         size_t point_count = points.size();
 
-#if (RENDER_STRATEGY == USE_RIBBON)
-        std::vector<glm::vec3> ribbon = nucleus::to_world_ribbon(points, 10.0f);
-#elif (RENDER_STRATEGY == USE_RIBBON_WITH_NORMALS)
-        std::vector<glm::vec3> ribbon = nucleus::to_world_ribbon_with_normals(points, 0.0f);
-#endif
-
+        //std::vector<glm::vec3> ribbon = nucleus::to_world_ribbon_with_normals(points, 0.0f);
 
         std::vector<glm::vec3> basic_ribbon = nucleus::to_world_ribbon(points, 0.0f);
 
         PolyLine polyline;
 
+        //
         polyline.data_texture = std::make_unique<QOpenGLTexture>(QOpenGLTexture::Target::Target2D);
         polyline.data_texture->setFormat(QOpenGLTexture::TextureFormat::RGB32F);
         polyline.data_texture->setSize(basic_ribbon.size(), 1);
@@ -143,46 +133,35 @@ namespace gl_engine
         polyline.data_texture->allocateStorage();
         polyline.data_texture->setData(QOpenGLTexture::RGB, QOpenGLTexture::Float32, basic_ribbon.data());
 
+        // even if the vao is not used, we still need a dummy vao
         polyline.vao = std::make_unique<QOpenGLVertexArrayObject>();
         polyline.vao->create();
         polyline.vao->bind();
 
+
+#if 0
         polyline.vbo = std::make_unique<QOpenGLBuffer>(QOpenGLBuffer::VertexBuffer);
         polyline.vbo->create();
+
         polyline.vbo->bind();
         polyline.vbo->setUsagePattern(QOpenGLBuffer::StaticDraw);
 
-#if (RENDER_STRATEGY == USE_POINTS)
-        polyline.vbo->allocate(points.data(), helpers::bufferLengthInBytes(points));
-#elif (RENDER_STRATEGY == USE_RIBBON || RENDER_STRATEGY == USE_RIBBON_WITH_NORMALS)
         polyline.vbo->allocate(ribbon.data(), helpers::bufferLengthInBytes(ribbon));
-#else
-#error Unknown Render Strategy
-#endif
 
         const auto position_attrib_location = shader->attribute_location("a_position");
         f->glEnableVertexAttribArray(position_attrib_location);
 
-#if (RENDER_STRATEGY == USE_POINTS || RENDER_STRATEGY == USE_RIBBON)
-        f->glVertexAttribPointer(position_attrib_location, 3, GL_FLOAT, GL_FALSE, 1 * sizeof(glm::vec3), nullptr);
-#endif
-
-#if (RENDER_STRATEGY == USE_RIBBON_WITH_NORMALS)
 
         f->glVertexAttribPointer(position_attrib_location, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(glm::vec3), nullptr);
 
         const auto normal_attrib_location = shader->attribute_location("a_tangent");
         f->glEnableVertexAttribArray(normal_attrib_location);
         f->glVertexAttribPointer(normal_attrib_location, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(glm::vec3), (void*)(sizeof(glm::vec3)));
-#endif
 
-#if 1
         const auto next_position_attrib_location = shader->attribute_location("a_next_position");
-        assert(next_position_attrib_location <= 29);
         f->glEnableVertexAttribArray(next_position_attrib_location);
         f->glVertexAttribPointer(next_position_attrib_location, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(glm::vec3), (void*)(2 * sizeof(glm::vec3)));
 #endif
-
         polyline.point_count = point_count;
 
         polyline.vao->release();
