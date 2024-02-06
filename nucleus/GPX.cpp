@@ -119,7 +119,7 @@ std::vector<glm::vec3> to_world_points(const gpx::Gpx& gpx)
     return points;
 }
 
-std::vector<glm::vec3> to_world_ribbon(const std::vector<glm::vec3>& points, float width)
+std::vector<glm::vec3> triangle_strip_ribbon(const std::vector<glm::vec3>& points, float width)
 {
     std::vector<glm::vec3> ribbon;
 
@@ -138,27 +138,7 @@ std::vector<glm::vec3> to_world_ribbon(const std::vector<glm::vec3>& points, flo
     return ribbon;
 }
 
-std::vector<glm::vec3> to_triangle_ribbon(const std::vector<glm::vec3>& points, float width)
-{
-    std::vector<glm::vec3> ribbon;
-
-    const glm::vec3 offset = glm::vec3(0.0f, 0.0f, width);
-
-    for (std::size_t i = 0; i < points.size() - 1U; ++i)
-    {
-        glm::vec3 a = points[i];
-        glm::vec3 b = points[i + 1];
-
-        ribbon.insert(ribbon.end(), {
-            a - offset, a + offset, b - offset, // triangle 1
-            b - offset, b + offset, a + offset, // triangle 2
-        });
-
-    }
-    return ribbon;
-}
-
-std::vector<glm::vec3> to_world_ribbon_with_normals(const std::vector<glm::vec3>& points, float width)
+std::vector<glm::vec3> triangles_ribbon(const std::vector<glm::vec3>& points, float width)
 {
     std::vector<glm::vec3> ribbon;
 
@@ -169,17 +149,21 @@ std::vector<glm::vec3> to_world_ribbon_with_normals(const std::vector<glm::vec3>
         auto a = points[i];
         auto b = points[i + 1];
 
-        // tangent is negative for vertices below the original line
-        glm::vec3 tangent = glm::normalize(b - a);
-
+        // triangle 1
         ribbon.insert(ribbon.end(), {
-            a - offset, -tangent, b,
-            a + offset,  tangent, b,
+            a + offset,
+            b - offset,
+            a - offset
+        });
+
+        // triangle 2
+        ribbon.insert(ribbon.end(), {
+            a + offset,
+            b + offset,
+            b - offset
         });
     }
     return ribbon;
-
-
 }
 
 // 1 dimensional gaussian

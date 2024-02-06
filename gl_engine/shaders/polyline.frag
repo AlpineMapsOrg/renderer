@@ -30,7 +30,6 @@ void main() {
     // specular hightlight?
 
     if (!enable_intersection) {
-
         texout_albedo = vec3(1,0,0);
     } else {
 
@@ -39,16 +38,16 @@ void main() {
 
 
     vec2 texcoords = gl_FragCoord.xy / resolution.xy;
-    
+
     //texout_albedo = vec3(texcoords, 0);
 
 #if 1 // intersect in fragment shader
 
     // track vertex position
-    highp vec3 track_vert = texelFetch(texin_track, ivec2(int(vertex_id - 1), 0), 0).xyz; 
-    highp vec3 next_track_vert = texelFetch(texin_track, ivec2(int(vertex_id), 0), 0).xyz; 
-    highp vec3 prev_track_vert = texelFetch(texin_track, ivec2(int(vertex_id - 2), 0), 0).xyz; 
-    
+    uint id = vertex_id / 3;
+    highp vec3 track_vert = texelFetch(texin_track, ivec2(int(id), 0), 0).xyz;
+    highp vec3 next_track_vert = texelFetch(texin_track, ivec2(int(id), 0), 0).xyz;
+    highp vec3 prev_track_vert = texelFetch(texin_track, ivec2(int(id - 2), 0), 0).xyz;
 
     highp vec4 pos_dist = texture(texin_position, texcoords);
     highp vec3 terrain_pos = pos_dist.xyz;
@@ -60,7 +59,7 @@ void main() {
     ray.origin = origin;
     ray.direction = terrain_pos / dist;
 
-#if 0
+#if 1
     Sphere sphere;
     sphere.position = track_vert;
     sphere.radius = 7;

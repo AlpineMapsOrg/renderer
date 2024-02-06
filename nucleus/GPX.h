@@ -28,12 +28,10 @@ namespace gpx {
 std::vector<glm::vec3> to_world_points(const gpx::Gpx& gpx);
 
 // for rendering with GL_TRIANGLE_STRIP
-std::vector<glm::vec3> to_world_ribbon(const std::vector<glm::vec3>& points, float width);
+std::vector<glm::vec3> triangle_strip_ribbon(const std::vector<glm::vec3>& points, float width);
 
 // for rendering with GL_TRIANGLES
-std::vector<glm::vec3> to_triangle_ribbon(const std::vector<glm::vec3>& points, float width);
-
-std::vector<glm::vec3> to_world_ribbon_with_normals(const std::vector<glm::vec3>& points, float width);
+std::vector<glm::vec3> triangles_ribbon(const std::vector<glm::vec3>& points, float width);
 
 void apply_gaussian_filter(std::vector<glm::vec3>& points, float sigma = 1.0f);
 

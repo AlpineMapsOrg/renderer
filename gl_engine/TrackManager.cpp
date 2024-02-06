@@ -63,6 +63,9 @@ void TrackManager::draw(const nucleus::camera::Definition& camera, ShaderProgram
     funcs->glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
 #endif
 
+
+    funcs->glDisable(GL_CULL_FACE);
+
     auto matrix = camera.local_view_projection_matrix(camera.position());
 
     shader->bind();
@@ -77,23 +80,25 @@ void TrackManager::draw(const nucleus::camera::Definition& camera, ShaderProgram
         track.data_texture->bind(8);
         track.vao->bind();
 
-        // funcs->glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
-        // shader->set_uniform("enable_intersection", true);
-        // f->glDrawArrays(GL_TRIANGLES, 0, track.point_count * 2 - 2);
+        funcs->glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+        shader->set_uniform("enable_intersection", true);
+        f->glDrawArrays(GL_TRIANGLES, 0, (track.point_count - 1) * 3);
 
         funcs->glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
         shader->set_uniform("enable_intersection", false);
-        f->glDrawArrays(GL_TRIANGLE_STRIP, 0, track.point_count * 2 - 2);
+        f->glDrawArrays(GL_TRIANGLES, 0, (track.point_count - 1) * 3);
     }
 
     shader->release();
     funcs->glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+    funcs->glEnable(GL_CULL_FACE);
 }
 
 void TrackManager::add_track(const nucleus::gpx::Gpx& gpx, ShaderProgram* shader)
 {
-    // QOpenGLExtraFunctions *f = QOpenGLContext::currentContext()->extraFunctions();
+    QOpenGLExtraFunctions *f = QOpenGLContext::currentContext()->extraFunctions();
     (void)shader;
+
 
     // transform from latitude and longitude into renderer world
     // coordinates
@@ -104,53 +109,51 @@ void TrackManager::add_track(const nucleus::gpx::Gpx& gpx, ShaderProgram* shader
 
     size_t point_count = points.size();
 
-    // std::vector<glm::vec3> ribbon = nucleus::to_world_ribbon_with_normals(points, 0.0f);
-
-#if 1
-    std::vector<glm::vec3> basic_ribbon = nucleus::to_world_ribbon(points, 0.0f);
+#if 0
+    std::vector<glm::vec3> basic_ribbon = nucleus::triangle_strip_ribbon(points, 5.0f);
 #else
-    std::vector<glm::vec3> basic_ribbon = nucleus::to_triangle_ribbon(points, 0.0f);
+    std::vector<glm::vec3> basic_ribbon = nucleus::triangles_ribbon(points, 5.0f);
 #endif
 
     PolyLine polyline;
 
-    //
+    // create texture to hold the vertex data
     polyline.data_texture = std::make_unique<QOpenGLTexture>(QOpenGLTexture::Target::Target2D);
     polyline.data_texture->setFormat(QOpenGLTexture::TextureFormat::RGB32F);
-    polyline.data_texture->setSize(basic_ribbon.size(), 1);
+    polyline.data_texture->setSize(points.size(), 1);
     polyline.data_texture->setAutoMipMapGenerationEnabled(false);
     polyline.data_texture->setMinMagFilters(QOpenGLTexture::Filter::Nearest, QOpenGLTexture::Filter::Nearest);
     polyline.data_texture->setWrapMode(QOpenGLTexture::WrapMode::ClampToEdge);
     polyline.data_texture->allocateStorage();
-    polyline.data_texture->setData(QOpenGLTexture::RGB, QOpenGLTexture::Float32, basic_ribbon.data());
+    polyline.data_texture->setData(QOpenGLTexture::RGB, QOpenGLTexture::Float32, points.data());
 
     // even if the vao is not used, we still need a dummy vao
     polyline.vao = std::make_unique<QOpenGLVertexArrayObject>();
     polyline.vao->create();
     polyline.vao->bind();
 
-#if 0
-        polyline.vbo = std::make_unique<QOpenGLBuffer>(QOpenGLBuffer::VertexBuffer);
-        polyline.vbo->create();
+#if 1
+    polyline.vbo = std::make_unique<QOpenGLBuffer>(QOpenGLBuffer::VertexBuffer);
+    polyline.vbo->create();
 
-        polyline.vbo->bind();
-        polyline.vbo->setUsagePattern(QOpenGLBuffer::StaticDraw);
+    polyline.vbo->bind();
+    polyline.vbo->setUsagePattern(QOpenGLBuffer::StaticDraw);
 
-        polyline.vbo->allocate(ribbon.data(), helpers::bufferLengthInBytes(ribbon));
+    polyline.vbo->allocate(basic_ribbon.data(), helpers::bufferLengthInBytes(basic_ribbon));
 
-        const auto position_attrib_location = shader->attribute_location("a_position");
-        f->glEnableVertexAttribArray(position_attrib_location);
+    const auto position_attrib_location = shader->attribute_location("a_position");
+    f->glEnableVertexAttribArray(position_attrib_location);
 
 
-        f->glVertexAttribPointer(position_attrib_location, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(glm::vec3), nullptr);
+    f->glVertexAttribPointer(position_attrib_location, 3, GL_FLOAT, GL_FALSE, sizeof(glm::vec3), nullptr);
 
-        const auto normal_attrib_location = shader->attribute_location("a_tangent");
-        f->glEnableVertexAttribArray(normal_attrib_location);
-        f->glVertexAttribPointer(normal_attrib_location, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(glm::vec3), (void*)(sizeof(glm::vec3)));
+    //const auto normal_attrib_location = shader->attribute_location("a_tangent");
+    //f->glEnableVertexAttribArray(normal_attrib_location);
+    //f->glVertexAttribPointer(normal_attrib_location, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(glm::vec3), (void*)(sizeof(glm::vec3)));
 
-        const auto next_position_attrib_location = shader->attribute_location("a_next_position");
-        f->glEnableVertexAttribArray(next_position_attrib_location);
-        f->glVertexAttribPointer(next_position_attrib_location, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(glm::vec3), (void*)(2 * sizeof(glm::vec3)));
+    //const auto next_position_attrib_location = shader->attribute_location("a_next_position");
+    //f->glEnableVertexAttribArray(next_position_attrib_location);
+    //f->glVertexAttribPointer(next_position_attrib_location, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(glm::vec3), (void*)(2 * sizeof(glm::vec3)));
 #endif
     polyline.point_count = point_count;
 
