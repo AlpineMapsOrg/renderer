@@ -23,11 +23,11 @@
 #include <QOpenGLContext>
 #include <QOpenGLExtraFunctions>
 #include <QOpenGLShaderProgram>
-#include <QOpenGLVertexArrayObject>
 #include <QOpenGLVersionFunctionsFactory>
+#include <QOpenGLVertexArrayObject>
 
 #if (defined(__linux) && !defined(__ANDROID__)) || defined(_WIN32) || defined(_WIN64)
-#include <QOpenGLFunctions_3_3_Core>    // for wireframe mode
+#include <QOpenGLFunctions_3_3_Core> // for wireframe mode
 #endif
 
 #include <iostream> // TODO: remove this
@@ -35,109 +35,99 @@
 #include "Polyline.h"
 #include "ShaderProgram.h"
 
-#define USE_POINTS                      0
-#define USE_RIBBON                      1
-#define USE_RIBBON_WITH_NORMALS         2
+#define WIREFRAME 1
 
-#define RENDER_STRATEGY USE_RIBBON_WITH_NORMALS
+namespace gl_engine {
 
-#define WIREFRAME                       1
-#define SMOOTH_POINTS                   1
-
-namespace gl_engine
+TrackManager::TrackManager(QObject* parent)
+    : QObject(parent)
 {
+}
 
-    TrackManager::TrackManager(QObject *parent)
-        : QObject(parent)
-    {
+void TrackManager::init() { assert(QOpenGLContext::currentContext()); }
+
+QOpenGLTexture* TrackManager::track_texture()
+{
+    if (m_tracks.size() == 0) {
+        return nullptr;
     }
+    return m_tracks[0].data_texture.get();
+}
 
-    void TrackManager::init()
-    {
-        assert(QOpenGLContext::currentContext());
-    }
-
-
-    QOpenGLTexture* TrackManager::track_texture()
-    {
-        if (m_tracks.size() == 0) {
-            return nullptr;
-        }
-        return m_tracks[0].data_texture.get();
-    }
-
-    void TrackManager::draw(const nucleus::camera::Definition &camera, ShaderProgram* shader) const
-    {
-        QOpenGLExtraFunctions *f = QOpenGLContext::currentContext()->extraFunctions();
-        auto funcs = QOpenGLVersionFunctionsFactory::get<QOpenGLFunctions_3_3_Core>(QOpenGLContext::currentContext()); // for wireframe mode
+void TrackManager::draw(const nucleus::camera::Definition& camera, ShaderProgram* shader) const
+{
+    QOpenGLExtraFunctions* f = QOpenGLContext::currentContext()->extraFunctions();
+    auto funcs = QOpenGLVersionFunctionsFactory::get<QOpenGLFunctions_3_3_Core>(QOpenGLContext::currentContext()); // for wireframe mode
 
 #if WIREFRAME
-        funcs->glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+    funcs->glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
 #endif
 
-        auto matrix = camera.local_view_projection_matrix(camera.position());
+    auto matrix = camera.local_view_projection_matrix(camera.position());
 
-        shader->bind();
-        shader->set_uniform("matrix", matrix);
-        shader->set_uniform("camera_position", glm::vec3(camera.position()));
-        shader->set_uniform("width", width);
-        shader->set_uniform("aspect", 16.0f / 9.0f); // TODO: make this dynamic
-        shader->set_uniform("visualize_steepness", false); // TODO: make this dynamic
-        shader->set_uniform("texin_track", 8);
+    shader->bind();
+    shader->set_uniform("matrix", matrix);
+    shader->set_uniform("camera_position", glm::vec3(camera.position()));
+    shader->set_uniform("width", width);
+    shader->set_uniform("aspect", 16.0f / 9.0f); // TODO: make this dynamic
+    shader->set_uniform("visualize_steepness", false); // TODO: make this dynamic
+    shader->set_uniform("texin_track", 8);
 
-        for (const PolyLine &track : m_tracks)
-        {
-            track.data_texture->bind(8);
-            track.vao->bind();
+    for (const PolyLine& track : m_tracks) {
+        track.data_texture->bind(8);
+        track.vao->bind();
 
-            funcs->glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
-            shader->set_uniform("enable_intersection", true);
-            f->glDrawArrays(GL_TRIANGLE_STRIP, 0, track.point_count * 2 - 2);
+        // funcs->glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+        // shader->set_uniform("enable_intersection", true);
+        // f->glDrawArrays(GL_TRIANGLES, 0, track.point_count * 2 - 2);
 
-            funcs->glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
-            shader->set_uniform("enable_intersection", false);
-            f->glDrawArrays(GL_TRIANGLE_STRIP, 0, track.point_count * 2 - 2);
-        }
-
-        shader->release();
-        funcs->glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+        funcs->glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+        shader->set_uniform("enable_intersection", false);
+        f->glDrawArrays(GL_TRIANGLE_STRIP, 0, track.point_count * 2 - 2);
     }
 
-    void TrackManager::add_track(const nucleus::gpx::Gpx &gpx, ShaderProgram* shader)
-    {
-        //QOpenGLExtraFunctions *f = QOpenGLContext::currentContext()->extraFunctions();
-        (void)shader;
+    shader->release();
+    funcs->glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+}
 
-        // transform from latitude and longitude into renderer world
-        // coordinates
-        std::vector<glm::vec3> points = nucleus::to_world_points(gpx);
+void TrackManager::add_track(const nucleus::gpx::Gpx& gpx, ShaderProgram* shader)
+{
+    // QOpenGLExtraFunctions *f = QOpenGLContext::currentContext()->extraFunctions();
+    (void)shader;
 
-        // reduce variance in points
-        nucleus::apply_gaussian_filter(points, 1.0f);
+    // transform from latitude and longitude into renderer world
+    // coordinates
+    std::vector<glm::vec3> points = nucleus::to_world_points(gpx);
 
-        size_t point_count = points.size();
+    // reduce variance in points
+    nucleus::apply_gaussian_filter(points, 1.0f);
 
-        //std::vector<glm::vec3> ribbon = nucleus::to_world_ribbon_with_normals(points, 0.0f);
+    size_t point_count = points.size();
 
-        std::vector<glm::vec3> basic_ribbon = nucleus::to_world_ribbon(points, 0.0f);
+    // std::vector<glm::vec3> ribbon = nucleus::to_world_ribbon_with_normals(points, 0.0f);
 
-        PolyLine polyline;
+#if 1
+    std::vector<glm::vec3> basic_ribbon = nucleus::to_world_ribbon(points, 0.0f);
+#else
+    std::vector<glm::vec3> basic_ribbon = nucleus::to_triangle_ribbon(points, 0.0f);
+#endif
 
-        //
-        polyline.data_texture = std::make_unique<QOpenGLTexture>(QOpenGLTexture::Target::Target2D);
-        polyline.data_texture->setFormat(QOpenGLTexture::TextureFormat::RGB32F);
-        polyline.data_texture->setSize(basic_ribbon.size(), 1);
-        polyline.data_texture->setAutoMipMapGenerationEnabled(false);
-        polyline.data_texture->setMinMagFilters(QOpenGLTexture::Filter::Nearest, QOpenGLTexture::Filter::Nearest);
-        polyline.data_texture->setWrapMode(QOpenGLTexture::WrapMode::ClampToEdge);
-        polyline.data_texture->allocateStorage();
-        polyline.data_texture->setData(QOpenGLTexture::RGB, QOpenGLTexture::Float32, basic_ribbon.data());
+    PolyLine polyline;
 
-        // even if the vao is not used, we still need a dummy vao
-        polyline.vao = std::make_unique<QOpenGLVertexArrayObject>();
-        polyline.vao->create();
-        polyline.vao->bind();
+    //
+    polyline.data_texture = std::make_unique<QOpenGLTexture>(QOpenGLTexture::Target::Target2D);
+    polyline.data_texture->setFormat(QOpenGLTexture::TextureFormat::RGB32F);
+    polyline.data_texture->setSize(basic_ribbon.size(), 1);
+    polyline.data_texture->setAutoMipMapGenerationEnabled(false);
+    polyline.data_texture->setMinMagFilters(QOpenGLTexture::Filter::Nearest, QOpenGLTexture::Filter::Nearest);
+    polyline.data_texture->setWrapMode(QOpenGLTexture::WrapMode::ClampToEdge);
+    polyline.data_texture->allocateStorage();
+    polyline.data_texture->setData(QOpenGLTexture::RGB, QOpenGLTexture::Float32, basic_ribbon.data());
 
+    // even if the vao is not used, we still need a dummy vao
+    polyline.vao = std::make_unique<QOpenGLVertexArrayObject>();
+    polyline.vao->create();
+    polyline.vao->bind();
 
 #if 0
         polyline.vbo = std::make_unique<QOpenGLBuffer>(QOpenGLBuffer::VertexBuffer);
@@ -162,10 +152,10 @@ namespace gl_engine
         f->glEnableVertexAttribArray(next_position_attrib_location);
         f->glVertexAttribPointer(next_position_attrib_location, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(glm::vec3), (void*)(2 * sizeof(glm::vec3)));
 #endif
-        polyline.point_count = point_count;
+    polyline.point_count = point_count;
 
-        polyline.vao->release();
+    polyline.vao->release();
 
-        m_tracks.push_back(std::move(polyline));
-    }
+    m_tracks.push_back(std::move(polyline));
+}
 } // namespace gl_engine

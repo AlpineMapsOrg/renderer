@@ -20,13 +20,11 @@
 
 #include <QObject>
 #include <memory>
-#include <nucleus/camera/Definition.h>
 #include <nucleus/GPX.h>
+#include <nucleus/camera/Definition.h>
 
 #include "PolyLine.h"
 #include "ShaderProgram.h"
-
-
 
 class QOpenGLShaderProgram;
 
@@ -50,6 +48,5 @@ public:
 
 private:
     std::vector<PolyLine> m_tracks;
-
 };
 } // namespace gl_engine
