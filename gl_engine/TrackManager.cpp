@@ -80,13 +80,15 @@ void TrackManager::draw(const nucleus::camera::Definition& camera, ShaderProgram
         track.data_texture->bind(8);
         track.vao->bind();
 
+        GLsizei count = (track.point_count - 1) * 6;
+
         funcs->glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
         shader->set_uniform("enable_intersection", true);
-        f->glDrawArrays(GL_TRIANGLES, 0, (track.point_count - 1) * 3);
+        f->glDrawElements(GL_TRIANGLES, count, GL_UNSIGNED_INT, 0);
 
         funcs->glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
         shader->set_uniform("enable_intersection", false);
-        f->glDrawArrays(GL_TRIANGLES, 0, (track.point_count - 1) * 3);
+        f->glDrawElements(GL_TRIANGLES, count, GL_UNSIGNED_INT, 0);
     }
 
     shader->release();
@@ -109,10 +111,10 @@ void TrackManager::add_track(const nucleus::gpx::Gpx& gpx, ShaderProgram* shader
 
     size_t point_count = points.size();
 
-#if 0
-    std::vector<glm::vec3> basic_ribbon = nucleus::triangle_strip_ribbon(points, 5.0f);
+#if 1
+    std::vector<glm::vec3> basic_ribbon = nucleus::triangle_strip_ribbon(points, 15.0f);
 #else
-    std::vector<glm::vec3> basic_ribbon = nucleus::triangles_ribbon(points, 5.0f);
+    std::vector<glm::vec3> basic_ribbon = nucleus::triangles_ribbon(points, 15.0f);
 #endif
 
     PolyLine polyline;
@@ -154,6 +156,14 @@ void TrackManager::add_track(const nucleus::gpx::Gpx& gpx, ShaderProgram* shader
     //const auto next_position_attrib_location = shader->attribute_location("a_next_position");
     //f->glEnableVertexAttribArray(next_position_attrib_location);
     //f->glVertexAttribPointer(next_position_attrib_location, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(glm::vec3), (void*)(2 * sizeof(glm::vec3)));
+
+    auto indices = nucleus::ribbon_indices(points.size());
+    polyline.ebo = std::make_unique<QOpenGLBuffer>(QOpenGLBuffer::IndexBuffer);
+    polyline.ebo->create();
+    polyline.ebo->bind();
+    polyline.ebo->setUsagePattern(QOpenGLBuffer::StaticDraw);
+    polyline.ebo->allocate(indices.data(), helpers::bufferLengthInBytes(indices));
+
 #endif
     polyline.point_count = point_count;
 

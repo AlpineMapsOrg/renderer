@@ -20,10 +20,11 @@ out vec3 color;
 void main() {
   vertex_id = gl_VertexID;
 
-#if 0
+#if 1
   // edge case handled by ClampToEdge
-  highp vec3 tex_position = texelFetch(texin_track, ivec2(gl_VertexID, 0), 0).xyz;
-  highp vec3 tex_next_position = texelFetch(texin_track, ivec2(gl_VertexID + 2, 0), 0).xyz;
+  uint id = gl_VertexID / 2;
+  highp vec3 tex_position = texelFetch(texin_track, ivec2(id, 0), 0).xyz;
+  highp vec3 tex_next_position = texelFetch(texin_track, ivec2(id + 1, 0), 0).xyz;
 
   // could be done on cpu
   vec3 position = tex_position - camera_position;
@@ -49,9 +50,13 @@ void main() {
   gl_Position = current_projected + offset * width;
 #else
 
-  highp vec3 tex_position = texelFetch(texin_track, ivec2(gl_VertexID, 0), 0).xyz;
+  uint id = gl_VertexID / 2;
+  highp vec3 tex_position = texelFetch(texin_track, ivec2(id, 0), 0).xyz;
+
   vec3 position = a_position - camera_position;
+
   //vec3 position = tex_position - camera_position;
+
   gl_Position = matrix * vec4(position, 1);
 #endif
 

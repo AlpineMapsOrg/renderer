@@ -33,6 +33,8 @@ std::vector<glm::vec3> triangle_strip_ribbon(const std::vector<glm::vec3>& point
 // for rendering with GL_TRIANGLES
 std::vector<glm::vec3> triangles_ribbon(const std::vector<glm::vec3>& points, float width);
 
+std::vector<unsigned> ribbon_indices(unsigned point_count);
+
 void apply_gaussian_filter(std::vector<glm::vec3>& points, float sigma = 1.0f);
 
 } // namespace nucleus

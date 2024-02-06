@@ -129,7 +129,6 @@ std::vector<glm::vec3> triangle_strip_ribbon(const std::vector<glm::vec3>& point
     {
         auto a = points[i];
 
-        // triangle 2
         ribbon.insert(ribbon.end(), {
             a - offset,
             a + offset,
@@ -164,6 +163,24 @@ std::vector<glm::vec3> triangles_ribbon(const std::vector<glm::vec3>& points, fl
         });
     }
     return ribbon;
+}
+
+
+std::vector<unsigned> ribbon_indices(unsigned point_count)
+{
+    std::vector<unsigned> indices;
+
+    for (unsigned i = 0; i < point_count; ++i)
+    {
+        unsigned idx = i * 2;
+        // triangle 1
+        indices.insert(indices.end(), { idx, idx + 1, idx + 3});
+
+        // triangle 2
+        indices.insert(indices.end(), { idx + 3, idx + 2, idx});
+    }
+
+    return indices;
 }
 
 // 1 dimensional gaussian

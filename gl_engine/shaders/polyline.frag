@@ -44,10 +44,10 @@ void main() {
 #if 1 // intersect in fragment shader
 
     // track vertex position
-    uint id = vertex_id / 3;
+    uint id = vertex_id / 2;
     highp vec3 track_vert = texelFetch(texin_track, ivec2(int(id), 0), 0).xyz;
-    highp vec3 next_track_vert = texelFetch(texin_track, ivec2(int(id), 0), 0).xyz;
-    highp vec3 prev_track_vert = texelFetch(texin_track, ivec2(int(id - 2), 0), 0).xyz;
+    highp vec3 next_track_vert = texelFetch(texin_track, ivec2(int(id + 1), 0), 0).xyz;
+    highp vec3 prev_track_vert = texelFetch(texin_track, ivec2(int(id - 1), 0), 0).xyz;
 
     highp vec4 pos_dist = texture(texin_position, texcoords);
     highp vec3 terrain_pos = pos_dist.xyz;
@@ -59,7 +59,7 @@ void main() {
     ray.origin = origin;
     ray.direction = terrain_pos / dist;
 
-#if 1
+#if 0
     Sphere sphere;
     sphere.position = track_vert;
     sphere.radius = 7;
