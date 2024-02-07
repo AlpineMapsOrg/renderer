@@ -19,7 +19,7 @@
 import QtQuick
 import QtQuick.Controls.Material
 import QtQuick.Layouts
-import QtQuick.Dialogs
+import "FluxColor" as Flux
 
 Item {
     id: root;
@@ -52,7 +52,7 @@ Item {
                 anchors.fill: parent
                 cursorShape: Qt.PointingHandCursor
                 onClicked: {
-                    colorDialog.selectedColor = root.color;
+                    // colorDialog.selectedColor = root.color;
                     colorDialog.open();
                 }
             }
@@ -67,11 +67,21 @@ Item {
         }
     }
 
-    ColorDialog {
+    Popup {
         id: colorDialog
-        options: alphaEnabled ? ColorDialog.ShowAlphaChannel : 0
-        onAccepted: root.color = selectedColor
+        anchors.centerIn: parent
+        Flux.ColorChooser {
+            anchors.fill: parent
+            id: colour_chooser
+            // color: root.color
+        }
     }
+    // ColorDialog {
+    //     id: colorDialog
+    //     options: alphaEnabled ? ColorDialog.ShowAlphaChannel : 0
+    //     onAccepted: root.color = selectedColor
+    //     flags: ColorDialog.DontUseNativeDialog
+    // }
     height: label.height;
     Layout.fillWidth: true;
 

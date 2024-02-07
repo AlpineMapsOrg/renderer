@@ -63,6 +63,11 @@ qt_add_qml_module(alpineapp
         components/DatePicker.qml
         components/DateMonthTablePicker.qml
         components/FloatingActionButton.qml
+        components/FluxColor/AngleWheel.qml
+        components/FluxColor/ColorChooser.qml
+        components/FluxColor/HueRing.qml
+        components/FluxColor/HueWheel.qml
+        components/FluxColor/WheelArea.qml
     RESOURCES
         icons/mascot.jpg
         icons/menu.svg
@@ -86,6 +91,7 @@ qt_add_qml_module(alpineapp
         icons/presets/basic.png
         icons/presets/shaded.png
         icons/presets/snow.png
+        icons/needle_head_down.svg
 
 )
 
