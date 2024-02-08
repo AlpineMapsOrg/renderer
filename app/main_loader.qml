@@ -54,7 +54,7 @@ ApplicationWindow {
         function onWatched_source_changed() {
             mainLoader.active = false;
             _hotreloader.clear_cache();
-            mainLoader.setSource(_qmlPath+ "Main.qml")
+            mainLoader.setSource(_qmlPath + "Main.qml")
             mainLoader.active = true;
         }
     }

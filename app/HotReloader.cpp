@@ -18,6 +18,7 @@
 
 #include "HotReloader.h"
 
+#include <QDirIterator>
 #include <QFileSystemWatcher>
 #include <QQmlApplicationEngine>
 
@@ -29,9 +30,15 @@ HotReloader::HotReloader(QQmlApplicationEngine* engine, QString directory, QObje
     directory.replace("file:/", "");
     m_watcher->addPath(directory);
     qDebug("watching %s", directory.toStdString().c_str());
+    QDirIterator it(directory, QDir::Dirs | QDir::NoDotAndDotDot, QDirIterator::Subdirectories);
+    while (it.hasNext()) {
+        const auto current_dir = it.next();
+        m_watcher->addPath(current_dir);
+        qDebug("watching %s", current_dir.toStdString().c_str());
+    }
 
-    connect(m_watcher, &QFileSystemWatcher::directoryChanged, this, [this](const QString&) {
-        qDebug("watched_source_changed");
+    connect(m_watcher, &QFileSystemWatcher::directoryChanged, this, [this](const QString& path) {
+        qDebug("path updated: %s", path.toStdString().c_str());
         emit watched_source_changed();
     });
 }
