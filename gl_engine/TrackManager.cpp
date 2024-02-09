@@ -115,7 +115,7 @@ void TrackManager::add_track(const nucleus::gpx::Gpx& gpx, ShaderProgram* shader
 #if 0
     std::vector<glm::vec3> basic_ribbon = nucleus::triangle_strip_ribbon(points, 15.0f);
 #else
-    std::vector<glm::vec3> basic_ribbon = nucleus::triangles_ribbon(points, 15.0f);
+    std::vector<glm::vec3> basic_ribbon = nucleus::triangles_ribbon(points, 0.0f);
 #endif
 
     PolyLine polyline;
@@ -148,11 +148,11 @@ void TrackManager::add_track(const nucleus::gpx::Gpx& gpx, ShaderProgram* shader
     f->glEnableVertexAttribArray(position_attrib_location);
 
 
-    f->glVertexAttribPointer(position_attrib_location, 3, GL_FLOAT, GL_FALSE, sizeof(glm::vec3), nullptr);
+    f->glVertexAttribPointer(position_attrib_location, 3, GL_FLOAT, GL_FALSE, 2 * sizeof(glm::vec3), nullptr);
 
-    //const auto normal_attrib_location = shader->attribute_location("a_tangent");
-    //f->glEnableVertexAttribArray(normal_attrib_location);
-    //f->glVertexAttribPointer(normal_attrib_location, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(glm::vec3), (void*)(sizeof(glm::vec3)));
+    const auto normal_attrib_location = shader->attribute_location("a_offset");
+    f->glEnableVertexAttribArray(normal_attrib_location);
+    f->glVertexAttribPointer(normal_attrib_location, 3, GL_FLOAT, GL_FALSE, 2 * sizeof(glm::vec3), (void*)(sizeof(glm::vec3)));
 
     //const auto next_position_attrib_location = shader->attribute_location("a_next_position");
     //f->glEnableVertexAttribArray(next_position_attrib_location);
