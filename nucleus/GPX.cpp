@@ -157,15 +157,15 @@ std::vector<glm::vec3> triangles_ribbon(const std::vector<glm::vec3>& points, fl
         // triangle 1
         ribbon.insert(ribbon.end(), {
             a + offset, up,
-            b - offset, down,
             a - offset, down,
+            b - offset, down,
         });
 
         // triangle 2
         ribbon.insert(ribbon.end(), {
             a + offset, up,
-            b + offset, up,
             b - offset, down,
+            b + offset, up,
         });
     }
     return ribbon;
