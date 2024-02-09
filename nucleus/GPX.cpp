@@ -125,13 +125,16 @@ std::vector<glm::vec3> triangle_strip_ribbon(const std::vector<glm::vec3>& point
 
     const glm::vec3 offset = glm::vec3(0.0f, 0.0f, width);
 
+    const glm::vec3 up = glm::vec3(0.0f, 0.0f, 1.0f);
+    const glm::vec3 down = glm::vec3(0.0f, 0.0f, -1.0f);
+
     for (auto i = 0U; i < points.size() - 1U; i++)
     {
         auto a = points[i];
 
         ribbon.insert(ribbon.end(), {
-            a - offset,
-            a + offset,
+            a - offset, down,
+            a + offset, up,
         });
     }
     return ribbon;
@@ -148,18 +151,21 @@ std::vector<glm::vec3> triangles_ribbon(const std::vector<glm::vec3>& points, fl
         auto a = points[i];
         auto b = points[i + 1];
 
+        auto up = glm::vec3(0.0f, 0.0f, 1.0f);
+        auto down = glm::vec3(0.0f, 0.0f, -1.0f);
+
         // triangle 1
         ribbon.insert(ribbon.end(), {
-            a + offset,
-            b - offset,
-            a - offset
+            a + offset, up,
+            b - offset, down,
+            a - offset, down,
         });
 
         // triangle 2
         ribbon.insert(ribbon.end(), {
-            a + offset,
-            b + offset,
-            b - offset
+            a + offset, up,
+            b + offset, up,
+            b - offset, down,
         });
     }
     return ribbon;
