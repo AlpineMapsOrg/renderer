@@ -46,6 +46,7 @@ ShaderManager::ShaderManager()
     m_program_list.push_back(m_ssao_program.get());
     m_program_list.push_back(m_ssao_blur_program.get());
     m_program_list.push_back(m_shadowmap_program.get());
+    m_program_list.push_back(m_track_program.get());
 }
 
 ShaderManager::~ShaderManager() = default;
