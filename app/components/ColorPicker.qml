@@ -57,7 +57,6 @@ Item {
             value: root.selectedColour.a
             Layout.fillWidth: true;
             visible: alphaEnabled;
-            onValueChanged: root.selectedColour.a = value;
             implicitHeight: label.implicitHeight;
         }
     }
