@@ -15,16 +15,46 @@ uniform highp sampler2D texin_track;
 flat out int vertex_id;
 out vec3 color;
 
-#define SCREEN_SPACE 1
+#if 0
+// x0, x1: cone start and end
+// r0, r1: sphere cap radii
+//
+void bounding_quad(in vec3 x0, in float r0 in vec3 x1, float r1, out vec3 p0, out vec3 p1, out vec3 p2, out vec3 p3) {
+
+  vec3 d = x1 - x0;
+  vec3 e = camera_position;
+  vec3 d0 = e - x0;
+  vec3 d1 = e - x1;
+
+  // no idea if this is correct
+  vec3 u  = cross(d, d0) * (1.0 / length(cross(d, d0)));
+  vec3 v0 = cross(u, d0) * (1.0 / length(cross(u, d0)));
+  vec3 v1 = cross(u, d1) * (1.0 / length(cross(u, d1)));
+
+  // scaling factor
+  float s0 = 1;
+  float s1 = 1;
+
+  float r0_hat = length(d0) * s0;
+  float r1_hat = length(d1) * s1;
+
+
+  p0 = x0 + r0_hat * v0;
+  p1 = x0 - r0_hat * v0;
+  p2 = x1 + r1_hat * v1;
+  p2 = x1 - r1_hat * v1;
+
+}
+#endif
 
 void main() {
-  vertex_id = gl_VertexID;
+  // the closest gpx point to the vertex
+  vertex_id = (gl_VertexID / 3) - (gl_VertexID / 6);
 
-#if 1
-  // edge case handled by ClampToEdge
-  uint id = gl_VertexID / 2;
-  highp vec3 tex_position = texelFetch(texin_track, ivec2(id, 0), 0).xyz;
-  highp vec3 tex_next_position = texelFetch(texin_track, ivec2(id + 1, 0), 0).xyz;
+#if 0
+
+  highp vec3 tex_position = texelFetch(texin_track, ivec2(vertex_id, 0), 0).xyz;
+  highp vec3 tex_next_position = texelFetch(texin_track, ivec2(vertex_id + 1, 0), 0).xyz;
 
   // could be done on cpu
   vec3 position = tex_position - camera_position;

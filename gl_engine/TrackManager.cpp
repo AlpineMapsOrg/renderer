@@ -35,7 +35,7 @@
 #include "Polyline.h"
 #include "ShaderProgram.h"
 
-#define WIREFRAME 1
+#define WIREFRAME 0
 
 namespace gl_engine {
 
@@ -80,15 +80,16 @@ void TrackManager::draw(const nucleus::camera::Definition& camera, ShaderProgram
         track.data_texture->bind(8);
         track.vao->bind();
 
-        GLsizei count = (track.point_count - 1) * 6;
+        //GLsizei count = (track.point_count - 1) * 6;
+        GLsizei triangle_count = (track.point_count - 1) * 2;
 
         funcs->glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
         shader->set_uniform("enable_intersection", true);
-        f->glDrawElements(GL_TRIANGLES, count, GL_UNSIGNED_INT, 0);
+        f->glDrawArrays(GL_TRIANGLES, 0, triangle_count);
 
         funcs->glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
         shader->set_uniform("enable_intersection", false);
-        f->glDrawElements(GL_TRIANGLES, count, GL_UNSIGNED_INT, 0);
+        f->glDrawArrays(GL_TRIANGLES, 0, triangle_count);
     }
 
     shader->release();
@@ -111,7 +112,7 @@ void TrackManager::add_track(const nucleus::gpx::Gpx& gpx, ShaderProgram* shader
 
     size_t point_count = points.size();
 
-#if 1
+#if 0
     std::vector<glm::vec3> basic_ribbon = nucleus::triangle_strip_ribbon(points, 15.0f);
 #else
     std::vector<glm::vec3> basic_ribbon = nucleus::triangles_ribbon(points, 15.0f);
@@ -157,12 +158,14 @@ void TrackManager::add_track(const nucleus::gpx::Gpx& gpx, ShaderProgram* shader
     //f->glEnableVertexAttribArray(next_position_attrib_location);
     //f->glVertexAttribPointer(next_position_attrib_location, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(glm::vec3), (void*)(2 * sizeof(glm::vec3)));
 
+#if 0
     auto indices = nucleus::ribbon_indices(points.size());
     polyline.ebo = std::make_unique<QOpenGLBuffer>(QOpenGLBuffer::IndexBuffer);
     polyline.ebo->create();
     polyline.ebo->bind();
     polyline.ebo->setUsagePattern(QOpenGLBuffer::StaticDraw);
     polyline.ebo->allocate(indices.data(), helpers::bufferLengthInBytes(indices));
+#endif
 
 #endif
     polyline.point_count = point_count;

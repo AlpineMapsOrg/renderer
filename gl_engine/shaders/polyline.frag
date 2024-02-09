@@ -30,21 +30,18 @@ void main() {
     // specular hightlight?
 
     if (!enable_intersection) {
-        texout_albedo = vec3(1,0,0);
+
+        texout_albedo = vec4(color_from_id_hash(vertex_id), 1).rgb;
+
     } else {
-
-    //texout_albedo = vec4(color_from_id_hash(vertex_id), 1).rgb;
-
 
 
     vec2 texcoords = gl_FragCoord.xy / resolution.xy;
 
-    //texout_albedo = vec3(texcoords, 0);
-
 #if 1 // intersect in fragment shader
 
     // track vertex position
-    uint id = vertex_id / 2;
+    uint id = vertex_id;
     highp vec3 track_vert = texelFetch(texin_track, ivec2(int(id), 0), 0).xyz;
     highp vec3 next_track_vert = texelFetch(texin_track, ivec2(int(id + 1), 0), 0).xyz;
     highp vec3 prev_track_vert = texelFetch(texin_track, ivec2(int(id - 1), 0), 0).xyz;
