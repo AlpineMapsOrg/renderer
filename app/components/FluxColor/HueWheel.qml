@@ -10,12 +10,14 @@ import QtQuick 2.0
 
 WheelArea {
     id: control
-
-    property color color: Qt.hsva(control.angle / 360, control.colorSaturation, control.colorValue, control.colorAlpha)
+    property real colorHue: 0
     property real colorSaturation: 1
     property real colorValue: 1
     property real colorAlpha: 1
 
+    readonly property color new_colour: Qt.hsva(control.angle / 360, control.colorSaturation, control.colorValue, control.colorAlpha)
+
+    presetValue: control.colorHue * 360
     HueRing {
         id: hueRing
         anchors.margins: 16
@@ -27,7 +29,7 @@ WheelArea {
         radius: hueRing.radius * 0.3
         width: 2 * radius
         height: 2 * radius
-        color: control.color
+        color: new_colour
     }
 
     Image {

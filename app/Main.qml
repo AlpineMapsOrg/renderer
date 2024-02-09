@@ -241,7 +241,8 @@ Item {
     }
 
     Component.onCompleted: {
-        change_page("map")
+        // change_page("map")
+        change_page("Settings.qml", "Settings")
     }
 
 }

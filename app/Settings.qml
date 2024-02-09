@@ -87,11 +87,11 @@ Rectangle {
             contentWidth: parent.width
             position: TabBar.Header
             TabButton {
-                text: qsTr("General")
+                text: qsTr("GL Configuration")
                 width: implicitWidth + 20
             }
             TabButton {
-                text: qsTr("GL Configuration")
+                text: qsTr("General")
                 width: implicitWidth + 20
             }
         }
@@ -109,10 +109,8 @@ Rectangle {
                 color: Qt.rgba(1.0, 1.0, 1.0, 0.2)
             }
 
+            GlSettings {}
             GeneralSettings {}
-            GlSettings {
-
-            }
         }
     }
 }
