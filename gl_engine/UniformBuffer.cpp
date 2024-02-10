@@ -47,7 +47,7 @@ template <typename T> void gl_engine::UniformBuffer<T>::init() {
 
     //qDebug() << "Size of" << m_name << std::to_string(sizeof(T)) << "byte";
 
-    m_f->glBufferData(GL_UNIFORM_BUFFER, sizeof(T), NULL, GL_STATIC_DRAW);
+    m_f->glBufferData(GL_UNIFORM_BUFFER, sizeof(T), NULL, GL_DYNAMIC_DRAW);
     m_f->glBindBuffer(GL_UNIFORM_BUFFER, 0);
 
     m_f->glBindBufferRange(GL_UNIFORM_BUFFER, m_location, m_id, 0, sizeof(T));
