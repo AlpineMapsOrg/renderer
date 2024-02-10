@@ -109,8 +109,8 @@ Rectangle {
                 color: Qt.rgba(1.0, 1.0, 1.0, 0.2)
             }
 
-            GlSettings {}
             GeneralSettings {}
+            GlSettings {}
         }
     }
 }

@@ -92,6 +92,8 @@ qt_add_qml_module(alpineapp
         icons/presets/shaded.png
         icons/presets/snow.png
         icons/needle_head_down.svg
+        icons/logo_type_horizontal.svg
+        icons/logo_type_vertical.svg
 
 )
 
@@ -114,7 +116,7 @@ qt_add_resources(alpineapp "fonts"
     # ${alpineapp_fonts_SOURCE_DIR}/SourceSans/SourceSans3-BoldIt.ttf
     # ${alpineapp_fonts_SOURCE_DIR}/SourceSans/SourceSans3-ExtraLightIt.ttf
     # ${alpineapp_fonts_SOURCE_DIR}/SourceSans/SourceSans3-It.ttf
-    ${alpineapp_fonts_SOURCE_DIR}/SourceSans/SourceSans3-Light.ttf
+    # ${alpineapp_fonts_SOURCE_DIR}/SourceSans/SourceSans3-Light.ttf
     # ${alpineapp_fonts_SOURCE_DIR}/SourceSans/SourceSans3-Medium.ttf
     # ${alpineapp_fonts_SOURCE_DIR}/SourceSans/SourceSans3-SemiboldIt.ttf
     # ${alpineapp_fonts_SOURCE_DIR}/SourceSans/SourceSans3-Black.ttf

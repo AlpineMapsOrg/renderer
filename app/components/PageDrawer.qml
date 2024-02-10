@@ -85,52 +85,36 @@ Drawer {
                     GradientStop { position: 1.0; color: iconBgColorRight }
                 }
             }
-
-            RowLayout {
-                spacing: 16
-
+            Image {
+                id: logo_mark
+                source: bannerIconSource
+                sourceSize: bannerIconSize
                 anchors {
-                    fill: parent
-                    centerIn: parent
+                    left: banner.left
+                    verticalCenter: banner.verticalCenter
                     margins: 16
                 }
-
-                Image {
-                    source: bannerIconSource
-                    sourceSize: bannerIconSize
+            }
+            Image {
+                id: logo_type
+                source: bannerTitle
+                height: 45
+                fillMode: Image.PreserveAspectFit
+                anchors {
+                    left: logo_mark.right
+                    verticalCenter: banner.verticalCenter
+                    margins: 16
                 }
-
-                ColumnLayout {
-                    spacing: 8
-                    Layout.fillWidth: true
-                    Layout.fillHeight: true
-
-                    Item {
-                        Layout.fillHeight: true
-                    }
-
-                    Label {
-                        color: "#1b1b1b"
-                        text: bannerTitle
-                        font.weight: Font.Medium
-                        font.pixelSize: 24
-                    }
-
-                    Label {
-                        color: "#1b1b1b"
-                        opacity: 0.87
-                        text: bannerSubtitle
-                        font.pixelSize: 14
-                    }
-
-                    Item {
-                        Layout.fillHeight: true
-                    }
-                }
-
-                Item {
-                    Layout.fillWidth: true
-                    Layout.fillHeight: true
+            }
+            Label {
+                color: "#1b1b1b"
+                opacity: 0.87
+                text: bannerSubtitle
+                font.pixelSize: 12
+                anchors {
+                    right: banner.right
+                    bottom: banner.bottom
+                    margins: 10
                 }
             }
         }

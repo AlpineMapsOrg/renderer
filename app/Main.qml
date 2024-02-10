@@ -93,7 +93,7 @@ Item {
     PageDrawer {
         id: menu
 
-        bannerTitle: "Alpine Maps"
+        bannerTitle: "../icons/logo_type_horizontal.svg"
         bannerIconSource: "../icons/icon.svg"
         bannerSubtitle: _alpine_renderer_version
         selectedButtonId: 0
@@ -241,8 +241,8 @@ Item {
     }
 
     Component.onCompleted: {
-        // change_page("map")
-        change_page("Settings.qml", "Settings")
+        change_page("map")
+        menu.open()
     }
 
 }
