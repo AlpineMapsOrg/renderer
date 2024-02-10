@@ -109,12 +109,14 @@ Raster<uint8_t> MapLabelManager::make_font_raster()
     QFile file(":/fonts/SourceSans3-Bold.ttf");
     const auto open = file.open(QIODeviceBase::OpenModeFlag::ReadOnly);
     assert(open);
+    Q_UNUSED(open);
     m_font_file = file.readAll();
 
     // init font and get info about the dimensions
     const auto font_init = stbtt_InitFont(&m_fontinfo, reinterpret_cast<const uint8_t*>(m_font_file.constData()),
         stbtt_GetFontOffsetForIndex(reinterpret_cast<const uint8_t*>(m_font_file.constData()), 0));
     assert(font_init);
+    Q_UNUSED(font_init);
 
     auto raster = Raster<uint8_t>({ m_font_atlas_size.width(), m_font_atlas_size.height() }, uint8_t(0));
 
