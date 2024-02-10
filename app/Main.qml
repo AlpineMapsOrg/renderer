@@ -238,7 +238,6 @@ Item {
 
     Component.onCompleted: {
         change_page("map")
-        menu.open()
     }
 
 }
