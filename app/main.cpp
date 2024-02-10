@@ -66,7 +66,9 @@ int main(int argc, char **argv)
     // output qrc files:
     QDirIterator it(":", QDirIterator::Subdirectories);
     while (it.hasNext()) {
-        qDebug() << it.next();
+        const auto path = it.next();
+        const auto file = QFile(path);
+        qDebug() << path << " size: " << file.size() / 1024 << "kb";
     }
 
     //    qDebug() << ":: before adding fonts::" << QFontDatabase::families().size();
