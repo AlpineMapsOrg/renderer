@@ -92,10 +92,6 @@ Item {
 
     PageDrawer {
         id: menu
-
-        bannerTitle: "../icons/logo_type_horizontal.svg"
-        bannerIconSource: "../icons/icon.svg"
-        bannerSubtitle: _alpine_renderer_version
         selectedButtonId: 0
 
         DrawerSeparator {}

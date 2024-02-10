@@ -94,6 +94,7 @@ qt_add_qml_module(alpineapp
         icons/needle_head_down.svg
         icons/logo_type_horizontal.svg
         icons/logo_type_vertical.svg
+        icons/logo_type_horizontal_short.svg
 
 )
 

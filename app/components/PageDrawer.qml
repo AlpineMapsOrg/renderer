@@ -26,14 +26,8 @@ Drawer {
 
     id: drawer
     implicitHeight: map.height
-    width: Math.min (parent.width > parent.height ? 400 : 300,
-                             Math.min (parent.width, parent.height) * 0.90)
+    width: Math.min (400, Math.min (parent.width, parent.height) * 0.80)
     Material.elevation: 2;
-
-    property string bannerTitle: ""
-    property string bannerSubtitle: ""
-    property string bannerIconSource: ""
-    property size bannerIconSize: Qt.size (72, 72)
 
     property color iconBgColorLeft: Material.backgroundColor
     property color iconBgColorRight: Qt.alpha(Material.accentColor, 0.2)
@@ -87,8 +81,10 @@ Drawer {
             }
             Image {
                 id: logo_mark
-                source: bannerIconSource
-                sourceSize: bannerIconSize
+                source: "../icons/icon.svg"
+                sourceSize: Qt.size (64, 64)
+                fillMode: Image.PreserveAspectFit
+                width: banner.width * 0.16
                 anchors {
                     left: banner.left
                     verticalCenter: banner.verticalCenter
@@ -97,24 +93,24 @@ Drawer {
             }
             Image {
                 id: logo_type
-                source: bannerTitle
-                height: 45
+                source: "../icons/logo_type_horizontal_short.svg"
+                width: banner.width * 0.65
                 fillMode: Image.PreserveAspectFit
                 anchors {
                     left: logo_mark.right
                     verticalCenter: banner.verticalCenter
-                    margins: 16
+                    leftMargin: banner.width * 0.02
                 }
             }
             Label {
                 color: "#1b1b1b"
                 opacity: 0.87
-                text: bannerSubtitle
-                font.pixelSize: 12
+                text: _alpine_renderer_version
+                font.pixelSize: 10
                 anchors {
                     right: banner.right
                     bottom: banner.bottom
-                    margins: 10
+                    margins: 8
                 }
             }
         }
