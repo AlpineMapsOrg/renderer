@@ -2,8 +2,8 @@
 #include "overlay_steepness.glsl"
 
 layout(location = 0) in highp vec3 a_position;
-//layout(location = 1) in highp vec3 a_tangent;
-//layout(location = 2) in highp vec3 a_next_position;
+layout(location = 1) in highp vec3 a_direction;
+layout(location = 2) in highp vec3 a_offset;
 
 uniform highp mat4 matrix; // view projection matrix
 uniform highp vec3 camera_position;
@@ -15,46 +15,16 @@ uniform highp sampler2D texin_track;
 flat out int vertex_id;
 out vec3 color;
 
-#if 0
-// x0, x1: cone start and end
-// r0, r1: sphere cap radii
-//
-void bounding_quad(in vec3 x0, in float r0 in vec3 x1, float r1, out vec3 p0, out vec3 p1, out vec3 p2, out vec3 p3) {
-
-  vec3 d = x1 - x0;
-  vec3 e = camera_position;
-  vec3 d0 = e - x0;
-  vec3 d1 = e - x1;
-
-  // no idea if this is correct
-  vec3 u  = cross(d, d0) * (1.0 / length(cross(d, d0)));
-  vec3 v0 = cross(u, d0) * (1.0 / length(cross(u, d0)));
-  vec3 v1 = cross(u, d1) * (1.0 / length(cross(u, d1)));
-
-  // scaling factor
-  float s0 = 1;
-  float s1 = 1;
-
-  float r0_hat = length(d0) * s0;
-  float r1_hat = length(d1) * s1;
-
-
-  p0 = x0 + r0_hat * v0;
-  p1 = x0 - r0_hat * v0;
-  p2 = x1 + r1_hat * v1;
-  p2 = x1 - r1_hat * v1;
-
-}
-#endif
+#define METHOD 2
 
 void main() {
   // the closest gpx point to the vertex
   vertex_id = (gl_VertexID / 3) - (gl_VertexID / 6);
 
-#if 0
-
-  highp vec3 tex_position = texelFetch(texin_track, ivec2(vertex_id, 0), 0).xyz;
-  highp vec3 tex_next_position = texelFetch(texin_track, ivec2(vertex_id + 1, 0), 0).xyz;
+#if (METHOD == 1)
+  uint id = (gl_VertexID / 2) - (gl_VertexID / 4);
+  highp vec3 tex_position = texelFetch(texin_track, ivec2(id, 0), 0).xyz;
+  highp vec3 tex_next_position = texelFetch(texin_track, ivec2(id + 1, 0), 0).xyz;
 
   // could be done on cpu
   vec3 position = tex_position - camera_position;
@@ -70,7 +40,7 @@ void main() {
   vec2 current_screen = current_projected.xy / current_projected.w * aspect_vec;
   vec2 next_screen = next_projected.xy / next_projected.w * aspect_vec;
 
-  float orientation = (gl_VertexID % 2 == 0) ? +1 : -1;
+  float orientation = a_offset.z;
 
   vec2 direction = normalize(next_screen - current_screen);
   vec2 normal = vec2(-direction.y, direction.x);
@@ -78,14 +48,64 @@ void main() {
 
   vec4 offset = vec4(normal * orientation, 0, 0);
   gl_Position = current_projected + offset * width;
+
+
+#elif (METHOD == 2)
+
+  // Advanced Rendering of Line Data with Ambient Occlusion and Transparency
+  // 1. fallunterscheidung, which vertex position do we need to calculate? p0, p1, p2 or p3?
+  //    we already now if we are top or bottom from a_offset, only need to compute if start or end
+  //    of rounded cone
+  // 2. find track points that make up the endpoints of our rounded cone (x0, x1)
+  // 3. calculate d, d0, d1
+  // 4. calculate u, v0, v1
+
+  vec3 e = camera_position;
+  vec3 x0 = a_position - camera_position;
+  vec3 d = a_direction;
+
+  vec3 d0 = normalize(camera_position - a_position);
+
+  vec3 u_hat = normalize(cross(d, d0));
+
+  vec3 v0 = normalize(cross(u_hat, d0));
+
+  vec3 position = x0 + u_hat * a_offset.z * 15;
+
+
+
+  gl_Position = matrix * vec4(position, 1);
+
+
+#elif(METHOD == 3)
+  // naive orientation towards camera
+  // does not contain the whole capsule
+  const float r = 15;
+  vec3 position = a_position - camera_position;
+  vec3 view_dir = normalize(camera_position - a_position);
+  vec3 displacement = cross(a_direction, view_dir);
+  position += displacement * r * a_offset.z;
+  gl_Position = matrix * vec4(position, 1);
 #else
 
-  uint id = gl_VertexID / 2;
-  highp vec3 tex_position = texelFetch(texin_track, ivec2(id, 0), 0).xyz;
+  vec3 tex_position       = texelFetch(texin_track, ivec2(vertex_id + 0, 0), 0).xyz;
+  vec3 tex_next_position  = texelFetch(texin_track, ivec2(vertex_id + 1, 0), 0).xyz;
 
+  vec3 next_position    = tex_next_position - camera_position;
+  vec3 current_position = tex_position - camera_position;
+
+  // why is this not the same value?
   vec3 position = a_position - camera_position;
 
-  //vec3 position = tex_position - camera_position;
+  vec3 direction = normalize(current_position - next_position);
+  vec3 view_dir = normalize(camera_position - tex_position);
+  vec3 normal = cross(view_dir, direction);
+
+
+  //position += a_offset * 15.0;
+  position += normal * a_offset.z * 15.0;
+
+
 
   gl_Position = matrix * vec4(position, 1);
 #endif

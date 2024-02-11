@@ -150,22 +150,23 @@ std::vector<glm::vec3> triangles_ribbon(const std::vector<glm::vec3>& points, fl
     {
         auto a = points[i];
         auto b = points[i + 1];
+        auto d = glm::normalize(b - a);
 
         auto up = glm::vec3(0.0f, 0.0f, 1.0f);
         auto down = glm::vec3(0.0f, 0.0f, -1.0f);
 
         // triangle 1
         ribbon.insert(ribbon.end(), {
-            a + offset, up,
-            a - offset, down,
-            b - offset, down,
+            a + offset, d, up,
+            a - offset, d, down,
+            b - offset, d, down,
         });
 
         // triangle 2
         ribbon.insert(ribbon.end(), {
-            a + offset, up,
-            b - offset, down,
-            b + offset, up,
+            a + offset, d, up,
+            b - offset, d, down,
+            b + offset, d, up,
         });
     }
     return ribbon;

@@ -81,7 +81,8 @@ void TrackManager::draw(const nucleus::camera::Definition& camera, ShaderProgram
         track.vao->bind();
 
         //GLsizei count = (track.point_count - 1) * 6;
-        GLsizei triangle_count = (track.point_count - 1) * 2;
+        //GLsizei triangle_count = (track.point_count - 1) * 2;
+        GLsizei triangle_count = 2 * 3;
 
         funcs->glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
         shader->set_uniform("enable_intersection", true);
@@ -144,19 +145,20 @@ void TrackManager::add_track(const nucleus::gpx::Gpx& gpx, ShaderProgram* shader
 
     polyline.vbo->allocate(basic_ribbon.data(), helpers::bufferLengthInBytes(basic_ribbon));
 
+    GLsizei stride = 3 * sizeof(glm::vec3);
+
     const auto position_attrib_location = shader->attribute_location("a_position");
     f->glEnableVertexAttribArray(position_attrib_location);
+    f->glVertexAttribPointer(position_attrib_location, 3, GL_FLOAT, GL_FALSE, stride, nullptr);
 
-
-    f->glVertexAttribPointer(position_attrib_location, 3, GL_FLOAT, GL_FALSE, 2 * sizeof(glm::vec3), nullptr);
+    const auto next_position_attrib_location = shader->attribute_location("a_direction");
+    f->glEnableVertexAttribArray(next_position_attrib_location);
+    f->glVertexAttribPointer(next_position_attrib_location, 3, GL_FLOAT, GL_FALSE, stride, (void*)(1 * sizeof(glm::vec3)));
 
     const auto normal_attrib_location = shader->attribute_location("a_offset");
     f->glEnableVertexAttribArray(normal_attrib_location);
-    f->glVertexAttribPointer(normal_attrib_location, 3, GL_FLOAT, GL_FALSE, 2 * sizeof(glm::vec3), (void*)(sizeof(glm::vec3)));
+    f->glVertexAttribPointer(normal_attrib_location, 3, GL_FLOAT, GL_FALSE, stride, (void*)(2 * sizeof(glm::vec3)));
 
-    //const auto next_position_attrib_location = shader->attribute_location("a_next_position");
-    //f->glEnableVertexAttribArray(next_position_attrib_location);
-    //f->glVertexAttribPointer(next_position_attrib_location, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(glm::vec3), (void*)(2 * sizeof(glm::vec3)));
 
 #if 0
     auto indices = nucleus::ribbon_indices(points.size());
