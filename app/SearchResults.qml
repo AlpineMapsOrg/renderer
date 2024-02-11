@@ -19,7 +19,7 @@
 import QtQuick
 import QtQuick.Layouts
 import Alpine
-import QtQuick.Controls.Universal
+import QtQuick.Controls.Material
 
 Rectangle {
     property TerrainRenderer map
