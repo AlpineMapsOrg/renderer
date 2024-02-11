@@ -19,7 +19,7 @@
 import QtQuick
 import QtQuick.Layouts
 import Alpine
-import QtQuick.Controls.Universal
+import QtQuick.Controls.Material
 
 Rectangle {
     property SearchResults search_results
@@ -36,12 +36,11 @@ Rectangle {
             rightMargin: 6
         }
         id: search_input
-        placeholderText: "City or Mountain.."
+        placeholderText: (focus || text.length) ? "" : "City or Mountain.."
         background: Rectangle{ color: "#00FFFFFF" }
         verticalAlignment: TextInput.AlignVCenter
         visible: parent.visible
-        font.pointSize: 24
-//                    font.weight: Font.ExtraBold
+        font.pointSize: 20
         font.family: "Source Sans 3"
         onAccepted: {
             console.log("onAccepted")
