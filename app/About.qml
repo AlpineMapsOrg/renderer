@@ -36,11 +36,12 @@ Rectangle {
 
         Rectangle {
             id: about_content
-            width: logo.width + Math.max(alpine_text.width, maps_text.width) + 20
+            width: logo.width + logo_type.width + 20
             color: "#00FFFFFF"
             height: about_text.implicitHeight + logo.height + 20
             Image { id: logo; width: 120; height: 120; source: "icons/mascot.jpg" }
             Image {
+                id: logo_type
                 anchors {
                     left: logo.right
                     top: logo.top
@@ -55,7 +56,7 @@ Rectangle {
             }
 
 
-            Label {
+            Text {
                 id: about_text
                 anchors {
                     left: logo.left
@@ -65,13 +66,18 @@ Rectangle {
                 width: about_root.width - 20
                 wrapMode: Text.Wrap
                 onLinkActivated: Qt.openUrlExternally(link)
+                textFormat: Text.MarkdownText
+                text: qsTr("
+This is an open source application. It is released under the GNU General Public License (version 3 or any later version). The source code is available on [github.com/AlpineMapsOrg/renderer](https://github.com/AlpineMapsOrg/renderer).
 
-                text: qsTr("<p>This is an open source application. It is released under the GNU General Public License (version 3 or any later version). "
-                           + "The source code is available on <a href=\"https://github.com/AlpineMapsOrg/renderer\">github.com/AlpineMapsOrg/renderer</a>.</p>"
-                           + "<p>The source of elevation and orthographic photo data is <a href=\"https://basemap.at\">basemap.at</a>, "
-                           + "it is licensed under the Open Government Data Austria license (CC-BY 4.0).</p>"
-                           + "<h3>Authors:</h3><p>Adam Celarek, Lucas Dworschak, Gerald Kimmersdorfer, Jakob Lindner</p>"
-                           + "<h3>Impressum:</h3><p>Adam Celarek<br />Hartmanngasse 12/22<br />1050 Wien<br />Österreich / Austria</p>")
+The source of elevation and orthographic photo data is <a href=\"https://basemap.at\">basemap.at</a>,
+it is licensed under the Open Government Data Austria license (CC-BY 4.0).
+
+# Authors:
+Adam Celarek, Lucas Dworschak, Gerald Kimmersdorfer, Jakob Lindner
+
+# Impressum:
+Adam Celarek<br/>Hartmanngasse 12/22<br/>1050 Wien<br/>Österreich / Austria")
             }
         }
     }
