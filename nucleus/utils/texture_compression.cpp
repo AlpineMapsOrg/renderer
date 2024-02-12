@@ -48,6 +48,7 @@ std::vector<uint8_t> nucleus::utils::texture_compression::to_dxt1(const QImage& 
     std::vector<uint8_t> compressed(n_bytes_out);
     const auto result = goofy::compressDXT1(compressed.data(), data_ptr, qimage.width(), qimage.height(), qimage.width() * 4);
     assert(result == 0);
+    Q_UNUSED(result);
 
     // std::copy(data_ptr, data_ptr + n_bytes, compressed.begin());
 
@@ -81,6 +82,7 @@ std::vector<uint8_t> nucleus::utils::texture_compression::to_etc1(const QImage& 
     std::vector<uint8_t> compressed(n_bytes_out);
     const auto result = goofy::compressETC1(compressed.data(), data_ptr, qimage.width(), qimage.height(), qimage.width() * 4);
     assert(result == 0);
+    Q_UNUSED(result);
 
     // std::copy(data_ptr, data_ptr + n_bytes, compressed.begin());
 
