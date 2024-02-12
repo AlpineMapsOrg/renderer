@@ -6,7 +6,7 @@
  *
  */
 
-import QtQuick 2.0
+import QtQuick
 
 WheelArea {
     id: control
