@@ -62,15 +62,39 @@ void main() {
 
   vec3 e = camera_position;
   vec3 x0 = a_position - camera_position;
+
+  // main axis of the rounded cone
   vec3 d = a_direction;
 
-  vec3 d0 = normalize(camera_position - a_position);
+  vec3 d0 = camera_position - a_position;
 
+  // orthogonal to main axis
   vec3 u_hat = normalize(cross(d, d0));
 
   vec3 v0 = normalize(cross(u_hat, d0));
 
-  vec3 position = x0 + u_hat * a_offset.z * 15;
+  float r0 = 7; // cone end cap radius
+
+  float t0 = sqrt(dot(d0, d0) - (r0 * r0));
+
+  //float r0_hat = length(d0) * (r0 / t0);
+
+  float r0_prime = r0;
+
+  // direction of offset
+  float f;
+
+  if (gl_VertexID == 0 || gl_VertexID == 1 || gl_VertexID == 3) {
+    f = +1;
+  } else {
+    f = -1;
+  }
+
+  vec3 p0 = x0 + (f * v0 * r0_prime);
+
+  float r0_double_prime = r0;
+
+  vec3 position = p0 + u_hat * a_offset.z * r0_double_prime;
 
 
 
