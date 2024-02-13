@@ -18,6 +18,11 @@ struct Capsule {
     float radius;
 };
 
+struct Plane {
+    vec3 normal;
+    float distance;
+};
+
 // quelle?
 float intersect_sphere(Ray r, Sphere s) {
     vec3 op = s.position - r.origin;
@@ -64,12 +69,6 @@ bool IntersectRaySphere(in Ray ray, in Sphere s, inout float t, inout vec3 q){
     return true;
 }
 
-// Christer Ericson: Real-Time Collision Detection, Page 197
-// https://nachodevblog.com/posts/ray-cylinder-intersection/
-bool IntersectRayCylinder(in Ray r, in Capsule c, inout float t, inout vec3 q) {
-    return false;
-}
-
 // https://www.shadertoy.com/view/Xt3SzX
 vec3 capsule_normal( in vec3 pos, in vec3 a, in vec3 b, in float r )
 {
@@ -79,6 +78,9 @@ vec3 capsule_normal( in vec3 pos, in vec3 a, in vec3 b, in float r )
     return (pa - h*ba)/r;
 }
 
+float signed_distance(in Plane plane, in vec3 point) {
+    return dot(plane.normal, point) + plane.distance;
+}
 
 // https://www.shadertoy.com/view/Xt3SzX
 // https://iquilezles.org/articles/intersectors/

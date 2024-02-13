@@ -10,6 +10,7 @@ layout (location = 4) out highp uint texout_vertex_id;
 
 #define SPHERE      0
 #define CAPSULE     1
+#define CAPSULE_v2  2
 
 #define GEOMETRY    CAPSULE
 
@@ -47,9 +48,11 @@ void main() {
 
     // track vertex position
     uint id = vertex_id;
-    highp vec3 track_vert = texelFetch(texin_track, ivec2(int(id), 0), 0).xyz;
-    highp vec3 next_track_vert = texelFetch(texin_track, ivec2(int(id + 1), 0), 0).xyz;
-    highp vec3 prev_track_vert = texelFetch(texin_track, ivec2(int(id - 1), 0), 0).xyz;
+
+    highp vec3 x0 = texelFetch(texin_track, ivec2(int(id - 1), 0), 0).xyz;
+    highp vec3 x1 = texelFetch(texin_track, ivec2(int(id + 0), 0), 0).xyz;
+    highp vec3 x2 = texelFetch(texin_track, ivec2(int(id + 1), 0), 0).xyz;
+    highp vec3 x3 = texelFetch(texin_track, ivec2(int(id + 2), 0), 0).xyz;
 
     highp vec4 pos_dist = texture(texin_position, texcoords);
     highp vec3 terrain_pos = pos_dist.xyz;
@@ -64,7 +67,7 @@ void main() {
     float radius = 7;
 
 #if (GEOMETRY == SPHERE)
-    Sphere sphere = Sphere(track_vert, radius);
+    Sphere sphere = Sphere(x1, radius);
 
     float t = INF;
     vec3 point;
@@ -78,11 +81,11 @@ void main() {
     }
 #elif (GEOMETRY == CAPSULE)
 
-    Capsule c1 = Capsule(track_vert, next_track_vert, radius);
+    Capsule c1 = Capsule(x1, x2, radius);
 
     float t1 = intersect_capsule(ray.origin, ray.direction, c1.p, c1.q, c1.radius);
 
-    Capsule c2 = Capsule(prev_track_vert, track_vert, radius);
+    Capsule c2 = Capsule(x0, x1, radius);
 
     float t2 = intersect_capsule(ray.origin, ray.direction, c2.p, c2.q, c2.radius);
 
@@ -119,40 +122,7 @@ void main() {
 
     texout_albedo = normal;
 
-    /*
-    if ((0 < t1 && t1 < INF) || (0 < t2 && t2 < INF)) {
 
-        float t;
-        vec3 normal;
-
-
-        if (t1 < t2 && 0 < t1) {
-            t = t1;
-            vec3 point = ray.origin + ray.direction * t2;
-            normal = capsule_normal(point, c1.p, c1.q,  radius);
-        } else {
-            t = t2;
-            vec3 point = ray.origin + ray.direction * t1;
-            normal = capsule_normal(point, c2.p, c2.q, radius);
-        }
-
-        vec3 red = vec3(1,0,0);
-        vec3 blue = vec3(0,0,1);
-
-        float diff = dist - t;
-
-        if (diff > 0) {
-            //texout_albedo = mix(red, blue, diff / (capsule_radius * 2));
-            texout_albedo = normal;
-        } else {
-            //texout_albedo = red;
-            discard;
-        }
-
-        //texout_albedo = vec3(0,1,0);
-    } else {
-        discard;
-    }*/
 
 #else
 #error unknown GEOMETRY
