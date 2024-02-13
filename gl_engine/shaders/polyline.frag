@@ -104,11 +104,16 @@ void main() {
         clipping_plane_2.distance = dot(x2, n1);
 
         if (
-            (0.0 >= signed_distance(point, clipping_plane_1))
-            &&
-            (0.0 <= signed_distance(point, clipping_plane_2))
+            (0.0 >= signed_distance(point, clipping_plane_1) || (vertex_id == 0)) &&
+            (0.0 <= signed_distance(point, clipping_plane_2)) &&
+            (t < dist)
         ) {
+
             texout_albedo = normal;
+
+            float delta = dist - t;
+            float exposed = delta / (2 * c.radius);
+            //texout_albedo = mix(vec3(1,0,0), vec3(0,0,1), exposed);
         } else {
             discard;
         }
@@ -117,16 +122,11 @@ void main() {
         discard; // no intersection
     }
 
-
 #else
 #error unknown GEOMETRY
 #endif
 
 #endif
 
-
     }
-
-
-
 }
