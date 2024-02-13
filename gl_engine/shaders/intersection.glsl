@@ -70,22 +70,24 @@ bool IntersectRaySphere(in Ray ray, in Sphere s, inout float t, inout vec3 q){
 }
 
 // https://www.shadertoy.com/view/Xt3SzX
-vec3 capsule_normal( in vec3 pos, in vec3 a, in vec3 b, in float r )
-{
+vec3 capsule_normal( in vec3 pos, in vec3 a, in vec3 b, in float r ) {
     vec3  ba = b - a;
     vec3  pa = pos - a;
     float h = clamp(dot(pa,ba)/dot(ba,ba),0.0,1.0);
     return (pa - h*ba)/r;
 }
 
-float signed_distance(in Plane plane, in vec3 point) {
+vec3 capsule_normal_2( in vec3 pos, in Capsule c) {
+    return capsule_normal(pos, c.p, c.q, c.radius);
+}
+
+float signed_distance(in vec3 point, in Plane plane) {
     return dot(plane.normal, point) + plane.distance;
 }
 
 // https://www.shadertoy.com/view/Xt3SzX
 // https://iquilezles.org/articles/intersectors/
-float intersect_capsule( in vec3 ro, in vec3 rd, in vec3 pa, in vec3 pb, in float ra )
-{
+float intersect_capsule( in vec3 ro, in vec3 rd, in vec3 pa, in vec3 pb, in float ra ) {
     vec3  ba = pb - pa;
     vec3  oa = ro - pa;
     float baba = dot(ba,ba);
@@ -111,4 +113,8 @@ float intersect_capsule( in vec3 ro, in vec3 rd, in vec3 pa, in vec3 pb, in floa
         if( h>0.0 ) return -b - sqrt(h);
     }
     return -1.0;
+}
+
+float intersect_capsule_2(in Ray r, in Capsule c) {
+    return intersect_capsule(r.origin, r.direction, c.p, c.q, c.radius);
 }

@@ -10,9 +10,8 @@ layout (location = 4) out highp uint texout_vertex_id;
 
 #define SPHERE      0
 #define CAPSULE     1
-#define CAPSULE_v2  2
 
-#define GEOMETRY    CAPSULE
+#define GEOMETRY    1
 
 in highp vec3 color;
 
@@ -27,6 +26,10 @@ uniform highp vec2 resolution;
 
 bool check_collision(float t) {
     return 0 < t && t < INF;
+}
+
+vec3 visualize_normal(in vec3 normal) {
+    return (normal + vec3(1.0)) / vec3(2.0);
 }
 
 void main() {
@@ -55,14 +58,14 @@ void main() {
     highp vec3 x3 = texelFetch(texin_track, ivec2(int(id + 2), 0), 0).xyz;
 
     highp vec4 pos_dist = texture(texin_position, texcoords);
-    highp vec3 terrain_pos = pos_dist.xyz;
-    highp float dist = pos_dist.w; // negative if sky
 
-    Ray ray;
-    highp vec3 origin = vec3(camera_position);
-    highp vec3 pos_ws = terrain_pos + origin;
-    ray.origin = origin;
-    ray.direction = terrain_pos / dist;
+    // terrain position
+    highp vec3 terrain_pos = pos_dist.xyz;
+
+    // distance from camera to terrain, negative if sky
+    highp float dist = pos_dist.w;
+
+    Ray ray = Ray(camera_position, terrain_pos / dist);
 
     float radius = 7;
 
@@ -81,46 +84,49 @@ void main() {
     }
 #elif (GEOMETRY == CAPSULE)
 
-    Capsule c1 = Capsule(x1, x2, radius);
+    Capsule c = Capsule(x1, x2, radius);
 
-    float t1 = intersect_capsule(ray.origin, ray.direction, c1.p, c1.q, c1.radius);
+    float t = intersect_capsule_2(ray, c);
 
-    Capsule c2 = Capsule(x0, x1, radius);
+    if (0 < t && t < INF) {
 
-    float t2 = intersect_capsule(ray.origin, ray.direction, c2.p, c2.q, c2.radius);
+        vec3 point = ray.origin + ray.direction * t;
 
-    float t = -1;
-    vec3 normal;
+        vec3 normal = capsule_normal_2(point, c);
 
-    if ((0 < t1 && t1 < INF) && (0 < t2 && t2 < INF)) {
-        // intersect both
-        texout_albedo = vec3(1,0,0);
+        Plane clipping_plane_1, clipping_plane_2;
 
-        if (t1 < t2) {
-            t = t1;
-            normal = capsule_normal(ray.origin + ray.direction * t, c1.p, c1.q, c1.radius);
+        vec3 n0 = -normalize(x2 - x0);
+        clipping_plane_1.normal = n0;
+        clipping_plane_1.distance = dot(x1, n0);
+
+        vec3 n1 = -normalize(x3 - x1);
+        clipping_plane_2.normal = n1;
+        clipping_plane_2.distance = dot(x2, n1);
+
+
+#if 1
+        if (
+            (0.0 > signed_distance(point, clipping_plane_1))
+            &&
+            (0.0 > signed_distance(point, clipping_plane_2))
+        ) {
+            //texout_albedo = vec3(1, 0, 0);
+            texout_albedo = normal;
         } else {
-            t = t2;
-            normal = capsule_normal(ray.origin + ray.direction * t, c2.p, c2.q, c2.radius);
+            discard;
         }
+#else
+        //texout_albedo = visualize_normal(clipping_plane_1.normal);
+        texout_albedo = clipping_plane_1.normal;
+#endif
 
-
-    } else if ((0 < t1 && t1 < INF)) {
-        texout_albedo = vec3(0,1,0);
-        t = t1;
-        normal = capsule_normal(ray.origin + ray.direction * t, c1.p, c1.q, c1.radius);
-
-    } else if ((0 < t2 && t2 < INF)) {
-        texout_albedo = vec3(0,0,1);
-        t = t2;
-        normal = capsule_normal(ray.origin + ray.direction * t, c2.p, c2.q, c2.radius);
 
 
     } else {
         discard; // no intersection
     }
 
-    texout_albedo = normal;
 
 
 
