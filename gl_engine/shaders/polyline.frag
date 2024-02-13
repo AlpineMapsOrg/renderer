@@ -30,9 +30,27 @@ vec3 visualize_normal(in vec3 normal) {
     return (normal + vec3(1.0)) / vec3(2.0);
 }
 
-// vec3 phong_lighting() {
-//     return (ambient + diffuse)
-// }
+vec3 phong_lighting(in vec3 normal) {
+    vec4 dirLight = conf.sun_light;
+    vec4 ambLight  =  conf.amb_light;
+
+    vec3 material = vec3(1.0);
+    vec3 albedo = vec3(1,0,0);
+    //vec3 albedo = vec3(0.95, 0.57, 0.0);
+
+    vec3 dirColor = dirLight.rgb * dirLight.a;
+    vec3 ambColor = ambLight.rgb * ambLight.a;
+
+    vec3 ambient = material.r * albedo;
+    vec3 diff = material.g * albedo;
+    vec3 spec = vec3(material.b);
+
+    vec3 sun_light_dir = conf.sun_light_dir.xyz;
+
+    float lambertian_coeff = max(0.0, dot(normal, sun_light_dir));
+
+    return (ambient * ambColor) + (dirColor * lambertian_coeff);
+}
 
 void main() {
     texout_vertex_id = uint(vertex_id);
@@ -71,7 +89,6 @@ void main() {
 
     Ray ray = Ray(camera_position, normalize(terrain_pos / dist));
 
-
 #if (GEOMETRY == SPHERE)
     Sphere sphere = Sphere(x1, radius);
 
@@ -108,29 +125,28 @@ void main() {
 
         if (
             (0.0 >= signed_distance(point, clipping_plane_1) || (vertex_id == 0)) &&
-            (0.0 <= signed_distance(point, clipping_plane_2))
+            (0.0 <= signed_distance(point, clipping_plane_2)) // TODO: handle end of tube
         ) {
 
-            float lambertian_coeff = max(0.0, dot(normal, sun_light_dir));
+            vec3 color = phong_lighting(normal);
 
             if (t < dist) {
+
                 // geometry is above terrain
-                texout_albedo = normal * lambertian_coeff;
+                texout_albedo = color;
 
             } else if ((t - dist) <= c.radius * 2) {
 
-                float delta = (t - dist) / (c.radius * 2);
-                //texout_albedo = normal * (0.25) * ;
-                //texout_albedo = normal * 0.25;
+                //float delta = (t - dist) / (c.radius * 2);
+
+                texout_albedo = color * 0.25;
 
             } else {
-                discard;
+                discard; // geometry is far below terrain
             }
-
         } else {
-            discard;
+            discard; // clipping
         }
-
     } else {
         discard; // no intersection
     }
