@@ -1,6 +1,7 @@
 #include "intersection.glsl"
 #include "hashing.glsl"
 #include "encoder.glsl"
+#include "shared_config.glsl"
 
 layout (location = 0) out lowp vec3 texout_albedo;
 layout (location = 1) out highp vec4 texout_position;
@@ -16,6 +17,7 @@ layout (location = 4) out highp uint texout_vertex_id;
 in highp vec3 color;
 
 flat in highp int vertex_id;
+flat in float radius;
 
 uniform highp sampler2D texin_track;
 uniform highp sampler2D texin_position;
@@ -24,13 +26,13 @@ uniform bool enable_intersection;
 
 uniform highp vec2 resolution;
 
-bool check_collision(float t) {
-    return 0 < t && t < INF;
-}
-
 vec3 visualize_normal(in vec3 normal) {
     return (normal + vec3(1.0)) / vec3(2.0);
 }
+
+// vec3 phong_lighting() {
+//     return (ambient + diffuse)
+// }
 
 void main() {
     texout_vertex_id = uint(vertex_id);
@@ -39,13 +41,15 @@ void main() {
     // specular hightlight?
 
     if (!enable_intersection) {
-
+        // only for debugging
         texout_albedo = vec4(color_from_id_hash(vertex_id), 1).rgb;
 
     } else {
 
-
     vec2 texcoords = gl_FragCoord.xy / resolution.xy;
+
+    // TODO: get this from shared_conf
+    vec3 sun_light_dir = conf.sun_light_dir.xyz;
 
 #if 1 // intersect in fragment shader
 
@@ -67,7 +71,6 @@ void main() {
 
     Ray ray = Ray(camera_position, normalize(terrain_pos / dist));
 
-    float radius = 7;
 
 #if (GEOMETRY == SPHERE)
     Sphere sphere = Sphere(x1, radius);
@@ -105,15 +108,25 @@ void main() {
 
         if (
             (0.0 >= signed_distance(point, clipping_plane_1) || (vertex_id == 0)) &&
-            (0.0 <= signed_distance(point, clipping_plane_2)) &&
-            (t < dist)
+            (0.0 <= signed_distance(point, clipping_plane_2))
         ) {
 
-            texout_albedo = normal;
+            float lambertian_coeff = max(0.0, dot(normal, sun_light_dir));
 
-            float delta = dist - t;
-            float exposed = delta / (2 * c.radius);
-            //texout_albedo = mix(vec3(1,0,0), vec3(0,0,1), exposed);
+            if (t < dist) {
+                // geometry is above terrain
+                texout_albedo = normal * lambertian_coeff;
+
+            } else if ((t - dist) <= c.radius * 2) {
+
+                float delta = (t - dist) / (c.radius * 2);
+                //texout_albedo = normal * (0.25) * ;
+                //texout_albedo = normal * 0.25;
+
+            } else {
+                discard;
+            }
+
         } else {
             discard;
         }

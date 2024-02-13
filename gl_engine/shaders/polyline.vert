@@ -13,6 +13,7 @@ uniform highp bool visualize_steepness;
 uniform highp sampler2D texin_track;
 
 flat out int vertex_id;
+flat out float radius;
 out vec3 color;
 
 #define METHOD 2
@@ -75,7 +76,9 @@ void main() {
 
   vec3 v0 = normalize(cross(u_hat, d0));
 
-  float r0 = 7; // cone end cap radius
+  radius = 7;
+
+  float r0 = radius; // cone end cap radius
 
   float t0 = sqrt(dot(d0, d0) - (r0 * r0));
 
