@@ -27,98 +27,37 @@
 #include <vector>
 
 #include <QByteArray>
+#include <QObject>
+
+#include "nucleus/tile_scheduler/tile_types.h"
+#include "nucleus/vector_tiles/VectorTileFeature.h"
 
 namespace nucleus {
 
-class print_value {
-
+class VectorTileManager : public QObject {
+    Q_OBJECT
 public:
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wunused-parameter"
-    std::string operator()(std::vector<mapbox::feature::value> val)
-    {
-        return "vector";
-    }
+    explicit VectorTileManager(QObject* parent = nullptr);
 
-    std::string operator()(std::unordered_map<std::string, mapbox::feature::value> val)
-    {
-        return "unordered_map";
-    }
+    std::shared_ptr<std::unordered_set<std::shared_ptr<FeatureTXT>>> get_tile(tile::Id id);
 
-    std::string operator()(mapbox::feature::null_value_t val)
-    {
-        return "null";
-    }
+    // const std::unordered_map<size_t, std::shared_ptr<Peak>>& get_peaks() const;
 
-    std::string operator()(std::nullptr_t val)
-    {
-        return "nullptr";
-    }
-#pragma GCC diagnostic pop
+    inline static const QString TILE_SERVER = "http://localhost:8080/austria.peaks/";
 
-    std::string operator()(uint64_t val)
-    {
-        return std::to_string(val);
-    }
-    std::string operator()(int64_t val)
-    {
-        return std::to_string(val);
-    }
-    std::string operator()(double val)
-    {
-        return std::to_string(val);
-    }
-    std::string operator()(std::string const& val)
-    {
-        return val;
-    }
-
-    std::string operator()(bool val)
-    {
-        return val ? "true" : "false";
-    }
-};
-
-struct Peak {
-    // name/altitude should not change after initialization
-    const std::string name;
-    const float altitude;
-    // might be updated if a more precise zoom level gives more precise values
-    glm::vec2 position;
-    float importance;
-    int highest_zoom; // the highest zoom level where this info has been loaded
-
-    size_t get_id()
-    {
-        return Peak::get_id(name, altitude);
-    }
-
-    static size_t get_id(const std::string name, const float altitude)
-    {
-        size_t hash = 0;
-        hash ^= std::hash<std::string>()(name) + 0x9e3779b9 + (hash << 6) + (hash >> 2);
-        hash ^= std::hash<float>()(altitude) + 0x9e3779b9 + (hash << 6) + (hash >> 2);
-        return hash;
-    }
-};
-
-class VectorTileManager {
-public:
-    explicit VectorTileManager();
-
-    void get_tile(tile::Id id);
-
-    const std::unordered_map<size_t, std::shared_ptr<Peak>>& get_peaks() const;
-
-    void update_tile_data(std::string data, tile::Id id);
+public slots:
+    void deliver_vectortile(const nucleus::tile_scheduler::tile_types::TileLayer& tile);
 
 private:
-    void load_tile(tile::Id id);
+    const static inline std::shared_ptr<std::unordered_set<std::shared_ptr<FeatureTXT>>> empty = std::make_shared<std::unordered_set<std::shared_ptr<FeatureTXT>>>(); // default reference we return if the tile does not (yet) exist
+    std::unordered_map<tile::Id, std::shared_ptr<std::unordered_set<std::shared_ptr<FeatureTXT>>>, tile::Id::Hasher> loaded_tiles;
 
-    void update_peak(std::string name, float altitude, glm::vec2 position, int zoom_level);
+    void create_tile_data(const nucleus::tile_scheduler::tile_types::TileLayer& tileLayer);
 
-    std::unordered_set<tile::Id, tile::Id::Hasher> loaded_tiles;
-    std::unordered_map<size_t, std::shared_ptr<Peak>> loaded_peaks;
+    // void update_peak(std::string name, float altitude, glm::vec2 position, int zoom_level);
+
+    // std::unordered_set<tile::Id, tile::Id::Hasher> loaded_tiles;
+    std::unordered_map<long, std::shared_ptr<FeatureTXT>> loaded_peaks;
 };
 
 } // namespace nucleus

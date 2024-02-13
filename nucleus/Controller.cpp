@@ -36,6 +36,7 @@
 #include "nucleus/tile_scheduler/SlotLimiter.h"
 #include "nucleus/tile_scheduler/TileLoadService.h"
 #include "nucleus/tile_scheduler/utils.h"
+#include "nucleus/vector_tiles/VectorTileManager.h"
 #include "radix/TileHeights.h"
 
 using namespace nucleus::tile_scheduler;
@@ -55,6 +56,7 @@ Controller::Controller(AbstractRenderWindow* render_window)
     //        "https://maps%1.wien.gv.at/basemap/bmaporthofoto30cm/normal/google3857/", TileLoadService::UrlPattern::ZYX_yPointingSouth, ".jpeg", { "", "1", "2", "3", "4" }));
     m_ortho_service.reset(new TileLoadService(
         "https://gataki.cg.tuwien.ac.at/raw/basemap/tiles/", TileLoadService::UrlPattern::ZYX_yPointingSouth, ".jpeg"));
+    m_vectortile_service = std::make_unique<TileLoadService>("https://mapsneu.wien.gv.at/basemapv/bmapv/3857/tile/", TileLoadService::UrlPattern::ZYX_yPointingSouth, ".pbf");
 
     m_tile_scheduler = std::make_unique<nucleus::tile_scheduler::Scheduler>();
     m_tile_scheduler->read_disk_cache();
@@ -81,15 +83,18 @@ Controller::Controller(AbstractRenderWindow* render_window)
         RateLimiter* rl = new RateLimiter(sch);
         QuadAssembler* qa = new QuadAssembler(sch);
         LayerAssembler* la = new LayerAssembler(sch);
+        VectorTileManager* vtm = new VectorTileManager();
         connect(sch, &Scheduler::quads_requested, sl, &SlotLimiter::request_quads);
         connect(sl, &SlotLimiter::quad_requested, rl, &RateLimiter::request_quad);
         connect(rl, &RateLimiter::quad_requested, qa, &QuadAssembler::load);
         connect(qa, &QuadAssembler::tile_requested, la, &LayerAssembler::load);
         connect(la, &LayerAssembler::tile_requested, m_ortho_service.get(), &TileLoadService::load);
         connect(la, &LayerAssembler::tile_requested, m_terrain_service.get(), &TileLoadService::load);
+        connect(la, &LayerAssembler::tile_requested, m_vectortile_service.get(), &TileLoadService::load);
 
         connect(m_ortho_service.get(), &TileLoadService::load_finished, la, &LayerAssembler::deliver_ortho);
         connect(m_terrain_service.get(), &TileLoadService::load_finished, la, &LayerAssembler::deliver_height);
+        connect(m_vectortile_service.get(), &TileLoadService::load_finished, vtm, &VectorTileManager::deliver_vectortile);
         connect(la, &LayerAssembler::tile_loaded, qa, &QuadAssembler::deliver_tile);
         connect(qa, &QuadAssembler::quad_loaded, sl, &SlotLimiter::deliver_quad);
         connect(sl, &SlotLimiter::quad_delivered, sch, &Scheduler::receive_quad);
@@ -110,6 +115,7 @@ Controller::Controller(AbstractRenderWindow* render_window)
 #else
     m_terrain_service->moveToThread(m_scheduler_thread.get());
     m_ortho_service->moveToThread(m_scheduler_thread.get());
+    m_vectortile_service->moveToThread(m_scheduler_thread.get());
 #endif
     m_tile_scheduler->moveToThread(m_scheduler_thread.get());
     m_scheduler_thread->start();

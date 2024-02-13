@@ -27,59 +27,43 @@
 
 namespace nucleus {
 
-VectorTileManager::VectorTileManager()
+VectorTileManager::VectorTileManager(QObject* parent)
+    : QObject { parent }
 {
 }
 
-void VectorTileManager::get_tile(tile::Id id)
+std::shared_ptr<std::unordered_set<std::shared_ptr<FeatureTXT>>> VectorTileManager::get_tile(tile::Id id)
 {
+    // std::cout << id << std::endl;
+    if (loaded_tiles.contains(id)) {
+        return loaded_tiles[id];
+    } // else -> doesnt exist yet -> do nothing
 
-    std::cout << "get vector tile: " << id << std::endl;
+    return empty;
+}
 
-    if (!loaded_tiles.contains(id)) {
-        load_tile(id);
+void VectorTileManager::deliver_vectortile(const nucleus::tile_scheduler::tile_types::TileLayer& tile)
+{
+    if (!loaded_tiles.contains(tile.id) && tile.network_info.status == nucleus::tile_scheduler::tile_types::NetworkInfo::Status::Good) {
+        create_tile_data(tile);
     } // else -> already loaded once -> do nothing
-
 }
 
-void VectorTileManager::update_peak(std::string name, float altitude, glm::vec2 position, int zoom_level) // TODO importance (probably calculated from first visible zoom_level, but not sure if we aren't skipping some zoom_levels when loading..)
+void VectorTileManager::create_tile_data(const nucleus::tile_scheduler::tile_types::TileLayer& tileLayer)
 {
-    auto const id = Peak::get_id(name, altitude);
+    const auto tile_bounds = nucleus::srs::tile_bounds(tileLayer.id);
 
-    // insert or update tile
-    if (loaded_peaks.contains(id)) {
-        auto existing_peak = loaded_peaks[id];
+    // convert data buffer into vectortile
+    std::string d = (*tileLayer.data).toStdString();
+    mapbox::vector_tile::buffer tile(d);
 
-        if (existing_peak->highest_zoom < zoom_level) {
-            // update info since we have more precision
-            existing_peak->highest_zoom = zoom_level;
-            existing_peak->position = position;
-        }
+    std::shared_ptr<std::unordered_set<std::shared_ptr<FeatureTXT>>> features = std::make_shared<std::unordered_set<std::shared_ptr<FeatureTXT>>>();
 
-    } else {
-        // insert the new peak
-        loaded_peaks.insert(std::make_pair(id, std::make_shared<Peak>(name, altitude, position, 1.0, zoom_level)));
-    }
-}
-
-void VectorTileManager::load_tile(tile::Id id)
-{
-    std::cout << "load vector tile: " << id << std::endl;
-
-    std::string data = "";
-    // update_tile_data(data); //TODO enable
-}
-
-void VectorTileManager::update_tile_data(std::string data, tile::Id id)
-{
-    const auto tile_bounds = nucleus::srs::tile_bounds(id);
-
-    mapbox::vector_tile::buffer tile(data);
-
-    for (auto const& name : tile.layerNames()) {
-        if (name.starts_with("GIPFEL")) {
-            const mapbox::vector_tile::layer layer = tile.getLayer(name);
+    for (auto const& layerName : tile.layerNames()) {
+        if (layerName.starts_with("Peak")) {
+            const mapbox::vector_tile::layer layer = tile.getLayer(layerName);
             const auto extent = double(layer.getExtent());
+            // std::cout << extent << std::endl;
 
             std::size_t feature_count = layer.featureCount();
             for (std::size_t i = 0; i < feature_count; ++i) {
@@ -91,34 +75,35 @@ void VectorTileManager::update_tile_data(std::string data, tile::Id id)
                 for (auto const& point_array : geom) {
                     for (auto const& point : point_array) {
                         pos = tile_bounds.min + glm::dvec2(point.x / extent, point.y / extent) * (tile_bounds.max - tile_bounds.min);
-                        // y coordinate must be flipped to get the correct positioning
-                        pos.y *= -1.0;
                     }
+                }
+
+                std::shared_ptr<FeatureTXT> peak;
+                long id = feature.getID().get<uint64_t>();
+                if (loaded_peaks.contains(id)) {
+                    continue; // peak is already loaded
+                    // peak = loaded_peaks[id];
+                } else {
+                    peak = std::make_shared<FeatureTXT>();
+                    peak->id = id;
+                    peak->position = glm::vec3(pos.x, pos.y, -1000);
                 }
 
                 auto props = feature.getProperties();
                 for (auto const& prop : props) {
-
-                    if (prop.first.starts_with("_name")) {
-
-                        const auto peak_data = prop.second.get<std::string>();
-                        const auto split_index = peak_data.find("\n");
-                        const auto name = peak_data.substr(0, split_index);
-                        const auto altitude = std::stof(peak_data.substr(split_index + 1, peak_data.size() - split_index - 2));
-
-                        update_peak(name, altitude, pos, id.zoom_level);
-
-                        break; // we found the name property -> we can exit the properties list
+                    if (prop.first.starts_with("name")) {
+                        peak->name = prop.second.get<std::string>();
+                    } else if (prop.first.starts_with("elevation")) {
+                        peak->elevation = (int)prop.second.get<int64_t>();
                     }
                 }
+
+                features->insert(peak);
             }
         }
     }
-}
 
-const std::unordered_map<size_t, std::shared_ptr<Peak>>& VectorTileManager::get_peaks() const
-{
-    return loaded_peaks;
+    loaded_tiles.insert({ tileLayer.id, features });
 }
 
 } // namespace nucleus

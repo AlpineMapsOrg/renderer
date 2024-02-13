@@ -99,6 +99,7 @@ qt_add_library(nucleus STATIC
     timing/CpuTimer.h timing/CpuTimer.cpp
     map_label/CharUtils.h map_label/CharUtils.cpp
     vector_tiles/VectorTileManager.h vector_tiles/VectorTileManager.cpp
+    vector_tiles/VectorTileFeature.h
 )
 
 target_include_directories(nucleus PRIVATE . PUBLIC ${CMAKE_SOURCE_DIR})

@@ -18,20 +18,34 @@
 
 #include <QDebug>
 #include <QFile>
+#include <QSignalSpy>
 #include <catch2/catch_test_macros.hpp>
 #include <iostream>
 
+#include "nucleus/tile_scheduler/TileLoadService.h"
+#include "nucleus/tile_scheduler/utils.h"
+#include "nucleus/vector_tiles/VectorTileFeature.h"
 #include "nucleus/vector_tiles/VectorTileManager.h"
 #include "radix/tile.h"
 
 TEST_CASE("nucleus/vector_tiles")
 {
+    SECTION("Tile does not exist yet")
+    {
+        tile::Id id(13, glm::uvec2(4384, 2878), tile::Scheme::Tms);
+        nucleus::VectorTileManager v;
+
+        v.get_tile(id);
+
+        const auto tileData = v.get_tile(id);
+        CHECK(tileData->size() == 0);
+    }
+
     SECTION("PBF parsing")
     {
         nucleus::VectorTileManager v;
 
-        QString filepath = QString("%1%2").arg(ALP_TEST_DATA_DIR, "vector_tile_13_2878_4384.pbf");
-
+        QString filepath = QString("%1%2").arg(ALP_TEST_DATA_DIR, "vectortile.mvt");
         QFile file(filepath);
         file.open(QIODevice::ReadOnly | QIODevice::Unbuffered);
         QByteArray data = file.readAll();
@@ -40,23 +54,96 @@ TEST_CASE("nucleus/vector_tiles")
 
         tile::Id id(13, glm::uvec2(4384, 2878), tile::Scheme::Tms);
 
-        v.update_tile_data(data.toStdString(), id);
+        nucleus::tile_scheduler::tile_types::TileLayer tile { id, { nucleus::tile_scheduler::tile_types::NetworkInfo::Status::Good, nucleus::tile_scheduler::utils::time_since_epoch() }, std::make_shared<QByteArray>(data) };
 
-        // TODO teufelskamp appears twice...
-        // Teufelskamp	alt:3509	pos: 1.41144e+06, 5.95626e+06
-        // Teufelskamp	alt:3511	pos: 1.41144e+06, 5.95626e+06
+        v.deliver_vectortile(tile);
 
-        for (const auto& peak : v.get_peaks()) {
-            std::cout << peak.second->name << "\talt:" << peak.second->altitude << "\tpos: " << peak.second->position.x << ", " << peak.second->position.y << std::endl;
+        const auto& tileData = v.get_tile(tile.id);
+
+        CHECK(tileData->size() == 16);
+
+        for (const auto& peak : *tileData) {
+
+            if (peak->id == 66) {
+                // Check if großglockner has been successfully parsed (note the id might change in the future)
+                CHECK(peak->elevation == 3798);
+                CHECK(peak->name == "Großglockner");
+            }
+            // peak->print();
         }
-
-        std::cout << "peaks: " << v.get_peaks().size() << std::endl;
     }
 
-    SECTION("Tile Loading")
+    SECTION("Tile download")
     {
+        const auto id = tile::Id { .zoom_level = 13, .coords = { 4384, 2878 }, .scheme = tile::Scheme::SlippyMap }.to(tile::Scheme::Tms);
+
+        // nucleus::tile_scheduler::TileLoadService service("https://mapsneu.wien.gv.at/basemapv/bmapv/3857/tile/", nucleus::tile_scheduler::TileLoadService::UrlPattern::ZYX_yPointingSouth, ".pbf");
+        nucleus::tile_scheduler::TileLoadService service(nucleus::VectorTileManager::TILE_SERVER, nucleus::tile_scheduler::TileLoadService::UrlPattern::ZXY_yPointingSouth, ".mvt");
+        // std::cout << "loading: " << qUtf8Printable(service.build_tile_url(id)) << std::endl;
+        {
+            QSignalSpy spy(&service, &nucleus::tile_scheduler::TileLoadService::load_finished);
+            service.load(id);
+            spy.wait(10000);
+
+            REQUIRE(spy.count() == 1);
+            QList<QVariant> arguments = spy.takeFirst();
+            REQUIRE(arguments.size() == 1);
+            nucleus::tile_scheduler::tile_types::TileLayer tile = arguments.at(0).value<nucleus::tile_scheduler::tile_types::TileLayer>();
+            CHECK(tile.id == id);
+            CHECK(tile.network_info.status == nucleus::tile_scheduler::tile_types::NetworkInfo::Status::Good);
+            CHECK(nucleus::tile_scheduler::utils::time_since_epoch() - tile.network_info.timestamp < 10'000);
+
+            QString filepath = QString("%1%2").arg(ALP_TEST_DATA_DIR, "vectortile.mvt");
+            QFile file(filepath);
+            file.open(QIODevice::ReadOnly | QIODevice::Unbuffered);
+            QByteArray data = file.readAll();
+
+            REQUIRE(tile.data->size() > 0);
+            CHECK(tile.data->size() == data.size());
+            CHECK(*tile.data == data);
+        }
+    }
+
+    SECTION("Tile download parent")
+    {
+        // nucleus::tile_scheduler::TileLoadService service("https://mapsneu.wien.gv.at/basemapv/bmapv/3857/tile/", nucleus::tile_scheduler::TileLoadService::UrlPattern::ZYX_yPointingSouth, ".pbf");
+        nucleus::tile_scheduler::TileLoadService service(nucleus::VectorTileManager::TILE_SERVER, nucleus::tile_scheduler::TileLoadService::UrlPattern::ZXY_yPointingSouth, ".mvt");
+
         nucleus::VectorTileManager v;
-        tile::Id id(13, glm::uvec2(4384, 2878), tile::Scheme::Tms);
-        v.get_tile(id);
+
+        auto id = tile::Id { .zoom_level = 13, .coords = { 4384, 2878 }, .scheme = tile::Scheme::SlippyMap }.to(tile::Scheme::Tms);
+        // auto id = tile::Id { .zoom_level = 12, .coords = { 2192, 1439 }, .scheme = tile::Scheme::SlippyMap }.to(tile::Scheme::Tms);
+        // auto id = tile::Id { .zoom_level = 9, .coords = { 274, 179 }, .scheme = tile::Scheme::SlippyMap }.to(tile::Scheme::Tms);
+        // /9/274/179.mvt
+
+        for (int i = 13; i > 9; i--) {
+            std::cout << "loading: " << qUtf8Printable(service.build_tile_url(id)) << std::endl;
+
+            QSignalSpy spy(&service, &nucleus::tile_scheduler::TileLoadService::load_finished);
+            service.load(id);
+            spy.wait(10000);
+
+            REQUIRE(spy.count() == 1);
+            QList<QVariant> arguments = spy.takeFirst();
+            REQUIRE(arguments.size() == 1);
+            const auto tile = arguments.at(0).value<nucleus::tile_scheduler::tile_types::TileLayer>();
+            CHECK(tile.id == id);
+            CHECK(tile.network_info.status == nucleus::tile_scheduler::tile_types::NetworkInfo::Status::Good);
+            CHECK(nucleus::tile_scheduler::utils::time_since_epoch() - tile.network_info.timestamp < 10'000);
+
+            // std::cout << "here: " << tile.data->size() << std::endl;
+
+            REQUIRE(tile.data->size() > 0);
+
+            v.deliver_vectortile(tile);
+            const auto& tile_features = v.get_tile(id);
+
+            std::cout << "features: " << tile_features->size() << std::endl;
+            for (const auto& feature : *tile_features) {
+                feature->print();
+            }
+
+            id = id.parent();
+        }
     }
 }
