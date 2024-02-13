@@ -65,7 +65,7 @@ void main() {
     // distance from camera to terrain, negative if sky
     highp float dist = pos_dist.w;
 
-    Ray ray = Ray(camera_position, terrain_pos / dist);
+    Ray ray = Ray(camera_position, normalize(terrain_pos / dist));
 
     float radius = 7;
 
@@ -77,8 +77,7 @@ void main() {
 
     if (IntersectRaySphere(ray, sphere, t, point)) {
         highp vec3 normal = (point - sphere.position) / sphere.radius;
-        highp vec3 normal_color = (normal + vec3(1)) / vec3(2);
-        texout_albedo = normal_color;
+        texout_albedo = visualize_normal(normal);
     } else {
         discard;
     }
@@ -104,30 +103,19 @@ void main() {
         clipping_plane_2.normal = n1;
         clipping_plane_2.distance = dot(x2, n1);
 
-
-#if 1
         if (
-            (0.0 > signed_distance(point, clipping_plane_1))
+            (0.0 >= signed_distance(point, clipping_plane_1))
             &&
-            (0.0 > signed_distance(point, clipping_plane_2))
+            (0.0 <= signed_distance(point, clipping_plane_2))
         ) {
-            //texout_albedo = vec3(1, 0, 0);
             texout_albedo = normal;
         } else {
             discard;
         }
-#else
-        //texout_albedo = visualize_normal(clipping_plane_1.normal);
-        texout_albedo = clipping_plane_1.normal;
-#endif
-
-
 
     } else {
         discard; // no intersection
     }
-
-
 
 
 #else

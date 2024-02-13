@@ -82,7 +82,7 @@ vec3 capsule_normal_2( in vec3 pos, in Capsule c) {
 }
 
 float signed_distance(in vec3 point, in Plane plane) {
-    return dot(plane.normal, point) + plane.distance;
+    return dot(plane.normal, point) - plane.distance;
 }
 
 // https://www.shadertoy.com/view/Xt3SzX
