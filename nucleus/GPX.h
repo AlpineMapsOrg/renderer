@@ -37,4 +37,6 @@ std::vector<unsigned> ribbon_indices(unsigned point_count);
 
 void apply_gaussian_filter(std::vector<glm::vec3>& points, float sigma = 1.0f);
 
+void reduce_point_count(std::vector<glm::vec3>& points);
+
 } // namespace nucleus

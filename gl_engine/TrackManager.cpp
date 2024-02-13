@@ -81,16 +81,16 @@ void TrackManager::draw(const nucleus::camera::Definition& camera, ShaderProgram
         track.vao->bind();
 
         //GLsizei count = (track.point_count - 1) * 6;
-        //GLsizei triangle_count = (track.point_count - 1) * 2;
-        GLsizei triangle_count = 2 * 3;
+        GLsizei vertex_count = (track.point_count - 1) * 2;
+        //GLsizei vertex_count = 2 * 3;
 
         funcs->glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
         shader->set_uniform("enable_intersection", true);
-        f->glDrawArrays(GL_TRIANGLES, 0, triangle_count);
+        f->glDrawArrays(GL_TRIANGLES, 0, vertex_count);
 
         funcs->glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
         shader->set_uniform("enable_intersection", false);
-        f->glDrawArrays(GL_TRIANGLES, 0, triangle_count);
+        f->glDrawArrays(GL_TRIANGLES, 0, vertex_count);
     }
 
     shader->release();
@@ -111,7 +111,14 @@ void TrackManager::add_track(const nucleus::gpx::Gpx& gpx, ShaderProgram* shader
     // reduce variance in points
     nucleus::apply_gaussian_filter(points, 1.0f);
 
+    std::cout << "before cleanup: " << points.size() << std::endl;
+
+    nucleus::reduce_point_count(points);
+
+    std::cout << "after cleanup: " << points.size() << std::endl;
+
     size_t point_count = points.size();
+
 
 #if 0
     std::vector<glm::vec3> basic_ribbon = nucleus::triangle_strip_ribbon(points, 15.0f);

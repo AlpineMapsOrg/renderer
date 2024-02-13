@@ -155,23 +155,27 @@ std::vector<glm::vec3> triangles_ribbon(const std::vector<glm::vec3>& points, fl
         auto up = glm::vec3(0.0f, 0.0f, 1.0f);
         auto down = glm::vec3(0.0f, 0.0f, -1.0f);
 
+        auto start = glm::vec3(1.0f, 0.0f, 0.0f);
+        auto end = glm::vec3(-1.0f, 0.0f, 0.0f);
+
+        auto index = glm::vec3(0.0f, static_cast<float>(i), 0.0f);
+
         // triangle 1
         ribbon.insert(ribbon.end(), {
-            a + offset, d, up,
-            a - offset, d, down,
-            b - offset, d, down,
+            a + offset, d, up + start + index,
+            a - offset, d, down + start + index,
+            b - offset, d, down + end + index,
         });
 
         // triangle 2
         ribbon.insert(ribbon.end(), {
-            a + offset, d, up,
-            b - offset, d, down,
-            b + offset, d, up,
+            a + offset, d, up + start + index,
+            b - offset, d, down + end + index,
+            b + offset, d, up + end + index,
         });
     }
     return ribbon;
 }
-
 
 std::vector<unsigned> ribbon_indices(unsigned point_count)
 {
@@ -221,6 +225,25 @@ void apply_gaussian_filter(std::vector<glm::vec3>& points, float sigma)
             value += points[i + j] * kernel[j + radius];
 
         points[i] = value;
+    }
+}
+
+void reduce_point_count(std::vector<glm::vec3>& points)
+{
+    std::vector<glm::vec3> old_points = points;
+
+    points.clear();
+
+    const float threshold = 30.0f; // some arbitrary, sensible value
+
+    for (size_t i = 0; i < old_points.size() - 1; ++i) {
+        glm::vec3 current_point = old_points[i];
+
+        points.push_back(current_point);
+
+        while (glm::distance(current_point, old_points[i + 1]) < threshold && i < old_points.size() - 1) {
+            ++i;
+        }
     }
 }
 

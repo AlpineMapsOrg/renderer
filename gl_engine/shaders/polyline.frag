@@ -8,6 +8,11 @@ layout (location = 2) out highp uvec2 texout_normal;
 layout (location = 3) out highp uint texout_depth;
 layout (location = 4) out highp uint texout_vertex_id;
 
+#define SPHERE      0
+#define CAPSULE     1
+
+#define GEOMETRY    CAPSULE
+
 in highp vec3 color;
 
 flat in highp int vertex_id;
@@ -56,10 +61,10 @@ void main() {
     ray.origin = origin;
     ray.direction = terrain_pos / dist;
 
-#if 0
-    Sphere sphere;
-    sphere.position = track_vert;
-    sphere.radius = 7;
+    float radius = 7;
+
+#if (GEOMETRY == SPHERE)
+    Sphere sphere = Sphere(track_vert, radius);
 
     float t = INF;
     vec3 point;
@@ -71,24 +76,50 @@ void main() {
     } else {
         discard;
     }
-#else
-    float capsule_radius = 5;
-    Capsule c1;
-    c1.p = track_vert;
-    c1.q = next_track_vert;
-    c1.radius = capsule_radius;
+#elif (GEOMETRY == CAPSULE)
+
+    Capsule c1 = Capsule(track_vert, next_track_vert, radius);
 
     float t1 = intersect_capsule(ray.origin, ray.direction, c1.p, c1.q, c1.radius);
 
-    Capsule c2;
-    c2.p = prev_track_vert;
-    c2.q = track_vert;
-    c2.radius = capsule_radius;
+    Capsule c2 = Capsule(prev_track_vert, track_vert, radius);
 
     float t2 = intersect_capsule(ray.origin, ray.direction, c2.p, c2.q, c2.radius);
 
+    float t = -1;
+    vec3 normal;
+
+    if ((0 < t1 && t1 < INF) && (0 < t2 && t2 < INF)) {
+        // intersect both
+        texout_albedo = vec3(1,0,0);
+
+        if (t1 < t2) {
+            t = t1;
+            normal = capsule_normal(ray.origin + ray.direction * t, c1.p, c1.q, c1.radius);
+        } else {
+            t = t2;
+            normal = capsule_normal(ray.origin + ray.direction * t, c2.p, c2.q, c2.radius);
+        }
 
 
+    } else if ((0 < t1 && t1 < INF)) {
+        texout_albedo = vec3(0,1,0);
+        t = t1;
+        normal = capsule_normal(ray.origin + ray.direction * t, c1.p, c1.q, c1.radius);
+
+    } else if ((0 < t2 && t2 < INF)) {
+        texout_albedo = vec3(0,0,1);
+        t = t2;
+        normal = capsule_normal(ray.origin + ray.direction * t, c2.p, c2.q, c2.radius);
+
+
+    } else {
+        discard; // no intersection
+    }
+
+    texout_albedo = normal;
+
+    /*
     if ((0 < t1 && t1 < INF) || (0 < t2 && t2 < INF)) {
 
         float t;
@@ -97,12 +128,12 @@ void main() {
 
         if (t1 < t2 && 0 < t1) {
             t = t1;
-            vec3 point = ray.origin + ray.direction * t;
-            normal = capsule_normal(point, c1.p, c1.q,  capsule_radius);
+            vec3 point = ray.origin + ray.direction * t2;
+            normal = capsule_normal(point, c1.p, c1.q,  radius);
         } else {
             t = t2;
-            vec3 point = ray.origin + ray.direction * t;
-            normal = capsule_normal(point, c2.p, c2.q,  capsule_radius);
+            vec3 point = ray.origin + ray.direction * t1;
+            normal = capsule_normal(point, c2.p, c2.q, radius);
         }
 
         vec3 red = vec3(1,0,0);
@@ -111,18 +142,20 @@ void main() {
         float diff = dist - t;
 
         if (diff > 0) {
-            texout_albedo = mix(red, blue, diff / (capsule_radius * 2));
-            //texout_albedo = normal;
+            //texout_albedo = mix(red, blue, diff / (capsule_radius * 2));
+            texout_albedo = normal;
         } else {
-            texout_albedo = red;
-            //discard;
+            //texout_albedo = red;
+            discard;
         }
 
         //texout_albedo = vec3(0,1,0);
     } else {
         discard;
-    }
+    }*/
 
+#else
+#error unknown GEOMETRY
 #endif
 
 #endif

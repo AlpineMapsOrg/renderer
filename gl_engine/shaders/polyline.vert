@@ -19,7 +19,9 @@ out vec3 color;
 
 void main() {
   // the closest gpx point to the vertex
-  vertex_id = (gl_VertexID / 3) - (gl_VertexID / 6);
+  //vertex_id = (gl_VertexID / 3) - (gl_VertexID / 6);
+  vertex_id = int(a_offset.y);
+  //vertex_id = 0;
 
 #if (METHOD == 1)
   uint id = (gl_VertexID / 2) - (gl_VertexID / 4);
@@ -77,29 +79,19 @@ void main() {
 
   float t0 = sqrt(dot(d0, d0) - (r0 * r0));
 
-  //float r0_hat = length(d0) * (r0 / t0);
-
+  // TODO
+  //float r0_prime = length(d0) * (r0 / t0);
   float r0_prime = r0;
 
-  // direction of offset
-  float f;
 
-  if (gl_VertexID == 0 || gl_VertexID == 1 || gl_VertexID == 3) {
-    f = +1;
-  } else {
-    f = -1;
-  }
-
-  vec3 p0 = x0 + (f * v0 * r0_prime);
-
+  // TODO:
   float r0_double_prime = r0;
+
+  vec3 p0 = x0 + (a_offset.x * v0 * r0_prime);
 
   vec3 position = p0 + u_hat * a_offset.z * r0_double_prime;
 
-
-
   gl_Position = matrix * vec4(position, 1);
-
 
 #elif(METHOD == 3)
   // naive orientation towards camera
