@@ -81,7 +81,7 @@ Drawer {
             }
             Image {
                 id: logo_mark
-                source: "../icons/icon.svg"
+                source: "../icons/icon.png"
                 sourceSize: Qt.size (64, 64)
                 fillMode: Image.PreserveAspectFit
                 width: banner.width * 0.16
@@ -93,7 +93,7 @@ Drawer {
             }
             Image {
                 id: logo_type
-                source: "../icons/logo_type_horizontal_short.svg"
+                source: "../icons/logo_type_horizontal_short.png"
                 width: banner.width * 0.65
                 fillMode: Image.PreserveAspectFit
                 anchors {

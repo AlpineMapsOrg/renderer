@@ -70,31 +70,30 @@ qt_add_qml_module(alpineapp
         components/FluxColor/WheelArea.qml
     RESOURCES
         icons/mascot.jpg
-        icons/menu.svg
-        icons/peak.svg
-        icons/search.svg
-        icons/favicon.ico
-        icons/icon.svg
-        icons/material/monitoring.svg
-        icons/material/3d_rotation.svg
-        icons/material/map.svg
-        icons/material/pin_drop.svg
-        icons/material/settings.svg
-        icons/material/info.svg
-        icons/material/format_paint.svg
-        icons/material/location_searching.svg
-        icons/material/my_location.svg
-        icons/material/navigation.svg
-        icons/material/navigation_offset.svg
-        icons/material/chevron_left.svg
-        icons/material/visibility_off.svg
+        icons/menu.png
+        icons/peak.png
+        icons/search.png
+        icons/icon.png
+        icons/material/monitoring.png
+        icons/material/3d_rotation.png
+        icons/material/map.png
+        icons/material/pin_drop.png
+        icons/material/settings.png
+        icons/material/info.png
+        icons/material/format_paint.png
+        icons/material/location_searching.png
+        icons/material/my_location.png
+        icons/material/navigation.png
+        icons/material/navigation_offset.png
+        icons/material/chevron_left.png
+        icons/material/visibility_off.png
         icons/presets/basic.png
         icons/presets/shaded.png
         icons/presets/snow.png
-        icons/needle_head_down.svg
-        icons/logo_type_horizontal.svg
-        icons/logo_type_vertical.svg
-        icons/logo_type_horizontal_short.svg
+        icons/needle_head_down.png
+        icons/logo_type_horizontal.png
+        icons/logo_type_vertical.png
+        icons/logo_type_horizontal_short.png
 
 )
 

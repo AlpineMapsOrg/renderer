@@ -105,7 +105,7 @@ qt_add_library(nucleus STATIC
 )
 
 target_include_directories(nucleus PRIVATE . PUBLIC ${CMAKE_SOURCE_DIR})
-target_link_libraries(nucleus PUBLIC radix Qt::Core Qt::Gui Qt::Network Qt::Svg fmt::fmt zppbits tl_expected nucleus_version stb_slim goofy_tc)
+target_link_libraries(nucleus PUBLIC radix Qt::Core Qt::Gui Qt::Network fmt::fmt zppbits tl_expected nucleus_version stb_slim goofy_tc)
 
 if (EMSCRIPTEN)
     target_compile_options(nucleus PUBLIC -msimd128 -msse2 -Wno-dollar-in-identifier-extension)

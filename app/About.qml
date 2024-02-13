@@ -52,7 +52,7 @@ Rectangle {
                 fillMode: Image.PreserveAspectFit
                 width: 180
                 height: 120
-                source: "icons/logo_type_vertical.svg"
+                source: "icons/logo_type_vertical.png"
             }
 
 
@@ -73,11 +73,14 @@ This is an open source application. It is released under the GNU General Public 
 The source of elevation and orthographic photo data is <a href=\"https://basemap.at\">basemap.at</a>,
 it is licensed under the Open Government Data Austria license (CC-BY 4.0).
 
-# Authors:
+## Authors:
 Adam Celarek, Lucas Dworschak, Gerald Kimmersdorfer, Jakob Lindner
 
-# Impressum:
-Adam Celarek<br/>Hartmanngasse 12/22<br/>1050 Wien<br/>Österreich / Austria")
+## Impressum:
+Adam Celarek\\
+Hartmanngasse 12/22\\
+1050 Wien\\
+Österreich / Austria")
             }
         }
     }

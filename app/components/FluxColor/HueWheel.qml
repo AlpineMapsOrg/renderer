@@ -33,7 +33,7 @@ WheelArea {
     }
 
     Image {
-        source: "../../icons/needle_head_down.svg"
+        source: "../../icons/needle_head_down.png"
         anchors.centerIn: hueRing
         anchors.verticalCenterOffset: hueRing.radius - hueRing.thickness
     }

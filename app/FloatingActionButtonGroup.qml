@@ -60,21 +60,21 @@ ColumnLayout {
 
     FloatingActionButton {
         rotation: map.camera_rotation_from_north
-        image: "../icons/material/navigation_offset.svg"
+        image: "../icons/material/navigation_offset.png"
         onClicked: map.rotate_north()
         size: parent.width
     }
 
     FloatingActionButton {
         id: fab_location
-        image: checked ?  "../icons/material/my_location.svg" : "../icons/material/location_searching.svg"
+        image: checked ?  "../icons/material/my_location.png" : "../icons/material/location_searching.png"
         checkable: true
         size: parent.width
     }
 
     FloatingActionButton {
         id: fab_presets
-        image: checked ? "../icons/material/chevron_left.svg" : "../icons/material/format_paint.svg"
+        image: checked ? "../icons/material/chevron_left.png" : "../icons/material/format_paint.png"
         size: parent.width
         checkable: true
 

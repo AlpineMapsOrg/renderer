@@ -99,8 +99,7 @@ void MapLabelManager::init()
         label.init(m_char_data, &m_fontinfo, uv_width_norm);
     }
 
-    // paint svg icon into the an image of appropriate size
-    m_icon = QIcon(QString(":/qt/qml/app/icons/peak.svg")).pixmap(QSize(MapLabel::icon_size.x, MapLabel::icon_size.y)).toImage();
+    m_icon = QImage(":/qt/qml/app/icons/peak.png");
 }
 
 Raster<uint8_t> MapLabelManager::make_font_raster()
