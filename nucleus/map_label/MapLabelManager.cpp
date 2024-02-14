@@ -91,21 +91,21 @@ void MapLabelManager::init()
         Raster<glm::u8vec4> rgba_raster = { m_font_atlas.size(), { 255, 255, 0, 255 } };
         std::transform(m_font_atlas.cbegin(), m_font_atlas.cend(), rgba_raster.begin(), [](const auto& v) { return glm::u8vec4(v.x, v.y, 0, 255); });
 
-        const auto debug_out = QImage(rgba_raster.bytes(), m_font_atlas_size.width(), m_font_atlas_size.height(), QImage::Format_RGBA8888);
-        debug_out.save("font_atlas.png");
+        // const auto debug_out = QImage(rgba_raster.bytes(), m_font_atlas_size.width(), m_font_atlas_size.height(), QImage::Format_RGBA8888);
+        // debug_out.save("font_atlas.png");
     }
 
     for (auto& label : m_labels) {
         label.init(m_char_data, &m_fontinfo, uv_width_norm);
     }
 
-    m_icon = QImage(":/qt/qml/app/icons/peak.png");
+    m_icon = QImage(ALP_ASSET_PREFIX "/icons/peak.png");
 }
 
 Raster<uint8_t> MapLabelManager::make_font_raster()
 {
     // load ttf file
-    QFile file(":/fonts/SourceSans3-Bold.ttf");
+    QFile file(ALP_ASSET_PREFIX "/fonts/SourceSans3-Bold.ttf");
     const auto open = file.open(QIODeviceBase::OpenModeFlag::ReadOnly);
     assert(open);
     Q_UNUSED(open);

@@ -63,7 +63,7 @@ Controller::Controller(AbstractRenderWindow* render_window)
     m_tile_scheduler->set_gpu_quad_limit(500);
     m_tile_scheduler->set_ram_quad_limit(12000);
     {
-        QFile file(":/map/height_data.atb");
+        QFile file(ALP_ASSET_PREFIX "/map/height_data.atb");
         const auto open = file.open(QIODeviceBase::OpenModeFlag::ReadOnly);
         assert(open);
         Q_UNUSED(open);

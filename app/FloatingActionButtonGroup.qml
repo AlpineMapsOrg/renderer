@@ -60,21 +60,21 @@ ColumnLayout {
 
     FloatingActionButton {
         rotation: map.camera_rotation_from_north
-        image: "../icons/material/navigation_offset.png"
+        image: _r + "icons/material/navigation_offset.png"
         onClicked: map.rotate_north()
         size: parent.width
     }
 
     FloatingActionButton {
         id: fab_location
-        image: checked ?  "../icons/material/my_location.png" : "../icons/material/location_searching.png"
+        image: _r + "icons/material/" + (checked ? "my_location.png" : "location_searching.png")
         checkable: true
         size: parent.width
     }
 
     FloatingActionButton {
         id: fab_presets
-        image: checked ? "../icons/material/chevron_left.png" : "../icons/material/format_paint.png"
+        image: _r + "icons/material/" + (checked ? "chevron_left.png" : "format_paint.png")
         size: parent.width
         checkable: true
 
@@ -94,7 +94,7 @@ ColumnLayout {
                 height: parent.height
 
                 FloatingActionButton {
-                    image: "../icons/presets/basic.png"
+                    image: _r + "icons/presets/basic.png"
                     onClicked: map.set_gl_preset("AAABIHjaY2BgYLL_wAAGGPRhY2EHEP303YEDIPrZPr0FQHr_EU-HBAYEwKn_5syZIPX2DxgEGLDQcP0_ILQDBwMKcHBgwAoc7KC0CJTuhyh0yGRAoeHueIBK4wAKQMwIxXAAAFQuIIw")
                     size: parent.height
                     image_size: 42
@@ -105,7 +105,7 @@ ColumnLayout {
                 }
 
                 FloatingActionButton {
-                    image: "../icons/presets/shaded.png"
+                    image: _r + "icons/presets/shaded.png"
                     onClicked: map.set_gl_preset("AAABIHjaY2BgYLL_wAAGGPRhY2EHEP1s0rwEMG32D0TvPxS4yIEBAXDqvzlz5gIQ_YBBgAELDdf_A0I7cDCgAAcHBqzAwQ5Ki0DpfohCh0wGFBrujgeoNBAwQjEyXwFNHEwDAMaIIAM")
                     size: parent.height
                     image_size: 42
@@ -116,7 +116,7 @@ ColumnLayout {
                 }
 
                 FloatingActionButton {
-                    image: "../icons/presets/snow.png"
+                    image: _r + "icons/presets/snow.png"
                     onClicked: map.set_gl_preset("AAABIHjaY2BgYLL_wAAGGPRhY2EHEP1s0rwEMG32D0TvPxS4yIEBAXDqvzlz5gIQ_YBBgAELDdf_A0I7cDCgAAcHVPPg4nZQWgRK90MUOmQyoNBwdzxApYGAEYqR-Qpo4mAaAFhrITI")
                     size: parent.height
                     image_size: 42

@@ -49,7 +49,7 @@ Item {
                 height: 48
                 color: "#00FF0000"
                 Image {
-                    source: "icons/menu.png"
+                    source: _r + "icons/menu.png"
                     width: parent.width / 2
                     height: parent.height / 2
                     anchors.centerIn: parent
@@ -99,19 +99,19 @@ Item {
         DrawerButton {
             bid: 0
             text: qsTr ("Map")
-            iconSource: "../icons/material/map.png"
+            iconSource: _r + "icons/material/map.png"
             onClicked: change_page("map", qsTr("Map"))
         }
 
         DrawerButton {
             text: qsTr ("Coordinates")
-            iconSource: "../icons/material/pin_drop.png"
+            iconSource: _r + "icons/material/pin_drop.png"
             onClicked: change_page("Coordinates.qml", qsTr("Coordinates"))
         }
 
         DrawerButton {
             text: qsTr ("Settings")
-            iconSource: "../icons/material/settings.png"
+            iconSource: _r + "icons/material/settings.png"
             onClicked: change_page("Settings.qml", qsTr("Settings"))
         }
 
@@ -119,7 +119,7 @@ Item {
 
         DrawerButton {
             text: qsTr("Reload Shaders")
-            iconSource: "../icons/material/3d_rotation.png"
+            iconSource: _r + "icons/material/3d_rotation.png"
             hotkey: "F6"
             selectable: false
             onClicked: map.reload_shader();
@@ -128,7 +128,7 @@ Item {
         DrawerButton {
             text: (stats_window_loader.item !== null && stats_window_loader.item.visible) ? qsTr ("Hide Statistics") : qsTr("Statistics")
             hotkey: "F8"
-            iconSource: "../icons/material/monitoring.png"
+            iconSource: _r + "icons/material/monitoring.png"
             selectable: false
             visible: _debug_gui
             onClicked: toggleStatsWindow();
@@ -136,7 +136,7 @@ Item {
 
         DrawerButton {
             text: qsTr("Hide User Interface")
-            iconSource: "../icons/material/visibility_off.png"
+            iconSource: _r + "icons/material/visibility_off.png"
             hotkey: "F10"
             selectable: false
             onClicked: map.hud_visible = false;
@@ -148,7 +148,7 @@ Item {
 
         DrawerButton {
             text: qsTr ("About")
-            iconSource: "../icons/material/info.png"
+            iconSource: _r + "icons/material/info.png"
             onClicked: change_page("About.qml", qsTr("About"))
         }
 
@@ -167,9 +167,9 @@ Item {
             return
         }
         if (main_stack_view.depth === 1)
-            main_stack_view.push(_qmlPath + source)
+            main_stack_view.push(source)
         else
-            main_stack_view.replace(_qmlPath + source)
+            main_stack_view.replace(source)
         main_stack_view.selectedPage = selectedPage
         page_title.visible = true
         search.visible = false

@@ -54,37 +54,46 @@ int main(int argc, char **argv)
 #else
     QGuiApplication app(argc, argv);
 #endif
-    app.setWindowIcon(QIcon("app/icons/favicon.ico"));
+    app.setWindowIcon(QIcon(ALP_ASSET_PREFIX "/icons/favicon.ico"));
     QCoreApplication::setOrganizationName("AlpineMaps.org");
     QCoreApplication::setApplicationName("AlpineApp");
     QGuiApplication::setApplicationDisplayName("Alpine Maps");
     QNetworkInformation::loadDefaultBackend(); // load here, so it sits on the correct thread.
 
+    QFontDatabase::addApplicationFont(ALP_ASSET_PREFIX "/fonts/SourceSans3-Regular.ttf");
+    QFontDatabase::addApplicationFont(ALP_ASSET_PREFIX "/fonts/SourceSans3-Bold.ttf");
+    app.setFont(QFont("Source Sans 3", 12, 400));
+
+#ifndef NDEBUG
     //    QLoggingCategory::setFilterRules("*.debug=true\n"
     //                                     "qt.qpa.fonts=true");
     // output qrc files:
-    QDirIterator it(":", QDirIterator::Subdirectories);
-    while (it.hasNext()) {
-        const auto path = it.next();
-        const auto file = QFile(path);
-        qDebug() << path << " size: " << file.size() / 1024 << "kb";
+    {
+        qDebug() << "qrc files:";
+        QDirIterator it(":", QDirIterator::Subdirectories);
+        while (it.hasNext()) {
+            const auto path = it.next();
+            const auto file = QFile(path);
+            qDebug() << path << " size: " << file.size() / 1024 << "kb";
+        }
     }
-
-    //    qDebug() << ":: before adding fonts::" << QFontDatabase::families().size();
-    //    for (const auto& entry : QFontDatabase::families()) {
-    //        qDebug() << entry;
-    //    }
-    for (const auto& entry : QDir(":/fonts").entryInfoList()) {
-        //        qDebug() << entry.filePath() << " -> " <<
-        QFontDatabase::addApplicationFont(entry.filePath());
+#ifdef __EMSCRIPTEN__
+    {
+        qDebug() << "packaged files:";
+        QDirIterator it("/", QDirIterator::Subdirectories);
+        while (it.hasNext()) {
+            const auto path = it.next();
+            const auto file = QFile(path);
+            qDebug() << path << " size: " << file.size() / 1024 << "kb";
+        }
     }
-    //    qDebug() << ":: after adding fonts::" << QFontDatabase::families().size();
-    //    for (const auto& entry : QFontDatabase::families()) {
-    //        qDebug() << entry;
-    //    }
-
-    QFont fon("Source Sans 3");
-    app.setFont(fon);
+#endif
+    qDebug() << "Available fonts:";
+    for (const auto& family : QFontDatabase::families()) {
+        for (const auto& style : QFontDatabase::styles(family))
+            qDebug() << family << "|" << style;
+    }
+#endif
 
     QTranslator translator;
     const QStringList uiLanguages = QLocale::system().uiLanguages();
@@ -117,9 +126,13 @@ int main(int argc, char **argv)
 
     QQmlApplicationEngine engine;
 
-    HotReloader hotreloader(&engine, ALP_QML_SOURCE_DIR); // FOR NATIVE BUILD ALP_QML_SOURCE_DIR="app/";
+    HotReloader hotreloader(&engine, ALP_QML_SOURCE_DIR);
     engine.rootContext()->setContextProperty("_hotreloader", &hotreloader);
-    engine.rootContext()->setContextProperty("_qmlPath", "");
+#ifdef __EMSCRIPTEN__
+    engine.rootContext()->setContextProperty("_r", "file:///");
+#else
+    engine.rootContext()->setContextProperty("_r", (ALP_ASSET_PREFIX == std::string(":/")) ? "qrc:/" : ALP_QML_SOURCE_DIR);
+#endif
     engine.rootContext()->setContextProperty("_positionList", QVariant::fromValue(nucleus::camera::PositionStorage::instance()->getPositionList()));
     engine.rootContext()->setContextProperty("_alpine_renderer_version", QString::fromStdString(nucleus::version()));
 #ifdef ALP_ENABLE_DEBUG_GUI
@@ -138,7 +151,7 @@ int main(int argc, char **argv)
             }
         },
         Qt::QueuedConnection);
-    engine.load(QUrl(ALP_QML_SOURCE_DIR "main_loader.qml")); // FOR NATIVE BUILD ALP_QML_SOURCE_DIR="app/";
+    engine.load(QUrl(ALP_QML_SOURCE_DIR "main_loader.qml"));
     QQuickWindow* root_window = dynamic_cast<QQuickWindow*>(engine.rootObjects().first());
     if (root_window == nullptr) {
         qDebug() << "root window not created!";

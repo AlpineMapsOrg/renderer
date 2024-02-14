@@ -75,7 +75,7 @@ Rectangle {
         }
 
         text: ""
-        icon.source: "icons/search.png"
+        icon.source: _r + "icons/search.png"
         background: Rectangle { color: "#00FFFFFF" }
         onClicked: {
             search_input.accepted()

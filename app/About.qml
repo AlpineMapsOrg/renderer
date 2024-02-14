@@ -39,7 +39,7 @@ Rectangle {
             width: logo.width + logo_type.width + 20
             color: "#00FFFFFF"
             height: about_text.implicitHeight + logo.height + 20
-            Image { id: logo; width: 120; height: 120; source: "icons/mascot.jpg" }
+            Image { id: logo; width: 120; height: 120; source: _r + "icons/mascot.jpg" }
             Image {
                 id: logo_type
                 anchors {
@@ -52,7 +52,7 @@ Rectangle {
                 fillMode: Image.PreserveAspectFit
                 width: 180
                 height: 120
-                source: "icons/logo_type_vertical.png"
+                source: _r + "icons/logo_type_vertical.png"
             }
 
 
@@ -68,7 +68,7 @@ Rectangle {
                 onLinkActivated: Qt.openUrlExternally(link)
                 textFormat: Text.MarkdownText
                 text: qsTr("
-This is an open source application. It is released under the GNU General Public License (version 3 or any later version). The source code is available on [github.com/AlpineMapsOrg/renderer](https://github.com/AlpineMapsOrg/renderer).
+This is an open source application. It is **released** under the GNU General Public License (version 3 or any later version). The source code is available on [github.com/AlpineMapsOrg/renderer](https://github.com/AlpineMapsOrg/renderer).
 
 The source of elevation and orthographic photo data is <a href=\"https://basemap.at\">basemap.at</a>,
 it is licensed under the Open Government Data Austria license (CC-BY 4.0).
