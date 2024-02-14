@@ -54,7 +54,9 @@ UnittestGLContext::UnittestGLContext()
 
     QOpenGLDebugLogger logger;
     const auto debug_logger_supported = logger.initialize();
-#ifndef __EMSCRIPTEN__ // not supported by webassembly and it's ok. errors are printed to the java script console
+#if !(defined(__EMSCRIPTEN__) || (defined(__ANDROID__) && (defined(__i386__) || defined(__x86_64__))))
+    // not supported by webassembly and it's ok. errors are printed to the java script console
+    // also not supported by the android emulator (and i wouldn't know what to do about it)
     CHECK(debug_logger_supported);
 #endif
 

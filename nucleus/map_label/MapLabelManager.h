@@ -22,11 +22,11 @@
 #include "nucleus/vector_tiles/VectorTileManager.h"
 
 #include <QImage>
+#include <stb_slim/stb_truetype.h>
+#include <unordered_map>
 #include <vector>
 
-#include "stb_slim/stb_truetype.h"
-
-#include <unordered_map>
+#include "../Raster.h"
 
 namespace nucleus {
 class MapLabelManager {
@@ -35,36 +35,33 @@ public:
 
     const std::vector<MapLabel>& labels() const;
     const std::vector<unsigned int>& indices() const;
-    const QImage& font_atlas() const;
+    const Raster<glm::u8vec2>& font_atlas() const;
     const QImage& icon() const;
 
 private:
     void init();
+    Raster<uint8_t> make_font_raster();
+    Raster<glm::u8vec2> make_outline(const Raster<uint8_t>& font_bitmap);
 
 private:
     // list of all characters that will be available (will be rendered to the font_atlas)
-    static constexpr auto all_char_list = " ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789()[]{},;.:-_!\"§$%&/\\=+-*/#'~°^<>|@€´`öÖüÜäÄß";
+    const QString all_char_list = QString::fromUtf16(u" ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789()[]{},;.:-_!\"§$%&/\\=+-*/#'~°^<>|@€´`öÖüÜäÄß");
 
-    static constexpr glm::ivec2 m_font_outline = glm::ivec2(3, 3);
-    static constexpr glm::ivec2 m_font_padding = m_font_outline;
+    // static constexpr glm::ivec2 m_font_outline = glm::ivec2(3, 3);
+    static constexpr float m_font_outline = 7.2f;
+    static constexpr glm::ivec2 m_font_padding = glm::ivec2(2, 2);
     static constexpr QSize m_font_atlas_size = QSize(512, 512);
     static constexpr float uv_width_norm = 1.0f / m_font_atlas_size.width();
-
-    // 3 channels -> 1 for font; 1 for outline; the last channel is empty
-    static constexpr int m_channel_count = 3;
 
     std::vector<MapLabel> m_labels;
     std::vector<unsigned int> m_indices;
 
-    std::unordered_map<int, const MapLabel::CharData> m_char_data;
+    std::unordered_map<char16_t, const MapLabel::CharData> m_char_data;
 
     stbtt_fontinfo m_fontinfo;
-    std::vector<uint8_t> m_font_bitmap;
+    QByteArray m_font_file;
 
-    void create_font();
-    void inline make_outline(std::vector<uint8_t>& temp_bitmap, const int lasty);
-
-    QImage m_font_atlas;
+    Raster<glm::u8vec2> m_font_atlas;
     QImage m_icon;
 
     VectorTileManager m_vector_tile_manager;

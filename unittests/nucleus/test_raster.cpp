@@ -61,7 +61,7 @@ TEST_CASE("nucleus/Raster")
     SECTION("move vector into raster")
     {
         std::vector<test_helpers::FailOnCopy> vector(1);
-        const Raster<test_helpers::FailOnCopy> raster(std::move(vector), 1);
+        const Raster<test_helpers::FailOnCopy> raster(1, std::move(vector));
         CHECK(raster.width() == 1);
         CHECK(raster.height() == 1);
     }
@@ -101,5 +101,22 @@ TEST_CASE("nucleus/Raster")
         raster.pixel({ 2, 2 }) = 22;
         CHECK(raster.pixel({ 2, 1 }) == 21);
         CHECK(raster.pixel({ 2, 2 }) == 22);
+    }
+
+    SECTION("create filled")
+    {
+        Raster<int> raster({ 3, 4 }, 421);
+        for (int p : raster) {
+            CHECK(p == 421);
+        }
+    }
+
+    SECTION("fill")
+    {
+        Raster<int> raster({ 3, 4 }, 421);
+        raster.fill(657);
+        for (int p : raster) {
+            CHECK(p == 657);
+        }
     }
 }

@@ -17,7 +17,7 @@
  *****************************************************************************/
 
 import QtQuick
-import QtCharts 2.5
+import QtCharts
 import QtQuick.Controls.Material
 //import QtQuick.Controls.Imagine
 import QtQuick.Layouts

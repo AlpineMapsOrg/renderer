@@ -19,18 +19,13 @@
 import QtQuick
 import QtQuick.Controls.Material
 import QtQuick.Layouts
-import QtQuick.Dialogs
+import "FluxColor" as Flux
 
 Item {
     id: root;
 
-    property color color;
+    property color selectedColour;
     property bool alphaEnabled: true;
-
-    onColorChanged: {
-        label.text = color.toString().toUpperCase();
-        slider.value = color.a;
-    }
 
     RowLayout {
         anchors.fill: parent
@@ -38,21 +33,20 @@ Item {
         Rectangle {
             Layout.preferredHeight: parent.height - 10;
             Layout.preferredWidth: parent.height - 10;
-            color: root.color;
+            color: root.selectedColour;
             border { width:1; color:Qt.alpha( "white", 1.0); }
         }
         Label {
             id: label;
             padding: 5;
             Layout.fillWidth: !alphaEnabled;
-            text: "#FFFFFFF";
+            text: selectedColour.toString().toUpperCase()
             font.underline: true;
 
             MouseArea{
                 anchors.fill: parent
                 cursorShape: Qt.PointingHandCursor
                 onClicked: {
-                    colorDialog.selectedColor = root.color;
                     colorDialog.open();
                 }
             }
@@ -60,17 +54,24 @@ Item {
         Slider {
             id: slider;
             from: 0.0; to: 1.0; stepSize: 0.01;
+            value: root.selectedColour.a
             Layout.fillWidth: true;
             visible: alphaEnabled;
-            onValueChanged: color.a = value;
             implicitHeight: label.implicitHeight;
         }
     }
 
-    ColorDialog {
+    Popup {
         id: colorDialog
-        options: alphaEnabled ? ColorDialog.ShowAlphaChannel : 0
-        onAccepted: root.color = selectedColor
+        anchors.centerIn: parent
+        Flux.ColorChooser {
+            anchors.fill: parent
+            id: colour_chooser
+            selected_colour: root.selectedColour
+        }
+        onClosed: {
+            root.selectedColour = colour_chooser.new_colour
+        }
     }
     height: label.height;
     Layout.fillWidth: true;

@@ -40,9 +40,6 @@ layout (location = 3) in float importance;
 out highp vec2 texcoords;
 
 bool label_visible(highp vec3 relative_to_cam, float dist_to_cam) {
-    if (dist_to_cam < 500.0)
-        return false;
-
     if (importance < 0.2 && dist_to_cam > 3000.0)
         return false;
     if (importance < 0.4 && dist_to_cam > 20000.0)
@@ -77,9 +74,9 @@ void main() {
     scale *= (importance + 1.5f) / 2.5f;
 
     if (label_visible(relative_to_cam, dist_to_cam)) {
-        gl_Position = camera.view_proj_matrix * vec4(label_position - camera.position.xyz, 1.0f);
+        gl_Position = camera.view_proj_matrix * vec4(relative_to_cam + vec3(0.0, 0.0, 5.0), 1.0f);
         gl_Position /= gl_Position.w;
-        gl_Position += vec4((pos.xy + pos.zw * offset_mask[gl_VertexID & 3]) * vec2(1.0f / camera.viewport_size.x, 1.0f / camera.viewport_size.y), 0.0f, 0.0f) * scale;
+        gl_Position += vec4((pos.xy + pos.zw * offset_mask[gl_VertexID & 3]) * vec2(0.5f / camera.viewport_size.x, 0.5f / camera.viewport_size.y), 0.0f, 0.0f) * scale;
         // uv coordinates
         texcoords = vtexcoords.xy + vtexcoords.zw * offset_mask[gl_VertexID & 3];
     }

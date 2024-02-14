@@ -21,8 +21,8 @@
 
 project(alpine-renderer-nucleus LANGUAGES CXX)
 
-alp_add_git_repository(stb_slim URL https://github.com/AlpineMapsOrg/stb_slim.git COMMITISH origin/main)
-alp_add_git_repository(radix URL https://github.com/AlpineMapsOrg/radix.git COMMITISH v24.01.17 NOT_SYSTEM)
+alp_add_git_repository(stb_slim URL https://github.com/AlpineMapsOrgDependencies/stb_slim.git COMMITISH c44329cf0aae422c5c144a043e2ca47e9d9cc204)
+alp_add_git_repository(radix URL https://github.com/AlpineMapsOrg/radix.git COMMITISH v24.01.20 NOT_SYSTEM)
 alp_add_git_repository(tl_expected URL https://github.com/TartanLlama/expected.git COMMITISH v1.1.0 DO_NOT_ADD_SUBPROJECT)
 if (NOT TARGET fmt)
     alp_add_git_repository(fmt URL https://github.com/fmtlib/fmt.git COMMITISH 10.1.1)
@@ -97,7 +97,6 @@ qt_add_library(nucleus STATIC
     timing/TimerManager.h timing/TimerManager.cpp
     timing/TimerInterface.h timing/TimerInterface.cpp
     timing/CpuTimer.h timing/CpuTimer.cpp
-    map_label/CharUtils.h map_label/CharUtils.cpp
     vector_tiles/VectorTileManager.h vector_tiles/VectorTileManager.cpp
     vector_tiles/VectorTileFeature.h
 )

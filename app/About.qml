@@ -40,8 +40,7 @@ Rectangle {
             color: "#00FFFFFF"
             height: about_text.implicitHeight + logo.height + 20
             Image { id: logo; width: 120; height: 120; source: "icons/mascot.jpg" }
-            Text {
-                id: alpine_text
+            Image {
                 anchors {
                     left: logo.right
                     top: logo.top
@@ -49,43 +48,12 @@ Rectangle {
                     topMargin: 0
                     bottomMargin: 0
                 }
-                text: "Alpine"
-                color: Material.primaryTextColor
-                font {
-                    weight: 800
-                    pixelSize: 50
-                }
+                fillMode: Image.PreserveAspectFit
+                width: 180
+                height: 120
+                source: "icons/logo_type_vertical.svg"
             }
-            Text {
-                id: maps_text
-                anchors {
-                    left: logo.right
-                    top: alpine_text.baseline
-                    leftMargin: 10
-                    topMargin: 10
-                    bottomMargin: 0
-                }
-                text: "Maps"
-                color: Material.primaryTextColor
-                font {
-                    weight: 400
-                    pixelSize: 50
-                }
-            }
-            Text {
-                id: dotorg_text
-                anchors {
-                    left: maps_text.right
-                    baseline: maps_text.baseline
-                    leftMargin: 0
-                }
-                text: ".org"
-                color: Material.primaryTextColor
-                font {
-                    weight: 100
-                    pixelSize: 30
-                }
-            }
+
 
             Label {
                 id: about_text
@@ -98,11 +66,12 @@ Rectangle {
                 wrapMode: Text.Wrap
                 onLinkActivated: Qt.openUrlExternally(link)
 
-                text: qsTr("<p>AlpineMaps.org is an open source application. It is released under the GNU General Public License (version 3 or any later version). "
+                text: qsTr("<p>This is an open source application. It is released under the GNU General Public License (version 3 or any later version). "
                            + "The source code is available on <a href=\"https://github.com/AlpineMapsOrg/renderer\">github.com/AlpineMapsOrg/renderer</a>.</p>"
                            + "<p>The source of elevation and orthographic photo data is <a href=\"https://basemap.at\">basemap.at</a>, "
                            + "it is licensed under the Open Government Data Austria license (CC-BY 4.0).</p>"
-                           + "<h3>Authors:</h3><p>Adam Celarek, Lucas Dworschak, Gerald Kimmersdorfer, Jakob Lindner<p>")
+                           + "<h3>Authors:</h3><p>Adam Celarek, Lucas Dworschak, Gerald Kimmersdorfer, Jakob Lindner</p>"
+                           + "<h3>Impressum:</h3><p>Adam Celarek<br />Hartmanngasse 12/22<br />1050 Wien<br />Österreich / Austria</p>")
             }
         }
     }

@@ -17,9 +17,14 @@
  *****************************************************************************/
 
 #include "MapLabelManager.h"
-#include "ShaderProgram.h"
-#include "qopenglextrafunctions.h"
 
+#include <QOpenGLExtraFunctions>
+#include <QOpenGLPixelTransferOptions>
+#ifdef ANDROID
+#include <GLES3/gl3.h>
+#endif
+
+#include "ShaderProgram.h"
 #include "nucleus/map_label/MapLabel.h"
 
 #include "radix/tile.h"
@@ -76,15 +81,21 @@ void MapLabelManager::init()
     m_vao->release();
 
     // load the font texture
-    font_texture = std::make_unique<QOpenGLTexture>(m_mapLabelManager.font_atlas());
-    font_texture->setMinificationFilter(QOpenGLTexture::LinearMipMapLinear);
-    font_texture->setMagnificationFilter(QOpenGLTexture::Linear);
+    const auto& font_atlas = m_mapLabelManager.font_atlas();
+    m_font_texture = std::make_unique<Texture>(Texture::Target::_2d);
+    f->glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
+    f->glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+    f->glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+    f->glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
+    f->glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    f->glTexImage2D(GL_TEXTURE_2D, 0, GL_RG8, font_atlas.width(), font_atlas.height(), 0, GL_RG, GL_UNSIGNED_BYTE, font_atlas.bytes());
+    f->glGenerateMipmap(GL_TEXTURE_2D);
 
     // load the icon texture
     QImage icon = m_mapLabelManager.icon();
-    icon_texture = std::make_unique<QOpenGLTexture>(icon);
-    icon_texture->setMinificationFilter(QOpenGLTexture::LinearMipMapLinear);
-    icon_texture->setMagnificationFilter(QOpenGLTexture::Linear);
+    m_icon_texture = std::make_unique<QOpenGLTexture>(icon);
+    m_icon_texture->setMinificationFilter(QOpenGLTexture::LinearMipMapLinear);
+    m_icon_texture->setMagnificationFilter(QOpenGLTexture::Linear);
 }
 
 void MapLabelManager::draw(Framebuffer* gbuffer, ShaderProgram* shader_program, const nucleus::camera::Definition& camera, const nucleus::tile_scheduler::DrawListGenerator::TileSet draw_tiles) const
@@ -102,10 +113,10 @@ void MapLabelManager::draw(Framebuffer* gbuffer, ShaderProgram* shader_program, 
     gbuffer->bind_colour_texture(1, 0);
 
     shader_program->set_uniform("font_sampler", 1);
-    font_texture->bind(1);
+    m_font_texture->bind(1);
 
     shader_program->set_uniform("icon_sampler", 2);
-    icon_texture->bind(2);
+    m_icon_texture->bind(2);
 
     draw_tiles.size(); // TODO remove this -> only here to remove the erro that parameter is not used
     // for (auto tile : draw_tiles) { // TODO remove this again -> only here to see which tile coords we are looking at

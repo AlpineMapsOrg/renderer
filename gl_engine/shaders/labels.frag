@@ -47,7 +47,7 @@ void main() {
             // mediump float outline_mask = texture(font_sampler, texcoords).g;
             // mediump float font_mask = texture(font_sampler, texcoords).r;
             // out_Color = vec4(mix(outlineColor, fontColor, font_mask), outline_mask);
-            gl_FragDepth = gl_FragCoord.z - 0.00001f;
+            gl_FragDepth = gl_FragCoord.z * 0.9999999;
         }
     }
     else

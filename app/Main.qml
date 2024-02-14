@@ -20,7 +20,6 @@
 import QtQuick
 import QtQuick.Controls.Material
 import QtQuick.Layouts
-import QtQuick.Dialogs
 import Alpine
 
 import "components"
@@ -93,10 +92,6 @@ Item {
 
     PageDrawer {
         id: menu
-
-        bannerTitle: "Alpine Maps"
-        bannerIconSource: "../icons/icon.svg"
-        bannerSubtitle: _alpine_renderer_version
         selectedButtonId: 0
 
         DrawerSeparator {}
@@ -131,10 +126,11 @@ Item {
         }
 
         DrawerButton {
-            text: stats_window.visible ? qsTr ("Hide Statistics") : qsTr("Statistics")
+            text: (stats_window_loader.item !== null && stats_window_loader.item.visible) ? qsTr ("Hide Statistics") : qsTr("Statistics")
             hotkey: "F8"
             iconSource: "../icons/material/monitoring.svg"
             selectable: false
+            visible: _debug_gui
             onClicked: toggleStatsWindow();
         }
 
@@ -160,8 +156,8 @@ Item {
 
     function change_page(source, title) {
         selectedPage = source.toLowerCase().replace(".qml", "");
-        if (selectedPage !== "map" && selectedPage !== "settings") {
-            stats_window.visible = false;
+        if (selectedPage !== "map" && selectedPage !== "settings"  && stats_window_loader.item !== null) {
+            stats_window_loader.item = false;
         }
         if (source === "map") {
             if (main_stack_view.depth >= 1) main_stack_view.pop()
@@ -182,19 +178,22 @@ Item {
     }
 
     function toggleStatsWindow() {
-        stats_window.visible = !stats_window.visible
+        if (stats_window_loader.item === null)
+            stats_window_loader.source = "StatsWindow.qml"
+        else
+            stats_window_loader.item.visible = !stats_window_loader.item.visible
         main.onWidthChanged(); // trigger responsive updates manually
     }
 
 
     TerrainRenderer {
-        property var allLvl1HudElements: [tool_bar, main_stack_view, stats_window, fab_group]
+        property var allLvl1HudElements: [tool_bar, main_stack_view, fab_group]
         property var _hudElementsVisibility: []
         id: map
         focus: true
         anchors.fill: parent
         Keys.onPressed: function(event){
-            if (event.key === Qt.Key_F8) {
+            if (event.key === Qt.Key_F8 && _debug_gui) {
                 toggleStatsWindow();
             }
         }
@@ -229,16 +228,14 @@ Item {
         }
     }
 
-    StatsWindow {
-        id: stats_window
-        visible: false
+    Loader {
+        id: stats_window_loader
     }
 
     FloatingActionButtonGroup {
         id: fab_group
     }
 
-     //property TerrainRenderer renderer
     Component.onCompleted: {
         change_page("map")
     }

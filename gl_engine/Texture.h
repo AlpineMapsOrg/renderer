@@ -1,6 +1,6 @@
 /*****************************************************************************
  * Alpine Terrain Renderer
- * Copyright (C) 2024 Lucas Dworschak
+ * Copyright (C) 2024 Adam Celarek
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -18,17 +18,21 @@
 
 #pragma once
 
-#include <string>
-#include <vector>
+#include <qopengl.h>
 
-namespace nucleus {
-
-class CharUtils
-{
+namespace gl_engine {
+class Texture {
 public:
-    CharUtils();
+    enum class Target : GLenum { _2d = GL_TEXTURE_2D, _2dArray = GL_TEXTURE_2D_ARRAY };
 
-    static const std::vector<int> string_to_unicode_int_list(std::string text);
+public:
+    Texture(Target target);
+    ~Texture();
+
+    void bind(unsigned texture_unit);
+
+private:
+    GLuint m_id = -1;
+    Target m_target = Target::_2d;
 };
-
-} // namespace nucleus
+} // namespace gl_engine

@@ -26,14 +26,8 @@ Drawer {
 
     id: drawer
     implicitHeight: map.height
-    width: Math.min (parent.width > parent.height ? 400 : 300,
-                             Math.min (parent.width, parent.height) * 0.90)
+    width: Math.min (400, Math.min (parent.width, parent.height) * 0.80)
     Material.elevation: 2;
-
-    property string bannerTitle: ""
-    property string bannerSubtitle: ""
-    property string bannerIconSource: ""
-    property size bannerIconSize: Qt.size (72, 72)
 
     property color iconBgColorLeft: Material.backgroundColor
     property color iconBgColorRight: Qt.alpha(Material.accentColor, 0.2)
@@ -85,52 +79,38 @@ Drawer {
                     GradientStop { position: 1.0; color: iconBgColorRight }
                 }
             }
-
-            RowLayout {
-                spacing: 16
-
+            Image {
+                id: logo_mark
+                source: "../icons/icon.svg"
+                sourceSize: Qt.size (64, 64)
+                fillMode: Image.PreserveAspectFit
+                width: banner.width * 0.16
                 anchors {
-                    fill: parent
-                    centerIn: parent
+                    left: banner.left
+                    verticalCenter: banner.verticalCenter
                     margins: 16
                 }
-
-                Image {
-                    source: bannerIconSource
-                    sourceSize: bannerIconSize
+            }
+            Image {
+                id: logo_type
+                source: "../icons/logo_type_horizontal_short.svg"
+                width: banner.width * 0.65
+                fillMode: Image.PreserveAspectFit
+                anchors {
+                    left: logo_mark.right
+                    verticalCenter: banner.verticalCenter
+                    leftMargin: banner.width * 0.02
                 }
-
-                ColumnLayout {
-                    spacing: 8
-                    Layout.fillWidth: true
-                    Layout.fillHeight: true
-
-                    Item {
-                        Layout.fillHeight: true
-                    }
-
-                    Label {
-                        color: "#1b1b1b"
-                        text: bannerTitle
-                        font.weight: Font.Medium
-                        font.pixelSize: 24
-                    }
-
-                    Label {
-                        color: "#1b1b1b"
-                        opacity: 0.87
-                        text: bannerSubtitle
-                        font.pixelSize: 14
-                    }
-
-                    Item {
-                        Layout.fillHeight: true
-                    }
-                }
-
-                Item {
-                    Layout.fillWidth: true
-                    Layout.fillHeight: true
+            }
+            Label {
+                color: "#1b1b1b"
+                opacity: 0.87
+                text: _alpine_renderer_version
+                font.pixelSize: 10
+                anchors {
+                    right: banner.right
+                    bottom: banner.bottom
+                    margins: 8
                 }
             }
         }

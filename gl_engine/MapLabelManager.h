@@ -18,15 +18,16 @@
 
 #pragma once
 
+#include <QOpenGLBuffer>
+#include <QOpenGLTexture>
+#include <QOpenGLVertexArrayObject>
+
 #include "Framebuffer.h"
+#include "Texture.h"
 #include "nucleus/camera/Definition.h"
 #include "nucleus/map_label/MapLabelManager.h"
 
 #include "nucleus/tile_scheduler/DrawListGenerator.h"
-
-#include <QOpenGLBuffer>
-#include <QOpenGLTexture>
-#include <QOpenGLVertexArrayObject>
 
 namespace camera {
 class Definition;
@@ -44,8 +45,8 @@ public:
     void draw(Framebuffer* gbuffer, ShaderProgram* shader_program, const nucleus::camera::Definition& camera, const nucleus::tile_scheduler::DrawListGenerator::TileSet draw_tiles) const;
 
 private:
-    std::unique_ptr<QOpenGLTexture> font_texture;
-    std::unique_ptr<QOpenGLTexture> icon_texture;
+    std::unique_ptr<Texture> m_font_texture;
+    std::unique_ptr<QOpenGLTexture> m_icon_texture;
 
     std::unique_ptr<QOpenGLBuffer> m_vertex_buffer;
     std::unique_ptr<QOpenGLBuffer> m_index_buffer;

@@ -72,22 +72,23 @@ TEST_CASE("gl uniformbuffer")
 
     SECTION("test buffer content")
     {
-        Framebuffer b(Framebuffer::DepthFormat::None, { {Framebuffer::ColourFormat::R32UI} });
+        Framebuffer b(Framebuffer::DepthFormat::None, { { Framebuffer::ColourFormat::RGBA8 } });
         ShaderProgram shader = create_debug_shader2(R"(
             layout (std140) uniform test_config {
                 highp vec4 tv4;
                 highp float tf32;
                 highp uint tu32;
             } ubo;
-            out highp uint out_Number;
+            out lowp vec4 out_Number;
             void main() {
-                out_Number = 0u;
-                if (ubo.tv4.x != 0.1)   out_Number = out_Number | 0x00000001u;
-                if (ubo.tv4.y != 0.2)   out_Number = out_Number | 0x00000010u;
-                if (ubo.tv4.z != 0.3)   out_Number = out_Number | 0x00000100u;
-                if (ubo.tv4.w != 0.4)   out_Number = out_Number | 0x00001000u;
-                if (ubo.tf32 != 0.5)    out_Number = out_Number | 0x00010000u;
-                if (ubo.tu32 != 201u)   out_Number = out_Number | 0x00100000u;
+                uint retval = 0u;
+                if (ubo.tv4.x != 0.1)   retval = retval | 0x00000001u;
+                if (ubo.tv4.y != 0.2)   retval = retval | 0x00000010u;
+                if (ubo.tv4.z != 0.3)   retval = retval | 0x00000100u;
+                if (ubo.tv4.w != 0.4)   retval = retval | 0x00001000u;
+                if (ubo.tf32 != 0.5)    retval = retval | 0x00010000u;
+                if (ubo.tu32 != 201u)   retval = retval | 0x00100000u;
+                out_Number = vec4(retval, retval, retval, retval);
             }
         )");
         auto ubo = std::make_unique<gl_engine::UniformBuffer<gl_engine::uboTestConfig>>(0, "test_config");
@@ -97,21 +98,21 @@ TEST_CASE("gl uniformbuffer")
         b.bind();
         shader.bind();
         gl_engine::helpers::create_screen_quad_geometry().draw();
-        glm::u32vec1 value_at_0_0;
-        b.read_colour_attachment_pixel(0, glm::dvec2(-1.0, -1.0), &value_at_0_0[0]);
+        const auto value_at_0_0 = b.read_colour_attachment_pixel<glm::u8vec4>(0, glm::dvec2(-1.0, -1.0));
         CHECK(value_at_0_0.x == 0u);
     }
 
     SECTION("test shared config buffer")
     {
         // NOTE: If theres an error here, check proper alignment first!!!
-        Framebuffer b(Framebuffer::DepthFormat::None, { {Framebuffer::ColourFormat::R32UI} });
+        Framebuffer b(Framebuffer::DepthFormat::None, { { Framebuffer::ColourFormat::RGBA8 } });
         ShaderProgram shader = create_debug_shader2(R"(
             #include "shared_config.glsl"
-            out highp uint out_Number;
+            out lowp vec4 out_Number;
             void main() {
-                out_Number = 0u;
-                if (conf.phong_enabled == 22u) out_Number = 1u;
+                out_Number = vec4(0, 0, 0, 0);
+                if (conf.phong_enabled == 22u)
+                    out_Number = vec4(1, 1, 1, 1);
             }
         )");
         auto ubo = std::make_unique<gl_engine::UniformBuffer<gl_engine::uboSharedConfig>>(0, "shared_config");
@@ -124,21 +125,21 @@ TEST_CASE("gl uniformbuffer")
         b.bind();
         shader.bind();
         gl_engine::helpers::create_screen_quad_geometry().draw();
-        glm::u32vec1 value_at_0_0;
-        b.read_colour_attachment_pixel(0, glm::dvec2(-1.0, -1.0), &value_at_0_0[0]);
-        CHECK(value_at_0_0.x == 1u);
+        const auto value_at_0_0 = b.read_colour_attachment_pixel<glm::u8vec4>(0, glm::dvec2(-1.0, -1.0));
+        CHECK(value_at_0_0.x == 255u);
     }
 
     SECTION("test shared camera buffer")
     {
         // NOTE: If theres an error here, check proper alignment first!!!
-        Framebuffer b(Framebuffer::DepthFormat::None, { {Framebuffer::ColourFormat::R32UI} });
+        Framebuffer b(Framebuffer::DepthFormat::None, { { Framebuffer::ColourFormat::RGBA8 } });
         ShaderProgram shader = create_debug_shader2(R"(
             #include "camera_config.glsl"
-            out highp uint out_Number;
+            out lowp vec4 out_Number;
             void main() {
-                out_Number = 0u;
-                if (camera.viewport_size.y == 128.0) out_Number = 1u;
+                out_Number = vec4(0, 0, 0, 0);
+                if (camera.viewport_size.y == 128.0)
+                    out_Number = vec4(1, 1, 1, 1);
             }
         )");
         auto ubo = std::make_unique<gl_engine::UniformBuffer<gl_engine::uboCameraConfig>>(0, "camera_config");
@@ -151,21 +152,21 @@ TEST_CASE("gl uniformbuffer")
         b.bind();
         shader.bind();
         gl_engine::helpers::create_screen_quad_geometry().draw();
-        glm::u32vec1 value_at_0_0;
-        b.read_colour_attachment_pixel(0, glm::dvec2(-1.0, -1.0), &value_at_0_0[0]);
-        CHECK(value_at_0_0.x == 1);
+        const auto value_at_0_0 = b.read_colour_attachment_pixel<glm::u8vec4>(0, glm::dvec2(-1.0, -1.0));
+        CHECK(value_at_0_0.x == 255);
     }
 
     SECTION("test shared Shadow config buffer")
     {
         // NOTE: If theres an error here, check proper alignment first!!!
-        Framebuffer b(Framebuffer::DepthFormat::None, { {Framebuffer::ColourFormat::R32UI} });
+        Framebuffer b(Framebuffer::DepthFormat::None, { { Framebuffer::ColourFormat::RGBA8 } });
         ShaderProgram shader = create_debug_shader2(R"(
             #include "shadow_config.glsl"
-            out highp uint out_Number;
+            out lowp vec4 out_Number;
             void main() {
-                out_Number = 0u;
-                if (shadow.shadowmap_size.y == 400.0) out_Number = 1u;
+                out_Number = vec4(0, 0, 0, 0);
+                if (shadow.shadowmap_size.y == 400.0)
+                    out_Number = vec4(1, 1, 1, 1);
             }
         )");
         auto ubo = std::make_unique<gl_engine::UniformBuffer<gl_engine::uboShadowConfig>>(0, "shadow_config");
@@ -178,9 +179,8 @@ TEST_CASE("gl uniformbuffer")
         b.bind();
         shader.bind();
         gl_engine::helpers::create_screen_quad_geometry().draw();
-        glm::u32vec1 value_at_0_0;
-        b.read_colour_attachment_pixel(0, glm::dvec2(-1.0, -1.0), &value_at_0_0[0]);
-        CHECK(value_at_0_0.x == 1u);
+        const auto value_at_0_0 = b.read_colour_attachment_pixel<glm::u8vec4>(0, glm::dvec2(-1.0, -1.0));
+        CHECK(value_at_0_0.x == 255u);
     }
     SECTION("encode decode shared buffer as base64 string")
     {

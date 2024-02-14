@@ -20,8 +20,11 @@
 
 #include <QDirIterator>
 #include <QFontDatabase>
-//#include <QGuiApplication>
+#ifdef ALP_ENABLE_DEBUG_GUI
 #include <QApplication>
+#else
+#include <QGuiApplication>
+#endif
 #include <QLoggingCategory>
 #include <QNetworkInformation>
 #include <QOpenGLContext>
@@ -47,7 +50,11 @@
 int main(int argc, char **argv)
 {
     QQuickWindow::setGraphicsApi(QSGRendererInterface::GraphicsApi::OpenGLRhi);
+#ifdef ALP_ENABLE_DEBUG_GUI
     QApplication app(argc, argv);
+#else
+    QGuiApplication app(argc, argv);
+#endif
     app.setWindowIcon(QIcon("app/icons/favicon.ico"));
     QCoreApplication::setOrganizationName("AlpineMaps.org");
     QCoreApplication::setApplicationName("AlpineApp");
@@ -57,10 +64,12 @@ int main(int argc, char **argv)
     //    QLoggingCategory::setFilterRules("*.debug=true\n"
     //                                     "qt.qpa.fonts=true");
     // output qrc files:
-    //    QDirIterator it(":", QDirIterator::Subdirectories);
-    //    while (it.hasNext()) {
-    //        qDebug() << it.next();
-    //    }
+    QDirIterator it(":", QDirIterator::Subdirectories);
+    while (it.hasNext()) {
+        const auto path = it.next();
+        const auto file = QFile(path);
+        qDebug() << path << " size: " << file.size() / 1024 << "kb";
+    }
 
     //    qDebug() << ":: before adding fonts::" << QFontDatabase::families().size();
     //    for (const auto& entry : QFontDatabase::families()) {
@@ -114,6 +123,11 @@ int main(int argc, char **argv)
     engine.rootContext()->setContextProperty("_qmlPath", "");
     engine.rootContext()->setContextProperty("_positionList", QVariant::fromValue(nucleus::camera::PositionStorage::instance()->getPositionList()));
     engine.rootContext()->setContextProperty("_alpine_renderer_version", QString::fromStdString(nucleus::version()));
+#ifdef ALP_ENABLE_DEBUG_GUI
+    engine.rootContext()->setContextProperty("_debug_gui", true);
+#else
+    engine.rootContext()->setContextProperty("_debug_gui", false);
+#endif
 
     RenderThreadNotifier::instance();
     QObject::connect(
@@ -136,7 +150,10 @@ int main(int argc, char **argv)
     root_window->showMaximized();
 #endif
 #ifdef ALP_APP_SHUTDOWN_AFTER_60S
-    QTimer::singleShot(60000, &app, &QCoreApplication::quit);
+    QTimer::singleShot(60000, &app, []() {
+        qDebug() << "AlpineApp shuts down after 60s.";
+        QGuiApplication::quit();
+    });
 #endif
 
     RenderThreadNotifier::instance()
