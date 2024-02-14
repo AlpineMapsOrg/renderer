@@ -250,17 +250,8 @@ void TerrainRendererItem::set_gl_preset(const QString& preset_b64_string) {
     set_shared_config(tmp);
 }
 
-#if 0
-void TerrainRendererItem::set_track_width(float width)
-{
-    qDebug() << "TerrainRendererItem::set_track_width " << width;
-    //emit track_width_set_by_user(width);
-}
-#endif
-
 void TerrainRendererItem::add_track(const QString& track)
 {
-    qDebug() << "TerrainRendererItem::add_track" << track;
     QUrl url(track);
 
     if (url.isLocalFile()) {
@@ -364,7 +355,7 @@ void TerrainRendererItem::set_field_of_view(float new_field_of_view)
 
 void TerrainRendererItem::set_track_width(float width)
 {
-    qDebug() << "Set track width " << width;
+    // qDebug() << "Set track width " << width;
     m_track_width = width;
     emit track_width_changed(width);
     schedule_update();
