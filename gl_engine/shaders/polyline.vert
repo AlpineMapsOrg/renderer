@@ -76,7 +76,7 @@ void main() {
 
   vec3 v0 = normalize(cross(u_hat, d0));
 
-  radius = 7;
+  radius = width;
 
   float r0 = radius; // cone end cap radius
 

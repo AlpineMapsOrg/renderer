@@ -335,13 +335,13 @@ void Window::paint(QOpenGLFramebufferObject* framebuffer)
     p->set_uniform("texin_ssao", 4);
     m_ssao->bind_ssao_texture(4);
 
-    // ok, since i can 
-    // we need to be careful to choose a high enough location so it is not overwritten with shadow cascades 
+    // ok, since i can
+    // we need to be careful to choose a high enough location so it is not overwritten with shadow cascades
     p->set_uniform("texin_track_vert_id", 16);
     m_gbuffer->bind_colour_texture(4, 16);
 
     auto* track_texture = m_track_manager->track_texture();
-    
+
     if (track_texture != nullptr) {
         track_texture->bind(15);
         p->set_uniform("texin_track", 15);
@@ -491,18 +491,6 @@ void Window::update_gpu_quads(const std::vector<nucleus::tile_scheduler::tile_ty
     m_tile_manager->update_gpu_quads(new_quads, deleted_quads);
 }
 
-void Window::open_track_file(const QString& file_path)
-{
-    qDebug() << "Window::open_track_file" << file_path;
-
-    std::unique_ptr<nucleus::gpx::Gpx> gpx = nucleus::gpx::parse(file_path);
-
-    if (gpx != nullptr) 
-    {
-        m_track_manager->add_track(*gpx, m_shader_manager->track_program());
-    }
-}
-
 void Window::set_track_width(float width)
 {
     qDebug() << "Window::set_track_width " << width;
@@ -552,4 +540,4 @@ nucleus::camera::AbstractDepthTester* Window::depth_tester()
 {
     return this;
     return this;
-}  
+}

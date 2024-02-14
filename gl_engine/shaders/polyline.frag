@@ -129,7 +129,8 @@ void main() {
         ) {
 
             vec3 color = phong_lighting(normal);
-
+            //vec3 color = visualize_normal(normal);
+#if 1
             if (t < dist) {
 
                 // geometry is above terrain
@@ -144,6 +145,9 @@ void main() {
             } else {
                 discard; // geometry is far below terrain
             }
+#else
+        texout_albedo = color;
+#endif
         } else {
             discard; // clipping
         }

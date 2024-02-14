@@ -83,7 +83,7 @@ TerrainRendererItem::TerrainRendererItem(QQuickItem* parent)
         RenderThreadNotifier::instance()->notify();
     });
 
-    connect(this, &TerrainRendererItem::init_after_creation, this, &TerrainRendererItem::init_after_creation_slot);  
+    connect(this, &TerrainRendererItem::init_after_creation, this, &TerrainRendererItem::init_after_creation_slot);
 }
 
 
@@ -118,15 +118,9 @@ QQuickFramebufferObject::Renderer* TerrainRendererItem::createRenderer() const
 
     connect(this, &TerrainRendererItem::camera_definition_set_by_user, r->controller()->camera_controller(), &nucleus::camera::Controller::set_definition);
     connect(r->controller()->camera_controller(), &nucleus::camera::Controller::global_cursor_position_changed, this, &TerrainRendererItem::read_global_position);
-    //connect(this, &TerrainRendererItem::ind)
 
-    connect(this, 
-            &TerrainRendererItem::track_added_by_user, 
-            r->glWindow(),
-            &gl_engine::Window::open_track_file);
-
-    connect(this, 
-            &TerrainRendererItem::gpx_track_added_by_user, 
+    connect(this,
+            &TerrainRendererItem::gpx_track_added_by_user,
             r->glWindow(),
             &gl_engine::Window::add_gpx_track);
 
@@ -257,10 +251,10 @@ void TerrainRendererItem::set_gl_preset(const QString& preset_b64_string) {
 }
 
 #if 0
-void TerrainRendererItem::set_track_width(float width) 
+void TerrainRendererItem::set_track_width(float width)
 {
     qDebug() << "TerrainRendererItem::set_track_width " << width;
-    emit track_width_set_by_user(width);
+    //emit track_width_set_by_user(width);
 }
 #endif
 
@@ -270,9 +264,7 @@ void TerrainRendererItem::add_track(const QString& track)
     QUrl url(track);
 
     if (url.isLocalFile()) {
-#if 0
-        emit track_added_by_user(QDir::toNativeSeparators(url.toLocalFile()));
-#else
+
         std::unique_ptr<nucleus::gpx::Gpx> gpx = nucleus::gpx::parse(url.toLocalFile());
 
         if (gpx != nullptr)
@@ -288,7 +280,6 @@ void TerrainRendererItem::add_track(const QString& track)
             qDebug("Coud not parse GPX file!");
         }
 
-#endif
         RenderThreadNotifier::instance()->notify();
     }
 }
@@ -373,6 +364,7 @@ void TerrainRendererItem::set_field_of_view(float new_field_of_view)
 
 void TerrainRendererItem::set_track_width(float width)
 {
+    qDebug() << "Set track width " << width;
     m_track_width = width;
     emit track_width_changed(width);
     schedule_update();

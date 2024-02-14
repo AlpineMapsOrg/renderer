@@ -298,13 +298,14 @@ SettingsPanel {
         }
     }
 
-    SetGroup {
+    CheckGroup {
+        id: track_options
         name: "Track Options"
-        
+
         Label { text: "Track-Width:" }
-        ValSlider {
+        LabledSlider {
             id: track_width;
-            from: 1; to: 32; stepSize: 1; value: 25;
+            from: 1; to: 32; stepSize: 1;
             onMoved: map.track_width = value;
         }
     }

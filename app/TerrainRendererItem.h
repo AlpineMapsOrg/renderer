@@ -57,7 +57,7 @@ class TerrainRendererItem : public QQuickFramebufferObject {
     Q_PROPERTY(unsigned int selected_camera_position_index MEMBER m_selected_camera_position_index WRITE set_selected_camera_position_index)
     Q_PROPERTY(bool hud_visible READ hud_visible WRITE set_hud_visible NOTIFY hud_visible_changed)
     Q_PROPERTY(QVector2D sun_angles READ sun_angles WRITE set_sun_angles NOTIFY sun_angles_changed)
-    // Q_PROPERTY(bool link_gl_sundirection READ link_gl_sundirection WRITE set_link_gl_sundirection NOTIFY link_gl_sundirection_changed)
+    Q_PROPERTY(float track_width READ track_width WRITE set_track_width NOTIFY track_width_changed)
 
 public:
     explicit TerrainRendererItem(QQuickItem* parent = 0);
@@ -84,7 +84,6 @@ signals:
     void render_looped_changed(bool new_render_looped);
     void hud_visible_changed(bool new_hud_visible);
 
-    void track_added_by_user(const QString& track_path);
     void gpx_track_added_by_user(const nucleus::gpx::Gpx& track);
 
     void rotation_north_requested();
@@ -129,8 +128,6 @@ public slots:
     void read_global_position(glm::dvec3 latlonalt);
     void camera_definition_changed(const nucleus::camera::Definition& new_definition); // gets called whenever camera changes
     void add_track(const QString& track);
-    //void set_track_width(float width);
-
 
 private slots:
     void schedule_update();

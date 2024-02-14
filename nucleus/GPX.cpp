@@ -234,7 +234,7 @@ void reduce_point_count(std::vector<glm::vec3>& points)
 
     points.clear();
 
-    const float threshold = 30.0f; // some arbitrary, sensible value
+    const float threshold = 15.0f; // some arbitrary, sensible value
 
     for (size_t i = 0; i < old_points.size() - 1; ++i) {
         glm::vec3 current_point = old_points[i];

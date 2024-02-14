@@ -87,7 +87,6 @@ public slots:
     void shared_config_changed(gl_engine::uboSharedConfig ubo);
     void render_looped_changed(bool render_looped_flag);
     void reload_shader();
-    void open_track_file(const QString& file_path);
     void add_gpx_track(const nucleus::gpx::Gpx& track);
     void set_track_width(float width);
 
