@@ -129,7 +129,8 @@ endif()
 
 
 if (EMSCRIPTEN)
-    target_compile_options(nucleus PUBLIC -msimd128 -msse2 -Wno-dollar-in-identifier-extension)
+    target_compile_options(nucleus PUBLIC -msimd128 -msse2 -Wno-dollar-in-identifier-extension -flto)
+    target_link_options(nucleus PUBLIC -flto)
 #     # target_compile_options(nucleus PUBLIC -fwasm-exceptions)
 #     # target_link_options(nucleus PUBLIC -fwasm-exceptions)
 endif()
