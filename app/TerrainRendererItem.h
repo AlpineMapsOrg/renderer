@@ -20,12 +20,6 @@
 
 #pragma once
 
-#include "nucleus/camera/Definition.h"
-#include "nucleus/event_parameter.h"
-#include "gl_engine/UniformBufferObjects.h"
-#include "timing/TimerFrontendManager.h"
-#include "nucleus/GPX.h"
-#include "AppSettings.h"
 #include <QQuickFramebufferObject>
 #include <QTimer>
 #include <QList>
@@ -34,6 +28,13 @@
 #include <QVector2D>
 #include <QDateTime>
 #include <map>
+
+#include "nucleus/camera/Definition.h"
+#include "nucleus/event_parameter.h"
+#include "nucleus/GPX.h"
+#include "gl_engine/UniformBufferObjects.h"
+#include "timing/TimerFrontendManager.h"
+#include "AppSettings.h"
 
 class TerrainRendererItem : public QQuickFramebufferObject {
     Q_OBJECT

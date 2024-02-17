@@ -137,8 +137,6 @@ void Window::initialise_gpu()
     m_shared_config_ubo->init();
     m_shared_config_ubo->bind_to_shader(m_shader_manager->all());
 
-    //m_shadow_config_ubo->bind_to_shader({ m_track_manager->get_shader() });
-
     m_camera_config_ubo = std::make_shared<gl_engine::UniformBuffer<gl_engine::uboCameraConfig>>(1, "camera_config");
     m_camera_config_ubo->init();
     m_camera_config_ubo->bind_to_shader(m_shader_manager->all());
@@ -282,24 +280,22 @@ void Window::paint(QOpenGLFramebufferObject* framebuffer)
     m_timer->stop_timer("tiles");
     m_shader_manager->tile_shader()->release();
 
+    // DRAW TRACKS
+    {
+        ShaderProgram* track_shader = m_shader_manager->track_program();
+        track_shader->bind();
+        track_shader->set_uniform("texin_position", 1);
+        m_gbuffer->bind_colour_texture(1, 1);
 
-    ShaderProgram* track_shader = m_shader_manager->track_program();
-    track_shader->bind();
-    track_shader->set_uniform("texin_position", 1);
-    m_gbuffer->bind_colour_texture(1, 1);
+        glm::vec2 size = glm::vec2(static_cast<float>(m_gbuffer->size().x),static_cast<float>(m_gbuffer->size().y));
+        track_shader->set_uniform("resolution", size);
 
-#if 1
-    glm::vec2 size = glm::vec2(static_cast<float>(m_gbuffer->size().x),static_cast<float>(m_gbuffer->size().y));
-    track_shader->set_uniform("resolution", size);
-#else
-    track_shader->set_uniform("resolution", glm::vec2(m_gbuffer->size()));
-#endif
-
-    /* draw tracks on top */
-    f->glClear(GL_DEPTH_BUFFER_BIT);
-    m_timer->start_timer("tracks");
-    m_track_manager->draw(m_camera, track_shader);
-    m_timer->stop_timer("tracks");
+        /* draw tracks on top */
+        f->glClear(GL_DEPTH_BUFFER_BIT);
+        m_timer->start_timer("tracks");
+        m_track_manager->draw(m_camera, track_shader);
+        m_timer->stop_timer("tracks");
+    }
 
 #if (defined(__linux) && !defined(__ANDROID__)) || defined(_WIN32) || defined(_WIN64)
     if (funcs && m_wireframe_enabled)
@@ -334,18 +330,6 @@ void Window::paint(QOpenGLFramebufferObject* framebuffer)
 
     p->set_uniform("texin_ssao", 4);
     m_ssao->bind_ssao_texture(4);
-
-    // ok, since i can
-    // we need to be careful to choose a high enough location so it is not overwritten with shadow cascades
-    p->set_uniform("texin_track_vert_id", 16);
-    m_gbuffer->bind_colour_texture(4, 16);
-
-    auto* track_texture = m_track_manager->track_texture();
-
-    if (track_texture != nullptr) {
-        track_texture->bind(15);
-        p->set_uniform("texin_track", 15);
-    }
 
     /* texture units 5 - 8 */
     m_shadowmapping->bind_shadow_maps(p, 5);
@@ -538,6 +522,5 @@ void Window::remove_tile(const tile::Id& id)
 
 nucleus::camera::AbstractDepthTester* Window::depth_tester()
 {
-    return this;
     return this;
 }
