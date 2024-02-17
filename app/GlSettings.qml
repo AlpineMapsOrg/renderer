@@ -302,11 +302,26 @@ SettingsPanel {
         id: track_options
         name: "Track Options"
 
-        Label { text: "Track-Width:" }
+        Label { text: "Track Width:" }
         LabledSlider {
             id: track_width;
             from: 1; to: 32; stepSize: 1;
             onMoved: map.track_width = value;
+        }
+
+        Label { text: "Track Shading:" }
+        ComboBox {
+            id: track_shading;
+            textRole: "text"
+            valueRole: "value"
+            currentIndex: 0; // Init with 0 necessary otherwise onCurrentIndexChanged gets emited on startup (because def:-1)!
+            Layout.fillWidth: true;
+            model: [
+                { text: "Default",              value: 0    },
+                { text: "Steepness",            value: 2    },
+                { text: "Speed",                value: 3    },
+                { text: "Vertical Speed",       value: 4    },
+            ]
         }
     }
 }

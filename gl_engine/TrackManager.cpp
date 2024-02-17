@@ -48,14 +48,21 @@ void TrackManager::init() { assert(QOpenGLContext::currentContext()); }
 
 QOpenGLTexture* TrackManager::track_texture()
 {
-    if (m_tracks.size() == 0) {
+    if (m_data_texture) {
+        return m_data_texture.get();
+    } else {
         return nullptr;
     }
-    return m_tracks[0].data_texture.get();
 }
 
 void TrackManager::draw(const nucleus::camera::Definition& camera, ShaderProgram* shader) const
 {
+
+    if (m_tracks.size() == 0) {
+        return;
+    }
+
+
     QOpenGLExtraFunctions* f = QOpenGLContext::currentContext()->extraFunctions();
     auto funcs = QOpenGLVersionFunctionsFactory::get<QOpenGLFunctions_3_3_Core>(QOpenGLContext::currentContext()); // for wireframe mode
 
@@ -76,8 +83,12 @@ void TrackManager::draw(const nucleus::camera::Definition& camera, ShaderProgram
     shader->set_uniform("visualize_steepness", false); // TODO: make this dynamic
     shader->set_uniform("texin_track", 8);
 
+    if (m_data_texture) {
+        m_data_texture->bind(8);
+    }
+
     for (const PolyLine& track : m_tracks) {
-        track.data_texture->bind(8);
+
         track.vao->bind();
 
         //GLsizei count = (track.point_count - 1) * 6;
@@ -131,17 +142,18 @@ void TrackManager::add_track(const nucleus::gpx::Gpx& gpx, ShaderProgram* shader
 
     PolyLine polyline;
 
-    // create texture to hold the vertex data
-    polyline.data_texture = std::make_unique<QOpenGLTexture>(QOpenGLTexture::Target::Target2D);
-    polyline.data_texture->setFormat(QOpenGLTexture::TextureFormat::RGB32F);
-    polyline.data_texture->setSize(points.size(), 1);
-    polyline.data_texture->setAutoMipMapGenerationEnabled(false);
-    polyline.data_texture->setMinMagFilters(QOpenGLTexture::Filter::Nearest, QOpenGLTexture::Filter::Nearest);
-    polyline.data_texture->setWrapMode(QOpenGLTexture::WrapMode::ClampToEdge);
-    polyline.data_texture->allocateStorage();
-    polyline.data_texture->setData(QOpenGLTexture::RGB, QOpenGLTexture::Float32, points.data());
+    if (m_data_texture == nullptr) {
+        // create texture to hold the vertex data
+        m_data_texture = std::make_unique<QOpenGLTexture>(QOpenGLTexture::Target::Target2D);
+        m_data_texture->setFormat(QOpenGLTexture::TextureFormat::RGB32F);
+        m_data_texture->setSize(point_count, 1);
+        m_data_texture->setAutoMipMapGenerationEnabled(false);
+        m_data_texture->setMinMagFilters(QOpenGLTexture::Filter::Nearest, QOpenGLTexture::Filter::Nearest);
+        m_data_texture->setWrapMode(QOpenGLTexture::WrapMode::ClampToEdge);
+        m_data_texture->allocateStorage();
+        m_data_texture->setData(QOpenGLTexture::RGB, QOpenGLTexture::Float32, points.data());
+    }
 
-    // even if the vao is not used, we still need a dummy vao
     polyline.vao = std::make_unique<QOpenGLVertexArrayObject>();
     polyline.vao->create();
     polyline.vao->bind();
@@ -168,19 +180,11 @@ void TrackManager::add_track(const nucleus::gpx::Gpx& gpx, ShaderProgram* shader
     const auto normal_attrib_location = shader->attribute_location("a_offset");
     f->glEnableVertexAttribArray(normal_attrib_location);
     f->glVertexAttribPointer(normal_attrib_location, 3, GL_FLOAT, GL_FALSE, stride, (void*)(2 * sizeof(glm::vec3)));
-
-
-#if 0
-    auto indices = nucleus::ribbon_indices(points.size());
-    polyline.ebo = std::make_unique<QOpenGLBuffer>(QOpenGLBuffer::IndexBuffer);
-    polyline.ebo->create();
-    polyline.ebo->bind();
-    polyline.ebo->setUsagePattern(QOpenGLBuffer::StaticDraw);
-    polyline.ebo->allocate(indices.data(), helpers::bufferLengthInBytes(indices));
 #endif
 
-#endif
     polyline.point_count = point_count;
+
+    m_total_point_count += point_count;
 
     polyline.vao->release();
 

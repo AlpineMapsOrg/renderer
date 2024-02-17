@@ -128,8 +128,8 @@ void main() {
             (0.0 <= signed_distance(point, clipping_plane_2)) // TODO: handle end of tube
         ) {
 
-            vec3 color = phong_lighting(normal);
-            //vec3 color = visualize_normal(normal);
+            //vec3 color = phong_lighting(normal);
+            vec3 color = visualize_normal(normal);
 #if 1
             if (t < dist) {
 

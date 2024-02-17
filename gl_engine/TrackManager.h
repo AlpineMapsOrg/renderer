@@ -22,6 +22,7 @@
 #include <memory>
 #include <nucleus/GPX.h>
 #include <nucleus/camera/Definition.h>
+#include <QOpenGLTexture>
 
 #include "PolyLine.h"
 #include "ShaderProgram.h"
@@ -37,16 +38,20 @@ public:
     explicit TrackManager(QObject* parent = nullptr);
 
     void init();
+
     void draw(const nucleus::camera::Definition& camera, ShaderProgram* shader) const;
 
     void add_track(const nucleus::gpx::Gpx& gpx, ShaderProgram* shader);
-    // void remove_track();
 
     float width = 25.0f;
 
     QOpenGLTexture* track_texture();
 
 private:
+    size_t m_total_point_count;
     std::vector<PolyLine> m_tracks;
+    std::unique_ptr<QOpenGLTexture> m_data_texture = nullptr;
+
+    std::unique_ptr<QOpenGLTexture> create_texture(const std::vector<glm::vec3>& points);
 };
 } // namespace gl_engine
