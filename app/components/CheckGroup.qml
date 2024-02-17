@@ -30,11 +30,6 @@ Item {
     Layout.topMargin: 20
     Layout.preferredHeight: rootlayout.implicitHeight
 
-    onCheckedChanged: {
-        if (checked) groupchildren.visible = true
-        else groupchildren.visible = false
-    }
-
     ColumnLayout {
         id: rootlayout
         anchors.fill: parent
@@ -74,6 +69,7 @@ Item {
         GridLayout {
             columns: 2
             id: groupchildren
+            visible: root.checked || !root.checkBoxEnabled
             Layout.fillWidth: true
         }
     }

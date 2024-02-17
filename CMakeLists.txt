@@ -35,13 +35,17 @@ endif()
 if (EMSCRIPTEN)
     set(ALP_WWW_INSTALL_DIR "${CMAKE_CURRENT_BINARY_DIR}" CACHE PATH "path to the install directory (for webassembly files, i.e., www directory)")
     option(ALP_ENABLE_THREADING "Puts the scheduler into an extra thread." OFF)
+    option(ALP_ENABLE_DEBUG_GUI "Show debug GUI (increases binary size)" OFF)
+elseif(ANDROID)
+    option(ALP_ENABLE_THREADING "Puts the scheduler into an extra thread." ON)
+    option(ALP_ENABLE_DEBUG_GUI "Show debug GUI (increases binary size)" OFF)
+    option(ALP_ENABLE_POSITIONING "enable qt positioning (gnss / gps)" ON)
 else()
     option(ALP_ENABLE_THREADING "Puts the scheduler into an extra thread." ON)
-endif()
-
-if (NOT EMSCRIPTEN)
+    option(ALP_ENABLE_DEBUG_GUI "Show debug GUI (increases binary size)" ON)
     option(ALP_ENABLE_POSITIONING "enable qt positioning (gnss / gps)" ON)
 endif()
+
 
 if (UNIX AND NOT EMSCRIPTEN AND NOT ANDROID)
     option(ALP_USE_LLVM_LINKER "use lld (llvm) for linking. it's parallel and much faster, but not installed by default.
@@ -71,7 +75,10 @@ if (ALP_USE_LLVM_LINKER)
 endif()
 
 ########################################### dependencies #################################################
-find_package(Qt6 REQUIRED COMPONENTS Core Gui OpenGL Network Quick QuickControls2 LinguistTools Svg Charts)
+find_package(Qt6 REQUIRED COMPONENTS Core Gui OpenGL Network Quick QuickControls2 LinguistTools Svg)
+if (ALP_ENABLE_DEBUG_GUI)
+    find_package(Qt6 REQUIRED COMPONENTS Widgets Charts)
+endif()
 qt_policy(
     SET QTP0002 NEW
 )

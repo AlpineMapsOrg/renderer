@@ -26,11 +26,11 @@ jobs:
         include:
           - qtarch: wasm_singlethread
             qttarget: 'desktop'
-            qtmodules: 'qtcharts'
+            qtmodules: ''
             additional_build_flags: '--target install'
           - qtarch: wasm_multithread
             qttarget: 'desktop'
-            qtmodules: 'qtcharts'
+            qtmodules: ''
             additional_cmake_flags: '-DALP_ENABLE_THREADING=ON'
             additional_build_flags: '--target install'
           - qtarch: android_arm64_v8a
@@ -103,6 +103,10 @@ jobs:
         echo "ANDROID_BUILD_DIR=$BUILD_DIR/$APK_TARGET/android-build/" >> $GITHUB_ENV
         echo "DEPLOYMENT_SETTINGS=$BUILD_DIR/$APK_TARGET/android-alpineapp-deployment-settings.json" >> $GITHUB_ENV
 
+    - name: Remove StatsWindow, otherwise the webassembly will link against qtwidgets and charts.
+      if: matrix.qttarget == 'desktop'
+      run: rm ./app/StatsWindow.qml
+      
     - name: Configure CMake
       env:
         CMAKE_PREFIX_PATH: ${{env.Qt6_DIR}}/lib/cmake

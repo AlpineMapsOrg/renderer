@@ -31,6 +31,8 @@ qt_add_executable(alpineapp
     timing/TimerFrontendObject.h timing/TimerFrontendObject.cpp
 )
 
+
+
 qt_add_qml_module(alpineapp
     URI app
     VERSION 1.0
@@ -44,7 +46,6 @@ qt_add_qml_module(alpineapp
         SearchResults.qml
         Settings.qml
         Coordinates.qml
-        StatsWindow.qml
         GeneralSettings.qml
         GlSettings.qml
         FloatingActionButtonGroup.qml
@@ -62,6 +63,11 @@ qt_add_qml_module(alpineapp
         components/DatePicker.qml
         components/DateMonthTablePicker.qml
         components/FloatingActionButton.qml
+        components/FluxColor/AngleWheel.qml
+        components/FluxColor/ColorChooser.qml
+        components/FluxColor/HueRing.qml
+        components/FluxColor/HueWheel.qml
+        components/FluxColor/WheelArea.qml
     RESOURCES
         icons/mascot.jpg
         icons/menu.svg
@@ -86,6 +92,11 @@ qt_add_qml_module(alpineapp
         icons/presets/basic.png
         icons/presets/shaded.png
         icons/presets/snow.png
+        icons/needle_head_down.svg
+        icons/logo_type_horizontal.svg
+        icons/logo_type_vertical.svg
+        icons/logo_type_horizontal_short.svg
+
 )
 
 qt_add_resources(alpineapp "height_data"
@@ -103,27 +114,33 @@ qt_add_resources(alpineapp "fonts"
     BASE ${alpineapp_fonts_SOURCE_DIR}/SourceSans/
     PREFIX "/fonts"
     FILES
-    ${alpineapp_fonts_SOURCE_DIR}/SourceSans/SourceSans3-BlackIt.ttf
-    ${alpineapp_fonts_SOURCE_DIR}/SourceSans/SourceSans3-BoldIt.ttf
-    ${alpineapp_fonts_SOURCE_DIR}/SourceSans/SourceSans3-ExtraLightIt.ttf
-    ${alpineapp_fonts_SOURCE_DIR}/SourceSans/SourceSans3-It.ttf
-    ${alpineapp_fonts_SOURCE_DIR}/SourceSans/SourceSans3-Light.ttf
-    ${alpineapp_fonts_SOURCE_DIR}/SourceSans/SourceSans3-Medium.ttf
-    ${alpineapp_fonts_SOURCE_DIR}/SourceSans/SourceSans3-SemiboldIt.ttf
-    ${alpineapp_fonts_SOURCE_DIR}/SourceSans/SourceSans3-Black.ttf
+    # ${alpineapp_fonts_SOURCE_DIR}/SourceSans/SourceSans3-BlackIt.ttf
+    # ${alpineapp_fonts_SOURCE_DIR}/SourceSans/SourceSans3-BoldIt.ttf
+    # ${alpineapp_fonts_SOURCE_DIR}/SourceSans/SourceSans3-ExtraLightIt.ttf
+    # ${alpineapp_fonts_SOURCE_DIR}/SourceSans/SourceSans3-It.ttf
+    # ${alpineapp_fonts_SOURCE_DIR}/SourceSans/SourceSans3-Light.ttf
+    # ${alpineapp_fonts_SOURCE_DIR}/SourceSans/SourceSans3-Medium.ttf
+    # ${alpineapp_fonts_SOURCE_DIR}/SourceSans/SourceSans3-SemiboldIt.ttf
+    # ${alpineapp_fonts_SOURCE_DIR}/SourceSans/SourceSans3-Black.ttf
     ${alpineapp_fonts_SOURCE_DIR}/SourceSans/SourceSans3-Bold.ttf
-    ${alpineapp_fonts_SOURCE_DIR}/SourceSans/SourceSans3-ExtraLight.ttf
-    ${alpineapp_fonts_SOURCE_DIR}/SourceSans/SourceSans3-LightIt.ttf
-    ${alpineapp_fonts_SOURCE_DIR}/SourceSans/SourceSans3-MediumIt.ttf
+    # ${alpineapp_fonts_SOURCE_DIR}/SourceSans/SourceSans3-ExtraLight.ttf
+    # ${alpineapp_fonts_SOURCE_DIR}/SourceSans/SourceSans3-LightIt.ttf
+    # ${alpineapp_fonts_SOURCE_DIR}/SourceSans/SourceSans3-MediumIt.ttf
     ${alpineapp_fonts_SOURCE_DIR}/SourceSans/SourceSans3-Regular.ttf
-    ${alpineapp_fonts_SOURCE_DIR}/SourceSans/SourceSans3-Semibold.ttf
+    # ${alpineapp_fonts_SOURCE_DIR}/SourceSans/SourceSans3-Semibold.ttf
 )
 
 
 set_target_properties(alpineapp PROPERTIES
     QT_ANDROID_PACKAGE_SOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/android
 )
-target_link_libraries(alpineapp PUBLIC nucleus gl_engine Qt::Quick Qt::QuickControls2 Qt::Charts)
+target_link_libraries(alpineapp PUBLIC gl_engine Qt::Quick Qt::QuickControls2)
+if (ALP_ENABLE_DEBUG_GUI)
+    message(WARNING building alpine app with debug gui)
+    qt_target_qml_sources(alpineapp QML_FILES StatsWindow.qml)
+    target_link_libraries(alpineapp PUBLIC Qt::Charts Qt::Widgets)
+    target_compile_definitions(alpineapp PUBLIC ALP_ENABLE_DEBUG_GUI)
+endif()
 if (ALP_ENABLE_POSITIONING)
     target_link_libraries(alpineapp PUBLIC Qt::Positioning)
     target_compile_definitions(alpineapp PUBLIC "ALP_ENABLE_GNSS")

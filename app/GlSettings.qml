@@ -30,9 +30,9 @@ SettingsPanel {
         normal_mode.currentIndex = conf.normal_mode;
         height_lines_enabled.checked = conf.height_lines_enabled;
         phong_enabled.checked = conf.phong_enabled;
-        sun_light_color.color = Qt.rgba(conf.sun_light.x, conf.sun_light.y, conf.sun_light.z, conf.sun_light.w);
-        amb_light_color.color = Qt.rgba(conf.amb_light.x, conf.amb_light.y, conf.amb_light.z, conf.amb_light.w);
-        material_color.color = Qt.rgba(conf.material_color.x, conf.material_color.y, conf.material_color.z, conf.material_color.w);
+        sun_light_color.selectedColour = Qt.rgba(conf.sun_light.x, conf.sun_light.y, conf.sun_light.z, conf.sun_light.w);
+        amb_light_color.selectedColour = Qt.rgba(conf.amb_light.x, conf.amb_light.y, conf.amb_light.z, conf.amb_light.w);
+        material_color.selectedColour = Qt.rgba(conf.material_color.x, conf.material_color.y, conf.material_color.z, conf.material_color.w);
         material_light_response.vector = conf.material_light_response;
         ssao_enabled.checked = conf.ssao_enabled;
         ssao_kernel.value = conf.ssao_kernel;
@@ -203,13 +203,13 @@ SettingsPanel {
         Label { text: "Dir.-Light:" }
         ColorPicker {
             id: sun_light_color;
-            onColorChanged: map.shared_config.sun_light = Qt.vector4d(color.r, color.g, color.b, color.a);
+            onSelectedColourChanged: map.shared_config.sun_light = Qt.vector4d(selectedColour.r, selectedColour.g, selectedColour.b, selectedColour.a);
         }
 
         Label { text: "Amb.-Light:" }
         ColorPicker {
             id: amb_light_color;
-            onColorChanged: map.shared_config.amb_light = Qt.vector4d(color.r, color.g, color.b, color.a);
+            onSelectedColourChanged: map.shared_config.amb_light = Qt.vector4d(selectedColour.r, selectedColour.g, selectedColour.b, selectedColour.a);
         }
 
         Label { text: "Light-Direction:" }
@@ -227,7 +227,7 @@ SettingsPanel {
         Label { text: "Mat.-Color:" }
         ColorPicker {
             id: material_color;
-            onColorChanged: map.shared_config.material_color = Qt.vector4d(color.r, color.g, color.b, color.a);
+            onSelectedColourChanged: map.shared_config.material_color = Qt.vector4d(selectedColour.r, selectedColour.g, selectedColour.b, selectedColour.a);
         }
 
         Label { text: "Light-Response:" }

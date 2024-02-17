@@ -1,6 +1,7 @@
 /*****************************************************************************
  * Alpine Terrain Renderer
  * Copyright (C) 2023 Gerald Kimmersdorfer
+ * Copyright (C) 2024 Adam Celarek
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -23,10 +24,12 @@
 #define PI 3.1415926535897932384626433
 
 highp float mod289(highp float x)   {   return x - floor(x * (1.0 / 289.0)) * 289.0;    }
+highp vec3 mod289(highp vec3 x)     {   return x - floor(x * (1.0 / 289.0)) * 289.0;    }
 highp vec4 mod289(highp vec4 x)     {   return x - floor(x * (1.0 / 289.0)) * 289.0;    }
 highp vec4 perm(highp vec4 x)       {   return mod289(((x * 34.0) + 1.0) * x);          }
 
 highp float noise(highp vec3 p){
+    p = mod289(p);
     highp vec3 a = floor(p);
     highp vec3 d = p - a;
     d = d * d * (3.0 - 2.0 * d);
