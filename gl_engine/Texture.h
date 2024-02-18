@@ -36,7 +36,7 @@ public:
     Texture(Texture&&) = delete;
     Texture& operator=(const Texture&) = delete;
     Texture& operator=(Texture&&) = delete;
-    explicit Texture(Target target, Format format = Format::Invalid);
+    explicit Texture(Target target, Format format);
     ~Texture();
 
     void bind(unsigned texture_unit);
