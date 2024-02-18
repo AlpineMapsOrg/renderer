@@ -54,7 +54,7 @@ public:
 
     void init(const std::unordered_map<char16_t, const MapLabel::CharData>& character_data, const stbtt_fontinfo* fontinfo, const float uv_width_norm);
 
-    constexpr static float font_size = 60.0f;
+    constexpr static float font_size = 48.0f;
     constexpr static glm::vec2 icon_size = glm::vec2(48.0f);
 
     const std::vector<VertexData>& vertex_data() const;

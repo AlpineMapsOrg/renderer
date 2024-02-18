@@ -79,6 +79,4 @@ else()
     target_compile_definitions(gl_engine PUBLIC ALP_ENABLE_SHADER_NETWORK_HOTRELOAD=false)
 endif()
 
-#target_compile_definitions(gl_engine PUBLIC ALP_SHADER_NETWORK_URL="http://localhost:5500/")
-
 target_compile_definitions(gl_engine PUBLIC "ALP_SHADER_NETWORK_URL=\"${ALP_SHADER_NETWORK_URL}\"")

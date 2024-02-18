@@ -99,13 +99,13 @@ void MapLabelManager::init()
         label.init(m_char_data, &m_fontinfo, uv_width_norm);
     }
 
-    m_icon = QImage(ALP_ASSET_PREFIX "/icons/peak.png");
+    m_icon = QImage(":/map_icons/peak.png");
 }
 
 Raster<uint8_t> MapLabelManager::make_font_raster()
 {
     // load ttf file
-    QFile file(ALP_ASSET_PREFIX "/fonts/SourceSans3-Bold.ttf");
+    QFile file(":/fonts/Roboto/Roboto-Bold.ttf");
     const auto open = file.open(QIODeviceBase::OpenModeFlag::ReadOnly);
     assert(open);
     Q_UNUSED(open);

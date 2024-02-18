@@ -107,24 +107,24 @@ qt_add_library(nucleus STATIC
 target_include_directories(nucleus PRIVATE . PUBLIC ${CMAKE_SOURCE_DIR})
 target_link_libraries(nucleus PUBLIC radix Qt::Core Qt::Gui Qt::Network fmt::fmt zppbits tl_expected nucleus_version stb_slim goofy_tc)
 
-if (NOT EMSCRIPTEN)
-    qt_add_resources(nucleus "height_data"
-        PREFIX "/map"
-        BASE ${renderer_static_data_SOURCE_DIR}
-        FILES ${renderer_static_data_SOURCE_DIR}/height_data.atb
-    )
-    qt_add_resources(nucleus "nucleus_fonts"
-        BASE ${alpineapp_fonts_SOURCE_DIR}/SourceSans/
-        PREFIX "/fonts"
-        FILES
-        ${alpineapp_fonts_SOURCE_DIR}/SourceSans/SourceSans3-Bold.ttf
-    )
-    target_compile_definitions(nucleus PUBLIC ALP_ASSET_PREFIX=":")
-else()
-    target_link_options(nucleus PUBLIC "SHELL:--embed-file ${renderer_static_data_SOURCE_DIR}/height_data.atb@/map/height_data.atb")
-    target_link_options(nucleus PUBLIC "SHELL:--embed-file ${alpineapp_fonts_SOURCE_DIR}/SourceSans/SourceSans3-Bold.ttf@/fonts/SourceSans3-Bold.ttf")
-    target_compile_definitions(nucleus PUBLIC ALP_ASSET_PREFIX="")
-endif()
+qt_add_resources(nucleus "icons"
+    PREFIX "/map_icons"
+    BASE ${CMAKE_SOURCE_DIR}/app/icons
+    FILES
+        ${CMAKE_SOURCE_DIR}/app/icons/peak.png
+)
+qt_add_resources(nucleus "height_data"
+    PREFIX "/map"
+    BASE ${renderer_static_data_SOURCE_DIR}
+    FILES ${renderer_static_data_SOURCE_DIR}/height_data.atb
+)
+qt_add_resources(nucleus "nucleus_fonts"
+    BASE ${alpineapp_fonts_SOURCE_DIR}/SourceSans/
+    PREFIX "/fonts"
+    FILES
+    ${alpineapp_fonts_SOURCE_DIR}/Roboto/Roboto-Bold.ttf
+)
+
 
 if (ALP_ENABLE_LTO)
     target_compile_options(nucleus PUBLIC -flto)

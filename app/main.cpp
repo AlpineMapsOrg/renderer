@@ -54,15 +54,15 @@ int main(int argc, char **argv)
 #else
     QGuiApplication app(argc, argv);
 #endif
-    app.setWindowIcon(QIcon(ALP_ASSET_PREFIX "/icons/favicon.ico"));
+    app.setWindowIcon(QIcon(":/icons/favicon.ico"));
     QCoreApplication::setOrganizationName("AlpineMaps.org");
     QCoreApplication::setApplicationName("AlpineApp");
     QGuiApplication::setApplicationDisplayName("Alpine Maps");
     QNetworkInformation::loadDefaultBackend(); // load here, so it sits on the correct thread.
 
-    QFontDatabase::addApplicationFont(ALP_ASSET_PREFIX "/fonts/SourceSans3-Regular.ttf");
-    QFontDatabase::addApplicationFont(ALP_ASSET_PREFIX "/fonts/SourceSans3-Bold.ttf");
-    app.setFont(QFont("Source Sans 3", 12, 400));
+    QFontDatabase::addApplicationFont(":/fonts/Roboto/Roboto-Regular.ttf");
+    QFontDatabase::addApplicationFont(":/fonts/Roboto/Roboto-Bold.ttf");
+    app.setFont(QFont("Roboto", 12, 400));
 
 #ifndef NDEBUG
     //    QLoggingCategory::setFilterRules("*.debug=true\n"
@@ -128,11 +128,7 @@ int main(int argc, char **argv)
 
     HotReloader hotreloader(&engine, ALP_QML_SOURCE_DIR);
     engine.rootContext()->setContextProperty("_hotreloader", &hotreloader);
-#ifdef __EMSCRIPTEN__
-    engine.rootContext()->setContextProperty("_r", "file:///");
-#else
-    engine.rootContext()->setContextProperty("_r", (ALP_ASSET_PREFIX == std::string(":/")) ? "qrc:/" : ALP_QML_SOURCE_DIR);
-#endif
+    engine.rootContext()->setContextProperty("_r", ALP_QML_SOURCE_DIR);
     engine.rootContext()->setContextProperty("_positionList", QVariant::fromValue(nucleus::camera::PositionStorage::instance()->getPositionList()));
     engine.rootContext()->setContextProperty("_alpine_renderer_version", QString::fromStdString(nucleus::version()));
 #ifdef ALP_ENABLE_DEBUG_GUI

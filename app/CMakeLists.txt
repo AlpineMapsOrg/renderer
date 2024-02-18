@@ -69,87 +69,39 @@ qt_add_qml_module(alpineapp
         components/FluxColor/HueWheel.qml
         components/FluxColor/WheelArea.qml
     RESOURCES
+        icons/favicon.ico
+        icons/mascot.jpg
+        icons/menu.png
+        icons/search.png
+        icons/icon.png
+        icons/material/monitoring.png
+        icons/material/3d_rotation.png
+        icons/material/map.png
+        icons/material/pin_drop.png
+        icons/material/settings.png
+        icons/material/info.png
+        icons/material/format_paint.png
+        icons/material/location_searching.png
+        icons/material/my_location.png
+        icons/material/navigation.png
+        icons/material/navigation_offset.png
+        icons/material/chevron_left.png
+        icons/material/visibility_off.png
+        icons/presets/basic.png
+        icons/presets/shaded.png
+        icons/presets/snow.png
+        icons/needle_head_down.png
+        icons/logo_type_horizontal.png
+        icons/logo_type_vertical.png
+        icons/logo_type_horizontal_short.png
 )
 
-if (NOT EMSCRIPTEN)
-    qt_add_resources(alpineapp "icons"
-        PREFIX "/"
-        FILES
-            icons/favicon.ico
-            icons/mascot.jpg
-            icons/menu.png
-            icons/peak.png
-            icons/search.png
-            icons/icon.png
-            icons/material/monitoring.png
-            icons/material/3d_rotation.png
-            icons/material/map.png
-            icons/material/pin_drop.png
-            icons/material/settings.png
-            icons/material/info.png
-            icons/material/format_paint.png
-            icons/material/location_searching.png
-            icons/material/my_location.png
-            icons/material/navigation.png
-            icons/material/navigation_offset.png
-            icons/material/chevron_left.png
-            icons/material/visibility_off.png
-            icons/presets/basic.png
-            icons/presets/shaded.png
-            icons/presets/snow.png
-            icons/needle_head_down.png
-            icons/logo_type_horizontal.png
-            icons/logo_type_vertical.png
-            icons/logo_type_horizontal_short.png
-    )
-    qt_add_resources(alpineapp "fonts"
-        BASE ${alpineapp_fonts_SOURCE_DIR}/SourceSans/
-        PREFIX "/fonts"
-        FILES
-        # ${alpineapp_fonts_SOURCE_DIR}/SourceSans/SourceSans3-BlackIt.ttf
-        # ${alpineapp_fonts_SOURCE_DIR}/SourceSans/SourceSans3-BoldIt.ttf
-        # ${alpineapp_fonts_SOURCE_DIR}/SourceSans/SourceSans3-ExtraLightIt.ttf
-        # ${alpineapp_fonts_SOURCE_DIR}/SourceSans/SourceSans3-It.ttf
-        # ${alpineapp_fonts_SOURCE_DIR}/SourceSans/SourceSans3-Light.ttf
-        # ${alpineapp_fonts_SOURCE_DIR}/SourceSans/SourceSans3-Medium.ttf
-        # ${alpineapp_fonts_SOURCE_DIR}/SourceSans/SourceSans3-SemiboldIt.ttf
-        # ${alpineapp_fonts_SOURCE_DIR}/SourceSans/SourceSans3-Black.ttf
-        # ${alpineapp_fonts_SOURCE_DIR}/SourceSans/SourceSans3-Bold.ttf # already importet by nucleus
-        # ${alpineapp_fonts_SOURCE_DIR}/SourceSans/SourceSans3-ExtraLight.ttf
-        # ${alpineapp_fonts_SOURCE_DIR}/SourceSans/SourceSans3-LightIt.ttf
-        # ${alpineapp_fonts_SOURCE_DIR}/SourceSans/SourceSans3-MediumIt.ttf
-        ${alpineapp_fonts_SOURCE_DIR}/SourceSans/SourceSans3-Regular.ttf
-        # ${alpineapp_fonts_SOURCE_DIR}/SourceSans/SourceSans3-Semibold.ttf
-    )
-else()
-    target_link_options(alpineapp PUBLIC "SHELL:--embed-file ${CMAKE_CURRENT_SOURCE_DIR}/icons/mascot.jpg@/icons/mascot.jpg")
-    target_link_options(alpineapp PUBLIC "SHELL:--embed-file ${CMAKE_CURRENT_SOURCE_DIR}/icons/menu.png@icons/menu.png")
-    target_link_options(alpineapp PUBLIC "SHELL:--embed-file ${CMAKE_CURRENT_SOURCE_DIR}/icons/peak.png@icons/peak.png")
-    target_link_options(alpineapp PUBLIC "SHELL:--embed-file ${CMAKE_CURRENT_SOURCE_DIR}/icons/search.png@icons/search.png")
-    target_link_options(alpineapp PUBLIC "SHELL:--embed-file ${CMAKE_CURRENT_SOURCE_DIR}/icons/icon.png@icons/icon.png")
-    target_link_options(alpineapp PUBLIC "SHELL:--embed-file ${CMAKE_CURRENT_SOURCE_DIR}/icons/material/monitoring.png@icons/material/monitoring.png")
-    target_link_options(alpineapp PUBLIC "SHELL:--embed-file ${CMAKE_CURRENT_SOURCE_DIR}/icons/material/3d_rotation.png@icons/material/3d_rotation.png")
-    target_link_options(alpineapp PUBLIC "SHELL:--embed-file ${CMAKE_CURRENT_SOURCE_DIR}/icons/material/map.png@icons/material/map.png")
-    target_link_options(alpineapp PUBLIC "SHELL:--embed-file ${CMAKE_CURRENT_SOURCE_DIR}/icons/material/pin_drop.png@icons/material/pin_drop.png")
-    target_link_options(alpineapp PUBLIC "SHELL:--embed-file ${CMAKE_CURRENT_SOURCE_DIR}/icons/material/settings.png@icons/material/settings.png")
-    target_link_options(alpineapp PUBLIC "SHELL:--embed-file ${CMAKE_CURRENT_SOURCE_DIR}/icons/material/info.png@icons/material/info.png")
-    target_link_options(alpineapp PUBLIC "SHELL:--embed-file ${CMAKE_CURRENT_SOURCE_DIR}/icons/material/format_paint.png@icons/material/format_paint.png")
-    target_link_options(alpineapp PUBLIC "SHELL:--embed-file ${CMAKE_CURRENT_SOURCE_DIR}/icons/material/location_searching.png@icons/material/location_searching.png")
-    target_link_options(alpineapp PUBLIC "SHELL:--embed-file ${CMAKE_CURRENT_SOURCE_DIR}/icons/material/my_location.png@icons/material/my_location.png")
-    target_link_options(alpineapp PUBLIC "SHELL:--embed-file ${CMAKE_CURRENT_SOURCE_DIR}/icons/material/navigation.png@icons/material/navigation.png")
-    target_link_options(alpineapp PUBLIC "SHELL:--embed-file ${CMAKE_CURRENT_SOURCE_DIR}/icons/material/navigation_offset.png@icons/material/navigation_offset.png")
-    target_link_options(alpineapp PUBLIC "SHELL:--embed-file ${CMAKE_CURRENT_SOURCE_DIR}/icons/material/chevron_left.png@icons/material/chevron_left.png")
-    target_link_options(alpineapp PUBLIC "SHELL:--embed-file ${CMAKE_CURRENT_SOURCE_DIR}/icons/material/visibility_off.png@icons/material/visibility_off.png")
-    target_link_options(alpineapp PUBLIC "SHELL:--embed-file ${CMAKE_CURRENT_SOURCE_DIR}/icons/presets/basic.png@icons/presets/basic.png")
-    target_link_options(alpineapp PUBLIC "SHELL:--embed-file ${CMAKE_CURRENT_SOURCE_DIR}/icons/presets/shaded.png@icons/presets/shaded.png")
-    target_link_options(alpineapp PUBLIC "SHELL:--embed-file ${CMAKE_CURRENT_SOURCE_DIR}/icons/presets/snow.png@icons/presets/snow.png")
-    target_link_options(alpineapp PUBLIC "SHELL:--embed-file ${CMAKE_CURRENT_SOURCE_DIR}/icons/needle_head_down.png@icons/needle_head_down.png")
-    target_link_options(alpineapp PUBLIC "SHELL:--embed-file ${CMAKE_CURRENT_SOURCE_DIR}/icons/logo_type_horizontal.png@icons/logo_type_horizontal.png")
-    target_link_options(alpineapp PUBLIC "SHELL:--embed-file ${CMAKE_CURRENT_SOURCE_DIR}/icons/logo_type_vertical.png@icons/logo_type_vertical.png")
-    target_link_options(alpineapp PUBLIC "SHELL:--embed-file ${CMAKE_CURRENT_SOURCE_DIR}/icons/logo_type_horizontal_short.png@icons/logo_type_horizontal_short.png")
-    target_link_options(alpineapp PUBLIC "SHELL:--embed-file ${alpineapp_fonts_SOURCE_DIR}/SourceSans/SourceSans3-Regular.ttf@/fonts/SourceSans3-Regular.ttf")
-    # target_link_options(alpineapp PUBLIC "SHELL:--embed-file ${alpineapp_fonts_SOURCE_DIR}/SourceSans/SourceSans3-ExtraLight.ttf@/fonts/SourceSans3-ExtraLight.ttf")
-endif()
+qt_add_resources(alpineapp "fonts"
+    BASE ${alpineapp_fonts_SOURCE_DIR}/
+    PREFIX "/fonts"
+    FILES
+    ${alpineapp_fonts_SOURCE_DIR}/Roboto/Roboto-Regular.ttf
+)
 
 qt_add_translations(alpineapp TS_FILES
     i18n/de.ts
