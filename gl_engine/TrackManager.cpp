@@ -99,7 +99,7 @@ void TrackManager::draw(const nucleus::camera::Definition& camera, ShaderProgram
         shader->set_uniform("enable_intersection", true);
         f->glDrawArrays(GL_TRIANGLES, 0, vertex_count);
 
-#if 0
+#if 1
         // only for debugging
         funcs->glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
         shader->set_uniform("enable_intersection", false);
@@ -125,34 +125,36 @@ void TrackManager::add_track(const nucleus::gpx::Gpx& gpx, ShaderProgram* shader
     // reduce variance in points
     nucleus::apply_gaussian_filter(points, 1.0f);
 
-    std::cout << "before cleanup: " << points.size() << std::endl;
+    //std::cout << "before cleanup: " << points.size() << std::endl;
 
     nucleus::reduce_point_count(points);
 
-    std::cout << "after cleanup: " << points.size() << std::endl;
+    //std::cout << "after cleanup: " << points.size() << std::endl;
 
     size_t point_count = points.size();
 
-
-#if 0
-    std::vector<glm::vec3> basic_ribbon = nucleus::triangle_strip_ribbon(points, 15.0f);
-#else
-    std::vector<glm::vec3> basic_ribbon = nucleus::triangles_ribbon(points, 0.0f);
-#endif
+    std::vector<glm::vec3> basic_ribbon = nucleus::triangles_ribbon(points, 0.0f, m_total_point_count);
 
     PolyLine polyline;
+
+    // TODO: handle this in some better way
+    const int texture_size = 10'000;
 
     if (m_data_texture == nullptr) {
         // create texture to hold the vertex data
         m_data_texture = std::make_unique<QOpenGLTexture>(QOpenGLTexture::Target::Target2D);
         m_data_texture->setFormat(QOpenGLTexture::TextureFormat::RGB32F);
-        m_data_texture->setSize(point_count, 1);
+        m_data_texture->setSize(texture_size, 1);
         m_data_texture->setAutoMipMapGenerationEnabled(false);
         m_data_texture->setMinMagFilters(QOpenGLTexture::Filter::Nearest, QOpenGLTexture::Filter::Nearest);
         m_data_texture->setWrapMode(QOpenGLTexture::WrapMode::ClampToEdge);
         m_data_texture->allocateStorage();
-        m_data_texture->setData(QOpenGLTexture::RGB, QOpenGLTexture::Float32, points.data());
     }
+
+    assert((m_total_point_count + point_count) < texture_size);
+
+    m_data_texture->bind();
+    m_data_texture->setData(m_total_point_count, 0, 0, point_count, 1, 0, QOpenGLTexture::RGB, QOpenGLTexture::Float32, points.data());
 
     polyline.vao = std::make_unique<QOpenGLVertexArrayObject>();
     polyline.vao->create();

@@ -43,12 +43,12 @@ public:
 
     void add_track(const nucleus::gpx::Gpx& gpx, ShaderProgram* shader);
 
-    float width = 25.0f;
+    float width = 7.0f;
 
     QOpenGLTexture* track_texture();
 
 private:
-    size_t m_total_point_count;
+    size_t m_total_point_count = 0;
     std::vector<PolyLine> m_tracks;
     std::unique_ptr<QOpenGLTexture> m_data_texture = nullptr;
 

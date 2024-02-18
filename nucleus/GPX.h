@@ -31,7 +31,7 @@ std::vector<glm::vec3> to_world_points(const gpx::Gpx& gpx);
 std::vector<glm::vec3> triangle_strip_ribbon(const std::vector<glm::vec3>& points, float width);
 
 // for rendering with GL_TRIANGLES
-std::vector<glm::vec3> triangles_ribbon(const std::vector<glm::vec3>& points, float width);
+std::vector<glm::vec3> triangles_ribbon(const std::vector<glm::vec3>& points, float width, int index_offset = 0);
 
 std::vector<unsigned> ribbon_indices(unsigned point_count);
 
