@@ -35,10 +35,11 @@ private:
 
 public:
     explicit CompressedTexture(const QImage& image, Algorithm algorithm);
-    const uint8_t* data() const { return m_data.data(); }
-    size_t n_bytes() const { return m_data.size(); }
-    unsigned width() const { return m_width; }
-    unsigned height() const { return m_height; }
+    [[nodiscard]] const uint8_t* data() const { return m_data.data(); }
+    [[nodiscard]] size_t n_bytes() const { return m_data.size(); }
+    [[nodiscard]] unsigned width() const { return m_width; }
+    [[nodiscard]] unsigned height() const { return m_height; }
+    [[nodiscard]] Algorithm algorithm() const { return m_algorithm; }
 };
 
 } // namespace nucleus::utils

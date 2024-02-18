@@ -19,7 +19,7 @@
 #define GOOFYTC_IMPLEMENTATION
 #include <GoofyTC/goofy_tc.h>
 
-#include "texture_compression.h"
+#include "CompressedTexture.h"
 
 namespace {
 std::vector<uint8_t> to_dxt1(const QImage& qimage)

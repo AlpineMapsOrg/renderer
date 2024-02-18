@@ -19,29 +19,41 @@
 #pragma once
 
 #include <QImage>
-#include <nucleus/utils/texture_compression.h>
 #include <qopengl.h>
+
+#include <nucleus/Raster.h>
+#include <nucleus/utils/CompressedTexture.h>
 
 namespace gl_engine {
 class Texture {
 public:
     enum class Target : GLenum { _2d = GL_TEXTURE_2D, _2dArray = GL_TEXTURE_2D_ARRAY };
+    enum class Format { RGBA8, CompressedRGBA8, RG8, R16UI, Invalid = -1 };
+    enum class Filter : GLint { Nearest = GL_NEAREST, Linear = GL_LINEAR, MipMapLinear = GL_LINEAR_MIPMAP_LINEAR };
 
 public:
     Texture(const Texture&) = delete;
     Texture(Texture&&) = delete;
     Texture& operator=(const Texture&) = delete;
     Texture& operator=(Texture&&) = delete;
-    explicit Texture(Target target);
+    explicit Texture(Target target, Format format = Format::Invalid);
     ~Texture();
 
     void bind(unsigned texture_unit);
+    void setParams(Filter min_filter, Filter mag_filter);
+    void upload(const nucleus::utils::CompressedTexture& texture);
+    void upload(const nucleus::Raster<glm::u8vec2>& texture);
+    void upload(const nucleus::Raster<uint16_t>& texture);
+
     static GLenum compressed_texture_format();
     static nucleus::utils::CompressedTexture::Algorithm compression_algorithm();
 
 private:
     GLuint m_id = GLuint(-1);
     Target m_target = Target::_2d;
+    Format m_format = Format::Invalid;
+    Filter m_min_filter = Filter::Nearest;
+    Filter m_mag_filter = Filter::Nearest;
 };
 
 } // namespace gl_engine

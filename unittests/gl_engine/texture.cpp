@@ -32,7 +32,7 @@
 #include "gl_engine/Framebuffer.h"
 #include "gl_engine/ShaderProgram.h"
 #include "gl_engine/helpers.h"
-#include "nucleus/utils/texture_compression.h"
+#include "nucleus/utils/CompressedTexture.h"
 
 using gl_engine::Framebuffer;
 using gl_engine::ShaderProgram;
@@ -50,16 +50,19 @@ namespace {
 ShaderProgram create_debug_shader(const char* fragmentShaderOverride = nullptr)
 {
     static const char* const fragment_source = R"(
-    out lowp vec4 out_Color;
-    void main() {
-        out_Color = vec4(0.2, 0.0, 1.0, 0.8);
-    })";
+        uniform sampler2D texture_sampler;
+        in highp vec2 texcoords;
+        out lowp vec4 out_color;
+        void main() {
+            out_color = texture(texture_sampler, vec2(texcoords.x, 1.0 - texcoords.y));
+        }
+    )";
     ShaderProgram tmp(vertex_source, fragmentShaderOverride ? fragmentShaderOverride : fragment_source, gl_engine::ShaderCodeSource::PLAINTEXT);
     return tmp;
 }
 } // namespace
 
-TEST_CASE("gl compressed textures")
+TEST_CASE("gl texture")
 {
     UnittestGLContext::initialise();
 
@@ -110,14 +113,7 @@ TEST_CASE("gl compressed textures")
         opengl_texture.setMinMagFilters(QOpenGLTexture::Filter::Nearest, QOpenGLTexture::Filter::Nearest);
         opengl_texture.bind();
 
-        ShaderProgram shader = create_debug_shader(R"(
-            uniform sampler2D texture_sampler;
-            in highp vec2 texcoords;
-            out lowp vec4 out_color;
-            void main() {
-                out_color = texture(texture_sampler, vec2(texcoords.x, 1.0 - texcoords.y));
-            }
-        )");
+        ShaderProgram shader = create_debug_shader();
         shader.bind();
         gl_engine::helpers::create_screen_quad_geometry().draw();
 
@@ -138,30 +134,18 @@ TEST_CASE("gl compressed textures")
         CHECK(diff / (256 * 256 * 3) < 0.001);
     }
 
-    SECTION("compression")
+    SECTION("compressed rgba")
     {
-        Framebuffer b(Framebuffer::DepthFormat::None, {{Framebuffer::ColourFormat::RGBA8}}, {256, 256});
+        Framebuffer b(Framebuffer::DepthFormat::None, { { Framebuffer::ColourFormat::RGBA8 } }, { 256, 256 });
         b.bind();
 
         const auto compressed = CompressedTexture(test_texture, gl_engine::Texture::compression_algorithm());
-        gl_engine::Texture opengl_texture(gl_engine::Texture::Target::_2d);
+        gl_engine::Texture opengl_texture(gl_engine::Texture::Target::_2d, gl_engine::Texture::Format::CompressedRGBA8);
         opengl_texture.bind(0);
-        f->glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
-        f->glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-        f->glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-        f->glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-        f->glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-        f->glCompressedTexImage2D(GL_TEXTURE_2D, 0, gl_engine::Texture::compressed_texture_format(), test_texture.width(), test_texture.height(), 0,
-            compressed.n_bytes(), compressed.data());
+        opengl_texture.setParams(gl_engine::Texture::Filter::Linear, gl_engine::Texture::Filter::Linear);
+        opengl_texture.upload(compressed);
 
-        ShaderProgram shader = create_debug_shader(R"(
-            uniform sampler2D texture_sampler;
-            in highp vec2 texcoords;
-            out lowp vec4 out_color;
-            void main() {
-                out_color = texture(texture_sampler, vec2(texcoords.x, 1.0 - texcoords.y));
-            }
-        )");
+        ShaderProgram shader = create_debug_shader();
         shader.bind();
         gl_engine::helpers::create_screen_quad_geometry().draw();
 
@@ -182,34 +166,23 @@ TEST_CASE("gl compressed textures")
         CHECK(diff / (256 * 256 * 3) < 0.017);
     }
 
-    SECTION("not compression")
+    SECTION("rgba")
     {
         Framebuffer b(Framebuffer::DepthFormat::None, { { Framebuffer::ColourFormat::RGBA8 } }, { 256, 256 });
         b.bind();
 
         const auto compressed = CompressedTexture(test_texture, CompressedTexture::Algorithm::Uncompressed_RGBA);
-        gl_engine::Texture opengl_texture(gl_engine::Texture::Target::_2d);
+        gl_engine::Texture opengl_texture(gl_engine::Texture::Target::_2d, gl_engine::Texture::Format::RGBA8);
         opengl_texture.bind(0);
-        f->glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
-        f->glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-        f->glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-        f->glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-        f->glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-        f->glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, test_texture.width(), test_texture.height(), 0, GL_RGBA, GL_UNSIGNED_BYTE, compressed.data());
+        opengl_texture.setParams(gl_engine::Texture::Filter::Linear, gl_engine::Texture::Filter::Linear);
+        opengl_texture.upload(compressed);
 
-        ShaderProgram shader = create_debug_shader(R"(
-            uniform sampler2D texture_sampler;
-            in highp vec2 texcoords;
-            out lowp vec4 out_color;
-            void main() {
-                out_color = texture(texture_sampler, vec2(texcoords.x, 1.0 - texcoords.y));
-            }
-        )");
+        ShaderProgram shader = create_debug_shader();
         shader.bind();
         gl_engine::helpers::create_screen_quad_geometry().draw();
 
         const QImage render_result = b.read_colour_attachment(0);
-        render_result.save("render_result.png");
+        // render_result.save("render_result.png");
         Framebuffer::unbind();
         REQUIRE(!render_result.isNull());
         CHECK(render_result.width() == test_texture.width());
@@ -223,5 +196,66 @@ TEST_CASE("gl compressed textures")
             }
         }
         CHECK(diff / (256 * 256 * 3) < 0.001);
+    }
+
+    SECTION("rg8")
+    {
+        Framebuffer b(Framebuffer::DepthFormat::None, { { Framebuffer::ColourFormat::RGBA8 } }, { 1, 1 });
+        b.bind();
+
+        const auto tex = nucleus::Raster<glm::u8vec2>({ 1, 1 }, glm::u8vec2(240, 120));
+        gl_engine::Texture opengl_texture(gl_engine::Texture::Target::_2d, gl_engine::Texture::Format::RG8);
+        opengl_texture.bind(0);
+        opengl_texture.setParams(gl_engine::Texture::Filter::Linear, gl_engine::Texture::Filter::Linear);
+        opengl_texture.upload(tex);
+
+        ShaderProgram shader = create_debug_shader();
+        shader.bind();
+        gl_engine::helpers::create_screen_quad_geometry().draw();
+
+        const QImage render_result = b.read_colour_attachment(0);
+        // render_result.save("render_result.png");
+        Framebuffer::unbind();
+        REQUIRE(!render_result.isNull());
+        CHECK(render_result.width() == 1);
+        CHECK(render_result.height() == 1);
+        CHECK(qRed(render_result.pixel(0, 0)) == 240);
+        CHECK(qGreen(render_result.pixel(0, 0)) == 120);
+        CHECK(qBlue(render_result.pixel(0, 0)) == 0);
+        CHECK(qAlpha(render_result.pixel(0, 0)) == 255);
+    }
+
+    SECTION("red16")
+    {
+        Framebuffer b(Framebuffer::DepthFormat::None, { { Framebuffer::ColourFormat::RGBA8 } }, { 1, 1 });
+        b.bind();
+
+        const auto tex = nucleus::Raster<uint16_t>({ 1, 1 }, uint16_t(120 * 256));
+        gl_engine::Texture opengl_texture(gl_engine::Texture::Target::_2d, gl_engine::Texture::Format::R16UI);
+        opengl_texture.bind(0);
+        opengl_texture.setParams(gl_engine::Texture::Filter::Linear, gl_engine::Texture::Filter::Linear);
+        opengl_texture.upload(tex);
+
+        ShaderProgram shader = create_debug_shader(R"(
+            uniform usampler2D texture_sampler;
+            in highp vec2 texcoords;
+            out lowp vec4 out_color;
+            void main() {
+                out_color = vec4(float(texture(texture_sampler, vec2(0.5, 0.5)).r) / 65535.0, 0, 0, 1);
+            }
+        )");
+        shader.bind();
+        gl_engine::helpers::create_screen_quad_geometry().draw();
+
+        const QImage render_result = b.read_colour_attachment(0);
+        // render_result.save("render_result.png");
+        Framebuffer::unbind();
+        REQUIRE(!render_result.isNull());
+        CHECK(render_result.width() == 1);
+        CHECK(render_result.height() == 1);
+        CHECK(qRed(render_result.pixel(0, 0)) == 120);
+        CHECK(qGreen(render_result.pixel(0, 0)) == 0);
+        CHECK(qBlue(render_result.pixel(0, 0)) == 0);
+        CHECK(qAlpha(render_result.pixel(0, 0)) == 255);
     }
 }

@@ -24,7 +24,7 @@
 #include <glm/glm.hpp>
 
 #include "nucleus/tile_scheduler/tile_types.h"
-#include "utils/texture_compression.h"
+#include "utils/CompressedTexture.h"
 
 class QOpenGLFramebufferObject;
 

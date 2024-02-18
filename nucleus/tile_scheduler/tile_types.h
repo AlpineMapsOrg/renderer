@@ -21,7 +21,7 @@
 #include <QByteArray>
 
 #include "nucleus/tile_scheduler/utils.h"
-#include "nucleus/utils/texture_compression.h"
+#include "nucleus/utils/CompressedTexture.h"
 #include <radix/tile.h>
 
 class QImage;
