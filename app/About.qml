@@ -70,7 +70,7 @@ Rectangle {
                 text: qsTr("
 This is an open source application. It is **released** under the GNU General Public License (version 3 or any later version). The source code is available on [github.com/AlpineMapsOrg/renderer](https://github.com/AlpineMapsOrg/renderer).
 
-The source of elevation and orthographic photo data is <a href=\"https://basemap.at\">basemap.at</a>,
+The source of elevation and orthographic photo data is [basemap.at](https://basemap.at),
 it is licensed under the Open Government Data Austria license (CC-BY 4.0).
 
 ## Authors:
