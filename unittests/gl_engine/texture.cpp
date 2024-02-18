@@ -233,15 +233,17 @@ TEST_CASE("gl texture")
         const auto tex = nucleus::Raster<uint16_t>({ 1, 1 }, uint16_t(120 * 256));
         gl_engine::Texture opengl_texture(gl_engine::Texture::Target::_2d, gl_engine::Texture::Format::R16UI);
         opengl_texture.bind(0);
-        opengl_texture.setParams(gl_engine::Texture::Filter::Linear, gl_engine::Texture::Filter::Linear);
+        opengl_texture.setParams(gl_engine::Texture::Filter::Nearest, gl_engine::Texture::Filter::Nearest);
         opengl_texture.upload(tex);
 
         ShaderProgram shader = create_debug_shader(R"(
-            uniform usampler2D texture_sampler;
+            uniform mediump usampler2D texture_sampler;
             in highp vec2 texcoords;
             out lowp vec4 out_color;
             void main() {
-                out_color = vec4(float(texture(texture_sampler, vec2(0.5, 0.5)).r) / 65535.0, 0, 0, 1);
+                mediump uint v = texture(texture_sampler, vec2(0.5, 0.5)).r;
+                highp float v2 = float(v);  // need temporary for android, otherwise it is cast to a mediump float and 0 is returned.
+                out_color = vec4(v2 / 65535.0, 0, 0, 1);
             }
         )");
         shader.bind();

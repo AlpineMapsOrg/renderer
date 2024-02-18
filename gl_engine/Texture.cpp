@@ -53,8 +53,15 @@ void gl_engine::Texture::bind(unsigned int texture_unit)
 
 void gl_engine::Texture::setParams(Filter min_filter, Filter mag_filter)
 {
-    assert(mag_filter != Filter::MipMapLinear); // doesn't make sense, does it?
-    assert(m_format != Format::CompressedRGBA8 || min_filter != Filter::MipMapLinear); // add upload functionality for compressed mipmaps to support this
+    // doesn't make sense, does it?
+    assert(mag_filter != Filter::MipMapLinear);
+
+    // add upload functionality for compressed mipmaps to support this
+    assert(m_format != Format::CompressedRGBA8 || min_filter != Filter::MipMapLinear);
+
+    // webgl supports only nearest filtering for R16UI
+    assert(m_format != Format::R16UI || (min_filter == Filter::Nearest && mag_filter == Filter::Nearest));
+
     m_min_filter = min_filter;
     m_mag_filter = mag_filter;
 
