@@ -122,14 +122,9 @@ void TrackManager::add_track(const nucleus::gpx::Gpx& gpx, ShaderProgram* shader
     // coordinates
     std::vector<glm::vec3> points = nucleus::to_world_points(gpx);
 
-    // reduce variance in points
+    // data cleanup
     nucleus::apply_gaussian_filter(points, 1.0f);
-
-    //std::cout << "before cleanup: " << points.size() << std::endl;
-
     nucleus::reduce_point_count(points);
-
-    //std::cout << "after cleanup: " << points.size() << std::endl;
 
     size_t point_count = points.size();
 
@@ -156,7 +151,10 @@ void TrackManager::add_track(const nucleus::gpx::Gpx& gpx, ShaderProgram* shader
     m_data_texture->bind();
     m_data_texture->setData(m_total_point_count, 0, 0, point_count, 1, 0, QOpenGLTexture::RGB, QOpenGLTexture::Float32, points.data());
 
+    m_total_point_count += point_count;
+
     polyline.vao = std::make_unique<QOpenGLVertexArrayObject>();
+    polyline.point_count = point_count;
     polyline.vao->create();
     polyline.vao->bind();
 
@@ -183,10 +181,6 @@ void TrackManager::add_track(const nucleus::gpx::Gpx& gpx, ShaderProgram* shader
     f->glEnableVertexAttribArray(normal_attrib_location);
     f->glVertexAttribPointer(normal_attrib_location, 3, GL_FLOAT, GL_FALSE, stride, (void*)(2 * sizeof(glm::vec3)));
 #endif
-
-    polyline.point_count = point_count;
-
-    m_total_point_count += point_count;
 
     polyline.vao->release();
 
