@@ -30,6 +30,7 @@ std::vector<uint8_t> nucleus::utils::texture_compression::to_dxt1(const QImage& 
     assert(qimage.width() == qimage.height());
     assert(qimage.width() % 16 == 0);
     assert(qimage.bytesPerLine() * qimage.height() == qimage.width() * qimage.height() * 4);
+    assert(qimage.sizeInBytes() == qimage.width() * qimage.height() * 4);
 
     struct alignas(16) AlignedBlock
     {
@@ -37,13 +38,13 @@ std::vector<uint8_t> nucleus::utils::texture_compression::to_dxt1(const QImage& 
     };
     static_assert(sizeof(AlignedBlock) == 16);
 
-    const auto n_bytes_in = qimage.width() * qimage.height() * 4;
+    const auto n_bytes_in = size_t(qimage.sizeInBytes());
     const auto n_bytes_out = qimage.width() * qimage.height() / 2;
     assert(n_bytes_in % sizeof(AlignedBlock) == 0);
 
     auto aligned_in = std::vector<AlignedBlock>(n_bytes_in / sizeof(AlignedBlock));
     auto data_ptr = reinterpret_cast<uchar*>(aligned_in.data());
-    std::copy(qimage.bits(), qimage.bits() + n_bytes_in, data_ptr);
+    std::copy(qimage.constBits(), qimage.constBits() + n_bytes_in, data_ptr);
 
     std::vector<uint8_t> compressed(n_bytes_out);
     const auto result = goofy::compressDXT1(compressed.data(), data_ptr, qimage.width(), qimage.height(), qimage.width() * 4);
@@ -64,6 +65,7 @@ std::vector<uint8_t> nucleus::utils::texture_compression::to_etc1(const QImage& 
     assert(qimage.width() == qimage.height());
     assert(qimage.width() % 16 == 0);
     assert(qimage.bytesPerLine() * qimage.height() == qimage.width() * qimage.height() * 4);
+    assert(qimage.sizeInBytes() == qimage.width() * qimage.height() * 4);
 
     struct alignas(16) AlignedBlock
     {
@@ -71,13 +73,13 @@ std::vector<uint8_t> nucleus::utils::texture_compression::to_etc1(const QImage& 
     };
     static_assert(sizeof(AlignedBlock) == 16);
 
-    const auto n_bytes_in = qimage.width() * qimage.height() * 4;
+    const auto n_bytes_in = size_t(qimage.sizeInBytes());
     const auto n_bytes_out = qimage.width() * qimage.height() / 2;
     assert(n_bytes_in % sizeof(AlignedBlock) == 0);
 
     auto aligned_in = std::vector<AlignedBlock>(n_bytes_in / sizeof(AlignedBlock));
     auto data_ptr = reinterpret_cast<uchar*>(aligned_in.data());
-    std::copy(qimage.bits(), qimage.bits() + n_bytes_in, data_ptr);
+    std::copy(qimage.constBits(), qimage.constBits() + n_bytes_in, data_ptr);
 
     std::vector<uint8_t> compressed(n_bytes_out);
     const auto result = goofy::compressETC1(compressed.data(), data_ptr, qimage.width(), qimage.height(), qimage.width() * 4);
@@ -87,4 +89,34 @@ std::vector<uint8_t> nucleus::utils::texture_compression::to_etc1(const QImage& 
     // std::copy(data_ptr, data_ptr + n_bytes, compressed.begin());
 
     return compressed;
+}
+
+std::vector<uint8_t> nucleus::utils::texture_compression::to_compressed(const QImage& image, Algorithm algorithm)
+{
+    switch (algorithm) {
+    case Algorithm::DXT1:
+        return to_dxt1(image);
+    case Algorithm::ETC1:
+        return to_etc1(image);
+    case Algorithm::Uncompressed_RGBA:
+        return to_uncompressed_rgba(image);
+    }
+    assert(false);
+    return to_uncompressed_rgba(image);
+}
+
+std::vector<uint8_t> nucleus::utils::texture_compression::to_uncompressed_rgba(const QImage& qimage)
+{
+    if (qimage.format() != QImage::Format_RGBA8888 && qimage.format() != QImage::Format_RGBX8888) {
+        qimage.save("to_uncompressed_rgba1.png");
+        return to_uncompressed_rgba(qimage.convertedTo(QImage::Format_RGBA8888));
+    }
+    assert(qimage.sizeInBytes() == qimage.width() * qimage.height() * 4);
+    std::vector<uint8_t> data;
+    data.resize(size_t(qimage.sizeInBytes()));
+    auto* data_ptr = reinterpret_cast<uchar*>(data.data());
+    const auto* bits = qimage.constScanLine(0);
+    Q_UNUSED(bits);
+    std::copy(qimage.constBits(), qimage.constBits() + qimage.sizeInBytes(), data_ptr);
+    return data;
 }

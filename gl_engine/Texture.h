@@ -19,6 +19,7 @@
 #pragma once
 
 #include <QImage>
+#include <nucleus/utils/texture_compression.h>
 #include <qopengl.h>
 
 namespace gl_engine {
@@ -27,15 +28,19 @@ public:
     enum class Target : GLenum { _2d = GL_TEXTURE_2D, _2dArray = GL_TEXTURE_2D_ARRAY };
 
 public:
-    Texture(Target target);
+    Texture(const Texture&) = default;
+    Texture(Texture&&) = delete;
+    Texture& operator=(const Texture&) = default;
+    Texture& operator=(Texture&&) = delete;
+    explicit Texture(Target target);
     ~Texture();
 
     void bind(unsigned texture_unit);
     static GLenum compressed_texture_format();
-    static std::vector<uint8_t> compress(const QImage& image);
+    static nucleus::utils::texture_compression::Algorithm compression_algorithm();
 
 private:
-    GLuint m_id = -1;
+    GLuint m_id = GLuint(-1);
     Target m_target = Target::_2d;
 };
 

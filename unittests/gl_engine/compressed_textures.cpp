@@ -36,6 +36,7 @@
 
 using gl_engine::Framebuffer;
 using gl_engine::ShaderProgram;
+using namespace nucleus::utils;
 
 static const char* const vertex_source = R"(
 out highp vec2 texcoords;
@@ -78,6 +79,8 @@ TEST_CASE("gl compressed textures")
         grad.setColorAt(1, qRgb(145, 100, 0));
         grad.setSpread(QGradient::ReflectSpread);
         painter.setBrush(grad);
+        painter.setPen(qRgba(242, 0, 42, 255));
+        // painter.drawRect(-1, -1, 257, 257);
         painter.drawRect(0, 0, 255, 255);
         test_texture.save("test_texture.png");
     }
@@ -85,11 +88,11 @@ TEST_CASE("gl compressed textures")
     SECTION("compression")
     {
         {
-            const auto compressed = nucleus::utils::texture_compression::to_dxt1(test_texture);
+            const auto compressed = texture_compression::to_dxt1(test_texture);
             CHECK(compressed.size() == 256 * 128);
         }
         {
-            const auto compressed = nucleus::utils::texture_compression::to_etc1(test_texture);
+            const auto compressed = texture_compression::to_etc1(test_texture);
             CHECK(compressed.size() == 256 * 128);
         }
     }
@@ -128,7 +131,7 @@ TEST_CASE("gl compressed textures")
                 diff += std::abs(qBlue(render_result.pixel(i, j)) - qBlue(test_texture.pixel(i, j))) / 255.0;
             }
         }
-        CHECK(diff / (256 * 256 * 3) < 0.01);
+        CHECK(diff / (256 * 256 * 3) < 0.001);
     }
 
     SECTION("compression")
@@ -136,7 +139,7 @@ TEST_CASE("gl compressed textures")
         Framebuffer b(Framebuffer::DepthFormat::None, {{Framebuffer::ColourFormat::RGBA8}}, {256, 256});
         b.bind();
 
-        const auto compressed = gl_engine::Texture::compress(test_texture);
+        const auto compressed = texture_compression::to_compressed(test_texture, gl_engine::Texture::compression_algorithm());
         gl_engine::Texture opengl_texture(gl_engine::Texture::Target::_2d);
         opengl_texture.bind(0);
         f->glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
@@ -178,125 +181,49 @@ TEST_CASE("gl compressed textures")
                 diff += std::abs(qBlue(render_result.pixel(i, j)) - qBlue(test_texture.pixel(i, j))) / 255.0;
             }
         }
-        CHECK(diff / (256 * 256 * 3) < 0.015);
+        CHECK(diff / (256 * 256 * 3) < 0.017);
     }
 
-    //     SECTION("compression dxt1")
-    //     {
-    //         Framebuffer b(Framebuffer::DepthFormat::None, {{Framebuffer::ColourFormat::RGBA8}}, {256, 256});
-    //         b.bind();
+    SECTION("not compression")
+    {
+        Framebuffer b(Framebuffer::DepthFormat::None, { { Framebuffer::ColourFormat::RGBA8 } }, { 256, 256 });
+        b.bind();
 
-    //         const auto compressed = nucleus::utils::texture_compression::to_dxt1(test_texture);
-    //         gl_engine::Texture opengl_texture(gl_engine::Texture::Target::_2d);
-    //         opengl_texture.bind(0);
-    //         f->glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
-    //         f->glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-    //         f->glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-    //         f->glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-    //         f->glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-    //         f->glCompressedTexImage2D(GL_TEXTURE_2D,
-    //                                   0,
-    //                                   GL_COMPRESSED_RGB_S3TC_DXT1_EXT,
-    //                                   test_texture.width(),
-    //                                   test_texture.height(),
-    //                                   0,
-    //                                   compressed.size(),
-    //                                   compressed.data());
+        const auto compressed = texture_compression::to_compressed(test_texture, texture_compression::Algorithm::Uncompressed_RGBA);
+        gl_engine::Texture opengl_texture(gl_engine::Texture::Target::_2d);
+        opengl_texture.bind(0);
+        f->glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
+        f->glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+        f->glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+        f->glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+        f->glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+        f->glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, test_texture.width(), test_texture.height(), 0, GL_RGBA, GL_UNSIGNED_BYTE, compressed.data());
 
-    //         ShaderProgram shader = create_debug_shader(R"(
-    //             uniform sampler2D texture_sampler;
-    //             in highp vec2 texcoords;
-    //             out lowp vec4 out_color;
-    //             void main() {
-    //                 out_color = texture(texture_sampler, vec2(texcoords.x, 1.0 - texcoords.y));
-    //             }
-    //         )");
-    //         shader.bind();
-    //         gl_engine::helpers::create_screen_quad_geometry().draw();
+        ShaderProgram shader = create_debug_shader(R"(
+            uniform sampler2D texture_sampler;
+            in highp vec2 texcoords;
+            out lowp vec4 out_color;
+            void main() {
+                out_color = texture(texture_sampler, vec2(texcoords.x, 1.0 - texcoords.y));
+            }
+        )");
+        shader.bind();
+        gl_engine::helpers::create_screen_quad_geometry().draw();
 
-    //         const QImage render_result = b.read_colour_attachment(0);
-    //         render_result.save("render_result.png");
-    //         Framebuffer::unbind();
-    //         REQUIRE(!render_result.isNull());
-    //         CHECK(render_result.width() == test_texture.width());
-    //         CHECK(render_result.height() == test_texture.height());
-    //         double diff = 0;
-    //         for (int i = 0; i < render_result.width(); ++i) {
-    //             for (int j = 0; j < render_result.height(); ++j) {
-    //                 diff += std::abs(qRed(render_result.pixel(i, j)) - qRed(test_texture.pixel(i, j))) / 255.0;
-    //                 diff += std::abs(qGreen(render_result.pixel(i, j)) - qGreen(test_texture.pixel(i, j))) / 255.0;
-    //                 diff += std::abs(qBlue(render_result.pixel(i, j)) - qBlue(test_texture.pixel(i, j))) / 255.0;
-    //             }
-    //         }
-    //         CHECK(diff / (256 * 256 * 3) < 0.015);
-    //     }
-
-    //     SECTION("compression etc1")
-    //     {
-    //         Framebuffer b(Framebuffer::DepthFormat::None, {{Framebuffer::ColourFormat::RGBA8}}, {256, 256});
-    //         b.bind();
-    // #ifdef __EMSCRIPTEN__
-    //         // clang-format off
-    //         int gl_texture_format = EM_ASM_INT({
-    //             var canvas = document.createElement('canvas');
-    //             var gl = canvas.getContext("webgl2");
-    //             const ext = gl.getExtension("WEBGL_compressed_texture_etc1");
-    //             if (ext === null)
-    //                 return 0;
-    //             return ext.COMPRESSED_RGB_ETC1_WEBGL;
-    //         });
-    //         qDebug() << "gl_texture_format from js: " << gl_texture_format;
-    //         // clang-format on
-    //         if (gl_texture_format == 0) {
-    //             gl_texture_format = GL_COMPRESSED_RGB8_ETC2; // not on mobile
-    //             qDebug() << "gl_texture_format from GL_COMPRESSED_RGB8_ETC2: " << gl_texture_format;
-    //         }
-    // #else
-    //         constexpr auto gl_texture_format = GL_COMPRESSED_RGB8_ETC2;
-    // #endif
-
-    //         const auto compressed = nucleus::utils::texture_compression::to_etc1(test_texture);
-    //         gl_engine::Texture opengl_texture(gl_engine::Texture::Target::_2d);
-    //         opengl_texture.bind(0);
-    //         f->glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
-    //         f->glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-    //         f->glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-    //         f->glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-    //         f->glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-    //         f->glCompressedTexImage2D(GL_TEXTURE_2D,
-    //                                   0,
-    //                                   gl_texture_format,
-    //                                   test_texture.width(),
-    //                                   test_texture.height(),
-    //                                   0,
-    //                                   compressed.size(),
-    //                                   compressed.data());
-
-    //         ShaderProgram shader = create_debug_shader(R"(
-    //             uniform sampler2D texture_sampler;
-    //             in highp vec2 texcoords;
-    //             out lowp vec4 out_color;
-    //             void main() {
-    //                 out_color = texture(texture_sampler, vec2(texcoords.x, 1.0 - texcoords.y));
-    //             }
-    //         )");
-    //         shader.bind();
-    //         gl_engine::helpers::create_screen_quad_geometry().draw();
-
-    //         const QImage render_result = b.read_colour_attachment(0);
-    //         render_result.save("render_result.png");
-    //         Framebuffer::unbind();
-    //         REQUIRE(!render_result.isNull());
-    //         CHECK(render_result.width() == test_texture.width());
-    //         CHECK(render_result.height() == test_texture.height());
-    //         double diff = 0;
-    //         for (int i = 0; i < render_result.width(); ++i) {
-    //             for (int j = 0; j < render_result.height(); ++j) {
-    //                 diff += std::abs(qRed(render_result.pixel(i, j)) - qRed(test_texture.pixel(i, j))) / 255.0;
-    //                 diff += std::abs(qGreen(render_result.pixel(i, j)) - qGreen(test_texture.pixel(i, j))) / 255.0;
-    //                 diff += std::abs(qBlue(render_result.pixel(i, j)) - qBlue(test_texture.pixel(i, j))) / 255.0;
-    //             }
-    //         }
-    //         CHECK(diff / (256 * 256 * 3) < 0.015);
-    //     }
+        const QImage render_result = b.read_colour_attachment(0);
+        render_result.save("render_result.png");
+        Framebuffer::unbind();
+        REQUIRE(!render_result.isNull());
+        CHECK(render_result.width() == test_texture.width());
+        CHECK(render_result.height() == test_texture.height());
+        double diff = 0;
+        for (int i = 0; i < render_result.width(); ++i) {
+            for (int j = 0; j < render_result.height(); ++j) {
+                diff += std::abs(qRed(render_result.pixel(i, j)) - qRed(test_texture.pixel(i, j))) / 255.0;
+                diff += std::abs(qGreen(render_result.pixel(i, j)) - qGreen(test_texture.pixel(i, j))) / 255.0;
+                diff += std::abs(qBlue(render_result.pixel(i, j)) - qBlue(test_texture.pixel(i, j))) / 255.0;
+            }
+        }
+        CHECK(diff / (256 * 256 * 3) < 0.001);
+    }
 }

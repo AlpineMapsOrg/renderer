@@ -78,7 +78,7 @@ GLenum gl_engine::Texture::compressed_texture_format()
 #endif
 }
 
-std::vector<uint8_t> gl_engine::Texture::compress(const QImage& image)
+nucleus::utils::texture_compression::Algorithm gl_engine::Texture::compression_algorithm()
 {
 #if defined(__EMSCRIPTEN__)
     // clang-format off
@@ -92,12 +92,12 @@ std::vector<uint8_t> gl_engine::Texture::compress(const QImage& image)
     });
     // clang-format on
     if (gl_texture_format == 0) {
-        return nucleus::utils::texture_compression::to_dxt1(image);
+        return nucleus::utils::texture_compression::Algorithm::DXT1;
     }
-    return nucleus::utils::texture_compression::to_etc1(image);
+    return nucleus::utils::texture_compression::Algorithm::ETC1;
 #elif defined(__ANDROID__)
-    return nucleus::utils::texture_compression::to_etc1(image);
+    return nucleus::utils::texture_compression::Algorithm::ETC1;
 #else
-    return nucleus::utils::texture_compression::to_dxt1(image);
+    return nucleus::utils::texture_compression::Algorithm::DXT1;
 #endif
 }

@@ -23,6 +23,11 @@
 
 namespace nucleus::utils::texture_compression {
 
+enum class Algorithm { Uncompressed_RGBA, DXT1, ETC1 };
+
 std::vector<uint8_t> to_dxt1(const QImage& image);
 std::vector<uint8_t> to_etc1(const QImage& image);
+std::vector<uint8_t> to_uncompressed_rgba(const QImage& image);
+
+std::vector<uint8_t> to_compressed(const QImage& image, Algorithm algorithm);
 }
