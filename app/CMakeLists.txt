@@ -114,7 +114,7 @@ set_target_properties(alpineapp PROPERTIES
 )
 target_link_libraries(alpineapp PUBLIC gl_engine Qt::Quick Qt::QuickControls2)
 if (ALP_ENABLE_DEBUG_GUI)
-    message(WARNING building alpine app with debug gui)
+    message(WARNING "building alpine app with debug gui")
     qt_target_qml_sources(alpineapp QML_FILES StatsWindow.qml)
     target_link_libraries(alpineapp PUBLIC Qt::Charts Qt::Widgets)
     target_compile_definitions(alpineapp PUBLIC ALP_ENABLE_DEBUG_GUI)
