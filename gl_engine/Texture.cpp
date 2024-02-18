@@ -78,7 +78,7 @@ GLenum gl_engine::Texture::compressed_texture_format()
 #endif
 }
 
-nucleus::utils::texture_compression::Algorithm gl_engine::Texture::compression_algorithm()
+nucleus::utils::CompressedTexture::Algorithm gl_engine::Texture::compression_algorithm()
 {
 #if defined(__EMSCRIPTEN__)
     // clang-format off
@@ -92,12 +92,12 @@ nucleus::utils::texture_compression::Algorithm gl_engine::Texture::compression_a
     });
     // clang-format on
     if (gl_texture_format == 0) {
-        return nucleus::utils::texture_compression::Algorithm::DXT1;
+        return nucleus::utils::CompressedTexture::Algorithm::DXT1;
     }
-    return nucleus::utils::texture_compression::Algorithm::ETC1;
+    return nucleus::utils::CompressedTexture::Algorithm::ETC1;
 #elif defined(__ANDROID__)
-    return nucleus::utils::texture_compression::Algorithm::ETC1;
+    return nucleus::utils::CompressedTexture::Algorithm::ETC1;
 #else
-    return nucleus::utils::texture_compression::Algorithm::DXT1;
+    return nucleus::utils::CompressedTexture::Algorithm::DXT1;
 #endif
 }

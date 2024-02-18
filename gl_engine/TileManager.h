@@ -62,12 +62,14 @@ public slots:
     void set_aabb_decorator(const nucleus::tile_scheduler::utils::AabbDecoratorPtr& new_aabb_decorator);
 
 private:
-    void add_tile(const tile::Id& id, tile::SrsAndHeightBounds bounds, const QImage& ortho, const nucleus::Raster<uint16_t>& heights, const QImage& height_texture);
+    void add_tile(const tile::Id& id, tile::SrsAndHeightBounds bounds, const nucleus::utils::CompressedTexture& ortho, const nucleus::Raster<uint16_t>& heights,
+        const QImage& height_texture);
     struct TileGLAttributeLocations {
         int height = -1;
     };
 
     static constexpr auto N_EDGE_VERTICES = 65;
+    static constexpr auto ORTHO_RESOLUTION = 256;
     static constexpr auto MAX_TILES_PER_TILESET = 1;
     float m_max_anisotropy = 0;
 

@@ -175,8 +175,8 @@ void Scheduler::update_gpu_quads()
                            if (quad.tiles[i].ortho->size()) {
                                ortho_data = quad.tiles[i].ortho.get();
                            }
-                           auto ortho = nucleus::utils::tile_conversion::toQImage(*ortho_data);
-                           gpu_quad.tiles[i].ortho = std::make_shared<QImage>(std::move(ortho));
+                           const auto ortho_qimage = nucleus::utils::tile_conversion::toQImage(*ortho_data);
+                           gpu_quad.tiles[i].ortho = std::make_shared<nucleus::utils::CompressedTexture>(ortho_qimage, m_ortho_tile_compression_algorithm);
 
                            const auto* height_data = m_default_height_tile.get();
                            if (quad.tiles[i].height->size()) {
@@ -184,9 +184,8 @@ void Scheduler::update_gpu_quads()
                            }
                            auto heightimage = nucleus::utils::tile_conversion::toQImage(*height_data);
                            gpu_quad.tiles[i].height_image = std::make_shared<QImage>(std::move(heightimage));
-                           //TODO: We dont need height in VBO anymore!!! Delete at some point!!
-                           auto heightraster = nucleus::utils::tile_conversion::qImage2uint16Raster(
-                               nucleus::utils::tile_conversion::toQImage(*height_data));
+                           // TODO: We dont need height in VBO anymore!!! Delete at some point!!
+                           auto heightraster = nucleus::utils::tile_conversion::qImage2uint16Raster(nucleus::utils::tile_conversion::toQImage(*height_data));
                            gpu_quad.tiles[i].height = std::make_shared<nucleus::Raster<uint16_t>>(
                                std::move(heightraster));
                        }
@@ -300,6 +299,13 @@ std::vector<tile::Id> Scheduler::tiles_for_current_camera_position() const
 
     // not adding leaves, because they we will be fetching quads, which also fetch their children
     return all_inner_nodes;
+}
+
+nucleus::utils::CompressedTexture::Algorithm Scheduler::ortho_tile_compression_algorithm() const { return m_ortho_tile_compression_algorithm; }
+
+void Scheduler::set_ortho_tile_compression_algorithm(nucleus::utils::CompressedTexture::Algorithm new_ortho_tile_compression_algorithm)
+{
+    m_ortho_tile_compression_algorithm = new_ortho_tile_compression_algorithm;
 }
 
 void Scheduler::set_retirement_age_for_tile_cache(unsigned int new_retirement_age_for_tile_cache)

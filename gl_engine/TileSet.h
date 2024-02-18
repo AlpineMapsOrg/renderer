@@ -1,4 +1,4 @@
- /*****************************************************************************
+/*****************************************************************************
  * Alpine Terrain Renderer
  * Copyright (C) 2023 Adam Celerek
  * Copyright (C) 2023 Gerald Kimmersdorfer
@@ -26,11 +26,13 @@
 #include <QOpenGLTexture>
 #include <QOpenGLVertexArrayObject>
 
+#include "Texture.h"
 #include "radix/tile.h"
 
 // we want to be flexible and have the ability to draw several tiles at once.
 // GpuTileSets can have an arbitrary number of slots, each slot is an index in the corresponding
 // vao buffers and textures.
+
 namespace gl_engine {
 struct TileSet {
     struct Tile {
@@ -44,7 +46,7 @@ struct TileSet {
         [[nodiscard]] bool isValid() const { return tile_id.zoom_level < 100; }
     };
 
-    std::unique_ptr<QOpenGLTexture> ortho_texture;
+    std::unique_ptr<Texture> ortho_texture;
     std::unique_ptr<QOpenGLBuffer> heightmap_buffer;
     std::unique_ptr<QOpenGLTexture> heightmap_texture;
     std::unique_ptr<QOpenGLVertexArrayObject> vao;
@@ -53,4 +55,4 @@ struct TileSet {
     unsigned gl_index_type = 0;
     // texture
 };
-}
+} // namespace gl_engine

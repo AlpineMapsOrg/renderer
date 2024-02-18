@@ -485,4 +485,4 @@ void Window::remove_tile(const tile::Id& id)
 
 nucleus::camera::AbstractDepthTester* Window::depth_tester() { return this; }
 
-nucleus::utils::texture_compression::Algorithm Window::ortho_tile_compression_algorithm() const { return Texture::compression_algorithm(); }
+nucleus::utils::CompressedTexture::Algorithm Window::ortho_tile_compression_algorithm() const { return Texture::compression_algorithm(); }

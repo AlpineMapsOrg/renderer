@@ -28,16 +28,16 @@ public:
     enum class Target : GLenum { _2d = GL_TEXTURE_2D, _2dArray = GL_TEXTURE_2D_ARRAY };
 
 public:
-    Texture(const Texture&) = default;
+    Texture(const Texture&) = delete;
     Texture(Texture&&) = delete;
-    Texture& operator=(const Texture&) = default;
+    Texture& operator=(const Texture&) = delete;
     Texture& operator=(Texture&&) = delete;
     explicit Texture(Target target);
     ~Texture();
 
     void bind(unsigned texture_unit);
     static GLenum compressed_texture_format();
-    static nucleus::utils::texture_compression::Algorithm compression_algorithm();
+    static nucleus::utils::CompressedTexture::Algorithm compression_algorithm();
 
 private:
     GLuint m_id = GLuint(-1);

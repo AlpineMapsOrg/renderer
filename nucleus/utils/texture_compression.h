@@ -21,13 +21,24 @@
 #include <QImage>
 #include <nucleus/Raster.h>
 
-namespace nucleus::utils::texture_compression {
+namespace nucleus::utils {
 
-enum class Algorithm { Uncompressed_RGBA, DXT1, ETC1 };
+class CompressedTexture {
+public:
+    enum class Algorithm { Uncompressed_RGBA, DXT1, ETC1 };
 
-std::vector<uint8_t> to_dxt1(const QImage& image);
-std::vector<uint8_t> to_etc1(const QImage& image);
-std::vector<uint8_t> to_uncompressed_rgba(const QImage& image);
+private:
+    std::vector<uint8_t> m_data;
+    unsigned m_width = 0;
+    unsigned m_height = 0;
+    Algorithm m_algorithm = Algorithm::Uncompressed_RGBA;
 
-std::vector<uint8_t> to_compressed(const QImage& image, Algorithm algorithm);
-}
+public:
+    explicit CompressedTexture(const QImage& image, Algorithm algorithm);
+    const uint8_t* data() const { return m_data.data(); }
+    size_t n_bytes() const { return m_data.size(); }
+    unsigned width() const { return m_width; }
+    unsigned height() const { return m_height; }
+};
+
+} // namespace nucleus::utils

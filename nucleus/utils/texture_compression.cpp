@@ -21,7 +21,8 @@
 
 #include "texture_compression.h"
 
-std::vector<uint8_t> nucleus::utils::texture_compression::to_dxt1(const QImage& qimage)
+namespace {
+std::vector<uint8_t> to_dxt1(const QImage& qimage)
 {
     if (qimage.format() != QImage::Format_RGBA8888 && qimage.format() != QImage::Format_RGBX8888) {
         // format is ARGB32 most of the time. we could implement on-the-fly transformation in goofy::compressDXT1 if this is too slow.
@@ -56,7 +57,7 @@ std::vector<uint8_t> nucleus::utils::texture_compression::to_dxt1(const QImage& 
     return compressed;
 }
 
-std::vector<uint8_t> nucleus::utils::texture_compression::to_etc1(const QImage& qimage)
+std::vector<uint8_t> to_etc1(const QImage& qimage)
 {
     if (qimage.format() != QImage::Format_RGBA8888 && qimage.format() != QImage::Format_RGBX8888) {
         // format is ARGB32 most of the time. we could implement on-the-fly transformation in goofy::compressDXT1 if this is too slow.
@@ -91,8 +92,26 @@ std::vector<uint8_t> nucleus::utils::texture_compression::to_etc1(const QImage& 
     return compressed;
 }
 
-std::vector<uint8_t> nucleus::utils::texture_compression::to_compressed(const QImage& image, Algorithm algorithm)
+std::vector<uint8_t> to_uncompressed_rgba(const QImage& qimage)
 {
+    if (qimage.format() != QImage::Format_RGBA8888 && qimage.format() != QImage::Format_RGBX8888) {
+        // qimage.save("to_uncompressed_rgba1.png");
+        return to_uncompressed_rgba(qimage.convertedTo(QImage::Format_RGBA8888));
+    }
+    assert(qimage.sizeInBytes() == qimage.width() * qimage.height() * 4);
+    std::vector<uint8_t> data;
+    data.resize(size_t(qimage.sizeInBytes()));
+    auto* data_ptr = reinterpret_cast<uchar*>(data.data());
+    const auto* bits = qimage.constScanLine(0);
+    Q_UNUSED(bits);
+    std::copy(qimage.constBits(), qimage.constBits() + qimage.sizeInBytes(), data_ptr);
+    return data;
+}
+
+std::vector<uint8_t> to_compressed(const QImage& image, nucleus::utils::CompressedTexture::Algorithm algorithm)
+{
+    using Algorithm = nucleus::utils::CompressedTexture::Algorithm;
+
     switch (algorithm) {
     case Algorithm::DXT1:
         return to_dxt1(image);
@@ -104,19 +123,12 @@ std::vector<uint8_t> nucleus::utils::texture_compression::to_compressed(const QI
     assert(false);
     return to_uncompressed_rgba(image);
 }
+} // namespace
 
-std::vector<uint8_t> nucleus::utils::texture_compression::to_uncompressed_rgba(const QImage& qimage)
+nucleus::utils::CompressedTexture::CompressedTexture(const QImage& image, Algorithm algorithm)
+    : m_data(to_compressed(image, algorithm))
+    , m_width(unsigned(image.width()))
+    , m_height(unsigned(image.height()))
+    , m_algorithm(algorithm)
 {
-    if (qimage.format() != QImage::Format_RGBA8888 && qimage.format() != QImage::Format_RGBX8888) {
-        qimage.save("to_uncompressed_rgba1.png");
-        return to_uncompressed_rgba(qimage.convertedTo(QImage::Format_RGBA8888));
-    }
-    assert(qimage.sizeInBytes() == qimage.width() * qimage.height() * 4);
-    std::vector<uint8_t> data;
-    data.resize(size_t(qimage.sizeInBytes()));
-    auto* data_ptr = reinterpret_cast<uchar*>(data.data());
-    const auto* bits = qimage.constScanLine(0);
-    Q_UNUSED(bits);
-    std::copy(qimage.constBits(), qimage.constBits() + qimage.sizeInBytes(), data_ptr);
-    return data;
 }

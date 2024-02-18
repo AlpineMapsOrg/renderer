@@ -18,10 +18,11 @@
 
 #pragma once
 
-#include "nucleus/tile_scheduler/utils.h"
-#include "radix/tile.h"
-
 #include <QByteArray>
+
+#include "nucleus/tile_scheduler/utils.h"
+#include "nucleus/utils/texture_compression.h"
+#include <radix/tile.h>
 
 class QImage;
 namespace nucleus {
@@ -102,7 +103,7 @@ static_assert(NamedTile<GpuCacheInfo>);
 struct GpuLayeredTile {
     tile::Id id;
     tile::SrsAndHeightBounds bounds = {};
-    std::shared_ptr<const QImage> ortho;
+    std::shared_ptr<const nucleus::utils::CompressedTexture> ortho;
     std::shared_ptr<const nucleus::Raster<uint16_t>> height;
     std::shared_ptr<const QImage> height_image;
 };

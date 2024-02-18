@@ -88,12 +88,16 @@ TEST_CASE("gl compressed textures")
     SECTION("compression")
     {
         {
-            const auto compressed = texture_compression::to_dxt1(test_texture);
-            CHECK(compressed.size() == 256 * 128);
+            const auto compressed = CompressedTexture(test_texture, CompressedTexture::Algorithm::DXT1);
+            CHECK(compressed.n_bytes() == 256 * 128);
         }
         {
-            const auto compressed = texture_compression::to_etc1(test_texture);
-            CHECK(compressed.size() == 256 * 128);
+            const auto compressed = CompressedTexture(test_texture, CompressedTexture::Algorithm::ETC1);
+            CHECK(compressed.n_bytes() == 256 * 128);
+        }
+        {
+            const auto compressed = CompressedTexture(test_texture, CompressedTexture::Algorithm::Uncompressed_RGBA);
+            CHECK(compressed.n_bytes() == 256 * 256 * 4);
         }
     }
 
@@ -139,7 +143,7 @@ TEST_CASE("gl compressed textures")
         Framebuffer b(Framebuffer::DepthFormat::None, {{Framebuffer::ColourFormat::RGBA8}}, {256, 256});
         b.bind();
 
-        const auto compressed = texture_compression::to_compressed(test_texture, gl_engine::Texture::compression_algorithm());
+        const auto compressed = CompressedTexture(test_texture, gl_engine::Texture::compression_algorithm());
         gl_engine::Texture opengl_texture(gl_engine::Texture::Target::_2d);
         opengl_texture.bind(0);
         f->glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
@@ -147,14 +151,8 @@ TEST_CASE("gl compressed textures")
         f->glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
         f->glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
         f->glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-        f->glCompressedTexImage2D(GL_TEXTURE_2D,
-                                  0,
-                                  gl_engine::Texture::compressed_texture_format(),
-                                  test_texture.width(),
-                                  test_texture.height(),
-                                  0,
-                                  compressed.size(),
-                                  compressed.data());
+        f->glCompressedTexImage2D(GL_TEXTURE_2D, 0, gl_engine::Texture::compressed_texture_format(), test_texture.width(), test_texture.height(), 0,
+            compressed.n_bytes(), compressed.data());
 
         ShaderProgram shader = create_debug_shader(R"(
             uniform sampler2D texture_sampler;
@@ -189,7 +187,7 @@ TEST_CASE("gl compressed textures")
         Framebuffer b(Framebuffer::DepthFormat::None, { { Framebuffer::ColourFormat::RGBA8 } }, { 256, 256 });
         b.bind();
 
-        const auto compressed = texture_compression::to_compressed(test_texture, texture_compression::Algorithm::Uncompressed_RGBA);
+        const auto compressed = CompressedTexture(test_texture, CompressedTexture::Algorithm::Uncompressed_RGBA);
         gl_engine::Texture opengl_texture(gl_engine::Texture::Target::_2d);
         opengl_texture.bind(0);
         f->glPixelStorei(GL_UNPACK_ALIGNMENT, 1);

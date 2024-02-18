@@ -23,13 +23,12 @@
 #include <QIcon>
 #include <QSize>
 #include <QStringLiteral>
-#include <string>
 
-#include "Raster.h"
+#include "nucleus/Raster.h"
 
 #define STBTT_STATIC
 #define STB_TRUETYPE_IMPLEMENTATION
-#include "stb_slim/stb_truetype.h"
+#include <stb_slim/stb_truetype.h>
 
 using namespace Qt::Literals::StringLiterals;
 

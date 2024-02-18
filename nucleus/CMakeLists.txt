@@ -104,7 +104,7 @@ qt_add_library(nucleus STATIC
     utils/texture_compression.h utils/texture_compression.cpp
 )
 
-target_include_directories(nucleus PRIVATE . PUBLIC ${CMAKE_SOURCE_DIR})
+target_include_directories(nucleus PUBLIC ${CMAKE_SOURCE_DIR})
 target_link_libraries(nucleus PUBLIC radix Qt::Core Qt::Gui Qt::Network fmt::fmt zppbits tl_expected nucleus_version stb_slim goofy_tc)
 
 qt_add_resources(nucleus "icons"

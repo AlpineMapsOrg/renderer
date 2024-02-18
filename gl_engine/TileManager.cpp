@@ -181,7 +181,8 @@ void TileManager::set_aabb_decorator(const nucleus::tile_scheduler::utils::AabbD
     m_draw_list_generator.set_aabb_decorator(new_aabb_decorator);
 }
 
-void TileManager::add_tile(const tile::Id& id, tile::SrsAndHeightBounds bounds, const QImage& ortho_texture, const nucleus::Raster<uint16_t>& height_map, const QImage& height_texture)
+void TileManager::add_tile(const tile::Id& id, tile::SrsAndHeightBounds bounds, const nucleus::utils::CompressedTexture& ortho_texture,
+    const nucleus::Raster<uint16_t>& height_map, const QImage& height_texture)
 {
     if (!QOpenGLContext::currentContext()) // can happen during shutdown.
         return;
@@ -211,11 +212,18 @@ void TileManager::add_tile(const tile::Id& id, tile::SrsAndHeightBounds bounds, 
         tileset.gl_index_type = GL_UNSIGNED_SHORT;
     }
     tileset.vao->release();
-    tileset.ortho_texture = std::make_unique<QOpenGLTexture>(ortho_texture);
-    tileset.ortho_texture->setMaximumAnisotropy(m_max_anisotropy);
-    tileset.ortho_texture->setWrapMode(QOpenGLTexture::WrapMode::ClampToEdge);
-    tileset.ortho_texture->setMinMagFilters(QOpenGLTexture::Filter::LinearMipMapLinear, QOpenGLTexture::Filter::Linear);
-    tileset.ortho_texture->generateMipMaps();
+    tileset.ortho_texture = std::make_unique<Texture>(Texture::Target::_2d);
+    f->glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
+    f->glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+    f->glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+    f->glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    f->glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    f->glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, ORTHO_RESOLUTION, ORTHO_RESOLUTION, 0, GL_RGBA, GL_UNSIGNED_BYTE, ortho_texture.data());
+
+    // tileset.ortho_texture->setMaximumAnisotropy(m_max_anisotropy);
+    // tileset.ortho_texture->setWrapMode(QOpenGLTexture::WrapMode::ClampToEdge);
+    // tileset.ortho_texture->setMinMagFilters(QOpenGLTexture::Filter::LinearMipMapLinear, QOpenGLTexture::Filter::Linear);
+    // tileset.ortho_texture->generateMipMaps();
 
     tileset.heightmap_texture = std::make_unique<QOpenGLTexture>(height_texture);
     tileset.heightmap_texture->setWrapMode(QOpenGLTexture::WrapMode::ClampToEdge);
