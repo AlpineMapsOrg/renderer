@@ -71,6 +71,8 @@ void main() {
     highp vec3 x2 = texelFetch(texin_track, ivec2(int(id + 1), 0), 0).xyz;
     highp vec3 x3 = texelFetch(texin_track, ivec2(int(id + 2), 0), 0).xyz;
 
+    highp float delta_time = texelFetch(texin_track, ivec2(int(id + 1), 0), 0).w;
+
     highp vec4 pos_dist = texture(texin_position, texcoords);
 
     // terrain position
@@ -120,8 +122,8 @@ void main() {
             (0.0 <= signed_distance(point, clipping_plane_2)) // TODO: handle end of tube
         ) {
 
-            vec3 color = phong_lighting(normal);
-            //vec3 color = visualize_normal(normal);
+            //vec3 color = phong_lighting(normal);
+            vec3 color = visualize_normal(normal);
 
             if (t < dist) {
 

@@ -111,26 +111,34 @@ namespace gpx {
     }
 } // namespace gpx
 
-std::vector<glm::vec3> to_world_points(const gpx::Gpx& gpx)
+std::vector<glm::vec4> to_world_points(const gpx::Gpx& gpx)
 {
-    std::vector<glm::dvec3> track;
+    std::vector<glm::dvec4> track;
+
+    QDateTime epoch(QDate(1970, 1, 1).startOfDay());
 
     for (const gpx::TrackSegment& segment : gpx.track) {
+        //for (const gpx::TrackPoint &point : segment) {
+        for (size_t i = 0U; i < segment.size(); ++i) {
 
-        for (const gpx::TrackPoint &point : segment) {
-            track.push_back(glm::dvec3(point.latitude, point.longitude, point.elevation));
+            double time_since_epoch = 0;
+
+            if (i > 0) {
+                time_since_epoch = static_cast<double>(segment[i - 1].timestamp.msecsTo(segment[i].timestamp));
+            }
+
+            track.push_back({segment[i].latitude, segment[i].longitude, segment[i].elevation, time_since_epoch});
         }
-        //track.insert(track.end(), segment.begin(), segment.end());
     }
 
-    std::vector<glm::vec3> points(track.size());
+    std::vector<glm::vec4> points(track.size());
 
     for (auto i = 0U; i < track.size(); i++) {
-        points[i] = glm::vec3(srs::lat_long_alt_to_world(track[i]));
+        points[i] = glm::vec4(srs::lat_long_alt_to_world(track[i]), track[i].w);
     }
 
-    std::cout << points[0] << std::endl;
-    std::cout << points[1] << std::endl;
+    std::cout << "First Point: " << points[0] << std::endl;
+
     return points;
 }
 
@@ -155,16 +163,40 @@ std::vector<glm::vec3> triangle_strip_ribbon(const std::vector<glm::vec3>& point
     return ribbon;
 }
 
-std::vector<glm::vec3> triangles_ribbon(const std::vector<glm::vec3>& points, float width, int index_offset)
+std::vector<glm::vec3> triangles_ribbon(const std::vector<glm::vec4>& points, float width, int index_offset)
 {
+
+    float max_delta_time = 0;
+    float max_dist = 0;
+    float max_speed = 0;
+
+    for (size_t i = 0; i < points.size(); ++i) {
+        glm::vec4 point = points[i];
+        float delta_time = point.w;
+        max_delta_time = glm::max(max_delta_time, delta_time);
+
+        if (i > 0) {
+            float dist = glm::distance(points[i], points[i - 1]);
+            max_dist = glm::max(max_dist, dist);
+
+            float speed = dist / delta_time;
+
+            max_speed = glm::max(max_speed, speed);
+        }
+    }
+
+    std::cout << "Max delta: " << max_delta_time << std::endl;
+    std::cout << "Max Dist: " << max_dist << std::endl;
+    std::cout << "max speed: " << max_speed << std::endl;
+
     std::vector<glm::vec3> ribbon;
 
     const glm::vec3 offset = glm::vec3(0.0f, 0.0f, width);
 
     for (size_t i = 0; i < points.size() - 1U; i++)
     {
-        auto a = points[i];
-        auto b = points[i + 1];
+        auto a = glm::vec3(points[i]);
+        auto b = glm::vec3(points[i + 1]);
         auto d = glm::normalize(b - a);
 
         auto up = glm::vec3(0.0f, 0.0f, 1.0f);
@@ -175,18 +207,31 @@ std::vector<glm::vec3> triangles_ribbon(const std::vector<glm::vec3>& points, fl
 
         auto index = glm::vec3(0.0f, static_cast<float>(index_offset + i), 0.0f);
 
+        float delta_time = points[i + 1].w;
+
+        float speed = glm::distance(a, b) / delta_time;
+        float vertical_speed = glm::abs(a.z - b.z) / delta_time;
+
+        //std::cout << "speed: " << speed << ", max_speed: " << max_speed << std::endl;
+
+        auto metadata = glm::vec3(
+            speed,
+            vertical_speed,
+            0.0f
+        );
+
         // triangle 1
         ribbon.insert(ribbon.end(), {
-            a + offset, d, up + start + index,
-            a - offset, d, down + start + index,
-            b - offset, d, down + end + index,
+            a + offset, d, up + start + index, metadata,
+            a - offset, d, down + start + index, metadata,
+            b - offset, d, down + end + index, metadata,
         });
 
         // triangle 2
         ribbon.insert(ribbon.end(), {
-            a + offset, d, up + start + index,
-            b - offset, d, down + end + index,
-            b + offset, d, up + end + index,
+            a + offset, d, up + start + index, metadata,
+            b - offset, d, down + end + index, metadata,
+            b + offset, d, up + end + index, metadata,
         });
     }
     return ribbon;
@@ -215,7 +260,7 @@ float gaussian_1D(float x, float sigma = 1.0f)
     return (1.0 / std::sqrt(2 * M_PI * sigma)) * std::exp(-(x * x) / (2 * (sigma * sigma)));
 }
 
-void apply_gaussian_filter(std::vector<glm::vec3>& points, float sigma)
+void apply_gaussian_filter(std::vector<glm::vec4>& points, float sigma)
 {
     const int radius = 2;
     const int kernel_size = (radius * 2) + 1;
@@ -237,9 +282,9 @@ void apply_gaussian_filter(std::vector<glm::vec3>& points, float sigma)
         glm::vec3 value(0.0f);
 
         for (int j = -radius; j <= radius; j++)
-            value += points[i + j] * kernel[j + radius];
+            value += glm::vec3(points[i + j]) * kernel[j + radius];
 
-        points[i] = value;
+        points[i] = glm::vec4(value, points[i].w);
     }
 }
 

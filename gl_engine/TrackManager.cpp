@@ -31,8 +31,9 @@
 #endif
 
 #include <iostream> // TODO: remove this
+#include <algorithm>
 
-#include "Polyline.h"
+#include "PolyLine.h"
 #include "ShaderProgram.h"
 
 #define WIREFRAME 0
@@ -120,11 +121,11 @@ void TrackManager::add_track(const nucleus::gpx::Gpx& gpx, ShaderProgram* shader
 
     // transform from latitude and longitude into renderer world
     // coordinates
-    std::vector<glm::vec3> points = nucleus::to_world_points(gpx);
+    std::vector<glm::vec4> points = nucleus::to_world_points(gpx);
 
     // data cleanup
     nucleus::apply_gaussian_filter(points, 1.0f);
-    nucleus::reduce_point_count(points);
+    //nucleus::reduce_point_count(points);
 
     size_t point_count = points.size();
 
@@ -138,7 +139,7 @@ void TrackManager::add_track(const nucleus::gpx::Gpx& gpx, ShaderProgram* shader
     if (m_data_texture == nullptr) {
         // create texture to hold the vertex data
         m_data_texture = std::make_unique<QOpenGLTexture>(QOpenGLTexture::Target::Target2D);
-        m_data_texture->setFormat(QOpenGLTexture::TextureFormat::RGB32F);
+        m_data_texture->setFormat(QOpenGLTexture::TextureFormat::RGBA32F);
         m_data_texture->setSize(texture_size, 1);
         m_data_texture->setAutoMipMapGenerationEnabled(false);
         m_data_texture->setMinMagFilters(QOpenGLTexture::Filter::Nearest, QOpenGLTexture::Filter::Nearest);
@@ -149,7 +150,7 @@ void TrackManager::add_track(const nucleus::gpx::Gpx& gpx, ShaderProgram* shader
     assert((m_total_point_count + point_count) < texture_size);
 
     m_data_texture->bind();
-    m_data_texture->setData(m_total_point_count, 0, 0, point_count, 1, 0, QOpenGLTexture::RGB, QOpenGLTexture::Float32, points.data());
+    m_data_texture->setData(m_total_point_count, 0, 0, point_count, 1, 0, QOpenGLTexture::RGBA, QOpenGLTexture::Float32, points.data());
 
     m_total_point_count += point_count;
 
@@ -167,7 +168,7 @@ void TrackManager::add_track(const nucleus::gpx::Gpx& gpx, ShaderProgram* shader
 
     polyline.vbo->allocate(basic_ribbon.data(), helpers::bufferLengthInBytes(basic_ribbon));
 
-    GLsizei stride = 3 * sizeof(glm::vec3);
+    GLsizei stride = 4 * sizeof(glm::vec3);
 
     const auto position_attrib_location = shader->attribute_location("a_position");
     f->glEnableVertexAttribArray(position_attrib_location);
@@ -180,6 +181,11 @@ void TrackManager::add_track(const nucleus::gpx::Gpx& gpx, ShaderProgram* shader
     const auto normal_attrib_location = shader->attribute_location("a_offset");
     f->glEnableVertexAttribArray(normal_attrib_location);
     f->glVertexAttribPointer(normal_attrib_location, 3, GL_FLOAT, GL_FALSE, stride, (void*)(2 * sizeof(glm::vec3)));
+
+    const auto meta_attrib_location = shader->attribute_location("a_metadata");
+    f->glEnableVertexAttribArray(meta_attrib_location);
+    f->glVertexAttribPointer(meta_attrib_location, 3, GL_FLOAT, GL_FALSE, stride, (void*)(3 * sizeof(glm::vec3)));
+
 #endif
 
     polyline.vao->release();

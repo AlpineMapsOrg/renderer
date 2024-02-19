@@ -4,6 +4,7 @@
 layout(location = 0) in highp vec3 a_position;
 layout(location = 1) in highp vec3 a_direction;
 layout(location = 2) in highp vec3 a_offset;
+layout(location = 3) in highp vec3 a_metadata; // data like speed, vertical speed, etc...
 
 uniform highp mat4 matrix; // view projection matrix
 uniform highp vec3 camera_position;
@@ -22,7 +23,6 @@ void main() {
   // the closest gpx point to the vertex
   //vertex_id = (gl_VertexID / 3) - (gl_VertexID / 6);
   vertex_id = int(a_offset.y);
-  //vertex_id = 0;
 
 #if (METHOD == 1)
   uint id = (gl_VertexID / 2) - (gl_VertexID / 4);
@@ -63,6 +63,20 @@ void main() {
   // 3. calculate d, d0, d1
   // 4. calculate u, v0, v1
 
+  int shading_method = 0;
+
+  if (shading_method == 0) {
+    color = vec3(1,0,0);
+
+  } else if (shading_method == 1)  {
+    vec3 red = vec3(1,0,0);
+    vec3 blue = vec3(0,0,1);
+    float speed = a_metadata.x;
+    float max_speed = 0.01; // TODO: handle dynamically
+    float t = speed / max_speed;
+    color = mix(red, blue, t);
+  }
+
   vec3 e = camera_position;
   vec3 x0 = a_position - camera_position;
 
@@ -93,6 +107,8 @@ void main() {
   vec3 p0 = x0 + (a_offset.x * v0 * r0_prime);
 
   vec3 position = p0 + u_hat * a_offset.z * r0_double_prime;
+
+  //color = vec3(1,0,1);
 
   gl_Position = matrix * vec4(position, 1);
 
