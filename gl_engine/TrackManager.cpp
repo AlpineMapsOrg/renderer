@@ -74,8 +74,10 @@ void TrackManager::draw(const nucleus::camera::Definition& camera, ShaderProgram
 #endif
 
 
-    funcs->glDisable(GL_CULL_FACE);
-
+#if (defined(__linux) && !defined(__ANDROID__)) || defined(_WIN32) || defined(_WIN64)
+    if (funcs)
+        funcs->glDisable(GL_CULL_FACE);
+#endif
     auto matrix = camera.local_view_projection_matrix(camera.position());
 
     shader->bind();
@@ -118,12 +120,11 @@ void TrackManager::draw(const nucleus::camera::Definition& camera, ShaderProgram
 
     shader->release();
 #if (defined(__linux) && !defined(__ANDROID__)) || defined(_WIN32) || defined(_WIN64)
-    if (funcs)
+    if (funcs) {
         funcs->glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+        funcs->glEnable(GL_CULL_FACE);
+    }
 #endif
-
-
-    funcs->glEnable(GL_CULL_FACE);
 }
 
 void TrackManager::add_track(const nucleus::gpx::Gpx& gpx, ShaderProgram* shader)
