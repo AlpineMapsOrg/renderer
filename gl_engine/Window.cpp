@@ -280,22 +280,6 @@ void Window::paint(QOpenGLFramebufferObject* framebuffer)
     m_timer->stop_timer("tiles");
     m_shader_manager->tile_shader()->release();
 
-    // DRAW TRACKS
-    {
-        ShaderProgram* track_shader = m_shader_manager->track_program();
-        track_shader->bind();
-        track_shader->set_uniform("texin_position", 1);
-        m_gbuffer->bind_colour_texture(1, 1);
-
-        glm::vec2 size = glm::vec2(static_cast<float>(m_gbuffer->size().x),static_cast<float>(m_gbuffer->size().y));
-        track_shader->set_uniform("resolution", size);
-
-        /* draw tracks on top */
-        f->glClear(GL_DEPTH_BUFFER_BIT);
-        m_timer->start_timer("tracks");
-        m_track_manager->draw(m_camera, track_shader);
-        m_timer->stop_timer("tracks");
-    }
 
 #if (defined(__linux) && !defined(__ANDROID__)) || defined(_WIN32) || defined(_WIN64)
     if (funcs && m_wireframe_enabled)
@@ -338,14 +322,39 @@ void Window::paint(QOpenGLFramebufferObject* framebuffer)
     m_screen_quad_geometry.draw();
     m_timer->stop_timer("compose");
 
-    // DRAW LABELS
-    m_timer->start_timer("labels");
+
+    // DRAW TRACKS
     {
         m_decoration_buffer->bind();
         const GLfloat clearAlbedoColor[] = { 0.0f, 0.0f, 0.0f, 0.0f };
         f->glClearBufferfv(GL_COLOR, 0, clearAlbedoColor);
         f->glEnable(GL_DEPTH_TEST);
         f->glDepthFunc(GL_LEQUAL);
+
+
+        ShaderProgram* track_shader = m_shader_manager->track_program();
+        track_shader->bind();
+        track_shader->set_uniform("texin_position", 1);
+        m_gbuffer->bind_colour_texture(1, 1);
+
+        glm::vec2 size = glm::vec2(static_cast<float>(m_gbuffer->size().x),static_cast<float>(m_gbuffer->size().y));
+        track_shader->set_uniform("resolution", size);
+
+        /* draw tracks on top */
+        f->glClear(GL_DEPTH_BUFFER_BIT);
+        m_timer->start_timer("tracks");
+        m_track_manager->draw(m_camera, track_shader);
+        m_timer->stop_timer("tracks");
+    }
+
+    // DRAW LABELS
+    m_timer->start_timer("labels");
+    {
+        // m_decoration_buffer->bind();
+        // const GLfloat clearAlbedoColor[] = { 0.0f, 0.0f, 0.0f, 0.0f };
+        // f->glClearBufferfv(GL_COLOR, 0, clearAlbedoColor);
+        // f->glEnable(GL_DEPTH_TEST);
+        // f->glDepthFunc(GL_LEQUAL);
         // f->glDepthMask(GL_FALSE);
         m_shader_manager->labels_program()->bind();
         m_map_label_manager->draw(m_gbuffer.get(), m_shader_manager->labels_program(), m_camera);

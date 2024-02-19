@@ -3,11 +3,7 @@
 #include "encoder.glsl"
 #include "shared_config.glsl"
 
-layout (location = 0) out lowp vec3 texout_albedo;
-layout (location = 1) out highp vec4 texout_position;
-layout (location = 2) out highp uvec2 texout_normal;
-layout (location = 3) out highp uint texout_depth;
-layout (location = 4) out highp uint texout_vertex_id;
+layout (location = 0) out lowp vec4 out_color;
 
 #define SPHERE      0
 #define CAPSULE     1
@@ -53,14 +49,10 @@ vec3 phong_lighting(in vec3 normal) {
 }
 
 void main() {
-    texout_vertex_id = uint(vertex_id);
-    // intersect here?
-    // attenuation?
-    // specular hightlight?
 
     if (!enable_intersection) {
         // only for debugging
-        texout_albedo = vec4(color_from_id_hash(vertex_id), 1).rgb;
+        out_color = vec4(color_from_id_hash(vertex_id), 1);
 
     } else {
 
@@ -97,7 +89,7 @@ void main() {
 
     if (IntersectRaySphere(ray, sphere, t, point)) {
         highp vec3 normal = (point - sphere.position) / sphere.radius;
-        texout_albedo = visualize_normal(normal);
+        out_color = vec4(visualize_normal(normal), 1);
     } else {
         discard;
     }
@@ -134,19 +126,19 @@ void main() {
             if (t < dist) {
 
                 // geometry is above terrain
-                texout_albedo = color;
+                out_color = vec4(color, 1);
 
             } else if ((t - dist) <= c.radius * 2) {
 
-                //float delta = (t - dist) / (c.radius * 2);
+                float delta = (t - dist) / (c.radius * 2);
 
-                texout_albedo = color * 0.25;
+                out_color = vec4(color, 0.5);
 
             } else {
                 discard; // geometry is far below terrain
             }
 #else
-        texout_albedo = color;
+        out_color = vec4(color, 1);
 #endif
         } else {
             discard; // clipping
