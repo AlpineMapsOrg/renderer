@@ -318,10 +318,12 @@ SettingsPanel {
             Layout.fillWidth: true;
             model: [
                 { text: "Default",              value: 0    },
-                { text: "Steepness",            value: 2    },
-                { text: "Speed",                value: 3    },
+                { text: "Normal",               value: 1    },
+                { text: "Speed",                value: 2    },
+                { text: "Steepness",            value: 3    },
                 { text: "Vertical Speed",       value: 4    },
-            ]
+            ];
+            onActivated:  map.track_shading = currentValue;
         }
     }
 }

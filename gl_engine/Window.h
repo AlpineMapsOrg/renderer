@@ -89,6 +89,7 @@ public slots:
     void reload_shader();
     void add_gpx_track(const nucleus::gpx::Gpx& track);
     void set_track_width(float width);
+    void set_track_shading(unsigned int shading);
 
 
 signals:

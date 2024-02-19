@@ -288,20 +288,18 @@ void apply_gaussian_filter(std::vector<glm::vec4>& points, float sigma)
     }
 }
 
-void reduce_point_count(std::vector<glm::vec3>& points)
+void reduce_point_count(std::vector<glm::vec4>& points, float threshold)
 {
-    std::vector<glm::vec3> old_points = points;
+    std::vector<glm::vec4> old_points = points;
 
     points.clear();
 
-    const float threshold = 15.0f; // some arbitrary, sensible value
-
     for (size_t i = 0; i < old_points.size() - 1; ++i) {
-        glm::vec3 current_point = old_points[i];
+        auto current_point = old_points[i];
 
         points.push_back(current_point);
 
-        while (glm::distance(current_point, old_points[i + 1]) < threshold && i < old_points.size() - 1) {
+        while (glm::distance(glm::vec3(current_point), glm::vec3(old_points[i + 1])) < threshold && i < old_points.size() - 1) {
             ++i;
         }
     }

@@ -81,7 +81,7 @@ void TrackManager::draw(const nucleus::camera::Definition& camera, ShaderProgram
     shader->set_uniform("aspect", 16.0f / 9.0f); // TODO: make this dynamic
     shader->set_uniform("visualize_steepness", false); // TODO: make this dynamic
     shader->set_uniform("texin_track", 8);
-    shader->set_uniform("shading_method", shading_method);
+    shader->set_uniform("shading_method", static_cast<int>(shading_method));
 
     if (m_data_texture) {
         m_data_texture->bind(8);
@@ -131,7 +131,7 @@ void TrackManager::add_track(const nucleus::gpx::Gpx& gpx, ShaderProgram* shader
 
     // data cleanup
     nucleus::apply_gaussian_filter(points, 1.0f);
-    //nucleus::reduce_point_count(points);
+    nucleus::reduce_point_count(points, width * 2);
 
     size_t point_count = points.size();
 
@@ -143,7 +143,7 @@ void TrackManager::add_track(const nucleus::gpx::Gpx& gpx, ShaderProgram* shader
     const int texture_size = 10'000;
 
     if (m_data_texture == nullptr) {
-        // create texture to hold the vertex data
+        // create texture to hold the point data
         m_data_texture = std::make_unique<QOpenGLTexture>(QOpenGLTexture::Target::Target2D);
         m_data_texture->setFormat(QOpenGLTexture::TextureFormat::RGBA32F);
         m_data_texture->setSize(texture_size, 1);

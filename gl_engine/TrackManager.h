@@ -47,11 +47,9 @@ public:
 
     void add_track(const nucleus::gpx::Gpx& gpx, ShaderProgram* shader);
 
-
     QOpenGLTexture* track_texture();
 
-    ShadingMethod shading_method = DEFAULT;
-
+    unsigned int shading_method = 0U;
     float width = 7.0f;
 
 private:

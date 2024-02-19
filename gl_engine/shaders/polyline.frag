@@ -2,6 +2,7 @@
 #include "hashing.glsl"
 #include "encoder.glsl"
 #include "shared_config.glsl"
+#include "turbo_colormap.glsl"
 
 layout (location = 0) out lowp vec4 out_color;
 
@@ -19,7 +20,7 @@ uniform highp sampler2D texin_track;
 uniform highp sampler2D texin_position;
 uniform highp vec3 camera_position;
 uniform bool enable_intersection;
-uniform uint shading_method;
+uniform int shading_method;
 
 uniform highp vec2 resolution;
 
@@ -46,6 +47,8 @@ vec3 phong_lighting(in vec3 albedo, in vec3 normal) {
 
     return (ambient * ambColor) + (dirColor * lambertian_coeff);
 }
+
+
 
 void main() {
 
@@ -125,38 +128,45 @@ void main() {
 
             vec3 color;
 
+            vec3 RED = vec3(1,0,0);
+            vec3 BLUE = vec3(0,0,1);
 
-            if (shading_method == 0) {
+            vec3 A = x1;
+            vec3 AP = point - x1;
+            vec3 AB = x2 - x1;
+
+            float f = dot(AP,AB) / dot(AB,AB);
+
+            if (shading_method == 0) { // default
+
+                color = phong_lighting(vec3(1,0,0), normal);
+
+            } else if (shading_method == 1) { // normal
+
                 color = visualize_normal(normal);
-                //color = phong_lighting(color, normal);
 
-            } else if (shading_method == 1) { // visualize speed
+            } else if (shading_method == 2) { // speed
 
                 float speed_0 = length(x0 - x1) / p1.w;
                 float speed_1 = length(x1 - x2) / p2.w;
 
                 float max_speed = 0.005; // TODO: should be dynamic
 
-                vec3 RED = vec3(1,0,0);
-                vec3 BLUE = vec3(0,0,1);
-
                 float t_0 = clamp(speed_0 / max_speed, 0, 1);
                 float t_1 = clamp(speed_1 / max_speed, 0, 1);
 
+                color = mix(TurboColormap(t_0), TurboColormap(t_1), f);
 
-                vec3 color_0 = mix(RED, BLUE, t_0);
-                vec3 color_1 = mix(RED, BLUE, t_1);
+            } else if (shading_method == 3) {  // steepness
+                vec3 d1 = normalize(x0 - x1);
+                vec3 d2 = normalize(x1 - x2);
 
-                vec3 A = x1;
-                vec3 AP = point - x1;
-                vec3 AB = x2 - x1;
+                vec3 up = vec3(0,0,1);
 
-                float f = dot(AP,AB) / dot(AB,AB);
+                color = mix( TurboColormap(abs(dot(d1, up))), TurboColormap(abs(dot(d2, up))), f);
 
-                color = mix(color_0, color_1, f);
-
-            } else if (shading_method == 2) {
-                color = visualize_normal(normal);
+            } else {
+                color = vec3(0);
             }
 
             if (t < dist) {

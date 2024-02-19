@@ -145,6 +145,7 @@ QQuickFramebufferObject::Renderer* TerrainRendererItem::createRenderer() const
     connect(this, &TerrainRendererItem::shared_config_changed, r->glWindow(), &gl_engine::Window::shared_config_changed);
     connect(this, &TerrainRendererItem::render_looped_changed, r->glWindow(), &gl_engine::Window::render_looped_changed);
     connect(this, &TerrainRendererItem::track_width_changed, r->glWindow(), &gl_engine::Window::set_track_width);
+    connect(this, &TerrainRendererItem::track_shading_changed, r->glWindow(), &gl_engine::Window::set_track_shading);
     // connect glWindow for shader hotreload by frontend button
     connect(this, &TerrainRendererItem::reload_shader, r->glWindow(), &gl_engine::Window::reload_shader);
 
@@ -365,6 +366,26 @@ float TerrainRendererItem::track_width() const
 {
     return m_track_width;
 }
+
+void TerrainRendererItem::set_track_shading(unsigned int shading)
+{
+    qDebug() << "Set track shading " << shading;
+    m_track_shading = shading;
+    emit track_shading_changed(shading);
+    schedule_update();
+}
+
+unsigned int TerrainRendererItem::track_shading() const
+{
+    return m_track_shading;
+}
+
+#if 0
+void TerrainRendererItem::track_shading_changed(unsigned int shading)
+{
+    (void)shading;
+}
+#endif
 
 float TerrainRendererItem::camera_rotation_from_north() const
 {

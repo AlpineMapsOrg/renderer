@@ -490,6 +490,11 @@ void Window::set_track_width(float width)
     m_track_manager->width = width;
 }
 
+void gl_engine::Window::set_track_shading(unsigned int shading) {
+    qDebug() << "Window::set_track_shading " << shading;
+    m_track_manager->shading_method = shading;
+}
+
 void Window::add_gpx_track(const nucleus::gpx::Gpx& track)
 {
     m_track_manager->add_track(track, m_shader_manager->track_program());

@@ -59,6 +59,7 @@ class TerrainRendererItem : public QQuickFramebufferObject {
     Q_PROPERTY(bool hud_visible READ hud_visible WRITE set_hud_visible NOTIFY hud_visible_changed)
     Q_PROPERTY(QVector2D sun_angles READ sun_angles WRITE set_sun_angles NOTIFY sun_angles_changed)
     Q_PROPERTY(float track_width READ track_width WRITE set_track_width NOTIFY track_width_changed)
+    Q_PROPERTY(unsigned int track_shading READ track_shading WRITE set_track_shading NOTIFY track_shading_changed)
 
 public:
     explicit TerrainRendererItem(QQuickItem* parent = 0);
@@ -80,6 +81,7 @@ signals:
     void position_set_by_user(double new_latitude, double new_longitude);
     void camera_definition_set_by_user(const nucleus::camera::Definition&) const;
     void track_width_changed(float width);
+    void track_shading_changed(unsigned int shading);
 
     void shared_config_changed(gl_engine::uboSharedConfig new_shared_config) const;
     void render_looped_changed(bool new_render_looped);
@@ -156,6 +158,9 @@ public:
     float track_width() const;
     void set_track_width(float width);
 
+    unsigned int track_shading() const;
+    void set_track_shading(unsigned int shading);
+
     float camera_rotation_from_north() const;
     void set_camera_rotation_from_north(float new_camera_rotation_from_north);
 
@@ -206,6 +211,7 @@ private:
     float m_camera_operation_centre_distance = 1;
     float m_field_of_view = 60;
     float m_track_width = 7;
+    unsigned int m_track_shading = 0;
     int m_frame_limit = 60;
     unsigned m_tile_cache_size = 12000;
     unsigned m_cached_tiles = 0;
