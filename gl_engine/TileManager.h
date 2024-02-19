@@ -62,8 +62,8 @@ public slots:
     void set_aabb_decorator(const nucleus::tile_scheduler::utils::AabbDecoratorPtr& new_aabb_decorator);
 
 private:
-    void add_tile(const tile::Id& id, tile::SrsAndHeightBounds bounds, const nucleus::utils::CompressedTexture& ortho, const nucleus::Raster<uint16_t>& heights,
-        const QImage& height_texture);
+    void add_tile(
+        const tile::Id& id, tile::SrsAndHeightBounds bounds, const nucleus::utils::CompressedTexture& ortho, const nucleus::Raster<uint16_t>& heights);
     struct TileGLAttributeLocations {
         int height = -1;
     };
@@ -79,6 +79,7 @@ private:
     //       for 4 tiles take index 1, for 16 2..
     // the size_t is the number of indices
     std::vector<std::pair<std::unique_ptr<QOpenGLBuffer>, size_t>> m_index_buffers;
+    std::unique_ptr<QOpenGLBuffer> m_dummy_buffer;
     TileGLAttributeLocations m_attribute_locations;
     unsigned m_tiles_per_set = 1;
     nucleus::tile_scheduler::DrawListGenerator m_draw_list_generator;

@@ -105,7 +105,6 @@ struct GpuLayeredTile {
     tile::SrsAndHeightBounds bounds = {};
     std::shared_ptr<const nucleus::utils::CompressedTexture> ortho;
     std::shared_ptr<const nucleus::Raster<uint16_t>> height;
-    std::shared_ptr<const QImage> height_image;
 };
 static_assert(NamedTile<GpuLayeredTile>);
 

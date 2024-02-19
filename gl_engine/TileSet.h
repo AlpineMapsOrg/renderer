@@ -47,8 +47,7 @@ struct TileSet {
     };
 
     std::unique_ptr<Texture> ortho_texture;
-    std::unique_ptr<QOpenGLBuffer> heightmap_buffer;
-    std::unique_ptr<QOpenGLTexture> heightmap_texture;
+    std::unique_ptr<Texture> heightmap_texture;
     std::unique_ptr<QOpenGLVertexArrayObject> vao;
     std::vector<std::pair<tile::Id, tile::SrsBounds>> tiles;
     int gl_element_count = -1;

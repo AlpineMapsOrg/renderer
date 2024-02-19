@@ -21,13 +21,11 @@
 #include "hashing.glsl"
 #include "camera_config.glsl"
 
-layout(location = 0) in highp float altitude;
-
 uniform highp vec4 bounds[32];
 uniform highp int n_edge_vertices;
 uniform highp int tileset_id;
 uniform highp int tileset_zoomlevel;
-uniform highp sampler2D height_sampler;
+uniform mediump usampler2D height_sampler;
 
 out highp vec2 uv;
 out highp vec3 var_pos_cws;
@@ -46,18 +44,18 @@ highp float y_to_lat(highp float y) {
     return latRad;
 }
 
-highp float altitude_from_color(highp vec4 color) {
-    return (color.r + color.g / 255.0);
-}
-
 highp vec3 normal_by_finite_difference_method(vec2 uv, float edge_vertices_count, float tile_width, float tile_height, float altitude_correction_factor) {
     // from here: https://stackoverflow.com/questions/6656358/calculating-normals-in-a-triangle-mesh/21660173#21660173
     vec2 offset = vec2(1.0, 0.0) / (edge_vertices_count);
     float height = tile_width + tile_height;
-    float hL = altitude_from_color(texture(height_sampler, uv - offset.xy)) * altitude_correction_factor;
-    float hR = altitude_from_color(texture(height_sampler, uv + offset.xy)) * altitude_correction_factor;
-    float hD = altitude_from_color(texture(height_sampler, uv + offset.yx)) * altitude_correction_factor;
-    float hU = altitude_from_color(texture(height_sampler, uv - offset.yx)) * altitude_correction_factor;
+    highp float hL = float(texture(height_sampler, uv - offset.xy).r);
+    hL *= altitude_correction_factor;
+    highp float hR = float(texture(height_sampler, uv + offset.xy).r);
+    hR *= altitude_correction_factor;
+    highp float hD = float(texture(height_sampler, uv + offset.yx).r);
+    hD *= altitude_correction_factor;
+    highp float hU = float(texture(height_sampler, uv - offset.yx).r);
+    hU *= altitude_correction_factor;
 
     return normalize(vec3(hL - hR, hD - hU, height));
 }
@@ -102,11 +100,12 @@ void main() {
     // Note: May be enough to calculate altitude_correction_factor per tile on CPU:
     float var_pos_cws_y = float(edge_vertices_count_int - row) * float(tile_width) + bounds[geometry_id].y;
     float pos_y = var_pos_cws_y + camera.position.y;
-    float altitude_correction_factor = 65536.0 * 0.125 / cos(y_to_lat(pos_y)); // https://github.com/AlpineMapsOrg/renderer/issues/5
+    float altitude_correction_factor = 0.125 / cos(y_to_lat(pos_y)); // https://github.com/AlpineMapsOrg/renderer/issues/5
 
     uv = vec2(float(col) / edge_vertices_count_float, float(row) / edge_vertices_count_float);
 
-    float adjusted_altitude = altitude * altitude_correction_factor;
+    float altitude_tex = float(texture(height_sampler, uv).r);
+    float adjusted_altitude = altitude_tex * altitude_correction_factor;
 
     var_pos_cws = vec3(float(col) * tile_width + bounds[geometry_id].x,
                        var_pos_cws_y,
@@ -134,6 +133,6 @@ void main() {
         case 2u: vertex_color = color_from_id_hash(uint(tileset_id)); break;
         case 3u: vertex_color = color_from_id_hash(uint(tileset_zoomlevel)); break;
         case 4u: vertex_color = color_from_id_hash(uint(gl_VertexID)); break;
-        case 5u: vertex_color = texture(height_sampler, uv).rgb; break;
+        case 5u: vertex_color = vec3(texture(height_sampler, uv).rrr) / 65535.0; break;
     }
 }

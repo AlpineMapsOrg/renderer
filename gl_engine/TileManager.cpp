@@ -181,14 +181,14 @@ void TileManager::set_aabb_decorator(const nucleus::tile_scheduler::utils::AabbD
     m_draw_list_generator.set_aabb_decorator(new_aabb_decorator);
 }
 
-void TileManager::add_tile(const tile::Id& id, tile::SrsAndHeightBounds bounds, const nucleus::utils::CompressedTexture& ortho_texture,
-    const nucleus::Raster<uint16_t>& height_map, const QImage& height_texture)
+void TileManager::add_tile(
+    const tile::Id& id, tile::SrsAndHeightBounds bounds, const nucleus::utils::CompressedTexture& ortho_texture, const nucleus::Raster<uint16_t>& height_map)
 {
     if (!QOpenGLContext::currentContext()) // can happen during shutdown.
         return;
 
-    assert(m_attribute_locations.height != -1);
-    auto* f = QOpenGLContext::currentContext()->extraFunctions();
+    // assert(m_attribute_locations.height != -1);
+    // auto* f = QOpenGLContext::currentContext()->extraFunctions();
     // need to call GLWindow::makeCurrent, when calling through signals?
     // find an empty slot => todo, for now just create a new tile every time.
     // setup / copy data to gpu
@@ -197,15 +197,20 @@ void TileManager::add_tile(const tile::Id& id, tile::SrsAndHeightBounds bounds, 
     tileset.vao = std::make_unique<QOpenGLVertexArrayObject>();
     tileset.vao->create();
     tileset.vao->bind();
+    // if (!m_dummy_buffer) {
+    //     m_dummy_buffer = std::make_unique<QOpenGLBuffer>(QOpenGLBuffer::VertexBuffer);
+    //     m_dummy_buffer->create();
+    //     m_dummy_buffer->bind();
+    //     m_dummy_buffer->setUsagePattern(QOpenGLBuffer::StaticDraw);
+    //     // std::vector<uint8_t> dummy(m_index_buffers.size());
+    //     m_dummy_buffer->allocate(int(m_index_buffers.size()));
+    // }
     { // vao state
-        tileset.heightmap_buffer = std::make_unique<QOpenGLBuffer>(QOpenGLBuffer::VertexBuffer);
-        tileset.heightmap_buffer->create();
-        tileset.heightmap_buffer->bind();
-        tileset.heightmap_buffer->setUsagePattern(QOpenGLBuffer::StaticDraw);
-        auto height_buffer = prepare_altitude_buffer(height_map);
-        tileset.heightmap_buffer->allocate(height_buffer.data(), bufferLengthInBytes(height_buffer));
-        f->glEnableVertexAttribArray(GLuint(m_attribute_locations.height));
-        f->glVertexAttribPointer(GLuint(m_attribute_locations.height), /*size*/ 1, /*type*/ GL_UNSIGNED_SHORT, /*normalised*/ GL_TRUE, /*stride*/ 0, nullptr);
+        // auto height_buffer = prepare_altitude_buffer(height_map);
+        // tileset.heightmap_buffer->allocate(height_buffer.data(), bufferLengthInBytes(height_buffer));
+        // f->glEnableVertexAttribArray(GLuint(m_attribute_locations.height));
+        // f->glVertexAttribPointer(GLuint(m_attribute_locations.height), /*size*/ 1, /*type*/ GL_UNSIGNED_SHORT, /*normalised*/ GL_TRUE, /*stride*/ 0,
+        // nullptr);
 
         m_index_buffers[0].first->bind();
         tileset.gl_element_count = int(m_index_buffers[0].second);
@@ -218,9 +223,9 @@ void TileManager::add_tile(const tile::Id& id, tile::SrsAndHeightBounds bounds, 
     tileset.ortho_texture->setParams(Texture::Filter::Linear, Texture::Filter::Linear);
     tileset.ortho_texture->upload(ortho_texture);
 
-    tileset.heightmap_texture = std::make_unique<QOpenGLTexture>(height_texture);
-    tileset.heightmap_texture->setWrapMode(QOpenGLTexture::WrapMode::ClampToEdge);
-    tileset.heightmap_texture->setMinMagFilters(QOpenGLTexture::Filter::Nearest, QOpenGLTexture::Filter::Nearest);
+    tileset.heightmap_texture = std::make_unique<Texture>(Texture::Target::_2d, Texture::Format::R16UI);
+    tileset.heightmap_texture->setParams(Texture::Filter::Nearest, Texture::Filter::Nearest);
+    tileset.heightmap_texture->upload(height_map);
 
     // add to m_gpu_tiles
     m_gpu_tiles.push_back(std::move(tileset));
@@ -242,8 +247,7 @@ void TileManager::update_gpu_quads(const std::vector<nucleus::tile_scheduler::ti
             assert(tile.id.zoom_level < 100);
             assert(tile.height);
             assert(tile.ortho);
-            assert(tile.height_image);
-            add_tile(tile.id, tile.bounds, *tile.ortho, *tile.height, *tile.height_image);
+            add_tile(tile.id, tile.bounds, *tile.ortho, *tile.height);
         }
     }
     for (const auto& quad : deleted_quads) {
