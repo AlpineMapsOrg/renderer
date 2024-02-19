@@ -55,14 +55,6 @@ void main() {
 
 #elif (METHOD == 2)
 
-  // Advanced Rendering of Line Data with Ambient Occlusion and Transparency
-  // 1. fallunterscheidung, which vertex position do we need to calculate? p0, p1, p2 or p3?
-  //    we already now if we are top or bottom from a_offset, only need to compute if start or end
-  //    of rounded cone
-  // 2. find track points that make up the endpoints of our rounded cone (x0, x1)
-  // 3. calculate d, d0, d1
-  // 4. calculate u, v0, v1
-
   int shading_method = 0;
 
   if (shading_method == 0) {

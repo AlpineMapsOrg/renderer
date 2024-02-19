@@ -19,6 +19,7 @@ uniform highp sampler2D texin_track;
 uniform highp sampler2D texin_position;
 uniform highp vec3 camera_position;
 uniform bool enable_intersection;
+uniform uint shading_method;
 
 uniform highp vec2 resolution;
 
@@ -26,13 +27,11 @@ vec3 visualize_normal(in vec3 normal) {
     return (normal + vec3(1.0)) / vec3(2.0);
 }
 
-vec3 phong_lighting(in vec3 normal) {
+vec3 phong_lighting(in vec3 albedo, in vec3 normal) {
     vec4 dirLight = conf.sun_light;
     vec4 ambLight  =  conf.amb_light;
 
     vec3 material = vec3(1.0);
-    vec3 albedo = vec3(1,0,0);
-    //vec3 albedo = vec3(0.95, 0.57, 0.0);
 
     vec3 dirColor = dirLight.rgb * dirLight.a;
     vec3 ambColor = ambLight.rgb * ambLight.a;
@@ -58,7 +57,6 @@ void main() {
 
     vec2 texcoords = gl_FragCoord.xy / resolution.xy;
 
-    // TODO: get this from shared_conf
     vec3 sun_light_dir = conf.sun_light_dir.xyz;
 
 #if 1 // intersect in fragment shader
@@ -66,12 +64,15 @@ void main() {
     // track vertex position
     uint id = vertex_id;
 
+    highp vec4 p1 = texelFetch(texin_track, ivec2(int(id + 0), 0), 0);
+    highp vec4 p2 = texelFetch(texin_track, ivec2(int(id + 1), 0), 0);
+
     highp vec3 x0 = texelFetch(texin_track, ivec2(int(id - 1), 0), 0).xyz;
-    highp vec3 x1 = texelFetch(texin_track, ivec2(int(id + 0), 0), 0).xyz;
-    highp vec3 x2 = texelFetch(texin_track, ivec2(int(id + 1), 0), 0).xyz;
+    highp vec3 x1 = p1.xyz;
+    highp vec3 x2 = p2.xyz;
     highp vec3 x3 = texelFetch(texin_track, ivec2(int(id + 2), 0), 0).xyz;
 
-    highp float delta_time = texelFetch(texin_track, ivec2(int(id + 1), 0), 0).w;
+    highp float delta_time = p2.w;
 
     highp vec4 pos_dist = texture(texin_position, texcoords);
 
@@ -122,11 +123,43 @@ void main() {
             (0.0 <= signed_distance(point, clipping_plane_2)) // TODO: handle end of tube
         ) {
 
-            //vec3 color = phong_lighting(normal);
-            vec3 color = visualize_normal(normal);
+            vec3 color;
+
+
+            if (shading_method == 0) {
+                color = visualize_normal(normal);
+                //color = phong_lighting(color, normal);
+
+            } else if (shading_method == 1) { // visualize speed
+
+                float speed_0 = length(x0 - x1) / p1.w;
+                float speed_1 = length(x1 - x2) / p2.w;
+
+                float max_speed = 0.005; // TODO: should be dynamic
+
+                vec3 RED = vec3(1,0,0);
+                vec3 BLUE = vec3(0,0,1);
+
+                float t_0 = clamp(speed_0 / max_speed, 0, 1);
+                float t_1 = clamp(speed_1 / max_speed, 0, 1);
+
+
+                vec3 color_0 = mix(RED, BLUE, t_0);
+                vec3 color_1 = mix(RED, BLUE, t_1);
+
+                vec3 A = x1;
+                vec3 AP = point - x1;
+                vec3 AB = x2 - x1;
+
+                float f = dot(AP,AB) / dot(AB,AB);
+
+                color = mix(color_0, color_1, f);
+
+            } else if (shading_method == 2) {
+                color = visualize_normal(normal);
+            }
 
             if (t < dist) {
-
                 // geometry is above terrain
                 out_color = vec4(color, 1);
 #if 0
@@ -150,8 +183,6 @@ void main() {
 #else
 #error unknown GEOMETRY
 #endif
-
 #endif
-
     }
 }

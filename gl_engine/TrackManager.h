@@ -32,6 +32,10 @@ class QOpenGLShaderProgram;
 namespace gl_engine {
 class ShaderProgram;
 
+enum ShadingMethod : unsigned int {
+    DEFAULT = 0,
+};
+
 class TrackManager : public QObject {
     Q_OBJECT
 public:
@@ -43,9 +47,12 @@ public:
 
     void add_track(const nucleus::gpx::Gpx& gpx, ShaderProgram* shader);
 
-    float width = 7.0f;
 
     QOpenGLTexture* track_texture();
+
+    ShadingMethod shading_method = DEFAULT;
+
+    float width = 7.0f;
 
 private:
     size_t m_total_point_count = 0;

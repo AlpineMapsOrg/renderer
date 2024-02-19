@@ -37,6 +37,7 @@
 #include "ShaderProgram.h"
 
 #define WIREFRAME 0
+#define ENABLE_BOUNDING_QUADS 0
 
 namespace gl_engine {
 
@@ -58,26 +59,19 @@ QOpenGLTexture* TrackManager::track_texture()
 
 void TrackManager::draw(const nucleus::camera::Definition& camera, ShaderProgram* shader) const
 {
-
     if (m_tracks.size() == 0) {
         return;
     }
 
     QOpenGLExtraFunctions* f = QOpenGLContext::currentContext()->extraFunctions();
+
 #if (defined(__linux) && !defined(__ANDROID__)) || defined(_WIN32) || defined(_WIN64)
     auto funcs = QOpenGLVersionFunctionsFactory::get<QOpenGLFunctions_3_3_Core>(QOpenGLContext::currentContext()); // for wireframe mode
-#endif
 
-
-#if WIREFRAME
-    funcs->glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
-#endif
-
-
-#if (defined(__linux) && !defined(__ANDROID__)) || defined(_WIN32) || defined(_WIN64)
     if (funcs)
         funcs->glDisable(GL_CULL_FACE);
 #endif
+
     auto matrix = camera.local_view_projection_matrix(camera.position());
 
     shader->bind();
@@ -87,6 +81,7 @@ void TrackManager::draw(const nucleus::camera::Definition& camera, ShaderProgram
     shader->set_uniform("aspect", 16.0f / 9.0f); // TODO: make this dynamic
     shader->set_uniform("visualize_steepness", false); // TODO: make this dynamic
     shader->set_uniform("texin_track", 8);
+    shader->set_uniform("shading_method", shading_method);
 
     if (m_data_texture) {
         m_data_texture->bind(8);
@@ -107,7 +102,7 @@ void TrackManager::draw(const nucleus::camera::Definition& camera, ShaderProgram
         shader->set_uniform("enable_intersection", true);
         f->glDrawArrays(GL_TRIANGLES, 0, vertex_count);
 
-#if 0
+#if ENABLE_BOUNDING_QUADS
         // only for debugging
 #if (defined(__linux) && !defined(__ANDROID__)) || defined(_WIN32) || defined(_WIN64)
         if (funcs)
@@ -130,11 +125,8 @@ void TrackManager::draw(const nucleus::camera::Definition& camera, ShaderProgram
 void TrackManager::add_track(const nucleus::gpx::Gpx& gpx, ShaderProgram* shader)
 {
     QOpenGLExtraFunctions *f = QOpenGLContext::currentContext()->extraFunctions();
-    (void)shader;
 
-
-    // transform from latitude and longitude into renderer world
-    // coordinates
+    // transform from latitude and longitude into renderer world coordinates
     std::vector<glm::vec4> points = nucleus::to_world_points(gpx);
 
     // data cleanup
@@ -173,7 +165,6 @@ void TrackManager::add_track(const nucleus::gpx::Gpx& gpx, ShaderProgram* shader
     polyline.vao->create();
     polyline.vao->bind();
 
-#if 1
     polyline.vbo = std::make_unique<QOpenGLBuffer>(QOpenGLBuffer::VertexBuffer);
     polyline.vbo->create();
 
@@ -199,8 +190,6 @@ void TrackManager::add_track(const nucleus::gpx::Gpx& gpx, ShaderProgram* shader
     const auto meta_attrib_location = shader->attribute_location("a_metadata");
     f->glEnableVertexAttribArray(meta_attrib_location);
     f->glVertexAttribPointer(meta_attrib_location, 3, GL_FLOAT, GL_FALSE, stride, (void*)(3 * sizeof(glm::vec3)));
-
-#endif
 
     polyline.vao->release();
 
