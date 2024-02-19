@@ -120,26 +120,24 @@ void main() {
             (0.0 <= signed_distance(point, clipping_plane_2)) // TODO: handle end of tube
         ) {
 
-            //vec3 color = phong_lighting(normal);
-            vec3 color = visualize_normal(normal);
-#if 1
+            vec3 color = phong_lighting(normal);
+            //vec3 color = visualize_normal(normal);
+
             if (t < dist) {
 
                 // geometry is above terrain
                 out_color = vec4(color, 1);
-
+#if 0
             } else if ((t - dist) <= c.radius * 2) {
 
                 float delta = (t - dist) / (c.radius * 2);
 
-                out_color = vec4(color, 0.5);
-
-            } else {
-                discard; // geometry is far below terrain
-            }
-#else
-        out_color = vec4(color, 1);
+                out_color = vec4(color, 0.3);
 #endif
+            } else {
+                out_color = vec4(color, 0.3);
+                //discard; // geometry is far below terrain
+            }
         } else {
             discard; // clipping
         }

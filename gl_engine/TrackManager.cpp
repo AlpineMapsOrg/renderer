@@ -99,7 +99,7 @@ void TrackManager::draw(const nucleus::camera::Definition& camera, ShaderProgram
         shader->set_uniform("enable_intersection", true);
         f->glDrawArrays(GL_TRIANGLES, 0, vertex_count);
 
-#if 1
+#if 0
         // only for debugging
         funcs->glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
         shader->set_uniform("enable_intersection", false);
