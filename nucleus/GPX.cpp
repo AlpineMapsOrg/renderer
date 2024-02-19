@@ -8,6 +8,7 @@
 #include <QDebug>
 #include <QFile>
 #include <QXmlStreamReader>
+#include <QDateTime>
 
 namespace nucleus {
 namespace gpx {
@@ -19,24 +20,34 @@ namespace gpx {
         double latitude = xmlReader.attributes().value("lat").toDouble();
         double longitude = xmlReader.attributes().value("lon").toDouble();
 
-        point.x = latitude;
-        point.y = longitude;
-        point.z = 0;
+        point.latitude = latitude;
+        point.longitude = longitude;
+        point.elevation = 0;
 
-#if 1
         while (!xmlReader.atEnd() && !xmlReader.hasError()) {
             QXmlStreamReader::TokenType token = xmlReader.readNext();
 
             if (token == QXmlStreamReader::StartElement) {
-                if (xmlReader.name() == QString("ele")) {
-                    float elevation = xmlReader.readElementText().toDouble();
-                    point.z = elevation;
-                }
 
-                break;
+                QStringView name = xmlReader.name();
+
+                if (name == QString("ele")) {
+                    float elevation = xmlReader.readElementText().toDouble();
+                    point.elevation = elevation;
+                } else if (name == QString("time")) {
+                    QString iso_date_string = xmlReader.readElementText();
+                    QDateTime date_time = QDateTime::fromString(iso_date_string, Qt::ISODate);
+
+                    if (date_time.isValid()) {
+                        point.timestamp = date_time;
+                    } else {
+                        qDebug() << "Failed to parse date " << iso_date_string;
+                    }
+                } else {
+                    break;
+                }
             }
         }
-#endif
 
         return point;
     }
@@ -105,7 +116,11 @@ std::vector<glm::vec3> to_world_points(const gpx::Gpx& gpx)
     std::vector<glm::dvec3> track;
 
     for (const gpx::TrackSegment& segment : gpx.track) {
-        track.insert(track.end(), segment.begin(), segment.end());
+
+        for (const gpx::TrackPoint &point : segment) {
+            track.push_back(glm::dvec3(point.latitude, point.longitude, point.elevation));
+        }
+        //track.insert(track.end(), segment.begin(), segment.end());
     }
 
     std::vector<glm::vec3> points(track.size());

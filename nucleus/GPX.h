@@ -1,6 +1,7 @@
 #pragma once
 
 #include <QString>
+#include <QDateTime>
 #include <glm/glm.hpp>
 #include <memory>
 #include <string>
@@ -13,7 +14,13 @@ namespace nucleus {
 // TODO: handle waypoint and route
 namespace gpx {
 
-    using TrackPoint = glm::dvec3; // TODO: time?
+    struct TrackPoint {
+        double latitude;
+        double longitude;
+        double elevation;
+        QDateTime timestamp;
+    };
+
     using TrackSegment = std::vector<TrackPoint>;
     using TrackType = std::vector<TrackSegment>;
 

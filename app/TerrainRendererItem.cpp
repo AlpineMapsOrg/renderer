@@ -264,8 +264,8 @@ void TerrainRendererItem::add_track(const QString& track)
 
             if (0 < gpx->track.size() && 0 < gpx->track[0].size())
             {
-                glm::dvec3 track_start = gpx->track[0][0];
-                emit position_set_by_user(track_start.x, track_start.y);
+                auto track_start = gpx->track[0][0];
+                emit position_set_by_user(track_start.latitude, track_start.longitude);
             }
         } else {
             qDebug("Coud not parse GPX file!");
