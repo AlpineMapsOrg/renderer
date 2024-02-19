@@ -63,9 +63,11 @@ void TrackManager::draw(const nucleus::camera::Definition& camera, ShaderProgram
         return;
     }
 
-
     QOpenGLExtraFunctions* f = QOpenGLContext::currentContext()->extraFunctions();
+#if (defined(__linux) && !defined(__ANDROID__)) || defined(_WIN32) || defined(_WIN64)
     auto funcs = QOpenGLVersionFunctionsFactory::get<QOpenGLFunctions_3_3_Core>(QOpenGLContext::currentContext()); // for wireframe mode
+#endif
+
 
 #if WIREFRAME
     funcs->glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
@@ -96,20 +98,31 @@ void TrackManager::draw(const nucleus::camera::Definition& camera, ShaderProgram
         GLsizei vertex_count = (track.point_count - 1) * 2;
         //GLsizei vertex_count = 2 * 3;
 
-        funcs->glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+#if (defined(__linux) && !defined(__ANDROID__)) || defined(_WIN32) || defined(_WIN64)
+        if (funcs)
+            funcs->glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+#endif
         shader->set_uniform("enable_intersection", true);
         f->glDrawArrays(GL_TRIANGLES, 0, vertex_count);
 
 #if 0
         // only for debugging
-        funcs->glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+#if (defined(__linux) && !defined(__ANDROID__)) || defined(_WIN32) || defined(_WIN64)
+        if (funcs)
+            funcs->glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+#endif
         shader->set_uniform("enable_intersection", false);
         f->glDrawArrays(GL_TRIANGLES, 0, vertex_count);
 #endif
     }
 
     shader->release();
-    funcs->glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+#if (defined(__linux) && !defined(__ANDROID__)) || defined(_WIN32) || defined(_WIN64)
+    if (funcs)
+        funcs->glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+#endif
+
+
     funcs->glEnable(GL_CULL_FACE);
 }
 
