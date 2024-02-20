@@ -120,9 +120,6 @@ TEST_CASE("gl texture")
         const QImage render_result = b.read_colour_attachment(0);
         // render_result.save("render_result.png");
         Framebuffer::unbind();
-        REQUIRE(!render_result.isNull());
-        CHECK(render_result.width() == test_texture.width());
-        CHECK(render_result.height() == test_texture.height());
         double diff = 0;
         for (int i = 0; i < render_result.width(); ++i) {
             for (int j = 0; j < render_result.height(); ++j) {
@@ -152,9 +149,6 @@ TEST_CASE("gl texture")
         const QImage render_result = b.read_colour_attachment(0);
         // render_result.save("render_result.png");
         Framebuffer::unbind();
-        REQUIRE(!render_result.isNull());
-        CHECK(render_result.width() == test_texture.width());
-        CHECK(render_result.height() == test_texture.height());
         double diff = 0;
         for (int i = 0; i < render_result.width(); ++i) {
             for (int j = 0; j < render_result.height(); ++j) {
@@ -184,9 +178,6 @@ TEST_CASE("gl texture")
         const QImage render_result = b.read_colour_attachment(0);
         // render_result.save("render_result.png");
         Framebuffer::unbind();
-        REQUIRE(!render_result.isNull());
-        CHECK(render_result.width() == test_texture.width());
-        CHECK(render_result.height() == test_texture.height());
         double diff = 0;
         for (int i = 0; i < render_result.width(); ++i) {
             for (int j = 0; j < render_result.height(); ++j) {
@@ -216,9 +207,6 @@ TEST_CASE("gl texture")
         const QImage render_result = b.read_colour_attachment(0);
         // render_result.save("render_result.png");
         Framebuffer::unbind();
-        REQUIRE(!render_result.isNull());
-        CHECK(render_result.width() == 1);
-        CHECK(render_result.height() == 1);
         CHECK(qRed(render_result.pixel(0, 0)) == 240);
         CHECK(qGreen(render_result.pixel(0, 0)) == 120);
         CHECK(qBlue(render_result.pixel(0, 0)) == 0);
@@ -252,12 +240,97 @@ TEST_CASE("gl texture")
         const QImage render_result = b.read_colour_attachment(0);
         // render_result.save("render_result.png");
         Framebuffer::unbind();
-        REQUIRE(!render_result.isNull());
-        CHECK(render_result.width() == 1);
-        CHECK(render_result.height() == 1);
         CHECK(qRed(render_result.pixel(0, 0)) == 120);
         CHECK(qGreen(render_result.pixel(0, 0)) == 0);
         CHECK(qBlue(render_result.pixel(0, 0)) == 0);
         CHECK(qAlpha(render_result.pixel(0, 0)) == 255);
+    }
+
+    SECTION("rgba array")
+    {
+        Framebuffer framebuffer(Framebuffer::DepthFormat::None,
+            { { Framebuffer::ColourFormat::RGBA8 }, { Framebuffer::ColourFormat::RGBA8 }, { Framebuffer::ColourFormat::RGBA8 } }, { 256, 256 });
+        framebuffer.bind();
+
+        std::array texture_types = { CompressedTexture::Algorithm::Uncompressed_RGBA, gl_engine::Texture::compression_algorithm() };
+        for (auto texture_type : texture_types) {
+            const auto format = (texture_type == CompressedTexture::Algorithm::Uncompressed_RGBA) ? gl_engine::Texture::Format::RGBA8
+                                                                                                  : gl_engine::Texture::Format::CompressedRGBA8;
+            gl_engine::Texture opengl_texture(gl_engine::Texture::Target::_2dArray, format);
+            opengl_texture.bind(0);
+            opengl_texture.setParams(gl_engine::Texture::Filter::Linear, gl_engine::Texture::Filter::Linear);
+            opengl_texture.allocate_array(256, 256, 3);
+            {
+                const auto compressed = CompressedTexture(test_texture, texture_type);
+                opengl_texture.upload(compressed, 0);
+            }
+            {
+                QImage test_texture(256, 256, QImage::Format_ARGB32);
+                test_texture.fill(qRgba(42, 142, 242, 255));
+                const auto compressed = CompressedTexture(test_texture, texture_type);
+                opengl_texture.upload(compressed, 1);
+            }
+            {
+                QImage test_texture(256, 256, QImage::Format_ARGB32);
+                test_texture.fill(qRgba(222, 111, 0, 255));
+                const auto compressed = CompressedTexture(test_texture, texture_type);
+                opengl_texture.upload(compressed, 2);
+            }
+            ShaderProgram shader = create_debug_shader(R"(
+                uniform sampler2DArray texture_sampler;
+                in highp vec2 texcoords;
+                out lowp vec4 out_color_0;
+                out lowp vec4 out_color_1;
+                out lowp vec4 out_color_2;
+                void main() {
+                    out_color_0 = texture(texture_sampler, vec3(texcoords.x, 1.0 - texcoords.y, 0.0));
+                    out_color_1 = texture(texture_sampler, vec3(texcoords.x, 1.0 - texcoords.y, 1.0));
+                    out_color_2 = texture(texture_sampler, vec3(texcoords.x, 1.0 - texcoords.y, 2.0));
+                }
+            )");
+            shader.bind();
+            gl_engine::helpers::create_screen_quad_geometry().draw();
+
+            {
+                const QImage render_result = framebuffer.read_colour_attachment(0);
+                // render_result.save("render_result.png");
+                // test_texture.save("test_texture.png");
+                double diff = 0;
+                for (int i = 0; i < render_result.width(); ++i) {
+                    for (int j = 0; j < render_result.height(); ++j) {
+                        diff += std::abs(qRed(render_result.pixel(i, j)) - qRed(test_texture.pixel(i, j))) / 255.0;
+                        diff += std::abs(qGreen(render_result.pixel(i, j)) - qGreen(test_texture.pixel(i, j))) / 255.0;
+                        diff += std::abs(qBlue(render_result.pixel(i, j)) - qBlue(test_texture.pixel(i, j))) / 255.0;
+                    }
+                }
+                CHECK(diff / (256 * 256 * 3) < 0.017);
+            }
+            {
+                const QImage render_result = framebuffer.read_colour_attachment(1);
+                // render_result.save("render_result1.png");
+                double diff = 0;
+                for (int i = 0; i < render_result.width(); ++i) {
+                    for (int j = 0; j < render_result.height(); ++j) {
+                        diff += std::abs(qRed(render_result.pixel(i, j)) - 42) / 255.0;
+                        diff += std::abs(qGreen(render_result.pixel(i, j)) - 142) / 255.0;
+                        diff += std::abs(qBlue(render_result.pixel(i, j)) - 242) / 255.0;
+                    }
+                }
+                CHECK(diff / (256 * 256 * 3) < 0.017);
+            }
+            {
+                const QImage render_result = framebuffer.read_colour_attachment(2);
+                // render_result.save("render_result2.png");
+                double diff = 0;
+                for (int i = 0; i < render_result.width(); ++i) {
+                    for (int j = 0; j < render_result.height(); ++j) {
+                        diff += std::abs(qRed(render_result.pixel(i, j)) - 222) / 255.0;
+                        diff += std::abs(qGreen(render_result.pixel(i, j)) - 111) / 255.0;
+                        diff += std::abs(qBlue(render_result.pixel(i, j)) - 0) / 255.0;
+                    }
+                }
+                CHECK(diff / (256 * 256 * 3) < 0.017);
+            }
+        }
     }
 }

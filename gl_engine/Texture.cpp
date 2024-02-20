@@ -19,6 +19,7 @@
 #include "Texture.h"
 #include "nucleus/utils/CompressedTexture.h"
 
+#include <QOpenGLExtraFunctions>
 #include <QOpenGLFunctions>
 #ifdef __EMSCRIPTEN__
 #include <emscripten.h>
@@ -73,28 +74,61 @@ void gl_engine::Texture::setParams(Filter min_filter, Filter mag_filter)
     f->glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GLint(m_mag_filter));
 }
 
+void gl_engine::Texture::allocate_array(unsigned int width, unsigned int height, unsigned int n_layers)
+{
+    assert(m_target == Target::_2dArray);
+    assert(m_format != Format::Invalid);
+    auto* f = QOpenGLContext::currentContext()->extraFunctions();
+
+    auto mip_level_count = 1;
+    if (m_min_filter == Filter::MipMapLinear)
+        mip_level_count = GLsizei(1 + std::floor(std::log2(std::max(width, height))));
+
+    auto internalformat = GLenum(m_format);
+    if (m_format == Format::CompressedRGBA8)
+        internalformat = gl_engine::Texture::compressed_texture_format();
+
+    f->glTexStorage3D(GLenum(m_target), mip_level_count, internalformat, GLsizei(width), GLsizei(height), GLsizei(n_layers));
+}
+
 void gl_engine::Texture::upload(const nucleus::utils::CompressedTexture& texture)
 {
     QOpenGLFunctions* f = QOpenGLContext::currentContext()->functions();
     f->glBindTexture(GLenum(m_target), m_id);
     f->glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
-    switch (m_format) {
-    case Format::CompressedRGBA8:
-        f->glCompressedTexImage2D(GLenum(m_target), 0, gl_engine::Texture::compressed_texture_format(), GLsizei(texture.width()), GLsizei(texture.height()), 0,
-            GLsizei(texture.n_bytes()), texture.data());
-        return;
-    case Format::RGBA8:
-        f->glTexImage2D(GLenum(m_target), 0, GL_RGBA8, GLsizei(texture.width()), GLsizei(texture.height()), 0, GL_RGBA, GL_UNSIGNED_BYTE, texture.data());
+    const auto width = GLsizei(texture.width());
+    const auto height = GLsizei(texture.height());
+    if (m_format == Format::CompressedRGBA8) {
+        assert(m_min_filter != Filter::MipMapLinear);
+        const auto format = gl_engine::Texture::compressed_texture_format();
+        f->glCompressedTexImage2D(GLenum(m_target), 0, format, width, height, 0, GLsizei(texture.n_bytes()), texture.data());
+    } else if (m_format == Format::RGBA8) {
+        f->glTexImage2D(GLenum(m_target), 0, GL_RGBA8, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, texture.data());
         if (m_min_filter == Filter::MipMapLinear)
             f->glGenerateMipmap(GLenum(m_target));
-        return;
-    case Format::RG8:
-    case Format::R16UI:
-    case Format::Invalid:
+    } else {
         assert(false);
-        break;
     }
-    assert(false);
+}
+
+void gl_engine::Texture::upload(const nucleus::utils::CompressedTexture& texture, unsigned int array_index)
+{
+    auto* f = QOpenGLContext::currentContext()->extraFunctions();
+    f->glBindTexture(GLenum(m_target), m_id);
+    f->glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
+    const auto width = GLsizei(texture.width());
+    const auto height = GLsizei(texture.height());
+    if (m_format == Format::CompressedRGBA8) {
+        assert(m_min_filter != Filter::MipMapLinear);
+        const auto format = gl_engine::Texture::compressed_texture_format();
+        f->glCompressedTexSubImage3D(GLenum(m_target), 0, 0, 0, GLint(array_index), width, height, 1, format, GLsizei(texture.n_bytes()), texture.data());
+    } else if (m_format == Format::RGBA8) {
+        f->glTexSubImage3D(GLenum(m_target), 0, 0, 0, GLint(array_index), width, height, 1, GL_RGBA, GL_UNSIGNED_BYTE, texture.data());
+        if (m_min_filter == Filter::MipMapLinear)
+            f->glGenerateMipmap(GLenum(m_target));
+    } else {
+        assert(false);
+    }
 }
 
 void gl_engine::Texture::upload(const nucleus::Raster<glm::u8vec2>& texture)
