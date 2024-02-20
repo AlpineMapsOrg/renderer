@@ -65,7 +65,6 @@ private:
     void add_tile(
         const tile::Id& id, tile::SrsAndHeightBounds bounds, const nucleus::utils::CompressedTexture& ortho, const nucleus::Raster<uint16_t>& heights);
     struct TileGLAttributeLocations {
-        int height = -1;
     };
 
     static constexpr auto N_EDGE_VERTICES = 65;

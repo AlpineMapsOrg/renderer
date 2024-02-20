@@ -50,34 +50,6 @@ std::vector<glm::vec4> boundsArray(const TileSet& tileset, const glm::dvec3& cam
     }
     return ret;
 }
-
-template <typename T>
-std::vector<T> prepare_altitude_buffer(const nucleus::Raster<T>& alti_map)
-{
-    // add heights for curtains
-    auto alti_buffer = alti_map.buffer();
-    alti_buffer.reserve(alti_buffer.size() + alti_map.width() * 2 - 2 + alti_map.height() * 2 - 2);
-    const auto height = alti_map.height();
-    const auto width = alti_map.width();
-
-    for (size_t row = height - 1; row >= 1; row--) {
-        alti_buffer.push_back(alti_map.pixel({ width - 1, row }));
-    }
-
-    for (size_t col = width - 1; col >= 1; col--) {
-        alti_buffer.push_back(alti_map.pixel({ col, 0 }));
-    }
-
-    for (size_t row = 0; row < height - 1; row++) {
-        alti_buffer.push_back(alti_map.pixel({ 0, row }));
-    }
-
-    for (size_t col = 0; col < width - 1; col++) {
-        alti_buffer.push_back(alti_map.pixel({ col, height - 1 }));
-    }
-
-    return alti_buffer;
-}
 }
 
 TileManager::TileManager(QObject* parent)
@@ -171,10 +143,7 @@ void TileManager::remove_tile(const tile::Id& tile_id)
     emit tiles_changed();
 }
 
-void TileManager::initilise_attribute_locations(ShaderProgram* program)
-{
-    m_attribute_locations.height = program->attribute_location("altitude");
-}
+void TileManager::initilise_attribute_locations(ShaderProgram* /*program*/) { }
 
 void TileManager::set_aabb_decorator(const nucleus::tile_scheduler::utils::AabbDecoratorPtr& new_aabb_decorator)
 {
@@ -187,8 +156,6 @@ void TileManager::add_tile(
     if (!QOpenGLContext::currentContext()) // can happen during shutdown.
         return;
 
-    // assert(m_attribute_locations.height != -1);
-    // auto* f = QOpenGLContext::currentContext()->extraFunctions();
     // need to call GLWindow::makeCurrent, when calling through signals?
     // find an empty slot => todo, for now just create a new tile every time.
     // setup / copy data to gpu
@@ -197,21 +164,8 @@ void TileManager::add_tile(
     tileset.vao = std::make_unique<QOpenGLVertexArrayObject>();
     tileset.vao->create();
     tileset.vao->bind();
-    // if (!m_dummy_buffer) {
-    //     m_dummy_buffer = std::make_unique<QOpenGLBuffer>(QOpenGLBuffer::VertexBuffer);
-    //     m_dummy_buffer->create();
-    //     m_dummy_buffer->bind();
-    //     m_dummy_buffer->setUsagePattern(QOpenGLBuffer::StaticDraw);
-    //     // std::vector<uint8_t> dummy(m_index_buffers.size());
-    //     m_dummy_buffer->allocate(int(m_index_buffers.size()));
-    // }
-    { // vao state
-        // auto height_buffer = prepare_altitude_buffer(height_map);
-        // tileset.heightmap_buffer->allocate(height_buffer.data(), bufferLengthInBytes(height_buffer));
-        // f->glEnableVertexAttribArray(GLuint(m_attribute_locations.height));
-        // f->glVertexAttribPointer(GLuint(m_attribute_locations.height), /*size*/ 1, /*type*/ GL_UNSIGNED_SHORT, /*normalised*/ GL_TRUE, /*stride*/ 0,
-        // nullptr);
 
+    { // vao state
         m_index_buffers[0].first->bind();
         tileset.gl_element_count = int(m_index_buffers[0].second);
         tileset.gl_index_type = GL_UNSIGNED_SHORT;
