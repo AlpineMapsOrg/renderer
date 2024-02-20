@@ -22,7 +22,7 @@
 #include <qopengl.h>
 
 #include <nucleus/Raster.h>
-#include <nucleus/utils/CompressedTexture.h>
+#include <nucleus/utils/ColourTexture.h>
 
 namespace gl_engine {
 class Texture {
@@ -42,13 +42,13 @@ public:
     void bind(unsigned texture_unit);
     void setParams(Filter min_filter, Filter mag_filter);
     void allocate_array(unsigned width, unsigned height, unsigned n_layers);
-    void upload(const nucleus::utils::CompressedTexture& texture);
-    void upload(const nucleus::utils::CompressedTexture& texture, unsigned array_index);
+    void upload(const nucleus::utils::ColourTexture& texture);
+    void upload(const nucleus::utils::ColourTexture& texture, unsigned array_index);
     void upload(const nucleus::Raster<glm::u8vec2>& texture);
     void upload(const nucleus::Raster<uint16_t>& texture);
 
     static GLenum compressed_texture_format();
-    static nucleus::utils::CompressedTexture::Algorithm compression_algorithm();
+    static nucleus::utils::ColourTexture::Algorithm compression_algorithm();
 
 private:
     GLuint m_id = GLuint(-1);

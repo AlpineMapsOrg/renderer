@@ -176,7 +176,7 @@ void Scheduler::update_gpu_quads()
                                ortho_data = quad.tiles[i].ortho.get();
                            }
                            const auto ortho_qimage = nucleus::utils::tile_conversion::toQImage(*ortho_data);
-                           gpu_quad.tiles[i].ortho = std::make_shared<nucleus::utils::CompressedTexture>(ortho_qimage, m_ortho_tile_compression_algorithm);
+                           gpu_quad.tiles[i].ortho = std::make_shared<nucleus::utils::ColourTexture>(ortho_qimage, m_ortho_tile_compression_algorithm);
 
                            const auto* height_data = m_default_height_tile.get();
                            if (quad.tiles[i].height->size()) {
@@ -298,9 +298,9 @@ std::vector<tile::Id> Scheduler::tiles_for_current_camera_position() const
     return all_inner_nodes;
 }
 
-nucleus::utils::CompressedTexture::Algorithm Scheduler::ortho_tile_compression_algorithm() const { return m_ortho_tile_compression_algorithm; }
+nucleus::utils::ColourTexture::Algorithm Scheduler::ortho_tile_compression_algorithm() const { return m_ortho_tile_compression_algorithm; }
 
-void Scheduler::set_ortho_tile_compression_algorithm(nucleus::utils::CompressedTexture::Algorithm new_ortho_tile_compression_algorithm)
+void Scheduler::set_ortho_tile_compression_algorithm(nucleus::utils::ColourTexture::Algorithm new_ortho_tile_compression_algorithm)
 {
     m_ortho_tile_compression_algorithm = new_ortho_tile_compression_algorithm;
 }

@@ -21,7 +21,7 @@
 #define GOOFYTC_IMPLEMENTATION
 #include <GoofyTC/goofy_tc.h>
 
-#include "CompressedTexture.h"
+#include "ColourTexture.h"
 
 namespace {
 std::vector<uint8_t> to_dxt1(const QImage& qimage)
@@ -110,9 +110,9 @@ std::vector<uint8_t> to_uncompressed_rgba(const QImage& qimage)
     return data;
 }
 
-std::vector<uint8_t> to_compressed(const QImage& image, nucleus::utils::CompressedTexture::Algorithm algorithm)
+std::vector<uint8_t> to_compressed(const QImage& image, nucleus::utils::ColourTexture::Algorithm algorithm)
 {
-    using Algorithm = nucleus::utils::CompressedTexture::Algorithm;
+    using Algorithm = nucleus::utils::ColourTexture::Algorithm;
 
     switch (algorithm) {
     case Algorithm::DXT1:
@@ -127,7 +127,7 @@ std::vector<uint8_t> to_compressed(const QImage& image, nucleus::utils::Compress
 }
 } // namespace
 
-nucleus::utils::CompressedTexture::CompressedTexture(const QImage& image, Algorithm algorithm)
+nucleus::utils::ColourTexture::ColourTexture(const QImage& image, Algorithm algorithm)
     : m_data(to_compressed(image, algorithm))
     , m_width(unsigned(image.width()))
     , m_height(unsigned(image.height()))

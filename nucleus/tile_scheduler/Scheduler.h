@@ -76,9 +76,9 @@ public:
     void read_disk_cache();
 
     void set_retirement_age_for_tile_cache(unsigned int new_retirement_age_for_tile_cache);
-
-    nucleus::utils::CompressedTexture::Algorithm ortho_tile_compression_algorithm() const;
-    void set_ortho_tile_compression_algorithm(nucleus::utils::CompressedTexture::Algorithm new_ortho_tile_compression_algorithm);
+    
+    nucleus::utils::ColourTexture::Algorithm ortho_tile_compression_algorithm() const;
+    void set_ortho_tile_compression_algorithm(nucleus::utils::ColourTexture::Algorithm new_ortho_tile_compression_algorithm);
 
 signals:
     void statistics_updated(Statistics stats);
@@ -124,6 +124,6 @@ private:
     Cache<tile_types::GpuCacheInfo> m_gpu_cached;
     std::shared_ptr<QByteArray> m_default_ortho_tile;
     std::shared_ptr<QByteArray> m_default_height_tile;
-    nucleus::utils::CompressedTexture::Algorithm m_ortho_tile_compression_algorithm = nucleus::utils::CompressedTexture::Algorithm::Uncompressed_RGBA;
+    nucleus::utils::ColourTexture::Algorithm m_ortho_tile_compression_algorithm = nucleus::utils::ColourTexture::Algorithm::Uncompressed_RGBA;
 };
 }

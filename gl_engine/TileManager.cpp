@@ -151,7 +151,7 @@ void TileManager::set_aabb_decorator(const nucleus::tile_scheduler::utils::AabbD
 }
 
 void TileManager::add_tile(
-    const tile::Id& id, tile::SrsAndHeightBounds bounds, const nucleus::utils::CompressedTexture& ortho_texture, const nucleus::Raster<uint16_t>& height_map)
+    const tile::Id& id, tile::SrsAndHeightBounds bounds, const nucleus::utils::ColourTexture& ortho_texture, const nucleus::Raster<uint16_t>& height_map)
 {
     if (!QOpenGLContext::currentContext()) // can happen during shutdown.
         return;
@@ -172,8 +172,7 @@ void TileManager::add_tile(
     }
     tileset.vao->release();
     tileset.ortho_texture = std::make_unique<Texture>(Texture::Target::_2d,
-        ortho_texture.algorithm() == nucleus::utils::CompressedTexture::Algorithm::Uncompressed_RGBA ? Texture::Format::RGBA8
-                                                                                                     : Texture::Format::CompressedRGBA8);
+        ortho_texture.algorithm() == nucleus::utils::ColourTexture::Algorithm::Uncompressed_RGBA ? Texture::Format::RGBA8 : Texture::Format::CompressedRGBA8);
     tileset.ortho_texture->setParams(Texture::Filter::Linear, Texture::Filter::Linear);
     tileset.ortho_texture->upload(ortho_texture);
 

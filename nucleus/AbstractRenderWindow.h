@@ -24,7 +24,7 @@
 #include <glm/glm.hpp>
 
 #include "nucleus/tile_scheduler/tile_types.h"
-#include "utils/CompressedTexture.h"
+#include "utils/ColourTexture.h"
 
 class QOpenGLFramebufferObject;
 
@@ -52,7 +52,7 @@ public:
     virtual void deinit_gpu() = 0;
     virtual void set_permissible_screen_space_error(float new_error) = 0;
     [[nodiscard]] virtual camera::AbstractDepthTester* depth_tester() = 0;
-    [[nodiscard]] virtual utils::CompressedTexture::Algorithm ortho_tile_compression_algorithm() const = 0;
+    [[nodiscard]] virtual utils::ColourTexture::Algorithm ortho_tile_compression_algorithm() const = 0;
 
 public slots:
     virtual void update_camera(const camera::Definition& new_definition) = 0;

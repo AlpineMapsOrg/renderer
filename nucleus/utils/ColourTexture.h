@@ -19,11 +19,10 @@
 #pragma once
 
 #include <QImage>
-#include <nucleus/Raster.h>
 
 namespace nucleus::utils {
 
-class CompressedTexture {
+class ColourTexture {
 public:
     enum class Algorithm { Uncompressed_RGBA, DXT1, ETC1 };
 
@@ -34,7 +33,7 @@ private:
     Algorithm m_algorithm = Algorithm::Uncompressed_RGBA;
 
 public:
-    explicit CompressedTexture(const QImage& image, Algorithm algorithm);
+    explicit ColourTexture(const QImage& image, Algorithm algorithm);
     [[nodiscard]] const uint8_t* data() const { return m_data.data(); }
     [[nodiscard]] size_t n_bytes() const { return m_data.size(); }
     [[nodiscard]] unsigned width() const { return m_width; }

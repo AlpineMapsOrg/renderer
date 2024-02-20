@@ -101,7 +101,7 @@ qt_add_library(nucleus STATIC
     timing/TimerManager.h timing/TimerManager.cpp
     timing/TimerInterface.h timing/TimerInterface.cpp
     timing/CpuTimer.h timing/CpuTimer.cpp
-    utils/CompressedTexture.h utils/CompressedTexture.cpp
+    utils/ColourTexture.h utils/ColourTexture.cpp
 )
 
 target_include_directories(nucleus PUBLIC ${CMAKE_SOURCE_DIR})

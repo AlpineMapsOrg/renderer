@@ -17,7 +17,7 @@
  *****************************************************************************/
 
 #include "Texture.h"
-#include "nucleus/utils/CompressedTexture.h"
+#include "nucleus/utils/ColourTexture.h"
 
 #include <QOpenGLExtraFunctions>
 #include <QOpenGLFunctions>
@@ -91,7 +91,7 @@ void gl_engine::Texture::allocate_array(unsigned int width, unsigned int height,
     f->glTexStorage3D(GLenum(m_target), mip_level_count, internalformat, GLsizei(width), GLsizei(height), GLsizei(n_layers));
 }
 
-void gl_engine::Texture::upload(const nucleus::utils::CompressedTexture& texture)
+void gl_engine::Texture::upload(const nucleus::utils::ColourTexture& texture)
 {
     QOpenGLFunctions* f = QOpenGLContext::currentContext()->functions();
     f->glBindTexture(GLenum(m_target), m_id);
@@ -111,7 +111,7 @@ void gl_engine::Texture::upload(const nucleus::utils::CompressedTexture& texture
     }
 }
 
-void gl_engine::Texture::upload(const nucleus::utils::CompressedTexture& texture, unsigned int array_index)
+void gl_engine::Texture::upload(const nucleus::utils::ColourTexture& texture, unsigned int array_index)
 {
     auto* f = QOpenGLContext::currentContext()->extraFunctions();
     f->glBindTexture(GLenum(m_target), m_id);
@@ -185,7 +185,7 @@ GLenum gl_engine::Texture::compressed_texture_format()
 #endif
 }
 
-nucleus::utils::CompressedTexture::Algorithm gl_engine::Texture::compression_algorithm()
+nucleus::utils::ColourTexture::Algorithm gl_engine::Texture::compression_algorithm()
 {
 #if defined(__EMSCRIPTEN__)
     // clang-format off
@@ -205,6 +205,6 @@ nucleus::utils::CompressedTexture::Algorithm gl_engine::Texture::compression_alg
 #elif defined(__ANDROID__)
     return nucleus::utils::CompressedTexture::Algorithm::ETC1;
 #else
-    return nucleus::utils::CompressedTexture::Algorithm::DXT1;
+    return nucleus::utils::ColourTexture::Algorithm::DXT1;
 #endif
 }

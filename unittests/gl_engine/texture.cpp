@@ -32,7 +32,7 @@
 #include "gl_engine/Framebuffer.h"
 #include "gl_engine/ShaderProgram.h"
 #include "gl_engine/helpers.h"
-#include "nucleus/utils/CompressedTexture.h"
+#include "nucleus/utils/ColourTexture.h"
 
 using gl_engine::Framebuffer;
 using gl_engine::ShaderProgram;
@@ -91,15 +91,15 @@ TEST_CASE("gl texture")
     SECTION("compression")
     {
         {
-            const auto compressed = CompressedTexture(test_texture, CompressedTexture::Algorithm::DXT1);
+            const auto compressed = ColourTexture(test_texture, ColourTexture::Algorithm::DXT1);
             CHECK(compressed.n_bytes() == 256 * 128);
         }
         {
-            const auto compressed = CompressedTexture(test_texture, CompressedTexture::Algorithm::ETC1);
+            const auto compressed = ColourTexture(test_texture, ColourTexture::Algorithm::ETC1);
             CHECK(compressed.n_bytes() == 256 * 128);
         }
         {
-            const auto compressed = CompressedTexture(test_texture, CompressedTexture::Algorithm::Uncompressed_RGBA);
+            const auto compressed = ColourTexture(test_texture, ColourTexture::Algorithm::Uncompressed_RGBA);
             CHECK(compressed.n_bytes() == 256 * 256 * 4);
         }
     }
@@ -136,7 +136,7 @@ TEST_CASE("gl texture")
         Framebuffer b(Framebuffer::DepthFormat::None, { Framebuffer::ColourFormat::RGBA8 }, { 256, 256 });
         b.bind();
 
-        const auto compressed = CompressedTexture(test_texture, gl_engine::Texture::compression_algorithm());
+        const auto compressed = ColourTexture(test_texture, gl_engine::Texture::compression_algorithm());
         gl_engine::Texture opengl_texture(gl_engine::Texture::Target::_2d, gl_engine::Texture::Format::CompressedRGBA8);
         opengl_texture.bind(0);
         opengl_texture.setParams(gl_engine::Texture::Filter::Linear, gl_engine::Texture::Filter::Linear);
@@ -165,7 +165,7 @@ TEST_CASE("gl texture")
         Framebuffer b(Framebuffer::DepthFormat::None, { { Framebuffer::ColourFormat::RGBA8 } }, { 256, 256 });
         b.bind();
 
-        const auto compressed = CompressedTexture(test_texture, CompressedTexture::Algorithm::Uncompressed_RGBA);
+        const auto compressed = ColourTexture(test_texture, ColourTexture::Algorithm::Uncompressed_RGBA);
         gl_engine::Texture opengl_texture(gl_engine::Texture::Target::_2d, gl_engine::Texture::Format::RGBA8);
         opengl_texture.bind(0);
         opengl_texture.setParams(gl_engine::Texture::Filter::Linear, gl_engine::Texture::Filter::Linear);
@@ -246,34 +246,34 @@ TEST_CASE("gl texture")
         CHECK(qAlpha(render_result.pixel(0, 0)) == 255);
     }
 
-    SECTION("rgba array")
+    SECTION("rgba array (compressed and uncompressed)")
     {
         Framebuffer framebuffer(Framebuffer::DepthFormat::None,
             { Framebuffer::ColourFormat::RGBA8, Framebuffer::ColourFormat::RGBA8, Framebuffer::ColourFormat::RGBA8 }, { 256, 256 });
         framebuffer.bind();
 
-        std::array texture_types = { CompressedTexture::Algorithm::Uncompressed_RGBA, gl_engine::Texture::compression_algorithm() };
+        std::array texture_types = { ColourTexture::Algorithm::Uncompressed_RGBA, gl_engine::Texture::compression_algorithm() };
         for (auto texture_type : texture_types) {
-            const auto format = (texture_type == CompressedTexture::Algorithm::Uncompressed_RGBA) ? gl_engine::Texture::Format::RGBA8
-                                                                                                  : gl_engine::Texture::Format::CompressedRGBA8;
+            const auto format = (texture_type == ColourTexture::Algorithm::Uncompressed_RGBA) ? gl_engine::Texture::Format::RGBA8
+                                                                                              : gl_engine::Texture::Format::CompressedRGBA8;
             gl_engine::Texture opengl_texture(gl_engine::Texture::Target::_2dArray, format);
             opengl_texture.bind(0);
             opengl_texture.setParams(gl_engine::Texture::Filter::Linear, gl_engine::Texture::Filter::Linear);
             opengl_texture.allocate_array(256, 256, 3);
             {
-                const auto compressed = CompressedTexture(test_texture, texture_type);
+                const auto compressed = ColourTexture(test_texture, texture_type);
                 opengl_texture.upload(compressed, 0);
             }
             {
                 QImage test_texture(256, 256, QImage::Format_ARGB32);
                 test_texture.fill(qRgba(42, 142, 242, 255));
-                const auto compressed = CompressedTexture(test_texture, texture_type);
+                const auto compressed = ColourTexture(test_texture, texture_type);
                 opengl_texture.upload(compressed, 1);
             }
             {
                 QImage test_texture(256, 256, QImage::Format_ARGB32);
                 test_texture.fill(qRgba(222, 111, 0, 255));
-                const auto compressed = CompressedTexture(test_texture, texture_type);
+                const auto compressed = ColourTexture(test_texture, texture_type);
                 opengl_texture.upload(compressed, 2);
             }
             ShaderProgram shader = create_debug_shader(R"(
