@@ -110,9 +110,9 @@ std::vector<uint8_t> to_uncompressed_rgba(const QImage& qimage)
     return data;
 }
 
-std::vector<uint8_t> to_compressed(const QImage& image, nucleus::utils::ColourTexture::Algorithm algorithm)
+std::vector<uint8_t> to_compressed(const QImage& image, nucleus::utils::ColourTexture::Format algorithm)
 {
-    using Algorithm = nucleus::utils::ColourTexture::Algorithm;
+    using Algorithm = nucleus::utils::ColourTexture::Format;
 
     switch (algorithm) {
     case Algorithm::DXT1:
@@ -127,10 +127,10 @@ std::vector<uint8_t> to_compressed(const QImage& image, nucleus::utils::ColourTe
 }
 } // namespace
 
-nucleus::utils::ColourTexture::ColourTexture(const QImage& image, Algorithm algorithm)
-    : m_data(to_compressed(image, algorithm))
+nucleus::utils::ColourTexture::ColourTexture(const QImage& image, Format format)
+    : m_data(to_compressed(image, format))
     , m_width(unsigned(image.width()))
     , m_height(unsigned(image.height()))
-    , m_algorithm(algorithm)
+    , m_format(format)
 {
 }

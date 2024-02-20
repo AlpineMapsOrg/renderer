@@ -172,7 +172,7 @@ void TileManager::add_tile(
     }
     tileset.vao->release();
     tileset.ortho_texture = std::make_unique<Texture>(Texture::Target::_2d,
-        ortho_texture.algorithm() == nucleus::utils::ColourTexture::Algorithm::Uncompressed_RGBA ? Texture::Format::RGBA8 : Texture::Format::CompressedRGBA8);
+        ortho_texture.format() == nucleus::utils::ColourTexture::Format::Uncompressed_RGBA ? Texture::Format::RGBA8 : Texture::Format::CompressedRGBA8);
     tileset.ortho_texture->setParams(Texture::Filter::Linear, Texture::Filter::Linear);
     tileset.ortho_texture->upload(ortho_texture);
 

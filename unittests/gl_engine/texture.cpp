@@ -91,15 +91,15 @@ TEST_CASE("gl texture")
     SECTION("compression")
     {
         {
-            const auto compressed = ColourTexture(test_texture, ColourTexture::Algorithm::DXT1);
+            const auto compressed = ColourTexture(test_texture, ColourTexture::Format::DXT1);
             CHECK(compressed.n_bytes() == 256 * 128);
         }
         {
-            const auto compressed = ColourTexture(test_texture, ColourTexture::Algorithm::ETC1);
+            const auto compressed = ColourTexture(test_texture, ColourTexture::Format::ETC1);
             CHECK(compressed.n_bytes() == 256 * 128);
         }
         {
-            const auto compressed = ColourTexture(test_texture, ColourTexture::Algorithm::Uncompressed_RGBA);
+            const auto compressed = ColourTexture(test_texture, ColourTexture::Format::Uncompressed_RGBA);
             CHECK(compressed.n_bytes() == 256 * 256 * 4);
         }
     }
@@ -162,10 +162,10 @@ TEST_CASE("gl texture")
 
     SECTION("rgba")
     {
-        Framebuffer b(Framebuffer::DepthFormat::None, { { Framebuffer::ColourFormat::RGBA8 } }, { 256, 256 });
+        Framebuffer b(Framebuffer::DepthFormat::None, { Framebuffer::ColourFormat::RGBA8 }, { 256, 256 });
         b.bind();
-
-        const auto compressed = ColourTexture(test_texture, ColourTexture::Algorithm::Uncompressed_RGBA);
+        
+        const auto compressed = ColourTexture(test_texture, ColourTexture::Format::Uncompressed_RGBA);
         gl_engine::Texture opengl_texture(gl_engine::Texture::Target::_2d, gl_engine::Texture::Format::RGBA8);
         opengl_texture.bind(0);
         opengl_texture.setParams(gl_engine::Texture::Filter::Linear, gl_engine::Texture::Filter::Linear);
@@ -191,7 +191,7 @@ TEST_CASE("gl texture")
 
     SECTION("rg8")
     {
-        Framebuffer b(Framebuffer::DepthFormat::None, { { Framebuffer::ColourFormat::RGBA8 } }, { 1, 1 });
+        Framebuffer b(Framebuffer::DepthFormat::None, { Framebuffer::ColourFormat::RGBA8 }, { 1, 1 });
         b.bind();
 
         const auto tex = nucleus::Raster<glm::u8vec2>({ 1, 1 }, glm::u8vec2(240, 120));
@@ -215,7 +215,7 @@ TEST_CASE("gl texture")
 
     SECTION("red16")
     {
-        Framebuffer b(Framebuffer::DepthFormat::None, { { Framebuffer::ColourFormat::RGBA8 } }, { 1, 1 });
+        Framebuffer b(Framebuffer::DepthFormat::None, { Framebuffer::ColourFormat::RGBA8 }, { 1, 1 });
         b.bind();
 
         const auto tex = nucleus::Raster<uint16_t>({ 1, 1 }, uint16_t(120 * 256));
@@ -251,11 +251,11 @@ TEST_CASE("gl texture")
         Framebuffer framebuffer(Framebuffer::DepthFormat::None,
             { Framebuffer::ColourFormat::RGBA8, Framebuffer::ColourFormat::RGBA8, Framebuffer::ColourFormat::RGBA8 }, { 256, 256 });
         framebuffer.bind();
-
-        std::array texture_types = { ColourTexture::Algorithm::Uncompressed_RGBA, gl_engine::Texture::compression_algorithm() };
+        
+        std::array texture_types = { ColourTexture::Format::Uncompressed_RGBA, gl_engine::Texture::compression_algorithm() };
         for (auto texture_type : texture_types) {
-            const auto format = (texture_type == ColourTexture::Algorithm::Uncompressed_RGBA) ? gl_engine::Texture::Format::RGBA8
-                                                                                              : gl_engine::Texture::Format::CompressedRGBA8;
+            const auto format
+                = (texture_type == ColourTexture::Format::Uncompressed_RGBA) ? gl_engine::Texture::Format::RGBA8 : gl_engine::Texture::Format::CompressedRGBA8;
             gl_engine::Texture opengl_texture(gl_engine::Texture::Target::_2dArray, format);
             opengl_texture.bind(0);
             opengl_texture.setParams(gl_engine::Texture::Filter::Linear, gl_engine::Texture::Filter::Linear);

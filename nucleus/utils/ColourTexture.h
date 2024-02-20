@@ -24,21 +24,21 @@ namespace nucleus::utils {
 
 class ColourTexture {
 public:
-    enum class Algorithm { Uncompressed_RGBA, DXT1, ETC1 };
+    enum class Format { Uncompressed_RGBA, DXT1, ETC1 };
 
 private:
     std::vector<uint8_t> m_data;
     unsigned m_width = 0;
     unsigned m_height = 0;
-    Algorithm m_algorithm = Algorithm::Uncompressed_RGBA;
+    Format m_format = Format::Uncompressed_RGBA;
 
 public:
-    explicit ColourTexture(const QImage& image, Algorithm algorithm);
+    explicit ColourTexture(const QImage& image, Format format);
     [[nodiscard]] const uint8_t* data() const { return m_data.data(); }
     [[nodiscard]] size_t n_bytes() const { return m_data.size(); }
     [[nodiscard]] unsigned width() const { return m_width; }
     [[nodiscard]] unsigned height() const { return m_height; }
-    [[nodiscard]] Algorithm algorithm() const { return m_algorithm; }
+    [[nodiscard]] Format format() const { return m_format; }
 };
 
 } // namespace nucleus::utils

@@ -185,7 +185,7 @@ GLenum gl_engine::Texture::compressed_texture_format()
 #endif
 }
 
-nucleus::utils::ColourTexture::Algorithm gl_engine::Texture::compression_algorithm()
+nucleus::utils::ColourTexture::Format gl_engine::Texture::compression_algorithm()
 {
 #if defined(__EMSCRIPTEN__)
     // clang-format off
@@ -205,6 +205,6 @@ nucleus::utils::ColourTexture::Algorithm gl_engine::Texture::compression_algorit
 #elif defined(__ANDROID__)
     return nucleus::utils::CompressedTexture::Algorithm::ETC1;
 #else
-    return nucleus::utils::ColourTexture::Algorithm::DXT1;
+    return nucleus::utils::ColourTexture::Format::DXT1;
 #endif
 }

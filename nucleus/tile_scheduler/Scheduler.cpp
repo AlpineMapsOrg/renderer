@@ -298,9 +298,9 @@ std::vector<tile::Id> Scheduler::tiles_for_current_camera_position() const
     return all_inner_nodes;
 }
 
-nucleus::utils::ColourTexture::Algorithm Scheduler::ortho_tile_compression_algorithm() const { return m_ortho_tile_compression_algorithm; }
+nucleus::utils::ColourTexture::Format Scheduler::ortho_tile_compression_algorithm() const { return m_ortho_tile_compression_algorithm; }
 
-void Scheduler::set_ortho_tile_compression_algorithm(nucleus::utils::ColourTexture::Algorithm new_ortho_tile_compression_algorithm)
+void Scheduler::set_ortho_tile_compression_algorithm(nucleus::utils::ColourTexture::Format new_ortho_tile_compression_algorithm)
 {
     m_ortho_tile_compression_algorithm = new_ortho_tile_compression_algorithm;
 }
