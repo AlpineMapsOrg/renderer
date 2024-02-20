@@ -1,6 +1,7 @@
 /*****************************************************************************
  * Alpine Terrain Renderer
  * Copyright (C) 2023 Gerald Kimmersdorfer
+ * Copyright (C) 2024 Adam Celarek
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -20,12 +21,10 @@
 #include "camera_config.glsl"
 #include "shadow_config.glsl"
 
-layout(location = 0) in highp float altitude;
-
 uniform highp vec4 bounds[32];
 
 uniform highp int n_edge_vertices;
-uniform highp sampler2D height_sampler;
+uniform mediump usampler2D height_sampler;
 
 uniform lowp int current_layer;
 
@@ -70,9 +69,10 @@ void main() {
     // Note: May be enough to calculate altitude_correction_factor per tile on CPU:
     highp float var_pos_cws_y = float(edge_vertices_count_int - row) * float(tile_width) + bounds[geometry_id].y;
     highp float pos_y = var_pos_cws_y + camera.position.y;
-    highp float altitude_correction_factor = 65536.0 * 0.125 / cos(y_to_lat(pos_y)); // https://github.com/AlpineMapsOrg/renderer/issues/5
+    float altitude_correction_factor = 0.125 / cos(y_to_lat(pos_y)); // https://github.com/AlpineMapsOrg/renderer/issues/5
 
-    highp float adjusted_altitude = altitude * altitude_correction_factor;
+    vec2 uv = vec2(float(col) / edge_vertices_count_float, float(row) / edge_vertices_count_float);
+    highp float adjusted_altitude = float(texture(height_sampler, uv).r) * altitude_correction_factor;
 
     highp vec3 var_pos_cws = vec3(float(col) * tile_width + bounds[geometry_id].x,
                        var_pos_cws_y,
