@@ -331,6 +331,7 @@ void Window::paint(QOpenGLFramebufferObject* framebuffer)
         f->glEnable(GL_DEPTH_TEST);
         f->glDepthFunc(GL_LEQUAL);
 
+        m_timer->start_timer("tracks");
 
         ShaderProgram* track_shader = m_shader_manager->track_program();
         track_shader->bind();
@@ -340,10 +341,10 @@ void Window::paint(QOpenGLFramebufferObject* framebuffer)
         glm::vec2 size = glm::vec2(static_cast<float>(m_gbuffer->size().x),static_cast<float>(m_gbuffer->size().y));
         track_shader->set_uniform("resolution", size);
 
-        /* draw tracks on top */
-        f->glClear(GL_DEPTH_BUFFER_BIT);
-        m_timer->start_timer("tracks");
+        f->glDisable(GL_DEPTH_TEST);
         m_track_manager->draw(m_camera, track_shader);
+        f->glEnable(GL_DEPTH_TEST);
+
         m_timer->stop_timer("tracks");
     }
 
