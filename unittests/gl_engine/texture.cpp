@@ -106,7 +106,7 @@ TEST_CASE("gl texture")
 
     SECTION("verify test methodology")
     {
-        Framebuffer b(Framebuffer::DepthFormat::None, {{Framebuffer::ColourFormat::RGBA8}}, {256, 256});
+        Framebuffer b(Framebuffer::DepthFormat::None, { Framebuffer::ColourFormat::RGBA8 }, { 256, 256 });
         b.bind();
         QOpenGLTexture opengl_texture(test_texture);
         opengl_texture.setWrapMode(QOpenGLTexture::WrapMode::ClampToBorder);
@@ -133,7 +133,7 @@ TEST_CASE("gl texture")
 
     SECTION("compressed rgba")
     {
-        Framebuffer b(Framebuffer::DepthFormat::None, { { Framebuffer::ColourFormat::RGBA8 } }, { 256, 256 });
+        Framebuffer b(Framebuffer::DepthFormat::None, { Framebuffer::ColourFormat::RGBA8 }, { 256, 256 });
         b.bind();
 
         const auto compressed = CompressedTexture(test_texture, gl_engine::Texture::compression_algorithm());
@@ -249,7 +249,7 @@ TEST_CASE("gl texture")
     SECTION("rgba array")
     {
         Framebuffer framebuffer(Framebuffer::DepthFormat::None,
-            { { Framebuffer::ColourFormat::RGBA8 }, { Framebuffer::ColourFormat::RGBA8 }, { Framebuffer::ColourFormat::RGBA8 } }, { 256, 256 });
+            { Framebuffer::ColourFormat::RGBA8, Framebuffer::ColourFormat::RGBA8, Framebuffer::ColourFormat::RGBA8 }, { 256, 256 });
         framebuffer.bind();
 
         std::array texture_types = { CompressedTexture::Algorithm::Uncompressed_RGBA, gl_engine::Texture::compression_algorithm() };

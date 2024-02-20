@@ -18,7 +18,6 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *****************************************************************************/
-#include <array>
 #include <QCoreApplication>
 
 #include <QDebug>
@@ -57,7 +56,6 @@
 #include "UniformBufferObjects.h"
 
 #include "nucleus/timing/TimerManager.h"
-#include "nucleus/timing/TimerInterface.h"
 #include "nucleus/timing/CpuTimer.h"
 #include "nucleus/utils/bit_coding.h"
 #if (defined(__linux) && !defined(__ANDROID__)) || defined(_WIN32) || defined(_WIN64)
@@ -121,14 +119,14 @@ void Window::initialise_gpu()
     // ANOTHER IMPORTANT NOTE: RGB32f, RGB16f are not supported by OpenGL ES and/or WebGL
     m_gbuffer = std::make_unique<Framebuffer>(Framebuffer::DepthFormat::Float32,
         std::vector {
-            TextureDefinition { Framebuffer::ColourFormat::RGBA8 }, // Albedo
-            TextureDefinition { Framebuffer::ColourFormat::RGBA32F }, // Position WCS and distance (distance is optional, but i use it directly for a little speed improvement)
-            TextureDefinition { Framebuffer::ColourFormat::RG16UI }, // Octahedron Normals
-            TextureDefinition { Framebuffer::ColourFormat::RGBA8 } // Discretized Encoded Depth for readback IMPORTANT: IF YOU MOVE THIS YOU HAVE TO ADAPT THE GET DEPTH FUNCTION
+            Framebuffer::ColourFormat::RGBA8, // Albedo
+            Framebuffer::ColourFormat::RGBA32F, // Position WCS and distance (distance is optional, but i use it directly for a little speed improvement)
+            Framebuffer::ColourFormat::RG16UI, // Octahedron Normals
+            Framebuffer::ColourFormat::RGBA8, // Discretized Encoded Depth for readback IMPORTANT: IF YOU MOVE THIS YOU HAVE TO ADAPT THE GET DEPTH FUNCTION
         });
 
-    m_atmospherebuffer = std::make_unique<Framebuffer>(Framebuffer::DepthFormat::None, std::vector{ TextureDefinition{Framebuffer::ColourFormat::RGBA8} });
-    m_decoration_buffer = std::make_unique<Framebuffer>(Framebuffer::DepthFormat::None, std::vector { TextureDefinition { Framebuffer::ColourFormat::RGBA8 } });
+    m_atmospherebuffer = std::make_unique<Framebuffer>(Framebuffer::DepthFormat::None, std::vector { Framebuffer::ColourFormat::RGBA8 });
+    m_decoration_buffer = std::make_unique<Framebuffer>(Framebuffer::DepthFormat::None, std::vector { Framebuffer::ColourFormat::RGBA8 });
     f->glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, m_gbuffer->depth_texture()->textureId(), 0);
 
     m_shared_config_ubo = std::make_shared<gl_engine::UniformBuffer<gl_engine::uboSharedConfig>>(0, "shared_config");
