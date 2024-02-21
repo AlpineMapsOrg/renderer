@@ -61,23 +61,22 @@ void TileManager::init()
 {
     using nucleus::utils::terrain_mesh_index_generator::surface_quads_with_curtains;
     assert(QOpenGLContext::currentContext());
-    for (auto i = 0; i < MAX_TILES_PER_TILESET; ++i) {
-        const auto indices = surface_quads_with_curtains<uint16_t>(N_EDGE_VERTICES);
-        auto index_buffer = std::make_unique<QOpenGLBuffer>(QOpenGLBuffer::IndexBuffer);
-        index_buffer->create();
-        index_buffer->bind();
-        index_buffer->setUsagePattern(QOpenGLBuffer::StaticDraw);
-        index_buffer->allocate(indices.data(), bufferLengthInBytes(indices));
-        index_buffer->release();
-        m_index_buffers.emplace_back(std::move(index_buffer), indices.size());
-    }
-    auto* f = QOpenGLContext::currentContext()->extraFunctions();
-    f->glGetFloatv(GL_MAX_TEXTURE_MAX_ANISOTROPY_EXT, &m_max_anisotropy);
-}
+    const auto indices = surface_quads_with_curtains<uint16_t>(N_EDGE_VERTICES);
+    auto index_buffer = std::make_unique<QOpenGLBuffer>(QOpenGLBuffer::IndexBuffer);
+    index_buffer->create();
+    index_buffer->bind();
+    index_buffer->setUsagePattern(QOpenGLBuffer::StaticDraw);
+    index_buffer->allocate(indices.data(), bufferLengthInBytes(indices));
+    index_buffer->release();
+    m_index_buffer.first = std::move(index_buffer);
+    m_index_buffer.second = indices.size();
 
-const std::vector<TileSet>& TileManager::tiles() const
-{
-    return m_gpu_tiles;
+    m_ortho_textures = std::make_unique<Texture>(Texture::Target::_2dArray, Texture::Format::CompressedRGBA8);
+    m_ortho_textures->setParams(Texture::Filter::Linear, Texture::Filter::Linear);
+    // TODO: might become larger than GL_MAX_ARRAY_TEXTURE_LAYERS
+    m_ortho_textures->allocate_array(ORTHO_RESOLUTION, ORTHO_RESOLUTION, unsigned(m_loaded_tiles.size()));
+
+    // m_heightmap_textures = std::make_unique<Texture>(Texture::Target::_2dArray, Texture::Format::R16UI);
 }
 
 bool compareTileSetPair(std::pair<float, const TileSet*> t1, std::pair<float, const TileSet*> t2)
@@ -95,12 +94,12 @@ void TileManager::draw(ShaderProgram* shader_program, const nucleus::camera::Def
 {
     QOpenGLExtraFunctions* f = QOpenGLContext::currentContext()->extraFunctions();
     shader_program->set_uniform("n_edge_vertices", N_EDGE_VERTICES);
-    shader_program->set_uniform("texture_sampler", 2);
+    shader_program->set_uniform("ortho_sampler", 2);
     shader_program->set_uniform("height_sampler", 1);
 
     // Sort depending on distance to sort_position
     std::vector<std::pair<float, const TileSet*>> tile_list;
-    for (const auto& tileset : tiles()) {
+    for (const auto& tileset : m_gpu_tiles) {
         float dist = 0.0;
         if (!draw_tiles.contains(tileset.tiles.front().first))
             continue;
@@ -115,12 +114,13 @@ void TileManager::draw(ShaderProgram* shader_program, const nucleus::camera::Def
     }
     if (sort_tiles) std::sort(tile_list.begin(), tile_list.end(), compareTileSetPair);
 
+    m_ortho_textures->bind(2);
     for (const auto& tileset : tile_list) {
         tileset.second->vao->bind();
         shader_program->set_uniform_array("bounds", boundsArray(*tileset.second, camera.position()));
-        shader_program->set_uniform("tileset_id", (int)((tileset.second->tiles[0].first.coords[0] + tileset.second->tiles[0].first.coords[1])));
+        shader_program->set_uniform("tileset_id", int((tileset.second->tiles[0].first.coords[0] + tileset.second->tiles[0].first.coords[1])));
         shader_program->set_uniform("tileset_zoomlevel", tileset.second->tiles[0].first.zoom_level);
-        tileset.second->ortho_texture->bind(2);
+        shader_program->set_uniform("texture_layer", int(tileset.second->texture_layer));
         tileset.second->heightmap_texture->bind(1);
         f->glDrawElements(GL_TRIANGLE_STRIP, tileset.second->gl_element_count, tileset.second->gl_index_type, nullptr);
     }
@@ -131,6 +131,12 @@ void TileManager::remove_tile(const tile::Id& tile_id)
 {
     if (!QOpenGLContext::currentContext()) // can happen during shutdown.
         return;
+
+    const auto t = std::find(m_loaded_tiles.begin(), m_loaded_tiles.end(), tile_id);
+    assert(t != m_loaded_tiles.end()); // removing a tile that's not here. likely there is a race.
+    *t = tile::Id { unsigned(-1), {} };
+    m_draw_list_generator.remove_tile(tile_id);
+
     // clear slot
     // or remove from list and free resources
     const auto found_tile = std::find_if(m_gpu_tiles.begin(), m_gpu_tiles.end(), [&tile_id](const TileSet& tileset) {
@@ -138,7 +144,6 @@ void TileManager::remove_tile(const tile::Id& tile_id)
     });
     if (found_tile != m_gpu_tiles.end())
         m_gpu_tiles.erase(found_tile);
-    m_draw_list_generator.remove_tile(tile_id);
 
     emit tiles_changed();
 }
@@ -148,6 +153,12 @@ void TileManager::initilise_attribute_locations(ShaderProgram* /*program*/) { }
 void TileManager::set_aabb_decorator(const nucleus::tile_scheduler::utils::AabbDecoratorPtr& new_aabb_decorator)
 {
     m_draw_list_generator.set_aabb_decorator(new_aabb_decorator);
+}
+
+void TileManager::set_quad_limit(unsigned int new_limit)
+{
+    m_loaded_tiles.resize(new_limit * 4);
+    std::fill(m_loaded_tiles.begin(), m_loaded_tiles.end(), tile::Id { unsigned(-1), {} });
 }
 
 void TileManager::add_tile(
@@ -166,19 +177,22 @@ void TileManager::add_tile(
     tileset.vao->bind();
 
     { // vao state
-        m_index_buffers[0].first->bind();
-        tileset.gl_element_count = int(m_index_buffers[0].second);
+        m_index_buffer.first->bind();
+        tileset.gl_element_count = int(m_index_buffer.second);
         tileset.gl_index_type = GL_UNSIGNED_SHORT;
     }
     tileset.vao->release();
-    tileset.ortho_texture = std::make_unique<Texture>(Texture::Target::_2d,
-        ortho_texture.format() == nucleus::utils::ColourTexture::Format::Uncompressed_RGBA ? Texture::Format::RGBA8 : Texture::Format::CompressedRGBA8);
-    tileset.ortho_texture->setParams(Texture::Filter::Linear, Texture::Filter::Linear);
-    tileset.ortho_texture->upload(ortho_texture);
 
     tileset.heightmap_texture = std::make_unique<Texture>(Texture::Target::_2d, Texture::Format::R16UI);
     tileset.heightmap_texture->setParams(Texture::Filter::Nearest, Texture::Filter::Nearest);
     tileset.heightmap_texture->upload(height_map);
+
+    // find empty spot and upload texture
+    const auto t = std::find(m_loaded_tiles.begin(), m_loaded_tiles.end(), tile::Id { unsigned(-1), {} });
+    assert(t != m_loaded_tiles.end());
+    *t = id;
+    m_ortho_textures->upload(ortho_texture, unsigned(t - m_loaded_tiles.begin()));
+    tileset.texture_layer = unsigned(t - m_loaded_tiles.begin());
 
     // add to m_gpu_tiles
     m_gpu_tiles.push_back(std::move(tileset));
@@ -194,6 +208,11 @@ void TileManager::set_permissible_screen_space_error(float new_permissible_scree
 
 void TileManager::update_gpu_quads(const std::vector<nucleus::tile_scheduler::tile_types::GpuTileQuad>& new_quads, const std::vector<tile::Id>& deleted_quads)
 {
+    for (const auto& quad : deleted_quads) {
+        for (const auto& id : quad.children()) {
+            remove_tile(id);
+        }
+    }
     for (const auto& quad : new_quads) {
         for (const auto& tile : quad.tiles) {
             // test for validity
@@ -201,11 +220,6 @@ void TileManager::update_gpu_quads(const std::vector<nucleus::tile_scheduler::ti
             assert(tile.height);
             assert(tile.ortho);
             add_tile(tile.id, tile.bounds, *tile.ortho, *tile.height);
-        }
-    }
-    for (const auto& quad : deleted_quads) {
-        for (const auto& id : quad.children()) {
-            remove_tile(id);
         }
     }
 }

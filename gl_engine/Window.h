@@ -75,6 +75,7 @@ public:
     void keyReleaseEvent(QKeyEvent*);
     void updateCameraEvent();
     void set_permissible_screen_space_error(float new_error) override;
+    void set_quad_limit(unsigned new_limit) override;
 
 public slots:
     void update_camera(const nucleus::camera::Definition& new_definition) override;

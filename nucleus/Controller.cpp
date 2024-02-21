@@ -60,7 +60,8 @@ Controller::Controller(AbstractRenderWindow* render_window)
 
     m_tile_scheduler = std::make_unique<nucleus::tile_scheduler::Scheduler>();
     m_tile_scheduler->read_disk_cache();
-    m_tile_scheduler->set_gpu_quad_limit(500);
+    m_render_window->set_quad_limit(512); // must be same as scheduler, dynamic resizing is not supported atm
+    m_tile_scheduler->set_gpu_quad_limit(512);
     m_tile_scheduler->set_ram_quad_limit(12000);
     {
         QFile file(":/map/height_data.atb");

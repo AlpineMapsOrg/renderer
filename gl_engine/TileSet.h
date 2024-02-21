@@ -46,12 +46,12 @@ struct TileSet {
         [[nodiscard]] bool isValid() const { return tile_id.zoom_level < 100; }
     };
 
-    std::unique_ptr<Texture> ortho_texture;
     std::unique_ptr<Texture> heightmap_texture;
     std::unique_ptr<QOpenGLVertexArrayObject> vao;
     std::vector<std::pair<tile::Id, tile::SrsBounds>> tiles;
     int gl_element_count = -1;
     unsigned gl_index_type = 0;
+    unsigned texture_layer = unsigned(-1);
     // texture
 };
 } // namespace gl_engine

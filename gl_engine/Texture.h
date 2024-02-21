@@ -56,6 +56,9 @@ private:
     Format m_format = Format::Invalid;
     Filter m_min_filter = Filter::Nearest;
     Filter m_mag_filter = Filter::Nearest;
+    unsigned m_width = unsigned(-1);
+    unsigned m_height = unsigned(-1);
+    unsigned m_n_layers = unsigned(-1);
 };
 
 } // namespace gl_engine

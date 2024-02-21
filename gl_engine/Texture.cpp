@@ -89,6 +89,9 @@ void gl_engine::Texture::allocate_array(unsigned int width, unsigned int height,
         internalformat = gl_engine::Texture::compressed_texture_format();
 
     f->glTexStorage3D(GLenum(m_target), mip_level_count, internalformat, GLsizei(width), GLsizei(height), GLsizei(n_layers));
+    m_width = width;
+    m_height = height;
+    m_n_layers = n_layers;
 }
 
 void gl_engine::Texture::upload(const nucleus::utils::ColourTexture& texture)
@@ -113,6 +116,10 @@ void gl_engine::Texture::upload(const nucleus::utils::ColourTexture& texture)
 
 void gl_engine::Texture::upload(const nucleus::utils::ColourTexture& texture, unsigned int array_index)
 {
+    assert(texture.width() == m_width);
+    assert(texture.height() == m_height);
+    assert(array_index < m_n_layers);
+
     auto* f = QOpenGLContext::currentContext()->extraFunctions();
     f->glBindTexture(GLenum(m_target), m_id);
     f->glPixelStorei(GL_UNPACK_ALIGNMENT, 1);

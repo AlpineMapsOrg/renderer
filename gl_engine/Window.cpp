@@ -422,11 +422,9 @@ void Window::updateCameraEvent()
     emit update_camera_requested();
 }
 
-void Window::set_permissible_screen_space_error(float new_error)
-{
-    if (m_tile_manager)
-        m_tile_manager->set_permissible_screen_space_error(new_error);
-}
+void Window::set_permissible_screen_space_error(float new_error) { m_tile_manager->set_permissible_screen_space_error(new_error); }
+
+void Window::set_quad_limit(unsigned int new_limit) { m_tile_manager->set_quad_limit(new_limit); }
 
 void Window::update_camera(const nucleus::camera::Definition& new_definition)
 {

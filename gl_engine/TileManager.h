@@ -45,7 +45,6 @@ public:
     explicit TileManager(QObject* parent = nullptr);
     void init(); // needs OpenGL context
 
-    [[nodiscard]] const std::vector<TileSet>& tiles() const;
     void draw(ShaderProgram* shader_program, const nucleus::camera::Definition& camera, const nucleus::tile_scheduler::DrawListGenerator::TileSet draw_tiles, bool sort_tiles, glm::dvec3 sort_position) const;
 
     const nucleus::tile_scheduler::DrawListGenerator::TileSet generate_tilelist(const nucleus::camera::Definition& camera) const;
@@ -60,6 +59,7 @@ public slots:
     void remove_tile(const tile::Id& tile_id);
     void initilise_attribute_locations(ShaderProgram* program);
     void set_aabb_decorator(const nucleus::tile_scheduler::utils::AabbDecoratorPtr& new_aabb_decorator);
+    void set_quad_limit(unsigned new_limit);
 
 private:
     void add_tile(const tile::Id& id, tile::SrsAndHeightBounds bounds, const nucleus::utils::ColourTexture& ortho, const nucleus::Raster<uint16_t>& heights);
@@ -68,16 +68,13 @@ private:
 
     static constexpr auto N_EDGE_VERTICES = 65;
     static constexpr auto ORTHO_RESOLUTION = 256;
-    static constexpr auto MAX_TILES_PER_TILESET = 1;
-    float m_max_anisotropy = 0;
+
+    std::vector<tile::Id> m_loaded_tiles;
+    std::pair<std::unique_ptr<QOpenGLBuffer>, size_t> m_index_buffer;
+    std::unique_ptr<Texture> m_ortho_textures;
+    std::unique_ptr<Texture> m_heightmap_textures;
 
     std::vector<TileSet> m_gpu_tiles;
-    // indexbuffers for 4^index tiles,
-    // e.g., for single tile tile sets take index 0
-    //       for 4 tiles take index 1, for 16 2..
-    // the size_t is the number of indices
-    std::vector<std::pair<std::unique_ptr<QOpenGLBuffer>, size_t>> m_index_buffers;
-    std::unique_ptr<QOpenGLBuffer> m_dummy_buffer;
     TileGLAttributeLocations m_attribute_locations;
     unsigned m_tiles_per_set = 1;
     nucleus::tile_scheduler::DrawListGenerator m_draw_list_generator;
