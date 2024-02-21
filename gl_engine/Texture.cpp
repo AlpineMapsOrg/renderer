@@ -35,7 +35,6 @@ gl_engine::Texture::Texture(Target target, Format format)
 {
     QOpenGLFunctions* f = QOpenGLContext::currentContext()->functions();
     f->glGenTextures(1, &m_id);
-    bind(0);
 }
 
 gl_engine::Texture::~Texture()
@@ -78,7 +77,6 @@ void gl_engine::Texture::allocate_array(unsigned int width, unsigned int height,
 {
     assert(m_target == Target::_2dArray);
     assert(m_format != Format::Invalid);
-    auto* f = QOpenGLContext::currentContext()->extraFunctions();
 
     auto mip_level_count = 1;
     if (m_min_filter == Filter::MipMapLinear)
@@ -88,10 +86,13 @@ void gl_engine::Texture::allocate_array(unsigned int width, unsigned int height,
     if (m_format == Format::CompressedRGBA8)
         internalformat = gl_engine::Texture::compressed_texture_format();
 
-    f->glTexStorage3D(GLenum(m_target), mip_level_count, internalformat, GLsizei(width), GLsizei(height), GLsizei(n_layers));
     m_width = width;
     m_height = height;
     m_n_layers = n_layers;
+
+    auto* f = QOpenGLContext::currentContext()->extraFunctions();
+    f->glBindTexture(GLenum(m_target), m_id);
+    f->glTexStorage3D(GLenum(m_target), mip_level_count, internalformat, GLsizei(width), GLsizei(height), GLsizei(n_layers));
 }
 
 void gl_engine::Texture::upload(const nucleus::utils::ColourTexture& texture)
@@ -154,14 +155,31 @@ void gl_engine::Texture::upload(const nucleus::Raster<glm::u8vec2>& texture)
 void gl_engine::Texture::upload(const nucleus::Raster<uint16_t>& texture)
 {
     assert(m_format == Format::R16UI);
+    assert(m_mag_filter == Filter::Nearest); // not filterable according to
+    assert(m_min_filter == Filter::Nearest); // https://registry.khronos.org/OpenGL-Refpages/es3.0/html/glTexStorage2D.xhtml
 
     QOpenGLFunctions* f = QOpenGLContext::currentContext()->functions();
     f->glBindTexture(GLenum(m_target), m_id);
     f->glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
     f->glTexImage2D(GLenum(m_target), 0, GL_R16UI, GLsizei(texture.width()), GLsizei(texture.height()), 0, GL_RED_INTEGER, GL_UNSIGNED_SHORT, texture.bytes());
+}
 
-    // not Texture filterable according to https://registry.khronos.org/OpenGL-Refpages/es3.0/html/glTexImage2D.xhtml
-    assert(m_min_filter != Filter::MipMapLinear);
+void gl_engine::Texture::upload(const nucleus::Raster<uint16_t>& texture, unsigned int array_index)
+{
+    assert(m_format == Format::R16UI);
+    assert(m_mag_filter == Filter::Nearest); // not filterable according to
+    assert(m_min_filter == Filter::Nearest); // https://registry.khronos.org/OpenGL-Refpages/es3.0/html/glTexStorage2D.xhtml
+    assert(array_index < m_n_layers);
+    assert(texture.width() == m_width);
+    assert(texture.height() == m_height);
+
+    const auto width = GLsizei(texture.width());
+    const auto height = GLsizei(texture.height());
+
+    auto* f = QOpenGLContext::currentContext()->extraFunctions();
+    f->glBindTexture(GLenum(m_target), m_id);
+    f->glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
+    f->glTexSubImage3D(GLenum(m_target), 0, 0, 0, GLint(array_index), width, height, 1, GL_RED_INTEGER, GL_UNSIGNED_SHORT, texture.bytes());
 }
 
 GLenum gl_engine::Texture::compressed_texture_format()

@@ -46,6 +46,7 @@ public:
     void upload(const nucleus::utils::ColourTexture& texture, unsigned array_index);
     void upload(const nucleus::Raster<glm::u8vec2>& texture);
     void upload(const nucleus::Raster<uint16_t>& texture);
+    void upload(const nucleus::Raster<uint16_t>& texture, unsigned int array_index);
 
     static GLenum compressed_texture_format();
     static nucleus::utils::ColourTexture::Format compression_algorithm();
