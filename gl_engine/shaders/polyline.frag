@@ -85,7 +85,16 @@ void main() {
     // distance from camera to terrain, negative if sky
     highp float dist = pos_dist.w;
 
-    Ray ray = Ray(camera_position, normalize(terrain_pos / dist));
+    bool sky = dist < 0;
+
+    if (sky) {
+        out_color = vec4(0,1,0,1);
+        return;
+    }
+
+    // we need some better way of generating this ray
+    Ray ray = Ray(camera_position, normalize(terrain_pos / abs(dist)));
+    //Ray ray = Ray(camera_position, normalize(camera_position - terrain_pos));
 
 #if (GEOMETRY == SPHERE)
     Sphere sphere = Sphere(x1, radius);
@@ -105,7 +114,7 @@ void main() {
 
     float t = intersect_capsule_2(ray, c);
 
-    if (0 < t && t < INF) {
+    if ((0 < t && t < INF)) {
 
         vec3 point = ray.origin + ray.direction * t;
 

@@ -113,33 +113,26 @@ namespace gpx {
 
 std::vector<glm::vec4> to_world_points(const gpx::Gpx& gpx)
 {
-    std::vector<glm::dvec4> track;
+    std::vector<glm::vec4> track;
 
     QDateTime epoch(QDate(1970, 1, 1).startOfDay());
 
     for (const gpx::TrackSegment& segment : gpx.track) {
-        //for (const gpx::TrackPoint &point : segment) {
         for (size_t i = 0U; i < segment.size(); ++i) {
 
-            double time_since_epoch = 0;
+            float time_since_epoch = 0;
 
             if (i > 0) {
-                time_since_epoch = static_cast<double>(segment[i - 1].timestamp.msecsTo(segment[i].timestamp));
+                time_since_epoch = static_cast<float>(segment[i - 1].timestamp.msecsTo(segment[i].timestamp));
             }
 
-            track.push_back({segment[i].latitude, segment[i].longitude, segment[i].elevation, time_since_epoch});
+            auto point = glm::dvec3(segment[i].latitude,segment[i].longitude,segment[i].elevation);
+
+            track.push_back(glm::vec4(srs::lat_long_alt_to_world(point), time_since_epoch));
         }
     }
 
-    std::vector<glm::vec4> points(track.size());
-
-    for (auto i = 0U; i < track.size(); i++) {
-        points[i] = glm::vec4(srs::lat_long_alt_to_world(track[i]), track[i].w);
-    }
-
-    std::cout << "First Point: " << points[0] << std::endl;
-
-    return points;
+    return track;
 }
 
 std::vector<glm::vec3> triangle_strip_ribbon(const std::vector<glm::vec3>& points, float width)
