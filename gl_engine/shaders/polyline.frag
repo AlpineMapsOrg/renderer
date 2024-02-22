@@ -9,12 +9,11 @@ layout (location = 0) out lowp vec4 out_color;
 #define SPHERE      0
 #define CAPSULE     1
 
-#define GEOMETRY    1
-
-in highp vec3 color;
+#define GEOMETRY    CAPSULE
 
 flat in highp int vertex_id;
-flat in float radius;
+flat in highp float radius;
+in highp vec3 color;
 
 uniform highp sampler2D texin_track;
 uniform highp sampler2D texin_position;
@@ -27,41 +26,41 @@ uniform highp mat4 proj;
 
 uniform highp vec2 resolution;
 
-vec3 visualize_normal(in vec3 normal) {
+highp vec3 visualize_normal(highp vec3 normal) {
     return (normal + vec3(1.0)) / vec3(2.0);
 }
 
 // https://sibaku.github.io/computer-graphics/2017/01/10/Camera-Ray-Generation.html
-vec3 camera_ray(vec2 px, mat4 inverse_proj, mat4 inverse_view)
+highp vec3 camera_ray(highp vec2 px, highp mat4 inverse_proj, highp mat4 inverse_view)
 {
-    vec2 pxNDS =  2 * px - 1;
-    vec3 pointNDS = vec3(pxNDS, -1.);
-    vec4 pointNDSH = vec4(pointNDS, 1.0);
+    highp vec2 pxNDS =  2 * px - 1;
+    highp vec3 pointNDS = vec3(pxNDS, -1.);
+    highp vec4 pointNDSH = vec4(pointNDS, 1.0);
 
-    vec4 eye_dir = inverse_proj * pointNDSH;
+    highp vec4 eye_dir = inverse_proj * pointNDSH;
     eye_dir.w = 0.;
 
-    vec3 world_dir = (inverse_view * eye_dir).xyz;
+    highp vec3 world_dir = (inverse_view * eye_dir).xyz;
 
     return normalize(world_dir);
 }
 
-vec3 phong_lighting(in vec3 albedo, in vec3 normal) {
-    vec4 dirLight = conf.sun_light;
-    vec4 ambLight  =  conf.amb_light;
+vec3 phong_lighting(highp vec3 albedo, highp vec3 normal) {
+    highp vec4 dirLight = conf.sun_light;
+    highp vec4 ambLight  =  conf.amb_light;
 
-    vec3 material = vec3(1.0);
+    highp vec3 material = vec3(1.0);
 
-    vec3 dirColor = dirLight.rgb * dirLight.a;
-    vec3 ambColor = ambLight.rgb * ambLight.a;
+    highp vec3 dirColor = dirLight.rgb * dirLight.a;
+    highp vec3 ambColor = ambLight.rgb * ambLight.a;
 
-    vec3 ambient = material.r * albedo;
-    vec3 diff = material.g * albedo;
-    vec3 spec = vec3(material.b);
+    highp vec3 ambient = material.r * albedo;
+    highp vec3 diff = material.g * albedo;
+    highp vec3 spec = vec3(material.b);
 
-    vec3 sun_light_dir = conf.sun_light_dir.xyz;
+    highp vec3 sun_light_dir = conf.sun_light_dir.xyz;
 
-    float lambertian_coeff = max(0.0, dot(normal, sun_light_dir));
+    highp float lambertian_coeff = max(0.0, dot(normal, sun_light_dir));
 
     return (ambient * ambColor) + (dirColor * lambertian_coeff);
 }
@@ -118,7 +117,7 @@ void main() {
 #if (GEOMETRY == SPHERE)
     Sphere sphere = Sphere(x1, radius);
 
-    float t = INF;
+    highp float t = INF;
     vec3 point;
 
     if (IntersectRaySphere(ray, sphere, t, point)) {
@@ -131,21 +130,21 @@ void main() {
 
     Capsule c = Capsule(x1, x2, radius);
 
-    float t = intersect_capsule_2(ray, c);
+    highp float t = intersect_capsule_2(ray, c);
 
     if ((0 < t && t < INF)) {
 
-        vec3 point = ray.origin + ray.direction * t;
+        highp vec3 point = ray.origin + ray.direction * t;
 
-        vec3 normal = capsule_normal_2(point, c);
+        highp vec3 normal = capsule_normal_2(point, c);
 
         Plane clipping_plane_1, clipping_plane_2;
 
-        vec3 n0 = -normalize(x2 - x0);
+        highp vec3 n0 = -normalize(x2 - x0);
         clipping_plane_1.normal = n0;
         clipping_plane_1.distance = dot(x1, n0);
 
-        vec3 n1 = -normalize(x3 - x1);
+        highp vec3 n1 = -normalize(x3 - x1);
         clipping_plane_2.normal = n1;
         clipping_plane_2.distance = dot(x2, n1);
 
@@ -154,16 +153,16 @@ void main() {
             (0.0 <= signed_distance(point, clipping_plane_2)) // TODO: handle end of tube
         ) {
 
-            vec3 color;
+            highp vec3 color;
 
-            vec3 RED = vec3(1,0,0);
-            vec3 BLUE = vec3(0,0,1);
+            highp vec3 RED = vec3(1,0,0);
+            highp vec3 BLUE = vec3(0,0,1);
 
-            vec3 A = x1;
-            vec3 AP = point - x1;
-            vec3 AB = x2 - x1;
+            highp vec3 A = x1;
+            highp vec3 AP = point - x1;
+            highp vec3 AB = x2 - x1;
 
-            float f = dot(AP,AB) / dot(AB,AB);
+            highp float f = dot(AP,AB) / dot(AB,AB);
 
             if (shading_method == 0) { // default
 
@@ -175,21 +174,21 @@ void main() {
 
             } else if (shading_method == 2) { // speed
 
-                float speed_0 = length(x0 - x1) / p1.w;
-                float speed_1 = length(x1 - x2) / p2.w;
+                highp float speed_0 = length(x0 - x1) / p1.w;
+                highp float speed_1 = length(x1 - x2) / p2.w;
 
-                float max_speed = 0.005; // TODO: should be dynamic
+                highp float max_speed = 0.005; // TODO: should be dynamic
 
-                float t_0 = clamp(speed_0 / max_speed, 0, 1);
-                float t_1 = clamp(speed_1 / max_speed, 0, 1);
+                highp float t_0 = clamp(speed_0 / max_speed, 0, 1);
+                highp float t_1 = clamp(speed_1 / max_speed, 0, 1);
 
                 color = mix(TurboColormap(t_0), TurboColormap(t_1), f);
 
             } else if (shading_method == 3) {  // steepness
-                vec3 d1 = normalize(x0 - x1);
-                vec3 d2 = normalize(x1 - x2);
+                highp vec3 d1 = normalize(x0 - x1);
+                highp vec3 d2 = normalize(x1 - x2);
 
-                vec3 up = vec3(0,0,1);
+                highp vec3 up = vec3(0,0,1);
 
                 color = mix( TurboColormap(abs(dot(d1, up))), TurboColormap(abs(dot(d2, up))), f);
 
@@ -203,7 +202,7 @@ void main() {
 #if 0
             } else if ((t - dist) <= c.radius * 2) {
 
-                float delta = (t - dist) / (c.radius * 2);
+                highp float delta = (t - dist) / (c.radius * 2);
 
                 out_color = vec4(color, 0.3);
 #endif

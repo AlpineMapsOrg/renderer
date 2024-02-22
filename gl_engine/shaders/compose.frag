@@ -27,7 +27,6 @@ highp float calculate_falloff(highp float dist, highp float from, highp float to
 #include "camera_config.glsl"
 #include "hashing.glsl"
 #include "overlay_steepness.glsl"
-#include "intersection.glsl"
 #include "snow.glsl"
 
 #line 1
@@ -49,7 +48,7 @@ uniform highp sampler2D texin_csm3;         // f32vec1
 uniform highp sampler2D texin_csm4;         // f32vec1
 
 uniform highp sampler2D texin_track;            // f32vec3
-uniform highp usampler2D texin_track_vert_id;    
+uniform highp usampler2D texin_track_vert_id;
 
 
 // Calculates the diffuse and specular illumination contribution for the given
