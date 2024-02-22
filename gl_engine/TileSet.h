@@ -29,18 +29,8 @@
 
 namespace gl_engine {
 struct TileSet {
-    struct Tile {
-        tile::Id tile_id;
-        tile::SrsBounds bounds;
-        void invalidate()
-        {
-            tile_id = { unsigned(-1), { unsigned(-1), unsigned(-1) } };
-            bounds = {};
-        }
-        [[nodiscard]] bool isValid() const { return tile_id.zoom_level < 100; }
-    };
-
-    std::vector<std::pair<tile::Id, tile::SrsBounds>> tiles;
+    tile::Id tile_id = {};
+    tile::SrsBounds bounds = {};
     unsigned texture_layer = unsigned(-1);
     // texture
 };

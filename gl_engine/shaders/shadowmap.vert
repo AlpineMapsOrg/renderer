@@ -21,7 +21,7 @@
 #include "camera_config.glsl"
 #include "shadow_config.glsl"
 
-uniform highp vec4 bounds[32];
+in highp vec4 bounds;
 
 uniform highp int n_edge_vertices;
 uniform highp int texture_layer;
@@ -39,12 +39,11 @@ highp float y_to_lat(highp float y) {
 }
 
 void main() {
-    highp int geometry_id = 0;
     highp int edge_vertices_count_int = n_edge_vertices - 1;
     highp float edge_vertices_count_float = float(edge_vertices_count_int);
     // Note: The following is actually not the tile_width but the primitive/cell width/height
-    highp float tile_width = (bounds[geometry_id].z - bounds[geometry_id].x) / edge_vertices_count_float;
-    highp float tile_height = (bounds[geometry_id].w - bounds[geometry_id].y) / edge_vertices_count_float;
+    highp float tile_width = (bounds.z - bounds.x) / edge_vertices_count_float;
+    highp float tile_height = (bounds.w - bounds.y) / edge_vertices_count_float;
 
     highp int row = gl_VertexID / n_edge_vertices;
     highp int col = gl_VertexID - (row * n_edge_vertices);
@@ -68,14 +67,14 @@ void main() {
         }
     }
     // Note: May be enough to calculate altitude_correction_factor per tile on CPU:
-    highp float var_pos_cws_y = float(edge_vertices_count_int - row) * float(tile_width) + bounds[geometry_id].y;
+    highp float var_pos_cws_y = float(edge_vertices_count_int - row) * float(tile_width) + bounds.y;
     highp float pos_y = var_pos_cws_y + camera.position.y;
     float altitude_correction_factor = 0.125 / cos(y_to_lat(pos_y)); // https://github.com/AlpineMapsOrg/renderer/issues/5
 
     vec2 uv = vec2(float(col) / edge_vertices_count_float, float(row) / edge_vertices_count_float);
     highp float adjusted_altitude = float(texture(height_sampler, vec3(uv, texture_layer)).r) * altitude_correction_factor;
 
-    highp vec3 var_pos_cws = vec3(float(col) * tile_width + bounds[geometry_id].x,
+    highp vec3 var_pos_cws = vec3(float(col) * tile_width + bounds.x,
                        var_pos_cws_y,
                        adjusted_altitude - camera.position.z);
 

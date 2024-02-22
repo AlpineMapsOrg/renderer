@@ -65,21 +65,22 @@ public slots:
 
 private:
     void add_tile(const tile::Id& id, tile::SrsAndHeightBounds bounds, const nucleus::utils::ColourTexture& ortho, const nucleus::Raster<uint16_t>& heights);
-    struct TileGLAttributeLocations {
-    };
 
     static constexpr auto N_EDGE_VERTICES = 65;
     static constexpr auto ORTHO_RESOLUTION = 256;
     static constexpr auto HEIGHTMAP_RESOLUTION = 65;
 
     std::vector<tile::Id> m_loaded_tiles;
-    std::pair<std::unique_ptr<QOpenGLBuffer>, size_t> m_index_buffer;
     std::unique_ptr<Texture> m_ortho_textures;
     std::unique_ptr<Texture> m_heightmap_textures;
     std::unique_ptr<QOpenGLVertexArrayObject> m_vao;
+    std::pair<std::unique_ptr<QOpenGLBuffer>, size_t> m_index_buffer;
+    std::unique_ptr<QOpenGLBuffer> m_bounds_buffer;
+    std::unique_ptr<QOpenGLBuffer> m_tileset_id_buffer;
+    std::unique_ptr<QOpenGLBuffer> m_zoom_level_buffer;
+    std::unique_ptr<QOpenGLBuffer> m_texture_layer_buffer;
 
     std::vector<TileSet> m_gpu_tiles;
-    TileGLAttributeLocations m_attribute_locations;
     unsigned m_tiles_per_set = 1;
     nucleus::tile_scheduler::DrawListGenerator m_draw_list_generator;
     const nucleus::tile_scheduler::DrawListGenerator::TileSet m_last_draw_list; // buffer last generated draw list
