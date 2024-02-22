@@ -71,12 +71,20 @@ void TileManager::init()
     m_index_buffer.first = std::move(index_buffer);
     m_index_buffer.second = indices.size();
 
+    m_vao = std::make_unique<QOpenGLVertexArrayObject>();
+    m_vao->create();
+    m_vao->bind();
+    m_index_buffer.first->bind();
+    m_vao->release();
+
     m_ortho_textures = std::make_unique<Texture>(Texture::Target::_2dArray, Texture::Format::CompressedRGBA8);
     m_ortho_textures->setParams(Texture::Filter::Linear, Texture::Filter::Linear);
     // TODO: might become larger than GL_MAX_ARRAY_TEXTURE_LAYERS
     m_ortho_textures->allocate_array(ORTHO_RESOLUTION, ORTHO_RESOLUTION, unsigned(m_loaded_tiles.size()));
 
-    // m_heightmap_textures = std::make_unique<Texture>(Texture::Target::_2dArray, Texture::Format::R16UI);
+    m_heightmap_textures = std::make_unique<Texture>(Texture::Target::_2dArray, Texture::Format::R16UI);
+    m_heightmap_textures->setParams(Texture::Filter::Nearest, Texture::Filter::Nearest);
+    m_heightmap_textures->allocate_array(HEIGHTMAP_RESOLUTION, HEIGHTMAP_RESOLUTION, unsigned(m_loaded_tiles.size()));
 }
 
 bool compareTileSetPair(std::pair<float, const TileSet*> t1, std::pair<float, const TileSet*> t2)
@@ -115,14 +123,14 @@ void TileManager::draw(ShaderProgram* shader_program, const nucleus::camera::Def
     if (sort_tiles) std::sort(tile_list.begin(), tile_list.end(), compareTileSetPair);
 
     m_ortho_textures->bind(2);
+    m_heightmap_textures->bind(1);
+    m_vao->bind();
     for (const auto& tileset : tile_list) {
-        tileset.second->vao->bind();
         shader_program->set_uniform_array("bounds", boundsArray(*tileset.second, camera.position()));
         shader_program->set_uniform("tileset_id", int((tileset.second->tiles[0].first.coords[0] + tileset.second->tiles[0].first.coords[1])));
         shader_program->set_uniform("tileset_zoomlevel", tileset.second->tiles[0].first.zoom_level);
         shader_program->set_uniform("texture_layer", int(tileset.second->texture_layer));
-        tileset.second->heightmap_texture->bind(1);
-        f->glDrawElements(GL_TRIANGLE_STRIP, tileset.second->gl_element_count, tileset.second->gl_index_type, nullptr);
+        f->glDrawElements(GL_TRIANGLE_STRIP, int(m_index_buffer.second), GL_UNSIGNED_SHORT, nullptr);
     }
     f->glBindVertexArray(0);
 }
@@ -172,27 +180,15 @@ void TileManager::add_tile(
     // setup / copy data to gpu
     TileSet tileset;
     tileset.tiles.emplace_back(id, tile::SrsBounds(bounds));
-    tileset.vao = std::make_unique<QOpenGLVertexArrayObject>();
-    tileset.vao->create();
-    tileset.vao->bind();
-
-    { // vao state
-        m_index_buffer.first->bind();
-        tileset.gl_element_count = int(m_index_buffer.second);
-        tileset.gl_index_type = GL_UNSIGNED_SHORT;
-    }
-    tileset.vao->release();
-
-    tileset.heightmap_texture = std::make_unique<Texture>(Texture::Target::_2d, Texture::Format::R16UI);
-    tileset.heightmap_texture->setParams(Texture::Filter::Nearest, Texture::Filter::Nearest);
-    tileset.heightmap_texture->upload(height_map);
 
     // find empty spot and upload texture
     const auto t = std::find(m_loaded_tiles.begin(), m_loaded_tiles.end(), tile::Id { unsigned(-1), {} });
     assert(t != m_loaded_tiles.end());
     *t = id;
-    m_ortho_textures->upload(ortho_texture, unsigned(t - m_loaded_tiles.begin()));
-    tileset.texture_layer = unsigned(t - m_loaded_tiles.begin());
+    const auto layer_index = unsigned(t - m_loaded_tiles.begin());
+    tileset.texture_layer = layer_index;
+    m_ortho_textures->upload(ortho_texture, layer_index);
+    m_heightmap_textures->upload(height_map, layer_index);
 
     // add to m_gpu_tiles
     m_gpu_tiles.push_back(std::move(tileset));

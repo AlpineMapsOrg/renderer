@@ -25,7 +25,8 @@ uniform highp vec4 bounds[32];
 uniform highp int n_edge_vertices;
 uniform highp int tileset_id;
 uniform highp int tileset_zoomlevel;
-uniform mediump usampler2D height_sampler;
+uniform highp int texture_layer;
+uniform mediump usampler2DArray height_sampler;
 
 out highp vec2 uv;
 out highp vec3 var_pos_cws;
@@ -48,13 +49,13 @@ highp vec3 normal_by_finite_difference_method(vec2 uv, float edge_vertices_count
     // from here: https://stackoverflow.com/questions/6656358/calculating-normals-in-a-triangle-mesh/21660173#21660173
     vec2 offset = vec2(1.0, 0.0) / (edge_vertices_count);
     float height = tile_width + tile_height;
-    highp float hL = float(texture(height_sampler, uv - offset.xy).r);
+    highp float hL = float(texture(height_sampler, vec3(uv - offset.xy, texture_layer)).r);
     hL *= altitude_correction_factor;
-    highp float hR = float(texture(height_sampler, uv + offset.xy).r);
+    highp float hR = float(texture(height_sampler, vec3(uv + offset.xy, texture_layer)).r);
     hR *= altitude_correction_factor;
-    highp float hD = float(texture(height_sampler, uv + offset.yx).r);
+    highp float hD = float(texture(height_sampler, vec3(uv + offset.yx, texture_layer)).r);
     hD *= altitude_correction_factor;
-    highp float hU = float(texture(height_sampler, uv - offset.yx).r);
+    highp float hU = float(texture(height_sampler, vec3(uv - offset.yx, texture_layer)).r);
     hU *= altitude_correction_factor;
 
     return normalize(vec3(hL - hR, hD - hU, height));
@@ -104,7 +105,7 @@ void main() {
 
     uv = vec2(float(col) / edge_vertices_count_float, float(row) / edge_vertices_count_float);
 
-    float altitude_tex = float(texture(height_sampler, uv).r);
+    float altitude_tex = float(texture(height_sampler, vec3(uv, texture_layer)).r);
     float adjusted_altitude = altitude_tex * altitude_correction_factor;
 
     var_pos_cws = vec3(float(col) * tile_width + bounds[geometry_id].x,
@@ -133,6 +134,6 @@ void main() {
         case 2u: vertex_color = color_from_id_hash(uint(tileset_id)); break;
         case 3u: vertex_color = color_from_id_hash(uint(tileset_zoomlevel)); break;
         case 4u: vertex_color = color_from_id_hash(uint(gl_VertexID)); break;
-        case 5u: vertex_color = vec3(texture(height_sampler, uv).rrr) / 65535.0; break;
+        case 5u: vertex_color = vec3(texture(height_sampler, vec3(uv, texture_layer)).rrr) / 65535.0; break;
     }
 }

@@ -24,7 +24,8 @@
 uniform highp vec4 bounds[32];
 
 uniform highp int n_edge_vertices;
-uniform mediump usampler2D height_sampler;
+uniform highp int texture_layer;
+uniform mediump usampler2DArray height_sampler;
 
 uniform lowp int current_layer;
 
@@ -72,7 +73,7 @@ void main() {
     float altitude_correction_factor = 0.125 / cos(y_to_lat(pos_y)); // https://github.com/AlpineMapsOrg/renderer/issues/5
 
     vec2 uv = vec2(float(col) / edge_vertices_count_float, float(row) / edge_vertices_count_float);
-    highp float adjusted_altitude = float(texture(height_sampler, uv).r) * altitude_correction_factor;
+    highp float adjusted_altitude = float(texture(height_sampler, vec3(uv, texture_layer)).r) * altitude_correction_factor;
 
     highp vec3 var_pos_cws = vec3(float(col) * tile_width + bounds[geometry_id].x,
                        var_pos_cws_y,

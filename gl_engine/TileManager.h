@@ -1,4 +1,4 @@
- /*****************************************************************************
+/*****************************************************************************
  * Alpine Terrain Renderer
  * Copyright (C) 2023 Adam Celerek
  * Copyright (C) 2023 Gerald Kimmersdorfer
@@ -22,12 +22,14 @@
 #include <memory>
 
 #include <QObject>
+#include <QOpenGLBuffer>
+#include <QOpenGLVertexArrayObject>
 
-#include <nucleus/tile_scheduler/tile_types.h>
-
+#include "gl_engine/Texture.h"
 #include "gl_engine/TileSet.h"
-#include "nucleus/Tile.h"
-#include "nucleus/tile_scheduler/DrawListGenerator.h"
+#include <nucleus/Tile.h>
+#include <nucleus/tile_scheduler/DrawListGenerator.h>
+#include <nucleus/tile_scheduler/tile_types.h>
 
 namespace camera {
 class Definition;
@@ -68,11 +70,13 @@ private:
 
     static constexpr auto N_EDGE_VERTICES = 65;
     static constexpr auto ORTHO_RESOLUTION = 256;
+    static constexpr auto HEIGHTMAP_RESOLUTION = 65;
 
     std::vector<tile::Id> m_loaded_tiles;
     std::pair<std::unique_ptr<QOpenGLBuffer>, size_t> m_index_buffer;
     std::unique_ptr<Texture> m_ortho_textures;
     std::unique_ptr<Texture> m_heightmap_textures;
+    std::unique_ptr<QOpenGLVertexArrayObject> m_vao;
 
     std::vector<TileSet> m_gpu_tiles;
     TileGLAttributeLocations m_attribute_locations;

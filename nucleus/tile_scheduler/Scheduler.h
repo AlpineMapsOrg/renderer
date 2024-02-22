@@ -111,7 +111,7 @@ private:
     unsigned m_gpu_quad_limit = 300;
     unsigned m_ram_quad_limit = 15000;
     static constexpr unsigned m_ortho_tile_size = 256;
-    static constexpr unsigned m_height_tile_size = 64;
+    static constexpr unsigned m_height_tile_size = 65;
     bool m_enabled = false;
     bool m_network_requests_enabled = true;
     Statistics m_statistics;

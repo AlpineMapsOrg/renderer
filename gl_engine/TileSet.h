@@ -19,14 +19,8 @@
 
 #pragma once
 
-#include <memory>
 #include <vector>
 
-#include <QOpenGLBuffer>
-#include <QOpenGLTexture>
-#include <QOpenGLVertexArrayObject>
-
-#include "Texture.h"
 #include "radix/tile.h"
 
 // we want to be flexible and have the ability to draw several tiles at once.
@@ -46,11 +40,7 @@ struct TileSet {
         [[nodiscard]] bool isValid() const { return tile_id.zoom_level < 100; }
     };
 
-    std::unique_ptr<Texture> heightmap_texture;
-    std::unique_ptr<QOpenGLVertexArrayObject> vao;
     std::vector<std::pair<tile::Id, tile::SrsBounds>> tiles;
-    int gl_element_count = -1;
-    unsigned gl_index_type = 0;
     unsigned texture_layer = unsigned(-1);
     // texture
 };
