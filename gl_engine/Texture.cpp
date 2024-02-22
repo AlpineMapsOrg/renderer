@@ -67,10 +67,10 @@ void gl_engine::Texture::setParams(Filter min_filter, Filter mag_filter)
 
     QOpenGLFunctions* f = QOpenGLContext::currentContext()->functions();
     f->glBindTexture(GLenum(m_target), m_id);
-    f->glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-    f->glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-    f->glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GLint(m_min_filter));
-    f->glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GLint(m_mag_filter));
+    f->glTexParameteri(GLenum(m_target), GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+    f->glTexParameteri(GLenum(m_target), GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+    f->glTexParameteri(GLenum(m_target), GL_TEXTURE_MIN_FILTER, GLint(m_min_filter));
+    f->glTexParameteri(GLenum(m_target), GL_TEXTURE_MAG_FILTER, GLint(m_mag_filter));
 }
 
 void gl_engine::Texture::allocate_array(unsigned int width, unsigned int height, unsigned int n_layers)
