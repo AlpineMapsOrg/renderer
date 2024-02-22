@@ -22,7 +22,7 @@
 #include "encoder.glsl"
 
 uniform highp int texture_layer;
-uniform sampler2DArray ortho_sampler;
+uniform lowp sampler2DArray ortho_sampler;
 
 layout (location = 0) out lowp vec3 texout_albedo;
 layout (location = 1) out highp vec4 texout_position;
