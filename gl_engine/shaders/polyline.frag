@@ -54,7 +54,7 @@ void main() {
 
     if (!enable_intersection) {
         // only for debugging
-        out_color = vec4(color_from_id_hash(vertex_id), 1);
+        out_color = vec4(color_from_id_hash(uint(vertex_id)), 1);
 
     } else {
 
@@ -65,7 +65,7 @@ void main() {
 #if 1 // intersect in fragment shader
 
     // track vertex position
-    uint id = vertex_id;
+    int id = vertex_id;
 
     highp vec4 p1 = texelFetch(texin_track, ivec2(int(id + 0), 0), 0);
     highp vec4 p2 = texelFetch(texin_track, ivec2(int(id + 1), 0), 0);

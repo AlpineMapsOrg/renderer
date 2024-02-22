@@ -25,7 +25,7 @@ void main() {
   vertex_id = int(a_offset.y);
 
 #if (METHOD == 1)
-  uint id = (gl_VertexID / 2) - (gl_VertexID / 4);
+  int id = (gl_VertexID / 2) - (gl_VertexID / 4);
   highp vec3 tex_position = texelFetch(texin_track, ivec2(id, 0), 0).xyz;
   highp vec3 tex_next_position = texelFetch(texin_track, ivec2(id + 1, 0), 0).xyz;
 
