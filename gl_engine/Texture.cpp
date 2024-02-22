@@ -224,11 +224,11 @@ nucleus::utils::ColourTexture::Format gl_engine::Texture::compression_algorithm(
     });
     // clang-format on
     if (gl_texture_format == 0) {
-        return nucleus::utils::CompressedTexture::Algorithm::DXT1;
+        return nucleus::utils::ColourTexture::Format::DXT1;
     }
-    return nucleus::utils::CompressedTexture::Algorithm::ETC1;
+    return nucleus::utils::ColourTexture::Format::ETC1;
 #elif defined(__ANDROID__)
-    return nucleus::utils::CompressedTexture::Algorithm::ETC1;
+    return nucleus::utils::ColourTexture::Format::ETC1;
 #else
     return nucleus::utils::ColourTexture::Format::DXT1;
 #endif
