@@ -6,7 +6,9 @@ layout(location = 1) in highp vec3 a_direction;
 layout(location = 2) in highp vec3 a_offset;
 layout(location = 3) in highp vec3 a_metadata; // data like speed, vertical speed, etc...
 
-uniform highp mat4 matrix; // view projection matrix
+//uniform highp mat4 matrix; // view projection matrix
+uniform highp mat4 view;
+uniform highp mat4 proj;
 uniform highp vec3 camera_position;
 uniform highp float width;
 uniform highp float aspect;
@@ -20,6 +22,10 @@ out vec3 color;
 #define METHOD 2
 
 void main() {
+
+  highp mat4 matrix = proj * view;
+
+
   // the closest gpx point to the vertex
   //vertex_id = (gl_VertexID / 3) - (gl_VertexID / 6);
   vertex_id = int(a_offset.y);

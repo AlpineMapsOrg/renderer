@@ -115,7 +115,7 @@ std::vector<glm::vec4> to_world_points(const gpx::Gpx& gpx)
 {
     std::vector<glm::vec4> track;
 
-    QDateTime epoch(QDate(1970, 1, 1).startOfDay());
+    const QDateTime epoch(QDate(1970, 1, 1).startOfDay());
 
     for (const gpx::TrackSegment& segment : gpx.track) {
         for (size_t i = 0U; i < segment.size(); ++i) {
@@ -127,12 +127,33 @@ std::vector<glm::vec4> to_world_points(const gpx::Gpx& gpx)
             }
 
             auto point = glm::dvec3(segment[i].latitude,segment[i].longitude,segment[i].elevation);
-
             track.push_back(glm::vec4(srs::lat_long_alt_to_world(point), time_since_epoch));
         }
     }
 
     return track;
+}
+
+std::vector<glm::vec4> to_world_points(const gpx::TrackSegment& segment)
+{
+    std::vector<glm::vec4> track;
+
+    const QDateTime epoch(QDate(1970, 1, 1).startOfDay());
+
+    for (size_t i = 0U; i < segment.size(); ++i) {
+
+        float time_since_epoch = 0;
+
+        if (i > 0) {
+            time_since_epoch = static_cast<float>(segment[i - 1].timestamp.msecsTo(segment[i].timestamp));
+        }
+
+        auto point = glm::dvec3(segment[i].latitude,segment[i].longitude,segment[i].elevation);
+        track.push_back(glm::vec4(srs::lat_long_alt_to_world(point), time_since_epoch));
+    }
+
+    return track;
+
 }
 
 std::vector<glm::vec3> triangle_strip_ribbon(const std::vector<glm::vec3>& points, float width)

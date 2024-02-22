@@ -21,11 +21,29 @@ uniform highp sampler2D texin_position;
 uniform highp vec3 camera_position;
 uniform bool enable_intersection;
 uniform int shading_method;
+uniform highp mat4 view;
+uniform highp mat4 proj;
+
 
 uniform highp vec2 resolution;
 
 vec3 visualize_normal(in vec3 normal) {
     return (normal + vec3(1.0)) / vec3(2.0);
+}
+
+// https://sibaku.github.io/computer-graphics/2017/01/10/Camera-Ray-Generation.html
+vec3 camera_ray(vec2 px, mat4 inverse_proj, mat4 inverse_view)
+{
+    vec2 pxNDS =  2 * px - 1;
+    vec3 pointNDS = vec3(pxNDS, -1.);
+    vec4 pointNDSH = vec4(pointNDS, 1.0);
+
+    vec4 eye_dir = inverse_proj * pointNDSH;
+    eye_dir.w = 0.;
+
+    vec3 world_dir = (inverse_view * eye_dir).xyz;
+
+    return normalize(world_dir);
 }
 
 vec3 phong_lighting(in vec3 albedo, in vec3 normal) {
@@ -47,8 +65,6 @@ vec3 phong_lighting(in vec3 albedo, in vec3 normal) {
 
     return (ambient * ambColor) + (dirColor * lambertian_coeff);
 }
-
-
 
 void main() {
 
@@ -85,16 +101,19 @@ void main() {
     // distance from camera to terrain, negative if sky
     highp float dist = pos_dist.w;
 
-    bool sky = dist < 0;
+    Ray ray;
 
-    if (sky) {
-        out_color = vec4(0,1,0,1);
-        return;
+    if (dist < 0) {
+        // ray does not hit terrain, it hits sky
+
+        vec3 dir = camera_ray(texcoords, inverse(proj), inverse(view));
+        ray = Ray(camera_position, dir);
+        dist = INF;
+
+    } else {
+        // ray does hit terrain
+        ray = Ray(camera_position, normalize(terrain_pos / abs(dist)));
     }
-
-    // we need some better way of generating this ray
-    Ray ray = Ray(camera_position, normalize(terrain_pos / abs(dist)));
-    //Ray ray = Ray(camera_position, normalize(camera_position - terrain_pos));
 
 #if (GEOMETRY == SPHERE)
     Sphere sphere = Sphere(x1, radius);

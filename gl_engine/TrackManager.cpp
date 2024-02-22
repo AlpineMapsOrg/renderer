@@ -74,8 +74,13 @@ void TrackManager::draw(const nucleus::camera::Definition& camera, ShaderProgram
 
     auto matrix = camera.local_view_projection_matrix(camera.position());
 
+    auto view = camera.local_view_matrix();
+    auto proj = camera.projection_matrix();
+
     shader->bind();
     shader->set_uniform("matrix", matrix);
+    shader->set_uniform("proj", proj);
+    shader->set_uniform("view", view);
     shader->set_uniform("camera_position", glm::vec3(camera.position()));
     shader->set_uniform("width", width);
     shader->set_uniform("aspect", 16.0f / 9.0f); // TODO: make this dynamic
@@ -126,73 +131,87 @@ void TrackManager::add_track(const nucleus::gpx::Gpx& gpx, ShaderProgram* shader
 {
     QOpenGLExtraFunctions *f = QOpenGLContext::currentContext()->extraFunctions();
 
-    // transform from latitude and longitude into renderer world coordinates
-    std::vector<glm::vec4> points = nucleus::to_world_points(gpx);
 
-    // data cleanup
-    nucleus::apply_gaussian_filter(points, 1.0f);
-    nucleus::reduce_point_count(points, width * 2);
+    for (const nucleus::gpx::TrackSegment& segment : gpx.track) {
 
-    size_t point_count = points.size();
+        // transform from latitude and longitude into renderer world coordinates
+        std::vector<glm::vec4> points = nucleus::to_world_points(segment);
 
-    std::vector<glm::vec3> basic_ribbon = nucleus::triangles_ribbon(points, 0.0f, m_total_point_count);
+        // data cleanup
+        nucleus::apply_gaussian_filter(points, 1.0f);
+        nucleus::reduce_point_count(points, width * 2);
 
-    PolyLine polyline;
+        size_t point_count = points.size();
 
-    // TODO: handle this in some better way
-    const int texture_size = 10'000;
+        std::vector<glm::vec3> basic_ribbon = nucleus::triangles_ribbon(points, 0.0f, m_total_point_count);
 
-    if (m_data_texture == nullptr) {
-        // create texture to hold the point data
-        m_data_texture = std::make_unique<QOpenGLTexture>(QOpenGLTexture::Target::Target2D);
-        m_data_texture->setFormat(QOpenGLTexture::TextureFormat::RGBA32F);
-        m_data_texture->setSize(texture_size, 1);
-        m_data_texture->setAutoMipMapGenerationEnabled(false);
-        m_data_texture->setMinMagFilters(QOpenGLTexture::Filter::Nearest, QOpenGLTexture::Filter::Nearest);
-        m_data_texture->setWrapMode(QOpenGLTexture::WrapMode::ClampToEdge);
-        m_data_texture->allocateStorage();
+        PolyLine polyline;
+
+        // TODO: handle this in some better way
+        const int texture_size = 10'000;
+
+        if (texture_size < (m_total_point_count + point_count)) {
+            qDebug() << "Unable to render " << m_total_point_count + point_count << "points";
+            qDebug() << "Max is " << texture_size;
+            return;
+        }
+
+        if (m_data_texture == nullptr) {
+            // create texture to hold the point data
+            m_data_texture = std::make_unique<QOpenGLTexture>(QOpenGLTexture::Target::Target2D);
+            m_data_texture->setFormat(QOpenGLTexture::TextureFormat::RGBA32F);
+            m_data_texture->setSize(texture_size, 1);
+            m_data_texture->setAutoMipMapGenerationEnabled(false);
+            m_data_texture->setMinMagFilters(QOpenGLTexture::Filter::Nearest, QOpenGLTexture::Filter::Nearest);
+            m_data_texture->setWrapMode(QOpenGLTexture::WrapMode::ClampToEdge);
+            m_data_texture->allocateStorage();
+
+            if (!m_data_texture->isStorageAllocated()) {
+                qDebug() << "Could not allocate texture storage!";
+            }
+        }
+
+
+        m_data_texture->bind();
+        m_data_texture->setData(m_total_point_count, 0, 0, point_count, 1, 0, QOpenGLTexture::RGBA, QOpenGLTexture::Float32, points.data());
+
+        m_total_point_count += point_count;
+
+        polyline.vao = std::make_unique<QOpenGLVertexArrayObject>();
+        polyline.point_count = point_count;
+        polyline.vao->create();
+        polyline.vao->bind();
+
+        polyline.vbo = std::make_unique<QOpenGLBuffer>(QOpenGLBuffer::VertexBuffer);
+        polyline.vbo->create();
+
+        polyline.vbo->bind();
+        polyline.vbo->setUsagePattern(QOpenGLBuffer::StaticDraw);
+
+        polyline.vbo->allocate(basic_ribbon.data(), helpers::bufferLengthInBytes(basic_ribbon));
+
+        GLsizei stride = 4 * sizeof(glm::vec3);
+
+        const auto position_attrib_location = shader->attribute_location("a_position");
+        f->glEnableVertexAttribArray(position_attrib_location);
+        f->glVertexAttribPointer(position_attrib_location, 3, GL_FLOAT, GL_FALSE, stride, nullptr);
+
+        const auto next_position_attrib_location = shader->attribute_location("a_direction");
+        f->glEnableVertexAttribArray(next_position_attrib_location);
+        f->glVertexAttribPointer(next_position_attrib_location, 3, GL_FLOAT, GL_FALSE, stride, (void*)(1 * sizeof(glm::vec3)));
+
+        const auto normal_attrib_location = shader->attribute_location("a_offset");
+        f->glEnableVertexAttribArray(normal_attrib_location);
+        f->glVertexAttribPointer(normal_attrib_location, 3, GL_FLOAT, GL_FALSE, stride, (void*)(2 * sizeof(glm::vec3)));
+
+        const auto meta_attrib_location = shader->attribute_location("a_metadata");
+        f->glEnableVertexAttribArray(meta_attrib_location);
+        f->glVertexAttribPointer(meta_attrib_location, 3, GL_FLOAT, GL_FALSE, stride, (void*)(3 * sizeof(glm::vec3)));
+
+        polyline.vao->release();
+
+        m_tracks.push_back(std::move(polyline));
+
     }
-
-    assert((m_total_point_count + point_count) < texture_size);
-
-    m_data_texture->bind();
-    m_data_texture->setData(m_total_point_count, 0, 0, point_count, 1, 0, QOpenGLTexture::RGBA, QOpenGLTexture::Float32, points.data());
-
-    m_total_point_count += point_count;
-
-    polyline.vao = std::make_unique<QOpenGLVertexArrayObject>();
-    polyline.point_count = point_count;
-    polyline.vao->create();
-    polyline.vao->bind();
-
-    polyline.vbo = std::make_unique<QOpenGLBuffer>(QOpenGLBuffer::VertexBuffer);
-    polyline.vbo->create();
-
-    polyline.vbo->bind();
-    polyline.vbo->setUsagePattern(QOpenGLBuffer::StaticDraw);
-
-    polyline.vbo->allocate(basic_ribbon.data(), helpers::bufferLengthInBytes(basic_ribbon));
-
-    GLsizei stride = 4 * sizeof(glm::vec3);
-
-    const auto position_attrib_location = shader->attribute_location("a_position");
-    f->glEnableVertexAttribArray(position_attrib_location);
-    f->glVertexAttribPointer(position_attrib_location, 3, GL_FLOAT, GL_FALSE, stride, nullptr);
-
-    const auto next_position_attrib_location = shader->attribute_location("a_direction");
-    f->glEnableVertexAttribArray(next_position_attrib_location);
-    f->glVertexAttribPointer(next_position_attrib_location, 3, GL_FLOAT, GL_FALSE, stride, (void*)(1 * sizeof(glm::vec3)));
-
-    const auto normal_attrib_location = shader->attribute_location("a_offset");
-    f->glEnableVertexAttribArray(normal_attrib_location);
-    f->glVertexAttribPointer(normal_attrib_location, 3, GL_FLOAT, GL_FALSE, stride, (void*)(2 * sizeof(glm::vec3)));
-
-    const auto meta_attrib_location = shader->attribute_location("a_metadata");
-    f->glEnableVertexAttribArray(meta_attrib_location);
-    f->glVertexAttribPointer(meta_attrib_location, 3, GL_FLOAT, GL_FALSE, stride, (void*)(3 * sizeof(glm::vec3)));
-
-    polyline.vao->release();
-
-    m_tracks.push_back(std::move(polyline));
 }
 } // namespace gl_engine

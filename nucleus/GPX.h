@@ -34,6 +34,8 @@ namespace gpx {
 
 std::vector<glm::vec4> to_world_points(const gpx::Gpx& gpx);
 
+std::vector<glm::vec4> to_world_points(const gpx::TrackSegment& segment);
+
 // for rendering with GL_TRIANGLE_STRIP
 std::vector<glm::vec3> triangle_strip_ribbon(const std::vector<glm::vec3>& points, float width);
 
