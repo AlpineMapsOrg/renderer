@@ -33,7 +33,7 @@ highp vec3 visualize_normal(highp vec3 normal) {
 // https://sibaku.github.io/computer-graphics/2017/01/10/Camera-Ray-Generation.html
 highp vec3 camera_ray(highp vec2 px, highp mat4 inverse_proj, highp mat4 inverse_view)
 {
-    highp vec2 pxNDS =  2 * px - 1;
+    highp vec2 pxNDS =  2. * px - 1.;
     highp vec3 pointNDS = vec3(pxNDS, -1.);
     highp vec4 pointNDSH = vec4(pointNDS, 1.0);
 
@@ -73,9 +73,9 @@ void main() {
 
     } else {
 
-    vec2 texcoords = gl_FragCoord.xy / resolution.xy;
+    highp vec2 texcoords = gl_FragCoord.xy / resolution.xy;
 
-    vec3 sun_light_dir = conf.sun_light_dir.xyz;
+    highp vec3 sun_light_dir = conf.sun_light_dir.xyz;
 
 #if 1 // intersect in fragment shader
 
@@ -102,7 +102,7 @@ void main() {
 
     Ray ray;
 
-    if (dist < 0) {
+    if (dist < 0.) {
         // ray does not hit terrain, it hits sky
 
         vec3 dir = camera_ray(texcoords, inverse(proj), inverse(view));
@@ -132,7 +132,7 @@ void main() {
 
     highp float t = intersect_capsule_2(ray, c);
 
-    if ((0 < t && t < INF)) {
+    if ((0.0 < t && t < INF)) {
 
         highp vec3 point = ray.origin + ray.direction * t;
 
@@ -155,8 +155,8 @@ void main() {
 
             highp vec3 color;
 
-            highp vec3 RED = vec3(1,0,0);
-            highp vec3 BLUE = vec3(0,0,1);
+            highp vec3 RED = vec3(1., 0., 0.);
+            highp vec3 BLUE = vec3(0., 0., 1.);
 
             highp vec3 A = x1;
             highp vec3 AP = point - x1;
@@ -179,8 +179,8 @@ void main() {
 
                 highp float max_speed = 0.005; // TODO: should be dynamic
 
-                highp float t_0 = clamp(speed_0 / max_speed, 0, 1);
-                highp float t_1 = clamp(speed_1 / max_speed, 0, 1);
+                highp float t_0 = clamp(speed_0 / max_speed, 0., 1.);
+                highp float t_1 = clamp(speed_1 / max_speed, 0., 1.);
 
                 color = mix(TurboColormap(t_0), TurboColormap(t_1), f);
 
@@ -200,7 +200,7 @@ void main() {
                 // geometry is above terrain
                 out_color = vec4(color, 1);
 #if 0
-            } else if ((t - dist) <= c.radius * 2) {
+            } else if ((t - dist) <= c.radius * 2.) {
 
                 highp float delta = (t - dist) / (c.radius * 2);
 
