@@ -45,7 +45,7 @@ highp vec3 camera_ray(highp vec2 px, highp mat4 inverse_proj, highp mat4 inverse
     return normalize(world_dir);
 }
 
-vec3 phong_lighting(highp vec3 albedo, highp vec3 normal) {
+highp vec3 phong_lighting(highp vec3 albedo, highp vec3 normal) {
     highp vec4 dirLight = conf.sun_light;
     highp vec4 ambLight  =  conf.amb_light;
 
@@ -105,7 +105,7 @@ void main() {
     if (dist < 0.) {
         // ray does not hit terrain, it hits sky
 
-        vec3 dir = camera_ray(texcoords, inverse(proj), inverse(view));
+        highp vec3 dir = camera_ray(texcoords, inverse(proj), inverse(view));
         ray = Ray(camera_position, dir);
         dist = INF;
 

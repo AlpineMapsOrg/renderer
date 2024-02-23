@@ -8,7 +8,7 @@
 //   Colormap Design: Anton Mikhailov (mikhailov@google.com)
 //   GLSL Approximation: Ruofei Du (ruofei@google.com)
 
-vec3 TurboColormap(in highp   float x) {
+highp vec3 TurboColormap(highp float x) {
   const highp vec4 kRedVec4 = vec4(0.13572138, 4.61539260, -42.66032258, 132.13108234);
   const highp vec4 kGreenVec4 = vec4(0.09140261, 2.19418839, 4.84296658, -14.18503333);
   const highp vec4 kBlueVec4 = vec4(0.10667330, 12.64194608, -60.58204836, 110.36276771);
