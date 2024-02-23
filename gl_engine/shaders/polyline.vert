@@ -12,7 +12,7 @@ uniform highp mat4 proj;
 uniform highp vec3 camera_position;
 uniform highp float width;
 uniform highp float aspect;
-uniform highp bool visualize_steepness;
+uniform bool visualize_steepness;
 uniform highp sampler2D texin_track;
 
 flat out highp int vertex_id;
