@@ -28,8 +28,14 @@ Item {
     id: main
     property int theme: Material.Light
     property int accent: Material.BlueGrey
-    property string selectedPage: "map";
-
+    property string selectedPage: "map"
+    property bool userInterfaceVisible: true
+    Shortcut {
+        id: ui_visibility_shortcut
+        sequence: "F10"
+        onActivated: userInterfaceVisible = !userInterfaceVisible
+        context: Qt.ApplicationShortcut
+    }
 
     Rectangle {
         id: tool_bar
@@ -40,6 +46,7 @@ Item {
             right: parent.right
             top: parent.top
         }
+        visible: userInterfaceVisible
 
         RowLayout {
             anchors.fill: parent
@@ -137,9 +144,9 @@ Item {
         DrawerButton {
             text: qsTr("Hide User Interface")
             iconSource: _r + "icons/material/visibility_off.png"
-            hotkey: "F10"
+            hotkey: ui_visibility_shortcut.nativeText
             selectable: false
-            onClicked: map.hud_visible = false;
+            onClicked: userInterfaceVisible = !userInterfaceVisible
         }
 
         DrawerSpacer {}
@@ -187,28 +194,12 @@ Item {
 
 
     TerrainRenderer {
-        property var allLvl1HudElements: [tool_bar, main_stack_view, fab_group]
-        property var _hudElementsVisibility: []
         id: map
         focus: true
         anchors.fill: parent
         Keys.onPressed: function(event){
             if (event.key === Qt.Key_F8 && _debug_gui) {
                 toggleStatsWindow();
-            }
-        }
-
-        onHud_visible_changed: function(new_hud_visible) {
-            if (new_hud_visible) { // show all items
-                for (let i1 = 0; i1 < allLvl1HudElements.length; i1++) {
-                    allLvl1HudElements[i1].visible = _hudElementsVisibility[i1];
-                }
-            } else { // hide all items and save their state
-                _hudElementsVisibility = [];
-                for (let i = 0; i < allLvl1HudElements.length; i++) {
-                    _hudElementsVisibility.push(allLvl1HudElements[i].visible);
-                    allLvl1HudElements[i].visible = false;
-                }
             }
         }
     }
@@ -222,6 +213,7 @@ Item {
             left: parent.left
             right: parent.right
         }
+        visible: userInterfaceVisible
 
         initialItem: Map {
             renderer: map
@@ -230,10 +222,6 @@ Item {
 
     Loader {
         id: stats_window_loader
-    }
-
-    FloatingActionButtonGroup {
-        id: fab_group
     }
 
     Component.onCompleted: {

@@ -25,38 +25,8 @@ import "components"
 
 ColumnLayout {
     id: fab_group
-    property real button_spacing: 0
-    property real group_margin: 15
     width: 64
-    x: group_margin
-    y: map.height - implicitHeight - group_margin
-    spacing: button_spacing
-
-    function responsive_update() {
-        let newVisible = true;
-        if (main_stack_view.selectedPage === "settings") {
-            if (main.width < main.height) newVisible = false;
-        } else if (main_stack_view.selectedPage !== "map") {
-            newVisible = false;
-        }
-        fab_group.visible = newVisible;
-    }
-
-    Connections {
-        target: main
-        function onWidthChanged() {
-            responsive_update();
-        }
-        function onHeightChanged() {
-            responsive_update();
-        }
-    }
-    Connections {
-        target: main_stack_view;
-        function onSelectedPageChanged() {
-            responsive_update();
-        }
-    }
+    spacing: 0
 
     FloatingActionButton {
         rotation: map.camera_rotation_from_north

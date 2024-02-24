@@ -186,9 +186,6 @@ void TerrainRendererItem::keyPressEvent(QKeyEvent* e)
     if (e->isAutoRepeat()) {
         return;
     }
-    if (e->key() == Qt::Key::Key_F10) {
-        set_hud_visible(!m_hud_visible);
-    }
     emit key_pressed(e->keyCombination());
     RenderThreadNotifier::instance()->notify();
 }
@@ -396,12 +393,6 @@ void TerrainRendererItem::set_shared_config(gl_engine::uboSharedConfig new_share
         m_url_modifier->set_query_item(URL_PARAMETER_KEY_CONFIG, data_string);
         emit shared_config_changed(m_shared_config);
     }
-}
-
-void TerrainRendererItem::set_hud_visible(bool new_hud_visible) {
-    if (new_hud_visible == m_hud_visible) return;
-    m_hud_visible = new_hud_visible;
-    emit hud_visible_changed(m_hud_visible);
 }
 
 void TerrainRendererItem::set_selected_camera_position_index(unsigned value) {
