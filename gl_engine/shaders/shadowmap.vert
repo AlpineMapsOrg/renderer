@@ -20,73 +20,11 @@
 #include "shared_config.glsl"
 #include "camera_config.glsl"
 #include "shadow_config.glsl"
-
-in highp vec4 bounds;
-
-uniform highp int n_edge_vertices;
-uniform highp int texture_layer;
-uniform mediump usampler2DArray height_sampler;
+#include "tile.glsl"
 
 uniform lowp int current_layer;
 
-highp float y_to_lat(highp float y) {
-    const highp float pi = 3.1415926535897932384626433;
-    const highp float cOriginShift = 20037508.342789244;
-
-    highp float mercN = y * pi / cOriginShift;
-    highp float latRad = 2.f * (atan(exp(mercN)) - (pi / 4.0));
-    return latRad;
-}
-
 void main() {
-    highp int edge_vertices_count_int = n_edge_vertices - 1;
-    highp float edge_vertices_count_float = float(edge_vertices_count_int);
-    // Note: The following is actually not the tile_width but the primitive/cell width/height
-    highp float tile_width = (bounds.z - bounds.x) / edge_vertices_count_float;
-    highp float tile_height = (bounds.w - bounds.y) / edge_vertices_count_float;
-
-    highp int row = gl_VertexID / n_edge_vertices;
-    highp int col = gl_VertexID - (row * n_edge_vertices);
-    highp int curtain_vertex_id = gl_VertexID - n_edge_vertices * n_edge_vertices;
-    if (curtain_vertex_id >= 0) {
-        if (curtain_vertex_id < n_edge_vertices) {
-            row = (n_edge_vertices - 1) - curtain_vertex_id;
-            col = (n_edge_vertices - 1);
-        }
-        else if (curtain_vertex_id >= n_edge_vertices && curtain_vertex_id < 2 * n_edge_vertices - 1) {
-            row = 0;
-            col = (n_edge_vertices - 1) - (curtain_vertex_id - n_edge_vertices) - 1;
-        }
-        else if (curtain_vertex_id >= 2 * n_edge_vertices - 1 && curtain_vertex_id < 3 * n_edge_vertices - 2) {
-            row = curtain_vertex_id - 2 * n_edge_vertices + 2;
-            col = 0;
-        }
-        else {
-            row = (n_edge_vertices - 1);
-            col = curtain_vertex_id - 3 * n_edge_vertices + 3;
-        }
-    }
-    // Note: May be enough to calculate altitude_correction_factor per tile on CPU:
-    highp float var_pos_cws_y = float(edge_vertices_count_int - row) * float(tile_width) + bounds.y;
-    highp float pos_y = var_pos_cws_y + camera.position.y;
-    float altitude_correction_factor = 0.125 / cos(y_to_lat(pos_y)); // https://github.com/AlpineMapsOrg/renderer/issues/5
-
-    vec2 uv = vec2(float(col) / edge_vertices_count_float, float(row) / edge_vertices_count_float);
-    highp float adjusted_altitude = float(texture(height_sampler, vec3(uv, texture_layer)).r) * altitude_correction_factor;
-
-    highp vec3 var_pos_cws = vec3(float(col) * tile_width + bounds.x,
-                       var_pos_cws_y,
-                       adjusted_altitude - camera.position.z);
-
-    if (curtain_vertex_id >= 0) {
-        float curtain_height = CURTAIN_REFERENCE_HEIGHT;
-#if CURTAIN_HEIGHT_MODE == 1
-        float dist_factor = clamp(length(var_pos_cws) / 100000.0, 0.2, 1.0);
-        curtain_height *= dist_factor;
-#endif
-        var_pos_cws.z = var_pos_cws.z - curtain_height;
-    }
-
-
-    gl_Position = shadow.light_space_view_proj_matrix[current_layer] * vec4(var_pos_cws, 1);
+    vec2 uv;
+    gl_Position = shadow.light_space_view_proj_matrix[current_layer] * vec4(camera_world_space_position(), 1);
 }
