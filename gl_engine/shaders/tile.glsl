@@ -61,13 +61,15 @@ highp vec3 camera_world_space_position(out vec2 uv, out float n_quads_per_direct
             col = curtain_vertex_id - 3 * n_edge_vertices + 3;
         }
     }
-    // Note: May be enough to calculate altitude_correction_factor per tile on CPU:
+    // Note: for higher zoom levels it would be enough to calculate the altitude_correction_factor on cpu
+    // for lower zoom levels we could bake it into the texture.
+    // but there was no measurable difference despite a cos and a atan, so leaving as is for now.
     highp float var_pos_cws_y = float(n_quads_per_direction_int - row) * float(quad_width) + bounds.y;
     highp float pos_y = var_pos_cws_y + camera.position.y;
     altitude_correction_factor = 0.125 / cos(y_to_lat(pos_y)); // https://github.com/AlpineMapsOrg/renderer/issues/5
 
     uv = vec2(float(col) / n_quads_per_direction, float(row) / n_quads_per_direction);
-    float altitude_tex = float(texture(height_sampler, vec3(uv, texture_layer)).r);
+    float altitude_tex = float(texelFetch(height_sampler, ivec3(col, row, texture_layer), 0).r);
     float adjusted_altitude = altitude_tex * altitude_correction_factor;
 
     highp vec3 var_pos_cws = vec3(float(col) * quad_width + bounds.x, var_pos_cws_y, adjusted_altitude - camera.position.z);
