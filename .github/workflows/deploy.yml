@@ -115,6 +115,7 @@ jobs:
         -G Ninja
         -B $BUILD_DIR
         -DCMAKE_BUILD_TYPE=Release
+        -DALP_ENABLE_DEBUG_GUI=ON
         -DALP_WWW_INSTALL_DIR=$INSTALL_DIR
         -DALP_ENABLE_ASSERTS=ON
         -DFMT_INSTALL=OFF
