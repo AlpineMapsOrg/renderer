@@ -17,9 +17,8 @@ uniform highp sampler2D texin_track;
 
 flat out highp int vertex_id;
 flat out highp float radius;
-out highp vec3 color;
 
-#define METHOD 2
+#define METHOD 5
 
 void main() {
 
@@ -29,6 +28,8 @@ void main() {
   // the closest gpx point to the vertex
   //vertex_id = (gl_VertexID / 3) - (gl_VertexID / 6);
   vertex_id = int(a_offset.y);
+
+  radius = width;
 
 #if (METHOD == 1)
   int id = (gl_VertexID / 2) - (gl_VertexID / 4);
@@ -63,18 +64,6 @@ void main() {
 
   int shading_method = 0;
 
-  if (shading_method == 0) {
-    color = vec3(1,0,0);
-
-  } else if (shading_method == 1)  {
-    highp vec3 red = vec3(1,0,0);
-    highp vec3 blue = vec3(0,0,1);
-    highp float speed = a_metadata.x;
-    highp float max_speed = 0.01; // TODO: handle dynamically
-    highp float t = speed / max_speed;
-    color = mix(red, blue, t);
-  }
-
   highp vec3 e = camera_position;
   highp vec3 x0 = a_position - camera_position;
 
@@ -88,7 +77,6 @@ void main() {
 
   highp vec3 v0 = normalize(cross(u_hat, d0));
 
-  radius = width;
 
   highp float r0 = radius; // cone end cap radius
 
@@ -121,21 +109,9 @@ void main() {
   gl_Position = matrix * vec4(position, 1);
 #else
 
-  highp vec3 tex_position       = texelFetch(texin_track, ivec2(vertex_id + 0, 0), 0).xyz;
-  highp vec3 tex_next_position  = texelFetch(texin_track, ivec2(vertex_id + 1, 0), 0).xyz;
-
-  highp vec3 next_position    = tex_next_position - camera_position;
-  highp vec3 current_position = tex_position - camera_position;
-
-  // why is this not the same value?
   highp vec3 position = a_position - camera_position;
 
-  highp vec3 direction = normalize(current_position - next_position);
-  highp vec3 view_dir = normalize(camera_position - tex_position);
-  highp vec3 normal = cross(view_dir, direction);
-
-  //position += a_offset * 15.0;
-  position += normal * a_offset.z * 15.0;
+  position += vec3(0,0,1) * a_offset.z * 15.0;
 
   gl_Position = matrix * vec4(position, 1);
 #endif

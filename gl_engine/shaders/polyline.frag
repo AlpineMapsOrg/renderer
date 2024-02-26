@@ -13,7 +13,6 @@ layout (location = 0) out lowp vec4 out_color;
 
 flat in highp int vertex_id;
 flat in highp float radius;
-in highp vec3 color;
 
 uniform highp sampler2D texin_track;
 uniform highp sampler2D texin_position;

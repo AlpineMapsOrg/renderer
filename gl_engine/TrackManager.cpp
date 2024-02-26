@@ -36,8 +36,7 @@
 #include "PolyLine.h"
 #include "ShaderProgram.h"
 
-#define WIREFRAME 0
-#define ENABLE_BOUNDING_QUADS 0
+#define ENABLE_BOUNDING_QUADS 1
 
 namespace gl_engine {
 
