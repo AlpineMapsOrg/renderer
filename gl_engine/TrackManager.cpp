@@ -36,7 +36,7 @@
 #include "PolyLine.h"
 #include "ShaderProgram.h"
 
-#define ENABLE_BOUNDING_QUADS 1
+#define ENABLE_BOUNDING_QUADS 0
 
 namespace gl_engine {
 
@@ -66,18 +66,14 @@ void TrackManager::draw(const nucleus::camera::Definition& camera, ShaderProgram
 
 #if (defined(__linux) && !defined(__ANDROID__)) || defined(_WIN32) || defined(_WIN64)
     auto funcs = QOpenGLVersionFunctionsFactory::get<QOpenGLFunctions_3_3_Core>(QOpenGLContext::currentContext()); // for wireframe mode
-
-    if (funcs)
-        funcs->glDisable(GL_CULL_FACE);
 #endif
 
-    //auto matrix = camera.local_view_projection_matrix(camera.position());
+    f->glDisable(GL_CULL_FACE);
 
     auto view = camera.local_view_matrix();
     auto proj = camera.projection_matrix();
 
     shader->bind();
-    //shader->set_uniform("matrix", matrix);
     shader->set_uniform("proj", proj);
     shader->set_uniform("view", view);
     shader->set_uniform("camera_position", glm::vec3(camera.position()));
@@ -96,33 +92,27 @@ void TrackManager::draw(const nucleus::camera::Definition& camera, ShaderProgram
         track.vao->bind();
 
         GLsizei vertex_count = (track.point_count - 1) * 6;
-#if 0
-#if (defined(__linux) && !defined(__ANDROID__)) || defined(_WIN32) || defined(_WIN64)
-        if (funcs)
-            funcs->glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
-#endif
+
         shader->set_uniform("enable_intersection", true);
         f->glDrawArrays(GL_TRIANGLES, 0, vertex_count);
-#endif
 
 #if ENABLE_BOUNDING_QUADS
-        // only for debugging
 #if (defined(__linux) && !defined(__ANDROID__)) || defined(_WIN32) || defined(_WIN64)
-        if (funcs)
-            funcs->glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+        if (funcs) funcs->glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
 #endif
+
         shader->set_uniform("enable_intersection", false);
         f->glDrawArrays(GL_TRIANGLES, 0, vertex_count);
+
+#if (defined(__linux) && !defined(__ANDROID__)) || defined(_WIN32) || defined(_WIN64)
+        if (funcs) funcs->glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+#endif
 #endif
     }
 
     shader->release();
-#if (defined(__linux) && !defined(__ANDROID__)) || defined(_WIN32) || defined(_WIN64)
-    if (funcs) {
-        funcs->glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
-        funcs->glEnable(GL_CULL_FACE);
-    }
-#endif
+
+    f->glEnable(GL_CULL_FACE);
 }
 
 void TrackManager::add_track(const nucleus::gpx::Gpx& gpx, ShaderProgram* shader)
@@ -154,7 +144,7 @@ void TrackManager::add_track(const nucleus::gpx::Gpx& gpx, ShaderProgram* shader
             return;
         }
 
-#if 0
+#if 1
         if (m_data_texture == nullptr) {
             // create texture to hold the point data
             m_data_texture = std::make_unique<QOpenGLTexture>(QOpenGLTexture::Target::Target2D);
