@@ -64,7 +64,7 @@ void TrackManager::draw(const nucleus::camera::Definition& camera, ShaderProgram
 
     QOpenGLExtraFunctions* f = QOpenGLContext::currentContext()->extraFunctions();
 
-#if (defined(__linux) && !defined(__ANDROID__)) || defined(_WIN32) || defined(_WIN64)
+#if (((defined(__linux) && !defined(__ANDROID__)) || defined(_WIN32) || defined(_WIN64)) && ENABLE_BOUNDING_QUADS)
     auto funcs = QOpenGLVersionFunctionsFactory::get<QOpenGLFunctions_3_3_Core>(QOpenGLContext::currentContext()); // for wireframe mode
 #endif
 
