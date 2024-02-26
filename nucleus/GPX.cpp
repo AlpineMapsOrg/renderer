@@ -243,16 +243,16 @@ std::vector<glm::vec3> triangles_ribbon(const std::vector<glm::vec4>& points, fl
 
         // triangle 1
         ribbon.insert(ribbon.end(), {
-            a + offset, d, up + start + index, metadata,
-            a - offset, d, down + start + index, metadata,
-            b - offset, d, down + end + index, metadata,
+            a + offset, d, up + start + index,    /* metadata,*/
+            a - offset, d, down + start + index,  /* metadata,*/
+            b - offset, d, down + end + index,    /* metadata,*/
         });
 
         // triangle 2
         ribbon.insert(ribbon.end(), {
-            a + offset, d, up + start + index, metadata,
-            b - offset, d, down + end + index, metadata,
-            b + offset, d, up + end + index, metadata,
+            a + offset, d, up + start + index,  /* metadata, */
+            b - offset, d, down + end + index,  /* metadata, */
+            b + offset, d, up + end + index,    /* metadata, */
         });
     }
     return ribbon;

@@ -71,13 +71,13 @@ void TrackManager::draw(const nucleus::camera::Definition& camera, ShaderProgram
         funcs->glDisable(GL_CULL_FACE);
 #endif
 
-    auto matrix = camera.local_view_projection_matrix(camera.position());
+    //auto matrix = camera.local_view_projection_matrix(camera.position());
 
     auto view = camera.local_view_matrix();
     auto proj = camera.projection_matrix();
 
     shader->bind();
-    shader->set_uniform("matrix", matrix);
+    //shader->set_uniform("matrix", matrix);
     shader->set_uniform("proj", proj);
     shader->set_uniform("view", view);
     shader->set_uniform("camera_position", glm::vec3(camera.position()));
@@ -96,13 +96,14 @@ void TrackManager::draw(const nucleus::camera::Definition& camera, ShaderProgram
         track.vao->bind();
 
         GLsizei vertex_count = (track.point_count - 1) * 6;
-
+#if 0
 #if (defined(__linux) && !defined(__ANDROID__)) || defined(_WIN32) || defined(_WIN64)
         if (funcs)
             funcs->glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
 #endif
         shader->set_uniform("enable_intersection", true);
         f->glDrawArrays(GL_TRIANGLES, 0, vertex_count);
+#endif
 
 #if ENABLE_BOUNDING_QUADS
         // only for debugging
@@ -153,6 +154,7 @@ void TrackManager::add_track(const nucleus::gpx::Gpx& gpx, ShaderProgram* shader
             return;
         }
 
+#if 0
         if (m_data_texture == nullptr) {
             // create texture to hold the point data
             m_data_texture = std::make_unique<QOpenGLTexture>(QOpenGLTexture::Target::Target2D);
@@ -165,12 +167,15 @@ void TrackManager::add_track(const nucleus::gpx::Gpx& gpx, ShaderProgram* shader
 
             if (!m_data_texture->isStorageAllocated()) {
                 qDebug() << "Could not allocate texture storage!";
+            } else {
+                qDebug() << "Allocated " << texture_size;
             }
         }
 
 
         m_data_texture->bind();
         m_data_texture->setData(m_total_point_count, 0, 0, point_count, 1, 0, QOpenGLTexture::RGBA, QOpenGLTexture::Float32, points.data());
+#endif
 
         m_total_point_count += point_count;
 
@@ -187,23 +192,27 @@ void TrackManager::add_track(const nucleus::gpx::Gpx& gpx, ShaderProgram* shader
 
         polyline.vbo->allocate(basic_ribbon.data(), helpers::bufferLengthInBytes(basic_ribbon));
 
-        GLsizei stride = 4 * sizeof(glm::vec3);
+        GLsizei stride = 3 * sizeof(glm::vec3);
 
-        const auto position_attrib_location = shader->attribute_location("a_position");
+        const int position_attrib_location = shader->attribute_location("a_position");
+        qDebug() << "a_position: " << position_attrib_location;
         f->glEnableVertexAttribArray(position_attrib_location);
         f->glVertexAttribPointer(position_attrib_location, 3, GL_FLOAT, GL_FALSE, stride, nullptr);
 
-        const auto next_position_attrib_location = shader->attribute_location("a_direction");
-        f->glEnableVertexAttribArray(next_position_attrib_location);
-        f->glVertexAttribPointer(next_position_attrib_location, 3, GL_FLOAT, GL_FALSE, stride, (void*)(1 * sizeof(glm::vec3)));
+        const int direction_attrib_location = shader->attribute_location("a_direction");
+        qDebug() << "a_direction: " << direction_attrib_location;
+        f->glEnableVertexAttribArray(direction_attrib_location);
+        f->glVertexAttribPointer(direction_attrib_location, 3, GL_FLOAT, GL_FALSE, stride, (void*)(1 * sizeof(glm::vec3)));
 
-        const auto normal_attrib_location = shader->attribute_location("a_offset");
-        f->glEnableVertexAttribArray(normal_attrib_location);
-        f->glVertexAttribPointer(normal_attrib_location, 3, GL_FLOAT, GL_FALSE, stride, (void*)(2 * sizeof(glm::vec3)));
+        const int offset_attrib_location = shader->attribute_location("a_offset");
+        qDebug() << "a_offset: " << offset_attrib_location;
+        f->glEnableVertexAttribArray(offset_attrib_location);
+        f->glVertexAttribPointer(offset_attrib_location, 3, GL_FLOAT, GL_FALSE, stride, (void*)(2 * sizeof(glm::vec3)));
 
-        const auto meta_attrib_location = shader->attribute_location("a_metadata");
-        f->glEnableVertexAttribArray(meta_attrib_location);
-        f->glVertexAttribPointer(meta_attrib_location, 3, GL_FLOAT, GL_FALSE, stride, (void*)(3 * sizeof(glm::vec3)));
+        //const int meta_attrib_location = shader->attribute_location("a_metadata");
+        //qDebug() << "a_metadata: " << meta_attrib_location;
+        //f->glEnableVertexAttribArray(meta_attrib_location);
+        //f->glVertexAttribPointer(meta_attrib_location, 3, GL_FLOAT, GL_FALSE, stride, (void*)(3 * sizeof(glm::vec3)));
 
         polyline.vao->release();
 

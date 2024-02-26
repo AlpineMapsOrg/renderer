@@ -4,9 +4,8 @@
 layout(location = 0) in highp vec3 a_position;
 layout(location = 1) in highp vec3 a_direction;
 layout(location = 2) in highp vec3 a_offset;
-layout(location = 3) in highp vec3 a_metadata; // data like speed, vertical speed, etc...
+//layout(location = 3) in highp vec3 a_metadata; // data like speed, vertical speed, etc...
 
-//uniform highp mat4 matrix; // view projection matrix
 uniform highp mat4 view;
 uniform highp mat4 proj;
 uniform highp vec3 camera_position;
