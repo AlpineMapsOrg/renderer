@@ -44,11 +44,22 @@ highp vec3 camera_ray(highp vec2 px, highp mat4 inverse_proj, highp mat4 inverse
     return normalize(world_dir);
 }
 
-highp vec3 phong_lighting(highp vec3 albedo, highp vec3 normal) {
+highp vec3 calc_blinn_phong_contribution(highp vec3 toLight, highp vec3 toEye, highp vec3 normal, highp vec3 diffFactor, highp vec3 specFactor, highp float specShininess)
+{
+    highp float nDotL = max(0.0, dot(normal, toLight)); // lambertian coefficient
+    highp vec3 h = normalize(toLight + toEye);
+    highp float nDotH = max(0.0, dot(normal, h));
+    highp float specPower = pow(nDotH, specShininess);
+    highp vec3 diffuse = diffFactor * nDotL; // component-wise product
+    highp vec3 specular = specFactor * specPower;
+    return diffuse + specular;
+}
+
+highp vec3 phong_lighting(highp vec3 albedo, highp vec3 normal, highp vec3 eyePos, highp vec3 fragPos) {
     highp vec4 dirLight = conf.sun_light;
     highp vec4 ambLight  =  conf.amb_light;
-
-    highp vec3 material = vec3(1.0);
+    highp vec3 sun_light_dir = conf.sun_light_dir.xyz;
+    highp vec4 material = conf.material_light_response;
 
     highp vec3 dirColor = dirLight.rgb * dirLight.a;
     highp vec3 ambColor = ambLight.rgb * ambLight.a;
@@ -56,12 +67,14 @@ highp vec3 phong_lighting(highp vec3 albedo, highp vec3 normal) {
     highp vec3 ambient = material.r * albedo;
     highp vec3 diff = material.g * albedo;
     highp vec3 spec = vec3(material.b);
+    highp float shini = material.a;
 
-    highp vec3 sun_light_dir = conf.sun_light_dir.xyz;
+    highp vec3 toLightDirWS = -normalize(conf.sun_light_dir.xyz);
+    highp vec3 toEyeNrmWS = normalize(eyePos - fragPos);
 
-    highp float lambertian_coeff = max(0.0, dot(normal, sun_light_dir));
+    highp vec3 diffAndSpecIllumination = dirColor * calc_blinn_phong_contribution(toLightDirWS, toEyeNrmWS, normal, diff, spec, shini);
 
-    return (ambient * ambColor) + (dirColor * lambertian_coeff);
+    return (ambient * ambColor) + diffAndSpecIllumination;
 }
 
 void main() {
@@ -162,8 +175,7 @@ void main() {
             highp float f = dot(AP,AB) / dot(AB,AB);
 
             if (shading_method == 0) { // default
-
-                color = phong_lighting(vec3(1,0,0), normal);
+                color = vec3(1,0,0);
 
             } else if (shading_method == 1) { // normal
 
@@ -192,6 +204,9 @@ void main() {
             } else {
                 color = vec3(0);
             }
+
+
+            color = phong_lighting(color, normal, camera_position, point);
 
             if (t < dist) {
                 // geometry is above terrain

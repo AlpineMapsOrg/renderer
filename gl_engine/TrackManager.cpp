@@ -58,7 +58,7 @@ QOpenGLTexture* TrackManager::track_texture()
 
 void TrackManager::draw(const nucleus::camera::Definition& camera, ShaderProgram* shader) const
 {
-    if (m_tracks.size() == 0) {
+    if (m_tracks.empty()) {
         return;
     }
 
@@ -144,7 +144,6 @@ void TrackManager::add_track(const nucleus::gpx::Gpx& gpx, ShaderProgram* shader
             return;
         }
 
-#if 1
         if (m_data_texture == nullptr) {
             // create texture to hold the point data
             m_data_texture = std::make_unique<QOpenGLTexture>(QOpenGLTexture::Target::Target2D);
@@ -162,10 +161,8 @@ void TrackManager::add_track(const nucleus::gpx::Gpx& gpx, ShaderProgram* shader
             }
         }
 
-
         m_data_texture->bind();
         m_data_texture->setData(m_total_point_count, 0, 0, point_count, 1, 0, QOpenGLTexture::RGBA, QOpenGLTexture::Float32, points.data());
-#endif
 
         m_total_point_count += point_count;
 
