@@ -30,6 +30,8 @@
 #include <QThread>
 #include <QDir>
 #include <QTimer>
+#include <QFileDialog>
+#include <QBuffer>
 #include <glm/glm.hpp>
 #include <glm/gtx/string_cast.hpp>
 
@@ -249,6 +251,41 @@ void TerrainRendererItem::set_gl_preset(const QString& preset_b64_string) {
     // Update light direction if sunlink is true. Otherwise shadows will not work on first frame
     if (m_settings->gl_sundir_date_link()) update_gl_sun_dir_from_sun_angles(tmp);
     set_shared_config(tmp);
+}
+
+
+void TerrainRendererItem::get_upload_file()
+{
+    qDebug() << "get_upload_file";
+
+    auto fileContentReady = [this](const QString &fileName, const QByteArray &fileContent) {
+        (void)fileContent;
+        if (fileName.isEmpty()) {
+            qDebug() << "No file was selected!";
+        } else {
+            // Use fileName and fileContent
+            qDebug() << "Selected " << fileName;
+
+            QXmlStreamReader xmlReader(fileContent);
+
+            std::unique_ptr<nucleus::gpx::Gpx> gpx = nucleus::gpx::parse(xmlReader);
+
+            if (gpx != nullptr)
+            {
+                emit gpx_track_added_by_user(*gpx);
+
+                if (0 < gpx->track.size() && 0 < gpx->track[0].size())
+                {
+                    auto track_start = gpx->track[0][0];
+                    emit position_set_by_user(track_start.latitude, track_start.longitude);
+                }
+            } else {
+                qDebug("Coud not parse GPX file!");
+            }
+        }
+    };
+
+    QFileDialog::getOpenFileContent("GPX (*.gpx *.xml)",  fileContentReady);
 }
 
 void TerrainRendererItem::add_track(const QString& track)

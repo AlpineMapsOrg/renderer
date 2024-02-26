@@ -77,10 +77,9 @@ ColumnLayout {
     FloatingActionButton {
         image: "../icons/material/add.svg"
         size: parent.width
-        onClicked: file_dialog.open()
+        onClicked: map.get_upload_file()
         ToolTip.visible: right
         ToolTip.text: qsTr("Add GPX Track")
-
     }
 
     FileDialog  {

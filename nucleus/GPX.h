@@ -2,6 +2,7 @@
 
 #include <QString>
 #include <QDateTime>
+#include <QXmlStreamReader>
 #include <glm/glm.hpp>
 #include <memory>
 #include <string>
@@ -29,6 +30,8 @@ namespace gpx {
     };
 
     std::unique_ptr<Gpx> parse(const QString& path);
+
+    std::unique_ptr<Gpx> parse(QXmlStreamReader&);
 
 } // namespace gpx
 

@@ -52,18 +52,10 @@ namespace gpx {
         return point;
     }
 
-    std::unique_ptr<Gpx> parse(const QString& path)
+
+    std::unique_ptr<Gpx> parse(QXmlStreamReader& xmlReader)
     {
         std::unique_ptr<Gpx> gpx = std::make_unique<Gpx>();
-
-        QFile file(path);
-
-        if (!file.open(QIODevice::ReadOnly | QIODevice::Text)) {
-            std::cerr << "Could not open file " << path.toStdString() << std::endl;
-            return nullptr;
-        }
-
-        QXmlStreamReader xmlReader(&file);
 
         while (!xmlReader.atEnd() && !xmlReader.hasError()) {
             QXmlStreamReader::TokenType token = xmlReader.readNext();
@@ -106,8 +98,23 @@ namespace gpx {
             return nullptr;
         }
 
-        file.close();
         return gpx;
+    }
+
+    std::unique_ptr<Gpx> parse(const QString& path)
+    {
+        std::unique_ptr<Gpx> gpx = std::make_unique<Gpx>();
+
+        QFile file(path);
+
+        if (!file.open(QIODevice::ReadOnly | QIODevice::Text)) {
+            std::cerr << "Could not open file " << path.toStdString() << std::endl;
+            return nullptr;
+        }
+
+        QXmlStreamReader xmlReader(&file);
+
+        return parse(xmlReader);
     }
 } // namespace gpx
 
