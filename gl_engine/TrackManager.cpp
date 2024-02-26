@@ -96,9 +96,7 @@ void TrackManager::draw(const nucleus::camera::Definition& camera, ShaderProgram
 
         track.vao->bind();
 
-        //GLsizei count = (track.point_count - 1) * 6;
-        GLsizei vertex_count = (track.point_count - 1) * 2;
-        //GLsizei vertex_count = 2 * 3;
+        GLsizei vertex_count = (track.point_count - 1) * 6;
 
 #if (defined(__linux) && !defined(__ANDROID__)) || defined(_WIN32) || defined(_WIN64)
         if (funcs)

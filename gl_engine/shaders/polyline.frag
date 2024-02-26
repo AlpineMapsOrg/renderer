@@ -204,10 +204,10 @@ void main() {
 
                 highp float delta = (t - dist) / (c.radius * 2);
 
-                out_color = vec4(color, 0.3);
+                out_color = vec4(color, 0.5);
 #endif
             } else {
-                out_color = vec4(color, 0.3);
+                out_color = vec4(color, 0.5);
                 //discard; // geometry is far below terrain
             }
         } else {
