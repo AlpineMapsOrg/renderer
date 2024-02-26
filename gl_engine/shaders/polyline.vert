@@ -18,7 +18,7 @@ uniform highp sampler2D texin_track;
 flat out highp int vertex_id;
 flat out highp float radius;
 
-#define METHOD 5
+#define METHOD 2
 
 void main() {
 
