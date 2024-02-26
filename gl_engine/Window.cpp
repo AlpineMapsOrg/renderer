@@ -227,7 +227,8 @@ void Window::paint(QOpenGLFramebufferObject* framebuffer)
     // Generate Draw-List
     // Note: Could also just be done on camera change
     m_timer->start_timer("draw_list");
-    const auto draw_tiles = m_tile_manager->generate_tilelist(m_camera);
+    const auto draw_tiles = m_debug_camera_enabled ? m_tile_manager->generate_tilelist(m_debug_camera)
+                                                   : m_tile_manager->generate_tilelist(m_camera);
     m_timer->stop_timer("draw_list");
 
     // DRAW SHADOWMAPS
@@ -409,6 +410,13 @@ void Window::keyPressEvent(QKeyEvent* e)
         || (e->key() == Qt::Key_P && e->modifiers() == Qt::ControlModifier)
         || (e->key() == Qt::Key_F5 && e->modifiers() == Qt::ControlModifier)) {
         e->ignore();
+    }
+    if (e->key() == Qt::Key_F12) {
+        m_debug_camera_enabled = !m_debug_camera_enabled;
+        if (m_debug_camera_enabled) {
+            m_debug_camera = m_camera;
+        }
+        qDebug(m_debug_camera_enabled ? "Debug camera enabled" : "Debug camera disabled");
     }
 
     emit key_pressed(e->keyCombination());
