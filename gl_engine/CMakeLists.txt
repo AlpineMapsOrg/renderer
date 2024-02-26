@@ -69,15 +69,15 @@ qt_add_resources(gl_engine "shaders"
     shaders/shadowmap.frag
     shaders/shadow_config.glsl
     shaders/overlay_steepness.glsl
+    shaders/labels.frag
+    shaders/labels.vert
+    shaders/snow.glsl
     shaders/turbo_colormap.glsl
     shaders/polyline.frag
     shaders/polyline.vert
     shaders/turbo_colormap.glsl
     shaders/hashing.glsl
     shaders/intersection.glsl
-    shaders/snow.glsl
-    shaders/labels.vert
-    shaders/labels.frag
 )
 target_compile_definitions(gl_engine PUBLIC ALP_RESOURCES_PREFIX="${CMAKE_CURRENT_SOURCE_DIR}/shaders/")
 

@@ -57,8 +57,6 @@ QOpenGLTexture::TextureFormat internal_format_qt(Framebuffer::ColourFormat f)
         return QOpenGLTexture::TextureFormat::R32U;
     case Framebuffer::ColourFormat::RGBA32F:
         return QOpenGLTexture::TextureFormat::RGBA32F;
-    case Framebuffer::ColourFormat::R32I:
-        return QOpenGLTexture::TextureFormat::R32I;
     }
     assert(false);
     return QOpenGLTexture::TextureFormat::NoFormat;
@@ -85,8 +83,6 @@ GLenum format(Framebuffer::ColourFormat f)
         return GL_RED_INTEGER;
     case Framebuffer::ColourFormat::RGBA32F:
         return GL_RGBA;
-    case Framebuffer::ColourFormat::R32I:
-        return GL_RED_INTEGER;
     }
     assert(false);
     return GLenum(-1);
@@ -132,10 +128,7 @@ GLenum type(Framebuffer::ColourFormat f)
         return GL_HALF_FLOAT;
     case Framebuffer::ColourFormat::R32UI:
         return GL_UNSIGNED_INT;
-    case Framebuffer::ColourFormat::R32I:
-        return GL_INT;
     }
-   
     assert(false);
     return GLenum(-1);
 }
@@ -318,7 +311,6 @@ T Framebuffer::read_colour_attachment_pixel(unsigned int index, const glm::dvec2
     case Framebuffer::ColourFormat::RGB16F:
     case Framebuffer::ColourFormat::RGBA16F:
     case Framebuffer::ColourFormat::R32UI: // fails on linux firefox
-    case Framebuffer::ColourFormat::R32I:
         // unsupported or untested.
         // you really should add a unit test if you move something down to the supported section
         // as the support accross platforms (webassembly, android, ios?) is patchy
