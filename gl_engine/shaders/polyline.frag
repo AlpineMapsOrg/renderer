@@ -76,8 +76,6 @@ void main() {
 
     highp vec3 sun_light_dir = conf.sun_light_dir.xyz;
 
-#if 1 // intersect in fragment shader
-
     // track vertex position
     int id = vertex_id;
 
@@ -218,7 +216,6 @@ void main() {
 
 #else
 #error unknown GEOMETRY
-#endif
 #endif
     }
 }
