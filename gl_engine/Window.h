@@ -114,6 +114,8 @@ private:
     bool m_wireframe_enabled = false;
     bool m_debug_camera_enabled = false;
     nucleus::camera::Definition m_debug_camera;
+    bool m_frustum_culling_draw_tiles_enabled = true;
+    bool m_frustum_culling_shadow_tiles_enabled = false;
     QString m_debug_text;
     QString m_debug_scheduler_stats;
 

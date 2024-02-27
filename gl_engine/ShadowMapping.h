@@ -57,6 +57,7 @@ public:
         const nucleus::camera::Definition& camera);
 
     void bind_shadow_maps(ShaderProgram* program, unsigned int start_location);
+    nucleus::camera::Frustum getFrustum(const nucleus::camera::Definition& camera);
 
 private:
 

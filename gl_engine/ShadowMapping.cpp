@@ -161,5 +161,12 @@ glm::mat4 ShadowMapping::getLightSpaceMatrix(const float nearPlane, const float 
     return lightProjection * lightView;// * glm::translate(camera.position());
 }
 
+nucleus::camera::Frustum ShadowMapping::getFrustum([[maybe_unused]] const nucleus::camera::Definition& camera)
+{
+    auto frustum = nucleus::camera::Frustum();
+    //TODO set clipping planes and corners according to light source's view frustum
+    // this would be a box covering the entire camera view frustum
+    return frustum;
+}
 
 }

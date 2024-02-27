@@ -49,6 +49,7 @@ public:
     void draw(ShaderProgram* shader_program, const nucleus::camera::Definition& camera, const nucleus::tile_scheduler::DrawListGenerator::TileSet draw_tiles, bool sort_tiles, glm::dvec3 sort_position) const;
 
     const nucleus::tile_scheduler::DrawListGenerator::TileSet generate_tilelist(const nucleus::camera::Definition& camera) const;
+    const nucleus::tile_scheduler::DrawListGenerator::TileSet cull(const nucleus::tile_scheduler::DrawListGenerator::TileSet& tileset, const nucleus::camera::Frustum& frustum) const;
 
     void set_permissible_screen_space_error(float new_permissible_screen_space_error);
 

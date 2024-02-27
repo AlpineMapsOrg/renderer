@@ -227,14 +227,28 @@ void Window::paint(QOpenGLFramebufferObject* framebuffer)
     // Generate Draw-List
     // Note: Could also just be done on camera change
     m_timer->start_timer("draw_list");
-    const auto draw_tiles = m_debug_camera_enabled ? m_tile_manager->generate_tilelist(m_debug_camera)
-                                                   : m_tile_manager->generate_tilelist(m_camera);
+    const auto all_tiles = m_debug_camera_enabled ? m_tile_manager->generate_tilelist(m_debug_camera)
+                                                  : m_tile_manager->generate_tilelist(m_camera);
+    auto draw_tiles = all_tiles;
+    if (m_frustum_culling_draw_tiles_enabled) {
+        draw_tiles = m_tile_manager->cull(draw_tiles, m_debug_camera_enabled ? m_debug_camera.frustum() : m_camera.frustum());
+    }
+
+
     m_timer->stop_timer("draw_list");
 
     // DRAW SHADOWMAPS
     if (m_shared_config_ubo->data.m_csm_enabled) {
+        auto shadow_tiles = all_tiles;
+        if (m_frustum_culling_shadow_tiles_enabled) {
+            //TODO cull all tiles for shadow mapping by light's view frustum
+            //shadow_tiles = m_tile_manager->cull(draw_tiles, m_shadowmapping->getFrustum(1.0f, 10'000.0f, m_camera));
+
+            // for now
+            shadow_tiles = draw_tiles;
+        }
         m_timer->start_timer("shadowmap");
-        m_shadowmapping->draw(m_tile_manager.get(), draw_tiles, m_camera);
+        m_shadowmapping->draw(m_tile_manager.get(), shadow_tiles, m_camera);
         m_timer->stop_timer("shadowmap");
     }
 
@@ -417,6 +431,16 @@ void Window::keyPressEvent(QKeyEvent* e)
             m_debug_camera = m_camera;
         }
         qDebug(m_debug_camera_enabled ? "Debug camera enabled" : "Debug camera disabled");
+    }
+
+    if (e->key() == Qt::Key_C) {
+        m_frustum_culling_draw_tiles_enabled = !m_frustum_culling_draw_tiles_enabled;
+        qDebug(m_frustum_culling_draw_tiles_enabled ? "Frustum culling (draw tiles) enabled" : "Frustum culling (draw tiles) disabled");
+    }
+
+    if (e->key() == Qt::Key_V) {
+        m_frustum_culling_shadow_tiles_enabled = !m_frustum_culling_shadow_tiles_enabled;
+        qDebug(m_frustum_culling_draw_tiles_enabled ? "Frustum culling (shadow tiles) enabled" : "Frustum culling (shadow tiles) disabled");
     }
 
     emit key_pressed(e->keyCombination());

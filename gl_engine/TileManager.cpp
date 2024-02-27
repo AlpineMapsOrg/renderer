@@ -117,6 +117,10 @@ const nucleus::tile_scheduler::DrawListGenerator::TileSet TileManager::generate_
     return m_draw_list_generator.generate_for(camera);
 }
 
+const nucleus::tile_scheduler::DrawListGenerator::TileSet TileManager::cull(const nucleus::tile_scheduler::DrawListGenerator::TileSet& tileset, const nucleus::camera::Frustum& frustum) const {
+    return m_draw_list_generator.cull(tileset, frustum);
+}
+
 void TileManager::draw(ShaderProgram* shader_program, const nucleus::camera::Definition& camera,
                        const nucleus::tile_scheduler::DrawListGenerator::TileSet draw_tiles,
                        bool sort_tiles, glm::dvec3 sort_position) const
