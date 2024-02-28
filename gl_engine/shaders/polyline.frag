@@ -1,3 +1,21 @@
+/*****************************************************************************
+ * Alpine Terrain Builder
+ * Copyright (C) 2024 Jakob Maier
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ *****************************************************************************/
+
 #include "intersection.glsl"
 #include "hashing.glsl"
 #include "encoder.glsl"
@@ -186,7 +204,7 @@ void main() {
                 highp float speed_0 = length(x0 - x1) / p1.w;
                 highp float speed_1 = length(x1 - x2) / p2.w;
 
-                highp float max_speed = 0.005; // TODO: should be dynamic
+                highp float max_speed = 0.05; // TODO: should be dynamic
 
                 highp float t_0 = clamp(speed_0 / max_speed, 0., 1.);
                 highp float t_1 = clamp(speed_1 / max_speed, 0., 1.);
@@ -219,6 +237,8 @@ void main() {
                 out_color = vec4(color, 0.5);
 #endif
             } else {
+
+                // TODO: blend to 0 when far below terrain
                 out_color = vec4(color, 0.5);
                 //discard; // geometry is far below terrain
             }
