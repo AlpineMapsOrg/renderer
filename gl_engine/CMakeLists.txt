@@ -73,8 +73,8 @@ qt_add_resources(gl_engine "shaders"
     shaders/labels.vert
     shaders/snow.glsl
     shaders/turbo_colormap.glsl
-    shaders/polyline.frag
-    shaders/polyline.vert
+    shaders/track.frag
+    shaders/track.vert
     shaders/turbo_colormap.glsl
     shaders/hashing.glsl
     shaders/intersection.glsl

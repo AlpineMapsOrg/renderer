@@ -36,7 +36,7 @@ ShaderManager::ShaderManager()
     m_ssao_program = std::make_shared<ShaderProgram>("screen_pass.vert", "ssao.frag");
     m_ssao_blur_program = std::make_shared<ShaderProgram>("screen_pass.vert", "ssao_blur.frag");
     m_shadowmap_program = std::make_unique<ShaderProgram>("shadowmap.vert", "shadowmap.frag");
-    m_track_program = std::make_unique<ShaderProgram>("polyline.vert", "polyline.frag");
+    m_track_program = std::make_unique<ShaderProgram>("track.vert", "track.frag");
     m_labels_program = std::make_unique<ShaderProgram>("labels.vert", "labels.frag");
 
     m_program_list.push_back(m_tile_program.get());
