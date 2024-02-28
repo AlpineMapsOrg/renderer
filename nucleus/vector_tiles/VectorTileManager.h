@@ -37,27 +37,38 @@ namespace nucleus {
 class VectorTileManager : public QObject {
     Q_OBJECT
 public:
-    explicit VectorTileManager(QObject* parent = nullptr);
+    explicit VectorTileManager(QObject* parent = nullptr, DataQuerier* data_querier = nullptr);
 
-    std::shared_ptr<std::unordered_set<std::shared_ptr<FeatureTXT>>> get_tile(tile::Id id);
-
-    // const std::unordered_map<size_t, std::shared_ptr<Peak>>& get_peaks() const;
+    std::unordered_set<std::shared_ptr<FeatureTXT>> get_tile(tile::Id id);
 
     inline static const QString TILE_SERVER = "http://localhost:8080/austria.peaks/";
 
+    // all individual features and an appropriate parser method are stored in the following map
+    // typedef std::shared_ptr<FeatureTXT> (*FeatureTXTParser)(const mapbox::vector_tile::feature& feature, tile::SrsBounds& tile_bounds, double extent);
+    typedef std::shared_ptr<FeatureTXT> (*FeatureTXTParser)(const mapbox::vector_tile::feature&, const tile::SrsBounds&, const double);
+    inline static const std::unordered_map<std::string, FeatureTXTParser> FEATURE_TYPES_FACTORY = { { "Peak", FeatureTXTPeak::parse } };
+
 public slots:
     void deliver_vectortile(const nucleus::tile_scheduler::tile_types::TileLayer& tile);
+    void prepare_vector_tile(const tile::Id id);
+
+signals:
+    void vector_tile_ready(const tile::Id id, const std::unordered_set<std::shared_ptr<FeatureTXT>>& features);
 
 private:
-    const static inline std::shared_ptr<std::unordered_set<std::shared_ptr<FeatureTXT>>> empty = std::make_shared<std::unordered_set<std::shared_ptr<FeatureTXT>>>(); // default reference we return if the tile does not (yet) exist
-    std::unordered_map<tile::Id, std::shared_ptr<std::unordered_set<std::shared_ptr<FeatureTXT>>>, tile::Id::Hasher> loaded_tiles;
+    const static inline std::unordered_set<std::shared_ptr<FeatureTXT>> empty
+        = std::unordered_set<std::shared_ptr<FeatureTXT>>(); // default reference we return if the tile does not (yet) exist
+    std::unordered_map<tile::Id, std::unordered_set<std::shared_ptr<FeatureTXT>>, tile::Id::Hasher> m_loaded_tiles;
+    std::unordered_map<unsigned long, std::shared_ptr<FeatureTXT>> m_loaded_features;
+
+    // using this set we store whether or not the height data has already finished loading
+    std::unordered_set<tile::Id, tile::Id::Hasher> m_height_data_available;
+
+    DataQuerier* m_data_querier;
 
     void create_tile_data(const nucleus::tile_scheduler::tile_types::TileLayer& tileLayer);
 
-    // void update_peak(std::string name, float altitude, glm::vec2 position, int zoom_level);
-
-    // std::unordered_set<tile::Id, tile::Id::Hasher> loaded_tiles;
-    std::unordered_map<long, std::shared_ptr<FeatureTXT>> loaded_peaks;
+    void calculated_label_height(const tile::Id& id);
 };
 
 } // namespace nucleus

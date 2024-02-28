@@ -56,7 +56,8 @@ Controller::Controller(AbstractRenderWindow* render_window)
     //        "https://maps%1.wien.gv.at/basemap/bmaporthofoto30cm/normal/google3857/", TileLoadService::UrlPattern::ZYX_yPointingSouth, ".jpeg", { "", "1", "2", "3", "4" }));
     m_ortho_service.reset(new TileLoadService(
         "https://gataki.cg.tuwien.ac.at/raw/basemap/tiles/", TileLoadService::UrlPattern::ZYX_yPointingSouth, ".jpeg"));
-    m_vectortile_service = std::make_unique<TileLoadService>("https://mapsneu.wien.gv.at/basemapv/bmapv/3857/tile/", TileLoadService::UrlPattern::ZYX_yPointingSouth, ".pbf");
+    m_vectortile_service = std::make_unique<TileLoadService>(
+        nucleus::VectorTileManager::TILE_SERVER, nucleus::tile_scheduler::TileLoadService::UrlPattern::ZXY_yPointingSouth, ".mvt");
 
     m_tile_scheduler = std::make_unique<nucleus::tile_scheduler::Scheduler>();
     m_tile_scheduler->read_disk_cache();
@@ -72,18 +73,16 @@ Controller::Controller(AbstractRenderWindow* render_window)
         m_tile_scheduler->set_aabb_decorator(decorator);
         m_render_window->set_aabb_decorator(decorator);
     }
-    m_data_querier = std::make_unique<DataQuerier>(&m_tile_scheduler->ram_cache());
+    m_data_querier = std::make_shared<DataQuerier>(&m_tile_scheduler->ram_cache());
     m_camera_controller = std::make_unique<nucleus::camera::Controller>(
-        nucleus::camera::PositionStorage::instance()->get("grossglockner"),
-        m_render_window->depth_tester(),
-        m_data_querier.get());
+        nucleus::camera::PositionStorage::instance()->get("grossglockner"), m_render_window->depth_tester(), m_data_querier.get());
     {
         auto* sch = m_tile_scheduler.get();
         SlotLimiter* sl = new SlotLimiter(sch);
         RateLimiter* rl = new RateLimiter(sch);
         QuadAssembler* qa = new QuadAssembler(sch);
         LayerAssembler* la = new LayerAssembler(sch);
-        VectorTileManager* vtm = new VectorTileManager();
+        VectorTileManager* vtm = new VectorTileManager(sch, m_data_querier.get());
         connect(sch, &Scheduler::quads_requested, sl, &SlotLimiter::request_quads);
         connect(sl, &SlotLimiter::quad_requested, rl, &RateLimiter::request_quad);
         connect(rl, &RateLimiter::quad_requested, qa, &QuadAssembler::load);
@@ -98,6 +97,9 @@ Controller::Controller(AbstractRenderWindow* render_window)
         connect(la, &LayerAssembler::tile_loaded, qa, &QuadAssembler::deliver_tile);
         connect(qa, &QuadAssembler::quad_loaded, sl, &SlotLimiter::deliver_quad);
         connect(sl, &SlotLimiter::quad_delivered, sch, &Scheduler::receive_quad);
+
+        connect(m_render_window, &AbstractRenderWindow::request_vector_tile, vtm, &VectorTileManager::prepare_vector_tile);
+        connect(vtm, &VectorTileManager::vector_tile_ready, m_render_window, &AbstractRenderWindow::update_vector_tile);
     }
     if (QNetworkInformation::loadDefaultBackend() && QNetworkInformation::instance()) {
         QNetworkInformation* n = QNetworkInformation::instance();

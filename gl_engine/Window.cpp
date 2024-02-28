@@ -79,7 +79,7 @@
      : m_camera({ 1822577.0, 6141664.0 - 500, 171.28 + 500 }, { 1822577.0, 6141664.0, 171.28 }) // should point right at the stephansdom
  {
      m_tile_manager = std::make_unique<TileManager>();
-     m_map_label_manager = std::make_unique<MapLabelManager>();
+     m_map_label_manager = std::make_shared<MapLabelManager>();
      QTimer::singleShot(1, [this]() { emit update_requested(); });
 }
 
@@ -148,6 +148,7 @@ void Window::initialise_gpu()
     m_shadowmapping = std::make_unique<gl_engine::ShadowMapping>(m_shader_manager->shared_shadowmap_program(), m_shadow_config_ubo, m_shared_config_ubo);
 
     m_map_label_manager->init();
+    connect(m_map_label_manager.get(), &MapLabelManager::added_tile, this, &Window::prepare_vector_tile);
 
     {   // INITIALIZE CPU AND GPU TIMER
         using namespace std;
@@ -447,6 +448,20 @@ void Window::update_gpu_quads(const std::vector<nucleus::tile_scheduler::tile_ty
 {
     assert(m_tile_manager);
     m_tile_manager->update_gpu_quads(new_quads, deleted_quads);
+
+    assert(m_map_label_manager);
+    m_map_label_manager->update_gpu_quads(new_quads, deleted_quads);
+}
+
+// Map Label Manager wants to draw vector tiles
+// -> we use this slot to connect map label signal to signal that can be accessed in controller
+void Window::prepare_vector_tile(const tile::Id id) { emit request_vector_tile(id); }
+
+// Vector tile manager gave us the features
+// -> send them to the map label manager
+void Window::update_vector_tile(const tile::Id id, const std::unordered_set<std::shared_ptr<nucleus::FeatureTXT>>& features)
+{
+    m_map_label_manager->create_vao(id, features);
 }
 
 float Window::depth(const glm::dvec2& normalised_device_coordinates)
@@ -469,6 +484,7 @@ void Window::deinit_gpu()
     m_shader_manager.reset();
     m_gbuffer.reset();
     m_screen_quad_geometry = {};
+    m_map_label_manager.reset();
 }
 
 void Window::set_aabb_decorator(const nucleus::tile_scheduler::utils::AabbDecoratorPtr& new_aabb_decorator)
@@ -481,6 +497,9 @@ void Window::remove_tile(const tile::Id& id)
 {
     assert(m_tile_manager);
     m_tile_manager->remove_tile(id);
+
+    assert(m_map_label_manager);
+    m_map_label_manager->remove_tile(id);
 }
 
 nucleus::camera::AbstractDepthTester* Window::depth_tester()

@@ -27,26 +27,43 @@
 
 namespace nucleus {
 
-VectorTileManager::VectorTileManager(QObject* parent)
+VectorTileManager::VectorTileManager(QObject* parent, DataQuerier* data_querier)
     : QObject { parent }
+    , m_data_querier(data_querier)
 {
 }
 
-std::shared_ptr<std::unordered_set<std::shared_ptr<FeatureTXT>>> VectorTileManager::get_tile(tile::Id id)
+std::unordered_set<std::shared_ptr<FeatureTXT>> VectorTileManager::get_tile(tile::Id id)
 {
-    // std::cout << id << std::endl;
-    if (loaded_tiles.contains(id)) {
-        return loaded_tiles[id];
+    if (m_loaded_tiles.contains(id)) {
+        return m_loaded_tiles[id];
     } // else -> doesnt exist yet -> do nothing
 
     return empty;
 }
 
+/*
+ *  This is the slot where the loaded tile data is parsed.
+ *  This slot is connected in the controller (similar to the other tile data)
+ *  The data is parsed separately to the height and ortho data, since a completely other render pass manages the data
+ *  -> therefore there is no need to send assemble/send this data to the shader in a render pass where it is not needed and has to be calculated separately
+ */
 void VectorTileManager::deliver_vectortile(const nucleus::tile_scheduler::tile_types::TileLayer& tile)
 {
-    if (!loaded_tiles.contains(tile.id) && tile.network_info.status == nucleus::tile_scheduler::tile_types::NetworkInfo::Status::Good) {
+    if (!m_loaded_tiles.contains(tile.id) && tile.network_info.status == nucleus::tile_scheduler::tile_types::NetworkInfo::Status::Good) {
         create_tile_data(tile);
     } // else -> already loaded once -> do nothing
+}
+
+void VectorTileManager::prepare_vector_tile(const tile::Id id)
+{
+    m_height_data_available.insert(id);
+
+    if (m_loaded_tiles.contains(id)) {
+        // vector tiles have already finished parsing the data
+        // continue calculating the height
+        calculated_label_height(id);
+    }
 }
 
 void VectorTileManager::create_tile_data(const nucleus::tile_scheduler::tile_types::TileLayer& tileLayer)
@@ -57,10 +74,11 @@ void VectorTileManager::create_tile_data(const nucleus::tile_scheduler::tile_typ
     std::string d = (*tileLayer.data).toStdString();
     mapbox::vector_tile::buffer tile(d);
 
-    std::shared_ptr<std::unordered_set<std::shared_ptr<FeatureTXT>>> features = std::make_shared<std::unordered_set<std::shared_ptr<FeatureTXT>>>();
+    // set of all features in this tile
+    std::unordered_set<std::shared_ptr<FeatureTXT>> features = std::unordered_set<std::shared_ptr<FeatureTXT>>();
 
     for (auto const& layerName : tile.layerNames()) {
-        if (layerName.starts_with("Peak")) {
+        if (FEATURE_TYPES_FACTORY.contains(layerName)) {
             const mapbox::vector_tile::layer layer = tile.getLayer(layerName);
             const auto extent = double(layer.getExtent());
             // std::cout << extent << std::endl;
@@ -70,40 +88,41 @@ void VectorTileManager::create_tile_data(const nucleus::tile_scheduler::tile_typ
 
                 auto const feature = mapbox::vector_tile::feature(layer.getFeature(i), layer);
 
-                mapbox::vector_tile::points_arrays_type geom = feature.getGeometries<mapbox::vector_tile::points_arrays_type>(1.0);
-                glm::vec2 pos;
-                for (auto const& point_array : geom) {
-                    for (auto const& point : point_array) {
-                        pos = tile_bounds.min + glm::dvec2(point.x / extent, point.y / extent) * (tile_bounds.max - tile_bounds.min);
-                    }
+                // check if feature was loaded previously and abort
+                const unsigned long id = feature.getID().get<uint64_t>();
+                if (m_loaded_features.contains(id)) {
+                    continue; // feature is already loaded
                 }
 
-                std::shared_ptr<FeatureTXT> peak;
-                long id = feature.getID().get<uint64_t>();
-                if (loaded_peaks.contains(id)) {
-                    continue; // peak is already loaded
-                    // peak = loaded_peaks[id];
-                } else {
-                    peak = std::make_shared<FeatureTXT>();
-                    peak->id = id;
-                    peak->position = glm::vec3(pos.x, pos.y, -1000);
-                }
+                // create the feature with the designated parser method
+                const std::shared_ptr<FeatureTXT> feat = FEATURE_TYPES_FACTORY.at(layerName)(feature, tile_bounds, extent);
 
-                auto props = feature.getProperties();
-                for (auto const& prop : props) {
-                    if (prop.first.starts_with("name")) {
-                        peak->name = prop.second.get<std::string>();
-                    } else if (prop.first.starts_with("elevation")) {
-                        peak->elevation = (int)prop.second.get<int64_t>();
-                    }
-                }
-
-                features->insert(peak);
+                m_loaded_features[id] = feat;
+                features.insert(feat);
             }
         }
     }
 
-    loaded_tiles.insert({ tileLayer.id, features });
+    // insert all the features into the map with the tile id as key
+    m_loaded_tiles.insert({ tileLayer.id, std::move(features) });
+
+    if (m_height_data_available.contains(tileLayer.id)) {
+        // height data has already finished loading
+        // -> continue determining the actual height of the labels
+        calculated_label_height(tileLayer.id);
+    }
+}
+
+void VectorTileManager::calculated_label_height(const tile::Id& id)
+{
+    if (m_data_querier == nullptr)
+        return;
+
+    for (auto feat : m_loaded_tiles[id]) {
+        feat->calculateHeight(id.zoom_level, m_data_querier);
+    }
+
+    emit vector_tile_ready(id, m_loaded_tiles[id]);
 }
 
 } // namespace nucleus

@@ -87,8 +87,8 @@ qt_add_library(nucleus STATIC
     utils/UrlModifier.h utils/UrlModifier.cpp
     utils/bit_coding.h
     utils/sun_calculations.h utils/sun_calculations.cpp
-    map_label/MapLabel.h map_label/MapLabel.cpp
     map_label/MapLabelManager.h map_label/MapLabelManager.cpp
+    map_label/MapLabelData.h
     utils/bit_coding.h
     tile_scheduler/cache_quieries.h
     DataQuerier.h DataQuerier.cpp
