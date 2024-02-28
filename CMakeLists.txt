@@ -1,6 +1,7 @@
 #############################################################################
 # Alpine Terrain Renderer
 # Copyright (C) 2023 Adam Celarek <family name at cg tuwien ac at>
+# Copyright (C) 2024 Gerald Kimmersdorfer
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -19,7 +20,11 @@
 cmake_minimum_required(VERSION 3.25)
 project(alpine-renderer LANGUAGES CXX)
 
-option(ALP_UNITTESTS "include unit test targets in the buildsystem" ON)
+option(ALP_UNITTESTS "include unit test targets in the buildsystem" OFF)
+option(ALP_GL_ENGINE "include the gl engine in the buildsystem" OFF)
+option(ALP_PLAIN_RENDERER "include the plain renderer in the buildsystem" OFF)
+option(ALP_QML_APP "include the qml app in the buildsystem" OFF)
+
 option(ALP_ENABLE_ADDRESS_SANITIZER "compiles atb with address sanitizer enabled (only debug, works only on g++ and clang)" OFF)
 option(ALP_ENABLE_THREAD_SANITIZER "compiles atb with thread sanitizer enabled (only debug, works only on g++ and clang)" OFF)
 option(ALP_ENABLE_ASSERTS "enable asserts (do not define NDEBUG)" ON)
@@ -27,6 +32,8 @@ option(ALP_ENABLE_TRACK_OBJECT_LIFECYCLE "enables debug cmd printout of construc
 option(ALP_ENABLE_APP_SHUTDOWN_AFTER_60S "Shuts down the app after 60S, used for CI testing with asan." OFF)
 
 set(ALP_EXTERN_DIR "extern" CACHE STRING "name of the directory to store external libraries, fonts etc..")
+
+set(ALP_DAWN_DIR "${CMAKE_SOURCE_DIR}/../dawn" CACHE PATH "path to the dawn repo with debug and release builds. (only necessary for native build)")
 
 if(ALP_ENABLE_TRACK_OBJECT_LIFECYCLE)
     add_definitions(-DALP_ENABLE_TRACK_OBJECT_LIFECYCLE)
@@ -98,10 +105,19 @@ if (ANDROID)
 endif()
 
 add_subdirectory(nucleus)
-add_subdirectory(gl_engine)
-add_subdirectory(plain_renderer)
-add_subdirectory(app)
 
+if (ALP_GL_ENGINE)
+    add_subdirectory(gl_engine)
+endif()
+if (ALP_PLAIN_RENDERER)
+    add_subdirectory(plain_renderer)
+endif()
+if (ALP_QML_APP)
+    add_subdirectory(app)
+endif()
 if (ALP_UNITTESTS)
     add_subdirectory(unittests)
 endif()
+
+add_subdirectory(webgpu_app)
+add_subdirectory(webgpu_engine)
