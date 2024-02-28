@@ -22,6 +22,7 @@
 # - dawn_path: Path to Dawn installation. (Builds are expected to be in build/debug or build/release)
 # - scope: Linkage and include scope (PRIVATE, PUBLIC, INTERFACE).
 function(alp_target_add_dawn target dawn_path scope)
+
     set(DAWN_DIR "${dawn_path}")
 
     # Determine the correct DAWN_BIN based on the build type

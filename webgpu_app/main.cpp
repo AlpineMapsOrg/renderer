@@ -1,7 +1,14 @@
 
-#include <GLFW/glfw3.h>
 #include <webgpu/webgpu_cpp.h>
 #include <webgpu/webgpu_glfw.h>
+
+#include <GLFW/glfw3.h>
+
+#ifdef ALP_WEBGPU_APP_ENABLE_IMGUI
+#include <imgui.h>
+#include "backends/imgui_impl_glfw.h"
+#include "backends/imgui_impl_wgpu.h"
+#endif
 
 #if defined(__EMSCRIPTEN__)
 #include <emscripten/emscripten.h>
@@ -19,15 +26,77 @@
 wgpu::Instance instance;
 wgpu::Device device;
 wgpu::RenderPipeline pipeline;
+GLFWwindow* window;
 
 wgpu::SwapChain swapChain;
+wgpu::TextureFormat swapChainFormat = wgpu::TextureFormat::BGRA8Unorm;
+//wgpu::TextureFormat depthTextureFormat = wgpu::TextureFormat::Depth24Plus;
 const uint32_t kWidth = 1024;
 const uint32_t kHeight = 800;
+
+#ifdef ALP_WEBGPU_APP_ENABLE_IMGUI
+bool initGui() {
+    // Setup Dear ImGui context
+    IMGUI_CHECKVERSION();
+    ImGui::CreateContext();
+    ImGui::GetIO();
+
+    // Setup Platform/Renderer backends
+    ImGui_ImplGlfw_InitForOther(window, true);
+    ImGui_ImplWGPU_InitInfo init_info = {};
+    init_info.Device = device.Get();
+    init_info.RenderTargetFormat = (WGPUTextureFormat)swapChainFormat;
+    init_info.DepthStencilFormat = WGPUTextureFormat_Undefined;
+    init_info.NumFramesInFlight = 3;
+    ImGui_ImplWGPU_Init(&init_info);
+    return true;
+}
+
+void terminateGui() {
+    ImGui_ImplGlfw_Shutdown();
+    ImGui_ImplWGPU_Shutdown();
+}
+
+void updateGui(wgpu::RenderPassEncoder renderPass) {
+    ImGui_ImplWGPU_NewFrame();
+    ImGui_ImplGlfw_NewFrame();
+    ImGui::NewFrame();
+
+    // Build our UI
+    static float f = 0.0f;
+    static int counter = 0;
+    static bool show_demo_window = true;
+    static bool show_another_window = false;
+    static ImVec4 clear_color = ImVec4(0.45f, 0.55f, 0.60f, 1.00f);
+
+    ImGui::Begin("Hello, world!");                                // Create a window called "Hello, world!" and append into it.
+
+    ImGui::Text("This is some useful text.");                     // Display some text (you can use a format strings too)
+    ImGui::Checkbox("Demo Window", &show_demo_window);            // Edit bools storing our window open/close state
+    ImGui::Checkbox("Another Window", &show_another_window);
+
+    ImGui::SliderFloat("float", &f, 0.0f, 1.0f);                  // Edit 1 float using a slider from 0.0f to 1.0f
+    ImGui::ColorEdit3("clear color", (float*)&clear_color);       // Edit 3 floats representing a color
+
+    if (ImGui::Button("Button"))                                  // Buttons return true when clicked (most widgets return true when edited/activated)
+        counter++;
+    ImGui::SameLine();
+    ImGui::Text("counter = %d", counter);
+
+    ImGuiIO& io = ImGui::GetIO();
+    ImGui::Text("Application average %.3f ms/frame (%.1f FPS)", 1000.0f / io.Framerate, io.Framerate);
+    ImGui::End();
+
+    ImGui::EndFrame();
+    ImGui::Render();
+    ImGui_ImplWGPU_RenderDrawData(ImGui::GetDrawData(), renderPass.Get());
+}
+#endif
 
 void SetupSwapChain(wgpu::Surface surface) {
     wgpu::SwapChainDescriptor scDesc{
         .usage = wgpu::TextureUsage::RenderAttachment,
-        .format = wgpu::TextureFormat::BGRA8Unorm,
+        .format = swapChainFormat,
         .width = kWidth,
         .height = kHeight,
         .presentMode = wgpu::PresentMode::Fifo};
@@ -83,7 +152,7 @@ void CreateRenderPipeline() {
         device.CreateShaderModule(&shaderModuleDescriptor);
 
     wgpu::ColorTargetState colorTargetState{
-        .format = wgpu::TextureFormat::BGRA8Unorm};
+        .format = swapChainFormat};
 
     wgpu::FragmentState fragmentState{.module = shaderModule,
         .targetCount = 1,
@@ -108,6 +177,12 @@ void Render() {
     wgpu::RenderPassEncoder pass = encoder.BeginRenderPass(&renderpass);
     pass.SetPipeline(pipeline);
     pass.Draw(3);
+
+#ifdef ALP_WEBGPU_APP_ENABLE_IMGUI
+    // We add the GUI drawing commands to the render pass
+    updateGui(pass);
+#endif
+
     pass.End();
     wgpu::CommandBuffer commands = encoder.Finish();
     device.GetQueue().Submit(1, &commands);
@@ -125,7 +200,7 @@ void Start() {
     }
 
     glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
-    GLFWwindow* window =
+    window =
         glfwCreateWindow(kWidth, kHeight, "weBIGeo", nullptr, nullptr);
 
     if (!window) {
@@ -162,6 +237,13 @@ void Start() {
 
     InitGraphics(surface);
 
+#ifdef ALP_WEBGPU_APP_ENABLE_IMGUI
+    if (!initGui()) {
+        std::cerr << "Could not initialize GUI!" << std::endl;
+        return;
+    }
+#endif
+
 #if defined(__EMSCRIPTEN__)
     emscripten_set_main_loop(Render, 0, false);
 #else
@@ -173,6 +255,9 @@ void Start() {
     }
 #endif
 
+#ifdef ALP_WEBGPU_APP_ENABLE_IMGUI
+    terminateGui();
+#endif
     // At the end of the program, destroy the window
     glfwDestroyWindow(window);
     glfwTerminate();

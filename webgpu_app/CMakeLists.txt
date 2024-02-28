@@ -20,6 +20,9 @@
 
 project(alpine-renderer-webgpu_app LANGUAGES CXX)
 
+# option to enable/disable imgui
+option(ALP_WEBGPU_APP_ENABLE_IMGUI "Enable imgui" ON)
+
 qt_add_executable(webgpu_app
     resources.qrc
     main.cpp
@@ -36,14 +39,31 @@ else()
     alp_add_git_repository(glfw URL https://github.com/AlpineMapsOrgDependencies/glfw_slim.git COMMITISH 1c340247f42f8dc9ed3f971eb292ce76be6077e5)
 
     include(${CMAKE_SOURCE_DIR}/cmake/alp_target_add_dawn.cmake)
-    alp_target_add_dawn(webgpu_app "${ALP_DAWN_DIR}" PRIVATE)
 
+    # creates new interface called webgpu and adds dawn libraries to it
+    add_library(webgpu INTERFACE)
+    alp_target_add_dawn(webgpu "${ALP_DAWN_DIR}" INTERFACE)
+    target_link_libraries(webgpu_app PRIVATE webgpu)
+    #alp_target_add_dawn(webgpu_app "${ALP_DAWN_DIR}" PRIVATE)
+
+endif()
+
+if (ALP_WEBGPU_APP_ENABLE_IMGUI)
+    alp_add_git_repository(imgui URL https://github.com/AlpineMapsOrgDependencies/imgui_slim.git COMMITISH f738c335f73956ed3715434987e6f82bac442e87 )
+    target_link_libraries(webgpu_app PRIVATE imgui)
 endif()
 
 # TODO: Get rid of Qt::GUI (no QImage)
 target_link_libraries(webgpu_app PUBLIC webgpu_engine Qt::Core Qt::Gui)
 target_link_libraries(webgpu_app PRIVATE glfw)
 target_include_directories(webgpu_app PRIVATE .)
+
+# add imgui to compile definitions if enabled
+if (ALP_WEBGPU_APP_ENABLE_IMGUI)
+    target_compile_definitions(webgpu_app PRIVATE "ALP_WEBGPU_APP_ENABLE_IMGUI")
+endif()
+
+
 
 #qt_add_resources(webgpu_app "height_data"
 #    PREFIX "/map"
