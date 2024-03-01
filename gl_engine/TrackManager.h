@@ -53,6 +53,9 @@ public:
     float width = 7.0f;
 
 private:
+
+    float m_max_speed = 0.0f;
+    float m_max_vertical_speed = 0.0f;
     size_t m_total_point_count = 0;
     std::vector<PolyLine> m_tracks;
     std::unique_ptr<QOpenGLTexture> m_data_texture = nullptr;

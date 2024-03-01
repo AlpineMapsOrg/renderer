@@ -39,6 +39,8 @@ uniform bool enable_intersection;
 uniform int shading_method;
 uniform highp mat4 view;
 uniform highp mat4 proj;
+uniform highp float max_speed;
+uniform highp float max_vertical_speed;
 
 
 uniform highp vec2 resolution;
@@ -190,7 +192,8 @@ void main() {
             highp vec3 AP = point - x1;
             highp vec3 AB = x2 - x1;
 
-            highp float f = dot(AP,AB) / dot(AB,AB);
+            // where point is along the capsule major axis
+            highp float f = dot(AP, AB) / dot(AB, AB);
 
             if (shading_method == 0) { // default
                 color = vec3(1,0,0);
@@ -204,8 +207,6 @@ void main() {
                 highp float speed_0 = length(x0 - x1) / p1.w;
                 highp float speed_1 = length(x1 - x2) / p2.w;
 
-                highp float max_speed = 0.05; // TODO: should be dynamic
-
                 highp float t_0 = clamp(speed_0 / max_speed, 0., 1.);
                 highp float t_1 = clamp(speed_1 / max_speed, 0., 1.);
 
@@ -215,14 +216,23 @@ void main() {
                 highp vec3 d1 = normalize(x0 - x1);
                 highp vec3 d2 = normalize(x1 - x2);
 
-                highp vec3 up = vec3(0,0,1);
+                highp vec3 up = vec3(0.0, 0.0, 1.0);
 
                 color = mix( TurboColormap(abs(dot(d1, up))), TurboColormap(abs(dot(d2, up))), f);
+
+            } else if (shading_method == 4) {  // vertical speed
+
+                highp float speed_0 = abs(x0.z - x1.z) / p1.w;
+                highp float speed_1 = abs(x1.z - x2.z) / p2.w;
+
+                highp float t_0 = clamp(speed_0 / max_vertical_speed, 0., 1.);
+                highp float t_1 = clamp(speed_1 / max_vertical_speed, 0., 1.);
+
+                color = mix(TurboColormap(t_0), TurboColormap(t_1), f);
 
             } else {
                 color = vec3(0);
             }
-
 
             color = phong_lighting(color, normal, camera_position, point);
 

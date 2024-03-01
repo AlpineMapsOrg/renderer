@@ -30,7 +30,6 @@
 #include <QOpenGLFunctions_3_3_Core> // for wireframe mode
 #endif
 
-#include <iostream> // TODO: remove this
 #include <algorithm>
 
 #include "PolyLine.h"
@@ -78,10 +77,10 @@ void TrackManager::draw(const nucleus::camera::Definition& camera, ShaderProgram
     shader->set_uniform("view", view);
     shader->set_uniform("camera_position", glm::vec3(camera.position()));
     shader->set_uniform("width", width);
-    shader->set_uniform("aspect", 16.0f / 9.0f); // TODO: make this dynamic
-    shader->set_uniform("visualize_steepness", false); // TODO: make this dynamic
     shader->set_uniform("texin_track", 8);
     shader->set_uniform("shading_method", static_cast<int>(shading_method));
+    shader->set_uniform("max_speed", m_max_speed);
+    shader->set_uniform("max_vertical_speed", m_max_vertical_speed);
 
     if (m_data_texture) {
         m_data_texture->bind(8);
@@ -128,6 +127,22 @@ void TrackManager::add_track(const nucleus::gpx::Gpx& gpx, ShaderProgram* shader
         // data cleanup
         nucleus::apply_gaussian_filter(points, 1.0f);
         nucleus::reduce_point_count(points, width * 2);
+
+        for (size_t i = 0; i < points.size() - 1; ++i) {
+            glm::vec4 a = points[i];
+            glm::vec4 b = points[i + 1];
+            float distance = glm::distance(glm::vec3(a), glm::vec3(b));
+            float time = b.w;
+            float speed = distance / time;
+            float vertical_speed = glm::abs(a.z - b.z) / time;
+
+            m_max_speed = glm::max(speed, m_max_speed);
+            m_max_vertical_speed = glm::max(vertical_speed, m_max_vertical_speed);
+
+        }
+
+        qDebug() << "Max Speed: " << m_max_speed;
+        qDebug() << "Max Vertical Speed: " << m_max_vertical_speed;
 
         size_t point_count = points.size();
 

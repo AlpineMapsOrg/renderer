@@ -27,8 +27,6 @@ uniform highp mat4 view;
 uniform highp mat4 proj;
 uniform highp vec3 camera_position;
 uniform highp float width;
-uniform highp float aspect;
-uniform bool visualize_steepness;
 uniform highp sampler2D texin_track;
 
 flat out highp int vertex_id;
@@ -40,43 +38,9 @@ void main() {
 
   highp mat4 matrix = proj * view;
 
-
-  // the closest gpx point to the vertex
-  //vertex_id = (gl_VertexID / 3) - (gl_VertexID / 6);
   vertex_id = int(a_offset.y);
 
   radius = width;
-
-#if (METHOD == 1)
-  int id = (gl_VertexID / 2) - (gl_VertexID / 4);
-  highp vec3 tex_position = texelFetch(texin_track, ivec2(id, 0), 0).xyz;
-  highp vec3 tex_next_position = texelFetch(texin_track, ivec2(id + 1, 0), 0).xyz;
-
-  // could be done on cpu
-  highp vec3 position = tex_position - camera_position;
-  highp vec3 next = tex_next_position - camera_position;
-
-  highp vec3 view_dir = normalize(camera_position - tex_position);
-
-  highp vec2 aspect_vec = vec2(aspect, 1);
-
-  highp vec4 current_projected = matrix * vec4(position, 1);
-  highp vec4 next_projected = matrix * vec4(next, 1);
-
-  highp vec2 current_screen = current_projected.xy / current_projected.w * aspect_vec;
-  highp vec2 next_screen = next_projected.xy / next_projected.w * aspect_vec;
-
-  highp float orientation = a_offset.z;
-
-  highp vec2 direction = normalize(next_screen - current_screen);
-  highp vec2 normal = vec2(-direction.y, direction.x);
-  normal.x /= aspect;
-
-  highp vec4 offset = vec4(normal * orientation, 0, 0);
-  gl_Position = current_projected + offset * width;
-
-
-#elif (METHOD == 2)
 
   int shading_method = 0;
 
@@ -110,26 +74,5 @@ void main() {
 
   highp vec3 position = p0 + u_hat * a_offset.z * r0_double_prime;
 
-  //color = vec3(1,0,1);
-
   gl_Position = matrix * vec4(position, 1);
-
-#elif(METHOD == 3)
-  // naive orientation towards camera
-  // does not contain the whole capsule
-  const highp float r = 15;
-  highp vec3 position = a_position - camera_position;
-  highp vec3 view_dir = normalize(camera_position - a_position);
-  highp vec3 displacement = cross(a_direction, view_dir);
-  position += displacement * r * a_offset.z;
-  gl_Position = matrix * vec4(position, 1);
-#else
-
-  highp vec3 position = a_position - camera_position;
-
-  position += vec3(0,0,1) * a_offset.z * 15.0;
-
-  gl_Position = matrix * vec4(position, 1);
-#endif
-
 }
