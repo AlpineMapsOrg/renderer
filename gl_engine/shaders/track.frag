@@ -24,11 +24,6 @@
 
 layout (location = 0) out lowp vec4 out_color;
 
-#define SPHERE      0
-#define CAPSULE     1
-
-#define GEOMETRY    CAPSULE
-
 flat in highp int vertex_id;
 flat in highp float radius;
 
@@ -105,162 +100,146 @@ void main() {
 
     } else {
 
-    highp vec2 texcoords = gl_FragCoord.xy / resolution.xy;
+        highp vec2 texcoords = gl_FragCoord.xy / resolution.xy;
 
-    highp vec3 sun_light_dir = conf.sun_light_dir.xyz;
+        highp vec3 sun_light_dir = conf.sun_light_dir.xyz;
 
-    // track vertex position
-    int id = vertex_id;
+        // track vertex position
+        int id = vertex_id;
 
-    highp vec4 p1 = texelFetch(texin_track, ivec2(int(id + 0), 0), 0);
-    highp vec4 p2 = texelFetch(texin_track, ivec2(int(id + 1), 0), 0);
+        highp vec4 p1 = texelFetch(texin_track, ivec2(int(id + 0), 0), 0);
+        highp vec4 p2 = texelFetch(texin_track, ivec2(int(id + 1), 0), 0);
 
-    highp vec3 x0 = texelFetch(texin_track, ivec2(int(id - 1), 0), 0).xyz;
-    highp vec3 x1 = p1.xyz;
-    highp vec3 x2 = p2.xyz;
-    highp vec3 x3 = texelFetch(texin_track, ivec2(int(id + 2), 0), 0).xyz;
+        highp vec3 x0 = texelFetch(texin_track, ivec2(int(id - 1), 0), 0).xyz;
+        highp vec3 x1 = p1.xyz;
+        highp vec3 x2 = p2.xyz;
+        highp vec3 x3 = texelFetch(texin_track, ivec2(int(id + 2), 0), 0).xyz;
 
-    highp float delta_time = p2.w;
+        highp float delta_time = p2.w;
 
-    highp vec4 pos_dist = texture(texin_position, texcoords);
+        highp vec4 pos_dist = texture(texin_position, texcoords);
 
-    // terrain position
-    highp vec3 terrain_pos = pos_dist.xyz;
+        // terrain position
+        highp vec3 terrain_pos = pos_dist.xyz;
 
-    // distance from camera to terrain, negative if sky
-    highp float dist = pos_dist.w;
+        // distance from camera to terrain, negative if sky
+        highp float dist = pos_dist.w;
 
-    Ray ray;
+        Ray ray;
 
-    if (dist < 0.) {
-        // ray does not hit terrain, it hits sky
+        if (dist < 0.) {
+            // ray does not hit terrain, it hits sky
 
-        highp vec3 dir = camera_ray(texcoords, inverse(proj), inverse(view));
-        ray = Ray(camera_position, dir);
-        dist = INF;
+            highp vec3 dir = camera_ray(texcoords, inverse(proj), inverse(view));
+            ray = Ray(camera_position, dir);
+            dist = INF;
 
-    } else {
-        // ray does hit terrain
-        ray = Ray(camera_position, normalize(terrain_pos / abs(dist)));
-    }
+        } else {
+            // ray does hit terrain
+            ray = Ray(camera_position, normalize(terrain_pos / abs(dist)));
+        }
 
-#if (GEOMETRY == SPHERE)
-    Sphere sphere = Sphere(x1, radius);
+        Capsule c = Capsule(x1, x2, radius);
 
-    highp float t = INF;
-    vec3 point;
+        highp float t = intersect_capsule_2(ray, c);
 
-    if (IntersectRaySphere(ray, sphere, t, point)) {
-        highp vec3 normal = (point - sphere.position) / sphere.radius;
-        out_color = vec4(visualize_normal(normal), 1);
-    } else {
-        discard;
-    }
-#elif (GEOMETRY == CAPSULE)
+        if ((0.0 < t && t < INF)) {
 
-    Capsule c = Capsule(x1, x2, radius);
+            highp vec3 point = ray.origin + ray.direction * t;
 
-    highp float t = intersect_capsule_2(ray, c);
+            highp vec3 normal = capsule_normal_2(point, c);
 
-    if ((0.0 < t && t < INF)) {
+            Plane clipping_plane_1, clipping_plane_2;
 
-        highp vec3 point = ray.origin + ray.direction * t;
+            highp vec3 n0 = -normalize(x2 - x0);
+            clipping_plane_1.normal = n0;
+            clipping_plane_1.distance = dot(x1, n0);
 
-        highp vec3 normal = capsule_normal_2(point, c);
+            highp vec3 n1 = -normalize(x3 - x1);
+            clipping_plane_2.normal = n1;
+            clipping_plane_2.distance = dot(x2, n1);
 
-        Plane clipping_plane_1, clipping_plane_2;
+            if (
+                (0.0 >= signed_distance(point, clipping_plane_1) || (vertex_id == 0)) &&
+                (0.0 <= signed_distance(point, clipping_plane_2)) // TODO: handle end of tube
+            ) {
 
-        highp vec3 n0 = -normalize(x2 - x0);
-        clipping_plane_1.normal = n0;
-        clipping_plane_1.distance = dot(x1, n0);
+                highp vec3 color;
 
-        highp vec3 n1 = -normalize(x3 - x1);
-        clipping_plane_2.normal = n1;
-        clipping_plane_2.distance = dot(x2, n1);
+                highp vec3 RED = vec3(1., 0., 0.);
+                highp vec3 BLUE = vec3(0., 0., 1.);
 
-        if (
-            (0.0 >= signed_distance(point, clipping_plane_1) || (vertex_id == 0)) &&
-            (0.0 <= signed_distance(point, clipping_plane_2)) // TODO: handle end of tube
-        ) {
+                highp vec3 A = x1;
+                highp vec3 AP = point - x1;
+                highp vec3 AB = x2 - x1;
 
-            highp vec3 color;
+                // where point is along the capsule major axis
+                highp float f = dot(AP, AB) / dot(AB, AB);
 
-            highp vec3 RED = vec3(1., 0., 0.);
-            highp vec3 BLUE = vec3(0., 0., 1.);
+                if (shading_method == 0) { // default
+                    color = vec3(1,0,0);
 
-            highp vec3 A = x1;
-            highp vec3 AP = point - x1;
-            highp vec3 AB = x2 - x1;
+                } else if (shading_method == 1) { // normal
 
-            // where point is along the capsule major axis
-            highp float f = dot(AP, AB) / dot(AB, AB);
+                    color = visualize_normal(normal);
 
-            if (shading_method == 0) { // default
-                color = vec3(1,0,0);
+                } else if (shading_method == 2) { // speed
 
-            } else if (shading_method == 1) { // normal
+                    highp float speed_0 = length(x0 - x1) / p1.w;
+                    highp float speed_1 = length(x1 - x2) / p2.w;
 
-                color = visualize_normal(normal);
+                    highp float t_0 = clamp(speed_0 / max_speed, 0., 1.);
+                    highp float t_1 = clamp(speed_1 / max_speed, 0., 1.);
 
-            } else if (shading_method == 2) { // speed
+                    color = mix(TurboColormap(t_0), TurboColormap(t_1), f);
 
-                highp float speed_0 = length(x0 - x1) / p1.w;
-                highp float speed_1 = length(x1 - x2) / p2.w;
+                } else if (shading_method == 3) {  // steepness
+                    highp vec3 d1 = normalize(x0 - x1);
+                    highp vec3 d2 = normalize(x1 - x2);
 
-                highp float t_0 = clamp(speed_0 / max_speed, 0., 1.);
-                highp float t_1 = clamp(speed_1 / max_speed, 0., 1.);
+                    highp vec3 up = vec3(0.0, 0.0, 1.0);
 
-                color = mix(TurboColormap(t_0), TurboColormap(t_1), f);
+                    color = mix( TurboColormap(abs(dot(d1, up))), TurboColormap(abs(dot(d2, up))), f);
 
-            } else if (shading_method == 3) {  // steepness
-                highp vec3 d1 = normalize(x0 - x1);
-                highp vec3 d2 = normalize(x1 - x2);
+                } else if (shading_method == 4) {  // vertical speed
 
-                highp vec3 up = vec3(0.0, 0.0, 1.0);
+                    highp float speed_0 = abs(x0.z - x1.z) / p1.w;
+                    highp float speed_1 = abs(x1.z - x2.z) / p2.w;
 
-                color = mix( TurboColormap(abs(dot(d1, up))), TurboColormap(abs(dot(d2, up))), f);
+                    highp float t_0 = clamp(speed_0 / max_vertical_speed, 0., 1.);
+                    highp float t_1 = clamp(speed_1 / max_vertical_speed, 0., 1.);
 
-            } else if (shading_method == 4) {  // vertical speed
+                    color = mix(TurboColormap(t_0), TurboColormap(t_1), f);
 
-                highp float speed_0 = abs(x0.z - x1.z) / p1.w;
-                highp float speed_1 = abs(x1.z - x2.z) / p2.w;
+                } else {
+                    color = vec3(0);
+                }
 
-                highp float t_0 = clamp(speed_0 / max_vertical_speed, 0., 1.);
-                highp float t_1 = clamp(speed_1 / max_vertical_speed, 0., 1.);
+                color = phong_lighting(color, normal, camera_position, point);
 
-                color = mix(TurboColormap(t_0), TurboColormap(t_1), f);
+                if (t < dist) {
+                    // geometry is above terrain
+                    out_color = vec4(color, 1);
+    #if 0
+                } else if ((t - dist) <= c.radius * 2.) {
 
+                    highp float delta = (t - dist) / (c.radius * 2);
+
+                    out_color = vec4(color, 0.5);
+    #endif
+                } else {
+
+                    // TODO: blend to 0 when far below terrain
+                    out_color = vec4(color, 0.5);
+                    //discard; // geometry is far below terrain
+                }
             } else {
-                color = vec3(0);
-            }
-
-            color = phong_lighting(color, normal, camera_position, point);
-
-            if (t < dist) {
-                // geometry is above terrain
-                out_color = vec4(color, 1);
-#if 0
-            } else if ((t - dist) <= c.radius * 2.) {
-
-                highp float delta = (t - dist) / (c.radius * 2);
-
-                out_color = vec4(color, 0.5);
-#endif
-            } else {
-
-                // TODO: blend to 0 when far below terrain
-                out_color = vec4(color, 0.5);
-                //discard; // geometry is far below terrain
+                discard; // clipping
             }
         } else {
-            discard; // clipping
+            discard; // no intersection
         }
-    } else {
-        discard; // no intersection
-    }
 
-#else
-#error unknown GEOMETRY
-#endif
+
     }
 }
