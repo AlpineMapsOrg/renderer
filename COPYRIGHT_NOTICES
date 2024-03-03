@@ -3,6 +3,7 @@ This software includes code from:
 - https://github.com/nocnokneo/cmake-git-versioning-example
 - https://github.com/mourner/suncalc
 - https://github.com/frankencode/FluxColor
+- https://gist.github.com/mikhailov-work/0d177465a8151eb6ede1768d51d476c7
 
 Following are the corresponding licenses:
 
@@ -33,7 +34,7 @@ with others.
 
 The OFL allows the licensed fonts to be used, studied, modified and
 redistributed freely as long as they are not sold by themselves. The
-fonts, including any derivative works, can be bundled, embedded, 
+fonts, including any derivative works, can be bundled, embedded,
 redistributed and/or sold with any software provided that any reserved
 names are not used by derivative works. The fonts and derivatives,
 however, cannot be released under any other type of license. The
@@ -196,5 +197,27 @@ freely, subject to the following restrictions:
 
 Frank Mertens
 frank@cyblogic.de
+
+###############################################################################
+###############################################################################
+
+
+https://gist.github.com/mikhailov-work/0d177465a8151eb6ede1768d51d476c7
+
+###############################################################################
+
+Copyright 2019 Google LLC.
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+      http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
 
 ###############################################################################
