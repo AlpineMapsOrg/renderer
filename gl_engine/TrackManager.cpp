@@ -141,21 +141,15 @@ void TrackManager::add_track(const nucleus::gpx::Gpx& gpx, ShaderProgram* shader
 
         }
 
-        qDebug() << "Max Speed: " << m_max_speed;
-        qDebug() << "Max Vertical Speed: " << m_max_vertical_speed;
-
         size_t point_count = points.size();
 
         std::vector<glm::vec3> basic_ribbon = nucleus::triangles_ribbon(points, 0.0f, m_total_point_count);
 
-        PolyLine polyline;
+        PolyLine polyline = {};
 
-        // TODO: handle this in some better way
-        const int texture_size = 10'000;
-
-        if (texture_size < (m_total_point_count + point_count)) {
+        if (POINT_TEXTURE_SIZE < (m_total_point_count + point_count)) {
             qDebug() << "Unable to render " << m_total_point_count + point_count << "points";
-            qDebug() << "Max is " << texture_size;
+            qDebug() << "Max is " << POINT_TEXTURE_SIZE ;
             return;
         }
 
@@ -163,7 +157,7 @@ void TrackManager::add_track(const nucleus::gpx::Gpx& gpx, ShaderProgram* shader
             // create texture to hold the point data
             m_data_texture = std::make_unique<QOpenGLTexture>(QOpenGLTexture::Target::Target2D);
             m_data_texture->setFormat(QOpenGLTexture::TextureFormat::RGBA32F);
-            m_data_texture->setSize(texture_size, 1);
+            m_data_texture->setSize(POINT_TEXTURE_SIZE, 1);
             m_data_texture->setAutoMipMapGenerationEnabled(false);
             m_data_texture->setMinMagFilters(QOpenGLTexture::Filter::Nearest, QOpenGLTexture::Filter::Nearest);
             m_data_texture->setWrapMode(QOpenGLTexture::WrapMode::ClampToEdge);
@@ -171,8 +165,7 @@ void TrackManager::add_track(const nucleus::gpx::Gpx& gpx, ShaderProgram* shader
 
             if (!m_data_texture->isStorageAllocated()) {
                 qDebug() << "Could not allocate texture storage!";
-            } else {
-                qDebug() << "Allocated " << texture_size;
+                return;
             }
         }
 
@@ -211,15 +204,9 @@ void TrackManager::add_track(const nucleus::gpx::Gpx& gpx, ShaderProgram* shader
         f->glEnableVertexAttribArray(offset_attrib_location);
         f->glVertexAttribPointer(offset_attrib_location, 3, GL_FLOAT, GL_FALSE, stride, (void*)(2 * sizeof(glm::vec3)));
 
-        //const int meta_attrib_location = shader->attribute_location("a_metadata");
-        //qDebug() << "a_metadata: " << meta_attrib_location;
-        //f->glEnableVertexAttribArray(meta_attrib_location);
-        //f->glVertexAttribPointer(meta_attrib_location, 3, GL_FLOAT, GL_FALSE, stride, (void*)(3 * sizeof(glm::vec3)));
-
         polyline.vao->release();
 
         m_tracks.push_back(std::move(polyline));
-
     }
 }
 } // namespace gl_engine

@@ -32,10 +32,6 @@ class QOpenGLShaderProgram;
 namespace gl_engine {
 class ShaderProgram;
 
-enum ShadingMethod : unsigned int {
-    DEFAULT = 0,
-};
-
 class TrackManager : public QObject {
     Q_OBJECT
 public:
@@ -53,13 +49,11 @@ public:
     float width = 7.0f;
 
 private:
-
+    const size_t POINT_TEXTURE_SIZE = 10'000;
     float m_max_speed = 0.0f;
     float m_max_vertical_speed = 0.0f;
     size_t m_total_point_count = 0;
     std::vector<PolyLine> m_tracks;
     std::unique_ptr<QOpenGLTexture> m_data_texture = nullptr;
-
-    std::unique_ptr<QOpenGLTexture> create_texture(const std::vector<glm::vec3>& points);
 };
 } // namespace gl_engine

@@ -72,11 +72,9 @@ qt_add_resources(gl_engine "shaders"
     shaders/labels.frag
     shaders/labels.vert
     shaders/snow.glsl
-    shaders/turbo_colormap.glsl
     shaders/track.frag
     shaders/track.vert
     shaders/turbo_colormap.glsl
-    shaders/hashing.glsl
     shaders/intersection.glsl
 )
 target_compile_definitions(gl_engine PUBLIC ALP_RESOURCES_PREFIX="${CMAKE_CURRENT_SOURCE_DIR}/shaders/")
