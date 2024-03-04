@@ -1,6 +1,7 @@
-
 #include <webgpu/webgpu_cpp.h>
 #include <webgpu/webgpu_glfw.h>
+#include <dawn/native/DawnNative.h>
+#include <dawn/dawn_proc.h>
 
 #include <GLFW/glfw3.h>
 
@@ -269,6 +270,11 @@ int main([[maybe_unused]] int argc, [[maybe_unused]] char* argv[])
     // as a Qt-Thread. Otherwise functionalities like QTimers wouldnt work.
     // It basically initializes the Qt environment
     QCoreApplication app(argc, argv);
+
+    // Dawn forwards all wgpu* function calls to function pointer members of a struct.
+    // In our current setup, they default to nullptr, resulting in access violations.
+    // However, we can just this explicitly to use dawn_native.
+    dawnProcSetProcs(&(dawn::native::GetProcs()));
 
     instance = wgpu::CreateInstance();
     GetDevice([](wgpu::Device dev) {
