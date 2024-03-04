@@ -16,7 +16,7 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *****************************************************************************/
 
-#include "MapLabelManager.h"
+#include "LabelFactory.h"
 
 #include <QDebug>
 #include <QFile>
@@ -33,82 +33,36 @@
 
 using namespace Qt::Literals::StringLiterals;
 
-namespace nucleus {
+namespace nucleus::maplabel {
 
-MapLabelManager::MapLabelManager()
+/**
+ * this function needs to be called before create_labels
+ */
+const LabelMeta LabelFactory::create_label_meta()
 {
-    //    const char8_t text;
-    //    double latitude;
-    //    double longitude;
-    //    float altitude;
-    //    float importance;  // 1 -> most important; 0 -> least important
-    // m_labels.push_back({ u"Großglockner"_s, 47.07455, 12.69388, 3798, 1 });
-    // m_labels.push_back({ u"Piz Buin"_s, 46.84412, 10.11889, 3312, 0.56f });
-    // m_labels.push_back({ u"Hoher Dachstein"_s, 47.47519, 13.60569, 2995, 0.56f });
-    // m_labels.push_back({ u"Großer Priel"_s, 47.71694, 14.06325, 2515, 0.56f });
-    // m_labels.push_back({ u"Hermannskogel"_s, 48.27072, 16.29456, 544, 0.56f });
-    // m_labels.push_back({ u"Klosterwappen"_s, 47.76706, 15.80450, 2076, 0.56f });
-    // m_labels.push_back({ u"Ötscher"_s, 47.86186, 15.20251, 1893, 0.56f });
-    // m_labels.push_back({ u"Ellmauer Halt"_s, 47.5616377, 12.3025296, 2342, 0.56f });
-    // m_labels.push_back({ u"Wildspitze"_s, 46.88524, 10.86728, 3768, 0.56f });
-    // m_labels.push_back({ u"Großvenediger"_s, 47.10927, 12.34534, 3657, 0.56f });
-    // m_labels.push_back({ u"Hochalmspitze"_s, 47.01533, 13.32050, 3360, 0.56f });
-    // m_labels.push_back({ u"Geschriebenstein"_s, 47.35283, 16.43372, 884, 0.56f });
+    LabelMeta lm;
 
-    // m_labels.push_back({ u"Ackerlspitze"_s, 47.559125, 12.347188, 2329, 0.33f });
-    // m_labels.push_back({ u"Scheffauer"_s, 47.5573214, 12.2418396, 2111, 0.33f });
-    // m_labels.push_back({ u"Maukspitze"_s, 47.5588954, 12.3563668, 2231, 0.33f });
-    // m_labels.push_back({ u"Schönfeldspitze"_s, 47.45831, 12.93774, 2653, 0.33f });
-    // m_labels.push_back({ u"Hochschwab"_s, 47.61824, 15.14245, 2277, 0.33f });
-
-    // m_labels.push_back({ u"Valluga"_s, 47.15757, 10.21309, 2811, 0.11f });
-    // m_labels.push_back({ u"Birkkarspitze"_s, 47.41129, 11.43765, 2749, 0.11f });
-    // m_labels.push_back({ u"Schafberg"_s, 47.77639, 13.43389, 1783, 0.11f });
-
-    // m_labels.push_back({ u"Grubenkarspitze"_s, 47.38078, 11.52211, 2663, 0.11f });
-    // m_labels.push_back({ u"Gimpel"_s, 47.50127, 10.61249, 2176, 0.11f });
-    // m_labels.push_back({ u"Seekarlspitze"_s, 47.45723, 11.77804, 2261, 0.11f });
-    // m_labels.push_back({ u"Furgler"_s, 47.04033, 10.51186, 3004, 0.11f });
-
-    // m_labels.push_back({ u"Westliche Hochgrubachspitze"_s, 47.5583658, 12.3433997, 2277, 0 });
-    // m_labels.push_back({ u"Östliche Hochgrubachspitze"_s, 47.5587933, 12.3450985, 2284, 0 });
-
-    init();
-}
-
-void MapLabelManager::init()
-{
-    m_indices.push_back(0);
-    m_indices.push_back(1);
-    m_indices.push_back(2);
-
-    m_indices.push_back(0);
-    m_indices.push_back(2);
-    m_indices.push_back(3);
-
-    m_font_atlas = make_outline(make_font_raster());
+    lm.font_atlas = make_outline(make_font_raster());
     {
-        Raster<glm::u8vec4> rgba_raster = { m_font_atlas.size(), { 255, 255, 0, 255 } };
-        std::transform(m_font_atlas.cbegin(), m_font_atlas.cend(), rgba_raster.begin(), [](const auto& v) { return glm::u8vec4(v.x, v.y, 0, 255); });
+        Raster<glm::u8vec4> rgba_raster = { lm.font_atlas.size(), { 255, 255, 0, 255 } };
+        std::transform(lm.font_atlas.cbegin(), lm.font_atlas.cend(), rgba_raster.begin(), [](const auto& v) { return glm::u8vec4(v.x, v.y, 0, 255); });
 
         const auto debug_out = QImage(rgba_raster.bytes(), m_font_atlas_size.width(), m_font_atlas_size.height(), QImage::Format_RGBA8888);
         debug_out.save("font_atlas.png");
     }
 
-    // for (auto& label : m_labels) {
-    //     label.init(m_char_data, &m_fontinfo, uv_width_norm);
-    // }
-
     // paint svg icon into the an image of appropriate size
-    m_icons[nucleus::FeatureType::Peak] = QIcon(QString(":/qt/qml/app/icons/peak.svg")).pixmap(QSize(icon_size.x, icon_size.y)).toImage();
+    lm.icons[nucleus::FeatureType::Peak] = QIcon(QString(":/qt/qml/app/icons/peak.svg")).pixmap(QSize(icon_size.x, icon_size.y)).toImage();
     // TODO add appropriate icon
-    m_icons[nucleus::FeatureType::City] = QIcon(QString(":/qt/qml/app/icons/peak.svg")).pixmap(QSize(icon_size.x, icon_size.y)).toImage();
+    lm.icons[nucleus::FeatureType::City] = QIcon(QString(":/qt/qml/app/icons/peak.svg")).pixmap(QSize(icon_size.x, icon_size.y)).toImage();
 
     // TODO add appropriate default icon
-    m_icons[nucleus::FeatureType::ENUM_END] = QIcon(QString(":/qt/qml/app/icons/peak.svg")).pixmap(QSize(icon_size.x, icon_size.y)).toImage();
+    lm.icons[nucleus::FeatureType::ENUM_END] = QIcon(QString(":/qt/qml/app/icons/peak.svg")).pixmap(QSize(icon_size.x, icon_size.y)).toImage();
+
+    return lm;
 }
 
-Raster<uint8_t> MapLabelManager::make_font_raster()
+Raster<uint8_t> LabelFactory::make_font_raster()
 {
     // load ttf file
     QFile file(":/fonts/SourceSans3-Bold.ttf");
@@ -171,7 +125,7 @@ Raster<uint8_t> MapLabelManager::make_font_raster()
     return raster;
 }
 
-Raster<glm::u8vec2> MapLabelManager::make_outline(const Raster<uint8_t>& input)
+Raster<glm::u8vec2> LabelFactory::make_outline(const Raster<uint8_t>& input)
 {
     auto font_bitmap = Raster<glm::u8vec2>(input.size(), { 0, 0 });
     unsigned outline_margin = unsigned(std::ceil(m_font_outline));
@@ -205,7 +159,19 @@ Raster<glm::u8vec2> MapLabelManager::make_outline(const Raster<uint8_t>& input)
     return font_bitmap;
 }
 
-void MapLabelManager::create_label(const QString text, const glm::vec3 position, const float importance, std::vector<nucleus::VertexData>& vertex_data)
+const std::vector<VertexData> LabelFactory::create_labels(const std::unordered_set<std::shared_ptr<nucleus::FeatureTXT>>& features)
+{
+    std::vector<VertexData> labelData;
+
+    for (const auto& feat : features) {
+
+        create_label(feat->labelText(), feat->position, 1.0, labelData);
+    }
+
+    return labelData;
+}
+
+void LabelFactory::create_label(const QString text, const glm::vec3 position, const float importance, std::vector<VertexData>& vertex_data)
 {
     constexpr float offset_y = -font_size / 2.0f + 100.0f;
     constexpr float icon_offset_y = 15.0f;
@@ -233,7 +199,7 @@ void MapLabelManager::create_label(const QString text, const glm::vec3 position,
 }
 
 // calculate char offsets and text width
-std::vector<float> inline MapLabelManager::create_text_meta(std::u16string* safe_chars, float* text_width)
+std::vector<float> inline LabelFactory::create_text_meta(std::u16string* safe_chars, float* text_width)
 {
     std::vector<float> kerningOffsets;
 
@@ -242,7 +208,7 @@ std::vector<float> inline MapLabelManager::create_text_meta(std::u16string* safe
     for (unsigned long long i = 0; i < safe_chars->size(); i++) {
         if (!m_char_data.contains(safe_chars->at(i))) {
             qDebug() << "character with unicode index(Dec: " << safe_chars[i]
-                     << ") cannot be shown -> please add it to nucleus/map_label/MapLabelManager.h.all_char_list";
+                     << ") cannot be shown -> please add it to nucleus/map_label/LabelFactory.h.all_char_list";
             safe_chars[i] = 32; // replace with space character
         }
 
@@ -262,7 +228,7 @@ std::vector<float> inline MapLabelManager::create_text_meta(std::u16string* safe
     { // get width of last char
         if (!m_char_data.contains(safe_chars->back())) {
             qDebug() << "character with unicode index(Dec: " << safe_chars->back()
-                     << ") cannot be shown -> please add it to nucleus/map_label/MapLabelManager.h.all_char_list";
+                     << ") cannot be shown -> please add it to nucleus/map_label/LabelFactory.h.all_char_list";
             safe_chars->back() = 32; // replace with space character
         }
         const CharData b = m_char_data.at(safe_chars->back());
@@ -273,31 +239,4 @@ std::vector<float> inline MapLabelManager::create_text_meta(std::u16string* safe
     return kerningOffsets;
 }
 
-const std::vector<nucleus::VertexData> MapLabelManager::create_labels(const std::unordered_set<std::shared_ptr<nucleus::FeatureTXT>>& features)
-{
-    std::vector<nucleus::VertexData> labelData;
-
-    for (const auto& feat : features) {
-
-        create_label(feat->labelText(), feat->position, 1.0, labelData);
-    }
-
-    return labelData;
-}
-
-const std::vector<unsigned int>& MapLabelManager::indices() const
-{
-    return m_indices;
-}
-
-const QImage& MapLabelManager::icon(nucleus::FeatureType type) const
-{
-    if (m_icons.contains(type))
-        return m_icons.at(type);
-    else // default value is stored in enum_end
-        return m_icons.at(nucleus::FeatureType::ENUM_END);
-}
-
-const Raster<glm::u8vec2>& MapLabelManager::font_atlas() const { return m_font_atlas; }
-
-} // namespace nucleus
+} // namespace nucleus::maplabel

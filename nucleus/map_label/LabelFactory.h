@@ -18,34 +18,29 @@
 
 #pragma once
 
-#include <nucleus/map_label/MapLabelData.h>
-#include <nucleus/vector_tiles/VectorTileFeature.h>
+#include <stb_slim/stb_truetype.h>
 
 #include <QImage>
-#include <stb_slim/stb_truetype.h>
 #include <unordered_map>
 #include <vector>
 
-#include "../Raster.h"
+#include <nucleus/Raster.h>
+#include <nucleus/map_label/MapLabelData.h>
 
-namespace nucleus {
-class MapLabelManager {
+namespace nucleus::maplabel {
+class LabelFactory {
 public:
-    explicit MapLabelManager();
+    const LabelMeta create_label_meta();
 
-    const std::vector<unsigned int>& indices() const;
-    const Raster<glm::u8vec2>& font_atlas() const;
-    const QImage& icon(nucleus::FeatureType type) const;
+    const std::vector<VertexData> create_labels(const std::unordered_set<std::shared_ptr<nucleus::FeatureTXT>>& features);
+    void create_label(const QString text, const glm::vec3 position, const float importance, std::vector<VertexData>& vertex_data);
 
-    const std::vector<nucleus::VertexData> create_labels(const std::unordered_set<std::shared_ptr<nucleus::FeatureTXT>>& features);
+    static const inline std::vector<unsigned int> indices = { 0, 1, 2, 0, 2, 3 };
 
-    void create_label(const QString text, const glm::vec3 position, const float importance, std::vector<nucleus::VertexData>& vertex_data);
-
+private:
     constexpr static float font_size = 60.0f;
     constexpr static glm::vec2 icon_size = glm::vec2(50.0f);
 
-private:
-    void init();
     Raster<uint8_t> make_font_raster();
     Raster<glm::u8vec2> make_outline(const Raster<uint8_t>& font_bitmap);
 
@@ -64,15 +59,9 @@ private:
     static constexpr QSize m_font_atlas_size = QSize(1024, 1024);
     static constexpr float uv_width_norm = 1.0f / m_font_atlas_size.width();
 
-    // std::vector<MapLabel> m_labels;
-    std::vector<unsigned int> m_indices;
-
     std::unordered_map<char16_t, const CharData> m_char_data;
-
     stbtt_fontinfo m_fontinfo;
-    QByteArray m_font_file;
 
-    Raster<glm::u8vec2> m_font_atlas;
-    std::unordered_map<nucleus::FeatureType, QImage> m_icons;
+    QByteArray m_font_file;
 };
-} // namespace nucleus
+} // namespace nucleus::maplabel

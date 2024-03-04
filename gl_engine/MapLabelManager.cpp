@@ -30,8 +30,6 @@
 
 #include <nucleus/srs.h>
 
-#include <iostream>
-
 using namespace Qt::Literals::StringLiterals;
 
 namespace gl_engine {
@@ -51,52 +49,29 @@ void MapLabelManager::init()
     QOpenGLExtraFunctions* f = QOpenGLContext::currentContext()->extraFunctions();
 
     // load the font texture
-    const auto& font_atlas = m_mapLabelManager.font_atlas();
+    const auto& label_meta = m_mapLabelFactory.create_label_meta();
     m_font_texture = std::make_unique<Texture>(Texture::Target::_2d);
     f->glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
     f->glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
     f->glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
     f->glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
     f->glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-    f->glTexImage2D(GL_TEXTURE_2D, 0, GL_RG8, font_atlas.width(), font_atlas.height(), 0, GL_RG, GL_UNSIGNED_BYTE, font_atlas.bytes());
+    f->glTexImage2D(
+        GL_TEXTURE_2D, 0, GL_RG8, label_meta.font_atlas.width(), label_meta.font_atlas.height(), 0, GL_RG, GL_UNSIGNED_BYTE, label_meta.font_atlas.bytes());
     f->glGenerateMipmap(GL_TEXTURE_2D);
 
     // load the icon texture
     for (int i = 0; i < nucleus::FeatureType::ENUM_END - 1; i++) {
         nucleus::FeatureType type = (nucleus::FeatureType)i;
-        QImage icon = m_mapLabelManager.icon(type);
+        QImage icon = (label_meta.icons.contains(type)) ? label_meta.icons.at(type) : label_meta.icons.at(nucleus::FeatureType::ENUM_END);
         m_icon_texture[type] = std::make_unique<QOpenGLTexture>(icon);
         m_icon_texture[type]->setMinificationFilter(QOpenGLTexture::LinearMipMapLinear);
         m_icon_texture[type]->setMagnificationFilter(QOpenGLTexture::Linear);
     }
-
-    ////////////////////////////////////
-    /// TEST
-    /// TODO remove
-
-    // testTile = tile::Id { .zoom_level = 13, .coords = { 4384, 2878 }, .scheme = tile::Scheme::SlippyMap }.to(tile::Scheme::Tms);
-
-    // std::shared_ptr<nucleus::FeatureTXTPeak> t = std::make_shared<nucleus::FeatureTXTPeak>();
-    // t->name = u"Großglockner"_s;
-    // t->position = nucleus::srs::lat_long_alt_to_world(glm::dvec3(47.07455, 12.69388, 3798));
-    // t->elevation = 3798;
-    // t->type = nucleus::FeatureType::Peak;
-    // t->id = 1;
-
-    // testLabels.insert(t);
-
-    // GPUVectorTile vectortile;
-    // vectortile.id = testTile;
-    // vectortile.indices_count = 0; // this is used for checking if it is fully loaded and we dont want to risk possible undefined behaviour
-    // // we are adding the "empty" vectortile so that it can be removed while waiting for vector tile network/calculations
-    // m_gpu_tiles.at(nucleus::FeatureType::Peak)[testTile] = std::move(vectortile);
-
-    // create_vao(testTile, testLabels);
 }
 
 void MapLabelManager::create_vao(const tile::Id id, const std::unordered_set<std::shared_ptr<nucleus::FeatureTXT>>& features)
 {
-    // std::cout << "create vao" << id << std::endl;
     if (!QOpenGLContext::currentContext()) // can happen during shutdown.
         return;
     for (int i = 0; i < nucleus::FeatureType::ENUM_END - 1; i++) {
@@ -117,36 +92,36 @@ void MapLabelManager::create_vao(const tile::Id id, const std::unordered_set<std
             vectortile->index_buffer->create();
             vectortile->index_buffer->bind();
             vectortile->index_buffer->setUsagePattern(QOpenGLBuffer::StaticDraw);
-            vectortile->index_buffer->allocate(m_mapLabelManager.indices().data(), m_mapLabelManager.indices().size() * sizeof(unsigned int));
-            vectortile->indices_count = m_mapLabelManager.indices().size();
+            vectortile->index_buffer->allocate(m_mapLabelFactory.indices.data(), m_mapLabelFactory.indices.size() * sizeof(unsigned int));
+            vectortile->indices_count = m_mapLabelFactory.indices.size();
 
             vectortile->vertex_buffer = std::make_unique<QOpenGLBuffer>(QOpenGLBuffer::VertexBuffer);
             vectortile->vertex_buffer->create();
             vectortile->vertex_buffer->bind();
             vectortile->vertex_buffer->setUsagePattern(QOpenGLBuffer::StaticDraw);
 
-            const auto allLabels = m_mapLabelManager.create_labels(features);
+            const auto allLabels = m_mapLabelFactory.create_labels(features);
 
-            vectortile->vertex_buffer->allocate(allLabels.data(), allLabels.size() * sizeof(nucleus::VertexData));
+            vectortile->vertex_buffer->allocate(allLabels.data(), allLabels.size() * sizeof(nucleus::maplabel::VertexData));
             vectortile->instance_count = allLabels.size();
 
             QOpenGLExtraFunctions* f = QOpenGLContext::currentContext()->extraFunctions();
 
             // vertex positions
             f->glEnableVertexAttribArray(0);
-            f->glVertexAttribPointer(0, 4, GL_FLOAT, GL_FALSE, sizeof(nucleus::VertexData), nullptr);
+            f->glVertexAttribPointer(0, 4, GL_FLOAT, GL_FALSE, sizeof(nucleus::maplabel::VertexData), nullptr);
             f->glVertexAttribDivisor(0, 1); // buffer is active for 1 instance (for the whole quad)
             // uvs
             f->glEnableVertexAttribArray(1);
-            f->glVertexAttribPointer(1, 4, GL_FLOAT, GL_FALSE, sizeof(nucleus::VertexData), (GLvoid*)(sizeof(glm::vec4)));
+            f->glVertexAttribPointer(1, 4, GL_FLOAT, GL_FALSE, sizeof(nucleus::maplabel::VertexData), (GLvoid*)(sizeof(glm::vec4)));
             f->glVertexAttribDivisor(1, 1); // buffer is active for 1 instance (for the whole quad)
             // world position
             f->glEnableVertexAttribArray(2);
-            f->glVertexAttribPointer(2, 3, GL_FLOAT, GL_FALSE, sizeof(nucleus::VertexData), (GLvoid*)((sizeof(glm::vec4) * 2)));
+            f->glVertexAttribPointer(2, 3, GL_FLOAT, GL_FALSE, sizeof(nucleus::maplabel::VertexData), (GLvoid*)((sizeof(glm::vec4) * 2)));
             f->glVertexAttribDivisor(2, 1); // buffer is active for 1 instance (for the whole quad)
             // label importance
             f->glEnableVertexAttribArray(3);
-            f->glVertexAttribPointer(3, 1, GL_FLOAT, GL_FALSE, sizeof(nucleus::VertexData), (GLvoid*)((sizeof(glm::vec4) * 2 + (sizeof(glm::vec3)))));
+            f->glVertexAttribPointer(3, 1, GL_FLOAT, GL_FALSE, sizeof(nucleus::maplabel::VertexData), (GLvoid*)((sizeof(glm::vec4) * 2 + (sizeof(glm::vec3)))));
             f->glVertexAttribDivisor(3, 1); // buffer is active for 1 instance (for the whole quad)
         }
 

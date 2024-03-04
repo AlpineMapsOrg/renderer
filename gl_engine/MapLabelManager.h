@@ -26,7 +26,7 @@
 #include "Framebuffer.h"
 #include "Texture.h"
 #include "nucleus/camera/Definition.h"
-#include "nucleus/map_label/MapLabelManager.h"
+#include "nucleus/map_label/LabelFactory.h"
 
 #include "nucleus/tile_scheduler/DrawListGenerator.h"
 
@@ -75,6 +75,6 @@ private:
     // std::unordered_set<std::shared_ptr<nucleus::FeatureTXT>> testLabels;
     // tile::Id testTile;
 
-    nucleus::MapLabelManager m_mapLabelManager;
+    nucleus::maplabel::LabelFactory m_mapLabelFactory;
 };
 } // namespace gl_engine

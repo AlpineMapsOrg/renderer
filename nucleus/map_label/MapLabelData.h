@@ -18,19 +18,34 @@
 
 #pragma once
 
+#include <QImage>
+
 #include <glm/glm.hpp>
+
+#include <unordered_map>
+
+#include <nucleus/Raster.h>
+#include <nucleus/vector_tiles/VectorTileFeature.h>
 
 struct stbtt_fontinfo;
 
-namespace nucleus {
+namespace nucleus::maplabel {
+
 struct CharData {
     uint16_t x, y, width, height; // coordinates of bbox in bitmap
     float xoff, yoff; // position offsets for e.g. lower/uppercase
 };
+
 struct VertexData {
     glm::vec4 position; // start_x, start_y, offset_x, offset_y
     glm::vec4 uv; // start_u, start_v, offset_u, offset_v
     glm::vec3 world_position;
     float importance;
 };
-} // namespace nucleus
+
+struct LabelMeta {
+    Raster<glm::u8vec2> font_atlas;
+    std::unordered_map<nucleus::FeatureType, QImage> icons;
+};
+
+} // namespace nucleus::maplabel
