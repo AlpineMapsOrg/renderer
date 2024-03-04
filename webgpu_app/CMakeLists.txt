@@ -18,7 +18,7 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #############################################################################
 
-project(alpine-renderer-webgpu_app LANGUAGES CXX)
+project(alpine-renderer-webgpu_app LANGUAGES C CXX)
 
 # option to enable/disable imgui
 option(ALP_WEBGPU_APP_ENABLE_IMGUI "Enable imgui" ON)
@@ -26,6 +26,9 @@ option(ALP_WEBGPU_APP_ENABLE_IMGUI "Enable imgui" ON)
 qt_add_executable(webgpu_app
     resources.qrc
     main.cpp
+    webgpu.hpp webgpu.cpp
+    dawn_setup.h dawn_setup.cpp
+    glfw3webgpu.h glfw3webgpu.c
 )
 
 set_target_properties(webgpu_app PROPERTIES
