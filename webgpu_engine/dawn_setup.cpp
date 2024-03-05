@@ -1,7 +1,5 @@
 #include "dawn_setup.h"
 
-//#include <webgpu/webgpu_cpp.h>
-//#include <webgpu/webgpu_glfw.h>
 #include <dawn/native/DawnNative.h>
 #include <dawn/dawn_proc.h>
 
