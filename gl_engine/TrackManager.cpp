@@ -138,7 +138,6 @@ void TrackManager::add_track(const nucleus::gpx::Gpx& gpx, ShaderProgram* shader
 
             m_max_speed = glm::max(speed, m_max_speed);
             m_max_vertical_speed = glm::max(vertical_speed, m_max_vertical_speed);
-
         }
 
         size_t point_count = points.size();
@@ -190,17 +189,14 @@ void TrackManager::add_track(const nucleus::gpx::Gpx& gpx, ShaderProgram* shader
         GLsizei stride = 3 * sizeof(glm::vec3);
 
         const int position_attrib_location = shader->attribute_location("a_position");
-        qDebug() << "a_position: " << position_attrib_location;
         f->glEnableVertexAttribArray(position_attrib_location);
         f->glVertexAttribPointer(position_attrib_location, 3, GL_FLOAT, GL_FALSE, stride, nullptr);
 
         const int direction_attrib_location = shader->attribute_location("a_direction");
-        qDebug() << "a_direction: " << direction_attrib_location;
         f->glEnableVertexAttribArray(direction_attrib_location);
         f->glVertexAttribPointer(direction_attrib_location, 3, GL_FLOAT, GL_FALSE, stride, (void*)(1 * sizeof(glm::vec3)));
 
         const int offset_attrib_location = shader->attribute_location("a_offset");
-        qDebug() << "a_offset: " << offset_attrib_location;
         f->glEnableVertexAttribArray(offset_attrib_location);
         f->glVertexAttribPointer(offset_attrib_location, 3, GL_FLOAT, GL_FALSE, stride, (void*)(2 * sizeof(glm::vec3)));
 
