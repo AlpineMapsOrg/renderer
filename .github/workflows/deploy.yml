@@ -1,7 +1,7 @@
 name: "Deploy"
 on:
   push:
-    branches: [ "main", "implement-track-rendering" ]
+    branches: [ "main" ]
   pull_request:
     branches: [ "main" ]
 
