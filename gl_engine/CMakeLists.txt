@@ -42,7 +42,6 @@ qt_add_library(gl_engine STATIC
     GpuAsyncQueryTimer.h GpuAsyncQueryTimer.cpp
     MapLabelManager.h MapLabelManager.cpp
     Texture.h Texture.cpp
-    PolyLine.h PolyLine.cpp
     TrackManager.h TrackManager.cpp
 )
 target_link_libraries(gl_engine PUBLIC nucleus Qt::OpenGL)

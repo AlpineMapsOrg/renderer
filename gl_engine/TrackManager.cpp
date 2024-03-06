@@ -18,6 +18,7 @@
 
 #include "TrackManager.h"
 #include "helpers.h"
+#include "ShaderProgram.h"
 
 #include <QOpenGLBuffer>
 #include <QOpenGLContext>
@@ -29,11 +30,6 @@
 #if (defined(__linux) && !defined(__ANDROID__)) || defined(_WIN32) || defined(_WIN64)
 #include <QOpenGLFunctions_3_3_Core> // for wireframe mode
 #endif
-
-#include <algorithm>
-
-#include "PolyLine.h"
-#include "ShaderProgram.h"
 
 #define ENABLE_BOUNDING_QUADS 0
 

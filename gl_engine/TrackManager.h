@@ -22,15 +22,23 @@
 #include <memory>
 #include <nucleus/GPX.h>
 #include <nucleus/camera/Definition.h>
+#include <QOpenGLBuffer>
+#include <QOpenGLVertexArrayObject>
 #include <QOpenGLTexture>
 
-#include "PolyLine.h"
 #include "ShaderProgram.h"
 
 class QOpenGLShaderProgram;
 
 namespace gl_engine {
+
 class ShaderProgram;
+
+struct PolyLine {
+    GLsizei point_count;
+    std::unique_ptr<QOpenGLVertexArrayObject> vao = nullptr;
+    std::unique_ptr<QOpenGLBuffer> vbo = nullptr;
+};
 
 class TrackManager : public QObject {
     Q_OBJECT
