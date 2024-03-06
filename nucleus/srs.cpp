@@ -89,19 +89,4 @@ glm::dvec3 lat_long_alt_to_world(const glm::dvec3& lat_long_alt)
     return { world_xy.x, world_xy.y, lat_long_alt.z / std::abs(std::cos(lat_rad_)) };
 }
 
-double haversine_distance(const glm::dvec2& lat_long_1, const glm::dvec2& lat_long_2)
-{
-    double delta_lat = glm::radians(lat_long_2.x - lat_long_1.x);
-    double delta_long = glm::radians(lat_long_2.y - lat_long_1.y);
-
-    return 2 * cSemiMajorAxis * std::asin(
-        std::sqrt(
-            std::pow(std::sin(delta_lat / 2), 2) +
-            std::cos(glm::radians(lat_long_1.x)) * 
-            std::cos(glm::radians(lat_long_2.x)) * 
-            std::pow(std::sin(delta_long / 2), 2)
-        )
-    );
-}
-
 }

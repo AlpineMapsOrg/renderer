@@ -29,8 +29,6 @@ class DataQuerier
 public:
     DataQuerier(tile_scheduler::MemoryCache* cache);
 
-    // use this to snap height of gpx points
-    // needs to be reloaded if tiles change
     [[nodiscard]] float get_altitude(const glm::dvec2& lat_long) const;
 };
 

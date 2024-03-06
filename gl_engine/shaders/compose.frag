@@ -29,7 +29,6 @@ highp float calculate_falloff(highp float dist, highp float from, highp float to
 #include "overlay_steepness.glsl"
 #include "snow.glsl"
 
-#line 1
 layout (location = 0) out lowp vec4 out_Color;
 
 in highp vec2 texcoords;
@@ -46,9 +45,6 @@ uniform highp sampler2D texin_csm1;         // f32vec1
 uniform highp sampler2D texin_csm2;         // f32vec1
 uniform highp sampler2D texin_csm3;         // f32vec1
 uniform highp sampler2D texin_csm4;         // f32vec1
-
-uniform highp sampler2D texin_track;            // f32vec3
-uniform highp usampler2D texin_track_vert_id;
 
 
 // Calculates the diffuse and specular illumination contribution for the given

@@ -29,7 +29,7 @@ layout (location = 2) out highp uvec2 texout_normal;
 layout (location = 3) out lowp vec4 texout_depth;
 
 in highp vec2 uv;
-in highp vec3 var_pos_cws; // camera world space?
+in highp vec3 var_pos_cws;
 in highp vec3 var_normal;
 #if CURTAIN_DEBUG_MODE > 0
 in lowp float is_curtain;

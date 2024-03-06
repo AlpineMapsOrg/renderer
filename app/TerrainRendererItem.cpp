@@ -3,6 +3,7 @@
  * Copyright (C) 2017 Klarälvdalens Datakonsult AB, a KDAB Group company (Giuseppe D'Angelo)
  * Copyright (C) 2023 Adam Celarek
  * Copyright (C) 2023 Gerald Kimmersdorfer
+ * Copyright (C) 2024 Jakob Maier
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -256,8 +257,6 @@ void TerrainRendererItem::set_gl_preset(const QString& preset_b64_string) {
 
 void TerrainRendererItem::get_upload_file()
 {
-    qDebug() << "get_upload_file";
-
     auto fileContentReady = [this](const QString &fileName, const QByteArray &fileContent) {
         (void)fileContent;
         if (fileName.isEmpty()) {
@@ -393,7 +392,6 @@ void TerrainRendererItem::set_field_of_view(float new_field_of_view)
 
 void TerrainRendererItem::set_track_width(float width)
 {
-    // qDebug() << "Set track width " << width;
     m_track_width = width;
     emit track_width_changed(width);
     schedule_update();
@@ -406,7 +404,6 @@ float TerrainRendererItem::track_width() const
 
 void TerrainRendererItem::set_track_shading(unsigned int shading)
 {
-    qDebug() << "Set track shading " << shading;
     m_track_shading = shading;
     emit track_shading_changed(shading);
     schedule_update();
