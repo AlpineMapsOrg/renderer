@@ -25,7 +25,6 @@
 layout (location = 0) out lowp vec4 out_color;
 
 flat in highp int vertex_id;
-flat in highp float radius;
 
 uniform highp sampler2D texin_track;
 uniform highp sampler2D texin_position;
@@ -36,6 +35,7 @@ uniform highp mat4 view;
 uniform highp mat4 proj;
 uniform highp float max_speed;
 uniform highp float max_vertical_speed;
+uniform highp float width;
 
 
 uniform highp vec2 resolution;
@@ -139,7 +139,7 @@ void main() {
             ray = Ray(camera_position, normalize(terrain_pos / abs(dist)));
         }
 
-        Capsule c = Capsule(x1, x2, radius);
+        Capsule c = Capsule(x1, x2, width);
 
         highp float t = intersect_capsule_2(ray, c);
 
@@ -221,9 +221,9 @@ void main() {
                     // geometry is above terrain
                     out_color = vec4(color, 1);
     #if 0
-                } else if ((t - dist) <= c.radius * 2.) {
+                } else if ((t - dist) <= c.width * 2.) {
 
-                    highp float delta = (t - dist) / (c.radius * 2);
+                    highp float delta = (t - dist) / (c.width * 2);
 
                     out_color = vec4(color, 0.5);
     #endif

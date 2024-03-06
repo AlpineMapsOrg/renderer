@@ -21,7 +21,6 @@
 layout(location = 0) in highp vec3 a_position;
 layout(location = 1) in highp vec3 a_direction;
 layout(location = 2) in highp vec3 a_offset;
-//layout(location = 3) in highp vec3 a_metadata; // data like speed, vertical speed, etc...
 
 uniform highp mat4 view;
 uniform highp mat4 proj;
@@ -30,9 +29,6 @@ uniform highp float width;
 uniform highp sampler2D texin_track;
 
 flat out highp int vertex_id;
-flat out highp float radius;
-
-#define METHOD 2
 
 void main() {
 
@@ -40,39 +36,23 @@ void main() {
 
   vertex_id = int(a_offset.y);
 
-  radius = width;
-
-  int shading_method = 0;
-
-  highp vec3 e = camera_position;
   highp vec3 x0 = a_position - camera_position;
 
   // main axis of the rounded cone
-  highp vec3 d = a_direction;
+  highp vec3 main_axis = a_direction;
 
-  highp vec3 d0 = camera_position - a_position;
+  highp vec3 view_direction = camera_position - a_position;
 
   // orthogonal to main axis
-  highp vec3 u_hat = normalize(cross(d, d0));
+  highp vec3 u_hat = normalize(cross(main_axis, view_direction));
 
-  highp vec3 v0 = normalize(cross(u_hat, d0));
+  highp vec3 v0 = normalize(cross(u_hat, view_direction));
 
+  highp float t0 = sqrt(dot(view_direction, view_direction) - (width * width));
 
-  highp float r0 = radius; // cone end cap radius
+  highp vec3 p0 = x0 + (a_offset.x * v0 * width);
 
-  highp float t0 = sqrt(dot(d0, d0) - (r0 * r0));
-
-  // TODO
-  //float r0_prime = length(d0) * (r0 / t0);
-  highp float r0_prime = r0;
-
-
-  // TODO:
-  highp float r0_double_prime = r0;
-
-  highp vec3 p0 = x0 + (a_offset.x * v0 * r0_prime);
-
-  highp vec3 position = p0 + u_hat * a_offset.z * r0_double_prime;
+  highp vec3 position = p0 + u_hat * a_offset.z * width;
 
   gl_Position = matrix * vec4(position, 1);
 }
