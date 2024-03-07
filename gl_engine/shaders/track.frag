@@ -219,19 +219,21 @@ void main() {
 
                 if (t < dist) {
                     // geometry is above terrain
-                    out_color = vec4(color, 1);
-    #if 0
-                } else if ((t - dist) <= c.width * 2.) {
+                    out_color = vec4(color, 1.0);
 
-                    highp float delta = (t - dist) / (c.width * 2);
-
-                    out_color = vec4(color, 0.5);
-    #endif
                 } else {
 
-                    // TODO: blend to 0 when far below terrain
-                    out_color = vec4(color, 0.5);
-                    //discard; // geometry is far below terrain
+                    // track has constant alpha upto min_below, then it slowly falls off
+                    float distance_below = t - dist;
+                    float min_below = 100.0;
+                    float max_below = 2000.0;
+
+                    if (distance_below < min_below) {
+                        out_color = vec4(color, 0.5);
+                    } else {
+                        float t = (distance_below - min_below) / (max_below - min_below);
+                        out_color = vec4(color, 0.5 * (1.0 - t));
+                    }
                 }
             } else {
                 discard; // clipping
