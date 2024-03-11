@@ -1,6 +1,7 @@
 /*****************************************************************************
  * Alpine Terrain Renderer
  * Copyright (C) 2023 Adam Celarek
+ * Copyright (C) 2024 Patrick Komon
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -22,13 +23,15 @@
 #include <QMouseEvent>
 #include <QTouchEvent>
 
+#include <glm/vec2.hpp>
+
 namespace nucleus::event_parameter {
 
 struct Touch {
     bool is_begin_event = false;
     bool is_end_event = false;
     bool is_update_event = false;
-    QList<QEventPoint> points;
+    QList<QEventPoint> points; //TODO remove, QT::QUI dependency
     QEventPoint::States states;
 };
 
@@ -36,9 +39,12 @@ struct Mouse {
     bool is_begin_event = false;
     bool is_end_event = false;
     bool is_update_event = false;
-    Qt::MouseButton button = Qt::NoButton;
+    Qt::MouseButton button = Qt::NoButton; //TODO unused?
     Qt::MouseButtons buttons;
-    QEventPoint point;
+    QEventPoint point = QEventPoint(); //TODO remove, Qt::GUI dependency
+    glm::vec2 position = glm::vec2(0);
+    glm::vec2 last_position = glm::vec2(0);
+    glm::vec2 press_position = glm::vec2(0);
 };
 
 struct Wheel {
@@ -46,7 +52,7 @@ struct Wheel {
     bool is_end_event = false;
     bool is_update_event = false;
     QPoint angle_delta;
-    QEventPoint point;
+    QEventPoint point; //TODO remove, Qt::GUI dependency
 };
 }
 Q_DECLARE_METATYPE(nucleus::event_parameter::Touch)

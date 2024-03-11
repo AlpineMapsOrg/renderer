@@ -39,13 +39,22 @@ void Window::initialise_gpu() {
     requestAdapter();
     requestDevice();
     initQueue();
+
+    create_buffers();
+    create_bind_group_info();
+
+    m_shader_manager = std::make_unique<ShaderModuleManager>(device);
+    m_shader_manager->create_shader_modules();
+    m_pipeline_manager = std::make_unique<PipelineManager>(device, *m_shader_manager);
+
+    m_stopwatch.restart();
 }
 
 void Window::resize_framebuffer(int w, int h) {
     //TODO check we can do it without completely recreating swapchain and pipeline
 
-    if (pipeline != nullptr) {
-        pipeline.release();
+    if (m_pipeline_manager->pipelines_created()) {
+        m_pipeline_manager->release_pipelines();
     }
 
     if (swapchain != nullptr) {
@@ -53,7 +62,7 @@ void Window::resize_framebuffer(int w, int h) {
     }
 
     createSwapchain(w, h);
-    createPipeline();
+    m_pipeline_manager->create_pipelines(swapchainFormat, *m_bind_group_info);
 
 #ifdef ALP_WEBGPU_APP_ENABLE_IMGUI
     if (ImGui::GetCurrentContext() != nullptr) {
@@ -77,6 +86,15 @@ void Window::paint([[maybe_unused]] QOpenGLFramebufferObject* framebuffer) {
         throw std::runtime_error("Cannot acquire next swap chain texture");
     }
 
+    emit update_camera_requested();
+
+    //TODO remove, debugging
+    const auto elapsed = static_cast<double>(m_stopwatch.total().count() / 1000.0f);
+    uboSharedConfig* sc = &m_shared_config_ubo->data;
+    sc->m_sun_light = QVector4D(0.0f, 1.0f, 1.0f, 1.0f);
+    sc->m_sun_light_dir = QVector4D(elapsed, 1.0f, 1.0f, 1.0f);
+    m_shared_config_ubo->update_gpu_data(queue);
+
     wgpu::CommandEncoderDescriptor commandEncoderDesc{};
     commandEncoderDesc.label = "Command Encoder";
     wgpu::CommandEncoder encoder = device.createCommandEncoder(commandEncoderDesc);
@@ -90,11 +108,11 @@ void Window::paint([[maybe_unused]] QOpenGLFramebufferObject* framebuffer) {
     renderPassColorAttachment.storeOp = wgpu::StoreOp::Store;
     renderPassColorAttachment.clearValue = wgpu::Color{ 0.9, 0.1, 0.2, 1.0 };
 
-   // depthSlice field for RenderPassColorAttachment (https://github.com/gpuweb/gpuweb/issues/4251)
-   // this field specifies the slice to render to when rendering to a 3d texture (view)
-   // passing a valid index but referencing a non-3d texture leads to an error
-   //TODO use some constant that represents "undefined" for this value (I couldn't find a constant for this?)
-   //     (I just guessed -1 (max unsigned int value) and it worked)
+    // depthSlice field for RenderPassColorAttachment (https://github.com/gpuweb/gpuweb/issues/4251)
+    // this field specifies the slice to render to when rendering to a 3d texture (view)
+    // passing a valid index but referencing a non-3d texture leads to an error
+    //TODO use some constant that represents "undefined" for this value (I couldn't find a constant for this?)
+    //     (I just guessed -1 (max unsigned int value) and it worked)
     renderPassColorAttachment.depthSlice = -1;
 
     renderPassDesc.colorAttachmentCount = 1;
@@ -103,8 +121,10 @@ void Window::paint([[maybe_unused]] QOpenGLFramebufferObject* framebuffer) {
     renderPassDesc.depthStencilAttachment = nullptr;
     renderPassDesc.timestampWrites = nullptr;
     wgpu::RenderPassEncoder renderPass = encoder.beginRenderPass(renderPassDesc);
-    renderPass.setPipeline(pipeline);
-    renderPass.draw(3, 1, 0, 0);
+
+    m_bind_group_info->bind(renderPass, 0);
+    renderPass.setPipeline(m_pipeline_manager->debug_config_and_camera_pipeline());
+    renderPass.draw(36, 1, 0, 0);
 
 #ifdef ALP_WEBGPU_APP_ENABLE_IMGUI
     // We add the GUI drawing commands to the render pass
@@ -112,13 +132,16 @@ void Window::paint([[maybe_unused]] QOpenGLFramebufferObject* framebuffer) {
 #endif
 
     renderPass.end();
+    renderPass.release();
 
     nextTexture.release();
 
     wgpu::CommandBufferDescriptor cmdBufferDescriptor{};
     cmdBufferDescriptor.label = "Command buffer";
     wgpu::CommandBuffer command = encoder.finish(cmdBufferDescriptor);
+    encoder.release();
     queue.submit(command);
+    command.release();
 
     swapchain.present();
     instance.processEvents();
@@ -139,7 +162,8 @@ void Window::deinit_gpu() {
     terminateGui();
 #endif
 
-    pipeline.release();
+    m_pipeline_manager->release_pipelines();
+    m_shader_manager->release_shader_modules();
     swapchain.release();
     queue.release();
     surface.release();
@@ -168,6 +192,23 @@ void Window::set_permissible_screen_space_error([[maybe_unused]] float new_error
 
 void Window::update_camera([[maybe_unused]] const nucleus::camera::Definition& new_definition) {
     // Logic for updating camera, parameter currently unused
+
+    // UPDATE CAMERA UNIFORM BUFFER
+    // NOTE: Could also just be done on camera or viewport change!
+    const auto pos = new_definition.position();
+    std::cout << "UBO update, new pos: " << pos.x << ", " << pos.y << ", " << pos.z << std::endl;
+    uboCameraConfig* cc = &m_camera_config_ubo->data;
+    cc->position = glm::vec4(new_definition.position(), 1.0);
+    cc->view_matrix = new_definition.camera_matrix(); //TODO only for debug, actual line for terrain is below
+    //cc->view_matrix = new_definition.local_view_matrix();
+    cc->proj_matrix = new_definition.projection_matrix();
+    cc->view_proj_matrix = cc->proj_matrix * cc->view_matrix;
+    cc->inv_view_proj_matrix = glm::inverse(cc->view_proj_matrix);
+    cc->inv_view_matrix = glm::inverse(cc->view_matrix);
+    cc->inv_proj_matrix = glm::inverse(cc->proj_matrix);
+    cc->viewport_size = new_definition.viewport_size();
+    cc->distance_scaling_factor = new_definition.distance_scale_factor();
+    m_camera_config_ubo->update_gpu_data(queue);
 }
 
 void Window::update_debug_scheduler_stats([[maybe_unused]] const QString& stats) {
@@ -239,18 +280,6 @@ void Window::updateGui(wgpu::RenderPassEncoder renderPass) {
 }
 #endif
 
-
-const char shaderCode[] = R"(
-    @vertex fn vertexMain(@builtin(vertex_index) i : u32) ->
-      @builtin(position) vec4f {
-        const pos = array(vec2f(0, 1), vec2f(-1, -1), vec2f(1, -1));
-        return vec4f(pos[i], 0, 1);
-    }
-    @fragment fn fragmentMain() -> @location(0) vec4f {
-        return vec4f(0.0, 0.4, 1.0, 1.0);
-    }
-)";
-
 void Window::createInstance() {
     instance = wgpu::createInstance(wgpu::InstanceDescriptor{});
     if (!instance) {
@@ -293,6 +322,15 @@ void Window::initQueue() {
     queue = device.getQueue();
 }
 
+void Window::create_buffers()
+{
+    m_shared_config_ubo = std::make_unique<UniformBuffer<uboSharedConfig>>();
+    m_shared_config_ubo->init(device);
+
+    m_camera_config_ubo = std::make_unique<UniformBuffer<uboCameraConfig>>();
+    m_camera_config_ubo->init(device);
+}
+
 void Window::createSwapchain(uint32_t width, uint32_t height) {
     std::cout << "Creating swapchain device..." << std::endl;
     // from Learn WebGPU C++ tutorial
@@ -311,61 +349,12 @@ void Window::createSwapchain(uint32_t width, uint32_t height) {
     std::cout << "Swapchain: " << swapchain << std::endl;
 }
 
-void Window::createPipeline() {
-    wgpu::ShaderModuleDescriptor shaderModuleDesc{};
-    wgpu::ShaderModuleWGSLDescriptor wgslDesc{};
-    wgslDesc.chain.next = nullptr;
-    wgslDesc.chain.sType = wgpu::SType::ShaderModuleWGSLDescriptor;
-    wgslDesc.code = shaderCode;
-    shaderModuleDesc.nextInChain = &wgslDesc.chain;
-    wgpu::ShaderModule shaderModule = device.createShaderModule(shaderModuleDesc);
-
-    wgpu::RenderPipelineDescriptor pipelineDesc{};
-    pipelineDesc.vertex.module = shaderModule;
-    pipelineDesc.vertex.entryPoint = "vertexMain";
-    pipelineDesc.vertex.bufferCount = 0;
-    pipelineDesc.vertex.buffers = nullptr;
-    pipelineDesc.vertex.constantCount = 0;
-    pipelineDesc.vertex.constants = nullptr;
-    pipelineDesc.primitive.topology = wgpu::PrimitiveTopology::TriangleList;
-    pipelineDesc.primitive.stripIndexFormat = wgpu::IndexFormat::Undefined;
-    pipelineDesc.primitive.frontFace = wgpu::FrontFace::CCW;
-    pipelineDesc.primitive.cullMode = wgpu::CullMode::None;
-
-    wgpu::FragmentState fragmentState{};
-    fragmentState.module = shaderModule;
-    fragmentState.entryPoint = "fragmentMain";
-    fragmentState.targetCount = 1;
-
-    wgpu::ColorTargetState colorTargetState{};
-    colorTargetState.format = swapchainFormat;
-    fragmentState.targets = &colorTargetState;
-
-    fragmentState.constantCount = 0;
-    fragmentState.constants = nullptr;
-
-    wgpu::BlendState blendState;
-    blendState.color.srcFactor = wgpu::BlendFactor::SrcAlpha;
-    blendState.color.dstFactor = wgpu::BlendFactor::OneMinusSrcAlpha;
-    blendState.color.operation = wgpu::BlendOperation::Add;
-    blendState.alpha.srcFactor = wgpu::BlendFactor::Zero;
-    blendState.alpha.dstFactor = wgpu::BlendFactor::One;
-    blendState.alpha.operation = wgpu::BlendOperation::Add;
-
-    wgpu::ColorTargetState colorTarget;
-    colorTarget.format = swapchainFormat;
-    colorTarget.blend = &blendState;
-    colorTarget.writeMask = wgpu::ColorWriteMask::All;
-
-    fragmentState.targetCount = 1;
-    fragmentState.targets = &colorTarget;
-
-    pipelineDesc.fragment = &fragmentState;
-    pipelineDesc.depthStencil = nullptr;
-    pipelineDesc.multisample.count = 1;
-    pipelineDesc.multisample.mask = ~0u;
-    pipelineDesc.multisample.alphaToCoverageEnabled = false;
-    pipeline = device.createRenderPipeline(pipelineDesc);
+void Window::create_bind_group_info()
+{
+    m_bind_group_info = std::make_unique<BindGroupInfo>();
+    m_bind_group_info->add_entry(0, *m_shared_config_ubo, wgpu::ShaderStage::Vertex | wgpu::ShaderStage::Fragment);
+    m_bind_group_info->add_entry(1, *m_camera_config_ubo, wgpu::ShaderStage::Vertex | wgpu::ShaderStage::Fragment);
+    m_bind_group_info->init(device);
 }
 
 

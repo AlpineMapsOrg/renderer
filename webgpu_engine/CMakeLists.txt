@@ -29,6 +29,10 @@ set(SOURCES
     dawn_setup.h dawn_setup.cpp
     Window.h Window.cpp
     Test.h Test.cpp
+    ShaderModuleManager.h ShaderModuleManager.cpp
+    PipelineManager.h PipelineManager.cpp
+    UniformBufferObjects.h UniformBufferObjects.cpp
+    UniformBuffer.h UniformBuffer.cpp
 )
 
 qt_add_library(webgpu_engine STATIC ${SOURCES})
@@ -38,6 +42,10 @@ qt_add_resources(webgpu_engine "shaders"
     BASE "wgsl_shaders/"
     FILES
         "wgsl_shaders/DebugTriangle.wgsl"
+        "wgsl_shaders/DebugConfigAndCamera.wgsl"
+        "wgsl_shaders/shared_config.wgsl"
+        "wgsl_shaders/hashing.wgsl"
+        "wgsl_shaders/camera_config.wgsl"
 )
 
 target_link_libraries(webgpu_engine PUBLIC nucleus Qt::Core)

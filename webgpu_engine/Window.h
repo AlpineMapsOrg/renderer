@@ -5,8 +5,12 @@
 #include <glm/glm.hpp>
 #include "nucleus/AbstractRenderWindow.h"
 #include "nucleus/camera/AbstractDepthTester.h"
-
+#include "nucleus/camera/Controller.h"
+#include "nucleus/utils/Stopwatch.h"
 #include "webgpu.hpp"
+#include "ShaderModuleManager.h"
+#include "PipelineManager.h"
+#include "UniformBufferObjects.h"
 
 class QOpenGLFramebufferObject;
 
@@ -52,8 +56,10 @@ private:
     void requestAdapter();
     void requestDevice();
     void initQueue();
+    void create_buffers();
+    void create_bind_group_info();
+
     void createSwapchain(uint32_t w, uint32_t h);
-    void createPipeline();
 
     bool initGui();
     void terminateGui();
@@ -66,13 +72,22 @@ private:
     wgpu::Surface surface = nullptr;
     wgpu::SwapChain swapchain = nullptr;
     wgpu::TextureFormat swapchainFormat = wgpu::TextureFormat::Undefined;
-    wgpu::RenderPipeline pipeline = nullptr;
     wgpu::Queue queue = nullptr;
+
+    std::unique_ptr<ShaderModuleManager> m_shader_manager;
+    std::unique_ptr<PipelineManager> m_pipeline_manager;
+
+    std::unique_ptr<UniformBuffer<uboSharedConfig>> m_shared_config_ubo;
+    std::unique_ptr<UniformBuffer<uboCameraConfig>> m_camera_config_ubo;
+
+    std::unique_ptr<BindGroupInfo> m_bind_group_info;
 
     ObtainWebGpuSurfaceFunc obtainWebGpuSurfaceFunc;
     ImGuiWindowImplInitFunc imguiWindowInitFunc;
     ImGuiWindowImplNewFrameFunc imguiWindowNewFrameFunc;
     ImGuiWindowImplShutdownFunc imguiWindowShutdownFunc;
+
+    nucleus::utils::Stopwatch m_stopwatch;
 };
 
 }
