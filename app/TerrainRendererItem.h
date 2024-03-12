@@ -56,6 +56,7 @@ class TerrainRendererItem : public QQuickFramebufferObject {
     Q_PROPERTY(bool render_looped READ render_looped WRITE set_render_looped NOTIFY render_looped_changed)
     Q_PROPERTY(unsigned int selected_camera_position_index MEMBER m_selected_camera_position_index WRITE set_selected_camera_position_index)
     Q_PROPERTY(QVector2D sun_angles READ sun_angles WRITE set_sun_angles NOTIFY sun_angles_changed)
+    Q_PROPERTY(bool continuous_update READ continuous_update WRITE set_continuous_update NOTIFY continuous_update_changed)
 
 public:
     explicit TerrainRendererItem(QQuickItem* parent = 0);
@@ -107,6 +108,8 @@ signals:
     void reload_shader();
 
     void init_after_creation() const;
+
+    void continuous_update_changed(bool continuous_update);
 
 protected:
     void touchEvent(QTouchEvent*) override;
@@ -183,16 +186,20 @@ public:
 
     const AppSettings* settings() { return m_settings; }
 
+    bool continuous_update() const;
+    void set_continuous_update(bool new_continuous_update);
+
 private:
     void recalculate_sun_angles();
     void update_gl_sun_dir_from_sun_angles(gl_engine::uboSharedConfig& ubo);
 
+    bool m_continuous_update = false;
     float m_camera_rotation_from_north = 0;
     QPointF m_camera_operation_centre;
     bool m_camera_operation_centre_visibility = false;
     float m_camera_operation_centre_distance = 1;
     float m_field_of_view = 60;
-    int m_frame_limit = 60;
+    int m_frame_limit = 30;
     unsigned m_tile_cache_size = 12000;
     unsigned m_cached_tiles = 0;
     unsigned m_queued_tiles = 0;

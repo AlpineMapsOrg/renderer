@@ -71,7 +71,7 @@ TerrainRendererItem::TerrainRendererItem(QQuickItem* parent)
     connect(m_settings, &AppSettings::gl_sundir_date_link_changed, this, &TerrainRendererItem::gl_sundir_date_link_changed);
     connect(m_settings, &AppSettings::render_quality_changed, this, &TerrainRendererItem::schedule_update);
 
-    m_update_timer->setSingleShot(true);
+    m_update_timer->setSingleShot(!m_continuous_update);
     m_update_timer->setInterval(1000 / m_frame_limit);
     setMirrorVertically(true);
     setAcceptTouchEvents(true);
@@ -479,6 +479,24 @@ void TerrainRendererItem::update_gl_sun_dir_from_sun_angles(gl_engine::uboShared
     auto newDir = nucleus::utils::sun_calculations::sun_rays_direction_from_sun_angles(glm::vec2(m_sun_angles.x(), m_sun_angles.y()));
     QVector4D newDirUboEntry(newDir.x, newDir.y, newDir.z, ubo.m_sun_light_dir.w());
     ubo.m_sun_light_dir = newDirUboEntry;
+}
+
+bool TerrainRendererItem::continuous_update() const
+{
+    return m_continuous_update;
+}
+
+void TerrainRendererItem::set_continuous_update(bool new_continuous_update)
+{
+    qDebug() << "TerrainRendererItem::m_continuous_update" << m_continuous_update;
+    qDebug() << "TerrainRendererItem::new_continuous_update" << new_continuous_update;
+    if (m_continuous_update == new_continuous_update)
+        return;
+    qDebug() << "continuoius update" << m_continuous_update;
+    m_continuous_update = new_continuous_update;
+    m_update_timer->setSingleShot(!m_continuous_update);
+    m_update_timer->start();
+    emit continuous_update_changed(m_continuous_update);
 }
 
 void TerrainRendererItem::init_after_creation_slot() {
