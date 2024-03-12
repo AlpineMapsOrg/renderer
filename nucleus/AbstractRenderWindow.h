@@ -60,7 +60,6 @@ public slots:
     virtual void set_aabb_decorator(const tile_scheduler::utils::AabbDecoratorPtr&) = 0;
     virtual void remove_tile(const tile::Id&) = 0;
     virtual void update_gpu_quads(const std::vector<tile_scheduler::tile_types::GpuTileQuad>& new_quads, const std::vector<tile::Id>& deleted_quads) = 0;
-    virtual void update_vector_tile(const tile::Id id, const std::unordered_set<std::shared_ptr<nucleus::FeatureTXT>>& features) = 0;
 
 signals:
     void update_requested();
@@ -68,7 +67,6 @@ signals:
     void key_released(const QKeyCombination&) const;
     void gpu_ready_changed(bool ready);
     void update_camera_requested() const;
-    void request_vector_tile(const tile::Id id);
 };
 
 }

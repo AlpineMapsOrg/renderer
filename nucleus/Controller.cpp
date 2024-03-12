@@ -36,10 +36,10 @@
 #include "nucleus/tile_scheduler/SlotLimiter.h"
 #include "nucleus/tile_scheduler/TileLoadService.h"
 #include "nucleus/tile_scheduler/utils.h"
-#include "nucleus/vector_tiles/VectorTileManager.h"
 #include "radix/TileHeights.h"
 
 using namespace nucleus::tile_scheduler;
+using namespace nucleus::vectortile;
 
 namespace nucleus {
 Controller::Controller(AbstractRenderWindow* render_window)
@@ -50,14 +50,14 @@ Controller::Controller(AbstractRenderWindow* render_window)
     qRegisterMetaType<nucleus::event_parameter::Wheel>();
 
     m_terrain_service = std::make_unique<TileLoadService>("https://alpinemaps.cg.tuwien.ac.at/tiles/alpine_png/", TileLoadService::UrlPattern::ZXY, ".png");
-    //    m_ortho_service.reset(new TileLoadService("https://tiles.bergfex.at/styles/bergfex-osm/", TileLoadService::UrlPattern::ZXY_yPointingSouth, ".jpeg"));
-    //    m_ortho_service.reset(new TileLoadService("https://alpinemaps.cg.tuwien.ac.at/tiles/ortho/", TileLoadService::UrlPattern::ZYX_yPointingSouth, ".jpeg"));
-    //    m_ortho_service.reset(new TileLoadService(
-    //        "https://maps%1.wien.gv.at/basemap/bmaporthofoto30cm/normal/google3857/", TileLoadService::UrlPattern::ZYX_yPointingSouth, ".jpeg", { "", "1", "2", "3", "4" }));
-    m_ortho_service.reset(new TileLoadService(
-        "https://gataki.cg.tuwien.ac.at/raw/basemap/tiles/", TileLoadService::UrlPattern::ZYX_yPointingSouth, ".jpeg"));
+    //    m_ortho_service.reset(new TileLoadService("https://tiles.bergfex.at/styles/bergfex-osm/", TileLoadService::UrlPattern::ZXY_yPointingSouth,
+    //    ".jpeg")); m_ortho_service.reset(new TileLoadService("https://alpinemaps.cg.tuwien.ac.at/tiles/ortho/",
+    //    TileLoadService::UrlPattern::ZYX_yPointingSouth, ".jpeg")); m_ortho_service.reset(new TileLoadService(
+    //        "https://maps%1.wien.gv.at/basemap/bmaporthofoto30cm/normal/google3857/", TileLoadService::UrlPattern::ZYX_yPointingSouth, ".jpeg", { "", "1",
+    //        "2", "3", "4" }));
+    m_ortho_service.reset(new TileLoadService("https://gataki.cg.tuwien.ac.at/raw/basemap/tiles/", TileLoadService::UrlPattern::ZYX_yPointingSouth, ".jpeg"));
     m_vectortile_service = std::make_unique<TileLoadService>(
-        nucleus::VectorTileManager::TILE_SERVER, nucleus::tile_scheduler::TileLoadService::UrlPattern::ZXY_yPointingSouth, ".mvt");
+        "http://localhost:8080/austria.peaks/", nucleus::tile_scheduler::TileLoadService::UrlPattern::ZXY_yPointingSouth, ".mvt");
 
     m_tile_scheduler = std::make_unique<nucleus::tile_scheduler::Scheduler>();
     m_tile_scheduler->read_disk_cache();
@@ -74,6 +74,7 @@ Controller::Controller(AbstractRenderWindow* render_window)
         m_render_window->set_aabb_decorator(decorator);
     }
     m_data_querier = std::make_shared<DataQuerier>(&m_tile_scheduler->ram_cache());
+    m_tile_scheduler->set_dataquerier(m_data_querier);
     m_camera_controller = std::make_unique<nucleus::camera::Controller>(
         nucleus::camera::PositionStorage::instance()->get("grossglockner"), m_render_window->depth_tester(), m_data_querier.get());
     {
@@ -82,7 +83,6 @@ Controller::Controller(AbstractRenderWindow* render_window)
         RateLimiter* rl = new RateLimiter(sch);
         QuadAssembler* qa = new QuadAssembler(sch);
         LayerAssembler* la = new LayerAssembler(sch);
-        VectorTileManager* vtm = new VectorTileManager(sch, m_data_querier.get());
         connect(sch, &Scheduler::quads_requested, sl, &SlotLimiter::request_quads);
         connect(sl, &SlotLimiter::quad_requested, rl, &RateLimiter::request_quad);
         connect(rl, &RateLimiter::quad_requested, qa, &QuadAssembler::load);
@@ -93,13 +93,10 @@ Controller::Controller(AbstractRenderWindow* render_window)
 
         connect(m_ortho_service.get(), &TileLoadService::load_finished, la, &LayerAssembler::deliver_ortho);
         connect(m_terrain_service.get(), &TileLoadService::load_finished, la, &LayerAssembler::deliver_height);
-        connect(m_vectortile_service.get(), &TileLoadService::load_finished, vtm, &VectorTileManager::deliver_vectortile);
+        connect(m_vectortile_service.get(), &TileLoadService::load_finished, la, &LayerAssembler::deliver_vectortile);
         connect(la, &LayerAssembler::tile_loaded, qa, &QuadAssembler::deliver_tile);
         connect(qa, &QuadAssembler::quad_loaded, sl, &SlotLimiter::deliver_quad);
         connect(sl, &SlotLimiter::quad_delivered, sch, &Scheduler::receive_quad);
-
-        connect(m_render_window, &AbstractRenderWindow::request_vector_tile, vtm, &VectorTileManager::prepare_vector_tile);
-        connect(vtm, &VectorTileManager::vector_tile_ready, m_render_window, &AbstractRenderWindow::update_vector_tile);
     }
     if (QNetworkInformation::loadDefaultBackend() && QNetworkInformation::instance()) {
         QNetworkInformation* n = QNetworkInformation::instance();
@@ -157,4 +154,4 @@ Scheduler* Controller::tile_scheduler() const
 {
     return m_tile_scheduler.get();
 }
-}
+} // namespace nucleus

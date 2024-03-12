@@ -148,7 +148,6 @@ void Window::initialise_gpu()
     m_shadowmapping = std::make_unique<gl_engine::ShadowMapping>(m_shader_manager->shared_shadowmap_program(), m_shadow_config_ubo, m_shared_config_ubo);
 
     m_map_label_manager->init();
-    connect(m_map_label_manager.get(), &MapLabelManager::added_tile, this, &Window::prepare_vector_tile);
 
     {   // INITIALIZE CPU AND GPU TIMER
         using namespace std;
@@ -451,17 +450,6 @@ void Window::update_gpu_quads(const std::vector<nucleus::tile_scheduler::tile_ty
 
     assert(m_map_label_manager);
     m_map_label_manager->update_gpu_quads(new_quads, deleted_quads);
-}
-
-// Map Label Manager wants to draw vector tiles
-// -> we use this slot to connect map label signal to signal that can be accessed in controller
-void Window::prepare_vector_tile(const tile::Id id) { emit request_vector_tile(id); }
-
-// Vector tile manager gave us the features
-// -> send them to the map label manager
-void Window::update_vector_tile(const tile::Id id, const std::unordered_set<std::shared_ptr<nucleus::FeatureTXT>>& features)
-{
-    m_map_label_manager->create_vao(id, features);
 }
 
 float Window::depth(const glm::dvec2& normalised_device_coordinates)

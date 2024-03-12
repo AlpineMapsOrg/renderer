@@ -25,6 +25,8 @@
 #include <QStringLiteral>
 #include <string>
 
+#include <iostream>
+
 #include "Raster.h"
 
 #define STBTT_STATIC
@@ -52,12 +54,12 @@ const LabelMeta LabelFactory::create_label_meta()
     }
 
     // paint svg icon into the an image of appropriate size
-    lm.icons[nucleus::FeatureType::Peak] = QIcon(QString(":/qt/qml/app/icons/peak.svg")).pixmap(QSize(icon_size.x, icon_size.y)).toImage();
+    lm.icons[nucleus::vectortile::FeatureType::Peak] = QIcon(QString(":/qt/qml/app/icons/peak.svg")).pixmap(QSize(icon_size.x, icon_size.y)).toImage();
     // TODO add appropriate icon
-    lm.icons[nucleus::FeatureType::City] = QIcon(QString(":/qt/qml/app/icons/peak.svg")).pixmap(QSize(icon_size.x, icon_size.y)).toImage();
+    lm.icons[nucleus::vectortile::FeatureType::City] = QIcon(QString(":/qt/qml/app/icons/peak.svg")).pixmap(QSize(icon_size.x, icon_size.y)).toImage();
 
     // TODO add appropriate default icon
-    lm.icons[nucleus::FeatureType::ENUM_END] = QIcon(QString(":/qt/qml/app/icons/peak.svg")).pixmap(QSize(icon_size.x, icon_size.y)).toImage();
+    lm.icons[nucleus::vectortile::FeatureType::ENUM_END] = QIcon(QString(":/qt/qml/app/icons/peak.svg")).pixmap(QSize(icon_size.x, icon_size.y)).toImage();
 
     return lm;
 }
@@ -159,13 +161,14 @@ Raster<glm::u8vec2> LabelFactory::make_outline(const Raster<uint8_t>& input)
     return font_bitmap;
 }
 
-const std::vector<VertexData> LabelFactory::create_labels(const std::unordered_set<std::shared_ptr<nucleus::FeatureTXT>>& features)
+const std::vector<VertexData> LabelFactory::create_labels(const std::unordered_set<std::shared_ptr<nucleus::vectortile::FeatureTXT>>& features)
 {
     std::vector<VertexData> labelData;
 
     for (const auto& feat : features) {
+        // std::cout << "iii: " << feat->labelText().toStdString() << ": " << feat->worldposition.z << std::endl;
 
-        create_label(feat->labelText(), feat->position, 1.0, labelData);
+        create_label(feat->labelText(), feat->worldposition, 1.0, labelData);
     }
 
     return labelData;

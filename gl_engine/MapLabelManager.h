@@ -27,6 +27,7 @@
 #include "Texture.h"
 #include "nucleus/camera/Definition.h"
 #include "nucleus/map_label/LabelFactory.h"
+#include "nucleus/tile_scheduler/tile_types.h"
 
 #include "nucleus/tile_scheduler/DrawListGenerator.h"
 
@@ -40,9 +41,7 @@ class ShaderProgram;
 struct GPUVectorTile {
     tile::Id id;
     std::unique_ptr<QOpenGLBuffer> vertex_buffer;
-    std::unique_ptr<QOpenGLBuffer> index_buffer;
     std::unique_ptr<QOpenGLVertexArrayObject> vao;
-    size_t indices_count; // how many vertices per character (most likely 6 since quads)
     size_t instance_count; // how many characters (+1 for icon)
 };
 
@@ -59,21 +58,16 @@ public:
 
     void remove_tile(const tile::Id& tile_id);
 
-signals:
-    void added_tile(const tile::Id id);
-
-public slots:
-    void create_vao(const tile::Id id, const std::unordered_set<std::shared_ptr<nucleus::FeatureTXT>>& features);
-
 private:
+    void add_tile(const tile::Id& id, const nucleus::vectortile::FeatureType& type, const nucleus::vectortile::VectorTile& vector_tile);
+
     std::unique_ptr<Texture> m_font_texture;
+    std::unordered_map<nucleus::vectortile::FeatureType, std::unique_ptr<QOpenGLTexture>> m_icon_texture;
 
-    std::unordered_map<nucleus::FeatureType, std::unique_ptr<QOpenGLTexture>> m_icon_texture;
+    std::unordered_map<nucleus::vectortile::FeatureType, std::unordered_map<tile::Id, std::shared_ptr<GPUVectorTile>, tile::Id::Hasher>> m_gpu_tiles;
 
-    std::unordered_map<nucleus::FeatureType, std::unordered_map<tile::Id, std::shared_ptr<GPUVectorTile>, tile::Id::Hasher>> m_gpu_tiles;
-
-    // std::unordered_set<std::shared_ptr<nucleus::FeatureTXT>> testLabels;
-    // tile::Id testTile;
+    std::unique_ptr<QOpenGLBuffer> m_index_buffer;
+    size_t m_indices_count; // how many vertices per character (most likely 6 since quads)
 
     nucleus::maplabel::LabelFactory m_mapLabelFactory;
 };

@@ -32,16 +32,19 @@ class LayerAssembler : public QObject {
 
     TileId2DataMap m_ortho_data;
     TileId2DataMap m_height_data;
+    TileId2DataMap m_vector_tile_data;
 
 public:
     explicit LayerAssembler(QObject* parent = nullptr);
     [[nodiscard]] size_t n_items_in_flight() const;
-    static tile_types::LayeredTile join(const tile_types::TileLayer& ortho_tile, const tile_types::TileLayer& height_tile);
+    static tile_types::LayeredTile join(
+        const tile_types::TileLayer& ortho_tile, const tile_types::TileLayer& height_tile, const tile_types::TileLayer& vector_tile);
 
 public slots:
     void load(const tile::Id& tile_id);
     void deliver_ortho(const tile_types::TileLayer& tile);
     void deliver_height(const tile_types::TileLayer& tile);
+    void deliver_vectortile(const tile_types::TileLayer& tile);
 
 signals:
     void tile_requested(const tile::Id& tile_id);

@@ -83,8 +83,6 @@ public slots:
     void shared_config_changed(gl_engine::uboSharedConfig ubo);
     void render_looped_changed(bool render_looped_flag);
     void reload_shader();
-    void prepare_vector_tile(const tile::Id id);
-    void update_vector_tile(const tile::Id id, const std::unordered_set<std::shared_ptr<nucleus::FeatureTXT>>& features) override;
 
 signals:
     void report_measurements(QList<nucleus::timing::TimerReport> values);

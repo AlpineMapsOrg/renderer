@@ -32,7 +32,7 @@ class LabelFactory {
 public:
     const LabelMeta create_label_meta();
 
-    const std::vector<VertexData> create_labels(const std::unordered_set<std::shared_ptr<nucleus::FeatureTXT>>& features);
+    const std::vector<VertexData> create_labels(const std::unordered_set<std::shared_ptr<nucleus::vectortile::FeatureTXT>>& features);
     void create_label(const QString text, const glm::vec3 position, const float importance, std::vector<VertexData>& vertex_data);
 
     static const inline std::vector<unsigned int> indices = { 0, 1, 2, 0, 2, 3 };

@@ -20,6 +20,7 @@
 
 #include "nucleus/tile_scheduler/utils.h"
 #include "radix/tile.h"
+#include <nucleus/vector_tiles/VectorTileFeature.h>
 
 #include <QByteArray>
 
@@ -52,7 +53,6 @@ struct NetworkInfo {
         }
         return {status, timestamp};
     }
-
 };
 
 template <typename T>
@@ -79,6 +79,7 @@ struct LayeredTile {
     NetworkInfo network_info;
     std::shared_ptr<QByteArray> ortho;
     std::shared_ptr<QByteArray> height;
+    std::shared_ptr<QByteArray> vector_tile;
 };
 static_assert(NamedTile<LayeredTile>);
 
@@ -105,6 +106,7 @@ struct GpuLayeredTile {
     std::shared_ptr<const QImage> ortho;
     std::shared_ptr<const nucleus::Raster<uint16_t>> height;
     std::shared_ptr<const QImage> height_image;
+    std::shared_ptr<const nucleus::vectortile::VectorTile> vector_tile;
 };
 static_assert(NamedTile<GpuLayeredTile>);
 

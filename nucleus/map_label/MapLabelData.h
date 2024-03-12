@@ -45,7 +45,7 @@ struct VertexData {
 
 struct LabelMeta {
     Raster<glm::u8vec2> font_atlas;
-    std::unordered_map<nucleus::FeatureType, QImage> icons;
+    std::unordered_map<nucleus::vectortile::FeatureType, QImage> icons;
 };
 
 } // namespace nucleus::maplabel

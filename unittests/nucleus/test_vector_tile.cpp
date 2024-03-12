@@ -30,21 +30,9 @@
 
 TEST_CASE("nucleus/vector_tiles")
 {
-    SECTION("Tile does not exist yet")
-    {
-        tile::Id id(13, glm::uvec2(4384, 2878), tile::Scheme::Tms);
-        nucleus::VectorTileManager v;
-
-        v.get_tile(id);
-
-        const auto tileData = v.get_tile(id);
-        CHECK(tileData.size() == 0);
-    }
 
     SECTION("PBF parsing")
     {
-        nucleus::VectorTileManager v;
-
         QString filepath = QString("%1%2").arg(ALP_TEST_DATA_DIR, "vectortile.mvt");
         QFile file(filepath);
         file.open(QIODevice::ReadOnly | QIODevice::Unbuffered);
@@ -52,24 +40,24 @@ TEST_CASE("nucleus/vector_tiles")
 
         CHECK(data.size() > 0);
 
-        tile::Id id(13, glm::uvec2(4384, 2878), tile::Scheme::Tms);
+        const auto vectortile = nucleus::vectortile::VectorTileManager::toVectorTile(data);
 
-        nucleus::tile_scheduler::tile_types::TileLayer tile { id, { nucleus::tile_scheduler::tile_types::NetworkInfo::Status::Good, nucleus::tile_scheduler::utils::time_since_epoch() }, std::make_shared<QByteArray>(data) };
+        REQUIRE(vectortile.contains(nucleus::vectortile::FeatureType::Peak));
 
-        v.deliver_vectortile(tile);
+        // std::cout << vectortile.at(nucleus::vectortile::FeatureType::Peak).size() << std::endl;
+        CHECK(vectortile.at(nucleus::vectortile::FeatureType::Peak).size() == 16);
 
-        const auto& tileData = v.get_tile(tile.id);
+        for (const auto& peak : vectortile.at(nucleus::vectortile::FeatureType::Peak)) {
 
-        CHECK(tileData.size() == 16);
-
-        for (const auto& peak : tileData) {
+            // std::cout << peak->labelText().toStdString() << " " << peak->id << std::endl;
+            // std::cout << peak->position.x << ", " << peak->position.y << std::endl;
 
             if (peak->id == 26863041ul) {
-                // Check if großglockner has been successfully parsed (note the id might change in the future)
-                // CHECK(peak->elevation == 3798);
+                // Check if großglockner has been successfully parsed (note the id might change)
                 CHECK(peak->name == "Großglockner");
+
+                CHECK(peak->labelText().toStdU16String() == u"Großglockner (3798m)");
             }
-            // peak->print();
         }
     }
 
@@ -77,7 +65,8 @@ TEST_CASE("nucleus/vector_tiles")
     {
         const auto id = tile::Id { .zoom_level = 13, .coords = { 4384, 2878 }, .scheme = tile::Scheme::SlippyMap }.to(tile::Scheme::Tms);
 
-        nucleus::tile_scheduler::TileLoadService service(nucleus::VectorTileManager::TILE_SERVER, nucleus::tile_scheduler::TileLoadService::UrlPattern::ZXY_yPointingSouth, ".mvt");
+        nucleus::tile_scheduler::TileLoadService service(
+            nucleus::vectortile::VectorTileManager::TILE_SERVER, nucleus::tile_scheduler::TileLoadService::UrlPattern::ZXY_yPointingSouth, ".mvt");
         // std::cout << "loading: " << qUtf8Printable(service.build_tile_url(id)) << std::endl;
         {
             QSignalSpy spy(&service, &nucleus::tile_scheduler::TileLoadService::load_finished);
@@ -105,14 +94,16 @@ TEST_CASE("nucleus/vector_tiles")
 
     SECTION("Tile download parent")
     {
-        nucleus::tile_scheduler::TileLoadService service(nucleus::VectorTileManager::TILE_SERVER, nucleus::tile_scheduler::TileLoadService::UrlPattern::ZXY_yPointingSouth, ".mvt");
+        nucleus::tile_scheduler::TileLoadService service(
+            nucleus::vectortile::VectorTileManager::TILE_SERVER, nucleus::tile_scheduler::TileLoadService::UrlPattern::ZXY_yPointingSouth, ".mvt");
 
-        nucleus::VectorTileManager v;
+        // tile that contains großglockner
+        auto id = tile::Id { .zoom_level = 14, .coords = { 8769, 5757 }, .scheme = tile::Scheme::SlippyMap }.to(tile::Scheme::Tms);
 
-        auto id = tile::Id { .zoom_level = 13, .coords = { 4384, 2878 }, .scheme = tile::Scheme::SlippyMap }.to(tile::Scheme::Tms);
+        std::unordered_map<int, size_t> peaks_per_zoom = { { 14, 10 }, { 13, 16 }, { 12, 32 }, { 11, 35 }, { 10, 35 }, { 9, 36 } };
 
-        for (int i = 13; i > 9; i--) {
-            std::cout << "loading: " << qUtf8Printable(service.build_tile_url(id)) << std::endl;
+        for (int i = 14; i > 8; i--) {
+            // std::cout << "loading: " << i << ": " << qUtf8Printable(service.build_tile_url(id)) << std::endl;
 
             QSignalSpy spy(&service, &nucleus::tile_scheduler::TileLoadService::load_finished);
             service.load(id);
@@ -126,19 +117,33 @@ TEST_CASE("nucleus/vector_tiles")
             CHECK(tile.network_info.status == nucleus::tile_scheduler::tile_types::NetworkInfo::Status::Good);
             CHECK(nucleus::tile_scheduler::utils::time_since_epoch() - tile.network_info.timestamp < 10'000);
 
-            // std::cout << "here: " << tile.data->size() << std::endl;
-
             REQUIRE(tile.data->size() > 0);
 
-            v.deliver_vectortile(tile);
-            const auto& tile_features = v.get_tile(id);
+            const auto vectortile = nucleus::vectortile::VectorTileManager::toVectorTile(*tile.data);
 
-            // TODO add checks to see if the data / parsing is still correct
+            REQUIRE(vectortile.contains(nucleus::vectortile::FeatureType::Peak));
 
-            std::cout << "features: " << tile_features.size() << std::endl;
-            for (const auto& feature : tile_features) {
-                feature->print();
+            // std::cout << vectortile.at(nucleus::vectortile::FeatureType::Peak).size() << std::endl;
+
+            CHECK(vectortile.at(nucleus::vectortile::FeatureType::Peak).size() == peaks_per_zoom.at(tile.id.zoom_level));
+
+            bool contains_desired_peak = false;
+
+            for (const auto& peak : vectortile.at(nucleus::vectortile::FeatureType::Peak)) {
+
+                // std::cout << peak->labelText().toStdString() << " " << peak->id << std::endl;
+                // std::cout << peak->position.x << ", " << peak->position.y << std::endl;
+
+                if (peak->id == 26863041ul) {
+                    contains_desired_peak = true;
+                    // Check if großglockner has been successfully parsed (note the id might change)
+                    CHECK(peak->name == "Großglockner");
+
+                    CHECK(peak->labelText().toStdU16String() == u"Großglockner (3798m)");
+                }
             }
+
+            CHECK(contains_desired_peak);
 
             id = id.parent();
         }
