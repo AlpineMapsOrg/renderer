@@ -72,7 +72,7 @@ TEST_CASE("gl uniformbuffer")
 
     SECTION("test buffer content")
     {
-        Framebuffer b(Framebuffer::DepthFormat::None, { { Framebuffer::ColourFormat::RGBA8 } });
+        Framebuffer b(Framebuffer::DepthFormat::None, {Framebuffer::ColourFormat::RGBA8});
         ShaderProgram shader = create_debug_shader2(R"(
             layout (std140) uniform test_config {
                 highp vec4 tv4;
@@ -105,7 +105,7 @@ TEST_CASE("gl uniformbuffer")
     SECTION("test shared config buffer")
     {
         // NOTE: If theres an error here, check proper alignment first!!!
-        Framebuffer b(Framebuffer::DepthFormat::None, { { Framebuffer::ColourFormat::RGBA8 } });
+        Framebuffer b(Framebuffer::DepthFormat::None, {Framebuffer::ColourFormat::RGBA8});
         ShaderProgram shader = create_debug_shader2(R"(
             #include "shared_config.glsl"
             out lowp vec4 out_Number;
@@ -132,7 +132,7 @@ TEST_CASE("gl uniformbuffer")
     SECTION("test shared camera buffer")
     {
         // NOTE: If theres an error here, check proper alignment first!!!
-        Framebuffer b(Framebuffer::DepthFormat::None, { { Framebuffer::ColourFormat::RGBA8 } });
+        Framebuffer b(Framebuffer::DepthFormat::None, {Framebuffer::ColourFormat::RGBA8});
         ShaderProgram shader = create_debug_shader2(R"(
             #include "camera_config.glsl"
             out lowp vec4 out_Number;
@@ -159,7 +159,7 @@ TEST_CASE("gl uniformbuffer")
     SECTION("test shared Shadow config buffer")
     {
         // NOTE: If theres an error here, check proper alignment first!!!
-        Framebuffer b(Framebuffer::DepthFormat::None, { { Framebuffer::ColourFormat::RGBA8 } });
+        Framebuffer b(Framebuffer::DepthFormat::None, {Framebuffer::ColourFormat::RGBA8});
         ShaderProgram shader = create_debug_shader2(R"(
             #include "shadow_config.glsl"
             out lowp vec4 out_Number;

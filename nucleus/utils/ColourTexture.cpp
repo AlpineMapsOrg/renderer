@@ -20,7 +20,6 @@
 
 #include <array>
 #include <cstdint>
-#include <vector>
 
 #define GOOFYTC_IMPLEMENTATION
 #include <GoofyTC/goofy_tc.h>
