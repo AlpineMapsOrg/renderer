@@ -32,7 +32,13 @@ static void mouse_button_callback(GLFWwindow* window, int button, int action, in
     renderer->on_mouse_button_callback(button, action, mods);
 }
 
-TerrainRenderer::TerrainRenderer() {}
+static void scroll_callback(GLFWwindow* window, double xoffset, double yoffset)
+{
+    auto renderer = static_cast<TerrainRenderer*>(glfwGetWindowUserPointer(window));
+    renderer->on_scroll_callback(xoffset, yoffset);
+}
+
+TerrainRenderer::TerrainRenderer() { }
 
 void TerrainRenderer::init_window() {
     if (!glfwInit()) {
@@ -53,6 +59,7 @@ void TerrainRenderer::init_window() {
     glfwSetKeyCallback(m_window, key_callback);
     glfwSetCursorPosCallback(m_window, cursor_position_callback);
     glfwSetMouseButtonCallback(m_window, mouse_button_callback);
+    glfwSetScrollCallback(m_window, scroll_callback);
 
 #ifndef __EMSCRIPTEN__
     // Load Icon for Window
@@ -97,8 +104,10 @@ void TerrainRenderer::start() {
     connect(this, &TerrainRenderer::key_released, m_camera_controller.get(), &nucleus::camera::Controller::key_release);
     connect(this, &TerrainRenderer::mouse_moved, m_camera_controller.get(), &nucleus::camera::Controller::mouse_move);
     connect(this, &TerrainRenderer::mouse_pressed, m_camera_controller.get(), &nucleus::camera::Controller::mouse_press);
+    connect(this, &TerrainRenderer::wheel_turned, m_camera_controller.get(), &nucleus::camera::Controller::wheel_turn);
 
-    connect(m_webgpu_window.get(), &nucleus::AbstractRenderWindow::update_camera_requested, m_camera_controller.get(), &nucleus::camera::Controller::update_camera_request);
+    connect(m_webgpu_window.get(), &nucleus::AbstractRenderWindow::update_camera_requested, m_camera_controller.get(),
+        &nucleus::camera::Controller::update_camera_request);
     connect(m_camera_controller.get(), &nucleus::camera::Controller::definition_changed, m_webgpu_window.get(), &nucleus::AbstractRenderWindow::update_camera);
 
     m_webgpu_window->initialise_gpu();
@@ -196,3 +205,10 @@ void TerrainRenderer::on_mouse_button_callback(int button, int action, int mods)
     emit mouse_pressed(m_mouse);
 }
 
+void TerrainRenderer::on_scroll_callback(double x_offset, double y_offset)
+{
+    nucleus::event_parameter::Wheel wheel {};
+    wheel.angle_delta = QPoint(static_cast<int>(x_offset), static_cast<int>(y_offset));
+    std::cout << "wheel  turned, delta x=" << x_offset << ", y=" << y_offset << std::endl;
+    emit wheel_turned(wheel);
+}

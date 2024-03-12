@@ -52,7 +52,7 @@ struct Wheel {
     bool is_end_event = false;
     bool is_update_event = false;
     QPoint angle_delta;
-    QEventPoint point; //TODO remove, Qt::GUI dependency
+    QEventPoint point = QEventPoint(); // TODO remove, Qt::GUI dependency
 };
 }
 Q_DECLARE_METATYPE(nucleus::event_parameter::Touch)
