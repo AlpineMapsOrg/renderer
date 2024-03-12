@@ -19,6 +19,7 @@
 #pragma once
 
 #include <QImage>
+#include <vector>
 
 namespace nucleus::utils {
 

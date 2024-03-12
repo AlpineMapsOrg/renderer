@@ -16,12 +16,15 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *****************************************************************************/
 
+#include "ColourTexture.h"
+
 #include <array>
 #include <cstdint>
+#include <vector>
+
 #define GOOFYTC_IMPLEMENTATION
 #include <GoofyTC/goofy_tc.h>
 
-#include "ColourTexture.h"
 
 namespace {
 std::vector<uint8_t> to_dxt1(const QImage& qimage)
