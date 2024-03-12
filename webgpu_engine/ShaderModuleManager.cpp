@@ -5,9 +5,9 @@
 
 namespace webgpu_engine {
 
-ShaderModuleManager::ShaderModuleManager(wgpu::Device& device, const std::filesystem::path& prefix):
-    m_device(&device),
-    m_prefix(prefix)
+ShaderModuleManager::ShaderModuleManager(wgpu::Device& device, const std::filesystem::path& prefix)
+    : m_device(&device)
+    , m_prefix(prefix)
 {}
 
 void ShaderModuleManager::create_shader_modules()

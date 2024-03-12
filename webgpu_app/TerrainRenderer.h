@@ -11,12 +11,13 @@ class TerrainRenderer : public QObject {
 public:
     TerrainRenderer();
 
-    void initWindow();
+    void init_window();
     void start();
     void on_window_resize(int width, int height);
     void on_key_callback(int key, int scancode, int action, int mods);
     void on_cursor_position_callback(double x_pos, double y_pos);
     void on_mouse_button_callback(int button, int action, int mods);
+
 signals:
     void key_pressed(const QKeyCombination&);
     void key_released(const QKeyCombination&);

@@ -34,7 +34,7 @@ static void mouse_button_callback(GLFWwindow* window, int button, int action, in
 
 TerrainRenderer::TerrainRenderer() {}
 
-void TerrainRenderer::initWindow() {
+void TerrainRenderer::init_window() {
     if (!glfwInit()) {
         std::cerr << "Could not initialize GLFW!" << std::endl;
         throw std::runtime_error("Could not initialize GLFW");
@@ -72,14 +72,14 @@ void TerrainRenderer::initWindow() {
 }
 
 void TerrainRenderer::start() {
-    initWindow();
+    init_window();
 
-    auto glfwGetWGPUSurfaceFunctor = [this] (wgpu::Instance instance) {
+    auto glfw_GetWGPUSurface_func = [this] (wgpu::Instance instance) {
         return glfwGetWGPUSurface(instance, m_window);
     };
 
 #ifdef ALP_WEBGPU_APP_ENABLE_IMGUI
-    m_webgpu_window = std::make_unique<webgpu_engine::Window>(glfwGetWGPUSurfaceFunctor,
+    m_webgpu_window = std::make_unique<webgpu_engine::Window>(glfw_GetWGPUSurface_func,
         [this] () { ImGui_ImplGlfw_InitForOther(m_window, true); },
         ImGui_ImplGlfw_NewFrame,
         ImGui_ImplGlfw_Shutdown
