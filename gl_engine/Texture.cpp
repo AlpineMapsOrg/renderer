@@ -25,9 +25,6 @@
 #include <emscripten.h>
 #include <emscripten/val.h>
 #endif
-#ifdef ANDROID
-#include <GLES3/gl3.h>
-#endif
 
 gl_engine::Texture::Texture(Target target, Format format)
     : m_target(target)

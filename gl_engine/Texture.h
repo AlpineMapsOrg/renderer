@@ -20,6 +20,9 @@
 
 #include <QImage>
 #include <qopengl.h>
+#ifdef ANDROID
+#include <GLES3/gl3.h>
+#endif
 
 #include <nucleus/Raster.h>
 #include <nucleus/utils/ColourTexture.h>
