@@ -197,21 +197,7 @@ void Scheduler::update_gpu_quads()
                            const auto* vectortile_data = m_default_vector_tile.get();
                            vectortile_data = quad.tiles[i].vector_tile.get();
                            // moved into this if -> since vector_tile might be empty
-                           auto vectortile = nucleus::vectortile::VectorTileManager::to_vector_tile(quad.tiles[i].id, *vectortile_data);
-                           // TODO move position/height calculation to featureTXT
-                           if (m_dataquerier) {
-                               for (int i = 0; i < nucleus::vectortile::FeatureType::ENUM_END - 1; i++) {
-                                   nucleus::vectortile::FeatureType type = (nucleus::vectortile::FeatureType)i;
-
-                                   if (!vectortile->contains(type))
-                                       continue;
-
-                                   for (auto& feat : vectortile->at(type)) {
-                                       feat->worldposition = nucleus::srs::lat_long_alt_to_world(
-                                           glm::dvec3(feat->position.x, feat->position.y, m_dataquerier->get_altitude(feat->position)));
-                                   }
-                               }
-                           }
+                           auto vectortile = nucleus::vectortile::VectorTileManager::to_vector_tile(quad.tiles[i].id, *vectortile_data, m_dataquerier);
                            gpu_quad.tiles[i].vector_tile = vectortile;
                        }
                        return gpu_quad;

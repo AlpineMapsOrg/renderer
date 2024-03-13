@@ -41,7 +41,7 @@ TEST_CASE("nucleus/vector_tiles")
         CHECK(data.size() > 0);
         const auto id = tile::Id { .zoom_level = 13, .coords = { 4384, 2878 }, .scheme = tile::Scheme::SlippyMap }.to(tile::Scheme::Tms);
 
-        const auto vectortile = nucleus::vectortile::VectorTileManager::to_vector_tile(id, data);
+        const auto vectortile = nucleus::vectortile::VectorTileManager::to_vector_tile(id, data, nullptr);
 
         REQUIRE(vectortile->contains(nucleus::vectortile::FeatureType::Peak));
 
@@ -120,7 +120,7 @@ TEST_CASE("nucleus/vector_tiles")
 
             REQUIRE(tile.data->size() > 0);
 
-            const auto vectortile = nucleus::vectortile::VectorTileManager::to_vector_tile(id, *tile.data);
+            const auto vectortile = nucleus::vectortile::VectorTileManager::to_vector_tile(id, *tile.data, nullptr);
 
             REQUIRE(vectortile->contains(nucleus::vectortile::FeatureType::Peak));
 

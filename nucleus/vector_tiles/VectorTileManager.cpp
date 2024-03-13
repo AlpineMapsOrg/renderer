@@ -20,6 +20,8 @@
 
 #include <mapbox/vector_tile.hpp>
 
+#include "nucleus/DataQuerier.h"
+
 namespace nucleus::vectortile {
 
 VectorTileManager::VectorTileManager(QObject* parent)
@@ -27,7 +29,8 @@ VectorTileManager::VectorTileManager(QObject* parent)
 {
 }
 
-const std::shared_ptr<VectorTile> VectorTileManager::to_vector_tile(tile::Id id, const QByteArray& vectorTileData)
+const std::shared_ptr<VectorTile> VectorTileManager::to_vector_tile(
+    tile::Id id, const QByteArray& vectorTileData, const std::shared_ptr<DataQuerier> dataquerier)
 {
     // vectortile might be empty -> no parsing possible
     if (vectorTileData == nullptr) {
@@ -71,7 +74,7 @@ const std::shared_ptr<VectorTile> VectorTileManager::to_vector_tile(tile::Id id,
                 }
 
                 // create the feature with the designated parser method
-                const std::shared_ptr<FeatureTXT> feat = FEATURE_TYPES_FACTORY.at(layerName)(feature);
+                const std::shared_ptr<FeatureTXT> feat = FEATURE_TYPES_FACTORY.at(layerName)(feature, dataquerier);
                 // feat->updateWorldPosition(dataquerier);
 
                 m_loaded_features[id] = feat;

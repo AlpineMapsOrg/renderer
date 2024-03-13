@@ -23,11 +23,12 @@
 
 #include <QString>
 #include <memory>
-#include <string>
 #include <unordered_map>
 #include <unordered_set>
 
-// #include "nucleus/DataQuerier.h"
+namespace nucleus {
+class DataQuerier;
+}
 
 namespace nucleus::vectortile {
 
@@ -44,14 +45,7 @@ struct FeatureTXT {
     // determine the highest zoom level where the height has been calculated
     int highest_zoom = 0;
 
-    static void parse(std::shared_ptr<FeatureTXT> ft, const mapbox::vector_tile::feature& feature)
-    {
-        ft->id = feature.getID().get<uint64_t>();
-
-        auto props = feature.getProperties();
-        ft->name = QString::fromStdString(props["name"].get<std::string>());
-        ft->position = glm::dvec2(props["lat"].get<double>(), props["long"].get<double>());
-    }
+    static void parse(std::shared_ptr<FeatureTXT> ft, const mapbox::vector_tile::feature& feature, const std::shared_ptr<DataQuerier> dataquerier);
 
     // void updateWorldPosition(int zoom_level, std::shared_ptr<DataQuerier> dataquerier)
     // {
@@ -65,28 +59,9 @@ struct FeatureTXT {
 struct FeatureTXTPeak : public FeatureTXT {
     int elevation;
 
-    static std::shared_ptr<FeatureTXT> parse(const mapbox::vector_tile::feature& feature)
-    {
-        auto peak = std::make_shared<FeatureTXTPeak>();
-        FeatureTXT::parse(peak, feature);
+    static std::shared_ptr<FeatureTXT> parse(const mapbox::vector_tile::feature& feature, const std::shared_ptr<DataQuerier> dataquerier);
 
-        peak->type = FeatureType::Peak;
-
-        auto props = feature.getProperties();
-
-        if (props["elevation"].valid())
-            peak->elevation = (int)props["elevation"].get<std::int64_t>();
-
-        return peak;
-    }
-
-    QString labelText()
-    {
-        if (elevation == 0)
-            return name;
-        else
-            return QString("%1 (%2m)").arg(name).arg(double(elevation), 0, 'f', 0);
-    }
+    QString labelText();
 };
 
 typedef std::unordered_map<FeatureType, std::unordered_set<std::shared_ptr<FeatureTXT>>> VectorTile;

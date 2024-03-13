@@ -28,8 +28,11 @@
 #include <QByteArray>
 #include <QObject>
 
-// #include "nucleus/DataQuerier.h"
 #include "nucleus/vector_tiles/VectorTileFeature.h"
+
+namespace nucleus {
+class DataQuerier;
+}
 
 namespace nucleus::vectortile {
 
@@ -42,7 +45,7 @@ public:
 
     static const int max_zoom = 14; // defined by the tile server / extractor (extractor only supports zoom to 14)
 
-    static const std::shared_ptr<VectorTile> to_vector_tile(tile::Id id, const QByteArray& vectorTileData);
+    static const std::shared_ptr<VectorTile> to_vector_tile(tile::Id id, const QByteArray& vectorTileData, const std::shared_ptr<DataQuerier> dataquerier);
 
 private:
     static const tile::Id get_suitable_id(tile::Id id);
@@ -52,7 +55,7 @@ private:
 
     // all individual features and an appropriate parser method are stored in the following map
     // typedef std::shared_ptr<FeatureTXT> (*FeatureTXTParser)(const mapbox::vector_tile::feature& feature, tile::SrsBounds& tile_bounds, double extent);
-    typedef std::shared_ptr<FeatureTXT> (*FeatureTXTParser)(const mapbox::vector_tile::feature&);
+    typedef std::shared_ptr<FeatureTXT> (*FeatureTXTParser)(const mapbox::vector_tile::feature&, const std::shared_ptr<DataQuerier>);
     inline static const std::unordered_map<std::string, FeatureTXTParser> FEATURE_TYPES_FACTORY = { { "Peak", FeatureTXTPeak::parse } };
     inline static const std::unordered_map<std::string, FeatureType> FEATURE_TYPES = { { "Peak", FeatureType::Peak } };
 };
