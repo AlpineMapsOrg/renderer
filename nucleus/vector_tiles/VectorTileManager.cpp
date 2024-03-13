@@ -27,17 +27,28 @@ VectorTileManager::VectorTileManager(QObject* parent)
 {
 }
 
-const VectorTile VectorTileManager::toVectorTile(const QByteArray& vectorTileData)
+const std::shared_ptr<VectorTile> VectorTileManager::to_vector_tile(tile::Id id, const QByteArray& vectorTileData)
 {
     // vectortile might be empty -> no parsing possible
-    if (vectorTileData == nullptr)
-        return VectorTile();
+    if (vectorTileData == nullptr) {
+        // try to find a parent tile and return previously parsed parent tile
+        if (id.zoom_level > max_zoom)
+            id = get_suitable_id(id);
+
+        if (!m_loaded_tiles.contains(id)) // tile id not found -> create empty
+            m_loaded_tiles[id] = std::make_shared<VectorTile>();
+
+        return m_loaded_tiles.at(id);
+    }
 
     // convert data buffer into vectortile
     std::string d = vectorTileData.toStdString();
     mapbox::vector_tile::buffer tile(d);
 
-    VectorTile vector_tile;
+    std::shared_ptr<VectorTile> vector_tile;
+    if (!m_loaded_tiles.contains(id))
+        m_loaded_tiles[id] = std::make_shared<VectorTile>();
+    vector_tile = m_loaded_tiles.at(id);
 
     for (auto const& layerName : tile.layerNames()) {
         if (FEATURE_TYPES_FACTORY.contains(layerName)) {
@@ -67,11 +78,21 @@ const VectorTile VectorTileManager::toVectorTile(const QByteArray& vectorTileDat
                 features.insert(feat);
             }
 
-            vector_tile[FEATURE_TYPES.at(layerName)] = features;
+            vector_tile->insert(std::make_pair(FEATURE_TYPES.at(layerName), features));
         }
     }
 
+    m_loaded_tiles[id] = vector_tile;
+
     return vector_tile;
+}
+
+const tile::Id VectorTileManager::get_suitable_id(tile::Id id)
+{
+    while (id.zoom_level > max_zoom) {
+        id = id.parent();
+    }
+    return id;
 }
 
 } // namespace nucleus::vectortile

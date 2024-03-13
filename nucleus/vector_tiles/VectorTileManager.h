@@ -19,6 +19,7 @@
 #pragma once
 
 #include <mapbox/vector_tile.hpp>
+#include <radix/tile.h>
 
 #include <memory>
 #include <string>
@@ -39,10 +40,15 @@ public:
 
     inline static const QString TILE_SERVER = "http://localhost:8080/austria.peaks/";
 
-    static const VectorTile toVectorTile(const QByteArray& vectorTileData);
+    static const int max_zoom = 14; // defined by the tile server / extractor (extractor only supports zoom to 14)
+
+    static const std::shared_ptr<VectorTile> to_vector_tile(tile::Id id, const QByteArray& vectorTileData);
 
 private:
+    static const tile::Id get_suitable_id(tile::Id id);
+
     inline static std::unordered_map<unsigned long, std::shared_ptr<FeatureTXT>> m_loaded_features = {};
+    inline static std::unordered_map<tile::Id, std::shared_ptr<VectorTile>, tile::Id::Hasher> m_loaded_tiles;
 
     // all individual features and an appropriate parser method are stored in the following map
     // typedef std::shared_ptr<FeatureTXT> (*FeatureTXTParser)(const mapbox::vector_tile::feature& feature, tile::SrsBounds& tile_bounds, double extent);

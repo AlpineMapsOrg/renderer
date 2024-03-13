@@ -39,15 +39,16 @@ TEST_CASE("nucleus/vector_tiles")
         QByteArray data = file.readAll();
 
         CHECK(data.size() > 0);
+        const auto id = tile::Id { .zoom_level = 13, .coords = { 4384, 2878 }, .scheme = tile::Scheme::SlippyMap }.to(tile::Scheme::Tms);
 
-        const auto vectortile = nucleus::vectortile::VectorTileManager::toVectorTile(data);
+        const auto vectortile = nucleus::vectortile::VectorTileManager::to_vector_tile(id, data);
 
-        REQUIRE(vectortile.contains(nucleus::vectortile::FeatureType::Peak));
+        REQUIRE(vectortile->contains(nucleus::vectortile::FeatureType::Peak));
 
         // std::cout << vectortile.at(nucleus::vectortile::FeatureType::Peak).size() << std::endl;
-        CHECK(vectortile.at(nucleus::vectortile::FeatureType::Peak).size() == 16);
+        CHECK(vectortile->at(nucleus::vectortile::FeatureType::Peak).size() == 16);
 
-        for (const auto& peak : vectortile.at(nucleus::vectortile::FeatureType::Peak)) {
+        for (const auto& peak : vectortile->at(nucleus::vectortile::FeatureType::Peak)) {
 
             // std::cout << peak->labelText().toStdString() << " " << peak->id << std::endl;
             // std::cout << peak->position.x << ", " << peak->position.y << std::endl;
@@ -119,17 +120,17 @@ TEST_CASE("nucleus/vector_tiles")
 
             REQUIRE(tile.data->size() > 0);
 
-            const auto vectortile = nucleus::vectortile::VectorTileManager::toVectorTile(*tile.data);
+            const auto vectortile = nucleus::vectortile::VectorTileManager::to_vector_tile(id, *tile.data);
 
-            REQUIRE(vectortile.contains(nucleus::vectortile::FeatureType::Peak));
+            REQUIRE(vectortile->contains(nucleus::vectortile::FeatureType::Peak));
 
             // std::cout << vectortile.at(nucleus::vectortile::FeatureType::Peak).size() << std::endl;
 
-            CHECK(vectortile.at(nucleus::vectortile::FeatureType::Peak).size() == peaks_per_zoom.at(tile.id.zoom_level));
+            CHECK(vectortile->at(nucleus::vectortile::FeatureType::Peak).size() == peaks_per_zoom.at(tile.id.zoom_level));
 
             bool contains_desired_peak = false;
 
-            for (const auto& peak : vectortile.at(nucleus::vectortile::FeatureType::Peak)) {
+            for (const auto& peak : vectortile->at(nucleus::vectortile::FeatureType::Peak)) {
 
                 // std::cout << peak->labelText().toStdString() << " " << peak->id << std::endl;
                 // std::cout << peak->position.x << ", " << peak->position.y << std::endl;
