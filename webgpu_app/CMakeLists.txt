@@ -37,8 +37,8 @@ target_link_libraries(webgpu_app PUBLIC webgpu_engine Qt::Core Qt::Gui)
 target_link_libraries(webgpu_app PRIVATE glfw)
 target_include_directories(webgpu_app PRIVATE .)
 
-#qt_add_resources(webgpu_app "height_data"
-#    PREFIX "/map"
-#    BASE ${renderer_static_data_SOURCE_DIR}
-#    FILES ${renderer_static_data_SOURCE_DIR}/height_data.atb
-#)
+qt_add_resources(webgpu_app "height_data"
+    PREFIX "/map"
+    BASE ${renderer_static_data_SOURCE_DIR}
+    FILES ${renderer_static_data_SOURCE_DIR}/height_data.atb
+)

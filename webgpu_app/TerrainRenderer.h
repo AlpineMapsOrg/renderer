@@ -1,9 +1,10 @@
 #pragma once
 
-#include <memory>
-#include <GLFW/glfw3.h>
-#include "nucleus/camera/Controller.h"
 #include "nucleus/AbstractRenderWindow.h"
+#include "nucleus/Controller.h"
+#include "nucleus/camera/Controller.h"
+#include <GLFW/glfw3.h>
+#include <memory>
 
 class TerrainRenderer : public QObject {
     Q_OBJECT
@@ -31,7 +32,7 @@ signals:
 private:
     GLFWwindow* m_window;
     std::unique_ptr<nucleus::AbstractRenderWindow> m_webgpu_window;
-    std::unique_ptr<nucleus::camera::Controller> m_camera_controller;
+    std::unique_ptr<nucleus::Controller> m_controller;
 
     uint32_t m_width = 1024;
     uint32_t m_height = 800;

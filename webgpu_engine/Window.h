@@ -50,6 +50,9 @@ public slots:
     void update_debug_scheduler_stats(const QString& stats) override;
     void update_gpu_quads(const std::vector<nucleus::tile_scheduler::tile_types::GpuTileQuad>& new_quads, const std::vector<tile::Id>& deleted_quads) override;
 
+signals:
+    void gpu_ready_changed(bool ready);
+
 private:
     void create_instance();
     void init_surface();

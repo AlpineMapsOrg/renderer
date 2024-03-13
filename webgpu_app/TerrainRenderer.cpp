@@ -10,6 +10,7 @@
 #include "backends/imgui_impl_glfw.h"
 #endif
 
+#include "nucleus/tile_scheduler/Scheduler.h"
 #include "webgpu_engine/Window.h"
 
 static void windowResizeCallback(GLFWwindow* window, int width, int height) {
@@ -95,24 +96,33 @@ void TerrainRenderer::start() {
     m_webgpu_window = std::make_unique<webgpu_engine::Window>(glfwGetWGPUSurfaceFunctor);
 #endif
 
-    nucleus::camera::Definition camera;
-    camera.look_at(glm::dvec3{0.0f, 0.0f, 0.0f}, glm::dvec3{0.0, -1.0, 0.0});
-    m_camera_controller = std::make_unique<nucleus::camera::Controller>(camera, dynamic_cast<nucleus::camera::AbstractDepthTester*>(m_webgpu_window.get()), nullptr);
-    m_camera_controller->set_viewport({m_width, m_height}); //TODO also when resizing window
-
-    connect(this, &TerrainRenderer::key_pressed, m_camera_controller.get(), &nucleus::camera::Controller::key_press);
-    connect(this, &TerrainRenderer::key_released, m_camera_controller.get(), &nucleus::camera::Controller::key_release);
-    connect(this, &TerrainRenderer::mouse_moved, m_camera_controller.get(), &nucleus::camera::Controller::mouse_move);
-    connect(this, &TerrainRenderer::mouse_pressed, m_camera_controller.get(), &nucleus::camera::Controller::mouse_press);
-    connect(this, &TerrainRenderer::wheel_turned, m_camera_controller.get(), &nucleus::camera::Controller::wheel_turn);
-
-    connect(m_webgpu_window.get(), &nucleus::AbstractRenderWindow::update_camera_requested, m_camera_controller.get(),
-        &nucleus::camera::Controller::update_camera_request);
-    connect(m_camera_controller.get(), &nucleus::camera::Controller::definition_changed, m_webgpu_window.get(), &nucleus::AbstractRenderWindow::update_camera);
+    m_controller = std::make_unique<nucleus::Controller>(m_webgpu_window.get());
 
     m_webgpu_window->initialise_gpu();
     m_webgpu_window->resize_framebuffer(m_width, m_height);
-    m_camera_controller->update();
+
+    nucleus::camera::Controller* camera_controller = m_controller->camera_controller();
+    connect(this, &TerrainRenderer::key_pressed, camera_controller, &nucleus::camera::Controller::key_press);
+    connect(this, &TerrainRenderer::key_released, camera_controller, &nucleus::camera::Controller::key_release);
+    connect(this, &TerrainRenderer::mouse_moved, camera_controller, &nucleus::camera::Controller::mouse_move);
+    connect(this, &TerrainRenderer::mouse_pressed, camera_controller, &nucleus::camera::Controller::mouse_press);
+    connect(this, &TerrainRenderer::wheel_turned, camera_controller, &nucleus::camera::Controller::wheel_turn);
+    connect(
+        m_webgpu_window.get(), &nucleus::AbstractRenderWindow::update_camera_requested, camera_controller, &nucleus::camera::Controller::update_camera_request);
+    connect(camera_controller, &nucleus::camera::Controller::definition_changed, m_webgpu_window.get(), &nucleus::AbstractRenderWindow::update_camera);
+    connect(camera_controller, &nucleus::camera::Controller::definition_changed, m_controller->tile_scheduler(),
+        &nucleus::tile_scheduler::Scheduler::update_camera);
+
+    // TODO for debug purposes only, remove this code
+    // nucleus::camera::Definition camera = camera_controller->definition();
+    // camera.look_at(glm::dvec3 { 0.0f, 0.0f, 0.0f }, glm::dvec3 { 0.0, -1.0, 0.0 });
+    // camera_controller->set_definition(camera);
+
+    camera_controller->set_viewport({ m_width, m_height });
+    camera_controller->update();
+
+    m_controller->tile_scheduler()->send_quad_requests();
+    m_controller->tile_scheduler()->update_gpu_quads();
 
 #if defined(__EMSCRIPTEN__)
     emscripten_set_main_loop(Render, 0, false);
@@ -132,8 +142,8 @@ void TerrainRenderer::start() {
 void TerrainRenderer::on_window_resize(int width, int height) {
     std::cout << "window resized to " << width << "x" << height << std::endl;
     m_webgpu_window->resize_framebuffer(static_cast<uint32_t>(width), static_cast<uint32_t>(height));
-    m_camera_controller->set_viewport({width, height});
-    m_camera_controller->update();
+    m_controller->camera_controller()->set_viewport({ width, height });
+    m_controller->camera_controller()->update();
 }
 
 void TerrainRenderer::on_key_callback(int key, int scancode, int action, int mods)

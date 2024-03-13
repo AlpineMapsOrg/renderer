@@ -47,6 +47,7 @@ void Window::initialise_gpu() {
     m_pipeline_manager = std::make_unique<PipelineManager>(m_device, *m_shader_manager);
 
     m_stopwatch.restart();
+    emit gpu_ready_changed(true);
 }
 
 void Window::resize_framebuffer(int w, int h) {
@@ -170,6 +171,8 @@ void Window::deinit_gpu() {
     m_device.release();
     m_adapter.release();
     m_instance.release();
+
+    emit gpu_ready_changed(false);
 }
 
 void Window::set_aabb_decorator([[maybe_unused]] const nucleus::tile_scheduler::utils::AabbDecoratorPtr&) {
@@ -216,9 +219,9 @@ void Window::update_debug_scheduler_stats([[maybe_unused]] const QString& stats)
 
 void Window::update_gpu_quads([[maybe_unused]] const std::vector<nucleus::tile_scheduler::tile_types::GpuTileQuad>& new_quads, [[maybe_unused]] const std::vector<tile::Id>& deleted_quads) {
     // Logic for updating GPU quads, parameters currently unused
+
+    std::cout << "received " << new_quads.size() << " new quads, should delete " << deleted_quads.size() << " quads" << std::endl;
 }
-
-
 
 #ifdef ALP_WEBGPU_APP_ENABLE_IMGUI
 bool Window::init_gui()
