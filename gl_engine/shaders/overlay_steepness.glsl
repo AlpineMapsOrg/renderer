@@ -37,3 +37,9 @@ lowp vec4 overlay_steepness(highp vec3 normal, highp float dist) {
     lowp vec4 bin_color = steepness_color_map[bin_index];
     return vec4(bin_color.rgb, bin_color.a * alpha);
 }
+
+lowp vec3 gradient_color(highp float gradient) {
+    lowp int bin_index = int(gradient * float(steepness_bins - 1));
+    lowp vec4 bin_color = steepness_color_map[bin_index];
+    return bin_color.rgb;
+}

@@ -18,8 +18,10 @@
  *****************************************************************************/
 
 import QtQuick
+import QtQuick.Controls
 import QtQuick.Controls.Material
 import QtQuick.Layouts
+import QtQuick.Dialogs
 import Alpine
 import "components"
 
@@ -70,6 +72,20 @@ ColumnLayout {
         image: checked ?  "../icons/material/my_location.svg" : "../icons/material/location_searching.svg"
         checkable: true
         size: parent.width
+    }
+
+    FloatingActionButton {
+        image: "../icons/material/add.svg"
+        size: parent.width
+        onClicked: map.get_upload_file()
+        ToolTip.visible: right
+        ToolTip.text: qsTr("Add GPX Track")
+    }
+
+    FileDialog  {
+        id: file_dialog
+        nameFilters: ["GPX files (*.gpx *.xml)"]
+        onAccepted: map.add_track(selectedFile)
     }
 
     FloatingActionButton {

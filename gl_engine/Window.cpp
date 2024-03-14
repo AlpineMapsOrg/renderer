@@ -4,6 +4,7 @@
  * Copyright (C) 2023 Jakob Lindner
  * Copyright (C) 2023 Gerald Kimmersdorfer
  * Copyright (C) 2024 Lucas Dworschak
+ * Copyright (C) 2024 Jakob Maier
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -39,6 +40,7 @@
 #include "ShaderProgram.h"
 #include "ShadowMapping.h"
 #include "TileManager.h"
+#include "TrackManager.h"
 #include "Window.h"
 #include "helpers.h"
 #include <QOpenGLFramebufferObject>
@@ -50,7 +52,6 @@
 #include <QSequentialAnimationGroup>
 #include <QTimer>
 #include <glm/glm.hpp>
-
 #include <glm/glm.hpp>
 #include <glm/gtx/transform.hpp>
 
@@ -79,6 +80,7 @@
      : m_camera({ 1822577.0, 6141664.0 - 500, 171.28 + 500 }, { 1822577.0, 6141664.0, 171.28 }) // should point right at the stephansdom
  {
      m_tile_manager = std::make_unique<TileManager>();
+     m_track_manager = std::make_unique<TrackManager>();
      m_map_label_manager = std::make_unique<MapLabelManager>();
      QTimer::singleShot(1, [this]() { emit update_requested(); });
 }
@@ -124,7 +126,8 @@ void Window::initialise_gpu()
             TextureDefinition { Framebuffer::ColourFormat::RGBA8 }, // Albedo
             TextureDefinition { Framebuffer::ColourFormat::RGBA32F }, // Position WCS and distance (distance is optional, but i use it directly for a little speed improvement)
             TextureDefinition { Framebuffer::ColourFormat::RG16UI }, // Octahedron Normals
-            TextureDefinition { Framebuffer::ColourFormat::RGBA8 } // Discretized Encoded Depth for readback IMPORTANT: IF YOU MOVE THIS YOU HAVE TO ADAPT THE GET DEPTH FUNCTION
+            TextureDefinition { Framebuffer::ColourFormat::RGBA8 }, // Discretized Encoded Depth for readback IMPORTANT: IF YOU MOVE THIS YOU HAVE TO ADAPT THE GET DEPTH FUNCTION
+            // TextureDefinition { Framebuffer::ColourFormat::R32UI }, // VertexID
         });
 
     m_atmospherebuffer = std::make_unique<Framebuffer>(Framebuffer::DepthFormat::None, std::vector{ TextureDefinition{Framebuffer::ColourFormat::RGBA8} });
@@ -159,6 +162,7 @@ void Window::initialise_gpu()
         m_timer->add_timer(make_shared<GpuAsyncQueryTimer>("ssao", "GPU", 240, 1.0f/60.0f));
         m_timer->add_timer(make_shared<GpuAsyncQueryTimer>("atmosphere", "GPU", 240, 1.0f/60.0f));
         m_timer->add_timer(make_shared<GpuAsyncQueryTimer>("tiles", "GPU", 240, 1.0f/60.0f));
+        m_timer->add_timer(make_shared<GpuAsyncQueryTimer>("tracks", "GPU", 240, 1.0f/60.0f));
         m_timer->add_timer(make_shared<GpuAsyncQueryTimer>("shadowmap", "GPU", 240, 1.0f/60.0f));
         m_timer->add_timer(make_shared<GpuAsyncQueryTimer>("compose", "GPU", 240, 1.0f/60.0f));
         m_timer->add_timer(make_shared<GpuAsyncQueryTimer>("labels", "GPU", 240, 1.0f / 60.0f));
@@ -274,6 +278,7 @@ void Window::paint(QOpenGLFramebufferObject* framebuffer)
     m_timer->stop_timer("tiles");
     m_shader_manager->tile_shader()->release();
 
+
 #if (defined(__linux) && !defined(__ANDROID__)) || defined(_WIN32) || defined(_WIN64)
     if (funcs && m_wireframe_enabled)
         funcs->glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
@@ -301,40 +306,61 @@ void Window::paint(QOpenGLFramebufferObject* framebuffer)
     m_gbuffer->bind_colour_texture(1, 1);
     p->set_uniform("texin_normal", 2);
     m_gbuffer->bind_colour_texture(2, 2);
+
     p->set_uniform("texin_atmosphere", 3);
     m_atmospherebuffer->bind_colour_texture(0, 3);
+
     p->set_uniform("texin_ssao", 4);
     m_ssao->bind_ssao_texture(4);
 
+    /* texture units 5 - 8 */
     m_shadowmapping->bind_shadow_maps(p, 5);
 
     m_timer->start_timer("compose");
     m_screen_quad_geometry.draw();
     m_timer->stop_timer("compose");
 
+    m_decoration_buffer->bind();
+    const GLfloat clearAlbedoColor[] = { 0.0f, 0.0f, 0.0f, 0.0f };
+    f->glClearBufferfv(GL_COLOR, 0, clearAlbedoColor);
+    f->glEnable(GL_DEPTH_TEST);
+    f->glDepthFunc(GL_LEQUAL);
+
     // DRAW LABELS
-    m_timer->start_timer("labels");
     {
-        m_decoration_buffer->bind();
-        const GLfloat clearAlbedoColor[] = { 0.0f, 0.0f, 0.0f, 0.0f };
-        f->glClearBufferfv(GL_COLOR, 0, clearAlbedoColor);
-        f->glEnable(GL_DEPTH_TEST);
-        f->glDepthFunc(GL_LEQUAL);
-        // f->glDepthMask(GL_FALSE);
+        m_timer->start_timer("labels");
         m_shader_manager->labels_program()->bind();
         m_map_label_manager->draw(m_gbuffer.get(), m_shader_manager->labels_program(), m_camera);
         m_shader_manager->labels_program()->release();
-
-        if (framebuffer)
-            framebuffer->bind();
-        m_shader_manager->screen_copy_program()->bind();
-        m_decoration_buffer->bind_colour_texture(0, 0);
-        f->glEnable(GL_BLEND);
-        f->glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-        m_screen_quad_geometry.draw();
+        m_timer->stop_timer("labels");
     }
 
-    m_timer->stop_timer("labels");
+    // DRAW TRACKS
+    {
+        m_timer->start_timer("tracks");
+
+        ShaderProgram* track_shader = m_shader_manager->track_program();
+        track_shader->bind();
+        track_shader->set_uniform("texin_position", 1);
+        m_gbuffer->bind_colour_texture(1, 1);
+
+        glm::vec2 size = glm::vec2(static_cast<float>(m_gbuffer->size().x),static_cast<float>(m_gbuffer->size().y));
+        track_shader->set_uniform("resolution", size);
+
+        f->glClear(GL_DEPTH_BUFFER_BIT);
+        m_track_manager->draw(m_camera, track_shader);
+
+        m_timer->stop_timer("tracks");
+    }
+
+    if (framebuffer)
+        framebuffer->bind();
+    m_shader_manager->screen_copy_program()->bind();
+    m_decoration_buffer->bind_colour_texture(0, 0);
+    f->glEnable(GL_BLEND);
+    f->glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+    m_screen_quad_geometry.draw();
+
 
     m_timer->stop_timer("cpu_total");
     m_timer->stop_timer("gpu_total");
@@ -447,6 +473,20 @@ void Window::update_gpu_quads(const std::vector<nucleus::tile_scheduler::tile_ty
 {
     assert(m_tile_manager);
     m_tile_manager->update_gpu_quads(new_quads, deleted_quads);
+}
+
+void Window::set_track_width(float width)
+{
+    m_track_manager->width = width;
+}
+
+void gl_engine::Window::set_track_shading(unsigned int shading) {
+    m_track_manager->shading_method = shading;
+}
+
+void Window::add_gpx_track(const nucleus::gpx::Gpx& track)
+{
+    m_track_manager->add_track(track, m_shader_manager->track_program());
 }
 
 float Window::depth(const glm::dvec2& normalised_device_coordinates)

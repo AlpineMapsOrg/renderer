@@ -3,6 +3,7 @@
  * Copyright (C) 2017 Klarälvdalens Datakonsult AB, a KDAB Group company (Giuseppe D'Angelo)
  * Copyright (C) 2023 Adam Celarek
  * Copyright (C) 2023 Gerald Kimmersdorfer
+ * Copyright (C) 2024 Jakob Maier
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -31,6 +32,7 @@
 
 #include "nucleus/camera/Definition.h"
 #include "nucleus/event_parameter.h"
+#include "nucleus/GPX.h"
 #include "gl_engine/UniformBufferObjects.h"
 #include "timing/TimerFrontendManager.h"
 #include "AppSettings.h"
@@ -57,6 +59,8 @@ class TerrainRendererItem : public QQuickFramebufferObject {
     Q_PROPERTY(unsigned int selected_camera_position_index MEMBER m_selected_camera_position_index WRITE set_selected_camera_position_index)
     Q_PROPERTY(bool hud_visible READ hud_visible WRITE set_hud_visible NOTIFY hud_visible_changed)
     Q_PROPERTY(QVector2D sun_angles READ sun_angles WRITE set_sun_angles NOTIFY sun_angles_changed)
+    Q_PROPERTY(float track_width READ track_width WRITE set_track_width NOTIFY track_width_changed)
+    Q_PROPERTY(unsigned int track_shading READ track_shading WRITE set_track_shading NOTIFY track_shading_changed)
 
 public:
     explicit TerrainRendererItem(QQuickItem* parent = 0);
@@ -77,10 +81,14 @@ signals:
     //    void viewport_changed(const glm::uvec2& new_viewport) const;
     void position_set_by_user(double new_latitude, double new_longitude);
     void camera_definition_set_by_user(const nucleus::camera::Definition&) const;
+    void track_width_changed(float width);
+    void track_shading_changed(unsigned int shading);
 
     void shared_config_changed(gl_engine::uboSharedConfig new_shared_config) const;
     void render_looped_changed(bool new_render_looped);
     void hud_visible_changed(bool new_hud_visible);
+
+    void gpx_track_added_by_user(const nucleus::gpx::Gpx& track);
 
     void rotation_north_requested();
     void camera_changed();
@@ -123,6 +131,8 @@ public slots:
     void set_gl_preset(const QString& preset_b64_string);
     void read_global_position(glm::dvec3 latlonalt);
     void camera_definition_changed(const nucleus::camera::Definition& new_definition); // gets called whenever camera changes
+    void add_track(const QString& track);
+    void get_upload_file();
 
 private slots:
     void schedule_update();
@@ -146,6 +156,12 @@ public:
 
     float field_of_view() const;
     void set_field_of_view(float new_field_of_view);
+
+    float track_width() const;
+    void set_track_width(float width);
+
+    unsigned int track_shading() const;
+    void set_track_shading(unsigned int shading);
 
     float camera_rotation_from_north() const;
     void set_camera_rotation_from_north(float new_camera_rotation_from_north);
@@ -196,6 +212,8 @@ private:
     bool m_camera_operation_centre_visibility = false;
     float m_camera_operation_centre_distance = 1;
     float m_field_of_view = 60;
+    float m_track_width = 7;
+    unsigned int m_track_shading = 0;
     int m_frame_limit = 60;
     unsigned m_tile_cache_size = 12000;
     unsigned m_cached_tiles = 0;

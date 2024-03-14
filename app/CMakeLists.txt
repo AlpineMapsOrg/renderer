@@ -88,6 +88,7 @@ qt_add_qml_module(alpineapp
         icons/material/navigation_offset.svg
         icons/material/chevron_left.svg
         icons/material/visibility_off.svg
+        icons/material/add.svg
         icons/presets/basic.png
         icons/presets/shaded.png
         icons/presets/snow.png

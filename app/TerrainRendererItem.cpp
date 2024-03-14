@@ -3,6 +3,7 @@
  * Copyright (C) 2017 Klarälvdalens Datakonsult AB, a KDAB Group company (Giuseppe D'Angelo)
  * Copyright (C) 2023 Adam Celarek
  * Copyright (C) 2023 Gerald Kimmersdorfer
+ * Copyright (C) 2024 Jakob Maier
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -28,7 +29,10 @@
 #include <QOpenGLFramebufferObjectFormat>
 #include <QQuickWindow>
 #include <QThread>
+#include <QDir>
 #include <QTimer>
+#include <QFileDialog>
+#include <QBuffer>
 #include <glm/glm.hpp>
 #include <glm/gtx/string_cast.hpp>
 
@@ -82,7 +86,7 @@ TerrainRendererItem::TerrainRendererItem(QQuickItem* parent)
         RenderThreadNotifier::instance()->notify();
     });
 
-    connect(this, &TerrainRendererItem::init_after_creation, this, &TerrainRendererItem::init_after_creation_slot);  
+    connect(this, &TerrainRendererItem::init_after_creation, this, &TerrainRendererItem::init_after_creation_slot);
 }
 
 
@@ -117,7 +121,11 @@ QQuickFramebufferObject::Renderer* TerrainRendererItem::createRenderer() const
 
     connect(this, &TerrainRendererItem::camera_definition_set_by_user, r->controller()->camera_controller(), &nucleus::camera::Controller::set_definition);
     connect(r->controller()->camera_controller(), &nucleus::camera::Controller::global_cursor_position_changed, this, &TerrainRendererItem::read_global_position);
-    //connect(this, &TerrainRendererItem::ind)
+
+    connect(this,
+            &TerrainRendererItem::gpx_track_added_by_user,
+            r->glWindow(),
+            &gl_engine::Window::add_gpx_track);
 
     auto* const tile_scheduler = r->controller()->tile_scheduler();
     connect(this->m_settings, &AppSettings::render_quality_changed, tile_scheduler, [=](float new_render_quality) {
@@ -139,6 +147,8 @@ QQuickFramebufferObject::Renderer* TerrainRendererItem::createRenderer() const
     connect(this, &TerrainRendererItem::key_pressed, r->glWindow(), &gl_engine::Window::key_press);
     connect(this, &TerrainRendererItem::shared_config_changed, r->glWindow(), &gl_engine::Window::shared_config_changed);
     connect(this, &TerrainRendererItem::render_looped_changed, r->glWindow(), &gl_engine::Window::render_looped_changed);
+    connect(this, &TerrainRendererItem::track_width_changed, r->glWindow(), &gl_engine::Window::set_track_width);
+    connect(this, &TerrainRendererItem::track_shading_changed, r->glWindow(), &gl_engine::Window::set_track_shading);
     // connect glWindow for shader hotreload by frontend button
     connect(this, &TerrainRendererItem::reload_shader, r->glWindow(), &gl_engine::Window::reload_shader);
 
@@ -244,6 +254,64 @@ void TerrainRendererItem::set_gl_preset(const QString& preset_b64_string) {
     set_shared_config(tmp);
 }
 
+
+void TerrainRendererItem::get_upload_file()
+{
+    auto fileContentReady = [this](const QString &fileName, const QByteArray &fileContent) {
+        (void)fileContent;
+        if (fileName.isEmpty()) {
+            qDebug() << "No file was selected!";
+        } else {
+            // Use fileName and fileContent
+            qDebug() << "Selected " << fileName;
+
+            QXmlStreamReader xmlReader(fileContent);
+
+            std::unique_ptr<nucleus::gpx::Gpx> gpx = nucleus::gpx::parse(xmlReader);
+
+            if (gpx != nullptr)
+            {
+                emit gpx_track_added_by_user(*gpx);
+
+                if (0 < gpx->track.size() && 0 < gpx->track[0].size())
+                {
+                    auto track_start = gpx->track[0][0];
+                    emit position_set_by_user(track_start.latitude, track_start.longitude);
+                }
+            } else {
+                qDebug("Coud not parse GPX file!");
+            }
+        }
+    };
+
+    QFileDialog::getOpenFileContent("GPX (*.gpx *.xml)",  fileContentReady);
+}
+
+void TerrainRendererItem::add_track(const QString& track)
+{
+    QUrl url(track);
+
+    if (url.isLocalFile()) {
+
+        std::unique_ptr<nucleus::gpx::Gpx> gpx = nucleus::gpx::parse(url.toLocalFile());
+
+        if (gpx != nullptr)
+        {
+            emit gpx_track_added_by_user(*gpx);
+
+            if (0 < gpx->track.size() && 0 < gpx->track[0].size())
+            {
+                auto track_start = gpx->track[0][0];
+                emit position_set_by_user(track_start.latitude, track_start.longitude);
+            }
+        } else {
+            qDebug("Coud not parse GPX file!");
+        }
+
+        RenderThreadNotifier::instance()->notify();
+    }
+}
+
 void TerrainRendererItem::schedule_update()
 {
     //    qDebug("void TerrainRendererItem::schedule_update()");
@@ -321,6 +389,37 @@ void TerrainRendererItem::set_field_of_view(float new_field_of_view)
     emit field_of_view_changed();
     schedule_update();
 }
+
+void TerrainRendererItem::set_track_width(float width)
+{
+    m_track_width = width;
+    emit track_width_changed(width);
+    schedule_update();
+}
+
+float TerrainRendererItem::track_width() const
+{
+    return m_track_width;
+}
+
+void TerrainRendererItem::set_track_shading(unsigned int shading)
+{
+    m_track_shading = shading;
+    emit track_shading_changed(shading);
+    schedule_update();
+}
+
+unsigned int TerrainRendererItem::track_shading() const
+{
+    return m_track_shading;
+}
+
+#if 0
+void TerrainRendererItem::track_shading_changed(unsigned int shading)
+{
+    (void)shading;
+}
+#endif
 
 float TerrainRendererItem::camera_rotation_from_north() const
 {

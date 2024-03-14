@@ -53,6 +53,8 @@ SettingsPanel {
         snow_settings_alt_var.value = conf.snow_settings_alt.y;
         snow_settings_alt_blend.value = conf.snow_settings_alt.z;
         snow_settings_specular.value = conf.snow_settings_alt.w;
+
+        track_width.value = map.track_width;
     }
 
 
@@ -248,6 +250,7 @@ SettingsPanel {
         id: ssao_enabled
         name: "Ambient Occlusion"
         checkBoxEnabled: true
+        checked: false
         onCheckedChanged: map.shared_config.ssao_enabled = this.checked;
 
         Label { text: "Kernel-Size:" }
@@ -284,6 +287,7 @@ SettingsPanel {
     CheckGroup {
         id: csm_enabled
         checkBoxEnabled: true
+        checked: false
         onCheckedChanged: map.shared_config.csm_enabled = this.checked;
         name: "Shadow Mapping"
 
@@ -296,4 +300,32 @@ SettingsPanel {
         }
     }
 
+    CheckGroup {
+        id: track_options
+        name: "Track Options"
+
+        Label { text: "Track Width:" }
+        LabledSlider {
+            id: track_width;
+            from: 1; to: 32; stepSize: 1;
+            onMoved: map.track_width = value;
+        }
+
+        Label { text: "Track Shading:" }
+        ComboBox {
+            id: track_shading;
+            textRole: "text"
+            valueRole: "value"
+            currentIndex: 0; // Init with 0 necessary otherwise onCurrentIndexChanged gets emited on startup (because def:-1)!
+            Layout.fillWidth: true;
+            model: [
+                { text: "Default",              value: 0    },
+                { text: "Normal",               value: 1    },
+                { text: "Speed",                value: 2    },
+                { text: "Steepness",            value: 3    },
+                { text: "Vertical Speed",       value: 4    },
+            ];
+            onActivated:  map.track_shading = currentValue;
+        }
+    }
 }
