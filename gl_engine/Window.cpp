@@ -477,12 +477,10 @@ void Window::update_gpu_quads(const std::vector<nucleus::tile_scheduler::tile_ty
 
 void Window::set_track_width(float width)
 {
-    qDebug() << "Window::set_track_width " << width;
     m_track_manager->width = width;
 }
 
 void gl_engine::Window::set_track_shading(unsigned int shading) {
-    qDebug() << "Window::set_track_shading " << shading;
     m_track_manager->shading_method = shading;
 }
 

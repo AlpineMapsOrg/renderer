@@ -224,10 +224,6 @@ std::vector<glm::vec3> triangles_ribbon(const std::vector<glm::vec4>& points, fl
         }
     }
 
-    std::cout << "Max delta: " << max_delta_time << std::endl;
-    std::cout << "Max Dist: " << max_dist << std::endl;
-    std::cout << "max speed: " << max_speed << std::endl;
-
     std::vector<glm::vec3> ribbon;
 
     const glm::vec3 offset = glm::vec3(0.0f, 0.0f, width);
@@ -245,19 +241,6 @@ std::vector<glm::vec3> triangles_ribbon(const std::vector<glm::vec4>& points, fl
         auto end = glm::vec3(-1.0f, 0.0f, 0.0f);
 
         auto index = glm::vec3(0.0f, static_cast<float>(index_offset + i), 0.0f);
-
-        //float delta_time = points[i + 1].w;
-
-        //float speed = glm::distance(a, b) / delta_time;
-        //float vertical_speed = glm::abs(a.z - b.z) / delta_time;
-
-        //std::cout << "speed: " << speed << ", max_speed: " << max_speed << std::endl;
-
-        //auto metadata = glm::vec3(
-        //    speed,
-        //    vertical_speed,
-        //    0.0f
-        //);
 
         // triangle 1
         ribbon.insert(ribbon.end(), {

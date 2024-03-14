@@ -53,6 +53,8 @@ SettingsPanel {
         snow_settings_alt_var.value = conf.snow_settings_alt.y;
         snow_settings_alt_blend.value = conf.snow_settings_alt.z;
         snow_settings_specular.value = conf.snow_settings_alt.w;
+
+        track_width.value = map.track_width;
     }
 
 
