@@ -1,58 +1,170 @@
-# alpine-renderer
-This is the software behind [alpinemaps.org](https://alpinemaps.org).
+![weBIGeo Sujet](https://github.com/weBIGeo/ressources/blob/main/for_md/webigeo_sujet_github.png?raw=true)
 
-A developer version (trunk) is released [here](https://alpinemapsorg.github.io/renderer/), including APKs for android. Be aware that it can break at any time!
+# weBIGeo
+WeBIGeo is a research project focused on real-time 3D computer graphics, large data visualization, and human-computer interaction. The goal is to offer a platform that is easy to use and allows for fast analysis and visualization of geographical datasets. (Further information can be found [here](https://www.netidee.at/webigeo).)
+
+To that end, WeBIGeo uses existing technologies from the [AlpineMaps.org Project](https://alpinemapsorg.github.io/renderer/) and introduces a new WebGPU rendering engine.
 
 We are in discord, talk to us!
 https://discord.gg/p8T9XzVwRa
 
-# Cloning and building
-`git clone git@github.com:AlpineMapsOrg/renderer.git`
+# Setup
+weBIGeo's primary target is the web. Additionally we support native builds on Windows, using [Dawn](https://dawn.googlesource.com/). This allows for faster development as emscripten linking is quite slow and GPU debugging is not easily possible in the web. Both setups require significant setup time as we need to compile Qt by source. For the native workflow also Dawn needs to be compiled. The rest of the dependencies should get automatically pulled by the cmake setup.
 
-After that it should be a normal cmake project. That is, you run cmake to generate a project or build file and then run your favourite tool. All dependencies should be pulled automatically while you run CMake. 
-We use Qt Creator (with mingw on Windows), which is the only tested setup atm and makes setup of Android and WebAssembly builds reasonably easy. If you have questions, please go to discord.
+## Building the web version
 
-## Dependencies
-* Qt 6.6.0, or greater
-* OpenGL
-* Qt Positioning and Charts modules
-* Some other dependencies will be pulled automatically during building.
+### Dependencies
+* Qt 6.6.2 with
+  * MinGW (GCC on linux might work but not tested)
+  * Sources
+* [emscripten](https://emscripten.org/docs/getting_started/downloads.html)
+* To exactly follow along with build instructions you need `ninja`, `cmake` and `emsdk` in your PATH
 
-## Building the android version
-* We are usually building with Qt Creator, because it works relatively out of the box. However, it should also work on the command line or other IDEs if you set it up correctly.
-* You need a Java JDK before you can do anything else. Not all Java versions work, and the error messages might be surprising (or non-existant). I'm running with Java 19, and I can compile for old devices. Iirc a newer version of Java caused issues. [Android documents the required Java version](https://developer.android.com/build/jdks), but as said, for me Java 19 works as well. It might change in the future.
-* Once you have Java, go to Qt Creator Preferences -> Devices -> Android. There click "Set Up SDK" to automatically download and install an Android SDK.
-* Finally, you might need to click on SDK Manager to install a fitting SDK Platform (take the newest, it also works for older devices), and ndk (newest as well).
-* Then Google the internet to find out how to enable the developer mode on Android.
-* On linux, you'll have to setup some udev rules. Run `Android/SDK/platform-tools/adb devices` and you should get instructions.
-* If there are problems, check out the [documentation from Qt](https://doc.qt.io/qt-6/android-getting-started.html) 
-* Finally, you are welcome to ask in discord if something is not working! 
+### Building Qt with emscripten
+For WebGPU to work we need to compile with emscripten version > 3.1.47. The default emscripten version, supported by Qt 6.6.2 is 3.1.37 (https://doc.qt.io/qt-6/wasm.html#installing-emscripten). Therefore we need to recompile the Qt sources with the appropriate version by ourselfs. (This step might be unnecessary in the near future with the release of [Qt 6.7](https://wiki.qt.io/Qt_6.7_Release)).
 
-## Building the WebAssembly version:
-* Atm, none of the Qt versions works perfectly in all browsers
-* In Qt 6.6 touch doesn't work on Firefox (issues #33)
-* [The Qt documentation is quite good on how to get it to run](https://doc-snapshots.qt.io/qt6-dev/wasm.html#installing-emscripten). Be aware that only specific versions of emscripten work for specific versions of Qt, and the error messages are not helpfull.
-* The threaded version doesn't seem to work atm, so use the non-threaded (bug reported)!
-* There are a number of other bugs, we track them with the upstream tag.
+1. Open new CMD Terminal
+
+2. Navigate to Qt Path:
+   ```
+   cd "C:\Qt\6.6.2"
+   ```
+
+3. Generate build and install path (and make sure they are empty)
+   ```
+   mkdir build & mkdir wasm_singlethread_emsdk_3_1_55_custom & cd build
+   ```
+
+4. Install and activate specific emsdk version
+   ```
+   emsdk install 3.1.55 & emsdk activate 3.1.55
+   ```
+
+5. Configure Qt with a minimal setup (takes ~ 4min)
+   ```
+   "../Src/configure" -debug-and-release -qt-host-path C:\Qt\6.6.2\mingw_64 -make libs -no-widgets -optimize-size -no-warnings-are-errors -platform wasm-emscripten -submodules qtdeclarative -no-dbus -no-sql-sqlite -feature-wasm-simd128 -no-feature-cssparser -no-feature-quick-treeview -no-feature-quick-pathview -no-feature-texthtmlparser -no-feature-textodfwriter -no-feature-quickcontrols2-windows -no-feature-quickcontrols2-macos -no-feature-quickcontrols2-ios -no-feature-quickcontrols2-imagine -no-feature-quickcontrols2-universal -no-feature-quickcontrols2-fusion -no-feature-qtwebengine-build -no-feature-qtprotobufgen -no-feature-qtpdf-build -no-feature-pdf -no-feature-printer -no-feature-sqlmodel -no-feature-qtpdf-quick-build -no-feature-quick-pixmap-cache-threaded-download -feature-quick-canvas -no-feature-quick-designer -no-feature-quick-particles -no-feature-quick-sprite -no-feature-raster-64bit -no-feature-raster-fp -prefix ../wasm_singlethread_emsdk_3_1_55_custom
+   ```
+
+6. Build Qt (takes ~ 8min)
+   ```
+   cmake --build . --parallel
+   ```
+
+7. Install Qt (takes ~ 1min)
+   ```
+   cmake --install .
+   ```
+
+### Create Custom Kit for Qt Creator
+This step is specifically tailored to the Qt-Creator IDE.
+
+1. `Preferences -> Devices -> WebAssembly`: Set path to the emsdk git repository
+2. `Preferences -> Kits -> Qt Versions`: Add the newly built Qt-Version.
+3. `Preferences -> Kits -> Kits`: Add the new kit which links to the created Qt-Version.
+
+[![Emscripten Path Qt Creator](https://github.com/weBIGeo/ressources/blob/main/for_md/emscripten_path_qt_creator_thumb.jpg?raw=true)](https://github.com/weBIGeo/ressources/blob/main/for_md/emscripten_path_qt_creator.jpg?raw=true) [![Custom Qt Version for emsdk](https://github.com/weBIGeo/ressources/blob/main/for_md/custom_qt_version_thumb.jpg?raw=true)](https://github.com/weBIGeo/ressources/blob/main/for_md/custom_qt_version.jpg?raw=true) [![Custom Qt Kit for emsdk](https://github.com/weBIGeo/ressources/blob/main/for_md/custom_qt_kit_thumb.jpg?raw=true)](https://github.com/weBIGeo/ressources/blob/main/for_md/custom_qt_kit.jpg?raw=true)
+
+## Building the native version
+
+### Dependenvies
+* Windows
+* Qt 6.6.2 with
+  * Sources
+* Python
+* Microsoft Visual C++ Compiler 17.6 (aka. MSVC2022) (comes with Visual Studio 2022)
+* To exactly follow along with build instructions you need `ninja` and `cmake` in your PATH
+
+> [!IMPORTANT]
+> Dawn does not compile with MinGW! GCC might be possible, but is not tested (hence the Windows Requirement). If compiling on Linux is necessary it is also required to change the way we link to the precompiled Dawn libraries inside of `cmake/alp_target_add_dawn.cmake`.
+
+### Building Qt for MSVC2022
+There is no precompiled version of Qt for the MSVC2022-compiler. Therefore we again need to compile the Qt sources ourselves:
+
+1. We need the compiler env variables, so choose either
+
+   1. Start the `x64 Native Tools Command Prompt for VS 2022`.
+
+   2. Start a new CMD and run: (you might have to adjust the link depending on your vs version)
+      ```
+      "C:\Program Files\Microsoft Visual Studio\2022\Community\VC\Auxiliary\Build\vcvarsall.bat" amd64
+      ```
+
+2. Navigate to Qt Path:
+   ```
+   cd "C:\Qt\6.6.2"
+   ```
+
+3. Generate build and install path (and make sure they are empty)
+   ```
+   mkdir build & mkdir msvc2022_64_custom & cd build
+   ```
+
+4. Configure Qt (takes ~ 2min)
+   ```
+   "../Src/configure.bat" -debug-and-release -prefix ../msvc2022_64_custom -nomake examples -nomake tests
+   ```
+
+
+5. Build Qt (takes ~ 12min)
+   ```
+   cmake --build . --parallel
+   ```
+
+6. Install Qt (takes ~ 2min)
+   ```
+   ninja install
+   ```
+
+### Create Custom Kit for Qt Creator
+If you work with the Qt-IDE you need to setup the newly created Qt build as a development kit, as it was already done with the emscripten version. Please see the screenshot for a proper configuration.
+
+[![Qt Version MSVC2022 Screenshot](https://github.com/weBIGeo/ressources/blob/main/for_md/custom_qt_version_msvc2022_thumb.jpg?raw=true)](https://github.com/weBIGeo/ressources/blob/main/for_md/custom_qt_version_msvc2022.jpg?raw=true) [![Qt Kit MSVC2022 Screenshot](https://github.com/weBIGeo/ressources/blob/main/for_md/custom_qt_kit_msvc2022_2_thumb.jpg?raw=true)](https://github.com/weBIGeo/ressources/blob/main/for_md/custom_qt_kit_msvc2022_2.jpg?raw=true)
+
+### Building Dawn
+Dawn is the webgpu-implementation used in chromium, which is the open-source-engine for Google Chrome. Compiling dawn ourselves allows us to deploy weBIGeo natively such that we don't have to work in the browser sandbox during development. Building Dawn will take some time and memory as we need Debug and Release-Builds.
+
+> [!NOTE]
+> We choose the dawn version of branch `chromium/6246`, because it seems to be the one best aligned with the emscripten version in use. All of those versions are subject to change, especially since the webgpu-standard is not finalized! 
+
+1. We need the compiler env variables, so choose either (or do manually :P)
+
+   1. Start the `x64 Native Tools Command Prompt for VS 2022`.
+
+   2. Start a new CMD and run: (you might have to adjust the link depending on your vs version)
+      ```
+      "C:\Program Files\Microsoft Visual Studio\2022\Community\VC\Auxiliary\Build\vcvarsall.bat" amd64
+      ```
+
+2.  Navigate to the parent folder of where the weBIGeo renderer is located. (Not strictly necessary as DAWN location can be set with CMAKE-Variable `ALP_DAWN_DIR`)
+    ```
+    cd "/path/to/the/parent/directory/of/webigeo/renderer"
+    ```
+
+3.  Clone dawn and step into directory
+    ```
+    git clone --branch chromium/6246 --depth 1 https://dawn.googlesource.com/dawn & cd dawn
+    ```
+
+4.  Fetch dawn dependencies
+    ```
+    python tools/fetch_dawn_dependencies.py
+    ```
+
+5.  Create build directories
+    ```
+    mkdir build\release & mkdir build\debug
+    ```
+
+6.  Debug Build (normal build, without add. features):
+    ```
+    cd build/debug & cmake -GNinja -DCMAKE_BUILD_TYPE=Debug -DTINT_BUILD_SPV_READER=OFF -DDAWN_BUILD_SAMPLES=OFF -DTINT_BUILD_TESTS=OFF -DTINT_BUILD_FUZZERS=OFF -DTINT_BUILD_SPIRV_TOOLS_FUZZER=OFF -DTINT_BUILD_AST_FUZZER=OFF -DTINT_BUILD_REGEX_FUZZER=OFF -DTINT_BUILD_BENCHMARKS=OFF -DTINT_BUILD_TESTS=OFF -DTINT_BUILD_AS_OTHER_OS=OFF ../.. & ninja
+    ```
+
+7.  Release Build (normal build, without add. features):
+    ```
+    cd ../release & cmake -GNinja -DCMAKE_BUILD_TYPE=Release -DTINT_BUILD_SPV_READER=OFF -DDAWN_BUILD_SAMPLES=OFF -DTINT_BUILD_TESTS=OFF -DTINT_BUILD_FUZZERS=OFF -DTINT_BUILD_SPIRV_TOOLS_FUZZER=OFF -DTINT_BUILD_AST_FUZZER=OFF -DTINT_BUILD_REGEX_FUZZER=OFF -DTINT_BUILD_BENCHMARKS=OFF -DTINT_BUILD_TESTS=OFF -DTINT_BUILD_AS_OTHER_OS=OFF ../.. & ninja
+    ```
+
 
 # Code style
-* class names are CamelCase, method, function and variable names are snake_case.
-* class attributes have an m_ prefix and are usually private, struct attributes don't and are usually public.
-* use `void set_attribute(int value)` and `int attribute() const` for setters and getters (that is, avoid the get_). Use [the Qt recommendations](https://wiki.qt.io/API_Design_Principles#Naming_Boolean_Getters,_Setters,_and_Properties) for naming boolean getters.
-* structs are usually small, simple, and have no or only few methods. they never have inheritance.
-* files are CamelCase if the content is a CamelCase class. otherwise they are snake_case, and have a snake_case namespace with stuff.
-* the folder/structure.h is reflected in namespace folder::structure{ .. }
-* indent with space only, indent 4 spaces
-* ideally, use the clang-format file provided with the project
-  (in case you use Qt Creator, go to Preferences -> C++ -> Code Style: Formatting mode: Full, Format while typing, Format edited code on file save, don't override formatting)
-* follow the [Qt recommendations](https://wiki.qt.io/API_Design_Principles) and the [c++ core guidelines](https://isocpp.github.io/CppCoreGuidelines/CppCoreGuidelines) everywhere else.
-
-# Developer workflow
-* Fork this repository.
-* Enable github pages from actions (Repository Settings -> Pages -> Source -> GitHub Actions)
-* Work in branches or your main.
-* Make pull requests from your main branch.
-* Github Actions will run the unit tests and create packages for the browser and Android and deploy them to your_username.github.io/your_clone_name/.
-* Make sure that the unit tests run through.
-* We will also look at the browser version during the pull request.
-* Ideally you'll also setup the signing keys for Android packages ([instructions](https://github.com/AlpineMapsOrg/renderer/blob/main/creating_apk_keys.md)).
+We adhere to the coding guidelines of [AlpineMaps.org](https://github.com/AlpineMapsOrg/renderer?tab=readme-ov-file#code-style).
