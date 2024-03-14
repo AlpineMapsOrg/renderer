@@ -1,5 +1,5 @@
 #############################################################################
-# Alpine Terrain Renderer
+# weBIGeo
 # Copyright (C) 2024 Adam Celarek <family name at cg tuwien ac at>
 # Copyright (C) 2024 Gerald Kimmersdorfer
 # Copyright (C) 2024 Patrick Komon
@@ -20,12 +20,20 @@
 
 project(alpine-renderer-webgpu_app LANGUAGES C CXX)
 
-qt_add_executable(webgpu_app
-    resources.qrc
+set(SOURCES
     main.cpp
     TerrainRenderer.h TerrainRenderer.cpp
-    WebInterop.h WebInterop.cpp
 )
+
+if (EMSCRIPTEN)
+    list(APPEND SOURCES WebInterop.h WebInterop.cpp)
+endif()
+
+qt_add_executable(webgpu_app
+    resources.qrc
+    ${SOURCES}
+)
+
 
 set_target_properties(webgpu_app PROPERTIES
     WIN32_EXECUTABLE TRUE
@@ -36,7 +44,6 @@ set_target_properties(webgpu_app PROPERTIES
 target_link_libraries(webgpu_app PUBLIC webgpu webgpu_engine Qt::Core Qt::Gui)
 target_include_directories(webgpu_app PRIVATE .)
 
-qt_add_resources(webgpu_app "height_data"
 if (EMSCRIPTEN)
     target_link_options(webgpu_app PRIVATE
             -sUSE_GLFW=3 # Use Emscripten-provided GLFW

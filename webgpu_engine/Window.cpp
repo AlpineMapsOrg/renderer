@@ -33,11 +33,11 @@ Window::~Window() {
 void Window::initialise_gpu() {
     // GPU initialization logic here
     webgpuPlatformInit(); // platform dependent initialization code
-    createInstance();
-    initSurface();
-    requestAdapter();
-    requestDevice();
-    initQueue();
+    create_instance();
+    init_surface();
+    request_adapter();
+    request_device();
+    init_queue();
 
     create_buffers();
     create_bind_group_info();
@@ -145,8 +145,8 @@ void Window::paint([[maybe_unused]] QOpenGLFramebufferObject* framebuffer) {
 
 #ifndef __EMSCRIPTEN__
     // Swapchain in the WEB is handled by the browser!
-    swapchain.present();
-    instance.processEvents();
+    m_swapchain.present();
+    m_instance.processEvents();
 #endif
 }
 
@@ -289,21 +289,21 @@ void Window::update_gui(wgpu::RenderPassEncoder render_pass)
 #endif
 
 
-void Window::createInstance() {
+void Window::create_instance() {
     std::cout << "Creating WebGPU instance..." << std::endl;
 
 #ifdef __EMSCRIPTEN__
     // instance = wgpu::createInstance(wgpu::InstanceDescriptor{}); would throw nullptr exception
     // but using vanilla webgpu with nullptr as descriptor seems to work.
-    instance = wgpuCreateInstance(nullptr);
+    m_instance = wgpuCreateInstance(nullptr);
 #else
-    instance = wgpu::createInstance(wgpu::InstanceDescriptor{});
+    m_instance = wgpu::createInstance(wgpu::InstanceDescriptor{});
 #endif
-    if (!instance) {
+    if (!m_instance) {
         std::cerr << "Could not initialize WebGPU!" << std::endl;
         throw std::runtime_error("Could not initialize WebGPU");
     }
-    std::cout << "Got instance: " << instance << std::endl;
+    std::cout << "Got instance: " << m_instance << std::endl;
 }
 
 void Window::init_surface() { m_surface = m_obtain_webgpu_surface_func(m_instance); }

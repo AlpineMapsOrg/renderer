@@ -13,7 +13,9 @@
 #include "nucleus/tile_scheduler/Scheduler.h"
 #include "webgpu_engine/Window.h"
 
+#ifdef __EMSCRIPTEN__
 #include "WebInterop.h"
+#endif
 
 static void windowResizeCallback(GLFWwindow* window, int width, int height) {
     auto terrainRenderer = static_cast<TerrainRenderer*>(glfwGetWindowUserPointer(window));
@@ -42,11 +44,13 @@ static void scroll_callback(GLFWwindow* window, double xoffset, double yoffset)
 }
 
 TerrainRenderer::TerrainRenderer() {
+#ifdef __EMSCRIPTEN__
     // execute on window resize when canvas size changes
     QObject::connect(&WebInterop::instance(), &WebInterop::canvas_size_changed, this, &TerrainRenderer::set_glfw_window_size);
+#endif
 }
 
-void TerrainRenderer::initWindow() {
+void TerrainRenderer::init_window() {
 
     if (!glfwInit()) {
         std::cerr << "Could not initialize GLFW!" << std::endl;
@@ -92,7 +96,7 @@ void TerrainRenderer::render() {
 
 void TerrainRenderer::start() {
     std::cout << "before initWindow()" << std::endl;
-    initWindow();
+    init_window();
 
     std::cout << "before initWebGPU()" << std::endl;
     auto glfwGetWGPUSurfaceFunctor = [this] (wgpu::Instance instance) {
@@ -100,7 +104,7 @@ void TerrainRenderer::start() {
     };
 
 #ifdef ALP_WEBGPU_APP_ENABLE_IMGUI
-    m_webgpu_window = std::make_unique<webgpu_engine::Window>(glfw_GetWGPUSurface_func,
+    m_webgpu_window = std::make_unique<webgpu_engine::Window>(glfwGetWGPUSurfaceFunctor,
         [this] () { ImGui_ImplGlfw_InitForOther(m_window, true); },
         ImGui_ImplGlfw_NewFrame,
         ImGui_ImplGlfw_Shutdown
