@@ -20,9 +20,6 @@
 
 project(alpine-renderer-webgpu_engine LANGUAGES C CXX)
 
-# option to enable/disable imgui
-option(ALP_WEBGPU_APP_ENABLE_IMGUI "Enable imgui" ON)
-
 
 set(SOURCES
     Window.h Window.cpp
@@ -31,12 +28,6 @@ set(SOURCES
     UniformBufferObjects.h UniformBufferObjects.cpp
     UniformBuffer.h UniformBuffer.cpp
 )
-
-#if (NOT EMSCRIPTEN)
-#    list(APPEND SOURCES
-#        dawn_setup.h dawn_setup.cpp
-#    )
-#endif()
 
 qt_add_library(webgpu_engine STATIC ${SOURCES})
 

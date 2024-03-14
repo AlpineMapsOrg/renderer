@@ -1,3 +1,22 @@
+/*****************************************************************************
+ * weBIGeo
+ * Copyright (C) 2024 Patrick Komon
+ * Copyright (C) 2024 Gerald Kimmersdorfer
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ *****************************************************************************/
+
 #include "Window.h"
 
 #include "webgpu.hpp"
@@ -257,29 +276,38 @@ void Window::update_gui(wgpu::RenderPassEncoder render_pass)
     m_imgui_window_new_frame_func();
     ImGui::NewFrame();
 
-           // Build our UI
-    static float f = 0.0f;
-    static int counter = 0;
-    static bool show_demo_window = true;
-    static bool show_another_window = false;
-    static ImVec4 clear_color = ImVec4(0.45f, 0.55f, 0.60f, 1.00f);
-
-    ImGui::Begin("Hello, world!");                                // Create a window called "Hello, world!" and append into it.
-
-    ImGui::Text("This is some useful text.");                     // Display some text (you can use a format strings too)
-    ImGui::Checkbox("Demo Window", &show_demo_window);            // Edit bools storing our window open/close state
-    ImGui::Checkbox("Another Window", &show_another_window);
-
-    ImGui::SliderFloat("float", &f, 0.0f, 1.0f);                  // Edit 1 float using a slider from 0.0f to 1.0f
-    ImGui::ColorEdit3("clear color", (float*)&clear_color);       // Edit 3 floats representing a color
-
-    if (ImGui::Button("Button"))                                  // Buttons return true when clicked (most widgets return true when edited/activated)
-        counter++;
-    ImGui::SameLine();
-    ImGui::Text("counter = %d", counter);
-
     ImGuiIO& io = ImGui::GetIO();
-    ImGui::Text("Application average %.3f ms/frame (%.1f FPS)", 1000.0f / io.Framerate, io.Framerate);
+
+    // Build our UI
+    static float frame_time = 0.0f;
+
+    ImGui::SetNextWindowPos(ImVec2(ImGui::GetIO().DisplaySize.x - 300, 0)); // Set position to top-left corner
+    ImGui::SetNextWindowSize(ImVec2(300, ImGui::GetIO().DisplaySize.y)); // Set height to full screen height, width as desired
+
+    ImGui::Begin("weBIGeo", nullptr, ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoTitleBar);
+
+    // FPS counter variables
+    static float fpsValues[90] = {}; // Array to store FPS values for the graph, adjust size as needed for the time window
+    static int fpsIndex = 0; // Current index in FPS values array
+    static float lastTime = 0.0f; // Last time FPS was updated
+
+    // Calculate delta time and FPS
+    float currentTime = ImGui::GetTime();
+    float deltaTime = currentTime - lastTime;
+    lastTime = currentTime;
+    float fps = 1.0f / deltaTime;
+
+    // Store the current FPS value in the array
+    fpsValues[fpsIndex] = fps;
+    fpsIndex = (fpsIndex + 1) % IM_ARRAYSIZE(fpsValues); // Loop around the array
+
+
+    frame_time = frame_time * 0.95f + (1000.0f / io.Framerate) * 0.05f;
+    ImGui::PlotLines("", fpsValues, IM_ARRAYSIZE(fpsValues), fpsIndex, nullptr, 0.0f, 80.0f, ImVec2(280,100));
+    ImGui::Text("Average: %.3f ms/frame (%.1f FPS)", frame_time, io.Framerate);
+
+    ImGui::Separator();
+
     ImGui::End();
 
     ImGui::EndFrame();

@@ -1,3 +1,22 @@
+/*****************************************************************************
+ * weBIGeo
+ * Copyright (C) 2024 Patrick Komon
+ * Copyright (C) 2024 Gerald Kimmersdorfer
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ *****************************************************************************/
+
 #include "TerrainRenderer.h"
 
 #include <QImage>
@@ -8,6 +27,7 @@
 #ifdef ALP_WEBGPU_APP_ENABLE_IMGUI
 #include <imgui.h>
 #include "backends/imgui_impl_glfw.h"
+#include "imgui_style.h"
 #endif
 
 #include "nucleus/tile_scheduler/Scheduler.h"
@@ -59,7 +79,7 @@ void TerrainRenderer::init_window() {
 
     glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
     //glfwWindowHint(GLFW_RESIZABLE, GLFW_FALSE);
-    m_window = glfwCreateWindow(m_width, m_height, "Learn WebGPU", NULL, NULL);
+    m_window = glfwCreateWindow(m_width, m_height, "weBIGeo - Geospatial Visualization Tool", NULL, NULL);
     if (!m_window) {
         std::cerr << "Could not open window!" << std::endl;
         glfwTerminate();
@@ -74,7 +94,7 @@ void TerrainRenderer::init_window() {
 
 #ifndef __EMSCRIPTEN__
     // Load Icon for Window
-    QImage icon(":/icons/icon_32.png"); // Note: When we remove QGUI as dependency this has to go
+    QImage icon(":/icons/logo32.png"); // Note: When we remove QGUI as dependency this has to go
     if (!icon.isNull()) {
         QImage formattedIcon = icon.convertToFormat(QImage::Format_RGBA8888);
 
@@ -144,6 +164,7 @@ void TerrainRenderer::start() {
 
     glfwSetWindowSize(m_window, m_width, m_height);
     m_initialized = true;
+    activateImGuiStyle(false, 0.9);
 
 
 #if defined(__EMSCRIPTEN__)
@@ -233,6 +254,11 @@ void TerrainRenderer::set_glfw_window_size(int width, int height) {
 
 void TerrainRenderer::on_mouse_button_callback(int button, int action, [[maybe_unused]]int mods)
 {
+    ImGuiIO& io = ImGui::GetIO();
+    if (io.WantCaptureMouse) {
+        return;
+    }
+
     //TODO modifiers if needed
     const std::map<int, Qt::MouseButton> button_map = {
         {GLFW_MOUSE_BUTTON_LEFT, Qt::LeftButton},
@@ -248,10 +274,10 @@ void TerrainRenderer::on_mouse_button_callback(int button, int action, [[maybe_u
 
     if (action == GLFW_RELEASE) {
         m_mouse.buttons &= ~found_it->second;
-        std::cout << "mouse button released" << std::endl;
+        //std::cout << "mouse button released" << std::endl;
     } else if (action == GLFW_PRESS) {
         m_mouse.buttons |= found_it->second;
-        std::cout << "mouse button pressed " << found_it->second << std::endl;
+        //std::cout << "mouse button pressed " << found_it->second << std::endl;
     }
 
     emit mouse_pressed(m_mouse);
@@ -261,6 +287,6 @@ void TerrainRenderer::on_scroll_callback(double x_offset, double y_offset)
 {
     nucleus::event_parameter::Wheel wheel {};
     wheel.angle_delta = QPoint(static_cast<int>(x_offset), static_cast<int>(y_offset));
-    std::cout << "wheel  turned, delta x=" << x_offset << ", y=" << y_offset << std::endl;
+    //std::cout << "wheel  turned, delta x=" << x_offset << ", y=" << y_offset << std::endl;
     emit wheel_turned(wheel);
 }

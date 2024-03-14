@@ -20,6 +20,10 @@
 
 project(alpine-renderer-webgpu_app LANGUAGES C CXX)
 
+# option to enable/disable imgui
+option(ALP_WEBGPU_APP_ENABLE_IMGUI "Enable imgui" ON)
+
+
 set(SOURCES
     main.cpp
     TerrainRenderer.h TerrainRenderer.cpp
@@ -27,6 +31,10 @@ set(SOURCES
 
 if (EMSCRIPTEN)
     list(APPEND SOURCES WebInterop.h WebInterop.cpp)
+endif()
+
+if (ALP_WEBGPU_APP_ENABLE_IMGUI)
+    list(APPEND SOURCES imgui_style.h)
 endif()
 
 qt_add_executable(webgpu_app

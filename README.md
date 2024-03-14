@@ -1,4 +1,4 @@
-![weBIGeo Sujet](https://github.com/weBIGeo/ressources/blob/main/for_md/webigeo_sujet_github.png?raw=true)
+![weBIGeo Sujet](https://github.com/weBIGeo/ressources/blob/main/for_md/webigeo_sujet_v3_github.png?raw=true)
 
 # weBIGeo
 WeBIGeo is a research project focused on real-time 3D computer graphics, large data visualization, and human-computer interaction. The goal is to offer a platform that is easy to use and allows for fast analysis and visualization of geographical datasets. (Further information can be found [here](https://www.netidee.at/webigeo).)
@@ -99,13 +99,13 @@ There is no precompiled version of Qt for the MSVC2022-compiler. Therefore we ag
    mkdir build & mkdir msvc2022_64_custom & cd build
    ```
 
-4. Configure Qt (takes ~ 2min)
+4. Configure Qt (takes ~ 5min)
    ```
    "../Src/configure.bat" -debug-and-release -prefix ../msvc2022_64_custom -nomake examples -nomake tests
    ```
 
 
-5. Build Qt (takes ~ 12min)
+5. Build Qt (takes ~ 25min)
    ```
    cmake --build . --parallel
    ```
