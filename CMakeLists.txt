@@ -119,5 +119,6 @@ if (ALP_UNITTESTS)
     add_subdirectory(unittests)
 endif()
 
+add_subdirectory(webgpu)
 add_subdirectory(webgpu_app)
 add_subdirectory(webgpu_engine)

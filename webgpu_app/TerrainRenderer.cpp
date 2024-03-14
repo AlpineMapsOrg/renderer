@@ -2,7 +2,7 @@
 
 #include <QImage>
 #include <map>
-#include "glfw3webgpu.h"
+#include <webgpu/webgpu_interface.hpp>
 #include <iostream>
 
 #ifdef ALP_WEBGPU_APP_ENABLE_IMGUI
@@ -11,6 +11,8 @@
 #endif
 
 #include "webgpu_engine/Window.h"
+
+#include "WebInterop.h"
 
 static void windowResizeCallback(GLFWwindow* window, int width, int height) {
     auto terrainRenderer = static_cast<TerrainRenderer*>(glfwGetWindowUserPointer(window));
@@ -32,12 +34,16 @@ static void mouse_button_callback(GLFWwindow* window, int button, int action, in
     renderer->on_mouse_button_callback(button, action, mods);
 }
 
-TerrainRenderer::TerrainRenderer() {}
+TerrainRenderer::TerrainRenderer() {
+    // execute on window resize when canvas size changes
+    QObject::connect(&WebInterop::instance(), &WebInterop::canvas_size_changed, this, &TerrainRenderer::set_glfw_window_size);
+}
 
 void TerrainRenderer::initWindow() {
+
     if (!glfwInit()) {
         std::cerr << "Could not initialize GLFW!" << std::endl;
-        throw std::runtime_error("Could not initialize GLFW");
+        //throw std::runtime_error("Could not initialize GLFW");
     }
 
     glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
@@ -71,9 +77,16 @@ void TerrainRenderer::initWindow() {
 #endif
 }
 
+void TerrainRenderer::render() {
+    glfwPollEvents();
+    m_webgpu_window->paint(nullptr);
+}
+
 void TerrainRenderer::start() {
+    std::cout << "before initWindow()" << std::endl;
     initWindow();
 
+    std::cout << "before initWebGPU()" << std::endl;
     auto glfwGetWGPUSurfaceFunctor = [this] (wgpu::Instance instance) {
         return glfwGetWGPUSurface(instance, m_window);
     };
@@ -101,12 +114,24 @@ void TerrainRenderer::start() {
     connect(m_webgpu_window.get(), &nucleus::AbstractRenderWindow::update_camera_requested, m_camera_controller.get(), &nucleus::camera::Controller::update_camera_request);
     connect(m_camera_controller.get(), &nucleus::camera::Controller::definition_changed, m_webgpu_window.get(), &nucleus::AbstractRenderWindow::update_camera);
 
+    std::cout << "before initialise_gpu()" << std::endl;
     m_webgpu_window->initialise_gpu();
     m_webgpu_window->resize_framebuffer(m_width, m_height);
     m_camera_controller->update();
 
+    glfwSetWindowSize(m_window, m_width, m_height);
+    m_initialized = true;
+
+
 #if defined(__EMSCRIPTEN__)
-    emscripten_set_main_loop(Render, 0, false);
+    emscripten_set_main_loop_arg(
+        [](void *userData) {
+            TerrainRenderer& renderer = *reinterpret_cast<TerrainRenderer*>(userData);
+            renderer.render();
+        },
+        (void*)this,
+        0, true
+    );
 #else
     while (!glfwWindowShouldClose(m_window)) {
         glfwPollEvents();
@@ -114,20 +139,25 @@ void TerrainRenderer::start() {
     }
 #endif
 
+    // NOTE: Ressources are freed by the browser when the page is closed. Also keep in mind
+    // that this part of code will be executed immediately since the main loop is not blocking.
+#ifndef __EMSCRIPTEN__
     m_webgpu_window->deinit_gpu();
 
     glfwDestroyWindow(m_window);
     glfwTerminate();
+#endif
 }
 
 void TerrainRenderer::on_window_resize(int width, int height) {
-    std::cout << "window resized to " << width << "x" << height << std::endl;
+    m_width = width;
+    m_height = height;
     m_webgpu_window->resize_framebuffer(static_cast<uint32_t>(width), static_cast<uint32_t>(height));
     m_camera_controller->set_viewport({width, height});
     m_camera_controller->update();
 }
 
-void TerrainRenderer::on_key_callback(int key, int scancode, int action, int mods)
+void TerrainRenderer::on_key_callback(int key, [[maybe_unused]]int scancode, int action, [[maybe_unused]]int mods)
 {
     //TODO modifiers; more keys if needed
     const std::map<int, Qt::Key> key_map = {
@@ -165,12 +195,20 @@ void TerrainRenderer::on_cursor_position_callback(double x_pos, double y_pos)
     m_mouse.position.x = x_pos;
     m_mouse.position.y = y_pos;
 
-    std::cout << "mouse moved, x=" << x_pos << ", y=" << y_pos << std::endl;
+    //std::cout << "mouse moved, x=" << x_pos << ", y=" << y_pos << std::endl;
 
     emit mouse_moved(m_mouse);
 }
 
-void TerrainRenderer::on_mouse_button_callback(int button, int action, int mods)
+void TerrainRenderer::set_glfw_window_size(int width, int height) {
+    m_width = width;
+    m_height = height;
+    if (m_initialized) {
+        glfwSetWindowSize(m_window, width, height);
+    }
+}
+
+void TerrainRenderer::on_mouse_button_callback(int button, int action, [[maybe_unused]]int mods)
 {
     //TODO modifiers if needed
     const std::map<int, Qt::MouseButton> button_map = {

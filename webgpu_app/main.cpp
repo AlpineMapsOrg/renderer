@@ -19,5 +19,7 @@ int main([[maybe_unused]] int argc, [[maybe_unused]] char* argv[])
 
     TerrainRenderer renderer;
     renderer.start();
+    // NOTE: Please be aware that for WEB-Deployment renderer.start() is non-blocking!!
+    // So Code at this point will run after initialization and the first frame.
     return 0;
 }

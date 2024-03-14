@@ -1,26 +1,45 @@
+/*****************************************************************************
+ * weBIGeo
+ * Copyright (C) 2022-2023 Elie Michel and the wgpu-native authors
+ * Copyright (C) 2024 Gerald Kimmersdorfer
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ *****************************************************************************/
+
 /**
  * This is an extension of GLFW for WebGPU, abstracting away the details of
  * OS-specific operations.
- * 
+ *
  * This file is part of the "Learn WebGPU for C++" book.
  *   https://eliemichel.github.io/LearnWebGPU
- * 
+ *
  * Most of this code comes from the wgpu-native triangle example:
  *   https://github.com/gfx-rs/wgpu-native/blob/master/examples/triangle/main.c
- * 
+ *
  * MIT License
  * Copyright (c) 2022-2023 Elie Michel and the wgpu-native authors
- * 
+ *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
  * in the Software without restriction, including without limitation the rights
  * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
  * copies of the Software, and to permit persons to whom the Software is
  * furnished to do so, subject to the following conditions:
- * 
+ *
  * The above copyright notice and this permission notice shall be included in all
  * copies or substantial portions of the Software.
- * 
+ *
  * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
  * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
  * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -30,9 +49,16 @@
  * SOFTWARE.
  */
 
-#include "glfw3webgpu.h"
+#include "webgpu_interface.hpp"
 
 #include <webgpu/webgpu.h>
+#include <stdio.h>
+
+#ifndef __EMSCRIPTEN__
+#include <dawn/native/DawnNative.h>
+#include <dawn/dawn_proc.h>
+#endif
+
 
 #define WGPU_TARGET_MACOS 1
 #define WGPU_TARGET_LINUX_X11 2
@@ -73,6 +99,7 @@
 #endif
 
 WGPUSurface glfwGetWGPUSurface(WGPUInstance instance, GLFWwindow* window) {
+    (void)window; // Cast to void to suppress unused parameter warning
 #if WGPU_TARGET == WGPU_TARGET_MACOS
     {
         id metal_layer = [CAMetalLayer layer];
@@ -124,7 +151,7 @@ WGPUSurface glfwGetWGPUSurface(WGPUInstance instance, GLFWwindow* window) {
         surfaceDescriptor.label = NULL;
 
         return wgpuInstanceCreateSurface(instance, &surfaceDescriptor);
-  }
+    }
 #elif WGPU_TARGET == WGPU_TARGET_WINDOWS
     {
         HWND hwnd = glfwGetWin32Window(window);
@@ -144,10 +171,11 @@ WGPUSurface glfwGetWGPUSurface(WGPUInstance instance, GLFWwindow* window) {
     }
 #elif WGPU_TARGET == WGPU_TARGET_EMSCRIPTEN
     {
+        printf("Creating surface from canvas\n");
         WGPUSurfaceDescriptorFromCanvasHTMLSelector fromCanvasHTMLSelector;
         fromCanvasHTMLSelector.chain.next = NULL;
         fromCanvasHTMLSelector.chain.sType = WGPUSType_SurfaceDescriptorFromCanvasHTMLSelector;
-        fromCanvasHTMLSelector.selector = "canvas";
+        fromCanvasHTMLSelector.selector = "#webgpucanvas";
 
         WGPUSurfaceDescriptor surfaceDescriptor;
         surfaceDescriptor.nextInChain = &fromCanvasHTMLSelector.chain;
@@ -160,3 +188,14 @@ WGPUSurface glfwGetWGPUSurface(WGPUInstance instance, GLFWwindow* window) {
 #endif
 }
 
+void webgpuPlatformInit() {
+
+    // Dawn forwards all wgpu* function calls to function pointer members of some struct.
+    // This is stored in some (Dawn internal) variable. In our current setup, all these
+    // function pointers default to nullptr, resulting in access violations when called.
+    // However, we can just set these pointers explicitly to use dawn_native.
+#ifndef __EMSCRIPTEN__
+    dawnProcSetProcs(&(dawn::native::GetProcs()));
+#endif
+
+}

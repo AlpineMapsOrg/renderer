@@ -1,7 +1,7 @@
 #include "Window.h"
 
 #include "webgpu.hpp"
-#include "dawn_setup.h"
+#include <webgpu/webgpu_interface.hpp>
 
 #ifdef ALP_WEBGPU_APP_ENABLE_IMGUI
 #include <imgui.h>
@@ -33,7 +33,7 @@ Window::~Window() {
 
 void Window::initialise_gpu() {
     // GPU initialization logic here
-    setup_dawn_proctable();
+    webgpuPlatformInit(); // platform dependent initialization code
     createInstance();
     initSurface();
     requestAdapter();
@@ -111,7 +111,7 @@ void Window::paint([[maybe_unused]] QOpenGLFramebufferObject* framebuffer) {
     // depthSlice field for RenderPassColorAttachment (https://github.com/gpuweb/gpuweb/issues/4251)
     // this field specifies the slice to render to when rendering to a 3d texture (view)
     // passing a valid index but referencing a non-3d texture leads to an error
-    //TODO use some constant that represents "undefined" for this value (I couldn't find a constant for this?)
+    // TODO use some constant that represents "undefined" for this value (I couldn't find a constant for this?)
     //     (I just guessed -1 (max unsigned int value) and it worked)
     renderPassColorAttachment.depthSlice = -1;
 
@@ -143,8 +143,11 @@ void Window::paint([[maybe_unused]] QOpenGLFramebufferObject* framebuffer) {
     queue.submit(command);
     command.release();
 
+#ifndef __EMSCRIPTEN__
+    // Swapchain in the WEB is handled by the browser!
     swapchain.present();
     instance.processEvents();
+#endif
 }
 
 float Window::depth([[maybe_unused]] const glm::dvec2& normalised_device_coordinates) {
@@ -280,12 +283,22 @@ void Window::updateGui(wgpu::RenderPassEncoder renderPass) {
 }
 #endif
 
+
 void Window::createInstance() {
+    std::cout << "Creating WebGPU instance..." << std::endl;
+
+#ifdef __EMSCRIPTEN__
+    // instance = wgpu::createInstance(wgpu::InstanceDescriptor{}); would throw nullptr exception
+    // but using vanilla webgpu with nullptr as descriptor seems to work.
+    instance = wgpuCreateInstance(nullptr);
+#else
     instance = wgpu::createInstance(wgpu::InstanceDescriptor{});
+#endif
     if (!instance) {
         std::cerr << "Could not initialize WebGPU!" << std::endl;
         throw std::runtime_error("Could not initialize WebGPU");
     }
+    std::cout << "Got instance: " << instance << std::endl;
 }
 
 void Window::initSurface() {

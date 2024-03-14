@@ -1,0 +1,100 @@
+<!doctype html>
+<html lang="en-us">
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+
+    <!--Set visual viewport size for mobile devices to the device size,
+        witch results in a scale of 1 and a 1:1 mapping between CSS pixels
+        and Qt device independent pixels. -->
+    <meta name="viewport" content="width=device-width, height=device-height, user-scalable=0"/>
+
+    <title>webgpu_app</title>
+    <style>
+      /* Make the html body cover the entire (visual) viewport with no scroll bars. */
+      html, body { padding: 0; margin: 0; overflow: hidden; height: 100% }
+      #screen { width: 100%; height: 100%; display: none !important; }
+      #webgpucanvas { position: absolute; left: 0; top: 0; }
+    </style>
+  </head>
+  <body onload="init()">
+    <figure style="overflow:visible;" id="qtspinner">
+      <center style="margin-top:1.5em; line-height:150%">
+        <img src="qtlogo.svg" width="320" height="200" style="display:block"></img>
+        <strong>Qt for WebAssembly: webgpu_app</strong>
+        <div id="qtstatus"></div>
+        <noscript>JavaScript is disabled. Please enable JavaScript to use this application.</noscript>
+      </center>
+    </figure>
+    <div id="screen"></div>
+    <canvas width="800" height="600" class="emscripten" id="webgpucanvas"></canvas>
+
+    <script type="text/javascript">
+      eminstance = null;
+        async function init()
+        {
+
+            // Check wether the browser supports WebGPU
+            if (!navigator.gpu)
+            {
+              console.error('WebGPU is not supported in this browser');
+              // Clear body and write h1 in the body to show the error message
+              document.body.innerHTML = '<h1>WebGPU is not supported in this browser</h1>';
+              return;
+            }
+
+            const spinner = document.querySelector('#qtspinner');
+            const screen = document.querySelector('#screen');
+            const status = document.querySelector('#qtstatus');
+            const webgpu_canvas = document.querySelector('#webgpucanvas');
+
+            const showUi = (ui) => {
+                [spinner, screen].forEach(element => element.style.display = 'none');
+                if (screen === ui)
+                    screen.style.position = 'default';
+                ui.style.display = 'block';
+            }
+
+            try {
+                showUi(spinner);
+                status.innerHTML = 'Loading...';
+
+                eminstance = await qtLoad({
+                    qt: {
+                        onLoaded: () => showUi(screen),
+                        onExit: exitData =>
+                        {
+                            status.innerHTML = 'Application exit';
+                            status.innerHTML +=
+                                exitData.code !== undefined ? ` with code ${exitData.code}` : '';
+                            status.innerHTML +=
+                                exitData.text !== undefined ? ` (${exitData.text})` : '';
+                            showUi(spinner);
+                        },
+                        entryFunction: window.createQtAppInstance,
+                        containerElements: [screen],
+                    },
+                    // Canvas need to be set here as its needed for emscripten GLFW
+                    canvas: (() => {
+                      return webgpu_canvas;
+                    })(),
+                });
+                console.log('eminstance', eminstance);
+
+                // Set the canvas to be the same size as the screen
+                eminstance.canvas_size_changed(window.innerWidth, window.innerHeight);
+
+                // on resize, update the canvas size
+                window.addEventListener('resize', () => {
+                  eminstance.canvas_size_changed(window.innerWidth, window.innerHeight);
+                });
+            } catch (e) {
+                console.error(e);
+                console.error(e.stack);
+            }
+        }
+    </script>
+    <script src="webgpu_app.js"></script>
+    <script type="text/javascript" src="qtloader.js"></script>
+  </body>
+</html>
