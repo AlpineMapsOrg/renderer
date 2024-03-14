@@ -40,14 +40,12 @@ public:
     void bind(wgpu::RenderPassEncoder& render_pass, uint32_t group_index);
 
 private:
-
     std::vector<wgpu::BindGroupEntry> m_bind_group_entries;
     std::vector<wgpu::BindGroupLayoutEntry> m_bind_group_layout_entries;
 
 public:
     wgpu::BindGroupLayout m_bind_group_layout = nullptr;
     wgpu::BindGroup m_bind_group = nullptr;
-
 };
 
 class PipelineManager {
@@ -73,7 +71,6 @@ private:
 
     wgpu::RenderPipeline m_debug_triangle_pipeline = nullptr;
     wgpu::RenderPipeline m_debug_config_and_camera_pipeline = nullptr;
-    wgpu::BindGroupLayout m_layout_config_and_camera_bindgroup_layout = nullptr;
     wgpu::RenderPipeline m_tile_pipeline = nullptr;
     wgpu::RenderPipeline m_shadow_pipeline = nullptr;
 };

@@ -27,7 +27,6 @@ private:
     std::string preprocess(const std::string& code);
     wgpu::ShaderModule create_shader_module(const std::string& code);
 
-
 private:
     wgpu::Device* m_device;
     std::filesystem::path m_prefix;

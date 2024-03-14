@@ -36,6 +36,7 @@ set_target_properties(webgpu_app PROPERTIES
 target_link_libraries(webgpu_app PUBLIC webgpu webgpu_engine Qt::Core Qt::Gui)
 target_include_directories(webgpu_app PRIVATE .)
 
+qt_add_resources(webgpu_app "height_data"
 if (EMSCRIPTEN)
     target_link_options(webgpu_app PRIVATE
             -sUSE_GLFW=3 # Use Emscripten-provided GLFW
@@ -79,8 +80,8 @@ if (EMSCRIPTEN)
 
 endif()
 
-#qt_add_resources(webgpu_app "height_data"
-#    PREFIX "/map"
-#    BASE ${renderer_static_data_SOURCE_DIR}
-#    FILES ${renderer_static_data_SOURCE_DIR}/height_data.atb
-#)
+qt_add_resources(webgpu_app "height_data"
+    PREFIX "/map"
+    BASE ${renderer_static_data_SOURCE_DIR}
+    FILES ${renderer_static_data_SOURCE_DIR}/height_data.atb
+)

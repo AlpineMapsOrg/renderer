@@ -11,19 +11,18 @@
 namespace webgpu_engine {
 
 #ifdef ALP_WEBGPU_APP_ENABLE_IMGUI
-Window::Window(ObtainWebGpuSurfaceFunc obtainWebGpuSurfaceFunc, ImGuiWindowImplInitFunc imguiWindowInitFunc,
-    ImGuiWindowImplNewFrameFunc imguiWindowNewFrameFunc, ImGuiWindowImplShutdownFunc imguiWindowShutdownFunc)
-    :
-    obtainWebGpuSurfaceFunc{obtainWebGpuSurfaceFunc},
-    imguiWindowInitFunc{imguiWindowInitFunc},
-    imguiWindowNewFrameFunc{imguiWindowNewFrameFunc},
-    imguiWindowShutdownFunc{imguiWindowShutdownFunc}
+Window::Window(ObtainWebGpuSurfaceFunc obtain_webgpu_surface_func, ImGuiWindowImplInitFunc imgui_window_init_func,
+    ImGuiWindowImplNewFrameFunc imgui_window_new_frame_func, ImGuiWindowImplShutdownFunc imgui_window_shutdown_func)
+    : m_obtain_webgpu_surface_func { obtain_webgpu_surface_func }
+    , m_imgui_window_init_func { imgui_window_init_func }
+    , m_imgui_window_new_frame_func { imgui_window_new_frame_func }
+    , m_imgui_window_shutdown_func { imgui_window_shutdown_func }
 {
     // Constructor initialization logic here
 }
 #else
-Window::Window(ObtainWebGpuSurfaceFunc obtainWebGpuSurfaceFunc):
-    obtainWebGpuSurfaceFunc{obtainWebGpuSurfaceFunc}
+Window::Window(ObtainWebGpuSurfaceFunc obtain_webgpu_surface_func)
+    : m_obtain_webgpu_surface_func { obtain_webgpu_surface_func }
 {}
 #endif
 
@@ -43,11 +42,12 @@ void Window::initialise_gpu() {
     create_buffers();
     create_bind_group_info();
 
-    m_shader_manager = std::make_unique<ShaderModuleManager>(device);
+    m_shader_manager = std::make_unique<ShaderModuleManager>(m_device);
     m_shader_manager->create_shader_modules();
-    m_pipeline_manager = std::make_unique<PipelineManager>(device, *m_shader_manager);
+    m_pipeline_manager = std::make_unique<PipelineManager>(m_device, *m_shader_manager);
 
     m_stopwatch.restart();
+    emit gpu_ready_changed(true);
 }
 
 void Window::resize_framebuffer(int w, int h) {
@@ -57,12 +57,12 @@ void Window::resize_framebuffer(int w, int h) {
         m_pipeline_manager->release_pipelines();
     }
 
-    if (swapchain != nullptr) {
-        swapchain.release();
+    if (m_swapchain != nullptr) {
+        m_swapchain.release();
     }
 
-    createSwapchain(w, h);
-    m_pipeline_manager->create_pipelines(swapchainFormat, *m_bind_group_info);
+    create_swapchain(w, h);
+    m_pipeline_manager->create_pipelines(m_swapchain_format, *m_bind_group_info);
 
 #ifdef ALP_WEBGPU_APP_ENABLE_IMGUI
     if (ImGui::GetCurrentContext() != nullptr) {
@@ -70,7 +70,7 @@ void Window::resize_framebuffer(int w, int h) {
         return;
     }
 
-    if (!initGui()) {
+    if (!init_gui()) {
         std::cerr << "Could not initialize GUI!" << std::endl;
         throw std::runtime_error("could not initialize GUI");
     }
@@ -80,8 +80,8 @@ void Window::resize_framebuffer(int w, int h) {
 void Window::paint([[maybe_unused]] QOpenGLFramebufferObject* framebuffer) {
     // Painting logic here, using the optional framebuffer parameter which is currently unused
 
-    wgpu::TextureView nextTexture = swapchain.getCurrentTextureView();
-    if (!nextTexture) {
+    wgpu::TextureView next_texture = m_swapchain.getCurrentTextureView();
+    if (!next_texture) {
         std::cerr << "Cannot acquire next swap chain texture" << std::endl;
         throw std::runtime_error("Cannot acquire next swap chain texture");
     }
@@ -93,54 +93,54 @@ void Window::paint([[maybe_unused]] QOpenGLFramebufferObject* framebuffer) {
     uboSharedConfig* sc = &m_shared_config_ubo->data;
     sc->m_sun_light = QVector4D(0.0f, 1.0f, 1.0f, 1.0f);
     sc->m_sun_light_dir = QVector4D(elapsed, 1.0f, 1.0f, 1.0f);
-    m_shared_config_ubo->update_gpu_data(queue);
+    m_shared_config_ubo->update_gpu_data(m_queue);
 
-    wgpu::CommandEncoderDescriptor commandEncoderDesc{};
-    commandEncoderDesc.label = "Command Encoder";
-    wgpu::CommandEncoder encoder = device.createCommandEncoder(commandEncoderDesc);
+    wgpu::CommandEncoderDescriptor command_encoder_desc {};
+    command_encoder_desc.label = "Command Encoder";
+    wgpu::CommandEncoder encoder = m_device.createCommandEncoder(command_encoder_desc);
 
-    wgpu::RenderPassDescriptor renderPassDesc{};
+    wgpu::RenderPassDescriptor render_pass_desc {};
 
-    wgpu::RenderPassColorAttachment renderPassColorAttachment{};
-    renderPassColorAttachment.view = nextTexture;
-    renderPassColorAttachment.resolveTarget = nullptr;
-    renderPassColorAttachment.loadOp = wgpu::LoadOp::Clear;
-    renderPassColorAttachment.storeOp = wgpu::StoreOp::Store;
-    renderPassColorAttachment.clearValue = wgpu::Color{ 0.9, 0.1, 0.2, 1.0 };
+    wgpu::RenderPassColorAttachment render_pass_color_attachment {};
+    render_pass_color_attachment.view = next_texture;
+    render_pass_color_attachment.resolveTarget = nullptr;
+    render_pass_color_attachment.loadOp = wgpu::LoadOp::Clear;
+    render_pass_color_attachment.storeOp = wgpu::StoreOp::Store;
+    render_pass_color_attachment.clearValue = wgpu::Color { 0.9, 0.1, 0.2, 1.0 };
 
     // depthSlice field for RenderPassColorAttachment (https://github.com/gpuweb/gpuweb/issues/4251)
     // this field specifies the slice to render to when rendering to a 3d texture (view)
     // passing a valid index but referencing a non-3d texture leads to an error
     // TODO use some constant that represents "undefined" for this value (I couldn't find a constant for this?)
     //     (I just guessed -1 (max unsigned int value) and it worked)
-    renderPassColorAttachment.depthSlice = -1;
+    render_pass_color_attachment.depthSlice = -1;
 
-    renderPassDesc.colorAttachmentCount = 1;
-    renderPassDesc.colorAttachments = &renderPassColorAttachment;
+    render_pass_desc.colorAttachmentCount = 1;
+    render_pass_desc.colorAttachments = &render_pass_color_attachment;
 
-    renderPassDesc.depthStencilAttachment = nullptr;
-    renderPassDesc.timestampWrites = nullptr;
-    wgpu::RenderPassEncoder renderPass = encoder.beginRenderPass(renderPassDesc);
+    render_pass_desc.depthStencilAttachment = nullptr;
+    render_pass_desc.timestampWrites = nullptr;
+    wgpu::RenderPassEncoder render_pass = encoder.beginRenderPass(render_pass_desc);
 
-    m_bind_group_info->bind(renderPass, 0);
-    renderPass.setPipeline(m_pipeline_manager->debug_config_and_camera_pipeline());
-    renderPass.draw(36, 1, 0, 0);
+    m_bind_group_info->bind(render_pass, 0);
+    render_pass.setPipeline(m_pipeline_manager->debug_config_and_camera_pipeline());
+    render_pass.draw(36, 1, 0, 0);
 
 #ifdef ALP_WEBGPU_APP_ENABLE_IMGUI
     // We add the GUI drawing commands to the render pass
-    updateGui(renderPass);
+    update_gui(render_pass);
 #endif
 
-    renderPass.end();
-    renderPass.release();
+    render_pass.end();
+    render_pass.release();
 
-    nextTexture.release();
+    next_texture.release();
 
-    wgpu::CommandBufferDescriptor cmdBufferDescriptor{};
-    cmdBufferDescriptor.label = "Command buffer";
-    wgpu::CommandBuffer command = encoder.finish(cmdBufferDescriptor);
+    wgpu::CommandBufferDescriptor cmd_buffer_descriptor {};
+    cmd_buffer_descriptor.label = "Command buffer";
+    wgpu::CommandBuffer command = encoder.finish(cmd_buffer_descriptor);
     encoder.release();
-    queue.submit(command);
+    m_queue.submit(command);
     command.release();
 
 #ifndef __EMSCRIPTEN__
@@ -162,18 +162,20 @@ glm::dvec3 Window::position([[maybe_unused]] const glm::dvec2& normalised_device
 
 void Window::deinit_gpu() {
 #ifdef ALP_WEBGPU_APP_ENABLE_IMGUI
-    terminateGui();
+    terminate_gui();
 #endif
 
     m_pipeline_manager->release_pipelines();
     m_shader_manager->release_shader_modules();
-    swapchain.release();
-    queue.release();
-    surface.release();
+    m_swapchain.release();
+    m_queue.release();
+    m_surface.release();
     //TODO triggers warning No Dawn device lost callback was set, but this is actually expected behavior
-    device.release();
-    adapter.release();
-    instance.release();
+    m_device.release();
+    m_adapter.release();
+    m_instance.release();
+
+    emit gpu_ready_changed(false);
 }
 
 void Window::set_aabb_decorator([[maybe_unused]] const nucleus::tile_scheduler::utils::AabbDecoratorPtr&) {
@@ -211,7 +213,7 @@ void Window::update_camera([[maybe_unused]] const nucleus::camera::Definition& n
     cc->inv_proj_matrix = glm::inverse(cc->proj_matrix);
     cc->viewport_size = new_definition.viewport_size();
     cc->distance_scaling_factor = new_definition.distance_scale_factor();
-    m_camera_config_ubo->update_gpu_data(queue);
+    m_camera_config_ubo->update_gpu_data(m_queue);
 }
 
 void Window::update_debug_scheduler_stats([[maybe_unused]] const QString& stats) {
@@ -220,36 +222,39 @@ void Window::update_debug_scheduler_stats([[maybe_unused]] const QString& stats)
 
 void Window::update_gpu_quads([[maybe_unused]] const std::vector<nucleus::tile_scheduler::tile_types::GpuTileQuad>& new_quads, [[maybe_unused]] const std::vector<tile::Id>& deleted_quads) {
     // Logic for updating GPU quads, parameters currently unused
+
+    std::cout << "received " << new_quads.size() << " new quads, should delete " << deleted_quads.size() << " quads" << std::endl;
 }
 
-
-
 #ifdef ALP_WEBGPU_APP_ENABLE_IMGUI
-bool Window::initGui() {
+bool Window::init_gui()
+{
     // Setup Dear ImGui context
     IMGUI_CHECKVERSION();
     ImGui::CreateContext();
     ImGui::GetIO();
 
     // Setup Platform/Renderer backends
-    imguiWindowInitFunc();
+    m_imgui_window_init_func();
     ImGui_ImplWGPU_InitInfo init_info = {};
-    init_info.Device = device;
-    init_info.RenderTargetFormat = (WGPUTextureFormat)swapchainFormat;
+    init_info.Device = m_device;
+    init_info.RenderTargetFormat = (WGPUTextureFormat)m_swapchain_format;
     init_info.DepthStencilFormat = WGPUTextureFormat_Undefined;
     init_info.NumFramesInFlight = 3;
     ImGui_ImplWGPU_Init(&init_info);
     return true;
 }
 
-void Window::terminateGui() {
-    imguiWindowShutdownFunc();
+void Window::terminate_gui()
+{
+    m_imgui_window_shutdown_func();
     ImGui_ImplWGPU_Shutdown();
 }
 
-void Window::updateGui(wgpu::RenderPassEncoder renderPass) {
+void Window::update_gui(wgpu::RenderPassEncoder render_pass)
+{
     ImGui_ImplWGPU_NewFrame();
-    imguiWindowNewFrameFunc();
+    m_imgui_window_new_frame_func();
     ImGui::NewFrame();
 
            // Build our UI
@@ -279,7 +284,7 @@ void Window::updateGui(wgpu::RenderPassEncoder renderPass) {
 
     ImGui::EndFrame();
     ImGui::Render();
-    ImGui_ImplWGPU_RenderDrawData(ImGui::GetDrawData(), renderPass);
+    ImGui_ImplWGPU_RenderDrawData(ImGui::GetDrawData(), render_pass);
 }
 #endif
 
@@ -301,65 +306,64 @@ void Window::createInstance() {
     std::cout << "Got instance: " << instance << std::endl;
 }
 
-void Window::initSurface() {
-    surface = obtainWebGpuSurfaceFunc(instance);
-}
+void Window::init_surface() { m_surface = m_obtain_webgpu_surface_func(m_instance); }
 
-void Window::requestAdapter() {
+void Window::request_adapter()
+{
     std::cout << "Requesting adapter..." << std::endl;
-    wgpu::RequestAdapterOptions adapterOpts{};
-    adapterOpts.compatibleSurface = surface;
-    adapter = instance.requestAdapter(adapterOpts);
-    std::cout << "Got adapter: " << adapter << std::endl;
+    wgpu::RequestAdapterOptions adapter_opts {};
+    adapter_opts.compatibleSurface = m_surface;
+    m_adapter = m_instance.requestAdapter(adapter_opts);
+    std::cout << "Got adapter: " << m_adapter << std::endl;
 }
 
-void Window::requestDevice() {
+void Window::request_device()
+{
     std::cout << "Requesting device..." << std::endl;
-    wgpu::DeviceDescriptor deviceDesc{};
-    deviceDesc.label = "My Device";
-    deviceDesc.requiredFeatureCount = 0;
-    deviceDesc.requiredLimits = nullptr;
-    deviceDesc.defaultQueue.label = "The default queue";
-    device = adapter.requestDevice(deviceDesc);
-    std::cout << "Got device: " << device << std::endl;
+    wgpu::DeviceDescriptor device_desc {};
+    device_desc.label = "My Device";
+    device_desc.requiredFeatureCount = 0;
+    device_desc.requiredLimits = nullptr;
+    device_desc.defaultQueue.label = "The default queue";
+    m_device = m_adapter.requestDevice(device_desc);
+    std::cout << "Got device: " << m_device << std::endl;
 
     auto onDeviceError = [](WGPUErrorType type, char const* message, void* /* pUserData */) {
         std::cout << "Uncaptured device error: type " << type;
         if (message) std::cout << " (" << message << ")";
         std::cout << std::endl;
     };
-    wgpuDeviceSetUncapturedErrorCallback(device, onDeviceError, nullptr /* pUserData */);
+    wgpuDeviceSetUncapturedErrorCallback(m_device, onDeviceError, nullptr /* pUserData */);
 }
 
-void Window::initQueue() {
-    queue = device.getQueue();
-}
+void Window::init_queue() { m_queue = m_device.getQueue(); }
 
 void Window::create_buffers()
 {
     m_shared_config_ubo = std::make_unique<UniformBuffer<uboSharedConfig>>();
-    m_shared_config_ubo->init(device);
+    m_shared_config_ubo->init(m_device);
 
     m_camera_config_ubo = std::make_unique<UniformBuffer<uboCameraConfig>>();
-    m_camera_config_ubo->init(device);
+    m_camera_config_ubo->init(m_device);
 }
 
-void Window::createSwapchain(uint32_t width, uint32_t height) {
+void Window::create_swapchain(uint32_t width, uint32_t height)
+{
     std::cout << "Creating swapchain device..." << std::endl;
     // from Learn WebGPU C++ tutorial
 #ifdef WEBGPU_BACKEND_WGPU
-    swapchainFormat = surface.getPreferredFormat(adapter);
+    m_swapchain_format = surface.getPreferredFormat(m_adapter);
 #else
-    swapchainFormat = wgpu::TextureFormat::BGRA8Unorm;
+    m_swapchain_format = wgpu::TextureFormat::BGRA8Unorm;
 #endif
-    wgpu::SwapChainDescriptor swapChainDesc = {};
-    swapChainDesc.width = width;
-    swapChainDesc.height = height;
-    swapChainDesc.usage = wgpu::TextureUsage::RenderAttachment;
-    swapChainDesc.format = swapchainFormat;
-    swapChainDesc.presentMode = wgpu::PresentMode::Fifo;
-    swapchain = device.createSwapChain(surface, swapChainDesc);
-    std::cout << "Swapchain: " << swapchain << std::endl;
+    wgpu::SwapChainDescriptor swapchain_desc = {};
+    swapchain_desc.width = width;
+    swapchain_desc.height = height;
+    swapchain_desc.usage = wgpu::TextureUsage::RenderAttachment;
+    swapchain_desc.format = m_swapchain_format;
+    swapchain_desc.presentMode = wgpu::PresentMode::Fifo;
+    m_swapchain = m_device.createSwapChain(m_surface, swapchain_desc);
+    std::cout << "Swapchain: " << m_swapchain << std::endl;
 }
 
 void Window::create_bind_group_info()
@@ -367,7 +371,7 @@ void Window::create_bind_group_info()
     m_bind_group_info = std::make_unique<BindGroupInfo>();
     m_bind_group_info->add_entry(0, *m_shared_config_ubo, wgpu::ShaderStage::Vertex | wgpu::ShaderStage::Fragment);
     m_bind_group_info->add_entry(1, *m_camera_config_ubo, wgpu::ShaderStage::Vertex | wgpu::ShaderStage::Fragment);
-    m_bind_group_info->init(device);
+    m_bind_group_info->init(m_device);
 }
 
 

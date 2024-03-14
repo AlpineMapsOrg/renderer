@@ -10,6 +10,7 @@
 #include "backends/imgui_impl_glfw.h"
 #endif
 
+#include "nucleus/tile_scheduler/Scheduler.h"
 #include "webgpu_engine/Window.h"
 
 #include "WebInterop.h"
@@ -32,6 +33,12 @@ static void cursor_position_callback(GLFWwindow* window, double xpos, double ypo
 static void mouse_button_callback(GLFWwindow* window, int button, int action, int mods) {
     auto renderer = static_cast<TerrainRenderer*>(glfwGetWindowUserPointer(window));
     renderer->on_mouse_button_callback(button, action, mods);
+}
+
+static void scroll_callback(GLFWwindow* window, double xoffset, double yoffset)
+{
+    auto renderer = static_cast<TerrainRenderer*>(glfwGetWindowUserPointer(window));
+    renderer->on_scroll_callback(xoffset, yoffset);
 }
 
 TerrainRenderer::TerrainRenderer() {
@@ -59,6 +66,7 @@ void TerrainRenderer::initWindow() {
     glfwSetKeyCallback(m_window, key_callback);
     glfwSetCursorPosCallback(m_window, cursor_position_callback);
     glfwSetMouseButtonCallback(m_window, mouse_button_callback);
+    glfwSetScrollCallback(m_window, scroll_callback);
 
 #ifndef __EMSCRIPTEN__
     // Load Icon for Window
@@ -92,7 +100,7 @@ void TerrainRenderer::start() {
     };
 
 #ifdef ALP_WEBGPU_APP_ENABLE_IMGUI
-    m_webgpu_window = std::make_unique<webgpu_engine::Window>(glfwGetWGPUSurfaceFunctor,
+    m_webgpu_window = std::make_unique<webgpu_engine::Window>(glfw_GetWGPUSurface_func,
         [this] () { ImGui_ImplGlfw_InitForOther(m_window, true); },
         ImGui_ImplGlfw_NewFrame,
         ImGui_ImplGlfw_Shutdown
@@ -101,23 +109,34 @@ void TerrainRenderer::start() {
     m_webgpu_window = std::make_unique<webgpu_engine::Window>(glfwGetWGPUSurfaceFunctor);
 #endif
 
-    nucleus::camera::Definition camera;
-    camera.look_at(glm::dvec3{0.0f, 0.0f, 0.0f}, glm::dvec3{0.0, -1.0, 0.0});
-    m_camera_controller = std::make_unique<nucleus::camera::Controller>(camera, dynamic_cast<nucleus::camera::AbstractDepthTester*>(m_webgpu_window.get()), nullptr);
-    m_camera_controller->set_viewport({m_width, m_height}); //TODO also when resizing window
-
-    connect(this, &TerrainRenderer::key_pressed, m_camera_controller.get(), &nucleus::camera::Controller::key_press);
-    connect(this, &TerrainRenderer::key_released, m_camera_controller.get(), &nucleus::camera::Controller::key_release);
-    connect(this, &TerrainRenderer::mouse_moved, m_camera_controller.get(), &nucleus::camera::Controller::mouse_move);
-    connect(this, &TerrainRenderer::mouse_pressed, m_camera_controller.get(), &nucleus::camera::Controller::mouse_press);
-
-    connect(m_webgpu_window.get(), &nucleus::AbstractRenderWindow::update_camera_requested, m_camera_controller.get(), &nucleus::camera::Controller::update_camera_request);
-    connect(m_camera_controller.get(), &nucleus::camera::Controller::definition_changed, m_webgpu_window.get(), &nucleus::AbstractRenderWindow::update_camera);
+    m_controller = std::make_unique<nucleus::Controller>(m_webgpu_window.get());
 
     std::cout << "before initialise_gpu()" << std::endl;
     m_webgpu_window->initialise_gpu();
     m_webgpu_window->resize_framebuffer(m_width, m_height);
-    m_camera_controller->update();
+
+    nucleus::camera::Controller* camera_controller = m_controller->camera_controller();
+    connect(this, &TerrainRenderer::key_pressed, camera_controller, &nucleus::camera::Controller::key_press);
+    connect(this, &TerrainRenderer::key_released, camera_controller, &nucleus::camera::Controller::key_release);
+    connect(this, &TerrainRenderer::mouse_moved, camera_controller, &nucleus::camera::Controller::mouse_move);
+    connect(this, &TerrainRenderer::mouse_pressed, camera_controller, &nucleus::camera::Controller::mouse_press);
+    connect(this, &TerrainRenderer::wheel_turned, camera_controller, &nucleus::camera::Controller::wheel_turn);
+    connect(
+        m_webgpu_window.get(), &nucleus::AbstractRenderWindow::update_camera_requested, camera_controller, &nucleus::camera::Controller::update_camera_request);
+    connect(camera_controller, &nucleus::camera::Controller::definition_changed, m_webgpu_window.get(), &nucleus::AbstractRenderWindow::update_camera);
+    connect(camera_controller, &nucleus::camera::Controller::definition_changed, m_controller->tile_scheduler(),
+        &nucleus::tile_scheduler::Scheduler::update_camera);
+
+    // TODO for debug purposes only, remove this code
+    // nucleus::camera::Definition camera = camera_controller->definition();
+    // camera.look_at(glm::dvec3 { 0.0f, 0.0f, 0.0f }, glm::dvec3 { 0.0, -1.0, 0.0 });
+    // camera_controller->set_definition(camera);
+
+    camera_controller->set_viewport({ m_width, m_height });
+    camera_controller->update();
+
+    m_controller->tile_scheduler()->send_quad_requests();
+    m_controller->tile_scheduler()->update_gpu_quads();
 
     glfwSetWindowSize(m_window, m_width, m_height);
     m_initialized = true;
@@ -153,8 +172,8 @@ void TerrainRenderer::on_window_resize(int width, int height) {
     m_width = width;
     m_height = height;
     m_webgpu_window->resize_framebuffer(static_cast<uint32_t>(width), static_cast<uint32_t>(height));
-    m_camera_controller->set_viewport({width, height});
-    m_camera_controller->update();
+    m_controller->camera_controller()->set_viewport({ width, height });
+    m_controller->camera_controller()->update();
 }
 
 void TerrainRenderer::on_key_callback(int key, [[maybe_unused]]int scancode, int action, [[maybe_unused]]int mods)
@@ -234,3 +253,10 @@ void TerrainRenderer::on_mouse_button_callback(int button, int action, [[maybe_u
     emit mouse_pressed(m_mouse);
 }
 
+void TerrainRenderer::on_scroll_callback(double x_offset, double y_offset)
+{
+    nucleus::event_parameter::Wheel wheel {};
+    wheel.angle_delta = QPoint(static_cast<int>(x_offset), static_cast<int>(y_offset));
+    std::cout << "wheel  turned, delta x=" << x_offset << ", y=" << y_offset << std::endl;
+    emit wheel_turned(wheel);
+}

@@ -5,9 +5,9 @@
 
 namespace webgpu_engine {
 
-PipelineManager::PipelineManager(wgpu::Device& device, ShaderModuleManager& shader_manager):
-    m_device(&device),
-    m_shader_manager(&shader_manager)
+PipelineManager::PipelineManager(wgpu::Device& device, ShaderModuleManager& shader_manager)
+    : m_device(&device)
+    , m_shader_manager(&shader_manager)
 {
 
 }
