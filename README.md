@@ -16,6 +16,7 @@ weBIGeo's primary target is the web. Additionally we support native builds on Wi
 ### Dependencies
 * Qt 6.6.2 with
   * MinGW (GCC on linux might work but not tested)
+  * Qt Shader Tools (otherwise Qt configure fails)
   * Sources
 * [emscripten](https://emscripten.org/docs/getting_started/downloads.html)
 * To exactly follow along with build instructions you need `ninja`, `cmake` and `emsdk` in your PATH
@@ -54,6 +55,11 @@ For WebGPU to work we need to compile with emscripten version > 3.1.47. The defa
    ```
    cmake --install .
    ```
+   
+8. Cleanup
+   ```
+   cd .. & rmdir /s /q build
+   ```
 
 ### Create Custom Kit for Qt Creator
 This step is specifically tailored to the Qt-Creator IDE.
@@ -66,10 +72,11 @@ This step is specifically tailored to the Qt-Creator IDE.
 
 ## Building the native version
 
-### Dependenvies
+### Dependencies
 * Windows
 * Qt 6.6.2 with
   * Sources
+  * Qt Shader Tools (otherwise Qt configure fails)
 * Python
 * Microsoft Visual C++ Compiler 17.6 (aka. MSVC2022) (comes with Visual Studio 2022)
 * To exactly follow along with build instructions you need `ninja` and `cmake` in your PATH
@@ -113,6 +120,11 @@ There is no precompiled version of Qt for the MSVC2022-compiler. Therefore we ag
 6. Install Qt (takes ~ 2min)
    ```
    ninja install
+   ```
+   
+7. Cleanup
+   ```
+   cd .. & rmdir /s /q build
    ```
 
 ### Create Custom Kit for Qt Creator
@@ -164,6 +176,12 @@ Dawn is the webgpu-implementation used in chromium, which is the open-source-eng
     ```
     cd ../release & cmake -GNinja -DCMAKE_BUILD_TYPE=Release -DTINT_BUILD_SPV_READER=OFF -DDAWN_BUILD_SAMPLES=OFF -DTINT_BUILD_TESTS=OFF -DTINT_BUILD_FUZZERS=OFF -DTINT_BUILD_SPIRV_TOOLS_FUZZER=OFF -DTINT_BUILD_AST_FUZZER=OFF -DTINT_BUILD_REGEX_FUZZER=OFF -DTINT_BUILD_BENCHMARKS=OFF -DTINT_BUILD_TESTS=OFF -DTINT_BUILD_AS_OTHER_OS=OFF ../.. & ninja
     ```
+	
+8. Cleanup (Optional)
+   To cleanup unnecessary files, like the DAWN sources aswell as configuration files which are not necessary anymore we created a python script. It is not necessary but cleans up some memory (~ 3GB). Maybe DAWN will introduce an installation target at some point then this shouldnt be necessary anymore. You can get the [script either here](https://github.com/weBIGeo/ressources/raw/main/scripts/cleanup_dawn_build.py), or just download and execute it with the following command:
+   ```
+   curl -L "https://github.com/weBIGeo/ressources/raw/main/scripts/cleanup_dawn_build.py" -o cleanup_dawn_build.py && python cleanup_dawn_build.py
+   ```
 
 
 # Code style
