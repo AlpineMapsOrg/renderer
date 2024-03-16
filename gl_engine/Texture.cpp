@@ -194,7 +194,7 @@ GLenum gl_engine::Texture::compressed_texture_format()
             return 0;
         return ext.COMPRESSED_RGB8_ETC2;
     });
-    qDebug() << "gl_engine::Texture::compressed_texture_format: gl_texture_format from js: " << gl_texture_format;
+    // qDebug() << "gl_engine::Texture::compressed_texture_format: gl_texture_format from js: " << gl_texture_format;
     // clang-format on
     if (gl_texture_format == 0) {
         gl_texture_format = GL_COMPRESSED_RGB_S3TC_DXT1_EXT; // not on mobile
@@ -220,7 +220,7 @@ nucleus::utils::ColourTexture::Format gl_engine::Texture::compression_algorithm(
         return ext.COMPRESSED_RGB8_ETC2;
     });
     // clang-format on
-    qDebug() << "gl_engine::Texture::compression_algorithm: gl_texture_format from js: " << gl_texture_format;
+    // qDebug() << "gl_engine::Texture::compression_algorithm: gl_texture_format from js: " << gl_texture_format;
     if (gl_texture_format == 0) {
         return nucleus::utils::ColourTexture::Format::DXT1;
     }
