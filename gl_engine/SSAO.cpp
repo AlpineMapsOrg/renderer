@@ -54,8 +54,8 @@ SSAO::SSAO(std::shared_ptr<ShaderProgram> program, std::shared_ptr<ShaderProgram
     m_ssao_noise_texture->setData(QOpenGLTexture::RGB, QOpenGLTexture::Float32, &ssaoNoise[0]);
 
     // GENERATE FRAMEBUFFER
-    m_ssaobuffer = std::make_unique<Framebuffer>(Framebuffer::DepthFormat::None, std::vector{ TextureDefinition{Framebuffer::ColourFormat::R8}});
-    m_ssao_blurbuffer = std::make_unique<Framebuffer>(Framebuffer::DepthFormat::None, std::vector{ TextureDefinition{Framebuffer::ColourFormat::R8}});
+    m_ssaobuffer = std::make_unique<Framebuffer>(Framebuffer::DepthFormat::None, std::vector { Framebuffer::ColourFormat::R8 });
+    m_ssao_blurbuffer = std::make_unique<Framebuffer>(Framebuffer::DepthFormat::None, std::vector { Framebuffer::ColourFormat::R8 });
 }
 
 void SSAO::recreate_kernel(unsigned int size) {

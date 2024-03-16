@@ -43,11 +43,6 @@ alp_add_unittest(unittests_nucleus
     bits_and_pieces.cpp
 )
 
-qt_add_resources(unittests_nucleus "height_data"
-    PREFIX "/map"
-    BASE ${renderer_static_data_SOURCE_DIR}
-    FILES ${renderer_static_data_SOURCE_DIR}/height_data.atb
-)
 qt_add_resources(unittests_nucleus "test_data"
     PREFIX "/test_data"
     BASE ${CMAKE_CURRENT_SOURCE_DIR}/data/

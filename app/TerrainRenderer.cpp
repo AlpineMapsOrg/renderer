@@ -28,12 +28,13 @@
 #include "gl_engine/Window.h"
 #include "nucleus/Controller.h"
 #include "nucleus/camera/Controller.h"
-
+#include "nucleus/tile_scheduler/Scheduler.h"
 
 TerrainRenderer::TerrainRenderer()
 {
     m_glWindow = std::make_unique<gl_engine::Window>();
     m_controller = std::make_unique<nucleus::Controller>(m_glWindow.get());
+    m_controller->tile_scheduler()->set_ortho_tile_compression_algorithm(m_glWindow->ortho_tile_compression_algorithm());
     m_glWindow->initialise_gpu();
 #ifdef ALP_ENABLE_TRACK_OBJECT_LIFECYCLE
     qDebug("TerrainRendererItemRenderer()");

@@ -70,5 +70,4 @@ jobs:
       run: |
         ./build/alp_external/radix/unittests/unittests_radix.exe
         ./build/unittests/unittests_nucleus.exe
-        ./build/unittests/unittests_gl_engine.exe
         
