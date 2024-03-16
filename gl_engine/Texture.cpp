@@ -189,7 +189,7 @@ GLenum gl_engine::Texture::compressed_texture_format()
     static int gl_texture_format = EM_ASM_INT({
         var canvas = document.createElement('canvas');
         var gl = canvas.getContext("webgl2");
-        const ext = gl.getExtension("WEBGL_compressed_texture_es3");
+        const ext = gl.getExtension("WEBGL_compressed_texture_etc");
         if (ext === null)
             return 0;
         return ext.COMPRESSED_RGB8_ETC2;
@@ -214,7 +214,7 @@ nucleus::utils::ColourTexture::Format gl_engine::Texture::compression_algorithm(
     static const int gl_texture_format = EM_ASM_INT({
         var canvas = document.createElement('canvas');
         var gl = canvas.getContext("webgl2");
-        const ext = gl.getExtension("WEBGL_compressed_texture_es3");
+        const ext = gl.getExtension("WEBGL_compressed_texture_etc");
         if (ext === null)
             return 0;
         return ext.COMPRESSED_RGB8_ETC2;
