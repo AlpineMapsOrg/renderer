@@ -248,7 +248,6 @@ void Framebuffer::bind()
     QOpenGLFunctions* f = QOpenGLContext::currentContext()->functions();
     f->glViewport(0, 0, int(m_size.x), int(m_size.y));
     f->glBindFramebuffer(GL_FRAMEBUFFER, m_frame_buffer);
-    //reset_fbo();
 }
 
 void Framebuffer::bind_colour_texture(unsigned index, unsigned location)
@@ -347,7 +346,6 @@ void Framebuffer::unbind()
 void Framebuffer::reset_fbo()
 {
     QOpenGLExtraFunctions* f = QOpenGLContext::currentContext()->extraFunctions();
-    //QOpenGLFunctions* f = QOpenGLContext::currentContext()->functions();
     f->glBindFramebuffer(GL_FRAMEBUFFER, m_frame_buffer);
     // unsigned int draw_attachments[m_colour_textures.size()];
     std::vector<unsigned> draw_attachments;

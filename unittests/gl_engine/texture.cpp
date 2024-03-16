@@ -277,11 +277,11 @@ TEST_CASE("gl texture")
                 opengl_texture.upload(compressed, 2);
             }
             ShaderProgram shader = create_debug_shader(R"(
-                uniform sampler2DArray texture_sampler;
+                uniform lowp sampler2DArray texture_sampler;
                 in highp vec2 texcoords;
-                out lowp vec4 out_color_0;
-                out lowp vec4 out_color_1;
-                out lowp vec4 out_color_2;
+                layout (location = 0) out lowp vec4 out_color_0;
+                layout (location = 1) out lowp vec4 out_color_1;
+                layout (location = 2) out lowp vec4 out_color_2;
                 void main() {
                     out_color_0 = texture(texture_sampler, vec3(texcoords.x, 1.0 - texcoords.y, 0.0));
                     out_color_1 = texture(texture_sampler, vec3(texcoords.x, 1.0 - texcoords.y, 1.0));
@@ -347,8 +347,8 @@ TEST_CASE("gl texture")
 
         ShaderProgram shader = create_debug_shader(R"(
             uniform mediump usampler2DArray texture_sampler;
-            out lowp vec4 out_color1;
-            out lowp vec4 out_color2;
+            layout (location = 0) out lowp vec4 out_color1;
+            layout (location = 1) out lowp vec4 out_color2;
             void main() {
                 {
                     mediump uint v = texture(texture_sampler, vec3(0.5, 0.5, 0)).r;
