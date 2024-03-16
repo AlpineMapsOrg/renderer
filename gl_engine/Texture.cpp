@@ -189,10 +189,10 @@ GLenum gl_engine::Texture::compressed_texture_format()
     static int gl_texture_format = EM_ASM_INT({
         var canvas = document.createElement('canvas');
         var gl = canvas.getContext("webgl2");
-        const ext = gl.getExtension("WEBGL_compressed_texture_etc1");
+        const ext = gl.getExtension("WEBGL_compressed_texture_es3");
         if (ext === null)
             return 0;
-        return ext.COMPRESSED_RGB_ETC1_WEBGL;
+        return ext.COMPRESSED_RGB8_ETC2;
     });
     qDebug() << "gl_engine::Texture::compressed_texture_format: gl_texture_format from js: " << gl_texture_format;
     // clang-format on
@@ -214,10 +214,10 @@ nucleus::utils::ColourTexture::Format gl_engine::Texture::compression_algorithm(
     static const int gl_texture_format = EM_ASM_INT({
         var canvas = document.createElement('canvas');
         var gl = canvas.getContext("webgl2");
-        const ext = gl.getExtension("WEBGL_compressed_texture_etc1");
+        const ext = gl.getExtension("WEBGL_compressed_texture_es3");
         if (ext === null)
             return 0;
-        return ext.COMPRESSED_RGB_ETC1_WEBGL;
+        return ext.COMPRESSED_RGB8_ETC2;
     });
     // clang-format on
     qDebug() << "gl_engine::Texture::compression_algorithm: gl_texture_format from js: " << gl_texture_format;
