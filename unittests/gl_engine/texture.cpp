@@ -89,7 +89,7 @@ void test_unsigned_texture_with(const TexelType& texel_value, gl_engine::Texture
             out lowp vec4 out_color;
             void main() {
                 %1 uvec4 v = texelFetch(texture_sampler, ivec2(0, 0), 0);
-                out_color = vec4((v.r == %2) ? 123.0 / 255.0 : 9 / 255.0,
+                out_color = vec4((v.r == %2) ? 123.0 / 255.0 : 9.0 / 255.0,
                                  (%6 < 2 || v.g == %3) ? 124.0 / 255.0 : 9.0 / 255.0,
                                  (%6 < 3 || v.b == %4) ? 125.0 / 255.0 : 9.0 / 255.0,
                                  (%6 < 4 || v.a == %5) ? 126.0 / 255.0 : 9.0 / 255.0);
