@@ -16,23 +16,14 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *****************************************************************************/
 
-#include <QPainter>
-#include <GoofyTC/goofy_tc.h>
-#include <catch2/catch_test_macros.hpp>
-#include <gl_engine/Texture.h>
-#ifdef ANDROID
-#include <GLES3/gl3.h>
-#endif
-#ifdef __EMSCRIPTEN__
-#include <emscripten.h>
-#include <emscripten/val.h>
-#endif
-
 #include "UnittestGLContext.h"
-#include "gl_engine/Framebuffer.h"
-#include "gl_engine/ShaderProgram.h"
-#include "gl_engine/helpers.h"
-#include "nucleus/utils/ColourTexture.h"
+#include <QPainter>
+#include <catch2/catch_test_macros.hpp>
+#include <gl_engine/Framebuffer.h>
+#include <gl_engine/ShaderProgram.h>
+#include <gl_engine/Texture.h>
+#include <gl_engine/helpers.h>
+#include <nucleus/utils/ColourTexture.h>
 
 using gl_engine::Framebuffer;
 using gl_engine::ShaderProgram;
