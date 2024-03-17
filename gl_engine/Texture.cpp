@@ -161,6 +161,19 @@ void gl_engine::Texture::upload(const nucleus::Raster<uint16_t>& texture)
     f->glTexImage2D(GLenum(m_target), 0, GL_R16UI, GLsizei(texture.width()), GLsizei(texture.height()), 0, GL_RED_INTEGER, GL_UNSIGNED_SHORT, texture.bytes());
 }
 
+void gl_engine::Texture::upload(const nucleus::Raster<uint32_t>& texture)
+{
+
+    assert(m_format == Format::R32UI);
+    assert(m_mag_filter == Filter::Nearest); // not filterable according to
+    assert(m_min_filter == Filter::Nearest); // https://registry.khronos.org/OpenGL-Refpages/es3.0/html/glTexStorage2D.xhtml
+
+    QOpenGLFunctions* f = QOpenGLContext::currentContext()->functions();
+    f->glBindTexture(GLenum(m_target), m_id);
+    f->glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
+    f->glTexImage2D(GLenum(m_target), 0, GL_R32UI, GLsizei(texture.width()), GLsizei(texture.height()), 0, GL_RED_INTEGER, GL_UNSIGNED_INT, texture.bytes());
+}
+
 void gl_engine::Texture::upload(const nucleus::Raster<uint16_t>& texture, unsigned int array_index)
 {
     assert(m_format == Format::R16UI);

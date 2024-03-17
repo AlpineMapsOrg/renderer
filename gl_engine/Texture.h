@@ -31,7 +31,7 @@ namespace gl_engine {
 class Texture {
 public:
     enum class Target : GLenum { _2d = GL_TEXTURE_2D, _2dArray = GL_TEXTURE_2D_ARRAY };
-    enum class Format : GLenum { RGBA8 = GL_RGBA8, CompressedRGBA8 = GLenum(-2), RG8 = GL_RG8, R16UI = GL_R16UI, Invalid = GLenum(-1) };
+    enum class Format : GLenum { RGBA8 = GL_RGBA8, CompressedRGBA8 = GLenum(-2), RG8 = GL_RG8, R16UI = GL_R16UI, R32UI = GL_R32UI, Invalid = GLenum(-1) };
     enum class Filter : GLint { Nearest = GL_NEAREST, Linear = GL_LINEAR, MipMapLinear = GL_LINEAR_MIPMAP_LINEAR };
 
 public:
@@ -49,6 +49,7 @@ public:
     void upload(const nucleus::utils::ColourTexture& texture, unsigned array_index);
     void upload(const nucleus::Raster<glm::u8vec2>& texture);
     void upload(const nucleus::Raster<uint16_t>& texture);
+    void upload(const nucleus::Raster<uint32_t>& texture);
     void upload(const nucleus::Raster<uint16_t>& texture, unsigned int array_index);
 
     static GLenum compressed_texture_format();
