@@ -52,12 +52,22 @@ ShaderProgram create_debug_shader(const QString& fragment_source = R"(
     return tmp;
 }
 
-template <typename Type> void test_unsigned_texture_with(const Type& texel_value, gl_engine::Texture::Format format)
+template <int length, typename Type> QString texel_component(const glm::vec<length, Type>& texel, int i)
+{
+    if (i < length)
+        return QString("%1u").arg(texel[i]);
+    return "0u";
+};
+
+template <typename Type> QString texel_component(const Type& texel, int) { return QString("%1u").arg(texel); };
+
+template <int length, typename Type, typename TexelType = glm::vec<length, Type>>
+void test_unsigned_texture_with(const TexelType& texel_value, gl_engine::Texture::Format format)
 {
     Framebuffer b(Framebuffer::DepthFormat::None, { Framebuffer::ColourFormat::RGBA8 }, { 1, 1 });
     b.bind();
 
-    const auto tex = nucleus::Raster<Type>({ 1, 1 }, texel_value);
+    const auto tex = nucleus::Raster<TexelType>({ 1, 1 }, texel_value);
     gl_engine::Texture opengl_texture(gl_engine::Texture::Target::_2d, format);
     opengl_texture.bind(0);
     opengl_texture.setParams(gl_engine::Texture::Filter::Nearest, gl_engine::Texture::Filter::Nearest);
@@ -72,58 +82,6 @@ template <typename Type> void test_unsigned_texture_with(const Type& texel_value
             return "highp";
         assert(false);
         return "Type has unexpected size";
-    };
-
-    ShaderProgram shader = create_debug_shader(QString(R"(
-            uniform %1 usampler2D texture_sampler;
-            out lowp vec4 out_color;
-            void main() {
-                %1 uvec4 v = texelFetch(texture_sampler, ivec2(0, 0), 0);
-                out_color = vec4((v.r == %2u) ? 123.0 / 255.0 : 9 / 255.0,
-                                 124.0 / 255.0,
-                                 125.0 / 255.0,
-                                 126.0 / 255.0);
-            }
-        )")
-                                                   .arg(precision())
-                                                   .arg(texel_value));
-    shader.bind();
-    gl_engine::helpers::create_screen_quad_geometry().draw();
-
-    const QImage render_result = b.read_colour_attachment(0);
-    // render_result.save("render_result.png");
-    Framebuffer::unbind();
-    CHECK(qRed(render_result.pixel(0, 0)) == 123);
-    CHECK(qGreen(render_result.pixel(0, 0)) == 124);
-    CHECK(qBlue(render_result.pixel(0, 0)) == 125);
-    CHECK(qAlpha(render_result.pixel(0, 0)) == 126);
-}
-
-template <int length, typename Type> void test_unsigned_texture_with(const glm::vec<length, Type>& texel_value, gl_engine::Texture::Format format)
-{
-    Framebuffer b(Framebuffer::DepthFormat::None, { Framebuffer::ColourFormat::RGBA8 }, { 1, 1 });
-    b.bind();
-
-    const auto tex = nucleus::Raster<glm::vec<length, Type>>({ 1, 1 }, texel_value);
-    gl_engine::Texture opengl_texture(gl_engine::Texture::Target::_2d, format);
-    opengl_texture.bind(0);
-    opengl_texture.setParams(gl_engine::Texture::Filter::Nearest, gl_engine::Texture::Filter::Nearest);
-    opengl_texture.upload(tex);
-
-    const auto precision = []() -> QString {
-        if (sizeof(Type) == 1)
-            return "lowp";
-        if (sizeof(Type) == 2)
-            return "mediump";
-        if (sizeof(Type) == 4)
-            return "highp";
-        assert(false);
-        return "Type has unexpected size";
-    };
-    const auto texel_component = [texel_value](int i) -> QString {
-        if (i < length)
-            return QString("%1u").arg(texel_value[i]);
-        return "0u";
     };
 
     ShaderProgram shader = create_debug_shader(QString(R"(
@@ -138,10 +96,10 @@ template <int length, typename Type> void test_unsigned_texture_with(const glm::
             }
         )")
                                                    .arg(precision())
-                                                   .arg(texel_component(0))
-                                                   .arg(texel_component(1))
-                                                   .arg(texel_component(2))
-                                                   .arg(texel_component(3))
+                                                   .arg(texel_component(texel_value, 0))
+                                                   .arg(texel_component(texel_value, 1))
+                                                   .arg(texel_component(texel_value, 2))
+                                                   .arg(texel_component(texel_value, 3))
                                                    .arg(length));
     shader.bind();
     gl_engine::helpers::create_screen_quad_geometry().draw();
@@ -309,7 +267,8 @@ TEST_CASE("gl texture")
 
     SECTION("rgba8ui") { test_unsigned_texture_with<4, unsigned char>({ 1, 2, 255, 140 }, gl_engine::Texture::Format::RGBA8UI); }
     SECTION("rg32ui") { test_unsigned_texture_with<2, uint32_t>({ 3000111222, 4000111222 }, gl_engine::Texture::Format::RG32UI); }
-    SECTION("red16ui") { test_unsigned_texture_with<uint16_t>(uint16_t(60123), gl_engine::Texture::Format::R16UI); }
+    SECTION("red16ui") { test_unsigned_texture_with<1, uint16_t, uint16_t>(uint16_t(60123), gl_engine::Texture::Format::R16UI); }
+    SECTION("red32ui") { test_unsigned_texture_with<1, uint32_t, uint32_t>(uint32_t(4000111222), gl_engine::Texture::Format::R32UI); }
 
     SECTION("rgba array (compressed and uncompressed)")
     {
