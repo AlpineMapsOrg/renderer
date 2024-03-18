@@ -33,10 +33,6 @@ if (EMSCRIPTEN)
     list(APPEND SOURCES WebInterop.h WebInterop.cpp)
 endif()
 
-if (ALP_WEBGPU_APP_ENABLE_IMGUI)
-    list(APPEND SOURCES imgui_style.h)
-endif()
-
 qt_add_executable(webgpu_app
     resources.qrc
     ${SOURCES}

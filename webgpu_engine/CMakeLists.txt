@@ -47,7 +47,10 @@ target_include_directories(webgpu_engine PRIVATE .)
 
 if (ALP_WEBGPU_APP_ENABLE_IMGUI)
     alp_add_git_repository(imgui URL https://github.com/AlpineMapsOrgDependencies/imgui_slim.git COMMITISH f738c335f73956ed3715434987e6f82bac442e87 )
-    target_link_libraries(webgpu_engine PUBLIC imgui)
+
+    set(IMNODES_IMGUI_TARGET_NAME imgui)
+    alp_add_git_repository(imnodes URL https://github.com/AlpineMapsOrgDependencies/imnodes_slim.git COMMITISH 2300279d51bb74ecec9b4e96ba08b1482972051d)
+    target_link_libraries(webgpu_engine PUBLIC imgui imnodes)
     target_compile_definitions(webgpu_engine PUBLIC "ALP_WEBGPU_APP_ENABLE_IMGUI")
 endif()
 

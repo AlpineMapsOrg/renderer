@@ -27,7 +27,6 @@
 #ifdef ALP_WEBGPU_APP_ENABLE_IMGUI
 #include <imgui.h>
 #include "backends/imgui_impl_glfw.h"
-#include "imgui_style.h"
 #endif
 
 #include "nucleus/tile_scheduler/Scheduler.h"
@@ -164,7 +163,6 @@ void TerrainRenderer::start() {
 
     glfwSetWindowSize(m_window, m_width, m_height);
     m_initialized = true;
-    activateImGuiStyle(false, 0.9);
 
 
 #if defined(__EMSCRIPTEN__)

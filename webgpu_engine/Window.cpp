@@ -24,6 +24,7 @@
 
 #ifdef ALP_WEBGPU_APP_ENABLE_IMGUI
 #include <imgui.h>
+#include <imnodes.h>
 #include "backends/imgui_impl_wgpu.h"
 #endif
 
@@ -251,7 +252,11 @@ bool Window::init_gui()
     // Setup Dear ImGui context
     IMGUI_CHECKVERSION();
     ImGui::CreateContext();
-    ImGui::GetIO();
+
+    // Setup ImNodes
+    ImNodes::CreateContext();
+
+    //ImGui::GetIO();
 
     // Setup Platform/Renderer backends
     m_imgui_window_init_func();
@@ -261,11 +266,19 @@ bool Window::init_gui()
     init_info.DepthStencilFormat = WGPUTextureFormat_Undefined;
     init_info.NumFramesInFlight = 3;
     ImGui_ImplWGPU_Init(&init_info);
+
+    ImGui::StyleColorsLight();
+    // set background of windows to 90% transparent
+    ImGui::GetStyle().Colors[ImGuiCol_WindowBg] = ImVec4(0.9f, 0.9f, 0.9f, 0.9f);
+    ImNodes::StyleColorsLight();
+
     return true;
 }
 
 void Window::terminate_gui()
 {
+    ImNodes::DestroyContext();
+    ImGui::DestroyContext();
     m_imgui_window_shutdown_func();
     ImGui_ImplWGPU_Shutdown();
 }
@@ -278,8 +291,10 @@ void Window::update_gui(wgpu::RenderPassEncoder render_pass)
 
     ImGuiIO& io = ImGui::GetIO();
 
-    // Build our UI
     static float frame_time = 0.0f;
+    static std::vector<std::pair<int, int>> links;
+    static bool show_node_editor = false;
+    static bool first_frame = true;
 
     ImGui::SetNextWindowPos(ImVec2(ImGui::GetIO().DisplaySize.x - 300, 0)); // Set position to top-left corner
     ImGui::SetNextWindowSize(ImVec2(300, ImGui::GetIO().DisplaySize.y)); // Set height to full screen height, width as desired
@@ -308,11 +323,85 @@ void Window::update_gui(wgpu::RenderPassEncoder render_pass)
 
     ImGui::Separator();
 
+    if (ImGui::Button(!show_node_editor ? "Show Node Editor" : "Hide Node Editor", ImVec2(280, 20))) {
+        show_node_editor = !show_node_editor;
+    }
+
     ImGui::End();
+
+    if (first_frame) {
+        ImNodes::SetNodeScreenSpacePos(1, ImVec2(50, 50));
+        ImNodes::SetNodeScreenSpacePos(2, ImVec2(400, 50));
+    }
+
+    if (show_node_editor) {
+        // ========== BEGIN NODE WINDOW ===========
+        ImGui::SetNextWindowPos(ImVec2(0, 0), ImGuiCond_Always);
+        ImGui::SetNextWindowSize(ImVec2(ImGui::GetIO().DisplaySize.x - 300, ImGui::GetIO().DisplaySize.y), ImGuiCond_Always);
+        ImGui::Begin("Node Editor", NULL, ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoTitleBar);
+
+        // BEGINN NODE EDITOR
+        ImNodes::BeginNodeEditor();
+
+        // DRAW NODE 1
+        ImNodes::BeginNode(1);
+
+        ImNodes::BeginNodeTitleBar();
+        ImGui::TextUnformatted("input node");
+        ImNodes::EndNodeTitleBar();
+
+        ImNodes::BeginOutputAttribute(2);
+        ImGui::Text("data");
+        ImNodes::EndOutputAttribute();
+
+        ImNodes::EndNode();
+
+        // DRAW NODE 2
+        ImNodes::BeginNode(2);
+
+        ImNodes::BeginNodeTitleBar();
+        ImGui::TextUnformatted("output node");
+        ImNodes::EndNodeTitleBar();
+
+        ImNodes::BeginInputAttribute(3);
+        ImGui::Text("data");
+        ImNodes::EndInputAttribute();
+
+        ImNodes::BeginInputAttribute(4, ImNodesPinShape_Triangle);
+        ImGui::Text("overlay");
+        ImNodes::EndInputAttribute();
+
+        ImNodes::EndNode();
+
+               // IMNODES - DRAW LINKS
+        int id = 0;
+        for (const auto& p : links)
+        {
+            ImNodes::Link(id++, p.first, p.second);
+        }
+
+        // IMNODES - MINIMAP
+        ImNodes::MiniMap(0.1f, ImNodesMiniMapLocation_BottomRight);
+
+        ImNodes::EndNodeEditor();
+
+        int start_attr, end_attr;
+        if (ImNodes::IsLinkCreated(&start_attr, &end_attr))
+        {
+            links.push_back(std::make_pair(start_attr, end_attr));
+        }
+
+
+
+        ImGui::End();
+    }
+
+
 
     ImGui::EndFrame();
     ImGui::Render();
     ImGui_ImplWGPU_RenderDrawData(ImGui::GetDrawData(), render_pass);
+    first_frame = false;
 }
 #endif
 
