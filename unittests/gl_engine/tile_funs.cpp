@@ -148,6 +148,87 @@ void hashing_cpp_same_as_glsl(const tile::Id& id)
     }
 }
 
+void packing_cpp_same_as_glsl(const tile::Id& id)
+{
+    {
+        Framebuffer b(Framebuffer::DepthFormat::None, { Framebuffer::ColourFormat::RGBA8 }, { 1, 1 });
+        b.bind();
+
+        ShaderProgram shader = create_debug_shader(QString(R"(
+            #include "tile_id.glsl"
+
+            out lowp vec4 out_color;
+            void main() {
+                highp uvec2 cpp_packed_id = uvec2(%1u, %2u);
+                lowp uint zoom_level = %3u;
+                highp uint x = %4u;
+                highp uint y = %5u;
+                highp uvec3 unpacked_id = unpack_tile_id(cpp_packed_id);
+                bool unpack_ok = zoom_level == unpacked_id.z && x == unpacked_id.x && y == unpacked_id.y;
+                highp uvec2 packed_id = pack_tile_id(zoom_level, x, y);
+                bool pack_ok = packed_id == cpp_packed_id;
+                out_color = vec4(unpack_ok ? 121.0 / 255.0 : 9.0 / 255.0, pack_ok ? 122.0 / 255.0 : 9.0 / 255.0, 0, 1);
+            }
+        )")
+                                                       .arg(tile_id_funs::pack(id).x)
+                                                       .arg(tile_id_funs::pack(id).y)
+                                                       .arg(id.zoom_level)
+                                                       .arg(id.coords.x)
+                                                       .arg(id.coords.y));
+        shader.bind();
+        gl_engine::helpers::create_screen_quad_geometry().draw();
+
+        const QImage render_result = b.read_colour_attachment(0);
+        Framebuffer::unbind();
+        CHECK(qRed(render_result.pixel(0, 0)) == 121);
+        CHECK(qGreen(render_result.pixel(0, 0)) == 122);
+    }
+    {
+        Framebuffer b(Framebuffer::DepthFormat::None, { Framebuffer::ColourFormat::RGBA8 }, { 1, 1 });
+        b.bind();
+
+        ShaderProgram shader = create_debug_shader(QString(R"(
+            out lowp vec4 out_color;
+            flat in lowp vec2 ok;
+            void main() {
+                out_color = vec4(ok, 0, 1);
+            }
+            )"),
+            QString(R"(
+            #include "tile_id.glsl"
+
+            out highp vec2 texcoords;
+            flat out lowp vec2 ok;
+            void main() {
+                highp uvec2 cpp_packed_id = uvec2(%1u, %2u);
+                lowp uint zoom_level = %3u;
+                highp uint x = %4u;
+                highp uint y = %5u;
+                highp uvec3 unpacked_id = unpack_tile_id(cpp_packed_id);
+                bool unpack_ok = zoom_level == unpacked_id.z && x == unpacked_id.x && y == unpacked_id.y;
+                highp uvec2 packed_id = pack_tile_id(zoom_level, x, y);
+                bool pack_ok = packed_id == cpp_packed_id;
+                ok = vec2(unpack_ok ? 121.0 / 255.0 : 9.0 / 255.0, pack_ok ? 122.0 / 255.0 : 9.0 / 255.0);
+
+                vec2 vertices[3]=vec2[3](vec2(-1.0, -1.0), vec2(3.0, -1.0), vec2(-1.0, 3.0));
+                gl_Position = vec4(vertices[gl_VertexID], 0.0, 1.0);
+                texcoords = 0.5 * gl_Position.xy + vec2(0.5);
+            })")
+                .arg(tile_id_funs::pack(id).x)
+                .arg(tile_id_funs::pack(id).y)
+                .arg(id.zoom_level)
+                .arg(id.coords.x)
+                .arg(id.coords.y));
+        shader.bind();
+        gl_engine::helpers::create_screen_quad_geometry().draw();
+
+        const QImage render_result = b.read_colour_attachment(0);
+        Framebuffer::unbind();
+        CHECK(qRed(render_result.pixel(0, 0)) == 121);
+        CHECK(qGreen(render_result.pixel(0, 0)) == 122);
+    }
+}
+
 void packing_roundtrip_cpp(const tile::Id& id)
 {
     const auto packed = tile_id_funs::pack(id);
@@ -240,12 +321,18 @@ TEST_CASE("glsl tile functions")
         }
     }
 
-    // SECTION("packiong c++ same as glsl")
-    // {
-    //     packing_cpp_same_as_glsl({ 0, { 0, 0 } });
-    //     packing_cpp_same_as_glsl({ 1, { 0, 0 } });
-    //     packing_cpp_same_as_glsl({ 1, { 1, 1 } });
-    //     packing_cpp_same_as_glsl({ 14, { 2673, 12038 } });
-    //     packing_cpp_same_as_glsl({ 20, { 430489, 100204 } });
-    // }
+    SECTION("packiong c++ same as glsl")
+    {
+        packing_cpp_same_as_glsl({ 0, { 0, 0 } });
+        packing_cpp_same_as_glsl({ 1, { 0, 0 } });
+        packing_cpp_same_as_glsl({ 1, { 1, 1 } });
+        packing_cpp_same_as_glsl({ 14, { 2673, 12038 } });
+        packing_cpp_same_as_glsl({ 20, { 430489, 100204 } });
+        for (const auto id : ids) {
+            const auto hash = tile_id_funs::hash_uint16(id);
+            if (hash / 65535.f > 0.98f) {
+                packing_cpp_same_as_glsl(id);
+            }
+        }
+    }
 }

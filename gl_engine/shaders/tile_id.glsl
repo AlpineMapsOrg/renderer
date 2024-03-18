@@ -22,3 +22,20 @@ mediump uint hash_tile_id(mediump uint zoom_level, mediump uint coord_x, mediump
     mediump uint y = coord_y * 62117u + 59119u;
     return (x + y + z) & 65535u;
 }
+
+highp uvec2 pack_tile_id(highp uint zoom_level, highp uint coord_x, highp uint coord_y) {
+    highp uint a = zoom_level << (32 - 5);
+    a = a | (coord_x >> 3);
+    highp uint b = coord_x << (32 - 3);
+    b = b | coord_y;
+    return uvec2(a, b);
+}
+
+highp uvec3 unpack_tile_id(highp uvec2 packed_id) {
+    uvec3 id;
+    id.z = packed_id.x >> (32u - 5u);
+    id.x = (packed_id.x & ((1u << (32u - 5u)) - 1u)) << 3u;
+    id.x = id.x | (packed_id.y >> (32u - 3u));
+    id.y = packed_id.y & ((1u << (32u - 3u)) - 1u);
+    return id;
+}
