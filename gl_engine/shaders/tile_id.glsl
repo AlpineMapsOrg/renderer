@@ -32,7 +32,7 @@ highp uvec2 pack_tile_id(highp uint zoom_level, highp uint coord_x, highp uint c
 }
 
 highp uvec3 unpack_tile_id(highp uvec2 packed_id) {
-    uvec3 id;
+    highp uvec3 id;
     id.z = packed_id.x >> (32u - 5u);
     id.x = (packed_id.x & ((1u << (32u - 5u)) - 1u)) << 3u;
     id.x = id.x | (packed_id.y >> (32u - 3u));
