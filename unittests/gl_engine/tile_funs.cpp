@@ -148,11 +148,42 @@ void hashing_cpp_same_as_glsl(const tile::Id& id)
     }
 }
 
+void packing_roundtrip_cpp(const tile::Id& id)
+{
+    const auto packed = tile_id_funs::pack(id);
+    const auto unpacked = tile_id_funs::unpack(packed);
+    CHECK(id == unpacked);
+};
+
 } // namespace
 
 TEST_CASE("glsl tile functions")
 {
     UnittestGLContext::initialise();
+    std::unordered_set<tile::Id, tile::Id::Hasher> ids;
+    {
+        TileHeights h;
+        h.emplace({ 0, { 0, 0 } }, { 100, 4000 });
+        auto aabb_decorator = nucleus::tile_scheduler::utils::AabbDecorator::make(std::move(h));
+
+        const auto add_tiles = [&](auto camera) {
+            camera.set_viewport_size({ 1920, 1080 });
+            const auto all_leaves = quad_tree::onTheFlyTraverse(
+                tile::Id { 0, { 0, 0 } }, nucleus::tile_scheduler::utils::refineFunctor(camera, aabb_decorator, 1, 64), [&ids](const tile::Id& v) {
+                    ids.insert(v);
+                    return v.children();
+                });
+        };
+        add_tiles(nucleus::camera::stored_positions::stephansdom());
+        add_tiles(nucleus::camera::stored_positions::grossglockner());
+        add_tiles(nucleus::camera::stored_positions::oestl_hochgrubach_spitze());
+        add_tiles(nucleus::camera::stored_positions::wien());
+        add_tiles(nucleus::camera::stored_positions::karwendel());
+        add_tiles(nucleus::camera::stored_positions::schneeberg());
+        add_tiles(nucleus::camera::stored_positions::weichtalhaus());
+        add_tiles(nucleus::camera::stored_positions::grossglockner_shadow());
+    }
+
     SECTION("hashing c++ same as glsl")
     {
         hashing_cpp_same_as_glsl({ 0, { 0, 0 } });
@@ -160,34 +191,17 @@ TEST_CASE("glsl tile functions")
         hashing_cpp_same_as_glsl({ 1, { 1, 1 } });
         hashing_cpp_same_as_glsl({ 14, { 2673, 12038 } });
         hashing_cpp_same_as_glsl({ 20, { 430489, 100204 } });
+        for (const auto id : ids) {
+            const auto hash = tile_id_funs::hash_uint16(id);
+            if (hash / 65535.f > 0.98f) {
+                // n_equality_checks++;
+                hashing_cpp_same_as_glsl(id);
+            }
+        }
     }
 
     SECTION("check conflict potential")
     {
-        std::unordered_set<tile::Id, tile::Id::Hasher> ids;
-        {
-            TileHeights h;
-            h.emplace({ 0, { 0, 0 } }, { 100, 4000 });
-            auto aabb_decorator = nucleus::tile_scheduler::utils::AabbDecorator::make(std::move(h));
-
-            const auto add_tiles = [&](auto camera) {
-                camera.set_viewport_size({ 1920, 1080 });
-                const auto all_leaves = quad_tree::onTheFlyTraverse(
-                    tile::Id { 0, { 0, 0 } }, nucleus::tile_scheduler::utils::refineFunctor(camera, aabb_decorator, 1, 64), [&ids](const tile::Id& v) {
-                        ids.insert(v);
-                        return v.children();
-                    });
-            };
-            add_tiles(nucleus::camera::stored_positions::stephansdom());
-            add_tiles(nucleus::camera::stored_positions::grossglockner());
-            add_tiles(nucleus::camera::stored_positions::oestl_hochgrubach_spitze());
-            add_tiles(nucleus::camera::stored_positions::wien());
-            add_tiles(nucleus::camera::stored_positions::karwendel());
-            add_tiles(nucleus::camera::stored_positions::schneeberg());
-            add_tiles(nucleus::camera::stored_positions::weichtalhaus());
-            add_tiles(nucleus::camera::stored_positions::grossglockner_shadow());
-        }
-
         QImage data(256, 256, QImage::Format_Grayscale8);
         data.fill(0);
         unsigned conflict_chain_length = 0;
@@ -195,10 +209,6 @@ TEST_CASE("glsl tile functions")
         // unsigned n_equality_checks = 0;
         for (const auto id : ids) {
             const auto hash = tile_id_funs::hash_uint16(id);
-            if (hash / 65535.f > 0.98f) {
-                // n_equality_checks++;
-                hashing_cpp_same_as_glsl(id);
-            }
             auto& bucket = (*(data.bits() + hash));
             n_conflicts += bucket != 0;
             bucket++;
@@ -220,16 +230,14 @@ TEST_CASE("glsl tile functions")
 
     SECTION("packing roundtrip in c++")
     {
-        const auto check = [](const tile::Id& id) {
-            const auto packed = tile_id_funs::pack(id);
-            const auto unpacked = tile_id_funs::unpack(packed);
-            CHECK(id == unpacked);
-        };
-        check({ 0, { 0, 0 } });
-        check({ 1, { 0, 0 } });
-        check({ 1, { 1, 1 } });
-        check({ 14, { 2673, 12038 } });
-        check({ 20, { 430489, 100204 } });
+        packing_roundtrip_cpp({ 0, { 0, 0 } });
+        packing_roundtrip_cpp({ 1, { 0, 0 } });
+        packing_roundtrip_cpp({ 1, { 1, 1 } });
+        packing_roundtrip_cpp({ 14, { 2673, 12038 } });
+        packing_roundtrip_cpp({ 20, { 430489, 100204 } });
+        for (const auto id : ids) {
+            packing_roundtrip_cpp(id);
+        }
     }
 
     // SECTION("packiong c++ same as glsl")
