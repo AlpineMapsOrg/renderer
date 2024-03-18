@@ -178,9 +178,9 @@ Dawn is the webgpu-implementation used in chromium, which is the open-source-eng
     ```
 	
 8. Cleanup (Optional)
-   To cleanup unnecessary files, like the DAWN sources aswell as configuration files which are not necessary anymore we created a python script. It is not necessary but cleans up some memory (~ 3GB). Maybe DAWN will introduce an installation target at some point then this shouldnt be necessary anymore. You can get the [script either here](https://github.com/weBIGeo/ressources/raw/main/scripts/cleanup_dawn_build.py), or just download and execute it with the following command:
+   To cleanup unnecessary files, like the DAWN sources aswell as configuration files we created a python script. It frees up around 3GB of files. Maybe DAWN will introduce an installation target at some point then this shouldnt be necessary. You can get the [script either here](https://github.com/weBIGeo/ressources/raw/main/scripts/cleanup_dawn_build.py), or just download and execute it with the following command:
    ```
-   curl -L "https://github.com/weBIGeo/ressources/raw/main/scripts/cleanup_dawn_build.py" -o cleanup_dawn_build.py && python cleanup_dawn_build.py
+   cd ../.. & curl -L "https://github.com/weBIGeo/ressources/raw/main/scripts/cleanup_dawn_build.py" -o cleanup_dawn_build.py && python cleanup_dawn_build.py
    ```
 
 
