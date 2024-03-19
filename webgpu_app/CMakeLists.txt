@@ -80,13 +80,24 @@ if (EMSCRIPTEN)
 
     # Copy custom shell (name of file == name of target)
     # IMPORTANT: THIS WILL ONLY BE EXECUTED WHEN THE TARGET IS ACTUALLY REBUILT
-    # SO THERE HAVE TO BE CHANGES IN THE C++ CODE. THIS IS PARTICULARLY IMPORTANT
-    # TO KNOW WHEN YOU WORK ON THE CUSTOM SHELL
-    add_custom_command(TARGET webgpu_app POST_BUILD
-        COMMAND ${CMAKE_COMMAND} -E copy
-                ${CMAKE_CURRENT_SOURCE_DIR}/shell/fullscreen_qt_webgpu_shell.html
-                ${CMAKE_CURRENT_BINARY_DIR}/webgpu_app.html
-    )
+    # SO THERE HAVE TO BE CHANGES IN THE C++ CODE.
+    file(GLOB_RECURSE SHELL_FILES "${CMAKE_CURRENT_SOURCE_DIR}/shell/*")
+    message(STATUS "SHELL_FILES: ${SHELL_FILES}")
+    # now create a custom command to move all those files to the build directory
+    foreach(SHELL_FILE ${SHELL_FILES})
+        get_filename_component(SHELL_FILE_NAME ${SHELL_FILE} NAME)
+        add_custom_command(TARGET webgpu_app POST_BUILD
+            COMMAND ${CMAKE_COMMAND} -E copy
+            ${SHELL_FILE}
+            ${CMAKE_CURRENT_BINARY_DIR}/${SHELL_FILE_NAME}
+        )
+    endforeach()
+
+    #add_custom_command(TARGET webgpu_app POST_BUILD
+    #    COMMAND ${CMAKE_COMMAND} -E copy
+    #            ${CMAKE_CURRENT_SOURCE_DIR}/shell/fullscreen_qt_webgpu_shell.html
+    #            ${CMAKE_CURRENT_BINARY_DIR}/webgpu_app.html
+    #)
 
 
 endif()

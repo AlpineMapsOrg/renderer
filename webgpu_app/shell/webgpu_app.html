@@ -9,23 +9,23 @@
         and Qt device independent pixels. -->
     <meta name="viewport" content="width=device-width, height=device-height, user-scalable=0"/>
 
-    <title>webgpu_app</title>
+    <title>weBIGeo - Geospatial Visualization Tool</title>
     <style>
       /* Make the html body cover the entire (visual) viewport with no scroll bars. */
-      html, body { padding: 0; margin: 0; overflow: hidden; height: 100% }
+      html, body { padding: 0; margin: 0; overflow: hidden; height: 100%; background-color: #0e1217; color: #ffffff; font: 12pt Trebuchet MS; line-height: 150%;}
       #screen { width: 100%; height: 100%; display: none !important; }
-      #webgpucanvas { position: absolute; left: 0; top: 0; }
+      #qtstatus { font-style: italic;}
+      #qtspinner { overflow:visible; position:absolute; width: 100%; text-align: center; }
+      #webgpucanvas { position: absolute; left: 0; top: 0; z-index: 0; }
     </style>
   </head>
-  <body onload="init()">
-    <figure style="overflow:visible;" id="qtspinner">
-      <center style="margin-top:1.5em; line-height:150%">
-        <img src="qtlogo.svg" width="320" height="200" style="display:block"></img>
-        <strong>Qt for WebAssembly: webgpu_app</strong>
-        <div id="qtstatus"></div>
-        <noscript>JavaScript is disabled. Please enable JavaScript to use this application.</noscript>
-      </center>
-    </figure>
+  <body onload="init()"><!--onload="init()"-->
+    <div id="qtspinner" >
+      <img src="webigeo_logo.svg" width="320" height="320" style="display:inline; padding-bottom: 20px; padding-top: 100px;"></img><br>
+      <strong style="font-size: larger">weBIGeo</strong><br>
+      <span id="qtstatus"></span>
+      <noscript>JavaScript is disabled. Please enable JavaScript to use this application.</noscript>
+    </div>
     <div id="screen"></div>
     <canvas width="800" height="600" class="emscripten" id="webgpucanvas"></canvas>
 
@@ -33,20 +33,19 @@
       eminstance = null;
         async function init()
         {
+            const spinner = document.querySelector('#qtspinner');
+            const screen = document.querySelector('#screen');
+            const status = document.querySelector('#qtstatus');
+            const webgpu_canvas = document.querySelector('#webgpucanvas');
 
             // Check wether the browser supports WebGPU
             if (!navigator.gpu)
             {
               console.error('WebGPU is not supported in this browser');
               // Clear body and write h1 in the body to show the error message
-              document.body.innerHTML = '<h1>WebGPU is not supported in this browser</h1>';
+              status.innerHTML = 'Error: WebGPU is not supported in this browser!';
               return;
             }
-
-            const spinner = document.querySelector('#qtspinner');
-            const screen = document.querySelector('#screen');
-            const status = document.querySelector('#qtstatus');
-            const webgpu_canvas = document.querySelector('#webgpucanvas');
 
             const showUi = (ui) => {
                 [spinner, screen].forEach(element => element.style.display = 'none');
@@ -56,7 +55,6 @@
             }
 
             try {
-                showUi(spinner);
                 status.innerHTML = 'Loading...';
 
                 eminstance = await qtLoad({
@@ -79,8 +77,6 @@
                       return webgpu_canvas;
                     })(),
                 });
-                console.log('eminstance', eminstance);
-
                 // Set the canvas to be the same size as the screen
                 eminstance.canvas_size_changed(window.innerWidth, window.innerHeight);
 
