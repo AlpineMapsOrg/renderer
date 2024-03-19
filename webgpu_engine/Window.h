@@ -18,17 +18,15 @@
  *****************************************************************************/
 #pragma once
 
-#include <QVector3D>
-#include <QMap>
-#include <glm/glm.hpp>
+#include "PipelineManager.h"
+#include "ShaderModuleManager.h"
+#include "Texture.h"
+#include "UniformBufferObjects.h"
 #include "nucleus/AbstractRenderWindow.h"
 #include "nucleus/camera/AbstractDepthTester.h"
 #include "nucleus/camera/Controller.h"
 #include "nucleus/utils/Stopwatch.h"
 #include "webgpu.hpp"
-#include "ShaderModuleManager.h"
-#include "PipelineManager.h"
-#include "UniformBufferObjects.h"
 
 class QOpenGLFramebufferObject;
 
@@ -78,10 +76,11 @@ private:
     void request_device();
     void init_queue();
     void create_buffers();
+    void create_textures();
+    void create_depth_texture(uint32_t width, uint32_t height);
     void create_bind_group_info();
-    
     void create_swapchain(uint32_t w, uint32_t h);
-    
+
     bool init_gui();
     void terminate_gui();
     void update_gui(wgpu::RenderPassEncoder render_pass);
@@ -93,13 +92,15 @@ private:
     wgpu::Surface m_surface = nullptr;
     wgpu::SwapChain m_swapchain = nullptr;
     wgpu::TextureFormat m_swapchain_format = wgpu::TextureFormat::Undefined;
+    wgpu::TextureFormat m_depth_texture_format = wgpu::TextureFormat::Depth24Plus;
+
     wgpu::Queue m_queue = nullptr;
 
     std::unique_ptr<ShaderModuleManager> m_shader_manager;
     std::unique_ptr<PipelineManager> m_pipeline_manager;
 
-    std::unique_ptr<UniformBuffer<uboSharedConfig>> m_shared_config_ubo;
-    std::unique_ptr<UniformBuffer<uboCameraConfig>> m_camera_config_ubo;
+    std::unique_ptr<Buffer<uboSharedConfig>> m_shared_config_ubo;
+    std::unique_ptr<Buffer<uboCameraConfig>> m_camera_config_ubo;
 
     std::unique_ptr<BindGroupInfo> m_bind_group_info;
 
@@ -109,6 +110,12 @@ private:
     ImGuiWindowImplShutdownFunc m_imgui_window_shutdown_func;
 
     nucleus::utils::Stopwatch m_stopwatch;
-};
 
+    std::unique_ptr<Texture> m_demo_texture;
+    std::unique_ptr<TextureView> m_demo_texture_view;
+    std::unique_ptr<Sampler> m_demo_sampler;
+
+    std::unique_ptr<Texture> m_depth_texture;
+    std::unique_ptr<TextureView> m_depth_texture_view;
+};
 }

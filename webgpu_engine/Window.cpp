@@ -28,6 +28,8 @@
 #include "backends/imgui_impl_wgpu.h"
 #endif
 
+#include <QImage.h>
+
 namespace webgpu_engine {
 
 #ifdef ALP_WEBGPU_APP_ENABLE_IMGUI
@@ -60,6 +62,7 @@ void Window::initialise_gpu() {
     init_queue();
 
     create_buffers();
+    create_textures();
     create_bind_group_info();
 
     m_shader_manager = std::make_unique<ShaderModuleManager>(m_device);
@@ -81,8 +84,10 @@ void Window::resize_framebuffer(int w, int h) {
         m_swapchain.release();
     }
 
+    create_depth_texture(w, h);
+
     create_swapchain(w, h);
-    m_pipeline_manager->create_pipelines(m_swapchain_format, *m_bind_group_info);
+    m_pipeline_manager->create_pipelines(m_swapchain_format, m_depth_texture_format, *m_bind_group_info);
 
 #ifdef ALP_WEBGPU_APP_ENABLE_IMGUI
     if (ImGui::GetCurrentContext() != nullptr) {
@@ -119,8 +124,6 @@ void Window::paint([[maybe_unused]] QOpenGLFramebufferObject* framebuffer) {
     command_encoder_desc.label = "Command Encoder";
     wgpu::CommandEncoder encoder = m_device.createCommandEncoder(command_encoder_desc);
 
-    wgpu::RenderPassDescriptor render_pass_desc {};
-
     wgpu::RenderPassColorAttachment render_pass_color_attachment {};
     render_pass_color_attachment.view = next_texture;
     render_pass_color_attachment.resolveTarget = nullptr;
@@ -135,10 +138,21 @@ void Window::paint([[maybe_unused]] QOpenGLFramebufferObject* framebuffer) {
     //     (I just guessed -1 (max unsigned int value) and it worked)
     render_pass_color_attachment.depthSlice = -1;
 
+    wgpu::RenderPassDepthStencilAttachment depth_stencil_attachment {};
+    depth_stencil_attachment.view = m_depth_texture_view->handle();
+    depth_stencil_attachment.depthClearValue = 1.0f;
+    depth_stencil_attachment.depthLoadOp = wgpu::LoadOp::Clear;
+    depth_stencil_attachment.depthStoreOp = wgpu::StoreOp::Store;
+    depth_stencil_attachment.depthReadOnly = false;
+    depth_stencil_attachment.stencilClearValue = 0;
+    depth_stencil_attachment.stencilLoadOp = wgpu::LoadOp::Undefined;
+    depth_stencil_attachment.stencilStoreOp = wgpu::StoreOp::Undefined;
+    depth_stencil_attachment.stencilReadOnly = true;
+
+    wgpu::RenderPassDescriptor render_pass_desc {};
     render_pass_desc.colorAttachmentCount = 1;
     render_pass_desc.colorAttachments = &render_pass_color_attachment;
-
-    render_pass_desc.depthStencilAttachment = nullptr;
+    render_pass_desc.depthStencilAttachment = &depth_stencil_attachment;
     render_pass_desc.timestampWrites = nullptr;
     wgpu::RenderPassEncoder render_pass = encoder.beginRenderPass(render_pass_desc);
 
@@ -263,7 +277,7 @@ bool Window::init_gui()
     ImGui_ImplWGPU_InitInfo init_info = {};
     init_info.Device = m_device;
     init_info.RenderTargetFormat = (WGPUTextureFormat)m_swapchain_format;
-    init_info.DepthStencilFormat = WGPUTextureFormat_Undefined;
+    init_info.DepthStencilFormat = m_depth_texture_format;
     init_info.NumFramesInFlight = 3;
     ImGui_ImplWGPU_Init(&init_info);
 
@@ -457,11 +471,86 @@ void Window::init_queue() { m_queue = m_device.getQueue(); }
 
 void Window::create_buffers()
 {
-    m_shared_config_ubo = std::make_unique<UniformBuffer<uboSharedConfig>>();
-    m_shared_config_ubo->init(m_device);
+    m_shared_config_ubo = std::make_unique<Buffer<uboSharedConfig>>(m_device, wgpu::BufferUsage::CopyDst | wgpu::BufferUsage::Uniform);
+    m_camera_config_ubo = std::make_unique<Buffer<uboCameraConfig>>(m_device, wgpu::BufferUsage::CopyDst | wgpu::BufferUsage::Uniform);
+}
 
-    m_camera_config_ubo = std::make_unique<UniformBuffer<uboCameraConfig>>();
-    m_camera_config_ubo->init(m_device);
+void Window::create_textures()
+{
+    // create texture
+    wgpu::TextureDescriptor texture_desc {};
+    texture_desc.dimension = wgpu::TextureDimension::_2D;
+    texture_desc.size = { 256, 256, 1 };
+    texture_desc.mipLevelCount = 1;
+    texture_desc.sampleCount = 1;
+    texture_desc.format = wgpu::TextureFormat::RGBA8Unorm;
+    texture_desc.usage = wgpu::TextureUsage::TextureBinding | wgpu::TextureUsage::CopyDst | wgpu::TextureUsage::RenderAttachment;
+    m_demo_texture = std::make_unique<Texture>(m_device, texture_desc);
+
+    // fill texture with solid color
+    QImage image { 256, 256, QImage::Format::Format_RGBA8888 };
+    uint8_t* image_data = image.bits();
+    for (int col = 0; col < image.width(); col++) {
+        for (int row = 0; row < image.height(); row++) {
+            uint8_t* pixel_data = &image_data[4 * (image.width() * row + col)];
+            pixel_data[0] = col;
+            pixel_data[1] = row;
+            pixel_data[2] = 128;
+            pixel_data[3] = 255;
+        }
+    }
+    m_demo_texture->write(m_queue, image, 0);
+
+    // create texture view
+    wgpu::TextureViewDescriptor view_desc {};
+    view_desc.aspect = wgpu::TextureAspect::All;
+    view_desc.arrayLayerCount = 1;
+    view_desc.baseArrayLayer = 0;
+    view_desc.mipLevelCount = 1;
+    view_desc.baseMipLevel = 0;
+    view_desc.dimension = wgpu::TextureViewDimension::_2D;
+    view_desc.format = texture_desc.format;
+    m_demo_texture_view = m_demo_texture->create_view(view_desc);
+
+    wgpu::SamplerDescriptor sampler_desc {};
+    sampler_desc.addressModeU = wgpu::AddressMode::ClampToEdge;
+    sampler_desc.addressModeV = wgpu::AddressMode::ClampToEdge;
+    sampler_desc.addressModeW = wgpu::AddressMode::ClampToEdge;
+    sampler_desc.magFilter = wgpu::FilterMode::Linear;
+    sampler_desc.minFilter = wgpu::FilterMode::Linear;
+    sampler_desc.mipmapFilter = wgpu::MipmapFilterMode::Linear;
+    sampler_desc.lodMinClamp = 0.0f;
+    sampler_desc.lodMaxClamp = 1.0f;
+    sampler_desc.compare = wgpu::CompareFunction::Undefined;
+    sampler_desc.maxAnisotropy = 1;
+    m_demo_sampler = std::make_unique<Sampler>(m_device, sampler_desc);
+}
+
+void Window::create_depth_texture(uint32_t width, uint32_t height)
+{
+    std::cout << "creating depth texture width=" << width << ", height=" << height << std::endl;
+    WGPUTextureFormat format = m_depth_texture_format;
+    wgpu::TextureDescriptor texture_desc {};
+    texture_desc.label = "depth texture";
+    texture_desc.dimension = wgpu::TextureDimension::_2D;
+    texture_desc.format = m_depth_texture_format;
+    texture_desc.mipLevelCount = 1;
+    texture_desc.sampleCount = 1;
+    texture_desc.size = { width, height, 1 };
+    texture_desc.usage = wgpu::TextureUsage::RenderAttachment;
+    texture_desc.viewFormatCount = 1;
+    texture_desc.viewFormats = &format;
+    m_depth_texture = std::make_unique<Texture>(m_device, texture_desc);
+
+    wgpu::TextureViewDescriptor view_desc {};
+    view_desc.aspect = wgpu::TextureAspect::DepthOnly;
+    view_desc.arrayLayerCount = 1;
+    view_desc.baseArrayLayer = 0;
+    view_desc.mipLevelCount = 1;
+    view_desc.baseMipLevel = 0;
+    view_desc.dimension = wgpu::TextureViewDimension::_2D;
+    view_desc.format = texture_desc.format;
+    m_depth_texture_view = m_depth_texture->create_view(view_desc);
 }
 
 void Window::create_swapchain(uint32_t width, uint32_t height)
@@ -488,6 +577,8 @@ void Window::create_bind_group_info()
     m_bind_group_info = std::make_unique<BindGroupInfo>();
     m_bind_group_info->add_entry(0, *m_shared_config_ubo, wgpu::ShaderStage::Vertex | wgpu::ShaderStage::Fragment);
     m_bind_group_info->add_entry(1, *m_camera_config_ubo, wgpu::ShaderStage::Vertex | wgpu::ShaderStage::Fragment);
+    m_bind_group_info->add_entry(2, *m_demo_texture_view, wgpu::ShaderStage::Vertex | wgpu::ShaderStage::Fragment);
+    m_bind_group_info->add_entry(3, *m_demo_sampler, wgpu::ShaderStage::Vertex | wgpu::ShaderStage::Fragment, wgpu::SamplerBindingType::Filtering);
     m_bind_group_info->init(m_device);
 }
 

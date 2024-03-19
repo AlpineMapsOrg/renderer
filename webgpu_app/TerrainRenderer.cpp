@@ -151,9 +151,9 @@ void TerrainRenderer::start() {
         &nucleus::tile_scheduler::Scheduler::update_camera);
 
     // TODO for debug purposes only, remove this code
-    // nucleus::camera::Definition camera = camera_controller->definition();
-    // camera.look_at(glm::dvec3 { 0.0f, 0.0f, 0.0f }, glm::dvec3 { 0.0, -1.0, 0.0 });
-    // camera_controller->set_definition(camera);
+    nucleus::camera::Definition camera = camera_controller->definition();
+    camera.look_at(glm::dvec3 { 0.0f, 0.0f, 0.0f }, glm::dvec3 { 0.0, -1.0, 0.0 });
+    camera_controller->set_definition(camera);
 
     camera_controller->set_viewport({ m_width, m_height });
     camera_controller->update();
@@ -252,10 +252,12 @@ void TerrainRenderer::set_glfw_window_size(int width, int height) {
 
 void TerrainRenderer::on_mouse_button_callback(int button, int action, [[maybe_unused]]int mods)
 {
+#ifdef ALP_WEBGPU_APP_ENABLE_IMGUI
     ImGuiIO& io = ImGui::GetIO();
     if (io.WantCaptureMouse) {
         return;
     }
+#endif
 
     //TODO modifiers if needed
     const std::map<int, Qt::MouseButton> button_map = {

@@ -17,9 +17,10 @@
  *****************************************************************************/
 #pragma once
 
-#include "webgpu.hpp"
+#include "Buffer.h"
 #include "ShaderModuleManager.h"
-#include "UniformBuffer.h"
+#include "Texture.h"
+#include "webgpu.hpp"
 
 namespace webgpu_engine {
 
@@ -28,7 +29,7 @@ public:
     BindGroupInfo() = default;
 
     template<class T>
-    void add_entry(uint32_t binding, const UniformBuffer<T>& buf, wgpu::ShaderStageFlags visibility) {
+    void add_entry(uint32_t binding, const Buffer<T>& buf, wgpu::ShaderStageFlags visibility) {
         wgpu::BufferBindingLayout buffer_binding_layout;
         buffer_binding_layout.type = wgpu::BufferBindingType::Uniform;
         buffer_binding_layout.minBindingSize = sizeof(T);
@@ -45,6 +46,48 @@ public:
         entry.binding = binding;
         entry.buffer = buf.handle();
         entry.size = sizeof(T);
+        entry.offset = 0;
+        entry.nextInChain = nullptr;
+        m_bind_group_entries.push_back(entry);
+    }
+
+    void add_entry(uint32_t binding, const TextureView& texture_view, wgpu::ShaderStageFlags visibility)
+    {
+        wgpu::TextureBindingLayout texture_binding_layout {};
+        texture_binding_layout.multisampled = false;
+        texture_binding_layout.sampleType = wgpu::TextureSampleType::Float;
+        texture_binding_layout.viewDimension = texture_view.dimension();
+        texture_binding_layout.nextInChain = nullptr;
+
+        wgpu::BindGroupLayoutEntry layout_entry {};
+        layout_entry.binding = binding;
+        layout_entry.visibility = visibility;
+        layout_entry.texture = texture_binding_layout;
+        m_bind_group_layout_entries.push_back(layout_entry);
+
+        wgpu::BindGroupEntry entry {};
+        entry.binding = binding;
+        entry.textureView = texture_view.handle();
+        entry.offset = 0;
+        entry.nextInChain = nullptr;
+        m_bind_group_entries.push_back(entry);
+    }
+
+    void add_entry(uint32_t binding, const Sampler& sampler, wgpu::ShaderStageFlags visibility, wgpu::SamplerBindingType binding_type)
+    {
+        wgpu::SamplerBindingLayout sampler_binding_layout {};
+        sampler_binding_layout.type = binding_type;
+        sampler_binding_layout.nextInChain = nullptr;
+
+        wgpu::BindGroupLayoutEntry layout_entry {};
+        layout_entry.binding = binding;
+        layout_entry.visibility = visibility;
+        layout_entry.sampler = sampler_binding_layout;
+        m_bind_group_layout_entries.push_back(layout_entry);
+
+        wgpu::BindGroupEntry entry {};
+        entry.binding = binding;
+        entry.sampler = sampler.handle();
         entry.offset = 0;
         entry.nextInChain = nullptr;
         m_bind_group_entries.push_back(entry);
@@ -72,13 +115,14 @@ public:
     wgpu::RenderPipeline debug_triangle_pipeline() const;
     wgpu::RenderPipeline debug_config_and_camera_pipeline() const;
 
-    void create_pipelines(wgpu::TextureFormat color_target_format, BindGroupInfo& bindGroup);
+    void create_pipelines(wgpu::TextureFormat color_target_format, wgpu::TextureFormat depth_texture_format, BindGroupInfo& bindGroup);
     void release_pipelines();
     bool pipelines_created();
 
 private:
     void create_debug_pipeline(wgpu::TextureFormat color_target_format);
-    void create_debug_config_and_camera_pipeline(wgpu::TextureFormat color_target_format, BindGroupInfo& bind_group_info);
+    void create_debug_config_and_camera_pipeline(
+        wgpu::TextureFormat color_target_format, wgpu::TextureFormat depth_texture_format, BindGroupInfo& bind_group_info);
     void create_tile_pipeline();
     void create_shadow_pipeline();
 

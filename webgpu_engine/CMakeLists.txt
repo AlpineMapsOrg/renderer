@@ -26,7 +26,8 @@ set(SOURCES
     ShaderModuleManager.h ShaderModuleManager.cpp
     PipelineManager.h PipelineManager.cpp
     UniformBufferObjects.h UniformBufferObjects.cpp
-    UniformBuffer.h UniformBuffer.cpp
+    Buffer.h Buffer.cpp
+    Texture.h Texture.cpp
 )
 
 qt_add_library(webgpu_engine STATIC ${SOURCES})

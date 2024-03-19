@@ -23,8 +23,17 @@
 @group(0) @binding(0) var<uniform> config : shared_config;
 @group(0) @binding(1) var<uniform> camera : camera_config;
 
+@group(0) @binding(2) var height_texture : texture_2d<f32>;
+@group(0) @binding(3) var height_sampler : sampler;
+
+
+struct VertexOut {
+    @builtin(position) position : vec4f,
+    @location(0) uv: vec2f,
+};
+
 @vertex
-fn vertexMain(@builtin(vertex_index) vertex_index : u32) -> @builtin(position) vec4f
+fn vertexMain(@builtin(vertex_index) vertex_index : u32) -> VertexOut
 {
     //adapted from https://webgpu.github.io/webgpu-samples/sample/rotatingCube/
     const POSITIONS = array(
@@ -80,11 +89,15 @@ fn vertexMain(@builtin(vertex_index) vertex_index : u32) -> @builtin(position) v
     //const POSITIONS = array(vec3f(-10, -40, 0), vec3f(0, -40, 10), vec3f(10, -40, 0));
     let pos = vec4f(POSITIONS[vertex_index], 1);
     let clip_pos = camera.view_proj_matrix * cube_model * pos;
-    return clip_pos;
+    var vertex_out : VertexOut;
+    vertex_out.position = clip_pos;
+    vertex_out.uv = vec2f(pos.x / 2 + 0.5, pos.y / 2 + 0.5);
+    return vertex_out;
 }
 
-@fragment
-fn fragmentMain() -> @location(0) vec4f
+@fragment fn fragmentMain(vertex_out : VertexOut)->@location(0) vec4f
 {
-    return vec4f(0.0, 0.4, (sin(config.sun_light_dir.x) + 1) / 2, 1.0);
+    let color = textureSample(height_texture, height_sampler, vertex_out.uv).rgb;
+    // return vec4f(color.r, 0.4, (sin(config.sun_light_dir.x) + 1) / 2, 1.0); //
+    return vec4f(color, 1.0);
 }
