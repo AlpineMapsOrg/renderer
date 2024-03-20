@@ -22,12 +22,12 @@
 namespace webgpu_engine {
 
 template <typename T>
-Buffer<T>::Buffer(wgpu::Device device, wgpu::BufferUsageFlags flags)
+Buffer<T>::Buffer(WGPUDevice device, WGPUBufferUsageFlags flags)
     : m_non_backed_buffer(device, flags, 1)
 {
 }
 
-template <typename T> void Buffer<T>::update_gpu_data(wgpu::Queue queue) { m_non_backed_buffer.write(queue, &data, 1, 0); }
+template <typename T> void Buffer<T>::update_gpu_data(WGPUQueue queue) { m_non_backed_buffer.write(queue, &data, 1, 0); }
 
 template <typename T> QString Buffer<T>::data_as_string() { return ubo_as_string(data); }
 
@@ -39,7 +39,7 @@ template <typename T> bool Buffer<T>::data_from_string(const QString& base64Stri
     return result;
 }
 
-template <typename T> wgpu::Buffer Buffer<T>::handle() const { return m_non_backed_buffer.handle(); }
+template <typename T> WGPUBuffer Buffer<T>::handle() const { return m_non_backed_buffer.handle(); }
 
 // IMPORTANT: All possible Template Classes need to be defined here:
 template class Buffer<uboSharedConfig>;

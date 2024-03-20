@@ -51,10 +51,16 @@
 
 #include "webgpu_interface.hpp"
 
-#include <webgpu/webgpu.h>
+#include <assert.h>
+#include <iostream>
 #include <stdio.h>
+#include <webgpu/webgpu.h>
 
-#ifndef __EMSCRIPTEN__
+#ifdef __EMSCRIPTEN__
+// needed for emscripten_sleep
+#include <emscripten/emscripten.h>
+#else
+// include Dawn only for non-emscripten build
 #include <dawn/native/DawnNative.h>
 #include <dawn/dawn_proc.h>
 #endif
@@ -198,4 +204,65 @@ void webgpuPlatformInit() {
     dawnProcSetProcs(&(dawn::native::GetProcs()));
 #endif
 
+}
+
+// Request webgpu adapter synchronously. Adapted from webgpu.hpp to vanilla webGPU types.
+WGPUAdapter requestAdapterSync(WGPUInstance instance, const WGPURequestAdapterOptions& options)
+{
+    struct AdapterRequestEndedData {
+        WGPUAdapter adapter = nullptr;
+        bool request_ended = false;
+    } request_ended_data;
+
+    auto on_adapter_request_ended = [](WGPURequestAdapterStatus status, WGPUAdapter adapter, char const* message, void* userdata) {
+        AdapterRequestEndedData* request_ended_data = reinterpret_cast<AdapterRequestEndedData*>(userdata);
+        if (status == WGPURequestAdapterStatus::WGPURequestAdapterStatus_Success) {
+            request_ended_data->adapter = adapter;
+        } else {
+            std::cout << "Could not get WebGPU adapter: " << message << std::endl;
+        }
+        request_ended_data->request_ended = true;
+    };
+
+    wgpuInstanceRequestAdapter(instance, &options, on_adapter_request_ended, &request_ended_data);
+
+#if __EMSCRIPTEN__
+    while (!request_ended_data.request_ended) {
+        emscripten_sleep(100);
+    }
+#endif
+
+    assert(request_ended_data.request_ended);
+    return request_ended_data.adapter;
+}
+
+// Request webgpu device synchronously. Adapted from webgpu.hpp to vanilla webGPU types.
+WGPUDevice requestDeviceSync(WGPUAdapter adapter, const WGPUDeviceDescriptor& descriptor)
+{
+    struct DeviceRequestEndedData {
+        WGPUDevice device = nullptr;
+        bool request_ended = false;
+    } request_ended_data;
+
+    auto on_device_request_ended = [](WGPURequestDeviceStatus status, WGPUDevice device, char const* message, void* userdata) {
+        DeviceRequestEndedData* request_ended_data = reinterpret_cast<DeviceRequestEndedData*>(userdata);
+
+        if (status == WGPURequestDeviceStatus::WGPURequestDeviceStatus_Success) {
+            request_ended_data->device = device;
+        } else {
+            std::cout << "Could not get WebGPU adapter: " << message << std::endl;
+        }
+        request_ended_data->request_ended = true;
+    };
+
+    wgpuAdapterRequestDevice(adapter, &descriptor, on_device_request_ended, &request_ended_data);
+
+#if __EMSCRIPTEN__
+    while (!request_ended_data.request_ended) {
+        emscripten_sleep(100);
+    }
+#endif
+
+    assert(request_ended_data.request_ended);
+    return request_ended_data.device;
 }

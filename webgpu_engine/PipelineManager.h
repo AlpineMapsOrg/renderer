@@ -20,7 +20,7 @@
 #include "Buffer.h"
 #include "ShaderModuleManager.h"
 #include "Texture.h"
-#include "webgpu.hpp"
+#include <webgpu/webgpu.h>
 
 namespace webgpu_engine {
 
@@ -28,21 +28,21 @@ class BindGroupInfo {
 public:
     BindGroupInfo() = default;
 
-    template<class T>
-    void add_entry(uint32_t binding, const Buffer<T>& buf, wgpu::ShaderStageFlags visibility) {
-        wgpu::BufferBindingLayout buffer_binding_layout;
-        buffer_binding_layout.type = wgpu::BufferBindingType::Uniform;
+    template <class T> void add_entry(uint32_t binding, const Buffer<T>& buf, WGPUShaderStageFlags visibility)
+    {
+        WGPUBufferBindingLayout buffer_binding_layout;
+        buffer_binding_layout.type = WGPUBufferBindingType::WGPUBufferBindingType_Uniform;
         buffer_binding_layout.minBindingSize = sizeof(T);
         buffer_binding_layout.nextInChain = nullptr;
         buffer_binding_layout.hasDynamicOffset = false;
 
-        wgpu::BindGroupLayoutEntry layout_entry{};
+        WGPUBindGroupLayoutEntry layout_entry {};
         layout_entry.binding = binding;
         layout_entry.visibility = visibility;
         layout_entry.buffer = buffer_binding_layout;
         m_bind_group_layout_entries.push_back(layout_entry);
 
-        wgpu::BindGroupEntry entry{};
+        WGPUBindGroupEntry entry {};
         entry.binding = binding;
         entry.buffer = buf.handle();
         entry.size = sizeof(T);
@@ -51,21 +51,21 @@ public:
         m_bind_group_entries.push_back(entry);
     }
 
-    void add_entry(uint32_t binding, const TextureView& texture_view, wgpu::ShaderStageFlags visibility)
+    void add_entry(uint32_t binding, const TextureView& texture_view, WGPUShaderStageFlags visibility)
     {
-        wgpu::TextureBindingLayout texture_binding_layout {};
+        WGPUTextureBindingLayout texture_binding_layout {};
         texture_binding_layout.multisampled = false;
-        texture_binding_layout.sampleType = wgpu::TextureSampleType::Float;
+        texture_binding_layout.sampleType = WGPUTextureSampleType::WGPUTextureSampleType_Float;
         texture_binding_layout.viewDimension = texture_view.dimension();
         texture_binding_layout.nextInChain = nullptr;
 
-        wgpu::BindGroupLayoutEntry layout_entry {};
+        WGPUBindGroupLayoutEntry layout_entry {};
         layout_entry.binding = binding;
         layout_entry.visibility = visibility;
         layout_entry.texture = texture_binding_layout;
         m_bind_group_layout_entries.push_back(layout_entry);
 
-        wgpu::BindGroupEntry entry {};
+        WGPUBindGroupEntry entry {};
         entry.binding = binding;
         entry.textureView = texture_view.handle();
         entry.offset = 0;
@@ -73,19 +73,19 @@ public:
         m_bind_group_entries.push_back(entry);
     }
 
-    void add_entry(uint32_t binding, const Sampler& sampler, wgpu::ShaderStageFlags visibility, wgpu::SamplerBindingType binding_type)
+    void add_entry(uint32_t binding, const Sampler& sampler, WGPUShaderStageFlags visibility, WGPUSamplerBindingType binding_type)
     {
-        wgpu::SamplerBindingLayout sampler_binding_layout {};
+        WGPUSamplerBindingLayout sampler_binding_layout {};
         sampler_binding_layout.type = binding_type;
         sampler_binding_layout.nextInChain = nullptr;
 
-        wgpu::BindGroupLayoutEntry layout_entry {};
+        WGPUBindGroupLayoutEntry layout_entry {};
         layout_entry.binding = binding;
         layout_entry.visibility = visibility;
         layout_entry.sampler = sampler_binding_layout;
         m_bind_group_layout_entries.push_back(layout_entry);
 
-        wgpu::BindGroupEntry entry {};
+        WGPUBindGroupEntry entry {};
         entry.binding = binding;
         entry.sampler = sampler.handle();
         entry.offset = 0;
@@ -93,47 +93,46 @@ public:
         m_bind_group_entries.push_back(entry);
     }
 
-    void create_bind_group_layout(wgpu::Device& device);
-    void create_bind_group(wgpu::Device& device);
-    void init(wgpu::Device& device);
+    void create_bind_group_layout(WGPUDevice device);
+    void create_bind_group(WGPUDevice device);
+    void init(WGPUDevice device);
 
-    void bind(wgpu::RenderPassEncoder& render_pass, uint32_t group_index);
+    void bind(WGPURenderPassEncoder& render_pass, uint32_t group_index);
 
 private:
-    std::vector<wgpu::BindGroupEntry> m_bind_group_entries;
-    std::vector<wgpu::BindGroupLayoutEntry> m_bind_group_layout_entries;
+    std::vector<WGPUBindGroupEntry> m_bind_group_entries;
+    std::vector<WGPUBindGroupLayoutEntry> m_bind_group_layout_entries;
 
 public:
-    wgpu::BindGroupLayout m_bind_group_layout = nullptr;
-    wgpu::BindGroup m_bind_group = nullptr;
+    WGPUBindGroupLayout m_bind_group_layout = nullptr;
+    WGPUBindGroup m_bind_group = nullptr;
 };
 
 class PipelineManager {
 public:
-    PipelineManager(wgpu::Device& device, ShaderModuleManager& shader_manager);
+    PipelineManager(WGPUDevice device, ShaderModuleManager& shader_manager);
 
-    wgpu::RenderPipeline debug_triangle_pipeline() const;
-    wgpu::RenderPipeline debug_config_and_camera_pipeline() const;
+    WGPURenderPipeline debug_triangle_pipeline() const;
+    WGPURenderPipeline debug_config_and_camera_pipeline() const;
 
-    void create_pipelines(wgpu::TextureFormat color_target_format, wgpu::TextureFormat depth_texture_format, BindGroupInfo& bindGroup);
+    void create_pipelines(WGPUTextureFormat color_target_format, WGPUTextureFormat depth_texture_format, BindGroupInfo& bindGroup);
     void release_pipelines();
-    bool pipelines_created();
+    bool pipelines_created() const;
 
 private:
-    void create_debug_pipeline(wgpu::TextureFormat color_target_format);
-    void create_debug_config_and_camera_pipeline(
-        wgpu::TextureFormat color_target_format, wgpu::TextureFormat depth_texture_format, BindGroupInfo& bind_group_info);
+    void create_debug_pipeline(WGPUTextureFormat color_target_format);
+    void create_debug_config_and_camera_pipeline(WGPUTextureFormat color_target_format, WGPUTextureFormat depth_texture_format, BindGroupInfo& bind_group_info);
     void create_tile_pipeline();
     void create_shadow_pipeline();
 
 private:
-    wgpu::Device* m_device;
+    WGPUDevice m_device;
     ShaderModuleManager* m_shader_manager;
 
-    wgpu::RenderPipeline m_debug_triangle_pipeline = nullptr;
-    wgpu::RenderPipeline m_debug_config_and_camera_pipeline = nullptr;
-    wgpu::RenderPipeline m_tile_pipeline = nullptr;
-    wgpu::RenderPipeline m_shadow_pipeline = nullptr;
+    WGPURenderPipeline m_debug_triangle_pipeline;
+    WGPURenderPipeline m_debug_config_and_camera_pipeline;
+
+    bool m_pipelines_created = false;
 };
 
 }

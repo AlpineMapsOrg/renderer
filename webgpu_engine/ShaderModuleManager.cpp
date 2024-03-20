@@ -18,13 +18,14 @@
  *****************************************************************************/
 #include "ShaderModuleManager.h"
 
-#include <regex>
 #include <QFile>
+#include <iostream>
+#include <regex>
 
 namespace webgpu_engine {
 
-ShaderModuleManager::ShaderModuleManager(wgpu::Device& device, const std::filesystem::path& prefix)
-    : m_device(&device)
+ShaderModuleManager::ShaderModuleManager(WGPUDevice device, const std::filesystem::path& prefix)
+    : m_device(device)
     , m_prefix(prefix)
 {}
 
@@ -36,17 +37,13 @@ void ShaderModuleManager::create_shader_modules()
 
 void ShaderModuleManager::release_shader_modules()
 {
-    m_debug_triangle_shader_module.release();
+    wgpuShaderModuleRelease(m_debug_triangle_shader_module);
+    wgpuShaderModuleRelease(m_debug_config_and_camera_shader_module);
 }
 
-wgpu::ShaderModule ShaderModuleManager::debug_triangle() const
-{
-    return m_debug_triangle_shader_module;
-}
+WGPUShaderModule ShaderModuleManager::debug_triangle() const { return m_debug_triangle_shader_module; }
 
-wgpu::ShaderModule ShaderModuleManager::debug_config_and_camera() const {
-    return m_debug_config_and_camera_shader_module;
-}
+WGPUShaderModule ShaderModuleManager::debug_config_and_camera() const { return m_debug_config_and_camera_shader_module; }
 
 std::string ShaderModuleManager::read_file_contents(const std::string& name) const {
     const auto path = m_prefix / name; // operator/ concats paths
@@ -69,14 +66,15 @@ std::string ShaderModuleManager::get_contents(const std::string& name) {
     return preprocessed_contents;
 }
 
-wgpu::ShaderModule ShaderModuleManager::create_shader_module(const std::string& code) {
-    wgpu::ShaderModuleDescriptor shaderModuleDesc{};
-    wgpu::ShaderModuleWGSLDescriptor wgslDesc{};
+WGPUShaderModule ShaderModuleManager::create_shader_module(const std::string& code)
+{
+    WGPUShaderModuleDescriptor shaderModuleDesc {};
+    WGPUShaderModuleWGSLDescriptor wgslDesc {};
     wgslDesc.chain.next = nullptr;
-    wgslDesc.chain.sType = wgpu::SType::ShaderModuleWGSLDescriptor;
+    wgslDesc.chain.sType = WGPUSType::WGPUSType_ShaderModuleWGSLDescriptor;
     wgslDesc.code = code.data();
     shaderModuleDesc.nextInChain = &wgslDesc.chain;
-    return m_device->createShaderModule(shaderModuleDesc);
+    return wgpuDeviceCreateShaderModule(m_device, &shaderModuleDesc);
 }
 
 std::string ShaderModuleManager::preprocess(const std::string& code)

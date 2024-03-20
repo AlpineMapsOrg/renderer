@@ -69,4 +69,6 @@ WGPUSurface glfwGetWGPUSurface(WGPUInstance instance, GLFWwindow* window);
  */
 void webgpuPlatformInit();
 
+WGPUAdapter requestAdapterSync(WGPUInstance instance, const WGPURequestAdapterOptions& options);
+WGPUDevice requestDeviceSync(WGPUAdapter adapter, const WGPUDeviceDescriptor& descriptor);
 }

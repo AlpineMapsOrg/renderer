@@ -34,6 +34,7 @@
 
 #ifdef __EMSCRIPTEN__
 #include "WebInterop.h"
+#include <emscripten/emscripten.h>
 #endif
 
 static void windowResizeCallback(GLFWwindow* window, int width, int height) {
@@ -118,9 +119,7 @@ void TerrainRenderer::start() {
     init_window();
 
     std::cout << "before initWebGPU()" << std::endl;
-    auto glfwGetWGPUSurfaceFunctor = [this] (wgpu::Instance instance) {
-        return glfwGetWGPUSurface(instance, m_window);
-    };
+    auto glfwGetWGPUSurfaceFunctor = [this](WGPUInstance instance) { return glfwGetWGPUSurface(instance, m_window); };
 
 #ifdef ALP_WEBGPU_APP_ENABLE_IMGUI
     m_webgpu_window = std::make_unique<webgpu_engine::Window>(glfwGetWGPUSurfaceFunctor,

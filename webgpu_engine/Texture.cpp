@@ -22,70 +22,69 @@
 namespace webgpu_engine {
 
 // TODO
-const std::map<QImage::Format, wgpu::TextureFormat> Texture::qimage_to_webgpu_format { { QImage::Format::Format_RGBA8888, wgpu::TextureFormat::RGBA8Unorm },
-    { QImage::Format::Format_RGB888, wgpu::TextureFormat::ETC2RGB8Unorm }, { QImage::Format::Format_RGBA32FPx4, wgpu::TextureFormat::RGBA32Float } };
+const std::map<QImage::Format, WGPUTextureFormat> Texture::qimage_to_webgpu_format { { QImage::Format::Format_RGBA8888,
+    WGPUTextureFormat::WGPUTextureFormat_RGBA8Unorm } };
 
-Texture::Texture(wgpu::Device device, wgpu::TextureDescriptor texture_desc)
-    : m_texture(device.createTexture(texture_desc))
+Texture::Texture(WGPUDevice device, const WGPUTextureDescriptor& texture_desc)
+    : m_texture(wgpuDeviceCreateTexture(device, &texture_desc))
     , m_texture_desc(texture_desc)
 {
 }
 
 Texture::~Texture()
 {
-    m_texture.destroy();
-    m_texture.release();
+    wgpuTextureDestroy(m_texture);
+    wgpuTextureRelease(m_texture);
 }
 
-void Texture::write(wgpu::Queue queue, QImage image, uint32_t layer)
+void Texture::write(WGPUQueue queue, QImage image, uint32_t layer)
 {
     // assert dimensions and format match up
     assert(static_cast<uint32_t>(image.width()) == m_texture_desc.size.width);
     assert(static_cast<uint32_t>(image.height()) == m_texture_desc.size.height);
     assert(m_texture_desc.format == qimage_to_webgpu_format.at(image.format())); // TODO could also just convert to other format
 
-    wgpu::ImageCopyTexture image_copy_texture {};
+    WGPUImageCopyTexture image_copy_texture {};
     image_copy_texture.texture = m_texture;
-    image_copy_texture.aspect = wgpu::TextureAspect::All;
+    image_copy_texture.aspect = WGPUTextureAspect::WGPUTextureAspect_All;
     image_copy_texture.mipLevel = 0;
     image_copy_texture.origin = { 0, 0, layer };
     image_copy_texture.nextInChain = nullptr;
 
-    wgpu::TextureDataLayout texture_data_layout {};
+    WGPUTextureDataLayout texture_data_layout {};
     texture_data_layout.bytesPerRow = image.bytesPerLine();
     texture_data_layout.rowsPerImage = image.height();
     texture_data_layout.offset = 0;
     texture_data_layout.nextInChain = nullptr;
 
-    wgpu::Extent3D copy_extent { m_texture_desc.size.width, m_texture_desc.size.height, 1 };
-    queue.writeTexture(image_copy_texture, image.bits(), image.sizeInBytes(), texture_data_layout, copy_extent);
+    WGPUExtent3D copy_extent { m_texture_desc.size.width, m_texture_desc.size.height, 1 };
+    wgpuQueueWriteTexture(queue, &image_copy_texture, image.bits(), image.sizeInBytes(), &texture_data_layout, &copy_extent);
 }
 
-std::unique_ptr<TextureView> Texture::create_view(const wgpu::TextureViewDescriptor& desc)
+std::unique_ptr<TextureView> Texture::create_view(const WGPUTextureViewDescriptor& desc) const
 {
     return std::make_unique<webgpu_engine::TextureView>(m_texture, desc);
 }
 
-TextureView::TextureView(wgpu::Texture& texture_handle, const wgpu::TextureViewDescriptor& desc)
-    : m_texture_view(texture_handle.createView(desc))
+TextureView::TextureView(WGPUTexture texture_handle, const WGPUTextureViewDescriptor& desc)
+    : m_texture_view(wgpuTextureCreateView(texture_handle, &desc))
     , m_texture_view_descriptor(desc)
 {
 }
 
-TextureView::~TextureView() { m_texture_view.release(); }
+TextureView::~TextureView() { wgpuTextureViewRelease(m_texture_view); }
 
-wgpu::TextureViewDimension TextureView::dimension() const { return m_texture_view_descriptor.dimension; }
+WGPUTextureViewDimension TextureView::dimension() const { return m_texture_view_descriptor.dimension; }
 
-wgpu::TextureView TextureView::handle() const { return m_texture_view; }
+WGPUTextureView TextureView::handle() const { return m_texture_view; }
 
-Sampler::Sampler(wgpu::Device device, const wgpu::SamplerDescriptor& desc)
-    : m_sampler(device.createSampler(desc))
-    , m_sampler_descriptor(desc)
+Sampler::Sampler(WGPUDevice device, const WGPUSamplerDescriptor& desc)
+    : m_sampler(wgpuDeviceCreateSampler(device, &desc))
 {
 }
 
-Sampler::~Sampler() { m_sampler.release(); }
+Sampler::~Sampler() { wgpuSamplerRelease(m_sampler); }
 
-wgpu::Sampler Sampler::handle() const { return m_sampler; }
+WGPUSampler Sampler::handle() const { return m_sampler; }
 
 } // namespace webgpu_engine

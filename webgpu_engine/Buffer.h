@@ -18,8 +18,8 @@
  *****************************************************************************/
 #pragma once
 
-#include "webgpu.hpp"
 #include <QString>
+#include <webgpu/webgpu.h>
 
 namespace webgpu_engine {
 
@@ -28,14 +28,14 @@ namespace webgpu_engine {
 template <typename T> class RawBuffer {
 public:
     // m_size in num objects
-    RawBuffer(wgpu::Device device, wgpu::BufferUsageFlags usage, size_t size)
+    RawBuffer(WGPUDevice device, WGPUBufferUsageFlags usage, size_t size)
         : m_size(size)
     {
-        wgpu::BufferDescriptor bufferDesc;
+        WGPUBufferDescriptor bufferDesc {};
         bufferDesc.usage = usage;
         bufferDesc.size = size * sizeof(T); // takes size in bytes
         bufferDesc.mappedAtCreation = false;
-        m_buffer = device.createBuffer(bufferDesc);
+        m_buffer = wgpuDeviceCreateBuffer(device, &bufferDesc);
         // this->update_gpu_data();
     }
 
@@ -45,20 +45,20 @@ public:
 
     ~RawBuffer()
     {
-        m_buffer.destroy();
-        m_buffer.release();
+        wgpuBufferDestroy(m_buffer);
+        wgpuBufferRelease(m_buffer);
     }
 
-    void write(wgpu::Queue queue, const T* data, size_t count = 1, size_t offset = 0)
+    void write(WGPUQueue queue, const T* data, size_t count = 1, size_t offset = 0)
     {
         assert(count <= m_size);
-        queue.writeBuffer(m_buffer, offset, data, count * sizeof(T)); // takes size in bytes
+        wgpuQueueWriteBuffer(queue, m_buffer, offset, data, count * sizeof(T)); // takes size in bytes
     }
 
-    wgpu::Buffer handle() const { return m_buffer; }
+    WGPUBuffer handle() const { return m_buffer; }
 
 private:
-    wgpu::Buffer m_buffer = nullptr;
+    WGPUBuffer m_buffer = nullptr;
     size_t m_size;
 };
 
@@ -66,10 +66,10 @@ private:
 template <typename T> class Buffer {
 public:
     // Creates a Buffer object representing a region in GPU memory.
-    Buffer(wgpu::Device device, wgpu::BufferUsageFlags flags);
+    Buffer(WGPUDevice device, WGPUBufferUsageFlags flags);
 
     // Refills the GPU Buffer
-    void update_gpu_data(wgpu::Queue queue);
+    void update_gpu_data(WGPUQueue queue);
 
     // Returns String representation of buffer data (Base64)
     QString data_as_string();
@@ -78,7 +78,7 @@ public:
     bool data_from_string(const QString& base64String);
 
     // Retrieves underlying buffer handle
-    wgpu::Buffer handle() const;
+    WGPUBuffer handle() const;
 
 public:
     // Contains the buffer data

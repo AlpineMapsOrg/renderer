@@ -19,11 +19,9 @@
 
 #pragma once
 
-#include "webgpu.hpp"
-
-#include "QImage.h"
-
+#include <QImage.h>
 #include <map>
+#include <webgpu/webgpu.h>
 
 namespace webgpu_engine {
 
@@ -36,24 +34,23 @@ class TextureView;
 /// Preferably to be used with std::unique_ptr or std::shared_ptr.
 class Texture {
 public:
-    static const std::map<QImage::Format, wgpu::TextureFormat> qimage_to_webgpu_format;
+    static const std::map<QImage::Format, WGPUTextureFormat> qimage_to_webgpu_format;
 
 public:
-    Texture(wgpu::Device device, wgpu::TextureDescriptor texture_desc);
+    Texture(WGPUDevice device, const WGPUTextureDescriptor& texture_desc);
     ~Texture();
 
     // delete copy constructor and copy-assignment operator
     Texture(const Texture& other) = delete;
     Texture& operator=(const Texture& other) = delete;
 
-    void write(wgpu::Queue queue, QImage image, uint32_t layer = 0);
+    void write(WGPUQueue queue, QImage image, uint32_t layer = 0);
 
-    // should be const, but couldnt call wgpu::Texture::createView then
-    std::unique_ptr<TextureView> create_view(const wgpu::TextureViewDescriptor& desc);
+    std::unique_ptr<TextureView> create_view(const WGPUTextureViewDescriptor& desc) const;
 
 private:
-    wgpu::Texture m_texture;
-    wgpu::TextureDescriptor m_texture_desc; // for debugging
+    WGPUTexture m_texture;
+    WGPUTextureDescriptor m_texture_desc; // for debugging
 };
 
 /// Represents (web)GPU texture view, that can be used as entry in a bind group.
@@ -61,42 +58,41 @@ private:
 /// Preferably to be used with std::unique_ptr or std::shared_ptr.
 /// Usually obtained via call to Texture::create_view rather than using constructor directly.
 ///
-/// TODO decide whether RAII is needed for wgpu::TextureView objects
-///      if yes, to be consistent, we should add RAII wrappers for all wgpu::* classes
+/// TODO decide whether RAII is needed for WGPUTextureView objects
 class TextureView {
 public:
-    TextureView(wgpu::Texture& texture_handle, const wgpu::TextureViewDescriptor& desc);
+    TextureView(WGPUTexture texture_handle, const WGPUTextureViewDescriptor& desc);
     ~TextureView();
 
     // delete copy constructor and copy-assignment operator
     TextureView(const TextureView& other) = delete;
     TextureView& operator=(const TextureView& other) = delete;
 
-    wgpu::TextureViewDimension dimension() const;
-    wgpu::TextureView handle() const;
+    WGPUTextureViewDimension dimension() const;
+    WGPUTextureView handle() const;
 
 private:
-    wgpu::TextureView m_texture_view;
-    wgpu::TextureViewDescriptor m_texture_view_descriptor;
+    WGPUTextureView m_texture_view;
+    WGPUTextureViewDescriptor m_texture_view_descriptor;
 };
-
 
 /// Represents a (web)GPU sampler object, used to sample from a texture view in a shader.
 /// Provides RAII semantics without ref-counting (free memory on deletion, disallow copy).
+///
+/// TODO decide whether RAII is needed for WGPUTextureView objects
 class Sampler {
 public:
-    Sampler(wgpu::Device device, const wgpu::SamplerDescriptor& desc);
+    Sampler(WGPUDevice device, const WGPUSamplerDescriptor& desc);
     ~Sampler();
 
     // delete copy constructor and copy-assignment operator
     Sampler(const Sampler& other) = delete;
     Sampler& operator=(const Sampler& other) = delete;
 
-    wgpu::Sampler handle() const;
+    WGPUSampler handle() const;
 
 private:
-    wgpu::Sampler m_sampler;
-    wgpu::SamplerDescriptor m_sampler_descriptor;
+    WGPUSampler m_sampler;
 };
 
 } // namespace webgpu_engine

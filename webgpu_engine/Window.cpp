@@ -19,13 +19,13 @@
 
 #include "Window.h"
 
-#include "webgpu.hpp"
+#include <webgpu/webgpu.h>
 #include <webgpu/webgpu_interface.hpp>
 
 #ifdef ALP_WEBGPU_APP_ENABLE_IMGUI
+#include "backends/imgui_impl_wgpu.h"
 #include <imgui.h>
 #include <imnodes.h>
-#include "backends/imgui_impl_wgpu.h"
 #endif
 
 #include <QImage.h>
@@ -45,14 +45,17 @@ Window::Window(ObtainWebGpuSurfaceFunc obtain_webgpu_surface_func, ImGuiWindowIm
 #else
 Window::Window(ObtainWebGpuSurfaceFunc obtain_webgpu_surface_func)
     : m_obtain_webgpu_surface_func { obtain_webgpu_surface_func }
-{}
+{
+}
 #endif
 
-Window::~Window() {
+Window::~Window()
+{
     // Destructor cleanup logic here
 }
 
-void Window::initialise_gpu() {
+void Window::initialise_gpu()
+{
     // GPU initialization logic here
     webgpuPlatformInit(); // platform dependent initialization code
     create_instance();
@@ -73,15 +76,16 @@ void Window::initialise_gpu() {
     emit gpu_ready_changed(true);
 }
 
-void Window::resize_framebuffer(int w, int h) {
-    //TODO check we can do it without completely recreating swapchain and pipeline
+void Window::resize_framebuffer(int w, int h)
+{
+    // TODO check we can do it without completely recreating swapchain and pipeline
 
     if (m_pipeline_manager->pipelines_created()) {
         m_pipeline_manager->release_pipelines();
     }
 
     if (m_swapchain != nullptr) {
-        m_swapchain.release();
+        wgpuSwapChainRelease(m_swapchain);
     }
 
     create_depth_texture(w, h);
@@ -102,10 +106,11 @@ void Window::resize_framebuffer(int w, int h) {
 #endif
 }
 
-void Window::paint([[maybe_unused]] QOpenGLFramebufferObject* framebuffer) {
+void Window::paint([[maybe_unused]] QOpenGLFramebufferObject* framebuffer)
+{
     // Painting logic here, using the optional framebuffer parameter which is currently unused
 
-    wgpu::TextureView next_texture = m_swapchain.getCurrentTextureView();
+    WGPUTextureView next_texture = wgpuSwapChainGetCurrentTextureView(m_swapchain);
     if (!next_texture) {
         std::cerr << "Cannot acquire next swap chain texture" << std::endl;
         throw std::runtime_error("Cannot acquire next swap chain texture");
@@ -113,23 +118,23 @@ void Window::paint([[maybe_unused]] QOpenGLFramebufferObject* framebuffer) {
 
     emit update_camera_requested();
 
-    //TODO remove, debugging
+    // TODO remove, debugging
     const auto elapsed = static_cast<double>(m_stopwatch.total().count() / 1000.0f);
     uboSharedConfig* sc = &m_shared_config_ubo->data;
     sc->m_sun_light = QVector4D(0.0f, 1.0f, 1.0f, 1.0f);
     sc->m_sun_light_dir = QVector4D(elapsed, 1.0f, 1.0f, 1.0f);
     m_shared_config_ubo->update_gpu_data(m_queue);
 
-    wgpu::CommandEncoderDescriptor command_encoder_desc {};
+    WGPUCommandEncoderDescriptor command_encoder_desc {};
     command_encoder_desc.label = "Command Encoder";
-    wgpu::CommandEncoder encoder = m_device.createCommandEncoder(command_encoder_desc);
+    WGPUCommandEncoder encoder = wgpuDeviceCreateCommandEncoder(m_device, &command_encoder_desc);
 
-    wgpu::RenderPassColorAttachment render_pass_color_attachment {};
+    WGPURenderPassColorAttachment render_pass_color_attachment {};
     render_pass_color_attachment.view = next_texture;
     render_pass_color_attachment.resolveTarget = nullptr;
-    render_pass_color_attachment.loadOp = wgpu::LoadOp::Clear;
-    render_pass_color_attachment.storeOp = wgpu::StoreOp::Store;
-    render_pass_color_attachment.clearValue = wgpu::Color { 0.9, 0.1, 0.2, 1.0 };
+    render_pass_color_attachment.loadOp = WGPULoadOp::WGPULoadOp_Clear;
+    render_pass_color_attachment.storeOp = WGPUStoreOp::WGPUStoreOp_Store;
+    render_pass_color_attachment.clearValue = WGPUColor { 0.9, 0.1, 0.2, 1.0 };
 
     // depthSlice field for RenderPassColorAttachment (https://github.com/gpuweb/gpuweb/issues/4251)
     // this field specifies the slice to render to when rendering to a 3d texture (view)
@@ -138,98 +143,106 @@ void Window::paint([[maybe_unused]] QOpenGLFramebufferObject* framebuffer) {
     //     (I just guessed -1 (max unsigned int value) and it worked)
     render_pass_color_attachment.depthSlice = -1;
 
-    wgpu::RenderPassDepthStencilAttachment depth_stencil_attachment {};
+    WGPURenderPassDepthStencilAttachment depth_stencil_attachment {};
     depth_stencil_attachment.view = m_depth_texture_view->handle();
     depth_stencil_attachment.depthClearValue = 1.0f;
-    depth_stencil_attachment.depthLoadOp = wgpu::LoadOp::Clear;
-    depth_stencil_attachment.depthStoreOp = wgpu::StoreOp::Store;
+    depth_stencil_attachment.depthLoadOp = WGPULoadOp::WGPULoadOp_Clear;
+    depth_stencil_attachment.depthStoreOp = WGPUStoreOp::WGPUStoreOp_Store;
     depth_stencil_attachment.depthReadOnly = false;
     depth_stencil_attachment.stencilClearValue = 0;
-    depth_stencil_attachment.stencilLoadOp = wgpu::LoadOp::Undefined;
-    depth_stencil_attachment.stencilStoreOp = wgpu::StoreOp::Undefined;
+    depth_stencil_attachment.stencilLoadOp = WGPULoadOp::WGPULoadOp_Undefined;
+    depth_stencil_attachment.stencilStoreOp = WGPUStoreOp::WGPUStoreOp_Undefined;
     depth_stencil_attachment.stencilReadOnly = true;
 
-    wgpu::RenderPassDescriptor render_pass_desc {};
+    WGPURenderPassDescriptor render_pass_desc {};
     render_pass_desc.colorAttachmentCount = 1;
     render_pass_desc.colorAttachments = &render_pass_color_attachment;
     render_pass_desc.depthStencilAttachment = &depth_stencil_attachment;
     render_pass_desc.timestampWrites = nullptr;
-    wgpu::RenderPassEncoder render_pass = encoder.beginRenderPass(render_pass_desc);
+    WGPURenderPassEncoder render_pass = wgpuCommandEncoderBeginRenderPass(encoder, &render_pass_desc);
 
     m_bind_group_info->bind(render_pass, 0);
-    render_pass.setPipeline(m_pipeline_manager->debug_config_and_camera_pipeline());
-    render_pass.draw(36, 1, 0, 0);
+    wgpuRenderPassEncoderSetPipeline(render_pass, m_pipeline_manager->debug_config_and_camera_pipeline());
+    wgpuRenderPassEncoderDraw(render_pass, 31, 1, 0, 0);
 
 #ifdef ALP_WEBGPU_APP_ENABLE_IMGUI
     // We add the GUI drawing commands to the render pass
     update_gui(render_pass);
 #endif
 
-    render_pass.end();
-    render_pass.release();
+    wgpuRenderPassEncoderEnd(render_pass);
+    wgpuRenderPassEncoderRelease(render_pass);
 
-    next_texture.release();
+    wgpuTextureViewRelease(next_texture);
 
-    wgpu::CommandBufferDescriptor cmd_buffer_descriptor {};
+    WGPUCommandBufferDescriptor cmd_buffer_descriptor {};
     cmd_buffer_descriptor.label = "Command buffer";
-    wgpu::CommandBuffer command = encoder.finish(cmd_buffer_descriptor);
-    encoder.release();
-    m_queue.submit(command);
-    command.release();
+    WGPUCommandBuffer command = wgpuCommandEncoderFinish(encoder, &cmd_buffer_descriptor);
+    wgpuCommandEncoderRelease(encoder);
+    wgpuQueueSubmit(m_queue, 1, &command);
+    wgpuCommandBufferRelease(command);
 
 #ifndef __EMSCRIPTEN__
     // Swapchain in the WEB is handled by the browser!
-    m_swapchain.present();
-    m_instance.processEvents();
+    wgpuSwapChainPresent(m_swapchain);
+    wgpuInstanceProcessEvents(m_instance);
 #endif
 }
 
-float Window::depth([[maybe_unused]] const glm::dvec2& normalised_device_coordinates) {
+float Window::depth([[maybe_unused]] const glm::dvec2& normalised_device_coordinates)
+{
     // Implementation for calculating depth, parameters currently unused
     return 0.0f;
 }
 
-glm::dvec3 Window::position([[maybe_unused]] const glm::dvec2& normalised_device_coordinates) {
+glm::dvec3 Window::position([[maybe_unused]] const glm::dvec2& normalised_device_coordinates)
+{
     // Calculate and return position from normalized device coordinates, parameters currently unused
     return glm::dvec3();
 }
 
-void Window::deinit_gpu() {
+void Window::deinit_gpu()
+{
 #ifdef ALP_WEBGPU_APP_ENABLE_IMGUI
     terminate_gui();
 #endif
 
     m_pipeline_manager->release_pipelines();
     m_shader_manager->release_shader_modules();
-    m_swapchain.release();
-    m_queue.release();
-    m_surface.release();
-    //TODO triggers warning No Dawn device lost callback was set, but this is actually expected behavior
-    m_device.release();
-    m_adapter.release();
-    m_instance.release();
+    wgpuSwapChainRelease(m_swapchain);
+    wgpuQueueRelease(m_queue);
+    wgpuSurfaceRelease(m_surface);
+    // TODO triggers warning No Dawn device lost callback was set, but this is actually expected behavior
+    wgpuDeviceRelease(m_device);
+    wgpuAdapterRelease(m_adapter);
+    wgpuInstanceRelease(m_instance);
 
     emit gpu_ready_changed(false);
 }
 
-void Window::set_aabb_decorator([[maybe_unused]] const nucleus::tile_scheduler::utils::AabbDecoratorPtr&) {
+void Window::set_aabb_decorator([[maybe_unused]] const nucleus::tile_scheduler::utils::AabbDecoratorPtr&)
+{
     // Logic for setting AABB decorator, parameter currently unused
 }
 
-void Window::remove_tile([[maybe_unused]] const tile::Id&) {
+void Window::remove_tile([[maybe_unused]] const tile::Id&)
+{
     // Logic to remove a tile, parameter currently unused
 }
 
-nucleus::camera::AbstractDepthTester* Window::depth_tester() {
+nucleus::camera::AbstractDepthTester* Window::depth_tester()
+{
     // Return this object as the depth tester
     return this;
 }
 
-void Window::set_permissible_screen_space_error([[maybe_unused]] float new_error) {
+void Window::set_permissible_screen_space_error([[maybe_unused]] float new_error)
+{
     // Logic for setting permissible screen space error, parameter currently unused
 }
 
-void Window::update_camera([[maybe_unused]] const nucleus::camera::Definition& new_definition) {
+void Window::update_camera([[maybe_unused]] const nucleus::camera::Definition& new_definition)
+{
     // Logic for updating camera, parameter currently unused
 
     // UPDATE CAMERA UNIFORM BUFFER
@@ -238,8 +251,8 @@ void Window::update_camera([[maybe_unused]] const nucleus::camera::Definition& n
     std::cout << "UBO update, new pos: " << pos.x << ", " << pos.y << ", " << pos.z << std::endl;
     uboCameraConfig* cc = &m_camera_config_ubo->data;
     cc->position = glm::vec4(new_definition.position(), 1.0);
-    cc->view_matrix = new_definition.camera_matrix(); //TODO only for debug, actual line for terrain is below
-    //cc->view_matrix = new_definition.local_view_matrix();
+    cc->view_matrix = new_definition.camera_matrix(); // TODO only for debug, actual line for terrain is below
+    // cc->view_matrix = new_definition.local_view_matrix();
     cc->proj_matrix = new_definition.projection_matrix();
     cc->view_proj_matrix = cc->proj_matrix * cc->view_matrix;
     cc->inv_view_proj_matrix = glm::inverse(cc->view_proj_matrix);
@@ -250,11 +263,14 @@ void Window::update_camera([[maybe_unused]] const nucleus::camera::Definition& n
     m_camera_config_ubo->update_gpu_data(m_queue);
 }
 
-void Window::update_debug_scheduler_stats([[maybe_unused]] const QString& stats) {
+void Window::update_debug_scheduler_stats([[maybe_unused]] const QString& stats)
+{
     // Logic for updating debug scheduler stats, parameter currently unused
 }
 
-void Window::update_gpu_quads([[maybe_unused]] const std::vector<nucleus::tile_scheduler::tile_types::GpuTileQuad>& new_quads, [[maybe_unused]] const std::vector<tile::Id>& deleted_quads) {
+void Window::update_gpu_quads([[maybe_unused]] const std::vector<nucleus::tile_scheduler::tile_types::GpuTileQuad>& new_quads,
+    [[maybe_unused]] const std::vector<tile::Id>& deleted_quads)
+{
     // Logic for updating GPU quads, parameters currently unused
 
     std::cout << "received " << new_quads.size() << " new quads, should delete " << deleted_quads.size() << " quads" << std::endl;
@@ -270,7 +286,7 @@ bool Window::init_gui()
     // Setup ImNodes
     ImNodes::CreateContext();
 
-    //ImGui::GetIO();
+    // ImGui::GetIO();
 
     // Setup Platform/Renderer backends
     m_imgui_window_init_func();
@@ -291,13 +307,13 @@ bool Window::init_gui()
 
 void Window::terminate_gui()
 {
+    ImGui_ImplWGPU_Shutdown();
+    m_imgui_window_shutdown_func();
     ImNodes::DestroyContext();
     ImGui::DestroyContext();
-    m_imgui_window_shutdown_func();
-    ImGui_ImplWGPU_Shutdown();
 }
 
-void Window::update_gui(wgpu::RenderPassEncoder render_pass)
+void Window::update_gui(WGPURenderPassEncoder render_pass)
 {
     ImGui_ImplWGPU_NewFrame();
     m_imgui_window_new_frame_func();
@@ -330,9 +346,8 @@ void Window::update_gui(wgpu::RenderPassEncoder render_pass)
     fpsValues[fpsIndex] = fps;
     fpsIndex = (fpsIndex + 1) % IM_ARRAYSIZE(fpsValues); // Loop around the array
 
-
     frame_time = frame_time * 0.95f + (1000.0f / io.Framerate) * 0.05f;
-    ImGui::PlotLines("", fpsValues, IM_ARRAYSIZE(fpsValues), fpsIndex, nullptr, 0.0f, 80.0f, ImVec2(280,100));
+    ImGui::PlotLines("", fpsValues, IM_ARRAYSIZE(fpsValues), fpsIndex, nullptr, 0.0f, 80.0f, ImVec2(280, 100));
     ImGui::Text("Average: %.3f ms/frame (%.1f FPS)", frame_time, io.Framerate);
 
     ImGui::Separator();
@@ -389,8 +404,7 @@ void Window::update_gui(wgpu::RenderPassEncoder render_pass)
 
         // IMNODES - DRAW LINKS
         int id = 0;
-        for (const auto& p : links)
-        {
+        for (const auto& p : links) {
             ImNodes::Link(id++, p.first, p.second);
         }
 
@@ -400,17 +414,12 @@ void Window::update_gui(wgpu::RenderPassEncoder render_pass)
         ImNodes::EndNodeEditor();
 
         int start_attr, end_attr;
-        if (ImNodes::IsLinkCreated(&start_attr, &end_attr))
-        {
+        if (ImNodes::IsLinkCreated(&start_attr, &end_attr)) {
             links.push_back(std::make_pair(start_attr, end_attr));
         }
 
-
-
         ImGui::End();
     }
-
-
 
     ImGui::EndFrame();
     ImGui::Render();
@@ -419,17 +428,10 @@ void Window::update_gui(wgpu::RenderPassEncoder render_pass)
 }
 #endif
 
-
-void Window::create_instance() {
+void Window::create_instance()
+{
     std::cout << "Creating WebGPU instance..." << std::endl;
-
-#ifdef __EMSCRIPTEN__
-    // instance = wgpu::createInstance(wgpu::InstanceDescriptor{}); would throw nullptr exception
-    // but using vanilla webgpu with nullptr as descriptor seems to work.
     m_instance = wgpuCreateInstance(nullptr);
-#else
-    m_instance = wgpu::createInstance(wgpu::InstanceDescriptor{});
-#endif
     if (!m_instance) {
         std::cerr << "Could not initialize WebGPU!" << std::endl;
         throw std::runtime_error("Could not initialize WebGPU");
@@ -442,49 +444,53 @@ void Window::init_surface() { m_surface = m_obtain_webgpu_surface_func(m_instanc
 void Window::request_adapter()
 {
     std::cout << "Requesting adapter..." << std::endl;
-    wgpu::RequestAdapterOptions adapter_opts {};
+    WGPURequestAdapterOptions adapter_opts {};
     adapter_opts.compatibleSurface = m_surface;
-    m_adapter = m_instance.requestAdapter(adapter_opts);
+    m_adapter = requestAdapterSync(m_instance, adapter_opts);
     std::cout << "Got adapter: " << m_adapter << std::endl;
 }
 
 void Window::request_device()
 {
     std::cout << "Requesting device..." << std::endl;
-    wgpu::DeviceDescriptor device_desc {};
+    WGPUDeviceDescriptor device_desc {};
     device_desc.label = "My Device";
     device_desc.requiredFeatureCount = 0;
     device_desc.requiredLimits = nullptr;
     device_desc.defaultQueue.label = "The default queue";
-    m_device = m_adapter.requestDevice(device_desc);
+    m_device = requestDeviceSync(m_adapter, device_desc);
     std::cout << "Got device: " << m_device << std::endl;
 
     auto onDeviceError = [](WGPUErrorType type, char const* message, void* /* pUserData */) {
         std::cout << "Uncaptured device error: type " << type;
-        if (message) std::cout << " (" << message << ")";
+        if (message)
+            std::cout << " (" << message << ")";
         std::cout << std::endl;
     };
     wgpuDeviceSetUncapturedErrorCallback(m_device, onDeviceError, nullptr /* pUserData */);
 }
 
-void Window::init_queue() { m_queue = m_device.getQueue(); }
+void Window::init_queue() { m_queue = wgpuDeviceGetQueue(m_device); }
 
 void Window::create_buffers()
 {
-    m_shared_config_ubo = std::make_unique<Buffer<uboSharedConfig>>(m_device, wgpu::BufferUsage::CopyDst | wgpu::BufferUsage::Uniform);
-    m_camera_config_ubo = std::make_unique<Buffer<uboCameraConfig>>(m_device, wgpu::BufferUsage::CopyDst | wgpu::BufferUsage::Uniform);
+    m_shared_config_ubo
+        = std::make_unique<Buffer<uboSharedConfig>>(m_device, WGPUBufferUsage::WGPUBufferUsage_CopyDst | WGPUBufferUsage::WGPUBufferUsage_Uniform);
+    m_camera_config_ubo
+        = std::make_unique<Buffer<uboCameraConfig>>(m_device, WGPUBufferUsage::WGPUBufferUsage_CopyDst | WGPUBufferUsage::WGPUBufferUsage_Uniform);
 }
 
 void Window::create_textures()
 {
     // create texture
-    wgpu::TextureDescriptor texture_desc {};
-    texture_desc.dimension = wgpu::TextureDimension::_2D;
+    WGPUTextureDescriptor texture_desc {};
+    texture_desc.dimension = WGPUTextureDimension::WGPUTextureDimension_2D;
     texture_desc.size = { 256, 256, 1 };
     texture_desc.mipLevelCount = 1;
     texture_desc.sampleCount = 1;
-    texture_desc.format = wgpu::TextureFormat::RGBA8Unorm;
-    texture_desc.usage = wgpu::TextureUsage::TextureBinding | wgpu::TextureUsage::CopyDst | wgpu::TextureUsage::RenderAttachment;
+    texture_desc.format = WGPUTextureFormat::WGPUTextureFormat_RGBA8Unorm;
+    texture_desc.usage
+        = WGPUTextureUsage::WGPUTextureUsage_TextureBinding | WGPUTextureUsage::WGPUTextureUsage_CopyDst | WGPUTextureUsage::WGPUTextureUsage_RenderAttachment;
     m_demo_texture = std::make_unique<Texture>(m_device, texture_desc);
 
     // fill texture with solid color
@@ -502,26 +508,26 @@ void Window::create_textures()
     m_demo_texture->write(m_queue, image, 0);
 
     // create texture view
-    wgpu::TextureViewDescriptor view_desc {};
-    view_desc.aspect = wgpu::TextureAspect::All;
+    WGPUTextureViewDescriptor view_desc {};
+    view_desc.aspect = WGPUTextureAspect::WGPUTextureAspect_All;
     view_desc.arrayLayerCount = 1;
     view_desc.baseArrayLayer = 0;
     view_desc.mipLevelCount = 1;
     view_desc.baseMipLevel = 0;
-    view_desc.dimension = wgpu::TextureViewDimension::_2D;
+    view_desc.dimension = WGPUTextureViewDimension::WGPUTextureViewDimension_2D;
     view_desc.format = texture_desc.format;
     m_demo_texture_view = m_demo_texture->create_view(view_desc);
 
-    wgpu::SamplerDescriptor sampler_desc {};
-    sampler_desc.addressModeU = wgpu::AddressMode::ClampToEdge;
-    sampler_desc.addressModeV = wgpu::AddressMode::ClampToEdge;
-    sampler_desc.addressModeW = wgpu::AddressMode::ClampToEdge;
-    sampler_desc.magFilter = wgpu::FilterMode::Linear;
-    sampler_desc.minFilter = wgpu::FilterMode::Linear;
-    sampler_desc.mipmapFilter = wgpu::MipmapFilterMode::Linear;
+    WGPUSamplerDescriptor sampler_desc {};
+    sampler_desc.addressModeU = WGPUAddressMode::WGPUAddressMode_ClampToEdge;
+    sampler_desc.addressModeV = WGPUAddressMode::WGPUAddressMode_ClampToEdge;
+    sampler_desc.addressModeW = WGPUAddressMode::WGPUAddressMode_ClampToEdge;
+    sampler_desc.magFilter = WGPUFilterMode::WGPUFilterMode_Linear;
+    sampler_desc.minFilter = WGPUFilterMode::WGPUFilterMode_Linear;
+    sampler_desc.mipmapFilter = WGPUMipmapFilterMode::WGPUMipmapFilterMode_Linear;
     sampler_desc.lodMinClamp = 0.0f;
     sampler_desc.lodMaxClamp = 1.0f;
-    sampler_desc.compare = wgpu::CompareFunction::Undefined;
+    sampler_desc.compare = WGPUCompareFunction::WGPUCompareFunction_Undefined;
     sampler_desc.maxAnisotropy = 1;
     m_demo_sampler = std::make_unique<Sampler>(m_device, sampler_desc);
 }
@@ -530,25 +536,25 @@ void Window::create_depth_texture(uint32_t width, uint32_t height)
 {
     std::cout << "creating depth texture width=" << width << ", height=" << height << std::endl;
     WGPUTextureFormat format = m_depth_texture_format;
-    wgpu::TextureDescriptor texture_desc {};
+    WGPUTextureDescriptor texture_desc {};
     texture_desc.label = "depth texture";
-    texture_desc.dimension = wgpu::TextureDimension::_2D;
+    texture_desc.dimension = WGPUTextureDimension::WGPUTextureDimension_2D;
     texture_desc.format = m_depth_texture_format;
     texture_desc.mipLevelCount = 1;
     texture_desc.sampleCount = 1;
     texture_desc.size = { width, height, 1 };
-    texture_desc.usage = wgpu::TextureUsage::RenderAttachment;
+    texture_desc.usage = WGPUTextureUsage::WGPUTextureUsage_RenderAttachment;
     texture_desc.viewFormatCount = 1;
     texture_desc.viewFormats = &format;
     m_depth_texture = std::make_unique<Texture>(m_device, texture_desc);
 
-    wgpu::TextureViewDescriptor view_desc {};
-    view_desc.aspect = wgpu::TextureAspect::DepthOnly;
+    WGPUTextureViewDescriptor view_desc {};
+    view_desc.aspect = WGPUTextureAspect::WGPUTextureAspect_DepthOnly;
     view_desc.arrayLayerCount = 1;
     view_desc.baseArrayLayer = 0;
     view_desc.mipLevelCount = 1;
     view_desc.baseMipLevel = 0;
-    view_desc.dimension = wgpu::TextureViewDimension::_2D;
+    view_desc.dimension = WGPUTextureViewDimension::WGPUTextureViewDimension_2D;
     view_desc.format = texture_desc.format;
     m_depth_texture_view = m_depth_texture->create_view(view_desc);
 }
@@ -560,27 +566,27 @@ void Window::create_swapchain(uint32_t width, uint32_t height)
 #ifdef WEBGPU_BACKEND_WGPU
     m_swapchain_format = surface.getPreferredFormat(m_adapter);
 #else
-    m_swapchain_format = wgpu::TextureFormat::BGRA8Unorm;
+    m_swapchain_format = WGPUTextureFormat::WGPUTextureFormat_BGRA8Unorm;
 #endif
-    wgpu::SwapChainDescriptor swapchain_desc = {};
+    WGPUSwapChainDescriptor swapchain_desc = {};
     swapchain_desc.width = width;
     swapchain_desc.height = height;
-    swapchain_desc.usage = wgpu::TextureUsage::RenderAttachment;
+    swapchain_desc.usage = WGPUTextureUsage::WGPUTextureUsage_RenderAttachment;
     swapchain_desc.format = m_swapchain_format;
-    swapchain_desc.presentMode = wgpu::PresentMode::Fifo;
-    m_swapchain = m_device.createSwapChain(m_surface, swapchain_desc);
+    swapchain_desc.presentMode = WGPUPresentMode::WGPUPresentMode_Fifo;
+    m_swapchain = wgpuDeviceCreateSwapChain(m_device, m_surface, &swapchain_desc);
     std::cout << "Swapchain: " << m_swapchain << std::endl;
 }
 
 void Window::create_bind_group_info()
 {
     m_bind_group_info = std::make_unique<BindGroupInfo>();
-    m_bind_group_info->add_entry(0, *m_shared_config_ubo, wgpu::ShaderStage::Vertex | wgpu::ShaderStage::Fragment);
-    m_bind_group_info->add_entry(1, *m_camera_config_ubo, wgpu::ShaderStage::Vertex | wgpu::ShaderStage::Fragment);
-    m_bind_group_info->add_entry(2, *m_demo_texture_view, wgpu::ShaderStage::Vertex | wgpu::ShaderStage::Fragment);
-    m_bind_group_info->add_entry(3, *m_demo_sampler, wgpu::ShaderStage::Vertex | wgpu::ShaderStage::Fragment, wgpu::SamplerBindingType::Filtering);
+    m_bind_group_info->add_entry(0, *m_shared_config_ubo, WGPUShaderStage::WGPUShaderStage_Vertex | WGPUShaderStage::WGPUShaderStage_Fragment);
+    m_bind_group_info->add_entry(1, *m_camera_config_ubo, WGPUShaderStage::WGPUShaderStage_Vertex | WGPUShaderStage::WGPUShaderStage_Fragment);
+    m_bind_group_info->add_entry(2, *m_demo_texture_view, WGPUShaderStage::WGPUShaderStage_Vertex | WGPUShaderStage::WGPUShaderStage_Fragment);
+    m_bind_group_info->add_entry(3, *m_demo_sampler, WGPUShaderStage::WGPUShaderStage_Vertex | WGPUShaderStage::WGPUShaderStage_Fragment,
+        WGPUSamplerBindingType::WGPUSamplerBindingType_Filtering);
     m_bind_group_info->init(m_device);
 }
 
-
-}
+} // namespace webgpu_engine

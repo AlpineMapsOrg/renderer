@@ -26,7 +26,7 @@
 #include "nucleus/camera/AbstractDepthTester.h"
 #include "nucleus/camera/Controller.h"
 #include "nucleus/utils/Stopwatch.h"
-#include "webgpu.hpp"
+#include <webgpu/webgpu.h>
 
 class QOpenGLFramebufferObject;
 
@@ -35,7 +35,7 @@ namespace webgpu_engine {
 class Window : public nucleus::AbstractRenderWindow, public nucleus::camera::AbstractDepthTester {
     Q_OBJECT
 public:
-    using ObtainWebGpuSurfaceFunc = std::function<wgpu::Surface(wgpu::Instance instance)>;
+    using ObtainWebGpuSurfaceFunc = std::function<WGPUSurface(WGPUInstance instance)>;
     using ImGuiWindowImplInitFunc = std::function<void()>;
     using ImGuiWindowImplNewFrameFunc = std::function<void()>;
     using ImGuiWindowImplShutdownFunc = std::function<void()>;
@@ -83,18 +83,18 @@ private:
 
     bool init_gui();
     void terminate_gui();
-    void update_gui(wgpu::RenderPassEncoder render_pass);
+    void update_gui(WGPURenderPassEncoder render_pass);
 
 private:
-    wgpu::Instance m_instance = nullptr;
-    wgpu::Device m_device = nullptr;
-    wgpu::Adapter m_adapter = nullptr;
-    wgpu::Surface m_surface = nullptr;
-    wgpu::SwapChain m_swapchain = nullptr;
-    wgpu::TextureFormat m_swapchain_format = wgpu::TextureFormat::Undefined;
-    wgpu::TextureFormat m_depth_texture_format = wgpu::TextureFormat::Depth24Plus;
+    WGPUInstance m_instance = nullptr;
+    WGPUDevice m_device = nullptr;
+    WGPUAdapter m_adapter = nullptr;
+    WGPUSurface m_surface = nullptr;
+    WGPUSwapChain m_swapchain = nullptr;
+    WGPUTextureFormat m_swapchain_format = WGPUTextureFormat::WGPUTextureFormat_Undefined;
+    WGPUTextureFormat m_depth_texture_format = WGPUTextureFormat::WGPUTextureFormat_Depth24Plus;
 
-    wgpu::Queue m_queue = nullptr;
+    WGPUQueue m_queue = nullptr;
 
     std::unique_ptr<ShaderModuleManager> m_shader_manager;
     std::unique_ptr<PipelineManager> m_pipeline_manager;
