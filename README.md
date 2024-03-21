@@ -10,7 +10,7 @@ https://discord.gg/p8T9XzVwRa
 `git clone git@github.com:AlpineMapsOrg/renderer.git`
 
 After that it should be a normal cmake project. That is, you run cmake to generate a project or build file and then run your favourite tool. All dependencies should be pulled automatically while you run CMake. 
-We use Qt Creator (with mingw on Windows), which is the only tested setup atm and makes setup of Android and WebAssembly builds reasonably easy. If you have questions, please go to discord.
+We use Qt Creator (with mingw on Windows), which is the only tested setup atm and makes setup of Android and WebAssembly builds reasonably easy. If you have questions, please go to Discord.
 
 ## Dependencies
 * Qt 6.6.0, or greater

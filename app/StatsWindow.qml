@@ -54,8 +54,6 @@ Rectangle {
                 maxHeight = height
                 width = main.width - 2 * innerMargin
             }
-
-
         }
     }
 
@@ -304,6 +302,16 @@ Rectangle {
 
         CheckGroup {
             name: "Frame Profiler"
+            checkBoxEnabled: true
+            CheckBox {
+                text: "Continuous update"
+                id: continuous_update_checkbox
+                onCheckStateChanged: {
+                    console.log("Continuous update: " + checkState)
+                    console.log("map: " + map)
+                    map.continuous_update = checked
+                }
+            }
 
             Pane {
                 id: stats_timing;

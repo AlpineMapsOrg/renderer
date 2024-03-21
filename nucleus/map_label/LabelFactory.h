@@ -38,7 +38,7 @@ public:
     static const inline std::vector<unsigned int> indices = { 0, 1, 2, 0, 2, 3 };
 
 private:
-    constexpr static float font_size = 60.0f;
+    constexpr static float font_size = 48.0f;
     constexpr static glm::vec2 icon_size = glm::vec2(50.0f);
 
     Raster<uint8_t> make_font_raster();

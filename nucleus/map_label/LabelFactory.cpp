@@ -20,18 +20,14 @@
 
 #include <QDebug>
 #include <QFile>
-#include <QIcon>
 #include <QSize>
 #include <QStringLiteral>
-#include <string>
 
-#include <iostream>
-
-#include "Raster.h"
+#include "nucleus/Raster.h"
 
 #define STBTT_STATIC
 #define STB_TRUETYPE_IMPLEMENTATION
-#include "stb_slim/stb_truetype.h"
+#include <stb_slim/stb_truetype.h>
 
 using namespace Qt::Literals::StringLiterals;
 
@@ -49,17 +45,17 @@ const LabelMeta LabelFactory::create_label_meta()
         Raster<glm::u8vec4> rgba_raster = { lm.font_atlas.size(), { 255, 255, 0, 255 } };
         std::transform(lm.font_atlas.cbegin(), lm.font_atlas.cend(), rgba_raster.begin(), [](const auto& v) { return glm::u8vec4(v.x, v.y, 0, 255); });
 
-        const auto debug_out = QImage(rgba_raster.bytes(), m_font_atlas_size.width(), m_font_atlas_size.height(), QImage::Format_RGBA8888);
-        debug_out.save("font_atlas.png");
+        // const auto debug_out = QImage(rgba_raster.bytes(), m_font_atlas_size.width(), m_font_atlas_size.height(), QImage::Format_RGBA8888);
+        // debug_out.save("font_atlas.png");
     }
 
     // paint svg icon into the an image of appropriate size
-    lm.icons[nucleus::vectortile::FeatureType::Peak] = QIcon(QString(":/qt/qml/app/icons/peak.svg")).pixmap(QSize(icon_size.x, icon_size.y)).toImage();
+    lm.icons[nucleus::vectortile::FeatureType::Peak] = QImage(":/map_icons/peak.png");
     // TODO add appropriate icon
-    lm.icons[nucleus::vectortile::FeatureType::City] = QIcon(QString(":/qt/qml/app/icons/peak.svg")).pixmap(QSize(icon_size.x, icon_size.y)).toImage();
+    lm.icons[nucleus::vectortile::FeatureType::City] = QImage(":/map_icons/peak.png");
 
     // TODO add appropriate default icon
-    lm.icons[nucleus::vectortile::FeatureType::ENUM_END] = QIcon(QString(":/qt/qml/app/icons/peak.svg")).pixmap(QSize(icon_size.x, icon_size.y)).toImage();
+    lm.icons[nucleus::vectortile::FeatureType::ENUM_END] = QImage(":/map_icons/peak.png");
 
     return lm;
 }
@@ -67,7 +63,7 @@ const LabelMeta LabelFactory::create_label_meta()
 Raster<uint8_t> LabelFactory::make_font_raster()
 {
     // load ttf file
-    QFile file(":/fonts/SourceSans3-Bold.ttf");
+    QFile file(":/fonts/Roboto/Roboto-Bold.ttf");
     const auto open = file.open(QIODeviceBase::OpenModeFlag::ReadOnly);
     assert(open);
     Q_UNUSED(open);

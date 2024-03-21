@@ -46,19 +46,12 @@ MapLabelManager::MapLabelManager(QObject* parent)
 
 void MapLabelManager::init()
 {
-    QOpenGLExtraFunctions* f = QOpenGLContext::currentContext()->extraFunctions();
-
     // load the font texture
     const auto& label_meta = m_mapLabelFactory.create_label_meta();
-    m_font_texture = std::make_unique<Texture>(Texture::Target::_2d);
-    f->glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
-    f->glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-    f->glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-    f->glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
-    f->glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-    f->glTexImage2D(
-        GL_TEXTURE_2D, 0, GL_RG8, label_meta.font_atlas.width(), label_meta.font_atlas.height(), 0, GL_RG, GL_UNSIGNED_BYTE, label_meta.font_atlas.bytes());
-    f->glGenerateMipmap(GL_TEXTURE_2D);
+    // const auto& font_atlas = m_mapLabelManager.font_atlas();
+    m_font_texture = std::make_unique<Texture>(Texture::Target::_2d, Texture::Format::RG8);
+    m_font_texture->setParams(Texture::Filter::MipMapLinear, Texture::Filter::Linear);
+    m_font_texture->upload(label_meta.font_atlas);
 
     // load the icon texture
     for (int i = 0; i < nucleus::vectortile::FeatureType::ENUM_END - 1; i++) {

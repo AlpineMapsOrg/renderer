@@ -29,11 +29,6 @@ set_target_properties(plain_renderer PROPERTIES
 target_link_libraries(plain_renderer PUBLIC gl_engine)
 target_include_directories(plain_renderer PRIVATE .)
 
-qt_add_resources(plain_renderer "height_data"
-    PREFIX "/map"
-    BASE ${renderer_static_data_SOURCE_DIR}
-    FILES ${renderer_static_data_SOURCE_DIR}/height_data.atb
-)
 
 if (EMSCRIPTEN)
     message(NOTICE "ALP_WWW_INSTALL_DIR = ${ALP_WWW_INSTALL_DIR}")

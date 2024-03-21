@@ -21,13 +21,14 @@
 #include "camera_config.glsl"
 #include "encoder.glsl"
 
-uniform sampler2D texture_sampler;
+uniform lowp sampler2DArray ortho_sampler;
 
 layout (location = 0) out lowp vec3 texout_albedo;
 layout (location = 1) out highp vec4 texout_position;
 layout (location = 2) out highp uvec2 texout_normal;
 layout (location = 3) out lowp vec4 texout_depth;
 
+flat in highp int v_texture_layer;
 in highp vec2 uv;
 in highp vec3 var_pos_cws;
 in highp vec3 var_normal;
@@ -54,7 +55,8 @@ void main() {
 #endif
 
     // Write Albedo (ortho picture) in gbuffer
-    lowp vec3 fragColor = texture(texture_sampler, uv).rgb;
+    highp float texture_layer_f = float(v_texture_layer);
+    lowp vec3 fragColor = texture(ortho_sampler, vec3(uv, texture_layer_f)).rgb;
     fragColor = mix(fragColor, conf.material_color.rgb, conf.material_color.a);
     texout_albedo = fragColor;
 

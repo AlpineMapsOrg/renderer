@@ -31,7 +31,7 @@ ApplicationWindow {
     Loader {
         id: mainLoader
         anchors.fill: parent
-        source: _qmlPath + "Main.qml"
+        source: "Main.qml"
         focus: true
     }
 
@@ -54,7 +54,7 @@ ApplicationWindow {
         function onWatched_source_changed() {
             mainLoader.active = false;
             _hotreloader.clear_cache();
-            mainLoader.setSource(_qmlPath + "Main.qml")
+            mainLoader.setSource("Main.qml")
             mainLoader.active = true;
         }
     }

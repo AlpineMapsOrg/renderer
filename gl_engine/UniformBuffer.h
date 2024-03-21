@@ -30,7 +30,6 @@ class ShaderProgram;
 template <typename T> class UniformBuffer
 {
 public:
-
     // Generate GPU Buffer and bind to location
     void init();
 

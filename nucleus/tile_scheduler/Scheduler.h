@@ -23,10 +23,9 @@
 #include <QNetworkInformation>
 #include <QObject>
 
+#include "Cache.h"
 #include "nucleus/camera/Definition.h"
 #include "radix/tile.h"
-
-#include "Cache.h"
 #include "tile_types.h"
 
 class QTimer;
@@ -81,6 +80,9 @@ public:
     void read_disk_cache();
 
     void set_retirement_age_for_tile_cache(unsigned int new_retirement_age_for_tile_cache);
+    
+    nucleus::utils::ColourTexture::Format ortho_tile_compression_algorithm() const;
+    void set_ortho_tile_compression_algorithm(nucleus::utils::ColourTexture::Format new_ortho_tile_compression_algorithm);
 
     void set_dataquerier(std::shared_ptr<DataQuerier> dataquerier);
 
@@ -116,7 +118,7 @@ private:
     unsigned m_gpu_quad_limit = 300;
     unsigned m_ram_quad_limit = 15000;
     static constexpr unsigned m_ortho_tile_size = 256;
-    static constexpr unsigned m_height_tile_size = 64;
+    static constexpr unsigned m_height_tile_size = 65;
     bool m_enabled = false;
     bool m_network_requests_enabled = true;
     Statistics m_statistics;
@@ -130,5 +132,6 @@ private:
     std::shared_ptr<QByteArray> m_default_ortho_tile;
     std::shared_ptr<QByteArray> m_default_height_tile;
     std::shared_ptr<QByteArray> m_default_vector_tile;
+    nucleus::utils::ColourTexture::Format m_ortho_tile_compression_algorithm = nucleus::utils::ColourTexture::Format::Uncompressed_RGBA;
 };
 }

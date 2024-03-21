@@ -29,9 +29,14 @@ if (NOT TARGET fmt)
 endif()
 alp_add_git_repository(zppbits URL https://github.com/eyalz800/zpp_bits.git COMMITISH v4.4.20 DO_NOT_ADD_SUBPROJECT)
 alp_add_git_repository(vector_tiles URL https://github.com/AlpineMapsOrg/vector-tile.git COMMITISH origin/main)
+alp_add_git_repository(goofy_tc URL https://github.com/AlpineMapsOrgDependencies/Goofy_slim.git COMMITISH 13b228784960a6227bb6ca704ff34161bbac1b91 DO_NOT_ADD_SUBPROJECT)
 
 add_library(zppbits INTERFACE)
 target_include_directories(zppbits SYSTEM INTERFACE ${zppbits_SOURCE_DIR})
+
+add_library(goofy_tc INTERFACE)
+target_include_directories(goofy_tc INTERFACE ${goofy_tc_SOURCE_DIR})
+set_target_properties(goofy_tc PROPERTIES SYSTEM true)
 
 add_library(tl_expected INTERFACE)
 target_include_directories(tl_expected INTERFACE ${tl_expected_SOURCE_DIR}/include)
@@ -99,26 +104,50 @@ qt_add_library(nucleus STATIC
     timing/CpuTimer.h timing/CpuTimer.cpp
     vector_tiles/VectorTileManager.h vector_tiles/VectorTileManager.cpp
     vector_tiles/VectorTileFeature.h vector_tiles/VectorTileFeature.cpp
+    utils/ColourTexture.h utils/ColourTexture.cpp
 )
 
-target_include_directories(nucleus PRIVATE . PUBLIC ${CMAKE_SOURCE_DIR})
-target_link_libraries(nucleus PUBLIC radix Qt::Core Qt::Gui Qt::Network Qt::Svg fmt::fmt zppbits tl_expected nucleus_version stb_slim vector_tiles)
+target_include_directories(nucleus PUBLIC ${CMAKE_SOURCE_DIR})
+target_link_libraries(nucleus PUBLIC radix Qt::Core Qt::Gui Qt::Network fmt::fmt zppbits tl_expected nucleus_version stb_slim vector_tiles goofy_tc)
 
-# if (EMSCRIPTEN)
+qt_add_resources(nucleus "icons"
+    PREFIX "/map_icons"
+    BASE ${CMAKE_SOURCE_DIR}/app/icons
+    FILES
+        ${CMAKE_SOURCE_DIR}/app/icons/peak.png
+)
+qt_add_resources(nucleus "height_data"
+    PREFIX "/map"
+    BASE ${renderer_static_data_SOURCE_DIR}
+    FILES ${renderer_static_data_SOURCE_DIR}/height_data.atb
+)
+qt_add_resources(nucleus "nucleus_fonts"
+    BASE ${alpineapp_fonts_SOURCE_DIR}/SourceSans/
+    PREFIX "/fonts"
+    FILES
+    ${alpineapp_fonts_SOURCE_DIR}/Roboto/Roboto-Bold.ttf
+)
+
+
+if (ALP_ENABLE_LTO)
+    target_compile_options(nucleus PUBLIC -flto)
+    target_link_options(nucleus PUBLIC -flto)
+endif()
+
+
+if (EMSCRIPTEN)
+    target_compile_options(nucleus PUBLIC -msimd128 -msse2 -Wno-dollar-in-identifier-extension)
 #     # target_compile_options(nucleus PUBLIC -fwasm-exceptions)
 #     # target_link_options(nucleus PUBLIC -fwasm-exceptions)
-# endif()
+endif()
 if (ALP_ENABLE_THREADING)
-    target_compile_definitions(nucleus PUBLIC "ALP_ENABLE_THREADING")
+    target_compile_definitions(nucleus PUBLIC ALP_ENABLE_THREADING)
 endif()
 
 if (MSVC)
     target_compile_options(nucleus PUBLIC /W4 #[[/WX]])
     # /WX fails with an unreachable code warning/error in zpp_bits.h. the system property doesn't seem to work (even though it appears in the build log as
-    # -external:ID:\a\renderer\renderer\extern\zppbits -external:W0
+    # "-external:ID:\a\renderer\renderer\extern\zppbits -external:W0")
 else()
     target_compile_options(nucleus PUBLIC -Wall -Wextra -pedantic -Werror)
-    if (EMSCRIPTEN)
-        target_compile_options(nucleus PUBLIC -Wno-dollar-in-identifier-extension)
-    endif()
 endif()
