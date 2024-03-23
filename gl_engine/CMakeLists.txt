@@ -30,7 +30,6 @@ qt_add_library(gl_engine STATIC
     Framebuffer.h Framebuffer.cpp
     ShaderManager.h ShaderManager.cpp
     TileManager.h TileManager.cpp
-    TileSet.h
     Window.cpp Window.h
     DebugPainter.h DebugPainter.cpp
     helpers.h

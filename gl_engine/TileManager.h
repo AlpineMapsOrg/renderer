@@ -26,7 +26,6 @@
 #include <QOpenGLVertexArrayObject>
 
 #include "gl_engine/Texture.h"
-#include "gl_engine/TileSet.h"
 #include <nucleus/tile_scheduler/DrawListGenerator.h>
 #include <nucleus/tile_scheduler/tile_types.h>
 
@@ -42,6 +41,13 @@ class ShaderProgram;
 
 class TileManager : public QObject {
     Q_OBJECT
+
+    struct TileInfo {
+        tile::Id tile_id = {};
+        tile::SrsBounds bounds = {};
+        unsigned texture_layer = unsigned(-1);
+    };
+
 public:
     explicit TileManager(QObject* parent = nullptr);
     void init(); // needs OpenGL context
@@ -76,7 +82,7 @@ private:
     std::unique_ptr<QOpenGLBuffer> m_zoom_level_buffer;
     std::unique_ptr<QOpenGLBuffer> m_texture_layer_buffer;
 
-    std::vector<TileSet> m_gpu_tiles;
+    std::vector<TileInfo> m_gpu_tiles;
     unsigned m_tiles_per_set = 1;
     nucleus::tile_scheduler::DrawListGenerator m_draw_list_generator;
     const nucleus::tile_scheduler::DrawListGenerator::TileSet m_last_draw_list; // buffer last generated draw list

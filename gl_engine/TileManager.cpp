@@ -28,16 +28,11 @@
 #include "nucleus/camera/Definition.h"
 #include "nucleus/utils/terrain_mesh_index_generator.h"
 
-using gl_engine::TileManager;
-using gl_engine::TileSet;
+ using gl_engine::TileManager;
 
-namespace {
-template <typename T>
-int bufferLengthInBytes(const std::vector<T>& vec)
-{
-    return int(vec.size() * sizeof(T));
-}
-}
+ namespace {
+ template <typename T> int bufferLengthInBytes(const std::vector<T>& vec) { return int(vec.size() * sizeof(T)); }
+ } // namespace
 
 TileManager::TileManager(QObject* parent)
     : QObject { parent }
@@ -96,11 +91,7 @@ void TileManager::init()
     m_heightmap_textures = std::make_unique<Texture>(Texture::Target::_2dArray, Texture::Format::R16UI);
     m_heightmap_textures->setParams(Texture::Filter::Nearest, Texture::Filter::Nearest);
     m_heightmap_textures->allocate_array(HEIGHTMAP_RESOLUTION, HEIGHTMAP_RESOLUTION, unsigned(m_loaded_tiles.size()));
-}
 
-bool compareTileSetPair(std::pair<float, const TileSet*> t1, std::pair<float, const TileSet*> t2)
-{
-    return (t1.first < t2.first);
 }
 
 const nucleus::tile_scheduler::DrawListGenerator::TileSet TileManager::generate_tilelist(const nucleus::camera::Definition& camera) const {
@@ -117,7 +108,7 @@ void TileManager::draw(ShaderProgram* shader_program, const nucleus::camera::Def
     shader_program->set_uniform("height_sampler", 1);
 
     // Sort depending on distance to sort_position
-    std::vector<std::pair<float, const TileSet*>> tile_list;
+    std::vector<std::pair<float, const TileInfo*>> tile_list;
     for (const auto& tileset : m_gpu_tiles) {
         float dist = 0.0;
         if (!draw_tiles.contains(tileset.tile_id))
@@ -126,9 +117,10 @@ void TileManager::draw(ShaderProgram* shader_program, const nucleus::camera::Def
             glm::vec2 pos_wrt = glm::vec2(tileset.bounds.min.x - sort_position.x, tileset.bounds.min.y - sort_position.y);
             dist = glm::length(pos_wrt);
         }
-        tile_list.push_back(std::pair<float, const TileSet*>(dist, &tileset));
+        tile_list.push_back(std::pair<float, const TileInfo*>(dist, &tileset));
     }
-    if (sort_tiles) std::sort(tile_list.begin(), tile_list.end(), compareTileSetPair);
+    if (sort_tiles)
+        std::sort(tile_list.begin(), tile_list.end(), [](const auto& a, const auto& b) { return a.first < b.first; });
 
     m_ortho_textures->bind(2);
     m_heightmap_textures->bind(1);
@@ -183,7 +175,7 @@ void TileManager::remove_tile(const tile::Id& tile_id)
 
     // clear slot
     // or remove from list and free resources
-    const auto found_tile = std::find_if(m_gpu_tiles.begin(), m_gpu_tiles.end(), [&tile_id](const TileSet& tileset) { return tileset.tile_id == tile_id; });
+    const auto found_tile = std::find_if(m_gpu_tiles.begin(), m_gpu_tiles.end(), [&tile_id](const TileInfo& tileset) { return tileset.tile_id == tile_id; });
     if (found_tile != m_gpu_tiles.end())
         m_gpu_tiles.erase(found_tile);
 }
@@ -244,7 +236,7 @@ void TileManager::add_tile(
     if (!QOpenGLContext::currentContext()) // can happen during shutdown.
         return;
 
-    TileSet tileset;
+    TileInfo tileset;
     tileset.tile_id = id;
     tileset.bounds = tile::SrsBounds(bounds);
 
