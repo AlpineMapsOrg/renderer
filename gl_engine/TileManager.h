@@ -67,6 +67,7 @@ public slots:
 private:
     void remove_tile(const tile::Id& tile_id);
     void add_tile(const tile::Id& id, tile::SrsAndHeightBounds bounds, const nucleus::utils::ColourTexture& ortho, const nucleus::Raster<uint16_t>& heights);
+    void update_gpu_id_map();
 
     static constexpr auto N_EDGE_VERTICES = 65;
     static constexpr auto ORTHO_RESOLUTION = 256;
@@ -75,11 +76,12 @@ private:
     std::vector<tile::Id> m_loaded_tiles;
     std::unique_ptr<Texture> m_ortho_textures;
     std::unique_ptr<Texture> m_heightmap_textures;
+    std::unique_ptr<Texture> m_tile_id_map_texture;
+    std::unique_ptr<Texture> m_texture_id_map_texture;
     std::unique_ptr<QOpenGLVertexArrayObject> m_vao;
     std::pair<std::unique_ptr<QOpenGLBuffer>, size_t> m_index_buffer;
     std::unique_ptr<QOpenGLBuffer> m_bounds_buffer;
-    std::unique_ptr<QOpenGLBuffer> m_tileset_id_buffer;
-    std::unique_ptr<QOpenGLBuffer> m_zoom_level_buffer;
+    std::unique_ptr<QOpenGLBuffer> m_draw_tile_id_buffer;
     std::unique_ptr<QOpenGLBuffer> m_texture_layer_buffer;
 
     std::vector<TileInfo> m_gpu_tiles;

@@ -187,12 +187,14 @@ void gl_engine::Texture::upload(const nucleus::Raster<uint16_t>& texture, unsign
 
 template <typename T> void gl_engine::Texture::upload(const nucleus::Raster<T>& texture)
 {
+    assert(m_target == Target::_2d);
+
     const auto p = gl_tex_params(m_format);
     assert(m_format != Format::CompressedRGBA8);
     assert(m_format != Format::Invalid);
     assert(sizeof(T) == p.n_bytes_per_element * p.n_elements);
 
-    QOpenGLFunctions* f = QOpenGLContext::currentContext()->functions();
+    QOpenGLExtraFunctions* f = QOpenGLContext::currentContext()->extraFunctions();
     f->glBindTexture(GLenum(m_target), m_id);
     f->glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
     f->glTexImage2D(GLenum(m_target), 0, p.internal_format, GLsizei(texture.width()), GLsizei(texture.height()), 0, p.format, p.type, texture.bytes());

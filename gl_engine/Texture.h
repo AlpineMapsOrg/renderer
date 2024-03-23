@@ -30,7 +30,7 @@
 namespace gl_engine {
 class Texture {
 public:
-    enum class Target : GLenum { _2d = GL_TEXTURE_2D, _2dArray = GL_TEXTURE_2D_ARRAY };
+    enum class Target : GLenum { _2d = GL_TEXTURE_2D, _2dArray = GL_TEXTURE_2D_ARRAY }; // no 1D textures in webgl
     enum class Format {
         RGBA8, // normalised on gpu
         CompressedRGBA8, // normalised on gpu, compression format depends on desktop/mobile
