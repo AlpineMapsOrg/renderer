@@ -89,4 +89,33 @@ glm::dvec3 lat_long_alt_to_world(const glm::dvec3& lat_long_alt)
     return { world_xy.x, world_xy.y, lat_long_alt.z / std::abs(std::cos(lat_rad_)) };
 }
 
+uint16_t hash_uint16(const tile::Id& id)
+{
+    // https://en.wikipedia.org/wiki/Linear_congruential_generator
+    // could be possible to find better factors.
+    uint16_t z = uint16_t(id.zoom_level) * uint16_t(4 * 199 * 59 + 1) + uint16_t(10859);
+    uint16_t x = uint16_t(id.coords.x) * uint16_t(4 * 149 * 101 + 1) + uint16_t(12253);
+    uint16_t y = uint16_t(id.coords.y) * uint16_t(4 * 293 * 53 + 1) + uint16_t(59119);
+
+    return x + y + z;
+}
+
+glm::vec<2, uint32_t> pack(const tile::Id& id)
+{
+    uint32_t a = id.zoom_level << (32 - 5);
+    a = a | (id.coords.x >> 3);
+    uint32_t b = id.coords.x << (32 - 3);
+    b = b | id.coords.y;
+    return { a, b };
+}
+
+tile::Id unpack(const glm::vec<2, uint32_t>& packed)
+{
+    tile::Id id;
+    id.zoom_level = packed.x >> (32 - 5);
+    id.coords.x = (packed.x & ((1u << (32 - 5)) - 1)) << 3;
+    id.coords.x = id.coords.x | (packed.y >> (32 - 3));
+    id.coords.y = packed.y & ((1u << (32 - 3)) - 1);
+    return id;
+}
 }

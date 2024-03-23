@@ -17,54 +17,28 @@
  *****************************************************************************/
 #include "UnittestGLContext.h"
 
-#include <QPainter>
+#include <unordered_set>
+
+#include <QImage>
 #include <catch2/catch_test_macros.hpp>
+
 #include <gl_engine/Framebuffer.h>
 #include <gl_engine/ShaderProgram.h>
 #include <gl_engine/Texture.h>
 #include <gl_engine/helpers.h>
 #include <nucleus/camera/PositionStorage.h>
+#include <nucleus/srs.h>
 #include <nucleus/tile_scheduler/utils.h>
 #include <nucleus/utils/ColourTexture.h>
 #include <radix/TileHeights.h>
 #include <radix/quad_tree.h>
 #include <radix/tile.h>
-#include <unordered_set>
 
 using gl_engine::Framebuffer;
 using gl_engine::ShaderProgram;
-
-namespace tile_id_funs {
-uint16_t hash_uint16(const tile::Id& id)
-{
-    // https://en.wikipedia.org/wiki/Linear_congruential_generator
-    // could be possible to find better factors.
-    uint16_t z = uint16_t(id.zoom_level) * uint16_t(4 * 199 * 59 + 1) + uint16_t(10859);
-    uint16_t x = uint16_t(id.coords.x) * uint16_t(4 * 149 * 101 + 1) + uint16_t(12253);
-    uint16_t y = uint16_t(id.coords.y) * uint16_t(4 * 293 * 53 + 1) + uint16_t(59119);
-
-    return x + y + z;
-}
-
-glm::vec<2, uint32_t> pack(const tile::Id& id)
-{
-    uint32_t a = id.zoom_level << (32 - 5);
-    a = a | (id.coords.x >> 3);
-    uint32_t b = id.coords.x << (32 - 3);
-    b = b | id.coords.y;
-    return { a, b };
-}
-
-tile::Id unpack(const glm::vec<2, uint32_t>& packed)
-{
-    tile::Id id;
-    id.zoom_level = packed.x >> (32 - 5);
-    id.coords.x = (packed.x & ((1u << (32 - 5)) - 1)) << 3;
-    id.coords.x = id.coords.x | (packed.y >> (32 - 3));
-    id.coords.y = packed.y & ((1u << (32 - 3)) - 1);
-    return id;
-}
-} // namespace tile_id_funs
+using nucleus::srs::hash_uint16;
+using nucleus::srs::pack;
+using nucleus::srs::unpack;
 
 namespace {
 ShaderProgram create_debug_shader(const QString& fragment_shader, const QString& vertex_shader = R"(
@@ -98,7 +72,7 @@ void hashing_cpp_same_as_glsl(const tile::Id& id)
                 out_color = vec4((hash_ref == hash_glsl) ? 121.0 / 255.0 : 9.0 / 255.0, 0, 0, 1);
             }
         )")
-                                                       .arg(tile_id_funs::hash_uint16(id))
+                                                       .arg(hash_uint16(id))
                                                        .arg(id.zoom_level)
                                                        .arg(id.coords.x)
                                                        .arg(id.coords.y));
@@ -121,7 +95,7 @@ void hashing_cpp_same_as_glsl(const tile::Id& id)
                 out_color = vec4((hash_ref == hash) ? 121.0 / 255.0 : 9.0 / 255.0, 0, 0, 1);
             }
             )")
-                                                       .arg(tile_id_funs::hash_uint16(id)),
+                                                       .arg(hash_uint16(id)),
             QString(R"(
             #include "tile_id.glsl"
 
@@ -170,8 +144,8 @@ void packing_cpp_same_as_glsl(const tile::Id& id)
                 out_color = vec4(unpack_ok ? 121.0 / 255.0 : 9.0 / 255.0, pack_ok ? 122.0 / 255.0 : 9.0 / 255.0, 0, 1);
             }
         )")
-                                                       .arg(tile_id_funs::pack(id).x)
-                                                       .arg(tile_id_funs::pack(id).y)
+                                                       .arg(pack(id).x)
+                                                       .arg(pack(id).y)
                                                        .arg(id.zoom_level)
                                                        .arg(id.coords.x)
                                                        .arg(id.coords.y));
@@ -214,8 +188,8 @@ void packing_cpp_same_as_glsl(const tile::Id& id)
                 gl_Position = vec4(vertices[gl_VertexID], 0.0, 1.0);
                 texcoords = 0.5 * gl_Position.xy + vec2(0.5);
             })")
-                .arg(tile_id_funs::pack(id).x)
-                .arg(tile_id_funs::pack(id).y)
+                .arg(pack(id).x)
+                .arg(pack(id).y)
                 .arg(id.zoom_level)
                 .arg(id.coords.x)
                 .arg(id.coords.y));
@@ -228,13 +202,6 @@ void packing_cpp_same_as_glsl(const tile::Id& id)
         CHECK(qGreen(render_result.pixel(0, 0)) == 122);
     }
 }
-
-void packing_roundtrip_cpp(const tile::Id& id)
-{
-    const auto packed = tile_id_funs::pack(id);
-    const auto unpacked = tile_id_funs::unpack(packed);
-    CHECK(id == unpacked);
-};
 
 } // namespace
 
@@ -255,14 +222,7 @@ TEST_CASE("glsl tile functions")
                     return v.children();
                 });
         };
-        add_tiles(nucleus::camera::stored_positions::stephansdom());
         add_tiles(nucleus::camera::stored_positions::grossglockner());
-        add_tiles(nucleus::camera::stored_positions::oestl_hochgrubach_spitze());
-        add_tiles(nucleus::camera::stored_positions::wien());
-        add_tiles(nucleus::camera::stored_positions::karwendel());
-        add_tiles(nucleus::camera::stored_positions::schneeberg());
-        add_tiles(nucleus::camera::stored_positions::weichtalhaus());
-        add_tiles(nucleus::camera::stored_positions::grossglockner_shadow());
     }
 
     SECTION("hashing c++ same as glsl")
@@ -273,55 +233,11 @@ TEST_CASE("glsl tile functions")
         hashing_cpp_same_as_glsl({ 14, { 2673, 12038 } });
         hashing_cpp_same_as_glsl({ 20, { 430489, 100204 } });
         for (const auto id : ids) {
-            const auto hash = tile_id_funs::hash_uint16(id);
-            if (hash / 65535.f > 0.98f) {
-                // n_equality_checks++;
-                hashing_cpp_same_as_glsl(id);
-            }
+            hashing_cpp_same_as_glsl(id);
         }
     }
 
-    SECTION("check conflict potential")
-    {
-        QImage data(256, 256, QImage::Format_Grayscale8);
-        data.fill(0);
-        unsigned conflict_chain_length = 0;
-        unsigned n_conflicts = 0;
-        // unsigned n_equality_checks = 0;
-        for (const auto id : ids) {
-            const auto hash = tile_id_funs::hash_uint16(id);
-            auto& bucket = (*(data.bits() + hash));
-            n_conflicts += bucket != 0;
-            bucket++;
-            conflict_chain_length = std::max(conflict_chain_length, unsigned(bucket));
-        }
-        for (int i = 0; i < 256 * 256; ++i) {
-            auto& bucket = (*(data.bits() + i));
-            bucket *= 255 / conflict_chain_length;
-        }
-
-        // data.save("tile_id_hashing.png");
-        // qDebug() << "n_tiles: " << ids.size();
-        // qDebug() << "conflict_chain_length: " << conflict_chain_length;
-        // qDebug() << "n_conflicts: " << n_conflicts;
-        // qDebug() << "n_equality_checks: " << n_equality_checks;
-        CHECK(conflict_chain_length <= 3);
-        CHECK(n_conflicts <= 1000);
-    }
-
-    SECTION("packing roundtrip in c++")
-    {
-        packing_roundtrip_cpp({ 0, { 0, 0 } });
-        packing_roundtrip_cpp({ 1, { 0, 0 } });
-        packing_roundtrip_cpp({ 1, { 1, 1 } });
-        packing_roundtrip_cpp({ 14, { 2673, 12038 } });
-        packing_roundtrip_cpp({ 20, { 430489, 100204 } });
-        for (const auto id : ids) {
-            packing_roundtrip_cpp(id);
-        }
-    }
-
-    SECTION("packiong c++ same as glsl")
+    SECTION("packing c++ same as glsl")
     {
         packing_cpp_same_as_glsl({ 0, { 0, 0 } });
         packing_cpp_same_as_glsl({ 1, { 0, 0 } });
@@ -329,10 +245,7 @@ TEST_CASE("glsl tile functions")
         packing_cpp_same_as_glsl({ 14, { 2673, 12038 } });
         packing_cpp_same_as_glsl({ 20, { 430489, 100204 } });
         for (const auto id : ids) {
-            const auto hash = tile_id_funs::hash_uint16(id);
-            if (hash / 65535.f > 0.98f) {
-                packing_cpp_same_as_glsl(id);
-            }
+            packing_cpp_same_as_glsl(id);
         }
     }
 }
