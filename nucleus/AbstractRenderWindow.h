@@ -41,7 +41,6 @@ namespace camera {
     class Definition;
     class AbstractDepthTester;
 }
-struct Tile;
 
 class AbstractRenderWindow : public QObject {
     Q_OBJECT

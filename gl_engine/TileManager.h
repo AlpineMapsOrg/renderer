@@ -27,7 +27,6 @@
 
 #include "gl_engine/Texture.h"
 #include "gl_engine/TileSet.h"
-#include <nucleus/Tile.h>
 #include <nucleus/tile_scheduler/DrawListGenerator.h>
 #include <nucleus/tile_scheduler/tile_types.h>
 
