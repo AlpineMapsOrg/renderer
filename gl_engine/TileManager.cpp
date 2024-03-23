@@ -186,8 +186,6 @@ void TileManager::remove_tile(const tile::Id& tile_id)
     const auto found_tile = std::find_if(m_gpu_tiles.begin(), m_gpu_tiles.end(), [&tile_id](const TileSet& tileset) { return tileset.tile_id == tile_id; });
     if (found_tile != m_gpu_tiles.end())
         m_gpu_tiles.erase(found_tile);
-
-    emit tiles_changed();
 }
 
 void TileManager::initilise_attribute_locations(ShaderProgram* program)
@@ -262,8 +260,6 @@ void TileManager::add_tile(
     // add to m_gpu_tiles
     m_gpu_tiles.push_back(tileset);
     m_draw_list_generator.add_tile(id);
-
-    emit tiles_changed();
 }
 
 void TileManager::set_permissible_screen_space_error(float new_permissible_screen_space_error)

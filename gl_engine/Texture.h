@@ -31,15 +31,15 @@ namespace gl_engine {
 class Texture {
 public:
     enum class Target : GLenum { _2d = GL_TEXTURE_2D, _2dArray = GL_TEXTURE_2D_ARRAY };
-    enum class Format : GLenum {
-        RGBA8 = GL_RGBA8, // normalised on gpu
-        CompressedRGBA8 = GLenum(-2), // normalised on gpu
-        RGBA8UI = GL_RGBA8UI,
-        RG8 = GL_RG8, // normalised on gpu
-        RG32UI = GL_RG16UI,
-        R16UI = GL_R16UI,
-        R32UI = GL_R32UI,
-        Invalid = GLenum(-1)
+    enum class Format {
+        RGBA8, // normalised on gpu
+        CompressedRGBA8, // normalised on gpu, compression format depends on desktop/mobile
+        RGBA8UI,
+        RG8, // normalised on gpu
+        RG32UI,
+        R16UI,
+        R32UI,
+        Invalid
     };
     enum class Filter : GLint { Nearest = GL_NEAREST, Linear = GL_LINEAR, MipMapLinear = GL_LINEAR_MIPMAP_LINEAR };
 

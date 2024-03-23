@@ -52,17 +52,14 @@ public:
 
     void set_permissible_screen_space_error(float new_permissible_screen_space_error);
 
-signals:
-    void tiles_changed();
-
 public slots:
     void update_gpu_quads(const std::vector<nucleus::tile_scheduler::tile_types::GpuTileQuad>& new_quads, const std::vector<tile::Id>& deleted_quads);
-    void remove_tile(const tile::Id& tile_id);
     void initilise_attribute_locations(ShaderProgram* program);
     void set_aabb_decorator(const nucleus::tile_scheduler::utils::AabbDecoratorPtr& new_aabb_decorator);
     void set_quad_limit(unsigned new_limit);
 
 private:
+    void remove_tile(const tile::Id& tile_id);
     void add_tile(const tile::Id& id, tile::SrsAndHeightBounds bounds, const nucleus::utils::ColourTexture& ortho, const nucleus::Raster<uint16_t>& heights);
 
     static constexpr auto N_EDGE_VERTICES = 65;

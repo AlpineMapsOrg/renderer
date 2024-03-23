@@ -26,7 +26,6 @@
 #include <emscripten/val.h>
 #endif
 
-using F = gl_engine::Texture::Format;
 namespace {
 struct GlParams {
     GLint internal_format = 0;
@@ -40,6 +39,7 @@ struct GlParams {
 // https://registry.khronos.org/OpenGL-Refpages/es3.0/html/glTexImage2D.xhtml
 GlParams gl_tex_params(gl_engine::Texture::Format format)
 {
+    using F = gl_engine::Texture::Format;
     switch (format) {
     case F::CompressedRGBA8:
         return { GLint(gl_engine::Texture::compressed_texture_format()), 0, 0, 0, 0, true };
