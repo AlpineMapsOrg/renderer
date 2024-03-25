@@ -39,3 +39,27 @@ highp uvec3 unpack_tile_id(highp uvec2 packed_id) {
     id.y = packed_id.y & ((1u << (32u - 3u)) - 1u);
     return id;
 }
+
+bool decrease_zoom_level_by_one(inout highp uvec3 id, inout highp vec2 uv) {
+    if(id.z == 0u)
+        return false;
+    float x_border = float(id.x & 1u) / 2.0;
+    float y_border = float((id.y & 1u) == 0u) / 2.0;
+    id.z = id.z - 1u;
+    id.x = id.x / 2u;
+    id.y = id.y / 2u;
+    uv = uv / 2.0 + vec2(x_border, y_border);
+}
+
+void decrease_zoom_level_until(inout highp uvec3 id, inout highp vec2 uv, in lowp uint zoom_level) {
+    if(id.z <= zoom_level)
+        return;
+    uint z_delta = id.z - zoom_level;
+    uint border_mask = (1u << z_delta) - 1u;
+    float x_border = float(id.x & border_mask) / float(1u << z_delta);
+    float y_border = float((id.y ^ border_mask) & border_mask) / float(1u << z_delta);
+    id.z = id.z - z_delta;
+    id.x = id.x >> z_delta;
+    id.y = id.y >> z_delta;
+    uv = uv / (1u << z_delta) + vec2(x_border, y_border);
+}

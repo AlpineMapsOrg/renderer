@@ -23,7 +23,7 @@
 #include "tile.glsl"
 #include "tile_id.glsl"
 
-out highp vec2 uv;
+out highp vec2 var_uv;
 out highp vec3 var_pos_cws;
 out highp vec3 var_normal;
 flat out highp int v_texture_layer;
@@ -39,10 +39,10 @@ void main() {
     float quad_width;
     float quad_height;
     float altitude_correction_factor;
-    var_pos_cws = camera_world_space_position(uv, n_quads_per_direction, quad_width, quad_height, altitude_correction_factor);
+    var_pos_cws = camera_world_space_position(var_uv, n_quads_per_direction, quad_width, quad_height, altitude_correction_factor);
 
     if (conf.normal_mode == 1u) {
-        var_normal = normal_by_finite_difference_method(uv, n_quads_per_direction, quad_width, quad_height, altitude_correction_factor);
+        var_normal = normal_by_finite_difference_method(var_uv, n_quads_per_direction, quad_width, quad_height, altitude_correction_factor);
     }
 
     var_tile_id = unpack_tile_id(packed_tile_id);
@@ -53,7 +53,7 @@ void main() {
         case 2u: vertex_color = color_from_id_hash(uint(packed_tile_id.x ^ packed_tile_id.y)); break;
         case 3u: vertex_color = color_from_id_hash(uint(var_tile_id.z)); break;
         case 4u: vertex_color = color_from_id_hash(uint(gl_VertexID)); break;
-        case 5u: vertex_color = vec3(texture(height_sampler, vec3(uv, texture_layer)).rrr) / 65535.0; break;
+        case 5u: vertex_color = vec3(texture(height_sampler, vec3(var_uv, texture_layer)).rrr) / 65535.0; break;
     }
     v_texture_layer = texture_layer;
 }

@@ -33,7 +33,7 @@ layout (location = 3) out lowp vec4 texout_depth;
 
 flat in highp int v_texture_layer;
 flat in highp uvec3 var_tile_id;
-in highp vec2 uv;
+in highp vec2 var_uv;
 in highp vec3 var_pos_cws;
 in highp vec3 var_normal;
 #if CURTAIN_DEBUG_MODE > 0
@@ -57,10 +57,16 @@ void main() {
         discard;
     }
 #endif
+    highp uvec3 tile_id = var_tile_id;
+    highp vec2 uv = var_uv;
+
+    // while (tile_id.z > 7u)
+    //     decrease_zoom_level_by_one(tile_id, uv);
+    // decrease_zoom_level_until(tile_id, uv, 7u);
 
     // Write Albedo (ortho picture) in gbuffer
-    highp uint hash = hash_tile_id(var_tile_id);
-    highp uvec2 packed_tile_id = pack_tile_id(var_tile_id);
+    highp uint hash = hash_tile_id(tile_id);
+    highp uvec2 packed_tile_id = pack_tile_id(tile_id);
     while(texelFetch(tile_id_map_sampler, ivec2(int(hash & 255u), int(hash >> 8u)), 0).xy != packed_tile_id)
         hash++;
 
