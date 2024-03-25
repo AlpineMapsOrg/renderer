@@ -25,7 +25,6 @@ project(alpine-renderer-gl_engine LANGUAGES CXX)
 option(ALP_ENABLE_SHADER_NETWORK_HOTRELOAD "reload shader files per HTTP request. Allows Hot-Reload on Android/WebGL" OFF)
 set(ALP_SHADER_NETWORK_URL "http://localhost:5500/" CACHE STRING "url location, which points to the shaders directory for network hot reload")
 
-#http://localhost:5500/
 qt_add_library(gl_engine STATIC
     Framebuffer.h Framebuffer.cpp
     ShaderManager.h ShaderManager.cpp

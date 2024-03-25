@@ -59,8 +59,8 @@ void main() {
 #endif
 
     // Write Albedo (ortho picture) in gbuffer
-    highp uint hash = hash_tile_id(var_tile_id.z, var_tile_id.x, var_tile_id.y);
-    highp uvec2 packed_tile_id = pack_tile_id(var_tile_id.z, var_tile_id.x, var_tile_id.y);
+    highp uint hash = hash_tile_id(var_tile_id);
+    highp uvec2 packed_tile_id = pack_tile_id(var_tile_id);
     while(texelFetch(tile_id_map_sampler, ivec2(int(hash & 255u), int(hash >> 8u)), 0).xy != packed_tile_id)
         hash++;
 

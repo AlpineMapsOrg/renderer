@@ -16,18 +16,18 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *****************************************************************************/
 
-mediump uint hash_tile_id(mediump uint zoom_level, mediump uint coord_x, mediump uint coord_y) {
-    mediump uint z = zoom_level * 46965u + 10859u;
-    mediump uint x = coord_x * 60197u + 12253u;
-    mediump uint y = coord_y * 62117u + 59119u;
+mediump uint hash_tile_id(mediump uvec3 id) {
+    mediump uint z = id.z * 46965u + 10859u;
+    mediump uint x = id.x * 60197u + 12253u;
+    mediump uint y = id.y * 62117u + 59119u;
     return (x + y + z) & 65535u;
 }
 
-highp uvec2 pack_tile_id(highp uint zoom_level, highp uint coord_x, highp uint coord_y) {
-    highp uint a = zoom_level << (32 - 5);
-    a = a | (coord_x >> 3);
-    highp uint b = coord_x << (32 - 3);
-    b = b | coord_y;
+highp uvec2 pack_tile_id(highp uvec3 id) {
+    highp uint a = id.z << (32 - 5);
+    a = a | (id.x >> 3);
+    highp uint b = id.x << (32 - 3);
+    b = b | id.y;
     return uvec2(a, b);
 }
 
