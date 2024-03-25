@@ -45,7 +45,7 @@ class TileManager : public QObject {
     struct TileInfo {
         tile::Id tile_id = {};
         tile::SrsBounds bounds = {};
-        unsigned texture_layer = unsigned(-1);
+        unsigned height_texture_layer = unsigned(-1);
     };
 
 public:
@@ -82,7 +82,7 @@ private:
     std::pair<std::unique_ptr<QOpenGLBuffer>, size_t> m_index_buffer;
     std::unique_ptr<QOpenGLBuffer> m_bounds_buffer;
     std::unique_ptr<QOpenGLBuffer> m_draw_tile_id_buffer;
-    std::unique_ptr<QOpenGLBuffer> m_texture_layer_buffer;
+    std::unique_ptr<QOpenGLBuffer> m_height_texture_layer_buffer;
 
     std::vector<TileInfo> m_gpu_tiles;
     unsigned m_tiles_per_set = 1;
