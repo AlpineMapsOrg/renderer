@@ -18,11 +18,11 @@
 
 #include "MapLabel.h"
 
-#include "srs.h"
 
 #include <QDebug>
+#include <stb_slim/stb_truetype.h>
 
-#include "stb_slim/stb_truetype.h"
+#include "nucleus/srs.h"
 
 namespace nucleus {
 

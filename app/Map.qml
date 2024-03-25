@@ -48,4 +48,13 @@ Rectangle {
         visible: renderer.camera_operation_centre_visibility
     }
 
+    FloatingActionButtonGroup {
+        id: fab_group
+        anchors {
+            left: map_gui.left
+            bottom: map_gui.bottom
+            leftMargin: 8
+            bottomMargin: 8
+        }
+    }
 }

@@ -75,7 +75,7 @@ TEST_CASE("gl framebuffer")
     REQUIRE(f);
     SECTION("rgba8 bit")
     {
-        Framebuffer b(Framebuffer::DepthFormat::None, { {Framebuffer::ColourFormat::RGBA8} }, { 501, 211 });
+        Framebuffer b(Framebuffer::DepthFormat::None, {Framebuffer::ColourFormat::RGBA8}, {501, 211});
         b.bind();
         ShaderProgram shader = create_debug_shader();
         shader.bind();
@@ -98,7 +98,7 @@ TEST_CASE("gl framebuffer")
     // Only color renderable on WEBGL with EXT_color_buffer_float extension
     SECTION("rgba32f color format")
     {
-        Framebuffer b(Framebuffer::DepthFormat::None, { {Framebuffer::ColourFormat::RGBA32F} });
+        Framebuffer b(Framebuffer::DepthFormat::None, {Framebuffer::ColourFormat::RGBA32F});
         b.bind();
         ShaderProgram shader = create_debug_shader( R"(
             out highp vec4 out_Color;
@@ -196,7 +196,7 @@ TEST_CASE("gl framebuffer")
 
     SECTION("rgba8 bit pixel read benchmark")
     {
-        Framebuffer b(Framebuffer::DepthFormat::None, { {Framebuffer::ColourFormat::RGBA8} });
+        Framebuffer b(Framebuffer::DepthFormat::None, {Framebuffer::ColourFormat::RGBA8});
         b.bind();
         ShaderProgram shader = create_debug_shader();
         shader.bind();
@@ -214,7 +214,7 @@ TEST_CASE("gl framebuffer")
     // NOTE: Tests dont terminate on webgl for me if this benchmark is enabled. The function is not in use anyway...
     SECTION("rgba8 bit read benchmark")
     {
-        Framebuffer b(Framebuffer::DepthFormat::None, { {Framebuffer::ColourFormat::RGBA8} }, { 1920, 1080 });
+        Framebuffer b(Framebuffer::DepthFormat::None, {Framebuffer::ColourFormat::RGBA8}, {1920, 1080});
         b.bind();
         ShaderProgram shader = create_debug_shader();
         shader.bind();
@@ -229,7 +229,7 @@ TEST_CASE("gl framebuffer")
 #endif
     SECTION("read pixel")
     {
-        Framebuffer b(Framebuffer::DepthFormat::None, { {Framebuffer::ColourFormat::RGBA8} }, { 1920, 1080 });
+        Framebuffer b(Framebuffer::DepthFormat::None, {Framebuffer::ColourFormat::RGBA8}, {1920, 1080});
         b.bind();
         ShaderProgram shader = create_debug_shader();
         shader.bind();
@@ -260,7 +260,7 @@ TEST_CASE("gl framebuffer")
         gl_engine::helpers::create_screen_quad_geometry().draw_with_depth_test();
         f->glFinish();
         // Now lets try to use it as an input texture
-        Framebuffer b2(Framebuffer::DepthFormat::None, { { Framebuffer::ColourFormat::RGBA32F } });
+        Framebuffer b2(Framebuffer::DepthFormat::None, {Framebuffer::ColourFormat::RGBA32F});
         b2.bind();
         ShaderProgram p2 = create_debug_shader(R"(
             in highp vec2 texcoords;

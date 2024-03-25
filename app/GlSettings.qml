@@ -61,9 +61,6 @@ SettingsPanel {
     Item {  // i need to pack Connections in an item (dunno why)
         Connections {
             target: map
-            function onHud_visible_changed(hud_visible) {
-                //debugMenu.visible = hud_visible;
-            }
             function onShared_config_changed(conf) {
                 update_control_values();
             }

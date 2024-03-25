@@ -36,11 +36,9 @@ ShadowMapping::ShadowMapping(std::shared_ptr<ShaderProgram> program, std::shared
 {
      m_f = QOpenGLContext::currentContext()->extraFunctions();
     for (int i = 0; i < SHADOW_CASCADES; i++) {
-        m_shadowmapbuffer.push_back(std::make_unique<Framebuffer>(
-            Framebuffer::DepthFormat::Float32,
-            std::vector<TextureDefinition>{}, // no colour texture needed (=> depth only)
-            glm::uvec2(SHADOWMAP_WIDTH, SHADOWMAP_HEIGHT)
-            ));
+        m_shadowmapbuffer.push_back(std::make_unique<Framebuffer>(Framebuffer::DepthFormat::Float32,
+            std::vector<Framebuffer::ColourFormat> {}, // no colour texture needed (=> depth only)
+            glm::uvec2(SHADOWMAP_WIDTH, SHADOWMAP_HEIGHT)));
     }
 }
 

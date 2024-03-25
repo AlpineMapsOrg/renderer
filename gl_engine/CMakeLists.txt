@@ -70,6 +70,7 @@ qt_add_resources(gl_engine "shaders"
     shaders/labels.frag
     shaders/labels.vert
     shaders/snow.glsl
+    shaders/tile.glsl
 )
 target_compile_definitions(gl_engine PUBLIC ALP_RESOURCES_PREFIX="${CMAKE_CURRENT_SOURCE_DIR}/shaders/")
 
@@ -78,7 +79,5 @@ if(ALP_ENABLE_SHADER_NETWORK_HOTRELOAD)
 else()
     target_compile_definitions(gl_engine PUBLIC ALP_ENABLE_SHADER_NETWORK_HOTRELOAD=false)
 endif()
-
-#target_compile_definitions(gl_engine PUBLIC ALP_SHADER_NETWORK_URL="http://localhost:5500/")
 
 target_compile_definitions(gl_engine PUBLIC "ALP_SHADER_NETWORK_URL=\"${ALP_SHADER_NETWORK_URL}\"")

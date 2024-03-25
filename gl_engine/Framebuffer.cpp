@@ -190,19 +190,16 @@ void Framebuffer::recreate_texture(size_t index)
         }
     } else {
         m_colour_textures[index]->destroy();
-        m_colour_textures[index]->setFormat(internal_format_qt(m_colour_definitions[index].format));
+        m_colour_textures[index]->setFormat(internal_format_qt(m_colour_definitions[index]));
         m_colour_textures[index]->setSize(int(m_size.x), int(m_size.y));
-        m_colour_textures[index]->setAutoMipMapGenerationEnabled(m_colour_definitions[index].autoMipMapGeneration);
-        m_colour_textures[index]->setMinMagFilters(m_colour_definitions[index].minFilter, m_colour_definitions[index].magFilter);
-#if (defined(__linux) && !defined(__ANDROID__)) || defined(_WIN32) || defined(_WIN64)
-        // No support on WebGL and OpenGL ES for Border (Warning: On those platforms we just ignore the wrap mode)
-        // Feel free to make this code better!!
-        m_colour_textures[index]->setWrapMode(m_colour_definitions[index].wrapMode);
-        m_colour_textures[index]->setBorderColor(m_colour_definitions[index].borderColor);
-#endif
-        // NOTE: If format and type not specifically defined in the following function it will crash for uint-textures
+        m_colour_textures[index]->setAutoMipMapGenerationEnabled(false);
+        m_colour_textures[index]->setMinMagFilters(QOpenGLTexture::Filter::Nearest, QOpenGLTexture::Filter::Nearest);
+        m_colour_textures[index]->setWrapMode(QOpenGLTexture::WrapMode::ClampToEdge);
+
+        // WARNING: If format and type not specifically defined in the following function it will crash for uint-textures
         // on OpenGL ES (Android). Might be a bug with the default of QOpenGLTexture on that platform.
-        m_colour_textures[index]->allocateStorage((QOpenGLTexture::PixelFormat)format(m_colour_definitions[index].format), (QOpenGLTexture::PixelType)type(m_colour_definitions[index].format));
+        m_colour_textures[index]->allocateStorage(
+            (QOpenGLTexture::PixelFormat)format(m_colour_definitions[index]), (QOpenGLTexture::PixelType)type(m_colour_definitions[index]));
     }
 }
 
@@ -212,11 +209,10 @@ void Framebuffer::recreate_all_textures() {
         recreate_texture(i);
 }
 
-
-Framebuffer::Framebuffer(DepthFormat depth_format, std::vector<TextureDefinition> colour_definitions, glm::uvec2 init_size)
-    : m_depth_format(depth_format),
-    m_colour_definitions(std::move(colour_definitions)),
-    m_size(init_size)
+Framebuffer::Framebuffer(DepthFormat depth_format, std::vector<Framebuffer::ColourFormat> colour_definitions, glm::uvec2 init_size)
+    : m_depth_format(depth_format)
+    , m_colour_definitions(std::move(colour_definitions))
+    , m_size(init_size)
 {
 
     for (size_t i = 0; i < m_colour_definitions.size(); i++) {
@@ -252,7 +248,6 @@ void Framebuffer::bind()
     QOpenGLFunctions* f = QOpenGLContext::currentContext()->functions();
     f->glViewport(0, 0, int(m_size.x), int(m_size.y));
     f->glBindFramebuffer(GL_FRAMEBUFFER, m_frame_buffer);
-    //reset_fbo();
 }
 
 void Framebuffer::bind_colour_texture(unsigned index, unsigned location)
@@ -276,7 +271,7 @@ QImage Framebuffer::read_colour_attachment(unsigned index)
 {
     assert(index < m_colour_textures.size());
 
-    auto texFormat = m_colour_definitions[index].format;
+    auto texFormat = m_colour_definitions[index];
 
     // Float framebuffers can not be read efficiently on all environments.
     // that is, reading float red channel crashes on linux webassembly, but reading it as rgba is inefficient on linux native (4x slower, yes I measured).
@@ -302,7 +297,7 @@ T Framebuffer::read_colour_attachment_pixel(unsigned int index, const glm::dvec2
 {
     assert(index < m_colour_textures.size());
 
-    auto texFormat = m_colour_definitions[index].format;
+    auto texFormat = m_colour_definitions[index];
     switch (texFormat) {
     case Framebuffer::ColourFormat::R8:
     case Framebuffer::ColourFormat::RGB8:
@@ -351,7 +346,6 @@ void Framebuffer::unbind()
 void Framebuffer::reset_fbo()
 {
     QOpenGLExtraFunctions* f = QOpenGLContext::currentContext()->extraFunctions();
-    //QOpenGLFunctions* f = QOpenGLContext::currentContext()->functions();
     f->glBindFramebuffer(GL_FRAMEBUFFER, m_frame_buffer);
     // unsigned int draw_attachments[m_colour_textures.size()];
     std::vector<unsigned> draw_attachments;
