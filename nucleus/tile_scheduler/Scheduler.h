@@ -30,6 +30,10 @@
 
 class QTimer;
 
+namespace nucleus {
+class DataQuerier;
+}
+
 namespace nucleus::tile_scheduler {
 namespace utils {
     class AabbDecorator;
@@ -80,6 +84,8 @@ public:
     nucleus::utils::ColourTexture::Format ortho_tile_compression_algorithm() const;
     void set_ortho_tile_compression_algorithm(nucleus::utils::ColourTexture::Format new_ortho_tile_compression_algorithm);
 
+    void set_dataquerier(std::shared_ptr<DataQuerier> dataquerier);
+
 signals:
     void statistics_updated(Statistics stats);
     void quad_received(const tile::Id& ids);
@@ -101,6 +107,7 @@ protected:
     void schedule_persist();
     void update_stats();
     std::vector<tile::Id> tiles_for_current_camera_position() const;
+    std::shared_ptr<DataQuerier> m_dataquerier;
 
 private:
     unsigned m_retirement_age_for_tile_cache = 10u * 24u * 3600u * 1000u; // 10 days
@@ -124,6 +131,7 @@ private:
     Cache<tile_types::GpuCacheInfo> m_gpu_cached;
     std::shared_ptr<QByteArray> m_default_ortho_tile;
     std::shared_ptr<QByteArray> m_default_height_tile;
+    std::shared_ptr<QByteArray> m_default_vector_tile;
     nucleus::utils::ColourTexture::Format m_ortho_tile_compression_algorithm = nucleus::utils::ColourTexture::Format::Uncompressed_RGBA;
 };
 }

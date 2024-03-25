@@ -20,10 +20,12 @@
 
 #include <QMouseEvent>
 #include <QObject>
+#include <unordered_set>
 
 #include <glm/glm.hpp>
 
 #include "nucleus/tile_scheduler/tile_types.h"
+#include "nucleus/vector_tiles/VectorTileFeature.h"
 #include "utils/ColourTexture.h"
 
 class QOpenGLFramebufferObject;

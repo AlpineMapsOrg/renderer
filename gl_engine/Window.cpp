@@ -77,7 +77,7 @@
      : m_camera({ 1822577.0, 6141664.0 - 500, 171.28 + 500 }, { 1822577.0, 6141664.0, 171.28 }) // should point right at the stephansdom
  {
      m_tile_manager = std::make_unique<TileManager>();
-     m_map_label_manager = std::make_unique<MapLabelManager>();
+     m_map_label_manager = std::make_shared<MapLabelManager>();
      QTimer::singleShot(1, [this]() { emit update_requested(); });
 }
 
@@ -320,7 +320,7 @@ void Window::paint(QOpenGLFramebufferObject* framebuffer)
         f->glDepthFunc(GL_LEQUAL);
         // f->glDepthMask(GL_FALSE);
         m_shader_manager->labels_program()->bind();
-        m_map_label_manager->draw(m_gbuffer.get(), m_shader_manager->labels_program(), m_camera);
+        m_map_label_manager->draw(m_gbuffer.get(), m_shader_manager->labels_program(), m_camera, draw_tiles);
         m_shader_manager->labels_program()->release();
 
         if (framebuffer)
@@ -443,6 +443,9 @@ void Window::update_gpu_quads(const std::vector<nucleus::tile_scheduler::tile_ty
 {
     assert(m_tile_manager);
     m_tile_manager->update_gpu_quads(new_quads, deleted_quads);
+
+    assert(m_map_label_manager);
+    m_map_label_manager->update_gpu_quads(new_quads, deleted_quads);
 }
 
 float Window::depth(const glm::dvec2& normalised_device_coordinates)
@@ -465,6 +468,7 @@ void Window::deinit_gpu()
     m_shader_manager.reset();
     m_gbuffer.reset();
     m_screen_quad_geometry = {};
+    m_map_label_manager.reset();
 }
 
 void Window::set_aabb_decorator(const nucleus::tile_scheduler::utils::AabbDecoratorPtr& new_aabb_decorator)
@@ -477,6 +481,9 @@ void Window::remove_tile(const tile::Id& id)
 {
     assert(m_tile_manager);
     m_tile_manager->remove_tile(id);
+
+    assert(m_map_label_manager);
+    m_map_label_manager->remove_tile(id);
 }
 
 nucleus::camera::AbstractDepthTester* Window::depth_tester() { return this; }
