@@ -123,8 +123,7 @@ const nucleus::tile_scheduler::DrawListGenerator::TileSet TileManager::cull(cons
 }
 
 void TileManager::draw(ShaderProgram* shader_program, const nucleus::camera::Definition& camera,
-                       const nucleus::tile_scheduler::DrawListGenerator::TileSet draw_tiles,
-                       bool sort_tiles, glm::dvec3 sort_position) const
+    const nucleus::tile_scheduler::DrawListGenerator::TileSet& draw_tiles, bool sort_tiles, glm::dvec3 sort_position) const
 {
     QOpenGLExtraFunctions* f = QOpenGLContext::currentContext()->extraFunctions();
     shader_program->set_uniform("n_edge_vertices", N_EDGE_VERTICES);
