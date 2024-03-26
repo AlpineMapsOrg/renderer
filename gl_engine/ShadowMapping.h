@@ -1,6 +1,7 @@
 /*****************************************************************************
  * Alpine Terrain Renderer
  * Copyright (C) 2023 Gerald Kimmersdorfer
+ * Copyright (C) 2024 Patrick Komon
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -57,6 +58,7 @@ public:
         const nucleus::camera::Definition& camera);
 
     void bind_shadow_maps(ShaderProgram* program, unsigned int start_location);
+    nucleus::camera::Frustum getFrustum(const nucleus::camera::Definition& camera);
 
 private:
 

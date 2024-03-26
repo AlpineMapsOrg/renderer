@@ -74,7 +74,7 @@ The source of elevation and orthographic photo data is [basemap.at](https://base
 it is licensed under the Open Government Data Austria license (CC-BY 4.0).
 
 ## Authors:
-Adam Celarek, Lucas Dworschak, Gerald Kimmersdorfer, Jakob Lindner
+Adam Celarek, Lucas Dworschak, Gerald Kimmersdorfer, Jakob Lindner, Patrick Komon
 
 ## Impressum:
 Adam Celarek\\
