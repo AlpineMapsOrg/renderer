@@ -138,7 +138,6 @@ QQuickFramebufferObject::Renderer* TerrainRendererItem::createRenderer() const
     // connect glWindow to forward key events.
     connect(this, &TerrainRendererItem::key_pressed, r->glWindow(), &gl_engine::Window::key_press);
     connect(this, &TerrainRendererItem::shared_config_changed, r->glWindow(), &gl_engine::Window::shared_config_changed);
-    connect(this, &TerrainRendererItem::render_looped_changed, r->glWindow(), &gl_engine::Window::render_looped_changed);
     // connect glWindow for shader hotreload by frontend button
     connect(this, &TerrainRendererItem::reload_shader, r->glWindow(), &gl_engine::Window::reload_shader);
 
@@ -369,17 +368,6 @@ void TerrainRendererItem::set_camera_operation_centre_distance(float new_camera_
         return;
     m_camera_operation_centre_distance = new_camera_operation_centre_distance;
     emit camera_operation_centre_distance_changed();
-}
-
-bool TerrainRendererItem::render_looped() const {
-    return m_render_looped;
-}
-
-void TerrainRendererItem::set_render_looped(bool new_render_looped) {
-    if (new_render_looped == m_render_looped) return;
-    m_render_looped = new_render_looped;
-    emit render_looped_changed(m_render_looped);
-    schedule_update();
 }
 
 gl_engine::uboSharedConfig TerrainRendererItem::shared_config() const {

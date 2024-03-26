@@ -82,7 +82,6 @@ public slots:
     void update_gpu_quads(const std::vector<nucleus::tile_scheduler::tile_types::GpuTileQuad>& new_quads, const std::vector<tile::Id>& deleted_quads) override;
     void key_press(const QKeyCombination& e); // Slot to connect key-events to
     void shared_config_changed(gl_engine::uboSharedConfig ubo);
-    void render_looped_changed(bool render_looped_flag);
     void reload_shader();
 
 signals:
@@ -111,7 +110,6 @@ private:
 
     int m_frame = 0;
     bool m_initialised = false;
-    bool m_render_looped = false;
     bool m_wireframe_enabled = false;
     QString m_debug_text;
     QString m_debug_scheduler_stats;

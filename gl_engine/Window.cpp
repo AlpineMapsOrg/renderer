@@ -338,29 +338,18 @@ void Window::paint(QOpenGLFramebufferObject* framebuffer)
 
     m_timer->stop_timer("cpu_total");
     m_timer->stop_timer("gpu_total");
-    if (m_render_looped) {
-        m_timer->stop_timer("cpu_b2b");
-    }
 
     QList<nucleus::timing::TimerReport> new_values = m_timer->fetch_results();
     if (new_values.size() > 0) {
         emit report_measurements(new_values);
     }
 
-    if (m_render_looped) {
-        m_timer->start_timer("cpu_b2b");
-        emit update_requested();
-    }
 }
 
 void Window::shared_config_changed(gl_engine::uboSharedConfig ubo) {
     m_shared_config_ubo->data = ubo;
     m_shared_config_ubo->update_gpu_data();
     emit update_requested();
-}
-
-void Window::render_looped_changed(bool render_looped_flag) {
-    m_render_looped = render_looped_flag;
 }
 
 void Window::reload_shader() {
@@ -391,20 +380,6 @@ void Window::key_press(const QKeyCombination& e) {
 void Window::keyPressEvent(QKeyEvent* e)
 {
     if (e->key() == Qt::Key::Key_F5) this->reload_shader();
-    if (e->key() == Qt::Key::Key_F6) {
-        if (this->m_render_looped) {
-            this->m_render_looped = false;
-            qDebug("Rendering loop exited");
-        } else {
-            this->m_render_looped = true;
-            qDebug("Rendering loop started");
-        }
-        emit update_requested();
-    }
-    if (e->key() == Qt::Key::Key_F7) {
-        m_wireframe_enabled = !m_wireframe_enabled;
-        qDebug(m_render_looped ? "Wireframe enabled" : "Wireframe disabled");
-    }
     if (e->key() == Qt::Key::Key_F11
         || (e->key() == Qt::Key_P && e->modifiers() == Qt::ControlModifier)
         || (e->key() == Qt::Key_F5 && e->modifiers() == Qt::ControlModifier)) {
