@@ -261,23 +261,12 @@ void Window::paint(QOpenGLFramebufferObject* framebuffer)
     // f->glDepthFunc(GL_GREATER); // for reverse z
     f->glDepthFunc(GL_LESS);
 
-#if (defined(__linux) && !defined(__ANDROID__)) || defined(_WIN32) || defined(_WIN64)
-    auto funcs = QOpenGLVersionFunctionsFactory::get<QOpenGLFunctions_3_3_Core>(QOpenGLContext::currentContext()); // for wireframe mode
-    if (funcs && m_wireframe_enabled)
-        funcs->glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
-#endif
-
     m_shader_manager->tile_shader()->bind();
     m_timer->start_timer("tiles");
     auto culled_tile_set = m_tile_manager->cull(tile_set, m_camera.frustum());
     m_tile_manager->draw(m_shader_manager->tile_shader(), m_camera, culled_tile_set, true, m_camera.position());
     m_timer->stop_timer("tiles");
     m_shader_manager->tile_shader()->release();
-
-#if (defined(__linux) && !defined(__ANDROID__)) || defined(_WIN32) || defined(_WIN64)
-    if (funcs && m_wireframe_enabled)
-        funcs->glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
-#endif
 
     m_gbuffer->unbind();
 
