@@ -48,7 +48,6 @@ class MapLabelManager;
 
 namespace gl_engine {
 
-class DebugPainter;
 class ShaderManager;
 class Framebuffer;
 class SSAO;
@@ -89,7 +88,6 @@ signals:
 
 private:
     std::unique_ptr<TileManager> m_tile_manager; // needs opengl context
-    std::unique_ptr<DebugPainter> m_debug_painter; // needs opengl context
     std::unique_ptr<ShaderManager> m_shader_manager;
     std::unique_ptr<MapLabelManager> m_map_label_manager;
 

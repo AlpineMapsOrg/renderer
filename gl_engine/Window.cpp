@@ -31,7 +31,6 @@
 
 #include <QOpenGLVersionFunctionsFactory>
 
-#include "DebugPainter.h"
 #include "Framebuffer.h"
 #include "MapLabelManager.h"
 #include "SSAO.h"
@@ -103,7 +102,6 @@ void Window::initialise_gpu()
     logger->disableMessages(QList<GLuint>({ 131185 }));
     logger->startLogging(QOpenGLDebugLogger::SynchronousLogging);
 
-    m_debug_painter = std::make_unique<DebugPainter>();
     m_shader_manager = std::make_unique<ShaderManager>();
 
     m_tile_manager->init();
@@ -427,7 +425,6 @@ void Window::deinit_gpu()
 {
     emit gpu_ready_changed(false);
     m_tile_manager.reset();
-    m_debug_painter.reset();
     m_shader_manager.reset();
     m_gbuffer.reset();
     m_screen_quad_geometry = {};
