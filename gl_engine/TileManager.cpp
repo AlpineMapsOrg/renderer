@@ -2,6 +2,7 @@
  * Alpine Renderer
  * Copyright (C) 2023 Adam Celarek
  * Copyright (C) 2023 Gerald Kimmersdorfer
+ * Copyright (C) 2024 Patrick Komon
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -107,9 +108,12 @@ const nucleus::tile_scheduler::DrawListGenerator::TileSet TileManager::generate_
     return m_draw_list_generator.generate_for(camera);
 }
 
+const nucleus::tile_scheduler::DrawListGenerator::TileSet TileManager::cull(const nucleus::tile_scheduler::DrawListGenerator::TileSet& tileset, const nucleus::camera::Frustum& frustum) const {
+    return m_draw_list_generator.cull(tileset, frustum);
+}
+
 void TileManager::draw(ShaderProgram* shader_program, const nucleus::camera::Definition& camera,
-                       const nucleus::tile_scheduler::DrawListGenerator::TileSet draw_tiles,
-                       bool sort_tiles, glm::dvec3 sort_position) const
+    const nucleus::tile_scheduler::DrawListGenerator::TileSet& draw_tiles, bool sort_tiles, glm::dvec3 sort_position) const
 {
     QOpenGLExtraFunctions* f = QOpenGLContext::currentContext()->extraFunctions();
     shader_program->set_uniform("n_edge_vertices", N_EDGE_VERTICES);
