@@ -27,7 +27,6 @@
 #include <QPainter>
 #include <QVector3D>
 #include <QMap>
-#include <chrono>
 #include <glm/glm.hpp>
 #include <memory>
 
@@ -115,7 +114,6 @@ private:
     bool m_initialised = false;
     bool m_render_looped = false;
     bool m_wireframe_enabled = false;
-    nucleus::camera::Definition m_debug_camera;
     QString m_debug_text;
     QString m_debug_scheduler_stats;
 
