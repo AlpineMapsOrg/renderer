@@ -4,6 +4,7 @@
  * Copyright (C) 2023 Jakob Lindner
  * Copyright (C) 2023 Gerald Kimmersdorfer
  * Copyright (C) 2024 Lucas Dworschak
+ * Copyright (C) 2024 Patrick Komon
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -26,7 +27,6 @@
 #include <QPainter>
 #include <QVector3D>
 #include <QMap>
-#include <chrono>
 #include <glm/glm.hpp>
 #include <memory>
 
@@ -70,10 +70,12 @@ public:
     void set_aabb_decorator(const nucleus::tile_scheduler::utils::AabbDecoratorPtr&) override;
     void remove_tile(const tile::Id&) override;
     [[nodiscard]] nucleus::camera::AbstractDepthTester* depth_tester() override;
+    [[nodiscard]] nucleus::utils::ColourTexture::Format ortho_tile_compression_algorithm() const override;
     void keyPressEvent(QKeyEvent*);
     void keyReleaseEvent(QKeyEvent*);
     void updateCameraEvent();
     void set_permissible_screen_space_error(float new_error) override;
+    void set_quad_limit(unsigned new_limit) override;
 
 public slots:
     void update_camera(const nucleus::camera::Definition& new_definition) override;

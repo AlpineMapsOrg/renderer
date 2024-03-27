@@ -80,14 +80,9 @@ void MapLabelManager::init()
 
     // load the font texture
     const auto& font_atlas = m_mapLabelManager.font_atlas();
-    m_font_texture = std::make_unique<Texture>(Texture::Target::_2d);
-    f->glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
-    f->glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-    f->glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-    f->glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
-    f->glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-    f->glTexImage2D(GL_TEXTURE_2D, 0, GL_RG8, font_atlas.width(), font_atlas.height(), 0, GL_RG, GL_UNSIGNED_BYTE, font_atlas.bytes());
-    f->glGenerateMipmap(GL_TEXTURE_2D);
+    m_font_texture = std::make_unique<Texture>(Texture::Target::_2d, Texture::Format::RG8);
+    m_font_texture->setParams(Texture::Filter::MipMapLinear, Texture::Filter::Linear);
+    m_font_texture->upload(font_atlas);
 
     // load the icon texture
     QImage icon = m_mapLabelManager.icon();

@@ -11,7 +11,12 @@ https://discord.gg/p8T9XzVwRa
 # Setup
 weBIGeo's primary target is the web. Additionally we support native builds on Windows, using [Dawn](https://dawn.googlesource.com/). This allows for faster development as emscripten linking is quite slow and GPU debugging is not easily possible in the web. Both setups require significant setup time as we need to compile Qt by source. For the native workflow also Dawn needs to be compiled. The rest of the dependencies should get automatically pulled by the cmake setup.
 
+<<<<<<< HEAD
 ## Building the web version
+=======
+After that it should be a normal cmake project. That is, you run cmake to generate a project or build file and then run your favourite tool. All dependencies should be pulled automatically while you run CMake. 
+We use Qt Creator (with mingw on Windows), which is the only tested setup atm and makes setup of Android and WebAssembly builds reasonably easy. If you have questions, please go to Discord.
+>>>>>>> main
 
 ### Dependencies
 * Qt 6.6.2 with

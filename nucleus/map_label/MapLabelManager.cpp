@@ -23,13 +23,12 @@
 #include <QIcon>
 #include <QSize>
 #include <QStringLiteral>
-#include <string>
 
-#include "Raster.h"
+#include "nucleus/Raster.h"
 
 #define STBTT_STATIC
 #define STB_TRUETYPE_IMPLEMENTATION
-#include "stb_slim/stb_truetype.h"
+#include <stb_slim/stb_truetype.h>
 
 using namespace Qt::Literals::StringLiterals;
 
@@ -91,22 +90,21 @@ void MapLabelManager::init()
         Raster<glm::u8vec4> rgba_raster = { m_font_atlas.size(), { 255, 255, 0, 255 } };
         std::transform(m_font_atlas.cbegin(), m_font_atlas.cend(), rgba_raster.begin(), [](const auto& v) { return glm::u8vec4(v.x, v.y, 0, 255); });
 
-        const auto debug_out = QImage(rgba_raster.bytes(), m_font_atlas_size.width(), m_font_atlas_size.height(), QImage::Format_RGBA8888);
-        debug_out.save("font_atlas.png");
+        // const auto debug_out = QImage(rgba_raster.bytes(), m_font_atlas_size.width(), m_font_atlas_size.height(), QImage::Format_RGBA8888);
+        // debug_out.save("font_atlas.png");
     }
 
     for (auto& label : m_labels) {
         label.init(m_char_data, &m_fontinfo, uv_width_norm);
     }
 
-    // paint svg icon into the an image of appropriate size
-    m_icon = QIcon(QString(":/qt/qml/app/icons/peak.svg")).pixmap(QSize(MapLabel::icon_size.x, MapLabel::icon_size.y)).toImage();
+    m_icon = QImage(":/map_icons/peak.png");
 }
 
 Raster<uint8_t> MapLabelManager::make_font_raster()
 {
     // load ttf file
-    QFile file(":/fonts/SourceSans3-Bold.ttf");
+    QFile file(":/fonts/Roboto/Roboto-Bold.ttf");
     const auto open = file.open(QIODeviceBase::OpenModeFlag::ReadOnly);
     assert(open);
     Q_UNUSED(open);

@@ -20,6 +20,7 @@
 
 #ifdef ALP_ENABLE_GNSS
 #include <QGeoPositionInfoSource>
+#include <QLocationPermission>
 #endif
 
 GnssInformation::GnssInformation()
@@ -96,10 +97,33 @@ void GnssInformation::set_enabled(bool new_enabled)
         return;
     m_enabled = new_enabled;
 #ifdef ALP_ENABLE_GNSS
-    if (m_enabled)
-        m_position_source->startUpdates();
-    else
+    if (m_enabled) {
+        QLocationPermission gnssPermission;
+        gnssPermission.setAccuracy(QLocationPermission::Accuracy::Precise);
+        gnssPermission.setAvailability(QLocationPermission::Availability::WhenInUse);
+        switch (qApp->checkPermission(gnssPermission)) {
+        case Qt::PermissionStatus::Undetermined:
+            qDebug() << "Qt::PermissionStatus::Undetermined";
+            qApp->requestPermission(gnssPermission, this, [this](const QPermission& permission) {
+                qDebug() << "qApp->requestPermission" << permission;
+                if (permission.status() == Qt::PermissionStatus::Granted) {
+                    m_position_source->startUpdates();
+                } else {
+                    set_enabled(false);
+                }
+            });
+            return;
+        case Qt::PermissionStatus::Denied:
+            qDebug() << "Qt::PermissionStatus::Denied";
+            set_enabled(false);
+            return;
+        case Qt::PermissionStatus::Granted:
+            qDebug() << "Qt::PermissionStatus::Granted";
+            m_position_source->startUpdates();
+        }
+    } else {
         m_position_source->stopUpdates();
+    }
 #endif
 
     emit enabled_changed();

@@ -30,6 +30,7 @@ option(ALP_ENABLE_THREAD_SANITIZER "compiles atb with thread sanitizer enabled (
 option(ALP_ENABLE_ASSERTS "enable asserts (do not define NDEBUG)" ON)
 option(ALP_ENABLE_TRACK_OBJECT_LIFECYCLE "enables debug cmd printout of constructors & deconstructors if implemented" OFF)
 option(ALP_ENABLE_APP_SHUTDOWN_AFTER_60S "Shuts down the app after 60S, used for CI testing with asan." OFF)
+option(ALP_ENABLE_LTO "Enable link time optimisation." OFF)
 
 set(ALP_EXTERN_DIR "extern" CACHE STRING "name of the directory to store external libraries, fonts etc..")
 
@@ -82,7 +83,7 @@ if (ALP_USE_LLVM_LINKER)
 endif()
 
 ########################################### dependencies #################################################
-find_package(Qt6 REQUIRED COMPONENTS Core Gui OpenGL Network Quick QuickControls2 LinguistTools Svg)
+find_package(Qt6 REQUIRED COMPONENTS Core Gui OpenGL Network Quick QuickControls2 LinguistTools)
 if (ALP_ENABLE_DEBUG_GUI)
     find_package(Qt6 REQUIRED COMPONENTS Widgets Charts)
 endif()
@@ -95,7 +96,7 @@ endif()
 
 include(cmake/alp_add_git_repository.cmake)
 alp_add_git_repository(renderer_static_data URL https://github.com/AlpineMapsOrg/renderer_static_data.git COMMITISH v23.11 DO_NOT_ADD_SUBPROJECT)
-alp_add_git_repository(alpineapp_fonts URL https://github.com/AlpineMapsOrg/fonts.git COMMITISH v23.11 DO_NOT_ADD_SUBPROJECT)
+alp_add_git_repository(alpineapp_fonts URL https://github.com/AlpineMapsOrg/fonts.git COMMITISH v24.02 DO_NOT_ADD_SUBPROJECT)
 alp_add_git_repository(doc URL https://github.com/AlpineMapsOrg/documentation.git COMMITISH origin/main DO_NOT_ADD_SUBPROJECT DESTINATION_PATH doc)
 
 
