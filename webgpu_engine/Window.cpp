@@ -493,16 +493,28 @@ void Window::create_buffers()
 
 void Window::create_textures()
 {
-    // create texture
+    // create texture with sampler
     WGPUTextureDescriptor texture_desc {};
     texture_desc.dimension = WGPUTextureDimension::WGPUTextureDimension_2D;
     texture_desc.size = { 256, 256, 1 };
     texture_desc.mipLevelCount = 1;
     texture_desc.sampleCount = 1;
     texture_desc.format = WGPUTextureFormat::WGPUTextureFormat_RGBA8Unorm;
-    texture_desc.usage
-        = WGPUTextureUsage::WGPUTextureUsage_TextureBinding | WGPUTextureUsage::WGPUTextureUsage_CopyDst | WGPUTextureUsage::WGPUTextureUsage_RenderAttachment;
-    m_demo_texture = std::make_unique<Texture>(m_device, texture_desc);
+    texture_desc.usage = WGPUTextureUsage_TextureBinding | WGPUTextureUsage_CopyDst;
+
+    WGPUSamplerDescriptor sampler_desc {};
+    sampler_desc.addressModeU = WGPUAddressMode::WGPUAddressMode_ClampToEdge;
+    sampler_desc.addressModeV = WGPUAddressMode::WGPUAddressMode_ClampToEdge;
+    sampler_desc.addressModeW = WGPUAddressMode::WGPUAddressMode_ClampToEdge;
+    sampler_desc.magFilter = WGPUFilterMode::WGPUFilterMode_Linear;
+    sampler_desc.minFilter = WGPUFilterMode::WGPUFilterMode_Linear;
+    sampler_desc.mipmapFilter = WGPUMipmapFilterMode::WGPUMipmapFilterMode_Linear;
+    sampler_desc.lodMinClamp = 0.0f;
+    sampler_desc.lodMaxClamp = 1.0f;
+    sampler_desc.compare = WGPUCompareFunction::WGPUCompareFunction_Undefined;
+    sampler_desc.maxAnisotropy = 1;
+
+    m_demo_texture_with_sampler = std::make_unique<TextureWithSampler>(m_device, texture_desc, sampler_desc);
 
     // fill texture with solid color
     QImage image { 256, 256, QImage::Format::Format_RGBA8888 };
@@ -516,31 +528,7 @@ void Window::create_textures()
             pixel_data[3] = 255;
         }
     }
-    m_demo_texture->write(m_queue, image, 0);
-
-    // create texture view
-    WGPUTextureViewDescriptor view_desc {};
-    view_desc.aspect = WGPUTextureAspect::WGPUTextureAspect_All;
-    view_desc.arrayLayerCount = 1;
-    view_desc.baseArrayLayer = 0;
-    view_desc.mipLevelCount = 1;
-    view_desc.baseMipLevel = 0;
-    view_desc.dimension = WGPUTextureViewDimension::WGPUTextureViewDimension_2D;
-    view_desc.format = texture_desc.format;
-    m_demo_texture_view = m_demo_texture->create_view(view_desc);
-
-    WGPUSamplerDescriptor sampler_desc {};
-    sampler_desc.addressModeU = WGPUAddressMode::WGPUAddressMode_ClampToEdge;
-    sampler_desc.addressModeV = WGPUAddressMode::WGPUAddressMode_ClampToEdge;
-    sampler_desc.addressModeW = WGPUAddressMode::WGPUAddressMode_ClampToEdge;
-    sampler_desc.magFilter = WGPUFilterMode::WGPUFilterMode_Linear;
-    sampler_desc.minFilter = WGPUFilterMode::WGPUFilterMode_Linear;
-    sampler_desc.mipmapFilter = WGPUMipmapFilterMode::WGPUMipmapFilterMode_Linear;
-    sampler_desc.lodMinClamp = 0.0f;
-    sampler_desc.lodMaxClamp = 1.0f;
-    sampler_desc.compare = WGPUCompareFunction::WGPUCompareFunction_Undefined;
-    sampler_desc.maxAnisotropy = 1;
-    m_demo_sampler = std::make_unique<Sampler>(m_device, sampler_desc);
+    m_demo_texture_with_sampler->texture().write(m_queue, image, 0);
 }
 
 void Window::create_depth_texture(uint32_t width, uint32_t height)
@@ -594,9 +582,9 @@ void Window::create_bind_group_info()
     m_bind_group_info = std::make_unique<BindGroupInfo>();
     m_bind_group_info->add_entry(0, *m_shared_config_ubo, WGPUShaderStage::WGPUShaderStage_Vertex | WGPUShaderStage::WGPUShaderStage_Fragment);
     m_bind_group_info->add_entry(1, *m_camera_config_ubo, WGPUShaderStage::WGPUShaderStage_Vertex | WGPUShaderStage::WGPUShaderStage_Fragment);
-    m_bind_group_info->add_entry(2, *m_demo_texture_view, WGPUShaderStage::WGPUShaderStage_Vertex | WGPUShaderStage::WGPUShaderStage_Fragment);
-    m_bind_group_info->add_entry(3, *m_demo_sampler, WGPUShaderStage::WGPUShaderStage_Vertex | WGPUShaderStage::WGPUShaderStage_Fragment,
-        WGPUSamplerBindingType::WGPUSamplerBindingType_Filtering);
+    m_bind_group_info->add_entry(2, m_demo_texture_with_sampler->texture_view(), WGPUShaderStage_Vertex | WGPUShaderStage_Fragment);
+    m_bind_group_info->add_entry(
+        3, m_demo_texture_with_sampler->sampler(), WGPUShaderStage_Vertex | WGPUShaderStage_Fragment, WGPUSamplerBindingType_Filtering);
     m_bind_group_info->init(m_device);
 }
 

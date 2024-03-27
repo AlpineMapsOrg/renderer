@@ -95,4 +95,18 @@ private:
     WGPUSampler m_sampler;
 };
 
+class TextureWithSampler {
+public:
+    TextureWithSampler(WGPUDevice device, const WGPUTextureDescriptor& texture_desc, const WGPUSamplerDescriptor& sampler_desc);
+
+    Texture& texture();
+    const TextureView& texture_view() const;
+    const Sampler& sampler() const;
+
+private:
+    std::unique_ptr<Texture> m_texture;
+    std::unique_ptr<TextureView> m_texture_view;
+    std::unique_ptr<Sampler> m_sampler;
+};
+
 } // namespace webgpu_engine

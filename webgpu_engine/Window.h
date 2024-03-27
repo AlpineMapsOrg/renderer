@@ -114,9 +114,7 @@ private:
 
     nucleus::utils::Stopwatch m_stopwatch;
 
-    std::unique_ptr<Texture> m_demo_texture;
-    std::unique_ptr<TextureView> m_demo_texture_view;
-    std::unique_ptr<Sampler> m_demo_sampler;
+    std::unique_ptr<TextureWithSampler> m_demo_texture_with_sampler;
 
     std::unique_ptr<Texture> m_depth_texture;
     std::unique_ptr<TextureView> m_depth_texture_view;
