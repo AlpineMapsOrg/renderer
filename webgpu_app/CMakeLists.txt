@@ -101,9 +101,3 @@ if (EMSCRIPTEN)
 
 
 endif()
-
-qt_add_resources(webgpu_app "height_data"
-    PREFIX "/map"
-    BASE ${renderer_static_data_SOURCE_DIR}
-    FILES ${renderer_static_data_SOURCE_DIR}/height_data.atb
-)
