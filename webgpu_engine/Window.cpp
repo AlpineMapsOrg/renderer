@@ -230,10 +230,21 @@ void Window::remove_tile([[maybe_unused]] const tile::Id&)
     // Logic to remove a tile, parameter currently unused
 }
 
+void Window::set_quad_limit([[maybe_unused]] unsigned int new_limit)
+{
+    // TODO implement
+}
+
 nucleus::camera::AbstractDepthTester* Window::depth_tester()
 {
     // Return this object as the depth tester
     return this;
+}
+
+nucleus::utils::ColourTexture::Format Window::ortho_tile_compression_algorithm() const
+{
+    // TODO use compressed textures in the future
+    return nucleus::utils::ColourTexture::Format::Uncompressed_RGBA;
 }
 
 void Window::set_permissible_screen_space_error([[maybe_unused]] float new_error)

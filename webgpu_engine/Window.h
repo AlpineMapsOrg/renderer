@@ -25,6 +25,7 @@
 #include "nucleus/AbstractRenderWindow.h"
 #include "nucleus/camera/AbstractDepthTester.h"
 #include "nucleus/camera/Controller.h"
+#include "nucleus/utils/ColourTexture.h"
 #include "nucleus/utils/Stopwatch.h"
 #include <webgpu/webgpu.h>
 
@@ -58,7 +59,9 @@ public:
     void deinit_gpu() override;
     void set_aabb_decorator(const nucleus::tile_scheduler::utils::AabbDecoratorPtr&) override;
     void remove_tile(const tile::Id&) override;
+    void set_quad_limit(unsigned new_limit) override;
     [[nodiscard]] nucleus::camera::AbstractDepthTester* depth_tester() override;
+    nucleus::utils::ColourTexture::Format ortho_tile_compression_algorithm() const override;
     void set_permissible_screen_space_error(float new_error) override;
 
 public slots:
