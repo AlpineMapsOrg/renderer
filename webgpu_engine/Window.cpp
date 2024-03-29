@@ -28,7 +28,7 @@
 #include <imnodes.h>
 #endif
 
-#include <QImage.h>
+#include <QImage>
 
 namespace webgpu_engine {
 
@@ -489,9 +489,9 @@ void Window::init_queue() { m_queue = wgpuDeviceGetQueue(m_device); }
 void Window::create_buffers()
 {
     m_shared_config_ubo
-        = std::make_unique<Buffer<uboSharedConfig>>(m_device, WGPUBufferUsage::WGPUBufferUsage_CopyDst | WGPUBufferUsage::WGPUBufferUsage_Uniform);
+        = std::make_unique<raii::Buffer<uboSharedConfig>>(m_device, WGPUBufferUsage::WGPUBufferUsage_CopyDst | WGPUBufferUsage::WGPUBufferUsage_Uniform);
     m_camera_config_ubo
-        = std::make_unique<Buffer<uboCameraConfig>>(m_device, WGPUBufferUsage::WGPUBufferUsage_CopyDst | WGPUBufferUsage::WGPUBufferUsage_Uniform);
+        = std::make_unique<raii::Buffer<uboCameraConfig>>(m_device, WGPUBufferUsage::WGPUBufferUsage_CopyDst | WGPUBufferUsage::WGPUBufferUsage_Uniform);
 }
 
 void Window::create_textures()
@@ -517,7 +517,7 @@ void Window::create_textures()
     sampler_desc.compare = WGPUCompareFunction::WGPUCompareFunction_Undefined;
     sampler_desc.maxAnisotropy = 1;
 
-    m_demo_texture_with_sampler = std::make_unique<TextureWithSampler>(m_device, texture_desc, sampler_desc);
+    m_demo_texture_with_sampler = std::make_unique<raii::TextureWithSampler>(m_device, texture_desc, sampler_desc);
 
     // fill texture with solid color
     QImage image { 256, 256, QImage::Format::Format_RGBA8888 };
@@ -548,7 +548,7 @@ void Window::create_depth_texture(uint32_t width, uint32_t height)
     texture_desc.usage = WGPUTextureUsage::WGPUTextureUsage_RenderAttachment;
     texture_desc.viewFormatCount = 1;
     texture_desc.viewFormats = &format;
-    m_depth_texture = std::make_unique<Texture>(m_device, texture_desc);
+    m_depth_texture = std::make_unique<raii::Texture>(m_device, texture_desc);
 
     WGPUTextureViewDescriptor view_desc {};
     view_desc.aspect = WGPUTextureAspect::WGPUTextureAspect_DepthOnly;

@@ -22,11 +22,10 @@
 
 #include <memory>
 
-#include "Buffer.h"
 #include "PipelineManager.h"
-#include "Texture.h"
-#include "webgpu_engine/Texture.h"
-#include "webgpu_engine/TileSet.h"
+#include "TileSet.h"
+#include "raii/Buffer.h"
+#include "raii/Sampler.h"
 #include <QObject>
 #include <nucleus/Tile.h>
 #include <nucleus/tile_scheduler/DrawListGenerator.h>
@@ -82,15 +81,15 @@ private:
     const nucleus::tile_scheduler::DrawListGenerator::TileSet m_last_draw_list; // buffer last generated draw list
 
     size_t m_index_buffer_size;
-    std::unique_ptr<RawBuffer<uint16_t>> m_index_buffer;
-    std::unique_ptr<RawBuffer<glm::vec4>> m_bounds_buffer;
-    std::unique_ptr<RawBuffer<int32_t>> m_tileset_id_buffer;
-    std::unique_ptr<RawBuffer<int32_t>> m_zoom_level_buffer;
-    std::unique_ptr<RawBuffer<int32_t>> m_texture_layer_buffer;
-    std::unique_ptr<Buffer<int32_t>> m_n_edge_vertices_buffer;
+    std::unique_ptr<raii::RawBuffer<uint16_t>> m_index_buffer;
+    std::unique_ptr<raii::RawBuffer<glm::vec4>> m_bounds_buffer;
+    std::unique_ptr<raii::RawBuffer<int32_t>> m_tileset_id_buffer;
+    std::unique_ptr<raii::RawBuffer<int32_t>> m_zoom_level_buffer;
+    std::unique_ptr<raii::RawBuffer<int32_t>> m_texture_layer_buffer;
+    std::unique_ptr<raii::Buffer<int32_t>> m_n_edge_vertices_buffer;
 
-    std::unique_ptr<TextureWithSampler> m_ortho_textures;
-    std::unique_ptr<TextureWithSampler> m_heightmap_textures;
+    std::unique_ptr<raii::TextureWithSampler> m_ortho_textures;
+    std::unique_ptr<raii::TextureWithSampler> m_heightmap_textures;
 
     std::unique_ptr<BindGroupInfo> m_tile_bind_group_info;
 

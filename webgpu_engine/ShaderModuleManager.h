@@ -18,28 +18,13 @@
  *****************************************************************************/
 #pragma once
 
+#include "raii/ShaderModule.h"
 #include <filesystem>
 #include <map>
 #include <string>
 #include <webgpu/webgpu.h>
 
 namespace webgpu_engine {
-
-class ShaderModule {
-public:
-    ShaderModule(WGPUDevice device, const std::string& name, const std::string& code);
-    ~ShaderModule();
-
-    // delete copy constructor and copy-assignment operator
-    ShaderModule(const ShaderModule& other) = delete;
-    ShaderModule& operator=(const ShaderModule& other) = delete;
-
-    WGPUShaderModule handle() const;
-
-private:
-    std::string m_name;
-    WGPUShaderModule m_shader_module;
-};
 
 class ShaderModuleManager {
 public:
@@ -52,15 +37,15 @@ public:
     void create_shader_modules();
     void release_shader_modules();
 
-    const ShaderModule& debug_triangle() const;
-    const ShaderModule& debug_config_and_camera() const;
-    const ShaderModule& tile() const;
+    const raii::ShaderModule& debug_triangle() const;
+    const raii::ShaderModule& debug_config_and_camera() const;
+    const raii::ShaderModule& tile() const;
 
 private:
     std::string read_file_contents(const std::string& name) const;
     std::string get_contents(const std::string& name);
     std::string preprocess(const std::string& code);
-    std::unique_ptr<ShaderModule> create_shader_module(const std::string& code);
+    std::unique_ptr<raii::ShaderModule> create_shader_module(const std::string& code);
 
 private:
     WGPUDevice m_device;
@@ -68,9 +53,9 @@ private:
 
     std::map<std::string, std::string> m_shader_name_to_code;
 
-    std::unique_ptr<ShaderModule> m_debug_triangle_shader_module;
-    std::unique_ptr<ShaderModule> m_debug_config_and_camera_shader_module;
-    std::unique_ptr<ShaderModule> m_tile_shader_module;
+    std::unique_ptr<raii::ShaderModule> m_debug_triangle_shader_module;
+    std::unique_ptr<raii::ShaderModule> m_debug_config_and_camera_shader_module;
+    std::unique_ptr<raii::ShaderModule> m_tile_shader_module;
 };
 
-}
+} // namespace webgpu_engine

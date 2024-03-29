@@ -16,18 +16,19 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *****************************************************************************/
+
 #include "Buffer.h"
 #include "UniformBufferObjects.h"
 
-namespace webgpu_engine {
+namespace webgpu_engine::raii {
 
 template <typename T>
 Buffer<T>::Buffer(WGPUDevice device, WGPUBufferUsageFlags flags)
-    : m_non_backed_buffer(device, flags, 1)
+    : m_raw_buffer(device, flags, 1)
 {
 }
 
-template <typename T> void Buffer<T>::update_gpu_data(WGPUQueue queue) { m_non_backed_buffer.write(queue, &data, 1, 0); }
+template <typename T> void Buffer<T>::update_gpu_data(WGPUQueue queue) { m_raw_buffer.write(queue, &data, 1, 0); }
 
 template <typename T> QString Buffer<T>::data_as_string() { return ubo_as_string(data); }
 
@@ -35,18 +36,20 @@ template <typename T> bool Buffer<T>::data_from_string(const QString& base64Stri
 {
     bool result = true;
     auto newData = ubo_from_string<T>(base64String, &result);
-    if (result) data = newData;
+    if (result)
+        data = newData;
     return result;
 }
 
-template <typename T> WGPUBuffer Buffer<T>::handle() const { return m_non_backed_buffer.handle(); }
+template <typename T> WGPUBuffer Buffer<T>::handle() const { return m_raw_buffer.handle(); }
 
 // IMPORTANT: All possible Template Classes need to be defined here:
 template class Buffer<uboSharedConfig>;
 template class Buffer<uboCameraConfig>;
-//TODO
-//template class UniformBuffer<uboShadowConfig>;
+// TODO
+// template class UniformBuffer<uboShadowConfig>;
 template class Buffer<uboTestConfig>;
 
 template class Buffer<int32_t>; // for n_edge_vertices
-} // namespace webgpu_engine
+
+} // namespace webgpu_engine::raii

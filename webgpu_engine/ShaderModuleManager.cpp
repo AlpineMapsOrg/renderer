@@ -24,23 +24,6 @@
 
 namespace webgpu_engine {
 
-ShaderModule::ShaderModule(WGPUDevice device, const std::string& name, const std::string& code)
-    : m_name(name)
-{
-    WGPUShaderModuleDescriptor shader_module_desc {};
-    WGPUShaderModuleWGSLDescriptor wgsl_desc {};
-    wgsl_desc.chain.next = nullptr;
-    wgsl_desc.chain.sType = WGPUSType::WGPUSType_ShaderModuleWGSLDescriptor;
-    wgsl_desc.code = code.data();
-    shader_module_desc.label = name.data();
-    shader_module_desc.nextInChain = &wgsl_desc.chain;
-    m_shader_module = wgpuDeviceCreateShaderModule(device, &shader_module_desc);
-}
-
-ShaderModule::~ShaderModule() { wgpuShaderModuleRelease(m_shader_module); }
-
-WGPUShaderModule ShaderModule::handle() const { return m_shader_module; }
-
 ShaderModuleManager::ShaderModuleManager(WGPUDevice device, const std::filesystem::path& prefix)
     : m_device(device)
     , m_prefix(prefix)
@@ -60,11 +43,11 @@ void ShaderModuleManager::release_shader_modules()
     m_tile_shader_module.release();
 }
 
-const ShaderModule& ShaderModuleManager::debug_triangle() const { return *m_debug_triangle_shader_module; }
+const raii::ShaderModule& ShaderModuleManager::debug_triangle() const { return *m_debug_triangle_shader_module; }
 
-const ShaderModule& ShaderModuleManager::debug_config_and_camera() const { return *m_debug_config_and_camera_shader_module; }
+const raii::ShaderModule& ShaderModuleManager::debug_config_and_camera() const { return *m_debug_config_and_camera_shader_module; }
 
-const ShaderModule& ShaderModuleManager::tile() const { return *m_tile_shader_module; }
+const raii::ShaderModule& ShaderModuleManager::tile() const { return *m_tile_shader_module; }
 
 std::string ShaderModuleManager::read_file_contents(const std::string& name) const {
     const auto path = m_prefix / name; // operator/ concats paths
@@ -87,10 +70,10 @@ std::string ShaderModuleManager::get_contents(const std::string& name) {
     return preprocessed_contents;
 }
 
-std::unique_ptr<ShaderModule> ShaderModuleManager::create_shader_module(const std::string& name)
+std::unique_ptr<raii::ShaderModule> ShaderModuleManager::create_shader_module(const std::string& name)
 {
     const std::string contents = get_contents(name);
-    return std::make_unique<ShaderModule>(m_device, name, contents);
+    return std::make_unique<raii::ShaderModule>(m_device, name, contents);
 }
 
 std::string ShaderModuleManager::preprocess(const std::string& code)

@@ -17,9 +17,10 @@
  *****************************************************************************/
 #pragma once
 
-#include "Buffer.h"
 #include "ShaderModuleManager.h"
-#include "Texture.h"
+#include "raii/Buffer.h"
+#include "raii/Sampler.h"
+#include "raii/TextureView.h"
 #include <webgpu/webgpu.h>
 
 namespace webgpu_engine {
@@ -28,7 +29,7 @@ class BindGroupInfo {
 public:
     BindGroupInfo(const std::string& label = "name not set");
 
-    template <class T> void add_entry(uint32_t binding, const Buffer<T>& buf, WGPUShaderStageFlags visibility)
+    template <class T> void add_entry(uint32_t binding, const raii::Buffer<T>& buf, WGPUShaderStageFlags visibility)
     {
         WGPUBufferBindingLayout buffer_binding_layout;
         buffer_binding_layout.type = WGPUBufferBindingType::WGPUBufferBindingType_Uniform;
@@ -51,7 +52,7 @@ public:
         m_bind_group_entries.push_back(entry);
     }
 
-    void add_entry(uint32_t binding, const TextureView& texture_view, WGPUShaderStageFlags visibility, WGPUTextureSampleType sample_type)
+    void add_entry(uint32_t binding, const raii::TextureView& texture_view, WGPUShaderStageFlags visibility, WGPUTextureSampleType sample_type)
     {
         WGPUTextureBindingLayout texture_binding_layout {};
         texture_binding_layout.multisampled = false;
@@ -73,7 +74,7 @@ public:
         m_bind_group_entries.push_back(entry);
     }
 
-    void add_entry(uint32_t binding, const Sampler& sampler, WGPUShaderStageFlags visibility, WGPUSamplerBindingType binding_type)
+    void add_entry(uint32_t binding, const raii::Sampler& sampler, WGPUShaderStageFlags visibility, WGPUSamplerBindingType binding_type)
     {
         WGPUSamplerBindingLayout sampler_binding_layout {};
         sampler_binding_layout.type = binding_type;

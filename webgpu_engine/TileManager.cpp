@@ -41,14 +41,14 @@ void TileManager::init(WGPUDevice device, WGPUQueue queue)
 
     // create index buffer, vertex buffers and uniform buffer
     const std::vector<uint16_t> indices = surface_quads_with_curtains<uint16_t>(N_EDGE_VERTICES);
-    m_index_buffer = std::make_unique<RawBuffer<uint16_t>>(device, WGPUBufferUsage_Index | WGPUBufferUsage_CopyDst, indices.size());
+    m_index_buffer = std::make_unique<raii::RawBuffer<uint16_t>>(device, WGPUBufferUsage_Index | WGPUBufferUsage_CopyDst, indices.size());
     m_index_buffer->write(queue, indices.data(), indices.size());
     m_index_buffer_size = indices.size();
-    m_bounds_buffer = std::make_unique<RawBuffer<glm::vec4>>(device, WGPUBufferUsage_Vertex | WGPUBufferUsage_CopyDst, m_loaded_tiles.size());
-    m_tileset_id_buffer = std::make_unique<RawBuffer<int32_t>>(device, WGPUBufferUsage_Vertex | WGPUBufferUsage_CopyDst, m_loaded_tiles.size());
-    m_zoom_level_buffer = std::make_unique<RawBuffer<int32_t>>(device, WGPUBufferUsage_Vertex | WGPUBufferUsage_CopyDst, m_loaded_tiles.size());
-    m_texture_layer_buffer = std::make_unique<RawBuffer<int32_t>>(device, WGPUBufferUsage_Vertex | WGPUBufferUsage_CopyDst, m_loaded_tiles.size());
-    m_n_edge_vertices_buffer = std::make_unique<Buffer<int32_t>>(device, WGPUBufferUsage_Uniform | WGPUBufferUsage_CopyDst);
+    m_bounds_buffer = std::make_unique<raii::RawBuffer<glm::vec4>>(device, WGPUBufferUsage_Vertex | WGPUBufferUsage_CopyDst, m_loaded_tiles.size());
+    m_tileset_id_buffer = std::make_unique<raii::RawBuffer<int32_t>>(device, WGPUBufferUsage_Vertex | WGPUBufferUsage_CopyDst, m_loaded_tiles.size());
+    m_zoom_level_buffer = std::make_unique<raii::RawBuffer<int32_t>>(device, WGPUBufferUsage_Vertex | WGPUBufferUsage_CopyDst, m_loaded_tiles.size());
+    m_texture_layer_buffer = std::make_unique<raii::RawBuffer<int32_t>>(device, WGPUBufferUsage_Vertex | WGPUBufferUsage_CopyDst, m_loaded_tiles.size());
+    m_n_edge_vertices_buffer = std::make_unique<raii::Buffer<int32_t>>(device, WGPUBufferUsage_Uniform | WGPUBufferUsage_CopyDst);
     m_n_edge_vertices_buffer->data = N_EDGE_VERTICES;
     m_n_edge_vertices_buffer->update_gpu_data(queue);
 
@@ -74,7 +74,7 @@ void TileManager::init(WGPUDevice device, WGPUQueue queue)
     height_sampler_desc.compare = WGPUCompareFunction::WGPUCompareFunction_Undefined;
     height_sampler_desc.maxAnisotropy = 1;
 
-    m_heightmap_textures = std::make_unique<TextureWithSampler>(device, height_texture_desc, height_sampler_desc);
+    m_heightmap_textures = std::make_unique<raii::TextureWithSampler>(device, height_texture_desc, height_sampler_desc);
 
     // TODO mipmaps and compression
     WGPUTextureDescriptor ortho_texture_desc {};
@@ -100,7 +100,7 @@ void TileManager::init(WGPUDevice device, WGPUQueue queue)
     ortho_sampler_desc.compare = WGPUCompareFunction::WGPUCompareFunction_Undefined;
     ortho_sampler_desc.maxAnisotropy = 1;
 
-    m_ortho_textures = std::make_unique<TextureWithSampler>(device, ortho_texture_desc, ortho_sampler_desc);
+    m_ortho_textures = std::make_unique<raii::TextureWithSampler>(device, ortho_texture_desc, ortho_sampler_desc);
 
     m_tile_bind_group_info = std::make_unique<BindGroupInfo>("tile bind group");
     m_tile_bind_group_info->add_entry(0, *m_n_edge_vertices_buffer, WGPUShaderStage_Vertex);

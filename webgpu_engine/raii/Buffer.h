@@ -16,15 +16,16 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *****************************************************************************/
+
 #pragma once
 
 #include <QString>
 #include <webgpu/webgpu.h>
 
-namespace webgpu_engine {
+namespace webgpu_engine::raii {
 
-// Generic class for GPU buffer handles complying to RAII.
-// This class does not store the written value on CPU side.
+/// Generic class for GPU buffer handles complying to RAII.
+/// This class does not store the value to be written on CPU side.
 template <typename T> class RawBuffer {
 public:
     // m_size in num objects
@@ -64,7 +65,7 @@ private:
     size_t m_size;
 };
 
-// Generic class for buffers that are backed by a member variable
+/// Generic class for buffers that are backed by a member variable.
 template <typename T> class Buffer {
 public:
     // Creates a Buffer object representing a region in GPU memory.
@@ -87,7 +88,7 @@ public:
     T data;
 
 protected:
-    RawBuffer<T> m_non_backed_buffer;
+    RawBuffer<T> m_raw_buffer;
 };
 
-} // namespace webgpu_engine
+} // namespace webgpu_engine::raii

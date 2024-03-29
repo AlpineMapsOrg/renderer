@@ -19,7 +19,9 @@
 
 #include "Texture.h"
 
-namespace webgpu_engine {
+#include "TextureView.h"
+
+namespace webgpu_engine::raii {
 
 // TODO
 const std::map<QImage::Format, WGPUTextureFormat> Texture::qimage_to_webgpu_format { { QImage::Format::Format_RGBA8888,
@@ -105,66 +107,6 @@ void Texture::write(WGPUQueue queue, const nucleus::utils::ColourTexture& data, 
     wgpuQueueWriteTexture(queue, &image_copy_texture, data.data(), data.n_bytes(), &texture_data_layout, &copy_extent);
 }
 
-std::unique_ptr<TextureView> Texture::create_view(const WGPUTextureViewDescriptor& desc) const
-{
-    return std::make_unique<webgpu_engine::TextureView>(m_texture, desc);
-}
+std::unique_ptr<TextureView> Texture::create_view(const WGPUTextureViewDescriptor& desc) const { return std::make_unique<TextureView>(m_texture, desc); }
 
-TextureView::TextureView(WGPUTexture texture_handle, const WGPUTextureViewDescriptor& desc)
-    : m_texture_view(wgpuTextureCreateView(texture_handle, &desc))
-    , m_texture_view_descriptor(desc)
-{
-}
-
-TextureView::~TextureView() { wgpuTextureViewRelease(m_texture_view); }
-
-WGPUTextureViewDimension TextureView::dimension() const { return m_texture_view_descriptor.dimension; }
-
-WGPUTextureView TextureView::handle() const { return m_texture_view; }
-
-Sampler::Sampler(WGPUDevice device, const WGPUSamplerDescriptor& desc)
-    : m_sampler(wgpuDeviceCreateSampler(device, &desc))
-{
-}
-
-Sampler::~Sampler() { wgpuSamplerRelease(m_sampler); }
-
-WGPUSampler Sampler::handle() const { return m_sampler; }
-
-TextureWithSampler::TextureWithSampler(WGPUDevice device, const WGPUTextureDescriptor& texture_desc, const WGPUSamplerDescriptor& sampler_desc)
-    : m_texture(std::make_unique<Texture>(device, texture_desc))
-{
-
-    // TODO make utility function
-    auto determineViewDimension = [](const WGPUTextureDescriptor& texture_desc) {
-        if (texture_desc.dimension == WGPUTextureDimension_1D)
-            return WGPUTextureViewDimension_1D;
-        else if (texture_desc.dimension == WGPUTextureDimension_3D)
-            return WGPUTextureViewDimension_3D;
-        else if (texture_desc.dimension == WGPUTextureDimension_2D) {
-            return texture_desc.size.depthOrArrayLayers > 1 ? WGPUTextureViewDimension_2DArray : WGPUTextureViewDimension_2D;
-            // note: if texture_desc.size.depthOrArrayLayers is 6, the view type can also be WGPUTextureViewDimension_Cube
-            //       or, for any multiple of 6 the view type could be WGPUTextureViewDimension_CubeArray - we don't support this here for now
-        }
-        return WGPUTextureViewDimension_Undefined; // hopefully this logs an error when webgpu is validating
-    };
-
-    WGPUTextureViewDescriptor view_desc {};
-    view_desc.aspect = WGPUTextureAspect_All;
-    view_desc.dimension = determineViewDimension(texture_desc);
-    view_desc.format = texture_desc.format;
-    view_desc.baseArrayLayer = 0;
-    view_desc.arrayLayerCount = texture_desc.size.depthOrArrayLayers;
-    view_desc.baseMipLevel = 0;
-    view_desc.mipLevelCount = texture_desc.mipLevelCount;
-    m_texture_view = m_texture->create_view(view_desc);
-    m_sampler = std::make_unique<Sampler>(device, sampler_desc);
-}
-
-Texture& TextureWithSampler::texture() { return *m_texture; }
-
-const TextureView& TextureWithSampler::texture_view() const { return *m_texture_view; }
-
-const Sampler& TextureWithSampler::sampler() const { return *m_sampler; }
-
-} // namespace webgpu_engine
+} // namespace webgpu_engine::raii

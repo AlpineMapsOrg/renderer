@@ -20,7 +20,6 @@
 
 #include "PipelineManager.h"
 #include "ShaderModuleManager.h"
-#include "Texture.h"
 #include "TileManager.h"
 #include "UniformBufferObjects.h"
 #include "nucleus/AbstractRenderWindow.h"
@@ -28,6 +27,9 @@
 #include "nucleus/camera/Controller.h"
 #include "nucleus/utils/ColourTexture.h"
 #include "nucleus/utils/Stopwatch.h"
+#include "raii/Sampler.h"
+#include "raii/Texture.h"
+#include "raii/TextureView.h"
 #include <webgpu/webgpu.h>
 
 class QOpenGLFramebufferObject;
@@ -102,8 +104,8 @@ private:
     std::unique_ptr<ShaderModuleManager> m_shader_manager;
     std::unique_ptr<PipelineManager> m_pipeline_manager;
 
-    std::unique_ptr<Buffer<uboSharedConfig>> m_shared_config_ubo;
-    std::unique_ptr<Buffer<uboCameraConfig>> m_camera_config_ubo;
+    std::unique_ptr<raii::Buffer<uboSharedConfig>> m_shared_config_ubo;
+    std::unique_ptr<raii::Buffer<uboCameraConfig>> m_camera_config_ubo;
 
     std::unique_ptr<BindGroupInfo> m_bind_group_info;
     std::unique_ptr<BindGroupInfo> m_shared_config_bind_group_info;
@@ -117,10 +119,10 @@ private:
     nucleus::utils::Stopwatch m_stopwatch;
     nucleus::camera::Definition m_camera;
 
-    std::unique_ptr<TextureWithSampler> m_demo_texture_with_sampler;
+    std::unique_ptr<raii::TextureWithSampler> m_demo_texture_with_sampler;
 
-    std::unique_ptr<Texture> m_depth_texture;
-    std::unique_ptr<TextureView> m_depth_texture_view;
+    std::unique_ptr<raii::Texture> m_depth_texture;
+    std::unique_ptr<raii::TextureView> m_depth_texture_view;
 
     std::unique_ptr<TileManager> m_tile_manager;
 };
