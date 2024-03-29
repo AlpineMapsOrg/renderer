@@ -47,6 +47,7 @@ Window::Window(ObtainWebGpuSurfaceFunc obtain_webgpu_surface_func, ImGuiWindowIm
 #else
 Window::Window(ObtainWebGpuSurfaceFunc obtain_webgpu_surface_func)
     : m_obtain_webgpu_surface_func { obtain_webgpu_surface_func }
+    , m_tile_manager { std::make_unique<TileManager>() }
 {
 }
 #endif
