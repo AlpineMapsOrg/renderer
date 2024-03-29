@@ -24,6 +24,23 @@
 
 namespace webgpu_engine {
 
+ShaderModule::ShaderModule(WGPUDevice device, const std::string& name, const std::string& code)
+    : m_name(name)
+{
+    WGPUShaderModuleDescriptor shader_module_desc {};
+    WGPUShaderModuleWGSLDescriptor wgsl_desc {};
+    wgsl_desc.chain.next = nullptr;
+    wgsl_desc.chain.sType = WGPUSType::WGPUSType_ShaderModuleWGSLDescriptor;
+    wgsl_desc.code = code.data();
+    shader_module_desc.label = name.data();
+    shader_module_desc.nextInChain = &wgsl_desc.chain;
+    m_shader_module = wgpuDeviceCreateShaderModule(device, &shader_module_desc);
+}
+
+ShaderModule::~ShaderModule() { wgpuShaderModuleRelease(m_shader_module); }
+
+WGPUShaderModule ShaderModule::handle() const { return m_shader_module; }
+
 ShaderModuleManager::ShaderModuleManager(WGPUDevice device, const std::filesystem::path& prefix)
     : m_device(device)
     , m_prefix(prefix)
@@ -31,19 +48,23 @@ ShaderModuleManager::ShaderModuleManager(WGPUDevice device, const std::filesyste
 
 void ShaderModuleManager::create_shader_modules()
 {
-    m_debug_triangle_shader_module = create_shader_module(get_contents("DebugTriangle.wgsl"));
-    m_debug_config_and_camera_shader_module = create_shader_module(get_contents("DebugConfigAndCamera.wgsl"));
+    m_debug_triangle_shader_module = create_shader_module("DebugTriangle.wgsl");
+    m_debug_config_and_camera_shader_module = create_shader_module("DebugConfigAndCamera.wgsl");
+    m_tile_shader_module = create_shader_module("Tile.wgsl");
 }
 
 void ShaderModuleManager::release_shader_modules()
 {
-    wgpuShaderModuleRelease(m_debug_triangle_shader_module);
-    wgpuShaderModuleRelease(m_debug_config_and_camera_shader_module);
+    m_debug_triangle_shader_module.release();
+    m_debug_config_and_camera_shader_module.release();
+    m_tile_shader_module.release();
 }
 
-WGPUShaderModule ShaderModuleManager::debug_triangle() const { return m_debug_triangle_shader_module; }
+const ShaderModule& ShaderModuleManager::debug_triangle() const { return *m_debug_triangle_shader_module; }
 
-WGPUShaderModule ShaderModuleManager::debug_config_and_camera() const { return m_debug_config_and_camera_shader_module; }
+const ShaderModule& ShaderModuleManager::debug_config_and_camera() const { return *m_debug_config_and_camera_shader_module; }
+
+const ShaderModule& ShaderModuleManager::tile() const { return *m_tile_shader_module; }
 
 std::string ShaderModuleManager::read_file_contents(const std::string& name) const {
     const auto path = m_prefix / name; // operator/ concats paths
@@ -66,15 +87,10 @@ std::string ShaderModuleManager::get_contents(const std::string& name) {
     return preprocessed_contents;
 }
 
-WGPUShaderModule ShaderModuleManager::create_shader_module(const std::string& code)
+std::unique_ptr<ShaderModule> ShaderModuleManager::create_shader_module(const std::string& name)
 {
-    WGPUShaderModuleDescriptor shaderModuleDesc {};
-    WGPUShaderModuleWGSLDescriptor wgslDesc {};
-    wgslDesc.chain.next = nullptr;
-    wgslDesc.chain.sType = WGPUSType::WGPUSType_ShaderModuleWGSLDescriptor;
-    wgslDesc.code = code.data();
-    shaderModuleDesc.nextInChain = &wgslDesc.chain;
-    return wgpuDeviceCreateShaderModule(m_device, &shaderModuleDesc);
+    const std::string contents = get_contents(name);
+    return std::make_unique<ShaderModule>(m_device, name, contents);
 }
 
 std::string ShaderModuleManager::preprocess(const std::string& code)
@@ -89,4 +105,4 @@ std::string ShaderModuleManager::preprocess(const std::string& code)
     return preprocessed_code;
 }
 
-}
+} // namespace webgpu_engine

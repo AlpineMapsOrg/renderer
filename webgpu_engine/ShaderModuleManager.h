@@ -25,6 +25,22 @@
 
 namespace webgpu_engine {
 
+class ShaderModule {
+public:
+    ShaderModule(WGPUDevice device, const std::string& name, const std::string& code);
+    ~ShaderModule();
+
+    // delete copy constructor and copy-assignment operator
+    ShaderModule(const ShaderModule& other) = delete;
+    ShaderModule& operator=(const ShaderModule& other) = delete;
+
+    WGPUShaderModule handle() const;
+
+private:
+    std::string m_name;
+    WGPUShaderModule m_shader_module;
+};
+
 class ShaderModuleManager {
 public:
     const static inline std::filesystem::path DEFAULT_PREFIX = ":/wgsl_shaders/";
@@ -36,14 +52,15 @@ public:
     void create_shader_modules();
     void release_shader_modules();
 
-    WGPUShaderModule debug_triangle() const;
-    WGPUShaderModule debug_config_and_camera() const;
+    const ShaderModule& debug_triangle() const;
+    const ShaderModule& debug_config_and_camera() const;
+    const ShaderModule& tile() const;
 
 private:
     std::string read_file_contents(const std::string& name) const;
     std::string get_contents(const std::string& name);
     std::string preprocess(const std::string& code);
-    WGPUShaderModule create_shader_module(const std::string& code);
+    std::unique_ptr<ShaderModule> create_shader_module(const std::string& code);
 
 private:
     WGPUDevice m_device;
@@ -51,8 +68,9 @@ private:
 
     std::map<std::string, std::string> m_shader_name_to_code;
 
-    WGPUShaderModule m_debug_triangle_shader_module;
-    WGPUShaderModule m_debug_config_and_camera_shader_module;
+    std::unique_ptr<ShaderModule> m_debug_triangle_shader_module;
+    std::unique_ptr<ShaderModule> m_debug_config_and_camera_shader_module;
+    std::unique_ptr<ShaderModule> m_tile_shader_module;
 };
 
 }

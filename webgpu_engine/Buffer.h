@@ -56,6 +56,8 @@ public:
     }
 
     WGPUBuffer handle() const { return m_buffer; }
+    size_t size() const { return m_size; }
+    size_t size_in_byte() const { return m_size * sizeof(T); };
 
 private:
     WGPUBuffer m_buffer = nullptr;

@@ -133,32 +133,19 @@ void TerrainRenderer::start() {
 
     m_controller = std::make_unique<nucleus::Controller>(m_webgpu_window.get());
 
-    std::cout << "before initialise_gpu()" << std::endl;
-    m_webgpu_window->initialise_gpu();
-    m_webgpu_window->resize_framebuffer(m_width, m_height);
-
     nucleus::camera::Controller* camera_controller = m_controller->camera_controller();
     connect(this, &TerrainRenderer::key_pressed, camera_controller, &nucleus::camera::Controller::key_press);
     connect(this, &TerrainRenderer::key_released, camera_controller, &nucleus::camera::Controller::key_release);
     connect(this, &TerrainRenderer::mouse_moved, camera_controller, &nucleus::camera::Controller::mouse_move);
     connect(this, &TerrainRenderer::mouse_pressed, camera_controller, &nucleus::camera::Controller::mouse_press);
     connect(this, &TerrainRenderer::wheel_turned, camera_controller, &nucleus::camera::Controller::wheel_turn);
-    connect(
-        m_webgpu_window.get(), &nucleus::AbstractRenderWindow::update_camera_requested, camera_controller, &nucleus::camera::Controller::update_camera_request);
-    connect(camera_controller, &nucleus::camera::Controller::definition_changed, m_webgpu_window.get(), &nucleus::AbstractRenderWindow::update_camera);
-    connect(camera_controller, &nucleus::camera::Controller::definition_changed, m_controller->tile_scheduler(),
-        &nucleus::tile_scheduler::Scheduler::update_camera);
+    connect(this, &TerrainRenderer::update_camera_requested, camera_controller, &nucleus::camera::Controller::update_camera_request);
 
-    // TODO for debug purposes only, remove this code
-    nucleus::camera::Definition camera = camera_controller->definition();
-    camera.look_at(glm::dvec3 { 0.0f, 0.0f, 0.0f }, glm::dvec3 { 0.0, -1.0, 0.0 });
-    camera_controller->set_definition(camera);
+    m_webgpu_window->initialise_gpu();
+    m_webgpu_window->resize_framebuffer(m_width, m_height);
 
     camera_controller->set_viewport({ m_width, m_height });
     camera_controller->update();
-
-    m_controller->tile_scheduler()->send_quad_requests();
-    m_controller->tile_scheduler()->update_gpu_quads();
 
     glfwSetWindowSize(m_window, m_width, m_height);
     m_initialized = true;

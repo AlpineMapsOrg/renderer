@@ -39,6 +39,8 @@ Window::Window(ObtainWebGpuSurfaceFunc obtain_webgpu_surface_func, ImGuiWindowIm
     , m_imgui_window_init_func { imgui_window_init_func }
     , m_imgui_window_new_frame_func { imgui_window_new_frame_func }
     , m_imgui_window_shutdown_func { imgui_window_shutdown_func }
+    , m_tile_manager { std::make_unique<TileManager>() }
+
 {
     // Constructor initialization logic here
 }
@@ -68,11 +70,15 @@ void Window::initialise_gpu()
     create_textures();
     create_bind_group_info();
 
+    m_tile_manager->init(m_device, m_queue);
+
     m_shader_manager = std::make_unique<ShaderModuleManager>(m_device);
     m_shader_manager->create_shader_modules();
     m_pipeline_manager = std::make_unique<PipelineManager>(m_device, *m_shader_manager);
 
     m_stopwatch.restart();
+
+    std::cout << "webgpu_engine::Window emitting: gpu_ready_changed" << std::endl;
     emit gpu_ready_changed(true);
 }
 
@@ -91,7 +97,8 @@ void Window::resize_framebuffer(int w, int h)
     create_depth_texture(w, h);
 
     create_swapchain(w, h);
-    m_pipeline_manager->create_pipelines(m_swapchain_format, m_depth_texture_format, *m_bind_group_info);
+    m_pipeline_manager->create_pipelines(m_swapchain_format, m_depth_texture_format, *m_bind_group_info, *m_shared_config_bind_group_info,
+        *m_camera_bind_group_info, m_tile_manager->tile_bind_group());
 
 #ifdef ALP_WEBGPU_APP_ENABLE_IMGUI
     if (ImGui::GetCurrentContext() != nullptr) {
@@ -161,9 +168,12 @@ void Window::paint([[maybe_unused]] QOpenGLFramebufferObject* framebuffer)
     render_pass_desc.timestampWrites = nullptr;
     WGPURenderPassEncoder render_pass = wgpuCommandEncoderBeginRenderPass(encoder, &render_pass_desc);
 
-    m_bind_group_info->bind(render_pass, 0);
-    wgpuRenderPassEncoderSetPipeline(render_pass, m_pipeline_manager->debug_config_and_camera_pipeline());
-    wgpuRenderPassEncoderDraw(render_pass, 31, 1, 0, 0);
+    m_shared_config_bind_group_info->bind(render_pass, 0);
+    m_camera_bind_group_info->bind(render_pass, 1);
+
+    const auto tile_set = m_tile_manager->generate_tilelist(m_camera);
+
+    m_tile_manager->draw(m_pipeline_manager->tile_pipeline(), render_pass, m_camera, tile_set, true, m_camera.position());
 
 #ifdef ALP_WEBGPU_APP_ENABLE_IMGUI
     // We add the GUI drawing commands to the render pass
@@ -220,20 +230,14 @@ void Window::deinit_gpu()
     emit gpu_ready_changed(false);
 }
 
-void Window::set_aabb_decorator([[maybe_unused]] const nucleus::tile_scheduler::utils::AabbDecoratorPtr&)
-{
-    // Logic for setting AABB decorator, parameter currently unused
-}
+void Window::set_aabb_decorator(const nucleus::tile_scheduler::utils::AabbDecoratorPtr& aabb_decorator) { m_tile_manager->set_aabb_decorator(aabb_decorator); }
 
 void Window::remove_tile([[maybe_unused]] const tile::Id&)
 {
     // Logic to remove a tile, parameter currently unused
 }
 
-void Window::set_quad_limit([[maybe_unused]] unsigned int new_limit)
-{
-    // TODO implement
-}
+void Window::set_quad_limit(unsigned int new_limit) { m_tile_manager->set_quad_limit(new_limit); }
 
 nucleus::camera::AbstractDepthTester* Window::depth_tester()
 {
@@ -254,16 +258,10 @@ void Window::set_permissible_screen_space_error([[maybe_unused]] float new_error
 
 void Window::update_camera([[maybe_unused]] const nucleus::camera::Definition& new_definition)
 {
-    // Logic for updating camera, parameter currently unused
-
-    // UPDATE CAMERA UNIFORM BUFFER
     // NOTE: Could also just be done on camera or viewport change!
-    const auto pos = new_definition.position();
-    std::cout << "UBO update, new pos: " << pos.x << ", " << pos.y << ", " << pos.z << std::endl;
     uboCameraConfig* cc = &m_camera_config_ubo->data;
     cc->position = glm::vec4(new_definition.position(), 1.0);
-    cc->view_matrix = new_definition.camera_matrix(); // TODO only for debug, actual line for terrain is below
-    // cc->view_matrix = new_definition.local_view_matrix();
+    cc->view_matrix = new_definition.local_view_matrix();
     cc->proj_matrix = new_definition.projection_matrix();
     cc->view_proj_matrix = cc->proj_matrix * cc->view_matrix;
     cc->inv_view_proj_matrix = glm::inverse(cc->view_proj_matrix);
@@ -272,6 +270,7 @@ void Window::update_camera([[maybe_unused]] const nucleus::camera::Definition& n
     cc->viewport_size = new_definition.viewport_size();
     cc->distance_scaling_factor = new_definition.distance_scale_factor();
     m_camera_config_ubo->update_gpu_data(m_queue);
+    m_camera = new_definition;
 }
 
 void Window::update_debug_scheduler_stats([[maybe_unused]] const QString& stats)
@@ -282,9 +281,8 @@ void Window::update_debug_scheduler_stats([[maybe_unused]] const QString& stats)
 void Window::update_gpu_quads([[maybe_unused]] const std::vector<nucleus::tile_scheduler::tile_types::GpuTileQuad>& new_quads,
     [[maybe_unused]] const std::vector<tile::Id>& deleted_quads)
 {
-    // Logic for updating GPU quads, parameters currently unused
-
-    std::cout << "received " << new_quads.size() << " new quads, should delete " << deleted_quads.size() << " quads" << std::endl;
+    // std::cout << "received " << new_quads.size() << " new quads, should delete " << deleted_quads.size() << " quads" << std::endl;
+    m_tile_manager->update_gpu_quads(new_quads, deleted_quads);
 }
 
 #ifdef ALP_WEBGPU_APP_ENABLE_IMGUI
@@ -437,6 +435,7 @@ void Window::update_gui(WGPURenderPassEncoder render_pass)
     ImGui_ImplWGPU_RenderDrawData(ImGui::GetDrawData(), render_pass);
     first_frame = false;
 }
+
 #endif
 
 void Window::create_instance()
@@ -464,10 +463,13 @@ void Window::request_adapter()
 void Window::request_device()
 {
     std::cout << "Requesting device..." << std::endl;
+
+    const WGPURequiredLimits required_limits = required_gpu_limits();
+
     WGPUDeviceDescriptor device_desc {};
     device_desc.label = "My Device";
     device_desc.requiredFeatureCount = 0;
-    device_desc.requiredLimits = nullptr;
+    device_desc.requiredLimits = &required_limits;
     device_desc.defaultQueue.label = "The default queue";
     m_device = requestDeviceSync(m_adapter, device_desc);
     std::cout << "Got device: " << m_device << std::endl;
@@ -579,13 +581,41 @@ void Window::create_swapchain(uint32_t width, uint32_t height)
 
 void Window::create_bind_group_info()
 {
-    m_bind_group_info = std::make_unique<BindGroupInfo>();
+    m_bind_group_info = std::make_unique<BindGroupInfo>("triangle demo bind group");
     m_bind_group_info->add_entry(0, *m_shared_config_ubo, WGPUShaderStage::WGPUShaderStage_Vertex | WGPUShaderStage::WGPUShaderStage_Fragment);
     m_bind_group_info->add_entry(1, *m_camera_config_ubo, WGPUShaderStage::WGPUShaderStage_Vertex | WGPUShaderStage::WGPUShaderStage_Fragment);
-    m_bind_group_info->add_entry(2, m_demo_texture_with_sampler->texture_view(), WGPUShaderStage_Vertex | WGPUShaderStage_Fragment);
+    m_bind_group_info->add_entry(
+        2, m_demo_texture_with_sampler->texture_view(), WGPUShaderStage_Vertex | WGPUShaderStage_Fragment, WGPUTextureSampleType_Float);
     m_bind_group_info->add_entry(
         3, m_demo_texture_with_sampler->sampler(), WGPUShaderStage_Vertex | WGPUShaderStage_Fragment, WGPUSamplerBindingType_Filtering);
     m_bind_group_info->init(m_device);
+
+    m_shared_config_bind_group_info = std::make_unique<BindGroupInfo>("shared config bind group");
+    m_shared_config_bind_group_info->add_entry(0, *m_shared_config_ubo, WGPUShaderStage::WGPUShaderStage_Vertex | WGPUShaderStage::WGPUShaderStage_Fragment);
+    m_shared_config_bind_group_info->init(m_device);
+
+    m_camera_bind_group_info = std::make_unique<BindGroupInfo>("camera bind group");
+    m_camera_bind_group_info->add_entry(0, *m_camera_config_ubo, WGPUShaderStage::WGPUShaderStage_Vertex | WGPUShaderStage::WGPUShaderStage_Fragment);
+    m_camera_bind_group_info->init(m_device);
+}
+
+WGPURequiredLimits Window::required_gpu_limits() const
+{
+    WGPURequiredLimits required_limits {};
+
+    // could just get supported limits and use as required limits; but this is not supported in browser yet
+    // WGPUSupportedLimits supported_limits {};
+    // wgpuAdapterGetLimits(m_adapter, &supported_limits);
+    // required_limits.limits = supported_limits.limits; // request everything the device supports
+
+    // irrelevant for us, but needs to be set
+    required_limits.limits.minStorageBufferOffsetAlignment = std::numeric_limits<uint32_t>::max();
+    required_limits.limits.minUniformBufferOffsetAlignment = std::numeric_limits<uint32_t>::max();
+
+    // relevant, default is too low
+    required_limits.limits.maxTextureArrayLayers = 2048;
+
+    return required_limits;
 }
 
 } // namespace webgpu_engine

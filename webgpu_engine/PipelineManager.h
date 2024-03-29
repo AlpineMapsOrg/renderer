@@ -26,7 +26,7 @@ namespace webgpu_engine {
 
 class BindGroupInfo {
 public:
-    BindGroupInfo() = default;
+    BindGroupInfo(const std::string& label = "name not set");
 
     template <class T> void add_entry(uint32_t binding, const Buffer<T>& buf, WGPUShaderStageFlags visibility)
     {
@@ -51,11 +51,11 @@ public:
         m_bind_group_entries.push_back(entry);
     }
 
-    void add_entry(uint32_t binding, const TextureView& texture_view, WGPUShaderStageFlags visibility)
+    void add_entry(uint32_t binding, const TextureView& texture_view, WGPUShaderStageFlags visibility, WGPUTextureSampleType sample_type)
     {
         WGPUTextureBindingLayout texture_binding_layout {};
         texture_binding_layout.multisampled = false;
-        texture_binding_layout.sampleType = WGPUTextureSampleType::WGPUTextureSampleType_Float;
+        texture_binding_layout.sampleType = sample_type;
         texture_binding_layout.viewDimension = texture_view.dimension();
         texture_binding_layout.nextInChain = nullptr;
 
@@ -97,11 +97,13 @@ public:
     void create_bind_group(WGPUDevice device);
     void init(WGPUDevice device);
 
-    void bind(WGPURenderPassEncoder& render_pass, uint32_t group_index);
+    void bind(WGPURenderPassEncoder& render_pass, uint32_t group_index) const;
 
 private:
     std::vector<WGPUBindGroupEntry> m_bind_group_entries;
     std::vector<WGPUBindGroupLayoutEntry> m_bind_group_layout_entries;
+
+    std::string m_label;
 
 public:
     WGPUBindGroupLayout m_bind_group_layout = nullptr;
@@ -114,15 +116,19 @@ public:
 
     WGPURenderPipeline debug_triangle_pipeline() const;
     WGPURenderPipeline debug_config_and_camera_pipeline() const;
+    WGPURenderPipeline tile_pipeline() const;
 
-    void create_pipelines(WGPUTextureFormat color_target_format, WGPUTextureFormat depth_texture_format, BindGroupInfo& bindGroup);
+    void create_pipelines(WGPUTextureFormat color_target_format, WGPUTextureFormat depth_texture_format, const BindGroupInfo& bind_group_info,
+        const BindGroupInfo& shared_config_bind_group, const BindGroupInfo& camera_bind_group, const BindGroupInfo& tile_bind_group);
     void release_pipelines();
     bool pipelines_created() const;
 
 private:
     void create_debug_pipeline(WGPUTextureFormat color_target_format);
-    void create_debug_config_and_camera_pipeline(WGPUTextureFormat color_target_format, WGPUTextureFormat depth_texture_format, BindGroupInfo& bind_group_info);
-    void create_tile_pipeline();
+    void create_debug_config_and_camera_pipeline(
+        WGPUTextureFormat color_target_format, WGPUTextureFormat depth_texture_format, const BindGroupInfo& bind_group_info);
+    void create_tile_pipeline(WGPUTextureFormat color_target_format, WGPUTextureFormat depth_texture_format, const BindGroupInfo& shared_config_bind_group,
+        const BindGroupInfo& camera_bind_group, const BindGroupInfo& tile_bind_group);
     void create_shadow_pipeline();
 
 private:
@@ -131,6 +137,7 @@ private:
 
     WGPURenderPipeline m_debug_triangle_pipeline;
     WGPURenderPipeline m_debug_config_and_camera_pipeline;
+    WGPURenderPipeline m_tile_pipeline;
 
     bool m_pipelines_created = false;
 };

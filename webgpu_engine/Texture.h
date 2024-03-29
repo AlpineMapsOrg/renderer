@@ -21,6 +21,8 @@
 
 #include <QImage.h>
 #include <map>
+#include <nucleus/Raster.h>
+#include <nucleus/utils/ColourTexture.h>
 #include <webgpu/webgpu.h>
 
 namespace webgpu_engine {
@@ -45,6 +47,11 @@ public:
     Texture& operator=(const Texture& other) = delete;
 
     void write(WGPUQueue queue, QImage image, uint32_t layer = 0);
+
+    // TODO could make this a function template and pass type instead of using uint16_t? but not needed rn
+    void write(WGPUQueue queue, const nucleus::Raster<uint16_t>& data, uint32_t layer = 0);
+
+    void write(WGPUQueue queue, const nucleus::utils::ColourTexture& data, uint32_t layer = 0);
 
     std::unique_ptr<TextureView> create_view(const WGPUTextureViewDescriptor& desc) const;
 

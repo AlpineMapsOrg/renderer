@@ -192,7 +192,7 @@ QString ubo_as_string(T ubo) {
 // Loads the given base 64 encoded string as the buffer data
 template <typename T>
 T ubo_from_string(const QString& base64StringUrlSafe, bool* successful = nullptr) {
-    T ubo;
+    T ubo {};
     if (successful) *successful = true;
     auto b64String = nucleus::utils::UrlModifier::urlsafe_b64_to_b64(base64StringUrlSafe);
     QByteArray buffer = QByteArray::fromBase64(b64String.toUtf8());

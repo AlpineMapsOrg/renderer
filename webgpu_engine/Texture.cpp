@@ -61,6 +61,50 @@ void Texture::write(WGPUQueue queue, QImage image, uint32_t layer)
     wgpuQueueWriteTexture(queue, &image_copy_texture, image.bits(), image.sizeInBytes(), &texture_data_layout, &copy_extent);
 }
 
+void Texture::write(WGPUQueue queue, const nucleus::Raster<uint16_t>& data, uint32_t layer)
+{
+    assert(static_cast<uint32_t>(data.width()) == m_texture_desc.size.width);
+    assert(static_cast<uint32_t>(data.height()) == m_texture_desc.size.height);
+
+    WGPUImageCopyTexture image_copy_texture {};
+    image_copy_texture.texture = m_texture;
+    image_copy_texture.aspect = WGPUTextureAspect::WGPUTextureAspect_All;
+    image_copy_texture.mipLevel = 0;
+    image_copy_texture.origin = { 0, 0, layer };
+    image_copy_texture.nextInChain = nullptr;
+
+    WGPUTextureDataLayout texture_data_layout {};
+    texture_data_layout.bytesPerRow = sizeof(uint16_t) * data.width();
+    texture_data_layout.rowsPerImage = data.height();
+    texture_data_layout.offset = 0;
+    texture_data_layout.nextInChain = nullptr;
+    WGPUExtent3D copy_extent { m_texture_desc.size.width, m_texture_desc.size.height, 1 };
+    // TODO maybe add buffer_length_in_bytes() to Raster
+    wgpuQueueWriteTexture(queue, &image_copy_texture, data.bytes(), sizeof(uint16_t) * data.buffer_length(), &texture_data_layout, &copy_extent);
+}
+
+void Texture::write(WGPUQueue queue, const nucleus::utils::ColourTexture& data, uint32_t layer)
+{
+    assert(static_cast<uint32_t>(data.width()) == m_texture_desc.size.width);
+    assert(static_cast<uint32_t>(data.height()) == m_texture_desc.size.height);
+    assert(data.format() == nucleus::utils::ColourTexture::Format::Uncompressed_RGBA); // TODO compressed textures
+
+    WGPUImageCopyTexture image_copy_texture {};
+    image_copy_texture.texture = m_texture;
+    image_copy_texture.aspect = WGPUTextureAspect::WGPUTextureAspect_All;
+    image_copy_texture.mipLevel = 0;
+    image_copy_texture.origin = { 0, 0, layer };
+    image_copy_texture.nextInChain = nullptr;
+
+    WGPUTextureDataLayout texture_data_layout {};
+    texture_data_layout.bytesPerRow = 4 * data.width(); // for uncompressed RGBA
+    texture_data_layout.rowsPerImage = data.height();
+    texture_data_layout.offset = 0;
+    texture_data_layout.nextInChain = nullptr;
+    WGPUExtent3D copy_extent { m_texture_desc.size.width, m_texture_desc.size.height, 1 };
+    wgpuQueueWriteTexture(queue, &image_copy_texture, data.data(), data.n_bytes(), &texture_data_layout, &copy_extent);
+}
+
 std::unique_ptr<TextureView> Texture::create_view(const WGPUTextureViewDescriptor& desc) const
 {
     return std::make_unique<webgpu_engine::TextureView>(m_texture, desc);

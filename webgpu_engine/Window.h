@@ -21,6 +21,7 @@
 #include "PipelineManager.h"
 #include "ShaderModuleManager.h"
 #include "Texture.h"
+#include "TileManager.h"
 #include "UniformBufferObjects.h"
 #include "nucleus/AbstractRenderWindow.h"
 #include "nucleus/camera/AbstractDepthTester.h"
@@ -69,9 +70,6 @@ public slots:
     void update_debug_scheduler_stats(const QString& stats) override;
     void update_gpu_quads(const std::vector<nucleus::tile_scheduler::tile_types::GpuTileQuad>& new_quads, const std::vector<tile::Id>& deleted_quads) override;
 
-signals:
-    void gpu_ready_changed(bool ready);
-
 private:
     void create_instance();
     void init_surface();
@@ -87,6 +85,8 @@ private:
     bool init_gui();
     void terminate_gui();
     void update_gui(WGPURenderPassEncoder render_pass);
+
+    WGPURequiredLimits required_gpu_limits() const;
 
 private:
     WGPUInstance m_instance = nullptr;
@@ -106,6 +106,8 @@ private:
     std::unique_ptr<Buffer<uboCameraConfig>> m_camera_config_ubo;
 
     std::unique_ptr<BindGroupInfo> m_bind_group_info;
+    std::unique_ptr<BindGroupInfo> m_shared_config_bind_group_info;
+    std::unique_ptr<BindGroupInfo> m_camera_bind_group_info;
 
     ObtainWebGpuSurfaceFunc m_obtain_webgpu_surface_func;
     ImGuiWindowImplInitFunc m_imgui_window_init_func;
@@ -113,10 +115,13 @@ private:
     ImGuiWindowImplShutdownFunc m_imgui_window_shutdown_func;
 
     nucleus::utils::Stopwatch m_stopwatch;
+    nucleus::camera::Definition m_camera;
 
     std::unique_ptr<TextureWithSampler> m_demo_texture_with_sampler;
 
     std::unique_ptr<Texture> m_depth_texture;
     std::unique_ptr<TextureView> m_depth_texture_view;
+
+    std::unique_ptr<TileManager> m_tile_manager;
 };
 }

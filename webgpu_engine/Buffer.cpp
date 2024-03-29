@@ -47,4 +47,6 @@ template class Buffer<uboCameraConfig>;
 //TODO
 //template class UniformBuffer<uboShadowConfig>;
 template class Buffer<uboTestConfig>;
-}
+
+template class Buffer<int32_t>; // for n_edge_vertices
+} // namespace webgpu_engine
