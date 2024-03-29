@@ -36,6 +36,7 @@ uniform highp mat4 proj;
 uniform highp float max_speed;
 uniform highp float max_vertical_speed;
 uniform highp float width;
+uniform int end_index;
 
 
 uniform highp vec2 resolution;
@@ -161,8 +162,9 @@ void main() {
 
             if (
                 (0.0 >= signed_distance(point, clipping_plane_1) || (vertex_id == 0)) &&
-                (0.0 <= signed_distance(point, clipping_plane_2)) // TODO: handle end of tube
-            ) {
+                (0.0 <= signed_distance(point, clipping_plane_2) || (vertex_id == end_index - 1))
+            )
+            {
 
                 highp vec3 color;
 

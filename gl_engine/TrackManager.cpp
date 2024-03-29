@@ -77,6 +77,7 @@ void TrackManager::draw(const nucleus::camera::Definition& camera, ShaderProgram
     shader->set_uniform("shading_method", static_cast<int>(shading_method));
     shader->set_uniform("max_speed", m_max_speed);
     shader->set_uniform("max_vertical_speed", m_max_vertical_speed);
+    shader->set_uniform("end_index", static_cast<int>(m_total_point_count));
 
     if (m_data_texture) {
         m_data_texture->bind(8);
@@ -149,6 +150,13 @@ void TrackManager::add_track(const nucleus::gpx::Gpx& gpx, ShaderProgram* shader
         }
 
         if (m_data_texture == nullptr) {
+
+            int max_texture_size;
+            f->glGetIntegerv(GL_MAX_TEXTURE_SIZE, &max_texture_size);
+
+            qDebug() << "max texture size: " << max_texture_size;
+            POINT_TEXTURE_SIZE = max_texture_size;
+
             // create texture to hold the point data
             m_data_texture = std::make_unique<QOpenGLTexture>(QOpenGLTexture::Target::Target2D);
             m_data_texture->setFormat(QOpenGLTexture::TextureFormat::RGBA32F);

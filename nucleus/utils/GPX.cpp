@@ -20,7 +20,6 @@
 
 #include <srs.h>
 
-#include <iostream>
 #include <glm/gtx/io.hpp>
 
 #include <QDebug>

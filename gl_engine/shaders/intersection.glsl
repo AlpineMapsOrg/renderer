@@ -1,3 +1,20 @@
+/*****************************************************************************
+ * Alpine Terrain Builder
+ * Copyright (C) 2024 Jakob Maier
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ *****************************************************************************/
 
 #define INF 1e9
 
@@ -35,7 +52,6 @@ highp float signed_distance(in highp vec3 point, in Plane plane) {
 }
 
 // https://www.shadertoy.com/view/Xt3SzX
-// https://iquilezles.org/articles/intersectors/
 highp float intersect_capsule( in highp vec3 ro, in highp vec3 rd, in highp vec3 pa, in highp vec3 pb, in highp float ra ) {
     highp vec3  ba = pb - pa;
     highp vec3  oa = ro - pa;

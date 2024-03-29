@@ -37,7 +37,7 @@
 #include "nucleus/AbstractRenderWindow.h"
 #include "nucleus/camera/AbstractDepthTester.h"
 #include "nucleus/camera/Definition.h"
-#include "nucleus/GPX.h"
+#include "nucleus/utils/GPX.h"
 #include "UniformBufferObjects.h"
 #include "UniformBuffer.h"
 

@@ -32,7 +32,7 @@
 
 #include "nucleus/camera/Definition.h"
 #include "nucleus/event_parameter.h"
-#include "nucleus/GPX.h"
+#include "nucleus/utils/GPX.h"
 #include "gl_engine/UniformBufferObjects.h"
 #include "timing/TimerFrontendManager.h"
 #include "AppSettings.h"

@@ -70,7 +70,7 @@ Rectangle {
                            + "The source code is available on <a href=\"https://github.com/AlpineMapsOrg/renderer\">github.com/AlpineMapsOrg/renderer</a>.</p>"
                            + "<p>The source of elevation and orthographic photo data is <a href=\"https://basemap.at\">basemap.at</a>, "
                            + "it is licensed under the Open Government Data Austria license (CC-BY 4.0).</p>"
-                           + "<h3>Authors:</h3><p>Adam Celarek, Lucas Dworschak, Gerald Kimmersdorfer, Jakob Lindner</p>"
+                           + "<h3>Authors:</h3><p>Adam Celarek, Lucas Dworschak, Gerald Kimmersdorfer, Jakob Lindner, Jakob Maier</p>"
                            + "<h3>Impressum:</h3><p>Adam Celarek<br />Hartmanngasse 12/22<br />1050 Wien<br />Österreich / Austria</p>")
             }
         }
