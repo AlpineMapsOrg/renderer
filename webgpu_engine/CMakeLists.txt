@@ -33,6 +33,7 @@ set(SOURCES
     raii/TextureView.h raii/TextureView.cpp
     raii/Sampler.h raii/Sampler.cpp
     raii/Buffer.h raii/Buffer.cpp
+    raii/RenderPipeline.h raii/RenderPipeline.cpp
 )
 
 qt_add_library(webgpu_engine STATIC ${SOURCES})

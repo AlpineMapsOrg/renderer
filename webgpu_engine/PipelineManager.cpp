@@ -28,9 +28,9 @@ PipelineManager::PipelineManager(WGPUDevice device, ShaderModuleManager& shader_
 {
 }
 
-WGPURenderPipeline PipelineManager::debug_triangle_pipeline() const { return m_debug_triangle_pipeline; }
-WGPURenderPipeline PipelineManager::debug_config_and_camera_pipeline() const { return m_debug_config_and_camera_pipeline; }
-WGPURenderPipeline PipelineManager::tile_pipeline() const { return m_tile_pipeline; }
+const raii::RenderPipeline& PipelineManager::debug_triangle_pipeline() const { return *m_debug_triangle_pipeline; }
+const raii::RenderPipeline& PipelineManager::debug_config_and_camera_pipeline() const { return *m_debug_config_and_camera_pipeline; }
+const raii::RenderPipeline& PipelineManager::tile_pipeline() const { return *m_tile_pipeline; }
 
 void PipelineManager::create_pipelines(WGPUTextureFormat color_target_format, WGPUTextureFormat depth_texture_format, const BindGroupInfo& bind_group_info,
     const BindGroupInfo& shared_config_bind_group, const BindGroupInfo& camera_bind_group, const BindGroupInfo& tile_bind_group)
@@ -43,9 +43,9 @@ void PipelineManager::create_pipelines(WGPUTextureFormat color_target_format, WG
 
 void PipelineManager::release_pipelines()
 {
-    wgpuRenderPipelineRelease(m_debug_triangle_pipeline);
-    wgpuRenderPipelineRelease(m_debug_config_and_camera_pipeline);
-    wgpuRenderPipelineRelease(m_tile_pipeline);
+    m_debug_triangle_pipeline.release();
+    m_debug_config_and_camera_pipeline.release();
+    m_tile_pipeline.release();
     m_pipelines_created = false;
 }
 
@@ -98,7 +98,7 @@ void PipelineManager::create_debug_pipeline(WGPUTextureFormat color_target_forma
     pipelineDesc.multisample.count = 1;
     pipelineDesc.multisample.mask = ~0u;
     pipelineDesc.multisample.alphaToCoverageEnabled = false;
-    m_debug_triangle_pipeline = wgpuDeviceCreateRenderPipeline(m_device, &pipelineDesc);
+    m_debug_triangle_pipeline = std::make_unique<raii::RenderPipeline>(m_device, pipelineDesc);
 }
 
 void PipelineManager::create_debug_config_and_camera_pipeline(
@@ -165,7 +165,7 @@ void PipelineManager::create_debug_config_and_camera_pipeline(
     pipeline_desc.multisample.alphaToCoverageEnabled = false;
     pipeline_desc.layout = layout;
 
-    m_debug_config_and_camera_pipeline = wgpuDeviceCreateRenderPipeline(m_device, &pipeline_desc);
+    m_debug_config_and_camera_pipeline = std::make_unique<raii::RenderPipeline>(m_device, pipeline_desc);
 }
 
 void PipelineManager::create_tile_pipeline(WGPUTextureFormat color_target_format, WGPUTextureFormat depth_texture_format,
@@ -272,7 +272,7 @@ void PipelineManager::create_tile_pipeline(WGPUTextureFormat color_target_format
     pipeline_desc.multisample.alphaToCoverageEnabled = false;
     pipeline_desc.layout = layout;
 
-    m_tile_pipeline = wgpuDeviceCreateRenderPipeline(m_device, &pipeline_desc);
+    m_tile_pipeline = std::make_unique<raii::RenderPipeline>(m_device, pipeline_desc);
 }
 
 void PipelineManager::create_shadow_pipeline() {

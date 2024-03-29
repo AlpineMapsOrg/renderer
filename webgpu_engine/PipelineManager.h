@@ -19,6 +19,7 @@
 
 #include "ShaderModuleManager.h"
 #include "raii/Buffer.h"
+#include "raii/RenderPipeline.h"
 #include "raii/Sampler.h"
 #include "raii/TextureView.h"
 #include <webgpu/webgpu.h>
@@ -115,9 +116,9 @@ class PipelineManager {
 public:
     PipelineManager(WGPUDevice device, ShaderModuleManager& shader_manager);
 
-    WGPURenderPipeline debug_triangle_pipeline() const;
-    WGPURenderPipeline debug_config_and_camera_pipeline() const;
-    WGPURenderPipeline tile_pipeline() const;
+    const raii::RenderPipeline& debug_triangle_pipeline() const;
+    const raii::RenderPipeline& debug_config_and_camera_pipeline() const;
+    const raii::RenderPipeline& tile_pipeline() const;
 
     void create_pipelines(WGPUTextureFormat color_target_format, WGPUTextureFormat depth_texture_format, const BindGroupInfo& bind_group_info,
         const BindGroupInfo& shared_config_bind_group, const BindGroupInfo& camera_bind_group, const BindGroupInfo& tile_bind_group);
@@ -136,9 +137,9 @@ private:
     WGPUDevice m_device;
     ShaderModuleManager* m_shader_manager;
 
-    WGPURenderPipeline m_debug_triangle_pipeline;
-    WGPURenderPipeline m_debug_config_and_camera_pipeline;
-    WGPURenderPipeline m_tile_pipeline;
+    std::unique_ptr<raii::RenderPipeline> m_debug_triangle_pipeline;
+    std::unique_ptr<raii::RenderPipeline> m_debug_config_and_camera_pipeline;
+    std::unique_ptr<raii::RenderPipeline> m_tile_pipeline;
 
     bool m_pipelines_created = false;
 };

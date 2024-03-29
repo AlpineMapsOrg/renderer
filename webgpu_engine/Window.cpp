@@ -174,7 +174,7 @@ void Window::paint([[maybe_unused]] QOpenGLFramebufferObject* framebuffer)
 
     const auto tile_set = m_tile_manager->generate_tilelist(m_camera);
 
-    m_tile_manager->draw(m_pipeline_manager->tile_pipeline(), render_pass, m_camera, tile_set, true, m_camera.position());
+    m_tile_manager->draw(m_pipeline_manager->tile_pipeline().handle(), render_pass, m_camera, tile_set, true, m_camera.position());
 
 #ifdef ALP_WEBGPU_APP_ENABLE_IMGUI
     // We add the GUI drawing commands to the render pass
