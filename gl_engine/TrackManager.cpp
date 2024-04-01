@@ -122,8 +122,8 @@ void TrackManager::add_track(const nucleus::gpx::Gpx& gpx, ShaderProgram* shader
         std::vector<glm::vec4> points = nucleus::to_world_points(segment);
 
         // data cleanup
-        nucleus::apply_gaussian_filter(points, 1.0f);
         nucleus::reduce_point_count(points, width * 2);
+        nucleus::apply_gaussian_filter(points, 1.0f);
 
         for (size_t i = 0; i < points.size() - 1; ++i) {
             glm::vec4 a = points[i];
