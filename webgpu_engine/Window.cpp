@@ -582,7 +582,7 @@ void Window::create_swapchain(uint32_t width, uint32_t height)
 
 void Window::create_bind_group_info()
 {
-    m_bind_group_info = std::make_unique<util::BindGroupInfo>("triangle demo bind group");
+    m_bind_group_info = std::make_unique<raii::BindGroupWithLayout>("triangle demo bind group");
     m_bind_group_info->add_entry(0, *m_shared_config_ubo, WGPUShaderStage::WGPUShaderStage_Vertex | WGPUShaderStage::WGPUShaderStage_Fragment);
     m_bind_group_info->add_entry(1, *m_camera_config_ubo, WGPUShaderStage::WGPUShaderStage_Vertex | WGPUShaderStage::WGPUShaderStage_Fragment);
     m_bind_group_info->add_entry(
@@ -591,11 +591,11 @@ void Window::create_bind_group_info()
         3, m_demo_texture_with_sampler->sampler(), WGPUShaderStage_Vertex | WGPUShaderStage_Fragment, WGPUSamplerBindingType_Filtering);
     m_bind_group_info->init(m_device);
 
-    m_shared_config_bind_group_info = std::make_unique<util::BindGroupInfo>("shared config bind group");
+    m_shared_config_bind_group_info = std::make_unique<raii::BindGroupWithLayout>("shared config bind group");
     m_shared_config_bind_group_info->add_entry(0, *m_shared_config_ubo, WGPUShaderStage::WGPUShaderStage_Vertex | WGPUShaderStage::WGPUShaderStage_Fragment);
     m_shared_config_bind_group_info->init(m_device);
 
-    m_camera_bind_group_info = std::make_unique<util::BindGroupInfo>("camera bind group");
+    m_camera_bind_group_info = std::make_unique<raii::BindGroupWithLayout>("camera bind group");
     m_camera_bind_group_info->add_entry(0, *m_camera_config_ubo, WGPUShaderStage::WGPUShaderStage_Vertex | WGPUShaderStage::WGPUShaderStage_Fragment);
     m_camera_bind_group_info->init(m_device);
 }

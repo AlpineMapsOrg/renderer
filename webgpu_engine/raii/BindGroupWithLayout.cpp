@@ -16,48 +16,52 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *****************************************************************************/
 
-#include "BindGroup.h"
+#include "BindGroupWithLayout.h"
 
-namespace webgpu_engine::util {
+namespace webgpu_engine::raii {
 
-BindGroupInfo::BindGroupInfo(const std::string& label)
+BindGroupWithLayout::BindGroupWithLayout(const std::string& label)
     : m_label { label }
 {
 }
 
-void BindGroupInfo::create_bind_group_layout(WGPUDevice device)
+void BindGroupWithLayout::init_bind_group_layout(WGPUDevice device)
 {
     WGPUBindGroupLayoutDescriptor desc {};
     desc.label = m_label.data();
     desc.entries = m_bind_group_layout_entries.data();
     desc.entryCount = m_bind_group_layout_entries.size();
     desc.nextInChain = nullptr;
-    m_bind_group_layout = wgpuDeviceCreateBindGroupLayout(device, &desc);
+    m_bind_group_layout = std::make_unique<raii::BindGroupLayout>(device, desc);
 }
 
-void BindGroupInfo::create_bind_group(WGPUDevice device)
+void BindGroupWithLayout::init_bind_group(WGPUDevice device)
 {
     WGPUBindGroupDescriptor desc {};
     desc.label = m_label.data();
-    desc.layout = m_bind_group_layout;
+    desc.layout = m_bind_group_layout->handle();
     desc.entries = m_bind_group_entries.data();
     desc.entryCount = m_bind_group_entries.size();
     desc.nextInChain = nullptr;
-    m_bind_group = wgpuDeviceCreateBindGroup(device, &desc);
+    m_bind_group = std::make_unique<raii::BindGroup>(device, desc);
 }
 
-void BindGroupInfo::init(WGPUDevice device)
+void BindGroupWithLayout::init(WGPUDevice device)
 {
-    create_bind_group_layout(device);
-    create_bind_group(device);
+    init_bind_group_layout(device);
+    init_bind_group(device);
 }
 
-void BindGroupInfo::bind(WGPURenderPassEncoder& render_pass, uint32_t group_index) const
+const raii::BindGroup& BindGroupWithLayout::bind_group() const { return *m_bind_group; }
+
+const raii::BindGroupLayout& BindGroupWithLayout::bind_group_layout() const { return *m_bind_group_layout; }
+
+void BindGroupWithLayout::bind(WGPURenderPassEncoder& render_pass, uint32_t group_index) const
 {
-    wgpuRenderPassEncoderSetBindGroup(render_pass, group_index, m_bind_group, 0, nullptr);
+    wgpuRenderPassEncoderSetBindGroup(render_pass, group_index, m_bind_group->handle(), 0, nullptr);
 }
 
-void BindGroupInfo::add_entry(uint32_t binding, const raii::TextureView& texture_view, WGPUShaderStageFlags visibility, WGPUTextureSampleType sample_type)
+void BindGroupWithLayout::add_entry(uint32_t binding, const raii::TextureView& texture_view, WGPUShaderStageFlags visibility, WGPUTextureSampleType sample_type)
 {
     WGPUTextureBindingLayout texture_binding_layout {};
     texture_binding_layout.multisampled = false;
@@ -79,7 +83,7 @@ void BindGroupInfo::add_entry(uint32_t binding, const raii::TextureView& texture
     m_bind_group_entries.push_back(entry);
 }
 
-void BindGroupInfo::add_entry(uint32_t binding, const raii::Sampler& sampler, WGPUShaderStageFlags visibility, WGPUSamplerBindingType binding_type)
+void BindGroupWithLayout::add_entry(uint32_t binding, const raii::Sampler& sampler, WGPUShaderStageFlags visibility, WGPUSamplerBindingType binding_type)
 {
     WGPUSamplerBindingLayout sampler_binding_layout {};
     sampler_binding_layout.type = binding_type;
@@ -99,4 +103,4 @@ void BindGroupInfo::add_entry(uint32_t binding, const raii::Sampler& sampler, WG
     m_bind_group_entries.push_back(entry);
 }
 
-} // namespace webgpu_engine::util
+} // namespace webgpu_engine::raii

@@ -19,8 +19,7 @@
 #pragma once
 
 #include "ShaderModuleManager.h"
-#include "raii/RenderPipeline.h"
-#include "util/BindGroup.h"
+#include "raii/BindGroupWithLayout.h"
 #include <webgpu/webgpu.h>
 
 namespace webgpu_engine {
@@ -33,17 +32,19 @@ public:
     const raii::RenderPipeline& debug_config_and_camera_pipeline() const;
     const raii::RenderPipeline& tile_pipeline() const;
 
-    void create_pipelines(WGPUTextureFormat color_target_format, WGPUTextureFormat depth_texture_format, const util::BindGroupInfo& bind_group_info,
-        const util::BindGroupInfo& shared_config_bind_group, const util::BindGroupInfo& camera_bind_group, const util::BindGroupInfo& tile_bind_group);
+    void create_pipelines(WGPUTextureFormat color_target_format, WGPUTextureFormat depth_texture_format, const raii::BindGroupWithLayout& bind_group_info,
+        const raii::BindGroupWithLayout& shared_config_bind_group, const raii::BindGroupWithLayout& camera_bind_group,
+        const raii::BindGroupWithLayout& tile_bind_group);
     void release_pipelines();
     bool pipelines_created() const;
 
 private:
     void create_debug_pipeline(WGPUTextureFormat color_target_format);
     void create_debug_config_and_camera_pipeline(
-        WGPUTextureFormat color_target_format, WGPUTextureFormat depth_texture_format, const util::BindGroupInfo& bind_group_info);
+        WGPUTextureFormat color_target_format, WGPUTextureFormat depth_texture_format, const raii::BindGroupWithLayout& bind_group_info);
     void create_tile_pipeline(WGPUTextureFormat color_target_format, WGPUTextureFormat depth_texture_format,
-        const util::BindGroupInfo& shared_config_bind_group, const util::BindGroupInfo& camera_bind_group, const util::BindGroupInfo& tile_bind_group);
+        const raii::BindGroupWithLayout& shared_config_bind_group, const raii::BindGroupWithLayout& camera_bind_group,
+        const raii::BindGroupWithLayout& tile_bind_group);
     void create_shadow_pipeline();
 
 private:

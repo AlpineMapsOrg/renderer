@@ -34,8 +34,8 @@ const raii::RenderPipeline& PipelineManager::debug_config_and_camera_pipeline() 
 const raii::RenderPipeline& PipelineManager::tile_pipeline() const { return *m_tile_pipeline; }
 
 void PipelineManager::create_pipelines(WGPUTextureFormat color_target_format, WGPUTextureFormat depth_texture_format,
-    const util::BindGroupInfo& bind_group_info, const util::BindGroupInfo& shared_config_bind_group, const util::BindGroupInfo& camera_bind_group,
-    const util::BindGroupInfo& tile_bind_group)
+    const raii::BindGroupWithLayout& bind_group_info, const raii::BindGroupWithLayout& shared_config_bind_group,
+    const raii::BindGroupWithLayout& camera_bind_group, const raii::BindGroupWithLayout& tile_bind_group)
 {
     create_debug_pipeline(color_target_format);
     create_debug_config_and_camera_pipeline(color_target_format, depth_texture_format, bind_group_info);
@@ -104,7 +104,7 @@ void PipelineManager::create_debug_pipeline(WGPUTextureFormat color_target_forma
 }
 
 void PipelineManager::create_debug_config_and_camera_pipeline(
-    WGPUTextureFormat color_target_format, WGPUTextureFormat depth_texture_format, const util::BindGroupInfo& bind_group_info)
+    WGPUTextureFormat color_target_format, WGPUTextureFormat depth_texture_format, const raii::BindGroupWithLayout& bind_group_info)
 {
     WGPUBlendState blend_state {};
     blend_state.color.srcFactor = WGPUBlendFactor::WGPUBlendFactor_SrcAlpha;
@@ -143,8 +143,9 @@ void PipelineManager::create_debug_config_and_camera_pipeline(
     depth_stencil_state.stencilBack = stencil_face_state;
     depth_stencil_state.format = depth_texture_format;
 
+    const WGPUBindGroupLayout bind_group_layout = bind_group_info.bind_group_layout().handle();
     WGPUPipelineLayoutDescriptor pipeline_layout_desc {};
-    pipeline_layout_desc.bindGroupLayouts = (WGPUBindGroupLayout*)&bind_group_info.m_bind_group_layout;
+    pipeline_layout_desc.bindGroupLayouts = &bind_group_layout;
     pipeline_layout_desc.bindGroupLayoutCount = 1;
     pipeline_layout_desc.nextInChain = nullptr;
     WGPUPipelineLayout layout = wgpuDeviceCreatePipelineLayout(m_device, &pipeline_layout_desc);
@@ -171,7 +172,8 @@ void PipelineManager::create_debug_config_and_camera_pipeline(
 }
 
 void PipelineManager::create_tile_pipeline(WGPUTextureFormat color_target_format, WGPUTextureFormat depth_texture_format,
-    const util::BindGroupInfo& shared_config_bind_group, const util::BindGroupInfo& camera_bind_group, const util::BindGroupInfo& tile_bind_group)
+    const raii::BindGroupWithLayout& shared_config_bind_group, const raii::BindGroupWithLayout& camera_bind_group,
+    const raii::BindGroupWithLayout& tile_bind_group)
 {
     WGPUBlendState blend_state {};
     blend_state.color.srcFactor = WGPUBlendFactor::WGPUBlendFactor_SrcAlpha;
@@ -210,8 +212,8 @@ void PipelineManager::create_tile_pipeline(WGPUTextureFormat color_target_format
     depth_stencil_state.stencilBack = stencil_face_state;
     depth_stencil_state.format = depth_texture_format;
 
-    std::array<WGPUBindGroupLayout, 3> bind_group_layouts
-        = { shared_config_bind_group.m_bind_group_layout, camera_bind_group.m_bind_group_layout, tile_bind_group.m_bind_group_layout };
+    std::array<WGPUBindGroupLayout, 3> bind_group_layouts = { shared_config_bind_group.bind_group_layout().handle(),
+        camera_bind_group.bind_group_layout().handle(), tile_bind_group.bind_group_layout().handle() };
     WGPUPipelineLayoutDescriptor pipeline_layout_desc {};
     pipeline_layout_desc.bindGroupLayouts = bind_group_layouts.data();
     pipeline_layout_desc.bindGroupLayoutCount = 3;

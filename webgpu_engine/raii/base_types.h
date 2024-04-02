@@ -71,7 +71,7 @@ template <> struct GpuFuncs<WGPUBindGroup, WGPUBindGroupDescriptor, WGPUDevice> 
 
 template <> struct GpuFuncs<WGPUBindGroupLayout, WGPUBindGroupLayoutDescriptor, WGPUDevice> {
     static auto create(auto context, auto descriptor) { return wgpuDeviceCreateBindGroupLayout(context, &descriptor); }
-    static void release(auto handle) { WGPUBindGroupLayoutRelease(handle); }
+    static void release(auto handle) { wgpuBindGroupLayoutRelease(handle); }
 };
 
 template <> struct GpuFuncs<WGPUPipelineLayout, WGPUPipelineLayoutDescriptor, WGPUDevice> {
@@ -110,7 +110,7 @@ protected:
 };
 
 using BindGroup = GpuResource<WGPUBindGroup, WGPUBindGroupDescriptor, WGPUDevice>;
-using BindGroupLayout = GpuResource<WGPUBindGroupLayout, WGPUBindGroupDescriptor, WGPUDevice>;
+using BindGroupLayout = GpuResource<WGPUBindGroupLayout, WGPUBindGroupLayoutDescriptor, WGPUDevice>;
 using ShaderModule = GpuResource<WGPUShaderModule, WGPUShaderModuleDescriptor, WGPUDevice>;
 using PipelineLayout = GpuResource<WGPUPipelineLayout, WGPUPipelineLayout, WGPUDevice>;
 using RenderPipeline = GpuResource<WGPURenderPipeline, WGPURenderPipelineDescriptor, WGPUDevice>;

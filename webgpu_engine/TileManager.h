@@ -22,11 +22,10 @@
 
 #include <memory>
 
-#include "PipelineManager.h"
 #include "TileSet.h"
+#include "raii/BindGroupWithLayout.h"
 #include "raii/Buffer.h"
-#include "raii/Sampler.h"
-#include "util/BindGroup.h"
+#include "raii/TextureWithSampler.h"
 #include <QObject>
 #include <nucleus/Tile.h>
 #include <nucleus/tile_scheduler/DrawListGenerator.h>
@@ -56,7 +55,7 @@ public:
 
     void set_permissible_screen_space_error(float new_permissible_screen_space_error);
 
-    const util::BindGroupInfo& tile_bind_group() const;
+    const raii::BindGroupWithLayout& tile_bind_group() const;
 
 signals:
     void tiles_changed();
@@ -92,9 +91,10 @@ private:
     std::unique_ptr<raii::TextureWithSampler> m_ortho_textures;
     std::unique_ptr<raii::TextureWithSampler> m_heightmap_textures;
 
-    std::unique_ptr<util::BindGroupInfo> m_tile_bind_group_info;
+    std::unique_ptr<raii::BindGroupWithLayout> m_tile_bind_group_info;
 
     WGPUDevice m_device = 0;
     WGPUQueue m_queue = 0;
 };
+
 } // namespace webgpu_engine

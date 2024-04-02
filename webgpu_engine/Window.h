@@ -27,10 +27,10 @@
 #include "nucleus/camera/Controller.h"
 #include "nucleus/utils/ColourTexture.h"
 #include "nucleus/utils/Stopwatch.h"
-#include "raii/Sampler.h"
+#include "raii/BindGroupWithLayout.h"
 #include "raii/Texture.h"
 #include "raii/TextureView.h"
-#include "util/BindGroup.h"
+#include "raii/TextureWithSampler.h"
 #include <webgpu/webgpu.h>
 
 class QOpenGLFramebufferObject;
@@ -108,9 +108,9 @@ private:
     std::unique_ptr<raii::Buffer<uboSharedConfig>> m_shared_config_ubo;
     std::unique_ptr<raii::Buffer<uboCameraConfig>> m_camera_config_ubo;
 
-    std::unique_ptr<util::BindGroupInfo> m_bind_group_info;
-    std::unique_ptr<util::BindGroupInfo> m_shared_config_bind_group_info;
-    std::unique_ptr<util::BindGroupInfo> m_camera_bind_group_info;
+    std::unique_ptr<raii::BindGroupWithLayout> m_bind_group_info;
+    std::unique_ptr<raii::BindGroupWithLayout> m_shared_config_bind_group_info;
+    std::unique_ptr<raii::BindGroupWithLayout> m_camera_bind_group_info;
 
     ObtainWebGpuSurfaceFunc m_obtain_webgpu_surface_func;
     ImGuiWindowImplInitFunc m_imgui_window_init_func;

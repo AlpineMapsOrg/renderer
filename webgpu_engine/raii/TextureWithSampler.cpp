@@ -16,7 +16,7 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *****************************************************************************/
 
-#include "Sampler.h"
+#include "TextureWithSampler.h"
 
 namespace webgpu_engine::raii {
 

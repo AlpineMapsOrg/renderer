@@ -30,6 +30,8 @@ namespace {
 template <typename T> int bufferLengthInBytes(const std::vector<T>& vec) { return int(vec.size() * sizeof(T)); }
 } // namespace
 
+namespace webgpu_engine {
+
 TileManager::TileManager(QObject* parent)
     : QObject { parent }
 {
@@ -102,7 +104,7 @@ void TileManager::init(WGPUDevice device, WGPUQueue queue)
 
     m_ortho_textures = std::make_unique<raii::TextureWithSampler>(device, ortho_texture_desc, ortho_sampler_desc);
 
-    m_tile_bind_group_info = std::make_unique<util::BindGroupInfo>("tile bind group");
+    m_tile_bind_group_info = std::make_unique<raii::BindGroupWithLayout>("tile bind group");
     m_tile_bind_group_info->add_entry(0, *m_n_edge_vertices_buffer, WGPUShaderStage_Vertex);
     m_tile_bind_group_info->add_entry(1, m_heightmap_textures->texture_view(), WGPUShaderStage_Vertex, WGPUTextureSampleType_Uint);
     m_tile_bind_group_info->add_entry(2, m_heightmap_textures->sampler(), WGPUShaderStage_Vertex, WGPUSamplerBindingType_Filtering);
@@ -242,7 +244,7 @@ void TileManager::set_permissible_screen_space_error(float new_permissible_scree
     m_draw_list_generator.set_permissible_screen_space_error(new_permissible_screen_space_error);
 }
 
-const webgpu_engine::util::BindGroupInfo& TileManager::tile_bind_group() const { return *m_tile_bind_group_info; }
+const raii::BindGroupWithLayout& TileManager::tile_bind_group() const { return *m_tile_bind_group_info; }
 
 void TileManager::update_gpu_quads(const std::vector<nucleus::tile_scheduler::tile_types::GpuTileQuad>& new_quads, const std::vector<tile::Id>& deleted_quads)
 {
@@ -261,3 +263,5 @@ void TileManager::update_gpu_quads(const std::vector<nucleus::tile_scheduler::ti
         }
     }
 }
+
+} // namespace webgpu_engine

@@ -19,40 +19,42 @@
 #pragma once
 
 #include "raii/Buffer.h"
-#include "raii/Sampler.h"
 #include "raii/TextureView.h"
 #include <string>
 #include <vector>
 #include <webgpu/webgpu.h>
 
-namespace webgpu_engine::util {
+namespace webgpu_engine::raii {
 
-class BindGroupInfo {
+class BindGroupWithLayout {
 public:
-    BindGroupInfo(const std::string& label = "name not set");
+    BindGroupWithLayout(const std::string& label = "name not set");
 
     template <class T> void add_entry(uint32_t binding, const raii::Buffer<T>& buf, WGPUShaderStageFlags visibility);
     void add_entry(uint32_t binding, const raii::TextureView& texture_view, WGPUShaderStageFlags visibility, WGPUTextureSampleType sample_type);
     void add_entry(uint32_t binding, const raii::Sampler& sampler, WGPUShaderStageFlags visibility, WGPUSamplerBindingType binding_type);
 
-    void create_bind_group_layout(WGPUDevice device);
-    void create_bind_group(WGPUDevice device);
     void init(WGPUDevice device);
+
+    const raii::BindGroup& bind_group() const;
+    const raii::BindGroupLayout& bind_group_layout() const;
 
     void bind(WGPURenderPassEncoder& render_pass, uint32_t group_index) const;
 
 private:
+    void init_bind_group_layout(WGPUDevice device);
+    void init_bind_group(WGPUDevice device);
+
+private:
     std::vector<WGPUBindGroupEntry> m_bind_group_entries;
     std::vector<WGPUBindGroupLayoutEntry> m_bind_group_layout_entries;
-
     std::string m_label;
 
-public:
-    WGPUBindGroupLayout m_bind_group_layout = nullptr;
-    WGPUBindGroup m_bind_group = nullptr;
+    std::unique_ptr<raii::BindGroupLayout> m_bind_group_layout;
+    std::unique_ptr<raii::BindGroup> m_bind_group;
 };
 
-template <class T> void BindGroupInfo::add_entry(uint32_t binding, const raii::Buffer<T>& buf, WGPUShaderStageFlags visibility)
+template <class T> void BindGroupWithLayout::add_entry(uint32_t binding, const raii::Buffer<T>& buf, WGPUShaderStageFlags visibility)
 {
     WGPUBufferBindingLayout buffer_binding_layout;
     buffer_binding_layout.type = WGPUBufferBindingType::WGPUBufferBindingType_Uniform;
@@ -75,4 +77,4 @@ template <class T> void BindGroupInfo::add_entry(uint32_t binding, const raii::B
     m_bind_group_entries.push_back(entry);
 }
 
-} // namespace webgpu_engine::util
+} // namespace webgpu_engine::raii
