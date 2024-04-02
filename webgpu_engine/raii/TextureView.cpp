@@ -20,16 +20,6 @@
 
 namespace webgpu_engine::raii {
 
-TextureView::TextureView(WGPUTexture texture_handle, const WGPUTextureViewDescriptor& desc)
-    : m_texture_view(wgpuTextureCreateView(texture_handle, &desc))
-    , m_texture_view_descriptor(desc)
-{
-}
-
-TextureView::~TextureView() { wgpuTextureViewRelease(m_texture_view); }
-
-WGPUTextureViewDimension TextureView::dimension() const { return m_texture_view_descriptor.dimension; }
-
-WGPUTextureView TextureView::handle() const { return m_texture_view; }
+WGPUTextureViewDimension TextureView::dimension() const { return m_descriptor.dimension; }
 
 } // namespace webgpu_engine::raii

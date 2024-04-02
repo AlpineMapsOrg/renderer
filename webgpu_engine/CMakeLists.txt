@@ -28,12 +28,15 @@ set(SOURCES
     UniformBufferObjects.h UniformBufferObjects.cpp
     TileSet.h
     TileManager.h TileManager.cpp
-    raii/ShaderModule.h raii/ShaderModule.cpp
+    raii/base_types.h
     raii/Texture.h raii/Texture.cpp
     raii/TextureView.h raii/TextureView.cpp
     raii/Sampler.h raii/Sampler.cpp
     raii/Buffer.h raii/Buffer.cpp
     raii/RenderPipeline.h raii/RenderPipeline.cpp
+    util/BindGroup.h util/BindGroup.cpp
+    util/VertexBufferInfo.h util/VertexBufferInfo.cpp
+    util/VertexFormat.h
 )
 
 qt_add_library(webgpu_engine STATIC ${SOURCES})

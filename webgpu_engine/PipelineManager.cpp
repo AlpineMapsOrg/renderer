@@ -18,6 +18,7 @@
 
 #include "PipelineManager.h"
 
+#include "util/VertexBufferInfo.h"
 #include <array>
 
 namespace webgpu_engine {
@@ -32,8 +33,9 @@ const raii::RenderPipeline& PipelineManager::debug_triangle_pipeline() const { r
 const raii::RenderPipeline& PipelineManager::debug_config_and_camera_pipeline() const { return *m_debug_config_and_camera_pipeline; }
 const raii::RenderPipeline& PipelineManager::tile_pipeline() const { return *m_tile_pipeline; }
 
-void PipelineManager::create_pipelines(WGPUTextureFormat color_target_format, WGPUTextureFormat depth_texture_format, const BindGroupInfo& bind_group_info,
-    const BindGroupInfo& shared_config_bind_group, const BindGroupInfo& camera_bind_group, const BindGroupInfo& tile_bind_group)
+void PipelineManager::create_pipelines(WGPUTextureFormat color_target_format, WGPUTextureFormat depth_texture_format,
+    const util::BindGroupInfo& bind_group_info, const util::BindGroupInfo& shared_config_bind_group, const util::BindGroupInfo& camera_bind_group,
+    const util::BindGroupInfo& tile_bind_group)
 {
     create_debug_pipeline(color_target_format);
     create_debug_config_and_camera_pipeline(color_target_format, depth_texture_format, bind_group_info);
@@ -102,7 +104,7 @@ void PipelineManager::create_debug_pipeline(WGPUTextureFormat color_target_forma
 }
 
 void PipelineManager::create_debug_config_and_camera_pipeline(
-    WGPUTextureFormat color_target_format, WGPUTextureFormat depth_texture_format, const BindGroupInfo& bind_group_info)
+    WGPUTextureFormat color_target_format, WGPUTextureFormat depth_texture_format, const util::BindGroupInfo& bind_group_info)
 {
     WGPUBlendState blend_state {};
     blend_state.color.srcFactor = WGPUBlendFactor::WGPUBlendFactor_SrcAlpha;
@@ -169,7 +171,7 @@ void PipelineManager::create_debug_config_and_camera_pipeline(
 }
 
 void PipelineManager::create_tile_pipeline(WGPUTextureFormat color_target_format, WGPUTextureFormat depth_texture_format,
-    const BindGroupInfo& shared_config_bind_group, const BindGroupInfo& camera_bind_group, const BindGroupInfo& tile_bind_group)
+    const util::BindGroupInfo& shared_config_bind_group, const util::BindGroupInfo& camera_bind_group, const util::BindGroupInfo& tile_bind_group)
 {
     WGPUBlendState blend_state {};
     blend_state.color.srcFactor = WGPUBlendFactor::WGPUBlendFactor_SrcAlpha;
@@ -216,49 +218,22 @@ void PipelineManager::create_tile_pipeline(WGPUTextureFormat color_target_format
     pipeline_layout_desc.nextInChain = nullptr;
     WGPUPipelineLayout layout = wgpuDeviceCreatePipelineLayout(m_device, &pipeline_layout_desc);
 
-    WGPUVertexAttribute bounds_attribute {};
-    bounds_attribute.format = WGPUVertexFormat_Float32x4;
-    bounds_attribute.offset = 0;
-    bounds_attribute.shaderLocation = 0;
-
-    WGPUVertexAttribute texture_layer_attribute {};
-    texture_layer_attribute.format = WGPUVertexFormat_Sint32;
-    texture_layer_attribute.offset = 0;
-    texture_layer_attribute.shaderLocation = 1;
-
-    WGPUVertexAttribute tileset_id_attribute {};
-    tileset_id_attribute.format = WGPUVertexFormat_Sint32;
-    tileset_id_attribute.offset = 0;
-    tileset_id_attribute.shaderLocation = 2;
-
-    WGPUVertexAttribute tileset_zoom_level_attribute {};
-    tileset_zoom_level_attribute.format = WGPUVertexFormat_Sint32;
-    tileset_zoom_level_attribute.offset = 0;
-    tileset_zoom_level_attribute.shaderLocation = 3;
-
-    std::array<WGPUVertexBufferLayout, 4> vertex_buffer_layouts {};
-    vertex_buffer_layouts[0].arrayStride = 4 * sizeof(float);
-    vertex_buffer_layouts[0].stepMode = WGPUVertexStepMode_Instance;
-    vertex_buffer_layouts[0].attributeCount = 1;
-    vertex_buffer_layouts[0].attributes = &bounds_attribute;
-    vertex_buffer_layouts[1].arrayStride = sizeof(int32_t);
-    vertex_buffer_layouts[1].stepMode = WGPUVertexStepMode_Instance;
-    vertex_buffer_layouts[1].attributeCount = 1;
-    vertex_buffer_layouts[1].attributes = &texture_layer_attribute;
-    vertex_buffer_layouts[2].arrayStride = sizeof(int32_t);
-    vertex_buffer_layouts[2].stepMode = WGPUVertexStepMode_Instance;
-    vertex_buffer_layouts[2].attributeCount = 1;
-    vertex_buffer_layouts[2].attributes = &tileset_id_attribute;
-    vertex_buffer_layouts[3].arrayStride = sizeof(int32_t);
-    vertex_buffer_layouts[3].stepMode = WGPUVertexStepMode_Instance;
-    vertex_buffer_layouts[3].attributeCount = 1;
-    vertex_buffer_layouts[3].attributes = &tileset_zoom_level_attribute;
+    util::VertexBufferInfo layout_info;
+    layout_info.add_buffer(WGPUVertexStepMode_Instance);
+    layout_info.add_buffer(WGPUVertexStepMode_Instance);
+    layout_info.add_buffer(WGPUVertexStepMode_Instance);
+    layout_info.add_buffer(WGPUVertexStepMode_Instance);
+    layout_info.get_buffer_info(0).add_attribute<float, 4>(0);
+    layout_info.get_buffer_info(1).add_attribute<int32_t, 1>(1);
+    layout_info.get_buffer_info(2).add_attribute<int32_t, 1>(2);
+    layout_info.get_buffer_info(3).add_attribute<int32_t, 1>(3);
+    const auto layouts = layout_info.vertex_buffer_layouts();
 
     WGPURenderPipelineDescriptor pipeline_desc {};
     pipeline_desc.vertex.module = m_shader_manager->tile().handle();
     pipeline_desc.vertex.entryPoint = "vertexMain";
-    pipeline_desc.vertex.bufferCount = vertex_buffer_layouts.size();
-    pipeline_desc.vertex.buffers = vertex_buffer_layouts.data();
+    pipeline_desc.vertex.bufferCount = layouts.size();
+    pipeline_desc.vertex.buffers = layouts.data();
     pipeline_desc.vertex.constantCount = 0;
     pipeline_desc.vertex.constants = nullptr;
     pipeline_desc.primitive.topology = WGPUPrimitiveTopology::WGPUPrimitiveTopology_TriangleStrip;
@@ -277,42 +252,5 @@ void PipelineManager::create_tile_pipeline(WGPUTextureFormat color_target_format
 
 void PipelineManager::create_shadow_pipeline() {
     //TODO
-}
-
-BindGroupInfo::BindGroupInfo(const std::string& label)
-    : m_label { label }
-{
-}
-
-void BindGroupInfo::create_bind_group_layout(WGPUDevice device)
-{
-    WGPUBindGroupLayoutDescriptor desc {};
-    desc.label = m_label.data();
-    desc.entries = m_bind_group_layout_entries.data();
-    desc.entryCount = m_bind_group_layout_entries.size();
-    desc.nextInChain = nullptr;
-    m_bind_group_layout = wgpuDeviceCreateBindGroupLayout(device, &desc);
-}
-
-void BindGroupInfo::create_bind_group(WGPUDevice device)
-{
-    WGPUBindGroupDescriptor desc {};
-    desc.label = m_label.data();
-    desc.layout = m_bind_group_layout;
-    desc.entries = m_bind_group_entries.data();
-    desc.entryCount = m_bind_group_entries.size();
-    desc.nextInChain = nullptr;
-    m_bind_group = wgpuDeviceCreateBindGroup(device, &desc);
-}
-
-void BindGroupInfo::init(WGPUDevice device)
-{
-    create_bind_group_layout(device);
-    create_bind_group(device);
-}
-
-void BindGroupInfo::bind(WGPURenderPassEncoder& render_pass, uint32_t group_index) const
-{
-    wgpuRenderPassEncoderSetBindGroup(render_pass, group_index, m_bind_group, 0, nullptr);
 }
 }

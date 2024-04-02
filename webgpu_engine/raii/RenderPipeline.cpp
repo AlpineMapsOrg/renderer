@@ -20,13 +20,8 @@
 
 namespace webgpu_engine::raii {
 
-RenderPipeline::RenderPipeline(WGPUDevice device, const WGPURenderPipelineDescriptor& desc)
-    : m_render_pipeline { wgpuDeviceCreateRenderPipeline(device, &desc) }
 {
-}
 
-WGPURenderPipeline RenderPipeline::handle() const { return m_render_pipeline; }
 
-RenderPipeline::~RenderPipeline() { wgpuRenderPipelineRelease(m_render_pipeline); }
 
 } // namespace webgpu_engine::raii

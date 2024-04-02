@@ -18,7 +18,7 @@
  *****************************************************************************/
 #pragma once
 
-#include "raii/ShaderModule.h"
+#include "raii/base_types.h"
 #include <filesystem>
 #include <map>
 #include <string>
@@ -45,7 +45,7 @@ private:
     std::string read_file_contents(const std::string& name) const;
     std::string get_contents(const std::string& name);
     std::string preprocess(const std::string& code);
-    std::unique_ptr<raii::ShaderModule> create_shader_module(const std::string& code);
+    std::unique_ptr<raii::ShaderModule> create_shader_module(const std::string& name);
 
 private:
     WGPUDevice m_device;

@@ -19,6 +19,7 @@
 
 #pragma once
 
+#include "base_types.h"
 #include <QString>
 #include <webgpu/webgpu.h>
 
@@ -26,42 +27,26 @@ namespace webgpu_engine::raii {
 
 /// Generic class for GPU buffer handles complying to RAII.
 /// This class does not store the value to be written on CPU side.
-template <typename T> class RawBuffer {
+template <typename T> class RawBuffer : public GpuResource<WGPUBuffer, WGPUBufferDescriptor, WGPUDevice> {
 public:
     // m_size in num objects
-    RawBuffer(WGPUDevice device, WGPUBufferUsageFlags usage, size_t size)
-        : m_size(size)
+    RawBuffer(WGPUDevice device, WGPUBufferUsageFlags usage, size_t size, const std::string& label = "label not set")
+        : GpuResource(
+            device, WGPUBufferDescriptor { .nextInChain = nullptr, .label = label.data(), .usage = usage, .size = size * sizeof(T), .mappedAtCreation = false })
+        , m_size(size)
     {
-        WGPUBufferDescriptor bufferDesc {};
-        bufferDesc.usage = usage;
-        bufferDesc.size = size * sizeof(T); // takes size in bytes
-        bufferDesc.mappedAtCreation = false;
-        m_buffer = wgpuDeviceCreateBuffer(device, &bufferDesc);
-        // this->update_gpu_data();
-    }
-
-    // delete copy constructor and copy-assignment operator
-    RawBuffer(const RawBuffer& other) = delete;
-    RawBuffer& operator=(const RawBuffer& other) = delete;
-
-    ~RawBuffer()
-    {
-        wgpuBufferDestroy(m_buffer);
-        wgpuBufferRelease(m_buffer);
     }
 
     void write(WGPUQueue queue, const T* data, size_t count = 1, size_t offset = 0)
     {
         assert(count <= m_size);
-        wgpuQueueWriteBuffer(queue, m_buffer, offset, data, count * sizeof(T)); // takes size in bytes
+        wgpuQueueWriteBuffer(queue, m_handle, offset, data, count * sizeof(T)); // takes size in bytes
     }
 
-    WGPUBuffer handle() const { return m_buffer; }
     size_t size() const { return m_size; }
     size_t size_in_byte() const { return m_size * sizeof(T); };
 
 private:
-    WGPUBuffer m_buffer = nullptr;
     size_t m_size;
 };
 

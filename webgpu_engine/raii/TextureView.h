@@ -18,6 +18,7 @@
 
 #pragma once
 
+#include "base_types.h"
 #include <webgpu/webgpu.h>
 
 namespace webgpu_engine::raii {
@@ -28,21 +29,11 @@ namespace webgpu_engine::raii {
 /// Usually obtained via call to Texture::create_view rather than using constructor directly.
 ///
 /// TODO decide whether RAII is needed for WGPUTextureView objects
-class TextureView {
+class TextureView : public GpuResource<WGPUTextureView, WGPUTextureViewDescriptor, WGPUTexture> {
 public:
-    TextureView(WGPUTexture texture_handle, const WGPUTextureViewDescriptor& desc);
-    ~TextureView();
-
-    // delete copy constructor and copy-assignment operator
-    TextureView(const TextureView& other) = delete;
-    TextureView& operator=(const TextureView& other) = delete;
+    using GpuResource::GpuResource;
 
     WGPUTextureViewDimension dimension() const;
-    WGPUTextureView handle() const;
-
-private:
-    WGPUTextureView m_texture_view;
-    WGPUTextureViewDescriptor m_texture_view_descriptor;
 };
 
 } // namespace webgpu_engine::raii

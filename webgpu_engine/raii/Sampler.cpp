@@ -20,15 +20,6 @@
 
 namespace webgpu_engine::raii {
 
-Sampler::Sampler(WGPUDevice device, const WGPUSamplerDescriptor& desc)
-    : m_sampler(wgpuDeviceCreateSampler(device, &desc))
-{
-}
-
-Sampler::~Sampler() { wgpuSamplerRelease(m_sampler); }
-
-WGPUSampler Sampler::handle() const { return m_sampler; }
-
 TextureWithSampler::TextureWithSampler(WGPUDevice device, const WGPUTextureDescriptor& texture_desc, const WGPUSamplerDescriptor& sampler_desc)
     : m_texture(std::make_unique<Texture>(device, texture_desc))
 {

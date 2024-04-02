@@ -22,21 +22,11 @@
 
 namespace webgpu_engine::raii {
 
-/// Represents a (web)GPU render pipeline object.
-/// Provides RAII semantics without ref-counting (free memory on deletion, disallow copy).
-class RenderPipeline {
 public:
-    RenderPipeline(WGPUDevice device, const WGPURenderPipelineDescriptor& desc);
-    ~RenderPipeline();
 
-    // delete copy constructor and copy-assignment operator
-    RenderPipeline(const RenderPipeline& other) = delete;
-    RenderPipeline& operator=(const RenderPipeline& other) = delete;
 
-    WGPURenderPipeline handle() const;
 
 private:
-    WGPURenderPipeline m_render_pipeline;
 };
 
 } // namespace webgpu_engine::raii

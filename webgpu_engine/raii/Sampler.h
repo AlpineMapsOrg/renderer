@@ -20,28 +20,10 @@
 
 #include "Texture.h"
 #include "TextureView.h"
+#include "base_types.h"
 #include <webgpu/webgpu.h>
 
 namespace webgpu_engine::raii {
-
-/// Represents a (web)GPU sampler object, used to sample from a texture view in a shader.
-/// Provides RAII semantics without ref-counting (free memory on deletion, disallow copy).
-///
-/// TODO decide whether RAII is needed for WGPUTextureView objects
-class Sampler {
-public:
-    Sampler(WGPUDevice device, const WGPUSamplerDescriptor& desc);
-    ~Sampler();
-
-    // delete copy constructor and copy-assignment operator
-    Sampler(const Sampler& other) = delete;
-    Sampler& operator=(const Sampler& other) = delete;
-
-    WGPUSampler handle() const;
-
-private:
-    WGPUSampler m_sampler;
-};
 
 /// Convenience wrapper for a texture and a sampler sampling from the default view of that texture.
 class TextureWithSampler {

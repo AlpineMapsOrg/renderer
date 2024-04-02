@@ -19,6 +19,7 @@
 
 #pragma once
 
+#include "base_types.h"
 #include "nucleus/Raster.h"
 #include "nucleus/utils/ColourTexture.h"
 #include <QImage>
@@ -32,17 +33,12 @@ class TextureView; // forward declaration
 /// Represents (web)GPU texture.
 /// Provides RAII semantics without ref-counting (free memory on deletion, disallow copy).
 /// Preferably to be used with std::unique_ptr or std::shared_ptr.
-class Texture {
+class Texture : public GpuResource<WGPUTexture, WGPUTextureDescriptor, WGPUDevice> {
 public:
     static const std::map<QImage::Format, WGPUTextureFormat> qimage_to_webgpu_format;
 
 public:
-    Texture(WGPUDevice device, const WGPUTextureDescriptor& texture_desc);
-    ~Texture();
-
-    // delete copy constructor and copy-assignment operator
-    Texture(const Texture& other) = delete;
-    Texture& operator=(const Texture& other) = delete;
+    using GpuResource::GpuResource;
 
     void write(WGPUQueue queue, QImage image, uint32_t layer = 0);
 
@@ -52,10 +48,6 @@ public:
     void write(WGPUQueue queue, const nucleus::utils::ColourTexture& data, uint32_t layer = 0);
 
     std::unique_ptr<TextureView> create_view(const WGPUTextureViewDescriptor& desc) const;
-
-private:
-    WGPUTexture m_texture;
-    WGPUTextureDescriptor m_texture_desc; // for debugging
 };
 
 } // namespace webgpu_engine::raii
