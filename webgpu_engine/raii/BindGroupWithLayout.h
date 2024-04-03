@@ -18,8 +18,8 @@
 
 #pragma once
 
-#include "raii/Buffer.h"
-#include "raii/TextureView.h"
+#include "Buffer.h"
+#include "TextureView.h"
 #include <string>
 #include <vector>
 #include <webgpu/webgpu.h>

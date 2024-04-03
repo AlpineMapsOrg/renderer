@@ -33,7 +33,6 @@ set(SOURCES
     raii/TextureView.h raii/TextureView.cpp
     raii/TextureWithSampler.h raii/TextureWithSampler.cpp
     raii/Buffer.h raii/Buffer.cpp
-    raii/RenderPipeline.h raii/RenderPipeline.cpp
     raii/BindGroupWithLayout.h raii/BindGroupWithLayout.cpp
     util/VertexBufferInfo.h util/VertexBufferInfo.cpp
     util/VertexFormat.h

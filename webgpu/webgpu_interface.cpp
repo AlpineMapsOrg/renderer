@@ -250,7 +250,7 @@ WGPUDevice requestDeviceSync(WGPUAdapter adapter, const WGPUDeviceDescriptor& de
         if (status == WGPURequestDeviceStatus::WGPURequestDeviceStatus_Success) {
             request_ended_data->device = device;
         } else {
-            std::cout << "Could not get WebGPU adapter: " << message << std::endl;
+            std::cout << "Could not get WebGPU device: " << message << std::endl;
         }
         request_ended_data->request_ended = true;
     };
