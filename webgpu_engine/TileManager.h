@@ -41,6 +41,85 @@ namespace webgpu_engine {
 class Atmosphere;
 class ShaderProgram;
 
+/// Abstract base class for GPU specific parts of tile management
+/// Interface supports writing tiles and drawing tiles
+class TileRenderer {
+public:
+    virtual ~TileRenderer() = default;
+    virtual void init(glm::uvec2 height_resolution, glm::uvec2 ortho_resolution, size_t num_layers, size_t n_edge_vertices) = 0;
+    virtual void write_tile(const nucleus::utils::ColourTexture& ortho_texture, const nucleus::Raster<uint16_t>& height_map, size_t layer) = 0;
+    virtual void draw(WGPURenderPipeline render_pipeline, WGPURenderPassEncoder render_pass, const nucleus::camera::Definition& camera,
+        const std::vector<const TileSet*>& tile_list)
+        = 0;
+
+    virtual const raii::BindGroupWithLayout& tile_bind_group() const = 0; // TODO remove from interface, this is an implementation detail
+};
+
+/// Draws tiles by instancing with a single draw call.
+/// Stores heightmaps and ortho photos for all tiles in a single 2d texture array each.
+class TileRendererInstancedSingleArray : public TileRenderer {
+public:
+    TileRendererInstancedSingleArray(WGPUDevice device, WGPUQueue queue);
+    void init(glm::uvec2 height_resolution, glm::uvec2 ortho_resolution, size_t num_layers, size_t n_edge_vertices) override;
+    void write_tile(const nucleus::utils::ColourTexture& ortho_texture, const nucleus::Raster<uint16_t>& height_map, size_t layer) override;
+    void draw(WGPURenderPipeline render_pipeline, WGPURenderPassEncoder render_pass, const nucleus::camera::Definition& camera,
+        const std::vector<const TileSet*>& tile_list) override;
+
+    virtual const raii::BindGroupWithLayout& tile_bind_group() const override;
+
+private:
+    size_t m_index_buffer_size;
+    std::unique_ptr<raii::RawBuffer<uint16_t>> m_index_buffer;
+    std::unique_ptr<raii::RawBuffer<glm::vec4>> m_bounds_buffer;
+    std::unique_ptr<raii::RawBuffer<int32_t>> m_tileset_id_buffer;
+    std::unique_ptr<raii::RawBuffer<int32_t>> m_zoom_level_buffer;
+    std::unique_ptr<raii::RawBuffer<int32_t>> m_texture_layer_buffer;
+    std::unique_ptr<raii::Buffer<int32_t>> m_n_edge_vertices_buffer;
+
+    std::unique_ptr<raii::TextureWithSampler> m_ortho_textures;
+    std::unique_ptr<raii::TextureWithSampler> m_heightmap_textures;
+
+    std::unique_ptr<raii::BindGroupWithLayout> m_tile_bind_group_info;
+
+    WGPUDevice m_device = 0;
+    WGPUQueue m_queue = 0;
+};
+
+/// Stores ortho photos and heightmaps in multiple texture arrays.
+/// This is useful, if the number of elements in a texture array is limited.
+/// Draws tiles by instancing but uses multiple draw calls (one for each texture array).
+class TileRendererInstancedSingleArrayMultiCall : public TileRenderer {
+public:
+    // uses device limit for number of array layers
+    TileRendererInstancedSingleArrayMultiCall(WGPUDevice device, WGPUQueue queue);
+    TileRendererInstancedSingleArrayMultiCall(WGPUDevice device, WGPUQueue queue, size_t num_layers_per_texture);
+
+    void init(glm::uvec2 height_resolution, glm::uvec2 ortho_resolution, size_t num_layers, size_t n_edge_vertices) override;
+    void write_tile(const nucleus::utils::ColourTexture& ortho_texture, const nucleus::Raster<uint16_t>& height_map, size_t layer) override;
+    void draw(WGPURenderPipeline render_pipeline, WGPURenderPassEncoder render_pass, const nucleus::camera::Definition& camera,
+        const std::vector<const TileSet*>& tile_list) override;
+
+    virtual const raii::BindGroupWithLayout& tile_bind_group() const override;
+
+private:
+    size_t m_index_buffer_size;
+    std::unique_ptr<raii::RawBuffer<uint16_t>> m_index_buffer;
+    std::unique_ptr<raii::RawBuffer<glm::vec4>> m_bounds_buffer;
+    std::unique_ptr<raii::RawBuffer<int32_t>> m_tileset_id_buffer;
+    std::unique_ptr<raii::RawBuffer<int32_t>> m_zoom_level_buffer;
+    std::unique_ptr<raii::RawBuffer<int32_t>> m_texture_layer_buffer;
+    std::unique_ptr<raii::Buffer<int32_t>> m_n_edge_vertices_buffer;
+
+    std::vector<std::unique_ptr<raii::TextureWithSampler>> m_ortho_textures;
+    std::vector<std::unique_ptr<raii::TextureWithSampler>> m_heightmap_textures;
+    std::vector<std::unique_ptr<raii::BindGroupWithLayout>> m_tile_bind_group_info;
+
+    WGPUDevice m_device = 0;
+    WGPUQueue m_queue = 0;
+
+    size_t m_num_layers_per_texture;
+};
+
 class TileManager : public QObject {
     Q_OBJECT
 public:
@@ -80,21 +159,7 @@ private:
     nucleus::tile_scheduler::DrawListGenerator m_draw_list_generator;
     const nucleus::tile_scheduler::DrawListGenerator::TileSet m_last_draw_list; // buffer last generated draw list
 
-    size_t m_index_buffer_size;
-    std::unique_ptr<raii::RawBuffer<uint16_t>> m_index_buffer;
-    std::unique_ptr<raii::RawBuffer<glm::vec4>> m_bounds_buffer;
-    std::unique_ptr<raii::RawBuffer<int32_t>> m_tileset_id_buffer;
-    std::unique_ptr<raii::RawBuffer<int32_t>> m_zoom_level_buffer;
-    std::unique_ptr<raii::RawBuffer<int32_t>> m_texture_layer_buffer;
-    std::unique_ptr<raii::Buffer<int32_t>> m_n_edge_vertices_buffer;
-
-    std::unique_ptr<raii::TextureWithSampler> m_ortho_textures;
-    std::unique_ptr<raii::TextureWithSampler> m_heightmap_textures;
-
-    std::unique_ptr<raii::BindGroupWithLayout> m_tile_bind_group_info;
-
-    WGPUDevice m_device = 0;
-    WGPUQueue m_queue = 0;
+    std::unique_ptr<TileRenderer> m_renderer;
 };
 
 } // namespace webgpu_engine

@@ -602,17 +602,19 @@ WGPURequiredLimits Window::required_gpu_limits() const
 {
     WGPURequiredLimits required_limits {};
 
-    // could just get supported limits and use as required limits; but this is not supported in browser yet
-    // WGPUSupportedLimits supported_limits {};
-    // wgpuAdapterGetLimits(m_adapter, &supported_limits);
-    // required_limits.limits = supported_limits.limits; // request everything the device supports
-
     // irrelevant for us, but needs to be set
     required_limits.limits.minStorageBufferOffsetAlignment = std::numeric_limits<uint32_t>::max();
     required_limits.limits.minUniformBufferOffsetAlignment = std::numeric_limits<uint32_t>::max();
 
-    // relevant, default is too low
-    required_limits.limits.maxTextureArrayLayers = 2048;
+    // wgpuAdapterGetLimits is not supported in Chrome yet
+#ifndef __EMSCRIPTEN__
+    WGPUSupportedLimits supported_limits {};
+    wgpuAdapterGetLimits(m_adapter, &supported_limits);
+    required_limits.limits.maxTextureArrayLayers = supported_limits.limits.maxTextureArrayLayers;
+#else
+    // use 256 as it is supported on all devices according to https://web3dsurvey.com/webgpu/limits/maxTextureArrayLayers
+    required_limits.limits.maxTextureArrayLayers = 256;
+#endif
 
     return required_limits;
 }
