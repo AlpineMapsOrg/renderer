@@ -47,6 +47,9 @@ public:
 
     void write(WGPUQueue queue, const nucleus::utils::ColourTexture& data, uint32_t layer = 0);
 
+    WGPUTextureViewDescriptor default_texture_view_descriptor() const;
+
+    std::unique_ptr<TextureView> create_view() const;
     std::unique_ptr<TextureView> create_view(const WGPUTextureViewDescriptor& desc) const;
 };
 

@@ -95,6 +95,35 @@ void Texture::write(WGPUQueue queue, const nucleus::utils::ColourTexture& data, 
     wgpuQueueWriteTexture(queue, &image_copy_texture, data.data(), data.n_bytes(), &texture_data_layout, &copy_extent);
 }
 
+WGPUTextureViewDescriptor Texture::default_texture_view_descriptor() const
+{
+    // TODO make utility function
+    auto determineViewDimension = [](const WGPUTextureDescriptor& texture_desc) {
+        if (texture_desc.dimension == WGPUTextureDimension_1D)
+            return WGPUTextureViewDimension_1D;
+        else if (texture_desc.dimension == WGPUTextureDimension_3D)
+            return WGPUTextureViewDimension_3D;
+        else if (texture_desc.dimension == WGPUTextureDimension_2D) {
+            return texture_desc.size.depthOrArrayLayers > 1 ? WGPUTextureViewDimension_2DArray : WGPUTextureViewDimension_2D;
+            // note: if texture_desc.size.depthOrArrayLayers is 6, the view type can also be WGPUTextureViewDimension_Cube
+            //       or, for any multiple of 6 the view type could be WGPUTextureViewDimension_CubeArray - we don't support this here for now
+        }
+        return WGPUTextureViewDimension_Undefined; // hopefully this logs an error when webgpu is validating
+    };
+
+    WGPUTextureViewDescriptor view_desc {};
+    view_desc.aspect = WGPUTextureAspect_All;
+    view_desc.dimension = determineViewDimension(m_descriptor);
+    view_desc.format = m_descriptor.format;
+    view_desc.baseArrayLayer = 0;
+    view_desc.arrayLayerCount = m_descriptor.size.depthOrArrayLayers;
+    view_desc.baseMipLevel = 0;
+    view_desc.mipLevelCount = m_descriptor.mipLevelCount;
+    return view_desc;
+}
+
+std::unique_ptr<TextureView> Texture::create_view() const { return create_view(default_texture_view_descriptor()); }
+
 std::unique_ptr<TextureView> Texture::create_view(const WGPUTextureViewDescriptor& desc) const { return std::make_unique<TextureView>(m_handle, desc); }
 
 } // namespace webgpu_engine::raii
