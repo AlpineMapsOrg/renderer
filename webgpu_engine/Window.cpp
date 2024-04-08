@@ -233,10 +233,7 @@ void Window::deinit_gpu()
 
 void Window::set_aabb_decorator(const nucleus::tile_scheduler::utils::AabbDecoratorPtr& aabb_decorator) { m_tile_manager->set_aabb_decorator(aabb_decorator); }
 
-void Window::remove_tile([[maybe_unused]] const tile::Id&)
-{
-    // Logic to remove a tile, parameter currently unused
-}
+void Window::remove_tile(const tile::Id& id) { return m_tile_manager->remove_tile(id); }
 
 void Window::set_quad_limit(unsigned int new_limit) { m_tile_manager->set_quad_limit(new_limit); }
 
