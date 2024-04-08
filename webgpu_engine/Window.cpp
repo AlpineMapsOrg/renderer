@@ -453,6 +453,7 @@ void Window::request_adapter()
 {
     std::cout << "Requesting adapter..." << std::endl;
     WGPURequestAdapterOptions adapter_opts {};
+    adapter_opts.powerPreference = WGPUPowerPreference_HighPerformance;
     adapter_opts.compatibleSurface = m_surface;
     m_adapter = requestAdapterSync(m_instance, adapter_opts);
     std::cout << "Got adapter: " << m_adapter << std::endl;
