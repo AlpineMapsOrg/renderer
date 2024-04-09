@@ -33,21 +33,14 @@ ShaderModuleManager::ShaderModuleManager(WGPUDevice device, const std::filesyste
 
 void ShaderModuleManager::create_shader_modules()
 {
-    m_debug_triangle_shader_module = create_shader_module("DebugTriangle.wgsl");
-    m_debug_config_and_camera_shader_module = create_shader_module("DebugConfigAndCamera.wgsl");
     m_tile_shader_module = create_shader_module("Tile.wgsl");
 }
 
 void ShaderModuleManager::release_shader_modules()
 {
-    m_debug_triangle_shader_module.release();
-    m_debug_config_and_camera_shader_module.release();
     m_tile_shader_module.release();
 }
 
-const raii::ShaderModule& ShaderModuleManager::debug_triangle() const { return *m_debug_triangle_shader_module; }
-
-const raii::ShaderModule& ShaderModuleManager::debug_config_and_camera() const { return *m_debug_config_and_camera_shader_module; }
 
 const raii::ShaderModule& ShaderModuleManager::tile() const { return *m_tile_shader_module; }
 

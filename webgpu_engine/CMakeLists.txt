@@ -45,8 +45,6 @@ qt_add_resources(webgpu_engine "shaders"
     PREFIX "/wgsl_shaders"
     BASE "wgsl_shaders/"
     FILES
-        "wgsl_shaders/DebugTriangle.wgsl"
-        "wgsl_shaders/DebugConfigAndCamera.wgsl"
         "wgsl_shaders/shared_config.wgsl"
         "wgsl_shaders/hashing.wgsl"
         "wgsl_shaders/camera_config.wgsl"

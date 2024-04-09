@@ -68,7 +68,6 @@ void Window::initialise_gpu()
     init_queue();
 
     create_buffers();
-    create_textures();
     create_bind_group_info();
 
     m_tile_manager->init(m_device, m_queue);
@@ -76,8 +75,6 @@ void Window::initialise_gpu()
     m_shader_manager = std::make_unique<ShaderModuleManager>(m_device);
     m_shader_manager->create_shader_modules();
     m_pipeline_manager = std::make_unique<PipelineManager>(m_device, *m_shader_manager);
-
-    m_stopwatch.restart();
 
     std::cout << "webgpu_engine::Window emitting: gpu_ready_changed" << std::endl;
     emit gpu_ready_changed(true);
@@ -99,7 +96,7 @@ void Window::resize_framebuffer(int w, int h)
 
     create_swapchain(w, h);
     m_pipeline_manager->create_pipelines(
-        m_swapchain_format, m_depth_texture_format, *m_bind_group, *m_shared_config_bind_group, *m_camera_bind_group, m_tile_manager->tile_bind_group());
+        m_swapchain_format, m_depth_texture_format, *m_shared_config_bind_group, *m_camera_bind_group, m_tile_manager->tile_bind_group());
 
 #ifdef ALP_WEBGPU_APP_ENABLE_IMGUI
     if (ImGui::GetCurrentContext() != nullptr) {
@@ -127,11 +124,10 @@ void Window::paint([[maybe_unused]] QOpenGLFramebufferObject* framebuffer)
     emit update_camera_requested();
 
     // TODO remove, debugging
-    const auto elapsed = static_cast<double>(m_stopwatch.total().count() / 1000.0f);
-    uboSharedConfig* sc = &m_shared_config_ubo->data;
-    sc->m_sun_light = QVector4D(0.0f, 1.0f, 1.0f, 1.0f);
-    sc->m_sun_light_dir = QVector4D(elapsed, 1.0f, 1.0f, 1.0f);
-    m_shared_config_ubo->update_gpu_data(m_queue);
+    // uboSharedConfig* sc = &m_shared_config_ubo->data;
+    // sc->m_sun_light = QVector4D(0.0f, 1.0f, 1.0f, 1.0f);
+    // sc->m_sun_light_dir = QVector4D(elapsed, 1.0f, 1.0f, 1.0f);
+    // m_shared_config_ubo->update_gpu_data(m_queue);
 
     WGPUCommandEncoderDescriptor command_encoder_desc {};
     command_encoder_desc.label = "Command Encoder";
@@ -492,46 +488,6 @@ void Window::create_buffers()
         = std::make_unique<raii::Buffer<uboCameraConfig>>(m_device, WGPUBufferUsage::WGPUBufferUsage_CopyDst | WGPUBufferUsage::WGPUBufferUsage_Uniform);
 }
 
-void Window::create_textures()
-{
-    // create texture with sampler
-    WGPUTextureDescriptor texture_desc {};
-    texture_desc.dimension = WGPUTextureDimension::WGPUTextureDimension_2D;
-    texture_desc.size = { 256, 256, 1 };
-    texture_desc.mipLevelCount = 1;
-    texture_desc.sampleCount = 1;
-    texture_desc.format = WGPUTextureFormat::WGPUTextureFormat_RGBA8Unorm;
-    texture_desc.usage = WGPUTextureUsage_TextureBinding | WGPUTextureUsage_CopyDst;
-
-    WGPUSamplerDescriptor sampler_desc {};
-    sampler_desc.addressModeU = WGPUAddressMode::WGPUAddressMode_ClampToEdge;
-    sampler_desc.addressModeV = WGPUAddressMode::WGPUAddressMode_ClampToEdge;
-    sampler_desc.addressModeW = WGPUAddressMode::WGPUAddressMode_ClampToEdge;
-    sampler_desc.magFilter = WGPUFilterMode::WGPUFilterMode_Linear;
-    sampler_desc.minFilter = WGPUFilterMode::WGPUFilterMode_Linear;
-    sampler_desc.mipmapFilter = WGPUMipmapFilterMode::WGPUMipmapFilterMode_Linear;
-    sampler_desc.lodMinClamp = 0.0f;
-    sampler_desc.lodMaxClamp = 1.0f;
-    sampler_desc.compare = WGPUCompareFunction::WGPUCompareFunction_Undefined;
-    sampler_desc.maxAnisotropy = 1;
-
-    m_demo_texture_with_sampler = std::make_unique<raii::TextureWithSampler>(m_device, texture_desc, sampler_desc);
-
-    // fill texture with solid color
-    QImage image { 256, 256, QImage::Format::Format_RGBA8888 };
-    uint8_t* image_data = image.bits();
-    for (int col = 0; col < image.width(); col++) {
-        for (int row = 0; row < image.height(); row++) {
-            uint8_t* pixel_data = &image_data[4 * (image.width() * row + col)];
-            pixel_data[0] = col;
-            pixel_data[1] = row;
-            pixel_data[2] = 128;
-            pixel_data[3] = 255;
-        }
-    }
-    m_demo_texture_with_sampler->texture().write(m_queue, image, 0);
-}
-
 void Window::create_depth_texture(uint32_t width, uint32_t height)
 {
     std::cout << "creating depth texture width=" << width << ", height=" << height << std::endl;
@@ -580,13 +536,6 @@ void Window::create_swapchain(uint32_t width, uint32_t height)
 
 void Window::create_bind_group_info()
 {
-    m_bind_group_info = raii::BindGroupWithLayoutInfo("triangle demo bind group");
-    m_bind_group_info.add_entry(0, *m_shared_config_ubo, WGPUShaderStage::WGPUShaderStage_Vertex | WGPUShaderStage::WGPUShaderStage_Fragment);
-    m_bind_group_info.add_entry(1, *m_camera_config_ubo, WGPUShaderStage::WGPUShaderStage_Vertex | WGPUShaderStage::WGPUShaderStage_Fragment);
-    m_bind_group_info.add_entry(2, m_demo_texture_with_sampler->texture_view(), WGPUShaderStage_Vertex | WGPUShaderStage_Fragment, WGPUTextureSampleType_Float);
-    m_bind_group_info.add_entry(3, m_demo_texture_with_sampler->sampler(), WGPUShaderStage_Vertex | WGPUShaderStage_Fragment, WGPUSamplerBindingType_Filtering);
-    m_bind_group = std::make_unique<raii::BindGroupWithLayout>(m_device, m_bind_group_info);
-
     m_shared_config_bind_group_info = raii::BindGroupWithLayoutInfo("shared config bind group");
     m_shared_config_bind_group_info.add_entry(0, *m_shared_config_ubo, WGPUShaderStage::WGPUShaderStage_Vertex | WGPUShaderStage::WGPUShaderStage_Fragment);
     m_shared_config_bind_group = std::make_unique<raii::BindGroupWithLayout>(m_device, m_shared_config_bind_group_info);

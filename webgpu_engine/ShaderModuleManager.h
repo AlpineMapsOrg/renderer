@@ -37,8 +37,6 @@ public:
     void create_shader_modules();
     void release_shader_modules();
 
-    const raii::ShaderModule& debug_triangle() const;
-    const raii::ShaderModule& debug_config_and_camera() const;
     const raii::ShaderModule& tile() const;
 
 private:
@@ -53,8 +51,6 @@ private:
 
     std::map<std::string, std::string> m_shader_name_to_code;
 
-    std::unique_ptr<raii::ShaderModule> m_debug_triangle_shader_module;
-    std::unique_ptr<raii::ShaderModule> m_debug_config_and_camera_shader_module;
     std::unique_ptr<raii::ShaderModule> m_tile_shader_module;
 };
 

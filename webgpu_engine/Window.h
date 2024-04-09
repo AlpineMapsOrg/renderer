@@ -80,7 +80,6 @@ private:
     void request_device();
     void init_queue();
     void create_buffers();
-    void create_textures();
     void create_depth_texture(uint32_t width, uint32_t height);
     void create_bind_group_info();
     void create_swapchain(uint32_t w, uint32_t h);
@@ -108,11 +107,9 @@ private:
     std::unique_ptr<raii::Buffer<uboSharedConfig>> m_shared_config_ubo;
     std::unique_ptr<raii::Buffer<uboCameraConfig>> m_camera_config_ubo;
 
-    raii::BindGroupWithLayoutInfo m_bind_group_info;
     raii::BindGroupWithLayoutInfo m_shared_config_bind_group_info;
     raii::BindGroupWithLayoutInfo m_camera_bind_group_info;
 
-    std::unique_ptr<raii::BindGroupWithLayout> m_bind_group;
     std::unique_ptr<raii::BindGroupWithLayout> m_shared_config_bind_group;
     std::unique_ptr<raii::BindGroupWithLayout> m_camera_bind_group;
 
@@ -121,10 +118,7 @@ private:
     ImGuiWindowImplNewFrameFunc m_imgui_window_new_frame_func;
     ImGuiWindowImplShutdownFunc m_imgui_window_shutdown_func;
 
-    nucleus::utils::Stopwatch m_stopwatch;
     nucleus::camera::Definition m_camera;
-
-    std::unique_ptr<raii::TextureWithSampler> m_demo_texture_with_sampler;
 
     std::unique_ptr<raii::Texture> m_depth_texture;
     std::unique_ptr<raii::TextureView> m_depth_texture_view;

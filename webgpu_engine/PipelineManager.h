@@ -29,20 +29,15 @@ class PipelineManager {
 public:
     PipelineManager(WGPUDevice device, ShaderModuleManager& shader_manager);
 
-    const raii::RenderPipeline& debug_triangle_pipeline() const;
-    const raii::RenderPipeline& debug_config_and_camera_pipeline() const;
     const raii::RenderPipeline& tile_pipeline() const;
 
-    void create_pipelines(WGPUTextureFormat color_target_format, WGPUTextureFormat depth_texture_format, const raii::BindGroupWithLayout& bind_group,
+    void create_pipelines(WGPUTextureFormat color_target_format, WGPUTextureFormat depth_texture_format,
         const raii::BindGroupWithLayout& shared_config_bind_group, const raii::BindGroupWithLayout& camera_bind_group,
         const raii::BindGroupWithLayout& tile_bind_group);
     void release_pipelines();
     bool pipelines_created() const;
 
 private:
-    void create_debug_pipeline(WGPUTextureFormat color_target_format);
-    void create_debug_config_and_camera_pipeline(
-        WGPUTextureFormat color_target_format, WGPUTextureFormat depth_texture_format, const raii::BindGroupWithLayout& bind_group);
     void create_tile_pipeline(WGPUTextureFormat color_target_format, WGPUTextureFormat depth_texture_format,
         const raii::BindGroupWithLayout& shared_config_bind_group, const raii::BindGroupWithLayout& camera_bind_group,
         const raii::BindGroupWithLayout& tile_bind_group);
@@ -52,8 +47,6 @@ private:
     WGPUDevice m_device;
     ShaderModuleManager* m_shader_manager;
 
-    std::unique_ptr<raii::RenderPipeline> m_debug_triangle_pipeline;
-    std::unique_ptr<raii::RenderPipeline> m_debug_config_and_camera_pipeline;
     std::unique_ptr<raii::GenericRenderPipeline> m_tile_pipeline;
 
     bool m_pipelines_created = false;
