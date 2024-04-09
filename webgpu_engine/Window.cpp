@@ -536,13 +536,13 @@ void Window::create_swapchain(uint32_t width, uint32_t height)
 
 void Window::create_bind_group_info()
 {
-    m_shared_config_bind_group_info = raii::BindGroupWithLayoutInfo("shared config bind group");
-    m_shared_config_bind_group_info.add_entry(0, *m_shared_config_ubo, WGPUShaderStage::WGPUShaderStage_Vertex | WGPUShaderStage::WGPUShaderStage_Fragment);
-    m_shared_config_bind_group = std::make_unique<raii::BindGroupWithLayout>(m_device, m_shared_config_bind_group_info);
+    util::BindGroupWithLayoutInfo shared_config_bind_group_info("shared config bind group");
+    shared_config_bind_group_info.add_entry(0, *m_shared_config_ubo, WGPUShaderStage::WGPUShaderStage_Vertex | WGPUShaderStage::WGPUShaderStage_Fragment);
+    m_shared_config_bind_group = std::make_unique<raii::BindGroupWithLayout>(m_device, shared_config_bind_group_info);
 
-    m_camera_bind_group_info = raii::BindGroupWithLayoutInfo("camera bind group");
-    m_camera_bind_group_info.add_entry(0, *m_camera_config_ubo, WGPUShaderStage::WGPUShaderStage_Vertex | WGPUShaderStage::WGPUShaderStage_Fragment);
-    m_camera_bind_group = std::make_unique<raii::BindGroupWithLayout>(m_device, m_camera_bind_group_info);
+    util::BindGroupWithLayoutInfo camera_bind_group_info("camera bind group");
+    camera_bind_group_info.add_entry(0, *m_camera_config_ubo, WGPUShaderStage::WGPUShaderStage_Vertex | WGPUShaderStage::WGPUShaderStage_Fragment);
+    m_camera_bind_group = std::make_unique<raii::BindGroupWithLayout>(m_device, camera_bind_group_info);
 }
 
 WGPURequiredLimits Window::required_gpu_limits() const

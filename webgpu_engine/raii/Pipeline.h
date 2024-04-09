@@ -18,10 +18,10 @@
 
 #pragma once
 
-#include "BindGroupWithLayout.h"
 #include "base_types.h"
 #include "util/VertexBufferInfo.h"
 
+#include <cassert>
 #include <memory>
 #include <vector>
 
@@ -64,8 +64,6 @@ public:
 private:
     std::unique_ptr<RenderPipeline> m_pipeline;
     std::unique_ptr<PipelineLayout> m_pipeline_layout;
-    std::vector<webgpu_engine::util::SingleVertexBufferInfo> m_vertex_buffer_infos;
-    std::vector<std::unique_ptr<BindGroupWithLayoutInfo>> m_bind_groups;
 };
 
 } // namespace webgpu_engine::raii

@@ -26,6 +26,7 @@
 #include "raii/BindGroupWithLayout.h"
 #include "raii/Buffer.h"
 #include "raii/TextureWithSampler.h"
+#include "util/BindGroupWithLayoutInfo.h"
 #include <QObject>
 #include <nucleus/Tile.h>
 #include <nucleus/tile_scheduler/DrawListGenerator.h>
@@ -79,7 +80,7 @@ private:
     std::unique_ptr<raii::TextureWithSampler> m_ortho_textures;
     std::unique_ptr<raii::TextureWithSampler> m_heightmap_textures;
 
-    raii::BindGroupWithLayoutInfo m_tile_bind_group_info;
+    util::BindGroupWithLayoutInfo m_tile_bind_group_info;
     std::unique_ptr<raii::BindGroupWithLayout> m_tile_bind_group;
 
     WGPUDevice m_device = 0;
@@ -113,7 +114,6 @@ private:
 
     std::vector<std::unique_ptr<raii::TextureWithSampler>> m_ortho_textures;
     std::vector<std::unique_ptr<raii::TextureWithSampler>> m_heightmap_textures;
-    std::vector<raii::BindGroupWithLayoutInfo> m_tile_bind_group_info;
     std::vector<std::unique_ptr<raii::BindGroupWithLayout>> m_tile_bind_group;
 
     WGPUDevice m_device = 0;

@@ -36,6 +36,7 @@ set(SOURCES
     raii/BindGroupWithLayout.h raii/BindGroupWithLayout.cpp
     raii/Pipeline.h raii/Pipeline.cpp
     util/VertexBufferInfo.h util/VertexBufferInfo.cpp
+    util/BindGroupWithLayoutInfo.h util/BindGroupWithLayoutInfo.cpp
     util/VertexFormat.h
 )
 

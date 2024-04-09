@@ -18,6 +18,10 @@
 
 #include "Pipeline.h"
 
+#include <algorithm>
+#include <iterator>
+#include <webgpu/webgpu.h>
+
 namespace webgpu_engine::raii {
 
 GenericRenderPipeline::GenericRenderPipeline(WGPUDevice device, const ShaderModule& vertex_shader, const ShaderModule& fragment_shader,
