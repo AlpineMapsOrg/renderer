@@ -108,9 +108,13 @@ private:
     std::unique_ptr<raii::Buffer<uboSharedConfig>> m_shared_config_ubo;
     std::unique_ptr<raii::Buffer<uboCameraConfig>> m_camera_config_ubo;
 
-    std::unique_ptr<raii::BindGroupWithLayout> m_bind_group_info;
-    std::unique_ptr<raii::BindGroupWithLayout> m_shared_config_bind_group_info;
-    std::unique_ptr<raii::BindGroupWithLayout> m_camera_bind_group_info;
+    raii::BindGroupWithLayoutInfo m_bind_group_info;
+    raii::BindGroupWithLayoutInfo m_shared_config_bind_group_info;
+    raii::BindGroupWithLayoutInfo m_camera_bind_group_info;
+
+    std::unique_ptr<raii::BindGroupWithLayout> m_bind_group;
+    std::unique_ptr<raii::BindGroupWithLayout> m_shared_config_bind_group;
+    std::unique_ptr<raii::BindGroupWithLayout> m_camera_bind_group;
 
     ObtainWebGpuSurfaceFunc m_obtain_webgpu_surface_func;
     ImGuiWindowImplInitFunc m_imgui_window_init_func;

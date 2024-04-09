@@ -22,6 +22,7 @@
 
 #include "nucleus/camera/Definition.h"
 #include "nucleus/utils/terrain_mesh_index_generator.h"
+#include "raii/BindGroupWithLayout.h"
 
 #include <QDebug>
 
@@ -160,6 +161,7 @@ void TileManager::update_gpu_quads(const std::vector<nucleus::tile_scheduler::ti
 TileRendererInstancedSingleArray::TileRendererInstancedSingleArray(WGPUDevice device, WGPUQueue queue)
     : m_device { device }
     , m_queue { queue }
+    , m_tile_bind_group_info("tile bind group")
 {
 }
 
@@ -230,13 +232,13 @@ void TileRendererInstancedSingleArray::init(glm::uvec2 height_resolution, glm::u
 
     m_ortho_textures = std::make_unique<raii::TextureWithSampler>(m_device, ortho_texture_desc, ortho_sampler_desc);
 
-    m_tile_bind_group_info = std::make_unique<raii::BindGroupWithLayout>("tile bind group");
-    m_tile_bind_group_info->add_entry(0, *m_n_edge_vertices_buffer, WGPUShaderStage_Vertex);
-    m_tile_bind_group_info->add_entry(1, m_heightmap_textures->texture_view(), WGPUShaderStage_Vertex, WGPUTextureSampleType_Uint);
-    m_tile_bind_group_info->add_entry(2, m_heightmap_textures->sampler(), WGPUShaderStage_Vertex, WGPUSamplerBindingType_Filtering);
-    m_tile_bind_group_info->add_entry(3, m_ortho_textures->texture_view(), WGPUShaderStage_Fragment, WGPUTextureSampleType_Float);
-    m_tile_bind_group_info->add_entry(4, m_ortho_textures->sampler(), WGPUShaderStage_Fragment, WGPUSamplerBindingType_Filtering);
-    m_tile_bind_group_info->init(m_device);
+    m_tile_bind_group_info = raii::BindGroupWithLayoutInfo("tile bind group");
+    m_tile_bind_group_info.add_entry(0, *m_n_edge_vertices_buffer, WGPUShaderStage_Vertex);
+    m_tile_bind_group_info.add_entry(1, m_heightmap_textures->texture_view(), WGPUShaderStage_Vertex, WGPUTextureSampleType_Uint);
+    m_tile_bind_group_info.add_entry(2, m_heightmap_textures->sampler(), WGPUShaderStage_Vertex, WGPUSamplerBindingType_Filtering);
+    m_tile_bind_group_info.add_entry(3, m_ortho_textures->texture_view(), WGPUShaderStage_Fragment, WGPUTextureSampleType_Float);
+    m_tile_bind_group_info.add_entry(4, m_ortho_textures->sampler(), WGPUShaderStage_Fragment, WGPUSamplerBindingType_Filtering);
+    m_tile_bind_group = std::make_unique<raii::BindGroupWithLayout>(m_device, m_tile_bind_group_info);
 }
 
 void TileRendererInstancedSingleArray::write_tile(const nucleus::utils::ColourTexture& ortho_texture, const nucleus::Raster<uint16_t>& height_map, size_t layer)
@@ -275,7 +277,7 @@ void TileRendererInstancedSingleArray::draw(WGPURenderPipeline render_pipeline, 
     m_texture_layer_buffer->write(m_queue, texture_layer.data(), texture_layer.size());
 
     // set bind group for uniforms, textures and samplers
-    m_tile_bind_group_info->bind(render_pass, 2);
+    m_tile_bind_group->bind(render_pass, 2);
 
     // set index buffer and vertex buffers
     wgpuRenderPassEncoderSetIndexBuffer(render_pass, m_index_buffer->handle(), WGPUIndexFormat_Uint16, 0, m_index_buffer->size_in_byte());
@@ -289,7 +291,7 @@ void TileRendererInstancedSingleArray::draw(WGPURenderPipeline render_pipeline, 
     wgpuRenderPassEncoderDrawIndexed(render_pass, uint32_t(m_index_buffer_size), uint32_t(tile_list.size()), 0, 0, 0);
 }
 
-const raii::BindGroupWithLayout& TileRendererInstancedSingleArray::tile_bind_group() const { return *m_tile_bind_group_info; };
+const raii::BindGroupWithLayout& TileRendererInstancedSingleArray::tile_bind_group() const { return *m_tile_bind_group; };
 
 TileRendererInstancedSingleArrayMultiCall::TileRendererInstancedSingleArrayMultiCall(WGPUDevice device, WGPUQueue queue)
     : m_device { device }
@@ -380,14 +382,14 @@ void TileRendererInstancedSingleArrayMultiCall::init(glm::uvec2 height_resolutio
 
         m_ortho_textures.emplace_back(std::make_unique<raii::TextureWithSampler>(m_device, ortho_texture_desc, ortho_sampler_desc));
 
-        auto tile_bind_group_info = std::make_unique<raii::BindGroupWithLayout>("tile bind group");
-        tile_bind_group_info->add_entry(0, *m_n_edge_vertices_buffer, WGPUShaderStage_Vertex);
-        tile_bind_group_info->add_entry(1, m_heightmap_textures.back()->texture_view(), WGPUShaderStage_Vertex, WGPUTextureSampleType_Uint);
-        tile_bind_group_info->add_entry(2, m_heightmap_textures.back()->sampler(), WGPUShaderStage_Vertex, WGPUSamplerBindingType_Filtering);
-        tile_bind_group_info->add_entry(3, m_ortho_textures.back()->texture_view(), WGPUShaderStage_Fragment, WGPUTextureSampleType_Float);
-        tile_bind_group_info->add_entry(4, m_ortho_textures.back()->sampler(), WGPUShaderStage_Fragment, WGPUSamplerBindingType_Filtering);
-        tile_bind_group_info->init(m_device);
-        m_tile_bind_group_info.push_back(std::move(tile_bind_group_info));
+        auto tile_bind_group_info = raii::BindGroupWithLayoutInfo("tile bind group");
+        tile_bind_group_info.add_entry(0, *m_n_edge_vertices_buffer, WGPUShaderStage_Vertex);
+        tile_bind_group_info.add_entry(1, m_heightmap_textures.back()->texture_view(), WGPUShaderStage_Vertex, WGPUTextureSampleType_Uint);
+        tile_bind_group_info.add_entry(2, m_heightmap_textures.back()->sampler(), WGPUShaderStage_Vertex, WGPUSamplerBindingType_Filtering);
+        tile_bind_group_info.add_entry(3, m_ortho_textures.back()->texture_view(), WGPUShaderStage_Fragment, WGPUTextureSampleType_Float);
+        tile_bind_group_info.add_entry(4, m_ortho_textures.back()->sampler(), WGPUShaderStage_Fragment, WGPUSamplerBindingType_Filtering);
+        m_tile_bind_group_info.push_back(tile_bind_group_info);
+        m_tile_bind_group.emplace_back(std::make_unique<raii::BindGroupWithLayout>(m_device, tile_bind_group_info));
     }
 }
 
@@ -456,7 +458,7 @@ void TileRendererInstancedSingleArrayMultiCall::draw(WGPURenderPipeline render_p
             continue;
 
         // set bind group for uniforms, textures and samplers
-        m_tile_bind_group_info.at(texture_array_index)->bind(render_pass, 2);
+        m_tile_bind_group.at(texture_array_index)->bind(render_pass, 2);
 
         // set draw call
         wgpuRenderPassEncoderDrawIndexed(render_pass, uint32_t(m_index_buffer_size), uint32_t(count), 0, 0, start_instance_index);
@@ -464,6 +466,6 @@ void TileRendererInstancedSingleArrayMultiCall::draw(WGPURenderPipeline render_p
     }
 }
 
-const raii::BindGroupWithLayout& TileRendererInstancedSingleArrayMultiCall::tile_bind_group() const { return *m_tile_bind_group_info.at(0); }
+const raii::BindGroupWithLayout& TileRendererInstancedSingleArrayMultiCall::tile_bind_group() const { return *m_tile_bind_group.at(0); }
 
 } // namespace webgpu_engine

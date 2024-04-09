@@ -112,7 +112,7 @@ protected:
 using BindGroup = GpuResource<WGPUBindGroup, WGPUBindGroupDescriptor, WGPUDevice>;
 using BindGroupLayout = GpuResource<WGPUBindGroupLayout, WGPUBindGroupLayoutDescriptor, WGPUDevice>;
 using ShaderModule = GpuResource<WGPUShaderModule, WGPUShaderModuleDescriptor, WGPUDevice>;
-using PipelineLayout = GpuResource<WGPUPipelineLayout, WGPUPipelineLayout, WGPUDevice>;
+using PipelineLayout = GpuResource<WGPUPipelineLayout, WGPUPipelineLayoutDescriptor, WGPUDevice>;
 using RenderPipeline = GpuResource<WGPURenderPipeline, WGPURenderPipelineDescriptor, WGPUDevice>;
 // using Buffer = GpuResource<WGPUBuffer, WGPUBufferDescriptor, WGPUDevice>;
 // using Texture = GpuResource<WGPUTexture, WGPUTextureDescriptor, WGPUDevice>;

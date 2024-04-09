@@ -98,8 +98,8 @@ void Window::resize_framebuffer(int w, int h)
     create_depth_texture(w, h);
 
     create_swapchain(w, h);
-    m_pipeline_manager->create_pipelines(m_swapchain_format, m_depth_texture_format, *m_bind_group_info, *m_shared_config_bind_group_info,
-        *m_camera_bind_group_info, m_tile_manager->tile_bind_group());
+    m_pipeline_manager->create_pipelines(
+        m_swapchain_format, m_depth_texture_format, *m_bind_group, *m_shared_config_bind_group, *m_camera_bind_group, m_tile_manager->tile_bind_group());
 
 #ifdef ALP_WEBGPU_APP_ENABLE_IMGUI
     if (ImGui::GetCurrentContext() != nullptr) {
@@ -169,8 +169,8 @@ void Window::paint([[maybe_unused]] QOpenGLFramebufferObject* framebuffer)
     render_pass_desc.timestampWrites = nullptr;
     WGPURenderPassEncoder render_pass = wgpuCommandEncoderBeginRenderPass(encoder, &render_pass_desc);
 
-    m_shared_config_bind_group_info->bind(render_pass, 0);
-    m_camera_bind_group_info->bind(render_pass, 1);
+    m_shared_config_bind_group->bind(render_pass, 0);
+    m_camera_bind_group->bind(render_pass, 1);
 
     const auto tile_set = m_tile_manager->generate_tilelist(m_camera);
 
@@ -580,22 +580,20 @@ void Window::create_swapchain(uint32_t width, uint32_t height)
 
 void Window::create_bind_group_info()
 {
-    m_bind_group_info = std::make_unique<raii::BindGroupWithLayout>("triangle demo bind group");
-    m_bind_group_info->add_entry(0, *m_shared_config_ubo, WGPUShaderStage::WGPUShaderStage_Vertex | WGPUShaderStage::WGPUShaderStage_Fragment);
-    m_bind_group_info->add_entry(1, *m_camera_config_ubo, WGPUShaderStage::WGPUShaderStage_Vertex | WGPUShaderStage::WGPUShaderStage_Fragment);
-    m_bind_group_info->add_entry(
-        2, m_demo_texture_with_sampler->texture_view(), WGPUShaderStage_Vertex | WGPUShaderStage_Fragment, WGPUTextureSampleType_Float);
-    m_bind_group_info->add_entry(
-        3, m_demo_texture_with_sampler->sampler(), WGPUShaderStage_Vertex | WGPUShaderStage_Fragment, WGPUSamplerBindingType_Filtering);
-    m_bind_group_info->init(m_device);
+    m_bind_group_info = raii::BindGroupWithLayoutInfo("triangle demo bind group");
+    m_bind_group_info.add_entry(0, *m_shared_config_ubo, WGPUShaderStage::WGPUShaderStage_Vertex | WGPUShaderStage::WGPUShaderStage_Fragment);
+    m_bind_group_info.add_entry(1, *m_camera_config_ubo, WGPUShaderStage::WGPUShaderStage_Vertex | WGPUShaderStage::WGPUShaderStage_Fragment);
+    m_bind_group_info.add_entry(2, m_demo_texture_with_sampler->texture_view(), WGPUShaderStage_Vertex | WGPUShaderStage_Fragment, WGPUTextureSampleType_Float);
+    m_bind_group_info.add_entry(3, m_demo_texture_with_sampler->sampler(), WGPUShaderStage_Vertex | WGPUShaderStage_Fragment, WGPUSamplerBindingType_Filtering);
+    m_bind_group = std::make_unique<raii::BindGroupWithLayout>(m_device, m_bind_group_info);
 
-    m_shared_config_bind_group_info = std::make_unique<raii::BindGroupWithLayout>("shared config bind group");
-    m_shared_config_bind_group_info->add_entry(0, *m_shared_config_ubo, WGPUShaderStage::WGPUShaderStage_Vertex | WGPUShaderStage::WGPUShaderStage_Fragment);
-    m_shared_config_bind_group_info->init(m_device);
+    m_shared_config_bind_group_info = raii::BindGroupWithLayoutInfo("shared config bind group");
+    m_shared_config_bind_group_info.add_entry(0, *m_shared_config_ubo, WGPUShaderStage::WGPUShaderStage_Vertex | WGPUShaderStage::WGPUShaderStage_Fragment);
+    m_shared_config_bind_group = std::make_unique<raii::BindGroupWithLayout>(m_device, m_shared_config_bind_group_info);
 
-    m_camera_bind_group_info = std::make_unique<raii::BindGroupWithLayout>("camera bind group");
-    m_camera_bind_group_info->add_entry(0, *m_camera_config_ubo, WGPUShaderStage::WGPUShaderStage_Vertex | WGPUShaderStage::WGPUShaderStage_Fragment);
-    m_camera_bind_group_info->init(m_device);
+    m_camera_bind_group_info = raii::BindGroupWithLayoutInfo("camera bind group");
+    m_camera_bind_group_info.add_entry(0, *m_camera_config_ubo, WGPUShaderStage::WGPUShaderStage_Vertex | WGPUShaderStage::WGPUShaderStage_Fragment);
+    m_camera_bind_group = std::make_unique<raii::BindGroupWithLayout>(m_device, m_camera_bind_group_info);
 }
 
 WGPURequiredLimits Window::required_gpu_limits() const

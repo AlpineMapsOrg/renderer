@@ -20,48 +20,47 @@
 
 namespace webgpu_engine::raii {
 
-BindGroupWithLayout::BindGroupWithLayout(const std::string& label)
-    : m_label { label }
+BindGroupWithLayout::BindGroupWithLayout(WGPUDevice device, const BindGroupWithLayoutInfo& bind_group_with_layout)
+    : m_bind_group_layout(std::make_unique<raii::BindGroupLayout>(device, bind_group_with_layout.bind_group_layout_descriptor()))
+    , m_bind_group(std::make_unique<raii::BindGroup>(device, bind_group_with_layout.bind_group_descriptor(m_bind_group_layout->handle())))
 {
 }
-
-void BindGroupWithLayout::init_bind_group_layout(WGPUDevice device)
-{
-    WGPUBindGroupLayoutDescriptor desc {};
-    desc.label = m_label.data();
-    desc.entries = m_bind_group_layout_entries.data();
-    desc.entryCount = m_bind_group_layout_entries.size();
-    desc.nextInChain = nullptr;
-    m_bind_group_layout = std::make_unique<raii::BindGroupLayout>(device, desc);
-}
-
-void BindGroupWithLayout::init_bind_group(WGPUDevice device)
-{
-    WGPUBindGroupDescriptor desc {};
-    desc.label = m_label.data();
-    desc.layout = m_bind_group_layout->handle();
-    desc.entries = m_bind_group_entries.data();
-    desc.entryCount = m_bind_group_entries.size();
-    desc.nextInChain = nullptr;
-    m_bind_group = std::make_unique<raii::BindGroup>(device, desc);
-}
-
-void BindGroupWithLayout::init(WGPUDevice device)
-{
-    init_bind_group_layout(device);
-    init_bind_group(device);
-}
-
-const raii::BindGroup& BindGroupWithLayout::bind_group() const { return *m_bind_group; }
-
-const raii::BindGroupLayout& BindGroupWithLayout::bind_group_layout() const { return *m_bind_group_layout; }
 
 void BindGroupWithLayout::bind(WGPURenderPassEncoder& render_pass, uint32_t group_index) const
 {
     wgpuRenderPassEncoderSetBindGroup(render_pass, group_index, m_bind_group->handle(), 0, nullptr);
 }
 
-void BindGroupWithLayout::add_entry(uint32_t binding, const raii::TextureView& texture_view, WGPUShaderStageFlags visibility, WGPUTextureSampleType sample_type)
+const BindGroupLayout& BindGroupWithLayout::bind_group_layout() const { return *m_bind_group_layout; }
+
+const BindGroup& BindGroupWithLayout::bind_group() const { return *m_bind_group; }
+
+BindGroupWithLayoutInfo::BindGroupWithLayoutInfo(const std::string& label)
+    : m_label { label }
+{
+}
+
+WGPUBindGroupLayoutDescriptor BindGroupWithLayoutInfo::bind_group_layout_descriptor() const
+{
+    WGPUBindGroupLayoutDescriptor desc {};
+    desc.label = m_label.data();
+    desc.entries = m_bind_group_layout_entries.data();
+    desc.entryCount = m_bind_group_layout_entries.size();
+    return desc;
+}
+
+WGPUBindGroupDescriptor BindGroupWithLayoutInfo::bind_group_descriptor(WGPUBindGroupLayout layout) const
+{
+    WGPUBindGroupDescriptor desc {};
+    desc.label = m_label.data();
+    desc.layout = layout;
+    desc.entries = m_bind_group_entries.data();
+    desc.entryCount = m_bind_group_entries.size();
+    return desc;
+}
+
+void BindGroupWithLayoutInfo::add_entry(
+    uint32_t binding, const raii::TextureView& texture_view, WGPUShaderStageFlags visibility, WGPUTextureSampleType sample_type)
 {
     WGPUTextureBindingLayout texture_binding_layout {};
     texture_binding_layout.multisampled = false;
@@ -83,7 +82,7 @@ void BindGroupWithLayout::add_entry(uint32_t binding, const raii::TextureView& t
     m_bind_group_entries.push_back(entry);
 }
 
-void BindGroupWithLayout::add_entry(uint32_t binding, const raii::Sampler& sampler, WGPUShaderStageFlags visibility, WGPUSamplerBindingType binding_type)
+void BindGroupWithLayoutInfo::add_entry(uint32_t binding, const raii::Sampler& sampler, WGPUShaderStageFlags visibility, WGPUSamplerBindingType binding_type)
 {
     WGPUSamplerBindingLayout sampler_binding_layout {};
     sampler_binding_layout.type = binding_type;

@@ -79,7 +79,8 @@ private:
     std::unique_ptr<raii::TextureWithSampler> m_ortho_textures;
     std::unique_ptr<raii::TextureWithSampler> m_heightmap_textures;
 
-    std::unique_ptr<raii::BindGroupWithLayout> m_tile_bind_group_info;
+    raii::BindGroupWithLayoutInfo m_tile_bind_group_info;
+    std::unique_ptr<raii::BindGroupWithLayout> m_tile_bind_group;
 
     WGPUDevice m_device = 0;
     WGPUQueue m_queue = 0;
@@ -112,7 +113,8 @@ private:
 
     std::vector<std::unique_ptr<raii::TextureWithSampler>> m_ortho_textures;
     std::vector<std::unique_ptr<raii::TextureWithSampler>> m_heightmap_textures;
-    std::vector<std::unique_ptr<raii::BindGroupWithLayout>> m_tile_bind_group_info;
+    std::vector<raii::BindGroupWithLayoutInfo> m_tile_bind_group_info;
+    std::vector<std::unique_ptr<raii::BindGroupWithLayout>> m_tile_bind_group;
 
     WGPUDevice m_device = 0;
     WGPUQueue m_queue = 0;

@@ -20,6 +20,7 @@
 
 #include "ShaderModuleManager.h"
 #include "raii/BindGroupWithLayout.h"
+#include "raii/Pipeline.h"
 #include <webgpu/webgpu.h>
 
 namespace webgpu_engine {
@@ -32,7 +33,7 @@ public:
     const raii::RenderPipeline& debug_config_and_camera_pipeline() const;
     const raii::RenderPipeline& tile_pipeline() const;
 
-    void create_pipelines(WGPUTextureFormat color_target_format, WGPUTextureFormat depth_texture_format, const raii::BindGroupWithLayout& bind_group_info,
+    void create_pipelines(WGPUTextureFormat color_target_format, WGPUTextureFormat depth_texture_format, const raii::BindGroupWithLayout& bind_group,
         const raii::BindGroupWithLayout& shared_config_bind_group, const raii::BindGroupWithLayout& camera_bind_group,
         const raii::BindGroupWithLayout& tile_bind_group);
     void release_pipelines();
@@ -41,7 +42,7 @@ public:
 private:
     void create_debug_pipeline(WGPUTextureFormat color_target_format);
     void create_debug_config_and_camera_pipeline(
-        WGPUTextureFormat color_target_format, WGPUTextureFormat depth_texture_format, const raii::BindGroupWithLayout& bind_group_info);
+        WGPUTextureFormat color_target_format, WGPUTextureFormat depth_texture_format, const raii::BindGroupWithLayout& bind_group);
     void create_tile_pipeline(WGPUTextureFormat color_target_format, WGPUTextureFormat depth_texture_format,
         const raii::BindGroupWithLayout& shared_config_bind_group, const raii::BindGroupWithLayout& camera_bind_group,
         const raii::BindGroupWithLayout& tile_bind_group);
@@ -53,7 +54,7 @@ private:
 
     std::unique_ptr<raii::RenderPipeline> m_debug_triangle_pipeline;
     std::unique_ptr<raii::RenderPipeline> m_debug_config_and_camera_pipeline;
-    std::unique_ptr<raii::RenderPipeline> m_tile_pipeline;
+    std::unique_ptr<raii::GenericRenderPipeline> m_tile_pipeline;
 
     bool m_pipelines_created = false;
 };
