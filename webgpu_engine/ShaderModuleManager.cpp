@@ -34,6 +34,8 @@ ShaderModuleManager::ShaderModuleManager(WGPUDevice device, const std::filesyste
 void ShaderModuleManager::create_shader_modules()
 {
     m_tile_shader_module = create_shader_module("Tile.wgsl");
+    m_screen_pass_vert_shader_module = create_shader_module("screen_pass_vert.wgsl");
+    m_compose_frag_shader_module = create_shader_module("compose_frag.wgsl");
 }
 
 void ShaderModuleManager::release_shader_modules()
@@ -41,8 +43,11 @@ void ShaderModuleManager::release_shader_modules()
     m_tile_shader_module.release();
 }
 
-
 const raii::ShaderModule& ShaderModuleManager::tile() const { return *m_tile_shader_module; }
+
+const raii::ShaderModule& ShaderModuleManager::screen_pass_vert() const { return *m_screen_pass_vert_shader_module; }
+
+const raii::ShaderModule& ShaderModuleManager::compose_frag() const { return *m_compose_frag_shader_module; }
 
 std::string ShaderModuleManager::read_file_contents(const std::string& name) const {
     const auto path = m_prefix / name; // operator/ concats paths

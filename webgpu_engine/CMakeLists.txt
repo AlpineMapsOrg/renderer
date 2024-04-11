@@ -28,9 +28,9 @@ set(SOURCES
     UniformBufferObjects.h UniformBufferObjects.cpp
     TileSet.h
     TileManager.h TileManager.cpp
+    Framebuffer.h Framebuffer.cpp
     raii/base_types.h
     raii/Texture.h raii/Texture.cpp
-    raii/TextureView.h raii/TextureView.cpp
     raii/TextureWithSampler.h raii/TextureWithSampler.cpp
     raii/Buffer.h raii/Buffer.cpp
     raii/BindGroupWithLayout.h raii/BindGroupWithLayout.cpp
@@ -50,6 +50,9 @@ qt_add_resources(webgpu_engine "shaders"
         "wgsl_shaders/hashing.wgsl"
         "wgsl_shaders/camera_config.wgsl"
         "wgsl_shaders/Tile.wgsl"
+        "wgsl_shaders/screen_pass_shared.wgsl"
+        "wgsl_shaders/screen_pass_vert.wgsl"
+        "wgsl_shaders/compose_frag.wgsl"
 )
 
 target_link_libraries(webgpu_engine PUBLIC nucleus Qt::Core webgpu)

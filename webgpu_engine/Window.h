@@ -29,7 +29,6 @@
 #include "nucleus/utils/Stopwatch.h"
 #include "raii/BindGroupWithLayout.h"
 #include "raii/Texture.h"
-#include "raii/TextureView.h"
 #include "raii/TextureWithSampler.h"
 #include <webgpu/webgpu.h>
 
@@ -109,6 +108,7 @@ private:
 
     std::unique_ptr<raii::BindGroupWithLayout> m_shared_config_bind_group;
     std::unique_ptr<raii::BindGroupWithLayout> m_camera_bind_group;
+    std::unique_ptr<raii::BindGroupWithLayout> m_compose_bind_group;
 
     ObtainWebGpuSurfaceFunc m_obtain_webgpu_surface_func;
     ImGuiWindowImplInitFunc m_imgui_window_init_func;
@@ -121,5 +121,11 @@ private:
     std::unique_ptr<raii::TextureView> m_depth_texture_view;
 
     std::unique_ptr<TileManager> m_tile_manager;
+
+    FramebufferFormat m_framebuffer_format;
+    std::unique_ptr<Framebuffer> m_framebuffer;
+    std::unique_ptr<raii::Sampler> m_compose_sampler;
+
 };
-}
+
+} // namespace webgpu_engine

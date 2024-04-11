@@ -50,7 +50,7 @@ void BindGroupWithLayoutInfo::add_entry(
     WGPUTextureBindingLayout texture_binding_layout {};
     texture_binding_layout.multisampled = false;
     texture_binding_layout.sampleType = sample_type;
-    texture_binding_layout.viewDimension = texture_view.dimension();
+    texture_binding_layout.viewDimension = texture_view.descriptor().dimension;
     texture_binding_layout.nextInChain = nullptr;
 
     WGPUBindGroupLayoutEntry layout_entry {};

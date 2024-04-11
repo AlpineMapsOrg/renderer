@@ -28,7 +28,7 @@ BindGroupWithLayout::BindGroupWithLayout(WGPUDevice device, const util::BindGrou
 {
 }
 
-void BindGroupWithLayout::bind(WGPURenderPassEncoder& render_pass, uint32_t group_index) const
+void BindGroupWithLayout::bind(WGPURenderPassEncoder render_pass, uint32_t group_index) const
 {
     wgpuRenderPassEncoderSetBindGroup(render_pass, group_index, m_bind_group->handle(), 0, nullptr);
 }

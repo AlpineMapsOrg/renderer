@@ -84,6 +84,15 @@ template <> struct GpuFuncs<WGPURenderPipeline, WGPURenderPipelineDescriptor, WG
     static void release(auto handle) { wgpuRenderPipelineRelease(handle); }
 };
 
+template <> struct GpuFuncs<WGPURenderPassEncoder, WGPURenderPassDescriptor, WGPUCommandEncoder> {
+    static auto create(auto context, auto descriptor) { return wgpuCommandEncoderBeginRenderPass(context, &descriptor); }
+    static void release(auto handle)
+    {
+        wgpuRenderPassEncoderEnd(handle);
+        wgpuRenderPassEncoderRelease(handle);
+    }
+};
+
 /// TODO document
 /// Represents a (web)GPU render pipeline object.
 /// Provides RAII semantics without ref-counting (free memory on deletion, disallow copy).
@@ -116,7 +125,8 @@ using PipelineLayout = GpuResource<WGPUPipelineLayout, WGPUPipelineLayoutDescrip
 using RenderPipeline = GpuResource<WGPURenderPipeline, WGPURenderPipelineDescriptor, WGPUDevice>;
 // using Buffer = GpuResource<WGPUBuffer, WGPUBufferDescriptor, WGPUDevice>;
 // using Texture = GpuResource<WGPUTexture, WGPUTextureDescriptor, WGPUDevice>;
-// using TextureView = GpuResource<WGPUTextureView, WGPUTextureViewDescriptor, WGPUDevice>;
+using TextureView = GpuResource<WGPUTextureView, WGPUTextureViewDescriptor, WGPUTexture>;
 using Sampler = GpuResource<WGPUSampler, WGPUSamplerDescriptor, WGPUDevice>;
+using RenderPassEncoder = GpuResource<WGPURenderPassEncoder, WGPURenderPassDescriptor, WGPUCommandEncoder>;
 
 } // namespace webgpu_engine::raii

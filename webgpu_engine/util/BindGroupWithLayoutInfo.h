@@ -20,7 +20,6 @@
 
 #include "raii/BindGroupWithLayout.h"
 #include "raii/Buffer.h"
-#include "raii/TextureView.h"
 #include <string>
 #include <webgpu/webgpu.h>
 

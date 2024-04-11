@@ -28,8 +28,6 @@
 
 namespace webgpu_engine::raii {
 
-class TextureView; // forward declaration
-
 /// Represents (web)GPU texture.
 /// Provides RAII semantics without ref-counting (free memory on deletion, disallow copy).
 /// Preferably to be used with std::unique_ptr or std::shared_ptr.

@@ -18,9 +18,9 @@
 
 #pragma once
 
+#include "Framebuffer.h"
 #include "base_types.h"
 #include "util/VertexBufferInfo.h"
-
 #include <cassert>
 #include <memory>
 #include <vector>
@@ -56,8 +56,8 @@ public:
     using BindGroupLayouts = std::vector<const webgpu_engine::raii::BindGroupLayout*>;
 
     GenericRenderPipeline(WGPUDevice device, const ShaderModule& vertex_shader, const ShaderModule& fragment_shader,
-        const VertexBufferInfos& vertex_buffer_infos, const ColorTargetInfos& color_target_infos, const BindGroupLayouts& bind_group_layouts,
-        const WGPUTextureFormat depth_texture_format);
+        const VertexBufferInfos& vertex_buffer_infos, const FramebufferFormat& framebuffer_format, const BindGroupLayouts& bind_group_layouts,
+        WGPUBlendState blend_state = get_blend_preset(BlendPreset::DEFAULT));
 
     const RenderPipeline& pipeline() const;
 

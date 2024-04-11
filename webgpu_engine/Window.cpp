@@ -70,6 +70,20 @@ void Window::initialise_gpu()
     create_buffers();
     create_bind_group_info();
 
+    WGPUSamplerDescriptor sampler_desc {};
+    sampler_desc.label = "compose sampler";
+    sampler_desc.addressModeU = WGPUAddressMode::WGPUAddressMode_ClampToEdge;
+    sampler_desc.addressModeV = WGPUAddressMode::WGPUAddressMode_ClampToEdge;
+    sampler_desc.addressModeW = WGPUAddressMode::WGPUAddressMode_ClampToEdge;
+    sampler_desc.magFilter = WGPUFilterMode::WGPUFilterMode_Linear;
+    sampler_desc.minFilter = WGPUFilterMode::WGPUFilterMode_Linear;
+    sampler_desc.mipmapFilter = WGPUMipmapFilterMode::WGPUMipmapFilterMode_Linear;
+    sampler_desc.lodMinClamp = 0.0f;
+    sampler_desc.lodMaxClamp = 1.0f;
+    sampler_desc.compare = WGPUCompareFunction::WGPUCompareFunction_Undefined;
+    sampler_desc.maxAnisotropy = 1;
+    m_compose_sampler = std::make_unique<raii::Sampler>(m_device, sampler_desc);
+
     m_tile_manager->init(m_device, m_queue);
 
     m_shader_manager = std::make_unique<ShaderModuleManager>(m_device);
@@ -95,8 +109,17 @@ void Window::resize_framebuffer(int w, int h)
     create_depth_texture(w, h);
 
     create_swapchain(w, h);
+
+    m_framebuffer_format = FramebufferFormat { .size = glm::uvec2 { w, h }, .depth_format = m_depth_texture_format, .color_formats = { m_swapchain_format } };
+    m_framebuffer = std::make_unique<Framebuffer>(m_device, m_framebuffer_format);
+
+    util::BindGroupWithLayoutInfo compose_bind_group_info("compose bind group");
+    compose_bind_group_info.add_entry(0, m_framebuffer->color_texture_view(0), WGPUShaderStage_Fragment, WGPUTextureSampleType_Float);
+    compose_bind_group_info.add_entry(1, *m_compose_sampler, WGPUShaderStage_Fragment, WGPUSamplerBindingType_Filtering);
+    m_compose_bind_group = std::make_unique<raii::BindGroupWithLayout>(m_device, compose_bind_group_info);
+
     m_pipeline_manager->create_pipelines(
-        m_swapchain_format, m_depth_texture_format, *m_shared_config_bind_group, *m_camera_bind_group, m_tile_manager->tile_bind_group());
+        m_framebuffer_format, *m_shared_config_bind_group, *m_camera_bind_group, m_tile_manager->tile_bind_group(), *m_compose_bind_group);
 
 #ifdef ALP_WEBGPU_APP_ENABLE_IMGUI
     if (ImGui::GetCurrentContext() != nullptr) {
@@ -109,6 +132,41 @@ void Window::resize_framebuffer(int w, int h)
         throw std::runtime_error("could not initialize GUI");
     }
 #endif
+}
+
+std::unique_ptr<raii::RenderPassEncoder> begin_render_pass(WGPUCommandEncoder encoder, WGPUTextureView color_attachment, WGPUTextureView depth_attachment)
+{
+    WGPURenderPassColorAttachment render_pass_color_attachment {};
+    render_pass_color_attachment.view = color_attachment;
+    render_pass_color_attachment.resolveTarget = nullptr;
+    render_pass_color_attachment.loadOp = WGPULoadOp::WGPULoadOp_Clear;
+    render_pass_color_attachment.storeOp = WGPUStoreOp::WGPUStoreOp_Store;
+    render_pass_color_attachment.clearValue = WGPUColor { 0.53, 0.81, 0.92, 1.0 };
+
+    // depthSlice field for RenderPassColorAttachment (https://github.com/gpuweb/gpuweb/issues/4251)
+    // this field specifies the slice to render to when rendering to a 3d texture (view)
+    // passing a valid index but referencing a non-3d texture leads to an error
+    // TODO use some constant that represents "undefined" for this value (I couldn't find a constant for this?)
+    //     (I just guessed -1 (max unsigned int value) and it worked)
+    render_pass_color_attachment.depthSlice = -1;
+
+    WGPURenderPassDepthStencilAttachment depth_stencil_attachment {};
+    depth_stencil_attachment.view = depth_attachment;
+    depth_stencil_attachment.depthClearValue = 1.0f;
+    depth_stencil_attachment.depthLoadOp = WGPULoadOp::WGPULoadOp_Clear;
+    depth_stencil_attachment.depthStoreOp = WGPUStoreOp::WGPUStoreOp_Store;
+    depth_stencil_attachment.depthReadOnly = false;
+    depth_stencil_attachment.stencilClearValue = 0;
+    depth_stencil_attachment.stencilLoadOp = WGPULoadOp::WGPULoadOp_Undefined;
+    depth_stencil_attachment.stencilStoreOp = WGPUStoreOp::WGPUStoreOp_Undefined;
+    depth_stencil_attachment.stencilReadOnly = true;
+
+    WGPURenderPassDescriptor render_pass_desc {};
+    render_pass_desc.colorAttachmentCount = 1;
+    render_pass_desc.colorAttachments = &render_pass_color_attachment;
+    render_pass_desc.depthStencilAttachment = &depth_stencil_attachment;
+    render_pass_desc.timestampWrites = nullptr;
+    return std::make_unique<raii::RenderPassEncoder>(encoder, render_pass_desc);
 }
 
 void Window::paint([[maybe_unused]] QOpenGLFramebufferObject* framebuffer)
@@ -133,52 +191,25 @@ void Window::paint([[maybe_unused]] QOpenGLFramebufferObject* framebuffer)
     command_encoder_desc.label = "Command Encoder";
     WGPUCommandEncoder encoder = wgpuDeviceCreateCommandEncoder(m_device, &command_encoder_desc);
 
-    WGPURenderPassColorAttachment render_pass_color_attachment {};
-    render_pass_color_attachment.view = next_texture;
-    render_pass_color_attachment.resolveTarget = nullptr;
-    render_pass_color_attachment.loadOp = WGPULoadOp::WGPULoadOp_Clear;
-    render_pass_color_attachment.storeOp = WGPUStoreOp::WGPUStoreOp_Store;
-    render_pass_color_attachment.clearValue = WGPUColor { 0.53, 0.81, 0.92, 1.0 };
-
-    // depthSlice field for RenderPassColorAttachment (https://github.com/gpuweb/gpuweb/issues/4251)
-    // this field specifies the slice to render to when rendering to a 3d texture (view)
-    // passing a valid index but referencing a non-3d texture leads to an error
-    // TODO use some constant that represents "undefined" for this value (I couldn't find a constant for this?)
-    //     (I just guessed -1 (max unsigned int value) and it worked)
-    render_pass_color_attachment.depthSlice = -1;
-
-    WGPURenderPassDepthStencilAttachment depth_stencil_attachment {};
-    depth_stencil_attachment.view = m_depth_texture_view->handle();
-    depth_stencil_attachment.depthClearValue = 1.0f;
-    depth_stencil_attachment.depthLoadOp = WGPULoadOp::WGPULoadOp_Clear;
-    depth_stencil_attachment.depthStoreOp = WGPUStoreOp::WGPUStoreOp_Store;
-    depth_stencil_attachment.depthReadOnly = false;
-    depth_stencil_attachment.stencilClearValue = 0;
-    depth_stencil_attachment.stencilLoadOp = WGPULoadOp::WGPULoadOp_Undefined;
-    depth_stencil_attachment.stencilStoreOp = WGPUStoreOp::WGPUStoreOp_Undefined;
-    depth_stencil_attachment.stencilReadOnly = true;
-
-    WGPURenderPassDescriptor render_pass_desc {};
-    render_pass_desc.colorAttachmentCount = 1;
-    render_pass_desc.colorAttachments = &render_pass_color_attachment;
-    render_pass_desc.depthStencilAttachment = &depth_stencil_attachment;
-    render_pass_desc.timestampWrites = nullptr;
-    WGPURenderPassEncoder render_pass = wgpuCommandEncoderBeginRenderPass(encoder, &render_pass_desc);
-
-    m_shared_config_bind_group->bind(render_pass, 0);
-    m_camera_bind_group->bind(render_pass, 1);
-
-    const auto tile_set = m_tile_manager->generate_tilelist(m_camera);
-
-    m_tile_manager->draw(m_pipeline_manager->tile_pipeline().handle(), render_pass, m_camera, tile_set, true, m_camera.position());
+    {
+        std::unique_ptr<raii::RenderPassEncoder> render_pass = m_framebuffer->begin_render_pass(encoder);
+        m_shared_config_bind_group->bind(render_pass->handle(), 0);
+        m_camera_bind_group->bind(render_pass->handle(), 1);
+        const auto tile_set = m_tile_manager->generate_tilelist(m_camera);
+        m_tile_manager->draw(m_pipeline_manager->tile_pipeline().handle(), render_pass->handle(), m_camera, tile_set, true, m_camera.position());
+    }
+    {
+        std::unique_ptr<raii::RenderPassEncoder> render_pass = begin_render_pass(encoder, next_texture, m_depth_texture_view->handle());
+        wgpuRenderPassEncoderSetPipeline(render_pass->handle(), m_pipeline_manager->compose_pipeline().handle());
+        m_shared_config_bind_group->bind(render_pass->handle(), 0);
+        m_compose_bind_group->bind(render_pass->handle(), 1);
+        wgpuRenderPassEncoderDraw(render_pass->handle(), 3, 1, 0, 0);
 
 #ifdef ALP_WEBGPU_APP_ENABLE_IMGUI
-    // We add the GUI drawing commands to the render pass
-    update_gui(render_pass);
+        // We add the GUI drawing commands to the render pass
+        update_gui(render_pass->handle());
 #endif
-
-    wgpuRenderPassEncoderEnd(render_pass);
-    wgpuRenderPassEncoderRelease(render_pass);
+    }
 
     wgpuTextureViewRelease(next_texture);
 

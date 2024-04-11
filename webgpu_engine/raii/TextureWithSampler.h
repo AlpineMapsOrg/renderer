@@ -19,7 +19,6 @@
 #pragma once
 
 #include "Texture.h"
-#include "TextureView.h"
 #include "base_types.h"
 #include <webgpu/webgpu.h>
 

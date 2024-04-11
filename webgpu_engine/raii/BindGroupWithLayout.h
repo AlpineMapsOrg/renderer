@@ -32,7 +32,7 @@ class BindGroupWithLayout {
 public:
     BindGroupWithLayout(WGPUDevice device, const util::BindGroupWithLayoutInfo& bind_group_with_layout);
 
-    void bind(WGPURenderPassEncoder& render_pass, uint32_t group_index) const;
+    void bind(WGPURenderPassEncoder render_pass, uint32_t group_index) const;
 
     const raii::BindGroupLayout& bind_group_layout() const;
     const raii::BindGroup& bind_group() const;

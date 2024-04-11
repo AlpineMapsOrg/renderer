@@ -19,8 +19,6 @@
 
 #include "Texture.h"
 
-#include "TextureView.h"
-
 namespace webgpu_engine::raii {
 
 // TODO

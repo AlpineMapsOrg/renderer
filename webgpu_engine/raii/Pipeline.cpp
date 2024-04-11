@@ -25,19 +25,19 @@
 namespace webgpu_engine::raii {
 
 GenericRenderPipeline::GenericRenderPipeline(WGPUDevice device, const ShaderModule& vertex_shader, const ShaderModule& fragment_shader,
-    const VertexBufferInfos& vertex_buffer_infos, const ColorTargetInfos& color_target_infos, const BindGroupLayouts& bind_group_layouts,
-    const WGPUTextureFormat depth_texture_format)
+    const VertexBufferInfos& vertex_buffer_infos, const FramebufferFormat& framebuffer_format, const BindGroupLayouts& bind_group_layouts,
+    WGPUBlendState blend_state)
 {
     std::vector<WGPUBlendState> blend_states;
     std::vector<WGPUColorTargetState> color_target_states;
-    std::for_each(color_target_infos.begin(), color_target_infos.end(), [&blend_states, &color_target_states](const ColorTargetInfo& info) {
-        blend_states.push_back(get_blend_preset(info.blend_preset));
-        WGPUColorTargetState color_target_state {};
-        color_target_state.blend = &blend_states.back();
-        color_target_state.format = info.texture_format;
-        color_target_state.writeMask = WGPUColorWriteMask::WGPUColorWriteMask_All;
-        color_target_states.push_back(color_target_state);
-    });
+    std::for_each(framebuffer_format.color_formats.begin(), framebuffer_format.color_formats.end(),
+        [&color_target_states, &blend_state](const WGPUTextureFormat& format) {
+            WGPUColorTargetState color_target_state {};
+            color_target_state.blend = &blend_state;
+            color_target_state.format = format;
+            color_target_state.writeMask = WGPUColorWriteMask::WGPUColorWriteMask_All;
+            color_target_states.push_back(color_target_state);
+        });
 
     WGPUFragmentState fragment_state {};
     fragment_state.module = fragment_shader.handle();
@@ -61,7 +61,7 @@ GenericRenderPipeline::GenericRenderPipeline(WGPUDevice device, const ShaderModu
     depth_stencil_state.stencilWriteMask = 0;
     depth_stencil_state.stencilFront = stencil_face_state;
     depth_stencil_state.stencilBack = stencil_face_state;
-    depth_stencil_state.format = depth_texture_format;
+    depth_stencil_state.format = framebuffer_format.depth_format;
 
     std::vector<WGPUBindGroupLayout> bind_group_layout_handles;
     std::transform(bind_group_layouts.begin(), bind_group_layouts.end(), std::back_insert_iterator(bind_group_layout_handles),

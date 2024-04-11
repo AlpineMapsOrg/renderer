@@ -31,28 +31,28 @@ PipelineManager::PipelineManager(WGPUDevice device, ShaderModuleManager& shader_
 
 const raii::RenderPipeline& PipelineManager::tile_pipeline() const { return m_tile_pipeline->pipeline(); }
 
-void PipelineManager::create_pipelines(WGPUTextureFormat color_target_format, WGPUTextureFormat depth_texture_format,
-    const raii::BindGroupWithLayout& shared_config_bind_group, const raii::BindGroupWithLayout& camera_bind_group,
-    const raii::BindGroupWithLayout& tile_bind_group)
+const raii::RenderPipeline& PipelineManager::compose_pipeline() const { return m_compose_pipeline->pipeline(); }
+
+void PipelineManager::create_pipelines(const FramebufferFormat& framebuffer_format, const raii::BindGroupWithLayout& shared_config_bind_group,
+    const raii::BindGroupWithLayout& camera_bind_group, const raii::BindGroupWithLayout& tile_bind_group, const raii::BindGroupWithLayout& compose_bind_group)
 {
-    create_tile_pipeline(color_target_format, depth_texture_format, shared_config_bind_group, camera_bind_group, tile_bind_group);
+    create_tile_pipeline(framebuffer_format, shared_config_bind_group, camera_bind_group, tile_bind_group);
+    create_compose_pipeline(framebuffer_format, shared_config_bind_group, compose_bind_group);
     m_pipelines_created = true;
 }
 
 void PipelineManager::release_pipelines()
 {
     m_tile_pipeline.release();
+    m_compose_pipeline.release();
     m_pipelines_created = false;
 }
 
 bool PipelineManager::pipelines_created() const { return m_pipelines_created; }
 
-void PipelineManager::create_tile_pipeline(WGPUTextureFormat color_target_format, WGPUTextureFormat depth_texture_format,
-    const raii::BindGroupWithLayout& shared_config_bind_group, const raii::BindGroupWithLayout& camera_bind_group,
-    const raii::BindGroupWithLayout& tile_bind_group)
+void PipelineManager::create_tile_pipeline(const FramebufferFormat& framebuffer_format, const raii::BindGroupWithLayout& shared_config_bind_group,
+    const raii::BindGroupWithLayout& camera_bind_group, const raii::BindGroupWithLayout& tile_bind_group)
 {
-    raii::ColorTargetInfo color_target_info { .blend_preset = raii::BlendPreset::DEFAULT, .texture_format = color_target_format };
-
     util::SingleVertexBufferInfo bounds_buffer_info(WGPUVertexStepMode_Instance);
     bounds_buffer_info.add_attribute<float, 4>(0);
     util::SingleVertexBufferInfo texture_layer_buffer_info(WGPUVertexStepMode_Instance);
@@ -67,10 +67,17 @@ void PipelineManager::create_tile_pipeline(WGPUTextureFormat color_target_format
 
     m_tile_pipeline = std::make_unique<raii::GenericRenderPipeline>(m_device, m_shader_manager->tile(), m_shader_manager->tile(),
         std::vector<util::SingleVertexBufferInfo> { bounds_buffer_info, texture_layer_buffer_info, tileset_id_buffer_info, zoomlevel_buffer_info },
-        std::vector<raii::ColorTargetInfo> { color_target_info },
+        framebuffer_format,
         std::vector<const raii::BindGroupLayout*> {
-            &shared_config_bind_group.bind_group_layout(), &camera_bind_group.bind_group_layout(), &tile_bind_group.bind_group_layout() },
-        depth_texture_format);
+            &shared_config_bind_group.bind_group_layout(), &camera_bind_group.bind_group_layout(), &tile_bind_group.bind_group_layout() });
+}
+
+void PipelineManager::create_compose_pipeline(
+    const FramebufferFormat& framebuffer_format, const raii::BindGroupWithLayout& shared_config_bind_group, const raii::BindGroupWithLayout& compose_bind_group)
+{
+    m_compose_pipeline = std::make_unique<raii::GenericRenderPipeline>(m_device, m_shader_manager->screen_pass_vert(), m_shader_manager->compose_frag(),
+        std::vector<util::SingleVertexBufferInfo> {}, framebuffer_format,
+        std::vector<const raii::BindGroupLayout*> { &shared_config_bind_group.bind_group_layout(), &compose_bind_group.bind_group_layout() });
 }
 
 void PipelineManager::create_shadow_pipeline() {

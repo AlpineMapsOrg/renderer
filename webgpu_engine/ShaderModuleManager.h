@@ -38,6 +38,8 @@ public:
     void release_shader_modules();
 
     const raii::ShaderModule& tile() const;
+    const raii::ShaderModule& screen_pass_vert() const;
+    const raii::ShaderModule& compose_frag() const;
 
 private:
     std::string read_file_contents(const std::string& name) const;
@@ -52,6 +54,8 @@ private:
     std::map<std::string, std::string> m_shader_name_to_code;
 
     std::unique_ptr<raii::ShaderModule> m_tile_shader_module;
+    std::unique_ptr<raii::ShaderModule> m_screen_pass_vert_shader_module;
+    std::unique_ptr<raii::ShaderModule> m_compose_frag_shader_module;
 };
 
 } // namespace webgpu_engine
