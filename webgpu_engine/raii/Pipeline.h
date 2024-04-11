@@ -18,9 +18,9 @@
 
 #pragma once
 
-#include "Framebuffer.h"
 #include "base_types.h"
-#include "util/VertexBufferInfo.h"
+#include "webgpu_engine/Framebuffer.h"
+#include "webgpu_engine/util/VertexBufferInfo.h"
 #include <cassert>
 #include <memory>
 #include <vector>

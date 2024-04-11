@@ -18,8 +18,8 @@
 
 #pragma once
 
-#include "raii/BindGroupWithLayout.h"
-#include "raii/Buffer.h"
+#include "webgpu_engine/raii/BindGroupWithLayout.h"
+#include "webgpu_engine/raii/Buffer.h"
 #include <string>
 #include <webgpu/webgpu.h>
 

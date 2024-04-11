@@ -42,8 +42,8 @@ TileManager::TileManager(QObject* parent)
 
 void TileManager::init(WGPUDevice device, WGPUQueue queue)
 {
-    // m_renderer = std::make_unique<TileRendererInstancedSingleArrayMultiCall>(device, queue);
-    m_renderer = std::make_unique<TileRendererInstancedSingleArray>(device, queue);
+    m_renderer = std::make_unique<TileRendererInstancedSingleArrayMultiCall>(device, queue);
+    // m_renderer = std::make_unique<TileRendererInstancedSingleArray>(device, queue);
     m_renderer->init(glm::uvec2(HEIGHTMAP_RESOLUTION), glm::uvec2(ORTHO_RESOLUTION), m_loaded_tiles.size(), N_EDGE_VERTICES);
 }
 
