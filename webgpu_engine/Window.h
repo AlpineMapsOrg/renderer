@@ -122,7 +122,7 @@ private:
 
     std::unique_ptr<TileManager> m_tile_manager;
 
-    FramebufferFormat m_framebuffer_format;
+    FramebufferFormat m_gbuffer_format;
     std::unique_ptr<Framebuffer> m_gbuffer;
     std::unique_ptr<raii::Sampler> m_compose_sampler;
 

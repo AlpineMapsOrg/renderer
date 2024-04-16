@@ -30,9 +30,9 @@ PipelineManager::PipelineManager(WGPUDevice device, ShaderModuleManager& shader_
 {
 }
 
-const raii::RenderPipeline& PipelineManager::tile_pipeline() const { return m_tile_pipeline->pipeline(); }
+const raii::GenericRenderPipeline& PipelineManager::tile_pipeline() const { return *m_tile_pipeline; }
 
-const raii::RenderPipeline& PipelineManager::compose_pipeline() const { return m_compose_pipeline->pipeline(); }
+const raii::GenericRenderPipeline& PipelineManager::compose_pipeline() const { return *m_compose_pipeline; }
 
 const raii::BindGroupLayout& PipelineManager::shared_config_bind_group_layout() const { return *m_shared_config_bind_group_layout; }
 
@@ -138,7 +138,10 @@ void PipelineManager::create_tile_pipeline()
 
     FramebufferFormat format {};
     format.depth_format = WGPUTextureFormat_Depth24Plus;
-    format.color_formats.emplace_back(WGPUTextureFormat_BGRA8Unorm);
+    format.color_formats.emplace_back(WGPUTextureFormat_RGBA8Unorm);
+    format.color_formats.emplace_back(WGPUTextureFormat_RGBA8Unorm);
+    format.color_formats.emplace_back(WGPUTextureFormat_RG8Uint);
+    format.color_formats.emplace_back(WGPUTextureFormat_RGBA8Unorm);
 
     m_tile_pipeline = std::make_unique<raii::GenericRenderPipeline>(m_device, m_shader_manager->tile(), m_shader_manager->tile(),
         std::vector<util::SingleVertexBufferInfo> { bounds_buffer_info, texture_layer_buffer_info, tileset_id_buffer_info, zoomlevel_buffer_info }, format,

@@ -107,8 +107,9 @@ void Window::resize_framebuffer(int w, int h)
 
     create_swapchain(w, h);
 
-    m_framebuffer_format = FramebufferFormat { .size = glm::uvec2 { w, h }, .depth_format = m_depth_texture_format, .color_formats = { m_swapchain_format } };
-    m_gbuffer = std::make_unique<Framebuffer>(m_device, m_framebuffer_format);
+    m_gbuffer_format = FramebufferFormat(m_pipeline_manager->tile_pipeline().framebuffer_format());
+    m_gbuffer_format.size = glm::uvec2 { w, h };
+    m_gbuffer = std::make_unique<Framebuffer>(m_device, m_gbuffer_format);
 
     m_compose_bind_group = std::make_unique<raii::BindGroup>(m_device, m_pipeline_manager->compose_bind_group_layout(),
         std::vector<WGPUBindGroupEntry> { m_gbuffer->color_texture_view(0).create_bind_group_entry(0), m_compose_sampler->create_bind_group_entry(1) });
@@ -193,7 +194,7 @@ void Window::paint([[maybe_unused]] QOpenGLFramebufferObject* framebuffer)
     }
     {
         std::unique_ptr<raii::RenderPassEncoder> render_pass = begin_render_pass(encoder, next_texture, m_depth_texture_view->handle());
-        wgpuRenderPassEncoderSetPipeline(render_pass->handle(), m_pipeline_manager->compose_pipeline().handle());
+        wgpuRenderPassEncoderSetPipeline(render_pass->handle(), m_pipeline_manager->compose_pipeline().pipeline().handle());
         wgpuRenderPassEncoderSetBindGroup(render_pass->handle(), 0, m_shared_config_bind_group->handle(), 0, nullptr);
         wgpuRenderPassEncoderSetBindGroup(render_pass->handle(), 1, m_compose_bind_group->handle(), 0, nullptr);
         wgpuRenderPassEncoderDraw(render_pass->handle(), 3, 1, 0, 0);

@@ -79,7 +79,7 @@ void Framebuffer::recreate_color_texture(size_t index)
     texture_desc.viewFormats = &m_format.color_formats[index];
 
     m_color_textures[index] = std::make_unique<raii::Texture>(m_device, texture_desc);
-    m_color_texture_views[index] = m_color_textures.back()->create_view();
+    m_color_texture_views[index] = m_color_textures.at(index)->create_view();
 }
 
 void Framebuffer::recreate_all_textures()

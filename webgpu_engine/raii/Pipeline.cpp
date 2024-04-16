@@ -26,18 +26,22 @@ namespace webgpu_engine::raii {
 
 GenericRenderPipeline::GenericRenderPipeline(WGPUDevice device, const ShaderModule& vertex_shader, const ShaderModule& fragment_shader,
     const VertexBufferInfos& vertex_buffer_infos, const FramebufferFormat& framebuffer_format, const BindGroupLayouts& bind_group_layouts,
-    WGPUBlendState blend_state)
+    const std::vector<std::optional<WGPUBlendState>>& blend_states)
+    : m_framebuffer_format { framebuffer_format }
 {
-    std::vector<WGPUBlendState> blend_states;
+    assert(blend_states.size() <= framebuffer_format.color_formats.size());
+
     std::vector<WGPUColorTargetState> color_target_states;
-    std::for_each(framebuffer_format.color_formats.begin(), framebuffer_format.color_formats.end(),
-        [&color_target_states, &blend_state](const WGPUTextureFormat& format) {
-            WGPUColorTargetState color_target_state {};
-            color_target_state.blend = &blend_state;
-            color_target_state.format = format;
-            color_target_state.writeMask = WGPUColorWriteMask::WGPUColorWriteMask_All;
-            color_target_states.push_back(color_target_state);
-        });
+
+    for (size_t i = 0; i < framebuffer_format.color_formats.size(); i++) {
+        WGPUColorTargetState color_target_state {};
+        color_target_state.format = framebuffer_format.color_formats.at(i);
+        if (i < blend_states.size() && blend_states.at(i).has_value()) {
+            color_target_state.blend = &blend_states.at(i).value();
+        }
+        color_target_state.writeMask = WGPUColorWriteMask::WGPUColorWriteMask_All;
+        color_target_states.push_back(color_target_state);
+    }
 
     WGPUFragmentState fragment_state {};
     fragment_state.module = fragment_shader.handle();
@@ -100,5 +104,7 @@ GenericRenderPipeline::GenericRenderPipeline(WGPUDevice device, const ShaderModu
 }
 
 const RenderPipeline& GenericRenderPipeline::pipeline() const { return *m_pipeline; }
+
+const FramebufferFormat& GenericRenderPipeline::framebuffer_format() const { return m_framebuffer_format; }
 
 } // namespace webgpu_engine::raii

@@ -40,11 +40,20 @@ struct VertexIn {
 }
 
 struct VertexOut {
-    @builtin(position) position : vec4f,
-    @location(0) uv : vec2f,
-    @location(1) @interpolate(flat) texture_layer : i32,
+    @builtin(position) position: vec4f,
+    @location(0) uv: vec2f,
+    @location(1) pos_cws: vec3f,
+    @location(2) normal: vec3f,
+    @location(3) @interpolate(flat) texture_layer: i32,
+    @location(4) color: vec3f,
 }
 
+struct FragOut {
+    @location(0) albedo: vec4f,
+    @location(1) position: vec4f,
+    @location(2) normal: vec2u,
+    @location(3) depth: vec4f,
+}
 
 fn y_to_lat(y: f32) -> f32 {
     const pi = 3.1415926535897932384626433;
@@ -149,23 +158,29 @@ highp vec3 normal_by_finite_difference_method(vec2 uv, float edge_vertices_count
     var quad_width : f32;
     var quad_height : f32;
     var altitude_correction_factor : f32;
-    var var_pos_cws = camera_world_space_position(vertex_index, vertex_in.bounds, vertex_in.texture_layer, &uv, &n_quads_per_direction, &quad_width, &quad_height, &altitude_correction_factor);
+    let var_pos_cws = camera_world_space_position(vertex_index, vertex_in.bounds, vertex_in.texture_layer, &uv, &n_quads_per_direction, &quad_width, &quad_height, &altitude_correction_factor);
 
-
-    //const POSITIONS = array(vec3f(-10, -40, 0), vec3f(0, -40, 10), vec3f(10, -40, 0));
     let pos = vec4f(var_pos_cws, 1);
     let clip_pos = camera.view_proj_matrix * pos;
+
     var vertex_out : VertexOut;
     vertex_out.position = clip_pos;
     vertex_out.uv = uv;
+    vertex_out.pos_cws = var_pos_cws;
+    vertex_out.normal = vec3f(1.0, 1.0, 1.0); //TODO
     vertex_out.texture_layer = vertex_in.texture_layer;
+    vertex_out.color = vec3f(1.0, 1.0, 1.0); //TODO
     return vertex_out;
 }
 
-@fragment fn fragmentMain(vertex_out : VertexOut)->@location(0) vec4f
+@fragment fn fragmentMain(vertex_out : VertexOut) -> FragOut
 {
-    let color = textureSample(ortho_texture, ortho_sampler, vertex_out.uv, vertex_out.texture_layer).rgb;
-    //return vec4f(0.0, 1.0, 0.0, 1.0);
-    // return vec4f(color.r, 0.4, (sin(config.sun_light_dir.x) + 1) / 2, 1.0); //
-    return vec4f(color, 1.0);
+    let albedo = textureSample(ortho_texture, ortho_sampler, vertex_out.uv, vertex_out.texture_layer).rgb;
+
+    var frag_out : FragOut;
+    frag_out.albedo = vec4f(albedo, 1.0);
+    frag_out.position = vec4f(0, 0, 0, 0);
+    frag_out.normal = vec2u(0, 0);
+    frag_out.depth = vec4f(0, 0, 0, 0);
+    return frag_out;
 }

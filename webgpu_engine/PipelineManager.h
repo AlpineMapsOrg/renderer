@@ -29,8 +29,8 @@ class PipelineManager {
 public:
     PipelineManager(WGPUDevice device, ShaderModuleManager& shader_manager);
 
-    const raii::RenderPipeline& tile_pipeline() const;
-    const raii::RenderPipeline& compose_pipeline() const;
+    const raii::GenericRenderPipeline& tile_pipeline() const;
+    const raii::GenericRenderPipeline& compose_pipeline() const;
 
     const raii::BindGroupLayout& shared_config_bind_group_layout() const;
     const raii::BindGroupLayout& camera_bind_group_layout() const;

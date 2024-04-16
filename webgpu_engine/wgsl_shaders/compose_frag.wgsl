@@ -7,11 +7,6 @@
 
 @fragment
 fn fragmentMain(vertex_out : VertexOut) -> @location(0) vec4f {
-    let test_col = vertex_out.texcoords.xy;
     let albedo = textureSample(albedo_texture, compose_sampler, vertex_out.texcoords.xy).rgb;
-
-    const u = 0.5;
-    let blend = u * vec3f(test_col, 0) + (1 - u) * albedo;
-
-    return vec4f(blend, 1);
+    return vec4f(albedo, 1);
 }
