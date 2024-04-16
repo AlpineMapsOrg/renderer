@@ -22,11 +22,11 @@
 
 #include <memory>
 
+#include "PipelineManager.h"
 #include "TileSet.h"
-#include "raii/BindGroupWithLayout.h"
+#include "raii/BindGroup.h"
 #include "raii/Buffer.h"
 #include "raii/TextureWithSampler.h"
-#include "util/BindGroupWithLayoutInfo.h"
 #include <QObject>
 #include <nucleus/Tile.h>
 #include <nucleus/tile_scheduler/DrawListGenerator.h>
@@ -49,24 +49,17 @@ public:
     virtual ~TileRenderer() = default;
     virtual void init(glm::uvec2 height_resolution, glm::uvec2 ortho_resolution, size_t num_layers, size_t n_edge_vertices) = 0;
     virtual void write_tile(const nucleus::utils::ColourTexture& ortho_texture, const nucleus::Raster<uint16_t>& height_map, size_t layer) = 0;
-    virtual void draw(WGPURenderPipeline render_pipeline, WGPURenderPassEncoder render_pass, const nucleus::camera::Definition& camera,
-        const std::vector<const TileSet*>& tile_list)
-        = 0;
-
-    virtual const raii::BindGroupWithLayout& tile_bind_group() const = 0; // TODO remove from interface, this is an implementation detail
+    virtual void draw(WGPURenderPassEncoder render_pass, const nucleus::camera::Definition& camera, const std::vector<const TileSet*>& tile_list) = 0;
 };
 
 /// Draws tiles by instancing with a single draw call.
 /// Stores heightmaps and ortho photos for all tiles in a single 2d texture array each.
 class TileRendererInstancedSingleArray : public TileRenderer {
 public:
-    TileRendererInstancedSingleArray(WGPUDevice device, WGPUQueue queue);
+    TileRendererInstancedSingleArray(WGPUDevice device, WGPUQueue queue, const PipelineManager& pipeline_manager);
     void init(glm::uvec2 height_resolution, glm::uvec2 ortho_resolution, size_t num_layers, size_t n_edge_vertices) override;
     void write_tile(const nucleus::utils::ColourTexture& ortho_texture, const nucleus::Raster<uint16_t>& height_map, size_t layer) override;
-    void draw(WGPURenderPipeline render_pipeline, WGPURenderPassEncoder render_pass, const nucleus::camera::Definition& camera,
-        const std::vector<const TileSet*>& tile_list) override;
-
-    virtual const raii::BindGroupWithLayout& tile_bind_group() const override;
+    void draw(WGPURenderPassEncoder render_pass, const nucleus::camera::Definition& camera, const std::vector<const TileSet*>& tile_list) override;
 
 private:
     size_t m_index_buffer_size;
@@ -79,12 +72,11 @@ private:
 
     std::unique_ptr<raii::TextureWithSampler> m_ortho_textures;
     std::unique_ptr<raii::TextureWithSampler> m_heightmap_textures;
-
-    util::BindGroupWithLayoutInfo m_tile_bind_group_info;
-    std::unique_ptr<raii::BindGroupWithLayout> m_tile_bind_group;
+    std::unique_ptr<raii::BindGroup> m_tile_bind_group;
 
     WGPUDevice m_device = 0;
     WGPUQueue m_queue = 0;
+    const PipelineManager* m_pipeline_manager;
 };
 
 /// Stores ortho photos and heightmaps in multiple texture arrays.
@@ -93,15 +85,12 @@ private:
 class TileRendererInstancedSingleArrayMultiCall : public TileRenderer {
 public:
     // uses device limit for number of array layers
-    TileRendererInstancedSingleArrayMultiCall(WGPUDevice device, WGPUQueue queue);
-    TileRendererInstancedSingleArrayMultiCall(WGPUDevice device, WGPUQueue queue, size_t num_layers_per_texture);
+    TileRendererInstancedSingleArrayMultiCall(WGPUDevice device, WGPUQueue queue, const PipelineManager& pipeline_manager);
+    TileRendererInstancedSingleArrayMultiCall(WGPUDevice device, WGPUQueue queue, const PipelineManager& pipeline_manager, size_t num_layers_per_texture);
 
     void init(glm::uvec2 height_resolution, glm::uvec2 ortho_resolution, size_t num_layers, size_t n_edge_vertices) override;
     void write_tile(const nucleus::utils::ColourTexture& ortho_texture, const nucleus::Raster<uint16_t>& height_map, size_t layer) override;
-    void draw(WGPURenderPipeline render_pipeline, WGPURenderPassEncoder render_pass, const nucleus::camera::Definition& camera,
-        const std::vector<const TileSet*>& tile_list) override;
-
-    virtual const raii::BindGroupWithLayout& tile_bind_group() const override;
+    void draw(WGPURenderPassEncoder render_pass, const nucleus::camera::Definition& camera, const std::vector<const TileSet*>& tile_list) override;
 
 private:
     size_t m_index_buffer_size;
@@ -114,10 +103,11 @@ private:
 
     std::vector<std::unique_ptr<raii::TextureWithSampler>> m_ortho_textures;
     std::vector<std::unique_ptr<raii::TextureWithSampler>> m_heightmap_textures;
-    std::vector<std::unique_ptr<raii::BindGroupWithLayout>> m_tile_bind_group;
+    std::vector<std::unique_ptr<raii::BindGroup>> m_tile_bind_group;
 
     WGPUDevice m_device = 0;
     WGPUQueue m_queue = 0;
+    const PipelineManager* m_pipeline_manager;
 
     size_t m_num_layers_per_texture;
 };
@@ -126,17 +116,15 @@ class TileManager : public QObject {
     Q_OBJECT
 public:
     explicit TileManager(QObject* parent = nullptr);
-    void init(WGPUDevice device, WGPUQueue queue); // needs OpenGL context
+    void init(WGPUDevice device, WGPUQueue queue, const PipelineManager& pipeline_manager); // needs OpenGL context
     [[nodiscard]] const std::vector<TileSet>& tiles() const;
-    void draw(WGPURenderPipeline render_pipeline, WGPURenderPassEncoder render_pass, const nucleus::camera::Definition& camera,
+    void draw(WGPURenderPassEncoder render_pass, const nucleus::camera::Definition& camera,
         const nucleus::tile_scheduler::DrawListGenerator::TileSet& draw_tiles, bool sort_tiles, glm::dvec3 sort_position) const;
 
     const nucleus::tile_scheduler::DrawListGenerator::TileSet generate_tilelist(const nucleus::camera::Definition& camera) const;
     const nucleus::tile_scheduler::DrawListGenerator::TileSet cull(const nucleus::tile_scheduler::DrawListGenerator::TileSet& tileset, const nucleus::camera::Frustum& frustum) const;
 
     void set_permissible_screen_space_error(float new_permissible_screen_space_error);
-
-    const raii::BindGroupWithLayout& tile_bind_group() const;
 
 signals:
     void tiles_changed();

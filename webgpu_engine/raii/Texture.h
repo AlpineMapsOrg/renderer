@@ -19,6 +19,7 @@
 
 #pragma once
 
+#include "TextureView.h"
 #include "base_types.h"
 #include "nucleus/Raster.h"
 #include "nucleus/utils/ColourTexture.h"

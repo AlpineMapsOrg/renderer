@@ -41,7 +41,7 @@ template <typename T> bool Buffer<T>::data_from_string(const QString& base64Stri
     return result;
 }
 
-template <typename T> WGPUBuffer Buffer<T>::handle() const { return m_raw_buffer.handle(); }
+template <typename T> const RawBuffer<T>& Buffer<T>::raw_buffer() const { return m_raw_buffer; }
 
 // IMPORTANT: All possible Template Classes need to be defined here:
 template class Buffer<uboSharedConfig>;

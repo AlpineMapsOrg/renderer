@@ -16,25 +16,17 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *****************************************************************************/
 
-#include "BindGroupWithLayout.h"
+#pragma once
 
-#include "util/BindGroupWithLayoutInfo.h"
+#include "base_types.h"
 
 namespace webgpu_engine::raii {
 
-BindGroupWithLayout::BindGroupWithLayout(WGPUDevice device, const util::BindGroupWithLayoutInfo& bind_group_with_layout)
-    : m_bind_group_layout(std::make_unique<raii::BindGroupLayout>(device, bind_group_with_layout.bind_group_layout_descriptor()))
-    , m_bind_group(std::make_unique<raii::BindGroup>(device, bind_group_with_layout.bind_group_descriptor(m_bind_group_layout->handle())))
-{
-}
+class Sampler : public GpuResource<WGPUSampler, WGPUSamplerDescriptor, WGPUDevice> {
+public:
+    using GpuResource::GpuResource;
 
-void BindGroupWithLayout::bind(WGPURenderPassEncoder render_pass, uint32_t group_index) const
-{
-    wgpuRenderPassEncoderSetBindGroup(render_pass, group_index, m_bind_group->handle(), 0, nullptr);
-}
-
-const BindGroupLayout& BindGroupWithLayout::bind_group_layout() const { return *m_bind_group_layout; }
-
-const BindGroup& BindGroupWithLayout::bind_group() const { return *m_bind_group; }
+    WGPUBindGroupEntry create_bind_group_entry(uint32_t binding) const;
+};
 
 } // namespace webgpu_engine::raii

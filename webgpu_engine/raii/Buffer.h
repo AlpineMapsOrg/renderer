@@ -46,6 +46,17 @@ public:
     size_t size() const { return m_size; }
     size_t size_in_byte() const { return m_size * sizeof(T); };
 
+    WGPUBindGroupEntry create_bind_group_entry(uint32_t binding) const
+    {
+        WGPUBindGroupEntry entry {};
+        entry.binding = binding;
+        entry.buffer = m_handle;
+        entry.size = sizeof(T);
+        entry.offset = 0;
+        entry.nextInChain = nullptr;
+        return entry;
+    }
+
 private:
     size_t m_size;
 };
@@ -65,8 +76,7 @@ public:
     // Loads the given base 64 encoded string as the buffer data
     bool data_from_string(const QString& base64String);
 
-    // Retrieves underlying buffer handle
-    WGPUBuffer handle() const;
+    const RawBuffer<T>& raw_buffer() const;
 
 public:
     // Contains the buffer data

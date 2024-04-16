@@ -19,7 +19,7 @@
 #pragma once
 
 #include "ShaderModuleManager.h"
-#include "raii/BindGroupWithLayout.h"
+#include "raii/BindGroupLayout.h"
 #include "raii/Pipeline.h"
 #include <webgpu/webgpu.h>
 
@@ -32,17 +32,19 @@ public:
     const raii::RenderPipeline& tile_pipeline() const;
     const raii::RenderPipeline& compose_pipeline() const;
 
-    void create_pipelines(const FramebufferFormat& framebuffer_format, const raii::BindGroupWithLayout& shared_config_bind_group,
-        const raii::BindGroupWithLayout& camera_bind_group, const raii::BindGroupWithLayout& tile_bind_group,
-        const raii::BindGroupWithLayout& compose_bind_group);
+    const raii::BindGroupLayout& shared_config_bind_group_layout() const;
+    const raii::BindGroupLayout& camera_bind_group_layout() const;
+    const raii::BindGroupLayout& tile_bind_group_layout() const;
+    const raii::BindGroupLayout& compose_bind_group_layout() const;
+
+    void create_pipelines();
+    void create_bind_group_layouts();
     void release_pipelines();
     bool pipelines_created() const;
 
 private:
-    void create_tile_pipeline(const FramebufferFormat& framebuffer_format, const raii::BindGroupWithLayout& shared_config_bind_group,
-        const raii::BindGroupWithLayout& camera_bind_group, const raii::BindGroupWithLayout& tile_bind_group);
-    void create_compose_pipeline(const FramebufferFormat& framebuffer_format, const raii::BindGroupWithLayout& shared_config_bind_group,
-        const raii::BindGroupWithLayout& compose_bind_group);
+    void create_tile_pipeline();
+    void create_compose_pipeline();
     void create_shadow_pipeline();
 
 private:
@@ -52,7 +54,11 @@ private:
     std::unique_ptr<raii::GenericRenderPipeline> m_tile_pipeline;
     std::unique_ptr<raii::GenericRenderPipeline> m_compose_pipeline;
 
+    std::unique_ptr<raii::BindGroupLayout> m_shared_config_bind_group_layout;
+    std::unique_ptr<raii::BindGroupLayout> m_camera_bind_group_layout;
+    std::unique_ptr<raii::BindGroupLayout> m_tile_bind_group_layout;
+    std::unique_ptr<raii::BindGroupLayout> m_compose_bind_group_layout;
+
     bool m_pipelines_created = false;
 };
-
 }

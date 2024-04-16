@@ -18,26 +18,17 @@
 
 #pragma once
 
-#include "Sampler.h"
-#include "Texture.h"
-#include "TextureView.h"
-#include <webgpu/webgpu.h>
+#include "BindGroupLayout.h"
+#include "base_types.h"
+#include <string>
+#include <vector>
 
 namespace webgpu_engine::raii {
 
-/// Convenience wrapper for a texture and a sampler sampling from the default view of that texture.
-class TextureWithSampler {
+class BindGroup : public GpuResource<WGPUBindGroup, WGPUBindGroupDescriptor, WGPUDevice> {
 public:
-    TextureWithSampler(WGPUDevice device, const WGPUTextureDescriptor& texture_desc, const WGPUSamplerDescriptor& sampler_desc);
-
-    Texture& texture();
-    const TextureView& texture_view() const;
-    const Sampler& sampler() const;
-
-private:
-    std::unique_ptr<Texture> m_texture;
-    std::unique_ptr<TextureView> m_texture_view;
-    std::unique_ptr<Sampler> m_sampler;
+    using GpuResource::GpuResource;
+    BindGroup(WGPUDevice device, const BindGroupLayout& layout, const std::vector<WGPUBindGroupEntry>& entries, const std::string& label = "not assigned");
 };
 
 } // namespace webgpu_engine::raii

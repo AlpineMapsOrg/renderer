@@ -16,28 +16,17 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *****************************************************************************/
 
-#pragma once
+#include "BindGroupLayout.h"
 
-#include "Sampler.h"
-#include "Texture.h"
-#include "TextureView.h"
+#include <string>
 #include <webgpu/webgpu.h>
 
 namespace webgpu_engine::raii {
 
-/// Convenience wrapper for a texture and a sampler sampling from the default view of that texture.
-class TextureWithSampler {
-public:
-    TextureWithSampler(WGPUDevice device, const WGPUTextureDescriptor& texture_desc, const WGPUSamplerDescriptor& sampler_desc);
-
-    Texture& texture();
-    const TextureView& texture_view() const;
-    const Sampler& sampler() const;
-
-private:
-    std::unique_ptr<Texture> m_texture;
-    std::unique_ptr<TextureView> m_texture_view;
-    std::unique_ptr<Sampler> m_sampler;
-};
+BindGroupLayout::BindGroupLayout(WGPUDevice device, const std::vector<WGPUBindGroupLayoutEntry>& entries, const std::string& label)
+    : GpuResource(
+        device, WGPUBindGroupLayoutDescriptor { .nextInChain = nullptr, .label = label.data(), .entryCount = entries.size(), .entries = entries.data() })
+{
+}
 
 } // namespace webgpu_engine::raii

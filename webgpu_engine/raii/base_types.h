@@ -118,15 +118,15 @@ protected:
     DescriptorT m_descriptor;
 };
 
-using BindGroup = GpuResource<WGPUBindGroup, WGPUBindGroupDescriptor, WGPUDevice>;
-using BindGroupLayout = GpuResource<WGPUBindGroupLayout, WGPUBindGroupLayoutDescriptor, WGPUDevice>;
+// using BindGroup = GpuResource<WGPUBindGroup, WGPUBindGroupDescriptor, WGPUDevice>;
+// using BindGroupLayout = GpuResource<WGPUBindGroupLayout, WGPUBindGroupLayoutDescriptor, WGPUDevice>;
 using ShaderModule = GpuResource<WGPUShaderModule, WGPUShaderModuleDescriptor, WGPUDevice>;
 using PipelineLayout = GpuResource<WGPUPipelineLayout, WGPUPipelineLayoutDescriptor, WGPUDevice>;
 using RenderPipeline = GpuResource<WGPURenderPipeline, WGPURenderPipelineDescriptor, WGPUDevice>;
 // using Buffer = GpuResource<WGPUBuffer, WGPUBufferDescriptor, WGPUDevice>;
 // using Texture = GpuResource<WGPUTexture, WGPUTextureDescriptor, WGPUDevice>;
-using TextureView = GpuResource<WGPUTextureView, WGPUTextureViewDescriptor, WGPUTexture>;
-using Sampler = GpuResource<WGPUSampler, WGPUSamplerDescriptor, WGPUDevice>;
+// using TextureView = GpuResource<WGPUTextureView, WGPUTextureViewDescriptor, WGPUTexture>;
+// using Sampler = GpuResource<WGPUSampler, WGPUSamplerDescriptor, WGPUDevice>;
 using RenderPassEncoder = GpuResource<WGPURenderPassEncoder, WGPURenderPassDescriptor, WGPUCommandEncoder>;
 
 } // namespace webgpu_engine::raii

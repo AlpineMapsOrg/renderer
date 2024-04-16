@@ -33,10 +33,12 @@ set(SOURCES
     raii/Texture.h raii/Texture.cpp
     raii/TextureWithSampler.h raii/TextureWithSampler.cpp
     raii/Buffer.h raii/Buffer.cpp
-    raii/BindGroupWithLayout.h raii/BindGroupWithLayout.cpp
+    raii/TextureView.h raii/TextureView.cpp
+    raii/Sampler.h raii/Sampler.cpp
+    raii/BindGroup.h raii/BindGroup.cpp
+    raii/BindGroupLayout.h raii/BindGroupLayout.cpp
     raii/Pipeline.h raii/Pipeline.cpp
     util/VertexBufferInfo.h util/VertexBufferInfo.cpp
-    util/BindGroupWithLayoutInfo.h util/BindGroupWithLayoutInfo.cpp
     util/VertexFormat.h
 )
 

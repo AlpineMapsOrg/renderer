@@ -19,27 +19,14 @@
 #pragma once
 
 #include "base_types.h"
-#include <memory>
-#include <webgpu/webgpu.h>
-
-namespace webgpu_engine::util {
-class BindGroupWithLayoutInfo;
-}
 
 namespace webgpu_engine::raii {
 
-class BindGroupWithLayout {
+class TextureView : public GpuResource<WGPUTextureView, WGPUTextureViewDescriptor, WGPUTexture> {
 public:
-    BindGroupWithLayout(WGPUDevice device, const util::BindGroupWithLayoutInfo& bind_group_with_layout);
+    using GpuResource::GpuResource;
 
-    void bind(WGPURenderPassEncoder render_pass, uint32_t group_index) const;
-
-    const raii::BindGroupLayout& bind_group_layout() const;
-    const raii::BindGroup& bind_group() const;
-
-private:
-    std::unique_ptr<raii::BindGroupLayout> m_bind_group_layout;
-    std::unique_ptr<raii::BindGroup> m_bind_group;
+    WGPUBindGroupEntry create_bind_group_entry(uint32_t binding) const;
 };
 
 } // namespace webgpu_engine::raii

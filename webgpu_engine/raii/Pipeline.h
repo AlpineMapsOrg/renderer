@@ -18,6 +18,7 @@
 
 #pragma once
 
+#include "BindGroupLayout.h"
 #include "base_types.h"
 #include "webgpu_engine/Framebuffer.h"
 #include "webgpu_engine/util/VertexBufferInfo.h"

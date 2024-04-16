@@ -28,6 +28,7 @@
 #include <imnodes.h>
 #endif
 
+#include "raii/Sampler.h"
 #include <QImage>
 
 namespace webgpu_engine {
@@ -68,7 +69,6 @@ void Window::initialise_gpu()
     init_queue();
 
     create_buffers();
-    create_bind_group_info();
 
     WGPUSamplerDescriptor sampler_desc {};
     sampler_desc.label = "compose sampler";
@@ -84,11 +84,13 @@ void Window::initialise_gpu()
     sampler_desc.maxAnisotropy = 1;
     m_compose_sampler = std::make_unique<raii::Sampler>(m_device, sampler_desc);
 
-    m_tile_manager->init(m_device, m_queue);
-
     m_shader_manager = std::make_unique<ShaderModuleManager>(m_device);
     m_shader_manager->create_shader_modules();
     m_pipeline_manager = std::make_unique<PipelineManager>(m_device, *m_shader_manager);
+    m_pipeline_manager->create_pipelines();
+    create_bind_groups();
+
+    m_tile_manager->init(m_device, m_queue, *m_pipeline_manager);
 
     std::cout << "webgpu_engine::Window emitting: gpu_ready_changed" << std::endl;
     emit gpu_ready_changed(true);
@@ -96,12 +98,7 @@ void Window::initialise_gpu()
 
 void Window::resize_framebuffer(int w, int h)
 {
-    // TODO check we can do it without completely recreating swapchain and pipeline
-
-    if (m_pipeline_manager->pipelines_created()) {
-        m_pipeline_manager->release_pipelines();
-    }
-
+    // TODO check we can do it without completely recreating swapchain
     if (m_swapchain != nullptr) {
         wgpuSwapChainRelease(m_swapchain);
     }
@@ -111,15 +108,10 @@ void Window::resize_framebuffer(int w, int h)
     create_swapchain(w, h);
 
     m_framebuffer_format = FramebufferFormat { .size = glm::uvec2 { w, h }, .depth_format = m_depth_texture_format, .color_formats = { m_swapchain_format } };
-    m_framebuffer = std::make_unique<Framebuffer>(m_device, m_framebuffer_format);
+    m_gbuffer = std::make_unique<Framebuffer>(m_device, m_framebuffer_format);
 
-    util::BindGroupWithLayoutInfo compose_bind_group_info("compose bind group");
-    compose_bind_group_info.add_entry(0, m_framebuffer->color_texture_view(0), WGPUShaderStage_Fragment, WGPUTextureSampleType_Float);
-    compose_bind_group_info.add_entry(1, *m_compose_sampler, WGPUShaderStage_Fragment, WGPUSamplerBindingType_Filtering);
-    m_compose_bind_group = std::make_unique<raii::BindGroupWithLayout>(m_device, compose_bind_group_info);
-
-    m_pipeline_manager->create_pipelines(
-        m_framebuffer_format, *m_shared_config_bind_group, *m_camera_bind_group, m_tile_manager->tile_bind_group(), *m_compose_bind_group);
+    m_compose_bind_group = std::make_unique<raii::BindGroup>(m_device, m_pipeline_manager->compose_bind_group_layout(),
+        std::vector<WGPUBindGroupEntry> { m_gbuffer->color_texture_view(0).create_bind_group_entry(0), m_compose_sampler->create_bind_group_entry(1) });
 
 #ifdef ALP_WEBGPU_APP_ENABLE_IMGUI
     if (ImGui::GetCurrentContext() != nullptr) {
@@ -192,17 +184,18 @@ void Window::paint([[maybe_unused]] QOpenGLFramebufferObject* framebuffer)
     WGPUCommandEncoder encoder = wgpuDeviceCreateCommandEncoder(m_device, &command_encoder_desc);
 
     {
-        std::unique_ptr<raii::RenderPassEncoder> render_pass = m_framebuffer->begin_render_pass(encoder);
-        m_shared_config_bind_group->bind(render_pass->handle(), 0);
-        m_camera_bind_group->bind(render_pass->handle(), 1);
+        std::unique_ptr<raii::RenderPassEncoder> render_pass = m_gbuffer->begin_render_pass(encoder);
+        wgpuRenderPassEncoderSetBindGroup(render_pass->handle(), 0, m_shared_config_bind_group->handle(), 0, nullptr);
+        wgpuRenderPassEncoderSetBindGroup(render_pass->handle(), 1, m_camera_bind_group->handle(), 0, nullptr);
+
         const auto tile_set = m_tile_manager->generate_tilelist(m_camera);
-        m_tile_manager->draw(m_pipeline_manager->tile_pipeline().handle(), render_pass->handle(), m_camera, tile_set, true, m_camera.position());
+        m_tile_manager->draw(render_pass->handle(), m_camera, tile_set, true, m_camera.position());
     }
     {
         std::unique_ptr<raii::RenderPassEncoder> render_pass = begin_render_pass(encoder, next_texture, m_depth_texture_view->handle());
         wgpuRenderPassEncoderSetPipeline(render_pass->handle(), m_pipeline_manager->compose_pipeline().handle());
-        m_shared_config_bind_group->bind(render_pass->handle(), 0);
-        m_compose_bind_group->bind(render_pass->handle(), 1);
+        wgpuRenderPassEncoderSetBindGroup(render_pass->handle(), 0, m_shared_config_bind_group->handle(), 0, nullptr);
+        wgpuRenderPassEncoderSetBindGroup(render_pass->handle(), 1, m_compose_bind_group->handle(), 0, nullptr);
         wgpuRenderPassEncoderDraw(render_pass->handle(), 3, 1, 0, 0);
 
 #ifdef ALP_WEBGPU_APP_ENABLE_IMGUI
@@ -565,15 +558,13 @@ void Window::create_swapchain(uint32_t width, uint32_t height)
     std::cout << "Swapchain: " << m_swapchain << std::endl;
 }
 
-void Window::create_bind_group_info()
+void Window::create_bind_groups()
 {
-    util::BindGroupWithLayoutInfo shared_config_bind_group_info("shared config bind group");
-    shared_config_bind_group_info.add_entry(0, *m_shared_config_ubo, WGPUShaderStage::WGPUShaderStage_Vertex | WGPUShaderStage::WGPUShaderStage_Fragment);
-    m_shared_config_bind_group = std::make_unique<raii::BindGroupWithLayout>(m_device, shared_config_bind_group_info);
+    m_shared_config_bind_group = std::make_unique<raii::BindGroup>(m_device, m_pipeline_manager->shared_config_bind_group_layout(),
+        std::vector<WGPUBindGroupEntry> { m_shared_config_ubo->raw_buffer().create_bind_group_entry(0) });
 
-    util::BindGroupWithLayoutInfo camera_bind_group_info("camera bind group");
-    camera_bind_group_info.add_entry(0, *m_camera_config_ubo, WGPUShaderStage::WGPUShaderStage_Vertex | WGPUShaderStage::WGPUShaderStage_Fragment);
-    m_camera_bind_group = std::make_unique<raii::BindGroupWithLayout>(m_device, camera_bind_group_info);
+    m_camera_bind_group = std::make_unique<raii::BindGroup>(m_device, m_pipeline_manager->camera_bind_group_layout(),
+        std::vector<WGPUBindGroupEntry> { m_camera_config_ubo->raw_buffer().create_bind_group_entry(0) });
 }
 
 WGPURequiredLimits Window::required_gpu_limits() const

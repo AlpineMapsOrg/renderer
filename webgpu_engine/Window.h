@@ -26,10 +26,10 @@
 #include "nucleus/camera/AbstractDepthTester.h"
 #include "nucleus/camera/Controller.h"
 #include "nucleus/utils/ColourTexture.h"
-#include "nucleus/utils/Stopwatch.h"
-#include "raii/BindGroupWithLayout.h"
+#include "raii/BindGroup.h"
+#include "raii/Sampler.h"
 #include "raii/Texture.h"
-#include "raii/TextureWithSampler.h"
+#include "raii/TextureView.h"
 #include <webgpu/webgpu.h>
 
 class QOpenGLFramebufferObject;
@@ -80,7 +80,7 @@ private:
     void init_queue();
     void create_buffers();
     void create_depth_texture(uint32_t width, uint32_t height);
-    void create_bind_group_info();
+    void create_bind_groups();
     void create_swapchain(uint32_t w, uint32_t h);
 
     bool init_gui();
@@ -106,9 +106,9 @@ private:
     std::unique_ptr<raii::Buffer<uboSharedConfig>> m_shared_config_ubo;
     std::unique_ptr<raii::Buffer<uboCameraConfig>> m_camera_config_ubo;
 
-    std::unique_ptr<raii::BindGroupWithLayout> m_shared_config_bind_group;
-    std::unique_ptr<raii::BindGroupWithLayout> m_camera_bind_group;
-    std::unique_ptr<raii::BindGroupWithLayout> m_compose_bind_group;
+    std::unique_ptr<raii::BindGroup> m_shared_config_bind_group;
+    std::unique_ptr<raii::BindGroup> m_camera_bind_group;
+    std::unique_ptr<raii::BindGroup> m_compose_bind_group;
 
     ObtainWebGpuSurfaceFunc m_obtain_webgpu_surface_func;
     ImGuiWindowImplInitFunc m_imgui_window_init_func;
@@ -123,7 +123,7 @@ private:
     std::unique_ptr<TileManager> m_tile_manager;
 
     FramebufferFormat m_framebuffer_format;
-    std::unique_ptr<Framebuffer> m_framebuffer;
+    std::unique_ptr<Framebuffer> m_gbuffer;
     std::unique_ptr<raii::Sampler> m_compose_sampler;
 
 };
