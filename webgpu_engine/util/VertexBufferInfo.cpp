@@ -52,18 +52,4 @@ SingleVertexBufferInfo::SingleVertexBufferInfo(WGPUVertexStepMode step_mode, uin
 {
 }
 
-void VertexBufferInfo::add_buffer(WGPUVertexStepMode step_mode) { m_vertex_buffer_info.emplace_back(step_mode); }
-
-void VertexBufferInfo::add_buffer(WGPUVertexStepMode step_mode, uint32_t stride) { m_vertex_buffer_info.emplace_back(step_mode, stride); }
-
-SingleVertexBufferInfo& VertexBufferInfo::get_buffer_info(size_t buffer_index) { return m_vertex_buffer_info.at(buffer_index); }
-
-std::vector<WGPUVertexBufferLayout> VertexBufferInfo::vertex_buffer_layouts() const
-{
-    std::vector<WGPUVertexBufferLayout> layouts;
-    auto to_wgpu_object = [](const SingleVertexBufferInfo& info) { return info.vertex_buffer_layout(); };
-    std::transform(m_vertex_buffer_info.begin(), m_vertex_buffer_info.end(), std::back_inserter(layouts), to_wgpu_object);
-    return layouts;
-}
-
 } // namespace webgpu_engine::util

@@ -43,21 +43,6 @@ private:
     WGPUVertexStepMode m_step_mode = WGPUVertexStepMode_Undefined;
 };
 
-class VertexBufferInfo {
-public:
-    VertexBufferInfo() = default;
-
-    void add_buffer(WGPUVertexStepMode step_mode);
-    void add_buffer(WGPUVertexStepMode step_mode, uint32_t stride);
-
-    SingleVertexBufferInfo& get_buffer_info(size_t buffer_index);
-
-    std::vector<WGPUVertexBufferLayout> vertex_buffer_layouts() const;
-
-private:
-    std::vector<SingleVertexBufferInfo> m_vertex_buffer_info;
-};
-
 template <typename T, int N> void SingleVertexBufferInfo::add_attribute(uint32_t shader_location, uint32_t offset)
 {
     static_assert(VertexFormat<T, N>::format() != WGPUVertexFormat_Undefined);
