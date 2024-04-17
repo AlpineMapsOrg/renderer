@@ -38,21 +38,13 @@ void main() {
 
   highp vec3 x0 = a_position - camera_position;
 
-  // main axis of the rounded cone
-  highp vec3 main_axis = a_direction;
-
   highp vec3 view_direction = camera_position - a_position;
 
   // orthogonal to main axis
-  highp vec3 u_hat = normalize(cross(main_axis, view_direction));
+  highp vec3 u = normalize(cross(a_direction, view_direction));
+  highp vec3 v = normalize(cross(u, view_direction));
 
-  highp vec3 v0 = normalize(cross(u_hat, view_direction));
-
-  highp float t0 = sqrt(dot(view_direction, view_direction) - (width * width));
-
-  highp vec3 p0 = x0 + (a_offset.x * v0 * width);
-
-  highp vec3 position = p0 + u_hat * a_offset.z * width;
+  highp vec3 position = x0 + (v * width * a_offset.x) + (u * width * a_offset.z);
 
   gl_Position = matrix * vec4(position, 1);
 }

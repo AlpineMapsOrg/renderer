@@ -38,6 +38,7 @@ struct PolyLine {
     GLsizei point_count;
     std::unique_ptr<QOpenGLVertexArrayObject> vao = nullptr;
     std::unique_ptr<QOpenGLBuffer> vbo = nullptr;
+    std::unique_ptr<QOpenGLTexture> texture = nullptr;
 };
 
 class TrackManager : public QObject {
@@ -51,8 +52,6 @@ public:
 
     void add_track(const nucleus::gpx::Gpx& gpx, ShaderProgram* shader);
 
-    QOpenGLTexture* track_texture();
-
     unsigned int shading_method = 0U;
     float width = 7.0f;
 
@@ -62,6 +61,5 @@ private:
     float m_max_vertical_speed = 0.0f;
     size_t m_total_point_count = 0;
     std::vector<PolyLine> m_tracks;
-    std::unique_ptr<QOpenGLTexture> m_data_texture = nullptr;
 };
 } // namespace gl_engine

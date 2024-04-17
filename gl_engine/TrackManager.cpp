@@ -42,15 +42,6 @@ TrackManager::TrackManager(QObject* parent)
 
 void TrackManager::init() { assert(QOpenGLContext::currentContext()); }
 
-QOpenGLTexture* TrackManager::track_texture()
-{
-    if (m_data_texture) {
-        return m_data_texture.get();
-    } else {
-        return nullptr;
-    }
-}
-
 void TrackManager::draw(const nucleus::camera::Definition& camera, ShaderProgram* shader) const
 {
     if (m_tracks.empty()) {
@@ -79,11 +70,9 @@ void TrackManager::draw(const nucleus::camera::Definition& camera, ShaderProgram
     shader->set_uniform("max_vertical_speed", m_max_vertical_speed);
     shader->set_uniform("end_index", static_cast<int>(m_total_point_count));
 
-    if (m_data_texture) {
-        m_data_texture->bind(8);
-    }
-
     for (const PolyLine& track : m_tracks) {
+
+        track.texture->bind(8);
 
         track.vao->bind();
 
@@ -149,7 +138,7 @@ void TrackManager::add_track(const nucleus::gpx::Gpx& gpx, ShaderProgram* shader
             return;
         }
 
-        if (m_data_texture == nullptr) {
+        if (polyline.texture == nullptr) {
 
             int max_texture_size;
             f->glGetIntegerv(GL_MAX_TEXTURE_SIZE, &max_texture_size);
@@ -158,22 +147,22 @@ void TrackManager::add_track(const nucleus::gpx::Gpx& gpx, ShaderProgram* shader
             POINT_TEXTURE_SIZE = max_texture_size;
 
             // create texture to hold the point data
-            m_data_texture = std::make_unique<QOpenGLTexture>(QOpenGLTexture::Target::Target2D);
-            m_data_texture->setFormat(QOpenGLTexture::TextureFormat::RGBA32F);
-            m_data_texture->setSize(POINT_TEXTURE_SIZE, 1);
-            m_data_texture->setAutoMipMapGenerationEnabled(false);
-            m_data_texture->setMinMagFilters(QOpenGLTexture::Filter::Nearest, QOpenGLTexture::Filter::Nearest);
-            m_data_texture->setWrapMode(QOpenGLTexture::WrapMode::ClampToEdge);
-            m_data_texture->allocateStorage();
+            polyline.texture = std::make_unique<QOpenGLTexture>(QOpenGLTexture::Target::Target2D);
+            polyline.texture->setFormat(QOpenGLTexture::TextureFormat::RGBA32F);
+            polyline.texture->setSize(POINT_TEXTURE_SIZE, 1);
+            polyline.texture->setAutoMipMapGenerationEnabled(false);
+            polyline.texture->setMinMagFilters(QOpenGLTexture::Filter::Nearest, QOpenGLTexture::Filter::Nearest);
+            polyline.texture->setWrapMode(QOpenGLTexture::WrapMode::ClampToEdge);
+            polyline.texture->allocateStorage();
 
-            if (!m_data_texture->isStorageAllocated()) {
+            if (!polyline.texture->isStorageAllocated()) {
                 qDebug() << "Could not allocate texture storage!";
                 return;
             }
         }
 
-        m_data_texture->bind();
-        m_data_texture->setData(m_total_point_count, 0, 0, point_count, 1, 0, QOpenGLTexture::RGBA, QOpenGLTexture::Float32, points.data());
+        polyline.texture->bind();
+        polyline.texture->setData(m_total_point_count, 0, 0, point_count, 1, 0, QOpenGLTexture::RGBA, QOpenGLTexture::Float32, points.data());
 
         m_total_point_count += point_count;
 
