@@ -124,7 +124,8 @@ private:
 
     FramebufferFormat m_gbuffer_format;
     std::unique_ptr<Framebuffer> m_gbuffer;
-    std::unique_ptr<raii::Sampler> m_compose_sampler;
+    std::unique_ptr<raii::Sampler> m_compose_sampler_filtering;
+    std::unique_ptr<raii::Sampler> m_compose_sampler_nonfiltering;
 
     std::unique_ptr<Framebuffer> m_atmosphere_framebuffer;
 };

@@ -113,7 +113,7 @@ void PipelineManager::create_bind_group_layouts()
     WGPUBindGroupLayoutEntry position_texture_entry {};
     position_texture_entry.binding = 1;
     position_texture_entry.visibility = WGPUShaderStage_Fragment;
-    position_texture_entry.texture.sampleType = WGPUTextureSampleType_Float;
+    position_texture_entry.texture.sampleType = WGPUTextureSampleType_UnfilterableFloat;
     position_texture_entry.texture.viewDimension = WGPUTextureViewDimension_2D;
 
     WGPUBindGroupLayoutEntry normal_texture_entry {};
@@ -133,9 +133,14 @@ void PipelineManager::create_bind_group_layouts()
     compose_sampler_entry.visibility = WGPUShaderStage_Fragment;
     compose_sampler_entry.sampler.type = WGPUSamplerBindingType_Filtering;
 
+    WGPUBindGroupLayoutEntry compose_nonfiltering_sampler_entry {};
+    compose_nonfiltering_sampler_entry.binding = 5;
+    compose_nonfiltering_sampler_entry.visibility = WGPUShaderStage_Fragment;
+    compose_nonfiltering_sampler_entry.sampler.type = WGPUSamplerBindingType_NonFiltering;
+
     m_compose_bind_group_layout = std::make_unique<raii::BindGroupLayout>(m_device,
-        std::vector<WGPUBindGroupLayoutEntry> {
-            albedo_texture_entry, position_texture_entry, normal_texture_entry, atmosphere_texture_entry, compose_sampler_entry },
+        std::vector<WGPUBindGroupLayoutEntry> { albedo_texture_entry, position_texture_entry, normal_texture_entry, atmosphere_texture_entry,
+            compose_sampler_entry, compose_nonfiltering_sampler_entry },
         "compose bind group layout");
 }
 
@@ -163,7 +168,7 @@ void PipelineManager::create_tile_pipeline()
     FramebufferFormat format {};
     format.depth_format = WGPUTextureFormat_Depth24Plus;
     format.color_formats.emplace_back(WGPUTextureFormat_RGBA8Unorm);
-    format.color_formats.emplace_back(WGPUTextureFormat_RGBA8Unorm);
+    format.color_formats.emplace_back(WGPUTextureFormat_RGBA32Float);
     format.color_formats.emplace_back(WGPUTextureFormat_RG8Uint);
     format.color_formats.emplace_back(WGPUTextureFormat_RGBA8Unorm);
 

@@ -29,7 +29,9 @@
 @group(2) @binding(1) var position_texture : texture_2d<f32>;
 @group(2) @binding(2) var normal_texture : texture_2d<u32>;
 @group(2) @binding(3) var atmosphere_texture : texture_2d<f32>;
-@group(2) @binding(4) var compose_sampler : sampler;
+@group(2) @binding(4) var compose_sampler_filtering : sampler;
+@group(2) @binding(5) var compose_sampler_nonfiltering : sampler;
+
 
 fn calculate_falloff(dist: f32, start: f32, end: f32) -> f32 {
     return clamp(1.0 - (dist - start) / (end - start), 0.0, 1.0);
@@ -37,9 +39,9 @@ fn calculate_falloff(dist: f32, start: f32, end: f32) -> f32 {
 
 @fragment
 fn fragmentMain(vertex_out : VertexOut) -> @location(0) vec4f {
-    let albedo = textureSample(albedo_texture, compose_sampler, vertex_out.texcoords.xy).rgb;
+    let albedo = textureSample(albedo_texture, compose_sampler_filtering, vertex_out.texcoords.xy).rgb;
 
-    let pos_dist = textureSample(position_texture, compose_sampler, vertex_out.texcoords.xy);
+    let pos_dist = textureSample(position_texture, compose_sampler_nonfiltering, vertex_out.texcoords.xy);
     let pos_cws = pos_dist.xyz;
     let dist = pos_dist.w;
     var alpha = 0.0;
@@ -100,7 +102,7 @@ fn fragmentMain(vertex_out : VertexOut) -> @location(0) vec4f {
 
         shaded_color = albedo;
         if (bool(conf.phong_enabled)) {
-            //TODO
+            //TODO normal
             //shaded_color = calculate_illumination(shaded_color, origin, pos_ws, normal, conf.sun_light, conf.amb_light, conf.sun_light_dir.xyz, material_light_response, amb_occlusion, shadow_term);
         }
         shaded_color = calculate_atmospheric_light(origin / 1000.0, ray_direction, dist / 1000.0, shaded_color, 10);
@@ -108,7 +110,7 @@ fn fragmentMain(vertex_out : VertexOut) -> @location(0) vec4f {
     }
 
     // Blend with atmospheric background:
-    let atmospheric_color = textureSample(atmosphere_texture, compose_sampler, vertex_out.texcoords.xy).rgb;
+    let atmospheric_color = textureSample(atmosphere_texture, compose_sampler_filtering, vertex_out.texcoords.xy).rgb;
     var out_Color = vec4f(mix(atmospheric_color, shaded_color, alpha), 1.0);
 
     //TODO

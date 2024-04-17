@@ -70,19 +70,33 @@ void Window::initialise_gpu()
 
     create_buffers();
 
-    WGPUSamplerDescriptor sampler_desc {};
-    sampler_desc.label = "compose sampler";
-    sampler_desc.addressModeU = WGPUAddressMode::WGPUAddressMode_ClampToEdge;
-    sampler_desc.addressModeV = WGPUAddressMode::WGPUAddressMode_ClampToEdge;
-    sampler_desc.addressModeW = WGPUAddressMode::WGPUAddressMode_ClampToEdge;
-    sampler_desc.magFilter = WGPUFilterMode::WGPUFilterMode_Linear;
-    sampler_desc.minFilter = WGPUFilterMode::WGPUFilterMode_Linear;
-    sampler_desc.mipmapFilter = WGPUMipmapFilterMode::WGPUMipmapFilterMode_Linear;
-    sampler_desc.lodMinClamp = 0.0f;
-    sampler_desc.lodMaxClamp = 1.0f;
-    sampler_desc.compare = WGPUCompareFunction::WGPUCompareFunction_Undefined;
-    sampler_desc.maxAnisotropy = 1;
-    m_compose_sampler = std::make_unique<raii::Sampler>(m_device, sampler_desc);
+    WGPUSamplerDescriptor compose_sampler_filtering_desc {};
+    compose_sampler_filtering_desc.label = "compose sampler filtering";
+    compose_sampler_filtering_desc.addressModeU = WGPUAddressMode::WGPUAddressMode_ClampToEdge;
+    compose_sampler_filtering_desc.addressModeV = WGPUAddressMode::WGPUAddressMode_ClampToEdge;
+    compose_sampler_filtering_desc.addressModeW = WGPUAddressMode::WGPUAddressMode_ClampToEdge;
+    compose_sampler_filtering_desc.magFilter = WGPUFilterMode::WGPUFilterMode_Linear;
+    compose_sampler_filtering_desc.minFilter = WGPUFilterMode::WGPUFilterMode_Linear;
+    compose_sampler_filtering_desc.mipmapFilter = WGPUMipmapFilterMode::WGPUMipmapFilterMode_Linear;
+    compose_sampler_filtering_desc.lodMinClamp = 0.0f;
+    compose_sampler_filtering_desc.lodMaxClamp = 1.0f;
+    compose_sampler_filtering_desc.compare = WGPUCompareFunction::WGPUCompareFunction_Undefined;
+    compose_sampler_filtering_desc.maxAnisotropy = 1;
+    m_compose_sampler_filtering = std::make_unique<raii::Sampler>(m_device, compose_sampler_filtering_desc);
+
+    WGPUSamplerDescriptor compose_sampler_nonfiltering_desc {};
+    compose_sampler_nonfiltering_desc.label = "compose sampler";
+    compose_sampler_nonfiltering_desc.addressModeU = WGPUAddressMode::WGPUAddressMode_ClampToEdge;
+    compose_sampler_nonfiltering_desc.addressModeV = WGPUAddressMode::WGPUAddressMode_ClampToEdge;
+    compose_sampler_nonfiltering_desc.addressModeW = WGPUAddressMode::WGPUAddressMode_ClampToEdge;
+    compose_sampler_nonfiltering_desc.magFilter = WGPUFilterMode::WGPUFilterMode_Undefined;
+    compose_sampler_nonfiltering_desc.minFilter = WGPUFilterMode::WGPUFilterMode_Undefined;
+    compose_sampler_nonfiltering_desc.mipmapFilter = WGPUMipmapFilterMode::WGPUMipmapFilterMode_Undefined;
+    compose_sampler_nonfiltering_desc.lodMinClamp = 0.0f;
+    compose_sampler_nonfiltering_desc.lodMaxClamp = 1.0f;
+    compose_sampler_nonfiltering_desc.compare = WGPUCompareFunction::WGPUCompareFunction_Undefined;
+    compose_sampler_nonfiltering_desc.maxAnisotropy = 1;
+    m_compose_sampler_nonfiltering = std::make_unique<raii::Sampler>(m_device, compose_sampler_nonfiltering_desc);
 
     m_shader_manager = std::make_unique<ShaderModuleManager>(m_device);
     m_shader_manager->create_shader_modules();
@@ -116,13 +130,11 @@ void Window::resize_framebuffer(int w, int h)
     m_atmosphere_framebuffer = std::make_unique<Framebuffer>(m_device, atmosphere_framebuffer_format);
 
     m_compose_bind_group = std::make_unique<raii::BindGroup>(m_device, m_pipeline_manager->compose_bind_group_layout(),
-        std::vector<WGPUBindGroupEntry> {
-            m_gbuffer->color_texture_view(0).create_bind_group_entry(0),
-            m_gbuffer->color_texture_view(1).create_bind_group_entry(1),
-            m_gbuffer->color_texture_view(2).create_bind_group_entry(2),
-            m_atmosphere_framebuffer->color_texture_view(0).create_bind_group_entry(3),
-            m_compose_sampler->create_bind_group_entry(4),
-        });
+        std::vector<WGPUBindGroupEntry> { m_gbuffer->color_texture_view(0).create_bind_group_entry(0), // albedo texture
+            m_gbuffer->color_texture_view(1).create_bind_group_entry(1), // position texture
+            m_gbuffer->color_texture_view(2).create_bind_group_entry(2), // normal texture
+            m_atmosphere_framebuffer->color_texture_view(0).create_bind_group_entry(3), // atmosphere texture
+            m_compose_sampler_filtering->create_bind_group_entry(4), m_compose_sampler_nonfiltering->create_bind_group_entry(5) });
 
 #ifdef ALP_WEBGPU_APP_ENABLE_IMGUI
     if (ImGui::GetCurrentContext() != nullptr) {
@@ -607,6 +619,9 @@ WGPURequiredLimits Window::required_gpu_limits() const
     // use 256 as it is supported on all devices according to https://web3dsurvey.com/webgpu/limits/maxTextureArrayLayers
     required_limits.limits.maxTextureArrayLayers = 256;
 #endif
+
+    required_limits.limits.maxColorAttachmentBytesPerSample
+        = 64; // supported on 71% of devices (https://web3dsurvey.com/webgpu/limits/maxColorAttachmentBytesPerSample)
 
     return required_limits;
 }
