@@ -34,6 +34,8 @@ const raii::GenericRenderPipeline& PipelineManager::tile_pipeline() const { retu
 
 const raii::GenericRenderPipeline& PipelineManager::compose_pipeline() const { return *m_compose_pipeline; }
 
+const raii::GenericRenderPipeline& PipelineManager::atmosphere_pipeline() const { return *m_atmosphere_pipeline; }
+
 const raii::BindGroupLayout& PipelineManager::shared_config_bind_group_layout() const { return *m_shared_config_bind_group_layout; }
 
 const raii::BindGroupLayout& PipelineManager::camera_bind_group_layout() const { return *m_camera_bind_group_layout; }
@@ -47,6 +49,7 @@ void PipelineManager::create_pipelines()
     create_bind_group_layouts();
     create_tile_pipeline();
     create_compose_pipeline();
+    create_atmosphere_pipeline();
     m_pipelines_created = true;
 }
 
@@ -107,19 +110,40 @@ void PipelineManager::create_bind_group_layouts()
     albedo_texture_entry.texture.sampleType = WGPUTextureSampleType_Float;
     albedo_texture_entry.texture.viewDimension = WGPUTextureViewDimension_2D;
 
-    WGPUBindGroupLayoutEntry albedo_sampler_entry {};
-    albedo_sampler_entry.binding = 1;
-    albedo_sampler_entry.visibility = WGPUShaderStage_Fragment;
-    albedo_sampler_entry.sampler.type = WGPUSamplerBindingType_Filtering;
+    WGPUBindGroupLayoutEntry position_texture_entry {};
+    position_texture_entry.binding = 1;
+    position_texture_entry.visibility = WGPUShaderStage_Fragment;
+    position_texture_entry.texture.sampleType = WGPUTextureSampleType_Float;
+    position_texture_entry.texture.viewDimension = WGPUTextureViewDimension_2D;
 
-    m_compose_bind_group_layout = std::make_unique<raii::BindGroupLayout>(
-        m_device, std::vector<WGPUBindGroupLayoutEntry> { albedo_texture_entry, albedo_sampler_entry }, "compose bind group layout");
+    WGPUBindGroupLayoutEntry normal_texture_entry {};
+    normal_texture_entry.binding = 2;
+    normal_texture_entry.visibility = WGPUShaderStage_Fragment;
+    normal_texture_entry.texture.sampleType = WGPUTextureSampleType_Uint;
+    normal_texture_entry.texture.viewDimension = WGPUTextureViewDimension_2D;
+
+    WGPUBindGroupLayoutEntry atmosphere_texture_entry {};
+    atmosphere_texture_entry.binding = 3;
+    atmosphere_texture_entry.visibility = WGPUShaderStage_Fragment;
+    atmosphere_texture_entry.texture.sampleType = WGPUTextureSampleType_Float;
+    atmosphere_texture_entry.texture.viewDimension = WGPUTextureViewDimension_2D;
+
+    WGPUBindGroupLayoutEntry compose_sampler_entry {};
+    compose_sampler_entry.binding = 4;
+    compose_sampler_entry.visibility = WGPUShaderStage_Fragment;
+    compose_sampler_entry.sampler.type = WGPUSamplerBindingType_Filtering;
+
+    m_compose_bind_group_layout = std::make_unique<raii::BindGroupLayout>(m_device,
+        std::vector<WGPUBindGroupLayoutEntry> {
+            albedo_texture_entry, position_texture_entry, normal_texture_entry, atmosphere_texture_entry, compose_sampler_entry },
+        "compose bind group layout");
 }
 
 void PipelineManager::release_pipelines()
 {
     m_tile_pipeline.release();
     m_compose_pipeline.release();
+    m_atmosphere_pipeline.release();
     m_pipelines_created = false;
 }
 
@@ -157,7 +181,18 @@ void PipelineManager::create_compose_pipeline()
 
     m_compose_pipeline = std::make_unique<raii::GenericRenderPipeline>(m_device, m_shader_manager->screen_pass_vert(), m_shader_manager->compose_frag(),
         std::vector<util::SingleVertexBufferInfo> {}, format,
-        std::vector<const raii::BindGroupLayout*> { m_shared_config_bind_group_layout.get(), m_compose_bind_group_layout.get() });
+        std::vector<const raii::BindGroupLayout*> {
+            m_shared_config_bind_group_layout.get(), m_camera_bind_group_layout.get(), m_compose_bind_group_layout.get() });
+}
+
+void PipelineManager::create_atmosphere_pipeline()
+{
+    FramebufferFormat format {};
+    format.depth_format = WGPUTextureFormat_Depth24Plus;
+    format.color_formats.emplace_back(WGPUTextureFormat_RGBA8Unorm);
+
+    m_atmosphere_pipeline = std::make_unique<raii::GenericRenderPipeline>(m_device, m_shader_manager->screen_pass_vert(), m_shader_manager->atmosphere_frag(),
+        std::vector<util::SingleVertexBufferInfo> {}, format, std::vector<const raii::BindGroupLayout*> { m_camera_bind_group_layout.get() });
 }
 
 void PipelineManager::create_shadow_pipeline() {

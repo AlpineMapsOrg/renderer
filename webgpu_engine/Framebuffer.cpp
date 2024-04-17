@@ -103,7 +103,7 @@ std::unique_ptr<raii::RenderPassEncoder> Framebuffer::begin_render_pass(WGPUComm
         render_pass_color_attachment.resolveTarget = nullptr;
         render_pass_color_attachment.loadOp = WGPULoadOp::WGPULoadOp_Clear;
         render_pass_color_attachment.storeOp = WGPUStoreOp::WGPUStoreOp_Store;
-        render_pass_color_attachment.clearValue = WGPUColor { 0.53, 0.81, 0.92, 1.0 };
+        render_pass_color_attachment.clearValue = WGPUColor { 0.0, 0.0, 0.0, 0.0 };
         // depthSlice field for RenderPassColorAttachment (https://github.com/gpuweb/gpuweb/issues/4251)
         // this field specifies the slice to render to when rendering to a 3d texture (view)
         // passing a valid index but referencing a non-3d texture leads to an error

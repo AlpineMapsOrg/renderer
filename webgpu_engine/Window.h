@@ -126,6 +126,7 @@ private:
     std::unique_ptr<Framebuffer> m_gbuffer;
     std::unique_ptr<raii::Sampler> m_compose_sampler;
 
+    std::unique_ptr<Framebuffer> m_atmosphere_framebuffer;
 };
 
 } // namespace webgpu_engine

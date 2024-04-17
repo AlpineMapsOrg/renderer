@@ -111,8 +111,18 @@ void Window::resize_framebuffer(int w, int h)
     m_gbuffer_format.size = glm::uvec2 { w, h };
     m_gbuffer = std::make_unique<Framebuffer>(m_device, m_gbuffer_format);
 
+    FramebufferFormat atmosphere_framebuffer_format(m_pipeline_manager->atmosphere_pipeline().framebuffer_format());
+    atmosphere_framebuffer_format.size = m_gbuffer_format.size;
+    m_atmosphere_framebuffer = std::make_unique<Framebuffer>(m_device, atmosphere_framebuffer_format);
+
     m_compose_bind_group = std::make_unique<raii::BindGroup>(m_device, m_pipeline_manager->compose_bind_group_layout(),
-        std::vector<WGPUBindGroupEntry> { m_gbuffer->color_texture_view(0).create_bind_group_entry(0), m_compose_sampler->create_bind_group_entry(1) });
+        std::vector<WGPUBindGroupEntry> {
+            m_gbuffer->color_texture_view(0).create_bind_group_entry(0),
+            m_gbuffer->color_texture_view(1).create_bind_group_entry(1),
+            m_gbuffer->color_texture_view(2).create_bind_group_entry(2),
+            m_atmosphere_framebuffer->color_texture_view(0).create_bind_group_entry(3),
+            m_compose_sampler->create_bind_group_entry(4),
+        });
 
 #ifdef ALP_WEBGPU_APP_ENABLE_IMGUI
     if (ImGui::GetCurrentContext() != nullptr) {
@@ -134,7 +144,7 @@ std::unique_ptr<raii::RenderPassEncoder> begin_render_pass(WGPUCommandEncoder en
     render_pass_color_attachment.resolveTarget = nullptr;
     render_pass_color_attachment.loadOp = WGPULoadOp::WGPULoadOp_Clear;
     render_pass_color_attachment.storeOp = WGPUStoreOp::WGPUStoreOp_Store;
-    render_pass_color_attachment.clearValue = WGPUColor { 0.53, 0.81, 0.92, 1.0 };
+    render_pass_color_attachment.clearValue = WGPUColor { 0.0, 0.0, 0.0, 0.0 };
 
     // depthSlice field for RenderPassColorAttachment (https://github.com/gpuweb/gpuweb/issues/4251)
     // this field specifies the slice to render to when rendering to a 3d texture (view)
@@ -184,6 +194,15 @@ void Window::paint([[maybe_unused]] QOpenGLFramebufferObject* framebuffer)
     command_encoder_desc.label = "Command Encoder";
     WGPUCommandEncoder encoder = wgpuDeviceCreateCommandEncoder(m_device, &command_encoder_desc);
 
+    // render atmosphere to color buffer
+    {
+        std::unique_ptr<raii::RenderPassEncoder> render_pass = m_atmosphere_framebuffer->begin_render_pass(encoder);
+        wgpuRenderPassEncoderSetBindGroup(render_pass->handle(), 0, m_camera_bind_group->handle(), 0, nullptr);
+        wgpuRenderPassEncoderSetPipeline(render_pass->handle(), m_pipeline_manager->atmosphere_pipeline().pipeline().handle());
+        wgpuRenderPassEncoderDraw(render_pass->handle(), 3, 1, 0, 0);
+    }
+
+    // render tiles to geometry buffers
     {
         std::unique_ptr<raii::RenderPassEncoder> render_pass = m_gbuffer->begin_render_pass(encoder);
         wgpuRenderPassEncoderSetBindGroup(render_pass->handle(), 0, m_shared_config_bind_group->handle(), 0, nullptr);
@@ -192,11 +211,14 @@ void Window::paint([[maybe_unused]] QOpenGLFramebufferObject* framebuffer)
         const auto tile_set = m_tile_manager->generate_tilelist(m_camera);
         m_tile_manager->draw(render_pass->handle(), m_camera, tile_set, true, m_camera.position());
     }
+
+    // render geometry buffers to color buffer (the texture view obtained from the swapchain)
     {
         std::unique_ptr<raii::RenderPassEncoder> render_pass = begin_render_pass(encoder, next_texture, m_depth_texture_view->handle());
         wgpuRenderPassEncoderSetPipeline(render_pass->handle(), m_pipeline_manager->compose_pipeline().pipeline().handle());
         wgpuRenderPassEncoderSetBindGroup(render_pass->handle(), 0, m_shared_config_bind_group->handle(), 0, nullptr);
-        wgpuRenderPassEncoderSetBindGroup(render_pass->handle(), 1, m_compose_bind_group->handle(), 0, nullptr);
+        wgpuRenderPassEncoderSetBindGroup(render_pass->handle(), 1, m_camera_bind_group->handle(), 0, nullptr);
+        wgpuRenderPassEncoderSetBindGroup(render_pass->handle(), 2, m_compose_bind_group->handle(), 0, nullptr);
         wgpuRenderPassEncoderDraw(render_pass->handle(), 3, 1, 0, 0);
 
 #ifdef ALP_WEBGPU_APP_ENABLE_IMGUI

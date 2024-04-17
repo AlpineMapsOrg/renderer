@@ -55,6 +55,8 @@ qt_add_resources(webgpu_engine "shaders"
         "wgsl_shaders/screen_pass_shared.wgsl"
         "wgsl_shaders/screen_pass_vert.wgsl"
         "wgsl_shaders/compose_frag.wgsl"
+        "wgsl_shaders/atmosphere_frag.wgsl"
+        "wgsl_shaders/atmosphere_implementation.wgsl"
 )
 
 target_link_libraries(webgpu_engine PUBLIC nucleus Qt::Core webgpu)

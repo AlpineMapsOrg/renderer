@@ -31,6 +31,7 @@ public:
 
     const raii::GenericRenderPipeline& tile_pipeline() const;
     const raii::GenericRenderPipeline& compose_pipeline() const;
+    const raii::GenericRenderPipeline& atmosphere_pipeline() const;
 
     const raii::BindGroupLayout& shared_config_bind_group_layout() const;
     const raii::BindGroupLayout& camera_bind_group_layout() const;
@@ -45,6 +46,7 @@ public:
 private:
     void create_tile_pipeline();
     void create_compose_pipeline();
+    void create_atmosphere_pipeline();
     void create_shadow_pipeline();
 
 private:
@@ -53,6 +55,7 @@ private:
 
     std::unique_ptr<raii::GenericRenderPipeline> m_tile_pipeline;
     std::unique_ptr<raii::GenericRenderPipeline> m_compose_pipeline;
+    std::unique_ptr<raii::GenericRenderPipeline> m_atmosphere_pipeline;
 
     std::unique_ptr<raii::BindGroupLayout> m_shared_config_bind_group_layout;
     std::unique_ptr<raii::BindGroupLayout> m_camera_bind_group_layout;

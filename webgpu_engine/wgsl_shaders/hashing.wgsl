@@ -1,7 +1,7 @@
 /*****************************************************************************
  * weBIGeo
- * Copyright (C) 2024 Patrick Komon
  * Copyright (C) 2023 Gerald Kimmersdorfer
+ * Copyright (C) 2024 Patrick Komon
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by

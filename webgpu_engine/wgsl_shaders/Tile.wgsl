@@ -179,7 +179,7 @@ highp vec3 normal_by_finite_difference_method(vec2 uv, float edge_vertices_count
 
     var frag_out : FragOut;
     frag_out.albedo = vec4f(albedo, 1.0);
-    frag_out.position = vec4f(0, 0, 0, 0);
+    frag_out.position = vec4f(vertex_out.pos_cws, length(vertex_out.pos_cws));
     frag_out.normal = vec2u(0, 0);
     frag_out.depth = vec4f(0, 0, 0, 0);
     return frag_out;

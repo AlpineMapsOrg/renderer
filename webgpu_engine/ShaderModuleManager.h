@@ -40,6 +40,7 @@ public:
     const raii::ShaderModule& tile() const;
     const raii::ShaderModule& screen_pass_vert() const;
     const raii::ShaderModule& compose_frag() const;
+    const raii::ShaderModule& atmosphere_frag() const;
 
 private:
     std::string read_file_contents(const std::string& name) const;
@@ -56,6 +57,7 @@ private:
     std::unique_ptr<raii::ShaderModule> m_tile_shader_module;
     std::unique_ptr<raii::ShaderModule> m_screen_pass_vert_shader_module;
     std::unique_ptr<raii::ShaderModule> m_compose_frag_shader_module;
+    std::unique_ptr<raii::ShaderModule> m_atmosphere_frag_shader_module;
 };
 
 } // namespace webgpu_engine
