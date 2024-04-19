@@ -31,7 +31,7 @@
 #include <QOpenGLFunctions_3_3_Core> // for wireframe mode
 #endif
 
-#define ENABLE_BOUNDING_QUADS 0
+#define ENABLE_BOUNDING_QUADS 1
 
 namespace gl_engine {
 
@@ -128,15 +128,16 @@ void TrackManager::add_track(const nucleus::gpx::Gpx& gpx, ShaderProgram* shader
 
         size_t point_count = points.size();
 
-        std::vector<glm::vec3> basic_ribbon = nucleus::triangles_ribbon(points, 0.0f, m_total_point_count);
+        std::vector<glm::vec3> basic_ribbon = nucleus::triangles_ribbon(points, 0.0f, 0);
 
         PolyLine polyline = {};
 
-        if (POINT_TEXTURE_SIZE < (m_total_point_count + point_count)) {
-            qDebug() << "Unable to render " << m_total_point_count + point_count << "points";
-            qDebug() << "Max is " << POINT_TEXTURE_SIZE ;
+        if (POINT_TEXTURE_SIZE < point_count) {
+            qDebug() << "Unable to add track with " << point_count << "points, maximum is " << POINT_TEXTURE_SIZE;
             return;
         }
+
+
 
         if (polyline.texture == nullptr) {
 
@@ -162,9 +163,10 @@ void TrackManager::add_track(const nucleus::gpx::Gpx& gpx, ShaderProgram* shader
         }
 
         polyline.texture->bind();
-        polyline.texture->setData(m_total_point_count, 0, 0, point_count, 1, 0, QOpenGLTexture::RGBA, QOpenGLTexture::Float32, points.data());
+        polyline.texture->setData(0, 0, 0, point_count, 1, 0, QOpenGLTexture::RGBA, QOpenGLTexture::Float32, points.data());
 
         m_total_point_count += point_count;
+        qDebug() << "Total Point Count: " << m_total_point_count;
 
         polyline.vao = std::make_unique<QOpenGLVertexArrayObject>();
         polyline.point_count = point_count;
