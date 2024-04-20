@@ -30,80 +30,62 @@
 namespace nucleus {
 namespace gpx {
 
-    TrackPoint parse_trackpoint(QXmlStreamReader& xmlReader)
-    {
-        TrackPoint point;
-
-        double latitude = xmlReader.attributes().value("lat").toDouble();
-        double longitude = xmlReader.attributes().value("lon").toDouble();
-
-        point.latitude = latitude;
-        point.longitude = longitude;
-        point.elevation = 0;
-
-        while (!xmlReader.atEnd() && !xmlReader.hasError()) {
-            QXmlStreamReader::TokenType token = xmlReader.readNext();
-
-            if (token == QXmlStreamReader::StartElement) {
-
-                QStringView name = xmlReader.name();
-
-                if (name == QString("ele")) {
-                    float elevation = xmlReader.readElementText().toDouble();
-                    point.elevation = elevation;
-                } else if (name == QString("time")) {
-                    QString iso_date_string = xmlReader.readElementText();
-                    QDateTime date_time = QDateTime::fromString(iso_date_string, Qt::ISODate);
-
-                    if (date_time.isValid()) {
-                        point.timestamp = date_time;
-                    } else {
-                        qDebug() << "Failed to parse date " << iso_date_string;
-                    }
-                } else {
-                    break;
-                }
-            }
-        }
-
-        return point;
-    }
-
-
     std::unique_ptr<Gpx> parse(QXmlStreamReader& xmlReader)
     {
-        std::unique_ptr<Gpx> gpx = std::make_unique<Gpx>();
+        auto gpx = std::make_unique<Gpx>();
 
         while (!xmlReader.atEnd() && !xmlReader.hasError()) {
             QXmlStreamReader::TokenType token = xmlReader.readNext();
 
             if (token == QXmlStreamReader::StartElement) {
                 // Handle the start element
+
                 QStringView name = xmlReader.name();
 
                 if (name == QString("trk")) {
                     // nothing to do here
                 } else if (name == QString("trkpt")) {
-                    if (gpx->track.size() == 0) {
-                        gpx->track.push_back(TrackSegment());
+                    TrackPoint point;
+                    double latitude = xmlReader.attributes().value("lat").toDouble();
+                    double longitude = xmlReader.attributes().value("lon").toDouble();
+
+                    point.latitude = latitude;
+                    point.longitude = longitude;
+
+                    gpx->add_new_point(point);
+
+                } else if (name == QString("ele")) {
+                    TrackPoint& point = gpx->last_point();
+                    point.elevation = xmlReader.readElementText().toDouble();
+
+                } else if (name == QString("time")) {
+                    QString iso_date_string = xmlReader.readElementText();
+                    QDateTime date_time = QDateTime::fromString(iso_date_string, Qt::ISODate);
+
+                    if (date_time.isValid()) {
+                        // check is needed, as "time" can exist in different than a trackpoint context
+                        if (gpx->track.size() > 0 && gpx->track.back().size() > 0) {
+                            TrackPoint& point = gpx->track.back().back();
+                            point.timestamp = date_time;
+                        }
+                    } else {
+                        qDebug() << "Failed to parse date " << iso_date_string;
                     }
 
-                    TrackPoint track_point = parse_trackpoint(xmlReader);
-                    gpx->track.back().push_back(track_point);
-
                 } else if (name == QString("trkseg")) {
-                    gpx->track.push_back(TrackSegment());
+                    gpx->add_new_segment();
 
                 } else if (name == QString("wpt")) {
-                    std::cerr << "'wpt' NOT IMPLEMENTED!\n";
+                    qDebug() << "'wpt' NOT IMPLEMENTED!\n";
                     return nullptr;
 
                 } else if (name == QString("rte")) {
-                    std::cerr << "'rte' NOT IMPLEMENTED!\n";
+                    qDebug() << "'rte' NOT IMPLEMENTED!\n";
                     return nullptr;
                 }
             } else if (token == QXmlStreamReader::EndElement) {
                 // Handle the end element
+                // qDebug() << "Found end element"  << xmlReader.name();
             } else if (token == QXmlStreamReader::Characters && !xmlReader.isWhitespace()) {
                 // Handle text content
             }

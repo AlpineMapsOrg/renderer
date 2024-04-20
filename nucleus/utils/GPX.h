@@ -17,11 +17,10 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *****************************************************************************/
 
-
 #pragma once
 
-#include <QString>
 #include <QDateTime>
+#include <QString>
 #include <QXmlStreamReader>
 #include <glm/glm.hpp>
 #include <memory>
@@ -36,10 +35,10 @@ namespace nucleus {
 namespace gpx {
 
     struct TrackPoint {
-        double latitude;
-        double longitude;
-        double elevation;
-        QDateTime timestamp;
+        double latitude = 0;
+        double longitude = 0;
+        double elevation = 0;
+        QDateTime timestamp {};
     };
 
     using TrackSegment = std::vector<TrackPoint>;
@@ -47,6 +46,28 @@ namespace gpx {
 
     struct Gpx {
         TrackType track;
+        void add_new_segment() { track.push_back(TrackSegment()); }
+        void add_new_point(const TrackPoint& point)
+        {
+            if (track.empty()) {
+                add_new_segment();
+            }
+
+            track.back().push_back(point);
+        }
+
+        TrackPoint& last_point()
+        {
+            if (track.empty()) {
+                add_new_segment();
+            }
+
+            if (track.back().empty()) {
+                add_new_point(TrackPoint());
+            }
+
+            return track.back().back();
+        }
     };
 
     std::unique_ptr<Gpx> parse(const QString& path);
