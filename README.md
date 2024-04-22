@@ -67,7 +67,7 @@ For WebGPU to work we need to compile with emscripten version > 3.1.47. The defa
 
 As of writing this, emscripten has a bug when requesting a webGPU device. In particular the field `maxColorAttachmentBytesPerSample` is ignored. Unfortunately, we need this. Therefore, we need to append a line to the emscripten source.
 
-Open the file `/path/to/emsdk/upstream/emscripten/src/library_webgpu.js`. After line `2612` (for emscripten 3.1.55) you ned to insert the line
+Open the file `/path/to/emsdk/upstream/emscripten/src/library_webgpu.js`. After line `2609` (for emscripten 3.1.55), insert the line
 
 ```c++
 setLimitU32IfDefined("maxColorAttachmentBytesPerSample", {{{ C_STRUCTS.WGPULimits.maxColorAttachmentBytesPerSample }}});
