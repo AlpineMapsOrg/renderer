@@ -61,6 +61,20 @@ For WebGPU to work we need to compile with emscripten version > 3.1.47. The defa
    cd .. & rmdir /s /q build
    ```
 
+9. Manuelly apply a patch to emscripten that fixes a webGPU bug, see section below.
+
+#### Emscripten webGPU patch
+
+As of writing this, emscripten has a bug when requesting a webGPU device. In particular the field `maxColorAttachmentBytesPerSample` is ignored. Unfortunately, we need this. Therefore, we need to append a line to the emscripten source.
+
+Open the file `/path/to/emsdk/upstream/emscripten/src/library_webgpu.js`. After line `2612` (for emscripten 3.1.55) you ned to insert the line
+
+```c++
+setLimitU32IfDefined("maxColorAttachmentBytesPerSample", {{{ C_STRUCTS.WGPULimits.maxColorAttachmentBytesPerSample }}});
+```
+
+That is it. Note, this gets overridden whenever you install another version of emscripten via `emsdk`.
+
 ### Create Custom Kit for Qt Creator
 This step is specifically tailored to the Qt-Creator IDE.
 
