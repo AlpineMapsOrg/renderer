@@ -230,7 +230,7 @@ void TileRendererInstancedSingleArray::init(glm::uvec2 height_resolution, glm::u
     m_ortho_textures = std::make_unique<raii::TextureWithSampler>(m_device, ortho_texture_desc, ortho_sampler_desc);
 
     m_tile_bind_group = std::make_unique<raii::BindGroup>(m_device, m_pipeline_manager->tile_bind_group_layout(),
-        std::vector<WGPUBindGroupEntry> { m_n_edge_vertices_buffer->raw_buffer().create_bind_group_entry(0),
+        std::initializer_list<WGPUBindGroupEntry> { m_n_edge_vertices_buffer->raw_buffer().create_bind_group_entry(0),
             m_heightmap_textures->texture_view().create_bind_group_entry(1), m_heightmap_textures->sampler().create_bind_group_entry(2),
             m_ortho_textures->texture_view().create_bind_group_entry(3), m_ortho_textures->sampler().create_bind_group_entry(4) },
         "tile bind group");
@@ -380,7 +380,7 @@ void TileRendererInstancedSingleArrayMultiCall::init(glm::uvec2 height_resolutio
         m_ortho_textures.emplace_back(std::make_unique<raii::TextureWithSampler>(m_device, ortho_texture_desc, ortho_sampler_desc));
 
         m_tile_bind_group.emplace_back(std::make_unique<raii::BindGroup>(m_device, m_pipeline_manager->tile_bind_group_layout(),
-            std::vector<WGPUBindGroupEntry> { m_n_edge_vertices_buffer->raw_buffer().create_bind_group_entry(0),
+            std::initializer_list<WGPUBindGroupEntry> { m_n_edge_vertices_buffer->raw_buffer().create_bind_group_entry(0),
                 m_heightmap_textures.back()->texture_view().create_bind_group_entry(1), m_heightmap_textures.back()->sampler().create_bind_group_entry(2),
                 m_ortho_textures.back()->texture_view().create_bind_group_entry(3), m_ortho_textures.back()->sampler().create_bind_group_entry(4) },
             "tile bind group"));

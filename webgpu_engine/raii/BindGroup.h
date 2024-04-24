@@ -20,15 +20,16 @@
 
 #include "BindGroupLayout.h"
 #include "base_types.h"
+#include <initializer_list>
 #include <string>
-#include <vector>
 
 namespace webgpu_engine::raii {
 
 class BindGroup : public GpuResource<WGPUBindGroup, WGPUBindGroupDescriptor, WGPUDevice> {
 public:
     using GpuResource::GpuResource;
-    BindGroup(WGPUDevice device, const BindGroupLayout& layout, const std::vector<WGPUBindGroupEntry>& entries, const std::string& label = "not assigned");
+    BindGroup(
+        WGPUDevice device, const BindGroupLayout& layout, const std::initializer_list<WGPUBindGroupEntry>& entries, const std::string& label = "not assigned");
 };
 
 } // namespace webgpu_engine::raii

@@ -130,7 +130,7 @@ void Window::resize_framebuffer(int w, int h)
     m_atmosphere_framebuffer = std::make_unique<Framebuffer>(m_device, atmosphere_framebuffer_format);
 
     m_compose_bind_group = std::make_unique<raii::BindGroup>(m_device, m_pipeline_manager->compose_bind_group_layout(),
-        std::vector<WGPUBindGroupEntry> { m_gbuffer->color_texture_view(0).create_bind_group_entry(0), // albedo texture
+        std::initializer_list<WGPUBindGroupEntry> { m_gbuffer->color_texture_view(0).create_bind_group_entry(0), // albedo texture
             m_gbuffer->color_texture_view(1).create_bind_group_entry(1), // position texture
             m_gbuffer->color_texture_view(2).create_bind_group_entry(2), // normal texture
             m_atmosphere_framebuffer->color_texture_view(0).create_bind_group_entry(3), // atmosphere texture
@@ -596,10 +596,10 @@ void Window::create_swapchain(uint32_t width, uint32_t height)
 void Window::create_bind_groups()
 {
     m_shared_config_bind_group = std::make_unique<raii::BindGroup>(m_device, m_pipeline_manager->shared_config_bind_group_layout(),
-        std::vector<WGPUBindGroupEntry> { m_shared_config_ubo->raw_buffer().create_bind_group_entry(0) });
+        std::initializer_list<WGPUBindGroupEntry> { m_shared_config_ubo->raw_buffer().create_bind_group_entry(0) });
 
     m_camera_bind_group = std::make_unique<raii::BindGroup>(m_device, m_pipeline_manager->camera_bind_group_layout(),
-        std::vector<WGPUBindGroupEntry> { m_camera_config_ubo->raw_buffer().create_bind_group_entry(0) });
+        std::initializer_list<WGPUBindGroupEntry> { m_camera_config_ubo->raw_buffer().create_bind_group_entry(0) });
 }
 
 WGPURequiredLimits Window::required_gpu_limits() const
