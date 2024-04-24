@@ -104,14 +104,16 @@ void TrackManager::add_track(const nucleus::gpx::Gpx& gpx, ShaderProgram* shader
 {
     QOpenGLExtraFunctions *f = QOpenGLContext::currentContext()->extraFunctions();
 
+    qDebug() << "Segment Count: " << gpx.track.size();
 
     for (const nucleus::gpx::TrackSegment& segment : gpx.track) {
+
+        qDebug() << "Point Count Per Segment: " << segment.size();
 
         // transform from latitude and longitude into renderer world coordinates
         std::vector<glm::vec4> points = nucleus::to_world_points(segment);
 
         // data cleanup
-        nucleus::reduce_point_count(points, width * 2);
         nucleus::apply_gaussian_filter(points, 1.0f);
 
         for (size_t i = 0; i < points.size() - 1; ++i) {
@@ -132,11 +134,6 @@ void TrackManager::add_track(const nucleus::gpx::Gpx& gpx, ShaderProgram* shader
 
         PolyLine polyline = {};
 
-        if (POINT_TEXTURE_SIZE < point_count) {
-            qDebug() << "Unable to add track with " << point_count << "points, maximum is " << POINT_TEXTURE_SIZE;
-            return;
-        }
-
 
 
         if (polyline.texture == nullptr) {
@@ -145,12 +142,16 @@ void TrackManager::add_track(const nucleus::gpx::Gpx& gpx, ShaderProgram* shader
             f->glGetIntegerv(GL_MAX_TEXTURE_SIZE, &max_texture_size);
 
             qDebug() << "max texture size: " << max_texture_size;
-            POINT_TEXTURE_SIZE = max_texture_size;
+
+            if (max_texture_size < int(point_count)) {
+                qDebug() << "Unable to add track with " << point_count << "points, maximum is " << max_texture_size;
+                return;
+            }
 
             // create texture to hold the point data
             polyline.texture = std::make_unique<QOpenGLTexture>(QOpenGLTexture::Target::Target2D);
             polyline.texture->setFormat(QOpenGLTexture::TextureFormat::RGBA32F);
-            polyline.texture->setSize(POINT_TEXTURE_SIZE, 1);
+            polyline.texture->setSize(point_count, 1);
             polyline.texture->setAutoMipMapGenerationEnabled(false);
             polyline.texture->setMinMagFilters(QOpenGLTexture::Filter::Nearest, QOpenGLTexture::Filter::Nearest);
             polyline.texture->setWrapMode(QOpenGLTexture::WrapMode::ClampToEdge);
@@ -166,7 +167,6 @@ void TrackManager::add_track(const nucleus::gpx::Gpx& gpx, ShaderProgram* shader
         polyline.texture->setData(0, 0, 0, point_count, 1, 0, QOpenGLTexture::RGBA, QOpenGLTexture::Float32, points.data());
 
         m_total_point_count += point_count;
-        qDebug() << "Total Point Count: " << m_total_point_count;
 
         polyline.vao = std::make_unique<QOpenGLVertexArrayObject>();
         polyline.point_count = point_count;
@@ -199,5 +199,7 @@ void TrackManager::add_track(const nucleus::gpx::Gpx& gpx, ShaderProgram* shader
 
         m_tracks.push_back(std::move(polyline));
     }
+
+    qDebug() << "Total Point Count: " << m_total_point_count;
 }
 } // namespace gl_engine
