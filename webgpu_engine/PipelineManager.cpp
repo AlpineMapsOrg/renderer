@@ -1,6 +1,7 @@
 /*****************************************************************************
  * weBIGeo
  * Copyright (C) 2024 Patrick Komon
+ * Copyright (C) 2024 Gerald Kimmersdorfer
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -181,7 +182,7 @@ void PipelineManager::create_tile_pipeline()
 void PipelineManager::create_compose_pipeline()
 {
     FramebufferFormat format {};
-    format.depth_format = WGPUTextureFormat_Depth24Plus;
+    format.depth_format = WGPUTextureFormat_Depth24Plus; // ImGUI needs attached depth buffer
     format.color_formats.emplace_back(WGPUTextureFormat_BGRA8Unorm);
 
     m_compose_pipeline = std::make_unique<raii::GenericRenderPipeline>(m_device, m_shader_manager->screen_pass_vert(), m_shader_manager->compose_frag(),
@@ -193,7 +194,7 @@ void PipelineManager::create_compose_pipeline()
 void PipelineManager::create_atmosphere_pipeline()
 {
     FramebufferFormat format {};
-    format.depth_format = WGPUTextureFormat_Depth24Plus;
+    format.depth_format = WGPUTextureFormat_Undefined;  // no depth buffer needed
     format.color_formats.emplace_back(WGPUTextureFormat_RGBA8Unorm);
 
     m_atmosphere_pipeline = std::make_unique<raii::GenericRenderPipeline>(m_device, m_shader_manager->screen_pass_vert(), m_shader_manager->atmosphere_frag(),

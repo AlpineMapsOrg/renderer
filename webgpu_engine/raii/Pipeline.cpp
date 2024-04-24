@@ -1,6 +1,7 @@
 /*****************************************************************************
  * weBIGeo
  * Copyright (C) 2024 Patrick Komon
+ * Copyright (C) 2024 Gerald Kimmersdorfer
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -51,22 +52,6 @@ GenericRenderPipeline::GenericRenderPipeline(WGPUDevice device, const ShaderModu
     fragment_state.targetCount = color_target_states.size();
     fragment_state.targets = color_target_states.data();
 
-    // needed to disable stencil test (for dawn), see https://github.com/ocornut/imgui/issues/7232
-    WGPUStencilFaceState stencil_face_state {};
-    stencil_face_state.compare = WGPUCompareFunction::WGPUCompareFunction_Always;
-    stencil_face_state.depthFailOp = WGPUStencilOperation::WGPUStencilOperation_Keep;
-    stencil_face_state.failOp = WGPUStencilOperation::WGPUStencilOperation_Keep;
-    stencil_face_state.passOp = WGPUStencilOperation::WGPUStencilOperation_Keep;
-
-    WGPUDepthStencilState depth_stencil_state {};
-    depth_stencil_state.depthCompare = WGPUCompareFunction::WGPUCompareFunction_Less;
-    depth_stencil_state.depthWriteEnabled = true;
-    depth_stencil_state.stencilReadMask = 0;
-    depth_stencil_state.stencilWriteMask = 0;
-    depth_stencil_state.stencilFront = stencil_face_state;
-    depth_stencil_state.stencilBack = stencil_face_state;
-    depth_stencil_state.format = framebuffer_format.depth_format;
-
     std::vector<WGPUBindGroupLayout> bind_group_layout_handles;
     std::transform(bind_group_layouts.begin(), bind_group_layouts.end(), std::back_insert_iterator(bind_group_layout_handles),
         [](const BindGroupLayout* layout) { return layout->handle(); });
@@ -94,7 +79,28 @@ GenericRenderPipeline::GenericRenderPipeline(WGPUDevice device, const ShaderModu
     pipeline_desc.primitive.frontFace = WGPUFrontFace::WGPUFrontFace_CCW;
     pipeline_desc.primitive.cullMode = WGPUCullMode::WGPUCullMode_None;
     pipeline_desc.fragment = &fragment_state;
-    pipeline_desc.depthStencil = &depth_stencil_state;
+
+    WGPUStencilFaceState stencil_face_state {};
+    WGPUDepthStencilState depth_stencil_state {};
+    if (framebuffer_format.depth_format != WGPUTextureFormat_Undefined) {
+        // needed to disable stencil test (for dawn), see https://github.com/ocornut/imgui/issues/7232
+        stencil_face_state.compare = WGPUCompareFunction::WGPUCompareFunction_Always;
+        stencil_face_state.depthFailOp = WGPUStencilOperation::WGPUStencilOperation_Keep;
+        stencil_face_state.failOp = WGPUStencilOperation::WGPUStencilOperation_Keep;
+        stencil_face_state.passOp = WGPUStencilOperation::WGPUStencilOperation_Keep;
+
+        depth_stencil_state.depthCompare = WGPUCompareFunction::WGPUCompareFunction_Less;
+        depth_stencil_state.depthWriteEnabled = framebuffer_format.depth_format;
+        depth_stencil_state.stencilReadMask = 0;
+        depth_stencil_state.stencilWriteMask = 0;
+        depth_stencil_state.stencilFront = stencil_face_state;
+        depth_stencil_state.stencilBack = stencil_face_state;
+        depth_stencil_state.format = framebuffer_format.depth_format;
+        pipeline_desc.depthStencil = &depth_stencil_state;
+    } else {
+        pipeline_desc.depthStencil = nullptr;
+    }
+
     pipeline_desc.multisample.count = 1;
     pipeline_desc.multisample.mask = ~0u;
     pipeline_desc.multisample.alphaToCoverageEnabled = false;

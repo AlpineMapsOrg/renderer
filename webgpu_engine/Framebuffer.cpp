@@ -40,6 +40,9 @@ void Framebuffer::resize(const glm::uvec2& size)
 
 void Framebuffer::recreate_depth_texture()
 {
+    if (m_format.depth_format == WGPUTextureFormat_Undefined) {
+        return;
+    }
     WGPUTextureDescriptor texture_desc {};
     texture_desc.label = "framebuffer depth texture";
     texture_desc.dimension = WGPUTextureDimension::WGPUTextureDimension_2D;
@@ -113,21 +116,26 @@ std::unique_ptr<raii::RenderPassEncoder> Framebuffer::begin_render_pass(WGPUComm
         render_pass_color_attachments.emplace_back(render_pass_color_attachment);
     }
 
-    WGPURenderPassDepthStencilAttachment depth_stencil_attachment {};
-    depth_stencil_attachment.view = m_depth_texture_view->handle();
-    depth_stencil_attachment.depthClearValue = 1.0f;
-    depth_stencil_attachment.depthLoadOp = WGPULoadOp::WGPULoadOp_Clear;
-    depth_stencil_attachment.depthStoreOp = WGPUStoreOp::WGPUStoreOp_Store;
-    depth_stencil_attachment.depthReadOnly = false;
-    depth_stencil_attachment.stencilClearValue = 0;
-    depth_stencil_attachment.stencilLoadOp = WGPULoadOp::WGPULoadOp_Undefined;
-    depth_stencil_attachment.stencilStoreOp = WGPUStoreOp::WGPUStoreOp_Undefined;
-    depth_stencil_attachment.stencilReadOnly = true;
-
     WGPURenderPassDescriptor render_pass_desc {};
     render_pass_desc.colorAttachmentCount = render_pass_color_attachments.size();
     render_pass_desc.colorAttachments = render_pass_color_attachments.data();
-    render_pass_desc.depthStencilAttachment = &depth_stencil_attachment;
+
+    WGPURenderPassDepthStencilAttachment depth_stencil_attachment {};
+    if (m_format.depth_format != WGPUTextureFormat_Undefined)
+    {
+        depth_stencil_attachment.view = m_depth_texture_view->handle();
+        depth_stencil_attachment.depthClearValue = 1.0f;
+        depth_stencil_attachment.depthLoadOp = WGPULoadOp::WGPULoadOp_Clear;
+        depth_stencil_attachment.depthStoreOp = WGPUStoreOp::WGPUStoreOp_Store;
+        depth_stencil_attachment.depthReadOnly = false;
+        depth_stencil_attachment.stencilClearValue = 0;
+        depth_stencil_attachment.stencilLoadOp = WGPULoadOp::WGPULoadOp_Undefined;
+        depth_stencil_attachment.stencilStoreOp = WGPUStoreOp::WGPUStoreOp_Undefined;
+        depth_stencil_attachment.stencilReadOnly = true;
+        render_pass_desc.depthStencilAttachment = &depth_stencil_attachment;
+    } else {
+        render_pass_desc.depthStencilAttachment = nullptr;
+    }
     render_pass_desc.timestampWrites = nullptr;
     return std::make_unique<raii::RenderPassEncoder>(encoder, render_pass_desc);
 }
