@@ -126,7 +126,7 @@ void Window::resize_framebuffer(int w, int h)
     m_gbuffer = std::make_unique<Framebuffer>(m_device, m_gbuffer_format);
 
     FramebufferFormat atmosphere_framebuffer_format(m_pipeline_manager->atmosphere_pipeline().framebuffer_format());
-    atmosphere_framebuffer_format.size = m_gbuffer_format.size;
+    atmosphere_framebuffer_format.size = glm::uvec2(1, h);
     m_atmosphere_framebuffer = std::make_unique<Framebuffer>(m_device, atmosphere_framebuffer_format);
 
     m_compose_bind_group = std::make_unique<raii::BindGroup>(m_device, m_pipeline_manager->compose_bind_group_layout(),
