@@ -38,8 +38,11 @@ set(SOURCES
     raii/BindGroup.h raii/BindGroup.cpp
     raii/BindGroupLayout.h raii/BindGroupLayout.cpp
     raii/Pipeline.h raii/Pipeline.cpp
+    raii/PipelineLayout.h raii/PipelineLayout.cpp
+    raii/CombinedComputePipeline.h raii/CombinedComputePipeline.cpp
     util/VertexBufferInfo.h util/VertexBufferInfo.cpp
     util/VertexFormat.h
+    compute.h compute.cpp
 )
 
 qt_add_library(webgpu_engine STATIC ${SOURCES})
