@@ -39,7 +39,7 @@ TileLoadService::TileLoadService(const QString& base_url, UrlPattern url_pattern
 
 TileLoadService::~TileLoadService() = default;
 
-void TileLoadService::load(const tile::Id& tile_id)
+void TileLoadService::load(const tile::Id& tile_id) const
 {
     QNetworkRequest request(QUrl(build_tile_url(tile_id)));
     request.setTransferTimeout(int(m_transfer_timeout));
