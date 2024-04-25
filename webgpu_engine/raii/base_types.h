@@ -93,6 +93,25 @@ template <> struct GpuFuncs<WGPURenderPassEncoder, WGPURenderPassDescriptor, WGP
     }
 };
 
+template <> struct GpuFuncs<WGPUComputePassEncoder, WGPUComputePassDescriptor, WGPUCommandEncoder> {
+    static auto create(auto context, auto descriptor) { return wgpuCommandEncoderBeginComputePass(context, &descriptor); }
+    static void release(auto handle)
+    {
+        wgpuComputePassEncoderEnd(handle);
+        wgpuComputePassEncoderRelease(handle);
+    }
+};
+
+template <> struct GpuFuncs<WGPUComputePipeline, WGPUComputePipelineDescriptor, WGPUDevice> {
+    static auto create(auto context, auto descriptor) { return wgpuDeviceCreateComputePipeline(context, &descriptor); }
+    static void release(auto handle) { wgpuComputePipelineRelease(handle); }
+};
+
+template <> struct GpuFuncs<WGPUCommandEncoder, WGPUCommandEncoderDescriptor, WGPUDevice> {
+    static auto create(auto context, auto descriptor) { return wgpuDeviceCreateCommandEncoder(context, &descriptor); }
+    static void release(auto handle) { wgpuCommandEncoderRelease(handle); }
+};
+
 /// TODO document
 /// Represents a (web)GPU render pipeline object.
 /// Provides RAII semantics without ref-counting (free memory on deletion, disallow copy).
@@ -121,12 +140,15 @@ protected:
 // using BindGroup = GpuResource<WGPUBindGroup, WGPUBindGroupDescriptor, WGPUDevice>;
 // using BindGroupLayout = GpuResource<WGPUBindGroupLayout, WGPUBindGroupLayoutDescriptor, WGPUDevice>;
 using ShaderModule = GpuResource<WGPUShaderModule, WGPUShaderModuleDescriptor, WGPUDevice>;
-using PipelineLayout = GpuResource<WGPUPipelineLayout, WGPUPipelineLayoutDescriptor, WGPUDevice>;
+// using PipelineLayout = GpuResource<WGPUPipelineLayout, WGPUPipelineLayoutDescriptor, WGPUDevice>;
 using RenderPipeline = GpuResource<WGPURenderPipeline, WGPURenderPipelineDescriptor, WGPUDevice>;
 // using Buffer = GpuResource<WGPUBuffer, WGPUBufferDescriptor, WGPUDevice>;
 // using Texture = GpuResource<WGPUTexture, WGPUTextureDescriptor, WGPUDevice>;
 // using TextureView = GpuResource<WGPUTextureView, WGPUTextureViewDescriptor, WGPUTexture>;
 // using Sampler = GpuResource<WGPUSampler, WGPUSamplerDescriptor, WGPUDevice>;
 using RenderPassEncoder = GpuResource<WGPURenderPassEncoder, WGPURenderPassDescriptor, WGPUCommandEncoder>;
+using ComputePipeline = GpuResource<WGPUComputePipeline, WGPUComputePipelineDescriptor, WGPUDevice>;
+using ComputePassEncoder = GpuResource<WGPUComputePassEncoder, WGPUComputePassDescriptor, WGPUCommandEncoder>;
+using CommandEncoder = GpuResource<WGPUCommandEncoder, WGPUCommandEncoderDescriptor, WGPUDevice>;
 
 } // namespace webgpu_engine::raii
