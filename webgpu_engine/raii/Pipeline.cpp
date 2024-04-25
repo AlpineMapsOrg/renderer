@@ -55,13 +55,7 @@ GenericRenderPipeline::GenericRenderPipeline(WGPUDevice device, const ShaderModu
     std::vector<WGPUBindGroupLayout> bind_group_layout_handles;
     std::transform(bind_group_layouts.begin(), bind_group_layouts.end(), std::back_insert_iterator(bind_group_layout_handles),
         [](const BindGroupLayout* layout) { return layout->handle(); });
-
-    WGPUPipelineLayoutDescriptor pipeline_layout_desc {};
-    pipeline_layout_desc.bindGroupLayoutCount = bind_group_layout_handles.size();
-    pipeline_layout_desc.bindGroupLayouts = bind_group_layout_handles.data();
-    pipeline_layout_desc.nextInChain = nullptr;
-
-    m_pipeline_layout = std::make_unique<PipelineLayout>(device, pipeline_layout_desc);
+    m_pipeline_layout = std::make_unique<PipelineLayout>(device, bind_group_layout_handles);
 
     std::vector<WGPUVertexBufferLayout> layouts;
     std::transform(vertex_buffer_infos.begin(), vertex_buffer_infos.end(), std::back_insert_iterator(layouts),

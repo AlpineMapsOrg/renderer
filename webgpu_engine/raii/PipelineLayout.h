@@ -18,33 +18,17 @@
 
 #pragma once
 
-#include "BindGroupLayout.h"
-#include "PipelineLayout.h"
 #include "base_types.h"
-#include "webgpu_engine/Framebuffer.h"
-#include "webgpu_engine/util/VertexBufferInfo.h"
-#include <memory>
+#include <string>
 #include <vector>
 
 namespace webgpu_engine::raii {
 
-class GenericRenderPipeline {
+class PipelineLayout : public GpuResource<WGPUPipelineLayout, WGPUPipelineLayoutDescriptor, WGPUDevice> {
 public:
-    using VertexBufferInfos = std::vector<webgpu_engine::util::SingleVertexBufferInfo>;
-    using BindGroupLayouts = std::vector<const webgpu_engine::raii::BindGroupLayout*>;
+    using GpuResource::GpuResource;
 
-    GenericRenderPipeline(WGPUDevice device, const ShaderModule& vertex_shader, const ShaderModule& fragment_shader,
-        const VertexBufferInfos& vertex_buffer_infos, const FramebufferFormat& framebuffer_format, const BindGroupLayouts& bind_group_layouts,
-        const std::vector<std::optional<WGPUBlendState>>& blend_states = {});
-
-    const RenderPipeline& pipeline() const;
-    const FramebufferFormat& framebuffer_format() const;
-
-private:
-    std::unique_ptr<RenderPipeline> m_pipeline;
-    std::unique_ptr<PipelineLayout> m_pipeline_layout;
-
-    FramebufferFormat m_framebuffer_format;
+    PipelineLayout(WGPUDevice device, const std::vector<WGPUBindGroupLayout>& layouts, const std::string& label = "not assigned");
 };
 
 } // namespace webgpu_engine::raii
