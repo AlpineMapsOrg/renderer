@@ -196,12 +196,11 @@ int readback_status = 0;
 std::unique_ptr<raii::RawBuffer<glm::vec4>>m_readback_buffer;
 //std::vector<raii::RawBuffer<glm::vec4>> m_readback_buffers;
 
-#define SYNCHRONOUS_READBACK 0
+#define SYNCHRONOUS_READBACK 1
 
 void Window::wait_until_readback_status(int wait_until_status) {
     int sleepcnt = 0;
     while (readback_status != wait_until_status) {
-        std::this_thread::sleep_for(std::chrono::milliseconds(1));
 #ifdef __EMSCRIPTEN__
         emscripten_sleep(1);    // using asyncify to return to js event loop
 #else
@@ -346,37 +345,24 @@ void Window::paint([[maybe_unused]] QOpenGLFramebufferObject* framebuffer)
 
     if (readback_status == 1) {
 #if SYNCHRONOUS_READBACK == 1
-        wgpuQueueOnSubmittedWorkDone(m_queue, [](WGPUQueueWorkDoneStatus status, void* ) {
-                if (status ==! WGPUQueueWorkDoneStatus_Success) {
-                    std::cout << "Error in work done" << std::endl;
-                }
 
-                readback_status = 2;
-                std::cout << "Readback status set to 2" << std::endl;
+        wgpuQueueOnSubmittedWorkDone(m_queue, []([[maybe_unused]]WGPUQueueWorkDoneStatus status, void* ) {
+                auto onBuffer2Mapped = [](WGPUBufferMapAsyncStatus status, void* /*pUserData*/) {
+                    std::cout << "Buffer mapped with status " << status << std::endl;
+                    if (status != WGPUBufferMapAsyncStatus_Success) return;
 
+                    glm::vec4* bufferData = (glm::vec4*)wgpuBufferGetConstMappedRange(m_readback_buffer->handle(), 0, 256);
+                    last_pos = bufferData[0];
+                    std::cout << "Last position: " << last_pos.x << ", " << last_pos.y << ", " << last_pos.z << ", " << last_pos.w << std::endl;
+                    wgpuBufferUnmap(m_readback_buffer->handle());
+                    readback_status = 3;
+                };
+                wgpuBufferMapAsync(m_readback_buffer->handle(), WGPUMapMode_Read, 0, 256, onBuffer2Mapped, nullptr);
             }, nullptr);
-
-        wgpuQueueWriteBuffer(m_queue, m_readback_buffer->handle(), 0, &last_pos, sizeof(glm::vec4));
-
-        wait_until_readback_status(2); // hold until texture is copied
-
-        auto onBuffer2Mapped = [](WGPUBufferMapAsyncStatus status, void* /*pUserData*/) {
-            if (status != WGPUBufferMapAsyncStatus_Success) {
-                std::cout << "Error in buffer2 mapped" << std::endl;
-            }
-
-            readback_status = 3;
-            std::cout << "Readback status set to 3" << std::endl;
-        };
-        wgpuBufferMapAsync(m_readback_buffer->handle(), WGPUMapMode_Read, 0, 256, onBuffer2Mapped, nullptr);
+        readback_status = 2;
 
         wait_until_readback_status(3); // hold until buffer is mapped
-
-        // Fetch the last position
-        glm::vec4* bufferData = (glm::vec4*)wgpuBufferGetConstMappedRange(m_readback_buffer->handle(), 0, 256);
-        last_pos = bufferData[0];
-        std::cout << "Last position: " << last_pos.x << ", " << last_pos.y << ", " << last_pos.z << ", " << last_pos.w << std::endl;
-        wgpuBufferUnmap(m_readback_buffer->handle());
+        std::cout << "Last position after hold: " << last_pos.x << ", " << last_pos.y << ", " << last_pos.z << ", " << last_pos.w << std::endl;
 
 #else
         wgpuQueueOnSubmittedWorkDone(m_queue, []([[maybe_unused]]WGPUQueueWorkDoneStatus status, void* ) {
@@ -385,10 +371,8 @@ void Window::paint([[maybe_unused]] QOpenGLFramebufferObject* framebuffer)
                     if (status != WGPUBufferMapAsyncStatus_Success) return;
 
                     glm::vec4* bufferData = (glm::vec4*)wgpuBufferGetConstMappedRange(m_readback_buffer->handle(), 0, 256);
-
                     last_pos = bufferData[0];
                     std::cout << "Last position: " << last_pos.x << ", " << last_pos.y << ", " << last_pos.z << ", " << last_pos.w << std::endl;
-
                     wgpuBufferUnmap(m_readback_buffer->handle());
                 };
                 wgpuBufferMapAsync(m_readback_buffer->handle(), WGPUMapMode_Read, 0, 256, onBuffer2Mapped, nullptr);
