@@ -47,7 +47,6 @@ class TileManager : public QObject {
 public:
     explicit TileManager(QObject* parent = nullptr);
     void init(); // needs OpenGL context
-    [[nodiscard]] const std::vector<TileSet>& tiles() const;
     void draw(ShaderProgram* shader_program, const nucleus::camera::Definition& camera, const nucleus::tile_scheduler::DrawListGenerator::TileSet& draw_tiles, bool sort_tiles, glm::dvec3 sort_position) const;
 
     const nucleus::tile_scheduler::DrawListGenerator::TileSet generate_tilelist(const nucleus::camera::Definition& camera) const;
