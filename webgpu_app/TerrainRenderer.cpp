@@ -199,7 +199,10 @@ void TerrainRenderer::on_key_callback(int key, [[maybe_unused]]int scancode, int
         {GLFW_KEY_E, Qt::Key_E},
         {GLFW_KEY_1, Qt::Key_1},
         {GLFW_KEY_2, Qt::Key_2},
-        {GLFW_KEY_3, Qt::Key_3}
+        {GLFW_KEY_3, Qt::Key_3},
+        {GLFW_KEY_LEFT_CONTROL, Qt::Key_Control},
+        {GLFW_KEY_LEFT_SHIFT, Qt::Key_Shift},
+        {GLFW_KEY_LEFT_ALT, Qt::Key_Alt},
 
     };
 
@@ -271,7 +274,8 @@ void TerrainRenderer::on_mouse_button_callback(int button, int action, [[maybe_u
 void TerrainRenderer::on_scroll_callback(double x_offset, double y_offset)
 {
     nucleus::event_parameter::Wheel wheel {};
-    wheel.angle_delta = QPoint(static_cast<int>(x_offset), static_cast<int>(y_offset));
+    wheel.angle_delta = QPoint(static_cast<int>(x_offset), static_cast<int>(y_offset) * 50.0f);
+    wheel.position = m_mouse.position;
     //std::cout << "wheel  turned, delta x=" << x_offset << ", y=" << y_offset << std::endl;
     emit wheel_turned(wheel);
 }

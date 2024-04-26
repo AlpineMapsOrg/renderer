@@ -189,41 +189,9 @@ std::unique_ptr<raii::RenderPassEncoder> begin_render_pass(WGPUCommandEncoder en
     return std::make_unique<raii::RenderPassEncoder>(encoder, render_pass_desc);
 }
 
-long frame = 0;
-long frame_done = 0;
-glm::vec4 last_pos = glm::vec4(0.0f);
-int readback_status = 0;
-std::unique_ptr<raii::RawBuffer<glm::vec4>>m_readback_buffer;
-//std::vector<raii::RawBuffer<glm::vec4>> m_readback_buffers;
-
-#define SYNCHRONOUS_READBACK 1
-
-void Window::wait_until_readback_status(int wait_until_status) {
-    int sleepcnt = 0;
-    while (readback_status != wait_until_status) {
-#ifdef __EMSCRIPTEN__
-        emscripten_sleep(1);    // using asyncify to return to js event loop
-#else
-        std::this_thread::sleep_for(std::chrono::milliseconds(1));
-        wgpuDeviceTick(m_device); // polling events for DAWN
-#endif
-        wgpuInstanceProcessEvents(m_instance); // not sure if necessary
-
-        sleepcnt++;
-        if (sleepcnt > 1000) {
-            std::cout << "Timeout in readback" << std::endl;
-            break;
-        }
-    }
-
-    std::cout << "Readback status is now " << readback_status << std::endl;
-}
-
 void Window::paint([[maybe_unused]] QOpenGLFramebufferObject* framebuffer)
 {
     // Painting logic here, using the optional framebuffer parameter which is currently unused
-    frame++;
-    //std::cout << "Frame " << frame << " requested" << std::endl;
 
     WGPUTextureView next_texture = wgpuSwapChainGetCurrentTextureView(m_swapchain);
     if (!next_texture) {
@@ -261,49 +229,6 @@ void Window::paint([[maybe_unused]] QOpenGLFramebufferObject* framebuffer)
         m_tile_manager->draw(render_pass->handle(), m_camera, tile_set, true, m_camera.position());
     }
 
-    // readback depth buffer
-    if (frame == 200) {
-        //m_gbuffer->read_colour_attachment_pixel()
-
-        m_readback_buffer = std::make_unique<raii::RawBuffer<glm::vec4>>(m_device, WGPUBufferUsage_CopyDst | WGPUBufferUsage_MapRead, 256, "readback buffer");
-
-        const auto& src_texture = m_gbuffer->color_texture(1);
-        // Define Source Texture
-        WGPUImageCopyTexture image_copy_texture_source = {
-            .nextInChain = nullptr,
-            .texture = src_texture.handle(),
-            .mipLevel = 0,
-            .origin = {640,512,0},
-            .aspect = {}
-        };
-        // Define destination buffer
-        WGPUTextureDataLayout texture_data_layout = {
-            .nextInChain = nullptr,
-            .offset      = 0,
-            .bytesPerRow = 256, // multiple of 256
-            .rowsPerImage = 1,
-        };
-        WGPUImageCopyBuffer image_copy_buffer_destination = {
-            .nextInChain = nullptr,
-            .layout = texture_data_layout,
-            .buffer = m_readback_buffer->handle(),
-        };
-        WGPUExtent3D image_copy_extent = {
-            .width  = 1,
-            .height = 1,
-            .depthOrArrayLayers = 1,
-        };
-        wgpuCommandEncoderCopyTextureToBuffer(encoder,
-                                                       // Source
-            &image_copy_texture_source,
-            // Destination
-            &image_copy_buffer_destination,
-            // CopySize
-            &image_copy_extent);
-
-        readback_status = 1;
-    }
-
            // render geometry buffers to color buffer (the texture view obtained from the swapchain)
     {
         std::unique_ptr<raii::RenderPassEncoder> render_pass = begin_render_pass(encoder, next_texture, m_depth_texture_view->handle());
@@ -327,14 +252,6 @@ void Window::paint([[maybe_unused]] QOpenGLFramebufferObject* framebuffer)
     wgpuCommandEncoderRelease(encoder);
     wgpuQueueSubmit(m_queue, 1, &command);
     wgpuCommandBufferRelease(command);
-    wgpuQueueOnSubmittedWorkDone(m_queue, [](WGPUQueueWorkDoneStatus status, void* ) {
-            frame_done++;
-            if (status ==! WGPUQueueWorkDoneStatus_Success) {
-                std::cout << "Error in frame " << frame_done << std::endl;
-            } else {
-                //std::cout << "Frame " << frame_done << " done" << std::endl;
-            }
-        }, nullptr);
 
 #ifndef __EMSCRIPTEN__
     // Swapchain in the WEB is handled by the browser!
@@ -342,63 +259,115 @@ void Window::paint([[maybe_unused]] QOpenGLFramebufferObject* framebuffer)
     wgpuInstanceProcessEvents(m_instance);
     wgpuDeviceTick(m_device);
 #endif
+}
 
-    if (readback_status == 1) {
-#if SYNCHRONOUS_READBACK == 1
 
-        wgpuQueueOnSubmittedWorkDone(m_queue, []([[maybe_unused]]WGPUQueueWorkDoneStatus status, void* ) {
-                auto onBuffer2Mapped = [](WGPUBufferMapAsyncStatus status, void* /*pUserData*/) {
-                    std::cout << "Buffer mapped with status " << status << std::endl;
-                    if (status != WGPUBufferMapAsyncStatus_Success) return;
+glm::vec4 Window::synchronous_position_readback(const glm::dvec2& ndc) {
+    if (m_readback_in_progress) return {};
 
-                    glm::vec4* bufferData = (glm::vec4*)wgpuBufferGetConstMappedRange(m_readback_buffer->handle(), 0, 256);
-                    last_pos = bufferData[0];
-                    std::cout << "Last position: " << last_pos.x << ", " << last_pos.y << ", " << last_pos.z << ", " << last_pos.w << std::endl;
-                    wgpuBufferUnmap(m_readback_buffer->handle());
-                    readback_status = 3;
+    // A little bit silly, but we have to transform it back to device coordinates
+    glm::uvec2 device_coordinates = {
+        (ndc.x + 1) * 0.5 * m_swapchain_size.x,
+        (1 - (ndc.y + 1) * 0.5) * m_swapchain_size.y
+    };
+
+    // clamp device coordinates to the swapchain size
+    device_coordinates = glm::clamp(device_coordinates, glm::uvec2(0), glm::uvec2(m_swapchain_size - glm::vec2(1.0)));
+
+    WGPUCommandEncoder encoder = wgpuDeviceCreateCommandEncoder(m_device, {});
+
+           // readback depth buffer
+    m_position_readback_buffer = std::make_unique<raii::RawBuffer<glm::vec4>>(m_device, WGPUBufferUsage_CopyDst | WGPUBufferUsage_MapRead, 256 / sizeof(glm::vec4), "readback buffer");
+
+    const auto& src_texture = m_gbuffer->color_texture(1);
+    // Define Source Texture
+    WGPUImageCopyTexture image_copy_texture_source = {
+        .nextInChain = nullptr,
+        .texture = src_texture.handle(),
+        .mipLevel = 0,
+        .origin = {device_coordinates.x,device_coordinates.y,0},
+        .aspect = {}
+    };
+    // Define destination buffer
+    WGPUTextureDataLayout texture_data_layout = {
+        .nextInChain = nullptr,
+        .offset      = 0,
+        .bytesPerRow = 256, // multiple of 256
+        .rowsPerImage = 1,
+    };
+    WGPUImageCopyBuffer image_copy_buffer_destination = {
+        .nextInChain = nullptr,
+        .layout = texture_data_layout,
+        .buffer = m_position_readback_buffer->handle(),
+    };
+    WGPUExtent3D image_copy_extent = {
+        .width  = 1,
+        .height = 1,
+        .depthOrArrayLayers = 1,
+    };
+    wgpuCommandEncoderCopyTextureToBuffer(encoder, &image_copy_texture_source, &image_copy_buffer_destination, &image_copy_extent);
+
+    WGPUCommandBuffer command = wgpuCommandEncoderFinish(encoder, {});
+    wgpuCommandEncoderRelease(encoder);
+    wgpuQueueSubmit(m_queue, 1, &command);
+    wgpuCommandBufferRelease(command);
+
+    m_readback_in_progress = true;
+    wgpuQueueOnSubmittedWorkDone(m_queue, []([[maybe_unused]]WGPUQueueWorkDoneStatus status, void* pUserData) {
+            auto onBufferMapped = [](WGPUBufferMapAsyncStatus status, void* pUserData) {
+                Window* _this = reinterpret_cast<Window*>(pUserData);
+
+                if (status != WGPUBufferMapAsyncStatus_Success) {
+                    std::cout << "Error in buffer mapping" << std::endl;
+                    _this->m_readback_in_progress = false;
                 };
-                wgpuBufferMapAsync(m_readback_buffer->handle(), WGPUMapMode_Read, 0, 256, onBuffer2Mapped, nullptr);
-            }, nullptr);
-        readback_status = 2;
 
-        wait_until_readback_status(3); // hold until buffer is mapped
-        std::cout << "Last position after hold: " << last_pos.x << ", " << last_pos.y << ", " << last_pos.z << ", " << last_pos.w << std::endl;
+                glm::vec4* bufferData = (glm::vec4*)wgpuBufferGetConstMappedRange(_this->m_position_readback_buffer->handle(), 0, sizeof(glm::vec4));
+                _this->m_position_readback_result = bufferData[0];
+                wgpuBufferUnmap(_this->m_position_readback_buffer->handle());
+                _this->m_readback_in_progress = false;
+            };
+            Window* _this = reinterpret_cast<Window*>(pUserData);
+            wgpuBufferMapAsync(_this->m_position_readback_buffer->handle(), WGPUMapMode_Read, 0, sizeof(glm::vec4), onBufferMapped, pUserData);
+        }, this);
 
+    int sleepcnt = 0;
+    const int max_timeout = 1000;
+    while (m_readback_in_progress) {
+#ifdef __EMSCRIPTEN__
+        emscripten_sleep(1);    // using asyncify to return to js event loop
 #else
-        wgpuQueueOnSubmittedWorkDone(m_queue, []([[maybe_unused]]WGPUQueueWorkDoneStatus status, void* ) {
-                auto onBuffer2Mapped = [](WGPUBufferMapAsyncStatus status, void* /*pUserData*/) {
-                    std::cout << "Buffer mapped with status " << status << std::endl;
-                    if (status != WGPUBufferMapAsyncStatus_Success) return;
-
-                    glm::vec4* bufferData = (glm::vec4*)wgpuBufferGetConstMappedRange(m_readback_buffer->handle(), 0, 256);
-                    last_pos = bufferData[0];
-                    std::cout << "Last position: " << last_pos.x << ", " << last_pos.y << ", " << last_pos.z << ", " << last_pos.w << std::endl;
-                    wgpuBufferUnmap(m_readback_buffer->handle());
-                };
-                wgpuBufferMapAsync(m_readback_buffer->handle(), WGPUMapMode_Read, 0, 256, onBuffer2Mapped, nullptr);
-            }, nullptr);
-        readback_status = 2;
+        std::this_thread::sleep_for(std::chrono::milliseconds(1));
+        wgpuDeviceTick(m_device); // polling events for DAWN
 #endif
+        wgpuInstanceProcessEvents(m_instance); // not sure if necessary
+
+        sleepcnt++;
+        if (sleepcnt > max_timeout) {
+            std::cout << "Timeout in readback" << std::endl;
+            break;
+        }
     }
 
+    std::cout << "Waited for " << sleepcnt << "ms" << std::endl;
 
-
-
+    std::cout << "Position: " << glm::to_string(m_position_readback_result) << std::endl;
+    return m_position_readback_result;
 }
+
 
 float Window::depth([[maybe_unused]] const glm::dvec2& normalised_device_coordinates)
 {
-    // Implementation for calculating depth, parameters currently unused
-    return last_pos.z;
-    //return 0.0f;
+    auto position = synchronous_position_readback(normalised_device_coordinates);
+    return position.z;
 }
 
 glm::dvec3 Window::position([[maybe_unused]] const glm::dvec2& normalised_device_coordinates)
 {
-    //glm::dvec3 reconstructed = m_camera.position() + m_camera.ray_direction(normalised_device_coordinates) * (double)depth(normalised_device_coordinates);
     // If we read position directly no reconstruction is necessary
-    glm::dvec3 readback = m_camera.position() + glm::dvec3(last_pos.x, last_pos.y, last_pos.z);
-    return readback;
+    //glm::dvec3 reconstructed = m_camera.position() + m_camera.ray_direction(normalised_device_coordinates) * (double)depth(normalised_device_coordinates);
+    auto position = synchronous_position_readback(normalised_device_coordinates);
+    return m_camera.position() + glm::dvec3(position.x, position.y, position.z);
 }
 
 void Window::deinit_gpu()
@@ -470,12 +439,6 @@ void Window::update_gpu_quads([[maybe_unused]] const std::vector<nucleus::tile_s
 {
     // std::cout << "received " << new_quads.size() << " new quads, should delete " << deleted_quads.size() << " quads" << std::endl;
     m_tile_manager->update_gpu_quads(new_quads, deleted_quads);
-}
-
-void Window::update_last_mouse_position(const nucleus::event_parameter::Mouse& mouse)
-{
-    m_last_mouse_position = mouse.position;
-    std::cout << "Mouse position: " << m_last_mouse_position.x << ", " << m_last_mouse_position.y << std::endl;
 }
 
 #ifdef ALP_WEBGPU_APP_ENABLE_IMGUI
@@ -732,6 +695,7 @@ void Window::create_swapchain(uint32_t width, uint32_t height)
     swapchain_desc.format = m_swapchain_format;
     swapchain_desc.presentMode = WGPUPresentMode::WGPUPresentMode_Fifo;
     m_swapchain = wgpuDeviceCreateSwapChain(m_device, m_surface, &swapchain_desc);
+    m_swapchain_size = glm::vec2(width, height);
     std::cout << "Swapchain: " << m_swapchain << std::endl;
 }
 
