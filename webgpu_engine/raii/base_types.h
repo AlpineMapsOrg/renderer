@@ -1,6 +1,7 @@
 /*****************************************************************************
  * weBIGeo
  * Copyright (C) 2024 Patrick Komon
+ * Copyright (C) 2024 Gerald Kimmersdorfer
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -84,6 +85,11 @@ template <> struct GpuFuncs<WGPURenderPipeline, WGPURenderPipelineDescriptor, WG
     static void release(auto handle) { wgpuRenderPipelineRelease(handle); }
 };
 
+template <> struct GpuFuncs<WGPUSwapChain, WGPUSwapChainDescriptor, WGPUDevice> {
+    static auto create(auto context, auto descriptor) { return wgpuDeviceCreateSwapChain(context, &descriptor); }
+    static void release(auto handle) { wgpuSwapChainRelease(handle); }
+};
+
 template <> struct GpuFuncs<WGPURenderPassEncoder, WGPURenderPassDescriptor, WGPUCommandEncoder> {
     static auto create(auto context, auto descriptor) { return wgpuCommandEncoderBeginRenderPass(context, &descriptor); }
     static void release(auto handle)
@@ -102,6 +108,10 @@ public:
         : m_handle(GpuFuncs<HandleT, DescriptorT, ContextHandleT>::create(context, descriptor))
         , m_descriptor(descriptor)
     {
+        // Warning/ToDo: m_descriptor might contain pointers to memory that is managed by the caller.
+        // To make sure all of the pointer types inside the descriptor should be set to nullptr.
+        // It might be possible with some dark template magic. If not we'll leave it as is, but
+        // need to be aware that such pointers might cause issues.
     }
 
     ~GpuResource() { GpuFuncs<HandleT, DescriptorT, ContextHandleT>::release(m_handle); }
@@ -128,5 +138,11 @@ using RenderPipeline = GpuResource<WGPURenderPipeline, WGPURenderPipelineDescrip
 // using TextureView = GpuResource<WGPUTextureView, WGPUTextureViewDescriptor, WGPUTexture>;
 // using Sampler = GpuResource<WGPUSampler, WGPUSamplerDescriptor, WGPUDevice>;
 using RenderPassEncoder = GpuResource<WGPURenderPassEncoder, WGPURenderPassDescriptor, WGPUCommandEncoder>;
+
+// Also SwapChain is different because it needs Device and surface as parameters...
+//using SwapChain = GpuResource<WGPUSwapChain, WGPUSwapChainDescriptor, WGPUDevice>;
+
+// Surface is not as easy, as we get it from glfw
+//using Surface = GpuResource<WGPUSurface, WGPUSurfaceDescriptor, WGPUInstance>;
 
 } // namespace webgpu_engine::raii
