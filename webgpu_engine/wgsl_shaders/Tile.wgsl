@@ -21,6 +21,7 @@
 #include "shared_config.wgsl"
 #include "hashing.wgsl"
 #include "camera_config.wgsl"
+#include "encoder.wgsl"
 
 @group(0) @binding(0) var<uniform> config : shared_config;
 
@@ -176,11 +177,14 @@ highp vec3 normal_by_finite_difference_method(vec2 uv, float edge_vertices_count
 @fragment fn fragmentMain(vertex_out : VertexOut) -> FragOut
 {
     let albedo = textureSample(ortho_texture, ortho_sampler, vertex_out.uv, vertex_out.texture_layer).rgb;
+    let dist = length(vertex_out.pos_cws);
 
     var frag_out : FragOut;
     frag_out.albedo = vec4f(albedo, 1.0);
-    frag_out.position = vec4f(vertex_out.pos_cws, length(vertex_out.pos_cws));
+    frag_out.position = vec4f(vertex_out.pos_cws, dist);
     frag_out.normal = vec2u(0, 0);
-    frag_out.depth = vec4f(0, 0, 0, 0);
+
+    frag_out.depth = vec4f(depthWSEncode2n8(dist), 0, 0);
+    //frag_out.albedo = frag_out.depth;
     return frag_out;
 }
