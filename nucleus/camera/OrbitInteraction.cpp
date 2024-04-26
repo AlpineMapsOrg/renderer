@@ -27,7 +27,7 @@ namespace nucleus::camera {
 
 std::optional<Definition> OrbitInteraction::mouse_press_event(const event_parameter::Mouse& e, Definition camera, AbstractDepthTester* depth_tester)
 {
-    start(e.point.position(), camera, depth_tester);
+    start({e.position.x, e.position.y}, camera, depth_tester);
     return {};
 }
 
