@@ -77,7 +77,7 @@ void Framebuffer::recreate_color_texture(size_t index)
     texture_desc.mipLevelCount = 1;
     texture_desc.sampleCount = 1;
     texture_desc.size = { m_format.size.x, m_format.size.y, 1 };
-    texture_desc.usage = WGPUTextureUsage_RenderAttachment | WGPUTextureUsage_TextureBinding;
+    texture_desc.usage = WGPUTextureUsage_RenderAttachment | WGPUTextureUsage_TextureBinding | WGPUTextureUsage_CopySrc;
     texture_desc.viewFormatCount = 1;
     texture_desc.viewFormats = &m_format.color_formats[index];
 
@@ -95,7 +95,15 @@ void Framebuffer::recreate_all_textures()
 
 glm::uvec2 Framebuffer::size() const { return m_format.size; }
 
-const raii::TextureView& Framebuffer::color_texture_view(size_t index) { return *m_color_texture_views.at(index); }
+const raii::TextureView& Framebuffer::color_texture_view(size_t index)
+{
+    return *m_color_texture_views.at(index);
+}
+
+const raii::Texture& Framebuffer::color_texture(size_t index)
+{
+    return *m_color_textures.at(index);
+}
 
 std::unique_ptr<raii::RenderPassEncoder> Framebuffer::begin_render_pass(WGPUCommandEncoder encoder)
 {
@@ -138,6 +146,13 @@ std::unique_ptr<raii::RenderPassEncoder> Framebuffer::begin_render_pass(WGPUComm
     }
     render_pass_desc.timestampWrites = nullptr;
     return std::make_unique<raii::RenderPassEncoder>(encoder, render_pass_desc);
+}
+
+// ToDo: Implement this function
+glm::vec4 Framebuffer::read_colour_attachment_pixel(size_t index, const glm::dvec2& normalised_device_coordinates) {
+    assert(index < m_color_textures.size());
+    assert(normalised_device_coordinates.x >= 0.0 && normalised_device_coordinates.x <= 1.0);
+    return {};
 }
 
 } // namespace webgpu_engine

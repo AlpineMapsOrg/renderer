@@ -162,6 +162,8 @@ void TerrainRenderer::start() {
     );
 #else
     while (!glfwWindowShouldClose(m_window)) {
+        // Do nothing, this checks for ongoing asynchronous operations and call their callbacks
+
         glfwPollEvents();
         m_webgpu_window->paint(nullptr);
     }
@@ -220,11 +222,8 @@ void TerrainRenderer::on_key_callback(int key, [[maybe_unused]]int scancode, int
 void TerrainRenderer::on_cursor_position_callback(double x_pos, double y_pos)
 {
     m_mouse.last_position = m_mouse.position;
-    m_mouse.position.x = x_pos;
-    m_mouse.position.y = y_pos;
-
+    m_mouse.position = { x_pos,  y_pos };
     //std::cout << "mouse moved, x=" << x_pos << ", y=" << y_pos << std::endl;
-
     emit mouse_moved(m_mouse);
 }
 

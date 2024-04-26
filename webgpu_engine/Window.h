@@ -72,6 +72,8 @@ public slots:
     void update_debug_scheduler_stats(const QString& stats) override;
     void update_gpu_quads(const std::vector<nucleus::tile_scheduler::tile_types::GpuTileQuad>& new_quads, const std::vector<tile::Id>& deleted_quads) override;
 
+    void update_last_mouse_position(const nucleus::event_parameter::Mouse& mouse); // called by Renderer
+
 private:
     void create_instance();
     void init_surface();
@@ -89,6 +91,8 @@ private:
 
     WGPURequiredLimits required_gpu_limits() const;
 
+    void wait_until_readback_status(int wait_until_status);
+
 private:
     WGPUInstance m_instance = nullptr;
     WGPUDevice m_device = nullptr;
@@ -99,6 +103,8 @@ private:
     WGPUTextureFormat m_depth_texture_format = WGPUTextureFormat::WGPUTextureFormat_Depth24Plus;
 
     WGPUQueue m_queue = nullptr;
+
+    glm::vec2 m_last_mouse_position;
 
     std::unique_ptr<ShaderModuleManager> m_shader_manager;
     std::unique_ptr<PipelineManager> m_pipeline_manager;
