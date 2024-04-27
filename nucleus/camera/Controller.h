@@ -25,7 +25,7 @@
 #include <QObject>
 
 #include <glm/glm.hpp>
-#include <QVector3D>
+#include <QVector3D> //ToDo: Remove with QGui
 
 #include "AnimationStyle.h"
 #include "Definition.h"

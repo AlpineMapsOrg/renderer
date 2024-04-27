@@ -20,8 +20,8 @@
 
 #include <glm/glm.hpp>
 
-#include <QImage>
-
+#include <QImage>  //ToDo: Remove with QGui
+#include <QByteArray>
 #include "nucleus/Raster.h"
 
 namespace nucleus::utils::tile_conversion {
