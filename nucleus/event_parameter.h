@@ -2,6 +2,7 @@
  * Alpine Terrain Renderer
  * Copyright (C) 2023 Adam Celarek
  * Copyright (C) 2024 Patrick Komon
+ * Copyright (C) 2024 Gerald Kimmersdorfer
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -20,7 +21,7 @@
 #pragma once
 
 #include <QMetaType>
-#include <QMouseEvent>
+#include <QMouseEvent>  //ToDo: Remove with QGui
 #include <QTouchEvent>
 
 #include <glm/vec2.hpp>
@@ -53,6 +54,7 @@ struct Wheel {
     bool is_update_event = false;
     QPoint angle_delta;
     QEventPoint point = QEventPoint(); // TODO remove, Qt::GUI dependency
+    glm::vec2 position = glm::vec2(0);
 };
 }
 Q_DECLARE_METATYPE(nucleus::event_parameter::Touch)

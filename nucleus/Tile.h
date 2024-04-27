@@ -1,6 +1,6 @@
 #pragma once
 
-#include <QImage>
+#include <QImage>  //ToDo: Remove with QGui
 #include <glm/glm.hpp>
 
 #include "Raster.h"
@@ -19,6 +19,6 @@ struct Tile {
     tile::Id id = {};
     tile::SrsAndHeightBounds bounds = {};
     nucleus::Raster<uint16_t> height_map;
-    QImage orthotexture;
+    QImage orthotexture;  //ToDo: Remove with QGui
 };
 }

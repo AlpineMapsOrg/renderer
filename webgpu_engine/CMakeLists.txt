@@ -60,6 +60,7 @@ qt_add_resources(webgpu_engine "shaders"
         "wgsl_shaders/compose_frag.wgsl"
         "wgsl_shaders/atmosphere_frag.wgsl"
         "wgsl_shaders/atmosphere_implementation.wgsl"
+        "wgsl_shaders/encoder.wgsl"
 )
 
 target_link_libraries(webgpu_engine PUBLIC nucleus Qt::Core webgpu)

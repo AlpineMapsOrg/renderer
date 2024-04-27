@@ -2,6 +2,7 @@
  * Alpine Terrain Renderer
  * Copyright (C) 2022 Adam Celarek
  * Copyright (C) 2023 Jakob Lindner
+ * Copyright (C) 2024 Gerald Kimmersdorfer
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -27,25 +28,25 @@ namespace nucleus::camera {
 
 std::optional<Definition> OrbitInteraction::mouse_press_event(const event_parameter::Mouse& e, Definition camera, AbstractDepthTester* depth_tester)
 {
-    start(e.point.position(), camera, depth_tester);
+    start({e.position.x, e.position.y}, camera, depth_tester);
     return {};
 }
 
 std::optional<Definition> OrbitInteraction::mouse_move_event(const event_parameter::Mouse& e, Definition camera, AbstractDepthTester* depth_tester)
 {
     if (e.buttons == Qt::LeftButton && !m_key_ctrl && !m_key_alt) {
-        pan(e.point.position(), e.point.lastPosition(), &camera, depth_tester);
+        pan(QPointF(e.position.x, e.position.y), QPointF(e.last_position.x, e.last_position.y), &camera, depth_tester);
     }
     if (e.buttons == Qt::MiddleButton || (e.buttons == Qt::LeftButton && m_key_ctrl && !m_key_alt)) {
-        m_operation_centre_screen = glm::vec2(e.point.pressPosition().x(), e.point.pressPosition().y());
-        const auto delta = e.point.position() - e.point.lastPosition();
-        camera.orbit_clamped(m_operation_centre, glm::vec2(delta.x(), delta.y()) * -0.1f);
+        m_operation_centre_screen = e.press_position;
+        const auto delta = e.position - e.last_position;
+        camera.orbit_clamped(m_operation_centre, delta * -0.1f);
     }
     if (e.buttons == Qt::RightButton || (e.buttons == Qt::LeftButton && !m_key_ctrl && m_key_alt)) {
-        m_operation_centre_screen = glm::vec2(e.point.pressPosition().x(), e.point.pressPosition().y());
-        const auto delta = e.point.position() - e.point.lastPosition();
+        m_operation_centre_screen = e.press_position;
+        const auto delta = e.position - e.last_position;
 
-        zoom((delta.y() + delta.x()) / 4.f, &camera, depth_tester);
+        zoom((delta.y + delta.x) / 4.f, &camera, depth_tester);
     }
 
     if (e.buttons == Qt::NoButton)
@@ -105,8 +106,8 @@ std::optional<Definition> OrbitInteraction::touch_event(const event_parameter::T
 
 std::optional<Definition> OrbitInteraction::wheel_event(const event_parameter::Wheel& e, Definition camera, AbstractDepthTester* depth_tester)
 {
-    m_operation_centre_screen = glm::vec2(e.point.position().x(), e.point.position().y());
-    start(e.point.position(), camera, depth_tester);
+    m_operation_centre_screen = glm::vec2(e.position.x, e.position.y);
+    start(QPointF(e.position.x, e.position.y), camera, depth_tester);
     zoom(float(e.angle_delta.y()) / 15.f, &camera, depth_tester);
     return camera;
 }

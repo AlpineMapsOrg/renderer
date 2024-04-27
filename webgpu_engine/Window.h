@@ -67,6 +67,11 @@ public:
     nucleus::utils::ColourTexture::Format ortho_tile_compression_algorithm() const override;
     void set_permissible_screen_space_error(float new_error) override;
 
+    // Not happy with the following three in public, but we need to have access inside the lambdas.
+    std::unique_ptr<raii::RawBuffer<glm::vec4>> m_position_readback_buffer;
+    bool m_readback_in_progress = false;
+    glm::vec4 m_position_readback_result;
+
 public slots:
     void update_camera(const nucleus::camera::Definition& new_definition) override;
     void update_debug_scheduler_stats(const QString& stats) override;
@@ -88,6 +93,14 @@ private:
     void update_gui(WGPURenderPassEncoder render_pass);
 
     WGPURequiredLimits required_gpu_limits() const;
+
+    // A helper function for the depth and position method.
+    // ATTENTION: This function is synchronous and will hold rendering. Use with caution!
+    // Note: Depth aswell as the position is saved in the gbuffer. In contrast to the gl version
+    // we can directly readback the content of the position buffer and don't need the readback depth
+    // buffer anymore. May actually increase performance as we don't need to fill the seperate buffer.
+    glm::vec4 synchronous_position_readback(const glm::dvec2& normalised_device_coordinates);
+    void wait_until_readback_status(int wait_until_status);
 
 private:
     WGPUInstance m_instance = nullptr;
@@ -128,6 +141,9 @@ private:
     std::unique_ptr<raii::Sampler> m_compose_sampler_nonfiltering;
 
     std::unique_ptr<Framebuffer> m_atmosphere_framebuffer;
+
+    // ToDo: Swapchain should get a raii class and the size could be saved in there
+    glm::vec2 m_swapchain_size = glm::vec2(0.0f);
 };
 
 } // namespace webgpu_engine

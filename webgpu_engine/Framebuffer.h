@@ -43,10 +43,12 @@ public:
 
     const raii::TextureView& color_texture_view(size_t index);
 
+    const raii::Texture& color_texture(size_t index);
+
     std::unique_ptr<raii::RenderPassEncoder> begin_render_pass(WGPUCommandEncoder encoder);
 
-private:
-    void color_texture(size_t index);
+    // ToDo: Make generic for different types
+    glm::vec4 read_colour_attachment_pixel(size_t index, const glm::dvec2& normalised_device_coordinates);
 
 private:
     WGPUDevice m_device;

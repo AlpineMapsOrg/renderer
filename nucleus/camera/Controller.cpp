@@ -115,7 +115,10 @@ void Controller::update() const
 
 void Controller::mouse_press(const event_parameter::Mouse& e)
 {
-    report_global_cursor_position(e.point.position());
+    // Note: This function queries for the position a second time.
+    // It was meant to report back the position to gui but is not in use so far
+    // If we reactivate it we should find a way to avoid the unnecessary second query
+    //report_global_cursor_position({ e.position.x, e.position.y });
 
     if (m_animation_style) {
         m_animation_style.reset();
