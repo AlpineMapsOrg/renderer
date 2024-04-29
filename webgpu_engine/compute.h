@@ -53,8 +53,8 @@ public:
     void clear(const tile::Id& id) override;
 
 private:
-    size_t m_n_edge_vertices;
-    size_t m_capacity;
+    [[maybe_unused]]size_t m_n_edge_vertices;   // TODO: use
+    [[maybe_unused]]size_t m_capacity;          // TODO: use
     std::unique_ptr<raii::Texture> m_texture_array;
     std::vector<tile::Id> m_layer_index_to_tile_id;
 };

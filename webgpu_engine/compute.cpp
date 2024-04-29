@@ -36,7 +36,7 @@ std::vector<tile::Id> RectangularTileRegion::get_tiles() const
 
 TextureArrayComputeTileStorage::TextureArrayComputeTileStorage(size_t n_edge_vertices, size_t capacity)
     : m_n_edge_vertices { n_edge_vertices }
-    , m_capacity { m_capacity }
+    , m_capacity { capacity }
 {
 }
 
