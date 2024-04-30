@@ -1,6 +1,7 @@
 /*****************************************************************************
  * Alpine Renderer
  * Copyright (C) 2022 Adam Celarek
+ * Copyright (C) 2024 Patrick Komon
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -55,10 +56,11 @@ TEST_CASE("nucleus/tile_scheduler/DrawListGenerator")
         draw_list_generator.add_tile(tile::Id { 1, { 1, 0 } });
         draw_list_generator.add_tile(tile::Id { 1, { 1, 1 } });
         const auto list = draw_list_generator.generate_for(camera);
-        REQUIRE(list.size() == 1);
-        CHECK(list.contains(tile::Id { 1, { 1, 1 } }));
+        REQUIRE(list.size() == 4);
+        const auto culled_list = draw_list_generator.cull(list, camera.frustum());
+        REQUIRE(culled_list.size() == 1);
+        CHECK(culled_list.contains(tile::Id { 1, { 1, 1 } }));
     }
-
 
     SECTION("removal")
     {
