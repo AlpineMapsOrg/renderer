@@ -36,6 +36,56 @@ fn calculate_falloff(dist: f32, start: f32, end: f32) -> f32 {
     return clamp(1.0 - (dist - start) / (end - start), 0.0, 1.0);
 }
 
+// Calculates the diffuse and specular illumination contribution for the given
+// parameters according to the Blinn-Phong lighting model.
+// All parameters must be normalized.
+fn calc_blinn_phong_contribution(
+    toLight: vec3<f32>, 
+    toEye: vec3<f32>, 
+    normal: vec3<f32>, 
+    diffFactor: vec3<f32>, 
+    specFactor: vec3<f32>, 
+    specShininess: f32
+) -> vec3<f32> {
+    let nDotL: f32 = max(0.0, dot(normal, toLight)); // Lambertian coefficient
+    let h: vec3<f32> = normalize(toLight + toEye);
+    let nDotH: f32 = max(0.0, dot(normal, h));
+    let specPower: f32 = pow(nDotH, specShininess);
+    let diffuse: vec3<f32> = diffFactor * nDotL; // Component-wise product
+    let specular: vec3<f32> = specFactor * specPower;
+    return diffuse + specular;
+}
+
+// Calculates the Blinn-Phong illumination for the given fragment
+fn calculate_illumination(
+    albedo: vec3<f32>, 
+    eyePos: vec3<f32>, 
+    fragPos: vec3<f32>, 
+    fragNorm: vec3<f32>, 
+    dirLight: vec4<f32>, 
+    ambLight: vec4<f32>, 
+    dirDirection: vec3<f32>, 
+    material: vec4<f32>, 
+    ao: f32, 
+    shadow_term: f32
+) -> vec3<f32> {
+    let dirColor: vec3<f32> = dirLight.rgb * dirLight.a;
+    let ambColor: vec3<f32> = ambLight.rgb * ambLight.a;
+    let ambient: vec3<f32> = material.r * albedo;
+    let diff: vec3<f32> = material.g * albedo;
+    let spec: vec3<f32> = vec3<f32>(material.b);
+    let shini: f32 = material.a;
+
+    let ambientIllumination: vec3<f32> = ambient * ambColor * ao;
+
+    let toLightDirWS: vec3<f32> = -normalize(dirDirection);
+    let toEyeNrmWS: vec3<f32> = normalize(eyePos - fragPos);
+    let diffAndSpecIllumination: vec3<f32> = dirColor * calc_blinn_phong_contribution(toLightDirWS, toEyeNrmWS, fragNorm, diff, spec, shini);
+
+    return ambientIllumination + diffAndSpecIllumination * (1.0 - shadow_term);
+}
+
+
 @fragment
 fn fragmentMain(vertex_out : VertexOut) -> @location(0) vec4f {
     let tci : vec2<u32> = vec2u(vertex_out.texcoords * camera.viewport_size);
@@ -105,8 +155,7 @@ fn fragmentMain(vertex_out : VertexOut) -> @location(0) vec4f {
 
         shaded_color = albedo;
         if (bool(conf.phong_enabled)) {
-            //TODO normal
-            //shaded_color = calculate_illumination(shaded_color, origin, pos_ws, normal, conf.sun_light, conf.amb_light, conf.sun_light_dir.xyz, material_light_response, amb_occlusion, shadow_term);
+            shaded_color = calculate_illumination(shaded_color, origin, pos_ws, normal, conf.sun_light, conf.amb_light, conf.sun_light_dir.xyz, material_light_response, amb_occlusion, shadow_term);
         }
         shaded_color = calculate_atmospheric_light(origin / 1000.0, ray_direction, dist / 1000.0, shaded_color, 10);
         shaded_color = max(vec3(0.0), shaded_color);    

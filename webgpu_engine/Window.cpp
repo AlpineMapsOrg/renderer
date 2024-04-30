@@ -569,6 +569,8 @@ void Window::update_gui(WGPURenderPassEncoder render_pass)
         }
     }
 
+    ImGui::Checkbox("Phong Shading", (bool*)&m_shared_config_ubo->data.m_phong_enabled);
+
 
     if (ImGui::Button(!show_node_editor ? "Show Node Editor" : "Hide Node Editor", ImVec2(280, 20))) {
         show_node_editor = !show_node_editor;
