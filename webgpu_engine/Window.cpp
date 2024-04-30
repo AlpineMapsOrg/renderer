@@ -520,8 +520,16 @@ void Window::update_gui(WGPURenderPassEncoder render_pass)
     fpsIndex = (fpsIndex + 1) % IM_ARRAYSIZE(fpsValues); // Loop around the array
 
     frame_time = frame_time * 0.95f + (1000.0f / io.Framerate) * 0.05f;
-    ImGui::PlotLines("", fpsValues, IM_ARRAYSIZE(fpsValues), fpsIndex, nullptr, 0.0f, 80.0f, ImVec2(280, 100));
+    static bool vsync_enabled = (m_swapchain_presentmode == WGPUPresentMode::WGPUPresentMode_Fifo);
+    if (ImGui::Checkbox("VSync", &vsync_enabled)) {
+        m_swapchain_presentmode = vsync_enabled ? WGPUPresentMode::WGPUPresentMode_Fifo : WGPUPresentMode::WGPUPresentMode_Immediate;
+        // Recreate swapchain
+        resize_framebuffer(m_swapchain_size.x, m_swapchain_size.y);
+    }
     ImGui::Text("Average: %.3f ms/frame (%.1f FPS)", frame_time, io.Framerate);
+
+    ImGui::PlotLines("", fpsValues, IM_ARRAYSIZE(fpsValues), fpsIndex, nullptr, 0.0f, 80.0f, ImVec2(280, 100));
+
 
     ImGui::Separator();
 
@@ -736,7 +744,7 @@ void Window::create_swapchain(uint32_t width, uint32_t height)
     swapchain_desc.height = height;
     swapchain_desc.usage = WGPUTextureUsage::WGPUTextureUsage_RenderAttachment;
     swapchain_desc.format = m_swapchain_format;
-    swapchain_desc.presentMode = WGPUPresentMode::WGPUPresentMode_Fifo;
+    swapchain_desc.presentMode = m_swapchain_presentmode;
     m_swapchain = wgpuDeviceCreateSwapChain(m_device, m_surface, &swapchain_desc);
     m_swapchain_size = glm::vec2(width, height);
     std::cout << "Swapchain: " << m_swapchain << std::endl;
