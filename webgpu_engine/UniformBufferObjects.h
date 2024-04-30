@@ -69,7 +69,7 @@ public:
     float padf2 = 0.0f;
 
     uint32_t m_phong_enabled = false;
-    uint32_t m_normal_mode = 0;                       // 0...per fragment, 1...FDM
+    uint32_t m_normal_mode = 0;                       // 0...none, 1...per fragment, 2...FDM
     uint32_t m_overlay_mode = 0;                      // see GlSettings.qml for list of modes
     uint32_t m_overlay_postshading_enabled = false;   // see GlSettings.qml for more details
 

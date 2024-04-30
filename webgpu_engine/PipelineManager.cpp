@@ -129,6 +129,7 @@ void PipelineManager::create_bind_group_layouts()
     atmosphere_texture_entry.texture.sampleType = WGPUTextureSampleType_Float;
     atmosphere_texture_entry.texture.viewDimension = WGPUTextureViewDimension_2D;
 
+    /*
     WGPUBindGroupLayoutEntry compose_sampler_entry {};
     compose_sampler_entry.binding = 4;
     compose_sampler_entry.visibility = WGPUShaderStage_Fragment;
@@ -137,11 +138,15 @@ void PipelineManager::create_bind_group_layouts()
     WGPUBindGroupLayoutEntry compose_nonfiltering_sampler_entry {};
     compose_nonfiltering_sampler_entry.binding = 5;
     compose_nonfiltering_sampler_entry.visibility = WGPUShaderStage_Fragment;
-    compose_nonfiltering_sampler_entry.sampler.type = WGPUSamplerBindingType_NonFiltering;
+    compose_nonfiltering_sampler_entry.sampler.type = WGPUSamplerBindingType_NonFiltering;*/
 
     m_compose_bind_group_layout = std::make_unique<raii::BindGroupLayout>(m_device,
-        std::vector<WGPUBindGroupLayoutEntry> { albedo_texture_entry, position_texture_entry, normal_texture_entry, atmosphere_texture_entry,
-            compose_sampler_entry, compose_nonfiltering_sampler_entry },
+        std::vector<WGPUBindGroupLayoutEntry> {
+            albedo_texture_entry,
+            position_texture_entry,
+            normal_texture_entry,
+            atmosphere_texture_entry,
+        },
         "compose bind group layout");
 }
 
@@ -170,8 +175,7 @@ void PipelineManager::create_tile_pipeline()
     format.depth_format = WGPUTextureFormat_Depth24Plus;
     format.color_formats.emplace_back(WGPUTextureFormat_RGBA8Unorm);
     format.color_formats.emplace_back(WGPUTextureFormat_RGBA32Float);
-    format.color_formats.emplace_back(WGPUTextureFormat_RG8Uint);
-    format.color_formats.emplace_back(WGPUTextureFormat_RGBA8Unorm);
+    format.color_formats.emplace_back(WGPUTextureFormat_RG16Uint);
 
     m_tile_pipeline = std::make_unique<raii::GenericRenderPipeline>(m_device, m_shader_manager->tile(), m_shader_manager->tile(),
         std::vector<util::SingleVertexBufferInfo> { bounds_buffer_info, texture_layer_buffer_info, tileset_id_buffer_info, zoomlevel_buffer_info }, format,

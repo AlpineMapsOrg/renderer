@@ -135,11 +135,12 @@ void Window::resize_framebuffer(int w, int h)
     m_atmosphere_framebuffer = std::make_unique<Framebuffer>(m_device, atmosphere_framebuffer_format);
 
     m_compose_bind_group = std::make_unique<raii::BindGroup>(m_device, m_pipeline_manager->compose_bind_group_layout(),
-        std::initializer_list<WGPUBindGroupEntry> { m_gbuffer->color_texture_view(0).create_bind_group_entry(0), // albedo texture
+        std::initializer_list<WGPUBindGroupEntry> {
+            m_gbuffer->color_texture_view(0).create_bind_group_entry(0), // albedo texture
             m_gbuffer->color_texture_view(1).create_bind_group_entry(1), // position texture
             m_gbuffer->color_texture_view(2).create_bind_group_entry(2), // normal texture
             m_atmosphere_framebuffer->color_texture_view(0).create_bind_group_entry(3), // atmosphere texture
-            m_compose_sampler_filtering->create_bind_group_entry(4), m_compose_sampler_nonfiltering->create_bind_group_entry(5) });
+        });
 
 #ifdef ALP_WEBGPU_APP_ENABLE_IMGUI
     if (ImGui::GetCurrentContext() != nullptr) {
@@ -199,13 +200,16 @@ void Window::paint([[maybe_unused]] QOpenGLFramebufferObject* framebuffer)
         throw std::runtime_error("Cannot acquire next swap chain texture");
     }
 
-    emit update_camera_requested();
+    // ONLY ON CAMERA CHANGE!
+    // update_camera(m_camera);
+    //emit update_camera_requested();
 
            // TODO remove, debugging
            // uboSharedConfig* sc = &m_shared_config_ubo->data;
            // sc->m_sun_light = QVector4D(0.0f, 1.0f, 1.0f, 1.0f);
            // sc->m_sun_light_dir = QVector4D(elapsed, 1.0f, 1.0f, 1.0f);
-           // m_shared_config_ubo->update_gpu_data(m_queue);
+    // ToDo only update on change?
+    m_shared_config_ubo->update_gpu_data(m_queue);
 
     WGPUCommandEncoderDescriptor command_encoder_desc {};
     command_encoder_desc.label = "Command Encoder";
@@ -277,6 +281,7 @@ glm::vec4 Window::synchronous_position_readback(const glm::dvec2& ndc) {
     WGPUCommandEncoder encoder = wgpuDeviceCreateCommandEncoder(m_device, {});
 
            // readback depth buffer
+    // ToDo: Only create once
     m_position_readback_buffer = std::make_unique<raii::RawBuffer<glm::vec4>>(m_device, WGPUBufferUsage_CopyDst | WGPUBufferUsage_MapRead, 256 / sizeof(glm::vec4), "readback buffer");
 
     const auto& src_texture = m_gbuffer->color_texture(1);
@@ -518,6 +523,43 @@ void Window::update_gui(WGPURenderPassEncoder render_pass)
     ImGui::Text("Average: %.3f ms/frame (%.1f FPS)", frame_time, io.Framerate);
 
     ImGui::Separator();
+
+    ImGui::Combo("Normal Mode", (int*)&m_shared_config_ubo->data.m_normal_mode, "None\0Flat\0Smooth\0\0");
+
+    {
+        static int currentItem = m_shared_config_ubo->data.m_overlay_mode;
+        static const std::vector<std::pair<std::string, int>> overlays = {
+            {"None", 0},
+            {"Normals", 1},
+            {"Tiles", 2},
+            {"Zoomlevel", 3},
+            {"Vertex-ID", 4},
+            {"Vertex Height-Sample", 5},
+            {"Decoded Normals", 100},
+            {"Steepness", 101},
+            {"SSAO Buffer", 102},
+            {"Shadow Cascades", 103}
+        };
+        const char* currentItemLabel = overlays[currentItem].first.c_str();
+        if (ImGui::BeginCombo("Overlay", currentItemLabel))
+        {
+            for (size_t i = 0; i < overlays.size(); i++)
+            {
+                bool isSelected = ((size_t)currentItem == i);
+                if (ImGui::Selectable(overlays[i].first.c_str(), isSelected)) currentItem = i;
+                if (isSelected) ImGui::SetItemDefaultFocus();
+            }
+            ImGui::EndCombo();
+        }
+        m_shared_config_ubo->data.m_overlay_mode = overlays[currentItem].second;
+        if (m_shared_config_ubo->data.m_overlay_mode > 0) {
+            ImGui::SliderFloat("Overlay Strength", &m_shared_config_ubo->data.m_overlay_strength, 0.0f, 1.0f);
+        }
+        if (m_shared_config_ubo->data.m_overlay_mode >= 100) {
+            ImGui::Checkbox("Overlay Post Shading", (bool*)&m_shared_config_ubo->data.m_overlay_postshading_enabled);
+        }
+    }
+
 
     if (ImGui::Button(!show_node_editor ? "Show Node Editor" : "Hide Node Editor", ImVec2(280, 20))) {
         show_node_editor = !show_node_editor;

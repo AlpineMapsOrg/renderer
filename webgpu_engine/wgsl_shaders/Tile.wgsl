@@ -52,7 +52,7 @@ struct VertexOut {
 struct FragOut {
     @location(0) albedo: vec4f,
     @location(1) position: vec4f,
-    @location(2) normal: vec2u,
+    @location(2) normal_enc: vec2u,
     @location(3) depth: vec4f,
 }
 
@@ -96,7 +96,7 @@ fn camera_world_space_position(vertex_index: u32, bounds: vec4f, texture_layer: 
     }
     // Note: for higher zoom levels it would be enough to calculate the altitude_correction_factor on cpu
     // for lower zoom levels we could bake it into the texture.
-    // but there was no measurable difference despite a cos and a atan, so leaving as is for now.
+    // but there was no measurable difference despite the cos and atan, so leaving as is for now.
     let var_pos_cws_y : f32 = f32(n_quads_per_direction_int - row) * f32(*quad_width) + bounds.y;
     let pos_y : f32 = var_pos_cws_y + camera.position.y;
     *altitude_correction_factor = 0.125 / cos(y_to_lat(pos_y)); // https://github.com/AlpineMapsOrg/renderer/issues/5
@@ -149,11 +149,43 @@ highp vec3 normal_by_finite_difference_method(vec2 uv, float edge_vertices_count
     return normalize(vec3(hL - hR, hD - hU, height));
 }*/
 
+fn normal_by_finite_difference_method(uv: vec2<f32>, edge_vertices_count: f32, quad_width: f32, quad_height: f32, altitude_correction_factor: f32, texture_layer: i32) -> vec3<f32> {
+    // from here: https://stackoverflow.com/questions/6656358/calculating-normals-in-a-triangle-mesh/21660173#21660173
+    let offset = vec2<f32>(1.0, 0.0) / edge_vertices_count;
+    let height = quad_width + quad_height;
+    let uv_tex = vec2<i32>(i32(uv.x * edge_vertices_count), i32(uv.y * edge_vertices_count));
+    let upper_bounds = vec2<i32>(i32(edge_vertices_count - 1), i32(edge_vertices_count - 1));
+    let lower_bounds = vec2<i32>(0, 0);
+    let hL_uv = clamp(uv_tex - vec2<i32>(1, 0), lower_bounds, upper_bounds);
+    let hL_sample = textureLoad(height_texture, hL_uv, texture_layer, 0);
+    let hL = f32(hL_sample.r) * altitude_correction_factor;
+
+    let hR_uv = clamp(uv_tex + vec2<i32>(1, 0), lower_bounds, upper_bounds);
+    let hR_sample = textureLoad(height_texture, hR_uv, texture_layer, 0);
+    let hR = f32(hR_sample.r) * altitude_correction_factor;
+
+    let hD_uv = clamp(uv_tex + vec2<i32>(0, 1), lower_bounds, upper_bounds);
+    let hD_sample = textureLoad(height_texture, hD_uv, texture_layer, 0);
+    let hD = f32(hD_sample.r) * altitude_correction_factor;
+
+    let hU_uv = clamp(uv_tex - vec2<i32>(0, 1), lower_bounds, upper_bounds);
+    let hU_sample = textureLoad(height_texture, hU_uv, texture_layer, 0);
+    let hU = f32(hU_sample.r) * altitude_correction_factor;
+
+    return normalize(vec3<f32>(hL - hR, hD - hU, height));
+}
+
+
+
+fn normal_by_fragment_position_interpolation(pos_cws : vec3<f32>) -> vec3<f32> {
+    let dFdxPos = dpdy(pos_cws);
+    let dFdyPos = dpdx(pos_cws);
+    return normalize(cross(dFdxPos, dFdyPos));
+}
+
 
 @vertex fn vertexMain(@builtin(vertex_index) vertex_index : u32, vertex_in : VertexIn) -> VertexOut
 {
-    //adapted from https://webgpu.github.io/webgpu-samples/sample/rotatingCube/
-    
     var uv : vec2f;
     var n_quads_per_direction : f32;
     var quad_width : f32;
@@ -168,23 +200,54 @@ highp vec3 normal_by_finite_difference_method(vec2 uv, float edge_vertices_count
     vertex_out.position = clip_pos;
     vertex_out.uv = uv;
     vertex_out.pos_cws = var_pos_cws;
-    vertex_out.normal = vec3f(1.0, 1.0, 1.0); //TODO
+
+    vertex_out.normal = vec3f(0.0);
+    if (config.normal_mode == 2) {
+        vertex_out.normal = normal_by_finite_difference_method(uv, n_quads_per_direction, quad_width, quad_height, altitude_correction_factor, vertex_in.texture_layer);
+    }
     vertex_out.texture_layer = vertex_in.texture_layer;
-    vertex_out.color = vec3f(1.0, 1.0, 1.0); //TODO
+
+    var vertex_color = vec3f(0.0);
+    if (config.overlay_mode == 2) {
+        vertex_color = color_from_id_hash(u32(vertex_in.tileset_id));
+    } else if (config.overlay_mode == 3) {
+        vertex_color = color_from_id_hash(u32(vertex_in.tileset_zoomlevel));
+    } else if (config.overlay_mode == 4) {
+        vertex_color = color_from_id_hash(u32(vertex_index));
+    }
+    vertex_out.color = vertex_color;
+
     return vertex_out;
 }
 
 @fragment fn fragmentMain(vertex_out : VertexOut) -> FragOut
 {
-    let albedo = textureSample(ortho_texture, ortho_sampler, vertex_out.uv, vertex_out.texture_layer).rgb;
+    var albedo = textureSample(ortho_texture, ortho_sampler, vertex_out.uv, vertex_out.texture_layer).rgb;
     let dist = length(vertex_out.pos_cws);
 
     var frag_out : FragOut;
-    frag_out.albedo = vec4f(albedo, 1.0);
     frag_out.position = vec4f(vertex_out.pos_cws, dist);
-    frag_out.normal = vec2u(0, 0);
 
-    frag_out.depth = vec4f(depthWSEncode2n8(dist), 0, 0);
-    //frag_out.albedo = frag_out.depth;
+    var normal = vertex_out.normal;
+    if (config.normal_mode != 0) {
+        if (config.normal_mode == 1) {
+            normal = normal_by_fragment_position_interpolation(vertex_out.pos_cws);
+        }
+        frag_out.normal_enc = octNormalEncode2u16(normal);
+    }
+
+    // HANDLE OVERLAYS (and mix it with the albedo color) THAT CAN JUST BE DONE IN THIS STAGE
+    // NOTE: Performancewise its generally better to handle overlays in the compose step! (overdraw)
+    if (config.overlay_mode > 0u && config.overlay_mode < 100u) {
+        var overlay_color = vec3f(0.0);
+        if (config.overlay_mode == 1) {
+            overlay_color = normal * 0.5 + 0.5;
+        } else {
+            overlay_color = vertex_out.color;
+        }
+        albedo = mix(albedo, overlay_color, config.overlay_strength);
+    }
+    frag_out.albedo = vec4f(albedo, 1.0);
+
     return frag_out;
 }

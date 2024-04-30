@@ -21,6 +21,7 @@
 #include "camera_config.wgsl"
 #include "screen_pass_shared.wgsl"
 #include "atmosphere_implementation.wgsl"
+#include "encoder.wgsl"
 
 @group(0) @binding(0) var<uniform> conf : shared_config;
 @group(1) @binding(0) var<uniform> camera : camera_config;
@@ -29,8 +30,6 @@
 @group(2) @binding(1) var position_texture : texture_2d<f32>;
 @group(2) @binding(2) var normal_texture : texture_2d<u32>;
 @group(2) @binding(3) var atmosphere_texture : texture_2d<f32>;
-@group(2) @binding(4) var compose_sampler_filtering : sampler;
-@group(2) @binding(5) var compose_sampler_nonfiltering : sampler;
 
 
 fn calculate_falloff(dist: f32, start: f32, end: f32) -> f32 {
@@ -39,9 +38,12 @@ fn calculate_falloff(dist: f32, start: f32, end: f32) -> f32 {
 
 @fragment
 fn fragmentMain(vertex_out : VertexOut) -> @location(0) vec4f {
-    let albedo = textureSample(albedo_texture, compose_sampler_filtering, vertex_out.texcoords.xy).rgb;
+    let tci : vec2<u32> = vec2u(vertex_out.texcoords * camera.viewport_size);
 
-    let pos_dist = textureSample(position_texture, compose_sampler_nonfiltering, vertex_out.texcoords.xy);
+    var albedo = textureLoad(albedo_texture, tci, 0).rgb;
+    let pos_dist = textureLoad(position_texture, tci, 0);
+    let encoded_normal = textureLoad(normal_texture, tci, 0).xy;
+
     let pos_cws = pos_dist.xyz;
     let dist = pos_dist.w;
     var alpha = 0.0;
@@ -49,8 +51,7 @@ fn fragmentMain(vertex_out : VertexOut) -> @location(0) vec4f {
         alpha = calculate_falloff(dist, 300000.0, 600000.0);
     }
 
-    //TODO
-    //let normal = octNormalDecode2u16(texture(texin_normal, texcoords).xy); //vec3f
+    let normal = octNormalDecode2u16(encoded_normal);
 
     var shaded_color = vec3f(0.0);
     
@@ -88,16 +89,18 @@ fn fragmentMain(vertex_out : VertexOut) -> @location(0) vec4f {
 
         // NOTE: PRESHADING OVERLAY ONLY APPLIED ON TILES NOT ON BACKGROUND!!!
         if (!bool(conf.overlay_postshading_enabled) && conf.overlay_mode >= 100u) {
-            //TODO
-            //lowp vec4 overlay_color = vec4(0.0);
-            //switch(conf.overlay_mode) {
-            //    case 100u: overlay_color = vec4(normal * 0.5 + 0.5, 1.0); break;
-            //    case 101u: overlay_color = overlay_steepness(normal, dist); break;
-            //    case 102u: overlay_color = vec4(vec3(amb_occlusion), 1.0); break;
-            //    case 103u: overlay_color = vec4(color_from_id_hash(uint(sampled_shadow_layer)), 1.0); break;
-            //}
-            //overlay_color.a *= conf.overlay_strength;
-            //albedo = mix(albedo, overlay_color.rgb, overlay_color.a);
+            var overlay_color = vec4f(0.0);
+            if (conf.overlay_mode == 100u) {
+                overlay_color = vec4f(normal * 0.5 + 0.5, 1.0);
+            } /*elseif (conf.overlay_mode == 101u) {
+                //overlay_color = overlay_steepness(normal, dist);
+            } elseif (conf.overlay_mode == 102u) {
+                overlay_color = vec4f(amb_occlusion, amb_occlusion, amb_occlusion, 1.0);
+            } elseif (conf.overlay_mode == 103u) {
+                //overlay_color = vec4(color_from_id_hash(uint(sampled_shadow_layer)), 1.0);
+            }*/
+            overlay_color.a *= conf.overlay_strength;
+            albedo = mix(albedo, overlay_color.rgb, overlay_color.a);
         }
 
         shaded_color = albedo;
@@ -110,24 +113,25 @@ fn fragmentMain(vertex_out : VertexOut) -> @location(0) vec4f {
     }
 
     // Blend with atmospheric background:
-    let atmospheric_color = textureSample(atmosphere_texture, compose_sampler_filtering, vertex_out.texcoords.xy).rgb;
+    let atmospheric_color = textureLoad(atmosphere_texture, vec2u(0,tci.y), 0).rgb;
+    //let atmospheric_color = textureSample(atmosphere_texture, compose_sampler_filtering, vertex_out.texcoords.xy).rgb;
     var out_Color = vec4f(mix(atmospheric_color, shaded_color, alpha), 1.0);
 
-    //TODO
-    /*
-
     if (bool(conf.overlay_postshading_enabled) && conf.overlay_mode >= 100u) {
-        lowp vec4 overlay_color = vec4(0.0);
-        switch(conf.overlay_mode) {
-            case 100u: overlay_color = vec4(normal * 0.5 + 0.5, 1.0); break;
-            case 101u: overlay_color = overlay_steepness(normal, dist); break;
-            case 102u: overlay_color = vec4(vec3(amb_occlusion), 1.0); break;
-            case 103u: overlay_color = vec4(color_from_id_hash(uint(sampled_shadow_layer)), 1.0); break;
-        }
+        var overlay_color = vec4f(0.0);
+        if (conf.overlay_mode == 100u) {
+            overlay_color = vec4f(normal * 0.5 + 0.5, 1.0);
+        } /*elseif (conf.overlay_mode == 101u) {
+            //overlay_color = overlay_steepness(normal, dist);
+        } elseif (conf.overlay_mode == 102u) {
+            overlay_color = vec4f(amb_occlusion, amb_occlusion, amb_occlusion, 1.0);
+        } elseif (conf.overlay_mode == 103u) {
+            //overlay_color = vec4(color_from_id_hash(uint(sampled_shadow_layer)), 1.0);
+        }*/
         overlay_color.a *= conf.overlay_strength;
         out_Color = vec4(mix(out_Color.rgb, overlay_color.rgb, overlay_color.a), out_Color.a);
     }
-
+/*
     // OVERLAY SHADOW MAPS
     if (bool(conf.overlay_shadowmaps_enabled)) {
         highp float wsize = 1.0 / float(SHADOW_CASCADES);
