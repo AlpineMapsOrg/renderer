@@ -4,6 +4,7 @@
  * Copyright (C) 2023 Jakob Lindner
  * Copyright (C) 2023 Gerald Kimmersdorfer
  * Copyright (C) 2024 Lucas Dworschak
+ * Copyright (C) 2024 Patrick Komon
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -225,13 +226,13 @@ void Window::paint(QOpenGLFramebufferObject* framebuffer)
     // Generate Draw-List
     // Note: Could also just be done on camera change
     m_timer->start_timer("draw_list");
-    const auto draw_tiles = m_tile_manager->generate_tilelist(m_camera);
+    const auto tile_set = m_tile_manager->generate_tilelist(m_camera);
     m_timer->stop_timer("draw_list");
 
     // DRAW SHADOWMAPS
     if (m_shared_config_ubo->data.m_csm_enabled) {
         m_timer->start_timer("shadowmap");
-        m_shadowmapping->draw(m_tile_manager.get(), draw_tiles, m_camera);
+        m_shadowmapping->draw(m_tile_manager.get(), tile_set, m_camera);
         m_timer->stop_timer("shadowmap");
     }
 
@@ -268,7 +269,8 @@ void Window::paint(QOpenGLFramebufferObject* framebuffer)
 
     m_shader_manager->tile_shader()->bind();
     m_timer->start_timer("tiles");
-    m_tile_manager->draw(m_shader_manager->tile_shader(), m_camera, draw_tiles, true, m_camera.position());
+    auto culled_tile_set = m_tile_manager->cull(tile_set, m_camera.frustum());
+    m_tile_manager->draw(m_shader_manager->tile_shader(), m_camera, culled_tile_set, true, m_camera.position());
     m_timer->stop_timer("tiles");
     m_shader_manager->tile_shader()->release();
 
