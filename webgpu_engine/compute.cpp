@@ -17,6 +17,7 @@
  *****************************************************************************/
 
 #include "compute.h"
+#include "nucleus/utils/tile_conversion.h"
 
 namespace webgpu_engine {
 
@@ -27,53 +28,216 @@ std::vector<tile::Id> RectangularTileRegion::get_tiles() const
     std::vector<tile::Id> tiles;
     tiles.reserve((min.x - max.x + 1) * (min.y - max.y + 1));
     for (unsigned x = min.x; x <= max.x; x++) {
-        for (unsigned y = min.y; y <= max.y; x++) {
+        for (unsigned y = min.y; y <= max.y; y++) {
             tiles.emplace_back(tile::Id { zoom_level, { x, y }, scheme });
         }
     }
     return tiles;
 }
 
-TextureArrayComputeTileStorage::TextureArrayComputeTileStorage(size_t n_edge_vertices, size_t capacity)
-    : m_n_edge_vertices { n_edge_vertices }
+TextureArrayComputeTileStorage::TextureArrayComputeTileStorage(
+    WGPUDevice device, const glm::uvec2& resolution, size_t capacity, WGPUTextureFormat format, WGPUTextureUsageFlags usage)
+    : m_device { device }
+    , m_queue { wgpuDeviceGetQueue(device) }
+    , m_resolution { resolution }
     , m_capacity { capacity }
 {
+    WGPUTextureDescriptor height_texture_desc {};
+    height_texture_desc.label = "compute storage texture";
+    height_texture_desc.dimension = WGPUTextureDimension::WGPUTextureDimension_2D;
+    height_texture_desc.size = { uint32_t(m_resolution.x), uint32_t(m_resolution.y), uint32_t(m_capacity) };
+    height_texture_desc.mipLevelCount = 1;
+    height_texture_desc.sampleCount = 1;
+    height_texture_desc.format = format;
+    height_texture_desc.usage = usage;
+
+    WGPUSamplerDescriptor height_sampler_desc {};
+    height_sampler_desc.label = "compute storage sampler";
+    height_sampler_desc.addressModeU = WGPUAddressMode::WGPUAddressMode_ClampToEdge;
+    height_sampler_desc.addressModeV = WGPUAddressMode::WGPUAddressMode_ClampToEdge;
+    height_sampler_desc.addressModeW = WGPUAddressMode::WGPUAddressMode_ClampToEdge;
+    height_sampler_desc.magFilter = WGPUFilterMode::WGPUFilterMode_Linear;
+    height_sampler_desc.minFilter = WGPUFilterMode::WGPUFilterMode_Linear;
+    height_sampler_desc.mipmapFilter = WGPUMipmapFilterMode::WGPUMipmapFilterMode_Linear;
+    height_sampler_desc.lodMinClamp = 0.0f;
+    height_sampler_desc.lodMaxClamp = 1.0f;
+    height_sampler_desc.compare = WGPUCompareFunction::WGPUCompareFunction_Undefined;
+    height_sampler_desc.maxAnisotropy = 1;
+
+    m_texture_array = std::make_unique<raii::TextureWithSampler>(m_device, height_texture_desc, height_sampler_desc);
+
+    m_layer_index_to_tile_id.clear();
+    m_layer_index_to_tile_id.resize(m_capacity, tile::Id { unsigned(-1), {} });
 }
 
-void TextureArrayComputeTileStorage::init() { }
+void TextureArrayComputeTileStorage::init()
+{
 
-void TextureArrayComputeTileStorage::store([[maybe_unused]] const tile::Id& id, [[maybe_unused]] std::shared_ptr<QByteArray> data) { }
+}
 
-void TextureArrayComputeTileStorage::clear([[maybe_unused]] const tile::Id& id) { }
+void TextureArrayComputeTileStorage::store(const tile::Id& id, std::shared_ptr<QByteArray> data)
+{
+    // TODO maybe rather use hash map than list
 
-ComputeController::ComputeController()
-    : m_tile_loader { std::make_unique<nucleus::tile_scheduler::TileLoadService>(
-        "https://alpinemaps.cg.tuwien.ac.at/tiles/alpine_png/", nucleus::tile_scheduler::TileLoadService::UrlPattern::ZXY, ".png") }
-    , m_tile_storage { std::make_unique<TextureArrayComputeTileStorage>(m_num_edge_vertices, m_max_num_tiles) }
+    // already contained, return
+    if (std::find(m_layer_index_to_tile_id.begin(), m_layer_index_to_tile_id.end(), id) != m_layer_index_to_tile_id.end()) {
+        return;
+    }
+
+    // find free spot
+    const auto found = std::find(m_layer_index_to_tile_id.begin(), m_layer_index_to_tile_id.end(), tile::Id { unsigned(-1), {} });
+    if (found == m_layer_index_to_tile_id.end()) {
+        // TODO capacity is reached! do something (but what?)
+    }
+    *found = id;
+    const size_t found_index = found - m_layer_index_to_tile_id.begin();
+
+    // convert to raster and store in texture array
+    const auto raster = nucleus::utils::tile_conversion::qImage2uint16Raster(nucleus::utils::tile_conversion::toQImage(*data));
+    m_texture_array->texture().write(m_queue, raster, uint32_t(found_index));
+}
+
+void TextureArrayComputeTileStorage::clear(const tile::Id& id)
+{
+    auto found = std::find(m_layer_index_to_tile_id.begin(), m_layer_index_to_tile_id.end(), id);
+    if (found != m_layer_index_to_tile_id.end()) {
+        *found = tile::Id { unsigned(-1), {} };
+    }
+}
+
+void TextureArrayComputeTileStorage::read_back_async(size_t layer_index, ReadBackCallback callback)
+{
+    size_t buffer_size_bytes = 4 * m_resolution.x * m_resolution.y; // RGBA8 -> hardcoded, depends actual on format used!
+
+    // create buffer and add buffer and callback to back of queue
+    m_read_back_states.emplace(std::make_unique<raii::RawBuffer<char>>(
+                                   m_device, WGPUBufferUsage_CopyDst | WGPUBufferUsage_MapRead, uint32_t(buffer_size_bytes), "tile storage read back buffer"),
+        callback, layer_index);
+
+    m_texture_array->texture().copy_to_buffer(m_device, *m_read_back_states.back().buffer, uint32_t(layer_index));
+
+    auto on_buffer_mapped = [](WGPUBufferMapAsyncStatus status, void* user_data) {
+        TextureArrayComputeTileStorage* _this = reinterpret_cast<TextureArrayComputeTileStorage*>(user_data);
+
+        if (status != WGPUBufferMapAsyncStatus_Success) {
+            std::cout << "error: failed mapping buffer for ComputeTileStorage read back" << std::endl;
+            _this->m_read_back_states.pop();
+            return;
+        }
+
+        const ReadBackState& current_state = _this->m_read_back_states.front();
+        size_t buffer_size_bytes = 4 * _this->m_resolution.x * _this->m_resolution.y; // RGBA8 -> hardcoded, depends actual on format used!
+        const char* buffer_data = (const char*)wgpuBufferGetConstMappedRange(current_state.buffer->handle(), 0, buffer_size_bytes);
+        current_state.callback(current_state.layer_index, std::make_shared<QByteArray>(buffer_data, buffer_size_bytes));
+        wgpuBufferUnmap(current_state.buffer->handle());
+
+        _this->m_read_back_states.pop();
+    };
+
+    wgpuBufferMapAsync(m_read_back_states.back().buffer->handle(), WGPUMapMode_Read, 0, uint32_t(buffer_size_bytes), on_buffer_mapped, this);
+}
+
+WGPUBindGroupEntry TextureArrayComputeTileStorage::create_bind_group_entry(uint32_t binding) const
+{
+    return m_texture_array->texture_view().create_bind_group_entry(binding);
+}
+
+ComputeController::ComputeController(WGPUDevice device, const PipelineManager& pipeline_manager)
+    : m_pipeline_manager(&pipeline_manager)
+    , m_device { device }
+    , m_queue { wgpuDeviceGetQueue(m_device) }
+    , m_tile_loader { std::make_unique<nucleus::tile_scheduler::TileLoadService>(
+          "https://alpinemaps.cg.tuwien.ac.at/tiles/alpine_png/", nucleus::tile_scheduler::TileLoadService::UrlPattern::ZXY, ".png") }
+    , m_input_tile_storage { std::make_unique<TextureArrayComputeTileStorage>(
+          device, m_input_tile_resolution, m_max_num_tiles, WGPUTextureFormat_R16Uint, WGPUTextureUsage_TextureBinding | WGPUTextureUsage_CopyDst) }
+    , m_output_tile_storage { std::make_unique<TextureArrayComputeTileStorage>(device, m_output_tile_resolution, m_max_num_tiles, WGPUTextureFormat_RGBA8Unorm,
+          WGPUTextureUsage_StorageBinding | WGPUTextureUsage_TextureBinding | WGPUTextureUsage_CopyDst | WGPUTextureUsage_CopySrc) }
 {
     connect(m_tile_loader.get(), &nucleus::tile_scheduler::TileLoadService::load_finished, this, &ComputeController::on_single_tile_received);
+
+    m_input_tile_storage->init();
+    m_output_tile_storage->init();
+
+    m_compute_bind_group = std::make_unique<raii::BindGroup>(device, pipeline_manager.compute_bind_group_layout(),
+        std::initializer_list<WGPUBindGroupEntry> { m_input_tile_storage->create_bind_group_entry(0), m_output_tile_storage->create_bind_group_entry(1) },
+        "compute controller bind group");
 }
 
-void ComputeController::request_and_store_tiles(const RectangularTileRegion& region)
+void ComputeController::request_tiles(const RectangularTileRegion& region)
 {
     std::vector<tile::Id> tiles_in_region = region.get_tiles();
     assert(tiles_in_region.size() <= m_max_num_tiles);
     m_num_tiles_requested = tiles_in_region.size();
+    std::cout << "requested " << m_num_tiles_requested << " tiles" << std::endl;
     m_num_tiles_received = 0;
     for (const auto& tile : tiles_in_region) {
         m_tile_loader->load(tile);
     }
 }
 
+void ComputeController::run_pipeline()
+{
+    WGPUCommandEncoderDescriptor descriptor {};
+    descriptor.label = "compute controller command encoder";
+    raii::CommandEncoder encoder(m_device, descriptor);
+
+    {
+        WGPUComputePassDescriptor compute_pass_desc {};
+        compute_pass_desc.label = "compute controller compute pass";
+        raii::ComputePassEncoder compute_pass(encoder.handle(), compute_pass_desc);
+
+        const glm::uvec3& workgroup_counts = { m_max_num_tiles, 1, 1 };
+        wgpuComputePassEncoderSetBindGroup(compute_pass.handle(), 0, m_compute_bind_group->handle(), 0, nullptr);
+        m_pipeline_manager->dummy_compute_pipeline().run(compute_pass, workgroup_counts);
+    }
+
+    WGPUCommandBufferDescriptor cmd_buffer_descriptor {};
+    cmd_buffer_descriptor.label = "computr controller command buffer";
+    WGPUCommandBuffer command = wgpuCommandEncoderFinish(encoder.handle(), &cmd_buffer_descriptor);
+    wgpuQueueSubmit(m_queue, 1, &command);
+    wgpuCommandBufferRelease(command);
+
+    wgpuQueueOnSubmittedWorkDone(
+        m_queue,
+        []([[maybe_unused]] WGPUQueueWorkDoneStatus status, void* user_data) {
+            ComputeController* _this = reinterpret_cast<ComputeController*>(user_data);
+            std::cout << "pipeline run done" << std::endl;
+            _this->pipeline_done(); // emits signal pipeline_done()
+        },
+        this);
+}
+
+void ComputeController::write_output_tiles(const std::filesystem::path& dir) const
+{
+    std::filesystem::create_directories(dir);
+
+    auto read_back_callback = [this, dir](size_t layer_index, std::shared_ptr<QByteArray> data) {
+        QImage img((const uchar*)data->constData(), m_output_tile_resolution.x, m_output_tile_resolution.y, QImage::Format_RGBA8888);
+        std::filesystem::path file_path = dir / std::format("tile_{}.png", layer_index);
+        std::cout << "write to file " << file_path << std::endl;
+        img.save(file_path.generic_string().c_str(), "PNG");
+    };
+
+    std::cout << "write to files" << std::endl;
+    for (size_t i = 0; i < m_max_num_tiles; i++) {
+        m_output_tile_storage->read_back_async(i, read_back_callback);
+    }
+}
+
 void ComputeController::on_single_tile_received(const nucleus::tile_scheduler::tile_types::TileLayer& tile)
 {
-    m_tile_storage->store(tile.id, tile.data);
+    std::cout << "received requested tile " << tile.id << std::endl;
+    m_input_tile_storage->store(tile.id, tile.data);
     m_num_tiles_received++;
     if (m_num_tiles_received == m_num_tiles_requested) {
         on_all_tiles_received();
     }
 }
 
-void ComputeController::on_all_tiles_received() { }
+void ComputeController::on_all_tiles_received()
+{
+    std::cout << "received " << m_num_tiles_requested << " tiles, running pipeline" << std::endl;
+    run_pipeline();
+}
 
 } // namespace webgpu_engine

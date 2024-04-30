@@ -20,9 +20,8 @@ public:
     CombinedComputePipeline(WGPUDevice device, const raii::ShaderModule& shader_module, const std::vector<const raii::BindGroupLayout*>& bind_group_layouts);
 
     // creates a new compute pass and only uses that to render
-    void run(const raii::CommandEncoder& encoder, const glm::uvec3& workgroup_counts);
-
-    void run(const raii::ComputePassEncoder& compute_pass, const glm::uvec3& workgroup_counts);
+    void run(const raii::CommandEncoder& encoder, const glm::uvec3& workgroup_counts) const;
+    void run(const raii::ComputePassEncoder& compute_pass, const glm::uvec3& workgroup_counts) const;
 
     void set_binding(uint32_t location, const raii::BindGroup& binding);
 

@@ -19,6 +19,7 @@
 
 #pragma once
 
+#include "Buffer.h"
 #include "TextureView.h"
 #include "base_types.h"
 #include "nucleus/Raster.h"
@@ -35,6 +36,7 @@ namespace webgpu_engine::raii {
 class Texture : public GpuResource<WGPUTexture, WGPUTextureDescriptor, WGPUDevice> {
 public:
     static const std::map<QImage::Format, WGPUTextureFormat> qimage_to_webgpu_format;
+    static const std::map<WGPUTextureFormat, size_t> bytes_per_element;
 
 public:
     using GpuResource::GpuResource;
@@ -46,10 +48,46 @@ public:
 
     void write(WGPUQueue queue, const nucleus::utils::ColourTexture& data, uint32_t layer = 0);
 
+    // submits to default queue
+    template <typename T> void copy_to_buffer(WGPUDevice device, const raii::RawBuffer<T>& buffer, uint32_t layer = 0) const;
+
+    template <typename T> void copy_to_buffer(WGPUCommandEncoder encoder, const raii::RawBuffer<T>& buffer, uint32_t layer = 0) const;
+
     WGPUTextureViewDescriptor default_texture_view_descriptor() const;
 
     std::unique_ptr<TextureView> create_view() const;
     std::unique_ptr<TextureView> create_view(const WGPUTextureViewDescriptor& desc) const;
 };
+
+template <typename T> void Texture::copy_to_buffer(WGPUDevice device, const raii::RawBuffer<T>& buffer, uint32_t layer) const
+{
+    WGPUCommandEncoderDescriptor desc {};
+    desc.label = "copy texture to buffer command encoder";
+    raii::CommandEncoder encoder(device, desc);
+    copy_to_buffer<T>(encoder.handle(), buffer, layer);
+    WGPUCommandBufferDescriptor cmd_buffer_desc {};
+    WGPUCommandBuffer cmd_buffer = wgpuCommandEncoderFinish(encoder.handle(), &cmd_buffer_desc);
+    WGPUQueue queue = wgpuDeviceGetQueue(device);
+    wgpuQueueSubmit(queue, 1, &cmd_buffer);
+    // TODO release cmd buffer -> use raii
+}
+
+template <typename T> void Texture::copy_to_buffer(WGPUCommandEncoder encoder, const raii::RawBuffer<T>& buffer, uint32_t layer) const
+{
+    WGPUImageCopyTexture source {};
+    source.texture = m_handle;
+    source.mipLevel = 0;
+    source.origin = { .x = 0, .y = 0, .z = layer };
+    source.aspect = WGPUTextureAspect_All;
+
+    WGPUImageCopyBuffer destination {};
+    destination.buffer = buffer.handle();
+    destination.layout.offset = 0;
+    destination.layout.bytesPerRow = m_descriptor.size.width * bytes_per_element.at(m_descriptor.format);
+    destination.layout.rowsPerImage = m_descriptor.size.height;
+
+    const WGPUExtent3D extent { .width = m_descriptor.size.width, .height = m_descriptor.size.height, .depthOrArrayLayers = 1 };
+    wgpuCommandEncoderCopyTextureToBuffer(encoder, &source, &destination, &extent);
+}
 
 } // namespace webgpu_engine::raii

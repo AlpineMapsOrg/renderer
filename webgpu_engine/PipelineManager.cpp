@@ -37,6 +37,8 @@ const raii::GenericRenderPipeline& PipelineManager::compose_pipeline() const { r
 
 const raii::GenericRenderPipeline& PipelineManager::atmosphere_pipeline() const { return *m_atmosphere_pipeline; }
 
+const raii::CombinedComputePipeline& PipelineManager::dummy_compute_pipeline() const { return *m_dummy_compute_pipeline; }
+
 const raii::BindGroupLayout& PipelineManager::shared_config_bind_group_layout() const { return *m_shared_config_bind_group_layout; }
 
 const raii::BindGroupLayout& PipelineManager::camera_bind_group_layout() const { return *m_camera_bind_group_layout; }
@@ -45,12 +47,15 @@ const raii::BindGroupLayout& PipelineManager::tile_bind_group_layout() const { r
 
 const raii::BindGroupLayout& PipelineManager::compose_bind_group_layout() const { return *m_compose_bind_group_layout; }
 
+const raii::BindGroupLayout& PipelineManager::compute_bind_group_layout() const { return *m_compute_bind_group_layout; }
+
 void PipelineManager::create_pipelines()
 {
     create_bind_group_layouts();
     create_tile_pipeline();
     create_compose_pipeline();
     create_atmosphere_pipeline();
+    create_dummy_compute_pipeline();
     m_pipelines_created = true;
 }
 
@@ -148,6 +153,22 @@ void PipelineManager::create_bind_group_layouts()
             atmosphere_texture_entry,
         },
         "compose bind group layout");
+
+    WGPUBindGroupLayoutEntry compute_input_tiles_entry {};
+    compute_input_tiles_entry.binding = 0;
+    compute_input_tiles_entry.visibility = WGPUShaderStage_Compute;
+    compute_input_tiles_entry.texture.sampleType = WGPUTextureSampleType_Uint;
+    compute_input_tiles_entry.texture.viewDimension = WGPUTextureViewDimension_2DArray;
+
+    WGPUBindGroupLayoutEntry compute_output_tiles_entry {};
+    compute_output_tiles_entry.binding = 1;
+    compute_output_tiles_entry.visibility = WGPUShaderStage_Compute;
+    compute_output_tiles_entry.storageTexture.viewDimension = WGPUTextureViewDimension_2DArray;
+    compute_output_tiles_entry.storageTexture.access = WGPUStorageTextureAccess_WriteOnly;
+    compute_output_tiles_entry.storageTexture.format = WGPUTextureFormat_RGBA8Unorm;
+
+    m_compute_bind_group_layout = std::make_unique<raii::BindGroupLayout>(
+        m_device, std::vector<WGPUBindGroupLayoutEntry> { compute_input_tiles_entry, compute_output_tiles_entry }, "dummy compute bind group layout");
 }
 
 void PipelineManager::release_pipelines()
@@ -155,6 +176,7 @@ void PipelineManager::release_pipelines()
     m_tile_pipeline.release();
     m_compose_pipeline.release();
     m_atmosphere_pipeline.release();
+    m_dummy_compute_pipeline.release();
     m_pipelines_created = false;
 }
 
@@ -207,5 +229,11 @@ void PipelineManager::create_atmosphere_pipeline()
 
 void PipelineManager::create_shadow_pipeline() {
     //TODO
+}
+
+void PipelineManager::create_dummy_compute_pipeline()
+{
+    m_dummy_compute_pipeline = std::make_unique<raii::CombinedComputePipeline>(
+        m_device, m_shader_manager->dummy_compute(), std::vector<const raii::BindGroupLayout*> { m_compute_bind_group_layout.get() });
 }
 }

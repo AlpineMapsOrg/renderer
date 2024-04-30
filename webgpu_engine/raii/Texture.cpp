@@ -25,6 +25,8 @@ namespace webgpu_engine::raii {
 const std::map<QImage::Format, WGPUTextureFormat> Texture::qimage_to_webgpu_format { { QImage::Format::Format_RGBA8888,
     WGPUTextureFormat::WGPUTextureFormat_RGBA8Unorm } };
 
+const std::map<WGPUTextureFormat, size_t> Texture::bytes_per_element { { WGPUTextureFormat_RGBA8Unorm, 4 } };
+
 void Texture::write(WGPUQueue queue, QImage image, uint32_t layer)
 {
     // assert dimensions and format match up

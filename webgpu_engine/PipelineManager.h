@@ -20,6 +20,7 @@
 
 #include "ShaderModuleManager.h"
 #include "raii/BindGroupLayout.h"
+#include "raii/CombinedComputePipeline.h"
 #include "raii/Pipeline.h"
 #include <webgpu/webgpu.h>
 
@@ -33,10 +34,13 @@ public:
     const raii::GenericRenderPipeline& compose_pipeline() const;
     const raii::GenericRenderPipeline& atmosphere_pipeline() const;
 
+    const raii::CombinedComputePipeline& dummy_compute_pipeline() const;
+
     const raii::BindGroupLayout& shared_config_bind_group_layout() const;
     const raii::BindGroupLayout& camera_bind_group_layout() const;
     const raii::BindGroupLayout& tile_bind_group_layout() const;
     const raii::BindGroupLayout& compose_bind_group_layout() const;
+    const raii::BindGroupLayout& compute_bind_group_layout() const;
 
     void create_pipelines();
     void create_bind_group_layouts();
@@ -48,6 +52,7 @@ private:
     void create_compose_pipeline();
     void create_atmosphere_pipeline();
     void create_shadow_pipeline();
+    void create_dummy_compute_pipeline();
 
 private:
     WGPUDevice m_device;
@@ -57,10 +62,13 @@ private:
     std::unique_ptr<raii::GenericRenderPipeline> m_compose_pipeline;
     std::unique_ptr<raii::GenericRenderPipeline> m_atmosphere_pipeline;
 
+    std::unique_ptr<raii::CombinedComputePipeline> m_dummy_compute_pipeline;
+
     std::unique_ptr<raii::BindGroupLayout> m_shared_config_bind_group_layout;
     std::unique_ptr<raii::BindGroupLayout> m_camera_bind_group_layout;
     std::unique_ptr<raii::BindGroupLayout> m_tile_bind_group_layout;
     std::unique_ptr<raii::BindGroupLayout> m_compose_bind_group_layout;
+    std::unique_ptr<raii::BindGroupLayout> m_compute_bind_group_layout;
 
     bool m_pipelines_created = false;
 };

@@ -111,6 +111,7 @@ void Window::initialise_gpu()
     create_bind_groups();
 
     m_tile_manager->init(m_device, m_queue, *m_pipeline_manager);
+    m_compute_controller = std::make_unique<ComputeController>(m_device, *m_pipeline_manager);
 
     std::cout << "webgpu_engine::Window emitting: gpu_ready_changed" << std::endl;
     emit gpu_ready_changed(true);
@@ -574,6 +575,22 @@ void Window::update_gui(WGPURenderPassEncoder render_pass)
 
     if (ImGui::Button(!show_node_editor ? "Show Node Editor" : "Hide Node Editor", ImVec2(280, 20))) {
         show_node_editor = !show_node_editor;
+    }
+
+    if (ImGui::CollapsingHeader("Compute pipeline")) {
+        if (ImGui::Button("Request tiles + Run compute pipeline", ImVec2(280, 20))) {
+            // hardcoded test region
+            RectangularTileRegion region;
+            region.min = { 1096, 1328 };
+            region.max = { 1096 + 14, 1328 + 14 }; // inclusive, so this region has 15x15 tiles
+            region.scheme = tile::Scheme::Tms;
+            region.zoom_level = 11;
+            m_compute_controller->request_tiles(region);
+        }
+
+        if (ImGui::Button("Write per-tile output to files", ImVec2(280, 20))) {
+            m_compute_controller->write_output_tiles("output_tiles"); // writes dir output_tiles next to app.exe
+        }
     }
 
     ImGui::End();

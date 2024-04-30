@@ -22,6 +22,7 @@
 #include "ShaderModuleManager.h"
 #include "TileManager.h"
 #include "UniformBufferObjects.h"
+#include "compute.h"
 #include "nucleus/AbstractRenderWindow.h"
 #include "nucleus/camera/AbstractDepthTester.h"
 #include "nucleus/camera/Controller.h"
@@ -145,6 +146,8 @@ private:
     // ToDo: Swapchain should get a raii class and the size could be saved in there
     glm::vec2 m_swapchain_size = glm::vec2(0.0f);
     WGPUPresentMode m_swapchain_presentmode = WGPUPresentMode::WGPUPresentMode_Fifo;
+
+    std::unique_ptr<ComputeController> m_compute_controller;
 };
 
 } // namespace webgpu_engine

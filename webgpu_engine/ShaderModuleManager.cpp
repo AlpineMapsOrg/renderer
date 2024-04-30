@@ -37,6 +37,7 @@ void ShaderModuleManager::create_shader_modules()
     m_screen_pass_vert_shader_module = create_shader_module("screen_pass_vert.wgsl");
     m_compose_frag_shader_module = create_shader_module("compose_frag.wgsl");
     m_atmosphere_frag_shader_module = create_shader_module("atmosphere_frag.wgsl");
+    m_dummy_compute_module = create_shader_module("dummy_compute.wgsl");
 }
 
 void ShaderModuleManager::release_shader_modules()
@@ -45,6 +46,7 @@ void ShaderModuleManager::release_shader_modules()
     m_screen_pass_vert_shader_module.release();
     m_compose_frag_shader_module.release();
     m_atmosphere_frag_shader_module.release();
+    m_dummy_compute_module.release();
 }
 
 const raii::ShaderModule& ShaderModuleManager::tile() const { return *m_tile_shader_module; }
@@ -54,6 +56,8 @@ const raii::ShaderModule& ShaderModuleManager::screen_pass_vert() const { return
 const raii::ShaderModule& ShaderModuleManager::compose_frag() const { return *m_compose_frag_shader_module; }
 
 const raii::ShaderModule& ShaderModuleManager::atmosphere_frag() const { return *m_atmosphere_frag_shader_module; }
+
+const raii::ShaderModule& ShaderModuleManager::dummy_compute() const { return *m_dummy_compute_module; }
 
 std::string ShaderModuleManager::read_file_contents(const std::string& name) const {
     const auto path = m_prefix / name; // operator/ concats paths

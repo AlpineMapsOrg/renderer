@@ -22,7 +22,7 @@ CombinedComputePipeline::CombinedComputePipeline(
     m_pipeline = std::make_unique<raii::ComputePipeline>(device, desc);
 }
 
-void CombinedComputePipeline::run(const raii::CommandEncoder& encoder, const glm::uvec3& workgroup_counts)
+void CombinedComputePipeline::run(const raii::CommandEncoder& encoder, const glm::uvec3& workgroup_counts) const
 {
     WGPUComputePassDescriptor compute_pass_desc {};
     compute_pass_desc.label = "compute pass"; // TODO
@@ -30,7 +30,7 @@ void CombinedComputePipeline::run(const raii::CommandEncoder& encoder, const glm
     run(compute_pass, workgroup_counts);
 }
 
-void CombinedComputePipeline::run(const raii::ComputePassEncoder& compute_pass, const glm::uvec3& workgroup_counts)
+void CombinedComputePipeline::run(const raii::ComputePassEncoder& compute_pass, const glm::uvec3& workgroup_counts) const
 {
     wgpuComputePassEncoderSetPipeline(compute_pass.handle(), m_pipeline->handle());
     for (const auto& [location, bind_group] : m_bindings) {
