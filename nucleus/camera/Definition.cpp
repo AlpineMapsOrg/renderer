@@ -50,7 +50,7 @@ Definition::Definition(const glm::dvec3& position,
 {
     look_at(position, view_at_point);
 
-    set_perspective_params(75, m_viewport_size, m_near_clipping);
+    set_perspective_params(60, m_viewport_size, m_near_clipping);
 }
 
 glm::dmat4 Definition::camera_matrix() const
