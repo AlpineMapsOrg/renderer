@@ -33,6 +33,7 @@
 
 #include "raii/Sampler.h"
 #include <QImage>
+#include <thread>
 
 #include <glm/gtx/string_cast.hpp>
 
