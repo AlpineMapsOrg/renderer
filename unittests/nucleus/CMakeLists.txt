@@ -52,7 +52,7 @@ qt_add_resources(unittests_nucleus "test_data"
     data/test-tile_ortho.jpeg
     data/test-tile.png
     data/vectortile.mvt
-
+    data/eaws_0-0-0.mvt
 )
 target_link_libraries(unittests_nucleus PUBLIC nucleus Catch2::Catch2 Qt::Test)
 target_compile_definitions(unittests_nucleus PUBLIC "ALP_TEST_DATA_DIR=\":/test_data/\"")

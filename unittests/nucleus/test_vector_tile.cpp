@@ -26,11 +26,11 @@
 #include "nucleus/tile_scheduler/utils.h"
 #include "nucleus/vector_tiles/VectorTileFeature.h"
 #include "nucleus/vector_tiles/VectorTileManager.h"
+#include "nucleus/vector_tiles/readers.h"
 #include "radix/tile.h"
 
 TEST_CASE("nucleus/vector_tiles")
 {
-
     SECTION("PBF parsing")
     {
         QString filepath = QString("%1%2").arg(ALP_TEST_DATA_DIR, "vectortile.mvt");
@@ -148,5 +148,59 @@ TEST_CASE("nucleus/vector_tiles")
 
             id = id.parent();
         }
+    }
+
+    SECTION("EAWS Vector Tiles")
+    {
+        // Check if test file can be loaded
+        const std::string test_file_name = "eaws_0-0-0.mvt";
+        QString filepath = QString("%1%2").arg(ALP_TEST_DATA_DIR, test_file_name.c_str());
+        QFile test_file(filepath);
+        CHECK(test_file.exists());
+        CHECK(test_file.size() > 0);
+
+        // Check if testfile can be opened and read
+        test_file.open(QIODevice::ReadOnly | QIODevice::Unbuffered);
+        QByteArray test_data = test_file.readAll();
+        test_file.close();
+        CHECK(test_data.size() > 0);
+
+        // Check if testdata can be converted to string
+        std::string test_data_as_string = test_data.toStdString();
+        CHECK(test_data_as_string.size() > 0);
+
+        // Check if tile loading works and at least one layer is present
+        mapbox::vector_tile::buffer tileBuffer(test_data_as_string);
+        std::map<std::string, const protozero::data_view> layers = tileBuffer.getLayers();
+        CHECK(layers.size() > 0);
+
+        // Check if layer with name "micro-regions" exists
+        CHECK(layers.contains("micro-regions"));
+        mapbox::vector_tile::layer layer = tileBuffer.getLayer("micro-regions");
+
+        // Check if layer micro-regions has enough regions
+        CHECK(layer.featureCount() > 0);
+
+        // Check if extend (tile resolution) is >0
+        CHECK(layer.getExtent() > 0);
+
+        // Check if reader returns unexpected state (= error) if wrong name for micro-regions layer was provided
+        tl::expected<std::vector<avalanche::eaws::EawsRegion>, QString> result;
+        result = vector_tile::reader::eaws_regions(test_data, "wrongLayerName");
+        CHECK(!result.has_value());
+
+        // Check if reader loads test data correctly
+        result = vector_tile::reader::eaws_regions(test_data);
+        CHECK(result.has_value());
+
+        // Check if reader returns struct with all regions
+
+        // Check if struct regions have correct id for a sample
+
+        // Check if struct regions have correct start date for a sample
+
+        // Check if struct regions have correct end date for a sample
+
+        // Check if struct regions have correct baoundary vertices for a sample
     }
 }
