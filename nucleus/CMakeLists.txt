@@ -104,10 +104,9 @@ qt_add_library(nucleus STATIC
     timing/CpuTimer.h timing/CpuTimer.cpp
     vector_tiles/VectorTileManager.h vector_tiles/VectorTileManager.cpp
     vector_tiles/VectorTileFeature.h vector_tiles/VectorTileFeature.cpp
-    vector_tiles/reader.h vector_tiles/reader.cpp
+    vector_tiles/readers.h vector_tiles/readers.cpp
     utils/ColourTexture.h utils/ColourTexture.cpp
-    vector_tiles/reader.h
-    vector_tiles/reader.cpp
+    avalanche/eaws.h
 )
 
 target_include_directories(nucleus PUBLIC ${CMAKE_SOURCE_DIR})
