@@ -23,11 +23,14 @@
 #include "turbo_colormap.glsl"
 
 //layout (location = 0) out lowp vec4 out_color;
-layout (location = 0) out lowp vec3 out_color;
-//layout (location = 1) out highp vec4 texout_position;
-//layout (location = 2) out highp uvec2 texout_normal;
-//layout (location = 3) out lowp vec4 texout_depth;
 
+layout (location = 0) out lowp vec3 texout_albedo;
+layout (location = 1) out highp vec4 texout_position;
+layout (location = 2) out highp uvec2 texout_normal;
+layout (location = 3) out lowp vec4 texout_depth;
+
+
+in highp vec3 var_pos_cws;
 flat in highp int vertex_id;
 flat in highp float vertical_offset;
 
@@ -107,8 +110,11 @@ void main() {
 
     if (!enable_intersection) {
         // only for debugging
-        out_color = vec4(color_from_id_hash(uint(vertex_id)), 1);
-        discard;
+
+        //out_color = vec4(color_from_id_hash(uint(vertex_id)), 1);
+
+        texout_albedo = vec3(1,0,0);
+
 
     } else {
 
@@ -127,11 +133,11 @@ void main() {
         highp vec3 x2 = p2.xyz;
         highp vec3 x3 = texelFetch(texin_track, ivec2(int(id + 2), 0), 0).xyz;
 
-        float offset = vertical_offset;
-        x0.z += offset;
-        x1.z += offset;
-        x2.z += offset;
-        x3.z += offset;
+        //float offset = vertical_offset;
+        //x0.z += offset;
+        //x1.z += offset;
+        //x2.z += offset;
+        //x3.z += offset;
 
         highp float delta_time = p2.w;
 
@@ -241,23 +247,16 @@ void main() {
                 if (t < dist) {
                     // geometry is above terrain
 
-                    //float a = t / 1.0;
-                    //float a = 1;
+                    //out_color = vec4(color, 1.0);
+                    texout_albedo = color;
 
-                    float scene_depth = 2000.0;
+                    texout_normal = octNormalEncode2u16(normal);
 
-                    float factor =  exp(4.0 * t / scene_depth);
-
-                    float k = 0.5;
-                    float f = 1;
-
-                    f = 1 - trunc_fallof(t, scene_depth);
-
-                    //a = min(max(factor, 0.0), 1.0);
+                    // Write and encode distance for readback
+                    texout_depth = vec4(depthWSEncode2n8(t), 0.0, 0.0);
+                    texout_position =vec4(var_pos_cws, t);
 
 
-                    //out_color = vec4(color , f);
-                    out_color = vec4(color, 1);
 
                 } else {
 
@@ -267,10 +266,12 @@ void main() {
                     float max_below = 1000.0;
 
                     if (distance_below < min_below) {
-                        out_color = vec4(color, 0.5);
+                        //out_color = vec4(color, 0.5);
+                        texout_albedo = color;
                     } else {
                         float t = (distance_below - min_below) / (max_below - min_below);
-                        out_color = vec4(color, 0.5 * (1.0 - t));
+                        //out_color = vec4(color, 0.5 * (1.0 - t));
+                        texout_albedo = color;
                     }
                 }
             } else {

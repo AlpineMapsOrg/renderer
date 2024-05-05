@@ -278,7 +278,6 @@ void Window::paint(QOpenGLFramebufferObject* framebuffer)
     m_timer->stop_timer("tiles");
     m_shader_manager->tile_shader()->release();
 
-
 #if (defined(__linux) && !defined(__ANDROID__)) || defined(_WIN32) || defined(_WIN64)
     if (funcs && m_wireframe_enabled)
         funcs->glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
@@ -287,6 +286,28 @@ void Window::paint(QOpenGLFramebufferObject* framebuffer)
     m_gbuffer->unbind();
 
     m_shader_manager->tile_shader()->release();
+
+
+    {
+        m_gbuffer->bind();
+        m_timer->start_timer("tracks");
+
+        ShaderProgram* track_shader = m_shader_manager->track_program();
+        track_shader->bind();
+        track_shader->set_uniform("texin_position", 1);
+        m_gbuffer->bind_colour_texture(1, 1);
+
+        glm::vec2 size = glm::vec2(static_cast<float>(m_gbuffer->size().x),static_cast<float>(m_gbuffer->size().y));
+        track_shader->set_uniform("resolution", size);
+
+        //f->glClear(GL_DEPTH_BUFFER_BIT);
+        m_track_manager->draw(m_camera, track_shader);
+
+        m_timer->stop_timer("tracks");
+    }
+
+
+
 
     if (m_shared_config_ubo->data.m_ssao_enabled) {
         m_timer->start_timer("ssao");
@@ -335,6 +356,7 @@ void Window::paint(QOpenGLFramebufferObject* framebuffer)
         m_timer->stop_timer("labels");
     }
 
+    #if 0
     // DRAW TRACKS
     {
         m_timer->start_timer("tracks");
@@ -352,6 +374,7 @@ void Window::paint(QOpenGLFramebufferObject* framebuffer)
 
         m_timer->stop_timer("tracks");
     }
+    #endif
 
     if (framebuffer)
         framebuffer->bind();

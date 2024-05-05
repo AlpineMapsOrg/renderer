@@ -86,8 +86,8 @@ void TrackManager::draw(const nucleus::camera::Definition& camera, ShaderProgram
         if (funcs) funcs->glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
 #endif
 
-        shader->set_uniform("enable_intersection", false);
-        f->glDrawArrays(GL_TRIANGLES, 0, vertex_count);
+        //shader->set_uniform("enable_intersection", false);
+        //f->glDrawArrays(GL_TRIANGLES, 0, vertex_count);
 
 #if (defined(__linux) && !defined(__ANDROID__)) || defined(_WIN32) || defined(_WIN64)
         if (funcs) funcs->glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
