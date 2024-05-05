@@ -55,6 +55,8 @@ public:
     unsigned int shading_method = 0U;
     float width = 7.0f;
 
+    size_t total_point_count() const { return m_total_point_count; }
+
 private:
     float m_max_speed = 0.0f;
     float m_max_vertical_speed = 0.0f;

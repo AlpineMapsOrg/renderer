@@ -29,6 +29,7 @@ uniform highp float width;
 uniform highp sampler2D texin_track;
 
 flat out highp int vertex_id;
+flat out highp float vertical_offset;
 
 void main() {
 
@@ -38,13 +39,18 @@ void main() {
 
   highp vec3 x0 = a_position - camera_position;
 
+  vertical_offset = 0.0;
+
+  x0.z += vertical_offset;
+
   highp vec3 view_direction = camera_position - a_position;
 
   // orthogonal to main axis
   highp vec3 u = normalize(cross(a_direction, view_direction));
   highp vec3 v = normalize(cross(u, view_direction));
 
-  highp vec3 position = x0 + (v * width * a_offset.x) + (u * width * a_offset.z);
+  //highp vec3 position = x0 + (v * width * a_offset.x) + (u * width * a_offset.z) ;
+  highp vec3 position = x0 + (v * a_offset.x + u * a_offset.z) * width;
 
   gl_Position = matrix * vec4(position, 1);
 }

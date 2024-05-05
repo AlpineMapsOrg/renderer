@@ -22,9 +22,14 @@
 #include "shared_config.glsl"
 #include "turbo_colormap.glsl"
 
-layout (location = 0) out lowp vec4 out_color;
+//layout (location = 0) out lowp vec4 out_color;
+layout (location = 0) out lowp vec3 out_color;
+//layout (location = 1) out highp vec4 texout_position;
+//layout (location = 2) out highp uvec2 texout_normal;
+//layout (location = 3) out lowp vec4 texout_depth;
 
 flat in highp int vertex_id;
+flat in highp float vertical_offset;
 
 uniform highp sampler2D texin_track;
 uniform highp sampler2D texin_position;
@@ -37,6 +42,12 @@ uniform highp float max_speed;
 uniform highp float max_vertical_speed;
 uniform highp float width;
 uniform int end_index;
+
+float trunc_fallof( float x, float m )
+{
+    x /= m;
+    return (x-2.0)*x+1.0;
+}
 
 
 uniform highp vec2 resolution;
@@ -71,11 +82,10 @@ highp vec3 calc_blinn_phong_contribution(highp vec3 toLight, highp vec3 toEye, h
     return diffuse + specular;
 }
 
-highp vec3 phong_lighting(highp vec3 albedo, highp vec3 normal, highp vec3 eyePos, highp vec3 fragPos) {
+highp vec3 phong_lighting(highp vec3 albedo, highp vec3 normal, highp vec3 eyePos, highp vec3 fragPos, highp vec4 material) {
     highp vec4 dirLight = conf.sun_light;
     highp vec4 ambLight  =  conf.amb_light;
     highp vec3 sun_light_dir = conf.sun_light_dir.xyz;
-    highp vec4 material = conf.material_light_response;
 
     highp vec3 dirColor = dirLight.rgb * dirLight.a;
     highp vec3 ambColor = ambLight.rgb * ambLight.a;
@@ -98,6 +108,7 @@ void main() {
     if (!enable_intersection) {
         // only for debugging
         out_color = vec4(color_from_id_hash(uint(vertex_id)), 1);
+        discard;
 
     } else {
 
@@ -115,6 +126,12 @@ void main() {
         highp vec3 x1 = p1.xyz;
         highp vec3 x2 = p2.xyz;
         highp vec3 x3 = texelFetch(texin_track, ivec2(int(id + 2), 0), 0).xyz;
+
+        float offset = vertical_offset;
+        x0.z += offset;
+        x1.z += offset;
+        x2.z += offset;
+        x3.z += offset;
 
         highp float delta_time = p2.w;
 
@@ -217,18 +234,37 @@ void main() {
                     color = vec3(0);
                 }
 
-                color = phong_lighting(color, normal, camera_position, point);
+                //highp vec4 material = conf.material_light_response;
+                highp vec4 material = vec4(1.5, 5.0, 0.0, 256.0);
+                color = phong_lighting(color, normal, camera_position, point, material);
 
                 if (t < dist) {
                     // geometry is above terrain
-                    out_color = vec4(color, 1.0);
+
+                    //float a = t / 1.0;
+                    //float a = 1;
+
+                    float scene_depth = 2000.0;
+
+                    float factor =  exp(4.0 * t / scene_depth);
+
+                    float k = 0.5;
+                    float f = 1;
+
+                    f = 1 - trunc_fallof(t, scene_depth);
+
+                    //a = min(max(factor, 0.0), 1.0);
+
+
+                    //out_color = vec4(color , f);
+                    out_color = vec4(color, 1);
 
                 } else {
 
                     // track has constant alpha upto min_below, then it slowly falls off
                     float distance_below = t - dist;
                     float min_below = 100.0;
-                    float max_below = 2000.0;
+                    float max_below = 1000.0;
 
                     if (distance_below < min_below) {
                         out_color = vec4(color, 0.5);
