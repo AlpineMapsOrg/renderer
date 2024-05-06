@@ -36,6 +36,8 @@ flat in highp float vertical_offset;
 
 uniform highp sampler2D texin_track;
 uniform highp sampler2D texin_position;
+uniform lowp sampler2D texin_albedo;
+
 uniform highp vec3 camera_position;
 uniform bool enable_intersection;
 uniform int shading_method;
@@ -57,6 +59,11 @@ uniform highp vec2 resolution;
 
 highp vec3 visualize_normal(highp vec3 normal) {
     return (normal + vec3(1.0)) / vec3(2.0);
+}
+
+highp vec3 blending(highp vec3 src, highp vec3 dest, highp float alpha)
+{
+    return src * alpha + dest * (1.0 - alpha);
 }
 
 // https://sibaku.github.io/computer-graphics/2017/01/10/Camera-Ray-Generation.html
@@ -142,6 +149,7 @@ void main() {
         highp float delta_time = p2.w;
 
         highp vec4 pos_dist = texture(texin_position, texcoords);
+        highp vec3 terrain_albedo = texture(texin_albedo, texcoords).rgb;
 
         // terrain position
         highp vec3 terrain_pos = pos_dist.xyz;
@@ -242,19 +250,25 @@ void main() {
 
                 //highp vec4 material = conf.material_light_response;
                 highp vec4 material = vec4(1.5, 5.0, 0.0, 256.0);
-                color = phong_lighting(color, normal, camera_position, point, material);
+                //color = phong_lighting(color, normal, camera_position, point, material);
+                //texout_albedo = color;
 
+                texout_normal = octNormalEncode2u16(normal);
+                texout_depth = vec4(depthWSEncode2n8(t), 0.0, 0.0);
+                texout_position = vec4(var_pos_cws, t);
+
+
+#if 1
                 if (t < dist) {
                     // geometry is above terrain
 
                     //out_color = vec4(color, 1.0);
                     texout_albedo = color;
+                    //texout_albedo = terrain_albedo;
 
                     texout_normal = octNormalEncode2u16(normal);
-
-                    // Write and encode distance for readback
                     texout_depth = vec4(depthWSEncode2n8(t), 0.0, 0.0);
-                    texout_position =vec4(var_pos_cws, t);
+                    texout_position = vec4(var_pos_cws, t);
 
 
 
@@ -265,15 +279,26 @@ void main() {
                     float min_below = 100.0;
                     float max_below = 1000.0;
 
+                    //texout_albedo = mix(terrain_albedo, color, 0.5);
+                    texout_albedo = blending(color, terrain_albedo, 0.1);
+
+                    //texout_albedo = terrain_albedo;
+
+#if 0
                     if (distance_below < min_below) {
                         //out_color = vec4(color, 0.5);
-                        texout_albedo = color;
+                        //texout_albedo = color;
+                        texout_albedo = vec3(0,0,1);
+                        //texout_albedo = mix(v)
                     } else {
                         float t = (distance_below - min_below) / (max_below - min_below);
                         //out_color = vec4(color, 0.5 * (1.0 - t));
-                        texout_albedo = color;
+                        texout_albedo = vec3(0,0,1);
+                        //texout_albedo = color;
                     }
+#endif
                 }
+#endif
             } else {
                 discard; // clipping
             }

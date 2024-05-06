@@ -294,16 +294,31 @@ void Window::paint(QOpenGLFramebufferObject* framebuffer)
 
         ShaderProgram* track_shader = m_shader_manager->track_program();
         track_shader->bind();
+        track_shader->set_uniform("texin_albedo", 0); // TODO(jakob): what  index
+        m_gbuffer->bind_colour_texture(0, 0);
         track_shader->set_uniform("texin_position", 1);
         m_gbuffer->bind_colour_texture(1, 1);
 
         glm::vec2 size = glm::vec2(static_cast<float>(m_gbuffer->size().x),static_cast<float>(m_gbuffer->size().y));
         track_shader->set_uniform("resolution", size);
 
-        //f->glClear(GL_DEPTH_BUFFER_BIT);
+        f->glClear(GL_DEPTH_BUFFER_BIT);
+
+        //f->glDisable(GL_DEPTH_TEST);
+        //f->glDepthFunc(GL_ALWAYS);
+        //f->glEnable(GL_DEPTH_TEST);
+        //f->glDepthMask(GL_FALSE);
+
         m_track_manager->draw(m_camera, track_shader);
 
+        //f->glDepthMask(GL_TRUE);
+
+
+        //f->glEnable(GL_DEPTH_TEST);
+        //f->glDepthFunc(GL_LESS);
+
         m_timer->stop_timer("tracks");
+        m_gbuffer->unbind();
     }
 
 
