@@ -22,16 +22,17 @@
 #include "hashing.wgsl"
 #include "camera_config.wgsl"
 #include "encoder.wgsl"
+#include "tile_util.wgsl"
 
-@group(0) @binding(0) var<uniform> config : shared_config;
+@group(0) @binding(0) var<uniform> config: shared_config;
 
-@group(1) @binding(0) var<uniform> camera : camera_config;
+@group(1) @binding(0) var<uniform> camera: camera_config;
 
-@group(2) @binding(0) var<uniform> n_edge_vertices : i32;
-@group(2) @binding(1) var height_texture : texture_2d_array<u32>;
-@group(2) @binding(2) var height_sampler : sampler;
-@group(2) @binding(3) var ortho_texture : texture_2d_array<f32>;
-@group(2) @binding(4) var ortho_sampler : sampler;
+@group(2) @binding(0) var<uniform> n_edge_vertices: i32;
+@group(2) @binding(1) var height_texture: texture_2d_array<u32>;
+@group(2) @binding(2) var height_sampler: sampler;
+@group(2) @binding(3) var ortho_texture: texture_2d_array<f32>;
+@group(2) @binding(4) var ortho_sampler: sampler;
 
 struct VertexIn {
     @location(0) bounds: vec4f,
@@ -56,25 +57,23 @@ struct FragOut {
     @location(3) depth: vec4f,
 }
 
-fn y_to_lat(y: f32) -> f32 {
-    const pi = 3.1415926535897932384626433;
-    const cOriginShift = 20037508.342789244;
-
-    let mercN = y * pi / cOriginShift;
-    let latRad = 2.f * (atan(exp(mercN)) - (pi / 4.0));
-    return latRad;
-}
-
-fn camera_world_space_position(vertex_index: u32, bounds: vec4f, texture_layer: i32, uv: ptr<function, vec2f>, n_quads_per_direction: ptr<function, f32>, quad_width: ptr<function, f32>,
-    quad_height: ptr<function, f32>, altitude_correction_factor: ptr<function, f32>) -> vec3f
-{
+fn camera_world_space_position(
+    vertex_index: u32,
+    bounds: vec4f,
+    texture_layer: i32,
+    uv: ptr<function, vec2f>,
+    n_quads_per_direction: ptr<function, f32>,
+    quad_width: ptr<function, f32>,
+    quad_height: ptr<function, f32>,
+    altitude_correction_factor: ptr<function, f32>
+) -> vec3f {
     let n_quads_per_direction_int = n_edge_vertices - 1;
     *n_quads_per_direction = f32(n_quads_per_direction_int);
     *quad_width = (bounds.z - bounds.x) / (*n_quads_per_direction);
     *quad_height = (bounds.w - bounds.y) / (*n_quads_per_direction);
 
-    var row : i32 = i32(vertex_index) / n_edge_vertices;
-    var col : i32 = i32(vertex_index) - (row * n_edge_vertices);
+    var row: i32 = i32(vertex_index) / n_edge_vertices;
+    var col: i32 = i32(vertex_index) - (row * n_edge_vertices);
     let curtain_vertex_id = i32(vertex_index) - n_edge_vertices * n_edge_vertices;
     if (curtain_vertex_id >= 0) {
         if (curtain_vertex_id < n_edge_vertices) {
@@ -97,13 +96,13 @@ fn camera_world_space_position(vertex_index: u32, bounds: vec4f, texture_layer: 
     // Note: for higher zoom levels it would be enough to calculate the altitude_correction_factor on cpu
     // for lower zoom levels we could bake it into the texture.
     // but there was no measurable difference despite the cos and atan, so leaving as is for now.
-    let var_pos_cws_y : f32 = f32(n_quads_per_direction_int - row) * f32(*quad_width) + bounds.y;
-    let pos_y : f32 = var_pos_cws_y + camera.position.y;
+    let var_pos_cws_y: f32 = f32(n_quads_per_direction_int - row) * f32(*quad_width) + bounds.y;
+    let pos_y: f32 = var_pos_cws_y + camera.position.y;
     *altitude_correction_factor = 0.125 / cos(y_to_lat(pos_y)); // https://github.com/AlpineMapsOrg/renderer/issues/5
 
     *uv = vec2f(f32(col) / (*n_quads_per_direction), f32(row) / (*n_quads_per_direction));
     let altitude_tex = f32(textureLoad(height_texture, vec2i(col, row), texture_layer, 0).r);
-    let adjusted_altitude : f32 = altitude_tex * (*altitude_correction_factor);
+    let adjusted_altitude: f32 = altitude_tex * (*altitude_correction_factor);
 
     var var_pos_cws = vec3f(f32(col) * (*quad_width) + bounds.x, var_pos_cws_y, adjusted_altitude - camera.position.z);
 
@@ -123,87 +122,32 @@ fn camera_world_space_position(vertex_index: u32, bounds: vec4f, texture_layer: 
     return var_pos_cws;
 }
 
-// TODO port
-/*highp vec3 camera_world_space_position() {
-    vec2 uv;
-    float n_quads_per_direction;
-    float quad_width;
-    float quad_height;
-    float altitude_correction_factor;
-    return camera_world_space_position(uv, n_quads_per_direction, quad_width, quad_height, altitude_correction_factor);
-}
-
-highp vec3 normal_by_finite_difference_method(vec2 uv, float edge_vertices_count, float quad_width, float quad_height, float altitude_correction_factor) {
-    // from here: https://stackoverflow.com/questions/6656358/calculating-normals-in-a-triangle-mesh/21660173#21660173
-    vec2 offset = vec2(1.0, 0.0) / (edge_vertices_count);
-    float height = quad_width + quad_height;
-    highp float hL = float(texture(height_sampler, vec3(uv - offset.xy, texture_layer)).r);
-    hL *= altitude_correction_factor;
-    highp float hR = float(texture(height_sampler, vec3(uv + offset.xy, texture_layer)).r);
-    hR *= altitude_correction_factor;
-    highp float hD = float(texture(height_sampler, vec3(uv + offset.yx, texture_layer)).r);
-    hD *= altitude_correction_factor;
-    highp float hU = float(texture(height_sampler, vec3(uv - offset.yx, texture_layer)).r);
-    hU *= altitude_correction_factor;
-
-    return normalize(vec3(hL - hR, hD - hU, height));
-}*/
-
-fn normal_by_finite_difference_method(uv: vec2<f32>, edge_vertices_count: f32, quad_width: f32, quad_height: f32, altitude_correction_factor: f32, texture_layer: i32) -> vec3<f32> {
-    // from here: https://stackoverflow.com/questions/6656358/calculating-normals-in-a-triangle-mesh/21660173#21660173
-    let offset = vec2<f32>(1.0, 0.0) / edge_vertices_count;
-    let height = quad_width + quad_height;
-    let uv_tex = vec2<i32>(i32(uv.x * edge_vertices_count), i32(uv.y * edge_vertices_count));
-    let upper_bounds = vec2<i32>(i32(edge_vertices_count - 1), i32(edge_vertices_count - 1));
-    let lower_bounds = vec2<i32>(0, 0);
-    let hL_uv = clamp(uv_tex - vec2<i32>(1, 0), lower_bounds, upper_bounds);
-    let hL_sample = textureLoad(height_texture, hL_uv, texture_layer, 0);
-    let hL = f32(hL_sample.r) * altitude_correction_factor;
-
-    let hR_uv = clamp(uv_tex + vec2<i32>(1, 0), lower_bounds, upper_bounds);
-    let hR_sample = textureLoad(height_texture, hR_uv, texture_layer, 0);
-    let hR = f32(hR_sample.r) * altitude_correction_factor;
-
-    let hD_uv = clamp(uv_tex + vec2<i32>(0, 1), lower_bounds, upper_bounds);
-    let hD_sample = textureLoad(height_texture, hD_uv, texture_layer, 0);
-    let hD = f32(hD_sample.r) * altitude_correction_factor;
-
-    let hU_uv = clamp(uv_tex - vec2<i32>(0, 1), lower_bounds, upper_bounds);
-    let hU_sample = textureLoad(height_texture, hU_uv, texture_layer, 0);
-    let hU = f32(hU_sample.r) * altitude_correction_factor;
-
-    return normalize(vec3<f32>(hL - hR, hD - hU, height));
-}
-
-
-
-fn normal_by_fragment_position_interpolation(pos_cws : vec3<f32>) -> vec3<f32> {
+fn normal_by_fragment_position_interpolation(pos_cws: vec3<f32>) -> vec3<f32> {
     let dFdxPos = dpdy(pos_cws);
     let dFdyPos = dpdx(pos_cws);
     return normalize(cross(dFdxPos, dFdyPos));
 }
 
-
-@vertex fn vertexMain(@builtin(vertex_index) vertex_index : u32, vertex_in : VertexIn) -> VertexOut
-{
-    var uv : vec2f;
-    var n_quads_per_direction : f32;
-    var quad_width : f32;
-    var quad_height : f32;
-    var altitude_correction_factor : f32;
+@vertex
+fn vertexMain(@builtin(vertex_index) vertex_index: u32, vertex_in: VertexIn) -> VertexOut {
+    var uv: vec2f;
+    var n_quads_per_direction: f32;
+    var quad_width: f32;
+    var quad_height: f32;
+    var altitude_correction_factor: f32;
     let var_pos_cws = camera_world_space_position(vertex_index, vertex_in.bounds, vertex_in.texture_layer, &uv, &n_quads_per_direction, &quad_width, &quad_height, &altitude_correction_factor);
 
     let pos = vec4f(var_pos_cws, 1);
     let clip_pos = camera.view_proj_matrix * pos;
 
-    var vertex_out : VertexOut;
+    var vertex_out: VertexOut;
     vertex_out.position = clip_pos;
     vertex_out.uv = uv;
     vertex_out.pos_cws = var_pos_cws;
 
     vertex_out.normal = vec3f(0.0);
     if (config.normal_mode == 2) {
-        vertex_out.normal = normal_by_finite_difference_method(uv, n_quads_per_direction, quad_width, quad_height, altitude_correction_factor, vertex_in.texture_layer);
+        vertex_out.normal = normal_by_finite_difference_method(uv, u32(n_quads_per_direction), quad_width, quad_height, altitude_correction_factor, vertex_in.texture_layer, height_texture);
     }
     vertex_out.texture_layer = vertex_in.texture_layer;
 
@@ -220,12 +164,12 @@ fn normal_by_fragment_position_interpolation(pos_cws : vec3<f32>) -> vec3<f32> {
     return vertex_out;
 }
 
-@fragment fn fragmentMain(vertex_out : VertexOut) -> FragOut
-{
+@fragment
+fn fragmentMain(vertex_out: VertexOut) -> FragOut {
     var albedo = textureSample(ortho_texture, ortho_sampler, vertex_out.uv, vertex_out.texture_layer).rgb;
     let dist = length(vertex_out.pos_cws);
 
-    var frag_out : FragOut;
+    var frag_out: FragOut;
     frag_out.position = vec4f(vertex_out.pos_cws, dist);
 
     var normal = vertex_out.normal;
