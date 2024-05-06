@@ -22,6 +22,7 @@
 #include "PipelineManager.h"
 #include "nucleus/tile_scheduler/TileLoadService.h"
 #include "nucleus/tile_scheduler/tile_types.h"
+#include "raii/Buffer.h"
 #include "raii/TextureWithSampler.h"
 #include <QByteArray>
 #include <QObject>
@@ -29,6 +30,12 @@
 #include <vector>
 
 namespace webgpu_engine {
+
+struct GpuTileId {
+    uint32_t x;
+    uint32_t y;
+    uint32_t zoomlevel;
+};
 
 struct RectangularTileRegion {
     glm::uvec2 min;
@@ -46,10 +53,11 @@ public:
     using ReadBackCallback = std::function<void(size_t layer_index, std::shared_ptr<QByteArray>)>;
 
     virtual ~ComputeTileStorage() = default;
+
     virtual void init() = 0;
     virtual void store(const tile::Id& id, std::shared_ptr<QByteArray> data) = 0;
     virtual void clear(const tile::Id& id) = 0;
-    virtual WGPUBindGroupEntry create_bind_group_entry(uint32_t binding) const = 0;
+    virtual std::vector<WGPUBindGroupEntry> create_bind_group_entries(const std::vector<uint32_t>& bindings) const = 0;
     virtual void read_back_async(size_t layer_index, ReadBackCallback callback) = 0;
 };
 
@@ -71,17 +79,17 @@ public:
 
     void read_back_async(size_t layer_index, ReadBackCallback callback) override;
 
-    WGPUBindGroupEntry create_bind_group_entry(uint32_t binding) const override;
+    std::vector<WGPUBindGroupEntry> create_bind_group_entries(const std::vector<uint32_t>& bindings) const override;
 
 private:
     WGPUDevice m_device;
     WGPUQueue m_queue;
     std::unique_ptr<raii::TextureWithSampler> m_texture_array;
+    std::unique_ptr<raii::RawBuffer<GpuTileId>> m_tile_ids;
     glm::uvec2 m_resolution;
     size_t m_capacity;
 
     std::vector<tile::Id> m_layer_index_to_tile_id;
-
     std::queue<ReadBackState> m_read_back_states;
 };
 

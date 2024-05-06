@@ -66,6 +66,9 @@ TextureArrayComputeTileStorage::TextureArrayComputeTileStorage(
 
     m_texture_array = std::make_unique<raii::TextureWithSampler>(m_device, height_texture_desc, height_sampler_desc);
 
+    m_tile_ids = std::make_unique<raii::RawBuffer<GpuTileId>>(
+        m_device, WGPUBufferUsage_Storage | WGPUBufferUsage_CopyDst, uint32_t(m_capacity), "compute tile storage tile id buffer");
+
     m_layer_index_to_tile_id.clear();
     m_layer_index_to_tile_id.resize(m_capacity, tile::Id { unsigned(-1), {} });
 }
@@ -95,6 +98,9 @@ void TextureArrayComputeTileStorage::store(const tile::Id& id, std::shared_ptr<Q
     // convert to raster and store in texture array
     const auto raster = nucleus::utils::tile_conversion::qImage2uint16Raster(nucleus::utils::tile_conversion::toQImage(*data));
     m_texture_array->texture().write(m_queue, raster, uint32_t(found_index));
+
+    GpuTileId gpu_tile_id = { .x = id.coords.x, .y = id.coords.y, .zoomlevel = id.zoom_level };
+    m_tile_ids->write(m_queue, &gpu_tile_id, 1, found_index);
 }
 
 void TextureArrayComputeTileStorage::clear(const tile::Id& id)
@@ -137,9 +143,13 @@ void TextureArrayComputeTileStorage::read_back_async(size_t layer_index, ReadBac
     wgpuBufferMapAsync(m_read_back_states.back().buffer->handle(), WGPUMapMode_Read, 0, uint32_t(buffer_size_bytes), on_buffer_mapped, this);
 }
 
-WGPUBindGroupEntry TextureArrayComputeTileStorage::create_bind_group_entry(uint32_t binding) const
+std::vector<WGPUBindGroupEntry> TextureArrayComputeTileStorage::create_bind_group_entries(const std::vector<uint32_t>& bindings) const
 {
-    return m_texture_array->texture_view().create_bind_group_entry(binding);
+    assert(bindings.size() == 1 || bindings.size() == 2);
+    if (bindings.size() == 1) {
+        return { m_texture_array->texture_view().create_bind_group_entry(bindings.at(0)) };
+    }
+    return { m_texture_array->texture_view().create_bind_group_entry(bindings.at(0)), m_tile_ids->create_bind_group_entry(bindings.at(1)) };
 }
 
 ComputeController::ComputeController(WGPUDevice device, const PipelineManager& pipeline_manager)
@@ -158,9 +168,12 @@ ComputeController::ComputeController(WGPUDevice device, const PipelineManager& p
     m_input_tile_storage->init();
     m_output_tile_storage->init();
 
-    m_compute_bind_group = std::make_unique<raii::BindGroup>(device, pipeline_manager.compute_bind_group_layout(),
-        std::initializer_list<WGPUBindGroupEntry> { m_input_tile_storage->create_bind_group_entry(0), m_output_tile_storage->create_bind_group_entry(1) },
-        "compute controller bind group");
+    std::vector<WGPUBindGroupEntry> entries;
+    std::vector<WGPUBindGroupEntry> input_entries = m_input_tile_storage->create_bind_group_entries({ 0, 1 });
+    std::vector<WGPUBindGroupEntry> output_entries = m_output_tile_storage->create_bind_group_entries({ 2 });
+    entries.insert(entries.end(), input_entries.begin(), input_entries.end());
+    entries.insert(entries.end(), output_entries.begin(), output_entries.end());
+    m_compute_bind_group = std::make_unique<raii::BindGroup>(device, pipeline_manager.compute_bind_group_layout(), entries, "compute controller bind group");
 }
 
 void ComputeController::request_tiles(const RectangularTileRegion& region)
