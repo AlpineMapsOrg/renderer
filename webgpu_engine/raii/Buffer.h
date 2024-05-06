@@ -37,10 +37,11 @@ public:
     {
     }
 
+    // count and offset in number of elements of size sizeof(T)
     void write(WGPUQueue queue, const T* data, size_t count = 1, size_t offset = 0)
     {
         assert(count <= m_size);
-        wgpuQueueWriteBuffer(queue, m_handle, offset, data, count * sizeof(T)); // takes size in bytes
+        wgpuQueueWriteBuffer(queue, m_handle, offset * sizeof(T), data, count * sizeof(T)); // takes size in bytes
     }
 
     size_t size() const { return m_size; }
@@ -51,7 +52,7 @@ public:
         WGPUBindGroupEntry entry {};
         entry.binding = binding;
         entry.buffer = m_handle;
-        entry.size = sizeof(T);
+        entry.size = size_in_byte();
         entry.offset = 0;
         entry.nextInChain = nullptr;
         return entry;
