@@ -27,4 +27,11 @@ BindGroup::BindGroup(WGPUDevice device, const BindGroupLayout& layout, const std
 {
 }
 
+BindGroup::BindGroup(WGPUDevice device, const BindGroupLayout& layout, const std::vector<WGPUBindGroupEntry>& entries, const std::string& label)
+    : GpuResource(device,
+        WGPUBindGroupDescriptor {
+            .nextInChain = nullptr, .label = label.c_str(), .layout = layout.handle(), .entryCount = entries.size(), .entries = entries.data() })
+{
+}
+
 } // namespace webgpu_engine::raii
