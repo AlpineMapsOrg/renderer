@@ -27,8 +27,11 @@
 namespace nucleus::utils::tile_conversion {
 
 inline QImage toQImage(const QByteArray& byte_array) { return QImage::fromData(byte_array); }
-/* UNUSED?
-Raster<glm::u8vec4> toRasterRGBA(const QByteArray& byte_array);*/
+
+// TODO remove if not needed in future
+//  currently only used in test case test_tile_conversion
+Raster<glm::u8vec4> toRasterRGBA(const QByteArray& byte_array);
+
 Raster<uint16_t> qImage2uint16Raster(const QImage& byte_array);
 
 inline glm::u8vec4 float2alpineRGBA(float height)

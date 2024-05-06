@@ -20,14 +20,15 @@
 
 namespace nucleus::utils::tile_conversion {
 
-/* UNUSED?
+// TODO maybe if not needed in future
+//  currently only used in test case test_tile_conversion
 Raster<glm::u8vec4> toRasterRGBA(const QByteArray& byte_array)
 {
     const auto qimage = toQImage(byte_array).convertedTo(QImage::Format_RGBA8888);
     Raster<glm::u8vec4> retval({ qimage.width(), qimage.height() });
     std::copy(qimage.constBits(), qimage.constBits() + qimage.sizeInBytes(), reinterpret_cast<uchar*>(&(retval.begin()->x)));
     return retval;
-}*/
+}
 
 Raster<uint16_t> qImage2uint16Raster(const QImage& qimage)
 {

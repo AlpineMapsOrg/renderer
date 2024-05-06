@@ -2,6 +2,7 @@
 # Alpine Terrain Renderer
 # Copyright (C) 2023 Adam Celarek <family name at cg tuwien ac at>
 # Copyright (C) 2024 Gerald Kimmersdorfer
+# Copyright (C) 2024 Patrick Komon
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -22,6 +23,8 @@ project(alpine-renderer LANGUAGES CXX)
 
 option(ALP_UNITTESTS "include unit test targets in the buildsystem" OFF)
 option(ALP_GL_ENGINE "include the gl engine in the buildsystem" OFF)
+option(ALP_WEBGPU_ENGINE "include the webgpu engine in the buildsystem" ON)
+option(ALP_WEBGPU_APP "include the webgpu app in the buildsystem" ON)
 option(ALP_PLAIN_RENDERER "include the plain renderer in the buildsystem" OFF)
 option(ALP_QML_APP "include the qml app in the buildsystem" OFF)
 
@@ -119,7 +122,12 @@ endif()
 if (ALP_UNITTESTS)
     add_subdirectory(unittests)
 endif()
-
-add_subdirectory(webgpu)
-add_subdirectory(webgpu_app)
-add_subdirectory(webgpu_engine)
+if (ALP_WEBGPU_APP OR ALP_WEBGPU_ENGINE)
+    add_subdirectory(webgpu)
+    if (ALP_WEBGPU_ENGINE)
+        add_subdirectory(webgpu_engine)
+    endif()
+    if (ALP_WEBGPU_APP)
+        add_subdirectory(webgpu_app)
+    endif()
+endif()
