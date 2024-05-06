@@ -162,8 +162,20 @@ ComputeController::ComputeController(WGPUDevice device, const PipelineManager& p
           device, m_input_tile_resolution, m_max_num_tiles, WGPUTextureFormat_R16Uint, WGPUTextureUsage_TextureBinding | WGPUTextureUsage_CopyDst) }
     , m_output_tile_storage { std::make_unique<TextureArrayComputeTileStorage>(device, m_output_tile_resolution, m_max_num_tiles, WGPUTextureFormat_RGBA8Unorm,
           WGPUTextureUsage_StorageBinding | WGPUTextureUsage_TextureBinding | WGPUTextureUsage_CopyDst | WGPUTextureUsage_CopySrc) }
+    , m_tile_request_timer("tile request", "cpu", 1, 1)
+    , m_pipeline_run_timer("compute pipeline", "cpu", 1, 1)
 {
     connect(m_tile_loader.get(), &nucleus::tile_scheduler::TileLoadService::load_finished, this, &ComputeController::on_single_tile_received);
+    connect(this, &ComputeController::tiles_requested, this, [this]() { m_tile_request_timer.start(); });
+    connect(this, &ComputeController::tiles_received, this, [this]() {
+        m_tile_request_timer.stop();
+        m_tile_request_timer.fetch_result();
+    });
+    connect(this, &ComputeController::pipeline_run_queued, this, [this]() { m_pipeline_run_timer.start(); });
+    connect(this, &ComputeController::pipeline_done, this, [this]() {
+        m_pipeline_run_timer.stop();
+        m_pipeline_run_timer.fetch_result();
+    });
 
     m_input_tile_storage->init();
     m_output_tile_storage->init();
@@ -186,6 +198,7 @@ void ComputeController::request_tiles(const RectangularTileRegion& region)
     for (const auto& tile : tiles_in_region) {
         m_tile_loader->load(tile);
     }
+    emit tiles_requested();
 }
 
 void ComputeController::run_pipeline()
@@ -214,10 +227,10 @@ void ComputeController::run_pipeline()
         m_queue,
         []([[maybe_unused]] WGPUQueueWorkDoneStatus status, void* user_data) {
             ComputeController* _this = reinterpret_cast<ComputeController*>(user_data);
-            std::cout << "pipeline run done" << std::endl;
             _this->pipeline_done(); // emits signal pipeline_done()
         },
         this);
+    emit pipeline_run_queued();
 }
 
 void ComputeController::write_output_tiles(const std::filesystem::path& dir) const
@@ -237,20 +250,18 @@ void ComputeController::write_output_tiles(const std::filesystem::path& dir) con
     }
 }
 
+float ComputeController::get_last_tile_request_timing() { return m_tile_request_timer.get_last_measurement(); }
+
+float ComputeController::get_last_pipeline_run_timing() { return m_pipeline_run_timer.get_last_measurement(); }
+
 void ComputeController::on_single_tile_received(const nucleus::tile_scheduler::tile_types::TileLayer& tile)
 {
     std::cout << "received requested tile " << tile.id << std::endl;
     m_input_tile_storage->store(tile.id, tile.data);
     m_num_tiles_received++;
     if (m_num_tiles_received == m_num_tiles_requested) {
-        on_all_tiles_received();
+        emit tiles_received();
     }
-}
-
-void ComputeController::on_all_tiles_received()
-{
-    std::cout << "received " << m_num_tiles_requested << " tiles, running pipeline" << std::endl;
-    run_pipeline();
 }
 
 } // namespace webgpu_engine

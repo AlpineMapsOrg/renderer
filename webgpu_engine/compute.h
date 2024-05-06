@@ -22,6 +22,7 @@
 #include "PipelineManager.h"
 #include "nucleus/tile_scheduler/TileLoadService.h"
 #include "nucleus/tile_scheduler/tile_types.h"
+#include "nucleus/timing/CpuTimer.h"
 #include "raii/Buffer.h"
 #include "raii/TextureWithSampler.h"
 #include <QByteArray>
@@ -106,12 +107,16 @@ public:
     // write tile data to files only for debugging, writes next to app.exe
     void write_output_tiles(const std::filesystem::path& dir = ".") const;
 
-    void on_all_tiles_received();
+    float get_last_tile_request_timing();
+    float get_last_pipeline_run_timing();
 
 public slots:
     void on_single_tile_received(const nucleus::tile_scheduler::tile_types::TileLayer& tile);
 
 signals:
+    void tiles_requested();
+    void tiles_received();
+    void pipeline_run_queued();
     void pipeline_done();
 
 private:
@@ -131,6 +136,9 @@ private:
 
     std::unique_ptr<ComputeTileStorage> m_input_tile_storage;
     std::unique_ptr<ComputeTileStorage> m_output_tile_storage;
+
+    nucleus::timing::CpuTimer m_tile_request_timer;
+    nucleus::timing::CpuTimer m_pipeline_run_timer;
 };
 
 } // namespace webgpu_engine

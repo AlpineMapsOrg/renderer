@@ -113,6 +113,11 @@ void Window::initialise_gpu()
     m_tile_manager->init(m_device, m_queue, *m_pipeline_manager);
     m_compute_controller = std::make_unique<ComputeController>(m_device, *m_pipeline_manager);
 
+    connect(m_compute_controller.get(), &ComputeController::tiles_received, this,
+        [this]() { std::cout << "all requested tiles received in " << m_compute_controller->get_last_tile_request_timing() << "ms" << std::endl; });
+    connect(m_compute_controller.get(), &ComputeController::pipeline_done, this,
+        [this]() { std::cout << "pipeline run done in " << m_compute_controller->get_last_pipeline_run_timing() << "ms" << std::endl; });
+
     std::cout << "webgpu_engine::Window emitting: gpu_ready_changed" << std::endl;
     emit gpu_ready_changed(true);
 }
@@ -578,7 +583,7 @@ void Window::update_gui(WGPURenderPassEncoder render_pass)
     }
 
     if (ImGui::CollapsingHeader("Compute pipeline")) {
-        if (ImGui::Button("Request tiles + Run compute pipeline", ImVec2(280, 20))) {
+        if (ImGui::Button("Request tiles", ImVec2(280, 20))) {
             // hardcoded test region
             RectangularTileRegion region;
             region.min = { 1096, 1328 };
@@ -586,6 +591,10 @@ void Window::update_gui(WGPURenderPassEncoder render_pass)
             region.scheme = tile::Scheme::Tms;
             region.zoom_level = 11;
             m_compute_controller->request_tiles(region);
+        }
+
+        if (ImGui::Button("Run pipeline", ImVec2(280, 20))) {
+            m_compute_controller->run_pipeline();
         }
 
         if (ImGui::Button("Write per-tile output to files", ImVec2(280, 20))) {
