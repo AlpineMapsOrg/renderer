@@ -57,7 +57,7 @@ highp vec2 v2u16_to_v2f32(highp uvec2 e) {
 
 // Note: Normal sign in OpenGL returns 0 if value is zero.
 highp vec2 signNotZero(highp vec2 v) {
-    return highp vec2((v.x >= 0.0) ? +1.0 : -1.0, (v.y >= 0.0) ? +1.0 : -1.0);
+    return vec2((v.x >= 0.0) ? +1.0 : -1.0, (v.y >= 0.0) ? +1.0 : -1.0);
 }
 
 // Converts a normalized 3D vector into 2D octahedral coordinates.
