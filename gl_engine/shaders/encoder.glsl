@@ -73,7 +73,7 @@ highp vec2 v3f32_to_oct(highp vec3 n) {
 // - en: A highp vec2 representing the octahedral projection coordinates.
 // - Returns: A highp vec3 containing the decoded normal vector.
 highp vec3 oct_to_v3f32(highp vec2 en) {
-    highp vec3 v = highp vec3(en.xy, 1.0 - abs(en.x) - abs(en.y));
+    highp vec3 v = vec3(en.xy, 1.0 - abs(en.x) - abs(en.y));
     if (v.z < 0.0) {
         v.xy = (1.0 - abs(v.yx)) * signNotZero(v.xy);
     }
