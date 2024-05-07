@@ -49,14 +49,6 @@ uniform highp float width;
 uniform int end_index;
 uniform highp vec2 resolution;
 
-float trunc_fallof( float x, float m )
-{
-    x /= m;
-    return (x-2.0)*x+1.0;
-}
-
-
-
 highp vec3 visualize_normal(highp vec3 normal) {
     return (normal + vec3(1.0)) / vec3(2.0);
 }
@@ -79,38 +71,6 @@ highp vec3 camera_ray(highp vec2 px, highp mat4 inverse_proj, highp mat4 inverse
     highp vec3 world_dir = (inverse_view * eye_dir).xyz;
 
     return normalize(world_dir);
-}
-
-highp vec3 calc_blinn_phong_contribution(highp vec3 toLight, highp vec3 toEye, highp vec3 normal, highp vec3 diffFactor, highp vec3 specFactor, highp float specShininess)
-{
-    highp float nDotL = max(0.0, dot(normal, toLight)); // lambertian coefficient
-    highp vec3 h = normalize(toLight + toEye);
-    highp float nDotH = max(0.0, dot(normal, h));
-    highp float specPower = pow(nDotH, specShininess);
-    highp vec3 diffuse = diffFactor * nDotL; // component-wise product
-    highp vec3 specular = specFactor * specPower;
-    return diffuse + specular;
-}
-
-highp vec3 phong_lighting(highp vec3 albedo, highp vec3 normal, highp vec3 eyePos, highp vec3 fragPos, highp vec4 material) {
-    highp vec4 dirLight = conf.sun_light;
-    highp vec4 ambLight  =  conf.amb_light;
-    highp vec3 sun_light_dir = conf.sun_light_dir.xyz;
-
-    highp vec3 dirColor = dirLight.rgb * dirLight.a;
-    highp vec3 ambColor = ambLight.rgb * ambLight.a;
-
-    highp vec3 ambient = material.r * albedo;
-    highp vec3 diff = material.g * albedo;
-    highp vec3 spec = vec3(material.b);
-    highp float shini = material.a;
-
-    highp vec3 toLightDirWS = -normalize(conf.sun_light_dir.xyz);
-    highp vec3 toEyeNrmWS = normalize(eyePos - fragPos);
-
-    highp vec3 diffAndSpecIllumination = dirColor * calc_blinn_phong_contribution(toLightDirWS, toEyeNrmWS, normal, diff, spec, shini);
-
-    return (ambient * ambColor) + diffAndSpecIllumination;
 }
 
 void main() {
@@ -260,9 +220,9 @@ void main() {
                 } else {
 
                     // track has constant alpha upto min_below, then it slowly falls off
-                    float distance_below = t - dist;
-                    float min_below = 100.0;
-                    float max_below = 1000.0;
+                    highp float distance_below = t - dist;
+                    highp float min_below = 100.0;
+                    highp float max_below = 1000.0;
 
                     //texout_albedo = mix(terrain_albedo, color, 0.5);
                     texout_albedo = blending(color, terrain_albedo, 0.1);
