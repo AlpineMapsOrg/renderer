@@ -292,18 +292,10 @@ void Window::paint(QOpenGLFramebufferObject* framebuffer)
         m_gbuffer->bind();
         m_timer->start_timer("tracks");
 
-        ShaderProgram* track_shader = m_shader_manager->track_program();
-        track_shader->bind();
-        track_shader->set_uniform("texin_albedo", 0);
-        m_gbuffer->bind_colour_texture(0, 0);
-        track_shader->set_uniform("texin_position", 1);
-        m_gbuffer->bind_colour_texture(1, 1);
-
-        track_shader->set_uniform("resolution", glm::vec2(m_gbuffer->size()));
-
+        //ShaderProgram* track_shader = m_shader_manager->track_program();
         f->glClear(GL_DEPTH_BUFFER_BIT);
 
-        m_track_manager->draw(m_camera, track_shader);
+        m_track_manager->draw(m_gbuffer.get(), m_shader_manager->track_program(), m_camera);
 
         m_timer->stop_timer("tracks");
         m_gbuffer->unbind();

@@ -42,7 +42,7 @@ TrackManager::TrackManager(QObject* parent)
 
 void TrackManager::init() { assert(QOpenGLContext::currentContext()); }
 
-void TrackManager::draw(const nucleus::camera::Definition& camera, ShaderProgram* shader) const
+void TrackManager::draw(Framebuffer* gbuffer, ShaderProgram* shader, const nucleus::camera::Definition& camera) const
 {
     if (m_tracks.empty()) {
         return;
@@ -69,6 +69,13 @@ void TrackManager::draw(const nucleus::camera::Definition& camera, ShaderProgram
     shader->set_uniform("max_speed", m_max_speed);
     shader->set_uniform("max_vertical_speed", m_max_vertical_speed);
     shader->set_uniform("end_index", static_cast<int>(m_total_point_count));
+
+    shader->set_uniform("texin_albedo", 0);
+    gbuffer->bind_colour_texture(0, 0);
+    shader->set_uniform("texin_position", 1);
+    gbuffer->bind_colour_texture(1, 1);
+
+    shader->set_uniform("resolution", glm::vec2(gbuffer->size()));
 
     for (const PolyLine& track : m_tracks) {
 

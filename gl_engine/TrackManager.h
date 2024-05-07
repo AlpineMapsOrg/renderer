@@ -26,6 +26,7 @@
 #include <QOpenGLVertexArrayObject>
 #include <QOpenGLTexture>
 
+#include "Framebuffer.h"
 #include "ShaderProgram.h"
 
 class QOpenGLShaderProgram;
@@ -48,7 +49,7 @@ public:
 
     void init();
 
-    void draw(const nucleus::camera::Definition& camera, ShaderProgram* shader) const;
+    void draw(Framebuffer* gbuffer, ShaderProgram* shader, const nucleus::camera::Definition& camera) const;
 
     void add_track(const nucleus::gpx::Gpx& gpx, ShaderProgram* shader);
 
