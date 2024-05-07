@@ -125,6 +125,9 @@ void MapLabelManager::draw(Framebuffer* gbuffer, ShaderProgram* shader_program, 
     shader_program->set_uniform("drawing_outline", false);
     f->glDrawElementsInstanced(GL_TRIANGLES, m_mapLabelManager.indices().size(), GL_UNSIGNED_INT, 0, m_instance_count);
 
+
+    f->glDisable(GL_BLEND);
+
     m_vao->release();
 }
 

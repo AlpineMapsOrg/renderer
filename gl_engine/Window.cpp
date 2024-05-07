@@ -288,41 +288,55 @@ void Window::paint(QOpenGLFramebufferObject* framebuffer)
     m_shader_manager->tile_shader()->release();
 
 
+
+
+#if 0
+    // DRAW LABELS
+    {
+
+        m_decoration_buffer->bind();
+        const GLfloat clearAlbedoColor[] = { 0.0f, 0.0f, 0.0f, 0.0f };
+        f->glClearBufferfv(GL_COLOR, 0, clearAlbedoColor);
+
+        //f->glEnable(GL_DEPTH_TEST);
+        //f->glDepthFunc(GL_LEQUAL);
+
+        m_timer->start_timer("labels");
+        m_shader_manager->labels_program()->bind();
+        m_map_label_manager->draw(m_gbuffer.get(), m_shader_manager->labels_program(), m_camera);
+        m_shader_manager->labels_program()->release();
+        m_timer->stop_timer("labels");
+
+        //f->glDepthFunc(GL_LESS);
+
+        m_decoration_buffer->unbind();
+    }
+#endif
+
+
+#if 1
     {
         m_gbuffer->bind();
         m_timer->start_timer("tracks");
 
         ShaderProgram* track_shader = m_shader_manager->track_program();
         track_shader->bind();
-        track_shader->set_uniform("texin_albedo", 0); // TODO(jakob): what  index
+        track_shader->set_uniform("texin_albedo", 0);
         m_gbuffer->bind_colour_texture(0, 0);
         track_shader->set_uniform("texin_position", 1);
         m_gbuffer->bind_colour_texture(1, 1);
 
-        glm::vec2 size = glm::vec2(static_cast<float>(m_gbuffer->size().x),static_cast<float>(m_gbuffer->size().y));
-        track_shader->set_uniform("resolution", size);
+        track_shader->set_uniform("resolution", glm::vec2(m_gbuffer->size()));
 
         f->glClear(GL_DEPTH_BUFFER_BIT);
 
-        //f->glDisable(GL_DEPTH_TEST);
-        //f->glDepthFunc(GL_ALWAYS);
-        //f->glEnable(GL_DEPTH_TEST);
-        //f->glDepthMask(GL_FALSE);
-
         m_track_manager->draw(m_camera, track_shader);
 
-        //f->glDepthMask(GL_TRUE);
-
-
-        //f->glEnable(GL_DEPTH_TEST);
-        //f->glDepthFunc(GL_LESS);
 
         m_timer->stop_timer("tracks");
         m_gbuffer->unbind();
     }
-
-
-
+#endif
 
     if (m_shared_config_ubo->data.m_ssao_enabled) {
         m_timer->start_timer("ssao");
@@ -356,40 +370,24 @@ void Window::paint(QOpenGLFramebufferObject* framebuffer)
     m_screen_quad_geometry.draw();
     m_timer->stop_timer("compose");
 
-    m_decoration_buffer->bind();
-    const GLfloat clearAlbedoColor[] = { 0.0f, 0.0f, 0.0f, 0.0f };
-    f->glClearBufferfv(GL_COLOR, 0, clearAlbedoColor);
-    f->glEnable(GL_DEPTH_TEST);
-    f->glDepthFunc(GL_LEQUAL);
-
+#if 1
     // DRAW LABELS
     {
+        m_decoration_buffer->bind();
+        const GLfloat clearAlbedoColor[] = { 0.0f, 0.0f, 0.0f, 0.0f };
+        f->glClearBufferfv(GL_COLOR, 0, clearAlbedoColor);
+
+        f->glEnable(GL_DEPTH_TEST);
+        f->glDepthFunc(GL_LEQUAL);
+
+
         m_timer->start_timer("labels");
         m_shader_manager->labels_program()->bind();
         m_map_label_manager->draw(m_gbuffer.get(), m_shader_manager->labels_program(), m_camera);
         m_shader_manager->labels_program()->release();
         m_timer->stop_timer("labels");
     }
-
-    #if 0
-    // DRAW TRACKS
-    {
-        m_timer->start_timer("tracks");
-
-        ShaderProgram* track_shader = m_shader_manager->track_program();
-        track_shader->bind();
-        track_shader->set_uniform("texin_position", 1);
-        m_gbuffer->bind_colour_texture(1, 1);
-
-        glm::vec2 size = glm::vec2(static_cast<float>(m_gbuffer->size().x),static_cast<float>(m_gbuffer->size().y));
-        track_shader->set_uniform("resolution", size);
-
-        f->glClear(GL_DEPTH_BUFFER_BIT);
-        m_track_manager->draw(m_camera, track_shader);
-
-        m_timer->stop_timer("tracks");
-    }
-    #endif
+#endif
 
     if (framebuffer)
         framebuffer->bind();

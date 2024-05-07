@@ -248,29 +248,14 @@ void main() {
                     color = vec3(0);
                 }
 
-                //highp vec4 material = conf.material_light_response;
-                highp vec4 material = vec4(1.5, 5.0, 0.0, 256.0);
-                //color = phong_lighting(color, normal, camera_position, point, material);
-                //texout_albedo = color;
-
                 texout_normal = octNormalEncode2u16(normal);
                 texout_depth = vec4(depthWSEncode2n8(t), 0.0, 0.0);
                 texout_position = vec4(var_pos_cws, t);
 
-
 #if 1
                 if (t < dist) {
                     // geometry is above terrain
-
-                    //out_color = vec4(color, 1.0);
                     texout_albedo = color;
-                    //texout_albedo = terrain_albedo;
-
-                    texout_normal = octNormalEncode2u16(normal);
-                    texout_depth = vec4(depthWSEncode2n8(t), 0.0, 0.0);
-                    texout_position = vec4(var_pos_cws, t);
-
-
 
                 } else {
 
@@ -281,8 +266,6 @@ void main() {
 
                     //texout_albedo = mix(terrain_albedo, color, 0.5);
                     texout_albedo = blending(color, terrain_albedo, 0.1);
-
-                    //texout_albedo = terrain_albedo;
 
 #if 0
                     if (distance_below < min_below) {
