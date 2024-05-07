@@ -38,6 +38,7 @@ layout (location = 2) in vec3 label_position;
 layout (location = 3) in float importance;
 
 out highp vec2 texcoords;
+out highp float dist_to_cam;
 
 bool label_visible(highp vec3 relative_to_cam, float dist_to_cam) {
     if (importance < 0.2 && dist_to_cam > 3000.0)
@@ -60,7 +61,7 @@ bool label_visible(highp vec3 relative_to_cam, float dist_to_cam) {
 
 void main() {
     highp vec3 relative_to_cam = label_position - camera.position.xyz;
-    float dist_to_cam = length(relative_to_cam);
+    dist_to_cam = length(relative_to_cam);
     float scale = 2.0f;
 
     // apply "soft" distance scaling depending on near/far label values (if option is set as uniform)

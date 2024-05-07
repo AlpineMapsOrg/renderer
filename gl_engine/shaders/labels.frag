@@ -20,8 +20,12 @@ uniform sampler2D font_sampler;
 uniform sampler2D icon_sampler;
 
 uniform bool drawing_outline;
+uniform sampler2D texin_depth;
+uniform highp vec2 resolution;
+
 
 in highp vec2 texcoords;
+in highp float dist_to_cam;
 
 layout (location = 0) out lowp vec4 out_Color;
 
@@ -29,6 +33,14 @@ lowp vec3 fontColor = vec3(0.0f);
 lowp vec3 outlineColor = vec3(0.9f);
 
 void main() {
+
+    highp vec2 uv = gl_FragCoord.xy / resolution.xy;
+    float terrain_depth = texture(texin_depth, uv).w;
+
+    // if terrain depth is below zero, then it is the sky
+    if ( 0.0 < terrain_depth && terrain_depth < dist_to_cam ) {
+        discard;
+    }
 
     if(texcoords.x < 2.0f)
     {

@@ -287,35 +287,8 @@ void Window::paint(QOpenGLFramebufferObject* framebuffer)
 
     m_shader_manager->tile_shader()->release();
 
-
-
-
-#if 0
-    // DRAW LABELS
     {
-
-        m_decoration_buffer->bind();
-        const GLfloat clearAlbedoColor[] = { 0.0f, 0.0f, 0.0f, 0.0f };
-        f->glClearBufferfv(GL_COLOR, 0, clearAlbedoColor);
-
-        //f->glEnable(GL_DEPTH_TEST);
-        //f->glDepthFunc(GL_LEQUAL);
-
-        m_timer->start_timer("labels");
-        m_shader_manager->labels_program()->bind();
-        m_map_label_manager->draw(m_gbuffer.get(), m_shader_manager->labels_program(), m_camera);
-        m_shader_manager->labels_program()->release();
-        m_timer->stop_timer("labels");
-
-        //f->glDepthFunc(GL_LESS);
-
-        m_decoration_buffer->unbind();
-    }
-#endif
-
-
-#if 1
-    {
+        // DRAW TRACKS
         m_gbuffer->bind();
         m_timer->start_timer("tracks");
 
@@ -332,11 +305,9 @@ void Window::paint(QOpenGLFramebufferObject* framebuffer)
 
         m_track_manager->draw(m_camera, track_shader);
 
-
         m_timer->stop_timer("tracks");
         m_gbuffer->unbind();
     }
-#endif
 
     if (m_shared_config_ubo->data.m_ssao_enabled) {
         m_timer->start_timer("ssao");
@@ -370,15 +341,15 @@ void Window::paint(QOpenGLFramebufferObject* framebuffer)
     m_screen_quad_geometry.draw();
     m_timer->stop_timer("compose");
 
-#if 1
     // DRAW LABELS
     {
         m_decoration_buffer->bind();
         const GLfloat clearAlbedoColor[] = { 0.0f, 0.0f, 0.0f, 0.0f };
         f->glClearBufferfv(GL_COLOR, 0, clearAlbedoColor);
 
-        f->glEnable(GL_DEPTH_TEST);
-        f->glDepthFunc(GL_LEQUAL);
+        f->glDisable(GL_DEPTH_TEST);
+        //f->glEnable(GL_DEPTH_TEST);
+        //f->glDepthFunc(GL_LEQUAL);
 
 
         m_timer->start_timer("labels");
@@ -387,7 +358,6 @@ void Window::paint(QOpenGLFramebufferObject* framebuffer)
         m_shader_manager->labels_program()->release();
         m_timer->stop_timer("labels");
     }
-#endif
 
     if (framebuffer)
         framebuffer->bind();

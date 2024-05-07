@@ -47,6 +47,7 @@ uniform highp float max_speed;
 uniform highp float max_vertical_speed;
 uniform highp float width;
 uniform int end_index;
+uniform highp vec2 resolution;
 
 float trunc_fallof( float x, float m )
 {
@@ -55,7 +56,6 @@ float trunc_fallof( float x, float m )
 }
 
 
-uniform highp vec2 resolution;
 
 highp vec3 visualize_normal(highp vec3 normal) {
     return (normal + vec3(1.0)) / vec3(2.0);

@@ -106,6 +106,7 @@ void MapLabelManager::draw(Framebuffer* gbuffer, ShaderProgram* shader_program, 
     glm::mat4 inv_view_rot = glm::inverse(camera.local_view_matrix());
     shader_program->set_uniform("inv_view_rot", inv_view_rot);
     shader_program->set_uniform("label_dist_scaling", true);
+    shader_program->set_uniform("resolution", glm::vec2(gbuffer->size()));
 
     shader_program->set_uniform("texin_depth", 0);
     gbuffer->bind_colour_texture(1, 0);
