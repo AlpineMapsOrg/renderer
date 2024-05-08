@@ -72,7 +72,7 @@ tl::expected<std::vector<avalanche::eaws::EawsRegion>, QString> vector_tile::rea
         mapbox::vector_tile::points_arrays_type geometry = current_feature.getGeometries<mapbox::vector_tile::points_arrays_type>(1.0);
         for (auto const& point_array : geometry) {
             for (auto const& point : point_array) {
-                region.verticesInLocalCoordinates.push_back(glm::ivec2(point.x, point.y));
+                region.vertices_in_local_coordinates.push_back(glm::ivec2(point.x, point.y));
             }
         }
 

@@ -189,18 +189,62 @@ TEST_CASE("nucleus/vector_tiles")
         result = vector_tile::reader::eaws_regions(test_data, "wrongLayerName");
         CHECK(!result.has_value());
 
-        // Check if reader loads test data correctly
+        // Check if reader returns a std::vector with EAWS regions when reading mvt file
         result = vector_tile::reader::eaws_regions(test_data);
         CHECK(result.has_value());
 
-        // Check if reader returns struct with all regions
+        // Check if EAWS region struct is initialized with empty attributes
+        const avalanche::eaws::EawsRegion empty_eaws_region;
+        CHECK("" == empty_eaws_region.id);
+        CHECK("" == empty_eaws_region.id_alt);
+        CHECK("" == empty_eaws_region.start_date);
+        CHECK("" == empty_eaws_region.end_date);
+        CHECK(empty_eaws_region.vertices_in_local_coordinates.empty());
 
-        // Check if struct regions have correct id for a sample
+        // Check for some samples of the returned regions if they have the correct properties
+        if (result.has_value()) {
+            // Retrieve vector of all eaws regions
+            std::vector<avalanche::eaws::EawsRegion> eaws_regions = result.value();
 
-        // Check if struct regions have correct start date for a sample
+            // Retrieve samples that should have certain properties
+            avalanche::eaws::EawsRegion region_with_start_date, region_with_end_date, region_with_id_alt;
+            for (const avalanche::eaws::EawsRegion& region : eaws_regions) {
+                if ("DE-BY-10" == region.id) {
+                    region_with_id_alt = region;
+                    region_with_end_date = region;
+                }
 
-        // Check if struct regions have correct end date for a sample
+                if ("IT-23-AO-22" == region.id)
+                    region_with_start_date = region;
 
-        // Check if struct regions have correct baoundary vertices for a sample
+                if (region_with_start_date.id != "" && region_with_end_date.id != "" && region_with_id_alt.id != "")
+                    break;
+            }
+
+            // Check if sample has correct id
+            CHECK("DE-BY-10" == region_with_id_alt.id);
+
+            // Check if sample has correct id_alt
+            CHECK("BYALL" == region_with_id_alt.id_alt);
+
+            // Check if sample has correct start date
+            CHECK("2022-03-04" == region_with_start_date.start_date);
+            std::cout << "\n" << region_with_start_date.start_date.toStdString();
+
+            // Check if struct regions have correct end date for a sample
+            CHECK("2021-10-01" == region_with_end_date.end_date);
+
+            // Check if struct regions have correct boundary vertices for a sample
+            std::vector<glm::ivec2> vertices = region_with_start_date.vertices_in_local_coordinates;
+            CHECK(4 == vertices.size());
+            if (4 == vertices.size()) {
+                CHECK(2128 == vertices[0].x);
+                CHECK(1459 == vertices[0].y);
+                CHECK(2128 == vertices[1].x);
+                CHECK(1461 == vertices[1].y);
+                CHECK(2128 == vertices[3].x);
+                CHECK(1459 == vertices[3].y);
+            }
+        }
     }
 }
