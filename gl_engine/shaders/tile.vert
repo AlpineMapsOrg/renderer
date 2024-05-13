@@ -26,7 +26,6 @@
 out highp vec2 var_uv;
 out highp vec3 var_pos_cws;
 out highp vec3 var_normal;
-flat out highp int v_texture_layer;
 flat out highp uvec3 var_tile_id;
 #if CURTAIN_DEBUG_MODE > 0
 out lowp float is_curtain;
@@ -53,7 +52,6 @@ void main() {
         case 2u: vertex_color = color_from_id_hash(uint(packed_tile_id.x ^ packed_tile_id.y)); break;
         case 3u: vertex_color = color_from_id_hash(uint(var_tile_id.z)); break;
         case 4u: vertex_color = color_from_id_hash(uint(gl_VertexID)); break;
-        case 5u: vertex_color = vec3(texture(height_sampler, vec3(var_uv, texture_layer)).rrr) / 65535.0; break;
+        case 5u: vertex_color = vec3(texture(height_sampler, vec3(var_uv, height_texture_layer)).rrr) / 65535.0; break;
     }
-    v_texture_layer = texture_layer;
 }

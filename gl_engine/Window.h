@@ -48,7 +48,6 @@ class MapLabelManager;
 
 namespace gl_engine {
 
-class DebugPainter;
 class ShaderManager;
 class Framebuffer;
 class SSAO;
@@ -82,7 +81,6 @@ public slots:
     void update_gpu_quads(const std::vector<nucleus::tile_scheduler::tile_types::GpuTileQuad>& new_quads, const std::vector<tile::Id>& deleted_quads) override;
     void key_press(const QKeyCombination& e); // Slot to connect key-events to
     void shared_config_changed(gl_engine::uboSharedConfig ubo);
-    void render_looped_changed(bool render_looped_flag);
     void reload_shader();
 
 signals:
@@ -90,7 +88,6 @@ signals:
 
 private:
     std::unique_ptr<TileManager> m_tile_manager; // needs opengl context
-    std::unique_ptr<DebugPainter> m_debug_painter; // needs opengl context
     std::unique_ptr<ShaderManager> m_shader_manager;
     std::unique_ptr<MapLabelManager> m_map_label_manager;
 
@@ -111,8 +108,6 @@ private:
 
     int m_frame = 0;
     bool m_initialised = false;
-    bool m_render_looped = false;
-    bool m_wireframe_enabled = false;
     QString m_debug_text;
     QString m_debug_scheduler_stats;
 

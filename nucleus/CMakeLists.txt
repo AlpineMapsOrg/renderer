@@ -59,7 +59,7 @@ add_library(nucleus_version STATIC
 )
 
 qt_add_library(nucleus STATIC
-    AbstractRenderWindow.h AbstractRenderWindow.cpp
+    AbstractRenderWindow.h
     Controller.h Controller.cpp
     event_parameter.h
     Raster.h
