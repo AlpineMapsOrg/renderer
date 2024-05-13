@@ -26,5 +26,10 @@ alp_add_unittest(unittests_gl_engine
     texture.cpp
 )
 
+target_sources(unittests_gl_engine
+  PRIVATE
+    tile_funs.cpp
+)
+
 target_link_libraries(unittests_gl_engine PUBLIC gl_engine)
 

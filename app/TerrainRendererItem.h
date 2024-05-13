@@ -53,7 +53,6 @@ class TerrainRendererItem : public QQuickFramebufferObject {
     Q_PROPERTY(unsigned int queued_tiles READ queued_tiles NOTIFY queued_tiles_changed)
     Q_PROPERTY(unsigned int cached_tiles READ cached_tiles NOTIFY cached_tiles_changed)
     Q_PROPERTY(unsigned int tile_cache_size READ tile_cache_size WRITE set_tile_cache_size NOTIFY tile_cache_size_changed)
-    Q_PROPERTY(bool render_looped READ render_looped WRITE set_render_looped NOTIFY render_looped_changed)
     Q_PROPERTY(unsigned int selected_camera_position_index MEMBER m_selected_camera_position_index WRITE set_selected_camera_position_index)
     Q_PROPERTY(QVector2D sun_angles READ sun_angles WRITE set_sun_angles NOTIFY sun_angles_changed)
     Q_PROPERTY(bool continuous_update READ continuous_update WRITE set_continuous_update NOTIFY continuous_update_changed)
@@ -79,7 +78,6 @@ signals:
     void camera_definition_set_by_user(const nucleus::camera::Definition&) const;
 
     void shared_config_changed(gl_engine::uboSharedConfig new_shared_config) const;
-    void render_looped_changed(bool new_render_looped);
     void hud_visible_changed(bool new_hud_visible);
 
     void rotation_north_requested();
@@ -161,9 +159,6 @@ public:
     float camera_operation_centre_distance() const;
     void set_camera_operation_centre_distance(float new_camera_operation_centre_distance);
 
-    bool render_looped() const;
-    void set_render_looped(bool new_render_looped);
-
     gl_engine::uboSharedConfig shared_config() const;
     void set_shared_config(gl_engine::uboSharedConfig new_shared_config);
 
@@ -205,7 +200,6 @@ private:
     unsigned m_queued_tiles = 0;
     unsigned m_in_flight_tiles = 0;
     unsigned int m_selected_camera_position_index = 0;
-    bool m_render_looped = false;
     QDateTime m_selected_datetime = QDateTime::currentDateTime();
 
     gl_engine::uboSharedConfig m_shared_config;

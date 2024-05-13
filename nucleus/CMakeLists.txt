@@ -59,12 +59,11 @@ add_library(nucleus_version STATIC
 )
 
 qt_add_library(nucleus STATIC
-    AbstractRenderWindow.h AbstractRenderWindow.cpp
+    AbstractRenderWindow.h
     Controller.h Controller.cpp
     event_parameter.h
     Raster.h
     srs.h srs.cpp
-    Tile.cpp Tile.h
     tile_scheduler/utils.h tile_scheduler/utils.cpp
     tile_scheduler/DrawListGenerator.h tile_scheduler/DrawListGenerator.cpp
     tile_scheduler/LayerAssembler.h tile_scheduler/LayerAssembler.cpp

@@ -26,6 +26,42 @@
 #include <emscripten/val.h>
 #endif
 
+namespace {
+struct GlParams {
+    GLint internal_format = 0;
+    GLint format = 0;
+    GLint type = 0;
+    unsigned n_elements = 0;
+    unsigned n_bytes_per_element = 0;
+    bool is_texture_filterable = false;
+};
+
+// https://registry.khronos.org/OpenGL-Refpages/es3.0/html/glTexImage2D.xhtml
+GlParams gl_tex_params(gl_engine::Texture::Format format)
+{
+    using F = gl_engine::Texture::Format;
+    switch (format) {
+    case F::CompressedRGBA8:
+        return { GLint(gl_engine::Texture::compressed_texture_format()), 0, 0, 0, 0, true };
+    case F::RGBA8:
+        return { GL_RGBA8, GL_RGBA, GL_UNSIGNED_BYTE, 4, 1, true };
+    case F::RGBA8UI:
+        return { GL_RGBA8UI, GL_RGBA_INTEGER, GL_UNSIGNED_BYTE, 4, 1 };
+    case F::RG8:
+        return { GL_RG8, GL_RG, GL_UNSIGNED_BYTE, 2, 1, true };
+    case F::RG32UI:
+        return { GL_RG32UI, GL_RG_INTEGER, GL_UNSIGNED_INT, 2, 4 };
+    case F::R16UI:
+        return { GL_R16UI, GL_RED_INTEGER, GL_UNSIGNED_SHORT, 1, 2 };
+    case F::R32UI:
+        return { GL_R32UI, GL_RED_INTEGER, GL_UNSIGNED_INT, 1, 4 };
+    case F::Invalid:
+        return {};
+    }
+    return {};
+}
+} // namespace
+
 gl_engine::Texture::Texture(Target target, Format format)
     : m_target(target)
     , m_format(format)
@@ -56,8 +92,7 @@ void gl_engine::Texture::setParams(Filter min_filter, Filter mag_filter)
     // add upload functionality for compressed mipmaps to support this
     assert(m_format != Format::CompressedRGBA8 || min_filter != Filter::MipMapLinear);
 
-    // webgl supports only nearest filtering for R16UI
-    assert(m_format != Format::R16UI || (min_filter == Filter::Nearest && mag_filter == Filter::Nearest));
+    assert(gl_tex_params(m_format).is_texture_filterable || (min_filter == Filter::Nearest && mag_filter == Filter::Nearest));
 
     m_min_filter = min_filter;
     m_mag_filter = mag_filter;
@@ -79,17 +114,13 @@ void gl_engine::Texture::allocate_array(unsigned int width, unsigned int height,
     if (m_min_filter == Filter::MipMapLinear)
         mip_level_count = GLsizei(1 + std::floor(std::log2(std::max(width, height))));
 
-    auto internalformat = GLenum(m_format);
-    if (m_format == Format::CompressedRGBA8)
-        internalformat = gl_engine::Texture::compressed_texture_format();
-
     m_width = width;
     m_height = height;
     m_n_layers = n_layers;
 
     auto* f = QOpenGLContext::currentContext()->extraFunctions();
     f->glBindTexture(GLenum(m_target), m_id);
-    f->glTexStorage3D(GLenum(m_target), mip_level_count, internalformat, GLsizei(width), GLsizei(height), GLsizei(n_layers));
+    f->glTexStorage3D(GLenum(m_target), mip_level_count, gl_tex_params(m_format).internal_format, GLsizei(width), GLsizei(height), GLsizei(n_layers));
 }
 
 void gl_engine::Texture::upload(const nucleus::utils::ColourTexture& texture)
@@ -136,31 +167,6 @@ void gl_engine::Texture::upload(const nucleus::utils::ColourTexture& texture, un
     }
 }
 
-void gl_engine::Texture::upload(const nucleus::Raster<glm::u8vec2>& texture)
-{
-    assert(m_format == Format::RG8);
-
-    QOpenGLFunctions* f = QOpenGLContext::currentContext()->functions();
-    f->glBindTexture(GLenum(m_target), m_id);
-    f->glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
-    f->glTexImage2D(GLenum(m_target), 0, GL_RG8, GLsizei(texture.width()), GLsizei(texture.height()), 0, GL_RG, GL_UNSIGNED_BYTE, texture.bytes());
-
-    if (m_min_filter == Filter::MipMapLinear)
-        f->glGenerateMipmap(GLenum(m_target));
-}
-
-void gl_engine::Texture::upload(const nucleus::Raster<uint16_t>& texture)
-{
-    assert(m_format == Format::R16UI);
-    assert(m_mag_filter == Filter::Nearest); // not filterable according to
-    assert(m_min_filter == Filter::Nearest); // https://registry.khronos.org/OpenGL-Refpages/es3.0/html/glTexStorage2D.xhtml
-
-    QOpenGLFunctions* f = QOpenGLContext::currentContext()->functions();
-    f->glBindTexture(GLenum(m_target), m_id);
-    f->glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
-    f->glTexImage2D(GLenum(m_target), 0, GL_R16UI, GLsizei(texture.width()), GLsizei(texture.height()), 0, GL_RED_INTEGER, GL_UNSIGNED_SHORT, texture.bytes());
-}
-
 void gl_engine::Texture::upload(const nucleus::Raster<uint16_t>& texture, unsigned int array_index)
 {
     assert(m_format == Format::R16UI);
@@ -178,6 +184,29 @@ void gl_engine::Texture::upload(const nucleus::Raster<uint16_t>& texture, unsign
     f->glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
     f->glTexSubImage3D(GLenum(m_target), 0, 0, 0, GLint(array_index), width, height, 1, GL_RED_INTEGER, GL_UNSIGNED_SHORT, texture.bytes());
 }
+
+template <typename T> void gl_engine::Texture::upload(const nucleus::Raster<T>& texture)
+{
+    assert(m_target == Target::_2d);
+
+    const auto p = gl_tex_params(m_format);
+    assert(m_format != Format::CompressedRGBA8);
+    assert(m_format != Format::Invalid);
+    assert(sizeof(T) == p.n_bytes_per_element * p.n_elements);
+
+    QOpenGLExtraFunctions* f = QOpenGLContext::currentContext()->extraFunctions();
+    f->glBindTexture(GLenum(m_target), m_id);
+    f->glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
+    f->glTexImage2D(GLenum(m_target), 0, p.internal_format, GLsizei(texture.width()), GLsizei(texture.height()), 0, p.format, p.type, texture.bytes());
+
+    if (m_min_filter == Filter::MipMapLinear)
+        f->glGenerateMipmap(GLenum(m_target));
+}
+template void gl_engine::Texture::upload<uint16_t>(const nucleus::Raster<uint16_t>&);
+template void gl_engine::Texture::upload<uint32_t>(const nucleus::Raster<uint32_t>&);
+template void gl_engine::Texture::upload<glm::vec<2, uint32_t>>(const nucleus::Raster<glm::vec<2, uint32_t>>&);
+template void gl_engine::Texture::upload<glm::vec<2, uint8_t>>(const nucleus::Raster<glm::vec<2, uint8_t>>&);
+template void gl_engine::Texture::upload<glm::vec<4, uint8_t>>(const nucleus::Raster<glm::vec<4, uint8_t>>&);
 
 GLenum gl_engine::Texture::compressed_texture_format()
 {

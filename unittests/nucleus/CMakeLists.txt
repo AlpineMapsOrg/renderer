@@ -27,7 +27,6 @@ alp_add_unittest(unittests_nucleus
     test_raster.cpp
     test_terrain_mesh_index_generator.cpp
     test_srs.cpp
-    test_tile.cpp
     test_tile_conversion.cpp
     nucleus_tile_scheduler_util.cpp
     nucleus_tile_scheduler_tile_load_service.cpp

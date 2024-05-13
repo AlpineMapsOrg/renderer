@@ -27,8 +27,6 @@
 #include <QOpenGLVertexArrayObject>
 
 #include "gl_engine/Texture.h"
-#include "gl_engine/TileSet.h"
-#include <nucleus/Tile.h>
 #include <nucleus/tile_scheduler/DrawListGenerator.h>
 #include <nucleus/tile_scheduler/tile_types.h>
 
@@ -44,6 +42,13 @@ class ShaderProgram;
 
 class TileManager : public QObject {
     Q_OBJECT
+
+    struct TileInfo {
+        tile::Id tile_id = {};
+        tile::SrsBounds bounds = {};
+        unsigned height_texture_layer = unsigned(-1);
+    };
+
 public:
     explicit TileManager(QObject* parent = nullptr);
     void init(); // needs OpenGL context
@@ -54,18 +59,16 @@ public:
 
     void set_permissible_screen_space_error(float new_permissible_screen_space_error);
 
-signals:
-    void tiles_changed();
-
 public slots:
     void update_gpu_quads(const std::vector<nucleus::tile_scheduler::tile_types::GpuTileQuad>& new_quads, const std::vector<tile::Id>& deleted_quads);
-    void remove_tile(const tile::Id& tile_id);
     void initilise_attribute_locations(ShaderProgram* program);
     void set_aabb_decorator(const nucleus::tile_scheduler::utils::AabbDecoratorPtr& new_aabb_decorator);
     void set_quad_limit(unsigned new_limit);
 
 private:
+    void remove_tile(const tile::Id& tile_id);
     void add_tile(const tile::Id& id, tile::SrsAndHeightBounds bounds, const nucleus::utils::ColourTexture& ortho, const nucleus::Raster<uint16_t>& heights);
+    void update_gpu_id_map();
 
     static constexpr auto N_EDGE_VERTICES = 65;
     static constexpr auto ORTHO_RESOLUTION = 256;
@@ -74,14 +77,15 @@ private:
     std::vector<tile::Id> m_loaded_tiles;
     std::unique_ptr<Texture> m_ortho_textures;
     std::unique_ptr<Texture> m_heightmap_textures;
+    std::unique_ptr<Texture> m_tile_id_map_texture;
+    std::unique_ptr<Texture> m_texture_id_map_texture;
     std::unique_ptr<QOpenGLVertexArrayObject> m_vao;
     std::pair<std::unique_ptr<QOpenGLBuffer>, size_t> m_index_buffer;
     std::unique_ptr<QOpenGLBuffer> m_bounds_buffer;
-    std::unique_ptr<QOpenGLBuffer> m_tileset_id_buffer;
-    std::unique_ptr<QOpenGLBuffer> m_zoom_level_buffer;
-    std::unique_ptr<QOpenGLBuffer> m_texture_layer_buffer;
+    std::unique_ptr<QOpenGLBuffer> m_draw_tile_id_buffer;
+    std::unique_ptr<QOpenGLBuffer> m_height_texture_layer_buffer;
 
-    std::vector<TileSet> m_gpu_tiles;
+    std::vector<TileInfo> m_gpu_tiles;
     unsigned m_tiles_per_set = 1;
     nucleus::tile_scheduler::DrawListGenerator m_draw_list_generator;
     const nucleus::tile_scheduler::DrawListGenerator::TileSet m_last_draw_list; // buffer last generated draw list
