@@ -19,8 +19,7 @@
  
 layout(location = 0) in highp vec4 bounds;
 layout(location = 1) in highp int texture_layer;
-layout(location = 2) in highp int tileset_id;
-layout(location = 3) in highp int tileset_zoomlevel;
+layout(location = 2) in highp uvec2 packed_tile_id;
 
 uniform highp int n_edge_vertices;
 uniform mediump usampler2DArray height_sampler;

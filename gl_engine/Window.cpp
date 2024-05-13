@@ -475,12 +475,6 @@ void Window::set_aabb_decorator(const nucleus::tile_scheduler::utils::AabbDecora
     m_tile_manager->set_aabb_decorator(new_aabb_decorator);
 }
 
-void Window::remove_tile(const tile::Id& id)
-{
-    assert(m_tile_manager);
-    m_tile_manager->remove_tile(id);
-}
-
 nucleus::camera::AbstractDepthTester* Window::depth_tester() { return this; }
 
 nucleus::utils::ColourTexture::Format Window::ortho_tile_compression_algorithm() const { return Texture::compression_algorithm(); }
