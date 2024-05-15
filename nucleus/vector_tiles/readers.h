@@ -21,7 +21,6 @@ namespace vector_tile::reader {
  * @param nameOfLayerWithEawsRegions : Name of the layer that contains the EAWS micro regions and the vertices of their boundary polygon. At the time of writing
  * this is "micro-regions".
  */
-tl::expected<std::vector<avalanche::eaws::EawsRegion>, QString> eaws_regions(
-    const QByteArray& input_data, const QString& name_of_layer_with_eaws_regions = "micro-regions");
+tl::expected<std::vector<avalanche::eaws::EawsRegion>, QString> eaws_regions(const QByteArray& input_data);
 } // namespace vector_tile::reader
 #endif
