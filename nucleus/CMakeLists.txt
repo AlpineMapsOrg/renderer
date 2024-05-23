@@ -21,7 +21,7 @@
 
 project(alpine-renderer-nucleus LANGUAGES CXX)
 
-alp_add_git_repository(stb_slim URL https://github.com/AlpineMapsOrgDependencies/stb_slim.git COMMITISH c44329cf0aae422c5c144a043e2ca47e9d9cc204)
+alp_add_git_repository(stb_slim URL https://github.com/AlpineMapsOrgDependencies/stb_slim.git COMMITISH 547fade2a12793e1bea4733d59646b4f436e25a4)
 alp_add_git_repository(radix URL https://github.com/AlpineMapsOrg/radix.git COMMITISH v24.01.20 NOT_SYSTEM)
 alp_add_git_repository(tl_expected URL https://github.com/TartanLlama/expected.git COMMITISH v1.1.0 DO_NOT_ADD_SUBPROJECT)
 if (NOT TARGET fmt)
@@ -101,10 +101,15 @@ qt_add_library(nucleus STATIC
     timing/TimerInterface.h timing/TimerInterface.cpp
     timing/CpuTimer.h timing/CpuTimer.cpp
     utils/ColourTexture.h utils/ColourTexture.cpp
+
+    stb/stb_image.cpp
+    stb/stb_image_loader.h stb/stb_image_loader.cpp
 )
 
 target_include_directories(nucleus PUBLIC ${CMAKE_SOURCE_DIR})
-target_link_libraries(nucleus PUBLIC radix Qt::Core Qt::Gui Qt::Network fmt::fmt zppbits tl_expected nucleus_version stb_slim goofy_tc)
+# Please keep Qt::Gui outside the nucleus. If you really need it and it's already defined as Public module in the parent
+# target (which is true for gl_engine and/or alpineapp) look at the workaround in the Raster.h file!
+target_link_libraries(nucleus PUBLIC radix Qt::Core Qt::Network fmt::fmt zppbits tl_expected nucleus_version stb_slim goofy_tc)
 
 qt_add_resources(nucleus "icons"
     PREFIX "/map_icons"

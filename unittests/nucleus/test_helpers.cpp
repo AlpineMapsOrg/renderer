@@ -17,17 +17,33 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *****************************************************************************/
 
-#include "tile_conversion.h"
+#include <glm/glm.hpp>
 
-namespace nucleus::utils::tile_conversion {
+#include <QImage>
+#include <QBuffer>
 
-Raster<uint16_t> u8vec4raster_to_u16raster(const Raster<glm::u8vec4>& raster)
+namespace test_helpers {
+
+QByteArray white_jpeg_tile(unsigned int size)
 {
-    Raster<uint16_t> retval(raster.size());
-    std::transform(raster.begin(), raster.end(), retval.begin(), [](const glm::u8vec4& rgba) {
-        return uint16_t(rgba.x) << 8 | uint16_t(rgba.y);
-    });
-    return retval;
+    QImage default_tile(QSize { int(size), int(size) }, QImage::Format_ARGB32);
+    default_tile.fill(Qt::GlobalColor::white);
+    QByteArray arr;
+    QBuffer buffer(&arr);
+    buffer.open(QIODevice::WriteOnly);
+    default_tile.save(&buffer, "JPEG");
+    return arr;
+}
+
+QByteArray black_png_tile(unsigned size)
+{
+    QImage default_tile(QSize { int(size), int(size) }, QImage::Format_ARGB32);
+    default_tile.fill(Qt::GlobalColor::black);
+    QByteArray arr;
+    QBuffer buffer(&arr);
+    buffer.open(QIODevice::WriteOnly);
+    default_tile.save(&buffer, "PNG");
+    return arr;
 }
 
 }

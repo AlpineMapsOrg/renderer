@@ -1,6 +1,8 @@
 /*****************************************************************************
  * Alpine Terrain Renderer
  * Copyright (C) 2023 Adam Celarek
+ * Copyright (C) 2024 Patrick Komon
+ * Copyright (C) 2024 Gerald Kimmersdorfer
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -18,27 +20,51 @@
 
 #pragma once
 
+
+#include <QPoint>
 #include <QMetaType>
-#include <QMouseEvent>
-#include <QTouchEvent>
+#include <glm/glm.hpp>
+#include <vector>
+
+#ifdef QT_GUI_LIB
+#include <QtGui/QMouseEvent>
+#include <QtGui/QTouchEvent>
+#include <QtGui/QWheelEvent>
+#endif
 
 namespace nucleus::event_parameter {
+
+// compatible to QEventPoint::State
+enum TouchPointState {
+    TouchPointUnknownState = 0x00,
+    TouchPointPressed    = 0x01,
+    TouchPointMoved      = 0x02,
+    TouchPointStationary = 0x04,
+    TouchPointReleased   = 0x08
+};
+
+// loosely based on QEventPoint
+struct EventPoint {
+    TouchPointState state;
+    glm::vec2 position = glm::vec2(0);
+    glm::vec2 last_position = glm::vec2(0);
+    glm::vec2 press_position = glm::vec2(0);
+};
 
 struct Touch {
     bool is_begin_event = false;
     bool is_end_event = false;
     bool is_update_event = false;
-    QList<QEventPoint> points;
-    QEventPoint::States states;
+    std::vector<EventPoint> points;
 };
 
 struct Mouse {
     bool is_begin_event = false;
     bool is_end_event = false;
     bool is_update_event = false;
-    Qt::MouseButton button = Qt::NoButton;
+    Qt::MouseButton button = Qt::NoButton; //TODO unused?
     Qt::MouseButtons buttons;
-    QEventPoint point;
+    EventPoint point;
 };
 
 struct Wheel {
@@ -46,31 +72,55 @@ struct Wheel {
     bool is_end_event = false;
     bool is_update_event = false;
     QPoint angle_delta;
-    QEventPoint point;
+    EventPoint point;
 };
 }
 Q_DECLARE_METATYPE(nucleus::event_parameter::Touch)
 Q_DECLARE_METATYPE(nucleus::event_parameter::Mouse)
 Q_DECLARE_METATYPE(nucleus::event_parameter::Wheel)
 
+#ifdef QT_GUI_LIB
 namespace nucleus::event_parameter {
-inline Touch make(const QTouchEvent* event)
-{
-    return { event->isBeginEvent(), event->isEndEvent(), event->isUpdateEvent(),
-        event->points(), event->touchPointStates() };
-}
-inline Mouse make(const QMouseEvent* event)
-{
-    assert(event->points().size() == 1);
+    inline EventPoint make(const QEventPoint& e) {
+        EventPoint point;
+        point.state = static_cast<TouchPointState>(e.state());
+        point.position = glm::vec2(e.position().x(), e.position().y());
+        point.last_position = glm::vec2(e.lastPosition().x(), e.lastPosition().y());
+        point.press_position = glm::vec2(e.pressPosition().x(), e.pressPosition().y());
+        return point;
+    }
 
-    return { event->isBeginEvent(), event->isEndEvent(), event->isUpdateEvent(),
-        event->button(), event->buttons(), event->points().front() };
-}
-inline Wheel make(const QWheelEvent* event)
-{
-    assert(event->points().size() == 1);
+    inline Touch make(QTouchEvent* e) {
+        Touch touch;
+        touch.is_begin_event = e->isBeginEvent();
+        touch.is_end_event = e->isEndEvent();
+        touch.is_update_event = e->isUpdateEvent();
+        for (const auto& point : e->points()) {
+            touch.points.push_back(make(point));
+        }
+        return touch;
+    }
 
-    return { event->isBeginEvent(), event->isEndEvent(), event->isUpdateEvent(),
-        event->angleDelta(), event->points().front() };
+    inline Mouse make(QMouseEvent* e) {
+        Mouse mouse;
+        mouse.is_begin_event = e->isBeginEvent();
+        mouse.is_end_event = e->isEndEvent();
+        mouse.is_update_event = e->isUpdateEvent();
+        mouse.button = e->button();
+        mouse.buttons = e->buttons();
+        mouse.point = make(e->points().front());
+        return mouse;
+    }
+
+    inline Wheel make(QWheelEvent* e) {
+        Wheel wheel;
+        wheel.is_begin_event = e->isBeginEvent();
+        wheel.is_end_event = e->isEndEvent();
+        wheel.is_update_event = e->isUpdateEvent();
+        wheel.angle_delta = e->angleDelta();
+        wheel.point = make(e->points().front());
+        return wheel;
+    }
 }
-}
+#endif
+

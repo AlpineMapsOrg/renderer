@@ -1,6 +1,7 @@
 /*****************************************************************************
  * Alpine Terrain Renderer
  * Copyright (C) 2024 Lucas Dworschak
+ * Copyright (C) 2024 Gerald Kimmersdorfer
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -20,7 +21,6 @@
 
 #include <QDebug>
 #include <QFile>
-#include <QIcon>
 #include <QSize>
 #include <QStringLiteral>
 
@@ -29,6 +29,7 @@
 #define STBTT_STATIC
 #define STB_TRUETYPE_IMPLEMENTATION
 #include <stb_slim/stb_truetype.h>
+#include "nucleus/stb/stb_image_loader.h"
 
 using namespace Qt::Literals::StringLiterals;
 
@@ -90,6 +91,7 @@ void MapLabelManager::init()
         Raster<glm::u8vec4> rgba_raster = { m_font_atlas.size(), { 255, 255, 0, 255 } };
         std::transform(m_font_atlas.cbegin(), m_font_atlas.cend(), rgba_raster.begin(), [](const auto& v) { return glm::u8vec4(v.x, v.y, 0, 255); });
 
+        // No QImage in nucleus: If you want it for debug purposes, use the QT_GUI_LIB constant as shown in Raster.h
         // const auto debug_out = QImage(rgba_raster.bytes(), m_font_atlas_size.width(), m_font_atlas_size.height(), QImage::Format_RGBA8888);
         // debug_out.save("font_atlas.png");
     }
@@ -98,7 +100,9 @@ void MapLabelManager::init()
         label.init(m_char_data, &m_fontinfo, uv_width_norm);
     }
 
-    m_icon = QImage(":/map_icons/peak.png");
+    m_icon = stb::load_8bit_rgba_image_from_file(":/map_icons/peak.png");
+    /* REPLACED WITH removal of QGUI
+    m_icon = QImage(":/map_icons/peak.png");*/
 }
 
 Raster<uint8_t> MapLabelManager::make_font_raster()
@@ -210,10 +214,14 @@ const std::vector<unsigned int>& MapLabelManager::indices() const
     return m_indices;
 }
 
-const QImage& MapLabelManager::icon() const
+const Raster<glm::u8vec2>& MapLabelManager::font_atlas() const
+{
+    return m_font_atlas;
+}
+
+const Raster<glm::u8vec4>& MapLabelManager::icon() const
 {
     return m_icon;
 }
-const Raster<glm::u8vec2>& MapLabelManager::font_atlas() const { return m_font_atlas; }
 
 } // namespace nucleus

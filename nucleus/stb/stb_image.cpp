@@ -1,6 +1,5 @@
 /*****************************************************************************
- * Alpine Terrain Builder
- * Copyright (C) 2022 alpinemaps.org
+ * Alpine Maps and weBIGeo
  * Copyright (C) 2024 Gerald Kimmersdorfer
  *
  * This program is free software: you can redistribute it and/or modify
@@ -17,17 +16,19 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *****************************************************************************/
 
-#include "tile_conversion.h"
+// Limit the dimensions of images to 8192x8192. This is already quite restricting
+// in terms of that a lot of GPUs don't support textures that large. Make sure
+// you know what you are doing, before you change this value.
+#define STBI_MAX_DIMENSIONS 8192
 
-namespace nucleus::utils::tile_conversion {
+// Only include the code for the formats we need. This reduces the code footprint
+// and allows for faster compilation times. Add more formats here, if you need them.
+// For possible options check the stb_image.h file.
+#define STBI_ONLY_JPEG
+#define STBI_ONLY_PNG
 
-Raster<uint16_t> u8vec4raster_to_u16raster(const Raster<glm::u8vec4>& raster)
-{
-    Raster<uint16_t> retval(raster.size());
-    std::transform(raster.begin(), raster.end(), retval.begin(), [](const glm::u8vec4& rgba) {
-        return uint16_t(rgba.x) << 8 | uint16_t(rgba.y);
-    });
-    return retval;
-}
+// Remove if you intend to use stbi_failure_reason()
+#define STBI_NO_FAILURE_STRINGS
 
-}
+#define STB_IMAGE_IMPLEMENTATION
+#include <stb_slim/stb_image.h>

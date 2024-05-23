@@ -1,6 +1,7 @@
 /*****************************************************************************
  * Alpine Terrain Builder
  * Copyright (C) 2022 alpinemaps.org
+ * Copyright (C) 2024 Gerald Kimmersdorfer
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -30,6 +31,11 @@
 using Catch::Approx;
 
 namespace test_helpers {
+
+QByteArray white_jpeg_tile(unsigned int size);
+
+QByteArray black_png_tile(unsigned size);
+
 class FailOnCopy {
     int v = 0;
 

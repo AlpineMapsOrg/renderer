@@ -85,7 +85,7 @@ void MapLabelManager::init()
     m_font_texture->upload(font_atlas);
 
     // load the icon texture
-    QImage icon = m_mapLabelManager.icon();
+    QImage icon = m_mapLabelManager.icon().toQImage();
     m_icon_texture = std::make_unique<QOpenGLTexture>(icon);
     m_icon_texture->setMinificationFilter(QOpenGLTexture::LinearMipMapLinear);
     m_icon_texture->setMagnificationFilter(QOpenGLTexture::Linear);

@@ -122,7 +122,7 @@ TEST_CASE("gl texture")
     QOpenGLExtraFunctions* f = c->extraFunctions();
     REQUIRE(f);
 
-    QImage test_texture(256, 256, QImage::Format_ARGB32);
+    QImage test_texture(256, 256, QImage::Format_RGBA8888);
     test_texture.fill(qRgba(0, 0, 0, 255));
     {
         QPainter painter(&test_texture);
@@ -140,18 +140,21 @@ TEST_CASE("gl texture")
         test_texture.save("test_texture.png");
     }
 
+    const auto test_raster = nucleus::Raster<glm::u8vec4>::fromQImage(test_texture);
+
+
     SECTION("compression")
     {
         {
-            const auto compressed = ColourTexture(test_texture, ColourTexture::Format::DXT1);
+            const auto compressed = ColourTexture(test_raster, ColourTexture::Format::DXT1);
             CHECK(compressed.n_bytes() == 256 * 128);
         }
         {
-            const auto compressed = ColourTexture(test_texture, ColourTexture::Format::ETC1);
+            const auto compressed = ColourTexture(test_raster, ColourTexture::Format::ETC1);
             CHECK(compressed.n_bytes() == 256 * 128);
         }
         {
-            const auto compressed = ColourTexture(test_texture, ColourTexture::Format::Uncompressed_RGBA);
+            const auto compressed = ColourTexture(test_raster, ColourTexture::Format::Uncompressed_RGBA);
             CHECK(compressed.n_bytes() == 256 * 256 * 4);
         }
     }
@@ -188,7 +191,7 @@ TEST_CASE("gl texture")
         Framebuffer b(Framebuffer::DepthFormat::None, { Framebuffer::ColourFormat::RGBA8 }, { 256, 256 });
         b.bind();
 
-        const auto compressed = ColourTexture(test_texture, gl_engine::Texture::compression_algorithm());
+        const auto compressed = ColourTexture(test_raster, gl_engine::Texture::compression_algorithm());
         gl_engine::Texture opengl_texture(gl_engine::Texture::Target::_2d, gl_engine::Texture::Format::CompressedRGBA8);
         opengl_texture.bind(0);
         opengl_texture.setParams(gl_engine::Texture::Filter::Linear, gl_engine::Texture::Filter::Linear);
@@ -217,7 +220,7 @@ TEST_CASE("gl texture")
         Framebuffer b(Framebuffer::DepthFormat::None, { Framebuffer::ColourFormat::RGBA8 }, { 256, 256 });
         b.bind();
         
-        const auto compressed = ColourTexture(test_texture, ColourTexture::Format::Uncompressed_RGBA);
+        const auto compressed = ColourTexture(test_raster, ColourTexture::Format::Uncompressed_RGBA);
         gl_engine::Texture opengl_texture(gl_engine::Texture::Target::_2d, gl_engine::Texture::Format::RGBA8);
         opengl_texture.bind(0);
         opengl_texture.setParams(gl_engine::Texture::Filter::Linear, gl_engine::Texture::Filter::Linear);
@@ -285,19 +288,17 @@ TEST_CASE("gl texture")
             opengl_texture.setParams(gl_engine::Texture::Filter::Linear, gl_engine::Texture::Filter::Linear);
             opengl_texture.allocate_array(256, 256, 3);
             {
-                const auto compressed = ColourTexture(test_texture, texture_type);
+                const auto compressed = ColourTexture(test_raster, texture_type);
                 opengl_texture.upload(compressed, 0);
             }
             {
-                QImage test_texture(256, 256, QImage::Format_ARGB32);
-                test_texture.fill(qRgba(42, 142, 242, 255));
-                const auto compressed = ColourTexture(test_texture, texture_type);
+                auto test_raster = nucleus::Raster<glm::u8vec4>(glm::uvec2(256), glm::u8vec4(42,142,242,255));
+                const auto compressed = ColourTexture(test_raster, texture_type);
                 opengl_texture.upload(compressed, 1);
             }
             {
-                QImage test_texture(256, 256, QImage::Format_ARGB32);
-                test_texture.fill(qRgba(222, 111, 0, 255));
-                const auto compressed = ColourTexture(test_texture, texture_type);
+                auto test_raster = nucleus::Raster<glm::u8vec4>(glm::uvec2(256), glm::u8vec4(222,111,0,255));
+                const auto compressed = ColourTexture(test_raster, texture_type);
                 opengl_texture.upload(compressed, 2);
             }
             ShaderProgram shader = create_debug_shader(R"(
