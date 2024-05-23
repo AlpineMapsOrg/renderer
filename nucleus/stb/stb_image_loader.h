@@ -1,6 +1,5 @@
 /*****************************************************************************
- * Alpine Terrain Builder
- * Copyright (C) 2022 alpinemaps.org
+ * Alpine Maps and weBIGeo
  * Copyright (C) 2024 Gerald Kimmersdorfer
  *
  * This program is free software: you can redistribute it and/or modify
@@ -17,17 +16,17 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *****************************************************************************/
 
-#include "tile_conversion.h"
+#pragma once
 
-namespace nucleus::utils::tile_conversion {
+#include <nucleus/Raster.h>
+#include <QByteArray>
 
-Raster<uint16_t> u8vec4raster_to_u16raster(const Raster<glm::u8vec4>& raster)
-{
-    Raster<uint16_t> retval(raster.size());
-    std::transform(raster.begin(), raster.end(), retval.begin(), [](const glm::u8vec4& rgba) {
-        return uint16_t(rgba.x) << 8 | uint16_t(rgba.y);
-    });
-    return retval;
-}
+namespace nucleus::stb {
 
-}
+Raster<glm::u8vec4> load_8bit_rgba_image_from_memory(const QByteArray& byteArray);
+
+Raster<glm::u8vec4> load_8bit_rgba_image_from_file(const QString& filename);
+
+} // namespace nucleus
+
+

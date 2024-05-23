@@ -23,7 +23,7 @@ alp_add_unittest(unittests_nucleus
     test_Camera.cpp
     nucleus_utils_stopwatch.cpp
     test_DrawListGenerator.cpp
-    test_helpers.h
+    test_helpers.h test_helpers.cpp
     test_raster.cpp
     test_terrain_mesh_index_generator.cpp
     test_srs.cpp
@@ -50,7 +50,7 @@ qt_add_resources(unittests_nucleus "test_data"
     data/test-tile_ortho.jpeg
     data/test-tile.png
 )
-target_link_libraries(unittests_nucleus PUBLIC nucleus Catch2::Catch2 Qt::Test)
+target_link_libraries(unittests_nucleus PUBLIC nucleus Catch2::Catch2 Qt::Test Qt::Gui)
 target_compile_definitions(unittests_nucleus PUBLIC "ALP_TEST_DATA_DIR=\":/test_data/\"")
 
 if (ANDROID)

@@ -1,6 +1,7 @@
 /*****************************************************************************
  * Alpine Terrain Renderer
  * Copyright (C) 2024 Lucas Dworschak
+ * Copyright (C) 2024 Gerald Kimmersdorfer
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -20,10 +21,10 @@
 
 #include "MapLabel.h"
 
-#include <QImage>
 #include <stb_slim/stb_truetype.h>
 #include <unordered_map>
 #include <vector>
+#include <QSize>
 
 #include "../Raster.h"
 
@@ -35,7 +36,8 @@ public:
     const std::vector<MapLabel>& labels() const;
     const std::vector<unsigned int>& indices() const;
     const Raster<glm::u8vec2>& font_atlas() const;
-    const QImage& icon() const;
+    /* Replaced to Raster with the removal of QtGUI, use Raster::toQImage() */
+    const Raster<glm::u8vec4>& icon() const;
 
 private:
     void init();
@@ -61,6 +63,6 @@ private:
     QByteArray m_font_file;
 
     Raster<glm::u8vec2> m_font_atlas;
-    QImage m_icon;
+    Raster<glm::u8vec4> m_icon;
 };
 } // namespace nucleus

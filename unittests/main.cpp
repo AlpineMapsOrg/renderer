@@ -2,6 +2,7 @@
  * Alpine Terrain Builder
  * Copyright (C) 2022 alpinemaps.org
  * Copyright (C) 2022 Adam Celarek <family name at cg tuwien ac at>
+ * Copyright (C) 2024 Gerald Kimmersdorfer
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -17,12 +18,21 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *****************************************************************************/
 
+#include <QCoreApplication>
+#ifdef QT_GUI_LIB
 #include <QGuiApplication>
+#endif
 #include <catch2/catch_session.hpp>
 
 int main( int argc, char* argv[] ) {
     int argc_qt = 1;
-    QGuiApplication app = {argc_qt, argv};
+#ifdef QT_GUI_LIB
+    QGuiApplication app(argc_qt, argv);
+    qDebug("Created QGuiApplication...");
+#else
+    QCoreApplication app(argc_qt, argv);
+    qDebug("Created QCoreApplication...");
+#endif
     QCoreApplication::setOrganizationName("AlpineMaps.org");
 #ifdef __ANDROID__
     std::vector<char*> argv_2;

@@ -1,6 +1,7 @@
 /*****************************************************************************
  * Alpine Terrain Builder
  * Copyright (C) 2022 alpinemaps.org
+ * Copyright (C) 2024 Gerald Kimmersdorfer
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -19,7 +20,6 @@
 #include "TileLoadService.h"
 
 #include <QDebug>
-#include <QImage>
 #include <QNetworkAccessManager>
 #include <QNetworkReply>
 #include <QtVersionChecks>
@@ -39,7 +39,7 @@ TileLoadService::TileLoadService(const QString& base_url, UrlPattern url_pattern
 
 TileLoadService::~TileLoadService() = default;
 
-void TileLoadService::load(const tile::Id& tile_id)
+void TileLoadService::load(const tile::Id& tile_id) const
 {
     QNetworkRequest request(QUrl(build_tile_url(tile_id)));
     request.setTransferTimeout(int(m_transfer_timeout));

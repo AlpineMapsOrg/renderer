@@ -1,6 +1,7 @@
 /*****************************************************************************
  * Alpine Terrain Builder
  * Copyright (C) 2022 alpinemaps.org
+ * Copyright (C) 2024 Gerald Kimmersdorfer
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -20,15 +21,15 @@
 
 #include <glm/glm.hpp>
 
-#include <QImage>
-
+#include <QByteArray>
 #include "nucleus/Raster.h"
 
 namespace nucleus::utils::tile_conversion {
 
-inline QImage toQImage(const QByteArray& byte_array) { return QImage::fromData(byte_array); }
-Raster<glm::u8vec4> toRasterRGBA(const QByteArray& byte_array);
-Raster<uint16_t> qImage2uint16Raster(const QImage& byte_array);
+/**
+ * @brief Converts an RGBA8 raster to a uint16_t raster by packing the rg channels. ba are ignored.
+ */
+Raster<uint16_t> u8vec4raster_to_u16raster(const Raster<glm::u8vec4>& raster);
 
 inline glm::u8vec4 float2alpineRGBA(float height)
 {
