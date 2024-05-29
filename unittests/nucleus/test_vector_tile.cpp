@@ -26,11 +26,11 @@
 #include "nucleus/tile_scheduler/utils.h"
 #include "nucleus/vector_tiles/VectorTileFeature.h"
 #include "nucleus/vector_tiles/VectorTileManager.h"
+#include "nucleus/vector_tiles/readers.h"
 #include "radix/tile.h"
 
 TEST_CASE("nucleus/vector_tiles")
 {
-
     SECTION("PBF parsing")
     {
         QString filepath = QString("%1%2").arg(ALP_TEST_DATA_DIR, "vectortile.mvt");
@@ -147,6 +147,99 @@ TEST_CASE("nucleus/vector_tiles")
             CHECK(contains_desired_peak);
 
             id = id.parent();
+        }
+    }
+
+    SECTION("EAWS Vector Tiles")
+    {
+        // Check if test file can be loaded
+        const std::string test_file_name = "eaws_0-0-0.mvt";
+        QString filepath = QString("%1%2").arg(ALP_TEST_DATA_DIR, test_file_name.c_str());
+        QFile test_file(filepath);
+        CHECK(test_file.exists());
+        CHECK(test_file.size() > 0);
+
+        // Check if testfile can be opened and read
+        test_file.open(QIODevice::ReadOnly | QIODevice::Unbuffered);
+        QByteArray test_data = test_file.readAll();
+        test_file.close();
+        CHECK(test_data.size() > 0);
+
+        // Check if testdata can be converted to string
+        std::string test_data_as_string = test_data.toStdString();
+        CHECK(test_data_as_string.size() > 0);
+
+        // Check if tile loading works and at least one layer is present
+        mapbox::vector_tile::buffer tileBuffer(test_data_as_string);
+        std::map<std::string, const protozero::data_view> layers = tileBuffer.getLayers();
+        CHECK(layers.size() > 0);
+
+        // Check if layer with name "micro-regions" exists
+        CHECK(layers.contains("micro-regions"));
+        mapbox::vector_tile::layer layer = tileBuffer.getLayer("micro-regions");
+
+        // Check if layer micro-regions has enough regions
+        CHECK(layer.featureCount() > 0);
+
+        // Check if extend (tile resolution) is >0
+        CHECK(layer.getExtent() > 0);
+
+        // Check if reader returns a std::vector with EAWS regions when reading mvt file
+        tl::expected<std::vector<avalanche::eaws::EawsRegion>, QString> result;
+        result = vector_tile::reader::eaws_regions(test_data);
+        CHECK(result.has_value());
+
+        // Check if EAWS region struct is initialized with empty attributes
+        const avalanche::eaws::EawsRegion empty_eaws_region;
+        CHECK("" == empty_eaws_region.id);
+        CHECK(std::nullopt == empty_eaws_region.id_alt);
+        CHECK(std::nullopt == empty_eaws_region.start_date);
+        CHECK(std::nullopt == empty_eaws_region.end_date);
+        CHECK(empty_eaws_region.vertices_in_local_coordinates.empty());
+
+        // Check for some samples of the returned regions if they have the correct properties
+        if (result.has_value()) {
+            // Retrieve vector of all eaws regions
+            std::vector<avalanche::eaws::EawsRegion> eaws_regions = result.value();
+
+            // Retrieve samples that should have certain properties
+            avalanche::eaws::EawsRegion region_with_start_date, region_with_end_date, region_with_id_alt;
+            for (const avalanche::eaws::EawsRegion& region : eaws_regions) {
+                if ("DE-BY-10" == region.id) {
+                    region_with_id_alt = region;
+                    region_with_end_date = region;
+                }
+
+                if ("IT-23-AO-22" == region.id)
+                    region_with_start_date = region;
+
+                if (region_with_start_date.id != "" && region_with_end_date.id != "" && region_with_id_alt.id != "")
+                    break;
+            }
+
+            // Check if sample has correct id
+            CHECK("DE-BY-10" == region_with_id_alt.id);
+
+            // Check if sample has correct id_alt
+            CHECK("BYALL" == region_with_id_alt.id_alt);
+
+            // Check if sample has correct start date
+            CHECK(QDate::fromString(QString("2022-03-04"), "yyyy-MM-dd") == region_with_start_date.start_date);
+
+            // Check if struct regions have correct end date for a sample
+            CHECK(QDate::fromString(QString("2021-10-01"), "yyyy-MM-dd") == region_with_end_date.end_date);
+
+            // Check if struct regions have correct boundary vertices for a sample
+            std::vector<glm::ivec2> vertices = region_with_start_date.vertices_in_local_coordinates;
+            CHECK(4 == vertices.size());
+            if (4 == vertices.size()) {
+                CHECK(2128 == vertices[0].x);
+                CHECK(1459 == vertices[0].y);
+                CHECK(2128 == vertices[1].x);
+                CHECK(1461 == vertices[1].y);
+                CHECK(2128 == vertices[3].x);
+                CHECK(1459 == vertices[3].y);
+            }
         }
     }
 }

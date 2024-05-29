@@ -322,7 +322,7 @@ void Window::paint(QOpenGLFramebufferObject* framebuffer)
         f->glDepthFunc(GL_LEQUAL);
         // f->glDepthMask(GL_FALSE);
         m_shader_manager->labels_program()->bind();
-        m_map_label_manager->draw(m_gbuffer.get(), m_shader_manager->labels_program(), m_camera, draw_tiles);
+        m_map_label_manager->draw(m_gbuffer.get(), m_shader_manager->labels_program(), m_camera, culled_tile_set);
         m_shader_manager->labels_program()->release();
 
         if (framebuffer)
