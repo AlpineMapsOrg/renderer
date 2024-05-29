@@ -184,21 +184,17 @@ TEST_CASE("nucleus/vector_tiles")
         // Check if extend (tile resolution) is >0
         CHECK(layer.getExtent() > 0);
 
-        // Check if reader returns unexpected state (= error) if wrong name for micro-regions layer was provided
-        tl::expected<std::vector<avalanche::eaws::EawsRegion>, QString> result;
-        result = vector_tile::reader::eaws_regions(test_data, "wrongLayerName");
-        CHECK(!result.has_value());
-
         // Check if reader returns a std::vector with EAWS regions when reading mvt file
+        tl::expected<std::vector<avalanche::eaws::EawsRegion>, QString> result;
         result = vector_tile::reader::eaws_regions(test_data);
         CHECK(result.has_value());
 
         // Check if EAWS region struct is initialized with empty attributes
         const avalanche::eaws::EawsRegion empty_eaws_region;
         CHECK("" == empty_eaws_region.id);
-        CHECK("" == empty_eaws_region.id_alt);
-        CHECK("" == empty_eaws_region.start_date);
-        CHECK("" == empty_eaws_region.end_date);
+        CHECK(std::nullopt == empty_eaws_region.id_alt);
+        CHECK(std::nullopt == empty_eaws_region.start_date);
+        CHECK(std::nullopt == empty_eaws_region.end_date);
         CHECK(empty_eaws_region.vertices_in_local_coordinates.empty());
 
         // Check for some samples of the returned regions if they have the correct properties
@@ -228,11 +224,10 @@ TEST_CASE("nucleus/vector_tiles")
             CHECK("BYALL" == region_with_id_alt.id_alt);
 
             // Check if sample has correct start date
-            CHECK("2022-03-04" == region_with_start_date.start_date);
-            std::cout << "\n" << region_with_start_date.start_date.toStdString();
+            CHECK(QDate::fromString(QString("2022-03-04"), "yyyy-MM-dd") == region_with_start_date.start_date);
 
             // Check if struct regions have correct end date for a sample
-            CHECK("2021-10-01" == region_with_end_date.end_date);
+            CHECK(QDate::fromString(QString("2021-10-01"), "yyyy-MM-dd") == region_with_end_date.end_date);
 
             // Check if struct regions have correct boundary vertices for a sample
             std::vector<glm::ivec2> vertices = region_with_start_date.vertices_in_local_coordinates;
