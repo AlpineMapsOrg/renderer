@@ -14,5 +14,9 @@ public:
     std::vector<glm::ivec2> vertices_in_local_coordinates; // The vertices of the region's bounding polygon with respect to tile resolution
     static constexpr glm::ivec2 resolution = glm::vec2(4096, 4096); // Tile resolution
 };
+
+// Returns a map of tuples (internal_region_id, region_name)
+std::tuple<std::map<std::string, uint>, std::map<uint, std::string>> create_internal_ids(const std::vector<avalanche::eaws::EawsRegion>& eaws_regions);
+
 } // namespace avalanche::eaws
 #endif // EAWS_H
