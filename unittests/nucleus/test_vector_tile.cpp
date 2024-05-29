@@ -28,6 +28,8 @@
 #include "nucleus/vector_tiles/VectorTileManager.h"
 #include "nucleus/vector_tiles/readers.h"
 #include "radix/tile.h"
+#include <QPainter>
+#include <map>
 
 TEST_CASE("nucleus/vector_tiles")
 {
@@ -240,6 +242,65 @@ TEST_CASE("nucleus/vector_tiles")
                 CHECK(2128 == vertices[3].x);
                 CHECK(1459 == vertices[3].y);
             }
+
+            // Sort Region Ids starting at 1 such that 0 means no region
+
+            std::map<std::string, uint> sorted_region_names;
+            for (const avalanche::eaws::EawsRegion& region : eaws_regions) {
+                sorted_region_names[region.id.toStdString()] = 0;
+            }
+            std::map<uint, std::string> region_names_by_id;
+            uint i = 1;
+            for (auto& x : sorted_region_names) {
+                x.second = i;
+                region_names_by_id[i] = x.first;
+                i++;
+            }
+
+            // Setup QPainter and QImage for drawing polygons
+            uint res_x = region_with_start_date.resolution.x;
+            uint res_y = region_with_start_date.resolution.y;
+            QImage img(res_x, res_y, QImage::Format_RGB888);
+            img.fill(QColor::fromRgb(0, 0, 0));
+            QPainter painter(&img);
+
+            // Draw regions to image
+            for (const avalanche::eaws::EawsRegion& region : eaws_regions) {
+
+                // Setup color code from region id
+                uint idNumber = sorted_region_names[region.id.toStdString()];
+                uint redValue = idNumber / 256;
+                uint greenValue = idNumber % 256;
+                QColor colorOfRegion = QColor::fromRgb(redValue, greenValue, 0);
+                painter.setBrush(QBrush(colorOfRegion));
+                painter.setPen(QPen(colorOfRegion)); // we also have to set the pen to draw the boundaries
+                std::vector<glm::ivec2> vertices = region.vertices_in_local_coordinates;
+
+                // Convert Vertices to QPoints
+                std::vector<QPointF> vertices_as_QPointFs;
+                for (glm::ivec2& vec : vertices) {
+                    QPointF point(qreal(std::max(0, vec.x)), qreal(std::max(0, vec.y)));
+                    vertices_as_QPointFs.push_back(point);
+                }
+
+                // Draw polygon: The first point is implicitly connected to the last point, and the polygon is filled with the current brush().
+                painter.drawPolygon(vertices_as_QPointFs.data(), vertices_as_QPointFs.size());
+            }
+
+            // Save image
+            const std::string test_image_file_name = "C:\\Users\\JCR\\jcrTest.bmp";
+            // QString filepathTestImage = QString("%1%2").arg(ALP_TEST_DATA_DIR, test_image_file_name.c_str());
+            bool it_worked = img.save(QString::fromStdString(test_image_file_name));
+            if (it_worked)
+                std::cout << "\n SAVED IMAGE\n";
+            else
+                std::cout << "\n NOT SAVED IMAGE\n";
+
+            // Debug:
+            std::cout << "\n##########################################################################";
+            std::cout << "\nimg[0,0] = " << img.pixelColor(0, 0).red() << img.pixelColor(0, 0).green();
+            std::cout << "\nimg[2128,1459] = " << img.pixelColor(2128, 1459).red() << img.pixelColor(2128, 1459).green();
+            std::cout << "\n~ " << region_names_by_id[img.pixelColor(2128, 1459).red() * 256 + img.pixelColor(2128, 1459).green()];
         }
     }
 }
