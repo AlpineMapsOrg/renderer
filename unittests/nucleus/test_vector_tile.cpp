@@ -242,70 +242,33 @@ TEST_CASE("nucleus/vector_tiles")
                 CHECK(2128 == vertices[3].x);
                 CHECK(1459 == vertices[3].y);
             }
-            //-----------------------------------------------------------------------------------------------
-            // Sort Region Ids starting at 1 such that 0 means no region
-            /*
-            std::map<std::string, uint> get_internal_id_from_region_name;
-            for (const avalanche::eaws::EawsRegion& region : eaws_regions) {
-                get_internal_id_from_region_name[region.id.toStdString()] = 0;
-            }
-            std::map<uint, std::string> get_region_name_from_internal_id;
-            uint i = 1;
-            for (auto& x : get_internal_id_from_region_name) {
-                x.second = i;
-                get_region_name_from_internal_id[i] = x.first;
-                i++;
-            }
-            */
 
-            std::map<std::string, uint> get_internal_id_from_region_name;
-            std::map<uint, std::string> get_region_name_from_internal_id;
-            std::tie(get_internal_id_from_region_name, get_region_name_from_internal_id) = avalanche::eaws::create_internal_ids(eaws_regions);
-
-            // Setup QPainter and QImage for drawing polygons
-            uint res_x = region_with_start_date.resolution.x;
-            uint res_y = region_with_start_date.resolution.y;
-            QImage img(res_x, res_y, QImage::Format_RGB888);
-            img.fill(QColor::fromRgb(0, 0, 0));
-            QPainter painter(&img);
+            // Create a eaws color/id converter from a vector tile at zoom level 0
+            avalanche::eaws::InternalIdManager internal_id_manager(test_data);
 
             // Draw regions to image
-            for (const avalanche::eaws::EawsRegion& region : eaws_regions) {
-
-                // Setup color code from region id
-                uint idNumber = get_internal_id_from_region_name[region.id.toStdString()];
-                uint redValue = idNumber / 256;
-                uint greenValue = idNumber % 256;
-                QColor colorOfRegion = QColor::fromRgb(redValue, greenValue, 0);
-                painter.setBrush(QBrush(colorOfRegion));
-                painter.setPen(QPen(colorOfRegion)); // we also have to set the pen to draw the boundaries
-                std::vector<glm::ivec2> vertices = region.vertices_in_local_coordinates;
-
-                // Convert Vertices to QPoints
-                std::vector<QPointF> vertices_as_QPointFs;
-                for (glm::ivec2& vec : vertices) {
-                    QPointF point(qreal(std::max(0, vec.x)), qreal(std::max(0, vec.y)));
-                    vertices_as_QPointFs.push_back(point);
-                }
-
-                // Draw polygon: The first point is implicitly connected to the last point, and the polygon is filled with the current brush().
-                painter.drawPolygon(vertices_as_QPointFs.data(), vertices_as_QPointFs.size());
-            }
+            QImage img = avalanche::eaws::draw_regions(eaws_regions, internal_id_manager);
+            CHECK((img.width() == eaws_regions[0].resolution.x && img.height() == eaws_regions[0].resolution.y));
 
             // Save image
             const std::string test_image_file_name = "C:\\Users\\JCR\\jcrTest.bmp";
             // QString filepathTestImage = QString("%1%2").arg(ALP_TEST_DATA_DIR, test_image_file_name.c_str());
-            bool it_worked = img.save(QString::fromStdString(test_image_file_name));
-            if (it_worked)
-                std::cout << "\n SAVED IMAGE\n";
-            else
-                std::cout << "\n NOT SAVED IMAGE\n";
+            img.save(QString::fromStdString(test_image_file_name));
 
-            // Debug:
-            std::cout << "\n##########################################################################";
-            std::cout << "\nimg[0,0] = " << img.pixelColor(0, 0).red() << img.pixelColor(0, 0).green();
-            std::cout << "\nimg[2128,1459] = " << img.pixelColor(2128, 1459).red() << img.pixelColor(2128, 1459).green();
-            std::cout << "\n~ " << get_region_name_from_internal_id[img.pixelColor(2128, 1459).red() * 256 + img.pixelColor(2128, 1459).green()];
+            // Check if image has correct color codes
+            CHECK(QColor(0, 0, 0) == img.pixelColor(0, 0));
+            CHECK("IT-23-AO-22" == internal_id_manager.convert_color_to_region_id(img.pixelColor(2128, 1459), img.format()));
+
+            // Rasterize all regions
+            nucleus::Raster<uint> raster;
+            raster = avalanche::eaws::rasterize_regions(eaws_regions, internal_id_manager);
+
+            // Check if raster has correct size
+            CHECK((raster.width() == region_with_start_date.resolution.x && raster.height() == region_with_start_date.resolution.y));
+
+            // Check if raster contains correct internal region-ids at certain pixels
+            CHECK(0 == raster.pixel(glm::uvec2(0, 0)));
+            CHECK(internal_id_manager.convert_region_id_to_internal_id(region_with_start_date.id) == raster.pixel(glm::vec2(2128, 1459)));
         }
     }
 }
