@@ -77,7 +77,7 @@
      : m_camera({ 1822577.0, 6141664.0 - 500, 171.28 + 500 }, { 1822577.0, 6141664.0, 171.28 }) // should point right at the stephansdom
  {
      m_tile_manager = std::make_unique<TileManager>();
-     m_map_label_manager = std::make_shared<MapLabelManager>();
+     m_map_label_manager = std::make_unique<MapLabelManager>();
      QTimer::singleShot(1, [this]() { emit update_requested(); });
 }
 

@@ -36,8 +36,10 @@ layout (location = 0) in vec4 pos;
 layout (location = 1) in vec4 vtexcoords;
 layout (location = 2) in vec3 label_position;
 layout (location = 3) in float importance;
+layout (location = 4) in int texture_index_in;
 
 out highp vec2 texcoords;
+flat out int texture_index;
 
 bool label_visible(highp vec3 relative_to_cam, float dist_to_cam) {
     if (importance < 0.2 && dist_to_cam > 3000.0)
@@ -59,6 +61,7 @@ bool label_visible(highp vec3 relative_to_cam, float dist_to_cam) {
 }
 
 void main() {
+    texture_index = texture_index_in;
     highp vec3 relative_to_cam = label_position - camera.position.xyz;
     float dist_to_cam = length(relative_to_cam);
     float scale = 2.0f;

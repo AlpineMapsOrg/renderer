@@ -34,6 +34,7 @@ namespace nucleus::maplabel {
 struct CharData {
     uint16_t x, y, width, height; // coordinates of bbox in bitmap
     float xoff, yoff; // position offsets for e.g. lower/uppercase
+    int texture_index;
 };
 
 struct VertexData {
@@ -41,11 +42,14 @@ struct VertexData {
     glm::vec4 uv; // start_u, start_v, offset_u, offset_v
     glm::vec3 world_position;
     float importance;
+    int32_t texture_index;
 };
 
-struct LabelMeta {
-    Raster<glm::u8vec2> font_atlas;
-    std::unordered_map<nucleus::vectortile::FeatureType, QImage> icons;
+struct AtlasData {
+    bool changed;
+    std::vector<Raster<glm::u8vec2>> font_atlas;
 };
+
+typedef std::unordered_map<nucleus::vectortile::FeatureType, QImage> LabelIcons;
 
 } // namespace nucleus::maplabel

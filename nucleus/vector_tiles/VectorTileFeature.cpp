@@ -46,8 +46,8 @@ std::shared_ptr<FeatureTXT> FeatureTXTPeak::parse(const mapbox::vector_tile::fea
 
     auto props = feature.getProperties();
 
-    if (props["elevation"].valid())
-        peak->elevation = (int)props["elevation"].get<std::int64_t>();
+    if (props["ele"].valid())
+        peak->elevation = (int)props["ele"].get<std::uint64_t>();
 
     return peak;
 }

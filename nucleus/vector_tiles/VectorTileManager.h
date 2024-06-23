@@ -24,6 +24,7 @@
 #include <memory>
 #include <string>
 #include <unordered_map>
+#include <set>
 
 #include <QByteArray>
 #include <QObject>
@@ -41,23 +42,18 @@ class VectorTileManager : public QObject {
 public:
     explicit VectorTileManager(QObject* parent = nullptr);
 
-    inline static const QString TILE_SERVER = "http://localhost:8080/austria.peaks/";
+    inline static const QString TILE_SERVER = "http://localhost:3000/peaks/";
 
-    static const int max_zoom = 14; // defined by the tile server / extractor (extractor only supports zoom to 14)
-
-    static const std::shared_ptr<VectorTile> to_vector_tile(tile::Id id, const QByteArray& vectorTileData, const std::shared_ptr<DataQuerier> dataquerier);
-
+    static const std::shared_ptr<VectorTile> to_vector_tile(const QByteArray& vectorTileData, const std::shared_ptr<DataQuerier> dataquerier);
 private:
-    static const tile::Id get_suitable_id(tile::Id id);
-
-    inline static std::unordered_map<unsigned long, std::shared_ptr<FeatureTXT>> m_loaded_features = {};
-    inline static std::unordered_map<tile::Id, std::shared_ptr<VectorTile>, tile::Id::Hasher> m_loaded_tiles;
-
     // all individual features and an appropriate parser method are stored in the following map
-    // typedef std::shared_ptr<FeatureTXT> (*FeatureTXTParser)(const mapbox::vector_tile::feature& feature, tile::SrsBounds& tile_bounds, double extent);
     typedef std::shared_ptr<FeatureTXT> (*FeatureTXTParser)(const mapbox::vector_tile::feature&, const std::shared_ptr<DataQuerier>);
     inline static const std::unordered_map<std::string, FeatureTXTParser> FEATURE_TYPES_FACTORY = { { "Peak", FeatureTXTPeak::parse } };
     inline static const std::unordered_map<std::string, FeatureType> FEATURE_TYPES = { { "Peak", FeatureType::Peak } };
+
+    // contains all chars that were encountered while parsing vector tiles
+    // this is later used in the get_diff_chars method to find characters which still have to be rendered
+    inline static std::set<char16_t> all_chars;
 };
 
 } // namespace nucleus::vectortile

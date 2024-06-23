@@ -59,6 +59,7 @@ public:
     void remove_tile(const tile::Id& tile_id);
 
 private:
+    void renew_font_atlas();
     void add_tile(const tile::Id& id, const nucleus::vectortile::FeatureType& type, const nucleus::vectortile::VectorTile& vector_tile);
 
     std::unique_ptr<Texture> m_font_texture;

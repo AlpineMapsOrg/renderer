@@ -47,12 +47,6 @@ struct FeatureTXT {
 
     static void parse(std::shared_ptr<FeatureTXT> ft, const mapbox::vector_tile::feature& feature, const std::shared_ptr<DataQuerier> dataquerier);
 
-    // void updateWorldPosition(int zoom_level, std::shared_ptr<DataQuerier> dataquerier)
-    // {
-    //     if (zoom_level > highest_zoom)
-    //         worldposition.z = dataquerier->get_altitude(position);
-    // }
-
     virtual QString labelText() = 0;
 };
 

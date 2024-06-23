@@ -22,6 +22,8 @@
 
 #include "nucleus/DataQuerier.h"
 
+#include "nucleus/map_label/Charset.h"
+
 namespace nucleus::vectortile {
 
 VectorTileManager::VectorTileManager(QObject* parent)
@@ -29,29 +31,29 @@ VectorTileManager::VectorTileManager(QObject* parent)
 {
 }
 
-const std::shared_ptr<VectorTile> VectorTileManager::to_vector_tile(
-    tile::Id id, const QByteArray& vectorTileData, const std::shared_ptr<DataQuerier> dataquerier)
+
+const std::shared_ptr<VectorTile> VectorTileManager::to_vector_tile(const QByteArray& vectorTileData, const std::shared_ptr<DataQuerier> dataquerier)
 {
     // vectortile might be empty -> no parsing possible
     if (vectorTileData == nullptr) {
-        // try to find a parent tile and return previously parsed parent tile
-        if (id.zoom_level > max_zoom)
-            id = get_suitable_id(id);
+        // -> return empty
+        return std::make_shared<VectorTile>();
+    }
 
-        if (!m_loaded_tiles.contains(id)) // tile id not found -> create empty
-            m_loaded_tiles[id] = std::make_shared<VectorTile>();
+    nucleus::maplabel::Charset& charset = nucleus::maplabel::Charset::get_instance();
 
-        return m_loaded_tiles.at(id);
+    if(all_chars.size() == 0)
+    {
+        // first time -> we should initialize all_chars list
+        all_chars = charset.get_all_chars();
     }
 
     // convert data buffer into vectortile
     std::string d = vectorTileData.toStdString();
     mapbox::vector_tile::buffer tile(d);
 
-    std::shared_ptr<VectorTile> vector_tile;
-    if (!m_loaded_tiles.contains(id))
-        m_loaded_tiles[id] = std::make_shared<VectorTile>();
-    vector_tile = m_loaded_tiles.at(id);
+    // create empty output variable
+    std::shared_ptr<VectorTile> vector_tile = std::make_shared<VectorTile>();
 
     for (auto const& layerName : tile.layerNames()) {
         if (FEATURE_TYPES_FACTORY.contains(layerName)) {
@@ -64,20 +66,12 @@ const std::shared_ptr<VectorTile> VectorTileManager::to_vector_tile(
 
                 auto const feature = mapbox::vector_tile::feature(layer.getFeature(i), layer);
 
-                // check if feature was loaded previously and abort
-                const unsigned long id = feature.getID().get<uint64_t>();
-                if (m_loaded_features.contains(id)) {
-                    const auto feat = m_loaded_features.at(id);
-                    // feat->updateWorldPosition(dataquerier);
-                    features.insert(feat);
-                    continue; // feature is already loaded
-                }
-
                 // create the feature with the designated parser method
-                const std::shared_ptr<FeatureTXT> feat = FEATURE_TYPES_FACTORY.at(layerName)(feature, dataquerier);
-                // feat->updateWorldPosition(dataquerier);
+                const auto feat = FEATURE_TYPES_FACTORY.at(layerName)(feature, dataquerier);
 
-                m_loaded_features[id] = feat;
+                auto u16Chars = feat->name.toStdU16String();
+                all_chars.insert(u16Chars.begin(), u16Chars.end());
+
                 features.insert(feat);
             }
 
@@ -85,17 +79,13 @@ const std::shared_ptr<VectorTile> VectorTileManager::to_vector_tile(
         }
     }
 
-    m_loaded_tiles[id] = vector_tile;
+    if(charset.is_update_necessary(all_chars.size()))
+    {
+        charset.add_chars(all_chars);
+    }
+
 
     return vector_tile;
-}
-
-const tile::Id VectorTileManager::get_suitable_id(tile::Id id)
-{
-    while (id.zoom_level > max_zoom) {
-        id = id.parent();
-    }
-    return id;
 }
 
 } // namespace nucleus::vectortile

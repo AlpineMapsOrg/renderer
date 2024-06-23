@@ -48,6 +48,7 @@ public:
     void upload(const nucleus::utils::ColourTexture& texture);
     void upload(const nucleus::utils::ColourTexture& texture, unsigned array_index);
     void upload(const nucleus::Raster<glm::u8vec2>& texture);
+    void upload(const nucleus::Raster<glm::u8vec2>& texture, unsigned int array_index);
     void upload(const nucleus::Raster<uint16_t>& texture);
     void upload(const nucleus::Raster<uint16_t>& texture, unsigned int array_index);
 

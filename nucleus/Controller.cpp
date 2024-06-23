@@ -36,6 +36,7 @@
 #include "nucleus/tile_scheduler/SlotLimiter.h"
 #include "nucleus/tile_scheduler/TileLoadService.h"
 #include "nucleus/tile_scheduler/utils.h"
+#include "nucleus/vector_tiles/VectorTileManager.h"
 #include "radix/TileHeights.h"
 
 using namespace nucleus::tile_scheduler;
@@ -58,9 +59,8 @@ Controller::Controller(AbstractRenderWindow* render_window)
     //                                           {"", "1", "2", "3", "4"}));
     m_ortho_service.reset(
         new TileLoadService("https://gataki.cg.tuwien.ac.at/raw/basemap/tiles/", TileLoadService::UrlPattern::ZYX_yPointingSouth, ".jpeg"));
-    m_vectortile_service = std::make_unique<TileLoadService>(
-        "http://localhost:8080/austria.peaks/", nucleus::tile_scheduler::TileLoadService::UrlPattern::ZXY_yPointingSouth, ".mvt");
-
+    m_vectortile_service = std::make_unique<TileLoadService>(nucleus::vectortile::VectorTileManager::TILE_SERVER, nucleus::tile_scheduler::TileLoadService::UrlPattern::ZXY_yPointingSouth, "");
+    //m_vectortile_service = std::make_unique<TileLoadService>("http://localhost:8080/austria.peaks/", nucleus::tile_scheduler::TileLoadService::UrlPattern::ZXY_yPointingSouth, ".mvt");
     m_tile_scheduler = std::make_unique<nucleus::tile_scheduler::Scheduler>();
     m_tile_scheduler->read_disk_cache();
     m_render_window->set_quad_limit(512); // must be same as scheduler, dynamic resizing is not supported atm

@@ -94,6 +94,8 @@ qt_add_library(nucleus STATIC
     utils/sun_calculations.h utils/sun_calculations.cpp
     map_label/LabelFactory.h map_label/LabelFactory.cpp
     map_label/MapLabelData.h
+    map_label/Charset.h map_label/Charset.cpp
+    map_label/FontRenderer.h map_label/FontRenderer.cpp
     utils/bit_coding.h
     tile_scheduler/cache_quieries.h
     DataQuerier.h DataQuerier.cpp
@@ -105,6 +107,7 @@ qt_add_library(nucleus STATIC
     vector_tiles/VectorTileManager.h vector_tiles/VectorTileManager.cpp
     vector_tiles/VectorTileFeature.h vector_tiles/VectorTileFeature.cpp
     utils/ColourTexture.h utils/ColourTexture.cpp
+
 )
 
 target_include_directories(nucleus PUBLIC ${CMAKE_SOURCE_DIR})
@@ -126,6 +129,11 @@ qt_add_resources(nucleus "nucleus_fonts"
     PREFIX "/fonts"
     FILES
     ${alpineapp_fonts_SOURCE_DIR}/Roboto/Roboto-Bold.ttf
+)
+qt_add_resources(nucleus "charset"
+    PREFIX "/charset"
+    BASE ${CMAKE_SOURCE_DIR}/app/
+    FILES ${CMAKE_SOURCE_DIR}/app/charset.txt
 )
 
 

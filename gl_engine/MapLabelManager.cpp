@@ -29,6 +29,7 @@
 #include "radix/tile.h"
 
 #include <nucleus/srs.h>
+#include <nucleus/map_label/FontRenderer.h>
 
 using namespace Qt::Literals::StringLiterals;
 
@@ -47,16 +48,21 @@ MapLabelManager::MapLabelManager(QObject* parent)
 void MapLabelManager::init()
 {
     // load the font texture
-    const auto& label_meta = m_mapLabelFactory.create_label_meta();
-    // const auto& font_atlas = m_mapLabelManager.font_atlas();
-    m_font_texture = std::make_unique<Texture>(Texture::Target::_2d, Texture::Format::RG8);
-    m_font_texture->setParams(Texture::Filter::MipMapLinear, Texture::Filter::Linear);
-    m_font_texture->upload(label_meta.font_atlas);
+    const auto& atlas_data = m_mapLabelFactory.init_font_atlas();
+
+    m_font_texture = std::make_unique<Texture>(Texture::Target::_2dArray, Texture::Format::RG8);
+    m_font_texture->allocate_array(nucleus::maplabel::FontRenderer::font_atlas_size.width(), nucleus::maplabel::FontRenderer::font_atlas_size.height(), nucleus::maplabel::FontRenderer::max_textures);
+    for(unsigned int i = 0; i < atlas_data.font_atlas.size(); i++)
+    {
+        m_font_texture->upload(atlas_data.font_atlas[i],i);
+    }
+
+    const auto& labelIcons = m_mapLabelFactory.get_label_icons();
 
     // load the icon texture
     for (int i = 0; i < nucleus::vectortile::FeatureType::ENUM_END - 1; i++) {
         nucleus::vectortile::FeatureType type = (nucleus::vectortile::FeatureType)i;
-        QImage icon = (label_meta.icons.contains(type)) ? label_meta.icons.at(type) : label_meta.icons.at(nucleus::vectortile::FeatureType::ENUM_END);
+        QImage icon = (labelIcons.contains(type)) ? labelIcons.at(type) : labelIcons.at(nucleus::vectortile::FeatureType::ENUM_END);
         m_icon_texture[type] = std::make_unique<QOpenGLTexture>(icon);
         m_icon_texture[type]->setMinificationFilter(QOpenGLTexture::LinearMipMapLinear);
         m_icon_texture[type]->setMagnificationFilter(QOpenGLTexture::Linear);
@@ -68,6 +74,19 @@ void MapLabelManager::init()
     m_index_buffer->setUsagePattern(QOpenGLBuffer::StaticDraw);
     m_index_buffer->allocate(m_mapLabelFactory.indices.data(), m_mapLabelFactory.indices.size() * sizeof(unsigned int));
     m_indices_count = m_mapLabelFactory.indices.size();
+}
+
+void MapLabelManager::renew_font_atlas()
+{
+    const auto& atlas_data = m_mapLabelFactory.renew_font_atlas();
+
+    if(atlas_data.changed)
+    {
+        for(unsigned int i = 0; i < atlas_data.font_atlas.size(); i++)
+        {
+            m_font_texture->upload(atlas_data.font_atlas[i],i);
+        }
+    }
 }
 
 void MapLabelManager::add_tile(const tile::Id& id, const nucleus::vectortile::FeatureType& type, const nucleus::vectortile::VectorTile& vector_tile)
@@ -92,6 +111,7 @@ void MapLabelManager::add_tile(const tile::Id& id, const nucleus::vectortile::Fe
         vectortile->vertex_buffer->setUsagePattern(QOpenGLBuffer::StaticDraw);
 
         const auto features = vector_tile.at(type);
+
         const auto allLabels = m_mapLabelFactory.create_labels(features);
 
         vectortile->vertex_buffer->allocate(allLabels.data(), allLabels.size() * sizeof(nucleus::maplabel::VertexData));
@@ -115,6 +135,10 @@ void MapLabelManager::add_tile(const tile::Id& id, const nucleus::vectortile::Fe
         f->glEnableVertexAttribArray(3);
         f->glVertexAttribPointer(3, 1, GL_FLOAT, GL_FALSE, sizeof(nucleus::maplabel::VertexData), (GLvoid*)((sizeof(glm::vec4) * 2 + (sizeof(glm::vec3)))));
         f->glVertexAttribDivisor(3, 1); // buffer is active for 1 instance (for the whole quad)
+        // texture index
+        f->glEnableVertexAttribArray(4);
+        f->glVertexAttribIPointer(4, 1, GL_INT, sizeof(nucleus::maplabel::VertexData), (GLvoid*)((sizeof(glm::vec4) * 2 + (sizeof(glm::vec3)) + sizeof(float))));
+        f->glVertexAttribDivisor(4, 1); // buffer is active for 1 instance (for the whole quad)
     }
 
     vectortile->vao->release();
@@ -145,6 +169,8 @@ void MapLabelManager::remove_tile(const tile::Id& tile_id)
 void MapLabelManager::update_gpu_quads(
     const std::vector<nucleus::tile_scheduler::tile_types::GpuTileQuad>& new_quads, const std::vector<tile::Id>& deleted_quads)
 {
+    renew_font_atlas();
+
     for (const auto& quad : new_quads) {
         for (const auto& tile : quad.tiles) {
             // test for validity

@@ -149,6 +149,27 @@ void gl_engine::Texture::upload(const nucleus::Raster<glm::u8vec2>& texture)
         f->glGenerateMipmap(GLenum(m_target));
 }
 
+void gl_engine::Texture::upload(const nucleus::Raster<glm::u8vec2>& texture, unsigned int array_index)
+{
+    assert(m_format == Format::RG8);
+    assert(m_mag_filter == Filter::Nearest); // not filterable according to
+    assert(m_min_filter == Filter::Nearest); // https://registry.khronos.org/OpenGL-Refpages/es3.0/html/glTexStorage2D.xhtml
+    assert(array_index < m_n_layers);
+    assert(texture.width() == m_width);
+    assert(texture.height() == m_height);
+
+    const auto width = GLsizei(texture.width());
+    const auto height = GLsizei(texture.height());
+
+    auto* f = QOpenGLContext::currentContext()->extraFunctions();
+    f->glBindTexture(GLenum(m_target), m_id);
+    f->glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
+    f->glTexSubImage3D(GLenum(m_target), 0, 0, 0, GLint(array_index), width, height, 1, GL_RG, GL_UNSIGNED_BYTE, texture.bytes());
+
+    if (m_min_filter == Filter::MipMapLinear)
+        f->glGenerateMipmap(GLenum(m_target));
+}
+
 void gl_engine::Texture::upload(const nucleus::Raster<uint16_t>& texture)
 {
     assert(m_format == Format::R16UI);
