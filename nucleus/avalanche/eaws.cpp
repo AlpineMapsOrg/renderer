@@ -1,6 +1,5 @@
 #include "eaws.h"
 #include "../vector_tiles/readers.h"
-#include <iostream>
 avalanche::eaws::InternalIdManager::InternalIdManager(const QByteArray& vector_tile_data_at_level_0)
 {
     // Get Vector of all regions from a tile at level 0
@@ -73,11 +72,18 @@ QImage avalanche::eaws::draw_region(const EawsRegion& region, const avalanche::e
 {
     //  Input img must have correct resolution and format (format is checked inside convert function)
     assert((region.resolution.x > 0 && region.resolution.y > 0));
-    assert(input_img.width() == region.resolution.x && input_img.height() == region.resolution.y);
+    assert((input_img.width() > 0 && input_img.height() > 0));
 
     // Create a copy of the input Image
     QImage img(input_img);
     QPainter painter(&img);
+
+    // Set logical coordinates to the resolution of the region.
+    // These are the coordinates within which we provide vertices of region boundaries
+    painter.setWindow(QRect(0, 0, region.resolution.x, region.resolution.y));
+
+    // Set viewport (output image) to the dimensions of the provided image. Painter will now linearly transform logical coords to viewport coords
+    painter.setViewport(0, 0, img.width(), img.height());
 
     // Convert region id to color
     QColor color_of_region = internal_id_manager.convert_region_id_to_color(region.id, input_img.format());
@@ -86,8 +92,8 @@ QImage avalanche::eaws::draw_region(const EawsRegion& region, const avalanche::e
 
     // Convert Vertices to QPoints
     std::vector<QPointF> vertices_as_QPointFs;
-    for (const glm::ivec2& vec : region.vertices_in_local_coordinates) {
-        QPointF point(qreal(std::max(0, vec.x)), qreal(std::max(0, vec.y)));
+    for (const glm::vec2& vec : region.vertices_in_local_coordinates) {
+        QPointF point(qreal(std::max(0.f, region.resolution.x * vec.x)), qreal(std::max(0.f, region.resolution.y * vec.y)));
         vertices_as_QPointFs.push_back(point);
     }
 
@@ -98,9 +104,7 @@ QImage avalanche::eaws::draw_region(const EawsRegion& region, const avalanche::e
     return img;
 }
 
-// Writes all regions to provided QImage. Regions must all have same zoom level
-QImage avalanche::eaws::draw_regions(
-    const std::vector<EawsRegion>& regions, const avalanche::eaws::InternalIdManager& internal_id_manager, const QImage& input_img)
+QImage avalanche::eaws::draw_regions(const std::vector<EawsRegion>& regions, const avalanche::eaws::InternalIdManager& internal_id_manager, const QImage& input_img)
 {
     assert(regions.size() > 0);
     QImage img(input_img);
@@ -110,22 +114,35 @@ QImage avalanche::eaws::draw_regions(
     return img;
 }
 
-// Creates a new QImage and writes all regions to it
-QImage avalanche::eaws::draw_regions(
-    const std::vector<EawsRegion>& regions, const avalanche::eaws::InternalIdManager& internal_id_manager, const QImage::Format& image_format)
+QImage avalanche::eaws::draw_regions(const std::vector<EawsRegion>& regions, const avalanche::eaws::InternalIdManager& internal_id_manager,
+    const uint& image_width, const uint& image_height, const QImage::Format& image_format)
 {
     // Create correctly formatted image to draw to
-    QImage img(regions[0].resolution.x, regions[0].resolution.y, image_format);
+    QImage img(image_width, image_height, image_format);
+
     img.fill(QColor::fromRgb(0, 0, 0));
 
     // Draw all regions to image
     return avalanche::eaws::draw_regions(regions, internal_id_manager, img);
 }
 
+nucleus::Raster<uint> avalanche::eaws::rasterize_regions(const std::vector<avalanche::eaws::EawsRegion>& regions,
+    const avalanche::eaws::InternalIdManager& internal_id_manager, const uint raster_width, const uint raster_height)
+{
+    QImage img = draw_regions(regions, internal_id_manager, raster_width, raster_height);
+    nucleus::Raster<uint> raster(img.width());
+    for (int i = 0; i < img.width(); i++) {
+        for (int j = 0; j < img.width(); j++) {
+            raster.pixel(glm::uvec2(i, j)) = internal_id_manager.convert_color_to_internal_id(img.pixelColor(i, j), img.format());
+        }
+    }
+    return raster;
+}
+
 nucleus::Raster<uint> avalanche::eaws::rasterize_regions(
     const std::vector<avalanche::eaws::EawsRegion>& regions, const avalanche::eaws::InternalIdManager& internal_id_manager)
 {
-    QImage img = draw_regions(regions, internal_id_manager);
+    QImage img = draw_regions(regions, internal_id_manager, regions[0].resolution.x, regions[0].resolution.y);
     nucleus::Raster<uint> raster(img.width());
     for (int i = 0; i < img.width(); i++) {
         for (int j = 0; j < img.width(); j++) {

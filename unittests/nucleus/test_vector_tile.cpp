@@ -232,36 +232,30 @@ TEST_CASE("nucleus/vector_tiles")
             CHECK(QDate::fromString(QString("2021-10-01"), "yyyy-MM-dd") == region_with_end_date.end_date);
 
             // Check if struct regions have correct boundary vertices for a sample
-            std::vector<glm::ivec2> vertices = region_with_start_date.vertices_in_local_coordinates;
+            std::vector<glm::vec2> vertices = region_with_start_date.vertices_in_local_coordinates;
+            glm::uvec2 extent(region_with_start_date.resolution.x, region_with_start_date.resolution.y);
             CHECK(4 == vertices.size());
             if (4 == vertices.size()) {
-                CHECK(2128 == vertices[0].x);
-                CHECK(1459 == vertices[0].y);
-                CHECK(2128 == vertices[1].x);
-                CHECK(1461 == vertices[1].y);
-                CHECK(2128 == vertices[3].x);
-                CHECK(1459 == vertices[3].y);
+                CHECK(2128 == (int)(vertices[0].x * extent.x));
+                CHECK(1459 == (int)(vertices[0].y * extent.y));
+                CHECK(2128 == (int)(vertices[1].x * extent.x));
+                CHECK(1461 == (int)(vertices[1].y * extent.y));
+                CHECK(2128 == (int)(vertices[3].x * extent.x));
+                CHECK(1459 == (int)(vertices[3].y * extent.y));
             }
 
             // Create a eaws color/id converter from a vector tile at zoom level 0
             avalanche::eaws::InternalIdManager internal_id_manager(test_data);
 
-            // Draw regions to image
-            QImage img = avalanche::eaws::draw_regions(eaws_regions, internal_id_manager);
-            CHECK((img.width() == eaws_regions[0].resolution.x && img.height() == eaws_regions[0].resolution.y));
-
-            // Save image
-            const std::string test_image_file_name = "C:\\Users\\JCR\\jcrTest.bmp";
-            // QString filepathTestImage = QString("%1%2").arg(ALP_TEST_DATA_DIR, test_image_file_name.c_str());
-            img.save(QString::fromStdString(test_image_file_name));
-
-            // Check if image has correct color codes
-            CHECK(QColor(0, 0, 0) == img.pixelColor(0, 0));
-            CHECK("IT-23-AO-22" == internal_id_manager.convert_color_to_region_id(img.pixelColor(2128, 1459), img.format()));
+            // Draw regions to image of lower resolution than vector tile extend
+            // Visual comparison using img.save(file_path_test_img) with the vector tile in QGIS or similar is recommended after editing relevant code.
+            QImage img = avalanche::eaws::draw_regions(eaws_regions, internal_id_manager, 512, 512);
+            CHECK(((uint)img.width() == 512 && (uint)img.height() == 512));
 
             // Rasterize all regions
             nucleus::Raster<uint> raster;
-            raster = avalanche::eaws::rasterize_regions(eaws_regions, internal_id_manager);
+            raster = avalanche::eaws::rasterize_regions(
+                eaws_regions, internal_id_manager, region_with_start_date.resolution.x, region_with_start_date.resolution.y);
 
             // Check if raster has correct size
             CHECK((raster.width() == region_with_start_date.resolution.x && raster.height() == region_with_start_date.resolution.y));
@@ -269,6 +263,16 @@ TEST_CASE("nucleus/vector_tiles")
             // Check if raster contains correct internal region-ids at certain pixels
             CHECK(0 == raster.pixel(glm::uvec2(0, 0)));
             CHECK(internal_id_manager.convert_region_id_to_internal_id(region_with_start_date.id) == raster.pixel(glm::vec2(2128, 1459)));
+
+            // Check if raster and image have same values when drawn with same resolution
+            img = avalanche::eaws::draw_regions(eaws_regions, internal_id_manager, 4096, 4096);
+            for (int i = 0; i < 4096; i++) {
+                for (int j = 0; j < 4096; j++) {
+                    uint id_from_img = internal_id_manager.convert_color_to_internal_id(img.pixel(i, j), QImage::Format_RGB888);
+                    uint id_from_raster = raster.pixel(glm::uvec2(i, j));
+                    CHECK(id_from_img == id_from_raster);
+                }
+            }
         }
     }
 }

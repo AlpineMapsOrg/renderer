@@ -14,8 +14,9 @@ public:
     std::optional<QString> id_alt = std::nullopt; // So far it is not clear what id_alt of an EAWS Region is
     std::optional<QDate> start_date = std::nullopt; // The day the region was defined
     std::optional<QDate> end_date = std::nullopt; // Only for outdated regions: The day the regions expired
-    std::vector<glm::ivec2> vertices_in_local_coordinates; // The vertices of the region's bounding polygon with respect to tile resolution
-    static constexpr glm::ivec2 resolution = glm::vec2(4096, 4096); // Tile resolution
+    std::vector<glm::vec2>
+        vertices_in_local_coordinates; // The vertices of the region's bounding polygon with respect to tile resolution, must be in range [0,1]
+    glm::uvec2 resolution = glm::vec2(4096, 4096); // Tile resolution
 };
 
 // This class handles conversion from region-id strings to internal ids as uint and as color
@@ -44,10 +45,14 @@ QImage draw_region(const EawsRegion& region, const avalanche::eaws::InternalIdMa
 QImage draw_regions(const std::vector<EawsRegion>& regions, const avalanche::eaws::InternalIdManager& internal_id_manager, const QImage& img);
 
 // Creates a new QImage and writes all regions to it. Throws error when regions.size() == 0
-QImage draw_regions(const std::vector<EawsRegion>& regions, const avalanche::eaws::InternalIdManager& internal_id_manager,
-    const QImage::Format& image_format = QImage::Format_RGB888);
+QImage draw_regions(const std::vector<EawsRegion>& regions, const avalanche::eaws::InternalIdManager& internal_id_manager, const uint& image_width,
+    const uint& image_height, const QImage::Format& image_format = QImage::Format_RGB888);
 
-// Throws error when regions.size() == 0
+// Output has custom resolution,  throws error when raster_width or raster_height is 0.
+nucleus::Raster<uint> rasterize_regions(const std::vector<EawsRegion>& regions, const avalanche::eaws::InternalIdManager& internal_id_manager,
+    const uint raster_width = 0, const uint raster_height = 0);
+
+// output has same resolution as EAWS regions, throws error when regions.size() == 0
 nucleus::Raster<uint> rasterize_regions(const std::vector<EawsRegion>& regions, const avalanche::eaws::InternalIdManager& internal_id_manager);
 } // namespace avalanche::eaws
 #endif // EAWS_H

@@ -42,13 +42,13 @@ tl::expected<std::vector<avalanche::eaws::EawsRegion>, QString> vector_tile::rea
         QString error_message = "ERROR in vector_tile::reader::eaws_region: Vector tile has extend <= 0.";
         return tl::unexpected(error_message);
     }
+    uint extent = layer.getExtent();
 
     // Loop through features = micro-regions of the layer
     std::vector<avalanche::eaws::EawsRegion> regions_to_be_returned;
     for (std::size_t feature_index = 0; feature_index < layer.featureCount(); feature_index++) {
         avalanche::eaws::EawsRegion region;
-
-        // Parse properties of the region (name, start date, end date)
+        region.resolution = glm::ivec2(extent, extent); // Parse properties of the region (name, start date, end date)
         const protozero::data_view& feature_data_view = layer.getFeature(feature_index);
         mapbox::vector_tile::feature current_feature(feature_data_view, layer);
         mapbox::vector_tile::feature::properties_type properties = current_feature.getProperties();
@@ -69,7 +69,7 @@ tl::expected<std::vector<avalanche::eaws::EawsRegion>, QString> vector_tile::rea
         mapbox::vector_tile::points_arrays_type geometry = current_feature.getGeometries<mapbox::vector_tile::points_arrays_type>(1.0);
         for (const auto& point_array : geometry) {
             for (const auto& point : point_array) {
-                region.vertices_in_local_coordinates.push_back(glm::ivec2(point.x, point.y));
+                region.vertices_in_local_coordinates.push_back(glm::vec2(point.x, point.y) / (float)layer.getExtent());
             }
         }
 
