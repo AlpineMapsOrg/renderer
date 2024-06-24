@@ -56,11 +56,12 @@ public:
 
     void update_gpu_quads(const std::vector<nucleus::tile_scheduler::tile_types::GpuTileQuad>& new_quads, const std::vector<tile::Id>& deleted_quads);
 
-    void remove_tile(const tile::Id& tile_id);
+
 
 private:
     void renew_font_atlas();
     void add_tile(const tile::Id& id, const nucleus::vectortile::FeatureType& type, const nucleus::vectortile::VectorTile& vector_tile);
+    void remove_tile(const tile::Id& tile_id);
 
     std::unique_ptr<Texture> m_font_texture;
     std::unordered_map<nucleus::vectortile::FeatureType, std::unique_ptr<QOpenGLTexture>> m_icon_texture;
