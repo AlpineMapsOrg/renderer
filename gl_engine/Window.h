@@ -4,6 +4,7 @@
  * Copyright (C) 2023 Jakob Lindner
  * Copyright (C) 2023 Gerald Kimmersdorfer
  * Copyright (C) 2024 Lucas Dworschak
+ * Copyright (C) 2024 Patrick Komon
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -26,7 +27,6 @@
 #include <QPainter>
 #include <QVector3D>
 #include <QMap>
-#include <chrono>
 #include <glm/glm.hpp>
 #include <memory>
 
