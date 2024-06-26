@@ -253,9 +253,7 @@ TEST_CASE("nucleus/EAWS Vector Tiles")
         CHECK(((uint)img.width() == 512 && (uint)img.height() == 512));
 
         // Rasterize all regions
-        nucleus::Raster<uint> raster;
-        raster
-            = avalanche::eaws::rasterize_regions(eaws_regions, internal_id_manager, region_with_start_date.resolution.x, region_with_start_date.resolution.y);
+        const auto raster = avalanche::eaws::rasterize_regions(eaws_regions, internal_id_manager, region_with_start_date.resolution.x, region_with_start_date.resolution.y);
 
         // Check if raster has correct size
         CHECK((raster.width() == region_with_start_date.resolution.x && raster.height() == region_with_start_date.resolution.y));
@@ -268,7 +266,7 @@ TEST_CASE("nucleus/EAWS Vector Tiles")
         img = avalanche::eaws::draw_regions(eaws_regions, internal_id_manager, 4096, 4096);
         for (int i = 0; i < 4096; i++) {
             for (int j = 0; j < 4096; j++) {
-                uint id_from_img = internal_id_manager.convert_color_to_internal_id(img.pixel(i, j), QImage::Format_RGB888);
+                uint id_from_img = internal_id_manager.convert_color_to_internal_id(img.pixel(i, j), QImage::Format_ARGB32);
                 uint id_from_raster = raster.pixel(glm::uvec2(i, j));
                 CHECK(id_from_img == id_from_raster);
             }

@@ -1,5 +1,7 @@
 #include "eaws.h"
 #include "../vector_tiles/readers.h"
+#include "nucleus/utils/tile_conversion.h"
+
 avalanche::eaws::UIntIdManager::UIntIdManager(const QByteArray& vector_tile_data_at_level_0)
 {
     // Get Vector of all regions from a tile at level 0
@@ -43,7 +45,7 @@ QColor avalanche::eaws::UIntIdManager::convert_region_id_to_color(const QString&
 
 QString avalanche::eaws::UIntIdManager::convert_color_to_region_id(const QColor& color, const QImage::Format& color_format) const
 {
-    assert(QImage::Format_RGB888 == color_format);
+    assert(QImage::Format_ARGB32 == color_format);
     uint internal_id = color.red() * 256 + color.green();
     return internal_id_to_region_id.at(internal_id);
 }
@@ -122,28 +124,15 @@ QImage avalanche::eaws::draw_regions(const std::vector<EawsRegion>& regions, con
     return img;
 }
 
-nucleus::Raster<uint> avalanche::eaws::rasterize_regions(const std::vector<avalanche::eaws::EawsRegion>& regions,
+nucleus::Raster<uint16_t> avalanche::eaws::rasterize_regions(const std::vector<avalanche::eaws::EawsRegion>& regions,
     const avalanche::eaws::UIntIdManager& internal_id_manager, const uint raster_width, const uint raster_height)
 {
-    QImage img = draw_regions(regions, internal_id_manager, raster_width, raster_height);
-    nucleus::Raster<uint> raster(img.width());
-    for (int i = 0; i < img.width(); i++) {
-        for (int j = 0; j < img.width(); j++) {
-            raster.pixel(glm::uvec2(i, j)) = internal_id_manager.convert_color_to_internal_id(img.pixelColor(i, j), img.format());
-        }
-    }
-    return raster;
+    const QImage img = draw_regions(regions, internal_id_manager, raster_width, raster_height);
+    return nucleus::utils::tile_conversion::qImage2uint16Raster(img);
 }
 
-nucleus::Raster<uint> avalanche::eaws::rasterize_regions(
+nucleus::Raster<uint16_t> avalanche::eaws::rasterize_regions(
     const std::vector<avalanche::eaws::EawsRegion>& regions, const avalanche::eaws::UIntIdManager& internal_id_manager)
 {
-    QImage img = draw_regions(regions, internal_id_manager, regions[0].resolution.x, regions[0].resolution.y);
-    nucleus::Raster<uint> raster(img.width());
-    for (int i = 0; i < img.width(); i++) {
-        for (int j = 0; j < img.width(); j++) {
-            raster.pixel(glm::uvec2(i, j)) = internal_id_manager.convert_color_to_internal_id(img.pixelColor(i, j), img.format());
-        }
-    }
-    return raster;
+    return rasterize_regions(regions, internal_id_manager, regions[0].resolution.x, regions[0].resolution.y);
 }
