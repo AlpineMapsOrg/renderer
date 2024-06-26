@@ -151,127 +151,126 @@ TEST_CASE("nucleus/vector_tiles")
             id = id.parent();
         }
     }
+}
+TEST_CASE("nucleus/EAWS Vector Tiles")
+{
+    // Check if test file can be loaded
+    const std::string test_file_name = "eaws_0-0-0.mvt";
+    QString filepath = QString("%1%2").arg(ALP_TEST_DATA_DIR, test_file_name.c_str());
+    QFile test_file(filepath);
+    CHECK(test_file.exists());
+    CHECK(test_file.size() > 0);
 
-    SECTION("EAWS Vector Tiles")
-    {
-        // Check if test file can be loaded
-        const std::string test_file_name = "eaws_0-0-0.mvt";
-        QString filepath = QString("%1%2").arg(ALP_TEST_DATA_DIR, test_file_name.c_str());
-        QFile test_file(filepath);
-        CHECK(test_file.exists());
-        CHECK(test_file.size() > 0);
+    // Check if testfile can be opened and read
+    test_file.open(QIODevice::ReadOnly | QIODevice::Unbuffered);
+    QByteArray test_data = test_file.readAll();
+    test_file.close();
+    CHECK(test_data.size() > 0);
 
-        // Check if testfile can be opened and read
-        test_file.open(QIODevice::ReadOnly | QIODevice::Unbuffered);
-        QByteArray test_data = test_file.readAll();
-        test_file.close();
-        CHECK(test_data.size() > 0);
+    // Check if testdata can be converted to string
+    std::string test_data_as_string = test_data.toStdString();
+    CHECK(test_data_as_string.size() > 0);
 
-        // Check if testdata can be converted to string
-        std::string test_data_as_string = test_data.toStdString();
-        CHECK(test_data_as_string.size() > 0);
+    // Check if tile loading works and at least one layer is present
+    mapbox::vector_tile::buffer tileBuffer(test_data_as_string);
+    std::map<std::string, const protozero::data_view> layers = tileBuffer.getLayers();
+    CHECK(layers.size() > 0);
 
-        // Check if tile loading works and at least one layer is present
-        mapbox::vector_tile::buffer tileBuffer(test_data_as_string);
-        std::map<std::string, const protozero::data_view> layers = tileBuffer.getLayers();
-        CHECK(layers.size() > 0);
+    // Check if layer with name "micro-regions" exists
+    CHECK(layers.contains("micro-regions"));
+    mapbox::vector_tile::layer layer = tileBuffer.getLayer("micro-regions");
 
-        // Check if layer with name "micro-regions" exists
-        CHECK(layers.contains("micro-regions"));
-        mapbox::vector_tile::layer layer = tileBuffer.getLayer("micro-regions");
+    // Check if layer micro-regions has enough regions
+    CHECK(layer.featureCount() > 0);
 
-        // Check if layer micro-regions has enough regions
-        CHECK(layer.featureCount() > 0);
+    // Check if extend (tile resolution) is >0
+    CHECK(layer.getExtent() > 0);
 
-        // Check if extend (tile resolution) is >0
-        CHECK(layer.getExtent() > 0);
+    // Check if reader returns a std::vector with EAWS regions when reading mvt file
+    tl::expected<std::vector<avalanche::eaws::EawsRegion>, QString> result;
+    result = vector_tile::reader::eaws_regions(test_data);
+    CHECK(result.has_value());
 
-        // Check if reader returns a std::vector with EAWS regions when reading mvt file
-        tl::expected<std::vector<avalanche::eaws::EawsRegion>, QString> result;
-        result = vector_tile::reader::eaws_regions(test_data);
-        CHECK(result.has_value());
+    // Check if EAWS region struct is initialized with empty attributes
+    const avalanche::eaws::EawsRegion empty_eaws_region;
+    CHECK("" == empty_eaws_region.id);
+    CHECK(std::nullopt == empty_eaws_region.id_alt);
+    CHECK(std::nullopt == empty_eaws_region.start_date);
+    CHECK(std::nullopt == empty_eaws_region.end_date);
+    CHECK(empty_eaws_region.vertices_in_local_coordinates.empty());
 
-        // Check if EAWS region struct is initialized with empty attributes
-        const avalanche::eaws::EawsRegion empty_eaws_region;
-        CHECK("" == empty_eaws_region.id);
-        CHECK(std::nullopt == empty_eaws_region.id_alt);
-        CHECK(std::nullopt == empty_eaws_region.start_date);
-        CHECK(std::nullopt == empty_eaws_region.end_date);
-        CHECK(empty_eaws_region.vertices_in_local_coordinates.empty());
+    // Check for some samples of the returned regions if they have the correct properties
+    if (result.has_value()) {
+        // Retrieve vector of all eaws regions
+        std::vector<avalanche::eaws::EawsRegion> eaws_regions = result.value();
 
-        // Check for some samples of the returned regions if they have the correct properties
-        if (result.has_value()) {
-            // Retrieve vector of all eaws regions
-            std::vector<avalanche::eaws::EawsRegion> eaws_regions = result.value();
-
-            // Retrieve samples that should have certain properties
-            avalanche::eaws::EawsRegion region_with_start_date, region_with_end_date, region_with_id_alt;
-            for (const avalanche::eaws::EawsRegion& region : eaws_regions) {
-                if ("DE-BY-10" == region.id) {
-                    region_with_id_alt = region;
-                    region_with_end_date = region;
-                }
-
-                if ("IT-23-AO-22" == region.id)
-                    region_with_start_date = region;
-
-                if (region_with_start_date.id != "" && region_with_end_date.id != "" && region_with_id_alt.id != "")
-                    break;
+        // Retrieve samples that should have certain properties
+        avalanche::eaws::EawsRegion region_with_start_date, region_with_end_date, region_with_id_alt;
+        for (const avalanche::eaws::EawsRegion& region : eaws_regions) {
+            if ("DE-BY-10" == region.id) {
+                region_with_id_alt = region;
+                region_with_end_date = region;
             }
 
-            // Check if sample has correct id
-            CHECK("DE-BY-10" == region_with_id_alt.id);
+            if ("IT-23-AO-22" == region.id)
+                region_with_start_date = region;
 
-            // Check if sample has correct id_alt
-            CHECK("BYALL" == region_with_id_alt.id_alt);
+            if (region_with_start_date.id != "" && region_with_end_date.id != "" && region_with_id_alt.id != "")
+                break;
+        }
 
-            // Check if sample has correct start date
-            CHECK(QDate::fromString(QString("2022-03-04"), "yyyy-MM-dd") == region_with_start_date.start_date);
+        // Check if sample has correct id
+        CHECK("DE-BY-10" == region_with_id_alt.id);
 
-            // Check if struct regions have correct end date for a sample
-            CHECK(QDate::fromString(QString("2021-10-01"), "yyyy-MM-dd") == region_with_end_date.end_date);
+        // Check if sample has correct id_alt
+        CHECK("BYALL" == region_with_id_alt.id_alt);
 
-            // Check if struct regions have correct boundary vertices for a sample
-            std::vector<glm::vec2> vertices = region_with_start_date.vertices_in_local_coordinates;
-            glm::uvec2 extent(region_with_start_date.resolution.x, region_with_start_date.resolution.y);
-            CHECK(4 == vertices.size());
-            if (4 == vertices.size()) {
-                CHECK(2128 == (int)(vertices[0].x * extent.x));
-                CHECK(1459 == (int)(vertices[0].y * extent.y));
-                CHECK(2128 == (int)(vertices[1].x * extent.x));
-                CHECK(1461 == (int)(vertices[1].y * extent.y));
-                CHECK(2128 == (int)(vertices[3].x * extent.x));
-                CHECK(1459 == (int)(vertices[3].y * extent.y));
-            }
+        // Check if sample has correct start date
+        CHECK(QDate::fromString(QString("2022-03-04"), "yyyy-MM-dd") == region_with_start_date.start_date);
 
-            // Create a eaws color/id converter from a vector tile at zoom level 0
-            avalanche::eaws::InternalIdManager internal_id_manager(test_data);
+        // Check if struct regions have correct end date for a sample
+        CHECK(QDate::fromString(QString("2021-10-01"), "yyyy-MM-dd") == region_with_end_date.end_date);
 
-            // Draw regions to image of lower resolution than vector tile extend
-            // Visual comparison using img.save(file_path_test_img) with the vector tile in QGIS or similar is recommended after editing relevant code.
-            QImage img = avalanche::eaws::draw_regions(eaws_regions, internal_id_manager, 512, 512);
-            CHECK(((uint)img.width() == 512 && (uint)img.height() == 512));
+        // Check if struct regions have correct boundary vertices for a sample
+        std::vector<glm::vec2> vertices = region_with_start_date.vertices_in_local_coordinates;
+        glm::uvec2 extent(region_with_start_date.resolution.x, region_with_start_date.resolution.y);
+        CHECK(4 == vertices.size());
+        if (4 == vertices.size()) {
+            CHECK(2128 == (int)(vertices[0].x * extent.x));
+            CHECK(1459 == (int)(vertices[0].y * extent.y));
+            CHECK(2128 == (int)(vertices[1].x * extent.x));
+            CHECK(1461 == (int)(vertices[1].y * extent.y));
+            CHECK(2128 == (int)(vertices[3].x * extent.x));
+            CHECK(1459 == (int)(vertices[3].y * extent.y));
+        }
 
-            // Rasterize all regions
-            nucleus::Raster<uint> raster;
-            raster = avalanche::eaws::rasterize_regions(
-                eaws_regions, internal_id_manager, region_with_start_date.resolution.x, region_with_start_date.resolution.y);
+        // Create a eaws color/id converter from a vector tile at zoom level 0
+        avalanche::eaws::UIntIdManager internal_id_manager(test_data);
 
-            // Check if raster has correct size
-            CHECK((raster.width() == region_with_start_date.resolution.x && raster.height() == region_with_start_date.resolution.y));
+        // Draw regions to image of lower resolution than vector tile extend
+        // Visual comparison using img.save(file_path_test_img) with the vector tile in QGIS or similar is recommended after editing relevant code.
+        QImage img = avalanche::eaws::draw_regions(eaws_regions, internal_id_manager, 512, 512);
+        CHECK(((uint)img.width() == 512 && (uint)img.height() == 512));
 
-            // Check if raster contains correct internal region-ids at certain pixels
-            CHECK(0 == raster.pixel(glm::uvec2(0, 0)));
-            CHECK(internal_id_manager.convert_region_id_to_internal_id(region_with_start_date.id) == raster.pixel(glm::vec2(2128, 1459)));
+        // Rasterize all regions
+        nucleus::Raster<uint> raster;
+        raster
+            = avalanche::eaws::rasterize_regions(eaws_regions, internal_id_manager, region_with_start_date.resolution.x, region_with_start_date.resolution.y);
 
-            // Check if raster and image have same values when drawn with same resolution
-            img = avalanche::eaws::draw_regions(eaws_regions, internal_id_manager, 4096, 4096);
-            for (int i = 0; i < 4096; i++) {
-                for (int j = 0; j < 4096; j++) {
-                    uint id_from_img = internal_id_manager.convert_color_to_internal_id(img.pixel(i, j), QImage::Format_RGB888);
-                    uint id_from_raster = raster.pixel(glm::uvec2(i, j));
-                    CHECK(id_from_img == id_from_raster);
-                }
+        // Check if raster has correct size
+        CHECK((raster.width() == region_with_start_date.resolution.x && raster.height() == region_with_start_date.resolution.y));
+
+        // Check if raster contains correct internal region-ids at certain pixels
+        CHECK(0 == raster.pixel(glm::uvec2(0, 0)));
+        CHECK(internal_id_manager.convert_region_id_to_internal_id(region_with_start_date.id) == raster.pixel(glm::vec2(2128, 1459)));
+
+        // Check if raster and image have same values when drawn with same resolution
+        img = avalanche::eaws::draw_regions(eaws_regions, internal_id_manager, 4096, 4096);
+        for (int i = 0; i < 4096; i++) {
+            for (int j = 0; j < 4096; j++) {
+                uint id_from_img = internal_id_manager.convert_color_to_internal_id(img.pixel(i, j), QImage::Format_RGB888);
+                uint id_from_raster = raster.pixel(glm::uvec2(i, j));
+                CHECK(id_from_img == id_from_raster);
             }
         }
     }

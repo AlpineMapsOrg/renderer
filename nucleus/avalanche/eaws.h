@@ -21,10 +21,10 @@ public:
 
 // This class handles conversion from region-id strings to internal ids as uint and as color
 // It must be e constructed from an eaws vector tile at level 0 to extract all region names
-class InternalIdManager {
+class UIntIdManager {
 public:
     const std::vector<QImage::Format> supported_image_formats { QImage::Format_RGB888 };
-    InternalIdManager(const QByteArray& vector_tile_data_at_level_0);
+    UIntIdManager(const QByteArray& vector_tile_data_at_level_0);
     QColor convert_region_id_to_color(const QString& region_id, QImage::Format color_format = QImage::Format_RGB888) const;
     QString convert_color_to_region_id(const QColor& color, const QImage::Format& color_format) const;
     uint convert_region_id_to_internal_id(const QString& color) const;
@@ -39,20 +39,20 @@ private:
 };
 
 // Draws an EAWS Region to a provided QImage that must have the right format.
-QImage draw_region(const EawsRegion& region, const avalanche::eaws::InternalIdManager& internal_id_manager, const QImage& img);
+void draw_region(const EawsRegion& region, const avalanche::eaws::UIntIdManager& internal_id_manager, QImage* img);
 
 // Writes all regions to provided QImage. Regions must all have same zoom level. Throws error when regions.size() == 0
-QImage draw_regions(const std::vector<EawsRegion>& regions, const avalanche::eaws::InternalIdManager& internal_id_manager, const QImage& img);
+void draw_regions(const std::vector<EawsRegion>& regions, const avalanche::eaws::UIntIdManager& internal_id_manager, QImage* img);
 
 // Creates a new QImage and writes all regions to it. Throws error when regions.size() == 0
-QImage draw_regions(const std::vector<EawsRegion>& regions, const avalanche::eaws::InternalIdManager& internal_id_manager, const uint& image_width,
+QImage draw_regions(const std::vector<EawsRegion>& regions, const avalanche::eaws::UIntIdManager& internal_id_manager, const uint& image_width,
     const uint& image_height, const QImage::Format& image_format = QImage::Format_RGB888);
 
 // Output has custom resolution,  throws error when raster_width or raster_height is 0.
-nucleus::Raster<uint> rasterize_regions(const std::vector<EawsRegion>& regions, const avalanche::eaws::InternalIdManager& internal_id_manager,
-    const uint raster_width = 0, const uint raster_height = 0);
+nucleus::Raster<uint> rasterize_regions(
+    const std::vector<EawsRegion>& regions, const avalanche::eaws::UIntIdManager& internal_id_manager, const uint raster_width, const uint raster_height);
 
 // output has same resolution as EAWS regions, throws error when regions.size() == 0
-nucleus::Raster<uint> rasterize_regions(const std::vector<EawsRegion>& regions, const avalanche::eaws::InternalIdManager& internal_id_manager);
+nucleus::Raster<uint> rasterize_regions(const std::vector<EawsRegion>& regions, const avalanche::eaws::UIntIdManager& internal_id_manager);
 } // namespace avalanche::eaws
 #endif // EAWS_H
