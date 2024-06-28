@@ -187,12 +187,12 @@ TEST_CASE("nucleus/EAWS Vector Tiles")
     CHECK(layer.getExtent() > 0);
 
     // Check if reader returns a std::vector with EAWS regions when reading mvt file
-    tl::expected<std::vector<avalanche::eaws::EawsRegion>, QString> result;
+    tl::expected<std::vector<avalanche::eaws::Region>, QString> result;
     result = vector_tile::reader::eaws_regions(test_data);
     CHECK(result.has_value());
 
     // Check if EAWS region struct is initialized with empty attributes
-    const avalanche::eaws::EawsRegion empty_eaws_region;
+    const avalanche::eaws::Region empty_eaws_region;
     CHECK("" == empty_eaws_region.id);
     CHECK(std::nullopt == empty_eaws_region.id_alt);
     CHECK(std::nullopt == empty_eaws_region.start_date);
@@ -202,11 +202,11 @@ TEST_CASE("nucleus/EAWS Vector Tiles")
     // Check for some samples of the returned regions if they have the correct properties
     if (result.has_value()) {
         // Retrieve vector of all eaws regions
-        std::vector<avalanche::eaws::EawsRegion> eaws_regions = result.value();
+        std::vector<avalanche::eaws::Region> eaws_regions = result.value();
 
         // Retrieve samples that should have certain properties
-        avalanche::eaws::EawsRegion region_with_start_date, region_with_end_date, region_with_id_alt;
-        for (const avalanche::eaws::EawsRegion& region : eaws_regions) {
+        avalanche::eaws::Region region_with_start_date, region_with_end_date, region_with_id_alt;
+        for (const avalanche::eaws::Region& region : eaws_regions) {
             if ("DE-BY-10" == region.id) {
                 region_with_id_alt = region;
                 region_with_end_date = region;
