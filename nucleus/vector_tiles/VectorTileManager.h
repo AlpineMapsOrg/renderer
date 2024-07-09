@@ -42,14 +42,14 @@ class VectorTileManager : public QObject {
 public:
     explicit VectorTileManager(QObject* parent = nullptr);
 
-    inline static const QString TILE_SERVER = "http://localhost:3000/peaks/";
+    inline static const QString TILE_SERVER = "http://localhost:3000/peaks,cities,cottages/";
 
     static const std::shared_ptr<VectorTile> to_vector_tile(const QByteArray& vectorTileData, const std::shared_ptr<DataQuerier> dataquerier);
 private:
     // all individual features and an appropriate parser method are stored in the following map
     typedef std::shared_ptr<FeatureTXT> (*FeatureTXTParser)(const mapbox::vector_tile::feature&, const std::shared_ptr<DataQuerier>);
-    inline static const std::unordered_map<std::string, FeatureTXTParser> FEATURE_TYPES_FACTORY = { { "Peak", FeatureTXTPeak::parse } };
-    inline static const std::unordered_map<std::string, FeatureType> FEATURE_TYPES = { { "Peak", FeatureType::Peak } };
+    inline static const std::unordered_map<std::string, FeatureTXTParser> FEATURE_TYPES_FACTORY = { { "Peak", FeatureTXTPeak::parse }, { "cities", FeatureTXTCity::parse }, { "cottages", FeatureTXTCottage::parse } };
+    inline static const std::unordered_map<std::string, FeatureType> FEATURE_TYPES = { { "Peak", FeatureType::Peak }, { "cities", FeatureType::City }, { "cottages", FeatureType::Cottage }  };
 
     // contains all chars that were encountered while parsing vector tiles
     // this is later used in the get_diff_chars method to find characters which still have to be rendered

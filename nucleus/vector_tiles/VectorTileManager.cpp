@@ -84,7 +84,6 @@ const std::shared_ptr<VectorTile> VectorTileManager::to_vector_tile(const QByteA
         charset.add_chars(all_chars);
     }
 
-
     return vector_tile;
 }
 

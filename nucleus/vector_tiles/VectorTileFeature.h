@@ -33,11 +33,12 @@ class DataQuerier;
 namespace nucleus::vectortile {
 
 // note ENUM_END is used here, so that we can iterate over all featuretypes (by using ENUM END as end condition)
-enum FeatureType { Peak = 0, City = 1, ENUM_END = 2 };
+enum FeatureType { Peak = 0, City = 1, Cottage = 2, ENUM_END = 3 };
 
 struct FeatureTXT {
     unsigned long id;
     QString name;
+    std::string data;
     glm::dvec2 position; // latitude / Longitude
     glm::dvec3 worldposition;
     FeatureType type;
@@ -47,12 +48,27 @@ struct FeatureTXT {
 
     static void parse(std::shared_ptr<FeatureTXT> ft, const mapbox::vector_tile::feature& feature, const std::shared_ptr<DataQuerier> dataquerier);
 
+    static std::string get_data_attribute(std::string key, std::string data);
+    static std::map<std::string, std::string> parse_data(std::string data);
+
     virtual QString labelText() = 0;
 };
 
 struct FeatureTXTPeak : public FeatureTXT {
     int elevation;
 
+    static std::shared_ptr<FeatureTXT> parse(const mapbox::vector_tile::feature& feature, const std::shared_ptr<DataQuerier> dataquerier);
+
+    QString labelText();
+};
+
+struct FeatureTXTCity : public FeatureTXT {
+    static std::shared_ptr<FeatureTXT> parse(const mapbox::vector_tile::feature& feature, const std::shared_ptr<DataQuerier> dataquerier);
+
+    QString labelText();
+};
+
+struct FeatureTXTCottage : public FeatureTXT {
     static std::shared_ptr<FeatureTXT> parse(const mapbox::vector_tile::feature& feature, const std::shared_ptr<DataQuerier> dataquerier);
 
     QString labelText();

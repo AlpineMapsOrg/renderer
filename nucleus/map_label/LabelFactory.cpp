@@ -89,6 +89,8 @@ const LabelIcons LabelFactory::get_label_icons()
     li[nucleus::vectortile::FeatureType::Peak] = QImage(":/map_icons/peak.png");
     // TODO @lucas add appropriate icon
     li[nucleus::vectortile::FeatureType::City] = QImage(":/map_icons/peak.png");
+    // TODO @lucas add appropriate icon
+    li[nucleus::vectortile::FeatureType::Cottage] = QImage(":/map_icons/peak.png");
 
     // TODO @lucas add appropriate default icon
     li[nucleus::vectortile::FeatureType::ENUM_END] = QImage(":/map_icons/peak.png");
