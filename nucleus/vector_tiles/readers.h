@@ -22,6 +22,6 @@ namespace vector_tile::reader {
  *
  * @param inputData : An array holding the data read froma vector tile (usually obtained by reading a from a mvt file).
  */
-tl::expected<std::vector<avalanche::eaws::Region>, QString> eaws_regions(const QByteArray& input_data);
+tl::expected<std::vector<avalanche::eaws::Region>, QString> eaws_regions(const QByteArray& input_data, const glm::uvec3& tile_parameters);
 } // namespace vector_tile::reader
 #endif

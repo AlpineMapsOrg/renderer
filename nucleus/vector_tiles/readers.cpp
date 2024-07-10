@@ -14,7 +14,7 @@ public:
     QString operator()(bool val) { return val ? QStringLiteral("true") : QStringLiteral("false"); }
 };
 
-tl::expected<std::vector<avalanche::eaws::Region>, QString> vector_tile::reader::eaws_regions(const QByteArray& input_data)
+tl::expected<std::vector<avalanche::eaws::Region>, QString> vector_tile::reader::eaws_regions(const QByteArray& input_data, const glm::uvec3& tile_parameters)
 {
     // This name could theoretically be changed by the EAWS (very unlikely though)
     const QString& name_of_layer_with_eaws_regions = "micro-regions";
@@ -47,7 +47,7 @@ tl::expected<std::vector<avalanche::eaws::Region>, QString> vector_tile::reader:
     // Loop through features = micro-regions of the layer
     std::vector<avalanche::eaws::Region> regions_to_be_returned;
     for (std::size_t feature_index = 0; feature_index < layer.featureCount(); feature_index++) {
-        avalanche::eaws::Region region;
+        avalanche::eaws::Region region = { tile_parameters };
         region.resolution = glm::ivec2(extent, extent); // Parse properties of the region (name, start date, end date)
         const protozero::data_view& feature_data_view = layer.getFeature(feature_index);
         mapbox::vector_tile::feature current_feature(feature_data_view, layer);
