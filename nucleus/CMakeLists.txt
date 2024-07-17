@@ -104,7 +104,6 @@ qt_add_library(nucleus STATIC
     timing/CpuTimer.h timing/CpuTimer.cpp
     vector_tiles/VectorTileManager.h vector_tiles/VectorTileManager.cpp
     vector_tiles/VectorTileFeature.h vector_tiles/VectorTileFeature.cpp
-    vector_tiles/readers.h vector_tiles/readers.cpp
     utils/ColourTexture.h utils/ColourTexture.cpp
     avalanche/eaws.h avalanche/eaws.cpp
     avalanche/eaws.cpp

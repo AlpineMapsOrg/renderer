@@ -16,17 +16,17 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *****************************************************************************/
 
-#include <QDebug>
-#include <QFile>
-#include <QSignalSpy>
-#include <catch2/catch_test_macros.hpp>
+#include "nucleus/avalanche/eaws.h"
 #include "nucleus/tile_scheduler/TileLoadService.h"
 #include "nucleus/tile_scheduler/utils.h"
 #include "nucleus/vector_tiles/VectorTileFeature.h"
 #include "nucleus/vector_tiles/VectorTileManager.h"
-#include "nucleus/vector_tiles/readers.h"
 #include "radix/tile.h"
+#include <QDebug>
+#include <QFile>
 #include <QPainter>
+#include <QSignalSpy>
+#include <catch2/catch_test_macros.hpp>
 #include <map>
 
 TEST_CASE("nucleus/vector_tiles")
@@ -186,11 +186,11 @@ TEST_CASE("nucleus/EAWS Vector Tiles")
 
     // Check if reader returns a std::vector with EAWS regions when reading mvt file
     tl::expected<std::vector<avalanche::eaws::Region>, QString> result;
-    result = vector_tile::reader::eaws_regions(test_data, glm::vec3(0, 0, 0));
+    result = avalanche::eaws::vector_tile_reader(test_data);
     CHECK(result.has_value());
 
     // Check if EAWS region struct is initialized with empty attributes
-    const avalanche::eaws::Region empty_eaws_region = { glm::uvec3(0, 0, 0) };
+    const avalanche::eaws::Region empty_eaws_region;
     CHECK("" == empty_eaws_region.id);
     CHECK(std::nullopt == empty_eaws_region.id_alt);
     CHECK(std::nullopt == empty_eaws_region.start_date);
@@ -247,7 +247,6 @@ TEST_CASE("nucleus/EAWS Vector Tiles")
 
         // Load tiles at higher zoom level for testing
         std::vector<std::string> file_names({ "eaws_2-2-0.mvt", "eaws_10-236-299.mvt" });
-        std::vector<glm::uvec3> tile_paramters({ glm::uvec3(2, 2, 0), glm::uvec3(10, 236, 299) });
         std::vector<std::vector<avalanche::eaws::Region>> tiles_at_zoom_level_2;
         for (uint i = 0; i < file_names.size(); i++) {
             std::string test_file_name2 = file_names[i];
@@ -265,7 +264,7 @@ TEST_CASE("nucleus/EAWS Vector Tiles")
             layer = tileBuffer2.getLayer("micro-regions");
             CHECK(layer.featureCount() > 0);
             CHECK(layer.getExtent() > 0);
-            result = vector_tile::reader::eaws_regions(test_data2, tile_paramters[i]);
+            result = avalanche::eaws::vector_tile_reader(test_data2);
             CHECK(result.has_value());
             if (result.has_value())
                 tiles_at_zoom_level_2.push_back(result.value());
@@ -278,11 +277,16 @@ TEST_CASE("nucleus/EAWS Vector Tiles")
             eaws_regions_2_2_0 = tiles_at_zoom_level_2[0];
             eaws_regions_10_236_299 = tiles_at_zoom_level_2[1];
         }
+        tile::Id tile_id_0_0_0 = tile::Id(tile::Id(0, glm::vec2(0, 0), tile::Scheme::SlippyMap));
+        tile::Id tile_id_2_2_0 = tile::Id(tile::Id(2, glm::vec2(2, 0), tile::Scheme::SlippyMap));
+        tile::Id tile_id_10_236_299 = tile::Id(tile::Id(10, glm::vec2(236, 299), tile::Scheme::SlippyMap));
+        avalanche::eaws::RegionTile region_tile_0_0_0 = std::make_pair(tile_id_0_0_0, eaws_regions_0_0_0);
+        avalanche::eaws::RegionTile region_tile_2_2_0 = std::make_pair(tile_id_2_2_0, eaws_regions_2_2_0);
+        avalanche::eaws::RegionTile region_tile_10_236_299 = std::make_pair(tile_id_10_236_299, eaws_regions_10_236_299);
 
-        // Rasterize all regions
-        glm::uvec3 tile_parameters(0, 0, 0);
+        // Rasterize all regions at same raster reslutin as input regions
         const auto raster = avalanche::eaws::rasterize_regions(
-            eaws_regions_0_0_0, internal_id_manager, region_with_start_date.resolution.x, region_with_start_date.resolution.y, tile_parameters);
+            region_tile_0_0_0, &internal_id_manager, region_with_start_date.resolution.x, region_with_start_date.resolution.y, tile_id_0_0_0);
 
         // Check if raster has correct size
         CHECK((raster.width() == region_with_start_date.resolution.x && raster.height() == region_with_start_date.resolution.y));
@@ -292,8 +296,8 @@ TEST_CASE("nucleus/EAWS Vector Tiles")
         CHECK(internal_id_manager.convert_region_id_to_internal_id(region_with_start_date.id) == raster.pixel(glm::vec2(2128, 1459)));
 
         // Check if raster and image have same values when drawn with same resolution
-        QImage img_small = avalanche::eaws::draw_regions(eaws_regions_0_0_0, internal_id_manager, 10, 10, tile_parameters);
-        const auto raster_small = avalanche::eaws::rasterize_regions(eaws_regions_0_0_0, internal_id_manager, 10, 10, tile_parameters);
+        QImage img_small = avalanche::eaws::draw_regions(region_tile_2_2_0, &internal_id_manager, 20, 20, tile_id_2_2_0);
+        const auto raster_small = avalanche::eaws::rasterize_regions(region_tile_2_2_0, &internal_id_manager, 20, 20, tile_id_2_2_0);
         for (uint i = 0; i < 10; i++) {
             for (uint j = 0; j < 10; j++) {
                 uint id_from_img = internal_id_manager.convert_color_to_internal_id(img_small.pixel(i, j), QImage::Format_ARGB32);
@@ -303,16 +307,9 @@ TEST_CASE("nucleus/EAWS Vector Tiles")
         }
 
         // Check if tile that has only region NO-3035 in it produces a 1x1 raster with the corresponding internal region id
-        glm::uvec3 tile_parameters2(10, 236, 299);
-        const auto raster_with_one_pixel = avalanche::eaws::rasterize_regions(eaws_regions_10_236_299, internal_id_manager, 4096, 4096, tile_parameters2);
+        const auto raster_with_one_pixel = avalanche::eaws::rasterize_regions(region_tile_10_236_299, &internal_id_manager);
         CHECK((1 == raster_with_one_pixel.width() && 1 == raster_with_one_pixel.width()));
         CHECK((1 == raster_with_one_pixel.width() && 1 == raster_with_one_pixel.height()));
         CHECK(internal_id_manager.convert_region_id_to_internal_id("NO-3035") == raster_with_one_pixel.pixel(glm::uvec2(0, 0)));
-
-        // Any changes in draw_regions should be visually checked for unwanted antialiasing!
-        /*
-        QImage testImg = avalanche::eaws::draw_regions(eaws_regions_10_236_299, internal_id_manager, 4096, 4096, glm::uvec3(10, 236, 299));
-        testImg.save("C:\\output_img.bmp");
-        */
     }
 }
