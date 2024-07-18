@@ -185,8 +185,8 @@ TEST_CASE("nucleus/EAWS Vector Tiles")
     CHECK(layer.getExtent() > 0);
 
     // Check if reader returns a std::vector with EAWS regions when reading mvt file
-    tl::expected<std::vector<avalanche::eaws::Region>, QString> result;
-    result = avalanche::eaws::vector_tile_reader(test_data);
+    tile::Id tile_id_0_0_0({ 0, glm::uvec2(0, 0), tile::Scheme::SlippyMap });
+    tl::expected<avalanche::eaws::RegionTile, QString> result = avalanche::eaws::vector_tile_reader(test_data, tile_id_0_0_0);
     CHECK(result.has_value());
 
     // Check if EAWS region struct is initialized with empty attributes
@@ -198,9 +198,12 @@ TEST_CASE("nucleus/EAWS Vector Tiles")
     CHECK(empty_eaws_region.vertices_in_local_coordinates.empty());
 
     // Check for some samples of the returned regions if they have the correct properties
+    avalanche::eaws::RegionTile region_tile_0_0_0;
+    std::vector<avalanche::eaws::Region> eaws_regions_0_0_0;
     if (result.has_value()) {
         // Retrieve vector of all eaws regions
-        std::vector<avalanche::eaws::Region> eaws_regions_0_0_0 = result.value();
+        region_tile_0_0_0 = result.value();
+        eaws_regions_0_0_0 = region_tile_0_0_0.second;
 
         // Retrieve samples that should have certain properties
         avalanche::eaws::Region region_with_start_date, region_with_end_date, region_with_id_alt;
@@ -249,7 +252,10 @@ TEST_CASE("nucleus/EAWS Vector Tiles")
 
         // Load tiles at higher zoom level for testing
         std::vector<std::string> file_names({ "eaws_2-2-0.mvt", "eaws_10-236-299.mvt" });
-        std::vector<std::vector<avalanche::eaws::Region>> tiles_at_zoom_level_2;
+        tile::Id tile_id_2_2_0 = tile::Id(tile::Id(2, glm::vec2(2, 0), tile::Scheme::SlippyMap));
+        tile::Id tile_id_10_236_299 = tile::Id(tile::Id(10, glm::vec2(236, 299), tile::Scheme::SlippyMap));
+        std::vector<tile::Id> tile_ids_at_zoom_Level_2({ tile_id_2_2_0, tile_id_10_236_299 });
+        std::vector<avalanche::eaws::RegionTile> region_tiles_at_zoom_level_2;
         for (uint i = 0; i < file_names.size(); i++) {
             std::string test_file_name2 = file_names[i];
             filepath = QString("%1%2").arg(ALP_TEST_DATA_DIR, test_file_name2.c_str());
@@ -266,24 +272,18 @@ TEST_CASE("nucleus/EAWS Vector Tiles")
             layer = tileBuffer2.getLayer("micro-regions");
             CHECK(layer.featureCount() > 0);
             CHECK(layer.getExtent() > 0);
-            result = avalanche::eaws::vector_tile_reader(test_data2);
+            auto result = avalanche::eaws::vector_tile_reader(test_data2, tile_ids_at_zoom_Level_2[i]);
             CHECK(result.has_value());
             if (result.has_value())
-                tiles_at_zoom_level_2.push_back(result.value());
+                region_tiles_at_zoom_level_2.push_back(result.value());
         }
-        CHECK(2 == tiles_at_zoom_level_2.size());
-        std::vector<avalanche::eaws::Region> eaws_regions_2_2_0;
-        std::vector<avalanche::eaws::Region> eaws_regions_10_236_299;
-        if (2 <= tiles_at_zoom_level_2.size()) {
-            eaws_regions_2_2_0 = tiles_at_zoom_level_2[0];
-            eaws_regions_10_236_299 = tiles_at_zoom_level_2[1];
+        CHECK(region_tiles_at_zoom_level_2.size() == file_names.size());
+        avalanche::eaws::RegionTile region_tile_2_2_0;
+        avalanche::eaws::RegionTile region_tile_10_236_299;
+        if (2 <= region_tiles_at_zoom_level_2.size()) {
+            region_tile_2_2_0 = region_tiles_at_zoom_level_2[0];
+            region_tile_10_236_299 = region_tiles_at_zoom_level_2[1];
         }
-        tile::Id tile_id_0_0_0 = tile::Id(tile::Id(0, glm::vec2(0, 0), tile::Scheme::SlippyMap));
-        tile::Id tile_id_2_2_0 = tile::Id(tile::Id(2, glm::vec2(2, 0), tile::Scheme::SlippyMap));
-        tile::Id tile_id_10_236_299 = tile::Id(tile::Id(10, glm::vec2(236, 299), tile::Scheme::SlippyMap));
-        avalanche::eaws::RegionTile region_tile_0_0_0 = std::make_pair(tile_id_0_0_0, eaws_regions_0_0_0);
-        avalanche::eaws::RegionTile region_tile_2_2_0 = std::make_pair(tile_id_2_2_0, eaws_regions_2_2_0);
-        avalanche::eaws::RegionTile region_tile_10_236_299 = std::make_pair(tile_id_10_236_299, eaws_regions_10_236_299);
 
         // Rasterize all regions at same raster reslution as input regions
         const auto raster = avalanche::eaws::rasterize_regions(
@@ -312,8 +312,5 @@ TEST_CASE("nucleus/EAWS Vector Tiles")
         CHECK((1 == raster_with_one_pixel.width() && 1 == raster_with_one_pixel.width()));
         CHECK((1 == raster_with_one_pixel.width() && 1 == raster_with_one_pixel.height()));
         CHECK(internal_id_manager.convert_region_id_to_internal_id("NO-3035") == raster_with_one_pixel.pixel(glm::uvec2(0, 0)));
-
-        QImage img_test = avalanche::eaws::draw_regions(region_tile_0_0_0, &internal_id_manager, 4096, 4096, tile_id_0_0_0);
-        img_test.save("C:\\Users\\JCR\\OneDrive\\Desktop\\testREgion.bmp");
     }
 }

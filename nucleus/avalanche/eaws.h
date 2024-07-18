@@ -37,9 +37,10 @@ using RegionTile = std::pair<tile::Id, std::vector<Region>>;
  * If a region has the property with id "end_date" this region is outdated and was substituted by other regions.
  * These old regions are kept in the data set to allow processing of older bulletins that were using these regions.
  *
- * @param inputData : An array holding the data read froma vector tile (usually obtained by reading a from a mvt file).
+ * @param input_data: An array holding the data read froma vector tile (usually obtained by reading a from a mvt file).
+ * @param tile_id: The zoom, x-y-cordinates and tile-scheme belonging to the input data
  */
-tl::expected<std::vector<avalanche::eaws::Region>, QString> vector_tile_reader(const QByteArray& input_data);
+tl::expected<RegionTile, QString> vector_tile_reader(const QByteArray& input_data, const tile::Id& tile_id);
 
 // This class handles conversion from region-id strings to internal ids as uint and as color
 class UIntIdManager {

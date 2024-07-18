@@ -15,7 +15,7 @@ public:
     QString operator()(bool val) { return val ? QStringLiteral("true") : QStringLiteral("false"); }
 };
 
-tl::expected<std::vector<avalanche::eaws::Region>, QString> avalanche::eaws::vector_tile_reader(const QByteArray& input_data)
+tl::expected<avalanche::eaws::RegionTile, QString> avalanche::eaws::vector_tile_reader(const QByteArray& input_data, const tile::Id& tile_id)
 {
     // This name could theoretically be changed by the EAWS (very unlikely though)
     const QString& name_of_layer_with_eaws_regions = "micro-regions";
@@ -77,7 +77,9 @@ tl::expected<std::vector<avalanche::eaws::Region>, QString> avalanche::eaws::vec
         // Add current region to vector of regions
         regions_to_be_returned.push_back(region);
     }
-    return tl::expected<std::vector<avalanche::eaws::Region>, QString>(regions_to_be_returned);
+
+    // Combine all regions with their tile id and return this pair
+    return tl::expected<avalanche::eaws::RegionTile, QString>(RegionTile(tile_id, regions_to_be_returned));
 }
 
 avalanche::eaws::UIntIdManager::UIntIdManager()
