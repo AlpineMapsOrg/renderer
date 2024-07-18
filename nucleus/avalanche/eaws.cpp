@@ -234,31 +234,15 @@ QImage avalanche::eaws::draw_regions(const RegionTile& region_tile, avalanche::e
 nucleus::Raster<uint16_t> avalanche::eaws::rasterize_regions(const RegionTile& region_tile, avalanche::eaws::UIntIdManager* internal_id_manager,
     const uint raster_width, const uint raster_height, const tile::Id& tile_id_out)
 {
-    // Draw region ids to image
+    // Draw region ids to image, if all pixel have same value return one pixel with this value
     const QImage img = draw_regions(region_tile, internal_id_manager, raster_width, raster_height, tile_id_out);
-
-    // Check if image contains more than one color value
-    QRgb color_of_first_pixel = const_cast<QRgb*>(reinterpret_cast<const QRgb*>(img.scanLine(0)))[0];
-    bool more_than_one_id_present = false;
-    for (int y = 0; y < img.height(); ++y) {
-        QRgb* line = const_cast<QRgb*>(reinterpret_cast<const QRgb*>(img.scanLine(y)));
-        for (int x = 0; x < img.width(); ++x) {
-            if (line[x] != color_of_first_pixel) {
-                more_than_one_id_present = true;
-                break;
-            }
-        }
-        if (more_than_one_id_present)
-            break;
+    const auto raster = nucleus::utils::tile_conversion::qImage2uint16Raster(img);
+    const auto first_pixel = raster.pixel({ 0, 0 });
+    for (auto p : raster) {
+        if (p != first_pixel)
+            return raster;
     }
-
-    // if only one color value present, return only one pixel with this value
-    if (!more_than_one_id_present) {
-        QImage onePixel(1, 1, img.format());
-        onePixel.fill(color_of_first_pixel);
-        return nucleus::utils::tile_conversion::qImage2uint16Raster(onePixel);
-    }
-    return nucleus::utils::tile_conversion::qImage2uint16Raster(img);
+    return nucleus::Raster<uint16_t>({ 1, 1 }, first_pixel);
 }
 
 nucleus::Raster<uint16_t> avalanche::eaws::rasterize_regions(const RegionTile& region_tile, avalanche::eaws::UIntIdManager* internal_id_manager)
