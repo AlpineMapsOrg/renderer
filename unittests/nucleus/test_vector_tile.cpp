@@ -15,19 +15,14 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *****************************************************************************/
-
 #include "nucleus/avalanche/eaws.h"
 #include "nucleus/tile_scheduler/TileLoadService.h"
 #include "nucleus/tile_scheduler/utils.h"
 #include "nucleus/vector_tiles/VectorTileFeature.h"
 #include "nucleus/vector_tiles/VectorTileManager.h"
 #include "radix/tile.h"
-#include <QDebug>
-#include <QFile>
-#include <QPainter>
 #include <QSignalSpy>
 #include <catch2/catch_test_macros.hpp>
-#include <map>
 
 TEST_CASE("nucleus/vector_tiles")
 {

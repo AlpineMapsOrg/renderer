@@ -1,17 +1,10 @@
 #ifndef EAWS_H
 #define EAWS_H
-#include "nucleus/Raster.h"
 #include <QDate>
-#include <QDebug>
-#include <QFile>
 #include <QPainter>
-#include <QString>
 #include <extern/tl_expected/include/tl/expected.hpp>
-#include <glm/glm.hpp>
 #include <mapbox/vector_tile.hpp>
 #include <nucleus/Tile.h>
-#include <optional>
-#include <vector>
 
 namespace avalanche::eaws {
 struct Region {
