@@ -42,7 +42,6 @@ using RegionTile = std::pair<tile::Id, std::vector<Region>>;
 tl::expected<std::vector<avalanche::eaws::Region>, QString> vector_tile_reader(const QByteArray& input_data);
 
 // This class handles conversion from region-id strings to internal ids as uint and as color
-// It must be e constructed from an eaws vector tile at level 0 to extract all region names
 class UIntIdManager {
 public:
     const std::vector<QImage::Format> supported_image_formats { QImage::Format_ARGB32 };
@@ -61,11 +60,11 @@ private:
     uint max_internal_id = 0;
 };
 
-// Creates a new QImage and draws all regions to it where color encodes the region id. Throws error when regions.size() == 0
+// Creates a new QImage and draws all regions to it where color encodes the region id. Throws error when no regions are provided
 QImage draw_regions(const RegionTile& region_tile, avalanche::eaws::UIntIdManager* internal_id_manager, const uint& image_width, const uint& image_height,
     const tile::Id& tile_id_out, const QImage::Format& image_format = QImage::Format_ARGB32);
 
-// Creates a raster from a QImage with regions in it, regions are filled with their internal id.Tthrows error when raster_width or raster_height is 0.
+// Creates a raster from a QImage with regions in it. Throws error when raster_width or raster_height is 0.
 nucleus::Raster<uint16_t> rasterize_regions(const RegionTile& region_tile, avalanche::eaws::UIntIdManager* internal_id_manager, const uint raster_width,
     const uint raster_height, const tile::Id& tile_id_out);
 

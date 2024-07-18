@@ -244,6 +244,8 @@ TEST_CASE("nucleus/EAWS Vector Tiles")
 
         // Create internal id manager that is later needed to write region ids to image pixels
         avalanche::eaws::UIntIdManager internal_id_manager;
+        CHECK(internal_id_manager.convert_internal_id_to_region_id(0) == "");
+        CHECK(internal_id_manager.convert_region_id_to_internal_id("") == 0);
 
         // Load tiles at higher zoom level for testing
         std::vector<std::string> file_names({ "eaws_2-2-0.mvt", "eaws_10-236-299.mvt" });
@@ -269,7 +271,6 @@ TEST_CASE("nucleus/EAWS Vector Tiles")
             if (result.has_value())
                 tiles_at_zoom_level_2.push_back(result.value());
         }
-
         CHECK(2 == tiles_at_zoom_level_2.size());
         std::vector<avalanche::eaws::Region> eaws_regions_2_2_0;
         std::vector<avalanche::eaws::Region> eaws_regions_10_236_299;
@@ -284,7 +285,7 @@ TEST_CASE("nucleus/EAWS Vector Tiles")
         avalanche::eaws::RegionTile region_tile_2_2_0 = std::make_pair(tile_id_2_2_0, eaws_regions_2_2_0);
         avalanche::eaws::RegionTile region_tile_10_236_299 = std::make_pair(tile_id_10_236_299, eaws_regions_10_236_299);
 
-        // Rasterize all regions at same raster reslutin as input regions
+        // Rasterize all regions at same raster reslution as input regions
         const auto raster = avalanche::eaws::rasterize_regions(
             region_tile_0_0_0, &internal_id_manager, region_with_start_date.resolution.x, region_with_start_date.resolution.y, tile_id_0_0_0);
 
@@ -311,5 +312,8 @@ TEST_CASE("nucleus/EAWS Vector Tiles")
         CHECK((1 == raster_with_one_pixel.width() && 1 == raster_with_one_pixel.width()));
         CHECK((1 == raster_with_one_pixel.width() && 1 == raster_with_one_pixel.height()));
         CHECK(internal_id_manager.convert_region_id_to_internal_id("NO-3035") == raster_with_one_pixel.pixel(glm::uvec2(0, 0)));
+
+        QImage img_test = avalanche::eaws::draw_regions(region_tile_0_0_0, &internal_id_manager, 4096, 4096, tile_id_0_0_0);
+        img_test.save("C:\\Users\\JCR\\OneDrive\\Desktop\\testREgion.bmp");
     }
 }
