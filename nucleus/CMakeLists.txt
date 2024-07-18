@@ -1,4 +1,4 @@
-#############################################################################
+ #############################################################################
 # Alpine Terrain Renderer
 # Copyright (C) 2023 Adam Celarek <family name at cg tuwien ac at>
 # Copyright (C) 2024 Lucas Dworschak
@@ -104,9 +104,9 @@ qt_add_library(nucleus STATIC
     timing/CpuTimer.h timing/CpuTimer.cpp
     vector_tiles/VectorTileManager.h vector_tiles/VectorTileManager.cpp
     vector_tiles/VectorTileFeature.h vector_tiles/VectorTileFeature.cpp
-    vector_tiles/readers.h vector_tiles/readers.cpp
     utils/ColourTexture.h utils/ColourTexture.cpp
-    avalanche/eaws.h
+    avalanche/eaws.h avalanche/eaws.cpp
+    avalanche/eaws.cpp
 )
 
 target_include_directories(nucleus PUBLIC ${CMAKE_SOURCE_DIR})
