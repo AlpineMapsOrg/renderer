@@ -243,7 +243,7 @@ TEST_CASE("nucleus/EAWS Vector Tiles")
         }
 
         // Create internal id manager that is later needed to write region ids to image pixels
-        avalanche::eaws::UIntIdManager internal_id_manager(test_data);
+        avalanche::eaws::UIntIdManager internal_id_manager;
 
         // Load tiles at higher zoom level for testing
         std::vector<std::string> file_names({ "eaws_2-2-0.mvt", "eaws_10-236-299.mvt" });

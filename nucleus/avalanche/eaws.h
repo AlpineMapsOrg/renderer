@@ -46,7 +46,7 @@ tl::expected<std::vector<avalanche::eaws::Region>, QString> vector_tile_reader(c
 class UIntIdManager {
 public:
     const std::vector<QImage::Format> supported_image_formats { QImage::Format_ARGB32 };
-    UIntIdManager(const QByteArray& vector_tile_data_at_level_0);
+    UIntIdManager();
     QColor convert_region_id_to_color(const QString& region_id, QImage::Format color_format = QImage::Format_ARGB32);
     QString convert_color_to_region_id(const QColor& color, const QImage::Format& color_format) const;
     uint convert_region_id_to_internal_id(const QString& color);

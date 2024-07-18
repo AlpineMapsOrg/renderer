@@ -80,30 +80,12 @@ tl::expected<std::vector<avalanche::eaws::Region>, QString> avalanche::eaws::vec
     return tl::expected<std::vector<avalanche::eaws::Region>, QString>(regions_to_be_returned);
 }
 
-avalanche::eaws::UIntIdManager::UIntIdManager(const QByteArray& vector_tile_data_at_level_0)
+avalanche::eaws::UIntIdManager::UIntIdManager()
 {
-    // Get Vector of all regions from a tile at level 0
-    tl::expected<std::vector<avalanche::eaws::Region>, QString> result = avalanche::eaws::vector_tile_reader(vector_tile_data_at_level_0);
-    std::vector<avalanche::eaws::Region> eaws_regions;
-    if (!result.has_value())
-        qFatal("ERROR: constructing avalanche::eaws::RegionIdToColorConverter could not read tile data");
-
-    eaws_regions = result.value();
-
-    // Check if provided vector tail contains at least 611 regions since this is as of June 2024 the minimim amount of regions in a tile of zoom level 0
-    if (eaws_regions.size() < 611)
-        qFatal("ERROR: constructing avalanche::eaws::RegionIdToColorConverter with tile that is not on zoom level 0 (has less than 611 regions)");
-
-    // Assign internal ids to region ids where 0 means "no region"
+    // intern_id = 0 means "no region"
     region_id_to_internal_id[QString("")] = 0;
-    for (const avalanche::eaws::Region& region : eaws_regions) {
-        max_internal_id++;
-        region_id_to_internal_id[region.id] = max_internal_id;
-    }
-
-    // create inverse map
-    for (auto& x : region_id_to_internal_id)
-        internal_id_to_region_id[x.second] = x.first;
+    internal_id_to_region_id[0] = QString("");
+    assert(max_internal_id == 0);
 }
 
 uint avalanche::eaws::UIntIdManager::convert_region_id_to_internal_id(const QString& region_id)
