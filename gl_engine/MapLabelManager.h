@@ -26,6 +26,7 @@
 #include "Framebuffer.h"
 #include "Texture.h"
 #include "nucleus/camera/Definition.h"
+#include "nucleus/map_label//MapLabelFilter.h"
 #include "nucleus/map_label/LabelFactory.h"
 #include "nucleus/tile_scheduler/tile_types.h"
 
@@ -56,21 +57,22 @@ public:
 
     void update_gpu_quads(const std::vector<nucleus::tile_scheduler::tile_types::GpuTileQuad>& new_quads, const std::vector<tile::Id>& deleted_quads);
 
-
-
 private:
     void renew_font_atlas();
-    void add_tile(const tile::Id& id, const nucleus::vectortile::FeatureType& type, const nucleus::vectortile::VectorTile& vector_tile);
+    void add_tile(const tile::Id& id, const nucleus::vectortile::VectorTile& vector_tile);
+    void upload_to_gpu(const tile::Id& id, const std::unordered_map<nucleus::vectortile::FeatureType, std::unordered_set<std::shared_ptr<nucleus::vectortile::FeatureTXT>>>& features);
+    void filter_and_upload();
     void remove_tile(const tile::Id& tile_id);
 
     std::unique_ptr<Texture> m_font_texture;
     std::unordered_map<nucleus::vectortile::FeatureType, std::unique_ptr<QOpenGLTexture>> m_icon_texture;
 
-    std::unordered_map<nucleus::vectortile::FeatureType, std::unordered_map<tile::Id, std::shared_ptr<GPUVectorTile>, tile::Id::Hasher>> m_gpu_tiles;
-
     std::unique_ptr<QOpenGLBuffer> m_index_buffer;
     size_t m_indices_count; // how many vertices per character (most likely 6 since quads)
 
     nucleus::maplabel::LabelFactory m_mapLabelFactory;
+    nucleus::maplabel::MapLabelFilter m_filter;
+
+    std::unordered_map<tile::Id, std::unordered_map<nucleus::vectortile::FeatureType, std::shared_ptr<GPUVectorTile>>, tile::Id::Hasher> m_gpu_tiles;
 };
 } // namespace gl_engine

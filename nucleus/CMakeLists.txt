@@ -95,6 +95,7 @@ qt_add_library(nucleus STATIC
     map_label/MapLabelData.h
     map_label/Charset.h map_label/Charset.cpp
     map_label/FontRenderer.h map_label/FontRenderer.cpp
+    map_label/MapLabelFilter.h map_label/MapLabelFilter.cpp
     utils/bit_coding.h
     tile_scheduler/cache_quieries.h
     DataQuerier.h DataQuerier.cpp

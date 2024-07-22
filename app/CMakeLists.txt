@@ -27,6 +27,7 @@ qt_add_executable(alpineapp
     TerrainRenderer.h TerrainRenderer.cpp
     HotReloader.h HotReloader.cpp
     AppSettings.h AppSettings.cpp
+    LabelFilter.h LabelFilter.cpp
     timing/TimerFrontendManager.h timing/TimerFrontendManager.cpp
     timing/TimerFrontendObject.h timing/TimerFrontendObject.cpp
 )
@@ -49,6 +50,7 @@ qt_add_qml_module(alpineapp
         GeneralSettings.qml
         GlSettings.qml
         FloatingActionButtonGroup.qml
+        FilterWindow.qml
         components/LabledSlider.qml
         components/LabledRangeSlider.qml
         components/ColorPicker.qml
@@ -87,6 +89,7 @@ qt_add_qml_module(alpineapp
         icons/material/navigation_offset.png
         icons/material/chevron_left.png
         icons/material/visibility_off.png
+        icons/material/filter_alt.png
         icons/presets/basic.png
         icons/presets/shaded.png
         icons/presets/snow.png

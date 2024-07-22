@@ -95,6 +95,17 @@ ColumnLayout {
                     ToolTip.visible: hovered
                     ToolTip.text: qsTr("SNOW-Preset: Shading + SSAO + CSM + Snow Layer")
                 }
+
+                FloatingActionButton {
+                    image: _r + "icons/material/filter_alt.png"
+                    onClicked: toggleFilterWindow();
+                    size: parent.height
+                    image_size: 24
+                    image_opacity: 1.0
+
+                    ToolTip.visible: hovered
+                    ToolTip.text: qsTr("Filter visible labels")
+                }
             }
         }
     }
