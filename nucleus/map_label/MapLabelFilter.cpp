@@ -22,6 +22,62 @@
 
 namespace nucleus::maplabel {
 
+MapLabelFilter::MapLabelFilter(QObject* parent)
+    : QObject { parent }
+{
+    filter_changed();
+}
+
+void MapLabelFilter::filter_changed()
+{
+    // DEBUG
+    m_definitions.m_peak_ele_range_filtered = true;
+    m_definitions.m_peak_ele_range = QVector2D(3500,3800);
+
+    m_definitions.m_cities_visible = false;
+//    m_definitions.m_cottages_visible = false;
+
+    // DEBUG
+
+
+    // all the filter methods defined return true if a POI should be filtered/removed
+    if(m_definitions.m_peak_visible)
+    {
+
+        if(m_definitions.m_peak_ele_range_filtered)
+        {
+            m_filter_peaks.push_back([](const FilterDefinitions& definition, const std::shared_ptr<nucleus::vectortile::FeatureTXTPeak> feature){ return feature->elevation < definition.m_peak_ele_range.x() || feature->elevation > definition.m_peak_ele_range.y(); });
+        }
+    }
+    else
+    {
+        // feature not visible
+       m_filter_peaks.push_back([](const FilterDefinitions&, const std::shared_ptr<nucleus::vectortile::FeatureTXTPeak>){ return true; });
+    }
+
+    if(m_definitions.m_cities_visible)
+    {
+        // TODO fill
+    }
+    else
+    {
+      // feature not visible
+       m_filter_cities.push_back([](const FilterDefinitions&, const std::shared_ptr<nucleus::vectortile::FeatureTXTCity>){ return true; });
+    }
+
+    if(m_definitions.m_cottages_visible)
+    {
+        // TODO fill
+    }
+    else
+    {
+      // feature not visible
+       m_filter_cottages.push_back([](const FilterDefinitions&, const std::shared_ptr<nucleus::vectortile::FeatureTXTCottage>){ return true; });
+    }
+
+    for(auto id : all_tiles)
+        tiles_to_filter.push(id);
+}
 
 void MapLabelFilter::add_tile(const tile::Id id, std::unordered_map<nucleus::vectortile::FeatureType, std::unordered_set<std::shared_ptr<nucleus::vectortile::FeatureTXT>>> all_features)
 {
@@ -48,6 +104,72 @@ void MapLabelFilter::remove_tile(const tile::Id id)
     }
 }
 
+void MapLabelFilter::apply_filter_peaks(std::unordered_set<std::shared_ptr<nucleus::vectortile::FeatureTXT>>& features, std::unordered_map<nucleus::vectortile::FeatureType, std::unordered_set<std::shared_ptr<nucleus::vectortile::FeatureTXT>>>& filtered_features)
+{
+    for(auto& feature : features)
+    {
+        auto specific_feature = std::dynamic_pointer_cast<nucleus::vectortile::FeatureTXTPeak>(feature);
+        bool visible = true;
+        for(auto filter : m_filter_peaks)
+        {
+            if(filter(m_definitions, specific_feature))
+            {
+                visible = false;
+                break;
+            }
+        }
+
+        if(visible)
+        {
+            filtered_features[nucleus::vectortile::FeatureType::Peak].insert(feature);
+        }
+    }
+}
+
+void MapLabelFilter::apply_filter_cities(std::unordered_set<std::shared_ptr<nucleus::vectortile::FeatureTXT>>& features, std::unordered_map<nucleus::vectortile::FeatureType, std::unordered_set<std::shared_ptr<nucleus::vectortile::FeatureTXT>>>& filtered_features)
+{
+    for(auto& feature : features)
+    {
+        auto specific_feature = std::dynamic_pointer_cast<nucleus::vectortile::FeatureTXTCity>(feature);
+        bool visible = true;
+        for(auto filter : m_filter_cities)
+        {
+            if(filter(m_definitions, specific_feature))
+            {
+                visible = false;
+                break;
+            }
+        }
+
+        if(visible)
+        {
+            filtered_features[nucleus::vectortile::FeatureType::City].insert(feature);
+        }
+    }
+}
+
+void MapLabelFilter::apply_filter_cottages(std::unordered_set<std::shared_ptr<nucleus::vectortile::FeatureTXT>>& features, std::unordered_map<nucleus::vectortile::FeatureType, std::unordered_set<std::shared_ptr<nucleus::vectortile::FeatureTXT>>>& filtered_features)
+{
+    for(auto& feature : features)
+    {
+        auto specific_feature = std::dynamic_pointer_cast<nucleus::vectortile::FeatureTXTCottage>(feature);
+        bool visible = true;
+        for(auto filter : m_filter_cottages)
+        {
+            if(filter(m_definitions, specific_feature))
+            {
+                visible = false;
+                break;
+            }
+        }
+
+        if(visible)
+        {
+            filtered_features[nucleus::vectortile::FeatureType::Cottage].insert(feature);
+        }
+    }
+}
+
 std::unordered_map<tile::Id, std::unordered_map<nucleus::vectortile::FeatureType, std::unordered_set<std::shared_ptr<nucleus::vectortile::FeatureTXT>>>, tile::Id::Hasher> MapLabelFilter::filter()
 {
     auto filtered_features = std::unordered_map<tile::Id, std::unordered_map<nucleus::vectortile::FeatureType, std::unordered_set<std::shared_ptr<nucleus::vectortile::FeatureTXT>>>, tile::Id::Hasher>();
@@ -70,16 +192,11 @@ std::unordered_map<tile::Id, std::unordered_map<nucleus::vectortile::FeatureType
             for(auto feature : m_all_features.at(tile_id)[type])
             {
                 if(type == nucleus::vectortile::FeatureType::Peak)
-                {
-//                    std::shared_ptr<nucleus::vectortile::FeatureTXTPeak> peak_feature = std::dynamic_pointer_cast<nucleus::vectortile::FeatureTXTPeak>(feature);
-//                    if(peak_feature->elevation > 3600)
-                        filtered_features.at(tile_id)[type].insert(feature);
-
-                }
-                else
-                {
-                    filtered_features.at(tile_id)[type].insert(feature);
-                }
+                    apply_filter_peaks(m_all_features.at(tile_id)[type], filtered_features.at(tile_id));
+                else if(type == nucleus::vectortile::FeatureType::City)
+                     apply_filter_cities(m_all_features.at(tile_id)[type], filtered_features.at(tile_id));
+                else if(type == nucleus::vectortile::FeatureType::Cottage)
+                    apply_filter_cottages(m_all_features.at(tile_id)[type], filtered_features.at(tile_id));
             }
         }
     }
