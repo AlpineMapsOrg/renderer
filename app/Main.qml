@@ -232,6 +232,15 @@ Item {
         }
     }
 
+    LabelFilter {
+        id: label_filter
+    }
+
+    Connections{
+        target: label_filter
+        function onUpdate_filter(filter_definition){ map.filter_updated(filter_definition); }
+    }
+
     Loader {
         id: stats_window_loader
     }

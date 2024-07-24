@@ -359,6 +359,12 @@ void Window::reload_shader() {
 #endif
 }
 
+void Window::update_filter(const FilterDefinitions& filter_definitions)
+{
+    // propagate signal
+    m_map_label_manager->update_filter(filter_definitions);
+}
+
 void Window::key_press(const QKeyCombination& e) {
     QKeyEvent ev = QKeyEvent(QEvent::Type::KeyPress, e.key(), e.keyboardModifiers());
     this->keyPressEvent(&ev);

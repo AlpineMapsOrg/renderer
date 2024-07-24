@@ -96,6 +96,20 @@ void MapLabelManager::upload_to_gpu(const tile::Id& id,  const std::unordered_ma
     if (!QOpenGLContext::currentContext()) // can happen during shutdown.
         return;
 
+    // TODO this is a one to one copy from remove_tile without remove filter... -> find a better solution...
+    for (int i = 0; i < nucleus::vectortile::FeatureType::ENUM_END; i++) {
+        nucleus::vectortile::FeatureType type = (nucleus::vectortile::FeatureType)i;
+
+               // we can only remove something that exists
+        if (!m_gpu_tiles.contains(id) || !m_gpu_tiles.at(id).contains(type))
+            continue;
+
+        if (m_gpu_tiles.at(id)[type]->vao)
+            m_gpu_tiles.at(id)[type]->vao->destroy(); // ecplicitly destroy vao
+
+        m_gpu_tiles.at(id).erase(type);
+    }// TODO end
+
     // initialize map
     m_gpu_tiles[id] = std::unordered_map<nucleus::vectortile::FeatureType, std::shared_ptr<GPUVectorTile>>();
 
@@ -221,6 +235,12 @@ void MapLabelManager::update_gpu_quads(
         }
     }
 
+    filter_and_upload();
+}
+
+void MapLabelManager::update_filter(const FilterDefinitions& filter_definitions)
+{
+    m_filter.update_filter(filter_definitions);
     filter_and_upload();
 }
 

@@ -29,6 +29,7 @@
 #include "nucleus/map_label//MapLabelFilter.h"
 #include "nucleus/map_label/LabelFactory.h"
 #include "nucleus/tile_scheduler/tile_types.h"
+#include <app/LabelFilter.h>
 
 #include "nucleus/tile_scheduler/DrawListGenerator.h"
 
@@ -56,6 +57,7 @@ public:
         const nucleus::tile_scheduler::DrawListGenerator::TileSet draw_tiles) const;
 
     void update_gpu_quads(const std::vector<nucleus::tile_scheduler::tile_types::GpuTileQuad>& new_quads, const std::vector<tile::Id>& deleted_quads);
+    void update_filter(const FilterDefinitions& filter_definitions);
 
 private:
     void renew_font_atlas();

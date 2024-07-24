@@ -25,25 +25,29 @@ namespace nucleus::maplabel {
 MapLabelFilter::MapLabelFilter(QObject* parent)
     : QObject { parent }
 {
-    filter_changed();
+    // DEBUG
+//        m_definitions.m_peak_ele_range_filtered = true;
+//        m_definitions.m_peak_ele_range = QVector2D(3500,3800);
+
+//        m_definitions.m_cities_visible = false;
+//        m_definitions.m_cottages_visible = false;
+    // DEBUG
+
+    update_filter(m_definitions);
 }
 
-void MapLabelFilter::filter_changed()
+void MapLabelFilter::update_filter(const FilterDefinitions& filter_definitions)
 {
-    // DEBUG
-    m_definitions.m_peak_ele_range_filtered = true;
-    m_definitions.m_peak_ele_range = QVector2D(3500,3800);
+//    std::cout << "filter updated 2" << std::endl;
+    m_definitions = filter_definitions;
 
-    m_definitions.m_cities_visible = false;
-//    m_definitions.m_cottages_visible = false;
-
-    // DEBUG
-
+    m_filter_peaks.clear();
+    m_filter_cities.clear();
+    m_filter_cottages.clear();
 
     // all the filter methods defined return true if a POI should be filtered/removed
-    if(m_definitions.m_peak_visible)
+    if(m_definitions.m_peaks_visible)
     {
-
         if(m_definitions.m_peak_ele_range_filtered)
         {
             m_filter_peaks.push_back([](const FilterDefinitions& definition, const std::shared_ptr<nucleus::vectortile::FeatureTXTPeak> feature){ return feature->elevation < definition.m_peak_ele_range.x() || feature->elevation > definition.m_peak_ele_range.y(); });
@@ -189,15 +193,15 @@ std::unordered_map<tile::Id, std::unordered_map<nucleus::vectortile::FeatureType
             if(!m_all_features.contains(tile_id) || !m_all_features[tile_id].contains(type))
                 continue;
 
-            for(auto feature : m_all_features.at(tile_id)[type])
-            {
-                if(type == nucleus::vectortile::FeatureType::Peak)
-                    apply_filter_peaks(m_all_features.at(tile_id)[type], filtered_features.at(tile_id));
-                else if(type == nucleus::vectortile::FeatureType::City)
-                     apply_filter_cities(m_all_features.at(tile_id)[type], filtered_features.at(tile_id));
-                else if(type == nucleus::vectortile::FeatureType::Cottage)
-                    apply_filter_cottages(m_all_features.at(tile_id)[type], filtered_features.at(tile_id));
-            }
+//            for(auto feature : m_all_features.at(tile_id)[type])
+//            {
+            if(type == nucleus::vectortile::FeatureType::Peak)
+                apply_filter_peaks(m_all_features.at(tile_id)[type], filtered_features.at(tile_id));
+            else if(type == nucleus::vectortile::FeatureType::City)
+                 apply_filter_cities(m_all_features.at(tile_id)[type], filtered_features.at(tile_id));
+            else if(type == nucleus::vectortile::FeatureType::Cottage)
+                apply_filter_cottages(m_all_features.at(tile_id)[type], filtered_features.at(tile_id));
+//            }
         }
     }
 

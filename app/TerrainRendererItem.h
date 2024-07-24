@@ -34,6 +34,7 @@
 #include "gl_engine/UniformBufferObjects.h"
 #include "timing/TimerFrontendManager.h"
 #include "AppSettings.h"
+#include "LabelFilter.h"
 
 class TerrainRendererItem : public QQuickFramebufferObject {
     Q_OBJECT
@@ -109,6 +110,8 @@ signals:
 
     void continuous_update_changed(bool continuous_update);
 
+    void update_filter(FilterDefinitions filter_definitions);
+
 protected:
     void touchEvent(QTouchEvent*) override;
     void mousePressEvent(QMouseEvent*) override;
@@ -123,6 +126,7 @@ public slots:
     void set_gl_preset(const QString& preset_b64_string);
     void read_global_position(glm::dvec3 latlonalt);
     void camera_definition_changed(const nucleus::camera::Definition& new_definition); // gets called whenever camera changes
+    void filter_updated(FilterDefinitions filter_definitions);
 
 private slots:
     void schedule_update();

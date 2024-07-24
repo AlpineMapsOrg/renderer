@@ -18,8 +18,12 @@
 
 #include "LabelFilter.h"
 
+#include <iostream>
+
 LabelFilter::LabelFilter()
 {
+    connect(this, &LabelFilter::filter_changed, this, &LabelFilter::filter_updated);
+    m_elevation_range = m_default_filter_definitions.m_peak_ele_range;
 }
 
 LabelFilter::~LabelFilter()
@@ -27,13 +31,55 @@ LabelFilter::~LabelFilter()
     qDebug("LabelFilter::~LabelFilter");
 }
 
-QVector2D LabelFilter::elevationRange() const
+void LabelFilter::filter_updated()
+{
+    // check against default values what changed
+    m_filter_definitions.m_peak_ele_range_filtered = m_filter_definitions.m_peak_ele_range != m_default_filter_definitions.m_peak_ele_range;
+
+    emit update_filter(m_filter_definitions);
+}
+
+QVector2D LabelFilter::elevation_range() const
 {
     return m_elevation_range;
 }
 
-void LabelFilter::filter_updated()
+void LabelFilter::set_elevation_range(const QVector2D &elevation_range)
 {
-    emit information_updated();
+    m_elevation_range = elevation_range;
+    m_filter_definitions.m_peak_ele_range = elevation_range;
+//    emit filter_changed();
 }
 
+bool LabelFilter::peaks_visible() const
+{
+    return m_peaks_visible;
+}
+void LabelFilter::set_peaks_visible(const bool &peaks_visible)
+{
+    m_peaks_visible = peaks_visible;
+    m_filter_definitions.m_peaks_visible = peaks_visible;
+    emit filter_changed();
+}
+
+bool LabelFilter::cities_visible() const
+{
+    return m_cities_visible;
+}
+void LabelFilter::set_cities_visible(const bool &cities_visible)
+{
+    m_cities_visible = cities_visible;
+    m_filter_definitions.m_cities_visible = cities_visible;
+    emit filter_changed();
+}
+
+bool LabelFilter::cottages_visible() const
+{
+    return m_cottages_visible;
+}
+void LabelFilter::set_cottages_visible(const bool &cottages_visible)
+{
+    m_cottages_visible = cottages_visible;
+    m_filter_definitions.m_cottages_visible = cottages_visible;
+    emit filter_changed();
+}

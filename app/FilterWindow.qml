@@ -83,28 +83,67 @@ Rectangle {
         SettingsTitle { title: "Filter" }
 
         CheckGroup {
-            name: "Peaks "
+            id: filter_peaks
+            name: "Peaks"
             checkBoxEnabled: true
             checked: true
 
-             Label {
-                 Layout.columnSpan: 2
-                 text: "Elevation"
-             }
+            onCheckedChanged: label_filter.m_peaks_visible = filter_peaks.checked;
 
-             LabledRangeSlider {
-                 Layout.columnSpan: 2
-                 id: filter_peaks_elevation_range;
-                 from: 0; to: 4000; stepSize: 10;
-                 first.value: 0; second.value: 4000;
-                 labelWidth:100;
-//                 first.onMoved: console.log(_filterDefinitions.peak_ele_range.x);
-//                 first.onMoved: _filterDefinitions.peak_ele_range.x = this.first.value;
-//                 second.onMoved: _filterDefinitions.peak_ele_range.y = this.second.value;
-             }
+            Label {
+                Layout.columnSpan: 2
+                text: "Elevation"
+            }
 
+            LabledRangeSlider {
+                Layout.columnSpan: 2
+                id: filter_peaks_elevation_range;
+                from: 0; to: 4000; stepSize: 10;
+                first.value: 0; second.value: 4000;
+                labelWidth:100;
+                first.onMoved: label_filter.m_elevation_range.x = this.first.value;
+                second.onMoved: label_filter.m_elevation_range.y = this.second.value;
+            }
 
+            Button{
+                text: "Filter"
+                onClicked: label_filter.filter_updated()
+            }
         }
+
+        CheckGroup {
+            id: filter_cities
+            name: "Cities"
+            checkBoxEnabled: true
+            checked: true
+
+            onCheckedChanged: label_filter.m_cities_visible = filter_cities.checked;
+        }
+
+        CheckGroup {
+            id: filter_cottages
+            name: "Cottages"
+            checkBoxEnabled: true
+            checked: true
+
+            onCheckedChanged: label_filter.m_cottages_visible = filter_cottages.checked;
+        }
+
+
+
+
+//        CheckGroup {
+////            id: filter_cities
+//            name: "Cities"
+//            checkBoxEnabled: true
+//            checked: true
+////            onClicked: label_filter.filter_updated()
+//        }
+
+//        Connections {
+//            target: filter_cities
+//            onCheckChanged: console.log("cities changed")
+//        }
     }
 }
 

@@ -26,24 +26,11 @@
 #include <queue>
 #include <nucleus/vector_tiles/VectorTileFeature.h>
 #include <radix/tile.h>
+#include <app/LabelFilter.h>
 
 namespace nucleus::maplabel {
 
-struct FilterDefinitions {
-    Q_GADGET
-public:
-    bool m_peak_visible = true;
-    bool m_cities_visible = true;
-    bool m_cottages_visible = true;
 
-    bool m_peak_ele_range_filtered = false;
-    QVector2D m_peak_ele_range = QVector2D(0,4000);
-
-    Q_PROPERTY(bool peak_visible MEMBER m_peak_visible)
-    Q_PROPERTY(bool cities_visible MEMBER m_cities_visible)
-    Q_PROPERTY(bool cottages_visible MEMBER m_cottages_visible)
-    Q_PROPERTY(QVector2D peak_ele_range MEMBER m_peak_ele_range)
-};
 
 class MapLabelFilter : public QObject {
     Q_OBJECT
@@ -55,8 +42,7 @@ public:
     void add_tile(const tile::Id id, std::unordered_map<nucleus::vectortile::FeatureType, std::unordered_set<std::shared_ptr<nucleus::vectortile::FeatureTXT>>> all_features);
     void remove_tile(const tile::Id id);
 
-public slots:
-    void filter_changed();
+    void update_filter(const FilterDefinitions& filter_definitions);
 
 private:
     std::unordered_map<tile::Id, std::unordered_map<nucleus::vectortile::FeatureType, std::unordered_set<std::shared_ptr<nucleus::vectortile::FeatureTXT>>>, tile::Id::Hasher> m_all_features;

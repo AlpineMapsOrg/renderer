@@ -38,6 +38,7 @@
 #include "nucleus/camera/Definition.h"
 
 #include "nucleus/timing/TimerManager.h"
+#include "app/LabelFilter.h"
 
 class QOpenGLTexture;
 class QOpenGLShaderProgram;
@@ -82,6 +83,7 @@ public slots:
     void key_press(const QKeyCombination& e); // Slot to connect key-events to
     void shared_config_changed(gl_engine::uboSharedConfig ubo);
     void reload_shader();
+    void update_filter(const FilterDefinitions& filter_definitions);
 
 signals:
     void report_measurements(QList<nucleus::timing::TimerReport> values);
