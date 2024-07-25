@@ -91,7 +91,7 @@ std::vector<uint8_t> to_uncompressed_rgba(const nucleus::Raster<glm::u8vec4>& im
     assert(size_in_bytes == (size_t)image.width() * image.height() * 4);
     std::vector<uint8_t> data(size_in_bytes);
     // Note: AND Another copy... We copy the data two times (once in stb_image_loader.cpp)
-    memcpy(data.data(), image.bytes(), image.size_in_bytes());
+    std::copy(image.bytes(), image.bytes() + image.size_in_bytes(), data.data());
     return data;
 }
 
