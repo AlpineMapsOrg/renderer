@@ -372,13 +372,6 @@ void Window::keyPressEvent(QKeyEvent* e)
         || (e->key() == Qt::Key_F5 && e->modifiers() == Qt::ControlModifier)) {
         e->ignore();
     }
-
-    emit key_pressed(e->keyCombination());
-}
-
-void Window::keyReleaseEvent(QKeyEvent* e)
-{
-    emit key_released(e->keyCombination());
 }
 
 void Window::updateCameraEvent()

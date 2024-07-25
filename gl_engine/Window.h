@@ -70,7 +70,6 @@ public:
     [[nodiscard]] nucleus::camera::AbstractDepthTester* depth_tester() override;
     [[nodiscard]] nucleus::utils::ColourTexture::Format ortho_tile_compression_algorithm() const override;
     void keyPressEvent(QKeyEvent*);
-    void keyReleaseEvent(QKeyEvent*);
     void updateCameraEvent();
     void set_permissible_screen_space_error(float new_error) override;
     void set_quad_limit(unsigned new_limit) override;
