@@ -20,9 +20,8 @@
 
 #pragma once
 
-
-#include <QPoint>
 #include <QMetaType>
+#include <QPoint>
 #include <glm/glm.hpp>
 #include <vector>
 
@@ -37,10 +36,10 @@ namespace nucleus::event_parameter {
 // compatible to QEventPoint::State
 enum TouchPointState {
     TouchPointUnknownState = 0x00,
-    TouchPointPressed    = 0x01,
-    TouchPointMoved      = 0x02,
+    TouchPointPressed = 0x01,
+    TouchPointMoved = 0x02,
     TouchPointStationary = 0x04,
-    TouchPointReleased   = 0x08
+    TouchPointReleased = 0x08
 };
 
 // loosely based on QEventPoint
@@ -62,7 +61,7 @@ struct Mouse {
     bool is_begin_event = false;
     bool is_end_event = false;
     bool is_update_event = false;
-    Qt::MouseButton button = Qt::NoButton; //TODO unused?
+    Qt::MouseButton button = Qt::NoButton; // TODO unused?
     Qt::MouseButtons buttons;
     EventPoint point;
 };
@@ -74,53 +73,56 @@ struct Wheel {
     QPoint angle_delta;
     EventPoint point;
 };
-}
+} // namespace nucleus::event_parameter
 Q_DECLARE_METATYPE(nucleus::event_parameter::Touch)
 Q_DECLARE_METATYPE(nucleus::event_parameter::Mouse)
 Q_DECLARE_METATYPE(nucleus::event_parameter::Wheel)
 
 #ifdef QT_GUI_LIB
 namespace nucleus::event_parameter {
-    inline EventPoint make(const QEventPoint& e) {
-        EventPoint point;
-        point.state = static_cast<TouchPointState>(e.state());
-        point.position = glm::vec2(e.position().x(), e.position().y());
-        point.last_position = glm::vec2(e.lastPosition().x(), e.lastPosition().y());
-        point.press_position = glm::vec2(e.pressPosition().x(), e.pressPosition().y());
-        return point;
-    }
-
-    inline Touch make(QTouchEvent* e) {
-        Touch touch;
-        touch.is_begin_event = e->isBeginEvent();
-        touch.is_end_event = e->isEndEvent();
-        touch.is_update_event = e->isUpdateEvent();
-        for (const auto& point : e->points()) {
-            touch.points.push_back(make(point));
-        }
-        return touch;
-    }
-
-    inline Mouse make(QMouseEvent* e) {
-        Mouse mouse;
-        mouse.is_begin_event = e->isBeginEvent();
-        mouse.is_end_event = e->isEndEvent();
-        mouse.is_update_event = e->isUpdateEvent();
-        mouse.button = e->button();
-        mouse.buttons = e->buttons();
-        mouse.point = make(e->points().front());
-        return mouse;
-    }
-
-    inline Wheel make(QWheelEvent* e) {
-        Wheel wheel;
-        wheel.is_begin_event = e->isBeginEvent();
-        wheel.is_end_event = e->isEndEvent();
-        wheel.is_update_event = e->isUpdateEvent();
-        wheel.angle_delta = e->angleDelta();
-        wheel.point = make(e->points().front());
-        return wheel;
-    }
+inline EventPoint make(const QEventPoint& e)
+{
+    EventPoint point;
+    point.state = static_cast<TouchPointState>(e.state());
+    point.position = glm::vec2(e.position().x(), e.position().y());
+    point.last_position = glm::vec2(e.lastPosition().x(), e.lastPosition().y());
+    point.press_position = glm::vec2(e.pressPosition().x(), e.pressPosition().y());
+    return point;
 }
-#endif
 
+inline Touch make(QTouchEvent* e)
+{
+    Touch touch;
+    touch.is_begin_event = e->isBeginEvent();
+    touch.is_end_event = e->isEndEvent();
+    touch.is_update_event = e->isUpdateEvent();
+    for (const auto& point : e->points()) {
+        touch.points.push_back(make(point));
+    }
+    return touch;
+}
+
+inline Mouse make(QMouseEvent* e)
+{
+    Mouse mouse;
+    mouse.is_begin_event = e->isBeginEvent();
+    mouse.is_end_event = e->isEndEvent();
+    mouse.is_update_event = e->isUpdateEvent();
+    mouse.button = e->button();
+    mouse.buttons = e->buttons();
+    mouse.point = make(e->points().front());
+    return mouse;
+}
+
+inline Wheel make(QWheelEvent* e)
+{
+    Wheel wheel;
+    wheel.is_begin_event = e->isBeginEvent();
+    wheel.is_end_event = e->isEndEvent();
+    wheel.is_update_event = e->isUpdateEvent();
+    wheel.angle_delta = e->angleDelta();
+    wheel.point = make(e->points().front());
+    return wheel;
+}
+} // namespace nucleus::event_parameter
+#endif
