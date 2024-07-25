@@ -44,7 +44,7 @@ public:
 
 private:
     std::unique_ptr<Texture> m_font_texture;
-    std::unique_ptr<QOpenGLTexture> m_icon_texture;
+    std::unique_ptr<Texture> m_icon_texture;
 
     std::unique_ptr<QOpenGLBuffer> m_vertex_buffer;
     std::unique_ptr<QOpenGLBuffer> m_index_buffer;

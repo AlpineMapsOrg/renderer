@@ -25,30 +25,25 @@
 
 #include <glm/glm.hpp>
 
-#ifdef QT_GUI_LIB
-// Qt GUI module is available
-#include <QtGui/QImage>
-#endif
-
 
 namespace nucleus {
 
 template <typename T>
 class Raster {
     std::vector<T> m_data;
-    size_t m_width = 0;
-    size_t m_height = 0;
+    std::size_t m_width = 0;
+    std::size_t m_height = 0;
 
 public:
     Raster() = default;
-    Raster(size_t square_side_length, std::vector<T>&& vector)
+    Raster(std::size_t square_side_length, std::vector<T>&& vector)
         : m_data(std::move(vector))
         , m_width(square_side_length)
         , m_height(square_side_length)
     {
         assert(m_data.size() == m_width * m_height);
     }
-    Raster(size_t square_side_length)
+    Raster(std::size_t square_side_length)
         : m_data(square_side_length * square_side_length)
         , m_width(square_side_length)
         , m_height(square_side_length)
@@ -69,12 +64,12 @@ public:
 
     [[nodiscard]] const auto& buffer() const { return m_data; }
     [[nodiscard]] auto& buffer() { return m_data; }
-    [[nodiscard]] size_t width() const { return m_width; }
-    [[nodiscard]] size_t height() const { return m_height; }
+    [[nodiscard]] std::size_t width() const { return m_width; }
+    [[nodiscard]] std::size_t height() const { return m_height; }
     [[nodiscard]] glm::uvec2 size() const { return { m_width, m_height }; }
-    [[nodiscard]] size_t size_in_bytes() const { return m_data.size() * sizeof(T); }
-    [[nodiscard]] size_t size_per_line() const { return m_width * sizeof(T); }
-    [[nodiscard]] size_t buffer_length() const { return m_data.size(); }
+    [[nodiscard]] std::size_t size_in_bytes() const { return m_data.size() * sizeof(T); }
+    [[nodiscard]] std::size_t size_per_line() const { return m_width * sizeof(T); }
+    [[nodiscard]] std::size_t buffer_length() const { return m_data.size(); }
     [[nodiscard]] const T& pixel(const glm::uvec2& position) const { return m_data[position.x + m_width * position.y]; }
     [[nodiscard]] T& pixel(const glm::uvec2& position) { return m_data[position.x + m_width * position.y]; }
 
@@ -92,30 +87,6 @@ public:
     [[nodiscard]] uint8_t* bytes() { return reinterpret_cast<uint8_t*>(m_data.data()); }
 
     void fill(const T& value) { std::fill(begin(), end(), value); }
-
-#ifdef QT_GUI_LIB
-    [[nodiscard]] QImage toQImage() const {
-        static_assert(std::is_same<T, glm::u8vec4>::value, "toQImage is only implemented for u8vec4 (RGBA8) rasters");
-
-        //assert(m_data.size() == m_width * m_height * 4); // Ensure the data is RGBA8
-        QImage image(m_width, m_height, QImage::Format_RGBA8888);
-        memcpy(image.bits(), m_data.data(), m_data.size() * sizeof(T));
-        return image;
-    }
-
-    template<typename U = T>
-    static Raster<U> fromQImage(const QImage& image) {
-        static_assert(std::is_same<U, glm::u8vec4>::value, "fromQImage is only implemented for u8vec4 (RGBA8) rasters");
-
-        assert(image.format() == QImage::Format_RGBA8888); // Ensure the image is in the correct format
-
-        glm::uvec2 size(image.width(), image.height());
-        Raster<U> raster(size);
-
-        std::memcpy(raster.data(), image.bits(), image.sizeInBytes());
-        return raster;
-    }
-#endif
 
     auto begin() { return m_data.begin(); }
     auto end() { return m_data.end(); }

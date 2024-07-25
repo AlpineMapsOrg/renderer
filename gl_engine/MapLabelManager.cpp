@@ -85,10 +85,10 @@ void MapLabelManager::init()
     m_font_texture->upload(font_atlas);
 
     // load the icon texture
-    QImage icon = m_mapLabelManager.icon().toQImage();
-    m_icon_texture = std::make_unique<QOpenGLTexture>(icon);
-    m_icon_texture->setMinificationFilter(QOpenGLTexture::LinearMipMapLinear);
-    m_icon_texture->setMagnificationFilter(QOpenGLTexture::Linear);
+    const auto icon = m_mapLabelManager.icon();
+    m_icon_texture = std::make_unique<Texture>(Texture::Target::_2d, Texture::Format::RGBA8);
+    m_icon_texture->setParams(Texture::Filter::MipMapLinear, Texture::Filter::Linear);
+    m_icon_texture->upload(icon);
 }
 
 void MapLabelManager::draw(Framebuffer* gbuffer, ShaderProgram* shader_program, const nucleus::camera::Definition& camera) const
