@@ -109,7 +109,7 @@ std::unique_ptr<Scheduler> scheduler_with_aabb()
     return scheduler;
 }
 
-std::pair<QByteArray, QByteArray> example_tile_data()
+std::tuple<QByteArray, QByteArray, QByteArray> example_tile_data()
 {
     static const auto ortho_bytes = []() {
         auto ortho_file = QFile(QString("%1%2").arg(ALP_TEST_DATA_DIR, "test-tile_ortho.jpeg"));
@@ -127,7 +127,15 @@ std::pair<QByteArray, QByteArray> example_tile_data()
         return height_bytes;
     }();
 
-    return std::make_pair(ortho_bytes, height_bytes);
+    static const auto vectortile_bytes = []() {
+        auto vectortile_file = QFile(QString("%1%2").arg(ALP_TEST_DATA_DIR, "vectortile.mvt"));
+        vectortile_file.open(QFile::ReadOnly | QIODevice::Unbuffered);
+        const auto vectortile_bytes = vectortile_file.readAll();
+        REQUIRE(vectortile_bytes.size() > 0);
+        return vectortile_bytes;
+    }();
+
+    return std::make_tuple(ortho_bytes, height_bytes, vectortile_bytes);
 }
 
 nucleus::tile_scheduler::tile_types::TileQuad example_tile_quad_for(const tile::Id& id, unsigned n_children = 4, NetworkInfo::Status status = NetworkInfo::Status::Good)
@@ -140,8 +148,9 @@ nucleus::tile_scheduler::tile_types::TileQuad example_tile_quad_for(const tile::
     const auto example_data = example_tile_data();
     for (unsigned i = 0; i < n_children; ++i) {
         cpu_quad.tiles[i].id = children[i];
-        cpu_quad.tiles[i].ortho = std::make_shared<QByteArray>(example_data.first);
-        cpu_quad.tiles[i].height = std::make_shared<QByteArray>(example_data.second);
+        cpu_quad.tiles[i].ortho = std::make_shared<QByteArray>(std::get<0>(example_data));
+        cpu_quad.tiles[i].height = std::make_shared<QByteArray>(std::get<1>(example_data));
+        cpu_quad.tiles[i].vector_tile = std::make_shared<QByteArray>(std::get<2>(example_data));
         cpu_quad.tiles[i].network_info.status = status;
         cpu_quad.tiles[i].network_info.timestamp = nucleus::tile_scheduler::utils::time_since_epoch();
     }

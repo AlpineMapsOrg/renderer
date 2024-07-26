@@ -22,6 +22,7 @@
 
 #include "nucleus/tile_scheduler/utils.h"
 #include "nucleus/utils/ColourTexture.h"
+#include <nucleus/vector_tiles/VectorTileFeature.h>
 #include <radix/tile.h>
 
 class QImage;
@@ -53,7 +54,6 @@ struct NetworkInfo {
         }
         return {status, timestamp};
     }
-
 };
 
 template <typename T>
@@ -80,6 +80,7 @@ struct LayeredTile {
     NetworkInfo network_info;
     std::shared_ptr<QByteArray> ortho;
     std::shared_ptr<QByteArray> height;
+    std::shared_ptr<QByteArray> vector_tile;
 };
 static_assert(NamedTile<LayeredTile>);
 
@@ -105,6 +106,7 @@ struct GpuLayeredTile {
     tile::SrsAndHeightBounds bounds = {};
     std::shared_ptr<const nucleus::utils::ColourTexture> ortho;
     std::shared_ptr<const nucleus::Raster<uint16_t>> height;
+    std::shared_ptr<const nucleus::vectortile::VectorTile> vector_tile;
 };
 static_assert(NamedTile<GpuLayeredTile>);
 

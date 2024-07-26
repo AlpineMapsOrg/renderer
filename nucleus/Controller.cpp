@@ -39,6 +39,7 @@
 #include "radix/TileHeights.h"
 
 using namespace nucleus::tile_scheduler;
+using namespace nucleus::vectortile;
 
 namespace nucleus {
 Controller::Controller(AbstractRenderWindow* render_window)
@@ -57,6 +58,8 @@ Controller::Controller(AbstractRenderWindow* render_window)
     //                                           {"", "1", "2", "3", "4"}));
     m_ortho_service.reset(
         new TileLoadService("https://gataki.cg.tuwien.ac.at/raw/basemap/tiles/", TileLoadService::UrlPattern::ZYX_yPointingSouth, ".jpeg"));
+    m_vectortile_service = std::make_unique<TileLoadService>(
+        "http://localhost:8080/austria.peaks/", nucleus::tile_scheduler::TileLoadService::UrlPattern::ZXY_yPointingSouth, ".mvt");
 
     m_tile_scheduler = std::make_unique<nucleus::tile_scheduler::Scheduler>();
     m_tile_scheduler->read_disk_cache();
@@ -73,11 +76,10 @@ Controller::Controller(AbstractRenderWindow* render_window)
         m_tile_scheduler->set_aabb_decorator(decorator);
         m_render_window->set_aabb_decorator(decorator);
     }
-    m_data_querier = std::make_unique<DataQuerier>(&m_tile_scheduler->ram_cache());
+    m_data_querier = std::make_shared<DataQuerier>(&m_tile_scheduler->ram_cache());
+    m_tile_scheduler->set_dataquerier(m_data_querier);
     m_camera_controller = std::make_unique<nucleus::camera::Controller>(
-        nucleus::camera::PositionStorage::instance()->get("grossglockner"),
-        m_render_window->depth_tester(),
-        m_data_querier.get());
+        nucleus::camera::PositionStorage::instance()->get("grossglockner"), m_render_window->depth_tester(), m_data_querier.get());
     {
         auto* sch = m_tile_scheduler.get();
         SlotLimiter* sl = new SlotLimiter(sch);
@@ -90,9 +92,11 @@ Controller::Controller(AbstractRenderWindow* render_window)
         connect(qa, &QuadAssembler::tile_requested, la, &LayerAssembler::load);
         connect(la, &LayerAssembler::tile_requested, m_ortho_service.get(), &TileLoadService::load);
         connect(la, &LayerAssembler::tile_requested, m_terrain_service.get(), &TileLoadService::load);
+        connect(la, &LayerAssembler::tile_requested, m_vectortile_service.get(), &TileLoadService::load);
 
         connect(m_ortho_service.get(), &TileLoadService::load_finished, la, &LayerAssembler::deliver_ortho);
         connect(m_terrain_service.get(), &TileLoadService::load_finished, la, &LayerAssembler::deliver_height);
+        connect(m_vectortile_service.get(), &TileLoadService::load_finished, la, &LayerAssembler::deliver_vectortile);
         connect(la, &LayerAssembler::tile_loaded, qa, &QuadAssembler::deliver_tile);
         connect(qa, &QuadAssembler::quad_loaded, sl, &SlotLimiter::deliver_quad);
         connect(sl, &SlotLimiter::quad_delivered, sch, &Scheduler::receive_quad);
@@ -113,6 +117,7 @@ Controller::Controller(AbstractRenderWindow* render_window)
 #else
     m_terrain_service->moveToThread(m_scheduler_thread.get());
     m_ortho_service->moveToThread(m_scheduler_thread.get());
+    m_vectortile_service->moveToThread(m_scheduler_thread.get());
 #endif
     m_tile_scheduler->moveToThread(m_scheduler_thread.get());
     m_scheduler_thread->start();
@@ -149,4 +154,4 @@ Scheduler* Controller::tile_scheduler() const
 {
     return m_tile_scheduler.get();
 }
-}
+} // namespace nucleus

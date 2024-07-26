@@ -1,6 +1,7 @@
 /*****************************************************************************
  * Alpine Terrain Renderer
  * Copyright (C) 2023 Adam Celarek
+ * Copyright (C) 2024 Lucas Dworschak
  * Copyright (C) 2024 Gerald Kimmersdorfer
  *
  * This program is free software: you can redistribute it and/or modify
@@ -30,7 +31,10 @@
 #include "nucleus/tile_scheduler/utils.h"
 #include "nucleus/utils/image_loader.h"
 #include "nucleus/utils/tile_conversion.h"
+#include "nucleus/vector_tiles/VectorTileManager.h"
 #include "radix/quad_tree.h"
+
+#include "nucleus/DataQuerier.h"
 
 using namespace nucleus::tile_scheduler;
 
@@ -192,6 +196,12 @@ void Scheduler::update_gpu_quads()
                                auto heightraster = nucleus::utils::tile_conversion::to_u16raster(m_default_height_raster);
                                gpu_quad.tiles[i].height = std::make_shared<nucleus::Raster<uint16_t>>(std::move(heightraster));
                            }
+
+                           const auto* vectortile_data = m_default_vector_tile.get();
+                           vectortile_data = quad.tiles[i].vector_tile.get();
+                           // moved into this if -> since vector_tile might be empty
+                           auto vectortile = nucleus::vectortile::VectorTileManager::to_vector_tile(quad.tiles[i].id, *vectortile_data, m_dataquerier);
+                           gpu_quad.tiles[i].vector_tile = vectortile;
                        }
                        return gpu_quad;
                    });
@@ -399,3 +409,5 @@ void Scheduler::set_update_timeout(unsigned new_update_timeout)
         m_update_timer->start(m_update_timeout);
     }
 }
+
+void Scheduler::set_dataquerier(std::shared_ptr<DataQuerier> dataquerier) { m_dataquerier = dataquerier; }
