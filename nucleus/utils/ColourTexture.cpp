@@ -29,7 +29,7 @@
 
 namespace {
 
-std::vector<uint8_t> to_dxt(const nucleus::Raster<glm::u8vec4>& image)
+std::vector<uint8_t> to_dxt1(const nucleus::Raster<glm::u8vec4>& image)
 {
     assert(image.width() == image.height());
     assert(image.width() % 16 == 0);
@@ -57,7 +57,7 @@ std::vector<uint8_t> to_dxt(const nucleus::Raster<glm::u8vec4>& image)
     return compressed;
 }
 
-std::vector<uint8_t> to_etc(const nucleus::Raster<glm::u8vec4>& image)
+std::vector<uint8_t> to_etc1(const nucleus::Raster<glm::u8vec4>& image)
 {
     assert(image.width() == image.height());
     assert(image.width() % 16 == 0);
@@ -103,9 +103,9 @@ std::vector<uint8_t> to_compressed(const nucleus::Raster<glm::u8vec4>& image, nu
     case Algorithm::Uncompressed_RGBA:
         return to_uncompressed_rgba(image);
     case nucleus::utils::ColourTexture::Format::DXT1:
-        return to_dxt(image);
+        return to_dxt1(image);
     case nucleus::utils::ColourTexture::Format::ETC1:
-        return to_etc(image);
+        return to_etc1(image);
     }
     throw std::runtime_error("Unsupported algorithm for nucleus::Raster<glm::u8vec4>");
 }
