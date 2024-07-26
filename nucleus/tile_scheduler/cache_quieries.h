@@ -23,7 +23,7 @@
 #include "nucleus/tile_scheduler/Cache.h"
 #include "radix/height_encoding.h"
 
-#include "nucleus/stb/stb_image_loader.h"
+#include "nucleus/utils/image_loader.h"
 
 namespace nucleus::tile_scheduler::cache_queries {
 

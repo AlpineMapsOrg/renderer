@@ -20,8 +20,8 @@
 #include <QFile>
 #include <catch2/catch_test_macros.hpp>
 
+#include "nucleus/utils/image_loader.h"
 #include "nucleus/utils/tile_conversion.h"
-#include "nucleus/stb/stb_image_loader.h"
 
 namespace {
 auto check_alpine_raster_format_for(const glm::u8vec4& v)

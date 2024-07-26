@@ -28,8 +28,8 @@
 
 #define STBTT_STATIC
 #define STB_TRUETYPE_IMPLEMENTATION
+#include "nucleus/utils/image_loader.h"
 #include <stb_slim/stb_truetype.h>
-#include "nucleus/stb/stb_image_loader.h"
 
 using namespace Qt::Literals::StringLiterals;
 

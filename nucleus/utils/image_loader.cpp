@@ -17,7 +17,7 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *****************************************************************************/
 
-#include "stb_image_loader.h"
+#include "image_loader.h"
 
 // Limit the dimensions of images to 8192x8192. This is already quite restricting
 // in terms of that a lot of GPUs don't support textures that large. Make sure

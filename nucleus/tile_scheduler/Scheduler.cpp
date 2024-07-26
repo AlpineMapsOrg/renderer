@@ -28,9 +28,9 @@
 #include <QTimer>
 
 #include "nucleus/tile_scheduler/utils.h"
+#include "nucleus/utils/image_loader.h"
 #include "nucleus/utils/tile_conversion.h"
 #include "radix/quad_tree.h"
-#include "nucleus/stb/stb_image_loader.h"
 
 using namespace nucleus::tile_scheduler;
 

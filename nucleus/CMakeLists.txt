@@ -101,9 +101,7 @@ qt_add_library(nucleus STATIC
     timing/TimerInterface.h timing/TimerInterface.cpp
     timing/CpuTimer.h timing/CpuTimer.cpp
     utils/ColourTexture.h utils/ColourTexture.cpp
-
-
-    stb/stb_image_loader.h stb/stb_image_loader.cpp
+    utils/image_loader.h utils/image_loader.cpp
 )
 
 target_include_directories(nucleus PUBLIC ${CMAKE_SOURCE_DIR})
