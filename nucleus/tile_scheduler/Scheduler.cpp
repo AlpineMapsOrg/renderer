@@ -185,11 +185,11 @@ void Scheduler::update_gpu_quads()
                            if (quad.tiles[i].height->size()) {
                                // Height image is available
                                Raster<glm::u8vec4> height_image = nucleus::utils::image_loader::rgba8(*quad.tiles[i].height.get());
-                               auto heightraster = nucleus::utils::tile_conversion::u8vec4raster_to_u16raster(height_image);
+                               auto heightraster = nucleus::utils::tile_conversion::to_u16raster(height_image);
                                gpu_quad.tiles[i].height = std::make_shared<nucleus::Raster<uint16_t>>(std::move(heightraster));
                            } else {
                                // Height image is not available (use black default tile)
-                               auto heightraster = nucleus::utils::tile_conversion::u8vec4raster_to_u16raster(m_default_height_raster);
+                               auto heightraster = nucleus::utils::tile_conversion::to_u16raster(m_default_height_raster);
                                gpu_quad.tiles[i].height = std::make_shared<nucleus::Raster<uint16_t>>(std::move(heightraster));
                            }
                        }

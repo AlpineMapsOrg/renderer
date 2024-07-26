@@ -24,12 +24,53 @@
 #include <QByteArray>
 #include "nucleus/Raster.h"
 
+#ifdef QT_GUI_LIB
+#include <QImage>
+#endif
+
 namespace nucleus::utils::tile_conversion {
 
 /**
  * @brief Converts an RGBA8 raster to a uint16_t raster by packing the rg channels. ba are ignored.
  */
-Raster<uint16_t> u8vec4raster_to_u16raster(const Raster<glm::u8vec4>& raster);
+Raster<uint16_t> to_u16raster(const Raster<glm::u8vec4>& raster);
+
+#ifdef QT_GUI_LIB
+inline Raster<uint16_t> to_u16raster(const QImage& qimage)
+{
+    if (qimage.format() != QImage::Format_ARGB32 && qimage.format() != QImage::Format_RGB32) {
+        // let's hope that the format is always ARGB32
+        // if not, please implement the conversion, that'll give better performance.
+        // the assert will be disabled in release, just as a backup.
+        assert(false);
+        return to_u16raster(qimage.convertedTo(QImage::Format_ARGB32));
+    }
+    Raster<uint16_t> raster({ qimage.width(), qimage.height() });
+
+    const auto* image_pointer = reinterpret_cast<const uint32_t*>(qimage.constBits());
+    for (uint16_t& r : raster) {
+        r = uint16_t((*image_pointer) >> 8);
+        ++image_pointer;
+    }
+    return raster;
+}
+
+inline nucleus::Raster<glm::u8vec4> to_rgba8raster(const QImage& image)
+{
+    if (image.format() != QImage::Format_ARGB32 && image.format() != QImage::Format_RGB32) {
+        // let's hope that the format is always Format_ARGB32
+        // if not, please implement the conversion, that'll give better performance.
+        // the assert will be disabled in release, just as a backup.
+        assert(false);
+        return to_rgba8raster(image.convertedTo(QImage::Format_ARGB32));
+    }
+
+    nucleus::Raster<glm::u8vec4> raster({ image.width(), image.height() });
+
+    std::memcpy(raster.data(), image.bits(), image.sizeInBytes());
+    return raster;
+}
+#endif
 
 inline glm::u8vec4 float2alpineRGBA(float height)
 {
