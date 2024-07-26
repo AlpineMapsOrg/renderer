@@ -61,7 +61,7 @@ struct Mouse {
     bool is_begin_event = false;
     bool is_end_event = false;
     bool is_update_event = false;
-    Qt::MouseButton button = Qt::NoButton; // TODO unused?
+    Qt::MouseButton button = Qt::NoButton; // currently unused, but should contain the button that triggered the event.
     Qt::MouseButtons buttons;
     EventPoint point;
 };
