@@ -102,7 +102,7 @@ qt_add_library(nucleus STATIC
     timing/CpuTimer.h timing/CpuTimer.cpp
     utils/ColourTexture.h utils/ColourTexture.cpp
 
-    stb/stb_image.cpp
+
     stb/stb_image_loader.h stb/stb_image_loader.cpp
 )
 
