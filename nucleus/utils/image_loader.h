@@ -1,7 +1,7 @@
 /*****************************************************************************
- * Alpine Terrain Renderer
- * Copyright (C) 2024 Adam Celarek
+ * AlpineMaps.org
  * Copyright (C) 2024 Gerald Kimmersdorfer
+ * Copyright (C) 2024 Adam Celarek
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -19,29 +19,14 @@
 
 #pragma once
 
-#include <vector>
-#include <glm/glm.hpp>
-#include "nucleus/Raster.h"
+#include <nucleus/Raster.h>
+#include <QByteArray>
 
-namespace nucleus::utils {
+namespace nucleus::utils::image_loader {
 
-class ColourTexture {
-public:
-    enum class Format { Uncompressed_RGBA, DXT1, ETC1 };
+Raster<glm::u8vec4> rgba8(const QByteArray& byteArray);
 
-private:
-    std::vector<uint8_t> m_data;
-    unsigned m_width = 0;
-    unsigned m_height = 0;
-    Format m_format = Format::Uncompressed_RGBA;
+Raster<glm::u8vec4> rgba8(const QString& filename);
+Raster<glm::u8vec4> rgba8(const char* filename);
 
-public:
-    explicit ColourTexture(const nucleus::Raster<glm::u8vec4>& data, Format format);
-    [[nodiscard]] const uint8_t* data() const { return m_data.data(); }
-    [[nodiscard]] size_t n_bytes() const { return m_data.size(); }
-    [[nodiscard]] unsigned width() const { return m_width; }
-    [[nodiscard]] unsigned height() const { return m_height; }
-    [[nodiscard]] Format format() const { return m_format; }
-};
-
-} // namespace nucleus::utils
+} // namespace nucleus::utils::image_loader

@@ -25,7 +25,6 @@
 #include <QObject>
 
 #include <glm/glm.hpp>
-#include <QVector3D>
 
 #include "AnimationStyle.h"
 #include "Definition.h"

@@ -43,13 +43,24 @@ QByteArray png_tile(unsigned size, float altitude)
     return arr;
 }
 
+QByteArray white_jpeg_tile(unsigned int size)
+{
+    QImage default_tile(QSize { int(size), int(size) }, QImage::Format_ARGB32);
+    default_tile.fill(Qt::GlobalColor::white);
+    QByteArray arr;
+    QBuffer buffer(&arr);
+    buffer.open(QIODevice::WriteOnly);
+    default_tile.save(&buffer, "JPEG");
+    return arr;
+}
+
 tile_types::TileQuad example_tile_quad_for(const tile::Id& id, float altitude)
 {
     const auto children = id.children();
     tile_types::TileQuad cpu_quad;
     cpu_quad.id = id;
     cpu_quad.n_tiles = 4;
-    const auto ortho_photo = Scheduler::white_jpeg_tile(256);
+    const auto ortho_photo = white_jpeg_tile(256);
     const auto altitude_tile = png_tile(64, altitude);
     for (unsigned i = 0; i < 4; ++i) {
         cpu_quad.tiles[i].id = children[i];

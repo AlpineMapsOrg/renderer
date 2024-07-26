@@ -20,6 +20,9 @@
 #include <QtTest/QSignalSpy>
 #include <catch2/catch_test_macros.hpp>
 
+#include "test_helpers.h"
+#include <nucleus/utils/image_loader.h>
+
 #ifdef NDEBUG
 constexpr bool asserts_are_enabled = false;
 #else
@@ -49,4 +52,21 @@ TEST_CASE("nucleus/bits_and_pieces: qt signals and slots")
     t.start();
     spy.wait(20);
     CHECK(spy.size() == 1);
+}
+
+TEST_CASE("nucleus/bits_and_pieces: image loading")
+{
+    const auto white = nucleus::utils::image_loader::rgba8(test_helpers::white_jpeg_tile(4));
+    REQUIRE(white.width() == 4);
+    REQUIRE(white.height() == 4);
+    for (const auto p : white.buffer()) {
+        CHECK(p == glm::u8vec4(255, 255, 255, 255));
+    }
+
+    const auto black = nucleus::utils::image_loader::rgba8(test_helpers::black_png_tile(8));
+    REQUIRE(black.width() == 8);
+    REQUIRE(black.height() == 8);
+    for (const auto p : black.buffer()) {
+        CHECK(p == glm::u8vec4(0, 0, 0, 255));
+    }
 }

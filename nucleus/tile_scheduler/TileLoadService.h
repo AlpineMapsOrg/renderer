@@ -48,10 +48,10 @@ public:
     void set_transfer_timeout(unsigned int new_transfer_timeout);
 
 public slots:
-    void load(const tile::Id& tile_id);
+    void load(const tile::Id& tile_id) const;
 
 signals:
-    void load_finished(tile_types::TileLayer tile);
+    void load_finished(tile_types::TileLayer tile) const;
 
 private:
     unsigned m_transfer_timeout = tile_scheduler::constants::default_network_timeout;

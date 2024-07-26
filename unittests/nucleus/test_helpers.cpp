@@ -1,7 +1,6 @@
 /*****************************************************************************
  * Alpine Terrain Builder
  * Copyright (C) 2022 alpinemaps.org
- * Copyright (C) 2022 Adam Celarek <family name at cg tuwien ac at>
  * Copyright (C) 2024 Gerald Kimmersdorfer
  *
  * This program is free software: you can redistribute it and/or modify
@@ -18,33 +17,33 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *****************************************************************************/
 
-#include <QCoreApplication>
-#ifdef QT_GUI_LIB
-#include <QGuiApplication>
-#endif
-#include <catch2/catch_session.hpp>
+#include <glm/glm.hpp>
 
-int main( int argc, char* argv[] ) {
-    int argc_qt = 1;
-#ifdef QT_GUI_LIB
-    QGuiApplication app(argc_qt, argv);
-    qDebug("Created QGuiApplication...");
-#else
-    QCoreApplication app(argc_qt, argv);
-    qDebug("Created QCoreApplication...");
-#endif
-    QCoreApplication::setOrganizationName("AlpineMaps.org");
-#ifdef __ANDROID__
-    std::vector<char*> argv_2;
-    for (int i = 0; i < argc; ++i) {
-        argv_2.push_back(argv[i]);
-    }
-    std::array<char, 20> logcat_switch = {"-o %debug"};
-    argv_2.push_back(logcat_switch.data());
-    int argc_2 = argc + 1;
-    int result = Catch::Session().run( argc_2, argv_2.data() );
-#else
-    int result = Catch::Session().run( argc, argv );
-#endif
-    return result;
+#include <QImage>
+#include <QBuffer>
+
+namespace test_helpers {
+
+QByteArray white_jpeg_tile(unsigned int size)
+{
+    QImage default_tile(QSize { int(size), int(size) }, QImage::Format_ARGB32);
+    default_tile.fill(Qt::GlobalColor::white);
+    QByteArray arr;
+    QBuffer buffer(&arr);
+    buffer.open(QIODevice::WriteOnly);
+    default_tile.save(&buffer, "JPEG");
+    return arr;
+}
+
+QByteArray black_png_tile(unsigned size)
+{
+    QImage default_tile(QSize { int(size), int(size) }, QImage::Format_ARGB32);
+    default_tile.fill(Qt::GlobalColor::black);
+    QByteArray arr;
+    QBuffer buffer(&arr);
+    buffer.open(QIODevice::WriteOnly);
+    default_tile.save(&buffer, "PNG");
+    return arr;
+}
+
 }
