@@ -49,7 +49,6 @@ private:
 #ifdef ALP_ENABLE_THREADING
     std::unique_ptr<QThread> m_scheduler_thread;
 #endif
-
     std::unique_ptr<tile_scheduler::TileLoadService> m_terrain_service;
     std::unique_ptr<tile_scheduler::TileLoadService> m_ortho_service;
     std::unique_ptr<tile_scheduler::Scheduler> m_tile_scheduler;
