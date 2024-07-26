@@ -107,8 +107,7 @@ qt_add_library(nucleus STATIC
 )
 
 target_include_directories(nucleus PUBLIC ${CMAKE_SOURCE_DIR})
-# Please keep Qt::Gui outside the nucleus. If you really need it and it's already defined as Public module in the parent
-# target (which is true for gl_engine and/or alpineapp) look at the workaround in the Raster.h file!
+# Please keep Qt::Gui outside the nucleus. If you need it optional via a cmake based switch
 target_link_libraries(nucleus PUBLIC radix Qt::Core Qt::Network fmt::fmt zppbits tl_expected nucleus_version stb_slim goofy_tc)
 
 qt_add_resources(nucleus "icons"
