@@ -57,16 +57,24 @@ inline Raster<uint16_t> to_u16raster(const QImage& qimage)
 
 inline nucleus::Raster<glm::u8vec4> to_rgba8raster(const QImage& image)
 {
-    if (image.format() != QImage::Format_ARGB32 && image.format() != QImage::Format_RGB32) {
+    if (image.format() != QImage::Format_RGBA8888) {
         // let's hope that the format is always Format_ARGB32
         // if not, please implement the conversion, that'll give better performance.
         // the assert will be disabled in release, just as a backup.
         assert(false);
-        return to_rgba8raster(image.convertedTo(QImage::Format_ARGB32));
+        return to_rgba8raster(image.convertedTo(QImage::Format_RGBA8888));
     }
 
     nucleus::Raster<glm::u8vec4> raster({ image.width(), image.height() });
 
+    // const auto* image_pointer = reinterpret_cast<const uint32_t*>(image.constBits());
+    // for (glm::u8vec4& v : raster) {
+    //     v.x = uint8_t(*image_pointer >> 24);
+    //     v.y = uint8_t(*image_pointer >> 16);
+    //     v.z = uint8_t(*image_pointer >> 8);
+    //     v.w = uint8_t(*image_pointer);
+    //     ++image_pointer;
+    // }
     std::memcpy(raster.data(), image.bits(), image.sizeInBytes());
     return raster;
 }

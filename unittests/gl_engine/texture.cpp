@@ -142,7 +142,7 @@ TEST_CASE("gl texture")
         test_texture.save("test_texture.png");
     }
 
-    const auto test_raster = nucleus::utils::tile_conversion::to_rgba8raster(test_texture.convertedTo(QImage::Format_ARGB32));
+    const auto test_raster = nucleus::utils::tile_conversion::to_rgba8raster(test_texture);
 
     SECTION("compression")
     {
@@ -232,7 +232,7 @@ TEST_CASE("gl texture")
         gl_engine::helpers::create_screen_quad_geometry().draw();
 
         const QImage render_result = b.read_colour_attachment(0);
-        // render_result.save("render_result.png");
+        render_result.save("render_result.png");
         Framebuffer::unbind();
         double diff = 0;
         for (int i = 0; i < render_result.width(); ++i) {
