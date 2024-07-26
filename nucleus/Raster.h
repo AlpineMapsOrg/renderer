@@ -31,19 +31,19 @@ namespace nucleus {
 template <typename T>
 class Raster {
     std::vector<T> m_data;
-    std::size_t m_width = 0;
-    std::size_t m_height = 0;
+    size_t m_width = 0;
+    size_t m_height = 0;
 
 public:
     Raster() = default;
-    Raster(std::size_t square_side_length, std::vector<T>&& vector)
+    Raster(size_t square_side_length, std::vector<T>&& vector)
         : m_data(std::move(vector))
         , m_width(square_side_length)
         , m_height(square_side_length)
     {
         assert(m_data.size() == m_width * m_height);
     }
-    Raster(std::size_t square_side_length)
+    Raster(size_t square_side_length)
         : m_data(square_side_length * square_side_length)
         , m_width(square_side_length)
         , m_height(square_side_length)
@@ -64,12 +64,12 @@ public:
 
     [[nodiscard]] const auto& buffer() const { return m_data; }
     [[nodiscard]] auto& buffer() { return m_data; }
-    [[nodiscard]] std::size_t width() const { return m_width; }
-    [[nodiscard]] std::size_t height() const { return m_height; }
+    [[nodiscard]] size_t width() const { return m_width; }
+    [[nodiscard]] size_t height() const { return m_height; }
     [[nodiscard]] glm::uvec2 size() const { return { m_width, m_height }; }
-    [[nodiscard]] std::size_t size_in_bytes() const { return m_data.size() * sizeof(T); }
-    [[nodiscard]] std::size_t size_per_line() const { return m_width * sizeof(T); }
-    [[nodiscard]] std::size_t buffer_length() const { return m_data.size(); }
+    [[nodiscard]] size_t size_in_bytes() const { return m_data.size() * sizeof(T); }
+    [[nodiscard]] size_t size_per_line() const { return m_width * sizeof(T); }
+    [[nodiscard]] size_t buffer_length() const { return m_data.size(); }
     [[nodiscard]] const T& pixel(const glm::uvec2& position) const { return m_data[position.x + m_width * position.y]; }
     [[nodiscard]] T& pixel(const glm::uvec2& position) { return m_data[position.x + m_width * position.y]; }
 
