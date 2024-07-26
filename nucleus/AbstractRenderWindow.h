@@ -1,6 +1,7 @@
 /*****************************************************************************
  * Alpine Terrain Renderer
  * Copyright (C) 2023 Adam Celarek
+ * Copyright (C) 2024 Gerald Kimmersdorfer
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -18,12 +19,13 @@
 
 #pragma once
 
-#include <QMouseEvent>
 #include <QObject>
+#include <unordered_set>
 
 #include <glm/glm.hpp>
 
 #include "nucleus/tile_scheduler/tile_types.h"
+#include "nucleus/vector_tiles/VectorTileFeature.h"
 #include "utils/ColourTexture.h"
 
 class QOpenGLFramebufferObject;
@@ -41,7 +43,6 @@ namespace camera {
     class Definition;
     class AbstractDepthTester;
 }
-struct Tile;
 
 class AbstractRenderWindow : public QObject {
     Q_OBJECT
@@ -59,13 +60,10 @@ public slots:
     virtual void update_camera(const camera::Definition& new_definition) = 0;
     virtual void update_debug_scheduler_stats(const QString& stats) = 0;
     virtual void set_aabb_decorator(const tile_scheduler::utils::AabbDecoratorPtr&) = 0;
-    virtual void remove_tile(const tile::Id&) = 0;
     virtual void update_gpu_quads(const std::vector<tile_scheduler::tile_types::GpuTileQuad>& new_quads, const std::vector<tile::Id>& deleted_quads) = 0;
 
 signals:
     void update_requested();
-    void key_pressed(const QKeyCombination&) const;
-    void key_released(const QKeyCombination&) const;
     void gpu_ready_changed(bool ready);
     void update_camera_requested() const;
 };

@@ -1,6 +1,7 @@
 /*****************************************************************************
  * Alpine Terrain Renderer
  * Copyright (C) 2024 Adam Celarek
+ * Copyright (C) 2024 Gerald Kimmersdorfer
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -18,8 +19,9 @@
 
 #pragma once
 
-#include <QImage>
 #include <vector>
+#include <glm/glm.hpp>
+#include "nucleus/Raster.h"
 
 namespace nucleus::utils {
 
@@ -34,7 +36,7 @@ private:
     Format m_format = Format::Uncompressed_RGBA;
 
 public:
-    explicit ColourTexture(const QImage& image, Format format);
+    explicit ColourTexture(const nucleus::Raster<glm::u8vec4>& data, Format format);
     [[nodiscard]] const uint8_t* data() const { return m_data.data(); }
     [[nodiscard]] size_t n_bytes() const { return m_data.size(); }
     [[nodiscard]] unsigned width() const { return m_width; }

@@ -1,6 +1,7 @@
 /*****************************************************************************
  * Alpine Terrain Renderer
  * Copyright (C) 2023 Adam Celarek
+ * Copyright (C) 2024 Gerald Kimmersdorfer
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -22,13 +23,12 @@
 #include <catch2/catch_test_macros.hpp>
 #include <QSignalSpy>
 #include <QThread>
+#include <QImage>
 
-#include "catch2_helpers.h"
 #include "nucleus/camera/PositionStorage.h"
 #include "nucleus/tile_scheduler/Scheduler.h"
 #include "nucleus/tile_scheduler/tile_types.h"
 #include "nucleus/tile_scheduler/utils.h"
-#include "nucleus/utils/tile_conversion.h"
 #include "radix/TileHeights.h"
 #include "test_helpers.h"
 
@@ -48,11 +48,10 @@ constexpr auto timing_multiplicator = 1;
 #else
 constexpr auto timing_multiplicator = 1;
 #endif
-
 std::unique_ptr<Scheduler> scheduler_with_true_heights()
 {
-    static auto ortho_tile = Scheduler::white_jpeg_tile(256);
-    static auto height_tile = Scheduler::black_png_tile(64);
+    static auto ortho_tile = test_helpers::white_jpeg_tile(256);
+    static auto height_tile = test_helpers::black_png_tile(64);
 
     auto scheduler = std::make_unique<Scheduler>(ortho_tile, height_tile);
     QSignalSpy spy(scheduler.get(), &Scheduler::quads_requested);
@@ -76,8 +75,8 @@ std::unique_ptr<Scheduler> scheduler_with_true_heights()
 
 std::unique_ptr<Scheduler> default_scheduler()
 {
-    static auto ortho_tile = Scheduler::white_jpeg_tile(256);
-    static auto height_tile = Scheduler::black_png_tile(64);
+    static auto ortho_tile = test_helpers::white_jpeg_tile(256);
+    static auto height_tile = test_helpers::black_png_tile(64);
 
     auto scheduler = std::make_unique<Scheduler>(ortho_tile, height_tile);
     QSignalSpy spy(scheduler.get(), &Scheduler::quads_requested);
@@ -110,13 +109,13 @@ std::unique_ptr<Scheduler> scheduler_with_aabb()
     return scheduler;
 }
 
-std::pair<QByteArray, QByteArray> example_tile_data()
+std::tuple<QByteArray, QByteArray, QByteArray> example_tile_data()
 {
     static const auto ortho_bytes = []() {
         auto ortho_file = QFile(QString("%1%2").arg(ALP_TEST_DATA_DIR, "test-tile_ortho.jpeg"));
         ortho_file.open(QFile::ReadOnly);
         const auto ortho_bytes = ortho_file.readAll();
-        REQUIRE(!nucleus::utils::tile_conversion::toQImage(ortho_bytes).isNull());
+        REQUIRE(!QImage::fromData(ortho_bytes).isNull());
         return ortho_bytes;
     }();
 
@@ -124,11 +123,19 @@ std::pair<QByteArray, QByteArray> example_tile_data()
         auto height_file = QFile(QString("%1%2").arg(ALP_TEST_DATA_DIR, "test-tile.png"));
         height_file.open(QFile::ReadOnly);
         const auto height_bytes = height_file.readAll();
-        REQUIRE(!nucleus::utils::tile_conversion::toQImage(height_bytes).isNull());
+        REQUIRE(!QImage::fromData(height_bytes).isNull());
         return height_bytes;
     }();
 
-    return std::make_pair(ortho_bytes, height_bytes);
+    static const auto vectortile_bytes = []() {
+        auto vectortile_file = QFile(QString("%1%2").arg(ALP_TEST_DATA_DIR, "vectortile.mvt"));
+        vectortile_file.open(QFile::ReadOnly | QIODevice::Unbuffered);
+        const auto vectortile_bytes = vectortile_file.readAll();
+        REQUIRE(vectortile_bytes.size() > 0);
+        return vectortile_bytes;
+    }();
+
+    return std::make_tuple(ortho_bytes, height_bytes, vectortile_bytes);
 }
 
 nucleus::tile_scheduler::tile_types::TileQuad example_tile_quad_for(const tile::Id& id, unsigned n_children = 4, NetworkInfo::Status status = NetworkInfo::Status::Good)
@@ -141,8 +148,9 @@ nucleus::tile_scheduler::tile_types::TileQuad example_tile_quad_for(const tile::
     const auto example_data = example_tile_data();
     for (unsigned i = 0; i < n_children; ++i) {
         cpu_quad.tiles[i].id = children[i];
-        cpu_quad.tiles[i].ortho = std::make_shared<QByteArray>(example_data.first);
-        cpu_quad.tiles[i].height = std::make_shared<QByteArray>(example_data.second);
+        cpu_quad.tiles[i].ortho = std::make_shared<QByteArray>(std::get<0>(example_data));
+        cpu_quad.tiles[i].height = std::make_shared<QByteArray>(std::get<1>(example_data));
+        cpu_quad.tiles[i].vector_tile = std::make_shared<QByteArray>(std::get<2>(example_data));
         cpu_quad.tiles[i].network_info.status = status;
         cpu_quad.tiles[i].network_info.timestamp = nucleus::tile_scheduler::utils::time_since_epoch();
     }

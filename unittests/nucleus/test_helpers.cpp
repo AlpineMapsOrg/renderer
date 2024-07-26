@@ -1,6 +1,7 @@
 /*****************************************************************************
- * Alpine Renderer
- * Copyright (C) 2022 Adam Celarek
+ * Alpine Terrain Builder
+ * Copyright (C) 2022 alpinemaps.org
+ * Copyright (C) 2024 Gerald Kimmersdorfer
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -16,26 +17,33 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *****************************************************************************/
 
-#pragma once
-
-#include <vector>
-
-#include <QObject>
 #include <glm/glm.hpp>
 
-namespace gl_engine {
-class ShaderProgram;
+#include <QImage>
+#include <QBuffer>
 
-class DebugPainter : public QObject {
-    Q_OBJECT
-public:
-    explicit DebugPainter(QObject* parent = nullptr);
+namespace test_helpers {
 
-    void activate(ShaderProgram* shader_program, const glm::mat4& world_view_projection_matrix);
-    void draw_line_strip(ShaderProgram* shader_program, const std::vector<glm::vec3>& points) const;
+QByteArray white_jpeg_tile(unsigned int size)
+{
+    QImage default_tile(QSize { int(size), int(size) }, QImage::Format_ARGB32);
+    default_tile.fill(Qt::GlobalColor::white);
+    QByteArray arr;
+    QBuffer buffer(&arr);
+    buffer.open(QIODevice::WriteOnly);
+    default_tile.save(&buffer, "JPEG");
+    return arr;
+}
 
-signals:
+QByteArray black_png_tile(unsigned size)
+{
+    QImage default_tile(QSize { int(size), int(size) }, QImage::Format_ARGB32);
+    default_tile.fill(Qt::GlobalColor::black);
+    QByteArray arr;
+    QBuffer buffer(&arr);
+    buffer.open(QIODevice::WriteOnly);
+    default_tile.save(&buffer, "PNG");
+    return arr;
+}
 
-private:
-};
 }

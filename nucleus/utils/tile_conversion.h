@@ -1,6 +1,7 @@
 /*****************************************************************************
  * Alpine Terrain Builder
  * Copyright (C) 2022 alpinemaps.org
+ * Copyright (C) 2024 Gerald Kimmersdorfer
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -20,15 +21,64 @@
 
 #include <glm/glm.hpp>
 
-#include <QImage>
-
+#include <QByteArray>
 #include "nucleus/Raster.h"
+
+#ifdef QT_GUI_LIB
+#include <QImage>
+#endif
 
 namespace nucleus::utils::tile_conversion {
 
-inline QImage toQImage(const QByteArray& byte_array) { return QImage::fromData(byte_array); }
-Raster<glm::u8vec4> toRasterRGBA(const QByteArray& byte_array);
-Raster<uint16_t> qImage2uint16Raster(const QImage& byte_array);
+/**
+ * @brief Converts an RGBA8 raster to a uint16_t raster by packing the rg channels. ba are ignored.
+ */
+Raster<uint16_t> to_u16raster(const Raster<glm::u8vec4>& raster);
+
+#ifdef QT_GUI_LIB
+inline Raster<uint16_t> to_u16raster(const QImage& qimage)
+{
+    if (qimage.format() != QImage::Format_ARGB32 && qimage.format() != QImage::Format_RGB32) {
+        // let's hope that the format is always ARGB32
+        // if not, please implement the conversion, that'll give better performance.
+        // the assert will be disabled in release, just as a backup.
+        assert(false);
+        return to_u16raster(qimage.convertedTo(QImage::Format_ARGB32));
+    }
+    Raster<uint16_t> raster({ qimage.width(), qimage.height() });
+
+    const auto* image_pointer = reinterpret_cast<const uint32_t*>(qimage.constBits());
+    for (uint16_t& r : raster) {
+        r = uint16_t((*image_pointer) >> 8);
+        ++image_pointer;
+    }
+    return raster;
+}
+
+inline nucleus::Raster<glm::u8vec4> to_rgba8raster(const QImage& image)
+{
+    if (image.format() != QImage::Format_RGBA8888) {
+        // let's hope that the format is always Format_ARGB32
+        // if not, please implement the conversion, that'll give better performance.
+        // the assert will be disabled in release, just as a backup.
+        assert(false);
+        return to_rgba8raster(image.convertedTo(QImage::Format_RGBA8888));
+    }
+
+    nucleus::Raster<glm::u8vec4> raster({ image.width(), image.height() });
+
+    // const auto* image_pointer = reinterpret_cast<const uint32_t*>(image.constBits());
+    // for (glm::u8vec4& v : raster) {
+    //     v.x = uint8_t(*image_pointer >> 24);
+    //     v.y = uint8_t(*image_pointer >> 16);
+    //     v.z = uint8_t(*image_pointer >> 8);
+    //     v.w = uint8_t(*image_pointer);
+    //     ++image_pointer;
+    // }
+    std::memcpy(raster.data(), image.bits(), image.sizeInBytes());
+    return raster;
+}
+#endif
 
 inline glm::u8vec4 float2alpineRGBA(float height)
 {

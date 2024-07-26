@@ -115,7 +115,7 @@ void Controller::update() const
 
 void Controller::mouse_press(const event_parameter::Mouse& e)
 {
-    report_global_cursor_position(e.point.position());
+    report_global_cursor_position(QPointF(e.point.position.x, e.point.position.y));
 
     if (m_animation_style) {
         m_animation_style.reset();
