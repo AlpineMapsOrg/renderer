@@ -46,7 +46,7 @@ inline float query_altitude(MemoryCache* cache, const glm::dvec2& lat_long)
             const auto uv = (world_space - bounds.min) / bounds.size();
 
             if (layered_tile.height && layered_tile.height->size()) {
-                const auto height_tile = stb::load_8bit_rgba_image_from_memory(*layered_tile.height);
+                const auto height_tile = nucleus::utils::image_loader::rgba8(*layered_tile.height);
                 const auto p = glm::uvec2(
                     uint32_t(uv.x * height_tile.width()),
                     uint32_t((1 - uv.y) * height_tile.height())

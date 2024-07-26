@@ -1,6 +1,7 @@
 /*****************************************************************************
- * Alpine Maps and weBIGeo
+ * AlpineMaps.org
  * Copyright (C) 2024 Gerald Kimmersdorfer
+ * Copyright (C) 2024 Adam Celarek
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -21,12 +22,11 @@
 #include <nucleus/Raster.h>
 #include <QByteArray>
 
-namespace nucleus::stb {
+namespace nucleus::utils::image_loader {
 
-Raster<glm::u8vec4> load_8bit_rgba_image_from_memory(const QByteArray& byteArray);
+Raster<glm::u8vec4> rgba8(const QByteArray& byteArray);
 
-Raster<glm::u8vec4> load_8bit_rgba_image_from_file(const QString& filename);
+Raster<glm::u8vec4> rgba8(const QString& filename);
+Raster<glm::u8vec4> rgba8(const char* filename);
 
-} // namespace nucleus
-
-
+} // namespace nucleus::utils::image_loader

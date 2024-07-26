@@ -39,9 +39,9 @@
 #include <stdexcept>
 #include <QFile>
 
-namespace nucleus::stb {
+namespace nucleus::utils::image_loader {
 
-Raster<glm::u8vec4> load_8bit_rgba_image_from_memory(const QByteArray& byteArray)
+Raster<glm::u8vec4> rgba8(const QByteArray& byteArray)
 {
     int width, height, channels;
     const int requested_channels = 4; // Request 4 channels to always get RGBA8 images
@@ -67,7 +67,7 @@ Raster<glm::u8vec4> load_8bit_rgba_image_from_memory(const QByteArray& byteArray
     return raster;
 }
 
-Raster<glm::u8vec4> load_8bit_rgba_image_from_file(const QString& filename)
+Raster<glm::u8vec4> rgba8(const QString& filename)
 {
     QFile file(filename);
     if (!file.open(QIODevice::ReadOnly)) {
@@ -78,8 +78,9 @@ Raster<glm::u8vec4> load_8bit_rgba_image_from_file(const QString& filename)
     file.close();
 
     // NOTE: We don't use the stb_image loader directly, because QFile can load from ressources
-    return load_8bit_rgba_image_from_memory(byteArray);
+    return rgba8(byteArray);
 }
 
+Raster<glm::u8vec4> rgba8(const char* filename) { return rgba8(QString(filename)); }
 
-} // namespace nucleus
+} // namespace nucleus::utils::image_loader

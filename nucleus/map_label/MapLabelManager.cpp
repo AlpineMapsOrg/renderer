@@ -100,9 +100,7 @@ void MapLabelManager::init()
         label.init(m_char_data, &m_fontinfo, uv_width_norm);
     }
 
-    m_icon = stb::load_8bit_rgba_image_from_file(":/map_icons/peak.png");
-    /* REPLACED WITH removal of QGUI
-    m_icon = QImage(":/map_icons/peak.png");*/
+    m_icon = nucleus::utils::image_loader::rgba8(":/map_icons/peak.png");
 }
 
 Raster<uint8_t> MapLabelManager::make_font_raster()

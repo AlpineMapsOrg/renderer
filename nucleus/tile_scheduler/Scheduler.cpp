@@ -56,8 +56,8 @@ Scheduler::Scheduler(QObject* parent)
 Scheduler::Scheduler(const QByteArray& default_ortho_tile, const QByteArray& default_height_tile, QObject* parent)
     : Scheduler(parent)
 {
-    m_default_ortho_raster = stb::load_8bit_rgba_image_from_memory(default_ortho_tile);
-    m_default_height_raster = stb::load_8bit_rgba_image_from_memory(default_height_tile);
+    m_default_ortho_raster = nucleus::utils::image_loader::rgba8(default_ortho_tile);
+    m_default_height_raster = nucleus::utils::image_loader::rgba8(default_height_tile);
 }
 
 Scheduler::~Scheduler() = default;
@@ -175,7 +175,7 @@ void Scheduler::update_gpu_quads()
 
                            if (quad.tiles[i].ortho->size()) {
                                // Ortho image is available
-                               Raster<glm::u8vec4> ortho_raster = stb::load_8bit_rgba_image_from_memory(*quad.tiles[i].ortho.get());
+                               Raster<glm::u8vec4> ortho_raster = nucleus::utils::image_loader::rgba8(*quad.tiles[i].ortho.get());
                                gpu_quad.tiles[i].ortho = std::make_shared<nucleus::utils::ColourTexture>(ortho_raster, m_ortho_tile_compression_algorithm);
                            } else {
                                // Ortho image is not available (use white default tile)
@@ -184,7 +184,7 @@ void Scheduler::update_gpu_quads()
 
                            if (quad.tiles[i].height->size()) {
                                // Height image is available
-                               Raster<glm::u8vec4> height_image = stb::load_8bit_rgba_image_from_memory(*quad.tiles[i].height.get());
+                               Raster<glm::u8vec4> height_image = nucleus::utils::image_loader::rgba8(*quad.tiles[i].height.get());
                                auto heightraster = nucleus::utils::tile_conversion::u8vec4raster_to_u16raster(height_image);
                                gpu_quad.tiles[i].height = std::make_shared<nucleus::Raster<uint16_t>>(std::move(heightraster));
                            } else {
