@@ -105,12 +105,17 @@ qt_add_library(nucleus STATIC
     vector_tiles/VectorTileFeature.h vector_tiles/VectorTileFeature.cpp
     utils/ColourTexture.h utils/ColourTexture.cpp
     utils/image_loader.h utils/image_loader.cpp
-    avalanche/eaws.h avalanche/eaws.cpp
 )
+if (ALP_ENABLE_AVLANCHE_WARNING_LAYER)
+    target_sources(nucleus
+        PUBLIC avalanche/eaws.h avalanche/eaws.cpp
+    )
+    target_link_libraries(nucleus PUBLIC Qt::Gui)
+endif()
 
 target_include_directories(nucleus PUBLIC ${CMAKE_SOURCE_DIR})
 # Please keep Qt::Gui outside the nucleus. If you need it optional via a cmake based switch
-target_link_libraries(nucleus PUBLIC radix Qt::Core Qt::Gui Qt::Network fmt::fmt zppbits tl_expected nucleus_version stb_slim vector_tiles goofy_tc)
+target_link_libraries(nucleus PUBLIC radix Qt::Core Qt::Network fmt::fmt zppbits tl_expected nucleus_version stb_slim vector_tiles goofy_tc)
 
 qt_add_resources(nucleus "icons"
     PREFIX "/map_icons"

@@ -43,6 +43,13 @@ alp_add_unittest(unittests_nucleus
     bits_and_pieces.cpp
 )
 
+if (ALP_ENABLE_AVLANCHE_WARNING_LAYER)
+    target_sources(unittests_nucleus
+      PRIVATE
+        avalanche_warning_layer.cpp
+    )
+endif()
+
 qt_add_resources(unittests_nucleus "test_data"
     PREFIX "/test_data"
     BASE ${CMAKE_CURRENT_SOURCE_DIR}/data/

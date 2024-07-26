@@ -18,11 +18,9 @@
 
 #pragma once
 
-#include <QImage>
+#include <unordered_map>
 
 #include <glm/glm.hpp>
-
-#include <unordered_map>
 
 #include <nucleus/Raster.h>
 #include <nucleus/vector_tiles/VectorTileFeature.h>
