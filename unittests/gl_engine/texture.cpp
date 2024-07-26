@@ -112,6 +112,17 @@ void test_unsigned_texture_with(const TexelType& texel_value, gl_engine::Texture
     CHECK(qBlue(render_result.pixel(0, 0)) == 125);
     CHECK(qAlpha(render_result.pixel(0, 0)) == 126);
 }
+
+nucleus::Raster<glm::u8vec4> from_QImage(const QImage& image)
+{
+    assert(image.format() == QImage::Format_RGBA8888); // Ensure the image is in the correct format
+
+    glm::uvec2 size(image.width(), image.height());
+    nucleus::Raster<glm::u8vec4> raster(size);
+
+    std::memcpy(raster.data(), image.bits(), image.sizeInBytes());
+    return raster;
+}
 } // namespace
 
 TEST_CASE("gl texture")
@@ -140,8 +151,7 @@ TEST_CASE("gl texture")
         test_texture.save("test_texture.png");
     }
 
-    const auto test_raster = nucleus::Raster<glm::u8vec4>::fromQImage(test_texture);
-
+    const auto test_raster = from_QImage(test_texture);
 
     SECTION("compression")
     {
