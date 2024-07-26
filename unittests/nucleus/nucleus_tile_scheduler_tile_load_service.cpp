@@ -41,41 +41,23 @@ TEST_CASE("nucleus/tile_scheduler/TileLoadService")
 {
     SECTION("build tile url")
     {
+        using Pattern = TileLoadService::UrlPattern;
+        const QString base_url = "https://maps.wien.gv.at/basemap/bmaporthofoto30cm/normal/google3857/";
         {
-            TileLoadService
-                service("https://maps.wien.gv.at/basemap/bmaporthofoto30cm/normal/google3857/",
-                        TileLoadService::UrlPattern::ZXY,
-                        ".jpeg");
-            CHECK(service.build_tile_url({.zoom_level = 2, .coords = {1, 3}})
-                  == "https://maps.wien.gv.at/basemap/bmaporthofoto30cm/normal/google3857/2/1/"
-                     "3.jpeg");
+            TileLoadService service(base_url, Pattern::ZXY, ".jpeg");
+            CHECK(service.build_tile_url({ .zoom_level = 2, .coords = { 1, 3 } }) == base_url + "2/1/3.jpeg");
         }
         {
-            TileLoadService
-                service("https://maps.wien.gv.at/basemap/bmaporthofoto30cm/normal/google3857/",
-                        TileLoadService::UrlPattern::ZYX,
-                        ".jpeg");
-            CHECK(service.build_tile_url({.zoom_level = 2, .coords = {1, 3}})
-                  == "https://maps.wien.gv.at/basemap/bmaporthofoto30cm/normal/google3857/2/3/"
-                     "1.jpeg");
+            TileLoadService service(base_url, Pattern::ZYX, ".jpeg");
+            CHECK(service.build_tile_url({ .zoom_level = 2, .coords = { 1, 3 } }) == base_url + "2/3/1.jpeg");
         }
         {
-            TileLoadService
-                service("https://maps.wien.gv.at/basemap/bmaporthofoto30cm/normal/google3857/",
-                        TileLoadService::UrlPattern::ZXY_yPointingSouth,
-                        ".jpeg");
-            CHECK(service.build_tile_url({.zoom_level = 2, .coords = {1, 3}})
-                  == "https://maps.wien.gv.at/basemap/bmaporthofoto30cm/normal/google3857/2/1/"
-                     "0.jpeg");
+            TileLoadService service(base_url, Pattern::ZXY_yPointingSouth, ".jpeg");
+            CHECK(service.build_tile_url({ .zoom_level = 2, .coords = { 1, 3 } }) == base_url + "2/1/0.jpeg");
         }
         {
-            TileLoadService
-                service("https://maps.wien.gv.at/basemap/bmaporthofoto30cm/normal/google3857/",
-                        TileLoadService::UrlPattern::ZYX_yPointingSouth,
-                        ".jpeg");
-            CHECK(service.build_tile_url({.zoom_level = 2, .coords = {1, 3}})
-                  == "https://maps.wien.gv.at/basemap/bmaporthofoto30cm/normal/google3857/2/0/"
-                     "1.jpeg");
+            TileLoadService service(base_url, Pattern::ZYX_yPointingSouth, ".jpeg");
+            CHECK(service.build_tile_url({ .zoom_level = 2, .coords = { 1, 3 } }) == base_url + "2/0/1.jpeg");
         }
     }
 
