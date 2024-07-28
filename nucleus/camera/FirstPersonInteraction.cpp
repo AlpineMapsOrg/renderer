@@ -130,7 +130,6 @@ std::optional<Definition> FirstPersonInteraction::update(Definition camera, Abst
     if (m_key_q) {
         direction -= camera.y_axis();
     }
-    glm::normalize(direction);
     double dt = m_stopwatch.lap().count();
     if (dt > 120) { // catches big time steps
         dt = 120;

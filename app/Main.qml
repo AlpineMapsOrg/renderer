@@ -28,8 +28,14 @@ Item {
     id: main
     property int theme: Material.Light
     property int accent: Material.BlueGrey
-    property string selectedPage: "map";
-
+    property string selectedPage: "map"
+    property bool userInterfaceVisible: true
+    Shortcut {
+        id: ui_visibility_shortcut
+        sequence: "F10"
+        onActivated: userInterfaceVisible = !userInterfaceVisible
+        context: Qt.ApplicationShortcut
+    }
 
     Rectangle {
         id: tool_bar
@@ -40,6 +46,7 @@ Item {
             right: parent.right
             top: parent.top
         }
+        visible: userInterfaceVisible
 
         RowLayout {
             anchors.fill: parent
@@ -49,7 +56,7 @@ Item {
                 height: 48
                 color: "#00FF0000"
                 Image {
-                    source: "icons/menu.svg"
+                    source: _r + "icons/menu.png"
                     width: parent.width / 2
                     height: parent.height / 2
                     anchors.centerIn: parent
@@ -99,19 +106,19 @@ Item {
         DrawerButton {
             bid: 0
             text: qsTr ("Map")
-            iconSource: "../icons/material/map.svg"
+            iconSource: _r + "icons/material/map.png"
             onClicked: change_page("map", qsTr("Map"))
         }
 
         DrawerButton {
             text: qsTr ("Coordinates")
-            iconSource: "../icons/material/pin_drop.svg"
+            iconSource: _r + "icons/material/pin_drop.png"
             onClicked: change_page("Coordinates.qml", qsTr("Coordinates"))
         }
 
         DrawerButton {
             text: qsTr ("Settings")
-            iconSource: "../icons/material/settings.svg"
+            iconSource: _r + "icons/material/settings.png"
             onClicked: change_page("Settings.qml", qsTr("Settings"))
         }
 
@@ -119,7 +126,7 @@ Item {
 
         DrawerButton {
             text: qsTr("Reload Shaders")
-            iconSource: "../icons/material/3d_rotation.svg"
+            iconSource: _r + "icons/material/3d_rotation.png"
             hotkey: "F6"
             selectable: false
             onClicked: map.reload_shader();
@@ -128,7 +135,7 @@ Item {
         DrawerButton {
             text: (stats_window_loader.item !== null && stats_window_loader.item.visible) ? qsTr ("Hide Statistics") : qsTr("Statistics")
             hotkey: "F8"
-            iconSource: "../icons/material/monitoring.svg"
+            iconSource: _r + "icons/material/monitoring.png"
             selectable: false
             visible: _debug_gui
             onClicked: toggleStatsWindow();
@@ -136,10 +143,10 @@ Item {
 
         DrawerButton {
             text: qsTr("Hide User Interface")
-            iconSource: "../icons/material/visibility_off.svg"
-            hotkey: "F10"
+            iconSource: _r + "icons/material/visibility_off.png"
+            hotkey: ui_visibility_shortcut.nativeText
             selectable: false
-            onClicked: map.hud_visible = false;
+            onClicked: userInterfaceVisible = !userInterfaceVisible
         }
 
         DrawerSpacer {}
@@ -148,7 +155,7 @@ Item {
 
         DrawerButton {
             text: qsTr ("About")
-            iconSource: "../icons/material/info.svg"
+            iconSource: _r + "icons/material/info.png"
             onClicked: change_page("About.qml", qsTr("About"))
         }
 
@@ -167,9 +174,9 @@ Item {
             return
         }
         if (main_stack_view.depth === 1)
-            main_stack_view.push(_qmlPath + source)
+            main_stack_view.push(source)
         else
-            main_stack_view.replace(_qmlPath + source)
+            main_stack_view.replace(source)
         main_stack_view.selectedPage = selectedPage
         page_title.visible = true
         search.visible = false
@@ -187,28 +194,12 @@ Item {
 
 
     TerrainRenderer {
-        property var allLvl1HudElements: [tool_bar, main_stack_view, fab_group]
-        property var _hudElementsVisibility: []
         id: map
         focus: true
         anchors.fill: parent
         Keys.onPressed: function(event){
             if (event.key === Qt.Key_F8 && _debug_gui) {
                 toggleStatsWindow();
-            }
-        }
-
-        onHud_visible_changed: function(new_hud_visible) {
-            if (new_hud_visible) { // show all items
-                for (let i1 = 0; i1 < allLvl1HudElements.length; i1++) {
-                    allLvl1HudElements[i1].visible = _hudElementsVisibility[i1];
-                }
-            } else { // hide all items and save their state
-                _hudElementsVisibility = [];
-                for (let i = 0; i < allLvl1HudElements.length; i++) {
-                    _hudElementsVisibility.push(allLvl1HudElements[i].visible);
-                    allLvl1HudElements[i].visible = false;
-                }
             }
         }
     }
@@ -222,6 +213,7 @@ Item {
             left: parent.left
             right: parent.right
         }
+        visible: userInterfaceVisible
 
         initialItem: Map {
             renderer: map
@@ -230,10 +222,6 @@ Item {
 
     Loader {
         id: stats_window_loader
-    }
-
-    FloatingActionButtonGroup {
-        id: fab_group
     }
 
     Component.onCompleted: {

@@ -27,49 +27,19 @@ import "components"
 
 ColumnLayout {
     id: fab_group
-    property real button_spacing: 0
-    property real group_margin: 15
     width: 64
-    x: group_margin
-    y: map.height - implicitHeight - group_margin
-    spacing: button_spacing
-
-    function responsive_update() {
-        let newVisible = true;
-        if (main_stack_view.selectedPage === "settings") {
-            if (main.width < main.height) newVisible = false;
-        } else if (main_stack_view.selectedPage !== "map") {
-            newVisible = false;
-        }
-        fab_group.visible = newVisible;
-    }
-
-    Connections {
-        target: main
-        function onWidthChanged() {
-            responsive_update();
-        }
-        function onHeightChanged() {
-            responsive_update();
-        }
-    }
-    Connections {
-        target: main_stack_view;
-        function onSelectedPageChanged() {
-            responsive_update();
-        }
-    }
+    spacing: 0
 
     FloatingActionButton {
         rotation: map.camera_rotation_from_north
-        image: "../icons/material/navigation_offset.svg"
+        image: _r + "icons/material/navigation_offset.png"
         onClicked: map.rotate_north()
         size: parent.width
     }
 
     FloatingActionButton {
         id: fab_location
-        image: checked ?  "../icons/material/my_location.svg" : "../icons/material/location_searching.svg"
+        image: _r + "icons/material/" + (checked ? "my_location.png" : "location_searching.png")
         checkable: true
         size: parent.width
     }
@@ -90,7 +60,7 @@ ColumnLayout {
 
     FloatingActionButton {
         id: fab_presets
-        image: checked ? "../icons/material/chevron_left.svg" : "../icons/material/format_paint.svg"
+        image: _r + "icons/material/" + (checked ? "chevron_left.png" : "format_paint.png")
         size: parent.width
         checkable: true
 
@@ -110,7 +80,7 @@ ColumnLayout {
                 height: parent.height
 
                 FloatingActionButton {
-                    image: "../icons/presets/basic.png"
+                    image: _r + "icons/presets/basic.png"
                     onClicked: map.set_gl_preset("AAABIHjaY2BgYLL_wAAGGPRhY2EHEP303YEDIPrZPr0FQHr_EU-HBAYEwKn_5syZIPX2DxgEGLDQcP0_ILQDBwMKcHBgwAoc7KC0CJTuhyh0yGRAoeHueIBK4wAKQMwIxXAAAFQuIIw")
                     size: parent.height
                     image_size: 42
@@ -121,7 +91,7 @@ ColumnLayout {
                 }
 
                 FloatingActionButton {
-                    image: "../icons/presets/shaded.png"
+                    image: _r + "icons/presets/shaded.png"
                     onClicked: map.set_gl_preset("AAABIHjaY2BgYLL_wAAGGPRhY2EHEP1s0rwEMG32D0TvPxS4yIEBAXDqvzlz5gIQ_YBBgAELDdf_A0I7cDCgAAcHBqzAwQ5Ki0DpfohCh0wGFBrujgeoNBAwQjEyXwFNHEwDAMaIIAM")
                     size: parent.height
                     image_size: 42
@@ -132,7 +102,7 @@ ColumnLayout {
                 }
 
                 FloatingActionButton {
-                    image: "../icons/presets/snow.png"
+                    image: _r + "icons/presets/snow.png"
                     onClicked: map.set_gl_preset("AAABIHjaY2BgYLL_wAAGGPRhY2EHEP1s0rwEMG32D0TvPxS4yIEBAXDqvzlz5gIQ_YBBgAELDdf_A0I7cDCgAAcHVPPg4nZQWgRK90MUOmQyoNBwdzxApYGAEYqR-Qpo4mAaAFhrITI")
                     size: parent.height
                     image_size: 42

@@ -6,7 +6,7 @@
  *
  */
 
-import QtQuick 2.0
+import QtQuick
 
 WheelArea {
     id: control
@@ -33,7 +33,7 @@ WheelArea {
     }
 
     Image {
-        source: "../../icons/needle_head_down.svg"
+        source: _r + "icons/needle_head_down.png"
         anchors.centerIn: hueRing
         anchors.verticalCenterOffset: hueRing.radius - hueRing.thickness
     }

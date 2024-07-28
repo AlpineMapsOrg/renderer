@@ -1,6 +1,7 @@
 /*****************************************************************************
  * Alpine Terrain Renderer
  * Copyright (C) 2023 Gerald Kimmersdorfer
+ * Copyright (C) 2024 Patrick Komon
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -35,11 +36,9 @@ ShadowMapping::ShadowMapping(std::shared_ptr<ShaderProgram> program, std::shared
 {
      m_f = QOpenGLContext::currentContext()->extraFunctions();
     for (int i = 0; i < SHADOW_CASCADES; i++) {
-        m_shadowmapbuffer.push_back(std::make_unique<Framebuffer>(
-            Framebuffer::DepthFormat::Float32,
-            std::vector<TextureDefinition>{}, // no colour texture needed (=> depth only)
-            glm::uvec2(SHADOWMAP_WIDTH, SHADOWMAP_HEIGHT)
-            ));
+        m_shadowmapbuffer.push_back(std::make_unique<Framebuffer>(Framebuffer::DepthFormat::Float32,
+            std::vector<Framebuffer::ColourFormat> {}, // no colour texture needed (=> depth only)
+            glm::uvec2(SHADOWMAP_WIDTH, SHADOWMAP_HEIGHT)));
     }
 }
 
@@ -82,7 +81,7 @@ void ShadowMapping::draw(
         m_f->glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
         m_shadow_program->set_uniform("current_layer", i);
-        tile_manager->draw(m_shadow_program.get(), camera, draw_tileset, true, glm::dvec3(0.0));
+        tile_manager->draw(m_shadow_program.get(), camera, draw_tileset, false, glm::dvec3(0.0));
         m_shadowmapbuffer[i]->unbind();
     }
     m_shadow_program->release();
@@ -161,5 +160,12 @@ glm::mat4 ShadowMapping::getLightSpaceMatrix(const float nearPlane, const float 
     return lightProjection * lightView;// * glm::translate(camera.position());
 }
 
+nucleus::camera::Frustum ShadowMapping::getFrustum([[maybe_unused]] const nucleus::camera::Definition& camera)
+{
+    auto frustum = nucleus::camera::Frustum();
+    //TODO set clipping planes and corners according to light source's view frustum
+    // this would be a box covering the entire camera view frustum
+    return frustum;
+}
 
 }

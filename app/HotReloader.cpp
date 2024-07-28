@@ -26,6 +26,7 @@ HotReloader::HotReloader(QQmlApplicationEngine* engine, QString directory, QObje
     : QObject { parent }
     , m_engine(engine)
 {
+#if !defined(__EMSCRIPTEN__) && !defined(__ANDROID__)
     m_watcher = new QFileSystemWatcher(this);
     directory.replace("file:/", "");
     m_watcher->addPath(directory);
@@ -41,9 +42,14 @@ HotReloader::HotReloader(QQmlApplicationEngine* engine, QString directory, QObje
         qDebug("path updated: %s", path.toStdString().c_str());
         emit watched_source_changed();
     });
+#else
+    Q_UNUSED(directory);
+#endif
 }
 
 void HotReloader::clear_cache()
 {
+#if !defined(__EMSCRIPTEN__) && !defined(__ANDROID__)
     m_engine->clearComponentCache();
+#endif
 }

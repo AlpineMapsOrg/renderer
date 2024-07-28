@@ -75,7 +75,7 @@ TerrainRendererItem::TerrainRendererItem(QQuickItem* parent)
     connect(m_settings, &AppSettings::gl_sundir_date_link_changed, this, &TerrainRendererItem::gl_sundir_date_link_changed);
     connect(m_settings, &AppSettings::render_quality_changed, this, &TerrainRendererItem::schedule_update);
 
-    m_update_timer->setSingleShot(true);
+    m_update_timer->setSingleShot(!m_continuous_update);
     m_update_timer->setInterval(1000 / m_frame_limit);
     setMirrorVertically(true);
     setAcceptTouchEvents(true);
@@ -195,9 +195,6 @@ void TerrainRendererItem::keyPressEvent(QKeyEvent* e)
 {
     if (e->isAutoRepeat()) {
         return;
-    }
-    if (e->key() == Qt::Key::Key_F10) {
-        set_hud_visible(!m_hud_visible);
     }
     emit key_pressed(e->keyCombination());
     RenderThreadNotifier::instance()->notify();
@@ -497,12 +494,6 @@ void TerrainRendererItem::set_shared_config(gl_engine::uboSharedConfig new_share
     }
 }
 
-void TerrainRendererItem::set_hud_visible(bool new_hud_visible) {
-    if (new_hud_visible == m_hud_visible) return;
-    m_hud_visible = new_hud_visible;
-    emit hud_visible_changed(m_hud_visible);
-}
-
 void TerrainRendererItem::set_selected_camera_position_index(unsigned value) {
 
     schedule_update();
@@ -587,6 +578,24 @@ void TerrainRendererItem::update_gl_sun_dir_from_sun_angles(gl_engine::uboShared
     auto newDir = nucleus::utils::sun_calculations::sun_rays_direction_from_sun_angles(glm::vec2(m_sun_angles.x(), m_sun_angles.y()));
     QVector4D newDirUboEntry(newDir.x, newDir.y, newDir.z, ubo.m_sun_light_dir.w());
     ubo.m_sun_light_dir = newDirUboEntry;
+}
+
+bool TerrainRendererItem::continuous_update() const
+{
+    return m_continuous_update;
+}
+
+void TerrainRendererItem::set_continuous_update(bool new_continuous_update)
+{
+    qDebug() << "TerrainRendererItem::m_continuous_update" << m_continuous_update;
+    qDebug() << "TerrainRendererItem::new_continuous_update" << new_continuous_update;
+    if (m_continuous_update == new_continuous_update)
+        return;
+    qDebug() << "continuoius update" << m_continuous_update;
+    m_continuous_update = new_continuous_update;
+    m_update_timer->setSingleShot(!m_continuous_update);
+    m_update_timer->start();
+    emit continuous_update_changed(m_continuous_update);
 }
 
 void TerrainRendererItem::init_after_creation_slot() {
