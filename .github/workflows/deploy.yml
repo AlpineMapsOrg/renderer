@@ -26,11 +26,11 @@ jobs:
         include:
           - qtarch: wasm_singlethread
             qttarget: 'desktop'
-            qtmodules: 'qtcharts'
+            qtmodules: ''
             additional_build_flags: '--target install'
           - qtarch: wasm_multithread
             qttarget: 'desktop'
-            qtmodules: 'qtcharts'
+            qtmodules: ''
             additional_cmake_flags: '-DALP_ENABLE_THREADING=ON'
             additional_build_flags: '--target install'
           - qtarch: android_arm64_v8a
