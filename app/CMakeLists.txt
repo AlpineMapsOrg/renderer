@@ -85,7 +85,7 @@ qt_add_qml_module(alpineapp
         icons/material/my_location.png
         icons/material/navigation.png
         icons/material/navigation_offset.png
-        icons/material/add.svg
+        icons/material/add.png
         icons/material/chevron_left.png
         icons/material/visibility_off.png
         icons/presets/basic.png
