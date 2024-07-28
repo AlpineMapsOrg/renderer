@@ -18,14 +18,12 @@
 
 #include "GPX.h"
 
-#include <srs.h>
-
-#include <glm/gtx/io.hpp>
-
 #include <QDebug>
 #include <QFile>
 #include <QXmlStreamReader>
 #include <QDateTime>
+
+#include "../srs.h"
 
 namespace nucleus {
 namespace gpx {
