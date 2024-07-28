@@ -103,9 +103,9 @@ jobs:
         echo "ANDROID_BUILD_DIR=$BUILD_DIR/$APK_TARGET/android-build/" >> $GITHUB_ENV
         echo "DEPLOYMENT_SETTINGS=$BUILD_DIR/$APK_TARGET/android-alpineapp-deployment-settings.json" >> $GITHUB_ENV
 
-    # - name: Remove StatsWindow, otherwise the webassembly will link against qtwidgets and charts.
-    #   if: matrix.qttarget == 'desktop'
-    #   run: rm ./app/StatsWindow.qml
+    - name: Remove StatsWindow, otherwise the webassembly will link against qtwidgets and charts.
+      if: matrix.qttarget == 'desktop'
+      run: rm ./app/StatsWindow.qml
 
     - name: Configure CMake
       env:
