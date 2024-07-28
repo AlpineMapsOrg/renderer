@@ -133,8 +133,7 @@ public slots:
     void set_gl_preset(const QString& preset_b64_string);
     void read_global_position(glm::dvec3 latlonalt);
     void camera_definition_changed(const nucleus::camera::Definition& new_definition); // gets called whenever camera changes
-    void add_track(const QString& track);
-    void get_upload_file();
+    void upload_track();
 
 private slots:
     void schedule_update();

@@ -251,8 +251,7 @@ void TerrainRendererItem::set_gl_preset(const QString& preset_b64_string) {
     set_shared_config(tmp);
 }
 
-
-void TerrainRendererItem::get_upload_file()
+void TerrainRendererItem::upload_track()
 {
     auto fileContentReady = [this](const QString &fileName, const QByteArray &fileContent) {
         (void)fileContent;
@@ -282,31 +281,6 @@ void TerrainRendererItem::get_upload_file()
     };
 
     QFileDialog::getOpenFileContent("GPX (*.gpx *.xml)",  fileContentReady);
-}
-
-void TerrainRendererItem::add_track(const QString& track)
-{
-    QUrl url(track);
-
-    if (url.isLocalFile()) {
-
-        std::unique_ptr<nucleus::gpx::Gpx> gpx = nucleus::gpx::parse(url.toLocalFile());
-
-        if (gpx != nullptr)
-        {
-            emit gpx_track_added_by_user(*gpx);
-
-            if (0 < gpx->track.size() && 0 < gpx->track[0].size())
-            {
-                auto track_start = gpx->track[0][0];
-                emit position_set_by_user(track_start.latitude, track_start.longitude);
-            }
-        } else {
-            qDebug("Coud not parse GPX file!");
-        }
-
-        RenderThreadNotifier::instance()->notify();
-    }
 }
 
 void TerrainRendererItem::schedule_update()
