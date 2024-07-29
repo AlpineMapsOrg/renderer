@@ -21,7 +21,6 @@ import QtQuick
 import QtQuick.Controls
 import QtQuick.Controls.Material
 import QtQuick.Layouts
-import QtQuick.Dialogs
 import Alpine
 import "components"
 
@@ -45,7 +44,7 @@ ColumnLayout {
     }
 
     FloatingActionButton {
-        image: "../icons/material/add.svg"
+        image: _r + "icons/material/add.png"
         size: parent.width
         onClicked: map.upload_track()
         ToolTip.visible: right
@@ -65,7 +64,7 @@ ColumnLayout {
             width: fabsubgroup.implicitWidth + parent.width
 
             color: Qt.alpha(Material.backgroundColor, 0.3)
-            border { width:2; color:Qt.alpha( "black", 0.5); }
+            border { width: 2; color: Qt.alpha( "black", 0.5); }
 
             RowLayout {
                 x: parent.parent.width
