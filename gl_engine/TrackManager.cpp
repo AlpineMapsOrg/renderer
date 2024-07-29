@@ -31,7 +31,7 @@
 #include <QOpenGLFunctions_3_3_Core> // for wireframe mode
 #endif
 
-#define ENABLE_BOUNDING_QUADS 1
+#define ENABLE_BOUNDING_QUADS 0
 
 namespace gl_engine {
 
