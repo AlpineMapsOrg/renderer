@@ -226,14 +226,14 @@ void main() {
                 } else {
 
                     // track has constant alpha upto min_below, then it slowly falls off
-                    float distance_below = t - dist;
-                    float min_below = 100.0;
-                    float max_below = 2000.0;
+                    highp float distance_below = t - dist;
+                    highp float min_below = 100.0;
+                    highp float max_below = 2000.0;
 
                     if (distance_below < min_below) {
                         out_color = vec4(color, 0.5);
                     } else {
-                        float t = (distance_below - min_below) / (max_below - min_below);
+                        highp float t = (distance_below - min_below) / (max_below - min_below);
                         out_color = vec4(color, 0.5 * (1.0 - t));
                     }
                 }
