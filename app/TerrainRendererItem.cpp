@@ -136,7 +136,6 @@ QQuickFramebufferObject::Renderer* TerrainRendererItem::createRenderer() const
     });
 
     // connect glWindow to forward key events.
-    connect(this, &TerrainRendererItem::key_pressed, r->glWindow(), &gl_engine::Window::key_press);
     connect(this, &TerrainRendererItem::shared_config_changed, r->glWindow(), &gl_engine::Window::shared_config_changed);
     // connect glWindow for shader hotreload by frontend button
     connect(this, &TerrainRendererItem::reload_shader, r->glWindow(), &gl_engine::Window::reload_shader);

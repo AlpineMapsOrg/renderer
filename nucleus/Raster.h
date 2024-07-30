@@ -1,6 +1,7 @@
 /*****************************************************************************
- * Alpine Terrain Builder
- * Copyright (C) 2022 alpinemaps.org
+ * AlpineMaps.org
+ * Copyright (C) 2022 Adam Celarek
+ * Copyright (C) 2024 Gerald Kimmersdorfer
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -23,6 +24,7 @@
 #include <vector>
 
 #include <glm/glm.hpp>
+
 
 namespace nucleus {
 
@@ -65,6 +67,8 @@ public:
     [[nodiscard]] size_t width() const { return m_width; }
     [[nodiscard]] size_t height() const { return m_height; }
     [[nodiscard]] glm::uvec2 size() const { return { m_width, m_height }; }
+    [[nodiscard]] size_t size_in_bytes() const { return m_data.size() * sizeof(T); }
+    [[nodiscard]] size_t size_per_line() const { return m_width * sizeof(T); }
     [[nodiscard]] size_t buffer_length() const { return m_data.size(); }
     [[nodiscard]] const T& pixel(const glm::uvec2& position) const { return m_data[position.x + m_width * position.y]; }
     [[nodiscard]] T& pixel(const glm::uvec2& position) { return m_data[position.x + m_width * position.y]; }

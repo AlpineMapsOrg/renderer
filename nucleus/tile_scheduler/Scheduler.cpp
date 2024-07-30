@@ -2,6 +2,7 @@
  * Alpine Terrain Renderer
  * Copyright (C) 2023 Adam Celarek
  * Copyright (C) 2024 Lucas Dworschak
+ * Copyright (C) 2024 Gerald Kimmersdorfer
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -28,6 +29,7 @@
 #include <QTimer>
 
 #include "nucleus/tile_scheduler/utils.h"
+#include "nucleus/utils/image_loader.h"
 #include "nucleus/utils/tile_conversion.h"
 #include "nucleus/vector_tiles/VectorTileManager.h"
 #include "radix/quad_tree.h"
@@ -37,12 +39,9 @@
 using namespace nucleus::tile_scheduler;
 
 Scheduler::Scheduler(QObject* parent)
-    : Scheduler { white_jpeg_tile(m_ortho_tile_size), black_png_tile(m_height_tile_size), parent }
-{
-}
-
-Scheduler::Scheduler(const QByteArray& default_ortho_tile, const QByteArray& default_height_tile, QObject* parent)
-    : QObject { parent }
+    : QObject { parent},
+    m_default_ortho_raster(glm::uvec2(m_ortho_tile_size), { 255, 255, 255, 255}),
+    m_default_height_raster(glm::uvec2(m_height_tile_size), { 0, 0, 0, 255})
 {
     m_update_timer = std::make_unique<QTimer>(this);
     m_update_timer->setSingleShot(true);
@@ -56,9 +55,13 @@ Scheduler::Scheduler(const QByteArray& default_ortho_tile, const QByteArray& def
     m_persist_timer = std::make_unique<QTimer>(this);
     m_persist_timer->setSingleShot(true);
     connect(m_persist_timer.get(), &QTimer::timeout, this, &Scheduler::persist_tiles);
+}
 
-    m_default_ortho_tile = std::make_shared<QByteArray>(default_ortho_tile);
-    m_default_height_tile = std::make_shared<QByteArray>(default_height_tile);
+Scheduler::Scheduler(const QByteArray& default_ortho_tile, const QByteArray& default_height_tile, QObject* parent)
+    : Scheduler(parent)
+{
+    m_default_ortho_raster = nucleus::utils::image_loader::rgba8(default_ortho_tile);
+    m_default_height_raster = nucleus::utils::image_loader::rgba8(default_height_tile);
 }
 
 Scheduler::~Scheduler() = default;
@@ -174,21 +177,25 @@ void Scheduler::update_gpu_quads()
                            gpu_quad.tiles[i].id = quad.tiles[i].id;
                            gpu_quad.tiles[i].bounds = m_aabb_decorator->aabb(quad.tiles[i].id);
 
-                           // unpacking the byte data takes long
-                           const auto* ortho_data = m_default_ortho_tile.get();
                            if (quad.tiles[i].ortho->size()) {
-                               ortho_data = quad.tiles[i].ortho.get();
+                               // Ortho image is available
+                               Raster<glm::u8vec4> ortho_raster = nucleus::utils::image_loader::rgba8(*quad.tiles[i].ortho.get());
+                               gpu_quad.tiles[i].ortho = std::make_shared<nucleus::utils::ColourTexture>(ortho_raster, m_ortho_tile_compression_algorithm);
+                           } else {
+                               // Ortho image is not available (use white default tile)
+                               gpu_quad.tiles[i].ortho = std::make_shared<nucleus::utils::ColourTexture>(m_default_ortho_raster, m_ortho_tile_compression_algorithm);
                            }
-                           const auto ortho_qimage = nucleus::utils::tile_conversion::toQImage(*ortho_data);
-                           gpu_quad.tiles[i].ortho = std::make_shared<nucleus::utils::ColourTexture>(ortho_qimage, m_ortho_tile_compression_algorithm);
 
-                           const auto* height_data = m_default_height_tile.get();
                            if (quad.tiles[i].height->size()) {
-                               height_data = quad.tiles[i].height.get();
+                               // Height image is available
+                               Raster<glm::u8vec4> height_image = nucleus::utils::image_loader::rgba8(*quad.tiles[i].height.get());
+                               auto heightraster = nucleus::utils::tile_conversion::to_u16raster(height_image);
+                               gpu_quad.tiles[i].height = std::make_shared<nucleus::Raster<uint16_t>>(std::move(heightraster));
+                           } else {
+                               // Height image is not available (use black default tile)
+                               auto heightraster = nucleus::utils::tile_conversion::to_u16raster(m_default_height_raster);
+                               gpu_quad.tiles[i].height = std::make_shared<nucleus::Raster<uint16_t>>(std::move(heightraster));
                            }
-                           auto heightraster = nucleus::utils::tile_conversion::qImage2uint16Raster(nucleus::utils::tile_conversion::toQImage(*height_data));
-                           gpu_quad.tiles[i].height = std::make_shared<nucleus::Raster<uint16_t>>(
-                               std::move(heightraster));
 
                            const auto* vectortile_data = m_default_vector_tile.get();
                            vectortile_data = quad.tiles[i].vector_tile.get();
@@ -345,27 +352,6 @@ Cache<tile_types::TileQuad>& Scheduler::ram_cache()
     return m_ram_cache;
 }
 
-QByteArray Scheduler::white_jpeg_tile(unsigned int size)
-{
-    QImage default_tile(QSize { int(size), int(size) }, QImage::Format_ARGB32);
-    default_tile.fill(Qt::GlobalColor::white);
-    QByteArray arr;
-    QBuffer buffer(&arr);
-    buffer.open(QIODevice::WriteOnly);
-    default_tile.save(&buffer, "JPEG");
-    return arr;
-}
-
-QByteArray Scheduler::black_png_tile(unsigned size)
-{
-    QImage default_tile(QSize { int(size), int(size) }, QImage::Format_ARGB32);
-    default_tile.fill(Qt::GlobalColor::black);
-    QByteArray arr;
-    QBuffer buffer(&arr);
-    buffer.open(QIODevice::WriteOnly);
-    default_tile.save(&buffer, "PNG");
-    return arr;
-}
 
 std::filesystem::path Scheduler::disk_cache_path()
 {

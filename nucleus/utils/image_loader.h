@@ -1,6 +1,7 @@
 /*****************************************************************************
- * Alpine Terrain Renderer
- * Copyright (C) 2024 Lucas Dworschak
+ * AlpineMaps.org
+ * Copyright (C) 2024 Gerald Kimmersdorfer
+ * Copyright (C) 2024 Adam Celarek
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -18,36 +19,14 @@
 
 #pragma once
 
-#include <unordered_map>
-
-#include <glm/glm.hpp>
-
 #include <nucleus/Raster.h>
-#include <nucleus/vector_tiles/VectorTileFeature.h>
+#include <QByteArray>
 
-struct stbtt_fontinfo;
+namespace nucleus::utils::image_loader {
 
-namespace nucleus::maplabel {
+Raster<glm::u8vec4> rgba8(const QByteArray& byteArray);
 
-struct CharData {
-    uint16_t x, y, width, height; // coordinates of bbox in bitmap
-    float xoff, yoff; // position offsets for e.g. lower/uppercase
-    int texture_index;
-};
+Raster<glm::u8vec4> rgba8(const QString& filename);
+Raster<glm::u8vec4> rgba8(const char* filename);
 
-struct VertexData {
-    glm::vec4 position; // start_x, start_y, offset_x, offset_y
-    glm::vec4 uv; // start_u, start_v, offset_u, offset_v
-    glm::vec3 world_position;
-    float importance;
-    int32_t texture_index;
-};
-
-struct AtlasData {
-    bool changed;
-    std::vector<Raster<glm::u8vec2>> font_atlas;
-};
-
-typedef std::unordered_map<nucleus::vectortile::FeatureType, Raster<glm::u8vec4>> LabelIcons;
-
-} // namespace nucleus::maplabel
+} // namespace nucleus::utils::image_loader

@@ -1,6 +1,6 @@
 /*****************************************************************************
  * Alpine Renderer
- * Copyright (C) 2022 Adam Celarek
+ * Copyright (C) 2024 Lucas Dworschak
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -16,11 +16,8 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *****************************************************************************/
 
-#include <QDebug>
-#include <QFile>
 #include <QSignalSpy>
 #include <catch2/catch_test_macros.hpp>
-#include <iostream>
 
 //#include "nucleus/tile_scheduler/TileLoadService.h"
 //#include "nucleus/tile_scheduler/utils.h"
@@ -35,7 +32,6 @@
 
 TEST_CASE("nucleus/vector_tiles")
 {
-
 
 
 

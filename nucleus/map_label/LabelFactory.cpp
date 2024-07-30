@@ -24,6 +24,7 @@
 
 #include "nucleus/map_label/Charset.h"
 #include "nucleus/Raster.h"
+#include "nucleus/utils/image_loader.h"
 
 #define STBTT_STATIC
 #define STB_TRUETYPE_IMPLEMENTATION
@@ -86,14 +87,14 @@ const LabelIcons LabelFactory::get_label_icons()
 {
     LabelIcons li;
     // paint svg icon into the an image of appropriate size
-    li[nucleus::vectortile::FeatureType::Peak] = QImage(":/map_icons/peak.png");
+    li[nucleus::vectortile::FeatureType::Peak] = nucleus::utils::image_loader::rgba8(":/map_icons/peak.png");
     // TODO @lucas add appropriate icon
-    li[nucleus::vectortile::FeatureType::City] = QImage(":/map_icons/peak.png");
+    li[nucleus::vectortile::FeatureType::City] = nucleus::utils::image_loader::rgba8(":/map_icons/peak.png");
     // TODO @lucas add appropriate icon
-    li[nucleus::vectortile::FeatureType::Cottage] = QImage(":/map_icons/peak.png");
+    li[nucleus::vectortile::FeatureType::Cottage] = nucleus::utils::image_loader::rgba8(":/map_icons/peak.png");
 
     // TODO @lucas add appropriate default icon
-    li[nucleus::vectortile::FeatureType::ENUM_END] = QImage(":/map_icons/peak.png");
+    li[nucleus::vectortile::FeatureType::ENUM_END] = nucleus::utils::image_loader::rgba8(":/map_icons/peak.png");
 
     return li;
 }

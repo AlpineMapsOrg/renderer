@@ -36,6 +36,12 @@ Item {
         onActivated: userInterfaceVisible = !userInterfaceVisible
         context: Qt.ApplicationShortcut
     }
+    Shortcut {
+        id: reload_shaders_shortcut
+        sequence: "F6"
+        onActivated: map.reload_shader()
+        context: Qt.ApplicationShortcut
+    }
 
     Rectangle {
         id: tool_bar
@@ -127,7 +133,7 @@ Item {
         DrawerButton {
             text: qsTr("Reload Shaders")
             iconSource: _r + "icons/material/3d_rotation.png"
-            hotkey: "F6"
+            hotkey: reload_shaders_shortcut.nativeText
             selectable: false
             onClicked: map.reload_shader();
         }

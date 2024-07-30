@@ -1,6 +1,7 @@
 /*****************************************************************************
  * Alpine Terrain Renderer
  * Copyright (C) 2023 Adam Celarek
+ * Copyright (C) 2024 Gerald Kimmersdorfer
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -49,6 +50,7 @@ public:
     };
 
     explicit Scheduler(QObject* parent = nullptr);
+    // Seconds constructor still here for tests, Is it necessary?
     explicit Scheduler(const QByteArray& default_ortho_tile, const QByteArray& default_height_tile, QObject* parent = nullptr);
     ~Scheduler() override;
 
@@ -70,8 +72,6 @@ public:
     const Cache<tile_types::TileQuad>& ram_cache() const;
     Cache<tile_types::TileQuad>& ram_cache();
 
-    static QByteArray white_jpeg_tile(unsigned size);
-    static QByteArray black_png_tile(unsigned size);
     static std::filesystem::path disk_cache_path();
 
     [[nodiscard]] unsigned int persist_timeout() const;
@@ -129,9 +129,10 @@ private:
     utils::AabbDecoratorPtr m_aabb_decorator;
     Cache<tile_types::TileQuad> m_ram_cache;
     Cache<tile_types::GpuCacheInfo> m_gpu_cached;
-    std::shared_ptr<QByteArray> m_default_ortho_tile;
-    std::shared_ptr<QByteArray> m_default_height_tile;
+    Raster<glm::u8vec4> m_default_ortho_raster;
+    Raster<glm::u8vec4> m_default_height_raster;
     std::shared_ptr<QByteArray> m_default_vector_tile;
     nucleus::utils::ColourTexture::Format m_ortho_tile_compression_algorithm = nucleus::utils::ColourTexture::Format::Uncompressed_RGBA;
+
 };
 }

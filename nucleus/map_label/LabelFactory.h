@@ -18,11 +18,11 @@
 
 #pragma once
 
-#include <stb_slim/stb_truetype.h>
-
-#include <QImage>
 #include <unordered_map>
 #include <vector>
+
+#include <QSize>
+#include <stb_slim/stb_truetype.h>
 
 #include <nucleus/Raster.h>
 #include <nucleus/map_label/MapLabelData.h>

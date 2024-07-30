@@ -2,6 +2,7 @@
  * Alpine Terrain Renderer
  * Copyright (C) 2022 Adam Celarek
  * Copyright (C) 2023 Jakob Lindner
+ * Copyright (C) 2024 Gerald Kimmersdorfer
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -37,7 +38,7 @@ std::optional<Definition> CadInteraction::mouse_press_event(const event_paramete
     }
     if (e.buttons == Qt::LeftButton && m_stopwatch.lap().count() < 300) { // double click
         m_interpolation_start = m_operation_centre;
-        m_interpolation_target = depth_tester->position(camera.to_ndc({ e.point.position().x(), e.point.position().y() }));
+        m_interpolation_target = depth_tester->position(camera.to_ndc(e.point.position));
         m_interpolation_duration = 0;
 
         return camera;
@@ -48,23 +49,23 @@ std::optional<Definition> CadInteraction::mouse_press_event(const event_paramete
 std::optional<Definition> CadInteraction::mouse_move_event(const event_parameter::Mouse& e, Definition camera, AbstractDepthTester*)
 {
     if (e.buttons == Qt::LeftButton && !m_key_ctrl && !m_key_alt) {
-        const auto delta = e.point.position() - e.point.lastPosition();
+        const auto delta = e.point.position - e.point.last_position;
         double dist = glm::distance(camera.position(), m_operation_centre);
         double moveSpeedModifier = 750.0;
 
-        m_operation_centre = m_operation_centre - camera.x_axis() * delta.x() * (dist / moveSpeedModifier);
-        m_operation_centre = m_operation_centre + camera.y_axis() * delta.y() * (dist / moveSpeedModifier);
-        camera.move(-camera.x_axis() * delta.x() * (dist / moveSpeedModifier));
-        camera.move(camera.y_axis() * delta.y() * (dist / moveSpeedModifier));
+        m_operation_centre = m_operation_centre - camera.x_axis() * double(delta.x) * (dist / moveSpeedModifier);
+        m_operation_centre = m_operation_centre + camera.y_axis() * double(delta.y) * (dist / moveSpeedModifier);
+        camera.move(-camera.x_axis() * double(delta.x) * (dist / moveSpeedModifier));
+        camera.move(camera.y_axis() * double(delta.y) * (dist / moveSpeedModifier));
     }
     if (e.buttons == Qt::MiddleButton || (e.buttons == Qt::LeftButton && m_key_ctrl && !m_key_alt)) {
-        const auto delta = e.point.position() - e.point.lastPosition();
-        camera.orbit_clamped(m_operation_centre, glm::vec2(delta.x(), delta.y()) * -0.1f);
+        const auto delta = e.point.position - e.point.last_position;
+        camera.orbit_clamped(m_operation_centre, delta * -0.1f);
     }
     if (e.buttons == Qt::RightButton || (e.buttons == Qt::LeftButton && !m_key_ctrl && m_key_alt)) {
-        const auto delta = e.point.position() - e.point.lastPosition();
+        const auto delta = e.point.position - e.point.last_position;
         double dist = glm::distance(camera.position(), m_operation_centre);
-        double zoomDist = -(delta.y() + delta.x()) * dist / 400.0;
+        double zoomDist = -(delta.y + delta.x) * dist / 400.0;
         if (zoomDist < dist) {
             if (dist > 5.0 || zoomDist > 0.0) { // always allow zoom out
                 camera.zoom(zoomDist);

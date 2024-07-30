@@ -1,6 +1,7 @@
 /*****************************************************************************
  * Alpine Terrain Renderer
  * Copyright (C) 2023 Adam Celarek
+ * Copyright (C) 2024 Gerald Kimmersdorfer
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -22,10 +23,11 @@
 #include "nucleus/tile_scheduler/Cache.h"
 #include "radix/height_encoding.h"
 
-#include <QImage>
+#include "nucleus/utils/image_loader.h"
 
 namespace nucleus::tile_scheduler::cache_queries {
 
+// NOTE: UNTESTED since swap from QImage!
 inline float query_altitude(MemoryCache* cache, const glm::dvec2& lat_long)
 {
     const auto world_space = srs::lat_long_to_world(lat_long);
@@ -42,14 +44,18 @@ inline float query_altitude(MemoryCache* cache, const glm::dvec2& lat_long)
         if (srs::tile_bounds(layered_tile.id).contains(world_space)) {
             const auto bounds = srs::tile_bounds(layered_tile.id);
             const auto uv = (world_space - bounds.min) / bounds.size();
-            const auto height_tile = QImage::fromData(*layered_tile.height);
-            assert(!height_tile.isNull());
-            if (height_tile.isNull())
+
+            if (layered_tile.height && layered_tile.height->size()) {
+                const auto height_tile = nucleus::utils::image_loader::rgba8(*layered_tile.height);
+                const auto p = glm::uvec2(
+                    uint32_t(uv.x * height_tile.width()),
+                    uint32_t((1 - uv.y) * height_tile.height())
+                );
+                const auto px = height_tile.pixel(p);
+                return radix::height_encoding::to_float(glm::u8vec3(px));
+            } else {
                 return 1000;
-            const auto x = int(uv.x * height_tile.width());
-            const auto y = int((1 - uv.y) * height_tile.height());
-            const auto rgb = QColor(height_tile.pixel(x, y));
-            return radix::height_encoding::to_float({rgb.red(), rgb.green(), rgb.blue()});
+            }
         }
     }
 

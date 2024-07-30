@@ -67,7 +67,7 @@ private:
     void remove_tile(const tile::Id& tile_id);
 
     std::unique_ptr<Texture> m_font_texture;
-    std::unordered_map<nucleus::vectortile::FeatureType, std::unique_ptr<QOpenGLTexture>> m_icon_texture;
+    std::unordered_map<nucleus::vectortile::FeatureType, std::unique_ptr<Texture>> m_icon_texture;
 
     std::unique_ptr<QOpenGLBuffer> m_index_buffer;
     size_t m_indices_count; // how many vertices per character (most likely 6 since quads)

@@ -42,16 +42,16 @@ public:
 
     TileLoadService(const QString& base_url, UrlPattern url_pattern, const QString& file_ending, const LoadBalancingTargets& load_balancing_targets = {});
     ~TileLoadService() override;
-    [[nodiscard]] QString build_tile_url(const tile::Id& tile_id) const;
+    [[nodiscard]] QString build_tile_url(tile::Id tile_id) const;
 
     [[nodiscard]] unsigned int transfer_timeout() const;
     void set_transfer_timeout(unsigned int new_transfer_timeout);
 
 public slots:
-    void load(const tile::Id& tile_id);
+    void load(const tile::Id& tile_id) const;
 
 signals:
-    void load_finished(tile_types::TileLayer tile);
+    void load_finished(tile_types::TileLayer tile) const;
 
 private:
     unsigned m_transfer_timeout = tile_scheduler::constants::default_network_timeout;

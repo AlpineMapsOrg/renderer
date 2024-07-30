@@ -309,7 +309,7 @@ void Window::paint(QOpenGLFramebufferObject* framebuffer)
         f->glDepthFunc(GL_LEQUAL);
         // f->glDepthMask(GL_FALSE);
         m_shader_manager->labels_program()->bind();
-        m_map_label_manager->draw(m_gbuffer.get(), m_shader_manager->labels_program(), m_camera, tile_set);
+        m_map_label_manager->draw(m_gbuffer.get(), m_shader_manager->labels_program(), m_camera, culled_tile_set);
         m_shader_manager->labels_program()->release();
 
         if (framebuffer)
@@ -363,28 +363,6 @@ void Window::update_filter(const FilterDefinitions& filter_definitions)
 {
     // propagate signal
     m_map_label_manager->update_filter(filter_definitions);
-}
-
-void Window::key_press(const QKeyCombination& e) {
-    QKeyEvent ev = QKeyEvent(QEvent::Type::KeyPress, e.key(), e.keyboardModifiers());
-    this->keyPressEvent(&ev);
-}
-
-void Window::keyPressEvent(QKeyEvent* e)
-{
-    if (e->key() == Qt::Key::Key_F5) this->reload_shader();
-    if (e->key() == Qt::Key::Key_F11
-        || (e->key() == Qt::Key_P && e->modifiers() == Qt::ControlModifier)
-        || (e->key() == Qt::Key_F5 && e->modifiers() == Qt::ControlModifier)) {
-        e->ignore();
-    }
-
-    emit key_pressed(e->keyCombination());
-}
-
-void Window::keyReleaseEvent(QKeyEvent* e)
-{
-    emit key_released(e->keyCombination());
 }
 
 void Window::updateCameraEvent()
