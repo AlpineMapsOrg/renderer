@@ -45,7 +45,9 @@ public:
     void update_filter(const FilterDefinitions& filter_definitions);
 
 private:
-    std::unordered_map<tile::Id, std::unordered_map<nucleus::vectortile::FeatureType, std::unordered_set<std::shared_ptr<nucleus::vectortile::FeatureTXT>>>, tile::Id::Hasher> m_all_features;
+    std::unordered_map<tile::Id, std::unordered_map<nucleus::vectortile::FeatureType, std::unordered_set<std::shared_ptr<nucleus::vectortile::FeatureTXT>>>,
+        tile::Id::Hasher>
+        m_all_features;
 
     std::queue<tile::Id> tiles_to_filter;
     std::unordered_set<tile::Id, tile::Id::Hasher> all_tiles;

@@ -50,7 +50,9 @@ void MapLabelFilter::update_filter(const FilterDefinitions& filter_definitions)
     {
         if(m_definitions.m_peak_ele_range_filtered)
         {
-            m_filter_peaks.push_back([](const FilterDefinitions& definition, const std::shared_ptr<nucleus::vectortile::FeatureTXTPeak> feature){ return feature->elevation < definition.m_peak_ele_range.x() || feature->elevation > definition.m_peak_ele_range.y(); });
+            m_filter_peaks.push_back([](const FilterDefinitions& definition, const std::shared_ptr<nucleus::vectortile::FeatureTXTPeak> feature) {
+                return feature->elevation < definition.m_peak_ele_range.x() || feature->elevation > definition.m_peak_ele_range.y();
+            });
         }
     }
     else
@@ -108,7 +110,8 @@ void MapLabelFilter::remove_tile(const tile::Id id)
     }
 }
 
-void MapLabelFilter::apply_filter_peaks(std::unordered_set<std::shared_ptr<nucleus::vectortile::FeatureTXT>>& features, std::unordered_map<nucleus::vectortile::FeatureType, std::unordered_set<std::shared_ptr<nucleus::vectortile::FeatureTXT>>>& filtered_features)
+void MapLabelFilter::apply_filter_peaks(std::unordered_set<std::shared_ptr<nucleus::vectortile::FeatureTXT>>& features,
+    std::unordered_map<nucleus::vectortile::FeatureType, std::unordered_set<std::shared_ptr<nucleus::vectortile::FeatureTXT>>>& visible_features)
 {
     for(auto& feature : features)
     {
@@ -125,12 +128,13 @@ void MapLabelFilter::apply_filter_peaks(std::unordered_set<std::shared_ptr<nucle
 
         if(visible)
         {
-            filtered_features[nucleus::vectortile::FeatureType::Peak].insert(feature);
+            visible_features[nucleus::vectortile::FeatureType::Peak].insert(feature);
         }
     }
 }
 
-void MapLabelFilter::apply_filter_cities(std::unordered_set<std::shared_ptr<nucleus::vectortile::FeatureTXT>>& features, std::unordered_map<nucleus::vectortile::FeatureType, std::unordered_set<std::shared_ptr<nucleus::vectortile::FeatureTXT>>>& filtered_features)
+void MapLabelFilter::apply_filter_cities(std::unordered_set<std::shared_ptr<nucleus::vectortile::FeatureTXT>>& features,
+    std::unordered_map<nucleus::vectortile::FeatureType, std::unordered_set<std::shared_ptr<nucleus::vectortile::FeatureTXT>>>& visible_features)
 {
     for(auto& feature : features)
     {
@@ -147,12 +151,13 @@ void MapLabelFilter::apply_filter_cities(std::unordered_set<std::shared_ptr<nucl
 
         if(visible)
         {
-            filtered_features[nucleus::vectortile::FeatureType::City].insert(feature);
+            visible_features[nucleus::vectortile::FeatureType::City].insert(feature);
         }
     }
 }
 
-void MapLabelFilter::apply_filter_cottages(std::unordered_set<std::shared_ptr<nucleus::vectortile::FeatureTXT>>& features, std::unordered_map<nucleus::vectortile::FeatureType, std::unordered_set<std::shared_ptr<nucleus::vectortile::FeatureTXT>>>& filtered_features)
+void MapLabelFilter::apply_filter_cottages(std::unordered_set<std::shared_ptr<nucleus::vectortile::FeatureTXT>>& features,
+    std::unordered_map<nucleus::vectortile::FeatureType, std::unordered_set<std::shared_ptr<nucleus::vectortile::FeatureTXT>>>& visible_features)
 {
     for(auto& feature : features)
     {
@@ -169,14 +174,17 @@ void MapLabelFilter::apply_filter_cottages(std::unordered_set<std::shared_ptr<nu
 
         if(visible)
         {
-            filtered_features[nucleus::vectortile::FeatureType::Cottage].insert(feature);
+            visible_features[nucleus::vectortile::FeatureType::Cottage].insert(feature);
         }
     }
 }
 
-std::unordered_map<tile::Id, std::unordered_map<nucleus::vectortile::FeatureType, std::unordered_set<std::shared_ptr<nucleus::vectortile::FeatureTXT>>>, tile::Id::Hasher> MapLabelFilter::filter()
+std::unordered_map<tile::Id, std::unordered_map<nucleus::vectortile::FeatureType, std::unordered_set<std::shared_ptr<nucleus::vectortile::FeatureTXT>>>,
+    tile::Id::Hasher>
+MapLabelFilter::filter()
 {
-    auto filtered_features = std::unordered_map<tile::Id, std::unordered_map<nucleus::vectortile::FeatureType, std::unordered_set<std::shared_ptr<nucleus::vectortile::FeatureTXT>>>, tile::Id::Hasher>();
+    auto visible_features = std::unordered_map<tile::Id,
+        std::unordered_map<nucleus::vectortile::FeatureType, std::unordered_set<std::shared_ptr<nucleus::vectortile::FeatureTXT>>>, tile::Id::Hasher>();
 
     while(!tiles_to_filter.empty())
     {
@@ -185,27 +193,24 @@ std::unordered_map<tile::Id, std::unordered_map<nucleus::vectortile::FeatureType
         if(!all_tiles.contains(tile_id))
             continue; // tile was removed in the mean time
 
-        filtered_features[tile_id] = std::unordered_map<nucleus::vectortile::FeatureType, std::unordered_set<std::shared_ptr<nucleus::vectortile::FeatureTXT>>>();
-
+        visible_features[tile_id]
+            = std::unordered_map<nucleus::vectortile::FeatureType, std::unordered_set<std::shared_ptr<nucleus::vectortile::FeatureTXT>>>();
         for (int i = 0; i < nucleus::vectortile::FeatureType::ENUM_END; i++) {
             nucleus::vectortile::FeatureType type = (nucleus::vectortile::FeatureType)i;
 
             if(!m_all_features.contains(tile_id) || !m_all_features[tile_id].contains(type))
                 continue;
 
-//            for(auto feature : m_all_features.at(tile_id)[type])
-//            {
-            if(type == nucleus::vectortile::FeatureType::Peak)
-                apply_filter_peaks(m_all_features.at(tile_id)[type], filtered_features.at(tile_id));
-            else if(type == nucleus::vectortile::FeatureType::City)
-                 apply_filter_cities(m_all_features.at(tile_id)[type], filtered_features.at(tile_id));
+            if (type == nucleus::vectortile::FeatureType::Peak)
+                apply_filter_peaks(m_all_features.at(tile_id)[type], visible_features.at(tile_id));
+            else if (type == nucleus::vectortile::FeatureType::City)
+                apply_filter_cities(m_all_features.at(tile_id)[type], visible_features.at(tile_id));
             else if(type == nucleus::vectortile::FeatureType::Cottage)
-                apply_filter_cottages(m_all_features.at(tile_id)[type], filtered_features.at(tile_id));
-//            }
+                apply_filter_cottages(m_all_features.at(tile_id)[type], visible_features.at(tile_id));
         }
     }
 
-    return filtered_features;
+    return visible_features;
 }
 
 } // namespace nucleus::maplabel
