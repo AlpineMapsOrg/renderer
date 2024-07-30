@@ -140,7 +140,7 @@ QQuickFramebufferObject::Renderer* TerrainRendererItem::createRenderer() const
     // connect glWindow for shader hotreload by frontend button
     connect(this, &TerrainRendererItem::reload_shader, r->glWindow(), &gl_engine::Window::reload_shader);
 
-    connect(this, &TerrainRendererItem::update_filter, r->glWindow(), &gl_engine::Window::update_filter);
+    connect(this, &TerrainRendererItem::filter_updated, r->glWindow(), &gl_engine::Window::update_filter);
 
     connect(r->glWindow(), &gl_engine::Window::report_measurements, this->m_timer_manager, &TimerFrontendManager::receive_measurements);
 
@@ -220,10 +220,10 @@ void TerrainRendererItem::camera_definition_changed(const nucleus::camera::Defin
     recalculate_sun_angles();
 }
 
-void TerrainRendererItem::filter_updated(FilterDefinitions filter_definitions)
+void TerrainRendererItem::trigger_filter_update(FilterDefinitions filter_definitions)
 {
     // propagate signal
-    emit update_filter(filter_definitions);
+    emit filter_updated(filter_definitions);
 }
 
 void TerrainRendererItem::set_position(double latitude, double longitude)

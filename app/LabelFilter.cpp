@@ -22,7 +22,7 @@
 
 LabelFilter::LabelFilter()
 {
-    connect(this, &LabelFilter::filter_changed, this, &LabelFilter::filter_updated);
+    connect(this, &LabelFilter::filter_changed, this, &LabelFilter::trigger_filter_update);
     m_elevation_range = m_default_filter_definitions.m_peak_ele_range;
 }
 
@@ -31,12 +31,12 @@ LabelFilter::~LabelFilter()
     qDebug("LabelFilter::~LabelFilter");
 }
 
-void LabelFilter::filter_updated()
+void LabelFilter::trigger_filter_update()
 {
     // check against default values what changed
     m_filter_definitions.m_peak_ele_range_filtered = m_filter_definitions.m_peak_ele_range != m_default_filter_definitions.m_peak_ele_range;
 
-    emit update_filter(m_filter_definitions);
+    emit filter_updated(m_filter_definitions);
 }
 
 QVector2D LabelFilter::elevation_range() const

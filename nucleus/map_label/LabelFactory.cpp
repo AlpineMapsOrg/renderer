@@ -99,7 +99,7 @@ const LabelIcons LabelFactory::get_label_icons()
     return li;
 }
 
-const std::vector<VertexData> LabelFactory::create_labels(const std::unordered_set<std::shared_ptr<nucleus::vectortile::FeatureTXT>>& features)
+const std::vector<VertexData> LabelFactory::create_labels(const std::unordered_set<std::shared_ptr<const nucleus::vectortile::FeatureTXT>>& features)
 {
     std::vector<VertexData> labelData;
 

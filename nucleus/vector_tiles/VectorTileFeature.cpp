@@ -52,7 +52,7 @@ void FeatureTXT::parse(std::shared_ptr<FeatureTXT> ft, const mapbox::vector_tile
     ft->worldposition = nucleus::srs::lat_long_alt_to_world(glm::dvec3(ft->position.x, ft->position.y, altitude));
 }
 
-std::shared_ptr<FeatureTXT> FeatureTXTPeak::parse(const mapbox::vector_tile::feature& feature, const std::shared_ptr<DataQuerier> dataquerier)
+std::shared_ptr<const FeatureTXT> FeatureTXTPeak::parse(const mapbox::vector_tile::feature& feature, const std::shared_ptr<DataQuerier> dataquerier)
 {
     auto peak = std::make_shared<FeatureTXTPeak>();
     FeatureTXT::parse(peak, feature, dataquerier);
@@ -81,7 +81,7 @@ std::shared_ptr<FeatureTXT> FeatureTXTPeak::parse(const mapbox::vector_tile::fea
     return peak;
 }
 
-QString FeatureTXTPeak::labelText()
+QString FeatureTXTPeak::labelText() const
 {
     if (elevation == 0)
         return name;
@@ -89,7 +89,7 @@ QString FeatureTXTPeak::labelText()
         return QString("%1 (%2m)").arg(name).arg(double(elevation), 0, 'f', 0);
 }
 
-std::shared_ptr<FeatureTXT> FeatureTXTCity::parse(const mapbox::vector_tile::feature& feature, const std::shared_ptr<DataQuerier> dataquerier)
+std::shared_ptr<const FeatureTXT> FeatureTXTCity::parse(const mapbox::vector_tile::feature& feature, const std::shared_ptr<DataQuerier> dataquerier)
 {
     auto city = std::make_shared<FeatureTXTCity>();
     FeatureTXT::parse(city, feature, dataquerier);
@@ -117,12 +117,9 @@ std::shared_ptr<FeatureTXT> FeatureTXTCity::parse(const mapbox::vector_tile::fea
     return city;
 }
 
-QString FeatureTXTCity::labelText()
-{
-    return name;
-}
+QString FeatureTXTCity::labelText() const { return name; }
 
-std::shared_ptr<FeatureTXT> FeatureTXTCottage::parse(const mapbox::vector_tile::feature& feature, const std::shared_ptr<DataQuerier> dataquerier)
+std::shared_ptr<const FeatureTXT> FeatureTXTCottage::parse(const mapbox::vector_tile::feature& feature, const std::shared_ptr<DataQuerier> dataquerier)
 {
     auto cottage = std::make_shared<FeatureTXTCottage>();
     FeatureTXT::parse(cottage, feature, dataquerier);
@@ -181,9 +178,6 @@ std::shared_ptr<FeatureTXT> FeatureTXTCottage::parse(const mapbox::vector_tile::
     return cottage;
 }
 
-QString FeatureTXTCottage::labelText()
-{
-    return name;
-}
+QString FeatureTXTCottage::labelText() const { return name; }
 
 } // namespace nucleus::vectortile

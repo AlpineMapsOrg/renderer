@@ -62,7 +62,7 @@ public:
 private:
     void renew_font_atlas();
     void add_tile(const tile::Id& id, const nucleus::vectortile::VectorTile& vector_tile);
-    void upload_to_gpu(const tile::Id& id, const std::unordered_map<nucleus::vectortile::FeatureType, std::unordered_set<std::shared_ptr<nucleus::vectortile::FeatureTXT>>>& features);
+    void upload_to_gpu(const tile::Id& id, const nucleus::vectortile::VectorTile& features);
     void filter_and_upload();
     void remove_tile(const tile::Id& tile_id);
 

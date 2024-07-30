@@ -37,33 +37,21 @@ class MapLabelFilter : public QObject {
 public:
     explicit MapLabelFilter(QObject* parent = nullptr);
 
-    std::unordered_map<tile::Id, std::unordered_map<nucleus::vectortile::FeatureType, std::unordered_set<std::shared_ptr<nucleus::vectortile::FeatureTXT>>>, tile::Id::Hasher> filter();
+    std::unordered_map<tile::Id, nucleus::vectortile::VectorTile, tile::Id::Hasher> filter();
 
-    void add_tile(const tile::Id id, std::unordered_map<nucleus::vectortile::FeatureType, std::unordered_set<std::shared_ptr<nucleus::vectortile::FeatureTXT>>> all_features);
+    void add_tile(const tile::Id id, nucleus::vectortile::VectorTile all_features);
     void remove_tile(const tile::Id id);
 
     void update_filter(const FilterDefinitions& filter_definitions);
 
 private:
-    std::unordered_map<tile::Id, std::unordered_map<nucleus::vectortile::FeatureType, std::unordered_set<std::shared_ptr<nucleus::vectortile::FeatureTXT>>>,
-        tile::Id::Hasher>
-        m_all_features;
+    std::unordered_map<tile::Id, nucleus::vectortile::VectorTile, tile::Id::Hasher> m_all_features;
 
     std::queue<tile::Id> tiles_to_filter;
     std::unordered_set<tile::Id, tile::Id::Hasher> all_tiles;
 
     FilterDefinitions m_definitions;
 
-    void apply_filter_peaks(std::unordered_set<std::shared_ptr<nucleus::vectortile::FeatureTXT>>& features, std::unordered_map<nucleus::vectortile::FeatureType, std::unordered_set<std::shared_ptr<nucleus::vectortile::FeatureTXT>>>& filtered_features);
-    void apply_filter_cities(std::unordered_set<std::shared_ptr<nucleus::vectortile::FeatureTXT>>& features, std::unordered_map<nucleus::vectortile::FeatureType, std::unordered_set<std::shared_ptr<nucleus::vectortile::FeatureTXT>>>& filtered_features);
-    void apply_filter_cottages(std::unordered_set<std::shared_ptr<nucleus::vectortile::FeatureTXT>>& features, std::unordered_map<nucleus::vectortile::FeatureType, std::unordered_set<std::shared_ptr<nucleus::vectortile::FeatureTXT>>>& filtered_features);
-
-    template<typename T>
-    using FeatureFilter = bool (*)(const FilterDefinitions& definition, const T feature);
-
-    std::vector<FeatureFilter<std::shared_ptr<nucleus::vectortile::FeatureTXTPeak>>> m_filter_peaks;
-    std::vector<FeatureFilter<std::shared_ptr<nucleus::vectortile::FeatureTXTCity>>> m_filter_cities;
-    std::vector<FeatureFilter<std::shared_ptr<nucleus::vectortile::FeatureTXTCottage>>> m_filter_cottages;
-
+    void apply_filter(std::unordered_set<std::shared_ptr<const nucleus::vectortile::FeatureTXT>>& features, nucleus::vectortile::VectorTile& visible_features);
 };
 } // namespace gl_engine

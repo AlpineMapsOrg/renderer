@@ -244,7 +244,7 @@ Item {
 
     Connections{
         target: label_filter
-        function onUpdate_filter(filter_definition){ map.filter_updated(filter_definition); }
+        function onFilter_updated(filter_definition){ map.trigger_filter_update(filter_definition); }
     }
 
     Loader {

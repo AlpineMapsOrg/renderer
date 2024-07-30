@@ -91,7 +91,7 @@ void MapLabelManager::add_tile(const tile::Id& id, const nucleus::vectortile::Ve
     m_filter.add_tile(id, vector_tile);
 }
 
-void MapLabelManager::upload_to_gpu(const tile::Id& id,  const std::unordered_map<nucleus::vectortile::FeatureType, std::unordered_set<std::shared_ptr<nucleus::vectortile::FeatureTXT>>>& features)
+void MapLabelManager::upload_to_gpu(const tile::Id& id, const nucleus::vectortile::VectorTile& features)
 {
     if (!QOpenGLContext::currentContext()) // can happen during shutdown.
         return;

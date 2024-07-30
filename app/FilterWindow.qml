@@ -86,9 +86,9 @@ Rectangle {
             id: filter_peaks
             name: "Peaks"
             checkBoxEnabled: true
-            checked: true
+            checked: label_filter.peaks_visible
 
-            onCheckedChanged: label_filter.m_peaks_visible = filter_peaks.checked;
+            onCheckedChanged: label_filter.peaks_visible = filter_peaks.checked;
 
             Label {
                 Layout.columnSpan: 2
@@ -101,13 +101,13 @@ Rectangle {
                 from: 0; to: 4000; stepSize: 10;
                 first.value: 0; second.value: 4000;
                 labelWidth:100;
-                first.onMoved: label_filter.m_elevation_range.x = this.first.value;
-                second.onMoved: label_filter.m_elevation_range.y = this.second.value;
+                first.onMoved: label_filter.elevation_range.x = this.first.value;
+                second.onMoved: label_filter.elevation_range.y = this.second.value;
             }
 
             Button{
                 text: "Filter"
-                onClicked: label_filter.filter_updated()
+                onClicked: label_filter.trigger_filter_update()
             }
         }
 
@@ -115,18 +115,18 @@ Rectangle {
             id: filter_cities
             name: "Cities"
             checkBoxEnabled: true
-            checked: true
+            checked: label_filter.cities_visible
 
-            onCheckedChanged: label_filter.m_cities_visible = filter_cities.checked;
+            onCheckedChanged: label_filter.cities_visible = filter_cities.checked;
         }
 
         CheckGroup {
             id: filter_cottages
             name: "Cottages"
             checkBoxEnabled: true
-            checked: true
+            checked: label_filter.cottages_visible
 
-            onCheckedChanged: label_filter.m_cottages_visible = filter_cottages.checked;
+            onCheckedChanged: label_filter.cottages_visible = filter_cottages.checked;
         }
 
 

@@ -56,7 +56,7 @@ struct FeatureTXT {
 
     static void parse(std::shared_ptr<FeatureTXT> ft, const mapbox::vector_tile::feature& feature, const std::shared_ptr<DataQuerier> dataquerier);
 
-    virtual QString labelText() = 0;
+    virtual QString labelText() const = 0;
 };
 
 struct FeatureTXTPeak : public FeatureTXT {
@@ -69,9 +69,9 @@ struct FeatureTXTPeak : public FeatureTXT {
     QString summit_register;
     int elevation;
 
-    static std::shared_ptr<FeatureTXT> parse(const mapbox::vector_tile::feature& feature, const std::shared_ptr<DataQuerier> dataquerier);
+    static std::shared_ptr<const FeatureTXT> parse(const mapbox::vector_tile::feature& feature, const std::shared_ptr<DataQuerier> dataquerier);
 
-    QString labelText();
+    QString labelText() const;
 };
 
 struct FeatureTXTCity : public FeatureTXT {
@@ -83,9 +83,9 @@ struct FeatureTXTCity : public FeatureTXT {
     QString population_date;
     QString website;
 
-    static std::shared_ptr<FeatureTXT> parse(const mapbox::vector_tile::feature& feature, const std::shared_ptr<DataQuerier> dataquerier);
+    static std::shared_ptr<const FeatureTXT> parse(const mapbox::vector_tile::feature& feature, const std::shared_ptr<DataQuerier> dataquerier);
 
-    QString labelText();
+    QString labelText() const;
 };
 
 struct FeatureTXTCottage : public FeatureTXT {
@@ -113,11 +113,11 @@ struct FeatureTXTCottage : public FeatureTXT {
     QString access;
     int elevation;
 
-    static std::shared_ptr<FeatureTXT> parse(const mapbox::vector_tile::feature& feature, const std::shared_ptr<DataQuerier> dataquerier);
+    static std::shared_ptr<const FeatureTXT> parse(const mapbox::vector_tile::feature& feature, const std::shared_ptr<DataQuerier> dataquerier);
 
-    QString labelText();
+    QString labelText() const;
 };
 
-typedef std::unordered_map<FeatureType, std::unordered_set<std::shared_ptr<FeatureTXT>>> VectorTile;
+typedef std::unordered_map<FeatureType, std::unordered_set<std::shared_ptr<const FeatureTXT>>> VectorTile;
 
 } // namespace nucleus::vectortile
