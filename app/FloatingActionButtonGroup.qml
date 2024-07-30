@@ -46,8 +46,6 @@ ColumnLayout {
         image: _r + "icons/material/add.png"
         size: parent.width
         onClicked: map.upload_track()
-        ToolTip.visible: right
-        ToolTip.text: qsTr("Add GPX Track")
     }
 
     FloatingActionButton {
