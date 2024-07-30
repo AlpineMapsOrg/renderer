@@ -20,10 +20,10 @@
 
 #include <stb_slim/stb_truetype.h>
 
-#include <QImage>
+#include <QSize>
+#include <set>
 #include <unordered_map>
 #include <vector>
-#include <set>
 
 #include <nucleus/Raster.h>
 #include <nucleus/map_label/MapLabelData.h>
