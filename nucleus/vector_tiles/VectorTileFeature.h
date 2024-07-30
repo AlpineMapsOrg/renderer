@@ -36,6 +36,7 @@ namespace nucleus::vectortile {
 enum FeatureType { Peak = 0, City = 1, ENUM_END = 2 };
 
 struct FeatureTXT {
+    virtual ~FeatureTXT() = default;
     unsigned long id;
     QString name;
     glm::dvec2 position; // latitude / Longitude
