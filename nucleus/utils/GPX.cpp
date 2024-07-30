@@ -105,7 +105,7 @@ namespace gpx {
         QFile file(path);
 
         if (!file.open(QIODevice::ReadOnly | QIODevice::Text)) {
-            std::cerr << "Could not open file " << path.toStdString() << std::endl;
+            qWarning() << "Could not open file " << path;
             return nullptr;
         }
 
