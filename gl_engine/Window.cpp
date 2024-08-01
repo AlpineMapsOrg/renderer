@@ -359,12 +359,6 @@ void Window::reload_shader() {
 #endif
 }
 
-void Window::update_filter(const FilterDefinitions& filter_definitions)
-{
-    // propagate signal
-    m_map_label_manager->update_filter(filter_definitions);
-}
-
 void Window::updateCameraEvent()
 {
     emit update_camera_requested();
@@ -391,9 +385,12 @@ void Window::update_gpu_quads(const std::vector<nucleus::tile_scheduler::tile_ty
 {
     assert(m_tile_manager);
     m_tile_manager->update_gpu_quads(new_quads, deleted_quads);
+}
 
+void Window::update_labels(const nucleus::vectortile::TiledVectorTile& visible_features, const std::unordered_set<tile::Id, tile::Id::Hasher> removed_tiles)
+{
     assert(m_map_label_manager);
-    m_map_label_manager->update_gpu_quads(new_quads, deleted_quads);
+    m_map_label_manager->update_labels(visible_features, removed_tiles);
 }
 
 float Window::depth(const glm::dvec2& normalised_device_coordinates)

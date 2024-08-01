@@ -23,15 +23,24 @@
 LabelFilter::LabelFilter()
 {
     connect(this, &LabelFilter::filter_changed, this, &LabelFilter::trigger_filter_update);
-    m_elevation_range = m_default_filter_definitions.m_peak_ele_range;
+
+    m_update_filter_timer = std::make_unique<QTimer>(this);
+    m_update_filter_timer->setSingleShot(true);
+    connect(m_update_filter_timer.get(), &QTimer::timeout, this, &LabelFilter::filter_update);
+
+    // trigger the initial filter update
+    m_update_filter_timer->start(m_update_filter_time);
 }
 
-LabelFilter::~LabelFilter()
-{
-    qDebug("LabelFilter::~LabelFilter");
-}
+LabelFilter::~LabelFilter() { qDebug("LabelFilter::~LabelFilter"); }
 
 void LabelFilter::trigger_filter_update()
+{
+    if (!m_update_filter_timer->isActive())
+        m_update_filter_timer->start(m_update_filter_time);
+}
+
+void LabelFilter::filter_update()
 {
     // check against default values what changed
     m_filter_definitions.m_peak_ele_range_filtered = m_filter_definitions.m_peak_ele_range != m_default_filter_definitions.m_peak_ele_range;
@@ -39,47 +48,37 @@ void LabelFilter::trigger_filter_update()
     emit filter_updated(m_filter_definitions);
 }
 
-QVector2D LabelFilter::elevation_range() const
-{
-    return m_elevation_range;
-}
+QVector2D LabelFilter::elevation_range() const { return m_filter_definitions.m_peak_ele_range; }
 
 void LabelFilter::set_elevation_range(const QVector2D &elevation_range)
 {
-    m_elevation_range = elevation_range;
     m_filter_definitions.m_peak_ele_range = elevation_range;
-//    emit filter_changed();
+    emit filter_changed();
 }
 
-bool LabelFilter::peaks_visible() const
-{
-    return m_peaks_visible;
-}
+bool LabelFilter::peaks_visible() const { return m_filter_definitions.m_peaks_visible; }
 void LabelFilter::set_peaks_visible(const bool &peaks_visible)
 {
-    m_peaks_visible = peaks_visible;
+    if (m_filter_definitions.m_peaks_visible == peaks_visible)
+        return;
     m_filter_definitions.m_peaks_visible = peaks_visible;
     emit filter_changed();
 }
 
-bool LabelFilter::cities_visible() const
-{
-    return m_cities_visible;
-}
+bool LabelFilter::cities_visible() const { return m_filter_definitions.m_cities_visible; }
 void LabelFilter::set_cities_visible(const bool &cities_visible)
 {
-    m_cities_visible = cities_visible;
+    if (m_filter_definitions.m_cities_visible == cities_visible)
+        return;
     m_filter_definitions.m_cities_visible = cities_visible;
     emit filter_changed();
 }
 
-bool LabelFilter::cottages_visible() const
-{
-    return m_cottages_visible;
-}
+bool LabelFilter::cottages_visible() const { return m_filter_definitions.m_cottages_visible; }
 void LabelFilter::set_cottages_visible(const bool &cottages_visible)
 {
-    m_cottages_visible = cottages_visible;
+    if (m_filter_definitions.m_cottages_visible == cottages_visible)
+        return;
     m_filter_definitions.m_cottages_visible = cottages_visible;
     emit filter_changed();
 }

@@ -28,8 +28,9 @@
 
 #include "radix/tile.h"
 
-#include <nucleus/srs.h>
+#include "nucleus/tile_scheduler/tile_types.h"
 #include <nucleus/map_label/FontRenderer.h>
+#include <nucleus/srs.h>
 
 #include <chrono>
 
@@ -86,29 +87,10 @@ void MapLabelManager::renew_font_atlas()
     }
 }
 
-void MapLabelManager::add_tile(const tile::Id& id, const nucleus::vectortile::VectorTile& vector_tile)
-{
-    m_filter.add_tile(id, vector_tile);
-}
-
 void MapLabelManager::upload_to_gpu(const tile::Id& id, const nucleus::vectortile::VectorTile& features)
 {
     if (!QOpenGLContext::currentContext()) // can happen during shutdown.
         return;
-
-    // TODO this is a one to one copy from remove_tile without remove filter... -> find a better solution...
-    for (int i = 0; i < nucleus::vectortile::FeatureType::ENUM_END; i++) {
-        nucleus::vectortile::FeatureType type = (nucleus::vectortile::FeatureType)i;
-
-               // we can only remove something that exists
-        if (!m_gpu_tiles.contains(id) || !m_gpu_tiles.at(id).contains(type))
-            continue;
-
-        if (m_gpu_tiles.at(id)[type]->vao)
-            m_gpu_tiles.at(id)[type]->vao->destroy(); // ecplicitly destroy vao
-
-        m_gpu_tiles.at(id).erase(type);
-    }// TODO end
 
     // initialize map
     m_gpu_tiles[id] = std::unordered_map<nucleus::vectortile::FeatureType, std::shared_ptr<GPUVectorTile>>();
@@ -172,28 +154,30 @@ void MapLabelManager::upload_to_gpu(const tile::Id& id, const nucleus::vectortil
 
 }
 
-void MapLabelManager::filter_and_upload()
+void MapLabelManager::update_labels(
+    const nucleus::vectortile::TiledVectorTile& visible_features, const std::unordered_set<tile::Id, tile::Id::Hasher> removed_tiles)
 {
-//    auto start = std::chrono::system_clock::now();
-
-    auto filtered_features = m_filter.filter();
-
-    for (const auto& vectortile : filtered_features)
-    {
-        upload_to_gpu(vectortile.first, vectortile.second);
+    // remove tiles that aren't needed anymore
+    for (const auto& id : removed_tiles) {
+        remove_tile(id);
     }
 
-//    std::chrono::duration<double> elapsed_seconds = std::chrono::system_clock::now()-start;
-//    std::cout << "filter: " << elapsed_seconds.count() << std::endl;
+    // TODO @lucas is this ok to call this here?? will potentially be called often
+    // or do we need another signal/param to signify that new tiles were added and the font_atlas needs to be checked
+    renew_font_atlas();
 
+    for (const auto& vectortile : visible_features) {
+        // since we are renewing the tile we remove it first to delete allocations like vao
+        remove_tile(vectortile.first);
+
+        upload_to_gpu(vectortile.first, vectortile.second);
+    }
 }
 
 void MapLabelManager::remove_tile(const tile::Id& tile_id)
 {
     if (!QOpenGLContext::currentContext()) // can happen during shutdown.
         return;
-
-     m_filter.remove_tile(tile_id);
 
     for (int i = 0; i < nucleus::vectortile::FeatureType::ENUM_END; i++) {
         nucleus::vectortile::FeatureType type = (nucleus::vectortile::FeatureType)i;
@@ -207,41 +191,6 @@ void MapLabelManager::remove_tile(const tile::Id& tile_id)
 
         m_gpu_tiles.at(tile_id).erase(type);
     }
-
-}
-
-void MapLabelManager::update_gpu_quads(
-    const std::vector<nucleus::tile_scheduler::tile_types::GpuTileQuad>& new_quads, const std::vector<tile::Id>& deleted_quads)
-{
-    renew_font_atlas();
-
-    for (const auto& quad : new_quads) {
-        for (const auto& tile : quad.tiles) {
-            // test for validity
-            if (!tile.vector_tile || tile.vector_tile->empty())
-                continue;
-
-            assert(tile.id.zoom_level < 100);
-
-            if (m_gpu_tiles.contains(tile.id))
-                continue; // no need to add it twice
-
-            add_tile(tile.id, *tile.vector_tile);
-        }
-    }
-    for (const auto& quad : deleted_quads) {
-        for (const auto& id : quad.children()) {
-            remove_tile(id);
-        }
-    }
-
-    filter_and_upload();
-}
-
-void MapLabelManager::update_filter(const FilterDefinitions& filter_definitions)
-{
-    m_filter.update_filter(filter_definitions);
-    filter_and_upload();
 }
 
 void MapLabelManager::draw(Framebuffer* gbuffer, ShaderProgram* shader_program, const nucleus::camera::Definition& camera,

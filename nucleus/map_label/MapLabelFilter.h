@@ -20,38 +20,46 @@
 
 #include <QObject>
 #include <QVector2D>
-
-#include <unordered_set>
-#include <unordered_map>
 #include <queue>
-#include <nucleus/vector_tiles/VectorTileFeature.h>
+#include <unordered_map>
+#include <unordered_set>
+
 #include <radix/tile.h>
-#include <app/LabelFilter.h>
+
+#include "app/LabelFilter.h"
+#include "nucleus/tile_scheduler/tile_types.h"
+#include "nucleus/vector_tiles/VectorTileFeature.h"
+
+using namespace nucleus::vectortile;
 
 namespace nucleus::maplabel {
-
-
 
 class MapLabelFilter : public QObject {
     Q_OBJECT
 public:
     explicit MapLabelFilter(QObject* parent = nullptr);
 
-    std::unordered_map<tile::Id, nucleus::vectortile::VectorTile, tile::Id::Hasher> filter();
-
-    void add_tile(const tile::Id id, nucleus::vectortile::VectorTile all_features);
+    void add_tile(const tile::Id id, const VectorTile& all_features);
     void remove_tile(const tile::Id id);
 
+public slots:
     void update_filter(const FilterDefinitions& filter_definitions);
+    void update_quads(const std::vector<nucleus::tile_scheduler::tile_types::GpuTileQuad>& new_quads, const std::vector<tile::Id>& deleted_quads);
+
+signals:
+    void filter_finished(const TiledVectorTile& visible_features, const std::unordered_set<tile::Id, tile::Id::Hasher> removed_tiles);
 
 private:
-    std::unordered_map<tile::Id, nucleus::vectortile::VectorTile, tile::Id::Hasher> m_all_features;
+    TiledVectorTile m_all_features;
+    TiledVectorTile m_visible_features;
 
-    std::queue<tile::Id> tiles_to_filter;
-    std::unordered_set<tile::Id, tile::Id::Hasher> all_tiles;
+    std::queue<tile::Id> m_tiles_to_filter;
+    std::unordered_set<tile::Id, tile::Id::Hasher> m_all_tiles;
+    std::unordered_set<tile::Id, tile::Id::Hasher> m_removed_tiles;
 
     FilterDefinitions m_definitions;
 
-    void apply_filter(std::unordered_set<std::shared_ptr<const nucleus::vectortile::FeatureTXT>>& features, nucleus::vectortile::VectorTile& visible_features);
+    void apply_filter(const tile::Id tile_id, FeatureType type);
+    void filter();
 };
-} // namespace gl_engine
+} // namespace nucleus::maplabel

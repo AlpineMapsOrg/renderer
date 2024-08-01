@@ -26,9 +26,7 @@
 #include "Framebuffer.h"
 #include "Texture.h"
 #include "nucleus/camera/Definition.h"
-#include "nucleus/map_label//MapLabelFilter.h"
 #include "nucleus/map_label/LabelFactory.h"
-#include "nucleus/tile_scheduler/tile_types.h"
 #include <app/LabelFilter.h>
 
 #include "nucleus/tile_scheduler/DrawListGenerator.h"
@@ -56,14 +54,11 @@ public:
     void draw(Framebuffer* gbuffer, ShaderProgram* shader_program, const nucleus::camera::Definition& camera,
         const nucleus::tile_scheduler::DrawListGenerator::TileSet draw_tiles) const;
 
-    void update_gpu_quads(const std::vector<nucleus::tile_scheduler::tile_types::GpuTileQuad>& new_quads, const std::vector<tile::Id>& deleted_quads);
-    void update_filter(const FilterDefinitions& filter_definitions);
+    void update_labels(const nucleus::vectortile::TiledVectorTile& visible_features, const std::unordered_set<tile::Id, tile::Id::Hasher> removed_tiles);
 
 private:
     void renew_font_atlas();
-    void add_tile(const tile::Id& id, const nucleus::vectortile::VectorTile& vector_tile);
     void upload_to_gpu(const tile::Id& id, const nucleus::vectortile::VectorTile& features);
-    void filter_and_upload();
     void remove_tile(const tile::Id& tile_id);
 
     std::unique_ptr<Texture> m_font_texture;
@@ -73,7 +68,6 @@ private:
     size_t m_indices_count; // how many vertices per character (most likely 6 since quads)
 
     nucleus::maplabel::LabelFactory m_mapLabelFactory;
-    nucleus::maplabel::MapLabelFilter m_filter;
 
     std::unordered_map<tile::Id, std::unordered_map<nucleus::vectortile::FeatureType, std::shared_ptr<GPUVectorTile>>, tile::Id::Hasher> m_gpu_tiles;
 };

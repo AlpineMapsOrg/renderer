@@ -32,6 +32,9 @@ class Scheduler;
 namespace camera {
 class Controller;
 }
+namespace maplabel {
+class MapLabelFilter;
+}
 
 class Controller : public QObject {
     Q_OBJECT
@@ -42,6 +45,7 @@ public:
     camera::Controller* camera_controller() const;
 
     tile_scheduler::Scheduler* tile_scheduler() const;
+    maplabel::MapLabelFilter* label_filter() const;
 
 private:
     AbstractRenderWindow* m_render_window;
@@ -55,5 +59,6 @@ private:
     std::unique_ptr<tile_scheduler::Scheduler> m_tile_scheduler;
     std::shared_ptr<DataQuerier> m_data_querier;
     std::unique_ptr<camera::Controller> m_camera_controller;
+    std::unique_ptr<maplabel::MapLabelFilter> m_label_filter;
 };
 }

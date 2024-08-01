@@ -80,7 +80,8 @@ public slots:
     void update_gpu_quads(const std::vector<nucleus::tile_scheduler::tile_types::GpuTileQuad>& new_quads, const std::vector<tile::Id>& deleted_quads) override;
     void shared_config_changed(gl_engine::uboSharedConfig ubo);
     void reload_shader();
-    void update_filter(const FilterDefinitions& filter_definitions);
+    void update_labels(
+        const nucleus::vectortile::TiledVectorTile& visible_features, const std::unordered_set<tile::Id, tile::Id::Hasher> removed_tiles) override;
 
 signals:
     void report_measurements(QList<nucleus::timing::TimerReport> values);

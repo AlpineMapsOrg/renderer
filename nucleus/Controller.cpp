@@ -29,6 +29,7 @@
 #include "AbstractRenderWindow.h"
 #include "nucleus/camera/Controller.h"
 #include "nucleus/camera/PositionStorage.h"
+#include "nucleus/map_label/MapLabelFilter.h"
 #include "nucleus/tile_scheduler/LayerAssembler.h"
 #include "nucleus/tile_scheduler/QuadAssembler.h"
 #include "nucleus/tile_scheduler/RateLimiter.h"
@@ -41,6 +42,7 @@
 
 using namespace nucleus::tile_scheduler;
 using namespace nucleus::vectortile;
+using namespace nucleus::maplabel;
 
 namespace nucleus {
 Controller::Controller(AbstractRenderWindow* render_window)
@@ -80,12 +82,15 @@ Controller::Controller(AbstractRenderWindow* render_window)
     m_tile_scheduler->set_dataquerier(m_data_querier);
     m_camera_controller = std::make_unique<nucleus::camera::Controller>(
         nucleus::camera::PositionStorage::instance()->get("grossglockner"), m_render_window->depth_tester(), m_data_querier.get());
+
     {
         auto* sch = m_tile_scheduler.get();
         SlotLimiter* sl = new SlotLimiter(sch);
         RateLimiter* rl = new RateLimiter(sch);
         QuadAssembler* qa = new QuadAssembler(sch);
         LayerAssembler* la = new LayerAssembler(sch);
+        m_label_filter = std::make_unique<MapLabelFilter>(sch);
+
         connect(sch, &Scheduler::quads_requested, sl, &SlotLimiter::request_quads);
         connect(sl, &SlotLimiter::quad_requested, rl, &RateLimiter::request_quad);
         connect(rl, &RateLimiter::quad_requested, qa, &QuadAssembler::load);
@@ -135,6 +140,10 @@ Controller::Controller(AbstractRenderWindow* render_window)
 
     connect(m_tile_scheduler.get(), &Scheduler::gpu_quads_updated, m_render_window, &AbstractRenderWindow::update_gpu_quads);
     connect(m_tile_scheduler.get(), &Scheduler::gpu_quads_updated, m_render_window, &AbstractRenderWindow::update_requested);
+    connect(m_tile_scheduler.get(), &Scheduler::gpu_quads_updated, m_label_filter.get(), &MapLabelFilter::update_quads);
+    connect(m_label_filter.get(), &MapLabelFilter::filter_finished, m_render_window, &AbstractRenderWindow::update_labels);
+
+    connect(m_label_filter.get(), &MapLabelFilter::filter_finished, m_render_window, &AbstractRenderWindow::update_requested);
 }
 
 Controller::~Controller()
@@ -154,4 +163,7 @@ Scheduler* Controller::tile_scheduler() const
 {
     return m_tile_scheduler.get();
 }
+
+maplabel::MapLabelFilter* Controller::label_filter() const { return m_label_filter.get(); }
+
 } // namespace nucleus

@@ -35,13 +35,14 @@
 #include "RenderThreadNotifier.h"
 #include "TerrainRenderer.h"
 #include "gl_engine/Window.h"
-#include "nucleus/camera/Controller.h"
 #include "nucleus/Controller.h"
-#include "nucleus/tile_scheduler/Scheduler.h"
-#include "nucleus/srs.h"
-#include "nucleus/utils/sun_calculations.h"
+#include "nucleus/camera/Controller.h"
 #include "nucleus/camera/PositionStorage.h"
+#include "nucleus/map_label/MapLabelFilter.h"
+#include "nucleus/srs.h"
+#include "nucleus/tile_scheduler/Scheduler.h"
 #include "nucleus/utils/UrlModifier.h"
+#include "nucleus/utils/sun_calculations.h"
 
 namespace {
 // helper type for the visitor from https://en.cppreference.com/w/cpp/utility/variant/visit
@@ -140,7 +141,7 @@ QQuickFramebufferObject::Renderer* TerrainRendererItem::createRenderer() const
     // connect glWindow for shader hotreload by frontend button
     connect(this, &TerrainRendererItem::reload_shader, r->glWindow(), &gl_engine::Window::reload_shader);
 
-    connect(this, &TerrainRendererItem::filter_updated, r->glWindow(), &gl_engine::Window::update_filter);
+    connect(this, &TerrainRendererItem::filter_updated, r->controller()->label_filter(), &nucleus::maplabel::MapLabelFilter::update_filter);
 
     connect(r->glWindow(), &gl_engine::Window::report_measurements, this->m_timer_manager, &TimerFrontendManager::receive_measurements);
 
@@ -220,7 +221,7 @@ void TerrainRendererItem::camera_definition_changed(const nucleus::camera::Defin
     recalculate_sun_angles();
 }
 
-void TerrainRendererItem::trigger_filter_update(FilterDefinitions filter_definitions)
+void TerrainRendererItem::trigger_filter_update(const FilterDefinitions& filter_definitions)
 {
     // propagate signal
     emit filter_updated(filter_definitions);

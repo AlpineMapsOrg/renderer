@@ -19,6 +19,7 @@
 #pragma once
 
 #include <QObject>
+#include <QTimer>
 #include <QVector2D>
 
 struct FilterDefinitions {
@@ -33,14 +34,15 @@ public:
 
 class LabelFilter : public QObject {
     Q_OBJECT
-public:
-    LabelFilter();
-    ~LabelFilter();
 
     Q_PROPERTY(bool peaks_visible READ peaks_visible WRITE set_peaks_visible NOTIFY filter_changed)
     Q_PROPERTY(bool cities_visible READ cities_visible WRITE set_cities_visible NOTIFY filter_changed)
     Q_PROPERTY(bool cottages_visible READ cottages_visible WRITE set_cottages_visible NOTIFY filter_changed)
     Q_PROPERTY(QVector2D elevation_range READ elevation_range WRITE set_elevation_range NOTIFY filter_changed)
+
+public:
+    LabelFilter();
+    ~LabelFilter();
 
     QVector2D elevation_range() const;
     void set_elevation_range(const QVector2D &elevation_range);
@@ -53,20 +55,20 @@ public:
     void set_cottages_visible(const bool &cottages_visible);
 
 public slots:
+    // triggers update filter timer which limits the amounts of filtering done within a time frame
     void trigger_filter_update();
+    // prepares filterdefinitions and sends the signal which triggers the filter update further down
+    void filter_update();
 
 signals:
-    //    void update_filter(FilterDefinitions);
-    void filter_updated(FilterDefinitions);
+    void filter_updated(const FilterDefinitions& filter_definitions);
     void filter_changed();
 
 private:
-    bool m_peaks_visible = true;
-    bool m_cities_visible = true;
-    bool m_cottages_visible = true;
-
-    QVector2D m_elevation_range;
+    constexpr static int m_update_filter_time = 400;
 
     FilterDefinitions m_filter_definitions;
     const FilterDefinitions m_default_filter_definitions;
+
+    std::unique_ptr<QTimer> m_update_filter_timer;
 };

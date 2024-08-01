@@ -87,7 +87,6 @@ Rectangle {
             name: "Peaks"
             checkBoxEnabled: true
             checked: label_filter.peaks_visible
-
             onCheckedChanged: label_filter.peaks_visible = filter_peaks.checked;
 
             Label {
@@ -116,7 +115,6 @@ Rectangle {
             name: "Cities"
             checkBoxEnabled: true
             checked: label_filter.cities_visible
-
             onCheckedChanged: label_filter.cities_visible = filter_cities.checked;
         }
 
@@ -125,25 +123,10 @@ Rectangle {
             name: "Cottages"
             checkBoxEnabled: true
             checked: label_filter.cottages_visible
-
             onCheckedChanged: label_filter.cottages_visible = filter_cottages.checked;
         }
 
 
-
-
-//        CheckGroup {
-////            id: filter_cities
-//            name: "Cities"
-//            checkBoxEnabled: true
-//            checked: true
-////            onClicked: label_filter.filter_updated()
-//        }
-
-//        Connections {
-//            target: filter_cities
-//            onCheckChanged: console.log("cities changed")
-//        }
     }
 }
 
