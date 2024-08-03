@@ -26,8 +26,11 @@ class TrackModel : public QObject {
 public:
     explicit TrackModel(QObject* parent = nullptr);
 
+    Q_INVOKABLE QPointF lat_long(unsigned index);
+
 public slots:
     void upload_track();
+    void connect_to_render_engine();
 
 signals:
 

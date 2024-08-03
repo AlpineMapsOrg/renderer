@@ -17,14 +17,29 @@
  *****************************************************************************/
 
 #include "Context.h"
+#include "ShaderManager.h"
 #include "TrackManager.h"
 using namespace gl_engine;
 
-Context::Context() { m_window = std::make_shared<gl_engine::Window>(); }
+Context::Context()
+{
+    m_shader_manager = std::make_unique<ShaderManager>();
+    m_track_manager = std::make_unique<TrackManager>(m_shader_manager.get());
+}
 
-std::weak_ptr<nucleus::AbstractRenderWindow> Context::render_window() { return m_window; }
+Context::~Context() = default;
 
 void Context::setup_tracks(nucleus::track::Manager* manager)
 {
-    connect(manager, &nucleus::track::Manager::tracks_changed, m_window->track_manager(), &TrackManager::change_tracks);
+    connect(manager, &nucleus::track::Manager::tracks_changed, m_track_manager.get(), &TrackManager::change_tracks);
 }
+
+void Context::deinit()
+{
+    m_track_manager.reset();
+    m_shader_manager.reset();
+}
+
+TrackManager* Context::track_manager() { return m_track_manager.get(); }
+
+ShaderManager* Context::shader_manager() const { return m_shader_manager.get(); }

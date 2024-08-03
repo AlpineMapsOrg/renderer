@@ -29,9 +29,16 @@
 TrackModel::TrackModel(QObject* parent)
     : QObject { parent }
 {
+}
 
-    auto& c = gl_engine::Context::instance();
-    c.setup_tracks(&m_manager);
+QPointF TrackModel::lat_long(unsigned int index)
+{
+    const auto track = m_manager.track(index);
+    if (0 < track.track.size() && 0 < track.track[0].size()) {
+        auto track_start = track.track[0][0];
+        return { track_start.latitude, track_start.longitude };
+    }
+    return {};
 }
 
 #ifdef __EMSCRIPTEN__
@@ -77,11 +84,6 @@ void TrackModel::upload_track()
         std::unique_ptr<nucleus::gpx::Gpx> gpx = nucleus::gpx::parse(xmlReader);
         if (gpx != nullptr) {
             m_manager.add_or_replace(0, *gpx);
-
-            // if (0 < gpx->track.size() && 0 < gpx->track[0].size()) {
-            //     auto track_start = gpx->track[0][0];
-            //     emit position_set_by_user(track_start.latitude, track_start.longitude);
-            // }
         } else {
             qDebug("Coud not parse GPX file!");
         }
@@ -113,6 +115,15 @@ void TrackModel::upload_track()
     }
     fileContentReady(file_name, file_data);
 #else
-    QFileDialog::getOpenFileContent("GPX (*.gpx *.xml)", fileContentReady);
+    const auto path = QFileDialog::getOpenFileName(nullptr, tr("Open GPX track"), "", "GPX (*.gpx *.xml)");
+    auto file = QFile(path);
+    file.open(QFile::ReadOnly);
+    fileContentReady(file.fileName(), file.readAll());
 #endif
+}
+
+void TrackModel::connect_to_render_engine()
+{
+    auto& c = gl_engine::Context::instance();
+    c.setup_tracks(&m_manager);
 }

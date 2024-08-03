@@ -52,7 +52,6 @@ namespace gl_engine {
 
 class TileManager;
 class MapLabelManager;
-class TrackManager;
 class DebugPainter;
 class ShaderManager;
 class Framebuffer;
@@ -82,8 +81,6 @@ public:
     void set_permissible_screen_space_error(float new_error) override;
     void set_quad_limit(unsigned new_limit) override;
 
-    TrackManager* track_manager() const;
-
 public slots:
     void update_camera(const nucleus::camera::Definition& new_definition) override;
     void update_debug_scheduler_stats(const QString& stats) override;
@@ -92,8 +89,6 @@ public slots:
     void shared_config_changed(gl_engine::uboSharedConfig ubo);
     void render_looped_changed(bool render_looped_flag);
     void reload_shader();
-    void set_track_width(float width);
-    void set_track_shading(unsigned int shading);
 
 
 signals:
@@ -102,8 +97,6 @@ signals:
 private:
     std::unique_ptr<TileManager> m_tile_manager; // needs opengl context
     std::unique_ptr<DebugPainter> m_debug_painter; // needs opengl context
-    std::unique_ptr<TrackManager> m_track_manager; // needs opengl context
-    std::unique_ptr<ShaderManager> m_shader_manager;
     std::unique_ptr<MapLabelManager> m_map_label_manager;
 
     std::unique_ptr<Framebuffer> m_gbuffer;

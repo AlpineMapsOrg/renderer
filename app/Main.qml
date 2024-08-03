@@ -202,6 +202,7 @@ Item {
                 toggleStatsWindow();
             }
         }
+        onInit_after_creation: _track_model.connect_to_render_engine()
     }
 
     StackView {

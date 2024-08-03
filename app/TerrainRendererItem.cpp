@@ -38,14 +38,16 @@
 
 #include "RenderThreadNotifier.h"
 #include "TerrainRenderer.h"
+#include "gl_engine/Context.h"
+#include "gl_engine/TrackManager.h"
 #include "gl_engine/Window.h"
-#include "nucleus/camera/Controller.h"
 #include "nucleus/Controller.h"
-#include "nucleus/tile_scheduler/Scheduler.h"
-#include "nucleus/srs.h"
-#include "nucleus/utils/sun_calculations.h"
+#include "nucleus/camera/Controller.h"
 #include "nucleus/camera/PositionStorage.h"
+#include "nucleus/srs.h"
+#include "nucleus/tile_scheduler/Scheduler.h"
 #include "nucleus/utils/UrlModifier.h"
+#include "nucleus/utils/sun_calculations.h"
 
 namespace {
 // helper type for the visitor from https://en.cppreference.com/w/cpp/utility/variant/visit
@@ -141,8 +143,11 @@ QQuickFramebufferObject::Renderer* TerrainRendererItem::createRenderer() const
     // connect glWindow to forward key events.
     connect(this, &TerrainRendererItem::shared_config_changed, r->glWindow(), &gl_engine::Window::shared_config_changed);
     connect(this, &TerrainRendererItem::render_looped_changed, r->glWindow(), &gl_engine::Window::render_looped_changed);
-    connect(this, &TerrainRendererItem::track_width_changed, r->glWindow(), &gl_engine::Window::set_track_width);
-    connect(this, &TerrainRendererItem::track_shading_changed, r->glWindow(), &gl_engine::Window::set_track_shading);
+    // TODO: move the next two connections out.
+    connect(this, &TerrainRendererItem::track_width_changed, &gl_engine::Context::instance(),
+        [](float new_width) { gl_engine::Context::instance().track_manager()->width = new_width; });
+    connect(this, &TerrainRendererItem::track_shading_changed, &gl_engine::Context::instance(),
+        [](unsigned int new_shading) { gl_engine::Context::instance().track_manager()->shading_method = new_shading; });
     // connect glWindow for shader hotreload by frontend button
     connect(this, &TerrainRendererItem::reload_shader, r->glWindow(), &gl_engine::Window::reload_shader);
 

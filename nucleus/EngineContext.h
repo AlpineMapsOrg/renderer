@@ -30,8 +30,8 @@ class EngineContext : public QObject {
 public:
     explicit EngineContext(QObject* parent = nullptr);
 
-    virtual std::weak_ptr<AbstractRenderWindow> render_window() = 0;
     virtual void setup_tracks(track::Manager* manager) = 0;
+    virtual void deinit() = 0;
 signals:
 };
 } // namespace nucleus

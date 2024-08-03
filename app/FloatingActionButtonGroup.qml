@@ -45,7 +45,12 @@ ColumnLayout {
     FloatingActionButton {
         image: _r + "icons/material/add.png"
         size: parent.width
-        onClicked: map.upload_track()
+        onClicked: {
+            _track_model.upload_track()
+            let pos = _track_model.lat_long(0);
+            if (pos.x !== 0 && pos.y !== 0)
+                map.set_position(pos.x, pos.y)
+        }
     }
 
     FloatingActionButton {

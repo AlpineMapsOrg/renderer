@@ -20,26 +20,32 @@
 
 #include <nucleus/EngineContext.h>
 
-#include "Window.h"
-
 namespace gl_engine {
+class TrackManager;
+class ShaderManager;
+
 class Context : public nucleus::EngineContext {
 private:
     Context();
 
 public:
     Context(Context const&) = delete;
+    ~Context();
     void operator=(Context const&) = delete;
-    static nucleus::EngineContext& instance()
+    static Context& instance()
     {
         static Context c;
         return c;
     }
 
-    std::weak_ptr<nucleus::AbstractRenderWindow> render_window() override;
     void setup_tracks(nucleus::track::Manager* manager) override;
+    void deinit() override;
+    TrackManager* track_manager();
+
+    ShaderManager* shader_manager() const;
 
 private:
-    std::shared_ptr<Window> m_window;
+    std::unique_ptr<gl_engine::TrackManager> m_track_manager;
+    std::unique_ptr<gl_engine::ShaderManager> m_shader_manager;
 };
 } // namespace gl_engine
