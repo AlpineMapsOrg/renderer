@@ -47,7 +47,7 @@ ColumnLayout {
         size: parent.width
         onClicked: {
             _track_model.upload_track()
-            let pos = _track_model.lat_long(0);
+            let pos = _track_model.lat_long(_track_model.n_tracks() - 1);
             if (pos.x !== 0 && pos.y !== 0)
                 map.set_position(pos.x, pos.y)
         }

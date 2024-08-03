@@ -83,7 +83,7 @@ void TrackModel::upload_track()
 
         std::unique_ptr<nucleus::gpx::Gpx> gpx = nucleus::gpx::parse(xmlReader);
         if (gpx != nullptr) {
-            m_manager.add_or_replace(0, *gpx);
+            m_manager.add_or_replace(this->n_tracks(), *gpx);
         } else {
             qDebug("Coud not parse GPX file!");
         }

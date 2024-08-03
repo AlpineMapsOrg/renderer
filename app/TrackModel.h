@@ -27,6 +27,7 @@ public:
     explicit TrackModel(QObject* parent = nullptr);
 
     Q_INVOKABLE QPointF lat_long(unsigned index);
+    Q_INVOKABLE unsigned n_tracks() const { return m_manager.size(); }
 
 public slots:
     void upload_track();

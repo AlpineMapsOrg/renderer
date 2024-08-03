@@ -57,3 +57,5 @@ void Manager::remove(Id id)
     std::transform(m_data.cbegin(), m_data.cend(), std::back_inserter(v), [](const auto& d) { return d.second; });
     emit tracks_changed(v);
 }
+
+unsigned int Manager::size() const { return m_data.size(); }

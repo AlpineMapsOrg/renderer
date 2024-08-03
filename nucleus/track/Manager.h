@@ -36,6 +36,7 @@ public:
 public slots:
     void add_or_replace(Id id, const nucleus::gpx::Gpx& gpx);
     void remove(Id id);
+    unsigned size() const;
 signals:
     void tracks_changed(const QVector<nucleus::gpx::Gpx>& tracks);
 
