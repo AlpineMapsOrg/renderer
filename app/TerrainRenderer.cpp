@@ -25,27 +25,20 @@
 #include <QQuickWindow>
 
 #include "TerrainRendererItem.h"
+#include "gl_engine/Window.h"
 #include "nucleus/Controller.h"
 #include "nucleus/camera/Controller.h"
 #include "nucleus/tile_scheduler/Scheduler.h"
 
-#include <gl_engine/Context.h>
-
 TerrainRenderer::TerrainRenderer()
 {
+    m_glWindow = std::make_unique<gl_engine::Window>();
+    m_controller = std::make_unique<nucleus::Controller>(m_glWindow.get());
+    m_controller->tile_scheduler()->set_ortho_tile_compression_algorithm(m_glWindow->ortho_tile_compression_algorithm());
+    m_glWindow->initialise_gpu();
 #ifdef ALP_ENABLE_TRACK_OBJECT_LIFECYCLE
     qDebug("TerrainRendererItemRenderer()");
 #endif
-
-    m_gl_context = std::make_unique<gl_engine::Context>();
-    auto gl_window = m_gl_context->render_window().lock();
-    if (!gl_window) {
-        qCritical("TerrainRenderer::TerrainRenderer: gl_window is null");
-        return;
-    }
-    m_controller = std::make_unique<nucleus::Controller>(gl_window.get());
-    m_controller->tile_scheduler()->set_ortho_tile_compression_algorithm(gl_window->ortho_tile_compression_algorithm());
-    gl_window->initialise_gpu();
 }
 
 TerrainRenderer::~TerrainRenderer()
@@ -60,17 +53,10 @@ void TerrainRenderer::synchronize(QQuickFramebufferObject *item)
     // warning:
     // you can only safely copy objects between main and render thread.
     // the tile scheduler is in an extra thread, there will be races if you write to it.
-
-    auto gl_window = m_gl_context->render_window().lock();
-    if (!gl_window) {
-        qCritical("TerrainRenderer::TerrainRenderer: gl_window is null");
-        return;
-    }
-
     m_window = item->window();
     TerrainRendererItem* i = static_cast<TerrainRendererItem*>(item);
     //        m_controller->camera_controller()->set_virtual_resolution_factor(i->render_quality());
-    gl_window->set_permissible_screen_space_error(1.0 / i->settings()->render_quality());
+    m_glWindow->set_permissible_screen_space_error(1.0 / i->settings()->render_quality());
     m_controller->camera_controller()->set_viewport({ i->width(), i->height() });
     m_controller->camera_controller()->set_field_of_view(i->field_of_view());
 
@@ -109,29 +95,16 @@ void TerrainRenderer::synchronize(QQuickFramebufferObject *item)
 void TerrainRenderer::render()
 {
     m_window->beginExternalCommands();
-
-    auto gl_window = m_gl_context->render_window().lock();
-    if (gl_window)
-        gl_window->paint(this->framebufferObject());
-    else
-        qCritical("TerrainRenderer::render: gl_window is null");
-
+    m_glWindow->paint(this->framebufferObject());
     m_window->endExternalCommands();
     //    qDebug() << "TerrainRenderer::render: " << QDateTime::currentDateTime().time().toString("ss.zzz");
 }
 
 QOpenGLFramebufferObject *TerrainRenderer::createFramebufferObject(const QSize &size)
 {
-
     qDebug() << "QOpenGLFramebufferObject *createFramebufferObject(const QSize& " << size << ")";
     m_window->beginExternalCommands();
-
-    auto gl_window = m_gl_context->render_window().lock();
-    if (gl_window)
-        gl_window->resize_framebuffer(size.width(), size.height());
-    else
-        qCritical("TerrainRenderer::createFramebufferObject: gl_window is null");
-
+    m_glWindow->resize_framebuffer(size.width(), size.height());
     m_window->endExternalCommands();
     QOpenGLFramebufferObjectFormat format;
     format.setSamples(1);
@@ -139,7 +112,10 @@ QOpenGLFramebufferObject *TerrainRenderer::createFramebufferObject(const QSize &
     return new QOpenGLFramebufferObject(size, format);
 }
 
-gl_engine::Window* TerrainRenderer::glWindow() const { return static_cast<gl_engine::Window*>(m_gl_context->render_window().lock().get()); }
+gl_engine::Window *TerrainRenderer::glWindow() const
+{
+    return m_glWindow.get();
+}
 
 nucleus::Controller *TerrainRenderer::controller() const
 {

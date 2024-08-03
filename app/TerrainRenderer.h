@@ -24,7 +24,6 @@
 #include <QQuickFramebufferObject>
 
 namespace gl_engine {
-class Context;
 class Window;
 }
 namespace nucleus {
@@ -49,6 +48,6 @@ public:
 
 private:
     QQuickWindow *m_window;
-    std::unique_ptr<gl_engine::Context> m_gl_context;
+    std::unique_ptr<gl_engine::Window> m_glWindow;
     std::unique_ptr<nucleus::Controller> m_controller;
 };
