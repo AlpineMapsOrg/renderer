@@ -1,6 +1,7 @@
 /*****************************************************************************
- * Alpine Terrain Builder
+ * AlpineMaps.org Renderer
  * Copyright (C) 2024 Jakob Maier
+ * Copyright (C) 2024 Adam Celarek
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -111,10 +112,10 @@ void main() {
         highp vec4 p1 = texelFetch(texin_track, ivec2(int(id + 0), 0), 0);
         highp vec4 p2 = texelFetch(texin_track, ivec2(int(id + 1), 0), 0);
 
-        highp vec3 x0 = texelFetch(texin_track, ivec2(int(id - 1), 0), 0).xyz;
-        highp vec3 x1 = p1.xyz;
-        highp vec3 x2 = p2.xyz;
-        highp vec3 x3 = texelFetch(texin_track, ivec2(int(id + 2), 0), 0).xyz;
+        highp vec3 x0 = texelFetch(texin_track, ivec2(int(id - 1), 0), 0).xyz - camera_position;
+        highp vec3 x1 = p1.xyz - camera_position;
+        highp vec3 x2 = p2.xyz - camera_position;
+        highp vec3 x3 = texelFetch(texin_track, ivec2(int(id + 2), 0), 0).xyz - camera_position;
 
         highp float delta_time = p2.w;
 
@@ -132,12 +133,12 @@ void main() {
             // ray does not hit terrain, it hits sky
 
             highp vec3 dir = camera_ray(texcoords, inverse(proj), inverse(view));
-            ray = Ray(camera_position, dir);
+            ray = Ray(vec3(0, 0, 0), dir);
             dist = INF;
 
         } else {
             // ray does hit terrain
-            ray = Ray(camera_position, normalize(terrain_pos / abs(dist)));
+            ray = Ray(vec3(0, 0, 0), normalize(terrain_pos / abs(dist)));
         }
 
         Capsule c = Capsule(x1, x2, width);
@@ -161,8 +162,8 @@ void main() {
             clipping_plane_2.distance = dot(x2, n1);
 
             if (
-                (0.0 >= signed_distance(point, clipping_plane_1) || (vertex_id == 0)) &&
-                (0.0 <= signed_distance(point, clipping_plane_2) || (vertex_id == end_index - 1))
+                (0.5 >= signed_distance(point, clipping_plane_1) || (vertex_id == 0)) &&
+                (-0.5 <= signed_distance(point, clipping_plane_2) || (vertex_id == end_index - 1))
             )
             {
 
@@ -217,7 +218,7 @@ void main() {
                     color = vec3(0);
                 }
 
-                color = phong_lighting(color, normal, camera_position, point);
+                color = phong_lighting(color, normal, vec3(0, 0, 0), point);
 
                 if (t < dist) {
                     // geometry is above terrain

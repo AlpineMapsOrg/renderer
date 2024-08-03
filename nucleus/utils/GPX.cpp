@@ -152,7 +152,7 @@ std::vector<glm::vec4> to_world_points(const gpx::TrackSegment& segment)
             time_since_epoch = static_cast<float>(segment[i - 1].timestamp.msecsTo(segment[i].timestamp));
         }
 
-        auto point = glm::dvec3(segment[i].latitude,segment[i].longitude,segment[i].elevation);
+        auto point = glm::dvec3(segment[i].latitude, segment[i].longitude, segment[i].elevation);
         track.push_back(glm::vec4(srs::lat_long_alt_to_world(point), time_since_epoch));
     }
 
