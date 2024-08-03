@@ -1,6 +1,6 @@
 /*****************************************************************************
  * Alpine Terrain Renderer
- * Copyright (C) 2023 Adam Celarek
+ * Copyright (C) 2024 Adam Celarek
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -18,37 +18,20 @@
 
 #pragma once
 
-#include <memory>
-
 #include <QObject>
-#include <QQuickFramebufferObject>
 
-namespace gl_engine {
-class Context;
-class Window;
-}
+#include "AbstractRenderWindow.h"
+#include "nucleus/track/Manager.h"
+
 namespace nucleus {
-class Controller;
-}
 
-class TerrainRenderer : public QObject, public QQuickFramebufferObject::Renderer {
+class EngineContext : public QObject {
     Q_OBJECT
 public:
-    TerrainRenderer();
-    ~TerrainRenderer() override;
+    explicit EngineContext(QObject* parent = nullptr);
 
-    void synchronize(QQuickFramebufferObject *item) override;
-
-    void render() override;
-
-    QOpenGLFramebufferObject *createFramebufferObject(const QSize &size) override;
-
-    [[nodiscard]] gl_engine::Window* glWindow() const;
-
-    [[nodiscard]] nucleus::Controller* controller() const;
-
-private:
-    QQuickWindow *m_window;
-    std::unique_ptr<gl_engine::Context> m_gl_context;
-    std::unique_ptr<nucleus::Controller> m_controller;
+    virtual std::weak_ptr<AbstractRenderWindow> render_window() = 0;
+    virtual void setup_tracks(track::Manager* manager) = 0;
+signals:
 };
+} // namespace nucleus

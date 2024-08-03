@@ -47,12 +47,12 @@ class QOpenGLTexture;
 class QOpenGLShaderProgram;
 class QOpenGLBuffer;
 class QOpenGLVertexArrayObject;
-class TileManager;
-class TrackManager;
-class MapLabelManager;
 
 namespace gl_engine {
 
+class TileManager;
+class MapLabelManager;
+class TrackManager;
 class DebugPainter;
 class ShaderManager;
 class Framebuffer;
@@ -82,6 +82,8 @@ public:
     void set_permissible_screen_space_error(float new_error) override;
     void set_quad_limit(unsigned new_limit) override;
 
+    TrackManager* track_manager() const;
+
 public slots:
     void update_camera(const nucleus::camera::Definition& new_definition) override;
     void update_debug_scheduler_stats(const QString& stats) override;
@@ -90,7 +92,6 @@ public slots:
     void shared_config_changed(gl_engine::uboSharedConfig ubo);
     void render_looped_changed(bool render_looped_flag);
     void reload_shader();
-    void add_gpx_track(const nucleus::gpx::Gpx& track);
     void set_track_width(float width);
     void set_track_shading(unsigned int shading);
 

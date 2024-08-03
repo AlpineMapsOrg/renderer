@@ -103,6 +103,8 @@ qt_add_library(nucleus STATIC
     timing/CpuTimer.h timing/CpuTimer.cpp
     utils/ColourTexture.h utils/ColourTexture.cpp
     utils/GPX.h utils/GPX.cpp
+    EngineContext.h EngineContext.cpp
+    track/Manager.h track/Manager.cpp
 )
 
 target_include_directories(nucleus PUBLIC ${CMAKE_SOURCE_DIR})

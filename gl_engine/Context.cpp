@@ -1,6 +1,6 @@
 /*****************************************************************************
  * Alpine Terrain Renderer
- * Copyright (C) 2023 Adam Celarek
+ * Copyright (C) 2024 Adam Celarek
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -16,39 +16,15 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *****************************************************************************/
 
-#pragma once
+#include "Context.h"
+#include "TrackManager.h"
+using namespace gl_engine;
 
-#include <memory>
+Context::Context() { m_window = std::make_shared<gl_engine::Window>(); }
 
-#include <QObject>
-#include <QQuickFramebufferObject>
+std::weak_ptr<nucleus::AbstractRenderWindow> Context::render_window() { return m_window; }
 
-namespace gl_engine {
-class Context;
-class Window;
+void Context::setup_tracks(nucleus::track::Manager* manager)
+{
+    connect(manager, &nucleus::track::Manager::tracks_changed, m_window->track_manager(), &TrackManager::change_tracks);
 }
-namespace nucleus {
-class Controller;
-}
-
-class TerrainRenderer : public QObject, public QQuickFramebufferObject::Renderer {
-    Q_OBJECT
-public:
-    TerrainRenderer();
-    ~TerrainRenderer() override;
-
-    void synchronize(QQuickFramebufferObject *item) override;
-
-    void render() override;
-
-    QOpenGLFramebufferObject *createFramebufferObject(const QSize &size) override;
-
-    [[nodiscard]] gl_engine::Window* glWindow() const;
-
-    [[nodiscard]] nucleus::Controller* controller() const;
-
-private:
-    QQuickWindow *m_window;
-    std::unique_ptr<gl_engine::Context> m_gl_context;
-    std::unique_ptr<nucleus::Controller> m_controller;
-};

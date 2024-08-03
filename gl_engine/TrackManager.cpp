@@ -17,8 +17,9 @@
  *****************************************************************************/
 
 #include "TrackManager.h"
-#include "helpers.h"
+#include "ShaderManager.h"
 #include "ShaderProgram.h"
+#include "helpers.h"
 
 #include <QOpenGLBuffer>
 #include <QOpenGLContext>
@@ -35,14 +36,15 @@
 
 namespace gl_engine {
 
-TrackManager::TrackManager(QObject* parent)
+TrackManager::TrackManager(ShaderManager* shader_manager, QObject* parent)
     : QObject(parent)
+    , m_shader(shader_manager->track_program())
 {
 }
 
 void TrackManager::init() { assert(QOpenGLContext::currentContext()); }
 
-void TrackManager::draw(const nucleus::camera::Definition& camera, ShaderProgram* shader) const
+void TrackManager::draw(const nucleus::camera::Definition& camera) const
 {
     if (m_tracks.empty()) {
         return;
@@ -59,16 +61,16 @@ void TrackManager::draw(const nucleus::camera::Definition& camera, ShaderProgram
     auto view = camera.local_view_matrix();
     auto proj = camera.projection_matrix();
 
-    shader->bind();
-    shader->set_uniform("proj", proj);
-    shader->set_uniform("view", view);
-    shader->set_uniform("camera_position", glm::vec3(camera.position()));
-    shader->set_uniform("width", width);
-    shader->set_uniform("texin_track", 8);
-    shader->set_uniform("shading_method", static_cast<int>(shading_method));
-    shader->set_uniform("max_speed", m_max_speed);
-    shader->set_uniform("max_vertical_speed", m_max_vertical_speed);
-    shader->set_uniform("end_index", static_cast<int>(m_total_point_count));
+    m_shader->bind();
+    m_shader->set_uniform("proj", proj);
+    m_shader->set_uniform("view", view);
+    m_shader->set_uniform("camera_position", glm::vec3(camera.position()));
+    m_shader->set_uniform("width", width);
+    m_shader->set_uniform("texin_track", 8);
+    m_shader->set_uniform("shading_method", static_cast<int>(shading_method));
+    m_shader->set_uniform("max_speed", m_max_speed);
+    m_shader->set_uniform("max_vertical_speed", m_max_vertical_speed);
+    m_shader->set_uniform("end_index", static_cast<int>(m_total_point_count));
 
     for (const PolyLine& track : m_tracks) {
 
@@ -78,7 +80,7 @@ void TrackManager::draw(const nucleus::camera::Definition& camera, ShaderProgram
 
         GLsizei vertex_count = (track.point_count - 1) * 6;
 
-        shader->set_uniform("enable_intersection", true);
+        m_shader->set_uniform("enable_intersection", true);
         f->glDrawArrays(GL_TRIANGLES, 0, vertex_count);
 
 #if ENABLE_BOUNDING_QUADS
@@ -95,12 +97,12 @@ void TrackManager::draw(const nucleus::camera::Definition& camera, ShaderProgram
 #endif
     }
 
-    shader->release();
+    m_shader->release();
 
     f->glEnable(GL_CULL_FACE);
 }
 
-void TrackManager::add_track(const nucleus::gpx::Gpx& gpx, ShaderProgram* shader)
+void TrackManager::add_track(const nucleus::gpx::Gpx& gpx)
 {
     QOpenGLExtraFunctions *f = QOpenGLContext::currentContext()->extraFunctions();
 
@@ -183,15 +185,15 @@ void TrackManager::add_track(const nucleus::gpx::Gpx& gpx, ShaderProgram* shader
 
         GLsizei stride = 3 * sizeof(glm::vec3);
 
-        const int position_attrib_location = shader->attribute_location("a_position");
+        const int position_attrib_location = m_shader->attribute_location("a_position");
         f->glEnableVertexAttribArray(position_attrib_location);
         f->glVertexAttribPointer(position_attrib_location, 3, GL_FLOAT, GL_FALSE, stride, nullptr);
 
-        const int direction_attrib_location = shader->attribute_location("a_direction");
+        const int direction_attrib_location = m_shader->attribute_location("a_direction");
         f->glEnableVertexAttribArray(direction_attrib_location);
         f->glVertexAttribPointer(direction_attrib_location, 3, GL_FLOAT, GL_FALSE, stride, (void*)(1 * sizeof(glm::vec3)));
 
-        const int offset_attrib_location = shader->attribute_location("a_offset");
+        const int offset_attrib_location = m_shader->attribute_location("a_offset");
         f->glEnableVertexAttribArray(offset_attrib_location);
         f->glVertexAttribPointer(offset_attrib_location, 3, GL_FLOAT, GL_FALSE, stride, (void*)(2 * sizeof(glm::vec3)));
 
@@ -201,5 +203,13 @@ void TrackManager::add_track(const nucleus::gpx::Gpx& gpx, ShaderProgram* shader
     }
 
     qDebug() << "Total Point Count: " << m_total_point_count;
+}
+
+void TrackManager::change_tracks(const QVector<nucleus::gpx::Gpx>& tracks)
+{
+    m_tracks.resize(0);
+    for (const auto& t : tracks) {
+        add_track(t);
+    }
 }
 } // namespace gl_engine

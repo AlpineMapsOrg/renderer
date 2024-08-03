@@ -33,6 +33,7 @@ class QOpenGLShaderProgram;
 namespace gl_engine {
 
 class ShaderProgram;
+class ShaderManager;
 
 struct PolyLine {
     GLsizei point_count;
@@ -44,18 +45,23 @@ struct PolyLine {
 class TrackManager : public QObject {
     Q_OBJECT
 public:
-    explicit TrackManager(QObject* parent = nullptr);
+    explicit TrackManager(ShaderManager* shader_manager, QObject* parent = nullptr);
 
     void init();
 
-    void draw(const nucleus::camera::Definition& camera, ShaderProgram* shader) const;
+    void draw(const nucleus::camera::Definition& camera) const;
 
-    void add_track(const nucleus::gpx::Gpx& gpx, ShaderProgram* shader);
+    void add_track(const nucleus::gpx::Gpx& gpx);
 
+public slots:
+    void change_tracks(const QVector<nucleus::gpx::Gpx>& tracks);
+
+public:
     unsigned int shading_method = 0U;
     float width = 7.0f;
 
 private:
+    ShaderProgram* m_shader;
     float m_max_speed = 0.0f;
     float m_max_vertical_speed = 0.0f;
     size_t m_total_point_count = 0;

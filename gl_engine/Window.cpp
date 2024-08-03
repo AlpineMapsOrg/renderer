@@ -74,12 +74,12 @@
 
  using gl_engine::Window;
  using gl_engine::UniformBuffer;
+ using namespace gl_engine;
 
  Window::Window()
      : m_camera({ 1822577.0, 6141664.0 - 500, 171.28 + 500 }, { 1822577.0, 6141664.0, 171.28 }) // should point right at the stephansdom
  {
      m_tile_manager = std::make_unique<TileManager>();
-     m_track_manager = std::make_unique<TrackManager>();
      m_map_label_manager = std::make_unique<MapLabelManager>();
      QTimer::singleShot(1, [this]() { emit update_requested(); });
 }
@@ -107,6 +107,7 @@ void Window::initialise_gpu()
 
     m_debug_painter = std::make_unique<DebugPainter>();
     m_shader_manager = std::make_unique<ShaderManager>();
+    m_track_manager = std::make_unique<TrackManager>(m_shader_manager.get());
 
     m_tile_manager->init();
     m_tile_manager->initilise_attribute_locations(m_shader_manager->tile_shader());
@@ -348,7 +349,7 @@ void Window::paint(QOpenGLFramebufferObject* framebuffer)
         track_shader->set_uniform("resolution", size);
 
         f->glClear(GL_DEPTH_BUFFER_BIT);
-        m_track_manager->draw(m_camera, track_shader);
+        m_track_manager->draw(m_camera);
 
         m_timer->stop_timer("tracks");
     }
@@ -482,10 +483,7 @@ void gl_engine::Window::set_track_shading(unsigned int shading) {
     m_track_manager->shading_method = shading;
 }
 
-void Window::add_gpx_track(const nucleus::gpx::Gpx& track)
-{
-    m_track_manager->add_track(track, m_shader_manager->track_program());
-}
+TrackManager* Window::track_manager() const { return m_track_manager.get(); }
 
 float Window::depth(const glm::dvec2& normalised_device_coordinates)
 {

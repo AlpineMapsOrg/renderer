@@ -126,11 +126,6 @@ QQuickFramebufferObject::Renderer* TerrainRendererItem::createRenderer() const
     connect(this, &TerrainRendererItem::camera_definition_set_by_user, r->controller()->camera_controller(), &nucleus::camera::Controller::set_definition);
     connect(r->controller()->camera_controller(), &nucleus::camera::Controller::global_cursor_position_changed, this, &TerrainRendererItem::read_global_position);
 
-    connect(this,
-            &TerrainRendererItem::gpx_track_added_by_user,
-            r->glWindow(),
-            &gl_engine::Window::add_gpx_track);
-
     auto* const tile_scheduler = r->controller()->tile_scheduler();
     connect(this->m_settings, &AppSettings::render_quality_changed, tile_scheduler, [=](float new_render_quality) {
         const auto permissible_error = 1.0f / new_render_quality;
@@ -148,7 +143,6 @@ QQuickFramebufferObject::Renderer* TerrainRendererItem::createRenderer() const
     });
 
     // connect glWindow to forward key events.
-    connect(this, &TerrainRendererItem::key_pressed, r->glWindow(), &gl_engine::Window::key_press);
     connect(this, &TerrainRendererItem::shared_config_changed, r->glWindow(), &gl_engine::Window::shared_config_changed);
     connect(this, &TerrainRendererItem::render_looped_changed, r->glWindow(), &gl_engine::Window::render_looped_changed);
     connect(this, &TerrainRendererItem::track_width_changed, r->glWindow(), &gl_engine::Window::set_track_width);
