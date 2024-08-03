@@ -32,11 +32,7 @@
 #include <QDir>
 #include <QTimer>
 #include <QBuffer>
-#ifdef __EMSCRIPTEN__
-#include <emscripten.h>
-#else
-#include <QFileDialog>
-#endif
+
 #include <glm/glm.hpp>
 #include <glm/gtx/string_cast.hpp>
 
@@ -247,89 +243,6 @@ void TerrainRendererItem::set_gl_preset(const QString& preset_b64_string) {
     // Update light direction if sunlink is true. Otherwise shadows will not work on first frame
     if (m_settings->gl_sundir_date_link()) update_gl_sun_dir_from_sun_angles(tmp);
     set_shared_config(tmp);
-}
-
-#ifdef __EMSCRIPTEN__
-// clang-format off
-EM_ASYNC_JS(void, alpine_app_open_file_picker_and_mount, (), {
-    const file_reader = new FileReader();
-    const fileReadPromise = new Promise((resolve, reject) => {
-        file_reader.onload = (event) => {
-            try {
-                const uint8Arr = new Uint8Array(event.target.result);
-                const stream = FS.open("/tmp/track_upload/" + file_reader.filename.replace(/[^a-zA-Z0-9_\\-()]/g, '_'), "w+");
-                FS.write(stream, uint8Arr, 0, uint8Arr.length, 0);
-                FS.close(stream);
-                resolve();
-            } catch (error) {
-                reject(error);
-            }
-        };
-    });
-    globalThis["open_file"] = function(e)
-    {
-        file_reader.filename = e.target.files[0].name;
-        file_reader.mime_type = e.target.files[0].type;
-        file_reader.readAsArrayBuffer(e.target.files[0]);
-    };
-
-    var file_selector = document.createElement('input');
-    file_selector.setAttribute('type', 'file');
-    file_selector.setAttribute('onchange', 'globalThis["open_file"](event)');
-    file_selector.setAttribute('accept', '.gpx');
-    file_selector.click();
-    await fileReadPromise;
-});
-// clang-format on
-#endif
-
-void TerrainRendererItem::upload_track()
-{
-    auto fileContentReady = [this](const QString& /*fileName*/, const QByteArray& fileContent) {
-        (void)fileContent;
-        QXmlStreamReader xmlReader(fileContent);
-
-        std::unique_ptr<nucleus::gpx::Gpx> gpx = nucleus::gpx::parse(xmlReader);
-        if (gpx != nullptr) {
-            emit gpx_track_added_by_user(*gpx);
-
-            if (0 < gpx->track.size() && 0 < gpx->track[0].size()) {
-                auto track_start = gpx->track[0][0];
-                emit position_set_by_user(track_start.latitude, track_start.longitude);
-            }
-        } else {
-            qDebug("Coud not parse GPX file!");
-        }
-    };
-
-#ifdef __EMSCRIPTEN__
-    QDir dir("/tmp/track_upload/");
-    dir.mkpath("/tmp/track_upload/");
-    alpine_app_open_file_picker_and_mount();
-    QStringList fileList = dir.entryList(QDir::Files);
-
-    if (fileList.isEmpty()) {
-        qDebug() << "No files in /tmp/track_upload/";
-        return;
-    }
-    QString file_name = fileList.first();
-    QFile file(dir.absoluteFilePath(file_name));
-
-    if (!file.open(QIODevice::ReadOnly)) {
-        qDebug() << "Failed to open the file:" << file_name;
-        return;
-    }
-
-    QByteArray file_data = file.readAll();
-    file.close();
-
-    if (!QFile::remove(dir.absoluteFilePath(file_name))) {
-        qDebug() << "Failed to delete the file:" << file_name;
-    }
-    fileContentReady(file_name, file_data);
-#else
-    QFileDialog::getOpenFileContent("GPX (*.gpx *.xml)",  fileContentReady);
-#endif
 }
 
 void TerrainRendererItem::schedule_update()

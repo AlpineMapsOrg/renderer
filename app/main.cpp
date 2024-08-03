@@ -38,10 +38,13 @@
 #include <QTimer>
 #include <QTranslator>
 
+#include <gl_engine/Context.h>
+
 #include "GnssInformation.h"
 #include "HotReloader.h"
 #include "RenderThreadNotifier.h"
 #include "TerrainRendererItem.h"
+#include "TrackModel.h"
 
 #include "nucleus/camera/PositionStorage.h"
 #include "nucleus/version.h"
@@ -136,6 +139,8 @@ int main(int argc, char **argv)
 #else
     engine.rootContext()->setContextProperty("_debug_gui", false);
 #endif
+    auto track_model = TrackModel();
+    engine.rootContext()->setContextProperty("_track_model", &track_model);
 
     RenderThreadNotifier::instance();
     QObject::connect(

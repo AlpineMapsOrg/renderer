@@ -18,28 +18,19 @@
 
 #pragma once
 
-#include <nucleus/EngineContext.h>
+#include "nucleus/track/Manager.h"
+#include <QObject>
 
-#include "Window.h"
-
-namespace gl_engine {
-class Context : public nucleus::EngineContext {
-private:
-    Context();
-
+class TrackModel : public QObject {
+    Q_OBJECT
 public:
-    Context(Context const&) = delete;
-    void operator=(Context const&) = delete;
-    static nucleus::EngineContext& instance()
-    {
-        static Context c;
-        return c;
-    }
+    explicit TrackModel(QObject* parent = nullptr);
 
-    std::weak_ptr<nucleus::AbstractRenderWindow> render_window() override;
-    void setup_tracks(nucleus::track::Manager* manager) override;
+public slots:
+    void upload_track();
+
+signals:
 
 private:
-    std::shared_ptr<Window> m_window;
+    nucleus::track::Manager m_manager;
 };
-} // namespace gl_engine

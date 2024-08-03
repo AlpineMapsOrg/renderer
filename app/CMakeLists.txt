@@ -95,6 +95,7 @@ qt_add_qml_module(alpineapp
         icons/logo_type_horizontal.png
         icons/logo_type_vertical.png
         icons/logo_type_horizontal_short.png
+        SOURCES TrackModel.h TrackModel.cpp
 )
 
 qt_add_resources(alpineapp "fonts"
