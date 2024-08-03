@@ -1,6 +1,7 @@
 /*****************************************************************************
- * Alpine Terrain Builder
+ * AlpineMaps.org Renderer
  * Copyright (C) 2024 Jakob Maier
+ * Copyright (C) 2024 Adam Celarek
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -17,9 +18,6 @@
  *****************************************************************************/
 
 #include "TrackManager.h"
-#include "ShaderManager.h"
-#include "ShaderProgram.h"
-#include "helpers.h"
 
 #include <QOpenGLBuffer>
 #include <QOpenGLContext>
@@ -27,6 +25,10 @@
 #include <QOpenGLShaderProgram>
 #include <QOpenGLVersionFunctionsFactory>
 #include <QOpenGLVertexArrayObject>
+
+#include "ShaderManager.h"
+#include "ShaderProgram.h"
+#include "helpers.h"
 
 #if (defined(__linux) && !defined(__ANDROID__)) || defined(_WIN32) || defined(_WIN64)
 #include <QOpenGLFunctions_3_3_Core> // for wireframe mode
@@ -37,7 +39,7 @@
 namespace gl_engine {
 
 TrackManager::TrackManager(ShaderManager* shader_manager, QObject* parent)
-    : QObject(parent)
+    : nucleus::track::Manager(parent)
     , m_shader(shader_manager->track_program())
 {
 }

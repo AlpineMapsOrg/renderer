@@ -20,7 +20,6 @@
 
 #include <QObject>
 
-#include "AbstractRenderWindow.h"
 #include "nucleus/track/Manager.h"
 
 namespace nucleus {
@@ -30,8 +29,8 @@ class EngineContext : public QObject {
 public:
     explicit EngineContext(QObject* parent = nullptr);
 
-    virtual void setup_tracks(track::Manager* manager) = 0;
     virtual void deinit() = 0;
+    [[nodiscard]] virtual track::Manager* track_manager() = 0;
 signals:
 };
 } // namespace nucleus

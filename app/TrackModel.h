@@ -27,14 +27,15 @@ public:
     explicit TrackModel(QObject* parent = nullptr);
 
     Q_INVOKABLE QPointF lat_long(unsigned index);
-    Q_INVOKABLE unsigned n_tracks() const { return m_manager.size(); }
+    Q_INVOKABLE unsigned n_tracks() const { return m_data.size(); }
 
 public slots:
     void upload_track();
     void connect_to_render_engine();
 
 signals:
+    void tracks_changed(const QVector<nucleus::gpx::Gpx>& tracks);
 
 private:
-    nucleus::track::Manager m_manager;
+    QVector<nucleus::gpx::Gpx> m_data;
 };

@@ -1,6 +1,7 @@
 /*****************************************************************************
- * Alpine Terrain Builder
+ * AlpineMaps.org Renderer
  * Copyright (C) 2024 Jakob Maier
+ * Copyright (C) 2024 Adam Celarek
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -20,13 +21,13 @@
 
 #include <QObject>
 #include <memory>
-#include "nucleus/utils/GPX.h"
-#include "nucleus/camera/Definition.h"
 #include <QOpenGLBuffer>
 #include <QOpenGLVertexArrayObject>
 #include <QOpenGLTexture>
 
-#include "ShaderProgram.h"
+#include <nucleus/camera/Definition.h>
+#include <nucleus/track/Manager.h>
+#include <nucleus/utils/GPX.h>
 
 class QOpenGLShaderProgram;
 
@@ -42,7 +43,7 @@ struct PolyLine {
     std::unique_ptr<QOpenGLTexture> texture = nullptr;
 };
 
-class TrackManager : public QObject {
+class TrackManager : public nucleus::track::Manager {
     Q_OBJECT
 public:
     explicit TrackManager(ShaderManager* shader_manager, QObject* parent = nullptr);
@@ -53,8 +54,8 @@ public:
 
     void add_track(const nucleus::gpx::Gpx& gpx);
 
-public slots:
-    void change_tracks(const QVector<nucleus::gpx::Gpx>& tracks);
+public:
+    void change_tracks(const QVector<nucleus::gpx::Gpx>& tracks) override;
 
 public:
     unsigned int shading_method = 0U;

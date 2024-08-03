@@ -29,11 +29,6 @@ Context::Context()
 
 Context::~Context() = default;
 
-void Context::setup_tracks(nucleus::track::Manager* manager)
-{
-    connect(manager, &nucleus::track::Manager::tracks_changed, m_track_manager.get(), &TrackManager::change_tracks);
-}
-
 void Context::deinit()
 {
     m_track_manager.reset();
@@ -42,4 +37,4 @@ void Context::deinit()
 
 TrackManager* Context::track_manager() { return m_track_manager.get(); }
 
-ShaderManager* Context::shader_manager() const { return m_shader_manager.get(); }
+ShaderManager* Context::shader_manager() { return m_shader_manager.get(); }

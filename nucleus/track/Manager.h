@@ -23,24 +23,12 @@
 
 namespace nucleus::track {
 
-using Id = uint64_t;
-
 class Manager : public QObject {
     Q_OBJECT
 public:
-    explicit Manager(QObject* parent = nullptr);
-
-    std::vector<nucleus::gpx::Gpx> tracks() const;
-    nucleus::gpx::Gpx track(Id id) const;
+    Manager(QObject* parent);
 
 public slots:
-    void add_or_replace(Id id, const nucleus::gpx::Gpx& gpx);
-    void remove(Id id);
-    unsigned size() const;
-signals:
-    void tracks_changed(const QVector<nucleus::gpx::Gpx>& tracks);
-
-private:
-    std::unordered_map<Id, nucleus::gpx::Gpx> m_data;
+    virtual void change_tracks(const QVector<nucleus::gpx::Gpx>& tracks) = 0;
 };
 } // namespace nucleus::track

@@ -20,8 +20,9 @@
 
 #include <nucleus/EngineContext.h>
 
+#include "TrackManager.h"
+
 namespace gl_engine {
-class TrackManager;
 class ShaderManager;
 
 class Context : public nucleus::EngineContext {
@@ -38,11 +39,9 @@ public:
         return c;
     }
 
-    void setup_tracks(nucleus::track::Manager* manager) override;
     void deinit() override;
-    TrackManager* track_manager();
-
-    ShaderManager* shader_manager() const;
+    [[nodiscard]] TrackManager* track_manager() override;
+    [[nodiscard]] ShaderManager* shader_manager();
 
 private:
     std::unique_ptr<gl_engine::TrackManager> m_track_manager;

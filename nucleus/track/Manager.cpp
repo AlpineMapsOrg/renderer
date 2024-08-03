@@ -24,38 +24,3 @@ Manager::Manager(QObject* parent)
     : QObject { parent }
 {
 }
-
-std::vector<nucleus::gpx::Gpx> Manager::tracks() const
-{
-    std::vector<nucleus::gpx::Gpx> v;
-    v.reserve(m_data.size());
-    std::transform(m_data.cbegin(), m_data.cend(), std::back_inserter(v), [](const auto& d) { return d.second; });
-    return v;
-}
-
-nucleus::gpx::Gpx Manager::track(Id id) const
-{
-    if (!m_data.contains(id))
-        return {};
-    return m_data.at(id);
-}
-
-void Manager::add_or_replace(Id id, const nucleus::gpx::Gpx& gpx)
-{
-    m_data[id] = gpx;
-    QVector<nucleus::gpx::Gpx> v;
-    v.reserve(m_data.size());
-    std::transform(m_data.cbegin(), m_data.cend(), std::back_inserter(v), [](const auto& d) { return d.second; });
-    emit tracks_changed(v);
-}
-
-void Manager::remove(Id id)
-{
-    m_data.erase(id);
-    QVector<nucleus::gpx::Gpx> v;
-    v.reserve(m_data.size());
-    std::transform(m_data.cbegin(), m_data.cend(), std::back_inserter(v), [](const auto& d) { return d.second; });
-    emit tracks_changed(v);
-}
-
-unsigned int Manager::size() const { return m_data.size(); }

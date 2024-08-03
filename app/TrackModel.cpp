@@ -33,7 +33,9 @@ TrackModel::TrackModel(QObject* parent)
 
 QPointF TrackModel::lat_long(unsigned int index)
 {
-    const auto track = m_manager.track(index);
+    if (index >= m_data.size())
+        return {};
+    const auto track = m_data.at(index);
     if (0 < track.track.size() && 0 < track.track[0].size()) {
         auto track_start = track.track[0][0];
         return { track_start.latitude, track_start.longitude };
@@ -83,7 +85,8 @@ void TrackModel::upload_track()
 
         std::unique_ptr<nucleus::gpx::Gpx> gpx = nucleus::gpx::parse(xmlReader);
         if (gpx != nullptr) {
-            m_manager.add_or_replace(this->n_tracks(), *gpx);
+            m_data.push_back(*gpx);
+            emit tracks_changed(m_data);
         } else {
             qDebug("Coud not parse GPX file!");
         }
@@ -125,5 +128,5 @@ void TrackModel::upload_track()
 void TrackModel::connect_to_render_engine()
 {
     auto& c = gl_engine::Context::instance();
-    c.setup_tracks(&m_manager);
+    connect(this, &TrackModel::tracks_changed, c.track_manager(), &nucleus::track::Manager::change_tracks);
 }
