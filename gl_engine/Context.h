@@ -39,9 +39,12 @@ public:
         return c;
     }
 
-    void deinit() override;
     [[nodiscard]] TrackManager* track_manager() override;
     [[nodiscard]] ShaderManager* shader_manager();
+
+protected:
+    void internal_initialise() override;
+    void internal_destroy() override;
 
 private:
     std::unique_ptr<gl_engine::TrackManager> m_track_manager;

@@ -493,7 +493,7 @@ void Window::deinit_gpu()
     emit gpu_ready_changed(false);
     m_tile_manager.reset();
     m_debug_painter.reset();
-    Context::instance().deinit();
+    Context::instance().destroy();
     m_gbuffer.reset();
     m_screen_quad_geometry = {};
 }

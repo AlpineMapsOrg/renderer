@@ -29,6 +29,9 @@
 TrackModel::TrackModel(QObject* parent)
     : QObject { parent }
 {
+    auto& c = gl_engine::Context::instance();
+    connect(&c, &gl_engine::Context::initialised, this,
+        [this]() { connect(this, &TrackModel::tracks_changed, gl_engine::Context::instance().track_manager(), &nucleus::track::Manager::change_tracks); });
 }
 
 QPointF TrackModel::lat_long(unsigned int index)
@@ -123,10 +126,4 @@ void TrackModel::upload_track()
     file.open(QFile::ReadOnly);
     fileContentReady(file.fileName(), file.readAll());
 #endif
-}
-
-void TrackModel::connect_to_render_engine()
-{
-    auto& c = gl_engine::Context::instance();
-    connect(this, &TrackModel::tracks_changed, c.track_manager(), &nucleus::track::Manager::change_tracks);
 }

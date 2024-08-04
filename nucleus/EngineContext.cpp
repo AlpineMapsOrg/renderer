@@ -20,7 +20,39 @@
 
 using namespace nucleus;
 
-EngineContext::EngineContext(QObject* parent)
-    : QObject { parent }
+EngineContext* EngineContext::s_self = nullptr;
+
+EngineContext::EngineContext() { }
+
+void EngineContext::set_singleton(EngineContext* context)
 {
+    assert(context);
+    assert(s_self == nullptr); // call in the constructor of your subclass
+    s_self = context;
 }
+
+EngineContext::~EngineContext() { assert(m_initialised == m_destroyed); }
+
+void EngineContext::initialise()
+{
+    assert(!m_initialised);
+    internal_initialise();
+    m_initialised = true;
+    emit initialised();
+}
+
+void EngineContext::destroy()
+{
+    assert(m_initialised);
+    assert(!m_destroyed);
+    internal_destroy();
+    m_destroyed = true;
+}
+
+EngineContext* EngineContext::instance()
+{
+    assert(s_self); // EngineContext must be initialised from a subclass using set_singleton
+    return s_self;
+}
+
+bool EngineContext::is_alive() const { return m_initialised && !m_destroyed; }

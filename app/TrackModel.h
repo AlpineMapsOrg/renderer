@@ -31,7 +31,6 @@ public:
 
 public slots:
     void upload_track();
-    void connect_to_render_engine();
 
 signals:
     void tracks_changed(const QVector<nucleus::gpx::Gpx>& tracks);

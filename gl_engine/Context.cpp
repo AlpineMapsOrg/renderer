@@ -21,20 +21,30 @@
 #include "TrackManager.h"
 using namespace gl_engine;
 
-Context::Context()
+Context::Context() { nucleus::EngineContext::set_singleton(this); }
+
+Context::~Context() = default;
+
+TrackManager* Context::track_manager()
+{
+    assert(is_alive());
+    return m_track_manager.get();
+}
+
+ShaderManager* Context::shader_manager()
+{
+    assert(is_alive());
+    return m_shader_manager.get();
+}
+
+void Context::internal_initialise()
 {
     m_shader_manager = std::make_unique<ShaderManager>();
     m_track_manager = std::make_unique<TrackManager>(m_shader_manager.get());
 }
 
-Context::~Context() = default;
-
-void Context::deinit()
+void Context::internal_destroy()
 {
     m_track_manager.reset();
     m_shader_manager.reset();
 }
-
-TrackManager* Context::track_manager() { return m_track_manager.get(); }
-
-ShaderManager* Context::shader_manager() { return m_shader_manager.get(); }

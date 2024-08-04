@@ -25,13 +25,17 @@
 #include <QQuickWindow>
 
 #include "TerrainRendererItem.h"
+#include "gl_engine/Context.h"
 #include "gl_engine/Window.h"
 #include "nucleus/Controller.h"
 #include "nucleus/camera/Controller.h"
 #include "nucleus/tile_scheduler/Scheduler.h"
 
+#include <nucleus/EngineContext.h>
+
 TerrainRenderer::TerrainRenderer()
 {
+    gl_engine::Context::instance().initialise();
     m_glWindow = std::make_unique<gl_engine::Window>();
     m_controller = std::make_unique<nucleus::Controller>(m_glWindow.get());
     m_controller->tile_scheduler()->set_ortho_tile_compression_algorithm(m_glWindow->ortho_tile_compression_algorithm());

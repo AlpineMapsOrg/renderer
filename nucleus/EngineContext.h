@@ -27,10 +27,25 @@ namespace nucleus {
 class EngineContext : public QObject {
     Q_OBJECT
 public:
-    explicit EngineContext(QObject* parent = nullptr);
-
-    virtual void deinit() = 0;
+    virtual ~EngineContext();
+    void initialise();
+    void destroy();
     [[nodiscard]] virtual track::Manager* track_manager() = 0;
+    static EngineContext* instance();
+    bool is_alive() const;
+
+protected:
+    explicit EngineContext();
+    virtual void internal_initialise() = 0;
+    virtual void internal_destroy() = 0;
+    static void set_singleton(EngineContext* context);
+
 signals:
+    void initialised();
+
+private:
+    bool m_initialised = false;
+    bool m_destroyed = false;
+    static EngineContext* s_self;
 };
 } // namespace nucleus
