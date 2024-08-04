@@ -18,7 +18,7 @@
 
 #pragma once
 
-#include "nucleus/utils/GPX.h"
+#include "nucleus/track/GPX.h"
 #include <QObject>
 
 namespace nucleus::track {
@@ -29,6 +29,6 @@ public:
     Manager(QObject* parent);
 
 public slots:
-    virtual void change_tracks(const QVector<nucleus::gpx::Gpx>& tracks) = 0;
+    virtual void change_tracks(const QVector<nucleus::track::Gpx>& tracks) = 0;
 };
 } // namespace nucleus::track

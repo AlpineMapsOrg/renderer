@@ -1,10 +1,10 @@
 #include <catch2/catch_test_macros.hpp>
 
-#include "nucleus/utils/GPX.h"
+#include "nucleus/track/GPX.h"
 #include <QString>
 #include <iostream>
 
-using namespace nucleus::gpx;
+using namespace nucleus::track;
 
 TEST_CASE("GPX")
 {

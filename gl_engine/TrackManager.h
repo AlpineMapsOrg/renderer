@@ -26,8 +26,8 @@
 #include <QOpenGLTexture>
 
 #include <nucleus/camera/Definition.h>
+#include <nucleus/track/GPX.h>
 #include <nucleus/track/Manager.h>
-#include <nucleus/utils/GPX.h>
 
 class QOpenGLShaderProgram;
 
@@ -52,10 +52,10 @@ public:
 
     void draw(const nucleus::camera::Definition& camera) const;
 
-    void add_track(const nucleus::gpx::Gpx& gpx);
+    void add_track(const nucleus::track::Gpx& gpx);
 
 public:
-    void change_tracks(const QVector<nucleus::gpx::Gpx>& tracks) override;
+    void change_tracks(const QVector<nucleus::track::Gpx>& tracks) override;
 
 public:
     unsigned int shading_method = 0U;

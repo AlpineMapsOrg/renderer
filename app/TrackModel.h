@@ -33,8 +33,8 @@ public slots:
     void upload_track();
 
 signals:
-    void tracks_changed(const QVector<nucleus::gpx::Gpx>& tracks);
+    void tracks_changed(const QVector<nucleus::track::Gpx>& tracks);
 
 private:
-    QVector<nucleus::gpx::Gpx> m_data;
+    QVector<nucleus::track::Gpx> m_data;
 };

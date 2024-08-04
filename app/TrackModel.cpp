@@ -86,7 +86,7 @@ void TrackModel::upload_track()
         (void)fileContent;
         QXmlStreamReader xmlReader(fileContent);
 
-        std::unique_ptr<nucleus::gpx::Gpx> gpx = nucleus::gpx::parse(xmlReader);
+        std::unique_ptr<nucleus::track::Gpx> gpx = nucleus::track::parse(xmlReader);
         if (gpx != nullptr) {
             m_data.push_back(*gpx);
             emit tracks_changed(m_data);

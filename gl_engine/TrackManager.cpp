@@ -104,21 +104,22 @@ void TrackManager::draw(const nucleus::camera::Definition& camera) const
     f->glEnable(GL_CULL_FACE);
 }
 
-void TrackManager::add_track(const nucleus::gpx::Gpx& gpx)
+void TrackManager::add_track(const nucleus::track::Gpx& gpx)
 {
+    using namespace nucleus::track;
     QOpenGLExtraFunctions *f = QOpenGLContext::currentContext()->extraFunctions();
 
     qDebug() << "Segment Count: " << gpx.track.size();
 
-    for (const nucleus::gpx::TrackSegment& segment : gpx.track) {
+    for (const Segment& segment : gpx.track) {
 
         qDebug() << "Point Count Per Segment: " << segment.size();
 
         // transform from latitude and longitude into renderer world coordinates
-        std::vector<glm::vec4> points = nucleus::to_world_points(segment);
+        std::vector<glm::vec4> points = to_world_points(segment);
 
         // data cleanup
-        nucleus::apply_gaussian_filter(points, 1.0f);
+        apply_gaussian_filter(points, 1.0f);
 
         for (size_t i = 0; i < points.size() - 1; ++i) {
             glm::vec4 a = points[i];
@@ -134,7 +135,7 @@ void TrackManager::add_track(const nucleus::gpx::Gpx& gpx)
 
         size_t point_count = points.size();
 
-        std::vector<glm::vec3> basic_ribbon = nucleus::triangles_ribbon(points, 0.0f, 0);
+        std::vector<glm::vec3> basic_ribbon = triangles_ribbon(points, 0.0f, 0);
 
         PolyLine polyline = {};
 
@@ -207,7 +208,7 @@ void TrackManager::add_track(const nucleus::gpx::Gpx& gpx)
     qDebug() << "Total Point Count: " << m_total_point_count;
 }
 
-void TrackManager::change_tracks(const QVector<nucleus::gpx::Gpx>& tracks)
+void TrackManager::change_tracks(const QVector<nucleus::track::Gpx>& tracks)
 {
     m_tracks.resize(0);
     for (const auto& t : tracks) {

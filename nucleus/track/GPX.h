@@ -1,7 +1,7 @@
-
 /*****************************************************************************
- * Alpine Terrain Builder
+ * AlpineMaps.org Renderer
  * Copyright (C) 2024 Jakob Maier
+ * Copyright (C) 2024 Adam Celarek
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -27,58 +27,55 @@
 #include <string>
 #include <vector>
 
-namespace nucleus {
+namespace nucleus::track {
 
 // https://www.topografix.com/gpx.asp
 // https://en.wikipedia.org/wiki/GPS_Exchange_Format
 // TODO: handle waypoint and route
-namespace gpx {
 
-    struct TrackPoint {
-        double latitude = 0;
-        double longitude = 0;
-        double elevation = 0;
-        QDateTime timestamp {};
-    };
+struct Point {
+    double latitude = 0;
+    double longitude = 0;
+    double elevation = 0;
+    QDateTime timestamp {};
+};
 
-    using TrackSegment = std::vector<TrackPoint>;
-    using TrackType = std::vector<TrackSegment>;
+using Segment = std::vector<Point>;
+using Type = std::vector<Segment>;
 
-    struct Gpx {
-        TrackType track;
-        void add_new_segment() { track.push_back(TrackSegment()); }
-        void add_new_point(const TrackPoint& point)
-        {
-            if (track.empty()) {
-                add_new_segment();
-            }
-
-            track.back().push_back(point);
+struct Gpx {
+    Type track;
+    void add_new_segment() { track.push_back(Segment()); }
+    void add_new_point(const Point& point)
+    {
+        if (track.empty()) {
+            add_new_segment();
         }
 
-        TrackPoint& last_point()
-        {
-            if (track.empty()) {
-                add_new_segment();
-            }
+        track.back().push_back(point);
+    }
 
-            if (track.back().empty()) {
-                add_new_point(TrackPoint());
-            }
-
-            return track.back().back();
+    Point& last_point()
+    {
+        if (track.empty()) {
+            add_new_segment();
         }
-    };
 
-    std::unique_ptr<Gpx> parse(const QString& path);
+        if (track.back().empty()) {
+            add_new_point(Point());
+        }
 
-    std::unique_ptr<Gpx> parse(QXmlStreamReader&);
+        return track.back().back();
+    }
+};
 
-} // namespace gpx
+std::unique_ptr<Gpx> parse(const QString& path);
 
-std::vector<glm::vec4> to_world_points(const gpx::Gpx& gpx);
+std::unique_ptr<Gpx> parse(QXmlStreamReader&);
 
-std::vector<glm::vec4> to_world_points(const gpx::TrackSegment& segment);
+std::vector<glm::vec4> to_world_points(const Gpx& gpx);
+
+std::vector<glm::vec4> to_world_points(const track::Segment& segment);
 
 // for rendering with GL_TRIANGLE_STRIP
 std::vector<glm::vec3> triangle_strip_ribbon(const std::vector<glm::vec3>& points, float width);
@@ -92,4 +89,4 @@ void apply_gaussian_filter(std::vector<glm::vec4>& points, float sigma = 1.0f);
 
 void reduce_point_count(std::vector<glm::vec4>& points, float threshold);
 
-} // namespace nucleus
+} // namespace nucleus::track

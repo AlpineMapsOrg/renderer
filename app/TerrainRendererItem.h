@@ -30,12 +30,13 @@
 #include <QDateTime>
 #include <map>
 
-#include "nucleus/camera/Definition.h"
-#include "nucleus/event_parameter.h"
-#include "nucleus/utils/GPX.h"
-#include "gl_engine/UniformBufferObjects.h"
-#include "timing/TimerFrontendManager.h"
+#include <gl_engine/UniformBufferObjects.h>
+#include <nucleus/camera/Definition.h>
+#include <nucleus/event_parameter.h>
+#include <nucleus/track/GPX.h>
+
 #include "AppSettings.h"
+#include "timing/TimerFrontendManager.h"
 
 class TerrainRendererItem : public QQuickFramebufferObject {
     Q_OBJECT
@@ -88,7 +89,7 @@ signals:
     void render_looped_changed(bool new_render_looped);
     void hud_visible_changed(bool new_hud_visible);
 
-    void gpx_track_added_by_user(const nucleus::gpx::Gpx& track);
+    void gpx_track_added_by_user(const nucleus::track::Gpx& track);
 
     void rotation_north_requested();
     void camera_changed();

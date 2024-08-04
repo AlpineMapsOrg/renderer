@@ -1,6 +1,7 @@
 /*****************************************************************************
- * Alpine Terrain Builder
+ * AlpineMaps.org Renderer
  * Copyright (C) 2024 Jakob Maier
+ * Copyright (C) 2024 Adam Celarek
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -18,110 +19,107 @@
 
 #include "GPX.h"
 
+#include <QDateTime>
 #include <QDebug>
 #include <QFile>
 #include <QXmlStreamReader>
-#include <QDateTime>
 
 #include "../srs.h"
 
-namespace nucleus {
-namespace gpx {
+namespace nucleus::track {
+std::unique_ptr<Gpx> parse(QXmlStreamReader& xmlReader)
+{
+    auto gpx = std::make_unique<Gpx>();
 
-    std::unique_ptr<Gpx> parse(QXmlStreamReader& xmlReader)
-    {
-        auto gpx = std::make_unique<Gpx>();
+    while (!xmlReader.atEnd() && !xmlReader.hasError()) {
+        QXmlStreamReader::TokenType token = xmlReader.readNext();
 
-        while (!xmlReader.atEnd() && !xmlReader.hasError()) {
-            QXmlStreamReader::TokenType token = xmlReader.readNext();
+        if (token == QXmlStreamReader::StartElement) {
+            // Handle the start element
 
-            if (token == QXmlStreamReader::StartElement) {
-                // Handle the start element
+            QStringView name = xmlReader.name();
 
-                QStringView name = xmlReader.name();
+            if (name == QString("trk")) {
+                // nothing to do here
+            } else if (name == QString("trkpt")) {
+                Point point;
+                double latitude = xmlReader.attributes().value("lat").toDouble();
+                double longitude = xmlReader.attributes().value("lon").toDouble();
 
-                if (name == QString("trk")) {
-                    // nothing to do here
-                } else if (name == QString("trkpt")) {
-                    TrackPoint point;
-                    double latitude = xmlReader.attributes().value("lat").toDouble();
-                    double longitude = xmlReader.attributes().value("lon").toDouble();
+                point.latitude = latitude;
+                point.longitude = longitude;
 
-                    point.latitude = latitude;
-                    point.longitude = longitude;
+                gpx->add_new_point(point);
 
-                    gpx->add_new_point(point);
+            } else if (name == QString("ele")) {
+                Point& point = gpx->last_point();
+                point.elevation = xmlReader.readElementText().toDouble();
 
-                } else if (name == QString("ele")) {
-                    TrackPoint& point = gpx->last_point();
-                    point.elevation = xmlReader.readElementText().toDouble();
+            } else if (name == QString("time")) {
+                QString iso_date_string = xmlReader.readElementText();
+                QDateTime date_time = QDateTime::fromString(iso_date_string, Qt::ISODate);
 
-                } else if (name == QString("time")) {
-                    QString iso_date_string = xmlReader.readElementText();
-                    QDateTime date_time = QDateTime::fromString(iso_date_string, Qt::ISODate);
-
-                    if (date_time.isValid()) {
-                        // check is needed, as "time" can exist in different than a trackpoint context
-                        if (gpx->track.size() > 0 && gpx->track.back().size() > 0) {
-                            TrackPoint& point = gpx->track.back().back();
-                            point.timestamp = date_time;
-                        }
-                    } else {
-                        qDebug() << "Failed to parse date " << iso_date_string;
+                if (date_time.isValid()) {
+                    // check is needed, as "time" can exist in different than a trackpoint context
+                    if (gpx->track.size() > 0 && gpx->track.back().size() > 0) {
+                        Point& point = gpx->track.back().back();
+                        point.timestamp = date_time;
                     }
-
-                } else if (name == QString("trkseg")) {
-                    gpx->add_new_segment();
-
-                } else if (name == QString("wpt")) {
-                    qDebug() << "'wpt' NOT IMPLEMENTED!\n";
-                    return nullptr;
-
-                } else if (name == QString("rte")) {
-                    qDebug() << "'rte' NOT IMPLEMENTED!\n";
-                    return nullptr;
+                } else {
+                    qDebug() << "Failed to parse date " << iso_date_string;
                 }
-            } else if (token == QXmlStreamReader::EndElement) {
-                // Handle the end element
-                // qDebug() << "Found end element"  << xmlReader.name();
-            } else if (token == QXmlStreamReader::Characters && !xmlReader.isWhitespace()) {
-                // Handle text content
+
+            } else if (name == QString("trkseg")) {
+                gpx->add_new_segment();
+
+            } else if (name == QString("wpt")) {
+                qDebug() << "'wpt' NOT IMPLEMENTED!\n";
+                return nullptr;
+
+            } else if (name == QString("rte")) {
+                qDebug() << "'rte' NOT IMPLEMENTED!\n";
+                return nullptr;
             }
+        } else if (token == QXmlStreamReader::EndElement) {
+            // Handle the end element
+            // qDebug() << "Found end element"  << xmlReader.name();
+        } else if (token == QXmlStreamReader::Characters && !xmlReader.isWhitespace()) {
+            // Handle text content
         }
-
-        if (xmlReader.hasError()) {
-            // Handle the XML parsing error
-            qDebug() << "XML Parsing Error: " << xmlReader.errorString();
-            return nullptr;
-        }
-
-        return gpx;
     }
 
-    std::unique_ptr<Gpx> parse(const QString& path)
-    {
-        std::unique_ptr<Gpx> gpx = std::make_unique<Gpx>();
-
-        QFile file(path);
-
-        if (!file.open(QIODevice::ReadOnly | QIODevice::Text)) {
-            qWarning() << "Could not open file " << path;
-            return nullptr;
-        }
-
-        QXmlStreamReader xmlReader(&file);
-
-        return parse(xmlReader);
+    if (xmlReader.hasError()) {
+        // Handle the XML parsing error
+        qDebug() << "XML Parsing Error: " << xmlReader.errorString();
+        return nullptr;
     }
-} // namespace gpx
 
-std::vector<glm::vec4> to_world_points(const gpx::Gpx& gpx)
+    return gpx;
+}
+
+std::unique_ptr<Gpx> parse(const QString& path)
+{
+    std::unique_ptr<Gpx> gpx = std::make_unique<Gpx>();
+
+    QFile file(path);
+
+    if (!file.open(QIODevice::ReadOnly | QIODevice::Text)) {
+        qWarning() << "Could not open file " << path;
+        return nullptr;
+    }
+
+    QXmlStreamReader xmlReader(&file);
+
+    return parse(xmlReader);
+}
+
+std::vector<glm::vec4> to_world_points(const Gpx& gpx)
 {
     std::vector<glm::vec4> track;
 
     const QDateTime epoch(QDate(1970, 1, 1).startOfDay());
 
-    for (const gpx::TrackSegment& segment : gpx.track) {
+    for (const Segment& segment : gpx.track) {
         for (size_t i = 0U; i < segment.size(); ++i) {
 
             float time_since_epoch = 0;
@@ -130,7 +128,7 @@ std::vector<glm::vec4> to_world_points(const gpx::Gpx& gpx)
                 time_since_epoch = static_cast<float>(segment[i - 1].timestamp.msecsTo(segment[i].timestamp));
             }
 
-            auto point = glm::dvec3(segment[i].latitude,segment[i].longitude,segment[i].elevation);
+            auto point = glm::dvec3(segment[i].latitude, segment[i].longitude, segment[i].elevation);
             track.push_back(glm::vec4(srs::lat_long_alt_to_world(point), time_since_epoch));
         }
     }
@@ -138,7 +136,7 @@ std::vector<glm::vec4> to_world_points(const gpx::Gpx& gpx)
     return track;
 }
 
-std::vector<glm::vec4> to_world_points(const gpx::TrackSegment& segment)
+std::vector<glm::vec4> to_world_points(const track::Segment& segment)
 {
     std::vector<glm::vec4> track;
 
@@ -157,7 +155,6 @@ std::vector<glm::vec4> to_world_points(const gpx::TrackSegment& segment)
     }
 
     return track;
-
 }
 
 std::vector<glm::vec3> triangle_strip_ribbon(const std::vector<glm::vec3>& points, float width)
@@ -169,14 +166,16 @@ std::vector<glm::vec3> triangle_strip_ribbon(const std::vector<glm::vec3>& point
     const glm::vec3 up = glm::vec3(0.0f, 0.0f, 1.0f);
     const glm::vec3 down = glm::vec3(0.0f, 0.0f, -1.0f);
 
-    for (auto i = 0U; i < points.size() - 1U; i++)
-    {
+    for (auto i = 0U; i < points.size() - 1U; i++) {
         auto a = points[i];
 
-        ribbon.insert(ribbon.end(), {
-            a - offset, down,
-            a + offset, up,
-        });
+        ribbon.insert(ribbon.end(),
+            {
+                a - offset,
+                down,
+                a + offset,
+                up,
+            });
     }
     return ribbon;
 }
@@ -207,8 +206,7 @@ std::vector<glm::vec3> triangles_ribbon(const std::vector<glm::vec4>& points, fl
 
     const glm::vec3 offset = glm::vec3(0.0f, 0.0f, width);
 
-    for (size_t i = 0; i < points.size() - 1U; i++)
-    {
+    for (size_t i = 0; i < points.size() - 1U; i++) {
         auto a = glm::vec3(points[i]);
         auto b = glm::vec3(points[i + 1]);
         auto d = glm::normalize(b - a);
@@ -222,18 +220,20 @@ std::vector<glm::vec3> triangles_ribbon(const std::vector<glm::vec4>& points, fl
         auto index = glm::vec3(0.0f, static_cast<float>(index_offset + i), 0.0f);
 
         // triangle 1
-        ribbon.insert(ribbon.end(), {
-            a + offset, d, up + start + index,    /* metadata,*/
-            a - offset, d, down + start + index,  /* metadata,*/
-            b - offset, d, down + end + index,    /* metadata,*/
-        });
+        ribbon.insert(ribbon.end(),
+            {
+                a + offset, d, up + start + index, /* metadata,*/
+                a - offset, d, down + start + index, /* metadata,*/
+                b - offset, d, down + end + index, /* metadata,*/
+            });
 
         // triangle 2
-        ribbon.insert(ribbon.end(), {
-            a + offset, d, up + start + index,  /* metadata, */
-            b - offset, d, down + end + index,  /* metadata, */
-            b + offset, d, up + end + index,    /* metadata, */
-        });
+        ribbon.insert(ribbon.end(),
+            {
+                a + offset, d, up + start + index, /* metadata, */
+                b - offset, d, down + end + index, /* metadata, */
+                b + offset, d, up + end + index, /* metadata, */
+            });
     }
     return ribbon;
 }
@@ -242,24 +242,20 @@ std::vector<unsigned> ribbon_indices(unsigned point_count)
 {
     std::vector<unsigned> indices;
 
-    for (unsigned i = 0; i < point_count; ++i)
-    {
+    for (unsigned i = 0; i < point_count; ++i) {
         unsigned idx = i * 2;
         // triangle 1
-        indices.insert(indices.end(), { idx, idx + 1, idx + 3});
+        indices.insert(indices.end(), { idx, idx + 1, idx + 3 });
 
         // triangle 2
-        indices.insert(indices.end(), { idx + 3, idx + 2, idx});
+        indices.insert(indices.end(), { idx + 3, idx + 2, idx });
     }
 
     return indices;
 }
 
 // 1 dimensional gaussian
-float gaussian_1D(float x, float sigma = 1.0f)
-{
-    return (1.0 / std::sqrt(2 * M_PI * sigma)) * std::exp(-(x * x) / (2 * (sigma * sigma)));
-}
+float gaussian_1D(float x, float sigma = 1.0f) { return (1.0 / std::sqrt(2 * M_PI * sigma)) * std::exp(-(x * x) / (2 * (sigma * sigma))); }
 
 void apply_gaussian_filter(std::vector<glm::vec4>& points, float sigma)
 {
@@ -269,17 +265,16 @@ void apply_gaussian_filter(std::vector<glm::vec4>& points, float sigma)
     float kernel_sum = 0.0f;
 
     // create kernel
-    for (int x = -radius; x <= radius; x++)
-    {
+    for (int x = -radius; x <= radius; x++) {
         kernel[x + radius] = gaussian_1D(static_cast<float>(x), sigma);
         kernel_sum += kernel[x + radius];
     }
 
     // normalize kernel
-    for (int i = 0; i < kernel_size; i++) kernel[i] /= kernel_sum;
+    for (int i = 0; i < kernel_size; i++)
+        kernel[i] /= kernel_sum;
 
-    for (int i = radius; i < static_cast<int>(points.size()) - radius; i++)
-    {
+    for (int i = radius; i < static_cast<int>(points.size()) - radius; i++) {
         glm::vec3 value(0.0f);
 
         for (int j = -radius; j <= radius; j++)
@@ -306,4 +301,4 @@ void reduce_point_count(std::vector<glm::vec4>& points, float threshold)
     }
 }
 
-} // namespace nucleus
+} // namespace nucleus::track
