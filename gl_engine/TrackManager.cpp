@@ -44,8 +44,6 @@ TrackManager::TrackManager(ShaderManager* shader_manager, QObject* parent)
 {
 }
 
-void TrackManager::init() { assert(QOpenGLContext::currentContext()); }
-
 void TrackManager::draw(const nucleus::camera::Definition& camera) const
 {
     if (m_tracks.empty()) {

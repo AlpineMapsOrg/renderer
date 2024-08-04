@@ -48,14 +48,13 @@ class TrackManager : public nucleus::track::Manager {
 public:
     explicit TrackManager(ShaderManager* shader_manager, QObject* parent = nullptr);
 
-    void init();
-
     void draw(const nucleus::camera::Definition& camera) const;
 
-    void add_track(const nucleus::track::Gpx& gpx);
-
-public:
+public slots:
     void change_tracks(const QVector<nucleus::track::Gpx>& tracks) override;
+
+protected:
+    void add_track(const nucleus::track::Gpx& gpx);
 
 public:
     unsigned int shading_method = 0U;
