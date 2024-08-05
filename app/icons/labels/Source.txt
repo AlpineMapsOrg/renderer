@@ -1,0 +1,4 @@
+Icons from: https://github.com/gravitystorm/openstreetmap-carto (CC0 Public Domain Dedication, version 1.0)
+
+Conversion Settings from svg to png
+convert -density 1200 -resize 48x48 -background none peak.svg peak.png

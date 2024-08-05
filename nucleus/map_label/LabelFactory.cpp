@@ -88,13 +88,12 @@ const Raster<glm::u8vec4> LabelFactory::get_label_icons()
     auto icons = std::unordered_map<nucleus::vectortile::FeatureType, Raster<glm::u8vec4>>();
 
     icons[nucleus::vectortile::FeatureType::Peak] = nucleus::utils::image_loader::rgba8(":/map_icons/peak.png");
-    icons[nucleus::vectortile::FeatureType::City] = nucleus::utils::image_loader::rgba8(":/map_icons/peak.png");
-    icons[nucleus::vectortile::FeatureType::Cottage] = nucleus::utils::image_loader::rgba8(":/map_icons/peak.png");
-    icons[nucleus::vectortile::FeatureType::ENUM_END] = nucleus::utils::image_loader::rgba8(":/map_icons/peak.png");
+    icons[nucleus::vectortile::FeatureType::City] = nucleus::utils::image_loader::rgba8(":/map_icons/city.png");
+    icons[nucleus::vectortile::FeatureType::Cottage] = nucleus::utils::image_loader::rgba8(":/map_icons/alpinehut.png");
 
     size_t combined_height(0);
 
-    for (int i = 0; i <= nucleus::vectortile::FeatureType::ENUM_END; i++) {
+    for (int i = 0; i < nucleus::vectortile::FeatureType::ENUM_END; i++) {
         nucleus::vectortile::FeatureType type = (nucleus::vectortile::FeatureType)i;
         combined_height += icons[type].height();
     }
@@ -103,7 +102,7 @@ const Raster<glm::u8vec4> LabelFactory::get_label_icons()
     icon_uvs[nucleus::vectortile::FeatureType::Peak]
         = glm::vec4(10.0f, 10.0f, 1.0f, float(icons[nucleus::vectortile::FeatureType::Peak].height()) / float(combined_height));
 
-    for (int i = 1; i <= nucleus::vectortile::FeatureType::ENUM_END; i++) {
+    for (int i = 1; i < nucleus::vectortile::FeatureType::ENUM_END; i++) {
         nucleus::vectortile::FeatureType type = (nucleus::vectortile::FeatureType)i;
         // vec4(10.0f,...) is an uv_offset to indicate that the icon texture should be used.
         icon_uvs[type]
@@ -128,7 +127,7 @@ const std::vector<VertexData> LabelFactory::create_labels(const std::unordered_s
 void LabelFactory::create_label(
     const QString text, const glm::vec3 position, const nucleus::vectortile::FeatureType type, const float importance, std::vector<VertexData>& vertex_data)
 {
-    constexpr float offset_y = -font_size / 2.0f + 100.0f;
+    constexpr float offset_y = -font_size / 2.0f + 75.0f;
     constexpr float icon_offset_y = 15.0f;
 
     auto safe_chars = text.toStdU16String();

@@ -122,9 +122,12 @@ target_link_libraries(nucleus PUBLIC radix Qt::Core Qt::Network fmt::fmt zppbits
 
 qt_add_resources(nucleus "icons"
     PREFIX "/map_icons"
-    BASE ${CMAKE_SOURCE_DIR}/app/icons
+    BASE ${CMAKE_SOURCE_DIR}/app/icons/labels
     FILES
-        ${CMAKE_SOURCE_DIR}/app/icons/peak.png
+        ${CMAKE_SOURCE_DIR}/app/icons/labels/alpinehut.png
+        ${CMAKE_SOURCE_DIR}/app/icons/labels/city.png
+        ${CMAKE_SOURCE_DIR}/app/icons/labels/peak.png
+        ${CMAKE_SOURCE_DIR}/app/icons/labels/viewpoint.png
 )
 qt_add_resources(nucleus "height_data"
     PREFIX "/map"
