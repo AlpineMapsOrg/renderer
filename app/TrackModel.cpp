@@ -147,15 +147,10 @@ void TrackModel::set_shading_style(unsigned int new_shading_style)
     emit shading_style_changed(m_shading_style);
 }
 
-float TrackModel::display_width() const
-{
-    qDebug("display_width");
-    return m_display_width;
-}
+float TrackModel::display_width() const { return m_display_width; }
 
 void TrackModel::set_display_width(float new_display_width)
 {
-    qDebug("set_display_width");
     if (qFuzzyCompare(m_display_width, new_display_width))
         return;
     m_display_width = new_display_width;

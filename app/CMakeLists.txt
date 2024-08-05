@@ -62,6 +62,7 @@ qt_add_qml_module(alpineapp
         components/VectorEditor.qml
         components/DatePicker.qml
         components/DateMonthTablePicker.qml
+        components/ComboBox.qml
         components/FloatingActionButton.qml
         components/FluxColor/AngleWheel.qml
         components/FluxColor/ColorChooser.qml

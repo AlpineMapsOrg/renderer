@@ -303,24 +303,25 @@ SettingsPanel {
         LabledSlider {
             id: track_width;
             from: 1; to: 32; stepSize: 1;
-            onMoved: _track_model.display_width = value;
+            target: _track_model
+            property: "display_width"
         }
 
         Label { text: "Track Shading:" }
         ComboBox {
             id: track_shading;
             textRole: "text"
-            valueRole: "value"
-            currentIndex: 0; // Init with 0 necessary otherwise onCurrentIndexChanged gets emited on startup (because def:-1)!
+            currentIndex: 0;
             Layout.fillWidth: true;
             model: [
-                { text: "Default",              value: 0    },
-                { text: "Normal",               value: 1    },
-                { text: "Speed",                value: 2    },
-                { text: "Steepness",            value: 3    },
-                { text: "Vertical Speed",       value: 4    },
+                { text: "Default"   },
+                { text: "Normal"   },
+                { text: "Speed"   },
+                { text: "Steepness"   },
+                { text: "Vertical Speed"   },
             ];
-            onActivated:  _track_model.shading_style = currentValue;
+            target: _track_model
+            property: "shading_style"
         }
     }
 }
