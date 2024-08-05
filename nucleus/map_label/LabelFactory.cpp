@@ -101,7 +101,7 @@ const Raster<glm::u8vec4> LabelFactory::get_label_icons()
 
     auto combined_icons = icons[nucleus::vectortile::FeatureType::Peak];
     icon_uvs[nucleus::vectortile::FeatureType::Peak]
-        = glm::vec4(0, 0, 1, float(icons[nucleus::vectortile::FeatureType::Peak].height()) / float(combined_height));
+        = glm::vec4(10.0f, 10.0f, 1.0f, float(icons[nucleus::vectortile::FeatureType::Peak].height()) / float(combined_height));
 
     for (int i = 1; i <= nucleus::vectortile::FeatureType::ENUM_END; i++) {
         nucleus::vectortile::FeatureType type = (nucleus::vectortile::FeatureType)i;
