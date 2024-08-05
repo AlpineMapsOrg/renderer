@@ -42,7 +42,7 @@ struct FeatureTXT {
     // importance: value [0,1] whereas 1 is highest importance
     // importance is a normalized value that encapsulates the distance to the next POI with a higher importance value than itself
     // if the value is 1 there are no more important POIs within the search area
-    double importance;
+    float importance;
     // importance_metric: metric with which importance is calculated (if two values have same importance, a higher value here should triumph
     // example values: for peaks=elevation, for cities=population
     int importance_metric;

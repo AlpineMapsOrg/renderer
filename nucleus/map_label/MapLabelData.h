@@ -48,6 +48,4 @@ struct AtlasData {
     std::vector<Raster<glm::u8vec2>> font_atlas;
 };
 
-typedef std::unordered_map<nucleus::vectortile::FeatureType, Raster<glm::u8vec4>> LabelIcons;
-
 } // namespace nucleus::maplabel

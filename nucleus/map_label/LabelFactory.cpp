@@ -83,20 +83,35 @@ const AtlasData LabelFactory::renew_font_atlas()
 /**
  * this function needs to be called before create_labels
  */
-const LabelIcons LabelFactory::get_label_icons()
+const Raster<glm::u8vec4> LabelFactory::get_label_icons()
 {
-    LabelIcons li;
-    // paint svg icon into the an image of appropriate size
-    li[nucleus::vectortile::FeatureType::Peak] = nucleus::utils::image_loader::rgba8(":/map_icons/peak.png");
-    // TODO @lucas add appropriate icon
-    li[nucleus::vectortile::FeatureType::City] = nucleus::utils::image_loader::rgba8(":/map_icons/peak.png");
-    // TODO @lucas add appropriate icon
-    li[nucleus::vectortile::FeatureType::Cottage] = nucleus::utils::image_loader::rgba8(":/map_icons/peak.png");
+    auto icons = std::unordered_map<nucleus::vectortile::FeatureType, Raster<glm::u8vec4>>();
 
-    // TODO @lucas add appropriate default icon
-    li[nucleus::vectortile::FeatureType::ENUM_END] = nucleus::utils::image_loader::rgba8(":/map_icons/peak.png");
+    icons[nucleus::vectortile::FeatureType::Peak] = nucleus::utils::image_loader::rgba8(":/map_icons/peak.png");
+    icons[nucleus::vectortile::FeatureType::City] = nucleus::utils::image_loader::rgba8(":/map_icons/peak.png");
+    icons[nucleus::vectortile::FeatureType::Cottage] = nucleus::utils::image_loader::rgba8(":/map_icons/peak.png");
+    icons[nucleus::vectortile::FeatureType::ENUM_END] = nucleus::utils::image_loader::rgba8(":/map_icons/peak.png");
 
-    return li;
+    size_t combined_height(0);
+
+    for (int i = 0; i <= nucleus::vectortile::FeatureType::ENUM_END; i++) {
+        nucleus::vectortile::FeatureType type = (nucleus::vectortile::FeatureType)i;
+        combined_height += icons[type].height();
+    }
+
+    auto combined_icons = icons[nucleus::vectortile::FeatureType::Peak];
+    icon_uvs[nucleus::vectortile::FeatureType::Peak]
+        = glm::vec4(0, 0, 1, float(icons[nucleus::vectortile::FeatureType::Peak].height()) / float(combined_height));
+
+    for (int i = 1; i <= nucleus::vectortile::FeatureType::ENUM_END; i++) {
+        nucleus::vectortile::FeatureType type = (nucleus::vectortile::FeatureType)i;
+        // vec4(10.0f,...) is an uv_offset to indicate that the icon texture should be used.
+        icon_uvs[type]
+            = glm::vec4(10.0f, 10.0f + float(combined_icons.height()) / float(combined_height), 1.0f, float(icons[type].height()) / float(combined_height));
+        combined_icons.combine(icons[type]);
+    }
+
+    return combined_icons;
 }
 
 const std::vector<VertexData> LabelFactory::create_labels(const std::unordered_set<std::shared_ptr<const nucleus::vectortile::FeatureTXT>>& features)
@@ -104,13 +119,14 @@ const std::vector<VertexData> LabelFactory::create_labels(const std::unordered_s
     std::vector<VertexData> labelData;
 
     for (const auto& feat : features) {
-        create_label(feat->labelText(), feat->worldposition, labelData);
+        create_label(feat->labelText(), feat->worldposition, feat->type, feat->importance, labelData);
     }
 
     return labelData;
 }
 
-void LabelFactory::create_label(const QString text, const glm::vec3 position, std::vector<VertexData>& vertex_data)
+void LabelFactory::create_label(
+    const QString text, const glm::vec3 position, const nucleus::vectortile::FeatureType type, const float importance, std::vector<VertexData>& vertex_data)
 {
     constexpr float offset_y = -font_size / 2.0f + 100.0f;
     constexpr float icon_offset_y = 15.0f;
@@ -124,16 +140,17 @@ void LabelFactory::create_label(const QString text, const glm::vec3 position, st
 
     // label icon
     vertex_data.push_back({ glm::vec4(-icon_size.x / 2.0f, icon_size.y / 2.0f + icon_offset_y, icon_size.x, -icon_size.y + 1), // vertex position + offset
-        glm::vec4(10.0f, 10.0f, 1, 1), // uv position + offset
-        position,  0, 0});
+        icon_uvs[type], // vec4 defined as uv position + offset
+        position, importance, 0 });
 
     for (unsigned long long i = 0; i < safe_chars.size(); i++) {
 
         const CharData b = m_font_data.char_data.at(safe_chars[i]);
 
         vertex_data.push_back({ glm::vec4(offset_x + kerningOffsets[i] + b.xoff, offset_y - b.yoff, b.width, -b.height), // vertex position + offset
-            glm::vec4(b.x * m_font_data.uv_width_norm, b.y * m_font_data.uv_width_norm, b.width * m_font_data.uv_width_norm, b.height * m_font_data.uv_width_norm), // uv position + offset
-            position, 1.0, b.texture_index});
+            glm::vec4(b.x * m_font_data.uv_width_norm, b.y * m_font_data.uv_width_norm, b.width * m_font_data.uv_width_norm,
+                b.height * m_font_data.uv_width_norm), // uv position + offset
+            position, importance, b.texture_index });
     }
 }
 

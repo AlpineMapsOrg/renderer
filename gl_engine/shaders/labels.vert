@@ -42,14 +42,14 @@ out highp vec2 texcoords;
 flat out int texture_index;
 
 bool label_visible(highp vec3 relative_to_cam, float dist_to_cam) {
-    if (importance < 0.2 && dist_to_cam > 3000.0)
-        return false;
-    if (importance < 0.4 && dist_to_cam > 20000.0)
-        return false;
-    if (importance < 0.6 && dist_to_cam > 250000.0)
-        return false;
-    if (importance < 0.8 && dist_to_cam > 500000.0)
-        return false;
+//    if (importance < 0.2 && dist_to_cam > 30000.0)
+//        return false;
+//    if (importance < 0.4 && dist_to_cam > 200000.0)
+//        return false;
+//    if (importance < 0.6 && dist_to_cam > 2500000.0)
+//        return false;
+//    if (importance < 0.8 && dist_to_cam > 5000000.0)
+//        return false;
 
     vec3 peakLookup = ws_to_ndc(relative_to_cam) + vec3(0.0f, 0.1f, 0.0f);
     float depth = texture(texin_depth, peakLookup.xy).w;
@@ -74,7 +74,8 @@ void main() {
     }
 
     // importance based scaling
-    scale *= (importance + 1.5f) / 2.5f;
+//    scale *= (importance + 1.5f) / 2.5f;
+//    scale *= (1.0 + 1.5f) / 2.5f;
 
     if (label_visible(relative_to_cam, dist_to_cam)) {
         gl_Position = camera.view_proj_matrix * vec4(relative_to_cam + vec3(0.0, 0.0, 5.0), 1.0f);

@@ -57,14 +57,9 @@ void MapLabelManager::init()
 
     const auto& labelIcons = m_mapLabelFactory.get_label_icons();
 
-    // load the icon texture
-    for (int i = 0; i < nucleus::vectortile::FeatureType::ENUM_END; i++) {
-        nucleus::vectortile::FeatureType type = (nucleus::vectortile::FeatureType)i;
-        const auto icon = (labelIcons.contains(type)) ? labelIcons.at(type) : labelIcons.at(nucleus::vectortile::FeatureType::ENUM_END);
-        m_icon_texture[type] = std::make_unique<Texture>(Texture::Target::_2d, Texture::Format::RGBA8);
-        m_icon_texture[type]->setParams(Texture::Filter::MipMapLinear, Texture::Filter::Linear);
-        m_icon_texture[type]->upload(icon);
-    }
+    m_icon_texture = std::make_unique<Texture>(Texture::Target::_2d, Texture::Format::RGBA8);
+    m_icon_texture->setParams(Texture::Filter::MipMapLinear, Texture::Filter::Linear);
+    m_icon_texture->upload(labelIcons);
 
     m_index_buffer = std::make_unique<QOpenGLBuffer>(QOpenGLBuffer::IndexBuffer);
     m_index_buffer->create();
@@ -210,6 +205,8 @@ void MapLabelManager::draw(Framebuffer* gbuffer, ShaderProgram* shader_program, 
 
     shader_program->set_uniform("font_sampler", 1);
     m_font_texture->bind(1);
+    shader_program->set_uniform("icon_sampler", 2);
+    m_icon_texture->bind(2);
 
     for (const auto& vectortile : m_gpu_tiles) {
         if(!draw_tiles.contains(vectortile.first))
@@ -219,9 +216,6 @@ void MapLabelManager::draw(Framebuffer* gbuffer, ShaderProgram* shader_program, 
             nucleus::vectortile::FeatureType type = (nucleus::vectortile::FeatureType)i;
             if(!vectortile.second.contains(type))
                 continue; // type is empty -> look at next type
-
-            shader_program->set_uniform("icon_sampler", 2);
-            m_icon_texture.at(type)->bind(2);
 
             const auto& gpu_tile = vectortile.second.at(type);
 

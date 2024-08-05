@@ -35,16 +35,19 @@ public:
     const AtlasData init_font_atlas();
     const AtlasData renew_font_atlas();
 
-    const LabelIcons get_label_icons();
+    const Raster<glm::u8vec4> get_label_icons();
 
     const std::vector<VertexData> create_labels(const std::unordered_set<std::shared_ptr<const nucleus::vectortile::FeatureTXT>>& features);
-    void create_label(const QString text, const glm::vec3 position, std::vector<VertexData>& vertex_data);
+    void create_label(
+        const QString text, const glm::vec3 position, nucleus::vectortile::FeatureType type, const float importance, std::vector<VertexData>& vertex_data);
 
     static const inline std::vector<unsigned int> indices = { 0, 1, 2, 0, 2, 3 };
 
 private:
     constexpr static float font_size = 48.0f;
     constexpr static glm::vec2 icon_size = glm::vec2(50.0f);
+
+    std::unordered_map<nucleus::vectortile::FeatureType, glm::vec4> icon_uvs;
 
     std::vector<float> inline create_text_meta(std::u16string* safe_chars, float* text_width);
 
