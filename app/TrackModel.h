@@ -29,12 +29,27 @@ public:
     Q_INVOKABLE QPointF lat_long(unsigned index);
     Q_INVOKABLE unsigned n_tracks() const { return m_data.size(); }
 
+    float display_width() const;
+    void set_display_width(float new_display_width);
+
+    unsigned int shading_style() const;
+    void set_shading_style(unsigned int new_shading_style);
+
 public slots:
     void upload_track();
 
 signals:
     void tracks_changed(const QVector<nucleus::track::Gpx>& tracks);
 
+    void display_width_changed(float display_width);
+
+    void shading_style_changed(unsigned int shading_style);
+
 private:
     QVector<nucleus::track::Gpx> m_data;
+
+    float m_display_width = 7.f;
+    unsigned m_shading_style = 0u;
+    Q_PROPERTY(float display_width READ display_width WRITE set_display_width NOTIFY display_width_changed FINAL)
+    Q_PROPERTY(unsigned int shading_style READ shading_style WRITE set_shading_style NOTIFY shading_style_changed FINAL)
 };

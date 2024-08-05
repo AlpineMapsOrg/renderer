@@ -26,12 +26,21 @@
 
 #include <gl_engine/Context.h>
 
+#include "RenderThreadNotifier.h"
+
 TrackModel::TrackModel(QObject* parent)
     : QObject { parent }
 {
-    auto& c = gl_engine::Context::instance();
-    connect(&c, &gl_engine::Context::initialised, this,
-        [this]() { connect(this, &TrackModel::tracks_changed, gl_engine::Context::instance().track_manager(), &nucleus::track::Manager::change_tracks); });
+    auto& c = nucleus::EngineContext::instance();
+    connect(&c, &nucleus::EngineContext::initialised, this, [this]() {
+        auto* track_manager = nucleus::EngineContext::instance().track_manager();
+        connect(this, &TrackModel::tracks_changed, track_manager, &nucleus::track::Manager::change_tracks);
+        connect(this, &TrackModel::display_width_changed, track_manager, &nucleus::track::Manager::change_display_width);
+        connect(this, &TrackModel::shading_style_changed, track_manager, &nucleus::track::Manager::change_shading_style);
+        connect(this, &TrackModel::tracks_changed, RenderThreadNotifier::instance(), &RenderThreadNotifier::redraw_requested);
+        connect(this, &TrackModel::display_width_changed, RenderThreadNotifier::instance(), &RenderThreadNotifier::redraw_requested);
+        connect(this, &TrackModel::shading_style_changed, RenderThreadNotifier::instance(), &RenderThreadNotifier::redraw_requested);
+    });
 }
 
 QPointF TrackModel::lat_long(unsigned int index)
@@ -126,4 +135,29 @@ void TrackModel::upload_track()
     file.open(QFile::ReadOnly);
     fileContentReady(file.fileName(), file.readAll());
 #endif
+}
+
+unsigned int TrackModel::shading_style() const { return m_shading_style; }
+
+void TrackModel::set_shading_style(unsigned int new_shading_style)
+{
+    if (m_shading_style == new_shading_style)
+        return;
+    m_shading_style = new_shading_style;
+    emit shading_style_changed(m_shading_style);
+}
+
+float TrackModel::display_width() const
+{
+    qDebug("display_width");
+    return m_display_width;
+}
+
+void TrackModel::set_display_width(float new_display_width)
+{
+    qDebug("set_display_width");
+    if (qFuzzyCompare(m_display_width, new_display_width))
+        return;
+    m_display_width = new_display_width;
+    emit display_width_changed(m_display_width);
 }

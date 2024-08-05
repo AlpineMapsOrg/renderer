@@ -23,6 +23,7 @@
 #include <QOpenGLFramebufferObject>
 #include <QOpenGLFramebufferObjectFormat>
 #include <QQuickWindow>
+#include <QThread>
 
 #include "TerrainRendererItem.h"
 #include "gl_engine/Context.h"
@@ -35,7 +36,16 @@
 
 TerrainRenderer::TerrainRenderer()
 {
-    gl_engine::Context::instance().initialise();
+    auto& context = gl_engine::Context::instance();
+    auto* render_thread = QThread::currentThread();
+    // not ideal:
+    // the engine context needs to live on the render thread.
+    // however, (currently) we need it before the render thread is created for signal slot connections.
+    // so we need to move it afterwards. and it can be only moved from its own thread
+    QTimer::singleShot(0, &context, [render_thread]() { gl_engine::Context::instance().moveToThread(render_thread); });
+    if (!context.is_alive())
+        context.initialise();
+
     m_glWindow = std::make_unique<gl_engine::Window>();
     m_controller = std::make_unique<nucleus::Controller>(m_glWindow.get());
     m_controller->tile_scheduler()->set_ortho_tile_compression_algorithm(m_glWindow->ortho_tile_compression_algorithm());

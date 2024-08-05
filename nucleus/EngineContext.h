@@ -31,7 +31,7 @@ public:
     void initialise();
     void destroy();
     [[nodiscard]] virtual track::Manager* track_manager() = 0;
-    static EngineContext* instance();
+    static EngineContext& instance();
     bool is_alive() const;
 
 protected:

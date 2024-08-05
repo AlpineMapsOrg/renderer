@@ -38,8 +38,6 @@
 
 #include "RenderThreadNotifier.h"
 #include "TerrainRenderer.h"
-#include "gl_engine/Context.h"
-#include "gl_engine/TrackManager.h"
 #include "gl_engine/Window.h"
 #include "nucleus/Controller.h"
 #include "nucleus/camera/Controller.h"
@@ -76,6 +74,7 @@ TerrainRendererItem::TerrainRendererItem(QQuickItem* parent)
     connect(m_settings, &AppSettings::datetime_changed, this, &TerrainRendererItem::datetime_changed);
     connect(m_settings, &AppSettings::gl_sundir_date_link_changed, this, &TerrainRendererItem::gl_sundir_date_link_changed);
     connect(m_settings, &AppSettings::render_quality_changed, this, &TerrainRendererItem::schedule_update);
+    connect(RenderThreadNotifier::instance(), &RenderThreadNotifier::redraw_requested, this, &TerrainRendererItem::schedule_update);
 
     m_update_timer->setSingleShot(!m_continuous_update);
     m_update_timer->setInterval(1000 / m_frame_limit);
@@ -104,6 +103,7 @@ QQuickFramebufferObject::Renderer* TerrainRendererItem::createRenderer() const
     qDebug("QQuickFramebufferObject::Renderer* TerrainRendererItem::createRenderer() const");
     qDebug() << "rendering thread: " << QThread::currentThread();
     // called on rendering thread.
+
     auto* r = new TerrainRenderer();
     connect(r->glWindow(), &nucleus::AbstractRenderWindow::update_requested, this, &TerrainRendererItem::schedule_update);
     connect(m_update_timer, &QTimer::timeout, this, &QQuickFramebufferObject::update);
@@ -143,11 +143,7 @@ QQuickFramebufferObject::Renderer* TerrainRendererItem::createRenderer() const
     // connect glWindow to forward key events.
     connect(this, &TerrainRendererItem::shared_config_changed, r->glWindow(), &gl_engine::Window::shared_config_changed);
     connect(this, &TerrainRendererItem::render_looped_changed, r->glWindow(), &gl_engine::Window::render_looped_changed);
-    // TODO: move the next two connections out.
-    connect(this, &TerrainRendererItem::track_width_changed, &gl_engine::Context::instance(),
-        [](float new_width) { gl_engine::Context::instance().track_manager()->width = new_width; });
-    connect(this, &TerrainRendererItem::track_shading_changed, &gl_engine::Context::instance(),
-        [](unsigned int new_shading) { gl_engine::Context::instance().track_manager()->shading_method = new_shading; });
+
     // connect glWindow for shader hotreload by frontend button
     connect(this, &TerrainRendererItem::reload_shader, r->glWindow(), &gl_engine::Window::reload_shader);
 
@@ -327,37 +323,6 @@ void TerrainRendererItem::set_field_of_view(float new_field_of_view)
     emit field_of_view_changed();
     schedule_update();
 }
-
-void TerrainRendererItem::set_track_width(float width)
-{
-    m_track_width = width;
-    emit track_width_changed(width);
-    schedule_update();
-}
-
-float TerrainRendererItem::track_width() const
-{
-    return m_track_width;
-}
-
-void TerrainRendererItem::set_track_shading(unsigned int shading)
-{
-    m_track_shading = shading;
-    emit track_shading_changed(shading);
-    schedule_update();
-}
-
-unsigned int TerrainRendererItem::track_shading() const
-{
-    return m_track_shading;
-}
-
-#if 0
-void TerrainRendererItem::track_shading_changed(unsigned int shading)
-{
-    (void)shading;
-}
-#endif
 
 float TerrainRendererItem::camera_rotation_from_north() const
 {

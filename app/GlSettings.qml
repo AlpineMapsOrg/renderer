@@ -53,8 +53,6 @@ SettingsPanel {
         snow_settings_alt_var.value = conf.snow_settings_alt.y;
         snow_settings_alt_blend.value = conf.snow_settings_alt.z;
         snow_settings_specular.value = conf.snow_settings_alt.w;
-
-        track_width.value = map.track_width;
     }
 
 
@@ -305,7 +303,7 @@ SettingsPanel {
         LabledSlider {
             id: track_width;
             from: 1; to: 32; stepSize: 1;
-            onMoved: map.track_width = value;
+            onMoved: _track_model.display_width = value;
         }
 
         Label { text: "Track Shading:" }
@@ -322,7 +320,7 @@ SettingsPanel {
                 { text: "Steepness",            value: 3    },
                 { text: "Vertical Speed",       value: 4    },
             ];
-            onActivated:  map.track_shading = currentValue;
+            onActivated:  _track_model.shading_style = currentValue;
         }
     }
 }

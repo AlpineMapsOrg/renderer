@@ -45,9 +45,7 @@ Item {
         Label {
             id: label;
             Layout.preferredWidth: 50
-            text: {
-                return root.formatCallback(root.value);
-            }
+            text: root.formatCallback(root.value)
             font.underline: true;
         }
     }

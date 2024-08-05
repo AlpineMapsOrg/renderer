@@ -121,6 +121,7 @@ int main(int argc, char **argv)
         qDebug("Requesting 3.0 context");
         fmt.setVersion(3, 0);
     }
+    gl_engine::Context::instance(); // initialise, so it's ready when we create dependent objects. // still needs to be moved to the render thread.
 
     QSurfaceFormat::setDefaultFormat(fmt);
 

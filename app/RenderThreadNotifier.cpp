@@ -41,6 +41,8 @@ RenderThreadNotifier* RenderThreadNotifier::instance()
 
 void RenderThreadNotifier::set_root_window(QQuickWindow* root_window)
 {
+    assert(m_root_window == nullptr);
+    assert(root_window);
     m_root_window = root_window;
 }
 

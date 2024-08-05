@@ -27,7 +27,7 @@ EngineContext::EngineContext() { }
 void EngineContext::set_singleton(EngineContext* context)
 {
     assert(context);
-    assert(s_self == nullptr); // call in the constructor of your subclass
+    assert(s_self == nullptr); // called several times if this fails.
     s_self = context;
 }
 
@@ -49,10 +49,10 @@ void EngineContext::destroy()
     m_destroyed = true;
 }
 
-EngineContext* EngineContext::instance()
+EngineContext& EngineContext::instance()
 {
-    assert(s_self); // EngineContext must be initialised from a subclass using set_singleton
-    return s_self;
+    assert(s_self); // EngineContext must be initialised from a subclass using set_singleton once, e.g., from the constructor
+    return *s_self;
 }
 
 bool EngineContext::is_alive() const { return m_initialised && !m_destroyed; }

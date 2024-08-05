@@ -65,9 +65,9 @@ void TrackManager::draw(const nucleus::camera::Definition& camera) const
     m_shader->set_uniform("proj", proj);
     m_shader->set_uniform("view", view);
     m_shader->set_uniform("camera_position", glm::vec3(camera.position()));
-    m_shader->set_uniform("width", width);
+    m_shader->set_uniform("width", m_display_width);
     m_shader->set_uniform("texin_track", 8);
-    m_shader->set_uniform("shading_method", static_cast<int>(shading_method));
+    m_shader->set_uniform("shading_method", static_cast<int>(m_shading_method));
     m_shader->set_uniform("max_speed", m_max_speed);
     m_shader->set_uniform("max_vertical_speed", m_max_vertical_speed);
     m_shader->set_uniform("end_index", static_cast<int>(m_total_point_count));
@@ -213,4 +213,8 @@ void TrackManager::change_tracks(const QVector<nucleus::track::Gpx>& tracks)
         add_track(t);
     }
 }
+
+void TrackManager::change_display_width(float new_width) { m_display_width = new_width; }
+
+void TrackManager::change_shading_style(unsigned int new_style) { m_shading_method = new_style; }
 } // namespace gl_engine

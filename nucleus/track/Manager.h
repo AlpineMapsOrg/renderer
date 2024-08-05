@@ -30,5 +30,7 @@ public:
 
 public slots:
     virtual void change_tracks(const QVector<nucleus::track::Gpx>& tracks) = 0;
+    virtual void change_display_width(float new_width) = 0;
+    virtual void change_shading_style(unsigned new_style) = 0;
 };
 } // namespace nucleus::track

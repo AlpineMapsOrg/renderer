@@ -52,15 +52,15 @@ public:
 
 public slots:
     void change_tracks(const QVector<nucleus::track::Gpx>& tracks) override;
+    void change_display_width(float new_width) override;
+    void change_shading_style(unsigned int new_style) override;
 
 protected:
     void add_track(const nucleus::track::Gpx& gpx);
 
-public:
-    unsigned int shading_method = 0U;
-    float width = 7.0f;
-
 private:
+    unsigned int m_shading_method = 0U;
+    float m_display_width = 7.0f;
     ShaderProgram* m_shader;
     float m_max_speed = 0.0f;
     float m_max_vertical_speed = 0.0f;
