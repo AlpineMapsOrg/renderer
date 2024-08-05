@@ -61,8 +61,7 @@ public slots:
     virtual void update_debug_scheduler_stats(const QString& stats) = 0;
     virtual void set_aabb_decorator(const tile_scheduler::utils::AabbDecoratorPtr&) = 0;
     virtual void update_gpu_quads(const std::vector<tile_scheduler::tile_types::GpuTileQuad>& new_quads, const std::vector<tile::Id>& deleted_quads) = 0;
-    virtual void update_labels(const nucleus::vectortile::TiledVectorTile& visible_features, const std::unordered_set<tile::Id, tile::Id::Hasher> removed_tiles)
-        = 0;
+    virtual void update_labels(const nucleus::vectortile::TiledVectorTile& visible_features, const std::vector<tile::Id>& removed_tiles) = 0;
 
 signals:
     void update_requested();

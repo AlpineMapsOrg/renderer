@@ -387,7 +387,7 @@ void Window::update_gpu_quads(const std::vector<nucleus::tile_scheduler::tile_ty
     m_tile_manager->update_gpu_quads(new_quads, deleted_quads);
 }
 
-void Window::update_labels(const nucleus::vectortile::TiledVectorTile& visible_features, const std::unordered_set<tile::Id, tile::Id::Hasher> removed_tiles)
+void Window::update_labels(const nucleus::vectortile::TiledVectorTile& visible_features, const std::vector<tile::Id>& removed_tiles)
 {
     assert(m_map_label_manager);
     m_map_label_manager->update_labels(visible_features, removed_tiles);

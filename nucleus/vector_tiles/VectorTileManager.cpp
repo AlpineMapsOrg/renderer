@@ -59,8 +59,6 @@ const std::shared_ptr<VectorTile> VectorTileManager::to_vector_tile(const QByteA
         if (feature_types_factory.contains(layerName)) {
             const mapbox::vector_tile::layer layer = tile.getLayer(layerName);
 
-            auto features = VectorTileFeatures();
-
             std::size_t feature_count = layer.featureCount();
             for (std::size_t i = 0; i < feature_count; ++i) {
 
@@ -71,11 +69,8 @@ const std::shared_ptr<VectorTile> VectorTileManager::to_vector_tile(const QByteA
 
                 auto u16Chars = feat->name.toStdU16String();
                 all_chars.insert(u16Chars.begin(), u16Chars.end());
-
-                features.insert(feat);
+                vector_tile->insert(feat);
             }
-
-            vector_tile->insert(std::make_pair(feature_types.at(layerName), features));
         }
     }
 

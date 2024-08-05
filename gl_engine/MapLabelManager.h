@@ -35,6 +35,8 @@ namespace camera {
 class Definition;
 }
 
+using namespace nucleus::vectortile;
+
 namespace gl_engine {
 class ShaderProgram;
 
@@ -54,11 +56,11 @@ public:
     void draw(Framebuffer* gbuffer, ShaderProgram* shader_program, const nucleus::camera::Definition& camera,
         const nucleus::tile_scheduler::DrawListGenerator::TileSet draw_tiles) const;
 
-    void update_labels(const nucleus::vectortile::TiledVectorTile& visible_features, const std::unordered_set<tile::Id, tile::Id::Hasher> removed_tiles);
+    void update_labels(const TiledVectorTile& visible_features, const std::vector<tile::Id>& removed_tiles);
 
 private:
     void renew_font_atlas();
-    void upload_to_gpu(const tile::Id& id, const nucleus::vectortile::VectorTile& features);
+    void upload_to_gpu(const tile::Id& id, const VectorTile& features);
     void remove_tile(const tile::Id& tile_id);
 
     std::unique_ptr<Texture> m_font_texture;
@@ -69,6 +71,6 @@ private:
 
     nucleus::maplabel::LabelFactory m_mapLabelFactory;
 
-    std::unordered_map<tile::Id, std::unordered_map<nucleus::vectortile::FeatureType, std::shared_ptr<GPUVectorTile>>, tile::Id::Hasher> m_gpu_tiles;
+    std::unordered_map<tile::Id, std::shared_ptr<GPUVectorTile>, tile::Id::Hasher> m_gpu_tiles;
 };
 } // namespace gl_engine

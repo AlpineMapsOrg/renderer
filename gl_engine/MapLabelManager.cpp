@@ -82,75 +82,63 @@ void MapLabelManager::renew_font_atlas()
     }
 }
 
-void MapLabelManager::upload_to_gpu(const tile::Id& id, const nucleus::vectortile::VectorTile& features)
+void MapLabelManager::upload_to_gpu(const tile::Id& id, const VectorTile& features)
 {
     if (!QOpenGLContext::currentContext()) // can happen during shutdown.
         return;
 
-    // initialize map
-    m_gpu_tiles[id] = std::unordered_map<nucleus::vectortile::FeatureType, std::shared_ptr<GPUVectorTile>>();
+    std::shared_ptr<GPUVectorTile> vectortile = std::make_shared<GPUVectorTile>();
+    vectortile->id = id;
 
-    for (int i = 0; i < nucleus::vectortile::FeatureType::ENUM_END; i++) {
-        nucleus::vectortile::FeatureType type = (nucleus::vectortile::FeatureType)i;
+    vectortile->vao = std::make_unique<QOpenGLVertexArrayObject>();
+    vectortile->vao->create();
+    vectortile->vao->bind();
 
-        std::shared_ptr<GPUVectorTile> vectortile = std::make_shared<GPUVectorTile>();
-        vectortile->id = id;
+    { // vao state
+        m_index_buffer->bind();
 
-        if(features.contains(type))
-        {
-            vectortile->vao = std::make_unique<QOpenGLVertexArrayObject>();
-            vectortile->vao->create();
-            vectortile->vao->bind();
+        vectortile->vertex_buffer = std::make_unique<QOpenGLBuffer>(QOpenGLBuffer::VertexBuffer);
+        vectortile->vertex_buffer->create();
+        vectortile->vertex_buffer->bind();
+        vectortile->vertex_buffer->setUsagePattern(QOpenGLBuffer::StaticDraw);
 
-            { // vao state
-                m_index_buffer->bind();
+        const auto allLabels = m_mapLabelFactory.create_labels(features);
 
-                vectortile->vertex_buffer = std::make_unique<QOpenGLBuffer>(QOpenGLBuffer::VertexBuffer);
-                vectortile->vertex_buffer->create();
-                vectortile->vertex_buffer->bind();
-                vectortile->vertex_buffer->setUsagePattern(QOpenGLBuffer::StaticDraw);
+        vectortile->vertex_buffer->allocate(allLabels.data(), allLabels.size() * sizeof(nucleus::maplabel::VertexData));
+        vectortile->instance_count = allLabels.size();
 
-                const auto allLabels = m_mapLabelFactory.create_labels(features.at(type));
+        QOpenGLExtraFunctions* f = QOpenGLContext::currentContext()->extraFunctions();
 
-                vectortile->vertex_buffer->allocate(allLabels.data(), allLabels.size() * sizeof(nucleus::maplabel::VertexData));
-                vectortile->instance_count = allLabels.size();
-
-                QOpenGLExtraFunctions* f = QOpenGLContext::currentContext()->extraFunctions();
-
-                       // vertex positions
-                f->glEnableVertexAttribArray(0);
-                f->glVertexAttribPointer(0, 4, GL_FLOAT, GL_FALSE, sizeof(nucleus::maplabel::VertexData), nullptr);
-                f->glVertexAttribDivisor(0, 1); // buffer is active for 1 instance (for the whole quad)
-                // uvs
-                f->glEnableVertexAttribArray(1);
-                f->glVertexAttribPointer(1, 4, GL_FLOAT, GL_FALSE, sizeof(nucleus::maplabel::VertexData), (GLvoid*)(sizeof(glm::vec4)));
-                f->glVertexAttribDivisor(1, 1); // buffer is active for 1 instance (for the whole quad)
-                // world position
-                f->glEnableVertexAttribArray(2);
-                f->glVertexAttribPointer(2, 3, GL_FLOAT, GL_FALSE, sizeof(nucleus::maplabel::VertexData), (GLvoid*)((sizeof(glm::vec4) * 2)));
-                f->glVertexAttribDivisor(2, 1); // buffer is active for 1 instance (for the whole quad)
-                // label importance
-                f->glEnableVertexAttribArray(3);
-                f->glVertexAttribPointer(3, 1, GL_FLOAT, GL_FALSE, sizeof(nucleus::maplabel::VertexData), (GLvoid*)((sizeof(glm::vec4) * 2 + (sizeof(glm::vec3)))));
-                f->glVertexAttribDivisor(3, 1); // buffer is active for 1 instance (for the whole quad)
-                // texture index
-                f->glEnableVertexAttribArray(4);
-                f->glVertexAttribIPointer(4, 1, GL_INT, sizeof(nucleus::maplabel::VertexData), (GLvoid*)((sizeof(glm::vec4) * 2 + (sizeof(glm::vec3)) + sizeof(float))));
-                f->glVertexAttribDivisor(4, 1); // buffer is active for 1 instance (for the whole quad)
-            }
-
-            vectortile->vao->release();
-
-        }
-
-        // add vector tile to gpu tiles
-        m_gpu_tiles.at(id)[type] = vectortile;
+        // vertex positions
+        f->glEnableVertexAttribArray(0);
+        f->glVertexAttribPointer(0, 4, GL_FLOAT, GL_FALSE, sizeof(nucleus::maplabel::VertexData), nullptr);
+        f->glVertexAttribDivisor(0, 1); // buffer is active for 1 instance (for the whole quad)
+        // uvs
+        f->glEnableVertexAttribArray(1);
+        f->glVertexAttribPointer(1, 4, GL_FLOAT, GL_FALSE, sizeof(nucleus::maplabel::VertexData), (GLvoid*)(sizeof(glm::vec4)));
+        f->glVertexAttribDivisor(1, 1); // buffer is active for 1 instance (for the whole quad)
+        // world position
+        f->glEnableVertexAttribArray(2);
+        f->glVertexAttribPointer(2, 3, GL_FLOAT, GL_FALSE, sizeof(nucleus::maplabel::VertexData), (GLvoid*)((sizeof(glm::vec4) * 2)));
+        f->glVertexAttribDivisor(2, 1); // buffer is active for 1 instance (for the whole quad)
+        // label importance
+        f->glEnableVertexAttribArray(3);
+        f->glVertexAttribPointer(3, 1, GL_FLOAT, GL_FALSE, sizeof(nucleus::maplabel::VertexData), (GLvoid*)((sizeof(glm::vec4) * 2 + (sizeof(glm::vec3)))));
+        f->glVertexAttribDivisor(3, 1); // buffer is active for 1 instance (for the whole quad)
+        // texture index
+        f->glEnableVertexAttribArray(4);
+        f->glVertexAttribIPointer(
+            4, 1, GL_INT, sizeof(nucleus::maplabel::VertexData), (GLvoid*)((sizeof(glm::vec4) * 2 + (sizeof(glm::vec3)) + sizeof(float))));
+        f->glVertexAttribDivisor(4, 1); // buffer is active for 1 instance (for the whole quad)
     }
 
+    vectortile->vao->release();
+
+    // add vector tile to gpu tiles
+    m_gpu_tiles[id] = vectortile;
 }
 
-void MapLabelManager::update_labels(
-    const nucleus::vectortile::TiledVectorTile& visible_features, const std::unordered_set<tile::Id, tile::Id::Hasher> removed_tiles)
+void MapLabelManager::update_labels(const TiledVectorTile& visible_features, const std::vector<tile::Id>& removed_tiles)
 {
     // remove tiles that aren't needed anymore
     for (const auto& id : removed_tiles) {
@@ -174,18 +162,14 @@ void MapLabelManager::remove_tile(const tile::Id& tile_id)
     if (!QOpenGLContext::currentContext()) // can happen during shutdown.
         return;
 
-    for (int i = 0; i < nucleus::vectortile::FeatureType::ENUM_END; i++) {
-        nucleus::vectortile::FeatureType type = (nucleus::vectortile::FeatureType)i;
+    // we can only remove something that exists
+    if (!m_gpu_tiles.contains(tile_id))
+        return;
 
-        // we can only remove something that exists
-        if (!m_gpu_tiles.contains(tile_id) || !m_gpu_tiles.at(tile_id).contains(type))
-            continue;
+    if (m_gpu_tiles.at(tile_id)->vao)
+        m_gpu_tiles.at(tile_id)->vao->destroy(); // ecplicitly destroy vao
 
-        if (m_gpu_tiles.at(tile_id)[type]->vao)
-            m_gpu_tiles.at(tile_id)[type]->vao->destroy(); // ecplicitly destroy vao
-
-        m_gpu_tiles.at(tile_id).erase(type);
-    }
+    m_gpu_tiles.erase(tile_id);
 }
 
 void MapLabelManager::draw(Framebuffer* gbuffer, ShaderProgram* shader_program, const nucleus::camera::Definition& camera,
@@ -212,26 +196,18 @@ void MapLabelManager::draw(Framebuffer* gbuffer, ShaderProgram* shader_program, 
         if(!draw_tiles.contains(vectortile.first))
             continue; // tile is not in draw_tiles -> look at next tile
 
-        for (int i = 0; i < nucleus::vectortile::FeatureType::ENUM_END; i++) {
-            nucleus::vectortile::FeatureType type = (nucleus::vectortile::FeatureType)i;
-            if(!vectortile.second.contains(type))
-                continue; // type is empty -> look at next type
+        // only draw if vector tile is fully loaded
+        if (vectortile.second->instance_count > 0) {
+            vectortile.second->vao->bind();
 
-            const auto& gpu_tile = vectortile.second.at(type);
+            // if the labels wouldn't collide, we could use an extra buffer, one draw call and
+            // f->glBlendEquationSeparate(GL_MIN, GL_MAX);
+            shader_program->set_uniform("drawing_outline", true);
+            f->glDrawElementsInstanced(GL_TRIANGLES, m_indices_count, GL_UNSIGNED_INT, 0, vectortile.second->instance_count);
+            shader_program->set_uniform("drawing_outline", false);
+            f->glDrawElementsInstanced(GL_TRIANGLES, m_indices_count, GL_UNSIGNED_INT, 0, vectortile.second->instance_count);
 
-            // only draw if vector tile is fully loaded
-            if (gpu_tile->instance_count > 0) {
-                gpu_tile->vao->bind();
-
-                // if the labels wouldn't collide, we could use an extra buffer, one draw call and
-                // f->glBlendEquationSeparate(GL_MIN, GL_MAX);
-                shader_program->set_uniform("drawing_outline", true);
-                f->glDrawElementsInstanced(GL_TRIANGLES, m_indices_count, GL_UNSIGNED_INT, 0, gpu_tile->instance_count);
-                shader_program->set_uniform("drawing_outline", false);
-                f->glDrawElementsInstanced(GL_TRIANGLES, m_indices_count, GL_UNSIGNED_INT, 0, gpu_tile->instance_count);
-
-                gpu_tile->vao->release();
-            }
+            vectortile.second->vao->release();
         }
     }
 }

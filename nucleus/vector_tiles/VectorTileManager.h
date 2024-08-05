@@ -50,8 +50,8 @@ private:
     typedef std::shared_ptr<const FeatureTXT> (*FeatureTXTParser)(const mapbox::vector_tile::feature&, const std::shared_ptr<DataQuerier>);
     inline static const std::unordered_map<std::string, FeatureTXTParser> feature_types_factory
         = { { "Peak", FeatureTXTPeak::parse }, { "cities", FeatureTXTCity::parse }, { "cottages", FeatureTXTCottage::parse } };
-    inline static const std::unordered_map<std::string, FeatureType> feature_types
-        = { { "Peak", FeatureType::Peak }, { "cities", FeatureType::City }, { "cottages", FeatureType::Cottage } };
+    //    inline static const std::unordered_map<std::string, FeatureType> feature_types
+    //        = { { "Peak", FeatureType::Peak }, { "cities", FeatureType::City }, { "cottages", FeatureType::Cottage } };
 
     // contains all chars that were encountered while parsing vector tiles
     // this is later used in the get_diff_chars method to find characters which still have to be rendered

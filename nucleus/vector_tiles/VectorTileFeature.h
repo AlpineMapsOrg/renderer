@@ -119,8 +119,7 @@ struct FeatureTXTCottage : public FeatureTXT {
     QString labelText() const;
 };
 
-typedef std::unordered_set<std::shared_ptr<const FeatureTXT>> VectorTileFeatures;
-typedef std::unordered_map<FeatureType, VectorTileFeatures> VectorTile;
+typedef std::unordered_set<std::shared_ptr<const FeatureTXT>> VectorTile;
 typedef std::unordered_map<tile::Id, nucleus::vectortile::VectorTile, tile::Id::Hasher> TiledVectorTile;
 
 } // namespace nucleus::vectortile

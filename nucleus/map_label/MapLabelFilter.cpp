@@ -68,19 +68,12 @@ void MapLabelFilter::add_tile(const tile::Id id, const VectorTile& all_features)
 {
     m_all_tiles.insert(id);
     m_tiles_to_filter.push(id);
-    m_all_features[id] = VectorTile();
-
-    for (int i = 0; i < FeatureType::ENUM_END; i++) {
-        FeatureType type = (FeatureType)i;
-
-        if (all_features.contains(type))
-            m_all_features.at(id)[type] = all_features.at(type);
-    }
+    m_all_features[id] = all_features;
 }
 
 void MapLabelFilter::remove_tile(const tile::Id id)
 {
-    m_removed_tiles.insert(id);
+    m_removed_tiles.push_back(id);
     if (m_all_tiles.contains(id)) {
         if(m_all_features.contains(id))
             m_all_features.erase(id);
@@ -92,10 +85,9 @@ void MapLabelFilter::remove_tile(const tile::Id id)
     }
 }
 
-void MapLabelFilter::apply_filter(const tile::Id tile_id, FeatureType type)
+void MapLabelFilter::apply_filter(const tile::Id tile_id)
 {
-    for (auto& feature : m_all_features.at(tile_id)[type]) {
-
+    for (const auto& feature : m_all_features.at(tile_id)) {
         if (feature->type == FeatureType::Peak) {
             auto peak_feature = std::dynamic_pointer_cast<const FeatureTXTPeak>(feature);
 
@@ -110,7 +102,7 @@ void MapLabelFilter::apply_filter(const tile::Id tile_id, FeatureType type)
             }
 
             // all filters were passed -> it is visible
-            m_visible_features.at(tile_id)[FeatureType::Peak].insert(feature);
+            m_visible_features.at(tile_id).insert(feature);
         } else if (feature->type == FeatureType::City) {
             // auto city_feature = std::dynamic_pointer_cast<const FeatureTXTCity>(feature);
             if (!m_definitions.m_cities_visible) {
@@ -118,7 +110,7 @@ void MapLabelFilter::apply_filter(const tile::Id tile_id, FeatureType type)
             }
 
             // all filters were passed -> it is visible
-            m_visible_features.at(tile_id)[FeatureType::City].insert(feature);
+            m_visible_features.at(tile_id).insert(feature);
 
         } else if (feature->type == FeatureType::Cottage) {
             // auto cottage_feature = std::dynamic_pointer_cast<const FeatureTXTCottage>(feature);
@@ -127,10 +119,10 @@ void MapLabelFilter::apply_filter(const tile::Id tile_id, FeatureType type)
             }
 
             // all filters were passed -> it is visible
-            m_visible_features.at(tile_id)[FeatureType::Cottage].insert(feature);
+            m_visible_features.at(tile_id).insert(feature);
         }
 
-        // TODO define other filter
+        // TODO @lucas define other filter
     }
 }
 
@@ -147,14 +139,10 @@ void MapLabelFilter::filter()
 
         m_visible_features[tile_id] = VectorTile();
 
-        for (int i = 0; i < FeatureType::ENUM_END; i++) {
-            FeatureType type = (FeatureType)i;
+        if (!m_all_features.contains(tile_id))
+            continue;
 
-            if (!m_all_features.contains(tile_id) || !m_all_features[tile_id].contains(type))
-                continue;
-
-            apply_filter(tile_id, type);
-        }
+        apply_filter(tile_id);
     }
 
     emit filter_finished(m_visible_features, m_removed_tiles);

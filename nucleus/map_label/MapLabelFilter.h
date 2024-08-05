@@ -47,7 +47,7 @@ public slots:
     void update_quads(const std::vector<nucleus::tile_scheduler::tile_types::GpuTileQuad>& new_quads, const std::vector<tile::Id>& deleted_quads);
 
 signals:
-    void filter_finished(const TiledVectorTile& visible_features, const std::unordered_set<tile::Id, tile::Id::Hasher> removed_tiles);
+    void filter_finished(const TiledVectorTile& visible_features, const std::vector<tile::Id>& removed_tiles);
 
 private:
     TiledVectorTile m_all_features;
@@ -55,11 +55,11 @@ private:
 
     std::queue<tile::Id> m_tiles_to_filter;
     std::unordered_set<tile::Id, tile::Id::Hasher> m_all_tiles;
-    std::unordered_set<tile::Id, tile::Id::Hasher> m_removed_tiles;
+    std::vector<tile::Id> m_removed_tiles;
 
     FilterDefinitions m_definitions;
 
-    void apply_filter(const tile::Id tile_id, FeatureType type);
+    void apply_filter(const tile::Id tile_id);
     void filter();
 };
 } // namespace nucleus::maplabel

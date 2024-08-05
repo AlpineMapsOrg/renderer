@@ -23,7 +23,6 @@
 #include <glm/glm.hpp>
 
 #include <nucleus/Raster.h>
-#include <nucleus/vector_tiles/VectorTileFeature.h>
 
 struct stbtt_fontinfo;
 
