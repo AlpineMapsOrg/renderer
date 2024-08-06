@@ -82,6 +82,7 @@ Window::Window()
 
 Window::~Window()
 {
+    destroy();
 #ifdef ALP_ENABLE_TRACK_OBJECT_LIFECYCLE
     qDebug("gl_engine::~Window()");
 #endif
@@ -427,11 +428,10 @@ glm::dvec3 Window::position(const glm::dvec2& normalised_device_coordinates)
     return m_camera.position() + m_camera.ray_direction(normalised_device_coordinates) * (double)depth(normalised_device_coordinates);
 }
 
-void Window::deinit_gpu()
+void Window::destroy()
 {
     emit gpu_ready_changed(false);
     m_tile_manager.reset();
-    Context::instance().destroy();
     m_gbuffer.reset();
     m_screen_quad_geometry = {};
     m_map_label_manager.reset();

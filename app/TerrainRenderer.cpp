@@ -38,6 +38,8 @@ TerrainRenderer::TerrainRenderer()
 {
     auto& context = gl_engine::Context::instance();
     auto* render_thread = QThread::currentThread();
+    connect(render_thread, &QThread::finished, &context, &nucleus::EngineContext::destroy);
+
     // not ideal:
     // the engine context needs to live on the render thread.
     // however, (currently) we need it before the render thread is created for signal slot connections.
