@@ -39,6 +39,7 @@ public:
     [[nodiscard]] ShaderProgram* ssao_blur_program() const      { return m_ssao_blur_program.get(); }
     [[nodiscard]] ShaderProgram* shadowmap_program() const      { return m_shadowmap_program.get(); }
     [[nodiscard]] ShaderProgram* labels_program() const         { return m_labels_program.get(); }
+    [[nodiscard]] ShaderProgram* track_program() const          { return m_track_program.get(); }
     [[nodiscard]] std::vector<ShaderProgram*> all() const       { return m_program_list; }
     std::shared_ptr<ShaderProgram> shared_ssao_program()        { return m_ssao_program; }
     std::shared_ptr<ShaderProgram> shared_ssao_blur_program()   { return m_ssao_blur_program; }
@@ -57,6 +58,7 @@ private:
     std::shared_ptr<ShaderProgram> m_ssao_program;
     std::shared_ptr<ShaderProgram> m_ssao_blur_program;
     std::shared_ptr<ShaderProgram> m_shadowmap_program;
+    std::shared_ptr<ShaderProgram> m_track_program;
     std::shared_ptr<ShaderProgram> m_labels_program;
 };
 }

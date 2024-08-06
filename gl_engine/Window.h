@@ -5,6 +5,7 @@
  * Copyright (C) 2023 Gerald Kimmersdorfer
  * Copyright (C) 2024 Lucas Dworschak
  * Copyright (C) 2024 Patrick Komon
+ * Copyright (C) 2024 Jakob Maier
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -36,6 +37,7 @@
 #include "nucleus/AbstractRenderWindow.h"
 #include "nucleus/camera/AbstractDepthTester.h"
 #include "nucleus/camera/Definition.h"
+#include "nucleus/track/GPX.h"
 
 #include "nucleus/timing/TimerManager.h"
 
@@ -43,11 +45,11 @@ class QOpenGLTexture;
 class QOpenGLShaderProgram;
 class QOpenGLBuffer;
 class QOpenGLVertexArrayObject;
-class TileManager;
-class MapLabelManager;
 
 namespace gl_engine {
 
+class TileManager;
+class MapLabelManager;
 class ShaderManager;
 class Framebuffer;
 class SSAO;
@@ -80,12 +82,12 @@ public slots:
     void shared_config_changed(gl_engine::uboSharedConfig ubo);
     void reload_shader();
 
+
 signals:
     void report_measurements(QList<nucleus::timing::TimerReport> values);
 
 private:
     std::unique_ptr<TileManager> m_tile_manager; // needs opengl context
-    std::unique_ptr<ShaderManager> m_shader_manager;
     std::shared_ptr<MapLabelManager> m_map_label_manager; // needs to be shared_ptr since we are using "connect"
 
     std::unique_ptr<Framebuffer> m_gbuffer;

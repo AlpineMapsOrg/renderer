@@ -2,6 +2,7 @@ This software includes code from:
 - https://github.com/nocnokneo/cmake-git-versioning-example
 - https://github.com/mourner/suncalc
 - https://github.com/frankencode/FluxColor
+- https://gist.github.com/mikhailov-work/0d177465a8151eb6ede1768d51d476c7
 
 Following are the corresponding licenses:
 
@@ -86,5 +87,46 @@ freely, subject to the following restrictions:
 
 Frank Mertens
 frank@cyblogic.de
+
+###############################################################################
+###############################################################################
+https://gist.github.com/mikhailov-work/0d177465a8151eb6ede1768d51d476c7
+// Authors:
+//   Colormap Design: Anton Mikhailov (mikhailov@google.com)
+//   GLSL Approximation: Ruofei Du (ruofei@google.com)
+###############################################################################
+
+Copyright 2019 Google LLC.
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+      http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+
+###############################################################################
+###############################################################################
+Material Symbols Icon set
+###############################################################################
+
+Copyright 2020 Google LLC.
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+      http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
 
 ###############################################################################

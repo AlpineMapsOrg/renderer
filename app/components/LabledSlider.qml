@@ -27,6 +27,8 @@ Item {
     property alias stepSize: slider.stepSize;
     property alias value: slider.value;
     property alias snapMode: slider.snapMode;
+    property var target;
+    property string property: ""
     property var formatCallback: defaultFormatCallback;
     signal moved();
 
@@ -40,17 +42,29 @@ Item {
         Slider {
             id: slider;
             Layout.preferredWidth: root.width - 50
+            value: root.target ? root.target[root.property] : 0
             onMoved: root.moved()
         }
         Label {
             id: label;
             Layout.preferredWidth: 50
-            text: {
-                return root.formatCallback(root.value);
-            }
+            text: root.formatCallback(root.value)
             font.underline: true;
         }
     }
     height: slider.implicitHeight;
     Layout.fillWidth: true;
+
+    Binding {
+        when: !!root.target
+        target: slider
+        property: "value"
+        value: root.target ? root.target[root.property] : slider.value
+    }
+    Binding {
+        when: !!root.target
+        target: root.target ? root.target : slider
+        property: root.target ? root.property : "value"
+        value: slider.value
+    }
 }

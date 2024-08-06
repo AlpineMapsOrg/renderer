@@ -3,6 +3,7 @@
  * Copyright (C) 2017 Klarälvdalens Datakonsult AB, a KDAB Group company (Giuseppe D'Angelo)
  * Copyright (C) 2023 Adam Celarek
  * Copyright (C) 2023 Gerald Kimmersdorfer
+ * Copyright (C) 2024 Jakob Maier
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -28,20 +29,23 @@
 #include <QOpenGLFramebufferObjectFormat>
 #include <QQuickWindow>
 #include <QThread>
+#include <QDir>
 #include <QTimer>
+#include <QBuffer>
+
 #include <glm/glm.hpp>
 #include <glm/gtx/string_cast.hpp>
 
 #include "RenderThreadNotifier.h"
 #include "TerrainRenderer.h"
 #include "gl_engine/Window.h"
-#include "nucleus/camera/Controller.h"
 #include "nucleus/Controller.h"
-#include "nucleus/tile_scheduler/Scheduler.h"
-#include "nucleus/srs.h"
-#include "nucleus/utils/sun_calculations.h"
+#include "nucleus/camera/Controller.h"
 #include "nucleus/camera/PositionStorage.h"
+#include "nucleus/srs.h"
+#include "nucleus/tile_scheduler/Scheduler.h"
 #include "nucleus/utils/UrlModifier.h"
+#include "nucleus/utils/sun_calculations.h"
 
 namespace {
 // helper type for the visitor from https://en.cppreference.com/w/cpp/utility/variant/visit
@@ -70,6 +74,7 @@ TerrainRendererItem::TerrainRendererItem(QQuickItem* parent)
     connect(m_settings, &AppSettings::datetime_changed, this, &TerrainRendererItem::datetime_changed);
     connect(m_settings, &AppSettings::gl_sundir_date_link_changed, this, &TerrainRendererItem::gl_sundir_date_link_changed);
     connect(m_settings, &AppSettings::render_quality_changed, this, &TerrainRendererItem::schedule_update);
+    connect(RenderThreadNotifier::instance(), &RenderThreadNotifier::redraw_requested, this, &TerrainRendererItem::schedule_update);
 
     m_update_timer->setSingleShot(!m_continuous_update);
     m_update_timer->setInterval(1000 / m_frame_limit);
@@ -82,7 +87,7 @@ TerrainRendererItem::TerrainRendererItem(QQuickItem* parent)
         RenderThreadNotifier::instance()->notify();
     });
 
-    connect(this, &TerrainRendererItem::init_after_creation, this, &TerrainRendererItem::init_after_creation_slot);  
+    connect(this, &TerrainRendererItem::init_after_creation, this, &TerrainRendererItem::init_after_creation_slot);
 }
 
 
@@ -98,6 +103,7 @@ QQuickFramebufferObject::Renderer* TerrainRendererItem::createRenderer() const
     qDebug("QQuickFramebufferObject::Renderer* TerrainRendererItem::createRenderer() const");
     qDebug() << "rendering thread: " << QThread::currentThread();
     // called on rendering thread.
+
     auto* r = new TerrainRenderer();
     connect(r->glWindow(), &nucleus::AbstractRenderWindow::update_requested, this, &TerrainRendererItem::schedule_update);
     connect(m_update_timer, &QTimer::timeout, this, &QQuickFramebufferObject::update);
@@ -117,7 +123,6 @@ QQuickFramebufferObject::Renderer* TerrainRendererItem::createRenderer() const
 
     connect(this, &TerrainRendererItem::camera_definition_set_by_user, r->controller()->camera_controller(), &nucleus::camera::Controller::set_definition);
     connect(r->controller()->camera_controller(), &nucleus::camera::Controller::global_cursor_position_changed, this, &TerrainRendererItem::read_global_position);
-    //connect(this, &TerrainRendererItem::ind)
 
     auto* const tile_scheduler = r->controller()->tile_scheduler();
     connect(this->m_settings, &AppSettings::render_quality_changed, tile_scheduler, [=](float new_render_quality) {
@@ -137,6 +142,7 @@ QQuickFramebufferObject::Renderer* TerrainRendererItem::createRenderer() const
 
     // connect glWindow to forward key events.
     connect(this, &TerrainRendererItem::shared_config_changed, r->glWindow(), &gl_engine::Window::shared_config_changed);
+
     // connect glWindow for shader hotreload by frontend button
     connect(this, &TerrainRendererItem::reload_shader, r->glWindow(), &gl_engine::Window::reload_shader);
 

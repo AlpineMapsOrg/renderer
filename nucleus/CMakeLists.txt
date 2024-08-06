@@ -104,6 +104,10 @@ qt_add_library(nucleus STATIC
     vector_tiles/VectorTileManager.h vector_tiles/VectorTileManager.cpp
     vector_tiles/VectorTileFeature.h vector_tiles/VectorTileFeature.cpp
     utils/ColourTexture.h utils/ColourTexture.cpp
+    EngineContext.h EngineContext.cpp
+    track/Manager.h track/Manager.cpp
+    track/GPX.cpp
+    track/GPX.h
     utils/image_loader.h utils/image_loader.cpp
 )
 if (ALP_ENABLE_AVLANCHE_WARNING_LAYER)
