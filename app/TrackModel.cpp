@@ -19,6 +19,8 @@
 #include "TrackModel.h"
 
 #ifdef __EMSCRIPTEN__
+#include <QDir>
+#include <QFile>
 #include <emscripten.h>
 #else
 #include <QFileDialog>
@@ -45,7 +47,7 @@ TrackModel::TrackModel(QObject* parent)
 
 QPointF TrackModel::lat_long(unsigned int index)
 {
-    if (index >= m_data.size())
+    if (index >= unsigned(m_data.size()))
         return {};
     const auto track = m_data.at(index);
     if (0 < track.track.size() && 0 < track.track[0].size()) {

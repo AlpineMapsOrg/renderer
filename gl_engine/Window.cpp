@@ -29,20 +29,7 @@
 #include <QOpenGLContext>
 #include <QOpenGLDebugLogger>
 #include <QOpenGLExtraFunctions>
-
 #include <QOpenGLVersionFunctionsFactory>
-
-#include "DebugPainter.h"
-#include "Framebuffer.h"
-#include "MapLabelManager.h"
-#include "SSAO.h"
-#include "ShaderManager.h"
-#include "ShaderProgram.h"
-#include "ShadowMapping.h"
-#include "TileManager.h"
-#include "TrackManager.h"
-#include "Window.h"
-#include "helpers.h"
 #include <QOpenGLFramebufferObject>
 #include <QOpenGLShaderProgram>
 #include <QOpenGLTexture>
@@ -54,35 +41,44 @@
 #include <glm/glm.hpp>
 #include <glm/glm.hpp>
 #include <glm/gtx/transform.hpp>
-
-#include "UniformBufferObjects.h"
-
-#include "nucleus/timing/TimerManager.h"
-#include "nucleus/timing/CpuTimer.h"
-#include "nucleus/utils/bit_coding.h"
-#if (defined(__linux) && !defined(__ANDROID__)) || defined(_WIN32) || defined(_WIN64)
-#include "Context.h"
-#include "GpuAsyncQueryTimer.h"
-#endif
-
 #if (defined(__linux) && !defined(__ANDROID__)) || defined(_WIN32) || defined(_WIN64)
 #include <QOpenGLFunctions_3_3_Core> // for wireframe mode
 #endif
-
 #if defined(__ANDROID__)
 #include <GLES3/gl3.h> // for GL ENUMS! DONT EXACTLY KNOW WHY I NEED THIS HERE! (on other platforms it works without)
 #endif
 
- using gl_engine::Window;
- using gl_engine::UniformBuffer;
- using namespace gl_engine;
+#include <nucleus/timing/CpuTimer.h>
+#include <nucleus/timing/TimerManager.h>
+#include <nucleus/utils/bit_coding.h>
 
- Window::Window()
-     : m_camera({ 1822577.0, 6141664.0 - 500, 171.28 + 500 }, { 1822577.0, 6141664.0, 171.28 }) // should point right at the stephansdom
- {
-     m_tile_manager = std::make_unique<TileManager>();
-     m_map_label_manager = std::make_unique<MapLabelManager>();
-     QTimer::singleShot(1, [this]() { emit update_requested(); });
+#include "Context.h"
+#include "DebugPainter.h"
+#include "Framebuffer.h"
+#include "MapLabelManager.h"
+#include "SSAO.h"
+#include "ShaderManager.h"
+#include "ShaderProgram.h"
+#include "ShadowMapping.h"
+#include "TileManager.h"
+#include "TrackManager.h"
+#include "UniformBufferObjects.h"
+#include "Window.h"
+#include "helpers.h"
+#if (defined(__linux) && !defined(__ANDROID__)) || defined(_WIN32) || defined(_WIN64)
+#include "GpuAsyncQueryTimer.h"
+#endif
+
+using gl_engine::UniformBuffer;
+using gl_engine::Window;
+using namespace gl_engine;
+
+Window::Window()
+    : m_camera({ 1822577.0, 6141664.0 - 500, 171.28 + 500 }, { 1822577.0, 6141664.0, 171.28 }) // should point right at the stephansdom
+{
+    m_tile_manager = std::make_unique<TileManager>();
+    m_map_label_manager = std::make_unique<MapLabelManager>();
+    QTimer::singleShot(1, [this]() { emit update_requested(); });
 }
 
 Window::~Window()
