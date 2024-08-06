@@ -21,17 +21,17 @@
 
 #include "TerrainRendererItem.h"
 
-#include <memory>
+#include <QBuffer>
 #include <QDebug>
+#include <QDir>
 #include <QOpenGLContext>
 #include <QOpenGLExtraFunctions>
 #include <QOpenGLFramebufferObject>
 #include <QOpenGLFramebufferObjectFormat>
 #include <QQuickWindow>
 #include <QThread>
-#include <QDir>
 #include <QTimer>
-#include <QBuffer>
+#include <memory>
 
 #include <glm/glm.hpp>
 #include <glm/gtx/string_cast.hpp>

@@ -25,14 +25,15 @@
 #include <QQuickWindow>
 #include <QThread>
 
-#include "TerrainRendererItem.h"
-#include "gl_engine/Context.h"
-#include "gl_engine/Window.h"
-#include "nucleus/Controller.h"
-#include "nucleus/camera/Controller.h"
-#include "nucleus/tile_scheduler/Scheduler.h"
-
+#include <gl_engine/Context.h>
+#include <gl_engine/Window.h>
+#include <nucleus/Controller.h>
 #include <nucleus/EngineContext.h>
+#include <nucleus/camera/Controller.h>
+#include <nucleus/tile_scheduler/Scheduler.h>
+#include <nucleus/utils/thread.h>
+
+#include "TerrainRendererItem.h"
 
 TerrainRenderer::TerrainRenderer()
 {

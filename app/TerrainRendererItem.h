@@ -21,13 +21,12 @@
 
 #pragma once
 
-#include <QQuickFramebufferObject>
-#include <QTimer>
-#include <QList>
-#include <QString>
-#include <QVector3D>
-#include <QVector2D>
 #include <QDateTime>
+#include <QList>
+#include <QQuickFramebufferObject>
+#include <QString>
+#include <QVector2D>
+#include <QVector3D>
 #include <map>
 
 #include <gl_engine/UniformBufferObjects.h>
@@ -36,6 +35,8 @@
 
 #include "AppSettings.h"
 #include "timing/TimerFrontendManager.h"
+
+class QTimer;
 
 class TerrainRendererItem : public QQuickFramebufferObject {
     Q_OBJECT
