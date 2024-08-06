@@ -109,6 +109,7 @@ qt_add_library(nucleus STATIC
     track/GPX.cpp
     track/GPX.h
     utils/image_loader.h utils/image_loader.cpp
+    utils/thread.h
 )
 if (ALP_ENABLE_AVLANCHE_WARNING_LAYER)
     target_sources(nucleus

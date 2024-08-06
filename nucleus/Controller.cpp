@@ -36,6 +36,7 @@
 #include "nucleus/tile_scheduler/SlotLimiter.h"
 #include "nucleus/tile_scheduler/TileLoadService.h"
 #include "nucleus/tile_scheduler/utils.h"
+#include "nucleus/utils/thread.h"
 #include "radix/TileHeights.h"
 
 using namespace nucleus::tile_scheduler;
@@ -139,6 +140,14 @@ Controller::Controller(AbstractRenderWindow* render_window)
 
 Controller::~Controller()
 {
+    nucleus::utils::thread::sync_call(
+        [this]() {
+            m_tile_scheduler.reset();
+            m_terrain_service.reset();
+            m_ortho_service.reset();
+            m_vectortile_service.reset();
+        },
+        m_tile_scheduler.get());
 #ifdef ALP_ENABLE_THREADING
     m_scheduler_thread->quit();
     m_scheduler_thread->wait(500); // msec
