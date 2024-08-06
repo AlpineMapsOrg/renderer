@@ -138,6 +138,8 @@ endif()
 
 if (ANDROID)
     add_android_openssl_libraries(alpineapp)
+    find_package(Qt6 REQUIRED COMPONENTS Widgets) # for QFileDialogue (adding tracks)
+    target_link_libraries(alpineapp PUBLIC Qt::Widgets)
 
     install(TARGETS alpineapp
         LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}

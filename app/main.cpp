@@ -20,7 +20,7 @@
 
 #include <QDirIterator>
 #include <QFontDatabase>
-#ifdef ALP_ENABLE_DEBUG_GUI
+#if defined(ALP_ENABLE_DEBUG_GUI) || defined(__ANDROID__)
 #include <QApplication>
 #else
 #include <QGuiApplication>
@@ -52,7 +52,7 @@
 int main(int argc, char **argv)
 {
     QQuickWindow::setGraphicsApi(QSGRendererInterface::GraphicsApi::OpenGLRhi);
-#ifdef ALP_ENABLE_DEBUG_GUI
+#if defined(ALP_ENABLE_DEBUG_GUI) || defined(__ANDROID__)
     QApplication app(argc, argv);
 #else
     QGuiApplication app(argc, argv);
