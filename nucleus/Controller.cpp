@@ -140,14 +140,12 @@ Controller::Controller(AbstractRenderWindow* render_window)
 
 Controller::~Controller()
 {
-    nucleus::utils::thread::sync_call(
-        [this]() {
-            m_tile_scheduler.reset();
-            m_terrain_service.reset();
-            m_ortho_service.reset();
-            m_vectortile_service.reset();
-        },
-        m_tile_scheduler.get());
+    nucleus::utils::thread::sync_call(m_tile_scheduler.get(), [this]() {
+        m_tile_scheduler.reset();
+        m_terrain_service.reset();
+        m_ortho_service.reset();
+        m_vectortile_service.reset();
+    });
 #ifdef ALP_ENABLE_THREADING
     m_scheduler_thread->quit();
     m_scheduler_thread->wait(500); // msec

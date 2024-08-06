@@ -81,12 +81,10 @@ TEST_CASE("nucleus/bits_and_pieces: nucleus::utils::thread::async_call")
     CHECK(QThread::currentThread() != &bg_thread);
 
     const auto start = std::chrono::steady_clock::now();
-    nucleus::utils::thread::async_call(
-        [&]() {
-            QThread::msleep(50);
-            CHECK(QThread::currentThread() == &bg_thread);
-        },
-        &context);
+    nucleus::utils::thread::async_call(&context, [&]() {
+        QThread::msleep(50);
+        CHECK(QThread::currentThread() == &bg_thread);
+    });
     const auto end = std::chrono::steady_clock::now();
     CHECK(QThread::currentThread() != &bg_thread);
     const unsigned duration = std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count();
@@ -104,12 +102,10 @@ TEST_CASE("nucleus/bits_and_pieces: nucleus::utils::thread::sync_call void")
     CHECK(QThread::currentThread() != &bg_thread);
 
     const auto start = std::chrono::steady_clock::now();
-    nucleus::utils::thread::sync_call(
-        [&]() {
-            QThread::msleep(10);
-            CHECK(QThread::currentThread() == &bg_thread);
-        },
-        &context);
+    nucleus::utils::thread::sync_call(&context, [&]() {
+        QThread::msleep(10);
+        CHECK(QThread::currentThread() == &bg_thread);
+    });
     const auto end = std::chrono::steady_clock::now();
     CHECK(QThread::currentThread() != &bg_thread);
     const unsigned duration = std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count();
@@ -127,13 +123,11 @@ TEST_CASE("nucleus/bits_and_pieces: nucleus::utils::thread::sync_call int")
     CHECK(QThread::currentThread() != &bg_thread);
 
     const auto start = std::chrono::steady_clock::now();
-    const auto retval = nucleus::utils::thread::sync_call(
-        [&]() {
-            QThread::msleep(10);
-            CHECK(QThread::currentThread() == &bg_thread);
-            return 42;
-        },
-        &context);
+    const auto retval = nucleus::utils::thread::sync_call(&context, [&]() {
+        QThread::msleep(10);
+        CHECK(QThread::currentThread() == &bg_thread);
+        return 42;
+    });
     const auto end = std::chrono::steady_clock::now();
     CHECK(retval == 42);
     CHECK(QThread::currentThread() != &bg_thread);
