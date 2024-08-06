@@ -45,7 +45,7 @@ TerrainRenderer::TerrainRenderer()
     // the engine context needs to live on the render thread.
     // however, (currently) we need it before the render thread is created for signal slot connections.
     // so we need to move it afterwards. and it can be only moved from its own thread
-    QTimer::singleShot(0, &context, [render_thread]() { gl_engine::Context::instance().moveToThread(render_thread); });
+    nucleus::utils::thread::async_call(&context, [render_thread]() { gl_engine::Context::instance().moveToThread(render_thread); });
     if (!context.is_alive())
         context.initialise();
 
@@ -101,7 +101,7 @@ void TerrainRenderer::synchronize(QQuickFramebufferObject *item)
 
     if (!(i->camera() == m_controller->camera_controller()->definition())) {
         const auto tmp_camera = m_controller->camera_controller()->definition();
-        QTimer::singleShot(0, i, [i, tmp_camera]() {
+        nucleus::utils::thread::async_call(i, [i, tmp_camera]() {
             i->set_read_only_camera(tmp_camera);
             i->set_read_only_camera_width(tmp_camera.viewport_size().x);
             i->set_read_only_camera_height(tmp_camera.viewport_size().y);

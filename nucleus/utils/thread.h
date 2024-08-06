@@ -18,21 +18,19 @@
 
 #pragma once
 
+#include <QMetaObject>
 #include <QObject>
-#include <QTimer>
 
 namespace nucleus::utils::thread {
 
 template <typename Function, typename = std::enable_if_t<std::is_void_v<std::invoke_result_t<Function>>>> void async_call(QObject* context, Function fun)
 {
-    QObject tmp;
-    QObject::connect(&tmp, &QObject::destroyed, context, [&fun]() { fun(); });
+    QMetaObject::invokeMethod(context, fun, Qt::ConnectionType::QueuedConnection);
 }
 
 template <typename Function, typename = std::enable_if_t<std::is_void_v<std::invoke_result_t<Function>>>> void sync_call(QObject* context, Function fun)
 {
-    QObject tmp;
-    QObject::connect(&tmp, &QObject::destroyed, context, [&fun]() { fun(); }, Qt::ConnectionType::BlockingQueuedConnection);
+    QMetaObject::invokeMethod(context, fun, Qt::ConnectionType::BlockingQueuedConnection);
 }
 
 template <typename Function, typename = std::enable_if_t<!std::is_void_v<std::invoke_result_t<Function>>>>
@@ -40,11 +38,7 @@ auto sync_call(QObject* context, Function fun) -> std::invoke_result_t<Function>
 {
     using ReturnType = std::invoke_result_t<Function>;
     ReturnType retval = {};
-    {
-        QObject tmp;
-        QObject::connect(&tmp, &QObject::destroyed, context, [&retval, &fun]() { retval = fun(); }, Qt::ConnectionType::BlockingQueuedConnection);
-    }
-
+    QMetaObject::invokeMethod(context, fun, Qt::ConnectionType::BlockingQueuedConnection, &retval);
     return retval;
 }
 
