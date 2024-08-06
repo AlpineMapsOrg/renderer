@@ -245,6 +245,7 @@ SettingsPanel {
         id: ssao_enabled
         name: "Ambient Occlusion"
         checkBoxEnabled: true
+        checked: false
         onCheckedChanged: map.shared_config.ssao_enabled = this.checked;
 
         Label { text: "Kernel-Size:" }
@@ -281,6 +282,7 @@ SettingsPanel {
     CheckGroup {
         id: csm_enabled
         checkBoxEnabled: true
+        checked: false
         onCheckedChanged: map.shared_config.csm_enabled = this.checked;
         name: "Shadow Mapping"
 
@@ -293,4 +295,33 @@ SettingsPanel {
         }
     }
 
+    CheckGroup {
+        id: track_options
+        name: "Track Options"
+
+        Label { text: "Track Width:" }
+        LabledSlider {
+            id: track_width;
+            from: 1; to: 32; stepSize: 1;
+            target: _track_model
+            property: "display_width"
+        }
+
+        Label { text: "Track Shading:" }
+        ComboBox {
+            id: track_shading;
+            textRole: "text"
+            currentIndex: 0;
+            Layout.fillWidth: true;
+            model: [
+                { text: "Default"   },
+                { text: "Normal"   },
+                { text: "Speed"   },
+                { text: "Steepness"   },
+                { text: "Vertical Speed"   },
+            ];
+            target: _track_model
+            property: "shading_style"
+        }
+    }
 }

@@ -62,6 +62,7 @@ qt_add_qml_module(alpineapp
         components/VectorEditor.qml
         components/DatePicker.qml
         components/DateMonthTablePicker.qml
+        components/ComboBox.qml
         components/FloatingActionButton.qml
         components/FluxColor/AngleWheel.qml
         components/FluxColor/ColorChooser.qml
@@ -85,6 +86,7 @@ qt_add_qml_module(alpineapp
         icons/material/my_location.png
         icons/material/navigation.png
         icons/material/navigation_offset.png
+        icons/material/add.png
         icons/material/chevron_left.png
         icons/material/visibility_off.png
         icons/presets/basic.png
@@ -94,6 +96,7 @@ qt_add_qml_module(alpineapp
         icons/logo_type_horizontal.png
         icons/logo_type_vertical.png
         icons/logo_type_horizontal_short.png
+        SOURCES TrackModel.h TrackModel.cpp
 )
 
 qt_add_resources(alpineapp "fonts"
@@ -135,6 +138,8 @@ endif()
 
 if (ANDROID)
     add_android_openssl_libraries(alpineapp)
+    find_package(Qt6 REQUIRED COMPONENTS Widgets) # for QFileDialogue (adding tracks)
+    target_link_libraries(alpineapp PUBLIC Qt::Widgets)
 
     install(TARGETS alpineapp
         LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
@@ -142,6 +147,8 @@ if (ANDROID)
 endif()
 
 if (EMSCRIPTEN)
+    target_link_options(alpineapp PUBLIC -sASYNCIFY)
+
     set(ALP_INSTALL_FILES
         "$<TARGET_FILE_DIR:alpineapp>/alpineapp.js"
         "$<TARGET_FILE_DIR:alpineapp>/alpineapp.wasm"
