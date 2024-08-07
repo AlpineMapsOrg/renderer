@@ -1,6 +1,7 @@
 /*****************************************************************************
  * Alpine Terrain Renderer
  * Copyright (C) 2023 Adam Celarek
+ * Copyright (C) 2024 Gerald Kimmersdorfer
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -24,7 +25,7 @@
 #include <catch2/catch_test_macros.hpp>
 
 #include "nucleus/tile_scheduler/TileLoadService.h"
-#include "nucleus/utils/tile_conversion.h"
+#include <QImage>
 
 using namespace nucleus::tile_scheduler;
 using nucleus::tile_scheduler::tile_types::TileLayer;
@@ -40,41 +41,23 @@ TEST_CASE("nucleus/tile_scheduler/TileLoadService")
 {
     SECTION("build tile url")
     {
+        using Pattern = TileLoadService::UrlPattern;
+        const QString base_url = "https://maps.wien.gv.at/basemap/bmaporthofoto30cm/normal/google3857/";
         {
-            TileLoadService
-                service("https://maps.wien.gv.at/basemap/bmaporthofoto30cm/normal/google3857/",
-                        TileLoadService::UrlPattern::ZXY,
-                        ".jpeg");
-            CHECK(service.build_tile_url({.zoom_level = 2, .coords = {1, 3}})
-                  == "https://maps.wien.gv.at/basemap/bmaporthofoto30cm/normal/google3857/2/1/"
-                     "3.jpeg");
+            TileLoadService service(base_url, Pattern::ZXY, ".jpeg");
+            CHECK(service.build_tile_url({ .zoom_level = 2, .coords = { 1, 3 } }) == base_url + "2/1/3.jpeg");
         }
         {
-            TileLoadService
-                service("https://maps.wien.gv.at/basemap/bmaporthofoto30cm/normal/google3857/",
-                        TileLoadService::UrlPattern::ZYX,
-                        ".jpeg");
-            CHECK(service.build_tile_url({.zoom_level = 2, .coords = {1, 3}})
-                  == "https://maps.wien.gv.at/basemap/bmaporthofoto30cm/normal/google3857/2/3/"
-                     "1.jpeg");
+            TileLoadService service(base_url, Pattern::ZYX, ".jpeg");
+            CHECK(service.build_tile_url({ .zoom_level = 2, .coords = { 1, 3 } }) == base_url + "2/3/1.jpeg");
         }
         {
-            TileLoadService
-                service("https://maps.wien.gv.at/basemap/bmaporthofoto30cm/normal/google3857/",
-                        TileLoadService::UrlPattern::ZXY_yPointingSouth,
-                        ".jpeg");
-            CHECK(service.build_tile_url({.zoom_level = 2, .coords = {1, 3}})
-                  == "https://maps.wien.gv.at/basemap/bmaporthofoto30cm/normal/google3857/2/1/"
-                     "0.jpeg");
+            TileLoadService service(base_url, Pattern::ZXY_yPointingSouth, ".jpeg");
+            CHECK(service.build_tile_url({ .zoom_level = 2, .coords = { 1, 3 } }) == base_url + "2/1/0.jpeg");
         }
         {
-            TileLoadService
-                service("https://maps.wien.gv.at/basemap/bmaporthofoto30cm/normal/google3857/",
-                        TileLoadService::UrlPattern::ZYX_yPointingSouth,
-                        ".jpeg");
-            CHECK(service.build_tile_url({.zoom_level = 2, .coords = {1, 3}})
-                  == "https://maps.wien.gv.at/basemap/bmaporthofoto30cm/normal/google3857/2/0/"
-                     "1.jpeg");
+            TileLoadService service(base_url, Pattern::ZYX_yPointingSouth, ".jpeg");
+            CHECK(service.build_tile_url({ .zoom_level = 2, .coords = { 1, 3 } }) == base_url + "2/0/1.jpeg");
         }
     }
 
@@ -160,7 +143,7 @@ TEST_CASE("nucleus/tile_scheduler/TileLoadService")
             CHECK(tile.network_info.status == tile_types::NetworkInfo::Status::Good);
             CHECK(utils::time_since_epoch() - tile.network_info.timestamp < 10'000);
 
-            const auto image = nucleus::utils::tile_conversion::toQImage(*tile.data);
+            const auto image = QImage::fromData(*tile.data);
             REQUIRE(image.sizeInBytes() > 0);
             // the image on the server is only almost white. this test will fail when the file changes.
             CHECK(std::accumulate(image.constBits(), image.constBits() + image.sizeInBytes(), 0LLu) == 66'503'928LLu);
@@ -178,7 +161,7 @@ TEST_CASE("nucleus/tile_scheduler/TileLoadService")
             CHECK(tile.network_info.status == tile_types::NetworkInfo::Status::Good);
             CHECK(utils::time_since_epoch() - tile.network_info.timestamp < 10'000);
 
-            const auto image = nucleus::utils::tile_conversion::toQImage(*tile.data);
+            const auto image = QImage::fromData(*tile.data);
             REQUIRE(image.sizeInBytes() > 0);
             // manually checked. comparing the sum should find regressions. this test will fail when the file changes.
 //            image.save("/home/madam/Documents/work/tuw/alpinemaps/"
@@ -206,7 +189,7 @@ TEST_CASE("nucleus/tile_scheduler/TileLoadService")
         CHECK(tile.network_info.status == tile_types::NetworkInfo::Status::NotFound);
         CHECK(utils::time_since_epoch() - tile.network_info.timestamp < 10'000);
 
-        const auto image = nucleus::utils::tile_conversion::toQImage(*tile.data);
+        const auto image = QImage::fromData(*tile.data);
         REQUIRE(image.sizeInBytes() == 0);
     }
 #endif
@@ -229,7 +212,7 @@ TEST_CASE("nucleus/tile_scheduler/TileLoadService")
         CHECK(tile.network_info.status == tile_types::NetworkInfo::Status::NetworkError);
         CHECK(utils::time_since_epoch() - tile.network_info.timestamp < 10'000);
 
-        const auto image = nucleus::utils::tile_conversion::toQImage(*tile.data);
+        const auto image = QImage::fromData(*tile.data);
         REQUIRE(image.sizeInBytes() == 0);
     }
 
@@ -252,7 +235,7 @@ TEST_CASE("nucleus/tile_scheduler/TileLoadService")
         CHECK(tile.network_info.status == tile_types::NetworkInfo::Status::NetworkError);
         CHECK(utils::time_since_epoch() - tile.network_info.timestamp < 20);
 
-        const auto image = nucleus::utils::tile_conversion::toQImage(*tile.data);
+        const auto image = QImage::fromData(*tile.data);
         REQUIRE(image.sizeInBytes() == 0);
     }
 }

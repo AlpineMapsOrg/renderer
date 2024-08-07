@@ -1,7 +1,7 @@
 /*****************************************************************************
- * Alpine Terrain Renderer
- * Copyright (C) 2023 Adam Celerek
- * Copyright (C) 2023 Gerald Kimmersdorfer
+ * AlpineMaps.org
+ * Copyright (C) 2024 Gerald Kimmersdorfer
+ * Copyright (C) 2024 Adam Celarek
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -19,19 +19,14 @@
 
 #pragma once
 
-#include <vector>
+#include <nucleus/Raster.h>
+#include <QByteArray>
 
-#include "radix/tile.h"
+namespace nucleus::utils::image_loader {
 
-// we want to be flexible and have the ability to draw several tiles at once.
-// GpuTileSets can have an arbitrary number of slots, each slot is an index in the corresponding
-// vao buffers and textures.
+Raster<glm::u8vec4> rgba8(const QByteArray& byteArray);
 
-namespace gl_engine {
-struct TileSet {
-    tile::Id tile_id = {};
-    tile::SrsBounds bounds = {};
-    unsigned texture_layer = unsigned(-1);
-    // texture
-};
-} // namespace gl_engine
+Raster<glm::u8vec4> rgba8(const QString& filename);
+Raster<glm::u8vec4> rgba8(const char* filename);
+
+} // namespace nucleus::utils::image_loader

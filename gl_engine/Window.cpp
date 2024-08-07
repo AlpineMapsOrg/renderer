@@ -53,7 +53,6 @@
 #include <nucleus/utils/bit_coding.h>
 
 #include "Context.h"
-#include "DebugPainter.h"
 #include "Framebuffer.h"
 #include "MapLabelManager.h"
 #include "SSAO.h"
@@ -77,12 +76,13 @@ Window::Window()
     : m_camera({ 1822577.0, 6141664.0 - 500, 171.28 + 500 }, { 1822577.0, 6141664.0, 171.28 }) // should point right at the stephansdom
 {
     m_tile_manager = std::make_unique<TileManager>();
-    m_map_label_manager = std::make_unique<MapLabelManager>();
+    m_map_label_manager = std::make_shared<MapLabelManager>();
     QTimer::singleShot(1, [this]() { emit update_requested(); });
 }
 
 Window::~Window()
 {
+    destroy();
 #ifdef ALP_ENABLE_TRACK_OBJECT_LIFECYCLE
     qDebug("gl_engine::~Window()");
 #endif
@@ -102,7 +102,6 @@ void Window::initialise_gpu()
     logger->disableMessages(QList<GLuint>({ 131185 }));
     logger->startLogging(QOpenGLDebugLogger::SynchronousLogging);
 
-    m_debug_painter = std::make_unique<DebugPainter>();
 
     auto* shader_manager = Context::instance().shader_manager();
 
@@ -264,23 +263,12 @@ void Window::paint(QOpenGLFramebufferObject* framebuffer)
     // f->glDepthFunc(GL_GREATER); // for reverse z
     f->glDepthFunc(GL_LESS);
 
-#if (defined(__linux) && !defined(__ANDROID__)) || defined(_WIN32) || defined(_WIN64)
-    auto funcs = QOpenGLVersionFunctionsFactory::get<QOpenGLFunctions_3_3_Core>(QOpenGLContext::currentContext()); // for wireframe mode
-    if (funcs && m_wireframe_enabled)
-        funcs->glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
-#endif
-
     shader_manager->tile_shader()->bind();
     m_timer->start_timer("tiles");
     auto culled_tile_set = m_tile_manager->cull(tile_set, m_camera.frustum());
     m_tile_manager->draw(shader_manager->tile_shader(), m_camera, culled_tile_set, true, m_camera.position());
     m_timer->stop_timer("tiles");
     shader_manager->tile_shader()->release();
-
-#if (defined(__linux) && !defined(__ANDROID__)) || defined(_WIN32) || defined(_WIN64)
-    if (funcs && m_wireframe_enabled)
-        funcs->glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
-#endif
 
     m_gbuffer->unbind();
 
@@ -328,7 +316,7 @@ void Window::paint(QOpenGLFramebufferObject* framebuffer)
     {
         m_timer->start_timer("labels");
         shader_manager->labels_program()->bind();
-        m_map_label_manager->draw(m_gbuffer.get(), shader_manager->labels_program(), m_camera);
+        m_map_label_manager->draw(m_gbuffer.get(), shader_manager->labels_program(), m_camera, culled_tile_set);
         shader_manager->labels_program()->release();
         m_timer->stop_timer("labels");
     }
@@ -362,29 +350,18 @@ void Window::paint(QOpenGLFramebufferObject* framebuffer)
 
     m_timer->stop_timer("cpu_total");
     m_timer->stop_timer("gpu_total");
-    if (m_render_looped) {
-        m_timer->stop_timer("cpu_b2b");
-    }
 
     QList<nucleus::timing::TimerReport> new_values = m_timer->fetch_results();
     if (new_values.size() > 0) {
         emit report_measurements(new_values);
     }
 
-    if (m_render_looped) {
-        m_timer->start_timer("cpu_b2b");
-        emit update_requested();
-    }
 }
 
 void Window::shared_config_changed(gl_engine::uboSharedConfig ubo) {
     m_shared_config_ubo->data = ubo;
     m_shared_config_ubo->update_gpu_data();
     emit update_requested();
-}
-
-void Window::render_looped_changed(bool render_looped_flag) {
-    m_render_looped = render_looped_flag;
 }
 
 void Window::reload_shader() {
@@ -406,42 +383,6 @@ void Window::reload_shader() {
     ShaderProgram::reset_shader_cache();
     do_reload();
 #endif
-}
-
-void Window::key_press(const QKeyCombination& e) {
-    QKeyEvent ev = QKeyEvent(QEvent::Type::KeyPress, e.key(), e.keyboardModifiers());
-    this->keyPressEvent(&ev);
-}
-
-void Window::keyPressEvent(QKeyEvent* e)
-{
-    if (e->key() == Qt::Key::Key_F5) this->reload_shader();
-    if (e->key() == Qt::Key::Key_F6) {
-        if (this->m_render_looped) {
-            this->m_render_looped = false;
-            qDebug("Rendering loop exited");
-        } else {
-            this->m_render_looped = true;
-            qDebug("Rendering loop started");
-        }
-        emit update_requested();
-    }
-    if (e->key() == Qt::Key::Key_F7) {
-        m_wireframe_enabled = !m_wireframe_enabled;
-        qDebug(m_render_looped ? "Wireframe enabled" : "Wireframe disabled");
-    }
-    if (e->key() == Qt::Key::Key_F11
-        || (e->key() == Qt::Key_P && e->modifiers() == Qt::ControlModifier)
-        || (e->key() == Qt::Key_F5 && e->modifiers() == Qt::ControlModifier)) {
-        e->ignore();
-    }
-
-    emit key_pressed(e->keyCombination());
-}
-
-void Window::keyReleaseEvent(QKeyEvent* e)
-{
-    emit key_released(e->keyCombination());
 }
 
 void Window::updateCameraEvent()
@@ -470,6 +411,9 @@ void Window::update_gpu_quads(const std::vector<nucleus::tile_scheduler::tile_ty
 {
     assert(m_tile_manager);
     m_tile_manager->update_gpu_quads(new_quads, deleted_quads);
+
+    assert(m_map_label_manager);
+    m_map_label_manager->update_gpu_quads(new_quads, deleted_quads);
 }
 
 float Window::depth(const glm::dvec2& normalised_device_coordinates)
@@ -484,26 +428,19 @@ glm::dvec3 Window::position(const glm::dvec2& normalised_device_coordinates)
     return m_camera.position() + m_camera.ray_direction(normalised_device_coordinates) * (double)depth(normalised_device_coordinates);
 }
 
-void Window::deinit_gpu()
+void Window::destroy()
 {
     emit gpu_ready_changed(false);
     m_tile_manager.reset();
-    m_debug_painter.reset();
-    Context::instance().destroy();
     m_gbuffer.reset();
     m_screen_quad_geometry = {};
+    m_map_label_manager.reset();
 }
 
 void Window::set_aabb_decorator(const nucleus::tile_scheduler::utils::AabbDecoratorPtr& new_aabb_decorator)
 {
     assert(m_tile_manager);
     m_tile_manager->set_aabb_decorator(new_aabb_decorator);
-}
-
-void Window::remove_tile(const tile::Id& id)
-{
-    assert(m_tile_manager);
-    m_tile_manager->remove_tile(id);
 }
 
 nucleus::camera::AbstractDepthTester* Window::depth_tester() { return this; }

@@ -1,6 +1,7 @@
 /*****************************************************************************
  * Alpine Terrain Builder
  * Copyright (C) 2022 alpinemaps.org
+ * Copyright (C) 2024 Gerald Kimmersdorfer
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -19,7 +20,6 @@
 #include "TileLoadService.h"
 
 #include <QDebug>
-#include <QImage>
 #include <QNetworkAccessManager>
 #include <QNetworkReply>
 #include <QtVersionChecks>
@@ -39,7 +39,7 @@ TileLoadService::TileLoadService(const QString& base_url, UrlPattern url_pattern
 
 TileLoadService::~TileLoadService() = default;
 
-void TileLoadService::load(const tile::Id& tile_id)
+void TileLoadService::load(const tile::Id& tile_id) const
 {
     QNetworkRequest request(QUrl(build_tile_url(tile_id)));
     request.setTransferTimeout(int(m_transfer_timeout));
@@ -67,22 +67,28 @@ void TileLoadService::load(const tile::Id& tile_id)
     });
 }
 
-QString TileLoadService::build_tile_url(const tile::Id& tile_id) const
+QString TileLoadService::build_tile_url(tile::Id tile_id) const
 {
-    QString tile_address;
-    const auto n_y_tiles = srs::number_of_vertical_tiles_for_zoom_level(tile_id.zoom_level);
     switch (m_url_pattern) {
     case UrlPattern::ZXY:
+    case UrlPattern::ZYX:
+        tile_id = tile_id.to(tile::Scheme::Tms);
+        break;
+    case UrlPattern::ZXY_yPointingSouth:
+    case UrlPattern::ZYX_yPointingSouth:
+        tile_id = tile_id.to(tile::Scheme::SlippyMap);
+        break;
+    }
+
+    QString tile_address;
+    switch (m_url_pattern) {
+    case UrlPattern::ZXY:
+    case UrlPattern::ZXY_yPointingSouth:
         tile_address = QString("%1/%2/%3").arg(tile_id.zoom_level).arg(tile_id.coords.x).arg(tile_id.coords.y);
         break;
     case UrlPattern::ZYX:
-        tile_address = QString("%1/%3/%2").arg(tile_id.zoom_level).arg(tile_id.coords.x).arg(tile_id.coords.y);
-        break;
-    case UrlPattern::ZXY_yPointingSouth:
-        tile_address = QString("%1/%2/%3").arg(tile_id.zoom_level).arg(tile_id.coords.x).arg(n_y_tiles - tile_id.coords.y - 1);
-        break;
     case UrlPattern::ZYX_yPointingSouth:
-        tile_address = QString("%1/%3/%2").arg(tile_id.zoom_level).arg(tile_id.coords.x).arg(n_y_tiles - tile_id.coords.y - 1);
+        tile_address = QString("%1/%3/%2").arg(tile_id.zoom_level).arg(tile_id.coords.x).arg(tile_id.coords.y);
         break;
     }
     if (!m_load_balancing_targets.empty()) {

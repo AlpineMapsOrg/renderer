@@ -19,19 +19,28 @@
 #pragma once
 
 #include <QImage>
+#include <cstdint>
 #include <qopengl.h>
 #ifdef ANDROID
 #include <GLES3/gl3.h>
 #endif
-
 #include <nucleus/Raster.h>
 #include <nucleus/utils/ColourTexture.h>
 
 namespace gl_engine {
 class Texture {
 public:
-    enum class Target : GLenum { _2d = GL_TEXTURE_2D, _2dArray = GL_TEXTURE_2D_ARRAY };
-    enum class Format : GLenum { RGBA8 = GL_RGBA8, CompressedRGBA8 = GLenum(-2), RG8 = GL_RG8, R16UI = GL_R16UI, Invalid = GLenum(-1) };
+    enum class Target : GLenum { _2d = GL_TEXTURE_2D, _2dArray = GL_TEXTURE_2D_ARRAY }; // no 1D textures in webgl
+    enum class Format {
+        RGBA8, // normalised on gpu
+        CompressedRGBA8, // normalised on gpu, compression format depends on desktop/mobile
+        RGBA8UI,
+        RG8, // normalised on gpu
+        RG32UI,
+        R16UI,
+        R32UI,
+        Invalid
+    };
     enum class Filter : GLint { Nearest = GL_NEAREST, Linear = GL_LINEAR, MipMapLinear = GL_LINEAR_MIPMAP_LINEAR };
 
 public:
@@ -47,9 +56,8 @@ public:
     void allocate_array(unsigned width, unsigned height, unsigned n_layers);
     void upload(const nucleus::utils::ColourTexture& texture);
     void upload(const nucleus::utils::ColourTexture& texture, unsigned array_index);
-    void upload(const nucleus::Raster<glm::u8vec2>& texture);
-    void upload(const nucleus::Raster<uint16_t>& texture);
     void upload(const nucleus::Raster<uint16_t>& texture, unsigned int array_index);
+    template <typename T> void upload(const nucleus::Raster<T>& texture);
 
     static GLenum compressed_texture_format();
     static nucleus::utils::ColourTexture::Format compression_algorithm();
@@ -64,5 +72,11 @@ private:
     unsigned m_height = unsigned(-1);
     unsigned m_n_layers = unsigned(-1);
 };
+
+extern template void gl_engine::Texture::upload<uint16_t>(const nucleus::Raster<uint16_t>&);
+extern template void gl_engine::Texture::upload<uint32_t>(const nucleus::Raster<uint32_t>&);
+extern template void gl_engine::Texture::upload<glm::vec<2, uint32_t>>(const nucleus::Raster<glm::vec<2, uint32_t>>&);
+extern template void gl_engine::Texture::upload<glm::vec<2, uint8_t>>(const nucleus::Raster<glm::vec<2, uint8_t>>&);
+extern template void gl_engine::Texture::upload<glm::vec<4, uint8_t>>(const nucleus::Raster<glm::vec<4, uint8_t>>&);
 
 } // namespace gl_engine

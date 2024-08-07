@@ -100,6 +100,8 @@ int main(int argc, char* argv[])
     QObject::connect(&glWindow, &Window::mouse_pressed, controller.camera_controller(), &nucleus::camera::Controller::mouse_press);
     QObject::connect(&glWindow, &Window::wheel_turned, controller.camera_controller(), &nucleus::camera::Controller::wheel_turn);
     QObject::connect(&glWindow, &Window::touch_made, controller.camera_controller(), &nucleus::camera::Controller::touch);
+    QObject::connect(&glWindow, &Window::key_pressed, controller.camera_controller(), &nucleus::camera::Controller::key_press);
+    QObject::connect(&glWindow, &Window::key_released, controller.camera_controller(), &nucleus::camera::Controller::key_release);
     QObject::connect(&glWindow, &Window::resized, controller.camera_controller(), [&controller](glm::uvec2 new_size) {
         controller.camera_controller()->set_viewport(new_size);
     });

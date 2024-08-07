@@ -51,6 +51,8 @@ signals:
     void mouse_moved(const nucleus::event_parameter::Mouse&) const;
     void wheel_turned(const nucleus::event_parameter::Wheel&) const;
     void touch_made(const nucleus::event_parameter::Touch&) const;
+    void key_pressed(const QKeyCombination&) const;
+    void key_released(const QKeyCombination&) const;
     void resized(const glm::uvec2&) const;
 
 private slots:
@@ -58,7 +60,6 @@ private slots:
 
 private:
     gl_engine::Window* m_gl_window = nullptr;
-    QTimer *m_timer = new QTimer(this);
     int m_keys_pressed = 0;
     bool m_closing = false;
 };

@@ -21,17 +21,17 @@
 
 #include "TerrainRendererItem.h"
 
-#include <memory>
+#include <QBuffer>
 #include <QDebug>
+#include <QDir>
 #include <QOpenGLContext>
 #include <QOpenGLExtraFunctions>
 #include <QOpenGLFramebufferObject>
 #include <QOpenGLFramebufferObjectFormat>
 #include <QQuickWindow>
 #include <QThread>
-#include <QDir>
 #include <QTimer>
-#include <QBuffer>
+#include <memory>
 
 #include <glm/glm.hpp>
 #include <glm/gtx/string_cast.hpp>
@@ -142,7 +142,6 @@ QQuickFramebufferObject::Renderer* TerrainRendererItem::createRenderer() const
 
     // connect glWindow to forward key events.
     connect(this, &TerrainRendererItem::shared_config_changed, r->glWindow(), &gl_engine::Window::shared_config_changed);
-    connect(this, &TerrainRendererItem::render_looped_changed, r->glWindow(), &gl_engine::Window::render_looped_changed);
 
     // connect glWindow for shader hotreload by frontend button
     connect(this, &TerrainRendererItem::reload_shader, r->glWindow(), &gl_engine::Window::reload_shader);
@@ -376,17 +375,6 @@ void TerrainRendererItem::set_camera_operation_centre_distance(float new_camera_
     emit camera_operation_centre_distance_changed();
 }
 
-bool TerrainRendererItem::render_looped() const {
-    return m_render_looped;
-}
-
-void TerrainRendererItem::set_render_looped(bool new_render_looped) {
-    if (new_render_looped == m_render_looped) return;
-    m_render_looped = new_render_looped;
-    emit render_looped_changed(m_render_looped);
-    schedule_update();
-}
-
 gl_engine::uboSharedConfig TerrainRendererItem::shared_config() const {
     return m_shared_config;
 }
@@ -493,11 +481,8 @@ bool TerrainRendererItem::continuous_update() const
 
 void TerrainRendererItem::set_continuous_update(bool new_continuous_update)
 {
-    qDebug() << "TerrainRendererItem::m_continuous_update" << m_continuous_update;
-    qDebug() << "TerrainRendererItem::new_continuous_update" << new_continuous_update;
     if (m_continuous_update == new_continuous_update)
         return;
-    qDebug() << "continuoius update" << m_continuous_update;
     m_continuous_update = new_continuous_update;
     m_update_timer->setSingleShot(!m_continuous_update);
     m_update_timer->start();

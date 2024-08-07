@@ -25,14 +25,11 @@ project(alpine-renderer-gl_engine LANGUAGES CXX)
 option(ALP_ENABLE_SHADER_NETWORK_HOTRELOAD "reload shader files per HTTP request. Allows Hot-Reload on Android/WebGL" OFF)
 set(ALP_SHADER_NETWORK_URL "http://localhost:5500/" CACHE STRING "url location, which points to the shaders directory for network hot reload")
 
-#http://localhost:5500/
 qt_add_library(gl_engine STATIC
     Framebuffer.h Framebuffer.cpp
     ShaderManager.h ShaderManager.cpp
     TileManager.h TileManager.cpp
-    TileSet.h
     Window.cpp Window.h
-    DebugPainter.h DebugPainter.cpp
     helpers.h
     ShaderProgram.h ShaderProgram.cpp
     UniformBufferObjects.h UniformBufferObjects.cpp
@@ -73,6 +70,7 @@ qt_add_resources(gl_engine "shaders"
     shaders/labels.vert
     shaders/snow.glsl
     shaders/tile.glsl
+    shaders/tile_id.glsl
     shaders/track.frag
     shaders/track.vert
     shaders/turbo_colormap.glsl

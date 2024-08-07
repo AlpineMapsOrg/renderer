@@ -26,6 +26,8 @@ option(ALP_ENABLE_ASSERTS "enable asserts (do not define NDEBUG)" ON)
 option(ALP_ENABLE_TRACK_OBJECT_LIFECYCLE "enables debug cmd printout of constructors & deconstructors if implemented" OFF)
 option(ALP_ENABLE_APP_SHUTDOWN_AFTER_60S "Shuts down the app after 60S, used for CI testing with asan." OFF)
 option(ALP_ENABLE_LTO "Enable link time optimisation." OFF)
+option(ALP_ENABLE_GL_ENGINE "Enable OpenGL/WebGL engine" ON)
+option(ALP_ENABLE_AVLANCHE_WARNING_LAYER "Enables avalanche warning layer (requires Qt Gui in nucleus)" ON)
 
 set(ALP_EXTERN_DIR "extern" CACHE STRING "name of the directory to store external libraries, fonts etc..")
 
@@ -77,15 +79,9 @@ endif()
 
 ########################################### dependencies #################################################
 find_package(Qt6 REQUIRED COMPONENTS Core Gui OpenGL Network Quick QuickControls2 LinguistTools)
-if (ALP_ENABLE_DEBUG_GUI)
-    find_package(Qt6 REQUIRED COMPONENTS Widgets Charts)
-endif()
 qt_policy(
     SET QTP0002 NEW
 )
-if (ALP_ENABLE_POSITIONING)
-    find_package(Qt6 REQUIRED COMPONENTS Positioning)
-endif()
 
 include(cmake/alp_add_git_repository.cmake)
 alp_add_git_repository(renderer_static_data URL https://github.com/AlpineMapsOrg/renderer_static_data.git COMMITISH v23.11 DO_NOT_ADD_SUBPROJECT)
@@ -99,9 +95,17 @@ if (ANDROID)
 endif()
 
 add_subdirectory(nucleus)
-add_subdirectory(gl_engine)
-add_subdirectory(plain_renderer)
-add_subdirectory(app)
+if (ALP_ENABLE_GL_ENGINE)
+    if (ALP_ENABLE_DEBUG_GUI)
+        find_package(Qt6 REQUIRED COMPONENTS Widgets Charts)
+    endif()
+    if (ALP_ENABLE_POSITIONING)
+        find_package(Qt6 REQUIRED COMPONENTS Positioning)
+    endif()
+    add_subdirectory(gl_engine)
+    add_subdirectory(plain_renderer)
+    add_subdirectory(app)
+endif()
 
 if (ALP_UNITTESTS)
     add_subdirectory(unittests)

@@ -1,6 +1,7 @@
 /*****************************************************************************
  * Alpine Terrain Builder
  * Copyright (C) 2022 alpinemaps.org
+ * Copyright (C) 2024 Gerald Kimmersdorfer
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -19,7 +20,7 @@
 #include <QFile>
 #include <catch2/catch_test_macros.hpp>
 
-#include "catch2_helpers.h"
+#include "nucleus/utils/image_loader.h"
 #include "nucleus/utils/tile_conversion.h"
 
 namespace {
@@ -39,34 +40,6 @@ auto check_uint16_conversion_for(const glm::u8vec4& v)
 
 TEST_CASE("nucleus/utils/tile_conversion")
 {
-
-    SECTION("byte array to qimage")
-    {
-        QString filepath = QString("%1%2").arg(ALP_TEST_DATA_DIR, "170px-Jeune_bouquetin_de_face.jpg");
-        QFile file(filepath);
-        file.open(QIODevice::ReadOnly);
-        QByteArray ba = file.readAll();
-        REQUIRE(ba.size() > 0);
-        QImage image = nucleus::utils::tile_conversion::toQImage(ba);
-        CHECK(image.size().width() == 170);
-        CHECK(image.size().height() == 227);
-    }
-
-    SECTION("byte array to raster RGBA")
-    {
-        QString filepath = QString("%1%2").arg(ALP_TEST_DATA_DIR, "170px-Jeune_bouquetin_de_face.jpg");
-        QFile file(filepath);
-        file.open(QIODevice::ReadOnly);
-        QByteArray ba = file.readAll();
-        REQUIRE(ba.size() > 0);
-        const auto raster = nucleus::utils::tile_conversion::toRasterRGBA(ba);
-        CHECK(raster.width() == 170);
-        CHECK(raster.height() == 227);
-        CHECK(raster.buffer().front().x == 80);
-        CHECK(raster.buffer().front().y == 92);
-        CHECK(raster.buffer().front().z == 92);
-        CHECK(raster.buffer().front().w == 255);
-    }
 
     SECTION("float to alpine raster RGBA conversion math")
     {
@@ -128,17 +101,15 @@ TEST_CASE("nucleus/utils/tile_conversion")
         check_uint16_conversion_for({ 255, 255, 0, 255 });
     }
 
+
     SECTION("byte array to raster unsigned short")
     {
-        QString filepath = QString("%1%2").arg(ALP_TEST_DATA_DIR, "test-tile.png");
-        QFile file(filepath);
-        file.open(QIODevice::ReadOnly);
-        QByteArray ba = file.readAll();
-        REQUIRE(ba.size() > 0);
-        const auto raster = nucleus::utils::tile_conversion::qImage2uint16Raster(nucleus::utils::tile_conversion::toQImage(ba));
-        CHECK(raster.width() == 64);
-        CHECK(raster.height() == 64);
-        CHECK(raster.buffer()[0] == 23 * 256 + 216);
-        CHECK(raster.buffer()[1] == 22 * 256 + 33);
+        const QString filepath = QString("%1%2").arg(ALP_TEST_DATA_DIR, "test-tile.png");
+        const auto u8vec4_raster = nucleus::utils::image_loader::rgba8(filepath);
+        const auto u16_raster = nucleus::utils::tile_conversion::to_u16raster(u8vec4_raster);
+        CHECK(u16_raster.width() == 64);
+        CHECK(u16_raster.height() == 64);
+        CHECK(u16_raster.buffer()[0] == 23 * 256 + 216);
+        CHECK(u16_raster.buffer()[1] == 22 * 256 + 33);
     }
 }

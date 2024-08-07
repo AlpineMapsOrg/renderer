@@ -18,9 +18,8 @@
 *****************************************************************************/
  
 layout(location = 0) in highp vec4 bounds;
-layout(location = 1) in highp int texture_layer;
-layout(location = 2) in highp int tileset_id;
-layout(location = 3) in highp int tileset_zoomlevel;
+layout(location = 1) in highp int height_texture_layer;
+layout(location = 2) in highp uvec2 packed_tile_id;
 
 uniform highp int n_edge_vertices;
 uniform mediump usampler2DArray height_sampler;
@@ -69,7 +68,7 @@ highp vec3 camera_world_space_position(out vec2 uv, out float n_quads_per_direct
     altitude_correction_factor = 0.125 / cos(y_to_lat(pos_y)); // https://github.com/AlpineMapsOrg/renderer/issues/5
 
     uv = vec2(float(col) / n_quads_per_direction, float(row) / n_quads_per_direction);
-    float altitude_tex = float(texelFetch(height_sampler, ivec3(col, row, texture_layer), 0).r);
+    float altitude_tex = float(texelFetch(height_sampler, ivec3(col, row, height_texture_layer), 0).r);
     float adjusted_altitude = altitude_tex * altitude_correction_factor;
 
     highp vec3 var_pos_cws = vec3(float(col) * quad_width + bounds.x, var_pos_cws_y, adjusted_altitude - camera.position.z);
@@ -99,13 +98,13 @@ highp vec3 normal_by_finite_difference_method(vec2 uv, float edge_vertices_count
     // from here: https://stackoverflow.com/questions/6656358/calculating-normals-in-a-triangle-mesh/21660173#21660173
     vec2 offset = vec2(1.0, 0.0) / (edge_vertices_count);
     float height = quad_width + quad_height;
-    highp float hL = float(texture(height_sampler, vec3(uv - offset.xy, texture_layer)).r);
+    highp float hL = float(texture(height_sampler, vec3(uv - offset.xy, height_texture_layer)).r);
     hL *= altitude_correction_factor;
-    highp float hR = float(texture(height_sampler, vec3(uv + offset.xy, texture_layer)).r);
+    highp float hR = float(texture(height_sampler, vec3(uv + offset.xy, height_texture_layer)).r);
     hR *= altitude_correction_factor;
-    highp float hD = float(texture(height_sampler, vec3(uv + offset.yx, texture_layer)).r);
+    highp float hD = float(texture(height_sampler, vec3(uv + offset.yx, height_texture_layer)).r);
     hD *= altitude_correction_factor;
-    highp float hU = float(texture(height_sampler, vec3(uv - offset.yx, texture_layer)).r);
+    highp float hU = float(texture(height_sampler, vec3(uv - offset.yx, height_texture_layer)).r);
     hU *= altitude_correction_factor;
 
     return normalize(vec3(hL - hR, hD - hU, height));

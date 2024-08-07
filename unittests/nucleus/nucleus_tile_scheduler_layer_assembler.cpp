@@ -42,25 +42,29 @@ TEST_CASE("nucleus/tile_scheduler/layer assembler")
     LayerAssembler assembler;
     SECTION("layer joining") {
         {
-            const auto joined = LayerAssembler::join(good_tile({ 0, { 0, 0 } }, "ortho"), good_tile({ 0, { 0, 0 } }, "height"));
+            const auto joined
+                = LayerAssembler::join(good_tile({ 0, { 0, 0 } }, "ortho"), good_tile({ 0, { 0, 0 } }, "height"), good_tile({ 0, { 0, 0 } }, "vector"));
             CHECK(joined.id == tile::Id{ 0, { 0, 0 } });
             CHECK(joined.network_info.status == NetworkInfo::Status::Good);
             CHECK(*joined.ortho == "ortho");
             CHECK(*joined.height == "height");
+            CHECK(*joined.vector_tile == "vector");
         }
         {
-            const auto joined = LayerAssembler::join(good_tile({ 0, { 0, 0 } }, "ortho"), missing_tile({ 0, { 0, 0 } }));
+            const auto joined = LayerAssembler::join(good_tile({ 0, { 0, 0 } }, "ortho"), missing_tile({ 0, { 0, 0 } }), missing_tile({ 0, { 0, 0 } }));
             CHECK(joined.id == tile::Id{ 0, { 0, 0 } });
             CHECK(joined.network_info.status == NetworkInfo::Status::NotFound);
             CHECK(joined.ortho->isEmpty());
             CHECK(joined.height->isEmpty());
+            CHECK(joined.vector_tile->isEmpty());
         }
         {
-            const auto joined = LayerAssembler::join(network_failed_tile({ 0, { 0, 0 } }), missing_tile({ 0, { 0, 0 } }));
+            const auto joined = LayerAssembler::join(network_failed_tile({ 0, { 0, 0 } }), missing_tile({ 0, { 0, 0 } }), missing_tile({ 0, { 0, 0 } }));
             CHECK(joined.id == tile::Id{ 0, { 0, 0 } });
             CHECK(joined.network_info.status == NetworkInfo::Status::NetworkError);
             CHECK(joined.ortho->isEmpty());
             CHECK(joined.height->isEmpty());
+            CHECK(joined.vector_tile->isEmpty());
         }
     }
 
@@ -75,7 +79,7 @@ TEST_CASE("nucleus/tile_scheduler/layer assembler")
         CHECK(spy_loaded.empty());
     }
 
-    SECTION("assemble 1 (ortho, height)")
+    SECTION("assemble 1 (ortho, height, vector)")
     {
         QSignalSpy spy_requested(&assembler, &LayerAssembler::tile_requested);
         QSignalSpy spy_loaded(&assembler, &LayerAssembler::tile_loaded);
@@ -87,19 +91,24 @@ TEST_CASE("nucleus/tile_scheduler/layer assembler")
         CHECK(spy_loaded.empty());
 
         assembler.deliver_height(good_tile({ 0, { 0, 0 } }, "height"));
-
         CHECK(spy_requested.size() == 1);
+
+        assembler.deliver_vectortile(good_tile({ 0, { 0, 0 } }, "vector"));
+        CHECK(spy_requested.size() == 1);
+
         REQUIRE(spy_loaded.size() == 1);
         auto loaded_tile = spy_loaded.constFirst().constFirst().value<LayeredTile>();
         CHECK(loaded_tile.id == tile::Id { 0, { 0, 0 } });
         REQUIRE(loaded_tile.ortho);
         REQUIRE(loaded_tile.height);
+        REQUIRE(loaded_tile.vector_tile);
         CHECK(*loaded_tile.ortho == QByteArray("ortho"));
         CHECK(*loaded_tile.height == QByteArray("height"));
+        CHECK(*loaded_tile.vector_tile == QByteArray("vector"));
         CHECK(assembler.n_items_in_flight() == 0);
     }
 
-    SECTION("assemble 2 (height, ortho)")
+    SECTION("assemble 2 (height, ortho, vector)")
     {
         QSignalSpy spy_requested(&assembler, &LayerAssembler::tile_requested);
         QSignalSpy spy_loaded(&assembler, &LayerAssembler::tile_loaded);
@@ -110,15 +119,20 @@ TEST_CASE("nucleus/tile_scheduler/layer assembler")
         CHECK(spy_loaded.empty());
 
         assembler.deliver_ortho(good_tile({ 0, { 0, 0 } }, "ortho"));
-
         CHECK(spy_requested.size() == 1);
+
+        assembler.deliver_vectortile(good_tile({ 0, { 0, 0 } }, "vector"));
+        CHECK(spy_requested.size() == 1);
+
         REQUIRE(spy_loaded.size() == 1);
         auto loaded_tile = spy_loaded.constFirst().constFirst().value<LayeredTile>();
         CHECK(loaded_tile.id == tile::Id { 0, { 0, 0 } });
         REQUIRE(loaded_tile.ortho);
         REQUIRE(loaded_tile.height);
+        REQUIRE(loaded_tile.vector_tile);
         CHECK(*loaded_tile.ortho == QByteArray("ortho"));
         CHECK(*loaded_tile.height == QByteArray("height"));
+        CHECK(*loaded_tile.vector_tile == QByteArray("vector"));
         CHECK(assembler.n_items_in_flight() == 0);
     }
 
@@ -137,18 +151,21 @@ TEST_CASE("nucleus/tile_scheduler/layer assembler")
         assembler.deliver_height(good_tile({ 0, { 0, 0 } }, "height 0"));
         assembler.deliver_ortho(good_tile({ 1, { 0, 0 } }, "ortho 1"));
         assembler.deliver_height(good_tile({ 2, { 0, 0 } }, "height 2"));
+        assembler.deliver_vectortile(good_tile({ 2, { 0, 0 } }, "vector 2"));
+        assembler.deliver_vectortile(good_tile({ 0, { 0, 0 } }, "vector 0"));
         CHECK(spy_loaded.empty());
-        CHECK(assembler.n_items_in_flight() == 3);
+        CHECK(assembler.n_items_in_flight() == 5);
 
         assembler.deliver_ortho(good_tile({ 2, { 0, 0 } }, "ortho 2"));
         CHECK(spy_loaded.size() == 1);
-        CHECK(assembler.n_items_in_flight() == 2);
+        CHECK(assembler.n_items_in_flight() == 3);
 
         assembler.deliver_ortho(good_tile({ 0, { 0, 0 } }, "ortho 0"));
         CHECK(spy_loaded.size() == 2);
         CHECK(assembler.n_items_in_flight() == 1);
 
         assembler.deliver_height(good_tile({ 1, { 0, 0 } }, "height 1"));
+        assembler.deliver_vectortile(good_tile({ 1, { 0, 0 } }, "vector 1"));
         CHECK(spy_loaded.size() == 3);
         CHECK(assembler.n_items_in_flight() == 0);
 
@@ -161,6 +178,7 @@ TEST_CASE("nucleus/tile_scheduler/layer assembler")
             const auto tile = spy_loaded.at(0).constFirst().value<LayeredTile>();
             CHECK(*tile.height == QByteArray((std::string("height ") + std::to_string(tile.id.zoom_level)).c_str()));
             CHECK(*tile.ortho == QByteArray((std::string("ortho ") + std::to_string(tile.id.zoom_level)).c_str()));
+            CHECK(*tile.vector_tile == QByteArray((std::string("vector ") + std::to_string(tile.id.zoom_level)).c_str()));
         }
     }
 
@@ -171,12 +189,14 @@ TEST_CASE("nucleus/tile_scheduler/layer assembler")
 
         assembler.deliver_height(good_tile({ 0, { 0, 0 } }, "height"));
         assembler.deliver_ortho(missing_tile({ 0, { 0, 0 } }));
+        assembler.deliver_vectortile(good_tile({ 0, { 0, 0 } }, "vector"));
 
         REQUIRE(spy_loaded.size() == 1);
         auto loaded_tile = spy_loaded.constFirst().constFirst().value<LayeredTile>();
         CHECK(loaded_tile.id == tile::Id { 0, { 0, 0 } });
         REQUIRE(!loaded_tile.ortho->size());
         REQUIRE(!loaded_tile.height->size());
+        REQUIRE(!loaded_tile.vector_tile->size());
         CHECK(assembler.n_items_in_flight() == 0);
     }
 
@@ -187,12 +207,32 @@ TEST_CASE("nucleus/tile_scheduler/layer assembler")
 
         assembler.deliver_ortho(good_tile({ 0, { 0, 0 } }, "orthgo"));
         assembler.deliver_height(missing_tile({ 0, { 0, 0 } }));
+        assembler.deliver_vectortile(good_tile({ 0, { 0, 0 } }, "vector"));
 
         REQUIRE(spy_loaded.size() == 1);
         auto loaded_tile = spy_loaded.constFirst().constFirst().value<LayeredTile>();
         CHECK(loaded_tile.id == tile::Id { 0, { 0, 0 } });
         REQUIRE(!loaded_tile.ortho->size());
         REQUIRE(!loaded_tile.height->size());
+        REQUIRE(!loaded_tile.vector_tile->size());
+        CHECK(assembler.n_items_in_flight() == 0);
+    }
+
+    SECTION("a layer (vectortile) reported missing")
+    {
+        QSignalSpy spy_loaded(&assembler, &LayerAssembler::tile_loaded);
+        assembler.load(tile::Id { 0, { 0, 0 } });
+
+        assembler.deliver_ortho(good_tile({ 0, { 0, 0 } }, "orthgo"));
+        assembler.deliver_height(good_tile({ 0, { 0, 0 } }, "height"));
+        assembler.deliver_vectortile(missing_tile({ 0, { 0, 0 } }));
+
+        REQUIRE(spy_loaded.size() == 1);
+        auto loaded_tile = spy_loaded.constFirst().constFirst().value<LayeredTile>();
+        CHECK(loaded_tile.id == tile::Id { 0, { 0, 0 } });
+        REQUIRE(loaded_tile.ortho->size());
+        REQUIRE(loaded_tile.height->size());
+        REQUIRE(!loaded_tile.vector_tile->size());
         CHECK(assembler.n_items_in_flight() == 0);
     }
 }
