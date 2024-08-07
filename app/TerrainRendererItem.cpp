@@ -481,11 +481,8 @@ bool TerrainRendererItem::continuous_update() const
 
 void TerrainRendererItem::set_continuous_update(bool new_continuous_update)
 {
-    qDebug() << "TerrainRendererItem::m_continuous_update" << m_continuous_update;
-    qDebug() << "TerrainRendererItem::new_continuous_update" << new_continuous_update;
     if (m_continuous_update == new_continuous_update)
         return;
-    qDebug() << "continuoius update" << m_continuous_update;
     m_continuous_update = new_continuous_update;
     m_update_timer->setSingleShot(!m_continuous_update);
     m_update_timer->start();

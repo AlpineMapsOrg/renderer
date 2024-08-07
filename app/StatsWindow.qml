@@ -19,7 +19,6 @@
 import QtQuick
 import QtCharts
 import QtQuick.Controls.Material
-//import QtQuick.Controls.Imagine
 import QtQuick.Layouts
 import QtQuick.Dialogs
 import Alpine
@@ -305,12 +304,9 @@ Rectangle {
             checkBoxEnabled: true
             CheckBox {
                 text: "Continuous update"
-                id: continuous_update_checkbox
-                onCheckStateChanged: {
-                    console.log("Continuous update: " + checkState)
-                    console.log("map: " + map)
-                    map.continuous_update = checked
-                }
+                target: map
+                property: "continuous_update"
+                checked: true
             }
 
             Pane {
