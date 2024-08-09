@@ -111,31 +111,31 @@ SettingsPanel {
         name: qsTr("Camera")
         Label { text: qsTr("Field of view:") }
         LabledSlider {
-                    id: fov_slider;
-                    from: 15; to: 120; stepSize: 1;
-                }
+            id: fov_slider;
+            from: 15; to: 120; stepSize: 1;
+        }
 
-                Label { text: qsTr("Frame limiter:") }
-                LabledSlider {
-                    id: frame_rate_slider;
-                    from: 2; to: 120; stepSize: 1;
-                }
+        Label { text: qsTr("Frame limiter:") }
+        LabledSlider {
+            id: frame_rate_slider;
+            from: 2; to: 120; stepSize: 1;
+        }
 
-                Label { text: qsTr("Level of detail:") }
-                LabledSlider {
-                    id: lod_slider;
-                    from: 0.1; to: 2.0; stepSize: 0.1;
-                }
-            }
+        Label { text: qsTr("Level of detail:") }
+        LabledSlider {
+            id: lod_slider;
+            from: 0.1; to: 2.0; stepSize: 0.1;
+        }
+    }
 
-            CheckGroup {
-                name: qsTr("Cache & Network")
+    CheckGroup {
+        name: qsTr("Cache & Network")
 
-                Label { text: qsTr("Cache size:") }
-                LabledSlider {
-                    id: cache_size_slider;
-                    from: 1000; to: 20000; stepSize: 1000;
-                }
+        Label { text: qsTr("Cache size:") }
+        LabledSlider {
+            id: cache_size_slider;
+            from: 1000; to: 20000; stepSize: 1000;
+        }
 
-            }
+    }
 }
