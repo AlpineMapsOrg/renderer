@@ -240,8 +240,7 @@ void TerrainRendererItem::rotate_north()
 void TerrainRendererItem::set_gl_preset(const QString& preset_b64_string) {
     qInfo() << "Override config with:" << preset_b64_string;
     auto tmp = gl_engine::ubo_from_string<gl_engine::uboSharedConfig>(preset_b64_string);
-    // Update light direction if sunlink is true. Otherwise shadows will not work on first frame
-    if (m_settings->gl_sundir_date_link()) update_gl_sun_dir_from_sun_angles(tmp);
+    update_gl_sun_dir_from_sun_angles(tmp);
     set_shared_config(tmp);
 }
 
@@ -389,7 +388,9 @@ void TerrainRendererItem::set_shared_config(gl_engine::uboSharedConfig new_share
 }
 
 void TerrainRendererItem::set_selected_camera_position_index(unsigned value) {
-
+    qDebug() << "TerrainRendererItem::set_selected_camera_position_index(unsigned value): " << value;
+    if (value > 100)
+        return;
     schedule_update();
     emit camera_definition_set_by_user(nucleus::camera::PositionStorage::instance()->get_by_index(value));
 }
@@ -461,11 +462,8 @@ void TerrainRendererItem::set_sun_angles(QVector2D new_sunAngles) {
 }
 
 void TerrainRendererItem::recalculate_sun_angles() {
-    // Calculate sun angles
-    if (m_settings->gl_sundir_date_link()) {
-        auto angles = nucleus::utils::sun_calculations::calculate_sun_angles(m_settings->datetime(), m_last_camera_latlonalt);
-        set_sun_angles(QVector2D(angles.x, angles.y));
-    }
+    auto angles = nucleus::utils::sun_calculations::calculate_sun_angles(m_settings->datetime(), m_last_camera_latlonalt);
+    set_sun_angles(QVector2D(angles.x, angles.y));
 }
 
 void TerrainRendererItem::update_gl_sun_dir_from_sun_angles(gl_engine::uboSharedConfig& ubo) {

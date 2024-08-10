@@ -19,6 +19,7 @@
 #pragma once
 
 #include <QDateTime>
+#include <QQmlEngine>
 #include <QQuickItem>
 
 class QGeoPositionInfoSource;
@@ -26,6 +27,7 @@ class QGeoPositionInfo;
 
 class GnssInformation : public QQuickItem {
     Q_OBJECT
+    QML_ELEMENT
 public:
     GnssInformation();
     ~GnssInformation();
@@ -45,7 +47,7 @@ signals:
 
     void enabled_changed();
 
-private slots:
+private:
     void position_updated(const QGeoPositionInfo& position);
 
 private:

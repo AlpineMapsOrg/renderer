@@ -208,6 +208,7 @@ Item {
                 toggleStatsWindow();
             }
         }
+        Behavior on field_of_view { NumberAnimation { duration: 500; easing.type: Easing.InOutExpo } }
     }
 
     StackView {

@@ -125,9 +125,6 @@ int main(int argc, char **argv)
 
     QSurfaceFormat::setDefaultFormat(fmt);
 
-    qmlRegisterType<TerrainRendererItem>("Alpine", 42, 0, "TerrainRenderer");
-    qmlRegisterType<GnssInformation>("Alpine", 42, 0, "GnssInformation");
-
     QQmlApplicationEngine engine;
 
     HotReloader hotreloader(&engine, ALP_QML_SOURCE_DIR);

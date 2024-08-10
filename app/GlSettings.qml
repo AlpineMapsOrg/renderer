@@ -303,8 +303,7 @@ SettingsPanel {
         LabledSlider {
             id: track_width;
             from: 1; to: 32; stepSize: 1;
-            target: _track_model
-            property: "display_width"
+            ModelBinding on value { target: _track_model; property: "display_width" }
         }
 
         Label { text: "Track Shading:" }
@@ -320,8 +319,7 @@ SettingsPanel {
                 { text: "Steepness"   },
                 { text: "Vertical Speed"   },
             ];
-            target: _track_model
-            property: "shading_style"
+            ModelBinding on currentIndex { target: _track_model; property: "shading_style" }
         }
     }
 }

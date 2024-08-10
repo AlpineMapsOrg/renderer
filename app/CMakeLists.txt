@@ -22,8 +22,6 @@ project(alpine-renderer-app LANGUAGES CXX)
 qt_add_executable(alpineapp
     main.cpp
     RenderThreadNotifier.h RenderThreadNotifier.cpp
-    TerrainRendererItem.h TerrainRendererItem.cpp
-    GnssInformation.h GnssInformation.cpp
     TerrainRenderer.h TerrainRenderer.cpp
     HotReloader.h HotReloader.cpp
     AppSettings.h AppSettings.cpp
@@ -34,7 +32,7 @@ qt_add_executable(alpineapp
 
 
 qt_add_qml_module(alpineapp
-    URI app
+    URI Alpine
     VERSION 1.0
     RESOURCE_PREFIX /qt/qml
     QML_FILES
@@ -62,8 +60,8 @@ qt_add_qml_module(alpineapp
         components/VectorEditor.qml
         components/DatePicker.qml
         components/DateMonthTablePicker.qml
-        components/ComboBox.qml
-        components/CheckBox.qml
+
+
         components/FloatingActionButton.qml
         components/FluxColor/AngleWheel.qml
         components/FluxColor/ColorChooser.qml
@@ -97,7 +95,11 @@ qt_add_qml_module(alpineapp
         icons/logo_type_horizontal.png
         icons/logo_type_vertical.png
         icons/logo_type_horizontal_short.png
-        SOURCES TrackModel.h TrackModel.cpp
+    SOURCES
+        TerrainRendererItem.h TerrainRendererItem.cpp
+        GnssInformation.h GnssInformation.cpp
+        TrackModel.h TrackModel.cpp
+        ModelBinding.h ModelBinding.cpp
 )
 
 qt_add_resources(alpineapp "fonts"

@@ -304,9 +304,7 @@ Rectangle {
             checkBoxEnabled: true
             CheckBox {
                 text: "Continuous update"
-                target: map
-                property: "continuous_update"
-                checked: true
+                ModelBinding on checked { target: map; property: "continuous_update"; default_value: true }
             }
 
             Pane {
@@ -467,8 +465,7 @@ Rectangle {
             ComboBox {
                 Layout.fillWidth: true;
                 model: _positionList    // set in main.cpp
-                currentIndex: 0
-                onCurrentIndexChanged: map.selected_camera_position_index = currentIndex;
+                ModelBinding on currentIndex { target: map; property: "selected_camera_position_index"; default_value: -1 }
             }
         }
         CheckGroup {

@@ -23,11 +23,11 @@
 
 #include <QDateTime>
 #include <QList>
+#include <QQmlEngine>
 #include <QQuickFramebufferObject>
 #include <QString>
 #include <QVector2D>
 #include <QVector3D>
-#include <map>
 
 #include <gl_engine/UniformBufferObjects.h>
 #include <nucleus/camera/Definition.h>
@@ -40,6 +40,7 @@ class QTimer;
 
 class TerrainRendererItem : public QQuickFramebufferObject {
     Q_OBJECT
+    QML_NAMED_ELEMENT(TerrainRenderer)
     Q_PROPERTY(int frame_limit READ frame_limit WRITE set_frame_limit NOTIFY frame_limit_changed)
     Q_PROPERTY(nucleus::camera::Definition camera READ camera NOTIFY camera_changed)
     Q_PROPERTY(int camera_width READ camera_width NOTIFY camera_width_changed)
