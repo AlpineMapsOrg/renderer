@@ -18,9 +18,10 @@
  *****************************************************************************/
 
 #include "LinearCameraAnimation.h"
-#include "AbstractDepthTester.h"
 
-#include <QDebug>
+#include <QEasingCurve>
+
+#include "AbstractDepthTester.h"
 
 namespace nucleus::camera {
 
@@ -56,6 +57,8 @@ std::optional<Definition> LinearCameraAnimation::update(Definition camera, Abstr
 
 float LinearCameraAnimation::ease_in_out(float t)
 {
+    QEasingCurve c(QEasingCurve::Type::InOutExpo);
+    return c.valueForProgress(t);
     // this one is untested, but works for now
     const float p = 0.3f;
     if (t < 0.5f) {
