@@ -34,7 +34,7 @@ class DataQuerier;
 namespace nucleus::vectortile {
 
 // note ENUM_END is used here, so that we can iterate over all featuretypes (by using ENUM END as end condition)
-enum FeatureType { Peak = 0, City = 1, Cottage = 2, ENUM_END = 3 };
+enum FeatureType { Peak = 0, City = 1, Cottage = 2, Webcam = 3, ENUM_END = 4 };
 
 struct FeatureTXT {
     unsigned long id;
@@ -112,6 +112,29 @@ struct FeatureTXTCottage : public FeatureTXT {
     QString operators;
     QString feature_type;
     QString access;
+    int elevation;
+
+    static std::shared_ptr<const FeatureTXT> parse(const mapbox::vector_tile::feature& feature, const std::shared_ptr<DataQuerier> dataquerier);
+
+    QString labelText() const;
+};
+
+struct FeatureTXTWebcam : public FeatureTXT {
+    // camera_type: dome,fixed,panning,panorama,NULL
+    QString camera_type;
+    // direction: 0-350
+    int direction;
+    // surveillance_type: camera,fixed,guard,outdoor,webcam,NULL
+    QString surveillance_type;
+    // surveillance_zone: area,atm,building,parking,public,station,street,town,traffic,NULL
+    // not used since data seems irrelevant + is also often wrong e.g. foto-webcam.eu only has atm and town zone
+    // although it doesnt show any atms and mostly area views
+    //    QString surveillance_zone;
+    // link to live image site
+    QString image;
+    // some description about the scene of the webcam
+    QString description;
+    // elevation in meters
     int elevation;
 
     static std::shared_ptr<const FeatureTXT> parse(const mapbox::vector_tile::feature& feature, const std::shared_ptr<DataQuerier> dataquerier);

@@ -1,4 +1,8 @@
 Icons from: https://github.com/gravitystorm/openstreetmap-carto (CC0 Public Domain Dedication, version 1.0)
 
+
+additionally add the following attributes to the svg: (white filling, black stroke)
+fill="white" stroke="black" stroke-width="1"
+
 Conversion Settings from svg to png
-convert -density 1200 -resize 48x48 -background none peak.svg peak.png
+convert -density 1200 -resize 32x32 -background none peak.svg peak.png

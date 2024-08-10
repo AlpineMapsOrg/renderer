@@ -48,7 +48,7 @@ public:
 
 private:
     constexpr static float font_size = 48.0f;
-    constexpr static glm::vec2 icon_size = glm::vec2(24.0f);
+    constexpr static glm::vec2 icon_size = glm::vec2(32.0f);
 
     std::unordered_map<FeatureType, glm::vec4> icon_uvs;
 

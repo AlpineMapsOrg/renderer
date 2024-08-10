@@ -82,3 +82,12 @@ void LabelFilter::set_cottages_visible(const bool &cottages_visible)
     m_filter_definitions.m_cottages_visible = cottages_visible;
     emit filter_changed();
 }
+
+bool LabelFilter::webcams_visible() const { return m_filter_definitions.m_webcams_visible; }
+void LabelFilter::set_webcams_visible(const bool& webcams_visible)
+{
+    if (m_filter_definitions.m_webcams_visible == webcams_visible)
+        return;
+    m_filter_definitions.m_webcams_visible = webcams_visible;
+    emit filter_changed();
+}

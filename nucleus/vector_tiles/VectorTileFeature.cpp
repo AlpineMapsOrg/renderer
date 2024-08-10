@@ -180,4 +180,31 @@ std::shared_ptr<const FeatureTXT> FeatureTXTCottage::parse(const mapbox::vector_
 
 QString FeatureTXTCottage::labelText() const { return name; }
 
+std::shared_ptr<const FeatureTXT> FeatureTXTWebcam::parse(const mapbox::vector_tile::feature& feature, const std::shared_ptr<DataQuerier> dataquerier)
+{
+    auto webcam = std::make_shared<FeatureTXTWebcam>();
+    FeatureTXT::parse(webcam, feature, dataquerier);
+
+    webcam->type = FeatureType::Webcam;
+
+    auto props = feature.getProperties();
+
+    if (props["camera_type"].valid() && props["camera_type"].is<std::string>())
+        webcam->camera_type = QString::fromStdString(props["camera_type"].get<std::string>());
+    if (props["direction"].valid() && props["direction"].is<uint64_t>())
+        webcam->direction = props["direction"].get<std::uint64_t>();
+    if (props["surveillance_type"].valid() && props["surveillance_type"].is<std::string>())
+        webcam->surveillance_type = QString::fromStdString(props["surveillance_type"].get<std::string>());
+    if (props["image"].valid() && props["image"].is<std::string>())
+        webcam->image = QString::fromStdString(props["image"].get<std::string>());
+    if (props["description"].valid() && props["description"].is<std::string>())
+        webcam->description = QString::fromStdString(props["description"].get<std::string>());
+    if (props["ele"].valid() && props["ele"].is<uint64_t>())
+        webcam->elevation = props["ele"].get<std::uint64_t>();
+
+    return webcam;
+}
+
+QString FeatureTXTWebcam::labelText() const { return name; }
+
 } // namespace nucleus::vectortile

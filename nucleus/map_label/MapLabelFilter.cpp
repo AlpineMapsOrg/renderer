@@ -120,6 +120,14 @@ void MapLabelFilter::apply_filter(const tile::Id tile_id)
 
             // all filters were passed -> it is visible
             m_visible_features.at(tile_id).insert(feature);
+        } else if (feature->type == FeatureType::Webcam) {
+            // auto cottage_feature = std::dynamic_pointer_cast<const FeatureTXTWebcam>(feature);
+            if (!m_definitions.m_webcams_visible) {
+                continue;
+            }
+
+            // all filters were passed -> it is visible
+            m_visible_features.at(tile_id).insert(feature);
         }
 
         // TODO @lucas define other filter

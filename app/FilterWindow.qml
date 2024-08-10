@@ -126,6 +126,14 @@ Rectangle {
             onCheckedChanged: label_filter.cottages_visible = filter_cottages.checked;
         }
 
+        CheckGroup {
+            id: filter_webcams
+            name: "Webcams"
+            checkBoxEnabled: true
+            checked: label_filter.webcams_visible
+            onCheckedChanged: label_filter.webcams_visible = filter_webcams.checked;
+        }
+
 
     }
 }

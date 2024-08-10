@@ -27,6 +27,7 @@ public:
     bool m_peaks_visible = true;
     bool m_cities_visible = true;
     bool m_cottages_visible = true;
+    bool m_webcams_visible = true;
 
     bool m_peak_ele_range_filtered = false;
     QVector2D m_peak_ele_range = QVector2D(0,4000);
@@ -38,6 +39,7 @@ class LabelFilter : public QObject {
     Q_PROPERTY(bool peaks_visible READ peaks_visible WRITE set_peaks_visible NOTIFY filter_changed)
     Q_PROPERTY(bool cities_visible READ cities_visible WRITE set_cities_visible NOTIFY filter_changed)
     Q_PROPERTY(bool cottages_visible READ cottages_visible WRITE set_cottages_visible NOTIFY filter_changed)
+    Q_PROPERTY(bool webcams_visible READ webcams_visible WRITE set_webcams_visible NOTIFY filter_changed)
     Q_PROPERTY(QVector2D elevation_range READ elevation_range WRITE set_elevation_range NOTIFY filter_changed)
 
 public:
@@ -53,6 +55,8 @@ public:
     void set_cities_visible(const bool &cities_visible);
     [[nodiscard]] bool cottages_visible() const;
     void set_cottages_visible(const bool &cottages_visible);
+    [[nodiscard]] bool webcams_visible() const;
+    void set_webcams_visible(const bool& webcams_visible);
 
 public slots:
     // triggers update filter timer which limits the amounts of filtering done within a time frame

@@ -90,6 +90,7 @@ const Raster<glm::u8vec4> LabelFactory::get_label_icons()
     icons[FeatureType::Peak] = nucleus::utils::image_loader::rgba8(":/map_icons/peak.png");
     icons[FeatureType::City] = nucleus::utils::image_loader::rgba8(":/map_icons/city.png");
     icons[FeatureType::Cottage] = nucleus::utils::image_loader::rgba8(":/map_icons/alpinehut.png");
+    icons[FeatureType::Webcam] = nucleus::utils::image_loader::rgba8(":/map_icons/viewpoint.png");
 
     size_t combined_height(0);
 
@@ -98,10 +99,9 @@ const Raster<glm::u8vec4> LabelFactory::get_label_icons()
         combined_height += icons[type].height();
     }
 
-    auto combined_icons = icons[FeatureType::Peak];
-    icon_uvs[FeatureType::Peak] = glm::vec4(10.0f, 10.0f, 1.0f, float(icons[FeatureType::Peak].height()) / float(combined_height));
+    auto combined_icons = Raster<glm::u8vec4>({ icons[FeatureType::Peak].width(), 0 });
 
-    for (int i = 1; i < FeatureType::ENUM_END; i++) {
+    for (int i = 0; i < FeatureType::ENUM_END; i++) {
         FeatureType type = (FeatureType)i;
         // vec4(10.0f,...) is an uv_offset to indicate that the icon texture should be used.
         icon_uvs[type]
