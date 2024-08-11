@@ -68,6 +68,8 @@ signals:
     void default_value_changed(const QVariant& default_value);
 
 private:
+    std::function<QVariant(const QVariant&)> m_read_fun;
+    std::function<QVariant(const QVariant&, const QVariant&)> m_write_fun;
     QQmlProperty m_qml_target;
     QMetaProperty m_gadget_meta_property;
     QMetaProperty m_meta_property;
