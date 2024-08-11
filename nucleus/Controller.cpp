@@ -1,6 +1,7 @@
 /*****************************************************************************
  * Alpine Terrain Renderer
  * Copyright (C) 2023 Adam Celarek
+ * Copyright (C) 2024 Lucas Dworschak
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -62,7 +63,7 @@ Controller::Controller(AbstractRenderWindow* render_window)
     m_ortho_service.reset(
         new TileLoadService("https://gataki.cg.tuwien.ac.at/raw/basemap/tiles/", TileLoadService::UrlPattern::ZYX_yPointingSouth, ".jpeg"));
     m_vectortile_service
-        = std::make_unique<TileLoadService>(VectorTileManager::TILE_SERVER, nucleus::tile_scheduler::TileLoadService::UrlPattern::ZXY_yPointingSouth, "");
+        = std::make_unique<TileLoadService>(VectorTileManager::tile_server, nucleus::tile_scheduler::TileLoadService::UrlPattern::ZXY_yPointingSouth, "");
 
     m_tile_scheduler = std::make_unique<nucleus::tile_scheduler::Scheduler>();
     m_tile_scheduler->read_disk_cache();

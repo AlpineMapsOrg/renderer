@@ -42,7 +42,8 @@ class VectorTileManager : public QObject {
 public:
     explicit VectorTileManager(QObject* parent = nullptr);
 
-    inline static const QString TILE_SERVER = "http://localhost:3000/poi_v1/";
+    //    inline static const QString tile_server = "http://localhost:3000/poi_v1/";
+    inline static const QString tile_server = "https://osm.cg.tuwien.ac.at/vector_tiles/poi_v1/";
 
     static const std::shared_ptr<VectorTile> to_vector_tile(const QByteArray& vectorTileData, const std::shared_ptr<DataQuerier> dataquerier);
 private:
