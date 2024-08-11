@@ -28,6 +28,7 @@ class ModelBinding : public QObject, public QQmlParserStatus, public QQmlPropert
     Q_PROPERTY(QObject* target READ model WRITE set_model NOTIFY model_changed FINAL)
     Q_PROPERTY(QString property READ property WRITE set_property NOTIFY property_changed FINAL)
     Q_PROPERTY(bool receive_model_updates READ receive_model_updates WRITE set_receive_model_updates NOTIFY receive_model_updates_changed FINAL)
+    Q_PROPERTY(QVariant default_value READ default_value WRITE set_default_value NOTIFY default_value_changed FINAL)
 public:
     explicit ModelBinding(QObject* parent = nullptr);
 
@@ -54,6 +55,9 @@ private slots:
     void write_qml();
     void write_model();
 
+private:
+    QVariant read_model() const;
+
 signals:
     void model_changed(QObject* model);
 
@@ -65,11 +69,11 @@ signals:
 
 private:
     QQmlProperty m_qml_target;
+    QMetaProperty m_gadget_meta_property;
+    QMetaProperty m_meta_property;
     QObject* m_model = nullptr;
     QString m_property;
-    QMetaProperty m_model_meta_property;
+    QVariant m_default_value;
     bool m_complete = false;
     bool m_receive_model_updates = false;
-    QVariant m_default_value;
-    Q_PROPERTY(QVariant default_value READ default_value WRITE set_default_value NOTIFY default_value_changed FINAL)
 };
