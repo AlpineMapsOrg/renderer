@@ -37,6 +37,7 @@ namespace nucleus::vectortile {
 enum FeatureType { Peak = 0, City = 1, Cottage = 2, Webcam = 3, ENUM_END = 4 };
 
 struct FeatureTXT {
+    virtual ~FeatureTXT() = default;
     unsigned long id;
     QString name;
     // importance: value [0,1] whereas 1 is highest importance

@@ -26,7 +26,7 @@
 
 #include <radix/tile.h>
 
-#include "app/LabelFilter.h"
+#include "nucleus/map_label/FilterDefinitions.h"
 #include "nucleus/tile_scheduler/tile_types.h"
 #include "nucleus/vector_tiles/VectorTileFeature.h"
 

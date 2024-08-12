@@ -27,6 +27,7 @@ alp_add_unittest(unittests_nucleus
     test_raster.cpp
     test_terrain_mesh_index_generator.cpp
     test_srs.cpp
+    test_track.cpp
     test_tile_conversion.cpp
     test_vector_tile.cpp
     test_charset.cpp
@@ -58,6 +59,7 @@ qt_add_resources(unittests_nucleus "test_data"
     data/170px-Jeune_bouquetin_de_face.jpg
     data/test-tile_ortho.jpeg
     data/test-tile.png
+    data/example.gpx
     data/vectortile.mvt
     data/eaws_0-0-0.mvt
     data/eaws_2-2-0.mvt

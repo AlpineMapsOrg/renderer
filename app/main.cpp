@@ -20,7 +20,7 @@
 
 #include <QDirIterator>
 #include <QFontDatabase>
-#ifdef ALP_ENABLE_DEBUG_GUI
+#if defined(ALP_ENABLE_DEBUG_GUI) || defined(__ANDROID__)
 #include <QApplication>
 #else
 #include <QGuiApplication>
@@ -38,10 +38,13 @@
 #include <QTimer>
 #include <QTranslator>
 
+#include <gl_engine/Context.h>
+
 #include "GnssInformation.h"
 #include "HotReloader.h"
 #include "RenderThreadNotifier.h"
 #include "TerrainRendererItem.h"
+#include "TrackModel.h"
 
 #include "nucleus/camera/PositionStorage.h"
 #include "nucleus/version.h"
@@ -49,7 +52,7 @@
 int main(int argc, char **argv)
 {
     QQuickWindow::setGraphicsApi(QSGRendererInterface::GraphicsApi::OpenGLRhi);
-#ifdef ALP_ENABLE_DEBUG_GUI
+#if defined(ALP_ENABLE_DEBUG_GUI) || defined(__ANDROID__)
     QApplication app(argc, argv);
 #else
     QGuiApplication app(argc, argv);
@@ -118,12 +121,9 @@ int main(int argc, char **argv)
         qDebug("Requesting 3.0 context");
         fmt.setVersion(3, 0);
     }
+    gl_engine::Context::instance(); // initialise, so it's ready when we create dependent objects. // still needs to be moved to the render thread.
 
     QSurfaceFormat::setDefaultFormat(fmt);
-
-    qmlRegisterType<TerrainRendererItem>("Alpine", 42, 0, "TerrainRenderer");
-    qmlRegisterType<GnssInformation>("Alpine", 42, 0, "GnssInformation");
-    qmlRegisterType<LabelFilter>("Alpine", 42, 0, "LabelFilter");
 
     QQmlApplicationEngine engine;
 
@@ -138,6 +138,8 @@ int main(int argc, char **argv)
 #else
     engine.rootContext()->setContextProperty("_debug_gui", false);
 #endif
+    auto track_model = TrackModel();
+    engine.rootContext()->setContextProperty("_track_model", &track_model);
 
     RenderThreadNotifier::instance();
     QObject::connect(

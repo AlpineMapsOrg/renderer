@@ -50,7 +50,7 @@ public:
     virtual void initialise_gpu() = 0;
     virtual void resize_framebuffer(int width, int height) = 0;
     virtual void paint(QOpenGLFramebufferObject* framebuffer = nullptr) = 0;
-    virtual void deinit_gpu() = 0;
+    virtual void destroy() = 0;
     virtual void set_permissible_screen_space_error(float new_error) = 0;
     virtual void set_quad_limit(unsigned new_limit) = 0;
     [[nodiscard]] virtual camera::AbstractDepthTester* depth_tester() = 0;

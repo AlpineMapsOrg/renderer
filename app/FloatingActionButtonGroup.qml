@@ -43,6 +43,17 @@ ColumnLayout {
     }
 
     FloatingActionButton {
+        image: _r + "icons/material/add.png"
+        size: parent.width
+        onClicked: {
+            _track_model.upload_track()
+            let pos = _track_model.lat_long(_track_model.n_tracks() - 1);
+            if (pos.x !== 0 && pos.y !== 0)
+                map.set_position(pos.x, pos.y)
+        }
+    }
+
+    FloatingActionButton {
         id: fab_presets
         image: _r + "icons/material/" + (checked ? "chevron_left.png" : "format_paint.png")
         size: parent.width
@@ -55,7 +66,7 @@ ColumnLayout {
             width: fabsubgroup.implicitWidth + parent.width
 
             color: Qt.alpha(Material.backgroundColor, 0.3)
-            border { width:2; color:Qt.alpha( "black", 0.5); }
+            border { width: 2; color: Qt.alpha( "black", 0.5); }
 
             RowLayout {
                 x: parent.parent.width

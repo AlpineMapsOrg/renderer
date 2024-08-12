@@ -5,6 +5,7 @@
  * Copyright (C) 2023 Gerald Kimmersdorfer
  * Copyright (C) 2024 Lucas Dworschak
  * Copyright (C) 2024 Patrick Komon
+ * Copyright (C) 2024 Jakob Maier
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -36,19 +37,19 @@
 #include "nucleus/AbstractRenderWindow.h"
 #include "nucleus/camera/AbstractDepthTester.h"
 #include "nucleus/camera/Definition.h"
+#include "nucleus/track/GPX.h"
 
 #include "nucleus/timing/TimerManager.h"
-#include "app/LabelFilter.h"
 
 class QOpenGLTexture;
 class QOpenGLShaderProgram;
 class QOpenGLBuffer;
 class QOpenGLVertexArrayObject;
-class TileManager;
-class MapLabelManager;
 
 namespace gl_engine {
 
+class TileManager;
+class MapLabelManager;
 class ShaderManager;
 class Framebuffer;
 class SSAO;
@@ -66,7 +67,7 @@ public:
 
     [[nodiscard]] float depth(const glm::dvec2& normalised_device_coordinates) override;
     [[nodiscard]] glm::dvec3 position(const glm::dvec2& normalised_device_coordinates) override;
-    void deinit_gpu() override;
+    void destroy() override;
     void set_aabb_decorator(const nucleus::tile_scheduler::utils::AabbDecoratorPtr&) override;
     [[nodiscard]] nucleus::camera::AbstractDepthTester* depth_tester() override;
     [[nodiscard]] nucleus::utils::ColourTexture::Format ortho_tile_compression_algorithm() const override;
@@ -82,12 +83,12 @@ public slots:
     void reload_shader();
     void update_labels(const nucleus::vectortile::TiledVectorTile& visible_features, const std::vector<tile::Id>& removed_tiles) override;
 
+
 signals:
     void report_measurements(QList<nucleus::timing::TimerReport> values);
 
 private:
     std::unique_ptr<TileManager> m_tile_manager; // needs opengl context
-    std::unique_ptr<ShaderManager> m_shader_manager;
     std::unique_ptr<MapLabelManager> m_map_label_manager;
 
     std::unique_ptr<Framebuffer> m_gbuffer;

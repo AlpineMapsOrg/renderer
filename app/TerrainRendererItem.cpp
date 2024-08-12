@@ -3,6 +3,7 @@
  * Copyright (C) 2017 Klarälvdalens Datakonsult AB, a KDAB Group company (Giuseppe D'Angelo)
  * Copyright (C) 2023 Adam Celarek
  * Copyright (C) 2023 Gerald Kimmersdorfer
+ * Copyright (C) 2024 Jakob Maier
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -20,8 +21,9 @@
 
 #include "TerrainRendererItem.h"
 
-#include <memory>
+#include <QBuffer>
 #include <QDebug>
+#include <QDir>
 #include <QOpenGLContext>
 #include <QOpenGLExtraFunctions>
 #include <QOpenGLFramebufferObject>
@@ -29,6 +31,8 @@
 #include <QQuickWindow>
 #include <QThread>
 #include <QTimer>
+#include <memory>
+
 #include <glm/glm.hpp>
 #include <glm/gtx/string_cast.hpp>
 
@@ -71,6 +75,7 @@ TerrainRendererItem::TerrainRendererItem(QQuickItem* parent)
     connect(m_settings, &AppSettings::datetime_changed, this, &TerrainRendererItem::datetime_changed);
     connect(m_settings, &AppSettings::gl_sundir_date_link_changed, this, &TerrainRendererItem::gl_sundir_date_link_changed);
     connect(m_settings, &AppSettings::render_quality_changed, this, &TerrainRendererItem::schedule_update);
+    connect(RenderThreadNotifier::instance(), &RenderThreadNotifier::redraw_requested, this, &TerrainRendererItem::schedule_update);
 
     m_update_timer->setSingleShot(!m_continuous_update);
     m_update_timer->setInterval(1000 / m_frame_limit);
@@ -83,7 +88,7 @@ TerrainRendererItem::TerrainRendererItem(QQuickItem* parent)
         RenderThreadNotifier::instance()->notify();
     });
 
-    connect(this, &TerrainRendererItem::init_after_creation, this, &TerrainRendererItem::init_after_creation_slot);  
+    connect(this, &TerrainRendererItem::init_after_creation, this, &TerrainRendererItem::init_after_creation_slot);
 }
 
 
@@ -99,6 +104,7 @@ QQuickFramebufferObject::Renderer* TerrainRendererItem::createRenderer() const
     qDebug("QQuickFramebufferObject::Renderer* TerrainRendererItem::createRenderer() const");
     qDebug() << "rendering thread: " << QThread::currentThread();
     // called on rendering thread.
+
     auto* r = new TerrainRenderer();
     connect(r->glWindow(), &nucleus::AbstractRenderWindow::update_requested, this, &TerrainRendererItem::schedule_update);
     connect(m_update_timer, &QTimer::timeout, this, &QQuickFramebufferObject::update);
@@ -118,7 +124,6 @@ QQuickFramebufferObject::Renderer* TerrainRendererItem::createRenderer() const
 
     connect(this, &TerrainRendererItem::camera_definition_set_by_user, r->controller()->camera_controller(), &nucleus::camera::Controller::set_definition);
     connect(r->controller()->camera_controller(), &nucleus::camera::Controller::global_cursor_position_changed, this, &TerrainRendererItem::read_global_position);
-    //connect(this, &TerrainRendererItem::ind)
 
     auto* const tile_scheduler = r->controller()->tile_scheduler();
     connect(this->m_settings, &AppSettings::render_quality_changed, tile_scheduler, [=](float new_render_quality) {
@@ -138,6 +143,7 @@ QQuickFramebufferObject::Renderer* TerrainRendererItem::createRenderer() const
 
     // connect glWindow to forward key events.
     connect(this, &TerrainRendererItem::shared_config_changed, r->glWindow(), &gl_engine::Window::shared_config_changed);
+
     // connect glWindow for shader hotreload by frontend button
     connect(this, &TerrainRendererItem::reload_shader, r->glWindow(), &gl_engine::Window::reload_shader);
 
@@ -221,7 +227,7 @@ void TerrainRendererItem::camera_definition_changed(const nucleus::camera::Defin
     recalculate_sun_angles();
 }
 
-void TerrainRendererItem::trigger_filter_update(const FilterDefinitions& filter_definitions)
+void TerrainRendererItem::trigger_filter_update(const nucleus::maplabel::FilterDefinitions& filter_definitions)
 {
     // propagate signal
     emit filter_updated(filter_definitions);
@@ -242,8 +248,7 @@ void TerrainRendererItem::rotate_north()
 void TerrainRendererItem::set_gl_preset(const QString& preset_b64_string) {
     qInfo() << "Override config with:" << preset_b64_string;
     auto tmp = gl_engine::ubo_from_string<gl_engine::uboSharedConfig>(preset_b64_string);
-    // Update light direction if sunlink is true. Otherwise shadows will not work on first frame
-    if (m_settings->gl_sundir_date_link()) update_gl_sun_dir_from_sun_angles(tmp);
+    update_gl_sun_dir_from_sun_angles(tmp);
     set_shared_config(tmp);
 }
 
@@ -391,7 +396,9 @@ void TerrainRendererItem::set_shared_config(gl_engine::uboSharedConfig new_share
 }
 
 void TerrainRendererItem::set_selected_camera_position_index(unsigned value) {
-
+    qDebug() << "TerrainRendererItem::set_selected_camera_position_index(unsigned value): " << value;
+    if (value > 100)
+        return;
     schedule_update();
     emit camera_definition_set_by_user(nucleus::camera::PositionStorage::instance()->get_by_index(value));
 }
@@ -463,11 +470,8 @@ void TerrainRendererItem::set_sun_angles(QVector2D new_sunAngles) {
 }
 
 void TerrainRendererItem::recalculate_sun_angles() {
-    // Calculate sun angles
-    if (m_settings->gl_sundir_date_link()) {
-        auto angles = nucleus::utils::sun_calculations::calculate_sun_angles(m_settings->datetime(), m_last_camera_latlonalt);
-        set_sun_angles(QVector2D(angles.x, angles.y));
-    }
+    auto angles = nucleus::utils::sun_calculations::calculate_sun_angles(m_settings->datetime(), m_last_camera_latlonalt);
+    set_sun_angles(QVector2D(angles.x, angles.y));
 }
 
 void TerrainRendererItem::update_gl_sun_dir_from_sun_angles(gl_engine::uboSharedConfig& ubo) {
@@ -483,11 +487,8 @@ bool TerrainRendererItem::continuous_update() const
 
 void TerrainRendererItem::set_continuous_update(bool new_continuous_update)
 {
-    qDebug() << "TerrainRendererItem::m_continuous_update" << m_continuous_update;
-    qDebug() << "TerrainRendererItem::new_continuous_update" << new_continuous_update;
     if (m_continuous_update == new_continuous_update)
         return;
-    qDebug() << "continuoius update" << m_continuous_update;
     m_continuous_update = new_continuous_update;
     m_update_timer->setSingleShot(!m_continuous_update);
     m_update_timer->start();

@@ -28,7 +28,7 @@ if (NOT TARGET fmt)
     alp_add_git_repository(fmt URL https://github.com/fmtlib/fmt.git COMMITISH 10.1.1)
 endif()
 alp_add_git_repository(zppbits URL https://github.com/eyalz800/zpp_bits.git COMMITISH v4.4.20 DO_NOT_ADD_SUBPROJECT)
-alp_add_git_repository(vector_tiles URL https://github.com/AlpineMapsOrg/vector-tile.git COMMITISH origin/main)
+alp_add_git_repository(vector_tiles URL https://github.com/AlpineMapsOrgDependencies/vector-tile.git COMMITISH origin/main)
 alp_add_git_repository(goofy_tc URL https://github.com/AlpineMapsOrgDependencies/Goofy_slim.git COMMITISH 13b228784960a6227bb6ca704ff34161bbac1b91 DO_NOT_ADD_SUBPROJECT)
 
 add_library(zppbits INTERFACE)
@@ -96,6 +96,7 @@ qt_add_library(nucleus STATIC
     map_label/Charset.h map_label/Charset.cpp
     map_label/FontRenderer.h map_label/FontRenderer.cpp
     map_label/MapLabelFilter.h map_label/MapLabelFilter.cpp
+    map_label/FilterDefinitions.h
     utils/bit_coding.h
     tile_scheduler/cache_quieries.h
     DataQuerier.h DataQuerier.cpp
@@ -107,7 +108,13 @@ qt_add_library(nucleus STATIC
     vector_tiles/VectorTileManager.h vector_tiles/VectorTileManager.cpp
     vector_tiles/VectorTileFeature.h vector_tiles/VectorTileFeature.cpp
     utils/ColourTexture.h utils/ColourTexture.cpp
+    EngineContext.h EngineContext.cpp
+    track/Manager.h track/Manager.cpp
+    track/GPX.cpp
+    track/GPX.h
     utils/image_loader.h utils/image_loader.cpp
+    utils/thread.h
+
 )
 if (ALP_ENABLE_AVLANCHE_WARNING_LAYER)
     target_sources(nucleus

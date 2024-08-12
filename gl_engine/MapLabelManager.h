@@ -26,8 +26,8 @@
 #include "Framebuffer.h"
 #include "Texture.h"
 #include "nucleus/camera/Definition.h"
+#include "nucleus/map_label/FilterDefinitions.h"
 #include "nucleus/map_label/LabelFactory.h"
-#include <app/LabelFilter.h>
 
 #include "nucleus/tile_scheduler/DrawListGenerator.h"
 

@@ -19,22 +19,18 @@
 #pragma once
 
 #include <QObject>
+#include <QQmlEngine>
+#include <QQuickItem>
+
 #include <QTimer>
-#include <QVector2D>
 
-struct FilterDefinitions {
-public:
-    bool m_peaks_visible = true;
-    bool m_cities_visible = true;
-    bool m_cottages_visible = true;
-    bool m_webcams_visible = true;
+#include "nucleus/map_label/FilterDefinitions.h"
 
-    bool m_peak_ele_range_filtered = false;
-    QVector2D m_peak_ele_range = QVector2D(0,4000);
-};
+using namespace nucleus::maplabel;
 
-class LabelFilter : public QObject {
+class LabelFilter : public QQuickItem {
     Q_OBJECT
+    QML_ELEMENT
 
     Q_PROPERTY(bool peaks_visible READ peaks_visible WRITE set_peaks_visible NOTIFY filter_changed)
     Q_PROPERTY(bool cities_visible READ cities_visible WRITE set_cities_visible NOTIFY filter_changed)

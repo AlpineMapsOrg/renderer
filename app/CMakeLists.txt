@@ -22,12 +22,9 @@ project(alpine-renderer-app LANGUAGES CXX)
 qt_add_executable(alpineapp
     main.cpp
     RenderThreadNotifier.h RenderThreadNotifier.cpp
-    TerrainRendererItem.h TerrainRendererItem.cpp
-    GnssInformation.h GnssInformation.cpp
     TerrainRenderer.h TerrainRenderer.cpp
     HotReloader.h HotReloader.cpp
     AppSettings.h AppSettings.cpp
-    LabelFilter.h LabelFilter.cpp
     timing/TimerFrontendManager.h timing/TimerFrontendManager.cpp
     timing/TimerFrontendObject.h timing/TimerFrontendObject.cpp
 )
@@ -35,7 +32,7 @@ qt_add_executable(alpineapp
 
 
 qt_add_qml_module(alpineapp
-    URI app
+    URI Alpine
     VERSION 1.0
     RESOURCE_PREFIX /qt/qml
     QML_FILES
@@ -64,6 +61,8 @@ qt_add_qml_module(alpineapp
         components/VectorEditor.qml
         components/DatePicker.qml
         components/DateMonthTablePicker.qml
+
+
         components/FloatingActionButton.qml
         components/FluxColor/AngleWheel.qml
         components/FluxColor/ColorChooser.qml
@@ -87,6 +86,7 @@ qt_add_qml_module(alpineapp
         icons/material/my_location.png
         icons/material/navigation.png
         icons/material/navigation_offset.png
+        icons/material/add.png
         icons/material/chevron_left.png
         icons/material/visibility_off.png
         icons/material/filter_alt.png
@@ -97,6 +97,12 @@ qt_add_qml_module(alpineapp
         icons/logo_type_horizontal.png
         icons/logo_type_vertical.png
         icons/logo_type_horizontal_short.png
+    SOURCES
+        TerrainRendererItem.h TerrainRendererItem.cpp
+        GnssInformation.h GnssInformation.cpp
+        TrackModel.h TrackModel.cpp
+        ModelBinding.h ModelBinding.cpp
+        LabelFilter.h LabelFilter.cpp
 )
 
 qt_add_resources(alpineapp "fonts"
@@ -138,6 +144,8 @@ endif()
 
 if (ANDROID)
     add_android_openssl_libraries(alpineapp)
+    find_package(Qt6 REQUIRED COMPONENTS Widgets) # for QFileDialogue (adding tracks)
+    target_link_libraries(alpineapp PUBLIC Qt::Widgets)
 
     install(TARGETS alpineapp
         LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
@@ -145,6 +153,8 @@ if (ANDROID)
 endif()
 
 if (EMSCRIPTEN)
+    target_link_options(alpineapp PUBLIC -sASYNCIFY)
+
     set(ALP_INSTALL_FILES
         "$<TARGET_FILE_DIR:alpineapp>/alpineapp.js"
         "$<TARGET_FILE_DIR:alpineapp>/alpineapp.wasm"

@@ -3,6 +3,7 @@
  * Copyright (C) 2017 Klarälvdalens Datakonsult AB, a KDAB Group company (Giuseppe D'Angelo)
  * Copyright (C) 2023 Adam Celarek
  * Copyright (C) 2023 Gerald Kimmersdorfer
+ * Copyright (C) 2024 Jakob Maier
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -20,24 +21,27 @@
 
 #pragma once
 
-#include <QQuickFramebufferObject>
-#include <QTimer>
-#include <QList>
-#include <QString>
-#include <QVector3D>
-#include <QVector2D>
 #include <QDateTime>
-#include <map>
+#include <QList>
+#include <QQmlEngine>
+#include <QQuickFramebufferObject>
+#include <QString>
+#include <QVector2D>
+#include <QVector3D>
 
-#include "nucleus/camera/Definition.h"
-#include "nucleus/event_parameter.h"
-#include "gl_engine/UniformBufferObjects.h"
-#include "timing/TimerFrontendManager.h"
+#include <gl_engine/UniformBufferObjects.h>
+#include <nucleus/camera/Definition.h>
+#include <nucleus/event_parameter.h>
+#include <nucleus/map_label/FilterDefinitions.h>
+
 #include "AppSettings.h"
-#include "LabelFilter.h"
+#include "timing/TimerFrontendManager.h"
+
+class QTimer;
 
 class TerrainRendererItem : public QQuickFramebufferObject {
     Q_OBJECT
+    QML_NAMED_ELEMENT(TerrainRenderer)
     Q_PROPERTY(int frame_limit READ frame_limit WRITE set_frame_limit NOTIFY frame_limit_changed)
     Q_PROPERTY(nucleus::camera::Definition camera READ camera NOTIFY camera_changed)
     Q_PROPERTY(int camera_width READ camera_width NOTIFY camera_width_changed)
@@ -110,7 +114,7 @@ signals:
 
     void continuous_update_changed(bool continuous_update);
 
-    void filter_updated(const FilterDefinitions& filter_definitions);
+    void filter_updated(const nucleus::maplabel::FilterDefinitions& filter_definitions);
 
 protected:
     void touchEvent(QTouchEvent*) override;
@@ -126,7 +130,7 @@ public slots:
     void set_gl_preset(const QString& preset_b64_string);
     void read_global_position(glm::dvec3 latlonalt);
     void camera_definition_changed(const nucleus::camera::Definition& new_definition); // gets called whenever camera changes
-    void trigger_filter_update(const FilterDefinitions& filter_definitions);
+    void trigger_filter_update(const nucleus::maplabel::FilterDefinitions& filter_definitions);
 
 private slots:
     void schedule_update();
