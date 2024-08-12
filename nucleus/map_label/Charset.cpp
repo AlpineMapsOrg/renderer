@@ -20,7 +20,6 @@
 
 #include <QTextStream>
 #include <QStandardPaths>
-#include <iostream>
 
 namespace nucleus::maplabel {
 
@@ -101,8 +100,6 @@ std::set<char16_t> Charset::get_char_diff(std::set<char16_t>& compare)
 
     // if something changed we still have to compare and set the new size
     std::set_difference(m_all_chars.begin(), m_all_chars.end(), compare.begin(), compare.end(), std::inserter(new_chars, new_chars.begin()));
-
-    std::cout << "newwwww: " << m_all_chars.size() <<" "<< compare.size() << std::endl;
 
     return new_chars;
 }

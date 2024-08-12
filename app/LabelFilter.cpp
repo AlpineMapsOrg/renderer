@@ -18,8 +18,6 @@
 
 #include "LabelFilter.h"
 
-#include <iostream>
-
 LabelFilter::LabelFilter()
 {
     connect(this, &LabelFilter::filter_changed, this, &LabelFilter::trigger_filter_update);

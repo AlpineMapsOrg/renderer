@@ -18,8 +18,6 @@
 
 #include "MapLabelFilter.h"
 
-#include <iostream>
-
 namespace nucleus::maplabel {
 
 MapLabelFilter::MapLabelFilter(QObject* parent)

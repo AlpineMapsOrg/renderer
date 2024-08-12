@@ -24,8 +24,6 @@
 #include <vector>
 #include <QString>
 
-#include <iostream>
-
 namespace nucleus::maplabel {
 
 

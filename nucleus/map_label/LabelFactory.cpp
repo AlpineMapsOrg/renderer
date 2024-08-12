@@ -30,8 +30,6 @@
 #define STB_TRUETYPE_IMPLEMENTATION
 #include <stb_slim/stb_truetype.h>
 
-#include <iostream>
-
 using namespace Qt::Literals::StringLiterals;
 
 namespace nucleus::maplabel {
@@ -67,8 +65,6 @@ const AtlasData LabelFactory::renew_font_atlas()
         m_font_renderer.render(new_chars, font_size);
 
         m_font_data = m_font_renderer.get_font_data();
-
-        std::cout << "fonts updated: " << m_font_data.char_data.size() << std::endl;
 
         return {true, m_font_renderer.get_font_atlas()};
     }
