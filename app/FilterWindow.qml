@@ -104,10 +104,6 @@ Rectangle {
                 second.onMoved: label_filter.elevation_range.y = this.second.value;
             }
 
-            Button{
-                text: "Filter"
-                onClicked: label_filter.trigger_filter_update()
-            }
         }
 
         CheckGroup {
