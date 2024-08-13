@@ -1,5 +1,5 @@
 /*****************************************************************************
- * Alpine Terrain Renderer
+ * AlpineMaps.org
  * Copyright (C) 2024 Adam Celarek
  *
  * This program is free software: you can redistribute it and/or modify
@@ -229,6 +229,7 @@ void ModelBinding::componentComplete()
     m_complete = true;
     if (m_default_value.isValid()) {
         m_qml_target.write(m_default_value);
+        write_model(); // overwrite default value from model.
     } else {
         write_qml();
     }
@@ -292,6 +293,7 @@ void ModelBinding::write_model()
             m_meta_property.writeOnGadget(gadget.data(), qml_value);
         }
         m_gadget_meta_property.write(m_model, gadget);
+        return;
     }
     if (m_write_fun) {
         auto prop = m_meta_property.read(m_model);
