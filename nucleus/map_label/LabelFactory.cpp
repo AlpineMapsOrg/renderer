@@ -122,8 +122,12 @@ const std::vector<VertexData> LabelFactory::create_labels(const VectorTile& feat
 void LabelFactory::create_label(
     const QString text, const glm::vec3 position, const FeatureType type, const float importance, std::vector<VertexData>& vertex_data)
 {
-    constexpr float offset_y = -font_size / 2.0f + 75.0f;
-    constexpr float icon_offset_y = 15.0f;
+    float text_offset_y = -font_size / 2.0f + 75.0f;
+    float icon_offset_y = 15.0f;
+    if (type == FeatureType::City) {
+        text_offset_y += 25.0f;
+        icon_offset_y += 25.0f; // buildings might obstruct label -> we want to set it a bit above the city
+    }
 
     auto safe_chars = text.toStdU16String();
     float text_width = 0;
@@ -141,7 +145,7 @@ void LabelFactory::create_label(
 
         const CharData b = m_font_data.char_data.at(safe_chars[i]);
 
-        vertex_data.push_back({ glm::vec4(offset_x + kerningOffsets[i] + b.xoff, offset_y - b.yoff, b.width, -b.height), // vertex position + offset
+        vertex_data.push_back({ glm::vec4(offset_x + kerningOffsets[i] + b.xoff, text_offset_y - b.yoff, b.width, -b.height), // vertex position + offset
             glm::vec4(b.x * m_font_data.uv_width_norm, b.y * m_font_data.uv_width_norm, b.width * m_font_data.uv_width_norm,
                 b.height * m_font_data.uv_width_norm), // uv position + offset
             position, importance, b.texture_index });
@@ -151,15 +155,16 @@ void LabelFactory::create_label(
 // calculate char offsets and text width
 std::vector<float> inline LabelFactory::create_text_meta(std::u16string* safe_chars, float* text_width)
 {
+    // case no text in label
+    if (safe_chars->size() == 0)
+        return std::vector<float>();
+
     std::vector<float> kerningOffsets;
 
     float scale = stbtt_ScaleForPixelHeight(&m_font_data.fontinfo, font_size);
     float xOffset = 0;
     for (unsigned long long i = 0; i < safe_chars->size(); i++) {
         if (!m_font_data.char_data.contains(safe_chars->at(i))) {
-//            qDebug() << "character with unicode index(Dec: " << safe_chars[i]
-//                     << ") cannot be shown -> please add it to nucleus/map_label/LabelFactory.h.all_char_list";
-
             safe_chars->at(i) = 32;
         }
 
@@ -178,8 +183,6 @@ std::vector<float> inline LabelFactory::create_text_meta(std::u16string* safe_ch
 
     { // get width of last char
         if (!m_font_data.char_data.contains(safe_chars->back())) {
-//            qDebug() << "character with unicode index(Dec: " << safe_chars->back()
-//                     << ") cannot be shown -> please add it to nucleus/map_label/LabelFactory.h.all_char_list";
             safe_chars->back() = 32; // replace with space character
         }
         const CharData b = m_font_data.char_data.at(safe_chars->back());

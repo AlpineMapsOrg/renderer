@@ -205,6 +205,6 @@ std::shared_ptr<const FeatureTXT> FeatureTXTWebcam::parse(const mapbox::vector_t
     return webcam;
 }
 
-QString FeatureTXTWebcam::labelText() const { return name; }
+QString FeatureTXTWebcam::labelText() const { return ""; /* no text*/ }
 
 } // namespace nucleus::vectortile

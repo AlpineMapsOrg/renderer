@@ -42,14 +42,14 @@ out highp vec2 texcoords;
 flat out int texture_index;
 
 bool label_visible(highp vec3 relative_to_cam, float dist_to_cam) {
-    if (importance < 0.2 && dist_to_cam >    50000.0)
-        return false;
-    if (importance < 0.4 && dist_to_cam >   500000.0)
-        return false;
-    if (importance < 0.6 && dist_to_cam >  2500000.0)
-        return false;
-    if (importance < 0.8 && dist_to_cam >  5000000.0)
-        return false;
+    if (importance < 0.2 && dist_to_cam > 3000.0)
+       return false;
+   if (importance < 0.4 && dist_to_cam > 20000.0)
+       return false;
+   if (importance < 0.6 && dist_to_cam > 250000.0)
+       return false;
+   if (importance < 0.8 && dist_to_cam > 500000.0)
+       return false;
 
     vec3 peakLookup = ws_to_ndc(relative_to_cam) + vec3(0.0f, 0.1f, 0.0f);
     float depth = texture(texin_depth, peakLookup.xy).w;
