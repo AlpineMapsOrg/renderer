@@ -57,14 +57,7 @@ std::optional<Definition> LinearCameraAnimation::update(Definition camera, Abstr
 
 float LinearCameraAnimation::ease_in_out(float t)
 {
-    QEasingCurve c(QEasingCurve::Type::InOutExpo);
+    QEasingCurve c(QEasingCurve::Type::OutExpo);
     return c.valueForProgress(t);
-    // this one is untested, but works for now
-    const float p = 0.3f;
-    if (t < 0.5f) {
-        return 0.5f * pow(2 * t, 1.0f / p);
-    } else {
-        return 1 - 0.5f * pow(2 * (1 - t), 1.0f / p);
-    }
 }
 }
