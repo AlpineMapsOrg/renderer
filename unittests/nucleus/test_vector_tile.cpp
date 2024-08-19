@@ -34,6 +34,8 @@ TEST_CASE("nucleus/vector_tiles")
 
     SECTION("Tile download")
     {
+        // https://osm.cg.tuwien.ac.at/vector_tiles/poi_v1/10/548/359
+
         const auto id = tile::Id { .zoom_level = 10, .coords = { 548, 359 }, .scheme = tile::Scheme::SlippyMap }.to(tile::Scheme::Tms);
 
         nucleus::tile_scheduler::TileLoadService service(
