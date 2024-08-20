@@ -23,6 +23,10 @@ namespace nucleus::maplabel {
 MapLabelFilter::MapLabelFilter(QObject* parent)
     : QObject { parent }
 {
+    m_update_filter_timer = std::make_unique<QTimer>(this);
+    m_update_filter_timer->setSingleShot(true);
+
+    connect(m_update_filter_timer.get(), &QTimer::timeout, this, &MapLabelFilter::filter);
 }
 
 void MapLabelFilter::update_filter(const FilterDefinitions& filter_definitions)
@@ -32,7 +36,18 @@ void MapLabelFilter::update_filter(const FilterDefinitions& filter_definitions)
     for (auto id : m_all_tiles)
         m_tiles_to_filter.push(id);
 
-    filter();
+    if (!m_update_filter_timer->isActive()) {
+        // start timer to prevent future filter updates to happen rapidly one after another
+        m_update_filter_timer->start(m_update_filter_time);
+        // set bool to true to indicate that filter should code should run
+        filter_should_run = true;
+        // start the filter process
+        filter();
+    } else {
+        // update_filter is called while the last update just happened
+        // -> set bool to true to indicate that after timer runs out we want to call filter again with the latest definition
+        filter_should_run = true;
+    }
 }
 
 void MapLabelFilter::update_quads(const std::vector<nucleus::tile_scheduler::tile_types::GpuTileQuad>& new_quads, const std::vector<tile::Id>& deleted_quads)
@@ -59,6 +74,8 @@ void MapLabelFilter::update_quads(const std::vector<nucleus::tile_scheduler::til
         }
     }
 
+    // update_quads should always execute the filter method
+    filter_should_run = true;
     filter();
 }
 
@@ -93,10 +110,8 @@ void MapLabelFilter::apply_filter(const tile::Id tile_id)
                 continue;
             }
 
-            if (m_definitions.m_peak_ele_range_filtered) {
-                if (peak_feature->elevation < m_definitions.m_peak_ele_range.x() || peak_feature->elevation > m_definitions.m_peak_ele_range.y()) {
-                    continue;
-                }
+            if (peak_feature->elevation < m_definitions.m_peak_ele_range.x() || peak_feature->elevation > m_definitions.m_peak_ele_range.y()) {
+                continue;
             }
 
             // all filters were passed -> it is visible
@@ -134,6 +149,11 @@ void MapLabelFilter::apply_filter(const tile::Id tile_id)
 
 void MapLabelFilter::filter()
 {
+    // test if this filter should run or not (by checking here we prevent double running once the timer runs out)
+    if (!filter_should_run)
+        return;
+    filter_should_run = false;
+
     while (!m_tiles_to_filter.empty()) {
         auto tile_id = m_tiles_to_filter.front();
         m_tiles_to_filter.pop();

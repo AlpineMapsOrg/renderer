@@ -34,29 +34,21 @@ Rectangle {
 
     color:  Qt.alpha(Material.backgroundColor, 0.7)
 
-    // TODO position it better (maybe consider integrating this more into FAB (nesting it in there to better utilize the anchors/margins from there)
     // similar to StatsWindow.qml
     function responsive_update() {
         x = 8 + 64 + 8 // FAB(FloatingActionButtonGroup) margin + FAB width + FAB margin
         if (map.width >= map.height) {
             y = map.height - main_content.height - 8-64-8
-//            y = tool_bar.height + innerMargin
             maxHeight = main.height - tool_bar.height - 20
             height = main_content.height
             width = 300
         } else {
             // usually on mobile devices (portrait mode)
-            if (main.selectedPage === "settings") {
-                y = tool_bar.height + innerMargin
-                height = main.height - main.height / 2.0 - tool_bar.height - 2 * innerMargin
-                maxHeight = height
-                width = main.width - 2 * innerMargin
-            } else {
-                y = parseInt(main.height / 2.0)
-                height = main.height / 2.0
-                maxHeight = height
-                width = main.width - 2 * innerMargin
-            }
+            y = map.height - main_content.height - 8-64-8
+            height = main_content.height
+            maxHeight = main.height - tool_bar.height - 20
+            width = main.width - 2 * x
+
         }
     }
 
@@ -86,8 +78,6 @@ Rectangle {
             id: filter_peaks
             name: "Peaks"
             checkBoxEnabled: true
-//            checked: label_filter.peaks_visible
-//            onCheckedChanged: label_filter.peaks_visible = filter_peaks.checked;
             ModelBinding on checked { target: map; property: "label_filter.peaks_visible"; }
 
             Label {
@@ -99,10 +89,9 @@ Rectangle {
                 Layout.columnSpan: 2
                 id: filter_peaks_elevation_range;
                 from: 0; to: 4000; stepSize: 10;
-                first.value: 0; second.value: 4000;
                 labelWidth:100;
-//                first.onMoved: label_filter.elevation_range.x = this.first.value;
-//                second.onMoved: label_filter.elevation_range.y = this.second.value;
+                ModelBinding on first.value { target: map; property: "label_filter.peak_ele_range.x"; }
+                ModelBinding on second.value { target: map; property: "label_filter.peak_ele_range.y"; }
             }
 
         }
@@ -111,8 +100,6 @@ Rectangle {
             id: filter_cities
             name: "Cities"
             checkBoxEnabled: true
-//            checked: label_filter.cities_visible
-//            onCheckedChanged: label_filter.cities_visible = filter_cities.checked;
             ModelBinding on checked { target: map; property: "label_filter.cities_visible"; }
         }
 
@@ -120,8 +107,6 @@ Rectangle {
             id: filter_cottages
             name: "Cottages"
             checkBoxEnabled: true
-//            checked: label_filter.cottages_visible
-//            onCheckedChanged: label_filter.cottages_visible = filter_cottages.checked;
             ModelBinding on checked { target: map; property: "label_filter.cottages_visible"; }
         }
 
@@ -129,8 +114,6 @@ Rectangle {
             id: filter_webcams
             name: "Webcams"
             checkBoxEnabled: true
-//            checked: label_filter.webcams_visible
-//            onCheckedChanged: label_filter.webcams_visible = filter_webcams.checked;
             ModelBinding on checked { target: map; property: "label_filter.webcams_visible"; }
         }
 

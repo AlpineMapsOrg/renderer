@@ -19,6 +19,7 @@
 #pragma once
 
 #include <QObject>
+#include <QTimer>
 #include <QVector2D>
 #include <queue>
 #include <unordered_map>
@@ -49,6 +50,9 @@ public slots:
 signals:
     void filter_finished(const TiledVectorTile& visible_features, const std::vector<tile::Id>& removed_tiles);
 
+private slots:
+    void filter();
+
 private:
     TiledVectorTile m_all_features;
     TiledVectorTile m_visible_features;
@@ -60,6 +64,9 @@ private:
     FilterDefinitions m_definitions;
 
     void apply_filter(const tile::Id tile_id);
-    void filter();
+
+    bool filter_should_run;
+    constexpr static int m_update_filter_time = 400;
+    std::unique_ptr<QTimer> m_update_filter_timer;
 };
 } // namespace nucleus::maplabel

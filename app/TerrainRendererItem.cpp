@@ -390,7 +390,6 @@ void TerrainRendererItem::set_shared_config(gl_engine::uboSharedConfig new_share
 nucleus::maplabel::FilterDefinitions TerrainRendererItem::label_filter() const { return m_label_filter; }
 void TerrainRendererItem::set_label_filter(nucleus::maplabel::FilterDefinitions new_label_filter)
 {
-    std::cout << "filter" << std::endl;
     if (m_label_filter != new_label_filter) {
         m_label_filter = new_label_filter;
         emit label_filter_changed(m_label_filter);
