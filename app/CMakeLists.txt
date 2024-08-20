@@ -102,7 +102,7 @@ qt_add_qml_module(alpineapp
         GnssInformation.h GnssInformation.cpp
         TrackModel.h TrackModel.cpp
         ModelBinding.h ModelBinding.cpp
-        LabelFilter.h LabelFilter.cpp
+
 )
 
 qt_add_resources(alpineapp "fonts"

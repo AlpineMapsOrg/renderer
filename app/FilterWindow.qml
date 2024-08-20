@@ -86,8 +86,9 @@ Rectangle {
             id: filter_peaks
             name: "Peaks"
             checkBoxEnabled: true
-            checked: label_filter.peaks_visible
-            onCheckedChanged: label_filter.peaks_visible = filter_peaks.checked;
+//            checked: label_filter.peaks_visible
+//            onCheckedChanged: label_filter.peaks_visible = filter_peaks.checked;
+            ModelBinding on checked { target: map; property: "label_filter.peaks_visible"; }
 
             Label {
                 Layout.columnSpan: 2
@@ -100,8 +101,8 @@ Rectangle {
                 from: 0; to: 4000; stepSize: 10;
                 first.value: 0; second.value: 4000;
                 labelWidth:100;
-                first.onMoved: label_filter.elevation_range.x = this.first.value;
-                second.onMoved: label_filter.elevation_range.y = this.second.value;
+//                first.onMoved: label_filter.elevation_range.x = this.first.value;
+//                second.onMoved: label_filter.elevation_range.y = this.second.value;
             }
 
         }
@@ -110,24 +111,27 @@ Rectangle {
             id: filter_cities
             name: "Cities"
             checkBoxEnabled: true
-            checked: label_filter.cities_visible
-            onCheckedChanged: label_filter.cities_visible = filter_cities.checked;
+//            checked: label_filter.cities_visible
+//            onCheckedChanged: label_filter.cities_visible = filter_cities.checked;
+            ModelBinding on checked { target: map; property: "label_filter.cities_visible"; }
         }
 
         CheckGroup {
             id: filter_cottages
             name: "Cottages"
             checkBoxEnabled: true
-            checked: label_filter.cottages_visible
-            onCheckedChanged: label_filter.cottages_visible = filter_cottages.checked;
+//            checked: label_filter.cottages_visible
+//            onCheckedChanged: label_filter.cottages_visible = filter_cottages.checked;
+            ModelBinding on checked { target: map; property: "label_filter.cottages_visible"; }
         }
 
         CheckGroup {
             id: filter_webcams
             name: "Webcams"
             checkBoxEnabled: true
-            checked: label_filter.webcams_visible
-            onCheckedChanged: label_filter.webcams_visible = filter_webcams.checked;
+//            checked: label_filter.webcams_visible
+//            onCheckedChanged: label_filter.webcams_visible = filter_webcams.checked;
+            ModelBinding on checked { target: map; property: "label_filter.webcams_visible"; }
         }
 
 

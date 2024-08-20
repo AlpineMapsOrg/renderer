@@ -239,15 +239,6 @@ Item {
         }
     }
 
-    LabelFilter {
-        id: label_filter
-    }
-
-    Connections{
-        target: label_filter
-        function onFilter_updated(filter_definition){ map.trigger_filter_update(filter_definition); }
-    }
-
     Loader {
         id: stats_window_loader
     }

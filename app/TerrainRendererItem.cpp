@@ -147,7 +147,7 @@ QQuickFramebufferObject::Renderer* TerrainRendererItem::createRenderer() const
     // connect glWindow for shader hotreload by frontend button
     connect(this, &TerrainRendererItem::reload_shader, r->glWindow(), &gl_engine::Window::reload_shader);
 
-    connect(this, &TerrainRendererItem::filter_updated, r->controller()->label_filter(), &nucleus::maplabel::MapLabelFilter::update_filter);
+    connect(this, &TerrainRendererItem::label_filter_changed, r->controller()->label_filter(), &nucleus::maplabel::MapLabelFilter::update_filter);
 
     connect(r->glWindow(), &gl_engine::Window::report_measurements, this->m_timer_manager, &TimerFrontendManager::receive_measurements);
 
@@ -225,12 +225,6 @@ void TerrainRendererItem::camera_definition_changed(const nucleus::camera::Defin
     m_url_modifier->set_query_item(URL_PARAMETER_KEY_CAM_LOOKAT, lookat_as_string);
 
     recalculate_sun_angles();
-}
-
-void TerrainRendererItem::trigger_filter_update(const nucleus::maplabel::FilterDefinitions& filter_definitions)
-{
-    // propagate signal
-    emit filter_updated(filter_definitions);
 }
 
 void TerrainRendererItem::set_position(double latitude, double longitude)
@@ -392,6 +386,16 @@ void TerrainRendererItem::set_shared_config(gl_engine::uboSharedConfig new_share
         auto data_string = gl_engine::ubo_as_string(m_shared_config);
         m_url_modifier->set_query_item(URL_PARAMETER_KEY_CONFIG, data_string);
         emit shared_config_changed(m_shared_config);
+    }
+}
+
+nucleus::maplabel::FilterDefinitions TerrainRendererItem::label_filter() const { return m_label_filter; }
+void TerrainRendererItem::set_label_filter(nucleus::maplabel::FilterDefinitions new_label_filter)
+{
+    std::cout << "filter" << std::endl;
+    if (m_label_filter != new_label_filter) {
+        m_label_filter = new_label_filter;
+        emit label_filter_changed(m_label_filter);
     }
 }
 
