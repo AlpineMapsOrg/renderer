@@ -376,9 +376,7 @@ void TerrainRendererItem::set_camera_operation_centre_distance(float new_camera_
     emit camera_operation_centre_distance_changed();
 }
 
-gl_engine::uboSharedConfig TerrainRendererItem::shared_config() const {
-    return m_shared_config;
-}
+gl_engine::uboSharedConfig TerrainRendererItem::shared_config() const { return m_shared_config; }
 
 void TerrainRendererItem::set_shared_config(gl_engine::uboSharedConfig new_shared_config) {
     if (m_shared_config != new_shared_config) {
