@@ -45,7 +45,9 @@ public:
     camera::Controller* camera_controller() const;
 
     tile_scheduler::Scheduler* tile_scheduler() const;
+#ifdef ALP_ENABLE_LABELS
     maplabel::MapLabelFilter* label_filter() const;
+#endif
 
 private:
     AbstractRenderWindow* m_render_window;
@@ -55,10 +57,12 @@ private:
 #endif
     std::unique_ptr<tile_scheduler::TileLoadService> m_terrain_service;
     std::unique_ptr<tile_scheduler::TileLoadService> m_ortho_service;
-    std::unique_ptr<tile_scheduler::TileLoadService> m_vectortile_service;
     std::unique_ptr<tile_scheduler::Scheduler> m_tile_scheduler;
     std::shared_ptr<DataQuerier> m_data_querier;
     std::unique_ptr<camera::Controller> m_camera_controller;
+#ifdef ALP_ENABLE_LABELS
+    std::unique_ptr<tile_scheduler::TileLoadService> m_vectortile_service;
     std::unique_ptr<maplabel::MapLabelFilter> m_label_filter;
+#endif
 };
 }

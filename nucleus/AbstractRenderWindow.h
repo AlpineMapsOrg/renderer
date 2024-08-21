@@ -25,7 +25,6 @@
 #include <glm/glm.hpp>
 
 #include "nucleus/tile_scheduler/tile_types.h"
-#include "nucleus/vector_tiles/VectorTileFeature.h"
 #include "utils/ColourTexture.h"
 
 class QOpenGLFramebufferObject;
@@ -61,7 +60,9 @@ public slots:
     virtual void update_debug_scheduler_stats(const QString& stats) = 0;
     virtual void set_aabb_decorator(const tile_scheduler::utils::AabbDecoratorPtr&) = 0;
     virtual void update_gpu_quads(const std::vector<tile_scheduler::tile_types::GpuTileQuad>& new_quads, const std::vector<tile::Id>& deleted_quads) = 0;
+#ifdef ALP_ENABLE_LABELS
     virtual void update_labels(const nucleus::vectortile::TiledVectorTile& visible_features, const std::vector<tile::Id>& removed_tiles) = 0;
+#endif
 
 signals:
     void update_requested();

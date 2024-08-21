@@ -28,13 +28,15 @@
 #include <QStandardPaths>
 #include <QTimer>
 
+#include "nucleus/DataQuerier.h"
 #include "nucleus/tile_scheduler/utils.h"
 #include "nucleus/utils/image_loader.h"
 #include "nucleus/utils/tile_conversion.h"
-#include "nucleus/vector_tiles/VectorTileManager.h"
 #include "radix/quad_tree.h"
 
-#include "nucleus/DataQuerier.h"
+#ifdef ALP_ENABLE_LABELS
+#include "nucleus/vector_tiles/VectorTileManager.h"
+#endif
 
 using namespace nucleus::tile_scheduler;
 
@@ -197,11 +199,13 @@ void Scheduler::update_gpu_quads()
                                gpu_quad.tiles[i].height = std::make_shared<nucleus::Raster<uint16_t>>(std::move(heightraster));
                            }
 
+#ifdef ALP_ENABLE_LABELS
                            const auto* vectortile_data = m_default_vector_tile.get();
                            vectortile_data = quad.tiles[i].vector_tile.get();
                            // moved into this if -> since vector_tile might be empty
                            auto vectortile = nucleus::vectortile::VectorTileManager::to_vector_tile(*vectortile_data, m_dataquerier);
                            gpu_quad.tiles[i].vector_tile = vectortile;
+#endif
                        }
                        return gpu_quad;
                    });
