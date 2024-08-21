@@ -27,7 +27,8 @@ option(ALP_ENABLE_TRACK_OBJECT_LIFECYCLE "enables debug cmd printout of construc
 option(ALP_ENABLE_APP_SHUTDOWN_AFTER_60S "Shuts down the app after 60S, used for CI testing with asan." OFF)
 option(ALP_ENABLE_LTO "Enable link time optimisation." OFF)
 option(ALP_ENABLE_GL_ENGINE "Enable OpenGL/WebGL engine" ON)
-option(ALP_ENABLE_AVLANCHE_WARNING_LAYER "Enables avalanche warning layer (requires Qt Gui in nucleus)" ON)
+option(ALP_ENABLE_AVLANCHE_WARNING_LAYER "Enables avalanche warning layer (requires Qt Gui in nucleus)" OFF)
+option(ALP_ENABLE_LABELS "Enables label rendering" ON)
 
 set(ALP_EXTERN_DIR "extern" CACHE STRING "name of the directory to store external libraries, fonts etc..")
 

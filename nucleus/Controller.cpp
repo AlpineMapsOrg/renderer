@@ -40,7 +40,6 @@
 #include "radix/TileHeights.h"
 
 using namespace nucleus::tile_scheduler;
-using namespace nucleus::vectortile;
 
 namespace nucleus {
 Controller::Controller(AbstractRenderWindow* render_window)
