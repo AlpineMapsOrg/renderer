@@ -28,16 +28,12 @@ option(ALP_ENABLE_APP_SHUTDOWN_AFTER_60S "Shuts down the app after 60S, used for
 option(ALP_ENABLE_LTO "Enable link time optimisation." OFF)
 option(ALP_ENABLE_GL_ENGINE "Enable OpenGL/WebGL engine" ON)
 option(ALP_ENABLE_AVLANCHE_WARNING_LAYER "Enables avalanche warning layer (requires Qt Gui in nucleus)" OFF)
-option(ALP_ENABLE_LABELS "Enables label rendering" OFF)
+option(ALP_ENABLE_LABELS "Enables label rendering" ON)
 
 set(ALP_EXTERN_DIR "extern" CACHE STRING "name of the directory to store external libraries, fonts etc..")
 
 if(ALP_ENABLE_TRACK_OBJECT_LIFECYCLE)
     add_definitions(-DALP_ENABLE_TRACK_OBJECT_LIFECYCLE)
-endif()
-
-if(ALP_ENABLE_LABELS)
-    add_compile_definitions(ALP_ENABLE_LABELS)
 endif()
 
 if (EMSCRIPTEN)

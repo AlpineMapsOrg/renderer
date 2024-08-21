@@ -123,6 +123,7 @@ if(ALP_ENABLE_LABELS)
         map_label/MapLabelData.h
     )
     target_link_libraries(nucleus PUBLIC vector_tiles)
+    target_compile_definitions(nucleus PUBLIC ALP_ENABLE_LABELS)
 endif()
 
 target_include_directories(nucleus PUBLIC ${CMAKE_SOURCE_DIR})

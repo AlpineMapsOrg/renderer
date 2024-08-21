@@ -46,6 +46,7 @@ if(ALP_ENABLE_LABELS)
     target_sources(gl_engine PRIVATE
         MapLabelManager.h MapLabelManager.cpp
     )
+    target_compile_definitions(gl_engine PUBLIC ALP_ENABLE_LABELS)
 endif()
 
 target_link_libraries(gl_engine PUBLIC nucleus Qt::OpenGL)
