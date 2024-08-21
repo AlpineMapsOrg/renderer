@@ -47,6 +47,7 @@ qt_add_qml_module(alpineapp
         GeneralSettings.qml
         GlSettings.qml
         FloatingActionButtonGroup.qml
+        FilterWindow.qml
         components/LabledSlider.qml
         components/LabledRangeSlider.qml
         components/ColorPicker.qml
@@ -88,6 +89,7 @@ qt_add_qml_module(alpineapp
         icons/material/add.png
         icons/material/chevron_left.png
         icons/material/visibility_off.png
+        icons/material/filter_alt.png
         icons/presets/basic.png
         icons/presets/shaded.png
         icons/presets/snow.png
@@ -100,6 +102,7 @@ qt_add_qml_module(alpineapp
         GnssInformation.h GnssInformation.cpp
         TrackModel.h TrackModel.cpp
         ModelBinding.h ModelBinding.cpp
+
 )
 
 qt_add_resources(alpineapp "fonts"

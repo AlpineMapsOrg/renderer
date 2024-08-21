@@ -28,6 +28,7 @@ Item {
     property alias first: slider.first;
     property alias second: slider.second;
     property alias snapMode: slider.snapMode;
+    property var labelWidth: 50;
     property var formatCallback: defaultFormatCallback;
     signal moved();
 
@@ -40,11 +41,11 @@ Item {
         spacing: 0
         RangeSlider {
             id: slider;
-            Layout.preferredWidth: root.width - 50
+            Layout.preferredWidth: root.width - labelWidth
         }
         Label {
             id: label;
-            Layout.preferredWidth: 50
+            Layout.preferredWidth: labelWidth
             text: {
                 return root.formatCallback(root.value);
             }

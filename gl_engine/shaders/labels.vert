@@ -36,18 +36,20 @@ layout (location = 0) in vec4 pos;
 layout (location = 1) in vec4 vtexcoords;
 layout (location = 2) in vec3 label_position;
 layout (location = 3) in float importance;
+layout (location = 4) in int texture_index_in;
 
 out highp vec2 texcoords;
+flat out int texture_index;
 
 bool label_visible(highp vec3 relative_to_cam, float dist_to_cam) {
     if (importance < 0.2 && dist_to_cam > 3000.0)
-        return false;
-    if (importance < 0.4 && dist_to_cam > 20000.0)
-        return false;
-    if (importance < 0.6 && dist_to_cam > 250000.0)
-        return false;
-    if (importance < 0.8 && dist_to_cam > 500000.0)
-        return false;
+       return false;
+   if (importance < 0.4 && dist_to_cam > 20000.0)
+       return false;
+   if (importance < 0.6 && dist_to_cam > 250000.0)
+       return false;
+   if (importance < 0.8 && dist_to_cam > 500000.0)
+       return false;
 
     vec3 peakLookup = ws_to_ndc(relative_to_cam) + vec3(0.0f, 0.1f, 0.0f);
     float depth = texture(texin_depth, peakLookup.xy).w;
@@ -59,6 +61,7 @@ bool label_visible(highp vec3 relative_to_cam, float dist_to_cam) {
 }
 
 void main() {
+    texture_index = texture_index_in;
     highp vec3 relative_to_cam = label_position - camera.position.xyz;
     float dist_to_cam = length(relative_to_cam);
     float scale = 2.0f;
@@ -71,7 +74,8 @@ void main() {
     }
 
     // importance based scaling
-    scale *= (importance + 1.5f) / 2.5f;
+//    scale *= (importance + 1.5f) / 2.5f;
+//    scale *= (1.0 + 1.5f) / 2.5f;
 
     if (label_visible(relative_to_cam, dist_to_cam)) {
         gl_Position = camera.view_proj_matrix * vec4(relative_to_cam + vec3(0.0, 0.0, 5.0), 1.0f);
