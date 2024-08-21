@@ -28,7 +28,9 @@ if (NOT TARGET fmt)
     alp_add_git_repository(fmt URL https://github.com/fmtlib/fmt.git COMMITISH 10.1.1)
 endif()
 alp_add_git_repository(zppbits URL https://github.com/eyalz800/zpp_bits.git COMMITISH v4.4.20 DO_NOT_ADD_SUBPROJECT)
-alp_add_git_repository(vector_tiles URL https://github.com/AlpineMapsOrgDependencies/vector-tile.git COMMITISH origin/main)
+if(ALP_ENABLE_LABELS)
+    alp_add_git_repository(vector_tiles URL https://github.com/AlpineMapsOrgDependencies/vector-tile.git COMMITISH origin/main)
+endif()
 alp_add_git_repository(goofy_tc URL https://github.com/AlpineMapsOrgDependencies/Goofy_slim.git COMMITISH 13b228784960a6227bb6ca704ff34161bbac1b91 DO_NOT_ADD_SUBPROJECT)
 
 add_library(zppbits INTERFACE)
@@ -91,8 +93,6 @@ qt_add_library(nucleus STATIC
     utils/UrlModifier.h utils/UrlModifier.cpp
     utils/bit_coding.h
     utils/sun_calculations.h utils/sun_calculations.cpp
-    map_label/LabelFactory.h map_label/LabelFactory.cpp
-    map_label/MapLabelData.h
     utils/bit_coding.h
     tile_scheduler/cache_quieries.h
     DataQuerier.h DataQuerier.cpp
@@ -101,8 +101,6 @@ qt_add_library(nucleus STATIC
     timing/TimerManager.h timing/TimerManager.cpp
     timing/TimerInterface.h timing/TimerInterface.cpp
     timing/CpuTimer.h timing/CpuTimer.cpp
-    vector_tiles/VectorTileManager.h vector_tiles/VectorTileManager.cpp
-    vector_tiles/VectorTileFeature.h vector_tiles/VectorTileFeature.cpp
     utils/ColourTexture.h utils/ColourTexture.cpp
     EngineContext.h EngineContext.cpp
     track/Manager.h track/Manager.cpp
@@ -117,10 +115,19 @@ if (ALP_ENABLE_AVLANCHE_WARNING_LAYER)
     )
     target_link_libraries(nucleus PUBLIC Qt::Gui)
 endif()
+if(ALP_ENABLE_LABELS)
+    target_sources(nucleus PRIVATE
+        vector_tiles/VectorTileManager.h vector_tiles/VectorTileManager.cpp
+        vector_tiles/VectorTileFeature.h vector_tiles/VectorTileFeature.cpp
+        map_label/LabelFactory.h map_label/LabelFactory.cpp
+        map_label/MapLabelData.h
+    )
+    target_link_libraries(nucleus PUBLIC vector_tiles)
+endif()
 
 target_include_directories(nucleus PUBLIC ${CMAKE_SOURCE_DIR})
 # Please keep Qt::Gui outside the nucleus. If you need it optional via a cmake based switch
-target_link_libraries(nucleus PUBLIC radix Qt::Core Qt::Network fmt::fmt zppbits tl_expected nucleus_version stb_slim vector_tiles goofy_tc)
+target_link_libraries(nucleus PUBLIC radix Qt::Core Qt::Network fmt::fmt zppbits tl_expected nucleus_version stb_slim goofy_tc)
 
 qt_add_resources(nucleus "icons"
     PREFIX "/map_icons"

@@ -29,7 +29,6 @@ alp_add_unittest(unittests_nucleus
     test_srs.cpp
     test_track.cpp
     test_tile_conversion.cpp
-    test_vector_tile.cpp
     nucleus_tile_scheduler_util.cpp
     nucleus_tile_scheduler_tile_load_service.cpp
     nucleus_tile_scheduler_layer_assembler.cpp
@@ -48,6 +47,12 @@ if (ALP_ENABLE_AVLANCHE_WARNING_LAYER)
     target_sources(unittests_nucleus
       PRIVATE
         avalanche_warning_layer.cpp
+    )
+endif()
+
+if (ALP_ENABLE_LABELS)
+    target_sources(unittests_nucleus PRIVATE
+        test_vector_tile.cpp
     )
 endif()
 
