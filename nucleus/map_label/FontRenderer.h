@@ -18,48 +18,60 @@
 
 #pragma once
 
+#include <stb_slim/stb_truetype.h>
+
+#include <QSize>
+#include <set>
 #include <unordered_map>
 #include <vector>
 
-#include <QSize>
-#include <stb_slim/stb_truetype.h>
-
 #include <nucleus/Raster.h>
-#include <nucleus/map_label/FontRenderer.h>
 #include <nucleus/map_label/MapLabelData.h>
-#include <nucleus/vector_tiles/VectorTileFeature.h>
-
-using namespace nucleus::vectortile;
 
 namespace nucleus::maplabel {
 
-class LabelFactory {
+
+struct FontData {
+    float uv_width_norm;
+    stbtt_fontinfo fontinfo;
+    std::unordered_map<char16_t, const CharData> char_data;
+};
+
+class FontRenderer
+{
 public:
 
-    const AtlasData init_font_atlas();
-    const AtlasData renew_font_atlas();
+    void init();
+    void render(std::set<char16_t> chars, float font_size);
+    const FontData& get_font_data();
+    std::vector<Raster<glm::u8vec2>> get_font_atlas();
 
-    const Raster<glm::u8vec4> get_label_icons();
-
-    const std::vector<VertexData> create_labels(const VectorTile& features);
-    void create_label(const QString text, const glm::vec3 position, FeatureType type, const float importance, std::vector<VertexData>& vertex_data);
-
-    static const inline std::vector<unsigned int> indices = { 0, 1, 2, 0, 2, 3 };
+    static constexpr QSize font_atlas_size = QSize(1024, 1024);
+    static constexpr int max_textures = 8;
 
 private:
-    constexpr static float font_size = 48.0f;
-    constexpr static glm::vec2 icon_size = glm::vec2(32.0f);
+    void render_text(std::set<char16_t> chars, float font_size);
+    void make_outline(std::set<char16_t> chars);
 
-    std::unordered_map<FeatureType, glm::vec4> icon_uvs;
 
-    std::vector<float> inline create_text_meta(std::u16string* safe_chars, float* text_width);
+    static constexpr float m_font_outline = 7.2f;
+    static constexpr glm::ivec2 m_font_padding = glm::ivec2(2, 2);
+    static constexpr float uv_width_norm = 1.0f / font_atlas_size.width();
+
+
+    int outline_margin;
+    int x;
+    int y;
+    int bottom_y;
+    int texture_index;
 
     FontData m_font_data;
 
-    size_t m_last_char_amount;
-    std::set<char16_t> m_all_chars;
+    std::vector<Raster<glm::u8vec2>> m_font_atlas;
 
-    FontRenderer m_font_renderer;
+    QByteArray m_font_file;
 
 };
+
 } // namespace nucleus::maplabel
+

@@ -2,6 +2,7 @@
  * AlpineMaps.org
  * Copyright (C) 2022 Adam Celarek
  * Copyright (C) 2024 Gerald Kimmersdorfer
+ * Copyright (C) 2024 Lucas Dworschak
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -86,6 +87,17 @@ public:
     [[nodiscard]] uint8_t* bytes() { return reinterpret_cast<uint8_t*>(m_data.data()); }
 
     void fill(const T& value) { std::fill(begin(), end(), value); }
+
+    void combine(const Raster<T>& other)
+    {
+        // currently only supports combining with other raster of equal width (otherwise we need to fill either the current or the other raster with 0 values)
+        assert(other.width() == m_width);
+
+        m_height += other.height();
+
+        m_data.reserve(m_data.size() + (other.width() * other.height()));
+        m_data.insert(end(), other.begin(), other.end());
+    }
 
     auto begin() { return m_data.begin(); }
     auto end() { return m_data.end(); }

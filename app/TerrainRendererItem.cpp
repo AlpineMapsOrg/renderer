@@ -42,6 +42,7 @@
 #include "nucleus/Controller.h"
 #include "nucleus/camera/Controller.h"
 #include "nucleus/camera/PositionStorage.h"
+#include "nucleus/map_label/MapLabelFilter.h"
 #include "nucleus/srs.h"
 #include "nucleus/tile_scheduler/Scheduler.h"
 #include "nucleus/utils/UrlModifier.h"
@@ -146,6 +147,8 @@ QQuickFramebufferObject::Renderer* TerrainRendererItem::createRenderer() const
     // connect glWindow for shader hotreload by frontend button
     connect(this, &TerrainRendererItem::reload_shader, r->glWindow(), &gl_engine::Window::reload_shader);
 
+    connect(this, &TerrainRendererItem::label_filter_changed, r->controller()->label_filter(), &nucleus::maplabel::MapLabelFilter::update_filter);
+
     connect(r->glWindow(), &gl_engine::Window::report_measurements, this->m_timer_manager, &TimerFrontendManager::receive_measurements);
 
     connect(r->controller()->tile_scheduler(), &nucleus::tile_scheduler::Scheduler::gpu_quads_updated, RenderThreadNotifier::instance(), &RenderThreadNotifier::notify);
@@ -223,7 +226,6 @@ void TerrainRendererItem::camera_definition_changed(const nucleus::camera::Defin
 
     recalculate_sun_angles();
 }
-
 
 void TerrainRendererItem::set_position(double latitude, double longitude)
 {
@@ -382,6 +384,15 @@ void TerrainRendererItem::set_shared_config(gl_engine::uboSharedConfig new_share
         auto data_string = gl_engine::ubo_as_string(m_shared_config);
         m_url_modifier->set_query_item(URL_PARAMETER_KEY_CONFIG, data_string);
         emit shared_config_changed(m_shared_config);
+    }
+}
+
+nucleus::maplabel::FilterDefinitions TerrainRendererItem::label_filter() const { return m_label_filter; }
+void TerrainRendererItem::set_label_filter(nucleus::maplabel::FilterDefinitions new_label_filter)
+{
+    if (m_label_filter != new_label_filter) {
+        m_label_filter = new_label_filter;
+        emit label_filter_changed(m_label_filter);
     }
 }
 

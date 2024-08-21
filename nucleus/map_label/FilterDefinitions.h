@@ -18,33 +18,29 @@
 
 #pragma once
 
-#include <unordered_map>
-
-#include <glm/glm.hpp>
-
-#include <nucleus/Raster.h>
-
-struct stbtt_fontinfo;
+#include <QObject>
+#include <QVector2D>
 
 namespace nucleus::maplabel {
 
-struct CharData {
-    uint16_t x, y, width, height; // coordinates of bbox in bitmap
-    float xoff, yoff; // position offsets for e.g. lower/uppercase
-    int texture_index;
-};
+struct FilterDefinitions {
+    Q_GADGET
+public:
+    bool m_peaks_visible = true;
+    bool m_cities_visible = true;
+    bool m_cottages_visible = true;
+    bool m_webcams_visible = true;
 
-struct VertexData {
-    glm::vec4 position; // start_x, start_y, offset_x, offset_y
-    glm::vec4 uv; // start_u, start_v, offset_u, offset_v
-    glm::vec3 world_position;
-    float importance;
-    int32_t texture_index;
-};
+    QVector2D m_peak_ele_range = QVector2D(0, 4000);
 
-struct AtlasData {
-    bool changed;
-    std::vector<Raster<glm::u8vec2>> font_atlas;
+    bool operator==(const FilterDefinitions&) const = default;
+    bool operator!=(const FilterDefinitions&) const = default;
+
+    Q_PROPERTY(bool peaks_visible MEMBER m_peaks_visible)
+    Q_PROPERTY(bool cities_visible MEMBER m_cities_visible)
+    Q_PROPERTY(bool cottages_visible MEMBER m_cottages_visible)
+    Q_PROPERTY(bool webcams_visible MEMBER m_webcams_visible)
+    Q_PROPERTY(QVector2D peak_ele_range MEMBER m_peak_ele_range)
 };
 
 } // namespace nucleus::maplabel

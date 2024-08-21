@@ -19,10 +19,10 @@
 #include "LabelFactory.h"
 
 #include <QDebug>
-#include <QFile>
 #include <QSize>
 #include <QStringLiteral>
 
+#include "nucleus/map_label/Charset.h"
 #include "nucleus/Raster.h"
 #include "nucleus/utils/image_loader.h"
 
@@ -34,147 +34,100 @@ using namespace Qt::Literals::StringLiterals;
 
 namespace nucleus::maplabel {
 
-/**
- * this function needs to be called before create_labels
- */
-const LabelMeta LabelFactory::create_label_meta()
+const AtlasData LabelFactory::init_font_atlas()
 {
-    LabelMeta lm;
+    nucleus::maplabel::Charset& c = nucleus::maplabel::Charset::get_instance();
 
-    lm.font_atlas = make_outline(make_font_raster());
+    m_all_chars = c.get_all_chars();
+    m_last_char_amount = m_all_chars.size();
+
+    m_font_renderer.init();
+    m_font_renderer.render(m_all_chars, font_size);
+
+    m_font_data = m_font_renderer.get_font_data();
+
+    return {true, m_font_renderer.get_font_atlas()};
+}
+
+const AtlasData LabelFactory::renew_font_atlas()
+{
+    nucleus::maplabel::Charset& c = nucleus::maplabel::Charset::get_instance();
+
+    // check if any new chars have been added
+    if(c.is_update_necessary(m_last_char_amount))
     {
-        Raster<glm::u8vec4> rgba_raster = { lm.font_atlas.size(), { 255, 255, 0, 255 } };
-        std::transform(lm.font_atlas.cbegin(), lm.font_atlas.cend(), rgba_raster.begin(), [](const auto& v) { return glm::u8vec4(v.x, v.y, 0, 255); });
+        // get the new chars
+        auto new_chars = c.get_char_diff(m_all_chars);
+        // add them to the complete list
+        m_all_chars.insert(new_chars.begin(), new_chars.end());
+        m_last_char_amount = m_all_chars.size();
 
-        // const auto debug_out = QImage(rgba_raster.bytes(), m_font_atlas_size.width(), m_font_atlas_size.height(), QImage::Format_RGBA8888);
-        // debug_out.save("font_atlas.png");
+        m_font_renderer.render(new_chars, font_size);
+
+        m_font_data = m_font_renderer.get_font_data();
+
+        return {true, m_font_renderer.get_font_atlas()};
     }
 
-    // paint svg icon into the an image of appropriate size
-    lm.icons[nucleus::vectortile::FeatureType::Peak] = nucleus::utils::image_loader::rgba8(":/map_icons/peak.png");
-    // TODO add appropriate icon
-    lm.icons[nucleus::vectortile::FeatureType::City] = nucleus::utils::image_loader::rgba8(":/map_icons/peak.png");
+    // nothing changed -> return empty
+    AtlasData lm;
 
-    // TODO add appropriate default icon
-    lm.icons[nucleus::vectortile::FeatureType::ENUM_END] = nucleus::utils::image_loader::rgba8(":/map_icons/peak.png");
-
+    lm.changed = false;
     return lm;
 }
 
-Raster<uint8_t> LabelFactory::make_font_raster()
+/**
+ * this function needs to be called before create_labels
+ */
+const Raster<glm::u8vec4> LabelFactory::get_label_icons()
 {
-    // load ttf file
-    QFile file(":/fonts/Roboto/Roboto-Bold.ttf");
-    const auto open = file.open(QIODeviceBase::OpenModeFlag::ReadOnly);
-    assert(open);
-    Q_UNUSED(open);
-    m_font_file = file.readAll();
+    auto icons = std::unordered_map<FeatureType, Raster<glm::u8vec4>>();
 
-    // init font and get info about the dimensions
-    const auto font_init = stbtt_InitFont(&m_fontinfo, reinterpret_cast<const uint8_t*>(m_font_file.constData()),
-        stbtt_GetFontOffsetForIndex(reinterpret_cast<const uint8_t*>(m_font_file.constData()), 0));
-    assert(font_init);
-    Q_UNUSED(font_init);
+    icons[FeatureType::Peak] = nucleus::utils::image_loader::rgba8(":/map_icons/peak.png");
+    icons[FeatureType::City] = nucleus::utils::image_loader::rgba8(":/map_icons/city.png");
+    icons[FeatureType::Cottage] = nucleus::utils::image_loader::rgba8(":/map_icons/alpinehut.png");
+    icons[FeatureType::Webcam] = nucleus::utils::image_loader::rgba8(":/map_icons/viewpoint.png");
 
-    auto raster = Raster<uint8_t>({ m_font_atlas_size.width(), m_font_atlas_size.height() }, uint8_t(0));
+    size_t combined_height(0);
 
-    float scale = stbtt_ScaleForPixelHeight(&m_fontinfo, font_size);
-
-    int outline_margin = int(std::ceil(m_font_outline));
-    int x = outline_margin + m_font_padding.x;
-    int y = outline_margin + m_font_padding.y;
-    int bottom_y = outline_margin + m_font_padding.y;
-
-    for (const char16_t& c : all_char_list) {
-        // code adapted from stbtt_BakeFontBitmap()
-        int x0, y0, x1, y1;
-        const int glyph_index = stbtt_FindGlyphIndex(&m_fontinfo, c);
-        stbtt_GetGlyphBitmapBox(&m_fontinfo, glyph_index, scale, scale, &x0, &y0, &x1, &y1);
-
-        const auto glyph_width = x1 - x0;
-        const auto glyph_height = y1 - y0;
-        if (x + glyph_width + 2 * outline_margin + m_font_padding.x >= m_font_atlas_size.width()) {
-            y = bottom_y;
-            x = 2 * outline_margin + m_font_padding.x; // advance to next row
-        }
-        if (y + glyph_height + outline_margin + m_font_padding.y
-            >= m_font_atlas_size.height()) // check if it fits vertically AFTER potentially moving to next row
-        {
-            qDebug() << "Font doesnt fit into bitmap";
-            assert(false);
-            break; // doesnt fit in image
-        }
-
-        // clang-format off
-        stbtt_MakeGlyphBitmap(&m_fontinfo, raster.data() + x + y * m_font_atlas_size.width(), glyph_width, glyph_height, m_font_atlas_size.width(), scale, scale, glyph_index);
-        m_char_data.emplace(c, CharData {
-                uint16_t(x - outline_margin),
-                uint16_t(y - outline_margin),
-                uint16_t(glyph_width + outline_margin * 2),
-                uint16_t(glyph_height + outline_margin * 2),
-                float(x0 - outline_margin),
-                float(y0 - outline_margin) });
-        // clang-format on
-
-        x = x + glyph_width + 2 * outline_margin + m_font_padding.x;
-        if (y + glyph_height + outline_margin + m_font_padding.y > bottom_y)
-            bottom_y = y + glyph_height + 2 * outline_margin + m_font_padding.y;
+    for (int i = 0; i < FeatureType::ENUM_END; i++) {
+        FeatureType type = (FeatureType)i;
+        combined_height += icons[type].height();
     }
 
-    return raster;
-}
+    auto combined_icons = Raster<glm::u8vec4>({ icons[FeatureType::Peak].width(), 0 });
 
-Raster<glm::u8vec2> LabelFactory::make_outline(const Raster<uint8_t>& input)
-{
-    auto font_bitmap = Raster<glm::u8vec2>(input.size(), { 0, 0 });
-    unsigned outline_margin = unsigned(std::ceil(m_font_outline));
-
-    const auto aa_circle = [&](const glm::uvec2& centre, const glm::uvec2& px) {
-        float distance = glm::distance(glm::vec2(centre), glm::vec2(px));
-        float v = glm::smoothstep(m_font_outline - 1.5f, m_font_outline, distance);
-        return uint8_t((1 - v) * 255);
-    };
-
-    for (unsigned y = 0; y < font_bitmap.height(); ++y) {
-        for (unsigned x = 0; x < m_font_atlas_size.width(); ++x) {
-
-            const uint8_t value = input.pixel({ x, y });
-
-            font_bitmap.pixel({ x, y }).x = value;
-            if (value < 120)
-                continue;
-
-            for (unsigned j = y - outline_margin; j < y + outline_margin; ++j) {
-                if (j >= font_bitmap.height())
-                    continue;
-                for (unsigned i = x - outline_margin; i < x + outline_margin; ++i) {
-                    if (i >= font_bitmap.width())
-                        continue;
-                    font_bitmap.pixel({ i, j }).y = std::max(aa_circle({ x, y }, { i, j }), font_bitmap.pixel({ i, j }).y);
-                }
-            }
-        }
+    for (int i = 0; i < FeatureType::ENUM_END; i++) {
+        FeatureType type = (FeatureType)i;
+        // vec4(10.0f,...) is an uv_offset to indicate that the icon texture should be used.
+        icon_uvs[type]
+            = glm::vec4(10.0f, 10.0f + float(combined_icons.height()) / float(combined_height), 1.0f, float(icons[type].height()) / float(combined_height));
+        combined_icons.combine(icons[type]);
     }
-    return font_bitmap;
+
+    return combined_icons;
 }
 
-const std::vector<VertexData> LabelFactory::create_labels(const std::unordered_set<std::shared_ptr<nucleus::vectortile::FeatureTXT>>& features)
+const std::vector<VertexData> LabelFactory::create_labels(const VectorTile& features)
 {
     std::vector<VertexData> labelData;
 
     for (const auto& feat : features) {
-        // std::cout << "iii: " << feat->labelText().toStdString() << ": " << feat->worldposition.z << std::endl;
-
-        create_label(feat->labelText(), feat->worldposition, 1.0, labelData);
+        create_label(feat->labelText(), feat->worldposition, feat->type, feat->importance, labelData);
     }
 
     return labelData;
 }
 
-void LabelFactory::create_label(const QString text, const glm::vec3 position, const float importance, std::vector<VertexData>& vertex_data)
+void LabelFactory::create_label(
+    const QString text, const glm::vec3 position, const FeatureType type, const float importance, std::vector<VertexData>& vertex_data)
 {
-    constexpr float offset_y = -font_size / 2.0f + 100.0f;
-    constexpr float icon_offset_y = 15.0f;
+    float text_offset_y = -font_size / 2.0f + 75.0f;
+    float icon_offset_y = 15.0f;
+    if (type == FeatureType::City) {
+        text_offset_y += 25.0f;
+        icon_offset_y += 25.0f; // buildings might obstruct label -> we want to set it a bit above the city
+    }
 
     auto safe_chars = text.toStdU16String();
     float text_width = 0;
@@ -185,53 +138,54 @@ void LabelFactory::create_label(const QString text, const glm::vec3 position, co
 
     // label icon
     vertex_data.push_back({ glm::vec4(-icon_size.x / 2.0f, icon_size.y / 2.0f + icon_offset_y, icon_size.x, -icon_size.y + 1), // vertex position + offset
-        glm::vec4(10.0f, 10.0f, 1, 1), // uv position + offset
-        position, importance });
+        icon_uvs[type], // vec4 defined as uv position + offset
+        position, importance, 0 });
 
     for (unsigned long long i = 0; i < safe_chars.size(); i++) {
 
-        const CharData b = m_char_data.at(safe_chars[i]);
+        const CharData b = m_font_data.char_data.at(safe_chars[i]);
 
-        vertex_data.push_back({ glm::vec4(offset_x + kerningOffsets[i] + b.xoff, offset_y - b.yoff, b.width, -b.height), // vertex position + offset
-            glm::vec4(b.x * uv_width_norm, b.y * uv_width_norm, b.width * uv_width_norm, b.height * uv_width_norm), // uv position + offset
-            position, importance });
+        vertex_data.push_back({ glm::vec4(offset_x + kerningOffsets[i] + b.xoff, text_offset_y - b.yoff, b.width, -b.height), // vertex position + offset
+            glm::vec4(b.x * m_font_data.uv_width_norm, b.y * m_font_data.uv_width_norm, b.width * m_font_data.uv_width_norm,
+                b.height * m_font_data.uv_width_norm), // uv position + offset
+            position, importance, b.texture_index });
     }
 }
 
 // calculate char offsets and text width
 std::vector<float> inline LabelFactory::create_text_meta(std::u16string* safe_chars, float* text_width)
 {
+    // case no text in label
+    if (safe_chars->size() == 0)
+        return std::vector<float>();
+
     std::vector<float> kerningOffsets;
 
-    float scale = stbtt_ScaleForPixelHeight(&m_fontinfo, font_size);
+    float scale = stbtt_ScaleForPixelHeight(&m_font_data.fontinfo, font_size);
     float xOffset = 0;
     for (unsigned long long i = 0; i < safe_chars->size(); i++) {
-        if (!m_char_data.contains(safe_chars->at(i))) {
-            qDebug() << "character with unicode index(Dec: " << safe_chars[i]
-                     << ") cannot be shown -> please add it to nucleus/map_label/LabelFactory.h.all_char_list";
-            safe_chars[i] = 32; // replace with space character
+        if (!m_font_data.char_data.contains(safe_chars->at(i))) {
+            safe_chars->at(i) = 32;
         }
 
-        assert(m_char_data.contains(safe_chars->at(i)));
+        assert(m_font_data.char_data.contains(safe_chars->at(i)));
 
         int advance, lsb;
-        stbtt_GetCodepointHMetrics(&m_fontinfo, int(safe_chars->at(i)), &advance, &lsb);
+        stbtt_GetCodepointHMetrics(&m_font_data.fontinfo, int(safe_chars->at(i)), &advance, &lsb);
 
         kerningOffsets.push_back(xOffset);
 
         xOffset += float(advance) * scale;
         if (i + 1 < safe_chars->size())
-            xOffset += scale * float(stbtt_GetCodepointKernAdvance(&m_fontinfo, int(safe_chars->at(i)), int(safe_chars->at(i + 1))));
+            xOffset += scale * float(stbtt_GetCodepointKernAdvance(&m_font_data.fontinfo, int(safe_chars->at(i)), int(safe_chars->at(i + 1))));
     }
     kerningOffsets.push_back(xOffset);
 
     { // get width of last char
-        if (!m_char_data.contains(safe_chars->back())) {
-            qDebug() << "character with unicode index(Dec: " << safe_chars->back()
-                     << ") cannot be shown -> please add it to nucleus/map_label/LabelFactory.h.all_char_list";
+        if (!m_font_data.char_data.contains(safe_chars->back())) {
             safe_chars->back() = 32; // replace with space character
         }
-        const CharData b = m_char_data.at(safe_chars->back());
+        const CharData b = m_font_data.char_data.at(safe_chars->back());
 
         *text_width = xOffset + b.width;
     }

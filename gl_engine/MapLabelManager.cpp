@@ -28,7 +28,11 @@
 
 #include "radix/tile.h"
 
+#include "nucleus/tile_scheduler/tile_types.h"
+#include <nucleus/map_label/FontRenderer.h>
 #include <nucleus/srs.h>
+
+#include <chrono>
 
 using namespace Qt::Literals::StringLiterals;
 
@@ -37,30 +41,25 @@ namespace gl_engine {
 MapLabelManager::MapLabelManager(QObject* parent)
     : QObject { parent }
 {
-    for (int i = 0; i < nucleus::vectortile::FeatureType::ENUM_END - 1; i++) {
-        nucleus::vectortile::FeatureType type = (nucleus::vectortile::FeatureType)i;
-        // initialize every type
-        m_gpu_tiles[type] = std::unordered_map<tile::Id, std::shared_ptr<GPUVectorTile>, tile::Id::Hasher>();
-    }
 }
 
 void MapLabelManager::init()
 {
     // load the font texture
-    const auto& label_meta = m_mapLabelFactory.create_label_meta();
-    // const auto& font_atlas = m_mapLabelManager.font_atlas();
-    m_font_texture = std::make_unique<Texture>(Texture::Target::_2d, Texture::Format::RG8);
-    m_font_texture->setParams(Texture::Filter::MipMapLinear, Texture::Filter::Linear);
-    m_font_texture->upload(label_meta.font_atlas);
+    const auto& atlas_data = m_mapLabelFactory.init_font_atlas();
 
-    // load the icon texture
-    for (int i = 0; i < nucleus::vectortile::FeatureType::ENUM_END - 1; i++) {
-        nucleus::vectortile::FeatureType type = (nucleus::vectortile::FeatureType)i;
-        const auto icon = (label_meta.icons.contains(type)) ? label_meta.icons.at(type) : label_meta.icons.at(nucleus::vectortile::FeatureType::ENUM_END);
-        m_icon_texture[type] = std::make_unique<Texture>(Texture::Target::_2d, Texture::Format::RGBA8);
-        m_icon_texture[type]->setParams(Texture::Filter::MipMapLinear, Texture::Filter::Linear);
-        m_icon_texture[type]->upload(icon);
+    m_font_texture = std::make_unique<Texture>(Texture::Target::_2dArray, Texture::Format::RG8);
+    m_font_texture->allocate_array(nucleus::maplabel::FontRenderer::font_atlas_size.width(), nucleus::maplabel::FontRenderer::font_atlas_size.height(), nucleus::maplabel::FontRenderer::max_textures);
+    for(unsigned int i = 0; i < atlas_data.font_atlas.size(); i++)
+    {
+        m_font_texture->upload(atlas_data.font_atlas[i],i);
     }
+
+    const auto& labelIcons = m_mapLabelFactory.get_label_icons();
+
+    m_icon_texture = std::make_unique<Texture>(Texture::Target::_2d, Texture::Format::RGBA8);
+    m_icon_texture->setParams(Texture::Filter::MipMapLinear, Texture::Filter::Linear);
+    m_icon_texture->upload(labelIcons);
 
     m_index_buffer = std::make_unique<QOpenGLBuffer>(QOpenGLBuffer::IndexBuffer);
     m_index_buffer->create();
@@ -70,7 +69,20 @@ void MapLabelManager::init()
     m_indices_count = m_mapLabelFactory.indices.size();
 }
 
-void MapLabelManager::add_tile(const tile::Id& id, const nucleus::vectortile::FeatureType& type, const nucleus::vectortile::VectorTile& vector_tile)
+void MapLabelManager::renew_font_atlas()
+{
+    const auto& atlas_data = m_mapLabelFactory.renew_font_atlas();
+
+    if(atlas_data.changed)
+    {
+        for(unsigned int i = 0; i < atlas_data.font_atlas.size(); i++)
+        {
+            m_font_texture->upload(atlas_data.font_atlas[i],i);
+        }
+    }
+}
+
+void MapLabelManager::upload_to_gpu(const tile::Id& id, const VectorTile& features)
 {
     if (!QOpenGLContext::currentContext()) // can happen during shutdown.
         return;
@@ -83,7 +95,6 @@ void MapLabelManager::add_tile(const tile::Id& id, const nucleus::vectortile::Fe
     vectortile->vao->bind();
 
     { // vao state
-
         m_index_buffer->bind();
 
         vectortile->vertex_buffer = std::make_unique<QOpenGLBuffer>(QOpenGLBuffer::VertexBuffer);
@@ -91,7 +102,6 @@ void MapLabelManager::add_tile(const tile::Id& id, const nucleus::vectortile::Fe
         vectortile->vertex_buffer->bind();
         vectortile->vertex_buffer->setUsagePattern(QOpenGLBuffer::StaticDraw);
 
-        const auto features = vector_tile.at(type);
         const auto allLabels = m_mapLabelFactory.create_labels(features);
 
         vectortile->vertex_buffer->allocate(allLabels.data(), allLabels.size() * sizeof(nucleus::maplabel::VertexData));
@@ -115,12 +125,36 @@ void MapLabelManager::add_tile(const tile::Id& id, const nucleus::vectortile::Fe
         f->glEnableVertexAttribArray(3);
         f->glVertexAttribPointer(3, 1, GL_FLOAT, GL_FALSE, sizeof(nucleus::maplabel::VertexData), (GLvoid*)((sizeof(glm::vec4) * 2 + (sizeof(glm::vec3)))));
         f->glVertexAttribDivisor(3, 1); // buffer is active for 1 instance (for the whole quad)
+        // texture index
+        f->glEnableVertexAttribArray(4);
+        f->glVertexAttribIPointer(
+            4, 1, GL_INT, sizeof(nucleus::maplabel::VertexData), (GLvoid*)((sizeof(glm::vec4) * 2 + (sizeof(glm::vec3)) + sizeof(float))));
+        f->glVertexAttribDivisor(4, 1); // buffer is active for 1 instance (for the whole quad)
     }
 
     vectortile->vao->release();
 
     // add vector tile to gpu tiles
-    m_gpu_tiles.at(type)[id] = vectortile;
+    m_gpu_tiles[id] = vectortile;
+}
+
+void MapLabelManager::update_labels(const TiledVectorTile& visible_features, const std::vector<tile::Id>& removed_tiles)
+{
+    // remove tiles that aren't needed anymore
+    for (const auto& id : removed_tiles) {
+        remove_tile(id);
+    }
+
+    // TODO @lucas is this ok to call this here?? will potentially be called often
+    // or do we need another signal/param to signify that new tiles were added and the font_atlas needs to be checked
+    renew_font_atlas();
+
+    for (const auto& vectortile : visible_features) {
+        // since we are renewing the tile we remove it first to delete allocations like vao
+        remove_tile(vectortile.first);
+
+        upload_to_gpu(vectortile.first, vectortile.second);
+    }
 }
 
 void MapLabelManager::remove_tile(const tile::Id& tile_id)
@@ -128,46 +162,14 @@ void MapLabelManager::remove_tile(const tile::Id& tile_id)
     if (!QOpenGLContext::currentContext()) // can happen during shutdown.
         return;
 
-    for (int i = 0; i < nucleus::vectortile::FeatureType::ENUM_END - 1; i++) {
-        nucleus::vectortile::FeatureType type = (nucleus::vectortile::FeatureType)i;
+    // we can only remove something that exists
+    if (!m_gpu_tiles.contains(tile_id))
+        return;
 
-        // we can only remove something that exists
-        if (!m_gpu_tiles.contains(type) || !m_gpu_tiles.at(type).contains(tile_id))
-            continue;
+    if (m_gpu_tiles.at(tile_id)->vao)
+        m_gpu_tiles.at(tile_id)->vao->destroy(); // ecplicitly destroy vao
 
-        if (m_gpu_tiles.at(type)[tile_id]->vao)
-            m_gpu_tiles.at(type)[tile_id]->vao->destroy(); // ecplicitly destroy vao
-
-        m_gpu_tiles.at(type).erase(tile_id);
-    }
-}
-
-void MapLabelManager::update_gpu_quads(
-    const std::vector<nucleus::tile_scheduler::tile_types::GpuTileQuad>& new_quads, const std::vector<tile::Id>& deleted_quads)
-{
-    for (const auto& quad : new_quads) {
-        for (const auto& tile : quad.tiles) {
-            // test for validity
-            if (!tile.vector_tile || tile.vector_tile->empty())
-                continue;
-
-            assert(tile.id.zoom_level < 100);
-
-            for (int i = 0; i < nucleus::vectortile::FeatureType::ENUM_END - 1; i++) {
-                nucleus::vectortile::FeatureType type = (nucleus::vectortile::FeatureType)i;
-
-                if (m_gpu_tiles.at(type).contains(tile.id))
-                    continue; // no need to add it twice
-
-                add_tile(tile.id, type, *tile.vector_tile);
-            }
-        }
-    }
-    for (const auto& quad : deleted_quads) {
-        for (const auto& id : quad.children()) {
-            remove_tile(id);
-        }
-    }
+    m_gpu_tiles.erase(tile_id);
 }
 
 void MapLabelManager::draw(Framebuffer* gbuffer, ShaderProgram* shader_program, const nucleus::camera::Definition& camera,
@@ -187,27 +189,25 @@ void MapLabelManager::draw(Framebuffer* gbuffer, ShaderProgram* shader_program, 
 
     shader_program->set_uniform("font_sampler", 1);
     m_font_texture->bind(1);
+    shader_program->set_uniform("icon_sampler", 2);
+    m_icon_texture->bind(2);
 
-    for (int i = 0; i < nucleus::vectortile::FeatureType::ENUM_END - 1; i++) {
-        nucleus::vectortile::FeatureType type = (nucleus::vectortile::FeatureType)i;
+    for (const auto& vectortile : m_gpu_tiles) {
+        if(!draw_tiles.contains(vectortile.first))
+            continue; // tile is not in draw_tiles -> look at next tile
 
-        shader_program->set_uniform("icon_sampler", 2);
-        m_icon_texture.at(type)->bind(2);
+        // only draw if vector tile is fully loaded
+        if (vectortile.second->instance_count > 0) {
+            vectortile.second->vao->bind();
 
-        for (const auto& vectortile : m_gpu_tiles.at(type)) {
-            // only draw if vector tile is fully loaded and is contained in draw_tiles
-            if (vectortile.second->instance_count > 0 && draw_tiles.contains(vectortile.first)) {
-                vectortile.second->vao->bind();
+            // if the labels wouldn't collide, we could use an extra buffer, one draw call and
+            // f->glBlendEquationSeparate(GL_MIN, GL_MAX);
+            shader_program->set_uniform("drawing_outline", true);
+            f->glDrawElementsInstanced(GL_TRIANGLES, m_indices_count, GL_UNSIGNED_INT, 0, vectortile.second->instance_count);
+            shader_program->set_uniform("drawing_outline", false);
+            f->glDrawElementsInstanced(GL_TRIANGLES, m_indices_count, GL_UNSIGNED_INT, 0, vectortile.second->instance_count);
 
-                // if the labels wouldn't collide, we could use an extra buffer, one draw call and
-                // f->glBlendEquationSeparate(GL_MIN, GL_MAX);
-                shader_program->set_uniform("drawing_outline", true);
-                f->glDrawElementsInstanced(GL_TRIANGLES, m_indices_count, GL_UNSIGNED_INT, 0, vectortile.second->instance_count);
-                shader_program->set_uniform("drawing_outline", false);
-                f->glDrawElementsInstanced(GL_TRIANGLES, m_indices_count, GL_UNSIGNED_INT, 0, vectortile.second->instance_count);
-
-                vectortile.second->vao->release();
-            }
+            vectortile.second->vao->release();
         }
     }
 }

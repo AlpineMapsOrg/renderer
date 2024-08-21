@@ -185,4 +185,22 @@ TEST_CASE("nucleus/Raster")
         CHECK(mipmap.at(1).pixel({ 0, 0 }) == 65535u);
         // clang-format on
     }
+
+    SECTION("combine")
+    {
+        Raster<int> raster1({ 3, 4 }, 421);
+        Raster<int> raster2({ 3, 2 }, 657);
+        raster1.combine(raster2);
+
+        CHECK(raster1.width() == 3);
+        CHECK(raster1.height() == 6);
+
+        CHECK(raster1.pixel({ 0, 0 }) == 421);
+        CHECK(raster1.pixel({ 0, 3 }) == 421);
+        CHECK(raster1.pixel({ 2, 3 }) == 421);
+
+        CHECK(raster1.pixel({ 0, 4 }) == 657);
+        CHECK(raster1.pixel({ 2, 4 }) == 657);
+        CHECK(raster1.pixel({ 2, 5 }) == 657);
+    }
 }

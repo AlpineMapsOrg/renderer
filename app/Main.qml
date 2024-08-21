@@ -198,6 +198,14 @@ Item {
         main.onWidthChanged(); // trigger responsive updates manually
     }
 
+    function toggleFilterWindow() {
+        if (filter_window_loader.item === null)
+            filter_window_loader.source = "FilterWindow.qml"
+        else
+            filter_window_loader.item.visible = !filter_window_loader.item.visible
+        main.onWidthChanged(); // trigger responsive updates manually
+    }
+
 
     TerrainRenderer {
         id: map
@@ -206,6 +214,10 @@ Item {
         Keys.onPressed: function(event){
             if (event.key === Qt.Key_F8 && _debug_gui) {
                 toggleStatsWindow();
+            }
+            else if(event.key === Qt.Key_F7)
+            {
+                toggleFilterWindow();
             }
         }
         Behavior on field_of_view { NumberAnimation { duration: 500; easing.type: Easing.InOutExpo } }
@@ -229,6 +241,10 @@ Item {
 
     Loader {
         id: stats_window_loader
+    }
+
+    Loader {
+        id: filter_window_loader
     }
 
     Component.onCompleted: {

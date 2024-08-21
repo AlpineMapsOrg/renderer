@@ -26,14 +26,16 @@
 #include "Framebuffer.h"
 #include "Texture.h"
 #include "nucleus/camera/Definition.h"
+#include "nucleus/map_label/FilterDefinitions.h"
 #include "nucleus/map_label/LabelFactory.h"
-#include "nucleus/tile_scheduler/tile_types.h"
 
 #include "nucleus/tile_scheduler/DrawListGenerator.h"
 
 namespace camera {
 class Definition;
 }
+
+using namespace nucleus::vectortile;
 
 namespace gl_engine {
 class ShaderProgram;
@@ -54,21 +56,21 @@ public:
     void draw(Framebuffer* gbuffer, ShaderProgram* shader_program, const nucleus::camera::Definition& camera,
         const nucleus::tile_scheduler::DrawListGenerator::TileSet draw_tiles) const;
 
-    void update_gpu_quads(const std::vector<nucleus::tile_scheduler::tile_types::GpuTileQuad>& new_quads, const std::vector<tile::Id>& deleted_quads);
-
-    void remove_tile(const tile::Id& tile_id);
+    void update_labels(const TiledVectorTile& visible_features, const std::vector<tile::Id>& removed_tiles);
 
 private:
-    void add_tile(const tile::Id& id, const nucleus::vectortile::FeatureType& type, const nucleus::vectortile::VectorTile& vector_tile);
+    void renew_font_atlas();
+    void upload_to_gpu(const tile::Id& id, const VectorTile& features);
+    void remove_tile(const tile::Id& tile_id);
 
     std::unique_ptr<Texture> m_font_texture;
-    std::unordered_map<nucleus::vectortile::FeatureType, std::unique_ptr<Texture>> m_icon_texture;
-
-    std::unordered_map<nucleus::vectortile::FeatureType, std::unordered_map<tile::Id, std::shared_ptr<GPUVectorTile>, tile::Id::Hasher>> m_gpu_tiles;
+    std::unique_ptr<Texture> m_icon_texture;
 
     std::unique_ptr<QOpenGLBuffer> m_index_buffer;
     size_t m_indices_count; // how many vertices per character (most likely 6 since quads)
 
     nucleus::maplabel::LabelFactory m_mapLabelFactory;
+
+    std::unordered_map<tile::Id, std::shared_ptr<GPUVectorTile>, tile::Id::Hasher> m_gpu_tiles;
 };
 } // namespace gl_engine
