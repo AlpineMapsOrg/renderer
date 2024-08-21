@@ -29,16 +29,15 @@
 #include <QOpenGLContext>
 #include <QOpenGLDebugLogger>
 #include <QOpenGLExtraFunctions>
-#include <QOpenGLVersionFunctionsFactory>
 #include <QOpenGLFramebufferObject>
 #include <QOpenGLShaderProgram>
 #include <QOpenGLTexture>
+#include <QOpenGLVersionFunctionsFactory>
 #include <QOpenGLVertexArrayObject>
 #include <QPropertyAnimation>
 #include <QRandomGenerator>
 #include <QSequentialAnimationGroup>
 #include <QTimer>
-#include <glm/glm.hpp>
 #include <glm/glm.hpp>
 #include <glm/gtx/transform.hpp>
 #if (defined(__linux) && !defined(__ANDROID__)) || defined(_WIN32) || defined(_WIN64)
@@ -80,7 +79,7 @@ Window::Window()
 {
     m_tile_manager = std::make_unique<TileManager>();
 #ifdef ALP_ENABLE_LABELS
-    m_map_label_manager = std::make_shared<MapLabelManager>();
+    m_map_label_manager = std::make_unique<MapLabelManager>();
 #endif
     QTimer::singleShot(1, [this]() { emit update_requested(); });
 }
@@ -420,12 +419,15 @@ void Window::update_gpu_quads(const std::vector<nucleus::tile_scheduler::tile_ty
 {
     assert(m_tile_manager);
     m_tile_manager->update_gpu_quads(new_quads, deleted_quads);
+}
 
 #ifdef ALP_ENABLE_LABELS
+void Window::update_labels(const nucleus::vectortile::TiledVectorTile& visible_features, const std::vector<tile::Id>& removed_tiles)
+{
     assert(m_map_label_manager);
-    m_map_label_manager->update_gpu_quads(new_quads, deleted_quads);
-#endif
+    m_map_label_manager->update_labels(visible_features, removed_tiles);
 }
+#endif
 
 float Window::depth(const glm::dvec2& normalised_device_coordinates)
 {

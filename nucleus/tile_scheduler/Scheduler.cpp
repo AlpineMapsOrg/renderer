@@ -203,7 +203,7 @@ void Scheduler::update_gpu_quads()
                            const auto* vectortile_data = m_default_vector_tile.get();
                            vectortile_data = quad.tiles[i].vector_tile.get();
                            // moved into this if -> since vector_tile might be empty
-                           auto vectortile = nucleus::vectortile::VectorTileManager::to_vector_tile(quad.tiles[i].id, *vectortile_data, m_dataquerier);
+                           auto vectortile = nucleus::vectortile::VectorTileManager::to_vector_tile(*vectortile_data, m_dataquerier);
                            gpu_quad.tiles[i].vector_tile = vectortile;
 #endif
                        }

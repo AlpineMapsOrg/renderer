@@ -108,6 +108,7 @@ qt_add_library(nucleus STATIC
     track/GPX.h
     utils/image_loader.h utils/image_loader.cpp
     utils/thread.h
+
 )
 if (ALP_ENABLE_AVLANCHE_WARNING_LAYER)
     target_sources(nucleus
@@ -121,8 +122,12 @@ if(ALP_ENABLE_LABELS)
         vector_tiles/VectorTileFeature.h vector_tiles/VectorTileFeature.cpp
         map_label/LabelFactory.h map_label/LabelFactory.cpp
         map_label/MapLabelData.h
+        map_label/Charset.h map_label/Charset.cpp
+        map_label/FontRenderer.h map_label/FontRenderer.cpp
+        map_label/MapLabelFilter.h map_label/MapLabelFilter.cpp
+        map_label/FilterDefinitions.h
     )
-    target_link_libraries(nucleus PUBLIC vector_tiles)
+    target_link_libraries(nucleus PUBLIC vector_tiles Qt::Gui)
     target_compile_definitions(nucleus PUBLIC ALP_ENABLE_LABELS)
 endif()
 
@@ -132,9 +137,12 @@ target_link_libraries(nucleus PUBLIC radix Qt::Core Qt::Network fmt::fmt zppbits
 
 qt_add_resources(nucleus "icons"
     PREFIX "/map_icons"
-    BASE ${CMAKE_SOURCE_DIR}/app/icons
+    BASE ${CMAKE_SOURCE_DIR}/app/icons/labels
     FILES
-        ${CMAKE_SOURCE_DIR}/app/icons/peak.png
+        ${CMAKE_SOURCE_DIR}/app/icons/labels/alpinehut.png
+        ${CMAKE_SOURCE_DIR}/app/icons/labels/city.png
+        ${CMAKE_SOURCE_DIR}/app/icons/labels/peak.png
+        ${CMAKE_SOURCE_DIR}/app/icons/labels/viewpoint.png
 )
 qt_add_resources(nucleus "height_data"
     PREFIX "/map"
@@ -146,6 +154,11 @@ qt_add_resources(nucleus "nucleus_fonts"
     PREFIX "/fonts"
     FILES
     ${alpineapp_fonts_SOURCE_DIR}/Roboto/Roboto-Bold.ttf
+)
+qt_add_resources(nucleus "charset"
+    PREFIX "/charset"
+    BASE ${CMAKE_SOURCE_DIR}/app/
+    FILES ${CMAKE_SOURCE_DIR}/app/charset.txt
 )
 
 

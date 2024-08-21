@@ -132,6 +132,7 @@ int main(int argc, char **argv)
     engine.rootContext()->setContextProperty("_r", ALP_QML_SOURCE_DIR);
     engine.rootContext()->setContextProperty("_positionList", QVariant::fromValue(nucleus::camera::PositionStorage::instance()->getPositionList()));
     engine.rootContext()->setContextProperty("_alpine_renderer_version", QString::fromStdString(nucleus::version()));
+
 #ifdef ALP_ENABLE_DEBUG_GUI
     engine.rootContext()->setContextProperty("_debug_gui", true);
 #else
