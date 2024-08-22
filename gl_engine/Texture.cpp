@@ -84,7 +84,7 @@ void gl_engine::Texture::bind(unsigned int texture_unit)
     f->glBindTexture(GLenum(m_target), m_id);
 }
 
-void gl_engine::Texture::setParams(Filter min_filter, Filter mag_filter)
+void gl_engine::Texture::setParams(Filter min_filter, Filter mag_filter, bool anisotropic_filtering)
 {
     // doesn't make sense, does it?
     assert(mag_filter != Filter::MipMapLinear);
@@ -103,6 +103,9 @@ void gl_engine::Texture::setParams(Filter min_filter, Filter mag_filter)
     f->glTexParameteri(GLenum(m_target), GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
     f->glTexParameteri(GLenum(m_target), GL_TEXTURE_MIN_FILTER, GLint(m_min_filter));
     f->glTexParameteri(GLenum(m_target), GL_TEXTURE_MAG_FILTER, GLint(m_mag_filter));
+    if (anisotropic_filtering)
+        f->glTexParameterf(GLenum(m_target), GL_TEXTURE_MAX_ANISOTROPY, 16.0);
+    // f->glTexParameterf(GLenum(m_target), ext.TEXTURE_MAX_ANISOTROPY_EXT, 16.0);
 }
 
 void gl_engine::Texture::allocate_array(unsigned int width, unsigned int height, unsigned int n_layers)

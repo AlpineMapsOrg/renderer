@@ -114,6 +114,33 @@ void test_unsigned_texture_with(const TexelType& texel_value, gl_engine::Texture
     CHECK(qBlue(render_result.pixel(0, 0)) == 125);
     CHECK(qAlpha(render_result.pixel(0, 0)) == 126);
 }
+
+QImage create_test_rgba_qimage(unsigned width, unsigned height)
+{
+    QImage test_texture(width, height, QImage::Format_RGBA8888);
+    test_texture.fill(qRgba(0, 0, 0, 255));
+    {
+        QPainter painter(&test_texture);
+        QRadialGradient grad;
+        grad.setCenter(0.33 * width, 0.45 * height);
+        grad.setRadius(0.4 * width);
+        grad.setFocalPoint(0.47 * width, 0.59 * height);
+        grad.setColorAt(0, qRgb(245, 200, 5));
+        grad.setColorAt(1, qRgb(145, 100, 0));
+        grad.setSpread(QGradient::ReflectSpread);
+        painter.setBrush(grad);
+        painter.setPen(qRgba(242, 0, 42, 255));
+        // painter.drawRect(-1, -1, 257, 257);
+        painter.drawRect(0, 0, std::max(width - 1, 1u), std::max(height - 1, 1u));
+        test_texture.save("test_texture.png");
+    }
+    return test_texture;
+}
+nucleus::Raster<glm::u8vec4> create_test_rgba_raster(unsigned width, unsigned height)
+{
+    return nucleus::utils::tile_conversion::to_rgba8raster(create_test_rgba_qimage(width, height));
+}
+
 } // namespace
 
 TEST_CASE("gl texture")
@@ -124,28 +151,9 @@ TEST_CASE("gl texture")
     QOpenGLExtraFunctions* f = c->extraFunctions();
     REQUIRE(f);
 
-    QImage test_texture(256, 256, QImage::Format_RGBA8888);
-    test_texture.fill(qRgba(0, 0, 0, 255));
-    {
-        QPainter painter(&test_texture);
-        QRadialGradient grad;
-        grad.setCenter(85, 108);
-        grad.setRadius(100);
-        grad.setFocalPoint(120, 150);
-        grad.setColorAt(0, qRgb(245, 200, 5));
-        grad.setColorAt(1, qRgb(145, 100, 0));
-        grad.setSpread(QGradient::ReflectSpread);
-        painter.setBrush(grad);
-        painter.setPen(qRgba(242, 0, 42, 255));
-        // painter.drawRect(-1, -1, 257, 257);
-        painter.drawRect(0, 0, 255, 255);
-        test_texture.save("test_texture.png");
-    }
-
-    const auto test_raster = nucleus::utils::tile_conversion::to_rgba8raster(test_texture);
-
     SECTION("compression")
     {
+        const auto test_raster = create_test_rgba_raster(256, 256);
         {
             const auto compressed = ColourTexture(test_raster, ColourTexture::Format::DXT1);
             CHECK(compressed.n_bytes() == 256 * 128);
@@ -162,6 +170,7 @@ TEST_CASE("gl texture")
 
     SECTION("verify test methodology")
     {
+        const auto test_texture = create_test_rgba_qimage(256, 256);
         Framebuffer b(Framebuffer::DepthFormat::None, { Framebuffer::ColourFormat::RGBA8 }, { 256, 256 });
         b.bind();
         QOpenGLTexture opengl_texture(test_texture);
@@ -189,60 +198,83 @@ TEST_CASE("gl texture")
 
     SECTION("compressed rgba")
     {
-        Framebuffer b(Framebuffer::DepthFormat::None, { Framebuffer::ColourFormat::RGBA8 }, { 256, 256 });
-        b.bind();
+        std::unordered_map<unsigned, double> accuracies;
+        accuracies[256u] = 0.017;
+        accuracies[128u] = 0.030;
+        accuracies[32u] = 0.070; // red 1px border causing more and more inaccuracy
+        accuracies[16u] = 0.130;
+        accuracies[8u] = 0.160;
+        accuracies[4u] = 0.200;
+        accuracies[2u] = 0.02; // only red border left
+        accuracies[1u] = 0.02;
 
-        const auto compressed = ColourTexture(test_raster, gl_engine::Texture::compression_algorithm());
-        gl_engine::Texture opengl_texture(gl_engine::Texture::Target::_2d, gl_engine::Texture::Format::CompressedRGBA8);
-        opengl_texture.bind(0);
-        opengl_texture.setParams(gl_engine::Texture::Filter::Linear, gl_engine::Texture::Filter::Linear);
-        opengl_texture.upload(compressed);
+        for (const auto resolution : std::vector({ 256u, 128u, 32u, 16u, 8u, 4u, 2u, 1u })) {
+            const auto test_raster = create_test_rgba_raster(resolution, resolution);
+            Framebuffer b(Framebuffer::DepthFormat::None, { Framebuffer::ColourFormat::RGBA8 }, { resolution, resolution });
+            b.bind();
 
-        ShaderProgram shader = create_debug_shader();
-        shader.bind();
-        gl_engine::helpers::create_screen_quad_geometry().draw();
+            const auto compressed = ColourTexture(test_raster, gl_engine::Texture::compression_algorithm());
+            gl_engine::Texture opengl_texture(gl_engine::Texture::Target::_2d, gl_engine::Texture::Format::CompressedRGBA8);
+            opengl_texture.bind(0);
+            opengl_texture.setParams(gl_engine::Texture::Filter::Linear, gl_engine::Texture::Filter::Linear);
+            opengl_texture.upload(compressed);
 
-        const QImage render_result = b.read_colour_attachment(0);
-        // render_result.save("render_result.png");
-        Framebuffer::unbind();
-        double diff = 0;
-        for (int i = 0; i < render_result.width(); ++i) {
-            for (int j = 0; j < render_result.height(); ++j) {
-                diff += std::abs(qRed(render_result.pixel(i, j)) - qRed(test_texture.pixel(i, j))) / 255.0;
-                diff += std::abs(qGreen(render_result.pixel(i, j)) - qGreen(test_texture.pixel(i, j))) / 255.0;
-                diff += std::abs(qBlue(render_result.pixel(i, j)) - qBlue(test_texture.pixel(i, j))) / 255.0;
+            ShaderProgram shader = create_debug_shader();
+            shader.bind();
+            gl_engine::helpers::create_screen_quad_geometry().draw();
+
+            const QImage render_result = b.read_colour_attachment(0);
+            render_result.save(QString("render_result_compressed_rgba_%1.png").arg(resolution));
+            Framebuffer::unbind();
+            double diff = 0;
+            for (int i = 0; i < render_result.width(); ++i) {
+                for (int j = 0; j < render_result.height(); ++j) {
+                    const auto result_pixel = render_result.pixel(i, j);
+                    const auto ref_pixel = test_raster.pixel({ i, j });
+                    const auto r = qRed(result_pixel);
+                    const auto g = qGreen(result_pixel);
+                    const auto b = qBlue(result_pixel);
+
+                    diff += std::abs(r - ref_pixel.x) / 255.0;
+                    diff += std::abs(g - ref_pixel.y) / 255.0;
+                    diff += std::abs(b - ref_pixel.z) / 255.0;
+                }
             }
+            CAPTURE(resolution);
+            CHECK(diff / (resolution * resolution * 3) < accuracies[resolution]);
         }
-        CHECK(diff / (256 * 256 * 3) < 0.017);
     }
 
     SECTION("rgba")
     {
-        Framebuffer b(Framebuffer::DepthFormat::None, { Framebuffer::ColourFormat::RGBA8 }, { 256, 256 });
-        b.bind();
-        
-        const auto compressed = ColourTexture(test_raster, ColourTexture::Format::Uncompressed_RGBA);
-        gl_engine::Texture opengl_texture(gl_engine::Texture::Target::_2d, gl_engine::Texture::Format::RGBA8);
-        opengl_texture.bind(0);
-        opengl_texture.setParams(gl_engine::Texture::Filter::Linear, gl_engine::Texture::Filter::Linear);
-        opengl_texture.upload(compressed);
+        for (const auto resolution : std::vector({ 256u, 128u, 32u, 16u, 8u, 4u, 2u, 1u })) {
+            const auto test_raster = create_test_rgba_raster(resolution, resolution);
+            Framebuffer b(Framebuffer::DepthFormat::None, { Framebuffer::ColourFormat::RGBA8 }, { resolution, resolution });
+            b.bind();
 
-        ShaderProgram shader = create_debug_shader();
-        shader.bind();
-        gl_engine::helpers::create_screen_quad_geometry().draw();
+            const auto compressed = ColourTexture(test_raster, ColourTexture::Format::Uncompressed_RGBA);
+            gl_engine::Texture opengl_texture(gl_engine::Texture::Target::_2d, gl_engine::Texture::Format::RGBA8);
+            opengl_texture.bind(0);
+            opengl_texture.setParams(gl_engine::Texture::Filter::Linear, gl_engine::Texture::Filter::Linear);
+            opengl_texture.upload(compressed);
 
-        const QImage render_result = b.read_colour_attachment(0);
-        render_result.save("render_result.png");
-        Framebuffer::unbind();
-        double diff = 0;
-        for (int i = 0; i < render_result.width(); ++i) {
-            for (int j = 0; j < render_result.height(); ++j) {
-                diff += std::abs(qRed(render_result.pixel(i, j)) - qRed(test_texture.pixel(i, j))) / 255.0;
-                diff += std::abs(qGreen(render_result.pixel(i, j)) - qGreen(test_texture.pixel(i, j))) / 255.0;
-                diff += std::abs(qBlue(render_result.pixel(i, j)) - qBlue(test_texture.pixel(i, j))) / 255.0;
+            ShaderProgram shader = create_debug_shader();
+            shader.bind();
+            gl_engine::helpers::create_screen_quad_geometry().draw();
+
+            const QImage render_result = b.read_colour_attachment(0);
+            render_result.save(QString("render_result_rgba_%1.png").arg(resolution));
+            Framebuffer::unbind();
+            double diff = 0;
+            for (int i = 0; i < render_result.width(); ++i) {
+                for (int j = 0; j < render_result.height(); ++j) {
+                    diff += std::abs(qRed(render_result.pixel(i, j)) - test_raster.pixel({ i, j }).x) / 255.0;
+                    diff += std::abs(qGreen(render_result.pixel(i, j)) - test_raster.pixel({ i, j }).y) / 255.0;
+                    diff += std::abs(qBlue(render_result.pixel(i, j)) - test_raster.pixel({ i, j }).z) / 255.0;
+                }
             }
+            CHECK(diff / (resolution * resolution * 3) < 0.001);
         }
-        CHECK(diff / (256 * 256 * 3) < 0.001);
     }
 
     SECTION("rg8")
@@ -276,6 +308,7 @@ TEST_CASE("gl texture")
 
     SECTION("rgba array (compressed and uncompressed)")
     {
+        const auto test_raster = create_test_rgba_raster(256, 256);
         Framebuffer framebuffer(Framebuffer::DepthFormat::None,
             { Framebuffer::ColourFormat::RGBA8, Framebuffer::ColourFormat::RGBA8, Framebuffer::ColourFormat::RGBA8 }, { 256, 256 });
         framebuffer.bind();
@@ -324,9 +357,9 @@ TEST_CASE("gl texture")
                 double diff = 0;
                 for (int i = 0; i < render_result.width(); ++i) {
                     for (int j = 0; j < render_result.height(); ++j) {
-                        diff += std::abs(qRed(render_result.pixel(i, j)) - qRed(test_texture.pixel(i, j))) / 255.0;
-                        diff += std::abs(qGreen(render_result.pixel(i, j)) - qGreen(test_texture.pixel(i, j))) / 255.0;
-                        diff += std::abs(qBlue(render_result.pixel(i, j)) - qBlue(test_texture.pixel(i, j))) / 255.0;
+                        diff += std::abs(qRed(render_result.pixel(i, j)) - test_raster.pixel({ i, j }).x) / 255.0;
+                        diff += std::abs(qGreen(render_result.pixel(i, j)) - test_raster.pixel({ i, j }).y) / 255.0;
+                        diff += std::abs(qBlue(render_result.pixel(i, j)) - test_raster.pixel({ i, j }).z) / 255.0;
                     }
                 }
                 CHECK(diff / (256 * 256 * 3) < 0.017);

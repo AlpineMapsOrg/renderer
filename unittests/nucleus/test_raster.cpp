@@ -121,6 +121,32 @@ TEST_CASE("nucleus/Raster")
         }
     }
 
+    SECTION("resize 1")
+    {
+        Raster<int> a({ 4, 3 }, 1);
+        const auto b = resize(a, { 2, 1 }, 2);
+        CHECK(b.pixel({ 0, 0 }) == 1);
+        CHECK(b.pixel({ 1, 0 }) == 1);
+    }
+
+    SECTION("resize 2")
+    {
+        Raster<int> a({ 2, 1 }, 1);
+        const auto b = resize(a, { 4, 3 }, 2);
+        CHECK(b.pixel({ 0, 0 }) == 1);
+        CHECK(b.pixel({ 0, 1 }) == 2);
+        CHECK(b.pixel({ 0, 2 }) == 2);
+
+        CHECK(b.pixel({ 1, 0 }) == 1);
+        CHECK(b.pixel({ 1, 1 }) == 2);
+        CHECK(b.pixel({ 1, 2 }) == 2);
+
+        for (auto i = 0u; i < 3; ++i) {
+            CHECK(b.pixel({ 2, i }) == 2);
+            CHECK(b.pixel({ 3, i }) == 2);
+        }
+    }
+
     SECTION("create mip maps")
     {
         // clang-format off
