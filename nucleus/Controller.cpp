@@ -31,6 +31,7 @@
 #include "nucleus/camera/Controller.h"
 #include "nucleus/camera/PositionStorage.h"
 #include "nucleus/map_label/MapLabelFilter.h"
+#include "nucleus/picker/PickerManager.h"
 #include "nucleus/tile_scheduler/LayerAssembler.h"
 #include "nucleus/tile_scheduler/QuadAssembler.h"
 #include "nucleus/tile_scheduler/RateLimiter.h"
@@ -45,6 +46,7 @@
 using namespace nucleus::tile_scheduler;
 using namespace nucleus::vectortile;
 using namespace nucleus::maplabel;
+using namespace nucleus::picker;
 
 namespace nucleus {
 Controller::Controller(AbstractRenderWindow* render_window)
@@ -85,6 +87,7 @@ Controller::Controller(AbstractRenderWindow* render_window)
     m_tile_scheduler->set_dataquerier(m_data_querier);
     m_camera_controller = std::make_unique<nucleus::camera::Controller>(
         nucleus::camera::PositionStorage::instance()->get("grossglockner"), m_render_window->depth_tester(), m_data_querier.get());
+    m_picker_manager = std::make_unique<PickerManager>();
 
     {
         auto* sch = m_tile_scheduler.get();
@@ -143,10 +146,13 @@ Controller::Controller(AbstractRenderWindow* render_window)
 
     connect(m_tile_scheduler.get(), &Scheduler::gpu_quads_updated, m_render_window, &AbstractRenderWindow::update_gpu_quads);
     connect(m_tile_scheduler.get(), &Scheduler::gpu_quads_updated, m_render_window, &AbstractRenderWindow::update_requested);
+    connect(m_tile_scheduler.get(), &Scheduler::gpu_quads_updated, m_picker_manager.get(), &PickerManager::update_quads);
     connect(m_tile_scheduler.get(), &Scheduler::gpu_quads_updated, m_label_filter.get(), &MapLabelFilter::update_quads);
     connect(m_label_filter.get(), &MapLabelFilter::filter_finished, m_render_window, &AbstractRenderWindow::update_labels);
 
     connect(m_label_filter.get(), &MapLabelFilter::filter_finished, m_render_window, &AbstractRenderWindow::update_requested);
+    connect(m_picker_manager.get(), &PickerManager::pick_requested, m_render_window, &AbstractRenderWindow::pick_value);
+    connect(m_render_window, &AbstractRenderWindow::value_picked, m_picker_manager.get(), &PickerManager::eval_pick);
 }
 
 Controller::~Controller()
@@ -167,6 +173,8 @@ camera::Controller* Controller::camera_controller() const
 {
     return m_camera_controller.get();
 }
+
+PickerManager* Controller::picker_manager() const { return m_picker_manager.get(); }
 
 Scheduler* Controller::tile_scheduler() const
 {

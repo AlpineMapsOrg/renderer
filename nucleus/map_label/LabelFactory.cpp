@@ -22,9 +22,11 @@
 #include <QSize>
 #include <QStringLiteral>
 
-#include "nucleus/map_label/Charset.h"
 #include "nucleus/Raster.h"
+#include "nucleus/map_label/Charset.h"
+#include "nucleus/picker/PickerTypes.h"
 #include "nucleus/utils/image_loader.h"
+#include <nucleus/utils/bit_coding.h>
 
 #define STBTT_STATIC
 #define STB_TRUETYPE_IMPLEMENTATION
@@ -113,14 +115,14 @@ const std::vector<VertexData> LabelFactory::create_labels(const VectorTile& feat
     std::vector<VertexData> labelData;
 
     for (const auto& feat : features) {
-        create_label(feat->labelText(), feat->worldposition, feat->type, feat->importance, labelData);
+        create_label(feat->labelText(), feat->worldposition, feat->type, feat->internal_id, feat->importance, labelData);
     }
 
     return labelData;
 }
 
-void LabelFactory::create_label(
-    const QString text, const glm::vec3 position, const FeatureType type, const float importance, std::vector<VertexData>& vertex_data)
+void LabelFactory::create_label(const QString text, const glm::vec3 position, const FeatureType type, const uint32_t internal_id, const float importance,
+    std::vector<VertexData>& vertex_data)
 {
     float text_offset_y = -font_size / 2.0f + 75.0f;
     float icon_offset_y = 15.0f;
@@ -136,10 +138,13 @@ void LabelFactory::create_label(
     // center the text around the center
     const auto offset_x = -text_width / 2.0f;
 
+    glm::vec4 picker_color = nucleus::utils::bit_coding::u32_to_f8_4(internal_id);
+    picker_color.x = (float(nucleus::picker::PickTypes::feature) / 255.0f); // set the first bit to the type
+
     // label icon
     vertex_data.push_back({ glm::vec4(-icon_size.x / 2.0f, icon_size.y / 2.0f + icon_offset_y, icon_size.x, -icon_size.y + 1), // vertex position + offset
         icon_uvs[type], // vec4 defined as uv position + offset
-        position, importance, 0 });
+        picker_color, position, importance, 0 });
 
     for (unsigned long long i = 0; i < safe_chars.size(); i++) {
 
@@ -148,7 +153,7 @@ void LabelFactory::create_label(
         vertex_data.push_back({ glm::vec4(offset_x + kerningOffsets[i] + b.xoff, text_offset_y - b.yoff, b.width, -b.height), // vertex position + offset
             glm::vec4(b.x * m_font_data.uv_width_norm, b.y * m_font_data.uv_width_norm, b.width * m_font_data.uv_width_norm,
                 b.height * m_font_data.uv_width_norm), // uv position + offset
-            position, importance, b.texture_index });
+            picker_color, position, importance, b.texture_index });
     }
 }
 

@@ -18,34 +18,21 @@
 
 #pragma once
 
-#include <unordered_map>
+namespace nucleus::picker {
+enum PickTypes {
+    invalid = 0,
+    feature = 1,
 
-#include <glm/glm.hpp>
-
-#include <nucleus/Raster.h>
-
-struct stbtt_fontinfo;
-
-namespace nucleus::maplabel {
-
-struct CharData {
-    uint16_t x, y, width, height; // coordinates of bbox in bitmap
-    float xoff, yoff; // position offsets for e.g. lower/uppercase
-    int texture_index;
 };
 
-struct VertexData {
-    glm::vec4 position; // start_x, start_y, offset_x, offset_y
-    glm::vec4 uv; // start_u, start_v, offset_u, offset_v
-    glm::vec4 picker_color;
-    glm::vec3 world_position;
-    float importance;
-    int32_t texture_index;
-};
+inline PickTypes get_picker_type(int typeValue)
+{
+    switch (typeValue) {
+    case 1:
+        return PickTypes::feature;
+    default:
+        return PickTypes::invalid;
+    }
+}
 
-struct AtlasData {
-    bool changed;
-    std::vector<Raster<glm::u8vec2>> font_atlas;
-};
-
-} // namespace nucleus::maplabel
+} // namespace nucleus::picker

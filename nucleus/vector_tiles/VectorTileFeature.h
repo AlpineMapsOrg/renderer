@@ -37,7 +37,9 @@ namespace nucleus::vectortile {
 enum FeatureType { Peak = 0, City = 1, Cottage = 2, Webcam = 3, ENUM_END = 4 };
 
 struct FeatureTXT {
+    FeatureTXT();
     virtual ~FeatureTXT() = default;
+    const unsigned long internal_id = 0;
     unsigned long id;
     QString name;
     // importance: value [0,1] whereas 1 is highest importance
@@ -52,9 +54,7 @@ struct FeatureTXT {
     glm::dvec3 worldposition;
     FeatureType type;
 
-
-    // determine the highest zoom level where the height has been calculated
-    int highest_zoom = 0;
+    inline static unsigned long id_counter = 1UL;
 
     static void parse(std::shared_ptr<FeatureTXT> ft, const mapbox::vector_tile::feature& feature, const std::shared_ptr<DataQuerier> dataquerier);
 
@@ -62,7 +62,6 @@ struct FeatureTXT {
 };
 
 struct FeatureTXTPeak : public FeatureTXT {
-    QString de_name;
     QString wikipedia;
     QString wikidata;
     QString importance_osm;
@@ -77,7 +76,6 @@ struct FeatureTXTPeak : public FeatureTXT {
 };
 
 struct FeatureTXTCity : public FeatureTXT {
-    QString de_name;
     QString wikipedia;
     QString wikidata;
     int population;
@@ -91,7 +89,6 @@ struct FeatureTXTCity : public FeatureTXT {
 };
 
 struct FeatureTXTCottage : public FeatureTXT {
-    QString de_name;
     QString wikipedia;
     QString wikidata;
     QString description;

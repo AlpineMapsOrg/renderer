@@ -73,6 +73,7 @@ signals:
     void frame_limit_changed();
 
     void mouse_pressed(const nucleus::event_parameter::Mouse&) const;
+    void mouse_released(const nucleus::event_parameter::Mouse&) const;
     void mouse_moved(const nucleus::event_parameter::Mouse&) const;
     void wheel_turned(const nucleus::event_parameter::Wheel&) const;
     void touch_made(const nucleus::event_parameter::Touch&) const;
@@ -119,6 +120,7 @@ signals:
 protected:
     void touchEvent(QTouchEvent*) override;
     void mousePressEvent(QMouseEvent*) override;
+    void mouseReleaseEvent(QMouseEvent*) override;
     void mouseMoveEvent(QMouseEvent*) override;
     void wheelEvent(QWheelEvent*) override;
     void keyPressEvent(QKeyEvent*) override;

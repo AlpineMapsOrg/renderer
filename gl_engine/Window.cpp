@@ -127,6 +127,7 @@ void Window::initialise_gpu()
 
     m_atmospherebuffer = std::make_unique<Framebuffer>(Framebuffer::DepthFormat::None, std::vector { Framebuffer::ColourFormat::RGBA8 });
     m_decoration_buffer = std::make_unique<Framebuffer>(Framebuffer::DepthFormat::None, std::vector { Framebuffer::ColourFormat::RGBA8 });
+    m_pickerbuffer = std::make_unique<Framebuffer>(Framebuffer::DepthFormat::Float32, std::vector { Framebuffer::ColourFormat::RGBA32F });
     f->glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, m_gbuffer->depth_texture()->textureId(), 0);
 
     m_shared_config_ubo = std::make_shared<gl_engine::UniformBuffer<gl_engine::uboSharedConfig>>(0, "shared_config");
@@ -161,6 +162,7 @@ void Window::initialise_gpu()
         m_timer->add_timer(make_shared<GpuAsyncQueryTimer>("shadowmap", "GPU", 240, 1.0f/60.0f));
         m_timer->add_timer(make_shared<GpuAsyncQueryTimer>("compose", "GPU", 240, 1.0f/60.0f));
         m_timer->add_timer(make_shared<GpuAsyncQueryTimer>("labels", "GPU", 240, 1.0f / 60.0f));
+        m_timer->add_timer(make_shared<GpuAsyncQueryTimer>("picker", "GPU", 240, 1.0f / 60.0f));
         m_timer->add_timer(make_shared<GpuAsyncQueryTimer>("gpu_total", "TOTAL", 240, 1.0f/60.0f));
 #endif
         m_timer->add_timer(make_shared<CpuTimer>("cpu_total", "TOTAL", 240, 1.0f/60.0f));
@@ -179,6 +181,7 @@ void Window::resize_framebuffer(int width, int height)
     if (!f) return;
     m_gbuffer->resize({ width, height });
     m_decoration_buffer->resize({ width, height });
+    m_pickerbuffer->resize({ width, height });
     f->glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, m_gbuffer->depth_texture()->textureId(), 0);
 
     m_atmospherebuffer->resize({ 1, height });
@@ -209,7 +212,6 @@ void Window::paint(QOpenGLFramebufferObject* framebuffer)
     cc->viewport_size = m_camera.viewport_size();
     cc->distance_scaling_factor = m_camera.distance_scale_factor();
     m_camera_config_ubo->update_gpu_data();
-
 
     // DRAW ATMOSPHERIC BACKGROUND
     m_atmospherebuffer->bind();
@@ -277,6 +279,24 @@ void Window::paint(QOpenGLFramebufferObject* framebuffer)
         m_timer->start_timer("ssao");
         m_ssao->draw(m_gbuffer.get(), &m_screen_quad_geometry, m_camera, m_shared_config_ubo->data.m_ssao_kernel, m_shared_config_ubo->data.m_ssao_blur_kernel_size);
         m_timer->stop_timer("ssao");
+    }
+
+    {
+        m_pickerbuffer->bind();
+
+        // CLEAR PICKER BUFFER
+        f->glClearColor(0.0, 0.0, 0.0, 0.0);
+        f->glClear(GL_COLOR_BUFFER_BIT);
+        f->glClear(GL_DEPTH_BUFFER_BIT);
+
+        // DRAW Pickbuffer
+        m_timer->start_timer("picker");
+        shader_manager->labels_picker_program()->bind();
+        m_map_label_manager->draw_picker(m_gbuffer.get(), shader_manager->labels_picker_program(), m_camera, culled_tile_set);
+        shader_manager->labels_picker_program()->release();
+        m_timer->stop_timer("picker");
+
+        m_pickerbuffer->unbind();
     }
 
     if (framebuffer)
@@ -423,6 +443,13 @@ float Window::depth(const glm::dvec2& normalised_device_coordinates)
     const auto read_float = nucleus::utils::bit_coding::to_f16f16(m_gbuffer->read_colour_attachment_pixel<glm::u8vec4>(3, normalised_device_coordinates))[0];
     const auto depth = std::exp(read_float * 13.f);
     return depth;
+}
+
+void Window::pick_value(const glm::dvec2& screen_space_coordinates)
+{
+    const auto value
+        = nucleus::utils::bit_coding::f8_4_to_u32(m_pickerbuffer->read_colour_attachment_pixel<glm::vec4>(0, m_camera.to_ndc(screen_space_coordinates)));
+    emit value_picked(value);
 }
 
 glm::dvec3 Window::position(const glm::dvec2& normalised_device_coordinates)

@@ -117,19 +117,23 @@ void MapLabelManager::upload_to_gpu(const tile::Id& id, const VectorTile& featur
         f->glEnableVertexAttribArray(1);
         f->glVertexAttribPointer(1, 4, GL_FLOAT, GL_FALSE, sizeof(nucleus::maplabel::VertexData), (GLvoid*)(sizeof(glm::vec4)));
         f->glVertexAttribDivisor(1, 1); // buffer is active for 1 instance (for the whole quad)
-        // world position
+        // picker color
         f->glEnableVertexAttribArray(2);
-        f->glVertexAttribPointer(2, 3, GL_FLOAT, GL_FALSE, sizeof(nucleus::maplabel::VertexData), (GLvoid*)((sizeof(glm::vec4) * 2)));
+        f->glVertexAttribPointer(2, 4, GL_FLOAT, GL_FALSE, sizeof(nucleus::maplabel::VertexData), (GLvoid*)(sizeof(glm::vec4) * 2));
         f->glVertexAttribDivisor(2, 1); // buffer is active for 1 instance (for the whole quad)
-        // label importance
+        // world position
         f->glEnableVertexAttribArray(3);
-        f->glVertexAttribPointer(3, 1, GL_FLOAT, GL_FALSE, sizeof(nucleus::maplabel::VertexData), (GLvoid*)((sizeof(glm::vec4) * 2 + (sizeof(glm::vec3)))));
+        f->glVertexAttribPointer(3, 3, GL_FLOAT, GL_FALSE, sizeof(nucleus::maplabel::VertexData), (GLvoid*)(sizeof(glm::vec4) * 3));
         f->glVertexAttribDivisor(3, 1); // buffer is active for 1 instance (for the whole quad)
-        // texture index
+        // label importance
         f->glEnableVertexAttribArray(4);
-        f->glVertexAttribIPointer(
-            4, 1, GL_INT, sizeof(nucleus::maplabel::VertexData), (GLvoid*)((sizeof(glm::vec4) * 2 + (sizeof(glm::vec3)) + sizeof(float))));
+        f->glVertexAttribPointer(4, 1, GL_FLOAT, GL_FALSE, sizeof(nucleus::maplabel::VertexData), (GLvoid*)((sizeof(glm::vec4) * 3 + (sizeof(glm::vec3)))));
         f->glVertexAttribDivisor(4, 1); // buffer is active for 1 instance (for the whole quad)
+        // texture index
+        f->glEnableVertexAttribArray(5);
+        f->glVertexAttribIPointer(
+            5, 1, GL_INT, sizeof(nucleus::maplabel::VertexData), (GLvoid*)((sizeof(glm::vec4) * 3 + (sizeof(glm::vec3)) + sizeof(float))));
+        f->glVertexAttribDivisor(5, 1); // buffer is active for 1 instance (for the whole quad)
     }
 
     vectortile->vao->release();
@@ -205,6 +209,33 @@ void MapLabelManager::draw(Framebuffer* gbuffer, ShaderProgram* shader_program, 
             shader_program->set_uniform("drawing_outline", true);
             f->glDrawElementsInstanced(GL_TRIANGLES, m_indices_count, GL_UNSIGNED_INT, 0, vectortile.second->instance_count);
             shader_program->set_uniform("drawing_outline", false);
+            f->glDrawElementsInstanced(GL_TRIANGLES, m_indices_count, GL_UNSIGNED_INT, 0, vectortile.second->instance_count);
+
+            vectortile.second->vao->release();
+        }
+    }
+}
+
+void MapLabelManager::draw_picker(Framebuffer* gbuffer, ShaderProgram* shader_program, const nucleus::camera::Definition& camera,
+    const nucleus::tile_scheduler::DrawListGenerator::TileSet draw_tiles) const
+{
+    QOpenGLExtraFunctions* f = QOpenGLContext::currentContext()->extraFunctions();
+
+    glm::mat4 inv_view_rot = glm::inverse(camera.local_view_matrix());
+    shader_program->set_uniform("inv_view_rot", inv_view_rot);
+    shader_program->set_uniform("label_dist_scaling", true);
+
+    shader_program->set_uniform("texin_depth", 0);
+    gbuffer->bind_colour_texture(1, 0);
+
+    for (const auto& vectortile : m_gpu_tiles) {
+        if (!draw_tiles.contains(vectortile.first))
+            continue; // tile is not in draw_tiles -> look at next tile
+
+        // only draw if vector tile is fully loaded
+        if (vectortile.second->instance_count > 0) {
+            vectortile.second->vao->bind();
+
             f->glDrawElementsInstanced(GL_TRIANGLES, m_indices_count, GL_UNSIGNED_INT, 0, vectortile.second->instance_count);
 
             vectortile.second->vao->release();

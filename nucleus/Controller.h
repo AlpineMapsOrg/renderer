@@ -32,6 +32,9 @@ class Scheduler;
 namespace camera {
 class Controller;
 }
+namespace picker {
+class PickerManager;
+}
 namespace maplabel {
 class MapLabelFilter;
 }
@@ -43,6 +46,7 @@ public:
     ~Controller() override;
 
     camera::Controller* camera_controller() const;
+    picker::PickerManager* picker_manager() const;
 
     tile_scheduler::Scheduler* tile_scheduler() const;
     maplabel::MapLabelFilter* label_filter() const;
@@ -60,5 +64,6 @@ private:
     std::shared_ptr<DataQuerier> m_data_querier;
     std::unique_ptr<camera::Controller> m_camera_controller;
     std::unique_ptr<maplabel::MapLabelFilter> m_label_filter;
+    std::unique_ptr<nucleus::picker::PickerManager> m_picker_manager;
 };
 }

@@ -42,7 +42,8 @@ public:
     const Raster<glm::u8vec4> get_label_icons();
 
     const std::vector<VertexData> create_labels(const VectorTile& features);
-    void create_label(const QString text, const glm::vec3 position, FeatureType type, const float importance, std::vector<VertexData>& vertex_data);
+    void create_label(const QString text, const glm::vec3 position, FeatureType type, const uint32_t internal_id, const float importance,
+        std::vector<VertexData>& vertex_data);
 
     static const inline std::vector<unsigned int> indices = { 0, 1, 2, 0, 2, 3 };
 

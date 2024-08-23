@@ -43,6 +43,7 @@
 #include "nucleus/camera/Controller.h"
 #include "nucleus/camera/PositionStorage.h"
 #include "nucleus/map_label/MapLabelFilter.h"
+#include "nucleus/picker/PickerManager.h"
 #include "nucleus/srs.h"
 #include "nucleus/tile_scheduler/Scheduler.h"
 #include "nucleus/utils/UrlModifier.h"
@@ -119,6 +120,11 @@ QQuickFramebufferObject::Renderer* TerrainRendererItem::createRenderer() const
     connect(this, &TerrainRendererItem::position_set_by_user, r->controller()->camera_controller(), &nucleus::camera::Controller::fly_to_latitude_longitude);
     connect(this, &TerrainRendererItem::rotation_north_requested, r->controller()->camera_controller(), &nucleus::camera::Controller::rotate_north);
 
+    connect(this, &TerrainRendererItem::touch_made, r->controller()->picker_manager(), &nucleus::picker::PickerManager::touch_event);
+    connect(this, &TerrainRendererItem::mouse_pressed, r->controller()->picker_manager(), &nucleus::picker::PickerManager::mouse_press_event);
+    connect(this, &TerrainRendererItem::mouse_released, r->controller()->picker_manager(), &nucleus::picker::PickerManager::mouse_release_event);
+    connect(this, &TerrainRendererItem::mouse_moved, r->controller()->picker_manager(), &nucleus::picker::PickerManager::mouse_move_event);
+
     // Connect definition change to aquire camera position for sun angle calculation
     connect(r->controller()->camera_controller(), &nucleus::camera::Controller::definition_changed, this, &TerrainRendererItem::camera_definition_changed);
 
@@ -172,6 +178,13 @@ void TerrainRendererItem::mousePressEvent(QMouseEvent* e)
 {
     this->setFocus(true);
     emit mouse_pressed(nucleus::event_parameter::make(e));
+    RenderThreadNotifier::instance()->notify();
+}
+
+void TerrainRendererItem::mouseReleaseEvent(QMouseEvent* e)
+{
+    this->setFocus(true);
+    emit mouse_released(nucleus::event_parameter::make(e));
     RenderThreadNotifier::instance()->notify();
 }
 

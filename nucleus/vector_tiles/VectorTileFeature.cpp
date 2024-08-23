@@ -32,6 +32,9 @@ namespace nucleus::vectortile {
 // -> try to clear the tile_cache
 // alternatively you can also use .get_unchecked<T>() and maybe debug why this is happening
 
+FeatureTXT::FeatureTXT()
+    : internal_id(FeatureTXT::id_counter++) {};
+
 void FeatureTXT::parse(std::shared_ptr<FeatureTXT> ft, const mapbox::vector_tile::feature& feature, const std::shared_ptr<DataQuerier> dataquerier)
 {
     ft->id = feature.getID().get<uint64_t>();
@@ -61,8 +64,6 @@ std::shared_ptr<const FeatureTXT> FeatureTXTPeak::parse(const mapbox::vector_til
 
     auto props = feature.getProperties();
 
-    if (props["de_name"].valid() && props["de_name"].is<std::string>())
-        peak->de_name = QString::fromStdString(props["de_name"].get<std::string>());
     if (props["wikipedia"].valid() && props["wikipedia"].is<std::string>())
         peak->wikipedia = QString::fromStdString(props["wikipedia"].get<std::string>());
     if (props["wikidata"].valid() && props["wikidata"].is<std::string>())
@@ -98,8 +99,6 @@ std::shared_ptr<const FeatureTXT> FeatureTXTCity::parse(const mapbox::vector_til
 
     auto props = feature.getProperties();
 
-    if (props["de_name"].valid() && props["de_name"].is<std::string>())
-        city->de_name = QString::fromStdString(props["de_name"].get<std::string>());
     if (props["wikipedia"].valid() && props["wikipedia"].is<std::string>())
         city->wikipedia = QString::fromStdString(props["wikipedia"].get<std::string>());
     if (props["wikidata"].valid() && props["wikidata"].is<std::string>())
@@ -128,8 +127,6 @@ std::shared_ptr<const FeatureTXT> FeatureTXTCottage::parse(const mapbox::vector_
 
     auto props = feature.getProperties();
 
-    if (props["de_name"].valid() && props["de_name"].is<std::string>())
-        cottage->de_name = QString::fromStdString(props["de_name"].get<std::string>());
     if (props["wikipedia"].valid() && props["wikipedia"].is<std::string>())
         cottage->wikipedia = QString::fromStdString(props["wikipedia"].get<std::string>());
     if (props["wikidata"].valid() && props["wikidata"].is<std::string>())

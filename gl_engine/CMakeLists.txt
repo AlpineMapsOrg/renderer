@@ -67,6 +67,7 @@ qt_add_resources(gl_engine "shaders"
     shaders/shadow_config.glsl
     shaders/overlay_steepness.glsl
     shaders/labels.frag
+    shaders/labels_picker.frag
     shaders/labels.vert
     shaders/snow.glsl
     shaders/tile.glsl

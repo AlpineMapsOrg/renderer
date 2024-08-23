@@ -83,6 +83,7 @@ public slots:
     void reload_shader();
     void update_labels(const nucleus::vectortile::TiledVectorTile& visible_features, const std::vector<tile::Id>& removed_tiles) override;
 
+    void pick_value(const glm::dvec2& screen_space_coordinates) override;
 
 signals:
     void report_measurements(QList<nucleus::timing::TimerReport> values);
@@ -94,6 +95,7 @@ private:
     std::unique_ptr<Framebuffer> m_gbuffer;
     std::unique_ptr<Framebuffer> m_decoration_buffer;
     std::unique_ptr<Framebuffer> m_atmospherebuffer;
+    std::unique_ptr<Framebuffer> m_pickerbuffer;
 
     std::unique_ptr<SSAO> m_ssao;
     std::unique_ptr<ShadowMapping> m_shadowmapping;
