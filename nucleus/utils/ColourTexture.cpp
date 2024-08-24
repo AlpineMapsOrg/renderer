@@ -153,3 +153,13 @@ nucleus::utils::ColourTexture::ColourTexture(const nucleus::Raster<glm::u8vec4>&
 {
 }
 
+nucleus::utils::MipmappedColourTexture nucleus::utils::generate_mipmapped_colour_texture(
+    const nucleus::Raster<glm::u8vec4>& texture, ColourTexture::Format format)
+{
+    auto mip_levels = nucleus::generate_mipmap(texture);
+    nucleus::utils::MipmappedColourTexture colour_texture = {};
+    for (const auto& level : mip_levels) {
+        colour_texture.emplace_back(level, format);
+    }
+    return colour_texture;
+}

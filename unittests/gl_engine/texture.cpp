@@ -306,34 +306,51 @@ TEST_CASE("gl texture")
     SECTION("red16ui") { test_unsigned_texture_with<1, uint16_t, uint16_t>(uint16_t(60123), gl_engine::Texture::Format::R16UI); }
     SECTION("red32ui") { test_unsigned_texture_with<1, uint32_t, uint32_t>(uint32_t(4000111222), gl_engine::Texture::Format::R32UI); }
 
-    SECTION("rgba array (compressed and uncompressed)")
+    SECTION("rgba array (compressed and uncompressed, mipmapped and not)")
     {
         const auto test_raster = create_test_rgba_raster(256, 256);
         Framebuffer framebuffer(Framebuffer::DepthFormat::None,
             { Framebuffer::ColourFormat::RGBA8, Framebuffer::ColourFormat::RGBA8, Framebuffer::ColourFormat::RGBA8 }, { 256, 256 });
         framebuffer.bind();
-        
-        std::array texture_types = { ColourTexture::Format::Uncompressed_RGBA, gl_engine::Texture::compression_algorithm() };
+
+        std::array texture_types = {
+            std::make_pair(ColourTexture::Format::Uncompressed_RGBA, true),
+            std::make_pair(ColourTexture::Format::Uncompressed_RGBA, false),
+            std::make_pair(gl_engine::Texture::compression_algorithm(), true),
+            std::make_pair(gl_engine::Texture::compression_algorithm(), false),
+        };
         for (auto texture_type : texture_types) {
-            const auto format
-                = (texture_type == ColourTexture::Format::Uncompressed_RGBA) ? gl_engine::Texture::Format::RGBA8 : gl_engine::Texture::Format::CompressedRGBA8;
+            CAPTURE(texture_type.first);
+            CAPTURE(texture_type.second);
+            const auto format = (texture_type.first == ColourTexture::Format::Uncompressed_RGBA) ? gl_engine::Texture::Format::RGBA8
+                                                                                                 : gl_engine::Texture::Format::CompressedRGBA8;
+            const auto use_mipmaps = texture_type.second;
             gl_engine::Texture opengl_texture(gl_engine::Texture::Target::_2dArray, format);
             opengl_texture.bind(0);
-            opengl_texture.setParams(gl_engine::Texture::Filter::Linear, gl_engine::Texture::Filter::Linear);
+            if (use_mipmaps)
+                opengl_texture.setParams(gl_engine::Texture::Filter::MipMapLinear, gl_engine::Texture::Filter::Linear);
+            else
+                opengl_texture.setParams(gl_engine::Texture::Filter::Linear, gl_engine::Texture::Filter::Linear);
             opengl_texture.allocate_array(256, 256, 3);
             {
-                const auto compressed = ColourTexture(test_raster, texture_type);
-                opengl_texture.upload(compressed, 0);
+                if (use_mipmaps)
+                    opengl_texture.upload(generate_mipmapped_colour_texture(test_raster, texture_type.first), 0);
+                else
+                    opengl_texture.upload(ColourTexture(test_raster, texture_type.first), 0);
             }
             {
                 auto test_raster = nucleus::Raster<glm::u8vec4>(glm::uvec2(256), glm::u8vec4(42,142,242,255));
-                const auto compressed = ColourTexture(test_raster, texture_type);
-                opengl_texture.upload(compressed, 1);
+                if (use_mipmaps)
+                    opengl_texture.upload(generate_mipmapped_colour_texture(test_raster, texture_type.first), 1);
+                else
+                    opengl_texture.upload(ColourTexture(test_raster, texture_type.first), 1);
             }
             {
                 auto test_raster = nucleus::Raster<glm::u8vec4>(glm::uvec2(256), glm::u8vec4(222,111,0,255));
-                const auto compressed = ColourTexture(test_raster, texture_type);
-                opengl_texture.upload(compressed, 2);
+                if (use_mipmaps)
+                    opengl_texture.upload(generate_mipmapped_colour_texture(test_raster, texture_type.first), 2);
+                else
+                    opengl_texture.upload(ColourTexture(test_raster, texture_type.first), 2);
             }
             ShaderProgram shader = create_debug_shader(R"(
                 uniform lowp sampler2DArray texture_sampler;
@@ -352,7 +369,7 @@ TEST_CASE("gl texture")
 
             {
                 const QImage render_result = framebuffer.read_colour_attachment(0);
-                // render_result.save("render_result.png");
+                render_result.save(QString("render_result_compressed-%1_mippped-%2.png").arg(int(texture_type.first)).arg(int(use_mipmaps)));
                 // test_texture.save("test_texture.png");
                 double diff = 0;
                 for (int i = 0; i < render_result.width(); ++i) {
