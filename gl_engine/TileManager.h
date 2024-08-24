@@ -67,7 +67,8 @@ public slots:
 
 private:
     void remove_tile(const tile::Id& tile_id);
-    void add_tile(const tile::Id& id, tile::SrsAndHeightBounds bounds, const nucleus::utils::ColourTexture& ortho, const nucleus::Raster<uint16_t>& heights);
+    void add_tile(
+        const tile::Id& id, tile::SrsAndHeightBounds bounds, const nucleus::utils::MipmappedColourTexture& ortho, const nucleus::Raster<uint16_t>& heights);
     void update_gpu_id_map();
 
     static constexpr auto N_EDGE_VERTICES = 65;

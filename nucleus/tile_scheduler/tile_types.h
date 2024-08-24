@@ -107,7 +107,7 @@ static_assert(NamedTile<GpuCacheInfo>);
 struct GpuLayeredTile {
     tile::Id id;
     tile::SrsAndHeightBounds bounds = {};
-    std::shared_ptr<const nucleus::utils::ColourTexture> ortho;
+    std::shared_ptr<const nucleus::utils::MipmappedColourTexture> ortho;
     std::shared_ptr<const nucleus::Raster<uint16_t>> height;
 
 #ifdef ALP_ENABLE_LABELS
