@@ -55,7 +55,7 @@ tl::expected<avalanche::eaws::RegionTile, QString> avalanche::eaws::vector_tile_
         mapbox::vector_tile::feature::properties_type properties = current_feature.getProperties();
         for (const auto& property : properties) {
             StringPrintVisitor string_print_visitor;
-            QString value = mapbox::util::apply_visitor(string_print_visitor, property.second);
+            QString value = std::visit(string_print_visitor, property.second);
             if ("id" == property.first)
                 region.id = value;
             else if ("id_alt" == property.first)

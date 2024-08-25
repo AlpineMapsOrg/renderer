@@ -36,7 +36,7 @@ TEST_CASE("nucleus/vector_tiles")
     {
         // https://osm.cg.tuwien.ac.at/vector_tiles/poi_v1/10/548/359
 
-        const auto id = tile::Id { .zoom_level = 10, .coords = { 548, 359 }, .scheme = tile::Scheme::SlippyMap }.to(tile::Scheme::Tms);
+        const auto id = tile::Id { .zoom_level = 10, .coords = { 548, 359 }, .scheme = tile::Scheme::SlippyMap };
 
         nucleus::tile_scheduler::TileLoadService service(
             nucleus::vectortile::VectorTileManager::tile_server, nucleus::tile_scheduler::TileLoadService::UrlPattern::ZXY_yPointingSouth, "");
@@ -79,8 +79,8 @@ TEST_CASE("nucleus/vector_tiles")
         CHECK(vectortile->size() == 16);
 
         // all ids present in this tile
-        auto all_ids = std::unordered_set<unsigned long> { 9569407690ul, 7156956658ul, 26863041ul, 26863165ul, 21700104ul, 494054611ul, 240050842ul,
-            494054604ul, 240056984ul, 9084394015ul, 7731531071ul, 3600299561ul, 1828616246ul, 10761456533ul, 1123125641ul, 9569407683ul };
+        auto all_ids = std::unordered_set<uint64_t> { 9569407690ul, 7156956658ul, 26863041ul, 26863165ul, 21700104ul, 494054611ul, 240050842ul, 494054604ul,
+            240056984ul, 9084394015ul, 7731531071ul, 3600299561ul, 1828616246ul, 10761456533ul, 1123125641ul, 9569407683ul };
 
         for (const auto& poi : *vectortile) {
 

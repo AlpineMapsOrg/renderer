@@ -34,7 +34,7 @@ namespace nucleus::maplabel {
 struct FontData {
     float uv_width_norm;
     stbtt_fontinfo fontinfo;
-    std::unordered_map<char16_t, const CharData> char_data;
+    std::unordered_map<char16_t, CharData> char_data;
 };
 
 class FontRenderer
