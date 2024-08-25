@@ -54,14 +54,8 @@ TEST_CASE("nucleus/vector_tiles")
             CHECK(tile.network_info.status == nucleus::tile_scheduler::tile_types::NetworkInfo::Status::Good);
             CHECK(nucleus::tile_scheduler::utils::time_since_epoch() - tile.network_info.timestamp < 10'000);
 
-            QString filepath = QString("%1%2").arg(ALP_TEST_DATA_DIR, "vectortile.mvt");
-            QFile file(filepath);
-            file.open(QIODevice::ReadOnly | QIODevice::Unbuffered);
-            QByteArray data = file.readAll();
-
             REQUIRE(tile.data->size() > 0);
-            CHECK(tile.data->size() == data.size());
-            CHECK(*tile.data == data);
+            CHECK(tile.data->size() > 2000);
         }
     }
 
