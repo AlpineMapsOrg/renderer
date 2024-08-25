@@ -103,6 +103,12 @@ Item {
         }
     }
 
+    FeatureDetailWindow {
+        id: feature_detail_window_loader
+        map: map
+
+    }
+
     PageDrawer {
         id: menu
         selectedButtonId: 0

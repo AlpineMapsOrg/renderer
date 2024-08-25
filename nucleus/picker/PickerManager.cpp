@@ -31,14 +31,11 @@ PickerManager::PickerManager(QObject* parent)
 
 void PickerManager::eval_pick(uint32_t value)
 {
-    std::cout << "pick: " << std::to_string(value) << std::endl;
-
     PickTypes type = get_picker_type((value >> 24) & 255);
 
     if (type == PickTypes::invalid) {
         // e.g. clicked on nothing -> hide sidebar
-        std::cout << "invalid type" << std::endl;
-        emit pick_evaluated(nullptr);
+        emit pick_evaluated(FeatureProperties {});
         return;
     }
 
@@ -49,9 +46,7 @@ void PickerManager::eval_pick(uint32_t value)
             return;
         }
 
-        std::cout << "picked: " << m_pickid_to_feature[internal_id]->name.toStdString() << std::endl;
-
-        emit pick_evaluated(m_pickid_to_feature[internal_id].get());
+        emit pick_evaluated(m_pickid_to_feature[internal_id]->get_feature_data());
         return;
     }
 }

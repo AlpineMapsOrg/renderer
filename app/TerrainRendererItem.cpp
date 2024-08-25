@@ -154,6 +154,7 @@ QQuickFramebufferObject::Renderer* TerrainRendererItem::createRenderer() const
     connect(this, &TerrainRendererItem::reload_shader, r->glWindow(), &gl_engine::Window::reload_shader);
 
     connect(this, &TerrainRendererItem::label_filter_changed, r->controller()->label_filter(), &nucleus::maplabel::MapLabelFilter::update_filter);
+    connect(r->controller()->picker_manager(), &nucleus::picker::PickerManager::pick_evaluated, this, &TerrainRendererItem::change_feature);
 
     connect(r->glWindow(), &gl_engine::Window::report_measurements, this->m_timer_manager, &TimerFrontendManager::receive_measurements);
 
@@ -542,4 +543,14 @@ void TerrainRendererItem::datetime_changed(const QDateTime&)
 void TerrainRendererItem::gl_sundir_date_link_changed(bool)
 {
     recalculate_sun_angles();
+}
+
+void TerrainRendererItem::change_feature(const nucleus::picker::FeatureProperties feature)
+{
+    if (m_current_feature_data != feature) {
+        m_current_feature_data = feature;
+        m_current_feature_data_list = feature.get_list_model();
+
+        emit feature_changed();
+    }
 }

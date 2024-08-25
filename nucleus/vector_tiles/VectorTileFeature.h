@@ -27,9 +27,13 @@
 #include <unordered_map>
 #include <unordered_set>
 
+#include "nucleus/picker/PickerTypes.h"
+
 namespace nucleus {
 class DataQuerier;
 }
+
+using namespace nucleus::picker;
 
 namespace nucleus::vectortile {
 
@@ -58,7 +62,9 @@ struct FeatureTXT {
 
     static void parse(std::shared_ptr<FeatureTXT> ft, const mapbox::vector_tile::feature& feature, const std::shared_ptr<DataQuerier> dataquerier);
 
-    virtual QString labelText() const = 0;
+    virtual QString label_text() const = 0;
+
+    virtual FeatureProperties get_feature_data() const = 0;
 };
 
 struct FeatureTXTPeak : public FeatureTXT {
@@ -72,7 +78,8 @@ struct FeatureTXTPeak : public FeatureTXT {
 
     static std::shared_ptr<const FeatureTXT> parse(const mapbox::vector_tile::feature& feature, const std::shared_ptr<DataQuerier> dataquerier);
 
-    QString labelText() const;
+    QString label_text() const;
+    FeatureProperties get_feature_data() const;
 };
 
 struct FeatureTXTCity : public FeatureTXT {
@@ -85,7 +92,8 @@ struct FeatureTXTCity : public FeatureTXT {
 
     static std::shared_ptr<const FeatureTXT> parse(const mapbox::vector_tile::feature& feature, const std::shared_ptr<DataQuerier> dataquerier);
 
-    QString labelText() const;
+    QString label_text() const;
+    FeatureProperties get_feature_data() const;
 };
 
 struct FeatureTXTCottage : public FeatureTXT {
@@ -94,15 +102,11 @@ struct FeatureTXTCottage : public FeatureTXT {
     QString description;
     QString capacity;
     QString opening_hours;
-    QString reservation;
-    QString electricity;
     QString shower;
-    QString winter_room;
     QString phone;
+    QString email;
     QString website;
-    QString seasonal;
     QString internet_access;
-    QString fee;
     QString addr_city;
     QString addr_street;
     QString addr_postcode;
@@ -114,13 +118,14 @@ struct FeatureTXTCottage : public FeatureTXT {
 
     static std::shared_ptr<const FeatureTXT> parse(const mapbox::vector_tile::feature& feature, const std::shared_ptr<DataQuerier> dataquerier);
 
-    QString labelText() const;
+    QString label_text() const;
+    FeatureProperties get_feature_data() const;
 };
 
 struct FeatureTXTWebcam : public FeatureTXT {
     // camera_type: dome,fixed,panning,panorama,NULL
     QString camera_type;
-    // direction: 0-350
+    // direction: 0-350 // -1 if unknown
     int direction;
     // surveillance_type: camera,fixed,guard,outdoor,webcam,NULL
     QString surveillance_type;
@@ -137,7 +142,8 @@ struct FeatureTXTWebcam : public FeatureTXT {
 
     static std::shared_ptr<const FeatureTXT> parse(const mapbox::vector_tile::feature& feature, const std::shared_ptr<DataQuerier> dataquerier);
 
-    QString labelText() const;
+    QString label_text() const;
+    FeatureProperties get_feature_data() const;
 };
 
 typedef std::unordered_set<std::shared_ptr<const FeatureTXT>> VectorTile;

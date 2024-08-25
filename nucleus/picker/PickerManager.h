@@ -47,7 +47,7 @@ public slots:
 
 signals:
     void pick_requested(const glm::dvec2& position);
-    void pick_evaluated(const FeatureTXT* feature);
+    void pick_evaluated(const FeatureProperties feature);
 
 private:
     TiledVectorTile m_all_features;

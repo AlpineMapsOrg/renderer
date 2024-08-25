@@ -91,7 +91,7 @@ TEST_CASE("nucleus/vector_tiles")
                 // Check if großglockner has been successfully parsed (note the id might change)
                 CHECK(poi->name == "Großglockner");
 
-                CHECK(poi->labelText().toStdU16String() == u"Großglockner (3798m)");
+                CHECK(poi->label_text().toStdU16String() == u"Großglockner (3798m)");
             }
         }
 

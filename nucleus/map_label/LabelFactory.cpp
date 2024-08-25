@@ -115,7 +115,7 @@ const std::vector<VertexData> LabelFactory::create_labels(const VectorTile& feat
     std::vector<VertexData> labelData;
 
     for (const auto& feat : features) {
-        create_label(feat->labelText(), feat->worldposition, feat->type, feat->internal_id, feat->importance, labelData);
+        create_label(feat->label_text(), feat->worldposition, feat->type, feat->internal_id, feat->importance, labelData);
     }
 
     return labelData;
