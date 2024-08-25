@@ -34,6 +34,8 @@ TEST_CASE("nucleus/vector_tiles")
 
     SECTION("Tile download")
     {
+        // if this fails it is very likely that something on the vector tile server changed
+        // manually download the tile from the below link and check if the changes are valid and replace vectortile.mvt with this new file
         // https://osm.cg.tuwien.ac.at/vector_tiles/poi_v1/10/548/359
 
         const auto id = tile::Id { .zoom_level = 10, .coords = { 548, 359 }, .scheme = tile::Scheme::SlippyMap }.to(tile::Scheme::Tms);
@@ -79,17 +81,21 @@ TEST_CASE("nucleus/vector_tiles")
         CHECK(vectortile->size() == 16);
 
         // all ids present in this tile
-        auto all_ids = std::unordered_set<unsigned long> { 9569407690ul, 7156956658ul, 26863041ul, 26863165ul, 21700104ul, 494054611ul, 240050842ul,
-            494054604ul, 240056984ul, 9084394015ul, 7731531071ul, 3600299561ul, 1828616246ul, 10761456533ul, 1123125641ul, 9569407683ul };
+        auto all_ids = std::unordered_set<unsigned long> { 9569407690ul, 240050842ul, 26863165ul, 494054611ul, 3600299561ul, 1123125641ul, 240056984ul,
+            9084394015ul, 1828616246ul, 10761456533ul, 21700104ul, 494054604ul, 7731531071ul, 7156956658ul, 26863041ul, 9569407683ul };
 
         for (const auto& poi : *vectortile) {
 
             CHECK(all_ids.contains(poi->id));
             all_ids.erase(poi->id);
 
+            //            std::cout << poi->id << std::endl;
+
             if (poi->id == 26863041ul) {
                 // Check if großglockner has been successfully parsed (note the id might change)
                 CHECK(poi->name == "Großglockner");
+
+                //                std::cout << poi->label_text().toStdString() << std::endl;
 
                 CHECK(poi->label_text().toStdU16String() == u"Großglockner (3798m)");
             }

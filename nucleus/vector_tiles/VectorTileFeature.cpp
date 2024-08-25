@@ -87,7 +87,7 @@ QString FeatureTXTPeak::label_text() const
     if (elevation == 0)
         return name;
     else
-        return QString("%1 (%2)").arg(name).arg(double(elevation), 0, 'f', 0);
+        return QString("%1 (%2m)").arg(name).arg(double(elevation), 0, 'f', 0);
 }
 
 FeatureProperties FeatureTXTPeak::get_feature_data() const
