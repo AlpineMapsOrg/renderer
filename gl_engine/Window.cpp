@@ -53,7 +53,6 @@
 
 #include "Context.h"
 #include "Framebuffer.h"
-#include "MapLabelManager.h"
 #include "SSAO.h"
 #include "ShaderManager.h"
 #include "ShaderProgram.h"
@@ -67,6 +66,10 @@
 #include "GpuAsyncQueryTimer.h"
 #endif
 
+#ifdef ALP_ENABLE_LABELS
+#include "MapLabelManager.h"
+#endif
+
 using gl_engine::UniformBuffer;
 using gl_engine::Window;
 using namespace gl_engine;
@@ -75,7 +78,9 @@ Window::Window()
     : m_camera({ 1822577.0, 6141664.0 - 500, 171.28 + 500 }, { 1822577.0, 6141664.0, 171.28 }) // should point right at the stephansdom
 {
     m_tile_manager = std::make_unique<TileManager>();
+#ifdef ALP_ENABLE_LABELS
     m_map_label_manager = std::make_unique<MapLabelManager>();
+#endif
     QTimer::singleShot(1, [this]() { emit update_requested(); });
 }
 
@@ -146,9 +151,11 @@ void Window::initialise_gpu()
 
     m_shadowmapping = std::make_unique<gl_engine::ShadowMapping>(shader_manager->shared_shadowmap_program(), m_shadow_config_ubo, m_shared_config_ubo);
 
+#ifdef ALP_ENABLE_LABELS
     m_map_label_manager->init();
+#endif
 
-    {   // INITIALIZE CPU AND GPU TIMER
+    { // INITIALIZE CPU AND GPU TIMER
         using namespace std;
         using nucleus::timing::CpuTimer;
         m_timer = std::make_unique<nucleus::timing::TimerManager>();
@@ -331,6 +338,7 @@ void Window::paint(QOpenGLFramebufferObject* framebuffer)
     f->glEnable(GL_DEPTH_TEST);
     f->glDepthFunc(GL_LEQUAL);
 
+#ifdef ALP_ENABLE_LABELS
     // DRAW LABELS
     {
         m_timer->start_timer("labels");
@@ -339,6 +347,7 @@ void Window::paint(QOpenGLFramebufferObject* framebuffer)
         shader_manager->labels_program()->release();
         m_timer->stop_timer("labels");
     }
+#endif
 
     // DRAW TRACKS
     {
@@ -432,11 +441,13 @@ void Window::update_gpu_quads(const std::vector<nucleus::tile_scheduler::tile_ty
     m_tile_manager->update_gpu_quads(new_quads, deleted_quads);
 }
 
+#ifdef ALP_ENABLE_LABELS
 void Window::update_labels(const nucleus::vectortile::TiledVectorTile& visible_features, const std::vector<tile::Id>& removed_tiles)
 {
     assert(m_map_label_manager);
     m_map_label_manager->update_labels(visible_features, removed_tiles);
 }
+#endif
 
 float Window::depth(const glm::dvec2& normalised_device_coordinates)
 {

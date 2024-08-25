@@ -30,7 +30,6 @@
 #include "AbstractRenderWindow.h"
 #include "nucleus/camera/Controller.h"
 #include "nucleus/camera/PositionStorage.h"
-#include "nucleus/map_label/MapLabelFilter.h"
 #include "nucleus/picker/PickerManager.h"
 #include "nucleus/tile_scheduler/LayerAssembler.h"
 #include "nucleus/tile_scheduler/QuadAssembler.h"
@@ -40,11 +39,14 @@
 #include "nucleus/tile_scheduler/TileLoadService.h"
 #include "nucleus/tile_scheduler/utils.h"
 #include "nucleus/utils/thread.h"
-#include "nucleus/vector_tiles/VectorTileManager.h"
 #include "radix/TileHeights.h"
 
+#ifdef ALP_ENABLE_LABELS
+#include "nucleus/map_label/MapLabelFilter.h"
+#include "nucleus/vector_tiles/VectorTileManager.h"
+#endif
+
 using namespace nucleus::tile_scheduler;
-using namespace nucleus::vectortile;
 using namespace nucleus::maplabel;
 using namespace nucleus::picker;
 
@@ -65,8 +67,10 @@ Controller::Controller(AbstractRenderWindow* render_window)
     //                                           {"", "1", "2", "3", "4"}));
     m_ortho_service.reset(
         new TileLoadService("https://gataki.cg.tuwien.ac.at/raw/basemap/tiles/", TileLoadService::UrlPattern::ZYX_yPointingSouth, ".jpeg"));
+#ifdef ALP_ENABLE_LABELS
     m_vectortile_service
         = std::make_unique<TileLoadService>(VectorTileManager::tile_server, nucleus::tile_scheduler::TileLoadService::UrlPattern::ZXY_yPointingSouth, "");
+#endif
 
     m_tile_scheduler = std::make_unique<nucleus::tile_scheduler::Scheduler>();
     m_tile_scheduler->read_disk_cache();
@@ -95,7 +99,6 @@ Controller::Controller(AbstractRenderWindow* render_window)
         RateLimiter* rl = new RateLimiter(sch);
         QuadAssembler* qa = new QuadAssembler(sch);
         LayerAssembler* la = new LayerAssembler(sch);
-        m_label_filter = std::make_unique<MapLabelFilter>(sch);
 
         connect(sch, &Scheduler::quads_requested, sl, &SlotLimiter::request_quads);
         connect(sl, &SlotLimiter::quad_requested, rl, &RateLimiter::request_quad);
@@ -103,14 +106,18 @@ Controller::Controller(AbstractRenderWindow* render_window)
         connect(qa, &QuadAssembler::tile_requested, la, &LayerAssembler::load);
         connect(la, &LayerAssembler::tile_requested, m_ortho_service.get(), &TileLoadService::load);
         connect(la, &LayerAssembler::tile_requested, m_terrain_service.get(), &TileLoadService::load);
-        connect(la, &LayerAssembler::tile_requested, m_vectortile_service.get(), &TileLoadService::load);
 
         connect(m_ortho_service.get(), &TileLoadService::load_finished, la, &LayerAssembler::deliver_ortho);
         connect(m_terrain_service.get(), &TileLoadService::load_finished, la, &LayerAssembler::deliver_height);
-        connect(m_vectortile_service.get(), &TileLoadService::load_finished, la, &LayerAssembler::deliver_vectortile);
         connect(la, &LayerAssembler::tile_loaded, qa, &QuadAssembler::deliver_tile);
         connect(qa, &QuadAssembler::quad_loaded, sl, &SlotLimiter::deliver_quad);
         connect(sl, &SlotLimiter::quad_delivered, sch, &Scheduler::receive_quad);
+
+#ifdef ALP_ENABLE_LABELS
+        m_label_filter = std::make_unique<MapLabelFilter>(sch);
+        connect(la, &LayerAssembler::tile_requested, m_vectortile_service.get(), &TileLoadService::load);
+        connect(m_vectortile_service.get(), &TileLoadService::load_finished, la, &LayerAssembler::deliver_vectortile);
+#endif
     }
     if (QNetworkInformation::loadDefaultBackend() && QNetworkInformation::instance()) {
         QNetworkInformation* n = QNetworkInformation::instance();
@@ -128,7 +135,9 @@ Controller::Controller(AbstractRenderWindow* render_window)
 #else
     m_terrain_service->moveToThread(m_scheduler_thread.get());
     m_ortho_service->moveToThread(m_scheduler_thread.get());
+#ifdef ALP_ENABLE_LABELS
     m_vectortile_service->moveToThread(m_scheduler_thread.get());
+#endif
 #endif
     m_tile_scheduler->moveToThread(m_scheduler_thread.get());
     m_scheduler_thread->start();
@@ -147,12 +156,14 @@ Controller::Controller(AbstractRenderWindow* render_window)
     connect(m_tile_scheduler.get(), &Scheduler::gpu_quads_updated, m_render_window, &AbstractRenderWindow::update_gpu_quads);
     connect(m_tile_scheduler.get(), &Scheduler::gpu_quads_updated, m_render_window, &AbstractRenderWindow::update_requested);
     connect(m_tile_scheduler.get(), &Scheduler::gpu_quads_updated, m_picker_manager.get(), &PickerManager::update_quads);
-    connect(m_tile_scheduler.get(), &Scheduler::gpu_quads_updated, m_label_filter.get(), &MapLabelFilter::update_quads);
-    connect(m_label_filter.get(), &MapLabelFilter::filter_finished, m_render_window, &AbstractRenderWindow::update_labels);
 
-    connect(m_label_filter.get(), &MapLabelFilter::filter_finished, m_render_window, &AbstractRenderWindow::update_requested);
     connect(m_picker_manager.get(), &PickerManager::pick_requested, m_render_window, &AbstractRenderWindow::pick_value);
     connect(m_render_window, &AbstractRenderWindow::value_picked, m_picker_manager.get(), &PickerManager::eval_pick);
+#ifdef ALP_ENABLE_LABELS
+    connect(m_tile_scheduler.get(), &Scheduler::gpu_quads_updated, m_label_filter.get(), &MapLabelFilter::update_quads);
+    connect(m_label_filter.get(), &MapLabelFilter::filter_finished, m_render_window, &AbstractRenderWindow::update_labels);
+    connect(m_label_filter.get(), &MapLabelFilter::filter_finished, m_render_window, &AbstractRenderWindow::update_requested);
+#endif
 }
 
 Controller::~Controller()
@@ -161,7 +172,9 @@ Controller::~Controller()
         m_tile_scheduler.reset();
         m_terrain_service.reset();
         m_ortho_service.reset();
+#ifdef ALP_ENABLE_LABELS
         m_vectortile_service.reset();
+#endif
     });
 #ifdef ALP_ENABLE_THREADING
     m_scheduler_thread->quit();
@@ -181,6 +194,8 @@ Scheduler* Controller::tile_scheduler() const
     return m_tile_scheduler.get();
 }
 
+#ifdef ALP_ENABLE_LABELS
 maplabel::MapLabelFilter* Controller::label_filter() const { return m_label_filter.get(); }
+#endif
 
 } // namespace nucleus

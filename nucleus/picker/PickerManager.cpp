@@ -19,6 +19,10 @@
 #include "PickerManager.h"
 #include <QDebug>
 
+#ifdef ALP_ENABLE_LABELS
+#include "nucleus/vector_tiles/VectorTileFeature.h"
+#endif
+
 namespace nucleus::picker {
 
 // TODOs
@@ -39,6 +43,7 @@ void PickerManager::eval_pick(uint32_t value)
         return;
     }
 
+#ifdef ALP_ENABLE_LABELS
     if (type == PickTypes::feature) {
         const auto internal_id = value & 16777215; // 16777215 = 24bit mask
         if (!m_pickid_to_feature.contains(internal_id)) {
@@ -49,6 +54,7 @@ void PickerManager::eval_pick(uint32_t value)
         emit pick_evaluated(m_pickid_to_feature[internal_id]->get_feature_data());
         return;
     }
+#endif
 }
 
 void PickerManager::update_quads(const std::vector<nucleus::tile_scheduler::tile_types::GpuTileQuad>& new_quads, const std::vector<tile::Id>& deleted_quads)
