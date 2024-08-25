@@ -61,8 +61,6 @@ qt_add_qml_module(alpineapp
         components/VectorEditor.qml
         components/DatePicker.qml
         components/DateMonthTablePicker.qml
-
-
         components/FloatingActionButton.qml
         components/FluxColor/AngleWheel.qml
         components/FluxColor/ColorChooser.qml
@@ -137,7 +135,7 @@ if (ALP_ENABLE_APP_SHUTDOWN_AFTER_60S)
 endif()
 
 if (ANDROID OR EMSCRIPTEN)
-    target_compile_definitions(alpineapp PUBLIC ALP_QML_SOURCE_DIR="qrc:///qt/qml/app/")
+    target_compile_definitions(alpineapp PUBLIC ALP_QML_SOURCE_DIR="qrc:///qt/qml/Alpine/")
 else()
     target_compile_definitions(alpineapp PUBLIC ALP_QML_SOURCE_DIR="file:/${CMAKE_CURRENT_SOURCE_DIR}/")
 endif()
