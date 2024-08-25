@@ -468,8 +468,9 @@ TEST_CASE("nucleus/tile_scheduler/Scheduler")
 
         for (auto i = 0u; i < 4; ++i) {
             REQUIRE(gpu_quads[0].tiles[i].ortho);
-            CHECK(gpu_quads[0].tiles[i].ortho->width() == 256);
-            CHECK(gpu_quads[0].tiles[i].ortho->height() == 256);
+            REQUIRE(gpu_quads[0].tiles[i].ortho->size() == 9);
+            CHECK(gpu_quads[0].tiles[i].ortho->front().width() == 256);
+            CHECK(gpu_quads[0].tiles[i].ortho->front().height() == 256);
             REQUIRE(gpu_quads[0].tiles[i].height);
             CHECK(gpu_quads[0].tiles[i].height->width() == 64);
             CHECK(gpu_quads[0].tiles[i].height->height() == 64);
@@ -492,8 +493,9 @@ TEST_CASE("nucleus/tile_scheduler/Scheduler")
         REQUIRE(gpu_quads.size() == 1);
         for (auto i = 0u; i < 3; ++i) {
             REQUIRE(gpu_quads[0].tiles[i].ortho);
-            CHECK(gpu_quads[0].tiles[i].ortho->width() == 256);
-            CHECK(gpu_quads[0].tiles[i].ortho->height() == 256);
+            REQUIRE(gpu_quads[0].tiles[i].ortho->size() == 9);
+            CHECK(gpu_quads[0].tiles[i].ortho->front().width() == 256);
+            CHECK(gpu_quads[0].tiles[i].ortho->front().height() == 256);
             REQUIRE(gpu_quads[0].tiles[i].height);
             CHECK(gpu_quads[0].tiles[i].height->width() == 64);
             CHECK(gpu_quads[0].tiles[i].height->height() == 64);

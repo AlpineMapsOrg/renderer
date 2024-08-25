@@ -37,16 +37,16 @@ FeatureTXT::FeatureTXT()
 
 void FeatureTXT::parse(std::shared_ptr<FeatureTXT> ft, const mapbox::vector_tile::feature& feature, const std::shared_ptr<DataQuerier> dataquerier)
 {
-    ft->id = feature.getID().get<uint64_t>();
+    ft->id = get<uint64_t>(feature.getID());
 
     auto props = feature.getProperties();
-    ft->name = QString::fromStdString(props["name"].get<std::string>());
-    ft->position = glm::dvec2(props["lat"].get<double>(), props["long"].get<double>());
+    ft->name = QString::fromStdString(get<std::string>(props["name"]));
+    ft->position = glm::dvec2(get<double>(props["lat"]), get<double>(props["long"]));
 
-    if (props["importance"].valid() && props["importance"].is<double>())
-        ft->importance = props["importance"].get<double>();
-    if (props["importance_metric"].valid() && props["importance_metric"].is<std::uint64_t>())
-        ft->importance_metric = props["importance_metric"].get<std::uint64_t>();
+    if (holds_alternative<double>(props["importance"]))
+        ft->importance = get<double>(props["importance"]);
+    if (holds_alternative<std::uint64_t>(props["importance_metric"]))
+        ft->importance_metric = get<std::uint64_t>(props["importance_metric"]);
 
     double altitude = 0;
     if (dataquerier)
@@ -64,20 +64,20 @@ std::shared_ptr<const FeatureTXT> FeatureTXTPeak::parse(const mapbox::vector_til
 
     auto props = feature.getProperties();
 
-    if (props["wikipedia"].valid() && props["wikipedia"].is<std::string>())
-        peak->wikipedia = QString::fromStdString(props["wikipedia"].get<std::string>());
-    if (props["wikidata"].valid() && props["wikidata"].is<std::string>())
-        peak->wikidata = QString::fromStdString(props["wikidata"].get<std::string>());
-    if (props["importance_osm"].valid() && props["importance_osm"].is<std::string>())
-        peak->importance_osm =  QString::fromStdString(props["importance_osm"].get<std::string>());
-    if (props["prominence"].valid() && props["prominence"].is<std::string>())
-        peak->prominence =  QString::fromStdString(props["prominence"].get<std::string>());
-    if (props["summit_cross"].valid() && props["summit_cross"].is<std::string>())
-        peak->summit_cross = QString::fromStdString(props["summit_cross"].get<std::string>());
-    if (props["summit_register"].valid() && props["summit_register"].is<std::string>())
-        peak->summit_register = QString::fromStdString(props["summit_register"].get<std::string>());
-    if (props["ele"].valid() && props["ele"].is<uint64_t>())
-        peak->elevation = props["ele"].get<std::uint64_t>();
+    if (holds_alternative<std::string>(props["wikipedia"]))
+        peak->wikipedia = QString::fromStdString(get<std::string>(props["wikipedia"]));
+    if (holds_alternative<std::string>(props["wikidata"]))
+        peak->wikidata = QString::fromStdString(get<std::string>(props["wikidata"]));
+    if (holds_alternative<std::string>(props["importance_osm"]))
+        peak->importance_osm = QString::fromStdString(get<std::string>(props["importance_osm"]));
+    if (holds_alternative<std::string>(props["prominence"]))
+        peak->prominence = QString::fromStdString(get<std::string>(props["prominence"]));
+    if (holds_alternative<std::string>(props["summit_cross"]))
+        peak->summit_cross = QString::fromStdString(get<std::string>(props["summit_cross"]));
+    if (holds_alternative<std::string>(props["summit_register"]))
+        peak->summit_register = QString::fromStdString(get<std::string>(props["summit_register"]));
+    if (holds_alternative<uint64_t>(props["ele"]))
+        peak->elevation = get<std::uint64_t>(props["ele"]);
 
     return peak;
 }
@@ -135,19 +135,18 @@ std::shared_ptr<const FeatureTXT> FeatureTXTCity::parse(const mapbox::vector_til
 
     auto props = feature.getProperties();
 
-    if (props["wikipedia"].valid() && props["wikipedia"].is<std::string>())
-        city->wikipedia = QString::fromStdString(props["wikipedia"].get<std::string>());
-    if (props["wikidata"].valid() && props["wikidata"].is<std::string>())
-        city->wikidata = QString::fromStdString(props["wikidata"].get<std::string>());
-    if (props["population"].valid() && props["population"].is<std::uint64_t>())
-        city->population = props["population"].get<std::uint64_t>();
-    if (props["place"].valid() && props["place"].is<std::string>())
-        city->place = QString::fromStdString(props["place"].get<std::string>());
-    if (props["population_date"].valid() && props["population_date"].is<std::string>())
-        city->population_date = QString::fromStdString(props["population_date"].get<std::string>());
-    if (props["website"].valid() && props["website"].is<std::string>())
-        city->website = QString::fromStdString(props["website"].get<std::string>());
-
+    if (holds_alternative<std::string>(props["wikipedia"]))
+        city->wikipedia = QString::fromStdString(get<std::string>(props["wikipedia"]));
+    if (holds_alternative<std::string>(props["wikidata"]))
+        city->wikidata = QString::fromStdString(get<std::string>(props["wikidata"]));
+    if (holds_alternative<std::uint64_t>(props["population"]))
+        city->population = get<std::uint64_t>(props["population"]);
+    if (holds_alternative<std::string>(props["place"]))
+        city->place = QString::fromStdString(get<std::string>(props["place"]));
+    if (holds_alternative<std::string>(props["population_date"]))
+        city->population_date = QString::fromStdString(get<std::string>(props["population_date"]));
+    if (holds_alternative<std::string>(props["website"]))
+        city->website = QString::fromStdString(get<std::string>(props["website"]));
 
     return city;
 }
@@ -200,42 +199,42 @@ std::shared_ptr<const FeatureTXT> FeatureTXTCottage::parse(const mapbox::vector_
 
     auto props = feature.getProperties();
 
-    if (props["wikipedia"].valid() && props["wikipedia"].is<std::string>())
-        cottage->wikipedia = QString::fromStdString(props["wikipedia"].get<std::string>());
-    if (props["wikidata"].valid() && props["wikidata"].is<std::string>())
-        cottage->wikidata = QString::fromStdString(props["wikidata"].get<std::string>());
-    if (props["description"].valid() && props["description"].is<std::string>())
-        cottage->description = QString::fromStdString(props["description"].get<std::string>());
-    if (props["capacity"].valid() && props["capacity"].is<std::string>())
-        cottage->capacity = QString::fromStdString(props["capacity"].get<std::string>());
-    if (props["opening_hours"].valid() && props["opening_hours"].is<std::string>())
-        cottage->opening_hours = QString::fromStdString(props["opening_hours"].get<std::string>());
-    if (props["shower"].valid() && props["shower"].is<std::string>())
-        cottage->shower = QString::fromStdString(props["shower"].get<std::string>());
-    if (props["phone"].valid() && props["phone"].is<std::string>())
-        cottage->phone = QString::fromStdString(props["phone"].get<std::string>());
-    if (props["email"].valid() && props["email"].is<std::string>())
-        cottage->email = QString::fromStdString(props["email"].get<std::string>());
-    if (props["website"].valid() && props["website"].is<std::string>())
-        cottage->website = QString::fromStdString(props["website"].get<std::string>());
-    if (props["internet_access"].valid() && props["internet_access"].is<std::string>())
-        cottage->internet_access = QString::fromStdString(props["internet_access"].get<std::string>());
-    if (props["addr_city"].valid() && props["addr_city"].is<std::string>())
-        cottage->addr_city = QString::fromStdString(props["addr_city"].get<std::string>());
-    if (props["addr_street"].valid() && props["addr_street"].is<std::string>())
-        cottage->addr_street = QString::fromStdString(props["addr_street"].get<std::string>());
-    if (props["addr_postcode"].valid() && props["addr_postcode"].is<std::string>())
-        cottage->addr_postcode = QString::fromStdString(props["addr_postcode"].get<std::string>());
-    if (props["addr_housenumber"].valid() && props["addr_housenumber"].is<std::string>())
-        cottage->addr_housenumber = QString::fromStdString(props["addr_housenumber"].get<std::string>());
-    if (props["operators"].valid() && props["operators"].is<std::string>())
-        cottage->operators = QString::fromStdString(props["operator"].get<std::string>());
-    if (props["feature_type"].valid() && props["feature_type"].is<std::string>())
-        cottage->feature_type = QString::fromStdString(props["feature_type"].get<std::string>());
-    if (props["access"].valid() && props["access"].is<std::string>())
-        cottage->access = QString::fromStdString(props["access"].get<std::string>());
-    if (props["ele"].valid() && props["ele"].is<uint64_t>())
-        cottage->elevation = props["ele"].get<std::uint64_t>();
+    if (holds_alternative<std::string>(props["wikipedia"]))
+        cottage->wikipedia = QString::fromStdString(get<std::string>(props["wikipedia"]));
+    if (holds_alternative<std::string>(props["wikidata"]))
+        cottage->wikidata = QString::fromStdString(get<std::string>(props["wikidata"]));
+    if (holds_alternative<std::string>(props["description"]))
+        cottage->description = QString::fromStdString(get<std::string>(props["description"]));
+    if (holds_alternative<std::string>(props["capacity"]))
+        cottage->capacity = QString::fromStdString(get<std::string>(props["capacity"]));
+    if (holds_alternative<std::string>(props["opening_hours"]))
+        cottage->opening_hours = QString::fromStdString(get<std::string>(props["opening_hours"]));
+    if (holds_alternative<std::string>(props["shower"]))
+        cottage->shower = QString::fromStdString(get<std::string>(props["shower"]));
+    if (holds_alternative<std::string>(props["phone"]))
+        cottage->phone = QString::fromStdString(get<std::string>(props["phone"]));
+    if (holds_alternative<std::string>(props["email"]))
+        cottage->email = QString::fromStdString(get<std::string>(props["email"]));
+    if (holds_alternative<std::string>(props["website"]))
+        cottage->website = QString::fromStdString(get<std::string>(props["website"]));
+    if (holds_alternative<std::string>(props["internet_access"]))
+        cottage->internet_access = QString::fromStdString(get<std::string>(props["internet_access"]));
+    if (holds_alternative<std::string>(props["addr_city"]))
+        cottage->addr_city = QString::fromStdString(get<std::string>(props["addr_city"]));
+    if (holds_alternative<std::string>(props["addr_street"]))
+        cottage->addr_street = QString::fromStdString(get<std::string>(props["addr_street"]));
+    if (holds_alternative<std::string>(props["addr_postcode"]))
+        cottage->addr_postcode = QString::fromStdString(get<std::string>(props["addr_postcode"]));
+    if (holds_alternative<std::string>(props["addr_housenumber"]))
+        cottage->addr_housenumber = QString::fromStdString(get<std::string>(props["addr_housenumber"]));
+    if (holds_alternative<std::string>(props["operator"]))
+        cottage->operators = QString::fromStdString(get<std::string>(props["operator"]));
+    if (holds_alternative<std::string>(props["feature_type"]))
+        cottage->feature_type = QString::fromStdString(get<std::string>(props["feature_type"]));
+    if (holds_alternative<std::string>(props["access"]))
+        cottage->access = QString::fromStdString(get<std::string>(props["access"]));
+    if (holds_alternative<uint64_t>(props["ele"]))
+        cottage->elevation = get<std::uint64_t>(props["ele"]);
 
     return cottage;
 }
@@ -322,20 +321,20 @@ std::shared_ptr<const FeatureTXT> FeatureTXTWebcam::parse(const mapbox::vector_t
 
     auto props = feature.getProperties();
 
-    if (props["camera_type"].valid() && props["camera_type"].is<std::string>())
-        webcam->camera_type = QString::fromStdString(props["camera_type"].get<std::string>());
-    if (props["direction"].valid() && props["direction"].is<uint64_t>())
-        webcam->direction = props["direction"].get<std::uint64_t>();
+    if (holds_alternative<std::string>(props["camera_type"]))
+        webcam->camera_type = QString::fromStdString(get<std::string>(props["camera_type"]));
+    if (holds_alternative<uint64_t>(props["direction"]))
+        webcam->direction = get<std::uint64_t>(props["direction"]);
     else
         webcam->direction = -1;
-    if (props["surveillance_type"].valid() && props["surveillance_type"].is<std::string>())
-        webcam->surveillance_type = QString::fromStdString(props["surveillance_type"].get<std::string>());
-    if (props["image"].valid() && props["image"].is<std::string>())
-        webcam->image = QString::fromStdString(props["image"].get<std::string>());
-    if (props["description"].valid() && props["description"].is<std::string>())
-        webcam->description = QString::fromStdString(props["description"].get<std::string>());
-    if (props["ele"].valid() && props["ele"].is<uint64_t>())
-        webcam->elevation = props["ele"].get<std::uint64_t>();
+    if (holds_alternative<std::string>(props["surveillance_type"]))
+        webcam->surveillance_type = QString::fromStdString(get<std::string>(props["surveillance_type"]));
+    if (holds_alternative<std::string>(props["image"]))
+        webcam->image = QString::fromStdString(get<std::string>(props["image"]));
+    if (holds_alternative<std::string>(props["description"]))
+        webcam->description = QString::fromStdString(get<std::string>(props["description"]));
+    if (holds_alternative<uint64_t>(props["ele"]))
+        webcam->elevation = get<std::uint64_t>(props["ele"]);
 
     return webcam;
 }

@@ -16,7 +16,8 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *****************************************************************************/
 
-#include <catch2/catch_test_macros.hpp>
+#include "catch2_helpers.h"
+
 #include <glm/glm.hpp>
 
 #include "nucleus/Raster.h"
@@ -118,6 +119,97 @@ TEST_CASE("nucleus/Raster")
         for (int p : raster) {
             CHECK(p == 657);
         }
+    }
+
+    SECTION("resize 1")
+    {
+        Raster<int> a({ 4, 3 }, 1);
+        const auto b = resize(a, { 2, 1 }, 2);
+        CHECK(b.pixel({ 0, 0 }) == 1);
+        CHECK(b.pixel({ 1, 0 }) == 1);
+    }
+
+    SECTION("resize 2")
+    {
+        Raster<int> a({ 2, 1 }, 1);
+        const auto b = resize(a, { 4, 3 }, 2);
+        CHECK(b.pixel({ 0, 0 }) == 1);
+        CHECK(b.pixel({ 0, 1 }) == 2);
+        CHECK(b.pixel({ 0, 2 }) == 2);
+
+        CHECK(b.pixel({ 1, 0 }) == 1);
+        CHECK(b.pixel({ 1, 1 }) == 2);
+        CHECK(b.pixel({ 1, 2 }) == 2);
+
+        for (auto i = 0u; i < 3; ++i) {
+            CHECK(b.pixel({ 2, i }) == 2);
+            CHECK(b.pixel({ 3, i }) == 2);
+        }
+    }
+
+    SECTION("create mip maps")
+    {
+        // clang-format off
+        Raster<glm::u8vec4> raster({ 4, 4 }, glm::u8vec4(0u, 0u, 0u, 0u));
+        raster.pixel({ 0, 0 }) = glm::u8vec4(100u,   0u, 100u,   0u);
+        raster.pixel({ 0, 1 }) = glm::u8vec4(100u,   0u, 100u, 150u);
+        raster.pixel({ 1, 0 }) = glm::u8vec4(200u, 200u, 100u, 250u);
+        raster.pixel({ 1, 1 }) = glm::u8vec4(0u,   200u, 100u,   0u);
+        
+        raster.pixel({ 0, 2 }) = glm::u8vec4(10u, 20u, 30u, 40u);
+        raster.pixel({ 0, 3 }) = glm::u8vec4(10u, 20u, 30u, 40u);
+        raster.pixel({ 1, 2 }) = glm::u8vec4(10u, 20u, 30u, 40u);
+        raster.pixel({ 1, 3 }) = glm::u8vec4(10u, 20u, 30u, 40u);
+
+        raster.pixel({ 2, 0 }) = glm::u8vec4(200u, 250u, 0u, 255u);
+        raster.pixel({ 2, 1 }) = glm::u8vec4(200u, 250u, 0u, 255u);
+        raster.pixel({ 3, 0 }) = glm::u8vec4(200u, 250u, 0u, 255u);
+        raster.pixel({ 3, 1 }) = glm::u8vec4(200u, 250u, 0u, 255u);
+        
+        raster.pixel({ 2, 2 }) = glm::u8vec4(0u, 0u, 0u, 1u);
+        raster.pixel({ 2, 3 }) = glm::u8vec4(3u, 0u, 0u, 1u);
+        raster.pixel({ 3, 2 }) = glm::u8vec4(0u, 0u, 1u, 1u);
+        raster.pixel({ 3, 3 }) = glm::u8vec4(0u, 1u, 2u, 1u);
+
+        const auto mipmap = generate_mipmap(raster);
+        REQUIRE(mipmap.size() == 3);
+        CHECK(mipmap.at(0).size() == glm::uvec2(4, 4));
+        CHECK(mipmap.at(1).size() == glm::uvec2(2, 2));
+        CHECK(mipmap.at(2).size() == glm::uvec2(1, 1));
+
+        for (auto i = 0u; i < raster.buffer_length(); ++i) {
+            CHECK(mipmap.at(0).buffer().at(i) == raster.buffer().at(i));
+        }
+        CHECK(mipmap.at(1).pixel({ 0, 0 }) == glm::u8vec4(100u, 100u, 100u, 100u));
+        CHECK(mipmap.at(1).pixel({ 0, 1 }) == glm::u8vec4(10u,   20u,  30u,  40u));
+        CHECK(mipmap.at(1).pixel({ 1, 0 }) == glm::u8vec4(200u, 250u,   0u, 255u));
+        CHECK(mipmap.at(1).pixel({ 1, 1 }) == glm::u8vec4(0u,     0u,   0u,   1u));
+        
+        CHECK(mipmap.at(2).pixel({ 0, 0 }) == glm::u8vec4(77u, 92u, 32u, 99u));
+        // clang-format on
+    }
+
+    SECTION("create mip maps with uint16")
+    {
+        // clang-format off
+        Raster<uint16_t> raster({ 2, 2 }, 0u);
+        raster.pixel({ 0, 0 }) = 65535u;
+        raster.pixel({ 0, 1 }) = 65535u;
+        raster.pixel({ 1, 0 }) = 65535u;
+        raster.pixel({ 1, 1 }) = 65535u;
+        
+        const auto mipmap = generate_mipmap(raster);
+        REQUIRE(mipmap.size() == 2);
+        CHECK(mipmap.at(0).size() == glm::uvec2(2, 2));
+        CHECK(mipmap.at(1).size() == glm::uvec2(1, 1));
+        
+        CHECK(mipmap.at(0).pixel({ 0, 0 }) == 65535u);
+        CHECK(mipmap.at(0).pixel({ 0, 1 }) == 65535u);
+        CHECK(mipmap.at(0).pixel({ 1, 0 }) == 65535u);
+        CHECK(mipmap.at(0).pixel({ 1, 1 }) == 65535u);
+        
+        CHECK(mipmap.at(1).pixel({ 0, 0 }) == 65535u);
+        // clang-format on
     }
 
     SECTION("combine")

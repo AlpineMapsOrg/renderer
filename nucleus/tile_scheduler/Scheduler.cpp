@@ -182,10 +182,12 @@ void Scheduler::update_gpu_quads()
                            if (quad.tiles[i].ortho->size()) {
                                // Ortho image is available
                                Raster<glm::u8vec4> ortho_raster = nucleus::utils::image_loader::rgba8(*quad.tiles[i].ortho.get());
-                               gpu_quad.tiles[i].ortho = std::make_shared<nucleus::utils::ColourTexture>(ortho_raster, m_ortho_tile_compression_algorithm);
+                               gpu_quad.tiles[i].ortho = std::make_shared<nucleus::utils::MipmappedColourTexture>(
+                                   generate_mipmapped_colour_texture(ortho_raster, m_ortho_tile_compression_algorithm));
                            } else {
                                // Ortho image is not available (use white default tile)
-                               gpu_quad.tiles[i].ortho = std::make_shared<nucleus::utils::ColourTexture>(m_default_ortho_raster, m_ortho_tile_compression_algorithm);
+                               gpu_quad.tiles[i].ortho = std::make_shared<nucleus::utils::MipmappedColourTexture>(
+                                   generate_mipmapped_colour_texture(m_default_ortho_raster, m_ortho_tile_compression_algorithm));
                            }
 
                            if (quad.tiles[i].height->size()) {

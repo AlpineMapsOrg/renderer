@@ -44,4 +44,7 @@ public:
     [[nodiscard]] Format format() const { return m_format; }
 };
 
+using MipmappedColourTexture = std::vector<ColourTexture>;
+MipmappedColourTexture generate_mipmapped_colour_texture(const nucleus::Raster<glm::u8vec4>& data, ColourTexture::Format format);
+
 } // namespace nucleus::utils

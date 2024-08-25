@@ -84,13 +84,10 @@ void gl_engine::Texture::bind(unsigned int texture_unit)
     f->glBindTexture(GLenum(m_target), m_id);
 }
 
-void gl_engine::Texture::setParams(Filter min_filter, Filter mag_filter)
+void gl_engine::Texture::setParams(Filter min_filter, Filter mag_filter, bool anisotropic_filtering)
 {
     // doesn't make sense, does it?
     assert(mag_filter != Filter::MipMapLinear);
-
-    // add upload functionality for compressed mipmaps to support this
-    assert(m_format != Format::CompressedRGBA8 || min_filter != Filter::MipMapLinear);
 
     assert(gl_tex_params(m_format).is_texture_filterable || (min_filter == Filter::Nearest && mag_filter == Filter::Nearest));
 
@@ -103,6 +100,9 @@ void gl_engine::Texture::setParams(Filter min_filter, Filter mag_filter)
     f->glTexParameteri(GLenum(m_target), GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
     f->glTexParameteri(GLenum(m_target), GL_TEXTURE_MIN_FILTER, GLint(m_min_filter));
     f->glTexParameteri(GLenum(m_target), GL_TEXTURE_MAG_FILTER, GLint(m_mag_filter));
+    if (anisotropic_filtering)
+        f->glTexParameterf(GLenum(m_target), GL_TEXTURE_MAX_ANISOTROPY, 16.0);
+    // f->glTexParameterf(GLenum(m_target), ext.TEXTURE_MAX_ANISOTROPY_EXT, 16.0);
 }
 
 void gl_engine::Texture::allocate_array(unsigned int width, unsigned int height, unsigned int n_layers)
@@ -148,6 +148,7 @@ void gl_engine::Texture::upload(const nucleus::utils::ColourTexture& texture, un
     assert(texture.width() == m_width);
     assert(texture.height() == m_height);
     assert(array_index < m_n_layers);
+    assert(m_min_filter != Filter::MipMapLinear); // use the upload function with nucleus::utils::MipmappedColourTexture
 
     auto* f = QOpenGLContext::currentContext()->extraFunctions();
     f->glBindTexture(GLenum(m_target), m_id);
@@ -155,15 +156,39 @@ void gl_engine::Texture::upload(const nucleus::utils::ColourTexture& texture, un
     const auto width = GLsizei(texture.width());
     const auto height = GLsizei(texture.height());
     if (m_format == Format::CompressedRGBA8) {
-        assert(m_min_filter != Filter::MipMapLinear);
         const auto format = gl_engine::Texture::compressed_texture_format();
         f->glCompressedTexSubImage3D(GLenum(m_target), 0, 0, 0, GLint(array_index), width, height, 1, format, GLsizei(texture.n_bytes()), texture.data());
     } else if (m_format == Format::RGBA8) {
         f->glTexSubImage3D(GLenum(m_target), 0, 0, 0, GLint(array_index), width, height, 1, GL_RGBA, GL_UNSIGNED_BYTE, texture.data());
-        if (m_min_filter == Filter::MipMapLinear)
-            f->glGenerateMipmap(GLenum(m_target));
     } else {
         assert(false);
+    }
+}
+
+void gl_engine::Texture::upload(const nucleus::utils::MipmappedColourTexture& mipped_texture, unsigned int array_index)
+{
+    assert(mipped_texture.size() > 0);
+    assert(mipped_texture.front().width() == m_width);
+    assert(mipped_texture.front().height() == m_height);
+    assert(array_index < m_n_layers);
+
+    auto* f = QOpenGLContext::currentContext()->extraFunctions();
+    f->glBindTexture(GLenum(m_target), m_id);
+    f->glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
+    auto mip_level = 0;
+    for (const auto& texture : mipped_texture) {
+        const auto width = GLsizei(texture.width());
+        const auto height = GLsizei(texture.height());
+        if (m_format == Format::CompressedRGBA8) {
+            const auto format = gl_engine::Texture::compressed_texture_format();
+            f->glCompressedTexSubImage3D(
+                GLenum(m_target), mip_level, 0, 0, GLint(array_index), width, height, 1, format, GLsizei(texture.n_bytes()), texture.data());
+        } else if (m_format == Format::RGBA8) {
+            f->glTexSubImage3D(GLenum(m_target), mip_level, 0, 0, GLint(array_index), width, height, 1, GL_RGBA, GL_UNSIGNED_BYTE, texture.data());
+        } else {
+            assert(false);
+        }
+        ++mip_level;
     }
 }
 

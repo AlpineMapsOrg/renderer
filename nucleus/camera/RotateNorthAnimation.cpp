@@ -18,9 +18,10 @@
  *****************************************************************************/
 
 #include "RotateNorthAnimation.h"
-#include "AbstractDepthTester.h"
 
-#include <QDebug>
+#include <QEasingCurve>
+
+#include "AbstractDepthTester.h"
 
 namespace nucleus::camera {
 
@@ -71,11 +72,7 @@ std::optional<glm::vec2> RotateNorthAnimation::operation_centre()
 
 float RotateNorthAnimation::ease_in_out(float t)
 {
-    const float p = 0.3f;
-    if (t < 0.5f) {
-        return 0.5f * pow(2 * t, 1.0f / p);
-    } else {
-        return 1 - 0.5f * pow(2 * (1 - t), 1.0f / p);
-    }
+    QEasingCurve c(QEasingCurve::Type::OutExpo);
+    return c.valueForProgress(t);
 }
 }

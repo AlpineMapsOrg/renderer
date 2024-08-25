@@ -79,7 +79,7 @@ void TileManager::init()
     m_vao->release();
 
     m_ortho_textures = std::make_unique<Texture>(Texture::Target::_2dArray, Texture::Format::CompressedRGBA8);
-    m_ortho_textures->setParams(Texture::Filter::Linear, Texture::Filter::Linear);
+    m_ortho_textures->setParams(Texture::Filter::MipMapLinear, Texture::Filter::Linear, true);
     // TODO: might become larger than GL_MAX_ARRAY_TEXTURE_LAYERS
     m_ortho_textures->allocate_array(ORTHO_RESOLUTION, ORTHO_RESOLUTION, unsigned(m_loaded_tiles.size()));
 
@@ -223,8 +223,8 @@ void TileManager::set_quad_limit(unsigned int new_limit)
     std::fill(m_loaded_tiles.begin(), m_loaded_tiles.end(), tile::Id { unsigned(-1), {} });
 }
 
-void TileManager::add_tile(
-    const tile::Id& id, tile::SrsAndHeightBounds bounds, const nucleus::utils::ColourTexture& ortho_texture, const nucleus::Raster<uint16_t>& height_map)
+void TileManager::add_tile(const tile::Id& id, tile::SrsAndHeightBounds bounds, const nucleus::utils::MipmappedColourTexture& ortho_texture,
+    const nucleus::Raster<uint16_t>& height_map)
 {
     if (!QOpenGLContext::currentContext()) // can happen during shutdown.
         return;
