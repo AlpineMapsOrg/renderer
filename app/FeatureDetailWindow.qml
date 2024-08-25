@@ -91,6 +91,7 @@ Rectangle {
             font.pixelSize: 18
             font.bold: true
             horizontalAlignment: Text.AlignHCenter
+            wrapMode: Text.WordWrap
         }
 
         ListView {
@@ -108,10 +109,29 @@ Rectangle {
                width: parent.width
                height: ((model.index % 2) == 0) ? 17 : 22
 
-               Label{
-                   font.pixelSize: ((model.index % 2) == 0) ? 14 : 12
+               Text{
+                   font.pixelSize: ((model.index % 2) == 0) ? 14 : 11
                    font.bold: (model.index % 2) == 0
                    text:map.current_feature_data_list[model.index]
+                   wrapMode: Text.Wrap
+
+                   color: {
+                       if(map.current_feature_data_list[model.index].startsWith("http"))
+                       {
+                           return "#1b75d0"
+                       }
+                       else
+                       {
+                           return "#000000"
+                       }
+                   }
+               }
+
+               onClicked: {
+                   if(map.current_feature_data_list[model.index].startsWith("http"))
+                   {
+                        Qt.openUrlExternally(map.current_feature_data_list[model.index]);
+                   }
                }
            }
        }

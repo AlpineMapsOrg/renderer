@@ -87,7 +87,7 @@ QString FeatureTXTPeak::label_text() const
     if (elevation == 0)
         return name;
     else
-        return QString("%1 (%2m)").arg(name).arg(double(elevation), 0, 'f', 0);
+        return QString("%1 (%2)").arg(name).arg(double(elevation), 0, 'f', 0);
 }
 
 FeatureProperties FeatureTXTPeak::get_feature_data() const
@@ -98,10 +98,10 @@ FeatureProperties FeatureTXTPeak::get_feature_data() const
 
     properties.m_properties.append(FeatureProperty { "Type", "Peak" });
 
-    properties.m_properties.append(FeatureProperty { "Coordinates", QString("%1, %2m").arg(position.x).arg(position.y) });
+    properties.m_properties.append(FeatureProperty { "Coordinates", QString("%1, %2").arg(position.x).arg(position.y) });
 
     if (elevation > 0) {
-        properties.m_properties.append(FeatureProperty { "Elevation", QString("%1").arg(elevation) });
+        properties.m_properties.append(FeatureProperty { "Elevation", QString("%1m").arg(elevation) });
     } else {
         // explicitly state that we do not have an official elevation
         properties.m_properties.append(FeatureProperty { "Elevation", "-" });
@@ -164,7 +164,7 @@ FeatureProperties FeatureTXTCity::get_feature_data() const
         properties.m_properties.append(FeatureProperty { "Type", place });
     }
 
-    properties.m_properties.append(FeatureProperty { "Coordinates", QString("%1, %2m").arg(position.x).arg(position.y) });
+    properties.m_properties.append(FeatureProperty { "Coordinates", QString("%1, %2").arg(position.x).arg(position.y) });
 
     if (population > 0) {
         properties.m_properties.append(FeatureProperty { "Population", QString("%1").arg(population) });
@@ -256,10 +256,10 @@ FeatureProperties FeatureTXTCottage::get_feature_data() const
             properties.m_properties.append(FeatureProperty { "Type", "Wilderness hut" });
     }
 
-    properties.m_properties.append(FeatureProperty { "Coordinates", QString("%1, %2m").arg(position.x).arg(position.y) });
+    properties.m_properties.append(FeatureProperty { "Coordinates", QString("%1, %2").arg(position.x).arg(position.y) });
 
     if (elevation > 0) {
-        properties.m_properties.append(FeatureProperty { "Elevation", QString("%1").arg(elevation) });
+        properties.m_properties.append(FeatureProperty { "Elevation", QString("%1m").arg(elevation) });
     }
     if (wikipedia.size() > 0) {
         properties.m_properties.append(FeatureProperty { "Wikipedia", wikipedia });
@@ -354,14 +354,14 @@ FeatureProperties FeatureTXTWebcam::get_feature_data() const
 
     properties.m_properties.append(FeatureProperty { "Type", "Webcam" });
 
-    properties.m_properties.append(FeatureProperty { "Coordinates", QString("%1, %2m").arg(position.x).arg(position.y) });
+    properties.m_properties.append(FeatureProperty { "Coordinates", QString("%1, %2").arg(position.x).arg(position.y) });
 
     if (image.size() > 0) {
         properties.m_properties.append(FeatureProperty { "Link to image", image });
     }
 
     if (elevation > 0) {
-        properties.m_properties.append(FeatureProperty { "Elevation", QString("%1").arg(elevation) });
+        properties.m_properties.append(FeatureProperty { "Elevation", QString("%1m").arg(elevation) });
     }
 
     if (camera_type.size() > 0) {
