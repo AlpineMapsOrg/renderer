@@ -15,12 +15,18 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        compiler: [gcc, clang15, clang17]
+        compiler: [gcc10, gcc11, gcc12, clang15, clang17]
         build_type: [Release]
         include:
-          - compiler: gcc
-            CC: '/usr/bin/gcc'
-            CXX: '/usr/bin/g++'
+          - compiler: gcc10
+            CC: "/usr/bin/gcc-10"
+            CXX: "/usr/bin/g++-10"
+          - compiler: gcc11
+            CC: "/usr/bin/gcc-11"
+            CXX: "/usr/bin/g++-11"
+          - compiler: gcc12
+            CC: "/usr/bin/gcc-12"
+            CXX: "/usr/bin/g++-12"
           - compiler: clang15
             CC: '/usr/bin/clang-15'
             CXX: '/usr/bin/clang++-15'
