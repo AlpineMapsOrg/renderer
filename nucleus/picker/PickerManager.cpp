@@ -25,9 +25,6 @@
 
 namespace nucleus::picker {
 
-// TODOs
-// - connect picked id to create gui window with data
-
 PickerManager::PickerManager(QObject* parent)
     : QObject { parent }
 {

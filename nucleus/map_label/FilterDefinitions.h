@@ -32,6 +32,18 @@ public:
     bool m_webcams_visible = true;
 
     QVector2D m_peak_ele_range = QVector2D(0, 4000);
+    // false -> show both; true only show where cross is not null
+    bool m_peak_has_cross = false;
+    // false -> show both; true only show where register is not null
+    bool m_peak_has_register = false;
+
+    QVector2D m_city_population_range = QVector2D(0, 2000000);
+
+    // false -> show both; true only show where shower is not null
+    bool m_cottage_has_shower = false;
+    // false -> show both; true show where phone and/or email is not null
+    bool m_cottage_has_contact = false;
+    QVector2D m_cottage_ele_range = QVector2D(0, 4000);
 
     bool operator==(const FilterDefinitions&) const = default;
     bool operator!=(const FilterDefinitions&) const = default;
@@ -41,6 +53,12 @@ public:
     Q_PROPERTY(bool cottages_visible MEMBER m_cottages_visible)
     Q_PROPERTY(bool webcams_visible MEMBER m_webcams_visible)
     Q_PROPERTY(QVector2D peak_ele_range MEMBER m_peak_ele_range)
+    Q_PROPERTY(bool peak_has_cross MEMBER m_peak_has_cross)
+    Q_PROPERTY(bool peak_has_register MEMBER m_peak_has_register)
+    Q_PROPERTY(QVector2D city_population_range MEMBER m_city_population_range)
+    Q_PROPERTY(bool cottage_has_shower MEMBER m_cottage_has_shower)
+    Q_PROPERTY(bool cottage_has_contact MEMBER m_cottage_has_contact)
+    Q_PROPERTY(QVector2D cottage_ele_range MEMBER m_cottage_ele_range)
 };
 
 } // namespace nucleus::maplabel

@@ -114,22 +114,48 @@ void MapLabelFilter::apply_filter(const tile::Id tile_id)
                 continue;
             }
 
+            if (m_definitions.m_peak_has_cross && peak_feature->summit_cross.size() == 0) {
+                continue;
+            }
+
+            if (m_definitions.m_peak_has_register && peak_feature->summit_register.size() == 0) {
+                continue;
+            }
+
             // all filters were passed -> it is visible
             m_visible_features.at(tile_id).insert(feature);
         } else if (feature->type == FeatureType::City) {
-            // auto city_feature = std::dynamic_pointer_cast<const FeatureTXTCity>(feature);
+            auto city_feature = std::dynamic_pointer_cast<const FeatureTXTCity>(feature);
             if (!m_definitions.m_cities_visible) {
                 continue;
             }
+
+            //            if (city_feature->population < m_definitions.m_city_population_range.x() || city_feature->population >
+            //            m_definitions.m_city_population_range.y()) {
+            //                continue;
+            //            }
 
             // all filters were passed -> it is visible
             m_visible_features.at(tile_id).insert(feature);
 
         } else if (feature->type == FeatureType::Cottage) {
-            // auto cottage_feature = std::dynamic_pointer_cast<const FeatureTXTCottage>(feature);
+            auto cottage_feature = std::dynamic_pointer_cast<const FeatureTXTCottage>(feature);
             if (!m_definitions.m_cottages_visible) {
                 continue;
             }
+
+            if (m_definitions.m_cottage_has_shower && cottage_feature->shower.size() == 0) {
+                continue;
+            }
+
+            if (m_definitions.m_cottage_has_contact && (cottage_feature->email.size() == 0 && cottage_feature->phone.size() == 0)) {
+                continue;
+            }
+
+            //            if (cottage_feature->elevation < m_definitions.m_cottage_ele_range.x() || cottage_feature->elevation >
+            //            m_definitions.m_cottage_ele_range.y()) {
+            //                continue;
+            //            }
 
             // all filters were passed -> it is visible
             m_visible_features.at(tile_id).insert(feature);
@@ -142,8 +168,6 @@ void MapLabelFilter::apply_filter(const tile::Id tile_id)
             // all filters were passed -> it is visible
             m_visible_features.at(tile_id).insert(feature);
         }
-
-        // TODO @lucas define other filter
     }
 }
 

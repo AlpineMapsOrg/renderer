@@ -86,7 +86,7 @@ struct FeatureTXTCity : public FeatureTXT {
     QString wikipedia;
     QString wikidata;
     int population;
-    QString place;
+    QString place; // city,town,village,hamlet
     QString population_date;
     QString website;
 

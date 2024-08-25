@@ -149,8 +149,6 @@ void MapLabelManager::update_labels(const TiledVectorTile& visible_features, con
         remove_tile(id);
     }
 
-    // TODO @lucas is this ok to call this here?? will potentially be called often
-    // or do we need another signal/param to signify that new tiles were added and the font_atlas needs to be checked
     renew_font_atlas();
 
     for (const auto& vectortile : visible_features) {
