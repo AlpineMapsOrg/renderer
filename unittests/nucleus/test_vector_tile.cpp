@@ -76,8 +76,9 @@ TEST_CASE("nucleus/vector_tiles")
         auto all_ids = std::unordered_set<uint64_t> { 9569407690ul, 7156956658ul, 26863041ul, 26863165ul, 21700104ul, 494054611ul, 240050842ul, 494054604ul,
             240056984ul, 9084394015ul, 7731531071ul, 3600299561ul, 1828616246ul, 10761456533ul, 1123125641ul, 9569407683ul };
 
+        CAPTURE(all_ids);
         for (const auto& poi : *vectortile) {
-
+            CAPTURE(poi);
             CHECK(all_ids.contains(poi->id));
             all_ids.erase(poi->id);
 
