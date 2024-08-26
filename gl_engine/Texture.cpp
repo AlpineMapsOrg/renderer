@@ -25,6 +25,9 @@
 #include <emscripten.h>
 #include <emscripten/val.h>
 #endif
+#ifdef ANDROID
+#include <GLES3/gl3.h>
+#endif
 
 namespace {
 struct GlParams {
@@ -323,6 +326,8 @@ GLenum gl_engine::Texture::max_anisotropy_param()
     });
     // clang-format on
     return param;
+#elif defined(__ANDROID__)
+    return GL_TEXTURE_MAX_ANISOTROPY_EXT;
 #else
     return GL_TEXTURE_MAX_ANISOTROPY;
 #endif
@@ -345,11 +350,27 @@ float gl_engine::Texture::max_anisotropy()
     })));
     // clang-format on
     return max_anisotropy;
+#elif defined(__ANDROID__)
+    static const float max_anisotropy = []() {
+        if (QOpenGLContext::currentContext()->hasExtension("GL_EXT_texture_filter_anisotropic")) {
+            QOpenGLExtraFunctions* f = QOpenGLContext::currentContext()->extraFunctions();
+            GLfloat t = 0.0f;
+            f->glGetFloatv(GL_MAX_TEXTURE_MAX_ANISOTROPY_EXT, &t);
+            return std::min(32.f, t);
+        }
+        qDebug() << "GL_EXT_texture_filter_anisotropic not present";
+        qDebug() << "present extensions: ";
+        for (const auto& e : QOpenGLContext::currentContext()->extensions()) {
+            qDebug() << e;
+        }
+        return 0.f;
+    }();
+    return max_anisotropy;
 #else
     static const float max_anisotropy = []() {
         QOpenGLExtraFunctions* f = QOpenGLContext::currentContext()->extraFunctions();
         GLfloat t = 0.0f;
-        f->glGetFloatv(GL_MAX_TEXTURE_MAX_ANISOTROPY_EXT, &t);
+        f->glGetFloatv(GL_MAX_TEXTURE_MAX_ANISOTROPY, &t);
         return std::min(32.f, t);
     }();
     return max_anisotropy;
