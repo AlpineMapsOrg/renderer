@@ -26,11 +26,15 @@ import "components"
 Rectangle {
     property TerrainRenderer map
     property int innerMargin: 10
-    property int maxHeight:  main.height - tool_bar.height - 2*innerMargin
+    property int maxHeight:  main.height - tool_bar.height - 20
+    property int maxWidth:  map.width - 100
 
     id: featureDetailMenu
 
     visible: map.current_feature_data.is_valid()
+
+    height:  (300 > maxHeight) ? maxHeight : 300
+    width:  (300 > maxWidth) ? maxWidth : 300
 
     z: 100
     color:  Qt.alpha(Material.backgroundColor, 0.9)
@@ -40,40 +44,10 @@ Rectangle {
         margins: 10
     }
 
-
-    // similar to StatsWindow.qml
-    function responsive_update() {
-        if (map.width >= map.height) {
-            maxHeight = main.height - tool_bar.height - 20
-            height = main_content.height
-            width = 300;
-        } else {
-            // usually on mobile devices (portrait mode)
-            height = main_content.height
-            maxHeight = main.height - tool_bar.height - 20
-            width = main.width - 2 * x
-
-        }
-    }
-
-
-    Component.onCompleted: responsive_update()
-
-    Connections {
-        target: main
-        function onWidthChanged() {
-            responsive_update();
-        }
-        function onHeightChanged() {
-            responsive_update();
-        }
-    }
-
-
     Item {
         id: main_content
-        height:  (300 > maxHeight) ? maxHeight : 300
 
+        height: parent.height
         width: parent.width
 
         anchors {
