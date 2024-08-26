@@ -38,6 +38,7 @@ ShaderManager::ShaderManager()
     m_shadowmap_program = std::make_unique<ShaderProgram>("shadowmap.vert", "shadowmap.frag");
     m_track_program = std::make_unique<ShaderProgram>("track.vert", "track.frag");
     m_labels_program = std::make_unique<ShaderProgram>("labels.vert", "labels.frag");
+    m_labels_picker_program = std::make_unique<ShaderProgram>("labels.vert", "labels_picker.frag");
 
     m_program_list.push_back(m_tile_program.get());
     m_program_list.push_back(m_screen_copy.get());
@@ -48,6 +49,7 @@ ShaderManager::ShaderManager()
     m_program_list.push_back(m_shadowmap_program.get());
     m_program_list.push_back(m_track_program.get());
     m_program_list.push_back(m_labels_program.get());
+    m_program_list.push_back(m_labels_picker_program.get());
 }
 
 ShaderManager::~ShaderManager() = default;

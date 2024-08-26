@@ -18,55 +18,50 @@
 
 #pragma once
 
-#include <QObject>
-#include <QTimer>
-#include <QVector2D>
-#include <queue>
-#include <unordered_map>
-#include <unordered_set>
+#include <vector>
 
 #include <radix/tile.h>
 
-#include "nucleus/map_label/FilterDefinitions.h"
+#include "nucleus/event_parameter.h"
+
+#include "nucleus/picker/PickerTypes.h"
 #include "nucleus/tile_scheduler/tile_types.h"
-#include "nucleus/vector_tiles/VectorTileFeature.h"
 
 using namespace nucleus::vectortile;
 
-namespace nucleus::maplabel {
+namespace nucleus::picker {
 
-class MapLabelFilter : public QObject {
+class PickerManager : public QObject {
     Q_OBJECT
 public:
-    explicit MapLabelFilter(QObject* parent = nullptr);
-
-    void add_tile(const tile::Id id, const VectorTile& all_features);
-    void remove_tile(const tile::Id id);
+    explicit PickerManager(QObject* parent = nullptr);
+    void mouse_press_event(const event_parameter::Mouse& e);
+    void mouse_release_event(const event_parameter::Mouse& e);
+    void mouse_move_event(const event_parameter::Mouse& e);
+    void touch_event(const event_parameter::Touch& e);
 
 public slots:
-    void update_filter(const FilterDefinitions& filter_definitions);
     void update_quads(const std::vector<nucleus::tile_scheduler::tile_types::GpuTileQuad>& new_quads, const std::vector<tile::Id>& deleted_quads);
+    void eval_pick(uint32_t value);
 
 signals:
-    void filter_finished(const TiledVectorTile& visible_features, const std::vector<tile::Id>& removed_tiles);
-
-private slots:
-    void filter();
+    void pick_requested(const glm::dvec2& position);
+    void pick_evaluated(const FeatureProperties feature);
 
 private:
     TiledVectorTile m_all_features;
-    TiledVectorTile m_visible_features;
+    std::unordered_map<unsigned long, std::shared_ptr<const FeatureTXT>> m_pickid_to_feature;
 
-    std::queue<tile::Id> m_tiles_to_filter;
-    std::unordered_set<tile::Id, tile::Id::Hasher> m_all_tiles;
-    std::vector<tile::Id> m_removed_tiles;
+    glm::vec2 m_position;
+    bool m_in_click;
 
-    FilterDefinitions m_definitions;
+    // how much can the click position change to be still considered to be valid
+    static constexpr float m_valid_click_distance = 30.0f;
 
-    void apply_filter(const tile::Id tile_id);
+    void start_click_event(const glm::vec2& position);
+    void end_click_event(const glm::vec2& position);
 
-    bool m_filter_should_run;
-    constexpr static int m_update_filter_time = 400;
-    std::unique_ptr<QTimer> m_update_filter_timer;
+    void add_tile(const tile::Id id, const VectorTile& all_features);
+    void remove_tile(const tile::Id id);
 };
-} // namespace nucleus::maplabel
+} // namespace nucleus::picker

@@ -42,16 +42,16 @@ void FontRenderer::init()
     assert(font_init);
     Q_UNUSED(font_init);
 
-    outline_margin = int(std::ceil(m_font_outline));
-    x = outline_margin + m_font_padding.x;
-    y = outline_margin + m_font_padding.y;
-    bottom_y = outline_margin + m_font_padding.y;
+    m_outline_margin = int(std::ceil(m_font_outline));
+    m_x = m_outline_margin + m_font_padding.x;
+    m_y = m_outline_margin + m_font_padding.y;
+    m_bottom_y = m_outline_margin + m_font_padding.y;
 
-    m_font_data.uv_width_norm = uv_width_norm;
+    m_font_data.uv_width_norm = m_uv_width_norm;
 
-    texture_index = 0;
+    m_texture_index = 0;
 
-    m_font_atlas.push_back(Raster<glm::u8vec2>({ font_atlas_size.width(), font_atlas_size.height() }, glm::u8vec2(0)));
+    m_font_atlas.push_back(Raster<glm::u8vec2>({ m_font_atlas_size.width(), m_font_atlas_size.height() }, glm::u8vec2(0)));
 }
 
 void FontRenderer::render(std::set<char16_t> chars, float font_size)
@@ -83,7 +83,7 @@ void FontRenderer::render_text(std::set<char16_t> chars, float font_size)
     // we therefore have to create a 1d temp_raster that is later merged with the actual texture
     std::vector<Raster<uint8_t>> temp_raster = std::vector<Raster<uint8_t>>();
     int temp_texture_index = 0;
-    temp_raster.push_back(Raster<uint8_t>({ font_atlas_size.width(), font_atlas_size.height() }, uint8_t(0)));
+    temp_raster.push_back(Raster<uint8_t>({ m_font_atlas_size.width(), m_font_atlas_size.height() }, uint8_t(0)));
 
     for (const char16_t& c : chars) {
         // code adapted from stbtt_BakeFontBitmap()
@@ -93,17 +93,16 @@ void FontRenderer::render_text(std::set<char16_t> chars, float font_size)
 
         const auto glyph_width = x1 - x0;
         const auto glyph_height = y1 - y0;
-        if (x + glyph_width + 2 * outline_margin + m_font_padding.x >= font_atlas_size.width()) {
-            y = bottom_y;
-            x = 2 * outline_margin + m_font_padding.x; // advance to next row
+        if (m_x + glyph_width + 2 * m_outline_margin + m_font_padding.x >= m_font_atlas_size.width()) {
+            m_y = m_bottom_y;
+            m_x = 2 * m_outline_margin + m_font_padding.x; // advance to next row
         }
-        if (y + glyph_height + outline_margin + m_font_padding.y
-            >= font_atlas_size.height()) // check if it fits vertically AFTER potentially moving to next row
+        if (m_y + glyph_height + m_outline_margin + m_font_padding.y
+            >= m_font_atlas_size.height()) // check if it fits vertically AFTER potentially moving to next row
         {
             // char doesnt fit on the current texture -> create a new texture and switch to this
-            texture_index++;
-            if(texture_index >= max_textures)
-            {
+            m_texture_index++;
+            if (m_texture_index >= m_max_textures) {
                 // !! there are too many chars !!
                 // Ways to solve this (roughly from easy to difficult):
                 // - increase the texture size
@@ -120,30 +119,28 @@ void FontRenderer::render_text(std::set<char16_t> chars, float font_size)
             }
 
             temp_texture_index++;
-            temp_raster.push_back(Raster<uint8_t>({ font_atlas_size.width(), font_atlas_size.height() }, uint8_t(0)));
-            m_font_atlas.push_back(Raster<glm::u8vec2>({ font_atlas_size.width(), font_atlas_size.height() }, glm::u8vec2(0)));
+            temp_raster.push_back(Raster<uint8_t>({ m_font_atlas_size.width(), m_font_atlas_size.height() }, uint8_t(0)));
+            m_font_atlas.push_back(Raster<glm::u8vec2>({ m_font_atlas_size.width(), m_font_atlas_size.height() }, glm::u8vec2(0)));
 
-            y = outline_margin + m_font_padding.y;
-            bottom_y = outline_margin + m_font_padding.y;
-
-
+            m_y = m_outline_margin + m_font_padding.y;
+            m_bottom_y = m_outline_margin + m_font_padding.y;
         }
 
         // clang-format off
-        stbtt_MakeGlyphBitmap(&m_font_data.fontinfo, temp_raster[temp_texture_index].data() + x + y * font_atlas_size.width(), glyph_width, glyph_height, font_atlas_size.width(), scale, scale, glyph_index);
+        stbtt_MakeGlyphBitmap(&m_font_data.fontinfo, temp_raster[temp_texture_index].data() + m_x + m_y * m_font_atlas_size.width(), glyph_width, glyph_height, m_font_atlas_size.width(), scale, scale, glyph_index);
         m_font_data.char_data.emplace(c, CharData {
-                                             uint16_t(x - outline_margin),
-                                             uint16_t(y - outline_margin),
-                                             uint16_t(glyph_width + outline_margin * 2),
-                                             uint16_t(glyph_height + outline_margin * 2),
-                                             float(x0 - outline_margin),
-                                             float(y0 - outline_margin),
-                                             texture_index });
+                                             uint16_t(m_x - m_outline_margin),
+                                             uint16_t(m_y - m_outline_margin),
+                                             uint16_t(glyph_width + m_outline_margin * 2),
+                                             uint16_t(glyph_height + m_outline_margin * 2),
+                                             float(x0 - m_outline_margin),
+                                             float(y0 - m_outline_margin),
+                                             m_texture_index });
         // clang-format on
 
-        x = x + glyph_width + 2 * outline_margin + m_font_padding.x;
-        if (y + glyph_height + outline_margin + m_font_padding.y > bottom_y)
-            bottom_y = y + glyph_height + 2 * outline_margin + m_font_padding.y;
+        m_x = m_x + glyph_width + 2 * m_outline_margin + m_font_padding.x;
+        if (m_y + glyph_height + m_outline_margin + m_font_padding.y > m_bottom_y)
+            m_bottom_y = m_y + glyph_height + 2 * m_outline_margin + m_font_padding.y;
     }
 
     // merge temp_raster with font_atlas
@@ -192,14 +189,7 @@ void FontRenderer::make_outline(std::set<char16_t> chars)
     }
 }
 
-std::vector<Raster<glm::u8vec2>> FontRenderer::get_font_atlas()
-{
-    return m_font_atlas;
-}
+std::vector<Raster<glm::u8vec2>> FontRenderer::font_atlas() { return m_font_atlas; }
 
-const FontData& FontRenderer::get_font_data()
-{
-    return m_font_data;
-}
-
-}
+const FontData& FontRenderer::font_data() { return m_font_data; }
+} // namespace nucleus::maplabel

@@ -22,9 +22,11 @@
 #include <QSize>
 #include <QStringLiteral>
 
-#include "nucleus/map_label/Charset.h"
 #include "nucleus/Raster.h"
+#include "nucleus/map_label/Charset.h"
+#include "nucleus/picker/PickerTypes.h"
 #include "nucleus/utils/image_loader.h"
+#include <nucleus/utils/bit_coding.h>
 
 #define STBTT_STATIC
 #define STB_TRUETYPE_IMPLEMENTATION
@@ -37,16 +39,16 @@ namespace nucleus::maplabel {
 const AtlasData LabelFactory::init_font_atlas()
 {
     nucleus::maplabel::Charset& c = nucleus::maplabel::Charset::get_instance();
-
-    m_all_chars = c.get_all_chars();
+    
+    m_all_chars = c.all_chars();
     m_last_char_amount = m_all_chars.size();
 
     m_font_renderer.init();
-    m_font_renderer.render(m_all_chars, font_size);
+    m_font_renderer.render(m_all_chars, m_font_size);
+    
+    m_font_data = m_font_renderer.font_data();
 
-    m_font_data = m_font_renderer.get_font_data();
-
-    return {true, m_font_renderer.get_font_atlas()};
+    return {true, m_font_renderer.font_atlas()};
 }
 
 const AtlasData LabelFactory::renew_font_atlas()
@@ -57,16 +59,16 @@ const AtlasData LabelFactory::renew_font_atlas()
     if(c.is_update_necessary(m_last_char_amount))
     {
         // get the new chars
-        auto new_chars = c.get_char_diff(m_all_chars);
+        auto new_chars = c.char_diff(m_all_chars);
         // add them to the complete list
         m_all_chars.insert(new_chars.begin(), new_chars.end());
         m_last_char_amount = m_all_chars.size();
+        
+        m_font_renderer.render(new_chars, m_font_size);
+        
+        m_font_data = m_font_renderer.font_data();
 
-        m_font_renderer.render(new_chars, font_size);
-
-        m_font_data = m_font_renderer.get_font_data();
-
-        return {true, m_font_renderer.get_font_atlas()};
+        return {true, m_font_renderer.font_atlas()};
     }
 
     // nothing changed -> return empty
@@ -79,7 +81,7 @@ const AtlasData LabelFactory::renew_font_atlas()
 /**
  * this function needs to be called before create_labels
  */
-const Raster<glm::u8vec4> LabelFactory::get_label_icons()
+const Raster<glm::u8vec4> LabelFactory::label_icons()
 {
     auto icons = std::unordered_map<FeatureType, Raster<glm::u8vec4>>();
 
@@ -100,7 +102,7 @@ const Raster<glm::u8vec4> LabelFactory::get_label_icons()
     for (int i = 0; i < FeatureType::ENUM_END; i++) {
         FeatureType type = (FeatureType)i;
         // vec4(10.0f,...) is an uv_offset to indicate that the icon texture should be used.
-        icon_uvs[type]
+        m_icon_uvs[type]
             = glm::vec4(10.0f, 10.0f + float(combined_icons.height()) / float(combined_height), 1.0f, float(icons[type].height()) / float(combined_height));
         combined_icons.combine(icons[type]);
     }
@@ -113,16 +115,16 @@ const std::vector<VertexData> LabelFactory::create_labels(const VectorTile& feat
     std::vector<VertexData> labelData;
 
     for (const auto& feat : features) {
-        create_label(feat->labelText(), feat->worldposition, feat->type, feat->importance, labelData);
+        create_label(feat->label_text(), feat->worldposition, feat->type, feat->internal_id, feat->importance, labelData);
     }
 
     return labelData;
 }
 
-void LabelFactory::create_label(
-    const QString text, const glm::vec3 position, const FeatureType type, const float importance, std::vector<VertexData>& vertex_data)
+void LabelFactory::create_label(const QString text, const glm::vec3 position, const FeatureType type, const uint32_t internal_id, const float importance,
+    std::vector<VertexData>& vertex_data)
 {
-    float text_offset_y = -font_size / 2.0f + 75.0f;
+    float text_offset_y = -m_font_size / 2.0f + 75.0f;
     float icon_offset_y = 15.0f;
     if (type == FeatureType::City) {
         text_offset_y += 25.0f;
@@ -136,10 +138,13 @@ void LabelFactory::create_label(
     // center the text around the center
     const auto offset_x = -text_width / 2.0f;
 
+    glm::vec4 picker_color = nucleus::utils::bit_coding::u32_to_f8_4(internal_id);
+    picker_color.x = (float(nucleus::picker::PickTypes::feature) / 255.0f); // set the first bit to the type
+
     // label icon
-    vertex_data.push_back({ glm::vec4(-icon_size.x / 2.0f, icon_size.y / 2.0f + icon_offset_y, icon_size.x, -icon_size.y + 1), // vertex position + offset
-        icon_uvs[type], // vec4 defined as uv position + offset
-        position, importance, 0 });
+    vertex_data.push_back({ glm::vec4(-m_icon_size.x / 2.0f, m_icon_size.y / 2.0f + icon_offset_y, m_icon_size.x, -m_icon_size.y + 1), // vertex position + offset
+        m_icon_uvs[type], // vec4 defined as uv position + offset
+        picker_color, position, importance, 0 });
 
     for (unsigned long long i = 0; i < safe_chars.size(); i++) {
 
@@ -148,7 +153,7 @@ void LabelFactory::create_label(
         vertex_data.push_back({ glm::vec4(offset_x + kerningOffsets[i] + b.xoff, text_offset_y - b.yoff, b.width, -b.height), // vertex position + offset
             glm::vec4(b.x * m_font_data.uv_width_norm, b.y * m_font_data.uv_width_norm, b.width * m_font_data.uv_width_norm,
                 b.height * m_font_data.uv_width_norm), // uv position + offset
-            position, importance, b.texture_index });
+            picker_color, position, importance, b.texture_index });
     }
 }
 
@@ -160,8 +165,8 @@ std::vector<float> inline LabelFactory::create_text_meta(std::u16string* safe_ch
         return std::vector<float>();
 
     std::vector<float> kerningOffsets;
-
-    float scale = stbtt_ScaleForPixelHeight(&m_font_data.fontinfo, font_size);
+    
+    float scale = stbtt_ScaleForPixelHeight(&m_font_data.fontinfo, m_font_size);
     float xOffset = 0;
     for (unsigned long long i = 0; i < safe_chars->size(); i++) {
         if (!m_font_data.char_data.contains(safe_chars->at(i))) {

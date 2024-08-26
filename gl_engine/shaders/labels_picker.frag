@@ -1,6 +1,7 @@
 /*****************************************************************************
  * Alpine Terrain Renderer
  * Copyright (C) 2024 Lucas Dworschak
+ * Copyright (C) 2024 Adam Celarek
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -16,36 +17,16 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *****************************************************************************/
 
-#pragma once
 
-#include <unordered_map>
+in highp vec2 texcoords;
+flat in int texture_index;
 
-#include <glm/glm.hpp>
+flat in vec4 picker_color;
 
-#include <nucleus/Raster.h>
+layout (location = 0) out lowp vec4 out_Color;
 
-struct stbtt_fontinfo;
 
-namespace nucleus::maplabel {
-
-struct CharData {
-    uint16_t x, y, width, height; // coordinates of bbox in bitmap
-    float xoff, yoff; // position offsets for e.g. lower/uppercase
-    int texture_index;
-};
-
-struct VertexData {
-    glm::vec4 position; // start_x, start_y, offset_x, offset_y
-    glm::vec4 uv; // start_u, start_v, offset_u, offset_v
-    glm::vec4 picker_color;
-    glm::vec3 world_position;
-    float importance;
-    int32_t texture_index;
-};
-
-struct AtlasData {
-    bool changed;
-    std::vector<Raster<glm::u8vec2>> font_atlas;
-};
-
-} // namespace nucleus::maplabel
+void main() {
+    out_Color = picker_color;
+    gl_FragDepth = gl_FragCoord.z;
+}

@@ -35,7 +35,7 @@ void Charset::init()
 }
 
 // path to a client side cached charset file
-const std::filesystem::path Charset::get_charset_cache_path()
+const std::filesystem::path Charset::charset_cache_path()
 {
     const auto base_path = std::filesystem::path(QStandardPaths::writableLocation(QStandardPaths::CacheLocation).toStdString());
     std::filesystem::create_directories(base_path);
@@ -79,10 +79,7 @@ void Charset::load(const std::filesystem::path filepath)
     file.close();
 }
 
-const std::set<char16_t> Charset::get_all_chars()
-{
-    return m_all_chars;
-}
+const std::set<char16_t> Charset::all_chars() { return m_all_chars; }
 
 void Charset::add_chars(std::set<char16_t>& new_chars)
 {
@@ -94,7 +91,7 @@ bool Charset::is_update_necessary(std::size_t last_size)
     return m_all_chars.size() != last_size;
 }
 
-std::set<char16_t> Charset::get_char_diff(std::set<char16_t>& compare)
+std::set<char16_t> Charset::char_diff(std::set<char16_t>& compare)
 {
     std::set<char16_t> new_chars;
 

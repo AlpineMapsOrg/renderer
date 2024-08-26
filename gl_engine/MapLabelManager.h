@@ -55,6 +55,8 @@ public:
     void init();
     void draw(Framebuffer* gbuffer, ShaderProgram* shader_program, const nucleus::camera::Definition& camera,
         const nucleus::tile_scheduler::DrawListGenerator::TileSet draw_tiles) const;
+    void draw_picker(Framebuffer* gbuffer, ShaderProgram* shader_program, const nucleus::camera::Definition& camera,
+        const nucleus::tile_scheduler::DrawListGenerator::TileSet draw_tiles) const;
 
     void update_labels(const TiledVectorTile& visible_features, const std::vector<tile::Id>& removed_tiles);
 

@@ -49,13 +49,14 @@ void MapLabelManager::init()
     const auto& atlas_data = m_mapLabelFactory.init_font_atlas();
 
     m_font_texture = std::make_unique<Texture>(Texture::Target::_2dArray, Texture::Format::RG8);
-    m_font_texture->allocate_array(nucleus::maplabel::FontRenderer::font_atlas_size.width(), nucleus::maplabel::FontRenderer::font_atlas_size.height(), nucleus::maplabel::FontRenderer::max_textures);
+    m_font_texture->allocate_array(nucleus::maplabel::FontRenderer::m_font_atlas_size.width(), nucleus::maplabel::FontRenderer::m_font_atlas_size.height(),
+        nucleus::maplabel::FontRenderer::m_max_textures);
     for(unsigned int i = 0; i < atlas_data.font_atlas.size(); i++)
     {
         m_font_texture->upload(atlas_data.font_atlas[i],i);
     }
 
-    const auto& labelIcons = m_mapLabelFactory.get_label_icons();
+    const auto& labelIcons = m_mapLabelFactory.label_icons();
 
     m_icon_texture = std::make_unique<Texture>(Texture::Target::_2d, Texture::Format::RGBA8);
     m_icon_texture->setParams(Texture::Filter::MipMapLinear, Texture::Filter::Linear);
@@ -65,8 +66,8 @@ void MapLabelManager::init()
     m_index_buffer->create();
     m_index_buffer->bind();
     m_index_buffer->setUsagePattern(QOpenGLBuffer::StaticDraw);
-    m_index_buffer->allocate(m_mapLabelFactory.indices.data(), m_mapLabelFactory.indices.size() * sizeof(unsigned int));
-    m_indices_count = m_mapLabelFactory.indices.size();
+    m_index_buffer->allocate(m_mapLabelFactory.m_indices.data(), m_mapLabelFactory.m_indices.size() * sizeof(unsigned int));
+    m_indices_count = m_mapLabelFactory.m_indices.size();
 }
 
 void MapLabelManager::renew_font_atlas()
@@ -117,19 +118,23 @@ void MapLabelManager::upload_to_gpu(const tile::Id& id, const VectorTile& featur
         f->glEnableVertexAttribArray(1);
         f->glVertexAttribPointer(1, 4, GL_FLOAT, GL_FALSE, sizeof(nucleus::maplabel::VertexData), (GLvoid*)(sizeof(glm::vec4)));
         f->glVertexAttribDivisor(1, 1); // buffer is active for 1 instance (for the whole quad)
-        // world position
+        // picker color
         f->glEnableVertexAttribArray(2);
-        f->glVertexAttribPointer(2, 3, GL_FLOAT, GL_FALSE, sizeof(nucleus::maplabel::VertexData), (GLvoid*)((sizeof(glm::vec4) * 2)));
+        f->glVertexAttribPointer(2, 4, GL_FLOAT, GL_FALSE, sizeof(nucleus::maplabel::VertexData), (GLvoid*)(sizeof(glm::vec4) * 2));
         f->glVertexAttribDivisor(2, 1); // buffer is active for 1 instance (for the whole quad)
-        // label importance
+        // world position
         f->glEnableVertexAttribArray(3);
-        f->glVertexAttribPointer(3, 1, GL_FLOAT, GL_FALSE, sizeof(nucleus::maplabel::VertexData), (GLvoid*)((sizeof(glm::vec4) * 2 + (sizeof(glm::vec3)))));
+        f->glVertexAttribPointer(3, 3, GL_FLOAT, GL_FALSE, sizeof(nucleus::maplabel::VertexData), (GLvoid*)(sizeof(glm::vec4) * 3));
         f->glVertexAttribDivisor(3, 1); // buffer is active for 1 instance (for the whole quad)
-        // texture index
+        // label importance
         f->glEnableVertexAttribArray(4);
-        f->glVertexAttribIPointer(
-            4, 1, GL_INT, sizeof(nucleus::maplabel::VertexData), (GLvoid*)((sizeof(glm::vec4) * 2 + (sizeof(glm::vec3)) + sizeof(float))));
+        f->glVertexAttribPointer(4, 1, GL_FLOAT, GL_FALSE, sizeof(nucleus::maplabel::VertexData), (GLvoid*)((sizeof(glm::vec4) * 3 + (sizeof(glm::vec3)))));
         f->glVertexAttribDivisor(4, 1); // buffer is active for 1 instance (for the whole quad)
+        // texture index
+        f->glEnableVertexAttribArray(5);
+        f->glVertexAttribIPointer(
+            5, 1, GL_INT, sizeof(nucleus::maplabel::VertexData), (GLvoid*)((sizeof(glm::vec4) * 3 + (sizeof(glm::vec3)) + sizeof(float))));
+        f->glVertexAttribDivisor(5, 1); // buffer is active for 1 instance (for the whole quad)
     }
 
     vectortile->vao->release();
@@ -145,8 +150,6 @@ void MapLabelManager::update_labels(const TiledVectorTile& visible_features, con
         remove_tile(id);
     }
 
-    // TODO @lucas is this ok to call this here?? will potentially be called often
-    // or do we need another signal/param to signify that new tiles were added and the font_atlas needs to be checked
     renew_font_atlas();
 
     for (const auto& vectortile : visible_features) {
@@ -205,6 +208,33 @@ void MapLabelManager::draw(Framebuffer* gbuffer, ShaderProgram* shader_program, 
             shader_program->set_uniform("drawing_outline", true);
             f->glDrawElementsInstanced(GL_TRIANGLES, m_indices_count, GL_UNSIGNED_INT, 0, vectortile.second->instance_count);
             shader_program->set_uniform("drawing_outline", false);
+            f->glDrawElementsInstanced(GL_TRIANGLES, m_indices_count, GL_UNSIGNED_INT, 0, vectortile.second->instance_count);
+
+            vectortile.second->vao->release();
+        }
+    }
+}
+
+void MapLabelManager::draw_picker(Framebuffer* gbuffer, ShaderProgram* shader_program, const nucleus::camera::Definition& camera,
+    const nucleus::tile_scheduler::DrawListGenerator::TileSet draw_tiles) const
+{
+    QOpenGLExtraFunctions* f = QOpenGLContext::currentContext()->extraFunctions();
+
+    glm::mat4 inv_view_rot = glm::inverse(camera.local_view_matrix());
+    shader_program->set_uniform("inv_view_rot", inv_view_rot);
+    shader_program->set_uniform("label_dist_scaling", true);
+
+    shader_program->set_uniform("texin_depth", 0);
+    gbuffer->bind_colour_texture(1, 0);
+
+    for (const auto& vectortile : m_gpu_tiles) {
+        if (!draw_tiles.contains(vectortile.first))
+            continue; // tile is not in draw_tiles -> look at next tile
+
+        // only draw if vector tile is fully loaded
+        if (vectortile.second->instance_count > 0) {
+            vectortile.second->vao->bind();
+
             f->glDrawElementsInstanced(GL_TRIANGLES, m_indices_count, GL_UNSIGNED_INT, 0, vectortile.second->instance_count);
 
             vectortile.second->vao->release();

@@ -32,6 +32,9 @@ namespace nucleus::vectortile {
 // -> try to clear the tile_cache
 // alternatively you can also use .get_unchecked<T>() and maybe debug why this is happening
 
+FeatureTXT::FeatureTXT()
+    : internal_id(FeatureTXT::id_counter++) {};
+
 void FeatureTXT::parse(std::shared_ptr<FeatureTXT> ft, const mapbox::vector_tile::feature& feature, const std::shared_ptr<DataQuerier> dataquerier)
 {
     ft->id = get<uint64_t>(feature.getID());
@@ -61,8 +64,6 @@ std::shared_ptr<const FeatureTXT> FeatureTXTPeak::parse(const mapbox::vector_til
 
     auto props = feature.getProperties();
 
-    if (holds_alternative<std::string>(props["de_name"]))
-        peak->de_name = QString::fromStdString(get<std::string>(props["de_name"]));
     if (holds_alternative<std::string>(props["wikipedia"]))
         peak->wikipedia = QString::fromStdString(get<std::string>(props["wikipedia"]));
     if (holds_alternative<std::string>(props["wikidata"]))
@@ -81,12 +82,48 @@ std::shared_ptr<const FeatureTXT> FeatureTXTPeak::parse(const mapbox::vector_til
     return peak;
 }
 
-QString FeatureTXTPeak::labelText() const
+QString FeatureTXTPeak::label_text() const
 {
     if (elevation == 0)
         return name;
     else
         return QString("%1 (%2m)").arg(name).arg(double(elevation), 0, 'f', 0);
+}
+
+FeatureProperties FeatureTXTPeak::get_feature_data() const
+{
+    auto props = FeatureProperties();
+
+    props.title = name; // name is the title
+
+    props.properties.append(FeatureProperty { "Type", "Peak" });
+
+    props.properties.append(FeatureProperty { "Coordinates", QString("%1, %2").arg(position.x).arg(position.y) });
+
+    if (elevation > 0) {
+        props.properties.append(FeatureProperty { "Elevation", QString("%1m").arg(elevation) });
+    } else {
+        // explicitly state that we do not have an official elevation
+        props.properties.append(FeatureProperty { "Elevation", "-" });
+    }
+
+    if (wikipedia.size() > 0) {
+        props.properties.append(FeatureProperty { "Wikipedia", wikipedia });
+    }
+
+    if (wikidata.size() > 0) {
+        props.properties.append(FeatureProperty { "Wikidata", wikidata });
+    }
+
+    if (summit_cross.size() > 0) {
+        props.properties.append(FeatureProperty { "Cross", summit_cross });
+    }
+
+    if (summit_register.size() > 0) {
+        props.properties.append(FeatureProperty { "Register", summit_register });
+    }
+
+    return props;
 }
 
 std::shared_ptr<const FeatureTXT> FeatureTXTCity::parse(const mapbox::vector_tile::feature& feature, const std::shared_ptr<DataQuerier> dataquerier)
@@ -98,8 +135,6 @@ std::shared_ptr<const FeatureTXT> FeatureTXTCity::parse(const mapbox::vector_til
 
     auto props = feature.getProperties();
 
-    if (holds_alternative<std::string>(props["de_name"]))
-        city->de_name = QString::fromStdString(get<std::string>(props["de_name"]));
     if (holds_alternative<std::string>(props["wikipedia"]))
         city->wikipedia = QString::fromStdString(get<std::string>(props["wikipedia"]));
     if (holds_alternative<std::string>(props["wikidata"]))
@@ -116,7 +151,44 @@ std::shared_ptr<const FeatureTXT> FeatureTXTCity::parse(const mapbox::vector_til
     return city;
 }
 
-QString FeatureTXTCity::labelText() const { return name; }
+QString FeatureTXTCity::label_text() const { return name; }
+
+FeatureProperties FeatureTXTCity::get_feature_data() const
+{
+    auto props = FeatureProperties();
+
+    props.title = name; // name is the title
+
+    if (place.size() > 0) {
+        props.properties.append(FeatureProperty { "Type", place });
+    }
+
+    props.properties.append(FeatureProperty { "Coordinates", QString("%1, %2").arg(position.x).arg(position.y) });
+
+    if (population > 0) {
+        props.properties.append(FeatureProperty { "Population", QString("%1").arg(population) });
+    } else {
+        props.properties.append(FeatureProperty { "Population", "-" });
+    }
+
+    if (population_date.size() > 0) {
+        props.properties.append(FeatureProperty { "Population date", population_date });
+    }
+
+    if (wikipedia.size() > 0) {
+        props.properties.append(FeatureProperty { "Wikipedia", wikipedia });
+    }
+
+    if (wikidata.size() > 0) {
+        props.properties.append(FeatureProperty { "Wikidata", wikidata });
+    }
+
+    if (website.size() > 0) {
+        props.properties.append(FeatureProperty { "Website", website });
+    }
+
+    return props;
+}
 
 std::shared_ptr<const FeatureTXT> FeatureTXTCottage::parse(const mapbox::vector_tile::feature& feature, const std::shared_ptr<DataQuerier> dataquerier)
 {
@@ -127,8 +199,6 @@ std::shared_ptr<const FeatureTXT> FeatureTXTCottage::parse(const mapbox::vector_
 
     auto props = feature.getProperties();
 
-    if (holds_alternative<std::string>(props["de_name"]))
-        cottage->de_name = QString::fromStdString(get<std::string>(props["de_name"]));
     if (holds_alternative<std::string>(props["wikipedia"]))
         cottage->wikipedia = QString::fromStdString(get<std::string>(props["wikipedia"]));
     if (holds_alternative<std::string>(props["wikidata"]))
@@ -139,24 +209,16 @@ std::shared_ptr<const FeatureTXT> FeatureTXTCottage::parse(const mapbox::vector_
         cottage->capacity = QString::fromStdString(get<std::string>(props["capacity"]));
     if (holds_alternative<std::string>(props["opening_hours"]))
         cottage->opening_hours = QString::fromStdString(get<std::string>(props["opening_hours"]));
-    if (holds_alternative<std::string>(props["reservation"]))
-        cottage->reservation = QString::fromStdString(get<std::string>(props["reservation"]));
-    if (holds_alternative<std::string>(props["electricity"]))
-        cottage->electricity = QString::fromStdString(get<std::string>(props["electricity"]));
     if (holds_alternative<std::string>(props["shower"]))
         cottage->shower = QString::fromStdString(get<std::string>(props["shower"]));
-    if (holds_alternative<std::string>(props["winter_room"]))
-        cottage->winter_room = QString::fromStdString(get<std::string>(props["winter_room"]));
     if (holds_alternative<std::string>(props["phone"]))
         cottage->phone = QString::fromStdString(get<std::string>(props["phone"]));
+    if (holds_alternative<std::string>(props["email"]))
+        cottage->email = QString::fromStdString(get<std::string>(props["email"]));
     if (holds_alternative<std::string>(props["website"]))
         cottage->website = QString::fromStdString(get<std::string>(props["website"]));
-    if (holds_alternative<std::string>(props["seasonal"]))
-        cottage->seasonal = QString::fromStdString(get<std::string>(props["seasonal"]));
     if (holds_alternative<std::string>(props["internet_access"]))
         cottage->internet_access = QString::fromStdString(get<std::string>(props["internet_access"]));
-    if (holds_alternative<std::string>(props["fee"]))
-        cottage->fee = QString::fromStdString(get<std::string>(props["fee"]));
     if (holds_alternative<std::string>(props["addr_city"]))
         cottage->addr_city = QString::fromStdString(get<std::string>(props["addr_city"]));
     if (holds_alternative<std::string>(props["addr_street"]))
@@ -177,7 +239,78 @@ std::shared_ptr<const FeatureTXT> FeatureTXTCottage::parse(const mapbox::vector_
     return cottage;
 }
 
-QString FeatureTXTCottage::labelText() const { return name; }
+QString FeatureTXTCottage::label_text() const { return name; }
+
+FeatureProperties FeatureTXTCottage::get_feature_data() const
+{
+    auto props = FeatureProperties();
+
+    props.title = name; // name is the title
+
+    if (feature_type.size() > 0) {
+        // alpine_hut, wilderness_hut
+        if (feature_type == "alpine_hut")
+            props.properties.append(FeatureProperty { "Type", "Alpine hut" });
+        else
+            props.properties.append(FeatureProperty { "Type", "Wilderness hut" });
+    }
+
+    props.properties.append(FeatureProperty { "Coordinates", QString("%1, %2").arg(position.x).arg(position.y) });
+
+    if (elevation > 0) {
+        props.properties.append(FeatureProperty { "Elevation", QString("%1m").arg(elevation) });
+    }
+    if (wikipedia.size() > 0) {
+        props.properties.append(FeatureProperty { "Wikipedia", wikipedia });
+    }
+    if (wikidata.size() > 0) {
+        props.properties.append(FeatureProperty { "Wikidata", wikidata });
+    }
+    if (website.size() > 0) {
+        props.properties.append(FeatureProperty { "Website", website });
+    }
+    if (phone.size() > 0) {
+        props.properties.append(FeatureProperty { "Phone", phone });
+    }
+    if (email.size() > 0) {
+        props.properties.append(FeatureProperty { "Email", email });
+    }
+    if (addr_city.size() > 0) {
+        props.properties.append(FeatureProperty { "City", addr_city });
+    }
+    if (addr_postcode.size() > 0) {
+        props.properties.append(FeatureProperty { "Postcode", addr_postcode });
+    }
+    if (addr_street.size() > 0) {
+        props.properties.append(FeatureProperty { "Street", addr_street });
+    }
+    if (addr_housenumber.size() > 0) {
+        props.properties.append(FeatureProperty { "Housenumber", addr_housenumber });
+    }
+    if (opening_hours.size() > 0) {
+        props.properties.append(FeatureProperty { "Opening hours", opening_hours });
+    }
+    if (description.size() > 0) {
+        props.properties.append(FeatureProperty { "Description", description });
+    }
+    if (capacity.size() > 0) {
+        props.properties.append(FeatureProperty { "Capacity", capacity });
+    }
+    if (shower.size() > 0) {
+        props.properties.append(FeatureProperty { "Shower", shower });
+    }
+    if (internet_access.size() > 0) {
+        props.properties.append(FeatureProperty { "Internet access", internet_access });
+    }
+    if (operators.size() > 0) {
+        props.properties.append(FeatureProperty { "Operators", operators });
+    }
+    if (access.size() > 0) {
+        props.properties.append(FeatureProperty { "Access", access });
+    }
+
+    return props;
+}
 
 std::shared_ptr<const FeatureTXT> FeatureTXTWebcam::parse(const mapbox::vector_tile::feature& feature, const std::shared_ptr<DataQuerier> dataquerier)
 {
@@ -192,6 +325,8 @@ std::shared_ptr<const FeatureTXT> FeatureTXTWebcam::parse(const mapbox::vector_t
         webcam->camera_type = QString::fromStdString(get<std::string>(props["camera_type"]));
     if (holds_alternative<uint64_t>(props["direction"]))
         webcam->direction = get<std::uint64_t>(props["direction"]);
+    else
+        webcam->direction = -1;
     if (holds_alternative<std::string>(props["surveillance_type"]))
         webcam->surveillance_type = QString::fromStdString(get<std::string>(props["surveillance_type"]));
     if (holds_alternative<std::string>(props["image"]))
@@ -204,6 +339,47 @@ std::shared_ptr<const FeatureTXT> FeatureTXTWebcam::parse(const mapbox::vector_t
     return webcam;
 }
 
-QString FeatureTXTWebcam::labelText() const { return ""; /* no text*/ }
+QString FeatureTXTWebcam::label_text() const { return ""; /* no text*/ }
+
+FeatureProperties FeatureTXTWebcam::get_feature_data() const
+{
+    auto props = FeatureProperties();
+
+    if (name.size() > 0) {
+        props.title = name; // name is the title
+    } else {
+        props.title = "Webcam"; // otherwise only show "webcam" as title
+    }
+
+    props.properties.append(FeatureProperty { "Type", "Webcam" });
+
+    props.properties.append(FeatureProperty { "Coordinates", QString("%1, %2").arg(position.x).arg(position.y) });
+
+    if (image.size() > 0) {
+        props.properties.append(FeatureProperty { "Link to image", image });
+    }
+
+    if (elevation > 0) {
+        props.properties.append(FeatureProperty { "Elevation", QString("%1m").arg(elevation) });
+    }
+
+    if (camera_type.size() > 0) {
+        props.properties.append(FeatureProperty { "Camera type", camera_type });
+    }
+
+    if (direction > 0) {
+        props.properties.append(FeatureProperty { "Direction", QString("%1").arg(direction) });
+    }
+
+    if (surveillance_type.size() > 0 && surveillance_type != "NULL") {
+        props.properties.append(FeatureProperty { "Surveillance type", surveillance_type }); // camera,fixed,guard,outdoor,webcam,NULL
+    }
+
+    if (description.size() > 0) {
+        props.properties.append(FeatureProperty { "Description", description });
+    }
+
+    return props;
+}
 
 } // namespace nucleus::vectortile

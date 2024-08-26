@@ -33,6 +33,7 @@
 #include <nucleus/camera/Definition.h>
 #include <nucleus/event_parameter.h>
 #include <nucleus/map_label/FilterDefinitions.h>
+#include <nucleus/picker/PickerTypes.h>
 
 #include "AppSettings.h"
 #include "timing/TimerFrontendManager.h"
@@ -62,6 +63,8 @@ class TerrainRendererItem : public QQuickFramebufferObject {
     Q_PROPERTY(unsigned int selected_camera_position_index MEMBER m_selected_camera_position_index WRITE set_selected_camera_position_index)
     Q_PROPERTY(QVector2D sun_angles READ sun_angles WRITE set_sun_angles NOTIFY sun_angles_changed)
     Q_PROPERTY(bool continuous_update READ continuous_update WRITE set_continuous_update NOTIFY continuous_update_changed)
+    Q_PROPERTY(nucleus::picker::FeatureProperties current_feature_data MEMBER m_current_feature_data NOTIFY feature_changed)
+    Q_PROPERTY(QList<QString> current_feature_data_list MEMBER m_current_feature_data_list NOTIFY feature_changed)
 
 public:
     explicit TerrainRendererItem(QQuickItem* parent = 0);
@@ -73,6 +76,7 @@ signals:
     void frame_limit_changed();
 
     void mouse_pressed(const nucleus::event_parameter::Mouse&) const;
+    void mouse_released(const nucleus::event_parameter::Mouse&) const;
     void mouse_moved(const nucleus::event_parameter::Mouse&) const;
     void wheel_turned(const nucleus::event_parameter::Wheel&) const;
     void touch_made(const nucleus::event_parameter::Touch&) const;
@@ -116,9 +120,12 @@ signals:
 
     void continuous_update_changed(bool continuous_update);
 
+    void feature_changed();
+
 protected:
     void touchEvent(QTouchEvent*) override;
     void mousePressEvent(QMouseEvent*) override;
+    void mouseReleaseEvent(QMouseEvent*) override;
     void mouseMoveEvent(QMouseEvent*) override;
     void wheelEvent(QWheelEvent*) override;
     void keyPressEvent(QKeyEvent*) override;
@@ -130,13 +137,13 @@ public slots:
     void set_gl_preset(const QString& preset_b64_string);
     void read_global_position(glm::dvec3 latlonalt);
     void camera_definition_changed(const nucleus::camera::Definition& new_definition); // gets called whenever camera changes
+    void change_feature(const nucleus::picker::FeatureProperties feature);
 
 private slots:
     void schedule_update();
     void init_after_creation_slot();
     void datetime_changed(const QDateTime& new_datetime);
     void gl_sundir_date_link_changed(bool new_value);
-
 
 public:
     [[nodiscard]] int frame_limit() const;
@@ -211,6 +218,9 @@ private:
     unsigned m_in_flight_tiles = 0;
     unsigned int m_selected_camera_position_index = 0;
     QDateTime m_selected_datetime = QDateTime::currentDateTime();
+
+    nucleus::picker::FeatureProperties m_current_feature_data;
+    QList<QString> m_current_feature_data_list;
 
     gl_engine::uboSharedConfig m_shared_config;
     nucleus::maplabel::FilterDefinitions m_label_filter;

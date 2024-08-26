@@ -93,6 +93,8 @@ qt_add_library(nucleus STATIC
     utils/UrlModifier.h utils/UrlModifier.cpp
     utils/bit_coding.h
     utils/sun_calculations.h utils/sun_calculations.cpp
+    picker/PickerManager.h picker/PickerManager.cpp
+    picker/PickerTypes.h
     utils/bit_coding.h
     tile_scheduler/cache_quieries.h
     DataQuerier.h DataQuerier.cpp

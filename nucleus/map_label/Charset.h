@@ -53,9 +53,9 @@ public:
     // saves the current set into the client side-cached file
     // ideally only called internally by get_char_diff
     // if you want to explicitly save the current charset make sure to not do it too often (e.g. every frame)
-//    void save();
+    //    void save();
 
-    const std::set<char16_t> get_all_chars();
+    const std::set<char16_t> all_chars();
 
     // should only be called from VectorTileManager -> only source that adds chars to the list (other than init)
     // if other sources exist you would need to also update new_chars with the contents of m_all_chars
@@ -68,7 +68,7 @@ public:
     // returns a set of chars which are not present in compare set but are in the m_all_chars set
     // essentially the chars in compare set are already in the shader useable bitmap
     // and m_all_chars set are all the chars which have been encountered while parsing vector tiles
-    std::set<char16_t> get_char_diff(std::set<char16_t>& compare);
+    std::set<char16_t> char_diff(std::set<char16_t>& compare);
 
 private:
     // private constructor for singleton
@@ -80,7 +80,7 @@ private:
     // loads the given file and adds all chars to the set (called by init)
     void load(const std::filesystem::path filepath);
     // path to client side cache
-    const std::filesystem::path get_charset_cache_path();
+    const std::filesystem::path charset_cache_path();
 
     mutable std::mutex m_file_mutex;
 

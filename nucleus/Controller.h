@@ -32,6 +32,9 @@ class Scheduler;
 namespace camera {
 class Controller;
 }
+namespace picker {
+class PickerManager;
+}
 namespace maplabel {
 class MapLabelFilter;
 }
@@ -43,6 +46,7 @@ public:
     ~Controller() override;
 
     camera::Controller* camera_controller() const;
+    picker::PickerManager* picker_manager() const;
 
     tile_scheduler::Scheduler* tile_scheduler() const;
 #ifdef ALP_ENABLE_LABELS
@@ -64,5 +68,6 @@ private:
     std::unique_ptr<tile_scheduler::TileLoadService> m_vectortile_service;
     std::unique_ptr<maplabel::MapLabelFilter> m_label_filter;
 #endif
+    std::unique_ptr<nucleus::picker::PickerManager> m_picker_manager;
 };
 }

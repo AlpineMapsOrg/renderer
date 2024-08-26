@@ -29,8 +29,8 @@ TEST_CASE("nucleus/charset")
     SECTION("charset reading")
     {
         nucleus::maplabel::Charset& c = nucleus::maplabel::Charset::get_instance();
-
-        std::set<char16_t> all_chars = c.get_all_chars();
+        
+        std::set<char16_t> all_chars = c.all_chars();
 
         // is the number of chars correct
         CHECK(all_chars.size() == 123);
@@ -46,7 +46,7 @@ TEST_CASE("nucleus/charset")
         // initialize the all_char_list with values from charset.txt
         {
             nucleus::maplabel::Charset& c = nucleus::maplabel::Charset::get_instance();
-            auto cached_chars = c.get_all_chars();
+            auto cached_chars = c.all_chars();
             all_char_list.insert(cached_chars.begin(), cached_chars.end());
         }
 
@@ -54,8 +54,8 @@ TEST_CASE("nucleus/charset")
         // NOTE: this step only happens in VectorTileManager.cpp
         {
             nucleus::maplabel::Charset& c = nucleus::maplabel::Charset::get_instance();
-
-            auto cached_chars = c.get_all_chars();
+            
+            auto cached_chars = c.all_chars();
 
             // making sure that this test value was not already present in the charset.txt
             CHECK(!cached_chars.contains(28779));
@@ -70,8 +70,8 @@ TEST_CASE("nucleus/charset")
             nucleus::maplabel::Charset& c = nucleus::maplabel::Charset::get_instance();
 
             CHECK(c.is_update_necessary(all_char_list.size()));
-
-            auto diff = c.get_char_diff(all_char_list);
+            
+            auto diff = c.char_diff(all_char_list);
 
             CHECK(diff.size() == 1);
             CHECK(diff.contains(28779));

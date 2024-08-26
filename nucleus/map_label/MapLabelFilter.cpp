@@ -40,13 +40,13 @@ void MapLabelFilter::update_filter(const FilterDefinitions& filter_definitions)
         // start timer to prevent future filter updates to happen rapidly one after another
         m_update_filter_timer->start(m_update_filter_time);
         // set bool to true to indicate that filter should code should run
-        filter_should_run = true;
+        m_filter_should_run = true;
         // start the filter process
         filter();
     } else {
         // update_filter is called while the last update just happened
         // -> set bool to true to indicate that after timer runs out we want to call filter again with the latest definition
-        filter_should_run = true;
+        m_filter_should_run = true;
     }
 }
 
@@ -75,7 +75,7 @@ void MapLabelFilter::update_quads(const std::vector<nucleus::tile_scheduler::til
     }
 
     // update_quads should always execute the filter method
-    filter_should_run = true;
+    m_filter_should_run = true;
     filter();
 }
 
@@ -114,22 +114,48 @@ void MapLabelFilter::apply_filter(const tile::Id tile_id)
                 continue;
             }
 
+            if (m_definitions.m_peak_has_cross && peak_feature->summit_cross.size() == 0) {
+                continue;
+            }
+
+            if (m_definitions.m_peak_has_register && peak_feature->summit_register.size() == 0) {
+                continue;
+            }
+
             // all filters were passed -> it is visible
             m_visible_features.at(tile_id).insert(feature);
         } else if (feature->type == FeatureType::City) {
-            // auto city_feature = std::dynamic_pointer_cast<const FeatureTXTCity>(feature);
+            auto city_feature = std::dynamic_pointer_cast<const FeatureTXTCity>(feature);
             if (!m_definitions.m_cities_visible) {
                 continue;
             }
+
+            //            if (city_feature->population < m_definitions.m_city_population_range.x() || city_feature->population >
+            //            m_definitions.m_city_population_range.y()) {
+            //                continue;
+            //            }
 
             // all filters were passed -> it is visible
             m_visible_features.at(tile_id).insert(feature);
 
         } else if (feature->type == FeatureType::Cottage) {
-            // auto cottage_feature = std::dynamic_pointer_cast<const FeatureTXTCottage>(feature);
+            auto cottage_feature = std::dynamic_pointer_cast<const FeatureTXTCottage>(feature);
             if (!m_definitions.m_cottages_visible) {
                 continue;
             }
+
+            if (m_definitions.m_cottage_has_shower && cottage_feature->shower.size() == 0) {
+                continue;
+            }
+
+            if (m_definitions.m_cottage_has_contact && (cottage_feature->email.size() == 0 && cottage_feature->phone.size() == 0)) {
+                continue;
+            }
+
+            //            if (cottage_feature->elevation < m_definitions.m_cottage_ele_range.x() || cottage_feature->elevation >
+            //            m_definitions.m_cottage_ele_range.y()) {
+            //                continue;
+            //            }
 
             // all filters were passed -> it is visible
             m_visible_features.at(tile_id).insert(feature);
@@ -142,17 +168,15 @@ void MapLabelFilter::apply_filter(const tile::Id tile_id)
             // all filters were passed -> it is visible
             m_visible_features.at(tile_id).insert(feature);
         }
-
-        // TODO @lucas define other filter
     }
 }
 
 void MapLabelFilter::filter()
 {
     // test if this filter should run or not (by checking here we prevent double running once the timer runs out)
-    if (!filter_should_run)
+    if (!m_filter_should_run)
         return;
-    filter_should_run = false;
+    m_filter_should_run = false;
 
     while (!m_tiles_to_filter.empty()) {
         auto tile_id = m_tiles_to_filter.front();
