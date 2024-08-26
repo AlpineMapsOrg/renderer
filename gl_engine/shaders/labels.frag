@@ -23,7 +23,7 @@ uniform bool drawing_outline;
 
 in highp vec2 texcoords;
 flat in int texture_index;
-flat in vec4 picker_color;
+flat in lowp vec4 picker_color;
 
 layout (location = 0) out lowp vec4 out_Color;
 
