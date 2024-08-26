@@ -49,6 +49,7 @@ void MapLabelManager::init()
     const auto& atlas_data = m_mapLabelFactory.init_font_atlas();
 
     m_font_texture = std::make_unique<Texture>(Texture::Target::_2dArray, Texture::Format::RG8);
+    m_font_texture->setParams(Texture::Filter::MipMapLinear, Texture::Filter::Linear);
     m_font_texture->allocate_array(nucleus::maplabel::FontRenderer::m_font_atlas_size.width(), nucleus::maplabel::FontRenderer::m_font_atlas_size.height(),
         nucleus::maplabel::FontRenderer::m_max_textures);
     for(unsigned int i = 0; i < atlas_data.font_atlas.size(); i++)

@@ -215,8 +215,6 @@ void gl_engine::Texture::upload(const nucleus::Raster<uint16_t>& texture, unsign
 void gl_engine::Texture::upload(const nucleus::Raster<glm::u8vec2>& texture, unsigned int array_index)
 {
     assert(m_format == Format::RG8);
-    assert(m_mag_filter == Filter::Nearest); // not filterable according to
-    assert(m_min_filter == Filter::Nearest); // https://registry.khronos.org/OpenGL-Refpages/es3.0/html/glTexStorage2D.xhtml
     assert(array_index < m_n_layers);
     assert(texture.width() == m_width);
     assert(texture.height() == m_height);
