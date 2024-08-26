@@ -211,7 +211,7 @@ private:
     bool m_camera_operation_centre_visibility = false;
     float m_camera_operation_centre_distance = 1;
     float m_field_of_view = 60;
-    int m_frame_limit = 30;
+    int m_frame_limit = 60;
     unsigned m_tile_cache_size = 12000;
     unsigned m_cached_tiles = 0;
     unsigned m_queued_tiles = 0;
