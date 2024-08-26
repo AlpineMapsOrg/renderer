@@ -42,14 +42,6 @@ inline PickTypes picker_type(int typeValue)
 struct FeatureProperty {
     Q_GADGET
 public:
-    FeatureProperty(const FeatureProperty& other)
-        : key(other.key)
-        , value(other.value) {};
-
-    FeatureProperty(QString k, QString v)
-        : key(k)
-        , value(v) {};
-
     QString key;
     QString value;
 

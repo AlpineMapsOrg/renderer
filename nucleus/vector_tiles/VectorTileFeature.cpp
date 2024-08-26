@@ -92,38 +92,38 @@ QString FeatureTXTPeak::label_text() const
 
 FeatureProperties FeatureTXTPeak::get_feature_data() const
 {
-    auto properties = FeatureProperties();
-    
-    properties.title = name; // name is the title
-    
-    properties.properties.append(FeatureProperty { "Type", "Peak" });
-    
-    properties.properties.append(FeatureProperty { "Coordinates", QString("%1, %2").arg(position.x).arg(position.y) });
+    auto props = FeatureProperties();
+
+    props.title = name; // name is the title
+
+    props.properties.append(FeatureProperty { "Type", "Peak" });
+
+    props.properties.append(FeatureProperty { "Coordinates", QString("%1, %2").arg(position.x).arg(position.y) });
 
     if (elevation > 0) {
-        properties.properties.append(FeatureProperty { "Elevation", QString("%1m").arg(elevation) });
+        props.properties.append(FeatureProperty { "Elevation", QString("%1m").arg(elevation) });
     } else {
         // explicitly state that we do not have an official elevation
-        properties.properties.append(FeatureProperty { "Elevation", "-" });
+        props.properties.append(FeatureProperty { "Elevation", "-" });
     }
 
     if (wikipedia.size() > 0) {
-        properties.properties.append(FeatureProperty { "Wikipedia", wikipedia });
+        props.properties.append(FeatureProperty { "Wikipedia", wikipedia });
     }
 
     if (wikidata.size() > 0) {
-        properties.properties.append(FeatureProperty { "Wikidata", wikidata });
+        props.properties.append(FeatureProperty { "Wikidata", wikidata });
     }
 
     if (summit_cross.size() > 0) {
-        properties.properties.append(FeatureProperty { "Cross", summit_cross });
+        props.properties.append(FeatureProperty { "Cross", summit_cross });
     }
 
     if (summit_register.size() > 0) {
-        properties.properties.append(FeatureProperty { "Register", summit_register });
+        props.properties.append(FeatureProperty { "Register", summit_register });
     }
 
-    return properties;
+    return props;
 }
 
 std::shared_ptr<const FeatureTXT> FeatureTXTCity::parse(const mapbox::vector_tile::feature& feature, const std::shared_ptr<DataQuerier> dataquerier)
@@ -155,39 +155,39 @@ QString FeatureTXTCity::label_text() const { return name; }
 
 FeatureProperties FeatureTXTCity::get_feature_data() const
 {
-    auto properties = FeatureProperties();
-    
-    properties.title = name; // name is the title
+    auto props = FeatureProperties();
+
+    props.title = name; // name is the title
 
     if (place.size() > 0) {
-        properties.properties.append(FeatureProperty { "Type", place });
+        props.properties.append(FeatureProperty { "Type", place });
     }
-    
-    properties.properties.append(FeatureProperty { "Coordinates", QString("%1, %2").arg(position.x).arg(position.y) });
+
+    props.properties.append(FeatureProperty { "Coordinates", QString("%1, %2").arg(position.x).arg(position.y) });
 
     if (population > 0) {
-        properties.properties.append(FeatureProperty { "Population", QString("%1").arg(population) });
+        props.properties.append(FeatureProperty { "Population", QString("%1").arg(population) });
     } else {
-        properties.properties.append(FeatureProperty { "Population", "-" });
+        props.properties.append(FeatureProperty { "Population", "-" });
     }
 
     if (population_date.size() > 0) {
-        properties.properties.append(FeatureProperty { "Population date", population_date });
+        props.properties.append(FeatureProperty { "Population date", population_date });
     }
 
     if (wikipedia.size() > 0) {
-        properties.properties.append(FeatureProperty { "Wikipedia", wikipedia });
+        props.properties.append(FeatureProperty { "Wikipedia", wikipedia });
     }
 
     if (wikidata.size() > 0) {
-        properties.properties.append(FeatureProperty { "Wikidata", wikidata });
+        props.properties.append(FeatureProperty { "Wikidata", wikidata });
     }
 
     if (website.size() > 0) {
-        properties.properties.append(FeatureProperty { "Website", website });
+        props.properties.append(FeatureProperty { "Website", website });
     }
 
-    return properties;
+    return props;
 }
 
 std::shared_ptr<const FeatureTXT> FeatureTXTCottage::parse(const mapbox::vector_tile::feature& feature, const std::shared_ptr<DataQuerier> dataquerier)
@@ -243,73 +243,73 @@ QString FeatureTXTCottage::label_text() const { return name; }
 
 FeatureProperties FeatureTXTCottage::get_feature_data() const
 {
-    auto properties = FeatureProperties();
-    
-    properties.title = name; // name is the title
+    auto props = FeatureProperties();
+
+    props.title = name; // name is the title
 
     if (feature_type.size() > 0) {
         // alpine_hut, wilderness_hut
         if (feature_type == "alpine_hut")
-            properties.properties.append(FeatureProperty { "Type", "Alpine hut" });
+            props.properties.append(FeatureProperty { "Type", "Alpine hut" });
         else
-            properties.properties.append(FeatureProperty { "Type", "Wilderness hut" });
+            props.properties.append(FeatureProperty { "Type", "Wilderness hut" });
     }
-    
-    properties.properties.append(FeatureProperty { "Coordinates", QString("%1, %2").arg(position.x).arg(position.y) });
+
+    props.properties.append(FeatureProperty { "Coordinates", QString("%1, %2").arg(position.x).arg(position.y) });
 
     if (elevation > 0) {
-        properties.properties.append(FeatureProperty { "Elevation", QString("%1m").arg(elevation) });
+        props.properties.append(FeatureProperty { "Elevation", QString("%1m").arg(elevation) });
     }
     if (wikipedia.size() > 0) {
-        properties.properties.append(FeatureProperty { "Wikipedia", wikipedia });
+        props.properties.append(FeatureProperty { "Wikipedia", wikipedia });
     }
     if (wikidata.size() > 0) {
-        properties.properties.append(FeatureProperty { "Wikidata", wikidata });
+        props.properties.append(FeatureProperty { "Wikidata", wikidata });
     }
     if (website.size() > 0) {
-        properties.properties.append(FeatureProperty { "Website", website });
+        props.properties.append(FeatureProperty { "Website", website });
     }
     if (phone.size() > 0) {
-        properties.properties.append(FeatureProperty { "Phone", phone });
+        props.properties.append(FeatureProperty { "Phone", phone });
     }
     if (email.size() > 0) {
-        properties.properties.append(FeatureProperty { "Email", email });
+        props.properties.append(FeatureProperty { "Email", email });
     }
     if (addr_city.size() > 0) {
-        properties.properties.append(FeatureProperty { "City", addr_city });
+        props.properties.append(FeatureProperty { "City", addr_city });
     }
     if (addr_postcode.size() > 0) {
-        properties.properties.append(FeatureProperty { "Postcode", addr_postcode });
+        props.properties.append(FeatureProperty { "Postcode", addr_postcode });
     }
     if (addr_street.size() > 0) {
-        properties.properties.append(FeatureProperty { "Street", addr_street });
+        props.properties.append(FeatureProperty { "Street", addr_street });
     }
     if (addr_housenumber.size() > 0) {
-        properties.properties.append(FeatureProperty { "Housenumber", addr_housenumber });
+        props.properties.append(FeatureProperty { "Housenumber", addr_housenumber });
     }
     if (opening_hours.size() > 0) {
-        properties.properties.append(FeatureProperty { "Opening hours", opening_hours });
+        props.properties.append(FeatureProperty { "Opening hours", opening_hours });
     }
     if (description.size() > 0) {
-        properties.properties.append(FeatureProperty { "Description", description });
+        props.properties.append(FeatureProperty { "Description", description });
     }
     if (capacity.size() > 0) {
-        properties.properties.append(FeatureProperty { "Capacity", capacity });
+        props.properties.append(FeatureProperty { "Capacity", capacity });
     }
     if (shower.size() > 0) {
-        properties.properties.append(FeatureProperty { "Shower", shower });
+        props.properties.append(FeatureProperty { "Shower", shower });
     }
     if (internet_access.size() > 0) {
-        properties.properties.append(FeatureProperty { "Internet access", internet_access });
+        props.properties.append(FeatureProperty { "Internet access", internet_access });
     }
     if (operators.size() > 0) {
-        properties.properties.append(FeatureProperty { "Operators", operators });
+        props.properties.append(FeatureProperty { "Operators", operators });
     }
     if (access.size() > 0) {
-        properties.properties.append(FeatureProperty { "Access", access });
+        props.properties.append(FeatureProperty { "Access", access });
     }
 
-    return properties;
+    return props;
 }
 
 std::shared_ptr<const FeatureTXT> FeatureTXTWebcam::parse(const mapbox::vector_tile::feature& feature, const std::shared_ptr<DataQuerier> dataquerier)
@@ -343,43 +343,43 @@ QString FeatureTXTWebcam::label_text() const { return ""; /* no text*/ }
 
 FeatureProperties FeatureTXTWebcam::get_feature_data() const
 {
-    auto properties = FeatureProperties();
+    auto props = FeatureProperties();
 
     if (name.size() > 0) {
-        properties.title = name; // name is the title
+        props.title = name; // name is the title
     } else {
-        properties.title = "Webcam"; // otherwise only show "webcam" as title
+        props.title = "Webcam"; // otherwise only show "webcam" as title
     }
-    
-    properties.properties.append(FeatureProperty { "Type", "Webcam" });
-    
-    properties.properties.append(FeatureProperty { "Coordinates", QString("%1, %2").arg(position.x).arg(position.y) });
+
+    props.properties.append(FeatureProperty { "Type", "Webcam" });
+
+    props.properties.append(FeatureProperty { "Coordinates", QString("%1, %2").arg(position.x).arg(position.y) });
 
     if (image.size() > 0) {
-        properties.properties.append(FeatureProperty { "Link to image", image });
+        props.properties.append(FeatureProperty { "Link to image", image });
     }
 
     if (elevation > 0) {
-        properties.properties.append(FeatureProperty { "Elevation", QString("%1m").arg(elevation) });
+        props.properties.append(FeatureProperty { "Elevation", QString("%1m").arg(elevation) });
     }
 
     if (camera_type.size() > 0) {
-        properties.properties.append(FeatureProperty { "Camera type", camera_type });
+        props.properties.append(FeatureProperty { "Camera type", camera_type });
     }
 
     if (direction > 0) {
-        properties.properties.append(FeatureProperty { "Direction", QString("%1").arg(direction) });
+        props.properties.append(FeatureProperty { "Direction", QString("%1").arg(direction) });
     }
 
     if (surveillance_type.size() > 0 && surveillance_type != "NULL") {
-        properties.properties.append(FeatureProperty { "Surveillance type", surveillance_type }); // camera,fixed,guard,outdoor,webcam,NULL
+        props.properties.append(FeatureProperty { "Surveillance type", surveillance_type }); // camera,fixed,guard,outdoor,webcam,NULL
     }
 
     if (description.size() > 0) {
-        properties.properties.append(FeatureProperty { "Description", description });
+        props.properties.append(FeatureProperty { "Description", description });
     }
 
-    return properties;
+    return props;
 }
 
 } // namespace nucleus::vectortile
