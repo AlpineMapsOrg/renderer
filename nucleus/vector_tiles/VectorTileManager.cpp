@@ -31,6 +31,7 @@ VectorTileManager::VectorTileManager(QObject* parent)
 {
 }
 
+const QString VectorTileManager::tile_server() { return m_tile_server; }
 
 const std::shared_ptr<VectorTile> VectorTileManager::to_vector_tile(const QByteArray& vectorTileData, const std::shared_ptr<DataQuerier> dataquerier)
 {
@@ -41,11 +42,11 @@ const std::shared_ptr<VectorTile> VectorTileManager::to_vector_tile(const QByteA
     }
 
     nucleus::maplabel::Charset& charset = nucleus::maplabel::Charset::get_instance();
-
-    if(all_chars.size() == 0)
+    
+    if(m_all_chars.size() == 0)
     {
         // first time -> we should initialize all_chars list
-        all_chars = charset.get_all_chars();
+        m_all_chars = charset.all_chars();
     }
 
     // convert data buffer into vectortile
@@ -56,7 +57,7 @@ const std::shared_ptr<VectorTile> VectorTileManager::to_vector_tile(const QByteA
     std::shared_ptr<VectorTile> vector_tile = std::make_shared<VectorTile>();
 
     for (auto const& layerName : tile.layerNames()) {
-        if (feature_types_factory.contains(layerName)) {
+        if (m_feature_types_factory.contains(layerName)) {
             const mapbox::vector_tile::layer layer = tile.getLayer(layerName);
 
             std::size_t feature_count = layer.featureCount();
@@ -65,18 +66,18 @@ const std::shared_ptr<VectorTile> VectorTileManager::to_vector_tile(const QByteA
                 auto const feature = mapbox::vector_tile::feature(layer.getFeature(i), layer);
 
                 // create the feature with the designated parser method
-                auto feat = feature_types_factory.at(layerName)(feature, dataquerier);
+                auto feat = m_feature_types_factory.at(layerName)(feature, dataquerier);
 
                 auto u16Chars = feat->name.toStdU16String();
-                all_chars.insert(u16Chars.begin(), u16Chars.end());
+                m_all_chars.insert(u16Chars.begin(), u16Chars.end());
                 vector_tile->insert(feat);
             }
         }
     }
-
-    if(charset.is_update_necessary(all_chars.size()))
+    
+    if(charset.is_update_necessary(m_all_chars.size()))
     {
-        charset.add_chars(all_chars);
+        charset.add_chars(m_all_chars);
     }
 
     return vector_tile;

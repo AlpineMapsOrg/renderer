@@ -59,7 +59,7 @@ struct FeatureTXT {
     glm::dvec3 worldposition;
     FeatureType type;
 
-    inline static unsigned long id_counter = 1UL;
+    inline static uint64_t id_counter = 1UL;
 
     static void parse(std::shared_ptr<FeatureTXT> ft, const mapbox::vector_tile::feature& feature, const std::shared_ptr<DataQuerier> dataquerier);
 

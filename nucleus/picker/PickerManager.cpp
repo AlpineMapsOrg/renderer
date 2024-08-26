@@ -32,7 +32,7 @@ PickerManager::PickerManager(QObject* parent)
 
 void PickerManager::eval_pick(uint32_t value)
 {
-    PickTypes type = get_picker_type((value >> 24) & 255);
+    PickTypes type = picker_type((value >> 24) & 255);
 
     if (type == PickTypes::invalid) {
         // e.g. clicked on nothing -> hide sidebar

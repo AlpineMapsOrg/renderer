@@ -50,13 +50,7 @@ signals:
 
 private:
     TiledVectorTile m_all_features;
-
     std::unordered_map<unsigned long, std::shared_ptr<const FeatureTXT>> m_pickid_to_feature;
-
-    unsigned long m_last_feature_id = 0;
-
-    void add_tile(const tile::Id id, const VectorTile& all_features);
-    void remove_tile(const tile::Id id);
 
     glm::vec2 m_position;
     bool m_in_click;
@@ -66,5 +60,8 @@ private:
 
     void start_click_event(const glm::vec2& position);
     void end_click_event(const glm::vec2& position);
+
+    void add_tile(const tile::Id id, const VectorTile& all_features);
+    void remove_tile(const tile::Id id);
 };
 } // namespace nucleus::picker

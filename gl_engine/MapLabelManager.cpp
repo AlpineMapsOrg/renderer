@@ -49,13 +49,14 @@ void MapLabelManager::init()
     const auto& atlas_data = m_mapLabelFactory.init_font_atlas();
 
     m_font_texture = std::make_unique<Texture>(Texture::Target::_2dArray, Texture::Format::RG8);
-    m_font_texture->allocate_array(nucleus::maplabel::FontRenderer::font_atlas_size.width(), nucleus::maplabel::FontRenderer::font_atlas_size.height(), nucleus::maplabel::FontRenderer::max_textures);
+    m_font_texture->allocate_array(nucleus::maplabel::FontRenderer::m_font_atlas_size.width(), nucleus::maplabel::FontRenderer::m_font_atlas_size.height(),
+        nucleus::maplabel::FontRenderer::m_max_textures);
     for(unsigned int i = 0; i < atlas_data.font_atlas.size(); i++)
     {
         m_font_texture->upload(atlas_data.font_atlas[i],i);
     }
 
-    const auto& labelIcons = m_mapLabelFactory.get_label_icons();
+    const auto& labelIcons = m_mapLabelFactory.label_icons();
 
     m_icon_texture = std::make_unique<Texture>(Texture::Target::_2d, Texture::Format::RGBA8);
     m_icon_texture->setParams(Texture::Filter::MipMapLinear, Texture::Filter::Linear);
@@ -65,8 +66,8 @@ void MapLabelManager::init()
     m_index_buffer->create();
     m_index_buffer->bind();
     m_index_buffer->setUsagePattern(QOpenGLBuffer::StaticDraw);
-    m_index_buffer->allocate(m_mapLabelFactory.indices.data(), m_mapLabelFactory.indices.size() * sizeof(unsigned int));
-    m_indices_count = m_mapLabelFactory.indices.size();
+    m_index_buffer->allocate(m_mapLabelFactory.m_indices.data(), m_mapLabelFactory.m_indices.size() * sizeof(unsigned int));
+    m_indices_count = m_mapLabelFactory.m_indices.size();
 }
 
 void MapLabelManager::renew_font_atlas()

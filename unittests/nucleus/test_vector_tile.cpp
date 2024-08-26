@@ -41,7 +41,7 @@ TEST_CASE("nucleus/vector_tiles")
         const auto id = tile::Id { .zoom_level = 10, .coords = { 548, 359 }, .scheme = tile::Scheme::SlippyMap };
 
         nucleus::tile_scheduler::TileLoadService service(
-            nucleus::vectortile::VectorTileManager::tile_server, nucleus::tile_scheduler::TileLoadService::UrlPattern::ZXY_yPointingSouth, "");
+            nucleus::vectortile::VectorTileManager::tile_server(), nucleus::tile_scheduler::TileLoadService::UrlPattern::ZXY_yPointingSouth, "");
 
         {
             QSignalSpy spy(&service, &nucleus::tile_scheduler::TileLoadService::load_finished);

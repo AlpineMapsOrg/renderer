@@ -93,34 +93,34 @@ QString FeatureTXTPeak::label_text() const
 FeatureProperties FeatureTXTPeak::get_feature_data() const
 {
     auto properties = FeatureProperties();
-
-    properties.m_title = name; // name is the title
-
-    properties.m_properties.append(FeatureProperty { "Type", "Peak" });
-
-    properties.m_properties.append(FeatureProperty { "Coordinates", QString("%1, %2").arg(position.x).arg(position.y) });
+    
+    properties.title = name; // name is the title
+    
+    properties.properties.append(FeatureProperty { "Type", "Peak" });
+    
+    properties.properties.append(FeatureProperty { "Coordinates", QString("%1, %2").arg(position.x).arg(position.y) });
 
     if (elevation > 0) {
-        properties.m_properties.append(FeatureProperty { "Elevation", QString("%1m").arg(elevation) });
+        properties.properties.append(FeatureProperty { "Elevation", QString("%1m").arg(elevation) });
     } else {
         // explicitly state that we do not have an official elevation
-        properties.m_properties.append(FeatureProperty { "Elevation", "-" });
+        properties.properties.append(FeatureProperty { "Elevation", "-" });
     }
 
     if (wikipedia.size() > 0) {
-        properties.m_properties.append(FeatureProperty { "Wikipedia", wikipedia });
+        properties.properties.append(FeatureProperty { "Wikipedia", wikipedia });
     }
 
     if (wikidata.size() > 0) {
-        properties.m_properties.append(FeatureProperty { "Wikidata", wikidata });
+        properties.properties.append(FeatureProperty { "Wikidata", wikidata });
     }
 
     if (summit_cross.size() > 0) {
-        properties.m_properties.append(FeatureProperty { "Cross", summit_cross });
+        properties.properties.append(FeatureProperty { "Cross", summit_cross });
     }
 
     if (summit_register.size() > 0) {
-        properties.m_properties.append(FeatureProperty { "Register", summit_register });
+        properties.properties.append(FeatureProperty { "Register", summit_register });
     }
 
     return properties;
@@ -156,35 +156,35 @@ QString FeatureTXTCity::label_text() const { return name; }
 FeatureProperties FeatureTXTCity::get_feature_data() const
 {
     auto properties = FeatureProperties();
-
-    properties.m_title = name; // name is the title
+    
+    properties.title = name; // name is the title
 
     if (place.size() > 0) {
-        properties.m_properties.append(FeatureProperty { "Type", place });
+        properties.properties.append(FeatureProperty { "Type", place });
     }
-
-    properties.m_properties.append(FeatureProperty { "Coordinates", QString("%1, %2").arg(position.x).arg(position.y) });
+    
+    properties.properties.append(FeatureProperty { "Coordinates", QString("%1, %2").arg(position.x).arg(position.y) });
 
     if (population > 0) {
-        properties.m_properties.append(FeatureProperty { "Population", QString("%1").arg(population) });
+        properties.properties.append(FeatureProperty { "Population", QString("%1").arg(population) });
     } else {
-        properties.m_properties.append(FeatureProperty { "Population", "-" });
+        properties.properties.append(FeatureProperty { "Population", "-" });
     }
 
     if (population_date.size() > 0) {
-        properties.m_properties.append(FeatureProperty { "Population date", population_date });
+        properties.properties.append(FeatureProperty { "Population date", population_date });
     }
 
     if (wikipedia.size() > 0) {
-        properties.m_properties.append(FeatureProperty { "Wikipedia", wikipedia });
+        properties.properties.append(FeatureProperty { "Wikipedia", wikipedia });
     }
 
     if (wikidata.size() > 0) {
-        properties.m_properties.append(FeatureProperty { "Wikidata", wikidata });
+        properties.properties.append(FeatureProperty { "Wikidata", wikidata });
     }
 
     if (website.size() > 0) {
-        properties.m_properties.append(FeatureProperty { "Website", website });
+        properties.properties.append(FeatureProperty { "Website", website });
     }
 
     return properties;
@@ -244,69 +244,69 @@ QString FeatureTXTCottage::label_text() const { return name; }
 FeatureProperties FeatureTXTCottage::get_feature_data() const
 {
     auto properties = FeatureProperties();
-
-    properties.m_title = name; // name is the title
+    
+    properties.title = name; // name is the title
 
     if (feature_type.size() > 0) {
         // alpine_hut, wilderness_hut
         if (feature_type == "alpine_hut")
-            properties.m_properties.append(FeatureProperty { "Type", "Alpine hut" });
+            properties.properties.append(FeatureProperty { "Type", "Alpine hut" });
         else
-            properties.m_properties.append(FeatureProperty { "Type", "Wilderness hut" });
+            properties.properties.append(FeatureProperty { "Type", "Wilderness hut" });
     }
-
-    properties.m_properties.append(FeatureProperty { "Coordinates", QString("%1, %2").arg(position.x).arg(position.y) });
+    
+    properties.properties.append(FeatureProperty { "Coordinates", QString("%1, %2").arg(position.x).arg(position.y) });
 
     if (elevation > 0) {
-        properties.m_properties.append(FeatureProperty { "Elevation", QString("%1m").arg(elevation) });
+        properties.properties.append(FeatureProperty { "Elevation", QString("%1m").arg(elevation) });
     }
     if (wikipedia.size() > 0) {
-        properties.m_properties.append(FeatureProperty { "Wikipedia", wikipedia });
+        properties.properties.append(FeatureProperty { "Wikipedia", wikipedia });
     }
     if (wikidata.size() > 0) {
-        properties.m_properties.append(FeatureProperty { "Wikidata", wikidata });
+        properties.properties.append(FeatureProperty { "Wikidata", wikidata });
     }
     if (website.size() > 0) {
-        properties.m_properties.append(FeatureProperty { "Website", website });
+        properties.properties.append(FeatureProperty { "Website", website });
     }
     if (phone.size() > 0) {
-        properties.m_properties.append(FeatureProperty { "Phone", phone });
+        properties.properties.append(FeatureProperty { "Phone", phone });
     }
     if (email.size() > 0) {
-        properties.m_properties.append(FeatureProperty { "Email", email });
+        properties.properties.append(FeatureProperty { "Email", email });
     }
     if (addr_city.size() > 0) {
-        properties.m_properties.append(FeatureProperty { "City", addr_city });
+        properties.properties.append(FeatureProperty { "City", addr_city });
     }
     if (addr_postcode.size() > 0) {
-        properties.m_properties.append(FeatureProperty { "Postcode", addr_postcode });
+        properties.properties.append(FeatureProperty { "Postcode", addr_postcode });
     }
     if (addr_street.size() > 0) {
-        properties.m_properties.append(FeatureProperty { "Street", addr_street });
+        properties.properties.append(FeatureProperty { "Street", addr_street });
     }
     if (addr_housenumber.size() > 0) {
-        properties.m_properties.append(FeatureProperty { "Housenumber", addr_housenumber });
+        properties.properties.append(FeatureProperty { "Housenumber", addr_housenumber });
     }
     if (opening_hours.size() > 0) {
-        properties.m_properties.append(FeatureProperty { "Opening hours", opening_hours });
+        properties.properties.append(FeatureProperty { "Opening hours", opening_hours });
     }
     if (description.size() > 0) {
-        properties.m_properties.append(FeatureProperty { "Description", description });
+        properties.properties.append(FeatureProperty { "Description", description });
     }
     if (capacity.size() > 0) {
-        properties.m_properties.append(FeatureProperty { "Capacity", capacity });
+        properties.properties.append(FeatureProperty { "Capacity", capacity });
     }
     if (shower.size() > 0) {
-        properties.m_properties.append(FeatureProperty { "Shower", shower });
+        properties.properties.append(FeatureProperty { "Shower", shower });
     }
     if (internet_access.size() > 0) {
-        properties.m_properties.append(FeatureProperty { "Internet access", internet_access });
+        properties.properties.append(FeatureProperty { "Internet access", internet_access });
     }
     if (operators.size() > 0) {
-        properties.m_properties.append(FeatureProperty { "Operators", operators });
+        properties.properties.append(FeatureProperty { "Operators", operators });
     }
     if (access.size() > 0) {
-        properties.m_properties.append(FeatureProperty { "Access", access });
+        properties.properties.append(FeatureProperty { "Access", access });
     }
 
     return properties;
@@ -346,37 +346,37 @@ FeatureProperties FeatureTXTWebcam::get_feature_data() const
     auto properties = FeatureProperties();
 
     if (name.size() > 0) {
-        properties.m_title = name; // name is the title
+        properties.title = name; // name is the title
     } else {
-        properties.m_title = "Webcam"; // otherwise only show "webcam" as title
+        properties.title = "Webcam"; // otherwise only show "webcam" as title
     }
-
-    properties.m_properties.append(FeatureProperty { "Type", "Webcam" });
-
-    properties.m_properties.append(FeatureProperty { "Coordinates", QString("%1, %2").arg(position.x).arg(position.y) });
+    
+    properties.properties.append(FeatureProperty { "Type", "Webcam" });
+    
+    properties.properties.append(FeatureProperty { "Coordinates", QString("%1, %2").arg(position.x).arg(position.y) });
 
     if (image.size() > 0) {
-        properties.m_properties.append(FeatureProperty { "Link to image", image });
+        properties.properties.append(FeatureProperty { "Link to image", image });
     }
 
     if (elevation > 0) {
-        properties.m_properties.append(FeatureProperty { "Elevation", QString("%1m").arg(elevation) });
+        properties.properties.append(FeatureProperty { "Elevation", QString("%1m").arg(elevation) });
     }
 
     if (camera_type.size() > 0) {
-        properties.m_properties.append(FeatureProperty { "Camera type", camera_type });
+        properties.properties.append(FeatureProperty { "Camera type", camera_type });
     }
 
     if (direction > 0) {
-        properties.m_properties.append(FeatureProperty { "Direction", QString("%1").arg(direction) });
+        properties.properties.append(FeatureProperty { "Direction", QString("%1").arg(direction) });
     }
 
     if (surveillance_type.size() > 0 && surveillance_type != "NULL") {
-        properties.m_properties.append(FeatureProperty { "Surveillance type", surveillance_type }); // camera,fixed,guard,outdoor,webcam,NULL
+        properties.properties.append(FeatureProperty { "Surveillance type", surveillance_type }); // camera,fixed,guard,outdoor,webcam,NULL
     }
 
     if (description.size() > 0) {
-        properties.m_properties.append(FeatureProperty { "Description", description });
+        properties.properties.append(FeatureProperty { "Description", description });
     }
 
     return properties;

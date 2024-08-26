@@ -65,7 +65,7 @@ private:
 
     void apply_filter(const tile::Id tile_id);
 
-    bool filter_should_run;
+    bool m_filter_should_run;
     constexpr static int m_update_filter_time = 400;
     std::unique_ptr<QTimer> m_update_filter_timer;
 };

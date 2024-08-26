@@ -43,11 +43,11 @@ public:
 
     void init();
     void render(std::set<char16_t> chars, float font_size);
-    const FontData& get_font_data();
-    std::vector<Raster<glm::u8vec2>> get_font_atlas();
+    const FontData& font_data();
+    std::vector<Raster<glm::u8vec2>> font_atlas();
 
-    static constexpr QSize font_atlas_size = QSize(1024, 1024);
-    static constexpr int max_textures = 8;
+    static constexpr QSize m_font_atlas_size = QSize(1024, 1024);
+    static constexpr int m_max_textures = 8;
 
 private:
     void render_text(std::set<char16_t> chars, float font_size);
@@ -56,14 +56,13 @@ private:
 
     static constexpr float m_font_outline = 7.2f;
     static constexpr glm::ivec2 m_font_padding = glm::ivec2(2, 2);
-    static constexpr float uv_width_norm = 1.0f / font_atlas_size.width();
+    static constexpr float m_uv_width_norm = 1.0f / m_font_atlas_size.width();
 
-
-    int outline_margin;
-    int x;
-    int y;
-    int bottom_y;
-    int texture_index;
+    int m_outline_margin;
+    int m_x;
+    int m_y;
+    int m_bottom_y;
+    int m_texture_index;
 
     FontData m_font_data;
 

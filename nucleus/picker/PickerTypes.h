@@ -29,7 +29,7 @@ enum PickTypes {
 
 };
 
-inline PickTypes get_picker_type(int typeValue)
+inline PickTypes picker_type(int typeValue)
 {
     switch (typeValue) {
     case 1:
@@ -43,18 +43,18 @@ struct FeatureProperty {
     Q_GADGET
 public:
     FeatureProperty(const FeatureProperty& other)
-        : m_key(other.m_key)
-        , m_value(other.m_value) {};
+        : key(other.key)
+        , value(other.value) {};
 
-    FeatureProperty(QString key, QString value)
-        : m_key(key)
-        , m_value(value) {};
+    FeatureProperty(QString k, QString v)
+        : key(k)
+        , value(v) {};
 
-    QString m_key;
-    QString m_value;
+    QString key;
+    QString value;
 
-    Q_PROPERTY(QString key MEMBER m_key)
-    Q_PROPERTY(QString value MEMBER m_value)
+    Q_PROPERTY(QString key MEMBER key)
+    Q_PROPERTY(QString value MEMBER value)
 
     bool operator==(const FeatureProperty&) const = default;
     bool operator!=(const FeatureProperty&) const = default;
@@ -63,21 +63,21 @@ public:
 struct FeatureProperties {
     Q_GADGET
 public:
-    QString m_title;
-    QList<FeatureProperty> m_properties;
+    QString title;
+    QList<FeatureProperty> properties;
 
-    Q_INVOKABLE bool is_valid() { return !m_properties.empty(); }
+    Q_INVOKABLE bool is_valid() { return !properties.empty(); }
     const QList<QString> get_list_model() const
     {
         QList<QString> list;
-        for (const auto& prop : m_properties) {
-            list.append(prop.m_key + ":");
-            list.append(prop.m_value);
+        for (const auto& prop : properties) {
+            list.append(prop.key + ":");
+            list.append(prop.value);
         }
         return list;
     }
 
-    Q_PROPERTY(QString title MEMBER m_title)
+    Q_PROPERTY(QString title MEMBER title)
     // in theory it should be possible to expose QList<SomeStruct> to qml for the listview
     // unfortunately this requires quite a bit of code (e.g. assign roles for each attribute, write custom data access classes etc (see QAbstractItemModel))
     // ultimatively i decided that this is too much work for minor benefits (benefit would be to directly access attributes with the name) and returning a

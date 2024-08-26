@@ -40,13 +40,13 @@ void MapLabelFilter::update_filter(const FilterDefinitions& filter_definitions)
         // start timer to prevent future filter updates to happen rapidly one after another
         m_update_filter_timer->start(m_update_filter_time);
         // set bool to true to indicate that filter should code should run
-        filter_should_run = true;
+        m_filter_should_run = true;
         // start the filter process
         filter();
     } else {
         // update_filter is called while the last update just happened
         // -> set bool to true to indicate that after timer runs out we want to call filter again with the latest definition
-        filter_should_run = true;
+        m_filter_should_run = true;
     }
 }
 
@@ -75,7 +75,7 @@ void MapLabelFilter::update_quads(const std::vector<nucleus::tile_scheduler::til
     }
 
     // update_quads should always execute the filter method
-    filter_should_run = true;
+    m_filter_should_run = true;
     filter();
 }
 
@@ -174,9 +174,9 @@ void MapLabelFilter::apply_filter(const tile::Id tile_id)
 void MapLabelFilter::filter()
 {
     // test if this filter should run or not (by checking here we prevent double running once the timer runs out)
-    if (!filter_should_run)
+    if (!m_filter_should_run)
         return;
-    filter_should_run = false;
+    m_filter_should_run = false;
 
     while (!m_tiles_to_filter.empty()) {
         auto tile_id = m_tiles_to_filter.front();

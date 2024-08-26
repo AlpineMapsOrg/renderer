@@ -69,7 +69,7 @@ Controller::Controller(AbstractRenderWindow* render_window)
         new TileLoadService("https://gataki.cg.tuwien.ac.at/raw/basemap/tiles/", TileLoadService::UrlPattern::ZYX_yPointingSouth, ".jpeg"));
 #ifdef ALP_ENABLE_LABELS
     m_vectortile_service
-        = std::make_unique<TileLoadService>(VectorTileManager::tile_server, nucleus::tile_scheduler::TileLoadService::UrlPattern::ZXY_yPointingSouth, "");
+        = std::make_unique<TileLoadService>(VectorTileManager::tile_server(), nucleus::tile_scheduler::TileLoadService::UrlPattern::ZXY_yPointingSouth, "");
 #endif
 
     m_tile_scheduler = std::make_unique<nucleus::tile_scheduler::Scheduler>();
