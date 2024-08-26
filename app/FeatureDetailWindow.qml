@@ -17,11 +17,8 @@
  *****************************************************************************/
 
 import QtQuick
-import QtCharts
 import QtQuick.Controls.Material
 //import QtQuick.Controls.Imagine
-import QtQuick.Layouts
-import QtQuick.Dialogs
 import Alpine
 
 import "components"
