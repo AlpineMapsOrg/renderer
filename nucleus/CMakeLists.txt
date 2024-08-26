@@ -29,7 +29,7 @@ if (NOT TARGET fmt)
 endif()
 alp_add_git_repository(zppbits URL https://github.com/eyalz800/zpp_bits.git COMMITISH v4.4.20 DO_NOT_ADD_SUBPROJECT)
 if(ALP_ENABLE_LABELS)
-    alp_add_git_repository(vector_tiles URL https://github.com/AlpineMapsOrg/vector-tile.git COMMITISH 0b9371f856b39caf2871daaa77b6cf069a037162)
+    alp_add_git_repository(vector_tiles URL https://github.com/AlpineMapsOrg/vector-tile.git COMMITISH faba88257716c4bc01ebd44d8b8b98f711ecb78c)
 endif()
 alp_add_git_repository(goofy_tc URL https://github.com/AlpineMapsOrgDependencies/Goofy_slim.git COMMITISH 13b228784960a6227bb6ca704ff34161bbac1b91 DO_NOT_ADD_SUBPROJECT)
 

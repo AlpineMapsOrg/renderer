@@ -203,7 +203,7 @@ TEST_CASE("gl texture")
         accuracies[128u] = 0.030;
         accuracies[32u] = 0.070; // red 1px border causing more and more inaccuracy
         accuracies[16u] = 0.130;
-        accuracies[8u] = 0.160;
+        accuracies[8u] = 0.180;
         accuracies[4u] = 0.200;
         accuracies[2u] = 0.02; // only red border left
         accuracies[1u] = 0.02;

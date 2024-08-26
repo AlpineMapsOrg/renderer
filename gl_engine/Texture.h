@@ -64,6 +64,10 @@ public:
     static GLenum compressed_texture_format();
     static nucleus::utils::ColourTexture::Format compression_algorithm();
 
+protected:
+    static GLenum max_anisotropy_param();
+    static float max_anisotropy();
+
 private:
     GLuint m_id = GLuint(-1);
     Target m_target = Target::_2d;

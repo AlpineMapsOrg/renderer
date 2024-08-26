@@ -100,9 +100,8 @@ void gl_engine::Texture::setParams(Filter min_filter, Filter mag_filter, bool an
     f->glTexParameteri(GLenum(m_target), GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
     f->glTexParameteri(GLenum(m_target), GL_TEXTURE_MIN_FILTER, GLint(m_min_filter));
     f->glTexParameteri(GLenum(m_target), GL_TEXTURE_MAG_FILTER, GLint(m_mag_filter));
-    if (anisotropic_filtering)
-        f->glTexParameterf(GLenum(m_target), GL_TEXTURE_MAX_ANISOTROPY, 16.0);
-    // f->glTexParameterf(GLenum(m_target), ext.TEXTURE_MAX_ANISOTROPY_EXT, 16.0);
+    if (anisotropic_filtering && max_anisotropy() > 0)
+        f->glTexParameterf(GLenum(m_target), max_anisotropy_param(), max_anisotropy());
 }
 
 void gl_engine::Texture::allocate_array(unsigned int width, unsigned int height, unsigned int n_layers)
@@ -304,5 +303,55 @@ nucleus::utils::ColourTexture::Format gl_engine::Texture::compression_algorithm(
     return nucleus::utils::ColourTexture::Format::ETC1;
 #else
     return nucleus::utils::ColourTexture::Format::DXT1;
+#endif
+}
+
+GLenum gl_engine::Texture::max_anisotropy_param()
+{
+#if defined(__EMSCRIPTEN__)
+    // clang-format off
+    static const int param = EM_ASM_INT({
+        var canvas = document.createElement('canvas');
+        var gl = canvas.getContext("webgl2");
+        const ext =
+          gl.getExtension("EXT_texture_filter_anisotropic") ||
+          gl.getExtension("MOZ_EXT_texture_filter_anisotropic") ||
+          gl.getExtension("WEBKIT_EXT_texture_filter_anisotropic");
+        if (ext)
+            return ext.TEXTURE_MAX_ANISOTROPY_EXT;
+        return 0;
+    });
+    // clang-format on
+    return param;
+#else
+    return GL_TEXTURE_MAX_ANISOTROPY;
+#endif
+}
+
+float gl_engine::Texture::max_anisotropy()
+{
+#if defined(__EMSCRIPTEN__)
+    // clang-format off
+    static const float max_anisotropy = std::min(32.f, float(EM_ASM_DOUBLE({
+        var canvas = document.createElement('canvas');
+        var gl = canvas.getContext("webgl2");
+        const ext =
+          gl.getExtension("EXT_texture_filter_anisotropic") ||
+          gl.getExtension("MOZ_EXT_texture_filter_anisotropic") ||
+          gl.getExtension("WEBKIT_EXT_texture_filter_anisotropic");
+        if (ext)
+          return gl.getParameter(ext.MAX_TEXTURE_MAX_ANISOTROPY_EXT);
+        return 0;
+    })));
+    // clang-format on
+    return max_anisotropy;
+#else
+    static const float max_anisotropy = []() {
+        QOpenGLExtraFunctions* f = QOpenGLContext::currentContext()->extraFunctions();
+        GLfloat t = 0.0f;
+        f->glGetFloatv(GL_MAX_TEXTURE_MAX_ANISOTROPY_EXT, &t);
+        return std::min(32.f, t);
+    }();
+    return max_anisotropy;
 #endif
 }
