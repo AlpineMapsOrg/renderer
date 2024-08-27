@@ -126,7 +126,7 @@ void LabelFactory::create_label(const QString text, const glm::vec3 position, co
 {
     float text_offset_y = -m_font_size / 2.0f + 75.0f;
     float icon_offset_y = 15.0f;
-    if (type == FeatureType::City) {
+    if (type == FeatureType::City || type == FeatureType::Cottage) {
         text_offset_y += 25.0f;
         icon_offset_y += 25.0f; // buildings might obstruct label -> we want to set it a bit above the city
     }

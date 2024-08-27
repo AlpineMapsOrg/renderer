@@ -87,8 +87,7 @@ void main() {
     }
 
     // importance based scaling
-//    scale *= (importance + 1.5f) / 2.5f;
-//    scale *= (1.0 + 1.5f) / 2.5f;
+    scale *= (importance + 2.5f) / 3.5f;
 
     if (label_visible(relative_to_cam + label_shift, dist_to_cam)) {
         gl_Position = camera.view_proj_matrix * vec4(relative_to_cam + label_shift, 1.0f);

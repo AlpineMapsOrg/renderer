@@ -275,18 +275,31 @@ FeatureProperties FeatureTXTCottage::get_feature_data() const
     if (email.size() > 0) {
         props.properties.append(FeatureProperty { "Email", email });
     }
-    if (addr_city.size() > 0) {
-        props.properties.append(FeatureProperty { "City", addr_city });
+
+    {
+        // Address
+        QString address = "";
+
+        if (addr_street.size() > 0) {
+            address += addr_street + " ";
+        }
+        if (addr_housenumber.size() > 0) {
+            address += addr_housenumber;
+        }
+
+        if (addr_postcode.size() > 0) {
+            if (address.length() > 0)
+                address += "<br>";
+            address += addr_postcode + " ";
+        }
+        if (addr_city.size() > 0) {
+            address += addr_city;
+        }
+
+        if (address.length() > 0)
+            props.properties.append(FeatureProperty { "Address", address });
     }
-    if (addr_postcode.size() > 0) {
-        props.properties.append(FeatureProperty { "Postcode", addr_postcode });
-    }
-    if (addr_street.size() > 0) {
-        props.properties.append(FeatureProperty { "Street", addr_street });
-    }
-    if (addr_housenumber.size() > 0) {
-        props.properties.append(FeatureProperty { "Housenumber", addr_housenumber });
-    }
+
     if (opening_hours.size() > 0) {
         props.properties.append(FeatureProperty { "Opening hours", opening_hours });
     }
