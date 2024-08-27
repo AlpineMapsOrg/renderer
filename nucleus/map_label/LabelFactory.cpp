@@ -88,7 +88,7 @@ const Raster<glm::u8vec4> LabelFactory::label_icons()
     icons[FeatureType::Peak] = nucleus::utils::image_loader::rgba8(":/map_icons/peak.png");
     icons[FeatureType::City] = nucleus::utils::image_loader::rgba8(":/map_icons/city.png");
     icons[FeatureType::Cottage] = nucleus::utils::image_loader::rgba8(":/map_icons/alpinehut.png");
-    icons[FeatureType::Webcam] = nucleus::utils::image_loader::rgba8(":/map_icons/viewpoint.png");
+    icons[FeatureType::Webcam] = nucleus::utils::image_loader::rgba8(":/map_icons/camera.png");
 
     size_t combined_height(0);
 
@@ -126,7 +126,7 @@ void LabelFactory::create_label(const QString text, const glm::vec3 position, co
 {
     float text_offset_y = -m_font_size / 2.0f + 75.0f;
     float icon_offset_y = 15.0f;
-    if (type == FeatureType::City) {
+    if (type != FeatureType::Peak) {
         text_offset_y += 25.0f;
         icon_offset_y += 25.0f; // buildings might obstruct label -> we want to set it a bit above the city
     }

@@ -144,7 +144,7 @@ qt_add_resources(nucleus "icons"
         ${CMAKE_SOURCE_DIR}/app/icons/labels/alpinehut.png
         ${CMAKE_SOURCE_DIR}/app/icons/labels/city.png
         ${CMAKE_SOURCE_DIR}/app/icons/labels/peak.png
-        ${CMAKE_SOURCE_DIR}/app/icons/labels/viewpoint.png
+        ${CMAKE_SOURCE_DIR}/app/icons/labels/camera.png
 )
 qt_add_resources(nucleus "height_data"
     PREFIX "/map"
