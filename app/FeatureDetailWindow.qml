@@ -87,7 +87,11 @@ Rectangle {
                    wrapMode: Text.Wrap
 
                    color: {
-                       if(map.current_feature_data_list[model.index].startsWith("http"))
+                       if(map.current_feature_data_list[model.index].startsWith("http")
+                        || ((model.index % 2 == 1) && map.current_feature_data_list[model.index-1] == "Phone:")
+                        || ((model.index % 2 == 1) && map.current_feature_data_list[model.index-1] == "Wikipedia:")
+                        || ((model.index % 2 == 1) && map.current_feature_data_list[model.index-1] == "Wikidata:")
+                       )
                        {
                            return "#1b75d0"
                        }
@@ -103,6 +107,19 @@ Rectangle {
                    {
                         Qt.openUrlExternally(map.current_feature_data_list[model.index]);
                    }
+                   else if(((model.index % 2 == 1) && map.current_feature_data_list[model.index-1] == "Phone:"))
+                   {
+                        Qt.openUrlExternally("tel:" + map.current_feature_data_list[model.index]);
+                   }
+                   else if((model.index % 2 == 1) && map.current_feature_data_list[model.index-1] == "Wikipedia:")
+                   {
+                       Qt.openUrlExternally("https://" + map.current_feature_data_list[model.index].split(":")[0] + ".wikipedia.org/wiki/" + map.current_feature_data_list[model.index].split(":")[1]);
+                   }
+                   else if((model.index % 2 == 1) && map.current_feature_data_list[model.index-1] == "Wikidata:")
+                   {
+                       Qt.openUrlExternally("https://www.wikidata.org/wiki/" + map.current_feature_data_list[model.index]);
+                   }
+
                }
            }
        }

@@ -132,8 +132,7 @@ void Window::initialise_gpu()
 
     m_atmospherebuffer = std::make_unique<Framebuffer>(Framebuffer::DepthFormat::None, std::vector { Framebuffer::ColourFormat::RGBA8 });
     m_decoration_buffer = std::make_unique<Framebuffer>(Framebuffer::DepthFormat::None, std::vector { Framebuffer::ColourFormat::RGBA8 });
-    //    m_pickerbuffer = std::make_unique<Framebuffer>(Framebuffer::DepthFormat::Float32, std::vector { Framebuffer::ColourFormat::RGBA32F });
-    m_pickerbuffer = std::make_unique<Framebuffer>(Framebuffer::DepthFormat::None, std::vector { Framebuffer::ColourFormat::RGBA32F });
+    m_pickerbuffer = std::make_unique<Framebuffer>(Framebuffer::DepthFormat::Float32, std::vector { Framebuffer::ColourFormat::RGBA32F });
     f->glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, m_gbuffer->depth_texture()->textureId(), 0);
 
     m_shared_config_ubo = std::make_shared<gl_engine::UniformBuffer<gl_engine::uboSharedConfig>>(0, "shared_config");
@@ -195,14 +194,10 @@ void Window::resize_framebuffer(int width, int height)
         // and glFramebufferTexture2D attaches the m_gbuffer->depth_texture() to it.
         f->glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, m_gbuffer->depth_texture()->textureId(), 0);
     }
-    {
-        m_pickerbuffer->resize({ width, height });
-        // same as above -> we are attaching m_gbuffer depth buffer to picker_buffer
-        f->glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, m_gbuffer->depth_texture()->textureId(), 0);
-    }
 
     m_atmospherebuffer->resize({ 1, height });
     m_ssao->resize({ width, height });
+    m_pickerbuffer->resize({ width, height });
 }
 
 void Window::paint(QOpenGLFramebufferObject* framebuffer)
@@ -304,6 +299,7 @@ void Window::paint(QOpenGLFramebufferObject* framebuffer)
         // CLEAR PICKER BUFFER
         f->glClearColor(0.0, 0.0, 0.0, 0.0);
         f->glClear(GL_COLOR_BUFFER_BIT);
+        f->glClear(GL_DEPTH_BUFFER_BIT);
 
         // DRAW Pickbuffer
         m_timer->start_timer("picker");
