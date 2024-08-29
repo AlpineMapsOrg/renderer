@@ -79,7 +79,7 @@ void MapLabelFilter::update_quads(const std::vector<nucleus::tile_scheduler::til
     filter();
 }
 
-void MapLabelFilter::add_tile(const tile::Id id, const VectorTile& all_features)
+void MapLabelFilter::add_tile(const tile::Id id, const FeatureSet& all_features)
 {
     m_all_tiles.insert(id);
     m_tiles_to_filter.push(id);
@@ -187,7 +187,7 @@ void MapLabelFilter::filter()
         if (m_visible_features.contains(tile_id))
             m_visible_features.erase(tile_id); // tile was added previously -> but we want to recalculate
 
-        m_visible_features[tile_id] = VectorTile();
+        m_visible_features[tile_id] = FeatureSet();
 
         if (!m_all_features.contains(tile_id))
             continue;

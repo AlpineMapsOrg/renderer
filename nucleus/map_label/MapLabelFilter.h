@@ -27,9 +27,9 @@
 
 #include <radix/tile.h>
 
-#include "nucleus/map_label/FilterDefinitions.h"
-#include "nucleus/tile_scheduler/tile_types.h"
-#include "nucleus/vector_tiles/VectorTileFeature.h"
+#include <nucleus/map_label/FilterDefinitions.h>
+#include <nucleus/tile_scheduler/tile_types.h>
+#include <nucleus/vector_tiles/feature.h>
 
 using namespace nucleus::vectortile;
 
@@ -40,7 +40,7 @@ class MapLabelFilter : public QObject {
 public:
     explicit MapLabelFilter(QObject* parent = nullptr);
 
-    void add_tile(const tile::Id id, const VectorTile& all_features);
+    void add_tile(const tile::Id id, const FeatureSet& all_features);
     void remove_tile(const tile::Id id);
 
 public slots:
@@ -48,14 +48,14 @@ public slots:
     void update_quads(const std::vector<nucleus::tile_scheduler::tile_types::GpuTileQuad>& new_quads, const std::vector<tile::Id>& deleted_quads);
 
 signals:
-    void filter_finished(const TiledVectorTile& visible_features, const std::vector<tile::Id>& removed_tiles);
+    void filter_finished(const FeatureSetTiles& visible_features, const std::vector<tile::Id>& removed_tiles);
 
 private slots:
     void filter();
 
 private:
-    TiledVectorTile m_all_features;
-    TiledVectorTile m_visible_features;
+    FeatureSetTiles m_all_features;
+    FeatureSetTiles m_visible_features;
 
     std::queue<tile::Id> m_tiles_to_filter;
     std::unordered_set<tile::Id, tile::Id::Hasher> m_all_tiles;

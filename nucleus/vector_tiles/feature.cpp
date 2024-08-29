@@ -16,11 +16,9 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *****************************************************************************/
 
-#include "VectorTileFeature.h"
+#include "feature.h"
 
-#include "nucleus/DataQuerier.h"
-
-#include <regex>
+#include <nucleus/DataQuerier.h>
 
 namespace nucleus::vectortile {
 

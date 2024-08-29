@@ -84,7 +84,7 @@ void MapLabelManager::renew_font_atlas()
     }
 }
 
-void MapLabelManager::upload_to_gpu(const tile::Id& id, const VectorTile& features)
+void MapLabelManager::upload_to_gpu(const tile::Id& id, const FeatureSet& features)
 {
     if (!QOpenGLContext::currentContext()) // can happen during shutdown.
         return;
@@ -144,7 +144,7 @@ void MapLabelManager::upload_to_gpu(const tile::Id& id, const VectorTile& featur
     m_gpu_tiles[id] = vectortile;
 }
 
-void MapLabelManager::update_labels(const TiledVectorTile& visible_features, const std::vector<tile::Id>& removed_tiles)
+void MapLabelManager::update_labels(const FeatureSetTiles& visible_features, const std::vector<tile::Id>& removed_tiles)
 {
     // remove tiles that aren't needed anymore
     for (const auto& id : removed_tiles) {

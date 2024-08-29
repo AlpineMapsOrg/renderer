@@ -121,7 +121,7 @@ endif()
 if(ALP_ENABLE_LABELS)
     target_sources(nucleus PRIVATE
         vector_tiles/VectorTileManager.h vector_tiles/VectorTileManager.cpp
-        vector_tiles/VectorTileFeature.h vector_tiles/VectorTileFeature.cpp
+        vector_tiles/feature.h vector_tiles/feature.cpp
         map_label/LabelFactory.h map_label/LabelFactory.cpp
         map_label/MapLabelData.h
         map_label/Charset.h map_label/Charset.cpp

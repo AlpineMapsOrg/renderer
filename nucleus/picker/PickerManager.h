@@ -49,7 +49,7 @@ signals:
     void pick_evaluated(const FeatureProperties feature);
 
 private:
-    TiledVectorTile m_all_features;
+    FeatureSetTiles m_all_features;
     std::unordered_map<unsigned long, std::shared_ptr<const FeatureTXT>> m_pickid_to_feature;
 
     glm::vec2 m_position;
@@ -61,7 +61,7 @@ private:
     void start_click_event(const glm::vec2& position);
     void end_click_event(const glm::vec2& position);
 
-    void add_tile(const tile::Id id, const VectorTile& all_features);
+    void add_tile(const tile::Id id, const FeatureSet& all_features);
     void remove_tile(const tile::Id id);
 };
 } // namespace nucleus::picker

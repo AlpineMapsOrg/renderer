@@ -18,16 +18,11 @@
 
 #include <QSignalSpy>
 #include <catch2/catch_test_macros.hpp>
-
-#include "nucleus/tile_scheduler/TileLoadService.h"
-#include "nucleus/tile_scheduler/utils.h"
-#include "nucleus/vector_tiles/VectorTileFeature.h"
-#include "nucleus/vector_tiles/VectorTileManager.h"
-#include "radix/tile.h"
-
-#include <algorithm>
-#include <set>
-
+#include <nucleus/tile_scheduler/TileLoadService.h>
+#include <nucleus/tile_scheduler/utils.h>
+#include <nucleus/vector_tiles/VectorTileManager.h>
+#include <nucleus/vector_tiles/feature.h>
+#include <radix/tile.h>
 
 TEST_CASE("nucleus/vector_tiles")
 {

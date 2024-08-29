@@ -27,7 +27,7 @@
 #include <nucleus/Raster.h>
 #include <nucleus/map_label/FontRenderer.h>
 #include <nucleus/map_label/MapLabelData.h>
-#include <nucleus/vector_tiles/VectorTileFeature.h>
+#include <nucleus/vector_tiles/feature.h>
 
 using namespace nucleus::vectortile;
 
@@ -41,7 +41,7 @@ public:
 
     const Raster<glm::u8vec4> label_icons();
 
-    const std::vector<VertexData> create_labels(const VectorTile& features);
+    const std::vector<VertexData> create_labels(const FeatureSet& features);
     void create_label(const QString text, const glm::vec3 position, FeatureType type, const uint32_t internal_id, const float importance,
         std::vector<VertexData>& vertex_data);
 

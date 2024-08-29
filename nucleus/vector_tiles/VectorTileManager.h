@@ -18,8 +18,6 @@
 
 #pragma once
 
-#include <mapbox/vector_tile.hpp>
-#include <radix/tile.h>
 
 #include <memory>
 #include <string>
@@ -28,8 +26,10 @@
 
 #include <QByteArray>
 #include <QObject>
+#include <mapbox/vector_tile.hpp>
+#include <radix/tile.h>
 
-#include "nucleus/vector_tiles/VectorTileFeature.h"
+#include "feature.h"
 
 namespace nucleus {
 class DataQuerier;
@@ -44,7 +44,7 @@ public:
 
     static const QString tile_server();
 
-    static const std::shared_ptr<VectorTile> to_vector_tile(const QByteArray& vectorTileData, const std::shared_ptr<DataQuerier> dataquerier);
+    static const std::shared_ptr<FeatureSet> to_vector_tile(const QByteArray& vectorTileData, const std::shared_ptr<DataQuerier> dataquerier);
 
 private:
     // all individual features and an appropriate parser method are stored in the following map

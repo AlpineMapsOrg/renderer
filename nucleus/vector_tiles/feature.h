@@ -147,7 +147,7 @@ struct FeatureTXTWebcam : public FeatureTXT {
     FeatureProperties get_feature_data() const;
 };
 
-typedef std::unordered_set<std::shared_ptr<const FeatureTXT>> VectorTile;
-typedef std::unordered_map<tile::Id, nucleus::vectortile::VectorTile, tile::Id::Hasher> TiledVectorTile;
+using FeatureSet = std::unordered_set<std::shared_ptr<const FeatureTXT>>;
+using FeatureSetTiles = std::unordered_map<tile::Id, nucleus::vectortile::FeatureSet, tile::Id::Hasher>;
 
 } // namespace nucleus::vectortile

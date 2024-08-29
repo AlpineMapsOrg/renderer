@@ -33,12 +33,12 @@ VectorTileManager::VectorTileManager(QObject* parent)
 
 const QString VectorTileManager::tile_server() { return m_tile_server; }
 
-const std::shared_ptr<VectorTile> VectorTileManager::to_vector_tile(const QByteArray& vectorTileData, const std::shared_ptr<DataQuerier> dataquerier)
+const std::shared_ptr<FeatureSet> VectorTileManager::to_vector_tile(const QByteArray& vectorTileData, const std::shared_ptr<DataQuerier> dataquerier)
 {
     // vectortile might be empty -> no parsing possible
     if (vectorTileData == nullptr) {
         // -> return empty
-        return std::make_shared<VectorTile>();
+        return std::make_shared<FeatureSet>();
     }
 
     nucleus::maplabel::Charset& charset = nucleus::maplabel::Charset::get_instance();
@@ -54,7 +54,7 @@ const std::shared_ptr<VectorTile> VectorTileManager::to_vector_tile(const QByteA
     mapbox::vector_tile::buffer tile(d);
 
     // create empty output variable
-    std::shared_ptr<VectorTile> vector_tile = std::make_shared<VectorTile>();
+    auto vector_tile = std::make_shared<FeatureSet>();
 
     for (auto const& layerName : tile.layerNames()) {
         if (m_feature_types_factory.contains(layerName)) {

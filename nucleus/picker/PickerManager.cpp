@@ -20,7 +20,7 @@
 #include <QDebug>
 
 #ifdef ALP_ENABLE_LABELS
-#include "nucleus/vector_tiles/VectorTileFeature.h"
+#include <nucleus/vector_tiles/feature.h>
 #endif
 
 namespace nucleus::picker {
@@ -74,7 +74,7 @@ void PickerManager::update_quads(const std::vector<nucleus::tile_scheduler::tile
     }
 }
 
-void PickerManager::add_tile(const tile::Id id, const VectorTile& all_features)
+void PickerManager::add_tile(const tile::Id id, const FeatureSet& all_features)
 {
     m_all_features[id] = all_features;
 

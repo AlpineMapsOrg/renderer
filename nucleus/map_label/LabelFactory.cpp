@@ -110,7 +110,7 @@ const Raster<glm::u8vec4> LabelFactory::label_icons()
     return combined_icons;
 }
 
-const std::vector<VertexData> LabelFactory::create_labels(const VectorTile& features)
+const std::vector<VertexData> LabelFactory::create_labels(const FeatureSet& features)
 {
     std::vector<VertexData> labelData;
 
