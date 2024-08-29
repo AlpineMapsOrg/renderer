@@ -1,6 +1,7 @@
 /*****************************************************************************
- * Alpine Terrain Renderer
+ * AlpineMaps.org
  * Copyright (C) 2024 Lucas Dworschak
+ * Copyright (C) 2024 Adam Celarek
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -23,7 +24,6 @@
 #include <QStringLiteral>
 
 #include "nucleus/Raster.h"
-#include "nucleus/map_label/Charset.h"
 #include "nucleus/picker/PickerTypes.h"
 #include "nucleus/utils/image_loader.h"
 #include <nucleus/utils/bit_coding.h>
@@ -38,36 +38,21 @@ namespace nucleus::maplabel {
 
 const AtlasData LabelFactory::init_font_atlas()
 {
-    nucleus::maplabel::Charset& c = nucleus::maplabel::Charset::get_instance();
-    
-    m_all_chars = c.all_chars();
-    m_last_char_amount = m_all_chars.size();
-
     m_font_renderer.init();
-    m_font_renderer.render(m_all_chars, m_font_size);
-    
-    m_font_data = m_font_renderer.font_data();
-
-    return {true, m_font_renderer.font_atlas()};
+    for (const auto ch : " !\"#$%&'()*+,-./0123456789:;<=>@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\\]^_`abcdefghijklmnopqrstuvwxyz{|}~§°´ÄÖÜßáâäéìíóöúüýČčěňőřŠšŽž€") {
+        m_new_chars.emplace(ch);
+    }
+    return renew_font_atlas();
 }
 
 const AtlasData LabelFactory::renew_font_atlas()
 {
-    nucleus::maplabel::Charset& c = nucleus::maplabel::Charset::get_instance();
-
     // check if any new chars have been added
-    if(c.is_update_necessary(m_last_char_amount))
-    {
-        // get the new chars
-        auto new_chars = c.char_diff(m_all_chars);
-        // add them to the complete list
-        m_all_chars.insert(new_chars.begin(), new_chars.end());
-        m_last_char_amount = m_all_chars.size();
-        
-        m_font_renderer.render(new_chars, m_font_size);
-        
+    if (!m_new_chars.empty()) {
+        m_font_renderer.render(m_new_chars, m_font_size);
+        m_rendered_chars.insert(m_new_chars.begin(), m_new_chars.end());
+        m_new_chars.clear();
         m_font_data = m_font_renderer.font_data();
-
         return {true, m_font_renderer.font_atlas()};
     }
 
@@ -114,6 +99,14 @@ const std::vector<VertexData> LabelFactory::create_labels(const FeatureSet& feat
 {
     std::vector<VertexData> labelData;
 
+    for (const auto& f : features) {
+        for (const auto ch : f->label_text()) {
+            if (m_rendered_chars.contains(ch.unicode()))
+                continue;
+            m_new_chars.insert(ch.unicode());
+        }
+    }
+
     for (const auto& feat : features) {
         create_label(feat->label_text(), feat->worldposition, feat->type, feat->internal_id, feat->importance, labelData);
     }
@@ -126,10 +119,6 @@ void LabelFactory::create_label(const QString text, const glm::vec3 position, co
 {
     float text_offset_y = -m_font_size / 2.0f + 60.0f;
     float icon_offset_y = 0.0f;
-    if (type != FeatureType::Peak) {
-        // text_offset_y += 25.0f;
-        // icon_offset_y += 25.0f; // buildings might obstruct label -> we want to set it a bit above the city
-    }
 
     auto safe_chars = text.toStdU16String();
     float text_width = 0;

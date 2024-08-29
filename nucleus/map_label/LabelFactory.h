@@ -1,6 +1,7 @@
 /*****************************************************************************
- * Alpine Terrain Renderer
+ * AlpineMaps.org
  * Copyright (C) 2024 Lucas Dworschak
+ * Copyright (C) 2024 Adam Celarek
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -56,10 +57,8 @@ private:
     std::vector<float> inline create_text_meta(std::u16string* safe_chars, float* text_width);
 
     FontData m_font_data;
-
-    size_t m_last_char_amount;
-    std::set<char16_t> m_all_chars;
-
+    std::set<char16_t> m_rendered_chars;
+    std::set<char16_t> m_new_chars;
     FontRenderer m_font_renderer;
 
 };

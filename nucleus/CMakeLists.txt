@@ -124,7 +124,6 @@ if(ALP_ENABLE_LABELS)
         vector_tiles/feature.h vector_tiles/feature.cpp
         map_label/LabelFactory.h map_label/LabelFactory.cpp
         map_label/MapLabelData.h
-        map_label/Charset.h map_label/Charset.cpp
         map_label/FontRenderer.h map_label/FontRenderer.cpp
         map_label/MapLabelFilter.h map_label/MapLabelFilter.cpp
         map_label/FilterDefinitions.h

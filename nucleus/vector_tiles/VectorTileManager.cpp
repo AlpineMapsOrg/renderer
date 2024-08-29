@@ -22,8 +22,6 @@
 
 #include "nucleus/DataQuerier.h"
 
-#include "nucleus/map_label/Charset.h"
-
 namespace nucleus::vectortile {
 
 VectorTileManager::VectorTileManager(QObject* parent)
@@ -37,14 +35,6 @@ const std::shared_ptr<FeatureSet> VectorTileManager::to_vector_tile(const QByteA
     if (vectorTileData == nullptr) {
         // -> return empty
         return std::make_shared<FeatureSet>();
-    }
-
-    nucleus::maplabel::Charset& charset = nucleus::maplabel::Charset::get_instance();
-    
-    if(m_all_chars.size() == 0)
-    {
-        // first time -> we should initialize all_chars list
-        m_all_chars = charset.all_chars();
     }
 
     // convert data buffer into vectortile
@@ -66,18 +56,11 @@ const std::shared_ptr<FeatureSet> VectorTileManager::to_vector_tile(const QByteA
                 // create the feature with the designated parser method
                 auto feat = m_feature_types_factory.at(layerName)(feature, dataquerier);
 
-                auto u16Chars = feat->name.toStdU16String();
-                m_all_chars.insert(u16Chars.begin(), u16Chars.end());
                 vector_tile->insert(feat);
             }
         }
     }
     
-    if(charset.is_update_necessary(m_all_chars.size()))
-    {
-        charset.add_chars(m_all_chars);
-    }
-
     return vector_tile;
 }
 
