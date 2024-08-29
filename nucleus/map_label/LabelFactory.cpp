@@ -124,11 +124,11 @@ const std::vector<VertexData> LabelFactory::create_labels(const VectorTile& feat
 void LabelFactory::create_label(const QString text, const glm::vec3 position, const FeatureType type, const uint32_t internal_id, const float importance,
     std::vector<VertexData>& vertex_data)
 {
-    float text_offset_y = -m_font_size / 2.0f + 75.0f;
-    float icon_offset_y = 15.0f;
+    float text_offset_y = -m_font_size / 2.0f + 60.0f;
+    float icon_offset_y = 0.0f;
     if (type != FeatureType::Peak) {
-        text_offset_y += 25.0f;
-        icon_offset_y += 25.0f; // buildings might obstruct label -> we want to set it a bit above the city
+        // text_offset_y += 25.0f;
+        // icon_offset_y += 25.0f; // buildings might obstruct label -> we want to set it a bit above the city
     }
 
     auto safe_chars = text.toStdU16String();

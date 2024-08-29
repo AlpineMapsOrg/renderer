@@ -44,9 +44,13 @@ flat out int texture_index;
 flat out lowp vec4 picker_color;
 
 bool label_visible(highp vec3 relative_to_cam, float dist_to_cam) {
-    if (importance < 0.2 && dist_to_cam > 3000.0)
+    if (importance < 0.02 && dist_to_cam > 3000.0)
        return false;
-   if (importance < 0.4 && dist_to_cam > 20000.0)
+    if (importance < 0.1 && dist_to_cam > 6000.0)
+       return false;
+    if (importance < 0.2 && dist_to_cam > 20000.0)
+       return false;
+   if (importance < 0.4 && dist_to_cam > 50000.0)
        return false;
    if (importance < 0.6 && dist_to_cam > 250000.0)
        return false;
@@ -77,7 +81,7 @@ void main() {
     highp vec3 relative_to_cam = label_position - camera.position.xyz;
     float dist_to_cam = length(relative_to_cam);
     float scale = 2.0f;
-    const vec3 label_shift = vec3(0.0, 0.0, 5.0); // shift the label a bit to the top so that it isn't in the ground
+    vec3 label_shift = vec3(0.0, 0.0, 5.0) - relative_to_cam * 0.15; // shift the label a bit to the top and towards the camera so that it isn't in the ground
 
     // apply "soft" distance scaling depending on near/far label values (if option is set as uniform)
     if(label_dist_scaling)
