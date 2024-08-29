@@ -42,8 +42,6 @@ class VectorTileManager : public QObject {
 public:
     explicit VectorTileManager(QObject* parent = nullptr);
 
-    static const QString tile_server();
-
     static const std::shared_ptr<FeatureSet> to_vector_tile(const QByteArray& vectorTileData, const std::shared_ptr<DataQuerier> dataquerier);
 
 private:
@@ -51,9 +49,6 @@ private:
     typedef std::shared_ptr<const FeatureTXT> (*FeatureTXTParser)(const mapbox::vector_tile::feature&, const std::shared_ptr<DataQuerier>);
     inline static const std::unordered_map<std::string, FeatureTXTParser> m_feature_types_factory = { { "Peak", FeatureTXTPeak::parse },
         { "cities", FeatureTXTCity::parse }, { "cottages", FeatureTXTCottage::parse }, { "webcams", FeatureTXTWebcam::parse } };
-
-    //    inline static const QString m_tile_server = "http://localhost:3000/poi_v1/";
-    inline static const QString m_tile_server = "https://osm.cg.tuwien.ac.at/vector_tiles/poi_v1/";
 
     // contains all chars that were encountered while parsing vector tiles
     // this is later used in the get_diff_chars method to find characters which still have to be rendered

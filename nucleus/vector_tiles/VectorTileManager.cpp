@@ -31,8 +31,6 @@ VectorTileManager::VectorTileManager(QObject* parent)
 {
 }
 
-const QString VectorTileManager::tile_server() { return m_tile_server; }
-
 const std::shared_ptr<FeatureSet> VectorTileManager::to_vector_tile(const QByteArray& vectorTileData, const std::shared_ptr<DataQuerier> dataquerier)
 {
     // vectortile might be empty -> no parsing possible
