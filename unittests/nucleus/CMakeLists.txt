@@ -20,25 +20,25 @@ project(alpine-renderer-unittests_nucleus LANGUAGES CXX)
 
 alp_add_unittest(unittests_nucleus
     catch2_helpers.h
-    test_Camera.cpp
-    nucleus_utils_stopwatch.cpp
-    test_DrawListGenerator.cpp
+    Camera.cpp
+    utils_stopwatch.cpp
+    DrawListGenerator.cpp
     test_helpers.h test_helpers.cpp
-    test_raster.cpp
-    test_terrain_mesh_index_generator.cpp
-    test_srs.cpp
-    test_track.cpp
-    test_tile_conversion.cpp
-    nucleus_tile_scheduler_util.cpp
-    nucleus_tile_scheduler_tile_load_service.cpp
-    nucleus_tile_scheduler_layer_assembler.cpp
-    nucleus_tile_scheduler_quad_assembler.cpp
-    nucleus_tile_scheduler_cache.cpp
-    nucleus_tile_scheduler_scheduler.cpp
-    nucleus_tile_scheduler_slot_limiter.cpp
-    nucleus_tile_scheduler_rate_limiter.cpp
+    raster.cpp
+    terrain_mesh_index_generator.cpp
+    srs.cpp
+    track.cpp
+    tile_conversion.cpp
+    tile_scheduler_util.cpp
+    tile_scheduler_tile_load_service.cpp
+    tile_scheduler_layer_assembler.cpp
+    tile_scheduler_quad_assembler.cpp
+    tile_scheduler_cache.cpp
+    tile_scheduler_scheduler.cpp
+    tile_scheduler_slot_limiter.cpp
+    tile_scheduler_rate_limiter.cpp
     RateTester.h RateTester.cpp
-    test_zppbits.cpp
+    zppbits.cpp
     cache_queries.cpp
     bits_and_pieces.cpp
 )
