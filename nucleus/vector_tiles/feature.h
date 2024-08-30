@@ -1,6 +1,7 @@
 /*****************************************************************************
- * Alpine Terrain Renderer
+ * AlpineMaps.org
  * Copyright (C) 2024 Lucas Dworschak
+ * Copyright (C) 2024 Adam Celarek
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -75,7 +76,7 @@ struct FeatureTXTPeak : public FeatureTXT {
     QString prominence;
     QString summit_cross;
     QString summit_register;
-    int elevation;
+    int elevation = 0;
 
     static std::shared_ptr<const FeatureTXT> parse(const mapbox::vector_tile::feature& feature, const std::shared_ptr<DataQuerier> dataquerier);
 
@@ -149,5 +150,7 @@ struct FeatureTXTWebcam : public FeatureTXT {
 
 using FeatureSet = std::unordered_set<std::shared_ptr<const FeatureTXT>>;
 using FeatureSetTiles = std::unordered_map<tile::Id, nucleus::vectortile::FeatureSet, tile::Id::Hasher>;
+
+std::shared_ptr<FeatureSet> parse(const QByteArray& vectorTileData, const std::shared_ptr<DataQuerier> dataquerier);
 
 } // namespace nucleus::vectortile

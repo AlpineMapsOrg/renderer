@@ -53,6 +53,7 @@ endif()
 if (ALP_ENABLE_LABELS)
     target_sources(unittests_nucleus PRIVATE
         test_vector_tile.cpp
+        map_labels.cpp
     )
 endif()
 

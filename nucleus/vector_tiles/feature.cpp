@@ -394,4 +394,45 @@ FeatureProperties FeatureTXTWebcam::get_feature_data() const
     return props;
 }
 
+namespace {
+    using FeatureTXTParser = std::shared_ptr<const FeatureTXT> (*)(const mapbox::vector_tile::feature&, const std::shared_ptr<DataQuerier>);
+    const std::unordered_map<std::string, FeatureTXTParser> s_feature_types_factory = { { "Peak", FeatureTXTPeak::parse }, { "cities", FeatureTXTCity::parse },
+        { "cottages", FeatureTXTCottage::parse }, { "webcams", FeatureTXTWebcam::parse } };
+} // namespace
+
+std::shared_ptr<FeatureSet> parse(const QByteArray& vectorTileData, const std::shared_ptr<DataQuerier> dataquerier)
+{
+    // vectortile might be empty -> no parsing possible
+    if (vectorTileData == nullptr) {
+        // -> return empty
+        return std::make_shared<FeatureSet>();
+    }
+
+    // convert data buffer into vectortile
+    std::string d = vectorTileData.toStdString();
+    mapbox::vector_tile::buffer tile(d);
+
+    // create empty output variable
+    auto vector_tile = std::make_shared<FeatureSet>();
+
+    for (auto const& layerName : tile.layerNames()) {
+        if (s_feature_types_factory.contains(layerName)) {
+            const mapbox::vector_tile::layer layer = tile.getLayer(layerName);
+
+            std::size_t feature_count = layer.featureCount();
+            for (std::size_t i = 0; i < feature_count; ++i) {
+
+                auto const feature = mapbox::vector_tile::feature(layer.getFeature(i), layer);
+
+                // create the feature with the designated parser method
+                auto feat = s_feature_types_factory.at(layerName)(feature, dataquerier);
+
+                vector_tile->insert(feat);
+            }
+        }
+    }
+
+    return vector_tile;
+}
+
 } // namespace nucleus::vectortile

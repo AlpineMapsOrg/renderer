@@ -46,7 +46,7 @@ MapLabelManager::MapLabelManager(QObject* parent)
 void MapLabelManager::init()
 {
     // load the font texture
-    const auto& atlas_data = m_mapLabelFactory.init_font_atlas();
+    const auto atlas_data = m_mapLabelFactory.init_font_atlas();
 
     m_font_texture = std::make_unique<Texture>(Texture::Target::_2dArray, Texture::Format::RG8);
     m_font_texture->setParams(Texture::Filter::MipMapLinear, Texture::Filter::Linear);
@@ -73,7 +73,7 @@ void MapLabelManager::init()
 
 void MapLabelManager::renew_font_atlas()
 {
-    const auto& atlas_data = m_mapLabelFactory.renew_font_atlas();
+    const auto atlas_data = m_mapLabelFactory.renew_font_atlas();
 
     if(atlas_data.changed)
     {

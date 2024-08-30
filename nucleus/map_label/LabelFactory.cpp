@@ -39,7 +39,7 @@ namespace nucleus::maplabel {
 const AtlasData LabelFactory::init_font_atlas()
 {
     m_font_renderer.init();
-    for (const auto ch : " !\"#$%&'()*+,-./0123456789:;<=>@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\\]^_`abcdefghijklmnopqrstuvwxyz{|}~§°´ÄÖÜßáâäéìíóöúüýČčěňőřŠšŽž€") {
+    for (const auto ch : uR"( !"#$%&'()*+,-./0123456789:;<=>@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\]^_`abcdefghijklmnopqrstuvwxyz{|}~§°´ÄÖÜßáâäéìíóöúüýČčěňőřŠšŽž€)") {
         m_new_chars.emplace(ch);
     }
     return renew_font_atlas();

@@ -65,7 +65,7 @@ TEST_CASE("nucleus/vector_tiles")
 
         CHECK(data.size() > 0);
 
-        const auto vectortile = nucleus::vectortile::VectorTileManager::to_vector_tile(data, nullptr);
+        const auto vectortile = nucleus::vectortile::parse(data, nullptr);
 
         CHECK(vectortile->size() == 16);
 
