@@ -35,7 +35,7 @@
 #include "radix/quad_tree.h"
 
 #ifdef ALP_ENABLE_LABELS
-#include "nucleus/vector_tiles/VectorTileManager.h"
+#include "nucleus/vector_tile/feature.h"
 #endif
 
 using namespace nucleus::tile_scheduler;
@@ -205,7 +205,7 @@ void Scheduler::update_gpu_quads()
                            const auto* vectortile_data = m_default_vector_tile.get();
                            vectortile_data = quad.tiles[i].vector_tile.get();
                            // moved into this if -> since vector_tile might be empty
-                           auto vectortile = nucleus::vectortile::parse(*vectortile_data, m_dataquerier);
+                           auto vectortile = nucleus::vector_tile::parse(*vectortile_data, m_dataquerier);
                            gpu_quad.tiles[i].vector_tile = vectortile;
 #endif
                        }

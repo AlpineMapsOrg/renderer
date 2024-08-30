@@ -20,7 +20,7 @@
 #include <QDebug>
 
 #ifdef ALP_ENABLE_LABELS
-#include <nucleus/vector_tiles/feature.h>
+#include <nucleus/vector_tile/feature.h>
 #endif
 
 namespace nucleus::picker {

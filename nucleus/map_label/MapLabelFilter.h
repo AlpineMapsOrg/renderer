@@ -29,9 +29,9 @@
 
 #include <nucleus/map_label/FilterDefinitions.h>
 #include <nucleus/tile_scheduler/tile_types.h>
-#include <nucleus/vector_tiles/feature.h>
+#include <nucleus/vector_tile/feature.h>
 
-using namespace nucleus::vectortile;
+using namespace nucleus::vector_tile;
 
 namespace nucleus::maplabel {
 

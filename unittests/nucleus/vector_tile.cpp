@@ -20,8 +20,7 @@
 #include <catch2/catch_test_macros.hpp>
 #include <nucleus/tile_scheduler/TileLoadService.h>
 #include <nucleus/tile_scheduler/utils.h>
-#include <nucleus/vector_tiles/VectorTileManager.h>
-#include <nucleus/vector_tiles/feature.h>
+#include <nucleus/vector_tile/feature.h>
 #include <radix/tile.h>
 
 TEST_CASE("nucleus/vector_tiles")
@@ -65,7 +64,7 @@ TEST_CASE("nucleus/vector_tiles")
 
         CHECK(data.size() > 0);
 
-        const auto vectortile = nucleus::vectortile::parse(data, nullptr);
+        const auto vectortile = nucleus::vector_tile::parse(data, nullptr);
 
         CHECK(vectortile->size() == 16);
 

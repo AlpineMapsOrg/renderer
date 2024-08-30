@@ -61,7 +61,7 @@ public slots:
     virtual void set_aabb_decorator(const tile_scheduler::utils::AabbDecoratorPtr&) = 0;
     virtual void update_gpu_quads(const std::vector<tile_scheduler::tile_types::GpuTileQuad>& new_quads, const std::vector<tile::Id>& deleted_quads) = 0;
 #ifdef ALP_ENABLE_LABELS
-    virtual void update_labels(const nucleus::vectortile::FeatureSetTiles& visible_features, const std::vector<tile::Id>& removed_tiles) = 0;
+    virtual void update_labels(const nucleus::vector_tile::FeatureSetTiles& visible_features, const std::vector<tile::Id>& removed_tiles) = 0;
 #endif
     virtual void pick_value(const glm::dvec2& screen_space_coordinates) = 0;
 

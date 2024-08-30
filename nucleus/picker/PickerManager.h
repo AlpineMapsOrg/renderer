@@ -27,7 +27,7 @@
 #include "nucleus/picker/PickerTypes.h"
 #include "nucleus/tile_scheduler/tile_types.h"
 
-using namespace nucleus::vectortile;
+using namespace nucleus::vector_tile;
 
 namespace nucleus::picker {
 

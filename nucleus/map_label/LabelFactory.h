@@ -28,9 +28,9 @@
 #include <nucleus/Raster.h>
 #include <nucleus/map_label/FontRenderer.h>
 #include <nucleus/map_label/MapLabelData.h>
-#include <nucleus/vector_tiles/feature.h>
+#include <nucleus/vector_tile/feature.h>
 
-using namespace nucleus::vectortile;
+using namespace nucleus::vector_tile;
 
 namespace nucleus::maplabel {
 

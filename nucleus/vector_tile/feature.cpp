@@ -21,7 +21,7 @@
 
 #include <nucleus/DataQuerier.h>
 
-namespace nucleus::vectortile {
+namespace nucleus::vector_tile {
 
 // NOTE if you get the following error (since it just happened again for me):
     // terminate called after throwing an instance of 'mapbox::util::bad_variant_access'
@@ -435,4 +435,4 @@ std::shared_ptr<FeatureSet> parse(const QByteArray& vectorTileData, const std::s
     return vector_tile;
 }
 
-} // namespace nucleus::vectortile
+} // namespace nucleus::vector_tile

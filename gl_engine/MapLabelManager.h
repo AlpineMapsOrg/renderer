@@ -35,7 +35,7 @@ namespace camera {
 class Definition;
 }
 
-using namespace nucleus::vectortile;
+using namespace nucleus::vector_tile;
 
 namespace gl_engine {
 class ShaderProgram;

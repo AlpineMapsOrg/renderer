@@ -36,7 +36,7 @@ class DataQuerier;
 
 using namespace nucleus::picker;
 
-namespace nucleus::vectortile {
+namespace nucleus::vector_tile {
 
 // note ENUM_END is used here, so that we can iterate over all featuretypes (by using ENUM END as end condition)
 enum FeatureType { Peak = 0, City = 1, Cottage = 2, Webcam = 3, ENUM_END = 4 };
@@ -149,8 +149,8 @@ struct FeatureTXTWebcam : public FeatureTXT {
 };
 
 using FeatureSet = std::unordered_set<std::shared_ptr<const FeatureTXT>>;
-using FeatureSetTiles = std::unordered_map<tile::Id, nucleus::vectortile::FeatureSet, tile::Id::Hasher>;
+using FeatureSetTiles = std::unordered_map<tile::Id, nucleus::vector_tile::FeatureSet, tile::Id::Hasher>;
 
 std::shared_ptr<FeatureSet> parse(const QByteArray& vectorTileData, const std::shared_ptr<DataQuerier> dataquerier);
 
-} // namespace nucleus::vectortile
+} // namespace nucleus::vector_tile

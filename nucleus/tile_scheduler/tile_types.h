@@ -25,7 +25,7 @@
 #include <radix/tile.h>
 
 #ifdef ALP_ENABLE_LABELS
-#include <nucleus/vector_tiles/feature.h>
+#include <nucleus/vector_tile/feature.h>
 #endif
 
 class QImage;
@@ -111,7 +111,7 @@ struct GpuLayeredTile {
     std::shared_ptr<const nucleus::Raster<uint16_t>> height;
 
 #ifdef ALP_ENABLE_LABELS
-    std::shared_ptr<const nucleus::vectortile::FeatureSet> vector_tile;
+    std::shared_ptr<const nucleus::vector_tile::FeatureSet> vector_tile;
 #endif
 };
 static_assert(NamedTile<GpuLayeredTile>);
