@@ -21,6 +21,7 @@
 #include <nucleus/tile_scheduler/TileLoadService.h>
 #include <nucleus/tile_scheduler/utils.h>
 #include <nucleus/vector_tile/feature.h>
+#include <nucleus/vector_tile/parse.h>
 #include <radix/tile.h>
 
 TEST_CASE("nucleus/vector_tiles")
@@ -55,7 +56,7 @@ TEST_CASE("nucleus/vector_tiles")
         }
     }
 
-    SECTION("Tile parsing")
+    SECTION("Tile parsing old")
     {
         QString filepath = QString("%1%2").arg(ALP_TEST_DATA_DIR, "vectortile.mvt");
         QFile file(filepath);
@@ -64,7 +65,7 @@ TEST_CASE("nucleus/vector_tiles")
 
         CHECK(data.size() > 0);
 
-        const auto vectortile = nucleus::vector_tile::parse(data, nullptr);
+        const auto vectortile = nucleus::vector_tile::parse_features(data, nullptr);
 
         CHECK(vectortile->size() == 16);
 
@@ -87,6 +88,56 @@ TEST_CASE("nucleus/vector_tiles")
                 //                std::cout << poi->label_text().toStdString() << std::endl;
 
                 CHECK(poi->label_text().toStdU16String() == u"Großglockner (3798m)");
+            }
+        }
+
+        CHECK(all_ids.size() == 0);
+    }
+
+    SECTION("Tile parsing")
+    {
+        QString filepath = QString("%1%2").arg(ALP_TEST_DATA_DIR, "vectortile.mvt");
+        QFile file(filepath);
+        file.open(QIODevice::ReadOnly | QIODevice::Unbuffered);
+        QByteArray data = file.readAll();
+
+        CHECK(data.size() > 0);
+
+        const auto vectortile = nucleus::vector_tile::parse::points_of_interest(data, nullptr);
+
+        CHECK(vectortile->size() == 16);
+
+        // all ids present in this tile
+        auto all_ids = std::unordered_set<uint64_t> { 9569407690ul, 240050842ul, 26863165ul, 494054611ul, 3600299561ul, 1123125641ul, 240056984ul, 9084394015ul,
+            1828616246ul, 10761456533ul, 21700104ul, 494054604ul, 7731531071ul, 7156956658ul, 26863041ul, 9569407683ul };
+
+        CAPTURE(all_ids);
+        for (const auto& poi : *vectortile) {
+            CAPTURE(poi.id);
+            CHECK(all_ids.contains(poi.id));
+            all_ids.erase(poi.id);
+
+            // qDebug() << poi.name << " (" << poi.id << "): " << poi.attributes;
+
+            if (poi.id == 26863041ul) {
+                CHECK(poi.name == "Großglockner");
+                CHECK(poi.type == nucleus::vector_tile::PointOfInterest::Type::Peak);
+                CHECK(poi.attributes["prominence"] == "2428");
+            }
+            if (poi.id == 10761456533ul) {
+                CHECK(poi.name == "Rojacher Hütte");
+                CHECK(poi.type == nucleus::vector_tile::PointOfInterest::Type::AlpineHut);
+                CHECK(poi.attributes["operator"] == "Sektion Rauris");
+            }
+            if (poi.id == 7156956658ul) {
+                CHECK(poi.name == "Webcam Gamskopf");
+                CHECK(poi.type == nucleus::vector_tile::PointOfInterest::Type::Webcam);
+                CHECK(poi.attributes["description"] == "Blickrichtung Norden über Rauris");
+            }
+            if (poi.id == 21700104ul) {
+                CHECK(poi.name == "Kaprun");
+                CHECK(poi.type == nucleus::vector_tile::PointOfInterest::Type::Settlement);
+                CHECK(poi.attributes["wikidata"] == "Q660671");
             }
         }
 

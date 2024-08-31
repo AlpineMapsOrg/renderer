@@ -400,7 +400,7 @@ namespace {
         { "cottages", FeatureTXTCottage::parse }, { "webcams", FeatureTXTWebcam::parse } };
 } // namespace
 
-std::shared_ptr<FeatureSet> parse(const QByteArray& vectorTileData, const std::shared_ptr<DataQuerier> dataquerier)
+std::shared_ptr<FeatureSet> parse_features(const QByteArray& vectorTileData, const std::shared_ptr<DataQuerier> dataquerier)
 {
     // vectortile might be empty -> no parsing possible
     if (vectorTileData == nullptr) {

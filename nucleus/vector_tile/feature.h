@@ -151,6 +151,6 @@ struct FeatureTXTWebcam : public FeatureTXT {
 using FeatureSet = std::vector<std::shared_ptr<const FeatureTXT>>;
 using FeatureSetTiles = std::unordered_map<tile::Id, nucleus::vector_tile::FeatureSet, tile::Id::Hasher>;
 
-std::shared_ptr<FeatureSet> parse(const QByteArray& vectorTileData, const std::shared_ptr<DataQuerier> dataquerier);
+std::shared_ptr<FeatureSet> parse_features(const QByteArray& vectorTileData, const std::shared_ptr<DataQuerier> dataquerier);
 
 } // namespace nucleus::vector_tile

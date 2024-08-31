@@ -17,21 +17,8 @@
  *****************************************************************************/
 
 #include "eaws.h"
-#include "nucleus/utils/tile_conversion.h"
-
-// Auxillary class for parsing mapbox vector tiles recommend by mapbox to be used for this purpose
-class StringPrintVisitor {
-public:
-    QString operator()(std::vector<mapbox::feature::value>) { return QStringLiteral("vector"); }
-    QString operator()(std::unordered_map<std::string, mapbox::feature::value>) { return QStringLiteral("unordered_map"); }
-    QString operator()(mapbox::feature::null_value_t) { return QStringLiteral("null"); }
-    QString operator()(std::nullptr_t) { return QStringLiteral("nullptr"); }
-    QString operator()(uint64_t val) { return QString::number(val); }
-    QString operator()(int64_t val) { return QString::number(val); }
-    QString operator()(double val) { return QString::number(val); }
-    QString operator()(std::string const& val) { return QString::fromStdString(val); }
-    QString operator()(bool val) { return val ? QStringLiteral("true") : QStringLiteral("false"); }
-};
+#include <nucleus/utils/tile_conversion.h>
+#include <nucleus/vector_tile/util.h>
 
 tl::expected<avalanche::eaws::RegionTile, QString> avalanche::eaws::vector_tile_reader(const QByteArray& input_data, const tile::Id& tile_id)
 {
@@ -72,8 +59,7 @@ tl::expected<avalanche::eaws::RegionTile, QString> avalanche::eaws::vector_tile_
         mapbox::vector_tile::feature current_feature(feature_data_view, layer);
         mapbox::vector_tile::feature::properties_type properties = current_feature.getProperties();
         for (const auto& property : properties) {
-            StringPrintVisitor string_print_visitor;
-            QString value = std::visit(string_print_visitor, property.second);
+            QString value = std::visit(nucleus::vector_tile::util::string_print_visitor, property.second);
             if ("id" == property.first)
                 region.id = value;
             else if ("id_alt" == property.first)
