@@ -1,6 +1,7 @@
 /*****************************************************************************
- * Alpine Terrain Renderer
+ * AlpineMaps.org
  * Copyright (C) 2024 Lucas Dworschak
+ * Copyright (C) 2024 Adam Celarek
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -22,14 +23,9 @@
 #include <QTimer>
 #include <QVector2D>
 #include <queue>
-#include <unordered_map>
-#include <unordered_set>
-
 #include <radix/tile.h>
-
 #include <nucleus/map_label/FilterDefinitions.h>
 #include <nucleus/tile_scheduler/tile_types.h>
-#include <nucleus/vector_tile/feature.h>
 
 using namespace nucleus::vector_tile;
 

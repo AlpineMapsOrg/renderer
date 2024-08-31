@@ -19,7 +19,7 @@
 
 #pragma once
 
-#include <QMap>
+#include <QHash>
 #include <QObject>
 #include <QString>
 #include <cstdint>
@@ -39,9 +39,7 @@ public:
     glm::dvec3 lat_long_alt = glm::dvec3(0);
     glm::dvec3 world_space_pos = glm::dvec3(0);
     float importance = 0;
-    QMap<QString, QString> attributes;
-    // use for rendering
-    // use for picking
+    QHash<QString, QString> attributes;
 };
 using PointOfInterestCollection = std::vector<PointOfInterest>;
 using PointOfInterestCollectionPtr = std::shared_ptr<const PointOfInterestCollection>;

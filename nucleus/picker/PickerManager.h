@@ -21,13 +21,13 @@
 #include <nucleus/event_parameter.h>
 #include <nucleus/picker/PickerTypes.h>
 #include <nucleus/tile_scheduler/tile_types.h>
-#include <nucleus/vector_tile/feature.h>
+#include <nucleus/vector_tile/types.h>
 #include <radix/tile.h>
 #include <vector>
 
-using namespace nucleus::vector_tile;
-
 namespace nucleus::picker {
+using nucleus::vector_tile::PointOfInterest;
+using nucleus::vector_tile::PointOfInterestCollectionPtr;
 
 class PickerManager : public QObject {
     Q_OBJECT
@@ -44,11 +44,11 @@ public slots:
 
 signals:
     void pick_requested(const glm::dvec2& position);
-    void pick_evaluated(const FeatureProperties feature);
+    void pick_evaluated(const FeatureProperties& feature);
 
 private:
-    FeatureSetTiles m_all_features;
-    std::unordered_map<uint32_t, std::shared_ptr<const FeatureTXT>> m_pickid_to_feature;
+    vector_tile::PointOfInterestTileCollection m_all_pois;
+    std::unordered_map<uint32_t, const PointOfInterest*> m_pickid_to_poi;
 
     glm::vec2 m_position;
     bool m_in_click;
@@ -59,7 +59,7 @@ private:
     void start_click_event(const glm::vec2& position);
     void end_click_event(const glm::vec2& position);
 
-    void add_tile(const tile::Id id, const FeatureSet& all_features);
+    void add_tile(const tile::Id id, const PointOfInterestCollectionPtr& all_pois);
     void remove_tile(const tile::Id id);
 };
 } // namespace nucleus::picker

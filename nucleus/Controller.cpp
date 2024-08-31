@@ -43,7 +43,6 @@
 
 #ifdef ALP_ENABLE_LABELS
 #include "nucleus/map_label/MapLabelFilter.h"
-#include "nucleus/vector_tile/feature.h"
 #endif
 
 using namespace nucleus::tile_scheduler;

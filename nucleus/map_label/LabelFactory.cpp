@@ -143,7 +143,7 @@ void LabelFactory::create_label(
     const auto offset_x = -text_width / 2.0f;
 
     glm::vec4 picker_color = nucleus::utils::bit_coding::u32_to_f8_4(id);
-    picker_color.x = (float(nucleus::picker::PickTypes::feature) / 255.0f); // set the first bit to the type
+    picker_color.x = (float(nucleus::picker::PickTypes::PointOfInterest) / 255.0f); // set the first bit to the type
 
     // label icon
     vertex_data.push_back({ glm::vec4(-m_icon_size.x / 2.0f, m_icon_size.y / 2.0f + icon_offset_y, m_icon_size.x, -m_icon_size.y + 1), // vertex position + offset

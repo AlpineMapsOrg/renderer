@@ -20,23 +20,20 @@
 
 #include "Scheduler.h"
 
-#include <unordered_set>
-
 #include <QBuffer>
 #include <QDebug>
 #include <QNetworkInformation>
 #include <QStandardPaths>
 #include <QTimer>
-
-#include "nucleus/DataQuerier.h"
-#include "nucleus/tile_scheduler/utils.h"
-#include "nucleus/utils/image_loader.h"
-#include "nucleus/utils/tile_conversion.h"
-#include "nucleus/vector_tile/parse.h"
-#include "radix/quad_tree.h"
+#include <nucleus/DataQuerier.h>
+#include <nucleus/tile_scheduler/utils.h>
+#include <nucleus/utils/image_loader.h>
+#include <nucleus/utils/tile_conversion.h>
+#include <radix/quad_tree.h>
+#include <unordered_set>
 
 #ifdef ALP_ENABLE_LABELS
-#include "nucleus/vector_tile/feature.h"
+#include <nucleus/vector_tile/parse.h>
 #endif
 
 using namespace nucleus::tile_scheduler;

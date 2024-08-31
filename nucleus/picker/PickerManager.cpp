@@ -19,11 +19,30 @@
 #include "PickerManager.h"
 #include <QDebug>
 
-#ifdef ALP_ENABLE_LABELS
-#include <nucleus/vector_tile/feature.h>
-#endif
+#include <nucleus/vector_tile/types.h>
 
 namespace nucleus::picker {
+namespace {
+    QString to_string(vector_tile::PointOfInterest::Type t)
+    {
+        using Type = vector_tile::PointOfInterest::Type;
+        switch (t) {
+        case Type::Peak:
+            return "PoiPeak";
+        case Type::Settlement:
+            return "PoiSettlement";
+        case Type::Webcam:
+            return "PoiWebcam";
+        case Type::AlpineHut:
+            return "PoiAlpineHut";
+        case Type::NumberOfElements:
+        case Type::Unknown:
+            return "PoiUnknwon";
+        }
+        assert(false);
+        return "Unknown";
+    }
+} // namespace
 
 PickerManager::PickerManager(QObject* parent)
     : QObject { parent }
@@ -34,64 +53,69 @@ void PickerManager::eval_pick(uint32_t value)
 {
     PickTypes type = picker_type((value >> 24) & 255);
 
-    if (type == PickTypes::invalid) {
+    if (type == PickTypes::Invalid) {
         // e.g. clicked on nothing -> hide sidebar
-        emit pick_evaluated(FeatureProperties {});
+        emit pick_evaluated({});
         return;
     }
 
-#ifdef ALP_ENABLE_LABELS
-    if (type == PickTypes::feature) {
+    if (type == PickTypes::PointOfInterest) {
         const auto internal_id = value & 16777215; // 16777215 = 24bit mask
-        if (!m_pickid_to_feature.contains(internal_id)) {
+        if (!m_pickid_to_poi.contains(internal_id)) {
             qDebug() << "pickid does not exist: " + std::to_string(internal_id);
             return;
         }
-
-        emit pick_evaluated(m_pickid_to_feature[internal_id]->get_feature_data());
+        const auto& poi = m_pickid_to_poi[internal_id];
+        FeatureProperties picked;
+        picked.title = poi->name;
+        picked.properties.append({ "type", to_string(poi->type) });
+        picked.properties.append({ "latitude", QString::number(poi->lat_long_alt.x) });
+        picked.properties.append({ "longitude", QString::number(poi->lat_long_alt.y) });
+        picked.properties.append({ "altitude", QString::number(poi->lat_long_alt.z) });
+        for (auto i = poi->attributes.cbegin(); i != poi->attributes.cend(); ++i) {
+            picked.properties.append({ i.key(), i.value() });
+        }
+        // picked.properties.append()
+        emit pick_evaluated(picked);
         return;
     }
-#endif
 }
 
-void PickerManager::update_quads(
-    const std::vector<nucleus::tile_scheduler::tile_types::GpuTileQuad>& /*new_quads*/, const std::vector<tile::Id>& /*deleted_quads*/)
+void PickerManager::update_quads(const std::vector<nucleus::tile_scheduler::tile_types::GpuTileQuad>& new_quads, const std::vector<tile::Id>& deleted_quads)
 {
-    // for (const auto& quad : new_quads) {
-    //     for (const auto& tile : quad.tiles) {
-    //         // test for validity
-    //         if (!tile.vector_tile || tile.vector_tile->empty())
-    //             continue;
+    for (const auto& quad : new_quads) {
+        for (const auto& tile : quad.tiles) {
+            // test for validity
+            if (!tile.vector_tile || tile.vector_tile->empty())
+                continue;
 
-    //         assert(tile.id.zoom_level < 100);
+            assert(tile.id.zoom_level < 100);
 
-    //         add_tile(tile.id, *tile.vector_tile);
-    //     }
-    // }
-    // for (const auto& quad : deleted_quads) {
-    //     for (const auto& id : quad.children()) {
-    //         remove_tile(id);
-    //     }
-    // }
+            add_tile(tile.id, tile.vector_tile);
+        }
+    }
+    for (const auto& quad : deleted_quads) {
+        for (const auto& id : quad.children()) {
+            remove_tile(id);
+        }
+    }
 }
 
-void PickerManager::add_tile(const tile::Id id, const FeatureSet& all_features)
+void PickerManager::add_tile(const tile::Id id, const PointOfInterestCollectionPtr& all_pois)
 {
-    m_all_features[id] = all_features;
-
-    for (const auto& feature : all_features) {
-        m_pickid_to_feature[feature->internal_id] = feature;
+    m_all_pois[id] = all_pois;
+    for (const auto& poi : *all_pois) {
+        m_pickid_to_poi[poi.id] = &poi;
     }
 }
 
 void PickerManager::remove_tile(const tile::Id id)
 {
-
-    if (m_all_features.contains(id)) {
-        for (const auto& feature : m_all_features[id]) {
-            m_pickid_to_feature.erase(feature->internal_id);
+    if (m_all_pois.contains(id)) {
+        for (const auto& poi : *m_all_pois[id]) {
+            m_pickid_to_poi.erase(poi.id);
         }
-        m_all_features.erase(id);
+        m_all_pois.erase(id);
     }
 }
 

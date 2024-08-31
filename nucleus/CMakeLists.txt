@@ -122,7 +122,6 @@ if(ALP_ENABLE_LABELS)
     target_sources(nucleus PRIVATE
         vector_tile/util.h
         vector_tile/types.h
-        vector_tile/feature.h vector_tile/feature.cpp
         vector_tile/parse.h vector_tile/parse.cpp
         map_label/LabelFactory.h map_label/LabelFactory.cpp
         map_label/MapLabelData.h

@@ -23,9 +23,9 @@
 #include <QString>
 
 namespace nucleus::picker {
-enum PickTypes {
-    invalid = 0,
-    feature = 1,
+enum class PickTypes {
+    Invalid = 0,
+    PointOfInterest = 1,
 
 };
 
@@ -33,9 +33,9 @@ inline PickTypes picker_type(int typeValue)
 {
     switch (typeValue) {
     case 1:
-        return PickTypes::feature;
+        return PickTypes::PointOfInterest;
     default:
-        return PickTypes::invalid;
+        return PickTypes::Invalid;
     }
 }
 
