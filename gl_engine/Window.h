@@ -82,7 +82,7 @@ public slots:
     void shared_config_changed(gl_engine::uboSharedConfig ubo);
     void reload_shader();
 #ifdef ALP_ENABLE_LABELS
-    void update_labels(const nucleus::vector_tile::FeatureSetTiles& visible_features, const std::vector<tile::Id>& removed_tiles) override;
+    void update_labels(const nucleus::vector_tile::PointOfInterestTileCollection& visible_features, const std::vector<tile::Id>& removed_tiles) override;
 #endif
     void pick_value(const glm::dvec2& screen_space_coordinates) override;
 

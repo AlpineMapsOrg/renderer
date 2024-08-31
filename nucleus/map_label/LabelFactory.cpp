@@ -36,7 +36,7 @@ using namespace Qt::Literals::StringLiterals;
 
 namespace nucleus::maplabel {
 
-const AtlasData LabelFactory::init_font_atlas()
+AtlasData LabelFactory::init_font_atlas()
 {
     m_font_renderer.init();
     for (const auto ch : uR"( !"#$%&'()*+,-./0123456789:;<=>@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\]^_`abcdefghijklmnopqrstuvwxyz{|}~§°´ÄÖÜßáâäéìíóöúüýČčěňőřŠšŽž€)") {
@@ -45,7 +45,7 @@ const AtlasData LabelFactory::init_font_atlas()
     return renew_font_atlas();
 }
 
-const AtlasData LabelFactory::renew_font_atlas()
+AtlasData LabelFactory::renew_font_atlas()
 {
     // check if any new chars have been added
     if (!m_new_chars.empty()) {
@@ -66,26 +66,27 @@ const AtlasData LabelFactory::renew_font_atlas()
 /**
  * this function needs to be called before create_labels
  */
-const Raster<glm::u8vec4> LabelFactory::label_icons()
+Raster<glm::u8vec4> LabelFactory::label_icons()
 {
-    auto icons = std::unordered_map<FeatureType, Raster<glm::u8vec4>>();
-
-    icons[FeatureType::Peak] = nucleus::utils::image_loader::rgba8(":/map_icons/peak.png");
-    icons[FeatureType::City] = nucleus::utils::image_loader::rgba8(":/map_icons/city.png");
-    icons[FeatureType::Cottage] = nucleus::utils::image_loader::rgba8(":/map_icons/alpinehut.png");
-    icons[FeatureType::Webcam] = nucleus::utils::image_loader::rgba8(":/map_icons/camera.png");
+    using PoiType = vector_tile::PointOfInterest::Type;
+    auto icons = std::unordered_map<PoiType, Raster<glm::u8vec4>>();
+    icons[PoiType::Peak] = nucleus::utils::image_loader::rgba8(":/map_icons/peak.png");
+    icons[PoiType::Settlement] = nucleus::utils::image_loader::rgba8(":/map_icons/city.png");
+    icons[PoiType::AlpineHut] = nucleus::utils::image_loader::rgba8(":/map_icons/alpinehut.png");
+    icons[PoiType::Webcam] = nucleus::utils::image_loader::rgba8(":/map_icons/camera.png");
+    icons[PoiType::Unknown] = nucleus::Raster<glm::u8vec4>(icons[PoiType::Peak].size(), glm::u8vec4(255, 0, 128, 255));
 
     size_t combined_height(0);
 
-    for (int i = 0; i < FeatureType::ENUM_END; i++) {
-        FeatureType type = (FeatureType)i;
+    for (int i = 0; i < int(PoiType::NumberOfElements); i++) {
+        PoiType type = PoiType(i);
         combined_height += icons[type].height();
     }
 
-    auto combined_icons = Raster<glm::u8vec4>({ icons[FeatureType::Peak].width(), 0 });
+    auto combined_icons = Raster<glm::u8vec4>({ icons[PoiType::Peak].width(), 0 });
 
-    for (int i = 0; i < FeatureType::ENUM_END; i++) {
-        FeatureType type = (FeatureType)i;
+    for (int i = 0; i < int(PoiType::NumberOfElements); i++) {
+        PoiType type = PoiType(i);
         // vec4(10.0f,...) is an uv_offset to indicate that the icon texture should be used.
         m_icon_uvs[type]
             = glm::vec4(10.0f, 10.0f + float(combined_icons.height()) / float(combined_height), 1.0f, float(icons[type].height()) / float(combined_height));
@@ -95,27 +96,41 @@ const Raster<glm::u8vec4> LabelFactory::label_icons()
     return combined_icons;
 }
 
-const std::vector<VertexData> LabelFactory::create_labels(const FeatureSet& features)
+std::vector<VertexData> LabelFactory::create_labels(const vector_tile::PointOfInterestCollection& pois)
 {
     std::vector<VertexData> labelData;
 
-    for (const auto& f : features) {
-        for (const auto ch : f->label_text()) {
+    for (const auto& f : pois) {
+        for (const auto ch : f.name) {
             if (m_rendered_chars.contains(ch.unicode()))
                 continue;
             m_new_chars.insert(ch.unicode());
         }
     }
 
-    for (const auto& feat : features) {
-        create_label(feat->label_text(), feat->worldposition, feat->type, feat->internal_id, feat->importance, labelData);
+    for (const auto& p : pois) {
+        QString display_name = p.name;
+        float importance = p.importance;
+        switch (p.type) {
+        case LabelType::Peak:
+            display_name = QString("%1 (%2m)").arg(p.name).arg(p.lat_long_alt.z, 0, 'f', 0);
+            break;
+        case LabelType::AlpineHut:
+        case LabelType::Webcam:
+            display_name = "";
+            importance = 0.3;
+            break;
+        default:
+            break;
+        }
+        create_label(display_name, p.world_space_pos, p.type, p.id, importance, labelData);
     }
 
     return labelData;
 }
 
-void LabelFactory::create_label(const QString text, const glm::vec3 position, const FeatureType type, const uint32_t internal_id, const float importance,
-    std::vector<VertexData>& vertex_data)
+void LabelFactory::create_label(
+    const QString& text, const glm::vec3& position, LabelType type, const uint32_t id, const float importance, std::vector<VertexData>& vertex_data)
 {
     float text_offset_y = -m_font_size / 2.0f + 60.0f;
     float icon_offset_y = 0.0f;
@@ -127,7 +142,7 @@ void LabelFactory::create_label(const QString text, const glm::vec3 position, co
     // center the text around the center
     const auto offset_x = -text_width / 2.0f;
 
-    glm::vec4 picker_color = nucleus::utils::bit_coding::u32_to_f8_4(internal_id);
+    glm::vec4 picker_color = nucleus::utils::bit_coding::u32_to_f8_4(id);
     picker_color.x = (float(nucleus::picker::PickTypes::feature) / 255.0f); // set the first bit to the type
 
     // label icon

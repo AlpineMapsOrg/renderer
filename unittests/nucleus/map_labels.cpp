@@ -35,11 +35,11 @@ TEST_CASE("nucleus/map_label/factory")
 {
     nucleus::maplabel::LabelFactory f;
     auto a = f.init_font_atlas();
-    auto features = FeatureSet();
-    auto ftxt = std::make_shared<FeatureTXTPeak>();
-    ftxt->name = "ασδφ";
-    features.emplace_back(ftxt);
-    f.create_labels(features);
+    auto pois = nucleus::vector_tile::PointOfInterestCollection();
+    auto poi = nucleus::vector_tile::PointOfInterest();
+    poi.name = "ασδφ";
+    pois.emplace_back(poi);
+    f.create_labels(pois);
     a = f.renew_font_atlas();
     auto i = 0u;
     for (const auto& rg_raster : a.font_atlas) {

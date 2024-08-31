@@ -28,31 +28,29 @@
 #include <nucleus/Raster.h>
 #include <nucleus/map_label/FontRenderer.h>
 #include <nucleus/map_label/MapLabelData.h>
-#include <nucleus/vector_tile/feature.h>
-
-using namespace nucleus::vector_tile;
+#include <nucleus/vector_tile/types.h>
 
 namespace nucleus::maplabel {
 
 class LabelFactory {
+    using LabelType = vector_tile::PointOfInterest::Type;
+
 public:
-
-    const AtlasData init_font_atlas();
-    const AtlasData renew_font_atlas();
-
-    const Raster<glm::u8vec4> label_icons();
-
-    const std::vector<VertexData> create_labels(const FeatureSet& features);
-    void create_label(const QString text, const glm::vec3 position, FeatureType type, const uint32_t internal_id, const float importance,
-        std::vector<VertexData>& vertex_data);
+    AtlasData init_font_atlas();
+    AtlasData renew_font_atlas();
+    Raster<glm::u8vec4> label_icons();
+    std::vector<VertexData> create_labels(const vector_tile::PointOfInterestCollection& pois);
 
     static const inline std::vector<unsigned int> m_indices = { 0, 1, 2, 0, 2, 3 };
+
+private:
+    void create_label(const QString& text, const glm::vec3& position, LabelType type, uint32_t id, float importance, std::vector<VertexData>& vertex_data);
 
 private:
     constexpr static float m_font_size = 48.0f;
     constexpr static glm::vec2 m_icon_size = glm::vec2(48.0f);
 
-    std::unordered_map<FeatureType, glm::vec4> m_icon_uvs;
+    std::unordered_map<LabelType, glm::vec4> m_icon_uvs;
 
     std::vector<float> inline create_text_meta(std::u16string* safe_chars, float* text_width);
 

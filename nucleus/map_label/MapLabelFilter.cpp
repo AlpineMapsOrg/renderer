@@ -33,8 +33,8 @@ void MapLabelFilter::update_filter(const FilterDefinitions& filter_definitions)
 {
     m_definitions = filter_definitions;
 
-    for (auto id : m_all_tiles)
-        m_tiles_to_filter.push(id);
+    for (const auto& key_value : m_all_pois)
+        m_tiles_to_filter.push(key_value.first);
 
     if (!m_update_filter_timer->isActive()) {
         // start timer to prevent future filter updates to happen rapidly one after another
@@ -62,10 +62,10 @@ void MapLabelFilter::update_quads(const std::vector<nucleus::tile_scheduler::til
 
             assert(tile.id.zoom_level < 100);
 
-            if (m_all_tiles.contains(tile.id))
+            if (m_all_pois.contains(tile.id))
                 continue; // no need to add it twice
 
-            add_tile(tile.id, *tile.vector_tile);
+            add_tile(tile.id, tile.vector_tile);
         }
     }
     for (const auto& quad : deleted_quads) {
@@ -79,96 +79,58 @@ void MapLabelFilter::update_quads(const std::vector<nucleus::tile_scheduler::til
     filter();
 }
 
-void MapLabelFilter::add_tile(const tile::Id id, const FeatureSet& all_features)
+void MapLabelFilter::add_tile(const tile::Id id, const PointOfInterestCollectionPtr& all_features)
 {
-    m_all_tiles.insert(id);
     m_tiles_to_filter.push(id);
-    m_all_features[id] = all_features;
+    m_all_pois[id] = all_features;
 }
 
 void MapLabelFilter::remove_tile(const tile::Id id)
 {
     m_removed_tiles.push_back(id);
-    if (m_all_tiles.contains(id)) {
-        if(m_all_features.contains(id))
-            m_all_features.erase(id);
-
-        if (m_visible_features.contains(id))
-            m_visible_features.erase(id);
-
-        m_all_tiles.erase(id);
-    }
+    if (m_all_pois.contains(id))
+        m_all_pois.erase(id);
 }
 
-void MapLabelFilter::apply_filter(const tile::Id tile_id)
+PointOfInterestCollection MapLabelFilter::apply_filter(const PointOfInterestCollection& unfiltered_pois)
 {
-    for (const auto& feature : m_all_features.at(tile_id)) {
-        if (feature->type == FeatureType::Peak) {
-            auto peak_feature = std::dynamic_pointer_cast<const FeatureTXTPeak>(feature);
-
-            if (!m_definitions.m_peaks_visible) {
-                continue;
-            }
-
-            if (peak_feature->elevation < m_definitions.m_peak_ele_range.x() || peak_feature->elevation > m_definitions.m_peak_ele_range.y()) {
-                continue;
-            }
-
-            if (m_definitions.m_peak_has_cross && peak_feature->summit_cross.size() == 0) {
-                continue;
-            }
-
-            if (m_definitions.m_peak_has_register && peak_feature->summit_register.size() == 0) {
-                continue;
-            }
-
-            // all filters were passed -> it is visible
-            m_visible_features.at(tile_id).emplace_back(feature);
-        } else if (feature->type == FeatureType::City) {
-            auto city_feature = std::dynamic_pointer_cast<const FeatureTXTCity>(feature);
-            if (!m_definitions.m_cities_visible) {
-                continue;
-            }
-
-            //            if (city_feature->population < m_definitions.m_city_population_range.x() || city_feature->population >
-            //            m_definitions.m_city_population_range.y()) {
-            //                continue;
-            //            }
-
-            // all filters were passed -> it is visible
-            m_visible_features.at(tile_id).emplace_back(feature);
-
-        } else if (feature->type == FeatureType::Cottage) {
-            auto cottage_feature = std::dynamic_pointer_cast<const FeatureTXTCottage>(feature);
-            if (!m_definitions.m_cottages_visible) {
-                continue;
-            }
-
-            if (m_definitions.m_cottage_has_shower && cottage_feature->shower.size() == 0) {
-                continue;
-            }
-
-            if (m_definitions.m_cottage_has_contact && (cottage_feature->email.size() == 0 && cottage_feature->phone.size() == 0)) {
-                continue;
-            }
-
-            //            if (cottage_feature->elevation < m_definitions.m_cottage_ele_range.x() || cottage_feature->elevation >
-            //            m_definitions.m_cottage_ele_range.y()) {
-            //                continue;
-            //            }
-
-            // all filters were passed -> it is visible
-            m_visible_features.at(tile_id).emplace_back(feature);
-        } else if (feature->type == FeatureType::Webcam) {
-            // auto cottage_feature = std::dynamic_pointer_cast<const FeatureTXTWebcam>(feature);
-            if (!m_definitions.m_webcams_visible) {
-                continue;
-            }
-
-            // all filters were passed -> it is visible
-            m_visible_features.at(tile_id).emplace_back(feature);
+    PointOfInterestCollection filtered_pois;
+    filtered_pois.reserve(unfiltered_pois.size());
+    std::copy_if(unfiltered_pois.begin(), unfiltered_pois.end(), std::back_inserter(filtered_pois), [this](const PointOfInterest& poi) {
+        if (poi.type == LabelType::Peak) {
+            if (!m_definitions.m_peaks_visible)
+                return false;
+            if (poi.lat_long_alt.z < m_definitions.m_peak_ele_range.x() || poi.lat_long_alt.z > m_definitions.m_peak_ele_range.y())
+                return false;
+            if (m_definitions.m_peak_has_cross && !(poi.attributes.value("summit_cross") == "yes"))
+                return false;
+            if (m_definitions.m_peak_has_register && !(poi.attributes.value("summit_register") == "yes"))
+                return false;
+            return true;
         }
-    }
+        if (poi.type == LabelType::Settlement) {
+            if (!m_definitions.m_cities_visible)
+                return false;
+            return true;
+        }
+        if (poi.type == LabelType::AlpineHut) {
+            if (!m_definitions.m_cottages_visible)
+                return false;
+            if (m_definitions.m_cottage_has_shower && !(poi.attributes.value("shower") == "yes"))
+                return false;
+            if (m_definitions.m_cottage_has_contact && !(poi.attributes.value("email").size() || poi.attributes.value("phone").size()))
+                return false;
+            return true;
+        }
+        if (poi.type == LabelType::Webcam) {
+            if (!m_definitions.m_webcams_visible)
+                return false;
+            return true;
+        }
+        assert(false);
+        return true;
+    });
+    return filtered_pois;
 }
 
 void MapLabelFilter::filter()
@@ -178,24 +140,17 @@ void MapLabelFilter::filter()
         return;
     m_filter_should_run = false;
 
+    PointOfInterestTileCollection filtered_tiles;
     while (!m_tiles_to_filter.empty()) {
         auto tile_id = m_tiles_to_filter.front();
         m_tiles_to_filter.pop();
-        if (!m_all_tiles.contains(tile_id))
+        if (!m_all_pois.contains(tile_id))
             continue; // tile was removed in the meantime
 
-        if (m_visible_features.contains(tile_id))
-            m_visible_features.erase(tile_id); // tile was added previously -> but we want to recalculate
-
-        m_visible_features[tile_id] = FeatureSet();
-
-        if (!m_all_features.contains(tile_id))
-            continue;
-
-        apply_filter(tile_id);
+        filtered_tiles[tile_id] = std::make_shared<PointOfInterestCollection>(apply_filter(*m_all_pois.at(tile_id)));
     }
 
-    emit filter_finished(m_visible_features, m_removed_tiles);
+    emit filter_finished(filtered_tiles, m_removed_tiles);
 }
 
 } // namespace nucleus::maplabel

@@ -31,20 +31,20 @@ namespace nucleus::vector_tile {
 struct PointOfInterest {
     Q_GADGET
 public:
-    enum class Type { Unknown, Peak, Settlement, AlpineHut, Webcam };
+    enum class Type { Unknown = 0, Peak, Settlement, AlpineHut, Webcam, NumberOfElements };
     Q_ENUM(Type)
-    uint64_t id = unsigned(-1);
+    uint64_t id = -1;
     Type type = Type::Unknown;
     QString name;
     glm::dvec3 lat_long_alt = glm::dvec3(0);
     glm::dvec3 world_space_pos = glm::dvec3(0);
     float importance = 0;
     QMap<QString, QString> attributes;
-    // write parser
     // use for rendering
     // use for picking
 };
-using PointOfInterestCollection = std::shared_ptr<const std::vector<PointOfInterest>>;
-using PointOfInterestTileCollection = std::unordered_map<tile::Id, PointOfInterestCollection, tile::Id::Hasher>;
+using PointOfInterestCollection = std::vector<PointOfInterest>;
+using PointOfInterestCollectionPtr = std::shared_ptr<const PointOfInterestCollection>;
+using PointOfInterestTileCollection = std::unordered_map<tile::Id, PointOfInterestCollectionPtr, tile::Id::Hasher>;
 
 } // namespace nucleus::vector_tile

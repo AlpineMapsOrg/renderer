@@ -18,14 +18,12 @@
 
 #pragma once
 
-#include <vector>
-
+#include <nucleus/event_parameter.h>
+#include <nucleus/picker/PickerTypes.h>
+#include <nucleus/tile_scheduler/tile_types.h>
+#include <nucleus/vector_tile/feature.h>
 #include <radix/tile.h>
-
-#include "nucleus/event_parameter.h"
-
-#include "nucleus/picker/PickerTypes.h"
-#include "nucleus/tile_scheduler/tile_types.h"
+#include <vector>
 
 using namespace nucleus::vector_tile;
 
@@ -50,7 +48,7 @@ signals:
 
 private:
     FeatureSetTiles m_all_features;
-    std::unordered_map<unsigned long, std::shared_ptr<const FeatureTXT>> m_pickid_to_feature;
+    std::unordered_map<uint32_t, std::shared_ptr<const FeatureTXT>> m_pickid_to_feature;
 
     glm::vec2 m_position;
     bool m_in_click;

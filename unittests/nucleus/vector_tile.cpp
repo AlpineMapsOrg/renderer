@@ -105,14 +105,14 @@ TEST_CASE("nucleus/vector_tiles")
 
         const auto vectortile = nucleus::vector_tile::parse::points_of_interest(data, nullptr);
 
-        CHECK(vectortile->size() == 16);
+        CHECK(vectortile.size() == 16);
 
         // all ids present in this tile
         auto all_ids = std::unordered_set<uint64_t> { 9569407690ul, 240050842ul, 26863165ul, 494054611ul, 3600299561ul, 1123125641ul, 240056984ul, 9084394015ul,
             1828616246ul, 10761456533ul, 21700104ul, 494054604ul, 7731531071ul, 7156956658ul, 26863041ul, 9569407683ul };
 
         CAPTURE(all_ids);
-        for (const auto& poi : *vectortile) {
+        for (const auto& poi : vectortile) {
             CAPTURE(poi.id);
             CHECK(all_ids.contains(poi.id));
             all_ids.erase(poi.id);

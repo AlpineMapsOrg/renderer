@@ -84,7 +84,7 @@ void MapLabelManager::renew_font_atlas()
     }
 }
 
-void MapLabelManager::upload_to_gpu(const tile::Id& id, const FeatureSet& features)
+void MapLabelManager::upload_to_gpu(const tile::Id& id, const PointOfInterestCollection& features)
 {
     if (!QOpenGLContext::currentContext()) // can happen during shutdown.
         return;
@@ -144,7 +144,7 @@ void MapLabelManager::upload_to_gpu(const tile::Id& id, const FeatureSet& featur
     m_gpu_tiles[id] = vectortile;
 }
 
-void MapLabelManager::update_labels(const FeatureSetTiles& visible_features, const std::vector<tile::Id>& removed_tiles)
+void MapLabelManager::update_labels(const PointOfInterestTileCollection& visible_features, const std::vector<tile::Id>& removed_tiles)
 {
     // remove tiles that aren't needed anymore
     for (const auto& id : removed_tiles) {
@@ -157,7 +157,7 @@ void MapLabelManager::update_labels(const FeatureSetTiles& visible_features, con
         // since we are renewing the tile we remove it first to delete allocations like vao
         remove_tile(vectortile.first);
 
-        upload_to_gpu(vectortile.first, vectortile.second);
+        upload_to_gpu(vectortile.first, *vectortile.second);
     }
 }
 

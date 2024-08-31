@@ -37,10 +37,12 @@ namespace nucleus::maplabel {
 
 class MapLabelFilter : public QObject {
     Q_OBJECT
+    using LabelType = vector_tile::PointOfInterest::Type;
+
 public:
     explicit MapLabelFilter(QObject* parent = nullptr);
 
-    void add_tile(const tile::Id id, const FeatureSet& all_features);
+    void add_tile(const tile::Id id, const PointOfInterestCollectionPtr& all_features);
     void remove_tile(const tile::Id id);
 
 public slots:
@@ -48,22 +50,19 @@ public slots:
     void update_quads(const std::vector<nucleus::tile_scheduler::tile_types::GpuTileQuad>& new_quads, const std::vector<tile::Id>& deleted_quads);
 
 signals:
-    void filter_finished(const FeatureSetTiles& visible_features, const std::vector<tile::Id>& removed_tiles);
+    void filter_finished(const PointOfInterestTileCollection& visible_features, const std::vector<tile::Id>& removed_tiles);
 
 private slots:
     void filter();
 
 private:
-    FeatureSetTiles m_all_features;
-    FeatureSetTiles m_visible_features;
-
+    PointOfInterestTileCollection m_all_pois;
     std::queue<tile::Id> m_tiles_to_filter;
-    std::unordered_set<tile::Id, tile::Id::Hasher> m_all_tiles;
     std::vector<tile::Id> m_removed_tiles;
 
     FilterDefinitions m_definitions;
 
-    void apply_filter(const tile::Id tile_id);
+    PointOfInterestCollection apply_filter(const PointOfInterestCollection& unfiltered_pois);
 
     bool m_filter_should_run;
     constexpr static int m_update_filter_time = 400;

@@ -58,11 +58,11 @@ public:
     void draw_picker(Framebuffer* gbuffer, ShaderProgram* shader_program, const nucleus::camera::Definition& camera,
         const nucleus::tile_scheduler::DrawListGenerator::TileSet draw_tiles) const;
 
-    void update_labels(const FeatureSetTiles& visible_features, const std::vector<tile::Id>& removed_tiles);
+    void update_labels(const PointOfInterestTileCollection& visible_features, const std::vector<tile::Id>& removed_tiles);
 
 private:
     void renew_font_atlas();
-    void upload_to_gpu(const tile::Id& id, const FeatureSet& features);
+    void upload_to_gpu(const tile::Id& id, const PointOfInterestCollection& features);
     void remove_tile(const tile::Id& tile_id);
 
     std::unique_ptr<Texture> m_font_texture;

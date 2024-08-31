@@ -35,6 +35,8 @@ nucleus::vector_tile::PointOfInterest::Type type_from_layer_name(const std::stri
     assert(false);
     return nucleus::vector_tile::PointOfInterest::Type::Unknown;
 }
+
+static std::atomic_int32_t s_number_of_pois = {};
 } // namespace
 
 nucleus::vector_tile::PointOfInterestCollection nucleus::vector_tile::parse::points_of_interest(
@@ -47,7 +49,7 @@ nucleus::vector_tile::PointOfInterestCollection nucleus::vector_tile::parse::poi
     mapbox::vector_tile::buffer tile(d);
 
     // create empty output variable
-    std::vector<PointOfInterest> vector_tile;
+    std::vector<PointOfInterest> pois;
 
     for (auto const& layer_name : tile.layerNames()) {
         const mapbox::vector_tile::layer layer = tile.getLayer(layer_name);
@@ -59,7 +61,7 @@ nucleus::vector_tile::PointOfInterestCollection nucleus::vector_tile::parse::poi
             auto props = feature.getProperties();
 
             PointOfInterest poi;
-            poi.id = get<uint64_t>(feature.getID());
+            poi.id = s_number_of_pois.fetch_add(1);
             poi.type = type;
             poi.name = QString::fromStdString(get<std::string>(props["name"]));
             const auto lat_long = glm::dvec2(get<double>(props["lat"]), get<double>(props["long"]));
@@ -80,10 +82,11 @@ nucleus::vector_tile::PointOfInterestCollection nucleus::vector_tile::parse::poi
                 QString value = std::visit(nucleus::vector_tile::util::string_print_visitor, property.second);
                 poi.attributes[QString::fromStdString(name)] = value;
             }
+            poi.attributes["id"] = QString::number(get<uint64_t>(feature.getID()));
 
-            vector_tile.emplace_back(poi);
+            pois.emplace_back(poi);
         }
     }
 
-    return std::make_shared<const std::vector<PointOfInterest>>(std::move(vector_tile));
+    return pois;
 }

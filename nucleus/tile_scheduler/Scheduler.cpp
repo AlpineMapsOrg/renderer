@@ -32,6 +32,7 @@
 #include "nucleus/tile_scheduler/utils.h"
 #include "nucleus/utils/image_loader.h"
 #include "nucleus/utils/tile_conversion.h"
+#include "nucleus/vector_tile/parse.h"
 #include "radix/quad_tree.h"
 
 #ifdef ALP_ENABLE_LABELS
@@ -205,8 +206,8 @@ void Scheduler::update_gpu_quads()
                            const auto* vectortile_data = m_default_vector_tile.get();
                            vectortile_data = quad.tiles[i].vector_tile.get();
                            // moved into this if -> since vector_tile might be empty
-                           auto vectortile = nucleus::vector_tile::parse_features(*vectortile_data, m_dataquerier);
-                           gpu_quad.tiles[i].vector_tile = vectortile;
+                           auto pois = nucleus::vector_tile::parse::points_of_interest(*vectortile_data, m_dataquerier.get());
+                           gpu_quad.tiles[i].vector_tile = std::make_shared<vector_tile::PointOfInterestCollection>(std::move(pois));
 #endif
                        }
                        return gpu_quad;
