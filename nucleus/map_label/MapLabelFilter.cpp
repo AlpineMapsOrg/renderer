@@ -123,7 +123,7 @@ void MapLabelFilter::apply_filter(const tile::Id tile_id)
             }
 
             // all filters were passed -> it is visible
-            m_visible_features.at(tile_id).insert(feature);
+            m_visible_features.at(tile_id).emplace_back(feature);
         } else if (feature->type == FeatureType::City) {
             auto city_feature = std::dynamic_pointer_cast<const FeatureTXTCity>(feature);
             if (!m_definitions.m_cities_visible) {
@@ -136,7 +136,7 @@ void MapLabelFilter::apply_filter(const tile::Id tile_id)
             //            }
 
             // all filters were passed -> it is visible
-            m_visible_features.at(tile_id).insert(feature);
+            m_visible_features.at(tile_id).emplace_back(feature);
 
         } else if (feature->type == FeatureType::Cottage) {
             auto cottage_feature = std::dynamic_pointer_cast<const FeatureTXTCottage>(feature);
@@ -158,7 +158,7 @@ void MapLabelFilter::apply_filter(const tile::Id tile_id)
             //            }
 
             // all filters were passed -> it is visible
-            m_visible_features.at(tile_id).insert(feature);
+            m_visible_features.at(tile_id).emplace_back(feature);
         } else if (feature->type == FeatureType::Webcam) {
             // auto cottage_feature = std::dynamic_pointer_cast<const FeatureTXTWebcam>(feature);
             if (!m_definitions.m_webcams_visible) {
@@ -166,7 +166,7 @@ void MapLabelFilter::apply_filter(const tile::Id tile_id)
             }
 
             // all filters were passed -> it is visible
-            m_visible_features.at(tile_id).insert(feature);
+            m_visible_features.at(tile_id).emplace_back(feature);
         }
     }
 }

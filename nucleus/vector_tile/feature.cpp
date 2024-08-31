@@ -427,7 +427,7 @@ std::shared_ptr<FeatureSet> parse(const QByteArray& vectorTileData, const std::s
                 // create the feature with the designated parser method
                 auto feat = s_feature_types_factory.at(layerName)(feature, dataquerier);
 
-                vector_tile->insert(feat);
+                vector_tile->emplace_back(feat);
             }
         }
     }

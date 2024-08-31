@@ -38,7 +38,7 @@ TEST_CASE("nucleus/map_label/factory")
     auto features = FeatureSet();
     auto ftxt = std::make_shared<FeatureTXTPeak>();
     ftxt->name = "ασδφ";
-    features.insert(ftxt);
+    features.emplace_back(ftxt);
     f.create_labels(features);
     a = f.renew_font_atlas();
     auto i = 0u;
