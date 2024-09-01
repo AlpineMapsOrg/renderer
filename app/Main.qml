@@ -170,7 +170,7 @@ Item {
     function change_page(source, title) {
         selectedPage = source.toLowerCase().replace(".qml", "");
         if (selectedPage !== "map" && selectedPage !== "settings"  && stats_window_loader.item !== null) {
-            stats_window_loader.item = false;
+            stats_window_loader.item.visible = false;
         }
         if (source === "map") {
             if (main_stack_view.depth >= 1) main_stack_view.pop()
