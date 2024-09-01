@@ -102,7 +102,7 @@ void MapLabelManager::upload_to_gpu(const tile::Id& id, const PointOfInterestCol
         vectortile->vertex_buffer = std::make_unique<QOpenGLBuffer>(QOpenGLBuffer::VertexBuffer);
         vectortile->vertex_buffer->create();
         vectortile->vertex_buffer->bind();
-        vectortile->vertex_buffer->setUsagePattern(QOpenGLBuffer::StaticDraw);
+        vectortile->vertex_buffer->setUsagePattern(QOpenGLBuffer::DynamicDraw);
 
         const auto allLabels = m_mapLabelFactory.create_labels(features);
 
