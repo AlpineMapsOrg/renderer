@@ -18,7 +18,6 @@
 
 import QtQuick
 import QtQuick.Layouts
-import Alpine
 import QtQuick.Controls.Material
 
 Rectangle {

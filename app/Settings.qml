@@ -20,7 +20,7 @@
 import QtQuick
 import QtQuick.Controls.Material
 import QtQuick.Layouts
-import Alpine
+
 
 import "components"
 

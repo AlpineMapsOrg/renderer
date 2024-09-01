@@ -19,7 +19,6 @@
 import QtQuick
 import QtQuick.Controls.Material
 import QtQuick.Layouts
-import Alpine
 
 Rectangle {
     id: about_root

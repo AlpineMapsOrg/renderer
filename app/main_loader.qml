@@ -19,7 +19,6 @@
 import QtQuick
 import QtQuick.Controls.Material
 import QtQuick.Layouts
-import Alpine
 
 ApplicationWindow {
     visible: true
