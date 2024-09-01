@@ -90,7 +90,7 @@ Controller::Controller(AbstractRenderWindow* render_window)
     m_tile_scheduler->set_dataquerier(m_data_querier);
     m_camera_controller = std::make_unique<nucleus::camera::Controller>(
         nucleus::camera::PositionStorage::instance()->get("grossglockner"), m_render_window->depth_tester(), m_data_querier.get());
-    m_picker_manager = std::make_unique<PickerManager>();
+    m_picker_manager = new PickerManager(m_tile_scheduler.get());
 
     {
         auto* sch = m_tile_scheduler.get();
@@ -113,7 +113,7 @@ Controller::Controller(AbstractRenderWindow* render_window)
         connect(sl, &SlotLimiter::quad_delivered, sch, &Scheduler::receive_quad);
 
 #ifdef ALP_ENABLE_LABELS
-        m_label_filter = std::make_unique<MapLabelFilter>(sch);
+        m_label_filter = new MapLabelFilter(sch);
         connect(la, &LayerAssembler::tile_requested, m_vectortile_service.get(), &TileLoadService::load);
         connect(m_vectortile_service.get(), &TileLoadService::load_finished, la, &LayerAssembler::deliver_vectortile);
 #endif
@@ -131,12 +131,11 @@ Controller::Controller(AbstractRenderWindow* render_window)
 #ifdef __EMSCRIPTEN__ // make request from main thread on webassembly due to QTBUG-109396
     m_terrain_service->moveToThread(QCoreApplication::instance()->thread());
     m_ortho_service->moveToThread(QCoreApplication::instance()->thread());
+    m_vectortile_service->moveToThread(QCoreApplication::instance()->thread());
 #else
     m_terrain_service->moveToThread(m_scheduler_thread.get());
     m_ortho_service->moveToThread(m_scheduler_thread.get());
-#ifdef ALP_ENABLE_LABELS
     m_vectortile_service->moveToThread(m_scheduler_thread.get());
-#endif
 #endif
     m_tile_scheduler->moveToThread(m_scheduler_thread.get());
     m_scheduler_thread->start();
@@ -154,14 +153,14 @@ Controller::Controller(AbstractRenderWindow* render_window)
 
     connect(m_tile_scheduler.get(), &Scheduler::gpu_quads_updated, m_render_window, &AbstractRenderWindow::update_gpu_quads);
     connect(m_tile_scheduler.get(), &Scheduler::gpu_quads_updated, m_render_window, &AbstractRenderWindow::update_requested);
-    connect(m_tile_scheduler.get(), &Scheduler::gpu_quads_updated, m_picker_manager.get(), &PickerManager::update_quads);
+    connect(m_tile_scheduler.get(), &Scheduler::gpu_quads_updated, m_picker_manager, &PickerManager::update_quads);
 
-    connect(m_picker_manager.get(), &PickerManager::pick_requested, m_render_window, &AbstractRenderWindow::pick_value);
-    connect(m_render_window, &AbstractRenderWindow::value_picked, m_picker_manager.get(), &PickerManager::eval_pick);
+    connect(m_picker_manager, &PickerManager::pick_requested, m_render_window, &AbstractRenderWindow::pick_value);
+    connect(m_render_window, &AbstractRenderWindow::value_picked, m_picker_manager, &PickerManager::eval_pick);
 #ifdef ALP_ENABLE_LABELS
-    connect(m_tile_scheduler.get(), &Scheduler::gpu_quads_updated, m_label_filter.get(), &MapLabelFilter::update_quads);
-    connect(m_label_filter.get(), &MapLabelFilter::filter_finished, m_render_window, &AbstractRenderWindow::update_labels);
-    connect(m_label_filter.get(), &MapLabelFilter::filter_finished, m_render_window, &AbstractRenderWindow::update_requested);
+    connect(m_tile_scheduler.get(), &Scheduler::gpu_quads_updated, m_label_filter, &MapLabelFilter::update_quads);
+    connect(m_label_filter, &MapLabelFilter::filter_finished, m_render_window, &AbstractRenderWindow::update_labels);
+    connect(m_label_filter, &MapLabelFilter::filter_finished, m_render_window, &AbstractRenderWindow::update_requested);
 #endif
 }
 
@@ -186,7 +185,7 @@ camera::Controller* Controller::camera_controller() const
     return m_camera_controller.get();
 }
 
-PickerManager* Controller::picker_manager() const { return m_picker_manager.get(); }
+PickerManager* Controller::picker_manager() const { return m_picker_manager; }
 
 Scheduler* Controller::tile_scheduler() const
 {
@@ -194,7 +193,7 @@ Scheduler* Controller::tile_scheduler() const
 }
 
 #ifdef ALP_ENABLE_LABELS
-maplabel::MapLabelFilter* Controller::label_filter() const { return m_label_filter.get(); }
+maplabel::MapLabelFilter* Controller::label_filter() const { return m_label_filter; }
 #endif
 
 } // namespace nucleus

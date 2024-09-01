@@ -43,7 +43,6 @@
 
 class QOpenGLTexture;
 class QOpenGLShaderProgram;
-class QOpenGLBuffer;
 class QOpenGLVertexArrayObject;
 
 namespace gl_engine {

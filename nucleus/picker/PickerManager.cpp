@@ -51,31 +51,28 @@ PickerManager::PickerManager(QObject* parent)
 
 void PickerManager::eval_pick(uint32_t value)
 {
-    PickTypes type = picker_type((value >> 24) & 255);
+    FeatureType type = feature_type((value >> 24) & 255);
 
-    if (type == PickTypes::Invalid) {
+    if (type == FeatureType::Invalid) {
         // e.g. clicked on nothing -> hide sidebar
         emit pick_evaluated({});
         return;
     }
 
-    if (type == PickTypes::PointOfInterest) {
+    if (type == FeatureType::PointOfInterest) {
         const auto internal_id = value & 16777215; // 16777215 = 24bit mask
         if (!m_pickid_to_poi.contains(internal_id)) {
             qDebug() << "pickid does not exist: " + std::to_string(internal_id);
             return;
         }
         const auto& poi = m_pickid_to_poi[internal_id];
-        FeatureProperties picked;
+        Feature picked;
         picked.title = poi->name;
-        picked.properties.append({ "type", to_string(poi->type) });
-        picked.properties.append({ "latitude", QString::number(poi->lat_long_alt.x) });
-        picked.properties.append({ "longitude", QString::number(poi->lat_long_alt.y) });
-        picked.properties.append({ "altitude", QString::number(poi->lat_long_alt.z) });
-        for (auto i = poi->attributes.cbegin(); i != poi->attributes.cend(); ++i) {
-            picked.properties.append({ i.key(), i.value() });
-        }
-        // picked.properties.append()
+        picked.properties = poi->attributes;
+        picked.properties["type"] = to_string(poi->type);
+        picked.properties["latitude"] = QString::number(poi->lat_long_alt.x);
+        picked.properties["longitude"] = QString::number(poi->lat_long_alt.y);
+        picked.properties["altitude"] = QString::number(poi->lat_long_alt.z);
         emit pick_evaluated(picked);
         return;
     }

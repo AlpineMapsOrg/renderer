@@ -25,7 +25,6 @@
 #include <QDebug>
 #include <QImage>
 #include <QMoveEvent>
-#include <QOpenGLBuffer>
 #include <QOpenGLContext>
 #include <QOpenGLDebugLogger>
 #include <QOpenGLExtraFunctions>

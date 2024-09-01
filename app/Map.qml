@@ -48,6 +48,11 @@ Rectangle {
         visible: renderer.camera_operation_centre_visibility
     }
 
+    FeatureDetailWindow {
+        id: feature_detail_window_loader
+        map: renderer
+    }
+
     FloatingActionButtonGroup {
         id: fab_group
         anchors {

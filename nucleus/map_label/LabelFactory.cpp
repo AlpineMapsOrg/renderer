@@ -24,7 +24,7 @@
 #include <QStringLiteral>
 
 #include "nucleus/Raster.h"
-#include "nucleus/picker/PickerTypes.h"
+#include "nucleus/picker/types.h"
 #include "nucleus/utils/image_loader.h"
 #include <nucleus/utils/bit_coding.h>
 
@@ -112,9 +112,13 @@ std::vector<VertexData> LabelFactory::create_labels(const vector_tile::PointOfIn
         QString display_name = p.name;
         float importance = p.importance;
         switch (p.type) {
-        case LabelType::Peak:
-            display_name = QString("%1 (%2m)").arg(p.name).arg(p.lat_long_alt.z, 0, 'f', 0);
+        case LabelType::Peak: {
+            auto ele = p.attributes.value("ele");
+            if (ele.size() == 0)
+                ele = QString::number(p.lat_long_alt.z, 'f', 0);
+            display_name = QString("%1 (%2m)").arg(p.name, ele);
             break;
+        }
         case LabelType::AlpineHut:
         case LabelType::Webcam:
             display_name = "";
@@ -143,7 +147,7 @@ void LabelFactory::create_label(
     const auto offset_x = -text_width / 2.0f;
 
     glm::vec4 picker_color = nucleus::utils::bit_coding::u32_to_f8_4(id);
-    picker_color.x = (float(nucleus::picker::PickTypes::PointOfInterest) / 255.0f); // set the first bit to the type
+    picker_color.x = (float(nucleus::picker::FeatureType::PointOfInterest) / 255.0f); // set the first bit to the type
 
     // label icon
     vertex_data.push_back({ glm::vec4(-m_icon_size.x / 2.0f, m_icon_size.y / 2.0f + icon_offset_y, m_icon_size.x, -m_icon_size.y + 1), // vertex position + offset

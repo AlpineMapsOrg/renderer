@@ -64,10 +64,10 @@ private:
     std::unique_ptr<tile_scheduler::Scheduler> m_tile_scheduler;
     std::shared_ptr<DataQuerier> m_data_querier;
     std::unique_ptr<camera::Controller> m_camera_controller;
-#ifdef ALP_ENABLE_LABELS
     std::unique_ptr<tile_scheduler::TileLoadService> m_vectortile_service;
-    std::unique_ptr<maplabel::MapLabelFilter> m_label_filter;
-#endif
-    std::unique_ptr<nucleus::picker::PickerManager> m_picker_manager;
+
+    //
+    maplabel::MapLabelFilter* m_label_filter;
+    nucleus::picker::PickerManager* m_picker_manager;
 };
 }

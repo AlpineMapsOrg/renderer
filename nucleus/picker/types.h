@@ -18,66 +18,57 @@
 
 #pragma once
 
+#include <QHash>
 #include <QList>
 #include <QObject>
 #include <QString>
 
 namespace nucleus::picker {
-enum class PickTypes {
+Q_NAMESPACE
+enum class FeatureType {
     Invalid = 0,
     PointOfInterest = 1,
-
 };
+Q_ENUM_NS(FeatureType)
 
-inline PickTypes picker_type(int typeValue)
+inline FeatureType feature_type(int typeValue)
 {
     switch (typeValue) {
     case 1:
-        return PickTypes::PointOfInterest;
+        return FeatureType::PointOfInterest;
     default:
-        return PickTypes::Invalid;
+        return FeatureType::Invalid;
     }
 }
 
-struct FeatureProperty {
-    Q_GADGET
-public:
-    QString key;
-    QString value;
-
-    Q_PROPERTY(QString key MEMBER key)
-    Q_PROPERTY(QString value MEMBER value)
-
-    bool operator==(const FeatureProperty&) const = default;
-    bool operator!=(const FeatureProperty&) const = default;
-};
-
-struct FeatureProperties {
+struct Feature {
     Q_GADGET
 public:
     QString title;
-    QList<FeatureProperty> properties;
+    FeatureType type;
+    QHash<QString, QString> properties;
 
     Q_INVOKABLE bool is_valid() { return !properties.empty(); }
-    const QList<QString> get_list_model() const
+    [[nodiscard]] QList<QString> get_list_model() const
     {
         QList<QString> list;
-        for (const auto& prop : properties) {
-            list.append(prop.key + ":");
-            list.append(prop.value);
+        for (const auto& [key, value] : properties.asKeyValueRange()) {
+            list.append(key + ":");
+            list.append(value);
         }
         return list;
     }
 
     Q_PROPERTY(QString title MEMBER title)
+    Q_PROPERTY(FeatureType type MEMBER type)
+    Q_PROPERTY(QHash<QString, QString> properties MEMBER properties)
     // in theory it should be possible to expose QList<SomeStruct> to qml for the listview
     // unfortunately this requires quite a bit of code (e.g. assign roles for each attribute, write custom data access classes etc (see QAbstractItemModel))
     // ultimatively i decided that this is too much work for minor benefits (benefit would be to directly access attributes with the name) and returning a
     // simple QList<QString> was much simpler
-    //    Q_PROPERTY(QList<FeatureProperty> properties READ properties)
 
-    bool operator==(const FeatureProperties&) const = default;
-    bool operator!=(const FeatureProperties&) const = default;
+    bool operator==(const Feature&) const = default;
+    bool operator!=(const Feature&) const = default;
 };
 
 } // namespace nucleus::picker

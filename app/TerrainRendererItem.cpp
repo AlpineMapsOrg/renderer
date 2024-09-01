@@ -545,7 +545,7 @@ void TerrainRendererItem::gl_sundir_date_link_changed(bool)
     recalculate_sun_angles();
 }
 
-void TerrainRendererItem::change_feature(const nucleus::picker::FeatureProperties feature)
+void TerrainRendererItem::change_feature(const nucleus::picker::Feature feature)
 {
     if (m_current_feature_data != feature) {
         m_current_feature_data = feature;

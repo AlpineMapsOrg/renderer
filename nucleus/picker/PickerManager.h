@@ -19,7 +19,7 @@
 #pragma once
 
 #include <nucleus/event_parameter.h>
-#include <nucleus/picker/PickerTypes.h>
+#include <nucleus/picker/types.h>
 #include <nucleus/tile_scheduler/tile_types.h>
 #include <nucleus/vector_tile/types.h>
 #include <radix/tile.h>
@@ -44,7 +44,7 @@ public slots:
 
 signals:
     void pick_requested(const glm::dvec2& position);
-    void pick_evaluated(const FeatureProperties& feature);
+    void pick_evaluated(const Feature& feature);
 
 private:
     vector_tile::PointOfInterestTileCollection m_all_pois;
