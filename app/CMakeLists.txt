@@ -27,10 +27,6 @@ qt_add_executable(alpineapp
     AppSettings.h AppSettings.cpp
     timing/TimerFrontendManager.h timing/TimerFrontendManager.cpp
     timing/TimerFrontendObject.h timing/TimerFrontendObject.cpp
-    TerrainRendererItem.h TerrainRendererItem.cpp
-    GnssInformation.h GnssInformation.cpp
-    TrackModel.h TrackModel.cpp
-    ModelBinding.h ModelBinding.cpp
 )
 
 
@@ -107,6 +103,11 @@ qt_add_qml_module(alpineapp
         icons/logo_type_horizontal.png
         icons/logo_type_vertical.png
         icons/logo_type_horizontal_short.png
+    SOURCES
+        TerrainRendererItem.h TerrainRendererItem.cpp
+        GnssInformation.h GnssInformation.cpp
+        TrackModel.h TrackModel.cpp
+        ModelBinding.h ModelBinding.cpp
 )
 
 qt_add_resources(alpineapp "fonts"

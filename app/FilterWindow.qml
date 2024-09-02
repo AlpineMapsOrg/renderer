@@ -18,7 +18,7 @@
 
 import QtQuick
 import QtQuick.Controls.Material
-import Alpine
+import app
 import "components"
 
 Rectangle {

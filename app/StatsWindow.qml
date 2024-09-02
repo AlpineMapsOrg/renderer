@@ -21,7 +21,7 @@ import QtCharts
 import QtQuick.Controls.Material
 import QtQuick.Layouts
 import QtQuick.Dialogs
-import Alpine
+import app
 import "components"
 
 Rectangle {

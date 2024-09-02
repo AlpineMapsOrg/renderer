@@ -21,7 +21,6 @@ import QtQuick
 import QtQuick.Controls.Material
 import QtQuick.Layouts
 import "components"
-import Alpine
 import app
 
 Item {

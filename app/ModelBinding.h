@@ -25,7 +25,7 @@
 class ModelBinding : public QObject, public QQmlParserStatus, public QQmlPropertyValueSource {
     Q_OBJECT
     Q_INTERFACES(QQmlPropertyValueSource)
-    // QML_ELEMENT
+    QML_ELEMENT
     Q_PROPERTY(QObject* target READ model WRITE set_model NOTIFY model_changed FINAL)
     Q_PROPERTY(QString property READ property WRITE set_property NOTIFY property_changed FINAL)
     Q_PROPERTY(bool receive_model_updates READ receive_model_updates WRITE set_receive_model_updates NOTIFY receive_model_updates_changed FINAL)

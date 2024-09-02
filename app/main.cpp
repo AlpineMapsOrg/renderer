@@ -122,9 +122,7 @@ int main(int argc, char **argv)
     gl_engine::Context::instance(); // initialise, so it's ready when we create dependent objects. // still needs to be moved to the render thread.
 
     QSurfaceFormat::setDefaultFormat(fmt);
-    qmlRegisterType<TerrainRendererItem>("Alpine", 42, 0, "TerrainRenderer");
-    qmlRegisterType<GnssInformation>("Alpine", 42, 0, "GnssInformation");
-    qmlRegisterType<ModelBinding>("Alpine", 42, 0, "ModelBinding");
+
     QQmlApplicationEngine engine;
 
     HotReloader hotreloader(&engine, ALP_QML_SOURCE_DIR);
