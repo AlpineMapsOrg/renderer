@@ -20,9 +20,8 @@
 import QtQuick
 import QtQuick.Controls.Material
 import QtQuick.Layouts
-import Alpine
-
 import "components"
+import Alpine
 
 Item {
     id: main

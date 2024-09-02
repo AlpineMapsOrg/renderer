@@ -25,6 +25,12 @@
 #else
 #include <QGuiApplication>
 #endif
+#include "GnssInformation.h"
+#include "HotReloader.h"
+#include "ModelBinding.h"
+#include "RenderThreadNotifier.h"
+#include "TerrainRendererItem.h"
+#include "TrackModel.h"
 #include <QLoggingCategory>
 #include <QNetworkInformation>
 #include <QOpenGLContext>
@@ -37,17 +43,9 @@
 #include <QThread>
 #include <QTimer>
 #include <QTranslator>
-
 #include <gl_engine/Context.h>
-
-#include "GnssInformation.h"
-#include "HotReloader.h"
-#include "RenderThreadNotifier.h"
-#include "TerrainRendererItem.h"
-#include "TrackModel.h"
-
-#include "nucleus/camera/PositionStorage.h"
-#include "nucleus/version.h"
+#include <nucleus/camera/PositionStorage.h>
+#include <nucleus/version.h>
 
 int main(int argc, char **argv)
 {
@@ -124,7 +122,9 @@ int main(int argc, char **argv)
     gl_engine::Context::instance(); // initialise, so it's ready when we create dependent objects. // still needs to be moved to the render thread.
 
     QSurfaceFormat::setDefaultFormat(fmt);
-
+    qmlRegisterType<TerrainRendererItem>("Alpine", 42, 0, "TerrainRenderer");
+    qmlRegisterType<GnssInformation>("Alpine", 42, 0, "GnssInformation");
+    qmlRegisterType<ModelBinding>("Alpine", 42, 0, "ModelBinding");
     QQmlApplicationEngine engine;
 
     HotReloader hotreloader(&engine, ALP_QML_SOURCE_DIR);
