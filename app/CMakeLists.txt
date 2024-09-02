@@ -23,19 +23,11 @@ qt_add_executable(alpineapp
     main.cpp
     RenderThreadNotifier.h RenderThreadNotifier.cpp
     TerrainRenderer.h TerrainRenderer.cpp
-    HotReloader.h HotReloader.cpp
     AppSettings.h AppSettings.cpp
-    timing/TimerFrontendManager.h timing/TimerFrontendManager.cpp
-    timing/TimerFrontendObject.h timing/TimerFrontendObject.cpp
-)
-
-
-# change prefer to project dir, as per https://bugreports.qt.io/browse/QTBUG-120435
-# otherwise we can't hotreload files in app when there is "import app" in the qml file.
-# but we need import app, if we want to use the new approach of registering qml types (directly in the class, not in main).
-add_custom_command(
-    TARGET alpineapp POST_BUILD
-    COMMAND sed -i "s@^prefer .*@prefer ${CMAKE_CURRENT_SOURCE_DIR}/@" ${CMAKE_CURRENT_BINARY_DIR}/app/qmldir
+    TerrainRendererItem.h TerrainRendererItem.cpp
+    GnssInformation.h GnssInformation.cpp
+    TrackModel.h TrackModel.cpp
+    ModelBinding.h ModelBinding.cpp
 )
 
 qt_add_qml_module(alpineapp
@@ -43,7 +35,6 @@ qt_add_qml_module(alpineapp
     VERSION 1.0
     RESOURCE_PREFIX /qt/qml
     QML_FILES
-        main_loader.qml
         Main.qml
         About.qml
         Map.qml
@@ -103,11 +94,6 @@ qt_add_qml_module(alpineapp
         icons/logo_type_horizontal.png
         icons/logo_type_vertical.png
         icons/logo_type_horizontal_short.png
-    SOURCES
-        TerrainRendererItem.h TerrainRendererItem.cpp
-        GnssInformation.h GnssInformation.cpp
-        TrackModel.h TrackModel.cpp
-        ModelBinding.h ModelBinding.cpp
 )
 
 qt_add_resources(alpineapp "fonts"
@@ -127,12 +113,34 @@ set_target_properties(alpineapp PROPERTIES
     QT_ANDROID_PACKAGE_SOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/android
 )
 target_link_libraries(alpineapp PUBLIC gl_engine Qt::Quick Qt::QuickControls2)
-if (ALP_ENABLE_DEBUG_GUI)
-    message(WARNING "building alpine app with debug gui")
-    qt_target_qml_sources(alpineapp QML_FILES StatsWindow.qml)
+if (ALP_ENABLE_DEV_TOOLS)
+    message(WARNING "building alpine app with dev tools. this will increase the build size")
+
+    # change prefer to project dir, as per https://bugreports.qt.io/browse/QTBUG-120435
+    # otherwise we can't hotreload files in app when there is "import app" in the qml file.
+    # but we need import app, if we want to use the new approach of registering qml types (directly in the class, not in main).
+    add_custom_command(
+        TARGET alpineapp POST_BUILD
+        COMMAND sed -i "s@^prefer .*@prefer ${CMAKE_CURRENT_SOURCE_DIR}/@" ${CMAKE_CURRENT_BINARY_DIR}/app/qmldir
+    )
+
+    qt_target_qml_sources(alpineapp
+        QML_FILES
+            StatsWindow.qml
+            loader_dev.qml
+        )
+    target_sources(alpineapp
+        PUBLIC
+            HotReloader.h HotReloader.cpp
+            TimerFrontendManager.h TimerFrontendManager.cpp
+            TimerFrontendObject.h TimerFrontendObject.cpp
+    )
     target_link_libraries(alpineapp PUBLIC Qt::Charts Qt::Widgets)
-    target_compile_definitions(alpineapp PUBLIC ALP_ENABLE_DEBUG_GUI)
+    target_compile_definitions(alpineapp PUBLIC ALP_ENABLE_DEV_TOOLS)
+else()
+    qt_target_qml_sources(alpineapp QML_FILES loader.qml)
 endif()
+
 if (ALP_ENABLE_POSITIONING)
     target_link_libraries(alpineapp PUBLIC Qt::Positioning)
     target_compile_definitions(alpineapp PUBLIC "ALP_ENABLE_GNSS")
@@ -171,4 +179,7 @@ if (EMSCRIPTEN)
         list(APPEND ALP_INSTALL_FILES "$<TARGET_FILE_DIR:alpineapp>/alpineapp.worker.js")
     endif()
     install(FILES ${ALP_INSTALL_FILES} DESTINATION ${ALP_WWW_INSTALL_DIR})
+else()
+    find_package(Qt6 REQUIRED COMPONENTS Widgets)
+    target_link_libraries(alpineapp PUBLIC Qt::Widgets)
 endif()

@@ -23,14 +23,13 @@ import QtQuick.Layouts
 ApplicationWindow {
     visible: true
     id: application_window
-    property alias loaded_item: mainLoader.item
-    Material.theme: loaded_item ? loaded_item.theme : Material.System
-    Material.accent: loaded_item ? loaded_item.accent : Material.Pink
 
-    Loader {
-        id: mainLoader
+    Material.theme: main.theme
+    Material.accent: main.accent
+
+    Main {
+        id: main
         anchors.fill: parent
-        source: "Main.qml"
         focus: true
     }
 
@@ -47,15 +46,4 @@ ApplicationWindow {
             }
         }
     }
-
-    Connections{
-        target: _hotreloader
-        function onWatched_source_changed() {
-            mainLoader.active = false;
-            _hotreloader.clear_cache();
-            mainLoader.setSource("Main.qml")
-            mainLoader.active = true;
-        }
-    }
-
 }

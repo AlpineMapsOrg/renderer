@@ -20,7 +20,7 @@
 
 #include <QDirIterator>
 #include <QFontDatabase>
-#if defined(ALP_ENABLE_DEBUG_GUI) || defined(__ANDROID__)
+#if defined(ALP_ENABLE_DEV_TOOLS) || defined(__ANDROID__)
 #include <QApplication>
 #else
 #include <QGuiApplication>
@@ -50,7 +50,7 @@
 int main(int argc, char **argv)
 {
     QQuickWindow::setGraphicsApi(QSGRendererInterface::GraphicsApi::OpenGLRhi);
-#if defined(ALP_ENABLE_DEBUG_GUI) || defined(__ANDROID__)
+#if defined(ALP_ENABLE_DEV_TOOLS) || defined(__ANDROID__)
     QApplication app(argc, argv);
 #else
     QGuiApplication app(argc, argv);
@@ -125,17 +125,10 @@ int main(int argc, char **argv)
 
     QQmlApplicationEngine engine;
 
-    HotReloader hotreloader(&engine, ALP_QML_SOURCE_DIR);
-    engine.rootContext()->setContextProperty("_hotreloader", &hotreloader);
     engine.rootContext()->setContextProperty("_r", ALP_QML_SOURCE_DIR);
     engine.rootContext()->setContextProperty("_positionList", QVariant::fromValue(nucleus::camera::PositionStorage::instance()->getPositionList()));
     engine.rootContext()->setContextProperty("_alpine_renderer_version", QString::fromStdString(nucleus::version()));
 
-#ifdef ALP_ENABLE_DEBUG_GUI
-    engine.rootContext()->setContextProperty("_debug_gui", true);
-#else
-    engine.rootContext()->setContextProperty("_debug_gui", false);
-#endif
     auto track_model = TrackModel();
     engine.rootContext()->setContextProperty("_track_model", &track_model);
 
@@ -149,7 +142,16 @@ int main(int argc, char **argv)
             }
         },
         Qt::QueuedConnection);
-    engine.load(QUrl(ALP_QML_SOURCE_DIR "main_loader.qml"));
+
+#ifdef ALP_ENABLE_DEV_TOOLS
+    HotReloader hotreloader(&engine, ALP_QML_SOURCE_DIR);
+    engine.rootContext()->setContextProperty("_hotreloader", &hotreloader);
+    engine.rootContext()->setContextProperty("_debug_gui", true);
+    engine.load(QUrl(ALP_QML_SOURCE_DIR "loader_dev.qml"));
+#else
+    engine.rootContext()->setContextProperty("_debug_gui", false);
+    engine.load(QUrl(ALP_QML_SOURCE_DIR "loader.qml"));
+#endif
     QQuickWindow* root_window = dynamic_cast<QQuickWindow*>(engine.rootObjects().first());
     if (root_window == nullptr) {
         qDebug() << "root window not created!";

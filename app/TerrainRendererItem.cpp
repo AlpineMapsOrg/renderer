@@ -49,6 +49,10 @@
 #include "nucleus/utils/UrlModifier.h"
 #include "nucleus/utils/sun_calculations.h"
 
+#ifdef ALP_ENABLE_DEV_TOOLS
+#include "TimerFrontendManager.h"
+#endif
+
 namespace {
 // helper type for the visitor from https://en.cppreference.com/w/cpp/utility/variant/visit
 template <class... Ts>
@@ -69,7 +73,6 @@ TerrainRendererItem::TerrainRendererItem(QQuickItem* parent)
 #endif
     //qDebug() << "gui thread: " << QThread::currentThread();
 
-    m_timer_manager = new TimerFrontendManager(this);
     m_url_modifier = std::make_shared<nucleus::utils::UrlModifier>();
 
     m_settings = new AppSettings(this, m_url_modifier);
@@ -156,7 +159,9 @@ QQuickFramebufferObject::Renderer* TerrainRendererItem::createRenderer() const
     connect(this, &TerrainRendererItem::label_filter_changed, r->controller()->label_filter(), &nucleus::maplabel::MapLabelFilter::update_filter);
     connect(r->controller()->picker_manager(), &nucleus::picker::PickerManager::pick_evaluated, this, &TerrainRendererItem::change_feature);
 
-    connect(r->glWindow(), &gl_engine::Window::report_measurements, this->m_timer_manager, &TimerFrontendManager::receive_measurements);
+#ifdef ALP_ENABLE_DEV_TOOLS
+    connect(r->glWindow(), &gl_engine::Window::report_measurements, TimerFrontendManager::instance(), &TimerFrontendManager::receive_measurements);
+#endif
 
     connect(r->controller()->tile_scheduler(), &nucleus::tile_scheduler::Scheduler::gpu_quads_updated, RenderThreadNotifier::instance(), &RenderThreadNotifier::notify);
     connect(tile_scheduler, &nucleus::tile_scheduler::Scheduler::gpu_quads_updated, RenderThreadNotifier::instance(), &RenderThreadNotifier::notify);

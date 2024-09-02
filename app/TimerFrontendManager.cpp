@@ -20,9 +20,14 @@
 
 #include <QDebug>
 
+TimerFrontendManager* TimerFrontendManager::s_instance = nullptr;
+
 TimerFrontendManager::TimerFrontendManager(QObject* parent)
     :QObject(parent)
-{}
+{
+    assert(s_instance == nullptr);
+    s_instance = this;
+}
 
 TimerFrontendManager::~TimerFrontendManager()
 {
@@ -31,7 +36,12 @@ TimerFrontendManager::~TimerFrontendManager()
 #endif
 }
 
-int TimerFrontendManager::current_frame = 0;
+TimerFrontendManager* TimerFrontendManager::instance()
+{
+    assert(s_instance);
+    return s_instance;
+}
+
 void TimerFrontendManager::receive_measurements(QList<nucleus::timing::TimerReport> values)
 {
     for (const auto& report : values) {
@@ -41,7 +51,9 @@ void TimerFrontendManager::receive_measurements(QList<nucleus::timing::TimerRepo
             m_timer.append(tfo);
             m_timer_map.insert(name, tfo);
         }
-        m_timer_map[name]->add_measurement(report.value, current_frame++);
+        m_timer_map[name]->add_measurement(report.value, m_current_frame++);
     }
     emit updateTimingList(m_timer);
 }
+
+void TimerFrontendManager::initialise() const { }

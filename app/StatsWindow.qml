@@ -444,7 +444,7 @@ Rectangle {
                     }
 
                     Connections {
-                        target: map.timer_manager
+                        target: TimerFrontendManager
                         // Gets invoked whenever new frame time data is available
                         function onUpdateTimingList(data) {
                             for (var i = 0; i < data.length; i++) {

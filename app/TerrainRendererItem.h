@@ -36,7 +36,6 @@
 #include <nucleus/picker/types.h>
 
 #include "AppSettings.h"
-#include "timing/TimerFrontendManager.h"
 
 class QTimer;
 
@@ -54,7 +53,6 @@ class TerrainRendererItem : public QQuickFramebufferObject {
     Q_PROPERTY(float camera_operation_centre_distance READ camera_operation_centre_distance NOTIFY camera_operation_centre_distance_changed)
     Q_PROPERTY(gl_engine::uboSharedConfig shared_config READ shared_config WRITE set_shared_config NOTIFY shared_config_changed)
     Q_PROPERTY(nucleus::maplabel::FilterDefinitions label_filter READ label_filter WRITE set_label_filter NOTIFY label_filter_changed)
-    Q_PROPERTY(TimerFrontendManager* timer_manager MEMBER m_timer_manager CONSTANT)
     Q_PROPERTY(AppSettings* settings MEMBER m_settings CONSTANT)
     Q_PROPERTY(unsigned int in_flight_tiles READ in_flight_tiles NOTIFY in_flight_tiles_changed)
     Q_PROPERTY(unsigned int queued_tiles READ queued_tiles NOTIFY queued_tiles_changed)
@@ -230,7 +228,6 @@ private:
     int m_camera_width = 0;
     int m_camera_height = 0;
 
-    TimerFrontendManager* m_timer_manager;
     AppSettings* m_settings;
     QVector2D m_sun_angles; // azimuth and zenith
     glm::dvec3 m_last_camera_latlonalt;

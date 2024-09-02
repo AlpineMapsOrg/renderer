@@ -18,31 +18,36 @@
 
 #pragma once
 
-#include <QObject>
-#include <QMap>
-#include <QList>
-#include <QString>
-
-#include "nucleus/timing/TimerManager.h"
 #include "TimerFrontendObject.h"
+#include <QList>
+#include <QMap>
+#include <QObject>
+#include <QQmlEngine>
+#include <QString>
+#include <nucleus/timing/TimerManager.h>
 
 class TimerFrontendManager : public QObject
 {
     Q_OBJECT
-
+    QML_ELEMENT
+    QML_SINGLETON
 public:
     TimerFrontendManager(QObject* parent = nullptr);
     ~TimerFrontendManager() override;
 
+    static TimerFrontendManager* instance();
+
 public slots:
     void receive_measurements(QList<nucleus::timing::TimerReport> values);
+    // this is called by qml in the loader, triggering the initialisation. it's necessary, so that it's available in c++ via instance()
+    void initialise() const;
 
 signals:
     void updateTimingList(QList<TimerFrontendObject*> data);
 
 private:
+    static TimerFrontendManager* s_instance;
     QList<TimerFrontendObject*> m_timer;
     QMap<QString, TimerFrontendObject*> m_timer_map;
-    static int current_frame;
-
+    int m_current_frame = 0;
 };
