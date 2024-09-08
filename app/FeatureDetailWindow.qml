@@ -63,7 +63,6 @@ Rectangle {
         source: source_file_for(map.current_feature_data.properties.type)
         property string feature_title: map.current_feature_data.title
         property var feature_properties: map.current_feature_data.properties
-        property var feature_data_list: map.current_feature_data_list
         // onStatusChanged: {
         //     if (status == Loader.Error) {
         //         source: "picker/Default.qml"

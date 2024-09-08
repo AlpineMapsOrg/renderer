@@ -49,16 +49,6 @@ public:
     QVariantMap properties;
 
     Q_INVOKABLE bool is_valid() { return !properties.empty(); }
-    [[nodiscard]] QList<QString> get_list_model() const
-    {
-        QList<QString> list;
-        for (const auto& [key, value] : properties.asKeyValueRange()) {
-            list.append(key + ":");
-            list.append(value.toString());
-        }
-        return list;
-    }
-
     Q_PROPERTY(QString title MEMBER title)
     Q_PROPERTY(FeatureType type MEMBER type)
     Q_PROPERTY(QVariantMap properties MEMBER properties)

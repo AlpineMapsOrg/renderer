@@ -554,8 +554,6 @@ void TerrainRendererItem::change_feature(const nucleus::picker::Feature feature)
 {
     if (m_current_feature_data != feature) {
         m_current_feature_data = feature;
-        m_current_feature_data_list = feature.get_list_model();
-
         emit feature_changed();
     }
 }

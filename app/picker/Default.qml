@@ -42,51 +42,35 @@ Rectangle {
            bottom: root.bottom
            margins: 10
        }
-       model: feature_data_list
+       model: Object.keys(feature_properties).map((key) => { return { key: key, value: feature_properties[key] }; });
+
        delegate: ItemDelegate {
            width: root.width
-           height: ((model.index % 2) == 0) ? 17 : 22
+           height: 20
 
            Text{
-               font.pixelSize: ((model.index % 2) == 0) ? 14 : 11
-               font.bold: (model.index % 2) == 0
-               text: feature_data_list[model.index]
+               font.pixelSize: 14
+               text: "<b>" + modelData.key + "</b>: " + modelData.value
                wrapMode: Text.Wrap
-
-               color: {
-                   if(feature_data_list[model.index].startsWith("http")
-                    || ((model.index % 2 == 1) && feature_data_list[model.index-1] == "Phone:")
-                    || ((model.index % 2 == 1) && feature_data_list[model.index-1] == "Wikipedia:")
-                    || ((model.index % 2 == 1) && feature_data_list[model.index-1] == "Wikidata:")
-                   )
-                   {
-                       return "#1b75d0"
-                   }
-                   else
-                   {
-                       return "#000000"
-                   }
-               }
            }
 
            onClicked: {
-               if(feature_data_list[model.index].startsWith("http"))
+               if(modelData.value.startsWith("http"))
                {
-                    Qt.openUrlExternally(feature_data_list[model.index]);
+                    Qt.openUrlExternally(modelData.value);
                }
-               else if(((model.index % 2 == 1) && feature_data_list[model.index-1] == "Phone:"))
+               else if(modelData.key === "phone")
                {
-                    Qt.openUrlExternally("tel:" + feature_data_list[model.index]);
+                    Qt.openUrlExternally("tel:" + modelData.value);
                }
-               else if((model.index % 2 == 1) && feature_data_list[model.index-1] == "Wikipedia:")
+               else if(modelData.key === "wikipedia")
                {
-                   Qt.openUrlExternally("https://" + feature_data_list[model.index].split(":")[0] + ".wikipedia.org/wiki/" + feature_data_list[model.index].split(":")[1]);
+                   Qt.openUrlExternally("https://" + modelData.value.split(":")[0] + ".wikipedia.org/wiki/" + modelData.value.split(":")[1]);
                }
-               else if((model.index % 2 == 1) && feature_data_list[model.index-1] == "Wikidata:")
+               else if(modelData.key === "wikidata")
                {
-                   Qt.openUrlExternally("https://www.wikidata.org/wiki/" + feature_data_list[model.index]);
+                   Qt.openUrlExternally("https://www.wikidata.org/wiki/" + modelData.value);
                }
-
            }
        }
     }

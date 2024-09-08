@@ -62,7 +62,6 @@ class TerrainRendererItem : public QQuickFramebufferObject {
     Q_PROPERTY(QVector2D sun_angles READ sun_angles WRITE set_sun_angles NOTIFY sun_angles_changed)
     Q_PROPERTY(bool continuous_update READ continuous_update WRITE set_continuous_update NOTIFY continuous_update_changed)
     Q_PROPERTY(nucleus::picker::Feature current_feature_data MEMBER m_current_feature_data NOTIFY feature_changed)
-    Q_PROPERTY(QList<QString> current_feature_data_list MEMBER m_current_feature_data_list NOTIFY feature_changed)
 
 public:
     explicit TerrainRendererItem(QQuickItem* parent = 0);
@@ -218,7 +217,6 @@ private:
     QDateTime m_selected_datetime = QDateTime::currentDateTime();
 
     nucleus::picker::Feature m_current_feature_data;
-    QList<QString> m_current_feature_data_list;
 
     gl_engine::uboSharedConfig m_shared_config;
     nucleus::maplabel::FilterDefinitions m_label_filter;
