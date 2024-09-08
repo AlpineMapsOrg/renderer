@@ -18,6 +18,7 @@
  *****************************************************************************/
 
 #include "MapLabelFilter.h"
+#include <QVariant>
 
 namespace nucleus::maplabel {
 
@@ -119,7 +120,7 @@ PointOfInterestCollection MapLabelFilter::apply_filter(const PointOfInterestColl
                 return false;
             if (m_definitions.m_cottage_has_shower && !(poi.attributes.value("shower") == "yes"))
                 return false;
-            if (m_definitions.m_cottage_has_contact && !(poi.attributes.value("email").size() || poi.attributes.value("phone").size()))
+            if (m_definitions.m_cottage_has_contact && !(poi.attributes.value("email").isValid() || poi.attributes.value("phone").isValid()))
                 return false;
             return true;
         }

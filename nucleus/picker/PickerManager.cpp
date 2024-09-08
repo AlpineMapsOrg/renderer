@@ -68,11 +68,14 @@ void PickerManager::eval_pick(uint32_t value)
         const auto& poi = m_pickid_to_poi[internal_id];
         Feature picked;
         picked.title = poi->name;
-        picked.properties = poi->attributes;
+        // picked.properties = poi->attributes;
+        for (const auto& key_value : poi->attributes.asKeyValueRange()) {
+            picked.properties[key_value.first] = key_value.second;
+        }
         picked.properties["type"] = to_string(poi->type);
-        picked.properties["latitude"] = QString::number(poi->lat_long_alt.x);
-        picked.properties["longitude"] = QString::number(poi->lat_long_alt.y);
-        picked.properties["altitude"] = QString::number(poi->lat_long_alt.z);
+        picked.properties["latitude"] = poi->lat_long_alt.x;
+        picked.properties["longitude"] = poi->lat_long_alt.y;
+        picked.properties["altitude"] = poi->lat_long_alt.z;
         emit pick_evaluated(picked);
         return;
     }

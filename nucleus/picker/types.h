@@ -18,10 +18,10 @@
 
 #pragma once
 
-#include <QHash>
 #include <QList>
 #include <QObject>
 #include <QString>
+#include <QVariantMap>
 
 namespace nucleus::picker {
 Q_NAMESPACE
@@ -46,7 +46,7 @@ struct Feature {
 public:
     QString title;
     FeatureType type;
-    QHash<QString, QString> properties;
+    QVariantMap properties;
 
     Q_INVOKABLE bool is_valid() { return !properties.empty(); }
     [[nodiscard]] QList<QString> get_list_model() const
@@ -54,14 +54,14 @@ public:
         QList<QString> list;
         for (const auto& [key, value] : properties.asKeyValueRange()) {
             list.append(key + ":");
-            list.append(value);
+            list.append(value.toString());
         }
         return list;
     }
 
     Q_PROPERTY(QString title MEMBER title)
     Q_PROPERTY(FeatureType type MEMBER type)
-    Q_PROPERTY(QHash<QString, QString> properties MEMBER properties)
+    Q_PROPERTY(QVariantMap properties MEMBER properties)
     // in theory it should be possible to expose QList<SomeStruct> to qml for the listview
     // unfortunately this requires quite a bit of code (e.g. assign roles for each attribute, write custom data access classes etc (see QAbstractItemModel))
     // ultimatively i decided that this is too much work for minor benefits (benefit would be to directly access attributes with the name) and returning a

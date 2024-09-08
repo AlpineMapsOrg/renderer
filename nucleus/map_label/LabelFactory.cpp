@@ -114,9 +114,9 @@ std::vector<VertexData> LabelFactory::create_labels(const vector_tile::PointOfIn
         switch (p.type) {
         case LabelType::Peak: {
             auto ele = p.attributes.value("ele");
-            if (ele.size() == 0)
+            if (!ele.isValid())
                 ele = QString::number(p.lat_long_alt.z, 'f', 0);
-            display_name = QString("%1 (%2m)").arg(p.name, ele);
+            display_name = QString("%1 (%2m)").arg(p.name, ele.toString());
             break;
         }
         case LabelType::AlpineHut:

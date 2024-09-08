@@ -20,12 +20,14 @@ import QtQuick
 import QtQuick.Controls.Material
 import app
 import "components"
+import "picker"
 
 Rectangle {
     property TerrainRenderer map
     property int innerMargin: 10
     property int maxHeight:  main.height - tool_bar.height - 20
     property int maxWidth:  map.width - 100
+    // readonly property var available_picker_types: {"PoiPeak", "PoiWebcam"}
 
     id: featureDetailMenu
 
@@ -41,85 +43,33 @@ Rectangle {
         right: parent.right
         margins: 10
     }
+    function source_file_for(pick_type) {
+        if (!map.current_feature_data.is_valid())
+            return ""
+        if (typeof pick_type === "undefined")
+            return "picker/Default.qml"
+        let mySet = {};
+        mySet["PoiPeak"] = true;
+        if (pick_type in mySet)
+            return "picker/" + map.current_feature_data.properties.type + ".qml"
 
-    Item {
-        id: main_content
+        return "picker/Default.qml"
+    }
 
-        height: parent.height
-        width: parent.width
+    Loader {
+        // sourceComponent: poiDefault
+        anchors.fill: parent
+        // source: map.current_feature_data.is_valid() ? "picker/" + map.current_feature_data.properties.type + ".qml" : ""
+        source: source_file_for(map.current_feature_data.properties.type)
+        property string feature_title: map.current_feature_data.title
+        property var feature_properties: map.current_feature_data.properties
+        property var feature_data_list: map.current_feature_data_list
+        // onStatusChanged: {
+        //     if (status == Loader.Error) {
+        //         source: "picker/Default.qml"
+        //     }
 
-        anchors {
-            left: parent.left
-            right: parent.right
-        }
-
-        Label {
-            id: title
-            padding: 10
-            text: map.current_feature_data.title;
-            font.pixelSize: 18
-            font.bold: true
-            horizontalAlignment: Text.AlignHCenter
-            wrapMode: Text.WordWrap
-        }
-
-        ListView {
-
-           id: feature_details_view
-           anchors {
-               top: title.bottom
-               left: parent.left
-               right: parent.right
-               bottom: parent.bottom
-               margins: 10
-           }
-           model: map.current_feature_data_list
-           delegate: ItemDelegate {
-               width: parent.width
-               height: ((model.index % 2) == 0) ? 17 : 22
-
-               Text{
-                   font.pixelSize: ((model.index % 2) == 0) ? 14 : 11
-                   font.bold: (model.index % 2) == 0
-                   text:map.current_feature_data_list[model.index]
-                   wrapMode: Text.Wrap
-
-                   color: {
-                       if(map.current_feature_data_list[model.index].startsWith("http")
-                        || ((model.index % 2 == 1) && map.current_feature_data_list[model.index-1] == "Phone:")
-                        || ((model.index % 2 == 1) && map.current_feature_data_list[model.index-1] == "Wikipedia:")
-                        || ((model.index % 2 == 1) && map.current_feature_data_list[model.index-1] == "Wikidata:")
-                       )
-                       {
-                           return "#1b75d0"
-                       }
-                       else
-                       {
-                           return "#000000"
-                       }
-                   }
-               }
-
-               onClicked: {
-                   if(map.current_feature_data_list[model.index].startsWith("http"))
-                   {
-                        Qt.openUrlExternally(map.current_feature_data_list[model.index]);
-                   }
-                   else if(((model.index % 2 == 1) && map.current_feature_data_list[model.index-1] == "Phone:"))
-                   {
-                        Qt.openUrlExternally("tel:" + map.current_feature_data_list[model.index]);
-                   }
-                   else if((model.index % 2 == 1) && map.current_feature_data_list[model.index-1] == "Wikipedia:")
-                   {
-                       Qt.openUrlExternally("https://" + map.current_feature_data_list[model.index].split(":")[0] + ".wikipedia.org/wiki/" + map.current_feature_data_list[model.index].split(":")[1]);
-                   }
-                   else if((model.index % 2 == 1) && map.current_feature_data_list[model.index-1] == "Wikidata:")
-                   {
-                       Qt.openUrlExternally("https://www.wikidata.org/wiki/" + map.current_feature_data_list[model.index]);
-                   }
-
-               }
-           }
-       }
+        //     console.log("loader status: " + status)
+        // }
     }
 }

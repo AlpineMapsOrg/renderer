@@ -66,6 +66,8 @@ qt_add_qml_module(alpineapp
         components/FluxColor/HueRing.qml
         components/FluxColor/HueWheel.qml
         components/FluxColor/WheelArea.qml
+        picker/PoiPeak.qml
+        picker/Default.qml
     RESOURCES
         icons/favicon.ico
         icons/mascot.jpg

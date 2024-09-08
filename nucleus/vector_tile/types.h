@@ -22,6 +22,7 @@
 #include <QHash>
 #include <QObject>
 #include <QString>
+#include <QVariantHash>
 #include <cstdint>
 #include <glm/glm.hpp>
 #include <radix/tile.h>
@@ -39,7 +40,7 @@ public:
     glm::dvec3 lat_long_alt = glm::dvec3(0);
     glm::dvec3 world_space_pos = glm::dvec3(0);
     float importance = 0;
-    QHash<QString, QString> attributes;
+    QVariantHash attributes;
 };
 using PointOfInterestCollection = std::vector<PointOfInterest>;
 using PointOfInterestCollectionPtr = std::shared_ptr<const PointOfInterestCollection>;
