@@ -27,7 +27,7 @@ const float nearLabel = 100.0f;
 
 const vec2 offset_mask[4] = vec2[4](vec2(0.0f,0.0f), vec2(0.0f,1.0f), vec2(1.0f,1.0f), vec2(1.0f,0.0f));
 
-uniform highp mat4 inv_view_rot;
+uniform highp vec3 reference_position;
 uniform bool label_dist_scaling;
 
 uniform sampler2D texin_depth;
@@ -78,7 +78,7 @@ bool label_visible(highp vec3 relative_to_cam, float dist_to_cam) {
 void main() {
     texture_index = texture_index_in;
     picker_color = picker_color_in;
-    highp vec3 relative_to_cam = label_position - camera.position.xyz;
+    highp vec3 relative_to_cam = label_position + reference_position;
     float dist_to_cam = length(relative_to_cam);
     float scale = 2.0f;
     vec3 label_shift = vec3(0.0, 0.0, 5.0) - relative_to_cam * 0.15; // shift the label a bit to the top and towards the camera so that it isn't in the ground

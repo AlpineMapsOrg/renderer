@@ -96,6 +96,9 @@ void MapLabelManager::upload_to_gpu(const tile::Id& id, const PointOfInterestCol
     vectortile->vao->create();
     vectortile->vao->bind();
 
+    const auto [allLabels, reference_point] = m_mapLabelFactory.create_labels(features);
+    vectortile->reference_point = reference_point;
+
     { // vao state
         m_index_buffer->bind();
 
@@ -103,9 +106,6 @@ void MapLabelManager::upload_to_gpu(const tile::Id& id, const PointOfInterestCol
         vectortile->vertex_buffer->create();
         vectortile->vertex_buffer->bind();
         vectortile->vertex_buffer->setUsagePattern(QOpenGLBuffer::DynamicDraw);
-
-        const auto allLabels = m_mapLabelFactory.create_labels(features);
-
         vectortile->vertex_buffer->allocate(allLabels.data(), allLabels.size() * sizeof(nucleus::maplabel::VertexData));
         vectortile->instance_count = allLabels.size();
 
@@ -184,8 +184,6 @@ void MapLabelManager::draw(Framebuffer* gbuffer, ShaderProgram* shader_program, 
     f->glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
     f->glEnable(GL_BLEND);
 
-    glm::mat4 inv_view_rot = glm::inverse(camera.local_view_matrix());
-    shader_program->set_uniform("inv_view_rot", inv_view_rot);
     shader_program->set_uniform("label_dist_scaling", true);
 
     shader_program->set_uniform("texin_depth", 0);
@@ -203,6 +201,7 @@ void MapLabelManager::draw(Framebuffer* gbuffer, ShaderProgram* shader_program, 
         // only draw if vector tile is fully loaded
         if (vectortile.second->instance_count > 0) {
             vectortile.second->vao->bind();
+            shader_program->set_uniform("reference_position", glm::vec3(vectortile.second->reference_point - camera.position()));
 
             // if the labels wouldn't collide, we could use an extra buffer, one draw call and
             // f->glBlendEquationSeparate(GL_MIN, GL_MAX);
@@ -221,8 +220,6 @@ void MapLabelManager::draw_picker(Framebuffer* gbuffer, ShaderProgram* shader_pr
 {
     QOpenGLExtraFunctions* f = QOpenGLContext::currentContext()->extraFunctions();
 
-    glm::mat4 inv_view_rot = glm::inverse(camera.local_view_matrix());
-    shader_program->set_uniform("inv_view_rot", inv_view_rot);
     shader_program->set_uniform("label_dist_scaling", true);
 
     shader_program->set_uniform("texin_depth", 0);
@@ -235,6 +232,7 @@ void MapLabelManager::draw_picker(Framebuffer* gbuffer, ShaderProgram* shader_pr
         // only draw if vector tile is fully loaded
         if (vectortile.second->instance_count > 0) {
             vectortile.second->vao->bind();
+            shader_program->set_uniform("reference_position", glm::vec3(vectortile.second->reference_point - camera.position()));
 
             f->glDrawElementsInstanced(GL_TRIANGLES, m_indices_count, GL_UNSIGNED_INT, 0, vectortile.second->instance_count);
 

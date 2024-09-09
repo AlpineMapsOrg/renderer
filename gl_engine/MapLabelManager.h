@@ -45,6 +45,7 @@ struct GPUVectorTile {
     std::unique_ptr<QOpenGLBuffer> vertex_buffer;
     std::unique_ptr<QOpenGLVertexArrayObject> vao;
     size_t instance_count; // how many characters (+1 for icon)
+    glm::dvec3 reference_point = {};
 };
 
 class MapLabelManager : public QObject {

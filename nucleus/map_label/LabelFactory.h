@@ -39,7 +39,7 @@ public:
     AtlasData init_font_atlas();
     AtlasData renew_font_atlas();
     Raster<glm::u8vec4> label_icons();
-    std::vector<VertexData> create_labels(const vector_tile::PointOfInterestCollection& pois);
+    std::tuple<std::vector<VertexData>, glm::dvec3> create_labels(const vector_tile::PointOfInterestCollection& pois);
 
     static const inline std::vector<unsigned int> m_indices = { 0, 1, 2, 0, 2, 3 };
 

@@ -96,7 +96,7 @@ Raster<glm::u8vec4> LabelFactory::label_icons()
     return combined_icons;
 }
 
-std::vector<VertexData> LabelFactory::create_labels(const vector_tile::PointOfInterestCollection& pois)
+std::tuple<std::vector<VertexData>, glm::dvec3> LabelFactory::create_labels(const vector_tile::PointOfInterestCollection& pois)
 {
     std::vector<VertexData> labelData;
 
@@ -107,6 +107,8 @@ std::vector<VertexData> LabelFactory::create_labels(const vector_tile::PointOfIn
             m_new_chars.insert(ch.unicode());
         }
     }
+
+    glm::dvec3 reference_point = pois.empty() ? glm::dvec3 {} : pois.front().world_space_pos;
 
     for (const auto& p : pois) {
         QString display_name = p.name;
@@ -127,10 +129,10 @@ std::vector<VertexData> LabelFactory::create_labels(const vector_tile::PointOfIn
         default:
             break;
         }
-        create_label(display_name, p.world_space_pos, p.type, p.id, importance, labelData);
+        create_label(display_name, p.world_space_pos - reference_point, p.type, p.id, importance, labelData);
     }
 
-    return labelData;
+    return { labelData, reference_point };
 }
 
 void LabelFactory::create_label(
