@@ -34,6 +34,34 @@ qt_add_qml_module(alpineapp
     URI app
     VERSION 1.0
     RESOURCE_PREFIX /qt/qml
+    RESOURCES
+        icons/favicon.ico
+        icons/mascot.jpg
+        icons/menu.png
+        icons/search.png
+        icons/icon.png
+        icons/material/monitoring.png
+        icons/material/3d_rotation.png
+        icons/material/map.png
+        icons/material/pin_drop.png
+        icons/material/settings.png
+        icons/material/info.png
+        icons/material/format_paint.png
+        icons/material/location_searching.png
+        icons/material/my_location.png
+        icons/material/navigation.png
+        icons/material/navigation_offset.png
+        icons/material/add.png
+        icons/material/chevron_left.png
+        icons/material/visibility_off.png
+        icons/material/filter_alt.png
+        icons/presets/basic.png
+        icons/presets/shaded.png
+        icons/presets/snow.png
+        icons/needle_head_down.png
+        icons/logo_type_horizontal.png
+        icons/logo_type_vertical.png
+        icons/logo_type_horizontal_short.png
     QML_FILES
         Main.qml
         About.qml
@@ -67,35 +95,10 @@ qt_add_qml_module(alpineapp
         components/FluxColor/HueWheel.qml
         components/FluxColor/WheelArea.qml
         picker/PoiPeak.qml
+        picker/PoiWebcam.qml
         picker/Default.qml
-    RESOURCES
-        icons/favicon.ico
-        icons/mascot.jpg
-        icons/menu.png
-        icons/search.png
-        icons/icon.png
-        icons/material/monitoring.png
-        icons/material/3d_rotation.png
-        icons/material/map.png
-        icons/material/pin_drop.png
-        icons/material/settings.png
-        icons/material/info.png
-        icons/material/format_paint.png
-        icons/material/location_searching.png
-        icons/material/my_location.png
-        icons/material/navigation.png
-        icons/material/navigation_offset.png
-        icons/material/add.png
-        icons/material/chevron_left.png
-        icons/material/visibility_off.png
-        icons/material/filter_alt.png
-        icons/presets/basic.png
-        icons/presets/shaded.png
-        icons/presets/snow.png
-        icons/needle_head_down.png
-        icons/logo_type_horizontal.png
-        icons/logo_type_vertical.png
-        icons/logo_type_horizontal_short.png
+        picker/PoiAlpineHut.qml
+        picker/PoiSettlement.qml
 )
 
 qt_add_resources(alpineapp "fonts"

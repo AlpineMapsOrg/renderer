@@ -13,7 +13,7 @@ Rectangle {
             left: root.left
             right: root.right
         }
-        text: feature_title + " (" + feature_properties.ele + "m)";
+        text: "Camera: " + feature_title;
         font.pixelSize: 18
         font.bold: true
         horizontalAlignment: Text.AlignHCenter
@@ -37,21 +37,14 @@ Rectangle {
                 text: feature_properties.latitude.toFixed(5) + " / " + feature_properties.longitude.toFixed(5)
             }
             Label {
-                text: "Prominence:"
+                text: "Altitude:"
                 font.bold: true
             }
             Label {
-                text: feature_properties.prominence
+                text: feature_properties.altitude.toFixed(0)
             }
             Label {
-                text: "Cross:"
-                font.bold: true
-            }
-            Label {
-                text: feature_properties.summit_cross
-            }
-            Label {
-                text: "Links:"
+                text: ""
                 font.bold: true
                 Layout.fillHeight: true
                 verticalAlignment: Text.AlignTop
@@ -60,20 +53,10 @@ Rectangle {
                 id: links
                 Layout.fillWidth: true
                 Button {
-                    text: "Wikipedia"
-                    visible: typeof feature_properties.wikipedia !== "undefined"
+                    text: "Open"
                     width: parent.width
                     onClicked: {
-                        let link_split = feature_properties.wikipedia.split(":")
-                        Qt.openUrlExternally("https://" + link_split[0] + ".wikipedia.org/wiki/" + link_split[1]);
-                    }
-                }
-                Button {
-                    text: "Wikidata"
-                    visible: typeof feature_properties.wikidata !== "undefined"
-                    width: parent.width
-                    onClicked: {
-                        Qt.openUrlExternally("https://www.wikidata.org/wiki/" + feature_properties.wikidata);
+                        Qt.openUrlExternally(feature_properties.image);
                     }
                 }
             }

@@ -13,7 +13,7 @@ Rectangle {
             left: root.left
             right: root.right
         }
-        text: feature_title + " (" + feature_properties.ele + "m)";
+        text: feature_title + ((typeof feature_properties.population !== "undefined") ? " (pop: " + feature_properties.population + ")" : "");
         font.pixelSize: 18
         font.bold: true
         horizontalAlignment: Text.AlignHCenter
@@ -35,20 +35,6 @@ Rectangle {
             }
             TextEdit {
                 text: feature_properties.latitude.toFixed(5) + " / " + feature_properties.longitude.toFixed(5)
-            }
-            Label {
-                text: "Prominence:"
-                font.bold: true
-            }
-            Label {
-                text: feature_properties.prominence
-            }
-            Label {
-                text: "Cross:"
-                font.bold: true
-            }
-            Label {
-                text: feature_properties.summit_cross
             }
             Label {
                 text: "Links:"
@@ -74,6 +60,14 @@ Rectangle {
                     width: parent.width
                     onClicked: {
                         Qt.openUrlExternally("https://www.wikidata.org/wiki/" + feature_properties.wikidata);
+                    }
+                }
+                Button {
+                    text: "Homepage"
+                    visible: typeof feature_properties.website !== "undefined"
+                    width: parent.width
+                    onClicked: {
+                        Qt.openUrlExternally(feature_properties.website);
                     }
                 }
             }

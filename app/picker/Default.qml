@@ -46,12 +46,14 @@ Rectangle {
 
        delegate: ItemDelegate {
            width: root.width
-           height: 20
+           height: text.height
 
-           Text{
-               font.pixelSize: 14
-               text: "<b>" + modelData.key + "</b>: " + modelData.value
+           Label {
+               id: text
+               textFormat: Text.MarkdownText
+               text: "**" + modelData.key + "**: " + modelData.value
                wrapMode: Text.Wrap
+               width: root.width - 20
            }
 
            onClicked: {

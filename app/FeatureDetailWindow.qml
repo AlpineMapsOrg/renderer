@@ -36,7 +36,7 @@ Rectangle {
     width:  (300 > maxWidth) ? maxWidth : 300
 
     z: 100
-    color:  Qt.alpha(Material.backgroundColor, 0.9)
+    color: Qt.alpha(Material.backgroundColor, 0.7)
     anchors {
         bottom: parent.bottom
         right: parent.right
@@ -47,6 +47,9 @@ Rectangle {
             return "picker/Default.qml"
         let mySet = {};
         mySet["PoiPeak"] = true;
+        mySet["PoiWebcam"] = true;
+        mySet["PoiAlpineHut"] = true;
+        mySet["PoiSettlement"] = true;
         if (pick_type in mySet)
             return "picker/" + pick_type + ".qml"
 
