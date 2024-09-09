@@ -1,5 +1,5 @@
 /*****************************************************************************
- * Alpine Terrain Renderer
+ * AlpineMaps.org
  * Copyright (C) 2023 Adam Celarek
  *
  * This program is free software: you can redistribute it and/or modify
@@ -80,9 +80,11 @@ Adam Celarek, Lucas Dworschak, Gerald Kimmersdorfer, Jakob Lindner, Patrick Komo
 
 ## Impressum:
 Adam Celarek\\
-Hartmanngasse 12/22\\
-1050 Wien\\
-Österreich / Austria")
+Frankenberggasse 8/10\\
+1040 Wien\\
+Österreich / Austria
+
+E-Mail: alpinemaps.org@xibo.at")
             }
         }
     }
