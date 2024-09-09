@@ -157,7 +157,7 @@ QQuickFramebufferObject::Renderer* TerrainRendererItem::createRenderer() const
     connect(this, &TerrainRendererItem::reload_shader, r->glWindow(), &gl_engine::Window::reload_shader);
 
     connect(this, &TerrainRendererItem::label_filter_changed, r->controller()->label_filter(), &nucleus::maplabel::MapLabelFilter::update_filter);
-    connect(r->controller()->picker_manager(), &nucleus::picker::PickerManager::pick_evaluated, this, &TerrainRendererItem::change_feature);
+    connect(r->controller()->picker_manager(), &nucleus::picker::PickerManager::pick_evaluated, this, &TerrainRendererItem::set_picked_feature);
 
 #ifdef ALP_ENABLE_DEV_TOOLS
     connect(r->glWindow(), &gl_engine::Window::report_measurements, TimerFrontendManager::instance(), &TimerFrontendManager::receive_measurements);
@@ -500,6 +500,16 @@ void TerrainRendererItem::update_gl_sun_dir_from_sun_angles(gl_engine::uboShared
     ubo.m_sun_light_dir = newDirUboEntry;
 }
 
+const nucleus::picker::Feature& TerrainRendererItem::picked_feature() const { return m_picked_feature; }
+
+void TerrainRendererItem::set_picked_feature(const nucleus::picker::Feature& new_picked_feature)
+{
+    if (m_picked_feature == new_picked_feature)
+        return;
+    m_picked_feature = new_picked_feature;
+    emit picked_feature_changed(m_picked_feature);
+}
+
 bool TerrainRendererItem::continuous_update() const
 {
     return m_continuous_update;
@@ -548,12 +558,4 @@ void TerrainRendererItem::datetime_changed(const QDateTime&)
 void TerrainRendererItem::gl_sundir_date_link_changed(bool)
 {
     recalculate_sun_angles();
-}
-
-void TerrainRendererItem::change_feature(const nucleus::picker::Feature feature)
-{
-    if (m_current_feature_data != feature) {
-        m_current_feature_data = feature;
-        emit feature_changed();
-    }
 }

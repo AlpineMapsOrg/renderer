@@ -27,11 +27,10 @@ Rectangle {
     property int innerMargin: 10
     property int maxHeight:  main.height - tool_bar.height - 20
     property int maxWidth:  map.width - 100
-    // readonly property var available_picker_types: {"PoiPeak", "PoiWebcam"}
 
     id: featureDetailMenu
 
-    visible: map.current_feature_data.is_valid()
+    visible: map.picked_feature.is_valid()
 
     height:  (300 > maxHeight) ? maxHeight : 300
     width:  (300 > maxWidth) ? maxWidth : 300
@@ -44,31 +43,20 @@ Rectangle {
         margins: 10
     }
     function source_file_for(pick_type) {
-        if (!map.current_feature_data.is_valid())
-            return ""
         if (typeof pick_type === "undefined")
             return "picker/Default.qml"
         let mySet = {};
         mySet["PoiPeak"] = true;
         if (pick_type in mySet)
-            return "picker/" + map.current_feature_data.properties.type + ".qml"
+            return "picker/" + pick_type + ".qml"
 
         return "picker/Default.qml"
     }
 
     Loader {
-        // sourceComponent: poiDefault
         anchors.fill: parent
-        // source: map.current_feature_data.is_valid() ? "picker/" + map.current_feature_data.properties.type + ".qml" : ""
-        source: source_file_for(map.current_feature_data.properties.type)
-        property string feature_title: map.current_feature_data.title
-        property var feature_properties: map.current_feature_data.properties
-        // onStatusChanged: {
-        //     if (status == Loader.Error) {
-        //         source: "picker/Default.qml"
-        //     }
-
-        //     console.log("loader status: " + status)
-        // }
+        source: source_file_for(map.picked_feature.properties.type)
+        property string feature_title: map.picked_feature.title
+        property var feature_properties: map.picked_feature.properties
     }
 }

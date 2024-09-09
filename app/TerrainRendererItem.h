@@ -61,7 +61,7 @@ class TerrainRendererItem : public QQuickFramebufferObject {
     Q_PROPERTY(unsigned int selected_camera_position_index MEMBER m_selected_camera_position_index WRITE set_selected_camera_position_index)
     Q_PROPERTY(QVector2D sun_angles READ sun_angles WRITE set_sun_angles NOTIFY sun_angles_changed)
     Q_PROPERTY(bool continuous_update READ continuous_update WRITE set_continuous_update NOTIFY continuous_update_changed)
-    Q_PROPERTY(nucleus::picker::Feature current_feature_data MEMBER m_current_feature_data NOTIFY feature_changed)
+    Q_PROPERTY(nucleus::picker::Feature picked_feature READ picked_feature NOTIFY picked_feature_changed FINAL)
 
 public:
     explicit TerrainRendererItem(QQuickItem* parent = 0);
@@ -119,6 +119,8 @@ signals:
 
     void feature_changed();
 
+    void picked_feature_changed(const nucleus::picker::Feature& picked_feature);
+
 protected:
     void touchEvent(QTouchEvent*) override;
     void mousePressEvent(QMouseEvent*) override;
@@ -134,7 +136,6 @@ public slots:
     void set_gl_preset(const QString& preset_b64_string);
     void read_global_position(glm::dvec3 latlonalt);
     void camera_definition_changed(const nucleus::camera::Definition& new_definition); // gets called whenever camera changes
-    void change_feature(const nucleus::picker::Feature feature);
 
 private slots:
     void schedule_update();
@@ -198,7 +199,10 @@ public:
     bool continuous_update() const;
     void set_continuous_update(bool new_continuous_update);
 
+    const nucleus::picker::Feature& picked_feature() const;
+
 private:
+    void set_picked_feature(const nucleus::picker::Feature& new_picked_feature);
     void recalculate_sun_angles();
     void update_gl_sun_dir_from_sun_angles(gl_engine::uboSharedConfig& ubo);
 
@@ -216,7 +220,7 @@ private:
     unsigned int m_selected_camera_position_index = 0;
     QDateTime m_selected_datetime = QDateTime::currentDateTime();
 
-    nucleus::picker::Feature m_current_feature_data;
+    nucleus::picker::Feature m_picked_feature;
 
     gl_engine::uboSharedConfig m_shared_config;
     nucleus::maplabel::FilterDefinitions m_label_filter;
