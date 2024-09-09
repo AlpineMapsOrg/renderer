@@ -47,7 +47,7 @@ Rectangle {
         visible: renderer.camera_operation_centre_visibility
     }
 
-    FeatureDetailWindow {
+    PickerWindow {
         id: feature_detail_window_loader
         map: renderer
     }

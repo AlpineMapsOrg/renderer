@@ -74,7 +74,7 @@ qt_add_qml_module(alpineapp
         GlSettings.qml
         FloatingActionButtonGroup.qml
         FilterWindow.qml
-        FeatureDetailWindow.qml
+        PickerWindow.qml
         components/LabledSlider.qml
         components/LabledRangeSlider.qml
         components/ColorPicker.qml
