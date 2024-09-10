@@ -71,19 +71,6 @@ void MapLabelManager::init()
     m_indices_count = m_mapLabelFactory.m_indices.size();
 }
 
-void MapLabelManager::renew_font_atlas()
-{
-    const auto atlas_data = m_mapLabelFactory.renew_font_atlas();
-
-    if(atlas_data.changed)
-    {
-        for(unsigned int i = 0; i < atlas_data.font_atlas.size(); i++)
-        {
-            m_font_texture->upload(atlas_data.font_atlas[i],i);
-        }
-    }
-}
-
 void MapLabelManager::upload_to_gpu(const tile::Id& id, const PointOfInterestCollection& features)
 {
     if (!QOpenGLContext::currentContext()) // can happen during shutdown.
@@ -96,7 +83,12 @@ void MapLabelManager::upload_to_gpu(const tile::Id& id, const PointOfInterestCol
     vectortile->vao->create();
     vectortile->vao->bind();
 
-    const auto [allLabels, reference_point] = m_mapLabelFactory.create_labels(features);
+    const auto [allLabels, reference_point, atlas_data] = m_mapLabelFactory.create_labels(features);
+    if (atlas_data.changed) {
+        for (unsigned int i = 0; i < atlas_data.font_atlas.size(); i++) {
+            m_font_texture->upload(atlas_data.font_atlas[i], i);
+        }
+    }
     vectortile->reference_point = reference_point;
 
     { // vao state
@@ -150,8 +142,6 @@ void MapLabelManager::update_labels(const PointOfInterestTileCollection& visible
     for (const auto& id : removed_tiles) {
         remove_tile(id);
     }
-
-    renew_font_atlas();
 
     for (const auto& vectortile : visible_features) {
         // since we are renewing the tile we remove it first to delete allocations like vao

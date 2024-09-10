@@ -62,7 +62,6 @@ public:
     void update_labels(const PointOfInterestTileCollection& visible_features, const std::vector<tile::Id>& removed_tiles);
 
 private:
-    void renew_font_atlas();
     void upload_to_gpu(const tile::Id& id, const PointOfInterestCollection& features);
     void remove_tile(const tile::Id& tile_id);
 
