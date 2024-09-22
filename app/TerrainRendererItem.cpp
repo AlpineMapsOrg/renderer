@@ -130,9 +130,10 @@ QQuickFramebufferObject::Renderer* TerrainRendererItem::createRenderer() const
 
     // Connect definition change to aquire camera position for sun angle calculation
     connect(r->controller()->camera_controller(), &nucleus::camera::Controller::definition_changed, this, &TerrainRendererItem::camera_definition_changed);
+    connect(r->controller()->camera_controller(), &nucleus::camera::Controller::global_cursor_position_changed, this,
+        &TerrainRendererItem::set_world_space_cursor_position);
 
     connect(this, &TerrainRendererItem::camera_definition_set_by_user, r->controller()->camera_controller(), &nucleus::camera::Controller::set_definition);
-    connect(r->controller()->camera_controller(), &nucleus::camera::Controller::global_cursor_position_changed, this, &TerrainRendererItem::read_global_position);
 
     auto* const tile_scheduler = r->controller()->tile_scheduler();
     connect(this->m_settings, &AppSettings::render_quality_changed, tile_scheduler, [=](float new_render_quality) {
@@ -223,10 +224,6 @@ void TerrainRendererItem::keyReleaseEvent(QKeyEvent* e)
     }
     emit key_released(e->keyCombination());
     RenderThreadNotifier::instance()->notify();
-}
-
-void TerrainRendererItem::read_global_position(glm::dvec3 latlonalt) {
-    emit gui_update_global_cursor_pos(latlonalt.x, latlonalt.y, latlonalt.z);
 }
 
 void TerrainRendererItem::camera_definition_changed(const nucleus::camera::Definition& new_definition)
@@ -498,6 +495,17 @@ void TerrainRendererItem::update_gl_sun_dir_from_sun_angles(gl_engine::uboShared
     auto newDir = nucleus::utils::sun_calculations::sun_rays_direction_from_sun_angles(glm::vec2(m_sun_angles.x(), m_sun_angles.y()));
     QVector4D newDirUboEntry(newDir.x, newDir.y, newDir.z, ubo.m_sun_light_dir.w());
     ubo.m_sun_light_dir = newDirUboEntry;
+}
+
+const QVector3D& TerrainRendererItem::world_space_cursor_position() const { return m_world_space_cursor_position; }
+
+void TerrainRendererItem::set_world_space_cursor_position(const glm::dvec3& new_pos)
+{
+    QVector3D new_vec3d = { static_cast<float>(new_pos.x), static_cast<float>(new_pos.y), static_cast<float>(new_pos.z) };
+    if (m_world_space_cursor_position == new_vec3d)
+        return;
+    m_world_space_cursor_position = new_vec3d;
+    emit world_space_cursor_position_changed(m_world_space_cursor_position);
 }
 
 const nucleus::picker::Feature& TerrainRendererItem::picked_feature() const { return m_picked_feature; }

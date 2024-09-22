@@ -62,6 +62,7 @@ class TerrainRendererItem : public QQuickFramebufferObject {
     Q_PROPERTY(QVector2D sun_angles READ sun_angles WRITE set_sun_angles NOTIFY sun_angles_changed)
     Q_PROPERTY(bool continuous_update READ continuous_update WRITE set_continuous_update NOTIFY continuous_update_changed)
     Q_PROPERTY(nucleus::picker::Feature picked_feature READ picked_feature NOTIFY picked_feature_changed FINAL)
+    Q_PROPERTY(QVector3D world_space_cursor_position READ world_space_cursor_position NOTIFY world_space_cursor_position_changed FINAL)
 
 public:
     explicit TerrainRendererItem(QQuickItem* parent = 0);
@@ -107,8 +108,6 @@ signals:
 
     void tile_cache_size_changed(unsigned new_cache_size);
 
-    void gui_update_global_cursor_pos(double latitude, double longitude, double altitude);
-
     void sun_angles_changed(QVector2D newSunAngles);
 
     void reload_shader();
@@ -120,6 +119,8 @@ signals:
     void feature_changed();
 
     void picked_feature_changed(const nucleus::picker::Feature& picked_feature);
+
+    void world_space_cursor_position_changed(const QVector3D& world_space_cursor_position);
 
 protected:
     void touchEvent(QTouchEvent*) override;
@@ -134,7 +135,6 @@ public slots:
     void set_position(double latitude, double longitude);
     void rotate_north();
     void set_gl_preset(const QString& preset_b64_string);
-    void read_global_position(glm::dvec3 latlonalt);
     void camera_definition_changed(const nucleus::camera::Definition& new_definition); // gets called whenever camera changes
 
 private slots:
@@ -201,7 +201,10 @@ public:
 
     const nucleus::picker::Feature& picked_feature() const;
 
+    const QVector3D& world_space_cursor_position() const;
+
 private:
+    void set_world_space_cursor_position(const glm::dvec3& new_world_space_cursor_position);
     void set_picked_feature(const nucleus::picker::Feature& new_picked_feature);
     void recalculate_sun_angles();
     void update_gl_sun_dir_from_sun_angles(gl_engine::uboSharedConfig& ubo);
@@ -221,6 +224,7 @@ private:
     QDateTime m_selected_datetime = QDateTime::currentDateTime();
 
     nucleus::picker::Feature m_picked_feature;
+    QVector3D m_world_space_cursor_position = {};
 
     gl_engine::uboSharedConfig m_shared_config;
     nucleus::maplabel::FilterDefinitions m_label_filter;

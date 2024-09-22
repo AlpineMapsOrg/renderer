@@ -67,15 +67,6 @@ Rectangle {
         }
     }
 
-    Connections {
-        target: map
-        function onGui_update_global_cursor_pos(lat,lon,alt) {
-            cursor_lat.text = lat.toFixed(5) + " °";
-            cursor_lon.text = lon.toFixed(5) + " °";
-            cursor_alt.text = alt.toFixed(2) + " m";
-        }
-    }
-
     Pane {
             id: graph_dialog
             x: statsMenu.x + statsMenu.width
@@ -472,13 +463,13 @@ Rectangle {
             name: "Cursor"
 
             Label { text: "Latitude:" }
-            Label { text: "0.0 °"; id: cursor_lat; font.bold: true; }
+            Label { text: map.world_space_cursor_position.x + "°"; id: cursor_lat; font.bold: true; }
 
             Label { text: "Longitude:" }
-            Label { text: "0.0 °"; id: cursor_lon; font.bold: true; }
+            Label { text: map.world_space_cursor_position.y + "°"; id: cursor_lon; font.bold: true; }
 
             Label { text: "Altitude:" }
-            Label { text: "0.0 m"; id: cursor_alt; font.bold: true; }
+            Label { text: map.world_space_cursor_position.z + "m"; id: cursor_alt; font.bold: true; }
         }
         CheckGroup {
             name: "Cache & Network"
