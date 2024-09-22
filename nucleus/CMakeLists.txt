@@ -110,6 +110,8 @@ qt_add_library(nucleus STATIC
     track/GPX.h
     utils/image_loader.h utils/image_loader.cpp
     utils/thread.h
+    camera/RecordedAnimation.h camera/RecordedAnimation.cpp
+    camera/recording.h camera/recording.cpp
 
 )
 if (ALP_ENABLE_AVLANCHE_WARNING_LAYER)
@@ -131,6 +133,10 @@ if(ALP_ENABLE_LABELS)
     )
     target_link_libraries(nucleus PUBLIC vector_tiles Qt::Gui)
     target_compile_definitions(nucleus PUBLIC ALP_ENABLE_LABELS)
+endif()
+
+if (ALP_ENABLE_DEV_TOOLS)
+    target_compile_definitions(nucleus PUBLIC ALP_ENABLE_DEV_TOOLS)
 endif()
 
 target_include_directories(nucleus PUBLIC ${CMAKE_SOURCE_DIR})

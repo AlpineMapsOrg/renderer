@@ -138,7 +138,6 @@ if (ALP_ENABLE_DEV_TOOLS)
         )
     endif()
 
-
     qt_target_qml_sources(alpineapp
         QML_FILES
             StatsWindow.qml
@@ -151,7 +150,6 @@ if (ALP_ENABLE_DEV_TOOLS)
             TimerFrontendObject.h TimerFrontendObject.cpp
     )
     target_link_libraries(alpineapp PUBLIC Qt::Charts Qt::Widgets)
-    target_compile_definitions(alpineapp PUBLIC ALP_ENABLE_DEV_TOOLS)
 else()
     qt_target_qml_sources(alpineapp QML_FILES loader.qml)
 endif()

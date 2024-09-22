@@ -1,5 +1,5 @@
- /*****************************************************************************
- * Alpine Renderer
+/*****************************************************************************
+ * AlpineMaps.org
  * Copyright (C) 2022 Adam Celarek
  * Copyright (C) 2023 Jakob Lindner
  * Copyright (C) 2023 Gerald Kimmersdorfer
@@ -20,16 +20,14 @@
 
 #pragma once
 
-#include <memory>
-
-#include <QObject>
-
-#include <glm/glm.hpp>
-
 #include "AnimationStyle.h"
 #include "Definition.h"
 #include "InteractionStyle.h"
-#include "nucleus/event_parameter.h"
+#include "recording.h"
+#include <QObject>
+#include <glm/glm.hpp>
+#include <memory>
+#include <nucleus/event_parameter.h>
 
 namespace nucleus {
 class DataQuerier;
@@ -79,6 +77,7 @@ private:
     void set_interaction_style(std::unique_ptr<InteractionStyle> new_style);
     void set_animation_style(std::unique_ptr<InteractionStyle> new_style);
 
+    recording::Device m_recorder;
     Definition m_definition;
     AbstractDepthTester* m_depth_tester;
     DataQuerier* m_data_querier;
