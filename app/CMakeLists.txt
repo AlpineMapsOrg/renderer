@@ -124,19 +124,11 @@ if (ALP_ENABLE_DEV_TOOLS)
     # change prefer to project dir, as per https://bugreports.qt.io/browse/QTBUG-120435
     # otherwise we can't hotreload files in app when there is "import app" in the qml file.
     # but we need import app, if we want to use the new approach of registering qml types (directly in the class, not in main).
-    if (WIN32)
-        add_custom_command(
-            TARGET alpineapp POST_BUILD
-            COMMAND powershell -Command "
-                (Get-Content -Path '${CMAKE_CURRENT_BINARY_DIR}/app/qmldir') -replace '^prefer .*', 'prefer ${CMAKE_CURRENT_SOURCE_DIR}/' | Set-Content -Path '${CMAKE_CURRENT_BINARY_DIR}/app/qmldir'
-            "
-        )
-    else()
-        add_custom_command(
-            TARGET alpineapp POST_BUILD
-            COMMAND sed -i "s@^prefer .*@prefer ${CMAKE_CURRENT_SOURCE_DIR}/@" ${CMAKE_CURRENT_BINARY_DIR}/app/qmldir
-        )
-    endif()
+
+    add_custom_command(
+        TARGET alpineapp POST_BUILD
+        COMMAND sed -i "s@^prefer .*@prefer ${CMAKE_CURRENT_SOURCE_DIR}/@" ${CMAKE_CURRENT_BINARY_DIR}/app/qmldir
+    )
 
     qt_target_qml_sources(alpineapp
         QML_FILES
