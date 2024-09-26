@@ -49,10 +49,6 @@ ApplicationWindow {
         }
     }
 
-    Component.onCompleted: {
-        TimerFrontendManager.initialise()
-    }
-
     Connections{
         target: _hotreloader
         function onWatched_source_changed() {

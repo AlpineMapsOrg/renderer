@@ -31,10 +31,19 @@ class TimerFrontendManager : public QObject
     Q_OBJECT
     QML_ELEMENT
     QML_SINGLETON
-public:
-    TimerFrontendManager(QObject* parent = nullptr);
-    ~TimerFrontendManager() override;
 
+    TimerFrontendManager(QObject* parent = nullptr);
+
+public:
+    TimerFrontendManager(TimerFrontendManager const&) = delete;
+    ~TimerFrontendManager() override;
+    void operator=(TimerFrontendManager const&) = delete;
+
+    static TimerFrontendManager* create(QQmlEngine*, QJSEngine*)
+    {
+        QJSEngine::setObjectOwnership(instance(), QJSEngine::CppOwnership);
+        return instance();
+    }
     static TimerFrontendManager* instance();
 
 public slots:
@@ -46,7 +55,6 @@ signals:
     void updateTimingList(QList<TimerFrontendObject*> data);
 
 private:
-    static TimerFrontendManager* s_instance;
     QList<TimerFrontendObject*> m_timer;
     QMap<QString, TimerFrontendObject*> m_timer_map;
     int m_current_frame = 0;

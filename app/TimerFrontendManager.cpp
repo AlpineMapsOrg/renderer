@@ -20,13 +20,9 @@
 
 #include <QDebug>
 
-TimerFrontendManager* TimerFrontendManager::s_instance = nullptr;
-
 TimerFrontendManager::TimerFrontendManager(QObject* parent)
     :QObject(parent)
 {
-    assert(s_instance == nullptr);
-    s_instance = this;
 }
 
 TimerFrontendManager::~TimerFrontendManager()
@@ -38,8 +34,8 @@ TimerFrontendManager::~TimerFrontendManager()
 
 TimerFrontendManager* TimerFrontendManager::instance()
 {
-    assert(s_instance);
-    return s_instance;
+    static TimerFrontendManager s_instance;
+    return &s_instance;
 }
 
 void TimerFrontendManager::receive_measurements(QList<nucleus::timing::TimerReport> values)
