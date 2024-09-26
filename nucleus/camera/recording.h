@@ -26,7 +26,7 @@
 namespace nucleus::camera::recording {
 
 struct Frame {
-    long msec = 0;
+    uint msec = 0;
     glm::dmat4 camera_to_world_matrix = {};
 };
 using Animation = std::vector<Frame>;
