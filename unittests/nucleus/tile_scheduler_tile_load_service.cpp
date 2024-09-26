@@ -166,7 +166,7 @@ TEST_CASE("nucleus/tile_scheduler/TileLoadService")
             // manually checked. comparing the sum should find regressions. this test will fail when the file changes.
 //            image.save("/home/madam/Documents/work/tuw/alpinemaps/"
 //                       "build-alpine-renderer-Desktop_Qt_6_2_3_GCC_64bit-Debug/test.jpeg");
-            CHECK(std::accumulate(image.constBits(), image.constBits() + image.sizeInBytes(), 0LLu) == 36'889'463LLu);
+            CHECK(std::accumulate(image.constBits(), image.constBits() + image.sizeInBytes(), 0LLu) == 37'077'793LLu);
         }
     }
 #ifndef __EMSCRIPTEN__
