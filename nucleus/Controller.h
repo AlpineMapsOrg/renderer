@@ -32,6 +32,12 @@ class Scheduler;
 namespace camera {
 class Controller;
 }
+namespace picker {
+class PickerManager;
+}
+namespace maplabel {
+class MapLabelFilter;
+}
 
 class Controller : public QObject {
     Q_OBJECT
@@ -40,8 +46,12 @@ public:
     ~Controller() override;
 
     camera::Controller* camera_controller() const;
+    picker::PickerManager* picker_manager() const;
 
     tile_scheduler::Scheduler* tile_scheduler() const;
+#ifdef ALP_ENABLE_LABELS
+    maplabel::MapLabelFilter* label_filter() const;
+#endif
 
 private:
     AbstractRenderWindow* m_render_window;
@@ -52,7 +62,12 @@ private:
     std::unique_ptr<tile_scheduler::TileLoadService> m_terrain_service;
     std::unique_ptr<tile_scheduler::TileLoadService> m_ortho_service;
     std::unique_ptr<tile_scheduler::Scheduler> m_tile_scheduler;
-    std::unique_ptr<DataQuerier> m_data_querier;
+    std::shared_ptr<DataQuerier> m_data_querier;
     std::unique_ptr<camera::Controller> m_camera_controller;
+    std::unique_ptr<tile_scheduler::TileLoadService> m_vectortile_service;
+
+    //
+    maplabel::MapLabelFilter* m_label_filter;
+    nucleus::picker::PickerManager* m_picker_manager;
 };
 }

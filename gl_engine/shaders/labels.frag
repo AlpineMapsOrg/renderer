@@ -16,12 +16,14 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *****************************************************************************/
-uniform sampler2D font_sampler;
-uniform sampler2D icon_sampler;
+uniform lowp sampler2DArray font_sampler;
+uniform lowp sampler2D icon_sampler;
 
 uniform bool drawing_outline;
 
 in highp vec2 texcoords;
+flat in int texture_index;
+flat in lowp vec4 picker_color;
 
 layout (location = 0) out lowp vec4 out_Color;
 
@@ -33,20 +35,17 @@ void main() {
     if(texcoords.x < 2.0f)
     {
         if (drawing_outline) {
-            mediump float outline_mask = texture(font_sampler, texcoords).g;
+            mediump float outline_mask = texture(font_sampler, vec3(texcoords, texture_index)).g;
             if (outline_mask < 150.0 / 255.0)
                 discard;
             out_Color = vec4(outlineColor * outline_mask, outline_mask);
             gl_FragDepth = gl_FragCoord.z;
         }
         else {
-            mediump float font_mask = texture(font_sampler, texcoords).r;
+            mediump float font_mask = texture(font_sampler, vec3(texcoords, texture_index)).r;
             if (font_mask < 10.0 / 255.0)
                 discard;
             out_Color = vec4(fontColor * font_mask, font_mask);
-            // mediump float outline_mask = texture(font_sampler, texcoords).g;
-            // mediump float font_mask = texture(font_sampler, texcoords).r;
-            // out_Color = vec4(mix(outlineColor, fontColor, font_mask), outline_mask);
             gl_FragDepth = gl_FragCoord.z * 0.9999999;
         }
     }

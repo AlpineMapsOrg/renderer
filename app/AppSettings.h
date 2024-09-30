@@ -31,7 +31,6 @@
 class AppSettings : public QObject {
     Q_OBJECT
     Q_PROPERTY(QDateTime datetime READ datetime WRITE set_datetime NOTIFY datetime_changed)
-    Q_PROPERTY(bool gl_sundir_date_link READ gl_sundir_date_link WRITE set_gl_sundir_date_link NOTIFY gl_sundir_date_link_changed)
     Q_PROPERTY(float render_quality READ render_quality WRITE set_render_quality NOTIFY render_quality_changed)
 
 signals:
@@ -48,17 +47,12 @@ public:
     const QDateTime& datetime() const { return m_datetime; }
     void set_datetime(const QDateTime& new_datetime);
 
-    bool gl_sundir_date_link() const { return m_gl_sundir_date_link; }
-    void set_gl_sundir_date_link(bool new_value);
-
     float render_quality() const { return m_render_quality; }
     void set_render_quality(float new_value);
 
 private:
     // Stores date and time for the current rendering (in use for eg. Shadows)
     QDateTime m_datetime = QDateTime::currentDateTime();
-    // if true the sun light direction will be evaluated based on m_datetime
-    bool m_gl_sundir_date_link = true;
     // Value which defines the quality of tiles being fetched (values from [0.1-2.0] make sense)
     float m_render_quality = 0.5;
 

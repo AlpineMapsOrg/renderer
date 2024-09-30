@@ -43,14 +43,12 @@
 
 class QOpenGLTexture;
 class QOpenGLShaderProgram;
-class QOpenGLBuffer;
 class QOpenGLVertexArrayObject;
 
 namespace gl_engine {
 
 class TileManager;
 class MapLabelManager;
-class DebugPainter;
 class ShaderManager;
 class Framebuffer;
 class SSAO;
@@ -68,13 +66,10 @@ public:
 
     [[nodiscard]] float depth(const glm::dvec2& normalised_device_coordinates) override;
     [[nodiscard]] glm::dvec3 position(const glm::dvec2& normalised_device_coordinates) override;
-    void deinit_gpu() override;
+    void destroy() override;
     void set_aabb_decorator(const nucleus::tile_scheduler::utils::AabbDecoratorPtr&) override;
-    void remove_tile(const tile::Id&) override;
     [[nodiscard]] nucleus::camera::AbstractDepthTester* depth_tester() override;
     [[nodiscard]] nucleus::utils::ColourTexture::Format ortho_tile_compression_algorithm() const override;
-    void keyPressEvent(QKeyEvent*);
-    void keyReleaseEvent(QKeyEvent*);
     void updateCameraEvent();
     void set_permissible_screen_space_error(float new_error) override;
     void set_quad_limit(unsigned new_limit) override;
@@ -83,23 +78,24 @@ public slots:
     void update_camera(const nucleus::camera::Definition& new_definition) override;
     void update_debug_scheduler_stats(const QString& stats) override;
     void update_gpu_quads(const std::vector<nucleus::tile_scheduler::tile_types::GpuTileQuad>& new_quads, const std::vector<tile::Id>& deleted_quads) override;
-    void key_press(const QKeyCombination& e); // Slot to connect key-events to
     void shared_config_changed(gl_engine::uboSharedConfig ubo);
-    void render_looped_changed(bool render_looped_flag);
     void reload_shader();
-
+#ifdef ALP_ENABLE_LABELS
+    void update_labels(const nucleus::vector_tile::PointOfInterestTileCollection& visible_features, const std::vector<tile::Id>& removed_tiles) override;
+#endif
+    void pick_value(const glm::dvec2& screen_space_coordinates) override;
 
 signals:
     void report_measurements(QList<nucleus::timing::TimerReport> values);
 
 private:
     std::unique_ptr<TileManager> m_tile_manager; // needs opengl context
-    std::unique_ptr<DebugPainter> m_debug_painter; // needs opengl context
     std::unique_ptr<MapLabelManager> m_map_label_manager;
 
     std::unique_ptr<Framebuffer> m_gbuffer;
     std::unique_ptr<Framebuffer> m_decoration_buffer;
     std::unique_ptr<Framebuffer> m_atmospherebuffer;
+    std::unique_ptr<Framebuffer> m_pickerbuffer;
 
     std::unique_ptr<SSAO> m_ssao;
     std::unique_ptr<ShadowMapping> m_shadowmapping;
@@ -114,8 +110,6 @@ private:
 
     int m_frame = 0;
     bool m_initialised = false;
-    bool m_render_looped = false;
-    bool m_wireframe_enabled = false;
     QString m_debug_text;
     QString m_debug_scheduler_stats;
 

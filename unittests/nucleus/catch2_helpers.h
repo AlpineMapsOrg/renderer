@@ -18,7 +18,7 @@
  *****************************************************************************/
 
 #pragma once
-
+#include <catch2/catch_test_macros.hpp>
 #include <glm/gtx/string_cast.hpp>
 
 #include "radix/tile.h"

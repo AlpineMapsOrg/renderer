@@ -18,7 +18,9 @@
 
 #pragma once
 
-#include "tile_scheduler/Cache.h"
+#include <glm/glm.hpp>
+
+#include <nucleus/tile_scheduler/Cache.h>
 
 namespace nucleus {
 

@@ -14,6 +14,7 @@ We use Qt Creator (with mingw on Windows), which is the only tested setup atm an
 
 ## Dependencies
 * Qt 6.6.0, or greater
+* g++ 12+, clang or msvc
 * OpenGL
 * Qt Positioning and Charts modules
 * Some other dependencies will be pulled automatically during building.

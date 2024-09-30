@@ -17,7 +17,8 @@
  *****************************************************************************/
 
 #include "DataQuerier.h"
-#include "tile_scheduler/cache_quieries.h"
+
+#include <nucleus/tile_scheduler/cache_quieries.h>
 
 nucleus::DataQuerier::DataQuerier(tile_scheduler::MemoryCache* cache)
     : m_memory_cache(cache)

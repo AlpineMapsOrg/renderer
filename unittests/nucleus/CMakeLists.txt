@@ -20,29 +20,42 @@ project(alpine-renderer-unittests_nucleus LANGUAGES CXX)
 
 alp_add_unittest(unittests_nucleus
     catch2_helpers.h
-    test_Camera.cpp
-    nucleus_utils_stopwatch.cpp
-    test_DrawListGenerator.cpp
-    test_helpers.h
-    test_raster.cpp
-    test_terrain_mesh_index_generator.cpp
-    test_srs.cpp
-    test_tile.cpp
-    test_track.cpp
-    test_tile_conversion.cpp
-    nucleus_tile_scheduler_util.cpp
-    nucleus_tile_scheduler_tile_load_service.cpp
-    nucleus_tile_scheduler_layer_assembler.cpp
-    nucleus_tile_scheduler_quad_assembler.cpp
-    nucleus_tile_scheduler_cache.cpp
-    nucleus_tile_scheduler_scheduler.cpp
-    nucleus_tile_scheduler_slot_limiter.cpp
-    nucleus_tile_scheduler_rate_limiter.cpp
+    Camera.cpp
+    utils_stopwatch.cpp
+    DrawListGenerator.cpp
+    test_helpers.h test_helpers.cpp
+    raster.cpp
+    terrain_mesh_index_generator.cpp
+    srs.cpp
+    track.cpp
+    tile_conversion.cpp
+    tile_scheduler_util.cpp
+    tile_scheduler_tile_load_service.cpp
+    tile_scheduler_layer_assembler.cpp
+    tile_scheduler_quad_assembler.cpp
+    tile_scheduler_cache.cpp
+    tile_scheduler_scheduler.cpp
+    tile_scheduler_slot_limiter.cpp
+    tile_scheduler_rate_limiter.cpp
     RateTester.h RateTester.cpp
-    test_zppbits.cpp
+    zppbits.cpp
     cache_queries.cpp
     bits_and_pieces.cpp
 )
+
+if (ALP_ENABLE_AVLANCHE_WARNING_LAYER)
+    target_sources(unittests_nucleus
+      PRIVATE
+        avalanche_warning_layer.cpp
+    )
+endif()
+
+if (ALP_ENABLE_LABELS)
+    target_sources(unittests_nucleus PRIVATE
+        vector_tile.cpp
+        map_labels.cpp
+    )
+endif()
 
 qt_add_resources(unittests_nucleus "test_data"
     PREFIX "/test_data"
@@ -52,8 +65,12 @@ qt_add_resources(unittests_nucleus "test_data"
     data/test-tile_ortho.jpeg
     data/test-tile.png
     data/example.gpx
+    data/vectortile.mvt
+    data/eaws_0-0-0.mvt
+    data/eaws_2-2-0.mvt
+    data/eaws_10-236-299.mvt
 )
-target_link_libraries(unittests_nucleus PUBLIC nucleus Catch2::Catch2 Qt::Test)
+target_link_libraries(unittests_nucleus PUBLIC nucleus Catch2::Catch2 Qt::Test Qt::Gui)
 target_compile_definitions(unittests_nucleus PUBLIC "ALP_TEST_DATA_DIR=\":/test_data/\"")
 
 if (ANDROID)

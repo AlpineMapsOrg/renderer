@@ -21,17 +21,17 @@
 
 #include "TerrainRendererItem.h"
 
-#include <memory>
+#include <QBuffer>
 #include <QDebug>
+#include <QDir>
 #include <QOpenGLContext>
 #include <QOpenGLExtraFunctions>
 #include <QOpenGLFramebufferObject>
 #include <QOpenGLFramebufferObjectFormat>
 #include <QQuickWindow>
 #include <QThread>
-#include <QDir>
 #include <QTimer>
-#include <QBuffer>
+#include <memory>
 
 #include <glm/glm.hpp>
 #include <glm/gtx/string_cast.hpp>
@@ -42,10 +42,16 @@
 #include "nucleus/Controller.h"
 #include "nucleus/camera/Controller.h"
 #include "nucleus/camera/PositionStorage.h"
+#include "nucleus/map_label/MapLabelFilter.h"
+#include "nucleus/picker/PickerManager.h"
 #include "nucleus/srs.h"
 #include "nucleus/tile_scheduler/Scheduler.h"
 #include "nucleus/utils/UrlModifier.h"
 #include "nucleus/utils/sun_calculations.h"
+
+#ifdef ALP_ENABLE_DEV_TOOLS
+#include "TimerFrontendManager.h"
+#endif
 
 namespace {
 // helper type for the visitor from https://en.cppreference.com/w/cpp/utility/variant/visit
@@ -67,7 +73,6 @@ TerrainRendererItem::TerrainRendererItem(QQuickItem* parent)
 #endif
     //qDebug() << "gui thread: " << QThread::currentThread();
 
-    m_timer_manager = new TimerFrontendManager(this);
     m_url_modifier = std::make_shared<nucleus::utils::UrlModifier>();
 
     m_settings = new AppSettings(this, m_url_modifier);
@@ -118,11 +123,17 @@ QQuickFramebufferObject::Renderer* TerrainRendererItem::createRenderer() const
     connect(this, &TerrainRendererItem::position_set_by_user, r->controller()->camera_controller(), &nucleus::camera::Controller::fly_to_latitude_longitude);
     connect(this, &TerrainRendererItem::rotation_north_requested, r->controller()->camera_controller(), &nucleus::camera::Controller::rotate_north);
 
+    connect(this, &TerrainRendererItem::touch_made, r->controller()->picker_manager(), &nucleus::picker::PickerManager::touch_event);
+    connect(this, &TerrainRendererItem::mouse_pressed, r->controller()->picker_manager(), &nucleus::picker::PickerManager::mouse_press_event);
+    connect(this, &TerrainRendererItem::mouse_released, r->controller()->picker_manager(), &nucleus::picker::PickerManager::mouse_release_event);
+    connect(this, &TerrainRendererItem::mouse_moved, r->controller()->picker_manager(), &nucleus::picker::PickerManager::mouse_move_event);
+
     // Connect definition change to aquire camera position for sun angle calculation
     connect(r->controller()->camera_controller(), &nucleus::camera::Controller::definition_changed, this, &TerrainRendererItem::camera_definition_changed);
+    connect(r->controller()->camera_controller(), &nucleus::camera::Controller::global_cursor_position_changed, this,
+        &TerrainRendererItem::set_world_space_cursor_position);
 
     connect(this, &TerrainRendererItem::camera_definition_set_by_user, r->controller()->camera_controller(), &nucleus::camera::Controller::set_definition);
-    connect(r->controller()->camera_controller(), &nucleus::camera::Controller::global_cursor_position_changed, this, &TerrainRendererItem::read_global_position);
 
     auto* const tile_scheduler = r->controller()->tile_scheduler();
     connect(this->m_settings, &AppSettings::render_quality_changed, tile_scheduler, [=](float new_render_quality) {
@@ -142,12 +153,16 @@ QQuickFramebufferObject::Renderer* TerrainRendererItem::createRenderer() const
 
     // connect glWindow to forward key events.
     connect(this, &TerrainRendererItem::shared_config_changed, r->glWindow(), &gl_engine::Window::shared_config_changed);
-    connect(this, &TerrainRendererItem::render_looped_changed, r->glWindow(), &gl_engine::Window::render_looped_changed);
 
     // connect glWindow for shader hotreload by frontend button
     connect(this, &TerrainRendererItem::reload_shader, r->glWindow(), &gl_engine::Window::reload_shader);
 
-    connect(r->glWindow(), &gl_engine::Window::report_measurements, this->m_timer_manager, &TimerFrontendManager::receive_measurements);
+    connect(this, &TerrainRendererItem::label_filter_changed, r->controller()->label_filter(), &nucleus::maplabel::MapLabelFilter::update_filter);
+    connect(r->controller()->picker_manager(), &nucleus::picker::PickerManager::pick_evaluated, this, &TerrainRendererItem::set_picked_feature);
+
+#ifdef ALP_ENABLE_DEV_TOOLS
+    connect(r->glWindow(), &gl_engine::Window::report_measurements, TimerFrontendManager::instance(), &TimerFrontendManager::receive_measurements);
+#endif
 
     connect(r->controller()->tile_scheduler(), &nucleus::tile_scheduler::Scheduler::gpu_quads_updated, RenderThreadNotifier::instance(), &RenderThreadNotifier::notify);
     connect(tile_scheduler, &nucleus::tile_scheduler::Scheduler::gpu_quads_updated, RenderThreadNotifier::instance(), &RenderThreadNotifier::notify);
@@ -170,6 +185,13 @@ void TerrainRendererItem::mousePressEvent(QMouseEvent* e)
 {
     this->setFocus(true);
     emit mouse_pressed(nucleus::event_parameter::make(e));
+    RenderThreadNotifier::instance()->notify();
+}
+
+void TerrainRendererItem::mouseReleaseEvent(QMouseEvent* e)
+{
+    this->setFocus(true);
+    emit mouse_released(nucleus::event_parameter::make(e));
     RenderThreadNotifier::instance()->notify();
 }
 
@@ -204,10 +226,6 @@ void TerrainRendererItem::keyReleaseEvent(QKeyEvent* e)
     RenderThreadNotifier::instance()->notify();
 }
 
-void TerrainRendererItem::read_global_position(glm::dvec3 latlonalt) {
-    emit gui_update_global_cursor_pos(latlonalt.x, latlonalt.y, latlonalt.z);
-}
-
 void TerrainRendererItem::camera_definition_changed(const nucleus::camera::Definition& new_definition)
 {
     auto camPositionWS = new_definition.position();
@@ -225,7 +243,6 @@ void TerrainRendererItem::camera_definition_changed(const nucleus::camera::Defin
     recalculate_sun_angles();
 }
 
-
 void TerrainRendererItem::set_position(double latitude, double longitude)
 {
     emit position_set_by_user(latitude, longitude);
@@ -241,8 +258,7 @@ void TerrainRendererItem::rotate_north()
 void TerrainRendererItem::set_gl_preset(const QString& preset_b64_string) {
     qInfo() << "Override config with:" << preset_b64_string;
     auto tmp = gl_engine::ubo_from_string<gl_engine::uboSharedConfig>(preset_b64_string);
-    // Update light direction if sunlink is true. Otherwise shadows will not work on first frame
-    if (m_settings->gl_sundir_date_link()) update_gl_sun_dir_from_sun_angles(tmp);
+    update_gl_sun_dir_from_sun_angles(tmp);
     set_shared_config(tmp);
 }
 
@@ -376,20 +392,7 @@ void TerrainRendererItem::set_camera_operation_centre_distance(float new_camera_
     emit camera_operation_centre_distance_changed();
 }
 
-bool TerrainRendererItem::render_looped() const {
-    return m_render_looped;
-}
-
-void TerrainRendererItem::set_render_looped(bool new_render_looped) {
-    if (new_render_looped == m_render_looped) return;
-    m_render_looped = new_render_looped;
-    emit render_looped_changed(m_render_looped);
-    schedule_update();
-}
-
-gl_engine::uboSharedConfig TerrainRendererItem::shared_config() const {
-    return m_shared_config;
-}
+gl_engine::uboSharedConfig TerrainRendererItem::shared_config() const { return m_shared_config; }
 
 void TerrainRendererItem::set_shared_config(gl_engine::uboSharedConfig new_shared_config) {
     if (m_shared_config != new_shared_config) {
@@ -400,8 +403,19 @@ void TerrainRendererItem::set_shared_config(gl_engine::uboSharedConfig new_share
     }
 }
 
-void TerrainRendererItem::set_selected_camera_position_index(unsigned value) {
+nucleus::maplabel::FilterDefinitions TerrainRendererItem::label_filter() const { return m_label_filter; }
+void TerrainRendererItem::set_label_filter(nucleus::maplabel::FilterDefinitions new_label_filter)
+{
+    if (m_label_filter != new_label_filter) {
+        m_label_filter = new_label_filter;
+        emit label_filter_changed(m_label_filter);
+    }
+}
 
+void TerrainRendererItem::set_selected_camera_position_index(unsigned value) {
+    qDebug() << "TerrainRendererItem::set_selected_camera_position_index(unsigned value): " << value;
+    if (value > 100)
+        return;
     schedule_update();
     emit camera_definition_set_by_user(nucleus::camera::PositionStorage::instance()->get_by_index(value));
 }
@@ -473,17 +487,35 @@ void TerrainRendererItem::set_sun_angles(QVector2D new_sunAngles) {
 }
 
 void TerrainRendererItem::recalculate_sun_angles() {
-    // Calculate sun angles
-    if (m_settings->gl_sundir_date_link()) {
-        auto angles = nucleus::utils::sun_calculations::calculate_sun_angles(m_settings->datetime(), m_last_camera_latlonalt);
-        set_sun_angles(QVector2D(angles.x, angles.y));
-    }
+    auto angles = nucleus::utils::sun_calculations::calculate_sun_angles(m_settings->datetime(), m_last_camera_latlonalt);
+    set_sun_angles(QVector2D(angles.x, angles.y));
 }
 
 void TerrainRendererItem::update_gl_sun_dir_from_sun_angles(gl_engine::uboSharedConfig& ubo) {
     auto newDir = nucleus::utils::sun_calculations::sun_rays_direction_from_sun_angles(glm::vec2(m_sun_angles.x(), m_sun_angles.y()));
     QVector4D newDirUboEntry(newDir.x, newDir.y, newDir.z, ubo.m_sun_light_dir.w());
     ubo.m_sun_light_dir = newDirUboEntry;
+}
+
+const QVector3D& TerrainRendererItem::world_space_cursor_position() const { return m_world_space_cursor_position; }
+
+void TerrainRendererItem::set_world_space_cursor_position(const glm::dvec3& new_pos)
+{
+    QVector3D new_vec3d = { static_cast<float>(new_pos.x), static_cast<float>(new_pos.y), static_cast<float>(new_pos.z) };
+    if (m_world_space_cursor_position == new_vec3d)
+        return;
+    m_world_space_cursor_position = new_vec3d;
+    emit world_space_cursor_position_changed(m_world_space_cursor_position);
+}
+
+const nucleus::picker::Feature& TerrainRendererItem::picked_feature() const { return m_picked_feature; }
+
+void TerrainRendererItem::set_picked_feature(const nucleus::picker::Feature& new_picked_feature)
+{
+    if (m_picked_feature == new_picked_feature)
+        return;
+    m_picked_feature = new_picked_feature;
+    emit picked_feature_changed(m_picked_feature);
 }
 
 bool TerrainRendererItem::continuous_update() const
@@ -493,11 +525,8 @@ bool TerrainRendererItem::continuous_update() const
 
 void TerrainRendererItem::set_continuous_update(bool new_continuous_update)
 {
-    qDebug() << "TerrainRendererItem::m_continuous_update" << m_continuous_update;
-    qDebug() << "TerrainRendererItem::new_continuous_update" << new_continuous_update;
     if (m_continuous_update == new_continuous_update)
         return;
-    qDebug() << "continuoius update" << m_continuous_update;
     m_continuous_update = new_continuous_update;
     m_update_timer->setSingleShot(!m_continuous_update);
     m_update_timer->start();

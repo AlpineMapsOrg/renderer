@@ -50,6 +50,7 @@ Definition::Definition(const glm::dvec3& position,
 {
     look_at(position, view_at_point);
 
+    // NOTE: Tests may depend on the default values especially the FOV!
     set_perspective_params(75, m_viewport_size, m_near_clipping);
 }
 

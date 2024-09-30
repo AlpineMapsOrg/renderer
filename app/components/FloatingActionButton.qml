@@ -19,7 +19,7 @@
 import QtQuick
 import QtQuick.Layouts
 import QtQuick.Controls.Material
-import Alpine
+
 
 RoundButton {
     property alias image: img.source

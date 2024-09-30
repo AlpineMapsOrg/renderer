@@ -2,6 +2,7 @@
  * Alpine Terrain Renderer
  * Copyright (C) 2022 Adam Celarek
  * Copyright (C) 2023 Jakob Lindner
+ * Copyright (C) 2024 Gerald Kimmersdorfer
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -40,9 +41,9 @@ public:
     std::optional<glm::vec2> operation_centre() override;
 
 private:
-    void start(const QPointF& position, const Definition& camera, AbstractDepthTester* depth_tester);
-    void pan(const QPointF& position, const QPointF& last_position, Definition* camera, AbstractDepthTester* depth_tester);
-    void orbit(const QPointF& position, const QPointF& last_position, Definition* camera, AbstractDepthTester* depth_tester);
+    void start(const glm::vec2& position, const Definition& camera, AbstractDepthTester* depth_tester);
+    void pan(const glm::vec2& position, const glm::vec2& last_position, Definition* camera, AbstractDepthTester* depth_tester);
+    void orbit(const glm::vec2& position, const glm::vec2& last_position, Definition* camera, AbstractDepthTester* depth_tester);
     void zoom(float amount, Definition* camera, AbstractDepthTester* depth_tester);
 };
 }

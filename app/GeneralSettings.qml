@@ -20,89 +20,53 @@
 import QtQuick
 import QtQuick.Controls.Material
 import QtQuick.Layouts
-import Alpine
-
+import app
 import "components"
 
 SettingsPanel {
     Component.onCompleted: {
-        // when creating the this component, values are read from the renderer
-        // after that we establish a binding, so this component can set values on the renderer
-        frame_rate_slider.value = map.frame_limit
-        lod_slider.value = map.settings.render_quality
-        fov_slider.value = map.field_of_view
-        cache_size_slider.value = map.tile_cache_size
-
-        map.frame_limit = Qt.binding(function() { return frame_rate_slider.value })
-        map.settings.render_quality = Qt.binding(function() { return lod_slider.value })
-        map.field_of_view = Qt.binding(function() { return fov_slider.value })
-        map.tile_cache_size = Qt.binding(function() { return cache_size_slider.value })
-        datetimegroup.initializePropertys();
         responsive_update()
     }
 
     CheckGroup {
         name: qsTr("Date and Time")
         id: datetimegroup
-
-        property bool initialized: false;
-
-        function initializePropertys() {
-            var jdt = new Date(map.settings.datetime);
-            currentTime.value = jdt.getHours() + jdt.getMinutes() / 60;
-            currentDate.selectedDate = jdt;
-            initialized = true;
-        }
-
-        function updateMapDateTimeProperty() {
-            if (!initialized) return;
-            let jsDate = currentDate.selectedDate;
-            jsDate.setHours(currentTime.hours);
-            jsDate.setMinutes(currentTime.minutes);
-            map.settings.datetime = jsDate;
-        }
+        property date date;
+        ModelBinding on date { target: map.settings; property: "datetime"; }
 
         Label { text: qsTr("Date:") }
         DatePicker {
             id: currentDate;
-            onSelectedDateChanged: {
-                datetimegroup.updateMapDateTimeProperty();
+            selectedDate: datetimegroup.date
+            onEditingFinished: {
+                let copy = currentDate.selectedDate
+                copy.setHours(datetimegroup.date.getHours());
+                copy.setMinutes(datetimegroup.date.getMinutes());
+                datetimegroup.date = copy;
             }
         }
 
         Label { text: qsTr("Time:") }
         LabledSlider {
-            property int hours;
-            property int minutes;
             id: currentTime;
             from: 0.0; to: 24.0; stepSize: 1 / (60 / 15); // in 15 min steps
+            value: datetimegroup.date.getHours() + datetimegroup.date.getMinutes() / 60
+
             onMoved: {
-                datetimegroup.updateMapDateTimeProperty();
+                let h = parseInt(value);
+                datetimegroup.date.setHours(h);
+                datetimegroup.date.setMinutes(parseInt((value - h) * 60))
             }
             formatCallback: function (value) {
                 let h = parseInt(value);
-                hours = h;
                 let m = parseInt((value - h) * 60);
-                minutes = m;
                 return  String(h).padStart(2, '0') + ":" + String(m).padStart(2, '0');
             }
         }
 
-        CheckBox {
-            id: link_gl_settings;
-            text: "Link GL Sun Configuration"
-            Layout.fillWidth: true;
-            Layout.columnSpan: 2;
-            checked: map.settings.gl_sundir_date_link;
-            onCheckStateChanged: map.settings.gl_sundir_date_link = this.checked;
-        }
-
-        Label { text: qsTr("Sun Angles:"); visible:  map.settings.gl_sundir_date_link; }
+        Label { text: qsTr("Sun Angles:"); }
         Label {
-            visible: map.settings.gl_sundir_date_link;
-            text: {
-                return "Az(" + map.sun_angles.x.toFixed(2) + "°) , Ze(" + map.sun_angles.y.toFixed(2) + "°)";
-            }
+            text: "Az(" + map.sun_angles.x.toFixed(2) + "°) , Ze(" + map.sun_angles.y.toFixed(2) + "°)"
         }
 
     }
@@ -111,31 +75,35 @@ SettingsPanel {
         name: qsTr("Camera")
         Label { text: qsTr("Field of view:") }
         LabledSlider {
-                    id: fov_slider;
-                    from: 15; to: 120; stepSize: 1;
-                }
+            id: fov_slider;
+            from: 15; to: 120; stepSize: 1;
+            ModelBinding on value { target: map; property: "field_of_view"; }
+        }
 
-                Label { text: qsTr("Frame limiter:") }
-                LabledSlider {
-                    id: frame_rate_slider;
-                    from: 2; to: 120; stepSize: 1;
-                }
+        Label { text: qsTr("Frame limiter:") }
+        LabledSlider {
+            id: frame_rate_slider;
+            from: 10; to: 120; stepSize: 1;
+            ModelBinding on value { target: map; property: "frame_limit"; }
+        }
 
-                Label { text: qsTr("Level of detail:") }
-                LabledSlider {
-                    id: lod_slider;
-                    from: 0.1; to: 2.0; stepSize: 0.1;
-                }
-            }
+        Label { text: qsTr("Level of detail:") }
+        LabledSlider {
+            id: lod_slider;
+            from: 0.1; to: 2.0; stepSize: 0.1;
+            ModelBinding on value { target: map.settings; property: "render_quality"; }
+        }
+    }
 
-            CheckGroup {
-                name: qsTr("Cache & Network")
+    CheckGroup {
+        name: qsTr("Cache & Network")
 
-                Label { text: qsTr("Cache size:") }
-                LabledSlider {
-                    id: cache_size_slider;
-                    from: 1000; to: 20000; stepSize: 1000;
-                }
+        Label { text: qsTr("Cache size:") }
+        LabledSlider {
+            id: cache_size_slider;
+            from: 1000; to: 20000; stepSize: 1000;
+            ModelBinding on value { target: map; property: "tile_cache_size"; }
+        }
 
-            }
+    }
 }

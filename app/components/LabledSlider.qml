@@ -54,17 +54,4 @@ Item {
     }
     height: slider.implicitHeight;
     Layout.fillWidth: true;
-
-    Binding {
-        when: !!root.target
-        target: slider
-        property: "value"
-        value: root.target ? root.target[root.property] : slider.value
-    }
-    Binding {
-        when: !!root.target
-        target: root.target ? root.target : slider
-        property: root.target ? root.property : "value"
-        value: slider.value
-    }
 }

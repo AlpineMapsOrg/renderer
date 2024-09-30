@@ -1,6 +1,7 @@
 /*****************************************************************************
  * Alpine Terrain Builder
  * Copyright (C) 2022 alpinemaps.org
+ * Copyright (C) 2024 Gerald Kimmersdorfer
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -20,32 +21,13 @@
 
 namespace nucleus::utils::tile_conversion {
 
-Raster<glm::u8vec4> toRasterRGBA(const QByteArray& byte_array)
+Raster<uint16_t> to_u16raster(const Raster<glm::u8vec4>& raster)
 {
-    const auto qimage = toQImage(byte_array).convertedTo(QImage::Format_RGBA8888);
-    Raster<glm::u8vec4> retval({ qimage.width(), qimage.height() });
-    std::copy(qimage.constBits(), qimage.constBits() + qimage.sizeInBytes(), reinterpret_cast<uchar*>(&(retval.begin()->x)));
+    Raster<uint16_t> retval(raster.size());
+    std::transform(raster.begin(), raster.end(), retval.begin(), [](const glm::u8vec4& rgba) {
+        return uint16_t(rgba.x) << 8 | uint16_t(rgba.y);
+    });
     return retval;
-}
-
-Raster<uint16_t> qImage2uint16Raster(const QImage& qimage)
-{
-    if (qimage.format() != QImage::Format_ARGB32 && qimage.format() != QImage::Format_RGB32) {
-        // let's hope that the format is always ARGB32
-        // if not, please implement the conversion, that'll give better performance.
-        // the assert will be disabled in release, just as a backup.
-        assert(false);
-        return qImage2uint16Raster(qimage.convertedTo(QImage::Format_ARGB32));
-    }
-    Raster<uint16_t> raster({ qimage.width(), qimage.height() });
-
-    const auto* image_pointer = reinterpret_cast<const uint32_t*>(qimage.constBits());
-    for (uint16_t& r : raster) {
-        r = uint16_t((*image_pointer) >> 8);
-        ++image_pointer;
-    }
-
-    return raster;
 }
 
 }

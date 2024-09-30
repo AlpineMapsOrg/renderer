@@ -19,11 +19,9 @@
 import QtQuick
 import QtCharts
 import QtQuick.Controls.Material
-//import QtQuick.Controls.Imagine
 import QtQuick.Layouts
 import QtQuick.Dialogs
-import Alpine
-
+import app
 import "components"
 
 Rectangle {
@@ -66,15 +64,6 @@ Rectangle {
         }
         function onHeightChanged() {
             responsive_update();
-        }
-    }
-
-    Connections {
-        target: map
-        function onGui_update_global_cursor_pos(lat,lon,alt) {
-            cursor_lat.text = lat.toFixed(5) + " °";
-            cursor_lon.text = lon.toFixed(5) + " °";
-            cursor_alt.text = alt.toFixed(2) + " m";
         }
     }
 
@@ -305,12 +294,7 @@ Rectangle {
             checkBoxEnabled: true
             CheckBox {
                 text: "Continuous update"
-                id: continuous_update_checkbox
-                onCheckStateChanged: {
-                    console.log("Continuous update: " + checkState)
-                    console.log("map: " + map)
-                    map.continuous_update = checked
-                }
+                ModelBinding on checked { target: map; property: "continuous_update"; default_value: true }
             }
 
             Pane {
@@ -451,7 +435,7 @@ Rectangle {
                     }
 
                     Connections {
-                        target: map.timer_manager
+                        target: TimerFrontendManager
                         // Gets invoked whenever new frame time data is available
                         function onUpdateTimingList(data) {
                             for (var i = 0; i < data.length; i++) {
@@ -471,8 +455,7 @@ Rectangle {
             ComboBox {
                 Layout.fillWidth: true;
                 model: _positionList    // set in main.cpp
-                currentIndex: 0
-                onCurrentIndexChanged: map.selected_camera_position_index = currentIndex;
+                ModelBinding on currentIndex { target: map; property: "selected_camera_position_index"; default_value: -1 }
             }
         }
         CheckGroup {
@@ -480,13 +463,13 @@ Rectangle {
             name: "Cursor"
 
             Label { text: "Latitude:" }
-            Label { text: "0.0 °"; id: cursor_lat; font.bold: true; }
+            Label { text: map.world_space_cursor_position.x + "°"; id: cursor_lat; font.bold: true; }
 
             Label { text: "Longitude:" }
-            Label { text: "0.0 °"; id: cursor_lon; font.bold: true; }
+            Label { text: map.world_space_cursor_position.y + "°"; id: cursor_lon; font.bold: true; }
 
             Label { text: "Altitude:" }
-            Label { text: "0.0 m"; id: cursor_alt; font.bold: true; }
+            Label { text: map.world_space_cursor_position.z + "m"; id: cursor_alt; font.bold: true; }
         }
         CheckGroup {
             name: "Cache & Network"

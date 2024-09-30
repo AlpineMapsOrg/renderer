@@ -1,6 +1,7 @@
 #############################################################################
 # Alpine Terrain Renderer
 # Copyright (C) 2023 Adam Celarek <family name at cg tuwien ac at>
+# Copyright (C) 2024 Patrick Komon
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -21,4 +22,7 @@ project(alpine-renderer-unittests LANGUAGES CXX)
 include(${CMAKE_SOURCE_DIR}/cmake/alp_add_unittest.cmake)
 
 add_subdirectory(nucleus)
-add_subdirectory(gl_engine)
+
+if (ALP_ENABLE_GL_ENGINE)
+    add_subdirectory(gl_engine)
+endif()

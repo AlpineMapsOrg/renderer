@@ -1,4 +1,4 @@
-#############################################################################
+ #############################################################################
 # Alpine Terrain Renderer
 # Copyright (C) 2023 Adam Celarek <family name at cg tuwien ac at>
 # Copyright (C) 2024 Lucas Dworschak
@@ -21,13 +21,16 @@
 
 project(alpine-renderer-nucleus LANGUAGES CXX)
 
-alp_add_git_repository(stb_slim URL https://github.com/AlpineMapsOrgDependencies/stb_slim.git COMMITISH c44329cf0aae422c5c144a043e2ca47e9d9cc204)
+alp_add_git_repository(stb_slim URL https://github.com/AlpineMapsOrgDependencies/stb_slim.git COMMITISH 547fade2a12793e1bea4733d59646b4f436e25a4)
 alp_add_git_repository(radix URL https://github.com/AlpineMapsOrg/radix.git COMMITISH v24.01.20 NOT_SYSTEM)
 alp_add_git_repository(tl_expected URL https://github.com/TartanLlama/expected.git COMMITISH v1.1.0 DO_NOT_ADD_SUBPROJECT)
 if (NOT TARGET fmt)
     alp_add_git_repository(fmt URL https://github.com/fmtlib/fmt.git COMMITISH 10.1.1)
 endif()
 alp_add_git_repository(zppbits URL https://github.com/eyalz800/zpp_bits.git COMMITISH v4.4.20 DO_NOT_ADD_SUBPROJECT)
+if(ALP_ENABLE_LABELS)
+    alp_add_git_repository(vector_tiles URL https://github.com/AlpineMapsOrg/vector-tile.git COMMITISH faba88257716c4bc01ebd44d8b8b98f711ecb78c)
+endif()
 alp_add_git_repository(goofy_tc URL https://github.com/AlpineMapsOrgDependencies/Goofy_slim.git COMMITISH 13b228784960a6227bb6ca704ff34161bbac1b91 DO_NOT_ADD_SUBPROJECT)
 
 add_library(zppbits INTERFACE)
@@ -59,12 +62,11 @@ add_library(nucleus_version STATIC
 )
 
 qt_add_library(nucleus STATIC
-    AbstractRenderWindow.h AbstractRenderWindow.cpp
+    AbstractRenderWindow.h
     Controller.h Controller.cpp
     event_parameter.h
     Raster.h
     srs.h srs.cpp
-    Tile.cpp Tile.h
     tile_scheduler/utils.h tile_scheduler/utils.cpp
     tile_scheduler/DrawListGenerator.h tile_scheduler/DrawListGenerator.cpp
     tile_scheduler/LayerAssembler.h tile_scheduler/LayerAssembler.cpp
@@ -91,8 +93,8 @@ qt_add_library(nucleus STATIC
     utils/UrlModifier.h utils/UrlModifier.cpp
     utils/bit_coding.h
     utils/sun_calculations.h utils/sun_calculations.cpp
-    map_label/MapLabel.h map_label/MapLabel.cpp
-    map_label/MapLabelManager.h map_label/MapLabelManager.cpp
+    picker/PickerManager.h picker/PickerManager.cpp
+    picker/types.h
     utils/bit_coding.h
     tile_scheduler/cache_quieries.h
     DataQuerier.h DataQuerier.cpp
@@ -102,21 +104,53 @@ qt_add_library(nucleus STATIC
     timing/TimerInterface.h timing/TimerInterface.cpp
     timing/CpuTimer.h timing/CpuTimer.cpp
     utils/ColourTexture.h utils/ColourTexture.cpp
-
     EngineContext.h EngineContext.cpp
     track/Manager.h track/Manager.cpp
     track/GPX.cpp
     track/GPX.h
+    utils/image_loader.h utils/image_loader.cpp
+    utils/thread.h
+    camera/RecordedAnimation.h camera/RecordedAnimation.cpp
+    camera/recording.h camera/recording.cpp
+
 )
+if (ALP_ENABLE_AVLANCHE_WARNING_LAYER)
+    target_sources(nucleus
+        PUBLIC avalanche/eaws.h avalanche/eaws.cpp
+    )
+    target_link_libraries(nucleus PUBLIC Qt::Gui)
+endif()
+if(ALP_ENABLE_LABELS)
+    target_sources(nucleus PRIVATE
+        vector_tile/util.h
+        vector_tile/types.h
+        vector_tile/parse.h vector_tile/parse.cpp
+        map_label/LabelFactory.h map_label/LabelFactory.cpp
+        map_label/MapLabelData.h
+        map_label/FontRenderer.h map_label/FontRenderer.cpp
+        map_label/MapLabelFilter.h map_label/MapLabelFilter.cpp
+        map_label/FilterDefinitions.h
+    )
+    target_link_libraries(nucleus PUBLIC vector_tiles Qt::Gui)
+    target_compile_definitions(nucleus PUBLIC ALP_ENABLE_LABELS)
+endif()
+
+if (ALP_ENABLE_DEV_TOOLS)
+    target_compile_definitions(nucleus PUBLIC ALP_ENABLE_DEV_TOOLS)
+endif()
 
 target_include_directories(nucleus PUBLIC ${CMAKE_SOURCE_DIR})
-target_link_libraries(nucleus PUBLIC radix Qt::Core Qt::Gui Qt::Network fmt::fmt zppbits tl_expected nucleus_version stb_slim goofy_tc)
+# Please keep Qt::Gui outside the nucleus. If you need it optional via a cmake based switch
+target_link_libraries(nucleus PUBLIC radix Qt::Core Qt::Network fmt::fmt zppbits tl_expected nucleus_version stb_slim goofy_tc)
 
 qt_add_resources(nucleus "icons"
     PREFIX "/map_icons"
-    BASE ${CMAKE_SOURCE_DIR}/app/icons
+    BASE ${CMAKE_SOURCE_DIR}/app/icons/labels
     FILES
-        ${CMAKE_SOURCE_DIR}/app/icons/peak.png
+        ${CMAKE_SOURCE_DIR}/app/icons/labels/alpinehut.png
+        ${CMAKE_SOURCE_DIR}/app/icons/labels/city.png
+        ${CMAKE_SOURCE_DIR}/app/icons/labels/peak.png
+        ${CMAKE_SOURCE_DIR}/app/icons/labels/camera.png
 )
 qt_add_resources(nucleus "height_data"
     PREFIX "/map"
@@ -128,6 +162,11 @@ qt_add_resources(nucleus "nucleus_fonts"
     PREFIX "/fonts"
     FILES
     ${alpineapp_fonts_SOURCE_DIR}/Roboto/Roboto-Bold.ttf
+)
+qt_add_resources(nucleus "charset"
+    PREFIX "/charset"
+    BASE ${CMAKE_SOURCE_DIR}/app/
+    FILES ${CMAKE_SOURCE_DIR}/app/charset.txt
 )
 
 
