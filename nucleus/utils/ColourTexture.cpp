@@ -19,6 +19,7 @@
 
 #include "ColourTexture.h"
 
+#include <QtGlobal>
 #include <array>
 #include <cstdint>
 #include <stdexcept>
@@ -53,6 +54,7 @@ std::vector<uint8_t> to_dxt1(const nucleus::Raster<glm::u8vec4>& image)
     std::vector<uint8_t> compressed(n_bytes_out);
     const auto result = goofy::compressDXT1(compressed.data(), data_ptr, (uint32_t)image.width(), (uint32_t)image.height(), (uint32_t)image.width() * 4);
     assert(result == 0);
+    Q_UNUSED(result);
 
     return compressed;
 }
@@ -81,6 +83,7 @@ std::vector<uint8_t> to_etc1(const nucleus::Raster<glm::u8vec4>& image)
     std::vector<uint8_t> compressed(n_bytes_out);
     const auto result = goofy::compressETC1(compressed.data(), data_ptr, (uint32_t)image.width(), (uint32_t)image.height(), (uint32_t)image.width() * 4);
     assert(result == 0);
+    Q_UNUSED(result);
 
     return compressed;
 }
