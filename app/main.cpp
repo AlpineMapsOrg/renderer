@@ -30,6 +30,7 @@
 #include "ModelBinding.h"
 #include "RenderThreadNotifier.h"
 #include "TerrainRendererItem.h"
+#include "TimerFrontendManager.h"
 #include "TrackModel.h"
 #include <QLoggingCategory>
 #include <QNetworkInformation>
@@ -123,7 +124,7 @@ int main(int argc, char **argv)
     QSurfaceFormat::setDefaultFormat(fmt);
 
     QQmlApplicationEngine engine;
-
+    TimerFrontendManager::instance(); // create in main thread
     engine.rootContext()->setContextProperty("_r", ALP_QML_SOURCE_DIR);
     engine.rootContext()->setContextProperty("_positionList", QVariant::fromValue(nucleus::camera::PositionStorage::instance()->getPositionList()));
     engine.rootContext()->setContextProperty("_alpine_renderer_version", QString::fromStdString(nucleus::version()));
