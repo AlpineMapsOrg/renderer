@@ -112,8 +112,8 @@ qt_add_library(nucleus STATIC
     utils/thread.h
     camera/RecordedAnimation.h camera/RecordedAnimation.cpp
     camera/recording.h camera/recording.cpp
-
 )
+
 if (ALP_ENABLE_AVLANCHE_WARNING_LAYER)
     target_sources(nucleus
         PUBLIC avalanche/eaws.h avalanche/eaws.cpp

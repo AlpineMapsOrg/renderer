@@ -53,11 +53,12 @@ class ShaderManager;
 class Framebuffer;
 class SSAO;
 class ShadowMapping;
+class Context;
 
 class Window : public nucleus::AbstractRenderWindow, public nucleus::camera::AbstractDepthTester {
     Q_OBJECT
 public:
-    Window();
+    Window(std::shared_ptr<Context> context);
     ~Window() override;
 
     void initialise_gpu() override;
@@ -89,6 +90,7 @@ signals:
     void report_measurements(QList<nucleus::timing::TimerReport> values);
 
 private:
+    std::shared_ptr<Context> m_context;
     std::unique_ptr<TileManager> m_tile_manager; // needs opengl context
     std::unique_ptr<MapLabelManager> m_map_label_manager;
 

@@ -47,7 +47,7 @@ public:
     [[nodiscard]] nucleus::Controller* controller() const;
 
 private:
-    QQuickWindow *m_window;
+    QQuickWindow* m_window;
     std::unique_ptr<gl_engine::Window> m_glWindow;
     std::unique_ptr<nucleus::Controller> m_controller;
 };

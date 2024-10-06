@@ -29,7 +29,7 @@ class Window : public QOpenGLWindow
 {
     Q_OBJECT
 public:
-    Window();
+    Window(std::shared_ptr<gl_engine::Context> context);
 
     void initializeGL() override;
     void resizeGL(int w, int h) override;

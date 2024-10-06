@@ -27,17 +27,11 @@ class ShaderManager;
 
 class Context : public nucleus::EngineContext {
 private:
-    Context();
-
 public:
+    Context(QObject* parent = nullptr);
     Context(Context const&) = delete;
-    ~Context();
+    ~Context() override;
     void operator=(Context const&) = delete;
-    static Context& instance()
-    {
-        static Context c;
-        return c;
-    }
 
     [[nodiscard]] TrackManager* track_manager() override;
     [[nodiscard]] ShaderManager* shader_manager();

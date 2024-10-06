@@ -18,9 +18,9 @@
 
 #include "Window.h"
 
-Window::Window()
+Window::Window(std::shared_ptr<gl_engine::Context> context)
 {
-    m_gl_window = new gl_engine::Window();
+    m_gl_window = new gl_engine::Window(context);
     connect(m_gl_window, &gl_engine::Window::update_requested, this, qOverload<>(&QOpenGLWindow::update));
 }
 

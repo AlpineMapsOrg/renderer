@@ -28,6 +28,7 @@ qt_add_executable(alpineapp
     GnssInformation.h GnssInformation.cpp
     TrackModel.h TrackModel.cpp
     ModelBinding.h ModelBinding.cpp
+    RenderingContext.h RenderingContext.cpp
 )
 
 qt_add_qml_module(alpineapp

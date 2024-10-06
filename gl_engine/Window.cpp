@@ -46,10 +46,6 @@
 #include <GLES3/gl3.h> // for GL ENUMS! DONT EXACTLY KNOW WHY I NEED THIS HERE! (on other platforms it works without)
 #endif
 
-#include <nucleus/timing/CpuTimer.h>
-#include <nucleus/timing/TimerManager.h>
-#include <nucleus/utils/bit_coding.h>
-
 #include "Context.h"
 #include "Framebuffer.h"
 #include "SSAO.h"
@@ -61,6 +57,9 @@
 #include "UniformBufferObjects.h"
 #include "Window.h"
 #include "helpers.h"
+#include <nucleus/timing/CpuTimer.h>
+#include <nucleus/timing/TimerManager.h>
+#include <nucleus/utils/bit_coding.h>
 #if (defined(__linux) && !defined(__ANDROID__)) || defined(_WIN32) || defined(_WIN64)
 #include "GpuAsyncQueryTimer.h"
 #endif
@@ -73,8 +72,9 @@ using gl_engine::UniformBuffer;
 using gl_engine::Window;
 using namespace gl_engine;
 
-Window::Window()
-    : m_camera({ 1822577.0, 6141664.0 - 500, 171.28 + 500 }, { 1822577.0, 6141664.0, 171.28 }) // should point right at the stephansdom
+Window::Window(std::shared_ptr<Context> context)
+    : m_context(context)
+    , m_camera({ 1822577.0, 6141664.0 - 500, 171.28 + 500 }, { 1822577.0, 6141664.0, 171.28 }) // should point right at the stephansdom
 {
     m_tile_manager = std::make_unique<TileManager>();
 #ifdef ALP_ENABLE_LABELS
@@ -93,6 +93,7 @@ Window::~Window()
 
 void Window::initialise_gpu()
 {
+    m_context->initialise();
     QOpenGLExtraFunctions* f = QOpenGLContext::currentContext()->extraFunctions();
     assert(f->hasOpenGLFeature(QOpenGLExtraFunctions::OpenGLFeature::MultipleRenderTargets));
     Q_UNUSED(f);
@@ -105,8 +106,7 @@ void Window::initialise_gpu()
     logger->disableMessages(QList<GLuint>({ 131185 }));
     logger->startLogging(QOpenGLDebugLogger::SynchronousLogging);
 
-
-    auto* shader_manager = Context::instance().shader_manager();
+    auto* shader_manager = m_context->shader_manager();
 
     m_tile_manager->init();
     m_tile_manager->initilise_attribute_locations(shader_manager->tile_shader());
@@ -175,6 +175,7 @@ void Window::initialise_gpu()
         m_timer->add_timer(make_shared<CpuTimer>("cpu_b2b", "TOTAL", 240, 1.0f/60.0f));
     }
 
+    shared_config_changed(gl_engine::uboSharedConfig {});
     emit gpu_ready_changed(true);
 }
 
@@ -205,7 +206,7 @@ void Window::paint(QOpenGLFramebufferObject* framebuffer)
     m_timer->start_timer("gpu_total");
 
     QOpenGLExtraFunctions *f = QOpenGLContext::currentContext()->extraFunctions();
-    auto* shader_manager = Context::instance().shader_manager();
+    auto* shader_manager = m_context->shader_manager();
 
     f->glEnable(GL_CULL_FACE);
     f->glCullFace(GL_BACK);
@@ -366,7 +367,8 @@ void Window::paint(QOpenGLFramebufferObject* framebuffer)
         track_shader->set_uniform("resolution", size);
 
         f->glClear(GL_DEPTH_BUFFER_BIT);
-        Context::instance().track_manager()->draw(m_camera);
+        if (m_context->track_manager())
+            m_context->track_manager()->draw(m_camera);
 
         m_timer->stop_timer("tracks");
     }
@@ -398,7 +400,7 @@ void Window::shared_config_changed(gl_engine::uboSharedConfig ubo) {
 
 void Window::reload_shader() {
     auto do_reload = [this]() {
-        auto* shader_manager = Context::instance().shader_manager();
+        auto* shader_manager = m_context->shader_manager();
         shader_manager->reload_shaders();
         // NOTE: UBOs need to be reattached to the programs!
         m_shared_config_ubo->bind_to_shader(shader_manager->all());

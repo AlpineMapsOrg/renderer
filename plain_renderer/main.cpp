@@ -59,9 +59,11 @@
 #include <QTimer>
 
 #include "Window.h"
-#include "nucleus/Controller.h"
-#include "nucleus/camera/Controller.h"
-
+#include "gl_engine/Texture.h"
+#include "nucleus/tile_scheduler/Scheduler.h"
+#include <gl_engine/Context.h>
+#include <nucleus/Controller.h>
+#include <nucleus/camera/Controller.h>
 
 // This example demonstrates easy, cross-platform usage of OpenGL ES 3.0 functions via
 // QOpenGLExtraFunctions in an application that works identically on desktop platforms
@@ -93,8 +95,10 @@ int main(int argc, char* argv[])
 
     QSurfaceFormat::setDefaultFormat(fmt);
 
-    Window glWindow;
+    auto context = std::make_shared<gl_engine::Context>();
+    Window glWindow(context);
     nucleus::Controller controller(glWindow.render_window());
+    controller.tile_scheduler()->set_ortho_tile_compression_algorithm(gl_engine::Texture::compression_algorithm());
 
     QObject::connect(&glWindow, &Window::mouse_moved, controller.camera_controller(), &nucleus::camera::Controller::mouse_move);
     QObject::connect(&glWindow, &Window::mouse_pressed, controller.camera_controller(), &nucleus::camera::Controller::mouse_press);

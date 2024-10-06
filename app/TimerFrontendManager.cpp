@@ -51,5 +51,3 @@ void TimerFrontendManager::receive_measurements(QList<nucleus::timing::TimerRepo
     }
     emit updateTimingList(m_timer);
 }
-
-void TimerFrontendManager::initialise() const { }

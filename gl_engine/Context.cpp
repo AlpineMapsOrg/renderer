@@ -21,7 +21,10 @@
 #include "TrackManager.h"
 using namespace gl_engine;
 
-Context::Context() { nucleus::EngineContext::set_singleton(this); }
+Context::Context(QObject* parent)
+    : nucleus::EngineContext(parent)
+{
+}
 
 Context::~Context() = default;
 

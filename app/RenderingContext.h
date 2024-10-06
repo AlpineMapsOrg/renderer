@@ -1,6 +1,6 @@
 /*****************************************************************************
  * Alpine Terrain Renderer
- * Copyright (C) 2023 Gerald Kimmersdorfer
+ * Copyright (C) 2024 Adam Celarek
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -18,42 +18,37 @@
 
 #pragma once
 
-#include "TimerFrontendObject.h"
-#include <QList>
-#include <QMap>
-#include <QObject>
+#include <QMutex>
 #include <QQmlEngine>
-#include <QString>
-#include <nucleus/timing/TimerManager.h>
+#include <gl_engine/Context.h>
 
-class TimerFrontendManager : public QObject
-{
+class RenderingContext : public QObject {
     Q_OBJECT
     QML_ELEMENT
     QML_SINGLETON
 
-    TimerFrontendManager(QObject* parent = nullptr);
+    explicit RenderingContext(QObject* parent = nullptr);
 
 public:
-    TimerFrontendManager(TimerFrontendManager const&) = delete;
-    ~TimerFrontendManager() override;
-    void operator=(TimerFrontendManager const&) = delete;
+    RenderingContext(RenderingContext const&) = delete;
+    ~RenderingContext() override;
+    void operator=(RenderingContext const&) = delete;
 
-    static TimerFrontendManager* create(QQmlEngine*, QJSEngine*)
+    static RenderingContext* create(QQmlEngine*, QJSEngine*)
     {
         QJSEngine::setObjectOwnership(instance(), QJSEngine::CppOwnership);
         return instance();
     }
-    static TimerFrontendManager* instance();
+    static RenderingContext* instance();
 
-public slots:
-    void receive_measurements(QList<nucleus::timing::TimerReport> values);
+    void initialise();
+    [[nodiscard]] const std::shared_ptr<gl_engine::Context>& engine_context() const;
 
 signals:
-    void updateTimingList(QList<TimerFrontendObject*> data);
+    void initialised();
 
 private:
-    QList<TimerFrontendObject*> m_timer;
-    QMap<QString, TimerFrontendObject*> m_timer_map;
-    int m_current_frame = 0;
+    // WARNING: gl_engine::Context must be on the rendering thread!!
+    mutable QMutex m_engine_context_mutex; // protects the shared_ptr
+    std::shared_ptr<gl_engine::Context> m_engine_context;
 };

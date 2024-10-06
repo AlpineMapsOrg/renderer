@@ -25,6 +25,8 @@
 #include <QQuickWindow>
 #include <QThread>
 
+#include "RenderingContext.h"
+#include "TerrainRendererItem.h"
 #include <gl_engine/Context.h>
 #include <gl_engine/Window.h>
 #include <nucleus/Controller.h>
@@ -33,23 +35,11 @@
 #include <nucleus/tile_scheduler/Scheduler.h>
 #include <nucleus/utils/thread.h>
 
-#include "TerrainRendererItem.h"
-
 TerrainRenderer::TerrainRenderer()
 {
-    auto& context = gl_engine::Context::instance();
-    auto* render_thread = QThread::currentThread();
-    connect(render_thread, &QThread::finished, &context, &nucleus::EngineContext::destroy);
-
-    // not ideal:
-    // the engine context needs to live on the render thread.
-    // however, (currently) we need it before the render thread is created for signal slot connections.
-    // so we need to move it afterwards. and it can be only moved from its own thread
-    nucleus::utils::thread::async_call(&context, [render_thread]() { gl_engine::Context::instance().moveToThread(render_thread); });
-    if (!context.is_alive())
-        context.initialise();
-
-    m_glWindow = std::make_unique<gl_engine::Window>();
+    auto rendering_context = RenderingContext::instance();
+    rendering_context->initialise();
+    m_glWindow = std::make_unique<gl_engine::Window>(rendering_context->engine_context());
     m_controller = std::make_unique<nucleus::Controller>(m_glWindow.get());
     m_controller->tile_scheduler()->set_ortho_tile_compression_algorithm(m_glWindow->ortho_tile_compression_algorithm());
     m_glWindow->initialise_gpu();
