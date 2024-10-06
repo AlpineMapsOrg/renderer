@@ -393,6 +393,10 @@ void Window::paint(QOpenGLFramebufferObject* framebuffer)
         emit report_measurements(new_values);
     }
 
+#ifdef ALP_ENABLE_DEV_TOOLS
+    // make time measurment more stable.
+    glFinish();
+#endif
 }
 
 void Window::shared_config_changed(gl_engine::uboSharedConfig ubo) {
