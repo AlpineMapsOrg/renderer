@@ -175,7 +175,6 @@ void Window::initialise_gpu()
         m_timer->add_timer(make_shared<CpuTimer>("cpu_b2b", "TOTAL", 240, 1.0f/60.0f));
     }
 
-    shared_config_changed(gl_engine::uboSharedConfig {});
     emit gpu_ready_changed(true);
 }
 
@@ -210,6 +209,8 @@ void Window::paint(QOpenGLFramebufferObject* framebuffer)
 
     f->glEnable(GL_CULL_FACE);
     f->glCullFace(GL_BACK);
+    f->glDisable(GL_BLEND);
+    f->glBlendFunc(GL_ONE, GL_ZERO);
 
     // UPDATE CAMERA UNIFORM BUFFER
     // NOTE: Could also just be done on camera or viewport change!
@@ -307,12 +308,12 @@ void Window::paint(QOpenGLFramebufferObject* framebuffer)
         m_map_label_manager->draw_picker(m_gbuffer.get(), shader_manager->labels_picker_program(), m_camera, culled_tile_set);
         shader_manager->labels_picker_program()->release();
         m_timer->stop_timer("picker");
-
-        m_pickerbuffer->unbind();
     }
 
     if (framebuffer)
         framebuffer->bind();
+    else
+        f->glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
     p = shader_manager->compose_program();
 
@@ -375,12 +376,14 @@ void Window::paint(QOpenGLFramebufferObject* framebuffer)
 
     if (framebuffer)
         framebuffer->bind();
+    else
+        f->glBindFramebuffer(GL_FRAMEBUFFER, 0);
+
     shader_manager->screen_copy_program()->bind();
     m_decoration_buffer->bind_colour_texture(0, 0);
     f->glEnable(GL_BLEND);
     f->glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
     m_screen_quad_geometry.draw();
-
 
     m_timer->stop_timer("cpu_total");
     m_timer->stop_timer("gpu_total");
