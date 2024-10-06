@@ -82,7 +82,7 @@ TerrainRendererItem::TerrainRendererItem(QQuickItem* parent)
     connect(RenderThreadNotifier::instance(), &RenderThreadNotifier::redraw_requested, this, &TerrainRendererItem::schedule_update);
 
     m_update_timer->setSingleShot(!m_continuous_update);
-    m_update_timer->setInterval(1000 / m_frame_limit);
+    m_update_timer->setInterval(m_redraw_delay);
     setMirrorVertically(true);
     setAcceptTouchEvents(true);
     setAcceptedMouseButtons(Qt::MouseButton::AllButtons);
@@ -270,19 +270,16 @@ void TerrainRendererItem::schedule_update()
     m_update_timer->start();
 }
 
-int TerrainRendererItem::frame_limit() const
-{
-    return m_frame_limit;
-}
+int TerrainRendererItem::redraw_delay() const { return m_redraw_delay; }
 
-void TerrainRendererItem::set_frame_limit(int new_frame_limit)
+void TerrainRendererItem::set_redraw_delay(int new_delay)
 {
-    new_frame_limit = std::clamp(new_frame_limit, 1, 120);
-    if (m_frame_limit == new_frame_limit)
+    new_delay = std::clamp(new_delay, 0, 50);
+    if (m_redraw_delay == new_delay)
         return;
-    m_frame_limit = new_frame_limit;
-    m_update_timer->setInterval(1000 / m_frame_limit);
-    emit frame_limit_changed();
+    m_redraw_delay = new_delay;
+    m_update_timer->setInterval(m_redraw_delay);
+    emit redraw_delay_changed();
 }
 
 nucleus::camera::Definition TerrainRendererItem::camera() const
