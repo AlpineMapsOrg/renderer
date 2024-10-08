@@ -18,6 +18,8 @@
 
 #include "Window.h"
 
+#include <QRandomGenerator>
+
 Window::Window(std::shared_ptr<gl_engine::Context> context)
 {
     m_gl_window = new gl_engine::Window(context);
@@ -40,6 +42,11 @@ void Window::resizeGL(int w, int h)
 void Window::paintGL()
 {
     m_gl_window->paint();
+    QPainter p(this);
+    const auto random_u32 = QRandomGenerator::global()->generate();
+    p.setBrush(QBrush(QColor(random_u32)));
+    p.setPen(Qt::white);
+    p.drawRect(8, 8, 16, 16);
 }
 
 gl_engine::Window* Window::render_window()

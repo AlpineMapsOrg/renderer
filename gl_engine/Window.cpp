@@ -209,8 +209,6 @@ void Window::paint(QOpenGLFramebufferObject* framebuffer)
 
     f->glEnable(GL_CULL_FACE);
     f->glCullFace(GL_BACK);
-    f->glDisable(GL_BLEND);
-    f->glBlendFunc(GL_ONE, GL_ZERO);
 
     // UPDATE CAMERA UNIFORM BUFFER
     // NOTE: Could also just be done on camera or viewport change!
@@ -384,6 +382,10 @@ void Window::paint(QOpenGLFramebufferObject* framebuffer)
     f->glEnable(GL_BLEND);
     f->glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
     m_screen_quad_geometry.draw();
+
+    f->glDisable(GL_BLEND);
+    f->glBlendFunc(GL_ONE, GL_ZERO);
+    f->glDisable(GL_CULL_FACE);
 
     m_timer->stop_timer("cpu_total");
     m_timer->stop_timer("gpu_total");

@@ -59,11 +59,16 @@
 #include <QTimer>
 
 #include "Window.h"
-#include "gl_engine/Texture.h"
-#include "nucleus/tile_scheduler/Scheduler.h"
+#include <chrono>
 #include <gl_engine/Context.h>
+#include <gl_engine/Texture.h>
 #include <nucleus/Controller.h>
+#include <nucleus/DataQuerier.h>
 #include <nucleus/camera/Controller.h>
+#include <nucleus/camera/PositionStorage.h>
+#include <nucleus/tile_scheduler/Scheduler.h>
+
+using namespace std::chrono_literals;
 
 // This example demonstrates easy, cross-platform usage of OpenGL ES 3.0 functions via
 // QOpenGLExtraFunctions in an application that works identically on desktop platforms
@@ -72,6 +77,12 @@
 // The code is always the same, with the exception of two places: (1) the OpenGL context
 // creation has to have a sufficiently high version number for the features that are in
 // use, and (2) the shader code's version directive is different.
+
+using nucleus::AbstractRenderWindow;
+using nucleus::DataQuerier;
+using nucleus::tile_scheduler::Scheduler;
+using nucleus::tile_scheduler::TileLoadService;
+using CameraController = nucleus::camera::Controller;
 
 int main(int argc, char* argv[])
 {
@@ -95,20 +106,55 @@ int main(int argc, char* argv[])
 
     QSurfaceFormat::setDefaultFormat(fmt);
 
+    auto terrain_service = std::make_unique<TileLoadService>("https://alpinemaps.cg.tuwien.ac.at/tiles/alpine_png/", TileLoadService::UrlPattern::ZXY, ".png");
+    //    m_ortho_service.reset(new TileLoadService("https://tiles.bergfex.at/styles/bergfex-osm/", TileLoadService::UrlPattern::ZXY_yPointingSouth,
+    //    ".jpeg")); m_ortho_service.reset(new TileLoadService("https://alpinemaps.cg.tuwien.ac.at/tiles/ortho/",
+    //    TileLoadService::UrlPattern::ZYX_yPointingSouth, ".jpeg"));
+    // m_ortho_service.reset(new TileLoadService("https://maps%1.wien.gv.at/basemap/bmaporthofoto30cm/normal/google3857/",
+    //                                           TileLoadService::UrlPattern::ZYX_yPointingSouth,
+    //                                           ".jpeg",
+    //                                           {"", "1", "2", "3", "4"}));
+    auto ortho_service
+        = std::make_unique<TileLoadService>("https://gataki.cg.tuwien.ac.at/raw/basemap/tiles/", TileLoadService::UrlPattern::ZYX_yPointingSouth, ".jpeg");
+    auto vectortile_service = std::make_unique<TileLoadService>(
+        "https://osm.cg.tuwien.ac.at/vector_tiles/poi_v1/", nucleus::tile_scheduler::TileLoadService::UrlPattern::ZXY_yPointingSouth, "");
+
+    auto decorator = nucleus::tile_scheduler::setup::aabb_decorator();
+    auto scheduler = nucleus::tile_scheduler::setup::monolithic(std::move(terrain_service), std::move(ortho_service), std::move(vectortile_service), decorator);
+    auto data_querier = std::make_shared<DataQuerier>(&scheduler.scheduler->ram_cache());
+    scheduler.scheduler->set_dataquerier(data_querier);
+
     auto context = std::make_shared<gl_engine::Context>();
     Window glWindow(context);
-    nucleus::Controller controller(glWindow.render_window());
-    controller.tile_scheduler()->set_ortho_tile_compression_algorithm(gl_engine::Texture::compression_algorithm());
+    glWindow.render_window()->set_quad_limit(512);
+    glWindow.render_window()->set_aabb_decorator(decorator);
 
-    QObject::connect(&glWindow, &Window::mouse_moved, controller.camera_controller(), &nucleus::camera::Controller::mouse_move);
-    QObject::connect(&glWindow, &Window::mouse_pressed, controller.camera_controller(), &nucleus::camera::Controller::mouse_press);
-    QObject::connect(&glWindow, &Window::wheel_turned, controller.camera_controller(), &nucleus::camera::Controller::wheel_turn);
-    QObject::connect(&glWindow, &Window::touch_made, controller.camera_controller(), &nucleus::camera::Controller::touch);
-    QObject::connect(&glWindow, &Window::key_pressed, controller.camera_controller(), &nucleus::camera::Controller::key_press);
-    QObject::connect(&glWindow, &Window::key_released, controller.camera_controller(), &nucleus::camera::Controller::key_release);
-    QObject::connect(&glWindow, &Window::resized, controller.camera_controller(), [&controller](glm::uvec2 new_size) {
-        controller.camera_controller()->set_viewport(new_size);
+    auto camera_controller
+        = nucleus::camera::Controller(nucleus::camera::PositionStorage::instance()->get("grossglockner"), glWindow.render_window(), data_querier.get());
+
+    QObject::connect(&camera_controller, &CameraController::definition_changed, &glWindow, [&](const nucleus::camera::Definition&) {
+        QTimer::singleShot(5ms, &camera_controller, &CameraController::advance_camera);
     });
+
+    // nucleus::Controller controller(glWindow.render_window());
+    scheduler.scheduler->set_ortho_tile_compression_algorithm(gl_engine::Texture::compression_algorithm());
+
+    QObject::connect(
+        glWindow.render_window(), &AbstractRenderWindow::update_camera_requested, &camera_controller, &nucleus::camera::Controller::advance_camera);
+
+    QObject::connect(glWindow.render_window(), &AbstractRenderWindow::gpu_ready_changed, scheduler.scheduler.get(), &Scheduler::set_enabled);
+    QObject::connect(&camera_controller, &nucleus::camera::Controller::definition_changed, scheduler.scheduler.get(), &Scheduler::update_camera);
+    QObject::connect(&camera_controller, &nucleus::camera::Controller::definition_changed, glWindow.render_window(), &AbstractRenderWindow::update_camera);
+    QObject::connect(scheduler.scheduler.get(), &Scheduler::gpu_quads_updated, glWindow.render_window(), &AbstractRenderWindow::update_gpu_quads);
+    QObject::connect(scheduler.scheduler.get(), &Scheduler::gpu_quads_updated, glWindow.render_window(), &AbstractRenderWindow::update_requested);
+
+    QObject::connect(&glWindow, &Window::mouse_moved, &camera_controller, &nucleus::camera::Controller::mouse_move);
+    QObject::connect(&glWindow, &Window::mouse_pressed, &camera_controller, &nucleus::camera::Controller::mouse_press);
+    QObject::connect(&glWindow, &Window::wheel_turned, &camera_controller, &nucleus::camera::Controller::wheel_turn);
+    QObject::connect(&glWindow, &Window::touch_made, &camera_controller, &nucleus::camera::Controller::touch);
+    QObject::connect(&glWindow, &Window::key_pressed, &camera_controller, &nucleus::camera::Controller::key_press);
+    QObject::connect(&glWindow, &Window::key_released, &camera_controller, &nucleus::camera::Controller::key_release);
+    QObject::connect(&glWindow, &Window::resized, &camera_controller, [&camera_controller](glm::uvec2 new_size) { camera_controller.set_viewport(new_size); });
 
 #if (defined(__linux) && !defined(__ANDROID__)) || defined(_WIN32) || defined(_WIN64)
     glWindow.showMaximized();
@@ -119,7 +165,7 @@ int main(int argc, char* argv[])
     // in web assembly, the gl window is resized before it is connected. need to set viewport manually.
     // native, however, glWindow has a zero size at this point.
     if (glWindow.width() > 0 && glWindow.height() > 0)
-        controller.camera_controller()->set_viewport({ glWindow.width(), glWindow.height() });
+        camera_controller.set_viewport({ glWindow.width(), glWindow.height() });
 
     return QGuiApplication::exec();
 }

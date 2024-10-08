@@ -39,4 +39,6 @@ MonolithicScheduler monolithic(TileLoadServicePtr terrain_service,
     TileLoadServicePtr vector_service,
     const tile_scheduler::utils::AabbDecoratorPtr& aabb_decorator);
 
+utils::AabbDecoratorPtr aabb_decorator();
+
 } // namespace nucleus::tile_scheduler::setup

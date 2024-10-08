@@ -89,4 +89,15 @@ MonolithicScheduler monolithic(TileLoadServicePtr terrain_service,
 
     return { scheduler, std::move(thread), std::move(ortho_service), std::move(terrain_service), std::move(vector_service) };
 }
+
+utils::AabbDecoratorPtr aabb_decorator()
+{
+    QFile file(":/map/height_data.atb");
+    const auto open = file.open(QIODeviceBase::OpenModeFlag::ReadOnly);
+    assert(open);
+    Q_UNUSED(open);
+    const QByteArray data = file.readAll();
+    return nucleus::tile_scheduler::utils::AabbDecorator::make(TileHeights::deserialise(data));
+}
+
 } // namespace nucleus::tile_scheduler::setup

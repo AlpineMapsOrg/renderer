@@ -76,13 +76,7 @@ Controller::Controller(AbstractRenderWindow* render_window)
             "https://osm.cg.tuwien.ac.at/vector_tiles/poi_v1/", nucleus::tile_scheduler::TileLoadService::UrlPattern::ZXY_yPointingSouth, "");
 #endif
 
-        QFile file(":/map/height_data.atb");
-        const auto open = file.open(QIODeviceBase::OpenModeFlag::ReadOnly);
-        assert(open);
-        Q_UNUSED(open);
-        const QByteArray data = file.readAll();
-        const auto decorator = nucleus::tile_scheduler::utils::AabbDecorator::make(TileHeights::deserialise(data));
-
+        auto decorator = nucleus::tile_scheduler::setup::aabb_decorator();
         m_scheduler
             = nucleus::tile_scheduler::setup::monolithic(std::move(terrain_service), std::move(ortho_service), std::move(vectortile_service), decorator);
         m_render_window->set_aabb_decorator(decorator);
@@ -105,11 +99,11 @@ Controller::Controller(AbstractRenderWindow* render_window)
         connect(n, &QNetworkInformation::reachabilityChanged, m_scheduler.scheduler.get(), &Scheduler::set_network_reachability);
     }
 
-    connect(m_render_window, &AbstractRenderWindow::update_camera_requested, m_camera_controller.get(), &nucleus::camera::Controller::update_camera_request);
+    connect(m_render_window, &AbstractRenderWindow::update_camera_requested, m_camera_controller.get(), &nucleus::camera::Controller::advance_camera);
     connect(m_render_window, &AbstractRenderWindow::gpu_ready_changed, m_scheduler.scheduler.get(), &Scheduler::set_enabled);
 
     // NOTICE ME!!!! READ THIS, IF YOU HAVE TROUBLES WITH SIGNALS NOT REACHING THE QML RENDERING THREAD!!!!111elevenone
-    // In Qt the rendering thread goes to sleep (at least until Qt 6.5, See RenderThreadNotifier).
+    // In Qt/QML the rendering thread goes to sleep (at least until Qt 6.5, See RenderThreadNotifier).
     // At the time of writing, an additional connection from tile_ready and tile_expired to the notifier is made.
     // this only works if ALP_ENABLE_THREADING is on, i.e., the tile scheduler is on an extra thread. -> potential issue on webassembly
     connect(m_camera_controller.get(), &nucleus::camera::Controller::definition_changed, m_scheduler.scheduler.get(), &Scheduler::update_camera);

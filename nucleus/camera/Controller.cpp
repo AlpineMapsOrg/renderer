@@ -218,7 +218,7 @@ void Controller::touch(const event_parameter::Touch& e)
     update();
 }
 
-void Controller::update_camera_request()
+void Controller::advance_camera()
 {
     if (m_animation_style) {
         const auto new_camera_definition = m_animation_style->update(m_definition, m_depth_tester);
