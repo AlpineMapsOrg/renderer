@@ -1,5 +1,5 @@
 /*****************************************************************************
- * Alpine Terrain Renderer
+ * AlpineMaps.org
  * Copyright (C) 2023 Adam Celarek
  *
  * This program is free software: you can redistribute it and/or modify
@@ -18,6 +18,7 @@
 
 #pragma once
 
+#include "tile_scheduler/setup.h"
 #include <QNetworkAccessManager>
 #include <QObject>
 #include <memory>
@@ -25,10 +26,6 @@
 namespace nucleus {
 class AbstractRenderWindow;
 class DataQuerier;
-namespace tile_scheduler {
-class TileLoadService;
-class Scheduler;
-}
 namespace camera {
 class Controller;
 }
@@ -54,20 +51,13 @@ public:
 #endif
 
 private:
+    tile_scheduler::setup::MonolithicScheduler m_scheduler;
     AbstractRenderWindow* m_render_window;
     QNetworkAccessManager m_network_manager;
-#ifdef ALP_ENABLE_THREADING
-    std::unique_ptr<QThread> m_scheduler_thread;
-#endif
-    std::unique_ptr<tile_scheduler::TileLoadService> m_terrain_service;
-    std::unique_ptr<tile_scheduler::TileLoadService> m_ortho_service;
-    std::unique_ptr<tile_scheduler::Scheduler> m_tile_scheduler;
     std::shared_ptr<DataQuerier> m_data_querier;
     std::unique_ptr<camera::Controller> m_camera_controller;
-    std::unique_ptr<tile_scheduler::TileLoadService> m_vectortile_service;
-
     //
-    maplabel::MapLabelFilter* m_label_filter;
-    nucleus::picker::PickerManager* m_picker_manager;
+    std::shared_ptr<maplabel::MapLabelFilter> m_label_filter;
+    std::shared_ptr<nucleus::picker::PickerManager> m_picker_manager;
 };
 }

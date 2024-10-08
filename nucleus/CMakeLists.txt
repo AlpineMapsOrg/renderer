@@ -112,6 +112,7 @@ qt_add_library(nucleus STATIC
     utils/thread.h
     camera/RecordedAnimation.h camera/RecordedAnimation.cpp
     camera/recording.h camera/recording.cpp
+    tile_scheduler/setup.h tile_scheduler/setup.cpp
 )
 
 if (ALP_ENABLE_AVLANCHE_WARNING_LAYER)
