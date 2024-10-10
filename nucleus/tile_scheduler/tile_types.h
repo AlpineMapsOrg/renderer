@@ -28,7 +28,6 @@
 #include <nucleus/vector_tile/types.h>
 #endif
 
-class QImage;
 namespace nucleus {
 template <typename T>
 class Raster;
@@ -71,14 +70,14 @@ concept SerialisableTile = requires(T t) {
     requires std::is_same<std::remove_reference_t<decltype(T::version_information)>, const std::array<char, 25>>::value;
 };
 
-struct TileLayer {
+struct Data {
     tile::Id id;
     NetworkInfo network_info;
     std::shared_ptr<QByteArray> data;
 };
-static_assert(NamedTile<TileLayer>);
+static_assert(NamedTile<Data>);
 
-struct LayeredTile {
+struct [[deprecated]] LayeredTile {
     tile::Id id;
     NetworkInfo network_info;
     std::shared_ptr<QByteArray> ortho;
@@ -87,7 +86,7 @@ struct LayeredTile {
 };
 static_assert(NamedTile<LayeredTile>);
 
-struct TileQuad {
+struct [[deprecated]] LayeredTileQuad {
     tile::Id id;
     unsigned n_tiles = 0;
     std::array<LayeredTile, 4> tiles = {};
@@ -96,15 +95,25 @@ struct TileQuad {
     }
     static constexpr std::array<char, 25> version_information = { "TileQuad, version 0.5" };
 };
-static_assert(NamedTile<TileQuad>);
-static_assert(SerialisableTile<TileQuad>);
+static_assert(NamedTile<LayeredTileQuad>);
+static_assert(SerialisableTile<LayeredTileQuad>);
+
+struct DataQuad {
+    tile::Id id;
+    unsigned n_tiles = 0;
+    std::array<Data, 4> tiles = {};
+    NetworkInfo network_info() const { return NetworkInfo::join(tiles[0].network_info, tiles[1].network_info, tiles[2].network_info, tiles[3].network_info); }
+    static constexpr std::array<char, 25> version_information = { "TileQuad, version 0.5" };
+};
+static_assert(NamedTile<DataQuad>);
+static_assert(SerialisableTile<DataQuad>);
 
 struct GpuCacheInfo {
     tile::Id id;
 };
 static_assert(NamedTile<GpuCacheInfo>);
 
-struct GpuLayeredTile {
+struct [[deprecated]] GpuLayeredTile {
     tile::Id id;
     tile::SrsAndHeightBounds bounds = {};
     std::shared_ptr<const nucleus::utils::MipmappedColourTexture> ortho;
@@ -116,7 +125,7 @@ struct GpuLayeredTile {
 };
 static_assert(NamedTile<GpuLayeredTile>);
 
-struct GpuTileQuad {
+struct [[deprecated]] GpuTileQuad {
     tile::Id id;
     std::array<GpuLayeredTile, 4> tiles;
 };

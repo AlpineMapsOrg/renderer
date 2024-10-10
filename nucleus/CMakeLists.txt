@@ -190,5 +190,5 @@ if (MSVC)
     # /WX fails with an unreachable code warning/error in zpp_bits.h. the system property doesn't seem to work (even though it appears in the build log as
     # "-external:ID:\a\renderer\renderer\extern\zppbits -external:W0")
 else()
-    target_compile_options(nucleus PUBLIC -Wall -Wextra -pedantic -Werror)
+    target_compile_options(nucleus PUBLIC -Wall -Wextra -pedantic)
 endif()

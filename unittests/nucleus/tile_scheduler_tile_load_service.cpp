@@ -28,7 +28,7 @@
 #include <QImage>
 
 using namespace nucleus::tile_scheduler;
-using nucleus::tile_scheduler::tile_types::TileLayer;
+using TileLayer = nucleus::tile_scheduler::tile_types::Data;
 
 inline std::ostream& operator<<(std::ostream& os, const QString& value)
 {

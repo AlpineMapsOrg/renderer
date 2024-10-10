@@ -138,11 +138,11 @@ std::tuple<QByteArray, QByteArray, QByteArray> example_tile_data()
     return std::make_tuple(ortho_bytes, height_bytes, vectortile_bytes);
 }
 
-nucleus::tile_scheduler::tile_types::TileQuad example_tile_quad_for(const tile::Id& id, unsigned n_children = 4, NetworkInfo::Status status = NetworkInfo::Status::Good)
+nucleus::tile_scheduler::tile_types::LayeredTileQuad example_tile_quad_for(const tile::Id& id, unsigned n_children = 4, NetworkInfo::Status status = NetworkInfo::Status::Good)
 {
     const auto children = id.children();
     REQUIRE(n_children <= 4);
-    nucleus::tile_scheduler::tile_types::TileQuad cpu_quad;
+    nucleus::tile_scheduler::tile_types::LayeredTileQuad cpu_quad;
     cpu_quad.id = id;
     cpu_quad.n_tiles = n_children;
     const auto example_data = example_tile_data();
@@ -157,9 +157,9 @@ nucleus::tile_scheduler::tile_types::TileQuad example_tile_quad_for(const tile::
     return cpu_quad;
 }
 
-std::vector<nucleus::tile_scheduler::tile_types::TileQuad> example_quads_for_steffl_and_gg()
+std::vector<nucleus::tile_scheduler::tile_types::LayeredTileQuad> example_quads_for_steffl_and_gg()
 {
-    static std::vector<nucleus::tile_scheduler::tile_types::TileQuad> retval = {
+    static std::vector<nucleus::tile_scheduler::tile_types::LayeredTileQuad> retval = {
         example_tile_quad_for(tile::Id { 0, { 0, 0 } }),
         example_tile_quad_for(tile::Id { 1, { 1, 1 } }),
         example_tile_quad_for(tile::Id { 2, { 2, 2 } }),
@@ -202,9 +202,9 @@ std::vector<nucleus::tile_scheduler::tile_types::TileQuad> example_quads_for_ste
     };
     return retval;
 }
-std::vector<nucleus::tile_scheduler::tile_types::TileQuad> example_quads_many()
+std::vector<nucleus::tile_scheduler::tile_types::LayeredTileQuad> example_quads_many()
 {
-    static std::vector<nucleus::tile_scheduler::tile_types::TileQuad> retval = []() {
+    static std::vector<nucleus::tile_scheduler::tile_types::LayeredTileQuad> retval = []() {
         auto scheduler = default_scheduler();
         QSignalSpy spy(scheduler.get(), &Scheduler::quads_requested);
         auto camera = nucleus::camera::stored_positions::grossglockner();
@@ -214,7 +214,7 @@ std::vector<nucleus::tile_scheduler::tile_types::TileQuad> example_quads_many()
         REQUIRE(spy.size() == 1);
         const auto quad_ids = spy.front().front().value<std::vector<tile::Id>>();
 
-        std::vector<nucleus::tile_scheduler::tile_types::TileQuad> quads;
+        std::vector<nucleus::tile_scheduler::tile_types::LayeredTileQuad> quads;
         quads.reserve(quad_ids.size());
         for (const auto& id : quad_ids) {
             quads.push_back(example_tile_quad_for(id));

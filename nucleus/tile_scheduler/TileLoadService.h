@@ -51,7 +51,7 @@ public slots:
     void load(const tile::Id& tile_id) const;
 
 signals:
-    void load_finished(tile_types::TileLayer tile) const;
+    void load_finished(tile_types::Data tile) const;
 
 private:
     unsigned m_transfer_timeout = tile_scheduler::constants::default_network_timeout;

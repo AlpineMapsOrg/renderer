@@ -43,19 +43,19 @@ MonolithicScheduler monolithic(TileLoadServicePtr terrain_service,
         auto* sch = scheduler.get();
         SlotLimiter* sl = new SlotLimiter(sch);
         RateLimiter* rl = new RateLimiter(sch);
-        QuadAssembler* qa = new QuadAssembler(sch);
+        QuadAssemblerLayered* qa = new QuadAssemblerLayered(sch);
         LayerAssembler* la = new LayerAssembler(sch);
 
         QObject::connect(sch, &Scheduler::quads_requested, sl, &SlotLimiter::request_quads);
         QObject::connect(sl, &SlotLimiter::quad_requested, rl, &RateLimiter::request_quad);
-        QObject::connect(rl, &RateLimiter::quad_requested, qa, &QuadAssembler::load);
-        QObject::connect(qa, &QuadAssembler::tile_requested, la, &LayerAssembler::load);
+        QObject::connect(rl, &RateLimiter::quad_requested, qa, &QuadAssemblerLayered::load);
+        QObject::connect(qa, &QuadAssemblerLayered::tile_requested, la, &LayerAssembler::load);
         QObject::connect(la, &LayerAssembler::tile_requested, ortho_service.get(), &TileLoadService::load);
         QObject::connect(la, &LayerAssembler::tile_requested, terrain_service.get(), &TileLoadService::load);
         QObject::connect(ortho_service.get(), &TileLoadService::load_finished, la, &LayerAssembler::deliver_ortho);
         QObject::connect(terrain_service.get(), &TileLoadService::load_finished, la, &LayerAssembler::deliver_height);
-        QObject::connect(la, &LayerAssembler::tile_loaded, qa, &QuadAssembler::deliver_tile);
-        QObject::connect(qa, &QuadAssembler::quad_loaded, sl, &SlotLimiter::deliver_quad);
+        QObject::connect(la, &LayerAssembler::tile_loaded, qa, &QuadAssemblerLayered::deliver_tile);
+        QObject::connect(qa, &QuadAssemblerLayered::quad_loaded, sl, &SlotLimiter::deliver_quad);
         QObject::connect(sl, &SlotLimiter::quad_delivered, sch, &Scheduler::receive_quad);
 
 #ifdef ALP_ENABLE_LABELS

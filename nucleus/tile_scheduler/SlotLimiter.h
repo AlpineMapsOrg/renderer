@@ -44,11 +44,11 @@ public:
 
 public slots:
     void request_quads(const std::vector<tile::Id>& id);
-    void deliver_quad(const tile_types::TileQuad& tile);
+    void deliver_quad(const tile_types::LayeredTileQuad& tile);
 
 signals:
     void quad_requested(const tile::Id& tile_id);
-    void quad_delivered(const tile_types::TileQuad& id);
+    void quad_delivered(const tile_types::LayeredTileQuad& id);
 };
 
 }

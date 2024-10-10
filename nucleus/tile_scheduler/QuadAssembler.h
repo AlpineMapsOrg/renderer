@@ -27,9 +27,28 @@
 
 namespace nucleus::tile_scheduler {
 
+class QuadAssemblerLayered : public QObject {
+    Q_OBJECT
+    using TileId2QuadMap = std::unordered_map<tile::Id, tile_types::LayeredTileQuad, tile::Id::Hasher>;
+
+    TileId2QuadMap m_quads;
+
+public:
+    explicit QuadAssemblerLayered(QObject* parent = nullptr);
+    [[nodiscard]] size_t n_items_in_flight() const;
+
+public slots:
+    void load(const tile::Id& tile_id);
+    void deliver_tile(const tile_types::LayeredTile& tile);
+
+signals:
+    void tile_requested(const tile::Id& tile_id);
+    void quad_loaded(const tile_types::LayeredTileQuad& tile);
+};
+
 class QuadAssembler : public QObject {
     Q_OBJECT
-    using TileId2QuadMap = std::unordered_map<tile::Id, tile_types::TileQuad, tile::Id::Hasher>;
+    using TileId2QuadMap = std::unordered_map<tile::Id, tile_types::DataQuad, tile::Id::Hasher>;
 
     TileId2QuadMap m_quads;
 
@@ -39,11 +58,10 @@ public:
 
 public slots:
     void load(const tile::Id& tile_id);
-    void deliver_tile(const tile_types::LayeredTile& tile);
+    void deliver_tile(const tile_types::Data& tile);
 
 signals:
     void tile_requested(const tile::Id& tile_id);
-    void quad_loaded(const tile_types::TileQuad& tile);
+    void quad_loaded(const tile_types::DataQuad& tile);
 };
-
 }

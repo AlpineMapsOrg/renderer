@@ -72,7 +72,7 @@ void Scheduler::update_camera(const camera::Definition& camera)
     schedule_update();
 }
 
-void Scheduler::receive_quad(const tile_types::TileQuad& new_quad)
+void Scheduler::receive_quad(const tile_types::LayeredTileQuad& new_quad)
 {
     using Status = tile_types::NetworkInfo::Status;
 #ifdef __EMSCRIPTEN__
@@ -128,8 +128,8 @@ void Scheduler::set_network_reachability(QNetworkInformation::Reachability reach
 void Scheduler::update_gpu_quads()
 {
     const auto should_refine = tile_scheduler::utils::refineFunctor(m_current_camera, m_aabb_decorator, m_permissible_screen_space_error, m_ortho_tile_size);
-    std::vector<tile_types::TileQuad> gpu_candidates;
-    m_ram_cache.visit([this, &gpu_candidates, &should_refine](const tile_types::TileQuad& quad) {
+    std::vector<tile_types::LayeredTileQuad> gpu_candidates;
+    m_ram_cache.visit([this, &gpu_candidates, &should_refine](const tile_types::LayeredTileQuad& quad) {
         if (!should_refine(quad.id))
             return false;
         if (m_gpu_cached.contains(quad.id))
@@ -233,8 +233,7 @@ void Scheduler::purge_ram_cache()
     }
 
     const auto should_refine = tile_scheduler::utils::refineFunctor(m_current_camera, m_aabb_decorator, m_permissible_screen_space_error, m_ortho_tile_size);
-    m_ram_cache.visit(
-        [&should_refine](const tile_types::TileQuad& quad) { return should_refine(quad.id); });
+    m_ram_cache.visit([&should_refine](const tile_types::LayeredTileQuad& quad) { return should_refine(quad.id); });
     m_ram_cache.purge(m_ram_quad_limit);
     update_stats();
 }
@@ -346,16 +345,9 @@ void Scheduler::set_persist_timeout(unsigned int new_persist_timeout)
     }
 }
 
-const Cache<tile_types::TileQuad>& Scheduler::ram_cache() const
-{
-    return m_ram_cache;
-}
+const Cache<tile_types::LayeredTileQuad>& Scheduler::ram_cache() const { return m_ram_cache; }
 
-Cache<tile_types::TileQuad>& Scheduler::ram_cache()
-{
-    return m_ram_cache;
-}
-
+Cache<tile_types::LayeredTileQuad>& Scheduler::ram_cache() { return m_ram_cache; }
 
 std::filesystem::path Scheduler::disk_cache_path()
 {

@@ -20,15 +20,36 @@
 
 using namespace nucleus::tile_scheduler;
 
-QuadAssembler::QuadAssembler(QObject *parent)
-    : QObject{parent}
+QuadAssemblerLayered::QuadAssemblerLayered(QObject* parent)
+    : QObject { parent }
 {
 }
 
-size_t QuadAssembler::n_items_in_flight() const
+size_t QuadAssemblerLayered::n_items_in_flight() const { return m_quads.size(); }
+
+void QuadAssemblerLayered::load(const tile::Id& tile_id)
 {
-    return m_quads.size();
+    m_quads[tile_id].id = tile_id;
+    for (const auto& child_id : tile_id.children()) {
+        emit tile_requested(child_id);
+    }
 }
+
+void QuadAssemblerLayered::deliver_tile(const tile_types::LayeredTile& tile)
+{
+    auto& quad = m_quads[tile.id.parent()];
+    quad.tiles[quad.n_tiles++] = tile;
+    if (quad.n_tiles == 4) {
+        emit quad_loaded(quad);
+        m_quads.erase(quad.id);
+    }
+}
+QuadAssembler::QuadAssembler(QObject* parent)
+    : QObject { parent }
+{
+}
+
+size_t QuadAssembler::n_items_in_flight() const { return m_quads.size(); }
 
 void QuadAssembler::load(const tile::Id& tile_id)
 {
@@ -38,7 +59,7 @@ void QuadAssembler::load(const tile::Id& tile_id)
     }
 }
 
-void QuadAssembler::deliver_tile(const tile_types::LayeredTile& tile)
+void QuadAssembler::deliver_tile(const tile_types::Data& tile)
 {
     auto& quad = m_quads[tile.id.parent()];
     quad.tiles[quad.n_tiles++] = tile;

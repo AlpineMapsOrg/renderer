@@ -31,8 +31,8 @@ namespace nucleus::tile_scheduler::cache_queries {
 inline float query_altitude(MemoryCache* cache, const glm::dvec2& lat_long)
 {
     const auto world_space = srs::lat_long_to_world(lat_long);
-    nucleus::tile_scheduler::tile_types::TileQuad selected_quad;
-    cache->visit([&](const nucleus::tile_scheduler::tile_types::TileQuad& tile) {
+    nucleus::tile_scheduler::tile_types::LayeredTileQuad selected_quad;
+    cache->visit([&](const nucleus::tile_scheduler::tile_types::LayeredTileQuad& tile) {
         if (srs::tile_bounds(tile.id).contains(world_space)) {
             selected_quad = tile;
             return true;

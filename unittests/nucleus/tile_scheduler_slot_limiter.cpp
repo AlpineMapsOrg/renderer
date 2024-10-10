@@ -75,9 +75,9 @@ TEST_CASE("nucleus/tile_scheduler/slot limiter")
         CHECK(sl.slots_taken() == 2);
         REQUIRE(spy.size() == 2);
 
-        sl.deliver_quad(tile_types::TileQuad { tile::Id { 0, { 0, 0 } } });
+        sl.deliver_quad(tile_types::LayeredTileQuad { tile::Id { 0, { 0, 0 } } });
         CHECK(sl.slots_taken() == 1);
-        sl.deliver_quad(tile_types::TileQuad { tile::Id { 1, { 0, 0 } } });
+        sl.deliver_quad(tile_types::LayeredTileQuad { tile::Id { 1, { 0, 0 } } });
         CHECK(sl.slots_taken() == 0);
     }
 
@@ -93,20 +93,20 @@ TEST_CASE("nucleus/tile_scheduler/slot limiter")
         CHECK(sl.slots_taken() == 2);
         REQUIRE(spy.size() == 2);
 
-        sl.deliver_quad(tile_types::TileQuad { tile::Id { 0, { 0, 0 } } });
+        sl.deliver_quad(tile_types::LayeredTileQuad { tile::Id { 0, { 0, 0 } } });
         CHECK(sl.slots_taken() == 2);
         REQUIRE(spy.size() == 3);
         CHECK(spy[2][0].value<tile::Id>() == tile::Id { 1, { 0, 1 } });
 
-        sl.deliver_quad(tile_types::TileQuad { tile::Id { 1, { 0, 0 } } });
+        sl.deliver_quad(tile_types::LayeredTileQuad { tile::Id { 1, { 0, 0 } } });
         CHECK(sl.slots_taken() == 2);
         REQUIRE(spy.size() == 4);
         CHECK(spy[3][0].value<tile::Id>() == tile::Id { 2, { 0, 0 } });
 
         // running out of tile requests
-        sl.deliver_quad(tile_types::TileQuad { tile::Id { 1, { 0, 1 } } });
+        sl.deliver_quad(tile_types::LayeredTileQuad { tile::Id { 1, { 0, 1 } } });
         CHECK(sl.slots_taken() == 1);
-        sl.deliver_quad(tile_types::TileQuad { tile::Id { 2, { 0, 0 } } });
+        sl.deliver_quad(tile_types::LayeredTileQuad { tile::Id { 2, { 0, 0 } } });
         CHECK(sl.slots_taken() == 0);
         CHECK(spy.size() == 4);
 
@@ -136,7 +136,7 @@ TEST_CASE("nucleus/tile_scheduler/slot limiter")
         CHECK(spy[1][0].value<tile::Id>() == tile::Id { 1, { 0, 0 } });
 
         for (unsigned i = 0; i < 5; ++i) {
-            sl.deliver_quad(tile_types::TileQuad { tile::Id { i, { 0, 0 } } });
+            sl.deliver_quad(tile_types::LayeredTileQuad { tile::Id { i, { 0, 0 } } });
             CHECK(sl.slots_taken() == 2);
 
             REQUIRE(spy.size() == int(3 + i));
@@ -147,9 +147,9 @@ TEST_CASE("nucleus/tile_scheduler/slot limiter")
         CHECK(spy[6][0].value<tile::Id>() == tile::Id { 6, { 0, 0 } });
 
         // running out of tile requests
-        sl.deliver_quad(tile_types::TileQuad { tile::Id { 5, { 0, 0 } } });
+        sl.deliver_quad(tile_types::LayeredTileQuad { tile::Id { 5, { 0, 0 } } });
         CHECK(sl.slots_taken() == 1);
-        sl.deliver_quad(tile_types::TileQuad { tile::Id { 6, { 0, 0 } } });
+        sl.deliver_quad(tile_types::LayeredTileQuad { tile::Id { 6, { 0, 0 } } });
         CHECK(sl.slots_taken() == 0);
         CHECK(spy.size() == 7);
 
@@ -179,21 +179,21 @@ TEST_CASE("nucleus/tile_scheduler/slot limiter")
             tile::Id { 3, { 1, 0 } } }); // new, should go next
         CHECK(sl.slots_taken() == 2);
 
-        sl.deliver_quad(tile_types::TileQuad { tile::Id { 0, { 0, 0 } } });
+        sl.deliver_quad(tile_types::LayeredTileQuad { tile::Id { 0, { 0, 0 } } });
         CHECK(sl.slots_taken() == 2);
         REQUIRE(spy.size() == 3);
         CHECK(spy[2][0].value<tile::Id>() == tile::Id { 2, { 1, 0 } });
         CHECK(sl.slots_taken() == 2);
 
-        sl.deliver_quad(tile_types::TileQuad { tile::Id { 1, { 0, 0 } } });
+        sl.deliver_quad(tile_types::LayeredTileQuad { tile::Id { 1, { 0, 0 } } });
         CHECK(sl.slots_taken() == 2);
         REQUIRE(spy.size() == 4);
         CHECK(spy[3][0].value<tile::Id>() == tile::Id { 3, { 1, 0 } });
 
-        sl.deliver_quad(tile_types::TileQuad { tile::Id { 3, { 1, 0 } } });
+        sl.deliver_quad(tile_types::LayeredTileQuad { tile::Id { 3, { 1, 0 } } });
         CHECK(sl.slots_taken() == 1);
 
-        sl.deliver_quad(tile_types::TileQuad { tile::Id { 2, { 1, 0 } } });
+        sl.deliver_quad(tile_types::LayeredTileQuad { tile::Id { 2, { 1, 0 } } });
         CHECK(sl.slots_taken() == 0);
     }
 
@@ -201,12 +201,12 @@ TEST_CASE("nucleus/tile_scheduler/slot limiter")
     {
         SlotLimiter sl;
         QSignalSpy spy(&sl, &SlotLimiter::quad_delivered);
-        sl.deliver_quad(tile_types::TileQuad { tile::Id { 0, { 0, 0 } }, 4, {} });
+        sl.deliver_quad(tile_types::LayeredTileQuad { tile::Id { 0, { 0, 0 } }, 4, {} });
         REQUIRE(spy.size() == 1);
-        CHECK(spy[0][0].value<tile_types::TileQuad>().id == tile::Id { 0, { 0, 0 } });
+        CHECK(spy[0][0].value<tile_types::LayeredTileQuad>().id == tile::Id { 0, { 0, 0 } });
 
-        sl.deliver_quad(tile_types::TileQuad { tile::Id { 1, { 2, 3 } }, 4, {} });
+        sl.deliver_quad(tile_types::LayeredTileQuad { tile::Id { 1, { 2, 3 } }, 4, {} });
         REQUIRE(spy.size() == 2);
-        CHECK(spy[1][0].value<tile_types::TileQuad>().id == tile::Id { 1, { 2, 3 } });
+        CHECK(spy[1][0].value<tile_types::LayeredTileQuad>().id == tile::Id { 1, { 2, 3 } });
     }
 }

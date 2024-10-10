@@ -25,14 +25,13 @@ using namespace nucleus::tile_scheduler;
 using namespace tile_types;
 
 namespace {
-tile_types::LayeredTile good_tile(const tile::Id& id, const char* ortho_bytes, const char* height_bytes, const char* vector_bytes)
+tile_types::Data good_tile(const tile::Id& id, const char* bytes)
 {
-    return { id, { NetworkInfo::Status::Good, utils::time_since_epoch() }, std::make_shared<QByteArray>(ortho_bytes),
-        std::make_shared<QByteArray>(height_bytes), std::make_shared<QByteArray>(vector_bytes) };
+    return { id, { NetworkInfo::Status::Good, utils::time_since_epoch() }, std::make_shared<QByteArray>(bytes) };
 }
-tile_types::LayeredTile missing_tile(const tile::Id& id) {
-    return { id, { NetworkInfo::Status::NotFound, utils::time_since_epoch() }, std::make_shared<QByteArray>(), std::make_shared<QByteArray>(),
-        std::make_shared<QByteArray>() };
+tile_types::Data missing_tile(const tile::Id& id)
+{
+    return { id, { NetworkInfo::Status::NotFound, utils::time_since_epoch() }, std::make_shared<QByteArray>() };
 }
 }
 
@@ -61,23 +60,23 @@ TEST_CASE("nucleus/tile_scheduler/quad assembler")
 
         assembler.load(tile::Id { 0, { 0, 0 } });
 
-        assembler.deliver_tile(good_tile({ 1, { 0, 0 } }, "ortho 100", "height 100", "vector 100"));
+        assembler.deliver_tile(good_tile({ 1, { 0, 0 } }, "dta 100"));
         CHECK(spy_loaded.empty());
         CHECK(assembler.n_items_in_flight() == 1);
 
-        assembler.deliver_tile(good_tile({ 1, { 0, 1 } }, "ortho 101", "height 101", "vector 101"));
+        assembler.deliver_tile(good_tile({ 1, { 0, 1 } }, "dta 101"));
         CHECK(spy_loaded.empty());
         CHECK(assembler.n_items_in_flight() == 1);
 
-        assembler.deliver_tile(good_tile({ 1, { 1, 0 } }, "ortho 110", "height 110", "vector 110"));
+        assembler.deliver_tile(good_tile({ 1, { 1, 0 } }, "dta 110"));
         CHECK(spy_loaded.empty());
         CHECK(assembler.n_items_in_flight() == 1);
 
-        assembler.deliver_tile(good_tile({ 1, { 1, 1 } }, "ortho 111", "height 111", "vector 111"));
+        assembler.deliver_tile(good_tile({ 1, { 1, 1 } }, "dta 111"));
         CHECK(spy_loaded.size() == 1);
         CHECK(assembler.n_items_in_flight() == 0);
 
-        auto loaded_tile = spy_loaded.constFirst().constFirst().value<tile_types::TileQuad>();
+        auto loaded_tile = spy_loaded.constFirst().constFirst().value<tile_types::DataQuad>();
         CHECK(loaded_tile.id == tile::Id { 0, { 0, 0 } });
         CHECK(loaded_tile.network_info().status == NetworkInfo::Status::Good);
         REQUIRE(loaded_tile.n_tiles == 4);
@@ -86,15 +85,11 @@ TEST_CASE("nucleus/tile_scheduler/quad assembler")
         CHECK(loaded_tile.tiles[2].id == tile::Id { 1, { 1, 0 } });
         CHECK(loaded_tile.tiles[3].id == tile::Id { 1, { 1, 1 } });
         for (unsigned i = 0; i < 4; ++i) {
-            REQUIRE(loaded_tile.tiles[i].height);
-            REQUIRE(loaded_tile.tiles[i].ortho);
-            REQUIRE(loaded_tile.tiles[i].vector_tile);
+            REQUIRE(loaded_tile.tiles[i].data);
 
             const auto tile = loaded_tile.tiles[i];
             const auto number = std::to_string(tile.id.zoom_level) + std::to_string(tile.id.coords.x) + std::to_string(tile.id.coords.y);
-            CHECK(*tile.height == QByteArray((std::string("height ") + number).c_str()));
-            CHECK(*tile.ortho == QByteArray((std::string("ortho ") + number).c_str()));
-            CHECK(*tile.vector_tile == QByteArray((std::string("vector ") + number).c_str()));
+            CHECK(*tile.data == QByteArray((std::string("dta ") + number).c_str()));
         }
     }
 
@@ -105,20 +100,20 @@ TEST_CASE("nucleus/tile_scheduler/quad assembler")
 
         assembler.load(tile::Id { 3, { 4, 5 } }); // happens to be europe ^^
 
-        assembler.deliver_tile(good_tile({ 4, { 8, 10 } }, "ortho 4810", "height 4810", "vector 4810"));
+        assembler.deliver_tile(good_tile({ 4, { 8, 10 } }, "ortho 4810"));
         CHECK(spy_loaded.empty());
 
-        assembler.deliver_tile(good_tile({ 4, { 8, 11 } }, "ortho 4811", "height 4811", "vector 4811"));
+        assembler.deliver_tile(good_tile({ 4, { 8, 11 } }, "ortho 4811"));
         CHECK(spy_loaded.empty());
 
-        assembler.deliver_tile(good_tile({ 4, { 9, 11 } }, "ortho 4911", "height 4911", "vector 4911"));
+        assembler.deliver_tile(good_tile({ 4, { 9, 11 } }, "ortho 4911"));
         CHECK(spy_loaded.empty());
 
-        assembler.deliver_tile(good_tile({ 4, { 9, 10 } }, "ortho 4910", "height 4910", "vector 4910"));
+        assembler.deliver_tile(good_tile({ 4, { 9, 10 } }, "ortho 4910"));
         CHECK(spy_loaded.size() == 1);
         CHECK(assembler.n_items_in_flight() == 0);
 
-        auto loaded_tile = spy_loaded.constFirst().constFirst().value<tile_types::TileQuad>();
+        auto loaded_tile = spy_loaded.constFirst().constFirst().value<tile_types::DataQuad>();
         CHECK(loaded_tile.id == tile::Id { 3, { 4, 5 } });
         REQUIRE(loaded_tile.n_tiles == 4);
         CHECK(loaded_tile.tiles[0].id == tile::Id { 4, { 8, 10 } }); // order should not matter
@@ -126,15 +121,11 @@ TEST_CASE("nucleus/tile_scheduler/quad assembler")
         CHECK(loaded_tile.tiles[2].id == tile::Id { 4, { 9, 11 } });
         CHECK(loaded_tile.tiles[3].id == tile::Id { 4, { 9, 10 } });
         for (unsigned i = 0; i < 4; ++i) {
-            REQUIRE(loaded_tile.tiles[i].height);
-            REQUIRE(loaded_tile.tiles[i].ortho);
-            REQUIRE(loaded_tile.tiles[i].vector_tile);
+            REQUIRE(loaded_tile.tiles[i].data);
 
             const auto tile = loaded_tile.tiles[i];
             const auto number = std::to_string(tile.id.zoom_level) + std::to_string(tile.id.coords.x) + std::to_string(tile.id.coords.y);
-            CHECK(*tile.height == QByteArray((std::string("height ") + number).c_str()));
-            CHECK(*tile.ortho == QByteArray((std::string("ortho ") + number).c_str()));
-            CHECK(*tile.vector_tile == QByteArray((std::string("vector ") + number).c_str()));
+            CHECK(*tile.data == QByteArray((std::string("ortho ") + number).c_str()));
         }
     }
 
@@ -146,35 +137,35 @@ TEST_CASE("nucleus/tile_scheduler/quad assembler")
         assembler.load(tile::Id { 0, { 0, 0 } });
         assembler.load(tile::Id { 3, { 4, 5 } }); // happens to be europe ^^
 
-        assembler.deliver_tile(good_tile({ 4, { 8, 10 } }, "ortho 4810", "height 4810", "vector 4810"));
+        assembler.deliver_tile(good_tile({ 4, { 8, 10 } }, "ortho 4810"));
         CHECK(spy_loaded.empty());
 
-        assembler.deliver_tile(good_tile({ 1, { 0, 1 } }, "ortho 101", "height 101", "vector 101"));
+        assembler.deliver_tile(good_tile({ 1, { 0, 1 } }, "ortho 101"));
         CHECK(spy_loaded.empty());
         CHECK(assembler.n_items_in_flight() == 2);
 
-        assembler.deliver_tile(good_tile({ 4, { 8, 11 } }, "ortho 4811", "height 4811", "vector 4811"));
+        assembler.deliver_tile(good_tile({ 4, { 8, 11 } }, "ortho 4811"));
         CHECK(spy_loaded.empty());
 
-        assembler.deliver_tile(good_tile({ 1, { 1, 0 } }, "ortho 110", "height 110", "vector 110"));
+        assembler.deliver_tile(good_tile({ 1, { 1, 0 } }, "ortho 110"));
         CHECK(spy_loaded.empty());
 
-        assembler.deliver_tile(good_tile({ 4, { 9, 11 } }, "ortho 4911", "height 4911", "vector 4911"));
+        assembler.deliver_tile(good_tile({ 4, { 9, 11 } }, "ortho 4911"));
         CHECK(spy_loaded.empty());
 
-        assembler.deliver_tile(good_tile({ 4, { 9, 10 } }, "ortho 4910", "height 4910", "vector 4910"));
+        assembler.deliver_tile(good_tile({ 4, { 9, 10 } }, "ortho 4910"));
         CHECK(spy_loaded.size() == 1);
         CHECK(assembler.n_items_in_flight() == 1);
 
-        assembler.deliver_tile(good_tile({ 1, { 0, 0 } }, "ortho 100", "height 100", "vector 100"));
+        assembler.deliver_tile(good_tile({ 1, { 0, 0 } }, "ortho 100"));
         CHECK(spy_loaded.size() == 1);
 
-        assembler.deliver_tile(good_tile({ 1, { 1, 1 } }, "ortho 111", "height 111", "vector 111"));
+        assembler.deliver_tile(good_tile({ 1, { 1, 1 } }, "ortho 111"));
         CHECK(spy_loaded.size() == 2);
         CHECK(assembler.n_items_in_flight() == 0);
 
         {
-            auto loaded_tile = spy_loaded[0].constFirst().value<tile_types::TileQuad>();
+            auto loaded_tile = spy_loaded[0].constFirst().value<tile_types::DataQuad>();
             CHECK(loaded_tile.id == tile::Id { 3, { 4, 5 } });
             REQUIRE(loaded_tile.n_tiles == 4);
             CHECK(loaded_tile.tiles[0].id == tile::Id { 4, { 8, 10 } }); // order should not matter
@@ -182,20 +173,16 @@ TEST_CASE("nucleus/tile_scheduler/quad assembler")
             CHECK(loaded_tile.tiles[2].id == tile::Id { 4, { 9, 11 } });
             CHECK(loaded_tile.tiles[3].id == tile::Id { 4, { 9, 10 } });
             for (unsigned i = 0; i < 4; ++i) {
-                REQUIRE(loaded_tile.tiles[i].height);
-                REQUIRE(loaded_tile.tiles[i].ortho);
-                REQUIRE(loaded_tile.tiles[i].vector_tile);
+                REQUIRE(loaded_tile.tiles[i].data);
 
                 const auto tile = loaded_tile.tiles[i];
                 const auto number = std::to_string(tile.id.zoom_level) + std::to_string(tile.id.coords.x) + std::to_string(tile.id.coords.y);
-                CHECK(*tile.height == QByteArray((std::string("height ") + number).c_str()));
-                CHECK(*tile.ortho == QByteArray((std::string("ortho ") + number).c_str()));
-                CHECK(*tile.vector_tile == QByteArray((std::string("vector ") + number).c_str()));
+                CHECK(*tile.data == QByteArray((std::string("ortho ") + number).c_str()));
             }
         }
 
         {
-            auto loaded_tile = spy_loaded[1].constFirst().value<tile_types::TileQuad>();
+            auto loaded_tile = spy_loaded[1].constFirst().value<tile_types::DataQuad>();
             CHECK(loaded_tile.id == tile::Id { 0, { 0, 0 } });
             REQUIRE(loaded_tile.n_tiles == 4);
             CHECK(loaded_tile.tiles[0].id == tile::Id { 1, { 0, 1 } }); // order should not matter
@@ -203,15 +190,11 @@ TEST_CASE("nucleus/tile_scheduler/quad assembler")
             CHECK(loaded_tile.tiles[2].id == tile::Id { 1, { 0, 0 } });
             CHECK(loaded_tile.tiles[3].id == tile::Id { 1, { 1, 1 } });
             for (unsigned i = 0; i < 4; ++i) {
-                REQUIRE(loaded_tile.tiles[i].height);
-                REQUIRE(loaded_tile.tiles[i].ortho);
-                REQUIRE(loaded_tile.tiles[i].vector_tile);
+                REQUIRE(loaded_tile.tiles[i].data);
 
                 const auto tile = loaded_tile.tiles[i];
                 const auto number = std::to_string(tile.id.zoom_level) + std::to_string(tile.id.coords.x) + std::to_string(tile.id.coords.y);
-                CHECK(*tile.height == QByteArray((std::string("height ") + number).c_str()));
-                CHECK(*tile.ortho == QByteArray((std::string("ortho ") + number).c_str()));
-                CHECK(*tile.vector_tile == QByteArray((std::string("vector ") + number).c_str()));
+                CHECK(*tile.data == QByteArray((std::string("ortho ") + number).c_str()));
             }
         }
     }
@@ -224,7 +207,7 @@ TEST_CASE("nucleus/tile_scheduler/quad assembler")
 
         assembler.load(tile::Id { 0, { 0, 0 } });
 
-        assembler.deliver_tile(good_tile({ 1, { 0, 0 } }, "ortho 100", "height 100", "vector 100"));
+        assembler.deliver_tile(good_tile({ 1, { 0, 0 } }, "ortho 100"));
         CHECK(spy_loaded.empty());
         CHECK(assembler.n_items_in_flight() == 1);
 
@@ -232,15 +215,15 @@ TEST_CASE("nucleus/tile_scheduler/quad assembler")
         CHECK(spy_loaded.empty());
         CHECK(assembler.n_items_in_flight() == 1);
 
-        assembler.deliver_tile(good_tile({ 1, { 1, 0 } }, "ortho 110", "height 110", "vector 110"));
+        assembler.deliver_tile(good_tile({ 1, { 1, 0 } }, "ortho 110"));
         CHECK(spy_loaded.empty());
         CHECK(assembler.n_items_in_flight() == 1);
 
-        assembler.deliver_tile(good_tile({ 1, { 1, 1 } }, "ortho 111", "height 111", "vector 111"));
+        assembler.deliver_tile(good_tile({ 1, { 1, 1 } }, "ortho 111"));
         CHECK(spy_loaded.size() == 1);
         CHECK(assembler.n_items_in_flight() == 0);
 
-        auto loaded_tile = spy_loaded.constFirst().constFirst().value<tile_types::TileQuad>();
+        auto loaded_tile = spy_loaded.constFirst().constFirst().value<tile_types::DataQuad>();
         CHECK(loaded_tile.id == tile::Id { 0, { 0, 0 } });
         CHECK(loaded_tile.network_info().status == NetworkInfo::Status::NotFound);
     }

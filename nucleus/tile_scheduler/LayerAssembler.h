@@ -28,7 +28,7 @@ namespace nucleus::tile_scheduler {
 
 class LayerAssembler : public QObject {
     Q_OBJECT
-    using TileId2DataMap = std::unordered_map<tile::Id, tile_types::TileLayer, tile::Id::Hasher>;
+    using TileId2DataMap = std::unordered_map<tile::Id, tile_types::Data, tile::Id::Hasher>;
 
     TileId2DataMap m_ortho_data;
     TileId2DataMap m_height_data;
@@ -37,14 +37,13 @@ class LayerAssembler : public QObject {
 public:
     explicit LayerAssembler(QObject* parent = nullptr);
     [[nodiscard]] size_t n_items_in_flight() const;
-    static tile_types::LayeredTile join(
-        const tile_types::TileLayer& ortho_tile, const tile_types::TileLayer& height_tile, const tile_types::TileLayer& vector_tile);
+    static tile_types::LayeredTile join(const tile_types::Data& ortho_tile, const tile_types::Data& height_tile, const tile_types::Data& vector_tile);
 
 public slots:
     void load(const tile::Id& tile_id);
-    void deliver_ortho(const tile_types::TileLayer& tile);
-    void deliver_height(const tile_types::TileLayer& tile);
-    void deliver_vectortile(const tile_types::TileLayer& tile);
+    void deliver_ortho(const tile_types::Data& tile);
+    void deliver_height(const tile_types::Data& tile);
+    void deliver_vectortile(const tile_types::Data& tile);
 
 signals:
     void tile_requested(const tile::Id& tile_id);

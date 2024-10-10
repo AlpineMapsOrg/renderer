@@ -26,13 +26,13 @@ using namespace nucleus::tile_scheduler;
 using namespace tile_types;
 
 namespace {
-TileLayer good_tile(const tile::Id& id, const char* bytes) {
+Data good_tile(const tile::Id& id, const char* bytes) {
     return {id, {NetworkInfo::Status::Good, utils::time_since_epoch()}, std::make_shared<QByteArray>(bytes)};
 }
-TileLayer missing_tile(const tile::Id& id) {
+Data missing_tile(const tile::Id& id) {
     return {id, {NetworkInfo::Status::NotFound, utils::time_since_epoch()}, std::make_shared<QByteArray>()};
 }
-TileLayer network_failed_tile(const tile::Id& id) {
+Data network_failed_tile(const tile::Id& id) {
     return {id, {NetworkInfo::Status::NetworkError, utils::time_since_epoch()}, std::make_shared<QByteArray>()};
 }
 }

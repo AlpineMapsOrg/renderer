@@ -54,10 +54,10 @@ QByteArray white_jpeg_tile(unsigned int size)
     return arr;
 }
 
-tile_types::TileQuad example_tile_quad_for(const tile::Id& id, float altitude)
+tile_types::LayeredTileQuad example_tile_quad_for(const tile::Id& id, float altitude)
 {
     const auto children = id.children();
-    tile_types::TileQuad cpu_quad;
+    tile_types::LayeredTileQuad cpu_quad;
     cpu_quad.id = id;
     cpu_quad.n_tiles = 4;
     const auto ortho_photo = white_jpeg_tile(256);
@@ -75,7 +75,7 @@ tile_types::TileQuad example_tile_quad_for(const tile::Id& id, float altitude)
 
 TEST_CASE("cache_queries")
 {
-    Cache<tile_types::TileQuad> cache;
+    Cache<tile_types::LayeredTileQuad> cache;
     cache.insert(example_tile_quad_for(tile::Id{0, {0, 0}}, 1000.0f));
     cache.insert(example_tile_quad_for(tile::Id{1, {0, 0}}, 3000.0f));
     cache.insert(example_tile_quad_for(tile::Id{1, {0, 1}}, 1000.0f));

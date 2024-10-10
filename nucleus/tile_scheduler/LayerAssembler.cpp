@@ -28,7 +28,7 @@ LayerAssembler::LayerAssembler(QObject* parent)
 size_t LayerAssembler::n_items_in_flight() const { return m_height_data.size() + m_ortho_data.size() + m_vector_tile_data.size(); }
 
 tile_types::LayeredTile LayerAssembler::join(
-    const tile_types::TileLayer& ortho_tile, const tile_types::TileLayer& height_tile, const tile_types::TileLayer& vector_tile)
+    const tile_types::Data& ortho_tile, const tile_types::Data& height_tile, const tile_types::Data& vector_tile)
 {
     assert(ortho_tile.id == height_tile.id);
     assert(ortho_tile.id == vector_tile.id);
@@ -48,19 +48,19 @@ void LayerAssembler::load(const tile::Id& tile_id)
     emit tile_requested(tile_id);
 }
 
-void LayerAssembler::deliver_ortho(const tile_types::TileLayer& tile)
+void LayerAssembler::deliver_ortho(const tile_types::Data& tile)
 {
     m_ortho_data[tile.id] = tile;
     check_and_emit(tile.id);
 }
 
-void LayerAssembler::deliver_height(const tile_types::TileLayer& tile)
+void LayerAssembler::deliver_height(const tile_types::Data& tile)
 {
     m_height_data[tile.id] = tile;
     check_and_emit(tile.id);
 }
 
-void LayerAssembler::deliver_vectortile(const tile_types::TileLayer& tile)
+void LayerAssembler::deliver_vectortile(const tile_types::Data& tile)
 {
     m_vector_tile_data[tile.id] = tile;
     check_and_emit(tile.id);
