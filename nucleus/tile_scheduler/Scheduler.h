@@ -51,7 +51,6 @@ public:
 
     explicit Scheduler(QObject* parent = nullptr);
     // Seconds constructor still here for tests, Is it necessary?
-    explicit Scheduler(const QByteArray& default_ortho_tile, const QByteArray& default_height_tile, QObject* parent = nullptr);
     ~Scheduler() override;
 
     void set_update_timeout(unsigned int new_update_timeout);
@@ -69,8 +68,8 @@ public:
 
     void set_purge_timeout(unsigned int new_purge_timeout);
 
-    const Cache<tile_types::LayeredTileQuad>& ram_cache() const;
-    Cache<tile_types::LayeredTileQuad>& ram_cache();
+    const Cache<tile_types::DataQuad>& ram_cache() const;
+    Cache<tile_types::DataQuad>& ram_cache();
 
     static std::filesystem::path disk_cache_path();
 
@@ -85,16 +84,16 @@ public:
     void set_ortho_tile_compression_algorithm(nucleus::utils::ColourTexture::Format new_ortho_tile_compression_algorithm);
 
     void set_dataquerier(std::shared_ptr<DataQuerier> dataquerier);
+    std::shared_ptr<DataQuerier> dataquerier() const;
 
 signals:
     void statistics_updated(Statistics stats);
     void quad_received(const tile::Id& ids);
     void quads_requested(const std::vector<tile::Id>& ids);
-    void gpu_quads_updated(const std::vector<tile_types::GpuTileQuad>& new_quads, const std::vector<tile::Id>& deleted_quads);
 
 public slots:
     void update_camera(const nucleus::camera::Definition& camera);
-    void receive_quad(const tile_types::LayeredTileQuad& new_quad);
+    void receive_quad(const tile_types::DataQuad& new_quad);
     void set_network_reachability(QNetworkInformation::Reachability reachability);
     void update_gpu_quads();
     void send_quad_requests();
@@ -107,9 +106,10 @@ protected:
     void schedule_persist();
     void update_stats();
     std::vector<tile::Id> tiles_for_current_camera_position() const;
-    std::shared_ptr<DataQuerier> m_dataquerier;
+    virtual void transform_and_emit(const std::vector<tile_types::DataQuad>& new_quads, const std::vector<tile::Id>& deleted_quads) = 0;
 
 private:
+    std::shared_ptr<DataQuerier> m_dataquerier;
     unsigned m_retirement_age_for_tile_cache = 10u * 24u * 3600u * 1000u; // 10 days
     float m_permissible_screen_space_error = 2;
     unsigned m_update_timeout = 100;
@@ -127,11 +127,8 @@ private:
     std::unique_ptr<QTimer> m_persist_timer;
     camera::Definition m_current_camera;
     utils::AabbDecoratorPtr m_aabb_decorator;
-    Cache<tile_types::LayeredTileQuad> m_ram_cache;
+    Cache<tile_types::DataQuad> m_ram_cache;
     Cache<tile_types::GpuCacheInfo> m_gpu_cached;
-    Raster<glm::u8vec4> m_default_ortho_raster;
-    Raster<glm::u8vec4> m_default_height_raster;
-    std::shared_ptr<QByteArray> m_default_vector_tile;
     nucleus::utils::ColourTexture::Format m_ortho_tile_compression_algorithm = nucleus::utils::ColourTexture::Format::Uncompressed_RGBA;
 
 };

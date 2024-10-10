@@ -39,9 +39,7 @@
 using namespace nucleus::tile_scheduler;
 
 Scheduler::Scheduler(QObject* parent)
-    : QObject { parent},
-    m_default_ortho_raster(glm::uvec2(m_ortho_tile_size), { 255, 255, 255, 255}),
-    m_default_height_raster(glm::uvec2(m_height_tile_size), { 0, 0, 0, 255})
+    : QObject { parent }
 {
     m_update_timer = std::make_unique<QTimer>(this);
     m_update_timer->setSingleShot(true);
@@ -57,13 +55,6 @@ Scheduler::Scheduler(QObject* parent)
     connect(m_persist_timer.get(), &QTimer::timeout, this, &Scheduler::persist_tiles);
 }
 
-Scheduler::Scheduler(const QByteArray& default_ortho_tile, const QByteArray& default_height_tile, QObject* parent)
-    : Scheduler(parent)
-{
-    m_default_ortho_raster = nucleus::utils::image_loader::rgba8(default_ortho_tile);
-    m_default_height_raster = nucleus::utils::image_loader::rgba8(default_height_tile);
-}
-
 Scheduler::~Scheduler() = default;
 
 void Scheduler::update_camera(const camera::Definition& camera)
@@ -72,7 +63,7 @@ void Scheduler::update_camera(const camera::Definition& camera)
     schedule_update();
 }
 
-void Scheduler::receive_quad(const tile_types::LayeredTileQuad& new_quad)
+void Scheduler::receive_quad(const tile_types::DataQuad& new_quad)
 {
     using Status = tile_types::NetworkInfo::Status;
 #ifdef __EMSCRIPTEN__
@@ -128,8 +119,8 @@ void Scheduler::set_network_reachability(QNetworkInformation::Reachability reach
 void Scheduler::update_gpu_quads()
 {
     const auto should_refine = tile_scheduler::utils::refineFunctor(m_current_camera, m_aabb_decorator, m_permissible_screen_space_error, m_ortho_tile_size);
-    std::vector<tile_types::LayeredTileQuad> gpu_candidates;
-    m_ram_cache.visit([this, &gpu_candidates, &should_refine](const tile_types::LayeredTileQuad& quad) {
+    std::vector<tile_types::DataQuad> gpu_candidates;
+    m_ram_cache.visit([this, &gpu_candidates, &should_refine](const tile_types::DataQuad& quad) {
         if (!should_refine(quad.id))
             return false;
         if (m_gpu_cached.contains(quad.id))
@@ -163,54 +154,7 @@ void Scheduler::update_gpu_quads()
         return false;
     });
 
-    std::vector<tile_types::GpuTileQuad> new_gpu_quads;
-    new_gpu_quads.reserve(gpu_candidates.size());
-    std::transform(gpu_candidates.cbegin(),
-                   gpu_candidates.cend(),
-                   std::back_inserter(new_gpu_quads),
-                   [this](const auto& quad) {
-                       // create GpuQuad based on cpu quad
-                       tile_types::GpuTileQuad gpu_quad;
-                       gpu_quad.id = quad.id;
-                       assert(quad.n_tiles == 4);
-                       for (unsigned i = 0; i < 4; ++i) {
-                           gpu_quad.tiles[i].id = quad.tiles[i].id;
-                           gpu_quad.tiles[i].bounds = m_aabb_decorator->aabb(quad.tiles[i].id);
-
-                           if (quad.tiles[i].ortho->size()) {
-                               // Ortho image is available
-                               Raster<glm::u8vec4> ortho_raster = nucleus::utils::image_loader::rgba8(*quad.tiles[i].ortho.get());
-                               gpu_quad.tiles[i].ortho = std::make_shared<nucleus::utils::MipmappedColourTexture>(
-                                   generate_mipmapped_colour_texture(ortho_raster, m_ortho_tile_compression_algorithm));
-                           } else {
-                               // Ortho image is not available (use white default tile)
-                               gpu_quad.tiles[i].ortho = std::make_shared<nucleus::utils::MipmappedColourTexture>(
-                                   generate_mipmapped_colour_texture(m_default_ortho_raster, m_ortho_tile_compression_algorithm));
-                           }
-
-                           if (quad.tiles[i].height->size()) {
-                               // Height image is available
-                               Raster<glm::u8vec4> height_image = nucleus::utils::image_loader::rgba8(*quad.tiles[i].height.get());
-                               auto heightraster = nucleus::utils::tile_conversion::to_u16raster(height_image);
-                               gpu_quad.tiles[i].height = std::make_shared<nucleus::Raster<uint16_t>>(std::move(heightraster));
-                           } else {
-                               // Height image is not available (use black default tile)
-                               auto heightraster = nucleus::utils::tile_conversion::to_u16raster(m_default_height_raster);
-                               gpu_quad.tiles[i].height = std::make_shared<nucleus::Raster<uint16_t>>(std::move(heightraster));
-                           }
-
-#ifdef ALP_ENABLE_LABELS
-                           const auto* vectortile_data = m_default_vector_tile.get();
-                           vectortile_data = quad.tiles[i].vector_tile.get();
-                           // moved into this if -> since vector_tile might be empty
-                           auto pois = nucleus::vector_tile::parse::points_of_interest(*vectortile_data, m_dataquerier.get());
-                           gpu_quad.tiles[i].vector_tile = std::make_shared<vector_tile::PointOfInterestCollection>(std::move(pois));
-#endif
-                       }
-                       return gpu_quad;
-                   });
-
-    emit gpu_quads_updated(new_gpu_quads, { superfluous_ids.cbegin(), superfluous_ids.cend() });
+    transform_and_emit(gpu_candidates, { superfluous_ids.cbegin(), superfluous_ids.cend() });
     update_stats();
 }
 
@@ -233,7 +177,7 @@ void Scheduler::purge_ram_cache()
     }
 
     const auto should_refine = tile_scheduler::utils::refineFunctor(m_current_camera, m_aabb_decorator, m_permissible_screen_space_error, m_ortho_tile_size);
-    m_ram_cache.visit([&should_refine](const tile_types::LayeredTileQuad& quad) { return should_refine(quad.id); });
+    m_ram_cache.visit([&should_refine](const tile_types::DataQuad& quad) { return should_refine(quad.id); });
     m_ram_cache.purge(m_ram_quad_limit);
     update_stats();
 }
@@ -318,6 +262,8 @@ std::vector<tile::Id> Scheduler::tiles_for_current_camera_position() const
     return all_inner_nodes;
 }
 
+std::shared_ptr<nucleus::DataQuerier> Scheduler::dataquerier() const { return m_dataquerier; }
+
 nucleus::utils::ColourTexture::Format Scheduler::ortho_tile_compression_algorithm() const { return m_ortho_tile_compression_algorithm; }
 
 void Scheduler::set_ortho_tile_compression_algorithm(nucleus::utils::ColourTexture::Format new_ortho_tile_compression_algorithm)
@@ -345,9 +291,9 @@ void Scheduler::set_persist_timeout(unsigned int new_persist_timeout)
     }
 }
 
-const Cache<tile_types::LayeredTileQuad>& Scheduler::ram_cache() const { return m_ram_cache; }
+const Cache<tile_types::DataQuad>& Scheduler::ram_cache() const { return m_ram_cache; }
 
-Cache<tile_types::LayeredTileQuad>& Scheduler::ram_cache() { return m_ram_cache; }
+Cache<tile_types::DataQuad>& Scheduler::ram_cache() { return m_ram_cache; }
 
 std::filesystem::path Scheduler::disk_cache_path()
 {
