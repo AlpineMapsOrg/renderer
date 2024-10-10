@@ -17,11 +17,12 @@
  *****************************************************************************/
 
 #include "setup.h"
-#include "nucleus/tile_scheduler/LayerAssembler.h"
-#include "nucleus/tile_scheduler/QuadAssembler.h"
-#include "nucleus/tile_scheduler/RateLimiter.h"
-#include "nucleus/tile_scheduler/Scheduler.h"
-#include "nucleus/tile_scheduler/SlotLimiter.h"
+#include "LayerAssembler.h"
+#include "QuadAssembler.h"
+#include "RateLimiter.h"
+#include "Scheduler.h"
+#include "SlotLimiter.h"
+#include "TileLoadService.h"
 #include <QThread>
 
 namespace nucleus::tile_scheduler::setup {

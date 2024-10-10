@@ -62,11 +62,12 @@
 #include <chrono>
 #include <gl_engine/Context.h>
 #include <gl_engine/Texture.h>
-#include <nucleus/Controller.h>
 #include <nucleus/DataQuerier.h>
 #include <nucleus/camera/Controller.h>
 #include <nucleus/camera/PositionStorage.h>
 #include <nucleus/tile_scheduler/Scheduler.h>
+#include <nucleus/tile_scheduler/TileLoadService.h>
+#include <nucleus/tile_scheduler/setup.h>
 
 using namespace std::chrono_literals;
 
@@ -129,8 +130,8 @@ int main(int argc, char* argv[])
     glWindow.render_window()->set_quad_limit(512);
     glWindow.render_window()->set_aabb_decorator(decorator);
 
-    auto camera_controller
-        = nucleus::camera::Controller(nucleus::camera::PositionStorage::instance()->get("grossglockner"), glWindow.render_window(), data_querier.get());
+    nucleus::camera::Controller camera_controller(
+        nucleus::camera::PositionStorage::instance()->get("grossglockner"), glWindow.render_window(), data_querier.get());
 
     QObject::connect(&camera_controller, &CameraController::definition_changed, &glWindow, [&](const nucleus::camera::Definition&) {
         QTimer::singleShot(5ms, &camera_controller, &CameraController::advance_camera);

@@ -18,9 +18,14 @@
 
 #pragma once
 
-#include "Scheduler.h"
-#include "TileLoadService.h"
+#include "utils.h"
+#include <QThread>
 #include <memory>
+
+namespace nucleus::tile_scheduler {
+class Scheduler;
+class TileLoadService;
+} // namespace nucleus::tile_scheduler
 
 namespace nucleus::tile_scheduler::setup {
 
