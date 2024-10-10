@@ -43,7 +43,7 @@
 #include <nucleus/map_label/MapLabelFilter.h>
 #include <nucleus/picker/PickerManager.h>
 #include <nucleus/srs.h>
-#include <nucleus/tile_scheduler/Scheduler.h>
+#include <nucleus/tile_scheduler/OldScheduler.h>
 #include <nucleus/utils/UrlModifier.h>
 #include <nucleus/utils/sun_calculations.h>
 
@@ -138,14 +138,14 @@ QQuickFramebufferObject::Renderer* TerrainRendererItem::createRenderer() const
         const auto permissible_error = 1.0f / new_render_quality;
         tile_scheduler->set_permissible_screen_space_error(permissible_error);
     });
-    connect(this, &TerrainRendererItem::tile_cache_size_changed, tile_scheduler, &nucleus::tile_scheduler::Scheduler::set_ram_quad_limit);
-    connect(tile_scheduler, &nucleus::tile_scheduler::Scheduler::quads_requested, this, [this](const std::vector<tile::Id>& ids) {
+    connect(this, &TerrainRendererItem::tile_cache_size_changed, tile_scheduler, &nucleus::tile_scheduler::OldScheduler::set_ram_quad_limit);
+    connect(tile_scheduler, &nucleus::tile_scheduler::OldScheduler::quads_requested, this, [this](const std::vector<tile::Id>& ids) {
         const_cast<TerrainRendererItem*>(this)->set_queued_tiles(unsigned(ids.size()));
     });
-    connect(tile_scheduler, &nucleus::tile_scheduler::Scheduler::quad_received, this, [this]() {
+    connect(tile_scheduler, &nucleus::tile_scheduler::OldScheduler::quad_received, this, [this]() {
         const_cast<TerrainRendererItem*>(this)->set_queued_tiles(std::max(this->queued_tiles(), 1u) - 1);
     });
-    connect(tile_scheduler, &nucleus::tile_scheduler::Scheduler::statistics_updated, this, [this](const nucleus::tile_scheduler::Scheduler::Statistics& stats) {
+    connect(tile_scheduler, &nucleus::tile_scheduler::OldScheduler::statistics_updated, this, [this](const nucleus::tile_scheduler::OldScheduler::Statistics& stats) {
         const_cast<TerrainRendererItem*>(this)->set_cached_tiles(stats.n_tiles_in_ram_cache);
     });
 
@@ -162,7 +162,7 @@ QQuickFramebufferObject::Renderer* TerrainRendererItem::createRenderer() const
     connect(r->glWindow(), &gl_engine::Window::report_measurements, TimerFrontendManager::instance(), &TimerFrontendManager::receive_measurements);
 #endif
 
-    connect(tile_scheduler, &nucleus::tile_scheduler::Scheduler::gpu_quads_updated, RenderThreadNotifier::instance(), &RenderThreadNotifier::notify);
+    connect(tile_scheduler, &nucleus::tile_scheduler::OldScheduler::gpu_quads_updated, RenderThreadNotifier::instance(), &RenderThreadNotifier::notify);
 
     // We now have to initialize everything based on the url, but we need to do this on the thread this instance
     // belongs to. (gui thread?) Therefore we use the following signal to signal the init process

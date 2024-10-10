@@ -23,7 +23,7 @@
 #include <memory>
 
 namespace nucleus::tile_scheduler {
-class Scheduler;
+class OldScheduler;
 class TileLoadService;
 } // namespace nucleus::tile_scheduler
 
@@ -32,7 +32,7 @@ namespace nucleus::tile_scheduler::setup {
 using TileLoadServicePtr = std::unique_ptr<TileLoadService>;
 
 struct MonolithicScheduler {
-    std::shared_ptr<Scheduler> scheduler;
+    std::shared_ptr<OldScheduler> scheduler;
     std::unique_ptr<QThread> thread;
     TileLoadServicePtr terrain_service;
     TileLoadServicePtr ortho_service;

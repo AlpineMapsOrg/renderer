@@ -17,7 +17,7 @@
  *****************************************************************************/
 
 #include "nucleus/tile_scheduler/Cache.h"
-#include "nucleus/tile_scheduler/Scheduler.h"
+#include "nucleus/tile_scheduler/OldScheduler.h"
 #include "nucleus/tile_scheduler/cache_quieries.h"
 #include "nucleus/tile_scheduler/tile_types.h"
 #include "radix/height_encoding.h"

@@ -74,6 +74,7 @@ qt_add_library(nucleus STATIC
     tile_scheduler/QuadAssembler.h tile_scheduler/QuadAssembler.cpp
     tile_scheduler/Cache.h
     tile_scheduler/TileLoadService.h tile_scheduler/TileLoadService.cpp
+    tile_scheduler/OldScheduler.h tile_scheduler/OldScheduler.cpp
     tile_scheduler/Scheduler.h tile_scheduler/Scheduler.cpp
     tile_scheduler/SlotLimiter.h tile_scheduler/SlotLimiter.cpp
     tile_scheduler/RateLimiter.h tile_scheduler/RateLimiter.cpp

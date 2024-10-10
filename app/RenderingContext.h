@@ -65,7 +65,7 @@ public:
 
     [[nodiscard]] std::shared_ptr<nucleus::DataQuerier> data_querier() const;
 
-    [[nodiscard]] std::shared_ptr<nucleus::tile_scheduler::Scheduler> scheduler() const;
+    [[nodiscard]] std::shared_ptr<nucleus::tile_scheduler::OldScheduler> scheduler() const;
 
     [[nodiscard]] std::shared_ptr<nucleus::picker::PickerManager> picker_manager() const;
 

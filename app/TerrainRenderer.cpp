@@ -34,14 +34,14 @@
 #include <nucleus/camera/PositionStorage.h>
 #include <nucleus/map_label/MapLabelFilter.h>
 #include <nucleus/picker/PickerManager.h>
-#include <nucleus/tile_scheduler/Scheduler.h>
+#include <nucleus/tile_scheduler/OldScheduler.h>
 #include <nucleus/utils/thread.h>
 
 TerrainRenderer::TerrainRenderer()
 {
     using nucleus::maplabel::MapLabelFilter;
     using nucleus::picker::PickerManager;
-    using nucleus::tile_scheduler::Scheduler;
+    using Scheduler = nucleus::tile_scheduler::OldScheduler;
 
     auto ctx = RenderingContext::instance();
     ctx->initialise();

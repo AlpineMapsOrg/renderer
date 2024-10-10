@@ -26,13 +26,13 @@
 #include <QImage>
 
 #include "nucleus/camera/PositionStorage.h"
-#include "nucleus/tile_scheduler/Scheduler.h"
+#include "nucleus/tile_scheduler/OldScheduler.h"
 #include "nucleus/tile_scheduler/tile_types.h"
 #include "nucleus/tile_scheduler/utils.h"
 #include "radix/TileHeights.h"
 #include "test_helpers.h"
 
-using nucleus::tile_scheduler::Scheduler;
+using Scheduler = nucleus::tile_scheduler::OldScheduler;
 using namespace nucleus::tile_scheduler::tile_types;
 
 namespace {

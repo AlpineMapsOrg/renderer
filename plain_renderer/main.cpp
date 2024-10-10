@@ -65,7 +65,7 @@
 #include <nucleus/DataQuerier.h>
 #include <nucleus/camera/Controller.h>
 #include <nucleus/camera/PositionStorage.h>
-#include <nucleus/tile_scheduler/Scheduler.h>
+#include <nucleus/tile_scheduler/OldScheduler.h>
 #include <nucleus/tile_scheduler/TileLoadService.h>
 #include <nucleus/tile_scheduler/setup.h>
 
@@ -81,7 +81,7 @@ using namespace std::chrono_literals;
 
 using nucleus::AbstractRenderWindow;
 using nucleus::DataQuerier;
-using nucleus::tile_scheduler::Scheduler;
+using Scheduler = nucleus::tile_scheduler::OldScheduler;
 using nucleus::tile_scheduler::TileLoadService;
 using CameraController = nucleus::camera::Controller;
 

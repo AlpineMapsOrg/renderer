@@ -24,7 +24,7 @@
 #include <nucleus/camera/PositionStorage.h>
 #include <nucleus/map_label/MapLabelFilter.h>
 #include <nucleus/picker/PickerManager.h>
-#include <nucleus/tile_scheduler/Scheduler.h>
+#include <nucleus/tile_scheduler/OldScheduler.h>
 #include <nucleus/tile_scheduler/TileLoadService.h>
 #include <nucleus/utils/thread.h>
 
@@ -95,13 +95,13 @@ void RenderingContext::initialise()
         m_picker_manager->moveToThread(m_scheduler.thread.get());
         m_label_filter->moveToThread(m_scheduler.thread.get());
     }
-    connect(m_scheduler.scheduler.get(), &Scheduler::gpu_quads_updated, m_picker_manager.get(), &PickerManager::update_quads);
-    connect(m_scheduler.scheduler.get(), &Scheduler::gpu_quads_updated, m_label_filter.get(), &MapLabelFilter::update_quads);
+    connect(m_scheduler.scheduler.get(), &OldScheduler::gpu_quads_updated, m_picker_manager.get(), &PickerManager::update_quads);
+    connect(m_scheduler.scheduler.get(), &OldScheduler::gpu_quads_updated, m_label_filter.get(), &MapLabelFilter::update_quads);
 
     if (QNetworkInformation::loadDefaultBackend() && QNetworkInformation::instance()) {
         QNetworkInformation* n = QNetworkInformation::instance();
         m_scheduler.scheduler->set_network_reachability(n->reachability());
-        connect(n, &QNetworkInformation::reachabilityChanged, m_scheduler.scheduler.get(), &Scheduler::set_network_reachability);
+        connect(n, &QNetworkInformation::reachabilityChanged, m_scheduler.scheduler.get(), &OldScheduler::set_network_reachability);
     }
 
     m_engine_context = std::make_shared<gl_engine::Context>();
@@ -131,7 +131,7 @@ std::shared_ptr<nucleus::DataQuerier> RenderingContext::data_querier() const
     return m_data_querier;
 }
 
-std::shared_ptr<Scheduler> RenderingContext::scheduler() const
+std::shared_ptr<OldScheduler> RenderingContext::scheduler() const
 {
     QMutexLocker locker(&m_shared_ptr_mutex);
     return m_scheduler.scheduler;

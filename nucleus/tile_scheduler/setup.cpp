@@ -20,7 +20,7 @@
 #include "LayerAssembler.h"
 #include "QuadAssembler.h"
 #include "RateLimiter.h"
-#include "Scheduler.h"
+#include "OldScheduler.h"
 #include "SlotLimiter.h"
 #include "TileLoadService.h"
 #include <QThread>
@@ -32,7 +32,7 @@ MonolithicScheduler monolithic(TileLoadServicePtr terrain_service,
     TileLoadServicePtr vector_service,
     const tile_scheduler::utils::AabbDecoratorPtr& aabb_decorator)
 {
-    auto scheduler = std::make_shared<nucleus::tile_scheduler::Scheduler>();
+    auto scheduler = std::make_shared<nucleus::tile_scheduler::OldScheduler>();
 
     scheduler->read_disk_cache();
     scheduler->set_gpu_quad_limit(512);
@@ -46,7 +46,7 @@ MonolithicScheduler monolithic(TileLoadServicePtr terrain_service,
         QuadAssemblerLayered* qa = new QuadAssemblerLayered(sch);
         LayerAssembler* la = new LayerAssembler(sch);
 
-        QObject::connect(sch, &Scheduler::quads_requested, sl, &SlotLimiter::request_quads);
+        QObject::connect(sch, &OldScheduler::quads_requested, sl, &SlotLimiter::request_quads);
         QObject::connect(sl, &SlotLimiter::quad_requested, rl, &RateLimiter::request_quad);
         QObject::connect(rl, &RateLimiter::quad_requested, qa, &QuadAssemblerLayered::load);
         QObject::connect(qa, &QuadAssemblerLayered::tile_requested, la, &LayerAssembler::load);
@@ -56,7 +56,7 @@ MonolithicScheduler monolithic(TileLoadServicePtr terrain_service,
         QObject::connect(terrain_service.get(), &TileLoadService::load_finished, la, &LayerAssembler::deliver_height);
         QObject::connect(la, &LayerAssembler::tile_loaded, qa, &QuadAssemblerLayered::deliver_tile);
         QObject::connect(qa, &QuadAssemblerLayered::quad_loaded, sl, &SlotLimiter::deliver_quad);
-        QObject::connect(sl, &SlotLimiter::quad_delivered, sch, &Scheduler::receive_quad);
+        QObject::connect(sl, &SlotLimiter::quad_delivered, sch, &OldScheduler::receive_quad);
 
 #ifdef ALP_ENABLE_LABELS
         // m_label_filter = new MapLabelFilter(sch);
@@ -67,7 +67,7 @@ MonolithicScheduler monolithic(TileLoadServicePtr terrain_service,
     if (QNetworkInformation::loadDefaultBackend() && QNetworkInformation::instance()) {
         QNetworkInformation* n = QNetworkInformation::instance();
         scheduler->set_network_reachability(n->reachability());
-        QObject::connect(n, &QNetworkInformation::reachabilityChanged, scheduler.get(), &Scheduler::set_network_reachability);
+        QObject::connect(n, &QNetworkInformation::reachabilityChanged, scheduler.get(), &OldScheduler::set_network_reachability);
     }
 
     std::unique_ptr<QThread> thread = {};
