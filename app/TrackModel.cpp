@@ -28,6 +28,7 @@
 
 #include "RenderThreadNotifier.h"
 #include "RenderingContext.h"
+#include <gl_engine/Context.h>
 
 TrackModel::TrackModel(QObject* parent)
     : QObject { parent }

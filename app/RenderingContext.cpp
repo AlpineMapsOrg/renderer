@@ -19,7 +19,9 @@
 #include "RenderingContext.h"
 
 #include "RenderThreadNotifier.h"
+#include <QMutex>
 #include <QThread>
+#include <gl_engine/Context.h>
 #include <gl_engine/MapLabelManager.h>
 #include <nucleus/DataQuerier.h>
 #include <nucleus/camera/Controller.h>
@@ -29,6 +31,7 @@
 #include <nucleus/picker/PickerManager.h>
 #include <nucleus/tile_scheduler/OldScheduler.h>
 #include <nucleus/tile_scheduler/TileLoadService.h>
+#include <nucleus/tile_scheduler/setup.h>
 #include <nucleus/utils/thread.h>
 
 using namespace nucleus::tile_scheduler;
@@ -38,6 +41,18 @@ using nucleus::DataQuerier;
 
 struct RenderingContext::Data {
     nucleus::map_label::setup::SchedulerHolder map_label;
+    // WARNING: gl_engine::Context must be on the rendering thread!!
+    mutable QMutex shared_ptr_mutex; // protects the shared_ptr
+    std::shared_ptr<gl_engine::Context> engine_context;
+    QThread* render_thread = nullptr;
+
+    // the ones below are on the scheduler thread.
+    nucleus::tile_scheduler::setup::MonolithicScheduler scheduler;
+    std::shared_ptr<nucleus::DataQuerier> data_querier;
+    std::unique_ptr<nucleus::camera::Controller> camera_controller;
+    std::shared_ptr<nucleus::maplabel::MapLabelFilter> label_filter;
+    std::shared_ptr<nucleus::picker::PickerManager> picker_manager;
+    std::shared_ptr<nucleus::tile_scheduler::utils::AabbDecorator> aabb_decorator;
 };
 
 RenderingContext::RenderingContext(QObject* parent)
@@ -48,63 +63,62 @@ RenderingContext::RenderingContext(QObject* parent)
     assert(QThread::currentThread() == QCoreApplication::instance()->thread());
 
     auto terrain_service = std::make_unique<TileLoadService>("https://alpinemaps.cg.tuwien.ac.at/tiles/alpine_png/", TilePattern::ZXY, ".png");
-    //    m_ortho_service.reset(new TileLoadService("https://tiles.bergfex.at/styles/bergfex-osm/", TileLoadService::UrlPattern::ZXY_yPointingSouth,
-    //    ".jpeg")); m_ortho_service.reset(new TileLoadService("https://alpinemaps.cg.tuwien.ac.at/tiles/ortho/",
+    //    m->ortho_service.reset(new TileLoadService("https://tiles.bergfex.at/styles/bergfex-osm/", TileLoadService::UrlPattern::ZXY_yPointingSouth,
+    //    ".jpeg")); m->ortho_service.reset(new TileLoadService("https://alpinemaps.cg.tuwien.ac.at/tiles/ortho/",
     //    TileLoadService::UrlPattern::ZYX_yPointingSouth, ".jpeg"));
-    // m_ortho_service.reset(new TileLoadService("https://maps%1.wien.gv.at/basemap/bmaporthofoto30cm/normal/google3857/",
+    // m->ortho_service.reset(new TileLoadService("https://maps%1.wien.gv.at/basemap/bmaporthofoto30cm/normal/google3857/",
     //                                           TileLoadService::UrlPattern::ZYX_yPointingSouth,
     //                                           ".jpeg",
     //                                           {"", "1", "2", "3", "4"}));
     auto ortho_service
         = std::make_unique<TileLoadService>("https://gataki.cg.tuwien.ac.at/raw/basemap/tiles/", TileLoadService::UrlPattern::ZYX_yPointingSouth, ".jpeg");
     auto vectortile_service = std::make_unique<TileLoadService>("https://osm.cg.tuwien.ac.at/vector_tiles/poi_v1/", TilePattern::ZXY_yPointingSouth, "");
-    m_aabb_decorator = nucleus::tile_scheduler::setup::aabb_decorator();
-    m_scheduler
-        = nucleus::tile_scheduler::setup::monolithic(std::move(terrain_service), std::move(ortho_service), std::move(vectortile_service), m_aabb_decorator);
-    m_data_querier = std::make_shared<DataQuerier>(&m_scheduler.scheduler->ram_cache());
+    m->aabb_decorator = nucleus::tile_scheduler::setup::aabb_decorator();
+    m->scheduler = nucleus::tile_scheduler::setup::monolithic(std::move(terrain_service), std::move(ortho_service), std::move(vectortile_service), m->aabb_decorator);
+    m->data_querier = std::make_shared<DataQuerier>(&m->scheduler.scheduler->ram_cache());
     m->map_label = nucleus::map_label::setup::scheduler(std::make_unique<TileLoadService>("https://osm.cg.tuwien.ac.at/vector_tiles/poi_v1/", TilePattern::ZXY_yPointingSouth, ""),
-        m_aabb_decorator,
-        m_data_querier,
-        m_scheduler.thread.get());
-    m->map_label.scheduler->set_geometry_ram_cache(&m_scheduler.scheduler->ram_cache());
+        m->aabb_decorator,
+        m->data_querier,
+        m->scheduler.thread.get());
+    m->map_label.scheduler->set_geometry_ram_cache(&m->scheduler.scheduler->ram_cache());
 
-    m_scheduler.scheduler->set_dataquerier(m_data_querier);
+    m->scheduler.scheduler->set_dataquerier(m->data_querier);
 
-    m_picker_manager = std::make_shared<PickerManager>();
-    m_label_filter = std::make_shared<MapLabelFilter>();
-    if (m_scheduler.thread) {
-        m_picker_manager->moveToThread(m_scheduler.thread.get());
-        m_label_filter->moveToThread(m_scheduler.thread.get());
+    m->picker_manager = std::make_shared<PickerManager>();
+    m->label_filter = std::make_shared<MapLabelFilter>();
+    if (m->scheduler.thread) {
+        m->picker_manager->moveToThread(m->scheduler.thread.get());
+        m->label_filter->moveToThread(m->scheduler.thread.get());
     }
-    connect(m_scheduler.scheduler.get(), &OldScheduler::gpu_quads_updated, m_picker_manager.get(), &PickerManager::update_quads);
-    connect(m->map_label.scheduler.get(), &nucleus::map_label::Scheduler::gpu_quads_updated, m_label_filter.get(), &MapLabelFilter::update_quads);
+    connect(m->scheduler.scheduler.get(), &OldScheduler::gpu_quads_updated, m->picker_manager.get(), &PickerManager::update_quads);
+    connect(m->map_label.scheduler.get(), &nucleus::map_label::Scheduler::gpu_quads_updated, m->label_filter.get(), &MapLabelFilter::update_quads);
 
-    connect(m_scheduler.scheduler.get(), &nucleus::tile_scheduler::OldScheduler::gpu_quads_updated, RenderThreadNotifier::instance(), &RenderThreadNotifier::notify);
+    connect(m->scheduler.scheduler.get(), &nucleus::tile_scheduler::OldScheduler::gpu_quads_updated, RenderThreadNotifier::instance(), &RenderThreadNotifier::notify);
     connect(m->map_label.scheduler.get(), &nucleus::map_label::Scheduler::gpu_quads_updated, RenderThreadNotifier::instance(), &RenderThreadNotifier::notify);
 
     if (QNetworkInformation::loadDefaultBackend() && QNetworkInformation::instance()) {
         QNetworkInformation* n = QNetworkInformation::instance();
-        m_scheduler.scheduler->set_network_reachability(n->reachability());
-        connect(n, &QNetworkInformation::reachabilityChanged, m_scheduler.scheduler.get(), &OldScheduler::set_network_reachability);
+        m->scheduler.scheduler->set_network_reachability(n->reachability());
+        connect(n, &QNetworkInformation::reachabilityChanged, m->scheduler.scheduler.get(), &OldScheduler::set_network_reachability);
     }
 }
 
 RenderingContext::~RenderingContext()
 {
-    nucleus::utils::thread::sync_call(m_scheduler.scheduler.get(), [this]() {
-        m_scheduler.scheduler = {};
-        m_camera_controller = {};
-        m_label_filter = {};
-        m_picker_manager = {};
+    nucleus::utils::thread::sync_call(m->scheduler.scheduler.get(), [this]() {
+        m->scheduler.scheduler = {};
+        m->camera_controller = {};
+        m->label_filter = {};
+        m->picker_manager = {};
     });
-    nucleus::utils::thread::sync_call(m_scheduler.ortho_service.get(), [this]() {
-        m_scheduler.ortho_service = {};
-        m_scheduler.terrain_service = {};
-        m_scheduler.vector_service = {};
+    nucleus::utils::thread::sync_call(m->scheduler.ortho_service.get(), [this]() {
+        m->scheduler.ortho_service = {};
+        m->scheduler.terrain_service = {};
+        m->scheduler.vector_service = {};
     });
-    if (m_scheduler.thread) {
-        m_scheduler.thread->quit();
-        m_scheduler.thread->wait(500); // msec
+    if (m->scheduler.thread) {
+        m->scheduler.thread->quit();
+        m->scheduler.thread->wait(500); // msec
     }
 }
 
@@ -117,63 +131,63 @@ RenderingContext* RenderingContext::instance()
 
 void RenderingContext::initialise()
 {
-    QMutexLocker locker(&m_shared_ptr_mutex);
-    if (m_engine_context)
+    QMutexLocker locker(&m->shared_ptr_mutex);
+    if (m->engine_context)
         return;
 
-    m_engine_context = std::make_shared<gl_engine::Context>();
+    m->engine_context = std::make_shared<gl_engine::Context>();
 
     // labels
-    m_engine_context->set_map_label_manager(std::make_unique<gl_engine::MapLabelManager>(m_aabb_decorator));
-    connect(m_label_filter.get(), &MapLabelFilter::filter_finished, m_engine_context->map_label_manager(), &gl_engine::MapLabelManager::update_labels);
+    m->engine_context->set_map_label_manager(std::make_unique<gl_engine::MapLabelManager>(m->aabb_decorator));
+    connect(m->label_filter.get(), &MapLabelFilter::filter_finished, m->engine_context->map_label_manager(), &gl_engine::MapLabelManager::update_labels);
     nucleus::utils::thread::async_call(m->map_label.scheduler.get(), [this]() { m->map_label.scheduler->set_enabled(true); });
 
     auto* render_thread = QThread::currentThread();
-    connect(render_thread, &QThread::finished, m_engine_context.get(), &nucleus::EngineContext::destroy);
+    connect(render_thread, &QThread::finished, m->engine_context.get(), &nucleus::EngineContext::destroy);
 
     nucleus::utils::thread::async_call(this, [this]() { emit this->initialised(); });
-    // nucleus::utils::thread::async_call(m_scheduler.scheduler.get(), [this]() { m_scheduler.scheduler->set_enabled(true); }); // after moving tile manager
+    // nucleus::utils::thread::async_call(m->scheduler.scheduler.get(), [this]() { m->scheduler.scheduler->set_enabled(true); }); // after moving tile manager
     // to gl_engine::Context.
 }
 
-const std::shared_ptr<gl_engine::Context>& RenderingContext::engine_context() const
+std::shared_ptr<gl_engine::Context> RenderingContext::engine_context() const
 {
-    QMutexLocker locker(&m_shared_ptr_mutex);
-    return m_engine_context;
+    QMutexLocker locker(&m->shared_ptr_mutex);
+    return m->engine_context;
 }
 
 std::shared_ptr<nucleus::tile_scheduler::utils::AabbDecorator> RenderingContext::aabb_decorator() const
 {
-    QMutexLocker locker(&m_shared_ptr_mutex);
-    return m_aabb_decorator;
+    QMutexLocker locker(&m->shared_ptr_mutex);
+    return m->aabb_decorator;
 }
 
 std::shared_ptr<nucleus::DataQuerier> RenderingContext::data_querier() const
 {
-    QMutexLocker locker(&m_shared_ptr_mutex);
-    return m_data_querier;
+    QMutexLocker locker(&m->shared_ptr_mutex);
+    return m->data_querier;
 }
 
 OldScheduler* RenderingContext::scheduler() const
 {
-    QMutexLocker locker(&m_shared_ptr_mutex);
-    return m_scheduler.scheduler.get();
+    QMutexLocker locker(&m->shared_ptr_mutex);
+    return m->scheduler.scheduler.get();
 }
 
 std::shared_ptr<nucleus::picker::PickerManager> RenderingContext::picker_manager() const
 {
-    QMutexLocker locker(&m_shared_ptr_mutex);
-    return m_picker_manager;
+    QMutexLocker locker(&m->shared_ptr_mutex);
+    return m->picker_manager;
 }
 
 std::shared_ptr<nucleus::maplabel::MapLabelFilter> RenderingContext::label_filter() const
 {
-    QMutexLocker locker(&m_shared_ptr_mutex);
-    return m_label_filter;
+    QMutexLocker locker(&m->shared_ptr_mutex);
+    return m->label_filter;
 }
 
 nucleus::map_label::Scheduler* RenderingContext::map_label_scheduler() const
 {
-    QMutexLocker locker(&m_shared_ptr_mutex);
+    QMutexLocker locker(&m->shared_ptr_mutex);
     return m->map_label.scheduler.get();
 }

@@ -18,18 +18,15 @@
 
 #pragma once
 
-#include <QMutex>
 #include <QQmlEngine>
-#include <gl_engine/Context.h>
-#include <nucleus/tile_scheduler/setup.h>
 
 // move to pimpl to avoid including all the stuff in the header.
 
+namespace gl_engine {
+class Context;
+}
 namespace nucleus {
 class DataQuerier;
-}
-namespace nucleus::camera {
-class Controller;
 }
 namespace nucleus::maplabel {
 class MapLabelFilter;
@@ -40,9 +37,12 @@ class Scheduler;
 namespace nucleus::picker {
 class PickerManager;
 }
+namespace nucleus::tile_scheduler {
+class OldScheduler;
+}
 namespace nucleus::tile_scheduler::utils {
 class AabbDecorator;
-} // namespace nucleus::tile_scheduler::utils
+}
 
 class RenderingContext : public QObject {
     Q_OBJECT
@@ -66,34 +66,14 @@ public:
     static RenderingContext* instance();
 
     void initialise();
-    [[nodiscard]] const std::shared_ptr<gl_engine::Context>& engine_context() const;
-
+    [[nodiscard]] std::shared_ptr<gl_engine::Context> engine_context() const;
     [[nodiscard]] std::shared_ptr<nucleus::tile_scheduler::utils::AabbDecorator> aabb_decorator() const;
-
     [[nodiscard]] std::shared_ptr<nucleus::DataQuerier> data_querier() const;
-
     [[nodiscard]] nucleus::tile_scheduler::OldScheduler* scheduler() const;
-
     [[nodiscard]] std::shared_ptr<nucleus::picker::PickerManager> picker_manager() const;
-
     [[nodiscard]] std::shared_ptr<nucleus::maplabel::MapLabelFilter> label_filter() const;
     [[nodiscard]] nucleus::map_label::Scheduler* map_label_scheduler() const;
 
 signals:
     void initialised();
-
-private:
-    // WARNING: gl_engine::Context must be on the rendering thread!!
-    mutable QMutex m_shared_ptr_mutex; // protects the shared_ptr
-    std::shared_ptr<gl_engine::Context> m_engine_context;
-    QThread* m_render_thread = nullptr;
-
-    // the ones below are on the scheduler thread.
-    nucleus::tile_scheduler::setup::MonolithicScheduler m_scheduler;
-    // nucl
-    std::shared_ptr<nucleus::DataQuerier> m_data_querier;
-    std::unique_ptr<nucleus::camera::Controller> m_camera_controller;
-    std::shared_ptr<nucleus::maplabel::MapLabelFilter> m_label_filter;
-    std::shared_ptr<nucleus::picker::PickerManager> m_picker_manager;
-    std::shared_ptr<nucleus::tile_scheduler::utils::AabbDecorator> m_aabb_decorator;
 };
