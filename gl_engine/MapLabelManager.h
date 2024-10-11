@@ -31,10 +31,6 @@
 
 #include "nucleus/tile_scheduler/DrawListGenerator.h"
 
-namespace camera {
-class Definition;
-}
-
 using namespace nucleus::vector_tile;
 
 namespace gl_engine {
@@ -50,14 +46,15 @@ struct GPUVectorTile {
 
 class MapLabelManager : public QObject {
     Q_OBJECT
+
 public:
-    explicit MapLabelManager(QObject* parent = nullptr);
+    using TileSet = nucleus::tile_scheduler::DrawListGenerator::TileSet;
+    explicit MapLabelManager(const nucleus::tile_scheduler::utils::AabbDecoratorPtr& aabb_decorator, QObject* parent = nullptr);
 
     void init();
-    void draw(Framebuffer* gbuffer, ShaderProgram* shader_program, const nucleus::camera::Definition& camera,
-        const nucleus::tile_scheduler::DrawListGenerator::TileSet draw_tiles) const;
-    void draw_picker(Framebuffer* gbuffer, ShaderProgram* shader_program, const nucleus::camera::Definition& camera,
-        const nucleus::tile_scheduler::DrawListGenerator::TileSet draw_tiles) const;
+    void draw(Framebuffer* gbuffer, ShaderProgram* shader_program, const nucleus::camera::Definition& camera, const TileSet& draw_tiles) const;
+    void draw_picker(Framebuffer* gbuffer, ShaderProgram* shader_program, const nucleus::camera::Definition& camera, const TileSet& draw_tiles) const;
+    TileSet generate_draw_list(const nucleus::camera::Definition& camera) const;
 
     void update_labels(const PointOfInterestTileCollection& visible_features, const std::vector<tile::Id>& removed_tiles);
 
@@ -73,6 +70,7 @@ private:
 
     nucleus::maplabel::LabelFactory m_mapLabelFactory;
 
+    nucleus::tile_scheduler::DrawListGenerator m_draw_list_generator;
     std::unordered_map<tile::Id, std::shared_ptr<GPUVectorTile>, tile::Id::Hasher> m_gpu_tiles;
 };
 } // namespace gl_engine

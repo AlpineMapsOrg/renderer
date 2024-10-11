@@ -270,10 +270,11 @@ void Window::paint(QOpenGLFramebufferObject* framebuffer)
 
     shader_manager->tile_shader()->bind();
     m_timer->start_timer("tiles");
-    auto culled_tile_set = m_tile_manager->cull(tile_set, m_camera.frustum());
+    const auto culled_tile_set = m_tile_manager->cull(tile_set, m_camera.frustum());
     m_tile_manager->draw(shader_manager->tile_shader(), m_camera, culled_tile_set, true, m_camera.position());
     m_timer->stop_timer("tiles");
     shader_manager->tile_shader()->release();
+    MapLabelManager::TileSet label_tile_set;
 
     m_gbuffer->unbind();
 
@@ -296,8 +297,9 @@ void Window::paint(QOpenGLFramebufferObject* framebuffer)
         // DRAW Pickbuffer
         m_timer->start_timer("picker");
         if (m_context->map_label_manager()) {
+            label_tile_set = m_context->map_label_manager()->generate_draw_list(m_camera);
             shader_manager->labels_picker_program()->bind();
-            m_context->map_label_manager()->draw_picker(m_gbuffer.get(), shader_manager->labels_picker_program(), m_camera, culled_tile_set);
+            m_context->map_label_manager()->draw_picker(m_gbuffer.get(), shader_manager->labels_picker_program(), m_camera, label_tile_set);
             shader_manager->labels_picker_program()->release();
         }
         m_timer->stop_timer("picker");
@@ -337,16 +339,14 @@ void Window::paint(QOpenGLFramebufferObject* framebuffer)
     f->glEnable(GL_DEPTH_TEST);
     f->glDepthFunc(GL_LEQUAL);
 
-#ifdef ALP_ENABLE_LABELS
     // DRAW LABELS
     if (m_context->map_label_manager()) {
         m_timer->start_timer("labels");
         shader_manager->labels_program()->bind();
-        m_context->map_label_manager()->draw(m_gbuffer.get(), shader_manager->labels_program(), m_camera, culled_tile_set);
+        m_context->map_label_manager()->draw(m_gbuffer.get(), shader_manager->labels_program(), m_camera, label_tile_set);
         shader_manager->labels_program()->release();
         m_timer->stop_timer("labels");
     }
-#endif
 
     // DRAW TRACKS
     {

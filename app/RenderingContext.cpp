@@ -124,7 +124,7 @@ void RenderingContext::initialise()
     m_engine_context = std::make_shared<gl_engine::Context>();
 
     // labels
-    m_engine_context->set_map_label_manager(std::make_unique<gl_engine::MapLabelManager>());
+    m_engine_context->set_map_label_manager(std::make_unique<gl_engine::MapLabelManager>(m_aabb_decorator));
     connect(m_label_filter.get(), &MapLabelFilter::filter_finished, m_engine_context->map_label_manager(), &gl_engine::MapLabelManager::update_labels);
     nucleus::utils::thread::async_call(m->map_label.scheduler.get(), [this]() { m->map_label.scheduler->set_enabled(true); });
 

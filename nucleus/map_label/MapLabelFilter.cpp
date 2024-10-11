@@ -61,9 +61,6 @@ void MapLabelFilter::update_quads(const std::vector<nucleus::map_label::PoiColle
             assert(tile.data);
             assert(tile.id.zoom_level < 100);
 
-            if (tile.data->empty())
-                continue;
-
             if (m_all_pois.contains(tile.id))
                 continue; // no need to add it twice
 

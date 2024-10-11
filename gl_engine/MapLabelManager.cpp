@@ -38,9 +38,10 @@ using namespace Qt::Literals::StringLiterals;
 
 namespace gl_engine {
 
-MapLabelManager::MapLabelManager(QObject* parent)
+MapLabelManager::MapLabelManager(const nucleus::tile_scheduler::utils::AabbDecoratorPtr& aabb_decorator, QObject* parent)
     : QObject { parent }
 {
+    m_draw_list_generator.set_aabb_decorator(aabb_decorator);
 }
 
 void MapLabelManager::init()
@@ -69,6 +70,11 @@ void MapLabelManager::init()
     m_index_buffer->setUsagePattern(QOpenGLBuffer::StaticDraw);
     m_index_buffer->allocate(m_mapLabelFactory.m_indices.data(), m_mapLabelFactory.m_indices.size() * sizeof(unsigned int));
     m_indices_count = m_mapLabelFactory.m_indices.size();
+}
+
+MapLabelManager::TileSet MapLabelManager::generate_draw_list(const nucleus::camera::Definition& camera) const
+{
+    return m_draw_list_generator.cull(m_draw_list_generator.generate_for(camera), camera.frustum());
 }
 
 void MapLabelManager::upload_to_gpu(const tile::Id& id, const PointOfInterestCollection& features)
@@ -141,6 +147,7 @@ void MapLabelManager::update_labels(const PointOfInterestTileCollection& visible
     // remove tiles that aren't needed anymore
     for (const auto& id : removed_tiles) {
         remove_tile(id);
+        m_draw_list_generator.remove_tile(id);
     }
 
     for (const auto& vectortile : visible_features) {
@@ -148,6 +155,7 @@ void MapLabelManager::update_labels(const PointOfInterestTileCollection& visible
         remove_tile(vectortile.first);
 
         upload_to_gpu(vectortile.first, *vectortile.second);
+        m_draw_list_generator.add_tile(vectortile.first);
     }
 }
 
@@ -166,8 +174,7 @@ void MapLabelManager::remove_tile(const tile::Id& tile_id)
     m_gpu_tiles.erase(tile_id);
 }
 
-void MapLabelManager::draw(Framebuffer* gbuffer, ShaderProgram* shader_program, const nucleus::camera::Definition& camera,
-    const nucleus::tile_scheduler::DrawListGenerator::TileSet draw_tiles) const
+void MapLabelManager::draw(Framebuffer* gbuffer, ShaderProgram* shader_program, const nucleus::camera::Definition& camera, const TileSet& draw_tiles) const
 {
     QOpenGLExtraFunctions* f = QOpenGLContext::currentContext()->extraFunctions();
 
@@ -205,8 +212,7 @@ void MapLabelManager::draw(Framebuffer* gbuffer, ShaderProgram* shader_program, 
     }
 }
 
-void MapLabelManager::draw_picker(Framebuffer* gbuffer, ShaderProgram* shader_program, const nucleus::camera::Definition& camera,
-    const nucleus::tile_scheduler::DrawListGenerator::TileSet draw_tiles) const
+void MapLabelManager::draw_picker(Framebuffer* gbuffer, ShaderProgram* shader_program, const nucleus::camera::Definition& camera, const TileSet& draw_tiles) const
 {
     QOpenGLExtraFunctions* f = QOpenGLContext::currentContext()->extraFunctions();
 
