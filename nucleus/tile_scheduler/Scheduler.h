@@ -106,6 +106,7 @@ protected:
     void schedule_persist();
     void update_stats();
     std::vector<tile::Id> tiles_for_current_camera_position() const;
+    virtual bool is_ready_to_ship(const tile_types::DataQuad& quad) const { return true; }
     virtual void transform_and_emit(const std::vector<tile_types::DataQuad>& new_quads, const std::vector<tile::Id>& deleted_quads) = 0;
 
 private:

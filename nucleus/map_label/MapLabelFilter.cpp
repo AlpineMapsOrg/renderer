@@ -52,22 +52,22 @@ void MapLabelFilter::update_filter(const FilterDefinitions& filter_definitions)
     }
 }
 
-void MapLabelFilter::update_quads(const std::vector<nucleus::tile_scheduler::tile_types::GpuTileQuad>& new_quads, const std::vector<tile::Id>& deleted_quads)
+void MapLabelFilter::update_quads(const std::vector<nucleus::map_label::PoiCollectionQuad>& new_quads, const std::vector<tile::Id>& deleted_quads)
 {
     m_removed_tiles.clear();
 
     for (const auto& quad : new_quads) {
         for (const auto& tile : quad.tiles) {
-            // test for validity
-            if (!tile.vector_tile || tile.vector_tile->empty())
-                continue;
-
+            assert(tile.data);
             assert(tile.id.zoom_level < 100);
+
+            if (tile.data->empty())
+                continue;
 
             if (m_all_pois.contains(tile.id))
                 continue; // no need to add it twice
 
-            add_tile(tile.id, tile.vector_tile);
+            add_tile(tile.id, tile.data);
         }
     }
     for (const auto& quad : deleted_quads) {
@@ -81,13 +81,13 @@ void MapLabelFilter::update_quads(const std::vector<nucleus::tile_scheduler::til
     filter();
 }
 
-void MapLabelFilter::add_tile(const tile::Id id, const PointOfInterestCollectionPtr& all_features)
+void MapLabelFilter::add_tile(const tile::Id& id, const PointOfInterestCollectionPtr& all_features)
 {
     m_tiles_to_filter.push(id);
     m_all_pois[id] = all_features;
 }
 
-void MapLabelFilter::remove_tile(const tile::Id id)
+void MapLabelFilter::remove_tile(const tile::Id& id)
 {
     m_removed_tiles.push_back(id);
     if (m_all_pois.contains(id))

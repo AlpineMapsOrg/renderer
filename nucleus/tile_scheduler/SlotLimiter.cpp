@@ -19,6 +19,47 @@
 #include "SlotLimiter.h"
 
 using namespace nucleus::tile_scheduler;
+SlotLimiterLayered::SlotLimiterLayered(QObject* parent)
+    : QObject { parent }
+{
+}
+
+void SlotLimiterLayered::set_limit(unsigned new_limit)
+{
+    assert(new_limit > 0);
+    m_limit = new_limit;
+}
+
+unsigned SlotLimiterLayered::limit() const { return m_limit; }
+
+unsigned SlotLimiterLayered::slots_taken() const { return unsigned(m_in_flight.size()); }
+
+void SlotLimiterLayered::request_quads(const std::vector<tile::Id>& ids)
+{
+    m_request_queue.clear();
+    for (const tile::Id& id : ids) {
+        if (m_in_flight.contains(id))
+            continue;
+        if (m_in_flight.size() >= m_limit) {
+            m_request_queue.push_back(id);
+        } else {
+            m_in_flight.insert(id);
+            emit quad_requested(id);
+        }
+    }
+}
+
+void SlotLimiterLayered::deliver_quad(const tile_types::LayeredTileQuad& tile)
+{
+    m_in_flight.erase(tile.id);
+    emit quad_delivered(tile);
+    if (m_request_queue.empty())
+        return;
+
+    m_in_flight.insert(m_request_queue.front());
+    emit quad_requested(m_request_queue.front());
+    m_request_queue.erase(m_request_queue.cbegin());
+}
 
 SlotLimiter::SlotLimiter(QObject* parent)
     : QObject { parent }
@@ -56,7 +97,7 @@ void SlotLimiter::request_quads(const std::vector<tile::Id>& ids)
     }
 }
 
-void SlotLimiter::deliver_quad(const tile_types::LayeredTileQuad& tile)
+void SlotLimiter::deliver_quad(const tile_types::DataQuad& tile)
 {
     m_in_flight.erase(tile.id);
     emit quad_delivered(tile);

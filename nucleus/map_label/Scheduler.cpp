@@ -29,7 +29,6 @@ Scheduler::~Scheduler() = default;
 
 void Scheduler::transform_and_emit(const std::vector<tile_scheduler::tile_types::DataQuad>& new_quads, const std::vector<tile::Id>& deleted_quads)
 {
-
     std::vector<PoiCollectionQuad> new_gpu_quads;
     new_gpu_quads.reserve(new_quads.size());
     std::transform(new_quads.cbegin(), new_quads.cend(), std::back_inserter(new_gpu_quads), [this](const auto& quad) {
@@ -49,6 +48,17 @@ void Scheduler::transform_and_emit(const std::vector<tile_scheduler::tile_types:
     });
 
     emit gpu_quads_updated(new_gpu_quads, deleted_quads);
+}
+
+bool Scheduler::is_ready_to_ship(const nucleus::tile_scheduler::tile_types::DataQuad& quad) const
+{
+    assert(m_geometry_ram_cache);
+    return m_geometry_ram_cache->contains(quad.id);
+}
+
+void Scheduler::set_geometry_ram_cache(nucleus::tile_scheduler::Cache<nucleus::tile_scheduler::tile_types::LayeredTileQuad>* new_geometry_ram_cache)
+{
+    m_geometry_ram_cache = new_geometry_ram_cache;
 }
 
 } // namespace nucleus::map_label

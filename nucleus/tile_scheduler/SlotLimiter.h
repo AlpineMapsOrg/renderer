@@ -28,6 +28,29 @@
 
 namespace nucleus::tile_scheduler {
 
+class SlotLimiterLayered : public QObject {
+    Q_OBJECT
+
+    unsigned m_limit = 16;
+    std::unordered_set<tile::Id, tile::Id::Hasher> m_in_flight;
+    std::vector<tile::Id> m_request_queue;
+
+public:
+    explicit SlotLimiterLayered(QObject* parent = nullptr);
+
+    void set_limit(unsigned int new_limit);
+    [[nodiscard]] unsigned int limit() const;
+    unsigned int slots_taken() const;
+
+public slots:
+    void request_quads(const std::vector<tile::Id>& id);
+    void deliver_quad(const tile_types::LayeredTileQuad& tile);
+
+signals:
+    void quad_requested(const tile::Id& tile_id);
+    void quad_delivered(const tile_types::LayeredTileQuad& id);
+};
+
 class SlotLimiter : public QObject {
     Q_OBJECT
 
@@ -44,11 +67,11 @@ public:
 
 public slots:
     void request_quads(const std::vector<tile::Id>& id);
-    void deliver_quad(const tile_types::LayeredTileQuad& tile);
+    void deliver_quad(const tile_types::DataQuad& tile);
 
 signals:
     void quad_requested(const tile::Id& tile_id);
-    void quad_delivered(const tile_types::LayeredTileQuad& id);
+    void quad_delivered(const tile_types::DataQuad& id);
 };
 
 }

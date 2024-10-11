@@ -23,6 +23,8 @@
 #include <gl_engine/Context.h>
 #include <nucleus/tile_scheduler/setup.h>
 
+// move to pimpl to avoid including all the stuff in the header.
+
 namespace nucleus {
 class DataQuerier;
 }
@@ -31,6 +33,9 @@ class Controller;
 }
 namespace nucleus::maplabel {
 class MapLabelFilter;
+}
+namespace nucleus::map_label {
+class Scheduler;
 }
 namespace nucleus::picker {
 class PickerManager;
@@ -45,6 +50,8 @@ class RenderingContext : public QObject {
     QML_SINGLETON
 
     explicit RenderingContext(QObject* parent = nullptr);
+    struct Data;
+    std::unique_ptr<Data> m;
 
 public:
     RenderingContext(RenderingContext const&) = delete;
@@ -65,11 +72,12 @@ public:
 
     [[nodiscard]] std::shared_ptr<nucleus::DataQuerier> data_querier() const;
 
-    [[nodiscard]] std::shared_ptr<nucleus::tile_scheduler::OldScheduler> scheduler() const;
+    [[nodiscard]] nucleus::tile_scheduler::OldScheduler* scheduler() const;
 
     [[nodiscard]] std::shared_ptr<nucleus::picker::PickerManager> picker_manager() const;
 
     [[nodiscard]] std::shared_ptr<nucleus::maplabel::MapLabelFilter> label_filter() const;
+    [[nodiscard]] nucleus::map_label::Scheduler* map_label_scheduler() const;
 
 signals:
     void initialised();
@@ -82,6 +90,7 @@ private:
 
     // the ones below are on the scheduler thread.
     nucleus::tile_scheduler::setup::MonolithicScheduler m_scheduler;
+    // nucl
     std::shared_ptr<nucleus::DataQuerier> m_data_querier;
     std::unique_ptr<nucleus::camera::Controller> m_camera_controller;
     std::shared_ptr<nucleus::maplabel::MapLabelFilter> m_label_filter;

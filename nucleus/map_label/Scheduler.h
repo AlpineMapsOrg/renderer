@@ -18,22 +18,11 @@
 
 #pragma once
 
+#include "types.h"
 #include <QObject>
 #include <nucleus/tile_scheduler/Scheduler.h>
 
 namespace nucleus::map_label {
-
-struct PoiCollection {
-    tile::Id id;
-    vector_tile::PointOfInterestCollectionPtr data;
-};
-static_assert(tile_scheduler::tile_types::NamedTile<PoiCollection>);
-
-struct PoiCollectionQuad {
-    tile::Id id;
-    std::array<PoiCollection, 4> tiles;
-};
-static_assert(tile_scheduler::tile_types::NamedTile<PoiCollectionQuad>);
 
 class Scheduler : public nucleus::tile_scheduler::Scheduler {
     Q_OBJECT
@@ -41,11 +30,17 @@ public:
     explicit Scheduler(QObject* parent = nullptr);
     ~Scheduler() override;
 
+    void set_geometry_ram_cache(nucleus::tile_scheduler::Cache<nucleus::tile_scheduler::tile_types::LayeredTileQuad>* new_geometry_ram_cache);
+
 signals:
     void gpu_quads_updated(const std::vector<PoiCollectionQuad>& new_quads, const std::vector<tile::Id>& deleted_quads);
 
 protected:
     void transform_and_emit(const std::vector<tile_scheduler::tile_types::DataQuad>& new_quads, const std::vector<tile::Id>& deleted_quads) override;
+    bool is_ready_to_ship(const nucleus::tile_scheduler::tile_types::DataQuad& quad) const override;
+
+private:
+    nucleus::tile_scheduler::Cache<nucleus::tile_scheduler::tile_types::LayeredTileQuad>* m_geometry_ram_cache = nullptr;
 };
 
 } // namespace nucleus::map_label

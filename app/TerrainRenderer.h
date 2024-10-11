@@ -50,7 +50,7 @@ public:
     [[nodiscard]] nucleus::camera::Controller* controller() const;
 
 private:
-    QQuickWindow* m_window;
+    QQuickWindow* m_window = nullptr;
     std::unique_ptr<gl_engine::Window> m_glWindow;
     std::unique_ptr<nucleus::camera::Controller> m_camera_controller;
 };

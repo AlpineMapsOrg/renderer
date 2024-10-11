@@ -133,7 +133,7 @@ QQuickFramebufferObject::Renderer* TerrainRendererItem::createRenderer() const
 
     connect(this, &TerrainRendererItem::camera_definition_set_by_user, r->controller(), &nucleus::camera::Controller::set_definition);
 
-    auto* const tile_scheduler = ctx->scheduler().get();
+    auto* const tile_scheduler = ctx->scheduler();
     connect(this->m_settings, &AppSettings::render_quality_changed, tile_scheduler, [=](float new_render_quality) {
         const auto permissible_error = 1.0f / new_render_quality;
         tile_scheduler->set_permissible_screen_space_error(permissible_error);
@@ -161,8 +161,6 @@ QQuickFramebufferObject::Renderer* TerrainRendererItem::createRenderer() const
 #ifdef ALP_ENABLE_DEV_TOOLS
     connect(r->glWindow(), &gl_engine::Window::report_measurements, TimerFrontendManager::instance(), &TimerFrontendManager::receive_measurements);
 #endif
-
-    connect(tile_scheduler, &nucleus::tile_scheduler::OldScheduler::gpu_quads_updated, RenderThreadNotifier::instance(), &RenderThreadNotifier::notify);
 
     // We now have to initialize everything based on the url, but we need to do this on the thread this instance
     // belongs to. (gui thread?) Therefore we use the following signal to signal the init process

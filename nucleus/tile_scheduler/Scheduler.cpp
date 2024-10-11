@@ -123,6 +123,8 @@ void Scheduler::update_gpu_quads()
     m_ram_cache.visit([this, &gpu_candidates, &should_refine](const tile_types::DataQuad& quad) {
         if (!should_refine(quad.id))
             return false;
+        if (!is_ready_to_ship(quad))
+            return false;
         if (m_gpu_cached.contains(quad.id))
             return true;
 

@@ -27,7 +27,6 @@
 
 namespace nucleus::tile_scheduler::cache_queries {
 
-// NOTE: UNTESTED since swap from QImage!
 inline float query_altitude(MemoryCache* cache, const glm::dvec2& lat_long)
 {
     const auto world_space = srs::lat_long_to_world(lat_long);

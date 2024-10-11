@@ -18,32 +18,18 @@
 
 #pragma once
 
-#include "utils.h"
-#include <QThread>
-#include <memory>
+#include <nucleus/tile_scheduler/tile_types.h>
 
-namespace nucleus::tile_scheduler {
-class OldScheduler;
-class TileLoadService;
-} // namespace nucleus::tile_scheduler
-
-namespace nucleus::tile_scheduler::setup {
-
-using TileLoadServicePtr = std::unique_ptr<TileLoadService>;
-
-struct MonolithicScheduler {
-    std::unique_ptr<OldScheduler> scheduler;
-    std::unique_ptr<QThread> thread;
-    TileLoadServicePtr terrain_service;
-    TileLoadServicePtr ortho_service;
-    TileLoadServicePtr vector_service;
+namespace nucleus::map_label {
+struct PoiCollection {
+    tile::Id id;
+    vector_tile::PointOfInterestCollectionPtr data;
 };
+static_assert(tile_scheduler::tile_types::NamedTile<PoiCollection>);
 
-MonolithicScheduler monolithic(TileLoadServicePtr terrain_service,
-    TileLoadServicePtr ortho_service,
-    TileLoadServicePtr vector_service,
-    const tile_scheduler::utils::AabbDecoratorPtr& aabb_decorator);
-
-utils::AabbDecoratorPtr aabb_decorator();
-
-} // namespace nucleus::tile_scheduler::setup
+struct PoiCollectionQuad {
+    tile::Id id;
+    std::array<PoiCollection, 4> tiles;
+};
+static_assert(tile_scheduler::tile_types::NamedTile<PoiCollectionQuad>);
+} // namespace nucleus::map_label

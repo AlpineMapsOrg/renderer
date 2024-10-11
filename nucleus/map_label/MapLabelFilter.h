@@ -19,13 +19,13 @@
 
 #pragma once
 
+#include "types.h"
 #include <QObject>
 #include <QTimer>
 #include <QVector2D>
-#include <queue>
-#include <radix/tile.h>
 #include <nucleus/map_label/FilterDefinitions.h>
 #include <nucleus/tile_scheduler/tile_types.h>
+#include <queue>
 
 using namespace nucleus::vector_tile;
 
@@ -38,12 +38,12 @@ class MapLabelFilter : public QObject {
 public:
     explicit MapLabelFilter(QObject* parent = nullptr);
 
-    void add_tile(const tile::Id id, const PointOfInterestCollectionPtr& all_features);
-    void remove_tile(const tile::Id id);
+    void add_tile(const tile::Id& id, const PointOfInterestCollectionPtr& all_features);
+    void remove_tile(const tile::Id& id);
 
 public slots:
     void update_filter(const FilterDefinitions& filter_definitions);
-    void update_quads(const std::vector<nucleus::tile_scheduler::tile_types::GpuTileQuad>& new_quads, const std::vector<tile::Id>& deleted_quads);
+    void update_quads(const std::vector<nucleus::map_label::PoiCollectionQuad>& new_quads, const std::vector<tile::Id>& deleted_quads);
 
 signals:
     void filter_finished(const PointOfInterestTileCollection& visible_features, const std::vector<tile::Id>& removed_tiles);
