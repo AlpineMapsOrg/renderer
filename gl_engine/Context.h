@@ -23,6 +23,7 @@
 #include "TrackManager.h"
 
 namespace gl_engine {
+class MapLabelManager;
 class ShaderManager;
 
 class Context : public nucleus::EngineContext {
@@ -36,11 +37,15 @@ public:
     [[nodiscard]] TrackManager* track_manager() override;
     [[nodiscard]] ShaderManager* shader_manager();
 
+    gl_engine::MapLabelManager* map_label_manager() const;
+    void set_map_label_manager(std::unique_ptr<gl_engine::MapLabelManager> new_map_label_manager);
+
 protected:
     void internal_initialise() override;
     void internal_destroy() override;
 
 private:
+    std::unique_ptr<gl_engine::MapLabelManager> m_map_label_manager;
     std::unique_ptr<gl_engine::TrackManager> m_track_manager;
     std::unique_ptr<gl_engine::ShaderManager> m_shader_manager;
 };

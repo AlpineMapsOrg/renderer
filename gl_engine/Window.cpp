@@ -77,9 +77,6 @@ Window::Window(std::shared_ptr<Context> context)
     , m_camera({ 1822577.0, 6141664.0 - 500, 171.28 + 500 }, { 1822577.0, 6141664.0, 171.28 }) // should point right at the stephansdom
 {
     m_tile_manager = std::make_unique<TileManager>();
-#ifdef ALP_ENABLE_LABELS
-    m_map_label_manager = std::make_unique<MapLabelManager>();
-#endif
     QTimer::singleShot(1, [this]() { emit update_requested(); });
 }
 
@@ -149,10 +146,6 @@ void Window::initialise_gpu()
     m_ssao = std::make_unique<gl_engine::SSAO>(shader_manager->shared_ssao_program(), shader_manager->shared_ssao_blur_program());
 
     m_shadowmapping = std::make_unique<gl_engine::ShadowMapping>(shader_manager->shared_shadowmap_program(), m_shadow_config_ubo, m_shared_config_ubo);
-
-#ifdef ALP_ENABLE_LABELS
-    m_map_label_manager->init();
-#endif
 
     { // INITIALIZE CPU AND GPU TIMER
         using namespace std;
@@ -302,9 +295,11 @@ void Window::paint(QOpenGLFramebufferObject* framebuffer)
 
         // DRAW Pickbuffer
         m_timer->start_timer("picker");
-        shader_manager->labels_picker_program()->bind();
-        m_map_label_manager->draw_picker(m_gbuffer.get(), shader_manager->labels_picker_program(), m_camera, culled_tile_set);
-        shader_manager->labels_picker_program()->release();
+        if (m_context->map_label_manager()) {
+            shader_manager->labels_picker_program()->bind();
+            m_context->map_label_manager()->draw_picker(m_gbuffer.get(), shader_manager->labels_picker_program(), m_camera, culled_tile_set);
+            shader_manager->labels_picker_program()->release();
+        }
         m_timer->stop_timer("picker");
     }
 
@@ -344,10 +339,10 @@ void Window::paint(QOpenGLFramebufferObject* framebuffer)
 
 #ifdef ALP_ENABLE_LABELS
     // DRAW LABELS
-    {
+    if (m_context->map_label_manager()) {
         m_timer->start_timer("labels");
         shader_manager->labels_program()->bind();
-        m_map_label_manager->draw(m_gbuffer.get(), shader_manager->labels_program(), m_camera, culled_tile_set);
+        m_context->map_label_manager()->draw(m_gbuffer.get(), shader_manager->labels_program(), m_camera, culled_tile_set);
         shader_manager->labels_program()->release();
         m_timer->stop_timer("labels");
     }
@@ -456,14 +451,6 @@ void Window::update_gpu_quads(const std::vector<nucleus::tile_scheduler::tile_ty
     m_tile_manager->update_gpu_quads(new_quads, deleted_quads);
 }
 
-#ifdef ALP_ENABLE_LABELS
-void Window::update_labels(const nucleus::vector_tile::PointOfInterestTileCollection& visible_features, const std::vector<tile::Id>& removed_tiles)
-{
-    assert(m_map_label_manager);
-    m_map_label_manager->update_labels(visible_features, removed_tiles);
-}
-#endif
-
 float Window::depth(const glm::dvec2& normalised_device_coordinates)
 {
     const auto read_float = nucleus::utils::bit_coding::to_f16f16(m_gbuffer->read_colour_attachment_pixel<glm::u8vec4>(3, normalised_device_coordinates))[0];
@@ -489,7 +476,6 @@ void Window::destroy()
     m_tile_manager.reset();
     m_gbuffer.reset();
     m_screen_quad_geometry = {};
-    m_map_label_manager.reset();
 }
 
 void Window::set_aabb_decorator(const nucleus::tile_scheduler::utils::AabbDecoratorPtr& new_aabb_decorator)

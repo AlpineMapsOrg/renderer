@@ -17,6 +17,7 @@
  *****************************************************************************/
 
 #include "Context.h"
+#include "MapLabelManager.h"
 #include "ShaderManager.h"
 #include "TrackManager.h"
 using namespace gl_engine;
@@ -44,10 +45,22 @@ void Context::internal_initialise()
 {
     m_shader_manager = std::make_unique<ShaderManager>();
     m_track_manager = std::make_unique<TrackManager>(m_shader_manager.get());
+    if (m_map_label_manager)
+        m_map_label_manager->init();
 }
 
 void Context::internal_destroy()
 {
     m_track_manager.reset();
     m_shader_manager.reset();
+    if (m_map_label_manager)
+        m_map_label_manager.reset();
+}
+
+gl_engine::MapLabelManager* Context::map_label_manager() const { return m_map_label_manager.get(); }
+
+void Context::set_map_label_manager(std::unique_ptr<gl_engine::MapLabelManager> new_map_label_manager)
+{
+    assert(!is_alive()); // only set before init is called.
+    m_map_label_manager = std::move(new_map_label_manager);
 }

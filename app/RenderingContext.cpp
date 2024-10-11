@@ -19,6 +19,7 @@
 #include "RenderingContext.h"
 
 #include <QThread>
+#include <gl_engine/MapLabelManager.h>
 #include <nucleus/DataQuerier.h>
 #include <nucleus/camera/Controller.h>
 #include <nucleus/camera/PositionStorage.h>
@@ -105,12 +106,15 @@ void RenderingContext::initialise()
     }
 
     m_engine_context = std::make_shared<gl_engine::Context>();
+    m_engine_context->set_map_label_manager(std::make_unique<gl_engine::MapLabelManager>());
+    connect(m_label_filter.get(), &MapLabelFilter::filter_finished, m_engine_context->map_label_manager(), &gl_engine::MapLabelManager::update_labels);
 
     auto* render_thread = QThread::currentThread();
     connect(render_thread, &QThread::finished, m_engine_context.get(), &nucleus::EngineContext::destroy);
 
     nucleus::utils::thread::async_call(this, [this]() { emit this->initialised(); });
-    // nucleus::utils::thread::async_call(m_scheduler.scheduler.get(), [this]() { m_scheduler.scheduler->set_enabled(true); });
+    // nucleus::utils::thread::async_call(m_scheduler.scheduler.get(), [this]() { m_scheduler.scheduler->set_enabled(true); }); // after moving tile scheduler
+    // here.
 }
 
 const std::shared_ptr<gl_engine::Context>& RenderingContext::engine_context() const
