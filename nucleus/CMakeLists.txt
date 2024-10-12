@@ -116,6 +116,7 @@ qt_add_library(nucleus STATIC
     map_label/Scheduler.h map_label/Scheduler.cpp
     map_label/setup.h
     map_label/types.h
+    tile_scheduler/GpuArrayHelper.h tile_scheduler/GpuArrayHelper.cpp
 )
 
 if (ALP_ENABLE_AVLANCHE_WARNING_LAYER)

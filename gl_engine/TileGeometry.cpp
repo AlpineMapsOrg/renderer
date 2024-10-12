@@ -1,8 +1,6 @@
 /*****************************************************************************
  * AlpineMaps.org
- * Copyright (C) 2023 Adam Celarek
- * Copyright (C) 2023 Gerald Kimmersdorfer
- * Copyright (C) 2024 Patrick Komon
+ * Copyright (C) 2024 Adam Celarek
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -17,33 +15,33 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *****************************************************************************/
-#include "TileManager.h"
 
+#include "TileGeometry.h"
+
+#include "ShaderProgram.h"
+#include "ShaderRegistry.h"
+#include "Texture.h"
 #include <QOpenGLBuffer>
 #include <QOpenGLExtraFunctions>
 #include <QOpenGLFunctions>
 #include <QOpenGLShaderProgram>
 #include <QOpenGLVertexArrayObject>
-#include "ShaderProgram.h"
-#include "ShaderRegistry.h"
-#include "nucleus/camera/Definition.h"
-#include "nucleus/utils/terrain_mesh_index_generator.h"
+#include <nucleus/camera/Definition.h>
+#include <nucleus/utils/terrain_mesh_index_generator.h>
 
-using gl_engine::TileManager;
+namespace gl_engine {
 
 namespace {
-template <typename T> int bufferLengthInBytes(const std::vector<T>& vec) { return int(vec.size() * sizeof(T)); }
+    template <typename T> int bufferLengthInBytes(const std::vector<T>& vec) { return int(vec.size() * sizeof(T)); }
 } // namespace
 
-TileManager::TileManager(QObject* parent)
+TileGeometry::TileGeometry(QObject* parent)
     : QObject { parent }
 {
 }
 
-void TileManager::init(ShaderRegistry* shader_registry)
+void TileGeometry::init()
 {
-    m_shader = std::make_shared<ShaderProgram>("tile.vert", "tile.frag");
-    shader_registry->add_shader(m_shader);
 
     using nucleus::utils::terrain_mesh_index_generator::surface_quads_with_curtains;
     assert(QOpenGLContext::currentContext());
@@ -81,11 +79,6 @@ void TileManager::init(ShaderRegistry* shader_registry)
     m_index_buffer.first->bind();
     m_vao->release();
 
-    m_ortho_textures = std::make_unique<Texture>(Texture::Target::_2dArray, Texture::Format::CompressedRGBA8);
-    m_ortho_textures->setParams(Texture::Filter::MipMapLinear, Texture::Filter::Linear, true);
-    // TODO: might become larger than GL_MAX_ARRAY_TEXTURE_LAYERS
-    m_ortho_textures->allocate_array(ORTHO_RESOLUTION, ORTHO_RESOLUTION, unsigned(m_gpu_array_helper.size()));
-
     m_heightmap_textures = std::make_unique<Texture>(Texture::Target::_2dArray, Texture::Format::R16UI);
     m_heightmap_textures->setParams(Texture::Filter::Nearest, Texture::Filter::Nearest);
     m_heightmap_textures->allocate_array(HEIGHTMAP_RESOLUTION, HEIGHTMAP_RESOLUTION, unsigned(m_gpu_array_helper.size()));
@@ -96,11 +89,12 @@ void TileManager::init(ShaderRegistry* shader_registry)
     m_texture_id_map_texture = std::make_unique<Texture>(Texture::Target::_2d, Texture::Format::R16UI);
     m_texture_id_map_texture->setParams(Texture::Filter::Nearest, Texture::Filter::Nearest);
 
-    int bounds = m_shader->attribute_location("bounds");
+    auto example_shader = std::make_shared<ShaderProgram>("tile.vert", "tile.frag");
+    int bounds = example_shader->attribute_location("bounds");
     qDebug() << "attrib location for bounds: " << bounds;
-    int packed_tile_id = m_shader->attribute_location("packed_tile_id");
+    int packed_tile_id = example_shader->attribute_location("packed_tile_id");
     qDebug() << "attrib location for packed_tile_id: " << packed_tile_id;
-    int height_texture_layer = m_shader->attribute_location("height_texture_layer");
+    int height_texture_layer = example_shader->attribute_location("height_texture_layer");
     qDebug() << "attrib location for height_texture_layer: " << height_texture_layer;
 
     m_vao->bind();
@@ -125,24 +119,17 @@ void TileManager::init(ShaderRegistry* shader_registry)
     }
 }
 
-const nucleus::tile_scheduler::DrawListGenerator::TileSet TileManager::generate_tilelist(const nucleus::camera::Definition& camera) const {
-    return m_draw_list_generator.generate_for(camera);
-}
+const TileGeometry::TileSet TileGeometry::generate_tilelist(const nucleus::camera::Definition& camera) const { return m_draw_list_generator.generate_for(camera); }
 
-const nucleus::tile_scheduler::DrawListGenerator::TileSet TileManager::cull(const nucleus::tile_scheduler::DrawListGenerator::TileSet& tileset, const nucleus::camera::Frustum& frustum) const {
-    return m_draw_list_generator.cull(tileset, frustum);
-}
+const TileGeometry::TileSet TileGeometry::cull(const TileSet& tileset, const nucleus::camera::Frustum& frustum) const { return m_draw_list_generator.cull(tileset, frustum); }
 
-void TileManager::draw(
-    const nucleus::camera::Definition& camera, const nucleus::tile_scheduler::DrawListGenerator::TileSet& draw_tiles, bool sort_tiles, glm::dvec3 sort_position) const
+void TileGeometry::draw(ShaderProgram* shader, const nucleus::camera::Definition& camera, const TileSet& draw_tiles, bool sort_tiles, glm::dvec3 sort_position) const
 {
-    m_shader->bind();
     QOpenGLExtraFunctions* f = QOpenGLContext::currentContext()->extraFunctions();
-    m_shader->set_uniform("n_edge_vertices", N_EDGE_VERTICES);
-    m_shader->set_uniform("ortho_sampler", 2);
-    m_shader->set_uniform("height_sampler", 1);
-    m_shader->set_uniform("height_texture_layer_map_sampler", 3);
-    m_shader->set_uniform("tile_id_map_sampler", 4);
+    shader->set_uniform("n_edge_vertices", N_EDGE_VERTICES);
+    shader->set_uniform("height_sampler", 1);
+    shader->set_uniform("height_texture_layer_map_sampler", 3);
+    shader->set_uniform("tile_id_map_sampler", 4);
 
     // Sort depending on distance to sort_position
     std::vector<std::pair<float, const TileInfo*>> tile_list;
@@ -159,7 +146,6 @@ void TileManager::draw(
     if (sort_tiles)
         std::sort(tile_list.begin(), tile_list.end(), [](const auto& a, const auto& b) { return a.first < b.first; });
 
-    m_ortho_textures->bind(2);
     m_heightmap_textures->bind(1);
     m_texture_id_map_texture->bind(3);
     m_tile_id_map_texture->bind(4);
@@ -175,8 +161,10 @@ void TileManager::draw(
     height_texture_layer.reserve(tile_list.size());
 
     for (const auto& tileset : tile_list) {
-        bounds.emplace_back(tileset.second->bounds.min.x - camera.position().x, tileset.second->bounds.min.y - camera.position().y,
-            tileset.second->bounds.max.x - camera.position().x, tileset.second->bounds.max.y - camera.position().y);
+        bounds.emplace_back(tileset.second->bounds.min.x - camera.position().x,
+            tileset.second->bounds.min.y - camera.position().y,
+            tileset.second->bounds.max.x - camera.position().x,
+            tileset.second->bounds.max.y - camera.position().y);
 
         packed_id.emplace_back(nucleus::srs::pack(tileset.second->tile_id));
         height_texture_layer.emplace_back(tileset.second->height_texture_layer);
@@ -189,14 +177,13 @@ void TileManager::draw(
     m_draw_tile_id_buffer->write(0, packed_id.data(), GLsizei(packed_id.size() * sizeof(decltype(packed_id)::value_type)));
 
     m_height_texture_layer_buffer->bind();
-    m_height_texture_layer_buffer->write(
-        0, height_texture_layer.data(), GLsizei(height_texture_layer.size() * sizeof(decltype(height_texture_layer)::value_type)));
+    m_height_texture_layer_buffer->write(0, height_texture_layer.data(), GLsizei(height_texture_layer.size() * sizeof(decltype(height_texture_layer)::value_type)));
 
     f->glDrawElementsInstanced(GL_TRIANGLE_STRIP, GLsizei(m_index_buffer.second), GL_UNSIGNED_SHORT, nullptr, GLsizei(tile_list.size()));
     f->glBindVertexArray(0);
 }
 
-void TileManager::remove_tile(const tile::Id& tile_id)
+void TileGeometry::remove_tile(const tile::Id& tile_id)
 {
     if (!QOpenGLContext::currentContext()) // can happen during shutdown.
         return;
@@ -211,15 +198,11 @@ void TileManager::remove_tile(const tile::Id& tile_id)
         m_gpu_tiles.erase(found_tile);
 }
 
-void TileManager::set_aabb_decorator(const nucleus::tile_scheduler::utils::AabbDecoratorPtr& new_aabb_decorator)
-{
-    m_draw_list_generator.set_aabb_decorator(new_aabb_decorator);
-}
+void TileGeometry::set_aabb_decorator(const nucleus::tile_scheduler::utils::AabbDecoratorPtr& new_aabb_decorator) { m_draw_list_generator.set_aabb_decorator(new_aabb_decorator); }
 
-void TileManager::set_quad_limit(unsigned int new_limit) { m_gpu_array_helper.set_quad_limit(new_limit); }
+void TileGeometry::set_quad_limit(unsigned int new_limit) { m_gpu_array_helper.set_quad_limit(new_limit); }
 
-void TileManager::add_tile(const tile::Id& id, tile::SrsAndHeightBounds bounds, const nucleus::utils::MipmappedColourTexture& ortho_texture,
-    const nucleus::Raster<uint16_t>& height_map)
+void TileGeometry::add_tile(const tile::Id& id, tile::SrsAndHeightBounds bounds, const nucleus::Raster<uint16_t>& height_map)
 {
     if (!QOpenGLContext::currentContext()) // can happen during shutdown.
         return;
@@ -231,7 +214,6 @@ void TileManager::add_tile(const tile::Id& id, tile::SrsAndHeightBounds bounds, 
     // find empty spot and upload texture
     const auto layer_index = m_gpu_array_helper.add_tile(id);
     tileinfo.height_texture_layer = layer_index;
-    m_ortho_textures->upload(ortho_texture, layer_index);
     m_heightmap_textures->upload(height_map, layer_index);
 
     // add to m_gpu_tiles
@@ -239,19 +221,19 @@ void TileManager::add_tile(const tile::Id& id, tile::SrsAndHeightBounds bounds, 
     m_draw_list_generator.add_tile(id);
 }
 
-void TileManager::update_gpu_id_map()
+void TileGeometry::update_gpu_id_map()
 {
     auto [packed_ids, layers] = m_gpu_array_helper.generate_dictionary();
     m_texture_id_map_texture->upload(layers);
     m_tile_id_map_texture->upload(packed_ids);
 }
 
-void TileManager::set_permissible_screen_space_error(float new_permissible_screen_space_error)
+void TileGeometry::set_permissible_screen_space_error(float new_permissible_screen_space_error)
 {
     m_draw_list_generator.set_permissible_screen_space_error(new_permissible_screen_space_error);
 }
 
-void TileManager::update_gpu_quads(const std::vector<nucleus::tile_scheduler::tile_types::GpuTileQuad>& new_quads, const std::vector<tile::Id>& deleted_quads)
+void TileGeometry::update_gpu_quads(const std::vector<nucleus::tile_scheduler::tile_types::GpuTileQuad>& new_quads, const std::vector<tile::Id>& deleted_quads)
 {
     for (const auto& quad : deleted_quads) {
         for (const auto& id : quad.children()) {
@@ -264,8 +246,10 @@ void TileManager::update_gpu_quads(const std::vector<nucleus::tile_scheduler::ti
             assert(tile.id.zoom_level < 100);
             assert(tile.height);
             assert(tile.ortho);
-            add_tile(tile.id, tile.bounds, *tile.ortho, *tile.height);
+            add_tile(tile.id, tile.bounds, *tile.height);
         }
     }
     update_gpu_id_map();
 }
+
+} // namespace gl_engine

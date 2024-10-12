@@ -1,8 +1,6 @@
 /*****************************************************************************
- * Alpine Terrain Renderer
- * Copyright (C) 2023 Adam Celerek
- * Copyright (C) 2023 Gerald Kimmersdorfer
- * Copyright (C) 2024 Patrick Komon
+ * AlpineMaps.org
+ * Copyright (C) 2024 Adam Celarek
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -20,13 +18,8 @@
 
 #pragma once
 
-#include <memory>
-
 #include <QObject>
-#include <QOpenGLBuffer>
-#include <QOpenGLVertexArrayObject>
-
-#include "gl_engine/Texture.h"
+#include <nucleus/Raster.h>
 #include <nucleus/tile_scheduler/DrawListGenerator.h>
 #include <nucleus/tile_scheduler/GpuArrayHelper.h>
 #include <nucleus/tile_scheduler/tile_types.h>
@@ -36,12 +29,15 @@ class Definition;
 }
 
 class QOpenGLShaderProgram;
+class QOpenGLBuffer;
+class QOpenGLVertexArrayObject;
 
 namespace gl_engine {
 class ShaderRegistry;
 class ShaderProgram;
+class Texture;
 
-class TileManager : public QObject {
+class TileGeometry : public QObject {
     Q_OBJECT
 
     struct TileInfo {
@@ -51,12 +47,14 @@ class TileManager : public QObject {
     };
 
 public:
-    explicit TileManager(QObject* parent = nullptr);
-    void init(ShaderRegistry* shader_registry); // needs OpenGL context
-    void draw(const nucleus::camera::Definition& camera, const nucleus::tile_scheduler::DrawListGenerator::TileSet& draw_tiles, bool sort_tiles, glm::dvec3 sort_position) const;
+    using TileSet = std::unordered_set<tile::Id, tile::Id::Hasher>;
 
-    const nucleus::tile_scheduler::DrawListGenerator::TileSet generate_tilelist(const nucleus::camera::Definition& camera) const;
-    const nucleus::tile_scheduler::DrawListGenerator::TileSet cull(const nucleus::tile_scheduler::DrawListGenerator::TileSet& tileset, const nucleus::camera::Frustum& frustum) const;
+    explicit TileGeometry(QObject* parent = nullptr);
+    void init(); // needs OpenGL context
+    void draw(ShaderProgram* shader_program, const nucleus::camera::Definition& camera, const TileSet& draw_tiles, bool sort_tiles, glm::dvec3 sort_position) const;
+
+    const TileSet generate_tilelist(const nucleus::camera::Definition& camera) const;
+    const TileSet cull(const TileSet& tileset, const nucleus::camera::Frustum& frustum) const;
 
     void set_permissible_screen_space_error(float new_permissible_screen_space_error);
 
@@ -67,17 +65,13 @@ public slots:
 
 private:
     void remove_tile(const tile::Id& tile_id);
-    void add_tile(
-        const tile::Id& id, tile::SrsAndHeightBounds bounds, const nucleus::utils::MipmappedColourTexture& ortho, const nucleus::Raster<uint16_t>& heights);
+    void add_tile(const tile::Id& id, tile::SrsAndHeightBounds bounds, const nucleus::Raster<uint16_t>& heights);
     void update_gpu_id_map();
 
     static constexpr auto N_EDGE_VERTICES = 65;
     static constexpr auto ORTHO_RESOLUTION = 256;
     static constexpr auto HEIGHTMAP_RESOLUTION = 65;
 
-    std::shared_ptr<ShaderProgram> m_shader;
-    std::vector<tile::Id> m_loaded_tiles;
-    std::unique_ptr<Texture> m_ortho_textures;
     std::unique_ptr<Texture> m_heightmap_textures;
     std::unique_ptr<Texture> m_tile_id_map_texture;
     std::unique_ptr<Texture> m_texture_id_map_texture;
@@ -91,4 +85,4 @@ private:
     nucleus::tile_scheduler::DrawListGenerator m_draw_list_generator;
     nucleus::tile_scheduler::GpuArrayHelper m_gpu_array_helper;
 };
-}
+} // namespace gl_engine
