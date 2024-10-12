@@ -54,6 +54,7 @@ signals:
     void key_pressed(const QKeyCombination&) const;
     void key_released(const QKeyCombination&) const;
     void resized(const glm::uvec2&) const;
+    void about_to_be_destoryed();
 
 private slots:
     void key_timer();

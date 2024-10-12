@@ -59,6 +59,7 @@ void Window::closeEvent(QCloseEvent*)
     // NOTE: The following fixes the bug where the plain_renderer crashes if m_gl_window was set as a direct member variable
     // For some reason in this case the QOpenGLContext was not available anymore before deleting the m_gl_window. Thats why it crashed
     // when exiting. Deleting m_gl_window manually inside the closeEvent fixes this bug:
+    emit about_to_be_destoryed();
     delete m_gl_window;
     m_gl_window = nullptr;
 }

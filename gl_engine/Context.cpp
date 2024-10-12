@@ -20,7 +20,9 @@
 #include "MapLabelManager.h"
 #include "ShaderRegistry.h"
 #include "TextureLayer.h"
+#include "TileGeometry.h"
 #include "TrackManager.h"
+#include <QOpenGLContext>
 
 using namespace gl_engine;
 
@@ -51,19 +53,21 @@ void Context::internal_initialise()
     if (m_map_label_manager)
         m_map_label_manager->init(m_shader_registry.get());
 
+    if (m_tile_geometry)
+        m_tile_geometry->init();
+
     if (m_ortho_layer)
         m_ortho_layer->init(m_shader_registry.get());
 }
 
 void Context::internal_destroy()
 {
-    /// TODO: is this actually necessary?
+    // this is necessary for a clean shutdown (and we want a clean shutdown for the ci integration test).
     m_ortho_layer.reset();
     m_tile_geometry.reset();
     m_track_manager.reset();
     m_shader_registry.reset();
-    if (m_map_label_manager)
-        m_map_label_manager.reset();
+    m_map_label_manager.reset();
 }
 
 TextureLayer* Context::ortho_layer() const { return m_ortho_layer.get(); }
