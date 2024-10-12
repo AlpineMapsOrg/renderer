@@ -150,7 +150,6 @@ nucleus::tile_scheduler::tile_types::LayeredTileQuad example_tile_quad_for(const
         cpu_quad.tiles[i].id = children[i];
         cpu_quad.tiles[i].ortho = std::make_shared<QByteArray>(std::get<0>(example_data));
         cpu_quad.tiles[i].height = std::make_shared<QByteArray>(std::get<1>(example_data));
-        cpu_quad.tiles[i].vector_tile = std::make_shared<QByteArray>(std::get<2>(example_data));
         cpu_quad.tiles[i].network_info.status = status;
         cpu_quad.tiles[i].network_info.timestamp = nucleus::tile_scheduler::utils::time_since_epoch();
     }

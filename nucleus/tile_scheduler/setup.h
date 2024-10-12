@@ -36,13 +36,9 @@ struct MonolithicScheduler {
     std::unique_ptr<QThread> thread;
     TileLoadServicePtr terrain_service;
     TileLoadServicePtr ortho_service;
-    TileLoadServicePtr vector_service;
 };
 
-MonolithicScheduler monolithic(TileLoadServicePtr terrain_service,
-    TileLoadServicePtr ortho_service,
-    TileLoadServicePtr vector_service,
-    const tile_scheduler::utils::AabbDecoratorPtr& aabb_decorator);
+MonolithicScheduler monolithic(TileLoadServicePtr terrain_service, TileLoadServicePtr ortho_service, const tile_scheduler::utils::AabbDecoratorPtr& aabb_decorator);
 
 utils::AabbDecoratorPtr aabb_decorator();
 

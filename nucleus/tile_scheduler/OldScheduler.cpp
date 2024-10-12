@@ -198,14 +198,6 @@ void OldScheduler::update_gpu_quads()
                                auto heightraster = nucleus::utils::tile_conversion::to_u16raster(m_default_height_raster);
                                gpu_quad.tiles[i].height = std::make_shared<nucleus::Raster<uint16_t>>(std::move(heightraster));
                            }
-
-#ifdef ALP_ENABLE_LABELS
-                           const auto* vectortile_data = m_default_vector_tile.get();
-                           vectortile_data = quad.tiles[i].vector_tile.get();
-                           // moved into this if -> since vector_tile might be empty
-                           auto pois = nucleus::vector_tile::parse::points_of_interest(*vectortile_data, m_dataquerier.get());
-                           gpu_quad.tiles[i].vector_tile = std::make_shared<vector_tile::PointOfInterestCollection>(std::move(pois));
-#endif
                        }
                        return gpu_quad;
                    });

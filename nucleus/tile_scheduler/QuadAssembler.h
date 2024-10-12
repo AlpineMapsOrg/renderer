@@ -27,7 +27,7 @@
 
 namespace nucleus::tile_scheduler {
 
-class QuadAssemblerLayered : public QObject {
+class [[deprecated]] QuadAssemblerLayered : public QObject {
     Q_OBJECT
     using TileId2QuadMap = std::unordered_map<tile::Id, tile_types::LayeredTileQuad, tile::Id::Hasher>;
 

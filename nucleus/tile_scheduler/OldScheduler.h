@@ -41,7 +41,7 @@ namespace utils {
     using AabbDecoratorPtr = std::shared_ptr<AabbDecorator>;
 }
 
-class OldScheduler : public QObject {
+class [[deprecated]] OldScheduler : public QObject {
     Q_OBJECT
 public:
     struct Statistics {

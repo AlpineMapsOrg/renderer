@@ -82,7 +82,6 @@ struct [[deprecated]] LayeredTile {
     NetworkInfo network_info;
     std::shared_ptr<QByteArray> ortho;
     std::shared_ptr<QByteArray> height;
-    std::shared_ptr<QByteArray> vector_tile;
 };
 static_assert(NamedTile<LayeredTile>);
 

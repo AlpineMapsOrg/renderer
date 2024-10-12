@@ -28,7 +28,7 @@
 
 namespace nucleus::tile_scheduler {
 
-class SlotLimiterLayered : public QObject {
+class [[deprecated]] SlotLimiterLayered : public QObject {
     Q_OBJECT
 
     unsigned m_limit = 16;

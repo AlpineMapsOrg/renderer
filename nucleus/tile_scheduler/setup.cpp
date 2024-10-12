@@ -27,10 +27,7 @@
 
 namespace nucleus::tile_scheduler::setup {
 
-MonolithicScheduler monolithic(TileLoadServicePtr terrain_service,
-    TileLoadServicePtr ortho_service,
-    TileLoadServicePtr vector_service,
-    const tile_scheduler::utils::AabbDecoratorPtr& aabb_decorator)
+MonolithicScheduler monolithic(TileLoadServicePtr terrain_service, TileLoadServicePtr ortho_service, const tile_scheduler::utils::AabbDecoratorPtr& aabb_decorator)
 {
     auto scheduler = std::make_unique<nucleus::tile_scheduler::OldScheduler>();
 
@@ -57,12 +54,6 @@ MonolithicScheduler monolithic(TileLoadServicePtr terrain_service,
         QObject::connect(la, &LayerAssembler::tile_loaded, qa, &QuadAssemblerLayered::deliver_tile);
         QObject::connect(qa, &QuadAssemblerLayered::quad_loaded, sl, &SlotLimiterLayered::deliver_quad);
         QObject::connect(sl, &SlotLimiterLayered::quad_delivered, sch, &OldScheduler::receive_quad);
-
-#ifdef ALP_ENABLE_LABELS
-        // m_label_filter = new MapLabelFilter(sch);
-        QObject::connect(la, &LayerAssembler::tile_requested, vector_service.get(), &TileLoadService::load);
-        QObject::connect(vector_service.get(), &TileLoadService::load_finished, la, &LayerAssembler::deliver_vectortile);
-#endif
     }
     if (QNetworkInformation::loadDefaultBackend() && QNetworkInformation::instance()) {
         QNetworkInformation* n = QNetworkInformation::instance();
@@ -82,13 +73,12 @@ MonolithicScheduler monolithic(TileLoadServicePtr terrain_service,
 #else
     terrain_service->moveToThread(thread.get());
     ortho_service->moveToThread(thread.get());
-    vector_service->moveToThread(thread.get());
 #endif
     scheduler->moveToThread(thread.get());
     thread->start();
 #endif
 
-    return { std::move(scheduler), std::move(thread), std::move(ortho_service), std::move(terrain_service), std::move(vector_service) };
+    return { std::move(scheduler), std::move(thread), std::move(ortho_service), std::move(terrain_service) };
 }
 
 utils::AabbDecoratorPtr aabb_decorator()

@@ -25,13 +25,11 @@ LayerAssembler::LayerAssembler(QObject* parent)
 {
 }
 
-size_t LayerAssembler::n_items_in_flight() const { return m_height_data.size() + m_ortho_data.size() + m_vector_tile_data.size(); }
+size_t LayerAssembler::n_items_in_flight() const { return m_height_data.size() + m_ortho_data.size(); }
 
-tile_types::LayeredTile LayerAssembler::join(
-    const tile_types::Data& ortho_tile, const tile_types::Data& height_tile, const tile_types::Data& vector_tile)
+tile_types::LayeredTile LayerAssembler::join(const tile_types::Data& ortho_tile, const tile_types::Data& height_tile)
 {
     assert(ortho_tile.id == height_tile.id);
-    assert(ortho_tile.id == vector_tile.id);
     const auto network_info
         = tile_types::NetworkInfo::join(ortho_tile.network_info, height_tile.network_info); //, vector_tile.network_info -> vector tile might be 404 if empty
     const auto data_filter = [&network_info](const auto& d) {
@@ -40,7 +38,7 @@ tile_types::LayeredTile LayerAssembler::join(
         return std::make_shared<QByteArray>();
     };
 
-    return { ortho_tile.id, network_info, data_filter(ortho_tile.data), data_filter(height_tile.data), data_filter(vector_tile.data) };
+    return { ortho_tile.id, network_info, data_filter(ortho_tile.data), data_filter(height_tile.data) };
 }
 
 void LayerAssembler::load(const tile::Id& tile_id)
@@ -60,18 +58,11 @@ void LayerAssembler::deliver_height(const tile_types::Data& tile)
     check_and_emit(tile.id);
 }
 
-void LayerAssembler::deliver_vectortile(const tile_types::Data& tile)
-{
-    m_vector_tile_data[tile.id] = tile;
-    check_and_emit(tile.id);
-}
-
 void LayerAssembler::check_and_emit(const tile::Id& tile_id)
 {
-    if (m_ortho_data.contains(tile_id) && m_height_data.contains(tile_id) && m_vector_tile_data.contains(tile_id)) {
-        emit tile_loaded(join(m_ortho_data[tile_id], m_height_data[tile_id], m_vector_tile_data[tile_id]));
+    if (m_ortho_data.contains(tile_id) && m_height_data.contains(tile_id)) {
+        emit tile_loaded(join(m_ortho_data[tile_id], m_height_data[tile_id]));
         m_ortho_data.erase(tile_id);
         m_height_data.erase(tile_id);
-        m_vector_tile_data.erase(tile_id);
     }
 }

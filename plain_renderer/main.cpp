@@ -115,13 +115,10 @@ int main(int argc, char* argv[])
     //                                           TileLoadService::UrlPattern::ZYX_yPointingSouth,
     //                                           ".jpeg",
     //                                           {"", "1", "2", "3", "4"}));
-    auto ortho_service
-        = std::make_unique<TileLoadService>("https://gataki.cg.tuwien.ac.at/raw/basemap/tiles/", TileLoadService::UrlPattern::ZYX_yPointingSouth, ".jpeg");
-    auto vectortile_service = std::make_unique<TileLoadService>(
-        "https://osm.cg.tuwien.ac.at/vector_tiles/poi_v1/", nucleus::tile_scheduler::TileLoadService::UrlPattern::ZXY_yPointingSouth, "");
+    auto ortho_service = std::make_unique<TileLoadService>("https://gataki.cg.tuwien.ac.at/raw/basemap/tiles/", TileLoadService::UrlPattern::ZYX_yPointingSouth, ".jpeg");
 
     auto decorator = nucleus::tile_scheduler::setup::aabb_decorator();
-    auto scheduler = nucleus::tile_scheduler::setup::monolithic(std::move(terrain_service), std::move(ortho_service), std::move(vectortile_service), decorator);
+    auto scheduler = nucleus::tile_scheduler::setup::monolithic(std::move(terrain_service), std::move(ortho_service), decorator);
     auto data_querier = std::make_shared<DataQuerier>(&scheduler.scheduler->ram_cache());
     scheduler.scheduler->set_dataquerier(data_querier);
 

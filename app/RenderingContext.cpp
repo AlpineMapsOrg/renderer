@@ -72,9 +72,8 @@ RenderingContext::RenderingContext(QObject* parent)
     //                                           {"", "1", "2", "3", "4"}));
     auto ortho_service
         = std::make_unique<TileLoadService>("https://gataki.cg.tuwien.ac.at/raw/basemap/tiles/", TileLoadService::UrlPattern::ZYX_yPointingSouth, ".jpeg");
-    auto vectortile_service = std::make_unique<TileLoadService>("https://osm.cg.tuwien.ac.at/vector_tiles/poi_v1/", TilePattern::ZXY_yPointingSouth, "");
     m->aabb_decorator = nucleus::tile_scheduler::setup::aabb_decorator();
-    m->scheduler = nucleus::tile_scheduler::setup::monolithic(std::move(terrain_service), std::move(ortho_service), std::move(vectortile_service), m->aabb_decorator);
+    m->scheduler = nucleus::tile_scheduler::setup::monolithic(std::move(terrain_service), std::move(ortho_service), m->aabb_decorator);
     m->data_querier = std::make_shared<DataQuerier>(&m->scheduler.scheduler->ram_cache());
     m->map_label = nucleus::map_label::setup::scheduler(std::make_unique<TileLoadService>("https://osm.cg.tuwien.ac.at/vector_tiles/poi_v1/", TilePattern::ZXY_yPointingSouth, ""),
         m->aabb_decorator,
@@ -110,11 +109,7 @@ RenderingContext::~RenderingContext()
         m->camera_controller = {};
         m->label_filter = {};
         m->picker_manager = {};
-    });
-    nucleus::utils::thread::sync_call(m->scheduler.ortho_service.get(), [this]() {
-        m->scheduler.ortho_service = {};
-        m->scheduler.terrain_service = {};
-        m->scheduler.vector_service = {};
+        m->map_label.scheduler = {};
     });
     if (m->scheduler.thread) {
         m->scheduler.thread->quit();
