@@ -90,11 +90,11 @@ void TileManager::init(ShaderRegistry* shader_registry)
     m_heightmap_textures->setParams(Texture::Filter::Nearest, Texture::Filter::Nearest);
     m_heightmap_textures->allocate_array(HEIGHTMAP_RESOLUTION, HEIGHTMAP_RESOLUTION, unsigned(m_gpu_array_helper.size()));
 
-    m_tile_id_map_texture = std::make_unique<Texture>(Texture::Target::_2d, Texture::Format::RG32UI);
-    m_tile_id_map_texture->setParams(Texture::Filter::Nearest, Texture::Filter::Nearest);
+    m_tile_id_texture = std::make_unique<Texture>(Texture::Target::_2d, Texture::Format::RG32UI);
+    m_tile_id_texture->setParams(Texture::Filter::Nearest, Texture::Filter::Nearest);
 
-    m_texture_id_map_texture = std::make_unique<Texture>(Texture::Target::_2d, Texture::Format::R16UI);
-    m_texture_id_map_texture->setParams(Texture::Filter::Nearest, Texture::Filter::Nearest);
+    m_array_index_texture = std::make_unique<Texture>(Texture::Target::_2d, Texture::Format::R16UI);
+    m_array_index_texture->setParams(Texture::Filter::Nearest, Texture::Filter::Nearest);
 
     int bounds = m_shader->attribute_location("bounds");
     qDebug() << "attrib location for bounds: " << bounds;
@@ -161,8 +161,8 @@ void TileManager::draw(
 
     m_ortho_textures->bind(2);
     m_heightmap_textures->bind(1);
-    m_texture_id_map_texture->bind(3);
-    m_tile_id_map_texture->bind(4);
+    m_array_index_texture->bind(3);
+    m_tile_id_texture->bind(4);
     m_vao->bind();
 
     std::vector<glm::vec4> bounds;
@@ -242,8 +242,8 @@ void TileManager::add_tile(const tile::Id& id, tile::SrsAndHeightBounds bounds, 
 void TileManager::update_gpu_id_map()
 {
     auto [packed_ids, layers] = m_gpu_array_helper.generate_dictionary();
-    m_texture_id_map_texture->upload(layers);
-    m_tile_id_map_texture->upload(packed_ids);
+    m_array_index_texture->upload(layers);
+    m_tile_id_texture->upload(packed_ids);
 }
 
 void TileManager::set_permissible_screen_space_error(float new_permissible_screen_space_error)

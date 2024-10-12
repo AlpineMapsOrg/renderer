@@ -69,12 +69,11 @@ private:
     void update_gpu_id_map();
 
     static constexpr auto N_EDGE_VERTICES = 65;
-    static constexpr auto ORTHO_RESOLUTION = 256;
     static constexpr auto HEIGHTMAP_RESOLUTION = 65;
 
     std::unique_ptr<Texture> m_heightmap_textures;
-    std::unique_ptr<Texture> m_tile_id_map_texture;
-    std::unique_ptr<Texture> m_texture_id_map_texture;
+    std::unique_ptr<Texture> m_tile_id_texture;
+    std::unique_ptr<Texture> m_array_index_texture;
     std::unique_ptr<QOpenGLVertexArrayObject> m_vao;
     std::pair<std::unique_ptr<QOpenGLBuffer>, size_t> m_index_buffer;
     std::unique_ptr<QOpenGLBuffer> m_bounds_buffer;

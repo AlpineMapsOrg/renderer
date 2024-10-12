@@ -20,6 +20,9 @@
 
 #include "ShaderProgram.h"
 #include "ShaderRegistry.h"
+#include "Texture.h"
+#include "TileGeometry.h"
+#include <QOpenGLExtraFunctions>
 
 namespace gl_engine {
 
@@ -32,5 +35,67 @@ void gl_engine::TextureLayer::init(ShaderRegistry* shader_registry)
 {
     m_shader = std::make_shared<ShaderProgram>("tile.vert", "tile.frag");
     shader_registry->add_shader(m_shader);
+
+    m_ortho_textures = std::make_unique<Texture>(Texture::Target::_2dArray, Texture::Format::CompressedRGBA8);
+    m_ortho_textures->setParams(Texture::Filter::MipMapLinear, Texture::Filter::Linear, true);
+    // TODO: might become larger than GL_MAX_ARRAY_TEXTURE_LAYERS
+    m_ortho_textures->allocate_array(ORTHO_RESOLUTION, ORTHO_RESOLUTION, unsigned(m_gpu_array_helper.size()));
+
+    m_tile_id_texture = std::make_unique<Texture>(Texture::Target::_2d, Texture::Format::RG32UI);
+    m_tile_id_texture->setParams(Texture::Filter::Nearest, Texture::Filter::Nearest);
+
+    m_array_index_texture = std::make_unique<Texture>(Texture::Target::_2d, Texture::Format::R16UI);
+    m_array_index_texture->setParams(Texture::Filter::Nearest, Texture::Filter::Nearest);
 }
+
+void TextureLayer::draw(const TileGeometry& tile_geometry,
+    const nucleus::camera::Definition& camera,
+    const nucleus::tile_scheduler::DrawListGenerator::TileSet& draw_tiles,
+    bool sort_tiles,
+    glm::dvec3 sort_position) const
+{
+    m_shader->bind();
+    QOpenGLExtraFunctions* f = QOpenGLContext::currentContext()->extraFunctions();
+    m_shader->set_uniform("ortho_sampler", 2);
+    m_ortho_textures->bind(2);
+
+    /// TODO: bind our own m_gpu_array_helper textures
+
+    tile_geometry.draw(m_shader.get(), camera, draw_tiles, sort_tiles, sort_position);
+}
+
+void TextureLayer::update_gpu_quads(const std::vector<nucleus::tile_scheduler::tile_types::GpuTileQuad>& new_quads, const std::vector<tile::Id>& deleted_quads)
+{
+    if (!QOpenGLContext::currentContext()) // can happen during shutdown.
+        return;
+
+    for (const auto& quad : deleted_quads) {
+        for (const auto& id : quad.children()) {
+            m_gpu_array_helper.remove_tile(id);
+        }
+    }
+    for (const auto& quad : new_quads) {
+        for (const auto& tile : quad.tiles) {
+            // test for validity
+            assert(tile.id.zoom_level < 100);
+            assert(tile.height);
+            assert(tile.ortho);
+
+            // find empty spot and upload texture
+            const auto layer_index = m_gpu_array_helper.add_tile(tile.id);
+            m_ortho_textures->upload(*tile.ortho, layer_index);
+        }
+    }
+    update_gpu_id_map();
+}
+
+void TextureLayer::set_quad_limit(unsigned int new_limit) { m_gpu_array_helper.set_quad_limit(new_limit); }
+
+void TextureLayer::update_gpu_id_map()
+{
+    auto [packed_ids, layers] = m_gpu_array_helper.generate_dictionary();
+    m_array_index_texture->upload(layers);
+    m_tile_id_texture->upload(packed_ids);
+}
+
 } // namespace gl_engine

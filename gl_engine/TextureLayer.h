@@ -19,18 +19,50 @@
 #pragma once
 
 #include <QObject>
+#include <nucleus/Raster.h>
+#include <nucleus/tile_scheduler/DrawListGenerator.h>
+#include <nucleus/tile_scheduler/GpuArrayHelper.h>
+#include <nucleus/tile_scheduler/tile_types.h>
+
+namespace camera {
+class Definition;
+}
+
+class QOpenGLShaderProgram;
+class QOpenGLBuffer;
+class QOpenGLVertexArrayObject;
 
 namespace gl_engine {
 class ShaderRegistry;
 class ShaderProgram;
+class Texture;
+class TileGeometry;
 
 class TextureLayer : public QObject {
     Q_OBJECT
 public:
     explicit TextureLayer(QObject* parent = nullptr);
     void init(ShaderRegistry* shader_registry); // needs OpenGL context
+    void draw(const TileGeometry& tile_geometry,
+        const nucleus::camera::Definition& camera,
+        const nucleus::tile_scheduler::DrawListGenerator::TileSet& draw_tiles,
+        bool sort_tiles,
+        glm::dvec3 sort_position) const;
+
+public slots:
+    void update_gpu_quads(const std::vector<nucleus::tile_scheduler::tile_types::GpuTileQuad>& new_quads, const std::vector<tile::Id>& deleted_quads);
+    void set_quad_limit(unsigned new_limit);
 
 private:
+    void update_gpu_id_map();
+
+    static constexpr auto ORTHO_RESOLUTION = 256;
+
     std::shared_ptr<ShaderProgram> m_shader;
+    std::unique_ptr<Texture> m_ortho_textures;
+    std::unique_ptr<Texture> m_tile_id_texture;
+    std::unique_ptr<Texture> m_array_index_texture;
+
+    nucleus::tile_scheduler::GpuArrayHelper m_gpu_array_helper;
 };
 } // namespace gl_engine
