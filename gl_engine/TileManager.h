@@ -37,7 +37,6 @@ class Definition;
 class QOpenGLShaderProgram;
 
 namespace gl_engine {
-class Atmosphere;
 class ShaderProgram;
 
 class TileManager : public QObject {

@@ -45,7 +45,6 @@ public:
     std::shared_ptr<ShaderProgram> shared_ssao_program()        { return m_ssao_program; }
     std::shared_ptr<ShaderProgram> shared_ssao_blur_program()   { return m_ssao_blur_program; }
     std::shared_ptr<ShaderProgram> shared_shadowmap_program()   { return m_shadowmap_program; }
-    void release();
 public slots:
     void reload_shaders();
 signals:

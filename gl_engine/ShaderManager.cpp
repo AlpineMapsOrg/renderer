@@ -54,11 +54,6 @@ ShaderManager::ShaderManager()
 
 ShaderManager::~ShaderManager() = default;
 
-void ShaderManager::release()
-{
-    m_tile_program->release();
-}
-
 void ShaderManager::reload_shaders()
 {
     for (auto* program : m_program_list) {
