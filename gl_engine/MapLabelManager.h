@@ -35,6 +35,7 @@ using namespace nucleus::vector_tile;
 
 namespace gl_engine {
 class ShaderProgram;
+class ShaderRegistry;
 
 struct GPUVectorTile {
     tile::Id id;
@@ -51,9 +52,9 @@ public:
     using TileSet = nucleus::tile_scheduler::DrawListGenerator::TileSet;
     explicit MapLabelManager(const nucleus::tile_scheduler::utils::AabbDecoratorPtr& aabb_decorator, QObject* parent = nullptr);
 
-    void init();
-    void draw(Framebuffer* gbuffer, ShaderProgram* shader_program, const nucleus::camera::Definition& camera, const TileSet& draw_tiles) const;
-    void draw_picker(Framebuffer* gbuffer, ShaderProgram* shader_program, const nucleus::camera::Definition& camera, const TileSet& draw_tiles) const;
+    void init(ShaderRegistry* shader_registry);
+    void draw(Framebuffer* gbuffer, const nucleus::camera::Definition& camera, const TileSet& draw_tiles) const;
+    void draw_picker(Framebuffer* gbuffer, const nucleus::camera::Definition& camera, const TileSet& draw_tiles) const;
     TileSet generate_draw_list(const nucleus::camera::Definition& camera) const;
 
     void update_labels(const PointOfInterestTileCollection& visible_features, const std::vector<tile::Id>& removed_tiles);
@@ -61,6 +62,9 @@ public:
 private:
     void upload_to_gpu(const tile::Id& id, const PointOfInterestCollection& features);
     void remove_tile(const tile::Id& tile_id);
+
+    std::shared_ptr<ShaderProgram> m_label_shader;
+    std::shared_ptr<ShaderProgram> m_picker_shader;
 
     std::unique_ptr<Texture> m_font_texture;
     std::unique_ptr<Texture> m_icon_texture;

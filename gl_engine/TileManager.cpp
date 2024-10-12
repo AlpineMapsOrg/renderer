@@ -1,5 +1,5 @@
- /*****************************************************************************
- * Alpine Renderer
+/*****************************************************************************
+ * AlpineMaps.org
  * Copyright (C) 2023 Adam Celarek
  * Copyright (C) 2023 Gerald Kimmersdorfer
  * Copyright (C) 2024 Patrick Komon
@@ -26,22 +26,26 @@
 #include <QOpenGLVertexArrayObject>
 
 #include "ShaderProgram.h"
+#include "ShaderRegistry.h"
 #include "nucleus/camera/Definition.h"
 #include "nucleus/utils/terrain_mesh_index_generator.h"
 
- using gl_engine::TileManager;
+using gl_engine::TileManager;
 
- namespace {
- template <typename T> int bufferLengthInBytes(const std::vector<T>& vec) { return int(vec.size() * sizeof(T)); }
- } // namespace
+namespace {
+template <typename T> int bufferLengthInBytes(const std::vector<T>& vec) { return int(vec.size() * sizeof(T)); }
+} // namespace
 
 TileManager::TileManager(QObject* parent)
     : QObject { parent }
 {
 }
 
-void TileManager::init()
+void TileManager::init(ShaderRegistry* shader_registry)
 {
+    m_shader = std::make_shared<ShaderProgram>("tile.vert", "tile.frag");
+    shader_registry->add_shader(m_shader);
+
     using nucleus::utils::terrain_mesh_index_generator::surface_quads_with_curtains;
     assert(QOpenGLContext::currentContext());
     const auto indices = surface_quads_with_curtains<uint16_t>(N_EDGE_VERTICES);
@@ -92,6 +96,34 @@ void TileManager::init()
 
     m_texture_id_map_texture = std::make_unique<Texture>(Texture::Target::_2d, Texture::Format::R16UI);
     m_texture_id_map_texture->setParams(Texture::Filter::Nearest, Texture::Filter::Nearest);
+
+    int bounds = m_shader->attribute_location("bounds");
+    qDebug() << "attrib location for bounds: " << bounds;
+    int packed_tile_id = m_shader->attribute_location("packed_tile_id");
+    qDebug() << "attrib location for packed_tile_id: " << packed_tile_id;
+    int height_texture_layer = m_shader->attribute_location("height_texture_layer");
+    qDebug() << "attrib location for height_texture_layer: " << height_texture_layer;
+
+    m_vao->bind();
+    QOpenGLExtraFunctions* f = QOpenGLContext::currentContext()->extraFunctions();
+    if (bounds != -1) {
+        m_bounds_buffer->bind();
+        f->glEnableVertexAttribArray(GLuint(bounds));
+        f->glVertexAttribPointer(GLuint(bounds), /*size*/ 4, /*type*/ GL_FLOAT, /*normalised*/ GL_FALSE, /*stride*/ 0, nullptr);
+        f->glVertexAttribDivisor(GLuint(bounds), 1);
+    }
+    if (packed_tile_id != -1) {
+        m_draw_tile_id_buffer->bind();
+        f->glEnableVertexAttribArray(GLuint(packed_tile_id));
+        f->glVertexAttribIPointer(GLuint(packed_tile_id), /*size*/ 2, /*type*/ GL_UNSIGNED_INT, /*stride*/ 0, nullptr);
+        f->glVertexAttribDivisor(GLuint(packed_tile_id), 1);
+    }
+    if (height_texture_layer != -1) {
+        m_height_texture_layer_buffer->bind();
+        f->glEnableVertexAttribArray(GLuint(height_texture_layer));
+        f->glVertexAttribIPointer(GLuint(height_texture_layer), /*size*/ 1, /*type*/ GL_INT, /*stride*/ 0, nullptr);
+        f->glVertexAttribDivisor(GLuint(height_texture_layer), 1);
+    }
 }
 
 const nucleus::tile_scheduler::DrawListGenerator::TileSet TileManager::generate_tilelist(const nucleus::camera::Definition& camera) const {
@@ -102,15 +134,16 @@ const nucleus::tile_scheduler::DrawListGenerator::TileSet TileManager::cull(cons
     return m_draw_list_generator.cull(tileset, frustum);
 }
 
-void TileManager::draw(ShaderProgram* shader_program, const nucleus::camera::Definition& camera,
-    const nucleus::tile_scheduler::DrawListGenerator::TileSet& draw_tiles, bool sort_tiles, glm::dvec3 sort_position) const
+void TileManager::draw(
+    const nucleus::camera::Definition& camera, const nucleus::tile_scheduler::DrawListGenerator::TileSet& draw_tiles, bool sort_tiles, glm::dvec3 sort_position) const
 {
+    m_shader->bind();
     QOpenGLExtraFunctions* f = QOpenGLContext::currentContext()->extraFunctions();
-    shader_program->set_uniform("n_edge_vertices", N_EDGE_VERTICES);
-    shader_program->set_uniform("ortho_sampler", 2);
-    shader_program->set_uniform("height_sampler", 1);
-    shader_program->set_uniform("height_texture_layer_map_sampler", 3);
-    shader_program->set_uniform("tile_id_map_sampler", 4);
+    m_shader->set_uniform("n_edge_vertices", N_EDGE_VERTICES);
+    m_shader->set_uniform("ortho_sampler", 2);
+    m_shader->set_uniform("height_sampler", 1);
+    m_shader->set_uniform("height_texture_layer_map_sampler", 3);
+    m_shader->set_uniform("tile_id_map_sampler", 4);
 
     // Sort depending on distance to sort_position
     std::vector<std::pair<float, const TileInfo*>> tile_list;
@@ -179,37 +212,6 @@ void TileManager::remove_tile(const tile::Id& tile_id)
     const auto found_tile = std::find_if(m_gpu_tiles.begin(), m_gpu_tiles.end(), [&tile_id](const TileInfo& tileset) { return tileset.tile_id == tile_id; });
     if (found_tile != m_gpu_tiles.end())
         m_gpu_tiles.erase(found_tile);
-}
-
-void TileManager::initilise_attribute_locations(ShaderProgram* program)
-{
-    int bounds = program->attribute_location("bounds");
-    qDebug() << "attrib location for bounds: " << bounds;
-    int packed_tile_id = program->attribute_location("packed_tile_id");
-    qDebug() << "attrib location for packed_tile_id: " << packed_tile_id;
-    int height_texture_layer = program->attribute_location("height_texture_layer");
-    qDebug() << "attrib location for height_texture_layer: " << height_texture_layer;
-
-    m_vao->bind();
-    QOpenGLExtraFunctions* f = QOpenGLContext::currentContext()->extraFunctions();
-    if (bounds != -1) {
-        m_bounds_buffer->bind();
-        f->glEnableVertexAttribArray(GLuint(bounds));
-        f->glVertexAttribPointer(GLuint(bounds), /*size*/ 4, /*type*/ GL_FLOAT, /*normalised*/ GL_FALSE, /*stride*/ 0, nullptr);
-        f->glVertexAttribDivisor(GLuint(bounds), 1);
-    }
-    if (packed_tile_id != -1) {
-        m_draw_tile_id_buffer->bind();
-        f->glEnableVertexAttribArray(GLuint(packed_tile_id));
-        f->glVertexAttribIPointer(GLuint(packed_tile_id), /*size*/ 2, /*type*/ GL_UNSIGNED_INT, /*stride*/ 0, nullptr);
-        f->glVertexAttribDivisor(GLuint(packed_tile_id), 1);
-    }
-    if (height_texture_layer != -1) {
-        m_height_texture_layer_buffer->bind();
-        f->glEnableVertexAttribArray(GLuint(height_texture_layer));
-        f->glVertexAttribIPointer(GLuint(height_texture_layer), /*size*/ 1, /*type*/ GL_INT, /*stride*/ 0, nullptr);
-        f->glVertexAttribDivisor(GLuint(height_texture_layer), 1);
-    }
 }
 
 void TileManager::set_aabb_decorator(const nucleus::tile_scheduler::utils::AabbDecoratorPtr& new_aabb_decorator)

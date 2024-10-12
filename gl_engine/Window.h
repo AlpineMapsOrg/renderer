@@ -49,7 +49,7 @@ namespace gl_engine {
 
 class TileManager;
 class MapLabelManager;
-class ShaderManager;
+class ShaderProgram;
 class Framebuffer;
 class SSAO;
 class ShadowMapping;
@@ -96,6 +96,9 @@ private:
     std::unique_ptr<Framebuffer> m_atmospherebuffer;
     std::unique_ptr<Framebuffer> m_pickerbuffer;
 
+    std::shared_ptr<ShaderProgram> m_atmosphere_shader;
+    std::shared_ptr<ShaderProgram> m_compose_shader;
+    std::shared_ptr<ShaderProgram> m_screen_copy_shader;
     std::unique_ptr<SSAO> m_ssao;
     std::unique_ptr<ShadowMapping> m_shadowmapping;
 

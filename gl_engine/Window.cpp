@@ -49,7 +49,7 @@
 #include "Context.h"
 #include "Framebuffer.h"
 #include "SSAO.h"
-#include "ShaderManager.h"
+#include "ShaderRegistry.h"
 #include "ShaderProgram.h"
 #include "ShadowMapping.h"
 #include "TileManager.h"
@@ -103,10 +103,9 @@ void Window::initialise_gpu()
     logger->disableMessages(QList<GLuint>({ 131185 }));
     logger->startLogging(QOpenGLDebugLogger::SynchronousLogging);
 
-    auto* shader_manager = m_context->shader_manager();
+    auto* shader_registry = m_context->shader_registry();
 
-    m_tile_manager->init();
-    m_tile_manager->initilise_attribute_locations(shader_manager->tile_shader());
+    m_tile_manager->init(shader_registry);
     m_screen_quad_geometry = gl_engine::helpers::create_screen_quad_geometry();
     // NOTE to position buffer: The position can not be recalculated by depth alone. (given the numerical resolution of the depth buffer and
     // our massive view spektrum). ReverseZ would be an option but isnt possible on WebGL and OpenGL ES (since their depth buffer is aligned from -1...1)
@@ -131,21 +130,27 @@ void Window::initialise_gpu()
     m_pickerbuffer = std::make_unique<Framebuffer>(Framebuffer::DepthFormat::Float32, std::vector { Framebuffer::ColourFormat::RGBA32F });
     f->glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, m_gbuffer->depth_texture()->textureId(), 0);
 
+    m_atmosphere_shader = std::make_shared<ShaderProgram>("screen_pass.vert", "atmosphere_bg.frag");
+    m_compose_shader = std::make_shared<ShaderProgram>("screen_pass.vert", "compose.frag");
+    m_screen_copy_shader = std::make_shared<ShaderProgram>("screen_pass.vert", "screen_copy.frag");
+    shader_registry->add_shader(m_atmosphere_shader);
+    shader_registry->add_shader(m_compose_shader);
+    shader_registry->add_shader(m_screen_copy_shader);
+
+    m_shadowmapping = std::make_unique<gl_engine::ShadowMapping>(shader_registry, m_shadow_config_ubo, m_shared_config_ubo);
+    m_ssao = std::make_unique<gl_engine::SSAO>(shader_registry);
+
     m_shared_config_ubo = std::make_shared<gl_engine::UniformBuffer<gl_engine::uboSharedConfig>>(0, "shared_config");
     m_shared_config_ubo->init();
-    m_shared_config_ubo->bind_to_shader(shader_manager->all());
+    m_shared_config_ubo->bind_to_shader(shader_registry->all());
 
     m_camera_config_ubo = std::make_shared<gl_engine::UniformBuffer<gl_engine::uboCameraConfig>>(1, "camera_config");
     m_camera_config_ubo->init();
-    m_camera_config_ubo->bind_to_shader(shader_manager->all());
+    m_camera_config_ubo->bind_to_shader(shader_registry->all());
 
     m_shadow_config_ubo = std::make_shared<gl_engine::UniformBuffer<gl_engine::uboShadowConfig>>(2, "shadow_config");
     m_shadow_config_ubo->init();
-    m_shadow_config_ubo->bind_to_shader(shader_manager->all());
-
-    m_ssao = std::make_unique<gl_engine::SSAO>(shader_manager->shared_ssao_program(), shader_manager->shared_ssao_blur_program());
-
-    m_shadowmapping = std::make_unique<gl_engine::ShadowMapping>(shader_manager->shared_shadowmap_program(), m_shadow_config_ubo, m_shared_config_ubo);
+    m_shadow_config_ubo->bind_to_shader(shader_registry->all());
 
     { // INITIALIZE CPU AND GPU TIMER
         using namespace std;
@@ -198,7 +203,7 @@ void Window::paint(QOpenGLFramebufferObject* framebuffer)
     m_timer->start_timer("gpu_total");
 
     QOpenGLExtraFunctions *f = QOpenGLContext::currentContext()->extraFunctions();
-    auto* shader_manager = m_context->shader_manager();
+    auto* shader_manager = m_context->shader_registry();
 
     f->glEnable(GL_CULL_FACE);
     f->glCullFace(GL_BACK);
@@ -223,12 +228,11 @@ void Window::paint(QOpenGLFramebufferObject* framebuffer)
     f->glClear(GL_COLOR_BUFFER_BIT);
     f->glDisable(GL_DEPTH_TEST);
     f->glDepthFunc(GL_ALWAYS);
-    auto p = shader_manager->atmosphere_bg_program();
-    p->bind();
+    m_atmosphere_shader->bind();
     m_timer->start_timer("atmosphere");
     m_screen_quad_geometry.draw();
     m_timer->stop_timer("atmosphere");
-    p->release();
+    m_atmosphere_shader->release();
 
     // Generate Draw-List
     // Note: Could also just be done on camera change
@@ -268,17 +272,14 @@ void Window::paint(QOpenGLFramebufferObject* framebuffer)
     // f->glDepthFunc(GL_GREATER); // for reverse z
     f->glDepthFunc(GL_LESS);
 
-    shader_manager->tile_shader()->bind();
     m_timer->start_timer("tiles");
     const auto culled_tile_set = m_tile_manager->cull(tile_set, m_camera.frustum());
-    m_tile_manager->draw(shader_manager->tile_shader(), m_camera, culled_tile_set, true, m_camera.position());
+    m_tile_manager->draw(m_camera, culled_tile_set, true, m_camera.position());
     m_timer->stop_timer("tiles");
-    shader_manager->tile_shader()->release();
     MapLabelManager::TileSet label_tile_set;
 
     m_gbuffer->unbind();
 
-    shader_manager->tile_shader()->release();
 
     if (m_shared_config_ubo->data.m_ssao_enabled) {
         m_timer->start_timer("ssao");
@@ -298,9 +299,7 @@ void Window::paint(QOpenGLFramebufferObject* framebuffer)
         m_timer->start_timer("picker");
         if (m_context->map_label_manager()) {
             label_tile_set = m_context->map_label_manager()->generate_draw_list(m_camera);
-            shader_manager->labels_picker_program()->bind();
-            m_context->map_label_manager()->draw_picker(m_gbuffer.get(), shader_manager->labels_picker_program(), m_camera, label_tile_set);
-            shader_manager->labels_picker_program()->release();
+            m_context->map_label_manager()->draw_picker(m_gbuffer.get(), m_camera, label_tile_set);
         }
         m_timer->stop_timer("picker");
     }
@@ -310,24 +309,22 @@ void Window::paint(QOpenGLFramebufferObject* framebuffer)
     else
         f->glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
-    p = shader_manager->compose_program();
-
-    p->bind();
-    p->set_uniform("texin_albedo", 0);
+    m_compose_shader->bind();
+    m_compose_shader->set_uniform("texin_albedo", 0);
     m_gbuffer->bind_colour_texture(0, 0);
-    p->set_uniform("texin_position", 1);
+    m_compose_shader->set_uniform("texin_position", 1);
     m_gbuffer->bind_colour_texture(1, 1);
-    p->set_uniform("texin_normal", 2);
+    m_compose_shader->set_uniform("texin_normal", 2);
     m_gbuffer->bind_colour_texture(2, 2);
 
-    p->set_uniform("texin_atmosphere", 3);
+    m_compose_shader->set_uniform("texin_atmosphere", 3);
     m_atmospherebuffer->bind_colour_texture(0, 3);
 
-    p->set_uniform("texin_ssao", 4);
+    m_compose_shader->set_uniform("texin_ssao", 4);
     m_ssao->bind_ssao_texture(4);
 
     /* texture units 5 - 8 */
-    m_shadowmapping->bind_shadow_maps(p, 5);
+    m_shadowmapping->bind_shadow_maps(m_compose_shader.get(), 5);
 
     m_timer->start_timer("compose");
     m_screen_quad_geometry.draw();
@@ -342,29 +339,28 @@ void Window::paint(QOpenGLFramebufferObject* framebuffer)
     // DRAW LABELS
     if (m_context->map_label_manager()) {
         m_timer->start_timer("labels");
-        shader_manager->labels_program()->bind();
-        m_context->map_label_manager()->draw(m_gbuffer.get(), shader_manager->labels_program(), m_camera, label_tile_set);
-        shader_manager->labels_program()->release();
+        m_context->map_label_manager()->draw(m_gbuffer.get(), m_camera, label_tile_set);
         m_timer->stop_timer("labels");
     }
 
     // DRAW TRACKS
     {
-        m_timer->start_timer("tracks");
 
-        ShaderProgram* track_shader = shader_manager->track_program();
-        track_shader->bind();
-        track_shader->set_uniform("texin_position", 1);
-        m_gbuffer->bind_colour_texture(1, 1);
+        if (m_context->track_manager()) {
+            m_timer->start_timer("tracks");
+            auto* track_shader = m_context->track_manager()->shader();
+            track_shader->bind();
+            track_shader->set_uniform("texin_position", 1);
+            m_gbuffer->bind_colour_texture(1, 1);
 
-        glm::vec2 size = glm::vec2(static_cast<float>(m_gbuffer->size().x),static_cast<float>(m_gbuffer->size().y));
-        track_shader->set_uniform("resolution", size);
+            glm::vec2 size = glm::vec2(static_cast<float>(m_gbuffer->size().x), static_cast<float>(m_gbuffer->size().y));
+            track_shader->set_uniform("resolution", size);
 
-        f->glClear(GL_DEPTH_BUFFER_BIT);
-        if (m_context->track_manager())
+            f->glClear(GL_DEPTH_BUFFER_BIT);
             m_context->track_manager()->draw(m_camera);
 
-        m_timer->stop_timer("tracks");
+            m_timer->stop_timer("tracks");
+        }
     }
 
     if (framebuffer)
@@ -372,7 +368,7 @@ void Window::paint(QOpenGLFramebufferObject* framebuffer)
     else
         f->glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
-    shader_manager->screen_copy_program()->bind();
+    m_screen_copy_shader->bind();
     m_decoration_buffer->bind_colour_texture(0, 0);
     f->glEnable(GL_BLEND);
     f->glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
@@ -404,7 +400,7 @@ void Window::shared_config_changed(gl_engine::uboSharedConfig ubo) {
 
 void Window::reload_shader() {
     auto do_reload = [this]() {
-        auto* shader_manager = m_context->shader_manager();
+        auto* shader_manager = m_context->shader_registry();
         shader_manager->reload_shaders();
         // NOTE: UBOs need to be reattached to the programs!
         m_shared_config_ubo->bind_to_shader(shader_manager->all());

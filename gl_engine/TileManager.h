@@ -37,6 +37,7 @@ class Definition;
 class QOpenGLShaderProgram;
 
 namespace gl_engine {
+class ShaderRegistry;
 class ShaderProgram;
 
 class TileManager : public QObject {
@@ -50,8 +51,8 @@ class TileManager : public QObject {
 
 public:
     explicit TileManager(QObject* parent = nullptr);
-    void init(); // needs OpenGL context
-    void draw(ShaderProgram* shader_program, const nucleus::camera::Definition& camera, const nucleus::tile_scheduler::DrawListGenerator::TileSet& draw_tiles, bool sort_tiles, glm::dvec3 sort_position) const;
+    void init(ShaderRegistry* shader_registry); // needs OpenGL context
+    void draw(const nucleus::camera::Definition& camera, const nucleus::tile_scheduler::DrawListGenerator::TileSet& draw_tiles, bool sort_tiles, glm::dvec3 sort_position) const;
 
     const nucleus::tile_scheduler::DrawListGenerator::TileSet generate_tilelist(const nucleus::camera::Definition& camera) const;
     const nucleus::tile_scheduler::DrawListGenerator::TileSet cull(const nucleus::tile_scheduler::DrawListGenerator::TileSet& tileset, const nucleus::camera::Frustum& frustum) const;
@@ -60,7 +61,6 @@ public:
 
 public slots:
     void update_gpu_quads(const std::vector<nucleus::tile_scheduler::tile_types::GpuTileQuad>& new_quads, const std::vector<tile::Id>& deleted_quads);
-    void initilise_attribute_locations(ShaderProgram* program);
     void set_aabb_decorator(const nucleus::tile_scheduler::utils::AabbDecoratorPtr& new_aabb_decorator);
     void set_quad_limit(unsigned new_limit);
 
@@ -74,6 +74,7 @@ private:
     static constexpr auto ORTHO_RESOLUTION = 256;
     static constexpr auto HEIGHTMAP_RESOLUTION = 65;
 
+    std::shared_ptr<ShaderProgram> m_shader;
     std::vector<tile::Id> m_loaded_tiles;
     std::unique_ptr<Texture> m_ortho_textures;
     std::unique_ptr<Texture> m_heightmap_textures;

@@ -24,7 +24,7 @@
 
 namespace gl_engine {
 class MapLabelManager;
-class ShaderManager;
+class ShaderRegistry;
 
 class Context : public nucleus::EngineContext {
 private:
@@ -35,7 +35,7 @@ public:
     void operator=(Context const&) = delete;
 
     [[nodiscard]] TrackManager* track_manager() override;
-    [[nodiscard]] ShaderManager* shader_manager();
+    [[nodiscard]] ShaderRegistry* shader_registry();
 
     gl_engine::MapLabelManager* map_label_manager() const;
     void set_map_label_manager(std::unique_ptr<gl_engine::MapLabelManager> new_map_label_manager);
@@ -47,6 +47,6 @@ protected:
 private:
     std::unique_ptr<gl_engine::MapLabelManager> m_map_label_manager;
     std::unique_ptr<gl_engine::TrackManager> m_track_manager;
-    std::unique_ptr<gl_engine::ShaderManager> m_shader_manager;
+    std::unique_ptr<gl_engine::ShaderRegistry> m_shader_registry;
 };
 } // namespace gl_engine

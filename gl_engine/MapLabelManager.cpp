@@ -25,14 +25,10 @@
 #endif
 
 #include "ShaderProgram.h"
-
+#include "ShaderRegistry.h"
 #include "radix/tile.h"
-
-#include "nucleus/tile_scheduler/tile_types.h"
 #include <nucleus/map_label/FontRenderer.h>
 #include <nucleus/srs.h>
-
-#include <chrono>
 
 using namespace Qt::Literals::StringLiterals;
 
@@ -44,8 +40,13 @@ MapLabelManager::MapLabelManager(const nucleus::tile_scheduler::utils::AabbDecor
     m_draw_list_generator.set_aabb_decorator(aabb_decorator);
 }
 
-void MapLabelManager::init()
+void MapLabelManager::init(ShaderRegistry* shader_registry)
 {
+    m_label_shader = std::make_shared<ShaderProgram>("labels.vert", "labels.frag");
+    m_picker_shader = std::make_shared<ShaderProgram>("labels.vert", "labels_picker.frag");
+    shader_registry->add_shader(m_label_shader);
+    shader_registry->add_shader(m_picker_shader);
+
     // load the font texture
     const auto atlas_data = m_mapLabelFactory.init_font_atlas();
 
@@ -174,21 +175,21 @@ void MapLabelManager::remove_tile(const tile::Id& tile_id)
     m_gpu_tiles.erase(tile_id);
 }
 
-void MapLabelManager::draw(Framebuffer* gbuffer, ShaderProgram* shader_program, const nucleus::camera::Definition& camera, const TileSet& draw_tiles) const
+void MapLabelManager::draw(Framebuffer* gbuffer, const nucleus::camera::Definition& camera, const TileSet& draw_tiles) const
 {
     QOpenGLExtraFunctions* f = QOpenGLContext::currentContext()->extraFunctions();
 
     f->glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
     f->glEnable(GL_BLEND);
 
-    shader_program->set_uniform("label_dist_scaling", true);
-
-    shader_program->set_uniform("texin_depth", 0);
+    m_label_shader->bind();
+    m_label_shader->set_uniform("label_dist_scaling", true);
+    m_label_shader->set_uniform("texin_depth", 0);
     gbuffer->bind_colour_texture(1, 0);
 
-    shader_program->set_uniform("font_sampler", 1);
+    m_label_shader->set_uniform("font_sampler", 1);
     m_font_texture->bind(1);
-    shader_program->set_uniform("icon_sampler", 2);
+    m_label_shader->set_uniform("icon_sampler", 2);
     m_icon_texture->bind(2);
 
     for (const auto& vectortile : m_gpu_tiles) {
@@ -198,13 +199,13 @@ void MapLabelManager::draw(Framebuffer* gbuffer, ShaderProgram* shader_program, 
         // only draw if vector tile is fully loaded
         if (vectortile.second->instance_count > 0) {
             vectortile.second->vao->bind();
-            shader_program->set_uniform("reference_position", glm::vec3(vectortile.second->reference_point - camera.position()));
+            m_label_shader->set_uniform("reference_position", glm::vec3(vectortile.second->reference_point - camera.position()));
 
             // if the labels wouldn't collide, we could use an extra buffer, one draw call and
             // f->glBlendEquationSeparate(GL_MIN, GL_MAX);
-            shader_program->set_uniform("drawing_outline", true);
+            m_label_shader->set_uniform("drawing_outline", true);
             f->glDrawElementsInstanced(GL_TRIANGLES, m_indices_count, GL_UNSIGNED_INT, 0, vectortile.second->instance_count);
-            shader_program->set_uniform("drawing_outline", false);
+            m_label_shader->set_uniform("drawing_outline", false);
             f->glDrawElementsInstanced(GL_TRIANGLES, m_indices_count, GL_UNSIGNED_INT, 0, vectortile.second->instance_count);
 
             vectortile.second->vao->release();
@@ -212,13 +213,13 @@ void MapLabelManager::draw(Framebuffer* gbuffer, ShaderProgram* shader_program, 
     }
 }
 
-void MapLabelManager::draw_picker(Framebuffer* gbuffer, ShaderProgram* shader_program, const nucleus::camera::Definition& camera, const TileSet& draw_tiles) const
+void MapLabelManager::draw_picker(Framebuffer* gbuffer, const nucleus::camera::Definition& camera, const TileSet& draw_tiles) const
 {
     QOpenGLExtraFunctions* f = QOpenGLContext::currentContext()->extraFunctions();
 
-    shader_program->set_uniform("label_dist_scaling", true);
-
-    shader_program->set_uniform("texin_depth", 0);
+    m_picker_shader->bind();
+    m_picker_shader->set_uniform("label_dist_scaling", true);
+    m_picker_shader->set_uniform("texin_depth", 0);
     gbuffer->bind_colour_texture(1, 0);
 
     for (const auto& vectortile : m_gpu_tiles) {
@@ -228,7 +229,7 @@ void MapLabelManager::draw_picker(Framebuffer* gbuffer, ShaderProgram* shader_pr
         // only draw if vector tile is fully loaded
         if (vectortile.second->instance_count > 0) {
             vectortile.second->vao->bind();
-            shader_program->set_uniform("reference_position", glm::vec3(vectortile.second->reference_point - camera.position()));
+            m_picker_shader->set_uniform("reference_position", glm::vec3(vectortile.second->reference_point - camera.position()));
 
             f->glDrawElementsInstanced(GL_TRIANGLES, m_indices_count, GL_UNSIGNED_INT, 0, vectortile.second->instance_count);
 

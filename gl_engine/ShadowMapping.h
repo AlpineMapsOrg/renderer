@@ -39,16 +39,14 @@ namespace gl_engine {
 class Framebuffer;
 class ShaderProgram;
 class TileManager;
+class ShaderRegistry;
 struct uboSharedConfig;
 struct uboShadowConfig;
 
 class ShadowMapping
 {
 public:
-
-    ShadowMapping(std::shared_ptr<ShaderProgram> program,
-                  std::shared_ptr<UniformBuffer<uboShadowConfig>> shadow_config,
-                  std::shared_ptr<UniformBuffer<uboSharedConfig>> shared_config);
+    ShadowMapping(ShaderRegistry* shader_registry, std::shared_ptr<UniformBuffer<uboShadowConfig>> shadow_config, std::shared_ptr<UniformBuffer<uboSharedConfig>> shared_config);
 
     ~ShadowMapping();
 

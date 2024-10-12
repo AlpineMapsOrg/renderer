@@ -27,7 +27,7 @@ set(ALP_SHADER_NETWORK_URL "http://localhost:5500/" CACHE STRING "url location, 
 
 qt_add_library(gl_engine STATIC
     Framebuffer.h Framebuffer.cpp
-    ShaderManager.h ShaderManager.cpp
+    ShaderRegistry.h ShaderRegistry.cpp
     TileManager.h TileManager.cpp
     Window.cpp Window.h
     helpers.h

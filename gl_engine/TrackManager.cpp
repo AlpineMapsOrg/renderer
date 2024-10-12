@@ -26,7 +26,7 @@
 #include <QOpenGLVersionFunctionsFactory>
 #include <QOpenGLVertexArrayObject>
 
-#include "ShaderManager.h"
+#include "ShaderRegistry.h"
 #include "ShaderProgram.h"
 #include "helpers.h"
 
@@ -38,10 +38,11 @@
 
 namespace gl_engine {
 
-TrackManager::TrackManager(ShaderManager* shader_manager, QObject* parent)
+TrackManager::TrackManager(ShaderRegistry* shader_registry, QObject* parent)
     : nucleus::track::Manager(parent)
-    , m_shader(shader_manager->track_program())
+    , m_shader(std::make_shared<ShaderProgram>("track.vert", "track.frag"))
 {
+    shader_registry->add_shader(m_shader);
 }
 
 void TrackManager::draw(const nucleus::camera::Definition& camera) const
@@ -205,6 +206,8 @@ void TrackManager::add_track(const nucleus::track::Gpx& gpx)
 
     qDebug() << "Total Point Count: " << m_total_point_count;
 }
+
+ShaderProgram* TrackManager::shader() const { return m_shader.get(); }
 
 void TrackManager::change_tracks(const QVector<nucleus::track::Gpx>& tracks)
 {
