@@ -38,7 +38,7 @@ namespace gl_engine {
 
 class Framebuffer;
 class ShaderProgram;
-class TileManager;
+class TileGeometry;
 class ShaderRegistry;
 struct uboSharedConfig;
 struct uboShadowConfig;
@@ -50,10 +50,7 @@ public:
 
     ~ShadowMapping();
 
-    void draw(
-        TileManager* tile_manager,
-        const nucleus::tile_scheduler::DrawListGenerator::TileSet draw_tileset,
-        const nucleus::camera::Definition& camera);
+    void draw(TileGeometry* tile_manager, const tile::IdSet& draw_tileset, const nucleus::camera::Definition& camera);
 
     void bind_shadow_maps(ShaderProgram* program, unsigned int start_location);
     nucleus::camera::Frustum getFrustum(const nucleus::camera::Definition& camera);

@@ -20,6 +20,8 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *****************************************************************************/
+#include "TextureLayer.h"
+#include "TileGeometry.h"
 #include <QCoreApplication>
 
 #include <QDebug>
@@ -76,7 +78,6 @@ Window::Window(std::shared_ptr<Context> context)
     : m_context(context)
     , m_camera({ 1822577.0, 6141664.0 - 500, 171.28 + 500 }, { 1822577.0, 6141664.0, 171.28 }) // should point right at the stephansdom
 {
-    m_tile_manager = std::make_unique<TileManager>();
     QTimer::singleShot(1, [this]() { emit update_requested(); });
 }
 
@@ -105,7 +106,6 @@ void Window::initialise_gpu()
 
     auto* shader_registry = m_context->shader_registry();
 
-    m_tile_manager->init(shader_registry);
     m_screen_quad_geometry = gl_engine::helpers::create_screen_quad_geometry();
     // NOTE to position buffer: The position can not be recalculated by depth alone. (given the numerical resolution of the depth buffer and
     // our massive view spektrum). ReverseZ would be an option but isnt possible on WebGL and OpenGL ES (since their depth buffer is aligned from -1...1)
@@ -237,13 +237,13 @@ void Window::paint(QOpenGLFramebufferObject* framebuffer)
     // Generate Draw-List
     // Note: Could also just be done on camera change
     m_timer->start_timer("draw_list");
-    const auto tile_set = m_tile_manager->generate_tilelist(m_camera);
+    const auto tile_set = m_context->tile_geometry()->generate_tilelist(m_camera);
     m_timer->stop_timer("draw_list");
 
     // DRAW SHADOWMAPS
     if (m_shared_config_ubo->data.m_csm_enabled) {
         m_timer->start_timer("shadowmap");
-        m_shadowmapping->draw(m_tile_manager.get(), tile_set, m_camera);
+        m_shadowmapping->draw(m_context->tile_geometry(), tile_set, m_camera);
         m_timer->stop_timer("shadowmap");
     }
 
@@ -273,8 +273,8 @@ void Window::paint(QOpenGLFramebufferObject* framebuffer)
     f->glDepthFunc(GL_LESS);
 
     m_timer->start_timer("tiles");
-    const auto culled_tile_set = m_tile_manager->cull(tile_set, m_camera.frustum());
-    m_tile_manager->draw(m_camera, culled_tile_set, true, m_camera.position());
+    const auto culled_tile_set = m_context->tile_geometry()->cull(tile_set, m_camera.frustum());
+    m_context->ortho_layer()->draw(*m_context->tile_geometry(), m_camera, culled_tile_set, true, m_camera.position());
     m_timer->stop_timer("tiles");
     MapLabelManager::TileSet label_tile_set;
 
@@ -424,9 +424,7 @@ void Window::updateCameraEvent()
     emit update_camera_requested();
 }
 
-void Window::set_permissible_screen_space_error(float new_error) { m_tile_manager->set_permissible_screen_space_error(new_error); }
-
-void Window::set_quad_limit(unsigned int new_limit) { m_tile_manager->set_quad_limit(new_limit); }
+void Window::set_permissible_screen_space_error(float new_error) { m_context->tile_geometry()->set_permissible_screen_space_error(new_error); }
 
 void Window::update_camera(const nucleus::camera::Definition& new_definition)
 {
@@ -439,12 +437,6 @@ void Window::update_debug_scheduler_stats(const QString& stats)
 {
     m_debug_scheduler_stats = stats;
     emit update_requested();
-}
-
-void Window::update_gpu_quads(const std::vector<nucleus::tile_scheduler::tile_types::GpuTileQuad>& new_quads, const std::vector<tile::Id>& deleted_quads)
-{
-    assert(m_tile_manager);
-    m_tile_manager->update_gpu_quads(new_quads, deleted_quads);
 }
 
 float Window::depth(const glm::dvec2& normalised_device_coordinates)
@@ -469,15 +461,8 @@ glm::dvec3 Window::position(const glm::dvec2& normalised_device_coordinates)
 void Window::destroy()
 {
     emit gpu_ready_changed(false);
-    m_tile_manager.reset();
     m_gbuffer.reset();
     m_screen_quad_geometry = {};
-}
-
-void Window::set_aabb_decorator(const nucleus::tile_scheduler::utils::AabbDecoratorPtr& new_aabb_decorator)
-{
-    assert(m_tile_manager);
-    m_tile_manager->set_aabb_decorator(new_aabb_decorator);
 }
 
 nucleus::camera::AbstractDepthTester* Window::depth_tester() { return this; }

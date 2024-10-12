@@ -25,6 +25,8 @@
 namespace gl_engine {
 class MapLabelManager;
 class ShaderRegistry;
+class TileGeometry;
+class TextureLayer;
 
 class Context : public nucleus::EngineContext {
 private:
@@ -37,16 +39,24 @@ public:
     [[nodiscard]] TrackManager* track_manager() override;
     [[nodiscard]] ShaderRegistry* shader_registry();
 
-    gl_engine::MapLabelManager* map_label_manager() const;
-    void set_map_label_manager(std::unique_ptr<gl_engine::MapLabelManager> new_map_label_manager);
+    [[nodiscard]] gl_engine::MapLabelManager* map_label_manager() const;
+    void set_map_label_manager(std::shared_ptr<gl_engine::MapLabelManager> new_map_label_manager);
+
+    [[nodiscard]] TileGeometry* tile_geometry() const;
+    void set_tile_geometry(std::shared_ptr<TileGeometry> new_tile_geometry);
+
+    [[nodiscard]] TextureLayer* ortho_layer() const;
+    void set_ortho_layer(std::shared_ptr<TextureLayer> new_ortho_layer);
 
 protected:
     void internal_initialise() override;
     void internal_destroy() override;
 
 private:
-    std::unique_ptr<gl_engine::MapLabelManager> m_map_label_manager;
-    std::unique_ptr<gl_engine::TrackManager> m_track_manager;
-    std::unique_ptr<gl_engine::ShaderRegistry> m_shader_registry;
+    std::shared_ptr<TileGeometry> m_tile_geometry;
+    std::shared_ptr<TextureLayer> m_ortho_layer;
+    std::shared_ptr<gl_engine::MapLabelManager> m_map_label_manager;
+    std::shared_ptr<gl_engine::TrackManager> m_track_manager;
+    std::shared_ptr<gl_engine::ShaderRegistry> m_shader_registry;
 };
 } // namespace gl_engine

@@ -51,10 +51,8 @@ ShadowMapping::~ShadowMapping() {
 
 }
 
-void ShadowMapping::draw(
-        TileManager* tile_manager,
-        const nucleus::tile_scheduler::DrawListGenerator::TileSet draw_tileset,
-        const nucleus::camera::Definition& camera) {
+void ShadowMapping::draw(TileGeometry* tile_manager, const tile::IdSet& draw_tileset, const nucleus::camera::Definition& camera)
+{
 
     // NOTE: ReverseZ is not necessary for ShadowMapping since a directional light is using an orthographic projection
     // and therefore the distribution of depth is linear anyway.

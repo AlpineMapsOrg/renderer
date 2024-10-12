@@ -62,6 +62,8 @@
 #include <chrono>
 #include <gl_engine/Context.h>
 #include <gl_engine/Texture.h>
+#include <gl_engine/TextureLayer.h>
+#include <gl_engine/TileGeometry.h>
 #include <nucleus/DataQuerier.h>
 #include <nucleus/camera/Controller.h>
 #include <nucleus/camera/PositionStorage.h>
@@ -123,9 +125,13 @@ int main(int argc, char* argv[])
     scheduler.scheduler->set_dataquerier(data_querier);
 
     auto context = std::make_shared<gl_engine::Context>();
+    context->set_tile_geometry(std::make_shared<gl_engine::TileGeometry>());
+    context->set_ortho_layer(std::make_shared<gl_engine::TextureLayer>());
+    context->tile_geometry()->set_quad_limit(512);
+    context->tile_geometry()->set_aabb_decorator(decorator);
+    context->ortho_layer()->set_quad_limit(512);
+
     Window glWindow(context);
-    glWindow.render_window()->set_quad_limit(512);
-    glWindow.render_window()->set_aabb_decorator(decorator);
 
     nucleus::camera::Controller camera_controller(
         nucleus::camera::PositionStorage::instance()->get("grossglockner"), glWindow.render_window(), data_querier.get());
@@ -143,7 +149,8 @@ int main(int argc, char* argv[])
     QObject::connect(glWindow.render_window(), &AbstractRenderWindow::gpu_ready_changed, scheduler.scheduler.get(), &Scheduler::set_enabled);
     QObject::connect(&camera_controller, &nucleus::camera::Controller::definition_changed, scheduler.scheduler.get(), &Scheduler::update_camera);
     QObject::connect(&camera_controller, &nucleus::camera::Controller::definition_changed, glWindow.render_window(), &AbstractRenderWindow::update_camera);
-    QObject::connect(scheduler.scheduler.get(), &Scheduler::gpu_quads_updated, glWindow.render_window(), &AbstractRenderWindow::update_gpu_quads);
+    QObject::connect(scheduler.scheduler.get(), &Scheduler::gpu_quads_updated, context->tile_geometry(), &gl_engine::TileGeometry::update_gpu_quads);
+    QObject::connect(scheduler.scheduler.get(), &Scheduler::gpu_quads_updated, context->ortho_layer(), &gl_engine::TextureLayer::update_gpu_quads);
     QObject::connect(scheduler.scheduler.get(), &Scheduler::gpu_quads_updated, glWindow.render_window(), &AbstractRenderWindow::update_requested);
 
     QObject::connect(&glWindow, &Window::mouse_moved, &camera_controller, &nucleus::camera::Controller::mouse_move);
