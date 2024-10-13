@@ -22,7 +22,7 @@
 project(alpine-renderer-nucleus LANGUAGES CXX)
 
 alp_add_git_repository(stb_slim URL https://github.com/AlpineMapsOrgDependencies/stb_slim.git COMMITISH 547fade2a12793e1bea4733d59646b4f436e25a4)
-alp_add_git_repository(radix URL https://github.com/AlpineMapsOrg/radix.git COMMITISH v24.01.20 NOT_SYSTEM)
+alp_add_git_repository(radix URL https://github.com/AlpineMapsOrg/radix.git COMMITISH e604a7df68f96c57c978712ab7b002060c2115de NOT_SYSTEM)
 alp_add_git_repository(tl_expected URL https://github.com/TartanLlama/expected.git COMMITISH v1.1.0 DO_NOT_ADD_SUBPROJECT)
 if (NOT TARGET fmt)
     alp_add_git_repository(fmt URL https://github.com/fmtlib/fmt.git COMMITISH 10.1.1)

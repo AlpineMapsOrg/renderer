@@ -21,7 +21,6 @@
 
 #include <QDebug>
 #include <QSize>
-#include <QStringLiteral>
 
 #include "nucleus/Raster.h"
 #include "nucleus/picker/types.h"
@@ -32,16 +31,14 @@
 #define STB_TRUETYPE_IMPLEMENTATION
 #include <stb_slim/stb_truetype.h>
 
-using namespace Qt::Literals::StringLiterals;
-
 namespace nucleus::maplabel {
 
 AtlasData LabelFactory::init_font_atlas()
 {
     m_font_renderer.init();
-    for (const auto ch : uR"( !"#$%&'()*+,-./0123456789:;<=>@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\]^_`abcdefghijklmnopqrstuvwxyz{|}~§°´ÄÖÜßáâäéìíóöúüýČčěňőřŠšŽž€)") {
-        m_new_chars.emplace(ch);
-    }
+    // for (const auto ch : uR"( !"#$%&'()*+,-./0123456789:;<=>@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\]^_`abcdefghijklmnopqrstuvwxyz{|}~§°´ÄÖÜßáâäéìíóöúüýČčěňőřŠšŽž€)") {
+    //     m_new_chars.emplace(ch);
+    // }
     return renew_font_atlas();
 }
 
@@ -53,7 +50,7 @@ AtlasData LabelFactory::renew_font_atlas()
         m_rendered_chars.insert(m_new_chars.begin(), m_new_chars.end());
         m_new_chars.clear();
         m_font_data = m_font_renderer.font_data();
-        return {true, m_font_renderer.font_atlas()};
+        return { true, m_font_renderer.font_atlas() };
     }
 
     // nothing changed -> return empty
@@ -88,8 +85,7 @@ Raster<glm::u8vec4> LabelFactory::label_icons()
     for (int i = 0; i < int(PoiType::NumberOfElements); i++) {
         PoiType type = PoiType(i);
         // vec4(10.0f,...) is an uv_offset to indicate that the icon texture should be used.
-        m_icon_uvs[type]
-            = glm::vec4(10.0f, 10.0f + float(combined_icons.height()) / float(combined_height), 1.0f, float(icons[type].height()) / float(combined_height));
+        m_icon_uvs[type] = glm::vec4(10.0f, 10.0f + float(combined_icons.height()) / float(combined_height), 1.0f, float(icons[type].height()) / float(combined_height));
         combined_icons.combine(icons[type]);
     }
 
@@ -144,29 +140,29 @@ void LabelFactory::create_label(
     float icon_offset_y = 0.0f;
 
     auto safe_chars = text.toStdU16String();
-    float text_width = 0;
-    std::vector<float> kerningOffsets = create_text_meta(&safe_chars, &text_width);
+    // float text_width = 0;
+    // std::vector<float> kerningOffsets = create_text_meta(&safe_chars, &text_width);
 
-    // center the text around the center
-    const auto offset_x = -text_width / 2.0f;
+    // // center the text around the center
+    // const auto offset_x = -text_width / 2.0f;
 
-    glm::vec4 picker_color = nucleus::utils::bit_coding::u32_to_f8_4(id);
-    picker_color.x = (float(nucleus::picker::FeatureType::PointOfInterest) / 255.0f); // set the first bit to the type
+    // glm::vec4 picker_color = nucleus::utils::bit_coding::u32_to_f8_4(id);
+    // picker_color.x = (float(nucleus::picker::FeatureType::PointOfInterest) / 255.0f); // set the first bit to the type
 
-    // label icon
-    vertex_data.push_back({ glm::vec4(-m_icon_size.x / 2.0f, m_icon_size.y / 2.0f + icon_offset_y, m_icon_size.x, -m_icon_size.y + 1), // vertex position + offset
-        m_icon_uvs[type], // vec4 defined as uv position + offset
-        picker_color, position, importance, 0 });
+    // // label icon
+    // vertex_data.push_back({ glm::vec4(-m_icon_size.x / 2.0f, m_icon_size.y / 2.0f + icon_offset_y, m_icon_size.x, -m_icon_size.y + 1), // vertex position + offset
+    //     m_icon_uvs[type], // vec4 defined as uv position + offset
+    //     picker_color, position, importance, 0 });
 
-    for (unsigned long long i = 0; i < safe_chars.size(); i++) {
+    // for (unsigned long long i = 0; i < safe_chars.size(); i++) {
 
-        const CharData b = m_font_data.char_data.at(safe_chars[i]);
+    //     const CharData b = m_font_data.char_data.at(safe_chars[i]);
 
-        vertex_data.push_back({ glm::vec4(offset_x + kerningOffsets[i] + b.xoff, text_offset_y - b.yoff, b.width, -b.height), // vertex position + offset
-            glm::vec4(b.x * m_font_data.uv_width_norm, b.y * m_font_data.uv_width_norm, b.width * m_font_data.uv_width_norm,
-                b.height * m_font_data.uv_width_norm), // uv position + offset
-            picker_color, position, importance, b.texture_index });
-    }
+    //     vertex_data.push_back({ glm::vec4(offset_x + kerningOffsets[i] + b.xoff, text_offset_y - b.yoff, b.width, -b.height), // vertex position + offset
+    //         glm::vec4(b.x * m_font_data.uv_width_norm, b.y * m_font_data.uv_width_norm, b.width * m_font_data.uv_width_norm,
+    //             b.height * m_font_data.uv_width_norm), // uv position + offset
+    //         picker_color, position, importance, b.texture_index });
+    // }
 }
 
 // calculate char offsets and text width
@@ -177,7 +173,7 @@ std::vector<float> inline LabelFactory::create_text_meta(std::u16string* safe_ch
         return std::vector<float>();
 
     std::vector<float> kerningOffsets;
-    
+
     float scale = stbtt_ScaleForPixelHeight(&m_font_data.fontinfo, m_font_size);
     float xOffset = 0;
     for (unsigned long long i = 0; i < safe_chars->size(); i++) {

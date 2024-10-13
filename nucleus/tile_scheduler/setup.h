@@ -18,14 +18,12 @@
 
 #pragma once
 
+#include "OldScheduler.h"
+#include "TileLoadService.h"
 #include "utils.h"
 #include <QThread>
 #include <memory>
-
-namespace nucleus::tile_scheduler {
-class OldScheduler;
-class TileLoadService;
-} // namespace nucleus::tile_scheduler
+#include <nucleus/utils/thread.h>
 
 namespace nucleus::tile_scheduler::setup {
 
@@ -36,6 +34,15 @@ struct MonolithicScheduler {
     std::unique_ptr<QThread> thread;
     TileLoadServicePtr terrain_service;
     TileLoadServicePtr ortho_service;
+
+    ~MonolithicScheduler()
+    {
+        nucleus::utils::thread::sync_call(scheduler.get(), [this]() { scheduler.reset(); });
+        nucleus::utils::thread::sync_call(ortho_service.get(), [this]() { ortho_service.reset(); });
+        nucleus::utils::thread::sync_call(terrain_service.get(), [this]() { terrain_service.reset(); });
+        thread->quit();
+        thread->wait(500);
+    }
 };
 
 MonolithicScheduler monolithic(TileLoadServicePtr terrain_service, TileLoadServicePtr ortho_service, const tile_scheduler::utils::AabbDecoratorPtr& aabb_decorator);

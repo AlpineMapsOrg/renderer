@@ -170,7 +170,8 @@ void Window::initialise_gpu()
         m_timer->add_timer(make_shared<GpuAsyncQueryTimer>("gpu_total", "TOTAL", 240, 1.0f/60.0f));
 #endif
         m_timer->add_timer(make_shared<CpuTimer>("cpu_total", "TOTAL", 240, 1.0f/60.0f));
-        m_timer->add_timer(make_shared<CpuTimer>("cpu_b2b", "TOTAL", 240, 1.0f/60.0f));
+        m_timer->add_timer(make_shared<CpuTimer>("cpu_b2b", "TOTAL", 240, 1.0f / 60.0f));
+        m_timer->add_timer(make_shared<CpuTimer>("draw_list", "TOTAL", 240, 1.0f / 60.0f));
     }
 
     emit gpu_ready_changed(true);
@@ -203,7 +204,6 @@ void Window::paint(QOpenGLFramebufferObject* framebuffer)
     m_timer->start_timer("gpu_total");
 
     QOpenGLExtraFunctions *f = QOpenGLContext::currentContext()->extraFunctions();
-    auto* shader_manager = m_context->shader_registry();
 
     f->glEnable(GL_CULL_FACE);
     f->glCullFace(GL_BACK);
@@ -237,7 +237,11 @@ void Window::paint(QOpenGLFramebufferObject* framebuffer)
     // Generate Draw-List
     // Note: Could also just be done on camera change
     m_timer->start_timer("draw_list");
+    MapLabelManager::TileSet label_tile_set;
+    if (m_context->map_label_manager())
+        label_tile_set = m_context->map_label_manager()->generate_draw_list(m_camera);
     const auto tile_set = m_context->tile_geometry()->generate_tilelist(m_camera);
+    const auto culled_tile_set = m_context->tile_geometry()->cull(tile_set, m_camera.frustum());
     m_timer->stop_timer("draw_list");
 
     // DRAW SHADOWMAPS
@@ -273,10 +277,8 @@ void Window::paint(QOpenGLFramebufferObject* framebuffer)
     f->glDepthFunc(GL_LESS);
 
     m_timer->start_timer("tiles");
-    const auto culled_tile_set = m_context->tile_geometry()->cull(tile_set, m_camera.frustum());
     m_context->ortho_layer()->draw(*m_context->tile_geometry(), m_camera, culled_tile_set, true, m_camera.position());
     m_timer->stop_timer("tiles");
-    MapLabelManager::TileSet label_tile_set;
 
     m_gbuffer->unbind();
 
@@ -288,6 +290,7 @@ void Window::paint(QOpenGLFramebufferObject* framebuffer)
     }
 
     {
+        m_timer->start_timer("picker");
         m_pickerbuffer->bind();
 
         // CLEAR PICKER BUFFER
@@ -296,11 +299,8 @@ void Window::paint(QOpenGLFramebufferObject* framebuffer)
         f->glClear(GL_DEPTH_BUFFER_BIT);
 
         // DRAW Pickbuffer
-        m_timer->start_timer("picker");
-        if (m_context->map_label_manager()) {
-            label_tile_set = m_context->map_label_manager()->generate_draw_list(m_camera);
+        if (m_context->map_label_manager())
             m_context->map_label_manager()->draw_picker(m_gbuffer.get(), m_camera, label_tile_set);
-        }
         m_timer->stop_timer("picker");
     }
 

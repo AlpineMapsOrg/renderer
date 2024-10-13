@@ -21,14 +21,12 @@
 #include "Framebuffer.h"
 #include "ShaderProgram.h"
 #include "ShaderRegistry.h"
-#include "TileManager.h"
+#include "TileGeometry.h"
 #include "UniformBufferObjects.h"
-#include "nucleus/tile_scheduler/DrawListGenerator.h"
 #include <QOpenGLExtraFunctions>
 #include <QOpenGLTexture>
 #include <cmath>
 #include <glm/gtx/transform.hpp>
-#include <random>
 
 namespace gl_engine {
 
@@ -51,7 +49,7 @@ ShadowMapping::~ShadowMapping() {
 
 }
 
-void ShadowMapping::draw(TileGeometry* tile_manager, const tile::IdSet& draw_tileset, const nucleus::camera::Definition& camera)
+void ShadowMapping::draw(TileGeometry* tile_geometry, const tile::IdSet& draw_tileset, const nucleus::camera::Definition& camera)
 {
 
     // NOTE: ReverseZ is not necessary for ShadowMapping since a directional light is using an orthographic projection
@@ -84,8 +82,7 @@ void ShadowMapping::draw(TileGeometry* tile_manager, const tile::IdSet& draw_til
         m_f->glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
         m_shadow_program->set_uniform("current_layer", i);
-        // TODO: reenable shadows
-        // tile_manager->draw(m_shadow_program.get(), camera, draw_tileset, false, glm::dvec3(0.0));
+        tile_geometry->draw(m_shadow_program.get(), camera, draw_tileset, false, glm::dvec3(0.0));
         m_shadowmapbuffer[i]->unbind();
     }
     m_shadow_program->release();

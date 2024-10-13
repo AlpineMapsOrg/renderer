@@ -34,9 +34,7 @@
 
  void ShaderRegistry::reload_shaders()
  {
-     const auto ret = std::ranges::remove_if(m_program_list, [](const auto& wp) { return wp.expired(); });
-     m_program_list.erase(ret.begin(), ret.end());
-
+     std::erase_if(m_program_list, [](const auto& wp) { return wp.expired(); });
      for (const auto& pp : m_program_list) {
          auto p = pp.lock();
          if (p)
