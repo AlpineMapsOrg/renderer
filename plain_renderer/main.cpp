@@ -145,7 +145,7 @@ int main(int argc, char* argv[])
 
     QObject::connect(&glWindow, &Window::about_to_be_destoryed, context.get(), &gl_engine::Context::destroy);
     QObject::connect(glWindow.render_window(), &AbstractRenderWindow::update_camera_requested, &camera_controller, &CameraController::advance_camera);
-    QObject::connect(glWindow.render_window(), &AbstractRenderWindow::gpu_ready_changed, scheduler.scheduler.get(), &Scheduler::set_enabled);
+    QObject::connect(&glWindow, &Window::initialised, scheduler.scheduler.get(), [&]() { scheduler.scheduler->set_enabled(true); });
     QObject::connect(&camera_controller, &nucleus::camera::Controller::definition_changed, scheduler.scheduler.get(), &Scheduler::update_camera);
     QObject::connect(&camera_controller, &nucleus::camera::Controller::definition_changed, glWindow.render_window(), &AbstractRenderWindow::update_camera);
     QObject::connect(scheduler.scheduler.get(), &Scheduler::gpu_quads_updated, context->tile_geometry(), &gl_engine::TileGeometry::update_gpu_quads);

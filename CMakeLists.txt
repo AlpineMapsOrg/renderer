@@ -105,7 +105,7 @@ if (ALP_ENABLE_GL_ENGINE)
     endif()
     add_subdirectory(gl_engine)
     add_subdirectory(plain_renderer)
-    # add_subdirectory(app)
+    add_subdirectory(app)
 endif()
 
 if (ALP_UNITTESTS)

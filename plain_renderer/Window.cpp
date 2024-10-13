@@ -29,6 +29,7 @@ Window::Window(std::shared_ptr<gl_engine::Context> context)
 void Window::initializeGL()
 {
     m_gl_window->initialise_gpu();
+    emit initialised();
 }
 
 void Window::resizeGL(int w, int h)

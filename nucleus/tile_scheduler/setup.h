@@ -35,13 +35,28 @@ struct MonolithicScheduler {
     TileLoadServicePtr terrain_service;
     TileLoadServicePtr ortho_service;
 
+    MonolithicScheduler() = default;
+    MonolithicScheduler(std::unique_ptr<OldScheduler> sched, std::unique_ptr<QThread> thr, TileLoadServicePtr terrainSvc, TileLoadServicePtr orthoSvc)
+        : scheduler(std::move(sched))
+        , thread(std::move(thr))
+        , terrain_service(std::move(terrainSvc))
+        , ortho_service(std::move(orthoSvc))
+    {
+    }
+    MonolithicScheduler(MonolithicScheduler&& other) noexcept = default;
+    MonolithicScheduler& operator=(MonolithicScheduler&& other) noexcept = default;
     ~MonolithicScheduler()
     {
-        nucleus::utils::thread::sync_call(scheduler.get(), [this]() { scheduler.reset(); });
-        nucleus::utils::thread::sync_call(ortho_service.get(), [this]() { ortho_service.reset(); });
-        nucleus::utils::thread::sync_call(terrain_service.get(), [this]() { terrain_service.reset(); });
-        thread->quit();
-        thread->wait(500);
+        qDebug("RenderingContext::~RenderingContext()");
+        if (scheduler) {
+            nucleus::utils::thread::sync_call(scheduler.get(), [this]() { scheduler.reset(); });
+            nucleus::utils::thread::sync_call(ortho_service.get(), [this]() { ortho_service.reset(); });
+            nucleus::utils::thread::sync_call(terrain_service.get(), [this]() { terrain_service.reset(); });
+        }
+        if (thread) {
+            thread->quit();
+            thread->wait(500);
+        }
     }
 };
 

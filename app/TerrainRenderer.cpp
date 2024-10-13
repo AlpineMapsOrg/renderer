@@ -48,8 +48,6 @@ TerrainRenderer::TerrainRenderer()
     auto* ctx = RenderingContext::instance();
     ctx->initialise();
     m_glWindow = std::make_unique<gl_engine::Window>(ctx->engine_context());
-    m_glWindow->set_quad_limit(512);
-    m_glWindow->set_aabb_decorator(ctx->aabb_decorator());
 
     auto* scheduler_ptr = ctx->scheduler();
     auto* gl_window_ptr = m_glWindow.get();
@@ -57,7 +55,6 @@ TerrainRenderer::TerrainRenderer()
     m_camera_controller = std::make_unique<CameraController>(nucleus::camera::PositionStorage::instance()->get("grossglockner"), m_glWindow.get(), ctx->data_querier().get());
 
     QObject::connect(gl_window_ptr, &gl_engine::Window::update_camera_requested, m_camera_controller.get(), &CameraController::advance_camera);
-    QObject::connect(gl_window_ptr, &gl_engine::Window::gpu_ready_changed, scheduler_ptr, &Scheduler::set_enabled);
 
     // NOTICE ME!!!! READ THIS, IF YOU HAVE TROUBLES WITH SIGNALS NOT REACHING THE QML RENDERING THREAD!!!!111elevenone
     // In Qt/QML the rendering thread goes to sleep (at least until Qt 6.5, See RenderThreadNotifier).
@@ -67,7 +64,6 @@ TerrainRenderer::TerrainRenderer()
     QObject::connect(m_camera_controller.get(), &CameraController::definition_changed, ctx->map_label_scheduler(), &nucleus::map_label::Scheduler::update_camera);
     QObject::connect(m_camera_controller.get(), &CameraController::definition_changed, m_glWindow.get(), &gl_engine::Window::update_camera);
 
-    QObject::connect(scheduler_ptr, &Scheduler::gpu_quads_updated, gl_window_ptr, &gl_engine::Window::update_gpu_quads);
     QObject::connect(scheduler_ptr, &Scheduler::gpu_quads_updated, gl_window_ptr, &gl_engine::Window::update_requested);
 
     QObject::connect(ctx->picker_manager().get(), &PickerManager::pick_requested, gl_window_ptr, &gl_engine::Window::pick_value);

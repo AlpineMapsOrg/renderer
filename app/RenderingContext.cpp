@@ -20,9 +20,12 @@
 
 #include "RenderThreadNotifier.h"
 #include <QMutex>
+#include <QOpenGLContext>
 #include <QThread>
 #include <gl_engine/Context.h>
 #include <gl_engine/MapLabelManager.h>
+#include <gl_engine/TextureLayer.h>
+#include <gl_engine/TileGeometry.h>
 #include <nucleus/DataQuerier.h>
 #include <nucleus/camera/Controller.h>
 #include <nucleus/camera/PositionStorage.h>
@@ -59,6 +62,7 @@ RenderingContext::RenderingContext(QObject* parent)
     : QObject { parent }
     , m(std::make_unique<RenderingContext::Data>())
 {
+    qDebug("RenderingContext::RenderingContext()");
     using TilePattern = nucleus::tile_scheduler::TileLoadService::UrlPattern;
     assert(QThread::currentThread() == QCoreApplication::instance()->thread());
 
@@ -104,17 +108,7 @@ RenderingContext::RenderingContext(QObject* parent)
 
 RenderingContext::~RenderingContext()
 {
-    nucleus::utils::thread::sync_call(m->scheduler.scheduler.get(), [this]() {
-        m->scheduler.scheduler = {};
-        m->camera_controller = {};
-        m->label_filter = {};
-        m->picker_manager = {};
-        m->map_label.scheduler = {};
-    });
-    if (m->scheduler.thread) {
-        m->scheduler.thread->quit();
-        m->scheduler.thread->wait(500); // msec
-    }
+    // being killed after app exited -> no event loop
 }
 
 RenderingContext* RenderingContext::instance()
@@ -131,18 +125,46 @@ void RenderingContext::initialise()
         return;
 
     m->engine_context = std::make_shared<gl_engine::Context>();
+    // standard tiles
+    m->engine_context->set_tile_geometry(std::make_shared<gl_engine::TileGeometry>());
+    m->engine_context->set_ortho_layer(std::make_shared<gl_engine::TextureLayer>());
+    m->engine_context->tile_geometry()->set_quad_limit(512);
+    m->engine_context->tile_geometry()->set_aabb_decorator(m->aabb_decorator);
+    m->engine_context->ortho_layer()->set_quad_limit(512);
+    connect(m->scheduler.scheduler.get(), &nucleus::tile_scheduler::OldScheduler::gpu_quads_updated, m->engine_context->tile_geometry(), &gl_engine::TileGeometry::update_gpu_quads);
+    connect(m->scheduler.scheduler.get(), &nucleus::tile_scheduler::OldScheduler::gpu_quads_updated, m->engine_context->ortho_layer(), &gl_engine::TextureLayer::update_gpu_quads);
+    nucleus::utils::thread::async_call(m->scheduler.scheduler.get(), [this]() { m->scheduler.scheduler->set_enabled(true); });
 
     // labels
     m->engine_context->set_map_label_manager(std::make_unique<gl_engine::MapLabelManager>(m->aabb_decorator));
     connect(m->label_filter.get(), &MapLabelFilter::filter_finished, m->engine_context->map_label_manager(), &gl_engine::MapLabelManager::update_labels);
     nucleus::utils::thread::async_call(m->map_label.scheduler.get(), [this]() { m->map_label.scheduler->set_enabled(true); });
 
-    auto* render_thread = QThread::currentThread();
-    connect(render_thread, &QThread::finished, m->engine_context.get(), &nucleus::EngineContext::destroy);
+    connect(QOpenGLContext::currentContext(), &QOpenGLContext::aboutToBeDestroyed, m->engine_context.get(), &nucleus::EngineContext::destroy);
+    connect(QOpenGLContext::currentContext(), &QOpenGLContext::aboutToBeDestroyed, this, &RenderingContext::destroy);
 
+    m->engine_context->initialise();
     nucleus::utils::thread::async_call(this, [this]() { emit this->initialised(); });
-    // nucleus::utils::thread::async_call(m->scheduler.scheduler.get(), [this]() { m->scheduler.scheduler->set_enabled(true); }); // after moving tile manager
-    // to gl_engine::Context.
+}
+
+void RenderingContext::destroy()
+{
+    qDebug("RenderingContext::~RenderingContext()");
+    nucleus::utils::thread::sync_call(m->scheduler.scheduler.get(), [this]() {
+        qDebug("RenderingContext::~RenderingContext() -> resetting scheduler");
+        m->scheduler.scheduler.reset();
+        m->camera_controller.reset();
+        m->label_filter.reset();
+        m->picker_manager.reset();
+        m->map_label.scheduler.reset();
+    });
+    qDebug("RenderingContext::~RenderingContext() -> back");
+    if (m->scheduler.thread) {
+        qDebug("RenderingContext::~RenderingContext() -> killing thread");
+        m->scheduler.thread->quit();
+        m->scheduler.thread->wait(500); // msec
+        m->scheduler.thread.reset();
+    }
 }
 
 std::shared_ptr<gl_engine::Context> RenderingContext::engine_context() const

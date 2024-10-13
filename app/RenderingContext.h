@@ -66,6 +66,7 @@ public:
     static RenderingContext* instance();
 
     void initialise();
+    void destroy();
     [[nodiscard]] std::shared_ptr<gl_engine::Context> engine_context() const;
     [[nodiscard]] std::shared_ptr<nucleus::tile_scheduler::utils::AabbDecorator> aabb_decorator() const;
     [[nodiscard]] std::shared_ptr<nucleus::DataQuerier> data_querier() const;

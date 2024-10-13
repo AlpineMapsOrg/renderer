@@ -47,6 +47,7 @@ ShaderRegistry* Context::shader_registry()
 
 void Context::internal_initialise()
 {
+    assert(!m_shader_registry);
     // init of shader registry and track manager should be moved out of here for more flexibility, similar to tile_geometry
     m_shader_registry = std::make_shared<ShaderRegistry>();
     m_track_manager = std::make_shared<TrackManager>(m_shader_registry.get());

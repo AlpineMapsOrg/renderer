@@ -54,7 +54,6 @@
 #include "ShaderRegistry.h"
 #include "ShaderProgram.h"
 #include "ShadowMapping.h"
-#include "TileManager.h"
 #include "TrackManager.h"
 #include "UniformBufferObjects.h"
 #include "Window.h"
@@ -91,7 +90,6 @@ Window::~Window()
 
 void Window::initialise_gpu()
 {
-    m_context->initialise();
     QOpenGLExtraFunctions* f = QOpenGLContext::currentContext()->extraFunctions();
     assert(f->hasOpenGLFeature(QOpenGLExtraFunctions::OpenGLFeature::MultipleRenderTargets));
     Q_UNUSED(f);
@@ -173,8 +171,6 @@ void Window::initialise_gpu()
         m_timer->add_timer(make_shared<CpuTimer>("cpu_b2b", "TOTAL", 240, 1.0f / 60.0f));
         m_timer->add_timer(make_shared<CpuTimer>("draw_list", "TOTAL", 240, 1.0f / 60.0f));
     }
-
-    emit gpu_ready_changed(true);
 }
 
 void Window::resize_framebuffer(int width, int height)
@@ -460,7 +456,6 @@ glm::dvec3 Window::position(const glm::dvec2& normalised_device_coordinates)
 
 void Window::destroy()
 {
-    emit gpu_ready_changed(false);
     m_gbuffer.reset();
     m_screen_quad_geometry = {};
 }
