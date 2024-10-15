@@ -17,7 +17,7 @@
  *****************************************************************************/
 
 #include "Context.h"
-#include "MapLabelManager.h"
+#include "MapLabels.h"
 #include "ShaderRegistry.h"
 #include "TextureLayer.h"
 #include "TileGeometry.h"
@@ -87,9 +87,9 @@ void Context::set_tile_geometry(std::shared_ptr<TileGeometry> new_tile_geometry)
     m_tile_geometry = std::move(new_tile_geometry);
 }
 
-gl_engine::MapLabelManager* Context::map_label_manager() const { return m_map_label_manager.get(); }
+gl_engine::MapLabels* Context::map_label_manager() const { return m_map_label_manager.get(); }
 
-void Context::set_map_label_manager(std::shared_ptr<gl_engine::MapLabelManager> new_map_label_manager)
+void Context::set_map_label_manager(std::shared_ptr<gl_engine::MapLabels> new_map_label_manager)
 {
     assert(!is_alive()); // only set before init is called.
     m_map_label_manager = std::move(new_map_label_manager);

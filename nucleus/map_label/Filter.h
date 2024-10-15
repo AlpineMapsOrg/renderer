@@ -20,7 +20,6 @@
 #pragma once
 
 #include "nucleus/vector_tile/types.h"
-#include "types.h"
 #include <QObject>
 #include <QTimer>
 #include <QVector2D>
@@ -30,14 +29,14 @@
 
 using namespace nucleus::vector_tile;
 
-namespace nucleus::maplabel {
+namespace nucleus::map_label {
 
-class MapLabelFilter : public QObject {
+class Filter : public QObject {
     Q_OBJECT
     using LabelType = vector_tile::PointOfInterest::Type;
 
 public:
-    explicit MapLabelFilter(QObject* parent = nullptr);
+    explicit Filter(QObject* parent = nullptr);
 
     void add_tile(const tile::Id& id, const PointOfInterestCollectionPtr& all_features);
     void remove_tile(const tile::Id& id);
@@ -65,4 +64,4 @@ private:
     constexpr static int m_update_filter_time = 400;
     std::unique_ptr<QTimer> m_update_filter_timer;
 };
-} // namespace nucleus::maplabel
+} // namespace nucleus::map_label

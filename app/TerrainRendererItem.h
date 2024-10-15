@@ -52,7 +52,7 @@ class TerrainRendererItem : public QQuickFramebufferObject {
     Q_PROPERTY(bool camera_operation_centre_visibility READ camera_operation_centre_visibility NOTIFY camera_operation_centre_visibility_changed)
     Q_PROPERTY(float camera_operation_centre_distance READ camera_operation_centre_distance NOTIFY camera_operation_centre_distance_changed)
     Q_PROPERTY(gl_engine::uboSharedConfig shared_config READ shared_config WRITE set_shared_config NOTIFY shared_config_changed)
-    Q_PROPERTY(nucleus::maplabel::FilterDefinitions label_filter READ label_filter WRITE set_label_filter NOTIFY label_filter_changed)
+    Q_PROPERTY(nucleus::map_label::FilterDefinitions label_filter READ label_filter WRITE set_label_filter NOTIFY label_filter_changed)
     Q_PROPERTY(AppSettings* settings MEMBER m_settings CONSTANT)
     Q_PROPERTY(unsigned int in_flight_tiles READ in_flight_tiles NOTIFY in_flight_tiles_changed)
     Q_PROPERTY(unsigned int queued_tiles READ queued_tiles NOTIFY queued_tiles_changed)
@@ -86,7 +86,7 @@ signals:
     void camera_definition_set_by_user(const nucleus::camera::Definition&) const;
 
     void shared_config_changed(gl_engine::uboSharedConfig new_shared_config) const;
-    void label_filter_changed(const nucleus::maplabel::FilterDefinitions label_filter) const;
+    void label_filter_changed(const nucleus::map_label::FilterDefinitions label_filter) const;
     void hud_visible_changed(bool new_hud_visible);
 
     void rotation_north_requested();
@@ -174,8 +174,8 @@ public:
     gl_engine::uboSharedConfig shared_config() const;
     void set_shared_config(gl_engine::uboSharedConfig new_shared_config);
 
-    nucleus::maplabel::FilterDefinitions label_filter() const;
-    void set_label_filter(nucleus::maplabel::FilterDefinitions new_label_filter);
+    nucleus::map_label::FilterDefinitions label_filter() const;
+    void set_label_filter(nucleus::map_label::FilterDefinitions new_label_filter);
 
     void set_selected_camera_position_index(unsigned value);
 
@@ -227,7 +227,7 @@ private:
     QVector3D m_world_space_cursor_position = {};
 
     gl_engine::uboSharedConfig m_shared_config;
-    nucleus::maplabel::FilterDefinitions m_label_filter;
+    nucleus::map_label::FilterDefinitions m_label_filter;
 
     QTimer* m_update_timer = nullptr;
     nucleus::camera::Definition m_camera;

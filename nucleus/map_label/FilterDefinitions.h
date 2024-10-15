@@ -21,7 +21,7 @@
 #include <QObject>
 #include <QVector2D>
 
-namespace nucleus::maplabel {
+namespace nucleus::map_label {
 
 struct FilterDefinitions {
     Q_GADGET
@@ -61,4 +61,4 @@ public:
     Q_PROPERTY(QVector2D cottage_ele_range MEMBER m_cottage_ele_range)
 };
 
-} // namespace nucleus::maplabel
+} // namespace nucleus::map_label

@@ -24,8 +24,7 @@
 #include <vector>
 #include <QString>
 
-namespace nucleus::maplabel {
-
+namespace nucleus::map_label {
 
 void FontRenderer::init()
 {
@@ -192,4 +191,4 @@ void FontRenderer::make_outline(std::set<char16_t> chars)
 std::vector<Raster<glm::u8vec2>> FontRenderer::font_atlas() { return m_font_atlas; }
 
 const FontData& FontRenderer::font_data() { return m_font_data; }
-} // namespace nucleus::maplabel
+} // namespace nucleus::map_label

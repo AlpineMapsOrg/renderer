@@ -26,9 +26,9 @@
 #include <vector>
 
 #include <nucleus/Raster.h>
-#include <nucleus/map_label/MapLabelData.h>
+#include <nucleus/map_label/types.h>
 
-namespace nucleus::maplabel {
+namespace nucleus::map_label {
 
 
 struct FontData {

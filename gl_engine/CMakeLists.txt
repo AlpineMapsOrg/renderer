@@ -45,7 +45,7 @@ qt_add_library(gl_engine STATIC
 
 if(ALP_ENABLE_LABELS)
     target_sources(gl_engine PRIVATE
-        MapLabelManager.h MapLabelManager.cpp
+        MapLabels.h MapLabels.cpp
     )
 endif()
 

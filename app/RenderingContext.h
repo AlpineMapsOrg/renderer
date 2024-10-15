@@ -28,8 +28,8 @@ class Context;
 namespace nucleus {
 class DataQuerier;
 }
-namespace nucleus::maplabel {
-class MapLabelFilter;
+namespace nucleus::map_label {
+class Filter;
 }
 namespace nucleus::map_label {
 class Scheduler;
@@ -72,7 +72,7 @@ public:
     [[nodiscard]] std::shared_ptr<nucleus::DataQuerier> data_querier() const;
     [[nodiscard]] nucleus::tile_scheduler::OldScheduler* scheduler() const;
     [[nodiscard]] std::shared_ptr<nucleus::picker::PickerManager> picker_manager() const;
-    [[nodiscard]] std::shared_ptr<nucleus::maplabel::MapLabelFilter> label_filter() const;
+    [[nodiscard]] std::shared_ptr<nucleus::map_label::Filter> label_filter() const;
     [[nodiscard]] nucleus::map_label::Scheduler* map_label_scheduler() const;
 
 signals:

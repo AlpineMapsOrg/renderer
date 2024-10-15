@@ -1,6 +1,7 @@
 /*****************************************************************************
- * Alpine Terrain Renderer
+ * AlpineMaps.org
  * Copyright (C) 2024 Lucas Dworschak
+ * Copyright (C) 2024 Adam Celerek
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -26,8 +27,8 @@
 #include "Framebuffer.h"
 #include "Texture.h"
 #include "nucleus/camera/Definition.h"
+#include "nucleus/map_label/Factory.h"
 #include "nucleus/map_label/FilterDefinitions.h"
-#include "nucleus/map_label/LabelFactory.h"
 
 #include "nucleus/tile_scheduler/DrawListGenerator.h"
 
@@ -45,12 +46,12 @@ struct GPUVectorTile {
     glm::dvec3 reference_point = {};
 };
 
-class MapLabelManager : public QObject {
+class MapLabels : public QObject {
     Q_OBJECT
 
 public:
     using TileSet = nucleus::tile_scheduler::DrawListGenerator::TileSet;
-    explicit MapLabelManager(const nucleus::tile_scheduler::utils::AabbDecoratorPtr& aabb_decorator, QObject* parent = nullptr);
+    explicit MapLabels(const nucleus::tile_scheduler::utils::AabbDecoratorPtr& aabb_decorator, QObject* parent = nullptr);
 
     void init(ShaderRegistry* shader_registry);
     void draw(Framebuffer* gbuffer, const nucleus::camera::Definition& camera, const TileSet& draw_tiles) const;
@@ -72,7 +73,7 @@ private:
     std::unique_ptr<QOpenGLBuffer> m_index_buffer;
     size_t m_indices_count; // how many vertices per character (most likely 6 since quads)
 
-    nucleus::maplabel::LabelFactory m_mapLabelFactory;
+    nucleus::map_label::Factory m_mapLabelFactory;
 
     nucleus::tile_scheduler::DrawListGenerator m_draw_list_generator;
     std::unordered_map<tile::Id, std::shared_ptr<GPUVectorTile>, tile::Id::Hasher> m_gpu_tiles;

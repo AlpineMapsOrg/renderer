@@ -168,8 +168,7 @@ int main(int argc, char **argv)
     });
 #endif
 
-    RenderThreadNotifier::instance()
-        ->set_root_window(root_window);
+    RenderThreadNotifier::instance()->set_root_window(root_window);
 
     return app.exec();
 }

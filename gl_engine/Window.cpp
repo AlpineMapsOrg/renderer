@@ -66,7 +66,7 @@
 #endif
 
 #ifdef ALP_ENABLE_LABELS
-#include "MapLabelManager.h"
+#include "MapLabels.h"
 #endif
 
 using gl_engine::UniformBuffer;
@@ -96,10 +96,16 @@ void Window::initialise_gpu()
 
     QOpenGLDebugLogger* logger = new QOpenGLDebugLogger(this);
     logger->initialize();
-    connect(logger, &QOpenGLDebugLogger::messageLogged, [](const auto& message) {
-        qDebug() << message;
+    connect(logger, &QOpenGLDebugLogger::messageLogged, [](const QOpenGLDebugMessage& message) {
+        if (message.id() == 1281)
+            qDebug() << "duuud " << message;
+        if (message.id() == 131218)
+            qDebug() << "during QOpenGLFunctions::glReadPixels" << message;
+        else
+            qDebug() << message;
     });
     logger->disableMessages(QList<GLuint>({ 131185 }));
+    logger->disableMessages(QList<GLuint>({ 131218 }));
     logger->startLogging(QOpenGLDebugLogger::SynchronousLogging);
 
     auto* shader_registry = m_context->shader_registry();
@@ -233,7 +239,7 @@ void Window::paint(QOpenGLFramebufferObject* framebuffer)
     // Generate Draw-List
     // Note: Could also just be done on camera change
     m_timer->start_timer("draw_list");
-    MapLabelManager::TileSet label_tile_set;
+    MapLabels::TileSet label_tile_set;
     if (m_context->map_label_manager())
         label_tile_set = m_context->map_label_manager()->generate_draw_list(m_camera);
     const auto tile_set = m_context->tile_geometry()->generate_tilelist(m_camera);

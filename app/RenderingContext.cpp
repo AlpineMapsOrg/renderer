@@ -23,13 +23,13 @@
 #include <QOpenGLContext>
 #include <QThread>
 #include <gl_engine/Context.h>
-#include <gl_engine/MapLabelManager.h>
+#include <gl_engine/MapLabels.h>
 #include <gl_engine/TextureLayer.h>
 #include <gl_engine/TileGeometry.h>
 #include <nucleus/DataQuerier.h>
 #include <nucleus/camera/Controller.h>
 #include <nucleus/camera/PositionStorage.h>
-#include <nucleus/map_label/MapLabelFilter.h>
+#include <nucleus/map_label/Filter.h>
 #include <nucleus/map_label/setup.h>
 #include <nucleus/picker/PickerManager.h>
 #include <nucleus/tile_scheduler/OldScheduler.h>
@@ -38,7 +38,7 @@
 #include <nucleus/utils/thread.h>
 
 using namespace nucleus::tile_scheduler;
-using namespace nucleus::maplabel;
+using namespace nucleus::map_label;
 using namespace nucleus::picker;
 using nucleus::DataQuerier;
 
@@ -53,7 +53,7 @@ struct RenderingContext::Data {
     nucleus::tile_scheduler::setup::MonolithicScheduler scheduler;
     std::shared_ptr<nucleus::DataQuerier> data_querier;
     std::unique_ptr<nucleus::camera::Controller> camera_controller;
-    std::shared_ptr<nucleus::maplabel::MapLabelFilter> label_filter;
+    std::shared_ptr<nucleus::map_label::Filter> label_filter;
     std::shared_ptr<nucleus::picker::PickerManager> picker_manager;
     std::shared_ptr<nucleus::tile_scheduler::utils::AabbDecorator> aabb_decorator;
 };
@@ -88,14 +88,14 @@ RenderingContext::RenderingContext(QObject* parent)
     m->scheduler.scheduler->set_dataquerier(m->data_querier);
 
     m->picker_manager = std::make_shared<PickerManager>();
-    m->label_filter = std::make_shared<MapLabelFilter>();
+    m->label_filter = std::make_shared<Filter>();
     if (m->scheduler.thread) {
         m->picker_manager->moveToThread(m->scheduler.thread.get());
         m->label_filter->moveToThread(m->scheduler.thread.get());
     }
     connect(m->scheduler.scheduler.get(), &nucleus::tile_scheduler::OldScheduler::gpu_quads_updated, RenderThreadNotifier::instance(), &RenderThreadNotifier::notify);
     connect(m->map_label.scheduler.get(), &nucleus::map_label::Scheduler::gpu_tiles_updated, m->picker_manager.get(), &PickerManager::update_quads);
-    connect(m->map_label.scheduler.get(), &nucleus::map_label::Scheduler::gpu_tiles_updated, m->label_filter.get(), &MapLabelFilter::update_quads);
+    connect(m->map_label.scheduler.get(), &nucleus::map_label::Scheduler::gpu_tiles_updated, m->label_filter.get(), &Filter::update_quads);
     connect(m->map_label.scheduler.get(), &nucleus::map_label::Scheduler::gpu_tiles_updated, RenderThreadNotifier::instance(), &RenderThreadNotifier::notify);
 
     if (QNetworkInformation::loadDefaultBackend() && QNetworkInformation::instance()) {
@@ -135,8 +135,8 @@ void RenderingContext::initialise()
     nucleus::utils::thread::async_call(m->scheduler.scheduler.get(), [this]() { m->scheduler.scheduler->set_enabled(true); });
 
     // labels
-    m->engine_context->set_map_label_manager(std::make_unique<gl_engine::MapLabelManager>(m->aabb_decorator));
-    connect(m->label_filter.get(), &MapLabelFilter::filter_finished, m->engine_context->map_label_manager(), &gl_engine::MapLabelManager::update_labels);
+    m->engine_context->set_map_label_manager(std::make_unique<gl_engine::MapLabels>(m->aabb_decorator));
+    connect(m->label_filter.get(), &Filter::filter_finished, m->engine_context->map_label_manager(), &gl_engine::MapLabels::update_labels);
     nucleus::utils::thread::async_call(m->map_label.scheduler.get(), [this]() { m->map_label.scheduler->set_enabled(true); });
 
     connect(QOpenGLContext::currentContext(), &QOpenGLContext::aboutToBeDestroyed, m->engine_context.get(), &nucleus::EngineContext::destroy);
@@ -192,7 +192,7 @@ std::shared_ptr<nucleus::picker::PickerManager> RenderingContext::picker_manager
     return m->picker_manager;
 }
 
-std::shared_ptr<nucleus::maplabel::MapLabelFilter> RenderingContext::label_filter() const
+std::shared_ptr<nucleus::map_label::Filter> RenderingContext::label_filter() const
 {
     QMutexLocker locker(&m->shared_ptr_mutex);
     return m->label_filter;

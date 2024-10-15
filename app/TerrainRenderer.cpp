@@ -32,7 +32,7 @@
 #include <nucleus/EngineContext.h>
 #include <nucleus/camera/Controller.h>
 #include <nucleus/camera/PositionStorage.h>
-#include <nucleus/map_label/MapLabelFilter.h>
+#include <nucleus/map_label/Filter.h>
 #include <nucleus/map_label/Scheduler.h>
 #include <nucleus/picker/PickerManager.h>
 #include <nucleus/tile_scheduler/OldScheduler.h>
@@ -40,7 +40,7 @@
 
 TerrainRenderer::TerrainRenderer()
 {
-    using nucleus::maplabel::MapLabelFilter;
+    using nucleus::map_label::Filter;
     using nucleus::picker::PickerManager;
     using Scheduler = nucleus::tile_scheduler::OldScheduler;
     using CameraController = nucleus::camera::Controller;
@@ -69,7 +69,7 @@ TerrainRenderer::TerrainRenderer()
     QObject::connect(ctx->picker_manager().get(), &PickerManager::pick_requested, gl_window_ptr, &gl_engine::Window::pick_value);
     QObject::connect(gl_window_ptr, &gl_engine::Window::value_picked, ctx->picker_manager().get(), &PickerManager::eval_pick);
 
-    QObject::connect(ctx->label_filter().get(), &MapLabelFilter::filter_finished, gl_window_ptr, &gl_engine::Window::update_requested);
+    QObject::connect(ctx->label_filter().get(), &Filter::filter_finished, gl_window_ptr, &gl_engine::Window::update_requested);
 
     scheduler_ptr->set_ortho_tile_compression_algorithm(m_glWindow->ortho_tile_compression_algorithm());
     m_glWindow->initialise_gpu();

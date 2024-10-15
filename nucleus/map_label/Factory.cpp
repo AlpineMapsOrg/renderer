@@ -17,7 +17,7 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *****************************************************************************/
 
-#include "LabelFactory.h"
+#include "Factory.h"
 
 #include <QDebug>
 #include <QSize>
@@ -31,9 +31,9 @@
 #define STB_TRUETYPE_IMPLEMENTATION
 #include <stb_slim/stb_truetype.h>
 
-namespace nucleus::maplabel {
+namespace nucleus::map_label {
 
-AtlasData LabelFactory::init_font_atlas()
+AtlasData Factory::init_font_atlas()
 {
     m_font_renderer.init();
     for (const auto ch : uR"( !"#$%&'()*+,-./0123456789:;<=>@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\]^_`abcdefghijklmnopqrstuvwxyz{|}~§°´ÄÖÜßáâäéìíóöúüýČčěňőřŠšŽž€)") {
@@ -42,7 +42,7 @@ AtlasData LabelFactory::init_font_atlas()
     return renew_font_atlas();
 }
 
-AtlasData LabelFactory::renew_font_atlas()
+AtlasData Factory::renew_font_atlas()
 {
     // check if any new chars have been added
     if (!m_new_chars.empty()) {
@@ -63,7 +63,7 @@ AtlasData LabelFactory::renew_font_atlas()
 /**
  * this function needs to be called before create_labels
  */
-Raster<glm::u8vec4> LabelFactory::label_icons()
+Raster<glm::u8vec4> Factory::label_icons()
 {
     using PoiType = vector_tile::PointOfInterest::Type;
     auto icons = std::unordered_map<PoiType, Raster<glm::u8vec4>>();
@@ -92,7 +92,7 @@ Raster<glm::u8vec4> LabelFactory::label_icons()
     return combined_icons;
 }
 
-std::tuple<std::vector<VertexData>, glm::dvec3, AtlasData> LabelFactory::create_labels(const vector_tile::PointOfInterestCollection& pois)
+std::tuple<std::vector<VertexData>, glm::dvec3, AtlasData> Factory::create_labels(const vector_tile::PointOfInterestCollection& pois)
 {
 
     for (const auto& f : pois) {
@@ -103,7 +103,7 @@ std::tuple<std::vector<VertexData>, glm::dvec3, AtlasData> LabelFactory::create_
         }
     }
 
-    AtlasData atlas_data = LabelFactory::renew_font_atlas();
+    AtlasData atlas_data = Factory::renew_font_atlas();
 
     glm::dvec3 reference_point = pois.empty() ? glm::dvec3 {} : pois.front().world_space_pos;
 
@@ -134,7 +134,7 @@ std::tuple<std::vector<VertexData>, glm::dvec3, AtlasData> LabelFactory::create_
     return { std::move(label_data), reference_point, std::move(atlas_data) };
 }
 
-void LabelFactory::create_label(
+void Factory::create_label(
     const QString& text, const glm::vec3& position, LabelType type, const uint32_t id, const float importance, std::vector<VertexData>& vertex_data)
 {
     float text_offset_y = -m_font_size / 2.0f + 60.0f;
@@ -169,7 +169,7 @@ void LabelFactory::create_label(
 }
 
 // calculate char offsets and text width
-std::vector<float> inline LabelFactory::create_text_meta(std::u16string* safe_chars, float* text_width)
+std::vector<float> inline Factory::create_text_meta(std::u16string* safe_chars, float* text_width)
 {
     // case no text in label
     if (safe_chars->size() == 0)
@@ -209,4 +209,4 @@ std::vector<float> inline LabelFactory::create_text_meta(std::u16string* safe_ch
     return kerningOffsets;
 }
 
-} // namespace nucleus::maplabel
+} // namespace nucleus::map_label

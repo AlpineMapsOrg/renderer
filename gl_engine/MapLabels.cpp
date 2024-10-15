@@ -1,6 +1,7 @@
 /*****************************************************************************
- * Alpine Terrain Renderer
+ * AlpineMaps.org
  * Copyright (C) 2024 Lucas Dworschak
+ * Copyright (C) 2024 Adam Celerek
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -16,7 +17,7 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *****************************************************************************/
 
-#include "MapLabelManager.h"
+#include "MapLabels.h"
 
 #include <QOpenGLExtraFunctions>
 #include <QOpenGLPixelTransferOptions>
@@ -34,13 +35,13 @@ using namespace Qt::Literals::StringLiterals;
 
 namespace gl_engine {
 
-MapLabelManager::MapLabelManager(const nucleus::tile_scheduler::utils::AabbDecoratorPtr& aabb_decorator, QObject* parent)
+MapLabels::MapLabels(const nucleus::tile_scheduler::utils::AabbDecoratorPtr& aabb_decorator, QObject* parent)
     : QObject { parent }
 {
     m_draw_list_generator.set_aabb_decorator(aabb_decorator);
 }
 
-void MapLabelManager::init(ShaderRegistry* shader_registry)
+void MapLabels::init(ShaderRegistry* shader_registry)
 {
     m_label_shader = std::make_shared<ShaderProgram>("labels.vert", "labels.frag");
     m_picker_shader = std::make_shared<ShaderProgram>("labels.vert", "labels_picker.frag");
@@ -52,8 +53,8 @@ void MapLabelManager::init(ShaderRegistry* shader_registry)
 
     m_font_texture = std::make_unique<Texture>(Texture::Target::_2dArray, Texture::Format::RG8);
     m_font_texture->setParams(Texture::Filter::MipMapLinear, Texture::Filter::Linear);
-    m_font_texture->allocate_array(nucleus::maplabel::FontRenderer::m_font_atlas_size.width(), nucleus::maplabel::FontRenderer::m_font_atlas_size.height(),
-        nucleus::maplabel::FontRenderer::m_max_textures);
+    m_font_texture->allocate_array(
+        nucleus::map_label::FontRenderer::m_font_atlas_size.width(), nucleus::map_label::FontRenderer::m_font_atlas_size.height(), nucleus::map_label::FontRenderer::m_max_textures);
     for(unsigned int i = 0; i < atlas_data.font_atlas.size(); i++)
     {
         m_font_texture->upload(atlas_data.font_atlas[i],i);
@@ -73,12 +74,9 @@ void MapLabelManager::init(ShaderRegistry* shader_registry)
     m_indices_count = m_mapLabelFactory.m_indices.size();
 }
 
-MapLabelManager::TileSet MapLabelManager::generate_draw_list(const nucleus::camera::Definition& camera) const
-{
-    return m_draw_list_generator.cull(m_draw_list_generator.generate_for(camera), camera.frustum());
-}
+MapLabels::TileSet MapLabels::generate_draw_list(const nucleus::camera::Definition& camera) const { return m_draw_list_generator.cull(m_draw_list_generator.generate_for(camera), camera.frustum()); }
 
-void MapLabelManager::upload_to_gpu(const tile::Id& id, const PointOfInterestCollection& features)
+void MapLabels::upload_to_gpu(const tile::Id& id, const PointOfInterestCollection& features)
 {
     if (!QOpenGLContext::currentContext()) // can happen during shutdown.
         return;
@@ -105,35 +103,34 @@ void MapLabelManager::upload_to_gpu(const tile::Id& id, const PointOfInterestCol
         vectortile->vertex_buffer->create();
         vectortile->vertex_buffer->bind();
         vectortile->vertex_buffer->setUsagePattern(QOpenGLBuffer::DynamicDraw);
-        vectortile->vertex_buffer->allocate(allLabels.data(), allLabels.size() * sizeof(nucleus::maplabel::VertexData));
+        vectortile->vertex_buffer->allocate(allLabels.data(), allLabels.size() * sizeof(nucleus::map_label::VertexData));
         vectortile->instance_count = allLabels.size();
 
         QOpenGLExtraFunctions* f = QOpenGLContext::currentContext()->extraFunctions();
 
         // vertex positions
         f->glEnableVertexAttribArray(0);
-        f->glVertexAttribPointer(0, 4, GL_FLOAT, GL_FALSE, sizeof(nucleus::maplabel::VertexData), nullptr);
+        f->glVertexAttribPointer(0, 4, GL_FLOAT, GL_FALSE, sizeof(nucleus::map_label::VertexData), nullptr);
         f->glVertexAttribDivisor(0, 1); // buffer is active for 1 instance (for the whole quad)
         // uvs
         f->glEnableVertexAttribArray(1);
-        f->glVertexAttribPointer(1, 4, GL_FLOAT, GL_FALSE, sizeof(nucleus::maplabel::VertexData), (GLvoid*)(sizeof(glm::vec4)));
+        f->glVertexAttribPointer(1, 4, GL_FLOAT, GL_FALSE, sizeof(nucleus::map_label::VertexData), (GLvoid*)(sizeof(glm::vec4)));
         f->glVertexAttribDivisor(1, 1); // buffer is active for 1 instance (for the whole quad)
         // picker color
         f->glEnableVertexAttribArray(2);
-        f->glVertexAttribPointer(2, 4, GL_FLOAT, GL_FALSE, sizeof(nucleus::maplabel::VertexData), (GLvoid*)(sizeof(glm::vec4) * 2));
+        f->glVertexAttribPointer(2, 4, GL_FLOAT, GL_FALSE, sizeof(nucleus::map_label::VertexData), (GLvoid*)(sizeof(glm::vec4) * 2));
         f->glVertexAttribDivisor(2, 1); // buffer is active for 1 instance (for the whole quad)
         // world position
         f->glEnableVertexAttribArray(3);
-        f->glVertexAttribPointer(3, 3, GL_FLOAT, GL_FALSE, sizeof(nucleus::maplabel::VertexData), (GLvoid*)(sizeof(glm::vec4) * 3));
+        f->glVertexAttribPointer(3, 3, GL_FLOAT, GL_FALSE, sizeof(nucleus::map_label::VertexData), (GLvoid*)(sizeof(glm::vec4) * 3));
         f->glVertexAttribDivisor(3, 1); // buffer is active for 1 instance (for the whole quad)
         // label importance
         f->glEnableVertexAttribArray(4);
-        f->glVertexAttribPointer(4, 1, GL_FLOAT, GL_FALSE, sizeof(nucleus::maplabel::VertexData), (GLvoid*)((sizeof(glm::vec4) * 3 + (sizeof(glm::vec3)))));
+        f->glVertexAttribPointer(4, 1, GL_FLOAT, GL_FALSE, sizeof(nucleus::map_label::VertexData), (GLvoid*)((sizeof(glm::vec4) * 3 + (sizeof(glm::vec3)))));
         f->glVertexAttribDivisor(4, 1); // buffer is active for 1 instance (for the whole quad)
         // texture index
         f->glEnableVertexAttribArray(5);
-        f->glVertexAttribIPointer(
-            5, 1, GL_INT, sizeof(nucleus::maplabel::VertexData), (GLvoid*)((sizeof(glm::vec4) * 3 + (sizeof(glm::vec3)) + sizeof(float))));
+        f->glVertexAttribIPointer(5, 1, GL_INT, sizeof(nucleus::map_label::VertexData), (GLvoid*)((sizeof(glm::vec4) * 3 + (sizeof(glm::vec3)) + sizeof(float))));
         f->glVertexAttribDivisor(5, 1); // buffer is active for 1 instance (for the whole quad)
     }
 
@@ -143,7 +140,7 @@ void MapLabelManager::upload_to_gpu(const tile::Id& id, const PointOfInterestCol
     m_gpu_tiles[id] = vectortile;
 }
 
-void MapLabelManager::update_labels(const std::vector<PoiTile>& updated_tiles, const std::vector<tile::Id>& removed_tiles)
+void MapLabels::update_labels(const std::vector<PoiTile>& updated_tiles, const std::vector<tile::Id>& removed_tiles)
 {
     // remove tiles that aren't needed anymore
     for (const auto& id : removed_tiles) {
@@ -160,7 +157,7 @@ void MapLabelManager::update_labels(const std::vector<PoiTile>& updated_tiles, c
     }
 }
 
-void MapLabelManager::remove_tile(const tile::Id& tile_id)
+void MapLabels::remove_tile(const tile::Id& tile_id)
 {
     if (!QOpenGLContext::currentContext()) // can happen during shutdown.
         return;
@@ -175,7 +172,7 @@ void MapLabelManager::remove_tile(const tile::Id& tile_id)
     m_gpu_tiles.erase(tile_id);
 }
 
-void MapLabelManager::draw(Framebuffer* gbuffer, const nucleus::camera::Definition& camera, const TileSet& draw_tiles) const
+void MapLabels::draw(Framebuffer* gbuffer, const nucleus::camera::Definition& camera, const TileSet& draw_tiles) const
 {
     QOpenGLExtraFunctions* f = QOpenGLContext::currentContext()->extraFunctions();
 
@@ -213,7 +210,7 @@ void MapLabelManager::draw(Framebuffer* gbuffer, const nucleus::camera::Definiti
     }
 }
 
-void MapLabelManager::draw_picker(Framebuffer* gbuffer, const nucleus::camera::Definition& camera, const TileSet& draw_tiles) const
+void MapLabels::draw_picker(Framebuffer* gbuffer, const nucleus::camera::Definition& camera, const TileSet& draw_tiles) const
 {
     QOpenGLExtraFunctions* f = QOpenGLContext::currentContext()->extraFunctions();
 

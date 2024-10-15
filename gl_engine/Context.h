@@ -23,7 +23,7 @@
 #include "TrackManager.h"
 
 namespace gl_engine {
-class MapLabelManager;
+class MapLabels;
 class ShaderRegistry;
 class TileGeometry;
 class TextureLayer;
@@ -39,8 +39,8 @@ public:
     [[nodiscard]] TrackManager* track_manager() override;
     [[nodiscard]] ShaderRegistry* shader_registry();
 
-    [[nodiscard]] gl_engine::MapLabelManager* map_label_manager() const;
-    void set_map_label_manager(std::shared_ptr<gl_engine::MapLabelManager> new_map_label_manager);
+    [[nodiscard]] gl_engine::MapLabels* map_label_manager() const;
+    void set_map_label_manager(std::shared_ptr<gl_engine::MapLabels> new_map_label_manager);
 
     [[nodiscard]] TileGeometry* tile_geometry() const;
     void set_tile_geometry(std::shared_ptr<TileGeometry> new_tile_geometry);
@@ -55,7 +55,7 @@ protected:
 private:
     std::shared_ptr<TileGeometry> m_tile_geometry;
     std::shared_ptr<TextureLayer> m_ortho_layer;
-    std::shared_ptr<gl_engine::MapLabelManager> m_map_label_manager;
+    std::shared_ptr<gl_engine::MapLabels> m_map_label_manager;
     std::shared_ptr<gl_engine::TrackManager> m_track_manager;
     std::shared_ptr<gl_engine::ShaderRegistry> m_shader_registry;
 };

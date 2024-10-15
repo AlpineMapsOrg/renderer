@@ -40,7 +40,7 @@
 #include <memory>
 #include <nucleus/camera/Controller.h>
 #include <nucleus/camera/PositionStorage.h>
-#include <nucleus/map_label/MapLabelFilter.h>
+#include <nucleus/map_label/Filter.h>
 #include <nucleus/picker/PickerManager.h>
 #include <nucleus/srs.h>
 #include <nucleus/tile_scheduler/OldScheduler.h>
@@ -155,7 +155,7 @@ QQuickFramebufferObject::Renderer* TerrainRendererItem::createRenderer() const
     // connect glWindow for shader hotreload by frontend button
     connect(this, &TerrainRendererItem::reload_shader, r->glWindow(), &gl_engine::Window::reload_shader);
 
-    connect(this, &TerrainRendererItem::label_filter_changed, ctx->label_filter().get(), &nucleus::maplabel::MapLabelFilter::update_filter);
+    connect(this, &TerrainRendererItem::label_filter_changed, ctx->label_filter().get(), &nucleus::map_label::Filter::update_filter);
     connect(ctx->picker_manager().get(), &nucleus::picker::PickerManager::pick_evaluated, this, &TerrainRendererItem::set_picked_feature);
 
 #ifdef ALP_ENABLE_DEV_TOOLS
@@ -395,8 +395,8 @@ void TerrainRendererItem::set_shared_config(gl_engine::uboSharedConfig new_share
     }
 }
 
-nucleus::maplabel::FilterDefinitions TerrainRendererItem::label_filter() const { return m_label_filter; }
-void TerrainRendererItem::set_label_filter(nucleus::maplabel::FilterDefinitions new_label_filter)
+nucleus::map_label::FilterDefinitions TerrainRendererItem::label_filter() const { return m_label_filter; }
+void TerrainRendererItem::set_label_filter(nucleus::map_label::FilterDefinitions new_label_filter)
 {
     if (m_label_filter != new_label_filter) {
         m_label_filter = new_label_filter;

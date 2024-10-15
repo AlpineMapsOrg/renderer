@@ -19,7 +19,7 @@
 #include <QDebug>
 #include <QImage>
 #include <catch2/catch_test_macros.hpp>
-#include <nucleus/map_label/LabelFactory.h>
+#include <nucleus/map_label/Factory.h>
 
 namespace {
 [[nodiscard]] QImage to_QImage(const nucleus::Raster<glm::u8vec4>& raster)
@@ -33,7 +33,7 @@ namespace {
 
 TEST_CASE("nucleus/map_label/factory")
 {
-    nucleus::maplabel::LabelFactory f;
+    nucleus::map_label::Factory f;
     auto a = f.init_font_atlas();
     auto pois = nucleus::vector_tile::PointOfInterestCollection();
     auto poi = nucleus::vector_tile::PointOfInterest();

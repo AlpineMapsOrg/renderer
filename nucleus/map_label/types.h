@@ -26,7 +26,7 @@
 
 struct stbtt_fontinfo;
 
-namespace nucleus::maplabel {
+namespace nucleus::map_label {
 
 struct CharData {
     uint16_t x, y, width, height; // coordinates of bbox in bitmap

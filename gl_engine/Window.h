@@ -47,7 +47,7 @@ class QOpenGLVertexArrayObject;
 
 namespace gl_engine {
 
-class MapLabelManager;
+class MapLabels;
 class ShaderProgram;
 class Framebuffer;
 class SSAO;
@@ -84,7 +84,7 @@ signals:
 
 private:
     std::shared_ptr<Context> m_context;
-    std::unique_ptr<MapLabelManager> m_map_label_manager;
+    std::unique_ptr<MapLabels> m_map_label_manager;
 
     std::unique_ptr<Framebuffer> m_gbuffer;
     std::unique_ptr<Framebuffer> m_decoration_buffer;

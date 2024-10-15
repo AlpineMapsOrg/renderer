@@ -27,12 +27,12 @@
 
 #include <nucleus/Raster.h>
 #include <nucleus/map_label/FontRenderer.h>
-#include <nucleus/map_label/MapLabelData.h>
+#include <nucleus/map_label/types.h>
 #include <nucleus/vector_tile/types.h>
 
-namespace nucleus::maplabel {
+namespace nucleus::map_label {
 
-class LabelFactory {
+class Factory {
     using LabelType = vector_tile::PointOfInterest::Type;
 
 public:
@@ -58,6 +58,5 @@ private:
     std::set<char16_t> m_rendered_chars;
     std::set<char16_t> m_new_chars;
     FontRenderer m_font_renderer;
-
 };
 } // namespace nucleus::maplabel

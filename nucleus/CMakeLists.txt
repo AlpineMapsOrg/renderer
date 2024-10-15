@@ -22,7 +22,7 @@
 project(alpine-renderer-nucleus LANGUAGES CXX)
 
 alp_add_git_repository(stb_slim URL https://github.com/AlpineMapsOrgDependencies/stb_slim.git COMMITISH 547fade2a12793e1bea4733d59646b4f436e25a4)
-alp_add_git_repository(radix URL https://github.com/AlpineMapsOrg/radix.git COMMITISH e604a7df68f96c57c978712ab7b002060c2115de NOT_SYSTEM)
+alp_add_git_repository(radix URL https://github.com/AlpineMapsOrg/radix.git COMMITISH cff5e9291f4b23e74711af4ee71958a845e3da55 NOT_SYSTEM)
 alp_add_git_repository(tl_expected URL https://github.com/TartanLlama/expected.git COMMITISH v1.1.0 DO_NOT_ADD_SUBPROJECT)
 if (NOT TARGET fmt)
     alp_add_git_repository(fmt URL https://github.com/fmtlib/fmt.git COMMITISH 10.1.1)
@@ -113,9 +113,6 @@ qt_add_library(nucleus STATIC
     camera/RecordedAnimation.h camera/RecordedAnimation.cpp
     camera/recording.h camera/recording.cpp
     tile_scheduler/setup.h tile_scheduler/setup.cpp
-    map_label/Scheduler.h map_label/Scheduler.cpp
-    map_label/setup.h
-
     tile_scheduler/GpuArrayHelper.h tile_scheduler/GpuArrayHelper.cpp
 )
 
@@ -130,11 +127,13 @@ if(ALP_ENABLE_LABELS)
         vector_tile/util.h
         vector_tile/types.h
         vector_tile/parse.h vector_tile/parse.cpp
-        map_label/LabelFactory.h map_label/LabelFactory.cpp
-        map_label/MapLabelData.h
+        map_label/Factory.h map_label/Factory.cpp
+        map_label/types.h
         map_label/FontRenderer.h map_label/FontRenderer.cpp
-        map_label/MapLabelFilter.h map_label/MapLabelFilter.cpp
+        map_label/Filter.h map_label/Filter.cpp
         map_label/FilterDefinitions.h
+        map_label/Scheduler.h map_label/Scheduler.cpp
+        map_label/setup.h
     )
     target_link_libraries(nucleus PUBLIC vector_tiles Qt::Gui)
     target_compile_definitions(nucleus PUBLIC ALP_ENABLE_LABELS)

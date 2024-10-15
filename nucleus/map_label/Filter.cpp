@@ -17,21 +17,21 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *****************************************************************************/
 
-#include "MapLabelFilter.h"
+#include "Filter.h"
 #include <QVariant>
 
-namespace nucleus::maplabel {
+namespace nucleus::map_label {
 
-MapLabelFilter::MapLabelFilter(QObject* parent)
+Filter::Filter(QObject* parent)
     : QObject { parent }
 {
     m_update_filter_timer = std::make_unique<QTimer>(this);
     m_update_filter_timer->setSingleShot(true);
 
-    connect(m_update_filter_timer.get(), &QTimer::timeout, this, &MapLabelFilter::filter);
+    connect(m_update_filter_timer.get(), &QTimer::timeout, this, &Filter::filter);
 }
 
-void MapLabelFilter::update_filter(const FilterDefinitions& filter_definitions)
+void Filter::update_filter(const FilterDefinitions& filter_definitions)
 {
     m_definitions = filter_definitions;
 
@@ -52,7 +52,7 @@ void MapLabelFilter::update_filter(const FilterDefinitions& filter_definitions)
     }
 }
 
-void MapLabelFilter::update_quads(const std::vector<vector_tile::PoiTile>& updated_tiles, const std::vector<tile::Id>& removed_tiles)
+void Filter::update_quads(const std::vector<vector_tile::PoiTile>& updated_tiles, const std::vector<tile::Id>& removed_tiles)
 {
     m_removed_tiles.clear();
 
@@ -74,20 +74,20 @@ void MapLabelFilter::update_quads(const std::vector<vector_tile::PoiTile>& updat
     filter();
 }
 
-void MapLabelFilter::add_tile(const tile::Id& id, const PointOfInterestCollectionPtr& all_features)
+void Filter::add_tile(const tile::Id& id, const PointOfInterestCollectionPtr& all_features)
 {
     m_tiles_to_filter.push(id);
     m_all_pois[id] = all_features;
 }
 
-void MapLabelFilter::remove_tile(const tile::Id& id)
+void Filter::remove_tile(const tile::Id& id)
 {
     m_removed_tiles.push_back(id);
     if (m_all_pois.contains(id))
         m_all_pois.erase(id);
 }
 
-PointOfInterestCollection MapLabelFilter::apply_filter(const PointOfInterestCollection& unfiltered_pois)
+PointOfInterestCollection Filter::apply_filter(const PointOfInterestCollection& unfiltered_pois)
 {
     PointOfInterestCollection filtered_pois;
     filtered_pois.reserve(unfiltered_pois.size());
@@ -128,7 +128,7 @@ PointOfInterestCollection MapLabelFilter::apply_filter(const PointOfInterestColl
     return filtered_pois;
 }
 
-void MapLabelFilter::filter()
+void Filter::filter()
 {
     // test if this filter should run or not (by checking here we prevent double running once the timer runs out)
     if (!m_filter_should_run)
