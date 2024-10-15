@@ -115,7 +115,7 @@ qt_add_library(nucleus STATIC
     tile_scheduler/setup.h tile_scheduler/setup.cpp
     map_label/Scheduler.h map_label/Scheduler.cpp
     map_label/setup.h
-    map_label/types.h
+
     tile_scheduler/GpuArrayHelper.h tile_scheduler/GpuArrayHelper.cpp
 )
 

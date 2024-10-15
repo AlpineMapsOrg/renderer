@@ -122,7 +122,10 @@ int main(int argc, char* argv[])
     auto decorator = nucleus::tile_scheduler::setup::aabb_decorator();
     auto scheduler = nucleus::tile_scheduler::setup::monolithic(std::move(terrain_service), std::move(ortho_service), decorator);
     auto data_querier = std::make_shared<DataQuerier>(&scheduler.scheduler->ram_cache());
-    scheduler.scheduler->set_dataquerier(data_querier);
+    nucleus::utils::thread::sync_call(scheduler.scheduler.get(), [&]() {
+        scheduler.scheduler->set_dataquerier(data_querier);
+        scheduler.scheduler->set_ortho_tile_compression_algorithm(gl_engine::Texture::compression_algorithm());
+    });
 
     auto context = std::make_shared<gl_engine::Context>();
     context->set_tile_geometry(std::make_shared<gl_engine::TileGeometry>());
@@ -140,12 +143,10 @@ int main(int argc, char* argv[])
         QTimer::singleShot(5ms, &camera_controller, &CameraController::advance_camera);
     });
 
-    // nucleus::Controller controller(glWindow.render_window());
-    scheduler.scheduler->set_ortho_tile_compression_algorithm(gl_engine::Texture::compression_algorithm());
-
     QObject::connect(&glWindow, &Window::about_to_be_destoryed, context.get(), &gl_engine::Context::destroy);
     QObject::connect(glWindow.render_window(), &AbstractRenderWindow::update_camera_requested, &camera_controller, &CameraController::advance_camera);
-    QObject::connect(&glWindow, &Window::initialised, scheduler.scheduler.get(), [&]() { scheduler.scheduler->set_enabled(true); });
+    QObject::connect(&glWindow, &Window::initialisation_started, context.get(), [&]() { context->initialise(); });
+    QObject::connect(&glWindow, &Window::initialisation_started, scheduler.scheduler.get(), [&]() { scheduler.scheduler->set_enabled(true); });
     QObject::connect(&camera_controller, &nucleus::camera::Controller::definition_changed, scheduler.scheduler.get(), &Scheduler::update_camera);
     QObject::connect(&camera_controller, &nucleus::camera::Controller::definition_changed, glWindow.render_window(), &AbstractRenderWindow::update_camera);
     QObject::connect(scheduler.scheduler.get(), &Scheduler::gpu_quads_updated, context->tile_geometry(), &gl_engine::TileGeometry::update_gpu_quads);

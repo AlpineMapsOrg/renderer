@@ -19,6 +19,7 @@
 
 #pragma once
 
+#include "nucleus/vector_tile/types.h"
 #include "types.h"
 #include <QObject>
 #include <QTimer>
@@ -43,16 +44,16 @@ public:
 
 public slots:
     void update_filter(const FilterDefinitions& filter_definitions);
-    void update_quads(const std::vector<nucleus::map_label::PoiCollectionQuad>& new_quads, const std::vector<tile::Id>& deleted_quads);
+    void update_quads(const std::vector<vector_tile::PoiTile>& updated_tiles, const std::vector<tile::Id>& removed_tiles);
 
 signals:
-    void filter_finished(const PointOfInterestTileCollection& visible_features, const std::vector<tile::Id>& removed_tiles);
+    void filter_finished(const std::vector<vector_tile::PoiTile>& updated_tiles, const std::vector<tile::Id>& removed_tiles);
 
 private slots:
     void filter();
 
 private:
-    PointOfInterestTileCollection m_all_pois;
+    std::unordered_map<tile::Id, PointOfInterestCollectionPtr, tile::Id::Hasher> m_all_pois;
     std::queue<tile::Id> m_tiles_to_filter;
     std::vector<tile::Id> m_removed_tiles;
 

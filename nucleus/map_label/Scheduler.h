@@ -18,9 +18,9 @@
 
 #pragma once
 
-#include "types.h"
 #include <QObject>
 #include <nucleus/tile_scheduler/Scheduler.h>
+#include <nucleus/vector_tile/types.h>
 
 namespace nucleus::map_label {
 
@@ -33,7 +33,7 @@ public:
     void set_geometry_ram_cache(nucleus::tile_scheduler::Cache<nucleus::tile_scheduler::tile_types::LayeredTileQuad>* new_geometry_ram_cache);
 
 signals:
-    void gpu_quads_updated(const std::vector<PoiCollectionQuad>& new_quads, const std::vector<tile::Id>& deleted_quads);
+    void gpu_tiles_updated(const std::vector<vector_tile::PoiTile>& new_quads, const std::vector<tile::Id>& deleted_quads);
 
 protected:
     void transform_and_emit(const std::vector<tile_scheduler::tile_types::DataQuad>& new_quads, const std::vector<tile::Id>& deleted_quads) override;

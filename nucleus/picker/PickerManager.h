@@ -39,7 +39,7 @@ public:
     void touch_event(const event_parameter::Touch& e);
 
 public slots:
-    void update_quads(const std::vector<nucleus::tile_scheduler::tile_types::GpuTileQuad>& new_quads, const std::vector<tile::Id>& deleted_quads);
+    void update_quads(const std::vector<vector_tile::PoiTile>& new_tiles, const std::vector<tile::Id>& deleted_quads);
     void eval_pick(uint32_t value);
 
 signals:
@@ -47,7 +47,7 @@ signals:
     void pick_evaluated(const Feature& feature);
 
 private:
-    vector_tile::PointOfInterestTileCollection m_all_pois;
+    std::unordered_map<tile::Id, PointOfInterestCollectionPtr, tile::Id::Hasher> m_all_pois;
     std::unordered_map<uint32_t, const PointOfInterest*> m_pickid_to_poi;
 
     glm::vec2 m_position;

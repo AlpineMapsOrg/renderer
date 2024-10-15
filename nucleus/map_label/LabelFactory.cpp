@@ -36,9 +36,9 @@ namespace nucleus::maplabel {
 AtlasData LabelFactory::init_font_atlas()
 {
     m_font_renderer.init();
-    // for (const auto ch : uR"( !"#$%&'()*+,-./0123456789:;<=>@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\]^_`abcdefghijklmnopqrstuvwxyz{|}~§°´ÄÖÜßáâäéìíóöúüýČčěňőřŠšŽž€)") {
-    //     m_new_chars.emplace(ch);
-    // }
+    for (const auto ch : uR"( !"#$%&'()*+,-./0123456789:;<=>@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\]^_`abcdefghijklmnopqrstuvwxyz{|}~§°´ÄÖÜßáâäéìíóöúüýČčěňőřŠšŽž€)") {
+        m_new_chars.emplace(ch);
+    }
     return renew_font_atlas();
 }
 
@@ -94,7 +94,6 @@ Raster<glm::u8vec4> LabelFactory::label_icons()
 
 std::tuple<std::vector<VertexData>, glm::dvec3, AtlasData> LabelFactory::create_labels(const vector_tile::PointOfInterestCollection& pois)
 {
-    std::vector<VertexData> label_data;
 
     for (const auto& f : pois) {
         for (const auto ch : f.name) {
@@ -108,6 +107,8 @@ std::tuple<std::vector<VertexData>, glm::dvec3, AtlasData> LabelFactory::create_
 
     glm::dvec3 reference_point = pois.empty() ? glm::dvec3 {} : pois.front().world_space_pos;
 
+    std::vector<VertexData> label_data;
+    label_data.reserve(pois.size());
     for (const auto& p : pois) {
         QString display_name = p.name;
         float importance = p.importance;
@@ -140,29 +141,31 @@ void LabelFactory::create_label(
     float icon_offset_y = 0.0f;
 
     auto safe_chars = text.toStdU16String();
-    // float text_width = 0;
-    // std::vector<float> kerningOffsets = create_text_meta(&safe_chars, &text_width);
+    float text_width = 0;
+    std::vector<float> kerningOffsets = create_text_meta(&safe_chars, &text_width);
 
-    // // center the text around the center
-    // const auto offset_x = -text_width / 2.0f;
+    // center the text around the center
+    const auto offset_x = -text_width / 2.0f;
 
-    // glm::vec4 picker_color = nucleus::utils::bit_coding::u32_to_f8_4(id);
-    // picker_color.x = (float(nucleus::picker::FeatureType::PointOfInterest) / 255.0f); // set the first bit to the type
+    glm::vec4 picker_color = nucleus::utils::bit_coding::u32_to_f8_4(id);
+    picker_color.x = (float(nucleus::picker::FeatureType::PointOfInterest) / 255.0f); // set the first bit to the type
 
-    // // label icon
-    // vertex_data.push_back({ glm::vec4(-m_icon_size.x / 2.0f, m_icon_size.y / 2.0f + icon_offset_y, m_icon_size.x, -m_icon_size.y + 1), // vertex position + offset
-    //     m_icon_uvs[type], // vec4 defined as uv position + offset
-    //     picker_color, position, importance, 0 });
+    // label icon
+    const auto position_with_offset = glm::vec4(-m_icon_size.x / 2.0f, m_icon_size.y / 2.0f + icon_offset_y, m_icon_size.x, -m_icon_size.y + 1);
+    vertex_data.push_back({ position_with_offset, m_icon_uvs[type], picker_color, position, importance, 0 });
 
-    // for (unsigned long long i = 0; i < safe_chars.size(); i++) {
-
-    //     const CharData b = m_font_data.char_data.at(safe_chars[i]);
-
-    //     vertex_data.push_back({ glm::vec4(offset_x + kerningOffsets[i] + b.xoff, text_offset_y - b.yoff, b.width, -b.height), // vertex position + offset
-    //         glm::vec4(b.x * m_font_data.uv_width_norm, b.y * m_font_data.uv_width_norm, b.width * m_font_data.uv_width_norm,
-    //             b.height * m_font_data.uv_width_norm), // uv position + offset
-    //         picker_color, position, importance, b.texture_index });
-    // }
+    for (unsigned long long i = 0; i < safe_chars.size(); i++) {
+        const CharData b = m_font_data.char_data.at(safe_chars[i]);
+        vertex_data.push_back({ glm::vec4(offset_x + kerningOffsets[i] + b.xoff, text_offset_y - b.yoff, b.width, -b.height), // vertex position + offset
+            glm::vec4(b.x * m_font_data.uv_width_norm,
+                b.y * m_font_data.uv_width_norm,
+                b.width * m_font_data.uv_width_norm,
+                b.height * m_font_data.uv_width_norm), // uv position + offset
+            picker_color,
+            position,
+            importance,
+            b.texture_index });
+    }
 }
 
 // calculate char offsets and text width

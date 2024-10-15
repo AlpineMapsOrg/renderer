@@ -143,7 +143,7 @@ void MapLabelManager::upload_to_gpu(const tile::Id& id, const PointOfInterestCol
     m_gpu_tiles[id] = vectortile;
 }
 
-void MapLabelManager::update_labels(const PointOfInterestTileCollection& visible_features, const std::vector<tile::Id>& removed_tiles)
+void MapLabelManager::update_labels(const std::vector<PoiTile>& updated_tiles, const std::vector<tile::Id>& removed_tiles)
 {
     // remove tiles that aren't needed anymore
     for (const auto& id : removed_tiles) {
@@ -151,12 +151,12 @@ void MapLabelManager::update_labels(const PointOfInterestTileCollection& visible
         m_draw_list_generator.remove_tile(id);
     }
 
-    for (const auto& vectortile : visible_features) {
+    for (const auto& vectortile : updated_tiles) {
         // since we are renewing the tile we remove it first to delete allocations like vao
-        remove_tile(vectortile.first);
+        remove_tile(vectortile.id);
 
-        upload_to_gpu(vectortile.first, *vectortile.second);
-        m_draw_list_generator.add_tile(vectortile.first);
+        upload_to_gpu(vectortile.id, *vectortile.data);
+        m_draw_list_generator.add_tile(vectortile.id);
     }
 }
 
@@ -193,7 +193,7 @@ void MapLabelManager::draw(Framebuffer* gbuffer, const nucleus::camera::Definiti
     m_icon_texture->bind(2);
 
     for (const auto& vectortile : m_gpu_tiles) {
-        if(!draw_tiles.contains(vectortile.first))
+        if (!draw_tiles.contains(vectortile.first))
             continue; // tile is not in draw_tiles -> look at next tile
 
         // only draw if vector tile is fully loaded

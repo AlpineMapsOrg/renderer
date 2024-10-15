@@ -52,25 +52,21 @@ void MapLabelFilter::update_filter(const FilterDefinitions& filter_definitions)
     }
 }
 
-void MapLabelFilter::update_quads(const std::vector<nucleus::map_label::PoiCollectionQuad>& new_quads, const std::vector<tile::Id>& deleted_quads)
+void MapLabelFilter::update_quads(const std::vector<vector_tile::PoiTile>& updated_tiles, const std::vector<tile::Id>& removed_tiles)
 {
     m_removed_tiles.clear();
 
-    for (const auto& quad : new_quads) {
-        for (const auto& tile : quad.tiles) {
-            assert(tile.data);
-            assert(tile.id.zoom_level < 100);
+    for (const auto& tile : updated_tiles) {
+        assert(tile.data);
+        assert(tile.id.zoom_level < 100);
 
-            if (m_all_pois.contains(tile.id))
-                continue; // no need to add it twice
+        if (m_all_pois.contains(tile.id))
+            continue; // no need to add it twice
 
-            add_tile(tile.id, tile.data);
-        }
+        add_tile(tile.id, tile.data);
     }
-    for (const auto& quad : deleted_quads) {
-        for (const auto& id : quad.children()) {
-            remove_tile(id);
-        }
+    for (const auto& id : removed_tiles) {
+        remove_tile(id);
     }
 
     // update_quads should always execute the filter method
@@ -139,14 +135,15 @@ void MapLabelFilter::filter()
         return;
     m_filter_should_run = false;
 
-    PointOfInterestTileCollection filtered_tiles;
+    std::vector<vector_tile::PoiTile> filtered_tiles;
+    filtered_tiles.reserve(m_tiles_to_filter.size());
     while (!m_tiles_to_filter.empty()) {
         auto tile_id = m_tiles_to_filter.front();
         m_tiles_to_filter.pop();
         if (!m_all_pois.contains(tile_id))
             continue; // tile was removed in the meantime
 
-        filtered_tiles[tile_id] = std::make_shared<PointOfInterestCollection>(apply_filter(*m_all_pois.at(tile_id)));
+        filtered_tiles.emplace_back(tile_id, std::make_shared<PointOfInterestCollection>(apply_filter(*m_all_pois.at(tile_id))));
     }
 
     emit filter_finished(filtered_tiles, m_removed_tiles);

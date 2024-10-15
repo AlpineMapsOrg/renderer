@@ -24,10 +24,6 @@
 #include "nucleus/utils/ColourTexture.h"
 #include <radix/tile.h>
 
-#ifdef ALP_ENABLE_LABELS
-#include <nucleus/vector_tile/types.h>
-#endif
-
 namespace nucleus {
 template <typename T>
 class Raster;
@@ -117,10 +113,6 @@ struct [[deprecated]] GpuLayeredTile {
     tile::SrsAndHeightBounds bounds = {};
     std::shared_ptr<const nucleus::utils::MipmappedColourTexture> ortho;
     std::shared_ptr<const nucleus::Raster<uint16_t>> height;
-
-#ifdef ALP_ENABLE_LABELS
-    vector_tile::PointOfInterestCollectionPtr vector_tile;
-#endif
 };
 static_assert(NamedTile<GpuLayeredTile>);
 

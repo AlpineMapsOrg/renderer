@@ -83,8 +83,8 @@ RenderingContext::RenderingContext(QObject* parent)
         m->aabb_decorator,
         m->data_querier,
         m->scheduler.thread.get());
-    m->map_label.scheduler->set_geometry_ram_cache(&m->scheduler.scheduler->ram_cache());
 
+    m->map_label.scheduler->set_geometry_ram_cache(&m->scheduler.scheduler->ram_cache());
     m->scheduler.scheduler->set_dataquerier(m->data_querier);
 
     m->picker_manager = std::make_shared<PickerManager>();
@@ -93,11 +93,10 @@ RenderingContext::RenderingContext(QObject* parent)
         m->picker_manager->moveToThread(m->scheduler.thread.get());
         m->label_filter->moveToThread(m->scheduler.thread.get());
     }
-    connect(m->scheduler.scheduler.get(), &OldScheduler::gpu_quads_updated, m->picker_manager.get(), &PickerManager::update_quads);
-    connect(m->map_label.scheduler.get(), &nucleus::map_label::Scheduler::gpu_quads_updated, m->label_filter.get(), &MapLabelFilter::update_quads);
-
     connect(m->scheduler.scheduler.get(), &nucleus::tile_scheduler::OldScheduler::gpu_quads_updated, RenderThreadNotifier::instance(), &RenderThreadNotifier::notify);
-    connect(m->map_label.scheduler.get(), &nucleus::map_label::Scheduler::gpu_quads_updated, RenderThreadNotifier::instance(), &RenderThreadNotifier::notify);
+    connect(m->map_label.scheduler.get(), &nucleus::map_label::Scheduler::gpu_tiles_updated, m->picker_manager.get(), &PickerManager::update_quads);
+    connect(m->map_label.scheduler.get(), &nucleus::map_label::Scheduler::gpu_tiles_updated, m->label_filter.get(), &MapLabelFilter::update_quads);
+    connect(m->map_label.scheduler.get(), &nucleus::map_label::Scheduler::gpu_tiles_updated, RenderThreadNotifier::instance(), &RenderThreadNotifier::notify);
 
     if (QNetworkInformation::loadDefaultBackend() && QNetworkInformation::instance()) {
         QNetworkInformation* n = QNetworkInformation::instance();
@@ -149,18 +148,14 @@ void RenderingContext::initialise()
 
 void RenderingContext::destroy()
 {
-    qDebug("RenderingContext::~RenderingContext()");
     nucleus::utils::thread::sync_call(m->scheduler.scheduler.get(), [this]() {
-        qDebug("RenderingContext::~RenderingContext() -> resetting scheduler");
         m->scheduler.scheduler.reset();
         m->camera_controller.reset();
         m->label_filter.reset();
         m->picker_manager.reset();
         m->map_label.scheduler.reset();
     });
-    qDebug("RenderingContext::~RenderingContext() -> back");
     if (m->scheduler.thread) {
-        qDebug("RenderingContext::~RenderingContext() -> killing thread");
         m->scheduler.thread->quit();
         m->scheduler.thread->wait(500); // msec
         m->scheduler.thread.reset();

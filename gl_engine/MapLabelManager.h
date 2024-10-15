@@ -57,7 +57,7 @@ public:
     void draw_picker(Framebuffer* gbuffer, const nucleus::camera::Definition& camera, const TileSet& draw_tiles) const;
     TileSet generate_draw_list(const nucleus::camera::Definition& camera) const;
 
-    void update_labels(const PointOfInterestTileCollection& visible_features, const std::vector<tile::Id>& removed_tiles);
+    void update_labels(const std::vector<nucleus::vector_tile::PoiTile>& updated_tiles, const std::vector<tile::Id>& removed_tiles);
 
 private:
     void upload_to_gpu(const tile::Id& id, const PointOfInterestCollection& features);

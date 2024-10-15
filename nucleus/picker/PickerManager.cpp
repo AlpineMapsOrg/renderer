@@ -81,18 +81,11 @@ void PickerManager::eval_pick(uint32_t value)
     }
 }
 
-void PickerManager::update_quads(const std::vector<nucleus::tile_scheduler::tile_types::GpuTileQuad>& new_quads, const std::vector<tile::Id>& deleted_quads)
+void PickerManager::update_quads(const std::vector<vector_tile::PoiTile>& new_tiles, const std::vector<tile::Id>& deleted_quads)
 {
-    for (const auto& quad : new_quads) {
-        for (const auto& tile : quad.tiles) {
-            // test for validity
-            if (!tile.vector_tile || tile.vector_tile->empty())
-                continue;
-
-            assert(tile.id.zoom_level < 100);
-
-            add_tile(tile.id, tile.vector_tile);
-        }
+    for (const auto& tile : new_tiles) {
+        assert(tile.id.zoom_level < 100);
+        add_tile(tile.id, tile.data);
     }
     for (const auto& quad : deleted_quads) {
         for (const auto& id : quad.children()) {

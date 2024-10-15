@@ -1,6 +1,7 @@
 /*****************************************************************************
- * Alpine Terrain Renderer
+ * AlpineMaps.org
  * Copyright (C) 2024 Adam Celarek
+ * Copyright (C) 2024 Lucas Dworschak
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -29,25 +30,20 @@ Scheduler::~Scheduler() = default;
 
 void Scheduler::transform_and_emit(const std::vector<tile_scheduler::tile_types::DataQuad>& new_quads, const std::vector<tile::Id>& deleted_quads)
 {
-    std::vector<PoiCollectionQuad> new_gpu_quads;
-    new_gpu_quads.reserve(new_quads.size());
-    std::transform(new_quads.cbegin(), new_quads.cend(), std::back_inserter(new_gpu_quads), [this](const auto& quad) {
-        // create GpuQuad based on cpu quad
-        PoiCollectionQuad gpu_quad;
-        gpu_quad.id = quad.id;
-        assert(quad.n_tiles == 4);
-        for (unsigned i = 0; i < 4; ++i) {
-            gpu_quad.tiles[i].id = quad.tiles[i].id;
-
-            const auto vectortile_data = quad.tiles[i].data;
-            // moved into this if -> since vector_tile might be empty
-            auto pois = nucleus::vector_tile::parse::points_of_interest(*vectortile_data, dataquerier().get());
-            gpu_quad.tiles[i].data = std::make_shared<vector_tile::PointOfInterestCollection>(std::move(pois));
+    std::vector<vector_tile::PoiTile> new_gpu_tiles;
+    new_gpu_tiles.reserve(new_quads.size() * 4);
+    for (const auto& data_quad : new_quads) {
+        assert(data_quad.n_tiles == 4);
+        for (const auto& data_tile : data_quad.tiles) {
+            vector_tile::PoiTile gpu_tile;
+            gpu_tile.id = data_tile.id;
+            auto pois = nucleus::vector_tile::parse::points_of_interest(*data_tile.data, dataquerier().get());
+            gpu_tile.data = std::make_shared<vector_tile::PointOfInterestCollection>(std::move(pois));
+            new_gpu_tiles.emplace_back(gpu_tile);
         }
-        return gpu_quad;
-    });
+    };
 
-    emit gpu_quads_updated(new_gpu_quads, deleted_quads);
+    emit gpu_tiles_updated(new_gpu_tiles, deleted_quads);
 }
 
 bool Scheduler::is_ready_to_ship(const nucleus::tile_scheduler::tile_types::DataQuad& quad) const
