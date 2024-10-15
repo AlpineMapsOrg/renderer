@@ -38,8 +38,9 @@
 
 using namespace nucleus::tile_scheduler;
 
-Scheduler::Scheduler(QObject* parent)
+Scheduler::Scheduler(unsigned int tile_resolution, QObject* parent)
     : QObject { parent }
+    , m_tile_resolution(tile_resolution)
 {
     m_update_timer = std::make_unique<QTimer>(this);
     m_update_timer->setSingleShot(true);
@@ -118,7 +119,7 @@ void Scheduler::set_network_reachability(QNetworkInformation::Reachability reach
 
 void Scheduler::update_gpu_quads()
 {
-    const auto should_refine = tile_scheduler::utils::refineFunctor(m_current_camera, m_aabb_decorator, m_permissible_screen_space_error, m_ortho_tile_size);
+    const auto should_refine = tile_scheduler::utils::refineFunctor(m_current_camera, m_aabb_decorator, m_permissible_screen_space_error, m_tile_resolution);
     std::vector<tile_types::DataQuad> gpu_candidates;
     m_ram_cache.visit([this, &gpu_candidates, &should_refine](const tile_types::DataQuad& quad) {
         if (!should_refine(quad.id))
@@ -178,7 +179,7 @@ void Scheduler::purge_ram_cache()
         return;
     }
 
-    const auto should_refine = tile_scheduler::utils::refineFunctor(m_current_camera, m_aabb_decorator, m_permissible_screen_space_error, m_ortho_tile_size);
+    const auto should_refine = tile_scheduler::utils::refineFunctor(m_current_camera, m_aabb_decorator, m_permissible_screen_space_error, m_tile_resolution);
     m_ram_cache.visit([&should_refine](const tile_types::DataQuad& quad) { return should_refine(quad.id); });
     m_ram_cache.purge(m_ram_quad_limit);
     update_stats();
@@ -250,12 +251,7 @@ std::vector<tile::Id> Scheduler::tiles_for_current_camera_position() const
 {
     std::vector<tile::Id> all_inner_nodes;
     const auto all_leaves = quad_tree::onTheFlyTraverse(
-        tile::Id{0, {0, 0}},
-        tile_scheduler::utils::refineFunctor(m_current_camera,
-                                             m_aabb_decorator,
-                                             m_permissible_screen_space_error,
-                                             m_ortho_tile_size),
-        [&all_inner_nodes](const tile::Id &v) {
+        tile::Id { 0, { 0, 0 } }, tile_scheduler::utils::refineFunctor(m_current_camera, m_aabb_decorator, m_permissible_screen_space_error, m_tile_resolution), [&all_inner_nodes](const tile::Id& v) {
             all_inner_nodes.push_back(v);
             return v.children();
         });
@@ -264,14 +260,9 @@ std::vector<tile::Id> Scheduler::tiles_for_current_camera_position() const
     return all_inner_nodes;
 }
 
+unsigned int Scheduler::tile_resolution() const { return m_tile_resolution; }
+
 std::shared_ptr<nucleus::DataQuerier> Scheduler::dataquerier() const { return m_dataquerier; }
-
-nucleus::utils::ColourTexture::Format Scheduler::ortho_tile_compression_algorithm() const { return m_ortho_tile_compression_algorithm; }
-
-void Scheduler::set_ortho_tile_compression_algorithm(nucleus::utils::ColourTexture::Format new_ortho_tile_compression_algorithm)
-{
-    m_ortho_tile_compression_algorithm = new_ortho_tile_compression_algorithm;
-}
 
 void Scheduler::set_retirement_age_for_tile_cache(unsigned int new_retirement_age_for_tile_cache)
 {

@@ -114,6 +114,7 @@ qt_add_library(nucleus STATIC
     camera/recording.h camera/recording.cpp
     tile_scheduler/setup.h tile_scheduler/setup.cpp
     tile_scheduler/GpuArrayHelper.h tile_scheduler/GpuArrayHelper.cpp
+    tile_scheduler/TextureScheduler.h tile_scheduler/TextureScheduler.cpp
 )
 
 if (ALP_ENABLE_AVLANCHE_WARNING_LAYER)

@@ -23,7 +23,7 @@
 namespace nucleus::map_label {
 
 Scheduler::Scheduler(QObject* parent)
-    : nucleus::tile_scheduler::Scheduler(parent)
+    : nucleus::tile_scheduler::Scheduler(256, parent)
 {
 }
 Scheduler::~Scheduler() = default;

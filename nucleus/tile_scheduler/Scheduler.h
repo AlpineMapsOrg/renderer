@@ -49,7 +49,7 @@ public:
         unsigned n_tiles_in_gpu_cache = 0;
     };
 
-    explicit Scheduler(QObject* parent = nullptr);
+    explicit Scheduler(unsigned tile_resolution = 256, QObject* parent = nullptr);
     // Seconds constructor still here for tests, Is it necessary?
     ~Scheduler() override;
 
@@ -86,6 +86,8 @@ public:
     void set_dataquerier(std::shared_ptr<DataQuerier> dataquerier);
     std::shared_ptr<DataQuerier> dataquerier() const;
 
+    [[nodiscard]] unsigned int tile_resolution() const;
+
 signals:
     void statistics_updated(Statistics stats);
     void quad_received(const tile::Id& ids);
@@ -118,8 +120,7 @@ private:
     unsigned m_persist_timeout = 10000;
     unsigned m_gpu_quad_limit = 300;
     unsigned m_ram_quad_limit = 15000;
-    static constexpr unsigned m_ortho_tile_size = 256;
-    static constexpr unsigned m_height_tile_size = 65;
+    unsigned m_tile_resolution = 256;
     bool m_enabled = false;
     bool m_network_requests_enabled = true;
     Statistics m_statistics;
@@ -130,7 +131,6 @@ private:
     utils::AabbDecoratorPtr m_aabb_decorator;
     Cache<tile_types::DataQuad> m_ram_cache;
     Cache<tile_types::GpuCacheInfo> m_gpu_cached;
-    nucleus::utils::ColourTexture::Format m_ortho_tile_compression_algorithm = nucleus::utils::ColourTexture::Format::Uncompressed_RGBA;
 
 };
 }

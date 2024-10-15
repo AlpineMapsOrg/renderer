@@ -127,6 +127,9 @@ int main(int argc, char* argv[])
         scheduler.scheduler->set_ortho_tile_compression_algorithm(gl_engine::Texture::compression_algorithm());
     });
 
+    auto ortho_scheduler = nucleus::tile_scheduler::setup::texture_scheduler(
+        std::make_unique<TileLoadService>("https://gataki.cg.tuwien.ac.at/raw/basemap/tiles/", TileLoadService::UrlPattern::ZYX_yPointingSouth, ".jpeg"), scheduler.thread.get());
+
     auto context = std::make_shared<gl_engine::Context>();
     context->set_tile_geometry(std::make_shared<gl_engine::TileGeometry>());
     context->set_ortho_layer(std::make_shared<gl_engine::TextureLayer>());
@@ -136,8 +139,7 @@ int main(int argc, char* argv[])
 
     Window glWindow(context);
 
-    nucleus::camera::Controller camera_controller(
-        nucleus::camera::PositionStorage::instance()->get("grossglockner"), glWindow.render_window(), data_querier.get());
+    nucleus::camera::Controller camera_controller(nucleus::camera::PositionStorage::instance()->get("grossglockner"), glWindow.render_window(), data_querier.get());
 
     QObject::connect(&camera_controller, &CameraController::definition_changed, &glWindow, [&](const nucleus::camera::Definition&) {
         QTimer::singleShot(5ms, &camera_controller, &CameraController::advance_camera);

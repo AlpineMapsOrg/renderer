@@ -1,5 +1,5 @@
 /*****************************************************************************
- * Alpine Terrain Renderer
+ * AlpineMaps.org
  * Copyright (C) 2024 Adam Celarek
  *
  * This program is free software: you can redistribute it and/or modify
@@ -18,28 +18,28 @@
 
 #pragma once
 
-#include <nucleus/tile_scheduler/Scheduler.h>
-#include <nucleus/vector_tile/types.h>
+#include "Scheduler.h"
+#include "tile_types.h"
 
-namespace nucleus::map_label {
+namespace nucleus::tile_scheduler {
 
-class Scheduler : public nucleus::tile_scheduler::Scheduler {
+class TextureScheduler : public Scheduler {
     Q_OBJECT
 public:
-    explicit Scheduler(QObject* parent = nullptr);
-    ~Scheduler() override;
+    TextureScheduler(unsigned texture_resolution, QObject* parent = nullptr);
+    ~TextureScheduler() override;
 
-    void set_geometry_ram_cache(nucleus::tile_scheduler::Cache<nucleus::tile_scheduler::tile_types::LayeredTileQuad>* new_geometry_ram_cache);
+    void set_ortho_tile_compression_algorithm(nucleus::utils::ColourTexture::Format new_ortho_tile_compression_algorithm);
 
 signals:
-    void gpu_tiles_updated(const std::vector<vector_tile::PoiTile>& new_quads, const std::vector<tile::Id>& deleted_quads);
+    void gpu_quads_updated(const std::vector<tile_types::GpuTextureQuad>& new_quads, const std::vector<tile::Id>& deleted_quads);
 
 protected:
     void transform_and_emit(const std::vector<tile_scheduler::tile_types::DataQuad>& new_quads, const std::vector<tile::Id>& deleted_quads) override;
-    bool is_ready_to_ship(const nucleus::tile_scheduler::tile_types::DataQuad& quad) const override;
 
 private:
-    nucleus::tile_scheduler::Cache<nucleus::tile_scheduler::tile_types::LayeredTileQuad>* m_geometry_ram_cache = nullptr;
+    nucleus::utils::ColourTexture::Format m_ortho_tile_compression_algorithm = nucleus::utils::ColourTexture::Format::Uncompressed_RGBA;
+    Raster<glm::u8vec4> m_default_raster;
 };
 
-} // namespace nucleus::map_label
+} // namespace nucleus::tile_scheduler

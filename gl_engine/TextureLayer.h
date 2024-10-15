@@ -50,7 +50,7 @@ public:
         glm::dvec3 sort_position) const;
 
 public slots:
-    void update_gpu_quads(const std::vector<nucleus::tile_scheduler::tile_types::GpuTileQuad>& new_quads, const std::vector<tile::Id>& deleted_quads);
+    void update_gpu_quads(const std::vector<nucleus::tile_scheduler::tile_types::GpuTextureQuad>& new_quads, const std::vector<tile::Id>& deleted_quads);
     void set_quad_limit(unsigned new_limit);
 
 private:

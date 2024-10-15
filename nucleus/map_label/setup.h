@@ -41,7 +41,6 @@ SchedulerHolder scheduler(TileLoadServicePtr vector_service,
     QThread* thread = nullptr)
 {
     auto scheduler = std::make_unique<nucleus::map_label::Scheduler>();
-
     scheduler->read_disk_cache();
     scheduler->set_gpu_quad_limit(512);
     scheduler->set_ram_quad_limit(12000);

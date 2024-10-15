@@ -122,4 +122,16 @@ struct [[deprecated]] GpuTileQuad {
 };
 static_assert(NamedTile<GpuTileQuad>);
 
+struct GpuTextureTile {
+    tile::Id id;
+    std::shared_ptr<const nucleus::utils::MipmappedColourTexture> texture;
+};
+static_assert(NamedTile<GpuTextureTile>);
+
+struct GpuTextureQuad {
+    tile::Id id;
+    std::array<GpuTextureTile, 4> tiles;
+};
+static_assert(NamedTile<GpuTextureQuad>);
+
 } // namespace nucleus::tile_scheduler::tile_types
