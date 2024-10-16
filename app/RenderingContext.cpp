@@ -83,7 +83,10 @@ RenderingContext::RenderingContext(QObject* parent)
     m->data_querier = std::make_shared<DataQuerier>(&m->scheduler.scheduler->ram_cache());
 
     m->ortho_texture = nucleus::tile_scheduler::setup::texture_scheduler(
-        std::make_unique<TileLoadService>("https://gataki.cg.tuwien.ac.at/raw/basemap/tiles/", TileLoadService::UrlPattern::ZYX_yPointingSouth, ".jpeg"), m->scheduler.thread.get());
+        std::make_unique<TileLoadService>("https://gataki.cg.tuwien.ac.at/raw/basemap/tiles/", TileLoadService::UrlPattern::ZYX_yPointingSouth, ".jpeg"),
+        m->aabb_decorator,
+        gl_engine::Texture::compression_algorithm(),
+        m->scheduler.thread.get());
 
     m->map_label = nucleus::map_label::setup::scheduler(
         std::make_unique<TileLoadService>("https://osm.cg.tuwien.ac.at/vector_tiles/poi_v1/", TilePattern::ZXY_yPointingSouth, ""), m->aabb_decorator, m->data_querier, m->scheduler.thread.get());

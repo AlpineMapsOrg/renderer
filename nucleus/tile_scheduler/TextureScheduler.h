@@ -29,7 +29,7 @@ public:
     TextureScheduler(unsigned texture_resolution, QObject* parent = nullptr);
     ~TextureScheduler() override;
 
-    void set_ortho_tile_compression_algorithm(nucleus::utils::ColourTexture::Format new_ortho_tile_compression_algorithm);
+    void set_texture_compression_algorithm(nucleus::utils::ColourTexture::Format compression_algorithm);
 
 signals:
     void gpu_quads_updated(const std::vector<tile_types::GpuTextureQuad>& new_quads, const std::vector<tile::Id>& deleted_quads);
@@ -38,7 +38,7 @@ protected:
     void transform_and_emit(const std::vector<tile_scheduler::tile_types::DataQuad>& new_quads, const std::vector<tile::Id>& deleted_quads) override;
 
 private:
-    nucleus::utils::ColourTexture::Format m_ortho_tile_compression_algorithm = nucleus::utils::ColourTexture::Format::Uncompressed_RGBA;
+    nucleus::utils::ColourTexture::Format m_compression_algorithm = nucleus::utils::ColourTexture::Format::Uncompressed_RGBA;
     Raster<glm::u8vec4> m_default_raster;
 };
 

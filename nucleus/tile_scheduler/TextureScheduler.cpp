@@ -45,10 +45,10 @@ void TextureScheduler::transform_and_emit(const std::vector<tile_scheduler::tile
             if (quad.tiles[i].data->size()) {
                 // Ortho image is available
                 Raster<glm::u8vec4> ortho_raster = nucleus::utils::image_loader::rgba8(*quad.tiles[i].data.get());
-                gpu_quad.tiles[i].texture = std::make_shared<nucleus::utils::MipmappedColourTexture>(generate_mipmapped_colour_texture(ortho_raster, m_ortho_tile_compression_algorithm));
+                gpu_quad.tiles[i].texture = std::make_shared<nucleus::utils::MipmappedColourTexture>(generate_mipmapped_colour_texture(ortho_raster, m_compression_algorithm));
             } else {
                 // Ortho image is not available (use white default tile)
-                gpu_quad.tiles[i].texture = std::make_shared<nucleus::utils::MipmappedColourTexture>(generate_mipmapped_colour_texture(m_default_raster, m_ortho_tile_compression_algorithm));
+                gpu_quad.tiles[i].texture = std::make_shared<nucleus::utils::MipmappedColourTexture>(generate_mipmapped_colour_texture(m_default_raster, m_compression_algorithm));
             }
         }
         return gpu_quad;
@@ -57,9 +57,6 @@ void TextureScheduler::transform_and_emit(const std::vector<tile_scheduler::tile
     emit gpu_quads_updated(new_gpu_quads, deleted_quads);
 }
 
-void TextureScheduler::set_ortho_tile_compression_algorithm(nucleus::utils::ColourTexture::Format new_ortho_tile_compression_algorithm)
-{
-    m_ortho_tile_compression_algorithm = new_ortho_tile_compression_algorithm;
-}
+void TextureScheduler::set_texture_compression_algorithm(nucleus::utils::ColourTexture::Format compression_algorithm) { m_compression_algorithm = compression_algorithm; }
 
 } // namespace nucleus::tile_scheduler
