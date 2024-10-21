@@ -36,6 +36,7 @@
 #include <nucleus/map_label/Scheduler.h>
 #include <nucleus/picker/PickerManager.h>
 #include <nucleus/tile_scheduler/OldScheduler.h>
+#include <nucleus/tile_scheduler/TextureScheduler.h>
 #include <nucleus/utils/thread.h>
 
 TerrainRenderer::TerrainRenderer()
@@ -62,9 +63,11 @@ TerrainRenderer::TerrainRenderer()
     // this only works if ALP_ENABLE_THREADING is on, i.e., the tile scheduler is on an extra thread. -> potential issue on webassembly
     QObject::connect(m_camera_controller.get(), &CameraController::definition_changed, scheduler_ptr, &Scheduler::update_camera);
     QObject::connect(m_camera_controller.get(), &CameraController::definition_changed, ctx->map_label_scheduler(), &nucleus::map_label::Scheduler::update_camera);
+    QObject::connect(m_camera_controller.get(), &CameraController::definition_changed, ctx->ortho_scheduler(), &nucleus::tile_scheduler::TextureScheduler::update_camera);
     QObject::connect(m_camera_controller.get(), &CameraController::definition_changed, m_glWindow.get(), &gl_engine::Window::update_camera);
 
     QObject::connect(scheduler_ptr, &Scheduler::gpu_quads_updated, gl_window_ptr, &gl_engine::Window::update_requested);
+    QObject::connect(ctx->ortho_scheduler(), &nucleus::tile_scheduler::TextureScheduler::gpu_quads_updated, gl_window_ptr, &gl_engine::Window::update_requested);
 
     QObject::connect(ctx->picker_manager().get(), &PickerManager::pick_requested, gl_window_ptr, &gl_engine::Window::pick_value);
     QObject::connect(gl_window_ptr, &gl_engine::Window::value_picked, ctx->picker_manager().get(), &PickerManager::eval_pick);

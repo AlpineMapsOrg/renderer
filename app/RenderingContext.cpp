@@ -148,7 +148,7 @@ void RenderingContext::initialise()
     const auto texture_compression = gl_engine::Texture::compression_algorithm();
     nucleus::utils::thread::async_call(m->ortho_texture.scheduler.get(), [this, texture_compression]() {
         m->ortho_texture.scheduler->set_texture_compression_algorithm(texture_compression);
-        // m->ortho_texture.scheduler->set_enabled(true);
+        m->ortho_texture.scheduler->set_enabled(true);
     });
 
     // labels
@@ -220,4 +220,10 @@ nucleus::map_label::Scheduler* RenderingContext::map_label_scheduler() const
 {
     QMutexLocker locker(&m->shared_ptr_mutex);
     return m->map_label.scheduler.get();
+}
+
+nucleus::tile_scheduler::TextureScheduler* RenderingContext::ortho_scheduler() const
+{
+    QMutexLocker locker(&m->shared_ptr_mutex);
+    return m->ortho_texture.scheduler.get();
 }

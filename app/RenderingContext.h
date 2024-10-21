@@ -39,6 +39,7 @@ class PickerManager;
 }
 namespace nucleus::tile_scheduler {
 class OldScheduler;
+class TextureScheduler;
 }
 namespace nucleus::tile_scheduler::utils {
 class AabbDecorator;
@@ -74,6 +75,7 @@ public:
     [[nodiscard]] std::shared_ptr<nucleus::picker::PickerManager> picker_manager() const;
     [[nodiscard]] std::shared_ptr<nucleus::map_label::Filter> label_filter() const;
     [[nodiscard]] nucleus::map_label::Scheduler* map_label_scheduler() const;
+    [[nodiscard]] nucleus::tile_scheduler::TextureScheduler* ortho_scheduler() const;
 
 signals:
     void initialised();

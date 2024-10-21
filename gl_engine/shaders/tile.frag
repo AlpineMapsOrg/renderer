@@ -52,23 +52,32 @@ highp vec3 normal_by_fragment_position_interpolation() {
     return normalize(cross(dFdxPos, dFdyPos));
 }
 
-lowp uvec2 to_dict_pixel(mediump uint hash) {
-    return uvec2(int(hash & 255u), int(hash >> 8u));
+lowp ivec2 to_dict_pixel(mediump uint hash) {
+    return ivec2(int(hash & 255u), int(hash >> 8u));
 }
 
-highp uvec2 find_tile(highp uvec3 tile_id, out lowp uvec2 dict_px) {
-    mediump uint hash = hash_tile_id(tile_id);
-    highp uvec2 wanted_packed_tile_id = pack_tile_id(tile_id);
-
+bool find_tile(inout highp uvec3 tile_id, out lowp ivec2 dict_px, inout highp vec2 uv) {
+    uvec2 missing_packed_tile_id = uvec2((-1u) & 65535u, (-1u) & 65535u);
+    uint iter = 0u;
     do {
-        uvec2 found_packed_tile_id = texelFetch(ortho_map_tile_id_sampler, to_dict_pixel(hash), 0).xy;
-        while(found_packed_tile_id != packed_tile_id && found_packed_tile_id != uvec2(-1, -1)) {
+        mediump uint hash = hash_tile_id(tile_id);
+        highp uvec2 wanted_packed_tile_id = pack_tile_id(tile_id);
+        highp uvec2 found_packed_tile_id = texelFetch(ortho_map_tile_id_sampler, to_dict_pixel(hash), 0).xy;
+        while(found_packed_tile_id != wanted_packed_tile_id && found_packed_tile_id != missing_packed_tile_id) {
             hash++;
             found_packed_tile_id = texelFetch(ortho_map_tile_id_sampler, to_dict_pixel(hash), 0).xy;
+            if (iter++ > 50u) {
+                break;
+            }
+        }
+        if (found_packed_tile_id != missing_packed_tile_id) {
+            dict_px = to_dict_pixel(hash);
+            tile_id = unpack_tile_id(wanted_packed_tile_id);
+            return true;
         }
     }
-    while ()
-
+    while (decrease_zoom_level_by_one(tile_id, uv));
+    return false;
 }
 
 void main() {
@@ -80,20 +89,20 @@ void main() {
     highp uvec3 tile_id = var_tile_id;
     highp vec2 uv = var_uv;
 
-    // while (tile_id.z > 7u)
-    //     decrease_zoom_level_by_one(tile_id, uv);
-    // decrease_zoom_level_until(tile_id, uv, 7u);
-
-    // Write Albedo (ortho picture) in gbuffer
-    while(texelFetch(ortho_map_tile_id_sampler, ivec2(int(hash & 255u), int(hash >> 8u)), 0).xy != packed_tile_id) {
-        hash++;
+    lowp ivec2 dict_px;
+    if (find_tile(tile_id, dict_px, uv)) {
+        // texout_albedo = vec3(0.0, float(tile_id.z) / 20.0, 0.0);
+        // texout_albedo = vec3(float(dict_px.x) / 255.0, float(dict_px.y) / 255.0, 0.0);
+        // texout_albedo = vec3(uv.x, uv.y, 0.0);
+        highp float texture_layer_f = float(texelFetch(ortho_map_index_sampler, dict_px, 0).x);
+        // texout_albedo = vec3(0.0, float(texture_layer_f) / 10.0, 0.0);
+        lowp vec3 fragColor = texture(ortho_sampler, vec3(uv, texture_layer_f)).rgb;
+        fragColor = mix(fragColor, conf.material_color.rgb, conf.material_color.a);
+        texout_albedo = fragColor;
     }
-
-    highp float texture_layer_f = float(texelFetch(ortho_map_index_sampler, ivec2(int(hash & 255u), int(hash >> 8u)), 0).x);
-    lowp vec3 fragColor = texture(ortho_sampler, vec3(uv, texture_layer_f)).rgb;
-    // highp vec3 fragColor = vec3(0.0, texture_layer_f, 0.0);
-    fragColor = mix(fragColor, conf.material_color.rgb, conf.material_color.a);
-    texout_albedo = fragColor;
+    else {
+        texout_albedo = vec3(1.0, 0.0, 0.5);
+    }
 
     // Write Position (and distance) in gbuffer
     highp float dist = length(var_pos_cws);

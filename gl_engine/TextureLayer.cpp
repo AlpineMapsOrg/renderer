@@ -46,6 +46,8 @@ void gl_engine::TextureLayer::init(ShaderRegistry* shader_registry)
 
     m_array_index_texture = std::make_unique<Texture>(Texture::Target::_2d, Texture::Format::R16UI);
     m_array_index_texture->setParams(Texture::Filter::Nearest, Texture::Filter::Nearest);
+
+    update_gpu_id_map();
 }
 
 void TextureLayer::draw(const TileGeometry& tile_geometry,
@@ -63,10 +65,6 @@ void TextureLayer::draw(const TileGeometry& tile_geometry,
     m_array_index_texture->bind(5);
     m_shader->set_uniform("ortho_map_tile_id_sampler", 6);
     m_tile_id_texture->bind(6);
-    // uniform highp usampler2D ortho_map_index_sampler;
-    // uniform highp usampler2D ortho_map_tile_id_sampler;
-
-    /// TODO: bind our own m_gpu_array_helper textures
 
     tile_geometry.draw(m_shader.get(), camera, draw_tiles, sort_tiles, sort_position);
 }
