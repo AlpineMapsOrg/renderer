@@ -125,10 +125,7 @@ int main(int argc, char* argv[])
     auto data_querier = std::make_shared<DataQuerier>(&scheduler.scheduler->ram_cache());
 
     auto ortho_scheduler = nucleus::tile_scheduler::setup::texture_scheduler(
-        std::make_unique<TileLoadService>("https://gataki.cg.tuwien.ac.at/raw/basemap/tiles/", TileLoadService::UrlPattern::ZYX_yPointingSouth, ".jpeg"),
-        decorator,
-        gl_engine::Texture::compression_algorithm(),
-        scheduler.thread.get());
+        std::make_unique<TileLoadService>("https://gataki.cg.tuwien.ac.at/raw/basemap/tiles/", TileLoadService::UrlPattern::ZYX_yPointingSouth, ".jpeg"), decorator, scheduler.thread.get());
 
     auto context = std::make_shared<gl_engine::Context>();
     context->set_tile_geometry(std::make_shared<gl_engine::TileGeometry>());
@@ -149,7 +146,13 @@ int main(int argc, char* argv[])
     QObject::connect(glWindow.render_window(), &AbstractRenderWindow::update_camera_requested, &camera_controller, &CameraController::advance_camera);
     QObject::connect(&glWindow, &Window::initialisation_started, context.get(), [&]() { context->initialise(); });
     QObject::connect(&glWindow, &Window::initialisation_started, scheduler.scheduler.get(), [&]() { scheduler.scheduler->set_enabled(true); });
-    QObject::connect(&glWindow, &Window::initialisation_started, ortho_scheduler.scheduler.get(), [&]() { ortho_scheduler.scheduler->set_enabled(true); });
+    QObject::connect(&glWindow, &Window::initialisation_started, &glWindow, [&ortho_scheduler]() {
+        const auto compression_algorithm = gl_engine::Texture::compression_algorithm();
+        nucleus::utils::thread::async_call(ortho_scheduler.scheduler.get(), [&ortho_scheduler, compression_algorithm]() {
+            ortho_scheduler.scheduler->set_texture_compression_algorithm(compression_algorithm);
+            ortho_scheduler.scheduler->set_enabled(true);
+        });
+    });
     QObject::connect(&camera_controller, &nucleus::camera::Controller::definition_changed, scheduler.scheduler.get(), &Scheduler::update_camera);
     QObject::connect(&camera_controller, &nucleus::camera::Controller::definition_changed, ortho_scheduler.scheduler.get(), &TextureScheduler::update_camera);
     QObject::connect(&camera_controller, &nucleus::camera::Controller::definition_changed, glWindow.render_window(), &AbstractRenderWindow::update_camera);

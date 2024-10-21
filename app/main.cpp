@@ -25,12 +25,11 @@
 #else
 #include <QGuiApplication>
 #endif
-#include "GnssInformation.h"
+#ifdef ALP_ENABLE_DEV_TOOLS
 #include "HotReloader.h"
-#include "ModelBinding.h"
-#include "RenderThreadNotifier.h"
-#include "TerrainRendererItem.h"
 #include "TimerFrontendManager.h"
+#endif
+#include "RenderThreadNotifier.h"
 #include "TrackModel.h"
 #include <QLoggingCategory>
 #include <QNetworkInformation>
@@ -123,8 +122,13 @@ int main(int argc, char **argv)
 
     QSurfaceFormat::setDefaultFormat(fmt);
 
+    // create in main thread
+#ifdef ALP_ENABLE_DEV_TOOLS
+    TimerFrontendManager::instance();
+#endif
+    RenderThreadNotifier::instance();
+
     QQmlApplicationEngine engine;
-    TimerFrontendManager::instance(); // create in main thread
     engine.rootContext()->setContextProperty("_r", ALP_QML_SOURCE_DIR);
     engine.rootContext()->setContextProperty("_positionList", QVariant::fromValue(nucleus::camera::PositionStorage::instance()->getPositionList()));
     engine.rootContext()->setContextProperty("_alpine_renderer_version", QString::fromStdString(nucleus::version()));
@@ -132,7 +136,6 @@ int main(int argc, char **argv)
     auto track_model = TrackModel();
     engine.rootContext()->setContextProperty("_track_model", &track_model);
 
-    RenderThreadNotifier::instance();
     QObject::connect(
         &engine, &QQmlApplicationEngine::objectCreated,
         &app, [](QObject* obj, const QUrl& objUrl) {

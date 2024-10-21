@@ -93,9 +93,9 @@ uint16_t hash_uint16(const tile::Id& id)
 {
     // https://en.wikipedia.org/wiki/Linear_congruential_generator
     // could be possible to find better factors.
-    uint16_t z = uint16_t(id.zoom_level) * uint16_t(4 * 199 * 59 + 1) + uint16_t(10859);
-    uint16_t x = uint16_t(id.coords.x) * uint16_t(4 * 149 * 101 + 1) + uint16_t(12253);
-    uint16_t y = uint16_t(id.coords.y) * uint16_t(4 * 293 * 53 + 1) + uint16_t(59119);
+    const uint16_t z = uint16_t(id.zoom_level) * uint16_t(4 * 199 * 59 + 1) + uint16_t(10859);
+    const uint16_t x = uint16_t(id.coords.x) * uint16_t(4 * 149 * 101 + 1) + uint16_t(12253);
+    const uint16_t y = uint16_t(id.coords.y) * uint16_t(4 * 293 * 53 + 1) + uint16_t(59119);
 
     return x + y + z;
 }

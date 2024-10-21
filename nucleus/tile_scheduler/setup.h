@@ -71,15 +71,13 @@ struct TextureSchedulerHolder {
     TileLoadServicePtr tile_service;
 };
 
-inline TextureSchedulerHolder texture_scheduler(
-    TileLoadServicePtr tile_service, const tile_scheduler::utils::AabbDecoratorPtr& aabb_decorator, nucleus::utils::ColourTexture::Format compression_format, QThread* thread = nullptr)
+inline TextureSchedulerHolder texture_scheduler(TileLoadServicePtr tile_service, const tile_scheduler::utils::AabbDecoratorPtr& aabb_decorator, QThread* thread = nullptr)
 {
     auto scheduler = std::make_unique<TextureScheduler>(256);
     scheduler->read_disk_cache();
     scheduler->set_gpu_quad_limit(512);
     scheduler->set_ram_quad_limit(12000);
     scheduler->set_aabb_decorator(aabb_decorator);
-    scheduler->set_texture_compression_algorithm(compression_format);
 
     {
         using nucleus::tile_scheduler::QuadAssembler;

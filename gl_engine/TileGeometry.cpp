@@ -245,7 +245,6 @@ void TileGeometry::update_gpu_quads(const std::vector<nucleus::tile_scheduler::t
             // test for validity
             assert(tile.id.zoom_level < 100);
             assert(tile.height);
-            assert(tile.ortho);
             add_tile(tile.id, tile.bounds, *tile.height);
         }
     }

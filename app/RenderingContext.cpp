@@ -19,6 +19,7 @@
 #include "RenderingContext.h"
 
 #include "RenderThreadNotifier.h"
+#include <QCoreApplication>
 #include <QMutex>
 #include <QOpenGLContext>
 #include <QThread>
@@ -83,10 +84,7 @@ RenderingContext::RenderingContext(QObject* parent)
     m->data_querier = std::make_shared<DataQuerier>(&m->scheduler.scheduler->ram_cache());
 
     m->ortho_texture = nucleus::tile_scheduler::setup::texture_scheduler(
-        std::make_unique<TileLoadService>("https://gataki.cg.tuwien.ac.at/raw/basemap/tiles/", TileLoadService::UrlPattern::ZYX_yPointingSouth, ".jpeg"),
-        m->aabb_decorator,
-        gl_engine::Texture::compression_algorithm(),
-        m->scheduler.thread.get());
+        std::make_unique<TileLoadService>("https://gataki.cg.tuwien.ac.at/raw/basemap/tiles/", TileLoadService::UrlPattern::ZYX_yPointingSouth, ".jpeg"), m->aabb_decorator, m->scheduler.thread.get());
 
     m->map_label = nucleus::map_label::setup::scheduler(
         std::make_unique<TileLoadService>("https://osm.cg.tuwien.ac.at/vector_tiles/poi_v1/", TilePattern::ZXY_yPointingSouth, ""), m->aabb_decorator, m->data_querier, m->scheduler.thread.get());
@@ -147,7 +145,11 @@ void RenderingContext::initialise()
     connect(m->scheduler.scheduler.get(), &nucleus::tile_scheduler::OldScheduler::gpu_quads_updated, m->engine_context->tile_geometry(), &gl_engine::TileGeometry::update_gpu_quads);
     connect(m->ortho_texture.scheduler.get(), &nucleus::tile_scheduler::TextureScheduler::gpu_quads_updated, m->engine_context->ortho_layer(), &gl_engine::TextureLayer::update_gpu_quads);
     nucleus::utils::thread::async_call(m->scheduler.scheduler.get(), [this]() { m->scheduler.scheduler->set_enabled(true); });
-    nucleus::utils::thread::async_call(m->ortho_texture.scheduler.get(), [this]() { m->ortho_texture.scheduler->set_enabled(true); });
+    const auto texture_compression = gl_engine::Texture::compression_algorithm();
+    nucleus::utils::thread::async_call(m->ortho_texture.scheduler.get(), [this, texture_compression]() {
+        m->ortho_texture.scheduler->set_texture_compression_algorithm(texture_compression);
+        // m->ortho_texture.scheduler->set_enabled(true);
+    });
 
     // labels
     m->engine_context->set_map_label_manager(std::make_unique<gl_engine::MapLabels>(m->aabb_decorator));

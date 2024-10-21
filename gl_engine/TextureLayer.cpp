@@ -59,6 +59,13 @@ void TextureLayer::draw(const TileGeometry& tile_geometry,
     m_shader->set_uniform("ortho_sampler", 2);
     m_ortho_textures->bind(2);
 
+    m_shader->set_uniform("ortho_map_index_sampler", 5);
+    m_array_index_texture->bind(5);
+    m_shader->set_uniform("ortho_map_tile_id_sampler", 6);
+    m_tile_id_texture->bind(6);
+    // uniform highp usampler2D ortho_map_index_sampler;
+    // uniform highp usampler2D ortho_map_tile_id_sampler;
+
     /// TODO: bind our own m_gpu_array_helper textures
 
     tile_geometry.draw(m_shader.get(), camera, draw_tiles, sort_tiles, sort_position);
