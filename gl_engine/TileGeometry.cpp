@@ -117,6 +117,8 @@ void TileGeometry::init()
         f->glVertexAttribIPointer(GLuint(height_texture_layer), /*size*/ 1, /*type*/ GL_INT, /*stride*/ 0, nullptr);
         f->glVertexAttribDivisor(GLuint(height_texture_layer), 1);
     }
+
+    update_gpu_id_map();
 }
 
 const TileGeometry::TileSet TileGeometry::generate_tilelist(const nucleus::camera::Definition& camera) const { return m_draw_list_generator.generate_for(camera); }
@@ -127,9 +129,9 @@ void TileGeometry::draw(ShaderProgram* shader, const nucleus::camera::Definition
 {
     QOpenGLExtraFunctions* f = QOpenGLContext::currentContext()->extraFunctions();
     shader->set_uniform("n_edge_vertices", N_EDGE_VERTICES);
-    shader->set_uniform("height_sampler", 1);
-    shader->set_uniform("height_texture_layer_map_sampler", 3);
-    shader->set_uniform("tile_id_map_sampler", 4);
+    shader->set_uniform("height_tex_sampler", 1);
+    shader->set_uniform("height_tex_index_sampler", 3);
+    shader->set_uniform("height_tex_tile_id_sampler", 4);
 
     // Sort depending on distance to sort_position
     std::vector<std::pair<float, const TileInfo*>> tile_list;

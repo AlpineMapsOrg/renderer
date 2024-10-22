@@ -23,8 +23,8 @@
 #include "tile_id.glsl"
 
 uniform lowp sampler2DArray ortho_sampler;
-uniform highp usampler2D height_texture_layer_map_sampler;
-uniform highp usampler2D tile_id_map_sampler;
+uniform highp usampler2D height_tex_index_sampler;
+uniform highp usampler2D height_tex_tile_id_sampler;
 uniform highp usampler2D ortho_map_index_sampler;
 uniform highp usampler2D ortho_map_tile_id_sampler;
 
