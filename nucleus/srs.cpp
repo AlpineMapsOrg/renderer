@@ -33,7 +33,7 @@ tile::SrsBounds tile_bounds(const tile::Id& tile)
     const auto height_of_a_tile = cEarthCircumference / number_of_vertical_tiles_for_zoom_level(tile.zoom_level);
     glm::dvec2 absolute_min = { -cOriginShift, -cOriginShift };
     const auto min = absolute_min + glm::dvec2 { tile.coords.x * width_of_a_tile, tile.coords.y * height_of_a_tile };
-    const auto max = min + glm::dvec2 { width_of_a_tile, height_of_a_tile };
+    const auto max = absolute_min + glm::dvec2 { (tile.coords.x + 1) * width_of_a_tile, (tile.coords.y + 1) * height_of_a_tile };
     return { min, max };
 }
 
