@@ -17,7 +17,6 @@
  *****************************************************************************/
 
 #include "nucleus/tile_scheduler/Cache.h"
-#include "nucleus/tile_scheduler/OldScheduler.h"
 #include "nucleus/tile_scheduler/cache_quieries.h"
 #include "nucleus/tile_scheduler/tile_types.h"
 #include "radix/height_encoding.h"
@@ -54,18 +53,16 @@ QByteArray white_jpeg_tile(unsigned int size)
     return arr;
 }
 
-tile_types::LayeredTileQuad example_tile_quad_for(const tile::Id& id, float altitude)
+tile_types::DataQuad example_tile_quad_for(const tile::Id& id, float altitude)
 {
     const auto children = id.children();
-    tile_types::LayeredTileQuad cpu_quad;
+    tile_types::DataQuad cpu_quad;
     cpu_quad.id = id;
     cpu_quad.n_tiles = 4;
-    const auto ortho_photo = white_jpeg_tile(256);
     const auto altitude_tile = png_tile(64, altitude);
     for (unsigned i = 0; i < 4; ++i) {
         cpu_quad.tiles[i].id = children[i];
-        cpu_quad.tiles[i].ortho = std::make_shared<QByteArray>(ortho_photo);
-        cpu_quad.tiles[i].height = std::make_shared<QByteArray>(altitude_tile);
+        cpu_quad.tiles[i].data = std::make_shared<QByteArray>(altitude_tile);
         cpu_quad.tiles[i].network_info.status = tile_types::NetworkInfo::Status::Good;
         cpu_quad.tiles[i].network_info.timestamp = utils::time_since_epoch();
     }
@@ -75,7 +72,7 @@ tile_types::LayeredTileQuad example_tile_quad_for(const tile::Id& id, float alti
 
 TEST_CASE("cache_queries")
 {
-    Cache<tile_types::LayeredTileQuad> cache;
+    MemoryCache cache;
     cache.insert(example_tile_quad_for(tile::Id{0, {0, 0}}, 1000.0f));
     cache.insert(example_tile_quad_for(tile::Id{1, {0, 0}}, 3000.0f));
     cache.insert(example_tile_quad_for(tile::Id{1, {0, 1}}, 1000.0f));

@@ -68,13 +68,11 @@ qt_add_library(nucleus STATIC
     srs.h srs.cpp
     tile_scheduler/utils.h tile_scheduler/utils.cpp
     tile_scheduler/DrawListGenerator.h tile_scheduler/DrawListGenerator.cpp
-    tile_scheduler/LayerAssembler.h tile_scheduler/LayerAssembler.cpp
     tile_scheduler/tile_types.h
     tile_scheduler/constants.h
     tile_scheduler/QuadAssembler.h tile_scheduler/QuadAssembler.cpp
     tile_scheduler/Cache.h
     tile_scheduler/TileLoadService.h tile_scheduler/TileLoadService.cpp
-    tile_scheduler/OldScheduler.h tile_scheduler/OldScheduler.cpp
     tile_scheduler/Scheduler.h tile_scheduler/Scheduler.cpp
     tile_scheduler/SlotLimiter.h tile_scheduler/SlotLimiter.cpp
     tile_scheduler/RateLimiter.h tile_scheduler/RateLimiter.cpp
@@ -112,10 +110,11 @@ qt_add_library(nucleus STATIC
     utils/thread.h
     camera/RecordedAnimation.h camera/RecordedAnimation.cpp
     camera/recording.h camera/recording.cpp
-    tile_scheduler/setup.h tile_scheduler/setup.cpp
+    tile_scheduler/setup.h
     tile_scheduler/GpuArrayHelper.h tile_scheduler/GpuArrayHelper.cpp
     tile_scheduler/TextureScheduler.h tile_scheduler/TextureScheduler.cpp
     tile_scheduler/GeometryScheduler.h tile_scheduler/GeometryScheduler.cpp
+    utils/error.h
 )
 
 if (ALP_ENABLE_AVLANCHE_WARNING_LAYER)

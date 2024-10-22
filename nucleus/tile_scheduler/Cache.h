@@ -102,7 +102,7 @@ private:
     }
 };
 
-using MemoryCache = nucleus::tile_scheduler::Cache<nucleus::tile_scheduler::tile_types::LayeredTileQuad>;
+using MemoryCache = nucleus::tile_scheduler::Cache<nucleus::tile_scheduler::tile_types::DataQuad>;
 
 template <tile_types::NamedTile T>
 void Cache<T>::insert(const T& tile)

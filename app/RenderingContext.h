@@ -38,7 +38,7 @@ namespace nucleus::picker {
 class PickerManager;
 }
 namespace nucleus::tile_scheduler {
-class OldScheduler;
+class GeometryScheduler;
 class TextureScheduler;
 }
 namespace nucleus::tile_scheduler::utils {
@@ -71,7 +71,7 @@ public:
     [[nodiscard]] std::shared_ptr<gl_engine::Context> engine_context() const;
     [[nodiscard]] std::shared_ptr<nucleus::tile_scheduler::utils::AabbDecorator> aabb_decorator() const;
     [[nodiscard]] std::shared_ptr<nucleus::DataQuerier> data_querier() const;
-    [[nodiscard]] nucleus::tile_scheduler::OldScheduler* scheduler() const;
+    [[nodiscard]] nucleus::tile_scheduler::GeometryScheduler* geometry_scheduler() const;
     [[nodiscard]] std::shared_ptr<nucleus::picker::PickerManager> picker_manager() const;
     [[nodiscard]] std::shared_ptr<nucleus::map_label::Filter> label_filter() const;
     [[nodiscard]] nucleus::map_label::Scheduler* map_label_scheduler() const;

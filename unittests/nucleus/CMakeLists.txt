@@ -31,7 +31,6 @@ alp_add_unittest(unittests_nucleus
     tile_conversion.cpp
     tile_scheduler_util.cpp
     tile_scheduler_tile_load_service.cpp
-    tile_scheduler_layer_assembler.cpp
     tile_scheduler_quad_assembler.cpp
     tile_scheduler_cache.cpp
     tile_scheduler_scheduler.cpp

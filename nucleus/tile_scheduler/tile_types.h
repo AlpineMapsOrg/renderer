@@ -73,32 +73,12 @@ struct Data {
 };
 static_assert(NamedTile<Data>);
 
-struct [[deprecated]] LayeredTile {
-    tile::Id id;
-    NetworkInfo network_info;
-    std::shared_ptr<QByteArray> ortho;
-    std::shared_ptr<QByteArray> height;
-};
-static_assert(NamedTile<LayeredTile>);
-
-struct [[deprecated]] LayeredTileQuad {
-    tile::Id id;
-    unsigned n_tiles = 0;
-    std::array<LayeredTile, 4> tiles = {};
-    NetworkInfo network_info() const {
-        return NetworkInfo::join(tiles[0].network_info, tiles[1].network_info, tiles[2].network_info, tiles[3].network_info);
-    }
-    static constexpr std::array<char, 25> version_information = { "TileQuad, version 0.5" };
-};
-static_assert(NamedTile<LayeredTileQuad>);
-static_assert(SerialisableTile<LayeredTileQuad>);
-
 struct DataQuad {
     tile::Id id;
     unsigned n_tiles = 0;
     std::array<Data, 4> tiles = {};
     NetworkInfo network_info() const { return NetworkInfo::join(tiles[0].network_info, tiles[1].network_info, tiles[2].network_info, tiles[3].network_info); }
-    static constexpr std::array<char, 25> version_information = { "TileQuad, version 0.5" };
+    static constexpr std::array<char, 25> version_information = { "DataQuad, version 0.1" };
 };
 static_assert(NamedTile<DataQuad>);
 static_assert(SerialisableTile<DataQuad>);
@@ -107,20 +87,6 @@ struct GpuCacheInfo {
     tile::Id id;
 };
 static_assert(NamedTile<GpuCacheInfo>);
-
-struct [[deprecated]] GpuLayeredTile {
-    tile::Id id;
-    tile::SrsAndHeightBounds bounds = {};
-    std::shared_ptr<const nucleus::utils::MipmappedColourTexture> ortho;
-    std::shared_ptr<const nucleus::Raster<uint16_t>> height;
-};
-static_assert(NamedTile<GpuLayeredTile>);
-
-struct [[deprecated]] GpuTileQuad {
-    tile::Id id;
-    std::array<GpuLayeredTile, 4> tiles;
-};
-static_assert(NamedTile<GpuTileQuad>);
 
 struct GpuTextureTile {
     tile::Id id;

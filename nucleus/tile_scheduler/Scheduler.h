@@ -49,7 +49,7 @@ public:
         unsigned n_tiles_in_gpu_cache = 0;
     };
 
-    explicit Scheduler(unsigned tile_resolution = 256, QObject* parent = nullptr);
+    explicit Scheduler(std::string name, unsigned tile_resolution = 256, QObject* parent = nullptr);
     // Seconds constructor still here for tests, Is it necessary?
     ~Scheduler() override;
 
@@ -71,7 +71,7 @@ public:
     const Cache<tile_types::DataQuad>& ram_cache() const;
     Cache<tile_types::DataQuad>& ram_cache();
 
-    static std::filesystem::path disk_cache_path();
+    std::filesystem::path disk_cache_path();
 
     [[nodiscard]] unsigned int persist_timeout() const;
     void set_persist_timeout(unsigned int new_persist_timeout);
@@ -80,9 +80,6 @@ public:
 
     void set_retirement_age_for_tile_cache(unsigned int new_retirement_age_for_tile_cache);
     
-    nucleus::utils::ColourTexture::Format ortho_tile_compression_algorithm() const;
-    void set_ortho_tile_compression_algorithm(nucleus::utils::ColourTexture::Format new_ortho_tile_compression_algorithm);
-
     void set_dataquerier(std::shared_ptr<DataQuerier> dataquerier);
     std::shared_ptr<DataQuerier> dataquerier() const;
 
@@ -110,10 +107,11 @@ protected:
     void schedule_persist();
     void update_stats();
     std::vector<tile::Id> tiles_for_current_camera_position() const;
-    virtual bool is_ready_to_ship(const tile_types::DataQuad& quad) const { return true; }
+    virtual bool is_ready_to_ship(const tile_types::DataQuad&) const { return true; }
     virtual void transform_and_emit(const std::vector<tile_types::DataQuad>& new_quads, const std::vector<tile::Id>& deleted_quads) = 0;
 
 private:
+    std::string m_name = "";
     std::shared_ptr<DataQuerier> m_dataquerier;
     unsigned m_retirement_age_for_tile_cache = 10u * 24u * 3600u * 1000u; // 10 days
     float m_permissible_screen_space_error = 2;

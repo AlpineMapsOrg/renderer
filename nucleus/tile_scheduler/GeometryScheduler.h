@@ -26,7 +26,7 @@ namespace nucleus::tile_scheduler {
 class GeometryScheduler : public Scheduler {
     Q_OBJECT
 public:
-    GeometryScheduler(QObject* parent = nullptr);
+    GeometryScheduler(std::string name, QObject* parent = nullptr);
     ~GeometryScheduler() override;
 
     void set_texture_compression_algorithm(nucleus::utils::ColourTexture::Format compression_algorithm);

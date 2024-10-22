@@ -35,7 +35,7 @@
 #include <nucleus/map_label/Filter.h>
 #include <nucleus/map_label/Scheduler.h>
 #include <nucleus/picker/PickerManager.h>
-#include <nucleus/tile_scheduler/OldScheduler.h>
+#include <nucleus/tile_scheduler/GeometryScheduler.h>
 #include <nucleus/tile_scheduler/TextureScheduler.h>
 #include <nucleus/utils/thread.h>
 
@@ -43,38 +43,38 @@ TerrainRenderer::TerrainRenderer()
 {
     using nucleus::map_label::Filter;
     using nucleus::picker::PickerManager;
-    using Scheduler = nucleus::tile_scheduler::OldScheduler;
+    using Scheduler = nucleus::tile_scheduler::Scheduler;
     using CameraController = nucleus::camera::Controller;
 
     auto* ctx = RenderingContext::instance();
     ctx->initialise();
     m_glWindow = std::make_unique<gl_engine::Window>(ctx->engine_context());
 
-    auto* scheduler_ptr = ctx->scheduler();
+    auto* scheduler_ptr = ctx->geometry_scheduler();
     auto* gl_window_ptr = m_glWindow.get();
 
     m_camera_controller = std::make_unique<CameraController>(nucleus::camera::PositionStorage::instance()->get("grossglockner"), m_glWindow.get(), ctx->data_querier().get());
 
+    // clang-format off
     QObject::connect(gl_window_ptr, &gl_engine::Window::update_camera_requested, m_camera_controller.get(), &CameraController::advance_camera);
 
     // NOTICE ME!!!! READ THIS, IF YOU HAVE TROUBLES WITH SIGNALS NOT REACHING THE QML RENDERING THREAD!!!!111elevenone
     // In Qt/QML the rendering thread goes to sleep (at least until Qt 6.5, See RenderThreadNotifier).
     // At the time of writing, an additional connection from tile_ready and tile_expired to the notifier is made.
     // this only works if ALP_ENABLE_THREADING is on, i.e., the tile scheduler is on an extra thread. -> potential issue on webassembly
-    QObject::connect(m_camera_controller.get(), &CameraController::definition_changed, scheduler_ptr, &Scheduler::update_camera);
-    QObject::connect(m_camera_controller.get(), &CameraController::definition_changed, ctx->map_label_scheduler(), &nucleus::map_label::Scheduler::update_camera);
-    QObject::connect(m_camera_controller.get(), &CameraController::definition_changed, ctx->ortho_scheduler(), &nucleus::tile_scheduler::TextureScheduler::update_camera);
-    QObject::connect(m_camera_controller.get(), &CameraController::definition_changed, m_glWindow.get(), &gl_engine::Window::update_camera);
+    QObject::connect(m_camera_controller.get(), &CameraController::definition_changed, ctx->geometry_scheduler(),   &Scheduler::update_camera);
+    QObject::connect(m_camera_controller.get(), &CameraController::definition_changed, ctx->map_label_scheduler(),  &Scheduler::update_camera);
+    QObject::connect(m_camera_controller.get(), &CameraController::definition_changed, ctx->ortho_scheduler(),      &Scheduler::update_camera);
+    QObject::connect(m_camera_controller.get(), &CameraController::definition_changed, m_glWindow.get(),            &gl_engine::Window::update_camera);
 
-    QObject::connect(scheduler_ptr, &Scheduler::gpu_quads_updated, gl_window_ptr, &gl_engine::Window::update_requested);
-    QObject::connect(ctx->ortho_scheduler(), &nucleus::tile_scheduler::TextureScheduler::gpu_quads_updated, gl_window_ptr, &gl_engine::Window::update_requested);
+    QObject::connect(ctx->geometry_scheduler(), &nucleus::tile_scheduler::GeometryScheduler::gpu_quads_updated, gl_window_ptr, &gl_engine::Window::update_requested);
+    QObject::connect(ctx->ortho_scheduler(),    &nucleus::tile_scheduler::TextureScheduler::gpu_quads_updated,  gl_window_ptr, &gl_engine::Window::update_requested);
+    QObject::connect(ctx->label_filter().get(), &Filter::filter_finished,                                       gl_window_ptr, &gl_engine::Window::update_requested);
 
-    QObject::connect(ctx->picker_manager().get(), &PickerManager::pick_requested, gl_window_ptr, &gl_engine::Window::pick_value);
-    QObject::connect(gl_window_ptr, &gl_engine::Window::value_picked, ctx->picker_manager().get(), &PickerManager::eval_pick);
+    QObject::connect(ctx->picker_manager().get(),   &PickerManager::pick_requested,     gl_window_ptr,                  &gl_engine::Window::pick_value);
+    QObject::connect(gl_window_ptr,                 &gl_engine::Window::value_picked,   ctx->picker_manager().get(),    &PickerManager::eval_pick);
+    // clang-format on
 
-    QObject::connect(ctx->label_filter().get(), &Filter::filter_finished, gl_window_ptr, &gl_engine::Window::update_requested);
-
-    scheduler_ptr->set_ortho_tile_compression_algorithm(m_glWindow->ortho_tile_compression_algorithm());
     m_glWindow->initialise_gpu();
     // ctx->scheduler()->set_enabled(true); // after tile manager moves to ctx.
 }

@@ -17,13 +17,15 @@
  *****************************************************************************/
 
 #include "GeometryScheduler.h"
-#include "nucleus/utils/tile_conversion.h"
+#include <QDebug>
+#include <nucleus/utils/error.h>
 #include <nucleus/utils/image_loader.h>
+#include <nucleus/utils/tile_conversion.h>
 
 namespace nucleus::tile_scheduler {
 
-GeometryScheduler::GeometryScheduler(QObject* parent)
-    : nucleus::tile_scheduler::Scheduler(256, parent)
+GeometryScheduler::GeometryScheduler(std::string name, QObject* parent)
+    : nucleus::tile_scheduler::Scheduler(std::move(name), 256, parent)
     , m_default_raster(glm::uvec2(65), uint16_t(0))
 {
 }
@@ -36,6 +38,8 @@ void GeometryScheduler::transform_and_emit(const std::vector<tile_scheduler::til
     new_gpu_quads.reserve(new_quads.size());
 
     std::transform(new_quads.cbegin(), new_quads.cend(), std::back_inserter(new_gpu_quads), [this](const auto& quad) {
+        using namespace nucleus::utils;
+
         // create GpuQuad based on cpu quad
         tile_types::GpuGeometryQuad gpu_quad;
         gpu_quad.id = quad.id;
@@ -46,9 +50,8 @@ void GeometryScheduler::transform_and_emit(const std::vector<tile_scheduler::til
 
             if (quad.tiles[i].data->size()) {
                 // Height image is available
-                Raster<glm::u8vec4> height_image = nucleus::utils::image_loader::rgba8(*quad.tiles[i].data.get());
-                auto heightraster = nucleus::utils::tile_conversion::to_u16raster(height_image);
-                gpu_quad.tiles[i].surface = std::make_shared<nucleus::Raster<uint16_t>>(std::move(heightraster));
+                auto height_raster = image_loader::rgba8(*quad.tiles[i].data).and_then(error::wrap_to_expected(tile_conversion::to_u16raster)).value_or(m_default_raster);
+                gpu_quad.tiles[i].surface = std::make_shared<nucleus::Raster<uint16_t>>(std::move(height_raster));
             } else {
                 // Height image is not available (use black default tile)
                 gpu_quad.tiles[i].surface = std::make_shared<nucleus::Raster<uint16_t>>(m_default_raster);

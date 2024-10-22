@@ -26,10 +26,10 @@ namespace nucleus::map_label {
 class Scheduler : public nucleus::tile_scheduler::Scheduler {
     Q_OBJECT
 public:
-    explicit Scheduler(QObject* parent = nullptr);
+    explicit Scheduler(std::string name, QObject* parent = nullptr);
     ~Scheduler() override;
 
-    void set_geometry_ram_cache(nucleus::tile_scheduler::Cache<nucleus::tile_scheduler::tile_types::LayeredTileQuad>* new_geometry_ram_cache);
+    void set_geometry_ram_cache(nucleus::tile_scheduler::MemoryCache* new_geometry_ram_cache);
 
 signals:
     void gpu_tiles_updated(const std::vector<vector_tile::PoiTile>& new_quads, const std::vector<tile::Id>& deleted_quads);
@@ -39,7 +39,7 @@ protected:
     bool is_ready_to_ship(const nucleus::tile_scheduler::tile_types::DataQuad& quad) const override;
 
 private:
-    nucleus::tile_scheduler::Cache<nucleus::tile_scheduler::tile_types::LayeredTileQuad>* m_geometry_ram_cache = nullptr;
+    nucleus::tile_scheduler::MemoryCache* m_geometry_ram_cache = nullptr;
 };
 
 } // namespace nucleus::map_label

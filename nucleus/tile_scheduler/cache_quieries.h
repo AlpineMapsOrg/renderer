@@ -30,34 +30,34 @@ namespace nucleus::tile_scheduler::cache_queries {
 inline float query_altitude(MemoryCache* cache, const glm::dvec2& lat_long)
 {
     const auto world_space = srs::lat_long_to_world(lat_long);
-    nucleus::tile_scheduler::tile_types::LayeredTileQuad selected_quad;
-    cache->visit([&](const nucleus::tile_scheduler::tile_types::LayeredTileQuad& tile) {
+    nucleus::tile_scheduler::tile_types::DataQuad selected_quad;
+    cache->visit([&](const nucleus::tile_scheduler::tile_types::DataQuad& tile) {
         if (srs::tile_bounds(tile.id).contains(world_space)) {
             selected_quad = tile;
             return true;
         }
         return false;
     });
+    assert(selected_quad.n_tiles == 4);
 
     for (const auto& layered_tile : selected_quad.tiles) {
         if (srs::tile_bounds(layered_tile.id).contains(world_space)) {
             const auto bounds = srs::tile_bounds(layered_tile.id);
             const auto uv = (world_space - bounds.min) / bounds.size();
 
-            if (layered_tile.height && layered_tile.height->size()) {
-                const auto height_tile = nucleus::utils::image_loader::rgba8(*layered_tile.height);
-                const auto p = glm::uvec2(
-                    uint32_t(uv.x * height_tile.width()),
-                    uint32_t((1 - uv.y) * height_tile.height())
-                );
+            if (layered_tile.data && layered_tile.data->size()) {
+                const auto height_tile_expected = nucleus::utils::image_loader::rgba8(*layered_tile.data);
+                if (!height_tile_expected)
+                    return 1000;
+                const auto& height_tile = height_tile_expected.value();
+                const auto p = glm::uvec2(uint32_t(uv.x * height_tile.width()), uint32_t((1 - uv.y) * height_tile.height()));
                 const auto px = height_tile.pixel(p);
                 return radix::height_encoding::to_float(glm::u8vec3(px));
             } else {
-                return 1000;
+                return 100; // e.g.: not found
             }
         }
     }
-
     assert(false);
     return 1000;
 }

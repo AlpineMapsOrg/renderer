@@ -19,7 +19,6 @@
 #pragma once
 
 #include "GeometryScheduler.h"
-#include "OldScheduler.h"
 #include "QuadAssembler.h"
 #include "RateLimiter.h"
 #include "SlotLimiter.h"
@@ -34,47 +33,14 @@ namespace nucleus::tile_scheduler::setup {
 
 using TileLoadServicePtr = std::unique_ptr<TileLoadService>;
 
-struct MonolithicScheduler {
-    std::unique_ptr<OldScheduler> scheduler;
-    std::unique_ptr<QThread> thread;
-    TileLoadServicePtr terrain_service;
-    TileLoadServicePtr ortho_service;
-
-    MonolithicScheduler() = default;
-    MonolithicScheduler(std::unique_ptr<OldScheduler> sched, std::unique_ptr<QThread> thr, TileLoadServicePtr terrainSvc, TileLoadServicePtr orthoSvc)
-        : scheduler(std::move(sched))
-        , thread(std::move(thr))
-        , terrain_service(std::move(terrainSvc))
-        , ortho_service(std::move(orthoSvc))
-    {
-    }
-    MonolithicScheduler(MonolithicScheduler&& other) noexcept = default;
-    MonolithicScheduler& operator=(MonolithicScheduler&& other) noexcept = default;
-    ~MonolithicScheduler()
-    {
-        qDebug("RenderingContext::~RenderingContext()");
-        if (scheduler) {
-            nucleus::utils::thread::sync_call(scheduler.get(), [this]() { scheduler.reset(); });
-            nucleus::utils::thread::sync_call(ortho_service.get(), [this]() { ortho_service.reset(); });
-            nucleus::utils::thread::sync_call(terrain_service.get(), [this]() { terrain_service.reset(); });
-        }
-        if (thread) {
-            thread->quit();
-            thread->wait(500);
-        }
-    }
-};
-
-MonolithicScheduler monolithic(TileLoadServicePtr terrain_service, TileLoadServicePtr ortho_service, const tile_scheduler::utils::AabbDecoratorPtr& aabb_decorator);
-
 struct GeometrySchedulerHolder {
     std::unique_ptr<GeometryScheduler> scheduler;
     TileLoadServicePtr tile_service;
 };
 
-inline GeometrySchedulerHolder geometry_scheduler(TileLoadServicePtr tile_service, const tile_scheduler::utils::AabbDecoratorPtr& aabb_decorator, QThread* thread = nullptr)
+inline GeometrySchedulerHolder geometry_scheduler(std::string name, TileLoadServicePtr tile_service, const tile_scheduler::utils::AabbDecoratorPtr& aabb_decorator, QThread* thread = nullptr)
 {
-    auto scheduler = std::make_unique<GeometryScheduler>();
+    auto scheduler = std::make_unique<GeometryScheduler>(std::move(name));
     scheduler->read_disk_cache();
     scheduler->set_gpu_quad_limit(512);
     scheduler->set_ram_quad_limit(12000);
@@ -124,9 +90,9 @@ struct TextureSchedulerHolder {
     TileLoadServicePtr tile_service;
 };
 
-inline TextureSchedulerHolder texture_scheduler(TileLoadServicePtr tile_service, const tile_scheduler::utils::AabbDecoratorPtr& aabb_decorator, QThread* thread = nullptr)
+inline TextureSchedulerHolder texture_scheduler(std::string name, TileLoadServicePtr tile_service, const tile_scheduler::utils::AabbDecoratorPtr& aabb_decorator, QThread* thread = nullptr)
 {
-    auto scheduler = std::make_unique<TextureScheduler>(256);
+    auto scheduler = std::make_unique<TextureScheduler>(std::move(name), 256);
     scheduler->read_disk_cache();
     scheduler->set_gpu_quad_limit(512);
     scheduler->set_ram_quad_limit(12000);
@@ -171,6 +137,14 @@ inline TextureSchedulerHolder texture_scheduler(TileLoadServicePtr tile_service,
     return { std::move(scheduler), std::move(tile_service) };
 }
 
-utils::AabbDecoratorPtr aabb_decorator();
+inline utils::AabbDecoratorPtr aabb_decorator()
+{
+    QFile file(":/map/height_data.atb");
+    const auto open = file.open(QIODeviceBase::OpenModeFlag::ReadOnly);
+    assert(open);
+    Q_UNUSED(open);
+    const QByteArray data = file.readAll();
+    return nucleus::tile_scheduler::utils::AabbDecorator::make(TileHeights::deserialise(data));
+}
 
 } // namespace nucleus::tile_scheduler::setup

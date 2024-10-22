@@ -36,14 +36,14 @@ namespace nucleus::utils::tile_conversion {
 Raster<uint16_t> to_u16raster(const Raster<glm::u8vec4>& raster);
 
 #ifdef QT_GUI_LIB
-inline Raster<uint16_t> to_u16raster(const QImage& qimage)
+inline Raster<uint16_t> qimage_to_u16raster(const QImage& qimage)
 {
     if (qimage.format() != QImage::Format_ARGB32 && qimage.format() != QImage::Format_RGB32) {
         // let's hope that the format is always ARGB32
         // if not, please implement the conversion, that'll give better performance.
         // the assert will be disabled in release, just as a backup.
         assert(false);
-        return to_u16raster(qimage.convertedTo(QImage::Format_ARGB32));
+        return qimage_to_u16raster(qimage.convertedTo(QImage::Format_ARGB32));
     }
     Raster<uint16_t> raster({ qimage.width(), qimage.height() });
 

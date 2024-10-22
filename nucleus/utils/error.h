@@ -1,6 +1,6 @@
 /*****************************************************************************
- * Alpine Terrain Renderer
- * Copyright (C) 2023 Adam Celarek
+ * AlpineMaps.org
+ * Copyright (C) 2024 Adam Celarek
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -16,31 +16,18 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *****************************************************************************/
 
-#include "QuadAssembler.h"
+#pragma once
+#include <QString>
+#include <tl/expected.hpp>
+#include <utility>
 
-using namespace nucleus::tile_scheduler;
-
-QuadAssembler::QuadAssembler(QObject* parent)
-    : QObject { parent }
+namespace nucleus::utils::error {
+template <typename ErrorType = QString, typename F> auto wrap_to_expected(F&& func)
 {
+    return [func = std::forward<F>(func)](auto&& value) {
+        using ReturnType = decltype(func(std::forward<decltype(value)>(value)));
+        return tl::expected<ReturnType, ErrorType> { func(std::forward<decltype(value)>(value)) };
+    };
 }
 
-size_t QuadAssembler::n_items_in_flight() const { return m_quads.size(); }
-
-void QuadAssembler::load(const tile::Id& tile_id)
-{
-    m_quads[tile_id].id = tile_id;
-    for (const auto& child_id : tile_id.children()) {
-        emit tile_requested(child_id);
-    }
-}
-
-void QuadAssembler::deliver_tile(const tile_types::Data& tile)
-{
-    auto& quad = m_quads[tile.id.parent()];
-    quad.tiles[quad.n_tiles++] = tile;
-    if (quad.n_tiles == 4) {
-        emit quad_loaded(quad);
-        m_quads.erase(quad.id);
-    }
-}
+} // namespace nucleus::utils::error

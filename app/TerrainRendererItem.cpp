@@ -41,9 +41,11 @@
 #include <nucleus/camera/Controller.h>
 #include <nucleus/camera/PositionStorage.h>
 #include <nucleus/map_label/Filter.h>
+#include <nucleus/map_label/Scheduler.h>
 #include <nucleus/picker/PickerManager.h>
 #include <nucleus/srs.h>
-#include <nucleus/tile_scheduler/OldScheduler.h>
+#include <nucleus/tile_scheduler/GeometryScheduler.h>
+#include <nucleus/tile_scheduler/TextureScheduler.h>
 #include <nucleus/utils/UrlModifier.h>
 #include <nucleus/utils/sun_calculations.h>
 
@@ -133,21 +135,14 @@ QQuickFramebufferObject::Renderer* TerrainRendererItem::createRenderer() const
 
     connect(this, &TerrainRendererItem::camera_definition_set_by_user, r->controller(), &nucleus::camera::Controller::set_definition);
 
-    auto* const tile_scheduler = ctx->scheduler();
-    connect(this->m_settings, &AppSettings::render_quality_changed, tile_scheduler, [=](float new_render_quality) {
+    connect(this->m_settings, &AppSettings::render_quality_changed, ctx->geometry_scheduler(), [ctx](float new_render_quality) {
         const auto permissible_error = 1.0f / new_render_quality;
-        tile_scheduler->set_permissible_screen_space_error(permissible_error);
+        ctx->geometry_scheduler()->set_permissible_screen_space_error(permissible_error);
+        ctx->ortho_scheduler()->set_permissible_screen_space_error(permissible_error);
     });
-    connect(this, &TerrainRendererItem::tile_cache_size_changed, tile_scheduler, &nucleus::tile_scheduler::OldScheduler::set_ram_quad_limit);
-    connect(tile_scheduler, &nucleus::tile_scheduler::OldScheduler::quads_requested, this, [this](const std::vector<tile::Id>& ids) {
-        const_cast<TerrainRendererItem*>(this)->set_queued_tiles(unsigned(ids.size()));
-    });
-    connect(tile_scheduler, &nucleus::tile_scheduler::OldScheduler::quad_received, this, [this]() {
-        const_cast<TerrainRendererItem*>(this)->set_queued_tiles(std::max(this->queued_tiles(), 1u) - 1);
-    });
-    connect(tile_scheduler, &nucleus::tile_scheduler::OldScheduler::statistics_updated, this, [this](const nucleus::tile_scheduler::OldScheduler::Statistics& stats) {
-        const_cast<TerrainRendererItem*>(this)->set_cached_tiles(stats.n_tiles_in_ram_cache);
-    });
+    connect(this, &TerrainRendererItem::tile_cache_size_changed, ctx->geometry_scheduler(), &nucleus::tile_scheduler::Scheduler::set_ram_quad_limit);
+    connect(this, &TerrainRendererItem::tile_cache_size_changed, ctx->ortho_scheduler(), &nucleus::tile_scheduler::Scheduler::set_ram_quad_limit);
+    connect(this, &TerrainRendererItem::tile_cache_size_changed, ctx->map_label_scheduler(), &nucleus::tile_scheduler::Scheduler::set_ram_quad_limit);
 
     // connect glWindow to forward key events.
     connect(this, &TerrainRendererItem::shared_config_changed, r->glWindow(), &gl_engine::Window::shared_config_changed);

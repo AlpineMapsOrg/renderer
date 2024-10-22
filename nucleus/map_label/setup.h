@@ -35,12 +35,13 @@ struct SchedulerHolder {
     TileLoadServicePtr vector_service;
 };
 
-SchedulerHolder scheduler(TileLoadServicePtr vector_service,
+SchedulerHolder scheduler(std::string name,
+    TileLoadServicePtr vector_service,
     const tile_scheduler::utils::AabbDecoratorPtr& aabb_decorator,
     const std::shared_ptr<nucleus::DataQuerier>& data_querier,
     QThread* thread = nullptr)
 {
-    auto scheduler = std::make_unique<nucleus::map_label::Scheduler>();
+    auto scheduler = std::make_unique<nucleus::map_label::Scheduler>(std::move(name));
     scheduler->read_disk_cache();
     scheduler->set_gpu_quad_limit(512);
     scheduler->set_ram_quad_limit(12000);

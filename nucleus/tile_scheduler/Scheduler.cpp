@@ -31,6 +31,7 @@
 #include <nucleus/utils/tile_conversion.h>
 #include <radix/quad_tree.h>
 #include <unordered_set>
+#include <utility>
 
 #ifdef ALP_ENABLE_LABELS
 #include <nucleus/vector_tile/parse.h>
@@ -38,10 +39,12 @@
 
 using namespace nucleus::tile_scheduler;
 
-Scheduler::Scheduler(unsigned int tile_resolution, QObject* parent)
+Scheduler::Scheduler(std::string name, unsigned int tile_resolution, QObject* parent)
     : QObject { parent }
+    , m_name(std::move(name))
     , m_tile_resolution(tile_resolution)
 {
+    setObjectName(m_name + "_scheduler");
     m_update_timer = std::make_unique<QTimer>(this);
     m_update_timer->setSingleShot(true);
     connect(m_update_timer.get(), &QTimer::timeout, this, &Scheduler::send_quad_requests);
@@ -240,9 +243,7 @@ void Scheduler::read_disk_cache()
     if (r.has_value()) {
         update_stats();
     } else {
-        qDebug() << QString("Reading tiles from disk cache (%1) failed: \n%2\nRemoving all files.")
-                        .arg(QString::fromStdString(disk_cache_path().string()))
-                        .arg(QString::fromStdString(r.error()));
+        qDebug() << QString("Reading tiles from disk cache (%1) failed: \n%2\nRemoving all files.").arg(QString::fromStdString(disk_cache_path().string())).arg(QString::fromStdString(r.error()));
         std::filesystem::remove_all(disk_cache_path());
     }
 }
@@ -294,7 +295,7 @@ std::filesystem::path Scheduler::disk_cache_path()
 {
     const auto base_path = std::filesystem::path(QStandardPaths::writableLocation(QStandardPaths::CacheLocation).toStdString());
     std::filesystem::create_directories(base_path);
-    return  base_path / "tile_cache";
+    return base_path / ("tile_cache_" + m_name);
 }
 
 void Scheduler::set_purge_timeout(unsigned int new_purge_timeout)

@@ -22,8 +22,8 @@
 
 namespace nucleus::map_label {
 
-Scheduler::Scheduler(QObject* parent)
-    : nucleus::tile_scheduler::Scheduler(256, parent)
+Scheduler::Scheduler(std::string name, QObject* parent)
+    : nucleus::tile_scheduler::Scheduler(std::move(name), 256, parent)
 {
 }
 Scheduler::~Scheduler() = default;
@@ -52,9 +52,6 @@ bool Scheduler::is_ready_to_ship(const nucleus::tile_scheduler::tile_types::Data
     return m_geometry_ram_cache->contains(quad.id);
 }
 
-void Scheduler::set_geometry_ram_cache(nucleus::tile_scheduler::Cache<nucleus::tile_scheduler::tile_types::LayeredTileQuad>* new_geometry_ram_cache)
-{
-    m_geometry_ram_cache = new_geometry_ram_cache;
-}
+void Scheduler::set_geometry_ram_cache(nucleus::tile_scheduler::MemoryCache* new_geometry_ram_cache) { m_geometry_ram_cache = new_geometry_ram_cache; }
 
 } // namespace nucleus::map_label

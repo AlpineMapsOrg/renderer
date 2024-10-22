@@ -67,7 +67,7 @@
 #include <nucleus/DataQuerier.h>
 #include <nucleus/camera/Controller.h>
 #include <nucleus/camera/PositionStorage.h>
-#include <nucleus/tile_scheduler/OldScheduler.h>
+#include <nucleus/tile_scheduler/GeometryScheduler.h>
 #include <nucleus/tile_scheduler/TileLoadService.h>
 #include <nucleus/tile_scheduler/setup.h>
 
@@ -83,7 +83,8 @@ using namespace std::chrono_literals;
 
 using nucleus::AbstractRenderWindow;
 using nucleus::DataQuerier;
-using Scheduler = nucleus::tile_scheduler::OldScheduler;
+using Scheduler = nucleus::tile_scheduler::Scheduler;
+using GeometryScheduler = nucleus::tile_scheduler::GeometryScheduler;
 using TextureScheduler = nucleus::tile_scheduler::TextureScheduler;
 using nucleus::tile_scheduler::TileLoadService;
 using CameraController = nucleus::camera::Controller;
@@ -121,11 +122,12 @@ int main(int argc, char* argv[])
     auto ortho_service = std::make_unique<TileLoadService>("https://gataki.cg.tuwien.ac.at/raw/basemap/tiles/", TileLoadService::UrlPattern::ZYX_yPointingSouth, ".jpeg");
 
     auto decorator = nucleus::tile_scheduler::setup::aabb_decorator();
-    auto scheduler = nucleus::tile_scheduler::setup::monolithic(std::move(terrain_service), std::move(ortho_service), decorator);
-    auto data_querier = std::make_shared<DataQuerier>(&scheduler.scheduler->ram_cache());
+    QThread scheduler_thread;
+    auto geometry_scheduler = nucleus::tile_scheduler::setup::geometry_scheduler("geometry", std::move(terrain_service), decorator, &scheduler_thread);
+    auto data_querier = std::make_shared<DataQuerier>(&geometry_scheduler.scheduler->ram_cache());
 
     auto ortho_scheduler = nucleus::tile_scheduler::setup::texture_scheduler(
-        std::make_unique<TileLoadService>("https://gataki.cg.tuwien.ac.at/raw/basemap/tiles/", TileLoadService::UrlPattern::ZYX_yPointingSouth, ".jpeg"), decorator, scheduler.thread.get());
+        "ortho", std::make_unique<TileLoadService>("https://gataki.cg.tuwien.ac.at/raw/basemap/tiles/", TileLoadService::UrlPattern::ZYX_yPointingSouth, ".jpeg"), decorator, &scheduler_thread);
 
     auto context = std::make_shared<gl_engine::Context>();
     context->set_tile_geometry(std::make_shared<gl_engine::TileGeometry>());
@@ -145,7 +147,7 @@ int main(int argc, char* argv[])
     QObject::connect(&glWindow, &Window::about_to_be_destoryed, context.get(), &gl_engine::Context::destroy);
     QObject::connect(glWindow.render_window(), &AbstractRenderWindow::update_camera_requested, &camera_controller, &CameraController::advance_camera);
     QObject::connect(&glWindow, &Window::initialisation_started, context.get(), [&]() { context->initialise(); });
-    QObject::connect(&glWindow, &Window::initialisation_started, scheduler.scheduler.get(), [&]() { scheduler.scheduler->set_enabled(true); });
+    QObject::connect(&glWindow, &Window::initialisation_started, geometry_scheduler.scheduler.get(), [&]() { geometry_scheduler.scheduler->set_enabled(true); });
     QObject::connect(&glWindow, &Window::initialisation_started, &glWindow, [&ortho_scheduler]() {
         const auto compression_algorithm = gl_engine::Texture::compression_algorithm();
         nucleus::utils::thread::async_call(ortho_scheduler.scheduler.get(), [&ortho_scheduler, compression_algorithm]() {
@@ -153,12 +155,12 @@ int main(int argc, char* argv[])
             ortho_scheduler.scheduler->set_enabled(true);
         });
     });
-    QObject::connect(&camera_controller, &nucleus::camera::Controller::definition_changed, scheduler.scheduler.get(), &Scheduler::update_camera);
-    QObject::connect(&camera_controller, &nucleus::camera::Controller::definition_changed, ortho_scheduler.scheduler.get(), &TextureScheduler::update_camera);
+    QObject::connect(&camera_controller, &nucleus::camera::Controller::definition_changed, geometry_scheduler.scheduler.get(), &Scheduler::update_camera);
+    QObject::connect(&camera_controller, &nucleus::camera::Controller::definition_changed, ortho_scheduler.scheduler.get(), &Scheduler::update_camera);
     QObject::connect(&camera_controller, &nucleus::camera::Controller::definition_changed, glWindow.render_window(), &AbstractRenderWindow::update_camera);
-    QObject::connect(scheduler.scheduler.get(), &Scheduler::gpu_quads_updated, context->tile_geometry(), &gl_engine::TileGeometry::update_gpu_quads);
+    QObject::connect(geometry_scheduler.scheduler.get(), &GeometryScheduler::gpu_quads_updated, context->tile_geometry(), &gl_engine::TileGeometry::update_gpu_quads);
+    QObject::connect(geometry_scheduler.scheduler.get(), &GeometryScheduler::gpu_quads_updated, glWindow.render_window(), &AbstractRenderWindow::update_requested);
     QObject::connect(ortho_scheduler.scheduler.get(), &TextureScheduler::gpu_quads_updated, context->ortho_layer(), &gl_engine::TextureLayer::update_gpu_quads);
-    QObject::connect(scheduler.scheduler.get(), &Scheduler::gpu_quads_updated, glWindow.render_window(), &AbstractRenderWindow::update_requested);
     QObject::connect(ortho_scheduler.scheduler.get(), &TextureScheduler::gpu_quads_updated, glWindow.render_window(), &AbstractRenderWindow::update_requested);
 
     QObject::connect(&glWindow, &Window::mouse_moved, &camera_controller, &nucleus::camera::Controller::mouse_move);
@@ -179,6 +181,8 @@ int main(int argc, char* argv[])
     // native, however, glWindow has a zero size at this point.
     if (glWindow.width() > 0 && glWindow.height() > 0)
         camera_controller.set_viewport({ glWindow.width(), glWindow.height() });
+
+    scheduler_thread.start();
 
     return QGuiApplication::exec();
 }

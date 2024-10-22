@@ -67,10 +67,10 @@ Raster<glm::u8vec4> Factory::label_icons()
 {
     using PoiType = vector_tile::PointOfInterest::Type;
     auto icons = std::unordered_map<PoiType, Raster<glm::u8vec4>>();
-    icons[PoiType::Peak] = nucleus::utils::image_loader::rgba8(":/map_icons/peak.png");
-    icons[PoiType::Settlement] = nucleus::utils::image_loader::rgba8(":/map_icons/city.png");
-    icons[PoiType::AlpineHut] = nucleus::utils::image_loader::rgba8(":/map_icons/alpinehut.png");
-    icons[PoiType::Webcam] = nucleus::utils::image_loader::rgba8(":/map_icons/camera.png");
+    icons[PoiType::Peak] = nucleus::utils::image_loader::rgba8(":/map_icons/peak.png").value();
+    icons[PoiType::Settlement] = nucleus::utils::image_loader::rgba8(":/map_icons/city.png").value();
+    icons[PoiType::AlpineHut] = nucleus::utils::image_loader::rgba8(":/map_icons/alpinehut.png").value();
+    icons[PoiType::Webcam] = nucleus::utils::image_loader::rgba8(":/map_icons/camera.png").value();
     icons[PoiType::Unknown] = nucleus::Raster<glm::u8vec4>(icons[PoiType::Peak].size(), glm::u8vec4(255, 0, 128, 255));
 
     size_t combined_height(0);

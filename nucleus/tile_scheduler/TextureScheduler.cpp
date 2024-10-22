@@ -21,8 +21,8 @@
 
 namespace nucleus::tile_scheduler {
 
-TextureScheduler::TextureScheduler(unsigned texture_resolution, QObject* parent)
-    : nucleus::tile_scheduler::Scheduler(texture_resolution, parent)
+TextureScheduler::TextureScheduler(std::string name, unsigned texture_resolution, QObject* parent)
+    : nucleus::tile_scheduler::Scheduler(std::move(name), texture_resolution, parent)
     , m_default_raster(glm::uvec2(texture_resolution), { 255, 255, 255, 255 })
 {
 }
@@ -44,7 +44,7 @@ void TextureScheduler::transform_and_emit(const std::vector<tile_scheduler::tile
 
             if (quad.tiles[i].data->size()) {
                 // Ortho image is available
-                Raster<glm::u8vec4> ortho_raster = nucleus::utils::image_loader::rgba8(*quad.tiles[i].data.get());
+                const auto ortho_raster = nucleus::utils::image_loader::rgba8(*quad.tiles[i].data.get()).value_or(m_default_raster);
                 gpu_quad.tiles[i].texture = std::make_shared<nucleus::utils::MipmappedColourTexture>(generate_mipmapped_colour_texture(ortho_raster, m_compression_algorithm));
             } else {
                 // Ortho image is not available (use white default tile)

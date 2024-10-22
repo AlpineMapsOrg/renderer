@@ -26,7 +26,7 @@ namespace nucleus::tile_scheduler {
 class TextureScheduler : public Scheduler {
     Q_OBJECT
 public:
-    TextureScheduler(unsigned texture_resolution, QObject* parent = nullptr);
+    TextureScheduler(std::string name, unsigned texture_resolution, QObject* parent = nullptr);
     ~TextureScheduler() override;
 
     void set_texture_compression_algorithm(nucleus::utils::ColourTexture::Format compression_algorithm);
