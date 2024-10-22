@@ -70,7 +70,7 @@ bool find_tile(inout highp uvec3 tile_id, out lowp ivec2 dict_px, inout highp ve
                 break;
             }
         }
-        if (found_packed_tile_id != missing_packed_tile_id) {
+        if (found_packed_tile_id == wanted_packed_tile_id) {
             dict_px = to_dict_pixel(hash);
             tile_id = unpack_tile_id(wanted_packed_tile_id);
             return true;
