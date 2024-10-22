@@ -16,7 +16,9 @@
 * You should have received a copy of the GNU General Public License
 * along with this program.  If not, see <http://www.gnu.org/licenses/>.
 *****************************************************************************/
- 
+
+#include "tile_id.glsl"
+
 layout(location = 0) in highp vec4 bounds;
 layout(location = 1) in highp int height_texture_layer;
 layout(location = 2) in highp uvec2 packed_tile_id;
@@ -78,6 +80,10 @@ highp vec3 camera_world_space_position(out vec2 uv, out float n_quads_per_direct
 #if CURTAIN_HEIGHT_MODE == 1
         float dist_factor = clamp(length(var_pos_cws) / 100000.0, 0.2, 1.0);
         curtain_height *= dist_factor;
+#endif
+#if CURTAIN_HEIGHT_MODE == 2
+        float zoom_factor = 1.0 - max(0.1, float(unpack_tile_id(packed_tile_id).z) / 25.f);
+        curtain_height *= zoom_factor;
 #endif
         var_pos_cws.z = var_pos_cws.z - curtain_height;
     }

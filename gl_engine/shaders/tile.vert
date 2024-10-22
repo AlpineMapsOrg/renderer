@@ -21,7 +21,6 @@
 #include "hashing.glsl"
 #include "camera_config.glsl"
 #include "tile.glsl"
-#include "tile_id.glsl"
 
 out highp vec2 var_uv;
 out highp vec3 var_pos_cws;
