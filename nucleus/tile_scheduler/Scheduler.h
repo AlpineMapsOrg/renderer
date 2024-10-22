@@ -88,6 +88,8 @@ public:
 
     [[nodiscard]] unsigned int tile_resolution() const;
 
+    const utils::AabbDecoratorPtr& aabb_decorator() const;
+
 signals:
     void statistics_updated(Statistics stats);
     void quad_received(const tile::Id& ids);

@@ -134,4 +134,17 @@ struct GpuTextureQuad {
 };
 static_assert(NamedTile<GpuTextureQuad>);
 
+struct GpuGeometryTile {
+    tile::Id id;
+    tile::SrsAndHeightBounds bounds = {};
+    std::shared_ptr<const nucleus::Raster<uint16_t>> surface;
+};
+static_assert(NamedTile<GpuGeometryTile>);
+
+struct GpuGeometryQuad {
+    tile::Id id;
+    std::array<GpuGeometryTile, 4> tiles;
+};
+static_assert(NamedTile<GpuGeometryQuad>);
+
 } // namespace nucleus::tile_scheduler::tile_types

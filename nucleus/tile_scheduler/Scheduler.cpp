@@ -260,6 +260,8 @@ std::vector<tile::Id> Scheduler::tiles_for_current_camera_position() const
     return all_inner_nodes;
 }
 
+const utils::AabbDecoratorPtr& Scheduler::aabb_decorator() const { return m_aabb_decorator; }
+
 unsigned int Scheduler::tile_resolution() const { return m_tile_resolution; }
 
 std::shared_ptr<nucleus::DataQuerier> Scheduler::dataquerier() const { return m_dataquerier; }

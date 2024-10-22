@@ -115,6 +115,7 @@ qt_add_library(nucleus STATIC
     tile_scheduler/setup.h tile_scheduler/setup.cpp
     tile_scheduler/GpuArrayHelper.h tile_scheduler/GpuArrayHelper.cpp
     tile_scheduler/TextureScheduler.h tile_scheduler/TextureScheduler.cpp
+    tile_scheduler/GeometryScheduler.h tile_scheduler/GeometryScheduler.cpp
 )
 
 if (ALP_ENABLE_AVLANCHE_WARNING_LAYER)
