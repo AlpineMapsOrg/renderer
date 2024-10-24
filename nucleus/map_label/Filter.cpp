@@ -143,10 +143,10 @@ void Filter::filter()
         if (!m_all_pois.contains(tile_id))
             continue; // tile was removed in the meantime
 
-        filtered_tiles.emplace_back(tile_id, std::make_shared<PointOfInterestCollection>(apply_filter(*m_all_pois.at(tile_id))));
+        filtered_tiles.push_back({ tile_id, std::make_shared<PointOfInterestCollection>(apply_filter(*m_all_pois.at(tile_id))) });
     }
 
-    emit filter_finished(filtered_tiles, m_removed_tiles);
+    emit filter_finished(std::move(filtered_tiles), m_removed_tiles);
 }
 
 } // namespace nucleus::maplabel
