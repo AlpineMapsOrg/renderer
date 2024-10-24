@@ -71,7 +71,8 @@ TerrainRendererItem::TerrainRendererItem(QQuickItem* parent)
 #ifdef ALP_ENABLE_TRACK_OBJECT_LIFECYCLE
     qDebug("TerrainRendererItem()");
 #endif
-    //qDebug() << "gui thread: " << QThread::currentThread();
+    qDebug("TerrainRendererItem()");
+    qDebug() << "GUI thread: " << QThread::currentThread();
 
     m_url_modifier = std::make_shared<nucleus::utils::UrlModifier>();
 
@@ -106,7 +107,7 @@ TerrainRendererItem::~TerrainRendererItem()
 QQuickFramebufferObject::Renderer* TerrainRendererItem::createRenderer() const
 {
     qDebug("QQuickFramebufferObject::Renderer* TerrainRendererItem::createRenderer() const");
-    qDebug() << "rendering thread: " << QThread::currentThread();
+    qDebug() << "Rendering thread: " << QThread::currentThread();
     // called on rendering thread.
     auto ctx = RenderingContext::instance();
 
