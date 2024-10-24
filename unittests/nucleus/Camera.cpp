@@ -24,6 +24,7 @@
 #include "test_helpers.h"
 
 using test_helpers::equals;
+namespace geometry = radix::geometry;
 
 namespace {
 glm::vec3 divideByW(const glm::vec4& vec)

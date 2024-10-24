@@ -35,7 +35,7 @@ using namespace Qt::Literals::StringLiterals;
 
 namespace gl_engine {
 
-MapLabels::MapLabels(const nucleus::tile_scheduler::utils::AabbDecoratorPtr& aabb_decorator, QObject* parent)
+MapLabels::MapLabels(const nucleus::tile::utils::AabbDecoratorPtr& aabb_decorator, QObject* parent)
     : QObject { parent }
 {
     m_draw_list_generator.set_aabb_decorator(aabb_decorator);
@@ -76,7 +76,7 @@ void MapLabels::init(ShaderRegistry* shader_registry)
 
 MapLabels::TileSet MapLabels::generate_draw_list(const nucleus::camera::Definition& camera) const { return m_draw_list_generator.cull(m_draw_list_generator.generate_for(camera), camera.frustum()); }
 
-void MapLabels::upload_to_gpu(const tile::Id& id, const PointOfInterestCollection& features)
+void MapLabels::upload_to_gpu(const TileId& id, const PointOfInterestCollection& features)
 {
     if (!QOpenGLContext::currentContext()) // can happen during shutdown.
         return;
@@ -140,7 +140,7 @@ void MapLabels::upload_to_gpu(const tile::Id& id, const PointOfInterestCollectio
     m_gpu_tiles[id] = vectortile;
 }
 
-void MapLabels::update_labels(const std::vector<PoiTile>& updated_tiles, const std::vector<tile::Id>& removed_tiles)
+void MapLabels::update_labels(const std::vector<PoiTile>& updated_tiles, const std::vector<TileId>& removed_tiles)
 {
     // remove tiles that aren't needed anymore
     for (const auto& id : removed_tiles) {
@@ -157,7 +157,7 @@ void MapLabels::update_labels(const std::vector<PoiTile>& updated_tiles, const s
     }
 }
 
-void MapLabels::remove_tile(const tile::Id& tile_id)
+void MapLabels::remove_tile(const TileId& tile_id)
 {
     if (!QOpenGLContext::currentContext()) // can happen during shutdown.
         return;

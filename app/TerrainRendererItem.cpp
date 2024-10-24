@@ -44,8 +44,8 @@
 #include <nucleus/map_label/Scheduler.h>
 #include <nucleus/picker/PickerManager.h>
 #include <nucleus/srs.h>
-#include <nucleus/tile_scheduler/GeometryScheduler.h>
-#include <nucleus/tile_scheduler/TextureScheduler.h>
+#include <nucleus/tile/GeometryScheduler.h>
+#include <nucleus/tile/TextureScheduler.h>
 #include <nucleus/utils/UrlModifier.h>
 #include <nucleus/utils/sun_calculations.h>
 
@@ -140,9 +140,9 @@ QQuickFramebufferObject::Renderer* TerrainRendererItem::createRenderer() const
         ctx->geometry_scheduler()->set_permissible_screen_space_error(permissible_error);
         ctx->ortho_scheduler()->set_permissible_screen_space_error(permissible_error);
     });
-    connect(this, &TerrainRendererItem::tile_cache_size_changed, ctx->geometry_scheduler(), &nucleus::tile_scheduler::Scheduler::set_ram_quad_limit);
-    connect(this, &TerrainRendererItem::tile_cache_size_changed, ctx->ortho_scheduler(), &nucleus::tile_scheduler::Scheduler::set_ram_quad_limit);
-    connect(this, &TerrainRendererItem::tile_cache_size_changed, ctx->map_label_scheduler(), &nucleus::tile_scheduler::Scheduler::set_ram_quad_limit);
+    connect(this, &TerrainRendererItem::tile_cache_size_changed, ctx->geometry_scheduler(), &nucleus::tile::Scheduler::set_ram_quad_limit);
+    connect(this, &TerrainRendererItem::tile_cache_size_changed, ctx->ortho_scheduler(), &nucleus::tile::Scheduler::set_ram_quad_limit);
+    connect(this, &TerrainRendererItem::tile_cache_size_changed, ctx->map_label_scheduler(), &nucleus::tile::Scheduler::set_ram_quad_limit);
 
     // connect glWindow to forward key events.
     connect(this, &TerrainRendererItem::shared_config_changed, r->glWindow(), &gl_engine::Window::shared_config_changed);

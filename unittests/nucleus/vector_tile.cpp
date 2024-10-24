@@ -19,8 +19,8 @@
 
 #include <QSignalSpy>
 #include <catch2/catch_test_macros.hpp>
-#include <nucleus/tile_scheduler/TileLoadService.h>
-#include <nucleus/tile_scheduler/utils.h>
+#include <nucleus/tile/TileLoadService.h>
+#include <nucleus/tile/utils.h>
 #include <nucleus/vector_tile/parse.h>
 #include <radix/tile.h>
 
@@ -33,23 +33,23 @@ TEST_CASE("nucleus/vector_tiles")
         // manually download the tile from the below link and check if the changes are valid and replace vectortile.mvt with this new file
         // https://osm.cg.tuwien.ac.at/vector_tiles/poi_v1/10/548/359
 
-        const auto id = tile::Id { .zoom_level = 10, .coords = { 548, 359 }, .scheme = tile::Scheme::SlippyMap };
+        const auto id = nucleus::tile::Id { .zoom_level = 10, .coords = { 548, 359 }, .scheme = nucleus::tile::Scheme::SlippyMap };
 
-        nucleus::tile_scheduler::TileLoadService service(
-            "https://osm.cg.tuwien.ac.at/vector_tiles/poi_v1/", nucleus::tile_scheduler::TileLoadService::UrlPattern::ZXY_yPointingSouth, "");
+        nucleus::tile::TileLoadService service(
+            "https://osm.cg.tuwien.ac.at/vector_tiles/poi_v1/", nucleus::tile::TileLoadService::UrlPattern::ZXY_yPointingSouth, "");
 
         {
-            QSignalSpy spy(&service, &nucleus::tile_scheduler::TileLoadService::load_finished);
+            QSignalSpy spy(&service, &nucleus::tile::TileLoadService::load_finished);
             service.load(id);
             spy.wait(10000);
 
             REQUIRE(spy.count() == 1);
             QList<QVariant> arguments = spy.takeFirst();
             REQUIRE(arguments.size() == 1);
-            nucleus::tile_scheduler::tile_types::Data tile = arguments.at(0).value<nucleus::tile_scheduler::tile_types::Data>();
+            nucleus::tile::tile_types::Data tile = arguments.at(0).value<nucleus::tile::tile_types::Data>();
             CHECK(tile.id == id);
-            CHECK(tile.network_info.status == nucleus::tile_scheduler::tile_types::NetworkInfo::Status::Good);
-            CHECK(nucleus::tile_scheduler::utils::time_since_epoch() - tile.network_info.timestamp < 10'000);
+            CHECK(tile.network_info.status == nucleus::tile::tile_types::NetworkInfo::Status::Good);
+            CHECK(nucleus::utils::time_since_epoch() - tile.network_info.timestamp < 10'000);
 
             REQUIRE(tile.data->size() > 0);
             CHECK(tile.data->size() > 2000);

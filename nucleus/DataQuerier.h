@@ -20,16 +20,16 @@
 
 #include <glm/glm.hpp>
 
-#include <nucleus/tile_scheduler/Cache.h>
+#include <nucleus/tile/Cache.h>
 
 namespace nucleus {
 
 class DataQuerier
 {
-    tile_scheduler::MemoryCache* m_memory_cache = nullptr;
+    tile::MemoryCache* m_memory_cache = nullptr;
 
 public:
-    DataQuerier(tile_scheduler::MemoryCache* cache);
+    DataQuerier(tile::MemoryCache* cache);
 
     [[nodiscard]] float get_altitude(const glm::dvec2& lat_long) const;
 };

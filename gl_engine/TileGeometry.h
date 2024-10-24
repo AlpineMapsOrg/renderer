@@ -20,9 +20,9 @@
 
 #include <QObject>
 #include <nucleus/Raster.h>
-#include <nucleus/tile_scheduler/DrawListGenerator.h>
-#include <nucleus/tile_scheduler/GpuArrayHelper.h>
-#include <nucleus/tile_scheduler/tile_types.h>
+#include <nucleus/tile/DrawListGenerator.h>
+#include <nucleus/tile/GpuArrayHelper.h>
+#include <nucleus/tile/tile_types.h>
 
 namespace camera {
 class Definition;
@@ -41,13 +41,13 @@ class TileGeometry : public QObject {
     Q_OBJECT
 
     struct TileInfo {
-        tile::Id tile_id = {};
-        tile::SrsBounds bounds = {};
+        nucleus::tile::Id tile_id = {};
+        nucleus::tile::SrsBounds bounds = {};
         unsigned height_texture_layer = unsigned(-1);
     };
 
 public:
-    using TileSet = std::unordered_set<tile::Id, tile::Id::Hasher>;
+    using TileSet = std::unordered_set<nucleus::tile::Id, nucleus::tile::Id::Hasher>;
 
     explicit TileGeometry(QObject* parent = nullptr);
     void init(); // needs OpenGL context
@@ -59,13 +59,13 @@ public:
     void set_permissible_screen_space_error(float new_permissible_screen_space_error);
 
 public slots:
-    void update_gpu_quads(const std::vector<nucleus::tile_scheduler::tile_types::GpuGeometryQuad>& new_quads, const std::vector<tile::Id>& deleted_quads);
-    void set_aabb_decorator(const nucleus::tile_scheduler::utils::AabbDecoratorPtr& new_aabb_decorator);
+    void update_gpu_quads(const std::vector<nucleus::tile::tile_types::GpuGeometryQuad>& new_quads, const std::vector<nucleus::tile::Id>& deleted_quads);
+    void set_aabb_decorator(const nucleus::tile::utils::AabbDecoratorPtr& new_aabb_decorator);
     void set_quad_limit(unsigned new_limit);
 
 private:
-    void remove_tile(const tile::Id& tile_id);
-    void add_tile(const tile::Id& id, tile::SrsAndHeightBounds bounds, const nucleus::Raster<uint16_t>& heights);
+    void remove_tile(const nucleus::tile::Id& tile_id);
+    void add_tile(const nucleus::tile::Id& id, nucleus::tile::SrsAndHeightBounds bounds, const nucleus::Raster<uint16_t>& heights);
     void update_gpu_id_map();
 
     static constexpr auto N_EDGE_VERTICES = 65;
@@ -81,7 +81,7 @@ private:
     std::unique_ptr<QOpenGLBuffer> m_height_texture_layer_buffer;
 
     std::vector<TileInfo> m_gpu_tiles;
-    nucleus::tile_scheduler::DrawListGenerator m_draw_list_generator;
-    nucleus::tile_scheduler::GpuArrayHelper m_gpu_array_helper;
+    nucleus::tile::DrawListGenerator m_draw_list_generator;
+    nucleus::tile::GpuArrayHelper m_gpu_array_helper;
 };
 } // namespace gl_engine

@@ -67,17 +67,17 @@
 #include <nucleus/DataQuerier.h>
 #include <nucleus/camera/Controller.h>
 #include <nucleus/camera/PositionStorage.h>
-#include <nucleus/tile_scheduler/GeometryScheduler.h>
-#include <nucleus/tile_scheduler/TileLoadService.h>
-#include <nucleus/tile_scheduler/setup.h>
+#include <nucleus/tile/GeometryScheduler.h>
+#include <nucleus/tile/TileLoadService.h>
+#include <nucleus/tile/setup.h>
 
 using namespace std::chrono_literals;
 using nucleus::AbstractRenderWindow;
 using nucleus::DataQuerier;
-using Scheduler = nucleus::tile_scheduler::Scheduler;
-using GeometryScheduler = nucleus::tile_scheduler::GeometryScheduler;
-using TextureScheduler = nucleus::tile_scheduler::TextureScheduler;
-using nucleus::tile_scheduler::TileLoadService;
+using Scheduler = nucleus::tile::Scheduler;
+using GeometryScheduler = nucleus::tile::GeometryScheduler;
+using TextureScheduler = nucleus::tile::TextureScheduler;
+using nucleus::tile::TileLoadService;
 using CameraController = nucleus::camera::Controller;
 
 // QtMessageHandler originalHandler = nullptr;
@@ -124,12 +124,12 @@ int main(int argc, char** argv)
     //                                           {"", "1", "2", "3", "4"}));
     auto ortho_service = std::make_unique<TileLoadService>("https://gataki.cg.tuwien.ac.at/raw/basemap/tiles/", TileLoadService::UrlPattern::ZYX_yPointingSouth, ".jpeg");
 
-    auto decorator = nucleus::tile_scheduler::setup::aabb_decorator();
+    auto decorator = nucleus::tile::setup::aabb_decorator();
     QThread scheduler_thread;
-    auto geometry_scheduler = nucleus::tile_scheduler::setup::geometry_scheduler("geometry", std::move(terrain_service), decorator, &scheduler_thread);
+    auto geometry_scheduler = nucleus::tile::setup::geometry_scheduler("geometry", std::move(terrain_service), decorator, &scheduler_thread);
     auto data_querier = std::make_shared<DataQuerier>(&geometry_scheduler.scheduler->ram_cache());
 
-    auto ortho_scheduler = nucleus::tile_scheduler::setup::texture_scheduler(
+    auto ortho_scheduler = nucleus::tile::setup::texture_scheduler(
         "ortho", std::make_unique<TileLoadService>("https://gataki.cg.tuwien.ac.at/raw/basemap/tiles/", TileLoadService::UrlPattern::ZYX_yPointingSouth, ".jpeg"), decorator, &scheduler_thread);
 
     auto context = std::make_shared<gl_engine::Context>();

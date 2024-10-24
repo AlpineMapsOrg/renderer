@@ -49,7 +49,7 @@ ShadowMapping::~ShadowMapping() {
 
 }
 
-void ShadowMapping::draw(TileGeometry* tile_geometry, const tile::IdSet& draw_tileset, const nucleus::camera::Definition& camera)
+void ShadowMapping::draw(TileGeometry* tile_geometry, const nucleus::tile::IdSet& draw_tileset, const nucleus::camera::Definition& camera)
 {
 
     // NOTE: ReverseZ is not necessary for ShadowMapping since a directional light is using an orthographic projection

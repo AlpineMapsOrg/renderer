@@ -21,14 +21,14 @@
 #include "Scheduler.h"
 #include <QThread>
 #include <memory>
-#include <nucleus/tile_scheduler/QuadAssembler.h>
-#include <nucleus/tile_scheduler/RateLimiter.h>
-#include <nucleus/tile_scheduler/SlotLimiter.h>
-#include <nucleus/tile_scheduler/TileLoadService.h>
+#include <nucleus/tile/QuadAssembler.h>
+#include <nucleus/tile/RateLimiter.h>
+#include <nucleus/tile/SlotLimiter.h>
+#include <nucleus/tile/TileLoadService.h>
 
 namespace nucleus::map_label::setup {
 
-using TileLoadServicePtr = std::unique_ptr<nucleus::tile_scheduler::TileLoadService>;
+using TileLoadServicePtr = std::unique_ptr<nucleus::tile::TileLoadService>;
 
 struct SchedulerHolder {
     std::unique_ptr<map_label::Scheduler> scheduler;
@@ -37,7 +37,7 @@ struct SchedulerHolder {
 
 SchedulerHolder scheduler(std::string name,
     TileLoadServicePtr vector_service,
-    const tile_scheduler::utils::AabbDecoratorPtr& aabb_decorator,
+    const tile::utils::AabbDecoratorPtr& aabb_decorator,
     const std::shared_ptr<nucleus::DataQuerier>& data_querier,
     QThread* thread = nullptr)
 {
@@ -49,10 +49,10 @@ SchedulerHolder scheduler(std::string name,
     scheduler->set_dataquerier(data_querier);
 
     {
-        using nucleus::tile_scheduler::QuadAssembler;
-        using nucleus::tile_scheduler::RateLimiter;
-        using nucleus::tile_scheduler::SlotLimiter;
-        using nucleus::tile_scheduler::TileLoadService;
+        using nucleus::tile::QuadAssembler;
+        using nucleus::tile::RateLimiter;
+        using nucleus::tile::SlotLimiter;
+        using nucleus::tile::TileLoadService;
         auto* sch = scheduler.get();
         auto* sl = new SlotLimiter(sch);
         auto* rl = new RateLimiter(sch);

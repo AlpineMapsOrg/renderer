@@ -185,7 +185,7 @@ void TileGeometry::draw(ShaderProgram* shader, const nucleus::camera::Definition
     f->glBindVertexArray(0);
 }
 
-void TileGeometry::remove_tile(const tile::Id& tile_id)
+void TileGeometry::remove_tile(const nucleus::tile::Id& tile_id)
 {
     if (!QOpenGLContext::currentContext()) // can happen during shutdown.
         return;
@@ -200,18 +200,18 @@ void TileGeometry::remove_tile(const tile::Id& tile_id)
         m_gpu_tiles.erase(found_tile);
 }
 
-void TileGeometry::set_aabb_decorator(const nucleus::tile_scheduler::utils::AabbDecoratorPtr& new_aabb_decorator) { m_draw_list_generator.set_aabb_decorator(new_aabb_decorator); }
+void TileGeometry::set_aabb_decorator(const nucleus::tile::utils::AabbDecoratorPtr& new_aabb_decorator) { m_draw_list_generator.set_aabb_decorator(new_aabb_decorator); }
 
 void TileGeometry::set_quad_limit(unsigned int new_limit) { m_gpu_array_helper.set_quad_limit(new_limit); }
 
-void TileGeometry::add_tile(const tile::Id& id, tile::SrsAndHeightBounds bounds, const nucleus::Raster<uint16_t>& height_map)
+void TileGeometry::add_tile(const nucleus::tile::Id& id, nucleus::tile::SrsAndHeightBounds bounds, const nucleus::Raster<uint16_t>& height_map)
 {
     if (!QOpenGLContext::currentContext()) // can happen during shutdown.
         return;
 
     TileInfo tileinfo;
     tileinfo.tile_id = id;
-    tileinfo.bounds = tile::SrsBounds(bounds);
+    tileinfo.bounds = nucleus::tile::SrsBounds(bounds);
 
     // find empty spot and upload texture
     const auto layer_index = m_gpu_array_helper.add_tile(id);
@@ -235,7 +235,7 @@ void TileGeometry::set_permissible_screen_space_error(float new_permissible_scre
     m_draw_list_generator.set_permissible_screen_space_error(new_permissible_screen_space_error);
 }
 
-void TileGeometry::update_gpu_quads(const std::vector<nucleus::tile_scheduler::tile_types::GpuGeometryQuad>& new_quads, const std::vector<tile::Id>& deleted_quads)
+void TileGeometry::update_gpu_quads(const std::vector<nucleus::tile::tile_types::GpuGeometryQuad>& new_quads, const std::vector<nucleus::tile::Id>& deleted_quads)
 {
     for (const auto& quad : deleted_quads) {
         for (const auto& id : quad.children()) {

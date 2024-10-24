@@ -33,13 +33,13 @@
 #include <nucleus/map_label/Filter.h>
 #include <nucleus/map_label/setup.h>
 #include <nucleus/picker/PickerManager.h>
-#include <nucleus/tile_scheduler/GeometryScheduler.h>
-#include <nucleus/tile_scheduler/TextureScheduler.h>
-#include <nucleus/tile_scheduler/TileLoadService.h>
-#include <nucleus/tile_scheduler/setup.h>
+#include <nucleus/tile/GeometryScheduler.h>
+#include <nucleus/tile/TextureScheduler.h>
+#include <nucleus/tile/TileLoadService.h>
+#include <nucleus/tile/setup.h>
 #include <nucleus/utils/thread.h>
 
-using namespace nucleus::tile_scheduler;
+using namespace nucleus::tile;
 using namespace nucleus::map_label;
 using namespace nucleus::picker;
 using nucleus::DataQuerier;
@@ -51,26 +51,26 @@ struct RenderingContext::Data {
 
     std::unique_ptr<QThread> scheduler_thread;
     // the ones below are on the scheduler thread.
-    nucleus::tile_scheduler::setup::GeometrySchedulerHolder geometry;
-    nucleus::tile_scheduler::setup::TextureSchedulerHolder ortho_texture;
+    nucleus::tile::setup::GeometrySchedulerHolder geometry;
+    nucleus::tile::setup::TextureSchedulerHolder ortho_texture;
     nucleus::map_label::setup::SchedulerHolder map_label;
     std::shared_ptr<nucleus::DataQuerier> data_querier;
     std::unique_ptr<nucleus::camera::Controller> camera_controller;
     std::shared_ptr<nucleus::map_label::Filter> label_filter;
     std::shared_ptr<nucleus::picker::PickerManager> picker_manager;
-    std::shared_ptr<nucleus::tile_scheduler::utils::AabbDecorator> aabb_decorator;
+    std::shared_ptr<nucleus::tile::utils::AabbDecorator> aabb_decorator;
 };
 
 RenderingContext::RenderingContext(QObject* parent)
     : QObject { parent }
     , m(std::make_unique<RenderingContext::Data>())
 {
-    using TilePattern = nucleus::tile_scheduler::TileLoadService::UrlPattern;
+    using TilePattern = nucleus::tile::TileLoadService::UrlPattern;
     assert(QThread::currentThread() == QCoreApplication::instance()->thread());
 
 #ifdef ALP_ENABLE_THREADING
     m->scheduler_thread = std::make_unique<QThread>();
-    m->scheduler_thread->setObjectName("tile_scheduler_thread");
+    m->scheduler_thread->setObjectName("tile_thread");
 #endif
 
     //    m->ortho_service.reset(new TileLoadService("https://tiles.bergfex.at/styles/bergfex-osm/", TileLoadService::UrlPattern::ZXY_yPointingSouth,
@@ -80,12 +80,12 @@ RenderingContext::RenderingContext(QObject* parent)
     //                                           TileLoadService::UrlPattern::ZYX_yPointingSouth,
     //                                           ".jpeg",
     //                                           {"", "1", "2", "3", "4"}));
-    m->aabb_decorator = nucleus::tile_scheduler::setup::aabb_decorator();
-    m->geometry = nucleus::tile_scheduler::setup::geometry_scheduler(
+    m->aabb_decorator = nucleus::tile::setup::aabb_decorator();
+    m->geometry = nucleus::tile::setup::geometry_scheduler(
         "geometry", std::make_unique<TileLoadService>("https://alpinemaps.cg.tuwien.ac.at/tiles/alpine_png/", TilePattern::ZXY, ".png"), m->aabb_decorator, m->scheduler_thread.get());
     m->data_querier = std::make_shared<DataQuerier>(&m->geometry.scheduler->ram_cache());
 
-    m->ortho_texture = nucleus::tile_scheduler::setup::texture_scheduler(
+    m->ortho_texture = nucleus::tile::setup::texture_scheduler(
         "ortho", std::make_unique<TileLoadService>("https://gataki.cg.tuwien.ac.at/raw/basemap/tiles/", TilePattern::ZYX_yPointingSouth, ".jpeg"), m->aabb_decorator, m->scheduler_thread.get());
 
     m->map_label = nucleus::map_label::setup::scheduler("map_label",
@@ -103,8 +103,8 @@ RenderingContext::RenderingContext(QObject* parent)
         m->label_filter->moveToThread(m->scheduler_thread.get());
     }
     // clang-format off
-    connect(m->geometry.scheduler.get(),       &nucleus::tile_scheduler::GeometryScheduler::gpu_quads_updated, RenderThreadNotifier::instance(), &RenderThreadNotifier::notify);
-    connect(m->ortho_texture.scheduler.get(),  &nucleus::tile_scheduler::TextureScheduler::gpu_quads_updated,  RenderThreadNotifier::instance(), &RenderThreadNotifier::notify);
+    connect(m->geometry.scheduler.get(),       &nucleus::tile::GeometryScheduler::gpu_quads_updated, RenderThreadNotifier::instance(), &RenderThreadNotifier::notify);
+    connect(m->ortho_texture.scheduler.get(),  &nucleus::tile::TextureScheduler::gpu_quads_updated,  RenderThreadNotifier::instance(), &RenderThreadNotifier::notify);
     connect(m->map_label.scheduler.get(),      &nucleus::map_label::Scheduler::gpu_tiles_updated,              RenderThreadNotifier::instance(), &RenderThreadNotifier::notify);
     connect(m->map_label.scheduler.get(),      &nucleus::map_label::Scheduler::gpu_tiles_updated,              m->picker_manager.get(),          &PickerManager::update_quads);
     connect(m->map_label.scheduler.get(),      &nucleus::map_label::Scheduler::gpu_tiles_updated,              m->label_filter.get(),            &Filter::update_quads);
@@ -116,9 +116,9 @@ RenderingContext::RenderingContext(QObject* parent)
         m->ortho_texture.scheduler->set_network_reachability(n->reachability());
         m->map_label.scheduler->set_network_reachability(n->reachability());
         // clang-format off
-        connect(n, &QNetworkInformation::reachabilityChanged, m->geometry.scheduler.get(),       &nucleus::tile_scheduler::Scheduler::set_network_reachability);
-        connect(n, &QNetworkInformation::reachabilityChanged, m->ortho_texture.scheduler.get(),  &nucleus::tile_scheduler::Scheduler::set_network_reachability);
-        connect(n, &QNetworkInformation::reachabilityChanged, m->map_label.scheduler.get(),      &nucleus::tile_scheduler::Scheduler::set_network_reachability);
+        connect(n, &QNetworkInformation::reachabilityChanged, m->geometry.scheduler.get(),       &nucleus::tile::Scheduler::set_network_reachability);
+        connect(n, &QNetworkInformation::reachabilityChanged, m->ortho_texture.scheduler.get(),  &nucleus::tile::Scheduler::set_network_reachability);
+        connect(n, &QNetworkInformation::reachabilityChanged, m->map_label.scheduler.get(),      &nucleus::tile::Scheduler::set_network_reachability);
         // clang-format on
     }
 #ifdef ALP_ENABLE_THREADING
@@ -153,8 +153,8 @@ void RenderingContext::initialise()
     m->engine_context->tile_geometry()->set_aabb_decorator(m->aabb_decorator);
     m->engine_context->ortho_layer()->set_quad_limit(512);
 
-    connect(m->geometry.scheduler.get(), &nucleus::tile_scheduler::GeometryScheduler::gpu_quads_updated, m->engine_context->tile_geometry(), &gl_engine::TileGeometry::update_gpu_quads);
-    connect(m->ortho_texture.scheduler.get(), &nucleus::tile_scheduler::TextureScheduler::gpu_quads_updated, m->engine_context->ortho_layer(), &gl_engine::TextureLayer::update_gpu_quads);
+    connect(m->geometry.scheduler.get(), &nucleus::tile::GeometryScheduler::gpu_quads_updated, m->engine_context->tile_geometry(), &gl_engine::TileGeometry::update_gpu_quads);
+    connect(m->ortho_texture.scheduler.get(), &nucleus::tile::TextureScheduler::gpu_quads_updated, m->engine_context->ortho_layer(), &gl_engine::TextureLayer::update_gpu_quads);
     nucleus::utils::thread::async_call(m->geometry.scheduler.get(), [this]() { m->geometry.scheduler->set_enabled(true); });
     const auto texture_compression = gl_engine::Texture::compression_algorithm();
     nucleus::utils::thread::async_call(m->ortho_texture.scheduler.get(), [this, texture_compression]() {
@@ -208,7 +208,7 @@ std::shared_ptr<gl_engine::Context> RenderingContext::engine_context() const
     return m->engine_context;
 }
 
-std::shared_ptr<nucleus::tile_scheduler::utils::AabbDecorator> RenderingContext::aabb_decorator() const
+std::shared_ptr<nucleus::tile::utils::AabbDecorator> RenderingContext::aabb_decorator() const
 {
     QMutexLocker locker(&m->shared_ptr_mutex);
     return m->aabb_decorator;
@@ -244,7 +244,7 @@ nucleus::map_label::Scheduler* RenderingContext::map_label_scheduler() const
     return m->map_label.scheduler.get();
 }
 
-nucleus::tile_scheduler::TextureScheduler* RenderingContext::ortho_scheduler() const
+nucleus::tile::TextureScheduler* RenderingContext::ortho_scheduler() const
 {
     QMutexLocker locker(&m->shared_ptr_mutex);
     return m->ortho_texture.scheduler.get();

@@ -24,7 +24,7 @@
 #include <QTimer>
 #include <QVector2D>
 #include <nucleus/map_label/FilterDefinitions.h>
-#include <nucleus/tile_scheduler/tile_types.h>
+#include <nucleus/tile/tile_types.h>
 #include <queue>
 
 using namespace nucleus::vector_tile;

@@ -23,20 +23,23 @@
 #include <QFile>
 
 #include "nucleus/camera/PositionStorage.h"
-#include "nucleus/tile_scheduler/DrawListGenerator.h"
-#include "nucleus/tile_scheduler/utils.h"
+#include "nucleus/tile/DrawListGenerator.h"
+#include "nucleus/tile/utils.h"
 #include "radix/TileHeights.h"
 #include "radix/quad_tree.h"
 
-TEST_CASE("nucleus/tile_scheduler/DrawListGenerator")
+namespace tile = nucleus::tile;
+namespace quad_tree = radix::quad_tree;
+
+TEST_CASE("nucleus/tile/DrawListGenerator")
 {
-    TileHeights h;
+    radix::TileHeights h;
     h.emplace({ 0, { 0, 0 } }, { 100, 4000 });
     auto camera = nucleus::camera::stored_positions::oestl_hochgrubach_spitze();
     camera.set_viewport_size({ 1920, 1080 });
 
-    nucleus::tile_scheduler::DrawListGenerator draw_list_generator;
-    draw_list_generator.set_aabb_decorator(nucleus::tile_scheduler::utils::AabbDecorator::make(std::move(h)));
+    nucleus::tile::DrawListGenerator draw_list_generator;
+    draw_list_generator.set_aabb_decorator(nucleus::tile::utils::AabbDecorator::make(std::move(h)));
 
     SECTION("root only")
     {
@@ -83,13 +86,13 @@ TEST_CASE("nucleus/tile_scheduler/DrawListGenerator")
 
 }
 
-TEST_CASE("nucleus/tile_scheduler/DrawListGenerator benchmark")
+TEST_CASE("nucleus/tile/DrawListGenerator benchmark")
 {
     std::vector<tile::Id> all_inner_nodes;
     quad_tree::onTheFlyTraverse(
-        tile::Id{0, {0, 0}},
-        [](const tile::Id &v) { return v.zoom_level < 7; },
-        [&all_inner_nodes](const tile::Id &v) {
+        tile::Id { 0, { 0, 0 } },
+        [](const tile::Id& v) { return v.zoom_level < 7; },
+        [&all_inner_nodes](const tile::Id& v) {
             all_inner_nodes.push_back(v);
             return v.children();
         });
@@ -99,7 +102,7 @@ TEST_CASE("nucleus/tile_scheduler/DrawListGenerator benchmark")
     assert(open);
     Q_UNUSED(open);
     const QByteArray data = file.readAll();
-    const auto decorator = nucleus::tile_scheduler::utils::AabbDecorator::make(TileHeights::deserialise(data));
+    const auto decorator = nucleus::tile::utils::AabbDecorator::make(radix::TileHeights::deserialise(data));
 
     const auto camera_positions = std::vector{
         nucleus::camera::stored_positions::karwendel(),
@@ -111,7 +114,7 @@ TEST_CASE("nucleus/tile_scheduler/DrawListGenerator benchmark")
     };
     for (const auto &camera_position : camera_positions) {
         quad_tree::onTheFlyTraverse(tile::Id{0, {0, 0}},
-                                    nucleus::tile_scheduler::utils::refineFunctor(camera_position,
+                                    nucleus::tile::utils::refineFunctor(camera_position,
                                                                                   decorator,
                                                                                   1),
                                     [&all_inner_nodes](const tile::Id &v) {
@@ -120,7 +123,7 @@ TEST_CASE("nucleus/tile_scheduler/DrawListGenerator benchmark")
                                     });
     }
 
-    nucleus::tile_scheduler::DrawListGenerator draw_list_generator;
+    nucleus::tile::DrawListGenerator draw_list_generator;
     draw_list_generator.set_aabb_decorator(decorator);
     for (const auto &id : all_inner_nodes) {
         draw_list_generator.add_tile(id);
@@ -128,7 +131,7 @@ TEST_CASE("nucleus/tile_scheduler/DrawListGenerator benchmark")
 
     BENCHMARK("generate_for")
     {
-        nucleus::tile_scheduler::DrawListGenerator::TileSet set;
+        nucleus::tile::DrawListGenerator::TileSet set;
         for (const auto &camera_position : camera_positions) {
             const auto list = draw_list_generator.generate_for(camera_position);
             set.reserve(set.size() + list.size());

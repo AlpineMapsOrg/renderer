@@ -18,28 +18,28 @@
 
 #pragma once
 
-#include <nucleus/tile_scheduler/Scheduler.h>
+#include <nucleus/tile/Scheduler.h>
 #include <nucleus/vector_tile/types.h>
 
 namespace nucleus::map_label {
 
-class Scheduler : public nucleus::tile_scheduler::Scheduler {
+class Scheduler : public nucleus::tile::Scheduler {
     Q_OBJECT
 public:
     explicit Scheduler(std::string name, QObject* parent = nullptr);
     ~Scheduler() override;
 
-    void set_geometry_ram_cache(nucleus::tile_scheduler::MemoryCache* new_geometry_ram_cache);
+    void set_geometry_ram_cache(nucleus::tile::MemoryCache* new_geometry_ram_cache);
 
 signals:
     void gpu_tiles_updated(const std::vector<vector_tile::PoiTile>& new_quads, const std::vector<tile::Id>& deleted_quads);
 
 protected:
-    void transform_and_emit(const std::vector<tile_scheduler::tile_types::DataQuad>& new_quads, const std::vector<tile::Id>& deleted_quads) override;
-    bool is_ready_to_ship(const nucleus::tile_scheduler::tile_types::DataQuad& quad) const override;
+    void transform_and_emit(const std::vector<tile::tile_types::DataQuad>& new_quads, const std::vector<tile::Id>& deleted_quads) override;
+    bool is_ready_to_ship(const nucleus::tile::tile_types::DataQuad& quad) const override;
 
 private:
-    nucleus::tile_scheduler::MemoryCache* m_geometry_ram_cache = nullptr;
+    nucleus::tile::MemoryCache* m_geometry_ram_cache = nullptr;
 };
 
 } // namespace nucleus::map_label

@@ -30,7 +30,7 @@
 #include "nucleus/map_label/Factory.h"
 #include "nucleus/map_label/FilterDefinitions.h"
 
-#include "nucleus/tile_scheduler/DrawListGenerator.h"
+#include "nucleus/tile/DrawListGenerator.h"
 
 using namespace nucleus::vector_tile;
 
@@ -39,7 +39,7 @@ class ShaderProgram;
 class ShaderRegistry;
 
 struct GPUVectorTile {
-    tile::Id id;
+    nucleus::tile::Id id;
     std::unique_ptr<QOpenGLBuffer> vertex_buffer;
     std::unique_ptr<QOpenGLVertexArrayObject> vao;
     size_t instance_count; // how many characters (+1 for icon)
@@ -50,19 +50,20 @@ class MapLabels : public QObject {
     Q_OBJECT
 
 public:
-    using TileSet = nucleus::tile_scheduler::DrawListGenerator::TileSet;
-    explicit MapLabels(const nucleus::tile_scheduler::utils::AabbDecoratorPtr& aabb_decorator, QObject* parent = nullptr);
+    using TileSet = nucleus::tile::DrawListGenerator::TileSet;
+    using TileId = nucleus::tile::Id;
+    explicit MapLabels(const nucleus::tile::utils::AabbDecoratorPtr& aabb_decorator, QObject* parent = nullptr);
 
     void init(ShaderRegistry* shader_registry);
     void draw(Framebuffer* gbuffer, const nucleus::camera::Definition& camera, const TileSet& draw_tiles) const;
     void draw_picker(Framebuffer* gbuffer, const nucleus::camera::Definition& camera, const TileSet& draw_tiles) const;
     TileSet generate_draw_list(const nucleus::camera::Definition& camera) const;
 
-    void update_labels(const std::vector<nucleus::vector_tile::PoiTile>& updated_tiles, const std::vector<tile::Id>& removed_tiles);
+    void update_labels(const std::vector<nucleus::vector_tile::PoiTile>& updated_tiles, const std::vector<TileId>& removed_tiles);
 
 private:
-    void upload_to_gpu(const tile::Id& id, const PointOfInterestCollection& features);
-    void remove_tile(const tile::Id& tile_id);
+    void upload_to_gpu(const TileId& id, const PointOfInterestCollection& features);
+    void remove_tile(const TileId& tile_id);
 
     std::shared_ptr<ShaderProgram> m_label_shader;
     std::shared_ptr<ShaderProgram> m_picker_shader;
@@ -75,7 +76,7 @@ private:
 
     nucleus::map_label::Factory m_mapLabelFactory;
 
-    nucleus::tile_scheduler::DrawListGenerator m_draw_list_generator;
-    std::unordered_map<tile::Id, std::shared_ptr<GPUVectorTile>, tile::Id::Hasher> m_gpu_tiles;
+    nucleus::tile::DrawListGenerator m_draw_list_generator;
+    std::unordered_map<TileId, std::shared_ptr<GPUVectorTile>, TileId::Hasher> m_gpu_tiles;
 };
 } // namespace gl_engine

@@ -52,7 +52,7 @@ void gl_engine::TextureLayer::init(ShaderRegistry* shader_registry)
 
 void TextureLayer::draw(const TileGeometry& tile_geometry,
     const nucleus::camera::Definition& camera,
-    const nucleus::tile_scheduler::DrawListGenerator::TileSet& draw_tiles,
+    const nucleus::tile::DrawListGenerator::TileSet& draw_tiles,
     bool sort_tiles,
     glm::dvec3 sort_position) const
 {
@@ -69,7 +69,7 @@ void TextureLayer::draw(const TileGeometry& tile_geometry,
     tile_geometry.draw(m_shader.get(), camera, draw_tiles, sort_tiles, sort_position);
 }
 
-void TextureLayer::update_gpu_quads(const std::vector<nucleus::tile_scheduler::tile_types::GpuTextureQuad>& new_quads, const std::vector<tile::Id>& deleted_quads)
+void TextureLayer::update_gpu_quads(const std::vector<nucleus::tile::tile_types::GpuTextureQuad>& new_quads, const std::vector<nucleus::tile::Id>& deleted_quads)
 {
     if (!QOpenGLContext::currentContext()) // can happen during shutdown.
         return;

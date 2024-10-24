@@ -22,7 +22,7 @@
 project(alpine-renderer-nucleus LANGUAGES CXX)
 
 alp_add_git_repository(stb_slim URL https://github.com/AlpineMapsOrgDependencies/stb_slim.git COMMITISH 547fade2a12793e1bea4733d59646b4f436e25a4)
-alp_add_git_repository(radix URL https://github.com/AlpineMapsOrg/radix.git COMMITISH cff5e9291f4b23e74711af4ee71958a845e3da55 NOT_SYSTEM)
+alp_add_git_repository(radix URL https://github.com/AlpineMapsOrg/radix.git COMMITISH 5718519002b26cdd54030e3ec227d27f46f79a64 NOT_SYSTEM)
 alp_add_git_repository(tl_expected URL https://github.com/TartanLlama/expected.git COMMITISH v1.1.0 DO_NOT_ADD_SUBPROJECT)
 if (NOT TARGET fmt)
     alp_add_git_repository(fmt URL https://github.com/fmtlib/fmt.git COMMITISH 10.1.1)
@@ -66,16 +66,16 @@ qt_add_library(nucleus STATIC
     event_parameter.h
     Raster.h
     srs.h srs.cpp
-    tile_scheduler/utils.h tile_scheduler/utils.cpp
-    tile_scheduler/DrawListGenerator.h tile_scheduler/DrawListGenerator.cpp
-    tile_scheduler/tile_types.h
-    tile_scheduler/constants.h
-    tile_scheduler/QuadAssembler.h tile_scheduler/QuadAssembler.cpp
-    tile_scheduler/Cache.h
-    tile_scheduler/TileLoadService.h tile_scheduler/TileLoadService.cpp
-    tile_scheduler/Scheduler.h tile_scheduler/Scheduler.cpp
-    tile_scheduler/SlotLimiter.h tile_scheduler/SlotLimiter.cpp
-    tile_scheduler/RateLimiter.h tile_scheduler/RateLimiter.cpp
+    tile/utils.h tile/utils.cpp
+    tile/DrawListGenerator.h tile/DrawListGenerator.cpp
+    tile/tile_types.h
+    tile/constants.h
+    tile/QuadAssembler.h tile/QuadAssembler.cpp
+    tile/Cache.h
+    tile/TileLoadService.h tile/TileLoadService.cpp
+    tile/Scheduler.h tile/Scheduler.cpp
+    tile/SlotLimiter.h tile/SlotLimiter.cpp
+    tile/RateLimiter.h tile/RateLimiter.cpp
     camera/CadInteraction.h camera/CadInteraction.cpp
     camera/Controller.h camera/Controller.cpp
     camera/Definition.h camera/Definition.cpp
@@ -94,7 +94,7 @@ qt_add_library(nucleus STATIC
     picker/PickerManager.h picker/PickerManager.cpp
     picker/types.h
     utils/bit_coding.h
-    tile_scheduler/cache_quieries.h
+    tile/cache_quieries.h
     DataQuerier.h DataQuerier.cpp
     camera/LinearCameraAnimation.h camera/LinearCameraAnimation.cpp
     camera/AnimationStyle.h camera/AnimationStyle.cpp
@@ -110,11 +110,12 @@ qt_add_library(nucleus STATIC
     utils/thread.h
     camera/RecordedAnimation.h camera/RecordedAnimation.cpp
     camera/recording.h camera/recording.cpp
-    tile_scheduler/setup.h
-    tile_scheduler/GpuArrayHelper.h tile_scheduler/GpuArrayHelper.cpp
-    tile_scheduler/TextureScheduler.h tile_scheduler/TextureScheduler.cpp
-    tile_scheduler/GeometryScheduler.h tile_scheduler/GeometryScheduler.cpp
+    tile/setup.h
+    tile/GpuArrayHelper.h tile/GpuArrayHelper.cpp
+    tile/TextureScheduler.h tile/TextureScheduler.cpp
+    tile/GeometryScheduler.h tile/GeometryScheduler.cpp
     utils/error.h
+    utils/lang.h
 )
 
 if (ALP_ENABLE_AVLANCHE_WARNING_LAYER)

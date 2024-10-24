@@ -24,13 +24,15 @@
 
 #include <nucleus/camera/PositionStorage.h>
 #include <nucleus/srs.h>
-#include <nucleus/tile_scheduler/utils.h>
+#include <nucleus/tile/tile_types.h>
+#include <nucleus/tile/utils.h>
 #include <radix/TileHeights.h>
 #include <radix/quad_tree.h>
 
 using Catch::Approx;
 using namespace nucleus;
 using namespace srs;
+using radix::TileHeights;
 
 TEST_CASE("nucleus/srs")
 {
@@ -38,15 +40,14 @@ TEST_CASE("nucleus/srs")
     {
         TileHeights h;
         h.emplace({ 0, { 0, 0 } }, { 100, 4000 });
-        auto aabb_decorator = tile_scheduler::utils::AabbDecorator::make(std::move(h));
+        auto aabb_decorator = tile::utils::AabbDecorator::make(std::move(h));
 
         const auto add_tiles = [&](auto camera) {
             camera.set_viewport_size({ 1920, 1080 });
-            const auto all_leaves = quad_tree::onTheFlyTraverse(
-                tile::Id { 0, { 0, 0 } }, tile_scheduler::utils::refineFunctor(camera, aabb_decorator, 1, 64), [&ids](const tile::Id& v) {
-                    ids.insert(v);
-                    return v.children();
-                });
+            const auto all_leaves = radix::quad_tree::onTheFlyTraverse(tile::Id { 0, { 0, 0 } }, tile::utils::refineFunctor(camera, aabb_decorator, 1, 64), [&ids](const tile::Id& v) {
+                ids.insert(v);
+                return v.children();
+            });
         };
         add_tiles(camera::stored_positions::stephansdom());
         add_tiles(camera::stored_positions::grossglockner());

@@ -25,7 +25,7 @@
 #include <QVariantHash>
 #include <cstdint>
 #include <glm/glm.hpp>
-#include <nucleus/tile_scheduler/tile_types.h>
+#include <nucleus/tile/tile_types.h>
 #include <radix/tile.h>
 
 namespace nucleus::vector_tile {
@@ -51,7 +51,7 @@ struct PoiTile {
     tile::Id id;
     vector_tile::PointOfInterestCollectionPtr data;
 };
-static_assert(tile_scheduler::tile_types::NamedTile<PoiTile>);
+static_assert(tile::tile_types::NamedTile<PoiTile>);
 
 // using PointOfInterestTileCollection = std::unordered_map<tile::Id, PointOfInterestCollectionPtr, tile::Id::Hasher>;
 

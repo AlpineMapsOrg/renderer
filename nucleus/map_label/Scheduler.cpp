@@ -23,12 +23,12 @@
 namespace nucleus::map_label {
 
 Scheduler::Scheduler(std::string name, QObject* parent)
-    : nucleus::tile_scheduler::Scheduler(std::move(name), 256, parent)
+    : nucleus::tile::Scheduler(std::move(name), 256, parent)
 {
 }
 Scheduler::~Scheduler() = default;
 
-void Scheduler::transform_and_emit(const std::vector<tile_scheduler::tile_types::DataQuad>& new_quads, const std::vector<tile::Id>& deleted_quads)
+void Scheduler::transform_and_emit(const std::vector<tile::tile_types::DataQuad>& new_quads, const std::vector<tile::Id>& deleted_quads)
 {
     std::vector<vector_tile::PoiTile> new_gpu_tiles;
     new_gpu_tiles.reserve(new_quads.size() * 4);
@@ -46,12 +46,12 @@ void Scheduler::transform_and_emit(const std::vector<tile_scheduler::tile_types:
     emit gpu_tiles_updated(new_gpu_tiles, deleted_quads);
 }
 
-bool Scheduler::is_ready_to_ship(const nucleus::tile_scheduler::tile_types::DataQuad& quad) const
+bool Scheduler::is_ready_to_ship(const nucleus::tile::tile_types::DataQuad& quad) const
 {
     assert(m_geometry_ram_cache);
     return m_geometry_ram_cache->contains(quad.id);
 }
 
-void Scheduler::set_geometry_ram_cache(nucleus::tile_scheduler::MemoryCache* new_geometry_ram_cache) { m_geometry_ram_cache = new_geometry_ram_cache; }
+void Scheduler::set_geometry_ram_cache(nucleus::tile::MemoryCache* new_geometry_ram_cache) { m_geometry_ram_cache = new_geometry_ram_cache; }
 
 } // namespace nucleus::map_label

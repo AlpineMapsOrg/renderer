@@ -24,7 +24,7 @@
 
 #include <glm/glm.hpp>
 
-#include "nucleus/tile_scheduler/tile_types.h"
+#include "nucleus/tile/tile_types.h"
 #include "utils/ColourTexture.h"
 
 class QOpenGLFramebufferObject;
@@ -34,7 +34,7 @@ struct Id;
 }
 
 namespace nucleus {
-namespace tile_scheduler::utils {
+namespace tile::utils {
     class AabbDecorator;
     using AabbDecoratorPtr = std::shared_ptr<AabbDecorator>;
 }

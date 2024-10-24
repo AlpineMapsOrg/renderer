@@ -35,15 +35,15 @@
 #include <nucleus/map_label/Filter.h>
 #include <nucleus/map_label/Scheduler.h>
 #include <nucleus/picker/PickerManager.h>
-#include <nucleus/tile_scheduler/GeometryScheduler.h>
-#include <nucleus/tile_scheduler/TextureScheduler.h>
+#include <nucleus/tile/GeometryScheduler.h>
+#include <nucleus/tile/TextureScheduler.h>
 #include <nucleus/utils/thread.h>
 
 TerrainRenderer::TerrainRenderer()
 {
     using nucleus::map_label::Filter;
     using nucleus::picker::PickerManager;
-    using Scheduler = nucleus::tile_scheduler::Scheduler;
+    using Scheduler = nucleus::tile::Scheduler;
     using CameraController = nucleus::camera::Controller;
 
     auto* ctx = RenderingContext::instance();
@@ -67,8 +67,8 @@ TerrainRenderer::TerrainRenderer()
     QObject::connect(m_camera_controller.get(), &CameraController::definition_changed, ctx->ortho_scheduler(),      &Scheduler::update_camera);
     QObject::connect(m_camera_controller.get(), &CameraController::definition_changed, m_glWindow.get(),            &gl_engine::Window::update_camera);
 
-    QObject::connect(ctx->geometry_scheduler(), &nucleus::tile_scheduler::GeometryScheduler::gpu_quads_updated, gl_window_ptr, &gl_engine::Window::update_requested);
-    QObject::connect(ctx->ortho_scheduler(),    &nucleus::tile_scheduler::TextureScheduler::gpu_quads_updated,  gl_window_ptr, &gl_engine::Window::update_requested);
+    QObject::connect(ctx->geometry_scheduler(), &nucleus::tile::GeometryScheduler::gpu_quads_updated, gl_window_ptr, &gl_engine::Window::update_requested);
+    QObject::connect(ctx->ortho_scheduler(),    &nucleus::tile::TextureScheduler::gpu_quads_updated,  gl_window_ptr, &gl_engine::Window::update_requested);
     QObject::connect(ctx->label_filter().get(), &Filter::filter_finished,                                       gl_window_ptr, &gl_engine::Window::update_requested);
 
     QObject::connect(ctx->picker_manager().get(),   &PickerManager::pick_requested,     gl_window_ptr,                  &gl_engine::Window::pick_value);
