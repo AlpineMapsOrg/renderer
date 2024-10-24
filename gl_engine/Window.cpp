@@ -388,7 +388,7 @@ void Window::paint(QOpenGLFramebufferObject* framebuffer)
         emit report_measurements(new_values);
     }
 
-#ifdef ALP_ENABLE_DEV_TOOLS
+#if defined(ALP_ENABLE_DEV_TOOLS) && defined(__linux__)
     // make time measurment more stable.
     glFinish();
 #endif
