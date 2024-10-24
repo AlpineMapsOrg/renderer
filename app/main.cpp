@@ -181,7 +181,12 @@ int main(int argc, char **argv)
     root_window->showMaximized();
 #endif
 #ifdef ALP_APP_SHUTDOWN_AFTER_60S
-    QTimer::singleShot(60000, &app, []() {
+    QTimer::singleShot(5000, &app, [&root_window]() {
+        qDebug() << "root window size: " << root_window->size();
+        root_window->resize(800, 600);
+    });
+    QTimer::singleShot(60000, &app, [&root_window]() {
+        qDebug() << "root window size: " << root_window->size();
         qDebug() << "AlpineApp shuts down after 60s.";
         QGuiApplication::quit();
     });
