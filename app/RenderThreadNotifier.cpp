@@ -58,7 +58,7 @@ void RenderThreadNotifier::notify()
 
     auto* runnable = QRunnable::create([]() {
         // qDebug() << "QCoreApplication::processEvents called on: " << QThread::currentThread() << "(" << QThread::currentThread()->objectName() << ")";
-        if (QThread::currentThread() != QCoreApplication::instance()->thread())
+        if (QThread::currentThread() != QCoreApplication::instance()->thread()) // don't call process events if there is no dedicated rendering thread. it breaks stuff.
             QCoreApplication::processEvents(QEventLoop::AllEvents, 0);
     });
 
