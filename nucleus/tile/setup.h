@@ -25,6 +25,7 @@
 #include "TextureScheduler.h"
 #include "TileLoadService.h"
 #include "utils.h"
+#include <QCoreApplication>
 #include <QThread>
 #include <memory>
 #include <nucleus/utils/thread.h>
@@ -71,10 +72,10 @@ inline GeometrySchedulerHolder geometry_scheduler(std::string name, TileLoadServ
         QObject::connect(n, &QNetworkInformation::reachabilityChanged, scheduler.get(), &Scheduler::set_network_reachability);
     }
 
+    Q_UNUSED(thread);
 #ifdef ALP_ENABLE_THREADING
 #ifdef __EMSCRIPTEN__ // make request from main thread on webassembly due to QTBUG-109396
     m_vectortile_service->moveToThread(QCoreApplication::instance()->thread());
-    Q_UNUSED(thread);
 #else
     if (thread)
         tile_service->moveToThread(thread);
@@ -124,10 +125,10 @@ inline TextureSchedulerHolder texture_scheduler(std::string name, TileLoadServic
         QObject::connect(n, &QNetworkInformation::reachabilityChanged, scheduler.get(), &Scheduler::set_network_reachability);
     }
 
+    Q_UNUSED(thread);
 #ifdef ALP_ENABLE_THREADING
 #ifdef __EMSCRIPTEN__ // make request from main thread on webassembly due to QTBUG-109396
     tile_service->moveToThread(QCoreApplication::instance()->thread());
-    Q_UNUSED(thread);
 #else
     if (thread)
         tile_service->moveToThread(thread);
