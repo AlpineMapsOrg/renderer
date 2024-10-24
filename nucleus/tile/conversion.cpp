@@ -17,9 +17,9 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *****************************************************************************/
 
-#include "tile_conversion.h"
+#include "conversion.h"
 
-namespace nucleus::utils::tile_conversion {
+namespace nucleus::tile::conversion {
 
 Raster<uint16_t> to_u16raster(const Raster<glm::u8vec4>& raster)
 {
@@ -30,4 +30,4 @@ Raster<uint16_t> to_u16raster(const Raster<glm::u8vec4>& raster)
     return retval;
 }
 
-}
+} // namespace nucleus::tile::conversion

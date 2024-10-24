@@ -87,7 +87,7 @@ qt_add_library(nucleus STATIC
     camera/PositionStorage.h camera/PositionStorage.cpp
     utils/Stopwatch.h utils/Stopwatch.cpp
     utils/terrain_mesh_index_generator.h
-    utils/tile_conversion.h utils/tile_conversion.cpp
+    tile/conversion.h tile/conversion.cpp
     utils/UrlModifier.h utils/UrlModifier.cpp
     utils/bit_coding.h
     utils/sun_calculations.h utils/sun_calculations.cpp

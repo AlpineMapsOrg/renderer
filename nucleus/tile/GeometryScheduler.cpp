@@ -20,9 +20,9 @@
 
 #include "utils.h"
 #include <QDebug>
+#include <nucleus/tile/conversion.h>
 #include <nucleus/utils/error.h>
 #include <nucleus/utils/image_loader.h>
-#include <nucleus/utils/tile_conversion.h>
 
 namespace nucleus::tile {
 
@@ -52,7 +52,7 @@ void GeometryScheduler::transform_and_emit(const std::vector<tile::tile_types::D
 
             if (quad.tiles[i].data->size()) {
                 // Height image is available
-                auto height_raster = image_loader::rgba8(*quad.tiles[i].data).and_then(error::wrap_to_expected(tile_conversion::to_u16raster)).value_or(m_default_raster);
+                auto height_raster = image_loader::rgba8(*quad.tiles[i].data).and_then(error::wrap_to_expected(conversion::to_u16raster)).value_or(m_default_raster);
                 gpu_quad.tiles[i].surface = std::make_shared<nucleus::Raster<uint16_t>>(std::move(height_raster));
             } else {
                 // Height image is not available (use black default tile)

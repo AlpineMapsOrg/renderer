@@ -27,9 +27,6 @@
 #include <QTimer>
 #include <nucleus/DataQuerier.h>
 #include <nucleus/tile/utils.h>
-#include <nucleus/utils/image_loader.h>
-#include <nucleus/utils/lang.h>
-#include <nucleus/utils/tile_conversion.h>
 #include <radix/quad_tree.h>
 #include <unordered_set>
 #include <utility>

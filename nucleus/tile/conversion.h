@@ -22,13 +22,13 @@
 #include <glm/glm.hpp>
 
 #include <QByteArray>
-#include "nucleus/Raster.h"
+#include <nucleus/Raster.h>
 
 #ifdef QT_GUI_LIB
 #include <QImage>
 #endif
 
-namespace nucleus::utils::tile_conversion {
+namespace nucleus::tile::conversion {
 
 /**
  * @brief Converts an RGBA8 raster to a uint16_t raster by packing the rg channels. ba are ignored.
@@ -107,4 +107,4 @@ inline glm::u8vec4 uint162alpineRGBA(uint16_t v)
 {
     return { v >> 8, v & 255, 0, 255 };
 }
-}
+} // namespace nucleus::tile::conversion

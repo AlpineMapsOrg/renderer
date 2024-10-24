@@ -27,7 +27,6 @@
 
 #include "nucleus/camera/PositionStorage.h"
 #include "nucleus/tile/utils.h"
-#include "nucleus/utils/tile_conversion.h"
 #include "radix/quad_tree.h"
 
 using Catch::Approx;
