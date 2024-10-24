@@ -34,19 +34,7 @@ public:
     [[nodiscard]] std::vector<std::weak_ptr<ShaderProgram>> all() const { return m_program_list; }
     void add_shader(std::weak_ptr<ShaderProgram> shader);
     void reload_shaders();
-signals:
-
 private:
     std::vector<std::weak_ptr<ShaderProgram>> m_program_list;
-    std::unique_ptr<ShaderProgram> m_tile_program;
-    std::unique_ptr<ShaderProgram> m_screen_copy;
-    std::unique_ptr<ShaderProgram> m_atmosphere_bg_program;
-    std::unique_ptr<ShaderProgram> m_compose_program;
-    std::shared_ptr<ShaderProgram> m_ssao_program;
-    std::shared_ptr<ShaderProgram> m_ssao_blur_program;
-    std::shared_ptr<ShaderProgram> m_shadowmap_program;
-    std::shared_ptr<ShaderProgram> m_track_program;
-    std::shared_ptr<ShaderProgram> m_labels_program;
-    std::shared_ptr<ShaderProgram> m_labels_picker_program;
 };
 }
