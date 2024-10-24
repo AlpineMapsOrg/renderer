@@ -1,5 +1,5 @@
 /*****************************************************************************
- * Alpine Terrain Renderer
+ * AlpineMaps.org
  *
  * Copyright (C) 2011-2015 Vladimir Agafonkin
  *      from: https://github.com/mourner/suncalc
