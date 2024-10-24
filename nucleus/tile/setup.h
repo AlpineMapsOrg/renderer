@@ -74,6 +74,7 @@ inline GeometrySchedulerHolder geometry_scheduler(std::string name, TileLoadServ
 #ifdef ALP_ENABLE_THREADING
 #ifdef __EMSCRIPTEN__ // make request from main thread on webassembly due to QTBUG-109396
     m_vectortile_service->moveToThread(QCoreApplication::instance()->thread());
+    Q_UNUSED(thread);
 #else
     if (thread)
         tile_service->moveToThread(thread);
@@ -125,7 +126,8 @@ inline TextureSchedulerHolder texture_scheduler(std::string name, TileLoadServic
 
 #ifdef ALP_ENABLE_THREADING
 #ifdef __EMSCRIPTEN__ // make request from main thread on webassembly due to QTBUG-109396
-    m_vectortile_service->moveToThread(QCoreApplication::instance()->thread());
+    tile_service->moveToThread(QCoreApplication::instance()->thread());
+    Q_UNUSED(thread);
 #else
     if (thread)
         tile_service->moveToThread(thread);
