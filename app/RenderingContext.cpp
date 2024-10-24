@@ -70,7 +70,7 @@ RenderingContext::RenderingContext(QObject* parent)
 
 #ifdef ALP_ENABLE_THREADING
     m->scheduler_thread = std::make_unique<QThread>();
-    m->scheduler_thread->setObjectName("tile_thread");
+    m->scheduler_thread->setObjectName("scheduler_thread");
 #endif
 
     //    m->ortho_service.reset(new TileLoadService("https://tiles.bergfex.at/styles/bergfex-osm/", TileLoadService::UrlPattern::ZXY_yPointingSouth,
