@@ -167,8 +167,11 @@ void RenderingContext::initialise()
     connect(m->label_filter.get(), &Filter::filter_finished, m->engine_context->map_label_manager(), &gl_engine::MapLabels::update_labels);
     nucleus::utils::thread::async_call(m->map_label.scheduler.get(), [this]() { m->map_label.scheduler->set_enabled(true); });
 
+    // clang-format off
     connect(QOpenGLContext::currentContext(), &QOpenGLContext::aboutToBeDestroyed, m->engine_context.get(), &nucleus::EngineContext::destroy);
-    connect(QOpenGLContext::currentContext(), &QOpenGLContext::aboutToBeDestroyed, this, &RenderingContext::destroy);
+    connect(QOpenGLContext::currentContext(), &QOpenGLContext::aboutToBeDestroyed, this,                    &RenderingContext::destroy);
+    connect(QCoreApplication::instance(),     &QCoreApplication::aboutToQuit,      this,                    &RenderingContext::destroy);
+    // clang-format on
 
     m->engine_context->initialise();
     nucleus::utils::thread::async_call(this, [this]() { emit this->initialised(); });
@@ -176,6 +179,9 @@ void RenderingContext::initialise()
 
 void RenderingContext::destroy()
 {
+    QMutexLocker locker(&m->shared_ptr_mutex);
+    if (!m->geometry.scheduler)
+        return;
     nucleus::utils::thread::sync_call(m->geometry.scheduler.get(), [this]() {
         m->geometry.scheduler.reset();
         m->camera_controller.reset();
@@ -183,6 +189,11 @@ void RenderingContext::destroy()
         m->picker_manager.reset();
         m->map_label.scheduler.reset();
         m->ortho_texture.scheduler.reset();
+    });
+    nucleus::utils::thread::sync_call(m->geometry.tile_service.get(), [this]() {
+        m->geometry.tile_service.reset();
+        m->map_label.tile_service.reset();
+        m->ortho_texture.tile_service.reset();
     });
     if (m->scheduler_thread) {
         m->scheduler_thread->quit();

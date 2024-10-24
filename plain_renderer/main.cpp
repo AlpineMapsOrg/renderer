@@ -72,15 +72,6 @@
 #include <nucleus/tile_scheduler/setup.h>
 
 using namespace std::chrono_literals;
-
-// This example demonstrates easy, cross-platform usage of OpenGL ES 3.0 functions via
-// QOpenGLExtraFunctions in an application that works identically on desktop platforms
-// with OpenGL 3.3 and mobile/embedded devices with OpenGL ES 3.0.
-
-// The code is always the same, with the exception of two places: (1) the OpenGL context
-// creation has to have a sufficiently high version number for the features that are in
-// use, and (2) the shader code's version directive is different.
-
 using nucleus::AbstractRenderWindow;
 using nucleus::DataQuerier;
 using Scheduler = nucleus::tile_scheduler::Scheduler;
@@ -89,8 +80,20 @@ using TextureScheduler = nucleus::tile_scheduler::TextureScheduler;
 using nucleus::tile_scheduler::TileLoadService;
 using CameraController = nucleus::camera::Controller;
 
-int main(int argc, char* argv[])
+// QtMessageHandler originalHandler = nullptr;
+// void filter_log(QtMsgType type, const QMessageLogContext& context, const QString& msg)
+// {
+//     if (msg.contains("QObject::killTimer: Timers cannot be stopped from another thread")) {
+//         qDebug() << "dudu";
+//     }
+//     if (originalHandler) {
+//         originalHandler(type, context, msg);
+//     }
+// }
+
+int main(int argc, char** argv)
 {
+    // originalHandler = qInstallMessageHandler(filter_log);
     QGuiApplication app(argc, argv);
     QCoreApplication::setOrganizationName("AlpineMaps.org");
     QCoreApplication::setApplicationName("PlainRenderer");
@@ -144,7 +147,6 @@ int main(int argc, char* argv[])
         QTimer::singleShot(5ms, &camera_controller, &CameraController::advance_camera);
     });
 
-    QObject::connect(&glWindow, &Window::about_to_be_destoryed, context.get(), &gl_engine::Context::destroy);
     QObject::connect(glWindow.render_window(), &AbstractRenderWindow::update_camera_requested, &camera_controller, &CameraController::advance_camera);
     QObject::connect(&glWindow, &Window::initialisation_started, context.get(), [&]() { context->initialise(); });
     QObject::connect(&glWindow, &Window::initialisation_started, geometry_scheduler.scheduler.get(), [&]() { geometry_scheduler.scheduler->set_enabled(true); });
@@ -170,6 +172,20 @@ int main(int argc, char* argv[])
     QObject::connect(&glWindow, &Window::key_pressed, &camera_controller, &nucleus::camera::Controller::key_press);
     QObject::connect(&glWindow, &Window::key_released, &camera_controller, &nucleus::camera::Controller::key_release);
     QObject::connect(&glWindow, &Window::resized, &camera_controller, [&camera_controller](glm::uvec2 new_size) { camera_controller.set_viewport(new_size); });
+    QObject::connect(&glWindow, &Window::about_to_be_destoryed, context.get(), &gl_engine::Context::destroy);
+    QObject::connect(&app, &QCoreApplication::aboutToQuit, geometry_scheduler.scheduler.get(), [&]() {
+        geometry_scheduler.scheduler.reset();
+        ortho_scheduler.scheduler.reset();
+    });
+    QObject::connect(&app, &QCoreApplication::aboutToQuit, geometry_scheduler.tile_service.get(), [&]() {
+        geometry_scheduler.tile_service.reset();
+        ortho_scheduler.tile_service.reset();
+    });
+    QObject::connect(&app, &QCoreApplication::aboutToQuit, &app, [&]() {
+        scheduler_thread.wait(100); // msec
+        scheduler_thread.quit();
+        scheduler_thread.wait(500); // msec
+    });
 
 #if (defined(__linux) && !defined(__ANDROID__)) || defined(_WIN32) || defined(_WIN64)
     glWindow.showMaximized();

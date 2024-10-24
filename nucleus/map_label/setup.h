@@ -32,7 +32,7 @@ using TileLoadServicePtr = std::unique_ptr<nucleus::tile_scheduler::TileLoadServ
 
 struct SchedulerHolder {
     std::unique_ptr<map_label::Scheduler> scheduler;
-    TileLoadServicePtr vector_service;
+    TileLoadServicePtr tile_service;
 };
 
 SchedulerHolder scheduler(std::string name,
