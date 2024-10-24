@@ -47,23 +47,23 @@
 #include <nucleus/camera/PositionStorage.h>
 #include <nucleus/version.h>
 
-QtMessageHandler originalHandler = nullptr;
-void filter_log(QtMsgType type, const QMessageLogContext& context, const QString& msg)
-{
-    if (msg.contains("QObject::killTimer: Timers cannot be stopped from another thread")) {
-        qDebug() << "dudu";
-    }
-    if (msg.contains("Destroyed while thread is still running")) {
-        qDebug() << "aha!, current thread: " << QThread::currentThread()->objectName() << ": " << QThread::currentThread();
-    }
-    if (originalHandler) {
-        originalHandler(type, context, msg);
-    }
-}
+// QtMessageHandler originalHandler = nullptr;
+// void filter_log(QtMsgType type, const QMessageLogContext& context, const QString& msg)
+// {
+//     if (msg.contains("QObject::killTimer: Timers cannot be stopped from another thread")) {
+//         qDebug() << "dudu";
+//     }
+//     if (msg.contains("Destroyed while thread is still running")) {
+//         qDebug() << "aha!, current thread: " << QThread::currentThread()->objectName() << ": " << QThread::currentThread();
+//     }
+//     if (originalHandler) {
+//         originalHandler(type, context, msg);
+//     }
+// }
 
 int main(int argc, char **argv)
 {
-    originalHandler = qInstallMessageHandler(filter_log);
+    // originalHandler = qInstallMessageHandler(filter_log);
     QQuickWindow::setGraphicsApi(QSGRendererInterface::GraphicsApi::OpenGLRhi);
 #if defined(ALP_ENABLE_DEV_TOOLS) || defined(__ANDROID__)
     QApplication app(argc, argv);

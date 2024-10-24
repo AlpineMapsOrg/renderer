@@ -57,9 +57,11 @@ void RenderThreadNotifier::notify()
     assert(m_root_window != nullptr);
 
     auto* runnable = QRunnable::create([]() {
-//        qDebug() << "QCoreApplication::processEvents called on: " << QThread::currentThread() << "(" << QThread::currentThread()->objectName() << ")";
-        QCoreApplication::processEvents(QEventLoop::AllEvents, 0);
+        // qDebug() << "QCoreApplication::processEvents called on: " << QThread::currentThread() << "(" << QThread::currentThread()->objectName() << ")";
+        if (QThread::currentThread() != QCoreApplication::instance()->thread())
+            QCoreApplication::processEvents(QEventLoop::AllEvents, 0);
     });
+
     m_root_window->scheduleRenderJob(runnable, QQuickWindow::RenderStage::NoStage);
 #endif
 }
