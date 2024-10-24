@@ -35,11 +35,8 @@ struct SchedulerHolder {
     TileLoadServicePtr tile_service;
 };
 
-SchedulerHolder scheduler(std::string name,
-    TileLoadServicePtr vector_service,
-    const tile::utils::AabbDecoratorPtr& aabb_decorator,
-    const std::shared_ptr<nucleus::DataQuerier>& data_querier,
-    QThread* thread = nullptr)
+SchedulerHolder scheduler(
+    std::string name, TileLoadServicePtr tile_service, const tile::utils::AabbDecoratorPtr& aabb_decorator, const std::shared_ptr<nucleus::DataQuerier>& data_querier, QThread* thread = nullptr)
 {
     auto scheduler = std::make_unique<nucleus::map_label::Scheduler>(std::move(name));
     scheduler->read_disk_cache();
@@ -61,8 +58,8 @@ SchedulerHolder scheduler(std::string name,
         QObject::connect(sch, &Scheduler::quads_requested, sl, &SlotLimiter::request_quads);
         QObject::connect(sl, &SlotLimiter::quad_requested, rl, &RateLimiter::request_quad);
         QObject::connect(rl, &RateLimiter::quad_requested, qa, &QuadAssembler::load);
-        QObject::connect(qa, &QuadAssembler::tile_requested, vector_service.get(), &TileLoadService::load);
-        QObject::connect(vector_service.get(), &TileLoadService::load_finished, qa, &QuadAssembler::deliver_tile);
+        QObject::connect(qa, &QuadAssembler::tile_requested, tile_service.get(), &TileLoadService::load);
+        QObject::connect(tile_service.get(), &TileLoadService::load_finished, qa, &QuadAssembler::deliver_tile);
 
         QObject::connect(qa, &QuadAssembler::quad_loaded, sl, &SlotLimiter::deliver_quad);
         QObject::connect(sl, &SlotLimiter::quad_delivered, sch, &nucleus::map_label::Scheduler::receive_quad);
@@ -75,15 +72,15 @@ SchedulerHolder scheduler(std::string name,
 
 #ifdef ALP_ENABLE_THREADING
 #ifdef __EMSCRIPTEN__ // make request from main thread on webassembly due to QTBUG-109396
-    m_vectortile_service->moveToThread(QCoreApplication::instance()->thread());
+    tile_service->moveToThread(QCoreApplication::instance()->thread());
 #else
     if (thread)
-        vector_service->moveToThread(thread);
+        tile_service->moveToThread(thread);
 #endif
     if (thread)
         scheduler->moveToThread(thread);
 #endif
 
-    return { std::move(scheduler), std::move(vector_service) };
+    return { std::move(scheduler), std::move(tile_service) };
 }
 } // namespace nucleus::map_label::setup
