@@ -182,20 +182,20 @@ void RenderingContext::destroy()
     QMutexLocker locker(&m->shared_ptr_mutex);
     if (!m->geometry.scheduler)
         return;
-    nucleus::utils::thread::sync_call(m->geometry.scheduler.get(), [this]() {
-        m->geometry.scheduler.reset();
-        m->camera_controller.reset();
-        m->label_filter.reset();
-        m->picker_manager.reset();
-        m->map_label.scheduler.reset();
-        m->ortho_texture.scheduler.reset();
-    });
-    nucleus::utils::thread::sync_call(m->geometry.tile_service.get(), [this]() {
-        m->geometry.tile_service.reset();
-        m->map_label.tile_service.reset();
-        m->ortho_texture.tile_service.reset();
-    });
     if (m->scheduler_thread) {
+        nucleus::utils::thread::sync_call(m->geometry.scheduler.get(), [this]() {
+            m->geometry.scheduler.reset();
+            m->camera_controller.reset();
+            m->label_filter.reset();
+            m->picker_manager.reset();
+            m->map_label.scheduler.reset();
+            m->ortho_texture.scheduler.reset();
+        });
+        nucleus::utils::thread::sync_call(m->geometry.tile_service.get(), [this]() {
+            m->geometry.tile_service.reset();
+            m->map_label.tile_service.reset();
+            m->ortho_texture.tile_service.reset();
+        });
         m->scheduler_thread->quit();
         m->scheduler_thread->wait(500); // msec
         m->scheduler_thread.reset();
