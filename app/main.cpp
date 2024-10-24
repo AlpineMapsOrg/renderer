@@ -158,6 +158,7 @@ int main(int argc, char **argv)
                 qDebug() << "Creating QML object from " << objUrl << " failed!";
                 QCoreApplication::exit(-1);
             }
+            qDebug() << "QQmlApplicationEngine::objectCreated: " << obj;
         },
         Qt::QueuedConnection);
 
