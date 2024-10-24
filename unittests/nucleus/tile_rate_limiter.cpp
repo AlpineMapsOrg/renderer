@@ -38,7 +38,6 @@ constexpr auto timing_multiplicator = 10;
 #endif
 
 using namespace nucleus::tile;
-using namespace tile_types;
 
 // this one just doesn't work on the emulator, likely due to bad timer performance. it works everywhere else.
 TEST_CASE("nucleus/tile/rate limiter")

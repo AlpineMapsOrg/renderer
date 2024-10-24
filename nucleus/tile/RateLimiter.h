@@ -22,7 +22,7 @@
 
 #include <QObject>
 
-#include "tile_types.h"
+#include "types.h"
 
 class QTimer;
 

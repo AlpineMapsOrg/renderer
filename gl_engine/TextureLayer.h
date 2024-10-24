@@ -22,7 +22,7 @@
 #include <nucleus/Raster.h>
 #include <nucleus/tile/DrawListGenerator.h>
 #include <nucleus/tile/GpuArrayHelper.h>
-#include <nucleus/tile/tile_types.h>
+#include <nucleus/tile/types.h>
 
 namespace camera {
 class Definition;
@@ -50,7 +50,7 @@ public:
         glm::dvec3 sort_position) const;
 
 public slots:
-    void update_gpu_quads(const std::vector<nucleus::tile::tile_types::GpuTextureQuad>& new_quads, const std::vector<nucleus::tile::Id>& deleted_quads);
+    void update_gpu_quads(const std::vector<nucleus::tile::GpuTextureQuad>& new_quads, const std::vector<nucleus::tile::Id>& deleted_quads);
     void set_quad_limit(unsigned new_limit);
 
 private:

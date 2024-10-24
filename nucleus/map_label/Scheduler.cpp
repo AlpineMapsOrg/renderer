@@ -28,7 +28,7 @@ Scheduler::Scheduler(std::string name, QObject* parent)
 }
 Scheduler::~Scheduler() = default;
 
-void Scheduler::transform_and_emit(const std::vector<tile::tile_types::DataQuad>& new_quads, const std::vector<tile::Id>& deleted_quads)
+void Scheduler::transform_and_emit(const std::vector<tile::DataQuad>& new_quads, const std::vector<tile::Id>& deleted_quads)
 {
     std::vector<vector_tile::PoiTile> new_gpu_tiles;
     new_gpu_tiles.reserve(new_quads.size() * 4);
@@ -46,7 +46,7 @@ void Scheduler::transform_and_emit(const std::vector<tile::tile_types::DataQuad>
     emit gpu_tiles_updated(new_gpu_tiles, deleted_quads);
 }
 
-bool Scheduler::is_ready_to_ship(const nucleus::tile::tile_types::DataQuad& quad) const
+bool Scheduler::is_ready_to_ship(const nucleus::tile::DataQuad& quad) const
 {
     assert(m_geometry_ram_cache);
     return m_geometry_ram_cache->contains(quad.id);

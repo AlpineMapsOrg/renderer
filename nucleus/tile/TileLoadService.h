@@ -21,7 +21,7 @@
 #include <memory>
 #include <QObject>
 #include "constants.h"
-#include "tile_types.h"
+#include "types.h"
 
 class QNetworkAccessManager;
 
@@ -49,7 +49,7 @@ public slots:
     void load(const tile::Id& tile_id) const;
 
 signals:
-    void load_finished(tile_types::Data tile) const;
+    void load_finished(Data tile) const;
 
 private:
     unsigned m_transfer_timeout = tile::constants::default_network_timeout;

@@ -20,7 +20,7 @@
 
 #include <unordered_set>
 #include <QObject>
-#include "tile_types.h"
+#include "types.h"
 
 namespace nucleus::tile {
 
@@ -40,11 +40,11 @@ public:
 
 public slots:
     void request_quads(const std::vector<tile::Id>& id);
-    void deliver_quad(const tile_types::DataQuad& tile);
+    void deliver_quad(const DataQuad& tile);
 
 signals:
     void quad_requested(const tile::Id& tile_id);
-    void quad_delivered(const tile_types::DataQuad& id);
+    void quad_delivered(const DataQuad& id);
 };
 
 }

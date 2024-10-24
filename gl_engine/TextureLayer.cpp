@@ -69,7 +69,7 @@ void TextureLayer::draw(const TileGeometry& tile_geometry,
     tile_geometry.draw(m_shader.get(), camera, draw_tiles, sort_tiles, sort_position);
 }
 
-void TextureLayer::update_gpu_quads(const std::vector<nucleus::tile::tile_types::GpuTextureQuad>& new_quads, const std::vector<nucleus::tile::Id>& deleted_quads)
+void TextureLayer::update_gpu_quads(const std::vector<nucleus::tile::GpuTextureQuad>& new_quads, const std::vector<nucleus::tile::Id>& deleted_quads)
 {
     if (!QOpenGLContext::currentContext()) // can happen during shutdown.
         return;

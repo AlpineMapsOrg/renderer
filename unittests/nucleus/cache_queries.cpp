@@ -18,7 +18,7 @@
 
 #include "nucleus/tile/Cache.h"
 #include "nucleus/tile/cache_quieries.h"
-#include "nucleus/tile/tile_types.h"
+#include "nucleus/tile/types.h"
 #include "radix/height_encoding.h"
 
 #include <catch2/catch_test_macros.hpp>
@@ -42,17 +42,17 @@ QByteArray png_tile(unsigned size, float altitude)
     return arr;
 }
 
-tile_types::DataQuad example_tile_quad_for(const Id& id, float altitude)
+DataQuad example_tile_quad_for(const Id& id, float altitude)
 {
     const auto children = id.children();
-    tile_types::DataQuad cpu_quad;
+    DataQuad cpu_quad;
     cpu_quad.id = id;
     cpu_quad.n_tiles = 4;
     const auto altitude_tile = png_tile(64, altitude);
     for (unsigned i = 0; i < 4; ++i) {
         cpu_quad.tiles[i].id = children[i];
         cpu_quad.tiles[i].data = std::make_shared<QByteArray>(altitude_tile);
-        cpu_quad.tiles[i].network_info.status = tile_types::NetworkInfo::Status::Good;
+        cpu_quad.tiles[i].network_info.status = NetworkInfo::Status::Good;
         cpu_quad.tiles[i].network_info.timestamp = nucleus::utils::time_since_epoch();
     }
     return cpu_quad;

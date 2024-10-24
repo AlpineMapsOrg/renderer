@@ -61,9 +61,9 @@ void Scheduler::update_camera(const camera::Definition& camera)
     schedule_update();
 }
 
-void Scheduler::receive_quad(const tile_types::DataQuad& new_quad)
+void Scheduler::receive_quad(const DataQuad& new_quad)
 {
-    using Status = tile_types::NetworkInfo::Status;
+    using Status = NetworkInfo::Status;
 #ifdef __EMSCRIPTEN__
     // webassembly doesn't report 404 (well, probably it does, but not if there is a cors failure as well).
     // so we'll simply treat any 404 as network error.
@@ -117,8 +117,8 @@ void Scheduler::set_network_reachability(QNetworkInformation::Reachability reach
 void Scheduler::update_gpu_quads()
 {
     const auto should_refine = tile::utils::refineFunctor(m_current_camera, m_aabb_decorator, m_permissible_screen_space_error, m_tile_resolution);
-    std::vector<tile_types::DataQuad> gpu_candidates;
-    m_ram_cache.visit([this, &gpu_candidates, &should_refine](const tile_types::DataQuad& quad) {
+    std::vector<DataQuad> gpu_candidates;
+    m_ram_cache.visit([this, &gpu_candidates, &should_refine](const DataQuad& quad) {
         if (!should_refine(quad.id))
             return false;
         if (!is_ready_to_ship(quad))
@@ -131,12 +131,10 @@ void Scheduler::update_gpu_quads()
     });
 
     for (const auto& q : gpu_candidates) {
-        m_gpu_cached.insert(tile_types::GpuCacheInfo { q.id });
+        m_gpu_cached.insert(GpuCacheInfo { q.id });
     }
 
-    m_gpu_cached.visit([&should_refine](const tile_types::GpuCacheInfo& quad) {
-        return should_refine(quad.id);
-    });
+    m_gpu_cached.visit([&should_refine](const GpuCacheInfo& quad) { return should_refine(quad.id); });
 
     const auto superfluous_quads = m_gpu_cached.purge(m_gpu_quad_limit);
 
@@ -177,7 +175,7 @@ void Scheduler::purge_ram_cache()
     }
 
     const auto should_refine = tile::utils::refineFunctor(m_current_camera, m_aabb_decorator, m_permissible_screen_space_error, m_tile_resolution);
-    m_ram_cache.visit([&should_refine](const tile_types::DataQuad& quad) { return should_refine(quad.id); });
+    m_ram_cache.visit([&should_refine](const DataQuad& quad) { return should_refine(quad.id); });
     m_ram_cache.purge(m_ram_quad_limit);
     update_stats();
 }
@@ -281,9 +279,9 @@ void Scheduler::set_persist_timeout(unsigned int new_persist_timeout)
     }
 }
 
-const Cache<tile_types::DataQuad>& Scheduler::ram_cache() const { return m_ram_cache; }
+const Cache<DataQuad>& Scheduler::ram_cache() const { return m_ram_cache; }
 
-Cache<tile_types::DataQuad>& Scheduler::ram_cache() { return m_ram_cache; }
+Cache<DataQuad>& Scheduler::ram_cache() { return m_ram_cache; }
 
 std::filesystem::path Scheduler::disk_cache_path()
 {

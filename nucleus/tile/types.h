@@ -30,8 +30,6 @@ class Raster;
 }
 namespace nucleus::tile {
 using namespace radix::tile;
-}
-namespace nucleus::tile::tile_types {
 
 struct NetworkInfo {
     enum class Status : uint64_t { // NetworkInfo will be padded by 4 bytes even when usign 32bit int. clear the warning.

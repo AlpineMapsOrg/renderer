@@ -18,7 +18,7 @@
 
 #pragma once
 
-#include "tile_types.h"
+#include "types.h"
 #include <QFile>
 #include <algorithm>
 #include <filesystem>
@@ -50,7 +50,7 @@ constexpr auto serialize(auto & archive, glm::vec<2, T> & vec)
 namespace nucleus::tile {
 
 /// This class is thread safe. be careful with the visit method as it writes the cache and therefore locks an internal mutex.
-template<tile_types::NamedTile T>
+template<NamedTile T>
 class Cache
 {
     struct MetaData {
@@ -99,9 +99,9 @@ private:
     }
 };
 
-using MemoryCache = nucleus::tile::Cache<nucleus::tile::tile_types::DataQuad>;
+using MemoryCache = nucleus::tile::Cache<nucleus::tile::DataQuad>;
 
-template <tile_types::NamedTile T>
+template <NamedTile T>
 void Cache<T>::insert(const T& tile)
 {
     auto locker = std::scoped_lock(m_data_mutex);
@@ -111,31 +111,31 @@ void Cache<T>::insert(const T& tile)
     m_data[tile.id].data = tile;
 }
 
-template <tile_types::NamedTile T>
+template <NamedTile T>
 bool Cache<T>::contains(const tile::Id& id) const
 {
     auto locker = std::shared_lock(m_data_mutex);
     return m_data.contains(id);
 }
 
-template <tile_types::NamedTile T>
+template <NamedTile T>
 unsigned int Cache<T>::n_cached_objects() const
 {
     auto locker = std::shared_lock(m_data_mutex);
     return unsigned(m_data.size());
 }
 
-template <tile_types::NamedTile T>
+template <NamedTile T>
 const T& Cache<T>::peak_at(const tile::Id& id) const
 {
     auto locker = std::shared_lock(m_data_mutex);
     return m_data.at(id).data;
 }
 
-template <tile_types::NamedTile T>
+template <NamedTile T>
 tl::expected<void, std::string> Cache<T>::write_to_disk(const std::filesystem::path& base_path)
 {
-    static_assert(tile_types::SerialisableTile<T>);
+    static_assert(SerialisableTile<T>);
     std::filesystem::create_directories(base_path);
     std::unordered_map<tile::Id, CacheObject, tile::Id::Hasher> data;
     {
@@ -219,11 +219,11 @@ tl::expected<void, std::string> Cache<T>::write_to_disk(const std::filesystem::p
         return {};
 }
 
-template <tile_types::NamedTile T>
+template <NamedTile T>
 tl::expected<void, std::string> Cache<T>::read_from_disk(const std::filesystem::path& base_path)
 {
     auto locker = std::scoped_lock(m_data_mutex, m_disk_cached_mutex);
-    assert(tile_types::SerialisableTile<T>);
+    assert(SerialisableTile<T>);
     const auto check_version = [](auto* in, const auto& path) -> tl::expected<void, std::string> {
         std::remove_cvref_t<decltype(T::version_information)> version_info = {};
         {
@@ -313,7 +313,7 @@ tl::expected<void, std::string> Cache<T>::read_from_disk(const std::filesystem::
     return {};
 }
 
-template <tile_types::NamedTile T>
+template <NamedTile T>
 template <typename VisitorFunction>
 void Cache<T>::visit(const VisitorFunction& functor)
 {
@@ -327,7 +327,7 @@ void Cache<T>::visit(const VisitorFunction& functor)
     visit(root, functor, visited);
 }
 
-template <tile_types::NamedTile T>
+template <NamedTile T>
 template <typename VisitorFunction>
 void Cache<T>::visit(const tile::Id& node, const VisitorFunction& functor, uint64_t visited_stamp)
 {
@@ -346,7 +346,7 @@ void Cache<T>::visit(const tile::Id& node, const VisitorFunction& functor, uint6
     }
 }
 
-template<tile_types::NamedTile T>
+template<NamedTile T>
 std::vector<T> Cache<T>::purge(unsigned remaining_capacity)
 {
     auto locker = std::scoped_lock(m_data_mutex);

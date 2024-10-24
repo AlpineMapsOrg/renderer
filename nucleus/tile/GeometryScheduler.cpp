@@ -34,16 +34,16 @@ GeometryScheduler::GeometryScheduler(std::string name, QObject* parent)
 
 GeometryScheduler::~GeometryScheduler() = default;
 
-void GeometryScheduler::transform_and_emit(const std::vector<tile::tile_types::DataQuad>& new_quads, const std::vector<tile::Id>& deleted_quads)
+void GeometryScheduler::transform_and_emit(const std::vector<tile::DataQuad>& new_quads, const std::vector<tile::Id>& deleted_quads)
 {
-    std::vector<tile_types::GpuGeometryQuad> new_gpu_quads;
+    std::vector<GpuGeometryQuad> new_gpu_quads;
     new_gpu_quads.reserve(new_quads.size());
 
     std::transform(new_quads.cbegin(), new_quads.cend(), std::back_inserter(new_gpu_quads), [this](const auto& quad) {
         using namespace nucleus::utils;
 
         // create GpuQuad based on cpu quad
-        tile_types::GpuGeometryQuad gpu_quad;
+        GpuGeometryQuad gpu_quad;
         gpu_quad.id = quad.id;
         assert(quad.n_tiles == 4);
         for (unsigned i = 0; i < 4; ++i) {

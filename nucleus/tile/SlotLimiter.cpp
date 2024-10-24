@@ -56,7 +56,7 @@ void SlotLimiter::request_quads(const std::vector<tile::Id>& ids)
     }
 }
 
-void SlotLimiter::deliver_quad(const tile_types::DataQuad& tile)
+void SlotLimiter::deliver_quad(const DataQuad& tile)
 {
     m_in_flight.erase(tile.id);
     emit quad_delivered(tile);

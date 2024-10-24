@@ -19,7 +19,7 @@
 #pragma once
 
 #include "Scheduler.h"
-#include "tile_types.h"
+#include "types.h"
 
 namespace nucleus::tile {
 
@@ -32,10 +32,10 @@ public:
     void set_texture_compression_algorithm(nucleus::utils::ColourTexture::Format compression_algorithm);
 
 signals:
-    void gpu_quads_updated(const std::vector<tile_types::GpuGeometryQuad>& new_quads, const std::vector<tile::Id>& deleted_quads);
+    void gpu_quads_updated(const std::vector<GpuGeometryQuad>& new_quads, const std::vector<tile::Id>& deleted_quads);
 
 protected:
-    void transform_and_emit(const std::vector<tile::tile_types::DataQuad>& new_quads, const std::vector<tile::Id>& deleted_quads) override;
+    void transform_and_emit(const std::vector<tile::DataQuad>& new_quads, const std::vector<tile::Id>& deleted_quads) override;
 
 private:
     nucleus::utils::ColourTexture::Format m_compression_algorithm = nucleus::utils::ColourTexture::Format::Uncompressed_RGBA;

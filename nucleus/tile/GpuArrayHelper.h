@@ -18,7 +18,7 @@
 
 #pragma once
 
-#include "tile_types.h"
+#include "types.h"
 #include <nucleus/Raster.h>
 
 namespace nucleus::tile {

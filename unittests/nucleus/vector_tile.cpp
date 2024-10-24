@@ -46,9 +46,9 @@ TEST_CASE("nucleus/vector_tiles")
             REQUIRE(spy.count() == 1);
             QList<QVariant> arguments = spy.takeFirst();
             REQUIRE(arguments.size() == 1);
-            nucleus::tile::tile_types::Data tile = arguments.at(0).value<nucleus::tile::tile_types::Data>();
+            nucleus::tile::Data tile = arguments.at(0).value<nucleus::tile::Data>();
             CHECK(tile.id == id);
-            CHECK(tile.network_info.status == nucleus::tile::tile_types::NetworkInfo::Status::Good);
+            CHECK(tile.network_info.status == nucleus::tile::NetworkInfo::Status::Good);
             CHECK(nucleus::utils::time_since_epoch() - tile.network_info.timestamp < 10'000);
 
             REQUIRE(tile.data->size() > 0);

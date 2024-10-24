@@ -22,7 +22,7 @@
 #include <nucleus/Raster.h>
 #include <nucleus/tile/DrawListGenerator.h>
 #include <nucleus/tile/GpuArrayHelper.h>
-#include <nucleus/tile/tile_types.h>
+#include <nucleus/tile/types.h>
 
 namespace camera {
 class Definition;
@@ -59,7 +59,7 @@ public:
     void set_permissible_screen_space_error(float new_permissible_screen_space_error);
 
 public slots:
-    void update_gpu_quads(const std::vector<nucleus::tile::tile_types::GpuGeometryQuad>& new_quads, const std::vector<nucleus::tile::Id>& deleted_quads);
+    void update_gpu_quads(const std::vector<nucleus::tile::GpuGeometryQuad>& new_quads, const std::vector<nucleus::tile::Id>& deleted_quads);
     void set_aabb_decorator(const nucleus::tile::utils::AabbDecoratorPtr& new_aabb_decorator);
     void set_quad_limit(unsigned new_limit);
 

@@ -22,11 +22,10 @@
 #include <catch2/catch_test_macros.hpp>
 
 using namespace nucleus::tile;
-using namespace tile_types;
 
 namespace {
-tile_types::Data good_tile(const Id& id, const char* bytes) { return { id, { NetworkInfo::Status::Good, nucleus::utils::time_since_epoch() }, std::make_shared<QByteArray>(bytes) }; }
-tile_types::Data missing_tile(const Id& id) { return { id, { NetworkInfo::Status::NotFound, nucleus::utils::time_since_epoch() }, std::make_shared<QByteArray>() }; }
+Data good_tile(const Id& id, const char* bytes) { return { id, { NetworkInfo::Status::Good, nucleus::utils::time_since_epoch() }, std::make_shared<QByteArray>(bytes) }; }
+Data missing_tile(const Id& id) { return { id, { NetworkInfo::Status::NotFound, nucleus::utils::time_since_epoch() }, std::make_shared<QByteArray>() }; }
 }
 
 TEST_CASE("nucleus/tile/quad assembler")
@@ -70,7 +69,7 @@ TEST_CASE("nucleus/tile/quad assembler")
         CHECK(spy_loaded.size() == 1);
         CHECK(assembler.n_items_in_flight() == 0);
 
-        auto loaded_tile = spy_loaded.constFirst().constFirst().value<tile_types::DataQuad>();
+        auto loaded_tile = spy_loaded.constFirst().constFirst().value<DataQuad>();
         CHECK(loaded_tile.id == Id { 0, { 0, 0 } });
         CHECK(loaded_tile.network_info().status == NetworkInfo::Status::Good);
         REQUIRE(loaded_tile.n_tiles == 4);
@@ -107,7 +106,7 @@ TEST_CASE("nucleus/tile/quad assembler")
         CHECK(spy_loaded.size() == 1);
         CHECK(assembler.n_items_in_flight() == 0);
 
-        auto loaded_tile = spy_loaded.constFirst().constFirst().value<tile_types::DataQuad>();
+        auto loaded_tile = spy_loaded.constFirst().constFirst().value<DataQuad>();
         CHECK(loaded_tile.id == Id { 3, { 4, 5 } });
         REQUIRE(loaded_tile.n_tiles == 4);
         CHECK(loaded_tile.tiles[0].id == Id { 4, { 8, 10 } }); // order should not matter
@@ -159,7 +158,7 @@ TEST_CASE("nucleus/tile/quad assembler")
         CHECK(assembler.n_items_in_flight() == 0);
 
         {
-            auto loaded_tile = spy_loaded[0].constFirst().value<tile_types::DataQuad>();
+            auto loaded_tile = spy_loaded[0].constFirst().value<DataQuad>();
             CHECK(loaded_tile.id == Id { 3, { 4, 5 } });
             REQUIRE(loaded_tile.n_tiles == 4);
             CHECK(loaded_tile.tiles[0].id == Id { 4, { 8, 10 } }); // order should not matter
@@ -176,7 +175,7 @@ TEST_CASE("nucleus/tile/quad assembler")
         }
 
         {
-            auto loaded_tile = spy_loaded[1].constFirst().value<tile_types::DataQuad>();
+            auto loaded_tile = spy_loaded[1].constFirst().value<DataQuad>();
             CHECK(loaded_tile.id == Id { 0, { 0, 0 } });
             REQUIRE(loaded_tile.n_tiles == 4);
             CHECK(loaded_tile.tiles[0].id == Id { 1, { 0, 1 } }); // order should not matter
@@ -217,7 +216,7 @@ TEST_CASE("nucleus/tile/quad assembler")
         CHECK(spy_loaded.size() == 1);
         CHECK(assembler.n_items_in_flight() == 0);
 
-        auto loaded_tile = spy_loaded.constFirst().constFirst().value<tile_types::DataQuad>();
+        auto loaded_tile = spy_loaded.constFirst().constFirst().value<DataQuad>();
         CHECK(loaded_tile.id == Id { 0, { 0, 0 } });
         CHECK(loaded_tile.network_info().status == NetworkInfo::Status::NotFound);
     }

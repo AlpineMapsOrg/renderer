@@ -20,7 +20,7 @@
 
 #include <nucleus/event_parameter.h>
 #include <nucleus/picker/types.h>
-#include <nucleus/tile/tile_types.h>
+#include <nucleus/tile/types.h>
 #include <nucleus/vector_tile/types.h>
 #include <radix/tile.h>
 #include <vector>

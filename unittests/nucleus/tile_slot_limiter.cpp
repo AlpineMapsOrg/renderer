@@ -21,7 +21,7 @@
 #include <catch2/catch_test_macros.hpp>
 
 #include "nucleus/tile/SlotLimiter.h"
-#include "nucleus/tile/tile_types.h"
+#include "nucleus/tile/types.h"
 #include "radix/tile.h"
 
 using namespace nucleus::tile;
@@ -72,9 +72,9 @@ TEST_CASE("nucleus/tile/slot limiter")
         CHECK(sl.slots_taken() == 2);
         REQUIRE(spy.size() == 2);
 
-        sl.deliver_quad(tile_types::DataQuad { Id { 0, { 0, 0 } } });
+        sl.deliver_quad(DataQuad { Id { 0, { 0, 0 } } });
         CHECK(sl.slots_taken() == 1);
-        sl.deliver_quad(tile_types::DataQuad { Id { 1, { 0, 0 } } });
+        sl.deliver_quad(DataQuad { Id { 1, { 0, 0 } } });
         CHECK(sl.slots_taken() == 0);
     }
 
@@ -87,20 +87,20 @@ TEST_CASE("nucleus/tile/slot limiter")
         CHECK(sl.slots_taken() == 2);
         REQUIRE(spy.size() == 2);
 
-        sl.deliver_quad(tile_types::DataQuad { Id { 0, { 0, 0 } } });
+        sl.deliver_quad(DataQuad { Id { 0, { 0, 0 } } });
         CHECK(sl.slots_taken() == 2);
         REQUIRE(spy.size() == 3);
         CHECK(spy[2][0].value<Id>() == Id { 1, { 0, 1 } });
 
-        sl.deliver_quad(tile_types::DataQuad { Id { 1, { 0, 0 } } });
+        sl.deliver_quad(DataQuad { Id { 1, { 0, 0 } } });
         CHECK(sl.slots_taken() == 2);
         REQUIRE(spy.size() == 4);
         CHECK(spy[3][0].value<Id>() == Id { 2, { 0, 0 } });
 
         // running out of tile requests
-        sl.deliver_quad(tile_types::DataQuad { Id { 1, { 0, 1 } } });
+        sl.deliver_quad(DataQuad { Id { 1, { 0, 1 } } });
         CHECK(sl.slots_taken() == 1);
-        sl.deliver_quad(tile_types::DataQuad { Id { 2, { 0, 0 } } });
+        sl.deliver_quad(DataQuad { Id { 2, { 0, 0 } } });
         CHECK(sl.slots_taken() == 0);
         CHECK(spy.size() == 4);
 
@@ -123,7 +123,7 @@ TEST_CASE("nucleus/tile/slot limiter")
         CHECK(spy[1][0].value<Id>() == Id { 1, { 0, 0 } });
 
         for (unsigned i = 0; i < 5; ++i) {
-            sl.deliver_quad(tile_types::DataQuad { Id { i, { 0, 0 } } });
+            sl.deliver_quad(DataQuad { Id { i, { 0, 0 } } });
             CHECK(sl.slots_taken() == 2);
 
             REQUIRE(spy.size() == int(3 + i));
@@ -134,9 +134,9 @@ TEST_CASE("nucleus/tile/slot limiter")
         CHECK(spy[6][0].value<Id>() == Id { 6, { 0, 0 } });
 
         // running out of tile requests
-        sl.deliver_quad(tile_types::DataQuad { Id { 5, { 0, 0 } } });
+        sl.deliver_quad(DataQuad { Id { 5, { 0, 0 } } });
         CHECK(sl.slots_taken() == 1);
-        sl.deliver_quad(tile_types::DataQuad { Id { 6, { 0, 0 } } });
+        sl.deliver_quad(DataQuad { Id { 6, { 0, 0 } } });
         CHECK(sl.slots_taken() == 0);
         CHECK(spy.size() == 7);
 
@@ -162,21 +162,21 @@ TEST_CASE("nucleus/tile/slot limiter")
             Id { 3, { 1, 0 } } }); // new, should go next
         CHECK(sl.slots_taken() == 2);
 
-        sl.deliver_quad(tile_types::DataQuad { Id { 0, { 0, 0 } } });
+        sl.deliver_quad(DataQuad { Id { 0, { 0, 0 } } });
         CHECK(sl.slots_taken() == 2);
         REQUIRE(spy.size() == 3);
         CHECK(spy[2][0].value<Id>() == Id { 2, { 1, 0 } });
         CHECK(sl.slots_taken() == 2);
 
-        sl.deliver_quad(tile_types::DataQuad { Id { 1, { 0, 0 } } });
+        sl.deliver_quad(DataQuad { Id { 1, { 0, 0 } } });
         CHECK(sl.slots_taken() == 2);
         REQUIRE(spy.size() == 4);
         CHECK(spy[3][0].value<Id>() == Id { 3, { 1, 0 } });
 
-        sl.deliver_quad(tile_types::DataQuad { Id { 3, { 1, 0 } } });
+        sl.deliver_quad(DataQuad { Id { 3, { 1, 0 } } });
         CHECK(sl.slots_taken() == 1);
 
-        sl.deliver_quad(tile_types::DataQuad { Id { 2, { 1, 0 } } });
+        sl.deliver_quad(DataQuad { Id { 2, { 1, 0 } } });
         CHECK(sl.slots_taken() == 0);
     }
 
@@ -184,12 +184,12 @@ TEST_CASE("nucleus/tile/slot limiter")
     {
         SlotLimiter sl;
         QSignalSpy spy(&sl, &SlotLimiter::quad_delivered);
-        sl.deliver_quad(tile_types::DataQuad { Id { 0, { 0, 0 } }, 4, {} });
+        sl.deliver_quad(DataQuad { Id { 0, { 0, 0 } }, 4, {} });
         REQUIRE(spy.size() == 1);
-        CHECK(spy[0][0].value<tile_types::DataQuad>().id == Id { 0, { 0, 0 } });
+        CHECK(spy[0][0].value<DataQuad>().id == Id { 0, { 0, 0 } });
 
-        sl.deliver_quad(tile_types::DataQuad { Id { 1, { 2, 3 } }, 4, {} });
+        sl.deliver_quad(DataQuad { Id { 1, { 2, 3 } }, 4, {} });
         REQUIRE(spy.size() == 2);
-        CHECK(spy[1][0].value<tile_types::DataQuad>().id == Id { 1, { 2, 3 } });
+        CHECK(spy[1][0].value<DataQuad>().id == Id { 1, { 2, 3 } });
     }
 }

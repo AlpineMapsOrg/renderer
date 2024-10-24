@@ -20,13 +20,13 @@
 
 #include <unordered_map>
 #include <QObject>
-#include "tile_types.h"
+#include "types.h"
 
 namespace nucleus::tile {
 
 class QuadAssembler : public QObject {
     Q_OBJECT
-    using TileId2QuadMap = std::unordered_map<tile::Id, tile_types::DataQuad, tile::Id::Hasher>;
+    using TileId2QuadMap = std::unordered_map<tile::Id, DataQuad, tile::Id::Hasher>;
 
     TileId2QuadMap m_quads;
 
@@ -36,10 +36,10 @@ public:
 
 public slots:
     void load(const tile::Id& tile_id);
-    void deliver_tile(const tile_types::Data& tile);
+    void deliver_tile(const Data& tile);
 
 signals:
     void tile_requested(const tile::Id& tile_id);
-    void quad_loaded(const tile_types::DataQuad& tile);
+    void quad_loaded(const DataQuad& tile);
 };
 }

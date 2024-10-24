@@ -30,10 +30,10 @@ namespace nucleus::tile::cache_queries {
 inline float query_altitude(MemoryCache* cache, const glm::dvec2& lat_long)
 {
     const auto world_space = srs::lat_long_to_world(lat_long);
-    nucleus::tile::tile_types::Data selected_tile;
-    cache->visit([&](const nucleus::tile::tile_types::DataQuad& tile) {
+    nucleus::tile::Data selected_tile;
+    cache->visit([&](const nucleus::tile::DataQuad& tile) {
         for (const auto& t : tile.tiles) {
-            if (srs::tile_bounds(t.id).contains(world_space) && t.network_info.status == tile_types::NetworkInfo::Status::Good) {
+            if (srs::tile_bounds(t.id).contains(world_space) && t.network_info.status == NetworkInfo::Status::Good) {
                 selected_tile = t;
                 return true;
             }

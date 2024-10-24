@@ -26,7 +26,7 @@
 #include "Cache.h"
 #include "nucleus/camera/Definition.h"
 #include "radix/tile.h"
-#include "tile_types.h"
+#include "types.h"
 
 class QTimer;
 
@@ -67,8 +67,8 @@ public:
 
     void set_purge_timeout(unsigned int new_purge_timeout);
 
-    const Cache<tile_types::DataQuad>& ram_cache() const;
-    Cache<tile_types::DataQuad>& ram_cache();
+    const Cache<DataQuad>& ram_cache() const;
+    Cache<DataQuad>& ram_cache();
 
     std::filesystem::path disk_cache_path();
 
@@ -93,7 +93,7 @@ signals:
 
 public slots:
     void update_camera(const nucleus::camera::Definition& camera);
-    void receive_quad(const tile_types::DataQuad& new_quad);
+    void receive_quad(const DataQuad& new_quad);
     void set_network_reachability(QNetworkInformation::Reachability reachability);
     void update_gpu_quads();
     void send_quad_requests();
@@ -106,8 +106,8 @@ protected:
     void schedule_persist();
     void update_stats();
     std::vector<tile::Id> tiles_for_current_camera_position() const;
-    virtual bool is_ready_to_ship(const tile_types::DataQuad&) const { return true; }
-    virtual void transform_and_emit(const std::vector<tile_types::DataQuad>& new_quads, const std::vector<tile::Id>& deleted_quads) = 0;
+    virtual bool is_ready_to_ship(const DataQuad&) const { return true; }
+    virtual void transform_and_emit(const std::vector<DataQuad>& new_quads, const std::vector<tile::Id>& deleted_quads) = 0;
 
 private:
     std::string m_name = "";
@@ -128,8 +128,8 @@ private:
     std::unique_ptr<QTimer> m_persist_timer;
     camera::Definition m_current_camera;
     utils::AabbDecoratorPtr m_aabb_decorator;
-    Cache<tile_types::DataQuad> m_ram_cache;
-    Cache<tile_types::GpuCacheInfo> m_gpu_cached;
+    Cache<DataQuad> m_ram_cache;
+    Cache<GpuCacheInfo> m_gpu_cached;
 
 };
 }

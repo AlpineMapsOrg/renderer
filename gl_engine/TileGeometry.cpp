@@ -235,7 +235,7 @@ void TileGeometry::set_permissible_screen_space_error(float new_permissible_scre
     m_draw_list_generator.set_permissible_screen_space_error(new_permissible_screen_space_error);
 }
 
-void TileGeometry::update_gpu_quads(const std::vector<nucleus::tile::tile_types::GpuGeometryQuad>& new_quads, const std::vector<nucleus::tile::Id>& deleted_quads)
+void TileGeometry::update_gpu_quads(const std::vector<nucleus::tile::GpuGeometryQuad>& new_quads, const std::vector<nucleus::tile::Id>& deleted_quads)
 {
     for (const auto& quad : deleted_quads) {
         for (const auto& id : quad.children()) {

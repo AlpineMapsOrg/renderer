@@ -27,12 +27,11 @@
 
 #include "nucleus/camera/PositionStorage.h"
 #include "nucleus/tile/GeometryScheduler.h"
-#include "nucleus/tile/tile_types.h"
+#include "nucleus/tile/types.h"
 #include "nucleus/tile/utils.h"
 #include "radix/TileHeights.h"
 #include "test_helpers.h"
 
-using namespace nucleus::tile::tile_types;
 using nucleus::tile::utils::AabbDecorator;
 using radix::TileHeights;
 using namespace nucleus::tile;
@@ -113,11 +112,11 @@ QByteArray example_tile_data()
     return height_bytes;
 }
 
-nucleus::tile::tile_types::DataQuad example_tile_quad_for(const Id& id, unsigned n_children = 4, NetworkInfo::Status status = NetworkInfo::Status::Good)
+nucleus::tile::DataQuad example_tile_quad_for(const Id& id, unsigned n_children = 4, NetworkInfo::Status status = NetworkInfo::Status::Good)
 {
     const auto children = id.children();
     REQUIRE(n_children <= 4);
-    nucleus::tile::tile_types::DataQuad cpu_quad;
+    nucleus::tile::DataQuad cpu_quad;
     cpu_quad.id = id;
     cpu_quad.n_tiles = n_children;
     const auto example_data = example_tile_data();
@@ -130,9 +129,9 @@ nucleus::tile::tile_types::DataQuad example_tile_quad_for(const Id& id, unsigned
     return cpu_quad;
 }
 
-std::vector<nucleus::tile::tile_types::DataQuad> example_quads_for_steffl_and_gg()
+std::vector<nucleus::tile::DataQuad> example_quads_for_steffl_and_gg()
 {
-    static std::vector<nucleus::tile::tile_types::DataQuad> retval = {
+    static std::vector<nucleus::tile::DataQuad> retval = {
         example_tile_quad_for(Id { 0, { 0, 0 } }),
         example_tile_quad_for(Id { 1, { 1, 1 } }),
         example_tile_quad_for(Id { 2, { 2, 2 } }),
@@ -175,9 +174,9 @@ std::vector<nucleus::tile::tile_types::DataQuad> example_quads_for_steffl_and_gg
     };
     return retval;
 }
-std::vector<nucleus::tile::tile_types::DataQuad> example_quads_many()
+std::vector<nucleus::tile::DataQuad> example_quads_many()
 {
-    static std::vector<nucleus::tile::tile_types::DataQuad> retval = []() {
+    static std::vector<nucleus::tile::DataQuad> retval = []() {
         auto scheduler = default_scheduler();
         QSignalSpy spy(scheduler.get(), &Scheduler::quads_requested);
         auto camera = nucleus::camera::stored_positions::grossglockner();
@@ -187,7 +186,7 @@ std::vector<nucleus::tile::tile_types::DataQuad> example_quads_many()
         REQUIRE(spy.size() == 1);
         const auto quad_ids = spy.front().front().value<std::vector<Id>>();
 
-        std::vector<nucleus::tile::tile_types::DataQuad> quads;
+        std::vector<nucleus::tile::DataQuad> quads;
         quads.reserve(quad_ids.size());
         for (const auto& id : quad_ids) {
             quads.push_back(example_tile_quad_for(id));
@@ -380,7 +379,7 @@ TEST_CASE("nucleus/tile/Scheduler")
         scheduler->update_camera(nucleus::camera::stored_positions::stephansdom());
         spy.wait(2 * timing_multiplicator);
         REQUIRE(spy.size() == 1);
-        const auto gpu_quads = spy.constFirst().constFirst().value<std::vector<nucleus::tile::tile_types::GpuGeometryQuad>>();
+        const auto gpu_quads = spy.constFirst().constFirst().value<std::vector<nucleus::tile::GpuGeometryQuad>>();
         REQUIRE(gpu_quads.size() == 3);
         CHECK(gpu_quads[0].id == Id { 0, { 0, 0 } }); // order does not matter
         CHECK(gpu_quads[1].id == Id { 1, { 1, 1 } });
@@ -392,7 +391,7 @@ TEST_CASE("nucleus/tile/Scheduler")
         scheduler->receive_quad(example_tile_quad_for(Id { 7, { 69, 83 } }));
         spy.wait(2 * timing_multiplicator);
         REQUIRE(spy.size() == 2);
-        const auto new_gpu_quads = spy[1].front().value<std::vector<nucleus::tile::tile_types::GpuGeometryQuad>>();
+        const auto new_gpu_quads = spy[1].front().value<std::vector<nucleus::tile::GpuGeometryQuad>>();
         REQUIRE(new_gpu_quads.size() == 5);
         CHECK(new_gpu_quads[0].id == Id { 3, { 4, 5 } }); // order does not matter
         CHECK(new_gpu_quads[1].id == Id { 4, { 8, 10 } });
@@ -418,7 +417,7 @@ TEST_CASE("nucleus/tile/Scheduler")
         scheduler->update_camera(nucleus::camera::stored_positions::stephansdom());
         scheduler->update_gpu_quads();
         REQUIRE(spy.size() == 1);
-        const auto gpu_quads = spy.constFirst().constFirst().value<std::vector<nucleus::tile::tile_types::GpuGeometryQuad>>();
+        const auto gpu_quads = spy.constFirst().constFirst().value<std::vector<nucleus::tile::GpuGeometryQuad>>();
         REQUIRE(gpu_quads.size() == 1);
         CHECK(gpu_quads[0].id == Id { 0, { 0, 0 } });
         CHECK(gpu_quads[0].tiles[0].id == Id { 1, { 0, 0 } });
@@ -451,7 +450,7 @@ TEST_CASE("nucleus/tile/Scheduler")
         scheduler->update_camera(nucleus::camera::stored_positions::stephansdom());
         scheduler->update_gpu_quads();
         REQUIRE(spy.size() == 1);
-        const auto gpu_quads = spy.constFirst().constFirst().value<std::vector<nucleus::tile::tile_types::GpuGeometryQuad>>();
+        const auto gpu_quads = spy.constFirst().constFirst().value<std::vector<nucleus::tile::GpuGeometryQuad>>();
         REQUIRE(gpu_quads.size() == 1);
         for (auto i = 0u; i < 3; ++i) {
             REQUIRE(gpu_quads[0].tiles[i].surface);
@@ -490,11 +489,11 @@ TEST_CASE("nucleus/tile/Scheduler")
             scheduler->update_camera(nucleus::camera::stored_positions::stephansdom());
             scheduler->update_gpu_quads();
             REQUIRE(spy.size() == 1);
-            const auto new_quads = spy[0][0].value<std::vector<nucleus::tile::tile_types::GpuGeometryQuad>>();
+            const auto new_quads = spy[0][0].value<std::vector<nucleus::tile::GpuGeometryQuad>>();
             const auto deleted_quads = spy[0][1].value<std::vector<Id>>();
             CHECK(new_quads.size() == 17);
             CHECK(deleted_quads.empty());
-            nucleus::tile::Cache<nucleus::tile::tile_types::GpuGeometryQuad> test_cache;
+            nucleus::tile::Cache<nucleus::tile::GpuGeometryQuad> test_cache;
 
             for (const auto& q : new_quads)
                 test_cache.insert(q);
@@ -514,7 +513,7 @@ TEST_CASE("nucleus/tile/Scheduler")
             scheduler->update_camera(nucleus::camera::stored_positions::grossglockner());
             scheduler->update_gpu_quads();
             REQUIRE(spy.size() == 2);
-            const auto new_quads = spy[1][0].value<std::vector<nucleus::tile::tile_types::GpuGeometryQuad>>();
+            const auto new_quads = spy[1][0].value<std::vector<nucleus::tile::GpuGeometryQuad>>();
             const auto deleted_quads = spy[1][1].value<std::vector<Id>>();
             CHECK(new_quads.size() == deleted_quads.size());
             CHECK(!new_quads.empty());
@@ -527,7 +526,7 @@ TEST_CASE("nucleus/tile/Scheduler")
                     cached_tiles.erase(id);
                 }
                 CHECK(cached_tiles.size() == 17);
-                nucleus::tile::Cache<nucleus::tile::tile_types::GpuCacheInfo> test_cache;
+                nucleus::tile::Cache<nucleus::tile::GpuCacheInfo> test_cache;
                 for (const auto& id : cached_tiles) {
                     test_cache.insert({ { id } });
                 }
@@ -559,7 +558,7 @@ TEST_CASE("nucleus/tile/Scheduler")
         scheduler->update_camera(nucleus::camera::stored_positions::stephansdom());
         scheduler->update_gpu_quads();
         REQUIRE(spy.size() == 1);
-        const auto new_quads = spy[0][0].value<std::vector<nucleus::tile::tile_types::GpuGeometryQuad>>();
+        const auto new_quads = spy[0][0].value<std::vector<nucleus::tile::GpuGeometryQuad>>();
         for (const auto& tile : new_quads) {
             cached_tiles.insert(tile.id);
         }
@@ -653,7 +652,7 @@ TEST_CASE("nucleus/tile/Scheduler")
         REQUIRE(id == example_quad.id);
         const auto children = id.children();
         for (unsigned i = 0; i < 4; ++i) {
-            const nucleus::tile::tile_types::Data& child_tile = scheduler->ram_cache().peak_at(id).tiles[i];
+            const nucleus::tile::Data& child_tile = scheduler->ram_cache().peak_at(id).tiles[i];
             CHECK(child_tile.id == children[i]);
             CHECK(*child_tile.data == *example_quad.tiles[i].data);
         }

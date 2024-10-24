@@ -68,7 +68,7 @@ qt_add_library(nucleus STATIC
     srs.h srs.cpp
     tile/utils.h tile/utils.cpp
     tile/DrawListGenerator.h tile/DrawListGenerator.cpp
-    tile/tile_types.h
+    tile/types.h
     tile/constants.h
     tile/QuadAssembler.h tile/QuadAssembler.cpp
     tile/Cache.h

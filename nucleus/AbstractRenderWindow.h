@@ -24,7 +24,7 @@
 
 #include <glm/glm.hpp>
 
-#include "nucleus/tile/tile_types.h"
+#include "nucleus/tile/types.h"
 #include "utils/ColourTexture.h"
 
 class QOpenGLFramebufferObject;

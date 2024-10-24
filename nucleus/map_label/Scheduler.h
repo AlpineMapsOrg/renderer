@@ -35,8 +35,8 @@ signals:
     void gpu_tiles_updated(const std::vector<vector_tile::PoiTile>& new_quads, const std::vector<tile::Id>& deleted_quads);
 
 protected:
-    void transform_and_emit(const std::vector<tile::tile_types::DataQuad>& new_quads, const std::vector<tile::Id>& deleted_quads) override;
-    bool is_ready_to_ship(const nucleus::tile::tile_types::DataQuad& quad) const override;
+    void transform_and_emit(const std::vector<tile::DataQuad>& new_quads, const std::vector<tile::Id>& deleted_quads) override;
+    bool is_ready_to_ship(const nucleus::tile::DataQuad& quad) const override;
 
 private:
     nucleus::tile::MemoryCache* m_geometry_ram_cache = nullptr;

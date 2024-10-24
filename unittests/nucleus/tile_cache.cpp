@@ -44,14 +44,14 @@ struct DiskWriteTestTile {
     std::array<DiskWriteTestTileInner, 4> tiles;
     static constexpr std::array<char, 25> version_information = {"DiskWriteTestTile"};
 };
-static_assert(tile_types::SerialisableTile<DiskWriteTestTile>);
+static_assert(SerialisableTile<DiskWriteTestTile>);
 struct DiskWriteTestTile2 {
     Id id;
     unsigned n_children = 0;
     std::array<DiskWriteTestTileInner, 4> tiles;
     static constexpr const std::array<char, 25> version_information = {"DiskWriteTestTile2"};
 };
-static_assert(tile_types::SerialisableTile<DiskWriteTestTile2>);
+static_assert(SerialisableTile<DiskWriteTestTile2>);
 }
 
 TEST_CASE("nucleus/tile/cache")

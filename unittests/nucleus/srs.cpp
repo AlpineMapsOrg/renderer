@@ -24,7 +24,7 @@
 
 #include <nucleus/camera/PositionStorage.h>
 #include <nucleus/srs.h>
-#include <nucleus/tile/tile_types.h>
+#include <nucleus/tile/types.h>
 #include <nucleus/tile/utils.h>
 #include <radix/TileHeights.h>
 #include <radix/quad_tree.h>

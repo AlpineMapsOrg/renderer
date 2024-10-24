@@ -28,7 +28,6 @@
 #include <QImage>
 
 using namespace nucleus::tile;
-using namespace tile_types;
 using TileLayer = Data;
 using nucleus::utils::time_since_epoch;
 
@@ -141,7 +140,7 @@ TEST_CASE("nucleus/tile/TileLoadService")
             REQUIRE(arguments.size() == 1);
             TileLayer tile = arguments.at(0).value<TileLayer>();
             CHECK(tile.id == white_tile_id);
-            CHECK(tile.network_info.status == tile_types::NetworkInfo::Status::Good);
+            CHECK(tile.network_info.status == NetworkInfo::Status::Good);
             CHECK(time_since_epoch() - tile.network_info.timestamp < 10'000);
 
             const auto image = QImage::fromData(*tile.data);
@@ -159,7 +158,7 @@ TEST_CASE("nucleus/tile/TileLoadService")
             REQUIRE(arguments.size() == 1);
             const auto tile = arguments.at(0).value<TileLayer>();
             CHECK(tile.id == tirol_tile_id);
-            CHECK(tile.network_info.status == tile_types::NetworkInfo::Status::Good);
+            CHECK(tile.network_info.status == NetworkInfo::Status::Good);
             CHECK(time_since_epoch() - tile.network_info.timestamp < 10'000);
 
             const auto image = QImage::fromData(*tile.data);
@@ -187,7 +186,7 @@ TEST_CASE("nucleus/tile/TileLoadService")
         REQUIRE(arguments.size() == 1);
         const auto tile = arguments.at(0).value<TileLayer>();
         CHECK(tile.id == unavailable_tile_id);
-        CHECK(tile.network_info.status == tile_types::NetworkInfo::Status::NotFound);
+        CHECK(tile.network_info.status == NetworkInfo::Status::NotFound);
         CHECK(time_since_epoch() - tile.network_info.timestamp < 10'000);
 
         const auto image = QImage::fromData(*tile.data);
@@ -210,7 +209,7 @@ TEST_CASE("nucleus/tile/TileLoadService")
         REQUIRE(arguments.size() == 1);
         const auto tile = arguments.at(0).value<TileLayer>();
         CHECK(tile.id == unavailable_tile_id);
-        CHECK(tile.network_info.status == tile_types::NetworkInfo::Status::NetworkError);
+        CHECK(tile.network_info.status == NetworkInfo::Status::NetworkError);
         CHECK(time_since_epoch() - tile.network_info.timestamp < 10'000);
 
         const auto image = QImage::fromData(*tile.data);
@@ -233,7 +232,7 @@ TEST_CASE("nucleus/tile/TileLoadService")
         REQUIRE(arguments.size() == 1);
         const auto tile = arguments.at(0).value<TileLayer>();
         CHECK(tile.id == unavailable_tile_id);
-        CHECK(tile.network_info.status == tile_types::NetworkInfo::Status::NetworkError);
+        CHECK(tile.network_info.status == NetworkInfo::Status::NetworkError);
         CHECK(time_since_epoch() - tile.network_info.timestamp < 20);
 
         const auto image = QImage::fromData(*tile.data);

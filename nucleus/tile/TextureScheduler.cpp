@@ -29,14 +29,14 @@ TextureScheduler::TextureScheduler(std::string name, unsigned texture_resolution
 
 TextureScheduler::~TextureScheduler() = default;
 
-void TextureScheduler::transform_and_emit(const std::vector<tile::tile_types::DataQuad>& new_quads, const std::vector<tile::Id>& deleted_quads)
+void TextureScheduler::transform_and_emit(const std::vector<tile::DataQuad>& new_quads, const std::vector<tile::Id>& deleted_quads)
 {
-    std::vector<tile_types::GpuTextureQuad> new_gpu_quads;
+    std::vector<GpuTextureQuad> new_gpu_quads;
     new_gpu_quads.reserve(new_quads.size());
 
     std::transform(new_quads.cbegin(), new_quads.cend(), std::back_inserter(new_gpu_quads), [this](const auto& quad) {
         // create GpuQuad based on cpu quad
-        tile_types::GpuTextureQuad gpu_quad;
+        GpuTextureQuad gpu_quad;
         gpu_quad.id = quad.id;
         assert(quad.n_tiles == 4);
         for (unsigned i = 0; i < 4; ++i) {

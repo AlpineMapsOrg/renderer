@@ -35,7 +35,7 @@ void QuadAssembler::load(const tile::Id& tile_id)
     }
 }
 
-void QuadAssembler::deliver_tile(const tile_types::Data& tile)
+void QuadAssembler::deliver_tile(const Data& tile)
 {
     auto& quad = m_quads[tile.id.parent()];
     quad.tiles[quad.n_tiles++] = tile;
