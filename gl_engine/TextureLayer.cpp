@@ -57,7 +57,6 @@ void TextureLayer::draw(const TileGeometry& tile_geometry,
     glm::dvec3 sort_position) const
 {
     m_shader->bind();
-    QOpenGLExtraFunctions* f = QOpenGLContext::currentContext()->extraFunctions();
     m_shader->set_uniform("ortho_sampler", 2);
     m_ortho_textures->bind(2);
 
