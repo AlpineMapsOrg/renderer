@@ -434,8 +434,8 @@ TEST_CASE("nucleus/tile/Scheduler")
 
         for (auto i = 0u; i < 4; ++i) {
             REQUIRE(gpu_quads[0].tiles[i].surface);
-            CHECK(gpu_quads[0].tiles[i].surface->width() == 64);
-            CHECK(gpu_quads[0].tiles[i].surface->height() == 64);
+            CHECK(gpu_quads[0].tiles[i].surface->width() == 65);
+            CHECK(gpu_quads[0].tiles[i].surface->height() == 65);
         }
     }
 

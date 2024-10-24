@@ -107,9 +107,9 @@ TEST_CASE("nucleus/utils/tile_conversion")
         const QString filepath = QString("%1%2").arg(ALP_TEST_DATA_DIR, "test-tile.png");
         const auto u8vec4_raster = nucleus::utils::image_loader::rgba8(filepath);
         const auto u16_raster = nucleus::tile::conversion::to_u16raster(u8vec4_raster.value());
-        CHECK(u16_raster.width() == 64);
-        CHECK(u16_raster.height() == 64);
-        CHECK(u16_raster.buffer()[0] == 23 * 256 + 216);
-        CHECK(u16_raster.buffer()[1] == 22 * 256 + 33);
+        CHECK(u16_raster.width() == 65);
+        CHECK(u16_raster.height() == 65);
+        CHECK(u16_raster.buffer()[0] == 3744);
+        CHECK(u16_raster.buffer()[1] == 3718);
     }
 }
