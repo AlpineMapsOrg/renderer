@@ -18,12 +18,8 @@
 
 #pragma once
 
-#include <array>
-#include <functional>
-
 #include <glm/glm.hpp>
-
-#include "radix/tile.h"
+#include <nucleus/tile/types.h>
 
 namespace nucleus::srs {
 // the srs used for the alpine renderer is EPSG: 3857 (also called web mercator, spherical mercator).

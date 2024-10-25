@@ -27,8 +27,7 @@ set(ALP_SHADER_NETWORK_URL "http://localhost:5500/" CACHE STRING "url location, 
 
 qt_add_library(gl_engine STATIC
     Framebuffer.h Framebuffer.cpp
-    ShaderManager.h ShaderManager.cpp
-    TileManager.h TileManager.cpp
+    ShaderRegistry.h ShaderRegistry.cpp
     Window.cpp Window.h
     helpers.h
     ShaderProgram.h ShaderProgram.cpp
@@ -40,11 +39,13 @@ qt_add_library(gl_engine STATIC
     Texture.h Texture.cpp
     TrackManager.h TrackManager.cpp
     Context.h Context.cpp
+    TileGeometry.h TileGeometry.cpp
+    TextureLayer.h TextureLayer.cpp
 )
 
 if(ALP_ENABLE_LABELS)
     target_sources(gl_engine PRIVATE
-        MapLabelManager.h MapLabelManager.cpp
+        MapLabels.h MapLabels.cpp
     )
 endif()
 

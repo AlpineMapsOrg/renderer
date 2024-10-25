@@ -1,5 +1,5 @@
 /*****************************************************************************
- * Alpine Terrain Renderer
+ * AlpineMaps.org
  * Copyright (C) 2024 Lucas Dworschak
  *
  * This program is free software: you can redistribute it and/or modify
@@ -21,7 +21,7 @@
 #include <QObject>
 #include <QVector2D>
 
-namespace nucleus::maplabel {
+namespace nucleus::map_label {
 
 struct FilterDefinitions {
     Q_GADGET
@@ -61,4 +61,4 @@ public:
     Q_PROPERTY(QVector2D cottage_ele_range MEMBER m_cottage_ele_range)
 };
 
-} // namespace nucleus::maplabel
+} // namespace nucleus::map_label

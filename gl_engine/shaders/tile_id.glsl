@@ -1,5 +1,5 @@
 /*****************************************************************************
- * Alpine Terrain Renderer
+ * AlpineMaps.org
  * Copyright (C) 2024 Adam Celarek
  *
  * This program is free software: you can redistribute it and/or modify
@@ -49,6 +49,7 @@ bool decrease_zoom_level_by_one(inout highp uvec3 id, inout highp vec2 uv) {
     id.x = id.x / 2u;
     id.y = id.y / 2u;
     uv = uv / 2.0 + vec2(x_border, y_border);
+    return true;
 }
 
 void decrease_zoom_level_until(inout highp uvec3 id, inout highp vec2 uv, in lowp uint zoom_level) {

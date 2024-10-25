@@ -1,5 +1,5 @@
 /*****************************************************************************
- * Alpine Terrain Renderer
+ * AlpineMaps.org
  * Copyright (C) 2017 Klarälvdalens Datakonsult AB, a KDAB Group company (Giuseppe D'Angelo)
  * Copyright (C) 2023 Adam Celarek
  * Copyright (C) 2023 Gerald Kimmersdorfer
@@ -42,7 +42,7 @@ class QTimer;
 class TerrainRendererItem : public QQuickFramebufferObject {
     Q_OBJECT
     QML_NAMED_ELEMENT(TerrainRenderer)
-    Q_PROPERTY(int frame_limit READ frame_limit WRITE set_frame_limit NOTIFY frame_limit_changed)
+    Q_PROPERTY(int redraw_delay READ redraw_delay WRITE set_redraw_delay NOTIFY redraw_delay_changed)
     Q_PROPERTY(nucleus::camera::Definition camera READ camera NOTIFY camera_changed)
     Q_PROPERTY(int camera_width READ camera_width NOTIFY camera_width_changed)
     Q_PROPERTY(int camera_height READ camera_height NOTIFY camera_height_changed)
@@ -52,7 +52,7 @@ class TerrainRendererItem : public QQuickFramebufferObject {
     Q_PROPERTY(bool camera_operation_centre_visibility READ camera_operation_centre_visibility NOTIFY camera_operation_centre_visibility_changed)
     Q_PROPERTY(float camera_operation_centre_distance READ camera_operation_centre_distance NOTIFY camera_operation_centre_distance_changed)
     Q_PROPERTY(gl_engine::uboSharedConfig shared_config READ shared_config WRITE set_shared_config NOTIFY shared_config_changed)
-    Q_PROPERTY(nucleus::maplabel::FilterDefinitions label_filter READ label_filter WRITE set_label_filter NOTIFY label_filter_changed)
+    Q_PROPERTY(nucleus::map_label::FilterDefinitions label_filter READ label_filter WRITE set_label_filter NOTIFY label_filter_changed)
     Q_PROPERTY(AppSettings* settings MEMBER m_settings CONSTANT)
     Q_PROPERTY(unsigned int in_flight_tiles READ in_flight_tiles NOTIFY in_flight_tiles_changed)
     Q_PROPERTY(unsigned int queued_tiles READ queued_tiles NOTIFY queued_tiles_changed)
@@ -71,7 +71,7 @@ public:
 
 signals:
 
-    void frame_limit_changed();
+    void redraw_delay_changed();
 
     void mouse_pressed(const nucleus::event_parameter::Mouse&) const;
     void mouse_released(const nucleus::event_parameter::Mouse&) const;
@@ -86,7 +86,7 @@ signals:
     void camera_definition_set_by_user(const nucleus::camera::Definition&) const;
 
     void shared_config_changed(gl_engine::uboSharedConfig new_shared_config) const;
-    void label_filter_changed(const nucleus::maplabel::FilterDefinitions label_filter) const;
+    void label_filter_changed(const nucleus::map_label::FilterDefinitions label_filter) const;
     void hud_visible_changed(bool new_hud_visible);
 
     void rotation_north_requested();
@@ -144,8 +144,8 @@ private slots:
     void gl_sundir_date_link_changed(bool new_value);
 
 public:
-    [[nodiscard]] int frame_limit() const;
-    void set_frame_limit(int new_frame_limit);
+    [[nodiscard]] int redraw_delay() const;
+    void set_redraw_delay(int new_frame_limit);
 
     [[nodiscard]] nucleus::camera::Definition camera() const;
     void set_read_only_camera(const nucleus::camera::Definition& new_camera); // implementation detail
@@ -174,8 +174,8 @@ public:
     gl_engine::uboSharedConfig shared_config() const;
     void set_shared_config(gl_engine::uboSharedConfig new_shared_config);
 
-    nucleus::maplabel::FilterDefinitions label_filter() const;
-    void set_label_filter(nucleus::maplabel::FilterDefinitions new_label_filter);
+    nucleus::map_label::FilterDefinitions label_filter() const;
+    void set_label_filter(nucleus::map_label::FilterDefinitions new_label_filter);
 
     void set_selected_camera_position_index(unsigned value);
 
@@ -215,7 +215,7 @@ private:
     bool m_camera_operation_centre_visibility = false;
     float m_camera_operation_centre_distance = 1;
     float m_field_of_view = 60;
-    int m_frame_limit = 60;
+    int m_redraw_delay = 1;
     unsigned m_tile_cache_size = 12000;
     unsigned m_cached_tiles = 0;
     unsigned m_queued_tiles = 0;
@@ -227,7 +227,7 @@ private:
     QVector3D m_world_space_cursor_position = {};
 
     gl_engine::uboSharedConfig m_shared_config;
-    nucleus::maplabel::FilterDefinitions m_label_filter;
+    nucleus::map_label::FilterDefinitions m_label_filter;
 
     QTimer* m_update_timer = nullptr;
     nucleus::camera::Definition m_camera;

@@ -240,7 +240,7 @@ nucleus::Raster<uint16_t> avalanche::eaws::rasterize_regions(const RegionTile& r
 {
     // Draw region ids to image, if all pixel have same value return one pixel with this value
     const QImage img = draw_regions(region_tile, internal_id_manager, raster_width, raster_height, tile_id_out);
-    const auto raster = nucleus::utils::tile_conversion::to_u16raster(img);
+    const auto raster = nucleus::utils::tile_conversion::qimage_to_u16raster(img);
     const auto first_pixel = raster.pixel({ 0, 0 });
     for (auto p : raster) {
         if (p != first_pixel)

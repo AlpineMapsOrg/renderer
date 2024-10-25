@@ -1,5 +1,5 @@
 /*****************************************************************************
- * Alpine Terrain Renderer
+ * AlpineMaps.org
  * Copyright (C) 2023 Gerald Kimmersdorfer
  *
  * This program is free software: you can redistribute it and/or modify
@@ -58,9 +58,12 @@ template <typename T> void gl_engine::UniformBuffer<T>::bind_to_shader(ShaderPro
     shader->set_uniform_block(m_name, m_location);
 }
 
-template <typename T> void gl_engine::UniformBuffer<T>::bind_to_shader(std::vector<ShaderProgram*> shader) {
-    for (auto* sp : shader) {
-        sp->set_uniform_block(m_name, m_location);
+template <typename T> void gl_engine::UniformBuffer<T>::bind_to_shader(std::vector<std::weak_ptr<ShaderProgram>> shader)
+{
+    for (auto swp : shader) {
+        auto sp = swp.lock();
+        if (sp)
+            sp->set_uniform_block(m_name, m_location);
     }
 }
 

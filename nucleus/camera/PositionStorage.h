@@ -20,20 +20,19 @@
 #pragma once
 
 #include "Definition.h"
-#include "nucleus/srs.h"
-#include <map>
 #include <QDebug>
-
 #include <QList>
 #include <QString>
+#include <map>
+#include <nucleus/srs.h>
 
-namespace nucleus::camera::stored_positions {
-// coordinate transformer: https://epsg.io/transform#s_srs=4326&t_srs=3857&x=16.3726561&y=48.2086939
-inline nucleus::camera::Definition oestl_hochgrubach_spitze()
-{
-    const auto coords = srs::lat_long_alt_to_world({ 47.5587933, 12.3450985, 2277.0 });
-    return { { coords.x, coords.y - 500, coords.z + 500 }, coords };
-}
+ namespace nucleus::camera::stored_positions {
+ // coordinate transformer: https://epsg.io/transform#s_srs=4326&t_srs=3857&x=16.3726561&y=48.2086939
+ inline nucleus::camera::Definition oestl_hochgrubach_spitze()
+ {
+     const auto coords = srs::lat_long_alt_to_world({ 47.5587933, 12.3450985, 2277.0 });
+     return { { coords.x, coords.y - 500, coords.z + 500 }, coords };
+ }
 inline nucleus::camera::Definition stephansdom()
 {
     const auto coords = srs::lat_long_alt_to_world({ 48.20851144787232, 16.373082444395656, 171.28 });

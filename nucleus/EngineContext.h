@@ -1,5 +1,5 @@
 /*****************************************************************************
- * Alpine Terrain Renderer
+ * AlpineMaps.org
  * Copyright (C) 2024 Adam Celarek
  *
  * This program is free software: you can redistribute it and/or modify
@@ -27,18 +27,17 @@ namespace nucleus {
 class EngineContext : public QObject {
     Q_OBJECT
 public:
+    EngineContext(QObject* parent = nullptr);
     virtual ~EngineContext();
     void initialise();
     void destroy();
     [[nodiscard]] virtual track::Manager* track_manager() = 0;
-    static EngineContext& instance();
     bool is_alive() const;
 
 protected:
     explicit EngineContext();
     virtual void internal_initialise() = 0;
     virtual void internal_destroy() = 0;
-    static void set_singleton(EngineContext* context);
 
 signals:
     void initialised();
@@ -46,6 +45,5 @@ signals:
 private:
     bool m_initialised = false;
     bool m_destroyed = false;
-    static EngineContext* s_self;
 };
 } // namespace nucleus

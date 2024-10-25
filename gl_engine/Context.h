@@ -1,5 +1,5 @@
 /*****************************************************************************
- * Alpine Terrain Renderer
+ * AlpineMaps.org
  * Copyright (C) 2024 Adam Celarek
  *
  * This program is free software: you can redistribute it and/or modify
@@ -23,31 +23,40 @@
 #include "TrackManager.h"
 
 namespace gl_engine {
-class ShaderManager;
+class MapLabels;
+class ShaderRegistry;
+class TileGeometry;
+class TextureLayer;
 
 class Context : public nucleus::EngineContext {
 private:
-    Context();
-
 public:
+    Context(QObject* parent = nullptr);
     Context(Context const&) = delete;
-    ~Context();
+    ~Context() override;
     void operator=(Context const&) = delete;
-    static Context& instance()
-    {
-        static Context c;
-        return c;
-    }
 
     [[nodiscard]] TrackManager* track_manager() override;
-    [[nodiscard]] ShaderManager* shader_manager();
+    [[nodiscard]] ShaderRegistry* shader_registry();
+
+    [[nodiscard]] gl_engine::MapLabels* map_label_manager() const;
+    void set_map_label_manager(std::shared_ptr<gl_engine::MapLabels> new_map_label_manager);
+
+    [[nodiscard]] TileGeometry* tile_geometry() const;
+    void set_tile_geometry(std::shared_ptr<TileGeometry> new_tile_geometry);
+
+    [[nodiscard]] TextureLayer* ortho_layer() const;
+    void set_ortho_layer(std::shared_ptr<TextureLayer> new_ortho_layer);
 
 protected:
     void internal_initialise() override;
     void internal_destroy() override;
 
 private:
-    std::unique_ptr<gl_engine::TrackManager> m_track_manager;
-    std::unique_ptr<gl_engine::ShaderManager> m_shader_manager;
+    std::shared_ptr<TileGeometry> m_tile_geometry;
+    std::shared_ptr<TextureLayer> m_ortho_layer;
+    std::shared_ptr<gl_engine::MapLabels> m_map_label_manager;
+    std::shared_ptr<gl_engine::TrackManager> m_track_manager;
+    std::shared_ptr<gl_engine::ShaderRegistry> m_shader_registry;
 };
 } // namespace gl_engine

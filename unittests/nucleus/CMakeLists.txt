@@ -29,14 +29,13 @@ alp_add_unittest(unittests_nucleus
     srs.cpp
     track.cpp
     tile_conversion.cpp
-    tile_scheduler_util.cpp
-    tile_scheduler_tile_load_service.cpp
-    tile_scheduler_layer_assembler.cpp
-    tile_scheduler_quad_assembler.cpp
-    tile_scheduler_cache.cpp
-    tile_scheduler_scheduler.cpp
-    tile_scheduler_slot_limiter.cpp
-    tile_scheduler_rate_limiter.cpp
+    tile_util.cpp
+    tile_load_service.cpp
+    tile_quad_assembler.cpp
+    tile_cache.cpp
+    tile_scheduler.cpp
+    tile_slot_limiter.cpp
+    tile_rate_limiter.cpp
     RateTester.h RateTester.cpp
     zppbits.cpp
     cache_queries.cpp

@@ -20,6 +20,7 @@
 #include "parse.h"
 #include "util.h"
 #include <nucleus/DataQuerier.h>
+#include <nucleus/srs.h>
 
 namespace {
 nucleus::vector_tile::PointOfInterest::Type type_from_layer_name(const std::string& name)

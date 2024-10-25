@@ -1,5 +1,5 @@
 /*****************************************************************************
- * Alpine Terrain Renderer
+ * AlpineMaps.org
  * Copyright (C) 2023 Gerald Kimmersdorfer
  * Copyright (C) 2024 Patrick Komon
  *
@@ -18,23 +18,26 @@
  *****************************************************************************/
 #include "ShadowMapping.h"
 
-#include <random>
-#include <cmath>
-#include <QOpenGLExtraFunctions>
-#include <QOpenGLTexture>
 #include "Framebuffer.h"
 #include "ShaderProgram.h"
-#include "nucleus/tile_scheduler/DrawListGenerator.h"
-#include "TileManager.h"
+#include "ShaderRegistry.h"
+#include "TileGeometry.h"
 #include "UniformBufferObjects.h"
+#include <QOpenGLExtraFunctions>
+#include <QOpenGLTexture>
+#include <cmath>
 #include <glm/gtx/transform.hpp>
 
 namespace gl_engine {
 
-ShadowMapping::ShadowMapping(std::shared_ptr<ShaderProgram> program, std::shared_ptr<UniformBuffer<uboShadowConfig>> shadow_config, std::shared_ptr<UniformBuffer<uboSharedConfig>> shared_config)
-    :m_shadow_program(program), m_shadow_config(shadow_config), m_shared_config(shared_config)
+ShadowMapping::ShadowMapping(
+    ShaderRegistry* shader_registry, std::shared_ptr<UniformBuffer<uboShadowConfig>> shadow_config, std::shared_ptr<UniformBuffer<uboSharedConfig>> shared_config)
+    : m_shadow_program(std::make_shared<ShaderProgram>("shadowmap.vert", "shadowmap.frag"))
+    , m_shadow_config(shadow_config)
+    , m_shared_config(shared_config)
 {
-     m_f = QOpenGLContext::currentContext()->extraFunctions();
+    shader_registry->add_shader(m_shadow_program);
+    m_f = QOpenGLContext::currentContext()->extraFunctions();
     for (int i = 0; i < SHADOW_CASCADES; i++) {
         m_shadowmapbuffer.push_back(std::make_unique<Framebuffer>(Framebuffer::DepthFormat::Float32,
             std::vector<Framebuffer::ColourFormat> {}, // no colour texture needed (=> depth only)
@@ -46,10 +49,8 @@ ShadowMapping::~ShadowMapping() {
 
 }
 
-void ShadowMapping::draw(
-        TileManager* tile_manager,
-        const nucleus::tile_scheduler::DrawListGenerator::TileSet draw_tileset,
-        const nucleus::camera::Definition& camera) {
+void ShadowMapping::draw(TileGeometry* tile_geometry, const nucleus::tile::IdSet& draw_tileset, const nucleus::camera::Definition& camera)
+{
 
     // NOTE: ReverseZ is not necessary for ShadowMapping since a directional light is using an orthographic projection
     // and therefore the distribution of depth is linear anyway.
@@ -81,7 +82,7 @@ void ShadowMapping::draw(
         m_f->glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
         m_shadow_program->set_uniform("current_layer", i);
-        tile_manager->draw(m_shadow_program.get(), camera, draw_tileset, false, glm::dvec3(0.0));
+        tile_geometry->draw(m_shadow_program.get(), camera, draw_tileset, false, glm::dvec3(0.0));
         m_shadowmapbuffer[i]->unbind();
     }
     m_shadow_program->release();

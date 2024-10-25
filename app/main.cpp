@@ -1,5 +1,5 @@
 /*****************************************************************************
- * Alpine Terrain Renderer
+ * AlpineMaps.org
  * Copyright (C) 2017 Klarälvdalens Datakonsult AB, a KDAB Group company (Giuseppe D'Angelo)
  * Copyright (C) 2023 Adam Celarek
  * Copyright (C) 2023 Gerald Kimmersdorfer
@@ -25,11 +25,11 @@
 #else
 #include <QGuiApplication>
 #endif
-#include "GnssInformation.h"
+#ifdef ALP_ENABLE_DEV_TOOLS
 #include "HotReloader.h"
-#include "ModelBinding.h"
+#include "TimerFrontendManager.h"
+#endif
 #include "RenderThreadNotifier.h"
-#include "TerrainRendererItem.h"
 #include "TrackModel.h"
 #include <QLoggingCategory>
 #include <QNetworkInformation>
@@ -47,8 +47,23 @@
 #include <nucleus/camera/PositionStorage.h>
 #include <nucleus/version.h>
 
+// QtMessageHandler originalHandler = nullptr;
+// void filter_log(QtMsgType type, const QMessageLogContext& context, const QString& msg)
+// {
+//     if (msg.contains("QObject::killTimer: Timers cannot be stopped from another thread")) {
+//         qDebug() << "dudu";
+//     }
+//     if (msg.contains("Destroyed while thread is still running")) {
+//         qDebug() << "aha!, current thread: " << QThread::currentThread()->objectName() << ": " << QThread::currentThread();
+//     }
+//     if (originalHandler) {
+//         originalHandler(type, context, msg);
+//     }
+// }
+
 int main(int argc, char **argv)
 {
+    // originalHandler = qInstallMessageHandler(filter_log);
     QQuickWindow::setGraphicsApi(QSGRendererInterface::GraphicsApi::OpenGLRhi);
 #if defined(ALP_ENABLE_DEV_TOOLS) || defined(__ANDROID__)
     QApplication app(argc, argv);
@@ -119,12 +134,16 @@ int main(int argc, char **argv)
         qDebug("Requesting 3.0 context");
         fmt.setVersion(3, 0);
     }
-    gl_engine::Context::instance(); // initialise, so it's ready when we create dependent objects. // still needs to be moved to the render thread.
 
     QSurfaceFormat::setDefaultFormat(fmt);
 
-    QQmlApplicationEngine engine;
+    // create in main thread
+#ifdef ALP_ENABLE_DEV_TOOLS
+    TimerFrontendManager::instance();
+#endif
+    RenderThreadNotifier::instance();
 
+    QQmlApplicationEngine engine;
     engine.rootContext()->setContextProperty("_r", ALP_QML_SOURCE_DIR);
     engine.rootContext()->setContextProperty("_positionList", QVariant::fromValue(nucleus::camera::PositionStorage::instance()->getPositionList()));
     engine.rootContext()->setContextProperty("_alpine_renderer_version", QString::fromStdString(nucleus::version()));
@@ -132,7 +151,6 @@ int main(int argc, char **argv)
     auto track_model = TrackModel();
     engine.rootContext()->setContextProperty("_track_model", &track_model);
 
-    RenderThreadNotifier::instance();
     QObject::connect(
         &engine, &QQmlApplicationEngine::objectCreated,
         &app, [](QObject* obj, const QUrl& objUrl) {
@@ -140,6 +158,7 @@ int main(int argc, char **argv)
                 qDebug() << "Creating QML object from " << objUrl << " failed!";
                 QCoreApplication::exit(-1);
             }
+            // qDebug() << "QQmlApplicationEngine::objectCreated: " << obj;
         },
         Qt::QueuedConnection);
 
@@ -168,8 +187,7 @@ int main(int argc, char **argv)
     });
 #endif
 
-    RenderThreadNotifier::instance()
-        ->set_root_window(root_window);
+    RenderThreadNotifier::instance()->set_root_window(root_window);
 
     return app.exec();
 }

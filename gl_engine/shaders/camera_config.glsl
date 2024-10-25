@@ -1,5 +1,5 @@
 /*****************************************************************************
- * Alpine Terrain Renderer
+ * AlpineMaps.org
  * Copyright (C) 2022 Gerald Kimmersdorfer
  *
  * This program is free software: you can redistribute it and/or modify

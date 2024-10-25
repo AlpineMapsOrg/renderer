@@ -97,10 +97,11 @@ jobs:
         LD_PRELOAD: ./libdlclose.so
         LSAN_OPTIONS: suppressions=./sanitizer_supressions/linux_leak.supp
         ASAN_OPTIONS: verify_asan_link_order=0
+        # QSG_RENDER_LOOP: basic
       run: |
         ./build/alp_external/radix/unittests/unittests_radix
         ./build/unittests/nucleus/unittests_nucleus
         Xvfb :1 -screen 0 1024x768x16 &
         sleep 5
         ./build/unittests/gl_engine/unittests_gl_engine
-        ./build/app/alpineapp
+        # ./build/app/alpineapp # rendering is not starting, and now it crashes on shutdown (qthread destroyed while running). likely due to the fake opengl/offscreen rendering

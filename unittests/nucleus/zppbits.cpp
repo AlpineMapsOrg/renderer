@@ -1,5 +1,5 @@
 /*****************************************************************************
- * Alpine Terrain Renderer
+ * AlpineMaps.org
  * Copyright (C) 2023 Adam Celarek
  *
  * This program is free software: you can redistribute it and/or modify
@@ -28,7 +28,7 @@ namespace {
 
 struct TestStruct
 {
-    tile::Id tile_id;
+    radix::tile::Id tile_id;
     std::shared_ptr<QByteArray> name;
 };
 }
@@ -61,7 +61,7 @@ TEST_CASE("zppbits") {
         TestStruct t;
         zpp::bits::in in(data);
         in(t).or_throw();
-        CHECK(t.tile_id == tile::Id{1, {2, 3}});
+        CHECK(t.tile_id == radix::tile::Id { 1, { 2, 3 } });
         CHECK(*t.name == "test");
     }
 }

@@ -48,8 +48,6 @@ public:
 
 public slots:
     void receive_measurements(QList<nucleus::timing::TimerReport> values);
-    // this is called by qml in the loader, triggering the initialisation. it's necessary, so that it's available in c++ via instance()
-    void initialise() const;
 
 signals:
     void updateTimingList(QList<TimerFrontendObject*> data);

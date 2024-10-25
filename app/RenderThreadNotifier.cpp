@@ -1,5 +1,5 @@
 /*****************************************************************************
- * Alpine Terrain Renderer
+ * AlpineMaps.org
  * Copyright (C) 2023 Adam Celarek
  *
  * This program is free software: you can redistribute it and/or modify
@@ -57,9 +57,11 @@ void RenderThreadNotifier::notify()
     assert(m_root_window != nullptr);
 
     auto* runnable = QRunnable::create([]() {
-//        qDebug() << "QCoreApplication::processEvents called on: " << QThread::currentThread() << "(" << QThread::currentThread()->objectName() << ")";
-        QCoreApplication::processEvents(QEventLoop::AllEvents, 0);
+        // qDebug() << "QCoreApplication::processEvents called on: " << QThread::currentThread() << "(" << QThread::currentThread()->objectName() << ")";
+        if (QThread::currentThread() != QCoreApplication::instance()->thread()) // don't call process events if there is no dedicated rendering thread. it breaks stuff.
+            QCoreApplication::processEvents(QEventLoop::AllEvents, 0);
     });
+
     m_root_window->scheduleRenderJob(runnable, QQuickWindow::RenderStage::NoStage);
 #endif
 }

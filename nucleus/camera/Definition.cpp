@@ -39,6 +39,7 @@
 // https://webglfundamentals.org/webgl/lessons/webgl-3d-camera.html
 
 using namespace nucleus::camera;
+namespace geometry = radix::geometry;
 
 Definition::Definition()
     : Definition({1, 1, 1}, {0, 0, 0})

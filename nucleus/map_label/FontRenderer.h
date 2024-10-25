@@ -1,5 +1,5 @@
 /*****************************************************************************
- * Alpine Terrain Renderer
+ * AlpineMaps.org
  * Copyright (C) 2024 Lucas Dworschak
  *
  * This program is free software: you can redistribute it and/or modify
@@ -26,9 +26,9 @@
 #include <vector>
 
 #include <nucleus/Raster.h>
-#include <nucleus/map_label/MapLabelData.h>
+#include <nucleus/map_label/types.h>
 
-namespace nucleus::maplabel {
+namespace nucleus::map_label {
 
 
 struct FontData {

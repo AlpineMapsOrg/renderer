@@ -1,5 +1,5 @@
 /*****************************************************************************
- * Alpine Terrain Renderer
+ * AlpineMaps.org
  * Copyright (C) 2017 Klarälvdalens Datakonsult AB, a KDAB Group company (Giuseppe D'Angelo)
  * Copyright (C) 2023 Adam Celarek
  * Copyright (C) 2023 Gerald Kimmersdorfer
@@ -21,6 +21,9 @@
 
 #include "TerrainRendererItem.h"
 
+#include "RenderThreadNotifier.h"
+#include "RenderingContext.h"
+#include "TerrainRenderer.h"
 #include <QBuffer>
 #include <QDebug>
 #include <QDir>
@@ -31,23 +34,20 @@
 #include <QQuickWindow>
 #include <QThread>
 #include <QTimer>
-#include <memory>
-
+#include <gl_engine/Window.h>
 #include <glm/glm.hpp>
 #include <glm/gtx/string_cast.hpp>
-
-#include "RenderThreadNotifier.h"
-#include "TerrainRenderer.h"
-#include "gl_engine/Window.h"
-#include "nucleus/Controller.h"
-#include "nucleus/camera/Controller.h"
-#include "nucleus/camera/PositionStorage.h"
-#include "nucleus/map_label/MapLabelFilter.h"
-#include "nucleus/picker/PickerManager.h"
-#include "nucleus/srs.h"
-#include "nucleus/tile_scheduler/Scheduler.h"
-#include "nucleus/utils/UrlModifier.h"
-#include "nucleus/utils/sun_calculations.h"
+#include <memory>
+#include <nucleus/camera/Controller.h>
+#include <nucleus/camera/PositionStorage.h>
+#include <nucleus/map_label/Filter.h>
+#include <nucleus/map_label/Scheduler.h>
+#include <nucleus/picker/PickerManager.h>
+#include <nucleus/srs.h>
+#include <nucleus/tile/GeometryScheduler.h>
+#include <nucleus/tile/TextureScheduler.h>
+#include <nucleus/utils/UrlModifier.h>
+#include <nucleus/utils/sun_calculations.h>
 
 #ifdef ALP_ENABLE_DEV_TOOLS
 #include "TimerFrontendManager.h"
@@ -71,7 +71,8 @@ TerrainRendererItem::TerrainRendererItem(QQuickItem* parent)
 #ifdef ALP_ENABLE_TRACK_OBJECT_LIFECYCLE
     qDebug("TerrainRendererItem()");
 #endif
-    //qDebug() << "gui thread: " << QThread::currentThread();
+    qDebug("TerrainRendererItem()");
+    qDebug() << "GUI thread: " << QThread::currentThread();
 
     m_url_modifier = std::make_shared<nucleus::utils::UrlModifier>();
 
@@ -82,7 +83,7 @@ TerrainRendererItem::TerrainRendererItem(QQuickItem* parent)
     connect(RenderThreadNotifier::instance(), &RenderThreadNotifier::redraw_requested, this, &TerrainRendererItem::schedule_update);
 
     m_update_timer->setSingleShot(!m_continuous_update);
-    m_update_timer->setInterval(1000 / m_frame_limit);
+    m_update_timer->setInterval(m_redraw_delay);
     setMirrorVertically(true);
     setAcceptTouchEvents(true);
     setAcceptedMouseButtons(Qt::MouseButton::AllButtons);
@@ -106,50 +107,43 @@ TerrainRendererItem::~TerrainRendererItem()
 QQuickFramebufferObject::Renderer* TerrainRendererItem::createRenderer() const
 {
     qDebug("QQuickFramebufferObject::Renderer* TerrainRendererItem::createRenderer() const");
-    qDebug() << "rendering thread: " << QThread::currentThread();
+    qDebug() << "Rendering thread: " << QThread::currentThread();
     // called on rendering thread.
+    auto ctx = RenderingContext::instance();
 
     auto* r = new TerrainRenderer();
     connect(r->glWindow(), &nucleus::AbstractRenderWindow::update_requested, this, &TerrainRendererItem::schedule_update);
     connect(m_update_timer, &QTimer::timeout, this, &QQuickFramebufferObject::update);
 
-    connect(this, &TerrainRendererItem::touch_made, r->controller()->camera_controller(), &nucleus::camera::Controller::touch);
-    connect(this, &TerrainRendererItem::mouse_pressed, r->controller()->camera_controller(), &nucleus::camera::Controller::mouse_press);
-    connect(this, &TerrainRendererItem::mouse_moved, r->controller()->camera_controller(), &nucleus::camera::Controller::mouse_move);
-    connect(this, &TerrainRendererItem::wheel_turned, r->controller()->camera_controller(), &nucleus::camera::Controller::wheel_turn);
-    connect(this, &TerrainRendererItem::key_pressed, r->controller()->camera_controller(), &nucleus::camera::Controller::key_press);
-    connect(this, &TerrainRendererItem::key_released, r->controller()->camera_controller(), &nucleus::camera::Controller::key_release);
-    connect(this, &TerrainRendererItem::update_camera_requested, r->controller()->camera_controller(), &nucleus::camera::Controller::update_camera_request);
-    connect(this, &TerrainRendererItem::position_set_by_user, r->controller()->camera_controller(), &nucleus::camera::Controller::fly_to_latitude_longitude);
-    connect(this, &TerrainRendererItem::rotation_north_requested, r->controller()->camera_controller(), &nucleus::camera::Controller::rotate_north);
+    connect(this, &TerrainRendererItem::touch_made, r->controller(), &nucleus::camera::Controller::touch);
+    connect(this, &TerrainRendererItem::mouse_pressed, r->controller(), &nucleus::camera::Controller::mouse_press);
+    connect(this, &TerrainRendererItem::mouse_moved, r->controller(), &nucleus::camera::Controller::mouse_move);
+    connect(this, &TerrainRendererItem::wheel_turned, r->controller(), &nucleus::camera::Controller::wheel_turn);
+    connect(this, &TerrainRendererItem::key_pressed, r->controller(), &nucleus::camera::Controller::key_press);
+    connect(this, &TerrainRendererItem::key_released, r->controller(), &nucleus::camera::Controller::key_release);
+    connect(this, &TerrainRendererItem::update_camera_requested, r->controller(), &nucleus::camera::Controller::advance_camera);
+    connect(this, &TerrainRendererItem::position_set_by_user, r->controller(), &nucleus::camera::Controller::fly_to_latitude_longitude);
+    connect(this, &TerrainRendererItem::rotation_north_requested, r->controller(), &nucleus::camera::Controller::rotate_north);
 
-    connect(this, &TerrainRendererItem::touch_made, r->controller()->picker_manager(), &nucleus::picker::PickerManager::touch_event);
-    connect(this, &TerrainRendererItem::mouse_pressed, r->controller()->picker_manager(), &nucleus::picker::PickerManager::mouse_press_event);
-    connect(this, &TerrainRendererItem::mouse_released, r->controller()->picker_manager(), &nucleus::picker::PickerManager::mouse_release_event);
-    connect(this, &TerrainRendererItem::mouse_moved, r->controller()->picker_manager(), &nucleus::picker::PickerManager::mouse_move_event);
+    connect(this, &TerrainRendererItem::touch_made, ctx->picker_manager().get(), &nucleus::picker::PickerManager::touch_event);
+    connect(this, &TerrainRendererItem::mouse_pressed, ctx->picker_manager().get(), &nucleus::picker::PickerManager::mouse_press_event);
+    connect(this, &TerrainRendererItem::mouse_released, ctx->picker_manager().get(), &nucleus::picker::PickerManager::mouse_release_event);
+    connect(this, &TerrainRendererItem::mouse_moved, ctx->picker_manager().get(), &nucleus::picker::PickerManager::mouse_move_event);
 
     // Connect definition change to aquire camera position for sun angle calculation
-    connect(r->controller()->camera_controller(), &nucleus::camera::Controller::definition_changed, this, &TerrainRendererItem::camera_definition_changed);
-    connect(r->controller()->camera_controller(), &nucleus::camera::Controller::global_cursor_position_changed, this,
-        &TerrainRendererItem::set_world_space_cursor_position);
+    connect(r->controller(), &nucleus::camera::Controller::definition_changed, this, &TerrainRendererItem::camera_definition_changed);
+    connect(r->controller(), &nucleus::camera::Controller::global_cursor_position_changed, this, &TerrainRendererItem::set_world_space_cursor_position);
 
-    connect(this, &TerrainRendererItem::camera_definition_set_by_user, r->controller()->camera_controller(), &nucleus::camera::Controller::set_definition);
+    connect(this, &TerrainRendererItem::camera_definition_set_by_user, r->controller(), &nucleus::camera::Controller::set_definition);
 
-    auto* const tile_scheduler = r->controller()->tile_scheduler();
-    connect(this->m_settings, &AppSettings::render_quality_changed, tile_scheduler, [=](float new_render_quality) {
+    connect(this->m_settings, &AppSettings::render_quality_changed, ctx->geometry_scheduler(), [ctx](float new_render_quality) {
         const auto permissible_error = 1.0f / new_render_quality;
-        tile_scheduler->set_permissible_screen_space_error(permissible_error);
+        ctx->geometry_scheduler()->set_permissible_screen_space_error(permissible_error);
+        ctx->ortho_scheduler()->set_permissible_screen_space_error(permissible_error);
     });
-    connect(this, &TerrainRendererItem::tile_cache_size_changed, tile_scheduler, &nucleus::tile_scheduler::Scheduler::set_ram_quad_limit);
-    connect(tile_scheduler, &nucleus::tile_scheduler::Scheduler::quads_requested, this, [this](const std::vector<tile::Id>& ids) {
-        const_cast<TerrainRendererItem*>(this)->set_queued_tiles(unsigned(ids.size()));
-    });
-    connect(tile_scheduler, &nucleus::tile_scheduler::Scheduler::quad_received, this, [this]() {
-        const_cast<TerrainRendererItem*>(this)->set_queued_tiles(std::max(this->queued_tiles(), 1u) - 1);
-    });
-    connect(tile_scheduler, &nucleus::tile_scheduler::Scheduler::statistics_updated, this, [this](const nucleus::tile_scheduler::Scheduler::Statistics& stats) {
-        const_cast<TerrainRendererItem*>(this)->set_cached_tiles(stats.n_tiles_in_ram_cache);
-    });
+    connect(this, &TerrainRendererItem::tile_cache_size_changed, ctx->geometry_scheduler(), &nucleus::tile::Scheduler::set_ram_quad_limit);
+    connect(this, &TerrainRendererItem::tile_cache_size_changed, ctx->ortho_scheduler(), &nucleus::tile::Scheduler::set_ram_quad_limit);
+    connect(this, &TerrainRendererItem::tile_cache_size_changed, ctx->map_label_scheduler(), &nucleus::tile::Scheduler::set_ram_quad_limit);
 
     // connect glWindow to forward key events.
     connect(this, &TerrainRendererItem::shared_config_changed, r->glWindow(), &gl_engine::Window::shared_config_changed);
@@ -157,15 +151,12 @@ QQuickFramebufferObject::Renderer* TerrainRendererItem::createRenderer() const
     // connect glWindow for shader hotreload by frontend button
     connect(this, &TerrainRendererItem::reload_shader, r->glWindow(), &gl_engine::Window::reload_shader);
 
-    connect(this, &TerrainRendererItem::label_filter_changed, r->controller()->label_filter(), &nucleus::maplabel::MapLabelFilter::update_filter);
-    connect(r->controller()->picker_manager(), &nucleus::picker::PickerManager::pick_evaluated, this, &TerrainRendererItem::set_picked_feature);
+    connect(this, &TerrainRendererItem::label_filter_changed, ctx->label_filter().get(), &nucleus::map_label::Filter::update_filter);
+    connect(ctx->picker_manager().get(), &nucleus::picker::PickerManager::pick_evaluated, this, &TerrainRendererItem::set_picked_feature);
 
 #ifdef ALP_ENABLE_DEV_TOOLS
     connect(r->glWindow(), &gl_engine::Window::report_measurements, TimerFrontendManager::instance(), &TimerFrontendManager::receive_measurements);
 #endif
-
-    connect(r->controller()->tile_scheduler(), &nucleus::tile_scheduler::Scheduler::gpu_quads_updated, RenderThreadNotifier::instance(), &RenderThreadNotifier::notify);
-    connect(tile_scheduler, &nucleus::tile_scheduler::Scheduler::gpu_quads_updated, RenderThreadNotifier::instance(), &RenderThreadNotifier::notify);
 
     // We now have to initialize everything based on the url, but we need to do this on the thread this instance
     // belongs to. (gui thread?) Therefore we use the following signal to signal the init process
@@ -270,19 +261,16 @@ void TerrainRendererItem::schedule_update()
     m_update_timer->start();
 }
 
-int TerrainRendererItem::frame_limit() const
-{
-    return m_frame_limit;
-}
+int TerrainRendererItem::redraw_delay() const { return m_redraw_delay; }
 
-void TerrainRendererItem::set_frame_limit(int new_frame_limit)
+void TerrainRendererItem::set_redraw_delay(int new_delay)
 {
-    new_frame_limit = std::clamp(new_frame_limit, 1, 120);
-    if (m_frame_limit == new_frame_limit)
+    new_delay = std::clamp(new_delay, 0, 50);
+    if (m_redraw_delay == new_delay)
         return;
-    m_frame_limit = new_frame_limit;
-    m_update_timer->setInterval(1000 / m_frame_limit);
-    emit frame_limit_changed();
+    m_redraw_delay = new_delay;
+    m_update_timer->setInterval(m_redraw_delay);
+    emit redraw_delay_changed();
 }
 
 nucleus::camera::Definition TerrainRendererItem::camera() const
@@ -403,8 +391,8 @@ void TerrainRendererItem::set_shared_config(gl_engine::uboSharedConfig new_share
     }
 }
 
-nucleus::maplabel::FilterDefinitions TerrainRendererItem::label_filter() const { return m_label_filter; }
-void TerrainRendererItem::set_label_filter(nucleus::maplabel::FilterDefinitions new_label_filter)
+nucleus::map_label::FilterDefinitions TerrainRendererItem::label_filter() const { return m_label_filter; }
+void TerrainRendererItem::set_label_filter(nucleus::map_label::FilterDefinitions new_label_filter)
 {
     if (m_label_filter != new_label_filter) {
         m_label_filter = new_label_filter;

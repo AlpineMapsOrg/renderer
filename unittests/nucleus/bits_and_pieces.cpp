@@ -1,5 +1,5 @@
 /*****************************************************************************
- * Alpine Terrain Renderer
+ * AlpineMaps.org
  * Copyright (C) 2023 Adam Celarek
  *
  * This program is free software: you can redistribute it and/or modify
@@ -57,14 +57,18 @@ TEST_CASE("nucleus/bits_and_pieces: qt signals and slots")
 
 TEST_CASE("nucleus/bits_and_pieces: image loading")
 {
-    const auto white = nucleus::utils::image_loader::rgba8(test_helpers::white_jpeg_tile(4));
+    const auto expected_white = nucleus::utils::image_loader::rgba8(test_helpers::white_jpeg_tile(4));
+    REQUIRE(expected_white);
+    const auto white = expected_white.value();
     REQUIRE(white.width() == 4);
     REQUIRE(white.height() == 4);
     for (const auto p : white.buffer()) {
         CHECK(p == glm::u8vec4(255, 255, 255, 255));
     }
 
-    const auto black = nucleus::utils::image_loader::rgba8(test_helpers::black_png_tile(8));
+    const auto expected_black = nucleus::utils::image_loader::rgba8(test_helpers::black_png_tile(8));
+    REQUIRE(expected_black);
+    const auto black = expected_black.value();
     REQUIRE(black.width() == 8);
     REQUIRE(black.height() == 8);
     for (const auto p : black.buffer()) {

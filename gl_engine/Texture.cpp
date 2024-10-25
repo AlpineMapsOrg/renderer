@@ -1,5 +1,5 @@
 /*****************************************************************************
- * Alpine Terrain Renderer
+ * AlpineMaps.org
  * Copyright (C) 2024 Adam Celarek
  *
  * This program is free software: you can redistribute it and/or modify
@@ -75,7 +75,6 @@ gl_engine::Texture::Texture(Target target, Format format)
 
 gl_engine::Texture::~Texture()
 {
-
     QOpenGLFunctions* f = QOpenGLContext::currentContext()->functions();
     f->glDeleteTextures(1, &m_id);
 }

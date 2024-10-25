@@ -1,5 +1,5 @@
 /*****************************************************************************
- * Alpine Terrain Renderer
+ * AlpineMaps.org
  * Copyright (C) 2023 Adam Celarek
  * Copyright (C) 2024 Patrick Komon
  * Copyright (C) 2024 Gerald Kimmersdorfer

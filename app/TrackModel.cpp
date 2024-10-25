@@ -1,5 +1,5 @@
 /*****************************************************************************
- * Alpine Terrain Renderer
+ * AlpineMaps.org
  * Copyright (C) 2024 Adam Celarek
  *
  * This program is free software: you can redistribute it and/or modify
@@ -26,16 +26,16 @@
 #include <QFileDialog>
 #endif
 
-#include <gl_engine/Context.h>
-
 #include "RenderThreadNotifier.h"
+#include "RenderingContext.h"
+#include <gl_engine/Context.h>
 
 TrackModel::TrackModel(QObject* parent)
     : QObject { parent }
 {
-    auto& c = nucleus::EngineContext::instance();
-    connect(&c, &nucleus::EngineContext::initialised, this, [this]() {
-        auto* track_manager = nucleus::EngineContext::instance().track_manager();
+    auto* c = RenderingContext::instance();
+    connect(c, &RenderingContext::initialised, this, [this, c]() {
+        auto* track_manager = c->engine_context()->track_manager();
         connect(this, &TrackModel::tracks_changed, track_manager, &nucleus::track::Manager::change_tracks);
         connect(this, &TrackModel::display_width_changed, track_manager, &nucleus::track::Manager::change_display_width);
         connect(this, &TrackModel::shading_style_changed, track_manager, &nucleus::track::Manager::change_shading_style);

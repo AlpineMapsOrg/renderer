@@ -58,7 +58,7 @@ Rectangle {
     Component.onCompleted: responsive_update()
 
     Connections {
-        target: main
+        target: application_window
         function onWidthChanged() {
             responsive_update();
         }
@@ -296,6 +296,7 @@ Rectangle {
                 text: "Continuous update"
                 ModelBinding on checked { target: map; property: "continuous_update"; default_value: true }
             }
+            onCheckedChanged: responsive_update();
 
             Pane {
                 id: stats_timing;
@@ -423,29 +424,29 @@ Rectangle {
                             timeLabelObject: timeLabelObject,
                             element: ele
                         };
+                }
 
+                function add_or_refresh_element(ele) {
+                    if (!items.hasOwnProperty(ele.name)) {
+                        // Create new gui object
+                        create_timing_gui_object(ele);
                     }
+                    items[ele.name].timeLabelObject.text = ele.last_measurement.toFixed(2) + " (Ø " + ele.quick_average.toFixed(2) + ") [ms]";
+                    responsive_update();
+                }
 
-                    function add_or_refresh_element(ele) {
-                        if (!items.hasOwnProperty(ele.name)) {
-                            // Create new gui object
-                            create_timing_gui_object(ele);
+                Connections {
+                    target: TimerFrontendManager
+                    // Gets invoked whenever new frame time data is available
+                    function onUpdateTimingList(data) {
+                        for (var i = 0; i < data.length; i++) {
+                            stats_timing.add_or_refresh_element(data[i]);
                         }
-                        items[ele.name].timeLabelObject.text = ele.last_measurement.toFixed(2) + " (Ø " + ele.quick_average.toFixed(2) + ") [ms]";
-                    }
-
-                    Connections {
-                        target: TimerFrontendManager
-                        // Gets invoked whenever new frame time data is available
-                        function onUpdateTimingList(data) {
-                            for (var i = 0; i < data.length; i++) {
-                                stats_timing.add_or_refresh_element(data[i]);
-                            }
-                            if (!dialog_refresh_delay_timer.running)
-                                dialog_refresh_delay_timer.start();
-                            }
+                        if (!dialog_refresh_delay_timer.running)
+                            dialog_refresh_delay_timer.start();
                         }
                     }
+                }
         }
         CheckGroup {
             id: camera_group

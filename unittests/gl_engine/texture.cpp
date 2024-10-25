@@ -1,5 +1,5 @@
 /*****************************************************************************
- * Alpine Terrain Renderer
+ * AlpineMaps.org
  * Copyright (C) 2024 Adam Celarek
  *
  * This program is free software: you can redistribute it and/or modify
@@ -24,8 +24,8 @@
 #include <gl_engine/ShaderProgram.h>
 #include <gl_engine/Texture.h>
 #include <gl_engine/helpers.h>
+#include <nucleus/tile/conversion.h>
 #include <nucleus/utils/ColourTexture.h>
-#include <nucleus/utils/tile_conversion.h>
 
 using gl_engine::Framebuffer;
 using gl_engine::ShaderProgram;
@@ -136,10 +136,7 @@ QImage create_test_rgba_qimage(unsigned width, unsigned height)
     }
     return test_texture;
 }
-nucleus::Raster<glm::u8vec4> create_test_rgba_raster(unsigned width, unsigned height)
-{
-    return nucleus::utils::tile_conversion::to_rgba8raster(create_test_rgba_qimage(width, height));
-}
+nucleus::Raster<glm::u8vec4> create_test_rgba_raster(unsigned width, unsigned height) { return nucleus::tile::conversion::to_rgba8raster(create_test_rgba_qimage(width, height)); }
 
 } // namespace
 

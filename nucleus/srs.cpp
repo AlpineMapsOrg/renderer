@@ -33,7 +33,7 @@ tile::SrsBounds tile_bounds(const tile::Id& tile)
     const auto height_of_a_tile = cEarthCircumference / number_of_vertical_tiles_for_zoom_level(tile.zoom_level);
     glm::dvec2 absolute_min = { -cOriginShift, -cOriginShift };
     const auto min = absolute_min + glm::dvec2 { tile.coords.x * width_of_a_tile, tile.coords.y * height_of_a_tile };
-    const auto max = min + glm::dvec2 { width_of_a_tile, height_of_a_tile };
+    const auto max = absolute_min + glm::dvec2 { (tile.coords.x + 1) * width_of_a_tile, (tile.coords.y + 1) * height_of_a_tile };
     return { min, max };
 }
 
@@ -93,9 +93,9 @@ uint16_t hash_uint16(const tile::Id& id)
 {
     // https://en.wikipedia.org/wiki/Linear_congruential_generator
     // could be possible to find better factors.
-    uint16_t z = uint16_t(id.zoom_level) * uint16_t(4 * 199 * 59 + 1) + uint16_t(10859);
-    uint16_t x = uint16_t(id.coords.x) * uint16_t(4 * 149 * 101 + 1) + uint16_t(12253);
-    uint16_t y = uint16_t(id.coords.y) * uint16_t(4 * 293 * 53 + 1) + uint16_t(59119);
+    const uint16_t z = uint16_t(id.zoom_level) * uint16_t(4 * 199 * 59 + 1) + uint16_t(10859);
+    const uint16_t x = uint16_t(id.coords.x) * uint16_t(4 * 149 * 101 + 1) + uint16_t(12253);
+    const uint16_t y = uint16_t(id.coords.y) * uint16_t(4 * 293 * 53 + 1) + uint16_t(59119);
 
     return x + y + z;
 }

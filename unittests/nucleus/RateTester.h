@@ -1,5 +1,5 @@
 /*****************************************************************************
- * Alpine Terrain Renderer
+ * AlpineMaps.org
  * Copyright (C) 2023 Adam Celarek
  *
  * This program is free software: you can redistribute it and/or modify
@@ -20,7 +20,7 @@
 
 #include <QObject>
 
-#include "nucleus/tile_scheduler/RateLimiter.h"
+#include "nucleus/tile/RateLimiter.h"
 
 namespace unittests {
 
@@ -32,10 +32,10 @@ class RateTester : public QObject {
     unsigned m_period;
 
 public:
-    explicit RateTester(nucleus::tile_scheduler::RateLimiter* period);
+    explicit RateTester(nucleus::tile::RateLimiter* period);
     ~RateTester() override;
 
 public slots:
-    void receive_quad_request(const tile::Id& id);
+    void receive_quad_request(const nucleus::tile::Id& id);
 };
 }

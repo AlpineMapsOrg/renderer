@@ -1,5 +1,5 @@
 /*****************************************************************************
- * Alpine Terrain Renderer
+ * AlpineMaps.org
  * Copyright (C) 2024 Lucas Dworschak
  *
  * This program is free software: you can redistribute it and/or modify
@@ -20,7 +20,7 @@
 
 #include <nucleus/event_parameter.h>
 #include <nucleus/picker/types.h>
-#include <nucleus/tile_scheduler/tile_types.h>
+#include <nucleus/tile/types.h>
 #include <nucleus/vector_tile/types.h>
 #include <radix/tile.h>
 #include <vector>
@@ -39,7 +39,7 @@ public:
     void touch_event(const event_parameter::Touch& e);
 
 public slots:
-    void update_quads(const std::vector<nucleus::tile_scheduler::tile_types::GpuTileQuad>& new_quads, const std::vector<tile::Id>& deleted_quads);
+    void update_quads(const std::vector<vector_tile::PoiTile>& new_tiles, const std::vector<tile::Id>& deleted_quads);
     void eval_pick(uint32_t value);
 
 signals:
@@ -47,7 +47,7 @@ signals:
     void pick_evaluated(const Feature& feature);
 
 private:
-    vector_tile::PointOfInterestTileCollection m_all_pois;
+    std::unordered_map<tile::Id, PointOfInterestCollectionPtr, tile::Id::Hasher> m_all_pois;
     std::unordered_map<uint32_t, const PointOfInterest*> m_pickid_to_poi;
 
     glm::vec2 m_position;
