@@ -192,7 +192,7 @@ jobs:
       with:
         version: ${{env.WEBASSEMBLY_VERSION}}
         
-    - name: Install Qt native version (required by android version)
+    - name: Install Qt native version (required for cross building)
       uses: jurplel/install-qt-action@v4
       with:
         aqtversion: '==3.1.*'
@@ -202,6 +202,7 @@ jobs:
         arch: linux_gcc_64
         dir: '${{github.workspace}}/qt_host'
         install-deps: 'true'
+        modules: 'qtshadertools'
         
     - name: Set QT_HOST_PATH
       run: echo "QT_HOST_PATH=${QT_ROOT_DIR}" >> "$GITHUB_ENV"
@@ -227,6 +228,8 @@ jobs:
         mkdir qt_wasm_build
         cd qt_wasm_build
         $qt_configure -qt-host-path $QT_HOST_PATH -init-submodules -release $(cat ${qt_lite_file}) -prefix "${dest_dir}/" && cmake --build . --parallel && cmake --install .
+        # Fail if the directory is not created or is empty
+        [ -d "$dest_dir" ] && [ "$(ls -A $dest_dir)" ] || exit 1
         echo "QT_WASM_ROOT_DIR=$dest_dir" >> $GITHUB_ENV
 
     - name: Set reusable strings
