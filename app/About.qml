@@ -22,7 +22,7 @@ import QtQuick.Layouts
 
 Rectangle {
     id: about_root
-    color: Qt.alpha(Material.backgroundColor, 0.7)
+    color: Qt.alpha(Material.backgroundColor, 0.9)
     Flickable {
         anchors {
             fill: parent
@@ -38,7 +38,7 @@ Rectangle {
             width: logo.width + logo_type.width + 20
             color: "#00FFFFFF"
             height: about_text.implicitHeight + logo.height + 20
-            Image { id: logo; width: 120; height: 120; source: _r + "icons/mascot.jpg" }
+            Image { id: logo; width: 120; height: 120; source: _r + "icons/icon.png" }
             Image {
                 id: logo_type
                 anchors {
