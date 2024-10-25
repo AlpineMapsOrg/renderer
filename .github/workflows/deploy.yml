@@ -171,9 +171,98 @@ jobs:
         path: ${{ github.workspace }}/install/
         if-no-files-found: error
 
+        
+  build-release:
+    runs-on: ubuntu-latest
+    env:
+      QT_VERSION: "6.8.0"
+      WEBASSEMBLY_VERSION: "3.1.56"
+    steps:
+    - name: Install dependencies
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y build-essential ninja-build
+        
+    - uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+        fetch-tags: true
+    
+    - uses: mymindstorm/setup-emsdk@v13
+      if: matrix.qttarget == 'desktop'
+      with:
+        version: ${{env.WEBASSEMBLY_VERSION}}
+        
+    - name: Install Qt native version (required by android version)
+      uses: jurplel/install-qt-action@v4
+      with:
+        aqtversion: '==3.1.*'
+        version: ${{env.QT_VERSION}}
+        host: linux
+        target: 'desktop'
+        arch: linux_gcc_64
+        dir: '${{github.workspace}}/qt_host'
+        install-deps: 'true'
+        
+    - name: Download and Build Qt for Webassembly (custom lightweight LTO version)
+      shell: bash
+      run: |
+        pwd
+        git clone --branch v6.8.0 git://code.qt.io/qt/qt5.git qt_src
+        ls -l
+        
+
+    - name: Set QT_HOST_PATH
+      run: echo "QT_HOST_PATH=${QT_ROOT_DIR}" >> "$GITHUB_ENV"
+
+    - name: Verify emcc
+      if: matrix.qttarget == 'desktop'
+      run: emcc -v
+
+#     - name: Set reusable strings
+#       shell: bash
+#       run: |
+#         BUILD_DIR="build"
+#         APK_TARGET="app"
+#         echo "BUILD_DIR=$BUILD_DIR" >> $GITHUB_ENV
+#         echo "APK_TARGET=$APK_TARGET" >> $GITHUB_ENV
+#         
+#         echo "INSTALL_DIR=install/${{ matrix.qtarch }}" >> $GITHUB_ENV
+#         echo "APK_DIR=$BUILD_DIR/$APK_TARGET/android-build/build/outputs/apk/" >> $GITHUB_ENV
+#         echo "ANDROID_BUILD_DIR=$BUILD_DIR/$APK_TARGET/android-build/" >> $GITHUB_ENV
+#         echo "DEPLOYMENT_SETTINGS=$BUILD_DIR/$APK_TARGET/android-alpineapp-deployment-settings.json" >> $GITHUB_ENV
+# 
+#     - name: Remove StatsWindow, otherwise the webassembly will link against qtwidgets and charts.
+#       if: matrix.qttarget == 'desktop'
+#       run: rm ./app/StatsWindow.qml
+#       
+#     - name: Configure CMake
+#       env:
+#         CMAKE_PREFIX_PATH: ${{env.Qt6_DIR}}/lib/cmake
+#       run: >
+#         ${Qt6_DIR}/bin/qt-cmake
+#         -G Ninja
+#         -B $BUILD_DIR
+#         -DCMAKE_BUILD_TYPE=Release
+#         -DALP_WWW_INSTALL_DIR=$INSTALL_DIR
+#         -DALP_ENABLE_ASSERTS=ON
+#         -DFMT_INSTALL=OFF
+#         ${{ matrix.additional_cmake_flags }}
+#         -S ${{ github.workspace }}
+# 
+#     - name: Build
+#       run: cmake --build $BUILD_DIR ${{ matrix.additional_build_flags }}
+# 
+#     - name: Create artifact
+#       uses: actions/upload-artifact@v4
+#       with:
+#         name: files_${{ matrix.qtarch }}
+#         path: ${{ github.workspace }}/install/
+#         if-no-files-found: error
+        
   deploy:
     if: github.event_name == 'push'
-    needs: build
+    needs: build,build-release
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
