@@ -316,6 +316,13 @@ jobs:
         wget https://raw.githubusercontent.com/gzuidhof/coi-serviceworker/master/coi-serviceworker.min.js
         sed -i -e 's#<body onload="init()">#<body onload="init()"><script src="coi-serviceworker\.min\.js"></script>#g' alpineapp.html
         
+    - name: Fix headers for wasm_release
+      run: |
+        cd $GITHUB_WORKSPACE/github_page/wasm_release
+        wget https://raw.githubusercontent.com/gzuidhof/coi-serviceworker/master/coi-serviceworker.min.js
+        cp alpineapp.html alpineapp_orig.html
+        sed -i -e 's#<body onload="init()">#<body onload="init()"><script src="coi-serviceworker\.min\.js"></script>#g' alpineapp.html
+        
     - name: Generate Directory Listings
       uses: jayanta525/github-pages-directory-listing@v4.0.0
       with:
