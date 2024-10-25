@@ -189,7 +189,6 @@ jobs:
         fetch-tags: true
     
     - uses: mymindstorm/setup-emsdk@v13
-      if: matrix.qttarget == 'desktop'
       with:
         version: ${{env.WEBASSEMBLY_VERSION}}
         
@@ -208,7 +207,6 @@ jobs:
       run: echo "QT_HOST_PATH=${QT_ROOT_DIR}" >> "$GITHUB_ENV"
       
     - name: Verify emcc
-      if: matrix.qttarget == 'desktop'
       run: emcc -v
         
     - name: Download and Build Qt for Webassembly (custom lightweight LTO version)
@@ -221,47 +219,41 @@ jobs:
         mkdir qt_wasm_build
         cd qt_wasm_build
         $qt_configure -qt-host-path $QT_HOST_PATH -init-submodules -release $(cat ${qt_lite_file}) -prefix "${dest_dir}/" && cmake --build . --parallel && cmake --install .
+        echo "QT_WASM_ROOT_DIR=$dest_dir" >> $GITHUB_ENV
 
-#     - name: Set reusable strings
-#       shell: bash
-#       run: |
-#         BUILD_DIR="build"
-#         APK_TARGET="app"
-#         echo "BUILD_DIR=$BUILD_DIR" >> $GITHUB_ENV
-#         echo "APK_TARGET=$APK_TARGET" >> $GITHUB_ENV
-#         
-#         echo "INSTALL_DIR=install/${{ matrix.qtarch }}" >> $GITHUB_ENV
-#         echo "APK_DIR=$BUILD_DIR/$APK_TARGET/android-build/build/outputs/apk/" >> $GITHUB_ENV
-#         echo "ANDROID_BUILD_DIR=$BUILD_DIR/$APK_TARGET/android-build/" >> $GITHUB_ENV
-#         echo "DEPLOYMENT_SETTINGS=$BUILD_DIR/$APK_TARGET/android-alpineapp-deployment-settings.json" >> $GITHUB_ENV
-# 
-#     - name: Remove StatsWindow, otherwise the webassembly will link against qtwidgets and charts.
-#       if: matrix.qttarget == 'desktop'
-#       run: rm ./app/StatsWindow.qml
-#       
-#     - name: Configure CMake
-#       env:
-#         CMAKE_PREFIX_PATH: ${{env.Qt6_DIR}}/lib/cmake
-#       run: >
-#         ${Qt6_DIR}/bin/qt-cmake
-#         -G Ninja
-#         -B $BUILD_DIR
-#         -DCMAKE_BUILD_TYPE=Release
-#         -DALP_WWW_INSTALL_DIR=$INSTALL_DIR
-#         -DALP_ENABLE_ASSERTS=ON
-#         -DFMT_INSTALL=OFF
-#         ${{ matrix.additional_cmake_flags }}
-#         -S ${{ github.workspace }}
-# 
-#     - name: Build
-#       run: cmake --build $BUILD_DIR ${{ matrix.additional_build_flags }}
-# 
-#     - name: Create artifact
-#       uses: actions/upload-artifact@v4
-#       with:
-#         name: files_${{ matrix.qtarch }}
-#         path: ${{ github.workspace }}/install/
-#         if-no-files-found: error
+    - name: Set reusable strings
+      shell: bash
+      run: |
+        echo "BUILD_DIR="$(pwd)/build"" >> $GITHUB_ENV
+        echo "INSTALL_DIR=install/wasm_release" >> $GITHUB_ENV
+
+    - name: Remove StatsWindow, otherwise the webassembly will link against qtwidgets and charts.
+      run: rm ./app/StatsWindow.qml
+      
+    - name: Configure CMake
+      env:
+        CMAKE_PREFIX_PATH: ${{env.Qt6_DIR}}/lib/cmake
+      run: >
+        ${QT_WASM_ROOT_DIR}/bin/qt-cmake
+        -G Ninja
+        -B $BUILD_DIR
+        -DCMAKE_BUILD_TYPE=MinSizeRel
+        -DALP_WWW_INSTALL_DIR=$INSTALL_DIR
+        -DALP_ENABLE_ASSERTS=OFF
+        -DALP_ENABLE_LTO=ON
+        -DFMT_INSTALL=OFF
+        -DALP_ENABLE_THREADING=ON
+        -S ${{ github.workspace }}
+
+    - name: Build
+      run: cmake --build $BUILD_DIR --target install
+
+    - name: Create artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: files_wasm_release
+        path: ${{ github.workspace }}/install/
+        if-no-files-found: error
         
   deploy:
     if: github.event_name == 'push'
