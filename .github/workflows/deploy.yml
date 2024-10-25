@@ -172,7 +172,7 @@ jobs:
         if-no-files-found: error
 
         
-  build-release:
+  build-wasm-release:
     runs-on: ubuntu-latest
     env:
       QT_VERSION: "6.8.0"
@@ -204,20 +204,23 @@ jobs:
         dir: '${{github.workspace}}/qt_host'
         install-deps: 'true'
         
-    - name: Download and Build Qt for Webassembly (custom lightweight LTO version)
-      shell: bash
-      run: |
-        pwd
-        git clone --branch v6.8.0 git://code.qt.io/qt/qt5.git qt_src
-        ls -l
-        
-
     - name: Set QT_HOST_PATH
       run: echo "QT_HOST_PATH=${QT_ROOT_DIR}" >> "$GITHUB_ENV"
-
+      
     - name: Verify emcc
       if: matrix.qttarget == 'desktop'
       run: emcc -v
+        
+    - name: Download and Build Qt for Webassembly (custom lightweight LTO version)
+      shell: bash
+      run: |
+        git clone --branch v${{env.QT_VERSION}} git://code.qt.io/qt/qt5.git qt_src
+        dest_dir="$(pwd)/qt_wasm_lite"
+        qt_configure="$(pwd)/qt_src/configure"
+        qt_lite_file="$(pwd)/misc/qt_lite.txt"
+        mkdir qt_wasm_build
+        cd qt_wasm_build
+        $qt_configure -qt-host-path $QT_HOST_PATH -init-submodules -release $(cat ${qt_lite_file}) -prefix "${dest_dir}/" && cmake --build . --parallel && cmake --install .
 
 #     - name: Set reusable strings
 #       shell: bash
@@ -264,7 +267,7 @@ jobs:
     if: github.event_name == 'push'
     needs:
     - build
-    - build-release
+    - build-wasm-release
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
