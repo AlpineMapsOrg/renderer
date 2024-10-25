@@ -262,7 +262,9 @@ jobs:
         
   deploy:
     if: github.event_name == 'push'
-    needs: build,build-release
+    needs:
+    - build
+    - build-release
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
