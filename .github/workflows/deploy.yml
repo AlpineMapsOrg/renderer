@@ -209,7 +209,15 @@ jobs:
     - name: Verify emcc
       run: emcc -v
         
+    - name: Cache Qt WebAssembly build
+      id: qt-cache
+      uses: actions/cache@v3
+      with:
+        path: qt_wasm_lite
+        key: wasm-qt-${{ env.QT_VERSION }}-${{ env.WEBASSEMBLY_VERSION }}
+        
     - name: Download and Build Qt for Webassembly (custom lightweight LTO version)
+      if: steps.qt-cache.outputs.cache-hit != 'true'
       shell: bash
       run: |
         git clone --branch v${{env.QT_VERSION}} git://code.qt.io/qt/qt5.git qt_src
