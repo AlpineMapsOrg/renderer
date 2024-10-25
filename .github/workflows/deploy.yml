@@ -204,8 +204,13 @@ jobs:
         install-deps: 'true'
         modules: 'qtshadertools'
         
-    - name: Set QT_HOST_PATH
-      run: echo "QT_HOST_PATH=${QT_ROOT_DIR}" >> "$GITHUB_ENV"
+    - name: Set reusable strings
+      shell: bash
+      run: |
+        echo "QT_HOST_PATH=${QT_ROOT_DIR}" >> "$GITHUB_ENV"
+        echo "BUILD_DIR="$(pwd)/build"" >> $GITHUB_ENV
+        echo "INSTALL_DIR=install/wasm_release" >> $GITHUB_ENV
+        echo "QT_WASM_ROOT_DIR=$(pwd)/qt_wasm_lite" >> $GITHUB_ENV
       
     - name: Verify emcc
       run: emcc -v
@@ -222,7 +227,7 @@ jobs:
       shell: bash
       run: |
         git clone --branch v${{env.QT_VERSION}} git://code.qt.io/qt/qt5.git qt_src
-        dest_dir="$(pwd)/qt_wasm_lite"
+        dest_dir="${{env.QT_WASM_ROOT_DIR}}"
         qt_configure="$(pwd)/qt_src/configure"
         qt_lite_file="$(pwd)/misc/qt_lite.txt"
         mkdir qt_wasm_build
@@ -230,13 +235,6 @@ jobs:
         $qt_configure -qt-host-path $QT_HOST_PATH -init-submodules -release $(cat ${qt_lite_file}) -prefix "${dest_dir}/" && cmake --build . --parallel && cmake --install .
         # Fail if the directory is not created or is empty
         [ -d "$dest_dir" ] && [ "$(ls -A $dest_dir)" ] || exit 1
-        echo "QT_WASM_ROOT_DIR=$dest_dir" >> $GITHUB_ENV
-
-    - name: Set reusable strings
-      shell: bash
-      run: |
-        echo "BUILD_DIR="$(pwd)/build"" >> $GITHUB_ENV
-        echo "INSTALL_DIR=install/wasm_release" >> $GITHUB_ENV
 
     - name: Remove StatsWindow, otherwise the webassembly will link against qtwidgets and charts.
       run: rm ./app/StatsWindow.qml
