@@ -229,18 +229,18 @@ jobs:
       shell: bash
       run: |
         git clone --branch v$QT_VERSION git://code.qt.io/qt/qt5.git qt_src
-        $QT_SRC_CONFIGURE -init-submodules -submodules qtbase
+        $QT_SRC_CONFIGURE -init-submodules -submodules qtdeclarative,qtbase -skip qtlanguageserver,qtquicktimeline,qtimageformats,qtsvg
         cd qt_src/qtbase
         git apply ../../misc/qt_68_qtbase_remove_dejavu_fonts.patch
         
-    - name: Download and Build Qt for Webassembly (custom lightweight LTO version)
+    - name: Build Qt for Webassembly (custom lightweight LTO version)
       if: steps.qt-cache.outputs.cache-hit != 'true'
       shell: bash
       run: |
         dest_dir="${{env.QT_WASM_ROOT_DIR}}"
         mkdir qt_wasm_build
         cd qt_wasm_build
-        ${{env.QT_SRC_CONFIGURE}} -init-submodules -qt-host-path $QT_HOST_PATH -release $(cat $QT_LITE_CONFIG) -prefix "${QT_WASM_ROOT_DIR}/" && cmake --build . --parallel && cmake --install .
+        ${{env.QT_SRC_CONFIGURE}} -qt-host-path $QT_HOST_PATH -release $(cat ${{env.QT_LITE_CONFIG}}) -prefix "${QT_WASM_ROOT_DIR}/" && cmake --build . --parallel && cmake --install .
         # Fail if the directory is not created or is empty
         [ -d "$QT_WASM_ROOT_DIR" ] && [ "$(ls -A $QT_WASM_ROOT_DIR)" ] || exit 1
 
