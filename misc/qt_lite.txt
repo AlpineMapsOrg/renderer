@@ -73,6 +73,7 @@
 -no-feature-itemmodeltester
 -no-feature-opensslv30
 -no-feature-schannel
+-no-feature-wasm-exceptions
 -feature-thread
 -feature-wasm-simd128
 -feature-opengles3
