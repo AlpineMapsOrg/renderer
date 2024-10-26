@@ -211,6 +211,8 @@ jobs:
         echo "BUILD_DIR="$(pwd)/build"" >> $GITHUB_ENV
         echo "INSTALL_DIR=install/wasm_release" >> $GITHUB_ENV
         echo "QT_WASM_ROOT_DIR=$(pwd)/qt_wasm_lite" >> $GITHUB_ENV
+        echo "QT_SRC_CONFIGURE=$(pwd)/qt_src/configure" >> $GITHUB_ENV
+        echo "QT_LITE_CONFIG=$(pwd)/misc/qt_lite.txt" >> $GITHUB_ENV
       
     - name: Verify emcc
       run: emcc -v
@@ -222,19 +224,26 @@ jobs:
         path: qt_wasm_lite
         key: wasm-qt-${{ env.QT_VERSION }}-${{ env.WEBASSEMBLY_VERSION }}
         
+    - name: Download and patch Qt
+      if: steps.qt-cache.outputs.cache-hit != 'true'
+      shell: bash
+      run: |
+        git clone --branch v$QT_VERSION git://code.qt.io/qt/qt5.git qt_src
+        $QT_SRC_CONFIGURE -init-submodules $(cat $QT_LITE_CONFIG)
+        cd qt_src
+        git apply ../misc/0001-remove-dejavu-and-vera-fonts.patch
+        
     - name: Download and Build Qt for Webassembly (custom lightweight LTO version)
       if: steps.qt-cache.outputs.cache-hit != 'true'
       shell: bash
       run: |
         git clone --branch v${{env.QT_VERSION}} git://code.qt.io/qt/qt5.git qt_src
         dest_dir="${{env.QT_WASM_ROOT_DIR}}"
-        qt_configure="$(pwd)/qt_src/configure"
-        qt_lite_file="$(pwd)/misc/qt_lite.txt"
         mkdir qt_wasm_build
         cd qt_wasm_build
-        $qt_configure -qt-host-path $QT_HOST_PATH -init-submodules -release $(cat ${qt_lite_file}) -prefix "${dest_dir}/" && cmake --build . --parallel && cmake --install .
+        ${{env.QT_SRC_CONFIGURE}} -qt-host-path $QT_HOST_PATH -release $(cat $QT_LITE_CONFIG) -prefix "${QT_WASM_ROOT_DIR}/" && cmake --build . --parallel && cmake --install .
         # Fail if the directory is not created or is empty
-        [ -d "$dest_dir" ] && [ "$(ls -A $dest_dir)" ] || exit 1
+        [ -d "$QT_WASM_ROOT_DIR" ] && [ "$(ls -A $QT_WASM_ROOT_DIR)" ] || exit 1
 
     - name: Remove StatsWindow, otherwise the webassembly will link against qtwidgets and charts.
       run: rm ./app/StatsWindow.qml
