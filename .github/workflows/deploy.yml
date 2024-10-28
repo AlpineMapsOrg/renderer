@@ -171,9 +171,112 @@ jobs:
         path: ${{ github.workspace }}/install/
         if-no-files-found: error
 
+        
+  build-wasm-release:
+    runs-on: ubuntu-latest
+    env:
+      QT_VERSION: "6.8.0"
+      WEBASSEMBLY_VERSION: "3.1.56"
+    steps:
+    - name: Install dependencies
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y build-essential ninja-build
+        
+    - uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+        fetch-tags: true
+    
+    - uses: mymindstorm/setup-emsdk@v13
+      with:
+        version: ${{env.WEBASSEMBLY_VERSION}}
+        
+    - name: Install Qt native version (required for cross building)
+      uses: jurplel/install-qt-action@v4
+      with:
+        aqtversion: '==3.1.*'
+        version: ${{env.QT_VERSION}}
+        host: linux
+        target: 'desktop'
+        arch: linux_gcc_64
+        dir: '${{github.workspace}}/qt_host'
+        install-deps: 'true'
+        modules: 'qtshadertools'
+        
+    - name: Set reusable strings
+      shell: bash
+      run: |
+        echo "QT_HOST_PATH=${QT_ROOT_DIR}" >> "$GITHUB_ENV"
+        echo "BUILD_DIR="$(pwd)/build"" >> $GITHUB_ENV
+        echo "INSTALL_DIR=install/wasm_release" >> $GITHUB_ENV
+        echo "QT_WASM_ROOT_DIR=$(pwd)/qt_wasm_lite" >> $GITHUB_ENV
+        echo "QT_SRC_CONFIGURE=$(pwd)/qt_src/configure" >> $GITHUB_ENV
+        echo "QT_LITE_CONFIG=$(pwd)/misc/qt_lite.txt" >> $GITHUB_ENV
+      
+    - name: Verify emcc
+      run: emcc -v
+        
+    - name: Cache Qt WebAssembly build
+      id: qt-cache
+      uses: actions/cache@v3
+      with:
+        path: qt_wasm_lite
+        key: wasm-qt-${{ env.QT_VERSION }}-${{ env.WEBASSEMBLY_VERSION }}
+        
+    - name: Download and patch Qt
+      if: steps.qt-cache.outputs.cache-hit != 'true'
+      shell: bash
+      run: |
+        git clone --branch v$QT_VERSION git://code.qt.io/qt/qt5.git qt_src
+        $QT_SRC_CONFIGURE -init-submodules -submodules qtdeclarative,qtbase -skip qtlanguageserver,qtquicktimeline,qtimageformats,qtsvg
+        cd qt_src/qtbase
+        git apply ../../misc/qt_68_qtbase_remove_dejavu_fonts.patch
+        
+    - name: Build Qt for Webassembly (custom lightweight LTO version)
+      if: steps.qt-cache.outputs.cache-hit != 'true'
+      shell: bash
+      run: |
+        dest_dir="${{env.QT_WASM_ROOT_DIR}}"
+        mkdir qt_wasm_build
+        cd qt_wasm_build
+        ${{env.QT_SRC_CONFIGURE}} -qt-host-path $QT_HOST_PATH -release $(cat ${{env.QT_LITE_CONFIG}}) -prefix "${QT_WASM_ROOT_DIR}/" && cmake --build . --parallel && cmake --install .
+        # Fail if the directory is not created or is empty
+        [ -d "$QT_WASM_ROOT_DIR" ] && [ "$(ls -A $QT_WASM_ROOT_DIR)" ] || exit 1
+
+    - name: Remove StatsWindow, otherwise the webassembly will link against qtwidgets and charts.
+      run: rm ./app/StatsWindow.qml
+      
+    - name: Configure CMake
+      env:
+        CMAKE_PREFIX_PATH: ${{env.Qt6_DIR}}/lib/cmake
+      run: >
+        ${QT_WASM_ROOT_DIR}/bin/qt-cmake
+        -G Ninja
+        -B $BUILD_DIR
+        -DCMAKE_BUILD_TYPE=MinSizeRel
+        -DALP_WWW_INSTALL_DIR=$INSTALL_DIR
+        -DALP_ENABLE_ASSERTS=OFF
+        -DALP_ENABLE_LTO=ON
+        -DFMT_INSTALL=OFF
+        -DALP_ENABLE_THREADING=ON
+        -S ${{ github.workspace }}
+
+    - name: Build
+      run: cmake --build $BUILD_DIR --target install
+
+    - name: Create artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: files_wasm_release
+        path: ${{ github.workspace }}/install/
+        if-no-files-found: error
+        
   deploy:
     if: github.event_name == 'push'
-    needs: build
+    needs:
+    - build
+    - build-wasm-release
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
@@ -217,6 +320,13 @@ jobs:
       run: |
         cd $GITHUB_WORKSPACE/github_page/wasm_multithread
         wget https://raw.githubusercontent.com/gzuidhof/coi-serviceworker/master/coi-serviceworker.min.js
+        sed -i -e 's#<body onload="init()">#<body onload="init()"><script src="coi-serviceworker\.min\.js"></script>#g' alpineapp.html
+        
+    - name: Fix headers for wasm_release
+      run: |
+        cd $GITHUB_WORKSPACE/github_page/wasm_release
+        wget https://raw.githubusercontent.com/gzuidhof/coi-serviceworker/master/coi-serviceworker.min.js
+        cp alpineapp.html alpineapp_orig.html
         sed -i -e 's#<body onload="init()">#<body onload="init()"><script src="coi-serviceworker\.min\.js"></script>#g' alpineapp.html
         
     - name: Generate Directory Listings
