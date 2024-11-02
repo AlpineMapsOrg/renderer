@@ -164,7 +164,7 @@ qt_add_resources(nucleus "height_data"
     FILES ${renderer_static_data_SOURCE_DIR}/height_data.atb
 )
 qt_add_resources(nucleus "nucleus_fonts"
-    BASE ${alpineapp_fonts_SOURCE_DIR}/SourceSans/
+    BASE ${alpineapp_fonts_SOURCE_DIR}/
     PREFIX "/fonts"
     FILES
     ${alpineapp_fonts_SOURCE_DIR}/Roboto/Roboto-Bold.ttf
