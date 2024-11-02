@@ -240,7 +240,9 @@ jobs:
         dest_dir="${{env.QT_WASM_ROOT_DIR}}"
         mkdir qt_wasm_build
         cd qt_wasm_build
-        ${{env.QT_SRC_CONFIGURE}} -qt-host-path $QT_HOST_PATH -release $(cat ${{env.QT_LITE_CONFIG}}) -prefix "${QT_WASM_ROOT_DIR}/" && cmake --build . --parallel && cmake --install .
+        ${{env.QT_SRC_CONFIGURE}} -qt-host-path $QT_HOST_PATH -release -ltcg $(cat ${{env.QT_LITE_CONFIG}}) -prefix "${QT_WASM_ROOT_DIR}/" 
+        sed -i 's/-flto=thin/-flto/g' ./build.ninja
+        cmake --build . --parallel && cmake --install .
         # Fail if the directory is not created or is empty
         [ -d "$QT_WASM_ROOT_DIR" ] && [ "$(ls -A $QT_WASM_ROOT_DIR)" ] || exit 1
 
