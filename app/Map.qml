@@ -61,4 +61,24 @@ Rectangle {
             bottomMargin: 8
         }
     }
+
+    Rectangle {
+        anchors {
+            bottom: map_gui.bottom
+            right: map_gui.right
+        }
+        width: copyright.width + 20
+        height: copyright.height + 5
+        color: Qt.alpha(Material.backgroundColor, 0.7)
+
+        Text {
+            anchors.centerIn: parent
+            id: copyright
+            onLinkActivated: Qt.openUrlExternally(link)
+            textFormat: Text.MarkdownText
+
+            text: qsTr("© [OpenStreetMap](https://www.openstreetmap.org/copyright), © [basemap.at](https://basemap.at/)")
+        }
+    }
+
 }
