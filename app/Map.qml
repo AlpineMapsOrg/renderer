@@ -64,7 +64,8 @@ Rectangle {
 
     Rectangle {
         id: copyright_frame
-        property string originalText: qsTr("© [OpenStreetMap](https://www.openstreetmap.org/copyright), © [basemap.at](https://basemap.at/)")
+        // property string originalText: qsTr("© [OpenStreetMap](https://www.openstreetmap.org/copyright), © [basemap.at](https://basemap.at/)")
+        property string originalText: qsTr("© <a href=\"https://www.openstreetmap.org/copyright\">OpenStreetMap</a>, © <a href=\"https://basemap.at/\">basemap.at</a>")
         property string placeholderText: qsTr("©")
 
         anchors {
@@ -102,7 +103,7 @@ Rectangle {
             }
         }
 
-        Text {
+        Label {
             anchors {
                 verticalCenter: parent.verticalCenter
                 left: parent.left
@@ -110,7 +111,9 @@ Rectangle {
             }
             id: copyright
             onLinkActivated: Qt.openUrlExternally(link)
-            textFormat: Text.MarkdownText
+            textFormat: Text.StyledText
+            linkColor: "#008800"
+            color: "#880000"
 
             text: copyright_frame.originalText
         }
