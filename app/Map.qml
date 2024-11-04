@@ -63,21 +63,56 @@ Rectangle {
     }
 
     Rectangle {
+        id: copyright_frame
+        property string originalText: qsTr("© [OpenStreetMap](https://www.openstreetmap.org/copyright), © [basemap.at](https://basemap.at/)")
+        property string placeholderText: qsTr("©")
+
         anchors {
             bottom: map_gui.bottom
             right: map_gui.right
         }
-        width: copyright.width + 20
-        height: copyright.height + 5
+        width: copyright.width + 16
+        height: copyright.height + 4
         color: Qt.alpha(Material.backgroundColor, 0.7)
+        Behavior on width { NumberAnimation { duration: 1000; easing.type: Easing.OutExpo } }
+
+        MouseArea {
+            id: mouseArea
+            anchors.fill: parent
+            hoverEnabled: true
+
+            onClicked: {
+                delayTimer.stop()
+                copyright.text = copyright_frame.originalText
+            }
+
+            onExited: {
+                // Restart the timer when mouse leaves
+                delayTimer.restart()
+            }
+        }
+
+        Timer {
+            id: delayTimer
+            interval: 8000 // 8 seconds delay
+            running: true
+            repeat: false
+            onTriggered: {
+                copyright.text = copyright_frame.placeholderText
+            }
+        }
 
         Text {
-            anchors.centerIn: parent
+            anchors {
+                verticalCenter: parent.verticalCenter
+                left: parent.left
+                leftMargin: 8
+            }
             id: copyright
             onLinkActivated: Qt.openUrlExternally(link)
             textFormat: Text.MarkdownText
 
-            text: qsTr("© [OpenStreetMap](https://www.openstreetmap.org/copyright), © [basemap.at](https://basemap.at/)")
+            text: copyright_frame.originalText
         }
     }
 
