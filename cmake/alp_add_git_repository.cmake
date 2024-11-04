@@ -42,38 +42,82 @@ function(alp_add_git_repository name)
 
     if(EXISTS "${repo_dir}/.git")
         message(STATUS "Updating git repo in ${short_repo_dir}")
-        execute_process(COMMAND ${GIT_EXECUTABLE} fetch
-            WORKING_DIRECTORY ${repo_dir}
-            RESULT_VARIABLE GIT_FETCH_RESULT)
-        if (NOT ${GIT_FETCH_RESULT})
-            message(STATUS "Fetching ${name} was successfull.")
 
-            execute_process(COMMAND ${GIT_EXECUTABLE} branch --show-current
+        # Check if COMMITISH is a branch, tag, or commit hash
+        execute_process(COMMAND ${GIT_EXECUTABLE} rev-parse --verify ${PARAM_COMMITISH}
+            WORKING_DIRECTORY ${repo_dir}
+            OUTPUT_VARIABLE GIT_COMMIT_OUTPUT
+            OUTPUT_STRIP_TRAILING_WHITESPACE
+            RESULT_VARIABLE GIT_COMMIT_RESULT)
+
+        if (NOT ${GIT_COMMIT_RESULT})
+            # COMMITISH is a valid tag or hash
+            execute_process(COMMAND ${GIT_EXECUTABLE} rev-parse --verify HEAD
                 WORKING_DIRECTORY ${repo_dir}
-                RESULT_VARIABLE GIT_BRANCH_RESULT
-                OUTPUT_STRIP_TRAILING_WHITESPACE
-                OUTPUT_VARIABLE GIT_BRANCH_OUTPUT)
-            if (${GIT_BRANCH_RESULT})
-                message(FATAL_ERROR "${repo_dir}: git branch --show-current not successfull")
-            endif()
-            if (GIT_BRANCH_OUTPUT STREQUAL "")
+                OUTPUT_VARIABLE GIT_HEAD_OUTPUT
+                OUTPUT_STRIP_TRAILING_WHITESPACE)
+
+            if (GIT_HEAD_OUTPUT STREQUAL GIT_COMMIT_OUTPUT)
+                message(STATUS "Repo in ${short_repo_dir} is already at ${PARAM_COMMITISH}. Skipping checkout.")
+            else()
+                message(STATUS "Checking out ${PARAM_COMMITISH} in ${name}.")
                 execute_process(COMMAND ${GIT_EXECUTABLE} checkout --quiet ${PARAM_COMMITISH}
                     WORKING_DIRECTORY ${repo_dir}
                     RESULT_VARIABLE GIT_CHECKOUT_RESULT)
                 if (NOT ${GIT_CHECKOUT_RESULT})
-                    message(STATUS "In ${name}, checking out ${PARAM_COMMITISH} was successfull.")
+                    message(STATUS "Checking out ${PARAM_COMMITISH} was successful.")
                 else()
-                    message(FATAL_ERROR "In ${name}, checking out ${PARAM_COMMITISH} was NOT successfull!")
+                    message(FATAL_ERROR "In ${name}, checking out ${PARAM_COMMITISH} was NOT successful!")
                 endif()
-            else()
-                message(WARNING "${short_repo_dir} is on branch ${GIT_BRANCH_OUTPUT}, leaving it there. "
-                    "NOT checking out ${PARAM_COMMITISH}! Use origin/main or similar if you want to stay up-to-date with upstream.")
             endif()
         else()
-            message(WARNING "Fetching ${name} was NOT successfull!")
+            # COMMITISH is likely a branch name
+            message(STATUS "COMMITISH ${PARAM_COMMITISH} is a branch, checking for internet connection.")
+
+            execute_process(COMMAND ${GIT_EXECUTABLE} ls-remote ${PARAM_URL}
+                OUTPUT_QUIET
+                ERROR_QUIET
+                RESULT_VARIABLE GIT_LSREMOTE_RESULT)
+
+            if (${GIT_LSREMOTE_RESULT})
+                message(WARNING "No internet connection or remote unavailable. Leaving branch ${PARAM_COMMITISH} as-is.")
+            else()
+                message(STATUS "Fetching updates for branch ${PARAM_COMMITISH}.")
+                execute_process(COMMAND ${GIT_EXECUTABLE} fetch
+                    WORKING_DIRECTORY ${repo_dir}
+                    RESULT_VARIABLE GIT_FETCH_RESULT)
+                if (NOT ${GIT_FETCH_RESULT})
+                    message(STATUS "Fetch successful.")
+
+                    execute_process(COMMAND ${GIT_EXECUTABLE} branch --show-current
+                        WORKING_DIRECTORY ${repo_dir}
+                        RESULT_VARIABLE GIT_BRANCH_RESULT
+                        OUTPUT_STRIP_TRAILING_WHITESPACE
+                        OUTPUT_VARIABLE GIT_BRANCH_OUTPUT)
+                    if (${GIT_BRANCH_RESULT})
+                        message(FATAL_ERROR "${repo_dir}: git branch --show-current not successful")
+                    endif()
+
+                    if (GIT_BRANCH_OUTPUT STREQUAL "")
+                        execute_process(COMMAND ${GIT_EXECUTABLE} checkout --quiet ${PARAM_COMMITISH}
+                            WORKING_DIRECTORY ${repo_dir}
+                            RESULT_VARIABLE GIT_CHECKOUT_RESULT)
+                        if (NOT ${GIT_CHECKOUT_RESULT})
+                            message(STATUS "In ${name}, checking out ${PARAM_COMMITISH} was successful.")
+                        else()
+                            message(FATAL_ERROR "In ${name}, checking out ${PARAM_COMMITISH} was NOT successful!")
+                        endif()
+                    else()
+                        message(WARNING "${short_repo_dir} is on branch ${GIT_BRANCH_OUTPUT}, leaving it there. "
+                            "NOT checking out ${PARAM_COMMITISH}! Use origin/main or similar if you want to stay up-to-date with upstream.")
+                    endif()
+                else()
+                    message(WARNING "Fetching ${name} was NOT successful!")
+                endif()
+            endif()
         endif()
     else()
-        message(STATUS "Clonging ${PARAM_URL} to ${short_repo_dir}.")
+        message(STATUS "Cloning ${PARAM_URL} to ${short_repo_dir}.")
         execute_process(COMMAND ${GIT_EXECUTABLE} clone --recurse-submodules ${PARAM_URL} ${repo_dir}
             RESULT_VARIABLE GIT_CLONE_RESULT)
         if (NOT ${GIT_CLONE_RESULT})
@@ -81,12 +125,12 @@ function(alp_add_git_repository name)
                 WORKING_DIRECTORY ${repo_dir}
                 RESULT_VARIABLE GIT_CHECKOUT_RESULT)
             if (NOT ${GIT_CHECKOUT_RESULT})
-                message(STATUS "Checking out ${PARAM_COMMITISH} was successfull.")
+                message(STATUS "Checking out ${PARAM_COMMITISH} was successful.")
             else()
-                message(FATAL_ERROR "In ${name}, checking out ${PARAM_COMMITISH} was NOT successfull!")
+                message(FATAL_ERROR "In ${name}, checking out ${PARAM_COMMITISH} was NOT successful!")
             endif()
         else()
-            message(FATAL_ERROR "Clonging ${name} was NOT successfull!")
+            message(FATAL_ERROR "Cloning ${name} was NOT successful!")
         endif()
     endif()
 

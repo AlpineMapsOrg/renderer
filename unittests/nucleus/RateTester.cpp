@@ -1,5 +1,5 @@
 /*****************************************************************************
- * Alpine Terrain Renderer
+ * AlpineMaps.org
  * Copyright (C) 2023 Adam Celarek
  *
  * This program is free software: you can redistribute it and/or modify
@@ -24,11 +24,11 @@
 
 using namespace unittests;
 
-RateTester::RateTester(nucleus::tile_scheduler::RateLimiter* rate_limiter)
+RateTester::RateTester(nucleus::tile::RateLimiter* rate_limiter)
     : m_rate(rate_limiter->limit().first)
     , m_period(rate_limiter->limit().second)
 {
-    connect(rate_limiter, &nucleus::tile_scheduler::RateLimiter::quad_requested, this, &RateTester::receive_quad_request);
+    connect(rate_limiter, &nucleus::tile::RateLimiter::quad_requested, this, &RateTester::receive_quad_request);
 }
 
 RateTester::~RateTester()
@@ -47,7 +47,7 @@ RateTester::~RateTester()
     }
 }
 
-void RateTester::receive_quad_request(const tile::Id& id)
+void RateTester::receive_quad_request(const nucleus::tile::Id& id)
 {
     CHECK(id.zoom_level == m_events.size());
     m_events.push_back(std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::high_resolution_clock::now().time_since_epoch()).count());

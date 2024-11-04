@@ -1,5 +1,5 @@
 /*****************************************************************************
- * Alpine Terrain Renderer
+ * AlpineMaps.org
  * Copyright (C) 2023 Adam Celerek
  * Copyright (C) 2023 Gerald Kimmersdorfer
  *
@@ -20,7 +20,7 @@
 import QtQuick
 import QtQuick.Controls.Material
 import QtQuick.Layouts
-import Alpine
+
 
 import "components"
 

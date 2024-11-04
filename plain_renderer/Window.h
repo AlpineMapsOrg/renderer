@@ -29,7 +29,7 @@ class Window : public QOpenGLWindow
 {
     Q_OBJECT
 public:
-    Window();
+    Window(std::shared_ptr<gl_engine::Context> context);
 
     void initializeGL() override;
     void resizeGL(int w, int h) override;
@@ -54,6 +54,8 @@ signals:
     void key_pressed(const QKeyCombination&) const;
     void key_released(const QKeyCombination&) const;
     void resized(const glm::uvec2&) const;
+    void about_to_be_destoryed() const;
+    void initialisation_started() const;
 
 private slots:
     void key_timer();

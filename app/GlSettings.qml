@@ -1,5 +1,5 @@
 /*****************************************************************************
- * Alpine Terrain Renderer
+ * AlpineMaps.org
  * Copyright (C) 2023 Gerald Kimmersdorfer
  *
  * This program is free software: you can redistribute it and/or modify
@@ -19,56 +19,11 @@
 import QtQuick
 import QtQuick.Controls.Material
 import QtQuick.Layouts
-import Alpine
-
+import app
 import "components"
 
 SettingsPanel {
-
-    function update_control_values() {
-        let conf = map.shared_config;
-        normal_mode.currentIndex = conf.normal_mode;
-        height_lines_enabled.checked = conf.height_lines_enabled;
-        phong_enabled.checked = conf.phong_enabled;
-        sun_light_color.selectedColour = Qt.rgba(conf.sun_light.x, conf.sun_light.y, conf.sun_light.z, conf.sun_light.w);
-        amb_light_color.selectedColour = Qt.rgba(conf.amb_light.x, conf.amb_light.y, conf.amb_light.z, conf.amb_light.w);
-        material_color.selectedColour = Qt.rgba(conf.material_color.x, conf.material_color.y, conf.material_color.z, conf.material_color.w);
-        material_light_response.vector = conf.material_light_response;
-        ssao_enabled.checked = conf.ssao_enabled;
-        ssao_kernel.value = conf.ssao_kernel;
-        ssao_falloff_to_value.value = conf.ssao_falloff_to_value;
-        ssao_blur_kernel_size.value = conf.ssao_blur_kernel_size;
-        ssao_range_check.checked = conf.ssao_range_check;
-        csm_enabled.checked = conf.csm_enabled;
-        overlay_shadowmaps.checked = conf.overlay_shadowmaps_enabled;
-        overlay_mode.currentIndex = overlay_mode.indexOfValue(conf.overlay_mode);
-        overlay_strength.value = conf.overlay_strength;
-        overlay_postshading_enabled.checked = conf.overlay_postshading_enabled;
-
-        snow_enabled.checked = conf.snow_settings_angle.x;
-        snow_settings_angle.first.value = conf.snow_settings_angle.y;
-        snow_settings_angle.second.value = conf.snow_settings_angle.z;
-        snow_settings_angle_blend.value = conf.snow_settings_angle.w;
-        snow_settings_alt_min.value = conf.snow_settings_alt.x;
-        snow_settings_alt_var.value = conf.snow_settings_alt.y;
-        snow_settings_alt_blend.value = conf.snow_settings_alt.z;
-        snow_settings_specular.value = conf.snow_settings_alt.w;
-    }
-
-
-    Component.onCompleted: update_control_values()
-
-    Item {  // i need to pack Connections in an item (dunno why)
-        Connections {
-            target: map
-            function onShared_config_changed(conf) {
-                update_control_values();
-            }
-        }
-    }
-
     CheckGroup {
-
         Label { text: "Overlay:" }
         ComboBox {
             id: overlay_mode;
@@ -92,6 +47,7 @@ SettingsPanel {
                 { text: "Shadow Cascades",      value: 103  }
             ]
             onActivated:  map.shared_config.overlay_mode = currentValue;
+            Component.onCompleted: normal_mode.currentIndex = map.shared_config.normal_mode;
         }
 
         Label {
@@ -111,7 +67,7 @@ SettingsPanel {
             id: overlay_strength;
             from: 0.0; to: 1.0; stepSize:  0.01;
             visible: overlay_mode.currentValue > 0
-            onMoved: map.shared_config.overlay_strength = value;
+            ModelBinding on value { target: map; property: "shared_config.overlay_strength"; }
         }
 
         CheckBox {
@@ -120,7 +76,7 @@ SettingsPanel {
             visible: overlay_mode.currentValue >= 100
             Layout.fillWidth: true;
             Layout.columnSpan: 2;
-            onCheckStateChanged: map.shared_config.overlay_postshading_enabled = this.checked;
+            ModelBinding on checked { target: map; property: "shared_config.overlay_postshading_enabled"; }
         }
 
         Label { text: "Normals:" }
@@ -128,65 +84,57 @@ SettingsPanel {
             id: normal_mode;
             Layout.fillWidth: true;
             model: ["per Fragment", "Finite-Difference"];
-            currentIndex: 0; // Init with 0 necessary otherwise onCurrentIndexChanged gets emited on startup (because def:-1)!
-            onCurrentIndexChanged:  map.shared_config.normal_mode = currentIndex;
+            ModelBinding on currentIndex { target: map; property: "shared_config.normal_mode"; }
         }
     }
 
     CheckGroup {
         name: "Height-Lines"
-        id: height_lines_enabled
         checkBoxEnabled: true
-        onCheckedChanged: map.shared_config.height_lines_enabled = this.checked;
+        ModelBinding on checked { target: map; property: "shared_config.height_lines_enabled"; }
     }
 
     CheckGroup {
         name: "Snow cover"
         id: snow_enabled
         checkBoxEnabled: true
-        onCheckedChanged: map.shared_config.snow_settings_angle.x = this.checked;
+        ModelBinding on checked { target: map; property: "shared_config.snow_settings_angle.x"; }
 
         Label { text: "Angle:" }
         LabledRangeSlider {
-            id: snow_settings_angle;
             from: 0.0; to: 90.0; stepSize: 0.1;
-            first.onMoved: map.shared_config.snow_settings_angle.y = this.first.value;
-            second.onMoved: map.shared_config.snow_settings_angle.z = this.second.value;
+            ModelBinding on first.value { target: map; property: "shared_config.snow_settings_angle.y"; }
+            ModelBinding on second.value { target: map; property: "shared_config.snow_settings_angle.z"; }
         }
 
         Label { text: "Angle Blend:" }
         LabledSlider {
-            id: snow_settings_angle_blend;
             from: 0.0; to: 90.0; stepSize: 0.01;
-            onMoved: map.shared_config.snow_settings_angle.w = this.value;
+            ModelBinding on value { target: map; property: "shared_config.snow_settings_angle.w"; }
         }
 
         Label { text: "Snow-Line:" }
         LabledSlider {
-            id: snow_settings_alt_min;
             from: 0.0; to: 4000.0; stepSize: 1.0;
-            onMoved: map.shared_config.snow_settings_alt.x = this.value;
+            ModelBinding on value { target: map; property: "shared_config.snow_settings_alt.x"; }
         }
 
         Label { text: "Snow-Line Variation:" }
         LabledSlider {
-            id: snow_settings_alt_var;
             from: 0.0; to: 1000.0; stepSize: 1.0;
-            onMoved: map.shared_config.snow_settings_alt.y = this.value;
+            ModelBinding on value { target: map; property: "shared_config.snow_settings_alt.y"; }
         }
 
         Label { text: "Snow-Line Blend:" }
         LabledSlider {
-            id: snow_settings_alt_blend;
             from: 0.0; to: 1000.0; stepSize: 1.0;
-            onMoved: map.shared_config.snow_settings_alt.z = this.value;
+            ModelBinding on value { target: map; property: "shared_config.snow_settings_alt.z"; }
         }
 
         Label { text: "Snow Specular:" }
         LabledSlider {
-            id: snow_settings_specular;
             from: 0.0; to: 5.0; stepSize: 0.1;
-            onMoved: map.shared_config.snow_settings_alt.w = this.value;
+            ModelBinding on value { target: map; property: "shared_config.snow_settings_alt.w"; }
         }
 
     }
@@ -195,32 +143,24 @@ SettingsPanel {
         name: "Shading"
         id: phong_enabled
         checkBoxEnabled: true
-        onCheckedChanged: map.shared_config.phong_enabled = this.checked;
+        ModelBinding on checked { target: map; property: "shared_config.phong_enabled"; }
+        Component.onCompleted: {
+            let conf = map.shared_config;
+            sun_light_color.selectedColour = Qt.rgba(conf.sun_light.x, conf.sun_light.y, conf.sun_light.z, conf.sun_light.w);
+            amb_light_color.selectedColour = Qt.rgba(conf.amb_light.x, conf.amb_light.y, conf.amb_light.z, conf.amb_light.w);
+            material_color.selectedColour = Qt.rgba(conf.material_color.x, conf.material_color.y, conf.material_color.z, conf.material_color.w);
+        }
 
         Label { text: "Dir.-Light:" }
         ColorPicker {
             id: sun_light_color;
             onSelectedColourChanged: map.shared_config.sun_light = Qt.vector4d(selectedColour.r, selectedColour.g, selectedColour.b, selectedColour.a);
         }
-
         Label { text: "Amb.-Light:" }
         ColorPicker {
             id: amb_light_color;
             onSelectedColourChanged: map.shared_config.amb_light = Qt.vector4d(selectedColour.r, selectedColour.g, selectedColour.b, selectedColour.a);
         }
-
-        Label { text: "Light-Direction:" }
-        VectorEditor {
-            vector: map.sun_angles;
-            onVectorChanged: map.sun_angles = vector;
-            dialogTitle: "Sun Light Direction";
-            elementNames: ["Azimuth", "Zenith"];
-            elementFroms: [0.0, -180.0];
-            elementTos: [360.0, 180.0];
-            dim: false;
-            enabled: !map.settings.gl_sundir_date_link;
-        }
-
         Label { text: "Mat.-Color:" }
         ColorPicker {
             id: material_color;
@@ -229,9 +169,7 @@ SettingsPanel {
 
         Label { text: "Light-Response:" }
         VectorEditor {
-            id: material_light_response;
-            vector: map.shared_config.material_light_response;
-            onVectorChanged: map.shared_config.material_light_response = vector;
+            ModelBinding on vector { target: map; property: "shared_config.material_light_response" }
             dialogTitle: "Material Light-Response";
             elementNames: ["Ambient", "Diffuse", "Specular", "Shininess"];
             elementFroms: [0.0, 0.0, 0.0, 0.0]
@@ -242,55 +180,73 @@ SettingsPanel {
     }
 
     CheckGroup {
-        id: ssao_enabled
         name: "Ambient Occlusion"
         checkBoxEnabled: true
-        onCheckedChanged: map.shared_config.ssao_enabled = this.checked;
+        ModelBinding on checked { target: map; property: "shared_config.ssao_enabled"}
 
         Label { text: "Kernel-Size:" }
         LabledSlider {
-            id: ssao_kernel;
             from: 5; to: 64; stepSize: 1;
-            onMoved: map.shared_config.ssao_kernel = value;
+            ModelBinding on value { target: map; property: "shared_config.ssao_kernel"}
         }
 
         Label { text: "Falloff-To:" }
         LabledSlider {
-            id: ssao_falloff_to_value;
             from: 0.0; to: 1.0; stepSize: 0.01;
-            onMoved: map.shared_config.ssao_falloff_to_value = value;
+            ModelBinding on value { target: map; property: "shared_config.ssao_falloff_to_value"}
         }
 
         Label { text: "Blur-Size:" }
         LabledSlider {
-            id: ssao_blur_kernel_size;
             from: 0; to: 2; stepSize: 1; snapMode: Slider.SnapAlways;
-            onMoved: map.shared_config.ssao_blur_kernel_size = value;
+            ModelBinding on value { target: map; property: "shared_config.ssao_blur_kernel_size"}
         }
 
         CheckBox {
-            id: ssao_range_check;
             text: "Range-Check"
             Layout.fillWidth: true;
             Layout.columnSpan: 2;
-            onCheckStateChanged: map.shared_config.ssao_range_check = this.checked;
+            ModelBinding on checked { target: map; property: "shared_config.ssao_range_check"}
         }
 
     }
 
     CheckGroup {
-        id: csm_enabled
         checkBoxEnabled: true
-        onCheckedChanged: map.shared_config.csm_enabled = this.checked;
         name: "Shadow Mapping"
+        ModelBinding on checked { target: map; property: "shared_config.csm_enabled"}
 
         CheckBox {
-            id: overlay_shadowmaps;
             text: "Overlay Shadow-Maps"
             Layout.fillWidth: true;
             Layout.columnSpan: 2;
-            onCheckStateChanged: map.shared_config.overlay_shadowmaps_enabled = this.checked;
+            ModelBinding on checked { target: map; property: "shared_config.overlay_shadowmaps_enabled"}
         }
     }
 
+    CheckGroup {
+        name: "Track Options"
+
+        Label { text: "Track Width:" }
+        LabledSlider {
+            id: track_width;
+            from: 1; to: 32; stepSize: 1;
+            ModelBinding on value { target: _track_model; property: "display_width" }
+        }
+
+        Label { text: "Track Shading:" }
+        ComboBox {
+            id: track_shading;
+            textRole: "text"
+            Layout.fillWidth: true;
+            model: [
+                { text: "Default"   },
+                { text: "Normal"   },
+                { text: "Speed"   },
+                { text: "Steepness"   },
+                { text: "Vertical Speed"   },
+            ];
+            ModelBinding on currentIndex { target: _track_model; property: "shading_style" }
+        }
+    }
 }

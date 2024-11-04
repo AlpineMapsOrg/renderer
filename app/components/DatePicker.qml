@@ -1,5 +1,5 @@
 /*****************************************************************************
- * Alpine Terrain Renderer
+ * AlpineMaps.org
  * Copyright (C) 2023 Gerald Kimmersdorfer
  *
  * This program is free software: you can redistribute it and/or modify
@@ -24,6 +24,7 @@ Item {
     id: root;
 
     property date selectedDate: new Date(0);
+    signal editingFinished();
 
     onSelectedDateChanged: {
         label.text = Qt.formatDate(selectedDate, "dd.MM.yyyy");
@@ -48,6 +49,7 @@ Item {
             onClicked: {
                 editDialog.close();
                 root.selectedDate = selectedDate;
+                root.editingFinished();
             }
         }
 

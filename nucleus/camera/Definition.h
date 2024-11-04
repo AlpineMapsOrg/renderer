@@ -29,7 +29,7 @@
  namespace nucleus::camera {
 
  struct Frustum {
-     std::array<geometry::Plane<double>, 6> clipping_planes; // the order of clipping panes is front, back, top, down, left, and right
+     std::array<radix::geometry::Plane<double>, 6> clipping_planes; // the order of clipping panes is front, back, top, down, left, and right
      std::array<glm::dvec3, 8> corners; // the order of corners is ccw, starting from top left, front plane -> back plane
 };
 
@@ -52,8 +52,8 @@ public:
     [[nodiscard]] glm::dvec3 z_axis() const;
     [[nodiscard]] glm::dvec3 ray_direction(const glm::dvec2& normalised_device_coordinates) const;
     [[nodiscard]] Frustum frustum() const;
-    [[nodiscard]] std::array<geometry::Plane<double>, 6> clipping_planes() const;
-    [[nodiscard]] std::vector<geometry::Plane<double>> four_clipping_planes() const;
+    [[nodiscard]] std::array<radix::geometry::Plane<double>, 6> clipping_planes() const;
+    [[nodiscard]] std::vector<radix::geometry::Plane<double>> four_clipping_planes() const;
     [[nodiscard]] float distance_scale_factor() const;
     void set_perspective_params(float fov_degrees, const glm::uvec2& viewport_size, float near_plane);
     void set_near_plane(float near_plane);

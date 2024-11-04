@@ -1,5 +1,5 @@
 /*****************************************************************************
- * Alpine Terrain Renderer
+ * AlpineMaps.org
  * Copyright (C) 2023 Adam Celarek
  *
  * This program is free software: you can redistribute it and/or modify
@@ -16,10 +16,9 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *****************************************************************************/
 
-#include "nucleus/tile_scheduler/Cache.h"
-#include "nucleus/tile_scheduler/Scheduler.h"
-#include "nucleus/tile_scheduler/cache_quieries.h"
-#include "nucleus/tile_scheduler/tile_types.h"
+#include "nucleus/tile/Cache.h"
+#include "nucleus/tile/cache_quieries.h"
+#include "nucleus/tile/types.h"
 #include "radix/height_encoding.h"
 
 #include <catch2/catch_test_macros.hpp>
@@ -27,7 +26,7 @@
 #include <QBuffer>
 #include <QImage>
 
-using namespace nucleus::tile_scheduler;
+using namespace nucleus::tile;
 
 namespace {
 
@@ -43,31 +42,18 @@ QByteArray png_tile(unsigned size, float altitude)
     return arr;
 }
 
-QByteArray white_jpeg_tile(unsigned int size)
-{
-    QImage default_tile(QSize { int(size), int(size) }, QImage::Format_ARGB32);
-    default_tile.fill(Qt::GlobalColor::white);
-    QByteArray arr;
-    QBuffer buffer(&arr);
-    buffer.open(QIODevice::WriteOnly);
-    default_tile.save(&buffer, "JPEG");
-    return arr;
-}
-
-tile_types::TileQuad example_tile_quad_for(const tile::Id& id, float altitude)
+DataQuad example_tile_quad_for(const Id& id, float altitude)
 {
     const auto children = id.children();
-    tile_types::TileQuad cpu_quad;
+    DataQuad cpu_quad;
     cpu_quad.id = id;
     cpu_quad.n_tiles = 4;
-    const auto ortho_photo = white_jpeg_tile(256);
     const auto altitude_tile = png_tile(64, altitude);
     for (unsigned i = 0; i < 4; ++i) {
         cpu_quad.tiles[i].id = children[i];
-        cpu_quad.tiles[i].ortho = std::make_shared<QByteArray>(ortho_photo);
-        cpu_quad.tiles[i].height = std::make_shared<QByteArray>(altitude_tile);
-        cpu_quad.tiles[i].network_info.status = tile_types::NetworkInfo::Status::Good;
-        cpu_quad.tiles[i].network_info.timestamp = utils::time_since_epoch();
+        cpu_quad.tiles[i].data = std::make_shared<QByteArray>(altitude_tile);
+        cpu_quad.tiles[i].network_info.status = NetworkInfo::Status::Good;
+        cpu_quad.tiles[i].network_info.timestamp = nucleus::utils::time_since_epoch();
     }
     return cpu_quad;
 }
@@ -75,15 +61,15 @@ tile_types::TileQuad example_tile_quad_for(const tile::Id& id, float altitude)
 
 TEST_CASE("cache_queries")
 {
-    Cache<tile_types::TileQuad> cache;
-    cache.insert(example_tile_quad_for(tile::Id{0, {0, 0}}, 1000.0f));
-    cache.insert(example_tile_quad_for(tile::Id{1, {0, 0}}, 3000.0f));
-    cache.insert(example_tile_quad_for(tile::Id{1, {0, 1}}, 1000.0f));
-    cache.insert(example_tile_quad_for(tile::Id{1, {1, 0}}, 1000.0f));
-    cache.insert(example_tile_quad_for(tile::Id{1, {1, 1}}, 1000.0f));
-    cache.insert(example_tile_quad_for(tile::Id{2, {2, 2}}, 1000.0f));
-    cache.insert(example_tile_quad_for(tile::Id{3, {4, 5}}, 1000.0f));
-    cache.insert(example_tile_quad_for(tile::Id{4, {8, 10}}, 2000.0f));
+    MemoryCache cache;
+    cache.insert(example_tile_quad_for(Id { 0, { 0, 0 } }, 1000.0f));
+    cache.insert(example_tile_quad_for(Id { 1, { 0, 0 } }, 3000.0f));
+    cache.insert(example_tile_quad_for(Id { 1, { 0, 1 } }, 1000.0f));
+    cache.insert(example_tile_quad_for(Id { 1, { 1, 0 } }, 1000.0f));
+    cache.insert(example_tile_quad_for(Id { 1, { 1, 1 } }, 1000.0f));
+    cache.insert(example_tile_quad_for(Id { 2, { 2, 2 } }, 1000.0f));
+    cache.insert(example_tile_quad_for(Id { 3, { 4, 5 } }, 1000.0f));
+    cache.insert(example_tile_quad_for(Id { 4, { 8, 10 } }, 2000.0f));
 
     CHECK(cache_queries::query_altitude(&cache, {47.5587933, -12.3450985}) == 1000);
     CHECK(cache_queries::query_altitude(&cache, {-47.5587933, -12.3450985}) == 3000);

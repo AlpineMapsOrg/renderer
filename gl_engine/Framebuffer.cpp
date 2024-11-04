@@ -20,8 +20,6 @@
 
 #include "Framebuffer.h"
 
-#include <iostream>
-
 #include <QOpenGLExtraFunctions>
 #include <QOpenGLFunctions>
 #include <QOpenGLTexture>

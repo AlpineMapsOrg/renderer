@@ -1,5 +1,5 @@
 /*****************************************************************************
- * Alpine Terrain Renderer
+ * AlpineMaps.org
  * Copyright (C) 2023 Adam Celarek
  * Copyright (C) 2024 Gerald Kimmersdorfer
  *
@@ -24,8 +24,7 @@
 
 #include <glm/glm.hpp>
 
-#include "nucleus/tile_scheduler/tile_types.h"
-#include "nucleus/vector_tiles/VectorTileFeature.h"
+#include "nucleus/tile/types.h"
 #include "utils/ColourTexture.h"
 
 class QOpenGLFramebufferObject;
@@ -35,7 +34,7 @@ struct Id;
 }
 
 namespace nucleus {
-namespace tile_scheduler::utils {
+namespace tile::utils {
     class AabbDecorator;
     using AabbDecoratorPtr = std::shared_ptr<AabbDecorator>;
 }
@@ -50,22 +49,20 @@ public:
     virtual void initialise_gpu() = 0;
     virtual void resize_framebuffer(int width, int height) = 0;
     virtual void paint(QOpenGLFramebufferObject* framebuffer = nullptr) = 0;
-    virtual void deinit_gpu() = 0;
+    virtual void destroy() = 0;
     virtual void set_permissible_screen_space_error(float new_error) = 0;
-    virtual void set_quad_limit(unsigned new_limit) = 0;
     [[nodiscard]] virtual camera::AbstractDepthTester* depth_tester() = 0;
     [[nodiscard]] virtual utils::ColourTexture::Format ortho_tile_compression_algorithm() const = 0;
 
 public slots:
     virtual void update_camera(const camera::Definition& new_definition) = 0;
     virtual void update_debug_scheduler_stats(const QString& stats) = 0;
-    virtual void set_aabb_decorator(const tile_scheduler::utils::AabbDecoratorPtr&) = 0;
-    virtual void update_gpu_quads(const std::vector<tile_scheduler::tile_types::GpuTileQuad>& new_quads, const std::vector<tile::Id>& deleted_quads) = 0;
+    virtual void pick_value(const glm::dvec2& screen_space_coordinates) = 0;
 
 signals:
     void update_requested();
-    void gpu_ready_changed(bool ready);
     void update_camera_requested() const;
+    void value_picked(uint32_t value);
 };
 
 }

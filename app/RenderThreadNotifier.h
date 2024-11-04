@@ -1,5 +1,5 @@
 /*****************************************************************************
- * Alpine Terrain Renderer
+ * AlpineMaps.org
  * Copyright (C) 2023 Adam Celarek
  *
  * This program is free software: you can redistribute it and/or modify
@@ -55,4 +55,7 @@ public:
 public slots:
     /// this one is not thread safe and should be called only on the main thread (e.g., via a signals and slots connection)
     void notify();
+
+signals:
+    void redraw_requested(); // all render items should connect this to their redraw timers. all others can trigger this to request redraws.
 };

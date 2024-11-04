@@ -1,5 +1,5 @@
 /*****************************************************************************
- * Alpine Terrain Renderer
+ * AlpineMaps.org
  * Copyright (C) 2023 Adam Celarek
  *
  * This program is free software: you can redistribute it and/or modify
@@ -17,13 +17,14 @@
  *****************************************************************************/
 
 #include "DataQuerier.h"
-#include "tile_scheduler/cache_quieries.h"
 
-nucleus::DataQuerier::DataQuerier(tile_scheduler::MemoryCache* cache)
+#include <nucleus/tile/cache_quieries.h>
+
+nucleus::DataQuerier::DataQuerier(tile::MemoryCache* cache)
     : m_memory_cache(cache)
 {}
 
 float nucleus::DataQuerier::get_altitude(const glm::dvec2& lat_long) const
 {
-    return tile_scheduler::cache_queries::query_altitude(m_memory_cache, lat_long);
+    return tile::cache_queries::query_altitude(m_memory_cache, lat_long);
 }

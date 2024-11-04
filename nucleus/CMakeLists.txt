@@ -22,13 +22,15 @@
 project(alpine-renderer-nucleus LANGUAGES CXX)
 
 alp_add_git_repository(stb_slim URL https://github.com/AlpineMapsOrgDependencies/stb_slim.git COMMITISH 547fade2a12793e1bea4733d59646b4f436e25a4)
-alp_add_git_repository(radix URL https://github.com/AlpineMapsOrg/radix.git COMMITISH v24.01.20 NOT_SYSTEM)
+alp_add_git_repository(radix URL https://github.com/AlpineMapsOrg/radix.git COMMITISH 5718519002b26cdd54030e3ec227d27f46f79a64 NOT_SYSTEM)
 alp_add_git_repository(tl_expected URL https://github.com/TartanLlama/expected.git COMMITISH v1.1.0 DO_NOT_ADD_SUBPROJECT)
 if (NOT TARGET fmt)
     alp_add_git_repository(fmt URL https://github.com/fmtlib/fmt.git COMMITISH 10.1.1)
 endif()
 alp_add_git_repository(zppbits URL https://github.com/eyalz800/zpp_bits.git COMMITISH v4.4.20 DO_NOT_ADD_SUBPROJECT)
-alp_add_git_repository(vector_tiles URL https://github.com/AlpineMapsOrg/vector-tile.git COMMITISH origin/main)
+if(ALP_ENABLE_LABELS)
+    alp_add_git_repository(vector_tiles URL https://github.com/AlpineMapsOrg/vector-tile.git COMMITISH faba88257716c4bc01ebd44d8b8b98f711ecb78c)
+endif()
 alp_add_git_repository(goofy_tc URL https://github.com/AlpineMapsOrgDependencies/Goofy_slim.git COMMITISH 13b228784960a6227bb6ca704ff34161bbac1b91 DO_NOT_ADD_SUBPROJECT)
 
 add_library(zppbits INTERFACE)
@@ -61,21 +63,19 @@ add_library(nucleus_version STATIC
 
 qt_add_library(nucleus STATIC
     AbstractRenderWindow.h
-    Controller.h Controller.cpp
     event_parameter.h
     Raster.h
     srs.h srs.cpp
-    tile_scheduler/utils.h tile_scheduler/utils.cpp
-    tile_scheduler/DrawListGenerator.h tile_scheduler/DrawListGenerator.cpp
-    tile_scheduler/LayerAssembler.h tile_scheduler/LayerAssembler.cpp
-    tile_scheduler/tile_types.h
-    tile_scheduler/constants.h
-    tile_scheduler/QuadAssembler.h tile_scheduler/QuadAssembler.cpp
-    tile_scheduler/Cache.h
-    tile_scheduler/TileLoadService.h tile_scheduler/TileLoadService.cpp
-    tile_scheduler/Scheduler.h tile_scheduler/Scheduler.cpp
-    tile_scheduler/SlotLimiter.h tile_scheduler/SlotLimiter.cpp
-    tile_scheduler/RateLimiter.h tile_scheduler/RateLimiter.cpp
+    tile/utils.h tile/utils.cpp
+    tile/DrawListGenerator.h tile/DrawListGenerator.cpp
+    tile/types.h
+    tile/constants.h
+    tile/QuadAssembler.h tile/QuadAssembler.cpp
+    tile/Cache.h
+    tile/TileLoadService.h tile/TileLoadService.cpp
+    tile/Scheduler.h tile/Scheduler.cpp
+    tile/SlotLimiter.h tile/SlotLimiter.cpp
+    tile/RateLimiter.h tile/RateLimiter.cpp
     camera/CadInteraction.h camera/CadInteraction.cpp
     camera/Controller.h camera/Controller.cpp
     camera/Definition.h camera/Definition.cpp
@@ -87,41 +87,76 @@ qt_add_library(nucleus STATIC
     camera/PositionStorage.h camera/PositionStorage.cpp
     utils/Stopwatch.h utils/Stopwatch.cpp
     utils/terrain_mesh_index_generator.h
-    utils/tile_conversion.h utils/tile_conversion.cpp
+    tile/conversion.h tile/conversion.cpp
     utils/UrlModifier.h utils/UrlModifier.cpp
     utils/bit_coding.h
     utils/sun_calculations.h utils/sun_calculations.cpp
-    map_label/LabelFactory.h map_label/LabelFactory.cpp
-    map_label/MapLabelData.h
+    picker/PickerManager.h picker/PickerManager.cpp
+    picker/types.h
     utils/bit_coding.h
-    tile_scheduler/cache_quieries.h
+    tile/cache_quieries.h
     DataQuerier.h DataQuerier.cpp
     camera/LinearCameraAnimation.h camera/LinearCameraAnimation.cpp
     camera/AnimationStyle.h camera/AnimationStyle.cpp
     timing/TimerManager.h timing/TimerManager.cpp
     timing/TimerInterface.h timing/TimerInterface.cpp
     timing/CpuTimer.h timing/CpuTimer.cpp
-    vector_tiles/VectorTileManager.h vector_tiles/VectorTileManager.cpp
-    vector_tiles/VectorTileFeature.h vector_tiles/VectorTileFeature.cpp
     utils/ColourTexture.h utils/ColourTexture.cpp
+    EngineContext.h EngineContext.cpp
+    track/Manager.h track/Manager.cpp
+    track/GPX.cpp
+    track/GPX.h
     utils/image_loader.h utils/image_loader.cpp
+    utils/thread.h
+    camera/RecordedAnimation.h camera/RecordedAnimation.cpp
+    camera/recording.h camera/recording.cpp
+    tile/setup.h
+    tile/GpuArrayHelper.h tile/GpuArrayHelper.cpp
+    tile/TextureScheduler.h tile/TextureScheduler.cpp
+    tile/GeometryScheduler.h tile/GeometryScheduler.cpp
+    utils/error.h
+    utils/lang.h
 )
+
 if (ALP_ENABLE_AVLANCHE_WARNING_LAYER)
     target_sources(nucleus
         PUBLIC avalanche/eaws.h avalanche/eaws.cpp
     )
     target_link_libraries(nucleus PUBLIC Qt::Gui)
 endif()
+if(ALP_ENABLE_LABELS)
+    target_sources(nucleus PRIVATE
+        vector_tile/util.h
+        vector_tile/types.h
+        vector_tile/parse.h vector_tile/parse.cpp
+        map_label/Factory.h map_label/Factory.cpp
+        map_label/types.h
+        map_label/FontRenderer.h map_label/FontRenderer.cpp
+        map_label/Filter.h map_label/Filter.cpp
+        map_label/FilterDefinitions.h
+        map_label/Scheduler.h map_label/Scheduler.cpp
+        map_label/setup.h
+    )
+    target_link_libraries(nucleus PUBLIC vector_tiles Qt::Gui)
+    target_compile_definitions(nucleus PUBLIC ALP_ENABLE_LABELS)
+endif()
+
+if (ALP_ENABLE_DEV_TOOLS)
+    target_compile_definitions(nucleus PUBLIC ALP_ENABLE_DEV_TOOLS)
+endif()
 
 target_include_directories(nucleus PUBLIC ${CMAKE_SOURCE_DIR})
 # Please keep Qt::Gui outside the nucleus. If you need it optional via a cmake based switch
-target_link_libraries(nucleus PUBLIC radix Qt::Core Qt::Network fmt::fmt zppbits tl_expected nucleus_version stb_slim vector_tiles goofy_tc)
+target_link_libraries(nucleus PUBLIC radix Qt::Core Qt::Network fmt::fmt zppbits tl_expected nucleus_version stb_slim goofy_tc)
 
 qt_add_resources(nucleus "icons"
     PREFIX "/map_icons"
-    BASE ${CMAKE_SOURCE_DIR}/app/icons
+    BASE ${CMAKE_SOURCE_DIR}/app/icons/labels
     FILES
-        ${CMAKE_SOURCE_DIR}/app/icons/peak.png
+        ${CMAKE_SOURCE_DIR}/app/icons/labels/alpinehut.png
+        ${CMAKE_SOURCE_DIR}/app/icons/labels/city.png
+        ${CMAKE_SOURCE_DIR}/app/icons/labels/peak.png
+        ${CMAKE_SOURCE_DIR}/app/icons/labels/camera.png
 )
 qt_add_resources(nucleus "height_data"
     PREFIX "/map"
@@ -133,6 +168,11 @@ qt_add_resources(nucleus "nucleus_fonts"
     PREFIX "/fonts"
     FILES
     ${alpineapp_fonts_SOURCE_DIR}/Roboto/Roboto-Bold.ttf
+)
+qt_add_resources(nucleus "charset"
+    PREFIX "/charset"
+    BASE ${CMAKE_SOURCE_DIR}/app/
+    FILES ${CMAKE_SOURCE_DIR}/app/charset.txt
 )
 
 

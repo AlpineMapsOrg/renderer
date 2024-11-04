@@ -1,5 +1,5 @@
 /*****************************************************************************
- * Alpine Terrain Renderer
+ * AlpineMaps.org
  * Copyright (C) 2023 Adam Celerek
  * Copyright (C) 2023 Gerald Kimmersdorfer
  *
@@ -20,8 +20,7 @@
 import QtQuick
 import QtQuick.Controls.Material
 import QtQuick.Layouts
-import Alpine
-
+import app
 import "components"
 
 Rectangle {
@@ -43,9 +42,14 @@ Rectangle {
         x: renderer.camera_operation_centre.x - width / 2
         y: renderer.camera_operation_centre.y - 60 - height / 2
         color: Qt.alpha(Material.backgroundColor, 0.7);
-        border { width:2; color:Qt.alpha( "black", 0.5); }
+        border { width: 2; color:Qt.alpha( "black", 0.5); }
         radius: 16 * oc_scale()
         visible: renderer.camera_operation_centre_visibility
+    }
+
+    PickerWindow {
+        id: feature_detail_window_loader
+        map: renderer
     }
 
     FloatingActionButtonGroup {

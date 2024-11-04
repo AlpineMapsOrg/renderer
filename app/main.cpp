@@ -1,5 +1,5 @@
 /*****************************************************************************
- * Alpine Terrain Renderer
+ * AlpineMaps.org
  * Copyright (C) 2017 Klarälvdalens Datakonsult AB, a KDAB Group company (Giuseppe D'Angelo)
  * Copyright (C) 2023 Adam Celarek
  * Copyright (C) 2023 Gerald Kimmersdorfer
@@ -20,11 +20,17 @@
 
 #include <QDirIterator>
 #include <QFontDatabase>
-#ifdef ALP_ENABLE_DEBUG_GUI
+#if defined(ALP_ENABLE_DEV_TOOLS) || defined(__ANDROID__)
 #include <QApplication>
 #else
 #include <QGuiApplication>
 #endif
+#ifdef ALP_ENABLE_DEV_TOOLS
+#include "HotReloader.h"
+#include "TimerFrontendManager.h"
+#endif
+#include "RenderThreadNotifier.h"
+#include "TrackModel.h"
 #include <QLoggingCategory>
 #include <QNetworkInformation>
 #include <QOpenGLContext>
@@ -37,19 +43,29 @@
 #include <QThread>
 #include <QTimer>
 #include <QTranslator>
+#include <gl_engine/Context.h>
+#include <nucleus/camera/PositionStorage.h>
+#include <nucleus/version.h>
 
-#include "GnssInformation.h"
-#include "HotReloader.h"
-#include "RenderThreadNotifier.h"
-#include "TerrainRendererItem.h"
-
-#include "nucleus/camera/PositionStorage.h"
-#include "nucleus/version.h"
+// QtMessageHandler originalHandler = nullptr;
+// void filter_log(QtMsgType type, const QMessageLogContext& context, const QString& msg)
+// {
+//     if (msg.contains("QObject::killTimer: Timers cannot be stopped from another thread")) {
+//         qDebug() << "dudu";
+//     }
+//     if (msg.contains("Destroyed while thread is still running")) {
+//         qDebug() << "aha!, current thread: " << QThread::currentThread()->objectName() << ": " << QThread::currentThread();
+//     }
+//     if (originalHandler) {
+//         originalHandler(type, context, msg);
+//     }
+// }
 
 int main(int argc, char **argv)
 {
+    // originalHandler = qInstallMessageHandler(filter_log);
     QQuickWindow::setGraphicsApi(QSGRendererInterface::GraphicsApi::OpenGLRhi);
-#ifdef ALP_ENABLE_DEBUG_GUI
+#if defined(ALP_ENABLE_DEV_TOOLS) || defined(__ANDROID__)
     QApplication app(argc, argv);
 #else
     QGuiApplication app(argc, argv);
@@ -121,23 +137,20 @@ int main(int argc, char **argv)
 
     QSurfaceFormat::setDefaultFormat(fmt);
 
-    qmlRegisterType<TerrainRendererItem>("Alpine", 42, 0, "TerrainRenderer");
-    qmlRegisterType<GnssInformation>("Alpine", 42, 0, "GnssInformation");
+    // create in main thread
+#ifdef ALP_ENABLE_DEV_TOOLS
+    TimerFrontendManager::instance();
+#endif
+    RenderThreadNotifier::instance();
 
     QQmlApplicationEngine engine;
-
-    HotReloader hotreloader(&engine, ALP_QML_SOURCE_DIR);
-    engine.rootContext()->setContextProperty("_hotreloader", &hotreloader);
     engine.rootContext()->setContextProperty("_r", ALP_QML_SOURCE_DIR);
     engine.rootContext()->setContextProperty("_positionList", QVariant::fromValue(nucleus::camera::PositionStorage::instance()->getPositionList()));
     engine.rootContext()->setContextProperty("_alpine_renderer_version", QString::fromStdString(nucleus::version()));
-#ifdef ALP_ENABLE_DEBUG_GUI
-    engine.rootContext()->setContextProperty("_debug_gui", true);
-#else
-    engine.rootContext()->setContextProperty("_debug_gui", false);
-#endif
 
-    RenderThreadNotifier::instance();
+    auto track_model = TrackModel();
+    engine.rootContext()->setContextProperty("_track_model", &track_model);
+
     QObject::connect(
         &engine, &QQmlApplicationEngine::objectCreated,
         &app, [](QObject* obj, const QUrl& objUrl) {
@@ -145,9 +158,19 @@ int main(int argc, char **argv)
                 qDebug() << "Creating QML object from " << objUrl << " failed!";
                 QCoreApplication::exit(-1);
             }
+            // qDebug() << "QQmlApplicationEngine::objectCreated: " << obj;
         },
         Qt::QueuedConnection);
-    engine.load(QUrl(ALP_QML_SOURCE_DIR "main_loader.qml"));
+
+#ifdef ALP_ENABLE_DEV_TOOLS
+    HotReloader hotreloader(&engine, ALP_QML_SOURCE_DIR);
+    engine.rootContext()->setContextProperty("_hotreloader", &hotreloader);
+    engine.rootContext()->setContextProperty("_debug_gui", true);
+    engine.load(QUrl(ALP_QML_SOURCE_DIR "loader_dev.qml"));
+#else
+    engine.rootContext()->setContextProperty("_debug_gui", false);
+    engine.load(QUrl(ALP_QML_SOURCE_DIR "loader.qml"));
+#endif
     QQuickWindow* root_window = dynamic_cast<QQuickWindow*>(engine.rootObjects().first());
     if (root_window == nullptr) {
         qDebug() << "root window not created!";
@@ -164,8 +187,7 @@ int main(int argc, char **argv)
     });
 #endif
 
-    RenderThreadNotifier::instance()
-        ->set_root_window(root_window);
+    RenderThreadNotifier::instance()->set_root_window(root_window);
 
     return app.exec();
 }

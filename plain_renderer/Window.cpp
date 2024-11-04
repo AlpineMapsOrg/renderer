@@ -18,14 +18,17 @@
 
 #include "Window.h"
 
-Window::Window()
+#include <QRandomGenerator>
+
+Window::Window(std::shared_ptr<gl_engine::Context> context)
 {
-    m_gl_window = new gl_engine::Window();
+    m_gl_window = new gl_engine::Window(context);
     connect(m_gl_window, &gl_engine::Window::update_requested, this, qOverload<>(&QOpenGLWindow::update));
 }
 
 void Window::initializeGL()
 {
+    emit initialisation_started();
     m_gl_window->initialise_gpu();
 }
 
@@ -40,6 +43,11 @@ void Window::resizeGL(int w, int h)
 void Window::paintGL()
 {
     m_gl_window->paint();
+    QPainter p(this);
+    const auto random_u32 = QRandomGenerator::global()->generate();
+    p.setBrush(QBrush(QColor(random_u32)));
+    p.setPen(Qt::white);
+    p.drawRect(8, 8, 16, 16);
 }
 
 gl_engine::Window* Window::render_window()
@@ -52,6 +60,7 @@ void Window::closeEvent(QCloseEvent*)
     // NOTE: The following fixes the bug where the plain_renderer crashes if m_gl_window was set as a direct member variable
     // For some reason in this case the QOpenGLContext was not available anymore before deleting the m_gl_window. Thats why it crashed
     // when exiting. Deleting m_gl_window manually inside the closeEvent fixes this bug:
+    emit about_to_be_destoryed();
     delete m_gl_window;
     m_gl_window = nullptr;
 }

@@ -1,5 +1,5 @@
 /*****************************************************************************
- * Alpine Terrain Renderer
+ * AlpineMaps.org
  * Copyright (C) 2020 Chris Cortopassi via
  *   https://www.ics.com/blog/creating-qml-controls-scratch-datepicker
  * Copyright (C) 2023 Gerald Kimmersdorfer

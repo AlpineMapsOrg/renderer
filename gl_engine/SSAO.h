@@ -1,5 +1,5 @@
 /*****************************************************************************
- * Alpine Terrain Renderer
+ * AlpineMaps.org
  * Copyright (C) 2023 Gerald Kimmersdorfer
  *
  * This program is free software: you can redistribute it and/or modify
@@ -30,12 +30,12 @@ namespace gl_engine {
 
 class Framebuffer;
 class ShaderProgram;
+class ShaderRegistry;
 
 class SSAO
 {
 public:
-
-    SSAO(std::shared_ptr<ShaderProgram> program, std::shared_ptr<ShaderProgram> blur_program);
+    SSAO(ShaderRegistry* shader_registry);
 
     // deletes the GPU Buffer
     ~SSAO();

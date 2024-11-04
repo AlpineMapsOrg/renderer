@@ -1,5 +1,5 @@
 /*****************************************************************************
- * Alpine Terrain Renderer
+ * AlpineMaps.org
  * Copyright (C) 2023 Adam Celarek
  * Copyright (C) 2023 Gerald Kimmersdorfer
  *
@@ -20,7 +20,7 @@
 import QtQuick
 import QtQuick.Controls.Material
 import QtQuick.Layouts
-import Alpine
+import app
 import "components"
 
 ColumnLayout {
@@ -43,6 +43,17 @@ ColumnLayout {
     }
 
     FloatingActionButton {
+        image: _r + "icons/material/add.png"
+        size: parent.width
+        onClicked: {
+            _track_model.upload_track()
+            let pos = _track_model.lat_long(_track_model.n_tracks() - 1);
+            if (pos.x !== 0 && pos.y !== 0)
+                map.set_position(pos.x, pos.y)
+        }
+    }
+
+    FloatingActionButton {
         id: fab_presets
         image: _r + "icons/material/" + (checked ? "chevron_left.png" : "format_paint.png")
         size: parent.width
@@ -55,7 +66,7 @@ ColumnLayout {
             width: fabsubgroup.implicitWidth + parent.width
 
             color: Qt.alpha(Material.backgroundColor, 0.3)
-            border { width:2; color:Qt.alpha( "black", 0.5); }
+            border { width: 2; color: Qt.alpha( "black", 0.5); }
 
             RowLayout {
                 x: parent.parent.width
@@ -94,6 +105,17 @@ ColumnLayout {
 
                     ToolTip.visible: hovered
                     ToolTip.text: qsTr("SNOW-Preset: Shading + SSAO + CSM + Snow Layer")
+                }
+
+                FloatingActionButton {
+                    image: _r + "icons/material/filter_alt.png"
+                    onClicked: toggleFilterWindow();
+                    size: parent.height
+                    image_size: 24
+                    image_opacity: 1.0
+
+                    ToolTip.visible: hovered
+                    ToolTip.text: qsTr("Filter visible labels")
                 }
             }
         }

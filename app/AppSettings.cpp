@@ -1,5 +1,5 @@
 /*****************************************************************************
- * Alpine Terrain Renderer
+ * AlpineMaps.org
  * Copyright (C) 2023 Gerald Kimmersdorfer
  *
  * This program is free software: you can redistribute it and/or modify
@@ -59,19 +59,13 @@ void AppSettings::load_from_url() {
 }
 
 void AppSettings::set_datetime(const QDateTime& new_datetime) {
+    qDebug() << "set datetime to " << new_datetime;
     if (m_datetime != new_datetime) {
         m_datetime = new_datetime;
         m_url_modifier->set_query_item(
             URL_PARAMETER_KEY_DATETIME,
             nucleus::utils::UrlModifier::qdatetime_to_urlsafe_string(m_datetime));
         emit datetime_changed(m_datetime);
-    }
-}
-
-void AppSettings::set_gl_sundir_date_link(bool new_value) {
-    if (m_gl_sundir_date_link != new_value) {
-        m_gl_sundir_date_link = new_value;
-        emit gl_sundir_date_link_changed(m_gl_sundir_date_link);
     }
 }
 

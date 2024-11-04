@@ -19,11 +19,9 @@
 import QtQuick
 import QtCharts
 import QtQuick.Controls.Material
-//import QtQuick.Controls.Imagine
 import QtQuick.Layouts
 import QtQuick.Dialogs
-import Alpine
-
+import app
 import "components"
 
 Rectangle {
@@ -60,21 +58,12 @@ Rectangle {
     Component.onCompleted: responsive_update()
 
     Connections {
-        target: main
+        target: application_window
         function onWidthChanged() {
             responsive_update();
         }
         function onHeightChanged() {
             responsive_update();
-        }
-    }
-
-    Connections {
-        target: map
-        function onGui_update_global_cursor_pos(lat,lon,alt) {
-            cursor_lat.text = lat.toFixed(5) + " °";
-            cursor_lon.text = lon.toFixed(5) + " °";
-            cursor_alt.text = alt.toFixed(2) + " m";
         }
     }
 
@@ -305,13 +294,9 @@ Rectangle {
             checkBoxEnabled: true
             CheckBox {
                 text: "Continuous update"
-                id: continuous_update_checkbox
-                onCheckStateChanged: {
-                    console.log("Continuous update: " + checkState)
-                    console.log("map: " + map)
-                    map.continuous_update = checked
-                }
+                ModelBinding on checked { target: map; property: "continuous_update"; default_value: true }
             }
+            onCheckedChanged: responsive_update();
 
             Pane {
                 id: stats_timing;
@@ -439,29 +424,29 @@ Rectangle {
                             timeLabelObject: timeLabelObject,
                             element: ele
                         };
+                }
 
+                function add_or_refresh_element(ele) {
+                    if (!items.hasOwnProperty(ele.name)) {
+                        // Create new gui object
+                        create_timing_gui_object(ele);
                     }
+                    items[ele.name].timeLabelObject.text = ele.last_measurement.toFixed(2) + " (Ø " + ele.quick_average.toFixed(2) + ") [ms]";
+                    responsive_update();
+                }
 
-                    function add_or_refresh_element(ele) {
-                        if (!items.hasOwnProperty(ele.name)) {
-                            // Create new gui object
-                            create_timing_gui_object(ele);
+                Connections {
+                    target: TimerFrontendManager
+                    // Gets invoked whenever new frame time data is available
+                    function onUpdateTimingList(data) {
+                        for (var i = 0; i < data.length; i++) {
+                            stats_timing.add_or_refresh_element(data[i]);
                         }
-                        items[ele.name].timeLabelObject.text = ele.last_measurement.toFixed(2) + " (Ø " + ele.quick_average.toFixed(2) + ") [ms]";
-                    }
-
-                    Connections {
-                        target: map.timer_manager
-                        // Gets invoked whenever new frame time data is available
-                        function onUpdateTimingList(data) {
-                            for (var i = 0; i < data.length; i++) {
-                                stats_timing.add_or_refresh_element(data[i]);
-                            }
-                            if (!dialog_refresh_delay_timer.running)
-                                dialog_refresh_delay_timer.start();
-                            }
+                        if (!dialog_refresh_delay_timer.running)
+                            dialog_refresh_delay_timer.start();
                         }
                     }
+                }
         }
         CheckGroup {
             id: camera_group
@@ -471,8 +456,7 @@ Rectangle {
             ComboBox {
                 Layout.fillWidth: true;
                 model: _positionList    // set in main.cpp
-                currentIndex: 0
-                onCurrentIndexChanged: map.selected_camera_position_index = currentIndex;
+                ModelBinding on currentIndex { target: map; property: "selected_camera_position_index"; default_value: -1 }
             }
         }
         CheckGroup {
@@ -480,13 +464,13 @@ Rectangle {
             name: "Cursor"
 
             Label { text: "Latitude:" }
-            Label { text: "0.0 °"; id: cursor_lat; font.bold: true; }
+            Label { text: map.world_space_cursor_position.x + "°"; id: cursor_lat; font.bold: true; }
 
             Label { text: "Longitude:" }
-            Label { text: "0.0 °"; id: cursor_lon; font.bold: true; }
+            Label { text: map.world_space_cursor_position.y + "°"; id: cursor_lon; font.bold: true; }
 
             Label { text: "Altitude:" }
-            Label { text: "0.0 m"; id: cursor_alt; font.bold: true; }
+            Label { text: map.world_space_cursor_position.z + "m"; id: cursor_alt; font.bold: true; }
         }
         CheckGroup {
             name: "Cache & Network"

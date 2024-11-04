@@ -1,5 +1,5 @@
 /*****************************************************************************
- * Alpine Terrain Renderer
+ * AlpineMaps.org
  * Copyright (C) 2023 Adam Celerek
  * Copyright (C) 2023 Gerald Kimmersdorfer
  *
@@ -20,9 +20,8 @@
 import QtQuick
 import QtQuick.Controls.Material
 import QtQuick.Layouts
-import Alpine
-
 import "components"
+import app
 
 Item {
     id: main
@@ -170,7 +169,7 @@ Item {
     function change_page(source, title) {
         selectedPage = source.toLowerCase().replace(".qml", "");
         if (selectedPage !== "map" && selectedPage !== "settings"  && stats_window_loader.item !== null) {
-            stats_window_loader.item = false;
+            stats_window_loader.item.visible = false;
         }
         if (source === "map") {
             if (main_stack_view.depth >= 1) main_stack_view.pop()
@@ -198,6 +197,14 @@ Item {
         main.onWidthChanged(); // trigger responsive updates manually
     }
 
+    function toggleFilterWindow() {
+        if (filter_window_loader.item === null)
+            filter_window_loader.source = "FilterWindow.qml"
+        else
+            filter_window_loader.item.visible = !filter_window_loader.item.visible
+        main.onWidthChanged(); // trigger responsive updates manually
+    }
+
 
     TerrainRenderer {
         id: map
@@ -207,7 +214,12 @@ Item {
             if (event.key === Qt.Key_F8 && _debug_gui) {
                 toggleStatsWindow();
             }
+            else if(event.key === Qt.Key_F7)
+            {
+                toggleFilterWindow();
+            }
         }
+        Behavior on field_of_view { NumberAnimation { duration: 500; easing.type: Easing.InOutExpo } }
     }
 
     StackView {
@@ -228,6 +240,10 @@ Item {
 
     Loader {
         id: stats_window_loader
+    }
+
+    Loader {
+        id: filter_window_loader
     }
 
     Component.onCompleted: {

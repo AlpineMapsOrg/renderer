@@ -1,5 +1,5 @@
 /*****************************************************************************
- * Alpine Terrain Renderer
+ * AlpineMaps.org
  * Copyright (C) 2023 Adam Celarek
  *
  * This program is free software: you can redistribute it and/or modify
@@ -19,11 +19,10 @@
 import QtQuick
 import QtQuick.Controls.Material
 import QtQuick.Layouts
-import Alpine
 
 Rectangle {
     id: about_root
-    color: Qt.alpha(Material.backgroundColor, 0.7)
+    color: Qt.alpha(Material.backgroundColor, 0.9)
     Flickable {
         anchors {
             fill: parent
@@ -39,7 +38,7 @@ Rectangle {
             width: logo.width + logo_type.width + 20
             color: "#00FFFFFF"
             height: about_text.implicitHeight + logo.height + 20
-            Image { id: logo; width: 120; height: 120; source: _r + "icons/mascot.jpg" }
+            Image { id: logo; width: 120; height: 120; source: _r + "icons/icon.png" }
             Image {
                 id: logo_type
                 anchors {
@@ -73,14 +72,19 @@ This is an open source application. It is **released** under the GNU General Pub
 The source of elevation and orthographic photo data is [basemap.at](https://basemap.at),
 it is licensed under the Open Government Data Austria license (CC-BY 4.0).
 
+The source of POI feature labels is [openstreetmap.org](https://www.openstreetmap.org/copyright),
+it is licensed under the Open Data Commons Open Database License (ODbL) by the OpenStreetMap Foundation (OSMF).
+
 ## Authors:
-Adam Celarek, Lucas Dworschak, Gerald Kimmersdorfer, Jakob Lindner, Patrick Komon
+Adam Celarek, Lucas Dworschak, Gerald Kimmersdorfer, Jakob Lindner, Patrick Komon, Jakob Maier
 
 ## Impressum:
 Adam Celarek\\
-Hartmanngasse 12/22\\
-1050 Wien\\
-Österreich / Austria")
+Frankenberggasse 8/10\\
+1040 Wien\\
+Österreich / Austria
+
+E-Mail: alpinemaps.org@xibo.at")
             }
         }
     }

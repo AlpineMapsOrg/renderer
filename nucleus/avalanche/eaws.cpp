@@ -1,19 +1,24 @@
-#include "eaws.h"
-#include "nucleus/utils/tile_conversion.h"
+/*****************************************************************************
+ * AlpineMaps.org
+ * Copyright (C) 2024 Jörg Christian Reiher
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ *****************************************************************************/
 
-// Auxillary class for parsing mapbox vector tiles recommend by mapbox to be used for this purpose
-class StringPrintVisitor {
-public:
-    QString operator()(std::vector<mapbox::feature::value>) { return QStringLiteral("vector"); }
-    QString operator()(std::unordered_map<std::string, mapbox::feature::value>) { return QStringLiteral("unordered_map"); }
-    QString operator()(mapbox::feature::null_value_t) { return QStringLiteral("null"); }
-    QString operator()(std::nullptr_t) { return QStringLiteral("nullptr"); }
-    QString operator()(uint64_t val) { return QString::number(val); }
-    QString operator()(int64_t val) { return QString::number(val); }
-    QString operator()(double val) { return QString::number(val); }
-    QString operator()(std::string const& val) { return QString::fromStdString(val); }
-    QString operator()(bool val) { return val ? QStringLiteral("true") : QStringLiteral("false"); }
-};
+#include "eaws.h"
+#include <nucleus/utils/tile_conversion.h>
+#include <nucleus/vector_tile/util.h>
 
 tl::expected<avalanche::eaws::RegionTile, QString> avalanche::eaws::vector_tile_reader(const QByteArray& input_data, const tile::Id& tile_id)
 {
@@ -54,8 +59,7 @@ tl::expected<avalanche::eaws::RegionTile, QString> avalanche::eaws::vector_tile_
         mapbox::vector_tile::feature current_feature(feature_data_view, layer);
         mapbox::vector_tile::feature::properties_type properties = current_feature.getProperties();
         for (const auto& property : properties) {
-            StringPrintVisitor string_print_visitor;
-            QString value = mapbox::util::apply_visitor(string_print_visitor, property.second);
+            QString value = std::visit(nucleus::vector_tile::util::string_print_visitor, property.second);
             if ("id" == property.first)
                 region.id = value;
             else if ("id_alt" == property.first)
@@ -236,7 +240,7 @@ nucleus::Raster<uint16_t> avalanche::eaws::rasterize_regions(const RegionTile& r
 {
     // Draw region ids to image, if all pixel have same value return one pixel with this value
     const QImage img = draw_regions(region_tile, internal_id_manager, raster_width, raster_height, tile_id_out);
-    const auto raster = nucleus::utils::tile_conversion::to_u16raster(img);
+    const auto raster = nucleus::utils::tile_conversion::qimage_to_u16raster(img);
     const auto first_pixel = raster.pixel({ 0, 0 });
     for (auto p : raster) {
         if (p != first_pixel)

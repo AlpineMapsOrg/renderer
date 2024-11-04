@@ -1,5 +1,5 @@
 /*****************************************************************************
- * Alpine Terrain Renderer
+ * AlpineMaps.org
  * Copyright (C) 2024 Adam Celarek
  * Copyright (C) 2024 Gerald Kimmersdorfer
  *
@@ -19,6 +19,7 @@
 
 #include "ColourTexture.h"
 
+#include <QtGlobal>
 #include <array>
 #include <cstdint>
 #include <stdexcept>
@@ -53,6 +54,7 @@ std::vector<uint8_t> to_dxt1(const nucleus::Raster<glm::u8vec4>& image)
     std::vector<uint8_t> compressed(n_bytes_out);
     const auto result = goofy::compressDXT1(compressed.data(), data_ptr, (uint32_t)image.width(), (uint32_t)image.height(), (uint32_t)image.width() * 4);
     assert(result == 0);
+    Q_UNUSED(result);
 
     return compressed;
 }
@@ -81,6 +83,7 @@ std::vector<uint8_t> to_etc1(const nucleus::Raster<glm::u8vec4>& image)
     std::vector<uint8_t> compressed(n_bytes_out);
     const auto result = goofy::compressETC1(compressed.data(), data_ptr, (uint32_t)image.width(), (uint32_t)image.height(), (uint32_t)image.width() * 4);
     assert(result == 0);
+    Q_UNUSED(result);
 
     return compressed;
 }
@@ -98,14 +101,48 @@ std::vector<uint8_t> to_uncompressed_rgba(const nucleus::Raster<glm::u8vec4>& im
 std::vector<uint8_t> to_compressed(const nucleus::Raster<glm::u8vec4>& image, nucleus::utils::ColourTexture::Format algorithm)
 {
     using Algorithm = nucleus::utils::ColourTexture::Format;
+    assert(image.width() == image.height());
+    assert(image.width() % 4 == 0 || image.width() == 2 || image.width() == 1);
 
     switch (algorithm) {
     case Algorithm::Uncompressed_RGBA:
         return to_uncompressed_rgba(image);
-    case nucleus::utils::ColourTexture::Format::DXT1:
-        return to_dxt1(image);
-    case nucleus::utils::ColourTexture::Format::ETC1:
-        return to_etc1(image);
+    case nucleus::utils::ColourTexture::Format::DXT1: {
+        if (image.width() >= 16)
+            return to_dxt1(image);
+        glm::u32vec4 avg = {};
+        for (const auto& c : image.buffer()) {
+            avg += glm::u32vec4(c);
+        }
+        avg /= image.buffer_length();
+        auto v = to_dxt1(nucleus::resize(image, { 16, 16 }, glm::u8vec4(avg)));
+        if (image.width() == 8) {
+            for (auto i = 16u; i < 32; ++i)
+                v[i] = v[i + 16u];
+            v.resize(32);
+        } else if (image.width() <= 4) {
+            v.resize(8);
+        }
+        return v;
+    }
+    case nucleus::utils::ColourTexture::Format::ETC1: {
+        if (image.width() >= 16)
+            return to_etc1(image);
+        glm::u32vec4 avg = {};
+        for (const auto& c : image.buffer()) {
+            avg += glm::u32vec4(c);
+        }
+        avg /= image.buffer_length();
+        auto v = to_etc1(nucleus::resize(image, { 16, 16 }, glm::u8vec4(avg)));
+        if (image.width() == 8) {
+            for (auto i = 16u; i < 32; ++i)
+                v[i] = v[i + 16u];
+            v.resize(32);
+        } else if (image.width() <= 4) {
+            v.resize(8);
+        }
+        return v;
+    }
     }
     throw std::runtime_error("Unsupported algorithm for nucleus::Raster<glm::u8vec4>");
 }
@@ -119,3 +156,13 @@ nucleus::utils::ColourTexture::ColourTexture(const nucleus::Raster<glm::u8vec4>&
 {
 }
 
+nucleus::utils::MipmappedColourTexture nucleus::utils::generate_mipmapped_colour_texture(
+    const nucleus::Raster<glm::u8vec4>& texture, ColourTexture::Format format)
+{
+    auto mip_levels = nucleus::generate_mipmap(texture);
+    nucleus::utils::MipmappedColourTexture colour_texture = {};
+    for (const auto& level : mip_levels) {
+        colour_texture.emplace_back(level, format);
+    }
+    return colour_texture;
+}

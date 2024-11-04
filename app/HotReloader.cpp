@@ -50,6 +50,7 @@ HotReloader::HotReloader(QQmlApplicationEngine* engine, QString directory, QObje
 void HotReloader::clear_cache()
 {
 #if !defined(__EMSCRIPTEN__) && !defined(__ANDROID__)
+    qDebug() << "HotReload: clearing component cache.";
     m_engine->clearComponentCache();
 #endif
 }

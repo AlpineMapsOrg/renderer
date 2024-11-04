@@ -1,5 +1,5 @@
 /*****************************************************************************
- * Alpine Terrain Renderer
+ * AlpineMaps.org
  * Copyright (C) 2023 Gerald Kimmersdorfer
  *
  * This program is free software: you can redistribute it and/or modify
@@ -164,8 +164,8 @@ void UrlModifier::write_out_url() {
     },
         resID.toStdString().c_str());
 #else
-    auto resID = get_resource_identifier_from_url(get_url());
-    qDebug() << "url:" << resID;
+    // auto resID = get_resource_identifier_from_url(get_url());
+    // qDebug() << "url:" << resID;
 #endif
 }
 

@@ -1,5 +1,5 @@
 /*****************************************************************************
- * Alpine Terrain Renderer
+ * AlpineMaps.org
  * Copyright (C) 2024 Adam Celarek
  *
  * This program is free software: you can redistribute it and/or modify
@@ -52,15 +52,21 @@ public:
     ~Texture();
 
     void bind(unsigned texture_unit);
-    void setParams(Filter min_filter, Filter mag_filter);
+    void setParams(Filter min_filter, Filter mag_filter, bool anisotropic_filtering = false);
     void allocate_array(unsigned width, unsigned height, unsigned n_layers);
     void upload(const nucleus::utils::ColourTexture& texture);
     void upload(const nucleus::utils::ColourTexture& texture, unsigned array_index);
+    void upload(const nucleus::utils::MipmappedColourTexture& mipped_texture, unsigned array_index);
+    void upload(const nucleus::Raster<glm::u8vec2>& texture, unsigned int array_index);
     void upload(const nucleus::Raster<uint16_t>& texture, unsigned int array_index);
     template <typename T> void upload(const nucleus::Raster<T>& texture);
 
     static GLenum compressed_texture_format();
     static nucleus::utils::ColourTexture::Format compression_algorithm();
+
+protected:
+    static GLenum max_anisotropy_param();
+    static float max_anisotropy();
 
 private:
     GLuint m_id = GLuint(-1);

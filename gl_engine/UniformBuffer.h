@@ -1,5 +1,5 @@
 /*****************************************************************************
- * Alpine Terrain Renderer
+ * AlpineMaps.org
  * Copyright (C) 2023 Gerald Kimmersdorfer
  *
  * This program is free software: you can redistribute it and/or modify
@@ -35,7 +35,7 @@ public:
 
     // Set Uniform Block Index (necessary because old opengl...)
     void bind_to_shader(ShaderProgram* shader);
-    void bind_to_shader(std::vector<ShaderProgram*> shaders);
+    void bind_to_shader(std::vector<std::weak_ptr<ShaderProgram>> shaders);
 
     // Refills the GPU Buffer
     void update_gpu_data();

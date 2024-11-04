@@ -1,5 +1,5 @@
 /*****************************************************************************
- * Alpine Terrain Renderer
+ * AlpineMaps.org
  * Copyright (C) 2024 Adam Celarek
  *
  * This program is free software: you can redistribute it and/or modify
@@ -28,17 +28,22 @@
 #include <gl_engine/helpers.h>
 #include <nucleus/camera/PositionStorage.h>
 #include <nucleus/srs.h>
-#include <nucleus/tile_scheduler/utils.h>
+#include <nucleus/tile/utils.h>
 #include <nucleus/utils/ColourTexture.h>
 #include <radix/TileHeights.h>
 #include <radix/quad_tree.h>
 #include <radix/tile.h>
 
+namespace quad_tree = radix::quad_tree;
 using gl_engine::Framebuffer;
 using gl_engine::ShaderProgram;
 using nucleus::srs::hash_uint16;
 using nucleus::srs::pack;
 using nucleus::srs::unpack;
+using namespace nucleus::tile;
+using nucleus::tile::utils::AabbDecorator;
+using nucleus::tile::utils::refineFunctor;
+using radix::TileHeights;
 
 namespace {
 ShaderProgram create_debug_shader(const QString& fragment_shader, const QString& vertex_shader = R"(
@@ -53,7 +58,7 @@ void main() {
     return tmp;
 }
 
-void hashing_cpp_same_as_glsl(const tile::Id& id)
+void hashing_cpp_same_as_glsl(const Id& id)
 {
     {
         Framebuffer b(Framebuffer::DepthFormat::None, { Framebuffer::ColourFormat::RGBA8 }, { 1, 1 });
@@ -116,7 +121,7 @@ void hashing_cpp_same_as_glsl(const tile::Id& id)
     }
 }
 
-void packing_cpp_same_as_glsl(const tile::Id& id)
+void packing_cpp_same_as_glsl(const Id& id)
 {
     {
         Framebuffer b(Framebuffer::DepthFormat::None, { Framebuffer::ColourFormat::RGBA8 }, { 1, 1 });
@@ -198,19 +203,18 @@ void packing_cpp_same_as_glsl(const tile::Id& id)
 TEST_CASE("glsl tile functions")
 {
     UnittestGLContext::initialise();
-    std::unordered_set<tile::Id, tile::Id::Hasher> ids;
+    std::unordered_set<Id, Id::Hasher> ids;
     {
         TileHeights h;
         h.emplace({ 0, { 0, 0 } }, { 100, 4000 });
-        auto aabb_decorator = nucleus::tile_scheduler::utils::AabbDecorator::make(std::move(h));
+        auto aabb_decorator = AabbDecorator::make(std::move(h));
 
         const auto add_tiles = [&](auto camera) {
             camera.set_viewport_size({ 1920, 1080 });
-            const auto all_leaves = quad_tree::onTheFlyTraverse(
-                tile::Id { 0, { 0, 0 } }, nucleus::tile_scheduler::utils::refineFunctor(camera, aabb_decorator, 3, 64), [&ids](const tile::Id& v) {
-                    ids.insert(v);
-                    return v.children();
-                });
+            const auto all_leaves = quad_tree::onTheFlyTraverse(Id { 0, { 0, 0 } }, refineFunctor(camera, aabb_decorator, 3, 64), [&ids](const Id& v) {
+                ids.insert(v);
+                return v.children();
+            });
         };
         add_tiles(nucleus::camera::stored_positions::grossglockner());
     }

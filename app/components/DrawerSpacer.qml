@@ -1,5 +1,5 @@
 /*****************************************************************************
- * Alpine Terrain Renderer
+ * AlpineMaps.org
  * Copyright (C) 2023 Gerald Kimmersdorfer
  *
  * This program is free software: you can redistribute it and/or modify
@@ -19,7 +19,7 @@
 import QtQuick
 import QtQuick.Layouts
 import QtQuick.Controls.Material
-import Alpine
+
 
 Item {
     Layout.fillWidth: true

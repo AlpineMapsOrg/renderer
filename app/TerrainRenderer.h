@@ -1,5 +1,5 @@
 /*****************************************************************************
- * Alpine Terrain Renderer
+ * AlpineMaps.org
  * Copyright (C) 2023 Adam Celarek
  *
  * This program is free software: you can redistribute it and/or modify
@@ -29,6 +29,9 @@ class Window;
 namespace nucleus {
 class Controller;
 }
+namespace nucleus::camera {
+class Controller;
+}
 
 class TerrainRenderer : public QObject, public QQuickFramebufferObject::Renderer {
     Q_OBJECT
@@ -44,10 +47,10 @@ public:
 
     [[nodiscard]] gl_engine::Window* glWindow() const;
 
-    [[nodiscard]] nucleus::Controller* controller() const;
+    [[nodiscard]] nucleus::camera::Controller* controller() const;
 
 private:
-    QQuickWindow *m_window;
+    QQuickWindow* m_window = nullptr;
     std::unique_ptr<gl_engine::Window> m_glWindow;
-    std::unique_ptr<nucleus::Controller> m_controller;
+    std::unique_ptr<nucleus::camera::Controller> m_camera_controller;
 };

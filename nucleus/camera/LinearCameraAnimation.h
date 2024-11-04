@@ -1,5 +1,5 @@
 /*****************************************************************************
- * Alpine Terrain Renderer
+ * AlpineMaps.org
  * Copyright (C) 2022 Adam Celarek
  * Copyright (C) 2023 Jakob Lindner
  *
@@ -29,7 +29,7 @@ class LinearCameraAnimation : public AnimationStyle
     glm::dmat4 m_start;
     glm::dmat4 m_end;
 
-    int m_total_duration = 250;
+    int m_total_duration = 500;
     float m_current_duration = 0;
 
 public:

@@ -36,12 +36,12 @@
 #define STB_IMAGE_IMPLEMENTATION
 #include <stb_slim/stb_image.h>
 
-#include <stdexcept>
 #include <QFile>
+#include <tl/expected.hpp>
 
 namespace nucleus::utils::image_loader {
 
-Raster<glm::u8vec4> rgba8(const QByteArray& byteArray)
+tl::expected<Raster<glm::u8vec4>, QString> rgba8(const QByteArray& byteArray)
 {
     int width, height, channels;
     const int requested_channels = 4; // Request 4 channels to always get RGBA8 images
@@ -54,7 +54,7 @@ Raster<glm::u8vec4> rgba8(const QByteArray& byteArray)
         );
 
     if (data == nullptr) {
-        throw std::runtime_error("Failed to load image from bytearray");
+        return tl::make_unexpected(QString("nucleus image_loader: Failed to decode image bytes."));
     }
 
     // NOTE: We copy the contents of the data pointer into a Raster object. Sadly
@@ -67,11 +67,11 @@ Raster<glm::u8vec4> rgba8(const QByteArray& byteArray)
     return raster;
 }
 
-Raster<glm::u8vec4> rgba8(const QString& filename)
+tl::expected<Raster<glm::u8vec4>, QString> rgba8(const QString& filename)
 {
     QFile file(filename);
     if (!file.open(QIODevice::ReadOnly)) {
-        throw std::runtime_error("Failed to open file: " + filename.toStdString());
+        return tl::make_unexpected(QString("nucleus image_loader: Failed to open file %1").arg(filename));
     }
 
     QByteArray byteArray = file.readAll();
@@ -81,6 +81,6 @@ Raster<glm::u8vec4> rgba8(const QString& filename)
     return rgba8(byteArray);
 }
 
-Raster<glm::u8vec4> rgba8(const char* filename) { return rgba8(QString(filename)); }
+tl::expected<Raster<glm::u8vec4>, QString> rgba8(const char* filename) { return rgba8(QString(filename)); }
 
 } // namespace nucleus::utils::image_loader

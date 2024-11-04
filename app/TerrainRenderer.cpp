@@ -1,5 +1,5 @@
 /*****************************************************************************
- * Alpine Terrain Renderer
+ * AlpineMaps.org
  * Copyright (C) 2023 Adam Celarek
  * Copyright (C) 2023 Gerald Kimmersdorfer
  *
@@ -23,30 +23,62 @@
 #include <QOpenGLFramebufferObject>
 #include <QOpenGLFramebufferObjectFormat>
 #include <QQuickWindow>
+#include <QThread>
 
+#include "RenderingContext.h"
 #include "TerrainRendererItem.h"
-#include "gl_engine/Window.h"
-#include "nucleus/Controller.h"
-#include "nucleus/camera/Controller.h"
-#include "nucleus/tile_scheduler/Scheduler.h"
+#include <gl_engine/Context.h>
+#include <gl_engine/Window.h>
+#include <nucleus/EngineContext.h>
+#include <nucleus/camera/Controller.h>
+#include <nucleus/camera/PositionStorage.h>
+#include <nucleus/map_label/Filter.h>
+#include <nucleus/map_label/Scheduler.h>
+#include <nucleus/picker/PickerManager.h>
+#include <nucleus/tile/GeometryScheduler.h>
+#include <nucleus/tile/TextureScheduler.h>
+#include <nucleus/utils/thread.h>
 
 TerrainRenderer::TerrainRenderer()
 {
-    m_glWindow = std::make_unique<gl_engine::Window>();
-    m_controller = std::make_unique<nucleus::Controller>(m_glWindow.get());
-    m_controller->tile_scheduler()->set_ortho_tile_compression_algorithm(m_glWindow->ortho_tile_compression_algorithm());
+    using nucleus::map_label::Filter;
+    using nucleus::picker::PickerManager;
+    using Scheduler = nucleus::tile::Scheduler;
+    using CameraController = nucleus::camera::Controller;
+
+    auto* ctx = RenderingContext::instance();
+    ctx->initialise();
+    m_glWindow = std::make_unique<gl_engine::Window>(ctx->engine_context());
+
+    auto* gl_window_ptr = m_glWindow.get();
+
+    m_camera_controller = std::make_unique<CameraController>(nucleus::camera::PositionStorage::instance()->get("grossglockner"), m_glWindow.get(), ctx->data_querier().get());
+
+    // clang-format off
+    QObject::connect(gl_window_ptr, &gl_engine::Window::update_camera_requested, m_camera_controller.get(), &CameraController::advance_camera);
+
+    // NOTICE ME!!!! READ THIS, IF YOU HAVE TROUBLES WITH SIGNALS NOT REACHING THE QML RENDERING THREAD!!!!111elevenone
+    // In Qt/QML the rendering thread goes to sleep (at least until Qt 6.5, See RenderThreadNotifier).
+    // At the time of writing, an additional connection from tile_ready and tile_expired to the notifier is made.
+    // this only works if ALP_ENABLE_THREADING is on, i.e., the tile scheduler is on an extra thread. -> potential issue on webassembly
+    QObject::connect(m_camera_controller.get(), &CameraController::definition_changed, ctx->geometry_scheduler(),   &Scheduler::update_camera);
+    QObject::connect(m_camera_controller.get(), &CameraController::definition_changed, ctx->map_label_scheduler(),  &Scheduler::update_camera);
+    QObject::connect(m_camera_controller.get(), &CameraController::definition_changed, ctx->ortho_scheduler(),      &Scheduler::update_camera);
+    QObject::connect(m_camera_controller.get(), &CameraController::definition_changed, m_glWindow.get(),            &gl_engine::Window::update_camera);
+
+    QObject::connect(ctx->geometry_scheduler(), &nucleus::tile::GeometryScheduler::gpu_quads_updated, gl_window_ptr, &gl_engine::Window::update_requested);
+    QObject::connect(ctx->ortho_scheduler(),    &nucleus::tile::TextureScheduler::gpu_quads_updated,  gl_window_ptr, &gl_engine::Window::update_requested);
+    QObject::connect(ctx->label_filter().get(), &Filter::filter_finished,                             gl_window_ptr, &gl_engine::Window::update_requested);
+
+    QObject::connect(ctx->picker_manager().get(),   &PickerManager::pick_requested,     gl_window_ptr,                  &gl_engine::Window::pick_value);
+    QObject::connect(gl_window_ptr,                 &gl_engine::Window::value_picked,   ctx->picker_manager().get(),    &PickerManager::eval_pick);
+    // clang-format on
+
     m_glWindow->initialise_gpu();
-#ifdef ALP_ENABLE_TRACK_OBJECT_LIFECYCLE
-    qDebug("TerrainRendererItemRenderer()");
-#endif
+    // ctx->scheduler()->set_enabled(true); // after tile manager moves to ctx.
 }
 
-TerrainRenderer::~TerrainRenderer()
-{
-#ifdef ALP_ENABLE_TRACK_OBJECT_LIFECYCLE
-    qDebug("~TerrainRenderer()");
-#endif
-}
+TerrainRenderer::~TerrainRenderer() = default;
 
 void TerrainRenderer::synchronize(QQuickFramebufferObject *item)
 {
@@ -57,10 +89,10 @@ void TerrainRenderer::synchronize(QQuickFramebufferObject *item)
     TerrainRendererItem* i = static_cast<TerrainRendererItem*>(item);
     //        m_controller->camera_controller()->set_virtual_resolution_factor(i->render_quality());
     m_glWindow->set_permissible_screen_space_error(1.0 / i->settings()->render_quality());
-    m_controller->camera_controller()->set_viewport({ i->width(), i->height() });
-    m_controller->camera_controller()->set_field_of_view(i->field_of_view());
+    m_camera_controller->set_viewport({ i->width(), i->height() });
+    m_camera_controller->set_field_of_view(i->field_of_view());
 
-    auto cameraFrontAxis = m_controller->camera_controller()->definition().z_axis();
+    auto cameraFrontAxis = m_camera_controller->definition().z_axis();
     auto degFromNorth = glm::degrees(glm::acos(glm::dot(glm::normalize(glm::dvec3(cameraFrontAxis.x, cameraFrontAxis.y, 0)), glm::dvec3(0, -1, 0))));
     if (cameraFrontAxis.x > 0) {
         i->set_camera_rotation_from_north(degFromNorth);
@@ -68,8 +100,8 @@ void TerrainRenderer::synchronize(QQuickFramebufferObject *item)
         i->set_camera_rotation_from_north(-degFromNorth);
     }
 
-    const auto oc = m_controller->camera_controller()->operation_centre();
-    const auto oc_distance = m_controller->camera_controller()->operation_centre_distance();
+    const auto oc = m_camera_controller->operation_centre();
+    const auto oc_distance = m_camera_controller->operation_centre_distance();
     if (oc.has_value()) {
         i->set_camera_operation_centre_visibility(true);
         i->set_camera_operation_centre(QPointF(oc.value().x, oc.value().y));
@@ -82,9 +114,9 @@ void TerrainRenderer::synchronize(QQuickFramebufferObject *item)
         i->set_camera_operation_centre_visibility(false);
     }
 
-    if (!(i->camera() == m_controller->camera_controller()->definition())) {
-        const auto tmp_camera = m_controller->camera_controller()->definition();
-        QTimer::singleShot(0, i, [i, tmp_camera]() {
+    if (!(i->camera() == m_camera_controller->definition())) {
+        const auto tmp_camera = m_camera_controller->definition();
+        nucleus::utils::thread::async_call(i, [i, tmp_camera]() {
             i->set_read_only_camera(tmp_camera);
             i->set_read_only_camera_width(tmp_camera.viewport_size().x);
             i->set_read_only_camera_height(tmp_camera.viewport_size().y);
@@ -117,7 +149,4 @@ gl_engine::Window *TerrainRenderer::glWindow() const
     return m_glWindow.get();
 }
 
-nucleus::Controller *TerrainRenderer::controller() const
-{
-    return m_controller.get();
-}
+nucleus::camera::Controller* TerrainRenderer::controller() const { return m_camera_controller.get(); }

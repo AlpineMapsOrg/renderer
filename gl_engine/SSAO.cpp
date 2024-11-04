@@ -1,5 +1,5 @@
 /*****************************************************************************
- * Alpine Terrain Renderer
+ * AlpineMaps.org
  * Copyright (C) 2023 Gerald Kimmersdorfer
  *
  * This program is free software: you can redistribute it and/or modify
@@ -17,19 +17,24 @@
  *****************************************************************************/
 #include "SSAO.h"
 
-#include <random>
-#include <cmath>
-#include <QOpenGLExtraFunctions>
-#include <QOpenGLTexture>
 #include "Framebuffer.h"
 #include "ShaderProgram.h"
+#include "ShaderRegistry.h"
+#include <QOpenGLExtraFunctions>
+#include <QOpenGLTexture>
+#include <cmath>
+#include <random>
 
 namespace gl_engine {
 
-SSAO::SSAO(std::shared_ptr<ShaderProgram> program, std::shared_ptr<ShaderProgram> blur_program)
-    :m_ssao_program(program), m_ssao_blur_program(blur_program)
+/*shader_manager->shared_ssao_program(), shader_manager->shared_ssao_blur_program()*/
+SSAO::SSAO(ShaderRegistry* shader_registry)
+    : m_ssao_program(std::make_shared<ShaderProgram>("screen_pass.vert", "ssao.frag"))
+    , m_ssao_blur_program(std::make_shared<ShaderProgram>("screen_pass.vert", "ssao_blur.frag"))
 {
-     m_f = QOpenGLContext::currentContext()->extraFunctions();
+    shader_registry->add_shader(m_ssao_program);
+    shader_registry->add_shader(m_ssao_blur_program);
+    m_f = QOpenGLContext::currentContext()->extraFunctions();
 
     // GENERATE SAMPLE KERNEL
     recreate_kernel();

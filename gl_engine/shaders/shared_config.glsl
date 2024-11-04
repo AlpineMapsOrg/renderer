@@ -1,5 +1,5 @@
 /*****************************************************************************
- * Alpine Terrain Renderer
+ * AlpineMaps.org
  * Copyright (C) 2023 Gerald Kimmersdorfer
  *
  * This program is free software: you can redistribute it and/or modify
@@ -21,8 +21,8 @@
 
 // NOTE: Previously (~v23.11) the curtain settings were exposed to the GUI.
 #define CURTAIN_DEBUG_MODE 0            // 0 normal (show curtains), 1 highlight curtains, 2 only show curtains
-#define CURTAIN_HEIGHT_MODE 1           // 0 fixed (reference = height of curtain), 1 depth dependent
-#define CURTAIN_REFERENCE_HEIGHT 200.0
+#define CURTAIN_HEIGHT_MODE 2           // 0 fixed (reference = height of curtain), 1 depth dependent, 2 zoom level dependent
+#define CURTAIN_REFERENCE_HEIGHT 300.0
 
 layout (std140) uniform shared_config {
     highp vec4 sun_light;

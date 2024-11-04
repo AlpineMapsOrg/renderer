@@ -1,5 +1,5 @@
 /*****************************************************************************
- * Alpine Terrain Renderer
+ * AlpineMaps.org
  * Copyright (C) 2024 Adam Celarek
  * Copyright (C) 2024 Gerald Kimmersdorfer
  *
@@ -43,5 +43,8 @@ public:
     [[nodiscard]] unsigned height() const { return m_height; }
     [[nodiscard]] Format format() const { return m_format; }
 };
+
+using MipmappedColourTexture = std::vector<ColourTexture>;
+MipmappedColourTexture generate_mipmapped_colour_texture(const nucleus::Raster<glm::u8vec4>& data, ColourTexture::Format format);
 
 } // namespace nucleus::utils
