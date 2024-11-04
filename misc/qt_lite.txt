@@ -14,6 +14,8 @@
 -no-feature-quick-pathview
 -no-feature-texthtmlparser
 -no-feature-textodfwriter
+-no-feature-textmarkdownwriter
+-no-feature-textmarkdownreader
 -no-feature-quickcontrols2-windows
 -no-feature-quickcontrols2-macos
 -no-feature-quickcontrols2-ios

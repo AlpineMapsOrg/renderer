@@ -55,7 +55,7 @@ Rectangle {
             }
 
 
-            Text {
+            Label {
                 id: about_text
                 anchors {
                     left: logo.left
@@ -65,26 +65,31 @@ Rectangle {
                 width: about_root.width - 20
                 wrapMode: Text.Wrap
                 onLinkActivated: Qt.openUrlExternally(link)
-                textFormat: Text.MarkdownText
+                textFormat: Text.StyledText
+                linkColor: Material.accentColor
                 text: qsTr("
-This is an open source application. It is **released** under the GNU General Public License (version 3 or any later version). The source code is available on [github.com/AlpineMapsOrg/renderer](https://github.com/AlpineMapsOrg/renderer).
-
-The source of elevation and orthographic photo data is [basemap.at](https://basemap.at),
+This is an open source application. It is released under the GNU General Public License (version 3 or any later version).
+The source code is available on <a href=\"https://github.com/AlpineMapsOrg/renderer\">github.com/AlpineMapsOrg/renderer</a>.
+<br><br>
+The source of elevation and orthographic photo data is <a href=\"https://basemap.at/\">basemap.at</a>,
 it is licensed under the Open Government Data Austria license (CC-BY 4.0).
-
-The source of POI feature labels is [openstreetmap.org](https://www.openstreetmap.org/copyright),
+<br><br>
+The source of POI feature labels is <a href=\"https://www.openstreetmap.org/copyright\">OpenStreetMap</a>,
 it is licensed under the Open Data Commons Open Database License (ODbL) by the OpenStreetMap Foundation (OSMF).
+<br>
 
-## Authors:
+<h2>Authors:</h2>
 Adam Celarek, Lucas Dworschak, Gerald Kimmersdorfer, Jakob Lindner, Patrick Komon, Jakob Maier
+<br>
 
-## Impressum:
-Adam Celarek\\
-Frankenberggasse 8/10\\
-1040 Wien\\
-Österreich / Austria
-
-E-Mail: alpinemaps.org@xibo.at")
+<h2>Impressum:</h2>
+Adam Celarek<br>
+Frankenberggasse 8/10<br>
+1040 Wien<br>
+Österreich / Austria<br>
+<br>
+E-Mail: alpinemaps.org@xibo.at
+<br>")
             }
         }
     }

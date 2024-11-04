@@ -112,8 +112,6 @@ Rectangle {
             id: copyright
             onLinkActivated: Qt.openUrlExternally(link)
             textFormat: Text.StyledText
-            linkColor: "#008800"
-            color: "#880000"
 
             text: copyright_frame.originalText
         }
