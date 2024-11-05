@@ -315,7 +315,7 @@ TEST_CASE("nucleus/tile/cache")
                 cache.insert(create_test_tile({ i, { 0, 1 } }));
             }
             const auto r = cache.write_to_disk(path);
-            std::string err;
+            QString err;
             if (!r.has_value())
                 err = r.error();
             CHECK(r.has_value());
