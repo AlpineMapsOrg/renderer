@@ -22,7 +22,6 @@
 #include <QFile>
 #include <algorithm>
 #include <filesystem>
-#include <fmt/format.h>
 #include <mutex>
 #include <nucleus/utils/lang.h>
 #include <shared_mutex>
@@ -79,8 +78,8 @@ public:
     const T& peak_at(const tile::Id& id) const;
     std::vector<T> purge(unsigned remaining_capacity);
 
-    [[nodiscard]] tl::expected<void, std::string> write_to_disk(const std::filesystem::path& path);
-    [[nodiscard]] tl::expected<void, std::string> read_from_disk(const std::filesystem::path& path);
+    [[nodiscard]] tl::expected<void, QString> write_to_disk(const std::filesystem::path& path);
+    [[nodiscard]] tl::expected<void, QString> read_from_disk(const std::filesystem::path& path);
 
 private:
     template<typename VisitorFunction>
@@ -90,7 +89,8 @@ private:
 
     static std::filesystem::path tile_path(const std::filesystem::path& base_path, const tile::Id& id)
     {
-        return base_path / fmt::format("{}_{}_{}.alp_tile", id.zoom_level, id.coords.x, id.coords.y);
+        std::string tile_name = std::to_string(id.zoom_level) + "_" + std::to_string(id.coords.x) + "_" + std::to_string(id.coords.y) + ".alp_tile";
+        return base_path / tile_name;
     }
 
     static std::filesystem::path meta_info_path(const std::filesystem::path& base_path)
@@ -132,9 +132,9 @@ const T& Cache<T>::peak_at(const tile::Id& id) const
     return m_data.at(id).data;
 }
 
-template <NamedTile T>
-tl::expected<void, std::string> Cache<T>::write_to_disk(const std::filesystem::path& base_path)
+template <NamedTile T> tl::expected<void, QString> Cache<T>::write_to_disk(const std::filesystem::path& base_path)
 {
+    const auto unexpected_error = [](const auto& e) { return tl::unexpected(QString::fromStdString(std::make_error_code(e).message())); };
     static_assert(SerialisableTile<T>);
     std::filesystem::create_directories(base_path);
     std::unordered_map<tile::Id, CacheObject, tile::Id::Hasher> data;
@@ -144,12 +144,11 @@ tl::expected<void, std::string> Cache<T>::write_to_disk(const std::filesystem::p
     }
     auto locker = std::scoped_lock(m_disk_cached_mutex);
 
-    const auto write = [](const auto& bytes, const auto& path) -> tl::expected<void, std::string> {
+    const auto write = [](const auto& bytes, const auto& path) -> tl::expected<void, QString> {
         QFile file(path);
         const auto success = file.open(QIODeviceBase::WriteOnly);
         if (!success)
-            return tl::unexpected<std::string>(
-                fmt::format("Couldn't open file '{}' for writing!", path.string()));
+            return tl::unexpected<QString>(QString("Couldn't open file '%1' for writing!").arg(QString::fromStdString(path.string())));
         file.write(bytes.data(), qint64(bytes.size()));
         return {};
     };
@@ -183,12 +182,12 @@ tl::expected<void, std::string> Cache<T>::write_to_disk(const std::filesystem::p
             {
                 const auto r = out(version);
                 if (failure(r))
-                    return tl::unexpected(std::make_error_code(r).message());
+                    return unexpected_error(r);
             }
             {
                 const auto r = out(cache_object.data);
                 if (failure(r))
-                    return tl::unexpected(std::make_error_code(r).message());
+                    return unexpected_error(r);
             }
             {
                 const auto r = write(bytes, tile_path(base_path, id));
@@ -203,13 +202,13 @@ tl::expected<void, std::string> Cache<T>::write_to_disk(const std::filesystem::p
         {
             const auto r = out(version);
             if (failure(r))
-                return tl::unexpected(std::make_error_code(r).message());
+                return unexpected_error(r);
         }
 
         {
             const auto r = out(m_disk_cached);
             if (failure(r))
-                return tl::unexpected(std::make_error_code(r).message());
+                return unexpected_error(r);
         }
 
         const auto r = write(bytes, meta_info_path(base_path));
@@ -219,34 +218,34 @@ tl::expected<void, std::string> Cache<T>::write_to_disk(const std::filesystem::p
         return {};
 }
 
-template <NamedTile T>
-tl::expected<void, std::string> Cache<T>::read_from_disk(const std::filesystem::path& base_path)
+template <NamedTile T> tl::expected<void, QString> Cache<T>::read_from_disk(const std::filesystem::path& base_path)
 {
+    const auto unexpected_error = [](const auto& e) { return tl::unexpected(QString::fromStdString(std::make_error_code(e).message())); };
     auto locker = std::scoped_lock(m_data_mutex, m_disk_cached_mutex);
     assert(SerialisableTile<T>);
-    const auto check_version = [](auto* in, const auto& path) -> tl::expected<void, std::string> {
+    const auto check_version = [&unexpected_error](auto* in, const auto& path) -> tl::expected<void, QString> {
         std::remove_cvref_t<decltype(T::version_information)> version_info = {};
         {
             const auto r = (*in)(version_info);
             if (failure(r))
-                return tl::unexpected(std::make_error_code(r).message());
+                return unexpected_error(r);
         }
         if (version_info != T::version_information) {
             version_info[version_info.size() - 1] = 0;  // make sure that the string is 0 terminated.
 
-            return tl::unexpected(fmt::format("Cache file '{}' has incompatible version! Disk "
-                                              "version is '{}', but we expected '{}'.",
-                path.string(),
-                version_info.data(),
-                T::version_information.data()));
+            return tl::unexpected(QString("Cache file '%1' has incompatible version! Disk "
+                                          "version is '%2', but we expected '%3'.")
+                                      .arg(QString::fromStdString(path.string()))
+                                      .arg(version_info.data())
+                                      .arg(T::version_information.data()));
         }
         return {};
     };
-    const auto read_all = [](const auto& path) -> tl::expected<QByteArray, std::string> {
+    const auto read_all = [](const auto& path) -> tl::expected<QByteArray, QString> {
         QFile file(path);
         const auto success = file.open(QIODeviceBase::ReadOnly);
         if (!success)
-            return tl::unexpected(fmt::format("Couldn't open file '{}' for reading!", path.string()));
+            return tl::unexpected(QString("Couldn't open file '%1' for reading!").arg(QString::fromStdString(path.string())));
         return file.readAll();
     };
     const auto clean_up = [&]() {
@@ -274,7 +273,7 @@ tl::expected<void, std::string> Cache<T>::read_from_disk(const std::filesystem::
             const auto r = in(m_disk_cached);
             if (failure(r)) {
                 clean_up();
-                return tl::unexpected(std::make_error_code(r).message());
+                return unexpected_error(r);
             }
         }
     }
@@ -303,7 +302,7 @@ tl::expected<void, std::string> Cache<T>::read_from_disk(const std::filesystem::
             const auto r = in(d.data);
             if (failure(r)) {
                 clean_up();
-                return tl::unexpected(std::make_error_code(r).message());
+                return unexpected_error(r);
             }
         }
         d.meta = meta;
