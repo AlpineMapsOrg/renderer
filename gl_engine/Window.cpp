@@ -141,7 +141,7 @@ void Window::initialise_gpu()
     shader_registry->add_shader(m_compose_shader);
     shader_registry->add_shader(m_screen_copy_shader);
 
-    m_shadowmapping = std::make_unique<gl_engine::ShadowMapping>(shader_registry, m_shadow_config_ubo, m_shared_config_ubo);
+    m_shadowmapping = std::make_unique<gl_engine::ShadowMapping>(shader_registry);
     m_ssao = std::make_unique<gl_engine::SSAO>(shader_registry);
 
     m_shared_config_ubo = std::make_shared<gl_engine::UniformBuffer<gl_engine::uboSharedConfig>>(0, "shared_config");
@@ -249,7 +249,7 @@ void Window::paint(QOpenGLFramebufferObject* framebuffer)
     // DRAW SHADOWMAPS
     if (m_shared_config_ubo->data.m_csm_enabled) {
         m_timer->start_timer("shadowmap");
-        m_shadowmapping->draw(m_context->tile_geometry(), tile_set, m_camera);
+        m_shadowmapping->draw(m_context->tile_geometry(), tile_set, m_camera, m_shadow_config_ubo, m_shared_config_ubo);
         m_timer->stop_timer("shadowmap");
     }
 

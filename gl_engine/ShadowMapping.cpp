@@ -30,11 +30,8 @@
 
 namespace gl_engine {
 
-ShadowMapping::ShadowMapping(
-    ShaderRegistry* shader_registry, std::shared_ptr<UniformBuffer<uboShadowConfig>> shadow_config, std::shared_ptr<UniformBuffer<uboSharedConfig>> shared_config)
+ShadowMapping::ShadowMapping(ShaderRegistry* shader_registry)
     : m_shadow_program(std::make_shared<ShaderProgram>("shadowmap.vert", "shadowmap.frag"))
-    , m_shadow_config(shadow_config)
-    , m_shared_config(shared_config)
 {
     shader_registry->add_shader(m_shadow_program);
     m_f = QOpenGLContext::currentContext()->extraFunctions();
@@ -49,7 +46,11 @@ ShadowMapping::~ShadowMapping() {
 
 }
 
-void ShadowMapping::draw(TileGeometry* tile_geometry, const nucleus::tile::IdSet& draw_tileset, const nucleus::camera::Definition& camera)
+void ShadowMapping::draw(TileGeometry* tile_geometry,
+    const nucleus::tile::IdSet& draw_tileset,
+    const nucleus::camera::Definition& camera,
+    std::shared_ptr<UniformBuffer<uboShadowConfig>> shadow_config,
+    std::shared_ptr<UniformBuffer<uboSharedConfig>> shared_config)
 {
 
     // NOTE: ReverseZ is not necessary for ShadowMapping since a directional light is using an orthographic projection
@@ -57,20 +58,20 @@ void ShadowMapping::draw(TileGeometry* tile_geometry, const nucleus::tile::IdSet
 
     float far_plane = 100000; // Similar to camera?
     float near_plane = camera.near_plane(); // Similar to camera?
-    m_shadow_config->data.cascade_planes[0].x = near_plane;
-    m_shadow_config->data.cascade_planes[1].x = far_plane / 50.0f;
-    m_shadow_config->data.cascade_planes[2].x = far_plane / 25.0f;
-    m_shadow_config->data.cascade_planes[3].x = far_plane / 10.0f;
-    m_shadow_config->data.cascade_planes[4].x = far_plane;
-    m_shadow_config->data.shadowmap_size = glm::vec2(SHADOWMAP_WIDTH, SHADOWMAP_HEIGHT);
+    shadow_config->data.cascade_planes[0].x = near_plane;
+    shadow_config->data.cascade_planes[1].x = far_plane / 50.0f;
+    shadow_config->data.cascade_planes[2].x = far_plane / 25.0f;
+    shadow_config->data.cascade_planes[3].x = far_plane / 10.0f;
+    shadow_config->data.cascade_planes[4].x = far_plane;
+    shadow_config->data.shadowmap_size = glm::vec2(SHADOWMAP_WIDTH, SHADOWMAP_HEIGHT);
 
-    auto qlight_dir = m_shared_config->data.m_sun_light_dir;
+    auto qlight_dir = shared_config->data.m_sun_light_dir;
     auto light_dir = -glm::vec3(qlight_dir.x(), qlight_dir.y(), qlight_dir.z());
 
     for (size_t i = 0; i < SHADOW_CASCADES; ++i)
-        m_shadow_config->data.light_space_view_proj_matrix[i] = getLightSpaceMatrix(m_shadow_config->data.cascade_planes[i].x, m_shadow_config->data.cascade_planes[i + 1].x, camera, light_dir);
+        shadow_config->data.light_space_view_proj_matrix[i] = getLightSpaceMatrix(shadow_config->data.cascade_planes[i].x, shadow_config->data.cascade_planes[i + 1].x, camera, light_dir);
 
-    m_shadow_config->update_gpu_data();
+    shadow_config->update_gpu_data();
 
     m_f->glEnable(GL_DEPTH_TEST);
     m_f->glDepthFunc(GL_LESS);

@@ -46,11 +46,15 @@ struct uboShadowConfig;
 class ShadowMapping
 {
 public:
-    ShadowMapping(ShaderRegistry* shader_registry, std::shared_ptr<UniformBuffer<uboShadowConfig>> shadow_config, std::shared_ptr<UniformBuffer<uboSharedConfig>> shared_config);
+    ShadowMapping(ShaderRegistry* shader_registry);
 
     ~ShadowMapping();
 
-    void draw(TileGeometry* tile_manager, const nucleus::tile::IdSet& draw_tileset, const nucleus::camera::Definition& camera);
+    void draw(TileGeometry* tile_manager,
+        const nucleus::tile::IdSet& draw_tileset,
+        const nucleus::camera::Definition& camera,
+        std::shared_ptr<UniformBuffer<uboShadowConfig>> shadow_config,
+        std::shared_ptr<UniformBuffer<uboSharedConfig>> shared_config);
 
     void bind_shadow_maps(ShaderProgram* program, unsigned int start_location);
     nucleus::camera::Frustum getFrustum(const nucleus::camera::Definition& camera);
@@ -59,8 +63,6 @@ private:
 
     std::shared_ptr<ShaderProgram> m_shadow_program;
     std::vector<std::unique_ptr<Framebuffer>> m_shadowmapbuffer;
-    std::shared_ptr<UniformBuffer<uboShadowConfig>> m_shadow_config;
-    std::shared_ptr<UniformBuffer<uboSharedConfig>> m_shared_config;
     QOpenGLExtraFunctions *m_f;
 
     std::vector<glm::vec4> getFrustumCornersWorldSpace(const glm::mat4& projview);
