@@ -421,11 +421,6 @@ void Window::reload_shader() {
 #endif
 }
 
-void Window::updateCameraEvent()
-{
-    emit update_camera_requested();
-}
-
 void Window::set_permissible_screen_space_error(float new_error) { m_context->tile_geometry()->set_permissible_screen_space_error(new_error); }
 
 void Window::update_camera(const nucleus::camera::Definition& new_definition)

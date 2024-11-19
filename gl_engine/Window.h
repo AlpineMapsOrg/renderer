@@ -69,7 +69,6 @@ public:
     void destroy() override;
     [[nodiscard]] nucleus::camera::AbstractDepthTester* depth_tester() override;
     [[nodiscard]] nucleus::utils::ColourTexture::Format ortho_tile_compression_algorithm() const override;
-    void updateCameraEvent();
     void set_permissible_screen_space_error(float new_error) override;
 
 public slots:
