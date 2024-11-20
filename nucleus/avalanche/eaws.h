@@ -36,7 +36,7 @@ public:
         = std::vector<glm::vec2>(); // The vertices of the region's bounding polygon with respect to tile resolution, must be in range [0,1]
     glm::uvec2 resolution = glm::vec2(4096, 4096); // Tile resolution
 };
-using RegionTile = std::pair<tile::Id, std::vector<Region>>;
+using RegionTile = std::pair<radix::tile::Id, std::vector<Region>>;
 
 /* Reads all EAWS regions stored in a provided vector tile
  * Returns a vector of structs, each containing the name, geometry and "alt-id", "start_date", "end_date" if applicable.
@@ -52,7 +52,7 @@ using RegionTile = std::pair<tile::Id, std::vector<Region>>;
  * @param input_data: An array holding the data read froma vector tile (usually obtained by reading a from a mvt file).
  * @param tile_id: The zoom, x-y-cordinates and tile-scheme belonging to the input data
  */
-tl::expected<RegionTile, QString> vector_tile_reader(const QByteArray& input_data, const tile::Id& tile_id);
+tl::expected<RegionTile, QString> vector_tile_reader(const QByteArray& input_data, const radix::tile::Id& tile_id);
 
 // This class handles conversion from region-id strings to internal ids as uint and as color
 class UIntIdManager {
@@ -74,12 +74,18 @@ private:
 };
 
 // Creates a new QImage and draws all regions to it where color encodes the region id. Throws error when no regions are provided
-QImage draw_regions(const RegionTile& region_tile, avalanche::eaws::UIntIdManager* internal_id_manager, const uint& image_width, const uint& image_height,
-    const tile::Id& tile_id_out, const QImage::Format& image_format = QImage::Format_ARGB32);
+// Note: tile_id_out must have greater or equal zoomlevel than tile_id_in
+QImage draw_regions(const RegionTile& region_tile,
+    avalanche::eaws::UIntIdManager* internal_id_manager,
+    const uint& image_width,
+    const uint& image_height,
+    const radix::tile::Id& tile_id_out,
+    const QImage::Format& image_format = QImage::Format_ARGB32);
 
 // Creates a raster from a QImage with regions in it. Throws error when raster_width or raster_height is 0.
-nucleus::Raster<uint16_t> rasterize_regions(const RegionTile& region_tile, avalanche::eaws::UIntIdManager* internal_id_manager, const uint raster_width,
-    const uint raster_height, const tile::Id& tile_id_out);
+// Note: tile_id_out must have greater or equal zoomlevel than tile_id_in
+nucleus::Raster<uint16_t> rasterize_regions(
+    const RegionTile& region_tile, avalanche::eaws::UIntIdManager* internal_id_manager, const uint raster_width, const uint raster_height, const radix::tile::Id& tile_id_out);
 
 // Overload: Output has same resolution as EAWS regions, throws error when regions.size() == 0
 nucleus::Raster<uint16_t> rasterize_regions(const RegionTile& region_tile, avalanche::eaws::UIntIdManager* internal_id_manager);
