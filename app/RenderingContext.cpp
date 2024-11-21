@@ -53,12 +53,14 @@ struct RenderingContext::Data {
     // the ones below are on the scheduler thread.
     nucleus::tile::setup::GeometrySchedulerHolder geometry;
     nucleus::tile::setup::TextureSchedulerHolder ortho_texture;
+    nucleus::tile::setup::EawsTextureSchedulerHolder eaws_texture;
     nucleus::map_label::setup::SchedulerHolder map_label;
     std::shared_ptr<nucleus::DataQuerier> data_querier;
     std::unique_ptr<nucleus::camera::Controller> camera_controller;
     std::shared_ptr<nucleus::map_label::Filter> label_filter;
     std::shared_ptr<nucleus::picker::PickerManager> picker_manager;
     std::shared_ptr<nucleus::tile::utils::AabbDecorator> aabb_decorator;
+    std::shared_ptr<nucleus::tile::utils::AabbDecorator> aabb_decorator_eaws;
 };
 
 RenderingContext::RenderingContext(QObject* parent)
@@ -81,12 +83,16 @@ RenderingContext::RenderingContext(QObject* parent)
     //                                           ".jpeg",
     //                                           {"", "1", "2", "3", "4"}));
     m->aabb_decorator = nucleus::tile::setup::aabb_decorator();
+    m->aabb_decorator_eaws = nucleus::tile::setup::aabb_decorator();
     m->geometry = nucleus::tile::setup::geometry_scheduler(
         "geometry", std::make_unique<TileLoadService>("https://alpinemaps.cg.tuwien.ac.at/tiles/alpine_png/", TilePattern::ZXY, ".png"), m->aabb_decorator, m->scheduler_thread.get());
     m->data_querier = std::make_shared<DataQuerier>(&m->geometry.scheduler->ram_cache());
 
     m->ortho_texture = nucleus::tile::setup::texture_scheduler(
         "ortho", std::make_unique<TileLoadService>("https://gataki.cg.tuwien.ac.at/raw/basemap/tiles/", TilePattern::ZYX_yPointingSouth, ".jpeg"), m->aabb_decorator, m->scheduler_thread.get());
+
+    m->eaws_texture = nucleus::tile::setup::eaws_texture_scheduler(
+        "eaws", std::make_unique<TileLoadService>("http://localhost:3000/eaws-regions/", TilePattern::ZXY_yPointingSouth, ""), m->aabb_decorator_eaws, m->scheduler_thread.get());
 
     m->map_label = nucleus::map_label::setup::scheduler("map_label",
         std::make_unique<TileLoadService>("https://osm.cg.tuwien.ac.at/vector_tiles/poi_v1/", TilePattern::ZXY_yPointingSouth, ""),
@@ -105,6 +111,7 @@ RenderingContext::RenderingContext(QObject* parent)
     // clang-format off
     connect(m->geometry.scheduler.get(),       &nucleus::tile::GeometryScheduler::gpu_quads_updated, RenderThreadNotifier::instance(), &RenderThreadNotifier::notify);
     connect(m->ortho_texture.scheduler.get(),  &nucleus::tile::TextureScheduler::gpu_quads_updated,  RenderThreadNotifier::instance(), &RenderThreadNotifier::notify);
+    connect(m->eaws_texture.scheduler.get(),  &nucleus::tile::TextureScheduler::gpu_quads_updated,  RenderThreadNotifier::instance(), &RenderThreadNotifier::notify);
     connect(m->map_label.scheduler.get(),      &nucleus::map_label::Scheduler::gpu_tiles_updated,              RenderThreadNotifier::instance(), &RenderThreadNotifier::notify);
     connect(m->map_label.scheduler.get(),      &nucleus::map_label::Scheduler::gpu_tiles_updated,              m->picker_manager.get(),          &PickerManager::update_quads);
     connect(m->map_label.scheduler.get(),      &nucleus::map_label::Scheduler::gpu_tiles_updated,              m->label_filter.get(),            &Filter::update_quads);
@@ -114,10 +121,12 @@ RenderingContext::RenderingContext(QObject* parent)
         QNetworkInformation* n = QNetworkInformation::instance();
         m->geometry.scheduler->set_network_reachability(n->reachability());
         m->ortho_texture.scheduler->set_network_reachability(n->reachability());
+        m->eaws_texture.scheduler->set_network_reachability(n->reachability());
         m->map_label.scheduler->set_network_reachability(n->reachability());
         // clang-format off
         connect(n, &QNetworkInformation::reachabilityChanged, m->geometry.scheduler.get(),       &nucleus::tile::Scheduler::set_network_reachability);
         connect(n, &QNetworkInformation::reachabilityChanged, m->ortho_texture.scheduler.get(),  &nucleus::tile::Scheduler::set_network_reachability);
+        connect(n, &QNetworkInformation::reachabilityChanged, m->eaws_texture.scheduler.get(),  &nucleus::tile::Scheduler::set_network_reachability);
         connect(n, &QNetworkInformation::reachabilityChanged, m->map_label.scheduler.get(),      &nucleus::tile::Scheduler::set_network_reachability);
         // clang-format on
     }
@@ -149,17 +158,24 @@ void RenderingContext::initialise()
     // standard tiles
     m->engine_context->set_tile_geometry(std::make_shared<gl_engine::TileGeometry>());
     m->engine_context->set_ortho_layer(std::make_shared<gl_engine::TextureLayer>());
+    m->engine_context->set_eaws_layer(std::make_shared<gl_engine::TextureLayer>());
     m->engine_context->tile_geometry()->set_quad_limit(512);
     m->engine_context->tile_geometry()->set_aabb_decorator(m->aabb_decorator);
     m->engine_context->ortho_layer()->set_quad_limit(512);
+    m->engine_context->eaws_layer()->set_quad_limit(512);
 
     connect(m->geometry.scheduler.get(), &nucleus::tile::GeometryScheduler::gpu_quads_updated, m->engine_context->tile_geometry(), &gl_engine::TileGeometry::update_gpu_quads);
     connect(m->ortho_texture.scheduler.get(), &nucleus::tile::TextureScheduler::gpu_quads_updated, m->engine_context->ortho_layer(), &gl_engine::TextureLayer::update_gpu_quads);
+    connect(m->eaws_texture.scheduler.get(), &nucleus::tile::TextureScheduler::gpu_quads_updated, m->engine_context->eaws_layer(), &gl_engine::TextureLayer::update_gpu_quads);
     nucleus::utils::thread::async_call(m->geometry.scheduler.get(), [this]() { m->geometry.scheduler->set_enabled(true); });
     const auto texture_compression = gl_engine::Texture::compression_algorithm();
     nucleus::utils::thread::async_call(m->ortho_texture.scheduler.get(), [this, texture_compression]() {
         m->ortho_texture.scheduler->set_texture_compression_algorithm(texture_compression);
         m->ortho_texture.scheduler->set_enabled(true);
+    });
+    nucleus::utils::thread::async_call(m->eaws_texture.scheduler.get(), [this, texture_compression]() {
+        m->eaws_texture.scheduler->set_texture_compression_algorithm(texture_compression);
+        m->eaws_texture.scheduler->set_enabled(true);
     });
 
     // labels
@@ -190,11 +206,13 @@ void RenderingContext::destroy()
             m->picker_manager.reset();
             m->map_label.scheduler.reset();
             m->ortho_texture.scheduler.reset();
+            m->eaws_texture.scheduler.reset();
         });
         nucleus::utils::thread::sync_call(m->geometry.tile_service.get(), [this]() {
             m->geometry.tile_service.reset();
             m->map_label.tile_service.reset();
             m->ortho_texture.tile_service.reset();
+            m->eaws_texture.tile_service.reset();
         });
         m->scheduler_thread->quit();
         m->scheduler_thread->wait(500); // msec
@@ -248,4 +266,10 @@ nucleus::tile::TextureScheduler* RenderingContext::ortho_scheduler() const
 {
     QMutexLocker locker(&m->shared_ptr_mutex);
     return m->ortho_texture.scheduler.get();
+}
+
+nucleus::tile::TextureScheduler* RenderingContext::eaws_scheduler() const
+{
+    QMutexLocker locker(&m->shared_ptr_mutex);
+    return m->eaws_texture.scheduler.get();
 }

@@ -116,6 +116,9 @@ qt_add_library(nucleus STATIC
     tile/GeometryScheduler.h tile/GeometryScheduler.cpp
     utils/error.h
     utils/lang.h
+    avalanche/eaws.h avalanche/eaws.cpp
+    avalanche/EawsTextureScheduler.cpp
+    avalanche/EawsTextureScheduler.h
 )
 
 if (ALP_ENABLE_AVLANCHE_WARNING_LAYER)

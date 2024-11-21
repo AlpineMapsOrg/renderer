@@ -59,12 +59,16 @@ void Context::internal_initialise()
 
     if (m_ortho_layer)
         m_ortho_layer->init(m_shader_registry.get());
+
+    if (m_eaws_layer)
+        m_eaws_layer->init(m_shader_registry.get());
 }
 
 void Context::internal_destroy()
 {
     // this is necessary for a clean shutdown (and we want a clean shutdown for the ci integration test).
     m_ortho_layer.reset();
+    m_eaws_layer.reset();
     m_tile_geometry.reset();
     m_track_manager.reset();
     m_shader_registry.reset();
@@ -73,10 +77,18 @@ void Context::internal_destroy()
 
 TextureLayer* Context::ortho_layer() const { return m_ortho_layer.get(); }
 
+TextureLayer* Context::eaws_layer() const { return m_eaws_layer.get(); }
+
 void Context::set_ortho_layer(std::shared_ptr<TextureLayer> new_ortho_layer)
 {
     assert(!is_alive()); // only set before init is called.
     m_ortho_layer = std::move(new_ortho_layer);
+}
+
+void Context::set_eaws_layer(std::shared_ptr<TextureLayer> new_ortho_layer)
+{
+    assert(!is_alive()); // only set before init is called.
+    m_eaws_layer = std::move(new_ortho_layer);
 }
 
 TileGeometry* Context::tile_geometry() const { return m_tile_geometry.get(); }
