@@ -30,7 +30,10 @@ namespace nucleus::utils::rasterizer {
 
 // TODOs:
 // - enlarge triangles
+//      - current problems: some irregularities with the get_x_for_y_on_line result/ fill_inner_triangle function
+//      - we start too late and stop to early with the top and bottom lines -> maybe we need to round first?
 // - line renderer
+// sdf box filter instead by circle to only consider values of the current cell
 
 namespace details {
 
@@ -38,8 +41,18 @@ namespace details {
     {
         // pos_on_line = origin + t * line
         float t = (y - origin.y) / line.y;
+
         return origin.x + t * line.x;
     }
+
+    // half vector between n1 and n2 projected onto the half vector gives us the y value that can go through to the other side, without causing problems
+    // the problem is that we might still remove things we want to render
+    // solution: calculate the half vector and the projection on it for upper lower bound of our rendering pass
+    // and only render from extended line to this half vector -> the last render pass renders from the other side also to the half vector
+    // -> problem we split the line in two parts (up to middle - middle to bottom -> so we only have to render the largest line to middle with first half vector and from middle with second half vector
+    // -> other problem what to do with middle part -> calculate new line between both enlarged vertices? and render this new line? -> fully through
+
+    // scanne bis zum orig bottom vertice y value -> until then use the half vector for end position from then on use the normal vector as end position.
 
     inline std::pair<glm::vec2, int> calculate_dda_steps(const glm::vec2 line)
     {
@@ -70,15 +83,31 @@ namespace details {
         }
     }
 
+    // pixel_writer, topmost_renderable_point, top_bisector,
+    // enlarged_top_bottom_origin, edge_top_bottom,
+    // enlarged_top_middle_origin, edge_top_middle, triangle_index
     template <typename PixelWriterFunction>
     void dda_triangle_line(const PixelWriterFunction& pixel_writer,
         const glm::vec2& line_start_point,
         const glm::vec2& line,
-        const glm::vec2& top_point,
-        const glm::vec2& top_bottom_line,
-        unsigned int data_index,
-        int fill_direction)
+        const glm::vec2& outer_point_a,
+        const glm::vec2& outer_line_a,
+        const glm::vec2& outer_point_b,
+        const glm::vec2& outer_line_b,
+        // const glm::vec2&, // outer_point_a,
+        // const glm::vec2&, // outer_line_a,
+        // const glm::vec2&, // outer_point_b,
+        // const glm::vec2&, // outer_line_b,
+        unsigned int data_index)
     {
+        int fill_direction;
+        bool only_fill_once = false; // only fill from line to outer line a
+        if (outer_line_b == glm::vec2 { 0, 0 }) {
+            fill_direction = (outer_point_a.x < line_start_point.x) ? -1 : 1;
+            only_fill_once = true;
+        } else
+            fill_direction = (outer_point_a.x < outer_point_b.x) ? -1 : 1;
+
         glm::vec2 step_size;
         int steps;
         std::tie(step_size, steps) = calculate_dda_steps(line);
@@ -91,8 +120,9 @@ namespace details {
             pixel_writer(current_position, data_index);
 
             if (int(current_position.y + step_size.y) > current_position.y) { // next step would go to next y value
-
-                fill_inner_triangle(pixel_writer, current_position, top_point, top_bottom_line, data_index, fill_direction);
+                fill_inner_triangle(pixel_writer, current_position, outer_point_a, outer_line_a, data_index, fill_direction);
+                if (!only_fill_once)
+                    fill_inner_triangle(pixel_writer, current_position, outer_point_b, outer_line_b, data_index, -fill_direction);
                 last_y = current_position.y;
             }
             current_position += step_size;
@@ -101,50 +131,94 @@ namespace details {
         current_position -= step_size;
 
         // check if we have to apply the fill_inner_triangle alg for the current row
-        if (last_y != floor(current_position.y))
-            fill_inner_triangle(pixel_writer, current_position, top_point, top_bottom_line, data_index, fill_direction);
+        if (last_y != floor(current_position.y)) {
+            fill_inner_triangle(pixel_writer, current_position, outer_point_a, outer_line_a, data_index, fill_direction);
+            if (!only_fill_once)
+                fill_inner_triangle(pixel_writer, current_position, outer_point_b, outer_line_b, data_index, -fill_direction);
+        }
     }
 
-    template <typename PixelWriterFunction> void dda_triangle(const PixelWriterFunction& pixel_writer, const std::vector<glm::vec2>& triangle, unsigned int triangle_index)
+    template <typename PixelWriterFunction> void add_end_cap(const PixelWriterFunction& pixel_writer, const glm::vec2 position, unsigned int data_index, float distance)
     {
+        distance += sqrt(0.5);
+        float distance_test = ceil(distance);
+
+        for (int i = -distance_test; i < distance_test; i++) {
+            for (int j = -distance_test; j < distance_test; j++) {
+                const auto offset = glm::vec2(i + 0.0, j + 0.0);
+                if (glm::length(offset) < distance)
+                    pixel_writer(position + offset, data_index);
+            }
+        }
+    }
+
+    template <typename PixelWriterFunction> void dda_triangle(const PixelWriterFunction& pixel_writer, const std::vector<glm::vec2>& triangle, unsigned int triangle_index, float distance)
+    {
+        // In order to process enlarged triangles, the triangle is separated into 3 parts: top, middle and bottom
+        // top and bottom parts are rendered by calculating the bisector line of both normal vectors and rendering everything left and everyting right of this line by using a fill operation
+
+        // for the middle part:
+        // if we enlarge the triangle by moving the edge along an edge normal we generate a gap between the top-middle and middle-bottom edge (if those lines are only translated)
+        // we have to somehow rasterize this gap between the bottom vertice of the translated top-middle edge and the top vertice of the middle-bottom edge.
+        // in order to do this we draw a new edge between those vertices and rasterize everything between this new edge and the top-bottom edge.
+
+        // in the worst case here we have one triangle line that is paralell to scan line
+        // in this case it might be that we still have to consider that we are writing outside of the actual triangle !!!! -> find a solution!!!
+
+        // distance += sqrt(0.5);
+
         auto edge_top_bottom = triangle[2] - triangle[0];
         auto edge_top_middle = triangle[1] - triangle[0];
         auto edge_middle_bottom = triangle[2] - triangle[1];
 
-        // TODO apply make triangle bigger lambda function if it was passed
+        auto normal_top_bottom = glm::normalize(glm::vec2(-edge_top_bottom.y, edge_top_bottom.x));
+        auto normal_top_middle = glm::normalize(glm::vec2(-edge_top_middle.y, edge_top_middle.x));
+        auto normal_middle_bottom = glm::normalize(glm::vec2(-edge_middle_bottom.y, edge_middle_bottom.x));
 
-        // auto normal_top_bottom = glm::normalize(glm::vec2(-edge_top_bottom.y, edge_top_bottom.x));
-        // auto normal_top_middle = glm::normalize(glm::vec2(-edge_top_middle.y, edge_top_middle.x));
-        // auto normal_middle_bottom = glm::normalize(glm::vec2(-edge_middle_bottom.y, edge_middle_bottom.x));
+        { // swap normal direction if they are incorrect (pointing to center)
+            glm::vec2 centroid = (triangle[0] + triangle[1] + triangle[2]) / 3.0f;
+            if (glm::dot(normal_top_bottom, centroid - triangle[0]) > 0) {
+                normal_top_bottom *= -1;
+            }
+            if (glm::dot(normal_top_middle, centroid - triangle[0]) > 0) {
+                normal_top_middle *= -1;
+            }
+            if (glm::dot(normal_middle_bottom, centroid - triangle[1]) > 0) {
+                normal_middle_bottom *= -1;
+            }
+        }
 
-        // { // swap normal direction if they are incorrect (pointing to center)
-        //     glm::vec2 centroid = (triangle[0] + triangle[1] + triangle[2]) / 3.0f;
-        //     if (glm::dot(normal_top_bottom, centroid - triangle[0]) > 0) {
-        //         normal_top_bottom *= -1;
-        //     }
-        //     if (glm::dot(normal_top_middle, centroid - triangle[0]) > 0) {
-        //         normal_top_middle *= -1;
-        //     }
-        //     if (glm::dot(normal_middle_bottom, centroid - triangle[1]) > 0) {
-        //         normal_middle_bottom *= -1;
-        //     }
-        // }
+        auto half_vector_top = (normal_top_bottom + normal_top_middle) / glm::vec2(2.0);
+        auto half_vector_bottom = (normal_top_bottom + normal_middle_bottom) / glm::vec2(2.0);
 
-        // top bottom line
-        // dda_line(pixel_writer, , triangle_index, 0, true);
+        auto enlarged_top_bottom_origin = triangle[0] + normal_top_bottom * distance;
+        auto enlarged_top_middle_origin = triangle[0] + normal_top_middle * distance;
 
-        // do we have to fill the triangle from right to left(-1) or from left to right(1)
-        int fill_direction = (triangle[1].x < triangle[2].x) ? 1 : -1;
+        auto enlarged_top_middle_end = triangle[1] + normal_top_middle * distance;
+        auto enlarged_middle_bottom_origin = triangle[1] + normal_middle_bottom * distance;
 
-        // // top middle line
-        dda_triangle_line(pixel_writer, triangle[0], edge_top_middle, triangle[0], edge_top_bottom, triangle_index, fill_direction);
-        // // middle bottom line
-        dda_triangle_line(pixel_writer, triangle[1], edge_middle_bottom, triangle[0], edge_top_bottom, triangle_index, fill_direction);
+        auto topmost_renderable_point = triangle[0] + half_vector_top;
+        auto bottommost_renderable_point = triangle[2] + half_vector_bottom;
 
-        // TODO enable again
-        // add_end_cap(triangle_collection.cell_to_data, triangle[0], triangle_index, thickness);
-        // add_end_cap(triangle_collection.cell_to_data, triangle[1], triangle_index, thickness);
-        // add_end_cap(triangle_collection.cell_to_data, triangle[2], triangle_index, thickness);
+        auto top_bisector = glm::vec2(get_x_for_y_on_line(topmost_renderable_point, -half_vector_top, enlarged_top_middle_end.y), enlarged_top_middle_end.y) - topmost_renderable_point;
+        auto middle_to_bottom_origin = glm::vec2(get_x_for_y_on_line(bottommost_renderable_point, -half_vector_bottom, enlarged_middle_bottom_origin.y), enlarged_middle_bottom_origin.y);
+
+        auto middle_bisector = bottommost_renderable_point - middle_to_bottom_origin;
+
+        // top to middle(1)
+        dda_triangle_line(pixel_writer, topmost_renderable_point, top_bisector, enlarged_top_bottom_origin, edge_top_bottom, enlarged_top_middle_origin, edge_top_middle, triangle_index);
+
+        // middle(1) to middle(2)
+        dda_triangle_line(
+            pixel_writer, enlarged_top_middle_end, enlarged_middle_bottom_origin - enlarged_top_middle_end, enlarged_top_bottom_origin, edge_top_bottom, { 0, 0 }, { 0, 0 }, triangle_index);
+
+        // middle(2) to bottom
+        dda_triangle_line(pixel_writer, middle_to_bottom_origin, middle_bisector, enlarged_top_bottom_origin, edge_top_bottom, enlarged_middle_bottom_origin, edge_middle_bottom, triangle_index);
+
+        // lastly we have to add endcaps on each original vertice position with the passed through distance
+        add_end_cap(pixel_writer, triangle[0], triangle_index, distance);
+        add_end_cap(pixel_writer, triangle[1], triangle_index, distance);
+        add_end_cap(pixel_writer, triangle[2], triangle_index, distance);
     }
 
     template <typename PixelWriterFunction>
@@ -196,10 +270,10 @@ template <typename PixelWriterFunction> void rasterize_triangle_sdf(const PixelW
 
 // ideal for many triangles. especially if each triangle only covers small parts of the raster
 // in this method every triangle is traversed only once, and it only accesses pixels it needs for itself.
-template <typename PixelWriterFunction> void rasterize_triangle(const PixelWriterFunction& pixel_writer, const std::vector<glm::vec2>& triangles)
+template <typename PixelWriterFunction> void rasterize_triangle(const PixelWriterFunction& pixel_writer, const std::vector<glm::vec2>& triangles, float distance = 0.0)
 {
     for (size_t i = 0; i < triangles.size() / 3; ++i) {
-        details::dda_triangle(pixel_writer, { triangles[i * 3 + 0], triangles[i * 3 + 1], triangles[i * 3 + 2] }, i);
+        details::dda_triangle(pixel_writer, { triangles[i * 3 + 0], triangles[i * 3 + 1], triangles[i * 3 + 2] }, i, distance);
     }
 }
 
