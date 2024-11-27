@@ -103,10 +103,13 @@ namespace details {
         int fill_direction;
         bool only_fill_once = false; // only fill from line to outer line a
         if (outer_line_b == glm::vec2 { 0, 0 }) {
-            fill_direction = (outer_point_a.x < line_start_point.x) ? -1 : 1;
+            if (outer_point_a.x == line_start_point.x) // determine fill direction at line end
+                fill_direction = (outer_point_a.x + outer_line_a.x < line_start_point.x + line.x) ? -1 : 1;
+            else // determine fill direction at line start
+                fill_direction = (outer_point_a.x < line_start_point.x) ? -1 : 1;
             only_fill_once = true;
         } else
-            fill_direction = (outer_point_a.x < outer_point_b.x) ? -1 : 1;
+            fill_direction = (outer_point_a.x + outer_line_a.x < outer_point_b.x + outer_line_b.x) ? -1 : 1;
 
         glm::vec2 step_size;
         int steps;
@@ -152,6 +155,23 @@ namespace details {
         }
     }
 
+    template <typename PixelWriterFunction> void dda_triangle(const PixelWriterFunction& pixel_writer, const std::vector<glm::vec2>& triangle, unsigned int triangle_index)
+    {
+        auto edge_top_bottom = triangle[2] - triangle[0];
+        auto edge_top_middle = triangle[1] - triangle[0];
+        auto edge_middle_bottom = triangle[2] - triangle[1];
+
+        // top middle
+        dda_triangle_line(pixel_writer, triangle[0], edge_top_middle, triangle[0], edge_top_bottom, { 0, 0 }, { 0, 0 }, triangle_index);
+        // middle bottom
+        dda_triangle_line(pixel_writer, triangle[1], edge_middle_bottom, triangle[0], edge_top_bottom, { 0, 0 }, { 0, 0 }, triangle_index);
+
+        // lastly we have to add endcaps on each original vertice position with the passed through distance
+        // add_end_cap(pixel_writer, triangle[0], triangle_index, distance);
+        // add_end_cap(pixel_writer, triangle[1], triangle_index, distance);
+        // add_end_cap(pixel_writer, triangle[2], triangle_index, distance);
+    }
+
     template <typename PixelWriterFunction> void dda_triangle(const PixelWriterFunction& pixel_writer, const std::vector<glm::vec2>& triangle, unsigned int triangle_index, float distance)
     {
         // In order to process enlarged triangles, the triangle is separated into 3 parts: top, middle and bottom
@@ -192,16 +212,21 @@ namespace details {
         auto half_vector_bottom = (normal_top_bottom + normal_middle_bottom) / glm::vec2(2.0);
 
         auto enlarged_top_bottom_origin = triangle[0] + normal_top_bottom * distance;
+        auto enlarged_top_bottom_end = triangle[2] + normal_top_bottom * distance;
         auto enlarged_top_middle_origin = triangle[0] + normal_top_middle * distance;
 
         auto enlarged_top_middle_end = triangle[1] + normal_top_middle * distance;
         auto enlarged_middle_bottom_origin = triangle[1] + normal_middle_bottom * distance;
+        auto enlarged_middle_bottom_end = triangle[2] + normal_middle_bottom * distance;
 
-        auto topmost_renderable_point = triangle[0] + half_vector_top;
-        auto bottommost_renderable_point = triangle[2] + half_vector_bottom;
+        float top_y = std::min(std::min(triangle[0].y + half_vector_top.y, enlarged_top_bottom_origin.y), enlarged_top_middle_origin.y);
+        float bottom_y = std::max(std::max(triangle[2].y + half_vector_bottom.y, enlarged_top_bottom_end.y), enlarged_middle_bottom_end.y);
 
-        auto top_bisector = glm::vec2(get_x_for_y_on_line(topmost_renderable_point, -half_vector_top, enlarged_top_middle_end.y), enlarged_top_middle_end.y) - topmost_renderable_point;
-        auto middle_to_bottom_origin = glm::vec2(get_x_for_y_on_line(bottommost_renderable_point, -half_vector_bottom, enlarged_middle_bottom_origin.y), enlarged_middle_bottom_origin.y);
+        auto topmost_renderable_point = glm::vec2(get_x_for_y_on_line(triangle[0], half_vector_top, top_y), top_y);
+        auto bottommost_renderable_point = glm::vec2(get_x_for_y_on_line(triangle[2], half_vector_bottom, bottom_y), bottom_y);
+
+        auto top_bisector = glm::vec2(get_x_for_y_on_line(topmost_renderable_point, half_vector_top, enlarged_top_middle_end.y), enlarged_top_middle_end.y) - topmost_renderable_point;
+        auto middle_to_bottom_origin = glm::vec2(get_x_for_y_on_line(bottommost_renderable_point, half_vector_bottom, enlarged_middle_bottom_origin.y), enlarged_middle_bottom_origin.y);
 
         auto middle_bisector = bottommost_renderable_point - middle_to_bottom_origin;
 
@@ -216,9 +241,9 @@ namespace details {
         dda_triangle_line(pixel_writer, middle_to_bottom_origin, middle_bisector, enlarged_top_bottom_origin, edge_top_bottom, enlarged_middle_bottom_origin, edge_middle_bottom, triangle_index);
 
         // lastly we have to add endcaps on each original vertice position with the passed through distance
-        add_end_cap(pixel_writer, triangle[0], triangle_index, distance);
-        add_end_cap(pixel_writer, triangle[1], triangle_index, distance);
-        add_end_cap(pixel_writer, triangle[2], triangle_index, distance);
+        // add_end_cap(pixel_writer, triangle[0], triangle_index, distance);
+        // add_end_cap(pixel_writer, triangle[1], triangle_index, distance);
+        // add_end_cap(pixel_writer, triangle[2], triangle_index, distance);
     }
 
     template <typename PixelWriterFunction>
@@ -273,7 +298,10 @@ template <typename PixelWriterFunction> void rasterize_triangle_sdf(const PixelW
 template <typename PixelWriterFunction> void rasterize_triangle(const PixelWriterFunction& pixel_writer, const std::vector<glm::vec2>& triangles, float distance = 0.0)
 {
     for (size_t i = 0; i < triangles.size() / 3; ++i) {
-        details::dda_triangle(pixel_writer, { triangles[i * 3 + 0], triangles[i * 3 + 1], triangles[i * 3 + 2] }, i, distance);
+        if (distance == 0.0)
+            details::dda_triangle(pixel_writer, { triangles[i * 3 + 0], triangles[i * 3 + 1], triangles[i * 3 + 2] }, i);
+        else
+            details::dda_triangle(pixel_writer, { triangles[i * 3 + 0], triangles[i * 3 + 1], triangles[i * 3 + 2] }, i, distance);
     }
 }
 
