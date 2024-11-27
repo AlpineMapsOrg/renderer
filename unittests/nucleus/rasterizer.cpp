@@ -196,18 +196,13 @@ TEST_CASE("nucleus/rasterizer")
 
     SECTION("rasterize triangle enlarged")
     {
-        // less than one pixel
         const std::vector<glm::vec2> triangles = { glm::vec2(30.5, 10.5),
             glm::vec2(10.5, 30.5),
             glm::vec2(50.5, 50.5),
 
             glm::vec2(5.5, 5.5),
             glm::vec2(15.5, 10.5),
-            glm::vec2(5.5, 15.5),
-
-            glm::vec2(15.5, 50.5),
-            glm::vec2(5.5, 50.5),
-            glm::vec2(10.5, 60.5) };
+            glm::vec2(5.5, 15.5) };
         // const std::vector<glm::vec2> triangles = { glm::vec2(5.35, 5.35), glm::vec2(5.40, 5.40), glm::vec2(5.45, 5.35) };
         auto size = glm::vec2(64, 64);
         nucleus::Raster<uint8_t> output(size, 0u);
@@ -232,5 +227,61 @@ TEST_CASE("nucleus/rasterizer")
         // DEBUG: save image (image saved to build/Desktop-Profile/unittests/nucleus)
         auto image = nucleus::tile::conversion::u8raster_2_to_qimage(output, output2);
         image.save(QString("rasterizer_output_enlarged.png"));
+    }
+
+    SECTION("rasterize triangle horizontal")
+    {
+        const std::vector<glm::vec2> triangles = { glm::vec2(30.5, 10.5), glm::vec2(45.5, 45.5), glm::vec2(10.5, 45.5) };
+        auto size = glm::vec2(64, 64);
+        nucleus::Raster<uint8_t> output(size, 0u);
+        float distance = 4.0;
+        radix::geometry::Aabb2<double> bounds = { { 0, 0 }, size };
+
+        const auto pixel_writer = [&output, bounds](glm::vec2 pos, int) {
+            if (bounds.contains(pos))
+                output.pixel(pos) = 255;
+        };
+        nucleus::utils::rasterizer::rasterize_triangle(pixel_writer, triangles, distance);
+
+        nucleus::Raster<uint8_t> output2(size, 0u);
+        const auto pixel_writer2 = [&output2, bounds](glm::vec2 pos, int) {
+            if (bounds.contains(pos))
+                output2.pixel(pos) = 255;
+        };
+        nucleus::utils::rasterizer::rasterize_triangle_sdf(pixel_writer2, triangles, distance, output2.size());
+
+        CHECK(output.buffer() == output2.buffer());
+
+        // DEBUG: save image (image saved to build/Desktop-Profile/unittests/nucleus)
+        auto image = nucleus::tile::conversion::u8raster_2_to_qimage(output, output2);
+        image.save(QString("rasterizer_output_enlarged_horizontal.png"));
+    }
+
+    SECTION("rasterize triangle narrow")
+    {
+        const std::vector<glm::vec2> triangles = { glm::vec2(6.5, 6.5), glm::vec2(6.5, 10.5), glm::vec2(64.5, 8.5) };
+        auto size = glm::vec2(64, 64);
+        nucleus::Raster<uint8_t> output(size, 0u);
+        float distance = 2.0;
+        radix::geometry::Aabb2<double> bounds = { { 0, 0 }, size };
+
+        const auto pixel_writer = [&output, bounds](glm::vec2 pos, int) {
+            if (bounds.contains(pos))
+                output.pixel(pos) = 255;
+        };
+        nucleus::utils::rasterizer::rasterize_triangle(pixel_writer, triangles, distance);
+
+        nucleus::Raster<uint8_t> output2(size, 0u);
+        const auto pixel_writer2 = [&output2, bounds](glm::vec2 pos, int) {
+            if (bounds.contains(pos))
+                output2.pixel(pos) = 255;
+        };
+        nucleus::utils::rasterizer::rasterize_triangle_sdf(pixel_writer2, triangles, distance, output2.size());
+
+        CHECK(output.buffer() == output2.buffer());
+
+        // DEBUG: save image (image saved to build/Desktop-Profile/unittests/nucleus)
+        auto image = nucleus::tile::conversion::u8raster_2_to_qimage(output, output2);
+        image.save(QString("rasterizer_output_enlarged_narrow.png"));
     }
 }

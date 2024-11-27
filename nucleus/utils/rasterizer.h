@@ -30,7 +30,7 @@ namespace nucleus::utils::rasterizer {
 
 // TODOs:
 // - enlarge triangles
-//      - current problem: horizontal triangle lines
+//      - current problem: narrow triangles
 // - line renderer
 // sdf box filter instead by circle to only consider values of the current cell
 
@@ -74,43 +74,21 @@ namespace details {
         }
     }
 
-    template <typename PixelWriterFunction>
-    inline void fill_inner_triangle_decider(const PixelWriterFunction& pixel_writer,
-        const glm::vec2& current_position,
-        const glm::vec2& line_start,
-        const glm::vec2& line,
-        const glm::vec2& normal_line,
-        const glm::vec2& other_point,
-        const glm::vec2& other_line,
-        bool is_enlarged_triangle,
-        unsigned int data_index)
-    {
-        // before we fill the inner triangle we want to first decide the line to which we want to fill.
-        // for enlarged triangles, if we render the top most or the bottom most part of the triangle,
-        // it can happen that we fill it too much, in those cases we only want to fill to the normal
-        if (is_enlarged_triangle) {
-            if (current_position.y > other_point.y + other_line.y) // fill only to the normal line located at the bottom
-                fill_inner_triangle(pixel_writer, current_position, line_start + line, normal_line, data_index);
-            else if (current_position.y < other_point.y) // fill only to the normal line
-                fill_inner_triangle(pixel_writer, current_position, line_start, normal_line, data_index);
-            else // normal fill operation
-                fill_inner_triangle(pixel_writer, current_position, other_point, other_line, data_index);
-        } else { // normal fill operation
-            fill_inner_triangle(pixel_writer, current_position, other_point, other_line, data_index);
-        }
-    }
-
     // pixel_writer, topmost_renderable_point, top_bisector,
     // enlarged_top_bottom_origin, edge_top_bottom,
     // enlarged_top_middle_origin, edge_top_middle, triangle_index
     template <typename PixelWriterFunction>
     void dda_triangle_line(const PixelWriterFunction& pixel_writer,
+        unsigned int data_index,
         const glm::vec2& line_start,
         const glm::vec2& line,
-        const glm::vec2& normal_line,
         const glm::vec2& other_point,
         const glm::vec2& other_line,
-        unsigned int data_index)
+        const glm::vec2& normal_line = { 0, 0 },
+        const glm::vec2& fallback_point_upper = { 0, 0 },
+        const glm::vec2& fallback_line_upper = { 0, 0 },
+        const glm::vec2& fallback_point_lower = { 0, 0 },
+        const glm::vec2& fallback_line_lower = { 0, 0 })
     {
 
         glm::vec2 step_size;
@@ -128,7 +106,13 @@ namespace details {
 
             if (int(current_position.y + step_size.y) > current_position.y) { // next step would go to next y value
 
-                fill_inner_triangle_decider(pixel_writer, current_position, line_start, line, normal_line, other_point, other_line, is_enlarged_triangle, data_index);
+                // decide whether or not to fill only to the fallback line
+                if (is_enlarged_triangle && (current_position.y > other_point.y + other_line.y))
+                    fill_inner_triangle(pixel_writer, current_position, fallback_point_upper, fallback_line_upper, data_index);
+                else if (is_enlarged_triangle && (current_position.y < other_point.y))
+                    fill_inner_triangle(pixel_writer, current_position, fallback_point_lower, fallback_line_lower, data_index);
+                else // normal fill operation
+                    fill_inner_triangle(pixel_writer, current_position, other_point, other_line, data_index);
 
                 last_y = current_position.y;
             }
@@ -139,9 +123,13 @@ namespace details {
 
         // check if we have to apply the fill_inner_triangle alg for the current row
         if (last_y != floor(current_position.y)) {
-            fill_inner_triangle_decider(pixel_writer, current_position, line_start, line, normal_line, other_point, other_line, is_enlarged_triangle, data_index);
-
-            // fill_inner_triangle(pixel_writer, current_position, other_point, other_line, data_index, fill_direction);
+            // fill only to the fallback line
+            if (is_enlarged_triangle && (current_position.y > other_point.y + other_line.y))
+                fill_inner_triangle(pixel_writer, current_position, fallback_point_upper, fallback_line_upper, data_index);
+            else if (is_enlarged_triangle && (current_position.y < other_point.y))
+                fill_inner_triangle(pixel_writer, current_position, fallback_point_lower, fallback_line_lower, data_index);
+            else // normal fill operation
+                fill_inner_triangle(pixel_writer, current_position, other_point, other_line, data_index);
         }
     }
 
@@ -166,9 +154,9 @@ namespace details {
         auto edge_middle_bottom = triangle[2] - triangle[1];
 
         // top middle
-        dda_triangle_line(pixel_writer, triangle[0], edge_top_middle, { 0, 0 }, triangle[0], edge_top_bottom, triangle_index);
+        dda_triangle_line(pixel_writer, triangle_index, triangle[0], edge_top_middle, triangle[0], edge_top_bottom);
         // middle bottom
-        dda_triangle_line(pixel_writer, triangle[1], edge_middle_bottom, { 0, 0 }, triangle[0], edge_top_bottom, triangle_index);
+        dda_triangle_line(pixel_writer, triangle_index, triangle[1], edge_middle_bottom, triangle[0], edge_top_bottom);
     }
 
     template <typename PixelWriterFunction> void dda_triangle(const PixelWriterFunction& pixel_writer, const std::vector<glm::vec2>& triangle, unsigned int triangle_index, float distance)
@@ -219,37 +207,79 @@ namespace details {
         auto enlarged_top_middle_end = triangle[1] + normal_top_middle * distance;
 
         auto enlarged_middle_bottom_origin = triangle[1] + normal_middle_bottom * distance;
-        // auto enlarged_middle_bottom_end = triangle[2] + normal_middle_bottom * distance;// not needed
-
-        // { // DEBUG visualize enlarged points
-        //     auto enlarged_middle_bottom_end = triangle[2] + normal_middle_bottom * distance;
-        //     auto enlarged_top_bottom_end = triangle[2] + normal_top_bottom * distance;
-        //     pixel_writer(triangle[0], triangle_index);
-        //     pixel_writer(enlarged_top_bottom_origin, triangle_index);
-        //     pixel_writer(enlarged_top_middle_origin, triangle_index);
-
-        //     pixel_writer(triangle[1], triangle_index);
-        //     pixel_writer(enlarged_middle_bottom_origin, triangle_index);
-        //     pixel_writer(enlarged_top_middle_end, triangle_index);
-
-        //     pixel_writer(triangle[2], triangle_index);
-        //     pixel_writer(enlarged_middle_bottom_end, triangle_index);
-        //     pixel_writer(enlarged_top_bottom_end, triangle_index);
-        // }
+        auto enlarged_middle_bottom_end = triangle[2] + normal_middle_bottom * distance;
 
         // top middle
-        dda_triangle_line(pixel_writer, enlarged_top_middle_origin, edge_top_middle, normal_top_middle, enlarged_top_bottom_origin, edge_top_bottom, triangle_index);
+        dda_triangle_line(pixel_writer,
+            triangle_index,
+            enlarged_top_middle_origin,
+            edge_top_middle,
+            enlarged_top_bottom_origin,
+            edge_top_bottom,
+            normal_top_middle,
+            enlarged_middle_bottom_end,
+            normal_middle_bottom,
+            enlarged_top_middle_origin,
+            normal_top_middle);
 
         // middle_top_part to middle_bottom_part
-        dda_triangle_line(pixel_writer, enlarged_top_middle_end, enlarged_middle_bottom_origin - enlarged_top_middle_end, { 0, 0 }, enlarged_top_bottom_origin, edge_top_bottom, triangle_index);
+        auto half_middle_line = (enlarged_middle_bottom_origin - enlarged_top_middle_end) / glm::vec2(2.0);
+
+        dda_triangle_line(pixel_writer,
+            triangle_index,
+            enlarged_top_middle_end,
+            half_middle_line,
+            enlarged_top_bottom_origin,
+            edge_top_bottom,
+            normal_top_middle,
+            enlarged_middle_bottom_end,
+            normal_middle_bottom,
+            enlarged_top_middle_origin,
+            normal_top_middle);
+        dda_triangle_line(pixel_writer,
+            triangle_index,
+            enlarged_top_middle_end + half_middle_line,
+            half_middle_line,
+            enlarged_top_bottom_origin,
+            edge_top_bottom,
+            normal_middle_bottom,
+            enlarged_middle_bottom_end,
+            normal_middle_bottom,
+            enlarged_top_middle_origin,
+            normal_top_middle);
 
         // middle bottom
-        dda_triangle_line(pixel_writer, enlarged_middle_bottom_origin, edge_middle_bottom, normal_middle_bottom, enlarged_top_bottom_origin, edge_top_bottom, triangle_index);
+        dda_triangle_line(pixel_writer,
+            triangle_index,
+            enlarged_middle_bottom_origin,
+            edge_middle_bottom,
+            enlarged_top_bottom_origin,
+            edge_top_bottom,
+            normal_middle_bottom,
+            enlarged_middle_bottom_end,
+            normal_middle_bottom,
+            enlarged_top_middle_origin,
+            normal_top_middle);
 
         // endcaps
         add_end_cap(pixel_writer, triangle[0], triangle_index, distance);
         add_end_cap(pixel_writer, triangle[1], triangle_index, distance);
         add_end_cap(pixel_writer, triangle[2], triangle_index, distance);
+
+        // { // DEBUG visualize enlarged points
+        //     auto enlarged_top_bottom_end = triangle[2] + normal_top_bottom * distance;
+        //     pixel_writer(triangle[0], 50);
+        //     pixel_writer(enlarged_top_bottom_origin, 50);
+        //     pixel_writer(enlarged_top_middle_origin, 50);
+
+        //     pixel_writer(triangle[1], 50);
+        //     pixel_writer(enlarged_middle_bottom_origin, 50);
+        //     pixel_writer(enlarged_top_middle_end, 50);
+
+        //     pixel_writer(triangle[2], 50);
+        //     pixel_writer(enlarged_middle_bottom_end, 50);
+        //     pixel_writer(enlarged_top_bottom_end, 50);
+        // }
     }
 
     template <typename PixelWriterFunction>
