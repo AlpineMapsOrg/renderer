@@ -57,7 +57,7 @@ TEST_CASE("nucleus/EAWS Vector Tiles")
     CHECK(layer.getExtent() > 0);
 
     // Check if reader returns a std::vector with EAWS regions when reading mvt file
-    tile::Id tile_id_0_0_0({ 0, glm::uvec2(0, 0), tile::Scheme::SlippyMap });
+    radix::tile::Id tile_id_0_0_0({ 0, glm::uvec2(0, 0), radix::tile::Scheme::SlippyMap });
     tl::expected<avalanche::eaws::RegionTile, QString> result = avalanche::eaws::vector_tile_reader(test_data, tile_id_0_0_0);
     CHECK(result.has_value());
 
@@ -124,9 +124,9 @@ TEST_CASE("nucleus/EAWS Vector Tiles")
 
         // Load tiles at higher zoom level for testing
         std::vector<std::string> file_names({ "eaws_2-2-0.mvt", "eaws_10-236-299.mvt" });
-        tile::Id tile_id_2_2_0 = tile::Id(tile::Id(2, glm::vec2(2, 0), tile::Scheme::SlippyMap));
-        tile::Id tile_id_10_236_299 = tile::Id(tile::Id(10, glm::vec2(236, 299), tile::Scheme::SlippyMap));
-        std::vector<tile::Id> tile_ids_at_zoom_Level_2({ tile_id_2_2_0, tile_id_10_236_299 });
+        radix::tile::Id tile_id_2_2_0 = radix::tile::Id(radix::tile::Id(2, glm::vec2(2, 0), radix::tile::Scheme::SlippyMap));
+        radix::tile::Id tile_id_10_236_299 = radix::tile::Id(radix::tile::Id(10, glm::vec2(236, 299), radix::tile::Scheme::SlippyMap));
+        std::vector<radix::tile::Id> tile_ids_at_zoom_Level_2({ tile_id_2_2_0, tile_id_10_236_299 });
         std::vector<avalanche::eaws::RegionTile> region_tiles_at_zoom_level_2;
         for (uint i = 0; i < file_names.size(); i++) {
             std::string test_file_name2 = file_names[i];

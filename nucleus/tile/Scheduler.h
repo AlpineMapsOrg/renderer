@@ -108,6 +108,7 @@ protected:
     std::vector<tile::Id> tiles_for_current_camera_position() const;
     virtual bool is_ready_to_ship(const DataQuad&) const { return true; }
     virtual void transform_and_emit(const std::vector<DataQuad>& new_quads, const std::vector<tile::Id>& deleted_quads) = 0;
+    uint m_max_tile_zoom_level = 18;
 
 private:
     std::string m_name = "";
@@ -130,6 +131,5 @@ private:
     utils::AabbDecoratorPtr m_aabb_decorator;
     Cache<DataQuad> m_ram_cache;
     Cache<GpuCacheInfo> m_gpu_cached;
-
 };
 }

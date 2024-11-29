@@ -279,11 +279,11 @@ void Window::paint(QOpenGLFramebufferObject* framebuffer)
     f->glDepthFunc(GL_LESS);
 
     m_timer->start_timer("tiles");
-    m_context->ortho_layer()->draw(*m_context->tile_geometry(), m_camera, culled_tile_set, true, m_camera.position());
+    m_context->eaws_layer()->draw(*m_context->tile_geometry(), m_camera, culled_tile_set, true, m_camera.position());
+    // m_context->ortho_layer()->draw(*m_context->tile_geometry(), m_camera, culled_tile_set, true, m_camera.position());
     m_timer->stop_timer("tiles");
 
     m_gbuffer->unbind();
-
 
     if (m_shared_config_ubo->data.m_ssao_enabled) {
         m_timer->start_timer("ssao");
