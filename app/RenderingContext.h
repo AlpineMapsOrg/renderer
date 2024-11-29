@@ -45,6 +45,10 @@ namespace nucleus::tile::utils {
 class AabbDecorator;
 }
 
+namespace avalanche::eaws {
+class TextureScheduler;
+}
+
 class RenderingContext : public QObject {
     Q_OBJECT
     QML_ELEMENT
@@ -77,7 +81,7 @@ public:
     [[nodiscard]] std::shared_ptr<nucleus::map_label::Filter> label_filter() const;
     [[nodiscard]] nucleus::map_label::Scheduler* map_label_scheduler() const;
     [[nodiscard]] nucleus::tile::TextureScheduler* ortho_scheduler() const;
-    [[nodiscard]] nucleus::tile::TextureScheduler* eaws_scheduler() const;
+    [[nodiscard]] avalanche::eaws::TextureScheduler* eaws_scheduler() const;
 
 signals:
     void initialised();

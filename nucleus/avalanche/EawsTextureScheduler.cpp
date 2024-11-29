@@ -21,16 +21,16 @@
 #include <nucleus/utils/image_loader.h>
 
 namespace avalanche::eaws {
-EawsTextureScheduler::EawsTextureScheduler(std::string name, unsigned texture_resolution, QObject* parent)
-    : nucleus::tile::TextureScheduler(std::move(name), texture_resolution, parent)
+TextureScheduler::TextureScheduler(std::string name, unsigned texture_resolution, QObject* parent)
+    : nucleus::tile::Scheduler(std::move(name), texture_resolution, parent)
     , m_default_raster(glm::uvec2(texture_resolution), { 255, 255, 255, 255 })
 {
     m_max_tile_zoom_level = 10;
 }
 
-EawsTextureScheduler::~EawsTextureScheduler() = default;
+TextureScheduler::~TextureScheduler() = default;
 
-void EawsTextureScheduler::transform_and_emit(const std::vector<nucleus::tile::DataQuad>& new_quads, const std::vector<nucleus::tile::Id>& deleted_quads)
+void TextureScheduler::transform_and_emit(const std::vector<nucleus::tile::DataQuad>& new_quads, const std::vector<nucleus::tile::Id>& deleted_quads)
 {
     std::vector<nucleus::tile::GpuTextureQuad> new_gpu_quads;
     new_gpu_quads.reserve(new_quads.size());
@@ -65,9 +65,6 @@ void EawsTextureScheduler::transform_and_emit(const std::vector<nucleus::tile::D
                     }
 
                     // Create texture from raster
-                    if (eaws_color_raster_8bit.width() == 1) {
-                        std::cout << "dsdfdsf";
-                    }
                     gpu_quad.tiles[i].texture = std::make_shared<nucleus::utils::MipmappedColourTexture>(generate_mipmapped_colour_texture(eaws_color_raster_8bit, m_compression_algorithm));
                 } else {
                     // Eaws image is not available (use white default tile)

@@ -28,6 +28,7 @@
 #include <gl_engine/TextureLayer.h>
 #include <gl_engine/TileGeometry.h>
 #include <nucleus/DataQuerier.h>
+#include <nucleus/avalanche/EawsTextureScheduler.h>
 #include <nucleus/camera/Controller.h>
 #include <nucleus/camera/PositionStorage.h>
 #include <nucleus/map_label/Filter.h>
@@ -38,7 +39,6 @@
 #include <nucleus/tile/TileLoadService.h>
 #include <nucleus/tile/setup.h>
 #include <nucleus/utils/thread.h>
-
 using namespace nucleus::tile;
 using namespace nucleus::map_label;
 using namespace nucleus::picker;
@@ -111,7 +111,7 @@ RenderingContext::RenderingContext(QObject* parent)
     // clang-format off
     connect(m->geometry.scheduler.get(),       &nucleus::tile::GeometryScheduler::gpu_quads_updated, RenderThreadNotifier::instance(), &RenderThreadNotifier::notify);
     connect(m->ortho_texture.scheduler.get(),  &nucleus::tile::TextureScheduler::gpu_quads_updated,  RenderThreadNotifier::instance(), &RenderThreadNotifier::notify);
-    connect(m->eaws_texture.scheduler.get(),  &nucleus::tile::TextureScheduler::gpu_quads_updated,  RenderThreadNotifier::instance(), &RenderThreadNotifier::notify);
+    connect(m->eaws_texture.scheduler.get(),   &avalanche::eaws::TextureScheduler::gpu_quads_updated,  RenderThreadNotifier::instance(), &RenderThreadNotifier::notify);
     connect(m->map_label.scheduler.get(),      &nucleus::map_label::Scheduler::gpu_tiles_updated,              RenderThreadNotifier::instance(), &RenderThreadNotifier::notify);
     connect(m->map_label.scheduler.get(),      &nucleus::map_label::Scheduler::gpu_tiles_updated,              m->picker_manager.get(),          &PickerManager::update_quads);
     connect(m->map_label.scheduler.get(),      &nucleus::map_label::Scheduler::gpu_tiles_updated,              m->label_filter.get(),            &Filter::update_quads);
@@ -166,17 +166,14 @@ void RenderingContext::initialise()
 
     connect(m->geometry.scheduler.get(), &nucleus::tile::GeometryScheduler::gpu_quads_updated, m->engine_context->tile_geometry(), &gl_engine::TileGeometry::update_gpu_quads);
     connect(m->ortho_texture.scheduler.get(), &nucleus::tile::TextureScheduler::gpu_quads_updated, m->engine_context->ortho_layer(), &gl_engine::TextureLayer::update_gpu_quads);
-    connect(m->eaws_texture.scheduler.get(), &nucleus::tile::TextureScheduler::gpu_quads_updated, m->engine_context->eaws_layer(), &gl_engine::TextureLayer::update_gpu_quads);
+    connect(m->eaws_texture.scheduler.get(), &avalanche::eaws::TextureScheduler::gpu_quads_updated, m->engine_context->eaws_layer(), &gl_engine::TextureLayer::update_gpu_quads);
     nucleus::utils::thread::async_call(m->geometry.scheduler.get(), [this]() { m->geometry.scheduler->set_enabled(true); });
     const auto texture_compression = gl_engine::Texture::compression_algorithm();
     nucleus::utils::thread::async_call(m->ortho_texture.scheduler.get(), [this, texture_compression]() {
         m->ortho_texture.scheduler->set_texture_compression_algorithm(texture_compression);
         m->ortho_texture.scheduler->set_enabled(true);
     });
-    nucleus::utils::thread::async_call(m->eaws_texture.scheduler.get(), [this, texture_compression]() {
-        m->eaws_texture.scheduler->set_texture_compression_algorithm(texture_compression);
-        m->eaws_texture.scheduler->set_enabled(true);
-    });
+    nucleus::utils::thread::async_call(m->eaws_texture.scheduler.get(), [this]() { m->eaws_texture.scheduler->set_enabled(true); });
 
     // labels
     m->engine_context->set_map_label_manager(std::make_unique<gl_engine::MapLabels>(m->aabb_decorator));
@@ -268,7 +265,7 @@ nucleus::tile::TextureScheduler* RenderingContext::ortho_scheduler() const
     return m->ortho_texture.scheduler.get();
 }
 
-nucleus::tile::TextureScheduler* RenderingContext::eaws_scheduler() const
+avalanche::eaws::TextureScheduler* RenderingContext::eaws_scheduler() const
 {
     QMutexLocker locker(&m->shared_ptr_mutex);
     return m->eaws_texture.scheduler.get();

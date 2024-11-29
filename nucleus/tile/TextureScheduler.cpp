@@ -17,8 +17,8 @@
  *****************************************************************************/
 
 #include "TextureScheduler.h"
+#include <QPainter>
 #include <nucleus/utils/image_loader.h>
-
 namespace nucleus::tile {
 
 TextureScheduler::TextureScheduler(std::string name, unsigned texture_resolution, QObject* parent)
@@ -46,6 +46,9 @@ void TextureScheduler::transform_and_emit(const std::vector<tile::DataQuad>& new
                 // Ortho image is available
                 const auto ortho_raster = nucleus::utils::image_loader::rgba8(*quad.tiles[i].data.get()).value_or(m_default_raster);
                 gpu_quad.tiles[i].texture = std::make_shared<nucleus::utils::MipmappedColourTexture>(generate_mipmapped_colour_texture(ortho_raster, m_compression_algorithm));
+                std::string fileName = std::to_string(quad.tiles[i].id.zoom_level) + "_" + std::to_string(quad.tiles[i].id.coords.x) + "_" + std::to_string(quad.tiles[i].id.coords.y) + ".jpg";
+                QImage image(1, 1, QImage::Format_ARGB32);
+                image.save(QString::fromStdString("C:\\Users\\JCR\\eaws\\ortho\\tile_" + fileName));
             } else {
                 // Ortho image is not available (use white default tile)
                 gpu_quad.tiles[i].texture = std::make_shared<nucleus::utils::MipmappedColourTexture>(generate_mipmapped_colour_texture(m_default_raster, m_compression_algorithm));

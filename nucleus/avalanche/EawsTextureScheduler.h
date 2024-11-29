@@ -19,15 +19,18 @@
 #pragma once
 
 #include "nucleus/avalanche/eaws.h"
-#include "nucleus/tile/TextureScheduler.h"
-// #include "types.h"
+#include "nucleus/tile/Scheduler.h"
+#include "nucleus/tile/types.h"
 namespace avalanche::eaws {
 
-class EawsTextureScheduler : public nucleus::tile::TextureScheduler {
+class TextureScheduler : public nucleus::tile::Scheduler {
     Q_OBJECT
 public:
-    EawsTextureScheduler(std::string name, unsigned texture_resolution, QObject* parent = nullptr);
-    ~EawsTextureScheduler();
+    TextureScheduler(std::string name, unsigned texture_resolution, QObject* parent = nullptr);
+    ~TextureScheduler();
+
+signals:
+    void gpu_quads_updated(const std::vector<nucleus::tile::GpuTextureQuad>& new_quads, const std::vector<nucleus::tile::Id>& deleted_quads);
 
 protected:
     void transform_and_emit(const std::vector<nucleus::tile::DataQuad>& new_quads, const std::vector<nucleus::tile::Id>& deleted_quads);
