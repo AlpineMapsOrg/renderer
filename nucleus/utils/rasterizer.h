@@ -50,53 +50,37 @@ namespace details {
     }
 
     /*
-     * Calculates the steps and step_size of the given line.
-     * the "bigger dimension" (-> line is bigger in x or y direction) has a step size of 0.5
-     * the other dimension has a step size <= 0.5
+     * calculate the x value of a line
+     * uses fallback lines if the y value is outside of the line segment
      */
-    // inline std::pair<glm::vec2, int> calculate_dda_steps(const glm::vec2 line)
-    // {
-    //     float steps = fabs(line.x) > fabs(line.y) ? fabs(line.x) : fabs(line.y);
+    inline int get_x_with_fallback(const glm::vec2& point,
+        const glm::vec2& line,
+        float y,
+        bool is_enlarged,
+        const glm::vec2& fallback_point_bottom,
+        const glm::vec2& fallback_line_bottom,
+        const glm::vec2& fallback_point_top,
+        const glm::vec2& fallback_line_top)
+    {
+        // decide whether or not to fill only to the fallback line (if outside of other line segment)
+        if (is_enlarged && y < point.y)
+            return get_x_for_y_on_line(fallback_point_top, fallback_line_top, y);
+        else if (is_enlarged && y > point.y + line.y)
+            return get_x_for_y_on_line(fallback_point_bottom, fallback_line_bottom, y);
+        else
+            return get_x_for_y_on_line(point, line, y);
+    }
 
-    //     // should only be triggered if two vertices of a triangle are exactly on the same position -> the input data is wrong
-    //     assert(steps > 0);
-    //     // steps = std::max(steps, 1); // alternative force at least one dda step -> wrong output but it should at least "work"
-
-    //     auto step_size = glm::vec2(line.x / float(steps), line.y / float(steps));
-
-    //     // double the steps -> otherwise we might miss important pixels ( see "rasterize triangle small" unittest for use case)
-    //     // it might be possible to capture the special cases during the line traversal and render an extra pixel
-    //     // -> possible performance improvement
-    //     steps *= 2;
-    //     step_size /= 2.0f;
-
-    //     // TODO here: possible solution: dont render anything if the current point is exactly on integer values (e.g. {2, 2])
-
-    //     std::cout << step_size.x << " " << step_size.y << " " << ceil(steps) << std::endl;
-    //     return std::make_pair(step_size, ceil(steps));
-    // }
-
+    /*
+     * fills a scanline in the intveral [x1,x2] (inclusive)
+     */
     template <typename PixelWriterFunction> inline void fill_between(const PixelWriterFunction& pixel_writer, int y, int x1, int x2, unsigned int data_index)
     {
-        // calculate the x value of the other line
-
         int fill_direction = (x1 < x2) ? 1 : -1;
 
         for (int j = x1; j != x2 + fill_direction; j += fill_direction) {
             pixel_writer(glm::vec2(j, y), data_index);
         }
-    }
-
-    /*
-     * fills a scan line from current position to x position of given other line
-     */
-    template <typename PixelWriterFunction>
-    inline void fill_to_line(const PixelWriterFunction& pixel_writer, const glm::vec2& current_position, const glm::vec2& other_point, const glm::vec2& other_line, unsigned int data_index)
-    {
-        // calculate the x value of the other line
-        int x = get_x_for_y_on_line(other_point, other_line, current_position.y);
-
-        fill_between(pixel_writer, current_position.y, current_position.x, x, data_index);
     }
 
     /*
@@ -112,10 +96,10 @@ namespace details {
         int fill_direction = 0,
         const glm::vec2& other_point = { 0, 0 },
         const glm::vec2& other_line = { 0, 0 },
-        const glm::vec2& fallback_point_upper = { 0, 0 },
-        const glm::vec2& fallback_line_upper = { 0, 0 },
-        const glm::vec2& fallback_point_lower = { 0, 0 },
-        const glm::vec2& fallback_line_lower = { 0, 0 })
+        const glm::vec2& fallback_point_bottom = { 0, 0 },
+        const glm::vec2& fallback_line_bottom = { 0, 0 },
+        const glm::vec2& fallback_point_top = { 0, 0 },
+        const glm::vec2& fallback_line_top = { 0, 0 })
     {
         int current_y = floor(line_point.y);
         // find out how many y steps lie between origin and line end
@@ -123,34 +107,19 @@ namespace details {
 
         // const bool is_enlarged_triangle = normal_line != glm::vec2 { 0, 0 };
         const bool fill = other_line != glm::vec2 { 0, 0 }; // no other line given? -> no fill needed
-        const bool is_enlarged = fallback_line_upper != glm::vec2 { 0, 0 }; // no fallback lines given -> not enlarged
+        const bool is_enlarged = fallback_line_bottom != glm::vec2 { 0, 0 }; // no fallback lines given -> not enlarged
 
         // create variables to remember where to check for x values for the fill_between fill
         // -> in the current scan line do we check the top of the pixel or the bottom of the pixel to fill a line to completion
         // this assumes that line is left of other line (if it is the other way around this will be fixed further down)
         bool fill_current_from_top_x = (line.x > 0) ? true : false;
-        // bool fill_current_from_top_x = (line.x > 0) ? false : true;
         bool fill_other_from_top_x = (other_line.x > 0) ? false : true;
 
-        // int fill_direction = 0;
-        if (fill) {
-            // look at x position of other line
-            // note if the other line goes through the current line there might be a problem
-            // but this shouldn't happen -> so we should be fine by only looking at the upper x part and compare
-            // int x_other_line = get_x_for_y_on_line(other_point, other_line, line_point.y + line.y);
-            // if (line_point.x > x_other_line) {
-            if (fill_direction < 0) {
-                // fill_direction = -1;
-                // we have to switch where to look for the fill line to stop
-                fill_current_from_top_x = !fill_current_from_top_x;
-                fill_other_from_top_x = !fill_other_from_top_x;
-
-            } else {
-                // fill_direction = 1;
-            }
+        if (fill && fill_direction < 0) {
+            // we have to switch where to look for the fill line to stop
+            fill_current_from_top_x = !fill_current_from_top_x;
+            fill_other_from_top_x = !fill_other_from_top_x;
         }
-
-        // glm::vec2 current_position = line_point;
 
         // if a line would go directly through integer points, we would falsely draw a whole pixel -> we want to prevent this
         constexpr float epsilon = 0.0001;
@@ -161,125 +130,74 @@ namespace details {
             if (!fill)
                 fill_between(pixel_writer, line_point.y, line_point.x, line.x + line_point.x, data_index);
             else {
-                int x_current_line;
-                int x_other_line;
+                // go from top or bottom of line (depending on where the other line is located)
+                const auto x1 = (fill_current_from_top_x) ? line_point.x : line_point.x + line.x;
 
-                if (fill_current_from_top_x)
-                    x_current_line = line_point.x;
-                else
-                    x_current_line = line_point.x + line.x;
+                const float test_y_other = (fill_other_from_top_x) ? line_point.y : line_point.y + line.y;
+                const auto x2 = get_x_with_fallback(other_point, other_line, test_y_other, is_enlarged, fallback_point_bottom, fallback_line_bottom, fallback_point_top, fallback_line_top);
 
-                const float test_other_y = (fill_other_from_top_x) ? line_point.y : line_point.y + line.y;
-
-                if (is_enlarged && test_other_y < other_point.y)
-                    x_other_line = get_x_for_y_on_line(fallback_point_lower, fallback_line_lower, test_other_y);
-                else if (is_enlarged && test_other_y > other_point.y + other_line.y)
-                    x_other_line = get_x_for_y_on_line(fallback_point_upper, fallback_line_upper, test_other_y);
-                else
-                    x_other_line = get_x_for_y_on_line(other_point, other_line, test_other_y);
-
-                fill_between(pixel_writer, line_point.y, x_current_line, x_other_line, data_index);
+                fill_between(pixel_writer, line_point.y, x1, x2, data_index);
             }
 
         } else {
             // draw first and last stretches of the line
             if (!fill) {
-                // start of the line
+                // start of the line (start to bottom of pixel)
                 int x_start_bottom = get_x_for_y_on_line(line_point, line, ceil(line_point.y) - epsilon);
                 fill_between(pixel_writer, line_point.y, line_point.x, x_start_bottom, data_index);
 
-                // end of the line
+                // end of the line (top of pixel to end of line)
                 int x_end_top = get_x_for_y_on_line(line_point, line, floor(line_point.y + line.y) + epsilon);
                 fill_between(pixel_writer, line_point.y + line.y, line_point.x + line.x, x_end_top, data_index);
             } else {
-
-                int x_current_line;
-                int x_other_line;
-
                 { // start of the line
                     // const float line_top_y = line_point.y;
                     const float bottom_y = ceil(line_point.y) - epsilon; // top of the y step
 
-                    if (fill_current_from_top_x)
-                        x_current_line = line_point.x;
-                    else
-                        x_current_line = get_x_for_y_on_line(line_point, line, bottom_y);
-
-                    const float test_other_y = (fill_other_from_top_x) ? line_point.y : bottom_y;
+                    // either use line start or calculate the x at the bottom of the pixel
+                    const auto x1 = (fill_current_from_top_x) ? line_point.x : get_x_for_y_on_line(line_point, line, bottom_y);
 
                     // decide whether or not to fill only to the fallback line (if outside of other line segment)
                     // although this is the end of the line -> we have to test both upper and lower of the other line for large enlarged triangles and small other lines
-                    if (is_enlarged && test_other_y < other_point.y)
-                        x_other_line = get_x_for_y_on_line(fallback_point_lower, fallback_line_lower, test_other_y);
-                    else if (is_enlarged && test_other_y > other_point.y + other_line.y)
-                        x_other_line = get_x_for_y_on_line(fallback_point_upper, fallback_line_upper, test_other_y);
-                    else
-                        x_other_line = get_x_for_y_on_line(other_point, other_line, test_other_y);
+                    const float test_y_other = (fill_other_from_top_x) ? line_point.y : bottom_y;
+                    const auto x2 = get_x_with_fallback(other_point, other_line, test_y_other, is_enlarged, fallback_point_bottom, fallback_line_bottom, fallback_point_top, fallback_line_top);
 
-                    fill_between(pixel_writer, line_point.y, x_current_line, x_other_line, data_index);
+                    fill_between(pixel_writer, line_point.y, x1, x2, data_index);
                 }
 
                 { // end of the line
                     const float line_bottom_y = line_point.y + line.y;
                     const float top_y = floor(line_bottom_y) + epsilon; // top of the y step
 
-                    if (fill_current_from_top_x)
-                        x_current_line = get_x_for_y_on_line(line_point, line, top_y);
-                    else
-                        x_current_line = line_point.x + line.x; // no calculation necessary we just take the line end
-
-                    const float test_other_y = (fill_other_from_top_x) ? top_y : line_bottom_y;
+                    // either calculate the y value at top of pixel or use the end point of line
+                    const auto x1 = (fill_current_from_top_x) ? get_x_for_y_on_line(line_point, line, top_y) : line_point.x + line.x;
 
                     // decide whether or not to fill only to the fallback line (if outside of other line segment)
-                    // although this is the end of the line -> we have to test both upper and lower of the other line for large enlarged triangles and small other lines
-                    if (is_enlarged && test_other_y < other_point.y)
-                        x_other_line = get_x_for_y_on_line(fallback_point_lower, fallback_line_lower, test_other_y);
-                    else if (is_enlarged && test_other_y > other_point.y + other_line.y)
-                        x_other_line = get_x_for_y_on_line(fallback_point_upper, fallback_line_upper, test_other_y);
-                    else
-                        x_other_line = get_x_for_y_on_line(other_point, other_line, test_other_y);
+                    // although this is the end of the line -> we still have to test both upper and lower of the other line for large enlarged triangles and small other lines
+                    const float test_y_other = (fill_other_from_top_x) ? top_y : line_bottom_y;
+                    const auto x2 = get_x_with_fallback(other_point, other_line, test_y_other, is_enlarged, fallback_point_bottom, fallback_line_bottom, fallback_point_top, fallback_line_top);
 
-                    // if (fill_other_from_top_x)
-                    //     x_other_line = get_x_for_y_on_line(other_point, other_line, top_y);
-                    // else
-                    //     x_other_line = get_x_for_y_on_line(other_point, other_line, line_bottom_y);
-
-                    fill_between(pixel_writer, line_bottom_y, x_current_line, x_other_line, data_index);
+                    fill_between(pixel_writer, line_bottom_y, x1, x2, data_index);
                 }
             }
         }
 
-        // TODO draw all steps in between
-
+        // draw all the steps in between
         for (int y = line_point.y + 1; y < line_point.y + y_steps - 1; y++) {
-            // draw all the steps in between
-
             // at a distinct y step draw the current line from floor to ceil
-            // if(fill_current_from_top_x)
 
             if (!fill) {
-                int x1 = get_x_for_y_on_line(line_point, line, y + epsilon);
-                int x2 = get_x_for_y_on_line(line_point, line, y + 1 - epsilon);
+                const auto x1 = get_x_for_y_on_line(line_point, line, y + epsilon);
+                const auto x2 = get_x_for_y_on_line(line_point, line, y + 1 - epsilon);
 
                 fill_between(pixel_writer, y, x1, x2, data_index);
             } else {
                 // fill to other line
-                int x1, x2;
+                const float test_y_current = (fill_current_from_top_x) ? y + epsilon : y + 1 - epsilon;
+                const auto x1 = get_x_for_y_on_line(line_point, line, test_y_current);
 
-                if (fill_current_from_top_x)
-                    x1 = get_x_for_y_on_line(line_point, line, y + epsilon);
-                else
-                    x1 = get_x_for_y_on_line(line_point, line, y + 1 - epsilon);
-
-                float test_other_y = (fill_other_from_top_x) ? y + epsilon : y + 1 - epsilon;
-
-                // decide whether or not to fill only to the fallback line (if outside of other line segment)
-                if (is_enlarged && test_other_y < other_point.y)
-                    x2 = get_x_for_y_on_line(fallback_point_lower, fallback_line_lower, test_other_y);
-                else if (is_enlarged && test_other_y > other_point.y + other_line.y)
-                    x2 = get_x_for_y_on_line(fallback_point_upper, fallback_line_upper, test_other_y);
-                else
-                    x2 = get_x_for_y_on_line(other_point, other_line, test_other_y);
+                const float test_y_other = (fill_other_from_top_x) ? y + epsilon : y + 1 - epsilon;
+                const auto x2 = get_x_with_fallback(other_point, other_line, test_y_other, is_enlarged, fallback_point_bottom, fallback_line_bottom, fallback_point_top, fallback_line_top);
 
                 fill_between(pixel_writer, y, x1, x2, data_index);
             }
@@ -462,106 +380,6 @@ namespace details {
 
             return; // finished
         }
-
-        // we need to render an enlarged triangle
-
-        // auto normal_top_bottom = glm::normalize(glm::vec2(-edge_top_bottom.y, edge_top_bottom.x));
-        // auto normal_top_middle = glm::normalize(glm::vec2(-edge_top_middle.y, edge_top_middle.x));
-        // auto normal_middle_bottom = glm::normalize(glm::vec2(-edge_middle_bottom.y, edge_middle_bottom.x));
-
-        // { // swap normal direction if they are incorrect (pointing to center)
-        //     glm::vec2 centroid = (triangle[0] + triangle[1] + triangle[2]) / 3.0f;
-        //     if (glm::dot(normal_top_bottom, centroid - triangle[0]) > 0) {
-        //         normal_top_bottom *= -1;
-        //     }
-        //     if (glm::dot(normal_top_middle, centroid - triangle[0]) > 0) {
-        //         normal_top_middle *= -1;
-        //     }
-        //     if (glm::dot(normal_middle_bottom, centroid - triangle[1]) > 0) {
-        //         normal_middle_bottom *= -1;
-        //     }
-        // }
-
-        // auto enlarged_top_bottom_origin = triangle[0] + normal_top_bottom * distance;
-        // // auto enlarged_top_bottom_end = triangle[2] + normal_top_bottom * distance; // not needed
-
-        // auto enlarged_top_middle_origin = triangle[0] + normal_top_middle * distance;
-        // auto enlarged_top_middle_end = triangle[1] + normal_top_middle * distance;
-
-        // auto enlarged_middle_bottom_origin = triangle[1] + normal_middle_bottom * distance;
-        // auto enlarged_middle_bottom_end = triangle[2] + normal_middle_bottom * distance;
-
-        // // top middle
-        // render_line(pixel_writer,
-        //     line_index,
-        //     enlarged_top_middle_origin,
-        //     edge_top_middle,
-        //     enlarged_top_bottom_origin,
-        //     edge_top_bottom,
-        //     normal_top_middle,
-        //     enlarged_middle_bottom_end,
-        //     normal_middle_bottom,
-        //     enlarged_top_middle_origin,
-        //     normal_top_middle);
-
-        // // // middle_top_part to middle_bottom_part
-        // auto half_middle_line = (enlarged_middle_bottom_origin - enlarged_top_middle_end) / glm::vec2(2.0);
-
-        // render_line(pixel_writer,
-        //     line_index,
-        //     enlarged_top_middle_end,
-        //     half_middle_line,
-        //     enlarged_top_bottom_origin,
-        //     edge_top_bottom,
-        //     normal_top_middle,
-        //     enlarged_middle_bottom_end,
-        //     normal_middle_bottom,
-        //     enlarged_top_middle_origin,
-        //     normal_top_middle);
-        // render_line(pixel_writer,
-        //     line_index,
-        //     enlarged_top_middle_end + half_middle_line,
-        //     half_middle_line,
-        //     enlarged_top_bottom_origin,
-        //     edge_top_bottom,
-        //     normal_middle_bottom,
-        //     enlarged_middle_bottom_end,
-        //     normal_middle_bottom,
-        //     enlarged_top_middle_origin,
-        //     normal_top_middle);
-
-        // // middle bottom
-        // render_line(pixel_writer,
-        //     line_index,
-        //     enlarged_middle_bottom_origin,
-        //     edge_middle_bottom,
-        //     enlarged_top_bottom_origin,
-        //     edge_top_bottom,
-        //     normal_middle_bottom,
-        //     enlarged_middle_bottom_end,
-        //     normal_middle_bottom,
-        //     enlarged_top_middle_origin,
-        //     normal_top_middle);
-
-        // // endcaps
-        // add_circle_end_cap(pixel_writer, triangle[0], line_index, distance);
-        // add_circle_end_cap(pixel_writer, triangle[1], line_index, distance);
-        // add_circle_end_cap(pixel_writer, triangle[2], line_index, distance);
-
-        // { // DEBUG visualize enlarged points
-        //     auto enlarged_top_bottom_end = triangle[2] + normal_top_bottom * distance;
-        //     pixel_writer(triangle[0], 50);
-        //     pixel_writer(enlarged_top_bottom_origin, 50);
-        //     pixel_writer(enlarged_top_middle_origin, 50);
-
-        //     pixel_writer(triangle[1], 50);
-        //     pixel_writer(enlarged_middle_bottom_origin, 50);
-        //     pixel_writer(enlarged_top_middle_end, 50);
-
-        //     pixel_writer(triangle[2], 50);
-        //     pixel_writer(enlarged_middle_bottom_end, 50);
-        //     pixel_writer(enlarged_top_bottom_end, 50);
-        // }
     }
 
     /*
