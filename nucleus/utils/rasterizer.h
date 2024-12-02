@@ -19,8 +19,6 @@
 #include <array>
 #include <vector>
 
-#include <iostream>
-
 #include <glm/glm.hpp>
 
 namespace nucleus::utils::rasterizer {
@@ -29,11 +27,7 @@ namespace nucleus::utils::rasterizer {
  * Possible future improvements:
  *      - check how often each pixel is written to -> maybe we can improve performance here
  *      - sdf box filter instead by circle to only consider values of the current cell
- *      - calculate_dda_steps currently doubles the steps to prevent missing certain pixels (this might be improved)
  */
-
-// TODOs:
-// - line renderer
 
 namespace details {
 
@@ -84,7 +78,8 @@ namespace details {
     }
 
     /*
-     * applies dda algorithm to the given line and fills the area in between this line and the given other line
+     * renders the given line
+     * if other line is given fills everything in between the current and the other line
      * if the other line is not located on the current scan line -> we fill to the given fall back lines
      * the given line should always go from top to bottom (only exception horizontal lines)
      */
@@ -101,9 +96,11 @@ namespace details {
         const glm::vec2& fallback_point_top = { 0, 0 },
         const glm::vec2& fallback_line_top = { 0, 0 })
     {
-        int current_y = floor(line_point.y);
+        // if a line would go directly through integer points, we would falsely draw a whole pixel -> we want to prevent this
+        constexpr float epsilon = 0.00001;
+
         // find out how many y steps lie between origin and line end
-        int y_steps = floor(line_point.y + line.y) - current_y;
+        const int y_steps = floor(line_point.y + line.y) - floor(line_point.y);
 
         // const bool is_enlarged_triangle = normal_line != glm::vec2 { 0, 0 };
         const bool fill = other_line != glm::vec2 { 0, 0 }; // no other line given? -> no fill needed
@@ -121,9 +118,7 @@ namespace details {
             fill_other_from_top_x = !fill_other_from_top_x;
         }
 
-        // if a line would go directly through integer points, we would falsely draw a whole pixel -> we want to prevent this
-        constexpr float epsilon = 0.0001;
-
+        // special cases for line start/end + if line is smaller than 1px
         if (y_steps == 0) {
             // line is smaller than one scan line
             // only draw from line start to end
@@ -138,7 +133,6 @@ namespace details {
 
                 fill_between(pixel_writer, line_point.y, x1, x2, data_index);
             }
-
         } else {
             // draw first and last stretches of the line
             if (!fill) {
@@ -372,14 +366,85 @@ namespace details {
             origin = line_points[0];
         }
 
+        // only draw lines with 1 pixel width
         if (distance == 0.0) {
             render_line(pixel_writer, line_index, origin, edge);
 
-            pixel_writer(line_points[0], 50);
-            pixel_writer(line_points[1], 50);
+            // debug output for points
+            // pixel_writer(line_points[0], 50);
+            // pixel_writer(line_points[1], 50);
 
             return; // finished
         }
+
+        // we want to draw lines with a thickness
+
+        // end caps
+        add_circle_end_cap(pixel_writer, line_points[0], line_index, distance);
+        add_circle_end_cap(pixel_writer, line_points[1], line_index, distance);
+
+        // distance += sqrt(0.5);
+
+        // create normal
+        // make sure that the normal points downwards
+        glm::vec2 normal;
+        if (edge.x < 0)
+            normal = glm::normalize(glm::vec2(edge.y, -edge.x)) * distance;
+        else
+            normal = glm::normalize(glm::vec2(-edge.y, edge.x)) * distance;
+
+        auto enlarged_top_origin = origin + normal * -1.0f;
+        auto enlarged_middle_origin = origin + normal;
+        auto enlarged_middle_end = origin + edge + normal * -1.0f;
+        // auto enlarged_bottom_origin = origin + edge + normal;
+
+        // double the normal so that we construct a rectangle with the edge
+        normal *= 2.0f;
+
+        // determine if the doubled normal or the edge has a larger y difference
+        // and switch if normal is larger in y direction
+        if (edge.y < normal.y) {
+            auto tmp = normal;
+            normal = edge;
+            edge = tmp;
+
+            // we also need to change two enlarged points
+            tmp = enlarged_middle_origin;
+            enlarged_middle_origin = enlarged_middle_end;
+            enlarged_middle_end = tmp;
+        }
+
+        // special case: one side is horizontal
+        // -> only one pass from top to bottom necessary
+        if (normal.y == 0) {
+            render_line(pixel_writer, line_index, enlarged_top_origin, edge, (enlarged_top_origin.x > enlarged_middle_origin.x) ? -1 : 1, enlarged_middle_origin, edge);
+
+            return;
+        }
+
+        // we have to fill once the edge side and once the normal side.
+        // one side should not need fallbacks to render everything
+
+        int fill_direction = (edge.x > 0) ? -1 : 1;
+
+        // go from top of the line to bottom of the line
+        // first fill everything between edge and 2xnormal, after this fill everything betweent edge and other edge
+        render_line(pixel_writer, line_index, enlarged_top_origin, edge, fill_direction, enlarged_middle_origin, edge, enlarged_top_origin, normal, enlarged_top_origin, normal);
+
+        // render the last bit of the line (from line end top to line end bottom) -> no need for a fallback line since both lines meet at the bottom
+        render_line(pixel_writer, line_index, enlarged_middle_end, normal, fill_direction, enlarged_middle_origin, edge * 2.0f);
+
+        // { // DEBUG visualize enlarged points
+        //     // const auto enlarged_bottom_origin = origin + edge + normal * distance;
+        //     pixel_writer(enlarged_top_origin, 50);
+        //     pixel_writer(enlarged_middle_origin, 50);
+
+        //     pixel_writer(enlarged_middle_end, 50);
+        //     pixel_writer(enlarged_bottom_origin, 50);
+
+        //     pixel_writer(line_points[0], 50);
+        //     pixel_writer(line_points[1], 50);
+        // }
     }
 
     /*
@@ -398,8 +463,6 @@ namespace details {
         unsigned int data_index,
         float distance)
     {
-        //
-
         glm::vec2 v0 = current_position - points[0], v1 = current_position - points[1], v2 = current_position - points[2];
 
         // pq# = distance from edge #
