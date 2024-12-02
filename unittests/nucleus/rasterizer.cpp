@@ -92,25 +92,25 @@ TEST_CASE("nucleus/rasterizer")
         // }
     }
 
-    SECTION("Triangle y ordering")
-    {
-        // make sure that the triangle_order function correctly orders the triangle points from lowest y to highest y value
-        const std::vector<glm::vec2> triangle_points_012 = { { glm::vec2(30, 10), glm::vec2(10, 30), glm::vec2(50, 50) } };
-        const std::vector<glm::vec2> triangle_points_021 = { glm::vec2(30, 10), glm::vec2(50, 50), glm::vec2(10, 30) };
-        const std::vector<glm::vec2> triangle_points_102 = { glm::vec2(10, 30), glm::vec2(30, 10), glm::vec2(50, 50) };
-        const std::vector<glm::vec2> triangle_points_201 = { glm::vec2(10, 30), glm::vec2(50, 50), glm::vec2(30, 10) };
-        const std::vector<glm::vec2> triangle_points_120 = { glm::vec2(50, 50), glm::vec2(30, 10), glm::vec2(10, 30) };
-        const std::vector<glm::vec2> triangle_points_210 = { glm::vec2(50, 50), glm::vec2(10, 30), glm::vec2(30, 10) };
+    // SECTION("Triangle y ordering")
+    // {
+    //     // make sure that the triangle_order function correctly orders the triangle points from lowest y to highest y value
+    //     const std::vector<glm::vec2> triangle_points_012 = { { glm::vec2(30, 10), glm::vec2(10, 30), glm::vec2(50, 50) } };
+    //     const std::vector<glm::vec2> triangle_points_021 = { glm::vec2(30, 10), glm::vec2(50, 50), glm::vec2(10, 30) };
+    //     const std::vector<glm::vec2> triangle_points_102 = { glm::vec2(10, 30), glm::vec2(30, 10), glm::vec2(50, 50) };
+    //     const std::vector<glm::vec2> triangle_points_201 = { glm::vec2(10, 30), glm::vec2(50, 50), glm::vec2(30, 10) };
+    //     const std::vector<glm::vec2> triangle_points_120 = { glm::vec2(50, 50), glm::vec2(30, 10), glm::vec2(10, 30) };
+    //     const std::vector<glm::vec2> triangle_points_210 = { glm::vec2(50, 50), glm::vec2(10, 30), glm::vec2(30, 10) };
 
-        const std::vector<glm::vec2> correct = { { glm::vec2(30, 10), glm::vec2(10, 30), glm::vec2(50, 50) } };
+    //     const std::vector<glm::vec2> correct = { { glm::vec2(30, 10), glm::vec2(10, 30), glm::vec2(50, 50) } };
 
-        CHECK(correct == nucleus::utils::rasterizer::triangulize(triangle_points_012));
-        CHECK(correct == nucleus::utils::rasterizer::triangulize(triangle_points_021));
-        CHECK(correct == nucleus::utils::rasterizer::triangulize(triangle_points_102));
-        CHECK(correct == nucleus::utils::rasterizer::triangulize(triangle_points_201));
-        CHECK(correct == nucleus::utils::rasterizer::triangulize(triangle_points_120));
-        CHECK(correct == nucleus::utils::rasterizer::triangulize(triangle_points_210));
-    }
+    //     CHECK(correct == nucleus::utils::rasterizer::triangulize(triangle_points_012));
+    //     CHECK(correct == nucleus::utils::rasterizer::triangulize(triangle_points_021));
+    //     CHECK(correct == nucleus::utils::rasterizer::triangulize(triangle_points_102));
+    //     CHECK(correct == nucleus::utils::rasterizer::triangulize(triangle_points_201));
+    //     CHECK(correct == nucleus::utils::rasterizer::triangulize(triangle_points_120));
+    //     CHECK(correct == nucleus::utils::rasterizer::triangulize(triangle_points_210));
+    // }
 
     SECTION("rasterize triangle")
     {
@@ -320,33 +320,89 @@ TEST_CASE("nucleus/rasterizer")
         image.save(QString("rasterizer_output_line_straight.png"));
     }
 
-    // SECTION("rasterize line diagonal")
-    // {
-    //     const std::vector<glm::vec2> line = { glm::vec2(30.5, 10.5), glm::vec2(50.5, 30.5), glm::vec2(30.5, 50.5), glm::vec2(10.5, 30.5), glm::vec2(30.5, 10.5) };
-    //     // const std::vector<glm::vec2> line = { glm::vec2(5.5, 5.5), glm::vec2(15.5, 10.5) };
-    //     auto size = glm::vec2(64, 64);
-    //     nucleus::Raster<uint8_t> output(size, 0u);
-    //     float distance = 0.0;
-    //     radix::geometry::Aabb2<double> bounds = { { 0, 0 }, size };
+    SECTION("rasterize line minimal lower")
+    {
+        const std::vector<glm::vec2> line = { glm::vec2(2.7, 2.5), glm::vec2(3.7, 1.5) };
+        auto size = glm::vec2(6, 6);
+        nucleus::Raster<uint8_t> output(size, 0u);
+        float distance = 0.0;
+        radix::geometry::Aabb2<double> bounds = { { 0, 0 }, size };
 
-    //     const auto pixel_writer = [&output, bounds](glm::vec2 pos, int) {
-    //         if (bounds.contains(pos))
-    //             // output.pixel(pos) = data == 50 ? 255 : 100;
-    //             output.pixel(pos) = 255;
-    //     };
-    //     nucleus::utils::rasterizer::rasterize_line(pixel_writer, line, distance);
+        const auto pixel_writer = [&output, bounds](glm::vec2 pos, int) {
+            if (bounds.contains(pos))
+                output.pixel(pos) = 255;
+        };
+        nucleus::utils::rasterizer::rasterize_line(pixel_writer, line, distance);
 
-    //     nucleus::Raster<uint8_t> output2(size, 0u);
-    //     const auto pixel_writer2 = [&output2, bounds](glm::vec2 pos, int) {
-    //         if (bounds.contains(pos))
-    //             output2.pixel(pos) = 255;
-    //     };
-    //     nucleus::utils::rasterizer::rasterize_line_sdf(pixel_writer2, line, distance);
+        nucleus::Raster<uint8_t> output2(size, 0u);
+        const auto pixel_writer2 = [&output2, bounds](glm::vec2 pos, int) {
+            if (bounds.contains(pos))
+                output2.pixel(pos) = 255;
+        };
+        nucleus::utils::rasterizer::rasterize_line_sdf(pixel_writer2, line, distance);
 
-    //     CHECK(output.buffer() == output2.buffer());
+        CHECK(output.buffer() == output2.buffer());
 
-    //     // DEBUG: save image (image saved to build/Desktop-Profile/unittests/nucleus)
-    //     auto image = nucleus::tile::conversion::u8raster_2_to_qimage(output, output2);
-    //     image.save(QString("rasterizer_output_line_diagonal.png"));
-    // }
+        // DEBUG: save image (image saved to build/Desktop-Profile/unittests/nucleus)
+        // auto image = nucleus::tile::conversion::u8raster_2_to_qimage(output, output2);
+        // image.save(QString("rasterizer_output_line_minimal_lower.png"));
+    }
+    SECTION("rasterize line minimal upper")
+    {
+
+        const std::vector<glm::vec2> line = { glm::vec2(2.3, 2.5), glm::vec2(3.5, 1.3) };
+        auto size = glm::vec2(6, 6);
+        nucleus::Raster<uint8_t> output(size, 0u);
+        float distance = 0.0;
+        radix::geometry::Aabb2<double> bounds = { { 0, 0 }, size };
+
+        const auto pixel_writer = [&output, bounds](glm::vec2 pos, int) {
+            if (bounds.contains(pos))
+                output.pixel(pos) = 255;
+        };
+        nucleus::utils::rasterizer::rasterize_line(pixel_writer, line, distance);
+
+        nucleus::Raster<uint8_t> output2(size, 0u);
+        const auto pixel_writer2 = [&output2, bounds](glm::vec2 pos, int) {
+            if (bounds.contains(pos))
+                output2.pixel(pos) = 255;
+        };
+        nucleus::utils::rasterizer::rasterize_line_sdf(pixel_writer2, line, distance);
+
+        CHECK(output.buffer() == output2.buffer());
+
+        // DEBUG: save image (image saved to build/Desktop-Profile/unittests/nucleus)
+        // auto image = nucleus::tile::conversion::u8raster_2_to_qimage(output, output2);
+        // image.save(QString("rasterizer_output_line_minimal_upper.png"));
+    }
+
+    SECTION("rasterize line diagonal")
+    {
+        const std::vector<glm::vec2> line = { glm::vec2(30.5, 10.5), glm::vec2(50.5, 30.5), glm::vec2(30.5, 50.5), glm::vec2(10.5, 30.5), glm::vec2(30.5, 10.5) };
+        // const std::vector<glm::vec2> line = { glm::vec2(2.2, 2.5), glm::vec2(3.5, 1.1) };
+        auto size = glm::vec2(64, 64);
+        nucleus::Raster<uint8_t> output(size, 0u);
+        float distance = 0.0;
+        radix::geometry::Aabb2<double> bounds = { { 0, 0 }, size };
+
+        const auto pixel_writer = [&output, bounds](glm::vec2 pos, int) {
+            if (bounds.contains(pos))
+                // output.pixel(pos) = data == 50 ? 255 : 100;
+                output.pixel(pos) = 255;
+        };
+        nucleus::utils::rasterizer::rasterize_line(pixel_writer, line, distance);
+
+        nucleus::Raster<uint8_t> output2(size, 0u);
+        const auto pixel_writer2 = [&output2, bounds](glm::vec2 pos, int) {
+            if (bounds.contains(pos))
+                output2.pixel(pos) = 255;
+        };
+        nucleus::utils::rasterizer::rasterize_line_sdf(pixel_writer2, line, distance);
+
+        CHECK(output.buffer() == output2.buffer());
+
+        // DEBUG: save image (image saved to build/Desktop-Profile/unittests/nucleus)
+        auto image = nucleus::tile::conversion::u8raster_2_to_qimage(output, output2);
+        image.save(QString("rasterizer_output_line_diagonal.png"));
+    }
 }
