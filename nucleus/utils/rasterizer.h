@@ -505,7 +505,7 @@ namespace details {
  * triangulizes polygons and orders the vertices by y position per triangle
  * output: top, middle, bottom, top, middle,...
  */
-// std::vector<glm::vec2> triangulize(std::vector<glm::vec2> polygons);
+std::vector<glm::vec2> triangulize(std::vector<glm::vec2> polygons);
 
 /*
  * ideal if you want to rasterize only a few triangles, where every triangle covers a large part of the raster size
