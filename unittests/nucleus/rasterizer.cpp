@@ -92,25 +92,25 @@ TEST_CASE("nucleus/rasterizer")
         // }
     }
 
-    // SECTION("Triangle y ordering")
-    // {
-    //     // make sure that the triangle_order function correctly orders the triangle points from lowest y to highest y value
-    //     const std::vector<glm::vec2> triangle_points_012 = { { glm::vec2(30, 10), glm::vec2(10, 30), glm::vec2(50, 50) } };
-    //     const std::vector<glm::vec2> triangle_points_021 = { glm::vec2(30, 10), glm::vec2(50, 50), glm::vec2(10, 30) };
-    //     const std::vector<glm::vec2> triangle_points_102 = { glm::vec2(10, 30), glm::vec2(30, 10), glm::vec2(50, 50) };
-    //     const std::vector<glm::vec2> triangle_points_201 = { glm::vec2(10, 30), glm::vec2(50, 50), glm::vec2(30, 10) };
-    //     const std::vector<glm::vec2> triangle_points_120 = { glm::vec2(50, 50), glm::vec2(30, 10), glm::vec2(10, 30) };
-    //     const std::vector<glm::vec2> triangle_points_210 = { glm::vec2(50, 50), glm::vec2(10, 30), glm::vec2(30, 10) };
+    SECTION("Triangle y ordering")
+    {
+        // make sure that the triangle_order function correctly orders the triangle points from lowest y to highest y value
+        const std::vector<glm::vec2> triangle_points_012 = { { glm::vec2(30, 10), glm::vec2(10, 30), glm::vec2(50, 50) } };
+        const std::vector<glm::vec2> triangle_points_021 = { glm::vec2(30, 10), glm::vec2(50, 50), glm::vec2(10, 30) };
+        const std::vector<glm::vec2> triangle_points_102 = { glm::vec2(10, 30), glm::vec2(30, 10), glm::vec2(50, 50) };
+        const std::vector<glm::vec2> triangle_points_201 = { glm::vec2(10, 30), glm::vec2(50, 50), glm::vec2(30, 10) };
+        const std::vector<glm::vec2> triangle_points_120 = { glm::vec2(50, 50), glm::vec2(30, 10), glm::vec2(10, 30) };
+        const std::vector<glm::vec2> triangle_points_210 = { glm::vec2(50, 50), glm::vec2(10, 30), glm::vec2(30, 10) };
 
-    //     const std::vector<glm::vec2> correct = { { glm::vec2(30, 10), glm::vec2(10, 30), glm::vec2(50, 50) } };
+        const std::vector<glm::vec2> correct = { { glm::vec2(30, 10), glm::vec2(10, 30), glm::vec2(50, 50) } };
 
-    //     CHECK(correct == nucleus::utils::rasterizer::triangulize(triangle_points_012));
-    //     CHECK(correct == nucleus::utils::rasterizer::triangulize(triangle_points_021));
-    //     CHECK(correct == nucleus::utils::rasterizer::triangulize(triangle_points_102));
-    //     CHECK(correct == nucleus::utils::rasterizer::triangulize(triangle_points_201));
-    //     CHECK(correct == nucleus::utils::rasterizer::triangulize(triangle_points_120));
-    //     CHECK(correct == nucleus::utils::rasterizer::triangulize(triangle_points_210));
-    // }
+        CHECK(correct == nucleus::utils::rasterizer::triangulize(triangle_points_012));
+        CHECK(correct == nucleus::utils::rasterizer::triangulize(triangle_points_021));
+        CHECK(correct == nucleus::utils::rasterizer::triangulize(triangle_points_102));
+        CHECK(correct == nucleus::utils::rasterizer::triangulize(triangle_points_201));
+        CHECK(correct == nucleus::utils::rasterizer::triangulize(triangle_points_120));
+        CHECK(correct == nucleus::utils::rasterizer::triangulize(triangle_points_210));
+    }
 
     SECTION("rasterize triangle")
     {
