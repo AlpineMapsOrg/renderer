@@ -33,12 +33,12 @@ jobs:
             qtmodules: ''
             additional_cmake_flags: '-DALP_ENABLE_THREADING=ON'
             additional_build_flags: '--target install'
-          - qtarch: android_arm64_v8a
-            qttarget: 'android'
-            qtmodules: 'qtcharts qtpositioning'
-          - qtarch: android_armv7
-            qttarget: 'android'
-            qtmodules: 'qtcharts qtpositioning'
+          # - qtarch: android_arm64_v8a
+          #   qttarget: 'android'
+          #   qtmodules: 'qtcharts qtpositioning'
+          # - qtarch: android_armv7
+          #   qttarget: 'android'
+          #   qtmodules: 'qtcharts qtpositioning'
           
     steps:
     - name: Install dependencies
