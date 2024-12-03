@@ -21,7 +21,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        qtarch: [wasm_singlethread, wasm_multithread, android_arm64_v8a, android_armv7]
+        qtarch: [wasm_singlethread, wasm_multithread]
         qtversion: ['6.6.1']
         include:
           - qtarch: wasm_singlethread
