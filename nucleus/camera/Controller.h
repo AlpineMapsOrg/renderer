@@ -44,6 +44,7 @@ public:
                         AbstractDepthTester* depth_tester,
                         DataQuerier* data_querier);
 
+    /// warning: not thread safe
     [[nodiscard]] const Definition& definition() const;
     std::optional<glm::vec2> operation_centre();
     std::optional<float> operation_centre_distance();
