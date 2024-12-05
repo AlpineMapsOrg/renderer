@@ -22,24 +22,24 @@
 
 namespace nucleus::utils::rasterizer {
 
-std::vector<glm::vec2> triangulize(std::vector<glm::vec2> polygons)
+std::vector<glm::vec2> triangulize(const std::vector<glm::vec2>& polygon_points)
 {
     std::vector<glm::vec2> processed_triangles;
 
     std::vector<glm::ivec2> edges;
     { // create the edges
-        edges.reserve(polygons.size());
-        for (size_t i = 0; i < polygons.size() - 1; i++) {
+        edges.reserve(polygon_points.size());
+        for (size_t i = 0; i < polygon_points.size() - 1; i++) {
             edges.push_back(glm::ivec2(int(i), int(i + 1)));
         }
 
         // last edge between start and end vertex
-        edges.push_back(glm::ivec2(polygons.size() - 1, 0));
+        edges.push_back(glm::ivec2(polygon_points.size() - 1, 0));
     }
 
     // triangulation
     CDT::Triangulation<double> cdt;
-    cdt.insertVertices(polygons.begin(), polygons.end(), [](const glm::vec2& p) { return p.x; }, [](const glm::vec2& p) { return p.y; });
+    cdt.insertVertices(polygon_points.begin(), polygon_points.end(), [](const glm::vec2& p) { return p.x; }, [](const glm::vec2& p) { return p.y; });
     cdt.insertEdges(edges.begin(), edges.end(), [](const glm::ivec2& p) { return p.x; }, [](const glm::ivec2& p) { return p.y; });
     cdt.eraseOuterTrianglesAndHoles();
 

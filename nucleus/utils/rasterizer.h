@@ -22,20 +22,45 @@
 #include <glm/glm.hpp>
 
 namespace nucleus::utils::rasterizer {
-
 /*
  * Possible future improvements:
  *      - check how often each pixel is written to -> maybe we can improve performance here
- *      - sdf box filter instead by circle to only consider values of the current cell
  */
 
+/* PixelWriterFunctionConcept
+ * The functions use a PixelWriterFunction as a parameter.
+ * The pixelwriter function is a lambda with one glm::ivec2 position parameter and one optional unsigned int data argument
+ *      glm::ivec2 position
+ *          the position where a pixel should be rendered
+ *      unsigned int data
+ *          the triangle/line-segment index
+ */
+template <typename Func>
+concept PixelWriterFunctionConcept = requires(Func f) {
+    { f(glm::ivec2(11, 22)) };
+} || requires(Func f) {
+    { f(glm::ivec2(11, 22), 123456u) };
+};
+
 namespace details {
+
+    /*
+     * This function calls either the 1 parameter or the 2 parameter pixelwriter (determined at runtime)
+     */
+    template <PixelWriterFunctionConcept PixelWriterFunction> inline void invokePixelWriter(const PixelWriterFunction& pixel_writer, glm::ivec2 position, unsigned int data_index)
+    {
+        if constexpr (std::is_invocable_v<PixelWriterFunction, glm::ivec2, unsigned int>) {
+            pixel_writer(position, data_index);
+        } else if constexpr (std::is_invocable_v<PixelWriterFunction, glm::ivec2>) {
+            pixel_writer(position);
+        }
+    }
 
     /*
      * Calculates the x value for a given y.
      * The resulting x value will be on the line.
      */
-    inline float get_x_for_y_on_line(const glm::vec2 point_on_line, const glm::vec2 line, float y)
+    inline float get_x_for_y_on_line(const glm::vec2& point_on_line, const glm::vec2& line, float y)
     {
         // pos_on_line = point_on_line + t * line
         float t = (y - point_on_line.y) / line.y;
@@ -68,12 +93,12 @@ namespace details {
     /*
      * fills a scanline in the intveral [x1,x2] (inclusive)
      */
-    template <typename PixelWriterFunction> inline void fill_between(const PixelWriterFunction& pixel_writer, int y, int x1, int x2, unsigned int data_index)
+    template <PixelWriterFunctionConcept PixelWriterFunction> inline void fill_between(const PixelWriterFunction& pixel_writer, int y, int x1, int x2, unsigned int data_index)
     {
         int fill_direction = (x1 < x2) ? 1 : -1;
 
         for (int j = x1; j != x2 + fill_direction; j += fill_direction) {
-            pixel_writer(glm::vec2(j, y), data_index);
+            invokePixelWriter(pixel_writer, glm::ivec2(j, y), data_index);
         }
     }
 
@@ -83,12 +108,12 @@ namespace details {
      * if the other line is not located on the current scan line -> we fill to the given fall back lines
      * the given line should always go from top to bottom (only exception horizontal lines)
      */
-    template <typename PixelWriterFunction>
+    template <PixelWriterFunctionConcept PixelWriterFunction>
     void render_line(const PixelWriterFunction& pixel_writer,
         unsigned int data_index,
         const glm::vec2& line_point,
         const glm::vec2& line,
-        int fill_direction = 0,
+        const int fill_direction = 0,
         const glm::vec2& other_point = { 0, 0 },
         const glm::vec2& other_line = { 0, 0 },
         const glm::vec2& fallback_point_bottom = { 0, 0 },
@@ -201,7 +226,7 @@ namespace details {
     /*
      * renders a circle at the given position
      */
-    template <typename PixelWriterFunction> void add_circle_end_cap(const PixelWriterFunction& pixel_writer, const glm::vec2 position, unsigned int data_index, float distance)
+    template <PixelWriterFunctionConcept PixelWriterFunction> void add_circle_end_cap(const PixelWriterFunction& pixel_writer, const glm::vec2& position, unsigned int data_index, float distance)
     {
         distance += sqrt(0.5);
         float distance_test = ceil(distance);
@@ -210,7 +235,7 @@ namespace details {
             for (int j = -distance_test; j < distance_test; j++) {
                 const auto offset = glm::vec2(i + 0.0, j + 0.0);
                 if (glm::length(offset) < distance)
-                    pixel_writer(position + offset, data_index);
+                    invokePixelWriter(pixel_writer, position + offset, data_index);
             }
         }
     }
@@ -231,7 +256,8 @@ namespace details {
      *
      * lastly we have to add endcaps on each original vertice position with the given distance
      */
-    template <typename PixelWriterFunction> void render_triangle(const PixelWriterFunction& pixel_writer, const std::array<glm::vec2, 3> triangle, unsigned int triangle_index, float distance)
+    template <PixelWriterFunctionConcept PixelWriterFunction>
+    void render_triangle(const PixelWriterFunction& pixel_writer, const std::array<glm::vec2, 3> triangle, unsigned int triangle_index, float distance)
     {
 
         assert(triangle[0].y <= triangle[1].y);
@@ -339,21 +365,22 @@ namespace details {
 
         // { // DEBUG visualize enlarged points
         //     auto enlarged_top_bottom_end = triangle[2] + normal_top_bottom * distance;
-        //     pixel_writer(triangle[0], 50);
-        //     pixel_writer(enlarged_top_bottom_origin, 50);
-        //     pixel_writer(enlarged_top_middle_origin, 50);
+        //     invokePixelWriter(pixel_writer, triangle[0], 50);
+        //     invokePixelWriter(pixel_writer, enlarged_top_bottom_origin, 50);
+        //     invokePixelWriter(pixel_writer, enlarged_top_middle_origin, 50);
 
-        //     pixel_writer(triangle[1], 50);
-        //     pixel_writer(enlarged_middle_bottom_origin, 50);
-        //     pixel_writer(enlarged_top_middle_end, 50);
+        //     invokePixelWriter(pixel_writer, triangle[1], 50);
+        //     invokePixelWriter(pixel_writer, enlarged_middle_bottom_origin, 50);
+        //     invokePixelWriter(pixel_writer, enlarged_top_middle_end, 50);
 
-        //     pixel_writer(triangle[2], 50);
-        //     pixel_writer(enlarged_middle_bottom_end, 50);
-        //     pixel_writer(enlarged_top_bottom_end, 50);
+        //     invokePixelWriter(pixel_writer, triangle[2], 50);
+        //     invokePixelWriter(pixel_writer, enlarged_middle_bottom_end, 50);
+        //     invokePixelWriter(pixel_writer, enlarged_top_bottom_end, 50);
         // }
     }
 
-    template <typename PixelWriterFunction> void render_line_preprocess(const PixelWriterFunction& pixel_writer, const std::array<glm::vec2, 2> line_points, unsigned int line_index, float distance)
+    template <PixelWriterFunctionConcept PixelWriterFunction>
+    void render_line_preprocess(const PixelWriterFunction& pixel_writer, const std::array<glm::vec2, 2> line_points, unsigned int line_index, float distance)
     {
         // edge from top to bottom
         glm::vec2 origin;
@@ -371,8 +398,8 @@ namespace details {
             render_line(pixel_writer, line_index, origin, edge);
 
             // debug output for points
-            // pixel_writer(line_points[0], 50);
-            // pixel_writer(line_points[1], 50);
+            // invokePixelWriter(pixel_writer, line_points[0], 50);
+            // invokePixelWriter(pixel_writer, line_points[1], 50);
 
             return; // finished
         }
@@ -436,67 +463,15 @@ namespace details {
 
         // { // DEBUG visualize enlarged points
         //     // const auto enlarged_bottom_origin = origin + edge + normal * distance;
-        //     pixel_writer(enlarged_top_origin, 50);
-        //     pixel_writer(enlarged_middle_origin, 50);
+        //     invokePixelWriter(pixel_writer, enlarged_top_origin, 50);
+        //     invokePixelWriter(pixel_writer, enlarged_middle_origin, 50);
 
-        //     pixel_writer(enlarged_middle_end, 50);
-        //     pixel_writer(enlarged_bottom_origin, 50);
+        //     invokePixelWriter(pixel_writer, enlarged_middle_end, 50);
+        //     invokePixelWriter(pixel_writer, enlarged_bottom_origin, 50);
 
-        //     pixel_writer(line_points[0], 50);
-        //     pixel_writer(line_points[1], 50);
+        //     invokePixelWriter(pixel_writer, line_points[0], 50);
+        //     invokePixelWriter(pixel_writer, line_points[1], 50);
         // }
-    }
-
-    /*
-     * calculates how far away the given position is from a triangle
-     * uses distance to shift the current triangle distance
-     * if it is within the triangle, the pixel writer function is called
-     *
-     * uses triangle distance calculation from: https://iquilezles.org/articles/distfunctions2d/
-     */
-    template <typename PixelWriterFunction>
-    void triangle_sdf(const PixelWriterFunction& pixel_writer,
-        const glm::vec2 current_position,
-        const std::array<glm::vec2, 3> points,
-        const std::array<glm::vec2, 3> edges,
-        float s,
-        unsigned int data_index,
-        float distance)
-    {
-        glm::vec2 v0 = current_position - points[0], v1 = current_position - points[1], v2 = current_position - points[2];
-
-        // pq# = distance from edge #
-        glm::vec2 pq0 = v0 - edges[0] * glm::clamp(glm::dot(v0, edges[0]) / glm::dot(edges[0], edges[0]), 0.0f, 1.0f);
-        glm::vec2 pq1 = v1 - edges[1] * glm::clamp(glm::dot(v1, edges[1]) / glm::dot(edges[1], edges[1]), 0.0f, 1.0f);
-        glm::vec2 pq2 = v2 - edges[2] * glm::clamp(glm::dot(v2, edges[2]) / glm::dot(edges[2], edges[2]), 0.0f, 1.0f);
-        // d.x == squared distance to triangle edge/vertice
-        // d.y == are we inside or outside triangle
-        glm::vec2 d = min(min(glm::vec2(dot(pq0, pq0), s * (v0.x * edges[0].y - v0.y * edges[0].x)), glm::vec2(dot(pq1, pq1), s * (v1.x * edges[1].y - v1.y * edges[1].x))),
-            glm::vec2(dot(pq2, pq2), s * (v2.x * edges[2].y - v2.y * edges[2].x)));
-        float dist_from_tri = -sqrt(d.x) * glm::sign(d.y);
-
-        if (dist_from_tri < distance) {
-            pixel_writer(current_position, data_index);
-        }
-    }
-
-    /*
-     * calculates how far away the given position is from a line segment
-     * uses distance to shift the current triangle distance
-     * if it is within the triangle, the pixel writer function is called
-     *
-     * uses line segment distance calculation from: https://iquilezles.org/articles/distfunctions2d/
-     */
-    template <typename PixelWriterFunction>
-    void line_sdf(const PixelWriterFunction& pixel_writer, const glm::vec2 current_position, const glm::vec2 origin, glm::vec2 edge, unsigned int data_index, float distance)
-    {
-        glm::vec2 v0 = current_position - origin;
-
-        float dist_from_line = length(v0 - edge * glm::clamp(glm::dot(v0, edge) / glm::dot(edge, edge), 0.0f, 1.0f));
-
-        if (dist_from_line < distance) {
-            pixel_writer(current_position, data_index);
-        }
     }
 
 } // namespace details
@@ -505,78 +480,65 @@ namespace details {
  * triangulizes polygons and orders the vertices by y position per triangle
  * output: top, middle, bottom, top, middle,...
  */
-std::vector<glm::vec2> triangulize(std::vector<glm::vec2> polygons);
+std::vector<glm::vec2> triangulize(const std::vector<glm::vec2>& polygon_points);
 
 /*
- * ideal if you want to rasterize only a few triangles, where every triangle covers a large part of the raster size
- * in this method we traverse through every triangle and generate the bounding box and traverse the bounding box
- */
-template <typename PixelWriterFunction> void rasterize_triangle_sdf(const PixelWriterFunction& pixel_writer, const std::vector<glm::vec2>& triangles, float distance)
-{
-    // we sample from the center
-    // and have a radius of a half pixel diagonal
-    // NOTICE: this still leads to false positives if the edge of a triangle is slighly in another pixel without every comming in this pixel!!
-    distance += sqrt(0.5);
-
-    for (size_t i = 0; i < triangles.size() / 3; ++i) {
-        const std::array<glm::vec2, 3> points = { triangles[i * 3 + 0], triangles[i * 3 + 1], triangles[i * 3 + 2] };
-        const std::array<glm::vec2, 3> edges = { points[1] - points[0], points[2] - points[1], points[0] - points[2] };
-
-        auto min_bound = min(min(points[0], points[1]), points[2]) - glm::vec2(distance);
-        auto max_bound = max(max(points[0], points[1]), points[2]) + glm::vec2(distance);
-
-        float s = glm::sign(edges[0].x * edges[2].y - edges[0].y * edges[2].x);
-
-        for (size_t x = min_bound.x; x < max_bound.x; x++) {
-            for (size_t y = min_bound.y; y < max_bound.y; y++) {
-                auto current_position = glm::vec2 { x + 0.5, y + 0.5 };
-
-                details::triangle_sdf(pixel_writer, current_position, points, edges, s, i, distance);
-            }
-        }
-    }
-}
-
-template <typename PixelWriterFunction> void rasterize_line_sdf(const PixelWriterFunction& pixel_writer, const std::vector<glm::vec2>& line_points, float distance)
-{
-    // we sample from the center
-    // and have a radius of a half pixel diagonal
-    // NOTICE: this still leads to false positives if the edge of a triangle is slighly in another pixel without every comming in this pixel!!
-    distance += sqrt(0.5);
-
-    for (size_t i = 0; i < line_points.size() - 1; ++i) {
-        const std::array<glm::vec2, 2> points = { line_points[i + 0], line_points[i + 1] };
-        auto edge = points[1] - points[0];
-
-        auto min_bound = min(points[0], points[1]) - glm::vec2(distance);
-        auto max_bound = max(points[0], points[1]) + glm::vec2(distance);
-
-        for (size_t x = min_bound.x; x < max_bound.x; x++) {
-            for (size_t y = min_bound.y; y < max_bound.y; y++) {
-                auto current_position = glm::vec2 { x + 0.5, y + 0.5 };
-
-                details::line_sdf(pixel_writer, current_position, points[0], edge, i, distance);
-            }
-        }
-    }
-}
-
-/*
- * ideal for many triangles. especially if each triangle only covers small parts of the raster
+ * Rasterize a triangle
  * in this method every triangle is traversed only once, and it only accesses pixels it needs for itself.
+ * this function determines the position where pixels should be set and calls the given pixel_writer lambda to actually draw the pixels
+ *
+ * NOTE: the triangle points have to be ordered correctly by y position
+ * -> input triangles: ordered by y position within each triangle (top_ypos_triangle_1, middle_ypos_triangle_1, bottom_ypos_triangle_1, top_ypos_triangle_2, middle_ypos_triangle_2, ...)
+ *
+ * example usage:
+ *      const std::vector<glm::vec2> triangle_points = { glm::vec2(30.5, 10.5), glm::vec2(10.5, 30.5), glm::vec2(50.5, 50.5) };
+ *      nucleus::Raster<uint8_t> output({ 64, 64 }, 0u);
+ *      const auto pixel_writer = [&output](glm::ivec2 pos) { output.pixel(pos) = 255; };
+ *      nucleus::utils::rasterizer::rasterize_triangle(pixel_writer, triangle_points);
  */
-template <typename PixelWriterFunction> void rasterize_triangle(const PixelWriterFunction& pixel_writer, const std::vector<glm::vec2>& triangles, float distance = 0.0)
+template <PixelWriterFunctionConcept PixelWriterFunction> void rasterize_triangle(const PixelWriterFunction& pixel_writer, const std::vector<glm::vec2>& triangles, float distance = 0.0)
 {
     for (size_t i = 0; i < triangles.size() / 3; ++i) {
         details::render_triangle(pixel_writer, { triangles[i * 3 + 0], triangles[i * 3 + 1], triangles[i * 3 + 2] }, i, distance);
     }
 }
 
-template <typename PixelWriterFunction> void rasterize_line(const PixelWriterFunction& pixel_writer, const std::vector<glm::vec2>& line_points, float distance = 0.0)
+/*
+ * Rasterize a line
+ *
+ * this function determines the position where pixels should be set and calls the given pixel_writer lambda to actually draw the pixels
+ *
+ * input line_points: a list of points that should form a line (line_start, line_point1, line_point2, ..., line_end)
+ * -> generates line segments between line_start-line_point1, line_point1 to line_point2, ...
+ *
+ * example usage:
+ *      const std::vector<glm::vec2> line = { glm::vec2(30.5, 10.5), glm::vec2(50.5, 30.5), glm::vec2(30.5, 50.5), glm::vec2(10.5, 30.5), glm::vec2(30.5, 10.5) };
+ *      nucleus::Raster<uint8_t> output({ 64, 64 }, 0u);
+ *      const auto pixel_writer = [&output](glm::ivec2 pos) { output.pixel(pos) = 255; };
+ *      nucleus::utils::rasterizer::rasterize_line(pixel_writer, line);
+ */
+template <PixelWriterFunctionConcept PixelWriterFunction> void rasterize_line(const PixelWriterFunction& pixel_writer, const std::vector<glm::vec2>& line_points, float distance = 0.0)
 {
     for (size_t i = 0; i < line_points.size() - 1; ++i) {
         details::render_line_preprocess(pixel_writer, { line_points[i + 0], line_points[i + 1] }, i, distance);
     }
+}
+
+/*
+ * Rasterize a polygon
+ * convenience function that really just calls rasterize_triangle after triangulizing the polygon
+ * this function determines the position where pixels should be set and calls the given pixel_writer lambda to actually draw the pixels
+ *
+ * example usage:
+ *      const std::vector<glm::vec2> polygon_points = { glm::vec2(30.5, 10.5), glm::vec2(10.5, 30.5), glm::vec2(50.5, 50.5) };
+ *      nucleus::Raster<uint8_t> output({ 64, 64 }, 0u);
+ *      const auto pixel_writer = [&output](glm::ivec2 pos) { output.pixel(pos) = 255; };
+ *      nucleus::utils::rasterizer::rasterize_polygon(pixel_writer, polygon_points);
+ */
+template <PixelWriterFunctionConcept PixelWriterFunction> void rasterize_polygon(const PixelWriterFunction& pixel_writer, const std::vector<glm::vec2>& polygon_points, float distance = 0.0)
+{
+    const auto triangles = triangulize(polygon_points);
+    rasterize_triangle(pixel_writer, triangles, distance);
 }
 
 } // namespace nucleus::utils::rasterizer
