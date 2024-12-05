@@ -25,6 +25,7 @@ alp_add_unittest(unittests_nucleus
     DrawListGenerator.cpp
     test_helpers.h test_helpers.cpp
     raster.cpp
+    rasterizer.cpp
     terrain_mesh_index_generator.cpp
     srs.cpp
     track.cpp
