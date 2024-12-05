@@ -650,33 +650,35 @@ TEST_CASE("nucleus/utils/rasterizer benchmarks")
     {
         const std::vector<glm::vec2> triangles = { glm::vec2(30.5, 10.5), glm::vec2(10.5, 30.5), glm::vec2(50.5, 50.5), glm::vec2(5.5, 5.5), glm::vec2(15.5, 10.5), glm::vec2(5.5, 15.5) };
 
-        nucleus::Raster<uint8_t> output({ 64, 64 }, 0u);
-        const auto pixel_writer = [&output](glm::ivec2 pos) { output.pixel(pos) = 255; };
+        // we dont particular care how long it takes to write to raster -> so do nothing
+        const auto pixel_writer = [](glm::ivec2) { /*do nothing*/ };
         nucleus::utils::rasterizer::rasterize_triangle(pixel_writer, triangles);
     };
 
-    BENCHMARK("Rasterize triangle (no raster write)")
+    BENCHMARK("Rasterize triangle distance")
     {
         const std::vector<glm::vec2> triangles = { glm::vec2(30.5, 10.5), glm::vec2(10.5, 30.5), glm::vec2(50.5, 50.5), glm::vec2(5.5, 5.5), glm::vec2(15.5, 10.5), glm::vec2(5.5, 15.5) };
 
+        // we dont particular care how long it takes to write to raster -> so do nothing
         const auto pixel_writer = [](glm::ivec2) { /*do nothing*/ };
-        nucleus::utils::rasterizer::rasterize_triangle(pixel_writer, triangles);
+        nucleus::utils::rasterizer::rasterize_triangle(pixel_writer, triangles, 5.0);
     };
 
     BENCHMARK("Rasterize triangle SDF")
     {
         const std::vector<glm::vec2> triangles = { glm::vec2(30.5, 10.5), glm::vec2(10.5, 30.5), glm::vec2(50.5, 50.5), glm::vec2(5.5, 5.5), glm::vec2(15.5, 10.5), glm::vec2(5.5, 15.5) };
 
-        nucleus::Raster<uint8_t> output2({ 64, 64 }, 0u);
-        auto pixel_writer = [&output2](glm::ivec2 pos) { output2.pixel(pos) = 255; };
+        // we dont particular care how long it takes to write to raster -> so do nothing
+        const auto pixel_writer = [](glm::ivec2) { /*do nothing*/ };
         rasterize_triangle_sdf(pixel_writer, triangles, 0);
     };
 
-    BENCHMARK("Rasterize triangle SDF (no raster write)")
+    BENCHMARK("Rasterize triangle SDF distance")
     {
         const std::vector<glm::vec2> triangles = { glm::vec2(30.5, 10.5), glm::vec2(10.5, 30.5), glm::vec2(50.5, 50.5), glm::vec2(5.5, 5.5), glm::vec2(15.5, 10.5), glm::vec2(5.5, 15.5) };
 
+        // we dont particular care how long it takes to write to raster -> so do nothing
         const auto pixel_writer = [](glm::ivec2) { /*do nothing*/ };
-        rasterize_triangle_sdf(pixel_writer, triangles, 0);
+        rasterize_triangle_sdf(pixel_writer, triangles, 5.0);
     };
 }
