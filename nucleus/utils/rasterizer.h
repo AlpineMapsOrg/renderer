@@ -480,7 +480,7 @@ namespace details {
  * triangulizes polygons and orders the vertices by y position per triangle
  * output: top, middle, bottom, top, middle,...
  */
-std::vector<glm::vec2> triangulize(const std::vector<glm::vec2>& polygon_points);
+std::vector<glm::vec2> triangulize(std::vector<glm::vec2> polygon_points, bool remove_duplicate_vertices = false);
 
 /*
  * Rasterize a triangle

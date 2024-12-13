@@ -22,7 +22,7 @@
 
 namespace nucleus::utils::rasterizer {
 
-std::vector<glm::vec2> triangulize(const std::vector<glm::vec2>& polygon_points)
+std::vector<glm::vec2> triangulize(std::vector<glm::vec2> polygon_points, bool remove_duplicate_vertices)
 {
     std::vector<glm::vec2> processed_triangles;
 
@@ -39,6 +39,19 @@ std::vector<glm::vec2> triangulize(const std::vector<glm::vec2>& polygon_points)
 
     // triangulation
     CDT::Triangulation<double> cdt;
+
+    if (remove_duplicate_vertices) {
+        CDT::RemoveDuplicatesAndRemapEdges<double>(
+            polygon_points,
+            [](const glm::vec2& p) { return p.x; },
+            [](const glm::vec2& p) { return p.y; },
+            edges.begin(),
+            edges.end(),
+            [](const glm::ivec2& p) { return p.x; },
+            [](const glm::ivec2& p) { return p.y; },
+            [](CDT::VertInd start, CDT::VertInd end) { return glm::ivec2 { start, end }; });
+    }
+
     cdt.insertVertices(polygon_points.begin(), polygon_points.end(), [](const glm::vec2& p) { return p.x; }, [](const glm::vec2& p) { return p.y; });
     cdt.insertEdges(edges.begin(), edges.end(), [](const glm::ivec2& p) { return p.x; }, [](const glm::ivec2& p) { return p.y; });
     cdt.eraseOuterTrianglesAndHoles();
