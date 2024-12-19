@@ -22,10 +22,8 @@
 
 namespace nucleus::utils::rasterizer {
 
-std::vector<glm::vec2> triangulize(std::vector<glm::vec2> polygon_points, bool remove_duplicate_vertices)
+std::vector<glm::ivec2> generate_neighbour_edges(std::vector<glm::vec2> polygon_points)
 {
-    std::vector<glm::vec2> processed_triangles;
-
     std::vector<glm::ivec2> edges;
     { // create the edges
         edges.reserve(polygon_points.size());
@@ -36,6 +34,13 @@ std::vector<glm::vec2> triangulize(std::vector<glm::vec2> polygon_points, bool r
         // last edge between start and end vertex
         edges.push_back(glm::ivec2(polygon_points.size() - 1, 0));
     }
+
+    return edges;
+}
+
+std::vector<glm::vec2> triangulize(std::vector<glm::vec2> polygon_points, std::vector<glm::ivec2> edges, bool remove_duplicate_vertices)
+{
+    std::vector<glm::vec2> processed_triangles;
 
     // triangulation
     CDT::Triangulation<double> cdt;

@@ -477,10 +477,16 @@ namespace details {
 } // namespace details
 
 /*
+ * generates edges of a polygon
+ * this assumes that polygons neighbouring in the vector should form an edge and the first and last edge are also connected
+ */
+std::vector<glm::ivec2> generate_neighbour_edges(std::vector<glm::vec2> polygon_points);
+
+/*
  * triangulizes polygons and orders the vertices by y position per triangle
  * output: top, middle, bottom, top, middle,...
  */
-std::vector<glm::vec2> triangulize(std::vector<glm::vec2> polygon_points, bool remove_duplicate_vertices = false);
+std::vector<glm::vec2> triangulize(std::vector<glm::vec2> polygon_points, std::vector<glm::ivec2> edges, bool remove_duplicate_vertices = false);
 
 /*
  * Rasterize a triangle
@@ -537,7 +543,9 @@ template <PixelWriterFunctionConcept PixelWriterFunction> void rasterize_line(co
  */
 template <PixelWriterFunctionConcept PixelWriterFunction> void rasterize_polygon(const PixelWriterFunction& pixel_writer, const std::vector<glm::vec2>& polygon_points, float distance = 0.0)
 {
-    const auto triangles = triangulize(polygon_points);
+    const auto edges = generate_neighbour_edges(polygon_points);
+    const auto triangles = triangulize(polygon_points, edges);
+
     rasterize_triangle(pixel_writer, triangles, distance);
 }
 
