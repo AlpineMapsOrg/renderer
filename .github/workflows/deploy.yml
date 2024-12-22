@@ -64,6 +64,12 @@ jobs:
       run: |
         echo "QT_HOST_ROOT_DIR=${QT_ROOT_DIR}/../gcc_64" >> $GITHUB_ENV
         
+        echo "${QT_ROOT_DIR}/bin/:"
+        ls ${QT_ROOT_DIR}/bin/
+        echo "==="
+        echo "${QT_ROOT_DIR}/../gcc_64:"
+        ls ${QT_ROOT_DIR}/../gcc_64
+        
         BUILD_DIR="build"
         APK_TARGET="app"
         echo "BUILD_DIR=$BUILD_DIR" >> $GITHUB_ENV
