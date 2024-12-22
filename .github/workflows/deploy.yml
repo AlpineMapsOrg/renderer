@@ -42,11 +42,6 @@ jobs:
       with:
         fetch-depth: 0
         fetch-tags: true
-    
-    - uses: mymindstorm/setup-emsdk@v13
-      if: matrix.qttarget == 'desktop'
-      with:
-        version: 3.1.37
 
     - name: Install Qt crosscompile target version
       uses: jurplel/install-qt-action@v4
@@ -68,10 +63,6 @@ jobs:
         ls ${QT_ROOT_DIR}/..
         echo "==="
         ls ${QT_ROOT_DIR}/../..
-
-    - name: Verify emcc
-      if: matrix.qttarget == 'desktop'
-      run: emcc -v
 
     - name: Set reusable strings
       shell: bash
