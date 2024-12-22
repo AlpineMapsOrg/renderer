@@ -19,6 +19,7 @@
 
 #include <QFile>
 #include <catch2/catch_test_macros.hpp>
+#include <extern/radix/src/radix/tile.h>
 #include <nucleus/avalanche/eaws.h>
 TEST_CASE("nucleus/EAWS Vector Tiles")
 {

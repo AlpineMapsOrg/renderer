@@ -59,6 +59,7 @@
 #include "Window.h"
 #include "helpers.h"
 #include "nucleus/track/GPX.h"
+#include <AvalancheReportManager.h>
 #include <nucleus/avalanche/eaws.h>
 #include <nucleus/timing/CpuTimer.h>
 #include <nucleus/timing/TimerManager.h>
@@ -160,11 +161,11 @@ void Window::initialise_gpu()
     m_shadow_config_ubo->init();
     m_shadow_config_ubo->bind_to_shader(shader_registry->all());
 
-    m_eaws_reports_ubo = std::make_shared<gl_engine::UniformBuffer<gl_engine::uboEawsReports>>(3, "eaws_reports");
+    m_eaws_reports_ubo = std::make_shared<gl_engine::UniformBuffer<avalanche::eaws::uboEawsReports>>(3, "eaws_reports");
     m_eaws_reports_ubo->init();
     m_eaws_reports_ubo->bind_to_shader(shader_registry->all());
 
-    m_avalanche_report_manager = std::make_unique<avalanche::eaws::ReportManager>(m_uint_id_manager, m_eaws_reports_ubo);
+    m_avalanche_report_manager = std::make_unique<gl_engine::AvalancheReportManager>(m_uint_id_manager, m_eaws_reports_ubo);
 
     { // INITIALIZE CPU AND GPU TIMER
         using namespace std;

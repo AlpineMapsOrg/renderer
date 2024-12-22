@@ -18,14 +18,19 @@
 
 #ifndef EAWS_H
 #define EAWS_H
-#include "gl_engine/UniformBuffer.h"
-#include "gl_engine/UniformBufferObjects.h"
 #include <QDate>
 #include <QPainter>
 #include <extern/tl_expected/include/tl/expected.hpp>
 #include <mapbox/vector_tile.hpp>
 #include <nucleus/Raster.h>
 #include <nucleus/avalanche/ReportLoadService.h>
+namespace gl_engine {
+template <typename T> class UniformBuffer;
+}
+
+namespace radix::tile {
+struct Id;
+}
 
 namespace avalanche::eaws {
 struct Region {
@@ -82,31 +87,9 @@ private:
     uint max_internal_id = 0;
 };
 
-// Should be a member of the window.cpp and handles everything related to avalnche reports , especially updates ubo with currently selected report
-class ReportManager : public QObject {
-    Q_OBJECT
-signals:
-    void latest_report_report_requested();
-public slots:
-    void request_latest_reports_from_server();
-
-    // recieves data from TU wien server, and writes it to ubo ob gpu
-    void receive_latest_reports_from_server(tl::expected<std::vector<ReportTUWien>, QString> data_from_server);
-
-public:
-    ReportManager(std::shared_ptr<avalanche::eaws::UIntIdManager> input_uint_id_manager, std::shared_ptr<gl_engine::UniformBuffer<gl_engine::uboEawsReports>> input_ubo_eaws_reports);
-    ~ReportManager() = default;
-
-private:
-    ReportLoadService m_report_load_service;
-    std::shared_ptr<UIntIdManager> m_uint_id_manager;
-    std::shared_ptr<gl_engine::UniformBuffer<gl_engine::uboEawsReports>> m_ubo_eaws_reports;
-
-public:
-    bool operator==(const ReportManager& rhs)
-    {
-        return (m_ubo_eaws_reports.get() == rhs.m_ubo_eaws_reports.get() && m_uint_id_manager == rhs.m_uint_id_manager && m_report_load_service == rhs.m_report_load_service);
-    }
+// This struct contains report data written to ubo on gpu
+struct uboEawsReports {
+    glm::uvec4 reports[1000]; // ~600 regions where each region has a forecast of the form: .x: forecast available (1/0) .y: border .z: rating below border .a: rating above
 };
 
 // Creates a new QImage and draws all regions to it where color encodes the region id. Throws error when no regions are provided

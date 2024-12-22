@@ -41,6 +41,8 @@ qt_add_library(gl_engine STATIC
     Context.h Context.cpp
     TileGeometry.h TileGeometry.cpp
     TextureLayer.h TextureLayer.cpp
+    AvalancheReportManager.h
+    AvalancheReportManager.cpp
 )
 
 if(ALP_ENABLE_LABELS)
