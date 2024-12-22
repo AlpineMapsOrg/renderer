@@ -17,8 +17,6 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *****************************************************************************/
 
-// #define WRITE_RASTERIZER_DEBUG_IMAGE
-
 #include <QSignalSpy>
 #include <catch2/benchmark/catch_benchmark.hpp>
 #include <catch2/catch_test_macros.hpp>
@@ -317,9 +315,7 @@ TEST_CASE("nucleus/rasterizer")
         auto image = nucleus::tile::conversion::u8raster_to_qimage(output);
         CHECK(image == example_rasterizer_image("rasterizer_simple_triangle.png"));
 
-#ifdef WRITE_RASTERIZER_DEBUG_IMAGE
-        image.save(QString("rasterizer_output_simple_triangle.png"));
-#endif
+        // image.save(QString("rasterizer_output_simple_triangle.png"));
     }
 
     SECTION("rasterize Polygon")
@@ -343,11 +339,9 @@ TEST_CASE("nucleus/rasterizer")
 
         CHECK(output.buffer() == output2.buffer());
 
-#ifdef WRITE_RASTERIZER_DEBUG_IMAGE
         // DEBUG: save image (image saved to build/Desktop-Profile/unittests/nucleus)
-        auto image = nucleus::tile::conversion::u8raster_2_to_qimage(output, output2);
-        image.save(QString("rasterizer_output_polygon.png"));
-#endif
+        // auto image = nucleus::tile::conversion::u8raster_2_to_qimage(output, output2);
+        // image.save(QString("rasterizer_output_polygon.png"));
     }
 
     SECTION("rasterize triangle")
@@ -365,11 +359,9 @@ TEST_CASE("nucleus/rasterizer")
 
         CHECK(output.buffer() == output2.buffer());
 
-#ifdef WRITE_RASTERIZER_DEBUG_IMAGE
         // DEBUG: save image (image saved to build/Desktop-Profile/unittests/nucleus)
-        auto image = nucleus::tile::conversion::u8raster_2_to_qimage(output, output2);
-        image.save(QString("rasterizer_output.png"));
-#endif
+        // auto image = nucleus::tile::conversion::u8raster_2_to_qimage(output, output2);
+        // image.save(QString("rasterizer_output.png"));
     }
 
     SECTION("rasterize triangle small")
@@ -385,11 +377,9 @@ TEST_CASE("nucleus/rasterizer")
 
         CHECK(output.buffer() == output2.buffer());
 
-#ifdef WRITE_RASTERIZER_DEBUG_IMAGE
         // DEBUG: save image (image saved to build/Desktop-Profile/unittests/nucleus)
-        auto image = nucleus::tile::conversion::u8raster_2_to_qimage(output, output2);
-        image.save(QString("rasterizer_output_small.png"));
-#endif
+        // auto image = nucleus::tile::conversion::u8raster_2_to_qimage(output, output2);
+        // image.save(QString("rasterizer_output_small.png"));
     }
 
     SECTION("rasterize triangle smallest")
@@ -406,11 +396,9 @@ TEST_CASE("nucleus/rasterizer")
 
         CHECK(output.buffer() == output2.buffer());
 
-#ifdef WRITE_RASTERIZER_DEBUG_IMAGE
         // DEBUG: save image (image saved to build/Desktop-Profile/unittests/nucleus)
-        auto image = nucleus::tile::conversion::u8raster_2_to_qimage(output, output2);
-        image.save(QString("rasterizer_output_smallest.png"));
-#endif
+        // auto image = nucleus::tile::conversion::u8raster_2_to_qimage(output, output2);
+        // image.save(QString("rasterizer_output_smallest.png"));
     }
 
     SECTION("rasterize triangle enlarged endcaps only")
@@ -439,11 +427,9 @@ TEST_CASE("nucleus/rasterizer")
 
         CHECK(output.buffer() == output2.buffer());
 
-#ifdef WRITE_RASTERIZER_DEBUG_IMAGE
         // DEBUG: save image (image saved to build/Desktop-Profile/unittests/nucleus)
-        auto image = nucleus::tile::conversion::u8raster_2_to_qimage(output, output2);
-        image.save(QString("rasterizer_output_enlarged_endcap.png"));
-#endif
+        // auto image = nucleus::tile::conversion::u8raster_2_to_qimage(output, output2);
+        // image.save(QString("rasterizer_output_enlarged_endcap.png"));
     }
 
     SECTION("rasterize triangle enlarged")
@@ -476,11 +462,9 @@ TEST_CASE("nucleus/rasterizer")
 
         CHECK(output.buffer() == output2.buffer());
 
-#ifdef WRITE_RASTERIZER_DEBUG_IMAGE
         // DEBUG: save image (image saved to build/Desktop-Profile/unittests/nucleus)
-        auto image = nucleus::tile::conversion::u8raster_2_to_qimage(output, output2);
-        image.save(QString("rasterizer_output_enlarged.png"));
-#endif
+        // auto image = nucleus::tile::conversion::u8raster_2_to_qimage(output, output2);
+        // image.save(QString("rasterizer_output_enlarged.png"));
     }
 
     SECTION("rasterize triangle horizontal")
@@ -506,11 +490,9 @@ TEST_CASE("nucleus/rasterizer")
 
         CHECK(output.buffer() == output2.buffer());
 
-#ifdef WRITE_RASTERIZER_DEBUG_IMAGE
         // DEBUG: save image (image saved to build/Desktop-Profile/unittests/nucleus)
-        auto image = nucleus::tile::conversion::u8raster_2_to_qimage(output, output2);
-        image.save(QString("rasterizer_output_enlarged_horizontal.png"));
-#endif
+        // auto image = nucleus::tile::conversion::u8raster_2_to_qimage(output, output2);
+        // image.save(QString("rasterizer_output_enlarged_horizontal.png"));
     }
 
     //     // can't be verified exactly, since SDF is currently slightly inaccurate
@@ -539,11 +521,10 @@ TEST_CASE("nucleus/rasterizer")
 
     //         CHECK(output.buffer() == output2.buffer());
 
-    // #ifdef WRITE_DEBUG_IMAGE
     //         // DEBUG: save image (image saved to build/Desktop-Profile/unittests/nucleus)
-    //         auto image = nucleus::tile::conversion::u8raster_2_to_qimage(output, output2);
-    //         image.save(QString("rasterizer_output_enlarged_narrow.png"));
-    // #endif
+    //         // auto image = nucleus::tile::conversion::u8raster_2_to_qimage(output, output2);
+    //         // image.save(QString("rasterizer_output_enlarged_narrow.png"));
+    //
     //     }
 
     SECTION("rasterize donut")
@@ -579,10 +560,8 @@ TEST_CASE("nucleus/rasterizer")
 
         CHECK(output.buffer() == output2.buffer());
 
-#ifdef WRITE_RASTERIZER_DEBUG_IMAGE
-        auto image = nucleus::tile::conversion::u8raster_2_to_qimage(output, output2);
-        image.save(QString("rasterizer_output_donut.png"));
-#endif
+        // auto image = nucleus::tile::conversion::u8raster_2_to_qimage(output, output2);
+        // image.save(QString("rasterizer_output_donut.png"));
     }
 
     SECTION("rasterize random triangles")
@@ -617,9 +596,7 @@ TEST_CASE("nucleus/rasterizer")
         auto image = nucleus::tile::conversion::u8raster_to_qimage(output);
         CHECK(image == example_rasterizer_image("rasterizer_output_random_triangle.png"));
 
-#ifdef WRITE_RASTERIZER_DEBUG_IMAGE
-        image.save(QString("rasterizer_output_random_triangle.png"));
-#endif
+        // image.save(QString("rasterizer_output_random_triangle.png"));
     }
 
     SECTION("rasterize triangle start/end y")
@@ -674,11 +651,9 @@ TEST_CASE("nucleus/rasterizer")
 
         CHECK(output.buffer() == output2.buffer());
 
-#ifdef WRITE_RASTERIZER_DEBUG_IMAGE
         // DEBUG: save image (image saved to build/Desktop-Profile/unittests/nucleus)
-        auto image = nucleus::tile::conversion::u8raster_2_to_qimage(output, output2);
-        image.save(QString("rasterizer_output_triangle_start_end.png"));
-#endif
+        // auto image = nucleus::tile::conversion::u8raster_2_to_qimage(output, output2);
+        // image.save(QString("rasterizer_output_triangle_start_end.png"));
     }
 
     SECTION("rasterize line start/end y")
@@ -720,11 +695,9 @@ TEST_CASE("nucleus/rasterizer")
 
         CHECK(output.buffer() == output2.buffer());
 
-#ifdef WRITE_RASTERIZER_DEBUG_IMAGE
         // DEBUG: save image (image saved to build/Desktop-Profile/unittests/nucleus)
-        auto image = nucleus::tile::conversion::u8raster_2_to_qimage(output, output2);
-        image.save(QString("rasterizer_output_line_start_end.png"));
-#endif
+        // auto image = nucleus::tile::conversion::u8raster_2_to_qimage(output, output2);
+        // image.save(QString("rasterizer_output_line_start_end.png"));
     }
 
     SECTION("rasterize line straight")
@@ -750,11 +723,9 @@ TEST_CASE("nucleus/rasterizer")
 
         CHECK(output.buffer() == output2.buffer());
 
-#ifdef WRITE_RASTERIZER_DEBUG_IMAGE
         // DEBUG: save image (image saved to build/Desktop-Profile/unittests/nucleus)
-        auto image = nucleus::tile::conversion::u8raster_2_to_qimage(output, output2);
-        image.save(QString("rasterizer_output_line_straight.png"));
-#endif
+        // auto image = nucleus::tile::conversion::u8raster_2_to_qimage(output, output2);
+        // image.save(QString("rasterizer_output_line_straight.png"));
     }
 
     SECTION("rasterize line diagonal")
@@ -780,11 +751,9 @@ TEST_CASE("nucleus/rasterizer")
 
         CHECK(output.buffer() == output2.buffer());
 
-#ifdef WRITE_RASTERIZER_DEBUG_IMAGE
         // DEBUG: save image (image saved to build/Desktop-Profile/unittests/nucleus)
-        auto image = nucleus::tile::conversion::u8raster_2_to_qimage(output, output2);
-        image.save(QString("rasterizer_output_line_diagonal.png"));
-#endif
+        // auto image = nucleus::tile::conversion::u8raster_2_to_qimage(output, output2);
+        // image.save(QString("rasterizer_output_line_diagonal.png"));
     }
 
     SECTION("rasterize line straight enlarged")
@@ -810,11 +779,9 @@ TEST_CASE("nucleus/rasterizer")
 
         CHECK(output.buffer() == output2.buffer());
 
-#ifdef WRITE_RASTERIZER_DEBUG_IMAGE
         // DEBUG: save image (image saved to build/Desktop-Profile/unittests/nucleus)
-        auto image = nucleus::tile::conversion::u8raster_2_to_qimage(output, output2);
-        image.save(QString("rasterizer_output_line_straight_enlarged.png"));
-#endif
+        // auto image = nucleus::tile::conversion::u8raster_2_to_qimage(output, output2);
+        // image.save(QString("rasterizer_output_line_straight_enlarged.png"));
     }
 
     SECTION("rasterize line diagonal enlarged")
@@ -841,11 +808,9 @@ TEST_CASE("nucleus/rasterizer")
 
         CHECK(output.buffer() == output2.buffer());
 
-#ifdef WRITE_RASTERIZER_DEBUG_IMAGE
         // DEBUG: save image (image saved to build/Desktop-Profile/unittests/nucleus)
-        auto image = nucleus::tile::conversion::u8raster_2_to_qimage(output, output2);
-        image.save(QString("rasterizer_output_line_diagonal_enlarged.png"));
-#endif
+        // auto image = nucleus::tile::conversion::u8raster_2_to_qimage(output, output2);
+        // image.save(QString("rasterizer_output_line_diagonal_enlarged.png"));
     }
 }
 TEST_CASE("nucleus/utils/rasterizer benchmarks")
