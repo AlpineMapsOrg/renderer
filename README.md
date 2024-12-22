@@ -19,6 +19,9 @@ We use Qt Creator (with mingw on Windows), which is the only tested setup atm an
 * Qt Positioning and Charts modules
 * Some other dependencies will be pulled automatically during building.
 
+## Building the native version
+* just ran cmake and build
+
 ## Building the android version
 * We are usually building with Qt Creator, because it works relatively out of the box. However, it should also work on the command line or other IDEs if you set it up correctly.
 * You need a Java JDK before you can do anything else. Not all Java versions work, and the error messages might be surprising (or non-existant). I'm running with Java 19, and I can compile for old devices. Iirc a newer version of Java caused issues. [Android documents the required Java version](https://developer.android.com/build/jdks), but as said, for me Java 19 works as well. It might change in the future.
