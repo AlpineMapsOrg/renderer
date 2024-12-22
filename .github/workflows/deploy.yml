@@ -258,8 +258,8 @@ jobs:
   deploy:
     if: github.event_name == 'push'
     needs:
-    - build
-    - build-wasm-release
+    - build-android
+    - build-wasm
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
