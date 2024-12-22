@@ -58,15 +58,12 @@ jobs:
     - name: Make qt cross binaries executable
       run: |
         chmod u+x ${QT_ROOT_DIR}/bin/*
-        ls ${QT_ROOT_DIR}
-        echo "==="
-        ls ${QT_ROOT_DIR}/..
-        echo "==="
-        ls ${QT_ROOT_DIR}/../..
 
     - name: Set reusable strings
       shell: bash
       run: |
+        echo "QT_HOST_ROOT_DIR=${QT_ROOT_DIR}/../gcc_64" >> $GITHUB_ENV
+        
         BUILD_DIR="build"
         APK_TARGET="app"
         echo "BUILD_DIR=$BUILD_DIR" >> $GITHUB_ENV
@@ -84,6 +81,7 @@ jobs:
         ${QT_ROOT_DIR}/bin/qt-cmake
         -G Ninja
         -B $BUILD_DIR
+        -DQT_HOST_PATH=$QT_HOST_ROOT_DIR
         -DCMAKE_BUILD_TYPE=Release
         -DALP_WWW_INSTALL_DIR=$INSTALL_DIR
         -DALP_ENABLE_ASSERTS=ON
@@ -209,7 +207,7 @@ jobs:
       if: steps.qt-cache.outputs.cache-hit != 'true'
       shell: bash
       run: |
-        git clone --branch v$QT_VERSION git://code.qt.io/qt/qt5.git qt_src
+        git clone --branch v${{matrix.qtversion}} git://code.qt.io/qt/qt5.git qt_src
         $QT_SRC_CONFIGURE -init-submodules -submodules qtdeclarative,qtbase -skip qtlanguageserver,qtquicktimeline,qtimageformats,qtsvg
         cd qt_src/qtbase
         git apply ../../misc/qt_68_qtbase_remove_dejavu_fonts.patch
