@@ -16,7 +16,7 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  build:
+  build-android:
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
@@ -63,6 +63,11 @@ jobs:
     - name: Make qt cross binaries executable
       run: |
         chmod u+x ${QT_ROOT_DIR}/bin/*
+        ls ${QT_ROOT_DIR}
+        echo "==="
+        ls ${QT_ROOT_DIR}/..
+        echo "==="
+        ls ${QT_ROOT_DIR}/../..
 
     - name: Verify emcc
       if: matrix.qttarget == 'desktop'
@@ -146,7 +151,7 @@ jobs:
         if-no-files-found: error
 
         
-  build-wasm-release:
+  build-wasm:
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
