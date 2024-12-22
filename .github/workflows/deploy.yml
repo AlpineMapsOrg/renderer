@@ -21,19 +21,8 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        qtarch: [wasm_singlethread, wasm_multithread, android_arm64_v8a, android_armv7]
+        qtarch: [android_arm64_v8a, android_armv7]
         include:
-          - qtarch: wasm_singlethread
-            qttarget: 'desktop'
-            qtmodules: ''
-            qtversion: '6.6.1'
-            additional_build_flags: '--target install'
-          - qtarch: wasm_multithread
-            qttarget: 'desktop'
-            qtmodules: ''
-            qtversion: '6.6.1'
-            additional_cmake_flags: '-DALP_ENABLE_THREADING=ON'
-            additional_build_flags: '--target install'
           - qtarch: android_arm64_v8a
             qttarget: 'android'
             qtversion: '6.8.1'
@@ -58,23 +47,9 @@ jobs:
       if: matrix.qttarget == 'desktop'
       with:
         version: 3.1.37
-        
-    - name: Install Qt native version (required by android version)
-      uses: jurplel/install-qt-action@v3
-      with:
-        aqtversion: '==3.1.*'
-        version: ${{ matrix.qtversion }}
-        host: linux
-        target: 'desktop'
-        arch: gcc_64
-        dir: '${{github.workspace}}/qt'
-        install-deps: 'true'
-
-    - name: Set QT_HOST_PATH
-      run: echo "QT_HOST_PATH=${Qt6_DIR}" >> "$GITHUB_ENV"
 
     - name: Install Qt crosscompile target version
-      uses: jurplel/install-qt-action@v3
+      uses: jurplel/install-qt-action@v4
       with:
         aqtversion: '==3.1.*'
         version: ${{ matrix.qtversion }}
@@ -87,7 +62,7 @@ jobs:
 
     - name: Make qt cross binaries executable
       run: |
-        chmod u+x ${Qt6_DIR}/bin/*
+        chmod u+x ${QT_ROOT_DIR}/bin/*
 
     - name: Verify emcc
       if: matrix.qttarget == 'desktop'
@@ -105,16 +80,12 @@ jobs:
         echo "APK_DIR=$BUILD_DIR/$APK_TARGET/android-build/build/outputs/apk/" >> $GITHUB_ENV
         echo "ANDROID_BUILD_DIR=$BUILD_DIR/$APK_TARGET/android-build/" >> $GITHUB_ENV
         echo "DEPLOYMENT_SETTINGS=$BUILD_DIR/$APK_TARGET/android-alpineapp-deployment-settings.json" >> $GITHUB_ENV
-
-    - name: Remove StatsWindow, otherwise the webassembly will link against qtwidgets and charts.
-      if: matrix.qttarget == 'desktop'
-      run: rm ./app/StatsWindow.qml
       
     - name: Configure CMake
       env:
-        CMAKE_PREFIX_PATH: ${{env.Qt6_DIR}}/lib/cmake
+        CMAKE_PREFIX_PATH: ${{env.QT_ROOT_DIR}}/lib/cmake
       run: >
-        ${Qt6_DIR}/bin/qt-cmake
+        ${QT_ROOT_DIR}/bin/qt-cmake
         -G Ninja
         -B $BUILD_DIR
         -DCMAKE_BUILD_TYPE=Release
@@ -134,7 +105,7 @@ jobs:
       run: |
         echo ${{ secrets.SIGNINGKEYBASE64 }} > release.keystore.base64
         base64 -d release.keystore.base64 > release.keystore
-        $QT_HOST_PATH/bin/androiddeployqt --input $DEPLOYMENT_SETTINGS --output $ANDROID_BUILD_DIR --android-platform android-35 --gradle --release --sign release.keystore alpinemaps --storepass ${{ secrets.KEYSTOREPASSWORD }}
+        $QT_ROOT_DIR/bin/androiddeployqt --input $DEPLOYMENT_SETTINGS --output $ANDROID_BUILD_DIR --android-platform android-35 --gradle --release --sign release.keystore alpinemaps --storepass ${{ secrets.KEYSTOREPASSWORD }}
         
     - name: Signing Android packages with generated key
       env: 
@@ -142,7 +113,7 @@ jobs:
       if: matrix.qttarget == 'android' && env.secret_test == ''
       run: |
         keytool -genkey -v -keystore release.keystore -alias alpinemaps -keyalg RSA -sigalg SHA1withRSA -keysize 2048 -validity 10000 -keypass asdfasdf -storepass asdfasdf -dname "CN=Franz, OU=IT, O=Furz, L=Rattenberg, ST=Tirol, C=AT"
-        $QT_HOST_PATH/bin/androiddeployqt --input $DEPLOYMENT_SETTINGS --output $ANDROID_BUILD_DIR --android-platform android-35 --gradle --release --sign release.keystore alpinemaps --storepass asdfasdf
+        $QT_ROOT_DIR/bin/androiddeployqt --input $DEPLOYMENT_SETTINGS --output $ANDROID_BUILD_DIR --android-platform android-35 --gradle --release --sign release.keystore alpinemaps --storepass asdfasdf
         
         README_PATH=$APK_DIR/read_me.txt
         echo "The apk was signed with a generated key which changes every time the apk is generated. This means, that android might refuse to install it if another apk with the same app was installed previously. You'll have to deinstall it. Doing so will delete all settings and cache." >> $README_PATH
@@ -210,7 +181,6 @@ jobs:
     - name: Set reusable strings
       shell: bash
       run: |
-        echo "QT_HOST_PATH=${QT_ROOT_DIR}" >> "$GITHUB_ENV"
         echo "BUILD_DIR="$(pwd)/build"" >> $GITHUB_ENV
         echo "INSTALL_DIR=install/wasm_release" >> $GITHUB_ENV
         echo "QT_WASM_ROOT_DIR=$(pwd)/qt_wasm_lite" >> $GITHUB_ENV
@@ -243,7 +213,7 @@ jobs:
         dest_dir="${{env.QT_WASM_ROOT_DIR}}"
         mkdir qt_wasm_build
         cd qt_wasm_build
-        ${{env.QT_SRC_CONFIGURE}} -qt-host-path $QT_HOST_PATH -release -ltcg $(cat ${{env.QT_LITE_CONFIG}}) -prefix "${QT_WASM_ROOT_DIR}/" 
+        ${{env.QT_SRC_CONFIGURE}} -qt-host-path $QT_ROOT_DIR -release -ltcg $(cat ${{env.QT_LITE_CONFIG}}) -prefix "${QT_WASM_ROOT_DIR}/" 
         sed -i 's/-flto=thin/-flto/g' ./build.ninja
         cmake --build . --parallel && cmake --install .
         # Fail if the directory is not created or is empty
