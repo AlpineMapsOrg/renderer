@@ -75,8 +75,7 @@
 -no-feature-itemmodeltester
 -no-feature-opensslv30
 -no-feature-schannel
--no-feature-wasm-exceptions
--feature-thread
+-no-feature-wasm-exceptions 
 -feature-wasm-simd128
 -feature-opengles3
 -feature-quick-canvas

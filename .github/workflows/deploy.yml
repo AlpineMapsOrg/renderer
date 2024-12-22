@@ -148,9 +148,19 @@ jobs:
         
   build-wasm-release:
     runs-on: ubuntu-latest
-    env:
-      QT_VERSION: "6.8.0"
-      WEBASSEMBLY_VERSION: "3.1.56"
+    strategy:
+      fail-fast: false
+      matrix:
+        config: [wasm_qt68_mt, wasm_qt68_st]
+        include:
+          - config: wasm_qt68_mt
+            qtflags: '-feature-thread'
+            qtversion: '6.8.1'
+            webassembly_version: "3.1.56"
+          - config: wasm_qt68_st
+            qtflags: '-no-feature-thread'
+            qtversion: '6.8.1'
+            webassembly_version: "3.1.56"
     steps:
     - name: Install dependencies
       run: |
@@ -164,25 +174,27 @@ jobs:
     
     - uses: mymindstorm/setup-emsdk@v13
       with:
-        version: ${{env.WEBASSEMBLY_VERSION}}
+        version: ${{matrix.webassembly_version}}
         
     - name: Install Qt native version (required for cross building)
       uses: jurplel/install-qt-action@v4
       with:
         aqtversion: '==3.1.*'
-        version: ${{env.QT_VERSION}}
+        version: ${{matrix.qtversion}}
         host: linux
         target: 'desktop'
         arch: linux_gcc_64
         dir: '${{github.workspace}}/qt_host'
         install-deps: 'true'
         modules: 'qtshadertools'
+        cache: true
+        cache-key-prefix: linux_gcc_64-${{ matrix.qtversion }}
         
     - name: Set reusable strings
       shell: bash
       run: |
         echo "BUILD_DIR="$(pwd)/build"" >> $GITHUB_ENV
-        echo "INSTALL_DIR=install/wasm_release" >> $GITHUB_ENV
+        echo "INSTALL_DIR=install/${{ matrix.config}}" >> $GITHUB_ENV
         echo "QT_WASM_ROOT_DIR=$(pwd)/qt_wasm_lite" >> $GITHUB_ENV
         echo "QT_SRC_CONFIGURE=$(pwd)/qt_src/configure" >> $GITHUB_ENV
         echo "QT_LITE_CONFIG=$(pwd)/misc/qt_lite.txt" >> $GITHUB_ENV
@@ -195,7 +207,7 @@ jobs:
       uses: actions/cache@v4
       with:
         path: qt_wasm_lite
-        key: wasm-qt-${{ env.QT_VERSION }}-${{ env.WEBASSEMBLY_VERSION }}
+        key: wasm-qt-${{ matrix.qtversion }}-emcc${{ matrix.webassembly_version }}-${{ join(split(matrix.qtflags, ' '), '_') }}
         
     - name: Download and patch Qt
       if: steps.qt-cache.outputs.cache-hit != 'true'
@@ -213,7 +225,7 @@ jobs:
         dest_dir="${{env.QT_WASM_ROOT_DIR}}"
         mkdir qt_wasm_build
         cd qt_wasm_build
-        ${{env.QT_SRC_CONFIGURE}} -qt-host-path $QT_ROOT_DIR -release -ltcg $(cat ${{env.QT_LITE_CONFIG}}) -prefix "${QT_WASM_ROOT_DIR}/" 
+        ${{env.QT_SRC_CONFIGURE}} -qt-host-path $QT_ROOT_DIR -release -ltcg $(cat ${{env.QT_LITE_CONFIG}}) ${{ matrix.qtflags }} -prefix "${QT_WASM_ROOT_DIR}/" 
         sed -i 's/-flto=thin/-flto/g' ./build.ninja
         cmake --build . --parallel && cmake --install .
         # Fail if the directory is not created or is empty
@@ -243,7 +255,7 @@ jobs:
     - name: Create artifact
       uses: actions/upload-artifact@v4
       with:
-        name: files_wasm_release
+        name: files_${{ matrix.config}}
         path: ${{ github.workspace }}/install/
         if-no-files-found: error
         
@@ -291,17 +303,10 @@ jobs:
         mirror -R -e -v -n $GITHUB_WORKSPACE/github_page/. ./${reponame}_$(git describe --tags --dirty=-d --abbrev=1);
         "
       
-    - name: Fix headers for wasm_multithread
+    - name: Fix headers for wasm multithread
       run: |
-        cd $GITHUB_WORKSPACE/github_page/wasm_multithread
+        cd $GITHUB_WORKSPACE/github_page/wasm_qt68_mt
         wget https://raw.githubusercontent.com/gzuidhof/coi-serviceworker/master/coi-serviceworker.min.js
-        sed -i -e 's#<body onload="init()">#<body onload="init()"><script src="coi-serviceworker\.min\.js"></script>#g' alpineapp.html
-        
-    - name: Fix headers for wasm_release
-      run: |
-        cd $GITHUB_WORKSPACE/github_page/wasm_release
-        wget https://raw.githubusercontent.com/gzuidhof/coi-serviceworker/master/coi-serviceworker.min.js
-        cp alpineapp.html alpineapp_orig.html
         sed -i -e 's#<body onload="init()">#<body onload="init()"><script src="coi-serviceworker\.min\.js"></script>#g' alpineapp.html
         
     - name: Generate Directory Listings
