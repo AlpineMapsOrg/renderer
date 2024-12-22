@@ -147,13 +147,13 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        config: [wasm_qt68_mt, wasm_qt68_st]
+        config: [wasm_mt, wasm_st]
         include:
-          - config: wasm_qt68_mt
+          - config: wasm_mt
             qtflags: '-feature-thread'
             qtversion: '6.8.1'
             webassembly_version: "3.1.56"
-          - config: wasm_qt68_st
+          - config: wasm_st
             qtflags: '-no-feature-thread'
             qtversion: '6.8.1'
             webassembly_version: "3.1.56"
@@ -203,7 +203,7 @@ jobs:
       uses: actions/cache@v4
       with:
         path: qt_wasm_lite
-        key: wasm-qt-${{ matrix.qtversion }}-emcc${{ matrix.webassembly_version }}-${{ join(split(matrix.qtflags, ' '), '_') }}
+        key: ${{ matrix.config }}_qt-${{ matrix.qtversion }}_emcc-${{ matrix.webassembly_version }}
         
     - name: Download and patch Qt
       if: steps.qt-cache.outputs.cache-hit != 'true'
