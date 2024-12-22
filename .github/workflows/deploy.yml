@@ -76,7 +76,7 @@ jobs:
       
     - name: Configure CMake
       env:
-        CMAKE_PREFIX_PATH: ${{env.QT_ROOT_DIR}}/lib/cmake
+        CMAKE_PREFIX_PATH: ${{env.QT_HOST_ROOT_DIR}}/lib/cmake
       run: >
         ${QT_ROOT_DIR}/bin/qt-cmake
         -G Ninja
