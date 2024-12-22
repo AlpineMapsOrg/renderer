@@ -22,17 +22,17 @@
 
 namespace nucleus::utils::rasterizer {
 
-std::vector<glm::ivec2> generate_neighbour_edges(std::vector<glm::vec2> polygon_points)
+std::vector<glm::ivec2> generate_neighbour_edges(std::vector<glm::vec2> polygon_points, const size_t start_offset)
 {
     std::vector<glm::ivec2> edges;
     { // create the edges
         edges.reserve(polygon_points.size());
         for (size_t i = 0; i < polygon_points.size() - 1; i++) {
-            edges.push_back(glm::ivec2(int(i), int(i + 1)));
+            edges.push_back(glm::ivec2(start_offset + int(i), start_offset + int(i + 1)));
         }
 
         // last edge between start and end vertex
-        edges.push_back(glm::ivec2(polygon_points.size() - 1, 0));
+        edges.push_back(glm::ivec2(start_offset + polygon_points.size() - 1, start_offset));
     }
 
     return edges;

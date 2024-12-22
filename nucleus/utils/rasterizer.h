@@ -21,6 +21,8 @@
 
 #include <glm/glm.hpp>
 
+#include <iostream>
+
 namespace nucleus::utils::rasterizer {
 /*
  * Possible future improvements:
@@ -171,7 +173,8 @@ namespace details {
             } else {
                 { // start of the line
                     // const float line_top_y = line_point.y;
-                    const float bottom_y = ceil(line_point.y) - epsilon; // top of the y step
+                    // in case that the current point is exactly on an integer value, we first have to increase the value by a small amount then ceil it.
+                    const float bottom_y = ceil(line_point.y + epsilon) - epsilon; // bottom of the y step
 
                     // either use line start or calculate the x at the bottom of the pixel
                     const auto x1 = (fill_current_from_top_x) ? line_point.x : get_x_for_y_on_line(line_point, line, bottom_y);
@@ -202,10 +205,11 @@ namespace details {
         }
 
         // draw all the steps in between
-        for (int y = line_point.y + 1; y < line_point.y + y_steps - 1; y++) {
+        for (int y = line_point.y + 1; y < ceil(line_point.y + line.y + epsilon) - 1; y++) {
             // at a distinct y step draw the current line from floor to ceil
 
             if (!fill) {
+                // draw between line start and line end of current y level
                 const auto x1 = get_x_for_y_on_line(line_point, line, y + epsilon);
                 const auto x2 = get_x_for_y_on_line(line_point, line, y + 1 - epsilon);
 
@@ -259,7 +263,6 @@ namespace details {
     template <PixelWriterFunctionConcept PixelWriterFunction>
     void render_triangle(const PixelWriterFunction& pixel_writer, const std::array<glm::vec2, 3> triangle, unsigned int triangle_index, float distance)
     {
-
         assert(triangle[0].y <= triangle[1].y);
         assert(triangle[1].y <= triangle[2].y);
 
@@ -267,7 +270,9 @@ namespace details {
         auto edge_top_middle = triangle[1] - triangle[0];
         auto edge_middle_bottom = triangle[2] - triangle[1];
 
-        int fill_direction = (triangle[1].x < triangle[2].x) ? 1 : -1;
+        // by comparing the middle vertex with the middle position of the longest line, we can determine the direction of our fill algorithm
+        int x_middle_of_top_bottom_line = get_x_for_y_on_line(triangle[0], edge_top_bottom, triangle[1].y);
+        int fill_direction = (triangle[1].x < x_middle_of_top_bottom_line) ? 1 : -1;
 
         if (distance == 0.0) {
             // top middle
@@ -279,7 +284,6 @@ namespace details {
         }
 
         // we need to render an enlarged triangle
-
         auto normal_top_bottom = glm::normalize(glm::vec2(-edge_top_bottom.y, edge_top_bottom.x));
         auto normal_top_middle = glm::normalize(glm::vec2(-edge_top_middle.y, edge_top_middle.x));
         auto normal_middle_bottom = glm::normalize(glm::vec2(-edge_middle_bottom.y, edge_middle_bottom.x));
@@ -479,8 +483,10 @@ namespace details {
 /*
  * generates edges of a polygon
  * this assumes that polygons neighbouring in the vector should form an edge and the first and last edge are also connected
+ * start offset if you want to only create an edge ring list of a part of the bigger polygon you can only provide the part and an start_offset,
+ * that indicates by how much the vertice index has to be offset
  */
-std::vector<glm::ivec2> generate_neighbour_edges(std::vector<glm::vec2> polygon_points);
+std::vector<glm::ivec2> generate_neighbour_edges(std::vector<glm::vec2> polygon_points, const size_t start_offset = 0);
 
 /*
  * triangulizes polygons and orders the vertices by y position per triangle
