@@ -20,9 +20,9 @@
 
 #include <QRandomGenerator>
 
-Window::Window(std::shared_ptr<gl_engine::Context> context)
+Window::Window(std::shared_ptr<gl_engine::Context> context, std::shared_ptr<avalanche::eaws::UIntIdManager> eaws_uint_id_manager)
 {
-    m_gl_window = new gl_engine::Window(context);
+    m_gl_window = new gl_engine::Window(context, eaws_uint_id_manager);
     connect(m_gl_window, &gl_engine::Window::update_requested, this, qOverload<>(&QOpenGLWindow::update));
 }
 

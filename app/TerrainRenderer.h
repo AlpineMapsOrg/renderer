@@ -32,6 +32,9 @@ class Controller;
 namespace nucleus::camera {
 class Controller;
 }
+namespace avalanche::eaws {
+class UIntIdManager;
+}
 
 class TerrainRenderer : public QObject, public QQuickFramebufferObject::Renderer {
     Q_OBJECT
@@ -53,4 +56,5 @@ private:
     QQuickWindow* m_window = nullptr;
     std::unique_ptr<gl_engine::Window> m_glWindow;
     std::unique_ptr<nucleus::camera::Controller> m_camera_controller;
+    std::shared_ptr<avalanche::eaws::UIntIdManager> m_uint_id_manager;
 };

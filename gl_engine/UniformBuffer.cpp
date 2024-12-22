@@ -89,3 +89,4 @@ template class gl_engine::UniformBuffer<gl_engine::uboSharedConfig>;
 template class gl_engine::UniformBuffer<gl_engine::uboCameraConfig>;
 template class gl_engine::UniformBuffer<gl_engine::uboShadowConfig>;
 template class gl_engine::UniformBuffer<gl_engine::uboTestConfig>;
+template class gl_engine::UniformBuffer<gl_engine::uboEawsReports>;

@@ -143,6 +143,9 @@ struct uboShadowConfig {
     glm::vec2 buff;
 };
 
+struct uboEawsReports {
+    glm::uvec4 reports[1000]; // ~600 regions where each region has a forecast of the form: .x: forecast available (1/0) .y: border .z: rating below border .a: rating above
+};
 
 // This struct is only used for unit tests
 struct uboTestConfig {

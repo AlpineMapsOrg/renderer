@@ -17,9 +17,16 @@
  *****************************************************************************/
 
 #include "eaws.h"
+#include <QFile>
+#include <QJsonArray>
+#include <QJsonDocument>
+#include <QJsonObject>
+#include <QNetworkAccessManager>
+#include <QNetworkReply>
+#include <QNetworkRequest>
+#include <algorithm>
 #include <nucleus/tile/conversion.h>
 #include <nucleus/vector_tile/util.h>
-
 tl::expected<avalanche::eaws::RegionTile, QString> avalanche::eaws::vector_tile_reader(const QByteArray& input_data, const radix::tile::Id& tile_id)
 {
     // This name could theoretically be changed by the EAWS (very unlikely though)
@@ -86,6 +93,54 @@ tl::expected<avalanche::eaws::RegionTile, QString> avalanche::eaws::vector_tile_
     return tl::expected<avalanche::eaws::RegionTile, QString>(RegionTile(tile_id, regions_to_be_returned));
 }
 
+tl::expected<std::vector<QString>, QString> get_all_eaws_region_ids_from_server()
+{
+    // Read the json from file for now
+    QString filePath = "app\\eaws\\micro-regions.json";
+    QFile jsonFile(filePath);
+    jsonFile.open(QIODevice::ReadOnly | QIODevice::Unbuffered);
+    QByteArray data = jsonFile.readAll();
+    jsonFile.close();
+
+    // Convert data to Json
+    QJsonParseError parse_error;
+    QJsonDocument json_document = QJsonDocument::fromJson(data, &parse_error);
+
+    // Check for parsing error
+    if (parse_error.error != QJsonParseError::NoError)
+        return tl::unexpected(QString("ERROR: Parse Error wile parsing JSON with EAWS region ids."));
+
+    // Check for empty json
+    if (json_document.isEmpty() || json_document.isNull())
+        return tl::unexpected(QString("ERROR: Empty JSON with EAWS region ids."));
+
+    // Check if key with reports is correct
+    if (!json_document.isObject())
+        return tl::unexpected(QString("ERROR: JSON with EAWS region ids is not JSON Object"));
+    QJsonObject obj = json_document.object();
+    if (!obj.contains("features"))
+        return tl::unexpected(QString("ERROR: JSON with EAWS region ids is not JSON Object."));
+    if (!obj["features"].isArray())
+        return tl::unexpected(QString("ERROR: JSON with EAWS region ids does not contain expected array"));
+
+    // Go through all regions , only add current regions to return vector
+    QJsonArray array = obj["features"].toArray();
+    std::vector<QString> regions;
+    for (const QJsonValue& jsonValue_region : array) {
+        QJsonObject jsonObject_properties = jsonValue_region.toObject()["properties"].toObject();
+
+        // Test if region is old (has an end date that is not null). Current regions have either no start and no end date key or they those keys but but end date is null
+        if (jsonObject_properties.contains("end_date")) {
+            if (!jsonObject_properties["end_date"].isNull())
+                continue;
+        } else
+            regions.push_back(jsonValue_region.toObject()["properties"].toObject()["id"].toString());
+    }
+
+    // return vector withh ids of current regions
+    return tl::expected<std::vector<QString>, QString>(regions);
+}
+
 avalanche::eaws::UIntIdManager::UIntIdManager()
 {
     // intern_id = 0 means "no region"
@@ -94,13 +149,82 @@ avalanche::eaws::UIntIdManager::UIntIdManager()
     assert(max_internal_id == 0);
 }
 
+void avalanche::eaws::UIntIdManager::load_all_regions_from_server()
+{
+    // Get list of all current eaws regions to complete this conversion service
+    // Read the json from file for now
+    tl::expected<std::vector<QString>, QString> result = get_all_eaws_region_ids_from_server();
+
+    // Add all region ids to internal list. the index in the array is the internal uint id that belongs to the eaws region id.
+    if (result.has_value()) {
+        for (const QString& region_id : result.value()) {
+            convert_region_id_to_internal_id(region_id);
+        }
+    }
+
+    // This is heard by the ReportManager::load_all_regions_from_server which loads allr eprots and can assignthem to correct uint id.
+    emit loaded_all_regions();
+}
+
+avalanche::eaws::ReportManager::ReportManager(
+    std::shared_ptr<avalanche::eaws::UIntIdManager> input_uint_id_manager, std::shared_ptr<gl_engine::UniformBuffer<gl_engine::uboEawsReports>> input_ubo_eaws_reports)
+    : m_uint_id_manager(input_uint_id_manager)
+    , m_ubo_eaws_reports(input_ubo_eaws_reports)
+{
+    // create instances of uint_id_manager and report_load_service and connect them to methods
+    std::make_unique<avalanche::eaws::ReportLoadService>();
+    QObject::connect(this, &avalanche::eaws::ReportManager::latest_report_report_requested, &m_report_load_service, &avalanche::eaws::ReportLoadService::load_latest_TU_Wien);
+    QObject::connect(&m_report_load_service, &avalanche::eaws::ReportLoadService::load_latest_TU_Wien_finished, this, &avalanche::eaws::ReportManager::receive_latest_reports_from_server);
+
+    // Write zero-vectors to ubo with avalanche reports. THis means no report available
+    std::fill(m_ubo_eaws_reports->data.reports, m_ubo_eaws_reports->data.reports + 1000, glm::uvec4(0, 0, 0, 0));
+    m_ubo_eaws_reports->update_gpu_data();
+
+    // Let uint_id_manager load all regions from server and then let it trigger an update of reports
+    QObject::connect(m_uint_id_manager.get(), &avalanche::eaws::UIntIdManager::loaded_all_regions, this, &avalanche::eaws::ReportManager::request_latest_reports_from_server);
+    m_uint_id_manager->load_all_regions_from_server();
+}
+
+void avalanche::eaws::ReportManager::request_latest_reports_from_server()
+{
+    // get latest report from server this must be connected to report loader
+    emit latest_report_report_requested();
+}
+
+// Slot: Gets activated by member reprot load service when reports are available
+void avalanche::eaws::ReportManager::receive_latest_reports_from_server(tl::expected<std::vector<ReportTUWien>, QString> data_from_server)
+{
+    // Fill array with zero vectors
+    std::fill(m_ubo_eaws_reports->data.reports, m_ubo_eaws_reports->data.reports + 1000, glm::uvec4(0, 0, 0, 0));
+
+    // If error occured during fetching reports send ubp with zeros to gpu
+    if (!data_from_server.has_value()) {
+        m_ubo_eaws_reports->update_gpu_data();
+        return;
+    }
+
+    // if reports arrived as expected write them to ubo object
+    std::vector<ReportTUWien> reports = data_from_server.value();
+    for (const ReportTUWien& report : reports) {
+        uint idx = m_uint_id_manager->convert_region_id_to_internal_id(report.region_id);
+        m_ubo_eaws_reports->data.reports[idx] = glm::uvec4(1, report.border, report.rating_lo, report.rating_hi); // first index = 1 means report for this region available
+    }
+
+    // send updated ubo object to gpu
+    m_ubo_eaws_reports->update_gpu_data();
+    return;
+}
+
 uint avalanche::eaws::UIntIdManager::convert_region_id_to_internal_id(const QString& region_id)
 {
-    // If Key exists returns its values otherwise create it and return created value
+    // If Key exists return its values otherwise create it and return created value
     auto entry = region_id_to_internal_id.find(region_id);
     if (entry == region_id_to_internal_id.end()) {
         max_internal_id++;
         region_id_to_internal_id[region_id] = max_internal_id;
+        assert(internal_id_to_region_id.find(max_internal_id) == internal_id_to_region_id.end());
+        internal_id_to_region_id[max_internal_id] = region_id;
+        assert(internal_id_to_region_id.size() == region_id_to_internal_id.size());
         return max_internal_id;
     } else
         return entry->second;
@@ -142,6 +266,14 @@ bool avalanche::eaws::UIntIdManager::checkIfImageFormatSupported(const QImage::F
             return true;
     }
     return false;
+}
+
+std::vector<QString> avalanche::eaws::UIntIdManager::get_all_registered_region_ids() const
+{
+    std::vector<QString> region_ids(internal_id_to_region_id.size());
+    for (const auto& [internal_id, region_id] : internal_id_to_region_id)
+        region_ids[internal_id] = region_id;
+    return region_ids;
 }
 
 // Auxillary function: Calculates new coordinates of a region boundary after zoom in / out
@@ -209,7 +341,7 @@ std::vector<QPointF> transform_vertices(const avalanche::eaws::Region& region, c
 }
 
 QImage avalanche::eaws::draw_regions(const RegionTile& region_tile,
-    avalanche::eaws::UIntIdManager* internal_id_manager,
+    std::shared_ptr<avalanche::eaws::UIntIdManager> internal_id_manager,
     const uint& image_width,
     const uint& image_height,
     const radix::tile::Id& tile_id_out,
@@ -245,7 +377,7 @@ QImage avalanche::eaws::draw_regions(const RegionTile& region_tile,
 }
 
 nucleus::Raster<uint16_t> avalanche::eaws::rasterize_regions(
-    const RegionTile& region_tile, avalanche::eaws::UIntIdManager* internal_id_manager, const uint raster_width, const uint raster_height, const radix::tile::Id& tile_id_out)
+    const RegionTile& region_tile, std::shared_ptr<avalanche::eaws::UIntIdManager> internal_id_manager, const uint raster_width, const uint raster_height, const radix::tile::Id& tile_id_out)
 {
     // Draw region ids to image, if all pixel have same value return one pixel with this value
     const QImage img = draw_regions(region_tile, internal_id_manager, raster_width, raster_height, tile_id_out);
@@ -258,7 +390,7 @@ nucleus::Raster<uint16_t> avalanche::eaws::rasterize_regions(
     return nucleus::Raster<uint16_t>({ 1, 1 }, first_pixel);
 }
 
-nucleus::Raster<uint16_t> avalanche::eaws::rasterize_regions(const RegionTile& region_tile, avalanche::eaws::UIntIdManager* internal_id_manager)
+nucleus::Raster<uint16_t> avalanche::eaws::rasterize_regions(const RegionTile& region_tile, std::shared_ptr<avalanche::eaws::UIntIdManager> internal_id_manager)
 {
     return rasterize_regions(region_tile, internal_id_manager, region_tile.second[0].resolution.x, region_tile.second[0].resolution.y, region_tile.first);
 }

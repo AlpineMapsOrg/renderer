@@ -45,6 +45,11 @@ class QOpenGLTexture;
 class QOpenGLShaderProgram;
 class QOpenGLVertexArrayObject;
 
+namespace avalanche::eaws {
+class ReportManager;
+class UIntIdManager;
+}
+
 namespace gl_engine {
 
 class MapLabels;
@@ -53,11 +58,10 @@ class Framebuffer;
 class SSAO;
 class ShadowMapping;
 class Context;
-
 class Window : public nucleus::AbstractRenderWindow, public nucleus::camera::AbstractDepthTester {
     Q_OBJECT
 public:
-    Window(std::shared_ptr<Context> context);
+    Window(std::shared_ptr<Context> context, std::shared_ptr<avalanche::eaws::UIntIdManager> input_uint_id_manager);
     ~Window() override;
 
     void initialise_gpu() override;
@@ -100,7 +104,7 @@ private:
     std::shared_ptr<UniformBuffer<uboSharedConfig>> m_shared_config_ubo; // needs opengl context
     std::shared_ptr<UniformBuffer<uboCameraConfig>> m_camera_config_ubo;
     std::shared_ptr<UniformBuffer<uboShadowConfig>> m_shadow_config_ubo;
-
+    std::shared_ptr<UniformBuffer<uboEawsReports>> m_eaws_reports_ubo;
     helpers::ScreenQuadGeometry m_screen_quad_geometry;
 
     nucleus::camera::Definition m_camera;
@@ -111,7 +115,8 @@ private:
     QString m_debug_scheduler_stats;
 
     std::unique_ptr<nucleus::timing::TimerManager> m_timer;
-
+    std::shared_ptr<avalanche::eaws::UIntIdManager> m_uint_id_manager;
+    std::unique_ptr<avalanche::eaws::ReportManager> m_avalanche_report_manager;
 };
 
-} // namespace
+} // namespace gl_engine

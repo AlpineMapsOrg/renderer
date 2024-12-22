@@ -26,7 +26,7 @@ namespace avalanche::eaws {
 class TextureScheduler : public nucleus::tile::Scheduler {
     Q_OBJECT
 public:
-    TextureScheduler(std::string name, unsigned texture_resolution, QObject* parent = nullptr);
+    TextureScheduler(std::string name, unsigned texture_resolution, std::shared_ptr<avalanche::eaws::UIntIdManager> m_internal_id_manager, QObject* parent = nullptr);
     ~TextureScheduler();
 
 signals:
@@ -38,7 +38,7 @@ protected:
 private:
     nucleus::utils::ColourTexture::Format m_compression_algorithm = nucleus::utils::ColourTexture::Format::DXT1;
     nucleus::Raster<glm::u8vec4> m_default_raster;
-    avalanche::eaws::UIntIdManager m_internal_id_manager;
+    std::shared_ptr<avalanche::eaws::UIntIdManager> m_internal_id_manager;
 };
 
 } // namespace avalanche::eaws

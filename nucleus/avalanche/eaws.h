@@ -18,12 +18,14 @@
 
 #ifndef EAWS_H
 #define EAWS_H
+#include "gl_engine/UniformBuffer.h"
+#include "gl_engine/UniformBufferObjects.h"
 #include <QDate>
 #include <QPainter>
 #include <extern/tl_expected/include/tl/expected.hpp>
 #include <mapbox/vector_tile.hpp>
 #include <nucleus/Raster.h>
-#include <radix/tile.h>
+#include <nucleus/avalanche/ReportLoadService.h>
 
 namespace avalanche::eaws {
 struct Region {
@@ -55,7 +57,9 @@ using RegionTile = std::pair<radix::tile::Id, std::vector<Region>>;
 tl::expected<RegionTile, QString> vector_tile_reader(const QByteArray& input_data, const radix::tile::Id& tile_id);
 
 // This class handles conversion from region-id strings to internal ids as uint and as color
-class UIntIdManager {
+class UIntIdManager : public QObject {
+    Q_OBJECT
+
 public:
     const std::vector<QImage::Format> supported_image_formats { QImage::Format_ARGB32 };
     UIntIdManager();
@@ -66,6 +70,11 @@ public:
     uint convert_color_to_internal_id(const QColor& color, const QImage::Format& color_format);
     QColor convert_internal_id_to_color(const uint& internal_id, const QImage::Format& color_format);
     bool checkIfImageFormatSupported(const QImage::Format& color_format) const;
+    std::vector<QString> get_all_registered_region_ids() const;
+    void load_all_regions_from_server();
+    bool operator==(const avalanche::eaws::UIntIdManager& rhs) { return (get_all_registered_region_ids() == rhs.get_all_registered_region_ids()); }
+signals:
+    void loaded_all_regions() const;
 
 private:
     std::unordered_map<QString, uint> region_id_to_internal_id;
@@ -73,10 +82,37 @@ private:
     uint max_internal_id = 0;
 };
 
+// Should be a member of the window.cpp and handles everything related to avalnche reports , especially updates ubo with currently selected report
+class ReportManager : public QObject {
+    Q_OBJECT
+signals:
+    void latest_report_report_requested();
+public slots:
+    void request_latest_reports_from_server();
+
+    // recieves data from TU wien server, and writes it to ubo ob gpu
+    void receive_latest_reports_from_server(tl::expected<std::vector<ReportTUWien>, QString> data_from_server);
+
+public:
+    ReportManager(std::shared_ptr<avalanche::eaws::UIntIdManager> input_uint_id_manager, std::shared_ptr<gl_engine::UniformBuffer<gl_engine::uboEawsReports>> input_ubo_eaws_reports);
+    ~ReportManager() = default;
+
+private:
+    ReportLoadService m_report_load_service;
+    std::shared_ptr<UIntIdManager> m_uint_id_manager;
+    std::shared_ptr<gl_engine::UniformBuffer<gl_engine::uboEawsReports>> m_ubo_eaws_reports;
+
+public:
+    bool operator==(const ReportManager& rhs)
+    {
+        return (m_ubo_eaws_reports.get() == rhs.m_ubo_eaws_reports.get() && m_uint_id_manager == rhs.m_uint_id_manager && m_report_load_service == rhs.m_report_load_service);
+    }
+};
+
 // Creates a new QImage and draws all regions to it where color encodes the region id. Throws error when no regions are provided
 // Note: tile_id_out must have greater or equal zoomlevel than tile_id_in
 QImage draw_regions(const RegionTile& region_tile,
-    avalanche::eaws::UIntIdManager* internal_id_manager,
+    std::shared_ptr<UIntIdManager> internal_id_manager,
     const uint& image_width,
     const uint& image_height,
     const radix::tile::Id& tile_id_out,
@@ -85,9 +121,9 @@ QImage draw_regions(const RegionTile& region_tile,
 // Creates a raster from a QImage with regions in it. Throws error when raster_width or raster_height is 0.
 // Note: tile_id_out must have greater or equal zoomlevel than tile_id_in
 nucleus::Raster<uint16_t> rasterize_regions(
-    const RegionTile& region_tile, avalanche::eaws::UIntIdManager* internal_id_manager, const uint raster_width, const uint raster_height, const radix::tile::Id& tile_id_out);
+    const RegionTile& region_tile, std::shared_ptr<avalanche::eaws::UIntIdManager> internal_id_manager, const uint raster_width, const uint raster_height, const radix::tile::Id& tile_id_out);
 
 // Overload: Output has same resolution as EAWS regions, throws error when regions.size() == 0
-nucleus::Raster<uint16_t> rasterize_regions(const RegionTile& region_tile, avalanche::eaws::UIntIdManager* internal_id_manager);
+nucleus::Raster<uint16_t> rasterize_regions(const RegionTile& region_tile, std::shared_ptr<avalanche::eaws::UIntIdManager> internal_id_manager);
 } // namespace avalanche::eaws
 #endif // EAWS_H

@@ -47,6 +47,7 @@ class AabbDecorator;
 
 namespace avalanche::eaws {
 class TextureScheduler;
+class UIntIdManager;
 }
 
 class RenderingContext : public QObject {
@@ -70,7 +71,7 @@ public:
     }
     static RenderingContext* instance();
 
-    void initialise();
+    void initialise(std::shared_ptr<avalanche::eaws::UIntIdManager> input_uint_id_manager);
     void destroy();
     [[nodiscard]] std::shared_ptr<gl_engine::Context> engine_context() const;
     [[nodiscard]] std::shared_ptr<nucleus::tile::utils::AabbDecorator> aabb_decorator() const;

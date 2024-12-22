@@ -65,12 +65,12 @@
 #include <gl_engine/TextureLayer.h>
 #include <gl_engine/TileGeometry.h>
 #include <nucleus/DataQuerier.h>
+#include <nucleus/avalanche/eaws.h>
 #include <nucleus/camera/Controller.h>
 #include <nucleus/camera/PositionStorage.h>
 #include <nucleus/tile/GeometryScheduler.h>
 #include <nucleus/tile/TileLoadService.h>
 #include <nucleus/tile/setup.h>
-
 using namespace std::chrono_literals;
 using nucleus::AbstractRenderWindow;
 using nucleus::DataQuerier;
@@ -138,8 +138,8 @@ int main(int argc, char** argv)
     context->tile_geometry()->set_quad_limit(512);
     context->tile_geometry()->set_aabb_decorator(decorator);
     context->ortho_layer()->set_quad_limit(512);
-
-    Window glWindow(context);
+    std::shared_ptr<avalanche::eaws::UIntIdManager> eaws_uint_id_manager = std::make_shared<avalanche::eaws::UIntIdManager>();
+    Window glWindow(context, eaws_uint_id_manager);
 
     nucleus::camera::Controller camera_controller(nucleus::camera::PositionStorage::instance()->get("grossglockner"), glWindow.render_window(), data_querier.get());
 

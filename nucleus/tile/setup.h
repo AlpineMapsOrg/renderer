@@ -146,9 +146,13 @@ inline TextureSchedulerHolder texture_scheduler(std::string name, TileLoadServic
     return { std::move(scheduler), std::move(tile_service) };
 }
 
-inline EawsTextureSchedulerHolder eaws_texture_scheduler(std::string name, TileLoadServicePtr tile_service, const tile::utils::AabbDecoratorPtr& aabb_decorator, QThread* thread = nullptr)
+inline EawsTextureSchedulerHolder eaws_texture_scheduler(std::string name,
+    TileLoadServicePtr tile_service,
+    const tile::utils::AabbDecoratorPtr& aabb_decorator,
+    std::shared_ptr<avalanche::eaws::UIntIdManager> eaws_uint_id_manager,
+    QThread* thread = nullptr)
 {
-    std::unique_ptr<avalanche::eaws::TextureScheduler> scheduler = std::make_unique<avalanche::eaws::TextureScheduler>(std::move(name), 256);
+    std::unique_ptr<avalanche::eaws::TextureScheduler> scheduler = std::make_unique<avalanche::eaws::TextureScheduler>(std::move(name), 256, eaws_uint_id_manager);
     scheduler->read_disk_cache();
     scheduler->set_gpu_quad_limit(512);
     scheduler->set_ram_quad_limit(12000);

@@ -19,9 +19,7 @@
 
 #include <QFile>
 #include <catch2/catch_test_macros.hpp>
-
 #include <nucleus/avalanche/eaws.h>
-
 TEST_CASE("nucleus/EAWS Vector Tiles")
 {
     // Check if test file can be loaded
@@ -118,9 +116,18 @@ TEST_CASE("nucleus/EAWS Vector Tiles")
         }
 
         // Create internal id manager that is later needed to write region ids to image pixels
-        avalanche::eaws::UIntIdManager internal_id_manager;
-        CHECK(internal_id_manager.convert_internal_id_to_region_id(0) == "");
-        CHECK(internal_id_manager.convert_region_id_to_internal_id("") == 0);
+        std::shared_ptr<avalanche::eaws::UIntIdManager> internal_id_manager = std::make_shared<avalanche::eaws::UIntIdManager>();
+        CHECK(internal_id_manager->convert_internal_id_to_region_id(0) == "");
+        CHECK(internal_id_manager->convert_region_id_to_internal_id("") == 0);
+        std::vector<QString> all_region_Ids = internal_id_manager->get_all_registered_region_ids();
+        bool internal_maps_match = true;
+        for (uint i = 0; i < all_region_Ids.size(); i++) {
+            if (internal_id_manager->convert_region_id_to_internal_id(all_region_Ids[i]) != i) {
+                internal_maps_match = false;
+                break;
+            }
+        }
+        CHECK(internal_maps_match);
 
         // Load tiles at higher zoom level for testing
         std::vector<std::string> file_names({ "eaws_2-2-0.mvt", "eaws_10-236-299.mvt" });
@@ -158,31 +165,30 @@ TEST_CASE("nucleus/EAWS Vector Tiles")
         }
 
         // Rasterize all regions at same raster reslution as input regions
-        const auto raster = avalanche::eaws::rasterize_regions(
-            region_tile_0_0_0, &internal_id_manager, region_with_start_date.resolution.x, region_with_start_date.resolution.y, tile_id_0_0_0);
+        const auto raster = avalanche::eaws::rasterize_regions(region_tile_0_0_0, internal_id_manager, region_with_start_date.resolution.x, region_with_start_date.resolution.y, tile_id_0_0_0);
 
         // Check if raster has correct size
         CHECK((raster.width() == region_with_start_date.resolution.x && raster.height() == region_with_start_date.resolution.y));
 
         // Check if raster contains correct internal region-ids at certain pixels
         CHECK(0 == raster.pixel(glm::uvec2(0, 0)));
-        CHECK(internal_id_manager.convert_region_id_to_internal_id(region_with_start_date.id) == raster.pixel(glm::vec2(2128, 1459)));
+        CHECK(internal_id_manager->convert_region_id_to_internal_id(region_with_start_date.id) == raster.pixel(glm::vec2(2128, 1459)));
 
         // Check if raster and image have same values when drawn with same resolution
-        QImage img_small = avalanche::eaws::draw_regions(region_tile_2_2_0, &internal_id_manager, 20, 20, tile_id_2_2_0);
-        const auto raster_small = avalanche::eaws::rasterize_regions(region_tile_2_2_0, &internal_id_manager, 20, 20, tile_id_2_2_0);
+        QImage img_small = avalanche::eaws::draw_regions(region_tile_2_2_0, internal_id_manager, 20, 20, tile_id_2_2_0);
+        const auto raster_small = avalanche::eaws::rasterize_regions(region_tile_2_2_0, internal_id_manager, 20, 20, tile_id_2_2_0);
         for (uint i = 0; i < 10; i++) {
             for (uint j = 0; j < 10; j++) {
-                uint id_from_img = internal_id_manager.convert_color_to_internal_id(img_small.pixel(i, j), QImage::Format_ARGB32);
+                uint id_from_img = internal_id_manager->convert_color_to_internal_id(img_small.pixel(i, j), QImage::Format_ARGB32);
                 uint id_from_raster = raster_small.pixel(glm::uvec2(i, j));
                 CHECK(id_from_img == id_from_raster);
             }
         }
 
         // Check if tile that has only region NO-3035 in it produces a 1x1 raster with the corresponding internal region id
-        const auto raster_with_one_pixel = avalanche::eaws::rasterize_regions(region_tile_10_236_299, &internal_id_manager);
+        const auto raster_with_one_pixel = avalanche::eaws::rasterize_regions(region_tile_10_236_299, internal_id_manager);
         CHECK((1 == raster_with_one_pixel.width() && 1 == raster_with_one_pixel.width()));
         CHECK((1 == raster_with_one_pixel.width() && 1 == raster_with_one_pixel.height()));
-        CHECK(internal_id_manager.convert_region_id_to_internal_id("NO-3035") == raster_with_one_pixel.pixel(glm::uvec2(0, 0)));
+        CHECK(internal_id_manager->convert_region_id_to_internal_id("NO-3035") == raster_with_one_pixel.pixel(glm::uvec2(0, 0)));
     }
 }

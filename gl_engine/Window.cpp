@@ -51,13 +51,15 @@
 #include "Context.h"
 #include "Framebuffer.h"
 #include "SSAO.h"
-#include "ShaderRegistry.h"
 #include "ShaderProgram.h"
+#include "ShaderRegistry.h"
 #include "ShadowMapping.h"
 #include "TrackManager.h"
 #include "UniformBufferObjects.h"
 #include "Window.h"
 #include "helpers.h"
+#include "nucleus/track/GPX.h"
+#include <nucleus/avalanche/eaws.h>
 #include <nucleus/timing/CpuTimer.h>
 #include <nucleus/timing/TimerManager.h>
 #include <nucleus/utils/bit_coding.h>
@@ -73,9 +75,11 @@ using gl_engine::UniformBuffer;
 using gl_engine::Window;
 using namespace gl_engine;
 
-Window::Window(std::shared_ptr<Context> context)
+Window::Window(std::shared_ptr<Context> context, std::shared_ptr<avalanche::eaws::UIntIdManager> input_uint_id_manager)
     : m_context(context)
-    , m_camera({ 1822577.0, 6141664.0 - 500, 171.28 + 500 }, { 1822577.0, 6141664.0, 171.28 }) // should point right at the stephansdom
+    , m_camera({ 1822577.0, 6141664.0 - 500, 171.28 + 500 }, { 1822577.0, 6141664.0, 171.28 })
+    , // should point right at the stephansdom
+    m_uint_id_manager(input_uint_id_manager)
 {
     QTimer::singleShot(1, [this]() { emit update_requested(); });
 }
@@ -155,6 +159,12 @@ void Window::initialise_gpu()
     m_shadow_config_ubo = std::make_shared<gl_engine::UniformBuffer<gl_engine::uboShadowConfig>>(2, "shadow_config");
     m_shadow_config_ubo->init();
     m_shadow_config_ubo->bind_to_shader(shader_registry->all());
+
+    m_eaws_reports_ubo = std::make_shared<gl_engine::UniformBuffer<gl_engine::uboEawsReports>>(3, "eaws_reports");
+    m_eaws_reports_ubo->init();
+    m_eaws_reports_ubo->bind_to_shader(shader_registry->all());
+
+    m_avalanche_report_manager = std::make_unique<avalanche::eaws::ReportManager>(m_uint_id_manager, m_eaws_reports_ubo);
 
     { // INITIALIZE CPU AND GPU TIMER
         using namespace std;
@@ -408,6 +418,7 @@ void Window::reload_shader() {
         m_shared_config_ubo->bind_to_shader(shader_manager->all());
         m_camera_config_ubo->bind_to_shader(shader_manager->all());
         m_shadow_config_ubo->bind_to_shader(shader_manager->all());
+        m_eaws_reports_ubo->bind_to_shader(shader_manager->all());
         qDebug("all shaders reloaded");
         emit update_requested();
     };

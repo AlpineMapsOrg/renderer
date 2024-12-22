@@ -19,6 +19,7 @@
 #pragma once
 
 #include "Scheduler.h"
+#include "nucleus/avalanche/ReportLoadService.h"
 #include "types.h"
 
 namespace nucleus::tile {
@@ -40,6 +41,7 @@ protected:
 private:
     nucleus::utils::ColourTexture::Format m_compression_algorithm = nucleus::utils::ColourTexture::Format::Uncompressed_RGBA;
     Raster<glm::u8vec4> m_default_raster;
+    avalanche::eaws::ReportLoadService m_eaws_bulletin_load_service;
 };
 
 } // namespace nucleus::tile

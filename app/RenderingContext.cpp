@@ -29,6 +29,7 @@
 #include <gl_engine/TileGeometry.h>
 #include <nucleus/DataQuerier.h>
 #include <nucleus/avalanche/EawsTextureScheduler.h>
+#include <nucleus/avalanche/eaws.h>
 #include <nucleus/camera/Controller.h>
 #include <nucleus/camera/PositionStorage.h>
 #include <nucleus/map_label/Filter.h>
@@ -61,6 +62,7 @@ struct RenderingContext::Data {
     std::shared_ptr<nucleus::picker::PickerManager> picker_manager;
     std::shared_ptr<nucleus::tile::utils::AabbDecorator> aabb_decorator;
     std::shared_ptr<nucleus::tile::utils::AabbDecorator> aabb_decorator_eaws;
+    std::shared_ptr<avalanche::eaws::UIntIdManager> eaws_uint_id_manager;
 };
 
 RenderingContext::RenderingContext(QObject* parent)
@@ -91,8 +93,11 @@ RenderingContext::RenderingContext(QObject* parent)
     m->ortho_texture = nucleus::tile::setup::texture_scheduler(
         "ortho", std::make_unique<TileLoadService>("https://gataki.cg.tuwien.ac.at/raw/basemap/tiles/", TilePattern::ZYX_yPointingSouth, ".jpeg"), m->aabb_decorator, m->scheduler_thread.get());
 
-    m->eaws_texture = nucleus::tile::setup::eaws_texture_scheduler(
-        "eaws", std::make_unique<TileLoadService>("http://localhost:3000/eaws-regions/", TilePattern::ZXY_yPointingSouth, ""), m->aabb_decorator_eaws, m->scheduler_thread.get());
+    m->eaws_texture = nucleus::tile::setup::eaws_texture_scheduler("eaws",
+        std::make_unique<TileLoadService>("http://localhost:3000/eaws-regions/", TilePattern::ZXY_yPointingSouth, ""),
+        m->aabb_decorator_eaws,
+        m->eaws_uint_id_manager,
+        m->scheduler_thread.get());
 
     m->map_label = nucleus::map_label::setup::scheduler("map_label",
         std::make_unique<TileLoadService>("https://osm.cg.tuwien.ac.at/vector_tiles/poi_v1/", TilePattern::ZXY_yPointingSouth, ""),
@@ -108,6 +113,7 @@ RenderingContext::RenderingContext(QObject* parent)
         m->picker_manager->moveToThread(m->scheduler_thread.get());
         m->label_filter->moveToThread(m->scheduler_thread.get());
     }
+
     // clang-format off
     connect(m->geometry.scheduler.get(),       &nucleus::tile::GeometryScheduler::gpu_quads_updated, RenderThreadNotifier::instance(), &RenderThreadNotifier::notify);
     connect(m->ortho_texture.scheduler.get(),  &nucleus::tile::TextureScheduler::gpu_quads_updated,  RenderThreadNotifier::instance(), &RenderThreadNotifier::notify);
@@ -148,7 +154,7 @@ RenderingContext* RenderingContext::instance()
     return &s_instance;
 }
 
-void RenderingContext::initialise()
+void RenderingContext::initialise(std::shared_ptr<avalanche::eaws::UIntIdManager> input_uint_id_manager)
 {
     QMutexLocker locker(&m->shared_ptr_mutex);
     if (m->engine_context)
@@ -188,6 +194,8 @@ void RenderingContext::initialise()
 
     m->engine_context->initialise();
     nucleus::utils::thread::async_call(this, [this]() { emit this->initialised(); });
+
+    m->eaws_uint_id_manager = input_uint_id_manager;
 }
 
 void RenderingContext::destroy()
