@@ -64,11 +64,11 @@ jobs:
       run: |
         echo "QT_HOST_ROOT_DIR=${QT_ROOT_DIR}/../gcc_64" >> $GITHUB_ENV
         
-        echo "${QT_ROOT_DIR}/lib/cmake/:"
-        ls ${QT_ROOT_DIR}/lib/cmake/
+        echo "${QT_ROOT_DIR}/lib/cmake/Qt6Linguist:"
+        ls ${QT_ROOT_DIR}/lib/cmake/Qt6Linguist
         echo "==="
-        echo "${QT_ROOT_DIR}/../gcc_64/lib/cmake:"
-        ls ${QT_ROOT_DIR}/../gcc_64/lib/cmake
+        echo "${QT_ROOT_DIR}/../gcc_64/lib/cmake/Qt6Linguist:"
+        ls ${QT_ROOT_DIR}/../gcc_64/lib/cmake/Qt6Linguist
         
         BUILD_DIR="build"
         APK_TARGET="app"
@@ -87,7 +87,6 @@ jobs:
         ${QT_ROOT_DIR}/bin/qt-cmake
         -G Ninja
         -B $BUILD_DIR
-        -DQT_HOST_PATH=$QT_HOST_ROOT_DIR
         -DCMAKE_BUILD_TYPE=Release
         -DALP_WWW_INSTALL_DIR=$INSTALL_DIR
         -DALP_ENABLE_ASSERTS=ON
