@@ -50,7 +50,7 @@ jobs:
         version: ${{ matrix.qtversion }}
         host: linux
         target: 'desktop'
-        arch: gcc_64
+        arch: linux_gcc_64
         dir: '${{github.workspace}}/qt'
         install-deps: 'true'
         cache: true
@@ -78,6 +78,9 @@ jobs:
     - name: Set reusable strings
       shell: bash
       run: |
+        echo "${{github.workspace}}/qt":
+        ls ${{github.workspace}}/qt
+        
         echo "${QT_ROOT_DIR}/lib/cmake/Qt6Linguist:"
         ls ${QT_ROOT_DIR}/lib/cmake/Qt6Linguist
         echo "==="
