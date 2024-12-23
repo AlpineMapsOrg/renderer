@@ -78,8 +78,8 @@ jobs:
     - name: Set reusable strings
       shell: bash
       run: |
-        echo "${{github.workspace}}/qt/Qt":
-        ls ${{github.workspace}}/qt/Qt
+        echo "${{github.workspace}}/qt/Qt/6.8.1":
+        ls ${{github.workspace}}/qt/Qt/6.8.1
         
         echo "${QT_ROOT_DIR}/lib/cmake/Qt6Linguist:"
         ls ${QT_ROOT_DIR}/lib/cmake/Qt6Linguist
