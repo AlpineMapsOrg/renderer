@@ -225,14 +225,14 @@ jobs:
         cd qt_src/qtbase
         git apply ../../misc/qt_68_qtbase_remove_dejavu_fonts.patch
         
-    - name: Build Qt for Webassembly (custom lightweight LTO version)
+    - name: Build Qt for Webassembly (custom version)
       if: steps.qt-cache.outputs.cache-hit != 'true'
       shell: bash
       run: |
         dest_dir="${{env.QT_WASM_ROOT_DIR}}"
         mkdir qt_wasm_build
         cd qt_wasm_build
-        ${{env.QT_SRC_CONFIGURE}} -qt-host-path $QT_ROOT_DIR -release -optimize-size ${{ matrix.qtflags }} -prefix "${QT_WASM_ROOT_DIR}/" 
+        ${{env.QT_SRC_CONFIGURE}} -qt-host-path $QT_ROOT_DIR -release -optimize-size -platform wasm-emscripten -submodules qtdeclarative,qtbase -skip qtlanguageserver,qtquicktimeline,qtimageformats,qtsvg -make libs -gui  ${{ matrix.qtflags }} -prefix "${QT_WASM_ROOT_DIR}/" 
         sed -i 's/-flto=thin/-flto/g' ./build.ninja
         cmake --build . --parallel && cmake --install .
         # Fail if the directory is not created or is empty
