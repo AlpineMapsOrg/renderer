@@ -44,7 +44,7 @@ jobs:
         fetch-tags: true
         
     - name: Install Qt native version (the one provided by aqt doesn't seem to work)
-      uses: jurplel/install-qt-action@v3
+      uses: jurplel/install-qt-action@v4
       with:
         aqtversion: '==3.1.*'
         version: ${{ matrix.qtversion }}
