@@ -195,7 +195,6 @@ jobs:
         install-deps: 'true'
         modules: 'qtshadertools'
         cache: true
-        cache-key-prefix: linux_gcc_64-${{ matrix.qtversion }}
         
     - name: Set reusable strings
       shell: bash
