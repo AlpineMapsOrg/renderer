@@ -46,7 +46,7 @@ jobs:
         version: '6.8.1'
         host: windows
         target: 'desktop'
-        arch: 'win64_msvc2019_64'
+        arch: 'win64_msvc2022_64'
         dir: '${{github.workspace}}/qt'
         install-deps: 'true'
         modules: 'qtcharts qtpositioning'
