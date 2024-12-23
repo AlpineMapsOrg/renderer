@@ -155,10 +155,12 @@ jobs:
         include:
           - config: wasm_mt
             qtflags: '-feature-thread'
+            cmakeflags: '-DALP_ENABLE_THREADING=ON'
             qtversion: '6.8.1'
             webassembly_version: "3.1.56"
           - config: wasm_st
             qtflags: '-no-feature-thread'
+            cmakeflags: '-DALP_ENABLE_THREADING=OFF'
             qtversion: '6.8.1'
             webassembly_version: "3.1.56"
     steps:
@@ -246,7 +248,7 @@ jobs:
         -DALP_ENABLE_ASSERTS=OFF
         -DALP_ENABLE_LTO=ON
         -DFMT_INSTALL=OFF
-        -DALP_ENABLE_THREADING=ON
+        ${{ matrix.cmakeflags }}
         -S ${{ github.workspace }}
 
     - name: Build
