@@ -54,6 +54,7 @@ jobs:
         dir: '${{github.workspace}}/qt'
         install-deps: 'true'
         modules: ${{ matrix.qtmodules }}
+        cache: true
 
     - name: Make qt cross binaries executable
       run: |
@@ -87,6 +88,7 @@ jobs:
         ${QT_ROOT_DIR}/bin/qt-cmake
         -G Ninja
         -B $BUILD_DIR
+        -DQT_HOST_PATH=${QT_ROOT_DIR}/../gcc_64
         -DCMAKE_BUILD_TYPE=Release
         -DALP_WWW_INSTALL_DIR=$INSTALL_DIR
         -DALP_ENABLE_ASSERTS=ON
