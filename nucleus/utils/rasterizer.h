@@ -271,7 +271,7 @@ namespace details {
         auto edge_middle_bottom = triangle[2] - triangle[1];
 
         // by comparing the middle vertex with the middle position of the longest line, we can determine the direction of our fill algorithm
-        int x_middle_of_top_bottom_line = get_x_for_y_on_line(triangle[0], edge_top_bottom, triangle[1].y);
+        float x_middle_of_top_bottom_line = get_x_for_y_on_line(triangle[0], edge_top_bottom, triangle[1].y);
         int fill_direction = (triangle[1].x < x_middle_of_top_bottom_line) ? 1 : -1;
 
         if (distance == 0.0) {
