@@ -154,13 +154,18 @@ jobs:
         config: [wasm_mt, wasm_st]
         include:
           - config: wasm_mt
-            qtflags: '-feature-thread'
-            cmakeflags: '-DALP_ENABLE_THREADING=ON'
+            qtflags: '-ltcg $(cat $QT_LITE_CONFIG) -feature-thread'
+            cmakeflags: '-DALP_ENABLE_THREADING=ON -DALP_ENABLE_ASSERTS=OFF'
             qtversion: '6.8.1'
             webassembly_version: "3.1.56"
           - config: wasm_st
+            qtflags: '-ltcg $(cat $QT_LITE_CONFIG) -no-feature-thread'
+            cmakeflags: '-DALP_ENABLE_THREADING=OFF -DALP_ENABLE_ASSERTS=OFF'
+            qtversion: '6.8.1'
+            webassembly_version: "3.1.56"
+          - config: wasm_st_debug
             qtflags: '-no-feature-thread'
-            cmakeflags: '-DALP_ENABLE_THREADING=OFF'
+            cmakeflags: '-DALP_ENABLE_THREADING=OFF -DALP_ENABLE_ASSERTS=ON'
             qtversion: '6.8.1'
             webassembly_version: "3.1.56"
     steps:
@@ -227,7 +232,7 @@ jobs:
         dest_dir="${{env.QT_WASM_ROOT_DIR}}"
         mkdir qt_wasm_build
         cd qt_wasm_build
-        ${{env.QT_SRC_CONFIGURE}} -qt-host-path $QT_ROOT_DIR -release -ltcg $(cat ${{env.QT_LITE_CONFIG}}) ${{ matrix.qtflags }} -prefix "${QT_WASM_ROOT_DIR}/" 
+        ${{env.QT_SRC_CONFIGURE}} -qt-host-path $QT_ROOT_DIR -release -optimize-size ${{ matrix.qtflags }} -prefix "${QT_WASM_ROOT_DIR}/" 
         sed -i 's/-flto=thin/-flto/g' ./build.ninja
         cmake --build . --parallel && cmake --install .
         # Fail if the directory is not created or is empty
@@ -245,7 +250,6 @@ jobs:
         -B $BUILD_DIR
         -DCMAKE_BUILD_TYPE=MinSizeRel
         -DALP_WWW_INSTALL_DIR=$INSTALL_DIR
-        -DALP_ENABLE_ASSERTS=OFF
         -DALP_ENABLE_LTO=ON
         -DFMT_INSTALL=OFF
         ${{ matrix.cmakeflags }}
