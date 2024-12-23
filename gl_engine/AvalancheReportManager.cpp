@@ -1,5 +1,7 @@
 #include "gl_engine/UniformBufferObjects.h"
+#include "nucleus/avalanche/UIntIdManager.h"
 #include <AvalancheReportManager.h>
+
 gl_engine::AvalancheReportManager::AvalancheReportManager(
     std::shared_ptr<avalanche::eaws::UIntIdManager> input_uint_id_manager, std::shared_ptr<gl_engine::UniformBuffer<avalanche::eaws::uboEawsReports>> input_ubo_eaws_reports)
     : m_uint_id_manager(input_uint_id_manager)

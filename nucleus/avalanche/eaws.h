@@ -15,7 +15,7 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *****************************************************************************/
-
+#pragma once
 #ifndef EAWS_H
 #define EAWS_H
 #include <QDate>
@@ -24,15 +24,14 @@
 #include <mapbox/vector_tile.hpp>
 #include <nucleus/Raster.h>
 #include <nucleus/avalanche/ReportLoadService.h>
-namespace gl_engine {
-template <typename T> class UniformBuffer;
-}
 
 namespace radix::tile {
 struct Id;
 }
 
 namespace avalanche::eaws {
+class UIntIdManager; // comes from nucleus/avalanche/UIntIdManager.h
+
 struct Region {
 public:
     QString id = ""; // The id is the name of the region e.g. "AT-05-18"
@@ -60,32 +59,6 @@ using RegionTile = std::pair<radix::tile::Id, std::vector<Region>>;
  * @param tile_id: The zoom, x-y-cordinates and tile-scheme belonging to the input data
  */
 tl::expected<RegionTile, QString> vector_tile_reader(const QByteArray& input_data, const radix::tile::Id& tile_id);
-
-// This class handles conversion from region-id strings to internal ids as uint and as color
-class UIntIdManager : public QObject {
-    Q_OBJECT
-
-public:
-    const std::vector<QImage::Format> supported_image_formats { QImage::Format_ARGB32 };
-    UIntIdManager();
-    QColor convert_region_id_to_color(const QString& region_id, QImage::Format color_format = QImage::Format_ARGB32);
-    QString convert_color_to_region_id(const QColor& color, const QImage::Format& color_format) const;
-    uint convert_region_id_to_internal_id(const QString& color);
-    QString convert_internal_id_to_region_id(const uint& internal_id) const;
-    uint convert_color_to_internal_id(const QColor& color, const QImage::Format& color_format);
-    QColor convert_internal_id_to_color(const uint& internal_id, const QImage::Format& color_format);
-    bool checkIfImageFormatSupported(const QImage::Format& color_format) const;
-    std::vector<QString> get_all_registered_region_ids() const;
-    void load_all_regions_from_server();
-    bool operator==(const avalanche::eaws::UIntIdManager& rhs) { return (get_all_registered_region_ids() == rhs.get_all_registered_region_ids()); }
-signals:
-    void loaded_all_regions() const;
-
-private:
-    std::unordered_map<QString, uint> region_id_to_internal_id;
-    std::unordered_map<uint, QString> internal_id_to_region_id;
-    uint max_internal_id = 0;
-};
 
 // This struct contains report data written to ubo on gpu
 struct uboEawsReports {

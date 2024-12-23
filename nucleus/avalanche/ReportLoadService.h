@@ -1,3 +1,4 @@
+#pragma once
 #ifndef REPORTLOADSERVICE_H
 #define REPORTLOADSERVICE_H
 #include <QJsonArray>

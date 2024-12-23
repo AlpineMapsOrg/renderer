@@ -6,6 +6,8 @@
 // Should be a member of the window.cpp and handles everything related to avalnche reports , especially updates ubo with currently selected report
 
 namespace gl_engine {
+template <typename T> class UniformBuffer;
+
 class AvalancheReportManager : public QObject {
     Q_OBJECT
 signals:

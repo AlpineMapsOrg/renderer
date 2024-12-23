@@ -38,7 +38,7 @@ protected:
 private:
     nucleus::utils::ColourTexture::Format m_compression_algorithm = nucleus::utils::ColourTexture::Format::DXT1;
     nucleus::Raster<glm::u8vec4> m_default_raster;
-    std::shared_ptr<avalanche::eaws::UIntIdManager> m_internal_id_manager;
+    std::shared_ptr<avalanche::eaws::UIntIdManager> m_uint_id_manager;
 };
 
 } // namespace avalanche::eaws

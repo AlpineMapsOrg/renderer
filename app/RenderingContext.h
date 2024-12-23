@@ -71,7 +71,7 @@ public:
     }
     static RenderingContext* instance();
 
-    void initialise(std::shared_ptr<avalanche::eaws::UIntIdManager> input_uint_id_manager);
+    void initialise();
     void destroy();
     [[nodiscard]] std::shared_ptr<gl_engine::Context> engine_context() const;
     [[nodiscard]] std::shared_ptr<nucleus::tile::utils::AabbDecorator> aabb_decorator() const;
@@ -83,6 +83,7 @@ public:
     [[nodiscard]] nucleus::map_label::Scheduler* map_label_scheduler() const;
     [[nodiscard]] nucleus::tile::TextureScheduler* ortho_scheduler() const;
     [[nodiscard]] avalanche::eaws::TextureScheduler* eaws_scheduler() const;
+    [[nodiscard]] std::shared_ptr<avalanche::eaws::UIntIdManager> uint_id_manager() const;
 
 signals:
     void initialised();

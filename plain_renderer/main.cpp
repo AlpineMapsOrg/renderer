@@ -65,6 +65,7 @@
 #include <gl_engine/TextureLayer.h>
 #include <gl_engine/TileGeometry.h>
 #include <nucleus/DataQuerier.h>
+#include <nucleus/avalanche/UIntIdManager.h>
 #include <nucleus/avalanche/eaws.h>
 #include <nucleus/camera/Controller.h>
 #include <nucleus/camera/PositionStorage.h>

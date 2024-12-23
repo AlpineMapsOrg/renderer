@@ -24,9 +24,11 @@ namespace avalanche::eaws {
 TextureScheduler::TextureScheduler(std::string name, unsigned texture_resolution, std::shared_ptr<avalanche::eaws::UIntIdManager> internal_id_manager, QObject* parent)
     : nucleus::tile::Scheduler(std::move(name), texture_resolution, parent)
     , m_default_raster(glm::uvec2(texture_resolution), { 255, 255, 255, 255 })
-    , m_internal_id_manager(internal_id_manager)
+    , m_uint_id_manager(internal_id_manager)
 {
     m_max_tile_zoom_level = 10;
+    UIntIdManager* ptr = m_uint_id_manager.get();
+    std::cout << ptr;
 }
 
 TextureScheduler::~TextureScheduler() = default;
@@ -50,7 +52,7 @@ void TextureScheduler::transform_and_emit(const std::vector<nucleus::tile::DataQ
                 if (result.has_value()) {
                     // create qimage with color coded eaws regions for current tile
                     avalanche::eaws::RegionTile eaws_region_tile = result.value();
-                    QImage eawsImage = avalanche::eaws::draw_regions(eaws_region_tile, m_internal_id_manager, 256, 256, quad.tiles[i].id);
+                    QImage eawsImage = avalanche::eaws::draw_regions(eaws_region_tile, m_uint_id_manager, 256, 256, quad.tiles[i].id);
 
                     // Convert Qimage to raster with 8bit vectors (pixel by pixel)
                     nucleus::Raster<glm::u8vec4> eaws_color_raster_8bit(glm::uvec2(256, 256), { 0, 0, 0, 255 });

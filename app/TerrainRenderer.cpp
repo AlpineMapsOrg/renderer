@@ -31,6 +31,7 @@
 #include <gl_engine/Window.h>
 #include <nucleus/EngineContext.h>
 #include <nucleus/avalanche/EawsTextureScheduler.h>
+#include <nucleus/avalanche/UIntIdManager.h>
 #include <nucleus/avalanche/eaws.h>
 #include <nucleus/camera/Controller.h>
 #include <nucleus/camera/PositionStorage.h>
@@ -40,7 +41,6 @@
 #include <nucleus/tile/GeometryScheduler.h>
 #include <nucleus/tile/TextureScheduler.h>
 #include <nucleus/utils/thread.h>
-
 TerrainRenderer::TerrainRenderer()
 {
     using nucleus::map_label::Filter;
@@ -48,10 +48,9 @@ TerrainRenderer::TerrainRenderer()
     using Scheduler = nucleus::tile::Scheduler;
     using CameraController = nucleus::camera::Controller;
 
-    m_uint_id_manager = std::make_shared<avalanche::eaws::UIntIdManager>();
     auto* ctx = RenderingContext::instance();
-    ctx->initialise(m_uint_id_manager);
-    m_glWindow = std::make_unique<gl_engine::Window>(ctx->engine_context(), m_uint_id_manager);
+    ctx->initialise();
+    m_glWindow = std::make_unique<gl_engine::Window>(ctx->engine_context(), ctx->uint_id_manager());
 
     auto* gl_window_ptr = m_glWindow.get();
 
