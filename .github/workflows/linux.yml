@@ -58,6 +58,7 @@ jobs:
         dir: '${{github.workspace}}/qt'
         install-deps: 'true'
         modules: 'qtcharts qtpositioning'
+        cache: true
 
     - name: Configure
       env:
