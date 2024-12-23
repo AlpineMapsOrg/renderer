@@ -48,9 +48,9 @@ jobs:
       with:
         aqtversion: '==3.1.*'
         version: ${{ matrix.qtversion }}
-        host: linux
+        host: 'linux'
         target: 'desktop'
-        arch: linux_gcc_64
+        arch: 'linux_gcc_64'
         dir: '${{github.workspace}}/qt'
         install-deps: 'true'
         cache: true
@@ -80,7 +80,7 @@ jobs:
       run: |
         echo "${{github.workspace}}/qt/Qt/6.8.1":
         ls ${{github.workspace}}/qt/Qt/6.8.1
-        
+        echo "==="
         echo "${QT_ROOT_DIR}/lib/cmake/Qt6Linguist:"
         ls ${QT_ROOT_DIR}/lib/cmake/Qt6Linguist
         echo "==="
