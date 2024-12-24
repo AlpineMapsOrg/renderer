@@ -80,15 +80,6 @@ jobs:
     - name: Set reusable strings
       shell: bash
       run: |
-        echo "${{github.workspace}}/qt/Qt/6.8.1":
-        ls ${{github.workspace}}/qt/Qt/6.8.1
-        echo "==="
-        echo "${QT_ROOT_DIR}/lib/cmake/Qt6Linguist:"
-        ls ${QT_ROOT_DIR}/lib/cmake/Qt6Linguist
-        echo "==="
-        echo "${QT_HOST_ROOT_DIR}/lib/cmake/Qt6Linguist:"
-        ls ${QT_HOST_ROOT_DIR}/lib/cmake/Qt6Linguist
-        
         BUILD_DIR="build"
         APK_TARGET="app"
         echo "BUILD_DIR=$BUILD_DIR" >> $GITHUB_ENV
