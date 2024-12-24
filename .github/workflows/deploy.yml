@@ -323,7 +323,7 @@ jobs:
       
     - name: Fix headers for wasm multithread
       run: |
-        cd $GITHUB_WORKSPACE/github_page/wasm_qt68_mt
+        cd $GITHUB_WORKSPACE/github_page/wasm_mt
         wget https://raw.githubusercontent.com/gzuidhof/coi-serviceworker/master/coi-serviceworker.min.js
         sed -i -e 's#<body onload="init()">#<body onload="init()"><script src="coi-serviceworker\.min\.js"></script>#g' alpineapp.html
         
