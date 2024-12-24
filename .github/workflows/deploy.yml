@@ -242,7 +242,10 @@ jobs:
         mkdir qt_wasm_build
         cd qt_wasm_build
         ${{env.QT_SRC_CONFIGURE}} -qt-host-path $QT_ROOT_DIR -release -optimize-size -platform wasm-emscripten -submodules qtdeclarative,qtbase -skip qtlanguageserver,qtquicktimeline,qtimageformats,qtsvg -make libs -gui  ${{ matrix.qtflags }} -prefix "${QT_WASM_ROOT_DIR}/" 
+        cat ./build.ninja
         sed -i 's/-flto=thin/-flto/g' ./build.ninja
+        echo "=============================================================================================================================================="
+        cat ./build.ninja
         cmake --build . --parallel && cmake --install .
         # Fail if the directory is not created or is empty
         [ -d "$QT_WASM_ROOT_DIR" ] && [ "$(ls -A $QT_WASM_ROOT_DIR)" ] || exit 1
@@ -250,7 +253,7 @@ jobs:
     - name: Remove StatsWindow, otherwise the webassembly will link against qtwidgets and charts.
       run: rm ./app/StatsWindow.qml
       
-    - name: Configure CMake
+    - name: Configure
       env:
         CMAKE_PREFIX_PATH: ${{env.Qt6_DIR}}/lib/cmake
       run: >
@@ -262,7 +265,7 @@ jobs:
         -DALP_ENABLE_LTO=ON
         -DFMT_INSTALL=OFF
         ${{ matrix.cmakeflags }}
-        -S ${{ github.workspace }}
+        -S ${{ github.workspace }} && cat $BUILD_DIR/build.ninja
 
     - name: Build
       run: cmake --build $BUILD_DIR --target install
