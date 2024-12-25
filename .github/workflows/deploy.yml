@@ -163,13 +163,23 @@ jobs:
       matrix:
         config: [wasm_mt, wasm_st]
         include:
-          - config: wasm_mt
+          - config: wasm_mt_lto
             qtflags: '-ltcg $(cat $QT_LITE_CONFIG) -feature-thread'
             cmakeflags: '-DALP_ENABLE_THREADING=ON -DALP_ENABLE_ASSERTS=OFF'
             qtversion: '6.8.1'
             webassembly_version: "3.1.56"
-          - config: wasm_st
+          - config: wasm_st_lto
             qtflags: '-ltcg $(cat $QT_LITE_CONFIG) -no-feature-thread'
+            cmakeflags: '-DALP_ENABLE_THREADING=OFF -DALP_ENABLE_ASSERTS=OFF'
+            qtversion: '6.8.1'
+            webassembly_version: "3.1.56"
+          - config: wasm_mt
+            qtflags: '$(cat $QT_LITE_CONFIG) -feature-thread'
+            cmakeflags: '-DALP_ENABLE_THREADING=ON -DALP_ENABLE_ASSERTS=OFF'
+            qtversion: '6.8.1'
+            webassembly_version: "3.1.56"
+          - config: wasm_st
+            qtflags: '-$(cat $QT_LITE_CONFIG) -no-feature-thread'
             cmakeflags: '-DALP_ENABLE_THREADING=OFF -DALP_ENABLE_ASSERTS=OFF'
             qtversion: '6.8.1'
             webassembly_version: "3.1.56"
@@ -242,10 +252,10 @@ jobs:
         mkdir qt_wasm_build
         cd qt_wasm_build
         ${{env.QT_SRC_CONFIGURE}} -qt-host-path $QT_ROOT_DIR -release -optimize-size -platform wasm-emscripten -submodules qtdeclarative,qtbase -skip qtlanguageserver,qtquicktimeline,qtimageformats,qtsvg -make libs -gui  ${{ matrix.qtflags }} -prefix "${QT_WASM_ROOT_DIR}/" 
-        cat ./build.ninja
+        # cat ./build.ninja
         sed -i 's/-flto=thin/-flto/g' ./build.ninja
-        echo "=============================================================================================================================================="
-        cat ./build.ninja
+        # echo "=============================================================================================================================================="
+        # cat ./build.ninja
         cmake --build . --parallel && cmake --install .
         # Fail if the directory is not created or is empty
         [ -d "$QT_WASM_ROOT_DIR" ] && [ "$(ls -A $QT_WASM_ROOT_DIR)" ] || exit 1
@@ -265,7 +275,7 @@ jobs:
         -DALP_ENABLE_LTO=ON
         -DFMT_INSTALL=OFF
         ${{ matrix.cmakeflags }}
-        -S ${{ github.workspace }} && cat $BUILD_DIR/build.ninja
+        -S ${{ github.workspace }}
 
     - name: Build
       run: cmake --build $BUILD_DIR --target install
@@ -323,6 +333,10 @@ jobs:
       
     - name: Fix headers for wasm multithread
       run: |
+        cd $GITHUB_WORKSPACE/github_page/wasm_mt_lto
+        wget https://raw.githubusercontent.com/gzuidhof/coi-serviceworker/master/coi-serviceworker.min.js
+        sed -i -e 's#<body onload="init()">#<body onload="init()"><script src="coi-serviceworker\.min\.js"></script>#g' alpineapp.html
+        
         cd $GITHUB_WORKSPACE/github_page/wasm_mt
         wget https://raw.githubusercontent.com/gzuidhof/coi-serviceworker/master/coi-serviceworker.min.js
         sed -i -e 's#<body onload="init()">#<body onload="init()"><script src="coi-serviceworker\.min\.js"></script>#g' alpineapp.html
