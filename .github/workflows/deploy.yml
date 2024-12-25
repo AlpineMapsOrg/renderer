@@ -164,12 +164,12 @@ jobs:
         config: [wasm_mt, wasm_st]
         include:
           - config: wasm_mt
-            qtflags: '-ltcg $(cat $QT_LITE_CONFIG) -feature-thread'
+            qtflags: '-feature-thread'
             cmakeflags: '-DALP_ENABLE_THREADING=ON -DALP_ENABLE_ASSERTS=OFF'
             qtversion: '6.8.1'
             webassembly_version: "3.1.56"
           - config: wasm_st
-            qtflags: '-ltcg $(cat $QT_LITE_CONFIG) -no-feature-thread'
+            qtflags: '-no-feature-thread'
             cmakeflags: '-DALP_ENABLE_THREADING=OFF -DALP_ENABLE_ASSERTS=OFF'
             qtversion: '6.8.1'
             webassembly_version: "3.1.56"
@@ -241,7 +241,7 @@ jobs:
         dest_dir="${{env.QT_WASM_ROOT_DIR}}"
         mkdir qt_wasm_build
         cd qt_wasm_build
-        ${{env.QT_SRC_CONFIGURE}} -qt-host-path $QT_ROOT_DIR -release -optimize-size -platform wasm-emscripten -submodules qtdeclarative,qtbase -skip qtlanguageserver,qtquicktimeline,qtimageformats,qtsvg -make libs -gui  ${{ matrix.qtflags }} -prefix "${QT_WASM_ROOT_DIR}/" 
+        ${{env.QT_SRC_CONFIGURE}} -qt-host-path $QT_ROOT_DIR -release -ltcg -optimize-size -platform wasm-emscripten -submodules qtdeclarative,qtbase -skip qtlanguageserver,qtquicktimeline,qtimageformats,qtsvg -make libs -gui  ${{ matrix.qtflags }} $(cat $QT_LITE_CONFIG) -prefix "${QT_WASM_ROOT_DIR}/"
         cat ./build.ninja
         sed -i 's/-flto=thin/-flto/g' ./build.ninja
         echo "=============================================================================================================================================="
