@@ -43,6 +43,7 @@ qt_add_library(gl_engine STATIC
     TextureLayer.h TextureLayer.cpp
     AvalancheReportManager.h
     AvalancheReportManager.cpp
+    shaders/eaws.glsl
 )
 
 if(ALP_ENABLE_LABELS)

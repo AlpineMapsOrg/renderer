@@ -21,6 +21,7 @@
 #include "camera_config.glsl"
 #include "encoder.glsl"
 #include "tile_id.glsl"
+#include "eaws.glsl"
 
 uniform lowp sampler2DArray ortho_sampler;
 uniform highp usampler2D height_tex_index_sampler;
@@ -96,7 +97,23 @@ void main() {
         // texout_albedo = vec3(uv.x, uv.y, 0.0);
         highp float texture_layer_f = float(texelFetch(ortho_map_index_sampler, dict_px, 0).x);
         // texout_albedo = vec3(0.0, float(texture_layer_f) / 10.0, 0.0);
-        lowp vec3 fragColor = texture(ortho_sampler, vec3(uv, texture_layer_f)).rgb;
+        lowp vec3 eawsRegionIdVector = texture(ortho_sampler, vec3(uv, texture_layer_f)).rgb;
+        uint eawsRegionId = uint(eawsRegionIdVector.r +( 256u * eawsRegionIdVector.g));
+        uvec4 report = eaws.reports[eawsRegionId];
+        lowp vec3 fragColor;
+
+        if(report.x > 0u) // report.x = 0 means no report available .x=1 means report available
+        {
+            uint bound = report.y;      // bound dividing moutain in Hi region and low region
+            uint ratingHi = report.a;   // rating should be value in {0,1,2,3,4}
+            uint ratingLo = report.z;   // rating should be value in {0,1,2,3,4}
+            fragColor = color_from_eaws_danger_rating(ratingHi);
+        }
+        else
+        {
+            float grey = float(eawsRegionId) / 666.f;
+            fragColor = vec3(grey,grey,grey);
+        }
         fragColor = mix(fragColor, conf.material_color.rgb, conf.material_color.a);
         texout_albedo = fragColor;
     }
