@@ -1,4 +1,10 @@
+-optimize-size
 -static -reduce-exports -gc-binaries 
+-platform wasm-emscripten
+-submodules qtdeclarative,qtbase
+-skip qtlanguageserver,qtquicktimeline,qtimageformats,qtsvg
+-make libs
+-gui
 -disable-deprecated-up-to 0x070000
 -no-dbus
 -no-sql-sqlite
@@ -69,7 +75,8 @@
 -no-feature-itemmodeltester
 -no-feature-opensslv30
 -no-feature-schannel
--no-feature-wasm-exceptions 
+-no-feature-wasm-exceptions
+-feature-thread
 -feature-wasm-simd128
 -feature-opengles3
 -feature-quick-canvas
