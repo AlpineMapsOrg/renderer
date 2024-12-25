@@ -188,6 +188,7 @@ jobs:
             cmakeflags: '-DALP_ENABLE_THREADING=OFF -DALP_ENABLE_ASSERTS=ON'
             qtversion: '6.8.1'
             webassembly_version: "3.1.56"
+            
     steps:
     - name: Install dependencies
       run: |
