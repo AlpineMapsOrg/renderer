@@ -16,62 +16,52 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  build:
+  build-android:
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
       matrix:
-        qtarch: [wasm_singlethread, wasm_multithread, android_arm64_v8a, android_armv7]
-        qtversion: ['6.6.1']
+        qtarch: [android_arm64_v8a, android_armv7]
         include:
-          - qtarch: wasm_singlethread
-            qttarget: 'desktop'
-            qtmodules: ''
-            additional_build_flags: '--target install'
-          - qtarch: wasm_multithread
-            qttarget: 'desktop'
-            qtmodules: ''
-            additional_cmake_flags: '-DALP_ENABLE_THREADING=ON'
-            additional_build_flags: '--target install'
           - qtarch: android_arm64_v8a
             qttarget: 'android'
+            qtversion: '6.8.1'
             qtmodules: 'qtcharts qtpositioning'
           - qtarch: android_armv7
             qttarget: 'android'
+            qtversion: '6.8.1'
             qtmodules: 'qtcharts qtpositioning'
           
     steps:
     - name: Install dependencies
       run: |
         sudo apt-get update
-        sudo apt-get install -y build-essential ninja-build
+        sudo apt-get install -y build-essential ninja-build openjdk-17-jdk
+        echo "JAVA_HOME=/usr/lib/jvm/java-17-openjdk-amd64/" >> $GITHUB_ENV
+        # dpkg-query -L  openjdk-17-jdk-headless
         
     - uses: actions/checkout@v4
       with:
         fetch-depth: 0
         fetch-tags: true
-    
-    - uses: mymindstorm/setup-emsdk@v13
-      if: matrix.qttarget == 'desktop'
-      with:
-        version: 3.1.37
         
-    - name: Install Qt native version (required by android version)
-      uses: jurplel/install-qt-action@v3
+    - name: Install Qt native version (the one provided by aqt doesn't seem to work)
+      uses: jurplel/install-qt-action@v4
       with:
         aqtversion: '==3.1.*'
         version: ${{ matrix.qtversion }}
-        host: linux
+        host: 'linux'
         target: 'desktop'
-        arch: gcc_64
+        arch: 'linux_gcc_64'
         dir: '${{github.workspace}}/qt'
         install-deps: 'true'
+        cache: true
 
-    - name: Set QT_HOST_PATH
-      run: echo "QT_HOST_PATH=${Qt6_DIR}" >> "$GITHUB_ENV"
-
+    - name: Set QT_HOST_ROOT_DIR
+      run: echo "QT_HOST_ROOT_DIR=${QT_ROOT_DIR}" >> "$GITHUB_ENV"
+      
     - name: Install Qt crosscompile target version
-      uses: jurplel/install-qt-action@v3
+      uses: jurplel/install-qt-action@v4
       with:
         aqtversion: '==3.1.*'
         version: ${{ matrix.qtversion }}
@@ -81,14 +71,11 @@ jobs:
         dir: '${{github.workspace}}/qt'
         install-deps: 'true'
         modules: ${{ matrix.qtmodules }}
+        cache: true
 
     - name: Make qt cross binaries executable
       run: |
-        chmod u+x ${Qt6_DIR}/bin/*
-
-    - name: Verify emcc
-      if: matrix.qttarget == 'desktop'
-      run: emcc -v
+        chmod u+x ${QT_ROOT_DIR}/bin/*
 
     - name: Set reusable strings
       shell: bash
@@ -102,18 +89,15 @@ jobs:
         echo "APK_DIR=$BUILD_DIR/$APK_TARGET/android-build/build/outputs/apk/" >> $GITHUB_ENV
         echo "ANDROID_BUILD_DIR=$BUILD_DIR/$APK_TARGET/android-build/" >> $GITHUB_ENV
         echo "DEPLOYMENT_SETTINGS=$BUILD_DIR/$APK_TARGET/android-alpineapp-deployment-settings.json" >> $GITHUB_ENV
-
-    - name: Remove StatsWindow, otherwise the webassembly will link against qtwidgets and charts.
-      if: matrix.qttarget == 'desktop'
-      run: rm ./app/StatsWindow.qml
       
     - name: Configure CMake
       env:
-        CMAKE_PREFIX_PATH: ${{env.Qt6_DIR}}/lib/cmake
+        CMAKE_PREFIX_PATH: ${{env.QT_ROOT_DIR}}/lib/cmake
       run: >
-        ${Qt6_DIR}/bin/qt-cmake
+        ${QT_ROOT_DIR}/bin/qt-cmake
         -G Ninja
         -B $BUILD_DIR
+        -DQT_HOST_PATH=${QT_HOST_ROOT_DIR}
         -DCMAKE_BUILD_TYPE=Release
         -DALP_WWW_INSTALL_DIR=$INSTALL_DIR
         -DALP_ENABLE_ASSERTS=ON
@@ -131,7 +115,7 @@ jobs:
       run: |
         echo ${{ secrets.SIGNINGKEYBASE64 }} > release.keystore.base64
         base64 -d release.keystore.base64 > release.keystore
-        $QT_HOST_PATH/bin/androiddeployqt --input $DEPLOYMENT_SETTINGS --output $ANDROID_BUILD_DIR --android-platform android-33 --gradle --release --sign release.keystore alpinemaps --storepass ${{ secrets.KEYSTOREPASSWORD }}
+        $QT_HOST_ROOT_DIR/bin/androiddeployqt --input $DEPLOYMENT_SETTINGS --output $ANDROID_BUILD_DIR --android-platform android-35 --gradle --release --sign release.keystore alpinemaps --storepass ${{ secrets.KEYSTOREPASSWORD }}
         
     - name: Signing Android packages with generated key
       env: 
@@ -139,7 +123,7 @@ jobs:
       if: matrix.qttarget == 'android' && env.secret_test == ''
       run: |
         keytool -genkey -v -keystore release.keystore -alias alpinemaps -keyalg RSA -sigalg SHA1withRSA -keysize 2048 -validity 10000 -keypass asdfasdf -storepass asdfasdf -dname "CN=Franz, OU=IT, O=Furz, L=Rattenberg, ST=Tirol, C=AT"
-        $QT_HOST_PATH/bin/androiddeployqt --input $DEPLOYMENT_SETTINGS --output $ANDROID_BUILD_DIR --android-platform android-33 --gradle --release --sign release.keystore alpinemaps --storepass asdfasdf
+        $QT_HOST_ROOT_DIR/bin/androiddeployqt --input $DEPLOYMENT_SETTINGS --output $ANDROID_BUILD_DIR --android-platform android-35 --gradle --release --sign release.keystore alpinemaps --storepass asdfasdf
         
         README_PATH=$APK_DIR/read_me.txt
         echo "The apk was signed with a generated key which changes every time the apk is generated. This means, that android might refuse to install it if another apk with the same app was installed previously. You'll have to deinstall it. Doing so will delete all settings and cache." >> $README_PATH
@@ -172,11 +156,39 @@ jobs:
         if-no-files-found: error
 
         
-  build-wasm-release:
+  build-wasm:
     runs-on: ubuntu-latest
-    env:
-      QT_VERSION: "6.8.0"
-      WEBASSEMBLY_VERSION: "3.1.56"
+    strategy:
+      fail-fast: false
+      matrix:
+        config: [wasm_mt_lto, wasm_st_lto, wasm_mt, wasm_st, wasm_st_debug]
+        include:
+          - config: wasm_mt_lto
+            qtflags: '-ltcg $(cat $QT_LITE_CONFIG) -feature-thread'
+            cmakeflags: '-DALP_ENABLE_THREADING=ON -DALP_ENABLE_ASSERTS=OFF'
+            qtversion: '6.8.1'
+            webassembly_version: "3.1.56"
+          - config: wasm_st_lto
+            qtflags: '-ltcg $(cat $QT_LITE_CONFIG) -no-feature-thread'
+            cmakeflags: '-DALP_ENABLE_THREADING=OFF -DALP_ENABLE_ASSERTS=OFF'
+            qtversion: '6.8.1'
+            webassembly_version: "3.1.56"
+          - config: wasm_mt
+            qtflags: '$(cat $QT_LITE_CONFIG) -feature-thread'
+            cmakeflags: '-DALP_ENABLE_THREADING=ON -DALP_ENABLE_ASSERTS=OFF'
+            qtversion: '6.8.1'
+            webassembly_version: "3.1.56"
+          - config: wasm_st
+            qtflags: '-$(cat $QT_LITE_CONFIG) -no-feature-thread'
+            cmakeflags: '-DALP_ENABLE_THREADING=OFF -DALP_ENABLE_ASSERTS=OFF'
+            qtversion: '6.8.1'
+            webassembly_version: "3.1.56"
+          - config: wasm_st_debug
+            qtflags: '-no-feature-thread'
+            cmakeflags: '-DALP_ENABLE_THREADING=OFF -DALP_ENABLE_ASSERTS=ON'
+            qtversion: '6.8.1'
+            webassembly_version: "3.1.56"
+            
     steps:
     - name: Install dependencies
       run: |
@@ -190,26 +202,26 @@ jobs:
     
     - uses: mymindstorm/setup-emsdk@v13
       with:
-        version: ${{env.WEBASSEMBLY_VERSION}}
+        version: ${{matrix.webassembly_version}}
         
     - name: Install Qt native version (required for cross building)
       uses: jurplel/install-qt-action@v4
       with:
         aqtversion: '==3.1.*'
-        version: ${{env.QT_VERSION}}
+        version: ${{matrix.qtversion}}
         host: linux
         target: 'desktop'
         arch: linux_gcc_64
         dir: '${{github.workspace}}/qt_host'
         install-deps: 'true'
         modules: 'qtshadertools'
+        cache: true
         
     - name: Set reusable strings
       shell: bash
       run: |
-        echo "QT_HOST_PATH=${QT_ROOT_DIR}" >> "$GITHUB_ENV"
         echo "BUILD_DIR="$(pwd)/build"" >> $GITHUB_ENV
-        echo "INSTALL_DIR=install/wasm_release" >> $GITHUB_ENV
+        echo "INSTALL_DIR=install/${{ matrix.config}}" >> $GITHUB_ENV
         echo "QT_WASM_ROOT_DIR=$(pwd)/qt_wasm_lite" >> $GITHUB_ENV
         echo "QT_SRC_CONFIGURE=$(pwd)/qt_src/configure" >> $GITHUB_ENV
         echo "QT_LITE_CONFIG=$(pwd)/misc/qt_lite.txt" >> $GITHUB_ENV
@@ -222,26 +234,29 @@ jobs:
       uses: actions/cache@v4
       with:
         path: qt_wasm_lite
-        key: wasm-qt-${{ env.QT_VERSION }}-${{ env.WEBASSEMBLY_VERSION }}
+        key: ${{ matrix.config }}_qt-${{ matrix.qtversion }}_emcc-${{ matrix.webassembly_version }}
         
     - name: Download and patch Qt
       if: steps.qt-cache.outputs.cache-hit != 'true'
       shell: bash
       run: |
-        git clone --branch v$QT_VERSION git://code.qt.io/qt/qt5.git qt_src
+        git clone --branch v${{matrix.qtversion}} git://code.qt.io/qt/qt5.git qt_src
         $QT_SRC_CONFIGURE -init-submodules -submodules qtdeclarative,qtbase -skip qtlanguageserver,qtquicktimeline,qtimageformats,qtsvg
         cd qt_src/qtbase
         git apply ../../misc/qt_68_qtbase_remove_dejavu_fonts.patch
         
-    - name: Build Qt for Webassembly (custom lightweight LTO version)
+    - name: Build Qt for Webassembly (custom version)
       if: steps.qt-cache.outputs.cache-hit != 'true'
       shell: bash
       run: |
         dest_dir="${{env.QT_WASM_ROOT_DIR}}"
         mkdir qt_wasm_build
         cd qt_wasm_build
-        ${{env.QT_SRC_CONFIGURE}} -qt-host-path $QT_HOST_PATH -release -ltcg $(cat ${{env.QT_LITE_CONFIG}}) -prefix "${QT_WASM_ROOT_DIR}/" 
+        ${{env.QT_SRC_CONFIGURE}} -qt-host-path $QT_ROOT_DIR -release -optimize-size -platform wasm-emscripten -submodules qtdeclarative,qtbase -skip qtlanguageserver,qtquicktimeline,qtimageformats,qtsvg -make libs -gui  ${{ matrix.qtflags }} -prefix "${QT_WASM_ROOT_DIR}/" 
+        # cat ./build.ninja
         sed -i 's/-flto=thin/-flto/g' ./build.ninja
+        # echo "=============================================================================================================================================="
+        # cat ./build.ninja
         cmake --build . --parallel && cmake --install .
         # Fail if the directory is not created or is empty
         [ -d "$QT_WASM_ROOT_DIR" ] && [ "$(ls -A $QT_WASM_ROOT_DIR)" ] || exit 1
@@ -249,7 +264,7 @@ jobs:
     - name: Remove StatsWindow, otherwise the webassembly will link against qtwidgets and charts.
       run: rm ./app/StatsWindow.qml
       
-    - name: Configure CMake
+    - name: Configure
       env:
         CMAKE_PREFIX_PATH: ${{env.Qt6_DIR}}/lib/cmake
       run: >
@@ -258,10 +273,9 @@ jobs:
         -B $BUILD_DIR
         -DCMAKE_BUILD_TYPE=MinSizeRel
         -DALP_WWW_INSTALL_DIR=$INSTALL_DIR
-        -DALP_ENABLE_ASSERTS=OFF
         -DALP_ENABLE_LTO=ON
         -DFMT_INSTALL=OFF
-        -DALP_ENABLE_THREADING=ON
+        ${{ matrix.cmakeflags }}
         -S ${{ github.workspace }}
 
     - name: Build
@@ -270,15 +284,15 @@ jobs:
     - name: Create artifact
       uses: actions/upload-artifact@v4
       with:
-        name: files_wasm_release
+        name: files_${{ matrix.config}}
         path: ${{ github.workspace }}/install/
         if-no-files-found: error
         
   deploy:
     if: github.event_name == 'push'
     needs:
-    - build
-    - build-wasm-release
+    - build-android
+    - build-wasm
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
@@ -318,17 +332,14 @@ jobs:
         mirror -R -e -v -n $GITHUB_WORKSPACE/github_page/. ./${reponame}_$(git describe --tags --dirty=-d --abbrev=1);
         "
       
-    - name: Fix headers for wasm_multithread
+    - name: Fix headers for wasm multithread
       run: |
-        cd $GITHUB_WORKSPACE/github_page/wasm_multithread
+        cd $GITHUB_WORKSPACE/github_page/wasm_mt_lto
         wget https://raw.githubusercontent.com/gzuidhof/coi-serviceworker/master/coi-serviceworker.min.js
         sed -i -e 's#<body onload="init()">#<body onload="init()"><script src="coi-serviceworker\.min\.js"></script>#g' alpineapp.html
         
-    - name: Fix headers for wasm_release
-      run: |
-        cd $GITHUB_WORKSPACE/github_page/wasm_release
+        cd $GITHUB_WORKSPACE/github_page/wasm_mt
         wget https://raw.githubusercontent.com/gzuidhof/coi-serviceworker/master/coi-serviceworker.min.js
-        cp alpineapp.html alpineapp_orig.html
         sed -i -e 's#<body onload="init()">#<body onload="init()"><script src="coi-serviceworker\.min\.js"></script>#g' alpineapp.html
         
     - name: Generate Directory Listings

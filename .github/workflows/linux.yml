@@ -48,22 +48,33 @@ jobs:
         sudo apt-get install -y build-essential ninja-build lld clang-15 libgl1-mesa-dev libxcb-cursor-dev xorg-dev libxrandr-dev libxcursor-dev libudev-dev libopenal-dev libflac-dev libvorbis-dev libgl1-mesa-dev libegl1-mesa-dev libdrm-dev libgbm-dev xvfb libxcb-cursor0 libxcb-icccm4 libxcb-image0 libxcb-keysyms1 libxcb-render-util0
 
     - name: Install Qt
-      uses: jurplel/install-qt-action@v3
+      uses: jurplel/install-qt-action@v4
       with:
         aqtversion: '==3.1.*'
-        version: '6.6.1'
+        version: '6.8.1'
         host: 'linux'
         target: 'desktop'
-        arch: 'gcc_64'
+        arch: 'linux_gcc_64'
         dir: '${{github.workspace}}/qt'
         install-deps: 'true'
         modules: 'qtcharts qtpositioning'
-
+        cache: true
+        
+    - name: Debug output
+      shell: bash
+      run: |
+        echo "${{github.workspace}}/qt/Qt/6.8.1":
+        ls ${{github.workspace}}/qt/Qt/6.8.1
+        echo "==="
+        echo "${QT_ROOT_DIR}/lib/cmake/Qt6Linguist:"
+        ls ${QT_ROOT_DIR}/lib/cmake/Qt6Linguist
+        echo "==="
+        
     - name: Configure
       env:
         CC: ${{ matrix.CC }}
         CXX: ${{ matrix.CXX }}
-        CMAKE_PREFIX_PATH: ${{env.Qt6_Dir}}/lib/cmake
+        CMAKE_PREFIX_PATH: ${{env.QT_ROOT_DIR}}/lib/cmake
       run: >
         cmake -G Ninja 
         -DCMAKE_BUILD_TYPE=${{matrix.BUILD_TYPE}} 
