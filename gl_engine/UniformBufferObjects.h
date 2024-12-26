@@ -143,7 +143,6 @@ struct uboShadowConfig {
     glm::vec2 buff;
 };
 
-
 // This struct is only used for unit tests
 struct uboTestConfig {
     Q_GADGET

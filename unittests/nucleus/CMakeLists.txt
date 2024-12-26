@@ -41,7 +41,9 @@ alp_add_unittest(unittests_nucleus
     zppbits.cpp
     cache_queries.cpp
     bits_and_pieces.cpp
+    avalanche_warning_layer.cpp
 )
+
 
 if (ALP_ENABLE_AVLANCHE_WARNING_LAYER)
     target_sources(unittests_nucleus

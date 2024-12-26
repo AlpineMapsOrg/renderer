@@ -30,6 +30,9 @@
 #include <gl_engine/Context.h>
 #include <gl_engine/Window.h>
 #include <nucleus/EngineContext.h>
+#include <nucleus/avalanche/EawsTextureScheduler.h>
+#include <nucleus/avalanche/UIntIdManager.h>
+#include <nucleus/avalanche/eaws.h>
 #include <nucleus/camera/Controller.h>
 #include <nucleus/camera/PositionStorage.h>
 #include <nucleus/map_label/Filter.h>
@@ -38,7 +41,6 @@
 #include <nucleus/tile/GeometryScheduler.h>
 #include <nucleus/tile/TextureScheduler.h>
 #include <nucleus/utils/thread.h>
-
 TerrainRenderer::TerrainRenderer()
 {
     using nucleus::map_label::Filter;
@@ -48,7 +50,7 @@ TerrainRenderer::TerrainRenderer()
 
     auto* ctx = RenderingContext::instance();
     ctx->initialise();
-    m_glWindow = std::make_unique<gl_engine::Window>(ctx->engine_context());
+    m_glWindow = std::make_unique<gl_engine::Window>(ctx->engine_context(), ctx->uint_id_manager());
 
     auto* gl_window_ptr = m_glWindow.get();
 
@@ -64,10 +66,12 @@ TerrainRenderer::TerrainRenderer()
     QObject::connect(m_camera_controller.get(), &CameraController::definition_changed, ctx->geometry_scheduler(),   &Scheduler::update_camera);
     QObject::connect(m_camera_controller.get(), &CameraController::definition_changed, ctx->map_label_scheduler(),  &Scheduler::update_camera);
     QObject::connect(m_camera_controller.get(), &CameraController::definition_changed, ctx->ortho_scheduler(),      &Scheduler::update_camera);
+    QObject::connect(m_camera_controller.get(), &CameraController::definition_changed, ctx->eaws_scheduler(),       &Scheduler::update_camera);
     QObject::connect(m_camera_controller.get(), &CameraController::definition_changed, m_glWindow.get(),            &gl_engine::Window::update_camera);
 
     QObject::connect(ctx->geometry_scheduler(), &nucleus::tile::GeometryScheduler::gpu_quads_updated, gl_window_ptr, &gl_engine::Window::update_requested);
     QObject::connect(ctx->ortho_scheduler(),    &nucleus::tile::TextureScheduler::gpu_quads_updated,  gl_window_ptr, &gl_engine::Window::update_requested);
+    QObject::connect(ctx->eaws_scheduler(),    &avalanche::eaws::TextureScheduler::gpu_quads_updated,  gl_window_ptr, &gl_engine::Window::update_requested);
     QObject::connect(ctx->label_filter().get(), &Filter::filter_finished,                             gl_window_ptr, &gl_engine::Window::update_requested);
 
     QObject::connect(ctx->picker_manager().get(),   &PickerManager::pick_requested,     gl_window_ptr,                  &gl_engine::Window::pick_value);

@@ -32,6 +32,9 @@ class Controller;
 namespace nucleus::camera {
 class Controller;
 }
+namespace avalanche::eaws {
+class UIntIdManager;
+}
 
 class TerrainRenderer : public QObject, public QQuickFramebufferObject::Renderer {
     Q_OBJECT

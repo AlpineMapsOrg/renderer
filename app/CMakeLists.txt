@@ -100,6 +100,10 @@ qt_add_qml_module(alpineapp
         picker/Default.qml
         picker/PoiAlpineHut.qml
         picker/PoiSettlement.qml
+        QML_FILES
+        eaws/EUREGIO_de_CAAMLv6.json
+        eaws/micro-regions.json
+        eaws/report_tu_wien.json
 )
 
 qt_add_resources(alpineapp "fonts"

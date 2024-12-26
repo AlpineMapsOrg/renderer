@@ -118,6 +118,10 @@ qt_add_library(nucleus STATIC
     utils/error.h
     utils/lang.h
     utils/rasterizer.h utils/rasterizer.cpp
+    avalanche/eaws.h avalanche/eaws.cpp
+    avalanche/EawsTextureScheduler.h avalanche/EawsTextureScheduler.cpp
+    avalanche/ReportLoadService.h avalanche/ReportLoadService.cpp
+    avalanche/UIntIdManager.h avalanche/UIntIdManager.cpp
 )
 
 if (ALP_ENABLE_AVLANCHE_WARNING_LAYER)
