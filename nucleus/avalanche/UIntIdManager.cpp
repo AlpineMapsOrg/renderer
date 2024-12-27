@@ -97,7 +97,14 @@ uint avalanche::eaws::UIntIdManager::convert_region_id_to_internal_id(const QStr
         return entry->second;
 }
 
-QString avalanche::eaws::UIntIdManager::convert_internal_id_to_region_id(const uint& internal_id) const { return internal_id_to_region_id.at(internal_id); }
+QString avalanche::eaws::UIntIdManager::convert_internal_id_to_region_id(const uint& internal_id) const
+{
+    auto entry = internal_id_to_region_id.find(internal_id);
+    if (entry == internal_id_to_region_id.end())
+        return "";
+    else
+        return entry->second;
+}
 
 QColor avalanche::eaws::UIntIdManager::convert_region_id_to_color(const QString& region_id, QImage::Format color_format)
 {
