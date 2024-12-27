@@ -20,7 +20,7 @@ We use Qt Creator (with mingw on Windows), which is the only tested setup atm an
 * Some other dependencies will be pulled automatically during building.
 
 ## Building the native version
-* just ran cmake and build
+* just run cmake and build
 
 ## Building the android version
 * We are usually building with Qt Creator, because it works relatively out of the box. However, it should also work on the command line or other IDEs if you set it up correctly.
