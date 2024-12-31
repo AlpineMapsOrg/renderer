@@ -98,11 +98,11 @@ void main() {
         highp float texture_layer_f = float(texelFetch(ortho_map_index_sampler, dict_px, 0).x);
         // texout_albedo = vec3(0.0, float(texture_layer_f) / 10.0, 0.0);
         lowp vec3 eawsRegionIdVector = texture(ortho_sampler, vec3(uv, texture_layer_f)).rgb;
-        uint eawsRegionId = uint(eawsRegionIdVector.r +( 256u * eawsRegionIdVector.g));
+        uint eawsRegionId = uint(eawsRegionIdVector.r + ( 256 * eawsRegionIdVector.g));
         uvec4 report = eaws.reports[eawsRegionId];
         lowp vec3 fragColor;
 
-        if(report.x > 0u) // report.x = 0 means no report available .x=1 means report available
+        if(report.x == 1u) // report.x = 0 means no report available .x=1 means report available
         {
             uint bound = report.y;      // bound dividing moutain in Hi region and low region
             uint ratingHi = report.a;   // rating should be value in {0,1,2,3,4}
