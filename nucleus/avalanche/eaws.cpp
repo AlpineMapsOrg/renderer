@@ -159,6 +159,25 @@ std::vector<QPointF> transform_vertices(const avalanche::eaws::Region& region, c
     return transformed_vertices_as_QPointFs;
 }
 
+// Auxillaryfunctions: Checks if a region is valid for the currently selected eaws report
+bool region_matches_report_date(const avalanche::eaws::Region& region, const QDate& report_date)
+{
+    // report dates lies before validity range of region >> return false
+    if (region.start_date != std::nullopt) {
+        if (report_date < region.start_date)
+            return false;
+    }
+
+    // report dates lies after validity range of region >> return false
+    if (region.end_date != std::nullopt) {
+        if (region.end_date < report_date)
+            return false;
+    }
+
+    // report dates lies inside validity range of region >> return true
+    return true;
+}
+
 QImage avalanche::eaws::draw_regions(const RegionTile& region_tile,
     std::shared_ptr<avalanche::eaws::UIntIdManager> internal_id_manager,
     const uint& image_width,
@@ -178,6 +197,10 @@ QImage avalanche::eaws::draw_regions(const RegionTile& region_tile,
     assert(region_tile.second.size() > 0);
     radix::tile::Id tile_id_in = region_tile.first;
     for (const auto& region : region_tile.second) {
+        // Only draw regions that match current eaws report
+        if (!region_matches_report_date(region, internal_id_manager->get_date()))
+            continue;
+
         // Calculate vertex coordinates of region w.r.t. output tile at output resolution
         std::vector<QPointF> transformed_vertices_as_QPointFs = transform_vertices(region, tile_id_in, tile_id_out, &img);
 

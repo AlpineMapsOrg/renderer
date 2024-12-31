@@ -16,6 +16,9 @@ avalanche::eaws::UIntIdManager::UIntIdManager()
     assert(max_internal_id == 0);
 }
 
+QDate avalanche::eaws::UIntIdManager::get_date() const { return date_of_currently_selected_report; }
+void avalanche::eaws::UIntIdManager::set_date(const QDate& input_date) { date_of_currently_selected_report = input_date; }
+
 // Helper function to load latest list of eaws region ids
 tl::expected<std::vector<QString>, QString> get_all_eaws_region_ids_from_server()
 {
