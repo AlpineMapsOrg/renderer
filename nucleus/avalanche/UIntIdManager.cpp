@@ -52,13 +52,7 @@ tl::expected<std::vector<QString>, QString> get_all_eaws_region_ids_from_server(
     std::vector<QString> regions;
     for (const QJsonValue& jsonValue_region : array) {
         QJsonObject jsonObject_properties = jsonValue_region.toObject()["properties"].toObject();
-
-        // Test if region is old (has an end date that is not null). Current regions have either no start and no end date key or they those keys but but end date is null
-        if (jsonObject_properties.contains("end_date")) {
-            if (!jsonObject_properties["end_date"].isNull())
-                continue;
-        } else
-            regions.push_back(jsonValue_region.toObject()["properties"].toObject()["id"].toString());
+        regions.push_back(jsonValue_region.toObject()["properties"].toObject()["id"].toString());
     }
 
     // return vector withh ids of current regions
@@ -110,7 +104,6 @@ QColor avalanche::eaws::UIntIdManager::convert_region_id_to_color(const QString&
 {
     assert(this->checkIfImageFormatSupported(color_format));
     const uint& internal_id = this->convert_region_id_to_internal_id(region_id);
-    assert(internal_id != 0);
     uint red = internal_id / 256;
     uint green = internal_id % 256;
     return QColor::fromRgb(red, green, 0);
@@ -120,6 +113,9 @@ QString avalanche::eaws::UIntIdManager::convert_color_to_region_id(const QColor&
 {
     assert(QImage::Format_ARGB32 == color_format);
     uint internal_id = color.red() * 256 + color.green();
+    auto entry = internal_id_to_region_id.find(internal_id);
+    if (entry == internal_id_to_region_id.end())
+        return 0;
     return internal_id_to_region_id.at(internal_id);
 }
 
