@@ -300,36 +300,23 @@ void ReportLoadService::load_tu_wien(const QDate& date) const
         return;
     }
 
-    // Check if key with reports is correct
-    if (!json_document.isObject()) {
-        error_message.append("jsonDocument does not contain json object.");
+    // Check if json doc is array
+    if (!json_document.isArray()) {
+        error_message.append("jsonDocument does not contain array.");
         emit this->load_CAAML_finished(tl::unexpected(error_message));
         return;
     }
-    QJsonObject json_object = json_document.object();
-    if (!json_object.contains("report")) {
-        error_message.append("json object does not contain key \"report\"");
-        emit this->load_CAAML_finished(tl::unexpected(error_message));
-        return;
-    }
-
-    // Check if array is contained in json
-    if (!json_object["report"].isArray()) {
-        error_message.append("json object[\"report\"] does not contain array");
-        emit this->load_CAAML_finished(tl::unexpected(error_message));
-        return;
-    }
-    QJsonArray jsonArray_report = json_object["report"].toArray();
+    QJsonArray jsonArray = json_document.array();
 
     // parse array containing report for each region
     std::vector<ReportTUWien> region_ratings;
-    for (const QJsonValue& jsonValue_region_rating : jsonArray_report) {
-        // prepare an itemthat goes inot the bulletin
+    for (const QJsonValue& jsonValue_region_rating : jsonArray) {
+        // prepare an item that goes into the bulletin
         ReportTUWien region_rating;
 
         // Check if Json array contains json objects
         if (!jsonValue_region_rating.isObject()) {
-            error_message.append("json object[\"report\"] is array of other type than json object");
+            error_message.append("json object is array of other type than json object");
             emit this->load_CAAML_finished(tl::unexpected(error_message));
             return;
         }
