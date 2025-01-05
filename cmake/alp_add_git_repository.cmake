@@ -43,6 +43,12 @@ function(alp_add_git_repository name)
     if(EXISTS "${repo_dir}/.git")
         message(STATUS "Updating git repo in ${short_repo_dir}")
 
+        # check internet connection
+        execute_process(COMMAND ${GIT_EXECUTABLE} ls-remote ${PARAM_URL}
+            OUTPUT_QUIET
+            ERROR_QUIET
+            RESULT_VARIABLE GIT_LSREMOTE_RESULT)
+
         # Check if COMMITISH is a branch, tag, or commit hash
         execute_process(COMMAND ${GIT_EXECUTABLE} rev-parse --verify ${PARAM_COMMITISH}
             WORKING_DIRECTORY ${repo_dir}
@@ -60,6 +66,14 @@ function(alp_add_git_repository name)
             if (GIT_HEAD_OUTPUT STREQUAL GIT_COMMIT_OUTPUT)
                 message(STATUS "Repo in ${short_repo_dir} is already at ${PARAM_COMMITISH}. Skipping checkout.")
             else()
+                if (${GIT_LSREMOTE_RESULT})
+                    message(WARNING "No internet connection or remote unavailable. Leaving ${name} as is.")
+                else()
+                    message(STATUS "Fetching updates for ${name}.")
+                    execute_process(COMMAND ${GIT_EXECUTABLE} fetch
+                        WORKING_DIRECTORY ${repo_dir}
+                        RESULT_VARIABLE GIT_FETCH_RESULT)
+                endif()
                 message(STATUS "Checking out ${PARAM_COMMITISH} in ${name}.")
                 execute_process(COMMAND ${GIT_EXECUTABLE} checkout --quiet ${PARAM_COMMITISH}
                     WORKING_DIRECTORY ${repo_dir}
@@ -73,11 +87,6 @@ function(alp_add_git_repository name)
         else()
             # COMMITISH is likely a branch name
             message(STATUS "COMMITISH ${PARAM_COMMITISH} is a branch, checking for internet connection.")
-
-            execute_process(COMMAND ${GIT_EXECUTABLE} ls-remote ${PARAM_URL}
-                OUTPUT_QUIET
-                ERROR_QUIET
-                RESULT_VARIABLE GIT_LSREMOTE_RESULT)
 
             if (${GIT_LSREMOTE_RESULT})
                 message(WARNING "No internet connection or remote unavailable. Leaving branch ${PARAM_COMMITISH} as-is.")

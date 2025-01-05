@@ -7,7 +7,7 @@ on:
     branches: [ "main" ]
 
 concurrency:
-  group: "linux"
+  group: linux-${{ github.event_name }}-${{ github.ref }}
   cancel-in-progress: true
   
 jobs:
