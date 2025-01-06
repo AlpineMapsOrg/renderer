@@ -55,8 +55,6 @@ TerrainRenderer::TerrainRenderer()
     m_camera_controller = std::make_unique<CameraController>(nucleus::camera::PositionStorage::instance()->get("grossglockner"), m_glWindow.get(), ctx->data_querier().get());
 
     // clang-format off
-    QObject::connect(gl_window_ptr, &gl_engine::Window::update_camera_requested, m_camera_controller.get(), &CameraController::advance_camera);
-
     // NOTICE ME!!!! READ THIS, IF YOU HAVE TROUBLES WITH SIGNALS NOT REACHING THE QML RENDERING THREAD!!!!111elevenone
     // In Qt/QML the rendering thread goes to sleep (at least until Qt 6.5, See RenderThreadNotifier).
     // At the time of writing, an additional connection from tile_ready and tile_expired to the notifier is made.

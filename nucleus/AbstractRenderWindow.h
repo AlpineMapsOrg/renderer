@@ -61,7 +61,6 @@ public slots:
 
 signals:
     void update_requested();
-    void update_camera_requested() const;
     void value_picked(uint32_t value);
 };
 

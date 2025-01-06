@@ -147,7 +147,6 @@ int main(int argc, char** argv)
         QTimer::singleShot(5ms, &camera_controller, &CameraController::advance_camera);
     });
 
-    QObject::connect(glWindow.render_window(), &AbstractRenderWindow::update_camera_requested, &camera_controller, &CameraController::advance_camera);
     QObject::connect(&glWindow, &Window::initialisation_started, context.get(), [&]() { context->initialise(); });
     QObject::connect(&glWindow, &Window::initialisation_started, geometry_scheduler.scheduler.get(), [&]() { geometry_scheduler.scheduler->set_enabled(true); });
     QObject::connect(&glWindow, &Window::initialisation_started, &glWindow, [&ortho_scheduler]() {
