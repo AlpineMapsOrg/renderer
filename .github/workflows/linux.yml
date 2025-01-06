@@ -15,7 +15,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        compiler: [gcc12, clang15, clang17, clang19]
+        compiler: [gcc12, clang17, clang19]
         build_type: [Release]
         include:
           - compiler: gcc12
