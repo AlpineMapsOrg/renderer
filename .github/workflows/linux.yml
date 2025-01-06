@@ -15,7 +15,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        compiler: [gcc12, clang15, clang17]
+        compiler: [gcc12, clang15, clang17, clang19]
         build_type: [Release]
         include:
           - compiler: gcc12
@@ -27,8 +27,11 @@ jobs:
           - compiler: clang17
             CC: '/usr/bin/clang-17'
             CXX: '/usr/bin/clang++-17'
+          - compiler: clang19
+            CC: '/usr/bin/clang-19'
+            CXX: '/usr/bin/clang++-19'
             
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
 
     steps:
     - uses: actions/checkout@v3
@@ -41,6 +44,13 @@ jobs:
        wget https://apt.llvm.org/llvm.sh
        chmod +x ./llvm.sh
        sudo ./llvm.sh 17
+
+    - name: Install Clang 19
+      if: matrix.compiler == 'clang19'
+      run: |
+       wget https://apt.llvm.org/llvm.sh
+       chmod +x ./llvm.sh
+       sudo ./llvm.sh 19
         
     - name: Install Linux Dependencies
       run: |
