@@ -54,6 +54,8 @@ GlParams gl_tex_params(gl_engine::Texture::Format format)
         return { GL_RG8, GL_RG, GL_UNSIGNED_BYTE, 2, 1, true };
     case F::RG32UI:
         return { GL_RG32UI, GL_RG_INTEGER, GL_UNSIGNED_INT, 2, 4 };
+    case F::RGB32UI:
+        return { GL_RGB32UI, GL_RGB_INTEGER, GL_UNSIGNED_INT, 3, 4 };
     case F::R16UI:
         return { GL_R16UI, GL_RED_INTEGER, GL_UNSIGNED_SHORT, 1, 2 };
     case F::R32UI:
@@ -211,6 +213,27 @@ void gl_engine::Texture::upload(const nucleus::Raster<uint16_t>& texture, unsign
     f->glTexSubImage3D(GLenum(m_target), 0, 0, 0, GLint(array_index), width, height, 1, GL_RED_INTEGER, GL_UNSIGNED_SHORT, texture.bytes());
 }
 
+template <typename T> void gl_engine::Texture::upload(const nucleus::Raster<T>& texture, unsigned int array_index)
+{
+    const auto p = gl_tex_params(m_format);
+
+    assert(m_format != Format::CompressedRGBA8);
+    assert(m_format != Format::Invalid);
+    assert(m_mag_filter == Filter::Nearest); // not filterable according to
+    assert(m_min_filter == Filter::Nearest); // https://registry.khronos.org/OpenGL-Refpages/es3.0/html/glTexStorage2D.xhtml
+    assert(array_index < m_n_layers);
+    assert(texture.width() == m_width);
+    assert(texture.height() == m_height);
+
+    const auto width = GLsizei(texture.width());
+    const auto height = GLsizei(texture.height());
+
+    auto* f = QOpenGLContext::currentContext()->extraFunctions();
+    f->glBindTexture(GLenum(m_target), m_id);
+    f->glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
+    f->glTexSubImage3D(GLenum(m_target), 0, 0, 0, GLint(array_index), width, height, 1, p.format, p.type, texture.bytes());
+}
+
 void gl_engine::Texture::upload(const nucleus::Raster<glm::u8vec2>& texture, unsigned int array_index)
 {
     assert(m_format == Format::RG8);
@@ -250,8 +273,12 @@ template <typename T> void gl_engine::Texture::upload(const nucleus::Raster<T>& 
 template void gl_engine::Texture::upload<uint16_t>(const nucleus::Raster<uint16_t>&);
 template void gl_engine::Texture::upload<uint32_t>(const nucleus::Raster<uint32_t>&);
 template void gl_engine::Texture::upload<glm::vec<2, uint32_t>>(const nucleus::Raster<glm::vec<2, uint32_t>>&);
+template void gl_engine::Texture::upload<glm::vec<3, uint32_t>>(const nucleus::Raster<glm::vec<3, uint32_t>>&);
 template void gl_engine::Texture::upload<glm::vec<2, uint8_t>>(const nucleus::Raster<glm::vec<2, uint8_t>>&);
 template void gl_engine::Texture::upload<glm::vec<4, uint8_t>>(const nucleus::Raster<glm::vec<4, uint8_t>>&);
+
+template void gl_engine::Texture::upload<glm::vec<2, uint32_t>>(const nucleus::Raster<glm::vec<2, uint32_t>>&, unsigned int);
+template void gl_engine::Texture::upload<glm::vec<3, uint32_t>>(const nucleus::Raster<glm::vec<3, uint32_t>>&, unsigned int);
 
 GLenum gl_engine::Texture::compressed_texture_format()
 {
