@@ -103,5 +103,6 @@ void Window::touchEvent(QTouchEvent* e)
 
 void Window::key_timer()
 {
-    if (m_gl_window) m_gl_window->updateCameraEvent();
+    if (m_gl_window)
+        m_gl_window->update_requested();
 }
