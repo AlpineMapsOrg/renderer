@@ -651,26 +651,99 @@ TEST_CASE("nucleus/rasterizer")
         nucleus::Raster<uint8_t> output({ cells * cell_size, cells * cell_size }, 0u);
         const auto pixel_writer = [&output](glm::ivec2 pos) { output.pixel(pos) = 255; };
 
-        const auto rand_pos = []() { return std::rand() % (cell_size * 10u) / 10.0f; };
+        const std::vector<std::vector<glm::vec2>> polygon_points = { { { 11.5, 16 }, { 12.9, 3.9 }, { 4.8, 5.5 } },
+            { { 59.3, 11.9 }, { 58.9, 6.9 }, { 38.5, 24.7 } },
+            { { 79.1, 14.3 }, { 82, 2.4 }, { 72.7, 31.9 } },
+            { { 125.2, 24.7 }, { 105.2, 30.8 }, { 125.5, 12.1 } },
+            { { 145.9, 17.1 }, { 128, 15.5 }, { 141.6, 29.5 } },
+            { { 160.7, 23.1 }, { 174.3, 12.4 }, { 165.1, 0.8 } },
+            { { 223.9, 19.1 }, { 205.2, 0.4 }, { 217.1, 26.8 } },
+            { { 252.4, 6.9 }, { 233.3, 27.4 }, { 251.3, 14.4 } },
+            { { 7.1, 37.2 }, { 4, 43.7 }, { 11.1, 35.5 } },
+            { { 39.9, 52.7 }, { 55.5, 48.2 }, { 45.7, 39.9 } },
+            { { 82.3, 37.1 }, { 68.7, 46.5 }, { 66.5, 32.6 } },
+            { { 102.9, 41.8 }, { 125.5, 34.5 }, { 112.5, 52.2 } },
+            { { 155.1, 41.8 }, { 133.3, 44.9 }, { 155.3, 55.7 } },
+            { { 188.9, 51.8 }, { 178.8, 53.6 }, { 172.4, 52.2 } },
+            { { 220.1, 61.9 }, { 206.1, 39.5 }, { 194.6, 51.6 } },
+            { { 236, 59.8 }, { 253.5, 52.9 }, { 232.7, 35.9 } },
+            { { 13.8, 83.3 }, { 21.8, 79.7 }, { 23.1, 94.5 } },
+            { { 40.3, 70.3 }, { 51.3, 69.4 }, { 61.1, 77.6 } },
+            { { 84.7, 65.8 }, { 87.5, 77.3 }, { 84.7, 71.5 } },
+            { { 101.4, 87.1 }, { 126.6, 80.8 }, { 119.7, 70.7 } },
+            { { 149.7, 65.2 }, { 137.4, 67.7 }, { 135.6, 70.5 } },
+            { { 185.8, 82.1 }, { 181, 72.6 }, { 167.1, 79.6 } },
+            { { 213.9, 76.1 }, { 209.6, 79.5 }, { 208.3, 92.4 } },
+            { { 254.3, 65.9 }, { 226.4, 88.2 }, { 255.7, 73 } },
+            { { 19.3, 119.1 }, { 27.2, 120.3 }, { 18.2, 113.9 } },
+            { { 38.3, 114.9 }, { 54.6, 104 }, { 46.5, 98.9 } },
+            { { 85.1, 113.4 }, { 90.1, 123.5 }, { 75.1, 125.3 } },
+            { { 105.5, 97.2 }, { 99.9, 116.2 }, { 99.9, 110.3 } },
+            { { 131.4, 116.3 }, { 159.7, 98.2 }, { 158.4, 101.9 } },
+            { { 176.2, 127.5 }, { 171, 113.7 }, { 182.8, 107.4 } },
+            { { 222.3, 125.3 }, { 216.5, 125.1 }, { 192.1, 104.1 } },
+            { { 249.6, 122.2 }, { 245.7, 104.4 }, { 229.7, 115.7 } },
+            { { 8.1, 148 }, { 27.4, 130.4 }, { 3.9, 140.1 } },
+            { { 51.6, 159.3 }, { 52.7, 135.4 }, { 45.3, 147.3 } },
+            { { 70, 147.1 }, { 68.8, 144.7 }, { 92.2, 132.3 } },
+            { { 116.8, 142.8 }, { 127.2, 141.7 }, { 117.9, 141.3 } },
+            { { 154.7, 146.5 }, { 154.9, 130.7 }, { 137.6, 144.4 } },
+            { { 183.6, 147.8 }, { 169.5, 132.9 }, { 177, 147 } },
+            { { 210.4, 141.4 }, { 200, 151.8 }, { 222.4, 135.1 } },
+            { { 237.5, 136.5 }, { 249.3, 151.6 }, { 251.9, 133.5 } },
+            { { 20.4, 168.7 }, { 22.4, 163.9 }, { 4.4, 179.6 } },
+            { { 38.1, 191.5 }, { 53.4, 191.1 }, { 34.7, 180.2 } },
+            { { 72, 191 }, { 68, 186.3 }, { 77.4, 164.7 } },
+            { { 101.4, 168.2 }, { 115.3, 179 }, { 122.1, 173.4 } },
+            { { 137.2, 177.7 }, { 137.3, 186.8 }, { 128.4, 181.7 } },
+            { { 190.4, 184.5 }, { 188.4, 180.8 }, { 168.4, 180.8 } },
+            { { 199.6, 160.9 }, { 211.2, 161.7 }, { 213.9, 189 } },
+            { { 252.1, 182 }, { 240.3, 189.9 }, { 245.9, 179.3 } },
+            { { 14.7, 208.9 }, { 23.1, 219.3 }, { 27.9, 194 } },
+            { { 51.7, 196.5 }, { 63.3, 197.1 }, { 58.8, 208.3 } },
+            { { 92, 223.7 }, { 84.5, 204.4 }, { 65.3, 216.4 } },
+            { { 108.5, 208.1 }, { 113.8, 200.9 }, { 121.1, 223.8 } },
+            { { 137, 199.7 }, { 152.9, 213.2 }, { 155.7, 204.5 } },
+            { { 189.5, 206.8 }, { 189.3, 202.5 }, { 172.5, 212.6 } },
+            { { 217.1, 217.2 }, { 209.6, 211.5 }, { 215, 203.7 } },
+            { { 235.4, 223.6 }, { 236.1, 211 }, { 254.6, 192 } },
+            { { 3.3, 224.6 }, { 28.7, 254.4 }, { 17.4, 245.2 } },
+            { { 48.1, 245.8 }, { 62.3, 250.4 }, { 38.9, 233 } },
+            { { 75, 250 }, { 87.7, 247.6 }, { 95.5, 232.3 } },
+            { { 116.8, 247.5 }, { 107, 235.8 }, { 119.5, 230.4 } },
+            { { 153.2, 245.2 }, { 136.2, 246.2 }, { 137.4, 229.3 } },
+            { { 185.1, 250 }, { 184.4, 236.7 }, { 161.9, 245.8 } },
+            { { 222.9, 233.8 }, { 215.4, 242.1 }, { 206.3, 253.2 } },
+            { { 234.4, 241.6 }, { 233.2, 249.4 }, { 225.7, 245.4 } } };
 
-        std::srand(123458); // initialize rand -> we need to create consistent triangles
+        for (const auto& tri : polygon_points) {
+            nucleus::utils::rasterizer::rasterize_polygon(pixel_writer, tri);
 
-        for (size_t i = 0; i < cells; i++) {
-            for (size_t j = 0; j < cells; j++) {
-                const auto cell_offset = glm::vec2(j * cell_size, i * cell_size);
-
-                const std::vector<glm::vec2> polygon_points
-                    = { glm::vec2(rand_pos(), rand_pos()) + cell_offset, glm::vec2(rand_pos(), rand_pos()) + cell_offset, glm::vec2(rand_pos(), rand_pos()) + cell_offset };
-
-                nucleus::utils::rasterizer::rasterize_polygon(pixel_writer, polygon_points);
-
-                // DEBUG view the vertices in the image (uses different pixel intensity)
-                // const auto pixel_writer_points = [&output](glm::ivec2 pos) { output.pixel(pos) = 125; };
-                // pixel_writer_points(polygon_points[0]);
-                // pixel_writer_points(polygon_points[1]);
-                // pixel_writer_points(polygon_points[2]);
-            }
+            // DEBUG view the vertices in the image(uses different pixel intensity)
+            // const auto pixel_writer_points = [&output](glm::ivec2 pos) { output.pixel(pos) = 125; };
+            // pixel_writer_points(tri[0]);
+            // pixel_writer_points(tri[1]);
+            // pixel_writer_points(tri[2]);
         }
+
+        // DEBUG how the random points were generated
+        // const auto rand_pos = []() { return std::rand() % (cell_size * 10u) / 10.0f; };
+        // std::srand(123458); // initialize rand -> we need to create consistent triangles
+
+        // for (size_t i = 0; i < cells; i++) {
+        //     for (size_t j = 0; j < cells; j++) {
+        //         const auto cell_offset = glm::vec2(j * cell_size, i * cell_size);
+
+        //         const std::vector<glm::vec2> polygon_points
+        //             = { glm::vec2(rand_pos(), rand_pos()) + cell_offset, glm::vec2(rand_pos(), rand_pos()) + cell_offset, glm::vec2(rand_pos(), rand_pos()) + cell_offset };
+
+        //         nucleus::utils::rasterizer::rasterize_polygon(pixel_writer, polygon_points);
+
+        //         qDebug() << "{{" << polygon_points[0].x << "," << polygon_points[0].y << "}, " << "{" << polygon_points[1].x << "," << polygon_points[1].y << "}, " << "{" << polygon_points[2].x <<
+        //         ","
+        //                  << polygon_points[2].y << "}}, ";
+        //     }
+        // }
 
         auto image = nucleus::tile::conversion::u8raster_to_qimage(output);
         CHECK(image == example_rasterizer_image("rasterizer_output_random_triangle.png"));
