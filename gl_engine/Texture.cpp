@@ -213,7 +213,8 @@ void gl_engine::Texture::upload(const nucleus::Raster<uint16_t>& texture, unsign
     f->glTexSubImage3D(GLenum(m_target), 0, 0, 0, GLint(array_index), width, height, 1, GL_RED_INTEGER, GL_UNSIGNED_SHORT, texture.bytes());
 }
 
-template <typename T> void gl_engine::Texture::upload(const nucleus::Raster<T>& texture, unsigned int array_index)
+template <typename T>
+void gl_engine::Texture::upload(const nucleus::Raster<T>& texture, unsigned int array_index)
 {
     const auto p = gl_tex_params(m_format);
 
@@ -253,7 +254,8 @@ void gl_engine::Texture::upload(const nucleus::Raster<glm::u8vec2>& texture, uns
         f->glGenerateMipmap(GLenum(m_target));
 }
 
-template <typename T> void gl_engine::Texture::upload(const nucleus::Raster<T>& texture)
+template <typename T>
+void gl_engine::Texture::upload(const nucleus::Raster<T>& texture)
 {
     assert(m_target == Target::_2d);
 
@@ -277,6 +279,7 @@ template void gl_engine::Texture::upload<glm::vec<3, uint32_t>>(const nucleus::R
 template void gl_engine::Texture::upload<glm::vec<2, uint8_t>>(const nucleus::Raster<glm::vec<2, uint8_t>>&);
 template void gl_engine::Texture::upload<glm::vec<4, uint8_t>>(const nucleus::Raster<glm::vec<4, uint8_t>>&);
 
+template void gl_engine::Texture::upload<uint32_t>(const nucleus::Raster<uint32_t>&, unsigned int);
 template void gl_engine::Texture::upload<glm::vec<2, uint32_t>>(const nucleus::Raster<glm::vec<2, uint32_t>>&, unsigned int);
 template void gl_engine::Texture::upload<glm::vec<3, uint32_t>>(const nucleus::Raster<glm::vec<3, uint32_t>>&, unsigned int);
 

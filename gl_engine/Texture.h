@@ -60,9 +60,11 @@ public:
     void upload(const nucleus::utils::MipmappedColourTexture& mipped_texture, unsigned array_index);
     void upload(const nucleus::Raster<glm::u8vec2>& texture, unsigned int array_index);
     void upload(const nucleus::Raster<uint16_t>& texture, unsigned int array_index);
-    template <typename T> void upload(const nucleus::Raster<T>& texture, unsigned int array_index);
+    template <typename T>
+    void upload(const nucleus::Raster<T>& texture, unsigned int array_index);
 
-    template <typename T> void upload(const nucleus::Raster<T>& texture);
+    template <typename T>
+    void upload(const nucleus::Raster<T>& texture);
 
     static GLenum compressed_texture_format();
     static nucleus::utils::ColourTexture::Format compression_algorithm();
@@ -89,6 +91,7 @@ extern template void gl_engine::Texture::upload<glm::vec<3, uint32_t>>(const nuc
 extern template void gl_engine::Texture::upload<glm::vec<2, uint8_t>>(const nucleus::Raster<glm::vec<2, uint8_t>>&);
 extern template void gl_engine::Texture::upload<glm::vec<4, uint8_t>>(const nucleus::Raster<glm::vec<4, uint8_t>>&);
 
+extern template void gl_engine::Texture::upload<uint32_t>(const nucleus::Raster<uint32_t>&, unsigned int);
 extern template void gl_engine::Texture::upload<glm::vec<2, uint32_t>>(const nucleus::Raster<glm::vec<2, uint32_t>>&, unsigned int);
 extern template void gl_engine::Texture::upload<glm::vec<3, uint32_t>>(const nucleus::Raster<glm::vec<3, uint32_t>>&, unsigned int);
 
