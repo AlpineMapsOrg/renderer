@@ -115,6 +115,85 @@ void test_unsigned_texture_with(const TexelType& texel_value, gl_engine::Texture
     CHECK(qAlpha(render_result.pixel(0, 0)) == 126);
 }
 
+template <int length, typename Type, typename TexelType = glm::vec<length, Type>>
+void test_unsigned_texture_array_with(const std::array<TexelType, 2>& texel_value, gl_engine::Texture::Format format)
+{
+    Framebuffer b(Framebuffer::DepthFormat::None, { Framebuffer::ColourFormat::RGBA8, Framebuffer::ColourFormat::RGBA8 }, { 1, 1 });
+
+    b.bind();
+
+    gl_engine::Texture opengl_texture(gl_engine::Texture::Target::_2dArray, format);
+    opengl_texture.setParams(gl_engine::Texture::Filter::Nearest, gl_engine::Texture::Filter::Nearest);
+    opengl_texture.allocate_array(1, 1, 2);
+
+    const auto tex0 = nucleus::Raster<TexelType>({ 1, 1 }, texel_value[0]);
+    const auto tex1 = nucleus::Raster<TexelType>({ 1, 1 }, texel_value[1]);
+    opengl_texture.upload(tex0, 0);
+    opengl_texture.upload(tex1, 1);
+
+    const auto precision = []() -> QString {
+        if (sizeof(Type) == 1)
+            return "lowp";
+        if (sizeof(Type) == 2)
+            return "mediump";
+        if (sizeof(Type) == 4)
+            return "highp";
+        assert(false);
+        return "Type has unexpected size";
+    };
+
+    ShaderProgram shader = create_debug_shader(QString(R"(
+            uniform %1 usampler2DArray texture_sampler;
+            layout (location = 0) out lowp vec4 out_color0;
+            layout (location = 1) out lowp vec4 out_color1;
+            void main() {
+                %1 uvec4 v0 = texelFetch(texture_sampler, ivec3(0, 0, 0), 0);
+                out_color0 = vec4((v0.r == %2) ? 123.0 / 255.0 : 9.0 / 255.0,
+                                 (%10 < 2 || v0.g == %3) ? 124.0 / 255.0 : 9.0 / 255.0,
+                                 (%10 < 3 || v0.b == %4) ? 125.0 / 255.0 : 9.0 / 255.0,
+                                 (%10 < 4 || v0.a == %5) ? 126.0 / 255.0 : 9.0 / 255.0);
+
+                %1 uvec4 v1 = texelFetch(texture_sampler, ivec3(0, 0, 1), 0);
+                out_color1 = vec4((v1.r == %6) ? 127.0 / 255.0 : 9.0 / 255.0,
+                                 (%10 < 2 || v1.g == %7) ? 128.0 / 255.0 : 9.0 / 255.0,
+                                 (%10 < 3 || v1.b == %8) ? 129.0 / 255.0 : 9.0 / 255.0,
+                                 (%10 < 4 || v1.a == %9) ? 130.0 / 255.0 : 9.0 / 255.0);
+            }
+        )")
+            .arg(precision())
+            .arg(texel_component(texel_value[0], 0))
+            .arg(texel_component(texel_value[0], 1))
+            .arg(texel_component(texel_value[0], 2))
+            .arg(texel_component(texel_value[0], 3))
+            .arg(texel_component(texel_value[1], 0))
+            .arg(texel_component(texel_value[1], 1))
+            .arg(texel_component(texel_value[1], 2))
+            .arg(texel_component(texel_value[1], 3))
+            .arg(length));
+    shader.bind();
+    opengl_texture.bind(0);
+    shader.set_uniform("texture_sampler", 0);
+    gl_engine::helpers::create_screen_quad_geometry().draw();
+
+    // render_result.save("render_result.png");
+    {
+        const QImage render_result = b.read_colour_attachment(0);
+        CHECK(qRed(render_result.pixel(0, 0)) == 123);
+        CHECK(qGreen(render_result.pixel(0, 0)) == 124);
+        CHECK(qBlue(render_result.pixel(0, 0)) == 125);
+        CHECK(qAlpha(render_result.pixel(0, 0)) == 126);
+    }
+    {
+        const QImage render_result = b.read_colour_attachment(1);
+        CHECK(qRed(render_result.pixel(0, 0)) == 127);
+        CHECK(qGreen(render_result.pixel(0, 0)) == 128);
+        CHECK(qBlue(render_result.pixel(0, 0)) == 129);
+        CHECK(qAlpha(render_result.pixel(0, 0)) == 130);
+    }
+
+    Framebuffer::unbind();
+}
+
 QImage create_test_rgba_qimage(unsigned width, unsigned height)
 {
     QImage test_texture(width, height, QImage::Format_RGBA8888);
@@ -300,8 +379,15 @@ TEST_CASE("gl texture")
 
     SECTION("rgba8ui") { test_unsigned_texture_with<4, unsigned char>({ 1, 2, 255, 140 }, gl_engine::Texture::Format::RGBA8UI); }
     SECTION("rg32ui") { test_unsigned_texture_with<2, uint32_t>({ 3000111222, 4000111222 }, gl_engine::Texture::Format::RG32UI); }
+    SECTION("rgb32ui") { test_unsigned_texture_with<3, uint32_t>({ 3000111222, 4000111222, 2500111222 }, gl_engine::Texture::Format::RGB32UI); }
     SECTION("red16ui") { test_unsigned_texture_with<1, uint16_t, uint16_t>(uint16_t(60123), gl_engine::Texture::Format::R16UI); }
     SECTION("red32ui") { test_unsigned_texture_with<1, uint32_t, uint32_t>(uint32_t(4000111222), gl_engine::Texture::Format::R32UI); }
+    SECTION("r32ui_array") { test_unsigned_texture_array_with<1, uint32_t, uint32_t>({ uint32_t { 3000111222 }, uint32_t { 3000114422 } }, gl_engine::Texture::Format::R32UI); }
+    SECTION("rg32ui_array") { test_unsigned_texture_array_with<2, uint32_t>({ glm::uvec2 { 3000111222, 4000111222 }, glm::uvec2 { 3000114422, 4000114422 } }, gl_engine::Texture::Format::RG32UI); }
+    SECTION("rgb32ui_array")
+    {
+        test_unsigned_texture_array_with<3, uint32_t>({ glm::uvec3 { 3000111222, 4000111222, 2500111222 }, glm::uvec3 { 3000114422, 4000114422, 2500114422 } }, gl_engine::Texture::Format::RGB32UI);
+    }
 
     SECTION("rgba array (compressed and uncompressed, mipmapped and not)")
     {
