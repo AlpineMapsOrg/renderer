@@ -15,37 +15,42 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        compiler: [gcc12, clang15, clang17]
+        compiler: [gcc12, clang17, clang19]
         build_type: [Release]
         include:
           - compiler: gcc12
             CC: "/usr/bin/gcc-12"
             CXX: "/usr/bin/g++-12"
-          - compiler: clang15
-            CC: '/usr/bin/clang-15'
-            CXX: '/usr/bin/clang++-15'
           - compiler: clang17
             CC: '/usr/bin/clang-17'
             CXX: '/usr/bin/clang++-17'
+          - compiler: clang19
+            CC: '/usr/bin/clang-19'
+            CXX: '/usr/bin/clang++-19'
             
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
 
     steps:
     - uses: actions/checkout@v3
       with:
         submodules: 'true'
-        
-    - name: Install Clang 17
-      if: matrix.compiler == 'clang17'
-      run: |
-       wget https://apt.llvm.org/llvm.sh
-       chmod +x ./llvm.sh
-       sudo ./llvm.sh 17
-        
+
     - name: Install Linux Dependencies
       run: |
         sudo apt-get update
-        sudo apt-get install -y build-essential ninja-build lld clang-15 libgl1-mesa-dev libxcb-cursor-dev xorg-dev libxrandr-dev libxcursor-dev libudev-dev libopenal-dev libflac-dev libvorbis-dev libgl1-mesa-dev libegl1-mesa-dev libdrm-dev libgbm-dev xvfb libxcb-cursor0 libxcb-icccm4 libxcb-image0 libxcb-keysyms1 libxcb-render-util0
+        sudo apt-get install -y build-essential ninja-build lld libgl1-mesa-dev libxcb-cursor-dev xorg-dev libxrandr-dev libxcursor-dev libudev-dev libopenal-dev libflac-dev libvorbis-dev libgl1-mesa-dev libegl1-mesa-dev libdrm-dev libgbm-dev xvfb libxcb-cursor0 libxcb-icccm4 libxcb-image0 libxcb-keysyms1 libxcb-render-util0
+
+    - name: Install Clang 17
+      if: matrix.compiler == 'clang17'
+      run: |
+        sudo apt-get install -y clang-17
+
+    - name: Install Clang 19
+      if: matrix.compiler == 'clang19'
+      run: |
+       wget https://apt.llvm.org/llvm.sh
+       chmod +x ./llvm.sh
+       sudo ./llvm.sh 19
 
     - name: Install Qt
       uses: jurplel/install-qt-action@v4

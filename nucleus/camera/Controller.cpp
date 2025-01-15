@@ -129,6 +129,8 @@ void Controller::mouse_press(const event_parameter::Mouse& e)
 void Controller::mouse_move(const event_parameter::Mouse& e)
 {
     if (m_animation_style) {
+        if (e.button == Qt::NoButton)
+            return;
         m_animation_style.reset();
         m_interaction_style->reset_interaction(m_definition, m_depth_tester);
     }
