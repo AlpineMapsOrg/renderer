@@ -70,9 +70,8 @@ void avalanche::eaws::UIntIdManager::load_all_regions_from_server()
 
     // Add all region ids to internal list. the index in the array is the internal uint id that belongs to the eaws region id.
     if (result.has_value()) {
-        for (const QString& region_id : result.value()) {
+        for (const QString& region_id : result.value())
             convert_region_id_to_internal_id(region_id);
-        }
     }
 
     // This is heard by the ReportManager::load_all_regions_from_server which loads allr eprots and can assignthem to correct uint id.
@@ -98,7 +97,7 @@ QString avalanche::eaws::UIntIdManager::convert_internal_id_to_region_id(const u
 {
     auto entry = internal_id_to_region_id.find(internal_id);
     if (entry == internal_id_to_region_id.end())
-        return "";
+        return QString("");
     else
         return entry->second;
 }
@@ -118,7 +117,7 @@ QString avalanche::eaws::UIntIdManager::convert_color_to_region_id(const QColor&
     uint internal_id = color.red() * 256 + color.green();
     auto entry = internal_id_to_region_id.find(internal_id);
     if (entry == internal_id_to_region_id.end())
-        return 0;
+        return QString("");
     return internal_id_to_region_id.at(internal_id);
 }
 
@@ -148,3 +147,5 @@ std::vector<QString> avalanche::eaws::UIntIdManager::get_all_registered_region_i
         region_ids[internal_id] = region_id;
     return region_ids;
 }
+
+bool avalanche::eaws::UIntIdManager::contains(const QString& region_id) const { return region_id_to_internal_id.contains(region_id); }

@@ -20,7 +20,6 @@
 
 #include "ShaderProgram.h"
 #include "ShaderRegistry.h"
-#include "Texture.h"
 #include "TileGeometry.h"
 #include <QOpenGLExtraFunctions>
 
@@ -31,13 +30,13 @@ TextureLayer::TextureLayer(QObject* parent)
 {
 }
 
-void gl_engine::TextureLayer::init(ShaderRegistry* shader_registry)
+void gl_engine::TextureLayer::init(ShaderRegistry* shader_registry, const Texture::Format& ortho_texture_format)
 {
     m_shader = std::make_shared<ShaderProgram>("tile.vert", "tile.frag");
     shader_registry->add_shader(m_shader);
 
-    m_ortho_textures = std::make_unique<Texture>(Texture::Target::_2dArray, Texture::Format::CompressedRGBA8);
-    m_ortho_textures->setParams(Texture::Filter::MipMapLinear, Texture::Filter::Linear, true);
+    m_ortho_textures = std::make_unique<Texture>(Texture::Target::_2dArray, ortho_texture_format);
+    m_ortho_textures->setParams(Texture::Filter::Nearest, Texture::Filter::Nearest, false);
     // TODO: might become larger than GL_MAX_ARRAY_TEXTURE_LAYERS
     m_ortho_textures->allocate_array(ORTHO_RESOLUTION, ORTHO_RESOLUTION, unsigned(m_gpu_array_helper.size()));
 
@@ -68,7 +67,8 @@ void TextureLayer::draw(const TileGeometry& tile_geometry,
     tile_geometry.draw(m_shader.get(), camera, draw_tiles, sort_tiles, sort_position);
 }
 
-void TextureLayer::update_gpu_quads(const std::vector<nucleus::tile::GpuTextureQuad>& new_quads, const std::vector<nucleus::tile::Id>& deleted_quads)
+// Template works for nucleus::tile::GpuEawsQuad or nucleus::tile::GpuTextureQuad
+template <typename T> void TextureLayer::update_gpu_quads_template(const std::vector<T>& new_quads, const std::vector<nucleus::tile::Id>& deleted_quads)
 {
     if (!QOpenGLContext::currentContext()) // can happen during shutdown.
         return;
@@ -90,6 +90,18 @@ void TextureLayer::update_gpu_quads(const std::vector<nucleus::tile::GpuTextureQ
         }
     }
     update_gpu_id_map();
+}
+
+// wrapper for template since thi is a slot which cannot be a template
+void TextureLayer::update_gpu_eaws_quads(const std::vector<nucleus::tile::GpuEawsQuad>& new_quads, const std::vector<nucleus::tile::Id>& deleted_quads)
+{
+    update_gpu_quads_template(new_quads, deleted_quads);
+}
+
+// wrapper for template since thi is a slot which cannot be a template
+void TextureLayer::update_gpu_quads(const std::vector<nucleus::tile::GpuTextureQuad>& new_quads, const std::vector<nucleus::tile::Id>& deleted_quads)
+{
+    update_gpu_quads_template(new_quads, deleted_quads);
 }
 
 void TextureLayer::set_quad_limit(unsigned int new_limit) { m_gpu_array_helper.set_quad_limit(new_limit); }

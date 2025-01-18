@@ -30,14 +30,14 @@ public:
     ~TextureScheduler();
 
 signals:
-    void gpu_quads_updated(const std::vector<nucleus::tile::GpuTextureQuad>& new_quads, const std::vector<nucleus::tile::Id>& deleted_quads);
+    void gpu_quads_updated(const std::vector<nucleus::tile::GpuEawsQuad>& new_quads, const std::vector<nucleus::tile::Id>& deleted_quads);
 
 protected:
     void transform_and_emit(const std::vector<nucleus::tile::DataQuad>& new_quads, const std::vector<nucleus::tile::Id>& deleted_quads);
 
 private:
     nucleus::utils::ColourTexture::Format m_compression_algorithm = nucleus::utils::ColourTexture::Format::DXT1;
-    nucleus::Raster<glm::u8vec4> m_default_raster;
+    nucleus::Raster<glm::uint16> m_default_raster;
     std::shared_ptr<avalanche::eaws::UIntIdManager> m_uint_id_manager;
 };
 

@@ -18,16 +18,16 @@
 
 layout (std140) uniform eaws_reports {
     // length of array must be the same as in avalanche::eaws::uboEawsReports on host side
-    uvec4 reports[1000];
+    ivec4 reports[1000];
 } eaws;
 
-vec3 color_from_eaws_danger_rating(uint rating)
+vec3 color_from_eaws_danger_rating(int rating)
 {
-    if(0u == rating) return vec3(0.f,1.f,0.f);      // green        for 0 = low
-    if(1u == rating) return vec3(1.f,1.f,0.f);      // yellow       for 1 = moderate
-    if(2u == rating) return vec3(1.f,0.53f,0.f);    // orange       for 2 = considerable
-    if(3u == rating) return vec3(1.f,0.f,0.f);      // red          for 3 = high
-    if(4u == rating) return vec3(0.5f,1.f,0.f);     // dark red     for 4 = extreme
+    if(1 == rating) return vec3(0.f,1.f,0.f);      // green        for 1 = low
+    if(2 == rating) return vec3(1.f,1.f,0.f);      // yellow       for 2 = moderate
+    if(3 == rating) return vec3(1.f,0.53f,0.f);    // orange       for 3 = considerable
+    if(4 == rating) return vec3(1.f,0.f,0.f);      // red          for 4 = high
+    if(5 == rating) return vec3(0.5f,1.f,0.f);     // dark red     for 5 = extreme
     return(vec3(0.f,0.f,0.f));                      // white        for     undefined cases
 
 }

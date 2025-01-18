@@ -131,6 +131,17 @@ TEST_CASE("nucleus/EAWS Vector Tiles")
         }
         CHECK(internal_maps_match);
 
+        // Check if conversion color << id << color works consistentenly
+        bool wrong_conversion = false;
+        for (QString region_id : all_region_Ids) {
+            QColor color = internal_id_manager->convert_region_id_to_color(region_id);
+            QString region_id_from_color = internal_id_manager->convert_color_to_region_id(color, QImage::Format_ARGB32);
+            wrong_conversion = (region_id != region_id_from_color);
+            if (wrong_conversion)
+                break;
+        }
+        CHECK((!wrong_conversion));
+
         // Load tiles at higher zoom level for testing
         std::vector<std::string> file_names({ "eaws_2-2-0.mvt", "eaws_10-236-299.mvt" });
         radix::tile::Id tile_id_2_2_0 = radix::tile::Id(radix::tile::Id(2, glm::vec2(2, 0), radix::tile::Scheme::SlippyMap));

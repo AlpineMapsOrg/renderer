@@ -62,7 +62,7 @@ tl::expected<RegionTile, QString> vector_tile_reader(const QByteArray& input_dat
 
 // This struct contains report data written to ubo on gpu
 struct uboEawsReports {
-    glm::uvec4 reports[1000]; // ~600 regions where each region has a forecast of the form: .x: forecast available (1/0) .y: border .z: rating below border .a: rating above
+    glm::ivec4 reports[1000]; // ~600 regions where each region has a forecast of the form: .x: forecast available (1/0) .y: border .z: rating below border .a: rating above
 };
 
 // Creates a new QImage and draws all regions to it where color encodes the region id. Throws error when no regions are provided

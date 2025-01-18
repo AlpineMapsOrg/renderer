@@ -19,6 +19,7 @@ public:
     uint convert_color_to_internal_id(const QColor& color, const QImage::Format& color_format);
     QColor convert_internal_id_to_color(const uint& internal_id, const QImage::Format& color_format);
     bool checkIfImageFormatSupported(const QImage::Format& color_format) const;
+    bool contains(const QString& region_id) const;
     std::vector<QString> get_all_registered_region_ids() const;
     void load_all_regions_from_server();
     QDate get_date() const; // returns date_of_currently_selected_report

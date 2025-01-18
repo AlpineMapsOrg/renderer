@@ -18,6 +18,7 @@
 
 #pragma once
 
+#include "Texture.h"
 #include <QObject>
 #include <nucleus/Raster.h>
 #include <nucleus/tile/DrawListGenerator.h>
@@ -35,22 +36,27 @@ class QOpenGLVertexArrayObject;
 namespace gl_engine {
 class ShaderRegistry;
 class ShaderProgram;
-class Texture;
 class TileGeometry;
 
 class TextureLayer : public QObject {
     Q_OBJECT
 public:
     explicit TextureLayer(QObject* parent = nullptr);
-    void init(ShaderRegistry* shader_registry); // needs OpenGL context
+    void init(ShaderRegistry* shader_registry, const Texture::Format& ortho_texture_format = Texture::Format::CompressedRGBA8); // needs OpenGL context
     void draw(const TileGeometry& tile_geometry,
         const nucleus::camera::Definition& camera,
         const nucleus::tile::DrawListGenerator::TileSet& draw_tiles,
         bool sort_tiles,
         glm::dvec3 sort_position) const;
 
+private:
+    // wrapper for template since thi is a slot which cannot be a template
+    template <typename T> void update_gpu_quads_template(const std::vector<T>& new_quads, const std::vector<nucleus::tile::Id>& deleted_quads);
+
 public slots:
+    // Template works for nucleus::tile::GpuEawsQuad or nucleus::tile::GpuTextureQuad
     void update_gpu_quads(const std::vector<nucleus::tile::GpuTextureQuad>& new_quads, const std::vector<nucleus::tile::Id>& deleted_quads);
+    void update_gpu_eaws_quads(const std::vector<nucleus::tile::GpuEawsQuad>& new_quads, const std::vector<nucleus::tile::Id>& deleted_quads);
     void set_quad_limit(unsigned new_limit);
 
 private:

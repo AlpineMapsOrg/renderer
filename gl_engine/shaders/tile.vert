@@ -31,6 +31,7 @@ out lowp float is_curtain;
 #endif
 flat out lowp vec3 vertex_color;
 
+out  highp int var_height_texture_layer;
 
 void main() {
     float n_quads_per_direction;
@@ -53,4 +54,5 @@ void main() {
         case 4u: vertex_color = color_from_id_hash(uint(gl_VertexID)); break;
         case 5u: vertex_color = vec3(texture(height_tex_sampler, vec3(var_uv, height_texture_layer)).rrr) / 65535.0; break;
     }
+    var_height_texture_layer = height_texture_layer;
 }

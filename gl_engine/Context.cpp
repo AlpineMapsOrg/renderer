@@ -19,6 +19,7 @@
 #include "Context.h"
 #include "MapLabels.h"
 #include "ShaderRegistry.h"
+#include "Texture.h"
 #include "TextureLayer.h"
 #include "TileGeometry.h"
 #include "TrackManager.h"
@@ -61,7 +62,7 @@ void Context::internal_initialise()
         m_ortho_layer->init(m_shader_registry.get());
 
     if (m_eaws_layer)
-        m_eaws_layer->init(m_shader_registry.get());
+        m_eaws_layer->init(m_shader_registry.get(), Texture::Format::R16UI);
 }
 
 void Context::internal_destroy()

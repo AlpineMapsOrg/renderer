@@ -23,7 +23,7 @@
 namespace avalanche::eaws {
 TextureScheduler::TextureScheduler(std::string name, unsigned texture_resolution, std::shared_ptr<avalanche::eaws::UIntIdManager> internal_id_manager, QObject* parent)
     : nucleus::tile::Scheduler(std::move(name), texture_resolution, parent)
-    , m_default_raster(glm::uvec2(texture_resolution), { 255, 255, 255, 255 })
+    , m_default_raster(glm::uvec2(texture_resolution), 0)
     , m_uint_id_manager(internal_id_manager)
 {
     m_max_tile_zoom_level = 10;
@@ -35,12 +35,12 @@ TextureScheduler::~TextureScheduler() = default;
 
 void TextureScheduler::transform_and_emit(const std::vector<nucleus::tile::DataQuad>& new_quads, const std::vector<nucleus::tile::Id>& deleted_quads)
 {
-    std::vector<nucleus::tile::GpuTextureQuad> new_gpu_quads;
+    std::vector<nucleus::tile::GpuEawsQuad> new_gpu_quads;
     new_gpu_quads.reserve(new_quads.size());
 
     std::transform(new_quads.cbegin(), new_quads.cend(), std::back_inserter(new_gpu_quads), [this](const auto& quad) {
         // create GpuQuad based on cpu quad
-        nucleus::tile::GpuTextureQuad gpu_quad;
+        nucleus::tile::GpuEawsQuad gpu_quad;
         gpu_quad.id = quad.id;
         assert(quad.n_tiles == 4);
         for (unsigned i = 0; i < 4; ++i) {
@@ -54,28 +54,27 @@ void TextureScheduler::transform_and_emit(const std::vector<nucleus::tile::DataQ
                     avalanche::eaws::RegionTile eaws_region_tile = result.value();
                     QImage eawsImage = avalanche::eaws::draw_regions(eaws_region_tile, m_uint_id_manager, 256, 256, quad.tiles[i].id);
 
-                    // Convert Qimage to raster with 8bit vectors (pixel by pixel)
-                    nucleus::Raster<glm::u8vec4> eaws_color_raster_8bit(glm::uvec2(256, 256), { 0, 0, 0, 255 });
+                    // Convert Qimage to raster with a 16bit uint region id
+                    nucleus::Raster<glm::uint16> eaws_raster_16bit(glm::uvec2(256, 256), 0);
                     for (int i = 0; i < 256; i++) {
                         for (int j = 0; j < 256; j++) {
-                            glm::u8vec4 color_vector_8bit(0, 0, 0, 255);
+                            glm::u8vec4 color_vector_8bit(0, 0, 0, 0);
                             QColor color = eawsImage.pixelColor(QPoint(i, j));
                             color_vector_8bit.x = static_cast<uint8_t>(color.red());
                             color_vector_8bit.y = static_cast<uint8_t>(color.green());
-                            color_vector_8bit.z = 0;
-                            eaws_color_raster_8bit.pixel(glm::uvec2(i, j)) = color_vector_8bit;
+                            eaws_raster_16bit.pixel(glm::uvec2(i, j)) = 256 * color_vector_8bit.x + color_vector_8bit.y;
                         }
                     }
 
                     // Create texture from raster
-                    gpu_quad.tiles[i].texture = std::make_shared<nucleus::utils::MipmappedColourTexture>(generate_mipmapped_colour_texture(eaws_color_raster_8bit, m_compression_algorithm));
+                    gpu_quad.tiles[i].texture = std::make_shared<nucleus::Raster<glm::uint16>>(eaws_raster_16bit);
                 } else {
-                    // Eaws image is not available (use white default tile)
-                    gpu_quad.tiles[i].texture = std::make_shared<nucleus::utils::MipmappedColourTexture>(generate_mipmapped_colour_texture(m_default_raster, m_compression_algorithm));
+                    // Eaws image is not available (use 0)
+                    gpu_quad.tiles[i].texture = std::make_shared<nucleus::Raster<glm::uint16>>(m_default_raster);
                 }
             } else {
-                // Ortho image is not available (use white default tile)
-                gpu_quad.tiles[i].texture = std::make_shared<nucleus::utils::MipmappedColourTexture>(generate_mipmapped_colour_texture(m_default_raster, m_compression_algorithm));
+                // Ortho image is not available (use 0)
+                gpu_quad.tiles[i].texture = std::make_shared<nucleus::Raster<glm::uint16>>(m_default_raster);
             }
         }
         return gpu_quad;

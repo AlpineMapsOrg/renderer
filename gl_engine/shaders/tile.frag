@@ -23,7 +23,8 @@
 #include "tile_id.glsl"
 #include "eaws.glsl"
 
-uniform lowp sampler2DArray ortho_sampler;
+uniform highp usampler2DArray ortho_sampler;
+uniform mediump usampler2DArray height_tex_sampler;  //uniform mediump usampler2DArray height_tex_sampler;
 uniform highp usampler2D height_tex_index_sampler;
 uniform highp usampler2D height_tex_tile_id_sampler;
 uniform highp usampler2D ortho_map_index_sampler;
@@ -38,6 +39,7 @@ flat in highp uvec3 var_tile_id;
 in highp vec2 var_uv;
 in highp vec3 var_pos_cws;
 in highp vec3 var_normal;
+flat in highp int var_height_texture_layer;
 #if CURTAIN_DEBUG_MODE > 0
 in lowp float is_curtain;
 #endif
@@ -95,26 +97,32 @@ void main() {
         // texout_albedo = vec3(0.0, float(tile_id.z) / 20.0, 0.0);
         // texout_albedo = vec3(float(dict_px.x) / 255.0, float(dict_px.y) / 255.0, 0.0);
         // texout_albedo = vec3(uv.x, uv.y, 0.0);
-        highp float texture_layer_f = float(texelFetch(ortho_map_index_sampler, dict_px, 0).x);
+        uint texture_layer = texelFetch(ortho_map_index_sampler, dict_px, 0).x;
         // texout_albedo = vec3(0.0, float(texture_layer_f) / 10.0, 0.0);
-        lowp vec3 eawsRegionIdVector = texture(ortho_sampler, vec3(uv, texture_layer_f)).rgb;
-        uint eawsRegionId = uint(eawsRegionIdVector.r + ( 256 * eawsRegionIdVector.g));
-        uvec4 report = eaws.reports[eawsRegionId];
+        int u = int(uv.x*255);
+        int v = int(uv.y*255);
+        highp uint eawsRegionId = texelFetch(ortho_sampler, ivec3(u,v,texture_layer),0).r;
+        ivec4 report = eaws.reports[eawsRegionId];
         lowp vec3 fragColor;
 
-        if(report.x == 1u) // report.x = 0 means no report available .x=1 means report available
+        float frag_height = 0.125f * float(texture(height_tex_sampler, vec3(var_uv, var_height_texture_layer)).r);
+        if(report.x == 1) // report.x = 0 means no report available .x=1 means report available
         {
-            uint bound = report.y;      // bound dividing moutain in Hi region and low region
-            uint ratingHi = report.a;   // rating should be value in {0,1,2,3,4}
-            uint ratingLo = report.z;   // rating should be value in {0,1,2,3,4}
-            fragColor = color_from_eaws_danger_rating(ratingHi);
+            int bound = report.y;      // bound dividing moutain in Hi region and low region
+            int ratingHi = report.a;   // rating should be value in {0,1,2,3,4}
+            int ratingLo = report.z;   // rating should be value in {0,1,2,3,4}
+
+            int rating = ratingLo;
+            if(frag_height > float(bound) )
+            {
+                rating = ratingHi;
+            }
+            fragColor = color_from_eaws_danger_rating(rating);
         }
         else
         {
-            float grey = float(eawsRegionId) / 666.f;
-            fragColor = vec3(grey,grey,grey);
+            fragColor = vec3(0,0,0);
         }
-        fragColor = mix(fragColor, conf.material_color.rgb, conf.material_color.a);
         texout_albedo = fragColor;
     }
     else {

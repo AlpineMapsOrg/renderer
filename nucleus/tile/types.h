@@ -92,10 +92,22 @@ struct GpuTextureTile {
 };
 static_assert(NamedTile<GpuTextureTile>);
 
+struct GpuEawsTile {
+    tile::Id id;
+    std::shared_ptr<const nucleus::Raster<glm::uint16>> texture;
+};
+static_assert(NamedTile<GpuEawsTile>);
+
 struct GpuTextureQuad {
     tile::Id id;
     std::array<GpuTextureTile, 4> tiles;
 };
+
+struct GpuEawsQuad {
+    tile::Id id;
+    std::array<GpuEawsTile, 4> tiles;
+};
+
 static_assert(NamedTile<GpuTextureQuad>);
 
 struct GpuGeometryTile {
