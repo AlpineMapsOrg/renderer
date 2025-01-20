@@ -43,7 +43,6 @@ qt_add_library(gl_engine STATIC
     TextureLayer.h TextureLayer.cpp
     AvalancheReportManager.h
     AvalancheReportManager.cpp
-    shaders/eaws.glsl
 )
 
 if(ALP_ENABLE_LABELS)
@@ -86,6 +85,8 @@ qt_add_resources(gl_engine "shaders"
     shaders/track.vert
     shaders/turbo_colormap.glsl
     shaders/intersection.glsl
+    shaders/eaws.glsl
+    shaders/eaws.frag
 )
 target_compile_definitions(gl_engine PUBLIC ALP_RESOURCES_PREFIX="${CMAKE_CURRENT_SOURCE_DIR}/shaders/")
 

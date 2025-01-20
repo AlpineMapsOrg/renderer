@@ -42,7 +42,10 @@ class TextureLayer : public QObject {
     Q_OBJECT
 public:
     explicit TextureLayer(QObject* parent = nullptr);
-    void init(ShaderRegistry* shader_registry, const Texture::Format& ortho_texture_format = Texture::Format::CompressedRGBA8); // needs OpenGL context
+    void init(ShaderRegistry* shader_registry,
+        const Texture::Format& ortho_texture_format = Texture::Format::CompressedRGBA8,
+        const QString& vertex_shader = "tile.vert",
+        const QString& fragment_shader = "tile.frag"); // needs OpenGL context
     void draw(const TileGeometry& tile_geometry,
         const nucleus::camera::Definition& camera,
         const nucleus::tile::DrawListGenerator::TileSet& draw_tiles,

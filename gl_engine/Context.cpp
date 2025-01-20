@@ -62,7 +62,7 @@ void Context::internal_initialise()
         m_ortho_layer->init(m_shader_registry.get());
 
     if (m_eaws_layer)
-        m_eaws_layer->init(m_shader_registry.get(), Texture::Format::R16UI);
+        m_eaws_layer->init(m_shader_registry.get(), Texture::Format::R16UI, "tile.vert", "eaws.frag");
 }
 
 void Context::internal_destroy()

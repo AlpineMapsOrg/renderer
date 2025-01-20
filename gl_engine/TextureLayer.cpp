@@ -30,9 +30,9 @@ TextureLayer::TextureLayer(QObject* parent)
 {
 }
 
-void gl_engine::TextureLayer::init(ShaderRegistry* shader_registry, const Texture::Format& ortho_texture_format)
+void gl_engine::TextureLayer::init(ShaderRegistry* shader_registry, const Texture::Format& ortho_texture_format, const QString& vertex_shader, const QString& fragment_shader)
 {
-    m_shader = std::make_shared<ShaderProgram>("tile.vert", "tile.frag");
+    m_shader = std::make_shared<ShaderProgram>(vertex_shader, fragment_shader);
     shader_registry->add_shader(m_shader);
 
     m_ortho_textures = std::make_unique<Texture>(Texture::Target::_2dArray, ortho_texture_format);
