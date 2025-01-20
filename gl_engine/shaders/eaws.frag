@@ -108,16 +108,24 @@ void main() {
         float frag_height = 0.125f * float(texture(height_tex_sampler, vec3(var_uv, var_height_texture_layer)).r);
         if(report.x == 1) // report.x = 0 means no report available .x=1 means report available
         {
+            // get ratings for eaws refion of current fragment
             int bound = report.y;      // bound dividing moutain in Hi region and low region
             int ratingHi = report.a;   // rating should be value in {0,1,2,3,4}
             int ratingLo = report.z;   // rating should be value in {0,1,2,3,4}
-
             int rating = ratingLo;
-            if(frag_height > float(bound) )
+
+            // color fragment according to danger level
+            float margin = 25.f;           // margin within which colorblending between hi and lo happens
+            if(frag_height > float(bound) + margin )
+                fragColor =  color_from_eaws_danger_rating(ratingHi);
+            else if (frag_height < float(bound) - margin)
+                fragColor =  color_from_eaws_danger_rating(ratingLo);
+            else
             {
-                rating = ratingHi;
+                // around border: blend colors between upper and lower danger rating
+                float a = (frag_height - (float(bound) - margin)) / (2*margin); // This is a value between 0 and 1
+                fragColor = mix(color_from_eaws_danger_rating(ratingLo), color_from_eaws_danger_rating(ratingHi), a);
             }
-            fragColor = color_from_eaws_danger_rating(rating);
         }
         else
         {
