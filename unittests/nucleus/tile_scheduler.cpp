@@ -129,49 +129,60 @@ nucleus::tile::DataQuad example_tile_quad_for(const Id& id, unsigned n_children 
     return cpu_quad;
 }
 
+std::vector<nucleus::tile::DataQuad> example_quads_for(const std::vector<Id>& ids)
+{
+    std::vector<nucleus::tile::DataQuad> quads;
+    quads.reserve(ids.size());
+    for (const auto& id : ids) {
+        quads.push_back(example_tile_quad_for(id));
+    }
+
+    return quads;
+}
+
 std::vector<nucleus::tile::DataQuad> example_quads_for_steffl_and_gg()
 {
-    static std::vector<nucleus::tile::DataQuad> retval = {
-        example_tile_quad_for(Id { 0, { 0, 0 } }),
-        example_tile_quad_for(Id { 1, { 1, 1 } }),
-        example_tile_quad_for(Id { 2, { 2, 2 } }),
-        example_tile_quad_for(Id { 3, { 4, 5 } }),
-        example_tile_quad_for(Id { 4, { 8, 10 } }),
-        example_tile_quad_for(Id { 5, { 17, 20 } }),
-        example_tile_quad_for(Id { 6, { 34, 41 } }),
-        example_tile_quad_for(Id { 7, { 69, 83 } }), // stephans dom
-        example_tile_quad_for(Id { 8, { 139, 167 } }),
-        example_tile_quad_for(Id { 9, { 279, 334 } }),
-        example_tile_quad_for(Id { 10, { 558, 668 } }),
-        example_tile_quad_for(Id { 10, { 558, 669 } }),
-        example_tile_quad_for(Id { 11, { 1117, 1337 } }),
-        example_tile_quad_for(Id { 11, { 1117, 1338 } }),
-        example_tile_quad_for(Id { 11, { 1116, 1337 } }),
-        example_tile_quad_for(Id { 11, { 1116, 1338 } }),
-        example_tile_quad_for(Id { 12, { 2234, 2675 } }),
-        example_tile_quad_for(Id { 7, { 68, 83 } }), // grossglockner
-        example_tile_quad_for(Id { 7, { 68, 82 } }),
-        example_tile_quad_for(Id { 8, { 136, 166 } }),
-        example_tile_quad_for(Id { 8, { 137, 166 } }),
-        example_tile_quad_for(Id { 8, { 136, 165 } }),
-        example_tile_quad_for(Id { 8, { 137, 165 } }),
-        example_tile_quad_for(Id { 9, { 273, 332 } }),
-        example_tile_quad_for(Id { 9, { 274, 332 } }),
-        example_tile_quad_for(Id { 9, { 273, 331 } }),
-        example_tile_quad_for(Id { 9, { 274, 331 } }),
-        example_tile_quad_for(Id { 10, { 547, 664 } }),
-        example_tile_quad_for(Id { 10, { 548, 664 } }),
-        example_tile_quad_for(Id { 11, { 1095, 1328 } }),
-        example_tile_quad_for(Id { 11, { 1096, 1328 } }),
-        example_tile_quad_for(Id { 12, { 2191, 2657 } }),
-        example_tile_quad_for(Id { 12, { 2192, 2657 } }),
-        example_tile_quad_for(Id { 12, { 2191, 2656 } }),
-        example_tile_quad_for(Id { 12, { 2192, 2656 } }),
-        example_tile_quad_for(Id { 13, { 4384, 5313 } }),
-        example_tile_quad_for(Id { 13, { 4385, 5313 } }),
-        example_tile_quad_for(Id { 13, { 4384, 5312 } }),
-        example_tile_quad_for(Id { 13, { 4385, 5312 } }),
-    };
+    static std::vector<nucleus::tile::DataQuad> retval = example_quads_for({
+        Id { 0, { 0, 0 } },
+        Id { 1, { 1, 1 } },
+        Id { 2, { 2, 2 } },
+        Id { 3, { 4, 5 } },
+        Id { 4, { 8, 10 } },
+        Id { 5, { 17, 20 } },
+        Id { 6, { 34, 41 } },
+        Id { 7, { 69, 83 } }, // stephans dom
+        Id { 8, { 139, 167 } },
+        Id { 9, { 279, 334 } },
+        Id { 10, { 558, 668 } },
+        Id { 10, { 558, 669 } },
+        Id { 11, { 1117, 1337 } },
+        Id { 11, { 1117, 1338 } },
+        Id { 11, { 1116, 1337 } },
+        Id { 11, { 1116, 1338 } },
+        Id { 12, { 2234, 2675 } },
+        Id { 7, { 68, 83 } }, // grossglockner
+        Id { 7, { 68, 82 } },
+        Id { 8, { 136, 166 } },
+        Id { 8, { 137, 166 } },
+        Id { 8, { 136, 165 } },
+        Id { 8, { 137, 165 } },
+        Id { 9, { 273, 332 } },
+        Id { 9, { 274, 332 } },
+        Id { 9, { 273, 331 } },
+        Id { 9, { 274, 331 } },
+        Id { 10, { 547, 664 } },
+        Id { 10, { 548, 664 } },
+        Id { 11, { 1095, 1328 } },
+        Id { 11, { 1096, 1328 } },
+        Id { 12, { 2191, 2657 } },
+        Id { 12, { 2192, 2657 } },
+        Id { 12, { 2191, 2656 } },
+        Id { 12, { 2192, 2656 } },
+        Id { 13, { 4384, 5313 } },
+        Id { 13, { 4385, 5313 } },
+        Id { 13, { 4384, 5312 } },
+        Id { 13, { 4385, 5312 } },
+    });
     return retval;
 }
 std::vector<nucleus::tile::DataQuad> example_quads_many()
@@ -184,15 +195,7 @@ std::vector<nucleus::tile::DataQuad> example_quads_many()
         scheduler->update_camera(camera);
         scheduler->send_quad_requests();
         REQUIRE(spy.size() == 1);
-        const auto quad_ids = spy.front().front().value<std::vector<Id>>();
-
-        std::vector<nucleus::tile::DataQuad> quads;
-        quads.reserve(quad_ids.size());
-        for (const auto& id : quad_ids) {
-            quads.push_back(example_tile_quad_for(id));
-        }
-
-        return quads;
+        return example_quads_for(spy.front().front().value<std::vector<Id>>());
     }();
     return retval;
 }
@@ -477,24 +480,26 @@ TEST_CASE("nucleus/tile/Scheduler")
 
     SECTION("number of gpu quads doesn't exceede the limit")
     {
+        constexpr auto tested_gpu_quad_limit = 32;
         auto scheduler = default_scheduler();
-        scheduler->set_gpu_quad_limit(17);
+        scheduler->set_gpu_quad_limit(tested_gpu_quad_limit);
         QSignalSpy spy(scheduler.get(), &GeometryScheduler::gpu_quads_updated);
-        for (const auto& q : example_quads_for_steffl_and_gg())
-            scheduler->receive_quad(q);
 
         std::unordered_set<Id, Id::Hasher> cached_tiles;
 
         {
             scheduler->update_camera(nucleus::camera::stored_positions::stephansdom());
+            for (const auto& q : example_quads_for(scheduler->missing_quads_for_current_camera()))
+                scheduler->receive_quad(q);
+
             scheduler->update_gpu_quads();
             REQUIRE(spy.size() == 1);
             const auto new_quads = spy[0][0].value<std::vector<nucleus::tile::GpuGeometryQuad>>();
             const auto deleted_quads = spy[0][1].value<std::vector<Id>>();
-            CHECK(new_quads.size() == 17);
+            CHECK(new_quads.size() == tested_gpu_quad_limit);
             CHECK(deleted_quads.empty());
-            nucleus::tile::Cache<nucleus::tile::GpuGeometryQuad> test_cache;
 
+            nucleus::tile::Cache<nucleus::tile::GpuGeometryQuad> test_cache;
             for (const auto& q : new_quads)
                 test_cache.insert(q);
 
@@ -503,7 +508,7 @@ TEST_CASE("nucleus/tile/Scheduler")
                 n_tiles++;
                 return true;
             });
-            CHECK(n_tiles == 17); // check that all are reachable
+            CHECK(n_tiles == tested_gpu_quad_limit); // check that all are reachable
             for (const auto& tile : new_quads) {
                 cached_tiles.insert(tile.id);
             }
@@ -511,6 +516,9 @@ TEST_CASE("nucleus/tile/Scheduler")
 
         {
             scheduler->update_camera(nucleus::camera::stored_positions::grossglockner());
+            for (const auto& q : example_quads_for(scheduler->missing_quads_for_current_camera()))
+                scheduler->receive_quad(q);
+
             scheduler->update_gpu_quads();
             REQUIRE(spy.size() == 2);
             const auto new_quads = spy[1][0].value<std::vector<nucleus::tile::GpuGeometryQuad>>();
@@ -519,13 +527,15 @@ TEST_CASE("nucleus/tile/Scheduler")
             CHECK(!new_quads.empty());
 
             { // check that all are reachable
-                for (const auto& tile : new_quads) {
-                    cached_tiles.insert(tile.id);
-                }
                 for (const auto& id : deleted_quads) {
+                    CHECK(cached_tiles.contains(id));
                     cached_tiles.erase(id);
                 }
-                CHECK(cached_tiles.size() == 17);
+                for (const auto& tile : new_quads) {
+                    CHECK(!cached_tiles.contains(tile.id));
+                    cached_tiles.insert(tile.id);
+                }
+                CHECK(cached_tiles.size() == tested_gpu_quad_limit);
                 nucleus::tile::Cache<nucleus::tile::GpuCacheInfo> test_cache;
                 for (const auto& id : cached_tiles) {
                     test_cache.insert({ { id } });
@@ -535,7 +545,47 @@ TEST_CASE("nucleus/tile/Scheduler")
                     n_tiles++;
                     return true;
                 });
-                CHECK(n_tiles == 17);
+                CHECK(n_tiles == tested_gpu_quad_limit);
+            }
+            { // check for double entries
+                std::unordered_set<Id, Id::Hasher> deleted_quads_set(deleted_quads.cbegin(), deleted_quads.cend());
+                for (const auto& new_quad : new_quads) {
+                    CHECK(!deleted_quads_set.contains(new_quad.id));
+                }
+            }
+        }
+        {
+            scheduler->update_camera(nucleus::camera::stored_positions::grossglockner_shadow());
+            for (const auto& q : example_quads_for(scheduler->missing_quads_for_current_camera()))
+                scheduler->receive_quad(q);
+
+            scheduler->update_gpu_quads();
+            REQUIRE(spy.size() == 3);
+            const auto new_quads = spy[2][0].value<std::vector<nucleus::tile::GpuGeometryQuad>>();
+            const auto deleted_quads = spy[2][1].value<std::vector<Id>>();
+            CHECK(new_quads.size() == deleted_quads.size());
+            CHECK(!new_quads.empty());
+
+            { // check that all are reachable
+                for (const auto& id : deleted_quads) {
+                    CHECK(cached_tiles.contains(id));
+                    cached_tiles.erase(id);
+                }
+                for (const auto& tile : new_quads) {
+                    CHECK(!cached_tiles.contains(tile.id));
+                    cached_tiles.insert(tile.id);
+                }
+                CHECK(cached_tiles.size() == tested_gpu_quad_limit);
+                nucleus::tile::Cache<nucleus::tile::GpuCacheInfo> test_cache;
+                for (const auto& id : cached_tiles) {
+                    test_cache.insert({ { id } });
+                }
+                auto n_tiles = 0;
+                test_cache.visit([&n_tiles](const auto&) {
+                    n_tiles++;
+                    return true;
+                });
+                CHECK(n_tiles == tested_gpu_quad_limit);
             }
             { // check for double entries
                 std::unordered_set<Id, Id::Hasher> deleted_quads_set(deleted_quads.cbegin(), deleted_quads.cend());

@@ -22,7 +22,8 @@
 #include "radix/iterator.h"
 #include "radix/quad_tree.h"
 
-using nucleus::tile::DrawListGenerator;
+using TileSet = nucleus::tile::DrawListGenerator::TileSet;
+using namespace nucleus::tile;
 
 DrawListGenerator::DrawListGenerator()
 {
@@ -50,6 +51,8 @@ void DrawListGenerator::remove_tile(const tile::Id& id)
 {
     m_available_tiles.erase(id);
 }
+
+const TileSet& DrawListGenerator::tiles() const { return m_available_tiles; }
 
 DrawListGenerator::TileSet DrawListGenerator::generate_for(const nucleus::camera::Definition& camera) const
 {

@@ -86,6 +86,8 @@ public:
 
     const utils::AabbDecoratorPtr& aabb_decorator() const;
 
+    std::vector<tile::Id> missing_quads_for_current_camera() const;
+
 signals:
     void statistics_updated(Statistics stats);
     void quad_received(const tile::Id& ids);

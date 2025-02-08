@@ -54,37 +54,26 @@ void Filter::update_filter(const FilterDefinitions& filter_definitions)
 
 void Filter::update_quads(const std::vector<vector_tile::PoiTile>& updated_tiles, const std::vector<tile::Id>& removed_tiles)
 {
-    m_removed_tiles.clear();
+    m_removed_tiles = removed_tiles;
+    for (const auto& id : removed_tiles) {
+        if (m_all_pois.contains(id))
+            m_all_pois.erase(id);
+    }
 
     for (const auto& tile : updated_tiles) {
         assert(tile.data);
         assert(tile.id.zoom_level < 100);
+        assert(!m_all_pois.contains(tile.id));
+        assert(std::find(removed_tiles.cbegin(), removed_tiles.cend(), tile.id) == removed_tiles.cend());
 
-        if (m_all_pois.contains(tile.id))
-            continue; // no need to add it twice
+        m_tiles_to_filter.push(tile.id);
+        m_all_pois[tile.id] = tile.data;
+    }
 
-        add_tile(tile.id, tile.data);
-    }
-    for (const auto& id : removed_tiles) {
-        remove_tile(id);
-    }
 
     // update_quads should always execute the filter method
     m_filter_should_run = true;
     filter();
-}
-
-void Filter::add_tile(const tile::Id& id, const PointOfInterestCollectionPtr& all_features)
-{
-    m_tiles_to_filter.push(id);
-    m_all_pois[id] = all_features;
-}
-
-void Filter::remove_tile(const tile::Id& id)
-{
-    m_removed_tiles.push_back(id);
-    if (m_all_pois.contains(id))
-        m_all_pois.erase(id);
 }
 
 PointOfInterestCollection Filter::apply_filter(const PointOfInterestCollection& unfiltered_pois)

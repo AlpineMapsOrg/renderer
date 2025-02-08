@@ -39,7 +39,7 @@ public:
     void touch_event(const event_parameter::Touch& e);
 
 public slots:
-    void update_quads(const std::vector<vector_tile::PoiTile>& new_tiles, const std::vector<tile::Id>& deleted_quads);
+    void update_quads(const std::vector<vector_tile::PoiTile>& new_tiles, const std::vector<tile::Id>& deleted_tiles);
     void eval_pick(uint32_t value);
 
 signals:

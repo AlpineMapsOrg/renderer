@@ -52,6 +52,8 @@ public:
         return visible_leaves;
     }
 
+    const TileSet& tiles() const;
+
 private:
     utils::AabbDecoratorPtr m_aabb_decorator;
     TileSet m_available_tiles;
