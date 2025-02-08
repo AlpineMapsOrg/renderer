@@ -193,7 +193,6 @@ void MapLabels::draw(Framebuffer* gbuffer, const nucleus::camera::Definition& ca
         if (!draw_tiles.contains(vectortile.first))
             continue; // tile is not in draw_tiles -> look at next tile
 
-        // only draw if vector tile is fully loaded
         if (vectortile.second->instance_count > 0) {
             vectortile.second->vao->bind();
             m_label_shader->set_uniform("reference_position", glm::vec3(vectortile.second->reference_point - camera.position()));

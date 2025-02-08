@@ -38,9 +38,6 @@ class Filter : public QObject {
 public:
     explicit Filter(QObject* parent = nullptr);
 
-    void add_tile(const tile::Id& id, const PointOfInterestCollectionPtr& all_features);
-    void remove_tile(const tile::Id& id);
-
 public slots:
     void update_filter(const FilterDefinitions& filter_definitions);
     void update_quads(const std::vector<vector_tile::PoiTile>& updated_tiles, const std::vector<tile::Id>& removed_tiles);

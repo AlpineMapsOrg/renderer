@@ -137,6 +137,7 @@ void Scheduler::update_gpu_quads()
     m_gpu_cached.visit([&should_refine](const GpuCacheInfo& quad) { return should_refine(quad.id); });
 
     const auto superfluous_quads = m_gpu_cached.purge(m_gpu_quad_limit);
+    assert(m_gpu_cached.n_cached_objects() <= m_gpu_quad_limit);
 
     // elimitate double entries (happens when the gpu has not enough space for all quads selected above)
     std::unordered_set<tile::Id, tile::Id::Hasher> superfluous_ids;
@@ -160,12 +161,7 @@ void Scheduler::send_quad_requests()
 {
     if (!m_network_requests_enabled)
         return;
-    auto currently_active_tiles = tiles_for_current_camera_position();
-    const auto current_time = nucleus::utils::time_since_epoch();
-    std::erase_if(currently_active_tiles, [this, current_time](const tile::Id& id) {
-        return m_ram_cache.contains(id) && m_ram_cache.peak_at(id).network_info().timestamp + m_retirement_age_for_tile_cache > current_time;
-    });
-    emit quads_requested(currently_active_tiles);
+    emit quads_requested(missing_quads_for_current_camera());
 }
 
 void Scheduler::purge_ram_cache()
@@ -252,6 +248,15 @@ std::vector<Id> Scheduler::tiles_for_current_camera_position() const
 }
 
 const utils::AabbDecoratorPtr& Scheduler::aabb_decorator() const { return m_aabb_decorator; }
+
+std::vector<Id> Scheduler::missing_quads_for_current_camera() const
+{
+    auto tiles = tiles_for_current_camera_position();
+    const auto current_time = nucleus::utils::time_since_epoch();
+    std::erase_if(
+        tiles, [this, current_time](const tile::Id& id) { return m_ram_cache.contains(id) && m_ram_cache.peak_at(id).network_info().timestamp + m_retirement_age_for_tile_cache > current_time; });
+    return tiles;
+}
 
 unsigned int Scheduler::tile_resolution() const { return m_tile_resolution; }
 
