@@ -81,16 +81,14 @@ void PickerManager::eval_pick(uint32_t value)
     }
 }
 
-void PickerManager::update_quads(const std::vector<vector_tile::PoiTile>& new_tiles, const std::vector<tile::Id>& deleted_quads)
+void PickerManager::update_quads(const std::vector<vector_tile::PoiTile>& new_tiles, const std::vector<tile::Id>& deleted_tiles)
 {
+    for (const auto& id : deleted_tiles) {
+        remove_tile(id);
+    }
     for (const auto& tile : new_tiles) {
         assert(tile.id.zoom_level < 100);
         add_tile(tile.id, tile.data);
-    }
-    for (const auto& quad : deleted_quads) {
-        for (const auto& id : quad.children()) {
-            remove_tile(id);
-        }
     }
 }
 

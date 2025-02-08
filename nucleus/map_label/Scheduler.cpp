@@ -43,7 +43,15 @@ void Scheduler::transform_and_emit(const std::vector<tile::DataQuad>& new_quads,
         }
     };
 
-    emit gpu_tiles_updated(new_gpu_tiles, deleted_quads);
+    std::vector<tile::Id> deleted_tiles;
+    deleted_tiles.reserve(deleted_quads.size() * 4);
+    for (const auto& quad_id : deleted_quads) {
+        for (const auto& tile_id : quad_id.children()) {
+            deleted_tiles.push_back(tile_id);
+        }
+    }
+
+    emit gpu_tiles_updated(new_gpu_tiles, deleted_tiles);
 }
 
 bool Scheduler::is_ready_to_ship(const nucleus::tile::DataQuad& quad) const
