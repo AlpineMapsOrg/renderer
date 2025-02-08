@@ -46,7 +46,7 @@ void main() {
             if (font_mask < 10.0 / 255.0)
                 discard;
             out_Color = vec4(fontColor * font_mask, font_mask);
-            gl_FragDepth = gl_FragCoord.z * 0.9999999;
+            gl_FragDepth = gl_FragCoord.z * 1.0000001; // reverse z
         }
     }
     else

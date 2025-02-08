@@ -270,13 +270,12 @@ void Window::paint(QOpenGLFramebufferObject* framebuffer)
         const GLfloat clearEncDepthColor[] = { 0.0f, 0.0f, 0.0f, 0.0f };
         f->glClearBufferfv(GL_COLOR, 3, clearEncDepthColor);
         // Clear Depth-Buffer
-        // f->glClearDepthf(0.0f); // for reverse z
+        f->glClearDepthf(0.0f); // reverse z
         f->glClear(GL_DEPTH_BUFFER_BIT);
     }
 
     f->glEnable(GL_DEPTH_TEST);
-    // f->glDepthFunc(GL_GREATER); // for reverse z
-    f->glDepthFunc(GL_LESS);
+    f->glDepthFunc(GL_GREATER); // reverse z
 
     m_timer->start_timer("tiles");
     m_context->ortho_layer()->draw(*m_context->tile_geometry(), m_camera, culled_tile_set, true, m_camera.position());
@@ -336,7 +335,7 @@ void Window::paint(QOpenGLFramebufferObject* framebuffer)
     const GLfloat clearAlbedoColor[] = { 0.0f, 0.0f, 0.0f, 0.0f };
     f->glClearBufferfv(GL_COLOR, 0, clearAlbedoColor);
     f->glEnable(GL_DEPTH_TEST);
-    f->glDepthFunc(GL_LEQUAL);
+    f->glDepthFunc(GL_GEQUAL); // reverse z
 
     // DRAW LABELS
     if (m_context->map_label_manager()) {
