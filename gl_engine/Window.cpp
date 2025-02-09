@@ -20,49 +20,43 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *****************************************************************************/
+#include "Window.h"
+#include "Context.h"
+#include "Framebuffer.h"
+#include "SSAO.h"
+#include "ShaderProgram.h"
+#include "ShaderRegistry.h"
+#include "ShadowMapping.h"
 #include "TextureLayer.h"
 #include "TileGeometry.h"
+#include "TrackManager.h"
+#include "UniformBufferObjects.h"
+#include "helpers.h"
 #include <QCoreApplication>
-
 #include <QDebug>
-#include <QImage>
-#include <QMoveEvent>
 #include <QOpenGLContext>
 #include <QOpenGLDebugLogger>
 #include <QOpenGLExtraFunctions>
 #include <QOpenGLFramebufferObject>
-#include <QOpenGLShaderProgram>
-#include <QOpenGLTexture>
 #include <QOpenGLVersionFunctionsFactory>
 #include <QOpenGLVertexArrayObject>
-#include <QPropertyAnimation>
-#include <QRandomGenerator>
-#include <QSequentialAnimationGroup>
 #include <QTimer>
 #include <glm/glm.hpp>
 #include <glm/gtx/transform.hpp>
-#if (defined(__linux) && !defined(__ANDROID__)) || defined(_WIN32) || defined(_WIN64)
-#include <QOpenGLFunctions_3_3_Core> // for wireframe mode
-#endif
-#if defined(__ANDROID__)
-#include <GLES3/gl3.h> // for GL ENUMS! DONT EXACTLY KNOW WHY I NEED THIS HERE! (on other platforms it works without)
-#endif
-
-#include "Context.h"
-#include "Framebuffer.h"
-#include "SSAO.h"
-#include "ShaderRegistry.h"
-#include "ShaderProgram.h"
-#include "ShadowMapping.h"
-#include "TrackManager.h"
-#include "UniformBufferObjects.h"
-#include "Window.h"
-#include "helpers.h"
 #include <nucleus/timing/CpuTimer.h>
 #include <nucleus/timing/TimerManager.h>
 #include <nucleus/utils/bit_coding.h>
+
 #if (defined(__linux) && !defined(__ANDROID__)) || defined(_WIN32) || defined(_WIN64)
 #include "GpuAsyncQueryTimer.h"
+#include <QOpenGLFunctions_4_5_Core>
+#endif
+#ifdef __EMSCRIPTEN__
+#include <emscripten.h>
+#include <emscripten/val.h>
+#endif
+#if defined(__ANDROID__)
+#include <GLES3/gl3.h> // for GL ENUMS! DONT EXACTLY KNOW WHY I NEED THIS HERE! (on other platforms it works without)
 #endif
 
 #ifdef ALP_ENABLE_LABELS
@@ -93,6 +87,49 @@ void Window::initialise_gpu()
     QOpenGLExtraFunctions* f = QOpenGLContext::currentContext()->extraFunctions();
     assert(f->hasOpenGLFeature(QOpenGLExtraFunctions::OpenGLFeature::MultipleRenderTargets));
     Q_UNUSED(f);
+
+#if defined(__EMSCRIPTEN__)
+    // clang-format off
+    EM_ASM({
+        var gl = document.querySelector('#qt-shadow-container')?.shadowRoot?.querySelector("canvas")?.getContext("webgl2");
+        if (!gl) {
+            console.warn("Warning: Failed to retrieve WebGL2 context while setting clip control. Clip control will not be set.");
+            return;
+        }
+        const ext = gl.getExtension("EXT_clip_control");
+        if (!ext) {
+            console.warn("Warning: EXT_clip_control extension is not supported. As a result you might encounter z-fighting.");
+            return;
+        }
+        ext.clipControlEXT(ext.LOWER_LEFT_EXT, ext.ZERO_TO_ONE_EXT);
+        
+    });
+    // clang-format on
+
+#elif defined(__ANDROID__)
+    if (QOpenGLContext::currentContext()->hasExtension("GL_EXT_clip_control")) {
+        qWarning("GL_EXT_clip_control extension is supported.");
+
+        auto glClipControlEXT = reinterpret_cast<void (*)(GLenum, GLenum)>(QOpenGLContext::currentContext()->getProcAddress("glClipControlEXT"));
+
+        if (!glClipControlEXT) {
+            qWarning("glClipControlEXT function pointer could not be retrieved.");
+            return;
+        }
+
+        // Set clip control to match WebGL's behavior
+        glClipControlEXT(0x8CA1, 0x935F); // LOWER_LEFT_EXT, ZERO_TO_ONE_EXT
+        qDebug("GL_EXT_clip_control applied: LOWER_LEFT_EXT, ZERO_TO_ONE_EXT.");
+    }
+
+#else
+    {
+        auto f45 = QOpenGLVersionFunctionsFactory::get<QOpenGLFunctions_4_5_Core>(QOpenGLContext::currentContext());
+        if (f45) {
+            f45->glClipControl(GL_LOWER_LEFT, GL_ZERO_TO_ONE); // for reverse z
+        }
+    }
+#endif
 
     QOpenGLDebugLogger* logger = new QOpenGLDebugLogger(this);
     logger->initialize();
