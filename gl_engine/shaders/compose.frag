@@ -109,7 +109,12 @@ highp float csm_shadow_term(highp vec4 pos_cws, highp vec3 normal_ws, out lowp i
     highp float alpha = calculate_falloff(depth_cam, depth_fallof_from, depth_fallof_to);
 
     highp vec4 pos_ls = shadow.light_space_view_proj_matrix[layer] * pos_cws;
-    highp vec3 pos_ls_ndc = pos_ls.xyz / pos_ls.w * 0.5 + 0.5;
+    highp vec3 pos_ls_ndc = pos_ls.xyz / pos_ls.w;
+#ifdef DEPTH_BUFFER_CLIP_TYPE_ZERO_TO_ONE
+    pos_ls_ndc.xy = pos_ls_ndc.xy * 0.5 + 0.5; //z already in range
+#else
+    pos_ls_ndc = pos_ls_ndc * 0.5 + 0.5;
+#endif
 
     highp float depth_ls = pos_ls_ndc.z;
     //if (depth_ls > 1.0) return 0.0; //not necessary because orthogonal

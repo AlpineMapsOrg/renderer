@@ -32,6 +32,7 @@
 #include "TrackManager.h"
 #include "UniformBufferObjects.h"
 #include "helpers.h"
+#include "types.h"
 #include <QCoreApplication>
 #include <QDebug>
 #include <QOpenGLContext>
@@ -84,53 +85,6 @@ Window::~Window()
 
 void Window::initialise_gpu()
 {
-    QOpenGLExtraFunctions* f = QOpenGLContext::currentContext()->extraFunctions();
-    assert(f->hasOpenGLFeature(QOpenGLExtraFunctions::OpenGLFeature::MultipleRenderTargets));
-    Q_UNUSED(f);
-
-#if defined(__EMSCRIPTEN__)
-    // clang-format off
-    EM_ASM({
-        var gl = document.querySelector('#qt-shadow-container')?.shadowRoot?.querySelector("canvas")?.getContext("webgl2");
-        if (!gl) {
-            console.warn("Warning: Failed to retrieve WebGL2 context while setting clip control. Clip control will not be set.");
-            return;
-        }
-        const ext = gl.getExtension("EXT_clip_control");
-        if (!ext) {
-            console.warn("Warning: EXT_clip_control extension is not supported. As a result you might encounter z-fighting.");
-            return;
-        }
-        ext.clipControlEXT(ext.LOWER_LEFT_EXT, ext.ZERO_TO_ONE_EXT);
-        
-    });
-    // clang-format on
-
-#elif defined(__ANDROID__)
-    if (QOpenGLContext::currentContext()->hasExtension("GL_EXT_clip_control")) {
-        qWarning("GL_EXT_clip_control extension is supported.");
-
-        auto glClipControlEXT = reinterpret_cast<void (*)(GLenum, GLenum)>(QOpenGLContext::currentContext()->getProcAddress("glClipControlEXT"));
-
-        if (!glClipControlEXT) {
-            qWarning("glClipControlEXT function pointer could not be retrieved.");
-            return;
-        }
-
-        // Set clip control to match WebGL's behavior
-        glClipControlEXT(0x8CA1, 0x935F); // LOWER_LEFT_EXT, ZERO_TO_ONE_EXT
-        qDebug("GL_EXT_clip_control applied: LOWER_LEFT_EXT, ZERO_TO_ONE_EXT.");
-    }
-
-#else
-    {
-        auto f45 = QOpenGLVersionFunctionsFactory::get<QOpenGLFunctions_4_5_Core>(QOpenGLContext::currentContext());
-        if (f45) {
-            f45->glClipControl(GL_LOWER_LEFT, GL_ZERO_TO_ONE); // for reverse z
-        }
-    }
-#endif
-
     QOpenGLDebugLogger* logger = new QOpenGLDebugLogger(this);
     logger->initialize();
     connect(logger, &QOpenGLDebugLogger::messageLogged, [](const QOpenGLDebugMessage& message) {
@@ -144,6 +98,60 @@ void Window::initialise_gpu()
     logger->disableMessages(QList<GLuint>({ 131185 }));
     logger->disableMessages(QList<GLuint>({ 131218 }));
     logger->startLogging(QOpenGLDebugLogger::SynchronousLogging);
+
+    QOpenGLExtraFunctions* f = QOpenGLContext::currentContext()->extraFunctions();
+    assert(f->hasOpenGLFeature(QOpenGLExtraFunctions::OpenGLFeature::MultipleRenderTargets));
+    Q_UNUSED(f);
+
+    DepthBufferClipType depth_buffer_clip_type = DepthBufferClipType::MinusOneToOne;
+
+#if defined(__EMSCRIPTEN__)
+    {
+        // clang-format off
+        bool success = EM_ASM_INT({
+            var gl = document.querySelector('#qt-shadow-container')?.shadowRoot?.querySelector("canvas")?.getContext("webgl2");
+            if (!gl) {
+                console.warn("Warning: Failed to retrieve WebGL2 context while setting clip control. Clip control will not be set.");
+                return 0;
+            }
+            const ext = gl.getExtension("EXT_clip_control");
+            if (!ext) {
+                console.warn("Warning: EXT_clip_control extension is not supported. As a result you might encounter z-fighting.");
+                return 0;
+            }
+            ext.clipControlEXT(ext.LOWER_LEFT_EXT, ext.ZERO_TO_ONE_EXT);
+            return 1;
+        });
+        // clang-format on
+        if (success) {
+            depth_buffer_clip_type = DepthBufferClipType::ZeroToOne;
+        }
+    }
+
+#elif defined(__ANDROID__)
+    if (QOpenGLContext::currentContext()->hasExtension("GL_EXT_clip_control")) {
+        auto glClipControlEXT = reinterpret_cast<void (*)(GLenum, GLenum)>(QOpenGLContext::currentContext()->getProcAddress("glClipControlEXT"));
+
+        if (glClipControlEXT) {
+            glClipControlEXT(0x8CA1, 0x935F); // LOWER_LEFT_EXT, ZERO_TO_ONE_EXT
+            depth_buffer_clip_type = DepthBufferClipType::ZeroToOne;
+            qDebug("GL_EXT_clip_control applied: LOWER_LEFT_EXT, ZERO_TO_ONE_EXT.");
+        } else {
+            qWarning("glClipControlEXT function pointer could NOT be retrieved.");
+        }
+    } else {
+        qWarning("GL_EXT_clip_control extension is NOT supported.");
+    }
+
+#else
+    {
+        auto f45 = QOpenGLVersionFunctionsFactory::get<QOpenGLFunctions_4_5_Core>(QOpenGLContext::currentContext());
+        if (f45) {
+            f45->glClipControl(GL_LOWER_LEFT, GL_ZERO_TO_ONE); // for reverse z
+            depth_buffer_clip_type = DepthBufferClipType::ZeroToOne;
+        }
+    }
+#endif
 
     auto* shader_registry = m_context->shader_registry();
 
@@ -172,13 +180,18 @@ void Window::initialise_gpu()
     f->glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, m_gbuffer->depth_texture()->textureId(), 0);
 
     m_atmosphere_shader = std::make_shared<ShaderProgram>("screen_pass.vert", "atmosphere_bg.frag");
-    m_compose_shader = std::make_shared<ShaderProgram>("screen_pass.vert", "compose.frag");
+    {
+        std::vector<QString> defines;
+        if (depth_buffer_clip_type == DepthBufferClipType::ZeroToOne)
+            defines.push_back("#define DEPTH_BUFFER_CLIP_TYPE_ZERO_TO_ONE");
+        m_compose_shader = std::make_shared<ShaderProgram>("screen_pass.vert", "compose.frag", ShaderCodeSource::FILE, defines);
+    }
     m_screen_copy_shader = std::make_shared<ShaderProgram>("screen_pass.vert", "screen_copy.frag");
     shader_registry->add_shader(m_atmosphere_shader);
     shader_registry->add_shader(m_compose_shader);
     shader_registry->add_shader(m_screen_copy_shader);
 
-    m_shadowmapping = std::make_unique<gl_engine::ShadowMapping>(shader_registry);
+    m_shadowmapping = std::make_unique<gl_engine::ShadowMapping>(shader_registry, depth_buffer_clip_type);
     m_ssao = std::make_unique<gl_engine::SSAO>(shader_registry);
 
     m_shared_config_ubo = std::make_shared<gl_engine::UniformBuffer<gl_engine::uboSharedConfig>>(0, "shared_config");
