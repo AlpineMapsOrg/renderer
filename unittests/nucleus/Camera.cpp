@@ -222,7 +222,7 @@ TEST_CASE("nucleus/camera: Definition")
             CHECK(equals(clipping_panes[0].normal, glm::normalize(glm::dvec3(1, 0, 0))));
             CHECK(clipping_panes[0].distance == Approx(-0.5));
             CHECK(equals(clipping_panes[1].normal, glm::normalize(glm::dvec3(-1, 0, 0))));
-            CHECK(clipping_panes[1].distance == Approx(500'000));
+            CHECK(clipping_panes[1].distance == Approx(1'000'000));
             // top and down
             CHECK(equals(clipping_panes[2].normal, glm::normalize(glm::dvec3(1, 0, -1))));
             CHECK(clipping_panes[2].distance == Approx(0).scale(1));
@@ -243,7 +243,7 @@ TEST_CASE("nucleus/camera: Definition")
             CHECK(equals(clipping_panes[0].normal, glm::normalize(glm::dvec3(-1, -1, 0))));
             CHECK(clipping_panes[0].distance == Approx(std::sqrt(200.0) - 0.5));
             CHECK(equals(clipping_panes[1].normal, glm::normalize(glm::dvec3(1, 1, 0))));
-            CHECK(clipping_panes[1].distance == Approx(500'000.0 - std::sqrt(200.0)));
+            CHECK(clipping_panes[1].distance == Approx(1'000'000.0 - std::sqrt(200.0)));
             // top and down
             CHECK(equals(clipping_panes[2].normal, glm::normalize(glm::dvec3(-0.5, -0.5, -std::sqrt(0.5)))));
             CHECK(clipping_panes[2].distance == Approx(10).scale(1));
@@ -269,7 +269,7 @@ TEST_CASE("nucleus/camera: Definition")
             CHECK(equals(frustum.clipping_planes[0].normal, glm::normalize(glm::dvec3(1, 0, 0))));
             CHECK(frustum.clipping_planes[0].distance == Approx(-0.5));
             CHECK(equals(frustum.clipping_planes[1].normal, glm::normalize(glm::dvec3(-1, 0, 0))));
-            CHECK(frustum.clipping_planes[1].distance == Approx(500'000));
+            CHECK(frustum.clipping_planes[1].distance == Approx(1'000'000));
             // top and down
             CHECK(equals(frustum.clipping_planes[2].normal, glm::normalize(glm::dvec3(1, 0, -1))));
             CHECK(frustum.clipping_planes[2].distance == Approx(0).scale(1));
@@ -302,7 +302,7 @@ TEST_CASE("nucleus/camera: Definition")
             CHECK(equals(frustum.clipping_planes[0].normal, glm::normalize(glm::dvec3(-1, -1, 0))));
             CHECK(frustum.clipping_planes[0].distance == Approx(std::sqrt(200.0) - 0.5));
             CHECK(equals(frustum.clipping_planes[1].normal, glm::normalize(glm::dvec3(1, 1, 0))));
-            CHECK(frustum.clipping_planes[1].distance == Approx(500'000.0 - std::sqrt(200.0)));
+            CHECK(frustum.clipping_planes[1].distance == Approx(1'000'000.0 - std::sqrt(200.0)));
             // top and down
             CHECK(equals(frustum.clipping_planes[2].normal, glm::normalize(glm::dvec3(-0.5, -0.5, -std::sqrt(0.5)))));
             CHECK(frustum.clipping_planes[2].distance == Approx(10).scale(1));
