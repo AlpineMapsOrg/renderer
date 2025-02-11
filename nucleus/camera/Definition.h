@@ -88,7 +88,7 @@ private:
     glm::dmat4 m_camera_transformation;
     float m_field_of_view = 0; // degrees
     float m_distance_scaling_factor = 0;
-    float m_near_clipping = 1.0;
+    float m_near_clipping = 5.0; // with full inverse z we can set it even to 0.1. however, ff doesn't support 0 to 1 cliping, so setting it a bit higher.
     float m_far_clipping = 1'000'000;
     glm::uvec2 m_viewport_size = { 480, 270 };
 };

@@ -18,13 +18,13 @@
  *****************************************************************************/
 #pragma once
 
-#include <vector>
-#include <glm/glm.hpp>
-#include <memory>
-
+#include "UniformBuffer.h"
 #include "nucleus/camera/Definition.h"
 #include "nucleus/tile/DrawListGenerator.h"
-#include "UniformBuffer.h"
+#include "types.h"
+#include <glm/glm.hpp>
+#include <memory>
+#include <vector>
 
 #define SHADOWMAP_WIDTH 4096
 #define SHADOWMAP_HEIGHT 4096
@@ -46,7 +46,7 @@ struct uboShadowConfig;
 class ShadowMapping
 {
 public:
-    ShadowMapping(ShaderRegistry* shader_registry);
+    ShadowMapping(ShaderRegistry* shader_registry, DepthBufferClipType depth_buffer_clip_type);
 
     ~ShadowMapping();
 
@@ -60,14 +60,14 @@ public:
     nucleus::camera::Frustum getFrustum(const nucleus::camera::Definition& camera);
 
 private:
-
+    DepthBufferClipType m_depth_buffer_clip_type = DepthBufferClipType(-1);
     std::shared_ptr<ShaderProgram> m_shadow_program;
     std::vector<std::unique_ptr<Framebuffer>> m_shadowmapbuffer;
     QOpenGLExtraFunctions *m_f;
 
-    std::vector<glm::vec4> getFrustumCornersWorldSpace(const glm::mat4& projview);
-    std::vector<glm::vec4> getFrustumCornersWorldSpace(const glm::mat4& proj, const glm::mat4& view);
-    glm::mat4 getLightSpaceMatrix(const float nearPlane, const float farPlane, const nucleus::camera::Definition& camera, const glm::vec3& light_dir);
+    std::vector<glm::vec4> getFrustumCornersWorldSpace(const glm::mat4& projview) const;
+    std::vector<glm::vec4> getFrustumCornersWorldSpace(const glm::mat4& proj, const glm::mat4& view) const;
+    glm::mat4 getLightSpaceMatrix(const float nearPlane, const float farPlane, const nucleus::camera::Definition& camera, const glm::vec3& light_dir) const;
     std::vector<glm::mat4> getLightSpaceMatrices(const nucleus::camera::Definition& camera, const glm::vec3& light_dir);
 
 };

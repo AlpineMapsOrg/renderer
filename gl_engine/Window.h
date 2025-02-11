@@ -23,7 +23,6 @@
 
 #pragma once
 
-#include <QOpenGLPaintDevice>
 #include <QOpenGLWindow>
 #include <QPainter>
 #include <QVector3D>
