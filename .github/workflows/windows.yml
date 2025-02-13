@@ -65,10 +65,18 @@ jobs:
     - name: Build
       run: cmake --build ./build --config Debug
 
+    - name: List .exe files in ./build
+      shell: pwsh
+      run: |
+        Write-Host "Searching for .exe files in ./build..."
+        Get-ChildItem -Path "./build" -Filter "*.exe" -Recurse | ForEach-Object {
+          Write-Host "Found: $($_.FullName)"
+        }
+
     - name: Unittests on Windows
       env:
         MESA_GL_VERSION_OVERRIDE: 3.3
       run: |
-        ./build/alp_external/radix/unittests/unittests_radix.exe
-        ./build/unittests/unittests_nucleus.exe
+        ./build/unittests_radix.exe
+        ./build/unittests_nucleus.exe
         

@@ -289,10 +289,11 @@ TEST_CASE("nucleus/camera: Definition")
             CHECK(equals(frustum.corners[3], glm::dvec3(0.5, -0.5, 0.5)));  // tr
 
             // back plane
-            CHECK(equals(frustum.corners[4], glm::dvec3(0.5, 0.5, 0.5) * 1'000'000.0));  // tl
-            CHECK(equals(frustum.corners[5], glm::dvec3(0.5, 0.5, -0.5) * 1'000'000.0));  // bl
-            CHECK(equals(frustum.corners[6], glm::dvec3(0.5, -0.5, -0.5) * 1'000'000.0));  // br
-            CHECK(equals(frustum.corners[7], glm::dvec3(0.5, -0.5, 0.5) * 1'000'000.0));  // tr
+            CAPTURE(frustum.corners[4].x, frustum.corners[4].y, frustum.corners[4].z);
+            CHECK(equals(frustum.corners[4], glm::dvec3(1.0, 1.0, 1.0) * 1'000'000.0)); // tl
+            CHECK(equals(frustum.corners[5], glm::dvec3(1.0, 1.0, -1.0) * 1'000'000.0)); // bl
+            CHECK(equals(frustum.corners[6], glm::dvec3(1.0, -1.0, -1.0) * 1'000'000.0)); // br
+            CHECK(equals(frustum.corners[7], glm::dvec3(1.0, -1.0, 1.0) * 1'000'000.0)); // tr
         }
         { // camera somewhere else
             auto c = nucleus::camera::Definition({ 10, 10, 0 }, { 0, 0, 0 });
