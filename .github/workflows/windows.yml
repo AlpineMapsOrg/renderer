@@ -77,6 +77,6 @@ jobs:
       env:
         MESA_GL_VERSION_OVERRIDE: 3.3
       run: |
-        ./build/alp_external/radix/unittests/unittests_radix.exe
-        ./build/unittests/unittests_nucleus.exe
+        ./build/unittests_radix.exe
+        ./build/unittests_nucleus.exe
         
