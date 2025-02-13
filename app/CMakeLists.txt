@@ -120,15 +120,17 @@ set_target_properties(alpineapp PROPERTIES
 )
 target_link_libraries(alpineapp PUBLIC gl_engine Qt::Quick Qt::QuickControls2)
 if (ALP_ENABLE_DEV_TOOLS)
-    message(WARNING "building alpine app with dev tools. this will increase the build size")
+    message(WARNING "building alpine app with dev tools. this will increase the build size. It'll also slow incremental building due to a fix for hotreload.")
 
     # change prefer to project dir, as per https://bugreports.qt.io/browse/QTBUG-120435
     # otherwise we can't hotreload files in app when there is "import app" in the qml file.
     # but we need import app, if we want to use the new approach of registering qml types (directly in the class, not in main).
-
     add_custom_command(
         TARGET alpineapp POST_BUILD
-        COMMAND sed -i "s@^prefer .*@prefer ${CMAKE_CURRENT_SOURCE_DIR}/@" ${CMAKE_CURRENT_BINARY_DIR}/app/qmldir
+        COMMAND ${CMAKE_COMMAND}
+          -DBUILD_DIR="${CMAKE_CURRENT_BINARY_DIR}/app"
+          -DSOURCE_DIR="${CMAKE_CURRENT_SOURCE_DIR}"
+          -P "${CMAKE_SOURCE_DIR}/cmake/alp_fix_qmldir_for_hotreload.cmake"
     )
 
     qt_target_qml_sources(alpineapp

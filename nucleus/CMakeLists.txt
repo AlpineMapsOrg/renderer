@@ -166,12 +166,6 @@ qt_add_resources(nucleus "nucleus_fonts"
     FILES
     ${alpineapp_fonts_SOURCE_DIR}/Roboto/Roboto-Bold.ttf
 )
-qt_add_resources(nucleus "charset"
-    PREFIX "/charset"
-    BASE ${CMAKE_SOURCE_DIR}/app/
-    FILES ${CMAKE_SOURCE_DIR}/app/charset.txt
-)
-
 
 if (ALP_ENABLE_LTO)
     target_compile_options(nucleus PUBLIC -flto)
