@@ -35,6 +35,7 @@ We use Qt Creator (with mingw on Windows), which is the only tested setup atm an
 ## Building the WebAssembly version:
 * [The Qt documentation is quite good on how to get it to run](https://doc-snapshots.qt.io/qt6-dev/wasm.html#installing-emscripten).
 * Be aware that only specific versions of emscripten work for specific versions of Qt, and the error messages are not helpfull.
+* [More info on building and getting Hotreload to work](https://github.com/AlpineMapsOrg/documentation/blob/main/WebAssembly_local_build.md)
 
 # Code style
 * class names are CamelCase, method, function and variable names are snake_case.
