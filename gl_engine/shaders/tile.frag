@@ -32,6 +32,7 @@ layout (location = 0) out lowp vec3 texout_albedo;
 layout (location = 1) out highp vec4 texout_position;
 layout (location = 2) out highp uvec2 texout_normal;
 layout (location = 3) out lowp vec4 texout_depth;
+layout (location = 4) out lowp vec4 texout_eaws;
 
 flat in highp uvec3 var_tile_id;
 in highp vec2 var_uv;

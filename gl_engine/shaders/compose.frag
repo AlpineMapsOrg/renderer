@@ -37,6 +37,7 @@ in highp vec2 texcoords;
 uniform sampler2D texin_albedo;             // 8vec3
 uniform highp sampler2D texin_position;     // f32vec4
 uniform highp usampler2D texin_normal;      // u16vec2
+uniform sampler2D texin_eaws;               // 8vec3
 
 uniform sampler2D texin_atmosphere;         // 8vec3
 uniform sampler2D texin_ssao;               // 8vec1
@@ -196,7 +197,8 @@ void main() {
             albedo = mix(albedo, overlay_color.rgb, overlay_color.a);
         }
 
-        shaded_color = albedo;
+        lowp vec3 eaws_color = texture(texin_eaws, texcoords).rgb;
+        shaded_color = 0.5f * albedo + 0.5f * eaws_color;
         if (bool(conf.phong_enabled)) {
             shaded_color = calculate_illumination(shaded_color, origin, pos_ws, normal, conf.sun_light, conf.amb_light, conf.sun_light_dir.xyz, material_light_response, amb_occlusion, shadow_term);
         }

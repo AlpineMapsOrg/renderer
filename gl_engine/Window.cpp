@@ -131,6 +131,7 @@ void Window::initialise_gpu()
             Framebuffer::ColourFormat::RGBA32F, // Position WCS and distance (distance is optional, but i use it directly for a little speed improvement)
             Framebuffer::ColourFormat::RG16UI, // Octahedron Normals
             Framebuffer::ColourFormat::RGBA8, // Discretized Encoded Depth for readback IMPORTANT: IF YOU MOVE THIS YOU HAVE TO ADAPT THE GET DEPTH FUNCTION
+            Framebuffer::ColourFormat::RGBA8 // eaws warnings buffer
             // TextureDefinition { Framebuffer::ColourFormat::R32UI }, // VertexID
         });
 
@@ -283,6 +284,9 @@ void Window::paint(QOpenGLFramebufferObject* framebuffer)
         // Clear Depth-Buffer
         // f->glClearDepthf(0.0f); // for reverse z
         f->glClear(GL_DEPTH_BUFFER_BIT);
+        // Clear EAWS-Buffer
+        const GLfloat clearEawsColor[] = { 0.0f, 0.0f, 0.0f, 1.0f };
+        f->glClearBufferfv(GL_COLOR, 4, clearEawsColor);
     }
 
     f->glEnable(GL_DEPTH_TEST);
@@ -290,8 +294,9 @@ void Window::paint(QOpenGLFramebufferObject* framebuffer)
     f->glDepthFunc(GL_LESS);
 
     m_timer->start_timer("tiles");
+    m_context->ortho_layer()->draw(*m_context->tile_geometry(), m_camera, culled_tile_set, true, m_camera.position());
+    f->glClear(GL_DEPTH_BUFFER_BIT); // f->glClearDepthf(0.0f); is used to set the celar value of z buffer
     m_context->eaws_layer()->draw(*m_context->tile_geometry(), m_camera, culled_tile_set, true, m_camera.position());
-    // m_context->ortho_layer()->draw(*m_context->tile_geometry(), m_camera, culled_tile_set, true, m_camera.position());
 
     m_timer->stop_timer("tiles");
 
@@ -339,6 +344,10 @@ void Window::paint(QOpenGLFramebufferObject* framebuffer)
 
     /* texture units 5 - 8 */
     m_shadowmapping->bind_shadow_maps(m_compose_shader.get(), 5);
+
+    // texture unit 9 : eaws warning colors
+    m_compose_shader->set_uniform("texin_eaws", 9);
+    m_gbuffer->bind_colour_texture(4, 9);
 
     m_timer->start_timer("compose");
     m_screen_quad_geometry.draw();

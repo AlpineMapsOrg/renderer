@@ -34,6 +34,7 @@ layout (location = 0) out lowp vec3 texout_albedo;
 layout (location = 1) out highp vec4 texout_position;
 layout (location = 2) out highp uvec2 texout_normal;
 layout (location = 3) out lowp vec4 texout_depth;
+layout (location = 4) out lowp vec3 texout_eaws;
 
 flat in highp uvec3 var_tile_id;
 in highp vec2 var_uv;
@@ -131,42 +132,9 @@ void main() {
         {
             fragColor = vec3(0,0,0);
         }
-        texout_albedo = fragColor;
+        texout_eaws = fragColor;
     }
     else {
-        texout_albedo = vec3(1.0, 0.0, 0.5);
+        texout_eaws = vec3(1.0, 0.0, 0.5);
     }
-
-    // Write Position (and distance) in gbuffer
-    highp float dist = length(var_pos_cws);
-    texout_position = vec4(var_pos_cws, dist);
-
-    // Write and encode normal in gbuffer
-    highp vec3 normal = vec3(0.0);
-    if (conf.normal_mode == 0u) normal = normal_by_fragment_position_interpolation();
-    else normal = var_normal;
-    texout_normal = octNormalEncode2u16(normal);
-
-    // Write and encode distance for readback
-    texout_depth = vec4(depthWSEncode2n8(dist), 0.0, 0.0);
-
-    // HANDLE OVERLAYS (and mix it with the albedo color) THAT CAN JUST BE DONE IN THIS STAGE
-    // (because of DATA thats not forwarded)
-    // NOTE: Performancewise its generally better to handle overlays in the compose step! (screenspace effect)
-    if (conf.overlay_mode > 0u && conf.overlay_mode < 100u) {
-        lowp vec3 overlay_color = vec3(0.0);
-        switch(conf.overlay_mode) {
-            case 1u: overlay_color = normal * 0.5 + 0.5; break;
-            default: overlay_color = vertex_color;
-        }
-        texout_albedo = mix(texout_albedo, overlay_color, conf.overlay_strength);
-    }
-
-#if CURTAIN_DEBUG_MODE == 1
-    if (is_curtain > 0.0) {
-        texout_albedo = vec3(1.0, 0.0, 0.0);
-        return;
-    }
-#endif
-
 }
