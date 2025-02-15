@@ -30,9 +30,11 @@
 
 namespace gl_engine {
 
-ShadowMapping::ShadowMapping(ShaderRegistry* shader_registry)
-    : m_shadow_program(std::make_shared<ShaderProgram>("shadowmap.vert", "shadowmap.frag"))
+ShadowMapping::ShadowMapping(ShaderRegistry* shader_registry, DepthBufferClipType depth_buffer_clip_type)
+    : m_depth_buffer_clip_type(depth_buffer_clip_type)
+    , m_shadow_program(std::make_shared<ShaderProgram>("shadowmap.vert", "shadowmap.frag"))
 {
+
     shader_registry->add_shader(m_shadow_program);
     m_f = QOpenGLContext::currentContext()->extraFunctions();
     for (int i = 0; i < SHADOW_CASCADES; i++) {
@@ -46,6 +48,7 @@ ShadowMapping::~ShadowMapping() {
 
 }
 
+// broken since reverse z, projection matrix for shadowmaps probably expect -1 to 1 space, but now we have 0 to 1. otoh, hm, it works without glClipControl(GL_LOWER_LEFT, GL_ZERO_TO_ONE)...
 void ShadowMapping::draw(TileGeometry* tile_geometry,
     const nucleus::tile::IdSet& draw_tileset,
     const nucleus::camera::Definition& camera,
@@ -80,6 +83,7 @@ void ShadowMapping::draw(TileGeometry* tile_geometry,
     for (int i = 0; i < SHADOW_CASCADES; i++) {
         m_shadowmapbuffer[i]->bind();
         m_f->glClearColor(0, 0, 0, 0);
+        m_f->glClearDepthf(1.0f); // no reverse z
         m_f->glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
         m_shadow_program->set_uniform("current_layer", i);
@@ -100,7 +104,7 @@ void ShadowMapping::bind_shadow_maps(ShaderProgram* p, unsigned int start_locati
     }
 }
 
-std::vector<glm::vec4> ShadowMapping::getFrustumCornersWorldSpace(const glm::mat4& projview)
+std::vector<glm::vec4> ShadowMapping::getFrustumCornersWorldSpace(const glm::mat4& projview) const
 {
     const auto inv = glm::inverse(projview);
     std::vector<glm::vec4> frustumCorners;
@@ -113,13 +117,9 @@ std::vector<glm::vec4> ShadowMapping::getFrustumCornersWorldSpace(const glm::mat
     return frustumCorners;
 }
 
+std::vector<glm::vec4> ShadowMapping::getFrustumCornersWorldSpace(const glm::mat4& proj, const glm::mat4& view) const { return getFrustumCornersWorldSpace(proj * view); }
 
-std::vector<glm::vec4> ShadowMapping::getFrustumCornersWorldSpace(const glm::mat4& proj, const glm::mat4& view)
-{
-    return getFrustumCornersWorldSpace(proj * view);
-}
-
-glm::mat4 ShadowMapping::getLightSpaceMatrix(const float nearPlane, const float farPlane, const nucleus::camera::Definition& camera, const glm::vec3& light_dir)
+glm::mat4 ShadowMapping::getLightSpaceMatrix(const float nearPlane, const float farPlane, const nucleus::camera::Definition& camera, const glm::vec3& light_dir) const
 {
     const auto fb_size = camera.viewport_size();
     const auto proj = glm::perspective(glm::radians(camera.field_of_view()), (float)fb_size.x / (float)fb_size.y, nearPlane, farPlane);
@@ -158,7 +158,8 @@ glm::mat4 ShadowMapping::getLightSpaceMatrix(const float nearPlane, const float 
     if (maxZ < 0) maxZ /= zMult;
     else maxZ *= zMult;
 
-    const glm::dmat4 lightProjection = glm::ortho(minX, maxX, minY, maxY, minZ, maxZ);
+    const glm::dmat4 lightProjection
+        = (m_depth_buffer_clip_type == DepthBufferClipType::MinusOneToOne) ? glm::ortho(minX, maxX, minY, maxY, minZ, maxZ) : glm::orthoZO(minX, maxX, minY, maxY, minZ, maxZ);
     return lightProjection * lightView;// * glm::translate(camera.position());
 }
 

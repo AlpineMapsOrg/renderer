@@ -13,7 +13,7 @@ After that it should be a normal cmake project. That is, you run cmake to genera
 We use Qt Creator (with mingw on Windows), which is the only tested setup atm and makes setup of Android and WebAssembly builds reasonably easy. If you have questions, please go to Discord.
 
 ## Dependencies
-* Qt 6.6.0, or greater
+* Qt 6.8.0, or greater
 * g++ 12+, clang or msvc
 * OpenGL
 * Qt Positioning and Charts modules
@@ -33,11 +33,9 @@ We use Qt Creator (with mingw on Windows), which is the only tested setup atm an
 * Finally, you are welcome to ask in discord if something is not working! 
 
 ## Building the WebAssembly version:
-* Atm, none of the Qt versions works perfectly in all browsers
-* In Qt 6.6 touch doesn't work on Firefox (issues #33)
-* [The Qt documentation is quite good on how to get it to run](https://doc-snapshots.qt.io/qt6-dev/wasm.html#installing-emscripten). Be aware that only specific versions of emscripten work for specific versions of Qt, and the error messages are not helpfull.
-* The threaded version doesn't seem to work atm, so use the non-threaded (bug reported)!
-* There are a number of other bugs, we track them with the upstream tag.
+* [The Qt documentation is quite good on how to get it to run](https://doc-snapshots.qt.io/qt6-dev/wasm.html#installing-emscripten).
+* Be aware that only specific versions of emscripten work for specific versions of Qt, and the error messages are not helpfull.
+* [More info on building and getting Hotreload to work](https://github.com/AlpineMapsOrg/documentation/blob/main/WebAssembly_local_build.md)
 
 # Code style
 * class names are CamelCase, method, function and variable names are snake_case.

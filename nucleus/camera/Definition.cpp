@@ -200,34 +200,28 @@ float Definition::distance_scale_factor() const
     return m_distance_scaling_factor;
 }
 
-// for reverse z: https://nlguillemot.wordpress.com/2016/12/07/reversed-z-in-opengl/
-glm::mat4 MakeInfReversedZProjRH(float fovY_radians, float aspectWbyH, float zNear)
-{
-    float f = 1.0f / tan(fovY_radians / 2.0f);
-    return glm::mat4(
-        f / aspectWbyH, 0.0f,  0.0f,  0.0f,
-        0.0f,    f,  0.0f,  0.0f,
-        0.0f, 0.0f,  0.0f, -1.0f,
-        0.0f, 0.0f, zNear,  0.0f);
-}
-
 void Definition::set_perspective_params(float fov_degrees,
                                         const glm::uvec2& viewport_size,
                                         float near_plane)
 {
     m_distance_scaling_factor = 1.f / std::tan(0.5f * fov_degrees * 3.1415926535897932384626433f / 180);
     m_near_clipping = near_plane;
-    m_far_clipping = near_plane * 1'000'000;
-    m_far_clipping = std::min(m_far_clipping, 1'000'000'000.f); // will be obscured by atmosphere anyways + depth based atmosphere will have numerical issues (show background atmosphere)
     m_viewport_size = viewport_size;
     m_field_of_view = fov_degrees;
-    m_projection_matrix = glm::perspective(
-        glm::radians(double(fov_degrees)),
-        double(viewport_size.x) / double(viewport_size.y),
-        double(m_near_clipping),
-        double(m_far_clipping));
-    //m_projection_matrix = MakeInfReversedZProjRH(glm::radians(double(fov_degrees)), double(viewport_size.x) / double(viewport_size.y), m_near_clipping); // for reverse z
 
+    // reverse z: https://nlguillemot.wordpress.com/2016/12/07/reversed-z-in-opengl/
+    const auto inverse_z_perspective = [](double fovY_radians, double aspectWbyH, double zNear) {
+        double f = 1.0 / tan(fovY_radians / 2.0);
+        // clang-format off
+        return glm::dmat4(
+            f / aspectWbyH, 0.0,   0.0,  0.0,
+            0.0,              f,   0.0,  0.0,
+            0.0,            0.0,   0.0, -1.0,
+            0.0,            0.0, zNear,  0.0);
+        // clang-format on
+    };
+
+    m_projection_matrix = inverse_z_perspective(glm::radians(double(fov_degrees)), double(viewport_size.x) / double(viewport_size.y), m_near_clipping);
 }
 
 void Definition::set_near_plane(float near_plane)

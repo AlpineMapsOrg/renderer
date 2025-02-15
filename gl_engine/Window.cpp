@@ -20,49 +20,44 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *****************************************************************************/
+#include "Window.h"
+#include "Context.h"
+#include "Framebuffer.h"
+#include "SSAO.h"
+#include "ShaderProgram.h"
+#include "ShaderRegistry.h"
+#include "ShadowMapping.h"
 #include "TextureLayer.h"
 #include "TileGeometry.h"
+#include "TrackManager.h"
+#include "UniformBufferObjects.h"
+#include "helpers.h"
+#include "types.h"
 #include <QCoreApplication>
-
 #include <QDebug>
-#include <QImage>
-#include <QMoveEvent>
 #include <QOpenGLContext>
 #include <QOpenGLDebugLogger>
 #include <QOpenGLExtraFunctions>
 #include <QOpenGLFramebufferObject>
-#include <QOpenGLShaderProgram>
-#include <QOpenGLTexture>
 #include <QOpenGLVersionFunctionsFactory>
 #include <QOpenGLVertexArrayObject>
-#include <QPropertyAnimation>
-#include <QRandomGenerator>
-#include <QSequentialAnimationGroup>
 #include <QTimer>
 #include <glm/glm.hpp>
 #include <glm/gtx/transform.hpp>
-#if (defined(__linux) && !defined(__ANDROID__)) || defined(_WIN32) || defined(_WIN64)
-#include <QOpenGLFunctions_3_3_Core> // for wireframe mode
-#endif
-#if defined(__ANDROID__)
-#include <GLES3/gl3.h> // for GL ENUMS! DONT EXACTLY KNOW WHY I NEED THIS HERE! (on other platforms it works without)
-#endif
-
-#include "Context.h"
-#include "Framebuffer.h"
-#include "SSAO.h"
-#include "ShaderRegistry.h"
-#include "ShaderProgram.h"
-#include "ShadowMapping.h"
-#include "TrackManager.h"
-#include "UniformBufferObjects.h"
-#include "Window.h"
-#include "helpers.h"
 #include <nucleus/timing/CpuTimer.h>
 #include <nucleus/timing/TimerManager.h>
 #include <nucleus/utils/bit_coding.h>
+
 #if (defined(__linux) && !defined(__ANDROID__)) || defined(_WIN32) || defined(_WIN64)
 #include "GpuAsyncQueryTimer.h"
+#include <QOpenGLFunctions_4_5_Core>
+#endif
+#ifdef __EMSCRIPTEN__
+#include <emscripten.h>
+#include <emscripten/val.h>
+#endif
+#if defined(__ANDROID__)
+#include <GLES3/gl3.h> // for GL ENUMS! DONT EXACTLY KNOW WHY I NEED THIS HERE! (on other platforms it works without)
 #endif
 
 #ifdef ALP_ENABLE_LABELS
@@ -90,10 +85,6 @@ Window::~Window()
 
 void Window::initialise_gpu()
 {
-    QOpenGLExtraFunctions* f = QOpenGLContext::currentContext()->extraFunctions();
-    assert(f->hasOpenGLFeature(QOpenGLExtraFunctions::OpenGLFeature::MultipleRenderTargets));
-    Q_UNUSED(f);
-
     QOpenGLDebugLogger* logger = new QOpenGLDebugLogger(this);
     logger->initialize();
     connect(logger, &QOpenGLDebugLogger::messageLogged, [](const QOpenGLDebugMessage& message) {
@@ -107,6 +98,60 @@ void Window::initialise_gpu()
     logger->disableMessages(QList<GLuint>({ 131185 }));
     logger->disableMessages(QList<GLuint>({ 131218 }));
     logger->startLogging(QOpenGLDebugLogger::SynchronousLogging);
+
+    QOpenGLExtraFunctions* f = QOpenGLContext::currentContext()->extraFunctions();
+    assert(f->hasOpenGLFeature(QOpenGLExtraFunctions::OpenGLFeature::MultipleRenderTargets));
+    Q_UNUSED(f);
+
+    DepthBufferClipType depth_buffer_clip_type = DepthBufferClipType::MinusOneToOne;
+
+#if defined(__EMSCRIPTEN__)
+    {
+        // clang-format off
+        bool success = EM_ASM_INT({
+            var gl = document.querySelector('#qt-shadow-container')?.shadowRoot?.querySelector("canvas")?.getContext("webgl2");
+            if (!gl) {
+                console.warn("Warning: Failed to retrieve WebGL2 context while setting clip control. Clip control will not be set.");
+                return 0;
+            }
+            const ext = gl.getExtension("EXT_clip_control");
+            if (!ext) {
+                console.warn("Warning: EXT_clip_control extension is not supported. As a result you might encounter z-fighting.");
+                return 0;
+            }
+            ext.clipControlEXT(ext.LOWER_LEFT_EXT, ext.ZERO_TO_ONE_EXT);
+            return 1;
+        });
+        // clang-format on
+        if (success) {
+            depth_buffer_clip_type = DepthBufferClipType::ZeroToOne;
+        }
+    }
+
+#elif defined(__ANDROID__)
+    if (QOpenGLContext::currentContext()->hasExtension("GL_EXT_clip_control")) {
+        auto glClipControlEXT = reinterpret_cast<void (*)(GLenum, GLenum)>(QOpenGLContext::currentContext()->getProcAddress("glClipControlEXT"));
+
+        if (glClipControlEXT) {
+            glClipControlEXT(0x8CA1, 0x935F); // LOWER_LEFT_EXT, ZERO_TO_ONE_EXT
+            depth_buffer_clip_type = DepthBufferClipType::ZeroToOne;
+            qDebug("GL_EXT_clip_control applied: LOWER_LEFT_EXT, ZERO_TO_ONE_EXT.");
+        } else {
+            qWarning("glClipControlEXT function pointer could NOT be retrieved.");
+        }
+    } else {
+        qWarning("GL_EXT_clip_control extension is NOT supported.");
+    }
+
+#else
+    {
+        auto f45 = QOpenGLVersionFunctionsFactory::get<QOpenGLFunctions_4_5_Core>(QOpenGLContext::currentContext());
+        if (f45) {
+            f45->glClipControl(GL_LOWER_LEFT, GL_ZERO_TO_ONE); // for reverse z
+            depth_buffer_clip_type = DepthBufferClipType::ZeroToOne;
+        }
+    }
+#endif
 
     auto* shader_registry = m_context->shader_registry();
 
@@ -135,13 +180,18 @@ void Window::initialise_gpu()
     f->glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, m_gbuffer->depth_texture()->textureId(), 0);
 
     m_atmosphere_shader = std::make_shared<ShaderProgram>("screen_pass.vert", "atmosphere_bg.frag");
-    m_compose_shader = std::make_shared<ShaderProgram>("screen_pass.vert", "compose.frag");
+    {
+        std::vector<QString> defines;
+        if (depth_buffer_clip_type == DepthBufferClipType::ZeroToOne)
+            defines.push_back("#define DEPTH_BUFFER_CLIP_TYPE_ZERO_TO_ONE");
+        m_compose_shader = std::make_shared<ShaderProgram>("screen_pass.vert", "compose.frag", ShaderCodeSource::FILE, defines);
+    }
     m_screen_copy_shader = std::make_shared<ShaderProgram>("screen_pass.vert", "screen_copy.frag");
     shader_registry->add_shader(m_atmosphere_shader);
     shader_registry->add_shader(m_compose_shader);
     shader_registry->add_shader(m_screen_copy_shader);
 
-    m_shadowmapping = std::make_unique<gl_engine::ShadowMapping>(shader_registry);
+    m_shadowmapping = std::make_unique<gl_engine::ShadowMapping>(shader_registry, depth_buffer_clip_type);
     m_ssao = std::make_unique<gl_engine::SSAO>(shader_registry);
 
     m_shared_config_ubo = std::make_shared<gl_engine::UniformBuffer<gl_engine::uboSharedConfig>>(0, "shared_config");
@@ -270,13 +320,12 @@ void Window::paint(QOpenGLFramebufferObject* framebuffer)
         const GLfloat clearEncDepthColor[] = { 0.0f, 0.0f, 0.0f, 0.0f };
         f->glClearBufferfv(GL_COLOR, 3, clearEncDepthColor);
         // Clear Depth-Buffer
-        // f->glClearDepthf(0.0f); // for reverse z
+        f->glClearDepthf(0.0f); // reverse z
         f->glClear(GL_DEPTH_BUFFER_BIT);
     }
 
     f->glEnable(GL_DEPTH_TEST);
-    // f->glDepthFunc(GL_GREATER); // for reverse z
-    f->glDepthFunc(GL_LESS);
+    f->glDepthFunc(GL_GREATER); // reverse z
 
     m_timer->start_timer("tiles");
     m_context->ortho_layer()->draw(*m_context->tile_geometry(), m_camera, culled_tile_set, true, m_camera.position());
@@ -336,7 +385,7 @@ void Window::paint(QOpenGLFramebufferObject* framebuffer)
     const GLfloat clearAlbedoColor[] = { 0.0f, 0.0f, 0.0f, 0.0f };
     f->glClearBufferfv(GL_COLOR, 0, clearAlbedoColor);
     f->glEnable(GL_DEPTH_TEST);
-    f->glDepthFunc(GL_LEQUAL);
+    f->glDepthFunc(GL_GEQUAL); // reverse z
 
     // DRAW LABELS
     if (m_context->map_label_manager()) {
