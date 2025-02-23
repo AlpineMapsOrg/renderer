@@ -19,6 +19,8 @@
 
 project(alpine-renderer-app LANGUAGES CXX)
 
+option(ALP_ENABLE_QML_HOT_RELOAD "Enables hot-reloading of qml files (which slows down compilation)" OFF)
+
 qt_add_executable(alpineapp
     main.cpp
     RenderThreadNotifier.h RenderThreadNotifier.cpp
@@ -119,8 +121,9 @@ set_target_properties(alpineapp PROPERTIES
     QT_ANDROID_PACKAGE_SOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/android
 )
 target_link_libraries(alpineapp PUBLIC gl_engine Qt::Quick Qt::QuickControls2)
-if (ALP_ENABLE_DEV_TOOLS)
-    message(WARNING "building alpine app with dev tools. this will increase the build size. It'll also slow incremental building due to a fix for hotreload.")
+
+if (ALP_ENABLE_QML_HOT_RELOAD)
+    message(WARNING "building alpine app with qml-hot-reload. It'll slow incremental building due to a fix for hotreload.")
 
     # change prefer to project dir, as per https://bugreports.qt.io/browse/QTBUG-120435
     # otherwise we can't hotreload files in app when there is "import app" in the qml file.
@@ -132,7 +135,10 @@ if (ALP_ENABLE_DEV_TOOLS)
           -DSOURCE_DIR="${CMAKE_CURRENT_SOURCE_DIR}"
           -P "${CMAKE_SOURCE_DIR}/cmake/alp_fix_qmldir_for_hotreload.cmake"
     )
+endif()
 
+if (ALP_ENABLE_DEV_TOOLS)
+    message(WARNING "building alpine app with dev tools. this will increase the build size.")
     qt_target_qml_sources(alpineapp
         QML_FILES
             StatsWindow.qml
