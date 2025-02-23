@@ -38,6 +38,12 @@ Scheduler::Scheduler(std::string name, unsigned int tile_resolution, QObject* pa
     , m_name(std::move(name))
     , m_tile_resolution(tile_resolution)
 {
+    static std::unordered_set<std::string> s_names;
+    if (s_names.contains(m_name)) {
+        qCritical() << "A scheduler named " << m_name << " already exists. Aborting.";
+        abort();
+    }
+    s_names.insert(m_name);
     setObjectName(m_name + "_scheduler");
     m_update_timer = std::make_unique<QTimer>(this);
     m_update_timer->setSingleShot(true);
