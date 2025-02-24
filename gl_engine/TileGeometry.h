@@ -58,6 +58,8 @@ public:
 
     void set_permissible_screen_space_error(float new_permissible_screen_space_error);
 
+    size_t tile_count() const;
+
 public slots:
     void update_gpu_quads(const std::vector<nucleus::tile::GpuGeometryQuad>& new_quads, const std::vector<nucleus::tile::Id>& deleted_quads);
     void set_aabb_decorator(const nucleus::tile::utils::AabbDecoratorPtr& new_aabb_decorator);

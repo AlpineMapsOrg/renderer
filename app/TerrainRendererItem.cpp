@@ -77,6 +77,7 @@ TerrainRendererItem::TerrainRendererItem(QQuickItem* parent)
     m_url_modifier = std::make_shared<nucleus::utils::UrlModifier>();
 
     m_settings = new AppSettings(this, m_url_modifier);
+    m_tile_statistics = new TileStatistics(this);
     connect(m_settings, &AppSettings::datetime_changed, this, &TerrainRendererItem::datetime_changed);
     connect(m_settings, &AppSettings::gl_sundir_date_link_changed, this, &TerrainRendererItem::gl_sundir_date_link_changed);
     connect(m_settings, &AppSettings::render_quality_changed, this, &TerrainRendererItem::schedule_update);
@@ -113,6 +114,7 @@ QQuickFramebufferObject::Renderer* TerrainRendererItem::createRenderer() const
 
     auto* r = new TerrainRenderer();
     connect(r->glWindow(), &nucleus::AbstractRenderWindow::update_requested, this, &TerrainRendererItem::schedule_update);
+    connect(r->glWindow(), &gl_engine::Window::tile_stats_ready, this->m_tile_statistics, &TileStatistics::update_gpu_tile_stats);
     connect(m_update_timer, &QTimer::timeout, this, &QQuickFramebufferObject::update);
 
     connect(this, &TerrainRendererItem::touch_made, r->controller(), &nucleus::camera::Controller::touch);
@@ -155,7 +157,7 @@ QQuickFramebufferObject::Renderer* TerrainRendererItem::createRenderer() const
     connect(ctx->picker_manager().get(), &nucleus::picker::PickerManager::pick_evaluated, this, &TerrainRendererItem::set_picked_feature);
 
 #ifdef ALP_ENABLE_DEV_TOOLS
-    connect(r->glWindow(), &gl_engine::Window::report_measurements, TimerFrontendManager::instance(), &TimerFrontendManager::receive_measurements);
+    connect(r->glWindow(), &gl_engine::Window::timer_measurements_ready, TimerFrontendManager::instance(), &TimerFrontendManager::receive_measurements);
 #endif
 
     // We now have to initialize everything based on the url, but we need to do this on the thread this instance
