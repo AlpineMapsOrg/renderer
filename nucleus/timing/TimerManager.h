@@ -38,25 +38,24 @@ namespace nucleus::timing {
 struct TimerReport {
     // value inside timer could be different by now, thats why we send a copy of the value
     float value;
-    // Note: Somehow I need the timer definition in the front-end, like name, group, queue_size.
-    // I don't want to send all of those values every time, so I'll just send it as shared pointer.
-    // Might not be as fast as sending just a pointer, but otherwise it's possible to have a
-    // memory issue at deconstruction time of the app.
-    std::shared_ptr<TimerInterface> timer;
+    // the following could be a shared_ptr to an info object as well, but not a shared_ptr to TimerInterface as that might
+    // contain objects that can be destroyed only inside the opengl/webgpu context
+    QString name;
+    QString group;
+    int queue_size = 0;
+    float average_weight = 0;
 };
 
-class TimerManager
-{
-
+class TimerManager {
 public:
     // adds the given timer
     std::shared_ptr<TimerInterface> add_timer(std::shared_ptr<TimerInterface> tmr);
 
     // Start timer with given name
-    void start_timer(const std::string &name);
+    void start_timer(const QString& name);
 
     // Stops the currently running timer
-    void stop_timer(const std::string &name);
+    void stop_timer(const QString& name);
 
     // Fetches the results of all timers and returns the new values
     QList<TimerReport> fetch_results();
@@ -73,15 +72,13 @@ private:
     // Contains the timer as list for the correct order
     std::vector<std::shared_ptr<TimerInterface>> m_timer_in_order;
     // Contains the timer as map for fast access by name
-    std::map<std::string, std::shared_ptr<TimerInterface>> m_timer;
+    std::map<QString, std::shared_ptr<TimerInterface>> m_timer;
 
 #ifdef QT_DEBUG
     // Contains the timer name if a warning for this timer was already published
-    std::set<std::string> m_timer_already_warned_about;
+    std::set<QString> m_timer_already_warned_about;
     // Writes a warning out on the screen for the given timer (only once)
-    void warn_about_timer(const std::string& name);
+    void warn_about_timer(const QString& name);
 #endif
-
 };
-
 }

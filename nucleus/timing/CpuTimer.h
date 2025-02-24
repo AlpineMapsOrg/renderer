@@ -26,7 +26,7 @@ namespace nucleus::timing {
 /// The CpuTimer class measures times on the c++ side using the std::chronos library
 class CpuTimer : public TimerInterface {
 public:
-    CpuTimer(const std::string& name, const std::string& group, int queue_size, float average_weight);
+    CpuTimer(const QString& name, const QString& group, int queue_size, float average_weight);
 
 protected:
     // starts front-buffer query

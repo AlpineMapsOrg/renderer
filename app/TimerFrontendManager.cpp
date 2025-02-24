@@ -41,9 +41,9 @@ TimerFrontendManager* TimerFrontendManager::instance()
 void TimerFrontendManager::receive_measurements(QList<nucleus::timing::TimerReport> values)
 {
     for (const auto& report : values) {
-        const char* name = report.timer->get_name().c_str();
+        const auto& name = report.name;
         if (!m_timer_map.contains(name)) {
-            auto tfo = new TimerFrontendObject(this, name, report.timer->get_group().c_str(), report.timer->get_queue_size(), report.timer->get_average_weight(), report.value);
+            auto tfo = new TimerFrontendObject(this, name, report.group, report.queue_size, report.average_weight, report.value);
             m_timer.append(tfo);
             m_timer_map.insert(name, tfo);
         }
