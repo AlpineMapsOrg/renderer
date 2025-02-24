@@ -1,6 +1,7 @@
 /*****************************************************************************
  * AlpineMaps.org
  * Copyright (C) 2023 Gerald Kimmersdorfer
+ * Copyright (C) 2025 Adam Celarek
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -18,7 +19,6 @@
 
 #pragma once
 
-#include <string>
 #include <memory>
 #include <QList>
 #include <vector>
@@ -31,7 +31,6 @@
 
 #include "TimerInterface.h"
 #include <memory>
-#include <mutex>
 
 namespace nucleus::timing {
 
@@ -40,6 +39,7 @@ struct TimerReport {
     float value;
     // the following could be a shared_ptr to an info object as well, but not a shared_ptr to TimerInterface as that might
     // contain objects that can be destroyed only inside the opengl/webgpu context
+    // QString is implicitly shared, so a copy here is not that bad.
     QString name;
     QString group;
     int queue_size = 0;

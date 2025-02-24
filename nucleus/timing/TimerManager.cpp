@@ -1,6 +1,7 @@
 /*****************************************************************************
  * AlpineMaps.org
  * Copyright (C) 2023 Gerald Kimmersdorfer
+ * Copyright (C) 2025 Adam Celarek
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -15,7 +16,6 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *****************************************************************************/
-
 
 #include "TimerManager.h"
 
@@ -62,14 +62,14 @@ QList<TimerReport> TimerManager::fetch_results()
     QList<TimerReport> new_values;
     for (const auto& tmr : m_timer_in_order) {
         if (tmr->fetch_result()) {
-            new_values.emplace_back(tmr->get_last_measurement(), tmr->get_name(), tmr->get_group(), tmr->get_queue_size(), tmr->get_average_weight());
+            new_values.emplace_back(tmr->last_measurement(), tmr->name(), tmr->group(), tmr->queue_size(), tmr->average_weight());
         }
     }
     return new_values;
 }
 
 std::shared_ptr<TimerInterface> TimerManager::add_timer(std::shared_ptr<TimerInterface> tmr) {
-    m_timer[tmr->get_name()] = tmr;
+    m_timer[tmr->name()] = tmr;
     m_timer_in_order.push_back(tmr);
     return tmr;
 }

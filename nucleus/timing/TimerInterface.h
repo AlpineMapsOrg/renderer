@@ -45,12 +45,11 @@ public:
     // Fetches the result of the measuring and adds it to the average
     bool fetch_result();
 
-    const QString& get_name() { return this->m_name; }
-    const QString& get_group() { return this->m_group; }
-    float get_last_measurement()        {   return this->m_last_measurement;        }
-    int get_queue_size()                {   return this->m_queue_size;              }
-    float get_average_weight()          {   return this->m_average_weight;          }
-
+    const QString& name() { return this->m_name; }
+    const QString& group() { return this->m_group; }
+    float last_measurement() { return this->m_last_measurement; }
+    int queue_size() { return this->m_queue_size; }
+    float average_weight() { return this->m_average_weight; }
 
 protected:
     // a custom identifying name for this timer
