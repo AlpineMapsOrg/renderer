@@ -102,6 +102,7 @@ qt_add_qml_module(alpineapp
         picker/Default.qml
         picker/PoiAlpineHut.qml
         picker/PoiSettlement.qml
+        SOURCES TileStatistics.h TileStatistics.cpp
 )
 
 qt_add_resources(alpineapp "fonts"

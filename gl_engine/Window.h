@@ -23,22 +23,22 @@
 
 #pragma once
 
-#include <QOpenGLWindow>
-#include <QPainter>
-#include <QVector3D>
-#include <QMap>
-#include <glm/glm.hpp>
-#include <memory>
-
 #include "UniformBuffer.h"
 #include "UniformBufferObjects.h"
 #include "helpers.h"
-#include "nucleus/AbstractRenderWindow.h"
-#include "nucleus/camera/AbstractDepthTester.h"
-#include "nucleus/camera/Definition.h"
-#include "nucleus/track/GPX.h"
-
-#include "nucleus/timing/TimerManager.h"
+#include <QMap>
+#include <QOpenGLWindow>
+#include <QPainter>
+#include <QVector3D>
+#include <glm/glm.hpp>
+#include <memory>
+#include <nucleus/AbstractRenderWindow.h>
+#include <nucleus/camera/AbstractDepthTester.h>
+#include <nucleus/camera/Definition.h>
+#include <nucleus/timing/TimerManager.h>
+#include <nucleus/track/GPX.h>
+#include <string>
+#include <unordered_map>
 
 class QOpenGLTexture;
 class QOpenGLShaderProgram;
@@ -78,7 +78,8 @@ public slots:
     void pick_value(const glm::dvec2& screen_space_coordinates) override;
 
 signals:
-    void report_measurements(QList<nucleus::timing::TimerReport> values);
+    void timer_measurements_ready(QList<nucleus::timing::TimerReport> values);
+    void tile_stats_ready(std::unordered_map<std::string, unsigned> stats);
 
 private:
     std::shared_ptr<Context> m_context;

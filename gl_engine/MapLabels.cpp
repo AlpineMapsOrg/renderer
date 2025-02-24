@@ -234,4 +234,6 @@ void MapLabels::draw_picker(Framebuffer* gbuffer, const nucleus::camera::Definit
     }
 }
 
+size_t MapLabels::tile_count() const { return m_gpu_tiles.size(); }
+
 } // namespace gl_engine

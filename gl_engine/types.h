@@ -20,4 +20,4 @@
 
 namespace gl_engine {
 enum class DepthBufferClipType { MinusOneToOne, ZeroToOne };
-}
+} // namespace gl_engine

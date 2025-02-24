@@ -480,7 +480,6 @@ Rectangle {
             }
             ProgressBar {
                 Layout.fillWidth: true
-                id: cache_fill_slider
                 from: 0
                 to: map.tile_cache_size
                 value: map.cached_tiles
@@ -491,10 +490,62 @@ Rectangle {
             }
             ProgressBar {
                 Layout.fillWidth: true
-                id: queued_slider
                 from: 0
                 to: 200
                 value: map.queued_tiles
+            }
+        }
+        CheckGroup {
+            name: "Tile Drawing"
+
+            Label {
+                text: qsTr("Geometry tiles drawn: ") + map.tile_statistics.n_geometry_tiles_drawn
+            }
+            ProgressBar {
+                Layout.fillWidth: true
+                from: 0
+                to: 400
+                value: map.tile_statistics.n_geometry_tiles_drawn
+            }
+
+            Label {
+                text: qsTr("Label tiles drawn: ") + map.tile_statistics.n_label_tiles_drawn
+            }
+            ProgressBar {
+                Layout.fillWidth: true
+                from: 0
+                to: 400
+                value: map.tile_statistics.n_label_tiles_drawn
+            }
+
+            Label {
+                text: qsTr("Geometry tiles on GPU: ") + map.tile_statistics.n_geometry_tiles_gpu
+            }
+            ProgressBar {
+                Layout.fillWidth: true
+                from: 0
+                to: 2048
+                value: map.tile_statistics.n_geometry_tiles_gpu
+            }
+
+            Label {
+                text: qsTr("Ortho tiles on GPU: ") + map.tile_statistics.n_ortho_tiles_gpu
+            }
+            ProgressBar {
+                Layout.fillWidth: true
+                from: 0
+                to: 2048
+                value: map.tile_statistics.n_ortho_tiles_gpu
+            }
+
+            Label {
+                text: qsTr("Label tiles on GPU: ") + map.tile_statistics.n_label_tiles_gpu
+            }
+            ProgressBar {
+                Layout.fillWidth: true
+                from: 0
+                to: 2048
+                value: map.tile_statistics.n_label_tiles_gpu
             }
         }
     }
