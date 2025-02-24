@@ -240,7 +240,7 @@ void Scheduler::read_disk_cache()
     }
 }
 
-std::vector<Id> Scheduler::tiles_for_current_camera_position() const
+std::vector<Id> Scheduler::quads_for_current_camera_position() const
 {
     std::vector<Id> all_inner_nodes;
     const auto all_leaves = radix::quad_tree::onTheFlyTraverse(
@@ -257,7 +257,7 @@ const utils::AabbDecoratorPtr& Scheduler::aabb_decorator() const { return m_aabb
 
 std::vector<Id> Scheduler::missing_quads_for_current_camera() const
 {
-    auto tiles = tiles_for_current_camera_position();
+    auto tiles = quads_for_current_camera_position();
     const auto current_time = nucleus::utils::time_since_epoch();
     std::erase_if(
         tiles, [this, current_time](const tile::Id& id) { return m_ram_cache.contains(id) && m_ram_cache.peak_at(id).network_info().timestamp + m_retirement_age_for_tile_cache > current_time; });
