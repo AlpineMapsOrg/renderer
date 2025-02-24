@@ -20,8 +20,8 @@
 
 namespace nucleus::timing {
 
-CpuTimer::CpuTimer(const std::string &name, const std::string& group, int queue_size, const float average_weight)
-    :TimerInterface(name, group, queue_size, average_weight)
+CpuTimer::CpuTimer(const QString& name, const QString& group, int queue_size, const float average_weight)
+    : TimerInterface(name, group, queue_size, average_weight)
 {
 }
 

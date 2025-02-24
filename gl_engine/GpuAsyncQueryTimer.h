@@ -34,7 +34,7 @@ namespace gl_engine {
 class GpuAsyncQueryTimer : public nucleus::timing::TimerInterface {
 
 public:
-    GpuAsyncQueryTimer(const std::string& name, const std::string& group, int queue_size, float average_weight);
+    GpuAsyncQueryTimer(const QString& name, const QString& group, int queue_size, float average_weight);
     ~GpuAsyncQueryTimer();
 
 protected:

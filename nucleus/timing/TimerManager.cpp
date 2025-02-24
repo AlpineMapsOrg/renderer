@@ -30,7 +30,8 @@ TimerManager::TimerManager()
 }
 
 #ifdef QT_DEBUG
-void TimerManager::warn_about_timer(const std::string& name) {
+void TimerManager::warn_about_timer(const QString& name)
+{
     if (!m_timer_already_warned_about.contains(name)) {
         qWarning() << "Requested Timer with name: " << name << " which has not been created.";
         m_timer_already_warned_about.insert(name);
@@ -38,7 +39,7 @@ void TimerManager::warn_about_timer(const std::string& name) {
 }
 #endif
 
-void TimerManager::start_timer(const std::string &name)
+void TimerManager::start_timer(const QString& name)
 {
     auto it = m_timer.find(name);
     if (it != m_timer.end()) m_timer[name]->start();
@@ -47,7 +48,7 @@ void TimerManager::start_timer(const std::string &name)
 #endif
 }
 
-void TimerManager::stop_timer(const std::string &name)
+void TimerManager::stop_timer(const QString& name)
 {
     auto it = m_timer.find(name);
     if (it != m_timer.end()) m_timer[name]->stop();
@@ -61,7 +62,7 @@ QList<TimerReport> TimerManager::fetch_results()
     QList<TimerReport> new_values;
     for (const auto& tmr : m_timer_in_order) {
         if (tmr->fetch_result()) {
-            new_values.push_back({ tmr->get_last_measurement(), tmr });
+            new_values.emplace_back(tmr->get_last_measurement(), tmr->get_name(), tmr->get_group(), tmr->get_queue_size(), tmr->get_average_weight());
         }
     }
     return new_values;
