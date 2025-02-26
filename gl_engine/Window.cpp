@@ -255,8 +255,6 @@ void Window::paint(QOpenGLFramebufferObject* framebuffer)
     m_timer->start_timer("cpu_total");
     m_timer->start_timer("gpu_total");
 
-    std::unordered_map<std::string, unsigned> tile_stats;
-
     QOpenGLExtraFunctions *f = QOpenGLContext::currentContext()->extraFunctions();
 
     f->glEnable(GL_CULL_FACE);
@@ -291,18 +289,19 @@ void Window::paint(QOpenGLFramebufferObject* framebuffer)
     // Generate Draw-List
     // Note: Could also just be done on camera change
     m_timer->start_timer("draw_list");
+    QVariantMap tile_stats;
     MapLabels::TileSet label_tile_set;
     if (m_context->map_label_manager()) {
         label_tile_set = m_context->map_label_manager()->generate_draw_list(m_camera);
-        tile_stats["n_label_tiles"] = m_context->map_label_manager()->tile_count();
-        tile_stats["n_label_tiles_drawn"] = label_tile_set.size();
+        tile_stats["n_label_tiles_gpu"] = m_context->map_label_manager()->tile_count();
+        tile_stats["n_label_tiles_drawn"] = unsigned(label_tile_set.size());
     }
     const auto tile_set = m_context->tile_geometry()->generate_tilelist(m_camera);
     const auto culled_tile_set = m_context->tile_geometry()->cull(tile_set, m_camera.frustum());
 
-    tile_stats["n_geometry_tiles"] = m_context->tile_geometry()->tile_count();
-    tile_stats["n_ortho_tiles"] = m_context->ortho_layer()->tile_count();
-    tile_stats["n_geometry_tiles_drawn"] = culled_tile_set.size();
+    tile_stats["n_geometry_tiles_gpu"] = m_context->tile_geometry()->tile_count();
+    tile_stats["n_ortho_tiles_gpu"] = m_context->ortho_layer()->tile_count();
+    tile_stats["n_geometry_tiles_drawn"] = unsigned(culled_tile_set.size());
     m_timer->stop_timer("draw_list");
 
     // DRAW SHADOWMAPS

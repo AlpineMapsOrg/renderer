@@ -18,66 +18,38 @@
 
 #include "TileStatistics.h"
 
+#include <QVariant>
+
 TileStatistics::TileStatistics(QObject* parent)
     : QObject { parent }
 {
 }
 
-unsigned int TileStatistics::n_label_tiles_gpu() const { return m_n_label_tiles_gpu; }
-
-void TileStatistics::set_n_label_tiles_gpu(unsigned int new_n_label_tiles_gpu)
+void TileStatistics::update_scheduler_stats(const QString& scheduler_name, const QVariantMap& new_stats)
 {
-    if (m_n_label_tiles_gpu == new_n_label_tiles_gpu)
-        return;
-    m_n_label_tiles_gpu = new_n_label_tiles_gpu;
-    emit n_label_tiles_gpu_changed(m_n_label_tiles_gpu);
+    auto current = scheduler_stats();
+    for (const auto& [key, value] : new_stats.asKeyValueRange()) {
+        current[QString("%1_%2").arg(scheduler_name, key)] = value.toString();
+    }
+    set_scheduler_stats(current);
 }
 
-unsigned int TileStatistics::n_label_tiles_drawn() const { return m_n_label_tiles_drawn; }
+const QVariantMap& TileStatistics::gpu_stats() const { return m_gpu_stats; }
 
-void TileStatistics::set_n_label_tiles_drawn(unsigned int new_n_label_tiles_drawn)
+void TileStatistics::set_gpu_stats(const QVariantMap& new_gpu_stats)
 {
-    if (m_n_label_tiles_drawn == new_n_label_tiles_drawn)
+    if (m_gpu_stats == new_gpu_stats)
         return;
-    m_n_label_tiles_drawn = new_n_label_tiles_drawn;
-    emit n_label_tiles_drawn_changed(m_n_label_tiles_drawn);
+    m_gpu_stats = new_gpu_stats;
+    emit gpu_stats_changed(m_gpu_stats);
 }
 
-unsigned int TileStatistics::n_geometry_tiles_gpu() const { return m_n_geometry_tiles_gpu; }
+const QVariantMap& TileStatistics::scheduler_stats() const { return m_scheduler_stats; }
 
-void TileStatistics::set_n_geometry_tiles_gpu(unsigned int new_n_geometry_tiles_gpu)
+void TileStatistics::set_scheduler_stats(const QVariantMap& new_scheduler_stats)
 {
-    if (m_n_geometry_tiles_gpu == new_n_geometry_tiles_gpu)
+    if (m_scheduler_stats == new_scheduler_stats)
         return;
-    m_n_geometry_tiles_gpu = new_n_geometry_tiles_gpu;
-    emit n_geometry_tiles_gpu_changed(m_n_geometry_tiles_gpu);
-}
-
-unsigned int TileStatistics::n_geometry_tiles_drawn() const { return m_n_geometry_tiles_drawn; }
-
-void TileStatistics::set_n_geometry_tiles_drawn(unsigned int new_n_geometry_tiles_drawn)
-{
-    if (m_n_geometry_tiles_drawn == new_n_geometry_tiles_drawn)
-        return;
-    m_n_geometry_tiles_drawn = new_n_geometry_tiles_drawn;
-    emit n_geometry_tiles_drawn_changed(m_n_geometry_tiles_drawn);
-}
-
-unsigned int TileStatistics::n_ortho_tiles_gpu() const { return m_n_ortho_tiles_gpu; }
-
-void TileStatistics::set_n_ortho_tiles_gpu(unsigned int new_n_ortho_tiles_gpu)
-{
-    if (m_n_ortho_tiles_gpu == new_n_ortho_tiles_gpu)
-        return;
-    m_n_ortho_tiles_gpu = new_n_ortho_tiles_gpu;
-    emit n_ortho_tiles_gpu_changed(m_n_ortho_tiles_gpu);
-}
-
-void TileStatistics::update_gpu_tile_stats(std::unordered_map<std::string, unsigned int> stats)
-{
-    set_n_label_tiles_gpu(stats["n_label_tiles"]);
-    set_n_label_tiles_drawn(stats["n_label_tiles_drawn"]);
-    set_n_geometry_tiles_gpu(stats["n_geometry_tiles"]);
-    set_n_geometry_tiles_drawn(stats["n_geometry_tiles_drawn"]);
-    set_n_ortho_tiles_gpu(stats["n_ortho_tiles"]);
+    m_scheduler_stats = new_scheduler_stats;
+    emit scheduler_stats_changed(m_scheduler_stats);
 }

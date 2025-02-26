@@ -49,7 +49,7 @@ public:
         bool sort_tiles,
         glm::dvec3 sort_position) const;
 
-    size_t tile_count() const;
+    unsigned int tile_count() const;
 
 public slots:
     void update_gpu_quads(const std::vector<nucleus::tile::GpuTextureQuad>& new_quads, const std::vector<nucleus::tile::Id>& deleted_quads);

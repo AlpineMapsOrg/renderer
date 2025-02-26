@@ -48,7 +48,7 @@ public:
         unsigned n_tiles_in_gpu_cache = 0;
     };
 
-    explicit Scheduler(std::string name, unsigned tile_resolution = 256, QObject* parent = nullptr);
+    explicit Scheduler(QString name, unsigned tile_resolution = 256, QObject* parent = nullptr);
     // Seconds constructor still here for tests, Is it necessary?
     ~Scheduler() override;
 
@@ -90,6 +90,7 @@ public:
 
 signals:
     void statistics_updated(Statistics stats);
+    void stats_ready(const QString& scheduler_name, const QVariantMap& new_stats);
     void quad_received(const tile::Id& ids);
     void quads_requested(const std::vector<tile::Id>& ids);
 
@@ -106,13 +107,12 @@ protected:
     void schedule_update();
     void schedule_purge();
     void schedule_persist();
-    void update_stats();
     std::vector<tile::Id> quads_for_current_camera_position() const;
     virtual bool is_ready_to_ship(const DataQuad&) const { return true; }
     virtual void transform_and_emit(const std::vector<DataQuad>& new_quads, const std::vector<tile::Id>& deleted_quads) = 0;
 
 private:
-    std::string m_name = "";
+    QString m_name = "";
     std::shared_ptr<DataQuerier> m_dataquerier;
     unsigned m_retirement_age_for_tile_cache = 10u * 24u * 3600u * 1000u; // 10 days
     float m_permissible_screen_space_error = 2;

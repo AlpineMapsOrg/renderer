@@ -22,7 +22,7 @@
 
 namespace nucleus::map_label {
 
-Scheduler::Scheduler(std::string name, QObject* parent)
+Scheduler::Scheduler(QString name, QObject* parent)
     : nucleus::tile::Scheduler(std::move(name), 256, parent)
 {
 }
