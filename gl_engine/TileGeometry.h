@@ -58,7 +58,7 @@ public:
 
     void set_permissible_screen_space_error(float new_permissible_screen_space_error);
 
-    size_t tile_count() const;
+    unsigned int tile_count() const;
 
 public slots:
     void update_gpu_quads(const std::vector<nucleus::tile::GpuGeometryQuad>& new_quads, const std::vector<nucleus::tile::Id>& deleted_quads);

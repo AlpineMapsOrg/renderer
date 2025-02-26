@@ -19,46 +19,29 @@
 #pragma once
 
 #include <QObject>
+#include <QVariantMap>
 
 class TileStatistics : public QObject {
     Q_OBJECT
 public:
     explicit TileStatistics(QObject* parent = nullptr);
-    Q_PROPERTY(unsigned int n_label_tiles_gpu READ n_label_tiles_gpu NOTIFY n_label_tiles_gpu_changed FINAL)
-    Q_PROPERTY(unsigned int n_label_tiles_drawn READ n_label_tiles_drawn NOTIFY n_label_tiles_drawn_changed FINAL)
-    Q_PROPERTY(unsigned int n_geometry_tiles_gpu READ n_geometry_tiles_gpu NOTIFY n_geometry_tiles_gpu_changed FINAL)
-    Q_PROPERTY(unsigned int n_geometry_tiles_drawn READ n_geometry_tiles_drawn NOTIFY n_geometry_tiles_drawn_changed FINAL)
-    Q_PROPERTY(unsigned int n_ortho_tiles_gpu READ n_ortho_tiles_gpu NOTIFY n_ortho_tiles_gpu_changed FINAL)
+    Q_PROPERTY(QVariantMap scheduler READ scheduler_stats NOTIFY scheduler_stats_changed FINAL)
+    Q_PROPERTY(QVariantMap gpu READ gpu_stats NOTIFY gpu_stats_changed FINAL)
 
-    [[nodiscard]] unsigned int n_label_tiles_gpu() const;
-    void set_n_label_tiles_gpu(unsigned int new_n_label_tiles_gpu);
+    const QVariantMap& scheduler_stats() const;
+    void set_scheduler_stats(const QVariantMap& new_scheduler_stats);
 
-    [[nodiscard]] unsigned int n_label_tiles_drawn() const;
-    void set_n_label_tiles_drawn(unsigned int new_n_label_tiles_drawn);
-
-    [[nodiscard]] unsigned int n_geometry_tiles_gpu() const;
-    void set_n_geometry_tiles_gpu(unsigned int new_n_geometry_tiles_gpu);
-
-    [[nodiscard]] unsigned int n_geometry_tiles_drawn() const;
-    void set_n_geometry_tiles_drawn(unsigned int new_n_geometry_tiles_drawn);
-
-    [[nodiscard]] unsigned int n_ortho_tiles_gpu() const;
-    void set_n_ortho_tiles_gpu(unsigned int new_n_ortho_tiles_gpu);
+    [[nodiscard]] const QVariantMap& gpu_stats() const;
 
 public slots:
-    void update_gpu_tile_stats(std::unordered_map<std::string, unsigned> stats);
+    void set_gpu_stats(const QVariantMap& new_gpu_stats);
+    void update_scheduler_stats(const QString& scheduler_name, const QVariantMap& stats);
 
 signals:
-    void n_label_tiles_gpu_changed(unsigned int n_label_tiles_gpu);
-    void n_label_tiles_drawn_changed(unsigned int n_label_tiles_drawn);
-    void n_geometry_tiles_gpu_changed(unsigned int n_geometry_tiles_gpu);
-    void n_geometry_tiles_drawn_changed(unsigned int n_geometry_tiles_drawn);
-    void n_ortho_tiles_gpu_changed(unsigned int n_ortho_tiles_gpu);
+    void scheduler_stats_changed(const QVariantMap& scheduler_stats);
+    void gpu_stats_changed(const QVariantMap& gpu_stats);
 
 private:
-    unsigned m_n_label_tiles_gpu = 0;
-    unsigned m_n_label_tiles_drawn = 0;
-    unsigned m_n_geometry_tiles_gpu = 0;
-    unsigned m_n_geometry_tiles_drawn = 0;
-    unsigned m_n_ortho_tiles_gpu = 0;
+    QVariantMap m_scheduler_stats;
+    QVariantMap m_gpu_stats;
 };

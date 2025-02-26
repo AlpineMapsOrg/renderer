@@ -53,7 +53,7 @@ void GpuArrayHelper::set_quad_limit(unsigned int new_limit)
 
 unsigned GpuArrayHelper::size() const { return unsigned(m_array.size()); }
 
-size_t GpuArrayHelper::n_occupied() const { return m_id_to_layer.size(); }
+unsigned GpuArrayHelper::n_occupied() const { return unsigned(m_id_to_layer.size()); }
 
 GpuArrayHelper::Dictionary GpuArrayHelper::generate_dictionary() const
 {

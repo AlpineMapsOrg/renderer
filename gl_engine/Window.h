@@ -29,6 +29,7 @@
 #include <QMap>
 #include <QOpenGLWindow>
 #include <QPainter>
+#include <QVariantMap>
 #include <QVector3D>
 #include <glm/glm.hpp>
 #include <memory>
@@ -38,7 +39,6 @@
 #include <nucleus/timing/TimerManager.h>
 #include <nucleus/track/GPX.h>
 #include <string>
-#include <unordered_map>
 
 class QOpenGLTexture;
 class QOpenGLShaderProgram;
@@ -79,7 +79,7 @@ public slots:
 
 signals:
     void timer_measurements_ready(QList<nucleus::timing::TimerReport> values);
-    void tile_stats_ready(std::unordered_map<std::string, unsigned> stats);
+    void tile_stats_ready(QVariantMap stats);
 
 private:
     std::shared_ptr<Context> m_context;

@@ -68,7 +68,7 @@ void TextureLayer::draw(const TileGeometry& tile_geometry,
     tile_geometry.draw(m_shader.get(), camera, draw_tiles, sort_tiles, sort_position);
 }
 
-size_t TextureLayer::tile_count() const { return m_gpu_array_helper.n_occupied(); }
+unsigned TextureLayer::tile_count() const { return m_gpu_array_helper.n_occupied(); }
 
 void TextureLayer::update_gpu_quads(const std::vector<nucleus::tile::GpuTextureQuad>& new_quads, const std::vector<nucleus::tile::Id>& deleted_quads)
 {

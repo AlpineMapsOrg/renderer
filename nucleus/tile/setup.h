@@ -39,7 +39,7 @@ struct GeometrySchedulerHolder {
     TileLoadServicePtr tile_service;
 };
 
-inline GeometrySchedulerHolder geometry_scheduler(std::string name, TileLoadServicePtr tile_service, const tile::utils::AabbDecoratorPtr& aabb_decorator, QThread* thread = nullptr)
+inline GeometrySchedulerHolder geometry_scheduler(QString name, TileLoadServicePtr tile_service, const tile::utils::AabbDecoratorPtr& aabb_decorator, QThread* thread = nullptr)
 {
     auto scheduler = std::make_unique<GeometryScheduler>(std::move(name));
     scheduler->read_disk_cache();
@@ -92,7 +92,7 @@ struct TextureSchedulerHolder {
     TileLoadServicePtr tile_service;
 };
 
-inline TextureSchedulerHolder texture_scheduler(std::string name, TileLoadServicePtr tile_service, const tile::utils::AabbDecoratorPtr& aabb_decorator, QThread* thread = nullptr)
+inline TextureSchedulerHolder texture_scheduler(QString name, TileLoadServicePtr tile_service, const tile::utils::AabbDecoratorPtr& aabb_decorator, QThread* thread = nullptr)
 {
     auto scheduler = std::make_unique<TextureScheduler>(std::move(name), 256);
     scheduler->read_disk_cache();

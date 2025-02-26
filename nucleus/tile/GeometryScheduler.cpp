@@ -26,7 +26,7 @@
 
 namespace nucleus::tile {
 
-GeometryScheduler::GeometryScheduler(std::string name, QObject* parent)
+GeometryScheduler::GeometryScheduler(QString name, QObject* parent)
     : nucleus::tile::Scheduler(std::move(name), 256, parent)
     , m_default_raster(glm::uvec2(65), uint16_t(0))
 {

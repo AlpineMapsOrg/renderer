@@ -25,6 +25,7 @@ Item {
     property alias name: groupname.text;
     property alias checked: checkbox.checked;
     property bool checkBoxEnabled: false;
+    property int nGridColumns: 2;
     id: root
     Layout.fillWidth: true
     Layout.topMargin: 20
@@ -67,7 +68,7 @@ Item {
 
 
         GridLayout {
-            columns: 2
+            columns: nGridColumns
             id: groupchildren
             visible: root.checked || !root.checkBoxEnabled
             Layout.fillWidth: true

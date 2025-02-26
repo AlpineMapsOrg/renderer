@@ -29,14 +29,14 @@
 namespace nucleus::map_label::setup {
 
 using TileLoadServicePtr = std::unique_ptr<nucleus::tile::TileLoadService>;
+using DataQuerierPtr = std::shared_ptr<nucleus::DataQuerier>;
 
 struct SchedulerHolder {
     std::unique_ptr<map_label::Scheduler> scheduler;
     TileLoadServicePtr tile_service;
 };
 
-SchedulerHolder scheduler(
-    std::string name, TileLoadServicePtr tile_service, const tile::utils::AabbDecoratorPtr& aabb_decorator, const std::shared_ptr<nucleus::DataQuerier>& data_querier, QThread* thread = nullptr)
+SchedulerHolder scheduler(QString name, TileLoadServicePtr tile_service, const tile::utils::AabbDecoratorPtr& aabb_decorator, const DataQuerierPtr& data_querier, QThread* thread = nullptr)
 {
     auto scheduler = std::make_unique<nucleus::map_label::Scheduler>(std::move(name));
     scheduler->read_disk_cache();

@@ -36,7 +36,7 @@ public:
     void remove_tile(const tile::Id& tile_id);
     void set_quad_limit(unsigned new_limit);
     unsigned size() const;
-    size_t n_occupied() const;
+    unsigned int n_occupied() const;
     Dictionary generate_dictionary() const;
 
 private:
