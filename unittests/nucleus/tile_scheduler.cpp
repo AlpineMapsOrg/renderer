@@ -19,18 +19,18 @@
 
 #include <unordered_set>
 
-#include <catch2/benchmark/catch_benchmark.hpp>
-#include <catch2/catch_test_macros.hpp>
+#include "test_helpers.h"
+#include <QImage>
 #include <QSignalSpy>
 #include <QThread>
-#include <QImage>
-
-#include "nucleus/camera/PositionStorage.h"
-#include "nucleus/tile/GeometryScheduler.h"
-#include "nucleus/tile/types.h"
-#include "nucleus/tile/utils.h"
-#include "radix/TileHeights.h"
-#include "test_helpers.h"
+#include <catch2/benchmark/catch_benchmark.hpp>
+#include <catch2/catch_test_macros.hpp>
+#include <nucleus/camera/PositionStorage.h>
+#include <nucleus/tile/GeometryScheduler.h>
+#include <nucleus/tile/SchedulerDirector.h>
+#include <nucleus/tile/types.h>
+#include <nucleus/tile/utils.h>
+#include <radix/TileHeights.h>
 
 using nucleus::tile::utils::AabbDecorator;
 using radix::TileHeights;
@@ -51,7 +51,7 @@ constexpr auto timing_multiplicator = 1;
 #endif
 std::unique_ptr<Scheduler> scheduler_with_true_heights()
 {
-    auto scheduler = std::make_unique<GeometryScheduler>("test");
+    auto scheduler = std::make_unique<GeometryScheduler>();
     QSignalSpy spy(scheduler.get(), &Scheduler::quads_requested);
 
     QFile file(":/map/height_data.atb");
@@ -72,7 +72,8 @@ std::unique_ptr<Scheduler> scheduler_with_true_heights()
 
 std::unique_ptr<GeometryScheduler> default_scheduler()
 {
-    auto scheduler = std::make_unique<GeometryScheduler>("test");
+    auto scheduler = std::make_unique<GeometryScheduler>();
+    scheduler->set_name("test");
     QSignalSpy spy(scheduler.get(), &Scheduler::quads_requested);
     TileHeights h;
     h.emplace({ 0, { 0, 0 } }, { 100, 4000 });
@@ -89,13 +90,13 @@ std::unique_ptr<GeometryScheduler> default_scheduler()
 std::unique_ptr<Scheduler> scheduler_with_disk_cache()
 {
     auto sch = default_scheduler();
-    sch->read_disk_cache();
+    CHECK(sch->read_disk_cache());
     return sch;
 }
 
 std::unique_ptr<Scheduler> scheduler_with_aabb()
 {
-    auto scheduler = std::make_unique<GeometryScheduler>("test");
+    auto scheduler = std::make_unique<GeometryScheduler>();
     std::filesystem::remove_all(scheduler->disk_cache_path());
     TileHeights h;
     h.emplace({ 0, { 0, 0 } }, { 100, 4000 });
@@ -713,6 +714,15 @@ TEST_CASE("nucleus/tile/Scheduler")
             check_persisted_tile(scheduler, id);
         }
     };
+
+    SECTION("persisting data does error on unnamed schedulers")
+    {
+
+        auto scheduler = std::make_unique<GeometryScheduler>();
+        CHECK(!scheduler->persist_tiles());
+        CHECK(!scheduler->read_disk_cache());
+    }
+
     SECTION("persisting data works")
     {
         {
@@ -720,7 +730,7 @@ TEST_CASE("nucleus/tile/Scheduler")
             scheduler->receive_quad(example_tile_quad_for(Id { 0, { 0, 0 } }));
             scheduler->receive_quad(example_tile_quad_for(Id { 1, { 1, 1 } }));
             scheduler->receive_quad(example_tile_quad_for(Id { 2, { 2, 2 } }));
-            scheduler->persist_tiles();
+            CHECK(scheduler->persist_tiles());
         }
         auto scheduler = scheduler_with_disk_cache();
         CHECK(scheduler->ram_cache().n_cached_objects() == 3);
@@ -858,4 +868,29 @@ TEST_CASE("nucleus/tile/Scheduler benchmarks")
     };
     auto scheduler = scheduler_with_disk_cache();
     std::filesystem::remove_all(scheduler->disk_cache_path());
+}
+
+TEST_CASE("nucleus/tile/SchedulerDirector")
+{
+    SECTION("api")
+    {
+        std::shared_ptr<Scheduler> sch1 = default_scheduler();
+        std::shared_ptr<Scheduler> sch2 = default_scheduler();
+        SchedulerDirector d;
+        d.check_in("sch1", sch1);
+        d.check_in("sch2", sch2);
+        CHECK(sch1->name() == "sch1");
+        CHECK(sch2->name() == "sch2");
+        REQUIRE(sch1->enabled() == true);
+        REQUIRE(sch2->enabled() == true);
+        d.visit([](Scheduler* sch) { sch->set_enabled(false); });
+        CHECK(sch1->enabled() == false);
+        CHECK(sch2->enabled() == false);
+    }
+    SECTION("no two entries with the same name")
+    {
+        SchedulerDirector reg;
+        CHECK(reg.check_in("name", default_scheduler()));
+        CHECK(!reg.check_in("name", default_scheduler()));
+    }
 }

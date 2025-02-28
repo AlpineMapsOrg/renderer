@@ -21,8 +21,8 @@
 
 namespace nucleus::tile {
 
-TextureScheduler::TextureScheduler(QString name, unsigned texture_resolution, QObject* parent)
-    : nucleus::tile::Scheduler(std::move(name), texture_resolution, parent)
+TextureScheduler::TextureScheduler(unsigned texture_resolution, QObject* parent)
+    : nucleus::tile::Scheduler(texture_resolution, parent)
     , m_default_raster(glm::uvec2(texture_resolution), { 255, 255, 255, 255 })
 {
 }

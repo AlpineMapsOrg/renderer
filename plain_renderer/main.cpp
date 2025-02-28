@@ -71,6 +71,8 @@
 #include <nucleus/tile/TileLoadService.h>
 #include <nucleus/tile/setup.h>
 
+#include <nucleus/tile/SchedulerDirector.h>
+
 using namespace std::chrono_literals;
 using nucleus::AbstractRenderWindow;
 using nucleus::DataQuerier;
@@ -126,11 +128,14 @@ int main(int argc, char** argv)
 
     auto decorator = nucleus::tile::setup::aabb_decorator();
     QThread scheduler_thread;
-    auto geometry_scheduler = nucleus::tile::setup::geometry_scheduler("geometry", std::move(terrain_service), decorator, &scheduler_thread);
+    nucleus::tile::SchedulerDirector director;
+
+    auto geometry_scheduler = nucleus::tile::setup::geometry_scheduler(std::move(terrain_service), decorator, &scheduler_thread);
+    director.check_in("geometry", geometry_scheduler.scheduler);
     auto data_querier = std::make_shared<DataQuerier>(&geometry_scheduler.scheduler->ram_cache());
 
-    auto ortho_scheduler = nucleus::tile::setup::texture_scheduler(
-        "ortho", std::make_unique<TileLoadService>("https://gataki.cg.tuwien.ac.at/raw/basemap/tiles/", TileLoadService::UrlPattern::ZYX_yPointingSouth, ".jpeg"), decorator, &scheduler_thread);
+    auto ortho_scheduler = nucleus::tile::setup::texture_scheduler(std::move(ortho_service), decorator, &scheduler_thread);
+    director.check_in("ortho", ortho_scheduler.scheduler);
 
     auto context = std::make_shared<gl_engine::Context>();
     context->set_tile_geometry(std::make_shared<gl_engine::TileGeometry>());

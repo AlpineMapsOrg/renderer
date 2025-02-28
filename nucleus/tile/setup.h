@@ -35,13 +35,13 @@ namespace nucleus::tile::setup {
 using TileLoadServicePtr = std::unique_ptr<TileLoadService>;
 
 struct GeometrySchedulerHolder {
-    std::unique_ptr<GeometryScheduler> scheduler;
+    std::shared_ptr<GeometryScheduler> scheduler;
     TileLoadServicePtr tile_service;
 };
 
-inline GeometrySchedulerHolder geometry_scheduler(QString name, TileLoadServicePtr tile_service, const tile::utils::AabbDecoratorPtr& aabb_decorator, QThread* thread = nullptr)
+inline GeometrySchedulerHolder geometry_scheduler(TileLoadServicePtr tile_service, const tile::utils::AabbDecoratorPtr& aabb_decorator, QThread* thread = nullptr)
 {
-    auto scheduler = std::make_unique<GeometryScheduler>(std::move(name));
+    auto scheduler = std::make_unique<GeometryScheduler>();
     scheduler->read_disk_cache();
     scheduler->set_gpu_quad_limit(512);
     scheduler->set_ram_quad_limit(12000);
@@ -88,13 +88,13 @@ inline GeometrySchedulerHolder geometry_scheduler(QString name, TileLoadServiceP
 }
 
 struct TextureSchedulerHolder {
-    std::unique_ptr<TextureScheduler> scheduler;
+    std::shared_ptr<TextureScheduler> scheduler;
     TileLoadServicePtr tile_service;
 };
 
-inline TextureSchedulerHolder texture_scheduler(QString name, TileLoadServicePtr tile_service, const tile::utils::AabbDecoratorPtr& aabb_decorator, QThread* thread = nullptr)
+inline TextureSchedulerHolder texture_scheduler(TileLoadServicePtr tile_service, const tile::utils::AabbDecoratorPtr& aabb_decorator, QThread* thread = nullptr)
 {
-    auto scheduler = std::make_unique<TextureScheduler>(std::move(name), 256);
+    auto scheduler = std::make_unique<TextureScheduler>(256);
     scheduler->read_disk_cache();
     scheduler->set_gpu_quad_limit(512);
     scheduler->set_ram_quad_limit(12000);
