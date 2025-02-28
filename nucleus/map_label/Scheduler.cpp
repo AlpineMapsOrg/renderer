@@ -22,8 +22,8 @@
 
 namespace nucleus::map_label {
 
-Scheduler::Scheduler(QString name, QObject* parent)
-    : nucleus::tile::Scheduler(std::move(name), 256, parent)
+Scheduler::Scheduler(QObject* parent)
+    : nucleus::tile::Scheduler(256, parent)
 {
 }
 Scheduler::~Scheduler() = default;

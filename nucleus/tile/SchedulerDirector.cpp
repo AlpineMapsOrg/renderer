@@ -1,6 +1,6 @@
 /*****************************************************************************
  * AlpineMaps.org
- * Copyright (C) 2024 Adam Celarek
+ * Copyright (C) 2025 Adam Celarek
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -16,30 +16,21 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *****************************************************************************/
 
-#pragma once
-
+#include "SchedulerDirector.h"
 #include "Scheduler.h"
-#include "types.h"
 
-namespace nucleus::tile {
+using namespace nucleus::tile;
 
-class GeometryScheduler : public Scheduler {
-    Q_OBJECT
-public:
-    GeometryScheduler();
-    ~GeometryScheduler() override;
+SchedulerDirector::SchedulerDirector()
+    : QObject {}
+{
+}
 
-    void set_texture_compression_algorithm(nucleus::utils::ColourTexture::Format compression_algorithm);
-
-signals:
-    void gpu_quads_updated(const std::vector<GpuGeometryQuad>& new_quads, const std::vector<tile::Id>& deleted_quads);
-
-protected:
-    void transform_and_emit(const std::vector<tile::DataQuad>& new_quads, const std::vector<tile::Id>& deleted_quads) override;
-
-private:
-    nucleus::utils::ColourTexture::Format m_compression_algorithm = nucleus::utils::ColourTexture::Format::Uncompressed_RGBA;
-    Raster<uint16_t> m_default_raster;
-};
-
-} // namespace nucleus::tile
+bool SchedulerDirector::check_in(QString name, std::shared_ptr<Scheduler> scheduler)
+{
+    if (m_schedulers.contains(name))
+        return false;
+    m_schedulers[name] = scheduler;
+    scheduler->set_name(name);
+    return true;
+}

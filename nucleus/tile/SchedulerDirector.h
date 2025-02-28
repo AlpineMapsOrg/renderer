@@ -1,6 +1,6 @@
 /*****************************************************************************
  * AlpineMaps.org
- * Copyright (C) 2024 Adam Celarek
+ * Copyright (C) 2025 Adam Celarek
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -18,28 +18,30 @@
 
 #pragma once
 
-#include <nucleus/tile/Scheduler.h>
-#include <nucleus/vector_tile/types.h>
+#include <QObject>
+#include <memory>
+#include <unordered_map>
 
-namespace nucleus::map_label {
+namespace nucleus::tile {
+class Scheduler;
 
-class Scheduler : public nucleus::tile::Scheduler {
+class SchedulerDirector : public QObject {
     Q_OBJECT
 public:
-    explicit Scheduler(QObject* parent = nullptr);
-    ~Scheduler() override;
+    explicit SchedulerDirector();
+    bool check_in(QString name, std::shared_ptr<Scheduler> scheduler);
 
-    void set_geometry_ram_cache(nucleus::tile::MemoryCache* new_geometry_ram_cache);
+    template <typename Functor> void visit(Functor fun)
+    {
+        for (const auto& [key, value] : m_schedulers) {
+            fun(value.get());
+        }
+    }
 
 signals:
-    void gpu_tiles_updated(const std::vector<vector_tile::PoiTile>& new_quads, const std::vector<tile::Id>& deleted_quads);
-
-protected:
-    void transform_and_emit(const std::vector<tile::DataQuad>& new_quads, const std::vector<tile::Id>& deleted_quads) override;
-    bool is_ready_to_ship(const nucleus::tile::DataQuad& quad) const override;
 
 private:
-    nucleus::tile::MemoryCache* m_geometry_ram_cache = nullptr;
+    std::unordered_map<QString, std::shared_ptr<Scheduler>> m_schedulers;
 };
 
-} // namespace nucleus::map_label
+} // namespace nucleus::tile

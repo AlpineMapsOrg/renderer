@@ -34,18 +34,10 @@
 
 using namespace nucleus::tile;
 
-Scheduler::Scheduler(QString name, unsigned int tile_resolution, QObject* parent)
+Scheduler::Scheduler(unsigned int tile_resolution, QObject* parent)
     : QObject { parent }
-    , m_name(std::move(name))
     , m_tile_resolution(tile_resolution)
 {
-    static std::unordered_set<QString> s_names;
-    if (s_names.contains(m_name)) {
-        qCritical() << "A scheduler named " << m_name << " already exists. Aborting.";
-        abort();
-    }
-    s_names.insert(m_name);
-    setObjectName(m_name + "_scheduler");
     m_update_timer = std::make_unique<QTimer>(this);
     m_update_timer->setSingleShot(true);
     connect(m_update_timer.get(), &QTimer::timeout, this, &Scheduler::send_quad_requests);
@@ -195,8 +187,12 @@ void Scheduler::purge_ram_cache()
     emit stats_ready(m_name, stats);
 }
 
-void Scheduler::persist_tiles()
+tl::expected<void, QString> Scheduler::persist_tiles()
 {
+    if (m_name == "unnamed" || m_name.isEmpty()) {
+        return tl::unexpected(QString("Not persisitng tiles as the scheduler is not named, and this would cause name conflicts in the file system."
+                                      "Name your scheduler, e.g., by using the scheduler director."));
+    }
     const auto start = std::chrono::steady_clock::now();
     const auto r = m_ram_cache.write_to_disk(disk_cache_path());
     const auto diff = std::chrono::steady_clock::now() - start;
@@ -210,6 +206,7 @@ void Scheduler::persist_tiles()
         qDebug() << QString("Writing tiles to disk into %1 failed: %2. Removing all files.").arg(QString::fromStdString(disk_cache_path().string())).arg(r.error());
         std::filesystem::remove_all(disk_cache_path());
     }
+    return r;
 }
 
 void Scheduler::schedule_update()
@@ -235,8 +232,20 @@ void Scheduler::schedule_persist()
     }
 }
 
-void Scheduler::read_disk_cache()
+const QString& Scheduler::name() const { return m_name; }
+
+void Scheduler::set_name(const QString& new_name)
 {
+    setObjectName(QString("%1_scheduler").arg(new_name));
+    m_name = new_name;
+}
+
+tl::expected<void, QString> Scheduler::read_disk_cache()
+{
+    if (m_name == "unnamed" || m_name.isEmpty()) {
+        return tl::unexpected(QString("Not reading tiles as the scheduler is not named, and this would cause name conflicts in the file system."
+                                      "Name your scheduler, e.g., by using the scheduler director."));
+    }
     const auto r = m_ram_cache.read_from_disk(disk_cache_path());
     if (r.has_value()) {
         QVariantMap stats;
@@ -247,6 +256,7 @@ void Scheduler::read_disk_cache()
         qDebug() << QString("Reading tiles from disk cache (%1) failed: \n%2\nRemoving all files.").arg(QString::fromStdString(disk_cache_path().string())).arg(r.error());
         std::filesystem::remove_all(disk_cache_path());
     }
+    return r;
 }
 
 std::vector<Id> Scheduler::quads_for_current_camera_position() const

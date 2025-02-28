@@ -113,6 +113,7 @@ qt_add_library(nucleus STATIC
     tile/GeometryScheduler.h tile/GeometryScheduler.cpp
     utils/error.h
     utils/lang.h
+    tile/SchedulerDirector.h tile/SchedulerDirector.cpp
 )
 
 if (ALP_ENABLE_AVLANCHE_WARNING_LAYER)

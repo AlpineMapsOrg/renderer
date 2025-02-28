@@ -48,8 +48,7 @@ public:
         unsigned n_tiles_in_gpu_cache = 0;
     };
 
-    explicit Scheduler(QString name, unsigned tile_resolution = 256, QObject* parent = nullptr);
-    // Seconds constructor still here for tests, Is it necessary?
+    explicit Scheduler(unsigned tile_resolution = 256, QObject* parent = nullptr);
     ~Scheduler() override;
 
     void set_update_timeout(unsigned int new_update_timeout);
@@ -75,7 +74,7 @@ public:
     [[nodiscard]] unsigned int persist_timeout() const;
     void set_persist_timeout(unsigned int new_persist_timeout);
 
-    void read_disk_cache();
+    tl::expected<void, QString> read_disk_cache();
 
     void set_retirement_age_for_tile_cache(unsigned int new_retirement_age_for_tile_cache);
     
@@ -87,6 +86,9 @@ public:
     const utils::AabbDecoratorPtr& aabb_decorator() const;
 
     std::vector<tile::Id> missing_quads_for_current_camera() const;
+
+    [[nodiscard]] const QString& name() const;
+    void set_name(const QString& new_name);
 
 signals:
     void statistics_updated(Statistics stats);
@@ -101,7 +103,7 @@ public slots:
     void update_gpu_quads();
     void send_quad_requests();
     void purge_ram_cache();
-    void persist_tiles();
+    tl::expected<void, QString> persist_tiles();
 
 protected:
     void schedule_update();
@@ -112,7 +114,7 @@ protected:
     virtual void transform_and_emit(const std::vector<DataQuad>& new_quads, const std::vector<tile::Id>& deleted_quads) = 0;
 
 private:
-    QString m_name = "";
+    QString m_name = "unnamed";
     std::shared_ptr<DataQuerier> m_dataquerier;
     unsigned m_retirement_age_for_tile_cache = 10u * 24u * 3600u * 1000u; // 10 days
     float m_permissible_screen_space_error = 2;

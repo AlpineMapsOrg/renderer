@@ -32,13 +32,13 @@ using TileLoadServicePtr = std::unique_ptr<nucleus::tile::TileLoadService>;
 using DataQuerierPtr = std::shared_ptr<nucleus::DataQuerier>;
 
 struct SchedulerHolder {
-    std::unique_ptr<map_label::Scheduler> scheduler;
+    std::shared_ptr<map_label::Scheduler> scheduler;
     TileLoadServicePtr tile_service;
 };
 
-SchedulerHolder scheduler(QString name, TileLoadServicePtr tile_service, const tile::utils::AabbDecoratorPtr& aabb_decorator, const DataQuerierPtr& data_querier, QThread* thread = nullptr)
+SchedulerHolder scheduler(TileLoadServicePtr tile_service, const tile::utils::AabbDecoratorPtr& aabb_decorator, const DataQuerierPtr& data_querier, QThread* thread = nullptr)
 {
-    auto scheduler = std::make_unique<nucleus::map_label::Scheduler>(std::move(name));
+    auto scheduler = std::make_unique<nucleus::map_label::Scheduler>();
     scheduler->read_disk_cache();
     scheduler->set_gpu_quad_limit(512);
     scheduler->set_ram_quad_limit(12000);
