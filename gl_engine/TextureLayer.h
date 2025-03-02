@@ -52,7 +52,6 @@ public:
     unsigned int tile_count() const;
 
 public slots:
-    void update_gpu_quads(const std::vector<nucleus::tile::GpuTextureQuad>& new_quads, const std::vector<nucleus::tile::Id>& deleted_quads);
     void update_gpu_tiles(const std::vector<nucleus::tile::Id>& deleted_tiles, const std::vector<nucleus::tile::GpuTextureTile>& new_tiles);
     void set_quad_limit(unsigned new_limit);
 

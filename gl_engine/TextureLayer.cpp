@@ -70,29 +70,6 @@ void TextureLayer::draw(const TileGeometry& tile_geometry,
 
 unsigned TextureLayer::tile_count() const { return m_gpu_array_helper.n_occupied(); }
 
-void TextureLayer::update_gpu_quads(const std::vector<nucleus::tile::GpuTextureQuad>& new_quads, const std::vector<nucleus::tile::Id>& deleted_quads)
-{
-    if (!QOpenGLContext::currentContext()) // can happen during shutdown.
-        return;
-
-    for (const auto& quad : deleted_quads) {
-        for (const auto& id : quad.children()) {
-            m_gpu_array_helper.remove_tile(id);
-        }
-    }
-    for (const auto& quad : new_quads) {
-        for (const auto& tile : quad.tiles) {
-            // test for validity
-            assert(tile.id.zoom_level < 100);
-            assert(tile.texture);
-
-            // find empty spot and upload texture
-            const auto layer_index = m_gpu_array_helper.add_tile(tile.id);
-            m_ortho_textures->upload(*tile.texture, layer_index);
-        }
-    }
-    update_gpu_id_map();
-}
 void TextureLayer::update_gpu_tiles(const std::vector<nucleus::tile::Id>& deleted_tiles, const std::vector<nucleus::tile::GpuTextureTile>& new_tiles)
 {
     if (!QOpenGLContext::currentContext()) // can happen during shutdown.
