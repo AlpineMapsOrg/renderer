@@ -28,9 +28,13 @@
 #include <nucleus/camera/PositionStorage.h>
 #include <nucleus/tile/GeometryScheduler.h>
 #include <nucleus/tile/SchedulerDirector.h>
+#include <nucleus/tile/TextureScheduler.h>
+#include <nucleus/tile/conversion.h>
 #include <nucleus/tile/types.h>
 #include <nucleus/tile/utils.h>
+#include <nucleus/utils/image_loader.h>
 #include <radix/TileHeights.h>
+#include <radix/tile.h>
 
 using nucleus::tile::utils::AabbDecorator;
 using radix::TileHeights;
@@ -868,6 +872,38 @@ TEST_CASE("nucleus/tile/Scheduler benchmarks")
     };
     auto scheduler = scheduler_with_disk_cache();
     std::filesystem::remove_all(scheduler->disk_cache_path());
+}
+
+TEST_CASE("nucleus/tile/TextureScheduler")
+{
+    SECTION("to_raster")
+    {
+        nucleus::tile::DataQuad quad;
+        quad.id = radix::tile::Id { 6, { 34, 41 } };
+        unsigned idx = 1;
+        for (const auto& c : quad.id.children()) {
+            quad.tiles[idx].id = c;
+            auto ba = test_helpers::load_test_file(QString("quad/%1_%2_%3.jpg").arg(c.zoom_level).arg(c.coords.x).arg(c.coords.y));
+            quad.tiles[idx].data = std::make_shared<QByteArray>(std::move(ba));
+            quad.tiles[idx].network_info = { NetworkInfo::Status::Good, 12345 };
+            idx = (idx + 1) % 4;
+        }
+        quad.n_tiles = 4;
+        const auto joined = TextureScheduler::to_raster(quad, { { 256, 256 }, glm::u8vec4 { 255, 255, 255, 255 } });
+        const auto correct = nucleus::utils::image_loader::rgba8(test_helpers::load_test_file(QString("quad/merged.jpg")));
+        REQUIRE(joined.width() == correct->width());
+        REQUIRE(joined.height() == correct->height());
+        auto correct_iter = correct->begin();
+        auto rmse = 0.0;
+        for (const auto& v : joined) {
+            const auto e = glm::vec4(v) - glm::vec4(*(correct_iter++));
+            rmse += glm::dot(e, e);
+        }
+        rmse = std::sqrt(rmse / (correct->width() * correct->height() * 3));
+        CHECK(rmse < 1);
+        const auto qimage = nucleus::tile::conversion::to_QImage(joined);
+        qimage.save("merged.png");
+    }
 }
 
 TEST_CASE("nucleus/tile/SchedulerDirector")

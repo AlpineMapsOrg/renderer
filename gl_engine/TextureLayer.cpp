@@ -26,8 +26,9 @@
 
 namespace gl_engine {
 
-TextureLayer::TextureLayer(QObject* parent)
+TextureLayer::TextureLayer(unsigned int resolution, QObject* parent)
     : QObject { parent }
+    , m_resolution(resolution)
 {
 }
 
@@ -38,8 +39,7 @@ void gl_engine::TextureLayer::init(ShaderRegistry* shader_registry)
 
     m_ortho_textures = std::make_unique<Texture>(Texture::Target::_2dArray, Texture::Format::CompressedRGBA8);
     m_ortho_textures->setParams(Texture::Filter::MipMapLinear, Texture::Filter::Linear, true);
-    // TODO: might become larger than GL_MAX_ARRAY_TEXTURE_LAYERS
-    m_ortho_textures->allocate_array(ORTHO_RESOLUTION, ORTHO_RESOLUTION, unsigned(m_gpu_array_helper.size()));
+    m_ortho_textures->allocate_array(m_resolution, m_resolution, unsigned(m_gpu_array_helper.size()));
 
     m_tile_id_texture = std::make_unique<Texture>(Texture::Target::_2d, Texture::Format::RG32UI);
     m_tile_id_texture->setParams(Texture::Filter::Nearest, Texture::Filter::Nearest);
@@ -90,6 +90,25 @@ void TextureLayer::update_gpu_quads(const std::vector<nucleus::tile::GpuTextureQ
             const auto layer_index = m_gpu_array_helper.add_tile(tile.id);
             m_ortho_textures->upload(*tile.texture, layer_index);
         }
+    }
+    update_gpu_id_map();
+}
+void TextureLayer::update_gpu_tiles(const std::vector<nucleus::tile::Id>& deleted_tiles, const std::vector<nucleus::tile::GpuTextureTile>& new_tiles)
+{
+    if (!QOpenGLContext::currentContext()) // can happen during shutdown.
+        return;
+
+    for (const auto& tile_id : deleted_tiles) {
+        m_gpu_array_helper.remove_tile(tile_id);
+    }
+    for (const auto& tile : new_tiles) {
+        // test for validity
+        assert(tile.id.zoom_level < 100);
+        assert(tile.texture);
+
+        // find empty spot and upload texture
+        const auto layer_index = m_gpu_array_helper.add_tile(tile.id);
+        m_ortho_textures->upload(*tile.texture, layer_index);
     }
     update_gpu_id_map();
 }

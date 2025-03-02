@@ -41,7 +41,7 @@ class TileGeometry;
 class TextureLayer : public QObject {
     Q_OBJECT
 public:
-    explicit TextureLayer(QObject* parent = nullptr);
+    explicit TextureLayer(unsigned resolution = 256, QObject* parent = nullptr);
     void init(ShaderRegistry* shader_registry); // needs OpenGL context
     void draw(const TileGeometry& tile_geometry,
         const nucleus::camera::Definition& camera,
@@ -53,12 +53,13 @@ public:
 
 public slots:
     void update_gpu_quads(const std::vector<nucleus::tile::GpuTextureQuad>& new_quads, const std::vector<nucleus::tile::Id>& deleted_quads);
+    void update_gpu_tiles(const std::vector<nucleus::tile::Id>& deleted_tiles, const std::vector<nucleus::tile::GpuTextureTile>& new_tiles);
     void set_quad_limit(unsigned new_limit);
 
 private:
     void update_gpu_id_map();
 
-    static constexpr auto ORTHO_RESOLUTION = 256;
+    const unsigned m_resolution = 256u;
 
     std::shared_ptr<ShaderProgram> m_shader;
     std::unique_ptr<Texture> m_ortho_textures;

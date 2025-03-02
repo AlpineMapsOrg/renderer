@@ -30,9 +30,11 @@ public:
     ~TextureScheduler() override;
 
     void set_texture_compression_algorithm(nucleus::utils::ColourTexture::Format compression_algorithm);
+    static Raster<glm::u8vec4> to_raster(const tile::DataQuad& data_quad, const Raster<glm::u8vec4>& default_raster);
 
 signals:
     void gpu_quads_updated(const std::vector<GpuTextureQuad>& new_quads, const std::vector<tile::Id>& deleted_quads);
+    void gpu_tiles_updated(const std::vector<tile::Id>& deleted_quads, const std::vector<GpuTextureTile>& new_quads);
 
 protected:
     void transform_and_emit(const std::vector<tile::DataQuad>& new_quads, const std::vector<tile::Id>& deleted_quads) override;

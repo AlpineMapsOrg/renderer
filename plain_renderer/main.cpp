@@ -139,7 +139,7 @@ int main(int argc, char** argv)
 
     auto context = std::make_shared<gl_engine::Context>();
     context->set_tile_geometry(std::make_shared<gl_engine::TileGeometry>());
-    context->set_ortho_layer(std::make_shared<gl_engine::TextureLayer>());
+    context->set_ortho_layer(std::make_shared<gl_engine::TextureLayer>(512));
     context->tile_geometry()->set_quad_limit(512);
     context->tile_geometry()->set_aabb_decorator(decorator);
     context->ortho_layer()->set_quad_limit(512);
@@ -166,8 +166,8 @@ int main(int argc, char** argv)
     QObject::connect(&camera_controller, &nucleus::camera::Controller::definition_changed, glWindow.render_window(), &AbstractRenderWindow::update_camera);
     QObject::connect(geometry_scheduler.scheduler.get(), &GeometryScheduler::gpu_quads_updated, context->tile_geometry(), &gl_engine::TileGeometry::update_gpu_quads);
     QObject::connect(geometry_scheduler.scheduler.get(), &GeometryScheduler::gpu_quads_updated, glWindow.render_window(), &AbstractRenderWindow::update_requested);
-    QObject::connect(ortho_scheduler.scheduler.get(), &TextureScheduler::gpu_quads_updated, context->ortho_layer(), &gl_engine::TextureLayer::update_gpu_quads);
-    QObject::connect(ortho_scheduler.scheduler.get(), &TextureScheduler::gpu_quads_updated, glWindow.render_window(), &AbstractRenderWindow::update_requested);
+    QObject::connect(ortho_scheduler.scheduler.get(), &TextureScheduler::gpu_tiles_updated, context->ortho_layer(), &gl_engine::TextureLayer::update_gpu_tiles);
+    QObject::connect(ortho_scheduler.scheduler.get(), &TextureScheduler::gpu_tiles_updated, glWindow.render_window(), &AbstractRenderWindow::update_requested);
 
     QObject::connect(&glWindow, &Window::mouse_moved, &camera_controller, &nucleus::camera::Controller::mouse_move);
     QObject::connect(&glWindow, &Window::mouse_pressed, &camera_controller, &nucleus::camera::Controller::mouse_press);

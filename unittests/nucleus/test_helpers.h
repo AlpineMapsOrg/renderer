@@ -81,4 +81,15 @@ inline void process_events_for(unsigned msecs)
     QSignalSpy spy(&timer, &QTimer::timeout);
     spy.wait(int(msecs * 2));
 }
+
+inline QByteArray load_test_file(QString relative_path)
+{
+    const QString filepath = QString("%1%2").arg(ALP_TEST_DATA_DIR, relative_path);
+    QFile file(filepath);
+    CAPTURE(filepath.toStdString());
+    REQUIRE(file.open(QIODevice::ReadOnly));
+    QByteArray byte_array = file.readAll();
+    file.close();
+    return byte_array;
+}
 }
