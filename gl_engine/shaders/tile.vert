@@ -30,6 +30,7 @@ flat out highp uvec3 var_tile_id;
 out lowp float is_curtain;
 #endif
 flat out lowp vec3 vertex_color;
+flat out highp uint instance_id;
 
 
 void main() {
@@ -45,6 +46,7 @@ void main() {
 
     var_tile_id = unpack_tile_id(packed_tile_id);
     gl_Position = camera.view_proj_matrix * vec4(var_pos_cws, 1);
+    instance_id = uint(gl_InstanceID);
 
     vertex_color = vec3(0.0);
     switch(conf.overlay_mode) {

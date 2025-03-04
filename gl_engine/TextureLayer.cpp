@@ -47,6 +47,14 @@ void gl_engine::TextureLayer::init(ShaderRegistry* shader_registry)
     m_array_index_texture = std::make_unique<Texture>(Texture::Target::_2d, Texture::Format::R16UI);
     m_array_index_texture->setParams(Texture::Filter::Nearest, Texture::Filter::Nearest);
 
+    m_zoom_level_ubo = std::make_unique<UniformBuffer<std::array<uint8_t, 1024>>>(0, "texture_layer_zoom_level");
+    m_zoom_level_ubo->init();
+    m_zoom_level_ubo->bind_to_shader(m_shader.get());
+
+    m_array_index_ubo = std::make_unique<UniformBuffer<std::array<unsigned short, 1024>>>(1, "texture_layer_array_index");
+    m_array_index_ubo->init();
+    m_array_index_ubo->bind_to_shader(m_shader.get());
+
     update_gpu_id_map();
 }
 
@@ -64,6 +72,25 @@ void TextureLayer::draw(const TileGeometry& tile_geometry,
     m_array_index_texture->bind(5);
     m_shader->set_uniform("ortho_map_tile_id_sampler", 6);
     m_tile_id_texture->bind(6);
+
+    const auto draw_list = tile_geometry.sort(camera, draw_tiles);
+    std::array<uint8_t, 1024> zoom_level = {};
+    std::array<uint16_t, 1024> array_index = {};
+    for (unsigned i = 0; i < std::min(unsigned(draw_list.size()), 1024u); ++i) {
+        const auto layer = m_gpu_array_helper.layer(draw_list[i]);
+        zoom_level[i] = layer.id.zoom_level;
+        array_index[i] = layer.index;
+    }
+    m_zoom_level_ubo->data = zoom_level;
+    m_zoom_level_ubo->update_gpu_data();
+    m_zoom_level_ubo->bind_to_shader(m_shader.get());
+    m_array_index_ubo->data = array_index;
+    m_array_index_ubo->update_gpu_data();
+    m_array_index_ubo->bind_to_shader(m_shader.get());
+
+    // todo:
+    // use info.
+    // delete dict access
 
     tile_geometry.draw(m_shader.get(), camera, draw_tiles, sort_tiles, sort_position);
 }

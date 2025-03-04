@@ -121,9 +121,34 @@ void TileGeometry::init()
     update_gpu_id_map();
 }
 
-const TileGeometry::TileSet TileGeometry::generate_tilelist(const nucleus::camera::Definition& camera) const { return m_draw_list_generator.generate_for(camera); }
+TileGeometry::TileSet TileGeometry::generate_tilelist(const nucleus::camera::Definition& camera) const { return m_draw_list_generator.generate_for(camera); }
 
-const TileGeometry::TileSet TileGeometry::cull(const TileSet& tileset, const nucleus::camera::Frustum& frustum) const { return m_draw_list_generator.cull(tileset, frustum); }
+TileGeometry::TileSet TileGeometry::cull(const TileSet& tileset, const nucleus::camera::Frustum& frustum) const { return m_draw_list_generator.cull(tileset, frustum); }
+
+std::vector<nucleus::tile::Id> TileGeometry::sort(const nucleus::camera::Definition& camera, const TileSet& draw_tiles) const
+{
+    glm::dvec3 sort_position = camera.position();
+    std::vector<std::pair<float, const TileInfo*>> tile_list;
+    tile_list.reserve(m_gpu_tiles.size());
+    for (const auto& tileset : m_gpu_tiles) {
+        float dist = 0.0;
+        if (!draw_tiles.contains(tileset.tile_id))
+            continue;
+        // todo: use centroid
+        glm::vec2 pos_wrt = glm::vec2(tileset.bounds.min.x - sort_position.x, tileset.bounds.min.y - sort_position.y);
+        // todo: length2 is enough
+        dist = glm::length(pos_wrt);
+        tile_list.push_back(std::pair<float, const TileInfo*>(dist, &tileset));
+    }
+    std::sort(tile_list.begin(), tile_list.end(), [](const auto& a, const auto& b) { return a.first < b.first; });
+
+    std::vector<nucleus::tile::Id> sorted_ids;
+    sorted_ids.reserve(tile_list.size());
+    for (const auto& tile : tile_list) {
+        sorted_ids.push_back(tile.second->tile_id);
+    }
+    return sorted_ids;
+}
 
 void TileGeometry::draw(ShaderProgram* shader, const nucleus::camera::Definition& camera, const TileSet& draw_tiles, bool sort_tiles, glm::dvec3 sort_position) const
 {

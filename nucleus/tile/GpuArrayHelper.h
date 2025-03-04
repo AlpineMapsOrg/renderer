@@ -29,6 +29,11 @@ public:
         nucleus::Raster<glm::u32vec2> packed_ids;
         nucleus::Raster<uint16_t> layers;
     };
+    struct LayerInfo {
+        tile::Id id;
+        unsigned index;
+    };
+
     GpuArrayHelper();
 
     /// returns index in texture array
@@ -38,6 +43,7 @@ public:
     unsigned size() const;
     unsigned int n_occupied() const;
     Dictionary generate_dictionary() const;
+    LayerInfo layer(Id tile_id) const;
 
 private:
     std::vector<tile::Id> m_array;

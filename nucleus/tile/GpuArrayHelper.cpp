@@ -55,6 +55,15 @@ unsigned GpuArrayHelper::size() const { return unsigned(m_array.size()); }
 
 unsigned GpuArrayHelper::n_occupied() const { return unsigned(m_id_to_layer.size()); }
 
+GpuArrayHelper::LayerInfo GpuArrayHelper::layer(Id tile_id) const
+{
+    while (!m_id_to_layer.contains(tile_id) && tile_id.zoom_level > 0)
+        tile_id = tile_id.parent();
+    if (!m_id_to_layer.contains(tile_id))
+        return { {}, 0 }; // may be empty during startup.
+    return { tile_id, m_id_to_layer.at(tile_id) };
+}
+
 GpuArrayHelper::Dictionary GpuArrayHelper::generate_dictionary() const
 {
     const auto hash_to_pixel = [](uint16_t hash) { return glm::uvec2(hash & 255, hash >> 8); };

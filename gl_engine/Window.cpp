@@ -194,15 +194,15 @@ void Window::initialise_gpu()
     m_shadowmapping = std::make_unique<gl_engine::ShadowMapping>(shader_registry, depth_buffer_clip_type);
     m_ssao = std::make_unique<gl_engine::SSAO>(shader_registry);
 
-    m_shared_config_ubo = std::make_shared<gl_engine::UniformBuffer<gl_engine::uboSharedConfig>>(0, "shared_config");
+    m_shared_config_ubo = std::make_shared<gl_engine::UniformBuffer<gl_engine::uboSharedConfig>>(2, "shared_config");
     m_shared_config_ubo->init();
     m_shared_config_ubo->bind_to_shader(shader_registry->all());
 
-    m_camera_config_ubo = std::make_shared<gl_engine::UniformBuffer<gl_engine::uboCameraConfig>>(1, "camera_config");
+    m_camera_config_ubo = std::make_shared<gl_engine::UniformBuffer<gl_engine::uboCameraConfig>>(3, "camera_config");
     m_camera_config_ubo->init();
     m_camera_config_ubo->bind_to_shader(shader_registry->all());
 
-    m_shadow_config_ubo = std::make_shared<gl_engine::UniformBuffer<gl_engine::uboShadowConfig>>(2, "shadow_config");
+    m_shadow_config_ubo = std::make_shared<gl_engine::UniformBuffer<gl_engine::uboShadowConfig>>(4, "shadow_config");
     m_shadow_config_ubo->init();
     m_shadow_config_ubo->bind_to_shader(shader_registry->all());
 

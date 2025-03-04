@@ -53,8 +53,9 @@ public:
     void init(); // needs OpenGL context
     void draw(ShaderProgram* shader_program, const nucleus::camera::Definition& camera, const TileSet& draw_tiles, bool sort_tiles, glm::dvec3 sort_position) const;
 
-    const TileSet generate_tilelist(const nucleus::camera::Definition& camera) const;
-    const TileSet cull(const TileSet& tileset, const nucleus::camera::Frustum& frustum) const;
+    TileSet generate_tilelist(const nucleus::camera::Definition& camera) const;
+    TileSet cull(const TileSet& tileset, const nucleus::camera::Frustum& frustum) const;
+    std::vector<nucleus::tile::Id> sort(const nucleus::camera::Definition& camera, const TileSet& draw_tiles) const;
 
     void set_permissible_screen_space_error(float new_permissible_screen_space_error);
 

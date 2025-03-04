@@ -98,6 +98,11 @@ struct GpuTextureQuad {
 };
 static_assert(NamedTile<GpuTextureQuad>);
 
+struct TileBounds {
+    tile::Id id;
+    tile::SrsAndHeightBounds bounds = {};
+};
+
 struct GpuGeometryTile {
     tile::Id id;
     tile::SrsAndHeightBounds bounds = {};

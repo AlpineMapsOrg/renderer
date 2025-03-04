@@ -47,7 +47,7 @@ public:
     bool data_from_string(const QString& base64String);
 
     // Contains the buffer data
-    T data;
+    T data = {};
 
     // Returns GPU-Binding Point / location
     GLuint get_buffer_location();
