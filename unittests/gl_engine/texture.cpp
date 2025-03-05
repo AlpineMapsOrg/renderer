@@ -300,6 +300,7 @@ TEST_CASE("gl texture")
 
     SECTION("rgba8ui") { test_unsigned_texture_with<4, unsigned char>({ 1, 2, 255, 140 }, gl_engine::Texture::Format::RGBA8UI); }
     SECTION("rg32ui") { test_unsigned_texture_with<2, uint32_t>({ 3000111222, 4000111222 }, gl_engine::Texture::Format::RG32UI); }
+    SECTION("red8ui") { test_unsigned_texture_with<1, uint8_t, uint8_t>(uint8_t(178), gl_engine::Texture::Format::R8UI); }
     SECTION("red16ui") { test_unsigned_texture_with<1, uint16_t, uint16_t>(uint16_t(60123), gl_engine::Texture::Format::R16UI); }
     SECTION("red32ui") { test_unsigned_texture_with<1, uint32_t, uint32_t>(uint32_t(4000111222), gl_engine::Texture::Format::R32UI); }
 
@@ -433,6 +434,56 @@ TEST_CASE("gl texture")
                     mediump uint v = texture(texture_sampler, vec3(0.5, 0.5, 1)).r;
                     highp float v2 = float(v);  // need temporary for android, otherwise it is cast to a mediump float and 0 is returned.
                     out_color2 = vec4(v2 / 65535.0, 0, 0, 1);
+                }
+            }
+        )");
+        shader.bind();
+        opengl_texture.bind(0);
+        shader.set_uniform("texture_sampler", 0);
+        gl_engine::helpers::create_screen_quad_geometry().draw();
+
+        {
+            const QImage render_result = b.read_colour_attachment(0);
+            CHECK(qRed(render_result.pixel(0, 0)) == 120);
+            CHECK(qGreen(render_result.pixel(0, 0)) == 0);
+            CHECK(qBlue(render_result.pixel(0, 0)) == 0);
+            CHECK(qAlpha(render_result.pixel(0, 0)) == 255);
+        }
+        {
+            const QImage render_result = b.read_colour_attachment(1);
+            CHECK(qRed(render_result.pixel(0, 0)) == 190);
+            CHECK(qGreen(render_result.pixel(0, 0)) == 0);
+            CHECK(qBlue(render_result.pixel(0, 0)) == 0);
+            CHECK(qAlpha(render_result.pixel(0, 0)) == 255);
+        }
+    }
+
+    SECTION("red8 array")
+    {
+        Framebuffer b(Framebuffer::DepthFormat::None, { Framebuffer::ColourFormat::RGBA8, Framebuffer::ColourFormat::RGBA8 }, { 1, 1 });
+        b.bind();
+
+        gl_engine::Texture opengl_texture(gl_engine::Texture::Target::_2dArray, gl_engine::Texture::Format::R8UI);
+        opengl_texture.allocate_array(1, 1, 2);
+        opengl_texture.setParams(gl_engine::Texture::Filter::Nearest, gl_engine::Texture::Filter::Nearest);
+        opengl_texture.upload(nucleus::Raster<uint8_t>({ 1, 1 }, uint8_t(120)), 0);
+        opengl_texture.upload(nucleus::Raster<uint8_t>({ 1, 1 }, uint8_t(190)), 1);
+
+        ShaderProgram shader = create_debug_shader(R"(
+            uniform mediump usampler2DArray texture_sampler;
+            layout (location = 0) out lowp vec4 out_color1;
+            layout (location = 1) out lowp vec4 out_color2;
+            void main() {
+                {
+                    mediump uint v = texture(texture_sampler, vec3(0.5, 0.5, 0)).r;
+                    highp float v2 = float(v);  // need temporary for android, otherwise it is cast to a mediump float and 0 is returned.
+                    out_color1 = vec4(v2 / 255.0, 0, 0, 1);
+                }
+
+                {
+                    mediump uint v = texture(texture_sampler, vec3(0.5, 0.5, 1)).r;
+                    highp float v2 = float(v);  // need temporary for android, otherwise it is cast to a mediump float and 0 is returned.
+                    out_color2 = vec4(v2 / 255.0, 0, 0, 1);
                 }
             }
         )");
