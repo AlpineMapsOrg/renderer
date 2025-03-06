@@ -57,19 +57,12 @@ public slots:
     void set_quad_limit(unsigned new_limit);
 
 private:
-    void update_gpu_id_map();
-
     const unsigned m_resolution = 256u;
 
     std::shared_ptr<ShaderProgram> m_shader;
-    std::unique_ptr<Texture> m_ortho_textures;
-    std::unique_ptr<Texture> m_tile_id_texture;
-    std::unique_ptr<Texture> m_array_index_texture;
-
-    std::unique_ptr<Texture> m_instance_zoom_texture;
-    std::unique_ptr<Texture> m_instance_array_index_texture;
-    std::unique_ptr<UniformBuffer<std::array<uint8_t, 1024>>> m_zoom_level_ubo;
-    std::unique_ptr<UniformBuffer<std::array<uint16_t, 1024>>> m_array_index_ubo;
+    std::unique_ptr<Texture> m_texture_array;
+    std::unique_ptr<Texture> m_instanced_zoom;
+    std::unique_ptr<Texture> m_instanced_array_index;
     nucleus::tile::GpuArrayHelper m_gpu_array_helper;
 };
 } // namespace gl_engine

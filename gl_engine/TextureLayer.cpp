@@ -37,31 +37,15 @@ void gl_engine::TextureLayer::init(ShaderRegistry* shader_registry)
     m_shader = std::make_shared<ShaderProgram>("tile.vert", "tile.frag");
     shader_registry->add_shader(m_shader);
 
-    m_ortho_textures = std::make_unique<Texture>(Texture::Target::_2dArray, Texture::Format::CompressedRGBA8);
-    m_ortho_textures->setParams(Texture::Filter::MipMapLinear, Texture::Filter::Linear, true);
-    m_ortho_textures->allocate_array(m_resolution, m_resolution, unsigned(m_gpu_array_helper.size()));
+    m_texture_array = std::make_unique<Texture>(Texture::Target::_2dArray, Texture::Format::CompressedRGBA8);
+    m_texture_array->setParams(Texture::Filter::MipMapLinear, Texture::Filter::Linear, true);
+    m_texture_array->allocate_array(m_resolution, m_resolution, unsigned(m_gpu_array_helper.size()));
 
-    m_tile_id_texture = std::make_unique<Texture>(Texture::Target::_2d, Texture::Format::RG32UI);
-    m_tile_id_texture->setParams(Texture::Filter::Nearest, Texture::Filter::Nearest);
+    m_instanced_zoom = std::make_unique<Texture>(Texture::Target::_2d, Texture::Format::R8UI);
+    m_instanced_zoom->setParams(Texture::Filter::Nearest, Texture::Filter::Nearest);
 
-    m_array_index_texture = std::make_unique<Texture>(Texture::Target::_2d, Texture::Format::R16UI);
-    m_array_index_texture->setParams(Texture::Filter::Nearest, Texture::Filter::Nearest);
-
-    m_instance_zoom_texture = std::make_unique<Texture>(Texture::Target::_2d, Texture::Format::R8UI);
-    m_instance_zoom_texture->setParams(Texture::Filter::Nearest, Texture::Filter::Nearest);
-
-    m_instance_array_index_texture = std::make_unique<Texture>(Texture::Target::_2d, Texture::Format::R16UI);
-    m_instance_array_index_texture->setParams(Texture::Filter::Nearest, Texture::Filter::Nearest);
-
-    m_zoom_level_ubo = std::make_unique<UniformBuffer<std::array<uint8_t, 1024>>>(0, "texture_layer_zoom_level");
-    m_zoom_level_ubo->init();
-    m_zoom_level_ubo->bind_to_shader(m_shader.get());
-
-    m_array_index_ubo = std::make_unique<UniformBuffer<std::array<unsigned short, 1024>>>(1, "texture_layer_array_index");
-    m_array_index_ubo->init();
-    m_array_index_ubo->bind_to_shader(m_shader.get());
-
-    update_gpu_id_map();
+    m_instanced_array_index = std::make_unique<Texture>(Texture::Target::_2d, Texture::Format::R16UI);
+    m_instanced_array_index->setParams(Texture::Filter::Nearest, Texture::Filter::Nearest);
 }
 
 void TextureLayer::draw(const TileGeometry& tile_geometry,
@@ -71,13 +55,8 @@ void TextureLayer::draw(const TileGeometry& tile_geometry,
     glm::dvec3 sort_position) const
 {
     m_shader->bind();
-    m_shader->set_uniform("ortho_sampler", 2);
-    m_ortho_textures->bind(2);
-
-    m_shader->set_uniform("ortho_map_index_sampler", 5);
-    m_array_index_texture->bind(5);
-    m_shader->set_uniform("ortho_map_tile_id_sampler", 6);
-    m_tile_id_texture->bind(6);
+    m_texture_array->bind(2);
+    m_shader->set_uniform("texture_sampler", 2);
 
     const auto draw_list = tile_geometry.sort(camera, draw_tiles);
     nucleus::Raster<uint8_t> zoom_level_raster = { glm::uvec2 { 1024, 1 } };
@@ -88,30 +67,13 @@ void TextureLayer::draw(const TileGeometry& tile_geometry,
         array_index_raster.pixel({ i, 0 }) = layer.index;
     }
 
-    m_shader->set_uniform("ortho_map_instance_index_sampler", 7);
-    m_instance_array_index_texture->bind(7);
-    m_instance_array_index_texture->upload(array_index_raster);
-    m_instance_zoom_texture->bind(8);
-    m_shader->set_uniform("ortho_map_instance_zoom_sampler", 8);
-    m_instance_zoom_texture->upload(zoom_level_raster);
+    m_instanced_array_index->bind(7);
+    m_shader->set_uniform("instanced_array_index_sampler", 7);
+    m_instanced_array_index->upload(array_index_raster);
 
-    // std::array<uint8_t, 1024> zoom_level_arr = {};
-    // std::array<uint16_t, 1024> array_index_arr = {};
-    // for (unsigned i = 0; i < std::min(unsigned(draw_list.size()), 1024u); ++i) {
-    //     const auto layer = m_gpu_array_helper.layer(draw_list[i]);
-    //     zoom_level_arr[i] = layer.id.zoom_level;
-    //     array_index_arr[i] = layer.index;
-    // }
-    // m_zoom_level_ubo->data = zoom_level_arr;
-    // m_zoom_level_ubo->update_gpu_data();
-    // m_zoom_level_ubo->bind_to_shader(m_shader.get());
-    // m_array_index_ubo->data = array_index_arr;
-    // m_array_index_ubo->update_gpu_data();
-    // m_array_index_ubo->bind_to_shader(m_shader.get());
-
-    // todo:
-    // use info.
-    // delete dict access
+    m_instanced_zoom->bind(8);
+    m_shader->set_uniform("instanced_zoom_sampler", 8);
+    m_instanced_zoom->upload(zoom_level_raster);
 
     tile_geometry.draw(m_shader.get(), camera, draw_tiles, sort_tiles, sort_position);
 }
@@ -133,18 +95,10 @@ void TextureLayer::update_gpu_tiles(const std::vector<nucleus::tile::Id>& delete
 
         // find empty spot and upload texture
         const auto layer_index = m_gpu_array_helper.add_tile(tile.id);
-        m_ortho_textures->upload(*tile.texture, layer_index);
+        m_texture_array->upload(*tile.texture, layer_index);
     }
-    update_gpu_id_map();
 }
 
 void TextureLayer::set_quad_limit(unsigned int new_limit) { m_gpu_array_helper.set_quad_limit(new_limit); }
-
-void TextureLayer::update_gpu_id_map()
-{
-    auto [packed_ids, layers] = m_gpu_array_helper.generate_dictionary();
-    m_array_index_texture->upload(layers);
-    m_tile_id_texture->upload(packed_ids);
-}
 
 } // namespace gl_engine

@@ -22,33 +22,12 @@
 #include "encoder.glsl"
 #include "tile_id.glsl"
 
-#define ALP_UTIL_ARRAY_ACCESS_SIZE 64
-#include "utils/array_access.glsl"
-#undef ALP_UTIL_ARRAY_ACCESS_SIZE
-
-#define ALP_UTIL_ARRAY_ACCESS_SIZE 128
-#include "utils/array_access.glsl"
-#undef ALP_UTIL_ARRAY_ACCESS_SIZE
-
 #line 32
 
-#define ALP_TEXTURE_LOOKUP 2
 
-uniform lowp sampler2DArray ortho_sampler;
-uniform highp usampler2D height_tex_index_sampler;
-uniform highp usampler2D height_tex_tile_id_sampler;
-uniform highp usampler2D ortho_map_index_sampler;
-uniform highp usampler2D ortho_map_tile_id_sampler;
-uniform highp usampler2D ortho_map_instance_index_sampler;
-uniform highp usampler2D ortho_map_instance_zoom_sampler;
-
-layout (std140) uniform texture_layer_zoom_level{
-    highp uvec4 packedData[64]; // 1024 unsigned chars packed into 64 uint4 elements
-} texture_layer_zoom_level_instance;
-
-layout (std140) uniform texture_layer_array_index{
-    highp uvec4 packedData[128]; // 1024 unsigned shorts packed into 128 uint4 elements
-} texture_layer_array_index_instance;
+uniform lowp sampler2DArray texture_sampler;
+uniform highp usampler2D instanced_array_index_sampler;
+uniform highp usampler2D instanced_zoom_sampler;
 
 layout (location = 0) out lowp vec3 texout_albedo;
 layout (location = 1) out highp vec4 texout_position;
@@ -75,34 +54,6 @@ highp vec3 normal_by_fragment_position_interpolation() {
     return normalize(cross(dFdxPos, dFdyPos));
 }
 
-lowp ivec2 to_dict_pixel(mediump uint hash) {
-    return ivec2(int(hash & 255u), int(hash >> 8u));
-}
-
-bool find_tile(inout highp uvec3 tile_id, out lowp ivec2 dict_px, inout highp vec2 uv) {
-    uvec2 missing_packed_tile_id = uvec2((-1u) & 65535u, (-1u) & 65535u);
-    uint iter = 0u;
-    do {
-        mediump uint hash = hash_tile_id(tile_id);
-        highp uvec2 wanted_packed_tile_id = pack_tile_id(tile_id);
-        highp uvec2 found_packed_tile_id = texelFetch(ortho_map_tile_id_sampler, to_dict_pixel(hash), 0).xy;
-        while(found_packed_tile_id != wanted_packed_tile_id && found_packed_tile_id != missing_packed_tile_id) {
-            hash++;
-            found_packed_tile_id = texelFetch(ortho_map_tile_id_sampler, to_dict_pixel(hash), 0).xy;
-            if (iter++ > 50u) {
-                break;
-            }
-        }
-        if (found_packed_tile_id == wanted_packed_tile_id) {
-            dict_px = to_dict_pixel(hash);
-            tile_id = unpack_tile_id(wanted_packed_tile_id);
-            return true;
-        }
-    }
-    while (decrease_zoom_level_by_one(tile_id, uv));
-    return false;
-}
-
 void main() {
 #if CURTAIN_DEBUG_MODE == 2
     if (is_curtain == 0.0) {
@@ -112,31 +63,11 @@ void main() {
     highp uvec3 tile_id = var_tile_id;
     highp vec2 uv = var_uv;
 
-    ///dict based
-    // lowp ivec2 dict_px;
-    // if (find_tile(tile_id, dict_px, uv)) {
-    //     // texout_albedo = vec3(0.0, float(tile_id.z) / 20.0, 0.0);
-    //     // texout_albedo = vec3(float(dict_px.x) / 255.0, float(dict_px.y) / 255.0, 0.0);
-    //     // texout_albedo = vec3(uv.x, uv.y, 0.0);
-    //     highp float texture_layer_f = float(texelFetch(ortho_map_index_sampler, dict_px, 0).x);
-    //     // texout_albedo = vec3(0.0, float(texture_layer_f) / 10.0, 0.0);
-    //     lowp vec3 fragColor = texture(ortho_sampler, vec3(uv, texture_layer_f)).rgb;
-    //     fragColor = mix(fragColor, conf.material_color.rgb, conf.material_color.a);
-    //     texout_albedo = fragColor;
-    // }
-    // else {
-    //     texout_albedo = vec3(1.0, 0.0, 0.5);
-    // }
-
-    /// ubo based (super slow on android)
-    // decrease_zoom_level_until(tile_id, uv, get_8bit_element(texture_layer_zoom_level_instance.packedData, instance_id));
-    // highp float texture_layer_f = float(get_16bit_element(texture_layer_array_index_instance.packedData, instance_id));
-
-    decrease_zoom_level_until(tile_id, uv, texelFetch(ortho_map_instance_zoom_sampler, ivec2(instance_id, 0), 0).x);
-    highp float texture_layer_f = float(texelFetch(ortho_map_instance_index_sampler, ivec2(instance_id, 0), 0).x);
+    decrease_zoom_level_until(tile_id, uv, texelFetch(instanced_zoom_sampler, ivec2(instance_id, 0), 0).x);
+    highp float texture_layer_f = float(texelFetch(instanced_array_index_sampler, ivec2(instance_id, 0), 0).x);
 
 
-    lowp vec3 fragColor = texture(ortho_sampler, vec3(uv, texture_layer_f)).rgb;
+    lowp vec3 fragColor = texture(texture_sampler, vec3(uv, texture_layer_f)).rgb;
     fragColor = mix(fragColor, conf.material_color.rgb, conf.material_color.a);
     texout_albedo = fragColor;
 
