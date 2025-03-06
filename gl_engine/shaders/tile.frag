@@ -32,11 +32,15 @@
 
 #line 32
 
+#define ALP_TEXTURE_LOOKUP 2
+
 uniform lowp sampler2DArray ortho_sampler;
 uniform highp usampler2D height_tex_index_sampler;
 uniform highp usampler2D height_tex_tile_id_sampler;
 uniform highp usampler2D ortho_map_index_sampler;
 uniform highp usampler2D ortho_map_tile_id_sampler;
+uniform highp usampler2D ortho_map_instance_index_sampler;
+uniform highp usampler2D ortho_map_instance_zoom_sampler;
 
 layout (std140) uniform texture_layer_zoom_level{
     highp uvec4 packedData[64]; // 1024 unsigned chars packed into 64 uint4 elements
@@ -108,8 +112,7 @@ void main() {
     highp uvec3 tile_id = var_tile_id;
     highp vec2 uv = var_uv;
 
-
-    decrease_zoom_level_until(tile_id, uv, get_8bit_element(texture_layer_zoom_level_instance.packedData, instance_id));
+    ///dict based
     // lowp ivec2 dict_px;
     // if (find_tile(tile_id, dict_px, uv)) {
     //     // texout_albedo = vec3(0.0, float(tile_id.z) / 20.0, 0.0);
@@ -124,11 +127,19 @@ void main() {
     // else {
     //     texout_albedo = vec3(1.0, 0.0, 0.5);
     // }
-    highp float texture_layer_f = float(get_16bit_element(texture_layer_array_index_instance.packedData, instance_id));
+
+    /// ubo based (super slow on android)
+    // decrease_zoom_level_until(tile_id, uv, get_8bit_element(texture_layer_zoom_level_instance.packedData, instance_id));
+    // highp float texture_layer_f = float(get_16bit_element(texture_layer_array_index_instance.packedData, instance_id));
+
+    decrease_zoom_level_until(tile_id, uv, texelFetch(ortho_map_instance_zoom_sampler, ivec2(instance_id, 0), 0).x);
+    highp float texture_layer_f = float(texelFetch(ortho_map_instance_index_sampler, ivec2(instance_id, 0), 0).x);
+
 
     lowp vec3 fragColor = texture(ortho_sampler, vec3(uv, texture_layer_f)).rgb;
     fragColor = mix(fragColor, conf.material_color.rgb, conf.material_color.a);
     texout_albedo = fragColor;
+
 
     // Write Position (and distance) in gbuffer
     highp float dist = length(var_pos_cws);

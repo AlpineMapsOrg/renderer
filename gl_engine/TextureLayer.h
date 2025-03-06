@@ -65,6 +65,9 @@ private:
     std::unique_ptr<Texture> m_ortho_textures;
     std::unique_ptr<Texture> m_tile_id_texture;
     std::unique_ptr<Texture> m_array_index_texture;
+
+    std::unique_ptr<Texture> m_instance_zoom_texture;
+    std::unique_ptr<Texture> m_instance_array_index_texture;
     std::unique_ptr<UniformBuffer<std::array<uint8_t, 1024>>> m_zoom_level_ubo;
     std::unique_ptr<UniformBuffer<std::array<uint16_t, 1024>>> m_array_index_ubo;
     nucleus::tile::GpuArrayHelper m_gpu_array_helper;
