@@ -103,7 +103,7 @@ highp vec3 camera_world_space_position() {
 highp vec3 normal_by_finite_difference_method(vec2 uv, float edge_vertices_count, float quad_width, float quad_height, float altitude_correction_factor) {
     // from here: https://stackoverflow.com/questions/6656358/calculating-normals-in-a-triangle-mesh/21660173#21660173
     vec2 offset = vec2(1.0, 0.0) / (edge_vertices_count);
-    float height = quad_width + quad_height;
+
     highp float hL = float(texture(height_tex_sampler, vec3(uv - offset.xy, height_texture_layer)).r);
     hL *= altitude_correction_factor;
     highp float hR = float(texture(height_tex_sampler, vec3(uv + offset.xy, height_texture_layer)).r);
@@ -113,5 +113,12 @@ highp vec3 normal_by_finite_difference_method(vec2 uv, float edge_vertices_count
     highp float hU = float(texture(height_tex_sampler, vec3(uv - offset.yx, height_texture_layer)).r);
     hU *= altitude_correction_factor;
 
-    return normalize(vec3(hL - hR, hD - hU, height));
+    highp float threshold = 0.5 / edge_vertices_count;
+    if (uv.x < threshold || uv.x > 1.0 - threshold )
+        quad_width = quad_width / 2;                // half on the edge of a packed_tile_id, as the height texture is clamped
+
+    if (uv.y < threshold || uv.y > 1.0 - threshold )
+        quad_height = quad_height / 2;
+
+    return normalize(vec3((hL - hR)/quad_width, (hD - hU)/quad_height, 2.));
 }
