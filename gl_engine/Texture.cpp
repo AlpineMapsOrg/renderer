@@ -50,6 +50,8 @@ GlParams gl_tex_params(gl_engine::Texture::Format format)
         return { GL_RGBA8, GL_RGBA, GL_UNSIGNED_BYTE, 4, 1, true };
     case F::RGBA8UI:
         return { GL_RGBA8UI, GL_RGBA_INTEGER, GL_UNSIGNED_BYTE, 4, 1 };
+    case F::RGBA32F:
+        return { GL_RGBA32F, GL_RGBA, GL_FLOAT, 4, 4 };
     case F::RG8:
         return { GL_RG8, GL_RG, GL_UNSIGNED_BYTE, 2, 1, true };
     case F::RG32UI:
@@ -228,6 +230,7 @@ template void gl_engine::Texture::upload<uint32_t>(const nucleus::Raster<uint32_
 template void gl_engine::Texture::upload<glm::vec<2, uint32_t>>(const nucleus::Raster<glm::vec<2, uint32_t>>&, unsigned);
 template void gl_engine::Texture::upload<glm::vec<2, uint8_t>>(const nucleus::Raster<glm::vec<2, uint8_t>>&, unsigned);
 template void gl_engine::Texture::upload<glm::vec<4, uint8_t>>(const nucleus::Raster<glm::vec<4, uint8_t>>&, unsigned);
+template void gl_engine::Texture::upload<glm::vec<4, float>>(const nucleus::Raster<glm::vec<4, float>>&, unsigned);
 
 template <typename T> void gl_engine::Texture::upload(const nucleus::Raster<T>& texture)
 {
@@ -256,6 +259,7 @@ template void gl_engine::Texture::upload<uint32_t>(const nucleus::Raster<uint32_
 template void gl_engine::Texture::upload<glm::vec<2, uint32_t>>(const nucleus::Raster<glm::vec<2, uint32_t>>&);
 template void gl_engine::Texture::upload<glm::vec<2, uint8_t>>(const nucleus::Raster<glm::vec<2, uint8_t>>&);
 template void gl_engine::Texture::upload<glm::vec<4, uint8_t>>(const nucleus::Raster<glm::vec<4, uint8_t>>&);
+template void gl_engine::Texture::upload<glm::vec<4, float>>(const nucleus::Raster<glm::vec<4, float>>&);
 
 GLenum gl_engine::Texture::compressed_texture_format()
 {

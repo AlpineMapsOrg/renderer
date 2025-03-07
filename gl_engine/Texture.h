@@ -35,6 +35,7 @@ public:
         RGBA8, // normalised on gpu
         CompressedRGBA8, // normalised on gpu, compression format depends on desktop/mobile
         RGBA8UI,
+        RGBA32F,
         RG8, // normalised on gpu
         RG32UI,
         R8UI,
