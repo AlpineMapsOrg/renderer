@@ -52,6 +52,9 @@
 #include "GpuAsyncQueryTimer.h"
 #include <QOpenGLFunctions_4_5_Core>
 #endif
+#ifdef __ANDROID__
+#include "GpuAsyncQueryTimer.h"
+#endif
 #ifdef __EMSCRIPTEN__
 #include <emscripten.h>
 #include <emscripten/val.h>
@@ -211,8 +214,8 @@ void Window::initialise_gpu()
         using nucleus::timing::CpuTimer;
         m_timer = std::make_unique<nucleus::timing::TimerManager>();
 
-// GPU Timing Queries not supported on OpenGL ES or Web GL
-#if (defined(__linux) && !defined(__ANDROID__)) || defined(_WIN32) || defined(_WIN64)
+// GPU Timing Queries not supported on Web GL
+#if (defined(__linux)) || defined(_WIN32) || defined(_WIN64)
         m_timer->add_timer(make_shared<GpuAsyncQueryTimer>("ssao", "GPU", 240, 1.0f/60.0f));
         m_timer->add_timer(make_shared<GpuAsyncQueryTimer>("atmosphere", "GPU", 240, 1.0f / 60.0f));
         m_timer->add_timer(make_shared<GpuAsyncQueryTimer>("tiles", "GPU", 240, 1.0f/60.0f));
@@ -275,16 +278,16 @@ void Window::paint(QOpenGLFramebufferObject* framebuffer)
     m_camera_config_ubo->update_gpu_data();
 
     // DRAW ATMOSPHERIC BACKGROUND
+    m_timer->start_timer("atmosphere");
     m_atmospherebuffer->bind();
     f->glClearColor(0.0, 0.0, 0.0, 1.0);
     f->glClear(GL_COLOR_BUFFER_BIT);
     f->glDisable(GL_DEPTH_TEST);
     f->glDepthFunc(GL_ALWAYS);
     m_atmosphere_shader->bind();
-    m_timer->start_timer("atmosphere");
     m_screen_quad_geometry.draw();
-    m_timer->stop_timer("atmosphere");
     m_atmosphere_shader->release();
+    m_timer->stop_timer("atmosphere");
 
     // Generate Draw-List
     // Note: Could also just be done on camera change
@@ -440,16 +443,16 @@ void Window::paint(QOpenGLFramebufferObject* framebuffer)
     m_timer->stop_timer("cpu_total");
     m_timer->stop_timer("gpu_total");
 
+#if defined(ALP_ENABLE_DEV_TOOLS) && defined(__linux__)
+    // make time measurment more stable.
+    glFinish();
+#endif
+
     QList<nucleus::timing::TimerReport> new_values = m_timer->fetch_results();
     if (new_values.size() > 0) {
         emit timer_measurements_ready(new_values);
     }
     emit tile_stats_ready(tile_stats);
-
-#if defined(ALP_ENABLE_DEV_TOOLS) && defined(__linux__)
-    // make time measurment more stable.
-    glFinish();
-#endif
 }
 
 void Window::shared_config_changed(gl_engine::uboSharedConfig ubo) {
