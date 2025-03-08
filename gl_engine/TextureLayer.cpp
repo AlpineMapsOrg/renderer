@@ -68,11 +68,11 @@ void TextureLayer::draw(const TileGeometry& tile_geometry,
     }
 
     m_instanced_array_index->bind(7);
-    m_shader->set_uniform("instanced_array_index_sampler", 7);
+    m_shader->set_uniform("instanced_texture_array_index_sampler", 7);
     m_instanced_array_index->upload(array_index_raster);
 
     m_instanced_zoom->bind(8);
-    m_shader->set_uniform("instanced_zoom_sampler", 8);
+    m_shader->set_uniform("instanced_texture_zoom_sampler", 8);
     m_instanced_zoom->upload(zoom_level_raster);
 
     tile_geometry.draw(m_shader.get(), camera, draw_tiles, sort_tiles, sort_position);

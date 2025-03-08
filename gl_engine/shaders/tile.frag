@@ -26,8 +26,8 @@
 
 
 uniform lowp sampler2DArray texture_sampler;
-uniform highp usampler2D instanced_array_index_sampler;
-uniform highp usampler2D instanced_zoom_sampler;
+uniform highp usampler2D instanced_texture_array_index_sampler;
+uniform highp usampler2D instanced_texture_zoom_sampler;
 
 layout (location = 0) out lowp vec3 texout_albedo;
 layout (location = 1) out highp vec4 texout_position;
@@ -63,8 +63,8 @@ void main() {
     highp uvec3 tile_id = var_tile_id;
     highp vec2 uv = var_uv;
 
-    decrease_zoom_level_until(tile_id, uv, texelFetch(instanced_zoom_sampler, ivec2(instance_id, 0), 0).x);
-    highp float texture_layer_f = float(texelFetch(instanced_array_index_sampler, ivec2(instance_id, 0), 0).x);
+    decrease_zoom_level_until(tile_id, uv, texelFetch(instanced_texture_zoom_sampler, ivec2(instance_id, 0), 0).x);
+    highp float texture_layer_f = float(texelFetch(instanced_texture_array_index_sampler, ivec2(instance_id, 0), 0).x);
 
 
     lowp vec3 fragColor = texture(texture_sampler, vec3(uv, texture_layer_f)).rgb;
