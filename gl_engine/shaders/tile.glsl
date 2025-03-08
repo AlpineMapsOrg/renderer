@@ -19,8 +19,8 @@
 
 #include "tile_id.glsl"
 
-uniform highp usampler2D instanced_texture_array_index_sampler;
-uniform highp usampler2D instanced_texture_zoom_sampler;
+uniform highp usampler2D instanced_geom_array_index_sampler;
+uniform highp usampler2D instanced_geom_zoom_sampler;
 uniform highp sampler2D instanced_geom_bounds_sampler;
 
 layout(location = 0) in highp vec4 bounds;
@@ -77,10 +77,15 @@ highp vec3 camera_world_space_position(out vec2 uv, out float n_quads_per_direct
     uv = vec2(float(col) / n_quads_per_direction, float(row) / n_quads_per_direction);
 
     /////////
-    // decrease_zoom_level_until(tile_id, uv, texelFetch(instanced_texture_zoom_sampler, ivec2(instance_id, 0), 0).x);
-    // highp float texture_layer_f = float(texelFetch(instanced_texture_array_index_sampler, ivec2(instance_id, 0), 0).x);
+    highp vec2 geom_uv = uv;
+    uint geom_zoom = texelFetch(instanced_geom_zoom_sampler, ivec2(uint(gl_InstanceID), 0), 0).x;
+    highp uvec3 geom_tile_id = unpack_tile_id(packed_tile_id);
+    decrease_zoom_level_until(geom_tile_id, geom_uv, geom_zoom);
+    highp float geom_texture_layer_f = float(texelFetch(instanced_geom_array_index_sampler, ivec2(uint(gl_InstanceID), 0), 0).x);
+    // float altitude_tex = float(geom_texture_layer_f);
+    float altitude_tex = float(texture(height_tex_sampler, vec3(uv, height_texture_layer)).r);
     ////////
-    float altitude_tex = float(texelFetch(height_tex_sampler, ivec3(col, row, height_texture_layer), 0).r);
+    // float altitude_tex = float(texelFetch(height_tex_sampler, ivec3(col, row, height_texture_layer), 0).r);
     float adjusted_altitude = altitude_tex * altitude_correction_factor;
 
     highp vec3 var_pos_cws = vec3(float(col) * quad_width + bounds.x, var_pos_cws_y, adjusted_altitude - camera.position.z);
