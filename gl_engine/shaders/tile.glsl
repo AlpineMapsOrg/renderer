@@ -23,7 +23,7 @@ uniform highp usampler2D instanced_texture_array_index_sampler;
 uniform highp usampler2D instanced_texture_zoom_sampler;
 uniform highp sampler2D instanced_geom_bounds_sampler;
 
-layout(location = 0) in highp vec4 bounds_attrib;
+layout(location = 0) in highp vec4 bounds;
 layout(location = 1) in highp int height_texture_layer;
 layout(location = 2) in highp uvec2 packed_tile_id;
 
@@ -42,7 +42,7 @@ highp float y_to_lat(highp float y) {
 highp vec3 camera_world_space_position(out vec2 uv, out float n_quads_per_direction, out float quad_width, out float quad_height, out float altitude_correction_factor) {
     highp int n_quads_per_direction_int = n_edge_vertices - 1;
     n_quads_per_direction = float(n_quads_per_direction_int);
-    highp vec4 bounds = texelFetch(instanced_geom_bounds_sampler, ivec2(uint(gl_InstanceID), 0), 0);
+    // highp vec4 bounds = texelFetch(instanced_geom_bounds_sampler, ivec2(uint(gl_InstanceID), 0), 0);
     quad_width = (bounds.z - bounds.x) / n_quads_per_direction;
     quad_height = (bounds.w - bounds.y) / n_quads_per_direction;
 
