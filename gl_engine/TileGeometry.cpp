@@ -89,6 +89,15 @@ void TileGeometry::init()
     m_array_index_texture = std::make_unique<Texture>(Texture::Target::_2d, Texture::Format::R16UI);
     m_array_index_texture->setParams(Texture::Filter::Nearest, Texture::Filter::Nearest);
 
+    m_instanced_zoom = std::make_unique<Texture>(Texture::Target::_2d, Texture::Format::R8UI);
+    m_instanced_zoom->setParams(Texture::Filter::Nearest, Texture::Filter::Nearest);
+
+    m_instanced_array_index = std::make_unique<Texture>(Texture::Target::_2d, Texture::Format::R16UI);
+    m_instanced_array_index->setParams(Texture::Filter::Nearest, Texture::Filter::Nearest);
+
+    m_instanced_bounds = std::make_unique<Texture>(Texture::Target::_2d, Texture::Format::RGBA32F);
+    m_instanced_bounds->setParams(Texture::Filter::Nearest, Texture::Filter::Nearest);
+
     auto example_shader = std::make_shared<ShaderProgram>("tile.vert", "tile.frag");
     int bounds = example_shader->attribute_location("bounds");
     qDebug() << "attrib location for bounds: " << bounds;
@@ -197,6 +206,32 @@ void TileGeometry::draw(ShaderProgram* shader, const nucleus::camera::Definition
         height_texture_layer.emplace_back(tileset.second->height_texture_layer);
     }
 
+    {
+        const auto draw_list = tile_list;
+        nucleus::Raster<uint8_t> zoom_level_raster = { glm::uvec2 { 1024, 1 } };
+        nucleus::Raster<uint16_t> array_index_raster = { glm::uvec2 { 1024, 1 } };
+        nucleus::Raster<glm::vec4> bounds_raster = { glm::uvec2 { 1024, 1 } };
+        for (unsigned i = 0; i < std::min(unsigned(draw_list.size()), 1024u); ++i) {
+            const auto layer = m_gpu_array_helper.layer(draw_list[i].second->tile_id);
+            zoom_level_raster.pixel({ i, 0 }) = layer.id.zoom_level;
+            array_index_raster.pixel({ i, 0 }) = layer.index;
+            const auto aabb = m_aabb_decorator->aabb(layer.id);
+            bounds_raster.pixel({ i, 0 }) = { aabb.min.x - camera.position().x, aabb.min.y - camera.position().y, aabb.max.x - camera.position().x, aabb.max.y - camera.position().y };
+        }
+
+        m_instanced_array_index->bind(5);
+        shader->set_uniform("instanced_geom_array_index_sampler", 5);
+        m_instanced_array_index->upload(array_index_raster);
+
+        m_instanced_zoom->bind(6);
+        shader->set_uniform("instanced_geom_zoom_sampler", 6);
+        m_instanced_zoom->upload(zoom_level_raster);
+
+        m_instanced_bounds->bind(9);
+        shader->set_uniform("instanced_geom_bounds_sampler", 9);
+        m_instanced_bounds->upload(bounds_raster);
+    }
+
     m_bounds_buffer->bind();
     m_bounds_buffer->write(0, bounds.data(), GLsizei(bounds.size() * sizeof(decltype(bounds)::value_type)));
 
@@ -225,7 +260,11 @@ void TileGeometry::remove_tile(const nucleus::tile::Id& tile_id)
         m_gpu_tiles.erase(found_tile);
 }
 
-void TileGeometry::set_aabb_decorator(const nucleus::tile::utils::AabbDecoratorPtr& new_aabb_decorator) { m_draw_list_generator.set_aabb_decorator(new_aabb_decorator); }
+void TileGeometry::set_aabb_decorator(const nucleus::tile::utils::AabbDecoratorPtr& new_aabb_decorator)
+{
+    m_aabb_decorator = new_aabb_decorator;
+    m_draw_list_generator.set_aabb_decorator(new_aabb_decorator);
+}
 
 void TileGeometry::set_quad_limit(unsigned int new_limit) { m_gpu_array_helper.set_quad_limit(new_limit); }
 

@@ -77,6 +77,9 @@ private:
     std::unique_ptr<Texture> m_heightmap_textures;
     std::unique_ptr<Texture> m_tile_id_texture;
     std::unique_ptr<Texture> m_array_index_texture;
+    std::unique_ptr<Texture> m_instanced_zoom;
+    std::unique_ptr<Texture> m_instanced_array_index;
+    std::unique_ptr<Texture> m_instanced_bounds;
     std::unique_ptr<QOpenGLVertexArrayObject> m_vao;
     std::pair<std::unique_ptr<QOpenGLBuffer>, size_t> m_index_buffer;
     std::unique_ptr<QOpenGLBuffer> m_bounds_buffer;
@@ -86,5 +89,6 @@ private:
     std::vector<TileInfo> m_gpu_tiles;
     nucleus::tile::DrawListGenerator m_draw_list_generator;
     nucleus::tile::GpuArrayHelper m_gpu_array_helper;
+    nucleus::tile::utils::AabbDecoratorPtr m_aabb_decorator;
 };
 } // namespace gl_engine
