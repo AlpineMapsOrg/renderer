@@ -130,10 +130,10 @@ highp vec3 normal_by_finite_difference_method(vec2 uv, float edge_vertices_count
 
     highp float threshold = 0.5 / edge_vertices_count;
     if (uv.x < threshold || uv.x > 1.0 - threshold )
-        quad_width = quad_width / 2;                // half on the edge of a packed_tile_id, as the height texture is clamped
+        quad_width = quad_width / 2.0;                // half on the edge of a packed_tile_id, as the height texture is clamped
 
     if (uv.y < threshold || uv.y > 1.0 - threshold )
-        quad_height = quad_height / 2;
+        quad_height = quad_height / 2.0;
 
     return normalize(vec3((hL - hR)/quad_width, (hD - hU)/quad_height, 2.));
 }
