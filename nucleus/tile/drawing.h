@@ -25,6 +25,9 @@
 namespace nucleus::tile::drawing {
 constexpr uint max_n_tiles = 1024;
 
-std::vector<TileBounds> generate_list(const camera::Definition& camera, utils::AabbDecoratorPtr aabb_decorator, unsigned max_zoom_level);
+std::vector<tile::Id> generate_list(const camera::Definition& camera, utils::AabbDecoratorPtr aabb_decorator, unsigned max_zoom_level);
+std::vector<TileBounds> compute_bounds(const std::vector<tile::Id>& tiles, utils::AabbDecoratorPtr aabb_decorator);
+std::vector<tile::Id> limit(std::vector<tile::Id> tiles, uint max_n_tiles);
+std::vector<TileBounds> cull(std::vector<TileBounds> list, const camera::Definition& camera);
 std::vector<TileBounds> sort(std::vector<TileBounds> list, const glm::dvec3& camera_position);
 }

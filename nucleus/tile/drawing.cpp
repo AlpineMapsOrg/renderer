@@ -22,55 +22,76 @@
 
 namespace nucleus::tile::drawing {
 
-std::vector<TileBounds> generate_list(const camera::Definition& camera, utils::AabbDecoratorPtr aabb_decorator, unsigned int max_zoom_level)
+std::vector<tile::Id> generate_list(const camera::Definition& camera, utils::AabbDecoratorPtr aabb_decorator, unsigned int max_zoom_level)
 {
     const auto tile_refine_functor = tile::utils::refineFunctor(camera, aabb_decorator, 1, 256, max_zoom_level);
+    return radix::quad_tree::onTheFlyTraverse(tile::Id { 0, { 0, 0 } }, tile_refine_functor, [](const tile::Id& v) { return v.children(); });
+}
 
-    auto tiles = radix::quad_tree::onTheFlyTraverse(tile::Id { 0, { 0, 0 } }, tile_refine_functor, [](const tile::Id& v) { return v.children(); });
-
-    if (tiles.size() > max_n_tiles) {
-        std::sort(tiles.begin(), tiles.end(), [&](const tile::Id& a, const tile::Id& b) { return a.zoom_level > b.zoom_level; });
-        std::unordered_set<tile::Id, tile::Id::Hasher> id_set;
-        id_set.reserve(tiles.size());
-        for (const auto t : tiles) {
-            id_set.insert(t);
-        }
-        const auto all_in_set = [&](const std::array<Id, 4>& siblings) {
-            for (const auto& s : siblings) {
-                if (!id_set.contains(s))
-                    return false;
-            }
-            return true;
-        };
-        const auto remove = [&](const std::array<Id, 4>& siblings) {
-            for (const auto& s : siblings) {
-                const auto pos = std::find(tiles.crbegin(), tiles.crend(), s);
-                tiles.erase(std::next(pos).base());
-                id_set.erase(s);
-            }
-            return true;
-        };
-
-        while (tiles.size() > max_n_tiles) {
-            for (auto it = tiles.crbegin(); it != tiles.crend(); ++it) {
-                const auto parent = (*it).parent();
-                const auto siblings = parent.children();
-                if (all_in_set(siblings)) {
-                    remove(siblings);
-                    tiles.push_back(parent);
-                    id_set.insert(parent);
-                    break;
-                }
-            }
-        }
-    }
-
+std::vector<TileBounds> compute_bounds(const std::vector<Id>& tiles, utils::AabbDecoratorPtr aabb_decorator)
+{
     std::vector<TileBounds> bounded_tiles;
     bounded_tiles.reserve(tiles.size());
     for (const auto& t : tiles) {
         bounded_tiles.emplace_back(t, aabb_decorator->aabb(t));
     }
     return bounded_tiles;
+}
+
+std::vector<tile::Id> limit(std::vector<tile::Id> tiles, uint max_n_tiles)
+{
+    if (tiles.size() < max_n_tiles)
+        return tiles;
+
+    std::sort(tiles.begin(), tiles.end(), [&](const tile::Id& a, const tile::Id& b) { return a.zoom_level > b.zoom_level; });
+    std::unordered_set<tile::Id, tile::Id::Hasher> id_set;
+    id_set.reserve(tiles.size());
+    for (const auto t : tiles) {
+        id_set.insert(t);
+    }
+    const auto all_in_set = [&](const std::array<Id, 4>& siblings) {
+        for (const auto& s : siblings) {
+            if (!id_set.contains(s))
+                return false;
+        }
+        return true;
+    };
+    const auto remove = [&](const std::array<Id, 4>& siblings) {
+        for (const auto& s : siblings) {
+            const auto pos = std::find(tiles.crbegin(), tiles.crend(), s);
+            tiles.erase(std::next(pos).base());
+            id_set.erase(s);
+        }
+        return true;
+    };
+
+    while (tiles.size() > max_n_tiles) {
+        for (auto it = tiles.crbegin(); it != tiles.crend(); ++it) {
+            const auto parent = (*it).parent();
+            const auto siblings = parent.children();
+            if (all_in_set(siblings)) {
+                remove(siblings);
+                tiles.push_back(parent);
+                id_set.insert(parent);
+                break;
+            }
+        }
+    }
+    return tiles;
+}
+
+std::vector<TileBounds> cull(std::vector<TileBounds> tiles, const camera::Definition& camera)
+{
+    std::vector<TileBounds> culled_tiles;
+    culled_tiles.reserve(tiles.size());
+    const auto frustum = camera.frustum();
+
+    for (const auto& t : tiles) {
+        if (tile::utils::camera_frustum_contains_tile(frustum, t.bounds))
+            culled_tiles.push_back(t);
+    }
+
+    return culled_tiles;
 }
 
 std::vector<TileBounds> sort(std::vector<TileBounds> list, const glm::dvec3& camera_position)

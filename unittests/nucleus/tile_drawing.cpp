@@ -32,19 +32,24 @@ TEST_CASE("tile/drawing")
     TileHeights h;
     h.emplace({ 0, { 0, 0 } }, { 100, 4000 });
     const auto aabb_decorator = AabbDecorator::make(std::move(h));
-    std::vector<std::pair<nucleus::camera::Definition, std::vector<TileBounds>>> lists;
+    std::vector<std::pair<nucleus::camera::Definition, std::vector<tile::Id>>> lists;
+    std::vector<std::pair<nucleus::camera::Definition, std::vector<TileBounds>>> tile_bound_lists;
     SECTION("should not generate more than 1024 tiles for all test cameras + sorting")
     {
         for (auto [name, camera] : nucleus::camera::PositionStorage::instance()->positions()) {
             CAPTURE(name);
             camera.set_viewport_size({ 1920, 1080 });
-            auto list = drawing::generate_list(camera, aabb_decorator, 20);
+            const auto list = drawing::generate_list(camera, aabb_decorator, 20);
             lists.emplace_back(camera, list);
-            CHECK(list.size() <= 1024u);
+            const auto limited = drawing::limit(list, 1024u);
+            CHECK(limited.size() <= 1024u);
+
+            const auto tiles_with_bounds = drawing::compute_bounds(limited, aabb_decorator);
+            tile_bound_lists.emplace_back(camera, tiles_with_bounds);
             // qDebug() << "list.size(): " << list.size();
-            list = drawing::sort(list, camera.position());
+            const auto sorted = drawing::sort(tiles_with_bounds, camera.position());
             auto dist = 0.0;
-            for (const auto t : list) {
+            for (const auto t : sorted) {
                 const auto d = glm::distance(t.bounds.centre(), camera.position());
                 CHECK(d > dist);
             }
@@ -53,15 +58,51 @@ TEST_CASE("tile/drawing")
 
     BENCHMARK("generate list")
     {
-        for (auto [camera, list] : lists) {
-            list = drawing::generate_list(camera, aabb_decorator, 20);
+        std::vector<std::vector<tile::Id>> tmp;
+        tmp.reserve(lists.size());
+        for (const auto& [camera, list] : lists) {
+            tmp.push_back(drawing::generate_list(camera, aabb_decorator, 20));
         }
+        return tmp;
+    };
+
+    BENCHMARK("limit")
+    {
+        std::vector<std::vector<tile::Id>> tmp;
+        tmp.reserve(lists.size());
+        for (const auto& [camera, list] : lists) {
+            tmp.push_back(drawing::limit(list, 1024u));
+        }
+        return tmp;
+    };
+
+    BENCHMARK("compute_aabbs")
+    {
+        std::vector<std::vector<TileBounds>> tmp;
+        tmp.reserve(lists.size());
+        for (const auto& [camera, list] : lists) {
+            tmp.push_back(drawing::compute_bounds(list, aabb_decorator));
+        }
+        return tmp;
     };
 
     BENCHMARK("sort")
     {
-        for (auto [camera, list] : lists) {
-            list = drawing::sort(list, camera.position());
+        std::vector<std::vector<TileBounds>> tmp;
+        tmp.reserve(lists.size());
+        for (const auto& [camera, list] : tile_bound_lists) {
+            tmp.push_back(drawing::sort(list, camera.position()));
         }
+        return tmp;
+    };
+
+    BENCHMARK("cull")
+    {
+        std::vector<std::vector<TileBounds>> tmp;
+        tmp.reserve(lists.size());
+        for (const auto& [camera, list] : tile_bound_lists) {
+            tmp.push_back(drawing::cull(list, camera));
+        }
+        return tmp;
     };
 }
