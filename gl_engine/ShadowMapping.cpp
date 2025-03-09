@@ -55,6 +55,8 @@ void ShadowMapping::draw(TileGeometry* tile_geometry,
     std::shared_ptr<UniformBuffer<uboShadowConfig>> shadow_config,
     std::shared_ptr<UniformBuffer<uboSharedConfig>> shared_config)
 {
+    Q_UNUSED(tile_geometry);
+    Q_UNUSED(draw_tileset);
 
     // NOTE: ReverseZ is not necessary for ShadowMapping since a directional light is using an orthographic projection
     // and therefore the distribution of depth is linear anyway.
@@ -87,7 +89,7 @@ void ShadowMapping::draw(TileGeometry* tile_geometry,
         m_f->glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
         m_shadow_program->set_uniform("current_layer", i);
-        tile_geometry->draw(m_shadow_program.get(), camera, draw_tileset, false, glm::dvec3(0.0));
+        // tile_geometry->draw(m_shadow_program.get(), camera, draw_tileset, false, glm::dvec3(0.0));
         m_shadowmapbuffer[i]->unbind();
     }
     m_shadow_program->release();

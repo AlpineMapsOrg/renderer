@@ -51,7 +51,7 @@ public:
 
     explicit TileGeometry(QObject* parent = nullptr);
     void init(); // needs OpenGL context
-    void draw(ShaderProgram* shader_program, const nucleus::camera::Definition& camera, const TileSet& draw_tiles, bool sort_tiles, glm::dvec3 sort_position) const;
+    void draw(ShaderProgram* shader_program, const nucleus::camera::Definition& camera, const std::vector<nucleus::tile::TileBounds>& draw_list) const;
 
     TileSet generate_tilelist(const nucleus::camera::Definition& camera) const;
     TileSet cull(const TileSet& tileset, const nucleus::camera::Frustum& frustum) const;
@@ -84,7 +84,6 @@ private:
     std::pair<std::unique_ptr<QOpenGLBuffer>, size_t> m_index_buffer;
     std::unique_ptr<QOpenGLBuffer> m_bounds_buffer;
     std::unique_ptr<QOpenGLBuffer> m_draw_tile_id_buffer;
-    std::unique_ptr<QOpenGLBuffer> m_height_texture_layer_buffer;
 
     std::vector<TileInfo> m_gpu_tiles;
     nucleus::tile::DrawListGenerator m_draw_list_generator;

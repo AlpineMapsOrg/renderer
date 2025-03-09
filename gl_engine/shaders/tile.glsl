@@ -18,14 +18,14 @@
 *****************************************************************************/
 
 #include "tile_id.glsl"
+#line 22
 
 uniform highp usampler2D instanced_geom_array_index_sampler;
 uniform highp usampler2D instanced_geom_zoom_sampler;
 uniform highp sampler2D instanced_geom_bounds_sampler;
 
 layout(location = 0) in highp vec4 bounds;
-layout(location = 1) in highp int height_texture_layer;
-layout(location = 2) in highp uvec2 packed_tile_id;
+layout(location = 1) in highp uvec2 packed_tile_id;
 
 uniform highp int n_edge_vertices;
 uniform mediump usampler2DArray height_tex_sampler;
@@ -83,7 +83,7 @@ highp vec3 camera_world_space_position(out vec2 uv, out float n_quads_per_direct
     decrease_zoom_level_until(geom_tile_id, geom_uv, geom_zoom);
     highp float geom_texture_layer_f = float(texelFetch(instanced_geom_array_index_sampler, ivec2(uint(gl_InstanceID), 0), 0).x);
     // float altitude_tex = float(geom_texture_layer_f);
-    float altitude_tex = float(texture(height_tex_sampler, vec3(uv, height_texture_layer)).r);
+    float altitude_tex = float(texture(height_tex_sampler, vec3(geom_uv, geom_texture_layer_f)).r);
     ////////
     // float altitude_tex = float(texelFetch(height_tex_sampler, ivec3(col, row, height_texture_layer), 0).r);
     float adjusted_altitude = altitude_tex * altitude_correction_factor;
@@ -118,6 +118,8 @@ highp vec3 camera_world_space_position() {
 highp vec3 normal_by_finite_difference_method(vec2 uv, float edge_vertices_count, float quad_width, float quad_height, float altitude_correction_factor) {
     // from here: https://stackoverflow.com/questions/6656358/calculating-normals-in-a-triangle-mesh/21660173#21660173
     vec2 offset = vec2(1.0, 0.0) / (edge_vertices_count);
+
+    float height_texture_layer = 0;
 
     highp float hL = float(texture(height_tex_sampler, vec3(uv - offset.xy, height_texture_layer)).r);
     hL *= altitude_correction_factor;

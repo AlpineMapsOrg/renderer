@@ -44,6 +44,7 @@
 #include <QTimer>
 #include <glm/glm.hpp>
 #include <glm/gtx/transform.hpp>
+#include <nucleus/tile/drawing.h>
 #include <nucleus/timing/CpuTimer.h>
 #include <nucleus/timing/TimerManager.h>
 #include <nucleus/utils/bit_coding.h>
@@ -70,6 +71,7 @@
 using gl_engine::UniformBuffer;
 using gl_engine::Window;
 using namespace gl_engine;
+using namespace nucleus::tile;
 
 Window::Window(std::shared_ptr<Context> context)
     : m_context(context)
@@ -299,20 +301,22 @@ void Window::paint(QOpenGLFramebufferObject* framebuffer)
         tile_stats["n_label_tiles_gpu"] = m_context->map_label_manager()->tile_count();
         tile_stats["n_label_tiles_drawn"] = unsigned(label_tile_set.size());
     }
-    const auto tile_set = m_context->tile_geometry()->generate_tilelist(m_camera);
-    const auto culled_tile_set = m_context->tile_geometry()->cull(tile_set, m_camera.frustum());
+
+    const auto draw_list
+        = drawing::compute_bounds(drawing::limit(drawing::generate_list(m_camera, m_context->aabb_decorator(), 20), 1024u), m_context->aabb_decorator());
+    const auto culled_draw_list = drawing::sort(drawing::cull(draw_list, m_camera), m_camera.position());
 
     tile_stats["n_geometry_tiles_gpu"] = m_context->tile_geometry()->tile_count();
     tile_stats["n_ortho_tiles_gpu"] = m_context->ortho_layer()->tile_count();
-    tile_stats["n_geometry_tiles_drawn"] = unsigned(culled_tile_set.size());
+    tile_stats["n_geometry_tiles_drawn"] = unsigned(culled_draw_list.size());
     m_timer->stop_timer("draw_list");
 
     // DRAW SHADOWMAPS
-    if (m_shared_config_ubo->data.m_csm_enabled) {
-        m_timer->start_timer("shadowmap");
-        m_shadowmapping->draw(m_context->tile_geometry(), tile_set, m_camera, m_shadow_config_ubo, m_shared_config_ubo);
-        m_timer->stop_timer("shadowmap");
-    }
+    // if (m_shared_config_ubo->data.m_csm_enabled) {
+    //     m_timer->start_timer("shadowmap");
+    //     m_shadowmapping->draw(m_context->tile_geometry(), tile_set, m_camera, m_shadow_config_ubo, m_shared_config_ubo);
+    //     m_timer->stop_timer("shadowmap");
+    // }
 
     // DRAW GBUFFER
     m_gbuffer->bind();
@@ -339,7 +343,7 @@ void Window::paint(QOpenGLFramebufferObject* framebuffer)
     f->glDepthFunc(GL_GREATER); // reverse z
 
     m_timer->start_timer("tiles");
-    m_context->ortho_layer()->draw(*m_context->tile_geometry(), m_camera, culled_tile_set, true, m_camera.position());
+    m_context->ortho_layer()->draw(*m_context->tile_geometry(), m_camera, culled_draw_list);
     m_timer->stop_timer("tiles");
 
     m_gbuffer->unbind();

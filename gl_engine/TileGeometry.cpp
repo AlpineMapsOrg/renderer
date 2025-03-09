@@ -67,12 +67,6 @@ void TileGeometry::init()
     m_draw_tile_id_buffer->setUsagePattern(QOpenGLBuffer::DynamicDraw);
     m_draw_tile_id_buffer->allocate(GLsizei(m_gpu_array_helper.size() * sizeof(glm::u32vec2)));
 
-    m_height_texture_layer_buffer = std::make_unique<QOpenGLBuffer>(QOpenGLBuffer::VertexBuffer);
-    m_height_texture_layer_buffer->create();
-    m_height_texture_layer_buffer->bind();
-    m_height_texture_layer_buffer->setUsagePattern(QOpenGLBuffer::DynamicDraw);
-    m_height_texture_layer_buffer->allocate(GLsizei(m_gpu_array_helper.size() * sizeof(int32_t)));
-
     m_vao = std::make_unique<QOpenGLVertexArrayObject>();
     m_vao->create();
     m_vao->bind();
@@ -103,8 +97,6 @@ void TileGeometry::init()
     qDebug() << "attrib location for bounds: " << bounds;
     int packed_tile_id = example_shader->attribute_location("packed_tile_id");
     qDebug() << "attrib location for packed_tile_id: " << packed_tile_id;
-    int height_texture_layer = example_shader->attribute_location("height_texture_layer");
-    qDebug() << "attrib location for height_texture_layer: " << height_texture_layer;
 
     m_vao->bind();
     QOpenGLExtraFunctions* f = QOpenGLContext::currentContext()->extraFunctions();
@@ -119,12 +111,6 @@ void TileGeometry::init()
         f->glEnableVertexAttribArray(GLuint(packed_tile_id));
         f->glVertexAttribIPointer(GLuint(packed_tile_id), /*size*/ 2, /*type*/ GL_UNSIGNED_INT, /*stride*/ 0, nullptr);
         f->glVertexAttribDivisor(GLuint(packed_tile_id), 1);
-    }
-    if (height_texture_layer != -1) {
-        m_height_texture_layer_buffer->bind();
-        f->glEnableVertexAttribArray(GLuint(height_texture_layer));
-        f->glVertexAttribIPointer(GLuint(height_texture_layer), /*size*/ 1, /*type*/ GL_INT, /*stride*/ 0, nullptr);
-        f->glVertexAttribDivisor(GLuint(height_texture_layer), 1);
     }
 
     update_gpu_id_map();
@@ -159,7 +145,7 @@ std::vector<nucleus::tile::Id> TileGeometry::sort(const nucleus::camera::Definit
     return sorted_ids;
 }
 
-void TileGeometry::draw(ShaderProgram* shader, const nucleus::camera::Definition& camera, const TileSet& draw_tiles, bool sort_tiles, glm::dvec3 sort_position) const
+void TileGeometry::draw(ShaderProgram* shader, const nucleus::camera::Definition& camera, const std::vector<nucleus::tile::TileBounds>& draw_list) const
 {
     QOpenGLExtraFunctions* f = QOpenGLContext::currentContext()->extraFunctions();
     shader->set_uniform("n_edge_vertices", N_EDGE_VERTICES);
@@ -167,56 +153,35 @@ void TileGeometry::draw(ShaderProgram* shader, const nucleus::camera::Definition
     shader->set_uniform("height_tex_index_sampler", 3);
     shader->set_uniform("height_tex_tile_id_sampler", 4);
 
-    // Sort depending on distance to sort_position
-    std::vector<std::pair<float, const TileInfo*>> tile_list;
-    for (const auto& tileset : m_gpu_tiles) {
-        float dist = 0.0;
-        if (!draw_tiles.contains(tileset.tile_id))
-            continue;
-        if (sort_tiles) {
-            glm::vec2 pos_wrt = glm::vec2(tileset.bounds.min.x - sort_position.x, tileset.bounds.min.y - sort_position.y);
-            dist = glm::length(pos_wrt);
-        }
-        tile_list.push_back(std::pair<float, const TileInfo*>(dist, &tileset));
-    }
-    if (sort_tiles)
-        std::sort(tile_list.begin(), tile_list.end(), [](const auto& a, const auto& b) { return a.first < b.first; });
-
     m_heightmap_textures->bind(1);
     m_array_index_texture->bind(3);
     m_tile_id_texture->bind(4);
     m_vao->bind();
 
     std::vector<glm::vec4> bounds;
-    bounds.reserve(tile_list.size());
+    bounds.reserve(draw_list.size());
 
     std::vector<glm::u32vec2> packed_id;
-    packed_id.reserve(tile_list.size());
-
-    std::vector<int32_t> height_texture_layer;
-    height_texture_layer.reserve(tile_list.size());
-
-    for (const auto& tileset : tile_list) {
-        bounds.emplace_back(tileset.second->bounds.min.x - camera.position().x,
-            tileset.second->bounds.min.y - camera.position().y,
-            tileset.second->bounds.max.x - camera.position().x,
-            tileset.second->bounds.max.y - camera.position().y);
-
-        packed_id.emplace_back(nucleus::srs::pack(tileset.second->tile_id));
-        height_texture_layer.emplace_back(tileset.second->height_texture_layer);
-    }
+    packed_id.reserve(draw_list.size());
 
     {
-        const auto draw_list = tile_list;
         nucleus::Raster<uint8_t> zoom_level_raster = { glm::uvec2 { 1024, 1 } };
         nucleus::Raster<uint16_t> array_index_raster = { glm::uvec2 { 1024, 1 } };
         nucleus::Raster<glm::vec4> bounds_raster = { glm::uvec2 { 1024, 1 } };
         for (unsigned i = 0; i < std::min(unsigned(draw_list.size()), 1024u); ++i) {
-            const auto layer = m_gpu_array_helper.layer(draw_list[i].second->tile_id);
+            const auto& tile = draw_list[i];
+            const auto bounds_2d = glm::vec4 { tile.bounds.min.x - camera.position().x,
+                tile.bounds.min.y - camera.position().y,
+                tile.bounds.max.x - camera.position().x,
+                tile.bounds.max.y - camera.position().y };
+            bounds.push_back(bounds_2d);
+            packed_id.push_back(nucleus::srs::pack(tile.id));
+
+            bounds_raster.pixel({ i, 0 }) = bounds_2d;
+
+            const auto layer = m_gpu_array_helper.layer(draw_list[i].id);
             zoom_level_raster.pixel({ i, 0 }) = layer.id.zoom_level;
             array_index_raster.pixel({ i, 0 }) = layer.index;
-            const auto aabb = m_aabb_decorator->aabb(layer.id);
-            bounds_raster.pixel({ i, 0 }) = { aabb.min.x - camera.position().x, aabb.min.y - camera.position().y, aabb.max.x - camera.position().x, aabb.max.y - camera.position().y };
         }
 
         m_instanced_array_index->bind(5);
@@ -238,10 +203,7 @@ void TileGeometry::draw(ShaderProgram* shader, const nucleus::camera::Definition
     m_draw_tile_id_buffer->bind();
     m_draw_tile_id_buffer->write(0, packed_id.data(), GLsizei(packed_id.size() * sizeof(decltype(packed_id)::value_type)));
 
-    m_height_texture_layer_buffer->bind();
-    m_height_texture_layer_buffer->write(0, height_texture_layer.data(), GLsizei(height_texture_layer.size() * sizeof(decltype(height_texture_layer)::value_type)));
-
-    f->glDrawElementsInstanced(GL_TRIANGLE_STRIP, GLsizei(m_index_buffer.second), GL_UNSIGNED_SHORT, nullptr, GLsizei(tile_list.size()));
+    f->glDrawElementsInstanced(GL_TRIANGLE_STRIP, GLsizei(m_index_buffer.second), GL_UNSIGNED_SHORT, nullptr, GLsizei(draw_list.size()));
     f->glBindVertexArray(0);
 }
 

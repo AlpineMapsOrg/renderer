@@ -48,21 +48,17 @@ void gl_engine::TextureLayer::init(ShaderRegistry* shader_registry)
     m_instanced_array_index->setParams(Texture::Filter::Nearest, Texture::Filter::Nearest);
 }
 
-void TextureLayer::draw(const TileGeometry& tile_geometry,
-    const nucleus::camera::Definition& camera,
-    const nucleus::tile::DrawListGenerator::TileSet& draw_tiles,
-    bool sort_tiles,
-    glm::dvec3 sort_position) const
+void TextureLayer::draw(
+    const TileGeometry& tile_geometry, const nucleus::camera::Definition& camera, const std::vector<nucleus::tile::TileBounds>& draw_list) const
 {
     m_shader->bind();
     m_texture_array->bind(2);
     m_shader->set_uniform("texture_sampler", 2);
 
-    const auto draw_list = tile_geometry.sort(camera, draw_tiles);
     nucleus::Raster<uint8_t> zoom_level_raster = { glm::uvec2 { 1024, 1 } };
     nucleus::Raster<uint16_t> array_index_raster = { glm::uvec2 { 1024, 1 } };
     for (unsigned i = 0; i < std::min(unsigned(draw_list.size()), 1024u); ++i) {
-        const auto layer = m_gpu_array_helper.layer(draw_list[i]);
+        const auto layer = m_gpu_array_helper.layer(draw_list[i].id);
         zoom_level_raster.pixel({ i, 0 }) = layer.id.zoom_level;
         array_index_raster.pixel({ i, 0 }) = layer.index;
     }
@@ -75,7 +71,7 @@ void TextureLayer::draw(const TileGeometry& tile_geometry,
     m_shader->set_uniform("instanced_texture_zoom_sampler", 8);
     m_instanced_zoom->upload(zoom_level_raster);
 
-    tile_geometry.draw(m_shader.get(), camera, draw_tiles, sort_tiles, sort_position);
+    tile_geometry.draw(m_shader.get(), camera, draw_list);
 }
 
 unsigned TextureLayer::tile_count() const { return m_gpu_array_helper.n_occupied(); }

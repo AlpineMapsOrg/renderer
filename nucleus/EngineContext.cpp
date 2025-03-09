@@ -22,6 +22,10 @@ using namespace nucleus;
 
 EngineContext::EngineContext() { }
 
+const tile::utils::AabbDecoratorPtr& EngineContext::aabb_decorator() const { return m_aabb_decorator; }
+
+void EngineContext::set_aabb_decorator(const tile::utils::AabbDecoratorPtr& new_aabb_decorator) { m_aabb_decorator = new_aabb_decorator; }
+
 EngineContext::EngineContext(QObject* parent)
     : QObject(parent)
 {

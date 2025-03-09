@@ -25,7 +25,7 @@
 #include <nucleus/tile/GpuArrayHelper.h>
 #include <nucleus/tile/types.h>
 
-namespace camera {
+namespace nucleus::camera {
 class Definition;
 }
 
@@ -44,11 +44,7 @@ class TextureLayer : public QObject {
 public:
     explicit TextureLayer(unsigned resolution = 256, QObject* parent = nullptr);
     void init(ShaderRegistry* shader_registry); // needs OpenGL context
-    void draw(const TileGeometry& tile_geometry,
-        const nucleus::camera::Definition& camera,
-        const nucleus::tile::DrawListGenerator::TileSet& draw_tiles,
-        bool sort_tiles,
-        glm::dvec3 sort_position) const;
+    void draw(const TileGeometry& tile_geometry, const nucleus::camera::Definition& camera, const std::vector<nucleus::tile::TileBounds>& draw_list) const;
 
     unsigned int tile_count() const;
 
