@@ -114,6 +114,7 @@ qt_add_library(nucleus STATIC
     utils/error.h
     utils/lang.h
     tile/SchedulerDirector.h tile/SchedulerDirector.cpp
+    tile/drawing.h tile/drawing.cpp
 )
 
 if (ALP_ENABLE_AVLANCHE_WARNING_LAYER)

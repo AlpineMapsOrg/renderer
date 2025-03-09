@@ -139,6 +139,6 @@ public:
         }
         return res;
     }
+    [[nodiscard]] const std::map<std::string, nucleus::camera::Definition>& positions() const;
 };
-
 }

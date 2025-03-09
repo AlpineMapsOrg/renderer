@@ -1,8 +1,6 @@
- /*****************************************************************************
- * Alpine Renderer
- * Copyright (C) 2022 Adam Celarek
- * Copyright (C) 2023 Jakob Lindner
- * Copyright (C) 2023 Gerald Kimmersdorfer
+/*****************************************************************************
+ * AlpineMaps.org
+ * Copyright (C) 2025 Adam Celarek
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -18,19 +16,15 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *****************************************************************************/
 
-#include "PositionStorage.h"
+#pragma once
 
-namespace nucleus::camera {
+#include "types.h"
+#include "utils.h"
+#include <nucleus/camera/Definition.h>
 
-PositionStorage* PositionStorage::_instance = nullptr;
+namespace nucleus::tile::drawing {
+constexpr uint max_n_tiles = 1024;
 
-const std::map<std::string, Definition>& PositionStorage::positions() const { return _positions; }
-
-PositionStorage* PositionStorage::instance()
-{
-    if (_instance == nullptr) {
-        _instance = new PositionStorage;
-    }
-    return _instance;
-}
+std::vector<TileBounds> generate_list(const camera::Definition& camera, utils::AabbDecoratorPtr aabb_decorator, unsigned max_zoom_level);
+std::vector<TileBounds> sort(std::vector<TileBounds> list, const glm::dvec3& camera_position);
 }
