@@ -40,7 +40,15 @@ highp float y_to_lat(highp float y) {
 }
 
 highp vec3 camera_world_space_position(out vec2 uv, out float n_quads_per_direction, out float quad_width, out float quad_height, out float altitude_correction_factor) {
-    highp int n_quads_per_direction_int = n_edge_vertices - 1;
+    highp uvec3 instance_tile_id = unpack_tile_id(instance_tile_id_packed);
+
+    highp uvec3 dtm_tile_id = instance_tile_id;
+    {
+        uint dtm_zoom = texelFetch(instance_2_zoom_sampler, ivec2(uint(gl_InstanceID), 0), 0).x;
+        decrease_zoom_level_until(dtm_tile_id, dtm_zoom);
+    }
+
+    highp int n_quads_per_direction_int = (n_edge_vertices - 1) >> (instance_tile_id.z - dtm_tile_id.z);
     n_quads_per_direction = float(n_quads_per_direction_int);
     // highp vec4 bounds = texelFetch(instance_2_bounds_sampler, ivec2(uint(gl_InstanceID), 0), 0);
     quad_width = (instance_bounds.z - instance_bounds.x) / n_quads_per_direction;
@@ -67,6 +75,14 @@ highp vec3 camera_world_space_position(out vec2 uv, out float n_quads_per_direct
             col = curtain_vertex_id - 3 * n_edge_vertices + 3;
         }
     }
+    if (row > n_quads_per_direction_int) {
+        row = n_quads_per_direction_int;
+        curtain_vertex_id = 1;
+    }
+    if (col > n_quads_per_direction_int) {
+        col = n_quads_per_direction_int;
+        curtain_vertex_id = 1;
+    }
     // Note: for higher zoom levels it would be enough to calculate the altitude_correction_factor on cpu
     // for lower zoom levels we could bake it into the texture.
     // but there was no measurable difference despite a cos and a atan, so leaving as is for now.
@@ -77,13 +93,13 @@ highp vec3 camera_world_space_position(out vec2 uv, out float n_quads_per_direct
     uv = vec2(float(col) / n_quads_per_direction, float(row) / n_quads_per_direction);
 
     /////////
-    highp vec2 geom_uv = uv;
-    uint geom_zoom = texelFetch(instance_2_zoom_sampler, ivec2(uint(gl_InstanceID), 0), 0).x;
-    highp uvec3 geom_tile_id = unpack_tile_id(instance_tile_id_packed);
-    decrease_zoom_level_until(geom_tile_id, geom_uv, geom_zoom);
-    highp float geom_texture_layer_f = float(texelFetch(instance_2_array_index_sampler, ivec2(uint(gl_InstanceID), 0), 0).x);
-    // float altitude_tex = float(geom_texture_layer_f);
-    float altitude_tex = float(texture(height_tex_sampler, vec3(geom_uv, geom_texture_layer_f)).r);
+    highp vec2 dtm_uv = uv;
+    uint dtm_zoom = dtm_tile_id.z;
+    dtm_tile_id = instance_tile_id;
+    decrease_zoom_level_until(dtm_tile_id, dtm_uv, dtm_zoom);
+
+    highp float dtm_texture_layer_f = float(texelFetch(instance_2_array_index_sampler, ivec2(uint(gl_InstanceID), 0), 0).x);
+    float altitude_tex = float(texture(height_tex_sampler, vec3(dtm_uv, dtm_texture_layer_f)).r);
     ////////
     // float altitude_tex = float(texelFetch(height_tex_sampler, ivec3(col, row, height_texture_layer), 0).r);
     float adjusted_altitude = altitude_tex * altitude_correction_factor;
