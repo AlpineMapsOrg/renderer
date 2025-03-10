@@ -177,6 +177,9 @@ void TileGeometry::draw(ShaderProgram* shader, const nucleus::camera::Definition
             packed_id.push_back(nucleus::srs::pack(tile.id));
 
             const auto layer = m_gpu_array_helper.layer(draw_list[i].id);
+            if (layer.id.zoom_level > 50) // happens during startup
+                continue;
+
             zoom_level_raster.pixel({ i, 0 }) = layer.id.zoom_level;
             array_index_raster.pixel({ i, 0 }) = layer.index;
             const auto geom_aabb = m_aabb_decorator->aabb(layer.id);
