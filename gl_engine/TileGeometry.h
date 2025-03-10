@@ -74,16 +74,16 @@ private:
     static constexpr auto N_EDGE_VERTICES = 65;
     static constexpr auto HEIGHTMAP_RESOLUTION = 65;
 
-    std::unique_ptr<Texture> m_heightmap_textures;
-    std::unique_ptr<Texture> m_tile_id_texture;
-    std::unique_ptr<Texture> m_array_index_texture;
-    std::unique_ptr<Texture> m_instanced_zoom;
-    std::unique_ptr<Texture> m_instanced_array_index;
-    std::unique_ptr<Texture> m_instanced_bounds;
+    std::unique_ptr<Texture> m_dtm_textures;
+    std::unique_ptr<Texture> m_dictionary_tile_id_texture;
+    std::unique_ptr<Texture> m_dictionary_array_index_texture;
+    std::unique_ptr<Texture> m_instance_2_zoom;
+    std::unique_ptr<Texture> m_instance_2_array_index;
+    std::unique_ptr<Texture> m_instance_2_dtm_bounds;
     std::unique_ptr<QOpenGLVertexArrayObject> m_vao;
     std::pair<std::unique_ptr<QOpenGLBuffer>, size_t> m_index_buffer;
-    std::unique_ptr<QOpenGLBuffer> m_bounds_buffer;
-    std::unique_ptr<QOpenGLBuffer> m_draw_tile_id_buffer;
+    std::unique_ptr<QOpenGLBuffer> m_instance_bounds_buffer;
+    std::unique_ptr<QOpenGLBuffer> m_instance_tile_id_buffer;
 
     std::vector<TileInfo> m_gpu_tiles;
     nucleus::tile::DrawListGenerator m_draw_list_generator;

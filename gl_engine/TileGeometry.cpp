@@ -55,17 +55,17 @@ void TileGeometry::init()
     m_index_buffer.first = std::move(index_buffer);
     m_index_buffer.second = indices.size();
 
-    m_bounds_buffer = std::make_unique<QOpenGLBuffer>(QOpenGLBuffer::VertexBuffer);
-    m_bounds_buffer->create();
-    m_bounds_buffer->bind();
-    m_bounds_buffer->setUsagePattern(QOpenGLBuffer::DynamicDraw);
-    m_bounds_buffer->allocate(GLsizei(m_gpu_array_helper.size() * sizeof(glm::vec4)));
+    m_instance_bounds_buffer = std::make_unique<QOpenGLBuffer>(QOpenGLBuffer::VertexBuffer);
+    m_instance_bounds_buffer->create();
+    m_instance_bounds_buffer->bind();
+    m_instance_bounds_buffer->setUsagePattern(QOpenGLBuffer::DynamicDraw);
+    m_instance_bounds_buffer->allocate(GLsizei(m_gpu_array_helper.size() * sizeof(glm::vec4)));
 
-    m_draw_tile_id_buffer = std::make_unique<QOpenGLBuffer>(QOpenGLBuffer::VertexBuffer);
-    m_draw_tile_id_buffer->create();
-    m_draw_tile_id_buffer->bind();
-    m_draw_tile_id_buffer->setUsagePattern(QOpenGLBuffer::DynamicDraw);
-    m_draw_tile_id_buffer->allocate(GLsizei(m_gpu_array_helper.size() * sizeof(glm::u32vec2)));
+    m_instance_tile_id_buffer = std::make_unique<QOpenGLBuffer>(QOpenGLBuffer::VertexBuffer);
+    m_instance_tile_id_buffer->create();
+    m_instance_tile_id_buffer->bind();
+    m_instance_tile_id_buffer->setUsagePattern(QOpenGLBuffer::DynamicDraw);
+    m_instance_tile_id_buffer->allocate(GLsizei(m_gpu_array_helper.size() * sizeof(glm::u32vec2)));
 
     m_vao = std::make_unique<QOpenGLVertexArrayObject>();
     m_vao->create();
@@ -73,41 +73,41 @@ void TileGeometry::init()
     m_index_buffer.first->bind();
     m_vao->release();
 
-    m_heightmap_textures = std::make_unique<Texture>(Texture::Target::_2dArray, Texture::Format::R16UI);
-    m_heightmap_textures->setParams(Texture::Filter::Nearest, Texture::Filter::Nearest);
-    m_heightmap_textures->allocate_array(HEIGHTMAP_RESOLUTION, HEIGHTMAP_RESOLUTION, unsigned(m_gpu_array_helper.size()));
+    m_dtm_textures = std::make_unique<Texture>(Texture::Target::_2dArray, Texture::Format::R16UI);
+    m_dtm_textures->setParams(Texture::Filter::Nearest, Texture::Filter::Nearest);
+    m_dtm_textures->allocate_array(HEIGHTMAP_RESOLUTION, HEIGHTMAP_RESOLUTION, unsigned(m_gpu_array_helper.size()));
 
-    m_tile_id_texture = std::make_unique<Texture>(Texture::Target::_2d, Texture::Format::RG32UI);
-    m_tile_id_texture->setParams(Texture::Filter::Nearest, Texture::Filter::Nearest);
+    m_dictionary_tile_id_texture = std::make_unique<Texture>(Texture::Target::_2d, Texture::Format::RG32UI);
+    m_dictionary_tile_id_texture->setParams(Texture::Filter::Nearest, Texture::Filter::Nearest);
 
-    m_array_index_texture = std::make_unique<Texture>(Texture::Target::_2d, Texture::Format::R16UI);
-    m_array_index_texture->setParams(Texture::Filter::Nearest, Texture::Filter::Nearest);
+    m_dictionary_array_index_texture = std::make_unique<Texture>(Texture::Target::_2d, Texture::Format::R16UI);
+    m_dictionary_array_index_texture->setParams(Texture::Filter::Nearest, Texture::Filter::Nearest);
 
-    m_instanced_zoom = std::make_unique<Texture>(Texture::Target::_2d, Texture::Format::R8UI);
-    m_instanced_zoom->setParams(Texture::Filter::Nearest, Texture::Filter::Nearest);
+    m_instance_2_zoom = std::make_unique<Texture>(Texture::Target::_2d, Texture::Format::R8UI);
+    m_instance_2_zoom->setParams(Texture::Filter::Nearest, Texture::Filter::Nearest);
 
-    m_instanced_array_index = std::make_unique<Texture>(Texture::Target::_2d, Texture::Format::R16UI);
-    m_instanced_array_index->setParams(Texture::Filter::Nearest, Texture::Filter::Nearest);
+    m_instance_2_array_index = std::make_unique<Texture>(Texture::Target::_2d, Texture::Format::R16UI);
+    m_instance_2_array_index->setParams(Texture::Filter::Nearest, Texture::Filter::Nearest);
 
-    m_instanced_bounds = std::make_unique<Texture>(Texture::Target::_2d, Texture::Format::RGBA32F);
-    m_instanced_bounds->setParams(Texture::Filter::Nearest, Texture::Filter::Nearest);
+    m_instance_2_dtm_bounds = std::make_unique<Texture>(Texture::Target::_2d, Texture::Format::RGBA32F);
+    m_instance_2_dtm_bounds->setParams(Texture::Filter::Nearest, Texture::Filter::Nearest);
 
     auto example_shader = std::make_shared<ShaderProgram>("tile.vert", "tile.frag");
-    int bounds = example_shader->attribute_location("bounds");
-    qDebug() << "attrib location for bounds: " << bounds;
-    int packed_tile_id = example_shader->attribute_location("packed_tile_id");
-    qDebug() << "attrib location for packed_tile_id: " << packed_tile_id;
+    int bounds = example_shader->attribute_location("instance_bounds");
+    qDebug() << "attrib location for instance_bounds: " << bounds;
+    int packed_tile_id = example_shader->attribute_location("instance_tile_id_packed");
+    qDebug() << "attrib location for instance_tile_id_packed: " << packed_tile_id;
 
     m_vao->bind();
     QOpenGLExtraFunctions* f = QOpenGLContext::currentContext()->extraFunctions();
     if (bounds != -1) {
-        m_bounds_buffer->bind();
+        m_instance_bounds_buffer->bind();
         f->glEnableVertexAttribArray(GLuint(bounds));
         f->glVertexAttribPointer(GLuint(bounds), /*size*/ 4, /*type*/ GL_FLOAT, /*normalised*/ GL_FALSE, /*stride*/ 0, nullptr);
         f->glVertexAttribDivisor(GLuint(bounds), 1);
     }
     if (packed_tile_id != -1) {
-        m_draw_tile_id_buffer->bind();
+        m_instance_tile_id_buffer->bind();
         f->glEnableVertexAttribArray(GLuint(packed_tile_id));
         f->glVertexAttribIPointer(GLuint(packed_tile_id), /*size*/ 2, /*type*/ GL_UNSIGNED_INT, /*stride*/ 0, nullptr);
         f->glVertexAttribDivisor(GLuint(packed_tile_id), 1);
@@ -153,9 +153,9 @@ void TileGeometry::draw(ShaderProgram* shader, const nucleus::camera::Definition
     shader->set_uniform("height_tex_index_sampler", 3);
     shader->set_uniform("height_tex_tile_id_sampler", 4);
 
-    m_heightmap_textures->bind(1);
-    m_array_index_texture->bind(3);
-    m_tile_id_texture->bind(4);
+    m_dtm_textures->bind(1);
+    m_dictionary_array_index_texture->bind(3);
+    m_dictionary_tile_id_texture->bind(4);
     m_vao->bind();
 
     std::vector<glm::vec4> bounds;
@@ -189,24 +189,24 @@ void TileGeometry::draw(ShaderProgram* shader, const nucleus::camera::Definition
                 geom_aabb.max.y - camera.position().y };
         }
 
-        m_instanced_array_index->bind(5);
-        shader->set_uniform("instanced_geom_array_index_sampler", 5);
-        m_instanced_array_index->upload(array_index_raster);
+        m_instance_2_array_index->bind(5);
+        shader->set_uniform("instance_2_array_index_sampler", 5);
+        m_instance_2_array_index->upload(array_index_raster);
 
-        m_instanced_zoom->bind(6);
-        shader->set_uniform("instanced_geom_zoom_sampler", 6);
-        m_instanced_zoom->upload(zoom_level_raster);
+        m_instance_2_zoom->bind(6);
+        shader->set_uniform("instance_2_zoom_sampler", 6);
+        m_instance_2_zoom->upload(zoom_level_raster);
 
-        m_instanced_bounds->bind(9);
-        shader->set_uniform("instanced_geom_bounds_sampler", 9);
-        m_instanced_bounds->upload(bounds_raster);
+        m_instance_2_dtm_bounds->bind(9);
+        shader->set_uniform("instance_2_bounds_sampler", 9);
+        m_instance_2_dtm_bounds->upload(bounds_raster);
     }
 
-    m_bounds_buffer->bind();
-    m_bounds_buffer->write(0, bounds.data(), GLsizei(bounds.size() * sizeof(decltype(bounds)::value_type)));
+    m_instance_bounds_buffer->bind();
+    m_instance_bounds_buffer->write(0, bounds.data(), GLsizei(bounds.size() * sizeof(decltype(bounds)::value_type)));
 
-    m_draw_tile_id_buffer->bind();
-    m_draw_tile_id_buffer->write(0, packed_id.data(), GLsizei(packed_id.size() * sizeof(decltype(packed_id)::value_type)));
+    m_instance_tile_id_buffer->bind();
+    m_instance_tile_id_buffer->write(0, packed_id.data(), GLsizei(packed_id.size() * sizeof(decltype(packed_id)::value_type)));
 
     f->glDrawElementsInstanced(GL_TRIANGLE_STRIP, GLsizei(m_index_buffer.second), GL_UNSIGNED_SHORT, nullptr, GLsizei(draw_list.size()));
     f->glBindVertexArray(0);
@@ -247,7 +247,7 @@ void TileGeometry::add_tile(const nucleus::tile::Id& id, nucleus::tile::SrsAndHe
     // find empty spot and upload texture
     const auto layer_index = m_gpu_array_helper.add_tile(id);
     tileinfo.height_texture_layer = layer_index;
-    m_heightmap_textures->upload(height_map, layer_index);
+    m_dtm_textures->upload(height_map, layer_index);
 
     // add to m_gpu_tiles
     m_gpu_tiles.push_back(tileinfo);
@@ -257,8 +257,8 @@ void TileGeometry::add_tile(const nucleus::tile::Id& id, nucleus::tile::SrsAndHe
 void TileGeometry::update_gpu_id_map()
 {
     auto [packed_ids, layers] = m_gpu_array_helper.generate_dictionary();
-    m_array_index_texture->upload(layers);
-    m_tile_id_texture->upload(packed_ids);
+    m_dictionary_array_index_texture->upload(layers);
+    m_dictionary_tile_id_texture->upload(packed_ids);
 }
 
 void TileGeometry::set_permissible_screen_space_error(float new_permissible_screen_space_error)

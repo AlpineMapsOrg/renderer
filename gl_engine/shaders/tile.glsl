@@ -20,12 +20,12 @@
 #include "tile_id.glsl"
 #line 22
 
-uniform highp usampler2D instanced_geom_array_index_sampler;
-uniform highp usampler2D instanced_geom_zoom_sampler;
-uniform highp sampler2D instanced_geom_bounds_sampler;
+uniform highp usampler2D instance_2_array_index_sampler;
+uniform highp usampler2D instance_2_zoom_sampler;
+uniform highp sampler2D instance_2_bounds_sampler;
 
-layout(location = 0) in highp vec4 bounds;
-layout(location = 1) in highp uvec2 packed_tile_id;
+layout(location = 0) in highp vec4 instance_bounds;
+layout(location = 1) in highp uvec2 instance_tile_id_packed;
 
 uniform highp int n_edge_vertices;
 uniform mediump usampler2DArray height_tex_sampler;
@@ -42,9 +42,9 @@ highp float y_to_lat(highp float y) {
 highp vec3 camera_world_space_position(out vec2 uv, out float n_quads_per_direction, out float quad_width, out float quad_height, out float altitude_correction_factor) {
     highp int n_quads_per_direction_int = n_edge_vertices - 1;
     n_quads_per_direction = float(n_quads_per_direction_int);
-    // highp vec4 bounds = texelFetch(instanced_geom_bounds_sampler, ivec2(uint(gl_InstanceID), 0), 0);
-    quad_width = (bounds.z - bounds.x) / n_quads_per_direction;
-    quad_height = (bounds.w - bounds.y) / n_quads_per_direction;
+    // highp vec4 bounds = texelFetch(instance_2_bounds_sampler, ivec2(uint(gl_InstanceID), 0), 0);
+    quad_width = (instance_bounds.z - instance_bounds.x) / n_quads_per_direction;
+    quad_height = (instance_bounds.w - instance_bounds.y) / n_quads_per_direction;
 
     highp int row = gl_VertexID / n_edge_vertices;
     highp int col = gl_VertexID - (row * n_edge_vertices);
@@ -70,7 +70,7 @@ highp vec3 camera_world_space_position(out vec2 uv, out float n_quads_per_direct
     // Note: for higher zoom levels it would be enough to calculate the altitude_correction_factor on cpu
     // for lower zoom levels we could bake it into the texture.
     // but there was no measurable difference despite a cos and a atan, so leaving as is for now.
-    highp float var_pos_cws_y = float(n_quads_per_direction_int - row) * float(quad_width) + bounds.y;
+    highp float var_pos_cws_y = float(n_quads_per_direction_int - row) * float(quad_width) + instance_bounds.y;
     highp float pos_y = var_pos_cws_y + camera.position.y;
     altitude_correction_factor = 0.125 / cos(y_to_lat(pos_y)); // https://github.com/AlpineMapsOrg/renderer/issues/5
 
@@ -78,17 +78,17 @@ highp vec3 camera_world_space_position(out vec2 uv, out float n_quads_per_direct
 
     /////////
     highp vec2 geom_uv = uv;
-    uint geom_zoom = texelFetch(instanced_geom_zoom_sampler, ivec2(uint(gl_InstanceID), 0), 0).x;
-    highp uvec3 geom_tile_id = unpack_tile_id(packed_tile_id);
+    uint geom_zoom = texelFetch(instance_2_zoom_sampler, ivec2(uint(gl_InstanceID), 0), 0).x;
+    highp uvec3 geom_tile_id = unpack_tile_id(instance_tile_id_packed);
     decrease_zoom_level_until(geom_tile_id, geom_uv, geom_zoom);
-    highp float geom_texture_layer_f = float(texelFetch(instanced_geom_array_index_sampler, ivec2(uint(gl_InstanceID), 0), 0).x);
+    highp float geom_texture_layer_f = float(texelFetch(instance_2_array_index_sampler, ivec2(uint(gl_InstanceID), 0), 0).x);
     // float altitude_tex = float(geom_texture_layer_f);
     float altitude_tex = float(texture(height_tex_sampler, vec3(geom_uv, geom_texture_layer_f)).r);
     ////////
     // float altitude_tex = float(texelFetch(height_tex_sampler, ivec3(col, row, height_texture_layer), 0).r);
     float adjusted_altitude = altitude_tex * altitude_correction_factor;
 
-    highp vec3 var_pos_cws = vec3(float(col) * quad_width + bounds.x, var_pos_cws_y, adjusted_altitude - camera.position.z);
+    highp vec3 var_pos_cws = vec3(float(col) * quad_width + instance_bounds.x, var_pos_cws_y, adjusted_altitude - camera.position.z);
 
     if (curtain_vertex_id >= 0) {
         float curtain_height = CURTAIN_REFERENCE_HEIGHT;
@@ -97,7 +97,7 @@ highp vec3 camera_world_space_position(out vec2 uv, out float n_quads_per_direct
         curtain_height *= dist_factor;
 #endif
 #if CURTAIN_HEIGHT_MODE == 2
-        float zoom_factor = 1.0 - max(0.1, float(unpack_tile_id(packed_tile_id).z) / 25.f);
+        float zoom_factor = 1.0 - max(0.1, float(unpack_tile_id(instance_tile_id_packed).z) / 25.f);
         curtain_height *= zoom_factor;
 #endif
         var_pos_cws.z = var_pos_cws.z - curtain_height;
@@ -132,7 +132,7 @@ highp vec3 normal_by_finite_difference_method(vec2 uv, float edge_vertices_count
 
     highp float threshold = 0.5 / edge_vertices_count;
     if (uv.x < threshold || uv.x > 1.0 - threshold )
-        quad_width = quad_width / 2.0;                // half on the edge of a packed_tile_id, as the height texture is clamped
+        quad_width = quad_width / 2.0;                // half on the edge of a instance_tile_id_packed, as the height texture is clamped
 
     if (uv.y < threshold || uv.y > 1.0 - threshold )
         quad_height = quad_height / 2.0;

@@ -44,13 +44,13 @@ void main() {
         var_normal = normal_by_finite_difference_method(var_uv, n_quads_per_direction, quad_width, quad_height, altitude_correction_factor);
     }
 
-    var_tile_id = unpack_tile_id(packed_tile_id);
+    var_tile_id = unpack_tile_id(instance_tile_id_packed);
     gl_Position = camera.view_proj_matrix * vec4(var_pos_cws, 1);
     instance_id = uint(gl_InstanceID);
 
     vertex_color = vec3(0.0);
     switch(conf.overlay_mode) {
-        case 2u: vertex_color = color_from_id_hash(uint(packed_tile_id.x ^ packed_tile_id.y)); break;
+        case 2u: vertex_color = color_from_id_hash(uint(instance_tile_id_packed.x ^ instance_tile_id_packed.y)); break;
         case 3u: vertex_color = color_from_id_hash(uint(var_tile_id.z)); break;
         case 4u: vertex_color = color_from_id_hash(uint(gl_VertexID)); break;
         // case 5u: vertex_color = vec3(texture(height_tex_sampler, vec3(var_uv, height_texture_layer)).rrr) / 65535.0; break;
