@@ -170,18 +170,20 @@ void TileGeometry::draw(ShaderProgram* shader, const nucleus::camera::Definition
         nucleus::Raster<glm::vec4> bounds_raster = { glm::uvec2 { 1024, 1 } };
         for (unsigned i = 0; i < std::min(unsigned(draw_list.size()), 1024u); ++i) {
             const auto& tile = draw_list[i];
-            const auto bounds_2d = glm::vec4 { tile.bounds.min.x - camera.position().x,
+            bounds.push_back(glm::vec4 { tile.bounds.min.x - camera.position().x,
                 tile.bounds.min.y - camera.position().y,
                 tile.bounds.max.x - camera.position().x,
-                tile.bounds.max.y - camera.position().y };
-            bounds.push_back(bounds_2d);
+                tile.bounds.max.y - camera.position().y });
             packed_id.push_back(nucleus::srs::pack(tile.id));
-
-            bounds_raster.pixel({ i, 0 }) = bounds_2d;
 
             const auto layer = m_gpu_array_helper.layer(draw_list[i].id);
             zoom_level_raster.pixel({ i, 0 }) = layer.id.zoom_level;
             array_index_raster.pixel({ i, 0 }) = layer.index;
+            const auto geom_aabb = m_aabb_decorator->aabb(layer.id);
+            bounds_raster.pixel({ i, 0 }) = glm::vec4 { geom_aabb.min.x - camera.position().x,
+                geom_aabb.min.y - camera.position().y,
+                geom_aabb.max.x - camera.position().x,
+                geom_aabb.max.y - camera.position().y };
         }
 
         m_instanced_array_index->bind(5);
