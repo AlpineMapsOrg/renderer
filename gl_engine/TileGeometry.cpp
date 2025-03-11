@@ -59,13 +59,13 @@ void TileGeometry::init()
     m_instance_bounds_buffer->create();
     m_instance_bounds_buffer->bind();
     m_instance_bounds_buffer->setUsagePattern(QOpenGLBuffer::DynamicDraw);
-    m_instance_bounds_buffer->allocate(GLsizei(m_gpu_array_helper.size() * sizeof(glm::vec4)));
+    m_instance_bounds_buffer->allocate(GLsizei(1024 * sizeof(glm::vec4)));
 
     m_instance_tile_id_buffer = std::make_unique<QOpenGLBuffer>(QOpenGLBuffer::VertexBuffer);
     m_instance_tile_id_buffer->create();
     m_instance_tile_id_buffer->bind();
     m_instance_tile_id_buffer->setUsagePattern(QOpenGLBuffer::DynamicDraw);
-    m_instance_tile_id_buffer->allocate(GLsizei(m_gpu_array_helper.size() * sizeof(glm::u32vec2)));
+    m_instance_tile_id_buffer->allocate(GLsizei(1024 * sizeof(glm::u32vec2)));
 
     m_vao = std::make_unique<QOpenGLVertexArrayObject>();
     m_vao->create();
