@@ -95,6 +95,11 @@ void TextureLayer::update_gpu_tiles(const std::vector<nucleus::tile::Id>& delete
     }
 }
 
-void TextureLayer::set_quad_limit(unsigned int new_limit) { m_gpu_array_helper.set_quad_limit(new_limit); }
+void TextureLayer::set_tile_limit(unsigned int new_limit)
+{
+    assert(new_limit < 2048); // array textures with size > 2048 are not supported on all devices
+    assert(!m_texture_array);
+    m_gpu_array_helper.set_tile_limit(new_limit);
+}
 
 } // namespace gl_engine

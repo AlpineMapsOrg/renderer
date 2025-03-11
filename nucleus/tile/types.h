@@ -92,12 +92,6 @@ struct GpuTextureTile {
 };
 static_assert(NamedTile<GpuTextureTile>);
 
-struct GpuTextureQuad {
-    tile::Id id;
-    std::array<GpuTextureTile, 4> tiles;
-};
-static_assert(NamedTile<GpuTextureQuad>);
-
 struct TileBounds {
     tile::Id id;
     tile::SrsAndHeightBounds bounds = {};

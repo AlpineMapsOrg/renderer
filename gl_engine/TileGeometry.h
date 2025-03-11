@@ -53,22 +53,15 @@ public:
     void init(); // needs OpenGL context
     void draw(ShaderProgram* shader_program, const nucleus::camera::Definition& camera, const std::vector<nucleus::tile::TileBounds>& draw_list) const;
 
-    TileSet generate_tilelist(const nucleus::camera::Definition& camera) const;
-    TileSet cull(const TileSet& tileset, const nucleus::camera::Frustum& frustum) const;
-    std::vector<nucleus::tile::Id> sort(const nucleus::camera::Definition& camera, const TileSet& draw_tiles) const;
-
-    void set_permissible_screen_space_error(float new_permissible_screen_space_error);
-
     unsigned int tile_count() const;
 
 public slots:
     void update_gpu_quads(const std::vector<nucleus::tile::GpuGeometryQuad>& new_quads, const std::vector<nucleus::tile::Id>& deleted_quads);
     void set_aabb_decorator(const nucleus::tile::utils::AabbDecoratorPtr& new_aabb_decorator);
+    /// must be called before init
     void set_quad_limit(unsigned new_limit);
 
 private:
-    void remove_tile(const nucleus::tile::Id& tile_id);
-    void add_tile(const nucleus::tile::Id& id, nucleus::tile::SrsAndHeightBounds bounds, const nucleus::Raster<uint16_t>& heights);
     void update_gpu_id_map();
 
     static constexpr auto N_EDGE_VERTICES = 65;
@@ -85,8 +78,6 @@ private:
     std::unique_ptr<QOpenGLBuffer> m_instance_bounds_buffer;
     std::unique_ptr<QOpenGLBuffer> m_instance_tile_id_buffer;
 
-    std::vector<TileInfo> m_gpu_tiles;
-    nucleus::tile::DrawListGenerator m_draw_list_generator;
     nucleus::tile::GpuArrayHelper m_gpu_array_helper;
     nucleus::tile::utils::AabbDecoratorPtr m_aabb_decorator;
 };

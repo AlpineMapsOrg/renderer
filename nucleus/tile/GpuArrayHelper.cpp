@@ -44,10 +44,10 @@ void GpuArrayHelper::remove_tile(const tile::Id& tile_id)
     *t = tile::Id { unsigned(-1), {} };
 }
 
-void GpuArrayHelper::set_quad_limit(unsigned int new_limit)
+void GpuArrayHelper::set_tile_limit(unsigned int new_limit)
 {
     assert(m_array.empty());
-    m_array.resize(new_limit * 4);
+    m_array.resize(new_limit);
     std::fill(m_array.begin(), m_array.end(), tile::Id { unsigned(-1), {} });
 }
 

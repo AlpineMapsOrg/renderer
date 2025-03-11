@@ -156,7 +156,7 @@ void RenderingContext::initialise()
     m->engine_context->tile_geometry()->set_quad_limit(512);
     m->engine_context->tile_geometry()->set_aabb_decorator(m->aabb_decorator);
     m->engine_context->set_aabb_decorator(m->aabb_decorator);
-    m->engine_context->ortho_layer()->set_quad_limit(512);
+    m->engine_context->ortho_layer()->set_tile_limit(512);
 
     connect(m->geometry.scheduler.get(), &nucleus::tile::GeometryScheduler::gpu_quads_updated, m->engine_context->tile_geometry(), &gl_engine::TileGeometry::update_gpu_quads);
     connect(m->ortho_texture.scheduler.get(), &nucleus::tile::TextureScheduler::gpu_tiles_updated, m->engine_context->ortho_layer(), &gl_engine::TextureLayer::update_gpu_tiles);

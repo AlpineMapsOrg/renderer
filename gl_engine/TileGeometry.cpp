@@ -116,35 +116,6 @@ void TileGeometry::init()
     update_gpu_id_map();
 }
 
-TileGeometry::TileSet TileGeometry::generate_tilelist(const nucleus::camera::Definition& camera) const { return m_draw_list_generator.generate_for(camera); }
-
-TileGeometry::TileSet TileGeometry::cull(const TileSet& tileset, const nucleus::camera::Frustum& frustum) const { return m_draw_list_generator.cull(tileset, frustum); }
-
-std::vector<nucleus::tile::Id> TileGeometry::sort(const nucleus::camera::Definition& camera, const TileSet& draw_tiles) const
-{
-    glm::dvec3 sort_position = camera.position();
-    std::vector<std::pair<float, const TileInfo*>> tile_list;
-    tile_list.reserve(m_gpu_tiles.size());
-    for (const auto& tileset : m_gpu_tiles) {
-        float dist = 0.0;
-        if (!draw_tiles.contains(tileset.tile_id))
-            continue;
-        // todo: use centroid
-        glm::vec2 pos_wrt = glm::vec2(tileset.bounds.min.x - sort_position.x, tileset.bounds.min.y - sort_position.y);
-        // todo: length2 is enough
-        dist = glm::length(pos_wrt);
-        tile_list.push_back(std::pair<float, const TileInfo*>(dist, &tileset));
-    }
-    std::sort(tile_list.begin(), tile_list.end(), [](const auto& a, const auto& b) { return a.first < b.first; });
-
-    std::vector<nucleus::tile::Id> sorted_ids;
-    sorted_ids.reserve(tile_list.size());
-    for (const auto& tile : tile_list) {
-        sorted_ids.push_back(tile.second->tile_id);
-    }
-    return sorted_ids;
-}
-
 void TileGeometry::draw(ShaderProgram* shader, const nucleus::camera::Definition& camera, const std::vector<nucleus::tile::TileBounds>& draw_list) const
 {
     QOpenGLExtraFunctions* f = QOpenGLContext::currentContext()->extraFunctions();
@@ -212,46 +183,15 @@ void TileGeometry::draw(ShaderProgram* shader, const nucleus::camera::Definition
     f->glBindVertexArray(0);
 }
 
-void TileGeometry::remove_tile(const nucleus::tile::Id& tile_id)
-{
-    if (!QOpenGLContext::currentContext()) // can happen during shutdown.
-        return;
-
-    m_gpu_array_helper.remove_tile(tile_id);
-    m_draw_list_generator.remove_tile(tile_id);
-
-    // clear slot
-    // or remove from list and free resources
-    const auto found_tile = std::find_if(m_gpu_tiles.begin(), m_gpu_tiles.end(), [&tile_id](const TileInfo& tileset) { return tileset.tile_id == tile_id; });
-    if (found_tile != m_gpu_tiles.end())
-        m_gpu_tiles.erase(found_tile);
-}
-
 void TileGeometry::set_aabb_decorator(const nucleus::tile::utils::AabbDecoratorPtr& new_aabb_decorator)
 {
     m_aabb_decorator = new_aabb_decorator;
-    m_draw_list_generator.set_aabb_decorator(new_aabb_decorator);
 }
 
-void TileGeometry::set_quad_limit(unsigned int new_limit) { m_gpu_array_helper.set_quad_limit(new_limit); }
-
-void TileGeometry::add_tile(const nucleus::tile::Id& id, nucleus::tile::SrsAndHeightBounds bounds, const nucleus::Raster<uint16_t>& height_map)
+void TileGeometry::set_quad_limit(unsigned int new_limit)
 {
-    if (!QOpenGLContext::currentContext()) // can happen during shutdown.
-        return;
-
-    TileInfo tileinfo;
-    tileinfo.tile_id = id;
-    tileinfo.bounds = nucleus::tile::SrsBounds(bounds);
-
-    // find empty spot and upload texture
-    const auto layer_index = m_gpu_array_helper.add_tile(id);
-    tileinfo.height_texture_layer = layer_index;
-    m_dtm_textures->upload(height_map, layer_index);
-
-    // add to m_gpu_tiles
-    m_gpu_tiles.push_back(tileinfo);
-    m_draw_list_generator.add_tile(id);
+    assert(!m_dtm_textures);
+    m_gpu_array_helper.set_tile_limit(new_limit * 4);
 }
 
 void TileGeometry::update_gpu_id_map()
@@ -261,18 +201,16 @@ void TileGeometry::update_gpu_id_map()
     m_dictionary_tile_id_texture->upload(packed_ids);
 }
 
-void TileGeometry::set_permissible_screen_space_error(float new_permissible_screen_space_error)
-{
-    m_draw_list_generator.set_permissible_screen_space_error(new_permissible_screen_space_error);
-}
-
-unsigned TileGeometry::tile_count() const { return unsigned(m_gpu_tiles.size()); }
+unsigned TileGeometry::tile_count() const { return m_gpu_array_helper.n_occupied(); }
 
 void TileGeometry::update_gpu_quads(const std::vector<nucleus::tile::GpuGeometryQuad>& new_quads, const std::vector<nucleus::tile::Id>& deleted_quads)
 {
+    if (!QOpenGLContext::currentContext()) // can happen during shutdown.
+        return;
+
     for (const auto& quad : deleted_quads) {
         for (const auto& id : quad.children()) {
-            remove_tile(id);
+            m_gpu_array_helper.remove_tile(id);
         }
     }
     for (const auto& quad : new_quads) {
@@ -280,7 +218,10 @@ void TileGeometry::update_gpu_quads(const std::vector<nucleus::tile::GpuGeometry
             // test for validity
             assert(tile.id.zoom_level < 100);
             assert(tile.surface);
-            add_tile(tile.id, tile.bounds, *tile.surface);
+
+            // find empty spot and upload texture
+            const auto layer_index = m_gpu_array_helper.add_tile(tile.id);
+            m_dtm_textures->upload(*tile.surface, layer_index);
         }
     }
     update_gpu_id_map();

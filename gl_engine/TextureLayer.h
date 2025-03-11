@@ -50,7 +50,9 @@ public:
 
 public slots:
     void update_gpu_tiles(const std::vector<nucleus::tile::Id>& deleted_tiles, const std::vector<nucleus::tile::GpuTextureTile>& new_tiles);
-    void set_quad_limit(unsigned new_limit);
+
+    /// must be called before init!
+    void set_tile_limit(unsigned new_limit);
 
 private:
     const unsigned m_resolution = 256u;

@@ -106,6 +106,7 @@ private:
 
     int m_frame = 0;
     bool m_initialised = false;
+    float m_permissible_screen_space_error = 2.f;
     QString m_debug_text;
     QString m_debug_scheduler_stats;
 
