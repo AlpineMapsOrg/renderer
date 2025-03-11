@@ -138,9 +138,9 @@ int main(int argc, char** argv)
     director.check_in("ortho", ortho_scheduler.scheduler);
 
     auto context = std::make_shared<gl_engine::Context>();
-    context->set_tile_geometry(std::make_shared<gl_engine::TileGeometry>());
+    context->set_tile_geometry(std::make_shared<gl_engine::TileGeometry>(129));
     context->set_ortho_layer(std::make_shared<gl_engine::TextureLayer>(512));
-    context->tile_geometry()->set_quad_limit(512);
+    context->tile_geometry()->set_tile_limit(512);
     context->tile_geometry()->set_aabb_decorator(decorator);
     context->ortho_layer()->set_tile_limit(512);
     context->set_aabb_decorator(decorator);
@@ -162,11 +162,12 @@ int main(int argc, char** argv)
             ortho_scheduler.scheduler->set_enabled(true);
         });
     });
+    // clang-format off
     QObject::connect(&camera_controller, &nucleus::camera::Controller::definition_changed, geometry_scheduler.scheduler.get(), &Scheduler::update_camera);
     QObject::connect(&camera_controller, &nucleus::camera::Controller::definition_changed, ortho_scheduler.scheduler.get(), &Scheduler::update_camera);
     QObject::connect(&camera_controller, &nucleus::camera::Controller::definition_changed, glWindow.render_window(), &AbstractRenderWindow::update_camera);
-    QObject::connect(geometry_scheduler.scheduler.get(), &GeometryScheduler::gpu_quads_updated, context->tile_geometry(), &gl_engine::TileGeometry::update_gpu_quads);
-    QObject::connect(geometry_scheduler.scheduler.get(), &GeometryScheduler::gpu_quads_updated, glWindow.render_window(), &AbstractRenderWindow::update_requested);
+    QObject::connect(geometry_scheduler.scheduler.get(), &GeometryScheduler::gpu_tiles_updated, context->tile_geometry(), &gl_engine::TileGeometry::update_gpu_tiles);
+    QObject::connect(geometry_scheduler.scheduler.get(), &GeometryScheduler::gpu_tiles_updated, glWindow.render_window(), &AbstractRenderWindow::update_requested);
     QObject::connect(ortho_scheduler.scheduler.get(), &TextureScheduler::gpu_tiles_updated, context->ortho_layer(), &gl_engine::TextureLayer::update_gpu_tiles);
     QObject::connect(ortho_scheduler.scheduler.get(), &TextureScheduler::gpu_tiles_updated, glWindow.render_window(), &AbstractRenderWindow::update_requested);
 
@@ -178,6 +179,7 @@ int main(int argc, char** argv)
     QObject::connect(&glWindow, &Window::key_released, &camera_controller, &nucleus::camera::Controller::key_release);
     QObject::connect(&glWindow, &Window::resized, &camera_controller, [&camera_controller](glm::uvec2 new_size) { camera_controller.set_viewport(new_size); });
     QObject::connect(&glWindow, &Window::about_to_be_destoryed, context.get(), &gl_engine::Context::destroy);
+    // clang-format on
     QObject::connect(&app, &QCoreApplication::aboutToQuit, geometry_scheduler.scheduler.get(), [&]() {
         geometry_scheduler.scheduler.reset();
         ortho_scheduler.scheduler.reset();

@@ -107,7 +107,7 @@ RenderingContext::RenderingContext(QObject* parent)
         m->label_filter->moveToThread(m->scheduler_thread.get());
     }
     // clang-format off
-    connect(m->geometry.scheduler.get(),       &nucleus::tile::GeometryScheduler::gpu_quads_updated, RenderThreadNotifier::instance(), &RenderThreadNotifier::notify);
+    connect(m->geometry.scheduler.get(),       &nucleus::tile::GeometryScheduler::gpu_tiles_updated, RenderThreadNotifier::instance(), &RenderThreadNotifier::notify);
     connect(m->ortho_texture.scheduler.get(),  &nucleus::tile::TextureScheduler::gpu_tiles_updated,  RenderThreadNotifier::instance(), &RenderThreadNotifier::notify);
     connect(m->map_label.scheduler.get(),      &nucleus::map_label::Scheduler::gpu_tiles_updated,    RenderThreadNotifier::instance(), &RenderThreadNotifier::notify);
     connect(m->map_label.scheduler.get(),      &nucleus::map_label::Scheduler::gpu_tiles_updated,    m->picker_manager.get(),          &PickerManager::update_quads);
@@ -151,15 +151,13 @@ void RenderingContext::initialise()
 
     m->engine_context = std::make_shared<gl_engine::Context>();
     // standard tiles
-    m->engine_context->set_tile_geometry(std::make_shared<gl_engine::TileGeometry>());
+    m->engine_context->set_tile_geometry(std::make_shared<gl_engine::TileGeometry>(129));
     m->engine_context->set_ortho_layer(std::make_shared<gl_engine::TextureLayer>(512));
-    m->engine_context->tile_geometry()->set_quad_limit(512);
+    m->engine_context->tile_geometry()->set_tile_limit(512);
     m->engine_context->tile_geometry()->set_aabb_decorator(m->aabb_decorator);
     m->engine_context->set_aabb_decorator(m->aabb_decorator);
     m->engine_context->ortho_layer()->set_tile_limit(512);
 
-    connect(m->geometry.scheduler.get(), &nucleus::tile::GeometryScheduler::gpu_quads_updated, m->engine_context->tile_geometry(), &gl_engine::TileGeometry::update_gpu_quads);
-    connect(m->ortho_texture.scheduler.get(), &nucleus::tile::TextureScheduler::gpu_tiles_updated, m->engine_context->ortho_layer(), &gl_engine::TextureLayer::update_gpu_tiles);
     nucleus::utils::thread::async_call(m->geometry.scheduler.get(), [this]() { m->geometry.scheduler->set_enabled(true); });
     const auto texture_compression = gl_engine::Texture::compression_algorithm();
     nucleus::utils::thread::async_call(m->ortho_texture.scheduler.get(), [this, texture_compression]() {
@@ -173,6 +171,9 @@ void RenderingContext::initialise()
     nucleus::utils::thread::async_call(m->map_label.scheduler.get(), [this]() { m->map_label.scheduler->set_enabled(true); });
 
     // clang-format off
+    connect(m->geometry.scheduler.get(),        &nucleus::tile::GeometryScheduler::gpu_tiles_updated,   m->engine_context->tile_geometry(), &gl_engine::TileGeometry::update_gpu_tiles);
+    connect(m->ortho_texture.scheduler.get(),   &nucleus::tile::TextureScheduler::gpu_tiles_updated,    m->engine_context->ortho_layer(),   &gl_engine::TextureLayer::update_gpu_tiles);
+
     connect(QOpenGLContext::currentContext(), &QOpenGLContext::aboutToBeDestroyed, m->engine_context.get(), &nucleus::EngineContext::destroy);
     connect(QOpenGLContext::currentContext(), &QOpenGLContext::aboutToBeDestroyed, this,                    &RenderingContext::destroy);
     connect(QCoreApplication::instance(),     &QCoreApplication::aboutToQuit,      this,                    &RenderingContext::destroy);

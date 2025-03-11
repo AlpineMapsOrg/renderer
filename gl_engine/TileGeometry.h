@@ -40,32 +40,22 @@ class Texture;
 class TileGeometry : public QObject {
     Q_OBJECT
 
-    struct TileInfo {
-        nucleus::tile::Id tile_id = {};
-        nucleus::tile::SrsBounds bounds = {};
-        unsigned height_texture_layer = unsigned(-1);
-    };
-
 public:
-    using TileSet = std::unordered_set<nucleus::tile::Id, nucleus::tile::Id::Hasher>;
-
-    explicit TileGeometry(QObject* parent = nullptr);
+    explicit TileGeometry(unsigned texture_resolution = 65);
     void init(); // needs OpenGL context
     void draw(ShaderProgram* shader_program, const nucleus::camera::Definition& camera, const std::vector<nucleus::tile::TileBounds>& draw_list) const;
 
     unsigned int tile_count() const;
 
 public slots:
-    void update_gpu_quads(const std::vector<nucleus::tile::GpuGeometryQuad>& new_quads, const std::vector<nucleus::tile::Id>& deleted_quads);
+    void update_gpu_tiles(const std::vector<nucleus::tile::Id>& deleted_tiles, const std::vector<nucleus::tile::GpuGeometryTile>& new_tiles);
     void set_aabb_decorator(const nucleus::tile::utils::AabbDecoratorPtr& new_aabb_decorator);
     /// must be called before init
-    void set_quad_limit(unsigned new_limit);
+    void set_tile_limit(unsigned new_limit);
 
 private:
     void update_gpu_id_map();
-
-    static constexpr auto N_EDGE_VERTICES = 65;
-    static constexpr auto HEIGHTMAP_RESOLUTION = 65;
+    const unsigned m_texture_resolution;
 
     std::unique_ptr<Texture> m_dtm_textures;
     std::unique_ptr<Texture> m_dictionary_tile_id_texture;

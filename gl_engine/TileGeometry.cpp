@@ -35,8 +35,8 @@ namespace {
     template <typename T> int bufferLengthInBytes(const std::vector<T>& vec) { return int(vec.size() * sizeof(T)); }
 } // namespace
 
-TileGeometry::TileGeometry(QObject* parent)
-    : QObject { parent }
+TileGeometry::TileGeometry(unsigned int texture_resolution)
+    : m_texture_resolution { texture_resolution }
 {
 }
 
@@ -45,7 +45,7 @@ void TileGeometry::init()
 
     using nucleus::utils::terrain_mesh_index_generator::surface_quads_with_curtains;
     assert(QOpenGLContext::currentContext());
-    const auto indices = surface_quads_with_curtains<uint16_t>(N_EDGE_VERTICES);
+    const auto indices = surface_quads_with_curtains<uint16_t>(m_texture_resolution);
     auto index_buffer = std::make_unique<QOpenGLBuffer>(QOpenGLBuffer::IndexBuffer);
     index_buffer->create();
     index_buffer->bind();
@@ -75,7 +75,7 @@ void TileGeometry::init()
 
     m_dtm_textures = std::make_unique<Texture>(Texture::Target::_2dArray, Texture::Format::R16UI);
     m_dtm_textures->setParams(Texture::Filter::Nearest, Texture::Filter::Nearest);
-    m_dtm_textures->allocate_array(HEIGHTMAP_RESOLUTION, HEIGHTMAP_RESOLUTION, unsigned(m_gpu_array_helper.size()));
+    m_dtm_textures->allocate_array(m_texture_resolution, m_texture_resolution, unsigned(m_gpu_array_helper.size()));
 
     m_dictionary_tile_id_texture = std::make_unique<Texture>(Texture::Target::_2d, Texture::Format::RG32UI);
     m_dictionary_tile_id_texture->setParams(Texture::Filter::Nearest, Texture::Filter::Nearest);
@@ -119,7 +119,7 @@ void TileGeometry::init()
 void TileGeometry::draw(ShaderProgram* shader, const nucleus::camera::Definition& camera, const std::vector<nucleus::tile::TileBounds>& draw_list) const
 {
     QOpenGLExtraFunctions* f = QOpenGLContext::currentContext()->extraFunctions();
-    shader->set_uniform("n_edge_vertices", N_EDGE_VERTICES);
+    shader->set_uniform("n_edge_vertices", m_texture_resolution);
     shader->set_uniform("height_tex_sampler", 1);
     shader->set_uniform("height_tex_index_sampler", 3);
     shader->set_uniform("height_tex_tile_id_sampler", 4);
@@ -183,15 +183,12 @@ void TileGeometry::draw(ShaderProgram* shader, const nucleus::camera::Definition
     f->glBindVertexArray(0);
 }
 
-void TileGeometry::set_aabb_decorator(const nucleus::tile::utils::AabbDecoratorPtr& new_aabb_decorator)
-{
-    m_aabb_decorator = new_aabb_decorator;
-}
+void TileGeometry::set_aabb_decorator(const nucleus::tile::utils::AabbDecoratorPtr& new_aabb_decorator) { m_aabb_decorator = new_aabb_decorator; }
 
-void TileGeometry::set_quad_limit(unsigned int new_limit)
+void TileGeometry::set_tile_limit(unsigned int new_limit)
 {
     assert(!m_dtm_textures);
-    m_gpu_array_helper.set_tile_limit(new_limit * 4);
+    m_gpu_array_helper.set_tile_limit(new_limit);
 }
 
 void TileGeometry::update_gpu_id_map()
@@ -203,26 +200,23 @@ void TileGeometry::update_gpu_id_map()
 
 unsigned TileGeometry::tile_count() const { return m_gpu_array_helper.n_occupied(); }
 
-void TileGeometry::update_gpu_quads(const std::vector<nucleus::tile::GpuGeometryQuad>& new_quads, const std::vector<nucleus::tile::Id>& deleted_quads)
+void TileGeometry::update_gpu_tiles(const std::vector<radix::tile::Id>& deleted_tiles, const std::vector<nucleus::tile::GpuGeometryTile>& new_tiles)
 {
+
     if (!QOpenGLContext::currentContext()) // can happen during shutdown.
         return;
 
-    for (const auto& quad : deleted_quads) {
-        for (const auto& id : quad.children()) {
-            m_gpu_array_helper.remove_tile(id);
-        }
+    for (const auto& id : deleted_tiles) {
+        m_gpu_array_helper.remove_tile(id);
     }
-    for (const auto& quad : new_quads) {
-        for (const auto& tile : quad.tiles) {
-            // test for validity
-            assert(tile.id.zoom_level < 100);
-            assert(tile.surface);
+    for (const auto& tile : new_tiles) {
+        // test for validity
+        assert(tile.id.zoom_level < 100);
+        assert(tile.surface);
 
-            // find empty spot and upload texture
-            const auto layer_index = m_gpu_array_helper.add_tile(tile.id);
-            m_dtm_textures->upload(*tile.surface, layer_index);
-        }
+        // find empty spot and upload texture
+        const auto layer_index = m_gpu_array_helper.add_tile(tile.id);
+        m_dtm_textures->upload(*tile.surface, layer_index);
     }
     update_gpu_id_map();
 }

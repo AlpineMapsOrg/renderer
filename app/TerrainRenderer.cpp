@@ -64,7 +64,7 @@ TerrainRenderer::TerrainRenderer()
     connect(m_camera_controller.get(), &CameraController::definition_changed, ctx->ortho_scheduler(),      &Scheduler::update_camera);
     connect(m_camera_controller.get(), &CameraController::definition_changed, m_glWindow.get(),            &gl_engine::Window::update_camera);
 
-    connect(ctx->geometry_scheduler(), &nucleus::tile::GeometryScheduler::gpu_quads_updated, gl_window_ptr, &gl_engine::Window::update_requested);
+    connect(ctx->geometry_scheduler(), &nucleus::tile::GeometryScheduler::gpu_tiles_updated, gl_window_ptr, &gl_engine::Window::update_requested);
     connect(ctx->ortho_scheduler(),    &nucleus::tile::TextureScheduler::gpu_tiles_updated,  gl_window_ptr, &gl_engine::Window::update_requested);
     connect(ctx->label_filter().get(), &Filter::filter_finished,                             gl_window_ptr, &gl_engine::Window::update_requested);
 

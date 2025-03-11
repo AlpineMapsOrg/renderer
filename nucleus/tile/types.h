@@ -104,10 +104,4 @@ struct GpuGeometryTile {
 };
 static_assert(NamedTile<GpuGeometryTile>);
 
-struct GpuGeometryQuad {
-    tile::Id id;
-    std::array<GpuGeometryTile, 4> tiles;
-};
-static_assert(NamedTile<GpuGeometryQuad>);
-
 } // namespace nucleus::tile::tile_types

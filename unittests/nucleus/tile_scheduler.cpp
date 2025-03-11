@@ -379,7 +379,7 @@ TEST_CASE("nucleus/tile/Scheduler")
     {
         auto scheduler = default_scheduler();
         scheduler->set_update_timeout(1 * timing_multiplicator);
-        QSignalSpy spy(scheduler.get(), &GeometryScheduler::gpu_quads_updated);
+        QSignalSpy spy(scheduler.get(), &GeometryScheduler::gpu_tiles_updated);
         scheduler->receive_quad(example_tile_quad_for(Id { 0, { 0, 0 } }));
         scheduler->receive_quad(example_tile_quad_for(Id { 1, { 1, 1 } }));
         scheduler->receive_quad(example_tile_quad_for(Id { 2, { 2, 2 } }));
@@ -387,11 +387,11 @@ TEST_CASE("nucleus/tile/Scheduler")
         scheduler->update_camera(nucleus::camera::stored_positions::stephansdom());
         spy.wait(2 * timing_multiplicator);
         REQUIRE(spy.size() == 1);
-        const auto gpu_quads = spy.constFirst().constFirst().value<std::vector<nucleus::tile::GpuGeometryQuad>>();
-        REQUIRE(gpu_quads.size() == 3);
-        CHECK(gpu_quads[0].id == Id { 0, { 0, 0 } }); // order does not matter
-        CHECK(gpu_quads[1].id == Id { 1, { 1, 1 } });
-        CHECK(gpu_quads[2].id == Id { 2, { 2, 2 } });
+        const auto gpu_tiles = spy.constFirst().constFirst().value<std::vector<nucleus::tile::GpuGeometryTile>>();
+        REQUIRE(gpu_tiles.size() == 3);
+        CHECK(gpu_tiles[0].id == Id { 0, { 0, 0 } }); // order does not matter
+        CHECK(gpu_tiles[1].id == Id { 1, { 1, 1 } });
+        CHECK(gpu_tiles[2].id == Id { 2, { 2, 2 } });
 
         scheduler->receive_quad(example_tile_quad_for(Id { 3, { 4, 5 } }));
         scheduler->receive_quad(example_tile_quad_for(Id { 5, { 17, 20 } }));
@@ -399,13 +399,13 @@ TEST_CASE("nucleus/tile/Scheduler")
         scheduler->receive_quad(example_tile_quad_for(Id { 7, { 69, 83 } }));
         spy.wait(2 * timing_multiplicator);
         REQUIRE(spy.size() == 2);
-        const auto new_gpu_quads = spy[1].front().value<std::vector<nucleus::tile::GpuGeometryQuad>>();
-        REQUIRE(new_gpu_quads.size() == 5);
-        CHECK(new_gpu_quads[0].id == Id { 3, { 4, 5 } }); // order does not matter
-        CHECK(new_gpu_quads[1].id == Id { 4, { 8, 10 } });
-        CHECK(new_gpu_quads[2].id == Id { 5, { 17, 20 } });
-        CHECK(new_gpu_quads[3].id == Id { 6, { 34, 41 } });
-        CHECK(new_gpu_quads[4].id == Id { 7, { 69, 83 } });
+        const auto new_gpu_tiles = spy[1].front().value<std::vector<nucleus::tile::GpuGeometryTile>>();
+        REQUIRE(new_gpu_tiles.size() == 5);
+        CHECK(new_gpu_tiles[0].id == Id { 3, { 4, 5 } }); // order does not matter
+        CHECK(new_gpu_tiles[1].id == Id { 4, { 8, 10 } });
+        CHECK(new_gpu_tiles[2].id == Id { 5, { 17, 20 } });
+        CHECK(new_gpu_tiles[3].id == Id { 6, { 34, 41 } });
+        CHECK(new_gpu_tiles[4].id == Id { 7, { 69, 83 } });
     }
 
     SECTION("tiles sent to the gpu are unpacked")
@@ -418,39 +418,30 @@ TEST_CASE("nucleus/tile/Scheduler")
         };
 
         auto scheduler = default_scheduler();
-        QSignalSpy spy(scheduler.get(), &GeometryScheduler::gpu_quads_updated);
+        QSignalSpy spy(scheduler.get(), &GeometryScheduler::gpu_tiles_updated);
         scheduler->receive_quad({
             example_tile_quad_for({ 0, { 0, 0 } }, 4),
         });
         scheduler->update_camera(nucleus::camera::stored_positions::stephansdom());
         scheduler->update_gpu_quads();
         REQUIRE(spy.size() == 1);
-        const auto gpu_quads = spy.constFirst().constFirst().value<std::vector<nucleus::tile::GpuGeometryQuad>>();
-        REQUIRE(gpu_quads.size() == 1);
-        CHECK(gpu_quads[0].id == Id { 0, { 0, 0 } });
-        CHECK(gpu_quads[0].tiles[0].id == Id { 1, { 0, 0 } });
-        CHECK(gpu_quads[0].tiles[1].id == Id { 1, { 1, 0 } });
-        CHECK(gpu_quads[0].tiles[2].id == Id { 1, { 0, 1 } });
-        CHECK(gpu_quads[0].tiles[3].id == Id { 1, { 1, 1 } });
+        const auto gpu_tiles = spy.constFirst().constFirst().value<std::vector<nucleus::tile::GpuGeometryTile>>();
+        REQUIRE(gpu_tiles.size() == 1);
+        CHECK(gpu_tiles[0].id == Id { 0, { 0, 0 } });
         const auto wsmax = nucleus::srs::tile_bounds({ 0, { 0, 0 } }).max.x; // world space max
         const auto wsmin = nucleus::srs::tile_bounds({ 0, { 0, 0 } }).min.x;
 
-        compare_bounds(gpu_quads[0].tiles[0].bounds, SrsAndHeightBounds { { wsmin, wsmin, 100 - 0.5 }, { 0, 0, 46367.813102 } });
-        compare_bounds(gpu_quads[0].tiles[1].bounds, SrsAndHeightBounds { { 0, wsmin, 100 - 0.5 }, { wsmax, 0, 46367.813102 } });
-        compare_bounds(gpu_quads[0].tiles[2].bounds, SrsAndHeightBounds { { wsmin, 0, 100 - 0.5 }, { 0, wsmax, 46367.813102 } });
-        compare_bounds(gpu_quads[0].tiles[3].bounds, SrsAndHeightBounds { { 0, 0, 100 - 0.5 }, { wsmax, wsmax, 46367.813102 } });
+        compare_bounds(gpu_tiles[0].bounds, SrsAndHeightBounds { { wsmin, wsmin, 100 - 0.5 }, { wsmax, wsmax, 46367.813102 } });
 
-        for (auto i = 0u; i < 4; ++i) {
-            REQUIRE(gpu_quads[0].tiles[i].surface);
-            CHECK(gpu_quads[0].tiles[i].surface->width() == 65);
-            CHECK(gpu_quads[0].tiles[i].surface->height() == 65);
-        }
+        REQUIRE(gpu_tiles[0].surface);
+        CHECK(gpu_tiles[0].surface->width() == 129);
+        CHECK(gpu_tiles[0].surface->height() == 129);
     }
 
     SECTION("incomplete tiles are replaced with default ones, when sending to gpu")
     {
         auto scheduler = default_scheduler();
-        QSignalSpy spy(scheduler.get(), &GeometryScheduler::gpu_quads_updated);
+        QSignalSpy spy(scheduler.get(), &GeometryScheduler::gpu_tiles_updated);
         auto quad = example_tile_quad_for({ 0, { 0, 0 } }, 4);
         quad.tiles[2].data->resize(0);
 
@@ -458,19 +449,17 @@ TEST_CASE("nucleus/tile/Scheduler")
         scheduler->update_camera(nucleus::camera::stored_positions::stephansdom());
         scheduler->update_gpu_quads();
         REQUIRE(spy.size() == 1);
-        const auto gpu_quads = spy.constFirst().constFirst().value<std::vector<nucleus::tile::GpuGeometryQuad>>();
-        REQUIRE(gpu_quads.size() == 1);
-        for (auto i = 0u; i < 3; ++i) {
-            REQUIRE(gpu_quads[0].tiles[i].surface);
-            CHECK(gpu_quads[0].tiles[i].surface->width() == 65);
-            CHECK(gpu_quads[0].tiles[i].surface->height() == 65);
-        }
+        const auto gpu_tiles = spy.constFirst().constFirst().value<std::vector<nucleus::tile::GpuGeometryTile>>();
+        REQUIRE(gpu_tiles.size() == 1);
+        REQUIRE(gpu_tiles[0].surface);
+        CHECK(gpu_tiles[0].surface->width() == 129);
+        CHECK(gpu_tiles[0].surface->height() == 129);
     }
 
     SECTION("gpu quads are updated when serving from cache")
     {
         auto scheduler = default_scheduler();
-        QSignalSpy spy(scheduler.get(), &GeometryScheduler::gpu_quads_updated);
+        QSignalSpy spy(scheduler.get(), &GeometryScheduler::gpu_tiles_updated);
         for (const auto& q : example_quads_for_steffl_and_gg())
             scheduler->receive_quad(q);
 
@@ -488,7 +477,7 @@ TEST_CASE("nucleus/tile/Scheduler")
         constexpr auto tested_gpu_quad_limit = 32;
         auto scheduler = default_scheduler();
         scheduler->set_gpu_quad_limit(tested_gpu_quad_limit);
-        QSignalSpy spy(scheduler.get(), &GeometryScheduler::gpu_quads_updated);
+        QSignalSpy spy(scheduler.get(), &GeometryScheduler::gpu_tiles_updated);
 
         std::unordered_set<Id, Id::Hasher> cached_tiles;
 
@@ -499,12 +488,12 @@ TEST_CASE("nucleus/tile/Scheduler")
 
             scheduler->update_gpu_quads();
             REQUIRE(spy.size() == 1);
-            const auto new_quads = spy[0][0].value<std::vector<nucleus::tile::GpuGeometryQuad>>();
+            const auto new_quads = spy[0][0].value<std::vector<nucleus::tile::GpuGeometryTile>>();
             const auto deleted_quads = spy[0][1].value<std::vector<Id>>();
             CHECK(new_quads.size() == tested_gpu_quad_limit);
             CHECK(deleted_quads.empty());
 
-            nucleus::tile::Cache<nucleus::tile::GpuGeometryQuad> test_cache;
+            nucleus::tile::Cache<nucleus::tile::GpuGeometryTile> test_cache;
             for (const auto& q : new_quads)
                 test_cache.insert(q);
 
@@ -526,7 +515,7 @@ TEST_CASE("nucleus/tile/Scheduler")
 
             scheduler->update_gpu_quads();
             REQUIRE(spy.size() == 2);
-            const auto new_quads = spy[1][0].value<std::vector<nucleus::tile::GpuGeometryQuad>>();
+            const auto new_quads = spy[1][0].value<std::vector<nucleus::tile::GpuGeometryTile>>();
             const auto deleted_quads = spy[1][1].value<std::vector<Id>>();
             CHECK(new_quads.size() == deleted_quads.size());
             CHECK(!new_quads.empty());
@@ -566,7 +555,7 @@ TEST_CASE("nucleus/tile/Scheduler")
 
             scheduler->update_gpu_quads();
             REQUIRE(spy.size() == 3);
-            const auto new_quads = spy[2][0].value<std::vector<nucleus::tile::GpuGeometryQuad>>();
+            const auto new_quads = spy[2][0].value<std::vector<nucleus::tile::GpuGeometryTile>>();
             const auto deleted_quads = spy[2][1].value<std::vector<Id>>();
             CHECK(new_quads.size() == deleted_quads.size());
             CHECK(!new_quads.empty());
@@ -605,7 +594,7 @@ TEST_CASE("nucleus/tile/Scheduler")
     {
         auto scheduler = default_scheduler();
         scheduler->set_gpu_quad_limit(17);
-        QSignalSpy spy(scheduler.get(), &GeometryScheduler::gpu_quads_updated);
+        QSignalSpy spy(scheduler.get(), &GeometryScheduler::gpu_tiles_updated);
         for (const auto& q : example_quads_for_steffl_and_gg())
             scheduler->receive_quad(q);
 
@@ -613,7 +602,7 @@ TEST_CASE("nucleus/tile/Scheduler")
         scheduler->update_camera(nucleus::camera::stored_positions::stephansdom());
         scheduler->update_gpu_quads();
         REQUIRE(spy.size() == 1);
-        const auto new_quads = spy[0][0].value<std::vector<nucleus::tile::GpuGeometryQuad>>();
+        const auto new_quads = spy[0][0].value<std::vector<nucleus::tile::GpuGeometryTile>>();
         for (const auto& tile : new_quads) {
             cached_tiles.insert(tile.id);
         }
