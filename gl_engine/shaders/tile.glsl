@@ -116,7 +116,7 @@ void compute_vertex(out vec3 position, out vec2 uv, out uvec3 tile_id, bool comp
 
     if (compute_normal) {
         // from here: https://stackoverflow.com/questions/6656358/calculating-normals-in-a-triangle-mesh/21660173#21660173
-        vec2 offset = vec2(1.0, 0.0) / (n_edge_vertices - 1);
+        vec2 offset = vec2(1.0, 0.0) / float(n_edge_vertices - 1);
 
         highp float hL = float(texture(height_tex_sampler, vec3(dtm_uv - offset.xy, dtm_texture_layer_f)).r);
         hL *= altitude_correction_factor;

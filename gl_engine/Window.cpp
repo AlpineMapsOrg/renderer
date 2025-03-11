@@ -90,11 +90,10 @@ Window::~Window()
 
 void Window::initialise_gpu()
 {
+#if defined(ALP_ENABLE_DEV_TOOLS)
     QOpenGLDebugLogger* logger = new QOpenGLDebugLogger(this);
     logger->initialize();
     connect(logger, &QOpenGLDebugLogger::messageLogged, [](const QOpenGLDebugMessage& message) {
-        if (message.id() == 1281)
-            qDebug() << "duuud " << message;
         if (message.id() == 131218)
             qDebug() << "during QOpenGLFunctions::glReadPixels" << message;
         else
@@ -103,6 +102,7 @@ void Window::initialise_gpu()
     logger->disableMessages(QList<GLuint>({ 131185 }));
     logger->disableMessages(QList<GLuint>({ 131218 }));
     logger->startLogging(QOpenGLDebugLogger::SynchronousLogging);
+#endif
 
     QOpenGLExtraFunctions* f = QOpenGLContext::currentContext()->extraFunctions();
     assert(f->hasOpenGLFeature(QOpenGLExtraFunctions::OpenGLFeature::MultipleRenderTargets));
