@@ -25,6 +25,7 @@
 uniform lowp int current_layer;
 
 void main() {
-    vec2 uv;
-    gl_Position = shadow.light_space_view_proj_matrix[current_layer] * vec4(camera_world_space_position(), 1);
+    vec3 position;
+    compute_vertex(position);
+    gl_Position = shadow.light_space_view_proj_matrix[current_layer] * vec4(position, 1);
 }

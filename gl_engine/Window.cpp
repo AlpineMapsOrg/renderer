@@ -312,11 +312,11 @@ void Window::paint(QOpenGLFramebufferObject* framebuffer)
     m_timer->stop_timer("draw_list");
 
     // DRAW SHADOWMAPS
-    // if (m_shared_config_ubo->data.m_csm_enabled) {
-    //     m_timer->start_timer("shadowmap");
-    //     m_shadowmapping->draw(m_context->tile_geometry(), tile_set, m_camera, m_shadow_config_ubo, m_shared_config_ubo);
-    //     m_timer->stop_timer("shadowmap");
-    // }
+    if (m_shared_config_ubo->data.m_csm_enabled) {
+        m_timer->start_timer("shadowmap");
+        m_shadowmapping->draw(m_context->tile_geometry(), draw_list, m_camera, m_shadow_config_ubo, m_shared_config_ubo);
+        m_timer->stop_timer("shadowmap");
+    }
 
     // DRAW GBUFFER
     m_gbuffer->bind();

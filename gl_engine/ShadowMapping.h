@@ -49,9 +49,9 @@ public:
     ShadowMapping(ShaderRegistry* shader_registry, DepthBufferClipType depth_buffer_clip_type);
 
     ~ShadowMapping();
-
+    
     void draw(TileGeometry* tile_manager,
-        const nucleus::tile::IdSet& draw_tileset,
+        std::vector<nucleus::tile::TileBounds> draw_tileset,
         const nucleus::camera::Definition& camera,
         std::shared_ptr<UniformBuffer<uboShadowConfig>> shadow_config,
         std::shared_ptr<UniformBuffer<uboSharedConfig>> shared_config);
