@@ -35,16 +35,17 @@ flat out highp uint instance_id;
 
 void main() {
     float n_quads_per_direction;
-    float quad_width;
+    float quad_size;
     float quad_height;
     float altitude_correction_factor;
-    var_pos_cws = camera_world_space_position(var_uv, n_quads_per_direction, quad_width, quad_height, altitude_correction_factor);
+    // var_pos_cws = camera_world_space_position(var_uv, n_quads_per_direction, quad_size, quad_height, altitude_correction_factor);
 
-    if (conf.normal_mode == 1u) {
-        var_normal = normal_by_finite_difference_method(var_uv, n_quads_per_direction, quad_width, quad_height, altitude_correction_factor);
-    }
+    // if (conf.normal_mode == 1u) {
+    //     var_normal = normal_by_finite_difference_method(var_uv, n_quads_per_direction, quad_size, quad_height, altitude_correction_factor);
+    // }
+    compute_vertex(var_pos_cws, var_uv, var_tile_id, conf.normal_mode == 1u, var_normal);
 
-    var_tile_id = unpack_tile_id(instance_tile_id_packed);
+    // var_tile_id = unpack_tile_id(instance_tile_id_packed);
     gl_Position = camera.view_proj_matrix * vec4(var_pos_cws, 1);
     instance_id = uint(gl_InstanceID);
 
