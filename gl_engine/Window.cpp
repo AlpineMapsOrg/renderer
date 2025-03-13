@@ -489,7 +489,6 @@ void Window::reload_shader() {
 
 void Window::set_permissible_screen_space_error(float new_error) {
     m_permissible_screen_space_error = new_error;
-    emit update_requested();
 }
 
 void Window::update_camera(const nucleus::camera::Definition& new_definition)
