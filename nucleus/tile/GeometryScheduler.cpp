@@ -36,66 +36,36 @@ GeometryScheduler::~GeometryScheduler() = default;
 
 void GeometryScheduler::transform_and_emit(const std::vector<tile::DataQuad>& new_quads, const std::vector<tile::Id>& deleted_quads)
 {
+    // Tested larger geometry tiles (129x129) and switched back to smaller ones (65x65) for performance reasons (smaller ones are twice as fast).
     std::vector<GpuGeometryTile> new_gpu_tiles;
-    new_gpu_tiles.reserve(new_gpu_tiles.size() * 4);
+    new_gpu_tiles.reserve(new_quads.size() * 4);
 
     for (const auto& quad : new_quads) {
-        GpuGeometryTile gpu_tile;
-        gpu_tile.id = quad.id;
-        gpu_tile.surface = std::make_shared<Raster<uint16_t>>(to_raster(quad, m_default_raster));
-        new_gpu_tiles.push_back(gpu_tile);
-    }
-
-    // we are merging the tiles. so deleted quads become deleted tiles.
-    emit gpu_tiles_updated(deleted_quads, new_gpu_tiles);
-}
-
-Raster<uint16_t> GeometryScheduler::to_raster(const tile::DataQuad& quad, const Raster<uint16_t>& default_raster)
-{
-    using namespace nucleus::utils;
-    assert(quad.n_tiles == 4);
-
-    std::array<Raster<uint16_t>, 4> quad_rasters;
-    std::array<tile::Id, 4> quad_ids;
-    for (const auto& tile : quad.tiles) {
-        const auto quad_index = unsigned(quad_position(tile.id));
-        quad_ids[quad_index] = tile.id;
-        if (tile.data->size()) {
-            // tile is available
-            auto height_raster = image_loader::rgba8(*tile.data).and_then(error::wrap_to_expected(conversion::to_u16raster)).value_or(default_raster);
-            quad_rasters[quad_index] = std::move(height_raster);
-        } else {
-            // tile is not available (use default tile)
-            quad_rasters[quad_index] = default_raster;
+        for (const auto& tile : quad.tiles) {
+            GpuGeometryTile gpu_tile;
+            gpu_tile.id = tile.id;
+            if (tile.data->size()) {
+                // tile is available
+                using namespace nucleus::utils;
+                gpu_tile.surface = std::make_shared<const nucleus::Raster<uint16_t>>(
+                    image_loader::rgba8(*tile.data).and_then(error::wrap_to_expected(conversion::to_u16raster)).value_or(m_default_raster));
+            } else {
+                // tile is not available (use default tile)
+                gpu_tile.surface = std::make_shared<const nucleus::Raster<uint16_t>>(m_default_raster);
+            }
+            new_gpu_tiles.push_back(gpu_tile);
         }
     }
 
-    const auto out_size = default_raster.width() * 2 - 1;
-    Raster<uint16_t> out(out_size);
-    const auto& tl = quad_rasters[unsigned(tile::QuadPosition::TopLeft)];
-    const auto& tr = quad_rasters[unsigned(tile::QuadPosition::TopRight)];
-    const auto& bl = quad_rasters[unsigned(tile::QuadPosition::BottomLeft)];
-    const auto& br = quad_rasters[unsigned(tile::QuadPosition::BottomRight)];
-    const auto middle = out_size / 2;
-
-    for (unsigned row = 0; row < middle; ++row) {
-        for (unsigned col = 0; col < middle; ++col) {
-            out.pixel({ col, row }) = tl.pixel({ col, row });
-        }
-        for (unsigned col = middle; col < out_size; ++col) {
-            out.pixel({ col, row }) = tr.pixel({ col - middle, row });
-        }
-    }
-    for (unsigned row = middle; row < out_size; ++row) {
-        for (unsigned col = 0; col < middle; ++col) {
-            out.pixel({ col, row }) = bl.pixel({ col, row - middle });
-        }
-        for (unsigned col = middle; col < out_size; ++col) {
-            out.pixel({ col, row }) = br.pixel({ col - middle, row - middle });
+    std::vector<tile::Id> deleted_tiles;
+    deleted_tiles.reserve(deleted_quads.size() * 4);
+    for (const auto& id : deleted_quads) {
+        for (const auto& chid : id.children()) {
+            deleted_tiles.push_back(chid);
         }
     }
 
-    return out;
+    emit gpu_tiles_updated(deleted_tiles, new_gpu_tiles);
 }
 
 } // namespace nucleus::tile

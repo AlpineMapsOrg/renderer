@@ -151,9 +151,9 @@ void RenderingContext::initialise()
 
     m->engine_context = std::make_shared<gl_engine::Context>();
     // standard tiles
-    m->engine_context->set_tile_geometry(std::make_shared<gl_engine::TileGeometry>(129));
+    m->engine_context->set_tile_geometry(std::make_shared<gl_engine::TileGeometry>(65));
     m->engine_context->set_ortho_layer(std::make_shared<gl_engine::TextureLayer>(512));
-    m->engine_context->tile_geometry()->set_tile_limit(512);
+    m->engine_context->tile_geometry()->set_tile_limit(2048);
     m->engine_context->tile_geometry()->set_aabb_decorator(m->aabb_decorator);
     m->engine_context->set_aabb_decorator(m->aabb_decorator);
     m->engine_context->ortho_layer()->set_tile_limit(512);
