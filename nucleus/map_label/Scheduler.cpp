@@ -22,10 +22,11 @@
 
 namespace nucleus::map_label {
 
-Scheduler::Scheduler(QObject* parent)
-    : nucleus::tile::Scheduler(256, parent)
+Scheduler::Scheduler(const nucleus::tile::Scheduler::Settings& settings)
+    : nucleus::tile::Scheduler(settings)
 {
 }
+
 Scheduler::~Scheduler() = default;
 
 void Scheduler::transform_and_emit(const std::vector<tile::DataQuad>& new_quads, const std::vector<tile::Id>& deleted_quads)

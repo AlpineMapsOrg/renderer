@@ -23,9 +23,9 @@
 
 namespace nucleus::tile {
 
-TextureScheduler::TextureScheduler(unsigned texture_resolution, QObject* parent)
-    : nucleus::tile::Scheduler(texture_resolution, parent)
-    , m_default_raster(glm::uvec2(texture_resolution), { 255, 255, 255, 255 })
+TextureScheduler::TextureScheduler(const Scheduler::Settings& settings)
+    : nucleus::tile::Scheduler(settings)
+    , m_default_raster(glm::uvec2(settings.tile_resolution_real), { 255, 255, 255, 255 })
 {
 }
 

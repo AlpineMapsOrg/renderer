@@ -596,7 +596,7 @@ Rectangle {
             ProgressBar {
                 Layout.fillWidth: true
                 from: 0
-                to: 512
+                to: 1024
                 value: map.tile_statistics.gpu.n_ortho_tiles_gpu
             }
             Label {

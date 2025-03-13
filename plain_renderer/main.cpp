@@ -138,9 +138,9 @@ int main(int argc, char** argv)
     director.check_in("ortho", ortho_scheduler.scheduler);
 
     auto context = std::make_shared<gl_engine::Context>();
-    context->set_tile_geometry(std::make_shared<gl_engine::TileGeometry>(129));
+    context->set_tile_geometry(std::make_shared<gl_engine::TileGeometry>(65));
     context->set_ortho_layer(std::make_shared<gl_engine::TextureLayer>(512));
-    context->tile_geometry()->set_tile_limit(512);
+    context->tile_geometry()->set_tile_limit(2048);
     context->tile_geometry()->set_aabb_decorator(decorator);
     context->ortho_layer()->set_tile_limit(512);
     context->set_aabb_decorator(decorator);

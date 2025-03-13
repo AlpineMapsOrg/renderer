@@ -86,16 +86,19 @@ RenderingContext::RenderingContext(QObject* parent)
     //                                           {"", "1", "2", "3", "4"}));
     m->aabb_decorator = nucleus::tile::setup::aabb_decorator();
     {
+        // clang-format off
         auto geometry_service = std::make_unique<TileLoadService>("https://alpinemaps.cg.tuwien.ac.at/tiles/alpine_png/", TilePattern::ZXY, ".png");
         m->geometry = nucleus::tile::setup::geometry_scheduler(std::move(geometry_service), m->aabb_decorator, m->scheduler_thread.get());
         m->scheduler_director->check_in("geometry", m->geometry.scheduler);
         m->data_querier = std::make_shared<DataQuerier>(&m->geometry.scheduler->ram_cache());
         auto ortho_service = std::make_unique<TileLoadService>("https://gataki.cg.tuwien.ac.at/raw/basemap/tiles/", TilePattern::ZYX_yPointingSouth, ".jpeg");
+        // auto ortho_service = std::make_unique<TileLoadService>("https://mapsneu.wien.gv.at/basemap/bmaporthofoto30cm/normal/google3857/", TilePattern::ZYX_yPointingSouth, ".jpeg");
         m->ortho_texture = nucleus::tile::setup::texture_scheduler(std::move(ortho_service), m->aabb_decorator, m->scheduler_thread.get());
         m->scheduler_director->check_in("ortho", m->ortho_texture.scheduler);
         auto map_label_service = std::make_unique<TileLoadService>("https://osm.cg.tuwien.ac.at/vector_tiles/poi_v1/", TilePattern::ZXY_yPointingSouth, "");
         m->map_label = nucleus::map_label::setup::scheduler(std::move(map_label_service), m->aabb_decorator, m->data_querier, m->scheduler_thread.get());
         m->scheduler_director->check_in("map_label", m->map_label.scheduler);
+        // clang-format on
     }
     m->map_label.scheduler->set_geometry_ram_cache(&m->geometry.scheduler->ram_cache());
     m->geometry.scheduler->set_dataquerier(m->data_querier);
@@ -156,7 +159,7 @@ void RenderingContext::initialise()
     m->engine_context->tile_geometry()->set_tile_limit(2048);
     m->engine_context->tile_geometry()->set_aabb_decorator(m->aabb_decorator);
     m->engine_context->set_aabb_decorator(m->aabb_decorator);
-    m->engine_context->ortho_layer()->set_tile_limit(512);
+    m->engine_context->ortho_layer()->set_tile_limit(1024);
 
     nucleus::utils::thread::async_call(m->geometry.scheduler.get(), [this]() { m->geometry.scheduler->set_enabled(true); });
     const auto texture_compression = gl_engine::Texture::compression_algorithm();

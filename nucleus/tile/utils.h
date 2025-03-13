@@ -229,7 +229,11 @@ namespace utils {
         return refine;
     }
 
-    inline auto refineFunctor(const nucleus::camera::Definition& camera, const AabbDecoratorPtr& aabb_decorator, float error_threshold_px, double tile_size = 256, unsigned int max_zoom_level = 18)
+    inline auto refineFunctor(const nucleus::camera::Definition& camera,
+        const AabbDecoratorPtr& aabb_decorator,
+        float error_threshold_px,
+        double tile_size = 256,
+        unsigned int max_zoom_level = 18)
     {
         constexpr auto sqrt2 = 1.414213562373095;
         const auto camera_frustum = camera.frustum();

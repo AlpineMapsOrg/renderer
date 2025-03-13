@@ -26,7 +26,7 @@ namespace nucleus::map_label {
 class Scheduler : public nucleus::tile::Scheduler {
     Q_OBJECT
 public:
-    explicit Scheduler(QObject* parent = nullptr);
+    explicit Scheduler(const nucleus::tile::Scheduler::Settings& settings);
     ~Scheduler() override;
 
     void set_geometry_ram_cache(nucleus::tile::MemoryCache* new_geometry_ram_cache);
