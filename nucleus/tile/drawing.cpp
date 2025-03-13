@@ -97,13 +97,10 @@ std::vector<TileBounds> cull(std::vector<TileBounds> tiles, const camera::Defini
 std::vector<TileBounds> sort(std::vector<TileBounds> list, const glm::dvec3& camera_position)
 {
     std::sort(list.begin(), list.end(), [&](const TileBounds& a, const TileBounds& b) {
-        const auto delta_a = (glm::vec2(a.bounds.min) + glm::vec2(a.bounds.max)) * 0.5f - glm::vec2(camera_position);
-        const auto delta_b = (glm::vec2(b.bounds.min) + glm::vec2(b.bounds.max)) * 0.5f - glm::vec2(camera_position);
-        const auto dist_a = glm::dot(delta_a, delta_a);
-        const auto dist_b = glm::dot(delta_b, delta_b);
+        using namespace radix::geometry;
 
-        // const auto dist_a = glm::distance(a.bounds.centre(), camera_position);
-        // const auto dist_b = glm::distance(b.bounds.centre(), camera_position);
+        const auto dist_a = distance_sq(Aabb2<float>(a.bounds), glm::vec<2, float>(camera_position));
+        const auto dist_b = distance_sq(Aabb2<float>(b.bounds), glm::vec<2, float>(camera_position));
         return dist_a < dist_b;
     });
     return list;
