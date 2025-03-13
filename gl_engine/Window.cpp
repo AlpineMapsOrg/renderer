@@ -303,7 +303,8 @@ void Window::paint(QOpenGLFramebufferObject* framebuffer)
     }
 
     const auto draw_list
-        = drawing::compute_bounds(drawing::limit(drawing::generate_list(m_camera, m_context->aabb_decorator(), 20, m_permissible_screen_space_error), 1024u), m_context->aabb_decorator());
+        = drawing::compute_bounds(drawing::limit(drawing::generate_list(m_camera, m_context->aabb_decorator(), 17, m_permissible_screen_space_error), 1024u),
+            m_context->aabb_decorator());
     const auto culled_draw_list = drawing::sort(drawing::cull(draw_list, m_camera), m_camera.position());
 
     tile_stats["n_geometry_tiles_gpu"] = m_context->tile_geometry()->tile_count();

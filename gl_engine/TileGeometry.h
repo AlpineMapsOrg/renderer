@@ -67,6 +67,8 @@ private:
     std::pair<std::unique_ptr<QOpenGLBuffer>, size_t> m_index_buffer;
     std::unique_ptr<QOpenGLBuffer> m_instance_bounds_buffer;
     std::unique_ptr<QOpenGLBuffer> m_instance_tile_id_buffer;
+    std::unique_ptr<QOpenGLBuffer> m_dtm_array_index_buffer;
+    std::unique_ptr<QOpenGLBuffer> m_dtm_zoom_buffer;
 
     nucleus::tile::GpuArrayHelper m_gpu_array_helper;
     nucleus::tile::utils::AabbDecoratorPtr m_aabb_decorator;

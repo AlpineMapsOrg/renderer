@@ -22,10 +22,11 @@
 
 uniform highp usampler2D instance_2_array_index_sampler;
 uniform highp usampler2D instance_2_zoom_sampler;
-uniform highp sampler2D instance_2_bounds_sampler;
 
 layout(location = 0) in highp vec4 instance_bounds;
 layout(location = 1) in highp uvec2 instance_tile_id_packed;
+layout(location = 2) in mediump uint dtm_array_index;
+layout(location = 3) in lowp uint dtm_zoom;
 
 uniform highp int n_edge_vertices;
 uniform mediump usampler2DArray height_tex_sampler;
@@ -45,7 +46,7 @@ void compute_vertex(out vec3 position, out vec2 uv, out uvec3 tile_id, bool comp
 
     highp uvec3 dtm_tile_id = tile_id;
     {
-        uint dtm_zoom = texelFetch(instance_2_zoom_sampler, ivec2(uint(gl_InstanceID), 0), 0).x;
+        // uint dtm_zoom = texelFetch(instance_2_zoom_sampler, ivec2(uint(gl_InstanceID), 0), 0).x;
         decrease_zoom_level_until(dtm_tile_id, dtm_zoom);
     }
     highp int n_quads_per_direction_int = (n_edge_vertices - 1) >> (tile_id.z - dtm_tile_id.z);
@@ -87,10 +88,10 @@ void compute_vertex(out vec3 position, out vec2 uv, out uvec3 tile_id, bool comp
     uv = vec2(float(col) / n_quads_per_direction, float(row) / n_quads_per_direction);
 
     highp vec2 dtm_uv = uv;
-    uint dtm_zoom = dtm_tile_id.z;
     dtm_tile_id = tile_id;
     decrease_zoom_level_until(dtm_tile_id, dtm_uv, dtm_zoom);
-    highp float dtm_texture_layer_f = float(texelFetch(instance_2_array_index_sampler, ivec2(uint(gl_InstanceID), 0), 0).x);
+    // highp float dtm_texture_layer_f = float(texelFetch(instance_2_array_index_sampler, ivec2(uint(gl_InstanceID), 0), 0).x);
+    highp float dtm_texture_layer_f = float(dtm_array_index);
     float altitude_tex = float(texture(height_tex_sampler, vec3(dtm_uv, dtm_texture_layer_f)).r);
 
     // Note: for higher zoom levels it would be enough to calculate the altitude_correction_factor on cpu
