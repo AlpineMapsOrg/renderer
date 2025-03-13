@@ -117,12 +117,15 @@ void Scheduler::set_network_reachability(QNetworkInformation::Reachability reach
 
 void Scheduler::update_gpu_quads()
 {
-    const auto should_refine = tile::utils::refineFunctor(m_current_camera, m_aabb_decorator, m_permissible_screen_space_error, m_tile_resolution);
+    const auto should_refine
+        = tile::utils::refineFunctor(m_current_camera, m_aabb_decorator, m_permissible_screen_space_error, m.tile_resolution, m.max_zoom_level);
     std::vector<DataQuad> gpu_candidates;
     m_ram_cache.visit([this, &gpu_candidates, &should_refine](const DataQuad& quad) {
         if (!should_refine(quad.id))
             return false;
         if (!is_ready_to_ship(quad))
+            return false;
+        if (quad.id.zoom_level > 10 && quad.network_info().status != NetworkInfo::Status::Good)
             return false;
         if (m_gpu_cached.contains(quad.id))
             return true;
