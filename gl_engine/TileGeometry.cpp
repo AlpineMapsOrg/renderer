@@ -89,21 +89,6 @@ void TileGeometry::init()
     m_dtm_textures->setParams(Texture::Filter::Nearest, Texture::Filter::Nearest);
     m_dtm_textures->allocate_array(m_texture_resolution, m_texture_resolution, unsigned(m_gpu_array_helper.size()));
 
-    m_dictionary_tile_id_texture = std::make_unique<Texture>(Texture::Target::_2d, Texture::Format::RG32UI);
-    m_dictionary_tile_id_texture->setParams(Texture::Filter::Nearest, Texture::Filter::Nearest);
-
-    m_dictionary_array_index_texture = std::make_unique<Texture>(Texture::Target::_2d, Texture::Format::R16UI);
-    m_dictionary_array_index_texture->setParams(Texture::Filter::Nearest, Texture::Filter::Nearest);
-
-    m_instance_2_zoom = std::make_unique<Texture>(Texture::Target::_2d, Texture::Format::R8UI);
-    m_instance_2_zoom->setParams(Texture::Filter::Nearest, Texture::Filter::Nearest);
-
-    m_instance_2_array_index = std::make_unique<Texture>(Texture::Target::_2d, Texture::Format::R16UI);
-    m_instance_2_array_index->setParams(Texture::Filter::Nearest, Texture::Filter::Nearest);
-
-    m_instance_2_dtm_bounds = std::make_unique<Texture>(Texture::Target::_2d, Texture::Format::RGBA32F);
-    m_instance_2_dtm_bounds->setParams(Texture::Filter::Nearest, Texture::Filter::Nearest);
-
     auto example_shader = std::make_shared<ShaderProgram>("tile.vert", "tile.frag");
     const auto instance_bounds_location = example_shader->attribute_location("instance_bounds");
     qDebug() << "attrib location for instance_bounds: " << instance_bounds_location;
@@ -140,8 +125,6 @@ void TileGeometry::init()
         f->glVertexAttribIPointer(GLuint(dtm_zoom_location), /*size*/ 1, /*type*/ GL_UNSIGNED_BYTE, /*stride*/ 0, nullptr);
         f->glVertexAttribDivisor(GLuint(dtm_zoom_location), 1);
     }
-
-    update_gpu_id_map();
 }
 
 void TileGeometry::draw(ShaderProgram* shader, const nucleus::camera::Definition& camera, const std::vector<nucleus::tile::TileBounds>& draw_list) const
@@ -149,12 +132,8 @@ void TileGeometry::draw(ShaderProgram* shader, const nucleus::camera::Definition
     QOpenGLExtraFunctions* f = QOpenGLContext::currentContext()->extraFunctions();
     shader->set_uniform("n_edge_vertices", m_texture_resolution);
     shader->set_uniform("height_tex_sampler", 1);
-    shader->set_uniform("height_tex_index_sampler", 3);
-    shader->set_uniform("height_tex_tile_id_sampler", 4);
 
     m_dtm_textures->bind(1);
-    m_dictionary_array_index_texture->bind(3);
-    m_dictionary_tile_id_texture->bind(4);
     m_vao->bind();
 
     std::vector<glm::vec4> bounds;
@@ -187,18 +166,6 @@ void TileGeometry::draw(ShaderProgram* shader, const nucleus::camera::Definition
             geom_aabb.max.y - camera.position().y };
     }
 
-    // m_instance_2_array_index->bind(5);
-    // shader->set_uniform("instance_2_array_index_sampler", 5);
-    // m_instance_2_array_index->upload(array_index_raster);
-
-    m_instance_2_zoom->bind(6);
-    shader->set_uniform("instance_2_zoom_sampler", 6);
-    m_instance_2_zoom->upload(zoom_level_raster);
-
-    m_instance_2_dtm_bounds->bind(9);
-    shader->set_uniform("instance_2_bounds_sampler", 9);
-    m_instance_2_dtm_bounds->upload(bounds_raster);
-
     m_instance_bounds_buffer->bind();
     m_instance_bounds_buffer->write(0, bounds.data(), GLsizei(bounds.size() * sizeof(decltype(bounds)::value_type)));
 
@@ -223,13 +190,6 @@ void TileGeometry::set_tile_limit(unsigned int new_limit)
     m_gpu_array_helper.set_tile_limit(new_limit);
 }
 
-void TileGeometry::update_gpu_id_map()
-{
-    auto [packed_ids, layers] = m_gpu_array_helper.generate_dictionary();
-    m_dictionary_array_index_texture->upload(layers);
-    m_dictionary_tile_id_texture->upload(packed_ids);
-}
-
 unsigned TileGeometry::tile_count() const { return m_gpu_array_helper.n_occupied(); }
 
 void TileGeometry::update_gpu_tiles(const std::vector<radix::tile::Id>& deleted_tiles, const std::vector<nucleus::tile::GpuGeometryTile>& new_tiles)
@@ -250,7 +210,6 @@ void TileGeometry::update_gpu_tiles(const std::vector<radix::tile::Id>& deleted_
         const auto layer_index = m_gpu_array_helper.add_tile(tile.id);
         m_dtm_textures->upload(*tile.surface, layer_index);
     }
-    update_gpu_id_map();
 }
 
 } // namespace gl_engine

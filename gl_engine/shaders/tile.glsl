@@ -20,9 +20,6 @@
 #include "tile_id.glsl"
 #line 22
 
-uniform highp usampler2D instance_2_array_index_sampler;
-uniform highp usampler2D instance_2_zoom_sampler;
-
 layout(location = 0) in highp vec4 instance_bounds;
 layout(location = 1) in highp uvec2 instance_tile_id_packed;
 layout(location = 2) in mediump uint dtm_array_index;

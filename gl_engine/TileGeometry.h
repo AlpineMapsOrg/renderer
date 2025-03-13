@@ -54,15 +54,9 @@ public slots:
     void set_tile_limit(unsigned new_limit);
 
 private:
-    void update_gpu_id_map();
     const unsigned m_texture_resolution;
 
     std::unique_ptr<Texture> m_dtm_textures;
-    std::unique_ptr<Texture> m_dictionary_tile_id_texture;
-    std::unique_ptr<Texture> m_dictionary_array_index_texture;
-    std::unique_ptr<Texture> m_instance_2_zoom;
-    std::unique_ptr<Texture> m_instance_2_array_index;
-    std::unique_ptr<Texture> m_instance_2_dtm_bounds;
     std::unique_ptr<QOpenGLVertexArrayObject> m_vao;
     std::pair<std::unique_ptr<QOpenGLBuffer>, size_t> m_index_buffer;
     std::unique_ptr<QOpenGLBuffer> m_instance_bounds_buffer;
