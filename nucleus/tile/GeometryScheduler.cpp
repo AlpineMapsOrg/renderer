@@ -26,9 +26,9 @@
 
 namespace nucleus::tile {
 
-GeometryScheduler::GeometryScheduler(const Settings& settings)
+GeometryScheduler::GeometryScheduler(const Settings& settings, unsigned int height_map_size)
     : nucleus::tile::Scheduler(settings)
-    , m_default_raster(glm::uvec2(settings.tile_resolution_real), uint16_t(0))
+    , m_default_raster(glm::uvec2(height_map_size), uint16_t(0))
 {
 }
 

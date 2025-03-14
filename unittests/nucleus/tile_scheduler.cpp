@@ -55,7 +55,7 @@ constexpr auto timing_multiplicator = 1;
 #endif
 std::unique_ptr<Scheduler> scheduler_with_true_heights()
 {
-    auto scheduler = std::make_unique<GeometryScheduler>();
+    auto scheduler = std::make_unique<GeometryScheduler>(Scheduler::Settings {}, 65);
     QSignalSpy spy(scheduler.get(), &Scheduler::quads_requested);
 
     QFile file(":/map/height_data.atb");
@@ -76,7 +76,7 @@ std::unique_ptr<Scheduler> scheduler_with_true_heights()
 
 std::unique_ptr<GeometryScheduler> default_scheduler()
 {
-    auto scheduler = std::make_unique<GeometryScheduler>();
+    auto scheduler = std::make_unique<GeometryScheduler>(Scheduler::Settings {}, 65);
     scheduler->set_name("test");
     QSignalSpy spy(scheduler.get(), &Scheduler::quads_requested);
     TileHeights h;
@@ -100,7 +100,7 @@ std::unique_ptr<Scheduler> scheduler_with_disk_cache()
 
 std::unique_ptr<Scheduler> scheduler_with_aabb()
 {
-    auto scheduler = std::make_unique<GeometryScheduler>();
+    auto scheduler = std::make_unique<GeometryScheduler>(Scheduler::Settings {}, 65);
     std::filesystem::remove_all(scheduler->disk_cache_path());
     TileHeights h;
     h.emplace({ 0, { 0, 0 } }, { 100, 4000 });
@@ -711,7 +711,7 @@ TEST_CASE("nucleus/tile/Scheduler")
     SECTION("persisting data does error on unnamed schedulers")
     {
 
-        auto scheduler = std::make_unique<GeometryScheduler>();
+        auto scheduler = std::make_unique<GeometryScheduler>(Scheduler::Settings {}, 65);
         CHECK(!scheduler->persist_tiles());
         CHECK(!scheduler->read_disk_cache());
     }

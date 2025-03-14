@@ -48,7 +48,6 @@ public:
         unsigned n_tiles_in_gpu_cache = 0;
     };
     struct Settings {
-        unsigned tile_resolution_real = 256;
         unsigned tile_resolution = 256;
         unsigned max_zoom_level = 18;
         unsigned gpu_quad_limit = 512;
@@ -91,8 +90,6 @@ public:
     
     void set_dataquerier(std::shared_ptr<DataQuerier> dataquerier);
     std::shared_ptr<DataQuerier> dataquerier() const;
-
-    [[nodiscard]] unsigned int tile_resolution() const;
 
     const utils::AabbDecoratorPtr& aabb_decorator() const;
 

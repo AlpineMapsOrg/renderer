@@ -287,8 +287,6 @@ std::vector<Id> Scheduler::missing_quads_for_current_camera() const
     return tiles;
 }
 
-unsigned int Scheduler::tile_resolution() const { return m.tile_resolution; }
-
 std::shared_ptr<nucleus::DataQuerier> Scheduler::dataquerier() const { return m_dataquerier; }
 
 void Scheduler::set_retirement_age_for_tile_cache(unsigned int new_retirement_age_for_tile_cache)
