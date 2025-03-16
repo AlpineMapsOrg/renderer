@@ -75,15 +75,40 @@ jobs:
       shell: bash
       run: |
         BUILD_DIR="${{ github.workspace }}/build"
-        APK_TARGET="app"
         echo "BUILD_DIR=$BUILD_DIR" >> $GITHUB_ENV
-        echo "APK_TARGET=$APK_TARGET" >> $GITHUB_ENV
-        
         echo "INSTALL_DIR=${{ github.workspace }}/install/${{ matrix.qtarch }}" >> $GITHUB_ENV
-        echo "APK_DIR=$BUILD_DIR/$APK_TARGET/android-build/build/outputs/apk/" >> $GITHUB_ENV
-        echo "ANDROID_BUILD_DIR=$BUILD_DIR/$APK_TARGET/android-build/" >> $GITHUB_ENV
-        echo "DEPLOYMENT_SETTINGS=$BUILD_DIR/$APK_TARGET/android-alpineapp-deployment-settings.json" >> $GITHUB_ENV
-      
+
+        # Adjust these paths as needed to match your actual structure
+        # from your local "find -iname" results
+        APK_DIR_ARR=(
+          "$BUILD_DIR/app/android-build-alpineapp/build/outputs/apk"
+          "$BUILD_DIR/plain_renderer/android-build-plain_renderer/build/outputs/apk"
+          "$BUILD_DIR/alp_external/radix/unittests/android-build-unittests_radix/build/outputs/apk"
+          "$BUILD_DIR/unittests/gl_engine/android-build-unittests_gl_engine/build/outputs/apk"
+          "$BUILD_DIR/unittests/nucleus/android-build-unittests_nucleus/build/outputs/apk"
+        )
+
+        ANDROID_BUILD_DIR_ARR=(
+          "$BUILD_DIR/app/android-build-alpineapp"
+          "$BUILD_DIR/plain_renderer/android-build-plain_renderer"
+          "$BUILD_DIR/alp_external/radix/unittests/android-build-unittests_radix"
+          "$BUILD_DIR/unittests/gl_engine/android-build-unittests_gl_engine"
+          "$BUILD_DIR/unittests/nucleus/android-build-unittests_nucleus"
+        )
+
+        DEPLOYMENT_SETTINGS_ARR=(
+          "$BUILD_DIR/app/android-alpineapp-deployment-settings.json"
+          "$BUILD_DIR/plain_renderer/android-plain_renderer-deployment-settings.json"
+          "$BUILD_DIR/alp_external/radix/unittests/android-unittests_radix-deployment-settings.json"
+          "$BUILD_DIR/unittests/gl_engine/android-unittests_gl_engine-deployment-settings.json"
+          "$BUILD_DIR/unittests/nucleus/android-unittests_nucleus-deployment-settings.json"
+        )
+
+        # Write them into the environment so other steps can parse them
+        echo "APK_DIR_ARR=${APK_DIR_ARR[*]}" >> $GITHUB_ENV
+        echo "ANDROID_BUILD_DIR_ARR=${ANDROID_BUILD_DIR_ARR[*]}" >> $GITHUB_ENV
+        echo "DEPLOYMENT_SETTINGS_ARR=${DEPLOYMENT_SETTINGS_ARR[*]}" >> $GITHUB_ENV
+
     - name: Configure
       env:
         CMAKE_PREFIX_PATH: ${{env.QT_ROOT_DIR}}/lib/cmake
@@ -104,19 +129,55 @@ jobs:
         secret_test: ${{ secrets.KEYSTOREPASSWORD }}
       if: env.secret_test != ''
       run: |
+        IFS=' ' read -ra apk_dir_arr <<< "${APK_DIR_ARR}"
+        IFS=' ' read -ra android_build_dir_arr <<< "${ANDROID_BUILD_DIR_ARR}"
+        IFS=' ' read -ra deployment_settings_arr <<< "${DEPLOYMENT_SETTINGS_ARR}"
+
         echo ${{ secrets.SIGNINGKEYBASE64 }} > release.keystore.base64
         base64 -d release.keystore.base64 > release.keystore
-        $QT_HOST_ROOT_DIR/bin/androiddeployqt --input $DEPLOYMENT_SETTINGS --output $ANDROID_BUILD_DIR --android-platform android-35 --gradle --release --sign release.keystore alpinemaps --storepass ${{ secrets.KEYSTOREPASSWORD }}
-        
+
+        for i in "${!apk_dir_arr[@]}"; do
+          this_deployment="${deployment_settings_arr[$i]}"
+          this_build_dir="${android_build_dir_arr[$i]}"
+          echo "Signing package at index ${i}"
+          $QT_HOST_ROOT_DIR/bin/androiddeployqt --input "$this_deployment" \
+                                                --output "$this_build_dir" \
+                                                --android-platform android-35 \
+                                                --gradle \
+                                                --release \
+                                                --sign release.keystore alpinemaps \
+                                                --storepass ${{ secrets.KEYSTOREPASSWORD }}
+        done
+
     - name: Signing Android packages with generated key
       env: 
         secret_test: ${{ secrets.KEYSTOREPASSWORD }}
       if: env.secret_test == ''
-      run: |
-        keytool -genkey -v -keystore release.keystore -alias alpinemaps -keyalg RSA -sigalg SHA1withRSA -keysize 2048 -validity 10000 -keypass asdfasdf -storepass asdfasdf -dname "CN=Franz, OU=IT, O=Furz, L=Rattenberg, ST=Tirol, C=AT"
-        $QT_HOST_ROOT_DIR/bin/androiddeployqt --input $DEPLOYMENT_SETTINGS --output $ANDROID_BUILD_DIR --android-platform android-35 --gradle --release --sign release.keystore alpinemaps --storepass asdfasdf
-        
-        README_PATH=$APK_DIR/read_me.txt
+      run: |      
+        IFS=' ' read -ra apk_dir_arr <<< "${APK_DIR_ARR}"
+        IFS=' ' read -ra android_build_dir_arr <<< "${ANDROID_BUILD_DIR_ARR}"
+        IFS=' ' read -ra deployment_settings_arr <<< "${DEPLOYMENT_SETTINGS_ARR}"
+
+        # Create an ephemeral debug keystore
+        keytool -genkey -v -keystore release.keystore -alias alpinemaps \
+          -keyalg RSA -sigalg SHA1withRSA -keysize 2048 -validity 10000 \
+          -keypass asdfasdf -storepass asdfasdf \
+          -dname "CN=Franz, OU=IT, O=Furz, L=Rattenberg, ST=Tirol, C=AT"
+
+        for i in "${!apk_dir_arr[@]}"; do
+          this_deployment="${deployment_settings_arr[$i]}"
+          this_build_dir="${android_build_dir_arr[$i]}"
+          echo "Signing package at index ${i} with generated key"
+          $QT_HOST_ROOT_DIR/bin/androiddeployqt --input "$this_deployment" \
+                                                --output "$this_build_dir" \
+                                                --android-platform android-35 \
+                                                --gradle \
+                                                --release \
+                                                --sign release.keystore alpinemaps \
+                                                --storepass asdfasdf
+        done
+
+        README_PATH="${apk_dir_arr[0]}/read_me.txt"
         echo "The apk was signed with a generated key which changes every time the apk is generated. This means, that android might refuse to install it if another apk with the same app was installed previously. You'll have to deinstall it. Doing so will delete all settings and cache." >> $README_PATH
         echo "" >> $README_PATH
         echo "In order to prevent that, you have to generate your own key or use our public key:" >> $README_PATH
@@ -135,8 +196,14 @@ jobs:
       
     - name: Copy android packages
       run: |
-        mkdir -p $INSTALL_DIR
-        cp -r $APK_DIR/* $INSTALL_DIR
+        mkdir -p "$INSTALL_DIR"
+        IFS=' ' read -ra apk_dir_arr <<< "${APK_DIR_ARR}"
+
+        for i in "${!apk_dir_arr[@]}"; do
+          # Copy everything under "build/outputs/apk" from each subproject
+          echo "Copying APKs from index ${i}: ${apk_dir_arr[$i]}"
+          cp -r "${apk_dir_arr[$i]}"/* "$INSTALL_DIR"
+        done
 
     - name: Create artifact
       uses: actions/upload-artifact@v4
