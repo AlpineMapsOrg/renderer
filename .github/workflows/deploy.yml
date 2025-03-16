@@ -50,7 +50,7 @@ jobs:
     - name: Set QT_HOST_ROOT_DIR
       run: echo "QT_HOST_ROOT_DIR=${QT_ROOT_DIR}" >> "$GITHUB_ENV"
 
-    - name: Install Qt crosscompile target version
+    - name: Install Qt crosscompile android_arm64_v8a version
       uses: jurplel/install-qt-action@v4
       with:
         aqtversion: '==3.1.*'
@@ -58,6 +58,19 @@ jobs:
         host: linux
         target: android
         arch: 'android_arm64_v8a'
+        dir: '${{github.workspace}}/qt'
+        install-deps: 'true'
+        modules: ${{ env.QT_MODULES }}
+        cache: true
+        
+    - name: Install Qt crosscompile android_armv7 version
+      uses: jurplel/install-qt-action@v4
+      with:
+        aqtversion: '==3.1.*'
+        version: ${{ env.QT_VERSION }}
+        host: linux
+        target: android
+        arch: 'android_armv7'
         dir: '${{github.workspace}}/qt'
         install-deps: 'true'
         modules: ${{ env.QT_MODULES }}
