@@ -122,8 +122,8 @@ TEST_CASE("nucleus/tile/TileLoadService")
 
     SECTION("download")
     {
-        // https://maps.wien.gv.at/basemap/bmaporthofoto30cm/normal/google3857/9/177/273.jpeg => should be a white tile
-        // https://maps.wien.gv.at/basemap/bmaporthofoto30cm/normal/google3857/9/179/272.jpeg => should show Tirol
+        // https://mapsneu.wien.gv.at/basemap/bmaporthofoto30cm/normal/google3857/9/177/273.jpeg => should be a white tile
+        // https://mapsneu.wien.gv.at/basemap/bmaporthofoto30cm/normal/google3857/9/179/272.jpeg => should show Tirol
         const auto white_tile_id = Id { .zoom_level = 9, .coords = { 273, 177 } };
         const auto tirol_tile_id = Id { .zoom_level = 9, .coords = { 272, 179 } };
         TileLoadService service("https://mapsneu.wien.gv.at/basemap/bmaporthofoto30cm/normal/google3857/",
