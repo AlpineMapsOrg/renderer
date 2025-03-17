@@ -118,94 +118,65 @@ jobs:
         echo "DEPLOYMENT_SETTINGS_ARR=${DEPLOYMENT_SETTINGS_ARR[*]}" >> $GITHUB_ENV
 
     - name: Configure
+      shell: bash
       env:
-        CMAKE_PREFIX_PATH: ${{env.QT_ROOT_DIR}}/lib/cmake
-      run: >
-        ${QT_ROOT_DIR}/bin/qt-cmake
-        -G Ninja
-        -B $BUILD_DIR
-        -DQT_HOST_PATH=${QT_HOST_ROOT_DIR}
-        -DCMAKE_BUILD_TYPE=Release
-        -DALP_ENABLE_ASSERTS=ON
-        -DQT_ANDROID_ABIS="arm64-v8a;armeabi-v7a"
-        -S ${{ github.workspace }}
+        # So we can detect if a real password was provided
+        SECRET_TEST: ${{ secrets.KEYSTOREPASSWORD }}
+        CMAKE_PREFIX_PATH: ${{ env.QT_ROOT_DIR }}/lib/cmake
+      run: |
+        # If we have a real KEYSTOREPASSWORD, decode the real keystore
+        if [ -n "${SECRET_TEST}" ]; then
+          echo "Using real key from secrets."
+          echo "${{ secrets.SIGNINGKEYBASE64 }}" > release.keystore.base64
+          base64 -d release.keystore.base64 > release.keystore
+          export KEYSTORE_PATH="$(pwd)/release.keystore"
+          export KEYSTORE_ALIAS="alpinemaps"
+          export ALP_ANDROID_KEYSTORE_STORE_PASS="${SECRET_TEST}"
+          export ALP_ANDROID_KEYSTORE_KEY_PASS="${SECRET_TEST}"
+        else
+          keytool -genkey -v -keystore release.keystore -alias alpinemaps \
+            -keyalg RSA -sigalg SHA1withRSA -keysize 2048 -validity 10000 \
+            -keypass asdfasdf -storepass asdfasdf \
+            -dname "CN=Franz, OU=IT, O=Furz, L=Rattenberg, ST=Tirol, C=AT"
+          export KEYSTORE_PATH="$(pwd)/release.keystore"
+          export KEYSTORE_ALIAS="alpinemaps"
+          export ALP_ANDROID_KEYSTORE_STORE_PASS="asdfasdf"
+          export ALP_ANDROID_KEYSTORE_KEY_PASS="asdfasdf"
+          
+          mkdir -p bundle_dir_arr[0]
+          README_PATH="${bundle_dir_arr[0]}/read_me.txt"
+          echo "The apk was signed with a generated ephemeral debug key which changes every time the apk is generated. This means, that android might refuse to install it if another apk with the same app was installed previously. You'll have to deinstall it. Doing so will delete all settings and cache." >> $README_PATH
+          echo "" >> $README_PATH
+          echo "In order to prevent that, you have to generate your own key or use our public key:" >> $README_PATH
+          echo "" >> $README_PATH
+          echo "To generate your own key:" >> $README_PATH
+          echo "- https://stackoverflow.com/questions/3997748/how-can-i-create-a-keystore. Use 'alpinemaps' as the alias!" >> $README_PATH
+          echo "- If you have the android dev setup ready in Qt Creator, you can also create the keystore via Projects (on the left side toolboar) -> Android Qt ... -> Build -> Build Steps -> Build Android APK -> Application Signature -> Create.  Use 'alpinemaps' as the alias!" >> $README_PATH
+          echo "- Then you have to encode the keystore in base64, e.g., on linux via 'base64 keystorefile > keystorefile.base64'" >> $README_PATH
+          echo "- Finally, create the following secrets in github -> your repo -> Settings -> Secrets and variables -> Actions -> Repository secrets" >> $README_PATH
+          echo "  SIGNINGKEYBASE64 = the base64 encoded key" >> $README_PATH
+          echo "  KEYSTOREPASSWORD = the password used to create the keystore" >> $README_PATH
+          echo "" >> $README_PATH
+          echo "To use our public key, go to https://github.com/AlpineMapsOrg/renderer/blob/main/creating_apk_keys.md" >> $README_PATH
+          echo "" >> $README_PATH
+          echo "Oh, and I hope this saved your day :)" >> $README_PATH
+        fi
+
+        # Now run qt-cmake, passing only the non-secret arguments
+        ${QT_ROOT_DIR}/bin/qt-cmake \
+          -G Ninja \
+          -B "${BUILD_DIR}" \
+          -DQT_HOST_PATH="${QT_HOST_ROOT_DIR}" \
+          -DCMAKE_BUILD_TYPE=Release \
+          -DALP_ENABLE_ASSERTS=ON \
+          -DQT_ANDROID_ABIS="arm64-v8a;armeabi-v7a" \
+          -DQT_ANDROID_KEYSTORE_PATH="${KEYSTORE_PATH}" \
+          -DQT_ANDROID_KEYSTORE_ALIAS="${KEYSTORE_ALIAS}" \
+          -S "${{ github.workspace }}"
 
     - name: Build
-      # Instead of building the default target, explicitly build the "aab" target.
       run: cmake --build $BUILD_DIR --target aab
 
-    - name: Signing Android package with common key
-      env: 
-        secret_test: ${{ secrets.KEYSTOREPASSWORD }}
-      if: env.secret_test != ''
-      run: |
-        IFS=' ' read -ra bundle_dir_arr <<< "${BUNDLE_DIR_ARR}"
-        IFS=' ' read -ra android_build_dir_arr <<< "${ANDROID_BUILD_DIR_ARR}"
-        IFS=' ' read -ra deployment_settings_arr <<< "${DEPLOYMENT_SETTINGS_ARR}"
-
-        echo ${{ secrets.SIGNINGKEYBASE64 }} > release.keystore.base64
-        base64 -d release.keystore.base64 > release.keystore
-
-        for i in "${!bundle_dir_arr[@]}"; do
-          this_deployment="${deployment_settings_arr[$i]}"
-          this_build_dir="${android_build_dir_arr[$i]}"
-          echo "Signing package at index ${i}"
-          $QT_HOST_ROOT_DIR/bin/androiddeployqt --input "$this_deployment" \
-                                                --output "$this_build_dir" \
-                                                --android-platform android-35 \
-                                                --gradle \
-                                                --release \
-                                                --aab \
-                                                --sign release.keystore alpinemaps \
-                                                --storepass ${{ secrets.KEYSTOREPASSWORD }}
-        done
-
-    - name: Signing Android packages with generated key
-      env: 
-        secret_test: ${{ secrets.KEYSTOREPASSWORD }}
-      if: env.secret_test == ''
-      run: |      
-        IFS=' ' read -ra bundle_dir_arr <<< "${BUNDLE_DIR_ARR}"
-        IFS=' ' read -ra android_build_dir_arr <<< "${ANDROID_BUILD_DIR_ARR}"
-        IFS=' ' read -ra deployment_settings_arr <<< "${DEPLOYMENT_SETTINGS_ARR}"
-
-        # Create an ephemeral debug keystore
-        keytool -genkey -v -keystore release.keystore -alias alpinemaps \
-          -keyalg RSA -sigalg SHA1withRSA -keysize 2048 -validity 10000 \
-          -keypass asdfasdf -storepass asdfasdf \
-          -dname "CN=Franz, OU=IT, O=Furz, L=Rattenberg, ST=Tirol, C=AT"
-
-        for i in "${!bundle_dir_arr[@]}"; do
-          this_deployment="${deployment_settings_arr[$i]}"
-          this_build_dir="${android_build_dir_arr[$i]}"
-          echo "Signing package at index ${i} with generated key"
-          $QT_HOST_ROOT_DIR/bin/androiddeployqt --input "$this_deployment" \
-                                                --output "$this_build_dir" \
-                                                --android-platform android-35 \
-                                                --gradle \
-                                                --release \
-                                                --aab \
-                                                --sign release.keystore alpinemaps \
-                                                --storepass asdfasdf
-        done
-
-        README_PATH="${bundle_dir_arr[0]}/read_me.txt"
-        echo "The apk was signed with a generated key which changes every time the apk is generated. This means, that android might refuse to install it if another apk with the same app was installed previously. You'll have to deinstall it. Doing so will delete all settings and cache." >> $README_PATH
-        echo "" >> $README_PATH
-        echo "In order to prevent that, you have to generate your own key or use our public key:" >> $README_PATH
-        echo "" >> $README_PATH
-        echo "To generate your own key:" >> $README_PATH
-        echo "- https://stackoverflow.com/questions/3997748/how-can-i-create-a-keystore. Use 'alpinemaps' as the alias!" >> $README_PATH
-        echo "- If you have the android dev setup ready in Qt Creator, you can also create the keystore via Projects (on the left side toolboar) -> Android Qt ... -> Build -> Build Steps -> Build Android APK -> Application Signature -> Create.  Use 'alpinemaps' as the alias!" >> $README_PATH
-        echo "- Then you have to encode the keystore in base64, e.g., on linux via 'base64 keystorefile > keystorefile.base64'" >> $README_PATH
-        echo "- Finally, create the following secrets in github -> your repo -> Settings -> Secrets and variables -> Actions -> Repository secrets" >> $README_PATH
-        echo "  SIGNINGKEYBASE64 = the base64 encoded key" >> $README_PATH
-        echo "  KEYSTOREPASSWORD = the password used to create the keystore" >> $README_PATH
-        echo "" >> $README_PATH
-        echo "To use our public key, go to https://github.com/AlpineMapsOrg/renderer/blob/main/creating_apk_keys.md" >> $README_PATH
-        echo "" >> $README_PATH
-        echo "Oh, and I hope this saved your day :)" >> $README_PATH
-      
     - name: Copy android packages
       run: |
         mkdir -p "$INSTALL_DIR"
