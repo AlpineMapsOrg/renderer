@@ -245,8 +245,10 @@ void Scheduler::set_name(const QString& new_name)
 tl::expected<void, QString> Scheduler::read_disk_cache()
 {
     if (m_name == "unnamed" || m_name.isEmpty()) {
-        return tl::unexpected(QString("Not reading tiles as the scheduler is not named, and this would cause name conflicts in the file system."
-                                      "Name your scheduler, e.g., by using the scheduler director."));
+        const auto error = QString("Not reading tiles as the scheduler is not named, and this would cause name conflicts in the file system."
+                                   "Name your scheduler, e.g., by using the scheduler director.");
+        qDebug() << error;
+        return tl::unexpected(error);
     }
     const auto r = m_ram_cache.read_from_disk(disk_cache_path());
     if (r.has_value()) {

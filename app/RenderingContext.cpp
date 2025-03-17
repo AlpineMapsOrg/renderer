@@ -99,6 +99,8 @@ RenderingContext::RenderingContext(QObject* parent)
         m->map_label = nucleus::map_label::setup::scheduler(std::move(map_label_service), m->aabb_decorator, m->data_querier, m->scheduler_thread.get());
         m->scheduler_director->check_in("map_label", m->map_label.scheduler);
         // clang-format on
+
+        m->scheduler_director->visit([](nucleus::tile::Scheduler* sch) { nucleus::utils::thread::async_call(sch, [sch]() { sch->read_disk_cache(); }); });
     }
     m->map_label.scheduler->set_geometry_ram_cache(&m->geometry.scheduler->ram_cache());
     m->geometry.scheduler->set_dataquerier(m->data_querier);

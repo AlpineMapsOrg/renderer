@@ -38,7 +38,7 @@ template <typename Function, typename = std::enable_if_t<std::is_void_v<std::inv
 }
 
 template <typename Function, typename = std::enable_if_t<!std::is_void_v<std::invoke_result_t<Function>>>>
-auto sync_call(QObject* context, Function fun) -> std::invoke_result_t<Function>
+auto sync_call(QObject* context, Function&& fun) -> std::invoke_result_t<Function>
 {
 
     auto connection_type = Qt::ConnectionType::BlockingQueuedConnection;
@@ -47,7 +47,7 @@ auto sync_call(QObject* context, Function fun) -> std::invoke_result_t<Function>
 
     using ReturnType = std::invoke_result_t<Function>;
     ReturnType retval = {};
-    QMetaObject::invokeMethod(context, fun, connection_type, &retval);
+    QMetaObject::invokeMethod(context, std::forward<Function>(fun), connection_type, &retval);
     return retval;
 }
 

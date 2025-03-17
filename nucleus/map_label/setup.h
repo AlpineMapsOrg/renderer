@@ -42,9 +42,7 @@ SchedulerHolder scheduler(TileLoadServicePtr tile_service, const tile::utils::Aa
     settings.max_zoom_level = 18;
     settings.tile_resolution = 256;
     settings.gpu_quad_limit = 512;
-    settings.ram_quad_limit = 12000;
     auto scheduler = std::make_unique<nucleus::map_label::Scheduler>(settings);
-    scheduler->read_disk_cache();
     scheduler->set_aabb_decorator(aabb_decorator);
     scheduler->set_dataquerier(data_querier);
 

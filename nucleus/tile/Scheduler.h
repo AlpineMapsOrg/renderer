@@ -51,7 +51,7 @@ public:
         unsigned tile_resolution = 256;
         unsigned max_zoom_level = 18;
         unsigned gpu_quad_limit = 512;
-        unsigned ram_quad_limit = 15000;
+        unsigned ram_quad_limit = 5000;
         unsigned retirement_age_for_tile_cache = 10u * 24u * 3600u * 1000u; // 10 days
         unsigned update_timeout = 100;
         unsigned purge_timeout = 1000;

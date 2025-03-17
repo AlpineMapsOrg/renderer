@@ -45,9 +45,7 @@ inline GeometrySchedulerHolder geometry_scheduler(TileLoadServicePtr tile_servic
     settings.max_zoom_level = 18;
     settings.tile_resolution = 256;
     settings.gpu_quad_limit = 512;
-    settings.ram_quad_limit = 12000;
     auto scheduler = std::make_unique<GeometryScheduler>(settings, 65);
-    scheduler->read_disk_cache();
     scheduler->set_aabb_decorator(aabb_decorator);
 
     {
@@ -101,9 +99,7 @@ inline TextureSchedulerHolder texture_scheduler(TileLoadServicePtr tile_service,
     settings.max_zoom_level = 20;
     settings.tile_resolution = 256;
     settings.gpu_quad_limit = 1024;
-    settings.ram_quad_limit = 12000;
     auto scheduler = std::make_unique<TextureScheduler>(settings);
-    scheduler->read_disk_cache();
     scheduler->set_aabb_decorator(aabb_decorator);
 
     {
