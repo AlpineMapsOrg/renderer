@@ -82,6 +82,16 @@ if (ALP_USE_LLVM_LINKER)
     string(APPEND CMAKE_EXE_LINKER_FLAGS " -fuse-ld=lld")
 endif()
 
+# for signing android packages in github actions without leaking the password via ps
+# (https://docs.github.com/en/actions/security-for-github-actions/security-guides/using-secrets-in-github-actions)
+if(DEFINED ENV{ALP_ANDROID_KEYSTORE_STORE_PASS})
+  set(QT_ANDROID_KEYSTORE_STORE_PASS $ENV{ALP_ANDROID_KEYSTORE_STORE_PASS} CACHE INTERNAL "")
+endif()
+if(DEFINED ENV{ALP_ANDROID_KEYSTORE_KEY_PASS})
+  set(QT_ANDROID_KEYSTORE_KEY_PASS $ENV{ALP_ANDROID_KEYSTORE_KEY_PASS} CACHE INTERNAL "")
+endif()
+
+
 ########################################### dependencies #################################################
 find_package(Qt6 REQUIRED COMPONENTS Core Gui OpenGL Network Quick QuickControls2 LinguistTools)
 qt_standard_project_setup(REQUIRES 6.8)
