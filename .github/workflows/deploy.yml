@@ -89,7 +89,7 @@ jobs:
         echo "INSTALL_DIR=${{ github.workspace }}/install/android" >> $GITHUB_ENV
 
         BUNDLE_DIR_ARR=(
-          "$BUILD_DIR/app/android-build-alpineapp/build/outputs/bundle"
+          "$BUILD_DIR/app/android-build-alpineapp/build/outputs/bundle/release/"
           "$BUILD_DIR/plain_renderer/android-build-plain_renderer/build/outputs/bundle"
           "$BUILD_DIR/alp_external/radix/unittests/android-build-unittests_radix/build/outputs/bundle"
           "$BUILD_DIR/unittests/gl_engine/android-build-unittests_gl_engine/build/outputs/bundle"
@@ -180,13 +180,7 @@ jobs:
     - name: Copy android packages
       run: |
         mkdir -p "$INSTALL_DIR"
-        IFS=' ' read -ra bundle_dir_arr <<< "${BUNDLE_DIR_ARR}"
-
-        for i in "${!bundle_dir_arr[@]}"; do
-          # Copy everything under "build/outputs/bundle" from each subproject
-          echo "Copying AABs from index ${i}: ${bundle_dir_arr[$i]}"
-          cp -r "${bundle_dir_arr[$i]}"/* "$INSTALL_DIR"
-        done
+        find "$BUILD_DIR" -iname "*.aab" -print0 | xargs -0 -n 1 -I {} cp {} "$INSTALL_DIR"
 
     - name: Create artifact
       uses: actions/upload-artifact@v4
