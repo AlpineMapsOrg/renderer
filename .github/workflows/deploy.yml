@@ -88,14 +88,6 @@ jobs:
 
         echo "INSTALL_DIR=${{ github.workspace }}/install/android" >> $GITHUB_ENV
 
-        BUNDLE_DIR_ARR=(
-          "$BUILD_DIR/app/android-build-alpineapp/build/outputs/bundle/release/"
-          "$BUILD_DIR/plain_renderer/android-build-plain_renderer/build/outputs/bundle"
-          "$BUILD_DIR/alp_external/radix/unittests/android-build-unittests_radix/build/outputs/bundle"
-          "$BUILD_DIR/unittests/gl_engine/android-build-unittests_gl_engine/build/outputs/bundle"
-          "$BUILD_DIR/unittests/nucleus/android-build-unittests_nucleus/build/outputs/bundle"
-        )
-
         ANDROID_BUILD_DIR_ARR=(
           "$BUILD_DIR/app/android-build-alpineapp"
           "$BUILD_DIR/plain_renderer/android-build-plain_renderer"
@@ -112,8 +104,6 @@ jobs:
           "$BUILD_DIR/unittests/nucleus/android-unittests_nucleus-deployment-settings.json"
         )
 
-        # Write them into the environment so other steps can parse them
-        echo "BUNDLE_DIR_ARR=${BUNDLE_DIR_ARR[*]}" >> $GITHUB_ENV
         echo "ANDROID_BUILD_DIR_ARR=${ANDROID_BUILD_DIR_ARR[*]}" >> $GITHUB_ENV
         echo "DEPLOYMENT_SETTINGS_ARR=${DEPLOYMENT_SETTINGS_ARR[*]}" >> $GITHUB_ENV
 
