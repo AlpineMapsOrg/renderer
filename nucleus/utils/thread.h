@@ -20,6 +20,7 @@
 
 #include <QMetaObject>
 #include <QObject>
+#include <QThread>
 
 namespace nucleus::utils::thread {
 
@@ -30,15 +31,23 @@ template <typename Function, typename = std::enable_if_t<std::is_void_v<std::inv
 
 template <typename Function, typename = std::enable_if_t<std::is_void_v<std::invoke_result_t<Function>>>> void sync_call(QObject* context, Function fun)
 {
-    QMetaObject::invokeMethod(context, fun, Qt::ConnectionType::BlockingQueuedConnection);
+    auto connection_type = Qt::ConnectionType::BlockingQueuedConnection;
+    if (context->thread() == QThread::currentThread())
+        connection_type = Qt::ConnectionType::DirectConnection;
+    QMetaObject::invokeMethod(context, fun, connection_type);
 }
 
 template <typename Function, typename = std::enable_if_t<!std::is_void_v<std::invoke_result_t<Function>>>>
 auto sync_call(QObject* context, Function fun) -> std::invoke_result_t<Function>
 {
+
+    auto connection_type = Qt::ConnectionType::BlockingQueuedConnection;
+    if (context->thread() == QThread::currentThread())
+        connection_type = Qt::ConnectionType::DirectConnection;
+
     using ReturnType = std::invoke_result_t<Function>;
     ReturnType retval = {};
-    QMetaObject::invokeMethod(context, fun, Qt::ConnectionType::BlockingQueuedConnection, &retval);
+    QMetaObject::invokeMethod(context, fun, connection_type, &retval);
     return retval;
 }
 
