@@ -159,6 +159,7 @@ jobs:
           -DQT_HOST_PATH="${QT_HOST_ROOT_DIR}" \
           -DCMAKE_BUILD_TYPE=Release \
           -DALP_ENABLE_ASSERTS=ON \
+          -DQT_USE_TARGET_ANDROID_BUILD_DIR:BOOL=ON \
           -DQT_ANDROID_ABIS="arm64-v8a;armeabi-v7a" \
           -DQT_ANDROID_KEYSTORE_PATH="${KEYSTORE_PATH}" \
           -DQT_ANDROID_KEYSTORE_ALIAS="${KEYSTORE_ALIAS}" \
@@ -171,7 +172,14 @@ jobs:
       run: |
         mkdir -p "$INSTALL_DIR"
         cd "$BUILD_DIR" || exit 1
-        find . -iname "*.aab" -exec cp --parents {} "$INSTALL_DIR" \;
+        
+        # find . -iwholename "*/outputs/bundle/release/*.aab" -exec cp --parents {} "$INSTALL_DIR" \;
+        
+        while IFS= read -r -d '' file; do
+          base="$(basename "$file")"
+          new_name="$(echo "$base" | sed -E 's/^android-build-(.*)-release\.aab$/\1.aab/')"
+          cp "$file" "$INSTALL_DIR/$new_name"
+        done < <(find . -iwholename "*/outputs/bundle/release/android-build-*.aab" -print0)
 
     - name: Create artifact
       uses: actions/upload-artifact@v4
