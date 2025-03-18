@@ -110,19 +110,19 @@ jobs:
           echo "Using real key from secrets."
           echo "${{ secrets.SIGNINGKEYBASE64 }}" > release.keystore.base64
           base64 -d release.keystore.base64 > release.keystore
-          export KEYSTORE_PATH="$(pwd)/release.keystore"
-          export KEYSTORE_ALIAS="alpinemaps"
-          export ALP_ANDROID_KEYSTORE_STORE_PASS="${SECRET_TEST}"
-          export ALP_ANDROID_KEYSTORE_KEY_PASS="${SECRET_TEST}"
+          export QT_ANDROID_KEYSTORE_PATH="$(pwd)/release.keystore"
+          export QT_ANDROID_KEYSTORE_ALIAS="alpinemaps"
+          export QT_ANDROID_KEYSTORE_STORE_PASS="${SECRET_TEST}"
+          export QT_ANDROID_KEYSTORE_KEY_PASS="${SECRET_TEST}"
         else
           keytool -genkey -v -keystore release.keystore -alias alpinemaps \
             -keyalg RSA -sigalg SHA1withRSA -keysize 2048 -validity 10000 \
             -keypass asdfasdf -storepass asdfasdf \
             -dname "CN=Franz, OU=IT, O=Furz, L=Rattenberg, ST=Tirol, C=AT"
-          export KEYSTORE_PATH="$(pwd)/release.keystore"
-          export KEYSTORE_ALIAS="alpinemaps"
-          export ALP_ANDROID_KEYSTORE_STORE_PASS="asdfasdf"
-          export ALP_ANDROID_KEYSTORE_KEY_PASS="asdfasdf"
+          export QT_ANDROID_KEYSTORE_PATH="$(pwd)/release.keystore"
+          export QT_ANDROID_KEYSTORE_ALIAS="alpinemaps"
+          export QT_ANDROID_KEYSTORE_STORE_PASS="asdfasdf"
+          export QT_ANDROID_KEYSTORE_KEY_PASS="asdfasdf"
           
           mkdir -p "$INSTALL_DIR"
           README_PATH="$INSTALL_DIR/read_me.txt"
@@ -150,18 +150,19 @@ jobs:
           -DQT_HOST_PATH="${QT_HOST_ROOT_DIR}" \
           -DCMAKE_BUILD_TYPE=Release \
           -DALP_ENABLE_ASSERTS=ON \
+          -DQT_ANDROID_SIGN_APK \
           -DQT_USE_TARGET_ANDROID_BUILD_DIR:BOOL=ON \
-          -DQT_ANDROID_KEYSTORE_PATH="${KEYSTORE_PATH}" \
-          -DQT_ANDROID_KEYSTORE_ALIAS="${KEYSTORE_ALIAS}" \
           -S "${{ github.workspace }}"
 
     - name: Build
-      run: cmake --build $BUILD_DIR
+      run: cmake --build $BUILD_DIR --target apk
 
     - name: Copy android packages
       run: |
         mkdir -p "$INSTALL_DIR"
         cd "$BUILD_DIR" || exit 1
+        
+        find . -iname "*.apk"
         
         while IFS= read -r -d '' file; do
           base="$(basename "$file")"
