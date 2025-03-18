@@ -167,7 +167,7 @@ jobs:
           base="$(basename "$file")"
           new_name="$(echo "$base" | sed -E 's/^android-build-(.*)-release-signed\.apk$/\1.apk/')"
           cp "$file" "$INSTALL_DIR/arm64-v8a-apk/$new_name"
-        done < <(find . -iwholename "*/outputs/apk/release/android-build-*.apk" -print0)
+        done < <(find . -iwholename "*/outputs/apk/release/android-build-*-release-signed.apk" -print0)
 
     - name: Create artifact
       uses: actions/upload-artifact@v4
