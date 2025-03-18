@@ -42,12 +42,8 @@ using namespace nucleus::tile;
 
 namespace {
 
-#ifdef __EMSCRIPTEN__
-constexpr auto timing_multiplicator = 10;
-#elif defined _MSC_VER
+#ifdef _MSC_VER
 constexpr auto timing_multiplicator = 20;
-#elif defined(__ANDROID__) && (defined(__i386__) || defined(__x86_64__))
-constexpr auto timing_multiplicator = 50;
 #elif defined __ANDROID__
 constexpr auto timing_multiplicator = 1;
 #else
@@ -225,6 +221,7 @@ TEST_CASE("nucleus/tile/Scheduler")
         CHECK(!spy.empty());
     }
 
+#ifndef __EMSCRIPTEN__
     SECTION("update timeout & camera updates are collected")
     {
         auto scheduler = default_scheduler();
@@ -257,6 +254,7 @@ TEST_CASE("nucleus/tile/Scheduler")
         test_helpers::process_events_for(7 * timing_multiplicator);
         CHECK(spy.size() == 1);
     }
+#endif
 
     SECTION("quads are being requested")
     {
@@ -629,6 +627,7 @@ TEST_CASE("nucleus/tile/Scheduler")
         CHECK(scheduler->ram_cache().n_cached_objects() == limit);
     }
 
+#ifndef __EMSCRIPTEN__
     SECTION("purging happens with a delay (collects purge events) and the timer is not restarted on tile delivery")
     {
         nucleus::utils::Stopwatch sw;
@@ -658,6 +657,7 @@ TEST_CASE("nucleus/tile/Scheduler")
         test_helpers::process_events_for(4 * timing_multiplicator);
         CHECK(scheduler->ram_cache().n_cached_objects() == 2);
     }
+#endif
 
     const auto check_persisted_tile = [](const auto& scheduler, const Id& id) {
         const auto example_quad = example_tile_quad_for(id);

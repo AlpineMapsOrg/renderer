@@ -28,7 +28,7 @@
 #if !(defined(__ANDROID__) && (defined(__i386__) || defined(__x86_64__)))
 
 #ifdef __EMSCRIPTEN__
-constexpr auto timing_multiplicator = 200;
+constexpr auto timing_multiplicator = 50;
 #elif defined __ANDROID__
 constexpr auto timing_multiplicator = 50;
 #elif defined _MSC_VER
