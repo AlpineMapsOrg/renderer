@@ -150,7 +150,6 @@ jobs:
           -DQT_HOST_PATH="${QT_HOST_ROOT_DIR}" \
           -DCMAKE_BUILD_TYPE=Release \
           -DALP_ENABLE_ASSERTS=ON \
-          -DQT_ANDROID_SIGN_APK \
           -DQT_USE_TARGET_ANDROID_BUILD_DIR:BOOL=ON \
           -S "${{ github.workspace }}"
 
