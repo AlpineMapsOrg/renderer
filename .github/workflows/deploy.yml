@@ -21,6 +21,10 @@ jobs:
     env:
       QT_VERSION: '6.8.1'
       QT_MODULES: 'qtcharts qtpositioning'
+    strategy:
+      fail-fast: false
+      matrix:
+        qtarch: [android_arm64_v8a, android_armv7]
 
     steps:
     - name: Install dependencies
@@ -50,27 +54,14 @@ jobs:
     - name: Set QT_HOST_ROOT_DIR
       run: echo "QT_HOST_ROOT_DIR=${QT_ROOT_DIR}" >> "$GITHUB_ENV"
 
-    - name: Install Qt crosscompile android_arm64_v8a version
+    - name: Install Qt crosscompile android version
       uses: jurplel/install-qt-action@v4
       with:
         aqtversion: '==3.1.*'
         version: ${{ env.QT_VERSION }}
         host: linux
         target: android
-        arch: 'android_arm64_v8a'
-        dir: '${{github.workspace}}/qt'
-        install-deps: 'true'
-        modules: ${{ env.QT_MODULES }}
-        cache: true
-        
-    - name: Install Qt crosscompile android_armv7 version
-      uses: jurplel/install-qt-action@v4
-      with:
-        aqtversion: '==3.1.*'
-        version: ${{ env.QT_VERSION }}
-        host: linux
-        target: android
-        arch: 'android_armv7'
+        arch: ${{ matrix.qtarch }}
         dir: '${{github.workspace}}/qt'
         install-deps: 'true'
         modules: ${{ env.QT_MODULES }}
@@ -86,7 +77,7 @@ jobs:
         BUILD_DIR="${{ github.workspace }}/build"
         echo "BUILD_DIR=$BUILD_DIR" >> $GITHUB_ENV
 
-        echo "INSTALL_DIR=${{ github.workspace }}/install/android" >> $GITHUB_ENV
+        echo "INSTALL_DIR=${{ github.workspace }}/install/${{ matrix.qtarch }}" >> $GITHUB_ENV
 
         ANDROID_BUILD_DIR_ARR=(
           "$BUILD_DIR/app/android-build-alpineapp"
@@ -160,26 +151,23 @@ jobs:
           -DCMAKE_BUILD_TYPE=Release \
           -DALP_ENABLE_ASSERTS=ON \
           -DQT_USE_TARGET_ANDROID_BUILD_DIR:BOOL=ON \
-          -DQT_ANDROID_ABIS="arm64-v8a;armeabi-v7a" \
           -DQT_ANDROID_KEYSTORE_PATH="${KEYSTORE_PATH}" \
           -DQT_ANDROID_KEYSTORE_ALIAS="${KEYSTORE_ALIAS}" \
           -S "${{ github.workspace }}"
 
     - name: Build
-      run: cmake --build $BUILD_DIR --target aab
+      run: cmake --build $BUILD_DIR
 
     - name: Copy android packages
       run: |
         mkdir -p "$INSTALL_DIR"
         cd "$BUILD_DIR" || exit 1
         
-        # find . -iwholename "*/outputs/bundle/release/*.aab" -exec cp --parents {} "$INSTALL_DIR" \;
-        
         while IFS= read -r -d '' file; do
           base="$(basename "$file")"
-          new_name="$(echo "$base" | sed -E 's/^android-build-(.*)-release\.aab$/\1.aab/')"
-          cp "$file" "$INSTALL_DIR/$new_name"
-        done < <(find . -iwholename "*/outputs/bundle/release/android-build-*.aab" -print0)
+          new_name="$(echo "$base" | sed -E 's/^android-build-(.*)-release-signed\.apk$/\1.apk/')"
+          cp "$file" "$INSTALL_DIR/arm64-v8a-apk/$new_name"
+        done < <(find . -iwholename "*/outputs/apk/release/android-build-*.apk" -print0)
 
     - name: Create artifact
       uses: actions/upload-artifact@v4
