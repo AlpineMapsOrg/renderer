@@ -159,15 +159,8 @@ jobs:
     - name: Copy android packages
       run: |
         mkdir -p "$INSTALL_DIR"
-        cd "$BUILD_DIR" || exit 1
-        
-        find . -iname "*.apk"
-        
-        while IFS= read -r -d '' file; do
-          base="$(basename "$file")"
-          new_name="$(echo "$base" | sed -E 's/^android-build-(.*)-release-signed\.apk$/\1.apk/')"
-          cp "$file" "$INSTALL_DIR/arm64-v8a-apk/$new_name"
-        done < <(find . -iwholename "*/outputs/apk/release/android-build-*-release-signed.apk" -print0)
+        find "$BUILD_DIR" -iname "*.apk"
+        find "$BUILD_DIR" -type f -iname "*.apk" ! -name "android-build-*.apk" -exec cp {} "$INSTALL_DIR"
 
     - name: Create artifact
       uses: actions/upload-artifact@v4
