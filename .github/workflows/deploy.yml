@@ -166,8 +166,7 @@ jobs:
       run: |
         mkdir -p "$INSTALL_DIR"
         find "$BUILD_DIR" -iname "*.apk"
-        find "$BUILD_DIR" -type f -iname "*.apk" ! -name "android-build-*unsigned.apk" -exec cp {} "$INSTALL_DIR" \;
-        # find "$BUILD_DIR" -type f -iname "*.apk" ! -name "android-build-*.apk" -exec cp {} "$INSTALL_DIR" \;
+        find "$BUILD_DIR" -type f -iname "*.apk" ! -name "android-build-*.apk" -exec cp {} "$INSTALL_DIR" \;
 
     - name: Create artifact
       uses: actions/upload-artifact@v4
