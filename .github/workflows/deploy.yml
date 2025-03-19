@@ -98,7 +98,7 @@ jobs:
         echo "ANDROID_BUILD_DIR_ARR=${ANDROID_BUILD_DIR_ARR[*]}" >> $GITHUB_ENV
         echo "DEPLOYMENT_SETTINGS_ARR=${DEPLOYMENT_SETTINGS_ARR[*]}" >> $GITHUB_ENV
 
-    - name: Configure
+    - name: Setup signing keys
       shell: bash
       env:
         # So we can detect if a real password was provided
@@ -110,19 +110,19 @@ jobs:
           echo "Using real key from secrets."
           echo "${{ secrets.SIGNINGKEYBASE64 }}" > release.keystore.base64
           base64 -d release.keystore.base64 > release.keystore
-          export QT_ANDROID_KEYSTORE_PATH="$(pwd)/release.keystore"
-          export QT_ANDROID_KEYSTORE_ALIAS="alpinemaps"
-          export QT_ANDROID_KEYSTORE_STORE_PASS="${SECRET_TEST}"
-          export QT_ANDROID_KEYSTORE_KEY_PASS="${SECRET_TEST}"
+          echo "QT_ANDROID_KEYSTORE_PATH=$(pwd)/release.keystore" >> "$GITHUB_ENV"
+          echo "QT_ANDROID_KEYSTORE_ALIAS=alpinemaps" >> "$GITHUB_ENV"
+          echo "QT_ANDROID_KEYSTORE_STORE_PASS=${SECRET_TEST}" >> "$GITHUB_ENV"
+          echo "QT_ANDROID_KEYSTORE_KEY_PASS=${SECRET_TEST}" >> "$GITHUB_ENV"
         else
           keytool -genkey -v -keystore release.keystore -alias alpinemaps \
             -keyalg RSA -sigalg SHA1withRSA -keysize 2048 -validity 10000 \
             -keypass asdfasdf -storepass asdfasdf \
             -dname "CN=Franz, OU=IT, O=Furz, L=Rattenberg, ST=Tirol, C=AT"
-          export QT_ANDROID_KEYSTORE_PATH="$(pwd)/release.keystore"
-          export QT_ANDROID_KEYSTORE_ALIAS="alpinemaps"
-          export QT_ANDROID_KEYSTORE_STORE_PASS="asdfasdf"
-          export QT_ANDROID_KEYSTORE_KEY_PASS="asdfasdf"
+          echo "QT_ANDROID_KEYSTORE_PATH=$(pwd)/release.keystore" >> "$GITHUB_ENV"
+          echo "QT_ANDROID_KEYSTORE_ALIAS=alpinemaps" >> "$GITHUB_ENV"
+          echo "QT_ANDROID_KEYSTORE_STORE_PASS=asdfasdf" >> "$GITHUB_ENV"
+          echo "QT_ANDROID_KEYSTORE_KEY_PASS=asdfasdf" >> "$GITHUB_ENV"
           
           mkdir -p "$INSTALL_DIR"
           README_PATH="$INSTALL_DIR/read_me.txt"
@@ -142,7 +142,12 @@ jobs:
           echo "" >> $README_PATH
           echo "Oh, and I hope this saved your day :)" >> $README_PATH
         fi
-
+        
+    - name: Configure
+      shell: bash
+      env:
+        CMAKE_PREFIX_PATH: ${{ env.QT_ROOT_DIR }}/lib/cmake
+      run: |
         # Now run qt-cmake, passing only the non-secret arguments
         ${QT_ROOT_DIR}/bin/qt-cmake \
           -G Ninja \
