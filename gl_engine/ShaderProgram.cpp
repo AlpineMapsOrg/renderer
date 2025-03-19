@@ -212,7 +212,7 @@ void ShaderProgram::set_uniform_block(const std::string& name, GLuint location)
     auto pId = m_q_shader_program->programId();
     unsigned int ubi = f->glGetUniformBlockIndex(pId, name.c_str());
     if (ubi == GL_INVALID_INDEX) {
-        //qDebug() << "Uniform Block " << name << " not found in program " << pId;
+        // qDebug() << "Uniform Block " << name << " not found in program " << pId;
     } else {
         f->glUniformBlockBinding(pId, ubi, location);
     }

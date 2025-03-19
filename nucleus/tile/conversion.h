@@ -78,6 +78,14 @@ inline nucleus::Raster<glm::u8vec4> to_rgba8raster(const QImage& image)
     std::memcpy(raster.data(), image.bits(), image.sizeInBytes());
     return raster;
 }
+
+[[nodiscard]] inline QImage to_QImage(const nucleus::Raster<glm::u8vec4>& raster)
+{
+    // assert(m_data.size() == m_width * m_height * 4); // Ensure the data is RGBA8
+    QImage image(raster.width(), raster.height(), QImage::Format_RGBA8888);
+    memcpy(image.bits(), raster.data(), raster.size_in_bytes());
+    return image;
+}
 #endif
 
 inline glm::u8vec4 float2alpineRGBA(float height)

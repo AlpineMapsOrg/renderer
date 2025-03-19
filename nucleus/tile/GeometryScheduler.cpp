@@ -26,9 +26,9 @@
 
 namespace nucleus::tile {
 
-GeometryScheduler::GeometryScheduler()
-    : nucleus::tile::Scheduler(256)
-    , m_default_raster(glm::uvec2(65), uint16_t(0))
+GeometryScheduler::GeometryScheduler(const Settings& settings, unsigned int height_map_size)
+    : nucleus::tile::Scheduler(settings)
+    , m_default_raster(glm::uvec2(height_map_size), uint16_t(0))
 {
 }
 
@@ -36,35 +36,36 @@ GeometryScheduler::~GeometryScheduler() = default;
 
 void GeometryScheduler::transform_and_emit(const std::vector<tile::DataQuad>& new_quads, const std::vector<tile::Id>& deleted_quads)
 {
-    std::vector<GpuGeometryQuad> new_gpu_quads;
-    new_gpu_quads.reserve(new_quads.size());
+    // Tested larger geometry tiles (129x129) and switched back to smaller ones (65x65) for performance reasons (smaller ones are twice as fast).
+    std::vector<GpuGeometryTile> new_gpu_tiles;
+    new_gpu_tiles.reserve(new_quads.size() * 4);
 
-    std::transform(new_quads.cbegin(), new_quads.cend(), std::back_inserter(new_gpu_quads), [this](const auto& quad) {
-        using namespace nucleus::utils;
-
-        // create GpuQuad based on cpu quad
-        GpuGeometryQuad gpu_quad;
-        gpu_quad.id = quad.id;
-        assert(quad.n_tiles == 4);
-        for (unsigned i = 0; i < 4; ++i) {
-            gpu_quad.tiles[i].id = quad.tiles[i].id;
-            gpu_quad.tiles[i].bounds = aabb_decorator()->aabb(quad.tiles[i].id);
-
-            if (quad.tiles[i].data->size()) {
-                // Height image is available
-                auto height_raster = image_loader::rgba8(*quad.tiles[i].data).and_then(error::wrap_to_expected(conversion::to_u16raster)).value_or(m_default_raster);
-                gpu_quad.tiles[i].surface = std::make_shared<nucleus::Raster<uint16_t>>(std::move(height_raster));
+    for (const auto& quad : new_quads) {
+        for (const auto& tile : quad.tiles) {
+            GpuGeometryTile gpu_tile;
+            gpu_tile.id = tile.id;
+            if (tile.data->size()) {
+                // tile is available
+                using namespace nucleus::utils;
+                gpu_tile.surface = std::make_shared<const nucleus::Raster<uint16_t>>(
+                    image_loader::rgba8(*tile.data).and_then(error::wrap_to_expected(conversion::to_u16raster)).value_or(m_default_raster));
             } else {
-                // Height image is not available (use black default tile)
-                gpu_quad.tiles[i].surface = std::make_shared<nucleus::Raster<uint16_t>>(m_default_raster);
+                // tile is not available (use default tile)
+                gpu_tile.surface = std::make_shared<const nucleus::Raster<uint16_t>>(m_default_raster);
             }
+            new_gpu_tiles.push_back(gpu_tile);
         }
-        return gpu_quad;
-    });
+    }
 
-    emit gpu_quads_updated(new_gpu_quads, deleted_quads);
+    std::vector<tile::Id> deleted_tiles;
+    deleted_tiles.reserve(deleted_quads.size() * 4);
+    for (const auto& id : deleted_quads) {
+        for (const auto& chid : id.children()) {
+            deleted_tiles.push_back(chid);
+        }
+    }
+
+    emit gpu_tiles_updated(deleted_tiles, new_gpu_tiles);
 }
-
-void GeometryScheduler::set_texture_compression_algorithm(nucleus::utils::ColourTexture::Format compression_algorithm) { m_compression_algorithm = compression_algorithm; }
 
 } // namespace nucleus::tile

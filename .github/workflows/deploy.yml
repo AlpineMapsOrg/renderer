@@ -54,7 +54,7 @@ jobs:
     - name: Set QT_HOST_ROOT_DIR
       run: echo "QT_HOST_ROOT_DIR=${QT_ROOT_DIR}" >> "$GITHUB_ENV"
 
-    - name: Install Qt crosscompile target version
+    - name: Install Qt crosscompile android version
       uses: jurplel/install-qt-action@v4
       with:
         aqtversion: '==3.1.*'
@@ -75,68 +75,98 @@ jobs:
       shell: bash
       run: |
         BUILD_DIR="${{ github.workspace }}/build"
-        APK_TARGET="app"
         echo "BUILD_DIR=$BUILD_DIR" >> $GITHUB_ENV
-        echo "APK_TARGET=$APK_TARGET" >> $GITHUB_ENV
-        
+
         echo "INSTALL_DIR=${{ github.workspace }}/install/${{ matrix.qtarch }}" >> $GITHUB_ENV
-        echo "APK_DIR=$BUILD_DIR/$APK_TARGET/android-build/build/outputs/apk/" >> $GITHUB_ENV
-        echo "ANDROID_BUILD_DIR=$BUILD_DIR/$APK_TARGET/android-build/" >> $GITHUB_ENV
-        echo "DEPLOYMENT_SETTINGS=$BUILD_DIR/$APK_TARGET/android-alpineapp-deployment-settings.json" >> $GITHUB_ENV
-      
-    - name: Configure
+
+        ANDROID_BUILD_DIR_ARR=(
+          "$BUILD_DIR/app/android-build-alpineapp"
+          "$BUILD_DIR/plain_renderer/android-build-plain_renderer"
+          "$BUILD_DIR/alp_external/radix/unittests/android-build-unittests_radix"
+          "$BUILD_DIR/unittests/gl_engine/android-build-unittests_gl_engine"
+          "$BUILD_DIR/unittests/nucleus/android-build-unittests_nucleus"
+        )
+
+        DEPLOYMENT_SETTINGS_ARR=(
+          "$BUILD_DIR/app/android-alpineapp-deployment-settings.json"
+          "$BUILD_DIR/plain_renderer/android-plain_renderer-deployment-settings.json"
+          "$BUILD_DIR/alp_external/radix/unittests/android-unittests_radix-deployment-settings.json"
+          "$BUILD_DIR/unittests/gl_engine/android-unittests_gl_engine-deployment-settings.json"
+          "$BUILD_DIR/unittests/nucleus/android-unittests_nucleus-deployment-settings.json"
+        )
+
+        echo "ANDROID_BUILD_DIR_ARR=${ANDROID_BUILD_DIR_ARR[*]}" >> $GITHUB_ENV
+        echo "DEPLOYMENT_SETTINGS_ARR=${DEPLOYMENT_SETTINGS_ARR[*]}" >> $GITHUB_ENV
+
+    - name: Setup signing keys
+      shell: bash
       env:
-        CMAKE_PREFIX_PATH: ${{env.QT_ROOT_DIR}}/lib/cmake
-      run: >
-        ${QT_ROOT_DIR}/bin/qt-cmake
-        -G Ninja
-        -B $BUILD_DIR
-        -DQT_HOST_PATH=${QT_HOST_ROOT_DIR}
-        -DCMAKE_BUILD_TYPE=Release
-        -DALP_ENABLE_ASSERTS=ON
-        -S ${{ github.workspace }}
+        # So we can detect if a real password was provided
+        SECRET_TEST: ${{ secrets.KEYSTOREPASSWORD }}
+        CMAKE_PREFIX_PATH: ${{ env.QT_ROOT_DIR }}/lib/cmake
+      run: |
+        # If we have a real KEYSTOREPASSWORD, decode the real keystore
+        if [ -n "${SECRET_TEST}" ]; then
+          echo "Using real key from secrets."
+          echo "${{ secrets.SIGNINGKEYBASE64 }}" > release.keystore.base64
+          base64 -d release.keystore.base64 > release.keystore
+          echo "QT_ANDROID_KEYSTORE_PATH=$(pwd)/release.keystore" >> "$GITHUB_ENV"
+          echo "QT_ANDROID_KEYSTORE_ALIAS=alpinemaps" >> "$GITHUB_ENV"
+          echo "QT_ANDROID_KEYSTORE_STORE_PASS=${SECRET_TEST}" >> "$GITHUB_ENV"
+          echo "QT_ANDROID_KEYSTORE_KEY_PASS=${SECRET_TEST}" >> "$GITHUB_ENV"
+        else
+          keytool -genkey -v -keystore release.keystore -alias alpinemaps \
+            -keyalg RSA -sigalg SHA1withRSA -keysize 2048 -validity 10000 \
+            -keypass asdfasdf -storepass asdfasdf \
+            -dname "CN=Franz, OU=IT, O=Furz, L=Rattenberg, ST=Tirol, C=AT"
+          echo "QT_ANDROID_KEYSTORE_PATH=$(pwd)/release.keystore" >> "$GITHUB_ENV"
+          echo "QT_ANDROID_KEYSTORE_ALIAS=alpinemaps" >> "$GITHUB_ENV"
+          echo "QT_ANDROID_KEYSTORE_STORE_PASS=asdfasdf" >> "$GITHUB_ENV"
+          echo "QT_ANDROID_KEYSTORE_KEY_PASS=asdfasdf" >> "$GITHUB_ENV"
+          
+          mkdir -p "$INSTALL_DIR"
+          README_PATH="$INSTALL_DIR/read_me.txt"
+          echo "The apk was signed with a generated ephemeral debug key which changes every time the apk is generated. This means, that android might refuse to install it if another apk with the same app was installed previously. You'll have to deinstall it. Doing so will delete all settings and cache." >> $README_PATH
+          echo "" >> $README_PATH
+          echo "In order to prevent that, you have to generate your own key or use our public key:" >> $README_PATH
+          echo "" >> $README_PATH
+          echo "To generate your own key:" >> $README_PATH
+          echo "- https://stackoverflow.com/questions/3997748/how-can-i-create-a-keystore. Use 'alpinemaps' as the alias!" >> $README_PATH
+          echo "- If you have the android dev setup ready in Qt Creator, you can also create the keystore via Projects (on the left side toolboar) -> Android Qt ... -> Build -> Build Steps -> Build Android APK -> Application Signature -> Create.  Use 'alpinemaps' as the alias!" >> $README_PATH
+          echo "- Then you have to encode the keystore in base64, e.g., on linux via 'base64 keystorefile > keystorefile.base64'" >> $README_PATH
+          echo "- Finally, create the following secrets in github -> your repo -> Settings -> Secrets and variables -> Actions -> Repository secrets" >> $README_PATH
+          echo "  SIGNINGKEYBASE64 = the base64 encoded key" >> $README_PATH
+          echo "  KEYSTOREPASSWORD = the password used to create the keystore" >> $README_PATH
+          echo "" >> $README_PATH
+          echo "To use our public key, go to https://github.com/AlpineMapsOrg/renderer/blob/main/creating_apk_keys.md" >> $README_PATH
+          echo "" >> $README_PATH
+          echo "Oh, and I hope this saved your day :)" >> $README_PATH
+        fi
+        
+    - name: Configure
+      shell: bash
+      env:
+        CMAKE_PREFIX_PATH: ${{ env.QT_ROOT_DIR }}/lib/cmake
+      run: |
+        # Now run qt-cmake, passing only the non-secret arguments
+        ${QT_ROOT_DIR}/bin/qt-cmake \
+          -G Ninja \
+          -B "${BUILD_DIR}" \
+          -DQT_HOST_PATH="${QT_HOST_ROOT_DIR}" \
+          -DCMAKE_BUILD_TYPE=Release \
+          -DALP_ENABLE_ASSERTS=ON \
+          -DQT_ANDROID_SIGN_APK=ON \
+          -DQT_USE_TARGET_ANDROID_BUILD_DIR:BOOL=ON \
+          -S "${{ github.workspace }}"
 
     - name: Build
-      run: cmake --build $BUILD_DIR
+      run: cmake --build $BUILD_DIR --target apk
 
-    - name: Signing Android package with common key
-      env: 
-        secret_test: ${{ secrets.KEYSTOREPASSWORD }}
-      if: env.secret_test != ''
-      run: |
-        echo ${{ secrets.SIGNINGKEYBASE64 }} > release.keystore.base64
-        base64 -d release.keystore.base64 > release.keystore
-        $QT_HOST_ROOT_DIR/bin/androiddeployqt --input $DEPLOYMENT_SETTINGS --output $ANDROID_BUILD_DIR --android-platform android-35 --gradle --release --sign release.keystore alpinemaps --storepass ${{ secrets.KEYSTOREPASSWORD }}
-        
-    - name: Signing Android packages with generated key
-      env: 
-        secret_test: ${{ secrets.KEYSTOREPASSWORD }}
-      if: env.secret_test == ''
-      run: |
-        keytool -genkey -v -keystore release.keystore -alias alpinemaps -keyalg RSA -sigalg SHA1withRSA -keysize 2048 -validity 10000 -keypass asdfasdf -storepass asdfasdf -dname "CN=Franz, OU=IT, O=Furz, L=Rattenberg, ST=Tirol, C=AT"
-        $QT_HOST_ROOT_DIR/bin/androiddeployqt --input $DEPLOYMENT_SETTINGS --output $ANDROID_BUILD_DIR --android-platform android-35 --gradle --release --sign release.keystore alpinemaps --storepass asdfasdf
-        
-        README_PATH=$APK_DIR/read_me.txt
-        echo "The apk was signed with a generated key which changes every time the apk is generated. This means, that android might refuse to install it if another apk with the same app was installed previously. You'll have to deinstall it. Doing so will delete all settings and cache." >> $README_PATH
-        echo "" >> $README_PATH
-        echo "In order to prevent that, you have to generate your own key or use our public key:" >> $README_PATH
-        echo "" >> $README_PATH
-        echo "To generate your own key:" >> $README_PATH
-        echo "- https://stackoverflow.com/questions/3997748/how-can-i-create-a-keystore. Use 'alpinemaps' as the alias!" >> $README_PATH
-        echo "- If you have the android dev setup ready in Qt Creator, you can also create the keystore via Projects (on the left side toolboar) -> Android Qt ... -> Build -> Build Steps -> Build Android APK -> Application Signature -> Create.  Use 'alpinemaps' as the alias!" >> $README_PATH
-        echo "- Then you have to encode the keystore in base64, e.g., on linux via 'base64 keystorefile > keystorefile.base64'" >> $README_PATH
-        echo "- Finally, create the following secrets in github -> your repo -> Settings -> Secrets and variables -> Actions -> Repository secrets" >> $README_PATH
-        echo "  SIGNINGKEYBASE64 = the base64 encoded key" >> $README_PATH
-        echo "  KEYSTOREPASSWORD = the password used to create the keystore" >> $README_PATH
-        echo "" >> $README_PATH
-        echo "To use our public key, go to https://github.com/AlpineMapsOrg/renderer/blob/main/creating_apk_keys.md" >> $README_PATH
-        echo "" >> $README_PATH
-        echo "Oh, and I hope this saved your day :)" >> $README_PATH
-      
     - name: Copy android packages
       run: |
-        mkdir -p $INSTALL_DIR
-        cp -r $APK_DIR/* $INSTALL_DIR
+        mkdir -p "$INSTALL_DIR"
+        find "$BUILD_DIR" -iname "*.apk"
+        find "$BUILD_DIR" -type f -iname "*.apk" ! -name "android-build-*.apk" -exec cp {} "$INSTALL_DIR" \;
 
     - name: Create artifact
       uses: actions/upload-artifact@v4

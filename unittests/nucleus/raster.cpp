@@ -212,14 +212,14 @@ TEST_CASE("nucleus/Raster")
         // clang-format on
     }
 
-    SECTION("combine")
+    SECTION("append_vertically")
     {
         Raster<int> raster1({ 3, 4 }, 421);
         Raster<int> raster2({ 3, 2 }, 657);
-        raster1.combine(raster2);
+        raster1.append_vertically(raster2);
 
-        CHECK(raster1.width() == 3);
-        CHECK(raster1.height() == 6);
+        REQUIRE(raster1.width() == 3);
+        REQUIRE(raster1.height() == 6);
 
         CHECK(raster1.pixel({ 0, 0 }) == 421);
         CHECK(raster1.pixel({ 0, 3 }) == 421);
@@ -228,5 +228,24 @@ TEST_CASE("nucleus/Raster")
         CHECK(raster1.pixel({ 0, 4 }) == 657);
         CHECK(raster1.pixel({ 2, 4 }) == 657);
         CHECK(raster1.pixel({ 2, 5 }) == 657);
+    }
+
+    SECTION("concatenate_horizontally")
+    {
+        Raster<int> raster1({ 2, 2 }, 421);
+        Raster<int> raster2({ 2, 2 }, 657);
+        const auto result = concatenate_horizontally(raster1, raster2);
+
+        REQUIRE(result.width() == 4);
+        REQUIRE(result.height() == 2);
+
+        CHECK(result.pixel({ 0, 0 }) == 421);
+        CHECK(result.pixel({ 0, 1 }) == 421);
+        CHECK(result.pixel({ 1, 0 }) == 421);
+        CHECK(result.pixel({ 1, 1 }) == 421);
+        CHECK(result.pixel({ 2, 0 }) == 657);
+        CHECK(result.pixel({ 3, 1 }) == 657);
+        CHECK(result.pixel({ 2, 0 }) == 657);
+        CHECK(result.pixel({ 3, 1 }) == 657);
     }
 }

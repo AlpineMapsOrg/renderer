@@ -26,19 +26,19 @@ namespace nucleus::tile {
 class GeometryScheduler : public Scheduler {
     Q_OBJECT
 public:
-    GeometryScheduler();
+    GeometryScheduler(const Scheduler::Settings& settings, unsigned height_map_size);
     ~GeometryScheduler() override;
 
     void set_texture_compression_algorithm(nucleus::utils::ColourTexture::Format compression_algorithm);
+    static Raster<uint16_t> to_raster(const tile::DataQuad& data_quad, const Raster<uint16_t>& default_raster);
 
 signals:
-    void gpu_quads_updated(const std::vector<GpuGeometryQuad>& new_quads, const std::vector<tile::Id>& deleted_quads);
+    void gpu_tiles_updated(const std::vector<tile::Id>& deleted_tiles, const std::vector<GpuGeometryTile>& new_tiles);
 
 protected:
     void transform_and_emit(const std::vector<tile::DataQuad>& new_quads, const std::vector<tile::Id>& deleted_quads) override;
 
 private:
-    nucleus::utils::ColourTexture::Format m_compression_algorithm = nucleus::utils::ColourTexture::Format::Uncompressed_RGBA;
     Raster<uint16_t> m_default_raster;
 };
 

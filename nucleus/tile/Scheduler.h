@@ -47,8 +47,18 @@ public:
         unsigned n_tiles_in_ram_cache = 0;
         unsigned n_tiles_in_gpu_cache = 0;
     };
+    struct Settings {
+        unsigned tile_resolution = 256;
+        unsigned max_zoom_level = 18;
+        unsigned gpu_quad_limit = 512;
+        unsigned ram_quad_limit = 5000;
+        unsigned retirement_age_for_tile_cache = 10u * 24u * 3600u * 1000u; // 10 days
+        unsigned update_timeout = 100;
+        unsigned purge_timeout = 1000;
+        unsigned persist_timeout = 10000;
+    };
 
-    explicit Scheduler(unsigned tile_resolution = 256, QObject* parent = nullptr);
+    explicit Scheduler(const Settings& settings);
     ~Scheduler() override;
 
     void set_update_timeout(unsigned int new_update_timeout);
@@ -80,8 +90,6 @@ public:
     
     void set_dataquerier(std::shared_ptr<DataQuerier> dataquerier);
     std::shared_ptr<DataQuerier> dataquerier() const;
-
-    [[nodiscard]] unsigned int tile_resolution() const;
 
     const utils::AabbDecoratorPtr& aabb_decorator() const;
 
@@ -116,14 +124,8 @@ protected:
 private:
     QString m_name = "unnamed";
     std::shared_ptr<DataQuerier> m_dataquerier;
-    unsigned m_retirement_age_for_tile_cache = 10u * 24u * 3600u * 1000u; // 10 days
     float m_permissible_screen_space_error = 2;
-    unsigned m_update_timeout = 100;
-    unsigned m_purge_timeout = 1000;
-    unsigned m_persist_timeout = 10000;
-    unsigned m_gpu_quad_limit = 300;
-    unsigned m_ram_quad_limit = 15000;
-    unsigned m_tile_resolution = 256;
+    Settings m;
     bool m_enabled = false;
     bool m_network_requests_enabled = true;
     Statistics m_statistics;

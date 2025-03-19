@@ -29,10 +29,6 @@
 
 class QOpenGLFramebufferObject;
 
-namespace tile {
-struct Id;
-}
-
 namespace nucleus {
 namespace tile::utils {
     class AabbDecorator;

@@ -488,7 +488,6 @@ Rectangle {
                 Layout.fillWidth: true
                 from: 0
                 to: 500
-                // Example calculation, adjust to your needs:
                 value: map.tile_statistics.scheduler.geometry_n_quads_requested * 4
             }
             Label {
@@ -501,7 +500,6 @@ Rectangle {
             ProgressBar {
                 id: geometry_n_quads_ram
                 Layout.fillWidth: true
-                // Example: set an upper bound based on a max quads value from your model
                 from: 0
                 to: map.tile_statistics.scheduler.geometry_n_quads_ram_max * 4
                 value: map.tile_statistics.scheduler.geometry_n_quads_ram * 4
@@ -596,7 +594,7 @@ Rectangle {
             ProgressBar {
                 Layout.fillWidth: true
                 from: 0
-                to: 2048
+                to: 1024
                 value: map.tile_statistics.gpu.n_ortho_tiles_gpu
             }
             Label {
@@ -627,7 +625,7 @@ Rectangle {
             ProgressBar {
                 Layout.fillWidth: true
                 from: 0
-                to: 400
+                to: 1024
                 value: map.tile_statistics.gpu.n_geometry_tiles_drawn
             }
             Label {
@@ -640,7 +638,7 @@ Rectangle {
             ProgressBar {
                 Layout.fillWidth: true
                 from: 0
-                to: 400
+                to: 1024
                 value: map.tile_statistics.gpu.n_label_tiles_drawn
             }
             Label {

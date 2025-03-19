@@ -23,6 +23,7 @@
 #include "ShaderRegistry.h"
 #include "TileGeometry.h"
 #include "UniformBufferObjects.h"
+#include <nucleus/tile/drawing.h>
 #include <QOpenGLExtraFunctions>
 #include <QOpenGLTexture>
 #include <cmath>
@@ -50,12 +51,11 @@ ShadowMapping::~ShadowMapping() {
 
 // broken since reverse z, projection matrix for shadowmaps probably expect -1 to 1 space, but now we have 0 to 1. otoh, hm, it works without glClipControl(GL_LOWER_LEFT, GL_ZERO_TO_ONE)...
 void ShadowMapping::draw(TileGeometry* tile_geometry,
-    const nucleus::tile::IdSet& draw_tileset,
+    std::vector<nucleus::tile::TileBounds> draw_list,
     const nucleus::camera::Definition& camera,
     std::shared_ptr<UniformBuffer<uboShadowConfig>> shadow_config,
     std::shared_ptr<UniformBuffer<uboSharedConfig>> shared_config)
 {
-
     // NOTE: ReverseZ is not necessary for ShadowMapping since a directional light is using an orthographic projection
     // and therefore the distribution of depth is linear anyway.
 
@@ -80,6 +80,7 @@ void ShadowMapping::draw(TileGeometry* tile_geometry,
     m_f->glDepthFunc(GL_LESS);
     m_f->glDisable(GL_CULL_FACE);
     m_shadow_program->bind();
+    draw_list = nucleus::tile::drawing::sort(draw_list, camera.position() + glm::dvec3(light_dir) * 1'000'000.0);
     for (int i = 0; i < SHADOW_CASCADES; i++) {
         m_shadowmapbuffer[i]->bind();
         m_f->glClearColor(0, 0, 0, 0);
@@ -87,7 +88,7 @@ void ShadowMapping::draw(TileGeometry* tile_geometry,
         m_f->glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
         m_shadow_program->set_uniform("current_layer", i);
-        tile_geometry->draw(m_shadow_program.get(), camera, draw_tileset, false, glm::dvec3(0.0));
+        tile_geometry->draw(m_shadow_program.get(), camera, draw_list);
         m_shadowmapbuffer[i]->unbind();
     }
     m_shadow_program->release();

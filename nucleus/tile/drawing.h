@@ -1,7 +1,6 @@
 /*****************************************************************************
  * AlpineMaps.org
- * Copyright (C) 2023 Gerald Kimmersdorfer
- * Copyright (C) 2024 Adam Celarek
+ * Copyright (C) 2025 Adam Celarek
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -17,15 +16,18 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *****************************************************************************/
 
-#include "shared_config.glsl"
-#include "camera_config.glsl"
-#include "shadow_config.glsl"
-#include "tile.glsl"
+#pragma once
 
-uniform lowp int current_layer;
+#include "types.h"
+#include "utils.h"
+#include <nucleus/camera/Definition.h>
 
-void main() {
-    vec3 position;
-    compute_vertex(position);
-    gl_Position = shadow.light_space_view_proj_matrix[current_layer] * vec4(position, 1);
+namespace nucleus::tile::drawing {
+constexpr uint max_n_tiles = 1024;
+
+std::vector<tile::Id> generate_list(const camera::Definition& camera, utils::AabbDecoratorPtr aabb_decorator, unsigned max_zoom_level, float permissible_screen_space_error = 1.f);
+std::vector<TileBounds> compute_bounds(const std::vector<tile::Id>& tiles, utils::AabbDecoratorPtr aabb_decorator);
+std::vector<tile::Id> limit(std::vector<tile::Id> tiles, uint max_n_tiles);
+std::vector<TileBounds> cull(std::vector<TileBounds> list, const camera::Definition& camera);
+std::vector<TileBounds> sort(std::vector<TileBounds> list, const glm::dvec3& camera_position);
 }

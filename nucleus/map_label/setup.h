@@ -38,10 +38,11 @@ struct SchedulerHolder {
 
 SchedulerHolder scheduler(TileLoadServicePtr tile_service, const tile::utils::AabbDecoratorPtr& aabb_decorator, const DataQuerierPtr& data_querier, QThread* thread = nullptr)
 {
-    auto scheduler = std::make_unique<nucleus::map_label::Scheduler>();
-    scheduler->read_disk_cache();
-    scheduler->set_gpu_quad_limit(512);
-    scheduler->set_ram_quad_limit(12000);
+    Scheduler::Settings settings;
+    settings.max_zoom_level = 18;
+    settings.tile_resolution = 256;
+    settings.gpu_quad_limit = 512;
+    auto scheduler = std::make_unique<nucleus::map_label::Scheduler>(settings);
     scheduler->set_aabb_decorator(aabb_decorator);
     scheduler->set_dataquerier(data_querier);
 

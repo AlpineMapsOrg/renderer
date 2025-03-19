@@ -117,9 +117,16 @@ qt_add_translations(alpineapp TS_FILES
     i18n/en.ts
 )
 
+alp_get_version(
+    GIT_DIR             "${CMAKE_CURRENT_SOURCE_DIR}"
+    VERSION_VAR         "ALP_VERSION"
+    VERSION_INT_VAR     "ALP_VERSION_INTEGER"
+)
 
 set_target_properties(alpineapp PROPERTIES
     QT_ANDROID_PACKAGE_SOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/android
+    QT_ANDROID_VERSION_NAME ${ALP_VERSION}
+    QT_ANDROID_VERSION_CODE "${ALP_VERSION_INTEGER}000" # accidentally uploaded a high versino code to google. now there is no way back.
 )
 target_link_libraries(alpineapp PUBLIC gl_engine Qt::Quick Qt::QuickControls2)
 

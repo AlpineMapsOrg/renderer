@@ -44,16 +44,25 @@ void GpuArrayHelper::remove_tile(const tile::Id& tile_id)
     *t = tile::Id { unsigned(-1), {} };
 }
 
-void GpuArrayHelper::set_quad_limit(unsigned int new_limit)
+void GpuArrayHelper::set_tile_limit(unsigned int new_limit)
 {
     assert(m_array.empty());
-    m_array.resize(new_limit * 4);
+    m_array.resize(new_limit);
     std::fill(m_array.begin(), m_array.end(), tile::Id { unsigned(-1), {} });
 }
 
 unsigned GpuArrayHelper::size() const { return unsigned(m_array.size()); }
 
 unsigned GpuArrayHelper::n_occupied() const { return unsigned(m_id_to_layer.size()); }
+
+GpuArrayHelper::LayerInfo GpuArrayHelper::layer(Id tile_id) const
+{
+    while (!m_id_to_layer.contains(tile_id) && tile_id.zoom_level > 0)
+        tile_id = tile_id.parent();
+    if (!m_id_to_layer.contains(tile_id))
+        return { {}, 0 }; // may be empty during startup.
+    return { tile_id, m_id_to_layer.at(tile_id) };
+}
 
 GpuArrayHelper::Dictionary GpuArrayHelper::generate_dictionary() const
 {

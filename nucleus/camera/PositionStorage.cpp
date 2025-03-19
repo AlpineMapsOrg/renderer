@@ -22,13 +22,15 @@
 
 namespace nucleus::camera {
 
-PositionStorage* PositionStorage::_instance = nullptr;
+PositionStorage* PositionStorage::s_instance = nullptr;
 
-PositionStorage* PositionStorage::instance() {
-    if (_instance == nullptr) {
-        _instance = new PositionStorage;
+const std::map<std::string, Definition>& PositionStorage::positions() const { return m_positions; }
+
+PositionStorage* PositionStorage::instance()
+{
+    if (s_instance == nullptr) {
+        s_instance = new PositionStorage;
     }
-    return _instance;
+    return s_instance;
 }
-
 }

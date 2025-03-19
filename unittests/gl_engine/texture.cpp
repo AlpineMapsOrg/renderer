@@ -61,7 +61,25 @@ template <int length, typename Type> QString texel_component(const glm::vec<leng
     return "0u";
 };
 
-template <typename Type> QString texel_component(const Type& texel, int) { return QString("%1u").arg(texel); };
+template <typename Type>
+QString texel_component(const Type& texel, int)
+{
+    return QString("%1u").arg(texel);
+};
+
+template <int length, typename Type>
+QString texel_component_float(const glm::vec<length, Type>& texel, int i)
+{
+    if (i < length)
+        return QString("float(%1)").arg(texel[i]);
+    return "0.0";
+};
+
+template <typename Type>
+QString texel_component_float(const Type& texel, int)
+{
+    return QString("float(%1)").arg(texel);
+};
 
 template <int length, typename Type, typename TexelType = glm::vec<length, Type>>
 void test_unsigned_texture_with(const TexelType& texel_value, gl_engine::Texture::Format format)
@@ -103,6 +121,47 @@ void test_unsigned_texture_with(const TexelType& texel_value, gl_engine::Texture
                                                    .arg(texel_component(texel_value, 2))
                                                    .arg(texel_component(texel_value, 3))
                                                    .arg(length));
+    shader.bind();
+    gl_engine::helpers::create_screen_quad_geometry().draw();
+
+    const QImage render_result = b.read_colour_attachment(0);
+    // render_result.save("render_result.png");
+    Framebuffer::unbind();
+    CHECK(qRed(render_result.pixel(0, 0)) == 123);
+    CHECK(qGreen(render_result.pixel(0, 0)) == 124);
+    CHECK(qBlue(render_result.pixel(0, 0)) == 125);
+    CHECK(qAlpha(render_result.pixel(0, 0)) == 126);
+}
+
+template <int length, typename Type, typename TexelType = glm::vec<length, Type>>
+void test_float_texture_with(const TexelType& texel_value, gl_engine::Texture::Format format)
+{
+    Framebuffer b(Framebuffer::DepthFormat::None, { Framebuffer::ColourFormat::RGBA8 }, { 1, 1 });
+    b.bind();
+
+    const auto tex = nucleus::Raster<TexelType>({ 1, 1 }, texel_value);
+    gl_engine::Texture opengl_texture(gl_engine::Texture::Target::_2d, format);
+    opengl_texture.bind(0);
+    opengl_texture.setParams(gl_engine::Texture::Filter::Nearest, gl_engine::Texture::Filter::Nearest);
+    opengl_texture.upload(tex);
+
+    ShaderProgram shader = create_debug_shader(QString(R"(
+            uniform %1 sampler2D texture_sampler;
+            out lowp vec4 out_color;
+            void main() {
+                %1 vec4 v = texelFetch(texture_sampler, ivec2(0, 0), 0);
+                out_color = vec4((v.r == %2) ? 123.0 / 255.0 : 9.0 / 255.0,
+                                 (%6 < 2 || v.g == %3) ? 124.0 / 255.0 : 9.0 / 255.0,
+                                 (%6 < 3 || v.b == %4) ? 125.0 / 255.0 : 9.0 / 255.0,
+                                 (%6 < 4 || v.a == %5) ? 126.0 / 255.0 : 9.0 / 255.0);
+            }
+        )")
+            .arg("highp")
+            .arg(texel_component_float(texel_value, 0))
+            .arg(texel_component_float(texel_value, 1))
+            .arg(texel_component_float(texel_value, 2))
+            .arg(texel_component_float(texel_value, 3))
+            .arg(length));
     shader.bind();
     gl_engine::helpers::create_screen_quad_geometry().draw();
 
@@ -300,8 +359,11 @@ TEST_CASE("gl texture")
 
     SECTION("rgba8ui") { test_unsigned_texture_with<4, unsigned char>({ 1, 2, 255, 140 }, gl_engine::Texture::Format::RGBA8UI); }
     SECTION("rg32ui") { test_unsigned_texture_with<2, uint32_t>({ 3000111222, 4000111222 }, gl_engine::Texture::Format::RG32UI); }
+    SECTION("red8ui") { test_unsigned_texture_with<1, uint8_t, uint8_t>(uint8_t(178), gl_engine::Texture::Format::R8UI); }
     SECTION("red16ui") { test_unsigned_texture_with<1, uint16_t, uint16_t>(uint16_t(60123), gl_engine::Texture::Format::R16UI); }
     SECTION("red32ui") { test_unsigned_texture_with<1, uint32_t, uint32_t>(uint32_t(4000111222), gl_engine::Texture::Format::R32UI); }
+
+    SECTION("rgba32f") { test_float_texture_with<4, float, glm::vec4>(glm::vec4(2.0, 0.0, 234012.0, -239093.0), gl_engine::Texture::Format::RGBA32F); }
 
     SECTION("rgba array (compressed and uncompressed, mipmapped and not)")
     {
@@ -433,6 +495,56 @@ TEST_CASE("gl texture")
                     mediump uint v = texture(texture_sampler, vec3(0.5, 0.5, 1)).r;
                     highp float v2 = float(v);  // need temporary for android, otherwise it is cast to a mediump float and 0 is returned.
                     out_color2 = vec4(v2 / 65535.0, 0, 0, 1);
+                }
+            }
+        )");
+        shader.bind();
+        opengl_texture.bind(0);
+        shader.set_uniform("texture_sampler", 0);
+        gl_engine::helpers::create_screen_quad_geometry().draw();
+
+        {
+            const QImage render_result = b.read_colour_attachment(0);
+            CHECK(qRed(render_result.pixel(0, 0)) == 120);
+            CHECK(qGreen(render_result.pixel(0, 0)) == 0);
+            CHECK(qBlue(render_result.pixel(0, 0)) == 0);
+            CHECK(qAlpha(render_result.pixel(0, 0)) == 255);
+        }
+        {
+            const QImage render_result = b.read_colour_attachment(1);
+            CHECK(qRed(render_result.pixel(0, 0)) == 190);
+            CHECK(qGreen(render_result.pixel(0, 0)) == 0);
+            CHECK(qBlue(render_result.pixel(0, 0)) == 0);
+            CHECK(qAlpha(render_result.pixel(0, 0)) == 255);
+        }
+    }
+
+    SECTION("red8 array")
+    {
+        Framebuffer b(Framebuffer::DepthFormat::None, { Framebuffer::ColourFormat::RGBA8, Framebuffer::ColourFormat::RGBA8 }, { 1, 1 });
+        b.bind();
+
+        gl_engine::Texture opengl_texture(gl_engine::Texture::Target::_2dArray, gl_engine::Texture::Format::R8UI);
+        opengl_texture.allocate_array(1, 1, 2);
+        opengl_texture.setParams(gl_engine::Texture::Filter::Nearest, gl_engine::Texture::Filter::Nearest);
+        opengl_texture.upload(nucleus::Raster<uint8_t>({ 1, 1 }, uint8_t(120)), 0);
+        opengl_texture.upload(nucleus::Raster<uint8_t>({ 1, 1 }, uint8_t(190)), 1);
+
+        ShaderProgram shader = create_debug_shader(R"(
+            uniform mediump usampler2DArray texture_sampler;
+            layout (location = 0) out lowp vec4 out_color1;
+            layout (location = 1) out lowp vec4 out_color2;
+            void main() {
+                {
+                    mediump uint v = texture(texture_sampler, vec3(0.5, 0.5, 0)).r;
+                    highp float v2 = float(v);  // need temporary for android, otherwise it is cast to a mediump float and 0 is returned.
+                    out_color1 = vec4(v2 / 255.0, 0, 0, 1);
+                }
+
+                {
+                    mediump uint v = texture(texture_sampler, vec3(0.5, 0.5, 1)).r;
+                    highp float v2 = float(v);  // need temporary for android, otherwise it is cast to a mediump float and 0 is returned.
+                    out_color2 = vec4(v2 / 255.0, 0, 0, 1);
                 }
             }
         )");
