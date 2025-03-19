@@ -85,8 +85,7 @@ void TerrainRenderer::synchronize(QQuickFramebufferObject *item)
     // the tile scheduler is in an extra thread, there will be races if you write to it.
     m_window = item->window();
     TerrainRendererItem* i = static_cast<TerrainRendererItem*>(item);
-    //        m_controller->camera_controller()->set_virtual_resolution_factor(i->render_quality());
-    m_glWindow->set_permissible_screen_space_error(1.0 / i->settings()->render_quality());
+    m_camera_controller->set_pixel_error_threshold(1.0 / i->settings()->render_quality());
     m_camera_controller->set_viewport({ i->width(), i->height() });
     m_camera_controller->set_field_of_view(i->field_of_view());
 

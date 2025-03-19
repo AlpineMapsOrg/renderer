@@ -139,13 +139,7 @@ QQuickFramebufferObject::Renderer* TerrainRendererItem::createRenderer() const
     connect(r->controller(), &nucleus::camera::Controller::definition_changed, this, &TerrainRendererItem::camera_definition_changed);
     connect(r->controller(), &nucleus::camera::Controller::global_cursor_position_changed, this, &TerrainRendererItem::set_world_space_cursor_position);
 
-    connect(this, &TerrainRendererItem::camera_definition_set_by_user, r->controller(), &nucleus::camera::Controller::set_definition);
-
-    connect(this->m_settings, &AppSettings::render_quality_changed, ctx->geometry_scheduler(), [ctx](float new_render_quality) {
-        const auto permissible_error = 1.0f / new_render_quality;
-        ctx->geometry_scheduler()->set_permissible_screen_space_error(permissible_error);
-        ctx->ortho_scheduler()->set_permissible_screen_space_error(permissible_error);
-    });
+    connect(this, &TerrainRendererItem::camera_definition_set_by_user, r->controller(), &nucleus::camera::Controller::set_model_matrix);
     connect(this, &TerrainRendererItem::tile_cache_size_changed, ctx->geometry_scheduler(), &nucleus::tile::Scheduler::set_ram_quad_limit);
     connect(this, &TerrainRendererItem::tile_cache_size_changed, ctx->ortho_scheduler(), &nucleus::tile::Scheduler::set_ram_quad_limit);
     connect(this, &TerrainRendererItem::tile_cache_size_changed, ctx->map_label_scheduler(), &nucleus::tile::Scheduler::set_ram_quad_limit);

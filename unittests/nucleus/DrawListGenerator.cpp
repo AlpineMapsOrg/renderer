@@ -44,7 +44,7 @@ TEST_CASE("nucleus/tile/DrawListGenerator")
     SECTION("root only")
     {
         draw_list_generator.add_tile(tile::Id { 0, { 0, 0 } });
-        const auto list = draw_list_generator.generate_for(camera);
+        const auto list = draw_list_generator.generate_for(camera, 256, 18);
         REQUIRE(list.size() == 1);
         CHECK(list.contains(tile::Id { 0, { 0, 0 } }));
     }
@@ -58,7 +58,7 @@ TEST_CASE("nucleus/tile/DrawListGenerator")
         draw_list_generator.add_tile(tile::Id { 1, { 0, 1 } });
         draw_list_generator.add_tile(tile::Id { 1, { 1, 0 } });
         draw_list_generator.add_tile(tile::Id { 1, { 1, 1 } });
-        const auto list = draw_list_generator.generate_for(camera);
+        const auto list = draw_list_generator.generate_for(camera, 256, 18);
         REQUIRE(list.size() == 4);
         const auto culled_list = draw_list_generator.cull(list, camera.frustum());
         REQUIRE(culled_list.size() == 1);
@@ -79,7 +79,7 @@ TEST_CASE("nucleus/tile/DrawListGenerator")
         draw_list_generator.remove_tile(tile::Id { 1, { 1, 0 } });
         draw_list_generator.remove_tile(tile::Id { 1, { 1, 1 } });
 
-        const auto list = draw_list_generator.generate_for(camera);
+        const auto list = draw_list_generator.generate_for(camera, 256, 18);
         REQUIRE(list.size() == 1);
         CHECK(list.contains(tile::Id { 0, { 0, 0 } }));
     }
@@ -113,14 +113,11 @@ TEST_CASE("nucleus/tile/DrawListGenerator benchmark")
         nucleus::camera::stored_positions::stephansdom(),
     };
     for (const auto &camera_position : camera_positions) {
-        quad_tree::onTheFlyTraverse(tile::Id{0, {0, 0}},
-                                    nucleus::tile::utils::refineFunctor(camera_position,
-                                                                                  decorator,
-                                                                                  1),
-                                    [&all_inner_nodes](const tile::Id &v) {
-                                        all_inner_nodes.push_back(v);
-                                        return v.children();
-                                    });
+        quad_tree::onTheFlyTraverse(
+            tile::Id { 0, { 0, 0 } }, nucleus::tile::utils::refineFunctor(camera_position, decorator, 256, 18), [&all_inner_nodes](const tile::Id& v) {
+                all_inner_nodes.push_back(v);
+                return v.children();
+            });
     }
 
     nucleus::tile::DrawListGenerator draw_list_generator;
@@ -133,7 +130,7 @@ TEST_CASE("nucleus/tile/DrawListGenerator benchmark")
     {
         nucleus::tile::DrawListGenerator::TileSet set;
         for (const auto &camera_position : camera_positions) {
-            const auto list = draw_list_generator.generate_for(camera_position);
+            const auto list = draw_list_generator.generate_for(camera_position, 256, 18);
             set.reserve(set.size() + list.size());
             for (const auto &id : list) {
                 set.insert(id);

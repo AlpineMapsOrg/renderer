@@ -76,7 +76,7 @@ void MapLabels::init(ShaderRegistry* shader_registry)
 
 MapLabels::TileSet MapLabels::generate_draw_list(const nucleus::camera::Definition& camera) const
 {
-    return m_draw_list_generator.cull(m_draw_list_generator.generate_for(camera), camera.frustum());
+    return m_draw_list_generator.cull(m_draw_list_generator.generate_for(camera, 256, 18), camera.frustum());
 }
 
 void MapLabels::upload_to_gpu(const TileId& id, const PointOfInterestCollection& features)

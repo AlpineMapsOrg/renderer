@@ -66,8 +66,6 @@ public:
     [[nodiscard]] bool enabled() const;
     void set_enabled(bool new_enabled);
 
-    void set_permissible_screen_space_error(float new_permissible_screen_space_error);
-
     void set_aabb_decorator(const utils::AabbDecoratorPtr& new_aabb_decorator);
 
     void set_gpu_quad_limit(unsigned int new_gpu_quad_limit);
@@ -124,7 +122,6 @@ protected:
 private:
     QString m_name = "unnamed";
     std::shared_ptr<DataQuerier> m_dataquerier;
-    float m_permissible_screen_space_error = 2;
     Settings m;
     bool m_enabled = false;
     bool m_network_requests_enabled = true;

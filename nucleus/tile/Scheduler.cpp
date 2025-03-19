@@ -117,8 +117,7 @@ void Scheduler::set_network_reachability(QNetworkInformation::Reachability reach
 
 void Scheduler::update_gpu_quads()
 {
-    const auto should_refine
-        = tile::utils::refineFunctor(m_current_camera, m_aabb_decorator, m_permissible_screen_space_error, m.tile_resolution, m.max_zoom_level);
+    const auto should_refine = tile::utils::refineFunctor(m_current_camera, m_aabb_decorator, m.tile_resolution, m.max_zoom_level);
     std::vector<DataQuad> gpu_candidates;
     m_ram_cache.visit([this, &gpu_candidates, &should_refine](const DataQuad& quad) {
         if (!should_refine(quad.id))
@@ -179,7 +178,7 @@ void Scheduler::purge_ram_cache()
         return;
     }
 
-    const auto should_refine = tile::utils::refineFunctor(m_current_camera, m_aabb_decorator, m_permissible_screen_space_error, m.tile_resolution);
+    const auto should_refine = tile::utils::refineFunctor(m_current_camera, m_aabb_decorator, m.tile_resolution, m.max_zoom_level);
     m_ram_cache.visit([&should_refine](const DataQuad& quad) { return should_refine(quad.id); });
     m_ram_cache.purge(m.ram_quad_limit);
 
@@ -267,7 +266,7 @@ std::vector<Id> Scheduler::quads_for_current_camera_position() const
 {
     std::vector<Id> all_inner_nodes;
     const auto all_leaves = radix::quad_tree::onTheFlyTraverse(Id { 0, { 0, 0 } },
-        tile::utils::refineFunctor(m_current_camera, m_aabb_decorator, m_permissible_screen_space_error, m.tile_resolution, m.max_zoom_level),
+        tile::utils::refineFunctor(m_current_camera, m_aabb_decorator, m.tile_resolution, m.max_zoom_level),
         [&all_inner_nodes](const Id& v) {
             all_inner_nodes.push_back(v);
             return v.children();
@@ -336,11 +335,6 @@ void Scheduler::set_gpu_quad_limit(unsigned int new_gpu_quad_limit) { m.gpu_quad
 void Scheduler::set_aabb_decorator(const utils::AabbDecoratorPtr& new_aabb_decorator)
 {
     m_aabb_decorator = new_aabb_decorator;
-}
-
-void Scheduler::set_permissible_screen_space_error(float new_permissible_screen_space_error)
-{
-    m_permissible_screen_space_error = new_permissible_screen_space_error;
 }
 
 bool Scheduler::enabled() const
