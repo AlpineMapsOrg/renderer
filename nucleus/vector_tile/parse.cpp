@@ -70,8 +70,14 @@ nucleus::vector_tile::PointOfInterestCollection nucleus::vector_tile::parse::poi
                 poi.importance = get<double>(props["importance"]);
 
             double altitude = 0;
-            if (data_querier)
-                altitude = data_querier->get_altitude(lat_long);
+            if (data_querier) {
+                const auto r = data_querier->get_altitude(lat_long);
+                if (r) {
+                    altitude = r.value();
+                } else {
+                    qWarning() << r.error() << QString(" (name: %1, id: %2, type: %3).").arg(poi.name).arg(poi.id).arg(unsigned(poi.type));
+                }
+            }
 
             poi.lat_long_alt = glm::dvec3(lat_long.x, lat_long.y, altitude);
             poi.world_space_pos = nucleus::srs::lat_long_alt_to_world(poi.lat_long_alt);

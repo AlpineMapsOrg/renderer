@@ -104,11 +104,11 @@ int main(int argc, char **argv)
         }
     }
 #endif
-    qDebug() << "Available fonts:";
-    for (const auto& family : QFontDatabase::families()) {
-        for (const auto& style : QFontDatabase::styles(family))
-            qDebug() << family << "|" << style;
-    }
+    // qDebug() << "Available fonts:";
+    // for (const auto& family : QFontDatabase::families()) {
+    //     for (const auto& style : QFontDatabase::styles(family))
+    //         qDebug() << family << "|" << style;
+    // }
 #endif
 
     QTranslator translator;
