@@ -142,7 +142,7 @@ int main(int argc, char** argv)
     context->set_ortho_layer(std::make_shared<gl_engine::TextureLayer>(512));
     context->tile_geometry()->set_tile_limit(2048);
     context->tile_geometry()->set_aabb_decorator(decorator);
-    context->ortho_layer()->set_tile_limit(512);
+    context->ortho_layer()->set_tile_limit(1024);
     context->set_aabb_decorator(decorator);
 
     Window glWindow(context);

@@ -32,11 +32,6 @@ DrawListGenerator::DrawListGenerator()
     set_aabb_decorator(tile::utils::AabbDecorator::make(std::move(h)));
 }
 
-void DrawListGenerator::set_permissible_screen_space_error(float new_permissible_screen_space_error)
-{
-    m_permissible_screen_space_error = new_permissible_screen_space_error;
-}
-
 void DrawListGenerator::set_aabb_decorator(const tile::utils::AabbDecoratorPtr& new_aabb_decorator)
 {
     m_aabb_decorator = new_aabb_decorator;
@@ -54,9 +49,9 @@ void DrawListGenerator::remove_tile(const tile::Id& id)
 
 const TileSet& DrawListGenerator::tiles() const { return m_available_tiles; }
 
-DrawListGenerator::TileSet DrawListGenerator::generate_for(const nucleus::camera::Definition& camera) const
+DrawListGenerator::TileSet DrawListGenerator::generate_for(const nucleus::camera::Definition& camera, unsigned tile_size, unsigned max_zoom_level) const
 {
-    const auto tile_refine_functor = tile::utils::refineFunctor(camera, m_aabb_decorator, m_permissible_screen_space_error);
+    const auto tile_refine_functor = tile::utils::refineFunctor(camera, m_aabb_decorator, tile_size, max_zoom_level);
     const auto draw_refine_functor = [&tile_refine_functor, this](const tile::Id& tile) {
         bool all = true;
         for (const auto& child : tile.children()) {

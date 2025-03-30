@@ -22,9 +22,9 @@
 
 namespace nucleus::tile::drawing {
 
-std::vector<tile::Id> generate_list(const camera::Definition& camera, utils::AabbDecoratorPtr aabb_decorator, unsigned int max_zoom_level, float permissible_screen_space_error)
+std::vector<tile::Id> generate_list(const camera::Definition& camera, utils::AabbDecoratorPtr aabb_decorator, unsigned int max_zoom_level)
 {
-    const auto tile_refine_functor = tile::utils::refineFunctor(camera, aabb_decorator, permissible_screen_space_error, 256, max_zoom_level);
+    const auto tile_refine_functor = tile::utils::refineFunctor(camera, aabb_decorator, 256, max_zoom_level);
     return radix::quad_tree::onTheFlyTraverse(tile::Id { 0, { 0, 0 } }, tile_refine_functor, [](const tile::Id& v) { return v.children(); });
 }
 

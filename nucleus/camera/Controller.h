@@ -52,7 +52,8 @@ public:
 	void report_global_cursor_position(const QPointF& screen_pos);
 
 public slots:
-    void set_definition(const Definition& new_definition);
+    void set_pixel_error_threshold(float threshold);
+    void set_model_matrix(const Definition& new_definition);
     void set_near_plane(float distance);
     void set_viewport(const glm::uvec2& new_viewport);
     void fly_to_latitude_longitude(double latitude, double longitude);

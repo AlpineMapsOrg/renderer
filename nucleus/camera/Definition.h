@@ -38,8 +38,8 @@ public:
     Definition();
     Definition(const glm::dvec3& position, const glm::dvec3& view_at_point);
     [[nodiscard]] glm::dmat4 camera_matrix() const;
-    [[nodiscard]] glm::dmat4 camera_space_to_world_matrix() const;
-    void set_camera_space_to_world_matrix(const glm::dmat4& new_camera_transformation);
+    [[nodiscard]] glm::dmat4 model_matrix() const;
+    void set_model_matrix(const glm::dmat4& new_camera_transformation);
     [[nodiscard]] glm::dmat4 projection_matrix() const;
     // transforms from webmercator to clip space. You should use this matrix only in double precision.
     [[nodiscard]] glm::dmat4 world_view_projection_matrix() const;
@@ -80,6 +80,9 @@ public:
     float field_of_view() const;
     void set_field_of_view(float new_field_of_view_degrees);
 
+    [[nodiscard]] float pixel_error_threshold() const;
+    void set_pixel_error_threshold(float new_pixel_error_threshold);
+
 private:
     [[nodiscard]] glm::dvec3 operation_centre() const;
 
@@ -91,6 +94,7 @@ private:
     float m_near_clipping = 5.0; // with full inverse z we can set it even to 0.1. however, ff doesn't support 0 to 1 cliping, so setting it a bit higher.
     float m_far_clipping = 1'000'000;
     glm::uvec2 m_viewport_size = { 480, 270 };
+    float m_pixel_error_threshold = 2.f;
 };
 
 }
