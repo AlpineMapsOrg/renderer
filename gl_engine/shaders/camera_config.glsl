@@ -37,6 +37,13 @@ highp vec3 ws_to_ndc(highp vec3 pos_ws) {
     return tmp.xyz * 0.5 + 0.5; // transform to range 0.0 - 1.0
 }
 
+highp vec3 ws_to_ndc(highp vec3 pos_ws, out bool in_front) {
+    highp vec4 tmp = camera.view_proj_matrix * vec4(pos_ws, 1.0); // from ws to clip-space
+    in_front = tmp.w > 0.0;
+    tmp.xyz /= tmp.w; // perspective divide
+    return tmp.xyz * 0.5 + 0.5; // transform to range 0.0 - 1.0
+}
+
 highp vec3 depth_cs_to_pos_ws(highp float depth, highp vec2 tex_coords) {
     highp vec4 clip_space_position = vec4(tex_coords * 2.0 - vec2(1.0), 2.0 * depth - 1.0, 1.0);
     highp vec4 position = camera.inv_view_proj_matrix * clip_space_position; // Use this for world space

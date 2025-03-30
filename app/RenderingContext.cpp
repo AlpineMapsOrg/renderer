@@ -201,6 +201,7 @@ void RenderingContext::destroy()
             m->picker_manager.reset();
             m->map_label.scheduler.reset();
             m->ortho_texture.scheduler.reset();
+            m->scheduler_director.reset();
         });
         nucleus::utils::thread::sync_call(m->geometry.tile_service.get(), [this]() {
             m->geometry.tile_service.reset();
