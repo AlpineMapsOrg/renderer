@@ -261,6 +261,8 @@ void ReportLoadService::load_tu_wien(const QDate& date) const
                 region_rating.start_time = jsonObject_region_rating["startTime"].toString();
             if (jsonObject_region_rating.contains("endTime"))
                 region_rating.end_time = jsonObject_region_rating["endTime"].toString();
+            if (jsonObject_region_rating.contains("unfavorable"))
+                region_rating.unfavorable = jsonObject_region_rating["unfavorable"].toInt();
 
             // Write struct to vector to be returned
             region_ratings.push_back(region_rating);

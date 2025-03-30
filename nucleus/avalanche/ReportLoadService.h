@@ -38,6 +38,7 @@ struct ReportTUWien {
     int border = INT_MAX;
     int rating_hi = -1;
     int rating_lo = -1;
+    int unfavorable = 0;
     bool operator==(const avalanche::eaws::ReportTUWien& rhs) const = default;
 };
 

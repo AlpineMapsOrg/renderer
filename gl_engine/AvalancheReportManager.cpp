@@ -31,8 +31,8 @@ void gl_engine::AvalancheReportManager::request_latest_reports_from_server()
 // Slot: Gets activated by member reprot load service when reports are available
 void gl_engine::AvalancheReportManager::receive_latest_reports_from_server(tl::expected<std::vector<avalanche::eaws::ReportTUWien>, QString> data_from_server)
 {
-    // Fill array with zero vectors
-    std::fill(m_ubo_eaws_reports->data.reports, m_ubo_eaws_reports->data.reports + 1000, glm::uvec4(0, 0, 0, 0));
+    // Fill array with initial vectors
+    std::fill(m_ubo_eaws_reports->data.reports, m_ubo_eaws_reports->data.reports + 1000, glm::ivec4(-1, 0, 0, 0));
 
     // If error occured during fetching reports send ubp with zeros to gpu
     if (!data_from_server.has_value()) {
@@ -175,7 +175,7 @@ void gl_engine::AvalancheReportManager::receive_latest_reports_from_server(tl::e
         // Write (corrected) region(s) to ubo
         for (QString new_region_id : new_region_ids) {
             uint idx = m_uint_id_manager->convert_region_id_to_internal_id(new_region_id);
-            m_ubo_eaws_reports->data.reports[idx] = glm::ivec4(1, report.border, report.rating_lo, report.rating_hi); // first index = 1 means report for this region available
+            m_ubo_eaws_reports->data.reports[idx] = glm::ivec4(report.unfavorable, report.border, report.rating_lo, report.rating_hi);
         }
     }
 
