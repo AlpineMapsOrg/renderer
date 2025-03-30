@@ -20,7 +20,7 @@ find_package(Qt6 REQUIRED COMPONENTS Test)
 if (NOT TARGET Catch2)
     alp_add_git_repository(catch2 URL https://github.com/catchorg/Catch2.git COMMITISH v3.5.1)
 endif()
-alp_add_git_repository(qml_catch2_console URL https://github.com/AlpineMapsOrg/qml_catch2_console.git COMMITISH 5618b8539506318cff479409ec520971bcf172d4 DO_NOT_ADD_SUBPROJECT)
+alp_add_git_repository(qml_catch2_console URL https://github.com/AlpineMapsOrg/qml_catch2_console.git COMMITISH fcf6dafe6c95ac5b5436b0dfe634341c3a37513a DO_NOT_ADD_SUBPROJECT)
 
 if (EMSCRIPTEN AND ALP_ENABLE_THREADING)
     target_compile_options(Catch2 PRIVATE -pthread)
@@ -29,8 +29,14 @@ endif()
 include(${qml_catch2_console_SOURCE_DIR}/src/qml_catch2_console.cmake)
 
 function(alp_add_unittest name)
-    if(EMSCRIPTEN)
+    if(EMSCRIPTEN)  
         add_qml_catch2_console_unittests(${name} ${ARGN})
+        qt_add_resources(${name} "fonts"
+            BASE ${alpineapp_fonts_SOURCE_DIR}/
+            PREFIX "/fonts"
+            FILES
+            ${alpineapp_fonts_SOURCE_DIR}/Roboto/Roboto-Regular.ttf
+        )
         set(ALP_INSTALL_FILES
             "$<TARGET_FILE_DIR:${name}>/${name}.js"
             "$<TARGET_FILE_DIR:${name}>/${name}.wasm"

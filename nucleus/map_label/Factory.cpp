@@ -86,7 +86,7 @@ Raster<glm::u8vec4> Factory::label_icons()
         PoiType type = PoiType(i);
         // vec4(10.0f,...) is an uv_offset to indicate that the icon texture should be used.
         m_icon_uvs[type] = glm::vec4(10.0f, 10.0f + float(combined_icons.height()) / float(combined_height), 1.0f, float(icons[type].height()) / float(combined_height));
-        combined_icons.combine(icons[type]);
+        combined_icons.append_vertically(icons[type]);
     }
 
     return combined_icons;

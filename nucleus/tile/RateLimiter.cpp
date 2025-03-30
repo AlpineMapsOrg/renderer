@@ -72,9 +72,6 @@ void RateLimiter::process_request_queue()
     m_request_queue.erase(m_request_queue.cbegin(), m_request_queue.cbegin() + requested_now);
 
     if (!m_request_queue.empty()) {
-        const auto age_of_oldest_in_flight = current_msecs - m_in_flight.front();
-        assert(age_of_oldest_in_flight <= m_rate_period_msecs);
-
-        m_update_timer->start(int(1 + m_rate_period_msecs - age_of_oldest_in_flight));
+        m_update_timer->start(int(1 + m_rate_period_msecs / 10));
     }
 }

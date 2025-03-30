@@ -20,7 +20,8 @@
 
 #include <QObject>
 
-#include "nucleus/track/Manager.h"
+#include <nucleus/tile/utils.h>
+#include <nucleus/track/Manager.h>
 
 namespace nucleus {
 
@@ -34,6 +35,9 @@ public:
     [[nodiscard]] virtual track::Manager* track_manager() = 0;
     bool is_alive() const;
 
+    [[nodiscard]] const tile::utils::AabbDecoratorPtr& aabb_decorator() const;
+    void set_aabb_decorator(const tile::utils::AabbDecoratorPtr& new_aabb_decorator);
+
 protected:
     explicit EngineContext();
     virtual void internal_initialise() = 0;
@@ -45,5 +49,6 @@ signals:
 private:
     bool m_initialised = false;
     bool m_destroyed = false;
+    tile::utils::AabbDecoratorPtr m_aabb_decorator;
 };
 } // namespace nucleus

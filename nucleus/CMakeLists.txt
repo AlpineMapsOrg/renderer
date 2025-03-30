@@ -22,7 +22,7 @@
 project(alpine-renderer-nucleus LANGUAGES CXX)
 
 alp_add_git_repository(stb_slim URL https://github.com/AlpineMapsOrgDependencies/stb_slim.git COMMITISH 547fade2a12793e1bea4733d59646b4f436e25a4)
-alp_add_git_repository(radix URL https://github.com/AlpineMapsOrg/radix.git COMMITISH d1fd1f75ebcfd560d8ad2ec8633ef8430c4976e7 NOT_SYSTEM)
+alp_add_git_repository(radix URL https://github.com/AlpineMapsOrg/radix.git COMMITISH 5fe2ca3b52441e475909b4d50b5a720ca75c4c62 NOT_SYSTEM)
 alp_add_git_repository(tl_expected URL https://github.com/TartanLlama/expected.git COMMITISH v1.1.0 DO_NOT_ADD_SUBPROJECT)
 alp_add_git_repository(zppbits URL https://github.com/eyalz800/zpp_bits.git COMMITISH v4.4.25 DO_NOT_ADD_SUBPROJECT)
 if(ALP_ENABLE_LABELS)
@@ -118,6 +118,8 @@ qt_add_library(nucleus STATIC
     utils/error.h
     utils/lang.h
     utils/rasterizer.h utils/rasterizer.cpp
+    tile/SchedulerDirector.h tile/SchedulerDirector.cpp
+    tile/drawing.h tile/drawing.cpp
 )
 
 if (ALP_ENABLE_AVLANCHE_WARNING_LAYER)

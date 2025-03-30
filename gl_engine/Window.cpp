@@ -44,6 +44,7 @@
 #include <QTimer>
 #include <glm/glm.hpp>
 #include <glm/gtx/transform.hpp>
+#include <nucleus/tile/drawing.h>
 #include <nucleus/timing/CpuTimer.h>
 #include <nucleus/timing/TimerManager.h>
 #include <nucleus/utils/bit_coding.h>
@@ -51,6 +52,9 @@
 #if (defined(__linux) && !defined(__ANDROID__)) || defined(_WIN32) || defined(_WIN64)
 #include "GpuAsyncQueryTimer.h"
 #include <QOpenGLFunctions_4_5_Core>
+#endif
+#ifdef __ANDROID__
+#include "GpuAsyncQueryTimer.h"
 #endif
 #ifdef __EMSCRIPTEN__
 #include <emscripten.h>
@@ -67,6 +71,7 @@
 using gl_engine::UniformBuffer;
 using gl_engine::Window;
 using namespace gl_engine;
+using namespace nucleus::tile;
 
 Window::Window(std::shared_ptr<Context> context)
     : m_context(context)
@@ -85,11 +90,10 @@ Window::~Window()
 
 void Window::initialise_gpu()
 {
+#if defined(ALP_ENABLE_DEV_TOOLS)
     QOpenGLDebugLogger* logger = new QOpenGLDebugLogger(this);
     logger->initialize();
     connect(logger, &QOpenGLDebugLogger::messageLogged, [](const QOpenGLDebugMessage& message) {
-        if (message.id() == 1281)
-            qDebug() << "duuud " << message;
         if (message.id() == 131218)
             qDebug() << "during QOpenGLFunctions::glReadPixels" << message;
         else
@@ -98,6 +102,7 @@ void Window::initialise_gpu()
     logger->disableMessages(QList<GLuint>({ 131185 }));
     logger->disableMessages(QList<GLuint>({ 131218 }));
     logger->startLogging(QOpenGLDebugLogger::SynchronousLogging);
+#endif
 
     QOpenGLExtraFunctions* f = QOpenGLContext::currentContext()->extraFunctions();
     assert(f->hasOpenGLFeature(QOpenGLExtraFunctions::OpenGLFeature::MultipleRenderTargets));
@@ -194,15 +199,15 @@ void Window::initialise_gpu()
     m_shadowmapping = std::make_unique<gl_engine::ShadowMapping>(shader_registry, depth_buffer_clip_type);
     m_ssao = std::make_unique<gl_engine::SSAO>(shader_registry);
 
-    m_shared_config_ubo = std::make_shared<gl_engine::UniformBuffer<gl_engine::uboSharedConfig>>(0, "shared_config");
+    m_shared_config_ubo = std::make_shared<gl_engine::UniformBuffer<gl_engine::uboSharedConfig>>(2, "shared_config");
     m_shared_config_ubo->init();
     m_shared_config_ubo->bind_to_shader(shader_registry->all());
 
-    m_camera_config_ubo = std::make_shared<gl_engine::UniformBuffer<gl_engine::uboCameraConfig>>(1, "camera_config");
+    m_camera_config_ubo = std::make_shared<gl_engine::UniformBuffer<gl_engine::uboCameraConfig>>(3, "camera_config");
     m_camera_config_ubo->init();
     m_camera_config_ubo->bind_to_shader(shader_registry->all());
 
-    m_shadow_config_ubo = std::make_shared<gl_engine::UniformBuffer<gl_engine::uboShadowConfig>>(2, "shadow_config");
+    m_shadow_config_ubo = std::make_shared<gl_engine::UniformBuffer<gl_engine::uboShadowConfig>>(4, "shadow_config");
     m_shadow_config_ubo->init();
     m_shadow_config_ubo->bind_to_shader(shader_registry->all());
 
@@ -211,8 +216,8 @@ void Window::initialise_gpu()
         using nucleus::timing::CpuTimer;
         m_timer = std::make_unique<nucleus::timing::TimerManager>();
 
-// GPU Timing Queries not supported on OpenGL ES or Web GL
-#if (defined(__linux) && !defined(__ANDROID__)) || defined(_WIN32) || defined(_WIN64)
+// GPU Timing Queries not supported on Web GL
+#if (defined(__linux)) || defined(_WIN32) || defined(_WIN64)
         m_timer->add_timer(make_shared<GpuAsyncQueryTimer>("ssao", "GPU", 240, 1.0f/60.0f));
         m_timer->add_timer(make_shared<GpuAsyncQueryTimer>("atmosphere", "GPU", 240, 1.0f / 60.0f));
         m_timer->add_timer(make_shared<GpuAsyncQueryTimer>("tiles", "GPU", 240, 1.0f/60.0f));
@@ -275,31 +280,41 @@ void Window::paint(QOpenGLFramebufferObject* framebuffer)
     m_camera_config_ubo->update_gpu_data();
 
     // DRAW ATMOSPHERIC BACKGROUND
+    m_timer->start_timer("atmosphere");
     m_atmospherebuffer->bind();
     f->glClearColor(0.0, 0.0, 0.0, 1.0);
     f->glClear(GL_COLOR_BUFFER_BIT);
     f->glDisable(GL_DEPTH_TEST);
     f->glDepthFunc(GL_ALWAYS);
     m_atmosphere_shader->bind();
-    m_timer->start_timer("atmosphere");
     m_screen_quad_geometry.draw();
-    m_timer->stop_timer("atmosphere");
     m_atmosphere_shader->release();
+    m_timer->stop_timer("atmosphere");
 
     // Generate Draw-List
     // Note: Could also just be done on camera change
     m_timer->start_timer("draw_list");
+    QVariantMap tile_stats;
     MapLabels::TileSet label_tile_set;
-    if (m_context->map_label_manager())
+    if (m_context->map_label_manager()) {
         label_tile_set = m_context->map_label_manager()->generate_draw_list(m_camera);
-    const auto tile_set = m_context->tile_geometry()->generate_tilelist(m_camera);
-    const auto culled_tile_set = m_context->tile_geometry()->cull(tile_set, m_camera.frustum());
+        tile_stats["n_label_tiles_gpu"] = m_context->map_label_manager()->tile_count();
+        tile_stats["n_label_tiles_drawn"] = unsigned(label_tile_set.size());
+    }
+
+    const auto draw_list
+        = drawing::compute_bounds(drawing::limit(drawing::generate_list(m_camera, m_context->aabb_decorator(), 19), 1024u), m_context->aabb_decorator());
+    const auto culled_draw_list = drawing::sort(drawing::cull(draw_list, m_camera), m_camera.position());
+
+    tile_stats["n_geometry_tiles_gpu"] = m_context->tile_geometry()->tile_count();
+    tile_stats["n_ortho_tiles_gpu"] = m_context->ortho_layer()->tile_count();
+    tile_stats["n_geometry_tiles_drawn"] = unsigned(culled_draw_list.size());
     m_timer->stop_timer("draw_list");
 
     // DRAW SHADOWMAPS
     if (m_shared_config_ubo->data.m_csm_enabled) {
         m_timer->start_timer("shadowmap");
-        m_shadowmapping->draw(m_context->tile_geometry(), tile_set, m_camera, m_shadow_config_ubo, m_shared_config_ubo);
+        m_shadowmapping->draw(m_context->tile_geometry(), draw_list, m_camera, m_shadow_config_ubo, m_shared_config_ubo);
         m_timer->stop_timer("shadowmap");
     }
 
@@ -328,7 +343,7 @@ void Window::paint(QOpenGLFramebufferObject* framebuffer)
     f->glDepthFunc(GL_GREATER); // reverse z
 
     m_timer->start_timer("tiles");
-    m_context->ortho_layer()->draw(*m_context->tile_geometry(), m_camera, culled_tile_set, true, m_camera.position());
+    m_context->ortho_layer()->draw(*m_context->tile_geometry(), m_camera, culled_draw_list);
     m_timer->stop_timer("tiles");
 
     m_gbuffer->unbind();
@@ -432,15 +447,16 @@ void Window::paint(QOpenGLFramebufferObject* framebuffer)
     m_timer->stop_timer("cpu_total");
     m_timer->stop_timer("gpu_total");
 
-    QList<nucleus::timing::TimerReport> new_values = m_timer->fetch_results();
-    if (new_values.size() > 0) {
-        emit report_measurements(new_values);
-    }
-
 #if defined(ALP_ENABLE_DEV_TOOLS) && defined(__linux__)
     // make time measurment more stable.
     glFinish();
 #endif
+
+    QList<nucleus::timing::TimerReport> new_values = m_timer->fetch_results();
+    if (new_values.size() > 0) {
+        emit timer_measurements_ready(new_values);
+    }
+    emit tile_stats_ready(tile_stats);
 }
 
 void Window::shared_config_changed(gl_engine::uboSharedConfig ubo) {
@@ -469,8 +485,6 @@ void Window::reload_shader() {
     do_reload();
 #endif
 }
-
-void Window::set_permissible_screen_space_error(float new_error) { m_context->tile_geometry()->set_permissible_screen_space_error(new_error); }
 
 void Window::update_camera(const nucleus::camera::Definition& new_definition)
 {

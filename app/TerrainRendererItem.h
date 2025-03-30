@@ -21,6 +21,8 @@
 
 #pragma once
 
+#include "AppSettings.h"
+#include "TileStatistics.h"
 #include <QDateTime>
 #include <QList>
 #include <QQmlEngine>
@@ -28,14 +30,11 @@
 #include <QString>
 #include <QVector2D>
 #include <QVector3D>
-
 #include <gl_engine/UniformBufferObjects.h>
 #include <nucleus/camera/Definition.h>
 #include <nucleus/event_parameter.h>
 #include <nucleus/map_label/FilterDefinitions.h>
 #include <nucleus/picker/types.h>
-
-#include "AppSettings.h"
 
 class QTimer;
 
@@ -54,9 +53,7 @@ class TerrainRendererItem : public QQuickFramebufferObject {
     Q_PROPERTY(gl_engine::uboSharedConfig shared_config READ shared_config WRITE set_shared_config NOTIFY shared_config_changed)
     Q_PROPERTY(nucleus::map_label::FilterDefinitions label_filter READ label_filter WRITE set_label_filter NOTIFY label_filter_changed)
     Q_PROPERTY(AppSettings* settings MEMBER m_settings CONSTANT)
-    Q_PROPERTY(unsigned int in_flight_tiles READ in_flight_tiles NOTIFY in_flight_tiles_changed)
-    Q_PROPERTY(unsigned int queued_tiles READ queued_tiles NOTIFY queued_tiles_changed)
-    Q_PROPERTY(unsigned int cached_tiles READ cached_tiles NOTIFY cached_tiles_changed)
+    Q_PROPERTY(TileStatistics* tile_statistics MEMBER m_tile_statistics CONSTANT)
     Q_PROPERTY(unsigned int tile_cache_size READ tile_cache_size WRITE set_tile_cache_size NOTIFY tile_cache_size_changed)
     Q_PROPERTY(unsigned int selected_camera_position_index MEMBER m_selected_camera_position_index WRITE set_selected_camera_position_index)
     Q_PROPERTY(QVector2D sun_angles READ sun_angles WRITE set_sun_angles NOTIFY sun_angles_changed)
@@ -99,12 +96,6 @@ signals:
     void camera_operation_centre_visibility_changed();
     void camera_operation_centre_distance_changed();
     void render_quality_changed(float new_render_quality);
-
-    void in_flight_tiles_changed(unsigned new_n);
-
-    void queued_tiles_changed(unsigned new_n);
-
-    void cached_tiles_changed(unsigned new_n);
 
     void tile_cache_size_changed(unsigned new_cache_size);
 
@@ -179,15 +170,6 @@ public:
 
     void set_selected_camera_position_index(unsigned value);
 
-    [[nodiscard]] unsigned int in_flight_tiles() const;
-    void set_in_flight_tiles(unsigned int new_in_flight_tiles);
-
-    [[nodiscard]] unsigned int queued_tiles() const;
-    void set_queued_tiles(unsigned int new_queued_tiles);
-
-    [[nodiscard]] unsigned int cached_tiles() const;
-    void set_cached_tiles(unsigned int new_cached_tiles);
-
     [[nodiscard]] unsigned int tile_cache_size() const;
     void set_tile_cache_size(unsigned int new_tile_cache_size);
 
@@ -217,14 +199,11 @@ private:
     float m_field_of_view = 60;
     int m_redraw_delay = 1;
     unsigned m_tile_cache_size = 12000;
-    unsigned m_cached_tiles = 0;
-    unsigned m_queued_tiles = 0;
-    unsigned m_in_flight_tiles = 0;
     unsigned int m_selected_camera_position_index = 0;
     QDateTime m_selected_datetime = QDateTime::currentDateTime();
 
     nucleus::picker::Feature m_picked_feature;
-    QVector3D m_world_space_cursor_position = {};
+    QVector3D m_world_space_cursor_position;
 
     gl_engine::uboSharedConfig m_shared_config;
     nucleus::map_label::FilterDefinitions m_label_filter;
@@ -235,6 +214,7 @@ private:
     int m_camera_height = 0;
 
     AppSettings* m_settings;
+    TileStatistics* m_tile_statistics;
     QVector2D m_sun_angles; // azimuth and zenith
     glm::dvec3 m_last_camera_latlonalt;
     glm::dvec3 m_last_camera_lookat_latlonalt;

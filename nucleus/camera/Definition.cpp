@@ -60,15 +60,9 @@ glm::dmat4 Definition::camera_matrix() const
     return glm::inverse(m_camera_transformation);
 }
 
-glm::dmat4 Definition::camera_space_to_world_matrix() const
-{
-    return m_camera_transformation;
-}
+glm::dmat4 Definition::model_matrix() const { return m_camera_transformation; }
 
-void Definition::set_camera_space_to_world_matrix(const glm::dmat4& new_camera_transformation)
-{
-    m_camera_transformation = new_camera_transformation;
-}
+void Definition::set_model_matrix(const glm::dmat4& new_camera_transformation) { m_camera_transformation = new_camera_transformation; }
 
 glm::dmat4 Definition::projection_matrix() const
 {
@@ -317,6 +311,10 @@ glm::dvec3 Definition::operation_centre() const
     const auto t = -origin.z / direction.z;
     return origin + t * direction;
 }
+
+float Definition::pixel_error_threshold() const { return m_pixel_error_threshold; }
+
+void Definition::set_pixel_error_threshold(float new_pixel_error_threshold) { m_pixel_error_threshold = new_pixel_error_threshold; }
 
 namespace nucleus::camera {
 

@@ -20,12 +20,12 @@
 
 #pragma once
 
+#include <algorithm>
 #include <cassert>
 #include <cstdint>
-#include <vector>
-
 #include <glm/glm.hpp>
 #include <glm/gtx/component_wise.hpp>
+#include <vector>
 
 namespace nucleus {
 
@@ -88,10 +88,13 @@ public:
 
     void fill(const T& value) { std::fill(begin(), end(), value); }
 
-    void combine(const Raster<T>& other)
+    /// cheaper than concatenate_horizontally, works only if other has the same width
+    void append_vertically(const Raster<T>& other)
     {
         // currently only supports combining with other raster of equal width (otherwise we need to fill either the current or the other raster with 0 values)
-        assert(other.width() == m_width);
+        assert(other.width() == width());
+        if (other.width() != width())
+            return;
 
         m_height += other.height();
 
@@ -166,5 +169,20 @@ template <typename T> Raster<T> resize(const Raster<T>& raster, const glm::uvec2
         }
     }
     return n;
+}
+
+/// more expensive than append_vertically, works only if a and b have the same height.
+template <typename T> Raster<T> concatenate_horizontally(const Raster<T>& a, const Raster<T>& b)
+{
+    assert(a.height() == b.height());
+    Raster<T> r({ a.width() + b.width(), a.height() });
+    if (a.height() != b.height())
+        return r; // shouldn't happen
+
+    for (auto l = 0u; l < a.height(); ++l) {
+        auto i = std::copy_n(&a.pixel({ 0, l }), a.width(), &r.pixel({ 0, l }));
+        std::copy_n(&b.pixel({ 0, l }), b.width(), i);
+    }
+    return r;
 }
 }

@@ -64,8 +64,7 @@ void Controller::set_viewport(const glm::uvec2& new_viewport)
 void Controller::fly_to_latitude_longitude(double latitude, double longitude)
 {
     const auto xy_world_space = srs::lat_long_to_world({latitude, longitude});
-    const auto look_at_point = glm::dvec3(xy_world_space,
-                                          m_data_querier->get_altitude({latitude, longitude}));
+    const auto look_at_point = glm::dvec3(xy_world_space, m_data_querier->get_altitude({ latitude, longitude }).value_or(2000));
     const auto camera_position = look_at_point + glm::normalize(glm::dvec3{0, -1, 1}) * 5000.;
 
     auto end_camera = m_definition;
@@ -262,17 +261,25 @@ void Controller::report_global_cursor_position(const QPointF& screen_pos) {
     emit global_cursor_position_changed(coord);
 }
 
+void Controller::set_pixel_error_threshold(float threshold)
+{
+    if (m_definition.pixel_error_threshold() == threshold)
+        return;
+    m_definition.set_pixel_error_threshold(threshold);
+    update();
+}
+
 const Definition& Controller::definition() const
 {
     return m_definition;
 }
 
-void Controller::set_definition(const Definition& new_definition)
+void Controller::set_model_matrix(const Definition& new_definition)
 {
-    if (m_definition.world_view_projection_matrix() == new_definition.world_view_projection_matrix())
+    if (m_definition.model_matrix() == new_definition.model_matrix())
         return;
 
-    m_definition = new_definition;
+    m_definition.set_model_matrix(new_definition.model_matrix());
     update();
 }
 

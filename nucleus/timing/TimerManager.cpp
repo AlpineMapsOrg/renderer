@@ -1,6 +1,7 @@
 /*****************************************************************************
  * AlpineMaps.org
  * Copyright (C) 2023 Gerald Kimmersdorfer
+ * Copyright (C) 2025 Adam Celarek
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -16,7 +17,6 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *****************************************************************************/
 
-
 #include "TimerManager.h"
 
 #ifdef QT_DEBUG
@@ -30,7 +30,8 @@ TimerManager::TimerManager()
 }
 
 #ifdef QT_DEBUG
-void TimerManager::warn_about_timer(const std::string& name) {
+void TimerManager::warn_about_timer(const QString& name)
+{
     if (!m_timer_already_warned_about.contains(name)) {
         qWarning() << "Requested Timer with name: " << name << " which has not been created.";
         m_timer_already_warned_about.insert(name);
@@ -38,7 +39,7 @@ void TimerManager::warn_about_timer(const std::string& name) {
 }
 #endif
 
-void TimerManager::start_timer(const std::string &name)
+void TimerManager::start_timer(const QString& name)
 {
     auto it = m_timer.find(name);
     if (it != m_timer.end()) m_timer[name]->start();
@@ -47,7 +48,7 @@ void TimerManager::start_timer(const std::string &name)
 #endif
 }
 
-void TimerManager::stop_timer(const std::string &name)
+void TimerManager::stop_timer(const QString& name)
 {
     auto it = m_timer.find(name);
     if (it != m_timer.end()) m_timer[name]->stop();
@@ -61,14 +62,14 @@ QList<TimerReport> TimerManager::fetch_results()
     QList<TimerReport> new_values;
     for (const auto& tmr : m_timer_in_order) {
         if (tmr->fetch_result()) {
-            new_values.push_back({ tmr->get_last_measurement(), tmr });
+            new_values.emplace_back(tmr->last_measurement(), tmr->name(), tmr->group(), tmr->queue_size(), tmr->average_weight());
         }
     }
     return new_values;
 }
 
 std::shared_ptr<TimerInterface> TimerManager::add_timer(std::shared_ptr<TimerInterface> tmr) {
-    m_timer[tmr->get_name()] = tmr;
+    m_timer[tmr->name()] = tmr;
     m_timer_in_order.push_back(tmr);
     return tmr;
 }

@@ -29,10 +29,6 @@
 
 class QOpenGLFramebufferObject;
 
-namespace tile {
-struct Id;
-}
-
 namespace nucleus {
 namespace tile::utils {
     class AabbDecorator;
@@ -50,7 +46,6 @@ public:
     virtual void resize_framebuffer(int width, int height) = 0;
     virtual void paint(QOpenGLFramebufferObject* framebuffer = nullptr) = 0;
     virtual void destroy() = 0;
-    virtual void set_permissible_screen_space_error(float new_error) = 0;
     [[nodiscard]] virtual camera::AbstractDepthTester* depth_tester() = 0;
     [[nodiscard]] virtual utils::ColourTexture::Format ortho_tile_compression_algorithm() const = 0;
 

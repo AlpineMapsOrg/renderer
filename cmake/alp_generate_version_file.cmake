@@ -16,22 +16,17 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #############################################################################
- 
-find_package(Git 2.22 REQUIRED)
+
+
+get_filename_component(CURRENT_SCRIPT_DIR "${CMAKE_CURRENT_LIST_FILE}" DIRECTORY)
+
+include(${CURRENT_SCRIPT_DIR}/Version.cmake)
+
 
 get_filename_component(ALP_VERSION_TEMPLATE_DIR ${ALP_VERSION_TEMPLATE} DIRECTORY)
 
-execute_process(COMMAND ${GIT_EXECUTABLE} describe --tags --dirty=-d --abbrev=1
-    WORKING_DIRECTORY ${ALP_VERSION_TEMPLATE_DIR}
-    OUTPUT_STRIP_TRAILING_WHITESPACE
-    OUTPUT_VARIABLE ALP_VERSION)
-    
-if (ALP_VERSION STREQUAL "")
-    message(WARNING "Retrieving version string from git was not successfull. Setting it to 'vUnknown'")
-    set(ALP_VERSION "vUnknown")
-else()
-    string(REPLACE "-g" "." ALP_VERSION ${ALP_VERSION})
-    string(REPLACE "-" "." ALP_VERSION ${ALP_VERSION})
-endif()
-
-configure_file(${ALP_VERSION_TEMPLATE} ${ALP_VERSION_DESTINATION} @ONLY)
+alp_generate_version_file(
+    GIT_DIR             "${ALP_VERSION_TEMPLATE_DIR}"
+    VERSION_TEMPLATE    "${ALP_VERSION_TEMPLATE}"
+    VERSION_DESTINATION "${ALP_VERSION_DESTINATION}"
+)
