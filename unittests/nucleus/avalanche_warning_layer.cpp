@@ -205,3 +205,98 @@ TEST_CASE("nucleus/EAWS Vector Tiles")
         CHECK(internal_id_manager->convert_region_id_to_internal_id("NO-3035") == raster_with_one_pixel.pixel(glm::uvec2(0, 0)));
     }
 }
+
+#include <nucleus/avalanche/ReportLoadService.h>
+TEST_CASE("nucleus/EAWS Reports")
+{
+    SECTION("TU Wien")
+    {
+        // Define network request
+        QUrl qurl(QString("https://alpinemaps.cg.tuwien.ac.at/avalanche-reports/get-current-report?date=2024-02-20"));
+        QNetworkRequest request(qurl);
+        request.setTransferTimeout(int(8000));
+        request.setAttribute(QNetworkRequest::CacheLoadControlAttribute, QNetworkRequest::PreferCache);
+#if QT_VERSION >= QT_VERSION_CHECK(6, 5, 0)
+        request.setAttribute(QNetworkRequest::UseCredentialsAttribute, false);
+#endif
+
+        // Prepare network manager and reply
+        QNetworkAccessManager network_manager;
+        QNetworkReply* reply = nullptr;
+        std::vector<avalanche::eaws::ReportTUWien> region_ratings;
+
+        // Connect lambda function to reply finsihed signal
+        QObject::connect(reply, &QNetworkReply::finished, [reply, &region_ratings]() {
+            // check if lambda is called
+            CHECK(false);
+
+            // Check if Network Error occured
+            CHECK(reply->error() != QNetworkReply::NoError);
+
+            // Read the response data
+            QByteArray data = reply->readAll();
+
+            // Convert data to Json
+            QJsonParseError parse_error;
+            QJsonDocument json_document = QJsonDocument::fromJson(data, &parse_error);
+
+            // Check for parsing error
+            CHECK(parse_error.error != QJsonParseError::NoError);
+
+            // Check for empty json
+            CHECK((!json_document.isEmpty() && !json_document.isNull()));
+
+            // Check if key with reports is correct
+            CHECK(json_document.isObject());
+            QJsonObject json_object = json_document.object();
+
+            // Check if array is contained in json
+            CHECK(json_object["report"].isArray());
+
+            QJsonArray jsonArray_report = json_object["report"].toArray();
+
+            // parse array containing report for each region
+
+            for (const QJsonValue& jsonValue_region_rating : jsonArray_report) {
+                // prepare an item that goes inot the bulletin
+                avalanche::eaws::ReportTUWien region_rating;
+
+                // Check if Json array contains json objects
+                CHECK(jsonValue_region_rating.isObject());
+
+                // Write regional report to struct
+                QJsonObject jsonObject_region_rating = jsonValue_region_rating.toObject();
+                if (jsonObject_region_rating.contains("regionCode"))
+                    region_rating.region_id = jsonObject_region_rating["regionCode"].toString();
+                if (jsonObject_region_rating.contains("dangerBorder"))
+                    region_rating.border = jsonObject_region_rating["dangerBorder"].toInt();
+                if (jsonObject_region_rating.contains("dangerRatingHi"))
+                    region_rating.rating_hi = jsonObject_region_rating["dangerRatingHi"].toInt();
+                if (jsonObject_region_rating.contains("dangerRatingLo"))
+                    region_rating.rating_lo = jsonObject_region_rating["dangerRatingLo"].toInt();
+                if (jsonObject_region_rating.contains("startTime"))
+                    region_rating.start_time = jsonObject_region_rating["startTime"].toString();
+                if (jsonObject_region_rating.contains("endTime"))
+                    region_rating.end_time = jsonObject_region_rating["endTime"].toString();
+                if (jsonObject_region_rating.contains("unfavorable"))
+                    region_rating.unfavorable = jsonObject_region_rating["unfavorable"].toInt();
+
+                // Write struct to vector to be returned
+                region_ratings.push_back(region_rating);
+            }
+        });
+
+        // make get request. reply should trigger lambda  when finished
+        reply = network_manager.get(request);
+        qint64 start = QDateTime::currentDateTime().toSecsSinceEpoch();
+        qint64 end = start;
+        while (true) {
+            end = QDateTime::currentDateTime().toSecsSinceEpoch();
+            if (end - start > 5)
+                break;
+        }
+
+        CHECK(end - start > 5);
+        CHECK(reply->isFinished());
+    }
+}
