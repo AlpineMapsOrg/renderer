@@ -213,8 +213,8 @@ TEST_CASE("nucleus/EAWS Reports")
     avalanche::eaws::ReportLoadService reportLoadService;
     QSignalSpy spy(&reportLoadService, &avalanche::eaws::ReportLoadService::load_TU_Wien_finished);
     reportLoadService.load_tu_wien(QDate::currentDate());
-    spy.wait(10000);
 
+    spy.wait(10000);
     REQUIRE(spy.count() == 1);
     QList<QVariant> arguments = spy.takeFirst();
     REQUIRE(arguments.size() == 1);
@@ -223,7 +223,6 @@ TEST_CASE("nucleus/EAWS Reports")
         std::vector<avalanche::eaws::ReportTUWien> report = arguments.at(0).value<std::vector<avalanche::eaws::ReportTUWien>>();
         CHECK(report.size() > 0);
     } else {
-        std::cout << "\n #########\n #########\n #########\n #########\n #########\n #########\n #########\n #########";
         std::cout << result.error().toStdString();
     }
 }
