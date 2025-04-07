@@ -50,10 +50,11 @@ public slots:
     void load_CAAML(const QString& url) const;
     void load_tu_wien(const QDate& date) const;
     void load_latest_TU_Wien() const;
+    void load_report_from_file() const;
 
 signals:
     void load_CAAML_finished(tl::expected<std::vector<BulletinItemCAAML>, QString> data_from_server) const;
-    void load_latest_TU_Wien_finished(tl::expected<std::vector<ReportTUWien>, QString> data_from_server) const;
+    void load_TU_Wien_finished(tl::expected<std::vector<ReportTUWien>, QString> data_from_server) const;
 
 public:
     // QNetworkAccessManager m_network_manager;
