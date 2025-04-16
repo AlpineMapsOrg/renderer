@@ -85,6 +85,12 @@ inline nucleus::camera::Definition wien()
     const auto coords = srs::lat_long_alt_to_world({48.20851144787232, 16.373082444395656, 171.28});
     return {{coords.x + 10'000, coords.y + 2'000, coords.z + 1'000}, coords};
 }
+inline nucleus::camera::Definition nockspitze()
+{
+    const auto coords_lookat = srs::lat_long_alt_to_world({47.19205856323242, 11.32470417022705, 2406});
+    const auto coords_position = srs::lat_long_alt_to_world({47.20421981811, 11.308669, 3500});
+    return {coords_position,coords_lookat};
+}
 
 } // namespace nucleus::camera::stored_positions
 

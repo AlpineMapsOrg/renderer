@@ -205,6 +205,9 @@ Item {
         main.onWidthChanged(); // trigger responsive updates manually
     }
 
+    function toggleSteepnessLegend() {
+        steepnessLegend.visible = !steepnessLegend.visible
+    }
 
     TerrainRenderer {
         id: map
@@ -248,6 +251,28 @@ Item {
 
     Component.onCompleted: {
         change_page("map")
+    }
+
+    Rectangle {
+        id: steepnessLegend
+        width: 300
+        height: 48
+        color: Qt.alpha( "white", 0.7)
+        border.color: Qt.alpha( "black", 0.5)
+        border.width: 2
+        radius: 8   // Optional: Rounded corners
+        anchors.top: tool_bar.bottom
+        anchors.topMargin: 4
+        visible: false
+
+        Image {
+            id: steepnessLegendImage
+            anchors.fill: parent
+            source: "icons/steepness_legend.png"   // Local file or resource
+            fillMode: Image.PreserveAspectFit
+            smooth: true
+            anchors.margins: 4
+        }
     }
 
 }
