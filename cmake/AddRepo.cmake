@@ -1,5 +1,5 @@
 #############################################################################
-# Alpine Radix
+# AlpineMaps.org
 # Copyright (C) 2023 Adam Celarek <family name at cg tuwien ac at>
 #
 # This program is free software: you can redistribute it and/or modify
@@ -24,11 +24,24 @@ find_package(Git 2.22 REQUIRED)
 # we are on a branch and in that case only issues a warning. Use origin/main or similar, if you want to stay up-to-date
 # with upstream.
 
+if(NOT DEFINED _alp_add_repo_check_flag)
+    set_property(GLOBAL PROPERTY _alp_add_repo_check_flag FALSE)
+endif()
+
 function(alp_add_git_repository name)
-    set(options DO_NOT_ADD_SUBPROJECT NOT_SYSTEM)
+    set(options DO_NOT_ADD_SUBPROJECT NOT_SYSTEM PRIVATE_DO_NOT_CHECK_FOR_SCRIPT_UPDATES)
     set(oneValueArgs URL COMMITISH DESTINATION_PATH)
     set(multiValueArgs )
     cmake_parse_arguments(PARSE_ARGV 1 PARAM "${options}" "${oneValueArgs}" "${multiValueArgs}")
+
+    get_property(_check_ran GLOBAL PROPERTY _alp_add_repo_check_flag)
+    if(NOT PARAM_PRIVATE_DO_NOT_CHECK_FOR_SCRIPT_UPDATES AND NOT _check_ran)
+        if(NOT COMMAND alp_check_for_script_updates)
+            include(${CMAKE_CURRENT_FUNCTION_LIST_DIR}/CheckForScriptUpdates.cmake)
+        endif()
+        alp_check_for_script_updates(${CMAKE_CURRENT_FUNCTION_LIST_FILE})
+        set_property(GLOBAL PROPERTY _alp_add_repo_check_flag TRUE)
+    endif()
 
     file(MAKE_DIRECTORY ${CMAKE_SOURCE_DIR}/${ALP_EXTERN_DIR} )
     set(repo_dir ${CMAKE_SOURCE_DIR}/${ALP_EXTERN_DIR}/${name})
@@ -39,6 +52,7 @@ function(alp_add_git_repository name)
     endif()
 
     set(${name}_SOURCE_DIR "${repo_dir}" PARENT_SCOPE)
+    set(ALP_EXTERN_${name} "${repo_dir}" CACHE PATH "Path to an external repository within the project. Note that this is read only (it'll be overwritten).")
 
     if(EXISTS "${repo_dir}/.git")
         message(STATUS "Updating git repo in ${short_repo_dir}")
@@ -50,6 +64,7 @@ function(alp_add_git_repository name)
             ERROR_QUIET
             RESULT_VARIABLE GIT_LSREMOTE_RESULT
         )
+        string(REGEX MATCH "^[^/]+/.+" commitish_is_remote_branch "${PARAM_COMMITISH}")
 
         # First, see if PARAM_COMMITISH is a valid local ref at all:
         execute_process(
@@ -93,7 +108,7 @@ function(alp_add_git_repository name)
                 OUTPUT_STRIP_TRAILING_WHITESPACE
             )
 
-            if (GIT_HEAD_OUTPUT STREQUAL CHECK_COMMITISH)
+            if (GIT_HEAD_OUTPUT STREQUAL CHECK_COMMITISH AND NOT commitish_is_remote_branch)
                 message(STATUS "Repo in ${short_repo_dir} is already at ${PARAM_COMMITISH}. Skipping checkout.")
             else()
                 if (GIT_LSREMOTE_RESULT)
