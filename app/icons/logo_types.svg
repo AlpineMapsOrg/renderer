@@ -2,12 +2,12 @@
 <!-- Created with Inkscape (http://www.inkscape.org/) -->
 
 <svg
-   width="148mm"
-   height="105mm"
-   viewBox="0 0 148 105"
+   width="324.7085mm"
+   height="185.7816mm"
+   viewBox="0 0 324.7085 185.7816"
    version="1.1"
    id="svg1"
-   inkscape:version="1.1.2 (0a00cf5339, 2022-02-04)"
+   inkscape:version="1.2.2 (1:1.2.2+202212051552+b0a8486541)"
    sodipodi:docname="logo_types.svg"
    xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
    xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
@@ -23,12 +23,12 @@
      inkscape:pagecheckerboard="0"
      inkscape:deskcolor="#d1d1d1"
      inkscape:document-units="mm"
-     inkscape:zoom="1"
-     inkscape:cx="275"
-     inkscape:cy="201"
+     inkscape:zoom="0.5706266"
+     inkscape:cx="214.67629"
+     inkscape:cy="400.437"
      inkscape:window-width="1920"
-     inkscape:window-height="1139"
-     inkscape:window-x="1920"
+     inkscape:window-height="1020"
+     inkscape:window-x="0"
      inkscape:window-y="0"
      inkscape:window-maximized="1"
      inkscape:current-layer="layer1"
@@ -43,7 +43,7 @@
        height="18.469055"
        id="rect4482" />
     <rect
-       x="305.99717"
+       x="305.99716"
        y="274.73425"
        width="14.125261"
        height="21.978027"
@@ -56,9 +56,9 @@
        id="rect11" />
     <rect
        x="301.04614"
-       y="95.976483"
+       y="95.976486"
        width="18.236084"
-       height="18.247468"
+       height="18.247469"
        id="rect10" />
     <rect
        x="9.5163574"
@@ -69,8 +69,8 @@
     <rect
        x="309.59702"
        y="67.669243"
-       width="200.42861"
-       height="147.43528"
+       width="200.4286"
+       height="147.43529"
        id="rect5" />
     <rect
        x="121.50293"
@@ -123,76 +123,120 @@
     <rect
        x="309.59702"
        y="67.669243"
-       width="370.06032"
-       height="67.027675"
+       width="370.06033"
+       height="67.027672"
        id="rect5-7-7" />
     <rect
        x="31.372864"
        y="353.47369"
        width="121.00317"
-       height="20.197082"
+       height="20.197083"
        id="rect4482-2" />
+    <rect
+       x="309.59702"
+       y="67.669243"
+       width="200.4286"
+       height="147.43529"
+       id="rect5-7-8" />
+    <rect
+       x="309.59702"
+       y="67.669243"
+       width="370.06033"
+       height="67.027672"
+       id="rect5-7-7-4" />
+    <rect
+       x="309.59702"
+       y="67.669243"
+       width="200.4286"
+       height="147.43529"
+       id="rect5-7-2" />
+    <rect
+       x="309.59702"
+       y="67.669243"
+       width="200.4286"
+       height="147.43529"
+       id="rect5-7-2-4" />
   </defs>
   <g
      inkscape:label="Layer 1"
      inkscape:groupmode="layer"
      id="layer1"
-     transform="translate(-29.856025,-20.833477)">
+     transform="translate(-34.438687,59.948124)">
+    <rect
+       style="fill:#000000;stroke:none;stroke-width:1.27421"
+       id="rect1152"
+       width="166.35751"
+       height="185.7816"
+       x="192.78967"
+       y="-59.948128" />
     <text
        xml:space="preserve"
-       transform="matrix(0.26458333,0,0,0.26458333,-40.46888,17.63445)"
+       transform="matrix(0.26458333,0,0,0.26458333,5.4339091,12.332513)"
        id="text5-2"
        style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:10.952px;line-height:0.9;font-family:'Source Sans Pro';-inkscape-font-specification:'Source Sans Pro';text-align:start;letter-spacing:0px;word-spacing:0px;white-space:pre;shape-inside:url(#rect5-7);display:inline;fill:#000000;fill-opacity:1;stroke:none"
        x="2.6666605"
-       y="0"><tspan
+       y="0"
+       inkscape:export-filename="logo_type_vertical.png"
+       inkscape:export-xdpi="250"
+       inkscape:export-ydpi="250"><tspan
          x="309.59766"
-         y="105.00323"
-         id="tspan1137"><tspan
-   style="font-size:53.3333px;font-family:'Source Sans Pro Black';-inkscape-font-specification:'Source Sans Pro Black, '"
-   id="tspan1135">Alpine</tspan>
-</tspan><tspan
+         y="107.37766"
+         id="tspan2438"><tspan
+           style="font-weight:900;font-size:53.3333px;font-family:Roboto;-inkscape-font-specification:'Roboto Heavy'"
+           id="tspan2434">Alpine</tspan><tspan
+           style="font-family:Roboto;-inkscape-font-specification:Roboto"
+           id="tspan2436">
+</tspan></tspan><tspan
          x="309.59766"
-         y="153.0032"
-         id="tspan1143"><tspan
-           style="font-size:53.3333px"
-           id="tspan1139">Maps</tspan><tspan
-           style="font-size:32px;font-family:'Source Sans Pro Light';-inkscape-font-specification:'Source Sans Pro Light, '"
-           id="tspan1141">.org</tspan></tspan></text>
+         y="155.37763"
+         id="tspan2444"><tspan
+           style="font-size:53.3333px;font-family:Roboto;-inkscape-font-specification:Roboto"
+           id="tspan2440">Maps</tspan><tspan
+           style="font-weight:200;font-size:32px;font-family:Roboto;-inkscape-font-specification:'Roboto Ultra-Light'"
+           id="tspan2442">.org</tspan></tspan></text>
     <text
        xml:space="preserve"
-       transform="matrix(0.26458333,0,0,0.26458333,-40.46888,54.806769)"
+       transform="matrix(0.26458333,0,0,0.26458333,-5.6588473,53.586548)"
        id="text5-2-6"
-       style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:10.952px;line-height:0.9;font-family:'Source Sans Pro';-inkscape-font-specification:'Source Sans Pro';text-align:start;letter-spacing:0px;word-spacing:0px;white-space:pre;shape-inside:url(#rect5-7-7);display:inline;fill:#000000;fill-opacity:1;stroke:none"
+       style="font-style:normal;font-variant:normal;font-weight:900;font-stretch:normal;font-size:10.952px;line-height:0.9;font-family:Roboto;-inkscape-font-specification:'Roboto Heavy';text-align:start;letter-spacing:0px;word-spacing:0px;white-space:pre;shape-inside:url(#rect5-7-7);display:inline;fill:#000000;fill-opacity:1;stroke:none"
        x="2.6666605"
-       y="0"><tspan
+       y="0"
+       inkscape:export-filename="logo_type_horizontal.png"
+       inkscape:export-xdpi="250"
+       inkscape:export-ydpi="250"><tspan
          x="309.59766"
-         y="105.00323"
-         id="tspan1151"><tspan
-           style="font-size:53.3333px;font-family:'Source Sans Pro Black';-inkscape-font-specification:'Source Sans Pro Black, '"
-           id="tspan1145">Alpine</tspan><tspan
+         y="107.37766"
+         id="tspan2452"><tspan
            style="font-size:53.3333px"
-           id="tspan1147">Maps</tspan><tspan
-           style="font-size:32px;font-family:'Source Sans Pro Light';-inkscape-font-specification:'Source Sans Pro Light, '"
-           id="tspan1149">.org</tspan></tspan></text>
+           id="tspan2446">Alpine</tspan><tspan
+           style="font-weight:normal;-inkscape-font-specification:Roboto"
+           id="tspan2448">Maps</tspan><tspan
+           style="font-weight:200;font-size:32px;-inkscape-font-specification:'Roboto Ultra-Light'"
+           id="tspan2450">.org</tspan></tspan></text>
     <text
        xml:space="preserve"
-       transform="matrix(0.26458333,0,0,0.26458333,29.856025,20.833477)"
+       transform="matrix(0.26458333,0,0,0.26458333,44.78968,20.833474)"
        id="text4480"
-       style="font-size:16px;line-height:1.25;font-family:'Source Sans Pro';-inkscape-font-specification:'Source Sans Pro';letter-spacing:0px;word-spacing:0px;white-space:pre;shape-inside:url(#rect4482)"><tspan
+       style="font-size:16px;line-height:1.25;font-family:'Source Sans Pro';-inkscape-font-specification:'Source Sans Pro';letter-spacing:0px;word-spacing:0px;white-space:pre;shape-inside:url(#rect4482);display:inline"><tspan
          x="31.373047"
-         y="367.47461"
-         id="tspan1153">logo mark large</tspan></text>
+         y="367.88668"
+         id="tspan2454">logo mark </tspan><tspan
+         x="31.373047"
+         y="386.35543"
+         id="tspan2458"><tspan
+           dx="0 3.5546875 8.8984375 5.328125 8.8984375"
+           id="tspan2456">large</tspan></tspan></text>
     <text
        xml:space="preserve"
-       transform="matrix(0.26458333,0,0,0.26458333,83.801148,18.962713)"
+       transform="matrix(0.26458333,0,0,0.26458333,98.734803,18.96271)"
        id="text4480-9"
-       style="font-size:16px;line-height:1.25;font-family:'Source Sans Pro';-inkscape-font-specification:'Source Sans Pro';letter-spacing:0px;word-spacing:0px;white-space:pre;shape-inside:url(#rect4482-2)"><tspan
+       style="font-size:16px;line-height:1.25;font-family:'Source Sans Pro';-inkscape-font-specification:'Source Sans Pro';letter-spacing:0px;word-spacing:0px;white-space:pre;shape-inside:url(#rect4482-2);display:inline"><tspan
          x="31.373047"
-         y="367.47461"
-         id="tspan1155">logo mark small</tspan></text>
+         y="367.88668"
+         id="tspan2460">logo mark small</tspan></text>
     <g
        id="layer1-3"
-       transform="matrix(0.26458333,0,0,0.26458333,41.942303,93.405226)">
+       transform="matrix(0.26458333,0,0,0.26458333,56.875958,93.405223)">
       <g
          id="g1"
          transform="matrix(0.21377203,0,0,0.21377203,-5.0744178,-5.3952963)">
@@ -223,8 +267,186 @@
       </g>
     </g>
     <g
+       id="layer1-3-5"
+       transform="matrix(0.26458333,0,0,0.26458333,55.229931,68.290584)">
+      <g
+         id="g1-9"
+         transform="matrix(0.21377203,0,0,0.21377203,-5.0744178,-5.3952963)">
+        <path
+           style="fill:#bfbfbf;stroke:none;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
+           d="M 80.407961,294.43495 155.64039,68.910147 212.36984,140.96957 149.70008,324.07276"
+           id="path4518-2" />
+        <path
+           style="fill:#808080;stroke:none;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
+           d="M 23.73752,196.49145 163.03917,66.962887 55.349629,272.60413"
+           id="path4516-2" />
+        <path
+           style="color:#000000;fill:#ffffff;-inkscape-stroke:none"
+           d="M 183.13159,330.39563 212.1202,79.549888 257.97694,90.386172 347.65957,256.12078"
+           id="path1-8" />
+        <path
+           style="color:#000000;fill:#000000;-inkscape-stroke:none"
+           d="M 156.19474,68.126085 55.349629,272.60413 80.407961,294.43495 169.55576,71.662973 Z"
+           id="path869-9" />
+        <path
+           style="color:#000000;fill:#000000;-inkscape-stroke:none"
+           d="m 209.30319,73.471058 -59.60311,250.601702 33.43151,6.32287 39.25894,-237.384487 28.16374,5.667052 93.77839,160.229175 16.21226,-26.38589 -99.5274,-151.001981 z"
+           id="path2-7" />
+        <path
+           style="color:#000000;fill:#000000;-inkscape-stroke:none"
+           d="M 163.02824,56.888865 23.73752,156.68443 v 39.80702 l 134.80787,-116.831326 38.37965,70.074086 10.53828,-32.03209 z"
+           id="path1847-3" />
+      </g>
+    </g>
+    <g
+       id="layer1-3-5-6"
+       transform="matrix(0.49709004,0,0,0.49709004,49.372342,24.479133)">
+      <g
+         id="g1-9-1"
+         transform="matrix(0.21377203,0,0,0.21377203,-5.0744178,-5.3952963)">
+        <path
+           style="fill:#bfbfbf;stroke:none;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
+           d="M 80.407961,294.43495 155.64039,68.910147 212.36984,140.96957 149.70008,324.07276"
+           id="path4518-2-2" />
+        <path
+           style="fill:#808080;stroke:none;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
+           d="M 23.73752,196.49145 163.03917,66.962887 55.349629,272.60413"
+           id="path4516-2-9" />
+        <path
+           style="color:#000000;fill:#ffffff;-inkscape-stroke:none"
+           d="M 183.13159,330.39563 212.1202,79.549888 257.97694,90.386172 347.65957,256.12078"
+           id="path1-8-3" />
+        <path
+           style="color:#000000;fill:#000000;-inkscape-stroke:none"
+           d="M 156.19474,68.126085 55.349629,272.60413 80.407961,294.43495 169.55576,71.662973 Z"
+           id="path869-9-1" />
+        <path
+           style="color:#000000;fill:#000000;-inkscape-stroke:none"
+           d="m 209.30319,73.471058 -59.60311,250.601702 33.43151,6.32287 39.25894,-237.384487 28.16374,5.667052 93.77839,160.229175 16.21226,-26.38589 -99.5274,-151.001981 z"
+           id="path2-7-9" />
+        <path
+           style="color:#000000;fill:#000000;-inkscape-stroke:none"
+           d="M 163.02824,56.888865 23.73752,156.68443 v 39.80702 l 134.80787,-116.831326 38.37965,70.074086 10.53828,-32.03209 z"
+           id="path1847-3-4" />
+      </g>
+    </g>
+    <text
+       xml:space="preserve"
+       transform="matrix(0.26458333,0,0,0.26458333,5.9928797,-28.921522)"
+       id="text5-2-54"
+       style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:10.952px;line-height:0.9;font-family:'Source Sans Pro';-inkscape-font-specification:'Source Sans Pro';text-align:start;letter-spacing:0px;word-spacing:0px;white-space:pre;shape-inside:url(#rect5-7-2);display:inline;fill:#000000;fill-opacity:1;stroke:none"
+       x="2.6666605"
+       y="0"
+       inkscape:export-filename="logo_type_vertical.png"
+       inkscape:export-xdpi="250"
+       inkscape:export-ydpi="250"><tspan
+         x="309.59766"
+         y="107.37766"
+         id="tspan2466"><tspan
+           style="font-weight:900;font-size:53.3333px;font-family:Roboto;-inkscape-font-specification:'Roboto Heavy'"
+           id="tspan2462">Alpine</tspan><tspan
+           style="font-family:Roboto;-inkscape-font-specification:Roboto"
+           id="tspan2464">
+</tspan></tspan><tspan
+         x="309.59766"
+         y="155.37763"
+         id="tspan2472"><tspan
+           style="font-size:53.3333px;font-family:Roboto;-inkscape-font-specification:Roboto"
+           id="tspan2468">Maps</tspan><tspan
+           style="font-weight:200;font-size:32px;font-family:Roboto;-inkscape-font-specification:'Roboto Ultra-Light'"
+           id="tspan2470">.org</tspan></tspan></text>
+    <g
+       id="layer1-3-5-6-7"
+       transform="matrix(0.35819569,0,0,0.35819569,87.879695,-36.616983)">
+      <g
+         id="g1-9-1-4"
+         transform="matrix(0.21377203,0,0,0.21377203,-5.0744178,-5.3952963)">
+        <path
+           style="fill:#bfbfbf;stroke:none;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
+           d="M 80.407961,294.43495 155.64039,68.910147 212.36984,140.96957 149.70008,324.07276"
+           id="path4518-2-2-4" />
+        <path
+           style="fill:#808080;stroke:none;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
+           d="M 23.73752,196.49145 163.03917,66.962887 55.349629,272.60413"
+           id="path4516-2-9-3" />
+        <path
+           style="color:#000000;fill:#ffffff;-inkscape-stroke:none"
+           d="M 183.13159,330.39563 212.1202,79.549888 257.97694,90.386172 347.65957,256.12078"
+           id="path1-8-3-0" />
+        <path
+           style="color:#000000;fill:#000000;-inkscape-stroke:none"
+           d="M 156.19474,68.126085 55.349629,272.60413 80.407961,294.43495 169.55576,71.662973 Z"
+           id="path869-9-1-78" />
+        <path
+           style="color:#000000;fill:#000000;-inkscape-stroke:none"
+           d="m 209.30319,73.471058 -59.60311,250.601702 33.43151,6.32287 39.25894,-237.384487 28.16374,5.667052 93.77839,160.229175 16.21226,-26.38589 -99.5274,-151.001981 z"
+           id="path2-7-9-68" />
+        <path
+           style="color:#000000;fill:#000000;-inkscape-stroke:none"
+           d="M 163.02824,56.888865 23.73752,156.68443 v 39.80702 l 134.80787,-116.831326 38.37965,70.074086 10.53828,-32.03209 z"
+           id="path1847-3-4-8" />
+      </g>
+    </g>
+    <text
+       xml:space="preserve"
+       transform="matrix(0.26458333,0,0,0.26458333,146.94383,-34.048192)"
+       id="text5-2-54-3"
+       style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:10.952px;line-height:0.9;font-family:'Source Sans Pro';-inkscape-font-specification:'Source Sans Pro';text-align:start;letter-spacing:0px;word-spacing:0px;white-space:pre;shape-inside:url(#rect5-7-2-4);display:inline;fill:#ffffff;fill-opacity:1;stroke:none"
+       x="2.6666605"
+       y="0"
+       inkscape:export-filename="logo_type_vertical.png"
+       inkscape:export-xdpi="250"
+       inkscape:export-ydpi="250"><tspan
+         x="309.59766"
+         y="107.37766"
+         id="tspan2478"><tspan
+           style="font-weight:900;font-size:53.3333px;font-family:Roboto;-inkscape-font-specification:'Roboto Heavy'"
+           id="tspan2474">Alpine</tspan><tspan
+           style="font-family:Roboto;-inkscape-font-specification:Roboto"
+           id="tspan2476">
+</tspan></tspan><tspan
+         x="309.59766"
+         y="155.37763"
+         id="tspan2484"><tspan
+           style="font-size:53.3333px;font-family:Roboto;-inkscape-font-specification:Roboto"
+           id="tspan2480">Maps</tspan><tspan
+           style="font-weight:200;font-size:32px;font-family:Roboto;-inkscape-font-specification:'Roboto Ultra-Light'"
+           id="tspan2482">.org</tspan></tspan></text>
+    <g
+       id="layer1-3-5-6-7-1"
+       transform="matrix(0.35819569,0,0,0.35819569,228.83064,-41.743653)">
+      <g
+         id="g1-9-1-4-4"
+         transform="matrix(0.21377203,0,0,0.21377203,-5.0744178,-5.3952963)">
+        <path
+           style="fill:#bfbfbf;stroke:none;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
+           d="M 80.407961,294.43495 155.64039,68.910147 212.36984,140.96957 149.70008,324.07276"
+           id="path4518-2-2-4-9" />
+        <path
+           style="fill:#808080;stroke:none;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
+           d="M 23.73752,196.49145 163.03917,66.962887 55.349629,272.60413"
+           id="path4516-2-9-3-2" />
+        <path
+           style="color:#000000;fill:#ffffff;-inkscape-stroke:none"
+           d="M 183.13159,330.39563 212.1202,79.549888 257.97694,90.386172 347.65957,256.12078"
+           id="path1-8-3-0-0" />
+        <path
+           style="color:#000000;fill:#000000;-inkscape-stroke:none"
+           d="M 156.19474,68.126085 55.349629,272.60413 80.407961,294.43495 169.55576,71.662973 Z"
+           id="path869-9-1-78-6" />
+        <path
+           style="color:#000000;fill:#000000;-inkscape-stroke:none"
+           d="m 209.30319,73.471058 -59.60311,250.601702 33.43151,6.32287 39.25894,-237.384487 28.16374,5.667052 93.77839,160.229175 16.21226,-26.38589 -99.5274,-151.001981 z"
+           id="path2-7-9-68-8" />
+        <path
+           style="color:#000000;fill:#000000;-inkscape-stroke:none"
+           d="M 163.02824,56.888865 23.73752,156.68443 v 39.80702 l 134.80787,-116.831326 38.37965,70.074086 10.53828,-32.03209 z"
+           id="path1847-3-4-8-9" />
+      </g>
+    </g>
+    <g
        id="layer1-6"
-       transform="matrix(0.01120069,0,0,0.01120069,102.76246,99.946958)">
+       transform="matrix(0.01120069,0,0,0.01120069,117.69611,99.946955)">
       <g
          id="g1-7"
          transform="matrix(1.1221629,0,0,1.1221629,-26.63737,-12.567281)">
@@ -252,6 +474,114 @@
            style="color:#000000;fill:#000000;-inkscape-stroke:none"
            d="M 163.02824,56.888865 23.73752,156.68443 v 39.80702 l 132.73233,-104.130391 40.45519,57.373151 10.53828,-32.03209 z"
            id="path1847-9" />
+      </g>
+    </g>
+    <text
+       xml:space="preserve"
+       transform="matrix(0.26458333,0,0,0.26458333,161.99676,17.432769)"
+       id="text5-2-5"
+       style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:10.952px;line-height:0.9;font-family:'Source Sans Pro';-inkscape-font-specification:'Source Sans Pro';text-align:start;letter-spacing:0px;word-spacing:0px;white-space:pre;shape-inside:url(#rect5-7-8);display:inline;fill:#ffffff;fill-opacity:1;stroke:none"
+       x="2.6666605"
+       y="0"
+       inkscape:export-filename="logo_type_vertical_dark_bg.png"
+       inkscape:export-xdpi="250"
+       inkscape:export-ydpi="250"><tspan
+         x="309.59766"
+         y="107.37766"
+         id="tspan2490"><tspan
+           style="font-weight:900;font-size:53.3333px;font-family:Roboto;-inkscape-font-specification:'Roboto Heavy'"
+           id="tspan2486">Alpine</tspan><tspan
+           style="font-family:Roboto;-inkscape-font-specification:Roboto"
+           id="tspan2488">
+</tspan></tspan><tspan
+         x="309.59766"
+         y="155.37763"
+         id="tspan2496"><tspan
+           style="font-size:53.3333px;font-family:Roboto;-inkscape-font-specification:Roboto"
+           id="tspan2492">Maps</tspan><tspan
+           style="font-weight:200;font-size:32px;font-family:Roboto;-inkscape-font-specification:'Roboto Ultra-Light'"
+           id="tspan2494">.org</tspan></tspan></text>
+    <text
+       xml:space="preserve"
+       transform="matrix(0.26458333,0,0,0.26458333,150.90401,58.686804)"
+       id="text5-2-6-0"
+       style="font-style:normal;font-variant:normal;font-weight:900;font-stretch:normal;font-size:10.952px;line-height:0.9;font-family:Roboto;-inkscape-font-specification:'Roboto Heavy';text-align:start;letter-spacing:0px;word-spacing:0px;white-space:pre;shape-inside:url(#rect5-7-7-4);display:inline;fill:#ffffff;fill-opacity:1;stroke:none"
+       x="2.6666605"
+       y="0"
+       inkscape:export-filename="logo_type_horizontal_dark_bg.png"
+       inkscape:export-xdpi="250"
+       inkscape:export-ydpi="250"><tspan
+         x="309.59766"
+         y="107.37766"
+         id="tspan2504"><tspan
+           style="font-size:53.3333px"
+           id="tspan2498">Alpine</tspan><tspan
+           style="font-weight:normal;font-size:53.3333px;-inkscape-font-specification:Roboto"
+           id="tspan2500">Maps</tspan><tspan
+           style="font-weight:200;font-size:32px;-inkscape-font-specification:'Roboto Ultra-Light'"
+           id="tspan2502">.org</tspan></tspan></text>
+    <g
+       id="layer1-3-5-3"
+       transform="matrix(0.26458333,0,0,0.26458333,211.79278,73.39084)">
+      <g
+         id="g1-9-6"
+         transform="matrix(0.21377203,0,0,0.21377203,-5.0744178,-5.3952963)">
+        <path
+           style="fill:#bfbfbf;stroke:none;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
+           d="M 80.407961,294.43495 155.64039,68.910147 212.36984,140.96957 149.70008,324.07276"
+           id="path4518-2-1" />
+        <path
+           style="fill:#808080;stroke:none;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
+           d="M 23.73752,196.49145 163.03917,66.962887 55.349629,272.60413"
+           id="path4516-2-0" />
+        <path
+           style="color:#000000;fill:#ffffff;-inkscape-stroke:none"
+           d="M 183.13159,330.39563 212.1202,79.549888 257.97694,90.386172 347.65957,256.12078"
+           id="path1-8-6" />
+        <path
+           style="color:#000000;fill:#000000;-inkscape-stroke:none"
+           d="M 156.19474,68.126085 55.349629,272.60413 80.407961,294.43495 169.55576,71.662973 Z"
+           id="path869-9-3" />
+        <path
+           style="color:#000000;fill:#000000;-inkscape-stroke:none"
+           d="m 209.30319,73.471058 -59.60311,250.601702 33.43151,6.32287 39.25894,-237.384487 28.16374,5.667052 93.77839,160.229175 16.21226,-26.38589 -99.5274,-151.001981 z"
+           id="path2-7-2" />
+        <path
+           style="color:#000000;fill:#000000;-inkscape-stroke:none"
+           d="M 163.02824,56.888865 23.73752,156.68443 v 39.80702 l 134.80787,-116.831326 38.37965,70.074086 10.53828,-32.03209 z"
+           id="path1847-3-0" />
+      </g>
+    </g>
+    <g
+       id="layer1-3-5-6-6"
+       transform="matrix(0.49709004,0,0,0.49709004,205.9352,29.579389)">
+      <g
+         id="g1-9-1-1"
+         transform="matrix(0.21377203,0,0,0.21377203,-5.0744178,-5.3952963)">
+        <path
+           style="fill:#bfbfbf;stroke:none;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
+           d="M 80.407961,294.43495 155.64039,68.910147 212.36984,140.96957 149.70008,324.07276"
+           id="path4518-2-2-5" />
+        <path
+           style="fill:#808080;stroke:none;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
+           d="M 23.73752,196.49145 163.03917,66.962887 55.349629,272.60413"
+           id="path4516-2-9-5" />
+        <path
+           style="color:#000000;fill:#ffffff;-inkscape-stroke:none"
+           d="M 183.13159,330.39563 212.1202,79.549888 257.97694,90.386172 347.65957,256.12078"
+           id="path1-8-3-4" />
+        <path
+           style="color:#000000;fill:#000000;-inkscape-stroke:none"
+           d="M 156.19474,68.126085 55.349629,272.60413 80.407961,294.43495 169.55576,71.662973 Z"
+           id="path869-9-1-7" />
+        <path
+           style="color:#000000;fill:#000000;-inkscape-stroke:none"
+           d="m 209.30319,73.471058 -59.60311,250.601702 33.43151,6.32287 39.25894,-237.384487 28.16374,5.667052 93.77839,160.229175 16.21226,-26.38589 -99.5274,-151.001981 z"
+           id="path2-7-9-6" />
+        <path
+           style="color:#000000;fill:#000000;-inkscape-stroke:none"
+           d="M 163.02824,56.888865 23.73752,156.68443 v 39.80702 l 134.80787,-116.831326 38.37965,70.074086 10.53828,-32.03209 z"
+           id="path1847-3-4-5" />
       </g>
     </g>
   </g>
