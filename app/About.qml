@@ -84,7 +84,7 @@ it is licensed under the Open Data Commons Open Database License (ODbL) by the O
 <br>
 
 <h2>Authors:</h2>
-Adam Celarek, Lucas Dworschak, Gerald Kimmersdorfer, Jakob Lindner, Patrick Komon, Jakob Maier
+Adam Celarek, Lucas Dworschak, Gerald Kimmersdorfer, Jakob Lindner, Patrick Komon, Jakob Maier, Markus Rampp
 <br>
 
 <h2>Impressum:</h2>

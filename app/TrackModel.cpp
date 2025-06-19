@@ -102,7 +102,7 @@ void TrackModel::upload_track()
             m_data.push_back(*gpx);
             emit tracks_changed(m_data);
         } else {
-            qDebug("Coud not parse GPX file!");
+            qDebug("Could not parse GPX file!");
         }
     };
 
