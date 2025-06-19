@@ -20,11 +20,25 @@
 
 #include "OrbitInteraction.h"
 #include "AbstractDepthTester.h"
-#include "glm/ext/scalar_constants.hpp"
-
+#include "gesture.h"
 #include <QDebug>
+#include <glm/ext/scalar_constants.hpp>
 
 namespace nucleus::camera {
+
+OrbitInteraction::OrbitInteraction()
+{
+    auto detectors = std::vector<std::unique_ptr<gesture::Detector>>();
+    detectors.push_back(std::make_unique<gesture::PanDetector>());
+    detectors.push_back(std::make_unique<gesture::TapTapMoveDetector>());
+    detectors.push_back(std::make_unique<gesture::ShoveDetector>(gesture::ShoveDetector::Type::Vertical));
+    detectors.push_back(std::make_unique<gesture::PinchAndRotateDetector>(gesture::PinchAndRotateDetector::Mode::PinchOnly));
+    detectors.push_back(std::make_unique<gesture::PinchAndRotateDetector>(gesture::PinchAndRotateDetector::Mode::PinchAndRotate));
+
+    m_gesture_controller = std::make_unique<gesture::Controller>(std::move(detectors));
+}
+
+OrbitInteraction::~OrbitInteraction() = default;
 
 std::optional<Definition> OrbitInteraction::mouse_press_event(const event_parameter::Mouse& e, Definition camera, AbstractDepthTester* depth_tester)
 {
@@ -57,51 +71,42 @@ std::optional<Definition> OrbitInteraction::mouse_move_event(const event_paramet
 
 std::optional<Definition> OrbitInteraction::touch_event(const event_parameter::Touch& e, Definition camera, AbstractDepthTester* depth_tester)
 {
-    // touch move
-    if (e.points.size() == 1 && e.points[0].state == event_parameter::TouchPointPressed) {
-        start(e.points[0].position, camera, depth_tester);
+    auto gesture = m_gesture_controller->analise(e, camera.viewport_size());
+    if (!gesture) {
+        m_operation_centre = {};
+        m_operation_centre_screen = {};
         return {};
     }
-    if (e.points.size() == 2 && e.points[1].state == event_parameter::TouchPointReleased) {
-        start(e.points[0].position, camera, depth_tester);
-        return {};
-    }
-    if (e.points.size() == 2 && e.points[0].state == event_parameter::TouchPointReleased) {
-        start(e.points[1].position, camera, depth_tester);
-        return {};
-    }
-    if (e.points.size() == 1) {
-        pan(e.points[0].position, e.points[0].last_position, &camera, depth_tester);
-        return camera;
-    }
-    if (e.points.size() == 2) {
-        const auto current_centre = (e.points[0].position + e.points[1].position) * 0.5f;
-        if (e.points[0].state == event_parameter::TouchPointPressed || e.points[1].state == event_parameter::TouchPointPressed) {
-            m_operation_centre_screen = current_centre;
-            start(current_centre, camera, depth_tester);
-            return {};
-        }
-        const auto previous_centre = (e.points[0].last_position + e.points[1].last_position) * 0.5f;
-        const auto first_touch = e.points[0].last_position;
-        const auto second_touch = e.points[1].position;
-        const auto previous_first_touch = e.points[0].last_position;
-        const auto previous_second_touch = e.points[1].last_position;
-        const auto pitch = -(current_centre.y - previous_centre.y) * 0.5f;
 
-        const auto previous_yaw_dir = glm::normalize(glm::vec2(previous_first_touch - previous_second_touch));
-        const auto previous_yaw_angle = std::atan2(previous_yaw_dir.y, previous_yaw_dir.x);
-        const auto current_yaw_dir = glm::normalize(glm::vec2(first_touch - second_touch));
-        const auto current_yaw_angle = std::atan2(current_yaw_dir.y, current_yaw_dir.x);
-
-        const auto yaw = (current_yaw_angle - previous_yaw_angle) * 360 / glm::pi<float>();
-        camera.orbit_clamped(m_operation_centre, glm::vec2(yaw, pitch));
-
-        const auto previous_dist = glm::length(glm::vec2(previous_first_touch - previous_second_touch));
-        const auto current_dist = glm::length(glm::vec2(first_touch - second_touch));
-        zoom(-(previous_dist - current_dist), &camera, depth_tester);
-        return camera;
+    if (gesture->just_activated) {
+        assert(gesture->values.contains(gesture::ValueName::Pivot));
+        const auto& pivot = gesture->values[gesture::ValueName::Pivot];
+        start(pivot, camera, depth_tester); // Set m_operation_centre
+        m_operation_centre_screen = pivot;
     }
-    return {};
+
+    if (gesture->values.contains(gesture::ValueName::Pan))
+        pan(gesture->values[gesture::ValueName::Pivot], {}, &camera, depth_tester);
+
+    if (gesture->values.contains(gesture::ValueName::TapTapMoveRelative)) {
+        zoom(gesture->values[gesture::ValueName::TapTapMoveRelative].y * 0.8f, &camera, depth_tester);
+    }
+    if (gesture->values.contains(gesture::ValueName::Pinch)) {
+        const auto distance = float(glm::distance(m_operation_centre, camera.position()));
+        const auto new_distance = gesture->values[gesture::ValueName::Pinch].x * distance;
+        camera.move(glm::normalize(m_operation_centre - camera.position()) * double(new_distance - distance));
+    }
+
+    if (gesture->values.contains(gesture::ValueName::Shove)) {
+        const auto shove = gesture->values[gesture::ValueName::Shove];
+        camera.orbit_clamped(m_operation_centre, glm::vec2(-shove) * 0.2f);
+    }
+    if (gesture->values.contains(gesture::ValueName::Rotation)) {
+        const auto rotation = gesture->values[gesture::ValueName::Rotation].x;
+        camera.orbit_clamped(m_operation_centre, glm::vec2(rotation, 0));
+    }
+
+    return camera;
 }
 
 std::optional<Definition> OrbitInteraction::wheel_event(const event_parameter::Wheel& e, Definition camera, AbstractDepthTester* depth_tester)
@@ -140,9 +145,7 @@ std::optional<Definition> OrbitInteraction::key_release_event(const QKeyCombinat
     return camera;
 }
 
-std::optional<glm::vec2> OrbitInteraction::operation_centre(){
-    return m_operation_centre_screen;
-}
+std::optional<glm::vec2> OrbitInteraction::operation_centre() { return -m_operation_centre_screen; }
 
 void OrbitInteraction::start(const glm::vec2& position, const Definition& camera, AbstractDepthTester* depth_tester)
 {
