@@ -42,7 +42,7 @@ function(alp_check_for_script_updates script_path)
         get_property(cmake_scripts_SOURCE_DIR GLOBAL PROPERTY _alp_check_for_script_updates_script_repo)
     else()
         alp_add_git_repository(cmake_scripts
-                               URL "git@github.com:AlpineMapsOrg/cmake_scripts.git"
+                               URL "https://github.com/AlpineMapsOrg/cmake_scripts.git"
                                COMMITISH origin/main
                                DO_NOT_ADD_SUBPROJECT PRIVATE_DO_NOT_CHECK_FOR_SCRIPT_UPDATES)
         set_property(GLOBAL PROPERTY _alp_check_for_script_updates_repo_flag TRUE)
