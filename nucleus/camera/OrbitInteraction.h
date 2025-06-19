@@ -23,15 +23,22 @@
 #include "InteractionStyle.h"
 
 namespace nucleus::camera {
-class OrbitInteraction : public InteractionStyle
-{
+namespace gesture {
+    class Controller;
+}
+
+class OrbitInteraction : public InteractionStyle {
     glm::dvec3 m_operation_centre = {};
     glm::vec2 m_operation_centre_screen = {};
     bool m_move_vertical = false;
     bool m_key_ctrl = false;
     bool m_key_alt = false;
     bool m_key_shift = false;
+    std::unique_ptr<gesture::Controller> m_gesture_controller;
+
 public:
+    OrbitInteraction();
+    virtual ~OrbitInteraction();
     std::optional<Definition> mouse_press_event(const event_parameter::Mouse& e, Definition camera, AbstractDepthTester* depth_tester) override;
     std::optional<Definition> mouse_move_event(const event_parameter::Mouse& e, Definition camera, AbstractDepthTester* depth_tester) override;
     std::optional<Definition> touch_event(const event_parameter::Touch& e, Definition camera, AbstractDepthTester* depth_tester) override;

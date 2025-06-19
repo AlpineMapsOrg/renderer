@@ -116,15 +116,14 @@ int main(int argc, char** argv)
 
     QSurfaceFormat::setDefaultFormat(fmt);
 
-    auto terrain_service = std::make_unique<TileLoadService>("https://alpinemaps.cg.tuwien.ac.at/tiles/alpine_png/", TileLoadService::UrlPattern::ZXY, ".png");
-    //    m_ortho_service.reset(new TileLoadService("https://tiles.bergfex.at/styles/bergfex-osm/", TileLoadService::UrlPattern::ZXY_yPointingSouth,
+    using UrlPattern = TileLoadService::UrlPattern;
+    auto terrain_service = std::make_unique<TileLoadService>("https://alpinemaps.cg.tuwien.ac.at/tiles/alpine_png/", UrlPattern::ZXY, ".png");
+    //    m_ortho_service.reset(new TileLoadService("https://tiles.bergfex.at/styles/bergfex-osm/", UrlPattern::ZXY_yPointingSouth,
     //    ".jpeg")); m_ortho_service.reset(new TileLoadService("https://alpinemaps.cg.tuwien.ac.at/tiles/ortho/",
-    //    TileLoadService::UrlPattern::ZYX_yPointingSouth, ".jpeg"));
-    // m_ortho_service.reset(new TileLoadService("https://maps%1.wien.gv.at/basemap/bmaporthofoto30cm/normal/google3857/",
-    //                                           TileLoadService::UrlPattern::ZYX_yPointingSouth,
-    //                                           ".jpeg",
-    //                                           {"", "1", "2", "3", "4"}));
-    auto ortho_service = std::make_unique<TileLoadService>("https://gataki.cg.tuwien.ac.at/raw/basemap/tiles/", TileLoadService::UrlPattern::ZYX_yPointingSouth, ".jpeg");
+    //    UrlPattern::ZYX_yPointingSouth, ".jpeg"));
+    auto ortho_service = std::make_unique<TileLoadService>("https://gataki.cg.tuwien.ac.at/raw/basemap/tiles/", UrlPattern::ZYX_yPointingSouth, ".jpeg");
+    // auto ortho_service
+    // = std::make_unique<TileLoadService>("https://mapsneu.wien.gv.at/basemap/bmaporthofoto30cm/normal/google3857/", UrlPattern::ZYX_yPointingSouth, ".jpeg");
 
     auto decorator = nucleus::tile::setup::aabb_decorator();
     QThread scheduler_thread;
