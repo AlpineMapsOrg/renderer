@@ -1,7 +1,7 @@
 /*****************************************************************************
  * AlpineMaps.org
  * Copyright (C) 2024 Joerg Christian Reiher
- *
+ * Copyright (C) 2024 Johannes Eschner
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
@@ -27,7 +27,7 @@ vec3 color_from_eaws_danger_rating(int rating)
     if(2 == rating) return vec3(1.f,1.f,0.f);      // yellow       for 2 = moderate
     if(3 == rating) return vec3(1.f,0.53f,0.f);    // orange       for 3 = considerable
     if(4 == rating) return vec3(1.f,0.f,0.f);      // red          for 4 = high
-    if(5 == rating) return vec3(0.5333f,0.f,0.f);     // dark red     for 5 = extreme
+    if(5 == rating) return vec3(0.5333f,0.f,0.f);  // dark red     for 5 = extreme
     return(vec3(0.f,0.f,0.f));                     // white        for     undefined cases
 }
 
