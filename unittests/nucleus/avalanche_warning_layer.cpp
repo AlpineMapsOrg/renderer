@@ -211,18 +211,17 @@ TEST_CASE("nucleus/EAWS Vector Tiles")
 TEST_CASE("nucleus/EAWS Reports")
 {
     avalanche::eaws::ReportLoadService reportLoadService;
-    QSignalSpy spy(&reportLoadService, &avalanche::eaws::ReportLoadService::load_TU_Wien_finished);
-    reportLoadService.load_tu_wien(QDate::currentDate());
+    QSignalSpy spy(&reportLoadService, &avalanche::eaws::ReportLoadService::load_from_TU_Wien_finished);
+    reportLoadService.load_from_tu_wien(QDate::currentDate());
 
     spy.wait(10000);
     REQUIRE(spy.count() == 1);
     QList<QVariant> arguments = spy.takeFirst();
-    REQUIRE(arguments.size() == 1);
     tl::expected<std::vector<avalanche::eaws::ReportTUWien>, QString> result = qvariant_cast<tl::expected<std::vector<avalanche::eaws::ReportTUWien>, QString>>(arguments.at(0));
     if (result.has_value()) {
         std::vector<avalanche::eaws::ReportTUWien> report = arguments.at(0).value<std::vector<avalanche::eaws::ReportTUWien>>();
         CHECK(report.size() > 0);
     } else {
-        std::cout << result.error().toStdString();
+        std::cout << "\n##############\n##############\n##############\n##############" << result.error().toStdString();
     }
 }

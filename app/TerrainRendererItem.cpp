@@ -555,3 +555,37 @@ void TerrainRendererItem::gl_sundir_date_link_changed(bool)
 {
     recalculate_sun_angles();
 }
+
+void TerrainRendererItem::toggle_eaws_warning_layer()
+{
+    m_shared_config.m_eaws_danger_rating_enabled = !m_shared_config.m_eaws_danger_rating_enabled;
+    m_shared_config.m_eaws_risk_level_enabled = false;
+    m_shared_config.m_eaws_slope_angle_enabled = false;
+    m_shared_config.m_eaws_stop_or_go_enabled = false;
+    emit shared_config_changed(m_shared_config);
+}
+
+void TerrainRendererItem::toggle_risk_level_layer()
+{
+    m_shared_config.m_eaws_danger_rating_enabled = false;
+    m_shared_config.m_eaws_risk_level_enabled = !m_shared_config.m_eaws_risk_level_enabled;
+    m_shared_config.m_eaws_slope_angle_enabled = false;
+    m_shared_config.m_eaws_stop_or_go_enabled = false;
+    emit shared_config_changed(m_shared_config);
+}
+void TerrainRendererItem::toggle_slope_angle_layer()
+{
+    m_shared_config.m_eaws_danger_rating_enabled = false;
+    m_shared_config.m_eaws_risk_level_enabled = false;
+    m_shared_config.m_eaws_slope_angle_enabled = !m_shared_config.m_eaws_slope_angle_enabled;
+    m_shared_config.m_eaws_stop_or_go_enabled = false;
+    emit shared_config_changed(m_shared_config);
+}
+void TerrainRendererItem::toggle_stop_or_go_layer()
+{
+    m_shared_config.m_eaws_danger_rating_enabled = false;
+    m_shared_config.m_eaws_risk_level_enabled = false;
+    m_shared_config.m_eaws_slope_angle_enabled = false;
+    m_shared_config.m_eaws_stop_or_go_enabled = !m_shared_config.m_eaws_stop_or_go_enabled;
+    emit shared_config_changed(m_shared_config);
+}

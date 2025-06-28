@@ -136,7 +136,10 @@ public slots:
     void rotate_north();
     void set_gl_preset(const QString& preset_b64_string);
     void camera_definition_changed(const nucleus::camera::Definition& new_definition); // gets called whenever camera changes
-
+    void toggle_eaws_warning_layer();
+    void toggle_risk_level_layer();
+    void toggle_slope_angle_layer();
+    void toggle_stop_or_go_layer();
 private slots:
     void schedule_update();
     void init_after_creation_slot();

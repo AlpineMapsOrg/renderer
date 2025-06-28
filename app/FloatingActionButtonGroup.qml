@@ -121,6 +121,130 @@ ColumnLayout {
         }
     }
 
+    FloatingActionButton {
+        id: avalanche_menu
+        image: _r + "icons/" + (checked ? "material/chevron_left.png": "eaws/eaws_menu.png")
+        size: parent.width
+        checkable: true
+
+        Rectangle {
+            visible: parent.checked
+            height: 64
+            width: avalanche_subgroup.implicitWidth + parent.width
+
+            color: Qt.alpha(Material.backgroundColor, 0.3)
+            border { width: 2; color: Qt.alpha( "black", 0.5); }
+
+            RowLayout {
+                x: parent.parent.width
+                id: avalanche_subgroup
+                spacing: 0
+                height: parent.height
+
+                //EAWS Report Toggle Button
+                FloatingActionButton {
+                    id: eaws_report_toggle
+                    image: _r + "icons/eaws/eaws_report.png"
+                    image_opacity: (checked? 1.0 : 0.4)
+                    onClicked:{
+                        risk_level_toggle.checked = false;
+                        slope_angle_toggle.checked  = false;
+                        stop_or_go_toggle.checked = false;
+                        banner_image.source = "eaws/banner_eaws_report.png"
+                        map.toggle_eaws_warning_layer();
+                    }
+                    size: parent.height
+                    image_size: 42
+                    checkable: true
+
+                    ToolTip.visible: hovered
+                    ToolTip.text: qsTr("Show EAWS Report")
+
+                }
+
+                // Risk Level Toggle Button
+                FloatingActionButton {
+                    id: risk_level_toggle
+                    image: _r + "icons/eaws/risk_level.png"
+                    onClicked:{
+                        eaws_report_toggle.checked = false;
+                        slope_angle_toggle.checked = false;
+                        stop_or_go_toggle.checked = false;
+                        banner_image.source = "eaws/banner_risk_level.png"
+                        map.toggle_risk_level_layer();
+                    }
+                    size: parent.height
+                    image_size: 42
+                    image_opacity: (checked? 1.0 : 0.4)
+                    checkable: true
+
+                    ToolTip.visible: hovered
+                    ToolTip.text: qsTr("Risk Level")
+                }
+
+                // Slope Angle Toggle Button
+                FloatingActionButton {
+                    id: slope_angle_toggle
+                    image: _r + "icons/eaws/slope_angle.png"
+
+                    onClicked:{
+                        eaws_report_toggle.checked = false;
+                        risk_level_toggle.checked = false;
+                        stop_or_go_toggle.checked = false;
+                        banner_image.source = "eaws/banner_slope_angle.png"
+                        map.toggle_slope_angle_layer();
+                    }
+                    size: parent.height
+                    image_size: 42
+                    image_opacity: (checked? 1.0 : 0.4)
+                    checkable: true
+
+                    ToolTip.visible: hovered
+                    ToolTip.text: qsTr("Slope Angle")
+                }
+
+                // stop-or-go toggle button
+                FloatingActionButton {
+                    id: stop_or_go_toggle
+                    image: _r + "icons/eaws/stop_or_go.png"
+                    onClicked:{
+                        eaws_report_toggle.checked = false;
+                        risk_level_toggle.checked = false;
+                        slope_angle_toggle.checked  = false;
+                        banner_image.source = "eaws/banner_stop_or_go.png"
+                        map.toggle_stop_or_go_layer();
+                    }
+                    size: parent.height
+                    image_size: 42
+                    image_opacity: (checked? 1.0 : 0.4)
+                    checkable: true
+
+                    ToolTip.visible: hovered
+                    ToolTip.text: qsTr("Stop or Go")
+                }
+
+                // Banner with color chart (only visible when an avalanche overlay is active
+                Rectangle {
+                    id: banner
+                    radius: parent.radius
+                    height: 64
+                    width: 256
+                    color: Qt.alpha(Material.backgroundColor, 0.3)
+                    border { width: 2; color: Qt.alpha( "black", 0.5); }
+                    visible: (eaws_report_toggle.checked || risk_level_toggle.checked || slope_angle_toggle.checked || stop_or_go_toggle.checked)
+                    Image{
+                        id: banner_image
+                        height:40
+                        anchors.fill: parent  // Scale to fit the rectangle
+                        fillMode: Image.PreserveAspectFit  // Keep aspect ratio
+                    }
+                }
+            }
+        }
+    }
+
+
+
     Connections {
         enabled: fab_location.checked || fab_presets.checked
         target: map

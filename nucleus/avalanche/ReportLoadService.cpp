@@ -8,7 +8,15 @@
 #include <QNetworkRequest>
 #include <extern/tl_expected/include/tl/expected.hpp>
 #include <glm/vec4.hpp>
+#include <iostream>
 namespace avalanche::eaws {
+
+// Constructor: only creates network manager that lives the whole runtime. Ideally the whole app would only use one Manager !
+ReportLoadService::ReportLoadService()
+    : m_network_manager(new QNetworkAccessManager(this))
+{
+}
+
 void ReportLoadService::load_CAAML(const QString& url) const
 {
     QUrl qurl(url);
@@ -167,11 +175,13 @@ void ReportLoadService::load_CAAML(const QString& url) const
     return;
 }
 
-void ReportLoadService::load_tu_wien(const QDate& date) const
+void ReportLoadService::load_from_tu_wien(const QDate& date) const
 {
     // TODO: Convert date to url
-    QString date_string = date.toString();
-    QUrl qurl(QString("https://alpinemaps.cg.tuwien.ac.at/avalanche-reports/get-current-report?date=2024-02-20"));
+    QDate debugDate = date;
+    debugDate = QDate(2024, 12, 31);
+    QString date_string = debugDate.toString("yyyy-MM-dd"); // For release this will use the variable date instead of debugDate
+    QUrl qurl(QString("https://alpinemaps.cg.tuwien.ac.at/avalanche-reports/get-current-report?date=" + date_string));
     QNetworkRequest request(qurl);
     request.setTransferTimeout(int(8000));
     request.setAttribute(QNetworkRequest::CacheLoadControlAttribute, QNetworkRequest::PreferCache);
@@ -180,8 +190,7 @@ void ReportLoadService::load_tu_wien(const QDate& date) const
 #endif
 
     // Make a GET request to the provided url
-    QNetworkAccessManager network_manager;
-    QNetworkReply* reply = network_manager.get(request);
+    QNetworkReply* reply = m_network_manager->get(request);
 
     // Process the reply
     QObject::connect(reply, &QNetworkReply::finished, [this, reply]() {
@@ -190,7 +199,7 @@ void ReportLoadService::load_tu_wien(const QDate& date) const
 
         // Check if Network Error occured
         if (reply->error() != QNetworkReply::NoError) {
-            emit this->load_TU_Wien_finished(tl::unexpected(error_message));
+            emit this->load_from_TU_Wien_finished(tl::unexpected(error_message));
         }
 
         // Read the response data
@@ -203,48 +212,42 @@ void ReportLoadService::load_tu_wien(const QDate& date) const
         // Check for parsing error
         if (parse_error.error != QJsonParseError::NoError) {
             error_message.append("Parse error = ").append(parse_error.errorString());
-            emit this->load_TU_Wien_finished(tl::unexpected(error_message));
+            emit this->load_from_TU_Wien_finished(tl::unexpected(error_message));
             return;
         }
 
         // Check for empty json
         if (json_document.isEmpty() || json_document.isNull()) {
             error_message.append("Empty or Null json.");
-            emit this->load_TU_Wien_finished(tl::unexpected(error_message));
+            emit this->load_from_TU_Wien_finished(tl::unexpected(error_message));
             return;
         }
 
-        // Check if key with reports is correct
-        if (!json_document.isObject()) {
-            error_message.append("jsonDocument does not contain json object.");
-            emit this->load_TU_Wien_finished(tl::unexpected(error_message));
-            return;
-        }
-        QJsonObject json_object = json_document.object();
-        if (!json_object.contains("report")) {
-            error_message.append("json object does not contain key \"report\"");
-            emit this->load_TU_Wien_finished(tl::unexpected(error_message));
+        // Check if json doc is array
+        if (!json_document.isArray()) {
+            error_message.append("jsonDocument does not contain array.");
+            emit this->load_from_TU_Wien_finished(tl::unexpected(error_message));
             return;
         }
 
-        // Check if array is contained in json
-        if (!json_object["report"].isArray()) {
-            error_message.append("json object[\"report\"] does not contain array");
-            emit this->load_TU_Wien_finished(tl::unexpected(error_message));
+        // Create json Array and check if empty
+        QJsonArray jsonArray = json_document.array();
+        if (jsonArray.isEmpty()) {
+            error_message.append("Array empty!");
+            emit this->load_from_TU_Wien_finished(tl::unexpected(error_message));
             return;
         }
-        QJsonArray jsonArray_report = json_object["report"].toArray();
 
         // parse array containing report for each region
         std::vector<ReportTUWien> region_ratings;
-        for (const QJsonValue& jsonValue_region_rating : jsonArray_report) {
-            // prepare an itemthat goes inot the bulletin
+        for (const QJsonValue& jsonValue_region_rating : jsonArray) {
+            // prepare an item that goes into the bulletin
             ReportTUWien region_rating;
 
             // Check if Json array contains json objects
             if (!jsonValue_region_rating.isObject()) {
-                error_message.append("json object[\"report\"] is array of other type than json object");
-                emit this->load_TU_Wien_finished(tl::unexpected(error_message));
+                error_message.append("json object is array of other type than json object");
+                emit this->load_from_TU_Wien_finished(tl::unexpected(error_message));
                 return;
             }
 
@@ -262,15 +265,13 @@ void ReportLoadService::load_tu_wien(const QDate& date) const
                 region_rating.start_time = jsonObject_region_rating["startTime"].toString();
             if (jsonObject_region_rating.contains("endTime"))
                 region_rating.end_time = jsonObject_region_rating["endTime"].toString();
-            if (jsonObject_region_rating.contains("unfavorable"))
-                region_rating.unfavorable = jsonObject_region_rating["unfavorable"].toInt();
 
             // Write struct to vector to be returned
             region_ratings.push_back(region_rating);
         }
 
         // Emit ratings
-        emit this->load_TU_Wien_finished(tl::expected<std::vector<ReportTUWien>, QString>(region_ratings));
+        emit this->load_from_TU_Wien_finished(tl::expected<std::vector<ReportTUWien>, QString>(region_ratings));
     });
 }
 
@@ -278,13 +279,17 @@ void ReportLoadService::load_tu_wien(const QDate& date) const
 void ReportLoadService::load_report_from_file() const
 {
     // Read the json from file for now
+    QString error_message("ERROR: ");
     QString filePath = "app\\eaws\\report_tu_wien.json";
     QFile jsonFile(filePath);
-    jsonFile.open(QIODevice::ReadOnly | QIODevice::Unbuffered);
+    bool couldOpen = jsonFile.open(QIODevice::ReadOnly | QIODevice::Unbuffered);
+    if (!couldOpen) {
+        error_message.append("COULD NOT OPEN FILE");
+        emit this->load_from_TU_Wien_finished(tl::unexpected(error_message));
+        return;
+    }
     QByteArray data = jsonFile.readAll();
     jsonFile.close();
-    QString error_message("ERROR: ");
-
     // Convert data to Json
     QJsonParseError parse_error;
     QJsonDocument json_document = QJsonDocument::fromJson(data, &parse_error);
@@ -292,21 +297,21 @@ void ReportLoadService::load_report_from_file() const
     // Check for parsing error
     if (parse_error.error != QJsonParseError::NoError) {
         error_message.append("Parse error = ").append(parse_error.errorString());
-        emit this->load_TU_Wien_finished(tl::unexpected(error_message));
+        emit this->load_from_TU_Wien_finished(tl::unexpected(error_message));
         return;
     }
 
     // Check for empty json
     if (json_document.isEmpty() || json_document.isNull()) {
         error_message.append("Empty or Null json.");
-        emit this->load_TU_Wien_finished(tl::unexpected(error_message));
+        emit this->load_from_TU_Wien_finished(tl::unexpected(error_message));
         return;
     }
 
     // Check if json doc is array
     if (!json_document.isArray()) {
         error_message.append("jsonDocument does not contain array.");
-        emit this->load_TU_Wien_finished(tl::unexpected(error_message));
+        emit this->load_from_TU_Wien_finished(tl::unexpected(error_message));
         return;
     }
     QJsonArray jsonArray = json_document.array();
@@ -320,7 +325,7 @@ void ReportLoadService::load_report_from_file() const
         // Check if Json array contains json objects
         if (!jsonValue_region_rating.isObject()) {
             error_message.append("json object is array of other type than json object");
-            emit this->load_TU_Wien_finished(tl::unexpected(error_message));
+            emit this->load_from_TU_Wien_finished(tl::unexpected(error_message));
             return;
         }
 
@@ -344,10 +349,10 @@ void ReportLoadService::load_report_from_file() const
     }
 
     // Emit ratings
-    emit this->load_TU_Wien_finished(tl::expected<std::vector<ReportTUWien>, QString>(region_ratings));
+    emit this->load_from_TU_Wien_finished(tl::expected<std::vector<ReportTUWien>, QString>(region_ratings));
 }
 
-void ReportLoadService::load_latest_TU_Wien() const { load_report_from_file(); }
+void ReportLoadService::load_latest_TU_Wien() const { load_from_tu_wien(QDate::currentDate()); }
 /*
 bool operator==(const avalanche::eaws::DangerRating& lhs, const avalanche::eaws::DangerRating& rhs)
 {

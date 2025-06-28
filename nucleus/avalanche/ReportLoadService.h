@@ -4,11 +4,11 @@
 #include <QJsonArray>
 #include <QJsonDocument>
 #include <QJsonObject>
-#include <QNetworkAccessManager>
-#include <QNetworkReply>
-#include <QNetworkRequest>
+
 #include <extern/tl_expected/include/tl/expected.hpp>
 #include <unordered_set>
+
+class QNetworkAccessManager;
 
 namespace avalanche::eaws {
 
@@ -45,16 +45,21 @@ struct ReportTUWien {
 // Loads a Bulletinn from the server and converts it to custom struct
 class ReportLoadService : public QObject {
     Q_OBJECT
+private:
+    std::shared_ptr<QNetworkAccessManager> m_network_manager;
+
+public:
+    ReportLoadService(); // Constructor creates a new NetworkManager
 
 public slots:
     void load_CAAML(const QString& url) const;
-    void load_tu_wien(const QDate& date) const;
+    void load_from_tu_wien(const QDate& date) const;
     void load_latest_TU_Wien() const;
     void load_report_from_file() const;
 
 signals:
     void load_CAAML_finished(tl::expected<std::vector<BulletinItemCAAML>, QString> data_from_server) const;
-    void load_TU_Wien_finished(tl::expected<std::vector<ReportTUWien>, QString> data_from_server) const;
+    void load_from_TU_Wien_finished(tl::expected<std::vector<ReportTUWien>, QString> data_from_server) const;
 
 public:
     // QNetworkAccessManager m_network_manager;

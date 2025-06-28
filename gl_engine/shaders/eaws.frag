@@ -46,15 +46,6 @@ in lowp float is_curtain;
 #endif
 flat in lowp vec3 vertex_color;
 
-highp float calculate_falloff(highp float dist, highp float from, highp float to) {
-    return clamp(1.0 - (dist - from) / (to - from), 0.0, 1.0);
-}
-
-highp vec3 normal_by_fragment_position_interpolation() {
-    highp vec3 dFdxPos = dFdx(var_pos_cws);
-    highp vec3 dFdyPos = dFdy(var_pos_cws);
-    return normalize(cross(dFdxPos, dFdyPos));
-}
 
 lowp ivec2 to_dict_pixel(mediump uint hash) {
     return ivec2(int(hash & 255u), int(hash >> 8u));
@@ -95,37 +86,76 @@ void main() {
 
     lowp ivec2 dict_px;
     if (find_tile(tile_id, dict_px, uv)) {
-        // texout_albedo = vec3(0.0, float(tile_id.z) / 20.0, 0.0);
-        // texout_albedo = vec3(float(dict_px.x) / 255.0, float(dict_px.y) / 255.0, 0.0);
-        // texout_albedo = vec3(uv.x, uv.y, 0.0);
         uint texture_layer = texelFetch(ortho_map_index_sampler, dict_px, 0).x;
-        // texout_albedo = vec3(0.0, float(texture_layer_f) / 10.0, 0.0);
         int u = int(uv.x*255);
         int v = int(uv.y*255);
         highp uint eawsRegionId = texelFetch(ortho_sampler, ivec3(u,v,texture_layer),0).r;
         ivec4 report = eaws.reports[eawsRegionId];
-        lowp vec3 fragColor;
+        lowp vec3 fragColor; // This color will be calculated in the following code lines
 
+        // Get altitude and slope normal
         float frag_height = 0.125f * float(texture(height_tex_sampler, vec3(var_uv, var_height_texture_layer)).r);
-        if(report.x == 1) // report.x = 0 means no report available .x=1 means report available
+        vec3 fragNormal = var_normal; // just to clarify naming
+
+        // calculate frag color according to selected overlay type
+        if(bool(conf.eaws_slope_angle_enabled)) // Slope Angle overlay is activated (does not require avalanche report)
         {
-            // get ratings for eaws refion of current fragment
+            // assign a color to slope angle obtained from (not normalized) normal
+            fragColor = slopeAngleColorFromNormal(fragNormal);
+        }
+        else if(report.x >= 0) // avalanche report is available. report.x = -1 would mean no report available since .x stores the exposition as described in the  Masters THesis of Joey which must be >=0
+        {            
+            // get avalanche ratings for eaws region of current fragment
             int bound = report.y;      // bound dividing moutain in Hi region and low region
             int ratingHi = report.a;   // rating should be value in {0,1,2,3,4}
             int ratingLo = report.z;   // rating should be value in {0,1,2,3,4}
             int rating = ratingLo;
 
-            // color fragment according to danger level
-            float margin = 25.f;           // margin within which colorblending between hi and lo happens
-            if(frag_height > float(bound) + margin )
-                fragColor =  color_from_eaws_danger_rating(ratingHi);
-            else if (frag_height < float(bound) - margin)
-                fragColor =  color_from_eaws_danger_rating(ratingLo);
-            else
+            // if eaws report overlay activated: calculate color for danger level(blend at borders)
+            if(bool(conf.eaws_danger_rating_enabled))
             {
-                // around border: blend colors between upper and lower danger rating
-                float a = (frag_height - (float(bound) - margin)) / (2*margin); // This is a value between 0 and 1
-                fragColor = mix(color_from_eaws_danger_rating(ratingLo), color_from_eaws_danger_rating(ratingHi), a);
+                // color fragment according to danger level
+                float margin = 25.f;           // margin within which colorblending between hi and lo happens
+                if(frag_height > float(bound) + margin)
+                    fragColor =  color_from_eaws_danger_rating(ratingHi);
+                else if (frag_height < float(bound) - margin)
+                    fragColor =  color_from_eaws_danger_rating(ratingLo);
+                else
+                {
+                    // around border: blend colors between upper and lower danger rating
+                    float a = (frag_height - (float(bound) - margin)) / (2*margin); // This is a value between 0 and 1
+                    fragColor = mix(color_from_eaws_danger_rating(ratingLo), color_from_eaws_danger_rating(ratingHi), a);
+                }
+            }
+
+            // If risk Level Overlay is activated, read unfavorable expositions information and check if fragment has unfavorable exposition
+            else if(bool(conf.eaws_risk_level_enabled))
+            {
+                // report.x encodes dangerous directions bitwise as 1000000000 = North is unfavorable, 01000000 = NE is unfavorable etc.
+                // direction() returns the direction of the fragment
+                // the bitwise & comparison checks if direction bit is marked in report.x as unfavorable direction
+                bool unfavorable = (0 != (report.x & direction(fragNormal)));
+
+                // color the fragment according to danger level
+                float margin = 25.f; // margin within which colorblending between hi and lo happens
+                if(frag_height > float(bound) + margin)
+                    fragColor =  color_from_snowCard_risk_parameters(ratingHi, fragNormal, unfavorable);
+                else if (frag_height < float(bound) - margin)
+                    fragColor =  color_from_snowCard_risk_parameters(ratingLo, fragNormal, unfavorable);
+                else
+                {
+                    // around border: blend colors between upper and lower danger rating
+                    float a = (frag_height - (float(bound) - margin)) / (2*margin); // This is a value between 0 and 1
+                    vec3 colorLo = color_from_snowCard_risk_parameters(ratingLo, fragNormal, unfavorable);
+                    vec3 colorHi = color_from_snowCard_risk_parameters(ratingHi, fragNormal, unfavorable);
+                    fragColor = mix(colorLo, colorHi, a); // color_from_snowCard_risk_parameters(int eaws_danger_rating, int slope_angle_in_deg, bool unfavorable)
+                }
+            }
+            else if(bool(conf.eaws_stop_or_go_enabled))
+            {
+                // Get eaws danger rating from gragment altitude
+                int eaws_danger_rating = frag_height >= float(bound)? ratingHi: ratingLo;
+                fragColor = color_from_stop_or_go(fragNormal, eaws_danger_rating);
             }
         }
         else

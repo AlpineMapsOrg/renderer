@@ -10,7 +10,7 @@ gl_engine::AvalancheReportManager::AvalancheReportManager(
     // create instances of uint_id_manager and report_load_service and connect them to methods
     std::make_unique<avalanche::eaws::ReportLoadService>();
     QObject::connect(this, &gl_engine::AvalancheReportManager::latest_report_report_requested, &m_report_load_service, &avalanche::eaws::ReportLoadService::load_latest_TU_Wien);
-    QObject::connect(&m_report_load_service, &avalanche::eaws::ReportLoadService::load_TU_Wien_finished, this, &gl_engine::AvalancheReportManager::receive_latest_reports_from_server);
+    QObject::connect(&m_report_load_service, &avalanche::eaws::ReportLoadService::load_from_TU_Wien_finished, this, &gl_engine::AvalancheReportManager::receive_latest_reports_from_server);
 
     // Write zero-vectors to ubo with avalanche reports. THis means no report available
     std::fill(m_ubo_eaws_reports->data.reports, m_ubo_eaws_reports->data.reports + 1000, glm::uvec4(0, 0, 0, 0));

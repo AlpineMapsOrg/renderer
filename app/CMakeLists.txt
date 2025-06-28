@@ -41,6 +41,11 @@ qt_add_qml_module(alpineapp
         icons/menu.png
         icons/search.png
         icons/icon.png
+        icons/eaws/eaws_menu.png
+        icons/eaws/eaws_report.png
+        icons/eaws/risk_level.png
+        icons/eaws/slope_angle.png
+        icons/eaws/stop_or_go.png
         icons/material/monitoring.png
         icons/material/3d_rotation.png
         icons/material/map.png
@@ -63,6 +68,10 @@ qt_add_qml_module(alpineapp
         icons/logo_type_horizontal.png
         icons/logo_type_vertical.png
         icons/logo_type_horizontal_short.png
+        eaws/banner_eaws_report.png
+        eaws/banner_risk_level.png
+        eaws/banner_slope_angle.png
+        eaws/banner_stop_or_go.png
     QML_FILES
         Main.qml
         About.qml
