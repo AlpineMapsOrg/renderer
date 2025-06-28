@@ -31,7 +31,7 @@ out lowp float is_curtain;
 #endif
 flat out lowp vec3 vertex_color;
 
-out  highp int var_height_texture_layer;
+flat out  highp int var_height_texture_layer;
 
 void main() {
     float n_quads_per_direction;
