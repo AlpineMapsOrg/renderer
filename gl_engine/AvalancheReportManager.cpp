@@ -32,19 +32,21 @@ void gl_engine::AvalancheReportManager::request_latest_reports_from_server(tl::e
 }
 
 #include <unordered_set>
-// Slot: Gets activated by member reprot load service when reports are available
+// Slot: Gets activated by member report load service when reports are available
 void gl_engine::AvalancheReportManager::receive_latest_reports_from_server(tl::expected<std::vector<avalanche::eaws::ReportTUWien>, QString> data_from_server)
 {
     // Fill array with initial vectors
     std::fill(m_ubo_eaws_reports->data.reports, m_ubo_eaws_reports->data.reports + 1000, glm::ivec4(-1, 0, 0, 0));
 
-    // If error occured during fetching reports send ubp with zeros to gpu
+    // If error occured during fetching reports send ubo with zeros to gpu
     if (!data_from_server.has_value()) {
         m_ubo_eaws_reports->update_gpu_data();
         return;
     }
 
-    // Debug
+    // Debug: Example: Report contains region ID AT-02-02-00. List of region only contains AT-02-02-01, AT-02-02-02
+    // the report is endin in 00 is thus applied to the offical subregions of AT-02-02;
+    // So far al regions that have this problem were collected in a set. A solution for this problem must be found .
     std::unordered_set<QString> wrongRegions({ QString("AT-02-01-00"),
         QString("AT-02-02-00"),
         QString("AT-02-03-00"),
@@ -158,7 +160,7 @@ void gl_engine::AvalancheReportManager::receive_latest_reports_from_server(tl::e
             QString parent_region_id = report.region_id;
             parent_region_id = parent_region_id.left(parent_region_id.length() - 3);
 
-            // check if report region contains subregions , report then applies for all subregions
+            // check if report region contains subregions, report then applies for all subregions
             uint i = 1;
             QString new_region_id = parent_region_id + QString("-01");
             while (m_uint_id_manager->contains(new_region_id)) {
