@@ -1,7 +1,7 @@
 #include "gl_engine/UniformBufferObjects.h"
 #include "nucleus/avalanche/UIntIdManager.h"
 #include <AvalancheReportManager.h>
-#include <fstream>
+#include <iostream>
 gl_engine::AvalancheReportManager::AvalancheReportManager(
     std::shared_ptr<avalanche::eaws::UIntIdManager> input_uint_id_manager, std::shared_ptr<gl_engine::UniformBuffer<avalanche::eaws::uboEawsReports>> input_ubo_eaws_reports)
     : m_uint_id_manager(input_uint_id_manager)
@@ -21,10 +21,14 @@ gl_engine::AvalancheReportManager::AvalancheReportManager(
     m_uint_id_manager->load_all_regions_from_server();
 }
 
-void gl_engine::AvalancheReportManager::request_latest_reports_from_server()
+void gl_engine::AvalancheReportManager::request_latest_reports_from_server(tl::expected<uint, QString> result)
 {
     // get latest report from server this must be connected to report loader
     emit latest_report_report_requested();
+
+    // If no regions were obtained from server, print error message we obtained from parsing server results.
+    if (!result)
+        std::cout << result.error().toStdString();
 }
 
 #include <unordered_set>

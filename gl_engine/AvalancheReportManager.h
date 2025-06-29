@@ -13,7 +13,7 @@ class AvalancheReportManager : public QObject {
 signals:
     void latest_report_report_requested();
 public slots:
-    void request_latest_reports_from_server();
+    void request_latest_reports_from_server(tl::expected<uint, QString> result);
 
     // recieves data from TU wien server, and writes it to ubo ob gpu
     void receive_latest_reports_from_server(tl::expected<std::vector<avalanche::eaws::ReportTUWien>, QString> data_from_server);

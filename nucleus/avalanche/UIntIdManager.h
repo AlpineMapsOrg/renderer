@@ -4,6 +4,8 @@
 #include <QDate>
 #include <QImage>
 #include <QObject>
+#include <extern/tl_expected/include/tl/expected.hpp>
+class QNetworkAccessManager;
 namespace avalanche::eaws {
 // This class handles conversion from region-id strings to internal ids as uint and as color
 class UIntIdManager : public QObject {
@@ -27,13 +29,14 @@ public:
     bool operator==(const avalanche::eaws::UIntIdManager& rhs) { return (get_all_registered_region_ids() == rhs.get_all_registered_region_ids()); }
 
 signals:
-    void loaded_all_regions() const;
+    void loaded_all_regions(tl::expected<uint, QString> result) const; // argument:  number of regions or error
 
 private:
     std::unordered_map<QString, uint> region_id_to_internal_id;
     std::unordered_map<uint, QString> internal_id_to_region_id;
     uint max_internal_id = 0;
     QDate date_of_currently_selected_report = QDate(2024, 12, 30);
+    std::shared_ptr<QNetworkAccessManager> m_network_manager;
 };
 } // namespace avalanche::eaws
 #endif // UINTIDMANAGER_H

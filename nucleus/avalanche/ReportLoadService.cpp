@@ -8,7 +8,6 @@
 #include <QNetworkRequest>
 #include <extern/tl_expected/include/tl/expected.hpp>
 #include <glm/vec4.hpp>
-#include <iostream>
 namespace avalanche::eaws {
 
 // Constructor: only creates network manager that lives the whole runtime. Ideally the whole app would only use one Manager !
