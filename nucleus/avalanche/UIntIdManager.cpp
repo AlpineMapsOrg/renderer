@@ -20,67 +20,6 @@ avalanche::eaws::UIntIdManager::UIntIdManager()
 QDate avalanche::eaws::UIntIdManager::get_date() const { return date_of_currently_selected_report; }
 void avalanche::eaws::UIntIdManager::set_date(const QDate& input_date) { date_of_currently_selected_report = input_date; }
 
-// Helper function to load latest list of eaws region ids
-tl::expected<std::vector<QString>, QString> get_all_eaws_region_ids_from_server(std::shared_ptr<QNetworkAccessManager> network_manager)
-{
-    // Build url of server with file name
-    QUrl qurl(QString("https://regions.avalanches.org/micro-regions.geojson"));
-    QNetworkRequest request(qurl);
-    request.setTransferTimeout(int(8000));
-    request.setAttribute(QNetworkRequest::CacheLoadControlAttribute, QNetworkRequest::PreferCache);
-#if QT_VERSION >= QT_VERSION_CHECK(6, 5, 0)
-    request.setAttribute(QNetworkRequest::UseCredentialsAttribute, false);
-#endif
-
-    // Make a GET request to the provided url
-    QNetworkReply* reply = network_manager->get(request);
-    tl::expected<std::vector<QString>, QString> retVal;
-
-    // Process the reply
-    QObject::connect(reply, &QNetworkReply::finished, [&retVal, reply]() {
-        // Check if Network Error occured
-        if (reply->error() != QNetworkReply::NoError)
-            retVal = tl::unexpected(QString("ERROR: Network error from https://regions.avalanches.org/micro-regions.geojson"));
-
-        // Read the response data
-        QByteArray data = reply->readAll();
-
-        // Convert data to Json
-        QJsonParseError parse_error;
-        QJsonDocument json_document = QJsonDocument::fromJson(data, &parse_error);
-
-        // Check for parsing error
-        if (parse_error.error != QJsonParseError::NoError)
-            retVal = tl::unexpected(QString("ERROR: Parse Error wile parsing JSON with EAWS region ids."));
-
-        // Check for empty json
-        else if (json_document.isEmpty() || json_document.isNull())
-            retVal = tl::unexpected(QString("ERROR: Empty JSON with EAWS region ids."));
-
-        // Check if key with reports is correct
-        else if (!json_document.isObject())
-            retVal = tl::unexpected(QString("ERROR: JSON with EAWS region ids is not JSON Object"));
-        QJsonObject obj = json_document.object();
-        if (!obj.contains("features"))
-            retVal = tl::unexpected(QString("ERROR: JSON with EAWS region ids is not JSON Object."));
-        if (!obj["features"].isArray())
-            retVal = tl::unexpected(QString("ERROR: JSON with EAWS region ids does not contain expected array"));
-
-        // Go through all regions , only add current regions to return vector
-        QJsonArray array = obj["features"].toArray();
-        std::vector<QString> regions;
-        for (const QJsonValue& jsonValue_region : array) {
-            QJsonObject jsonObject_properties = jsonValue_region.toObject()["properties"].toObject();
-            regions.push_back(jsonValue_region.toObject()["properties"].toObject()["id"].toString());
-        }
-
-        // return vector withh ids of current regions
-        retVal = tl::expected<std::vector<QString>, QString>(regions);
-    });
-
-    return retVal;
-}
-
 void avalanche::eaws::UIntIdManager::load_all_regions_from_server()
 {
     // Get list of all current eaws regions to complete this conversion service
