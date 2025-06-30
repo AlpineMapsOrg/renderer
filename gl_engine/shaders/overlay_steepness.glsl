@@ -34,23 +34,23 @@ lowp vec4 overlay_steepness(highp vec3 normal, highp float dist) {
     highp float steepness_degrees = degrees(acos(dot(normal, vec3(0.0, 0.0, 1.0))));
     highp float alpha = clamp(1.0 - dist / 20000.0, 0.0, 1.0);
     lowp vec4 bin_color;
-    if (steepness_degrees > 60){
+    if (steepness_degrees > 60.0){
         bin_color = steepness_color_map[9];
-    } else if (steepness_degrees > 55){
+    } else if (steepness_degrees > 55.0){
         bin_color = steepness_color_map[8];
-    } else if (steepness_degrees > 50){
+    } else if (steepness_degrees > 50.0){
         bin_color = steepness_color_map[7];
-    } else if (steepness_degrees > 45){
+    } else if (steepness_degrees > 45.0){
         bin_color = steepness_color_map[6];
-    } else if (steepness_degrees > 40){
+    } else if (steepness_degrees > 40.0){
         bin_color = steepness_color_map[5];
-    } else if (steepness_degrees > 35){
+    } else if (steepness_degrees > 35.0){
         bin_color = steepness_color_map[4];
-    } else if (steepness_degrees > 30){
+    } else if (steepness_degrees > 30.0){
         bin_color = steepness_color_map[3];
-    } else if (steepness_degrees > 25){
+    } else if (steepness_degrees > 25.0){
         bin_color = steepness_color_map[2];
-    } else if (steepness_degrees > 15){
+    } else if (steepness_degrees > 15.0){
         bin_color = steepness_color_map[1];
     }else {
         // less than 15°
