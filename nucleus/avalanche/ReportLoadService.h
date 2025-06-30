@@ -52,19 +52,16 @@ public:
     ReportLoadService(); // Constructor creates a new NetworkManager
 
 public slots:
-    void load_CAAML(const QString& url) const;
     void load_from_tu_wien(const QDate& date) const;
-    void load_latest_TU_Wien() const;
-    void load_report_from_file() const;
 
 signals:
-    void load_CAAML_finished(tl::expected<std::vector<BulletinItemCAAML>, QString> data_from_server) const;
     void load_from_TU_Wien_finished(tl::expected<std::vector<ReportTUWien>, QString> data_from_server) const;
 
 public:
     // QNetworkAccessManager m_network_manager;
     const QString m_url_latest_report = "https://static.avalanche.report/bulletins/latest/EUREGIO_de_CAAMLv6.json";
     const QString m_url_custom_report = "https://static.avalanche.report/eaws_bulletins/${date}/${date}-${region}.json";
+
     bool operator==(const avalanche::eaws::ReportLoadService& rhs) { return this->m_url_latest_report == rhs.m_url_latest_report; }
 };
 } // namespace avalanche::eaws

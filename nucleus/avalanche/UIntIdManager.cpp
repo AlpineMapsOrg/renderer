@@ -23,11 +23,9 @@ void avalanche::eaws::UIntIdManager::set_date(const QDate& input_date) { date_of
 void avalanche::eaws::UIntIdManager::load_all_regions_from_server()
 {
     // Get list of all current eaws regions to complete this conversion service
-    // Read the json from file for now
-    // tl::expected<std::vector<QString>, QString> result = get_all_eaws_region_ids_from_server(m_network_manager);
 
     // Build url of server with file name
-    QUrl qurl(QString("https://regions.avalanches.org/micro-regions.geojson"));
+    QUrl qurl(m_url_regions);
     QNetworkRequest request(qurl);
     request.setTransferTimeout(int(8000));
     request.setAttribute(QNetworkRequest::CacheLoadControlAttribute, QNetworkRequest::PreferCache);

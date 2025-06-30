@@ -35,7 +35,8 @@ private:
     std::unordered_map<QString, uint> region_id_to_internal_id;
     std::unordered_map<uint, QString> internal_id_to_region_id;
     uint max_internal_id = 0;
-    QDate date_of_currently_selected_report = QDate(2024, 12, 30);
+    const QString m_url_regions = "https://regions.avalanches.org/micro-regions.geojson";
+    QDate date_of_currently_selected_report = QDate(2024, 12, 30); // So far we can only load today's report. Later this date should be set by user
     std::shared_ptr<QNetworkAccessManager> m_network_manager;
 };
 } // namespace avalanche::eaws

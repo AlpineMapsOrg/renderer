@@ -11,12 +11,12 @@ template <typename T> class UniformBuffer;
 class AvalancheReportManager : public QObject {
     Q_OBJECT
 signals:
-    void latest_report_report_requested();
+    void report_requested(QDate report_date);
 public slots:
-    void request_latest_reports_from_server(tl::expected<uint, QString> result);
+    void request_report_from_server(tl::expected<uint, QString> result);
 
     // recieves data from TU wien server, and writes it to ubo ob gpu
-    void receive_latest_reports_from_server(tl::expected<std::vector<avalanche::eaws::ReportTUWien>, QString> data_from_server);
+    void receive_report_from_server(tl::expected<std::vector<avalanche::eaws::ReportTUWien>, QString> data_from_server);
 
 public:
     AvalancheReportManager(std::shared_ptr<avalanche::eaws::UIntIdManager> input_uint_id_manager, std::shared_ptr<gl_engine::UniformBuffer<avalanche::eaws::uboEawsReports>> input_ubo_eaws_reports);

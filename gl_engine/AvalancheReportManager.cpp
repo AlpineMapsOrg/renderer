@@ -9,31 +9,31 @@ gl_engine::AvalancheReportManager::AvalancheReportManager(
 {
     // create instances of uint_id_manager and report_load_service and connect them to methods
     std::make_unique<avalanche::eaws::ReportLoadService>();
-    QObject::connect(this, &gl_engine::AvalancheReportManager::latest_report_report_requested, &m_report_load_service, &avalanche::eaws::ReportLoadService::load_latest_TU_Wien);
-    QObject::connect(&m_report_load_service, &avalanche::eaws::ReportLoadService::load_from_TU_Wien_finished, this, &gl_engine::AvalancheReportManager::receive_latest_reports_from_server);
+    QObject::connect(this, &gl_engine::AvalancheReportManager::report_requested, &m_report_load_service, &avalanche::eaws::ReportLoadService::load_from_tu_wien);
+    QObject::connect(&m_report_load_service, &avalanche::eaws::ReportLoadService::load_from_TU_Wien_finished, this, &gl_engine::AvalancheReportManager::receive_report_from_server);
 
     // Write zero-vectors to ubo with avalanche reports. THis means no report available
     std::fill(m_ubo_eaws_reports->data.reports, m_ubo_eaws_reports->data.reports + 1000, glm::uvec4(0, 0, 0, 0));
     m_ubo_eaws_reports->update_gpu_data();
 
     // Let uint_id_manager load all regions from server and then let it trigger an update of reports
-    QObject::connect(m_uint_id_manager.get(), &avalanche::eaws::UIntIdManager::loaded_all_regions, this, &gl_engine::AvalancheReportManager::request_latest_reports_from_server);
+    QObject::connect(m_uint_id_manager.get(), &avalanche::eaws::UIntIdManager::loaded_all_regions, this, &gl_engine::AvalancheReportManager::request_report_from_server);
     m_uint_id_manager->load_all_regions_from_server();
 }
 
-void gl_engine::AvalancheReportManager::request_latest_reports_from_server(tl::expected<uint, QString> result)
+void gl_engine::AvalancheReportManager::request_report_from_server(tl::expected<uint, QString> result)
 {
     // get latest report from server this must be connected to report loader
-    emit latest_report_report_requested();
+    emit report_requested(m_uint_id_manager->get_date());
 
     // If no regions were obtained from server, print error message we obtained from parsing server results.
     if (!result)
-        std::cout << result.error().toStdString();
+        std::cout << "\n" << result.error().toStdString();
 }
 
 #include <unordered_set>
 // Slot: Gets activated by member report load service when reports are available
-void gl_engine::AvalancheReportManager::receive_latest_reports_from_server(tl::expected<std::vector<avalanche::eaws::ReportTUWien>, QString> data_from_server)
+void gl_engine::AvalancheReportManager::receive_report_from_server(tl::expected<std::vector<avalanche::eaws::ReportTUWien>, QString> data_from_server)
 {
     // Fill array with initial vectors
     std::fill(m_ubo_eaws_reports->data.reports, m_ubo_eaws_reports->data.reports + 1000, glm::ivec4(-1, 0, 0, 0));
