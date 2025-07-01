@@ -45,8 +45,8 @@ void gl_engine::AvalancheReportManager::receive_report_from_server(tl::expected<
     }
 
     // Debug: Example: Report contains region ID AT-02-02-00. List of region only contains AT-02-02-01, AT-02-02-02
-    // the report is endin in 00 is thus applied to the offical subregions of AT-02-02;
-    // So far al regions that have this problem were collected in a set. A solution for this problem must be found .
+    // The report ending in 00 is thus applied to the offical subregions of AT-02-02;
+    // So far all regions that have this problem were collected in a set. A solution for this problem must be found .
     std::unordered_set<QString> wrongRegions({ QString("AT-02-01-00"),
         QString("AT-02-02-00"),
         QString("AT-02-03-00"),

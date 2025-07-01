@@ -90,9 +90,8 @@ RenderingContext::RenderingContext(QObject* parent)
     m->geometry = nucleus::tile::setup::geometry_scheduler(
         "geometry", std::make_unique<TileLoadService>("https://alpinemaps.cg.tuwien.ac.at/tiles/alpine_png/", TilePattern::ZXY, ".png"), m->aabb_decorator, m->scheduler_thread.get());
     m->data_querier = std::make_shared<DataQuerier>(&m->geometry.scheduler->ram_cache());
-
-    m->ortho_texture = nucleus::tile::setup::texture_scheduler(
-        "ortho", std::make_unique<TileLoadService>("https://gataki.cg.tuwien.ac.at/raw/basemap/tiles/", TilePattern::ZYX_yPointingSouth, ".jpeg"), m->aabb_decorator, m->scheduler_thread.get());
+    auto ortho_service = std::make_unique<TileLoadService>("https://mapsneu.wien.gv.at/basemap/bmapoberflaeche/grau/google3857/", TilePattern::ZYX_yPointingSouth, ".jpeg");
+    m->ortho_texture = nucleus::tile::setup::texture_scheduler("ortho", std::move(ortho_service), m->aabb_decorator, m->scheduler_thread.get());
     m->uint_id_manager = std::make_shared<avalanche::eaws::UIntIdManager>();
     m->eaws_texture = nucleus::tile::setup::eaws_texture_scheduler(
         "eaws", std::make_unique<TileLoadService>("http://localhost:3000/eaws-regions/", TilePattern::ZXY_yPointingSouth, ""), m->aabb_decorator_eaws, m->uint_id_manager, m->scheduler_thread.get());
