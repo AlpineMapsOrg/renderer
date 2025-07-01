@@ -226,11 +226,7 @@ TEST_CASE("nucleus/tile/TileLoadService")
         Id unavailable_tile_id = { .zoom_level = 90, .coords = { 273, 177 } };
         service.load(unavailable_tile_id);
 
-#ifdef __EMSCRIPTEN__
         spy.wait(2000);
-#else
-        spy.wait(20);
-#endif
 
         REQUIRE(spy.count() == 1);
         QList<QVariant> arguments = spy.takeFirst();
@@ -238,11 +234,7 @@ TEST_CASE("nucleus/tile/TileLoadService")
         const auto tile = arguments.at(0).value<TileLayer>();
         CHECK(tile.id == unavailable_tile_id);
         CHECK(tile.network_info.status == NetworkInfo::Status::NetworkError);
-#ifndef __EMSCRIPTEN__
         CHECK(time_since_epoch() - tile.network_info.timestamp < 2000);
-#else
-        CHECK(time_since_epoch() - tile.network_info.timestamp < 20);
-#endif
 
         const auto image = QImage::fromData(*tile.data);
         REQUIRE(image.sizeInBytes() == 0);

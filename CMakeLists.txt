@@ -57,7 +57,7 @@ if (UNIX AND NOT EMSCRIPTEN AND NOT ANDROID)
 endif()
 
 
-include(cmake/alp_add_git_repository.cmake)
+include(cmake/AddRepo.cmake)
 include(cmake/Version.cmake)
 
 ########################################### setup #################################################

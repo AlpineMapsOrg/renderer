@@ -117,6 +117,16 @@ ColumnLayout {
                     ToolTip.visible: hovered
                     ToolTip.text: qsTr("Filter visible labels")
                 }
+                FloatingActionButton {
+                    image: _r + "icons/material/steepness.png"
+                    onClicked: {map.shared_config.overlay_mode = 101; toggleSteepnessLegend();}
+                    size: parent.height
+                    image_size: 24
+                    image_opacity: 1.0
+
+                    ToolTip.visible: hovered
+                    ToolTip.text: qsTr("Overlay steepness")
+                }
             }
         }
     }
