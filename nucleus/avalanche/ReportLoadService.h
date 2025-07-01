@@ -1,6 +1,5 @@
 #pragma once
-#ifndef REPORTLOADSERVICE_H
-#define REPORTLOADSERVICE_H
+
 #include <QJsonArray>
 #include <QJsonDocument>
 #include <QJsonObject>
@@ -10,7 +9,7 @@
 
 class QNetworkAccessManager;
 
-namespace avalanche::eaws {
+namespace nucleus::avalanche {
 
 // Relevant data from a CAAML json provided by avalanche services
 struct DangerRatingCAAML {
@@ -19,7 +18,7 @@ public:
     int lower_bound = INT_MAX;
     int upper_bound = INT_MIN;
     QString valid_time_period = "";
-    bool operator==(const avalanche::eaws::DangerRatingCAAML& rhs) const = default;
+    bool operator==(const DangerRatingCAAML& rhs) const = default;
 };
 
 // Contains a list of regions and the altitude dependent ratings valid for these regions
@@ -27,7 +26,7 @@ struct BulletinItemCAAML {
 public:
     std::unordered_set<QString> regions_ids;
     std::vector<DangerRatingCAAML> danger_ratings;
-    bool operator==(const avalanche::eaws::BulletinItemCAAML& rhs) const = default;
+    bool operator==(const BulletinItemCAAML& rhs) const = default;
 };
 
 // Contains rating for one region as obtained from TU Wien server
@@ -39,7 +38,7 @@ struct ReportTUWien {
     int rating_hi = -1;
     int rating_lo = -1;
     int unfavorable = 0;
-    bool operator==(const avalanche::eaws::ReportTUWien& rhs) const = default;
+    bool operator==(const ReportTUWien& rhs) const = default;
 };
 
 // Loads a Bulletinn from the server and converts it to custom struct
@@ -62,8 +61,6 @@ public:
     const QString m_url_latest_report = "https://static.avalanche.report/bulletins/latest/EUREGIO_de_CAAMLv6.json";
     const QString m_url_custom_report = "https://static.avalanche.report/eaws_bulletins/${date}/${date}-${region}.json";
 
-    bool operator==(const avalanche::eaws::ReportLoadService& rhs) { return this->m_url_latest_report == rhs.m_url_latest_report; }
+    bool operator==(const ReportLoadService& rhs) { return this->m_url_latest_report == rhs.m_url_latest_report; }
 };
-} // namespace avalanche::eaws
-
-#endif // REPORTLOADSERVICE_H
+} // namespace nucleus::avalanche

@@ -31,7 +31,7 @@ class DataQuerier
 public:
     DataQuerier(tile::MemoryCache* cache);
 
-    [[nodiscard]] float get_altitude(const glm::dvec2& lat_long) const;
+    [[nodiscard]] tl::expected<float, QString> get_altitude(const glm::dvec2& lat_long) const;
 };
 
 } // namespace nucleus

@@ -2,22 +2,31 @@
 #include "nucleus/avalanche/UIntIdManager.h"
 #include <AvalancheReportManager.h>
 #include <iostream>
-gl_engine::AvalancheReportManager::AvalancheReportManager(
-    std::shared_ptr<avalanche::eaws::UIntIdManager> input_uint_id_manager, std::shared_ptr<gl_engine::UniformBuffer<avalanche::eaws::uboEawsReports>> input_ubo_eaws_reports)
+
+gl_engine::AvalancheReportManager::AvalancheReportManager(std::shared_ptr<nucleus::avalanche::UIntIdManager> input_uint_id_manager,
+    std::shared_ptr<gl_engine::UniformBuffer<nucleus::avalanche::uboEawsReports>> input_ubo_eaws_reports)
     : m_uint_id_manager(input_uint_id_manager)
     , m_ubo_eaws_reports(input_ubo_eaws_reports)
 {
+    assert(m_uint_id_manager);
+    assert(m_ubo_eaws_reports);
+
     // create instances of uint_id_manager and report_load_service and connect them to methods
-    std::make_unique<avalanche::eaws::ReportLoadService>();
-    QObject::connect(this, &gl_engine::AvalancheReportManager::report_requested, &m_report_load_service, &avalanche::eaws::ReportLoadService::load_from_tu_wien);
-    QObject::connect(&m_report_load_service, &avalanche::eaws::ReportLoadService::load_from_TU_Wien_finished, this, &gl_engine::AvalancheReportManager::receive_report_from_server);
+    std::make_unique<nucleus::avalanche::ReportLoadService>();
+    QObject::connect(
+        this, &gl_engine::AvalancheReportManager::report_requested, &m_report_load_service, &nucleus::avalanche::ReportLoadService::load_from_tu_wien);
+    QObject::connect(&m_report_load_service,
+        &nucleus::avalanche::ReportLoadService::load_from_TU_Wien_finished,
+        this,
+        &gl_engine::AvalancheReportManager::receive_report_from_server);
 
     // Write zero-vectors to ubo with avalanche reports. THis means no report available
     std::fill(m_ubo_eaws_reports->data.reports, m_ubo_eaws_reports->data.reports + 1000, glm::uvec4(0, 0, 0, 0));
     m_ubo_eaws_reports->update_gpu_data();
 
     // Let uint_id_manager load all regions from server and then let it trigger an update of reports
-    QObject::connect(m_uint_id_manager.get(), &avalanche::eaws::UIntIdManager::loaded_all_regions, this, &gl_engine::AvalancheReportManager::request_report_from_server);
+    QObject::connect(
+        m_uint_id_manager.get(), &nucleus::avalanche::UIntIdManager::loaded_all_regions, this, &gl_engine::AvalancheReportManager::request_report_from_server);
     m_uint_id_manager->load_all_regions_from_server();
 }
 
@@ -33,7 +42,7 @@ void gl_engine::AvalancheReportManager::request_report_from_server(tl::expected<
 
 #include <unordered_set>
 // Slot: Gets activated by member report load service when reports are available
-void gl_engine::AvalancheReportManager::receive_report_from_server(tl::expected<std::vector<avalanche::eaws::ReportTUWien>, QString> data_from_server)
+void gl_engine::AvalancheReportManager::receive_report_from_server(tl::expected<std::vector<nucleus::avalanche::ReportTUWien>, QString> data_from_server)
 {
     // Fill array with initial vectors
     std::fill(m_ubo_eaws_reports->data.reports, m_ubo_eaws_reports->data.reports + 1000, glm::ivec4(-1, 0, 0, 0));
@@ -150,8 +159,8 @@ void gl_engine::AvalancheReportManager::receive_report_from_server(tl::expected<
         QString("AT-08-06-00") });
 
     // if reports arrived as expected write them to ubo object
-    std::vector<avalanche::eaws::ReportTUWien> reports = data_from_server.value();
-    for (const avalanche::eaws::ReportTUWien& report : reports) {
+    std::vector<nucleus::avalanche::ReportTUWien> reports = data_from_server.value();
+    for (const nucleus::avalanche::ReportTUWien& report : reports) {
 
         // Correct region id if it has invalid format: That means create new sub regions with same forecast
         std::vector<QString> new_region_ids;

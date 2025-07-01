@@ -20,25 +20,39 @@
 
 #include <QMetaObject>
 #include <QObject>
+#include <QThread>
 
 namespace nucleus::utils::thread {
 
-template <typename Function, typename = std::enable_if_t<std::is_void_v<std::invoke_result_t<Function>>>> void async_call(QObject* context, Function fun)
+template <typename Function, typename = std::enable_if_t<std::is_void_v<std::invoke_result_t<Function>>>>
+void async_call(QObject* context, Function fun)
 {
     QMetaObject::invokeMethod(context, fun, Qt::ConnectionType::QueuedConnection);
 }
 
-template <typename Function, typename = std::enable_if_t<std::is_void_v<std::invoke_result_t<Function>>>> void sync_call(QObject* context, Function fun)
+template <typename Function, typename = std::enable_if_t<std::is_void_v<std::invoke_result_t<Function>>>>
+void sync_call(QObject* context, Function fun)
 {
-    QMetaObject::invokeMethod(context, fun, Qt::ConnectionType::BlockingQueuedConnection);
+    auto connection_type = Qt::ConnectionType::DirectConnection;
+#if !defined(__EMSCRIPTEN__) || defined(__EMSCRIPTEN_PTHREADS__)
+    if (context->thread() != QThread::currentThread())
+        connection_type = Qt::ConnectionType::BlockingQueuedConnection;
+#endif
+    QMetaObject::invokeMethod(context, fun, connection_type);
 }
 
 template <typename Function, typename = std::enable_if_t<!std::is_void_v<std::invoke_result_t<Function>>>>
-auto sync_call(QObject* context, Function fun) -> std::invoke_result_t<Function>
+auto sync_call(QObject* context, Function&& fun) -> std::invoke_result_t<Function>
 {
+    auto connection_type = Qt::ConnectionType::DirectConnection;
+#if !defined(__EMSCRIPTEN__) || defined(__EMSCRIPTEN_PTHREADS__)
+    if (context->thread() != QThread::currentThread())
+        connection_type = Qt::ConnectionType::BlockingQueuedConnection;
+#endif
+
     using ReturnType = std::invoke_result_t<Function>;
     ReturnType retval = {};
-    QMetaObject::invokeMethod(context, fun, Qt::ConnectionType::BlockingQueuedConnection, &retval);
+    QMetaObject::invokeMethod(context, std::forward<Function>(fun), connection_type, &retval);
     return retval;
 }
 

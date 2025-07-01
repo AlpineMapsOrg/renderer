@@ -23,32 +23,31 @@
 
 #pragma once
 
-#include <QOpenGLPaintDevice>
-#include <QOpenGLWindow>
-#include <QPainter>
-#include <QVector3D>
-#include <QMap>
-#include <glm/glm.hpp>
-#include <memory>
-
 #include "UniformBuffer.h"
 #include "UniformBufferObjects.h"
 #include "helpers.h"
-#include "nucleus/AbstractRenderWindow.h"
-#include "nucleus/camera/AbstractDepthTester.h"
-#include "nucleus/camera/Definition.h"
-#include "nucleus/track/GPX.h"
-
-#include "nucleus/timing/TimerManager.h"
+#include <QMap>
+#include <QOpenGLWindow>
+#include <QPainter>
+#include <QVariantMap>
+#include <QVector3D>
+#include <glm/glm.hpp>
+#include <memory>
+#include <nucleus/AbstractRenderWindow.h>
+#include <nucleus/camera/AbstractDepthTester.h>
+#include <nucleus/camera/Definition.h>
+#include <nucleus/timing/TimerManager.h>
+#include <nucleus/track/GPX.h>
+#include <string>
 
 class QOpenGLTexture;
 class QOpenGLShaderProgram;
 class QOpenGLVertexArrayObject;
 
-namespace avalanche::eaws {
+namespace nucleus::avalanche {
 class UIntIdManager;
 struct uboEawsReports;
-}
+} // namespace nucleus::avalanche
 
 namespace gl_engine {
 
@@ -62,7 +61,7 @@ class AvalancheReportManager;
 class Window : public nucleus::AbstractRenderWindow, public nucleus::camera::AbstractDepthTester {
     Q_OBJECT
 public:
-    Window(std::shared_ptr<Context> context, std::shared_ptr<avalanche::eaws::UIntIdManager> input_uint_id_manager);
+    Window(std::shared_ptr<Context> context);
     ~Window() override;
 
     void initialise_gpu() override;
@@ -74,8 +73,6 @@ public:
     void destroy() override;
     [[nodiscard]] nucleus::camera::AbstractDepthTester* depth_tester() override;
     [[nodiscard]] nucleus::utils::ColourTexture::Format ortho_tile_compression_algorithm() const override;
-    void updateCameraEvent();
-    void set_permissible_screen_space_error(float new_error) override;
 
 public slots:
     void update_camera(const nucleus::camera::Definition& new_definition) override;
@@ -85,7 +82,8 @@ public slots:
     void pick_value(const glm::dvec2& screen_space_coordinates) override;
 
 signals:
-    void report_measurements(QList<nucleus::timing::TimerReport> values);
+    void timer_measurements_ready(QList<nucleus::timing::TimerReport> values);
+    void tile_stats_ready(QVariantMap stats);
 
 private:
     std::shared_ptr<Context> m_context;
@@ -105,18 +103,20 @@ private:
     std::shared_ptr<UniformBuffer<uboSharedConfig>> m_shared_config_ubo; // needs opengl context
     std::shared_ptr<UniformBuffer<uboCameraConfig>> m_camera_config_ubo;
     std::shared_ptr<UniformBuffer<uboShadowConfig>> m_shadow_config_ubo;
-    std::shared_ptr<UniformBuffer<avalanche::eaws::uboEawsReports>> m_eaws_reports_ubo;
+    std::shared_ptr<UniformBuffer<nucleus::avalanche::uboEawsReports>> m_eaws_reports_ubo;
     helpers::ScreenQuadGeometry m_screen_quad_geometry;
 
     nucleus::camera::Definition m_camera;
 
     int m_frame = 0;
     bool m_initialised = false;
+    float m_permissible_screen_space_error = 2.f;
     QString m_debug_text;
     QString m_debug_scheduler_stats;
 
     std::unique_ptr<nucleus::timing::TimerManager> m_timer;
-    std::shared_ptr<avalanche::eaws::UIntIdManager> m_uint_id_manager;
+
+    // todo: move to context object
     std::unique_ptr<gl_engine::AvalancheReportManager> m_avalanche_report_manager;
 };
 

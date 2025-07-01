@@ -26,8 +26,8 @@
 namespace nucleus::camera {
 
 LinearCameraAnimation::LinearCameraAnimation(Definition start, Definition end)
-    : m_start(start.camera_space_to_world_matrix())
-    , m_end(end.camera_space_to_world_matrix())
+    : m_start(start.model_matrix())
+    , m_end(end.model_matrix())
 {
     m_current_duration = 0;
     m_stopwatch.restart();
@@ -50,7 +50,7 @@ std::optional<Definition> LinearCameraAnimation::update(Definition camera, Abstr
 
     const auto mix_factor = t_eased; //m_current_duration / float(m_total_duration);
     const auto new_matrix = m_start * double(1 - mix_factor) + m_end * double(mix_factor);
-    camera.set_camera_space_to_world_matrix(new_matrix);
+    camera.set_model_matrix(new_matrix);
 
     return camera;
 }

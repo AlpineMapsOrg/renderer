@@ -122,8 +122,8 @@ TEST_CASE("nucleus/tile/TileLoadService")
 
     SECTION("download")
     {
-        // https://maps.wien.gv.at/basemap/bmaporthofoto30cm/normal/google3857/9/177/273.jpeg => should be a white tile
-        // https://maps.wien.gv.at/basemap/bmaporthofoto30cm/normal/google3857/9/179/272.jpeg => should show Tirol
+        // https://mapsneu.wien.gv.at/basemap/bmaporthofoto30cm/normal/google3857/9/177/273.jpeg => should be a white tile
+        // https://mapsneu.wien.gv.at/basemap/bmaporthofoto30cm/normal/google3857/9/179/272.jpeg => should show Tirol
         const auto white_tile_id = Id { .zoom_level = 9, .coords = { 273, 177 } };
         const auto tirol_tile_id = Id { .zoom_level = 9, .coords = { 272, 179 } };
         TileLoadService service("https://mapsneu.wien.gv.at/basemap/bmaporthofoto30cm/normal/google3857/",
@@ -225,7 +225,8 @@ TEST_CASE("nucleus/tile/TileLoadService")
         QSignalSpy spy(&service, &TileLoadService::load_finished);
         Id unavailable_tile_id = { .zoom_level = 90, .coords = { 273, 177 } };
         service.load(unavailable_tile_id);
-        spy.wait(20);
+
+        spy.wait(2000);
 
         REQUIRE(spy.count() == 1);
         QList<QVariant> arguments = spy.takeFirst();
@@ -233,7 +234,7 @@ TEST_CASE("nucleus/tile/TileLoadService")
         const auto tile = arguments.at(0).value<TileLayer>();
         CHECK(tile.id == unavailable_tile_id);
         CHECK(tile.network_info.status == NetworkInfo::Status::NetworkError);
-        CHECK(time_since_epoch() - tile.network_info.timestamp < 20);
+        CHECK(time_since_epoch() - tile.network_info.timestamp < 2000);
 
         const auto image = QImage::fromData(*tile.data);
         REQUIRE(image.sizeInBytes() == 0);

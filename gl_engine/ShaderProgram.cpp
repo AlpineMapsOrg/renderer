@@ -176,10 +176,11 @@ QString ShaderProgram::read_file_content_local(const QString& name) {
 
 // =========== MEMBER DECLARATIONS =======================
 
-ShaderProgram::ShaderProgram(QString vertex_shader, QString fragment_shader, ShaderCodeSource code_source)
+ShaderProgram::ShaderProgram(QString vertex_shader, QString fragment_shader, ShaderCodeSource code_source, const std::vector<QString>& defines)
     : m_vertex_shader(vertex_shader)
     , m_fragment_shader(fragment_shader)
     , m_code_source(code_source)
+    , m_defines(defines)
 {
     reload();
     assert(m_q_shader_program);
@@ -211,7 +212,7 @@ void ShaderProgram::set_uniform_block(const std::string& name, GLuint location)
     auto pId = m_q_shader_program->programId();
     unsigned int ubi = f->glGetUniformBlockIndex(pId, name.c_str());
     if (ubi == GL_INVALID_INDEX) {
-        //qDebug() << "Uniform Block " << name << " not found in program " << pId;
+        // qDebug() << "Uniform Block " << name << " not found in program " << pId;
     } else {
         f->glUniformBlockBinding(pId, ubi, location);
     }
@@ -351,6 +352,11 @@ QString ShaderProgram::load_and_preprocess_shader_code(gl_engine::ShaderType typ
     if (m_code_source == ShaderCodeSource::FILE)
         code = read_file_content(code);
 
+    QString defines = "";
+    for (const auto& d : m_defines)
+        defines += d + '\n';
+
+    code = defines + code;
     preprocess_shader_content_inplace(code);
     return make_versioned_shader_code(code);
 }

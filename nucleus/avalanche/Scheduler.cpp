@@ -16,14 +16,15 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *****************************************************************************/
 
-#include "EawsTextureScheduler.h"
-#include "nucleus/avalanche/eaws.h"
+#include "Scheduler.h"
+#include "eaws.h"
 #include <nucleus/utils/image_loader.h>
 
-namespace avalanche::eaws {
-TextureScheduler::TextureScheduler(std::string name, unsigned texture_resolution, std::shared_ptr<avalanche::eaws::UIntIdManager> internal_id_manager, QObject* parent)
-    : nucleus::tile::Scheduler(std::move(name), texture_resolution, parent)
-    , m_default_raster(glm::uvec2(texture_resolution), 0)
+namespace nucleus::avalanche {
+
+Scheduler::Scheduler(const Settings& settings, std::shared_ptr<UIntIdManager> internal_id_manager)
+    : nucleus::tile::Scheduler(settings)
+    , m_default_raster(glm::uvec2(settings.tile_resolution), 0)
     , m_uint_id_manager(internal_id_manager)
 {
     m_max_tile_zoom_level = 10;
@@ -31,12 +32,15 @@ TextureScheduler::TextureScheduler(std::string name, unsigned texture_resolution
     std::cout << ptr;
 }
 
-TextureScheduler::~TextureScheduler() = default;
+Scheduler::~Scheduler() = default;
 
-void TextureScheduler::transform_and_emit(const std::vector<nucleus::tile::DataQuad>& new_quads, const std::vector<nucleus::tile::Id>& deleted_quads)
+void Scheduler::transform_and_emit(const std::vector<nucleus::tile::DataQuad>& new_quads, const std::vector<nucleus::tile::Id>& deleted_quads)
 {
     std::vector<nucleus::tile::GpuEawsQuad> new_gpu_quads;
     new_gpu_quads.reserve(new_quads.size());
+
+    // todo: merge quads, look at texture scheduler
+    Q_UNUSED(deleted_quads)
 
     std::transform(new_quads.cbegin(), new_quads.cend(), std::back_inserter(new_gpu_quads), [this](const auto& quad) {
         // create GpuQuad based on cpu quad
@@ -48,11 +52,11 @@ void TextureScheduler::transform_and_emit(const std::vector<nucleus::tile::DataQ
             glm::ivec3 CURRENT_ID(quad.tiles[i].id.zoom_level, quad.tiles[i].id.coords);
 
             if (quad.tiles[i].data->size()) {
-                tl::expected<avalanche::eaws::RegionTile, QString> result = avalanche::eaws::vector_tile_reader(*quad.tiles[i].data, quad.tiles[i].id);
+                tl::expected<RegionTile, QString> result = vector_tile_reader(*quad.tiles[i].data, quad.tiles[i].id);
                 if (result.has_value()) {
                     // create qimage with color coded eaws regions for current tile
-                    avalanche::eaws::RegionTile eaws_region_tile = result.value();
-                    QImage eawsImage = avalanche::eaws::draw_regions(eaws_region_tile, m_uint_id_manager, 256, 256, quad.tiles[i].id);
+                    RegionTile eaws_region_tile = result.value();
+                    QImage eawsImage = draw_regions(eaws_region_tile, m_uint_id_manager, 256, 256, quad.tiles[i].id);
 
                     // Convert Qimage to raster with a 16bit uint region id
                     nucleus::Raster<glm::uint16> eaws_raster_16bit(glm::uvec2(256, 256), 0);
@@ -80,7 +84,7 @@ void TextureScheduler::transform_and_emit(const std::vector<nucleus::tile::DataQ
         return gpu_quad;
     });
 
-    emit gpu_quads_updated(new_gpu_quads, deleted_quads);
+    // emit gpu_quads_updated(new_gpu_quads, deleted_quads);
 }
 
-} // namespace avalanche::eaws
+} // namespace nucleus::avalanche

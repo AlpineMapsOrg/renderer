@@ -8,7 +8,8 @@
 #include <QNetworkRequest>
 #include <extern/tl_expected/include/tl/expected.hpp>
 #include <glm/vec4.hpp>
-namespace avalanche::eaws {
+
+namespace nucleus::avalanche {
 
 // Constructor: only creates network manager that lives the whole runtime. Ideally the whole app would only use one Manager !
 ReportLoadService::ReportLoadService()
@@ -113,4 +114,4 @@ void ReportLoadService::load_from_tu_wien(const QDate& date) const
     });
 }
 
-} // namespace avalanche::eaws
+} // namespace nucleus::avalanche

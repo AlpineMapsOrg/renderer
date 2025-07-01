@@ -17,7 +17,7 @@
  *****************************************************************************/
 
 layout (std140) uniform eaws_reports {
-    // length of array must be the same as in avalanche::eaws::uboEawsReports on host side
+    // length of array must be the same as in nucleus::avalanche::uboEawsReports on host side
     ivec4 reports[1000];
 } eaws;
 

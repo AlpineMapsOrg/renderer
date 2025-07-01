@@ -19,6 +19,8 @@
 
 project(alpine-renderer-app LANGUAGES CXX)
 
+option(ALP_ENABLE_QML_HOT_RELOAD "Enables hot-reloading of qml files (which slows down compilation)" OFF)
+
 qt_add_executable(alpineapp
     main.cpp
     RenderThreadNotifier.h RenderThreadNotifier.cpp
@@ -109,10 +111,11 @@ qt_add_qml_module(alpineapp
         picker/Default.qml
         picker/PoiAlpineHut.qml
         picker/PoiSettlement.qml
-        QML_FILES
         eaws/EUREGIO_de_CAAMLv6.json
         eaws/micro-regions.json
         eaws/report_tu_wien.json
+    SOURCES
+        TileStatistics.h TileStatistics.cpp
 )
 
 qt_add_resources(alpineapp "fonts"
@@ -127,23 +130,36 @@ qt_add_translations(alpineapp TS_FILES
     i18n/en.ts
 )
 
+alp_get_version(
+    GIT_DIR             "${CMAKE_CURRENT_SOURCE_DIR}"
+    VERSION_VAR         "ALP_VERSION"
+    VERSION_INT_VAR     "ALP_VERSION_INTEGER"
+)
 
 set_target_properties(alpineapp PROPERTIES
     QT_ANDROID_PACKAGE_SOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/android
+    QT_ANDROID_VERSION_NAME ${ALP_VERSION}
+    QT_ANDROID_VERSION_CODE "${ALP_VERSION_INTEGER}000" # accidentally uploaded a high versino code to google. now there is no way back.
 )
 target_link_libraries(alpineapp PUBLIC gl_engine Qt::Quick Qt::QuickControls2)
-if (ALP_ENABLE_DEV_TOOLS)
-    message(WARNING "building alpine app with dev tools. this will increase the build size")
+
+if (ALP_ENABLE_QML_HOT_RELOAD)
+    message(WARNING "building alpine app with qml-hot-reload. It'll slow incremental building due to a fix for hotreload.")
 
     # change prefer to project dir, as per https://bugreports.qt.io/browse/QTBUG-120435
     # otherwise we can't hotreload files in app when there is "import app" in the qml file.
     # but we need import app, if we want to use the new approach of registering qml types (directly in the class, not in main).
-
     add_custom_command(
         TARGET alpineapp POST_BUILD
-        COMMAND sed -i "s@^prefer .*@prefer ${CMAKE_CURRENT_SOURCE_DIR}/@" ${CMAKE_CURRENT_BINARY_DIR}/app/qmldir
+        COMMAND ${CMAKE_COMMAND}
+          -DBUILD_DIR="${CMAKE_CURRENT_BINARY_DIR}/app"
+          -DSOURCE_DIR="${CMAKE_CURRENT_SOURCE_DIR}"
+          -P "${CMAKE_SOURCE_DIR}/cmake/alp_fix_qmldir_for_hotreload.cmake"
     )
+endif()
 
+if (ALP_ENABLE_DEV_TOOLS)
+    message(WARNING "building alpine app with dev tools. this will increase the build size.")
     qt_target_qml_sources(alpineapp
         QML_FILES
             StatsWindow.qml

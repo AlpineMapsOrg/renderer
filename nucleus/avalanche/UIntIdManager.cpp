@@ -8,7 +8,9 @@
 #include <QNetworkRequest>
 #include <extern/tl_expected/include/tl/expected.hpp>
 
-avalanche::eaws::UIntIdManager::UIntIdManager()
+namespace nucleus::avalanche {
+
+UIntIdManager::UIntIdManager()
     : m_network_manager(new QNetworkAccessManager(this))
 {
     // intern_id = 0 means "no region"
@@ -17,10 +19,10 @@ avalanche::eaws::UIntIdManager::UIntIdManager()
     assert(max_internal_id == 0);
 }
 
-QDate avalanche::eaws::UIntIdManager::get_date() const { return date_of_currently_selected_report; }
-void avalanche::eaws::UIntIdManager::set_date(const QDate& input_date) { date_of_currently_selected_report = input_date; }
+QDate UIntIdManager::get_date() const { return date_of_currently_selected_report; }
+void UIntIdManager::set_date(const QDate& input_date) { date_of_currently_selected_report = input_date; }
 
-void avalanche::eaws::UIntIdManager::load_all_regions_from_server()
+void UIntIdManager::load_all_regions_from_server()
 {
     // Get list of all current eaws regions to complete this conversion service
 
@@ -81,7 +83,7 @@ void avalanche::eaws::UIntIdManager::load_all_regions_from_server()
     });
 }
 
-uint avalanche::eaws::UIntIdManager::convert_region_id_to_internal_id(const QString& region_id)
+uint UIntIdManager::convert_region_id_to_internal_id(const QString& region_id)
 {
     // If Key exists return its values otherwise create it and return created value
     auto entry = region_id_to_internal_id.find(region_id);
@@ -96,7 +98,7 @@ uint avalanche::eaws::UIntIdManager::convert_region_id_to_internal_id(const QStr
         return entry->second;
 }
 
-QString avalanche::eaws::UIntIdManager::convert_internal_id_to_region_id(const uint& internal_id) const
+QString UIntIdManager::convert_internal_id_to_region_id(const uint& internal_id) const
 {
     auto entry = internal_id_to_region_id.find(internal_id);
     if (entry == internal_id_to_region_id.end())
@@ -105,7 +107,7 @@ QString avalanche::eaws::UIntIdManager::convert_internal_id_to_region_id(const u
         return entry->second;
 }
 
-QColor avalanche::eaws::UIntIdManager::convert_region_id_to_color(const QString& region_id, QImage::Format color_format)
+QColor UIntIdManager::convert_region_id_to_color(const QString& region_id, QImage::Format color_format)
 {
     assert(this->checkIfImageFormatSupported(color_format));
     const uint& internal_id = this->convert_region_id_to_internal_id(region_id);
@@ -114,7 +116,7 @@ QColor avalanche::eaws::UIntIdManager::convert_region_id_to_color(const QString&
     return QColor::fromRgb(red, green, 0);
 }
 
-QString avalanche::eaws::UIntIdManager::convert_color_to_region_id(const QColor& color, const QImage::Format& color_format) const
+QString UIntIdManager::convert_color_to_region_id(const QColor& color, const QImage::Format& color_format) const
 {
     assert(QImage::Format_ARGB32 == color_format);
     uint internal_id = color.red() * 256 + color.green();
@@ -124,17 +126,17 @@ QString avalanche::eaws::UIntIdManager::convert_color_to_region_id(const QColor&
     return internal_id_to_region_id.at(internal_id);
 }
 
-uint avalanche::eaws::UIntIdManager::convert_color_to_internal_id(const QColor& color, const QImage::Format& color_format)
+uint UIntIdManager::convert_color_to_internal_id(const QColor& color, const QImage::Format& color_format)
 {
     return this->convert_region_id_to_internal_id(this->convert_color_to_region_id(color, color_format));
 }
 
-QColor avalanche::eaws::UIntIdManager::convert_internal_id_to_color(const uint& internal_id, const QImage::Format& color_format)
+QColor UIntIdManager::convert_internal_id_to_color(const uint& internal_id, const QImage::Format& color_format)
 {
     return this->convert_region_id_to_color(this->convert_internal_id_to_region_id(internal_id), color_format);
 }
 
-bool avalanche::eaws::UIntIdManager::checkIfImageFormatSupported(const QImage::Format& color_format) const
+bool UIntIdManager::checkIfImageFormatSupported(const QImage::Format& color_format) const
 {
     for (const auto& supported_format : supported_image_formats) {
         if (color_format == supported_format)
@@ -143,7 +145,7 @@ bool avalanche::eaws::UIntIdManager::checkIfImageFormatSupported(const QImage::F
     return false;
 }
 
-std::vector<QString> avalanche::eaws::UIntIdManager::get_all_registered_region_ids() const
+std::vector<QString> UIntIdManager::get_all_registered_region_ids() const
 {
     std::vector<QString> region_ids(internal_id_to_region_id.size());
     for (const auto& [internal_id, region_id] : internal_id_to_region_id)
@@ -151,4 +153,6 @@ std::vector<QString> avalanche::eaws::UIntIdManager::get_all_registered_region_i
     return region_ids;
 }
 
-bool avalanche::eaws::UIntIdManager::contains(const QString& region_id) const { return region_id_to_internal_id.contains(region_id); }
+bool UIntIdManager::contains(const QString& region_id) const { return region_id_to_internal_id.contains(region_id); }
+
+} // namespace nucleus::avalanche

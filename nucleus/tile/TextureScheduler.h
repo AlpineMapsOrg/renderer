@@ -19,7 +19,6 @@
 #pragma once
 
 #include "Scheduler.h"
-#include "nucleus/avalanche/ReportLoadService.h"
 #include "types.h"
 
 namespace nucleus::tile {
@@ -27,13 +26,14 @@ namespace nucleus::tile {
 class TextureScheduler : public Scheduler {
     Q_OBJECT
 public:
-    TextureScheduler(std::string name, unsigned texture_resolution, QObject* parent = nullptr);
+    TextureScheduler(const Scheduler::Settings& settings);
     ~TextureScheduler() override;
 
     void set_texture_compression_algorithm(nucleus::utils::ColourTexture::Format compression_algorithm);
+    static Raster<glm::u8vec4> to_raster(const tile::DataQuad& data_quad, const Raster<glm::u8vec4>& default_raster);
 
 signals:
-    void gpu_quads_updated(const std::vector<GpuTextureQuad>& new_quads, const std::vector<tile::Id>& deleted_quads);
+    void gpu_tiles_updated(const std::vector<tile::Id>& deleted_tiles, const std::vector<GpuTextureTile>& new_tiles);
 
 protected:
     void transform_and_emit(const std::vector<tile::DataQuad>& new_quads, const std::vector<tile::Id>& deleted_quads) override;
@@ -41,7 +41,6 @@ protected:
 private:
     nucleus::utils::ColourTexture::Format m_compression_algorithm = nucleus::utils::ColourTexture::Format::Uncompressed_RGBA;
     Raster<glm::u8vec4> m_default_raster;
-    avalanche::eaws::ReportLoadService m_eaws_bulletin_load_service;
 };
 
 } // namespace nucleus::tile

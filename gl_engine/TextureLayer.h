@@ -18,14 +18,14 @@
 
 #pragma once
 
-#include "Texture.h"
+#include "UniformBuffer.h"
 #include <QObject>
 #include <nucleus/Raster.h>
 #include <nucleus/tile/DrawListGenerator.h>
 #include <nucleus/tile/GpuArrayHelper.h>
 #include <nucleus/tile/types.h>
 
-namespace camera {
+namespace nucleus::camera {
 class Definition;
 }
 
@@ -36,42 +36,31 @@ class QOpenGLVertexArrayObject;
 namespace gl_engine {
 class ShaderRegistry;
 class ShaderProgram;
+class Texture;
 class TileGeometry;
 
 class TextureLayer : public QObject {
     Q_OBJECT
 public:
-    explicit TextureLayer(QObject* parent = nullptr);
-    void init(ShaderRegistry* shader_registry,
-        const Texture::Format& ortho_texture_format = Texture::Format::CompressedRGBA8,
-        const QString& vertex_shader = "tile.vert",
-        const QString& fragment_shader = "tile.frag"); // needs OpenGL context
-    void draw(const TileGeometry& tile_geometry,
-        const nucleus::camera::Definition& camera,
-        const nucleus::tile::DrawListGenerator::TileSet& draw_tiles,
-        bool sort_tiles,
-        glm::dvec3 sort_position) const;
+    explicit TextureLayer(unsigned resolution = 256, QObject* parent = nullptr);
+    void init(ShaderRegistry* shader_registry); // needs OpenGL context
+    void draw(const TileGeometry& tile_geometry, const nucleus::camera::Definition& camera, const std::vector<nucleus::tile::TileBounds>& draw_list) const;
 
-private:
-    // wrapper for template since thi is a slot which cannot be a template
-    template <typename T> void update_gpu_quads_template(const std::vector<T>& new_quads, const std::vector<nucleus::tile::Id>& deleted_quads);
+    unsigned int tile_count() const;
 
 public slots:
-    // Template works for nucleus::tile::GpuEawsQuad or nucleus::tile::GpuTextureQuad
-    void update_gpu_quads(const std::vector<nucleus::tile::GpuTextureQuad>& new_quads, const std::vector<nucleus::tile::Id>& deleted_quads);
-    void update_gpu_eaws_quads(const std::vector<nucleus::tile::GpuEawsQuad>& new_quads, const std::vector<nucleus::tile::Id>& deleted_quads);
-    void set_quad_limit(unsigned new_limit);
+    void update_gpu_tiles(const std::vector<nucleus::tile::Id>& deleted_tiles, const std::vector<nucleus::tile::GpuTextureTile>& new_tiles);
+
+    /// must be called before init!
+    void set_tile_limit(unsigned new_limit);
 
 private:
-    void update_gpu_id_map();
-
-    static constexpr auto ORTHO_RESOLUTION = 256;
+    const unsigned m_resolution = 256u;
 
     std::shared_ptr<ShaderProgram> m_shader;
-    std::unique_ptr<Texture> m_ortho_textures;
-    std::unique_ptr<Texture> m_tile_id_texture;
-    std::unique_ptr<Texture> m_array_index_texture;
-
+    std::unique_ptr<Texture> m_texture_array;
+    std::unique_ptr<Texture> m_instanced_zoom;
+    std::unique_ptr<Texture> m_instanced_array_index;
     nucleus::tile::GpuArrayHelper m_gpu_array_helper;
 };
 } // namespace gl_engine

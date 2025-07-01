@@ -22,11 +22,16 @@
 
 #include "TrackManager.h"
 
+namespace nucleus::avalanche {
+class UIntIdManager;
+}
+
 namespace gl_engine {
 class MapLabels;
 class ShaderRegistry;
 class TileGeometry;
 class TextureLayer;
+class AvalancheWarningLayer;
 
 class Context : public nucleus::EngineContext {
 private:
@@ -48,8 +53,11 @@ public:
     [[nodiscard]] TextureLayer* ortho_layer() const;
     void set_ortho_layer(std::shared_ptr<TextureLayer> new_ortho_layer);
 
-    [[nodiscard]] TextureLayer* eaws_layer() const;
-    void set_eaws_layer(std::shared_ptr<TextureLayer> new_ortho_layer);
+    [[nodiscard]] AvalancheWarningLayer* eaws_layer() const;
+    void set_eaws_layer(std::shared_ptr<AvalancheWarningLayer> new_ortho_layer);
+
+    [[nodiscard]] std::shared_ptr<nucleus::avalanche::UIntIdManager> eaws_id_manager() const;
+    void set_eaws_id_manager(const std::shared_ptr<nucleus::avalanche::UIntIdManager>& new_manager);
 
 protected:
     void internal_initialise() override;
@@ -58,7 +66,8 @@ protected:
 private:
     std::shared_ptr<TileGeometry> m_tile_geometry;
     std::shared_ptr<TextureLayer> m_ortho_layer;
-    std::shared_ptr<TextureLayer> m_eaws_layer;
+    std::shared_ptr<AvalancheWarningLayer> m_eaws_layer;
+    std::shared_ptr<nucleus::avalanche::UIntIdManager> m_eaws_id_manager;
     std::shared_ptr<gl_engine::MapLabels> m_map_label_manager;
     std::shared_ptr<gl_engine::TrackManager> m_track_manager;
     std::shared_ptr<gl_engine::ShaderRegistry> m_shader_registry;

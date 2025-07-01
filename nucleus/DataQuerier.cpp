@@ -24,7 +24,7 @@ nucleus::DataQuerier::DataQuerier(tile::MemoryCache* cache)
     : m_memory_cache(cache)
 {}
 
-float nucleus::DataQuerier::get_altitude(const glm::dvec2& lat_long) const
+tl::expected<float, QString> nucleus::DataQuerier::get_altitude(const glm::dvec2& lat_long) const
 {
     return tile::cache_queries::query_altitude(m_memory_cache, lat_long);
 }

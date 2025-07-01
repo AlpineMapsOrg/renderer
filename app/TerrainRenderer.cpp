@@ -30,7 +30,7 @@
 #include <gl_engine/Context.h>
 #include <gl_engine/Window.h>
 #include <nucleus/EngineContext.h>
-#include <nucleus/avalanche/EawsTextureScheduler.h>
+#include <nucleus/avalanche/Scheduler.h>
 #include <nucleus/avalanche/UIntIdManager.h>
 #include <nucleus/avalanche/eaws.h>
 #include <nucleus/camera/Controller.h>
@@ -50,32 +50,30 @@ TerrainRenderer::TerrainRenderer()
 
     auto* ctx = RenderingContext::instance();
     ctx->initialise();
-    m_glWindow = std::make_unique<gl_engine::Window>(ctx->engine_context(), ctx->uint_id_manager());
+    m_glWindow = std::make_unique<gl_engine::Window>(ctx->engine_context());
 
     auto* gl_window_ptr = m_glWindow.get();
 
     m_camera_controller = std::make_unique<CameraController>(nucleus::camera::PositionStorage::instance()->get("grossglockner"), m_glWindow.get(), ctx->data_querier().get());
 
     // clang-format off
-    QObject::connect(gl_window_ptr, &gl_engine::Window::update_camera_requested, m_camera_controller.get(), &CameraController::advance_camera);
-
     // NOTICE ME!!!! READ THIS, IF YOU HAVE TROUBLES WITH SIGNALS NOT REACHING THE QML RENDERING THREAD!!!!111elevenone
     // In Qt/QML the rendering thread goes to sleep (at least until Qt 6.5, See RenderThreadNotifier).
     // At the time of writing, an additional connection from tile_ready and tile_expired to the notifier is made.
     // this only works if ALP_ENABLE_THREADING is on, i.e., the tile scheduler is on an extra thread. -> potential issue on webassembly
-    QObject::connect(m_camera_controller.get(), &CameraController::definition_changed, ctx->geometry_scheduler(),   &Scheduler::update_camera);
-    QObject::connect(m_camera_controller.get(), &CameraController::definition_changed, ctx->map_label_scheduler(),  &Scheduler::update_camera);
-    QObject::connect(m_camera_controller.get(), &CameraController::definition_changed, ctx->ortho_scheduler(),      &Scheduler::update_camera);
-    QObject::connect(m_camera_controller.get(), &CameraController::definition_changed, ctx->eaws_scheduler(),       &Scheduler::update_camera);
-    QObject::connect(m_camera_controller.get(), &CameraController::definition_changed, m_glWindow.get(),            &gl_engine::Window::update_camera);
+    connect(m_camera_controller.get(), &CameraController::definition_changed, ctx->geometry_scheduler(),   &Scheduler::update_camera);
+    connect(m_camera_controller.get(), &CameraController::definition_changed, ctx->map_label_scheduler(),  &Scheduler::update_camera);
+    connect(m_camera_controller.get(), &CameraController::definition_changed, ctx->ortho_scheduler(),      &Scheduler::update_camera);
+    connect(m_camera_controller.get(), &CameraController::definition_changed, ctx->eaws_scheduler(),       &Scheduler::update_camera);
+    connect(m_camera_controller.get(), &CameraController::definition_changed, m_glWindow.get(),            &gl_engine::Window::update_camera);
 
-    QObject::connect(ctx->geometry_scheduler(), &nucleus::tile::GeometryScheduler::gpu_quads_updated, gl_window_ptr, &gl_engine::Window::update_requested);
-    QObject::connect(ctx->ortho_scheduler(),    &nucleus::tile::TextureScheduler::gpu_quads_updated,  gl_window_ptr, &gl_engine::Window::update_requested);
-    QObject::connect(ctx->eaws_scheduler(),    &avalanche::eaws::TextureScheduler::gpu_quads_updated,  gl_window_ptr, &gl_engine::Window::update_requested);
-    QObject::connect(ctx->label_filter().get(), &Filter::filter_finished,                             gl_window_ptr, &gl_engine::Window::update_requested);
+    connect(ctx->geometry_scheduler(), &nucleus::tile::GeometryScheduler::gpu_tiles_updated,  gl_window_ptr, &gl_engine::Window::update_requested);
+    connect(ctx->ortho_scheduler(),    &nucleus::tile::TextureScheduler::gpu_tiles_updated,   gl_window_ptr, &gl_engine::Window::update_requested);
+    connect(ctx->eaws_scheduler(),     &nucleus::avalanche::Scheduler::gpu_quads_updated, gl_window_ptr, &gl_engine::Window::update_requested);
+    connect(ctx->label_filter().get(), &Filter::filter_finished,                              gl_window_ptr, &gl_engine::Window::update_requested);
 
-    QObject::connect(ctx->picker_manager().get(),   &PickerManager::pick_requested,     gl_window_ptr,                  &gl_engine::Window::pick_value);
-    QObject::connect(gl_window_ptr,                 &gl_engine::Window::value_picked,   ctx->picker_manager().get(),    &PickerManager::eval_pick);
+    connect(ctx->picker_manager().get(),   &PickerManager::pick_requested,     gl_window_ptr,                  &gl_engine::Window::pick_value);
+    connect(gl_window_ptr,                 &gl_engine::Window::value_picked,   ctx->picker_manager().get(),    &PickerManager::eval_pick);
     // clang-format on
 
     m_glWindow->initialise_gpu();
@@ -91,8 +89,7 @@ void TerrainRenderer::synchronize(QQuickFramebufferObject *item)
     // the tile scheduler is in an extra thread, there will be races if you write to it.
     m_window = item->window();
     TerrainRendererItem* i = static_cast<TerrainRendererItem*>(item);
-    //        m_controller->camera_controller()->set_virtual_resolution_factor(i->render_quality());
-    m_glWindow->set_permissible_screen_space_error(1.0 / i->settings()->render_quality());
+    m_camera_controller->set_pixel_error_threshold(1.0 / i->settings()->render_quality());
     m_camera_controller->set_viewport({ i->width(), i->height() });
     m_camera_controller->set_field_of_view(i->field_of_view());
 

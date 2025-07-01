@@ -25,6 +25,7 @@ alp_add_unittest(unittests_nucleus
     DrawListGenerator.cpp
     test_helpers.h test_helpers.cpp
     raster.cpp
+    rasterizer.cpp
     terrain_mesh_index_generator.cpp
     srs.cpp
     track.cpp
@@ -40,13 +41,12 @@ alp_add_unittest(unittests_nucleus
     zppbits.cpp
     cache_queries.cpp
     bits_and_pieces.cpp
-    avalanche_warning_layer.cpp
+    tile_drawing.cpp
 )
 
 
 if (ALP_ENABLE_AVLANCHE_WARNING_LAYER)
-    target_sources(unittests_nucleus
-      PRIVATE
+    target_sources(unittests_nucleus PRIVATE
         avalanche_warning_layer.cpp
     )
 endif()
@@ -70,6 +70,13 @@ qt_add_resources(unittests_nucleus "test_data"
     data/eaws_0-0-0.mvt
     data/eaws_2-2-0.mvt
     data/eaws_10-236-299.mvt
+    data/rasterizer_simple_triangle.png
+    data/rasterizer_output_random_triangle.png
+    data/quad/7_68_82.jpg
+    data/quad/7_68_83.jpg
+    data/quad/7_69_82.jpg
+    data/quad/7_69_83.jpg
+    data/quad/merged.jpg
 )
 target_link_libraries(unittests_nucleus PUBLIC nucleus Catch2::Catch2 Qt::Test Qt::Gui)
 target_compile_definitions(unittests_nucleus PUBLIC "ALP_TEST_DATA_DIR=\":/test_data/\"")

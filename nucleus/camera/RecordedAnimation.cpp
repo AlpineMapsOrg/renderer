@@ -46,6 +46,6 @@ std::optional<nucleus::camera::Definition> nucleus::camera::RecordedAnimation::u
     const auto mix = 0.f;
     const auto new_matrix = fl.camera_to_world_matrix * double(1 - mix) + fr.camera_to_world_matrix * double(mix);
 
-    camera.set_camera_space_to_world_matrix(new_matrix);
+    camera.set_model_matrix(new_matrix);
     return camera;
 }

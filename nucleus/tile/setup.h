@@ -24,7 +24,6 @@
 #include "SlotLimiter.h"
 #include "TextureScheduler.h"
 #include "TileLoadService.h"
-#include "nucleus/avalanche/EawsTextureScheduler.h"
 #include "utils.h"
 #include <QCoreApplication>
 #include <QThread>
@@ -36,16 +35,17 @@ namespace nucleus::tile::setup {
 using TileLoadServicePtr = std::unique_ptr<TileLoadService>;
 
 struct GeometrySchedulerHolder {
-    std::unique_ptr<GeometryScheduler> scheduler;
+    std::shared_ptr<GeometryScheduler> scheduler;
     TileLoadServicePtr tile_service;
 };
 
-inline GeometrySchedulerHolder geometry_scheduler(std::string name, TileLoadServicePtr tile_service, const tile::utils::AabbDecoratorPtr& aabb_decorator, QThread* thread = nullptr)
+inline GeometrySchedulerHolder geometry_scheduler(TileLoadServicePtr tile_service, const tile::utils::AabbDecoratorPtr& aabb_decorator, QThread* thread = nullptr)
 {
-    auto scheduler = std::make_unique<GeometryScheduler>(std::move(name));
-    scheduler->read_disk_cache();
-    scheduler->set_gpu_quad_limit(512);
-    scheduler->set_ram_quad_limit(12000);
+    Scheduler::Settings settings;
+    settings.max_zoom_level = 18;
+    settings.tile_resolution = 256;
+    settings.gpu_quad_limit = 512;
+    auto scheduler = std::make_unique<GeometryScheduler>(settings, 65);
     scheduler->set_aabb_decorator(aabb_decorator);
 
     {
@@ -89,73 +89,17 @@ inline GeometrySchedulerHolder geometry_scheduler(std::string name, TileLoadServ
 }
 
 struct TextureSchedulerHolder {
-    std::unique_ptr<TextureScheduler> scheduler;
+    std::shared_ptr<TextureScheduler> scheduler;
     TileLoadServicePtr tile_service;
 };
 
-struct EawsTextureSchedulerHolder {
-    std::unique_ptr<avalanche::eaws::TextureScheduler> scheduler;
-    TileLoadServicePtr tile_service;
-};
-
-inline TextureSchedulerHolder texture_scheduler(std::string name, TileLoadServicePtr tile_service, const tile::utils::AabbDecoratorPtr& aabb_decorator, QThread* thread = nullptr)
+inline TextureSchedulerHolder texture_scheduler(TileLoadServicePtr tile_service, const tile::utils::AabbDecoratorPtr& aabb_decorator, QThread* thread = nullptr)
 {
-    auto scheduler = std::make_unique<TextureScheduler>(std::move(name), 256);
-    scheduler->read_disk_cache();
-    scheduler->set_gpu_quad_limit(512);
-    scheduler->set_ram_quad_limit(12000);
-    scheduler->set_aabb_decorator(aabb_decorator);
-
-    {
-        using nucleus::tile::QuadAssembler;
-        using nucleus::tile::RateLimiter;
-        using nucleus::tile::SlotLimiter;
-        using nucleus::tile::TileLoadService;
-        auto* sch = scheduler.get();
-        auto* sl = new SlotLimiter(sch);
-        auto* rl = new RateLimiter(sch);
-        auto* qa = new QuadAssembler(sch);
-
-        QObject::connect(sch, &Scheduler::quads_requested, sl, &SlotLimiter::request_quads);
-        QObject::connect(sl, &SlotLimiter::quad_requested, rl, &RateLimiter::request_quad);
-        QObject::connect(rl, &RateLimiter::quad_requested, qa, &QuadAssembler::load);
-        QObject::connect(qa, &QuadAssembler::tile_requested, tile_service.get(), &TileLoadService::load);
-        QObject::connect(tile_service.get(), &TileLoadService::load_finished, qa, &QuadAssembler::deliver_tile);
-
-        QObject::connect(qa, &QuadAssembler::quad_loaded, sl, &SlotLimiter::deliver_quad);
-        QObject::connect(sl, &SlotLimiter::quad_delivered, sch, &TextureScheduler::receive_quad);
-    }
-    if (QNetworkInformation::loadDefaultBackend() && QNetworkInformation::instance()) {
-        QNetworkInformation* n = QNetworkInformation::instance();
-        scheduler->set_network_reachability(n->reachability());
-        QObject::connect(n, &QNetworkInformation::reachabilityChanged, scheduler.get(), &Scheduler::set_network_reachability);
-    }
-
-    Q_UNUSED(thread);
-#ifdef ALP_ENABLE_THREADING
-#ifdef __EMSCRIPTEN__ // make request from main thread on webassembly due to QTBUG-109396
-    tile_service->moveToThread(QCoreApplication::instance()->thread());
-#else
-    if (thread)
-        tile_service->moveToThread(thread);
-#endif
-    if (thread)
-        scheduler->moveToThread(thread);
-#endif
-
-    return { std::move(scheduler), std::move(tile_service) };
-}
-
-inline EawsTextureSchedulerHolder eaws_texture_scheduler(std::string name,
-    TileLoadServicePtr tile_service,
-    const tile::utils::AabbDecoratorPtr& aabb_decorator,
-    std::shared_ptr<avalanche::eaws::UIntIdManager> eaws_uint_id_manager,
-    QThread* thread = nullptr)
-{
-    std::unique_ptr<avalanche::eaws::TextureScheduler> scheduler = std::make_unique<avalanche::eaws::TextureScheduler>(std::move(name), 256, eaws_uint_id_manager);
-    scheduler->read_disk_cache();
-    scheduler->set_gpu_quad_limit(512);
-    scheduler->set_ram_quad_limit(12000);
+    Scheduler::Settings settings;
+    settings.max_zoom_level = 20;
+    settings.tile_resolution = 256;
+    settings.gpu_quad_limit = 1024;
+    auto scheduler = std::make_unique<TextureScheduler>(settings);
     scheduler->set_aabb_decorator(aabb_decorator);
 
     {

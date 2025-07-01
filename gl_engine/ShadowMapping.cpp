@@ -23,6 +23,7 @@
 #include "ShaderRegistry.h"
 #include "TileGeometry.h"
 #include "UniformBufferObjects.h"
+#include <nucleus/tile/drawing.h>
 #include <QOpenGLExtraFunctions>
 #include <QOpenGLTexture>
 #include <cmath>
@@ -30,12 +31,11 @@
 
 namespace gl_engine {
 
-ShadowMapping::ShadowMapping(
-    ShaderRegistry* shader_registry, std::shared_ptr<UniformBuffer<uboShadowConfig>> shadow_config, std::shared_ptr<UniformBuffer<uboSharedConfig>> shared_config)
-    : m_shadow_program(std::make_shared<ShaderProgram>("shadowmap.vert", "shadowmap.frag"))
-    , m_shadow_config(shadow_config)
-    , m_shared_config(shared_config)
+ShadowMapping::ShadowMapping(ShaderRegistry* shader_registry, DepthBufferClipType depth_buffer_clip_type)
+    : m_depth_buffer_clip_type(depth_buffer_clip_type)
+    , m_shadow_program(std::make_shared<ShaderProgram>("shadowmap.vert", "shadowmap.frag"))
 {
+
     shader_registry->add_shader(m_shadow_program);
     m_f = QOpenGLContext::currentContext()->extraFunctions();
     for (int i = 0; i < SHADOW_CASCADES; i++) {
@@ -49,40 +49,46 @@ ShadowMapping::~ShadowMapping() {
 
 }
 
-void ShadowMapping::draw(TileGeometry* tile_geometry, const nucleus::tile::IdSet& draw_tileset, const nucleus::camera::Definition& camera)
+// broken since reverse z, projection matrix for shadowmaps probably expect -1 to 1 space, but now we have 0 to 1. otoh, hm, it works without glClipControl(GL_LOWER_LEFT, GL_ZERO_TO_ONE)...
+void ShadowMapping::draw(TileGeometry* tile_geometry,
+    std::vector<nucleus::tile::TileBounds> draw_list,
+    const nucleus::camera::Definition& camera,
+    std::shared_ptr<UniformBuffer<uboShadowConfig>> shadow_config,
+    std::shared_ptr<UniformBuffer<uboSharedConfig>> shared_config)
 {
-
     // NOTE: ReverseZ is not necessary for ShadowMapping since a directional light is using an orthographic projection
     // and therefore the distribution of depth is linear anyway.
 
     float far_plane = 100000; // Similar to camera?
     float near_plane = camera.near_plane(); // Similar to camera?
-    m_shadow_config->data.cascade_planes[0].x = near_plane;
-    m_shadow_config->data.cascade_planes[1].x = far_plane / 50.0f;
-    m_shadow_config->data.cascade_planes[2].x = far_plane / 25.0f;
-    m_shadow_config->data.cascade_planes[3].x = far_plane / 10.0f;
-    m_shadow_config->data.cascade_planes[4].x = far_plane;
-    m_shadow_config->data.shadowmap_size = glm::vec2(SHADOWMAP_WIDTH, SHADOWMAP_HEIGHT);
+    shadow_config->data.cascade_planes[0].x = near_plane;
+    shadow_config->data.cascade_planes[1].x = far_plane / 50.0f;
+    shadow_config->data.cascade_planes[2].x = far_plane / 25.0f;
+    shadow_config->data.cascade_planes[3].x = far_plane / 10.0f;
+    shadow_config->data.cascade_planes[4].x = far_plane;
+    shadow_config->data.shadowmap_size = glm::vec2(SHADOWMAP_WIDTH, SHADOWMAP_HEIGHT);
 
-    auto qlight_dir = m_shared_config->data.m_sun_light_dir;
+    auto qlight_dir = shared_config->data.m_sun_light_dir;
     auto light_dir = -glm::vec3(qlight_dir.x(), qlight_dir.y(), qlight_dir.z());
 
     for (size_t i = 0; i < SHADOW_CASCADES; ++i)
-        m_shadow_config->data.light_space_view_proj_matrix[i] = getLightSpaceMatrix(m_shadow_config->data.cascade_planes[i].x, m_shadow_config->data.cascade_planes[i + 1].x, camera, light_dir);
+        shadow_config->data.light_space_view_proj_matrix[i] = getLightSpaceMatrix(shadow_config->data.cascade_planes[i].x, shadow_config->data.cascade_planes[i + 1].x, camera, light_dir);
 
-    m_shadow_config->update_gpu_data();
+    shadow_config->update_gpu_data();
 
     m_f->glEnable(GL_DEPTH_TEST);
     m_f->glDepthFunc(GL_LESS);
     m_f->glDisable(GL_CULL_FACE);
     m_shadow_program->bind();
+    draw_list = nucleus::tile::drawing::sort(draw_list, camera.position() + glm::dvec3(light_dir) * 1'000'000.0);
     for (int i = 0; i < SHADOW_CASCADES; i++) {
         m_shadowmapbuffer[i]->bind();
         m_f->glClearColor(0, 0, 0, 0);
+        m_f->glClearDepthf(1.0f); // no reverse z
         m_f->glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
         m_shadow_program->set_uniform("current_layer", i);
-        tile_geometry->draw(m_shadow_program.get(), camera, draw_tileset, false, glm::dvec3(0.0));
+        tile_geometry->draw(m_shadow_program.get(), camera, draw_list);
         m_shadowmapbuffer[i]->unbind();
     }
     m_shadow_program->release();
@@ -99,7 +105,7 @@ void ShadowMapping::bind_shadow_maps(ShaderProgram* p, unsigned int start_locati
     }
 }
 
-std::vector<glm::vec4> ShadowMapping::getFrustumCornersWorldSpace(const glm::mat4& projview)
+std::vector<glm::vec4> ShadowMapping::getFrustumCornersWorldSpace(const glm::mat4& projview) const
 {
     const auto inv = glm::inverse(projview);
     std::vector<glm::vec4> frustumCorners;
@@ -112,13 +118,9 @@ std::vector<glm::vec4> ShadowMapping::getFrustumCornersWorldSpace(const glm::mat
     return frustumCorners;
 }
 
+std::vector<glm::vec4> ShadowMapping::getFrustumCornersWorldSpace(const glm::mat4& proj, const glm::mat4& view) const { return getFrustumCornersWorldSpace(proj * view); }
 
-std::vector<glm::vec4> ShadowMapping::getFrustumCornersWorldSpace(const glm::mat4& proj, const glm::mat4& view)
-{
-    return getFrustumCornersWorldSpace(proj * view);
-}
-
-glm::mat4 ShadowMapping::getLightSpaceMatrix(const float nearPlane, const float farPlane, const nucleus::camera::Definition& camera, const glm::vec3& light_dir)
+glm::mat4 ShadowMapping::getLightSpaceMatrix(const float nearPlane, const float farPlane, const nucleus::camera::Definition& camera, const glm::vec3& light_dir) const
 {
     const auto fb_size = camera.viewport_size();
     const auto proj = glm::perspective(glm::radians(camera.field_of_view()), (float)fb_size.x / (float)fb_size.y, nearPlane, farPlane);
@@ -157,7 +159,8 @@ glm::mat4 ShadowMapping::getLightSpaceMatrix(const float nearPlane, const float 
     if (maxZ < 0) maxZ /= zMult;
     else maxZ *= zMult;
 
-    const glm::dmat4 lightProjection = glm::ortho(minX, maxX, minY, maxY, minZ, maxZ);
+    const glm::dmat4 lightProjection
+        = (m_depth_buffer_clip_type == DepthBufferClipType::MinusOneToOne) ? glm::ortho(minX, maxX, minY, maxY, minZ, maxZ) : glm::orthoZO(minX, maxX, minY, maxY, minZ, maxZ);
     return lightProjection * lightView;// * glm::translate(camera.position());
 }
 

@@ -16,9 +16,10 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *****************************************************************************/
 
-const lowp int steepness_bins = 9;
+const lowp int steepness_bins = 10;
 const lowp vec4 steepness_color_map[steepness_bins] = vec4[](
     vec4(254.0/255.0, 249.0/255.0, 249.0/255.0, 1.0),
+    vec4(0.0/255.0, 115.0/255.0, 25.0/255.0, 1.0),
     vec4(51.0/255.0, 249.0/255.0, 49.0/255.0, 1.0),
     vec4(242.0/255.0, 228.0/255.0, 44.0/255.0, 1.0),
     vec4(255.0/255.0, 169.0/255.0, 45.0/255.0, 1.0),
@@ -30,11 +31,31 @@ const lowp vec4 steepness_color_map[steepness_bins] = vec4[](
 );
 
 lowp vec4 overlay_steepness(highp vec3 normal, highp float dist) {
-    highp float steepness = (1.0 - dot(normal, vec3(0.0,0.0,1.0)));
-    highp float alpha = 1.0 - min((dist / 20000.0), 1.0);
-    if (dist < 0.0) alpha = 0.0;
-    lowp int bin_index = int(steepness * float(steepness_bins - 1) + 0.5);
-    lowp vec4 bin_color = steepness_color_map[bin_index];
+    highp float steepness_degrees = degrees(acos(dot(normal, vec3(0.0, 0.0, 1.0))));
+    highp float alpha = clamp(1.0 - dist / 20000.0, 0.0, 1.0);
+    lowp vec4 bin_color;
+    if (steepness_degrees > 60.0){
+        bin_color = steepness_color_map[9];
+    } else if (steepness_degrees > 55.0){
+        bin_color = steepness_color_map[8];
+    } else if (steepness_degrees > 50.0){
+        bin_color = steepness_color_map[7];
+    } else if (steepness_degrees > 45.0){
+        bin_color = steepness_color_map[6];
+    } else if (steepness_degrees > 40.0){
+        bin_color = steepness_color_map[5];
+    } else if (steepness_degrees > 35.0){
+        bin_color = steepness_color_map[4];
+    } else if (steepness_degrees > 30.0){
+        bin_color = steepness_color_map[3];
+    } else if (steepness_degrees > 25.0){
+        bin_color = steepness_color_map[2];
+    } else if (steepness_degrees > 15.0){
+        bin_color = steepness_color_map[1];
+    }else {
+        // less than 15°
+        bin_color = steepness_color_map[0];
+    }
     return vec4(bin_color.rgb, bin_color.a * alpha);
 }
 

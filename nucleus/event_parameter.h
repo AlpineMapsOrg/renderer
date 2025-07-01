@@ -45,6 +45,7 @@ enum TouchPointState {
 // loosely based on QEventPoint
 struct EventPoint {
     TouchPointState state;
+    int id = -1;
     glm::vec2 position = glm::vec2(0);
     glm::vec2 last_position = glm::vec2(0);
     glm::vec2 press_position = glm::vec2(0);
@@ -83,6 +84,7 @@ namespace nucleus::event_parameter {
 inline EventPoint make(const QEventPoint& e)
 {
     EventPoint point;
+    point.id = e.id();
     point.state = static_cast<TouchPointState>(e.state());
     point.position = glm::vec2(e.position().x(), e.position().y());
     point.last_position = glm::vec2(e.lastPosition().x(), e.lastPosition().y());
@@ -99,6 +101,7 @@ inline Touch make(QTouchEvent* e)
     for (const auto& point : e->points()) {
         touch.points.push_back(make(point));
     }
+    std::sort(touch.points.begin(), touch.points.end(), [](const auto& a, const auto& b) { return a.id < b.id; });
     return touch;
 }
 

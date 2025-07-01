@@ -32,7 +32,7 @@ class Controller;
 namespace nucleus::camera {
 class Controller;
 }
-namespace avalanche::eaws {
+namespace nucleus::avalanche {
 class UIntIdManager;
 }
 

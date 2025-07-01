@@ -64,3 +64,12 @@ void decrease_zoom_level_until(inout highp uvec3 id, inout highp vec2 uv, in low
     id.y = id.y >> z_delta;
     uv = uv / float(1u << z_delta) + vec2(x_border, y_border);
 }
+
+void decrease_zoom_level_until(inout highp uvec3 id, in lowp uint zoom_level) {
+    if(id.z <= zoom_level)
+        return;
+    highp uint z_delta = id.z - zoom_level;
+    id.z = id.z - z_delta;
+    id.x = id.x >> z_delta;
+    id.y = id.y >> z_delta;
+}

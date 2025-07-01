@@ -18,10 +18,13 @@
  *****************************************************************************/
 
 #include <QFile>
+#include <QSignalSpy>
 #include <catch2/catch_test_macros.hpp>
 #include <extern/radix/src/radix/tile.h>
+#include <nucleus/avalanche/ReportLoadService.h>
 #include <nucleus/avalanche/UIntIdManager.h>
 #include <nucleus/avalanche/eaws.h>
+
 TEST_CASE("nucleus/EAWS Vector Tiles")
 {
     // Check if test file can be loaded
@@ -58,11 +61,11 @@ TEST_CASE("nucleus/EAWS Vector Tiles")
 
     // Check if reader returns a std::vector with EAWS regions when reading mvt file
     radix::tile::Id tile_id_0_0_0({ 0, glm::uvec2(0, 0), radix::tile::Scheme::SlippyMap });
-    tl::expected<avalanche::eaws::RegionTile, QString> result = avalanche::eaws::vector_tile_reader(test_data, tile_id_0_0_0);
+    tl::expected<nucleus::avalanche::RegionTile, QString> result = nucleus::avalanche::vector_tile_reader(test_data, tile_id_0_0_0);
     CHECK(result.has_value());
 
     // Check if EAWS region struct is initialized with empty attributes
-    const avalanche::eaws::Region empty_eaws_region;
+    const nucleus::avalanche::Region empty_eaws_region;
     CHECK("" == empty_eaws_region.id);
     CHECK(std::nullopt == empty_eaws_region.id_alt);
     CHECK(std::nullopt == empty_eaws_region.start_date);
@@ -70,16 +73,16 @@ TEST_CASE("nucleus/EAWS Vector Tiles")
     CHECK(empty_eaws_region.vertices_in_local_coordinates.empty());
 
     // Check for some samples of the returned regions if they have the correct properties
-    avalanche::eaws::RegionTile region_tile_0_0_0;
-    std::vector<avalanche::eaws::Region> eaws_regions_0_0_0;
+    nucleus::avalanche::RegionTile region_tile_0_0_0;
+    std::vector<nucleus::avalanche::Region> eaws_regions_0_0_0;
     if (result.has_value()) {
         // Retrieve vector of all eaws regions
         region_tile_0_0_0 = result.value();
         eaws_regions_0_0_0 = region_tile_0_0_0.second;
 
         // Retrieve samples that should have certain properties
-        avalanche::eaws::Region region_with_start_date, region_with_end_date, region_with_id_alt;
-        for (const avalanche::eaws::Region& region : eaws_regions_0_0_0) {
+        nucleus::avalanche::Region region_with_start_date, region_with_end_date, region_with_id_alt;
+        for (const nucleus::avalanche::Region& region : eaws_regions_0_0_0) {
             if ("DE-BY-10" == region.id) {
                 region_with_id_alt = region;
                 region_with_end_date = region;
@@ -118,7 +121,7 @@ TEST_CASE("nucleus/EAWS Vector Tiles")
         }
 
         // Create internal id manager that is later needed to write region ids to image pixels
-        std::shared_ptr<avalanche::eaws::UIntIdManager> internal_id_manager = std::make_shared<avalanche::eaws::UIntIdManager>();
+        std::shared_ptr<nucleus::avalanche::UIntIdManager> internal_id_manager = std::make_shared<nucleus::avalanche::UIntIdManager>();
         CHECK(internal_id_manager->convert_internal_id_to_region_id(0) == "");
         CHECK(internal_id_manager->convert_region_id_to_internal_id("") == 0);
         std::vector<QString> all_region_Ids = internal_id_manager->get_all_registered_region_ids();
@@ -147,7 +150,7 @@ TEST_CASE("nucleus/EAWS Vector Tiles")
         radix::tile::Id tile_id_2_2_0 = radix::tile::Id(radix::tile::Id(2, glm::vec2(2, 0), radix::tile::Scheme::SlippyMap));
         radix::tile::Id tile_id_10_236_299 = radix::tile::Id(radix::tile::Id(10, glm::vec2(236, 299), radix::tile::Scheme::SlippyMap));
         std::vector<radix::tile::Id> tile_ids_at_zoom_Level_2({ tile_id_2_2_0, tile_id_10_236_299 });
-        std::vector<avalanche::eaws::RegionTile> region_tiles_at_zoom_level_2;
+        std::vector<nucleus::avalanche::RegionTile> region_tiles_at_zoom_level_2;
         for (uint i = 0; i < file_names.size(); i++) {
             std::string test_file_name2 = file_names[i];
             filepath = QString("%1%2").arg(ALP_TEST_DATA_DIR, test_file_name2.c_str());
@@ -164,21 +167,22 @@ TEST_CASE("nucleus/EAWS Vector Tiles")
             layer = tileBuffer2.getLayer("micro-regions");
             CHECK(layer.featureCount() > 0);
             CHECK(layer.getExtent() > 0);
-            auto result = avalanche::eaws::vector_tile_reader(test_data2, tile_ids_at_zoom_Level_2[i]);
+            auto result = nucleus::avalanche::vector_tile_reader(test_data2, tile_ids_at_zoom_Level_2[i]);
             CHECK(result.has_value());
             if (result.has_value())
                 region_tiles_at_zoom_level_2.push_back(result.value());
         }
         CHECK(region_tiles_at_zoom_level_2.size() == file_names.size());
-        avalanche::eaws::RegionTile region_tile_2_2_0;
-        avalanche::eaws::RegionTile region_tile_10_236_299;
+        nucleus::avalanche::RegionTile region_tile_2_2_0;
+        nucleus::avalanche::RegionTile region_tile_10_236_299;
         if (2 <= region_tiles_at_zoom_level_2.size()) {
             region_tile_2_2_0 = region_tiles_at_zoom_level_2[0];
             region_tile_10_236_299 = region_tiles_at_zoom_level_2[1];
         }
 
         // Rasterize all regions at same raster reslution as input regions
-        const auto raster = avalanche::eaws::rasterize_regions(region_tile_0_0_0, internal_id_manager, region_with_start_date.resolution.x, region_with_start_date.resolution.y, tile_id_0_0_0);
+        const auto raster = nucleus::avalanche::rasterize_regions(
+            region_tile_0_0_0, internal_id_manager, region_with_start_date.resolution.x, region_with_start_date.resolution.y, tile_id_0_0_0);
 
         // Check if raster has correct size
         CHECK((raster.width() == region_with_start_date.resolution.x && raster.height() == region_with_start_date.resolution.y));
@@ -188,8 +192,8 @@ TEST_CASE("nucleus/EAWS Vector Tiles")
         CHECK(internal_id_manager->convert_region_id_to_internal_id(region_with_start_date.id) == raster.pixel(glm::vec2(2128, 1459)));
 
         // Check if raster and image have same values when drawn with same resolution
-        QImage img_small = avalanche::eaws::draw_regions(region_tile_2_2_0, internal_id_manager, 20, 20, tile_id_2_2_0);
-        const auto raster_small = avalanche::eaws::rasterize_regions(region_tile_2_2_0, internal_id_manager, 20, 20, tile_id_2_2_0);
+        QImage img_small = nucleus::avalanche::draw_regions(region_tile_2_2_0, internal_id_manager, 20, 20, tile_id_2_2_0);
+        const auto raster_small = nucleus::avalanche::rasterize_regions(region_tile_2_2_0, internal_id_manager, 20, 20, tile_id_2_2_0);
         for (uint i = 0; i < 10; i++) {
             for (uint j = 0; j < 10; j++) {
                 uint id_from_img = internal_id_manager->convert_color_to_internal_id(img_small.pixel(i, j), QImage::Format_ARGB32);
@@ -199,27 +203,26 @@ TEST_CASE("nucleus/EAWS Vector Tiles")
         }
 
         // Check if tile that has only region NO-3035 in it produces a 1x1 raster with the corresponding internal region id
-        const auto raster_with_one_pixel = avalanche::eaws::rasterize_regions(region_tile_10_236_299, internal_id_manager);
+        const auto raster_with_one_pixel = nucleus::avalanche::rasterize_regions(region_tile_10_236_299, internal_id_manager);
         CHECK((1 == raster_with_one_pixel.width() && 1 == raster_with_one_pixel.width()));
         CHECK((1 == raster_with_one_pixel.width() && 1 == raster_with_one_pixel.height()));
         CHECK(internal_id_manager->convert_region_id_to_internal_id("NO-3035") == raster_with_one_pixel.pixel(glm::uvec2(0, 0)));
     }
 }
 
-#include <QSignalSpy>
-#include <nucleus/avalanche/ReportLoadService.h>
 TEST_CASE("nucleus/EAWS Reports")
 {
-    avalanche::eaws::ReportLoadService reportLoadService;
-    QSignalSpy spy(&reportLoadService, &avalanche::eaws::ReportLoadService::load_from_TU_Wien_finished);
+    nucleus::avalanche::ReportLoadService reportLoadService;
+    QSignalSpy spy(&reportLoadService, &nucleus::avalanche::ReportLoadService::load_from_TU_Wien_finished);
     reportLoadService.load_from_tu_wien(QDate::currentDate());
 
     spy.wait(10000);
     REQUIRE(spy.count() == 1);
     QList<QVariant> arguments = spy.takeFirst();
-    tl::expected<std::vector<avalanche::eaws::ReportTUWien>, QString> result = qvariant_cast<tl::expected<std::vector<avalanche::eaws::ReportTUWien>, QString>>(arguments.at(0));
+    tl::expected<std::vector<nucleus::avalanche::ReportTUWien>, QString> result
+        = qvariant_cast<tl::expected<std::vector<nucleus::avalanche::ReportTUWien>, QString>>(arguments.at(0));
     if (result.has_value()) {
-        std::vector<avalanche::eaws::ReportTUWien> report = arguments.at(0).value<std::vector<avalanche::eaws::ReportTUWien>>();
+        std::vector<nucleus::avalanche::ReportTUWien> report = arguments.at(0).value<std::vector<nucleus::avalanche::ReportTUWien>>();
         CHECK(report.size() > 0);
     } else {
         std::cout << "\n##############\n##############\n##############\n##############" << result.error().toStdString();

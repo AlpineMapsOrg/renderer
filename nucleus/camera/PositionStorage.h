@@ -85,6 +85,12 @@ inline nucleus::camera::Definition wien()
     const auto coords = srs::lat_long_alt_to_world({48.20851144787232, 16.373082444395656, 171.28});
     return {{coords.x + 10'000, coords.y + 2'000, coords.z + 1'000}, coords};
 }
+inline nucleus::camera::Definition nockspitze()
+{
+    const auto coords_lookat = srs::lat_long_alt_to_world({47.19205856323242, 11.32470417022705, 2406});
+    const auto coords_position = srs::lat_long_alt_to_world({47.20421981811, 11.308669, 3500});
+    return {coords_position,coords_lookat};
+}
 
 } // namespace nucleus::camera::stored_positions
 
@@ -94,27 +100,27 @@ class PositionStorage {
 
 private:
     PositionStorage() {
-        _positions.insert({"hochgrubach_spitze", nucleus::camera::stored_positions::oestl_hochgrubach_spitze()});
-        _positions.insert({"stephansdom", nucleus::camera::stored_positions::stephansdom()});
-        _positions.insert({"stephansdom_closeup", nucleus::camera::stored_positions::stephansdom_closeup()});
-        _positions.insert({"grossglockner", nucleus::camera::stored_positions::grossglockner()});
-        _positions.insert({"grossglockner_topdown", nucleus::camera::stored_positions::grossglockner_topdown()});
-        _positions.insert({"schneeberg", nucleus::camera::stored_positions::schneeberg()});
-        _positions.insert({"karwendel", nucleus::camera::stored_positions::karwendel()});
-        _positions.insert({"wien", nucleus::camera::stored_positions::wien()});
-        _positions.insert({"grossglockner_shadow", nucleus::camera::stored_positions::grossglockner_shadow()});
-        _positions.insert({"weichtalhaus", nucleus::camera::stored_positions::weichtalhaus()});
+        m_positions.insert({ "hochgrubach_spitze", nucleus::camera::stored_positions::oestl_hochgrubach_spitze() });
+        m_positions.insert({ "stephansdom", nucleus::camera::stored_positions::stephansdom() });
+        m_positions.insert({ "stephansdom_closeup", nucleus::camera::stored_positions::stephansdom_closeup() });
+        m_positions.insert({ "grossglockner", nucleus::camera::stored_positions::grossglockner() });
+        m_positions.insert({ "grossglockner_topdown", nucleus::camera::stored_positions::grossglockner_topdown() });
+        m_positions.insert({ "schneeberg", nucleus::camera::stored_positions::schneeberg() });
+        m_positions.insert({ "karwendel", nucleus::camera::stored_positions::karwendel() });
+        m_positions.insert({ "wien", nucleus::camera::stored_positions::wien() });
+        m_positions.insert({ "grossglockner_shadow", nucleus::camera::stored_positions::grossglockner_shadow() });
+        m_positions.insert({ "weichtalhaus", nucleus::camera::stored_positions::weichtalhaus() });
     }
-    static PositionStorage* _instance;
-    std::map<std::string, nucleus::camera::Definition> _positions;
+    static PositionStorage* s_instance;
+    std::map<std::string, nucleus::camera::Definition> m_positions;
 
 public:
     PositionStorage(PositionStorage &other) = delete;
     void operator=(const PositionStorage &) = delete;
     static PositionStorage *instance();
     nucleus::camera::Definition get(const std::string& name) {
-        auto it = _positions.find(name);
-        if (it != _positions.end()) {
+        auto it = m_positions.find(name);
+        if (it != m_positions.end()) {
             return it->second;
         } else {
             qWarning() << "Position by name" << name << "not existing.";
@@ -124,7 +130,7 @@ public:
 
     nucleus::camera::Definition get_by_index(unsigned id) {
         unsigned i = 0;
-        for (const auto& kv : _positions) {
+        for (const auto& kv : m_positions) {
             if (i == id) return kv.second;
             i++;
         }
@@ -134,11 +140,11 @@ public:
 
     QList<QString> getPositionList() {
         QList<QString> res;
-        for (const auto& kv : _positions) {
+        for (const auto& kv : m_positions) {
             res.append(kv.first.c_str());
         }
         return res;
     }
+    [[nodiscard]] const std::map<std::string, nucleus::camera::Definition>& positions() const;
 };
-
 }

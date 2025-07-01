@@ -32,7 +32,7 @@ void nucleus::camera::recording::Device::record(const Definition& def)
 {
     if (!m_enabled)
         return;
-    m_frames.push_back({ uint(m_stopwatch.total().count()), def.camera_space_to_world_matrix() });
+    m_frames.push_back({ uint(m_stopwatch.total().count()), def.model_matrix() });
 }
 
 void nucleus::camera::recording::Device::start()

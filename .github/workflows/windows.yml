@@ -7,7 +7,7 @@ on:
     branches: [ "main" ]
 
 concurrency:
-  group: "windows"
+  group: windows-${{ github.event_name }}-${{ github.ref }}
   cancel-in-progress: true
   
 jobs:
@@ -40,20 +40,21 @@ jobs:
           mklink libglapi.dll "x64\libglapi.dll"
     
     - name: Install Qt
-      uses: jurplel/install-qt-action@v3
+      uses: jurplel/install-qt-action@v4
       with:
         aqtversion: '==3.1.*'
-        version: '6.6.1'
+        version: '6.8.1'
         host: windows
         target: 'desktop'
-        arch: 'win64_msvc2019_64'
+        arch: 'win64_msvc2022_64'
         dir: '${{github.workspace}}/qt'
         install-deps: 'true'
         modules: 'qtcharts qtpositioning'
+        cache: true
     
     - name: Configure
       env:
-        CMAKE_PREFIX_PATH: ${{env.Qt6_Dir}}/lib/cmake
+        CMAKE_PREFIX_PATH: ${{env.QT_ROOT_DIR}}/lib/cmake
       run: >
         cmake -G Ninja
         -DCMAKE_BUILD_TYPE=${{env.BUILD_TYPE}}
@@ -64,10 +65,18 @@ jobs:
     - name: Build
       run: cmake --build ./build --config Debug
 
+    - name: List .exe files in ./build
+      shell: pwsh
+      run: |
+        Write-Host "Searching for .exe files in ./build..."
+        Get-ChildItem -Path "./build" -Filter "*.exe" -Recurse | ForEach-Object {
+          Write-Host "Found: $($_.FullName)"
+        }
+
     - name: Unittests on Windows
       env:
         MESA_GL_VERSION_OVERRIDE: 3.3
       run: |
-        ./build/alp_external/radix/unittests/unittests_radix.exe
-        ./build/unittests/unittests_nucleus.exe
+        ./build/unittests_radix.exe
+        ./build/unittests_nucleus.exe
         

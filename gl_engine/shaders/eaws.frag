@@ -24,7 +24,8 @@
 #include "tile_id.glsl"
 #include "eaws.glsl"
 
-uniform highp usampler2DArray ortho_sampler;
+uniform highp usampler2DArray texture_sampler;
+
 uniform mediump usampler2DArray height_tex_sampler;  //uniform mediump usampler2DArray height_tex_sampler;
 uniform highp usampler2D height_tex_index_sampler;
 uniform highp usampler2D height_tex_tile_id_sampler;

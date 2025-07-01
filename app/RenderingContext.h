@@ -40,15 +40,16 @@ class PickerManager;
 namespace nucleus::tile {
 class GeometryScheduler;
 class TextureScheduler;
+class SchedulerDirector;
 }
 namespace nucleus::tile::utils {
 class AabbDecorator;
 }
 
-namespace avalanche::eaws {
+namespace nucleus::avalanche {
 class TextureScheduler;
 class UIntIdManager;
-}
+} // namespace nucleus::avalanche
 
 class RenderingContext : public QObject {
     Q_OBJECT
@@ -75,15 +76,15 @@ public:
     void destroy();
     [[nodiscard]] std::shared_ptr<gl_engine::Context> engine_context() const;
     [[nodiscard]] std::shared_ptr<nucleus::tile::utils::AabbDecorator> aabb_decorator() const;
-    [[nodiscard]] std::shared_ptr<nucleus::tile::utils::AabbDecorator> aabb_decorator_eaws() const;
     [[nodiscard]] std::shared_ptr<nucleus::DataQuerier> data_querier() const;
     [[nodiscard]] nucleus::tile::GeometryScheduler* geometry_scheduler() const;
     [[nodiscard]] std::shared_ptr<nucleus::picker::PickerManager> picker_manager() const;
     [[nodiscard]] std::shared_ptr<nucleus::map_label::Filter> label_filter() const;
     [[nodiscard]] nucleus::map_label::Scheduler* map_label_scheduler() const;
     [[nodiscard]] nucleus::tile::TextureScheduler* ortho_scheduler() const;
-    [[nodiscard]] avalanche::eaws::TextureScheduler* eaws_scheduler() const;
-    [[nodiscard]] std::shared_ptr<avalanche::eaws::UIntIdManager> uint_id_manager() const;
+    [[nodiscard]] nucleus::tile::SchedulerDirector* scheduler_director() const;
+    [[nodiscard]] nucleus::avalanche::TextureScheduler* eaws_scheduler() const;
+    [[nodiscard]] std::shared_ptr<nucleus::avalanche::UIntIdManager> eaws_id_manager() const;
 
 signals:
     void initialised();

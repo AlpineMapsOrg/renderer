@@ -26,8 +26,6 @@
 constexpr auto timing_multiplicator = 10ll;
 #elif defined _MSC_VER
 constexpr auto timing_multiplicator = 10ll;
-#elif defined(__ANDROID__) && (defined(__i386__) || defined(__x86_64__))
-constexpr auto timing_multiplicator = 100ll;
 #else
 constexpr auto timing_multiplicator = 5ll;
 #endif

@@ -211,7 +211,8 @@ TEST_CASE("glsl tile functions")
 
         const auto add_tiles = [&](auto camera) {
             camera.set_viewport_size({ 1920, 1080 });
-            const auto all_leaves = quad_tree::onTheFlyTraverse(Id { 0, { 0, 0 } }, refineFunctor(camera, aabb_decorator, 3, 64), [&ids](const Id& v) {
+            camera.set_pixel_error_threshold(3);
+            const auto all_leaves = quad_tree::onTheFlyTraverse(Id { 0, { 0, 0 } }, refineFunctor(camera, aabb_decorator, 64, 18), [&ids](const Id& v) {
                 ids.insert(v);
                 return v.children();
             });

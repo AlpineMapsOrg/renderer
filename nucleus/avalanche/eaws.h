@@ -16,8 +16,7 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *****************************************************************************/
 #pragma once
-#ifndef EAWS_H
-#define EAWS_H
+
 #include <QDate>
 #include <QPainter>
 #include <extern/tl_expected/include/tl/expected.hpp>
@@ -29,7 +28,7 @@ namespace radix::tile {
 struct Id;
 }
 
-namespace avalanche::eaws {
+namespace nucleus::avalanche {
 class UIntIdManager; // comes from nucleus/avalanche/UIntIdManager.h
 
 struct Region {
@@ -76,10 +75,12 @@ QImage draw_regions(const RegionTile& region_tile,
 
 // Creates a raster from a QImage with regions in it. Throws error when raster_width or raster_height is 0.
 // Note: tile_id_out must have greater or equal zoomlevel than tile_id_in
-nucleus::Raster<uint16_t> rasterize_regions(
-    const RegionTile& region_tile, std::shared_ptr<avalanche::eaws::UIntIdManager> internal_id_manager, const uint raster_width, const uint raster_height, const radix::tile::Id& tile_id_out);
+nucleus::Raster<uint16_t> rasterize_regions(const RegionTile& region_tile,
+    std::shared_ptr<UIntIdManager> internal_id_manager,
+    const uint raster_width,
+    const uint raster_height,
+    const radix::tile::Id& tile_id_out);
 
 // Overload: Output has same resolution as EAWS regions, throws error when regions.size() == 0
-nucleus::Raster<uint16_t> rasterize_regions(const RegionTile& region_tile, std::shared_ptr<avalanche::eaws::UIntIdManager> internal_id_manager);
-} // namespace avalanche::eaws
-#endif // EAWS_H
+nucleus::Raster<uint16_t> rasterize_regions(const RegionTile& region_tile, std::shared_ptr<UIntIdManager> internal_id_manager);
+} // namespace nucleus::avalanche

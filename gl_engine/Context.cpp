@@ -17,9 +17,9 @@
  *****************************************************************************/
 
 #include "Context.h"
+#include "AvalancheWarningLayer.h"
 #include "MapLabels.h"
 #include "ShaderRegistry.h"
-#include "Texture.h"
 #include "TextureLayer.h"
 #include "TileGeometry.h"
 #include "TrackManager.h"
@@ -62,7 +62,7 @@ void Context::internal_initialise()
         m_ortho_layer->init(m_shader_registry.get());
 
     if (m_eaws_layer)
-        m_eaws_layer->init(m_shader_registry.get(), Texture::Format::R16UI, "tile.vert", "eaws.frag");
+        m_eaws_layer->init(m_shader_registry.get());
 }
 
 void Context::internal_destroy()
@@ -76,20 +76,24 @@ void Context::internal_destroy()
     m_map_label_manager.reset();
 }
 
+std::shared_ptr<nucleus::avalanche::UIntIdManager> Context::eaws_id_manager() const { return m_eaws_id_manager; }
+
+void Context::set_eaws_id_manager(const std::shared_ptr<nucleus::avalanche::UIntIdManager>& new_manager) { m_eaws_id_manager = new_manager; }
+
 TextureLayer* Context::ortho_layer() const { return m_ortho_layer.get(); }
 
-TextureLayer* Context::eaws_layer() const { return m_eaws_layer.get(); }
+AvalancheWarningLayer* Context::eaws_layer() const { return m_eaws_layer.get(); }
 
-void Context::set_ortho_layer(std::shared_ptr<TextureLayer> new_ortho_layer)
+void Context::set_ortho_layer(std::shared_ptr<TextureLayer> new_layer)
 {
     assert(!is_alive()); // only set before init is called.
-    m_ortho_layer = std::move(new_ortho_layer);
+    m_ortho_layer = std::move(new_layer);
 }
 
-void Context::set_eaws_layer(std::shared_ptr<TextureLayer> new_ortho_layer)
+void Context::set_eaws_layer(std::shared_ptr<AvalancheWarningLayer> new_layer)
 {
     assert(!is_alive()); // only set before init is called.
-    m_eaws_layer = std::move(new_ortho_layer);
+    m_eaws_layer = std::move(new_layer);
 }
 
 TileGeometry* Context::tile_geometry() const { return m_tile_geometry.get(); }

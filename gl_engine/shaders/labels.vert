@@ -58,7 +58,10 @@ bool label_visible(highp vec3 relative_to_cam, float dist_to_cam) {
        return false;
 
     // check the actual position of the poi with detph filter
-    vec3 peakLookup = ws_to_ndc(relative_to_cam) + vec3(0.0f, 0.0f, 0.0f);
+    bool in_front = false;
+    vec3 peakLookup = ws_to_ndc(relative_to_cam, in_front) + vec3(0.0f, 0.0f, 0.0f);
+    if (!in_front)
+        return false;
     // increase position of poi a bit to prevent minor obstacles obstructing it
     // note we have to test both since when looking at labels from the top straight down it doesnt make sense to test the second one
     // but by only checking the first we would omit some pois due to some small obstructions and cause flickering

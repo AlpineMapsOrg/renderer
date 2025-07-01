@@ -20,52 +20,52 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *****************************************************************************/
-#include "TextureLayer.h"
-#include "TileGeometry.h"
-#include <QCoreApplication>
-
-#include <QDebug>
-#include <QImage>
-#include <QMoveEvent>
-#include <QOpenGLContext>
-#include <QOpenGLDebugLogger>
-#include <QOpenGLExtraFunctions>
-#include <QOpenGLFramebufferObject>
-#include <QOpenGLShaderProgram>
-#include <QOpenGLTexture>
-#include <QOpenGLVersionFunctionsFactory>
-#include <QOpenGLVertexArrayObject>
-#include <QPropertyAnimation>
-#include <QRandomGenerator>
-#include <QSequentialAnimationGroup>
-#include <QTimer>
-#include <glm/glm.hpp>
-#include <glm/gtx/transform.hpp>
-#if (defined(__linux) && !defined(__ANDROID__)) || defined(_WIN32) || defined(_WIN64)
-#include <QOpenGLFunctions_3_3_Core> // for wireframe mode
-#endif
-#if defined(__ANDROID__)
-#include <GLES3/gl3.h> // for GL ENUMS! DONT EXACTLY KNOW WHY I NEED THIS HERE! (on other platforms it works without)
-#endif
-
+#include "Window.h"
+#include "AvalancheReportManager.h"
+#include "AvalancheWarningLayer.h"
 #include "Context.h"
 #include "Framebuffer.h"
 #include "SSAO.h"
 #include "ShaderProgram.h"
 #include "ShaderRegistry.h"
 #include "ShadowMapping.h"
+#include "TextureLayer.h"
+#include "TileGeometry.h"
 #include "TrackManager.h"
 #include "UniformBufferObjects.h"
-#include "Window.h"
 #include "helpers.h"
 #include "nucleus/track/GPX.h"
-#include <AvalancheReportManager.h>
+#include "types.h"
+#include <QCoreApplication>
+#include <QDebug>
+#include <QOpenGLContext>
+#include <QOpenGLDebugLogger>
+#include <QOpenGLExtraFunctions>
+#include <QOpenGLFramebufferObject>
+#include <QOpenGLVersionFunctionsFactory>
+#include <QOpenGLVertexArrayObject>
+#include <QTimer>
+#include <glm/glm.hpp>
+#include <glm/gtx/transform.hpp>
 #include <nucleus/avalanche/eaws.h>
+#include <nucleus/tile/drawing.h>
 #include <nucleus/timing/CpuTimer.h>
 #include <nucleus/timing/TimerManager.h>
 #include <nucleus/utils/bit_coding.h>
+
 #if (defined(__linux) && !defined(__ANDROID__)) || defined(_WIN32) || defined(_WIN64)
 #include "GpuAsyncQueryTimer.h"
+#include <QOpenGLFunctions_4_5_Core>
+#endif
+#ifdef __ANDROID__
+#include "GpuAsyncQueryTimer.h"
+#endif
+#ifdef __EMSCRIPTEN__
+#include <emscripten.h>
+#include <emscripten/val.h>
+#endif
+#if defined(__ANDROID__)
+#include <GLES3/gl3.h> // for GL ENUMS! DONT EXACTLY KNOW WHY I NEED THIS HERE! (on other platforms it works without)
 #endif
 
 #ifdef ALP_ENABLE_LABELS
@@ -75,12 +75,11 @@
 using gl_engine::UniformBuffer;
 using gl_engine::Window;
 using namespace gl_engine;
+using namespace nucleus::tile;
 
-Window::Window(std::shared_ptr<Context> context, std::shared_ptr<avalanche::eaws::UIntIdManager> input_uint_id_manager)
+Window::Window(std::shared_ptr<Context> context)
     : m_context(context)
     , m_camera({ 1822577.0, 6141664.0 - 500, 171.28 + 500 }, { 1822577.0, 6141664.0, 171.28 })
-    , // should point right at the stephansdom
-    m_uint_id_manager(input_uint_id_manager)
 {
     QTimer::singleShot(1, [this]() { emit update_requested(); });
 }
@@ -95,15 +94,10 @@ Window::~Window()
 
 void Window::initialise_gpu()
 {
-    QOpenGLExtraFunctions* f = QOpenGLContext::currentContext()->extraFunctions();
-    assert(f->hasOpenGLFeature(QOpenGLExtraFunctions::OpenGLFeature::MultipleRenderTargets));
-    Q_UNUSED(f);
-
+#if defined(ALP_ENABLE_DEV_TOOLS)
     QOpenGLDebugLogger* logger = new QOpenGLDebugLogger(this);
     logger->initialize();
     connect(logger, &QOpenGLDebugLogger::messageLogged, [](const QOpenGLDebugMessage& message) {
-        if (message.id() == 1281)
-            qDebug() << "duuud " << message;
         if (message.id() == 131218)
             qDebug() << "during QOpenGLFunctions::glReadPixels" << message;
         else
@@ -112,6 +106,61 @@ void Window::initialise_gpu()
     logger->disableMessages(QList<GLuint>({ 131185 }));
     logger->disableMessages(QList<GLuint>({ 131218 }));
     logger->startLogging(QOpenGLDebugLogger::SynchronousLogging);
+#endif
+
+    QOpenGLExtraFunctions* f = QOpenGLContext::currentContext()->extraFunctions();
+    assert(f->hasOpenGLFeature(QOpenGLExtraFunctions::OpenGLFeature::MultipleRenderTargets));
+    Q_UNUSED(f);
+
+    DepthBufferClipType depth_buffer_clip_type = DepthBufferClipType::MinusOneToOne;
+
+#if defined(__EMSCRIPTEN__)
+    {
+        // clang-format off
+        bool success = EM_ASM_INT({
+            var gl = document.querySelector('#qt-shadow-container')?.shadowRoot?.querySelector("canvas")?.getContext("webgl2");
+            if (!gl) {
+                console.warn("Warning: Failed to retrieve WebGL2 context while setting clip control. Clip control will not be set.");
+                return 0;
+            }
+            const ext = gl.getExtension("EXT_clip_control");
+            if (!ext) {
+                console.warn("Warning: EXT_clip_control extension is not supported. As a result you might encounter z-fighting.");
+                return 0;
+            }
+            ext.clipControlEXT(ext.LOWER_LEFT_EXT, ext.ZERO_TO_ONE_EXT);
+            return 1;
+        });
+        // clang-format on
+        if (success) {
+            depth_buffer_clip_type = DepthBufferClipType::ZeroToOne;
+        }
+    }
+
+#elif defined(__ANDROID__)
+    if (QOpenGLContext::currentContext()->hasExtension("GL_EXT_clip_control")) {
+        auto glClipControlEXT = reinterpret_cast<void (*)(GLenum, GLenum)>(QOpenGLContext::currentContext()->getProcAddress("glClipControlEXT"));
+
+        if (glClipControlEXT) {
+            glClipControlEXT(0x8CA1, 0x935F); // LOWER_LEFT_EXT, ZERO_TO_ONE_EXT
+            depth_buffer_clip_type = DepthBufferClipType::ZeroToOne;
+            qDebug("GL_EXT_clip_control applied: LOWER_LEFT_EXT, ZERO_TO_ONE_EXT.");
+        } else {
+            qWarning("glClipControlEXT function pointer could NOT be retrieved.");
+        }
+    } else {
+        qWarning("GL_EXT_clip_control extension is NOT supported.");
+    }
+
+#else
+    {
+        auto f45 = QOpenGLVersionFunctionsFactory::get<QOpenGLFunctions_4_5_Core>(QOpenGLContext::currentContext());
+        if (f45) {
+            f45->glClipControl(GL_LOWER_LEFT, GL_ZERO_TO_ONE); // for reverse z
+            depth_buffer_clip_type = DepthBufferClipType::ZeroToOne;
+        }
+    }
+#endif
 
     auto* shader_registry = m_context->shader_registry();
 
@@ -141,40 +190,45 @@ void Window::initialise_gpu()
     f->glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, m_gbuffer->depth_texture()->textureId(), 0);
 
     m_atmosphere_shader = std::make_shared<ShaderProgram>("screen_pass.vert", "atmosphere_bg.frag");
-    m_compose_shader = std::make_shared<ShaderProgram>("screen_pass.vert", "compose.frag");
+    {
+        std::vector<QString> defines;
+        if (depth_buffer_clip_type == DepthBufferClipType::ZeroToOne)
+            defines.push_back("#define DEPTH_BUFFER_CLIP_TYPE_ZERO_TO_ONE");
+        m_compose_shader = std::make_shared<ShaderProgram>("screen_pass.vert", "compose.frag", ShaderCodeSource::FILE, defines);
+    }
     m_screen_copy_shader = std::make_shared<ShaderProgram>("screen_pass.vert", "screen_copy.frag");
     shader_registry->add_shader(m_atmosphere_shader);
     shader_registry->add_shader(m_compose_shader);
     shader_registry->add_shader(m_screen_copy_shader);
 
-    m_shadowmapping = std::make_unique<gl_engine::ShadowMapping>(shader_registry, m_shadow_config_ubo, m_shared_config_ubo);
+    m_shadowmapping = std::make_unique<gl_engine::ShadowMapping>(shader_registry, depth_buffer_clip_type);
     m_ssao = std::make_unique<gl_engine::SSAO>(shader_registry);
 
-    m_shared_config_ubo = std::make_shared<gl_engine::UniformBuffer<gl_engine::uboSharedConfig>>(0, "shared_config");
+    m_shared_config_ubo = std::make_shared<gl_engine::UniformBuffer<gl_engine::uboSharedConfig>>(2, "shared_config");
     m_shared_config_ubo->init();
     m_shared_config_ubo->bind_to_shader(shader_registry->all());
 
-    m_camera_config_ubo = std::make_shared<gl_engine::UniformBuffer<gl_engine::uboCameraConfig>>(1, "camera_config");
+    m_camera_config_ubo = std::make_shared<gl_engine::UniformBuffer<gl_engine::uboCameraConfig>>(3, "camera_config");
     m_camera_config_ubo->init();
     m_camera_config_ubo->bind_to_shader(shader_registry->all());
 
-    m_shadow_config_ubo = std::make_shared<gl_engine::UniformBuffer<gl_engine::uboShadowConfig>>(2, "shadow_config");
+    m_shadow_config_ubo = std::make_shared<gl_engine::UniformBuffer<gl_engine::uboShadowConfig>>(4, "shadow_config");
     m_shadow_config_ubo->init();
     m_shadow_config_ubo->bind_to_shader(shader_registry->all());
 
-    m_eaws_reports_ubo = std::make_shared<gl_engine::UniformBuffer<avalanche::eaws::uboEawsReports>>(3, "eaws_reports");
+    m_eaws_reports_ubo = std::make_shared<gl_engine::UniformBuffer<nucleus::avalanche::uboEawsReports>>(3, "eaws_reports");
     m_eaws_reports_ubo->init();
     m_eaws_reports_ubo->bind_to_shader(shader_registry->all());
 
-    m_avalanche_report_manager = std::make_unique<gl_engine::AvalancheReportManager>(m_uint_id_manager, m_eaws_reports_ubo);
+    m_avalanche_report_manager = std::make_unique<gl_engine::AvalancheReportManager>(m_context->eaws_id_manager(), m_eaws_reports_ubo);
 
     { // INITIALIZE CPU AND GPU TIMER
         using namespace std;
         using nucleus::timing::CpuTimer;
         m_timer = std::make_unique<nucleus::timing::TimerManager>();
 
-// GPU Timing Queries not supported on OpenGL ES or Web GL
-#if (defined(__linux) && !defined(__ANDROID__)) || defined(_WIN32) || defined(_WIN64)
+// GPU Timing Queries not supported on Web GL
+#if (defined(__linux)) || defined(_WIN32) || defined(_WIN64)
         m_timer->add_timer(make_shared<GpuAsyncQueryTimer>("ssao", "GPU", 240, 1.0f/60.0f));
         m_timer->add_timer(make_shared<GpuAsyncQueryTimer>("atmosphere", "GPU", 240, 1.0f / 60.0f));
         m_timer->add_timer(make_shared<GpuAsyncQueryTimer>("tiles", "GPU", 240, 1.0f/60.0f));
@@ -237,31 +291,41 @@ void Window::paint(QOpenGLFramebufferObject* framebuffer)
     m_camera_config_ubo->update_gpu_data();
 
     // DRAW ATMOSPHERIC BACKGROUND
+    m_timer->start_timer("atmosphere");
     m_atmospherebuffer->bind();
     f->glClearColor(0.0, 0.0, 0.0, 1.0);
     f->glClear(GL_COLOR_BUFFER_BIT);
     f->glDisable(GL_DEPTH_TEST);
     f->glDepthFunc(GL_ALWAYS);
     m_atmosphere_shader->bind();
-    m_timer->start_timer("atmosphere");
     m_screen_quad_geometry.draw();
-    m_timer->stop_timer("atmosphere");
     m_atmosphere_shader->release();
+    m_timer->stop_timer("atmosphere");
 
     // Generate Draw-List
     // Note: Could also just be done on camera change
     m_timer->start_timer("draw_list");
+    QVariantMap tile_stats;
     MapLabels::TileSet label_tile_set;
-    if (m_context->map_label_manager())
+    if (m_context->map_label_manager()) {
         label_tile_set = m_context->map_label_manager()->generate_draw_list(m_camera);
-    const auto tile_set = m_context->tile_geometry()->generate_tilelist(m_camera);
-    const auto culled_tile_set = m_context->tile_geometry()->cull(tile_set, m_camera.frustum());
+        tile_stats["n_label_tiles_gpu"] = m_context->map_label_manager()->tile_count();
+        tile_stats["n_label_tiles_drawn"] = unsigned(label_tile_set.size());
+    }
+
+    const auto draw_list
+        = drawing::compute_bounds(drawing::limit(drawing::generate_list(m_camera, m_context->aabb_decorator(), 19), 1024u), m_context->aabb_decorator());
+    const auto culled_draw_list = drawing::sort(drawing::cull(draw_list, m_camera), m_camera.position());
+
+    tile_stats["n_geometry_tiles_gpu"] = m_context->tile_geometry()->tile_count();
+    tile_stats["n_ortho_tiles_gpu"] = m_context->ortho_layer()->tile_count();
+    tile_stats["n_geometry_tiles_drawn"] = unsigned(culled_draw_list.size());
     m_timer->stop_timer("draw_list");
 
     // DRAW SHADOWMAPS
     if (m_shared_config_ubo->data.m_csm_enabled) {
         m_timer->start_timer("shadowmap");
-        m_shadowmapping->draw(m_context->tile_geometry(), tile_set, m_camera);
+        m_shadowmapping->draw(m_context->tile_geometry(), draw_list, m_camera, m_shadow_config_ubo, m_shared_config_ubo);
         m_timer->stop_timer("shadowmap");
     }
 
@@ -282,7 +346,7 @@ void Window::paint(QOpenGLFramebufferObject* framebuffer)
         const GLfloat clearEncDepthColor[] = { 0.0f, 0.0f, 0.0f, 0.0f };
         f->glClearBufferfv(GL_COLOR, 3, clearEncDepthColor);
         // Clear Depth-Buffer
-        // f->glClearDepthf(0.0f); // for reverse z
+        f->glClearDepthf(0.0f); // reverse z
         f->glClear(GL_DEPTH_BUFFER_BIT);
         // Clear EAWS-Buffer
         const GLfloat clearEawsColor[] = { 0.0f, 0.0f, 0.0f, 1.0f };
@@ -290,15 +354,15 @@ void Window::paint(QOpenGLFramebufferObject* framebuffer)
     }
 
     f->glEnable(GL_DEPTH_TEST);
-    // f->glDepthFunc(GL_GREATER); // for reverse z
-    f->glDepthFunc(GL_LESS);
+    f->glDepthFunc(GL_GREATER); // reverse z
 
     m_timer->start_timer("tiles");
-    m_context->ortho_layer()->draw(*m_context->tile_geometry(), m_camera, culled_tile_set, true, m_camera.position());
+    m_context->ortho_layer()->draw(*m_context->tile_geometry(), m_camera, culled_draw_list);
+
     f->glClear(GL_DEPTH_BUFFER_BIT); // f->glClearDepthf(0.0f); is used to set the celar value of z buffer
     if (m_shared_config_ubo->data.m_eaws_danger_rating_enabled || m_shared_config_ubo->data.m_eaws_risk_level_enabled || m_shared_config_ubo->data.m_eaws_slope_angle_enabled
         || m_shared_config_ubo->data.m_eaws_stop_or_go_enabled) {
-        m_context->eaws_layer()->draw(*m_context->tile_geometry(), m_camera, culled_tile_set, true, m_camera.position());
+        m_context->eaws_layer()->draw(*m_context->tile_geometry(), m_camera, culled_draw_list);
     }
     m_timer->stop_timer("tiles");
 
@@ -359,7 +423,7 @@ void Window::paint(QOpenGLFramebufferObject* framebuffer)
     const GLfloat clearAlbedoColor[] = { 0.0f, 0.0f, 0.0f, 0.0f };
     f->glClearBufferfv(GL_COLOR, 0, clearAlbedoColor);
     f->glEnable(GL_DEPTH_TEST);
-    f->glDepthFunc(GL_LEQUAL);
+    f->glDepthFunc(GL_GEQUAL); // reverse z
 
     // DRAW LABELS
     if (m_context->map_label_manager()) {
@@ -406,15 +470,16 @@ void Window::paint(QOpenGLFramebufferObject* framebuffer)
     m_timer->stop_timer("cpu_total");
     m_timer->stop_timer("gpu_total");
 
-    QList<nucleus::timing::TimerReport> new_values = m_timer->fetch_results();
-    if (new_values.size() > 0) {
-        emit report_measurements(new_values);
-    }
-
 #if defined(ALP_ENABLE_DEV_TOOLS) && defined(__linux__)
     // make time measurment more stable.
     glFinish();
 #endif
+
+    QList<nucleus::timing::TimerReport> new_values = m_timer->fetch_results();
+    if (new_values.size() > 0) {
+        emit timer_measurements_ready(new_values);
+    }
+    emit tile_stats_ready(tile_stats);
 }
 
 void Window::shared_config_changed(gl_engine::uboSharedConfig ubo) {
@@ -444,13 +509,6 @@ void Window::reload_shader() {
     do_reload();
 #endif
 }
-
-void Window::updateCameraEvent()
-{
-    emit update_camera_requested();
-}
-
-void Window::set_permissible_screen_space_error(float new_error) { m_context->tile_geometry()->set_permissible_screen_space_error(new_error); }
 
 void Window::update_camera(const nucleus::camera::Definition& new_definition)
 {

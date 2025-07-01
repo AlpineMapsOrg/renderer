@@ -65,7 +65,7 @@ TEST_CASE("tile/utils/refine_functor")
     const QByteArray data = file.readAll();
     const auto decorator = AabbDecorator::make(radix::TileHeights::deserialise(data));
 
-    const auto refine_functor = utils::refineFunctor(camera, decorator, 1.0);
+    const auto refine_functor = utils::refineFunctor(camera, decorator, 256, 18);
     const auto all_leaves = quad_tree::onTheFlyTraverse(Id { 0, { 0, 0 } }, [](const Id& v) { return v.zoom_level < 6; }, [](const Id& v) { return v.children(); });
 
     BENCHMARK("refine functor double")
@@ -77,7 +77,7 @@ TEST_CASE("tile/utils/refine_functor")
         return retval;
     };
 
-    const auto refine_functor_float = utils::refine_functor_float(camera, decorator, 1.0);
+    const auto refine_functor_float = utils::refine_functor_float(camera, decorator, 256, 18);
     BENCHMARK("refine functor float")
     {
         auto retval = true;
@@ -159,7 +159,7 @@ TEST_CASE("tile/utils/camera_frustum_contains_tile")
             nucleus::camera::stored_positions::stephansdom(),
         };
         for (const auto& camera_position : camera_positions) {
-            quad_tree::onTheFlyTraverse(Id { 0, { 0, 0 } }, nucleus::tile::utils::refineFunctor(camera_position, decorator, 1), [&tile_ids](const Id& v) {
+            quad_tree::onTheFlyTraverse(Id { 0, { 0, 0 } }, nucleus::tile::utils::refineFunctor(camera_position, decorator, 256, 18), [&tile_ids](const Id& v) {
                 tile_ids.push_back(v);
                 return v.children();
             });

@@ -74,7 +74,10 @@ void MapLabels::init(ShaderRegistry* shader_registry)
     m_indices_count = m_mapLabelFactory.m_indices.size();
 }
 
-MapLabels::TileSet MapLabels::generate_draw_list(const nucleus::camera::Definition& camera) const { return m_draw_list_generator.cull(m_draw_list_generator.generate_for(camera), camera.frustum()); }
+MapLabels::TileSet MapLabels::generate_draw_list(const nucleus::camera::Definition& camera) const
+{
+    return m_draw_list_generator.cull(m_draw_list_generator.generate_for(camera, 256, 18), camera.frustum());
+}
 
 void MapLabels::upload_to_gpu(const TileId& id, const PointOfInterestCollection& features)
 {
@@ -193,7 +196,6 @@ void MapLabels::draw(Framebuffer* gbuffer, const nucleus::camera::Definition& ca
         if (!draw_tiles.contains(vectortile.first))
             continue; // tile is not in draw_tiles -> look at next tile
 
-        // only draw if vector tile is fully loaded
         if (vectortile.second->instance_count > 0) {
             vectortile.second->vao->bind();
             m_label_shader->set_uniform("reference_position", glm::vec3(vectortile.second->reference_point - camera.position()));
@@ -234,5 +236,7 @@ void MapLabels::draw_picker(Framebuffer* gbuffer, const nucleus::camera::Definit
         }
     }
 }
+
+unsigned MapLabels::tile_count() const { return unsigned(m_gpu_tiles.size()); }
 
 } // namespace gl_engine

@@ -1,12 +1,12 @@
 #pragma once
-#ifndef UINTIDMANAGER_H
-#define UINTIDMANAGER_H
+
 #include <QDate>
 #include <QImage>
 #include <QObject>
 #include <extern/tl_expected/include/tl/expected.hpp>
+
 class QNetworkAccessManager;
-namespace avalanche::eaws {
+namespace nucleus::avalanche {
 // This class handles conversion from region-id strings to internal ids as uint and as color
 class UIntIdManager : public QObject {
     Q_OBJECT
@@ -26,7 +26,6 @@ public:
     void load_all_regions_from_server();
     QDate get_date() const; // returns date_of_currently_selected_report
     void set_date(const QDate& input_date); // sets date_of_currently_selected_report
-    bool operator==(const avalanche::eaws::UIntIdManager& rhs) { return (get_all_registered_region_ids() == rhs.get_all_registered_region_ids()); }
 
 signals:
     void loaded_all_regions(tl::expected<uint, QString> result) const; // argument:  number of regions or error
@@ -39,5 +38,4 @@ private:
     QDate date_of_currently_selected_report = QDate(2024, 12, 30); // So far we can only load today's report. Later this date should be set by user
     std::shared_ptr<QNetworkAccessManager> m_network_manager;
 };
-} // namespace avalanche::eaws
-#endif // UINTIDMANAGER_H
+} // namespace nucleus::avalanche

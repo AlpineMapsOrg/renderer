@@ -24,12 +24,11 @@
 
 #include "gl_engine/Window.h"
 #include "nucleus/event_parameter.h"
-#include <nucleus/avalanche/eaws.h>
-class Window : public QOpenGLWindow
-{
+
+class Window : public QOpenGLWindow {
     Q_OBJECT
 public:
-    Window(std::shared_ptr<gl_engine::Context> context, std::shared_ptr<avalanche::eaws::UIntIdManager> eaws_uint_id_manager);
+    Window(std::shared_ptr<gl_engine::Context> context);
 
     void initializeGL() override;
     void resizeGL(int w, int h) override;
@@ -65,4 +64,3 @@ private:
     int m_keys_pressed = 0;
     bool m_closing = false;
 };
-

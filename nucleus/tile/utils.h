@@ -204,36 +204,37 @@ namespace utils {
         return true;
     }
 
-    inline auto refine_functor_float(const nucleus::camera::Definition& camera, const AabbDecoratorPtr& aabb_decorator, float error_threshold_px, float tile_size = 256, uint maxZoomLevel = 18)
+    inline auto refine_functor_float(const nucleus::camera::Definition &camera,
+                                     const AabbDecoratorPtr &aabb_decorator,
+                                     float error_threshold_px,
+                                     float tile_size = 256)
     {
         constexpr auto sqrt2 = 1.414213562373095f;
         const auto camera_frustum = camera.frustum();
-        auto refine = [camera_frustum, camera, error_threshold_px, tile_size, aabb_decorator, maxZoomLevel](const tile::Id& tile) {
-            if (tile.zoom_level >= maxZoomLevel)
-                return false;
+        auto refine =
+            [camera_frustum, camera, error_threshold_px, tile_size, aabb_decorator](const tile::Id& tile) {
+                if (tile.zoom_level >= 18)
+                    return false;
 
-            auto aabb = aabb_decorator->aabb(tile);
-            if (!tile::utils::camera_frustum_contains_tile(camera_frustum, aabb))
-                return false;
-            const auto aabb_float = radix::geometry::Aabb<3, float> { aabb.min - camera.position(), aabb.max - camera.position() };
+                auto aabb = aabb_decorator->aabb(tile);
+                if (!tile::utils::camera_frustum_contains_tile(camera_frustum, aabb))
+                    return false;
+                const auto aabb_float = radix::geometry::Aabb<3, float> { aabb.min - camera.position(), aabb.max - camera.position() };
 
-            const auto distance = radix::geometry::distance(aabb_float, glm::vec3 { 0, 0, 0 });
-            const auto pixel_size = sqrt2 * aabb_float.size().x / tile_size;
+                const auto distance = radix::geometry::distance(aabb_float, glm::vec3 { 0, 0, 0 });
+                const auto pixel_size = sqrt2 * aabb_float.size().x / tile_size;
 
-            return camera.to_screen_space(pixel_size, distance) >= error_threshold_px;
-        };
+                return camera.to_screen_space(pixel_size, distance) >= error_threshold_px;
+            };
         return refine;
     }
 
-    inline auto refineFunctor(const nucleus::camera::Definition& camera, const AabbDecoratorPtr& aabb_decorator, float error_threshold_px, double tile_size = 256, uint maxZoomLevel = 18)
+    inline auto refineFunctor(const nucleus::camera::Definition& camera, const AabbDecoratorPtr& aabb_decorator, unsigned tile_size, unsigned max_zoom_level)
     {
-        if (maxZoomLevel == 10) {
-            std::cout << "";
-        }
         constexpr auto sqrt2 = 1.414213562373095;
         const auto camera_frustum = camera.frustum();
-        auto refine = [&camera, camera_frustum, error_threshold_px, tile_size, aabb_decorator, maxZoomLevel](const tile::Id& tile) {
-            if (tile.zoom_level >= maxZoomLevel)
+        auto refine = [&camera, camera_frustum, tile_size, aabb_decorator, max_zoom_level](const tile::Id& tile) {
+            if (tile.zoom_level >= max_zoom_level)
                 return false;
 
             const auto aabb = aabb_decorator->aabb(tile);
@@ -243,7 +244,7 @@ namespace utils {
             const auto distance = float(radix::geometry::distance(aabb, camera.position()));
             const auto pixel_size = float(sqrt2 * aabb.size().x / tile_size);
 
-            return camera.to_screen_space(pixel_size, distance) >= error_threshold_px;
+            return camera.to_screen_space(pixel_size, distance) >= camera.pixel_error_threshold();
         };
         return refine;
     }

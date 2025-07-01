@@ -61,7 +61,7 @@ Rectangle {
 
     Rectangle {
         id: settings_frame
-        color: Qt.alpha(Material.backgroundColor, 0.7)
+        color: Qt.alpha(Material.backgroundColor, 0.9)
         clip: true
         anchors {
             right: settings_root.right

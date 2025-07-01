@@ -20,9 +20,9 @@
 
 #include <QRandomGenerator>
 
-Window::Window(std::shared_ptr<gl_engine::Context> context, std::shared_ptr<avalanche::eaws::UIntIdManager> eaws_uint_id_manager)
+Window::Window(std::shared_ptr<gl_engine::Context> context)
 {
-    m_gl_window = new gl_engine::Window(context, eaws_uint_id_manager);
+    m_gl_window = new gl_engine::Window(context);
     connect(m_gl_window, &gl_engine::Window::update_requested, this, qOverload<>(&QOpenGLWindow::update));
 }
 
@@ -50,10 +50,7 @@ void Window::paintGL()
     p.drawRect(8, 8, 16, 16);
 }
 
-gl_engine::Window* Window::render_window()
-{
-    return m_gl_window;
-}
+gl_engine::Window* Window::render_window() { return m_gl_window; }
 
 void Window::closeEvent(QCloseEvent*)
 {
@@ -65,20 +62,11 @@ void Window::closeEvent(QCloseEvent*)
     m_gl_window = nullptr;
 }
 
-void Window::mousePressEvent(QMouseEvent* e)
-{
-    emit mouse_pressed(nucleus::event_parameter::make(e));
-}
+void Window::mousePressEvent(QMouseEvent* e) { emit mouse_pressed(nucleus::event_parameter::make(e)); }
 
-void Window::mouseMoveEvent(QMouseEvent* e)
-{
-    emit mouse_moved(nucleus::event_parameter::make(e));
-}
+void Window::mouseMoveEvent(QMouseEvent* e) { emit mouse_moved(nucleus::event_parameter::make(e)); }
 
-void Window::wheelEvent(QWheelEvent* e)
-{
-    emit wheel_turned(nucleus::event_parameter::make(e));
-}
+void Window::wheelEvent(QWheelEvent* e) { emit wheel_turned(nucleus::event_parameter::make(e)); }
 
 void Window::keyPressEvent(QKeyEvent* e)
 {
@@ -96,12 +84,10 @@ void Window::keyReleaseEvent(QKeyEvent* e)
     emit key_released(e->keyCombination());
 }
 
-void Window::touchEvent(QTouchEvent* e)
-{
-    emit touch_made(nucleus::event_parameter::make(e));
-}
+void Window::touchEvent(QTouchEvent* e) { emit touch_made(nucleus::event_parameter::make(e)); }
 
 void Window::key_timer()
 {
-    if (m_gl_window) m_gl_window->updateCameraEvent();
+    if (m_gl_window)
+        m_gl_window->update_requested();
 }

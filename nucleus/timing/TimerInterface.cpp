@@ -20,8 +20,11 @@
 
 namespace nucleus::timing {
 
-TimerInterface::TimerInterface(const std::string& name, const std::string& group, int queue_size, float average_weight)
-    :m_name(name), m_group(group), m_queue_size(queue_size), m_average_weight(average_weight)
+TimerInterface::TimerInterface(const QString& name, const QString& group, int queue_size, float average_weight)
+    : m_name(name)
+    , m_group(group)
+    , m_queue_size(queue_size)
+    , m_average_weight(average_weight)
 {
 }
 

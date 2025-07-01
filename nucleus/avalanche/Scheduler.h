@@ -18,27 +18,27 @@
 
 #pragma once
 
-#include "nucleus/avalanche/eaws.h"
-#include "nucleus/tile/Scheduler.h"
-#include "nucleus/tile/types.h"
-namespace avalanche::eaws {
+#include "eaws.h"
+#include <nucleus/tile/Scheduler.h>
+#include <nucleus/tile/types.h>
 
-class TextureScheduler : public nucleus::tile::Scheduler {
+namespace nucleus::avalanche {
+
+class Scheduler : public nucleus::tile::Scheduler {
     Q_OBJECT
 public:
-    TextureScheduler(std::string name, unsigned texture_resolution, std::shared_ptr<avalanche::eaws::UIntIdManager> m_internal_id_manager, QObject* parent = nullptr);
-    ~TextureScheduler();
+    Scheduler(const Scheduler::Settings& settings, std::shared_ptr<UIntIdManager> m_internal_id_manager);
+    ~Scheduler();
 
 signals:
-    void gpu_quads_updated(const std::vector<nucleus::tile::GpuEawsQuad>& new_quads, const std::vector<nucleus::tile::Id>& deleted_quads);
+    void gpu_tiles_updated(const std::vector<nucleus::tile::GpuEawsTile>& new_tiles, const std::vector<nucleus::tile::Id>& deleted_quads);
 
 protected:
     void transform_and_emit(const std::vector<nucleus::tile::DataQuad>& new_quads, const std::vector<nucleus::tile::Id>& deleted_quads);
 
 private:
-    nucleus::utils::ColourTexture::Format m_compression_algorithm = nucleus::utils::ColourTexture::Format::DXT1;
     nucleus::Raster<glm::uint16> m_default_raster;
-    std::shared_ptr<avalanche::eaws::UIntIdManager> m_uint_id_manager;
+    std::shared_ptr<UIntIdManager> m_uint_id_manager;
 };
 
-} // namespace avalanche::eaws
+} // namespace nucleus::avalanche

@@ -29,7 +29,10 @@
 #include <extern/radix/src/radix/tile.h>
 #include <nucleus/tile/conversion.h>
 #include <nucleus/vector_tile/util.h>
-tl::expected<avalanche::eaws::RegionTile, QString> avalanche::eaws::vector_tile_reader(const QByteArray& input_data, const radix::tile::Id& tile_id)
+
+namespace nucleus::avalanche {
+
+tl::expected<RegionTile, QString> vector_tile_reader(const QByteArray& input_data, const radix::tile::Id& tile_id)
 {
     // This name could theoretically be changed by the EAWS (very unlikely though)
     const QString& name_of_layer_with_eaws_regions = "micro-regions";
@@ -60,9 +63,9 @@ tl::expected<avalanche::eaws::RegionTile, QString> avalanche::eaws::vector_tile_
     uint extent = layer.getExtent();
 
     // Loop through features = micro-regions of the layer
-    std::vector<avalanche::eaws::Region> regions_to_be_returned;
+    std::vector<Region> regions_to_be_returned;
     for (std::size_t feature_index = 0; feature_index < layer.featureCount(); feature_index++) {
-        avalanche::eaws::Region region;
+        Region region;
         region.resolution = glm::ivec2(extent, extent); // Parse properties of the region (name, start date, end date)
         const protozero::data_view& feature_data_view = layer.getFeature(feature_index);
         mapbox::vector_tile::feature current_feature(feature_data_view, layer);
@@ -92,11 +95,11 @@ tl::expected<avalanche::eaws::RegionTile, QString> avalanche::eaws::vector_tile_
     }
 
     // Combine all regions with their tile id and return this pair
-    return tl::expected<avalanche::eaws::RegionTile, QString>(RegionTile(tile_id, regions_to_be_returned));
+    return tl::expected<RegionTile, QString>(RegionTile(tile_id, regions_to_be_returned));
 }
 
 // Auxillary function: Calculates new coordinates of a region boundary after zoom in / out
-std::vector<QPointF> transform_vertices(const avalanche::eaws::Region& region, const radix::tile::Id& tile_id_in, const radix::tile::Id& tile_id_out, QImage* img)
+std::vector<QPointF> transform_vertices(const Region& region, const radix::tile::Id& tile_id_in, const radix::tile::Id& tile_id_out, QImage* img)
 {
     // Check if input is consistent
     assert(img->devicePixelRatio() == 1.0);
@@ -160,7 +163,7 @@ std::vector<QPointF> transform_vertices(const avalanche::eaws::Region& region, c
 }
 
 // Auxillaryfunctions: Checks if a region is valid for the currently selected eaws report
-bool region_matches_report_date(const avalanche::eaws::Region& region, const QDate& report_date)
+bool region_matches_report_date(const Region& region, const QDate& report_date)
 {
     // report dates lies before validity range of region >> return false
     if (region.start_date != std::nullopt) {
@@ -178,8 +181,8 @@ bool region_matches_report_date(const avalanche::eaws::Region& region, const QDa
     return true;
 }
 
-QImage avalanche::eaws::draw_regions(const RegionTile& region_tile,
-    std::shared_ptr<avalanche::eaws::UIntIdManager> internal_id_manager,
+QImage draw_regions(const RegionTile& region_tile,
+    std::shared_ptr<UIntIdManager> internal_id_manager,
     const uint& image_width,
     const uint& image_height,
     const radix::tile::Id& tile_id_out,
@@ -218,8 +221,11 @@ QImage avalanche::eaws::draw_regions(const RegionTile& region_tile,
     return img;
 }
 
-nucleus::Raster<uint16_t> avalanche::eaws::rasterize_regions(
-    const RegionTile& region_tile, std::shared_ptr<avalanche::eaws::UIntIdManager> internal_id_manager, const uint raster_width, const uint raster_height, const radix::tile::Id& tile_id_out)
+nucleus::Raster<uint16_t> rasterize_regions(const RegionTile& region_tile,
+    std::shared_ptr<UIntIdManager> internal_id_manager,
+    const uint raster_width,
+    const uint raster_height,
+    const radix::tile::Id& tile_id_out)
 {
     // Draw region ids to image, if all pixel have same value return one pixel with this value
     const QImage img = draw_regions(region_tile, internal_id_manager, raster_width, raster_height, tile_id_out);
@@ -232,7 +238,9 @@ nucleus::Raster<uint16_t> avalanche::eaws::rasterize_regions(
     return nucleus::Raster<uint16_t>({ 1, 1 }, first_pixel);
 }
 
-nucleus::Raster<uint16_t> avalanche::eaws::rasterize_regions(const RegionTile& region_tile, std::shared_ptr<avalanche::eaws::UIntIdManager> internal_id_manager)
+nucleus::Raster<uint16_t> rasterize_regions(const RegionTile& region_tile, std::shared_ptr<UIntIdManager> internal_id_manager)
 {
     return rasterize_regions(region_tile, internal_id_manager, region_tile.second[0].resolution.x, region_tile.second[0].resolution.y, region_tile.first);
 }
+
+} // namespace nucleus::avalanche

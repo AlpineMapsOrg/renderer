@@ -472,29 +472,177 @@ Rectangle {
             Label { text: "Altitude:" }
             Label { text: map.world_space_cursor_position.z + "m"; id: cursor_alt; font.bold: true; }
         }
+
         CheckGroup {
-            name: "Cache & Network"
+            name: "Tile Scheduler"
+            nGridColumns: 3
+
+            //--------------------------
+            //  GEOMETRY
+            //--------------------------
+            Label {
+                text: qsTr("Geometry requested: ")
+            }
+            ProgressBar {
+                id: geometry_n_quads_requested
+                Layout.fillWidth: true
+                from: 0
+                to: 500
+                value: map.tile_statistics.scheduler.geometry_n_quads_requested * 4
+            }
+            Label {
+                text: "(" + geometry_n_quads_requested.value + ")"
+            }
 
             Label {
-                text: qsTr("Cached:")
+                text: qsTr("Geometry ram: ")
+            }
+            ProgressBar {
+                id: geometry_n_quads_ram
+                Layout.fillWidth: true
+                from: 0
+                to: map.tile_statistics.scheduler.geometry_n_quads_ram_max * 4
+                value: map.tile_statistics.scheduler.geometry_n_quads_ram * 4
+            }
+            Label {
+                text: "(" + geometry_n_quads_ram.value + ")"
+            }
+
+            //--------------------------
+            //  ORTHO
+            //--------------------------
+            Label {
+                text: qsTr("Ortho requested: ")
+            }
+            ProgressBar {
+                id: ortho_n_quads_requested
+                Layout.fillWidth: true
+                from: 0
+                to: 500
+                value: map.tile_statistics.scheduler.ortho_n_quads_requested * 4
+            }
+            Label {
+                text: "(" + ortho_n_quads_requested.value + ")"
+            }
+
+            Label {
+                text: qsTr("Ortho ram: ")
+            }
+            ProgressBar {
+                id: ortho_n_quads_ram
+                Layout.fillWidth: true
+                // Replace with a max bound for ortho RAM usage
+                from: 0
+                to: map.tile_statistics.scheduler.ortho_n_quads_ram_max * 4
+                value: map.tile_statistics.scheduler.ortho_n_quads_ram * 4
+            }
+            Label {
+                text: "(" + ortho_n_quads_ram.value + ")"
+            }
+
+            //--------------------------
+            //  LABEL
+            //--------------------------
+            Label {
+                text: qsTr("Map Label requested: ")
+            }
+            ProgressBar {
+                id: map_label_n_quads_requested
+                Layout.fillWidth: true
+                from: 0
+                to: 500
+                value: map.tile_statistics.scheduler.map_label_n_quads_requested * 4
+            }
+            Label {
+                text: "(" + map_label_n_quads_requested.value + ")"
+            }
+
+            Label {
+                text: qsTr("Label ram: ")
+            }
+            ProgressBar {
+                id: map_label_n_quads_ram
+                Layout.fillWidth: true
+                from: 0
+                to: map.tile_statistics.scheduler.map_label_n_quads_ram_max * 4
+                value: map.tile_statistics.scheduler.map_label_n_quads_ram * 4
+            }
+            Label {
+                text: "(" + map_label_n_quads_ram.value + ")"
+            }
+        }
+
+        CheckGroup {
+            name: "Tiles on GPU"
+            nGridColumns: 3
+            Label {
+                text: qsTr("Geometry: ")
             }
             ProgressBar {
                 Layout.fillWidth: true
-                id: cache_fill_slider
                 from: 0
-                to: map.tile_cache_size
-                value: map.cached_tiles
+                to: 2048
+                value: map.tile_statistics.gpu.n_geometry_tiles_gpu
+            }
+            Label {
+                text: "(" + map.tile_statistics.gpu.n_geometry_tiles_gpu + ")"
             }
 
             Label {
-                text: qsTr("Queued:")
+                text: qsTr("Ortho: ")
             }
             ProgressBar {
                 Layout.fillWidth: true
-                id: queued_slider
                 from: 0
-                to: 200
-                value: map.queued_tiles
+                to: 1024
+                value: map.tile_statistics.gpu.n_ortho_tiles_gpu
+            }
+            Label {
+                text: "(" + map.tile_statistics.gpu.n_ortho_tiles_gpu + ")"
+            }
+
+
+            Label {
+                text: qsTr("Label: ")
+            }
+            ProgressBar {
+                Layout.fillWidth: true
+                from: 0
+                to: 2048
+                value: map.tile_statistics.gpu.n_label_tiles_gpu
+            }
+            Label {
+                text: "(" + map.tile_statistics.gpu.n_label_tiles_gpu + ")"
+            }
+        }
+        CheckGroup {
+            name: "Tiles Drawn"
+            nGridColumns: 3
+
+            Label {
+                text: qsTr("Geometry: ")
+            }
+            ProgressBar {
+                Layout.fillWidth: true
+                from: 0
+                to: 1024
+                value: map.tile_statistics.gpu.n_geometry_tiles_drawn
+            }
+            Label {
+                text: "(" + map.tile_statistics.gpu.n_geometry_tiles_drawn + ")"
+            }
+
+            Label {
+                text: qsTr("Label: ")
+            }
+            ProgressBar {
+                Layout.fillWidth: true
+                from: 0
+                to: 1024
+                value: map.tile_statistics.gpu.n_label_tiles_drawn
+            }
+            Label {
+                text: "(" + map.tile_statistics.gpu.n_label_tiles_drawn + ")"
             }
         }
     }

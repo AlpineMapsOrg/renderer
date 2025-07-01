@@ -61,6 +61,8 @@ public:
 
     void update_labels(const std::vector<nucleus::vector_tile::PoiTile>& updated_tiles, const std::vector<TileId>& removed_tiles);
 
+    unsigned int tile_count() const;
+
 private:
     void upload_to_gpu(const TileId& id, const PointOfInterestCollection& features);
     void remove_tile(const TileId& tile_id);

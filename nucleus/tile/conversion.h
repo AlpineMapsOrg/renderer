@@ -78,6 +78,14 @@ inline nucleus::Raster<glm::u8vec4> to_rgba8raster(const QImage& image)
     std::memcpy(raster.data(), image.bits(), image.sizeInBytes());
     return raster;
 }
+
+[[nodiscard]] inline QImage to_QImage(const nucleus::Raster<glm::u8vec4>& raster)
+{
+    // assert(m_data.size() == m_width * m_height * 4); // Ensure the data is RGBA8
+    QImage image(raster.width(), raster.height(), QImage::Format_RGBA8888);
+    memcpy(image.bits(), raster.data(), raster.size_in_bytes());
+    return image;
+}
 #endif
 
 inline glm::u8vec4 float2alpineRGBA(float height)
@@ -107,4 +115,38 @@ inline glm::u8vec4 uint162alpineRGBA(uint16_t v)
 {
     return { v >> 8, v & 255, 0, 255 };
 }
+
+inline QImage u8raster_to_qimage(const nucleus::Raster<uint8_t>& raster)
+{
+    size_t width = raster.width();
+    size_t height = raster.height();
+
+    QImage image(width, height, QImage::Format_Grayscale8);
+
+    for (size_t y = 0; y < height; ++y) {
+        uchar* line = image.scanLine(y);
+        for (size_t x = 0; x < width; ++x) {
+            line[x] = raster.pixel({ x, y });
+        }
+    }
+
+    return image;
+}
+
+inline QImage u8raster_2_to_qimage(const nucleus::Raster<uint8_t>& raster1, const nucleus::Raster<uint8_t>& raster2)
+{
+    size_t width = raster1.width();
+    size_t height = raster1.height();
+
+    QImage image(width, height, QImage::Format_RGB888);
+
+    for (size_t y = 0; y < height; ++y) {
+        for (size_t x = 0; x < width; ++x) {
+            image.setPixel(QPoint(x, y), (raster1.pixel({ x, y }) << 16) + (raster2.pixel({ x, y }) << 8));
+        }
+    }
+
+    return image;
+}
+
 } // namespace nucleus::tile::conversion
