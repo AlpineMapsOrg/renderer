@@ -18,9 +18,9 @@
 
 #pragma once
 
-#include <nucleus/EngineContext.h>
-
 #include "TrackManager.h"
+#include <gl_engine/AvalancheReportManager.h>
+#include <nucleus/EngineContext.h>
 
 namespace nucleus::avalanche {
 class UIntIdManager;
@@ -59,6 +59,9 @@ public:
     [[nodiscard]] std::shared_ptr<nucleus::avalanche::UIntIdManager> eaws_id_manager() const;
     void set_eaws_id_manager(const std::shared_ptr<nucleus::avalanche::UIntIdManager>& new_manager);
 
+    [[nodiscard]] std::shared_ptr<gl_engine::AvalancheReportManager> avalanche_report_manager();
+    void set_avalanche_report_manager(std::shared_ptr<gl_engine::AvalancheReportManager> avalanche_report_manager);
+
 protected:
     void internal_initialise() override;
     void internal_destroy() override;
@@ -68,6 +71,7 @@ private:
     std::shared_ptr<TextureLayer> m_ortho_layer;
     std::shared_ptr<AvalancheWarningLayer> m_eaws_layer;
     std::shared_ptr<nucleus::avalanche::UIntIdManager> m_eaws_id_manager;
+    std::shared_ptr<gl_engine::AvalancheReportManager> m_avalanche_report_manager;
     std::shared_ptr<gl_engine::MapLabels> m_map_label_manager;
     std::shared_ptr<gl_engine::TrackManager> m_track_manager;
     std::shared_ptr<gl_engine::ShaderRegistry> m_shader_registry;

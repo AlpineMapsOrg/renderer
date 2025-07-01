@@ -23,6 +23,7 @@
 #include <QMutex>
 #include <QOpenGLContext>
 #include <QThread>
+#include <gl_engine/AvalancheReportManager.h>
 #include <gl_engine/AvalancheWarningLayer.h>
 #include <gl_engine/Context.h>
 #include <gl_engine/MapLabels.h>
@@ -44,6 +45,7 @@
 #include <nucleus/tile/TileLoadService.h>
 #include <nucleus/tile/setup.h>
 #include <nucleus/utils/thread.h>
+
 using namespace nucleus::tile;
 using namespace nucleus::map_label;
 using namespace nucleus::picker;
@@ -67,6 +69,7 @@ struct RenderingContext::Data {
     std::shared_ptr<nucleus::tile::utils::AabbDecorator> aabb_decorator;
     std::unique_ptr<nucleus::tile::SchedulerDirector> scheduler_director;
     std::shared_ptr<nucleus::avalanche::UIntIdManager> uint_id_manager;
+    std::shared_ptr<gl_engine::AvalancheReportManager> avalanche_report_manager;
 };
 
 RenderingContext::RenderingContext(QObject* parent)
@@ -106,6 +109,7 @@ RenderingContext::RenderingContext(QObject* parent)
         m->scheduler_director->check_in("map_label", m->map_label.scheduler);
         
         m->uint_id_manager = std::make_shared<nucleus::avalanche::UIntIdManager>();
+        m->avalanche_report_manager = std::make_shared<gl_engine::AvalancheReportManager>(m->uint_id_manager); // At this point AvalancheReportManager::m_ubo_eaws_reports is null. Will be set later by Window.cpp
         m->eaws_texture = nucleus::avalanche::setup::eaws_texture_scheduler(
             "eaws", std::make_unique<TileLoadService>("http://localhost:3000/eaws-regions/", TilePattern::ZXY_yPointingSouth, ""), m->aabb_decorator, m->uint_id_manager, m->scheduler_thread.get());
         m->scheduler_director->check_in("eaws_regions", m->eaws_texture.scheduler);
@@ -176,6 +180,7 @@ void RenderingContext::initialise()
     m->engine_context->tile_geometry()->set_tile_limit(2048);
     m->engine_context->set_eaws_layer(std::make_shared<gl_engine::AvalancheWarningLayer>());
     m->engine_context->set_eaws_id_manager(m->uint_id_manager);
+    m->engine_context->set_avalanche_report_manager(m->avalanche_report_manager);
     m->engine_context->tile_geometry()->set_aabb_decorator(m->aabb_decorator);
     m->engine_context->set_aabb_decorator(m->aabb_decorator);
     m->engine_context->ortho_layer()->set_tile_limit(1024);
@@ -300,4 +305,10 @@ std::shared_ptr<nucleus::avalanche::UIntIdManager> RenderingContext::eaws_id_man
 {
     QMutexLocker locker(&m->shared_ptr_mutex);
     return m->uint_id_manager;
+}
+
+std::shared_ptr<gl_engine::AvalancheReportManager> RenderingContext::avalanche_report_manager()
+{
+    QMutexLocker locker(&m->shared_ptr_mutex);
+    return m->avalanche_report_manager;
 }

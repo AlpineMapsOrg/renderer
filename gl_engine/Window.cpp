@@ -21,7 +21,6 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *****************************************************************************/
 #include "Window.h"
-#include "AvalancheReportManager.h"
 #include "AvalancheWarningLayer.h"
 #include "Context.h"
 #include "Framebuffer.h"
@@ -219,8 +218,7 @@ void Window::initialise_gpu()
     m_eaws_reports_ubo = std::make_shared<gl_engine::UniformBuffer<nucleus::avalanche::uboEawsReports>>(3, "eaws_reports");
     m_eaws_reports_ubo->init();
     m_eaws_reports_ubo->bind_to_shader(shader_registry->all());
-
-    m_avalanche_report_manager = std::make_unique<gl_engine::AvalancheReportManager>(m_context->eaws_id_manager(), m_eaws_reports_ubo);
+    m_context->avalanche_report_manager()->set_ubo_eaws_reports(m_eaws_reports_ubo);
 
     { // INITIALIZE CPU AND GPU TIMER
         using namespace std;

@@ -57,7 +57,6 @@ class Framebuffer;
 class SSAO;
 class ShadowMapping;
 class Context;
-class AvalancheReportManager;
 class Window : public nucleus::AbstractRenderWindow, public nucleus::camera::AbstractDepthTester {
     Q_OBJECT
 public:
@@ -115,9 +114,6 @@ private:
     QString m_debug_scheduler_stats;
 
     std::unique_ptr<nucleus::timing::TimerManager> m_timer;
-
-    // todo: move to context object
-    std::unique_ptr<gl_engine::AvalancheReportManager> m_avalanche_report_manager;
 };
 
 } // namespace gl_engine

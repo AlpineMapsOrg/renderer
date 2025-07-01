@@ -3,15 +3,12 @@
 #include <AvalancheReportManager.h>
 #include <iostream>
 
-gl_engine::AvalancheReportManager::AvalancheReportManager(std::shared_ptr<nucleus::avalanche::UIntIdManager> input_uint_id_manager,
-    std::shared_ptr<gl_engine::UniformBuffer<nucleus::avalanche::uboEawsReports>> input_ubo_eaws_reports)
+gl_engine::AvalancheReportManager::AvalancheReportManager(std::shared_ptr<nucleus::avalanche::UIntIdManager> input_uint_id_manager)
     : m_uint_id_manager(input_uint_id_manager)
-    , m_ubo_eaws_reports(input_ubo_eaws_reports)
 {
     assert(m_uint_id_manager);
-    assert(m_ubo_eaws_reports);
 
-    // create instances of uint_id_manager and report_load_service and connect them to methods
+    // create instances of report_load_service and connect uint_id_manager
     std::make_unique<nucleus::avalanche::ReportLoadService>();
     QObject::connect(
         this, &gl_engine::AvalancheReportManager::report_requested, &m_report_load_service, &nucleus::avalanche::ReportLoadService::load_from_tu_wien);
@@ -19,6 +16,12 @@ gl_engine::AvalancheReportManager::AvalancheReportManager(std::shared_ptr<nucleu
         &nucleus::avalanche::ReportLoadService::load_from_TU_Wien_finished,
         this,
         &gl_engine::AvalancheReportManager::receive_report_from_server);
+}
+
+void gl_engine::AvalancheReportManager::set_ubo_eaws_reports(std::shared_ptr<gl_engine::UniformBuffer<nucleus::avalanche::uboEawsReports>> ubo_eaws_reports)
+{
+    assert(ubo_eaws_reports);
+    m_ubo_eaws_reports = ubo_eaws_reports;
 
     // Write zero-vectors to ubo with avalanche reports. THis means no report available
     std::fill(m_ubo_eaws_reports->data.reports, m_ubo_eaws_reports->data.reports + 1000, glm::uvec4(0, 0, 0, 0));
@@ -45,6 +48,7 @@ void gl_engine::AvalancheReportManager::request_report_from_server(tl::expected<
 void gl_engine::AvalancheReportManager::receive_report_from_server(tl::expected<std::vector<nucleus::avalanche::ReportTUWien>, QString> data_from_server)
 {
     // Fill array with initial vectors
+    assert(m_ubo_eaws_reports);
     std::fill(m_ubo_eaws_reports->data.reports, m_ubo_eaws_reports->data.reports + 1000, glm::ivec4(-1, 0, 0, 0));
 
     // If error occured during fetching reports send ubo with zeros to gpu

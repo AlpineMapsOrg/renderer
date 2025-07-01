@@ -38,9 +38,9 @@ public slots:
     void receive_report_from_server(tl::expected<std::vector<nucleus::avalanche::ReportTUWien>, QString> data_from_server);
 
 public:
-    AvalancheReportManager(std::shared_ptr<nucleus::avalanche::UIntIdManager> eaws_id_manager,
-        std::shared_ptr<gl_engine::UniformBuffer<nucleus::avalanche::uboEawsReports>> input_ubo_eaws_reports);
+    AvalancheReportManager(std::shared_ptr<nucleus::avalanche::UIntIdManager> eaws_id_manager);
     ~AvalancheReportManager() = default;
+    void set_ubo_eaws_reports(std::shared_ptr<gl_engine::UniformBuffer<nucleus::avalanche::uboEawsReports>> m_ubo_eaws_reports);
 
 private:
     nucleus::avalanche::ReportLoadService m_report_load_service;
