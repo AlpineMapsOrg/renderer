@@ -141,12 +141,14 @@ ColumnLayout {
             visible: parent.checked
             height: 64
             width: avalanche_subgroup.implicitWidth + parent.width
+            radius: avalanche_menu.radius
 
             color: Qt.alpha(Material.backgroundColor, 0.3)
             border { width: 2; color: Qt.alpha( "black", 0.5); }
 
             RowLayout {
-                x: parent.parent.width
+                x: avalanche_menu.width
+                y: parent.y
                 id: avalanche_subgroup
                 spacing: 0
                 height: parent.height
@@ -234,26 +236,16 @@ ColumnLayout {
                 }
 
                 // Banner with color chart (only visible when an avalanche overlay is active
-                Rectangle {
-                    id: banner
-                    radius: fab_group.radius
-                    height: 64
-                    width: 256
-                    color: Qt.alpha(Material.backgroundColor, 0.3)
-                    border { width: 2; color: Qt.alpha( "black", 0.5); }
+                Image{
+                    id: banner_image
+                    Layout.preferredWidth: implicitWidth * Layout.preferredHeight / implicitHeight + 20
+                    Layout.preferredHeight: 64
+                    fillMode: Image.PreserveAspectFit  // Keep aspect ratio
                     visible: (eaws_report_toggle.checked || risk_level_toggle.checked || slope_angle_toggle.checked || stop_or_go_toggle.checked)
-                    Image{
-                        id: banner_image
-                        height:40
-                        anchors.fill: parent  // Scale to fit the rectangle
-                        fillMode: Image.PreserveAspectFit  // Keep aspect ratio
-                    }
                 }
             }
         }
     }
-
-
 
     Connections {
         enabled: fab_location.checked || fab_presets.checked
@@ -278,5 +270,7 @@ ColumnLayout {
     }
 
 }
+
+
 
 
