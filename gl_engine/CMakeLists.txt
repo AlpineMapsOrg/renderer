@@ -42,12 +42,12 @@ qt_add_library(gl_engine STATIC
     TileGeometry.h TileGeometry.cpp
     TextureLayer.h TextureLayer.cpp
     types.h
-    AvalancheWarningLayer.h AvalancheWarningLayer.cpp
 )
 
 
 if (ALP_ENABLE_AVLANCHE_WARNING_LAYER)
     target_sources(gl_engine PRIVATE
+        AvalancheWarningLayer.h AvalancheWarningLayer.cpp
         AvalancheReportManager.h AvalancheReportManager.cpp
     )
 endif()

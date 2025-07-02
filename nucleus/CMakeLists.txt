@@ -125,7 +125,7 @@ qt_add_library(nucleus STATIC
 
 if (ALP_ENABLE_AVLANCHE_WARNING_LAYER)
     target_sources(nucleus
-         PUBLIC
+         PRIVATE
             avalanche/eaws.h avalanche/eaws.cpp
             avalanche/Scheduler.h avalanche/Scheduler.cpp
             avalanche/ReportLoadService.h avalanche/ReportLoadService.cpp

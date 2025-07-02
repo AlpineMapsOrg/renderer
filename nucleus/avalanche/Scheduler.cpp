@@ -90,7 +90,7 @@ nucleus::Raster<glm::uint16> to_raster(
         }
 
         // Collect raster of current tile in quad
-        quad_rasters[quad_index] = std::make_shared<nucleus::Raster<glm::uint16>>(eaws_raster_16bit);
+        quad_rasters[quad_index] = nucleus::Raster<glm::uint16>(eaws_raster_16bit);
     }
 
     // Merge 4 tiles from quad into one raster representing the quad
