@@ -39,6 +39,8 @@ void ReportLoadService::load_from_tu_wien(const QDate& date) const
         // Check if Network Error occured
         if (reply->error() != QNetworkReply::NoError) {
             emit this->load_from_TU_Wien_finished(tl::unexpected(error_message));
+            reply->deleteLater();
+            return;
         }
 
         // Read the response data
@@ -52,6 +54,7 @@ void ReportLoadService::load_from_tu_wien(const QDate& date) const
         if (parse_error.error != QJsonParseError::NoError) {
             error_message.append("Parse error = ").append(parse_error.errorString());
             emit this->load_from_TU_Wien_finished(tl::unexpected(error_message));
+            reply->deleteLater();
             return;
         }
 
@@ -59,6 +62,7 @@ void ReportLoadService::load_from_tu_wien(const QDate& date) const
         if (json_document.isEmpty() || json_document.isNull()) {
             error_message.append("Empty or Null json.");
             emit this->load_from_TU_Wien_finished(tl::unexpected(error_message));
+            reply->deleteLater();
             return;
         }
 
@@ -66,6 +70,7 @@ void ReportLoadService::load_from_tu_wien(const QDate& date) const
         if (!json_document.isArray()) {
             error_message.append("jsonDocument does not contain array.");
             emit this->load_from_TU_Wien_finished(tl::unexpected(error_message));
+            reply->deleteLater();
             return;
         }
 
@@ -74,6 +79,7 @@ void ReportLoadService::load_from_tu_wien(const QDate& date) const
         if (jsonArray.isEmpty()) {
             error_message.append("Array empty!");
             emit this->load_from_TU_Wien_finished(tl::unexpected(error_message));
+            reply->deleteLater();
             return;
         }
 
@@ -87,6 +93,7 @@ void ReportLoadService::load_from_tu_wien(const QDate& date) const
             if (!jsonValue_region_rating.isObject()) {
                 error_message.append("json object is array of other type than json object");
                 emit this->load_from_TU_Wien_finished(tl::unexpected(error_message));
+                reply->deleteLater();
                 return;
             }
 
@@ -111,6 +118,7 @@ void ReportLoadService::load_from_tu_wien(const QDate& date) const
 
         // Emit ratings
         emit this->load_from_TU_Wien_finished(tl::expected<std::vector<ReportTUWien>, QString>(region_ratings));
+        reply->deleteLater();
     });
 }
 
