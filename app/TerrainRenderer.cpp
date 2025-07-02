@@ -69,7 +69,7 @@ TerrainRenderer::TerrainRenderer()
 
     connect(ctx->geometry_scheduler(), &nucleus::tile::GeometryScheduler::gpu_tiles_updated,  gl_window_ptr, &gl_engine::Window::update_requested);
     connect(ctx->ortho_scheduler(),    &nucleus::tile::TextureScheduler::gpu_tiles_updated,   gl_window_ptr, &gl_engine::Window::update_requested);
-    connect(ctx->eaws_scheduler(),     &nucleus::avalanche::Scheduler::gpu_quads_updated, gl_window_ptr, &gl_engine::Window::update_requested);
+    connect(ctx->eaws_scheduler(),     &nucleus::avalanche::Scheduler::gpu_tiles_updated, gl_window_ptr, &gl_engine::Window::update_requested);
     connect(ctx->label_filter().get(), &Filter::filter_finished,                              gl_window_ptr, &gl_engine::Window::update_requested);
 
     connect(ctx->picker_manager().get(),   &PickerManager::pick_requested,     gl_window_ptr,                  &gl_engine::Window::pick_value);

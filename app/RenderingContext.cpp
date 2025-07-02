@@ -131,7 +131,7 @@ RenderingContext::RenderingContext(QObject* parent)
     // clang-format off
     connect(m->geometry.scheduler.get(),       &nucleus::tile::GeometryScheduler::gpu_tiles_updated, RenderThreadNotifier::instance(), &RenderThreadNotifier::notify);
     connect(m->ortho_texture.scheduler.get(),  &nucleus::tile::TextureScheduler::gpu_tiles_updated,  RenderThreadNotifier::instance(), &RenderThreadNotifier::notify);
-    connect(m->eaws_texture.scheduler.get(),   &nucleus::avalanche::Scheduler::gpu_quads_updated,  RenderThreadNotifier::instance(), &RenderThreadNotifier::notify);
+    connect(m->eaws_texture.scheduler.get(),   &nucleus::avalanche::Scheduler::gpu_tiles_updated,  RenderThreadNotifier::instance(), &RenderThreadNotifier::notify);
     connect(m->map_label.scheduler.get(),      &nucleus::map_label::Scheduler::gpu_tiles_updated,    RenderThreadNotifier::instance(), &RenderThreadNotifier::notify);
     connect(m->map_label.scheduler.get(),      &nucleus::map_label::Scheduler::gpu_tiles_updated,    m->picker_manager.get(),          &PickerManager::update_quads);
     connect(m->map_label.scheduler.get(),      &nucleus::map_label::Scheduler::gpu_tiles_updated,    m->label_filter.get(),            &Filter::update_quads);
