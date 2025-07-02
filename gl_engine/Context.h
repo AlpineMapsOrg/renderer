@@ -59,8 +59,8 @@ public:
     [[nodiscard]] std::shared_ptr<nucleus::avalanche::UIntIdManager> eaws_id_manager() const;
     void set_eaws_id_manager(const std::shared_ptr<nucleus::avalanche::UIntIdManager>& new_manager);
 
-    [[nodiscard]] std::shared_ptr<gl_engine::AvalancheReportManager> avalanche_report_manager();
-    void set_avalanche_report_manager(std::shared_ptr<gl_engine::AvalancheReportManager> avalanche_report_manager);
+    std::shared_ptr<gl_engine::AvalancheReportManager> avalanche_report_manager() const;
+    void set_avalanche_report_manager(const std::shared_ptr<gl_engine::AvalancheReportManager>& new_avalanche_report_manager);
 
 protected:
     void internal_initialise() override;

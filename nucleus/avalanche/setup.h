@@ -38,16 +38,18 @@ struct EawsTextureSchedulerHolder {
     TileLoadServicePtr tile_service;
 };
 
-inline EawsTextureSchedulerHolder eaws_texture_scheduler(std::string name,
-    TileLoadServicePtr tile_service,
+inline EawsTextureSchedulerHolder eaws_texture_scheduler(TileLoadServicePtr tile_service,
     const tile::utils::AabbDecoratorPtr& aabb_decorator,
     std::shared_ptr<UIntIdManager> eaws_uint_id_manager,
     QThread* thread = nullptr)
 {
-    std::shared_ptr<Scheduler> scheduler = std::make_unique<Scheduler>(std::move(name), 256, eaws_uint_id_manager);
-    scheduler->read_disk_cache();
-    scheduler->set_gpu_quad_limit(512);
-    scheduler->set_ram_quad_limit(12000);
+    Scheduler::Settings settings;
+    settings.max_zoom_level = 18;
+    settings.tile_resolution = 256;
+    settings.gpu_quad_limit = 512;
+    settings.ram_quad_limit = 12000;
+
+    std::shared_ptr<Scheduler> scheduler = std::make_unique<Scheduler>(settings, eaws_uint_id_manager);
     scheduler->set_aabb_decorator(aabb_decorator);
 
     {

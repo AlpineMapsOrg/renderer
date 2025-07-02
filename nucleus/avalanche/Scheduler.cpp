@@ -47,10 +47,10 @@ void Scheduler::transform_and_emit(const std::vector<nucleus::tile::DataQuad>& n
         new_gpu_tiles.push_back(gpu_tile_from_quad);
     }
 
-    emit gpu_tiles_updated(new_gpu_tiles, deleted_quads);
+    emit gpu_tiles_updated(deleted_quads, new_gpu_tiles);
 }
 
-nucleus::Raster<glm::uint16> to_raster(
+nucleus::Raster<glm::uint16> Scheduler::to_raster(
     const nucleus::tile::DataQuad& quad, const nucleus::Raster<glm::uint16>& default_raster, std::shared_ptr<UIntIdManager> uint_id_manager)
 {
     std::array<Raster<glm::uint16>, 4> quad_rasters;

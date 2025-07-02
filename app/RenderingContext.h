@@ -47,7 +47,7 @@ class AabbDecorator;
 }
 
 namespace nucleus::avalanche {
-class TextureScheduler;
+class Scheduler;
 class UIntIdManager;
 } // namespace nucleus::avalanche
 
@@ -83,7 +83,7 @@ public:
     [[nodiscard]] nucleus::map_label::Scheduler* map_label_scheduler() const;
     [[nodiscard]] nucleus::tile::TextureScheduler* ortho_scheduler() const;
     [[nodiscard]] nucleus::tile::SchedulerDirector* scheduler_director() const;
-    [[nodiscard]] nucleus::avalanche::TextureScheduler* eaws_scheduler() const;
+    [[nodiscard]] nucleus::avalanche::Scheduler* eaws_scheduler() const;
     [[nodiscard]] std::shared_ptr<nucleus::avalanche::UIntIdManager> eaws_id_manager() const;
     [[nodiscard]] std::shared_ptr<gl_engine::AvalancheReportManager> avalanche_report_manager();
 

@@ -111,7 +111,7 @@ RenderingContext::RenderingContext(QObject* parent)
         m->uint_id_manager = std::make_shared<nucleus::avalanche::UIntIdManager>();
         m->avalanche_report_manager = std::make_shared<gl_engine::AvalancheReportManager>(m->uint_id_manager); // At this point AvalancheReportManager::m_ubo_eaws_reports is null. Will be set later by Window.cpp
         m->eaws_texture = nucleus::avalanche::setup::eaws_texture_scheduler(
-            "eaws", std::make_unique<TileLoadService>("http://localhost:3000/eaws-regions/", TilePattern::ZXY_yPointingSouth, ""), m->aabb_decorator, m->uint_id_manager, m->scheduler_thread.get());
+            std::make_unique<TileLoadService>("http://localhost:3000/eaws-regions/", TilePattern::ZXY_yPointingSouth, ""), m->aabb_decorator, m->uint_id_manager, m->scheduler_thread.get());
         m->scheduler_director->check_in("eaws_regions", m->eaws_texture.scheduler);
         // clang-format on
 
@@ -202,7 +202,7 @@ void RenderingContext::initialise()
     // clang-format off
     connect(m->geometry.scheduler.get(),        &nucleus::tile::GeometryScheduler::gpu_tiles_updated,   m->engine_context->tile_geometry(), &gl_engine::TileGeometry::update_gpu_tiles);
     connect(m->ortho_texture.scheduler.get(),   &nucleus::tile::TextureScheduler::gpu_tiles_updated,    m->engine_context->ortho_layer(),   &gl_engine::TextureLayer::update_gpu_tiles);
-    connect(m->eaws_texture.scheduler.get(),    &nucleus::avalanche::Scheduler::gpu_quads_updated,  m->engine_context->eaws_layer(),    &gl_engine::AvalancheWarningLayer::update_gpu_tiles);
+    connect(m->eaws_texture.scheduler.get(),    &nucleus::avalanche::Scheduler::gpu_tiles_updated,      m->engine_context->eaws_layer(),    &gl_engine::AvalancheWarningLayer::update_gpu_tiles);
 
     connect(QOpenGLContext::currentContext(), &QOpenGLContext::aboutToBeDestroyed, m->engine_context.get(), &nucleus::EngineContext::destroy);
     connect(QOpenGLContext::currentContext(), &QOpenGLContext::aboutToBeDestroyed, this,                    &RenderingContext::destroy);

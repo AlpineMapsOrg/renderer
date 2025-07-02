@@ -48,7 +48,6 @@ public:
     unsigned int tile_count() const;
 
 public slots:
-    // Template works for nucleus::tile::GpuEawsQuad or nucleus::tile::GpuTextureQuad
     void update_gpu_tiles(const std::vector<nucleus::tile::Id>& deleted_tiles, const std::vector<nucleus::tile::GpuEawsTile>& new_tiles);
     void set_tile_limit(unsigned new_limit);
 
