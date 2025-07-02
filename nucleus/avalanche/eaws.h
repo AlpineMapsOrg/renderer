@@ -22,7 +22,6 @@
 #include <extern/tl_expected/include/tl/expected.hpp>
 #include <mapbox/vector_tile.hpp>
 #include <nucleus/Raster.h>
-#include <nucleus/avalanche/ReportLoadService.h>
 
 namespace radix::tile {
 struct Id;
