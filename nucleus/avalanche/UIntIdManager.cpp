@@ -46,6 +46,7 @@ void UIntIdManager::load_all_regions_from_server()
 
         // Read the response data
         QByteArray data = reply->readAll();
+        reply->deleteLater();
 
         // Convert data to Json
         QJsonParseError parse_error;
