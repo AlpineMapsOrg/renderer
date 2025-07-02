@@ -33,7 +33,6 @@
 #include "TrackManager.h"
 #include "UniformBufferObjects.h"
 #include "helpers.h"
-#include "nucleus/track/GPX.h"
 #include "types.h"
 #include <QCoreApplication>
 #include <QDebug>
@@ -78,7 +77,7 @@ using namespace nucleus::tile;
 
 Window::Window(std::shared_ptr<Context> context)
     : m_context(context)
-    , m_camera({ 1822577.0, 6141664.0 - 500, 171.28 + 500 }, { 1822577.0, 6141664.0, 171.28 })
+    , m_camera({ 1822577.0, 6141664.0 - 500, 171.28 + 500 }, { 1822577.0, 6141664.0, 171.28 }) // should point right at the stephansdom
 {
     QTimer::singleShot(1, [this]() { emit update_requested(); });
 }
@@ -227,17 +226,17 @@ void Window::initialise_gpu()
 
 // GPU Timing Queries not supported on Web GL
 #if (defined(__linux)) || defined(_WIN32) || defined(_WIN64)
-        m_timer->add_timer(make_shared<GpuAsyncQueryTimer>("ssao", "GPU", 240, 1.0f/60.0f));
+        m_timer->add_timer(make_shared<GpuAsyncQueryTimer>("ssao", "GPU", 240, 1.0f / 60.0f));
         m_timer->add_timer(make_shared<GpuAsyncQueryTimer>("atmosphere", "GPU", 240, 1.0f / 60.0f));
-        m_timer->add_timer(make_shared<GpuAsyncQueryTimer>("tiles", "GPU", 240, 1.0f/60.0f));
-        m_timer->add_timer(make_shared<GpuAsyncQueryTimer>("tracks", "GPU", 240, 1.0f/60.0f));
-        m_timer->add_timer(make_shared<GpuAsyncQueryTimer>("shadowmap", "GPU", 240, 1.0f/60.0f));
-        m_timer->add_timer(make_shared<GpuAsyncQueryTimer>("compose", "GPU", 240, 1.0f/60.0f));
+        m_timer->add_timer(make_shared<GpuAsyncQueryTimer>("tiles", "GPU", 240, 1.0f / 60.0f));
+        m_timer->add_timer(make_shared<GpuAsyncQueryTimer>("tracks", "GPU", 240, 1.0f / 60.0f));
+        m_timer->add_timer(make_shared<GpuAsyncQueryTimer>("shadowmap", "GPU", 240, 1.0f / 60.0f));
+        m_timer->add_timer(make_shared<GpuAsyncQueryTimer>("compose", "GPU", 240, 1.0f / 60.0f));
         m_timer->add_timer(make_shared<GpuAsyncQueryTimer>("labels", "GPU", 240, 1.0f / 60.0f));
         m_timer->add_timer(make_shared<GpuAsyncQueryTimer>("picker", "GPU", 240, 1.0f / 60.0f));
-        m_timer->add_timer(make_shared<GpuAsyncQueryTimer>("gpu_total", "TOTAL", 240, 1.0f/60.0f));
+        m_timer->add_timer(make_shared<GpuAsyncQueryTimer>("gpu_total", "TOTAL", 240, 1.0f / 60.0f));
 #endif
-        m_timer->add_timer(make_shared<CpuTimer>("cpu_total", "TOTAL", 240, 1.0f/60.0f));
+        m_timer->add_timer(make_shared<CpuTimer>("cpu_total", "TOTAL", 240, 1.0f / 60.0f));
         m_timer->add_timer(make_shared<CpuTimer>("cpu_b2b", "TOTAL", 240, 1.0f / 60.0f));
         m_timer->add_timer(make_shared<CpuTimer>("draw_list", "TOTAL", 240, 1.0f / 60.0f));
     }
@@ -249,7 +248,8 @@ void Window::resize_framebuffer(int width, int height)
         return;
 
     QOpenGLFunctions* f = QOpenGLContext::currentContext()->functions();
-    if (!f) return;
+    if (!f)
+        return;
     m_gbuffer->resize({ width, height });
     {
         m_decoration_buffer->resize({ width, height });
@@ -269,7 +269,7 @@ void Window::paint(QOpenGLFramebufferObject* framebuffer)
     m_timer->start_timer("cpu_total");
     m_timer->start_timer("gpu_total");
 
-    QOpenGLExtraFunctions *f = QOpenGLContext::currentContext()->extraFunctions();
+    QOpenGLExtraFunctions* f = QOpenGLContext::currentContext()->extraFunctions();
 
     f->glEnable(GL_CULL_FACE);
     f->glCullFace(GL_BACK);
@@ -368,7 +368,8 @@ void Window::paint(QOpenGLFramebufferObject* framebuffer)
 
     if (m_shared_config_ubo->data.m_ssao_enabled) {
         m_timer->start_timer("ssao");
-        m_ssao->draw(m_gbuffer.get(), &m_screen_quad_geometry, m_camera, m_shared_config_ubo->data.m_ssao_kernel, m_shared_config_ubo->data.m_ssao_blur_kernel_size);
+        m_ssao->draw(
+            m_gbuffer.get(), &m_screen_quad_geometry, m_camera, m_shared_config_ubo->data.m_ssao_kernel, m_shared_config_ubo->data.m_ssao_blur_kernel_size);
         m_timer->stop_timer("ssao");
     }
 
@@ -480,13 +481,15 @@ void Window::paint(QOpenGLFramebufferObject* framebuffer)
     emit tile_stats_ready(tile_stats);
 }
 
-void Window::shared_config_changed(gl_engine::uboSharedConfig ubo) {
+void Window::shared_config_changed(gl_engine::uboSharedConfig ubo)
+{
     m_shared_config_ubo->data = ubo;
     m_shared_config_ubo->update_gpu_data();
     emit update_requested();
 }
 
-void Window::reload_shader() {
+void Window::reload_shader()
+{
     auto do_reload = [this]() {
         auto* shader_manager = m_context->shader_registry();
         shader_manager->reload_shaders();
@@ -502,7 +505,7 @@ void Window::reload_shader() {
     // Reload shaders from the web and afterwards do the reload
     ShaderProgram::web_download_shader_files_and_put_in_cache(do_reload);
 #else
-      // Reset shader cache. The shaders will then be reload from file
+    // Reset shader cache. The shaders will then be reload from file
     ShaderProgram::reset_shader_cache();
     do_reload();
 #endif
