@@ -32,8 +32,6 @@ out lowp float is_curtain;
 flat out lowp vec3 vertex_color;
 flat out highp uint instance_id;
 
-flat out  highp int var_height_texture_layer;
-
 void main() {
     compute_vertex(var_pos_cws, var_uv, var_tile_id, conf.normal_mode == 1u, var_normal);
 
@@ -47,5 +45,4 @@ void main() {
         case 4u: vertex_color = color_from_id_hash(uint(gl_VertexID)); break;
         case 5u: vertex_color = vec3(var_pos_cws + camera.position.xyz).zzz / 4096.0; break;
     }
-    var_height_texture_layer = height_texture_layer;
 }

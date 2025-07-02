@@ -45,10 +45,6 @@ in lowp float is_curtain;
 flat in lowp vec3 vertex_color;
 flat in highp uint instance_id;
 
-highp float calculate_falloff(highp float dist, highp float from, highp float to) {
-    return clamp(1.0 - (dist - from) / (to - from), 0.0, 1.0);
-}
-
 highp vec3 normal_by_fragment_position_interpolation() {
     highp vec3 dFdxPos = dFdx(var_pos_cws);
     highp vec3 dFdyPos = dFdy(var_pos_cws);

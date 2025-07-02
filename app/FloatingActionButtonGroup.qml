@@ -236,7 +236,7 @@ ColumnLayout {
                 // Banner with color chart (only visible when an avalanche overlay is active
                 Rectangle {
                     id: banner
-                    radius: parent.radius
+                    radius: fab_group.radius
                     height: 64
                     width: 256
                     color: Qt.alpha(Material.backgroundColor, 0.3)
