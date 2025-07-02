@@ -214,7 +214,7 @@ void Window::initialise_gpu()
     m_shadow_config_ubo->init();
     m_shadow_config_ubo->bind_to_shader(shader_registry->all());
 
-    m_eaws_reports_ubo = std::make_shared<gl_engine::UniformBuffer<nucleus::avalanche::uboEawsReports>>(3, "eaws_reports");
+    m_eaws_reports_ubo = std::make_shared<gl_engine::UniformBuffer<nucleus::avalanche::uboEawsReports>>(5, "eaws_reports");
     m_eaws_reports_ubo->init();
     m_eaws_reports_ubo->bind_to_shader(shader_registry->all());
     m_context->avalanche_report_manager()->set_ubo_eaws_reports(m_eaws_reports_ubo);
@@ -352,12 +352,11 @@ void Window::paint(QOpenGLFramebufferObject* framebuffer)
     }
 
     f->glEnable(GL_DEPTH_TEST);
-    f->glDepthFunc(GL_GREATER); // reverse z
+    f->glDepthFunc(GL_GEQUAL); // reverse z, reuse z buffer for sucessive passes
 
     m_timer->start_timer("tiles");
     m_context->ortho_layer()->draw(*m_context->tile_geometry(), m_camera, culled_draw_list);
 
-    f->glClear(GL_DEPTH_BUFFER_BIT); // f->glClearDepthf(0.0f); is used to set the celar value of z buffer
     if (m_shared_config_ubo->data.m_eaws_danger_rating_enabled || m_shared_config_ubo->data.m_eaws_risk_level_enabled || m_shared_config_ubo->data.m_eaws_slope_angle_enabled
         || m_shared_config_ubo->data.m_eaws_stop_or_go_enabled) {
         m_context->eaws_layer()->draw(*m_context->tile_geometry(), m_camera, culled_draw_list);
@@ -400,19 +399,17 @@ void Window::paint(QOpenGLFramebufferObject* framebuffer)
     m_gbuffer->bind_colour_texture(1, 1);
     m_compose_shader->set_uniform("texin_normal", 2);
     m_gbuffer->bind_colour_texture(2, 2);
+    m_compose_shader->set_uniform("texin_eaws", 3);
+    m_gbuffer->bind_colour_texture(4, 3);
 
-    m_compose_shader->set_uniform("texin_atmosphere", 3);
-    m_atmospherebuffer->bind_colour_texture(0, 3);
+    m_compose_shader->set_uniform("texin_atmosphere", 4);
+    m_atmospherebuffer->bind_colour_texture(0, 4);
 
-    m_compose_shader->set_uniform("texin_ssao", 4);
-    m_ssao->bind_ssao_texture(4);
+    m_compose_shader->set_uniform("texin_ssao", 5);
+    m_ssao->bind_ssao_texture(5);
 
     /* texture units 5 - 8 */
-    m_shadowmapping->bind_shadow_maps(m_compose_shader.get(), 5);
-
-    // texture unit 9 : eaws warning colors
-    m_compose_shader->set_uniform("texin_eaws", 9);
-    m_gbuffer->bind_colour_texture(4, 9);
+    m_shadowmapping->bind_shadow_maps(m_compose_shader.get(), 6);
 
     m_timer->start_timer("compose");
     m_screen_quad_geometry.draw();
