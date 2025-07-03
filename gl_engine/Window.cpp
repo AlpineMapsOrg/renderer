@@ -359,6 +359,7 @@ void Window::paint(QOpenGLFramebufferObject* framebuffer)
 
     if (m_shared_config_ubo->data.m_eaws_danger_rating_enabled || m_shared_config_ubo->data.m_eaws_risk_level_enabled || m_shared_config_ubo->data.m_eaws_slope_angle_enabled
         || m_shared_config_ubo->data.m_eaws_stop_or_go_enabled) {
+        f->glClear(GL_DEPTH_BUFFER_BIT);
         m_context->eaws_layer()->draw(*m_context->tile_geometry(), m_camera, culled_draw_list);
     }
     m_timer->stop_timer("tiles");
