@@ -544,7 +544,7 @@ Rectangle {
             //  LABEL
             //--------------------------
             Label {
-                text: qsTr("Map Label requested: ")
+                text: qsTr("Label requested: ")
             }
             ProgressBar {
                 id: map_label_n_quads_requested
@@ -569,6 +569,37 @@ Rectangle {
             }
             Label {
                 text: "(" + map_label_n_quads_ram.value + ")"
+            }
+
+            //--------------------------
+            //  Eaws regions
+            //--------------------------
+            Label {
+                text: qsTr("EAWS requested: ")
+            }
+            ProgressBar {
+                id: eaws_n_quads_requested
+                Layout.fillWidth: true
+                from: 0
+                to: 500
+                value: map.tile_statistics.scheduler.eaws_n_quads_requested * 4
+            }
+            Label {
+                text: "(" + eaws_n_quads_requested.value + ")"
+            }
+
+            Label {
+                text: qsTr("EAWS ram: ")
+            }
+            ProgressBar {
+                id: eaws_n_quads_ram
+                Layout.fillWidth: true
+                from: 0
+                to: map.tile_statistics.scheduler.eaws_n_quads_ram_max * 4
+                value: map.tile_statistics.scheduler.eaws_n_quads_ram * 4
+            }
+            Label {
+                text: "(" + eaws_n_quads_ram.value + ")"
             }
         }
 
