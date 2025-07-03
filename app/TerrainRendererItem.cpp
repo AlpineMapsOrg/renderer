@@ -38,6 +38,7 @@
 #include <glm/glm.hpp>
 #include <glm/gtx/string_cast.hpp>
 #include <memory>
+#include <nucleus/avalanche/Scheduler.h>
 #include <nucleus/camera/Controller.h>
 #include <nucleus/camera/PositionStorage.h>
 #include <nucleus/map_label/Filter.h>
@@ -118,6 +119,7 @@ QQuickFramebufferObject::Renderer* TerrainRendererItem::createRenderer() const
     connect(ctx->geometry_scheduler(), &nucleus::tile::Scheduler::stats_ready, this->m_tile_statistics, &TileStatistics::update_scheduler_stats);
     connect(ctx->map_label_scheduler(), &nucleus::tile::Scheduler::stats_ready, this->m_tile_statistics, &TileStatistics::update_scheduler_stats);
     connect(ctx->ortho_scheduler(), &nucleus::tile::Scheduler::stats_ready, this->m_tile_statistics, &TileStatistics::update_scheduler_stats);
+    connect(ctx->eaws_scheduler(), &nucleus::tile::Scheduler::stats_ready, this->m_tile_statistics, &TileStatistics::update_scheduler_stats);
     connect(m_update_timer, &QTimer::timeout, this, &QQuickFramebufferObject::update);
 
     connect(this, &TerrainRendererItem::touch_made, r->controller(), &nucleus::camera::Controller::touch);
