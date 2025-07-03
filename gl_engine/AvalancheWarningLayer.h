@@ -52,7 +52,7 @@ public slots:
     void set_tile_limit(unsigned new_limit);
 
 private:
-    const unsigned m_resolution = 256u;
+    const unsigned m_resolution = 512u;
 
     std::shared_ptr<ShaderProgram> m_shader;
     std::unique_ptr<Texture> m_texture_array;
