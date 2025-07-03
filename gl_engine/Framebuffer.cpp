@@ -285,7 +285,11 @@ QImage Framebuffer::read_colour_attachment(unsigned index)
     QImage image({ static_cast<int>(m_size.x), static_cast<int>(m_size.y) }, qimage_format(texFormat));
     assert(!image.isNull());
     f->glReadPixels(0, 0, int(m_size.x), int(m_size.y), format(texFormat), type(texFormat), image.bits());
+#if QT_VERSION > QT_VERSION_CHECK(6, 9, 0)
+    image.flip(Qt::Orientation::Vertical);
+#else
     image.mirror();
+#endif
 
     return image;
 }
