@@ -49,7 +49,7 @@ void main() {
     highp float texture_layer_f = float(texelFetch(instanced_texture_array_index_sampler, ivec2(instance_id, 0), 0).x);
 
 
-    highp uint eawsRegionId = texelFetch(texture_sampler, ivec3(uv*256, texture_layer_f),0).r;
+    highp uint eawsRegionId = texelFetch(texture_sampler, ivec3(uv*512, texture_layer_f),0).r;
     ivec4 report = eaws.reports[eawsRegionId];
 
 
