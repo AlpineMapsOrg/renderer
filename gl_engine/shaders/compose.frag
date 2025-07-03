@@ -153,7 +153,7 @@ highp float csm_shadow_term(highp vec4 pos_cws, highp vec3 normal_ws, out lowp i
 void main() {
     lowp vec3 albedo = texture(texin_albedo, texcoords).rgb;
     lowp vec3 eaws_color = texture(texin_eaws, texcoords).rgb;
-    albedo = 0.5* albedo + 0.5*eaws_color;
+    albedo = 0.5 * albedo + 0.5 * eaws_color;
     highp vec4 pos_dist = texture(texin_position, texcoords);
     highp vec3 pos_cws = pos_dist.xyz;
     highp float dist = pos_dist.w; // negative if sky

@@ -118,7 +118,6 @@ protected:
     std::vector<tile::Id> quads_for_current_camera_position() const;
     virtual bool is_ready_to_ship(const DataQuad&) const { return true; }
     virtual void transform_and_emit(const std::vector<DataQuad>& new_quads, const std::vector<tile::Id>& deleted_quads) = 0;
-    uint m_max_tile_zoom_level = 18;
 
 private:
     QString m_name = "unnamed";

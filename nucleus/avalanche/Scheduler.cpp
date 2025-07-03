@@ -26,7 +26,6 @@ Scheduler::Scheduler(const Settings& settings, std::shared_ptr<UIntIdManager> in
     , m_default_raster(glm::uvec2(settings.tile_resolution), 0)
     , m_uint_id_manager(internal_id_manager)
 {
-    m_max_tile_zoom_level = 10;
     UIntIdManager* ptr = m_uint_id_manager.get();
     std::cout << ptr;
 }
