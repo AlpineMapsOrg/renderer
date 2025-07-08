@@ -24,7 +24,7 @@ void gl_engine::AvalancheReportManager::set_ubo_eaws_reports(std::shared_ptr<gl_
     m_ubo_eaws_reports = ubo_eaws_reports;
 
     // Write zero-vectors to ubo with avalanche reports. THis means no report available
-    std::fill(m_ubo_eaws_reports->data.reports, m_ubo_eaws_reports->data.reports + 1000, glm::uvec4(0, 0, 0, 0));
+    std::fill(m_ubo_eaws_reports->data.reports, m_ubo_eaws_reports->data.reports + 1000, glm::uvec4(-1, 0, 0, 0));
     m_ubo_eaws_reports->update_gpu_data();
 
     // Let uint_id_manager load all regions from server and then let it trigger an update of reports
@@ -199,6 +199,7 @@ void gl_engine::AvalancheReportManager::receive_report_from_server(tl::expected<
     }
 
     // send updated ubo object to gpu
+    std::fill(m_ubo_eaws_reports->data.reports, m_ubo_eaws_reports->data.reports + 1000, glm::ivec4(-10, 0, 0, 0));
     m_ubo_eaws_reports->update_gpu_data();
     return;
 }
