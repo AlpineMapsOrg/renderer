@@ -72,6 +72,8 @@ void PickerManager::eval_pick(uint32_t value)
         for (const auto& key_value : poi->attributes.asKeyValueRange()) {
             picked.properties[key_value.first] = key_value.second;
         }
+        if (!picked.properties.contains("ele"))
+            picked.properties["ele"] = std::round(poi->lat_long_alt.z);
         picked.properties["type"] = to_string(poi->type);
         picked.properties["latitude"] = poi->lat_long_alt.x;
         picked.properties["longitude"] = poi->lat_long_alt.y;
