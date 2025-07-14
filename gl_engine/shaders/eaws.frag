@@ -125,10 +125,10 @@ void main() {
         texout_eaws = vec3(1.0, 0.0, 0.5);
     }
 
-    if(report.x ==-1)
+    if(report.x ==0)
         texout_eaws = vec3(1,0,0);
-    if(report.x ==-10)
+    if(report.x ==-1)
         texout_eaws = vec3(0,1,0);
-    else
+    if(report.x ==-2)
         texout_eaws = vec3(0,0,1);
 }
