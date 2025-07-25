@@ -1,4 +1,5 @@
 #include "UIntIdManager.h"
+#include <QDir>
 #include <QFile>
 #include <QJsonArray>
 #include <QJsonDocument>
@@ -7,9 +8,9 @@
 #include <QNetworkReply>
 #include <QNetworkRequest>
 #include <extern/tl_expected/include/tl/expected.hpp>
+#include <iostream>
 
 namespace nucleus::avalanche {
-
 UIntIdManager::UIntIdManager()
     : m_network_manager(new QNetworkAccessManager(this))
 {
@@ -17,6 +18,29 @@ UIntIdManager::UIntIdManager()
     region_id_to_internal_id[QString("")] = 0;
     internal_id_to_region_id[0] = QString("");
     assert(max_internal_id == 0);
+
+    // Load names of all eaws regions (past and present) from file where
+    // int id is order of listing in file
+    QString filePath = "app\\app\\eaws\\eawsRegionNames.json";
+    QFile file(filePath);
+    if (!file.open(QIODevice::ReadOnly | QIODevice::Text)) {
+        std::cout << "\nERROR: Parse Error wile parsing JSON with EAWS region ids.";
+    }
+    QByteArray jsonData = file.readAll();
+    file.close();
+    QJsonParseError parseError;
+    QJsonDocument doc = QJsonDocument::fromJson(jsonData, &parseError);
+    if (parseError.error != QJsonParseError::NoError || !doc.isObject()) {
+        std::cout << ("Invalid JSON file");
+    }
+    QJsonObject obj = doc.object();
+    uint i = 1;
+    for (const QString& key : obj.keys()) {
+        region_id_to_internal_id[key] = i;
+        internal_id_to_region_id[i] = key;
+        max_internal_id = i;
+        i++;
+    }
 }
 
 QDate UIntIdManager::get_date() const { return date_of_currently_selected_report; }

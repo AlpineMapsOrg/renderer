@@ -74,6 +74,10 @@ qt_add_qml_module(alpineapp
         eaws/banner_risk_level.png
         eaws/banner_slope_angle.png
         eaws/banner_stop_or_go.png
+	eaws/EUREGIO_de_CAAMLv6.json
+        eaws/micro-regions.json
+        eaws/report_tu_wien.json
+	eaws/eawsRegionNames.json
     QML_FILES
         Main.qml
         About.qml
@@ -111,9 +115,6 @@ qt_add_qml_module(alpineapp
         picker/Default.qml
         picker/PoiAlpineHut.qml
         picker/PoiSettlement.qml
-        eaws/EUREGIO_de_CAAMLv6.json
-        eaws/micro-regions.json
-        eaws/report_tu_wien.json
     SOURCES
         TileStatistics.h TileStatistics.cpp
 )
