@@ -31,7 +31,6 @@
 #include <gl_engine/Window.h>
 #include <nucleus/EngineContext.h>
 #include <nucleus/avalanche/Scheduler.h>
-#include <nucleus/avalanche/UIntIdManager.h>
 #include <nucleus/avalanche/eaws.h>
 #include <nucleus/camera/Controller.h>
 #include <nucleus/camera/PositionStorage.h>
