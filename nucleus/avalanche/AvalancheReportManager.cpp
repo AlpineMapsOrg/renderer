@@ -1,6 +1,5 @@
-#include "gl_engine/UniformBufferObjects.h"
-#include "nucleus/avalanche/UIntIdManager.h"
-#include <AvalancheReportManager.h>
+#include "AvalancheReportManager.h"
+#include <gl_engine/UniformBufferObjects.h>
 #include <iostream>
 
 gl_engine::AvalancheReportManager::AvalancheReportManager()
@@ -28,7 +27,7 @@ void gl_engine::AvalancheReportManager::set_ubo_eaws_reports(std::shared_ptr<gl_
 void gl_engine::AvalancheReportManager::request_report_from_server(tl::expected<uint, QString> result)
 {
     // get latest report from server this must be connected to report loader
-    emit report_requested(m_uint_id_manager->get_date());
+    emit report_requested(m_uint_id_manager.get_date());
 
     // If no regions were obtained from server, print error message we obtained from parsing server results.
     if (!result)

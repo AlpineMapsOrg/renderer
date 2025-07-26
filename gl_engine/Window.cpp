@@ -217,7 +217,6 @@ void Window::initialise_gpu()
     m_eaws_reports_ubo = std::make_shared<gl_engine::UniformBuffer<nucleus::avalanche::uboEawsReports>>(5, "eaws_reports");
     m_eaws_reports_ubo->init();
     m_eaws_reports_ubo->bind_to_shader(shader_registry->all());
-    m_context->avalanche_report_manager()->set_ubo_eaws_reports(m_eaws_reports_ubo);
 
     { // INITIALIZE CPU AND GPU TIMER
         using namespace std;

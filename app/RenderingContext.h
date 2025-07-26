@@ -19,7 +19,6 @@
 #pragma once
 
 #include <QQmlEngine>
-#include <gl_engine/AvalancheReportManager.h>
 // move to pimpl to avoid including all the stuff in the header.
 
 namespace gl_engine {
@@ -84,8 +83,6 @@ public:
     [[nodiscard]] nucleus::tile::TextureScheduler* ortho_scheduler() const;
     [[nodiscard]] nucleus::tile::SchedulerDirector* scheduler_director() const;
     [[nodiscard]] nucleus::avalanche::Scheduler* eaws_scheduler() const;
-    [[nodiscard]] std::shared_ptr<nucleus::avalanche::UIntIdManager> eaws_id_manager() const;
-    [[nodiscard]] std::shared_ptr<gl_engine::AvalancheReportManager> avalanche_report_manager();
 
 signals:
     void initialised();

@@ -19,7 +19,6 @@
 #pragma once
 
 #include "TrackManager.h"
-#include <gl_engine/AvalancheReportManager.h>
 #include <nucleus/EngineContext.h>
 
 namespace nucleus::avalanche {
@@ -56,9 +55,6 @@ public:
     [[nodiscard]] AvalancheWarningLayer* eaws_layer() const;
     void set_eaws_layer(std::shared_ptr<AvalancheWarningLayer> new_ortho_layer);
 
-    std::shared_ptr<gl_engine::AvalancheReportManager> avalanche_report_manager() const;
-    void set_avalanche_report_manager(const std::shared_ptr<gl_engine::AvalancheReportManager>& new_avalanche_report_manager);
-
 protected:
     void internal_initialise() override;
     void internal_destroy() override;
@@ -67,7 +63,6 @@ private:
     std::shared_ptr<TileGeometry> m_tile_geometry;
     std::shared_ptr<TextureLayer> m_ortho_layer;
     std::shared_ptr<AvalancheWarningLayer> m_eaws_layer;
-    std::shared_ptr<gl_engine::AvalancheReportManager> m_avalanche_report_manager;
     std::shared_ptr<gl_engine::MapLabels> m_map_label_manager;
     std::shared_ptr<gl_engine::TrackManager> m_track_manager;
     std::shared_ptr<gl_engine::ShaderRegistry> m_shader_registry;

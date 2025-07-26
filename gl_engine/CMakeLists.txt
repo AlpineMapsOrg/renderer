@@ -48,7 +48,6 @@ qt_add_library(gl_engine STATIC
 if (ALP_ENABLE_AVLANCHE_WARNING_LAYER)
     target_sources(gl_engine PRIVATE
         AvalancheWarningLayer.h AvalancheWarningLayer.cpp
-        AvalancheReportManager.h AvalancheReportManager.cpp
     )
 endif()
 

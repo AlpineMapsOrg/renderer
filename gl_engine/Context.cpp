@@ -76,13 +76,6 @@ void Context::internal_destroy()
     m_map_label_manager.reset();
 }
 
-std::shared_ptr<AvalancheReportManager> Context::avalanche_report_manager() const { return m_avalanche_report_manager; }
-
-void Context::set_avalanche_report_manager(const std::shared_ptr<gl_engine::AvalancheReportManager>& new_avalanche_report_manager)
-{
-    m_avalanche_report_manager = new_avalanche_report_manager;
-}
-
 TextureLayer* Context::ortho_layer() const { return m_ortho_layer.get(); }
 
 AvalancheWarningLayer* Context::eaws_layer() const { return m_eaws_layer.get(); }

@@ -19,6 +19,7 @@
 
 #pragma once
 
+#include "nucleus/avalanche/UIntIdManager.h"
 #include <QObject>
 #include <nucleus/avalanche/ReportLoadService.h>
 #include <nucleus/avalanche/eaws.h>
@@ -44,7 +45,7 @@ public:
 
 private:
     nucleus::avalanche::ReportLoadService m_report_load_service;
-    std::shared_ptr<nucleus::avalanche::UIntIdManager> m_uint_id_manager;
+    nucleus::avalanche::UIntIdManager m_uint_id_manager;
     std::shared_ptr<gl_engine::UniformBuffer<nucleus::avalanche::uboEawsReports>> m_ubo_eaws_reports;
 };
 } // namespace gl_engine
