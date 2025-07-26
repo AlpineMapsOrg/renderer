@@ -83,10 +83,6 @@ void Context::set_avalanche_report_manager(const std::shared_ptr<gl_engine::Aval
     m_avalanche_report_manager = new_avalanche_report_manager;
 }
 
-std::shared_ptr<nucleus::avalanche::UIntIdManager> Context::eaws_id_manager() const { return m_eaws_id_manager; }
-
-void Context::set_eaws_id_manager(const std::shared_ptr<nucleus::avalanche::UIntIdManager>& new_manager) { m_eaws_id_manager = new_manager; }
-
 TextureLayer* Context::ortho_layer() const { return m_ortho_layer.get(); }
 
 AvalancheWarningLayer* Context::eaws_layer() const { return m_eaws_layer.get(); }

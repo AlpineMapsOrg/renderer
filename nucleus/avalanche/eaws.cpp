@@ -182,7 +182,7 @@ bool region_matches_report_date(const Region& region, const QDate& report_date)
 }
 
 QImage draw_regions(const RegionTile& region_tile,
-    std::shared_ptr<UIntIdManager> internal_id_manager,
+    const UIntIdManager& internal_id_manager,
     const uint& image_width,
     const uint& image_height,
     const radix::tile::Id& tile_id_out,
@@ -201,14 +201,14 @@ QImage draw_regions(const RegionTile& region_tile,
     radix::tile::Id tile_id_in = region_tile.first;
     for (const auto& region : region_tile.second) {
         // Only draw regions that match current eaws report
-        if (!region_matches_report_date(region, internal_id_manager->get_date()))
+        if (!region_matches_report_date(region, internal_id_manager.get_date()))
             continue;
 
         // Calculate vertex coordinates of region w.r.t. output tile at output resolution
         std::vector<QPointF> transformed_vertices_as_QPointFs = transform_vertices(region, tile_id_in, tile_id_out, &img);
 
         // Convert region id to color, for debugging use  color_of_region = QColor::fromRgb(255, 255, 255);
-        QColor color_of_region = internal_id_manager->convert_region_id_to_color(region.id, img.format());
+        QColor color_of_region = internal_id_manager.convert_region_id_to_color(region.id, img.format());
         painter.setBrush(QBrush(color_of_region));
         painter.setPen(QPen(color_of_region)); // we also have to set the pen if we want to draw boundaries
 
@@ -222,7 +222,7 @@ QImage draw_regions(const RegionTile& region_tile,
 }
 
 nucleus::Raster<uint16_t> rasterize_regions(const RegionTile& region_tile,
-    std::shared_ptr<UIntIdManager> internal_id_manager,
+    const UIntIdManager& internal_id_manager,
     const uint raster_width,
     const uint raster_height,
     const radix::tile::Id& tile_id_out)
@@ -238,7 +238,7 @@ nucleus::Raster<uint16_t> rasterize_regions(const RegionTile& region_tile,
     return nucleus::Raster<uint16_t>({ 1, 1 }, first_pixel);
 }
 
-nucleus::Raster<uint16_t> rasterize_regions(const RegionTile& region_tile, std::shared_ptr<UIntIdManager> internal_id_manager)
+nucleus::Raster<uint16_t> rasterize_regions(const RegionTile& region_tile, const UIntIdManager& internal_id_manager)
 {
     return rasterize_regions(region_tile, internal_id_manager, region_tile.second[0].resolution.x, region_tile.second[0].resolution.y, region_tile.first);
 }

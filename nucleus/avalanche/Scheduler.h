@@ -18,19 +18,18 @@
 
 #pragma once
 
-#include "eaws.h"
+#include <nucleus/avalanche/UIntIdManager.h>
 #include <nucleus/tile/Scheduler.h>
 #include <nucleus/tile/types.h>
-
 namespace nucleus::avalanche {
-
+class UIntIdManager;
 class Scheduler : public nucleus::tile::Scheduler {
     Q_OBJECT
 public:
-    Scheduler(const Scheduler::Settings& settings, std::shared_ptr<UIntIdManager> m_internal_id_manager);
+    Scheduler(const Scheduler::Settings& settings);
     ~Scheduler();
     static nucleus::Raster<glm::uint16> to_raster(
-        const nucleus::tile::DataQuad& quad, const nucleus::Raster<glm::uint16>& default_raster, std::shared_ptr<UIntIdManager> uint_id_manager);
+        const nucleus::tile::DataQuad& quad, const nucleus::Raster<glm::uint16>& default_raster, const UIntIdManager& uint_id_manager);
 
 signals:
     void gpu_tiles_updated(const std::vector<nucleus::tile::Id>& deleted_quads, const std::vector<nucleus::tile::GpuEawsTile>& new_tiles);
@@ -40,7 +39,7 @@ protected:
 
 private:
     nucleus::Raster<glm::uint16> m_default_raster;
-    std::shared_ptr<UIntIdManager> m_uint_id_manager;
+    UIntIdManager m_uint_id_manager;
 };
 
 } // namespace nucleus::avalanche

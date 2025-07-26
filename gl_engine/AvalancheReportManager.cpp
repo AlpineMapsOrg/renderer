@@ -3,12 +3,9 @@
 #include <AvalancheReportManager.h>
 #include <iostream>
 
-gl_engine::AvalancheReportManager::AvalancheReportManager(std::shared_ptr<nucleus::avalanche::UIntIdManager> input_uint_id_manager)
-    : m_uint_id_manager(input_uint_id_manager)
+gl_engine::AvalancheReportManager::AvalancheReportManager()
 {
-    assert(m_uint_id_manager);
-
-    // create instances of report_load_service and connect uint_id_manager
+    // create instances of report_load_service
     std::make_unique<nucleus::avalanche::ReportLoadService>();
     QObject::connect(
         this, &gl_engine::AvalancheReportManager::report_requested, &m_report_load_service, &nucleus::avalanche::ReportLoadService::load_from_tu_wien);
@@ -26,11 +23,6 @@ void gl_engine::AvalancheReportManager::set_ubo_eaws_reports(std::shared_ptr<gl_
     // Write zero-vectors to ubo with avalanche reports. THis means no report available
     std::fill(m_ubo_eaws_reports->data.reports, m_ubo_eaws_reports->data.reports + 1000, glm::uvec4(-1, 0, 0, 0));
     m_ubo_eaws_reports->update_gpu_data();
-
-    // Let uint_id_manager load all regions from server and then let it trigger an update of reports
-    QObject::connect(
-        m_uint_id_manager.get(), &nucleus::avalanche::UIntIdManager::loaded_all_regions, this, &gl_engine::AvalancheReportManager::request_report_from_server);
-    m_uint_id_manager->load_all_regions_from_server();
 }
 
 void gl_engine::AvalancheReportManager::request_report_from_server(tl::expected<uint, QString> result)

@@ -56,9 +56,6 @@ public:
     [[nodiscard]] AvalancheWarningLayer* eaws_layer() const;
     void set_eaws_layer(std::shared_ptr<AvalancheWarningLayer> new_ortho_layer);
 
-    [[nodiscard]] std::shared_ptr<nucleus::avalanche::UIntIdManager> eaws_id_manager() const;
-    void set_eaws_id_manager(const std::shared_ptr<nucleus::avalanche::UIntIdManager>& new_manager);
-
     std::shared_ptr<gl_engine::AvalancheReportManager> avalanche_report_manager() const;
     void set_avalanche_report_manager(const std::shared_ptr<gl_engine::AvalancheReportManager>& new_avalanche_report_manager);
 
@@ -70,7 +67,6 @@ private:
     std::shared_ptr<TileGeometry> m_tile_geometry;
     std::shared_ptr<TextureLayer> m_ortho_layer;
     std::shared_ptr<AvalancheWarningLayer> m_eaws_layer;
-    std::shared_ptr<nucleus::avalanche::UIntIdManager> m_eaws_id_manager;
     std::shared_ptr<gl_engine::AvalancheReportManager> m_avalanche_report_manager;
     std::shared_ptr<gl_engine::MapLabels> m_map_label_manager;
     std::shared_ptr<gl_engine::TrackManager> m_track_manager;
