@@ -551,3 +551,5 @@ void TerrainRendererItem::toggle_stop_or_go_layer()
     m_shared_config.m_eaws_stop_or_go_enabled = !m_shared_config.m_eaws_stop_or_go_enabled;
     emit shared_config_changed(m_shared_config);
 }
+
+void TerrainRendererItem::updateEawsReportDate(int day, int month, int year) { std::cout << "\nEAWS DATE: " << day << month << year; }

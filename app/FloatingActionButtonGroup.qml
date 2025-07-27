@@ -248,11 +248,12 @@ ColumnLayout {
                 // Date picker for EAWS Report with confirm button
                 DatePicker {
                     id: date_picker
-                    selectedDate: new Date(2024, 11, 30) //new Date() for today
+                    selectedDate: new Date(2024, 11, 29) //new Date() for today
                     Layout.alignment: Qt.AlignHCenter
                     Layout.preferredWidth:  implicitWidth * Layout.preferredHeight / implicitHeight + 20
                     Layout.preferredHeight: 60
-                    onSelectedDateChanged: {console.log("Selected date:", selectedDate.toString())}
+                    onSelectedDateChanged: {map.updateEawsReportDate(selectedDate.getDate(), selectedDate.getMonth()+1, selectedDate.getYear()+1900)}
+                    // Note: year starts at 1900 and month starts 0
                 }
             }
         }

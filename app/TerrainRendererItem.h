@@ -131,6 +131,7 @@ public slots:
     void toggle_risk_level_layer();
     void toggle_slope_angle_layer();
     void toggle_stop_or_go_layer();
+    void updateEawsReportDate(int day, int month, int year);
 private slots:
     void schedule_update();
     void init_after_creation_slot();
