@@ -17,11 +17,12 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *****************************************************************************/
 
-import QtQuick
+import QtQuick 6.4
 import QtQuick.Controls.Material
 import QtQuick.Layouts
 import app
 import "components"
+import QtQuick.Controls 6.4
 
 ColumnLayout {
     id: fab_group
@@ -242,6 +243,16 @@ ColumnLayout {
                     Layout.preferredHeight: 64
                     fillMode: Image.PreserveAspectFit  // Keep aspect ratio
                     visible: (eaws_report_toggle.checked || risk_level_toggle.checked || slope_angle_toggle.checked || stop_or_go_toggle.checked)
+                }
+
+                // Date picker for EAWS Report with confirm button
+                DatePicker {
+                    id: date_picker
+                    selectedDate: new Date(2024, 11, 30) //new Date() for today
+                    Layout.alignment: Qt.AlignHCenter
+                    Layout.preferredWidth:  implicitWidth * Layout.preferredHeight / implicitHeight + 20
+                    Layout.preferredHeight: 60
+                    onSelectedDateChanged: {console.log("Selected date:", selectedDate.toString())}
                 }
             }
         }
