@@ -50,7 +50,7 @@ void main() {
 
 
     highp uint eawsRegionId = texelFetch(texture_sampler, ivec3(uv * 512, texture_layer_f),0).r;
-    ivec4 report = eaws.reports[0];
+    ivec4 report = eaws.reports[eawsRegionId];
 
     // // debug output regions
     // texout_eaws = vec3(float((eawsRegionId >> 8u) & 255u) / 256.0, float(eawsRegionId & 255u) / 256.0, float((eawsRegionId >> 16u) & 255u) / 256.0);
@@ -124,11 +124,4 @@ void main() {
     else {
         texout_eaws = vec3(1.0, 0.0, 0.5);
     }
-
-    if(report.x ==0)
-        texout_eaws = vec3(1,0,0);
-    if(report.x ==-1)
-        texout_eaws = vec3(0,1,0);
-    if(report.x ==-2)
-        texout_eaws = vec3(0,0,1);
 }

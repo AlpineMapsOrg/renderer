@@ -59,7 +59,7 @@ using RegionTile = std::pair<radix::tile::Id, std::vector<Region>>;
 tl::expected<RegionTile, QString> vector_tile_reader(const QByteArray& input_data, const radix::tile::Id& tile_id);
 
 // This struct contains report data written to ubo on gpu
-struct uboEawsReports {
+struct UboEawsReports {
     glm::ivec4 reports[1000]; // ~600 regions where each region has a forecast of the form: .x: unfavorable .y: border .z: rating below border .a: rating above
 };
 

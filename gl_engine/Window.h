@@ -46,7 +46,7 @@ class QOpenGLVertexArrayObject;
 
 namespace nucleus::avalanche {
 class UIntIdManager;
-struct uboEawsReports;
+struct UboEawsReports;
 } // namespace nucleus::avalanche
 
 namespace gl_engine {
@@ -79,6 +79,7 @@ public slots:
     void shared_config_changed(gl_engine::uboSharedConfig ubo);
     void reload_shader();
     void pick_value(const glm::dvec2& screen_space_coordinates) override;
+    void update_eaws_reports(const nucleus::avalanche::UboEawsReports& uboEawsReports);
 
 signals:
     void timer_measurements_ready(QList<nucleus::timing::TimerReport> values);
@@ -102,7 +103,7 @@ private:
     std::shared_ptr<UniformBuffer<uboSharedConfig>> m_shared_config_ubo; // needs opengl context
     std::shared_ptr<UniformBuffer<uboCameraConfig>> m_camera_config_ubo;
     std::shared_ptr<UniformBuffer<uboShadowConfig>> m_shadow_config_ubo;
-    std::shared_ptr<UniformBuffer<nucleus::avalanche::uboEawsReports>> m_eaws_reports_ubo;
+    std::shared_ptr<UniformBuffer<nucleus::avalanche::UboEawsReports>> m_eaws_reports_ubo;
     helpers::ScreenQuadGeometry m_screen_quad_geometry;
 
     nucleus::camera::Definition m_camera;

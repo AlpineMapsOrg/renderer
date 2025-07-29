@@ -5,11 +5,12 @@
 #include <QJsonObject>
 
 #include <extern/tl_expected/include/tl/expected.hpp>
+#include <nucleus/avalanche/eaws.h>
 #include <unordered_set>
-
 class QNetworkAccessManager;
 
 namespace nucleus::avalanche {
+class UIntIdManager;
 
 // Relevant data from a CAAML json provided by avalanche services
 struct DangerRatingCAAML {
@@ -46,6 +47,7 @@ class ReportLoadService : public QObject {
     Q_OBJECT
 private:
     std::shared_ptr<QNetworkAccessManager> m_network_manager;
+    std::shared_ptr<UIntIdManager> m_uint_id_manager;
 
 public:
     ReportLoadService(); // Constructor creates a new NetworkManager
@@ -54,7 +56,7 @@ public slots:
     void load_from_tu_wien(const QDate& date) const;
 
 signals:
-    void load_from_TU_Wien_finished(tl::expected<std::vector<ReportTUWien>, QString> data_from_server) const;
+    void load_from_TU_Wien_finished(const nucleus::avalanche::UboEawsReports& ubo) const;
 
 public:
     // QNetworkAccessManager m_network_manager;

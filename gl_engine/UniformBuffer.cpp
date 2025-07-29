@@ -90,7 +90,7 @@ template class gl_engine::UniformBuffer<gl_engine::uboSharedConfig>;
 template class gl_engine::UniformBuffer<gl_engine::uboCameraConfig>;
 template class gl_engine::UniformBuffer<gl_engine::uboShadowConfig>;
 template class gl_engine::UniformBuffer<gl_engine::uboTestConfig>;
-template class gl_engine::UniformBuffer<nucleus::avalanche::uboEawsReports>;
+template class gl_engine::UniformBuffer<nucleus::avalanche::UboEawsReports>;
 template class gl_engine::UniformBuffer<std::array<uint8_t, 1024>>;
 template class gl_engine::UniformBuffer<std::array<uint16_t, 1024>>;
 template class gl_engine::UniformBuffer<std::array<uint32_t, 1024>>;

@@ -214,7 +214,7 @@ void Window::initialise_gpu()
     m_shadow_config_ubo->init();
     m_shadow_config_ubo->bind_to_shader(shader_registry->all());
 
-    m_eaws_reports_ubo = std::make_shared<gl_engine::UniformBuffer<nucleus::avalanche::uboEawsReports>>(5, "eaws_reports");
+    m_eaws_reports_ubo = std::make_shared<gl_engine::UniformBuffer<nucleus::avalanche::UboEawsReports>>(5, "eaws_reports");
     m_eaws_reports_ubo->init();
     m_eaws_reports_ubo->bind_to_shader(shader_registry->all());
 
@@ -533,6 +533,13 @@ void Window::pick_value(const glm::dvec2& screen_space_coordinates)
     const auto value
         = nucleus::utils::bit_coding::f8_4_to_u32(m_pickerbuffer->read_colour_attachment_pixel<glm::vec4>(0, m_camera.to_ndc(screen_space_coordinates)));
     emit value_picked(value);
+}
+
+void Window::update_eaws_reports(const nucleus::avalanche::UboEawsReports& newUboEawsReports)
+{
+    assert(m_eaws_reports_ubo);
+    m_eaws_reports_ubo->data = newUboEawsReports;
+    m_eaws_reports_ubo->update_gpu_data();
 }
 
 glm::dvec3 Window::position(const glm::dvec2& normalised_device_coordinates)

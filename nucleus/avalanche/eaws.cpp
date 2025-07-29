@@ -162,22 +162,22 @@ std::vector<QPointF> transform_vertices(const Region& region, const radix::tile:
     return transformed_vertices_as_QPointFs;
 }
 
-// Auxillaryfunctions: Checks if a region is valid for the currently selected eaws report
-bool region_matches_report_date(const Region& region, const QDate& report_date)
+// Auxillary functions: Checks if a region is valid for the currently selected eaws report
+bool region_matches_server_date(const Region& region, const QDate& server_date)
 {
-    // report dates lies before validity range of region >> return false
+    // server dates lies before validity range of region (region too recent) >> return false
     if (region.start_date != std::nullopt) {
-        if (report_date < region.start_date)
+        if (server_date < region.start_date)
             return false;
     }
 
-    // report dates lies after validity range of region >> return false
+    // server dates lies after validity range of region (region outdated) >> return false
     if (region.end_date != std::nullopt) {
-        if (region.end_date < report_date)
+        if (region.end_date < server_date)
             return false;
     }
 
-    // report dates lies inside validity range of region >> return true
+    // server dates lies inside validity range of region >> return true
     return true;
 }
 
@@ -200,8 +200,8 @@ QImage draw_regions(const RegionTile& region_tile,
     assert(region_tile.second.size() > 0);
     radix::tile::Id tile_id_in = region_tile.first;
     for (const auto& region : region_tile.second) {
-        // Only draw regions that match current eaws report
-        if (!region_matches_report_date(region, internal_id_manager.get_date()))
+        // Only draw regions that were valid on 1st July 2024 since these are used on the TU Wie server for the reports.
+        if (!region_matches_server_date(region, QDate(2025, 7, 1)))
             continue;
 
         // Calculate vertex coordinates of region w.r.t. output tile at output resolution

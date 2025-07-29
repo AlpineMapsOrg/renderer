@@ -42,9 +42,6 @@ UIntIdManager::UIntIdManager()
     }
 }
 
-QDate UIntIdManager::get_date() const { return date_of_currently_selected_report; }
-void UIntIdManager::set_date(const QDate& input_date) { date_of_currently_selected_report = input_date; }
-
 uint UIntIdManager::convert_region_id_to_internal_id(const QString& region_id) const
 {
     // If Key exists return its value, otherwise return 0

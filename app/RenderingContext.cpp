@@ -29,6 +29,7 @@
 #include <gl_engine/TextureLayer.h>
 #include <gl_engine/TileGeometry.h>
 #include <nucleus/DataQuerier.h>
+#include <nucleus/avalanche/ReportLoadService.h>
 #include <nucleus/avalanche/Scheduler.h>
 #include <nucleus/avalanche/UIntIdManager.h>
 #include <nucleus/avalanche/eaws.h>
@@ -44,7 +45,6 @@
 #include <nucleus/tile/TileLoadService.h>
 #include <nucleus/tile/setup.h>
 #include <nucleus/utils/thread.h>
-
 using namespace nucleus::tile;
 using namespace nucleus::map_label;
 using namespace nucleus::picker;
@@ -67,6 +67,7 @@ struct RenderingContext::Data {
     std::shared_ptr<nucleus::picker::PickerManager> picker_manager;
     std::shared_ptr<nucleus::tile::utils::AabbDecorator> aabb_decorator;
     std::unique_ptr<nucleus::tile::SchedulerDirector> scheduler_director;
+    std::shared_ptr<nucleus::avalanche::ReportLoadService> eaws_report_load_service;
 };
 
 RenderingContext::RenderingContext(QObject* parent)
@@ -114,12 +115,13 @@ RenderingContext::RenderingContext(QObject* parent)
 
     m->map_label.scheduler->set_geometry_ram_cache(&m->geometry.scheduler->ram_cache());
     m->geometry.scheduler->set_dataquerier(m->data_querier);
-
+    m->eaws_report_load_service = std::make_unique<nucleus::avalanche::ReportLoadService>();
     m->picker_manager = std::make_shared<PickerManager>();
     m->label_filter = std::make_shared<Filter>();
     if (m->scheduler_thread) {
         m->picker_manager->moveToThread(m->scheduler_thread.get());
         m->label_filter->moveToThread(m->scheduler_thread.get());
+        m->eaws_report_load_service->moveToThread(m->scheduler_thread.get());
     }
 
     // clang-format off
@@ -291,4 +293,10 @@ nucleus::avalanche::Scheduler* RenderingContext::eaws_scheduler() const
 {
     QMutexLocker locker(&m->shared_ptr_mutex);
     return m->eaws_texture.scheduler.get();
+}
+
+std::shared_ptr<nucleus::avalanche::ReportLoadService> RenderingContext::eaws_report_load_service() const
+{
+    QMutexLocker locker(&m->shared_ptr_mutex);
+    return m->eaws_report_load_service;
 }

@@ -132,7 +132,6 @@ if (ALP_ENABLE_AVLANCHE_WARNING_LAYER)
             avalanche/UIntIdManager.h avalanche/UIntIdManager.cpp
             avalanche/eaws.h avalanche/eaws.cpp
             avalanche/setup.h
-	    avalanche/AvalancheReportManager.h avalanche/AvalancheReportManager.cpp
     )
     target_link_libraries(nucleus PUBLIC Qt::Gui)
 endif()

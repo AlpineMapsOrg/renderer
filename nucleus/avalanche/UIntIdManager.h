@@ -26,14 +26,11 @@ public:
     bool contains(const QString& region_id) const;
     std::vector<QString> get_all_registered_region_ids() const;
     void load_all_regions_from_server();
-    QDate get_date() const; // returns date_of_currently_selected_report
-    void set_date(const QDate& input_date); // sets date_of_currently_selected_report
 
 private:
     std::unordered_map<QString, uint> region_id_to_internal_id;
     std::unordered_map<uint, QString> internal_id_to_region_id;
     uint max_internal_id = 0;
     const QString m_url_regions = "https://regions.avalanches.org/micro-regions.geojson";
-    QDate date_of_currently_selected_report = QDate(2024, 12, 30); // So far we can only load today's report. Later this date should be set by user
 };
 } // namespace nucleus::avalanche

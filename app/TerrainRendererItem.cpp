@@ -38,6 +38,7 @@
 #include <glm/glm.hpp>
 #include <glm/gtx/string_cast.hpp>
 #include <memory>
+#include <nucleus/avalanche/ReportLoadService.h>
 #include <nucleus/avalanche/Scheduler.h>
 #include <nucleus/camera/Controller.h>
 #include <nucleus/camera/PositionStorage.h>
@@ -155,6 +156,9 @@ QQuickFramebufferObject::Renderer* TerrainRendererItem::createRenderer() const
     connect(this, &TerrainRendererItem::label_filter_changed, ctx->label_filter().get(), &nucleus::map_label::Filter::update_filter);
     connect(ctx->picker_manager().get(), &nucleus::picker::PickerManager::pick_evaluated, this, &TerrainRendererItem::set_picked_feature);
 
+    connect(
+        this, &TerrainRendererItem::eaws_report_date_changed, ctx->eaws_report_load_service().get(), &nucleus::avalanche::ReportLoadService::load_from_tu_wien);
+
 #ifdef ALP_ENABLE_DEV_TOOLS
     connect(r->glWindow(), &gl_engine::Window::timer_measurements_ready, TimerFrontendManager::instance(), &TimerFrontendManager::receive_measurements);
 #endif
@@ -162,7 +166,6 @@ QQuickFramebufferObject::Renderer* TerrainRendererItem::createRenderer() const
     // We now have to initialize everything based on the url, but we need to do this on the thread this instance
     // belongs to. (gui thread?) Therefore we use the following signal to signal the init process
     emit init_after_creation();
-
     return r;
 }
 
@@ -552,4 +555,8 @@ void TerrainRendererItem::toggle_stop_or_go_layer()
     emit shared_config_changed(m_shared_config);
 }
 
-void TerrainRendererItem::updateEawsReportDate(int day, int month, int year) { std::cout << "\nEAWS DATE: " << day << month << year; }
+void TerrainRendererItem::updateEawsReportDate(int day, int month, int year)
+{
+    emit eaws_report_date_changed(QDate(year, month, day));
+    std::cout << "Called updateEawsReprotDate";
+}

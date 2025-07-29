@@ -48,6 +48,7 @@ class AabbDecorator;
 namespace nucleus::avalanche {
 class Scheduler;
 class UIntIdManager;
+class ReportLoadService;
 } // namespace nucleus::avalanche
 
 class RenderingContext : public QObject {
@@ -83,6 +84,7 @@ public:
     [[nodiscard]] nucleus::tile::TextureScheduler* ortho_scheduler() const;
     [[nodiscard]] nucleus::tile::SchedulerDirector* scheduler_director() const;
     [[nodiscard]] nucleus::avalanche::Scheduler* eaws_scheduler() const;
+    [[nodiscard]] std::shared_ptr<nucleus::avalanche::ReportLoadService> eaws_report_load_service() const;
 
 signals:
     void initialised();

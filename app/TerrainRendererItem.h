@@ -85,7 +85,6 @@ signals:
     void shared_config_changed(gl_engine::uboSharedConfig new_shared_config) const;
     void label_filter_changed(const nucleus::map_label::FilterDefinitions label_filter) const;
     void hud_visible_changed(bool new_hud_visible);
-
     void rotation_north_requested();
     void camera_changed();
     void camera_width_changed();
@@ -112,6 +111,8 @@ signals:
     void picked_feature_changed(const nucleus::picker::Feature& picked_feature);
 
     void world_space_cursor_position_changed(const QVector3D& world_space_cursor_position);
+
+    void eaws_report_date_changed(QDate newDate) const; // This is emitted after user picked a date for eaws avalanche report in the gui
 
 protected:
     void touchEvent(QTouchEvent*) override;

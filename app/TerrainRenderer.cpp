@@ -30,6 +30,7 @@
 #include <gl_engine/Context.h>
 #include <gl_engine/Window.h>
 #include <nucleus/EngineContext.h>
+#include <nucleus/avalanche/ReportLoadService.h>
 #include <nucleus/avalanche/Scheduler.h>
 #include <nucleus/avalanche/eaws.h>
 #include <nucleus/camera/Controller.h>
@@ -77,6 +78,12 @@ TerrainRenderer::TerrainRenderer()
 
     m_glWindow->initialise_gpu();
     // ctx->scheduler()->set_enabled(true); // after tile manager moves to ctx.
+
+    m_eaws_report_load_service = ctx->eaws_report_load_service();
+    connect(ctx->eaws_report_load_service().get(),
+        &nucleus::avalanche::ReportLoadService::load_from_TU_Wien_finished,
+        gl_window_ptr,
+        &gl_engine::Window::update_eaws_reports);
 }
 
 TerrainRenderer::~TerrainRenderer() = default;
@@ -150,3 +157,9 @@ gl_engine::Window *TerrainRenderer::glWindow() const
 }
 
 nucleus::camera::Controller* TerrainRenderer::controller() const { return m_camera_controller.get(); }
+
+std::shared_ptr<nucleus::avalanche::ReportLoadService> TerrainRenderer::eaws_report_load_service()
+{
+    assert(m_eaws_report_load_service);
+    return m_eaws_report_load_service;
+}

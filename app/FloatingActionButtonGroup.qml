@@ -137,6 +137,7 @@ ColumnLayout {
         image: _r + "icons/" + (checked ? "material/chevron_left.png": "eaws/eaws_menu.png")
         size: parent.width
         checkable: true
+        onClicked:{map.updateEawsReportDate(date_picker.selectedDate.getDate(), date_picker.selectedDate.getMonth()+1, date_picker.selectedDate.getYear()+1900)}
 
         Rectangle {
             visible: parent.checked
@@ -253,7 +254,7 @@ ColumnLayout {
                     Layout.preferredWidth:  implicitWidth * Layout.preferredHeight / implicitHeight + 20
                     Layout.preferredHeight: 60
                     onSelectedDateChanged: {map.updateEawsReportDate(selectedDate.getDate(), selectedDate.getMonth()+1, selectedDate.getYear()+1900)}
-                    // Note: year starts at 1900 and month starts 0
+                    // Note: year starts at 1900 and month starts at 0
                 }
             }
         }
