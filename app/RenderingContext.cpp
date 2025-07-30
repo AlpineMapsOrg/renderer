@@ -106,7 +106,7 @@ RenderingContext::RenderingContext(QObject* parent)
         m->map_label = nucleus::map_label::setup::scheduler(std::move(map_label_service), m->aabb_decorator, m->data_querier, m->scheduler_thread.get());
         m->scheduler_director->check_in("map_label", m->map_label.scheduler);
         m->eaws_texture = nucleus::avalanche::setup::eaws_texture_scheduler(
-            std::make_unique<TileLoadService>("http://localhost:3000/eaws-regions/", TilePattern::ZXY_yPointingSouth, ""), m->aabb_decorator, m->scheduler_thread.get());
+            std::make_unique<TileLoadService>("https://osm.cg.tuwien.ac.at/vector_tiles/eaws-regions/", TilePattern::ZXY_yPointingSouth, ""), m->aabb_decorator, m->scheduler_thread.get());
         m->scheduler_director->check_in("eaws_regions", m->eaws_texture.scheduler);
         // clang-format on
 
