@@ -253,8 +253,27 @@ ColumnLayout {
                     Layout.alignment: Qt.AlignHCenter
                     Layout.preferredWidth:  implicitWidth * Layout.preferredHeight / implicitHeight + 20
                     Layout.preferredHeight: 60
-                    onSelectedDateChanged: {map.updateEawsReportDate(selectedDate.getDate(), selectedDate.getMonth()+1, selectedDate.getYear()+1900)}
-                    // Note: year starts at 1900 and month starts at 0
+                    onSelectedDateChanged: {map.updateEawsReportDate(selectedDate.getDate(), selectedDate.getMonth()+1, selectedDate.getFullYear())}
+                    // Note: month starts at 0
+                }
+
+                // link to selected date avalanche report
+                Text {
+                    id: externalLink
+                    text: "<a href=\"" + formattedUrl + "\">Open on Avalanche.report</a>"
+                    color: "black"
+                    linkColor: "black"
+                    font.pixelSize: 14
+                    textFormat: Text.RichText
+                    onLinkActivated: function(url) {Qt.openUrlExternally(url)}
+
+                    property string formattedUrl: {
+                        let date = date_picker.selectedDate;
+                        let year = date.getFullYear();
+                        let month = (date.getMonth() + 1).toString().padStart(2, "0");
+                        let day = date.getDate().toString().padStart(2, "0");
+                        return "https://avalanche.report/bulletin/" + year + "-" + month + "-" + day;
+                    }
                 }
             }
         }
