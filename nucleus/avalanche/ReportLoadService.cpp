@@ -21,122 +21,17 @@ nucleus::avalanche::UboEawsReports convertReportsToUbo(
     // Fill array with initial vectors
     std::fill(ubo.reports, ubo.reports + 1000, glm::ivec4(-2, 0, 0, 0));
 
-    // Debug: Example: Report contains region ID AT-02-02-00. List of region only contains AT-02-02-01, AT-02-02-02
-    // The report ending in 00 is thus applied to the offical subregions of AT-02-02;
-    // So far all regions that have this problem were collected in a set. A solution for this problem must be found .
-    std::unordered_set<QString> wrongRegions({ QString("AT-02-01-00"),
-        QString("AT-02-02-00"),
-        QString("AT-02-03-00"),
-        QString("AT-02-04-00"),
-        QString("AT-02-05-00"),
-        QString("AT-02-06-00"),
-        QString("AT-02-07-00"),
-        QString("AT-02-08-00"),
-        QString("AT-02-09-00"),
-        QString("AT-02-10-00"),
-        QString("AT-02-11-00"),
-        QString("AT-02-12-00"),
-        QString("AT-02-13-00"),
-        QString("AT-02-14-00"),
-        QString("AT-02-15-00"),
-        QString("AT-02-16-00"),
-        QString("AT-02-17-00"),
-        QString("AT-02-18-00"),
-        QString("AT-02-19-00"),
-        QString("AT-03-01-00"),
-        QString("AT-03-02-00"),
-        QString("AT-03-03-00"),
-        QString("AT-03-04-00"),
-        QString("AT-03-05-00"),
-        QString("AT-03-06-00"),
-        QString("AT-04-01-00"),
-        QString("AT-04-02-00"),
-        QString("AT-04-03-00"),
-        QString("AT-04-04-00"),
-        QString("AT-04-05-00"),
-        QString("AT-04-06-00"),
-        QString("AT-04-07-00"),
-        QString("AT-04-08-00"),
-        QString("AT-04-09-00"),
-        QString("AT-05-01-00"),
-        QString("AT-05-02-00"),
-        QString("AT-05-03-00"),
-        QString("AT-05-04-00"),
-        QString("AT-05-05-00"),
-        QString("AT-05-06-00"),
-        QString("AT-05-07-00"),
-        QString("AT-05-08-00"),
-        QString("AT-05-09-00"),
-        QString("AT-05-10-00"),
-        QString("AT-05-11-00"),
-        QString("AT-05-12-00"),
-        QString("AT-05-13-00"),
-        QString("AT-05-14-00"),
-        QString("AT-05-15-00"),
-        QString("AT-05-16-00"),
-        QString("AT-05-17-00"),
-        QString("AT-05-18-00"),
-        QString("AT-05-19-00"),
-        QString("AT-05-20-00"),
-        QString("AT-05-21-00"),
-        QString("AT-06-01-00"),
-        QString("AT-06-02-00"),
-        QString("AT-06-03-00"),
-        QString("AT-06-05-00"),
-        QString("AT-06-06-00"),
-        QString("AT-06-07-00"),
-        QString("AT-06-08-00"),
-        QString("AT-06-09-00"),
-        QString("AT-06-10-00"),
-        QString("AT-06-11-00"),
-        QString("AT-06-12-00"),
-        QString("AT-06-13-00"),
-        QString("AT-06-14-00"),
-        QString("AT-06-15-00"),
-        QString("AT-06-16-00"),
-        QString("AT-06-17-00"),
-        QString("AT-06-18-00"),
-        QString("AT-07-01-00"),
-        QString("AT-07-03-00"),
-        QString("AT-07-05-00"),
-        QString("AT-07-06-00"),
-        QString("AT-07-07-00"),
-        QString("AT-07-08-00"),
-        QString("AT-07-09-00"),
-        QString("AT-07-10-00"),
-        QString("AT-07-11-00"),
-        QString("AT-07-12-00"),
-        QString("AT-07-13-00"),
-        QString("AT-07-15-00"),
-        QString("AT-07-16-00"),
-        QString("AT-07-18-00"),
-        QString("AT-07-19-00"),
-        QString("AT-07-20-00"),
-        QString("AT-07-21-00"),
-        QString("AT-07-22-00"),
-        QString("AT-07-23-00"),
-        QString("AT-07-24-00"),
-        QString("AT-07-25-00"),
-        QString("AT-07-26-00"),
-        QString("AT-07-27-00"),
-        QString("AT-07-28-00"),
-        QString("AT-07-29-00"),
-        QString("AT-08-01-00"),
-        QString("AT-08-02-00"),
-        QString("AT-08-04-00"),
-        QString("AT-08-06-00") });
-
     // if reports arrived as expected write them to ubo object
     for (const nucleus::avalanche::ReportTUWien& report : reports) {
 
         // Correct region id if it has invalid format: That means create new sub regions with same forecast
         std::vector<QString> new_region_ids;
-        if (wrongRegions.contains(report.region_id)) {
+        if (report.region_id.endsWith("-00")) {
             // remove last three digits
             QString parent_region_id = report.region_id;
             parent_region_id = parent_region_id.left(parent_region_id.length() - 3);
 
-            // check if report region contains subregions, report then applies for all subregions
+            // check if our map contains subregions of current report region and save these as vector
             uint i = 1;
             QString new_region_id = parent_region_id + QString("-01");
             while (m_uint_id_manager->contains(new_region_id)) {
@@ -145,11 +40,10 @@ nucleus::avalanche::UboEawsReports convertReportsToUbo(
                 new_region_id = i < 10 ? parent_region_id + QString("-0") + QString::number(i) : parent_region_id + QString("-") + QString::number(i);
             }
 
-            // If no children were found use correct region_id
+            // If no subregions of report region were found, use report region
             if (new_region_ids.empty()) {
                 new_region_ids.push_back(parent_region_id);
             }
-
         } else {
             new_region_ids.push_back(report.region_id);
         }
@@ -158,6 +52,9 @@ nucleus::avalanche::UboEawsReports convertReportsToUbo(
         for (QString new_region_id : new_region_ids) {
             uint idx = m_uint_id_manager->convert_region_id_to_internal_id(new_region_id);
             ubo.reports[idx] = glm::ivec4(report.unfavorable, report.border, report.rating_lo, report.rating_hi);
+            if (idx == 0) {
+                std::cout << "error";
+            }
         }
     }
     return ubo;

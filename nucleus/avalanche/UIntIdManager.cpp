@@ -20,6 +20,7 @@ UIntIdManager::UIntIdManager()
 
     // Load names of all eaws regions (past and present) from file where
     // int id is order of listing in file
+    /*
     QString filePath = "app\\app\\eaws\\eawsRegionNames.json";
     QFile file(filePath);
     if (!file.open(QIODevice::ReadOnly | QIODevice::Text)) {
@@ -39,6 +40,60 @@ UIntIdManager::UIntIdManager()
         internal_id_to_region_id[i] = key;
         max_internal_id = i;
         i++;
+    }
+    */
+
+    // Only load regions that match current report server
+    QDate referenceDate(2025, 7, 1);
+
+    // Go through all geojson files with regions for austria
+    for (int x = 2; x <= 8; x++) {
+
+        // Read file
+        QString filePath((std::string("app\\app\\eaws\\AT-0") + std::to_string(x) + std::string("_micro-regions.geojson.json")).c_str());
+        QFile file(filePath);
+        if (!file.open(QIODevice::ReadOnly)) {
+            qWarning() << "Could not open file:" << filePath;
+            return;
+        }
+        QByteArray data = file.readAll();
+
+        // Parse json
+        QJsonParseError parseError;
+        QJsonDocument doc = QJsonDocument::fromJson(data, &parseError);
+        if (parseError.error != QJsonParseError::NoError) {
+            qWarning() << "JSON parse error:" << parseError.errorString();
+            return;
+        }
+
+        // Go through all regions in json and get its id . add id to manager if it was valid a reference date (must be same date as files on server)
+        QJsonObject root = doc.object();
+        QJsonArray features = root["features"].toArray();
+        for (const QJsonValue& featureVal : features) {
+            QJsonObject featureObj = featureVal.toObject();
+            QJsonObject properties = featureObj["properties"].toObject();
+
+            // read id start and end date (if dates exist)
+            QString id = properties["id"].toString();
+            QString startStr = properties.contains("start_date") ? properties["start_date"].toString() : QString();
+            QString endStr = properties.contains("end_date") ? properties["end_date"].toString() : QString();
+
+            // If start date feature did not exist: treat is as very old start date
+            QDate startDate = QDate::fromString(startStr, Qt::ISODate);
+            if (!startDate.isValid()) {
+                startDate = QDate(2000, 1, 1); // Default to very old date
+            }
+
+            // If end date feature does not exist treat it as end date = null which means valid until further notice
+            QDate endDate = QDate::fromString(endStr, Qt::ISODate);
+
+            // Apply filtering: only regions that were valid at reference date are added to our manager
+            if (startDate.isValid() && startDate < referenceDate && (!endDate.isValid() || endDate > referenceDate)) {
+                this->region_id_to_internal_id[id] = region_id_to_internal_id.size();
+                this->internal_id_to_region_id[internal_id_to_region_id.size()] = id;
+                max_internal_id = region_id_to_internal_id.size() - 1;
+            }
+        }
     }
 }
 

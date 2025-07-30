@@ -53,8 +53,8 @@ void main() {
     ivec4 report = eaws.reports[eawsRegionId];
 
     // // debug output regions
-    // texout_eaws = vec3(float((eawsRegionId >> 8u) & 255u) / 256.0, float(eawsRegionId & 255u) / 256.0, float((eawsRegionId >> 16u) & 255u) / 256.0);
-    // return;
+    texout_eaws = vec3(float((eawsRegionId >> 8u) & 255u) / 256.0, float(eawsRegionId & 255u) / 256.0, float((eawsRegionId >> 16u) & 255u) / 256.0);
+    return;
 
     // Get altitude and slope normal
     float frag_height = var_pos_cws.z + camera.position.z;
