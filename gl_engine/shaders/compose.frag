@@ -152,10 +152,14 @@ highp float csm_shadow_term(highp vec4 pos_cws, highp vec3 normal_ws, out lowp i
 
 void main() {
     lowp vec3 albedo = texture(texin_albedo, texcoords).rgb;
-    lowp vec3 eaws_color = texture(texin_eaws, texcoords).rgb;
-    if(eaws_color.r > 0 || eaws_color.g > 0 || eaws_color.b > 0)
+
+    if(bool(conf.eaws_danger_rating_enabled) || bool(conf.eaws_risk_level_enabled)|| bool(conf.eaws_slope_angle_enabled) || bool(conf.eaws_stop_or_go_enabled))
     {
-        albedo = 0.5 * albedo + 0.5 * eaws_color;
+        lowp vec3 eaws_color = texture(texin_eaws, texcoords).rgb;
+        if(eaws_color.r > 0 || eaws_color.g > 0 || eaws_color.b > 0)
+        {
+            albedo = 0.5 * albedo + 0.5 * eaws_color;
+        }
     }
     highp vec4 pos_dist = texture(texin_position, texcoords);
     highp vec3 pos_cws = pos_dist.xyz;

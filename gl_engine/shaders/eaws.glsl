@@ -21,6 +21,9 @@ layout (std140) uniform eaws_reports {
     ivec4 reports[1000];
 } eaws;
 
+// Color for areas where no report is available
+vec3 color_no_report_available = vec3(.5f,.5f,.5f);
+
 vec3 color_from_eaws_danger_rating(int rating)
 {
     if(1 == rating) return vec3(0.f,1.f,0.f);      // green        for 1 = low
@@ -28,7 +31,7 @@ vec3 color_from_eaws_danger_rating(int rating)
     if(3 == rating) return vec3(1.f,0.53f,0.f);    // orange       for 3 = considerable
     if(4 == rating) return vec3(1.f,0.f,0.f);      // red          for 4 = high
     if(5 == rating) return vec3(0.5333f,0.f,0.f);  // dark red     for 5 = extreme
-    return(vec3(0.f,0.f,0.f));                     // white        for     undefined cases
+    return(color_no_report_available);             // grey         for undefined cases
 }
 
 vec3 snowCardLevel[6] = vec3[6](

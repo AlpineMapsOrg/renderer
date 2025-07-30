@@ -124,6 +124,7 @@ void main() {
         }
     }
     else {
-        texout_eaws = vec3(1.0, 0.0, 0.5);
+        // This color is defined in eaws.glsl (grey)
+        texout_eaws = color_no_report_available;
     }
 }

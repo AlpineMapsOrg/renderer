@@ -19,7 +19,7 @@ nucleus::avalanche::UboEawsReports convertReportsToUbo(
     UboEawsReports& ubo, const std::vector<ReportTUWien>& reports, std::shared_ptr<UIntIdManager> m_uint_id_manager)
 {
     // Fill array with initial vectors
-    std::fill(ubo.reports, ubo.reports + 1000, glm::ivec4(-2, 0, 0, 0));
+    std::fill(ubo.reports, ubo.reports + 1000, glm::ivec4(-1, 0, 0, 0));
 
     // if reports arrived as expected write them to ubo object
     for (const nucleus::avalanche::ReportTUWien& report : reports) {
@@ -52,9 +52,6 @@ nucleus::avalanche::UboEawsReports convertReportsToUbo(
         for (QString new_region_id : new_region_ids) {
             uint idx = m_uint_id_manager->convert_region_id_to_internal_id(new_region_id);
             ubo.reports[idx] = glm::ivec4(report.unfavorable, report.border, report.rating_lo, report.rating_hi);
-            if (idx == 0) {
-                std::cout << "error";
-            }
         }
     }
     return ubo;
