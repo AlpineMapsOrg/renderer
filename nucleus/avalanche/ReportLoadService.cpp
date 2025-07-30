@@ -98,15 +98,6 @@ void ReportLoadService::load_from_tu_wien(const QDate& date) const
         // Read the response data
         QByteArray data = reply->readAll();
 
-        /*
-        ////////////////////////////////////////////////////////////////////////////////
-        QFile file("app/app/eaws/report_tu_wien.json");
-        if (!file.open(QIODevice::ReadOnly)) {
-            qWarning("Couldn't open file.");
-        }
-        QByteArray data = file.readAll();
-        ///////////////////////////////////////////////////////////////////////////////////
-        */
         // Convert data to Json
         QJsonParseError parse_error;
         QJsonDocument json_document = QJsonDocument::fromJson(data, &parse_error);
