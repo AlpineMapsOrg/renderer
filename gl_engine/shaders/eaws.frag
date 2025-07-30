@@ -114,9 +114,11 @@ void main() {
                 texout_eaws = mix(colorLo, colorHi, a); // color_from_snowCard_risk_parameters(int eaws_danger_rating, int slope_angle_in_deg, bool unfavorable)
             }
         }
+
+        //if Stop or GO Layer activated
         else if(bool(conf.eaws_stop_or_go_enabled))
         {
-            // Get eaws danger rating from gragment altitude
+            // Get eaws danger rating from fragment altitude
             int eaws_danger_rating = frag_height >= float(bound)? ratingHi: ratingLo;
             texout_eaws = color_from_stop_or_go(fragNormal, eaws_danger_rating);
         }
