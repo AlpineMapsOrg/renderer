@@ -71,7 +71,7 @@ void ReportLoadService::load_from_tu_wien(const QDate& date) const
     std::fill(ubo.reports, ubo.reports + 1000, glm::ivec4(-1, 0, 0, 0));
 
     QString date_string = date.toString("yyyy-MM-dd");
-    QUrl qurl(QString("https://alpinemaps.cg.tuwien.ac.at/avalanche-reports/get-current-report?date=" + date_string));
+    QUrl qurl(QString("https://alpinemaps.cg.tuwien.ac.at/avalanche-reports-v2/get-current-report?date=" + date_string));
     QNetworkRequest request(qurl);
     request.setTransferTimeout(int(8000));
     request.setAttribute(QNetworkRequest::CacheLoadControlAttribute, QNetworkRequest::PreferCache);
