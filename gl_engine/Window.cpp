@@ -356,8 +356,8 @@ void Window::paint(QOpenGLFramebufferObject* framebuffer)
     m_timer->start_timer("tiles");
     m_context->ortho_layer()->draw(*m_context->tile_geometry(), m_camera, culled_draw_list);
 
-    if (m_shared_config_ubo->data.m_eaws_danger_rating_enabled || m_shared_config_ubo->data.m_eaws_risk_level_enabled || m_shared_config_ubo->data.m_eaws_slope_angle_enabled
-        || m_shared_config_ubo->data.m_eaws_stop_or_go_enabled) {
+    if (m_shared_config_ubo->data.m_eaws_danger_rating_enabled || m_shared_config_ubo->data.m_eaws_risk_level_enabled
+        || m_shared_config_ubo->data.m_eaws_slope_angle_enabled || m_shared_config_ubo->data.m_eaws_stop_or_go_enabled) {
         f->glClear(GL_DEPTH_BUFFER_BIT);
         m_context->eaws_layer()->draw(*m_context->tile_geometry(), m_camera, culled_draw_list);
     }
@@ -540,6 +540,7 @@ void Window::update_eaws_reports(const nucleus::avalanche::UboEawsReports& newUb
     assert(m_eaws_reports_ubo);
     m_eaws_reports_ubo->data = newUboEawsReports;
     m_eaws_reports_ubo->update_gpu_data();
+    emit update_requested();
 }
 
 glm::dvec3 Window::position(const glm::dvec2& normalised_device_coordinates)
