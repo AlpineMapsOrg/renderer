@@ -558,5 +558,4 @@ void TerrainRendererItem::toggle_stop_or_go_layer()
 void TerrainRendererItem::updateEawsReportDate(int day, int month, int year)
 {
     emit eaws_report_date_changed(QDate(year, month, day));
-    std::cout << "Called updateEawsReprotDate";
 }

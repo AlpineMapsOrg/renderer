@@ -137,7 +137,7 @@ ColumnLayout {
         image: _r + "icons/" + (checked ? "material/chevron_left.png": "eaws/eaws_menu.png")
         size: parent.width
         checkable: true
-        onClicked:{map.updateEawsReportDate(date_picker.selectedDate.getDate(), date_picker.selectedDate.getMonth()+1, date_picker.selectedDate.getYear()+1900)}
+        onClicked:{map.updateEawsReportDate(date_input_field.selectedDate.getDate(), date_input_field.selectedDate.getMonth()+1, date_input_field.selectedDate.getFullYear())}
 
         Rectangle {
             visible: parent.checked
@@ -246,7 +246,44 @@ ColumnLayout {
                     visible: (eaws_report_toggle.checked || risk_level_toggle.checked || slope_angle_toggle.checked || stop_or_go_toggle.checked)
                 }
 
-                // Date picker for EAWS Report with confirm button
+                // Textfield for manual selection of report date
+                TextField {
+                    function dateToString(date) {
+                        let year = date.getFullYear()
+                        let month = (date.getMonth() + 1).toString().padStart(2, "0")
+                        let day = date.getDate().toString().padStart(2, "0")
+                        return year + "-" + month + "-" + day
+                    }
+                    id: date_input_field
+                    placeholderText: "YYYY-MM-DD"
+                    property date selectedDate: new Date()
+                    text: dateToString(new Date())
+                    width: 300
+                    height: 32
+                    onAccepted: {
+                        let parts = text.split("-")  // assuming format "YYYY-MM-DD"
+                        let y = parseInt(parts[0])
+                        let m = parseInt(parts[1]) - 1  // JavaScript months are 0-based
+                        let d = parseInt(parts[2])
+                        var newDate = new Date(y,m,d)
+                        if (!isNaN(newDate))
+                        {
+                            /// Date has valid format , update accordingly
+                            selectedDate = newDate
+                            map.updateEawsReportDate(selectedDate.getDate(), selectedDate.getMonth()+1, selectedDate.getFullYear())
+
+                        }
+                        else
+                        {
+                            // entered date has invalid format, display previous date again
+                            text = dateToString(selectedDate)
+                        }
+
+                    }
+                }
+
+                //Alternative Date picker for EAWS Report. Does not let me change month or year
+                /*
                 DatePicker {
                     id: date_picker
                     selectedDate: new Date(2024, 11, 29) //new Date() for today
@@ -256,6 +293,7 @@ ColumnLayout {
                     onSelectedDateChanged: {map.updateEawsReportDate(selectedDate.getDate(), selectedDate.getMonth()+1, selectedDate.getFullYear())}
                     // Note: month starts at 0
                 }
+                */
 
                 // link to selected date avalanche report
                 Text {
@@ -268,7 +306,7 @@ ColumnLayout {
                     onLinkActivated: function(url) {Qt.openUrlExternally(url)}
 
                     property string formattedUrl: {
-                        let date = date_picker.selectedDate;
+                        let date = date_input_field.selectedDate;
                         let year = date.getFullYear();
                         let month = (date.getMonth() + 1).toString().padStart(2, "0");
                         let day = date.getDate().toString().padStart(2, "0");
