@@ -241,7 +241,7 @@ ColumnLayout {
                 Image{
                     id: banner_image
                     Layout.preferredWidth: implicitWidth * Layout.preferredHeight / implicitHeight + 20
-                    Layout.preferredHeight: 64
+                    Layout.preferredHeight: 60
                     fillMode: Image.PreserveAspectFit  // Keep aspect ratio
                     visible: (eaws_report_toggle.checked || risk_level_toggle.checked || slope_angle_toggle.checked || stop_or_go_toggle.checked)
                 }
@@ -260,6 +260,8 @@ ColumnLayout {
                     text: dateToString(new Date())
                     width: 300
                     height: 32
+                    Layout.preferredHeight: 32
+                    Layout.preferredWidth: 128
                     onAccepted: {
                         let parts = text.split("-")  // assuming format "YYYY-MM-DD"
                         let y = parseInt(parts[0])
@@ -278,8 +280,10 @@ ColumnLayout {
                             // entered date has invalid format, display previous date again
                             text = dateToString(selectedDate)
                         }
-
                     }
+
+                    ToolTip.visible: hovered
+                    ToolTip.text: qsTr("Avalanche report date must have format YYYY-MM-DD. Press Enter to confirm")
                 }
 
                 //Alternative Date picker for EAWS Report. Does not let me change month or year
@@ -298,13 +302,12 @@ ColumnLayout {
                 // link to selected date avalanche report
                 Text {
                     id: externalLink
-                    text: "<a href=\"" + formattedUrl + "\">Open on Avalanche.report</a>"
+                    text: "<a href=\"" + formattedUrl + "\">  Open on Avalanche.report   </a>"
                     color: "black"
                     linkColor: "black"
                     font.pixelSize: 14
                     textFormat: Text.RichText
                     onLinkActivated: function(url) {Qt.openUrlExternally(url)}
-
                     property string formattedUrl: {
                         let date = date_input_field.selectedDate;
                         let year = date.getFullYear();
