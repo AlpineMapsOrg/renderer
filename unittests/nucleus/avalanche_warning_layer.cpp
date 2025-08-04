@@ -209,18 +209,25 @@ TEST_CASE("nucleus/EAWS Vector Tiles")
 
 TEST_CASE("nucleus/EAWS Reports")
 {
+    // Load id of region we will test for correct avalanche report
+    nucleus::avalanche::UIntIdManager id_manager;
+    CHECK(1 == id_manager.convert_region_id_to_internal_id(QString("AT-02-15")));
+
+    // Create Report Load Service and let it load a reference report
     nucleus::avalanche::ReportLoadService reportLoadService;
     QSignalSpy spy(&reportLoadService, &nucleus::avalanche::ReportLoadService::load_from_TU_Wien_finished);
     reportLoadService.load_from_tu_wien(QDate(2025, 1, 1));
-
     spy.wait(10000);
     REQUIRE(spy.count() == 1);
     QList<QVariant> arguments = spy.takeFirst();
     REQUIRE(arguments.size() == 1);
     tl::expected<std::vector<nucleus::avalanche::ReportTUWien>, QString> result
         = qvariant_cast<tl::expected<std::vector<nucleus::avalanche::ReportTUWien>, QString>>(arguments.at(0));
+    CHECK(result.has_value());
     if (result.has_value()) {
         nucleus::avalanche::UboEawsReports ubo = arguments.at(0).value<nucleus::avalanche::UboEawsReports>();
         CHECK(ubo.reports[0].x == -1);
+        CHECK(ubo.reports[999].x == -1);
+        CHECK((ubo.reports[1].x == 0 && ubo.reports[1].y == 1800 && ubo.reports[1].z == 1 && ubo.reports[1].w == 1));
     }
 }
