@@ -211,12 +211,7 @@ nucleus::Raster<uint16_t> rasterize_regions(const RegionTile& region_tile,
     // Draw region ids to image, if all pixel have same value return one pixel with this value
     const QImage img = draw_regions(region_tile, internal_id_manager, raster_width, raster_height, tile_id_out);
     const auto raster = nucleus::tile::conversion::qimage_to_u16raster(img);
-    const auto first_pixel = raster.pixel({ 0, 0 });
-    for (auto p : raster) {
-        if (p != first_pixel)
-            return raster;
-    }
-    return nucleus::Raster<uint16_t>({ 1, 1 }, first_pixel);
+    return raster;
 }
 
 nucleus::Raster<uint16_t> rasterize_regions(const RegionTile& region_tile, const UIntIdManager& internal_id_manager)

@@ -202,10 +202,8 @@ TEST_CASE("nucleus/EAWS Vector Tiles")
         }
 
         // Check if tile that has only region NO-3035 in it produces a 1x1 raster with the corresponding internal region id
-        const auto raster_with_one_pixel = nucleus::avalanche::rasterize_regions(region_tile_10_236_299, internal_id_manager);
-        CHECK((1 == raster_with_one_pixel.width() && 1 == raster_with_one_pixel.width()));
-        CHECK((1 == raster_with_one_pixel.width() && 1 == raster_with_one_pixel.height()));
-        CHECK(internal_id_manager.convert_region_id_to_internal_id("NO-3035") == raster_with_one_pixel.pixel(glm::uvec2(0, 0)));
+        const auto raster_NO3035 = nucleus::avalanche::rasterize_regions(region_tile_10_236_299, internal_id_manager);
+        CHECK(internal_id_manager.convert_region_id_to_internal_id("NO-3035") == raster_NO3035.pixel(glm::uvec2(0, 0)));
     }
 }
 
@@ -213,17 +211,16 @@ TEST_CASE("nucleus/EAWS Reports")
 {
     nucleus::avalanche::ReportLoadService reportLoadService;
     QSignalSpy spy(&reportLoadService, &nucleus::avalanche::ReportLoadService::load_from_TU_Wien_finished);
-    reportLoadService.load_from_tu_wien(QDate::currentDate());
+    reportLoadService.load_from_tu_wien(QDate(2025, 1, 1));
 
     spy.wait(10000);
     REQUIRE(spy.count() == 1);
     QList<QVariant> arguments = spy.takeFirst();
+    REQUIRE(arguments.size() == 1);
     tl::expected<std::vector<nucleus::avalanche::ReportTUWien>, QString> result
         = qvariant_cast<tl::expected<std::vector<nucleus::avalanche::ReportTUWien>, QString>>(arguments.at(0));
     if (result.has_value()) {
-        std::vector<nucleus::avalanche::ReportTUWien> report = arguments.at(0).value<std::vector<nucleus::avalanche::ReportTUWien>>();
-        CHECK(report.size() > 0);
-    } else {
-        std::cout << "\n##############\n##############\n##############\n##############" << result.error().toStdString();
+        nucleus::avalanche::UboEawsReports ubo = arguments.at(0).value<nucleus::avalanche::UboEawsReports>();
+        CHECK(ubo.reports[0].x == -1);
     }
 }
