@@ -77,6 +77,11 @@ qt_add_resources(unittests_nucleus "test_data"
     data/quad/7_69_82.jpg
     data/quad/7_69_83.jpg
     data/quad/merged.jpg
+    data/eaws_6-33-22.mvt
+    data/eaws_7-66-44.mvt
+    data/eaws_7-66-45.mvt
+    data/eaws_7-67-44.mvt
+    data/eaws_7-67-45.mvt
 )
 target_link_libraries(unittests_nucleus PUBLIC nucleus Catch2::Catch2 Qt::Test Qt::Gui)
 target_compile_definitions(unittests_nucleus PUBLIC "ALP_TEST_DATA_DIR=\":/test_data/\"")

@@ -17,13 +17,20 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *****************************************************************************/
 
+#include "test_helpers.h"
 #include <QFile>
 #include <QSignalSpy>
 #include <catch2/catch_test_macros.hpp>
 #include <extern/radix/src/radix/tile.h>
 #include <nucleus/avalanche/ReportLoadService.h>
+#include <nucleus/avalanche/Scheduler.h>
 #include <nucleus/avalanche/UIntIdManager.h>
 #include <nucleus/avalanche/eaws.h>
+#include <nucleus/tile/Scheduler.h>
+#include <nucleus/tile/conversion.h>
+#include <nucleus/tile/types.h>
+#include <nucleus/tile/utils.h>
+#include <nucleus/utils/image_loader.h>
 
 TEST_CASE("nucleus/EAWS Vector Tiles")
 {
@@ -207,7 +214,7 @@ TEST_CASE("nucleus/EAWS Vector Tiles")
     }
 }
 
-TEST_CASE("nucleus/EAWS Reports")
+TEST_CASE("nucleus/avalanche/ReportLoadService")
 {
     // Load id of region we will test for correct avalanche report
     nucleus::avalanche::UIntIdManager id_manager;
@@ -229,5 +236,123 @@ TEST_CASE("nucleus/EAWS Reports")
         CHECK(ubo.reports[0].x == -1);
         CHECK(ubo.reports[999].x == -1);
         CHECK((ubo.reports[1].x == 0 && ubo.reports[1].y == 1800 && ubo.reports[1].z == 1 && ubo.reports[1].w == 1));
+    }
+}
+
+#include <QImage>
+#include <QPainter>
+
+QImage combineImages(const QImage& topLeft, const QImage& topRight, const QImage& bottomLeft, const QImage& bottomRight)
+{
+    // Create a new 512x512 image with the same format as the first image
+    QImage result(512, 512, topLeft.format());
+
+    // Painter to draw on the result image
+    QPainter painter(&result);
+
+    // Draw each image in its respective quadrant
+    painter.drawImage(0, 0, topLeft);
+    painter.drawImage(256, 0, topRight);
+    painter.drawImage(0, 256, bottomLeft);
+    painter.drawImage(256, 256, bottomRight);
+
+    painter.end(); // End painting
+
+    return result;
+}
+
+QByteArray load_raw_data_from_file(const std::string& test_file_name)
+{
+    QString filepath = QString("%1%2").arg(ALP_TEST_DATA_DIR, test_file_name.c_str());
+    QFile file(filepath);
+    CHECK(file.exists());
+    CHECK(file.size() > 0);
+    file.open(QIODevice::ReadOnly | QIODevice::Unbuffered);
+    QByteArray raw_data = file.readAll();
+    file.close();
+    return raw_data;
+}
+
+std::pair<QByteArray, nucleus::avalanche::RegionTile> load_tile_from_file(const std::string& test_file_name, const radix::tile::Id& tile_id)
+{
+    QByteArray test_data = load_raw_data_from_file(test_file_name);
+    CHECK(test_data.size() > 0);
+    tl::expected<nucleus::avalanche::RegionTile, QString> result = nucleus::avalanche::vector_tile_reader(test_data, tile_id);
+    CHECK(result.has_value());
+    nucleus::avalanche::RegionTile region_tile = result.value();
+    return std::pair<QByteArray, nucleus::avalanche::RegionTile>(test_data, region_tile);
+}
+
+void rasterize_test_quad(const nucleus::avalanche::UIntIdManager& internal_id_manager)
+{
+    nucleus::tile::DataQuad quad;
+    quad.id = radix::tile::Id { 6, { 33, 22 } };
+    /*
+    std::vector<radix::tile::Id> tile_ids({ radix::tile::Id(0, glm::uvec2(0, 0), radix::tile::Scheme::SlippyMap),
+        radix::tile::Id(7, glm::uvec2(66, 44), radix::tile::Scheme::SlippyMap),
+        radix::tile::Id(0, glm::uvec2(67, 44), radix::tile::Scheme::SlippyMap),
+        radix::tile::Id(0, glm::uvec2(66, 45), radix::tile::Scheme::SlippyMap),
+        radix::tile::Id(0, glm::uvec2(67, 45), radix::tile::Scheme::SlippyMap) });
+*/
+
+    std::vector<nucleus::avalanche::RegionTile> tiles;
+    std::vector<nucleus::Raster<uint16_t>> rasters;
+    rasters.reserve(4);
+
+    // Build Quad and save its tiles as raster
+    int idx = 1;
+    for (radix::tile::Id tile_id : quad.id.children()) {
+        quad.tiles[idx].id = tile_id;
+        QString file_name = QString("eaws_%1_%2_%3.mvt").arg(tile_id.zoom_level).arg(tile_id.coords.x).arg(tile_id.coords.y);
+        std::pair<QByteArray, nucleus::avalanche::RegionTile> data_and_tile = load_tile_from_file(file_name.toStdString(), tile_id);
+        rasters.push_back(rasterize_regions(data_and_tile.second, internal_id_manager));
+        quad.tiles[idx].data = std::make_shared<QByteArray>(std::move(data_and_tile.first));
+        quad.tiles[idx].network_info = { nucleus::tile::NetworkInfo::Status::Good, 12345 };
+        idx = (idx + 1) % 4;
+    }
+    quad.n_tiles = 4;
+}
+
+TEST_CASE("nucleus/avalanche/Scheduler")
+{
+    SECTION("to_raster")
+    {
+        // Build Quad and save its tiles as raster
+        nucleus::avalanche::UIntIdManager id_manager;
+        nucleus::tile::DataQuad quad;
+        quad.id = radix::tile::Id { 6, { 33, 22 } };
+        std::vector<nucleus::avalanche::RegionTile> tiles;
+        std::vector<nucleus::Raster<uint16_t>> rasters;
+        rasters.reserve(4);
+        unsigned int idx = 1;
+        for (radix::tile::Id tile_id : quad.id.children()) {
+            quad.tiles[idx].id = tile_id;
+            QString file_name = QString("eaws_%1-%2-%3.mvt").arg(tile_id.zoom_level).arg(tile_id.coords.x).arg(tile_id.coords.y);
+            std::pair<QByteArray, nucleus::avalanche::RegionTile> data_and_tile = load_tile_from_file(file_name.toStdString(), tile_id);
+            rasters.push_back(rasterize_regions(data_and_tile.second, id_manager, 256, 256, data_and_tile.second.first));
+
+            quad.tiles[idx].data = std::make_shared<QByteArray>(std::move(data_and_tile.first));
+            quad.tiles[idx].network_info = { nucleus::tile::NetworkInfo::Status::Good, 12345 };
+            idx = (idx + 1) % 4;
+        }
+        quad.n_tiles = 4;
+
+        // use "to_raster" on quad and compare result to previously loaded tile rasters
+        nucleus::Raster<glm::uint16> default_raster(glm::uvec2(256, 256), glm::uint16 { 255 });
+        const auto joined = nucleus::avalanche::Scheduler::to_raster(quad, default_raster, id_manager);
+        REQUIRE(joined.width() == 512);
+        REQUIRE(joined.height() == 512);
+        for (int i = 0; i < 4; i++) {
+            REQUIRE(rasters[i].width() == 256);
+            REQUIRE(rasters[i].height() == 256);
+        }
+        CHECK(joined.pixel(glm::uvec2(0, 0)) == rasters[0].pixel(glm::uvec2(0, 0)));
+        CHECK(joined.pixel(glm::uvec2(255, 0)) == rasters[0].pixel(glm::uvec2(255, 0)));
+        CHECK(joined.pixel(glm::uvec2(256, 0)) == rasters[1].pixel(glm::uvec2(0, 0)));
+        CHECK(joined.pixel(glm::uvec2(510, 0)) == rasters[1].pixel(glm::uvec2(255, 0)));
+        CHECK(joined.pixel(glm::uvec2(0, 255)) == rasters[2].pixel(glm::uvec2(0, 0)));
+        CHECK(joined.pixel(glm::uvec2(255, 255)) == rasters[2].pixel(glm::uvec2(255, 0)));
+        CHECK(joined.pixel(glm::uvec2(256, 255)) == rasters[3].pixel(glm::uvec2(0, 0)));
+        CHECK(joined.pixel(glm::uvec2(511, 255)) == rasters[3].pixel(glm::uvec2(255, 255)));
     }
 }
