@@ -218,6 +218,7 @@ TEST_CASE("nucleus/avalanche/ReportLoadService")
 {
     // Load id of region we will test for correct avalanche report
     nucleus::avalanche::UIntIdManager id_manager;
+    CHECK(126 == id_manager.get_all_registered_region_ids().size());
     CHECK(1 == id_manager.convert_region_id_to_internal_id(QString("AT-02-15")));
 
     // Create Report Load Service and let it load a reference report
@@ -235,7 +236,10 @@ TEST_CASE("nucleus/avalanche/ReportLoadService")
         nucleus::avalanche::UboEawsReports ubo = arguments.at(0).value<nucleus::avalanche::UboEawsReports>();
         CHECK(ubo.reports[0].x == -1);
         CHECK(ubo.reports[999].x == -1);
-        CHECK((ubo.reports[1].x == 0 && ubo.reports[1].y == 1800 && ubo.reports[1].z == 1 && ubo.reports[1].w == 1));
+        CHECK(ubo.reports[1].x == 0);
+        CHECK(ubo.reports[1].y == 1800);
+        CHECK(ubo.reports[1].z == 1);
+        CHECK(ubo.reports[1].w == 1);
     }
 }
 
@@ -313,6 +317,22 @@ void rasterize_test_quad(const nucleus::avalanche::UIntIdManager& internal_id_ma
     quad.n_tiles = 4;
 }
 
+void saveAsPNG(nucleus::Raster<glm::uint16> raster, QString file)
+{
+    QImage img(raster.width(), raster.width(), QImage::Format_Grayscale16);
+    for (uint y = 0; y < raster.height(); ++y) {
+        const uint16_t* row = raster.data() + y * raster.width();
+        uchar* scan = img.scanLine(y);
+        for (uint x = 0; x < raster.width(); ++x) {
+            uint16_t v = row[x];
+            // QImage::Format_Grayscale16 expects MSB first:
+            scan[2 * x + 0] = static_cast<uchar>((v >> 8) & 0xFF);
+            scan[2 * x + 1] = static_cast<uchar>(v & 0xFF);
+        }
+    }
+    img.save(file);
+}
+
 TEST_CASE("nucleus/avalanche/Scheduler")
 {
     SECTION("to_raster")
@@ -320,7 +340,7 @@ TEST_CASE("nucleus/avalanche/Scheduler")
         // Build Quad and save its tiles as raster
         nucleus::avalanche::UIntIdManager id_manager;
         nucleus::tile::DataQuad quad;
-        quad.id = radix::tile::Id { 6, { 33, 22 } };
+        quad.id = radix::tile::Id { 6, { 33, 22 }, radix::tile::Scheme::SlippyMap };
         std::vector<nucleus::avalanche::RegionTile> tiles;
         std::vector<nucleus::Raster<uint16_t>> rasters;
         rasters.reserve(4);
@@ -349,10 +369,10 @@ TEST_CASE("nucleus/avalanche/Scheduler")
         CHECK(joined.pixel(glm::uvec2(0, 0)) == rasters[0].pixel(glm::uvec2(0, 0)));
         CHECK(joined.pixel(glm::uvec2(255, 0)) == rasters[0].pixel(glm::uvec2(255, 0)));
         CHECK(joined.pixel(glm::uvec2(256, 0)) == rasters[1].pixel(glm::uvec2(0, 0)));
-        CHECK(joined.pixel(glm::uvec2(510, 0)) == rasters[1].pixel(glm::uvec2(255, 0)));
+        CHECK(joined.pixel(glm::uvec2(511, 0)) == rasters[1].pixel(glm::uvec2(255, 0)));
         CHECK(joined.pixel(glm::uvec2(0, 255)) == rasters[2].pixel(glm::uvec2(0, 0)));
         CHECK(joined.pixel(glm::uvec2(255, 255)) == rasters[2].pixel(glm::uvec2(255, 0)));
         CHECK(joined.pixel(glm::uvec2(256, 255)) == rasters[3].pixel(glm::uvec2(0, 0)));
-        CHECK(joined.pixel(glm::uvec2(511, 255)) == rasters[3].pixel(glm::uvec2(255, 255)));
+        CHECK(joined.pixel(glm::uvec2(511, 511)) == rasters[3].pixel(glm::uvec2(255, 255)));
     }
 }
