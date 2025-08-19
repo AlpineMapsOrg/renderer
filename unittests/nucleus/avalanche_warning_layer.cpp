@@ -129,6 +129,7 @@ TEST_CASE("nucleus/EAWS Vector Tiles")
 
         // Create internal id manager that is later needed to write region ids to image pixels
         nucleus::avalanche::UIntIdManager internal_id_manager;
+        CHECK(internal_id_manager.get_all_registered_region_ids().size() == 126);
         CHECK(internal_id_manager.convert_region_id_to_internal_id("") == 0);
         std::vector<QString> all_region_Ids = internal_id_manager.get_all_registered_region_ids();
         bool internal_maps_match = true;
@@ -220,7 +221,6 @@ TEST_CASE("nucleus/avalanche/ReportLoadService")
     nucleus::avalanche::UIntIdManager id_manager;
     CHECK(126 == id_manager.get_all_registered_region_ids().size());
     CHECK(1 == id_manager.convert_region_id_to_internal_id(QString("AT-02-15")));
-
     // Create Report Load Service and let it load a reference report
     nucleus::avalanche::ReportLoadService reportLoadService;
     QSignalSpy spy(&reportLoadService, &nucleus::avalanche::ReportLoadService::load_from_TU_Wien_finished);
@@ -245,26 +245,6 @@ TEST_CASE("nucleus/avalanche/ReportLoadService")
 
 #include <QImage>
 #include <QPainter>
-
-QImage combineImages(const QImage& topLeft, const QImage& topRight, const QImage& bottomLeft, const QImage& bottomRight)
-{
-    // Create a new 512x512 image with the same format as the first image
-    QImage result(512, 512, topLeft.format());
-
-    // Painter to draw on the result image
-    QPainter painter(&result);
-
-    // Draw each image in its respective quadrant
-    painter.drawImage(0, 0, topLeft);
-    painter.drawImage(256, 0, topRight);
-    painter.drawImage(0, 256, bottomLeft);
-    painter.drawImage(256, 256, bottomRight);
-
-    painter.end(); // End painting
-
-    return result;
-}
-
 QByteArray load_raw_data_from_file(const std::string& test_file_name)
 {
     QString filepath = QString("%1%2").arg(ALP_TEST_DATA_DIR, test_file_name.c_str());
@@ -287,58 +267,13 @@ std::pair<QByteArray, nucleus::avalanche::RegionTile> load_tile_from_file(const 
     return std::pair<QByteArray, nucleus::avalanche::RegionTile>(test_data, region_tile);
 }
 
-void rasterize_test_quad(const nucleus::avalanche::UIntIdManager& internal_id_manager)
-{
-    nucleus::tile::DataQuad quad;
-    quad.id = radix::tile::Id { 6, { 33, 22 } };
-    /*
-    std::vector<radix::tile::Id> tile_ids({ radix::tile::Id(0, glm::uvec2(0, 0), radix::tile::Scheme::SlippyMap),
-        radix::tile::Id(7, glm::uvec2(66, 44), radix::tile::Scheme::SlippyMap),
-        radix::tile::Id(0, glm::uvec2(67, 44), radix::tile::Scheme::SlippyMap),
-        radix::tile::Id(0, glm::uvec2(66, 45), radix::tile::Scheme::SlippyMap),
-        radix::tile::Id(0, glm::uvec2(67, 45), radix::tile::Scheme::SlippyMap) });
-*/
-
-    std::vector<nucleus::avalanche::RegionTile> tiles;
-    std::vector<nucleus::Raster<uint16_t>> rasters;
-    rasters.reserve(4);
-
-    // Build Quad and save its tiles as raster
-    int idx = 1;
-    for (radix::tile::Id tile_id : quad.id.children()) {
-        quad.tiles[idx].id = tile_id;
-        QString file_name = QString("eaws_%1_%2_%3.mvt").arg(tile_id.zoom_level).arg(tile_id.coords.x).arg(tile_id.coords.y);
-        std::pair<QByteArray, nucleus::avalanche::RegionTile> data_and_tile = load_tile_from_file(file_name.toStdString(), tile_id);
-        rasters.push_back(rasterize_regions(data_and_tile.second, internal_id_manager));
-        quad.tiles[idx].data = std::make_shared<QByteArray>(std::move(data_and_tile.first));
-        quad.tiles[idx].network_info = { nucleus::tile::NetworkInfo::Status::Good, 12345 };
-        idx = (idx + 1) % 4;
-    }
-    quad.n_tiles = 4;
-}
-
-void saveAsPNG(nucleus::Raster<glm::uint16> raster, QString file)
-{
-    QImage img(raster.width(), raster.width(), QImage::Format_Grayscale16);
-    for (uint y = 0; y < raster.height(); ++y) {
-        const uint16_t* row = raster.data() + y * raster.width();
-        uchar* scan = img.scanLine(y);
-        for (uint x = 0; x < raster.width(); ++x) {
-            uint16_t v = row[x];
-            // QImage::Format_Grayscale16 expects MSB first:
-            scan[2 * x + 0] = static_cast<uchar>((v >> 8) & 0xFF);
-            scan[2 * x + 1] = static_cast<uchar>(v & 0xFF);
-        }
-    }
-    img.save(file);
-}
-
 TEST_CASE("nucleus/avalanche/Scheduler")
 {
     SECTION("to_raster")
     {
         // Build Quad and save its tiles as raster
         nucleus::avalanche::UIntIdManager id_manager;
+        CHECK(126 == id_manager.get_all_registered_region_ids().size());
         nucleus::tile::DataQuad quad;
         quad.id = radix::tile::Id { 6, { 33, 22 }, radix::tile::Scheme::SlippyMap };
         std::vector<nucleus::avalanche::RegionTile> tiles;
