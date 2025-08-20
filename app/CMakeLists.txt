@@ -74,13 +74,6 @@ qt_add_qml_module(alpineapp
         eaws/banner_risk_level.png
         eaws/banner_slope_angle.png
         eaws/banner_stop_or_go.png
-        eaws/AT-02_micro-regions.geojson.json
-        eaws/AT-03_micro-regions.geojson.json
-        eaws/AT-04_micro-regions.geojson.json
-        eaws/AT-05_micro-regions.geojson.json
-        eaws/AT-06_micro-regions.geojson.json
-        eaws/AT-07_micro-regions.geojson.json
-        eaws/AT-08_micro-regions.geojson.json
     QML_FILES
         Main.qml
         About.qml

@@ -51,8 +51,7 @@ UIntIdManager::UIntIdManager()
     for (int x = 2; x <= 8; x++) {
 
         // Read file
-        std::string applicationPath = QCoreApplication::applicationDirPath().toStdString();
-        QString filePath((applicationPath + std::string("/app/app/eaws/AT-0") + std::to_string(x) + std::string("_micro-regions.geojson.json")).c_str());
+        QString filePath((std::string(":/eaws/AT-0") + std::to_string(x) + std::string("_micro-regions.geojson.json")).c_str());
         QFile file(filePath);
         if (!file.open(QIODevice::ReadOnly)) {
             qWarning() << "Could not open file:" << filePath;

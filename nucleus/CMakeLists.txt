@@ -180,6 +180,18 @@ qt_add_resources(nucleus "nucleus_fonts"
     FILES
     ${alpineapp_fonts_SOURCE_DIR}/Roboto/Roboto-Bold.ttf
 )
+qt_add_resources(nucleus "eaws"
+    PREFIX "/eaws"
+    BASE ${CMAKE_SOURCE_DIR}/app/eaws
+    FILES
+        ${CMAKE_SOURCE_DIR}/app/eaws/AT-02_micro-regions.geojson.json
+        ${CMAKE_SOURCE_DIR}/app/eaws/AT-03_micro-regions.geojson.json
+        ${CMAKE_SOURCE_DIR}/app/eaws/AT-04_micro-regions.geojson.json
+        ${CMAKE_SOURCE_DIR}/app/eaws/AT-05_micro-regions.geojson.json
+        ${CMAKE_SOURCE_DIR}/app/eaws/AT-06_micro-regions.geojson.json
+        ${CMAKE_SOURCE_DIR}/app/eaws/AT-07_micro-regions.geojson.json
+        ${CMAKE_SOURCE_DIR}/app/eaws/AT-08_micro-regions.geojson.json
+)
 
 if (ALP_ENABLE_LTO)
     target_compile_options(nucleus PUBLIC -flto)
