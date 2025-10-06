@@ -61,6 +61,9 @@ void Context::internal_initialise()
     if (m_ortho_layer)
         m_ortho_layer->init(m_shader_registry.get());
 
+    if (m_surfaceshaded_layer)
+        m_surfaceshaded_layer->init(m_shader_registry.get());
+
     if (m_eaws_layer)
         m_eaws_layer->init(m_shader_registry.get());
 }
@@ -69,6 +72,7 @@ void Context::internal_destroy()
 {
     // this is necessary for a clean shutdown (and we want a clean shutdown for the ci integration test).
     m_ortho_layer.reset();
+    m_surfaceshaded_layer.reset();
     m_eaws_layer.reset();
     m_tile_geometry.reset();
     m_track_manager.reset();
@@ -84,6 +88,14 @@ void Context::set_ortho_layer(std::shared_ptr<TextureLayer> new_layer)
 {
     assert(!is_alive()); // only set before init is called.
     m_ortho_layer = std::move(new_layer);
+}
+
+TextureLayer* Context::surfaceshaded_layer() const { return m_surfaceshaded_layer.get(); }
+
+void Context::set_surfaceshaded_layer(std::shared_ptr<TextureLayer> new_layer)
+{
+    assert(!is_alive()); // only set before init is called.
+    m_surfaceshaded_layer = std::move(new_layer);
 }
 
 void Context::set_eaws_layer(std::shared_ptr<AvalancheWarningLayer> new_layer)

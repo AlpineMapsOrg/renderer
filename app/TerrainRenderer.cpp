@@ -61,11 +61,12 @@ TerrainRenderer::TerrainRenderer()
     // In Qt/QML the rendering thread goes to sleep (at least until Qt 6.5, See RenderThreadNotifier).
     // At the time of writing, an additional connection from tile_ready and tile_expired to the notifier is made.
     // this only works if ALP_ENABLE_THREADING is on, i.e., the tile scheduler is on an extra thread. -> potential issue on webassembly
-    connect(m_camera_controller.get(), &CameraController::definition_changed, ctx->geometry_scheduler(),   &Scheduler::update_camera);
-    connect(m_camera_controller.get(), &CameraController::definition_changed, ctx->map_label_scheduler(),  &Scheduler::update_camera);
-    connect(m_camera_controller.get(), &CameraController::definition_changed, ctx->ortho_scheduler(),      &Scheduler::update_camera);
-    connect(m_camera_controller.get(), &CameraController::definition_changed, ctx->eaws_scheduler(),       &Scheduler::update_camera);
-    connect(m_camera_controller.get(), &CameraController::definition_changed, m_glWindow.get(),            &gl_engine::Window::update_camera);
+    connect(m_camera_controller.get(), &CameraController::definition_changed, ctx->geometry_scheduler(),      &Scheduler::update_camera);
+    connect(m_camera_controller.get(), &CameraController::definition_changed, ctx->map_label_scheduler(),     &Scheduler::update_camera);
+    connect(m_camera_controller.get(), &CameraController::definition_changed, ctx->ortho_scheduler(),         &Scheduler::update_camera);
+    connect(m_camera_controller.get(), &CameraController::definition_changed, ctx->surfaceshaded_scheduler(), &Scheduler::update_camera);
+    connect(m_camera_controller.get(), &CameraController::definition_changed, ctx->eaws_scheduler(),          &Scheduler::update_camera);
+    connect(m_camera_controller.get(), &CameraController::definition_changed, m_glWindow.get(),               &gl_engine::Window::update_camera);
 
     connect(ctx->geometry_scheduler(), &nucleus::tile::GeometryScheduler::gpu_tiles_updated,  gl_window_ptr, &gl_engine::Window::update_requested);
     connect(ctx->ortho_scheduler(),    &nucleus::tile::TextureScheduler::gpu_tiles_updated,   gl_window_ptr, &gl_engine::Window::update_requested);

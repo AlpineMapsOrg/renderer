@@ -52,6 +52,9 @@ public:
     [[nodiscard]] TextureLayer* ortho_layer() const;
     void set_ortho_layer(std::shared_ptr<TextureLayer> new_ortho_layer);
 
+    [[nodiscard]] TextureLayer* surfaceshaded_layer() const;
+    void set_surfaceshaded_layer(std::shared_ptr<TextureLayer> new_layer);
+
     [[nodiscard]] AvalancheWarningLayer* eaws_layer() const;
     void set_eaws_layer(std::shared_ptr<AvalancheWarningLayer> new_ortho_layer);
 
@@ -61,6 +64,7 @@ protected:
 
 private:
     std::shared_ptr<TileGeometry> m_tile_geometry;
+    std::shared_ptr<TextureLayer> m_surfaceshaded_layer;
     std::shared_ptr<TextureLayer> m_ortho_layer;
     std::shared_ptr<AvalancheWarningLayer> m_eaws_layer;
     std::shared_ptr<gl_engine::MapLabels> m_map_label_manager;
