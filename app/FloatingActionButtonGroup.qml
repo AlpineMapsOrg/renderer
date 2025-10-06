@@ -76,7 +76,13 @@ ColumnLayout {
 
                 FloatingActionButton {
                     image: _r + "icons/presets/basic.png"
-                    onClicked: map.set_gl_preset("AAABIHjaY2BgYLL_wAAGGPRhY2EHEP303YEDIPrZPr0FQHr_EU-HBAYEwKn_5syZIPX2DxgEGLDQcP0_ILQDBwMKcHBgwAoc7KC0CJTuhyh0yGRAoeHueIBK4wAKQMwIxXAAAFQuIIw")
+                    onClicked: {
+                        risk_level_toggle.checked = false;
+                        eaws_report_toggle.checked = false;
+                        slope_angle_toggle.checked = false;
+                        stop_or_go_toggle.checked = false;
+                        map.set_gl_preset("AAABIHjaY2BgYLL_wAAGGPRhY2EHEP303YEDIPrZPr0FQHr_EU-HBAYEwKn_5syZIPX2DxgEGLDQcP0_ILQDBwMKcHBgwAoc7KC0CJTuhyh0yGRAoeHueIBK4wAKQMwIxXAAAFQuIIw")
+                    }
                     size: parent.height
                     image_size: 42
                     image_opacity: 1.0
@@ -87,7 +93,13 @@ ColumnLayout {
 
                 FloatingActionButton {
                     image: _r + "icons/presets/shaded.png"
-                    onClicked: map.set_gl_preset("AAABIHjaY2BgYLL_wAAGGPRhY2EHEP1s0rwEMG32D0TvPxS4yIEBAXDqvzlz5gIQ_YBBgAELDdf_A0I7cDCgAAcHBqzAwQ5Ki0DpfohCh0wGFBrujgeoNBAwQjEyXwFNHEwDAMaIIAM")
+                    onClicked: {
+                        risk_level_toggle.checked = false;
+                        eaws_report_toggle.checked = false;
+                        slope_angle_toggle.checked = false;
+                        stop_or_go_toggle.checked = false;
+                        map.set_gl_preset("AAABIHjaY2BgYLL_wAAGGPRhY2EHEP1s0rwEMG32D0TvPxS4yIEBAXDqvzlz5gIQ_YBBgAELDdf_A0I7cDCgAAcHBqzAwQ5Ki0DpfohCh0wGFBrujgeoNBAwQjEyXwFNHEwDAMaIIAM")
+                    }
                     size: parent.height
                     image_size: 42
                     image_opacity: 1.0
@@ -98,7 +110,13 @@ ColumnLayout {
 
                 FloatingActionButton {
                     image: _r + "icons/presets/snow.png"
-                    onClicked: map.set_gl_preset("AAABIHjaY2BgYLL_wAAGGPRhY2EHEP1s0rwEMG32D0TvPxS4yIEBAXDqvzlz5gIQ_YBBgAELDdf_A0I7cDCgAAcHVPPg4nZQWgRK90MUOmQyoNBwdzxApYGAEYqR-Qpo4mAaAFhrITI")
+                    onClicked: {
+                        risk_level_toggle.checked = false;
+                        eaws_report_toggle.checked = false;
+                        slope_angle_toggle.checked = false;
+                        stop_or_go_toggle.checked = false;
+                        map.set_gl_preset("AAABIHjaY2BgYLL_wAAGGPRhY2EHEP1s0rwEMG32D0TvPxS4yIEBAXDqvzlz5gIQ_YBBgAELDdf_A0I7cDCgAAcHVPPg4nZQWgRK90MUOmQyoNBwdzxApYGAEYqR-Qpo4mAaAFhrITI")
+                    }
                     size: parent.height
                     image_size: 42
                     image_opacity: 1.0
@@ -119,7 +137,14 @@ ColumnLayout {
                 }
                 FloatingActionButton {
                     image: _r + "icons/material/steepness.png"
-                    onClicked: {map.shared_config.overlay_mode = 101; toggleSteepnessLegend();}
+                    onClicked: {
+                        risk_level_toggle.checked = false;
+                        eaws_report_toggle.checked = false;
+                        slope_angle_toggle.checked = false;
+                        stop_or_go_toggle.checked = false;
+
+                        map.shared_config.overlay_mode = 101;
+                        toggleSteepnessLegend();}
                     size: parent.height
                     image_size: 24
                     image_opacity: 1.0
@@ -164,7 +189,7 @@ ColumnLayout {
                         slope_angle_toggle.checked  = false;
                         stop_or_go_toggle.checked = false;
                         banner_image.source = "eaws/banner_eaws_report.png"
-                        map.toggle_eaws_warning_layer();
+                        map.set_eaws_warning_layer(checked);
                     }
                     size: parent.height
                     image_size: 42
@@ -184,7 +209,7 @@ ColumnLayout {
                         slope_angle_toggle.checked = false;
                         stop_or_go_toggle.checked = false;
                         banner_image.source = "eaws/banner_risk_level.png"
-                        map.toggle_risk_level_layer();
+                        map.set_risk_level_layer(checked);
                     }
                     size: parent.height
                     image_size: 42
@@ -205,7 +230,7 @@ ColumnLayout {
                         risk_level_toggle.checked = false;
                         stop_or_go_toggle.checked = false;
                         banner_image.source = "eaws/banner_slope_angle.png"
-                        map.toggle_slope_angle_layer();
+                        map.set_slope_angle_layer(checked);
                     }
                     size: parent.height
                     image_size: 42
@@ -225,7 +250,7 @@ ColumnLayout {
                         risk_level_toggle.checked = false;
                         slope_angle_toggle.checked  = false;
                         banner_image.source = "eaws/banner_stop_or_go.png"
-                        map.toggle_stop_or_go_layer();
+                        map.set_stop_or_go_layer(checked);
                     }
                     size: parent.height
                     image_size: 42
