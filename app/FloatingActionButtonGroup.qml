@@ -17,12 +17,11 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *****************************************************************************/
 
-import QtQuick 6.4
+import QtQuick
 import QtQuick.Controls.Material
 import QtQuick.Layouts
 import app
 import "components"
-import QtQuick.Controls 6.4
 
 ColumnLayout {
     id: fab_group
