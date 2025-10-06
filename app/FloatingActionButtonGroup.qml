@@ -23,6 +23,9 @@ import QtQuick.Layouts
 import app
 import "components"
 
+
+
+
 ColumnLayout {
     id: fab_group
     width: 64
@@ -161,7 +164,14 @@ ColumnLayout {
         image: _r + "icons/" + (checked ? "material/chevron_left.png": "eaws/eaws_menu.png")
         size: parent.width
         checkable: true
-        onClicked:{map.updateEawsReportDate(date_input_field.selectedDate.getDate(), date_input_field.selectedDate.getMonth()+1, date_input_field.selectedDate.getFullYear())}
+        property bool firstClickDone: false // Tracks if the button was clicked before
+        onClicked:{
+            if (!firstClickDone) {
+                firstClickDone = true
+                // open warning popup here
+            }
+            map.updateEawsReportDate(date_picker.selectedDate.getDate(), date_picker.selectedDate.getMonth()+1, date_picker.selectedDate.getFullYear())
+        }
 
         Rectangle {
             visible: parent.checked
@@ -169,7 +179,7 @@ ColumnLayout {
             width: avalanche_subgroup.implicitWidth + parent.width
             radius: avalanche_menu.radius
 
-            color: Qt.alpha(Material.backgroundColor, 0.3)
+            color: Qt.alpha(Material.backgroundColor, 0.9)
             border { width: 2; color: Qt.alpha( "black", 0.5); }
 
             RowLayout {
@@ -179,25 +189,24 @@ ColumnLayout {
                 spacing: 0
                 height: parent.height
 
-                //EAWS Report Toggle Button
+                // stop-or-go toggle button
                 FloatingActionButton {
-                    id: eaws_report_toggle
-                    image: _r + "icons/eaws/eaws_report.png"
-                    image_opacity: (checked? 1.0 : 0.4)
+                    id: stop_or_go_toggle
+                    image: _r + "icons/eaws/stop_or_go.png"
                     onClicked:{
+                        eaws_report_toggle.checked = false;
                         risk_level_toggle.checked = false;
                         slope_angle_toggle.checked  = false;
-                        stop_or_go_toggle.checked = false;
-                        banner_image.source = "eaws/banner_eaws_report.png"
-                        map.set_eaws_warning_layer(checked);
+                        banner_image.source = "eaws/banner_stop_or_go.png"
+                        map.set_stop_or_go_layer(checked);
                     }
                     size: parent.height
                     image_size: 42
+                    image_opacity: (checked? 1.0 : 0.4)
                     checkable: true
 
                     ToolTip.visible: hovered
-                    ToolTip.text: qsTr("Show EAWS Report")
-
+                    ToolTip.text: qsTr("Stop or Go")
                 }
 
                 // Risk Level Toggle Button
@@ -241,24 +250,25 @@ ColumnLayout {
                     ToolTip.text: qsTr("Slope Angle")
                 }
 
-                // stop-or-go toggle button
+                //EAWS Report Toggle Button
                 FloatingActionButton {
-                    id: stop_or_go_toggle
-                    image: _r + "icons/eaws/stop_or_go.png"
+                    id: eaws_report_toggle
+                    image: _r + "icons/eaws/eaws_report.png"
+                    image_opacity: (checked? 1.0 : 0.4)
                     onClicked:{
-                        eaws_report_toggle.checked = false;
                         risk_level_toggle.checked = false;
                         slope_angle_toggle.checked  = false;
-                        banner_image.source = "eaws/banner_stop_or_go.png"
-                        map.set_stop_or_go_layer(checked);
+                        stop_or_go_toggle.checked = false;
+                        banner_image.source = "eaws/banner_eaws_report.png"
+                        map.set_eaws_warning_layer(checked);
                     }
                     size: parent.height
                     image_size: 42
-                    image_opacity: (checked? 1.0 : 0.4)
                     checkable: true
 
                     ToolTip.visible: hovered
-                    ToolTip.text: qsTr("Stop or Go")
+                    ToolTip.text: qsTr("Show EAWS Report")
+
                 }
 
                 // Banner with color chart (only visible when an avalanche overlay is active
@@ -270,79 +280,101 @@ ColumnLayout {
                     visible: (eaws_report_toggle.checked || risk_level_toggle.checked || slope_angle_toggle.checked || stop_or_go_toggle.checked)
                 }
 
-                // Textfield for manual selection of report date
-                TextField {
-                    function dateToString(date) {
-                        let year = date.getFullYear()
-                        let month = (date.getMonth() + 1).toString().padStart(2, "0")
-                        let day = date.getDate().toString().padStart(2, "0")
-                        return year + "-" + month + "-" + day
-                    }
-                    id: date_input_field
-                    placeholderText: "YYYY-MM-DD"
-                    property date selectedDate: new Date()
-                    text: dateToString(new Date())
-                    width: 300
-                    height: 32
-                    Layout.preferredHeight: 32
-                    Layout.preferredWidth: 128
-                    onAccepted: {
-                        let parts = text.split("-")  // assuming format "YYYY-MM-DD"
-                        let y = parseInt(parts[0])
-                        let m = parseInt(parts[1]) - 1  // JavaScript months are 0-based
-                        let d = parseInt(parts[2])
-                        var newDate = new Date(y,m,d)
-                        if (!isNaN(newDate))
-                        {
-                            /// Date has valid format , update accordingly
-                            selectedDate = newDate
-                            map.updateEawsReportDate(selectedDate.getDate(), selectedDate.getMonth()+1, selectedDate.getFullYear())
+                // subrectangle with date slection functionality
+                RowLayout {
+                    id: dateControls
+                    spacing: 0
+                    Layout.alignment: Qt.AlignVCenter
 
+                    // Previous day button
+                    FloatingActionButton  {
+                        text: "<"
+                        size: 30
+                        onClicked: {
+                            let d = new Date(date_picker.selectedDate)
+                            d.setDate(d.getDate() - 1)
+                            date_picker.selectedDate = d
                         }
-                        else
-                        {
-                            // entered date has invalid format, display previous date again
-                            text = dateToString(selectedDate)
-                        }
+                        ToolTip.visible: hovered
+                        ToolTip.text: qsTr("previous day")
                     }
 
-                    ToolTip.visible: hovered
-                    ToolTip.text: qsTr("Avalanche report date must have format YYYY-MM-DD. Press Enter to confirm")
-                }
+                    // Date picker. Item ensures it is vertically centered in the rectangle
+                    Item {
+                        id: datePickerWrapper
+                        Layout.alignment: Qt.AlignVCenter
+                        width:80
+                        height:25
 
-                //Alternative Date picker for EAWS Report. Does not let me change month or year
-                /*
-                DatePicker {
-                    id: date_picker
-                    selectedDate: new Date(2024, 11, 29) //new Date() for today
-                    Layout.alignment: Qt.AlignHCenter
-                    Layout.preferredWidth:  implicitWidth * Layout.preferredHeight / implicitHeight + 20
-                    Layout.preferredHeight: 60
-                    onSelectedDateChanged: {map.updateEawsReportDate(selectedDate.getDate(), selectedDate.getMonth()+1, selectedDate.getFullYear())}
-                    // Note: month starts at 0
-                }
-                */
+                        DatePicker {
+                            id: date_picker
+                            Layout.alignment: Qt.AlignVCenter
+                            Layout.preferredWidth: 80
+                            Layout.preferredHeight: 60
+                            selectedDate: new Date()
+                            onSelectedDateChanged: {
+                                map.updateEawsReportDate(
+                                    selectedDate.getDate(),
+                                    selectedDate.getMonth() + 1,
+                                    selectedDate.getFullYear()
+                                )
+                            }
+                        }
+                    }
 
-                // link to selected date avalanche report
-                Text {
-                    id: externalLink
-                    text: "<a href=\"" + formattedUrl + "\">  Open on Avalanche.report   </a>"
-                    color: "black"
-                    linkColor: "black"
-                    font.pixelSize: 14
-                    textFormat: Text.RichText
-                    onLinkActivated: function(url) {Qt.openUrlExternally(url)}
-                    property string formattedUrl: {
-                        let date = date_input_field.selectedDate;
-                        let year = date.getFullYear();
-                        let month = (date.getMonth() + 1).toString().padStart(2, "0");
-                        let day = date.getDate().toString().padStart(2, "0");
-                        return "https://avalanche.report/bulletin/" + year + "-" + month + "-" + day;
+                    // Next day button
+                    FloatingActionButton  {
+                        text: ">"
+                        size: 30
+                        onClicked: {
+                            let d = new Date(date_picker.selectedDate)
+                            d.setDate(d.getDate() + 1)
+                            date_picker.selectedDate = d
+                        }
+
+                        ToolTip.visible: hovered
+                        ToolTip.text: qsTr("next day")
+                    }
+
+                    // Today button only appears when selected date differs from today
+                    FloatingActionButton  {
+                        text: "Today"
+                        width: 60
+                        height: 20
+                        onClicked: { date_picker.selectedDate = new Date() }
+                        ToolTip.visible: hovered
+                        ToolTip.text: qsTr("Set date to today")
+                        visible: {
+                           var today = new Date()
+                           var sel = date_picker.selectedDate
+                           return !(sel.getDate() === today.getDate() &&
+                                    sel.getMonth() === today.getMonth() &&
+                                    sel.getFullYear() === today.getFullYear())
+                        }
+                    }
+
+                    // Button that opens report of selected date on www.avalanche.report
+                    ToolButton {
+                        text: "avalanche.report"
+                        onClicked: {
+                            if (date_picker.selectedDate) {
+                                let date = date_picker.selectedDate;
+                                let year = date.getFullYear();
+                                let month = (date.getMonth() + 1).toString().padStart(2, "0");
+                                let day = date.getDate().toString().padStart(2, "0");
+                                let url = "https://avalanche.report/bulletin/" + year + "-" + month + "-" + day;
+                                Qt.openUrlExternally(url);
+                            }
+                        }
+
+                        ToolTip.visible: hovered
+                        ToolTip.text: qsTr("Open the selected date on Avalanche.report")
                     }
                 }
             }
         }
     }
+
 
     Connections {
         enabled: fab_location.checked || fab_presets.checked
