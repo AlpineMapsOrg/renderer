@@ -20,7 +20,7 @@ find_package(Qt6 REQUIRED COMPONENTS Test)
 if (NOT TARGET Catch2)
     alp_add_git_repository(catch2 URL https://github.com/catchorg/Catch2.git COMMITISH v3.5.1)
 endif()
-alp_add_git_repository(qml_catch2_console URL https://github.com/AlpineMapsOrg/qml_catch2_console.git COMMITISH fcf6dafe6c95ac5b5436b0dfe634341c3a37513a DO_NOT_ADD_SUBPROJECT)
+alp_add_git_repository(qml_catch2_console URL https://github.com/AlpineMapsOrg/qml_catch2_console.git COMMITISH 33430766f7f896db523b72c76c49eeb427ee9c63 DO_NOT_ADD_SUBPROJECT)
 
 if (EMSCRIPTEN AND ALP_ENABLE_THREADING)
     target_compile_options(Catch2 PRIVATE -pthread)
