@@ -2,3 +2,7 @@ leak:dbus
 leak:fontconfig
 leak:icui18n
 leak:gallium
+leak:libGLX_mesa
+leak:libGLX.so
+leak:qglx_findConfig
+leak:Qt6Gui.so
