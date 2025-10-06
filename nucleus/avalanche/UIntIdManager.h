@@ -16,13 +16,12 @@ class UIntIdManager : public QObject {
 public:
     const std::vector<QImage::Format> supported_image_formats { QImage::Format_ARGB32 };
     UIntIdManager();
-    QColor convert_region_id_to_color(const QString& region_id, QImage::Format color_format = QImage::Format_ARGB32) const;
-    QString convert_color_to_region_id(const QColor& color, const QImage::Format& color_format) const;
+    QColor convert_region_id_to_color(const QString& region_id) const;
+    QString convert_color_to_region_id(const QColor& color) const;
     uint convert_region_id_to_internal_id(const QString& color) const;
     QString convert_internal_id_to_region_id(const uint& internal_id) const;
-    uint convert_color_to_internal_id(const QColor& color, const QImage::Format& color_format) const;
-    QColor convert_internal_id_to_color(const uint& internal_id, const QImage::Format& color_format) const;
-    bool checkIfImageFormatSupported(const QImage::Format& color_format) const;
+    uint convert_color_to_internal_id(const QColor& color) const;
+    QColor convert_internal_id_to_color(const uint& internal_id) const;
     bool contains(const QString& region_id) const;
     std::vector<QString> get_all_registered_region_ids() const;
     void load_all_regions_from_server();

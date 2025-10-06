@@ -145,7 +145,7 @@ TEST_CASE("nucleus/EAWS Vector Tiles")
         bool wrong_conversion = false;
         for (QString region_id : all_region_Ids) {
             QColor color = internal_id_manager.convert_region_id_to_color(region_id);
-            QString region_id_from_color = internal_id_manager.convert_color_to_region_id(color, QImage::Format_ARGB32);
+            QString region_id_from_color = internal_id_manager.convert_color_to_region_id(color);
             wrong_conversion = (region_id != region_id_from_color);
             if (wrong_conversion)
                 break;
@@ -203,7 +203,7 @@ TEST_CASE("nucleus/EAWS Vector Tiles")
         const auto raster_small = nucleus::avalanche::rasterize_regions(region_tile_2_2_0, internal_id_manager, 20, 20, tile_id_2_2_0);
         for (uint i = 0; i < 10; i++) {
             for (uint j = 0; j < 10; j++) {
-                uint id_from_img = internal_id_manager.convert_color_to_internal_id(img_small.pixel(i, j), QImage::Format_ARGB32);
+                uint id_from_img = internal_id_manager.convert_color_to_internal_id(img_small.pixel(i, j));
                 uint id_from_raster = raster_small.pixel(glm::uvec2(i, j));
                 CHECK(id_from_img == id_from_raster);
             }

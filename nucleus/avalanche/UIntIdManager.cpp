@@ -118,18 +118,16 @@ QString UIntIdManager::convert_internal_id_to_region_id(const uint& internal_id)
         return entry->second;
 }
 
-QColor UIntIdManager::convert_region_id_to_color(const QString& region_id, QImage::Format color_format) const
+QColor UIntIdManager::convert_region_id_to_color(const QString& region_id) const
 {
-    assert(this->checkIfImageFormatSupported(color_format));
     const uint& internal_id = this->convert_region_id_to_internal_id(region_id);
     uint red = internal_id / 256;
     uint green = internal_id % 256;
     return QColor::fromRgb(red, green, 0);
 }
 
-QString UIntIdManager::convert_color_to_region_id(const QColor& color, const QImage::Format& color_format) const
+QString UIntIdManager::convert_color_to_region_id(const QColor& color) const
 {
-    assert(QImage::Format_ARGB32 == color_format);
     uint internal_id = color.red() * 256 + color.green();
     auto entry = internal_id_to_region_id.find(internal_id);
     if (entry == internal_id_to_region_id.end())
@@ -137,23 +135,14 @@ QString UIntIdManager::convert_color_to_region_id(const QColor& color, const QIm
     return internal_id_to_region_id.at(internal_id);
 }
 
-uint UIntIdManager::convert_color_to_internal_id(const QColor& color, const QImage::Format& color_format) const
+uint UIntIdManager::convert_color_to_internal_id(const QColor& color) const
 {
-    return this->convert_region_id_to_internal_id(this->convert_color_to_region_id(color, color_format));
+    return this->convert_region_id_to_internal_id(this->convert_color_to_region_id(color));
 }
 
-QColor UIntIdManager::convert_internal_id_to_color(const uint& internal_id, const QImage::Format& color_format) const
+QColor UIntIdManager::convert_internal_id_to_color(const uint& internal_id) const
 {
-    return this->convert_region_id_to_color(this->convert_internal_id_to_region_id(internal_id), color_format);
-}
-
-bool UIntIdManager::checkIfImageFormatSupported(const QImage::Format& color_format) const
-{
-    for (const auto& supported_format : supported_image_formats) {
-        if (color_format == supported_format)
-            return true;
-    }
-    return false;
+    return this->convert_region_id_to_color(this->convert_internal_id_to_region_id(internal_id));
 }
 
 std::vector<QString> UIntIdManager::get_all_registered_region_ids() const

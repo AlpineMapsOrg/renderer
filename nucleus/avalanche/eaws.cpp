@@ -189,7 +189,7 @@ QImage draw_regions(const RegionTile& region_tile,
         std::vector<QPointF> transformed_vertices_as_QPointFs = transform_vertices(region, tile_id_in, tile_id_out, &img);
 
         // Convert region id to color, for debugging use  color_of_region = QColor::fromRgb(255, 255, 255);
-        QColor color_of_region = internal_id_manager.convert_region_id_to_color(region.id, img.format());
+        QColor color_of_region = internal_id_manager.convert_region_id_to_color(region.id);
         painter.setBrush(QBrush(color_of_region));
         painter.setPen(QPen(color_of_region)); // we also have to set the pen if we want to draw boundaries
 
