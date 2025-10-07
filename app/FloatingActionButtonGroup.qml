@@ -20,7 +20,6 @@
 import QtQuick
 import QtQuick.Controls.Material
 import QtQuick.Layouts
-import app
 import "components"
 
 
@@ -159,6 +158,7 @@ ColumnLayout {
         }
     }
 
+    // Button for avalanche menu
     FloatingActionButton {
         id: avalanche_menu
         image: _r + "icons/" + (checked ? "material/chevron_left.png": "eaws/eaws_menu.png")
@@ -166,15 +166,50 @@ ColumnLayout {
         checkable: true
         property bool firstClickDone: false // Tracks if the button was clicked before
         onClicked:{
-            if (!firstClickDone) {
-                firstClickDone = true
-                // open warning popup here
-            }
+            if (!firstClickDone) {firstClickDone = false}
             map.updateEawsReportDate(date_picker.selectedDate.getDate(), date_picker.selectedDate.getMonth()+1, date_picker.selectedDate.getFullYear())
         }
 
+        // Textbox for warning , only shown on first click of avalanche menu button
         Rectangle {
-            visible: parent.checked
+            id: warning
+            visible: avalanche_menu.checked && !avalanche_menu.firstClickDone //parent.checked
+            height: 256
+            width: avalanche_subgroup.implicitWidth + parent.width
+            radius: avalanche_menu.radius
+            anchors.bottom: parent.bottom
+            ColumnLayout {
+                anchors.centerIn: parent
+                anchors.margins: 0
+                spacing: 0
+                anchors.fill: parent
+                width: parent.width
+
+                Text {
+                    id: label
+                    text: "This risk visualization is part of a research project and should not be used as a sole basis for decision-making during tour planning.
+                    We cannot guarantee the correctness of the information displayed.
+                    Any liability for accidents and damages in connection with the use of this service is excluded. The planning and execution of your winter sports activities is at your own risk and under your sole responsibility."
+                    font.pointSize: 11
+                    wrapMode: Text.WordWrap
+                    horizontalAlignment: Text.AlignHCenter
+                    Layout.alignment: Qt.AlignHCenter
+                    Layout.maximumWidth: parent.width // prevent overflow
+                }
+
+                Button {
+                    text: "Accept and Continue"
+                    Layout.alignment: Qt.AlignHCenter
+                    onClicked: {
+                        avalanche_menu.firstClickDone = true
+                    }
+                }
+            }
+        }
+
+        // Box with all avalanche menu buttons , shown after opening avalanche menu
+        Rectangle {
+            visible: avalanche_menu.checked && avalanche_menu.firstClickDone //parent.checked
             height: 64
             width: avalanche_subgroup.implicitWidth + parent.width
             radius: avalanche_menu.radius
