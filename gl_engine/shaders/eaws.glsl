@@ -16,6 +16,10 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *****************************************************************************/
 
+#ifdef GL_ES
+precision highp float;
+#endif
+
 layout (std140) uniform eaws_reports {
     // length of array must be the same as in nucleus::avalanche::uboEawsReports on host side
     ivec4 reports[1000];

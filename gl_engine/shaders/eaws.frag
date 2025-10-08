@@ -17,6 +17,9 @@
 * You should have received a copy of the GNU General Public License
 * along with this program.  If not, see <http://www.gnu.org/licenses/>.
 *****************************************************************************/
+#ifdef GL_ES
+precision highp float;
+#endif
 
 #include "shared_config.glsl"
 #include "camera_config.glsl"
