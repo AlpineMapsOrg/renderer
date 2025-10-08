@@ -21,7 +21,7 @@ import QtQuick
 import QtQuick.Controls.Material
 import QtQuick.Layouts
 import "components"
-
+import app
 
 
 
@@ -186,10 +186,13 @@ ColumnLayout {
                 width: parent.width
 
                 Text {
-                    id: label
-                    text: "This risk visualization is part of a research project and should not be used as a sole basis for decision-making during tour planning.
-                    We cannot guarantee the correctness of the information displayed.
-                    Any liability for accidents and damages in connection with the use of this service is excluded. The planning and execution of your winter sports activities is at your own risk and under your sole responsibility."
+                    id: warning_text
+                    textFormat: Text.RichText
+                    text: "<b>EXPERIMENTAL FEATURE!</b>
+                    <br>These visualisation tools are experimental and should <b>not</b> be used as a sole basis for decision-making during tour planning.
+                    <br><b>We cannot guarantee the correctness of the information displayed.</b>
+                    <br>Any liability for accidents and damages in connection with the use of this service is excluded. The planning and execution of your winter sports activities is at your own risk and under your sole responsibility.
+                    <br>This risk visualization is part of a research project."
                     font.pointSize: 11
                     wrapMode: Text.WordWrap
                     horizontalAlignment: Text.AlignHCenter
@@ -198,8 +201,20 @@ ColumnLayout {
                 }
 
                 Button {
+                    text: "Read more"
+                    Layout.alignment: Qt.AlignHCenter
+                    ToolTip.visible: hovered
+                    ToolTip.text: qsTr("Open Thesis by Johannes Eschner at TU Wien")
+                    onClicked: {
+                        Qt.openUrlExternally("https://repositum.tuwien.at/handle/20.500.12708/177341?mode=simple")
+                    }
+                }
+
+                Button {
                     text: "Accept and Continue"
                     Layout.alignment: Qt.AlignHCenter
+                    ToolTip.visible: hovered
+                    ToolTip.text: qsTr("Accept terms of use and open avalanche risk visualisation menu")
                     onClicked: {
                         avalanche_menu.firstClickDone = true
                     }
