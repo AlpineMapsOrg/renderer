@@ -81,7 +81,7 @@ void main() {
         if(bool(conf.eaws_danger_rating_enabled))
         {
             // color fragment according to danger level
-            float margin = 25.f;           // margin within which colorblending between hi and lo happens
+            float margin = 25.0;           // margin within which colorblending between hi and lo happens
             if(frag_height > float(bound) + margin)
                 texout_eaws =  color_from_eaws_danger_rating(ratingHi);
             else if (frag_height < float(bound) - margin)

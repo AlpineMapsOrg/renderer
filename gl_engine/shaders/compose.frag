@@ -156,7 +156,7 @@ void main() {
     if(bool(conf.eaws_danger_rating_enabled) || bool(conf.eaws_risk_level_enabled)|| bool(conf.eaws_slope_angle_enabled) || bool(conf.eaws_stop_or_go_enabled))
     {
         lowp vec3 eaws_color = texture(texin_eaws, texcoords).rgb;
-        if(eaws_color.r > 0 || eaws_color.g > 0 || eaws_color.b > 0)
+        if(eaws_color.r > 0.0 || eaws_color.g > 0.0 || eaws_color.b > 0.0)
         {
             albedo = 0.5 * albedo + 0.5 * eaws_color;
         }
