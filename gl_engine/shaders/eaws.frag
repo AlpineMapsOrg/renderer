@@ -52,7 +52,7 @@ void main() {
     highp float texture_layer_f = float(texelFetch(instanced_texture_array_index_sampler, ivec2(instance_id, 0), 0).x);
 
 
-    highp uint eawsRegionId = texelFetch(texture_sampler, ivec3(uv * 512, texture_layer_f),0).r;
+    highp uint eawsRegionId = texelFetch(texture_sampler, ivec3(int(uv.x * float(512)), int(uv.y * float(512)) , texture_layer_f), 0).r;
     ivec4 report = eaws.reports[eawsRegionId];
 
     // // debug output regions
@@ -89,7 +89,7 @@ void main() {
             else
             {
                 // around border: blend colors between upper and lower danger rating
-                float a = (frag_height - (float(bound) - margin)) / (2*margin); // This is a value between 0 and 1
+                float a = (frag_height - (float(bound) - margin)) / (2.0*margin); // This is a value between 0 and 1
                 texout_eaws = mix(color_from_eaws_danger_rating(ratingLo), color_from_eaws_danger_rating(ratingHi), a);
             }
         }
@@ -111,7 +111,7 @@ void main() {
             else
             {
                 // around border: blend colors between upper and lower danger rating
-                float a = (frag_height - (float(bound) - margin)) / (2*margin); // This is a value between 0 and 1
+                float a = (frag_height - (float(bound) - margin)) / (2.0*margin); // This is a value between 0 and 1
                 vec3 colorLo = color_from_snowCard_risk_parameters(ratingLo, fragNormal, unfavorable);
                 vec3 colorHi = color_from_snowCard_risk_parameters(ratingHi, fragNormal, unfavorable);
                 texout_eaws = mix(colorLo, colorHi, a); // color_from_snowCard_risk_parameters(int eaws_danger_rating, int slope_angle_in_deg, bool unfavorable)
