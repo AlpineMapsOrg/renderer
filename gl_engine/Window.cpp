@@ -361,6 +361,8 @@ void Window::paint(QOpenGLFramebufferObject* framebuffer)
         f->glClear(GL_DEPTH_BUFFER_BIT);
         m_context->eaws_layer()->draw(*m_context->tile_geometry(), m_camera, culled_draw_list);
     } else {
+        m_context->eaws_layer()->draw(*m_context->tile_geometry(), m_camera, culled_draw_list);
+        f->glClear(GL_DEPTH_BUFFER_BIT);
         m_context->ortho_layer()->draw(*m_context->tile_geometry(), m_camera, culled_draw_list);
     }
     m_timer->stop_timer("tiles");
