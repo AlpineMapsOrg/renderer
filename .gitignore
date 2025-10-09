@@ -3,3 +3,12 @@
 /doc/*
 /doc
 /build/*
+app/icons/eaws/eaws_menu_closed.png
+app/icons/eaws/eaws_report_active.png
+app/icons/eaws/eaws_report_inactive.png
+app/icons/eaws/risk_level_active.png
+app/icons/eaws/risk_level_inactive.png
+app/icons/eaws/slope_angle_active.png
+app/icons/eaws/slope_angle_inactive.png
+app/icons/eaws/stop_or_go_active.png
+app/icons/eaws/stop_or_go_inactive.png

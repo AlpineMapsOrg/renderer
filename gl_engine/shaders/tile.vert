@@ -32,7 +32,6 @@ out lowp float is_curtain;
 flat out lowp vec3 vertex_color;
 flat out highp uint instance_id;
 
-
 void main() {
     compute_vertex(var_pos_cws, var_uv, var_tile_id, conf.normal_mode == 1u, var_normal);
 

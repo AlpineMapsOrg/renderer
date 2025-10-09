@@ -33,7 +33,7 @@ public:
     static Raster<glm::u8vec4> to_raster(const tile::DataQuad& data_quad, const Raster<glm::u8vec4>& default_raster);
 
 signals:
-    void gpu_tiles_updated(const std::vector<tile::Id>& deleted_tiles, const std::vector<GpuTextureTile>& new_tiles);
+    void gpu_tiles_updated(const std::vector<nucleus::tile::Id>& deleted_tiles, const std::vector<nucleus::tile::GpuTextureTile>& new_tiles);
 
 protected:
     void transform_and_emit(const std::vector<tile::DataQuad>& new_quads, const std::vector<tile::Id>& deleted_quads) override;

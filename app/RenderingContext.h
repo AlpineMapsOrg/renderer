@@ -19,7 +19,6 @@
 #pragma once
 
 #include <QQmlEngine>
-
 // move to pimpl to avoid including all the stuff in the header.
 
 namespace gl_engine {
@@ -45,6 +44,12 @@ class SchedulerDirector;
 namespace nucleus::tile::utils {
 class AabbDecorator;
 }
+
+namespace nucleus::avalanche {
+class Scheduler;
+class UIntIdManager;
+class ReportLoadService;
+} // namespace nucleus::avalanche
 
 class RenderingContext : public QObject {
     Q_OBJECT
@@ -77,7 +82,10 @@ public:
     [[nodiscard]] std::shared_ptr<nucleus::map_label::Filter> label_filter() const;
     [[nodiscard]] nucleus::map_label::Scheduler* map_label_scheduler() const;
     [[nodiscard]] nucleus::tile::TextureScheduler* ortho_scheduler() const;
+    [[nodiscard]] nucleus::tile::TextureScheduler* surfaceshaded_scheduler() const;
     [[nodiscard]] nucleus::tile::SchedulerDirector* scheduler_director() const;
+    [[nodiscard]] nucleus::avalanche::Scheduler* eaws_scheduler() const;
+    [[nodiscard]] std::shared_ptr<nucleus::avalanche::ReportLoadService> eaws_report_load_service() const;
 
 signals:
     void initialised();

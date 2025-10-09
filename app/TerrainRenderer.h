@@ -32,6 +32,9 @@ class Controller;
 namespace nucleus::camera {
 class Controller;
 }
+namespace nucleus::avalanche {
+class ReportLoadService;
+}
 
 class TerrainRenderer : public QObject, public QQuickFramebufferObject::Renderer {
     Q_OBJECT
@@ -49,8 +52,11 @@ public:
 
     [[nodiscard]] nucleus::camera::Controller* controller() const;
 
+    [[nodiscard]] std::shared_ptr<nucleus::avalanche::ReportLoadService> eaws_report_load_service();
+
 private:
     QQuickWindow* m_window = nullptr;
     std::unique_ptr<gl_engine::Window> m_glWindow;
     std::unique_ptr<nucleus::camera::Controller> m_camera_controller;
+    std::shared_ptr<nucleus::avalanche::ReportLoadService> m_eaws_report_load_service;
 };

@@ -124,7 +124,7 @@ void Scheduler::update_gpu_quads()
             return false;
         if (!is_ready_to_ship(quad))
             return false;
-        if (quad.id.zoom_level > 10 && quad.network_info().status != NetworkInfo::Status::Good)
+        if (quad.id.zoom_level > 8 && quad.network_info().status != NetworkInfo::Status::Good)
             return false;
         if (m_gpu_cached.contains(quad.id))
             return true;
