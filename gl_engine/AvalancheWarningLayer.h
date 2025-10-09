@@ -37,12 +37,13 @@ namespace gl_engine {
 class ShaderRegistry;
 class ShaderProgram;
 class TileGeometry;
+class TextureLayer;
 
 class AvalancheWarningLayer : public QObject {
     Q_OBJECT
 public:
     explicit AvalancheWarningLayer(QObject* parent = nullptr);
-    void init(ShaderRegistry* shader_registry); // needs OpenGL context
+    void init(ShaderRegistry* shader_registry, std::shared_ptr<gl_engine::TextureLayer> surfaceshaded_layer); // needs OpenGL context
     void draw(const TileGeometry& tile_geometry, const nucleus::camera::Definition& camera, const std::vector<nucleus::tile::TileBounds>& draw_list) const;
 
     unsigned int tile_count() const;
@@ -59,5 +60,6 @@ private:
     std::unique_ptr<Texture> m_instanced_zoom;
     std::unique_ptr<Texture> m_instanced_array_index;
     nucleus::tile::GpuArrayHelper m_gpu_array_helper;
+    std::shared_ptr<gl_engine::TextureLayer> m_surfshaded_layer = nullptr;
 };
 } // namespace gl_engine

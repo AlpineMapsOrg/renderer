@@ -178,7 +178,6 @@ void Window::initialise_gpu()
             Framebuffer::ColourFormat::RGBA32F, // Position WCS and distance (distance is optional, but i use it directly for a little speed improvement)
             Framebuffer::ColourFormat::RG16UI, // Octahedron Normals
             Framebuffer::ColourFormat::RGBA8, // Discretized Encoded Depth for readback IMPORTANT: IF YOU MOVE THIS YOU HAVE TO ADAPT THE GET DEPTH FUNCTION
-            Framebuffer::ColourFormat::RGBA8 // eaws warnings buffer
             // TextureDefinition { Framebuffer::ColourFormat::R32UI }, // VertexID
         });
 
@@ -345,9 +344,6 @@ void Window::paint(QOpenGLFramebufferObject* framebuffer)
         // Clear Depth-Buffer
         f->glClearDepthf(0.0f); // reverse z
         f->glClear(GL_DEPTH_BUFFER_BIT);
-        // Clear EAWS-Buffer
-        const GLfloat clearEawsColor[] = { 0.0f, 0.0f, 0.0f, 1.0f };
-        f->glClearBufferfv(GL_COLOR, 4, clearEawsColor);
     }
 
     f->glEnable(GL_DEPTH_TEST);
@@ -358,11 +354,8 @@ void Window::paint(QOpenGLFramebufferObject* framebuffer)
     if (m_shared_config_ubo->data.m_eaws_danger_rating_enabled || m_shared_config_ubo->data.m_eaws_risk_level_enabled
         || m_shared_config_ubo->data.m_eaws_slope_angle_enabled || m_shared_config_ubo->data.m_eaws_stop_or_go_enabled) {
         m_context->surfaceshaded_layer()->draw(*m_context->tile_geometry(), m_camera, culled_draw_list);
-        f->glClear(GL_DEPTH_BUFFER_BIT);
         m_context->eaws_layer()->draw(*m_context->tile_geometry(), m_camera, culled_draw_list);
     } else {
-        m_context->eaws_layer()->draw(*m_context->tile_geometry(), m_camera, culled_draw_list);
-        f->glClear(GL_DEPTH_BUFFER_BIT);
         m_context->ortho_layer()->draw(*m_context->tile_geometry(), m_camera, culled_draw_list);
     }
     m_timer->stop_timer("tiles");
@@ -403,9 +396,6 @@ void Window::paint(QOpenGLFramebufferObject* framebuffer)
     m_gbuffer->bind_colour_texture(1, 1);
     m_compose_shader->set_uniform("texin_normal", 2);
     m_gbuffer->bind_colour_texture(2, 2);
-    m_compose_shader->set_uniform("texin_eaws", 3);
-    m_gbuffer->bind_colour_texture(4, 3);
-
     m_compose_shader->set_uniform("texin_atmosphere", 4);
     m_atmospherebuffer->bind_colour_texture(0, 4);
 

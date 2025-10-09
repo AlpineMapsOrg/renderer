@@ -22,6 +22,7 @@
 #include "ShaderRegistry.h"
 #include "TileGeometry.h"
 #include <QOpenGLExtraFunctions>
+#include <TextureLayer.h>
 
 namespace gl_engine {
 
@@ -30,7 +31,7 @@ AvalancheWarningLayer::AvalancheWarningLayer(QObject* parent)
 {
 }
 
-void gl_engine::AvalancheWarningLayer::init(ShaderRegistry* shader_registry)
+void gl_engine::AvalancheWarningLayer::init(ShaderRegistry* shader_registry, std::shared_ptr<TextureLayer> surfaceshaded_layer)
 {
     m_shader = std::make_shared<ShaderProgram>("tile.vert", "eaws.frag");
     shader_registry->add_shader(m_shader);
@@ -44,6 +45,7 @@ void gl_engine::AvalancheWarningLayer::init(ShaderRegistry* shader_registry)
 
     m_instanced_array_index = std::make_unique<Texture>(Texture::Target::_2d, Texture::Format::R16UI);
     m_instanced_array_index->setParams(Texture::Filter::Nearest, Texture::Filter::Nearest);
+    m_surfshaded_layer = surfaceshaded_layer;
 }
 
 void AvalancheWarningLayer::draw(
@@ -69,10 +71,25 @@ void AvalancheWarningLayer::draw(
     m_shader->set_uniform("instanced_texture_zoom_sampler", 8);
     m_instanced_zoom->upload(zoom_level_raster);
 
+    m_surfshaded_layer->m_texture_array->bind(9);
+    m_shader->set_uniform("texture_sampler2", 9);
+    for (unsigned i = 0; i < std::min(unsigned(draw_list.size()), 1024u); ++i) {
+        const auto layer = m_surfshaded_layer->m_gpu_array_helper.layer(draw_list[i].id);
+        zoom_level_raster.pixel({ i, 0 }) = layer.id.zoom_level;
+        array_index_raster.pixel({ i, 0 }) = layer.index;
+    }
+
+    m_surfshaded_layer->m_instanced_array_index->bind(10);
+    m_shader->set_uniform("instanced_texture_array_index_sampler2", 10);
+    m_surfshaded_layer->m_instanced_array_index->upload(array_index_raster);
+
+    m_surfshaded_layer->m_instanced_zoom->bind(11);
+    m_shader->set_uniform("instanced_texture_zoom_sampler2", 11);
+    m_surfshaded_layer->m_instanced_zoom->upload(zoom_level_raster);
+
     tile_geometry.draw(m_shader.get(), camera, draw_list);
 }
 
-// wrapper for template since thi is a slot which cannot be a template
 void AvalancheWarningLayer::update_gpu_tiles(const std::vector<nucleus::tile::Id>& deleted_tiles, const std::vector<nucleus::tile::GpuEawsTile>& new_tiles)
 {
     if (!QOpenGLContext::currentContext()) // can happen during shutdown.

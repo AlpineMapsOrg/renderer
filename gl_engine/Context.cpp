@@ -64,8 +64,8 @@ void Context::internal_initialise()
     if (m_surfaceshaded_layer)
         m_surfaceshaded_layer->init(m_shader_registry.get());
 
-    if (m_eaws_layer)
-        m_eaws_layer->init(m_shader_registry.get());
+    if (m_eaws_layer && m_surfaceshaded_layer)
+        m_eaws_layer->init(m_shader_registry.get(), m_surfaceshaded_layer);
 }
 
 void Context::internal_destroy()

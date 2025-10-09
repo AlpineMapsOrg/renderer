@@ -37,7 +37,6 @@ in highp vec2 texcoords;
 uniform sampler2D texin_albedo;             // 8vec3
 uniform highp sampler2D texin_position;     // f32vec4
 uniform highp usampler2D texin_normal;      // u16vec2
-uniform sampler2D texin_eaws;               // 8vec3
 
 uniform sampler2D texin_atmosphere;         // 8vec3
 uniform sampler2D texin_ssao;               // 8vec1
@@ -152,15 +151,6 @@ highp float csm_shadow_term(highp vec4 pos_cws, highp vec3 normal_ws, out lowp i
 
 void main() {
     lowp vec3 albedo = texture(texin_albedo, texcoords).rgb;
-
-    if(bool(conf.eaws_danger_rating_enabled) || bool(conf.eaws_risk_level_enabled)|| bool(conf.eaws_slope_angle_enabled) || bool(conf.eaws_stop_or_go_enabled))
-    {
-        lowp vec3 eaws_color = texture(texin_eaws, texcoords).rgb;
-        if(eaws_color.r > 0.0 || eaws_color.g > 0.0 || eaws_color.b > 0.0)
-        {
-            albedo = 0.5 * albedo + 0.5 * eaws_color;
-        }
-    }
     highp vec4 pos_dist = texture(texin_position, texcoords);
     highp vec3 pos_cws = pos_dist.xyz;
     highp float dist = pos_dist.w; // negative if sky
