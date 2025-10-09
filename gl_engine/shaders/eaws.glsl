@@ -164,7 +164,7 @@ vec3 color_from_stop_or_go(vec3 notNormalizedNormal, int eaws_danger_rating)
 int direction(vec3 n)
 {
     //Ensure n has length = 1
-    if(n.x*n.x +n.y*n.y +n.z*n.z >1.0) normalize(n);
+    n = normalize(n);
 
     // calculate direction of fragment (North, South etc
     float angle = sign(n.y)*degrees(acos(n.x));

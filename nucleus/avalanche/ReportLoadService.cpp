@@ -158,8 +158,11 @@ void ReportLoadService::load_from_tu_wien(const QDate& date) const
             QJsonObject jsonObject_region_rating = jsonValue_region_rating.toObject();
             if (jsonObject_region_rating.contains("regionCode"))
                 region_rating.region_id = jsonObject_region_rating["regionCode"].toString();
-            if (jsonObject_region_rating.contains("dangerBorder"))
-                region_rating.border = jsonObject_region_rating["dangerBorder"].toInt();
+            if (jsonObject_region_rating.contains("dangerBorder")) {
+                // dangerBorder = null is interpreted as dangerBorder = treeLine = 1600, see Joey's thesis p.44
+                QJsonValue val = jsonObject_region_rating["dangerBorder"];
+                region_rating.border = ((val.isNull() || val.isUndefined()) ? 1600 : val.toInt());
+            }
             if (jsonObject_region_rating.contains("dangerRatingHi"))
                 region_rating.rating_hi = jsonObject_region_rating["dangerRatingHi"].toInt();
             if (jsonObject_region_rating.contains("dangerRatingLo"))
@@ -171,6 +174,8 @@ void ReportLoadService::load_from_tu_wien(const QDate& date) const
 
             // Write struct to vector to be returned
             region_ratings.push_back(region_rating);
+            if (region_rating.border == 1600)
+                std::cout << region_rating.region_id.toStdString();
         }
 
         // Convert reports to ubo

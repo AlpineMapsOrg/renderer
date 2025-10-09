@@ -187,7 +187,7 @@ ColumnLayout {
 
                 Text {
                     id: warning_text
-                    textFormat: Text.RichText
+                    textFormat: Text.StyledText
                     text: "<b>EXPERIMENTAL FEATURE!</b>
                     <br>These visualisation tools are experimental and should <b>not</b> be used as a sole basis for decision-making during tour planning.
                     <br><b>We cannot guarantee the correctness of the information displayed.</b>
