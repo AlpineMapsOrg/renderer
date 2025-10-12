@@ -30,7 +30,7 @@ precision highp float;
 uniform highp usampler2DArray texture_sampler;
 uniform highp usampler2D instanced_texture_array_index_sampler;
 uniform highp usampler2D instanced_texture_zoom_sampler;
-uniform highp usampler2DArray texture_sampler2;
+uniform highp sampler2DArray texture_sampler2;
 uniform highp usampler2D instanced_texture_array_index_sampler2;
 uniform highp usampler2D instanced_texture_zoom_sampler2;
 
@@ -71,7 +71,7 @@ void main() {
     highp float texture_layer2_f = float(texelFetch(instanced_texture_array_index_sampler2, ivec2(instance_id, 0), 0).x);
 
     lowp vec3 terrain_color = texture(texture_sampler2, vec3(uv, texture_layer2_f)).rgb;
-    //terrain_color = mix(terrain_color, conf.material_color.rgb, conf.material_color.a);
+    terrain_color = mix(terrain_color, conf.material_color.rgb, conf.material_color.a);
 
     // Write Position (and distance) in gbuffer
     highp float dist = length(var_pos_cws);
@@ -190,7 +190,7 @@ void main() {
         eaws_color = color_no_report_available;
     }
 
-    // merge phot texture with eaws color
+    // merge photo texture with eaws color
      if(eaws_color.r > 0.0 || eaws_color.g > 0.0 || eaws_color.b > 0.0)
          texout_albedo = mix(terrain_color, eaws_color, 0.5);
      else
