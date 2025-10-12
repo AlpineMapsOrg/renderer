@@ -163,7 +163,7 @@ std::vector<QPointF> transform_vertices(const Region& region, const radix::tile:
 }
 
 QImage draw_regions(const RegionTile& region_tile,
-    const UIntIdManager& internal_id_manager,
+    std::shared_ptr<UIntIdManager> internal_id_manager,
     const uint& image_width,
     const uint& image_height,
     const radix::tile::Id& tile_id_out,
@@ -181,15 +181,16 @@ QImage draw_regions(const RegionTile& region_tile,
     assert(region_tile.second.size() > 0);
     radix::tile::Id tile_id_in = region_tile.first;
     for (const auto& region : region_tile.second) {
-        // Only draw regions that are in the uint id manager. the id manager only has the regions that the report server uses.
-        if (!internal_id_manager.contains(region.id))
+        // Only draw regions as of July 1st 2025
+        QDate refDate(2025, 7, 1);
+        if ((region.start_date.has_value() && region.start_date > refDate) || (region.end_date.has_value() && region.end_date < refDate))
             continue;
 
         // Calculate vertex coordinates of region w.r.t. output tile at output resolution
         std::vector<QPointF> transformed_vertices_as_QPointFs = transform_vertices(region, tile_id_in, tile_id_out, &img);
 
         // Convert region id to color, for debugging use  color_of_region = QColor::fromRgb(255, 255, 255);
-        QColor color_of_region = internal_id_manager.convert_region_id_to_color(region.id);
+        QColor color_of_region = internal_id_manager->convert_region_id_to_color(region.id);
         painter.setBrush(QBrush(color_of_region));
         painter.setPen(QPen(color_of_region)); // we also have to set the pen if we want to draw boundaries
 
@@ -203,7 +204,7 @@ QImage draw_regions(const RegionTile& region_tile,
 }
 
 nucleus::Raster<uint16_t> rasterize_regions(const RegionTile& region_tile,
-    const UIntIdManager& internal_id_manager,
+    std::shared_ptr<UIntIdManager> internal_id_manager,
     const uint raster_width,
     const uint raster_height,
     const radix::tile::Id& tile_id_out)
@@ -214,7 +215,7 @@ nucleus::Raster<uint16_t> rasterize_regions(const RegionTile& region_tile,
     return raster;
 }
 
-nucleus::Raster<uint16_t> rasterize_regions(const RegionTile& region_tile, const UIntIdManager& internal_id_manager)
+nucleus::Raster<uint16_t> rasterize_regions(const RegionTile& region_tile, std::shared_ptr<UIntIdManager> internal_id_manager)
 {
     return rasterize_regions(region_tile, internal_id_manager, region_tile.second[0].resolution.x, region_tile.second[0].resolution.y, region_tile.first);
 }

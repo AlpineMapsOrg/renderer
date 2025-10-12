@@ -122,7 +122,7 @@ RenderingContext::RenderingContext(QObject* parent)
 
     m->map_label.scheduler->set_geometry_ram_cache(&m->geometry.scheduler->ram_cache());
     m->geometry.scheduler->set_dataquerier(m->data_querier);
-    m->eaws_report_load_service = std::make_unique<nucleus::avalanche::ReportLoadService>();
+    m->eaws_report_load_service = std::make_shared<nucleus::avalanche::ReportLoadService>(m->eaws_texture.scheduler->get_uint_id_manager());
     m->picker_manager = std::make_shared<PickerManager>();
     m->label_filter = std::make_shared<Filter>();
     if (m->scheduler_thread) {

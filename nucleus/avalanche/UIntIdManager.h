@@ -15,21 +15,20 @@ class UIntIdManager : public QObject {
 
 public:
     const std::vector<QImage::Format> supported_image_formats { QImage::Format_ARGB32 };
-    UIntIdManager();
-    QColor convert_region_id_to_color(const QString& region_id) const;
+    UIntIdManager(const QDate& reference_date);
+    QColor convert_region_id_to_color(const QString& region_id);
     QString convert_color_to_region_id(const QColor& color) const;
-    uint convert_region_id_to_internal_id(const QString& color) const;
+    uint convert_region_id_to_internal_id(const QString& color);
     QString convert_internal_id_to_region_id(const uint& internal_id) const;
     uint convert_color_to_internal_id(const QColor& color) const;
-    QColor convert_internal_id_to_color(const uint& internal_id) const;
     bool contains(const QString& region_id) const;
     std::vector<QString> get_all_registered_region_ids() const;
-    void load_all_regions_from_server();
+    QDate get_reference_date() const { return m_reference_date; }
 
 private:
-    std::unordered_map<QString, uint> region_id_to_internal_id;
-    std::unordered_map<uint, QString> internal_id_to_region_id;
-    uint max_internal_id = 0;
-    const QString m_url_regions = "https://regions.avalanches.org/micro-regions.geojson";
+    std::unordered_map<QString, uint> m_region_id_to_internal_id;
+    std::unordered_map<uint, QString> m_internal_id_to_region_id;
+    uint m_max_internal_id = 0;
+    QDate m_reference_date;
 };
 } // namespace nucleus::avalanche

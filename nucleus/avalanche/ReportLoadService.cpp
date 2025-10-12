@@ -58,14 +58,15 @@ nucleus::avalanche::UboEawsReports convertReportsToUbo(
 }
 
 // Constructor: only creates network manager that lives the whole runtime. Ideally the whole app would only use one Manager !
-ReportLoadService::ReportLoadService()
+ReportLoadService::ReportLoadService(std::shared_ptr<UIntIdManager> uint_id_manager)
     : m_network_manager(new QNetworkAccessManager(this))
-    , m_uint_id_manager(std::make_shared<nucleus::avalanche::UIntIdManager>())
+    , m_uint_id_manager(uint_id_manager)
 {
 }
 
 void ReportLoadService::load_from_tu_wien(const QDate& date) const
 {
+
     // Prepare ubo to be returned
     UboEawsReports ubo;
     std::fill(ubo.reports, ubo.reports + 1000, glm::ivec4(-1, 0, 0, 0));
@@ -171,11 +172,11 @@ void ReportLoadService::load_from_tu_wien(const QDate& date) const
                 region_rating.start_time = jsonObject_region_rating["startTime"].toString();
             if (jsonObject_region_rating.contains("endTime"))
                 region_rating.end_time = jsonObject_region_rating["endTime"].toString();
+            if (jsonObject_region_rating.contains("unfavorable"))
+                region_rating.unfavorable = jsonObject_region_rating["unfavorable"].toInt();
 
             // Write struct to vector to be returned
             region_ratings.push_back(region_rating);
-            if (region_rating.border == 1600)
-                std::cout << region_rating.region_id.toStdString();
         }
 
         // Convert reports to ubo

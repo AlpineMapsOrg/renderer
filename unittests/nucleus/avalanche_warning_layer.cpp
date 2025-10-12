@@ -128,13 +128,14 @@ TEST_CASE("nucleus/EAWS Vector Tiles")
         }
 
         // Create internal id manager that is later needed to write region ids to image pixels
-        nucleus::avalanche::UIntIdManager internal_id_manager;
-        CHECK(internal_id_manager.get_all_registered_region_ids().size() == 126);
-        CHECK(internal_id_manager.convert_region_id_to_internal_id("") == 0);
-        std::vector<QString> all_region_Ids = internal_id_manager.get_all_registered_region_ids();
+        std::shared_ptr<nucleus::avalanche::UIntIdManager> internal_id_manager = std::make_shared<nucleus::avalanche::UIntIdManager>(QDate(2025, 7, 1));
+        internal_id_manager->convert_region_id_to_internal_id(QString("TestRegion1"));
+        internal_id_manager->convert_region_id_to_internal_id(QString("TestRegion2"));
+        CHECK(internal_id_manager->convert_region_id_to_internal_id("") == 0);
+        std::vector<QString> all_region_Ids = internal_id_manager->get_all_registered_region_ids();
         bool internal_maps_match = true;
         for (uint i = 0; i < all_region_Ids.size(); i++) {
-            if (internal_id_manager.convert_region_id_to_internal_id(all_region_Ids[i]) != i) {
+            if (internal_id_manager->convert_region_id_to_internal_id(all_region_Ids[i]) != i) {
                 internal_maps_match = false;
                 break;
             }
@@ -144,8 +145,8 @@ TEST_CASE("nucleus/EAWS Vector Tiles")
         // Check if conversion color << id << color works consistentenly
         bool wrong_conversion = false;
         for (QString region_id : all_region_Ids) {
-            QColor color = internal_id_manager.convert_region_id_to_color(region_id);
-            QString region_id_from_color = internal_id_manager.convert_color_to_region_id(color);
+            QColor color = internal_id_manager->convert_region_id_to_color(region_id);
+            QString region_id_from_color = internal_id_manager->convert_color_to_region_id(color);
             wrong_conversion = (region_id != region_id_from_color);
             if (wrong_conversion)
                 break;
@@ -196,14 +197,14 @@ TEST_CASE("nucleus/EAWS Vector Tiles")
 
         // Check if raster contains correct internal region-ids at certain pixels
         CHECK(0 == raster.pixel(glm::uvec2(0, 0)));
-        CHECK(internal_id_manager.convert_region_id_to_internal_id(region_with_start_date.id) == raster.pixel(glm::vec2(2128, 1459)));
+        CHECK(internal_id_manager->convert_region_id_to_internal_id(region_with_start_date.id) == raster.pixel(glm::vec2(2128, 1459)));
 
         // Check if raster and image have same values when drawn with same resolution
         QImage img_small = nucleus::avalanche::draw_regions(region_tile_2_2_0, internal_id_manager, 20, 20, tile_id_2_2_0);
         const auto raster_small = nucleus::avalanche::rasterize_regions(region_tile_2_2_0, internal_id_manager, 20, 20, tile_id_2_2_0);
         for (uint i = 0; i < 10; i++) {
             for (uint j = 0; j < 10; j++) {
-                uint id_from_img = internal_id_manager.convert_color_to_internal_id(img_small.pixel(i, j));
+                uint id_from_img = internal_id_manager->convert_color_to_internal_id(img_small.pixel(i, j));
                 uint id_from_raster = raster_small.pixel(glm::uvec2(i, j));
                 CHECK(id_from_img == id_from_raster);
             }
@@ -211,20 +212,22 @@ TEST_CASE("nucleus/EAWS Vector Tiles")
 
         // Check if tile that has only region NO-3035 in it produces a 1x1 raster with the corresponding internal region id
         const auto raster_NO3035 = nucleus::avalanche::rasterize_regions(region_tile_10_236_299, internal_id_manager);
-        CHECK(internal_id_manager.convert_region_id_to_internal_id("NO-3035") == raster_NO3035.pixel(glm::uvec2(0, 0)));
+        CHECK(internal_id_manager->convert_region_id_to_internal_id("NO-3035") == raster_NO3035.pixel(glm::uvec2(0, 0)));
     }
 }
 
 TEST_CASE("nucleus/avalanche/ReportLoadService")
 {
+    // Loads this report item and tests correct processing:
+    //{"regionCode":"AT-02-02-00","dangerBorder":2400,"dangerRatingHi":2,"dangerRatingLo":1,"startTime":"2025-01-05T16:00:00.000Z","endTime":"2025-01-06T16:00:00.000Z","unfavorable":225}
+
     // Load id of region we will test for correct avalanche report
-    nucleus::avalanche::UIntIdManager id_manager;
-    CHECK(126 == id_manager.get_all_registered_region_ids().size());
-    CHECK(1 == id_manager.convert_region_id_to_internal_id(QString("AT-02-15")));
+    std::shared_ptr<nucleus::avalanche::UIntIdManager> id_manager = std::make_shared<nucleus::avalanche::UIntIdManager>(QDate(2025, 7, 1));
+    uint testId = id_manager->convert_region_id_to_internal_id(QString("AT-02-02"));
     // Create Report Load Service and let it load a reference report
-    nucleus::avalanche::ReportLoadService reportLoadService;
+    nucleus::avalanche::ReportLoadService reportLoadService(id_manager);
     QSignalSpy spy(&reportLoadService, &nucleus::avalanche::ReportLoadService::load_from_TU_Wien_finished);
-    reportLoadService.load_from_tu_wien(QDate(2025, 1, 1));
+    reportLoadService.load_from_tu_wien(QDate(2025, 1, 6));
     spy.wait(10000);
     REQUIRE(spy.count() == 1);
     QList<QVariant> arguments = spy.takeFirst();
@@ -235,11 +238,10 @@ TEST_CASE("nucleus/avalanche/ReportLoadService")
     if (result.has_value()) {
         nucleus::avalanche::UboEawsReports ubo = arguments.at(0).value<nucleus::avalanche::UboEawsReports>();
         CHECK(ubo.reports[0].x == -1);
-        CHECK(ubo.reports[999].x == -1);
-        CHECK(ubo.reports[1].x == 0);
-        CHECK(ubo.reports[1].y == 1800);
-        CHECK(ubo.reports[1].z == 1);
-        CHECK(ubo.reports[1].w == 1);
+        CHECK(ubo.reports[testId].x == 225);
+        CHECK(ubo.reports[testId].y == 2400);
+        CHECK(ubo.reports[testId].z == 1);
+        CHECK(ubo.reports[testId].w == 2);
     }
 }
 
@@ -272,8 +274,8 @@ TEST_CASE("nucleus/avalanche/Scheduler")
     SECTION("to_raster")
     {
         // Build Quad and save its tiles as raster
-        nucleus::avalanche::UIntIdManager id_manager;
-        CHECK(126 == id_manager.get_all_registered_region_ids().size());
+        QDate refDate(2025, 7, 1);
+        std::shared_ptr<nucleus::avalanche::UIntIdManager> id_manager = std::make_shared<nucleus::avalanche::UIntIdManager>(refDate);
         nucleus::tile::DataQuad quad;
         quad.id = radix::tile::Id { 6, { 33, 22 }, radix::tile::Scheme::SlippyMap };
         std::vector<nucleus::avalanche::RegionTile> tiles;

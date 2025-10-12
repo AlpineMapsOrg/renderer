@@ -38,7 +38,7 @@ struct ReportTUWien {
     int border = INT_MAX;
     int rating_hi = -1;
     int rating_lo = -1;
-    int unfavorable = 0;
+    int unfavorable = -1;
     bool operator==(const ReportTUWien& rhs) const = default;
 };
 
@@ -50,8 +50,7 @@ private:
     std::shared_ptr<UIntIdManager> m_uint_id_manager;
 
 public:
-    ReportLoadService(); // Constructor creates a new NetworkManager
-
+    ReportLoadService(std::shared_ptr<UIntIdManager> m_uint_id_manager); // Constructor creates a new NetworkManager with id manager it obtains from context
 public slots:
     void load_from_tu_wien(const QDate& date) const;
 

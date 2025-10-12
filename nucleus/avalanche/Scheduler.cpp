@@ -19,6 +19,7 @@
 
 #include "Scheduler.h"
 #include "eaws.h"
+#include <QDate>
 #include <nucleus/utils/image_loader.h>
 
 namespace nucleus::avalanche {
@@ -27,6 +28,7 @@ Scheduler::Scheduler(const Settings& settings)
     : nucleus::tile::Scheduler(settings)
     , m_default_raster(glm::uvec2(settings.tile_resolution), 0)
 {
+    m_uint_id_manager = std::make_shared<UIntIdManager>(QDate(2025, 7, 1));
 }
 
 Scheduler::~Scheduler() = default;
@@ -49,7 +51,7 @@ void Scheduler::transform_and_emit(const std::vector<nucleus::tile::DataQuad>& n
 }
 
 nucleus::Raster<glm::uint16> Scheduler::to_raster(
-    const nucleus::tile::DataQuad& quad, const nucleus::Raster<glm::uint16>& default_raster, const UIntIdManager& uint_id_manager)
+    const nucleus::tile::DataQuad& quad, const nucleus::Raster<glm::uint16>& default_raster, std::shared_ptr<UIntIdManager> uint_id_manager)
 {
     std::array<Raster<glm::uint16>, 4> quad_rasters;
     std::array<tile::Id, 4> quad_ids;
