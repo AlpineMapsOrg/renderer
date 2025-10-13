@@ -30,6 +30,7 @@ vec3 color_no_report_available = vec3(0.5,0.5,0.5);
 
 vec3 color_from_eaws_danger_rating(int rating)
 {
+    if(0 == rating) return vec3(0.0,0.0,0.0);      // no color     for 0 = no snow
     if(1 == rating) return vec3(0.0,1.0,0.0);      // green        for 1 = low
     if(2 == rating) return vec3(1.0,1.0,0.0);      // yellow       for 2 = moderate
     if(3 == rating) return vec3(1.0,0.53f,0.0);    // orange       for 3 = considerable
