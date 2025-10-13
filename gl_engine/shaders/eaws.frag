@@ -49,24 +49,13 @@ flat in highp uint instance_id;
 in lowp float is_curtain;
 #endif
 flat in lowp vec3 vertex_color;
+in highp float var_altitude;
 
 highp vec3 normal_by_fragment_position_interpolation() {
     highp vec3 dFdxPos = dFdx(var_pos_cws);
     highp vec3 dFdyPos = dFdy(var_pos_cws);
     return normalize(cross(dFdxPos, dFdyPos));
 }
-
-// removes cosine factor form already corrected altitude
-highp float get_altitude(highp vec3 position)
-{
-    highp float world_space_y = position.y + camera.position.y;
-    const highp float pi = 3.1415926535897932384626433;
-    const highp float cOriginShift = 20037508.342789244;
-    highp float mercN = world_space_y * pi / cOriginShift;
-    highp float latRad = 2.f * (atan(exp(mercN)) - (pi / 4.0));
-    return (position.z + camera.position.z) * cos(latRad);
-}
-
 
 void main() {
 #if CURTAIN_DEBUG_MODE == 2
@@ -130,7 +119,7 @@ void main() {
     //return;
 
     // Get altitude and slope normal
-    highp float frag_height = get_altitude(var_pos_cws);
+    highp float frag_height = var_altitude;
     vec3 fragNormal = var_normal; // just to clarify naming
 
     // calculate frag color according to selected overlay type
