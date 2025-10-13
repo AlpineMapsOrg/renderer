@@ -56,6 +56,17 @@ highp vec3 normal_by_fragment_position_interpolation() {
     return normalize(cross(dFdxPos, dFdyPos));
 }
 
+// removes cosine factor form already corrected altitude
+highp float get_altitude(highp vec3 position)
+{
+    highp float world_space_y = position.y + camera.position.y;
+    const highp float pi = 3.1415926535897932384626433;
+    const highp float cOriginShift = 20037508.342789244;
+    highp float mercN = world_space_y * pi / cOriginShift;
+    highp float latRad = 2.f * (atan(exp(mercN)) - (pi / 4.0));
+    return (position.z + camera.position.z) * cos(latRad);
+}
+
 
 void main() {
 #if CURTAIN_DEBUG_MODE == 2
@@ -119,7 +130,7 @@ void main() {
     //return;
 
     // Get altitude and slope normal
-    float frag_height = var_pos_cws.z + camera.position.z;
+    highp float frag_height = get_altitude(var_pos_cws);
     vec3 fragNormal = var_normal; // just to clarify naming
 
     // calculate frag color according to selected overlay type
@@ -140,15 +151,15 @@ void main() {
         if(bool(conf.eaws_danger_rating_enabled))
         {
             // color fragment according to danger level
-            float margin = 25.0;           // margin within which colorblending between hi and lo happens
-            if(frag_height > float(bound) + margin)
+            float margin = 200.0;           // margin within which colorblending between hi and lo happens
+            if(frag_height > float(bound))
                 eaws_color =  color_from_eaws_danger_rating(ratingHi);
             else if (frag_height < float(bound) - margin)
                 eaws_color =  color_from_eaws_danger_rating(ratingLo);
             else
             {
                 // around border: blend colors between upper and lower danger rating
-                float a = (frag_height - (float(bound) - margin)) / (2.0*margin); // This is a value between 0 and 1
+                float a = (frag_height - (float(bound) - margin)) / margin; // This is a value between 0 and 1
                 eaws_color = mix(color_from_eaws_danger_rating(ratingLo), color_from_eaws_danger_rating(ratingHi), a);
             }
         }
@@ -162,15 +173,15 @@ void main() {
             bool unfavorable = (0 != (report.x & direction(fragNormal)));
 
             // color the fragment according to danger level
-            float margin = 25.f; // margin within which colorblending between hi and lo happens
-            if(frag_height > float(bound) + margin)
+            float margin = 200.f; // margin within which colorblending between hi and lo happens
+            if(frag_height > float(bound))
                 eaws_color =  color_from_snowCard_risk_parameters(ratingHi, fragNormal, unfavorable);
             else if (frag_height < float(bound) - margin)
                 eaws_color =  color_from_snowCard_risk_parameters(ratingLo, fragNormal, unfavorable);
             else
             {
                 // around border: blend colors between upper and lower danger rating
-                float a = (frag_height - (float(bound) - margin)) / (2.0*margin); // This is a value between 0 and 1
+                float a = (frag_height - (float(bound) - margin)) / margin; // This is a value between 0 and 1
                 vec3 colorLo = color_from_snowCard_risk_parameters(ratingLo, fragNormal, unfavorable);
                 vec3 colorHi = color_from_snowCard_risk_parameters(ratingHi, fragNormal, unfavorable);
                 eaws_color = mix(colorLo, colorHi, a); // color_from_snowCard_risk_parameters(int eaws_danger_rating, int slope_angle_in_deg, bool unfavorable)
