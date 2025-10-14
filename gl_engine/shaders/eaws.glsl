@@ -154,7 +154,7 @@ vec3 color_from_stop_or_go(vec3 notNormalizedNormal, int eaws_danger_rating)
     if(slope_in_deg <= 30.0) go = go0to30[idx];
     else if (slope_in_deg <= 35.0) go = go30to35[idx];
     else if (slope_in_deg <= 40.0) go = go35to40[idx];
-    else go = goOver40[idx];
+    else if (slope_in_deg <= 45.0) go = goOver40[idx];
 
     if(go) return vec3(0.0,0.0,0.0); // GO : return 0 0 0 so overlay is transparent
     return vec3(1.0,0.0,0.0); // STOP: return red;
