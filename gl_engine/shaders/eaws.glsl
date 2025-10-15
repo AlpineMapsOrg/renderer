@@ -26,11 +26,10 @@ layout (std140) uniform eaws_reports {
 } eaws;
 
 // Color for areas where no report is available
-vec3 color_no_report_available = vec3(0.5,0.5,0.5);
+vec3 color_no_report_available = vec3(-1.0,-1.0,-1.0);
 
 vec3 color_from_eaws_danger_rating(int rating)
 {
-    if(0 == rating) return vec3(0.0,0.0,0.0);      // no color     for 0 = no snow
     if(1 == rating) return vec3(0.0,1.0,0.0);      // green        for 1 = low
     if(2 == rating) return vec3(1.0,1.0,0.0);      // yellow       for 2 = moderate
     if(3 == rating) return vec3(1.0,0.53f,0.0);    // orange       for 3 = considerable
@@ -113,6 +112,7 @@ vec3 color_from_snowCard_risk_parameters(int eaws_danger_rating, vec3 notNormali
         // pick unfavorable array according to eaws danger rating
         switch(eaws_danger_rating)
         {
+            case 0: return color_no_report_available;
             case 1: return (1.0-a) * snowCardLevel[unfavorable1[idx]] + a * snowCardLevel[unfavorable1[nextIdx]];
             case 2: return (1.0-a) * snowCardLevel[unfavorable2[idx]] + a * snowCardLevel[unfavorable2[nextIdx]];
             case 3: return (1.0-a) * snowCardLevel[unfavorable3[idx]] + a * snowCardLevel[unfavorable3[nextIdx]];
@@ -125,6 +125,7 @@ vec3 color_from_snowCard_risk_parameters(int eaws_danger_rating, vec3 notNormali
         // pick favorable array according to eaws danger rating
         switch(eaws_danger_rating)
         {
+            case 0: return color_no_report_available;
             case 1: return (1.0-a) * snowCardLevel[favorable1[idx]] + a * snowCardLevel[favorable1[nextIdx]];
             case 2: return (1.0-a) * snowCardLevel[favorable2[idx]] + a * snowCardLevel[favorable2[nextIdx]];
             case 3: return (1.0-a) * snowCardLevel[favorable3[idx]] + a * snowCardLevel[favorable3[nextIdx]];
@@ -143,7 +144,7 @@ bool goOver40[5] = bool[5](true, false, false, false, false);
 vec3 color_from_stop_or_go(vec3 notNormalizedNormal, int eaws_danger_rating)
 {
     // danger rating must be in [1,5]
-    if(eaws_danger_rating < 1 || 5 < eaws_danger_rating) return vec3(0.0,0.0,0.0);
+    if(eaws_danger_rating < 1 || 5 < eaws_danger_rating) return color_no_report_available;
     int idx = eaws_danger_rating -1;
 
     // Calculte slope angle

@@ -113,7 +113,6 @@ void main() {
     highp uint eawsRegionId = texelFetch(texture_sampler, ivec3(int(uv.x * float(512)), int(uv.y * float(512)) , texture_layer_f), 0).r;
     ivec4 report = eaws.reports[eawsRegionId];
     vec3 eaws_color = color_no_report_available;
-    highp float mix_factor = 0.9; // Mix factor between eaws color and photo texture
 
     // // debug output regions
     //eaws_color = vec3(float((eawsRegionId >> 8u) & 255u) / 256.0, float(eawsRegionId & 255u) / 256.0, float((eawsRegionId >> 16u) & 255u) / 256.0);
@@ -128,12 +127,9 @@ void main() {
     {
         // assign a color to slope angle obtained from (not normalized) normal
         eaws_color = slopeAngleColorFromNormal(fragNormal);
-        mix_factor = 0.5;
     }
-    else if(report.x >= 0) // avalanche report is available. report.x = -1 would mean no report available since .x stores the exposition as described in the  Masters THesis of Joey which must be >=0
+    else if(report.x >= 0) // avalanche report is available. report.x = < 0 would mean no report available since .x stores the exposition as described in the  Masters THesis of Joey which must be >0
     {
-        mix_factor = 0.5;
-
         // get avalanche ratings for eaws region of current fragment
         int bound = report.y;      // bound dividing moutain in Hi region and low region
         int ratingHi = report.a;   // rating should be value in {0,1,2,3,4}
@@ -192,7 +188,9 @@ void main() {
 
     // merge photo texture with eaws color
     if(eaws_color.r > 0.0 || eaws_color.g > 0.0 || eaws_color.b > 0.0)
-        texout_albedo = mix(terrain_color, eaws_color, mix_factor);
+        texout_albedo = mix(terrain_color, eaws_color, 0.5);
+    else if(eaws_color.r < 0.0 ) // no report available or danger rating = 0: grey
+        texout_albedo = mix(terrain_color, vec3(0.5,0.5,0.5), 0.9);
     else
         texout_albedo = terrain_color;
 }
