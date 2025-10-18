@@ -128,7 +128,7 @@ void main() {
         // assign a color to slope angle obtained from (not normalized) normal
         eaws_color = slopeAngleColorFromNormal(fragNormal);
     }
-    else if(report.x >= 0) // avalanche report is available. report.x = < 0 would mean no report available since .x stores the exposition as described in the  Masters THesis of Joey which must be >0
+    else if(report.a > 0 || report.z > 0 ) // avalanche report is available. report.x = < 0 would mean no report available since .x stores the exposition as described in the  Masters THesis of Joey which must be >0
     {
         // get avalanche ratings for eaws region of current fragment
         int bound = report.y;      // bound dividing moutain in Hi region and low region
