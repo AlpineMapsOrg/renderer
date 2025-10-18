@@ -38,6 +38,8 @@
 #include <glm/glm.hpp>
 #include <glm/gtx/string_cast.hpp>
 #include <memory>
+#include <nucleus/avalanche/ReportLoadService.h>
+#include <nucleus/avalanche/Scheduler.h>
 #include <nucleus/camera/Controller.h>
 #include <nucleus/camera/PositionStorage.h>
 #include <nucleus/map_label/Filter.h>
@@ -118,6 +120,7 @@ QQuickFramebufferObject::Renderer* TerrainRendererItem::createRenderer() const
     connect(ctx->geometry_scheduler(), &nucleus::tile::Scheduler::stats_ready, this->m_tile_statistics, &TileStatistics::update_scheduler_stats);
     connect(ctx->map_label_scheduler(), &nucleus::tile::Scheduler::stats_ready, this->m_tile_statistics, &TileStatistics::update_scheduler_stats);
     connect(ctx->ortho_scheduler(), &nucleus::tile::Scheduler::stats_ready, this->m_tile_statistics, &TileStatistics::update_scheduler_stats);
+    connect(ctx->eaws_scheduler(), &nucleus::tile::Scheduler::stats_ready, this->m_tile_statistics, &TileStatistics::update_scheduler_stats);
     connect(m_update_timer, &QTimer::timeout, this, &QQuickFramebufferObject::update);
 
     connect(this, &TerrainRendererItem::touch_made, r->controller(), &nucleus::camera::Controller::touch);
@@ -153,6 +156,9 @@ QQuickFramebufferObject::Renderer* TerrainRendererItem::createRenderer() const
     connect(this, &TerrainRendererItem::label_filter_changed, ctx->label_filter().get(), &nucleus::map_label::Filter::update_filter);
     connect(ctx->picker_manager().get(), &nucleus::picker::PickerManager::pick_evaluated, this, &TerrainRendererItem::set_picked_feature);
 
+    connect(
+        this, &TerrainRendererItem::eaws_report_date_changed, ctx->eaws_report_load_service().get(), &nucleus::avalanche::ReportLoadService::load_from_tu_wien);
+
 #ifdef ALP_ENABLE_DEV_TOOLS
     connect(r->glWindow(), &gl_engine::Window::timer_measurements_ready, TimerFrontendManager::instance(), &TimerFrontendManager::receive_measurements);
 #endif
@@ -160,7 +166,6 @@ QQuickFramebufferObject::Renderer* TerrainRendererItem::createRenderer() const
     // We now have to initialize everything based on the url, but we need to do this on the thread this instance
     // belongs to. (gui thread?) Therefore we use the following signal to signal the init process
     emit init_after_creation();
-
     return r;
 }
 
@@ -514,4 +519,37 @@ void TerrainRendererItem::datetime_changed(const QDateTime&)
 void TerrainRendererItem::gl_sundir_date_link_changed(bool)
 {
     recalculate_sun_angles();
+}
+
+void TerrainRendererItem::set_eaws_warning_layer(bool value)
+{
+    gl_engine::uboSharedConfig tmp;
+    tmp.m_eaws_danger_rating_enabled = value;
+    set_shared_config(tmp);
+}
+
+void TerrainRendererItem::set_risk_level_layer(bool value)
+{
+    gl_engine::uboSharedConfig tmp;
+    tmp.m_eaws_risk_level_enabled = value;
+    set_shared_config(tmp);
+}
+
+void TerrainRendererItem::set_slope_angle_layer(bool value)
+{
+    gl_engine::uboSharedConfig tmp;
+    tmp.m_eaws_slope_angle_enabled = value;
+    set_shared_config(tmp);
+}
+
+void TerrainRendererItem::set_stop_or_go_layer(bool value)
+{
+    gl_engine::uboSharedConfig tmp;
+    tmp.m_eaws_stop_or_go_enabled = value;
+    set_shared_config(tmp);
+}
+
+void TerrainRendererItem::updateEawsReportDate(int day, int month, int year)
+{
+    emit eaws_report_date_changed(QDate(year, month, day));
 }

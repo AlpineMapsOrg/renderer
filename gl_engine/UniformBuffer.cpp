@@ -16,13 +16,14 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *****************************************************************************/
 #include "UniformBuffer.h"
-#include <QOpenGLExtraFunctions>
 #include "ShaderProgram.h"
 #include "UniformBufferObjects.h"
-#include <QDebug>
 #include <QByteArray>
 #include <QDataStream>
+#include <QDebug>
 #include <QIODevice>
+#include <QOpenGLExtraFunctions>
+#include <nucleus/avalanche/eaws.h>
 #if defined(__ANDROID__)
 #include <GLES3/gl3.h>  // for GL_UNIFORM_BUFFER! DONT EXACTLY KNOW WHY I NEED THIS HERE! (on other platforms it works without)
 #endif
@@ -89,6 +90,7 @@ template class gl_engine::UniformBuffer<gl_engine::uboSharedConfig>;
 template class gl_engine::UniformBuffer<gl_engine::uboCameraConfig>;
 template class gl_engine::UniformBuffer<gl_engine::uboShadowConfig>;
 template class gl_engine::UniformBuffer<gl_engine::uboTestConfig>;
+template class gl_engine::UniformBuffer<nucleus::avalanche::UboEawsReports>;
 template class gl_engine::UniformBuffer<std::array<uint8_t, 1024>>;
 template class gl_engine::UniformBuffer<std::array<uint16_t, 1024>>;
 template class gl_engine::UniformBuffer<std::array<uint32_t, 1024>>;

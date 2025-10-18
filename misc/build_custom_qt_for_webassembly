@@ -1,0 +1,22 @@
+#!/bin/bash
+qt_version="6.8.0"
+
+# dest_dir="wasm_lite_lto"
+# build_dir="wasm_lite_lto_build"
+# rm -rf ./${dest_dir}/*
+# rm -rf ./${build_dir}/*
+# mkdir -p ${build_dir}
+# cd ${build_dir}
+# /home/madam/bin/Qt/${qt_version}/Src/configure -qt-host-path /home/madam/bin/Qt/${qt_version}/gcc_64/ -release -ltcg $(cat /home/madam/bin/Qt/${qt_version}/qt_lite_alpine_maps.txt) -prefix /home/madam/bin/Qt/${qt_version}/${dest_dir}/
+# sed -i 's/-flto=thin/-flto/g' ./build.ninja
+# cmake --build . --parallel && cmake --install .
+# cd ..
+
+dest_dir="wasm_lite"
+build_dir="wasm_lite_build"
+rm -rf ./${dest_dir}/*
+rm -rf ./${build_dir}/*
+mkdir -p ${build_dir}
+cd ${build_dir}
+/home/madam/bin/Qt/${qt_version}/Src/configure -qt-host-path /home/madam/bin/Qt/${qt_version}/gcc_64/ -release $(cat /home/madam/bin/Qt/${qt_version}/qt_lite.txt) -prefix /home/madam/bin/Qt/${qt_version}/${dest_dir}/ && cmake --build . --parallel && cmake --install .
+cd ..

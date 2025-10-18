@@ -83,6 +83,11 @@ public:
     GLuint m_overlay_shadowmaps_enabled = false;
     GLuint m_padi1 = 0;
 
+    GLuint m_eaws_danger_rating_enabled = false;
+    GLuint m_eaws_risk_level_enabled = false;
+    GLuint m_eaws_slope_angle_enabled = false;
+    GLuint m_eaws_stop_or_go_enabled = false;
+
     // WARNING: Don't move the following Q_PROPERTIES to the top, otherwise the MOC
     // will do weird things with the data alignment!!
     Q_PROPERTY(QVector4D sun_light MEMBER m_sun_light)
@@ -142,7 +147,6 @@ struct uboShadowConfig {
     glm::vec2 shadowmap_size;
     glm::vec2 buff;
 };
-
 
 // This struct is only used for unit tests
 struct uboTestConfig {

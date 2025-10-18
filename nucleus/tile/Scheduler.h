@@ -133,6 +133,5 @@ private:
     utils::AabbDecoratorPtr m_aabb_decorator;
     Cache<DataQuad> m_ram_cache;
     Cache<GpuCacheInfo> m_gpu_cached;
-
 };
 }

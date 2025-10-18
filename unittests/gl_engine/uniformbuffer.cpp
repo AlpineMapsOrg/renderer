@@ -39,6 +39,8 @@
 
 #include "UnittestGLContext.h"
 
+#include <nucleus/avalanche/eaws.h>
+
 using Catch::Approx;
 using gl_engine::Framebuffer;
 using gl_engine::ShaderProgram;
@@ -212,5 +214,31 @@ TEST_CASE("gl uniformbuffer")
         ubo3.m_overlay_shadowmaps_enabled = 200;
         CHECK((ubo1 != ubo2) == false);
         CHECK((ubo1 != ubo3) == true);
+    }
+    SECTION("test eaws ubo")
+    {
+        // NOTE: If theres an error here, check proper alignment first!!!
+        Framebuffer b(Framebuffer::DepthFormat::None, { Framebuffer::ColourFormat::RGBA8 });
+        ShaderProgram shader = create_debug_shader2(R"(
+            #include "eaws.glsl"
+            out lowp vec4 out_Number;
+            void main() {
+                out_Number = vec4(0, 0, 0, 0);
+                if (eaws.reports[0].x == -1)
+                    out_Number = vec4(1, 1, 1, 1);
+            }
+        )");
+        auto ubo = std::make_unique<gl_engine::UniformBuffer<nucleus::avalanche::UboEawsReports>>(0, "eaws_reports");
+        ubo->init();
+        ubo->bind_to_shader(&shader);
+
+        ubo->data.reports[0] = glm::vec4(-1, 0, 0, 0);
+        ubo->update_gpu_data();
+
+        b.bind();
+        shader.bind();
+        gl_engine::helpers::create_screen_quad_geometry().draw();
+        const auto value_at_0_0 = b.read_colour_attachment_pixel<glm::u8vec4>(0, glm::dvec2(-1.0, -1.0));
+        CHECK(value_at_0_0.x == 255u);
     }
 }

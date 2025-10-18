@@ -17,10 +17,22 @@
  *****************************************************************************/
 
 #include "eaws.h"
-#include <nucleus/utils/tile_conversion.h>
+#include "UIntIdManager.h"
+#include <QFile>
+#include <QJsonArray>
+#include <QJsonDocument>
+#include <QJsonObject>
+#include <QNetworkAccessManager>
+#include <QNetworkReply>
+#include <QNetworkRequest>
+#include <algorithm>
+#include <extern/radix/src/radix/tile.h>
+#include <nucleus/tile/conversion.h>
 #include <nucleus/vector_tile/util.h>
 
-tl::expected<avalanche::eaws::RegionTile, QString> avalanche::eaws::vector_tile_reader(const QByteArray& input_data, const tile::Id& tile_id)
+namespace nucleus::avalanche {
+
+tl::expected<RegionTile, QString> vector_tile_reader(const QByteArray& input_data, const radix::tile::Id& tile_id)
 {
     // This name could theoretically be changed by the EAWS (very unlikely though)
     const QString& name_of_layer_with_eaws_regions = "micro-regions";
@@ -51,9 +63,9 @@ tl::expected<avalanche::eaws::RegionTile, QString> avalanche::eaws::vector_tile_
     uint extent = layer.getExtent();
 
     // Loop through features = micro-regions of the layer
-    std::vector<avalanche::eaws::Region> regions_to_be_returned;
+    std::vector<Region> regions_to_be_returned;
     for (std::size_t feature_index = 0; feature_index < layer.featureCount(); feature_index++) {
-        avalanche::eaws::Region region;
+        Region region;
         region.resolution = glm::ivec2(extent, extent); // Parse properties of the region (name, start date, end date)
         const protozero::data_view& feature_data_view = layer.getFeature(feature_index);
         mapbox::vector_tile::feature current_feature(feature_data_view, layer);
@@ -83,69 +95,11 @@ tl::expected<avalanche::eaws::RegionTile, QString> avalanche::eaws::vector_tile_
     }
 
     // Combine all regions with their tile id and return this pair
-    return tl::expected<avalanche::eaws::RegionTile, QString>(RegionTile(tile_id, regions_to_be_returned));
-}
-
-avalanche::eaws::UIntIdManager::UIntIdManager()
-{
-    // intern_id = 0 means "no region"
-    region_id_to_internal_id[QString("")] = 0;
-    internal_id_to_region_id[0] = QString("");
-    assert(max_internal_id == 0);
-}
-
-uint avalanche::eaws::UIntIdManager::convert_region_id_to_internal_id(const QString& region_id)
-{
-    // If Key exists returns its values otherwise create it and return created value
-    auto entry = region_id_to_internal_id.find(region_id);
-    if (entry == region_id_to_internal_id.end()) {
-        max_internal_id++;
-        region_id_to_internal_id[region_id] = max_internal_id;
-        return max_internal_id;
-    } else
-        return entry->second;
-}
-
-QString avalanche::eaws::UIntIdManager::convert_internal_id_to_region_id(const uint& internal_id) const { return internal_id_to_region_id.at(internal_id); }
-
-QColor avalanche::eaws::UIntIdManager::convert_region_id_to_color(const QString& region_id, QImage::Format color_format)
-{
-    assert(this->checkIfImageFormatSupported(color_format));
-    const uint& internal_id = this->convert_region_id_to_internal_id(region_id);
-    assert(internal_id != 0);
-    uint red = internal_id / 256;
-    uint green = internal_id % 256;
-    return QColor::fromRgb(red, green, 0);
-}
-
-QString avalanche::eaws::UIntIdManager::convert_color_to_region_id(const QColor& color, const QImage::Format& color_format) const
-{
-    assert(QImage::Format_ARGB32 == color_format);
-    uint internal_id = color.red() * 256 + color.green();
-    return internal_id_to_region_id.at(internal_id);
-}
-
-uint avalanche::eaws::UIntIdManager::convert_color_to_internal_id(const QColor& color, const QImage::Format& color_format)
-{
-    return this->convert_region_id_to_internal_id(this->convert_color_to_region_id(color, color_format));
-}
-
-QColor avalanche::eaws::UIntIdManager::convert_internal_id_to_color(const uint& internal_id, const QImage::Format& color_format)
-{
-    return this->convert_region_id_to_color(this->convert_internal_id_to_region_id(internal_id), color_format);
-}
-
-bool avalanche::eaws::UIntIdManager::checkIfImageFormatSupported(const QImage::Format& color_format) const
-{
-    for (const auto& supported_format : this->supported_image_formats) {
-        if (color_format == supported_format)
-            return true;
-    }
-    return false;
+    return tl::expected<RegionTile, QString>(RegionTile(tile_id, regions_to_be_returned));
 }
 
 // Auxillary function: Calculates new coordinates of a region boundary after zoom in / out
-std::vector<QPointF> transform_vertices(const avalanche::eaws::Region& region, const tile::Id& tile_id_in, const tile::Id& tile_id_out, QImage* img)
+std::vector<QPointF> transform_vertices(const Region& region, const radix::tile::Id& tile_id_in, const radix::tile::Id& tile_id_out, QImage* img)
 {
     // Check if input is consistent
     assert(img->devicePixelRatio() == 1.0);
@@ -157,16 +111,16 @@ std::vector<QPointF> transform_vertices(const avalanche::eaws::Region& region, c
     assert(tile_id_out.coords.y < qPow(2, tile_id_out.zoom_level));
 
     // Check whether we are zooming in or out for the output raster
-    uint zoom_in = tile_id_in.zoom_level;
-    uint zoom_out = tile_id_out.zoom_level;
-    float tile_size_in = qPow(0.5f, zoom_in);
-    float tile_size_out = qPow(0.5f, zoom_out);
+    uint zoom_level_in = tile_id_in.zoom_level;
+    uint zoom_level_out = tile_id_out.zoom_level;
+    float tile_size_in = qPow(0.5f, zoom_level_in);
+    float tile_size_out = qPow(0.5f, zoom_level_out);
     glm::vec2 origin_in = tile_size_in * glm::vec2((float)tile_id_in.coords.x, (float)tile_id_in.coords.y);
     glm::vec2 origin_out = tile_size_out * glm::vec2((float)tile_id_out.coords.x, (float)tile_id_out.coords.y);
     float relative_zoom = 1.f;
     glm::vec2 relative_origin(0.f, 0.f);
 
-    if (zoom_in < zoom_out) {
+    if (zoom_level_in < zoom_level_out) {
 
         // Output tile origin must lie within input tile
         assert(origin_in.x <= origin_out.x && origin_in.y <= origin_out.y);
@@ -176,10 +130,14 @@ std::vector<QPointF> transform_vertices(const avalanche::eaws::Region& region, c
         relative_origin = glm::vec2((origin_out.x - origin_in.x) / tile_size_in, (origin_out.y - origin_in.y) / tile_size_in);
 
         // Calculate scale factor
-        float n = zoom_out - zoom_in; // n is the differnc ein zoom steps between in and out
+        float n = zoom_level_out - zoom_level_in; // n is the differnc ein zoom steps between in and out
         relative_zoom = qPow(2, (float)n);
+    }
 
-    } else if (zoom_out < zoom_in) {
+    // This case does not work and it is not clear at this point if this case is necessary
+    assert(zoom_level_in <= zoom_level_out);
+    /*
+    else if (zoom_level_out < zoom_level_in) {
         // zoom_in > zoom_out => Output tile origin must lie within input tile
         assert(origin_out.x <= origin_in.x && origin_out.y <= origin_in.y);
         assert(origin_in.x + tile_size_in <= origin_out.x + tile_size_out && origin_in.y + tile_size_in <= origin_out.y + tile_size_out);
@@ -188,23 +146,28 @@ std::vector<QPointF> transform_vertices(const avalanche::eaws::Region& region, c
         relative_origin = glm::vec2((origin_in.x - origin_out.x) / tile_size_out, (origin_in.y - origin_out.y) / tile_size_out);
 
         // Set logical coordinates to the resolution of the region. These are the coordinates within which we provide vertices of region boundaries
-        float n = zoom_in - zoom_out; // n is the differnc ein zoom steps between in and out
+        float n = zoom_level_in - zoom_level_out; // n is the differnc ein zoom steps between in and out
         relative_zoom = qPow(0.5, (float)n);
     }
+    */
 
     // Transform boundary according to input/output tile parameters
     std::vector<QPointF> transformed_vertices_as_QPointFs;
-    QTransform trafo
-        = QTransform::fromTranslate(relative_origin.x, relative_origin.y) * QTransform::fromScale(img->width() * relative_zoom, img->height() * relative_zoom);
-    for (const glm::vec2& vec : region.vertices_in_local_coordinates)
-        transformed_vertices_as_QPointFs.push_back(trafo.map(QPointF((float)vec.x, (float)vec.y)));
+    for (const glm::vec2& vec_in : region.vertices_in_local_coordinates) {
+        glm::vec2 vec_out = (vec_in - relative_origin) * relative_zoom;
+        transformed_vertices_as_QPointFs.push_back(QPointF((float)vec_out.x * img->width(), (float)vec_out.y * img->height()));
+    }
 
     // Return transformed vertices
     return transformed_vertices_as_QPointFs;
 }
 
-QImage avalanche::eaws::draw_regions(const RegionTile& region_tile, avalanche::eaws::UIntIdManager* internal_id_manager, const uint& image_width,
-    const uint& image_height, const tile::Id& tile_id_out, const QImage::Format& image_format)
+QImage draw_regions(const RegionTile& region_tile,
+    std::shared_ptr<UIntIdManager> internal_id_manager,
+    const uint& image_width,
+    const uint& image_height,
+    const radix::tile::Id& tile_id_out,
+    const QImage::Format& image_format)
 {
     // Create correctly formatted image to draw to
     QImage img(image_width, image_height, image_format);
@@ -216,13 +179,18 @@ QImage avalanche::eaws::draw_regions(const RegionTile& region_tile, avalanche::e
 
     // Draw all regions to the image
     assert(region_tile.second.size() > 0);
-    tile::Id tile_id_in = region_tile.first;
+    radix::tile::Id tile_id_in = region_tile.first;
     for (const auto& region : region_tile.second) {
+        // Only draw regions as of July 1st 2025
+        QDate refDate(2025, 7, 1);
+        if ((region.start_date.has_value() && region.start_date > refDate) || (region.end_date.has_value() && region.end_date < refDate))
+            continue;
+
         // Calculate vertex coordinates of region w.r.t. output tile at output resolution
         std::vector<QPointF> transformed_vertices_as_QPointFs = transform_vertices(region, tile_id_in, tile_id_out, &img);
 
         // Convert region id to color, for debugging use  color_of_region = QColor::fromRgb(255, 255, 255);
-        QColor color_of_region = internal_id_manager->convert_region_id_to_color(region.id, img.format());
+        QColor color_of_region = internal_id_manager->convert_region_id_to_color(region.id);
         painter.setBrush(QBrush(color_of_region));
         painter.setPen(QPen(color_of_region)); // we also have to set the pen if we want to draw boundaries
 
@@ -235,21 +203,21 @@ QImage avalanche::eaws::draw_regions(const RegionTile& region_tile, avalanche::e
     return img;
 }
 
-nucleus::Raster<uint16_t> avalanche::eaws::rasterize_regions(const RegionTile& region_tile, avalanche::eaws::UIntIdManager* internal_id_manager,
-    const uint raster_width, const uint raster_height, const tile::Id& tile_id_out)
+nucleus::Raster<uint16_t> rasterize_regions(const RegionTile& region_tile,
+    std::shared_ptr<UIntIdManager> internal_id_manager,
+    const uint raster_width,
+    const uint raster_height,
+    const radix::tile::Id& tile_id_out)
 {
     // Draw region ids to image, if all pixel have same value return one pixel with this value
     const QImage img = draw_regions(region_tile, internal_id_manager, raster_width, raster_height, tile_id_out);
-    const auto raster = nucleus::utils::tile_conversion::qimage_to_u16raster(img);
-    const auto first_pixel = raster.pixel({ 0, 0 });
-    for (auto p : raster) {
-        if (p != first_pixel)
-            return raster;
-    }
-    return nucleus::Raster<uint16_t>({ 1, 1 }, first_pixel);
+    const auto raster = nucleus::tile::conversion::qimage_to_u16raster(img);
+    return raster;
 }
 
-nucleus::Raster<uint16_t> avalanche::eaws::rasterize_regions(const RegionTile& region_tile, avalanche::eaws::UIntIdManager* internal_id_manager)
+nucleus::Raster<uint16_t> rasterize_regions(const RegionTile& region_tile, std::shared_ptr<UIntIdManager> internal_id_manager)
 {
     return rasterize_regions(region_tile, internal_id_manager, region_tile.second[0].resolution.x, region_tile.second[0].resolution.y, region_tile.first);
 }
+
+} // namespace nucleus::avalanche
