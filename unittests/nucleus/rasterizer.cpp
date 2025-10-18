@@ -31,6 +31,7 @@
 
 #include <radix/geometry.h>
 
+namespace {
 /*
  * calculates how far away the given position is from a triangle
  * uses distance to shift the current triangle distance
@@ -158,14 +159,15 @@ std::pair<CDT::TriangleVec, std::vector<CDT::V2d<double>>> triangulate(std::vect
     return std::make_pair(cdt.triangles, cdt.vertices);
 }
 
-QImage example_rasterizer_image(QString filename)
+QImage example_rasterizer_image(const QString& filename)
 {
     auto image_file = QFile(QString("%1%2").arg(ALP_TEST_DATA_DIR, filename));
-    image_file.open(QFile::ReadOnly);
+    REQUIRE(image_file.open(QFile::ReadOnly));
     const auto image_bytes = image_file.readAll();
     REQUIRE(!QImage::fromData(image_bytes).isNull());
     return QImage::fromData(image_bytes);
 }
+} // namespace
 
 TEST_CASE("nucleus/rasterizer")
 {

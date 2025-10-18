@@ -42,7 +42,7 @@ TEST_CASE("nucleus/EAWS Vector Tiles")
     CHECK(test_file.size() > 0);
 
     // Check if testfile can be opened and read
-    test_file.open(QIODevice::ReadOnly | QIODevice::Unbuffered);
+    REQUIRE(test_file.open(QIODevice::ReadOnly | QIODevice::Unbuffered));
     QByteArray test_data = test_file.readAll();
     test_file.close();
     CHECK(test_data.size() > 0);
@@ -164,7 +164,7 @@ TEST_CASE("nucleus/EAWS Vector Tiles")
             filepath = QString("%1%2").arg(ALP_TEST_DATA_DIR, test_file_name2.c_str());
             QFile test_file2(filepath);
             CHECK(test_file2.exists());
-            test_file2.open(QIODevice::ReadOnly | QIODevice::Unbuffered);
+            REQUIRE(test_file2.open(QIODevice::ReadOnly | QIODevice::Unbuffered));
             QByteArray test_data2 = test_file2.readAll();
             test_file2.close();
             CHECK(test_data2.size() > 0);
@@ -253,7 +253,7 @@ QByteArray load_raw_data_from_file(const std::string& test_file_name)
     QFile file(filepath);
     CHECK(file.exists());
     CHECK(file.size() > 0);
-    file.open(QIODevice::ReadOnly | QIODevice::Unbuffered);
+    REQUIRE(file.open(QIODevice::ReadOnly | QIODevice::Unbuffered));
     QByteArray raw_data = file.readAll();
     file.close();
     return raw_data;
