@@ -19,6 +19,7 @@
 #pragma once
 
 #include <QDebug>
+#include <QElapsedTimer>
 #include <QString>
 #include <glm/glm.hpp>
 #include <memory>

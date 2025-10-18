@@ -174,48 +174,52 @@ ColumnLayout {
         Rectangle {
             id: warning
             visible: avalanche_menu.checked && !avalanche_menu.firstClickDone //parent.checked
-            height: 256
-            width: avalanche_subgroup.implicitWidth + parent.width
+            height: 300
+            width: 400
             radius: avalanche_menu.radius
             anchors.bottom: parent.bottom
             ColumnLayout {
-                anchors.centerIn: parent
-                anchors.margins: 0
-                spacing: 0
                 anchors.fill: parent
-                width: parent.width
 
-                Text {
+                Label {
                     id: warning_text
                     textFormat: Text.StyledText
                     text: "<b>EXPERIMENTAL FEATURE!</b>
                     <br>These visualisation tools are experimental and should <b>not</b> be used as a sole basis for decision-making during tour planning.
                     <br><b>We cannot guarantee the correctness of the information displayed.</b>
                     <br>Any liability for accidents and damages in connection with the use of this service is excluded. The planning and execution of your winter sports activities is at your own risk and under your sole responsibility."
-                    font.pointSize: 11
                     wrapMode: Text.WordWrap
-                    horizontalAlignment: Text.AlignHCenter
+                    horizontalAlignment: Text.AlignJustify
                     Layout.alignment: Qt.AlignHCenter
-                    Layout.maximumWidth: parent.width // prevent overflow
+                    Layout.maximumWidth: parent.width - 30 // prevent overflow
+                    Layout.margins: 15
                 }
 
-                Button {
-                    text: "Read more"
+                Rectangle {
+                    Layout.alignment: Qt.AlignCenter
+                    Layout.fillHeight: true
+                    color: "blue"
+                    Layout.preferredWidth: 0
+                }
+                RowLayout {
                     Layout.alignment: Qt.AlignHCenter
-                    ToolTip.visible: hovered
-                    ToolTip.text: qsTr("Open Thesis by Johannes Eschner at TU Wien")
-                    onClicked: {
-                        Qt.openUrlExternally("https://repositum.tuwien.at/handle/20.500.12708/177341?mode=simple")
+                    Layout.margins: 15
+                    Button {
+                        text: "Read more"
+                        ToolTip.visible: hovered
+                        ToolTip.text: qsTr("Open Thesis by Johannes Eschner at TU Wien")
+                        onClicked: {
+                            Qt.openUrlExternally("https://repositum.tuwien.at/handle/20.500.12708/177341?mode=simple")
+                        }
                     }
-                }
 
-                Button {
-                    text: "Accept and Continue"
-                    Layout.alignment: Qt.AlignHCenter
-                    ToolTip.visible: hovered
-                    ToolTip.text: qsTr("Accept terms of use and open avalanche risk visualisation menu")
-                    onClicked: {
-                        avalanche_menu.firstClickDone = true
+                    Button {
+                        text: "Accept and Continue"
+                        ToolTip.visible: hovered
+                        ToolTip.text: qsTr("Accept terms of use and open avalanche risk visualisation menu")
+                        onClicked: {
+                            avalanche_menu.firstClickDone = true
+                        }
                     }
                 }
             }
@@ -225,15 +229,16 @@ ColumnLayout {
         Rectangle {
             visible: avalanche_menu.checked && avalanche_menu.firstClickDone //parent.checked
             height: 64
-            width: avalanche_subgroup.implicitWidth + parent.width
+            width: avalanche_subgroup.implicitWidth
             radius: avalanche_menu.radius
+            anchors.left: parent.right
+            anchors.bottom: parent.bottom
 
             color: Qt.alpha(Material.backgroundColor, 0.9)
             border { width: 2; color: Qt.alpha( "black", 0.5); }
 
             RowLayout {
-                x: avalanche_menu.width
-                y: parent.y
+                anchors.fill: parent
                 id: avalanche_subgroup
                 spacing: 0
                 height: parent.height
@@ -334,11 +339,12 @@ ColumnLayout {
                     id: dateControls
                     spacing: 0
                     Layout.alignment: Qt.AlignVCenter
+                    Layout.fillHeight: true
 
                     // Previous day button
                     FloatingActionButton  {
                         text: "<"
-                        size: 30
+                        Layout.fillHeight: true
                         onClicked: {
                             let d = new Date(date_picker.selectedDate)
                             d.setDate(d.getDate() - 1)
@@ -374,7 +380,7 @@ ColumnLayout {
                     // Next day button
                     FloatingActionButton  {
                         text: ">"
-                        size: 30
+                        Layout.fillHeight: true
                         onClicked: {
                             let d = new Date(date_picker.selectedDate)
                             d.setDate(d.getDate() + 1)

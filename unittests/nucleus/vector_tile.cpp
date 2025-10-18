@@ -60,7 +60,7 @@ TEST_CASE("nucleus/vector_tiles")
     {
         QString filepath = QString("%1%2").arg(ALP_TEST_DATA_DIR, "vectortile.mvt");
         QFile file(filepath);
-        file.open(QIODevice::ReadOnly | QIODevice::Unbuffered);
+        REQUIRE(file.open(QIODevice::ReadOnly | QIODevice::Unbuffered));
         QByteArray data = file.readAll();
 
         CHECK(data.size() > 0);
