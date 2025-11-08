@@ -39,7 +39,7 @@ jobs:
         fetch-depth: 0
         fetch-tags: true
 
-    - name: Install Qt native version (the one provided by aqt doesn't seem to work)
+    - name: Install Qt native version (the one provided by aqt does not seem to work)
       uses: jurplel/install-qt-action@v4
       with:
         aqtversion: '==3.1.*'

@@ -65,16 +65,6 @@ jobs:
         modules: 'qtcharts qtpositioning'
         cache: true
         
-    - name: Debug output
-      shell: bash
-      run: |
-        echo "${{github.workspace}}/qt/Qt/6.8.1":
-        ls ${{github.workspace}}/qt/Qt/6.8.1
-        echo "==="
-        echo "${QT_ROOT_DIR}/lib/cmake/Qt6Linguist:"
-        ls ${QT_ROOT_DIR}/lib/cmake/Qt6Linguist
-        echo "==="
-        
     - name: Configure
       env:
         CC: ${{ matrix.CC }}
