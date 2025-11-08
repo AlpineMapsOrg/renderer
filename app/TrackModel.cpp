@@ -134,8 +134,10 @@ void TrackModel::upload_track()
 #else
     const auto path = QFileDialog::getOpenFileName(nullptr, tr("Open GPX track"), "", "GPX (*.gpx *.xml)");
     auto file = QFile(path);
-    file.open(QFile::ReadOnly);
-    fileContentReady(file.fileName(), file.readAll());
+    if (file.open(QFile::ReadOnly))
+        fileContentReady(file.fileName(), file.readAll());
+    else
+        qDebug() << "TrackModel::upload_track: failed to read file!" << path;
 #endif
 }
 

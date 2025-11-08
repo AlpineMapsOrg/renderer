@@ -126,7 +126,7 @@ alp_get_version(
 set_target_properties(alpineapp PROPERTIES
     QT_ANDROID_PACKAGE_SOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/android
     QT_ANDROID_VERSION_NAME ${ALP_VERSION}
-    QT_ANDROID_VERSION_CODE "${ALP_VERSION_INTEGER}000" # accidentally uploaded a high versino code to google. now there is no way back.
+    QT_ANDROID_VERSION_CODE "${ALP_VERSION_INTEGER}"
 )
 target_link_libraries(alpineapp PUBLIC gl_engine Qt::Quick Qt::QuickControls2)
 

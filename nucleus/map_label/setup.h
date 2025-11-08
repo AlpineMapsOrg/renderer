@@ -73,12 +73,8 @@ SchedulerHolder scheduler(TileLoadServicePtr tile_service, const tile::utils::Aa
 
     Q_UNUSED(thread);
 #ifdef ALP_ENABLE_THREADING
-#ifdef __EMSCRIPTEN__ // make request from main thread on webassembly due to QTBUG-109396
-    tile_service->moveToThread(QCoreApplication::instance()->thread());
-#else
     if (thread)
         tile_service->moveToThread(thread);
-#endif
     if (thread)
         scheduler->moveToThread(thread);
 #endif

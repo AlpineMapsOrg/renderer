@@ -20,6 +20,11 @@ highp float calculate_falloff(highp float dist, highp float from, highp float to
     return clamp(1.0 - (dist - from) / (to - from), 0.0, 1.0);
 }
 
+highp float calculate_atmospheric_falloff(highp float dist, highp float camera_cos, highp float from, highp float to) {
+    // return clamp(1.0 - (dist - from) / (to - from), 0.0, 1.0);
+    return clamp(1.0 - (dist - from) / (to - from), camera_cos, 1.0);
+}
+
 #include "atmosphere_implementation.glsl"
 #include "encoder.glsl"
 #include "shared_config.glsl"
@@ -157,7 +162,6 @@ void main() {
     highp float dist = pos_dist.w; // negative if sky
     // Alpha-Value for Tile-Overlay (distant linear falloff)
     lowp float alpha = 0.0;
-    if (dist > 0.0) alpha = calculate_falloff(dist, 300000.0, 600000.0);
 
     highp vec3 normal = octNormalDecode2u16(texture(texin_normal, texcoords).xy);
 
@@ -174,8 +178,8 @@ void main() {
         highp vec3 pos_ws = pos_cws + origin;
         highp vec3 ray_direction = pos_cws / dist;
         highp vec4 material_light_response = conf.material_light_response;
+        alpha = calculate_atmospheric_falloff(dist, -ray_direction.z, 300000.0, 600000.0);
 
-        highp vec3 light_through_atmosphere = calculate_atmospheric_light(origin / 1000.0, ray_direction, dist / 1000.0, albedo, 10);
 
         highp float shadow_term = 0.0;
         if (bool(conf.csm_enabled)) {
@@ -260,4 +264,6 @@ void main() {
         }
     }
 
+    // srgb framebuffer support is patchy. encoding manually here.
+    out_Color = vec4(pow(out_Color.rgb, vec3(1.0/2.2)), out_Color.a);
 }

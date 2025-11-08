@@ -48,6 +48,8 @@ GlParams gl_tex_params(gl_engine::Texture::Format format)
         return { GLint(gl_engine::Texture::compressed_texture_format()), 0, 0, 0, 0, true };
     case F::RGBA8:
         return { GL_RGBA8, GL_RGBA, GL_UNSIGNED_BYTE, 4, 1, true };
+    case F::SRGBA8:
+        return { GL_SRGB8_ALPHA8, GL_RGBA, GL_UNSIGNED_BYTE, 4, 1, true };
     case F::RGBA8UI:
         return { GL_RGBA8UI, GL_RGBA_INTEGER, GL_UNSIGNED_BYTE, 4, 1 };
     case F::RGBA32F:
@@ -137,12 +139,13 @@ void gl_engine::Texture::upload(const nucleus::utils::ColourTexture& texture)
     f->glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
     const auto width = GLsizei(texture.width());
     const auto height = GLsizei(texture.height());
+    const auto p = gl_tex_params(m_format);
     if (m_format == Format::CompressedRGBA8) {
         assert(m_min_filter != Filter::MipMapLinear);
         const auto format = gl_engine::Texture::compressed_texture_format();
         f->glCompressedTexImage2D(GLenum(m_target), 0, format, width, height, 0, GLsizei(texture.n_bytes()), texture.data());
-    } else if (m_format == Format::RGBA8) {
-        f->glTexImage2D(GLenum(m_target), 0, GL_RGBA8, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, texture.data());
+    } else if (m_format == Format::RGBA8 || m_format == Format::SRGBA8) {
+        f->glTexImage2D(GLenum(m_target), 0, p.internal_format, width, height, 0, p.format, p.type, texture.data());
         if (m_min_filter == Filter::MipMapLinear)
             f->glGenerateMipmap(GLenum(m_target));
     } else {
@@ -165,7 +168,7 @@ void gl_engine::Texture::upload(const nucleus::utils::ColourTexture& texture, un
     if (m_format == Format::CompressedRGBA8) {
         const auto format = gl_engine::Texture::compressed_texture_format();
         f->glCompressedTexSubImage3D(GLenum(m_target), 0, 0, 0, GLint(array_index), width, height, 1, format, GLsizei(texture.n_bytes()), texture.data());
-    } else if (m_format == Format::RGBA8) {
+    } else if (m_format == Format::RGBA8 || m_format == Format::SRGBA8) {
         f->glTexSubImage3D(GLenum(m_target), 0, 0, 0, GLint(array_index), width, height, 1, GL_RGBA, GL_UNSIGNED_BYTE, texture.data());
     } else {
         assert(false);
@@ -190,7 +193,7 @@ void gl_engine::Texture::upload(const nucleus::utils::MipmappedColourTexture& mi
             const auto format = gl_engine::Texture::compressed_texture_format();
             f->glCompressedTexSubImage3D(
                 GLenum(m_target), mip_level, 0, 0, GLint(array_index), width, height, 1, format, GLsizei(texture.n_bytes()), texture.data());
-        } else if (m_format == Format::RGBA8) {
+        } else if (m_format == Format::RGBA8 || m_format == Format::SRGBA8) {
             f->glTexSubImage3D(GLenum(m_target), mip_level, 0, 0, GLint(array_index), width, height, 1, GL_RGBA, GL_UNSIGNED_BYTE, texture.data());
         } else {
             assert(false);
@@ -278,18 +281,18 @@ GLenum gl_engine::Texture::compressed_texture_format()
         const ext = gl.getExtension("WEBGL_compressed_texture_etc");
         if (ext === null)
             return 0;
-        return ext.COMPRESSED_RGB8_ETC2;
+        return ext.COMPRESSED_SRGB8_ETC2;
     });
     // qDebug() << "gl_engine::Texture::compressed_texture_format: gl_texture_format from js: " << gl_texture_format;
     // clang-format on
     if (gl_texture_format == 0) {
-        gl_texture_format = GL_COMPRESSED_RGB_S3TC_DXT1_EXT; // not on mobile
+        gl_texture_format = GL_COMPRESSED_SRGB_S3TC_DXT1_EXT; // not on mobile
     }
     return gl_texture_format;
 #elif defined(__ANDROID__)
-    return GL_COMPRESSED_RGB8_ETC2;
+    return GL_COMPRESSED_SRGB8_ETC2;
 #else
-    return GL_COMPRESSED_RGB_S3TC_DXT1_EXT;
+    return GL_COMPRESSED_SRGB_S3TC_DXT1_EXT;
 #endif
 }
 
