@@ -23,7 +23,7 @@
 #include <nucleus/camera/Definition.h>
 
 namespace nucleus::tile::drawing {
-constexpr uint max_n_tiles = 1024;
+// constexpr uint max_n_tiles = 1024;
 
 std::vector<tile::Id> generate_list(const camera::Definition& camera, utils::AabbDecoratorPtr aabb_decorator, unsigned max_zoom_level);
 std::vector<TileBounds> compute_bounds(const std::vector<tile::Id>& tiles, utils::AabbDecoratorPtr aabb_decorator);

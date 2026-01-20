@@ -35,7 +35,7 @@ struct PointOfInterest {
 public:
     enum class Type { Unknown = 0, Peak, Settlement, AlpineHut, Webcam, NumberOfElements };
     Q_ENUM(Type)
-    uint64_t id = -1;
+    uint64_t id = UINT64_MAX;
     Type type = Type::Unknown;
     QString name;
     glm::dvec3 lat_long_alt = glm::dvec3(0);

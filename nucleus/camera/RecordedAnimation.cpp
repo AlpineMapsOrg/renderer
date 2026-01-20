@@ -43,7 +43,7 @@ std::optional<nucleus::camera::Definition> nucleus::camera::RecordedAnimation::u
     const auto fr = *(frame_right_iter);
     // there are no frames if the camera stops moving. mixing causes a slow drift to the next position. doesn't look good.
     // const auto mix = float(current_time - fl.msec) / float(fr.msec - fl.msec);
-    const auto mix = 0.f;
+    const auto mix = 0.5f;
     const auto new_matrix = fl.camera_to_world_matrix * double(1 - mix) + fr.camera_to_world_matrix * double(mix);
 
     camera.set_model_matrix(new_matrix);

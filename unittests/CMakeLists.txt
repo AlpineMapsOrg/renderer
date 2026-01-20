@@ -26,3 +26,7 @@ add_subdirectory(nucleus)
 if (ALP_ENABLE_GL_ENGINE)
     add_subdirectory(gl_engine)
 endif()
+
+if (ALP_WEBGPU_ENGINE)
+    add_subdirectory(webgpu_engine)
+endif()

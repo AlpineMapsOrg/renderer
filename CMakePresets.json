@@ -1,0 +1,146 @@
+{
+  "version": 6,
+  "cmakeMinimumRequired": {
+    "major": 3,
+    "minor": 25,
+    "patch": 0
+  },
+  "configurePresets": [
+    {
+      "name": "msvc-base",
+      "hidden": true,
+      "generator": "Ninja",
+      "binaryDir": "${sourceDir}/build/${presetName}",
+      "installDir": "${sourceDir}/install/${presetName}",
+      "architecture": {
+        "value": "x64",
+        "strategy": "external"
+      },
+      "toolset": {
+        "value": "host=x64",
+        "strategy": "external"
+      },
+      "cacheVariables": {
+        "CMAKE_C_COMPILER": "cl.exe",
+        "CMAKE_CXX_COMPILER": "cl.exe",
+        "Qt6_DIR": "C:/Qt/6.10.1/msvc2022_64/lib/cmake/Qt6"
+      },
+      "condition": {
+        "type": "equals",
+        "lhs": "${hostSystemName}",
+        "rhs": "Windows"
+      }
+    },
+    {
+      "name": "msvc-debug",
+      "displayName": "MSVC Debug (Windows)",
+      "description": "Debug build using MSVC compiler",
+      "inherits": "msvc-base",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Debug",
+        "CMAKE_CXX_FLAGS": "/DQT_DEBUG"
+      }
+    },
+    {
+      "name": "msvc-release",
+      "displayName": "MSVC Release (Windows)",
+      "description": "Release build using MSVC compiler",
+      "inherits": "msvc-base",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Release"
+      }
+    },
+    {
+      "name": "msvc-debug-test",
+      "displayName": "MSVC Debug Tests (Windows)",
+      "description": "Debug build for unit tests using MSVC compiler",
+      "inherits": "msvc-debug",
+      "cacheVariables": {
+        "ALP_UNITTESTS": "ON",
+        "ALP_WEBGPU_APP": "OFF"
+      }
+    },
+    {
+      "name": "msvc-release-test",
+      "displayName": "MSVC Release Tests (Windows)",
+      "description": "Release build for unit tests using MSVC compiler",
+      "inherits": "msvc-release",
+      "cacheVariables": {
+        "ALP_UNITTESTS": "ON",
+        "ALP_WEBGPU_APP": "OFF"
+      }
+    },
+    {
+      "name": "emscripten-base",
+      "hidden": true,
+      "generator": "Ninja",
+      "binaryDir": "${sourceDir}/build/${presetName}",
+      "installDir": "${sourceDir}/install/${presetName}",
+      "toolchainFile": "C:/Qt/6.10.1/wasm_multithread/lib/cmake/Qt6/qt.toolchain.cmake",
+      "environment": {
+        "PATH": "C:/Qt/Tools/Ninja;$penv{PATH}",
+        "EMSDK": "C:/tmp/webigeo/emsdk"
+      }
+    },
+    {
+      "name": "wasm-debug",
+      "displayName": "WebAssembly Debug",
+      "description": "Debug build for WebAssembly using Emscripten",
+      "inherits": "emscripten-base",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Debug",
+        "CMAKE_CXX_FLAGS": "-DQT_DEBUG"
+      }
+    },
+    {
+      "name": "wasm-release",
+      "displayName": "WebAssembly Release",
+      "description": "Release build for WebAssembly using Emscripten",
+      "inherits": "emscripten-base",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Release"
+      }
+    },
+    {
+      "name": "wasm-publish",
+      "displayName": "WebAssembly Publish",
+      "description": "Production build for WebAssembly using Emscripten",
+      "inherits": "emscripten-base",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Release",
+        "CMAKE_CXX_FLAGS": "-DQT_NO_DEBUG_OUTPUT -DQT_NO_WARNING_OUTPUT -DQT_NO_INFO_OUTPUT",
+        "ALP_ENABLE_WGSL_MINIFICATION": "ON"
+      }
+    }
+  ],
+  "buildPresets": [
+    {
+      "name": "msvc-debug",
+      "configurePreset": "msvc-debug"
+    },
+    {
+      "name": "msvc-release",
+      "configurePreset": "msvc-release"
+    },
+    {
+      "name": "msvc-debug-test",
+      "configurePreset": "msvc-debug-test"
+    },
+    {
+      "name": "msvc-release-test",
+      "configurePreset": "msvc-release-test"
+    },
+    {
+      "name": "wasm-debug",
+      "configurePreset": "wasm-debug"
+    },
+    {
+      "name": "wasm-release",
+      "configurePreset": "wasm-release"
+    },
+    {
+      "name": "wasm-publish",
+      "configurePreset": "wasm-publish"
+    }
+  ]
+}

@@ -405,9 +405,9 @@ public:
             const auto current_angle = current_angles.at(id);
             auto diff = current_angle - last_angle;
             if (diff > M_PI)
-                diff -= 2 * M_PI;
+                diff -= 2.0f * (float)M_PI;
             if (diff < -M_PI)
-                diff += 2 * M_PI;
+                diff += 2.0f * (float)M_PI;
             rotation_val += diff;
         }
         rotation_val = glm::degrees(rotation_val / m_touch_ids.size());

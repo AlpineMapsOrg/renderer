@@ -1,0 +1,109 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<gpx version="1.1" creator="https://www.komoot.de" xmlns="http://www.topografix.com/GPX/1/1" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.topografix.com/GPX/1/1 http://www.topografix.com/GPX/1/1/gpx.xsd">
+  <metadata>
+    <name>weBIGeo Testtrack #Breite Ries</name>
+    <author>
+      <link href="https://www.komoot.de">
+        <text>komoot</text>
+        <type>text/html</type>
+      </link>
+    </author>
+  </metadata>
+  <trk>
+    <name>weBIGeo Testtrack #Breite Ries</name>
+    <trkseg>
+      <trkpt lat="47.774417" lon="15.809530">
+        <ele>1930.678418</ele>
+        <time>2025-02-19T14:21:28.855Z</time>
+      </trkpt>
+      <trkpt lat="47.774791" lon="15.810489">
+        <ele>1930.678418</ele>
+        <time>2025-02-19T14:22:51.964Z</time>
+      </trkpt>
+      <trkpt lat="47.774978" lon="15.810968">
+        <ele>1914.691256</ele>
+        <time>2025-02-19T14:23:36.898Z</time>
+      </trkpt>
+      <trkpt lat="47.775165" lon="15.811447">
+        <ele>1887.403781</ele>
+        <time>2025-02-19T14:24:23.082Z</time>
+      </trkpt>
+      <trkpt lat="47.775352" lon="15.811926">
+        <ele>1860.116381</ele>
+        <time>2025-02-19T14:25:09.047Z</time>
+      </trkpt>
+      <trkpt lat="47.775540" lon="15.812406">
+        <ele>1832.749614</ele>
+        <time>2025-02-19T14:25:54.288Z</time>
+      </trkpt>
+      <trkpt lat="47.775914" lon="15.813365">
+        <ele>1781.974012</ele>
+        <time>2025-02-19T14:27:22.298Z</time>
+      </trkpt>
+      <trkpt lat="47.776269" lon="15.813759">
+        <ele>1755.534032</ele>
+        <time>2025-02-19T14:28:12.626Z</time>
+      </trkpt>
+      <trkpt lat="47.776624" lon="15.814154">
+        <ele>1729.070110</ele>
+        <time>2025-02-19T14:29:02.368Z</time>
+      </trkpt>
+      <trkpt lat="47.776979" lon="15.814548">
+        <ele>1702.630259</ele>
+        <time>2025-02-19T14:29:51.622Z</time>
+      </trkpt>
+      <trkpt lat="47.777334" lon="15.814942">
+        <ele>1675.520684</ele>
+        <time>2025-02-19T14:30:40.995Z</time>
+      </trkpt>
+      <trkpt lat="47.778044" lon="15.815731">
+        <ele>1620.296746</ele>
+        <time>2025-02-19T14:32:21.843Z</time>
+      </trkpt>
+      <trkpt lat="47.778154" lon="15.816305">
+        <ele>1595.299570</ele>
+        <time>2025-02-19T14:33:08.841Z</time>
+      </trkpt>
+      <trkpt lat="47.778264" lon="15.816879">
+        <ele>1569.957680</ele>
+        <time>2025-02-19T14:33:56.401Z</time>
+      </trkpt>
+      <trkpt lat="47.778374" lon="15.817453">
+        <ele>1544.009971</ele>
+        <time>2025-02-19T14:34:43.749Z</time>
+      </trkpt>
+      <trkpt lat="47.778484" lon="15.818028">
+        <ele>1518.020504</ele>
+        <time>2025-02-19T14:35:30.825Z</time>
+      </trkpt>
+      <trkpt lat="47.778594" lon="15.818602">
+        <ele>1492.072896</ele>
+        <time>2025-02-19T14:36:17.217Z</time>
+      </trkpt>
+      <trkpt lat="47.778704" lon="15.819176">
+        <ele>1466.125339</ele>
+        <time>2025-02-19T14:37:02.936Z</time>
+      </trkpt>
+      <trkpt lat="47.778924" lon="15.820324">
+        <ele>1421.605744</ele>
+        <time>2025-02-19T14:38:32.216Z</time>
+      </trkpt>
+      <trkpt lat="47.778877" lon="15.821394">
+        <ele>1382.039429</ele>
+        <time>2025-02-19T14:39:52.535Z</time>
+      </trkpt>
+      <trkpt lat="47.778831" lon="15.822465">
+        <ele>1364.249893</ele>
+        <time>2025-02-19T14:41:12.755Z</time>
+      </trkpt>
+      <trkpt lat="47.778784" lon="15.823535">
+        <ele>1364.249893</ele>
+        <time>2025-02-19T14:42:31.675Z</time>
+      </trkpt>
+      <trkpt lat="47.778737" lon="15.824605">
+        <ele>1364.249893</ele>
+        <time>2025-02-19T14:43:46.817Z</time>
+      </trkpt>
+    </trkseg>
+  </trk>
+</gpx>

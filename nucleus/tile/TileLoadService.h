@@ -45,6 +45,8 @@ public:
     [[nodiscard]] unsigned int transfer_timeout() const;
     void set_transfer_timeout(unsigned int new_transfer_timeout);
 
+    void set_base_url(const QString& base_url);
+
 public slots:
     void load(const tile::Id& tile_id) const;
 

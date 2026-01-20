@@ -241,6 +241,19 @@ void Scheduler::set_name(const QString& new_name)
     m_name = new_name;
 }
 
+void Scheduler::clear_full_cache()
+{
+    auto old_gpu_quad_limit = m.gpu_quad_limit;
+    auto old_ram_quad_limit = m.ram_quad_limit;
+    set_gpu_quad_limit(0);
+    set_ram_quad_limit(0);
+    update_gpu_quads();
+    purge_ram_cache();
+    persist_tiles();
+    set_gpu_quad_limit(old_gpu_quad_limit);
+    set_ram_quad_limit(old_ram_quad_limit);
+}
+
 tl::expected<void, QString> Scheduler::read_disk_cache()
 {
     if (m_name == "unnamed" || m_name.isEmpty()) {

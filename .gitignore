@@ -3,3 +3,8 @@
 /doc/*
 /doc
 /build/*
+/install/*
+.vs
+.vscode
+.qtcreator
+__pycache__

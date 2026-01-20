@@ -104,6 +104,7 @@ qt_add_library(nucleus STATIC
     track/GPX.cpp
     track/GPX.h
     utils/image_loader.h utils/image_loader.cpp
+    utils/image_writer.h utils/image_writer.cpp
     utils/thread.h
     camera/RecordedAnimation.h camera/RecordedAnimation.cpp
     camera/recording.h camera/recording.cpp
@@ -190,5 +191,7 @@ if (MSVC)
     # /WX fails with an unreachable code warning/error in zpp_bits.h. the system property doesn't seem to work (even though it appears in the build log as
     # "-external:ID:\a\renderer\renderer\extern\zppbits -external:W0")
 else()
-    target_compile_options(nucleus PUBLIC -Wall -Wextra -pedantic -Werror)
+    # imgui does not compile with -Werror. so we have to make it private for now.
+    # better solutions welcome
+    target_compile_options(nucleus PRIVATE -Wall -Wextra -pedantic -Werror)
 endif()

@@ -1,6 +1,8 @@
 #############################################################################
 # Alpine Terrain Renderer
 # Copyright (C) 2023 Adam Celarek <family name at cg tuwien ac at>
+# Copyright (C) 2024 Gerald Kimmersdorfer
+# Copyright (C) 2024 Patrick Komon
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -19,16 +21,23 @@
 cmake_minimum_required(VERSION 3.25)
 project(alpine-renderer LANGUAGES CXX)
 
-option(ALP_UNITTESTS "include unit test targets in the buildsystem" ON)
+option(ALP_UNITTESTS "include unit test targets in the buildsystem" OFF)
+option(ALP_GL_ENGINE "include the gl engine in the buildsystem" OFF)
+option(ALP_WEBGPU_ENGINE "include the webgpu engine in the buildsystem" ON)
+option(ALP_WEBGPU_APP "include the webgpu app in the buildsystem" ON)
+option(ALP_WEBIGEO_EVAL "include the webigeo eval cli in the buildsystem" OFF)
+option(ALP_PLAIN_RENDERER "include the plain renderer in the buildsystem" OFF)
+option(ALP_QML_APP "include the qml app in the buildsystem" OFF)
+
 option(ALP_ENABLE_ADDRESS_SANITIZER "compiles atb with address sanitizer enabled (only debug, works only on g++ and clang)" OFF)
 option(ALP_ENABLE_THREAD_SANITIZER "compiles atb with thread sanitizer enabled (only debug, works only on g++ and clang)" OFF)
 option(ALP_ENABLE_ASSERTS "enable asserts (do not define NDEBUG)" ON)
 option(ALP_ENABLE_TRACK_OBJECT_LIFECYCLE "enables debug cmd printout of constructors & deconstructors if implemented" OFF)
 option(ALP_ENABLE_APP_SHUTDOWN_AFTER_60S "Shuts down the app after 60S, used for CI testing with asan." OFF)
 option(ALP_ENABLE_LTO "Enable link time optimisation." OFF)
-option(ALP_ENABLE_GL_ENGINE "Enable OpenGL/WebGL engine" ON)
+option(ALP_ENABLE_GL_ENGINE "Enable OpenGL/WebGL engine" OFF)
 option(ALP_ENABLE_AVLANCHE_WARNING_LAYER "Enables avalanche warning layer (requires Qt Gui in nucleus)" OFF)
-option(ALP_ENABLE_LABELS "Enables label rendering" ON)
+option(ALP_ENABLE_LABELS "Enables label rendering" OFF)
 
 set(ALP_EXTERN_DIR "extern" CACHE STRING "name of the directory to store external libraries, fonts etc..")
 
@@ -38,8 +47,8 @@ endif()
 
 if (EMSCRIPTEN)
     set(ALP_WWW_INSTALL_DIR "${CMAKE_CURRENT_BINARY_DIR}" CACHE PATH "path to the install directory (for webassembly files, i.e., www directory)")
-    option(ALP_ENABLE_THREADING "Puts the scheduler into an extra thread." OFF)
-    option(ALP_ENABLE_DEV_TOOLS "HotReload, Renderstats, .. (increases binary size)" OFF)
+    option(ALP_ENABLE_THREADING "Puts the scheduler into an extra thread." ON)
+    option(ALP_ENABLE_DEV_TOOLS "HotReload, Renderstats, .. (increases binary size)" ON)
 elseif(ANDROID)
     option(ALP_ENABLE_THREADING "Puts the scheduler into an extra thread." ON)
     option(ALP_ENABLE_DEV_TOOLS "HotReload, Renderstats, .. (increases binary size)" OFF)
@@ -82,13 +91,18 @@ if (ALP_USE_LLVM_LINKER)
     string(APPEND CMAKE_EXE_LINKER_FLAGS " -fuse-ld=lld")
 endif()
 
+# Disable Qt debug output in release builds
+if(CMAKE_BUILD_TYPE STREQUAL "Release")
+    add_compile_definitions(QT_NO_DEBUG_OUTPUT)
+endif()
+
 ########################################### dependencies #################################################
 find_package(Qt6 REQUIRED COMPONENTS Core Gui OpenGL Network Quick QuickControls2 LinguistTools)
-qt_standard_project_setup(REQUIRES 6.8)
+qt_standard_project_setup(REQUIRES 6.7)
 
 alp_add_git_repository(renderer_static_data URL https://github.com/AlpineMapsOrg/renderer_static_data.git COMMITISH v23.11 DO_NOT_ADD_SUBPROJECT)
 alp_add_git_repository(alpineapp_fonts URL https://github.com/AlpineMapsOrg/fonts.git COMMITISH v24.02 DO_NOT_ADD_SUBPROJECT)
-alp_add_git_repository(doc URL https://github.com/AlpineMapsOrg/documentation.git COMMITISH origin/main DO_NOT_ADD_SUBPROJECT DESTINATION_PATH doc)
+alp_add_git_repository(doc URL https://github.com/AlpineMapsOrg/documentation.git COMMITISH origin/main DO_NOT_ADD_SUBPROJECT DESTINATION_PATH extern/doc)
 
 
 if (ANDROID)
@@ -109,6 +123,27 @@ if (ALP_ENABLE_GL_ENGINE)
     add_subdirectory(app)
 endif()
 
+if (ALP_GL_ENGINE)
+    add_subdirectory(gl_engine)
+endif()
+if (ALP_PLAIN_RENDERER)
+    add_subdirectory(plain_renderer)
+endif()
+if (ALP_QML_APP)
+    add_subdirectory(app)
+endif()
 if (ALP_UNITTESTS)
     add_subdirectory(unittests)
+endif()
+if (ALP_WEBGPU_APP OR ALP_WEBGPU_ENGINE)
+    add_subdirectory(webgpu)
+    if (ALP_WEBGPU_ENGINE)
+        add_subdirectory(webgpu_engine)
+    endif()
+    if (ALP_WEBGPU_APP)
+        add_subdirectory(webgpu_app)
+    endif()
+    if (ALP_WEBIGEO_EVAL)
+        add_subdirectory(webigeo_eval)
+    endif()
 endif()
