@@ -23,6 +23,17 @@ CombinedComputePipeline::CombinedComputePipeline(
     m_pipeline = std::make_unique<raii::ComputePipeline>(device, desc);
 }
 
+CombinedComputePipeline::CombinedComputePipeline(
+    WGPUDevice device, const std::vector<const raii::BindGroupLayout*>& bind_group_layouts, WGPUComputePipelineDescriptor desc)
+{
+    std::vector<WGPUBindGroupLayout> bind_group_layout_handles;
+    std::transform(bind_group_layouts.begin(), bind_group_layouts.end(), std::back_insert_iterator(bind_group_layout_handles),
+        [](const raii::BindGroupLayout* layout) { return layout->handle(); });
+    m_layout = std::make_unique<raii::PipelineLayout>(device, bind_group_layout_handles);
+    desc.layout = m_layout->handle();
+    m_pipeline = std::make_unique<raii::ComputePipeline>(device, desc);
+}
+
 void CombinedComputePipeline::run(const raii::CommandEncoder& encoder, const glm::uvec3& workgroup_counts) const
 {
     WGPUComputePassDescriptor compute_pass_desc {};

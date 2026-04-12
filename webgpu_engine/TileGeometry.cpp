@@ -121,15 +121,6 @@ void TileGeometry::init(WGPUDevice device)
     m_ortho_textures = std::make_unique<webgpu::raii::TextureWithSampler>(m_device, ortho_texture_desc, ortho_sampler_desc);
 
     m_tile_bind_group = create_bind_group(m_ortho_textures->texture_view(), m_ortho_textures->sampler());
-
-    m_tile_bind_group = std::make_unique<webgpu::raii::BindGroup>(m_device,
-        m_pipeline_manager->tile_bind_group_layout(),
-        std::initializer_list<WGPUBindGroupEntry> { m_n_edge_vertices_buffer->raw_buffer().create_bind_group_entry(0),
-            m_heightmap_textures->texture_view().create_bind_group_entry(1),
-            m_heightmap_textures->sampler().create_bind_group_entry(2),
-            m_ortho_textures->texture_view().create_bind_group_entry(3),
-            m_ortho_textures->sampler().create_bind_group_entry(4) },
-        "tile bind group");
 }
 
 void TileGeometry::draw(

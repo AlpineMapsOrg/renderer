@@ -24,6 +24,8 @@
 #include "base_types.h"
 #include "nucleus/Raster.h"
 #include "nucleus/utils/ColourTexture.h"
+#include "nucleus/utils/ColourTexture3D.h"
+
 #include <webgpu/webgpu.h>
 
 namespace webgpu::raii {
@@ -73,6 +75,7 @@ public:
     }
 
     void write(WGPUQueue queue, const nucleus::utils::ColourTexture& data, uint32_t layer = 0);
+    void write(WGPUQueue queue, const nucleus::utils::ColourTexture3D& data, glm::uvec3 offset = glm::uvec3(0), uint32_t base_mip_level = 0);
 
     // submits to default queue of device
     template <typename T>

@@ -1,6 +1,7 @@
 /*****************************************************************************
  * AlpineMaps.org
  * Copyright (C) 2024 Adam Celarek
+ * Copyright (C) 2026 Wendelin Muth
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -18,37 +19,23 @@
 
 #pragma once
 
+#include "Scheduler.h"
+#include "nucleus/Raster3D.h"
 #include "types.h"
-#include <nucleus/Raster.h>
 
 namespace nucleus::tile {
 
-class GpuArrayHelper {
+class Texture3DScheduler : public Scheduler {
+    Q_OBJECT
 public:
-    struct Dictionary {
-        nucleus::Raster<glm::u32vec2> packed_ids;
-        nucleus::Raster<uint16_t> layers;
-    };
-    struct LayerInfo {
-        tile::Id id;
-        unsigned index;
-    };
+    Texture3DScheduler(const Scheduler::Settings& settings);
+    ~Texture3DScheduler() override;
 
-    GpuArrayHelper();
+signals:
+    void gpu_tiles_updated(const std::vector<tile::Id>& deleted_tiles, const std::vector<GpuTexture3DTile>& new_tiles);
 
-    /// returns index in texture array
-    unsigned add_tile(const tile::Id& tile_id);
-    void remove_tile(const tile::Id& tile_id);
-    void set_tile_limit(unsigned new_limit);
-    unsigned size() const;
-    unsigned int n_occupied() const;
-    Dictionary generate_dictionary() const;
-    LayerInfo layer(Id tile_id) const;
-    bool contains(Id tile_id) const;
-
-private:
-    std::vector<tile::Id> m_array;
-    tile::IdMap<unsigned> m_id_to_layer;
+protected:
+    void transform_and_emit(const std::vector<tile::DataQuad>& new_quads, const std::vector<tile::Id>& deleted_quads) override;
 };
 
 } // namespace nucleus::tile

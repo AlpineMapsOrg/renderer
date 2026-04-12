@@ -3,6 +3,8 @@
  * Copyright (C) 2024 Adam Celarek
  * Copyright (C) 2025 Patrick Komon
  * Copyright (C) 2025 Gerald Kimmersdorfer
+ * Copyright (C) 2026 Wendelin Muth
+ *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
@@ -21,8 +23,10 @@
 
 #include "nucleus/DataQuerier.h"
 #include "nucleus/tile/SchedulerDirector.h"
+#include "nucleus/tile/Texture3DScheduler.h"
 #include "nucleus/tile/TileLoadService.h"
 #include "nucleus/tile/setup.h"
+#include "webgpu_engine/CloudRenderer.h"
 #include "webgpu_engine/Context.h"
 
 namespace webgpu_app {
@@ -60,6 +64,11 @@ RenderingContext::RenderingContext()
         m_ortho_scheduler_holder = nucleus::tile::setup::texture_scheduler(std::move(ortho_service), m_aabb_decorator, m_scheduler_thread.get());
         m_ortho_scheduler_holder.scheduler->set_gpu_quad_limit(256); // TODO
         m_scheduler_director->check_in("ortho", m_ortho_scheduler_holder.scheduler);
+
+        auto cloud_service = std::make_unique<nucleus::tile::TileLoadService>("", TilePattern::ZXY, ".ktx2");
+        m_cloud_scheduler_holder = nucleus::tile::setup::texture_scheduler_3d(std::move(cloud_service), m_aabb_decorator, m_scheduler_thread.get(), {.tile_resolution = webgpu_engine::clouds::TILE_RESOLUTION_XY, .max_zoom_level = 10, .gpu_quad_limit = 1024 });
+        m_cloud_scheduler_holder.scheduler->set_gpu_quad_limit(webgpu_engine::clouds::LOADED_TILE_LIMIT);
+        m_scheduler_director->check_in("cloud", m_cloud_scheduler_holder.scheduler);
     }
     m_geometry_scheduler_holder.scheduler->set_dataquerier(m_data_querier);
 
@@ -67,27 +76,45 @@ RenderingContext::RenderingContext()
         QNetworkInformation* n = QNetworkInformation::instance();
         m_geometry_scheduler_holder.scheduler->set_network_reachability(n->reachability());
         m_ortho_scheduler_holder.scheduler->set_network_reachability(n->reachability());
+        m_cloud_scheduler_holder.scheduler->set_network_reachability(n->reachability());
         // clang-format off
         connect(n, &QNetworkInformation::reachabilityChanged, m_geometry_scheduler_holder.scheduler.get(), &nucleus::tile::Scheduler::set_network_reachability);
         connect(n, &QNetworkInformation::reachabilityChanged, m_ortho_scheduler_holder.scheduler.get(),    &nucleus::tile::Scheduler::set_network_reachability);
+        connect(n, &QNetworkInformation::reachabilityChanged, m_cloud_scheduler_holder.scheduler.get(),    &nucleus::tile::Scheduler::set_network_reachability);
         // clang-format on
     }
 #ifdef ALP_ENABLE_THREADING
     qDebug() << "Scheduler thread: " << m_scheduler_thread.get();
     m_scheduler_thread->start();
 #endif
+
+    m_clous_manager = std::make_unique<clouds::Manager>();
+    connect(m_clous_manager.get(), &clouds::Manager::slot_ready, this, [this](const clouds::TimeSlot& slot) {
+        QString new_url = "http://127.0.0.1:8000" + slot.path + "tiles/";
+        nucleus::utils::thread::async_call(m_cloud_scheduler_holder.tile_service.get(), [this, new_url]() {
+            m_cloud_scheduler_holder.tile_service->set_base_url(new_url);
+        });
+        nucleus::utils::thread::async_call(m_cloud_scheduler_holder.scheduler.get(), [this]() {
+            m_cloud_scheduler_holder.scheduler->clear_full_cache();
+            m_cloud_scheduler_holder.scheduler->set_enabled(true);
+        });
+    });
 }
 
 void RenderingContext::initialize(WGPUInstance webgpu_instance, WGPUDevice webgpu_device)
 {
     auto tile_geometry = std::make_shared<webgpu_engine::TileGeometry>(65, 512);
     tile_geometry->set_tile_limit(1024);
+    auto cloud_geometry = std::make_shared<webgpu_engine::CloudRenderer>();
+    // This doesn't really make any sense if you think about it
+    cloud_geometry->set_tile_limit(webgpu_engine::clouds::LOADED_TILE_LIMIT);
 
     m_engine_context = std::make_unique<webgpu_engine::Context>();
     m_engine_context->set_webgpu_instance(webgpu_instance);
     m_engine_context->set_webgpu_device(webgpu_device);
     m_engine_context->set_aabb_decorator(m_aabb_decorator);
     m_engine_context->set_tile_geometry(tile_geometry);
+    m_engine_context->set_cloud_geometry(cloud_geometry);
 
     connect(m_geometry_scheduler_holder.scheduler.get(),
         &nucleus::tile::GeometryScheduler::gpu_tiles_updated,
@@ -97,6 +124,10 @@ void RenderingContext::initialize(WGPUInstance webgpu_instance, WGPUDevice webgp
         &nucleus::tile::TextureScheduler::gpu_tiles_updated,
         m_engine_context->tile_geometry(),
         &webgpu_engine::TileGeometry::update_gpu_tiles_ortho);
+    connect(m_cloud_scheduler_holder.scheduler.get(),
+       &nucleus::tile::Texture3DScheduler::gpu_tiles_updated,
+       m_engine_context->cloud_geometry(),
+       &webgpu_engine::CloudRenderer::update_gpu_tiles_cloud);
     nucleus::utils::thread::async_call(m_geometry_scheduler_holder.scheduler.get(), [this]() { m_geometry_scheduler_holder.scheduler->set_enabled(true); });
 
     // TODO: texture compression
@@ -130,10 +161,12 @@ void RenderingContext::destroy()
         nucleus::utils::thread::sync_call(m_geometry_scheduler_holder.scheduler.get(), [this]() {
             m_geometry_scheduler_holder.scheduler.reset();
             m_ortho_scheduler_holder.scheduler.reset();
+            m_cloud_scheduler_holder.scheduler.reset();
         });
         nucleus::utils::thread::sync_call(m_geometry_scheduler_holder.tile_service.get(), [this]() {
             m_geometry_scheduler_holder.tile_service.reset();
             m_ortho_scheduler_holder.tile_service.reset();
+            m_cloud_scheduler_holder.tile_service.reset();
         });
         m_scheduler_thread->quit();
         m_scheduler_thread->wait(500); // msec
@@ -153,8 +186,15 @@ nucleus::tile::TileLoadService* RenderingContext::geometry_tile_load_service() {
 
 nucleus::tile::TextureScheduler* RenderingContext::ortho_scheduler() { return m_ortho_scheduler_holder.scheduler.get(); }
 
+nucleus::tile::Texture3DScheduler* RenderingContext::cloud_scheduler() { return m_cloud_scheduler_holder.scheduler.get(); }
+
 nucleus::tile::SchedulerDirector* RenderingContext::scheduler_director() { return m_scheduler_director.get(); }
 
 nucleus::tile::TileLoadService* RenderingContext::ortho_tile_load_service() { return m_ortho_scheduler_holder.tile_service.get(); }
+
+nucleus::tile::TileLoadService* RenderingContext::cloud_tile_load_service() { return m_cloud_scheduler_holder.tile_service.get(); }
+
+clouds::Manager* RenderingContext::clouds_manager() { return m_clous_manager.get(); }
+
 
 } // namespace webgpu_app

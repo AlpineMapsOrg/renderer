@@ -1,6 +1,7 @@
 /*****************************************************************************
  * weBIGeo
  * Copyright (C) 2024 Patrick Komon
+ * Copyright (C) 2026 Wendelin Muth
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -33,6 +34,7 @@ public:
 
     const webgpu::raii::GenericRenderPipeline& render_tiles_pipeline() const;
     const webgpu::raii::GenericRenderPipeline& render_atmosphere_pipeline() const;
+    const webgpu::raii::CombinedComputePipeline& render_clouds_pipeline() const;
     const webgpu::raii::RenderPipeline& render_lines_pipeline() const;
     const webgpu::raii::GenericRenderPipeline& compose_pipeline() const;
 
@@ -48,10 +50,12 @@ public:
     const webgpu::raii::CombinedComputePipeline& height_decode_compute_pipeline() const;
     const webgpu::raii::CombinedComputePipeline& fxaa_compute_pipeline() const;
     const webgpu::raii::CombinedComputePipeline& iterative_simulation_compute_pipeline() const;
+    const webgpu::raii::CombinedComputePipeline& upscale_clouds_pipeline() const;
 
     const webgpu::raii::BindGroupLayout& shared_config_bind_group_layout() const;
     const webgpu::raii::BindGroupLayout& camera_bind_group_layout() const;
     const webgpu::raii::BindGroupLayout& tile_bind_group_layout() const;
+    const webgpu::raii::BindGroupLayout& render_clouds_bind_group_layout() const;
     const webgpu::raii::BindGroupLayout& compose_bind_group_layout() const;
     const webgpu::raii::BindGroupLayout& normals_compute_bind_group_layout() const;
     const webgpu::raii::BindGroupLayout& snow_compute_bind_group_layout() const;
@@ -67,6 +71,7 @@ public:
     const webgpu::raii::BindGroupLayout& height_decode_compute_bind_group_layout() const;
     const webgpu::raii::BindGroupLayout& fxaa_compute_bind_group_layout() const;
     const webgpu::raii::BindGroupLayout& iterative_simulation_compute_bind_group_layout() const;
+    const webgpu::raii::BindGroupLayout& upscale_clouds_bind_group_layout() const;
 
     const webgpu::raii::CombinedComputePipeline& mipmap_creation_pipeline() const;
     const webgpu::raii::BindGroupLayout& mipmap_creation_bind_group_layout() const;
@@ -79,6 +84,7 @@ public:
 private:
     void create_render_tiles_pipeline();
     void create_render_atmosphere_pipeline();
+    void create_render_clouds_pipeline();
     void create_render_lines_pipeline();
     void create_compose_pipeline();
     void create_shadow_pipeline();
@@ -94,10 +100,12 @@ private:
     void create_height_decode_compute_pipeline();
     void create_fxaa_compute_pipeline();
     void create_iterative_simulation_compute_pipeline();
+    void create_upscale_clouds_pipeline();
 
     void create_shared_config_bind_group_layout();
     void create_camera_bind_group_layout();
     void create_tile_bind_group_layout();
+    void create_render_cloud_bind_group_layout();
     void create_compose_bind_group_layout();
     void create_normals_compute_bind_group_layout();
     void create_snow_compute_bind_group_layout();
@@ -113,6 +121,7 @@ private:
     void create_height_decode_compute_bind_group_layout();
     void create_fxaa_compute_bind_group_layout();
     void create_iterative_simulation_compute_bind_group_layout();
+    void create_upscale_clouds_bind_group_layout();
 
     void create_mipmap_creation_bind_group_layout();
     void create_mipmap_creation_pipeline();
@@ -123,6 +132,7 @@ private:
 
     std::unique_ptr<webgpu::raii::GenericRenderPipeline> m_render_tiles_pipeline;
     std::unique_ptr<webgpu::raii::GenericRenderPipeline> m_render_atmosphere_pipeline;
+    std::unique_ptr<webgpu::raii::CombinedComputePipeline> m_render_clouds_pipeline;
     std::unique_ptr<webgpu::raii::RenderPipeline> m_render_lines_pipeline;
     std::unique_ptr<webgpu::raii::GenericRenderPipeline> m_compose_pipeline;
 
@@ -138,10 +148,12 @@ private:
     std::unique_ptr<webgpu::raii::CombinedComputePipeline> m_height_decode_compute_pipeline;
     std::unique_ptr<webgpu::raii::CombinedComputePipeline> m_fxaa_compute_pipeline;
     std::unique_ptr<webgpu::raii::CombinedComputePipeline> m_iterative_simulation_compute_pipeline;
+    std::unique_ptr<webgpu::raii::CombinedComputePipeline> m_upscale_clouds_pipeline;
 
     std::unique_ptr<webgpu::raii::BindGroupLayout> m_shared_config_bind_group_layout;
     std::unique_ptr<webgpu::raii::BindGroupLayout> m_camera_bind_group_layout;
     std::unique_ptr<webgpu::raii::BindGroupLayout> m_tile_bind_group_layout;
+    std::unique_ptr<webgpu::raii::BindGroupLayout> m_render_clouds_bind_group_layout;
     std::unique_ptr<webgpu::raii::BindGroupLayout> m_compose_bind_group_layout;
     std::unique_ptr<webgpu::raii::BindGroupLayout> m_normals_compute_bind_group_layout;
     std::unique_ptr<webgpu::raii::BindGroupLayout> m_downsample_compute_bind_group_layout;
@@ -157,6 +169,7 @@ private:
     std::unique_ptr<webgpu::raii::BindGroupLayout> m_height_decode_compute_bind_group_layout;
     std::unique_ptr<webgpu::raii::BindGroupLayout> m_fxaa_compute_bind_group_layout;
     std::unique_ptr<webgpu::raii::BindGroupLayout> m_iterative_simulation_compute_bind_group_layout;
+    std::unique_ptr<webgpu::raii::BindGroupLayout> m_upscale_clouds_bind_group_layout;
 
     // For MipMap-Creation
     std::unique_ptr<webgpu::raii::BindGroupLayout> m_mipmap_creation_bind_group_layout;

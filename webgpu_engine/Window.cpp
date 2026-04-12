@@ -3,6 +3,7 @@
  * Copyright (C) 2024 Patrick Komon
  * Copyright (C) 2024 Gerald Kimmersdorfer
  * Copyright (C) 2025 Markus Rampp
+ * Copyright (C) 2026 Wendelin Muth
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -29,12 +30,14 @@
 #include "compute/nodes/SelectTilesNode.h"
 #include "compute/nodes/TileExportNode.h"
 #include "compute/nodes/util.h"
+#include "glm/gtc/type_ptr.hpp"
 #include "nucleus/tile/drawing.h"
 #include "nucleus/track/GPX.h"
 #include "nucleus/utils/image_loader.h"
 #include "webgpu/raii/RenderPassEncoder.h"
 #include "webgpu_engine/Context.h"
 #include <QFile>
+#include <ktx.h>
 
 #ifdef __EMSCRIPTEN__
 #include <emscripten/emscripten.h>
@@ -104,10 +107,74 @@ void Window::initialise_gpu()
     m_compute_overlay_settings_uniform_buffer->update_gpu_data(m_queue);
     m_compute_overlay_dummy_texture = create_overlay_texture(1, 1);
 
+    m_shadow_texture = create_shadow_texture(1, 1, 1);
+
     create_and_set_compute_pipeline(ComputePipelineType::AVALANCHE_TRAJECTORIES, false);
 
     qInfo() << "gpu_ready_changed";
     // emit gpu_ready_changed(true); //TODO remove/find replacement
+}
+
+
+std::unique_ptr<webgpu::raii::TextureWithSampler> Window::create_shadow_texture(uint32_t width, uint32_t height, uint32_t mip_levels)
+{
+    WGPUTextureDescriptor texture_desc {};
+    texture_desc.label = WGPUStringView { .data = "shadow texture", .length = WGPU_STRLEN };
+    texture_desc.dimension = WGPUTextureDimension::WGPUTextureDimension_2D;
+    texture_desc.size = { width, height, 1 };
+    texture_desc.mipLevelCount = mip_levels;
+    texture_desc.sampleCount = 1;
+    texture_desc.format = WGPUTextureFormat::WGPUTextureFormat_R16Float;
+    texture_desc.usage = WGPUTextureUsage_TextureBinding | WGPUTextureUsage_CopyDst;
+
+    WGPUSamplerDescriptor sampler_desc {};
+    sampler_desc.label = WGPUStringView { .data = "shadow sampler", .length = WGPU_STRLEN };
+    sampler_desc.addressModeU = WGPUAddressMode::WGPUAddressMode_ClampToEdge;
+    sampler_desc.addressModeV = WGPUAddressMode::WGPUAddressMode_ClampToEdge;
+    sampler_desc.addressModeW = WGPUAddressMode::WGPUAddressMode_ClampToEdge;
+    sampler_desc.magFilter = WGPUFilterMode::WGPUFilterMode_Linear;
+    sampler_desc.minFilter = WGPUFilterMode::WGPUFilterMode_Linear;
+    sampler_desc.mipmapFilter = WGPUMipmapFilterMode::WGPUMipmapFilterMode_Nearest;
+    sampler_desc.maxAnisotropy = 1.0;
+
+    return std::make_unique<webgpu::raii::TextureWithSampler>(m_device, texture_desc, sampler_desc);
+}
+
+void Window::on_shadow_texture_updated(const QByteArray& data)
+{
+    ktxTexture* ktx_texture;
+    KTX_error_code result = ktxTexture_CreateFromMemory(
+        reinterpret_cast<const ktx_uint8_t*>(data.constData()), data.size(), KTX_TEXTURE_CREATE_LOAD_IMAGE_DATA_BIT, &ktx_texture);
+
+    if (result != KTX_SUCCESS) {
+        qWarning() << "Failed to create ktx texture from memory";
+        return;
+    }
+
+    m_shadow_texture = create_shadow_texture(ktx_texture->baseWidth, ktx_texture->baseHeight, ktx_texture->numLevels);
+
+    size_t level_0_size = ktxTexture_GetLevelSize(ktx_texture, 0);
+    size_t level_0_offset = 0;
+    ktxTexture_GetImageOffset(ktx_texture, 0,0,0, &level_0_offset);
+    std::span byte_span{ktxTexture_GetData(ktx_texture) + level_0_offset, level_0_size};
+
+    WGPUTexelCopyTextureInfo image_copy_texture {};
+    image_copy_texture.texture = m_shadow_texture->texture().handle();
+    image_copy_texture.aspect = WGPUTextureAspect::WGPUTextureAspect_All;
+    image_copy_texture.mipLevel = 0;
+    image_copy_texture.origin = WGPUOrigin3D { 0, 0, 0 };
+
+    WGPUTexelCopyBufferLayout texture_data_layout {};
+    texture_data_layout.bytesPerRow = 2 * ktx_texture->baseWidth;
+    texture_data_layout.rowsPerImage = ktx_texture->baseHeight;
+    texture_data_layout.offset = 0;
+
+    WGPUExtent3D copy_extent { ktx_texture->baseWidth, ktx_texture->baseHeight, 1 };
+    wgpuQueueWriteTexture(m_queue, &image_copy_texture, byte_span.data(), byte_span.size_bytes(), &texture_data_layout, &copy_extent);
+
+    ktxTexture_Destroy(ktx_texture);
+
+    recreate_compose_bind_group();
 }
 
 void Window::resize_framebuffer(int w, int h)
@@ -122,13 +189,16 @@ void Window::resize_framebuffer(int w, int h)
     atmosphere_framebuffer_format.size = glm::uvec2(1, h);
     m_atmosphere_framebuffer = std::make_unique<webgpu::Framebuffer>(m_device, atmosphere_framebuffer_format);
 
-    recreate_compose_bind_group();
-
     m_depth_texture_bind_group = std::make_unique<webgpu::raii::BindGroup>(m_device,
         m_context->pipeline_manager()->depth_texture_bind_group_layout(),
         std::initializer_list<WGPUBindGroupEntry> {
             m_gbuffer->depth_texture_view().create_bind_group_entry(0), // depth
         });
+
+    m_context->cloud_geometry()->resize(w, h);
+
+    // Do late
+    recreate_compose_bind_group();
 }
 
 std::unique_ptr<webgpu::raii::RenderPassEncoder> begin_render_pass(
@@ -139,16 +209,8 @@ std::unique_ptr<webgpu::raii::RenderPassEncoder> begin_render_pass(
 
 void Window::paint(webgpu::Framebuffer* framebuffer, WGPUCommandEncoder command_encoder)
 {
-    // Painting logic here, using the optional framebuffer parameter which is currently unused
-
-    // ONLY ON CAMERA CHANGE!
-    // update_camera(m_camera);
-    // emit update_camera_requested(); //TODO remove/find replacement
-
-    // TODO remove, debugging
-    // uboSharedConfig* sc = &m_shared_config_ubo->data;
-    // sc->m_sun_light = QVector4D(0.0f, 1.0f, 1.0f, 1.0f);
-    // sc->m_sun_light_dir = QVector4D(elapsed, 1.0f, 1.0f, 1.0f);
+    m_needs_redraw = false;
+    
     // ToDo only update on change?
     m_shared_config_ubo->update_gpu_data(m_queue);
 
@@ -174,13 +236,20 @@ void Window::paint(webgpu::Framebuffer* framebuffer, WGPUCommandEncoder command_
         m_context->tile_geometry()->draw(render_pass->handle(), m_camera, culled_draw_list);
     }
 
+
+    // render clouds
+    if (m_shared_config_ubo->data.m_clouds_enabled) {
+        m_context->cloud_geometry()->draw(command_encoder, m_depth_texture_bind_group->handle(), m_shared_config_bind_group->handle(), m_camera, m_paint_number);
+        m_needs_redraw |= m_context->cloud_geometry()->needs_redraw(); // Repaint for TAAU
+    }
+
     // render geometry buffers to target framebuffer
     {
         std::unique_ptr<webgpu::raii::RenderPassEncoder> render_pass = framebuffer->begin_render_pass(command_encoder);
         wgpuRenderPassEncoderSetPipeline(render_pass->handle(), m_context->pipeline_manager()->compose_pipeline().pipeline().handle());
         wgpuRenderPassEncoderSetBindGroup(render_pass->handle(), 0, m_shared_config_bind_group->handle(), 0, nullptr);
         wgpuRenderPassEncoderSetBindGroup(render_pass->handle(), 1, m_camera_bind_group->handle(), 0, nullptr);
-        wgpuRenderPassEncoderSetBindGroup(render_pass->handle(), 2, m_compose_bind_group->handle(), 0, nullptr);
+        wgpuRenderPassEncoderSetBindGroup(render_pass->handle(), 2, m_compose_bind_groups[m_paint_number % 2]->handle(), 0, nullptr);
         wgpuRenderPassEncoderDraw(render_pass->handle(), 3, 1, 0, 0);
     }
 
@@ -193,8 +262,8 @@ void Window::paint(webgpu::Framebuffer* framebuffer, WGPUCommandEncoder command_
     if (m_first_paint) {
         after_first_frame();
     }
-    m_needs_redraw = false;
     m_first_paint = false;
+    m_paint_number++;
 }
 
 void Window::paint_gui()
@@ -233,6 +302,7 @@ void Window::paint_gui()
 
         m_needs_redraw |= ImGui::Checkbox("Phong Shading", (bool*)&m_shared_config_ubo->data.m_phong_enabled);
         m_needs_redraw |= ImGui::Checkbox("Atmosphere", (bool*)&m_shared_config_ubo->data.m_atmosphere_enabled);
+        m_needs_redraw |= ImGui::Checkbox("Clouds", (bool*)&m_shared_config_ubo->data.m_clouds_enabled);
 
         bool snow_on = (m_shared_config_ubo->data.m_snow_settings_angle.x == 1.0f);
         if (ImGui::Checkbox("Snow", &snow_on)) {
@@ -1827,21 +1897,6 @@ void Window::on_pipeline_run_completed()
         update_compute_overlay_aabb(selected_aabb);
     }
 
-    // QUICK HACK: write pipeline settings to files
-    // TODO: replace these by nodes in the future
-    /*if (m_active_compute_pipeline_type == ComputePipelineType::AVALANCHE_TRAJECTORIES
-        || m_active_compute_pipeline_type == ComputePipelineType::AVALANCHE_TRAJECTORIES_EVAL) {
-        std::filesystem::path trajectory_export_path =
-    m_compute_graph->get_node_as<compute::nodes::TileExportNode>("trajectories_export").get_settings().output_directory;
-
-        std::filesystem::path settings_export_path = trajectory_export_path.parent_path() / "settings.json";
-        qDebug() << "writing settings to " << settings_export_path.string();
-        ComputePipelineSettings::write_to_json_file(m_compute_pipeline_settings, settings_export_path);
-
-        std::filesystem::path timings_export_path = trajectory_export_path.parent_path() / "timings.json";
-        qDebug() << "writing timings to " << timings_export_path.string();
-        compute::nodes::write_timings_to_json_file(*m_compute_graph, timings_export_path);
-    }*/
 }
 
 void Window::create_buffers()
@@ -1871,21 +1926,29 @@ void Window::recreate_compose_bind_group()
     WGPUBindGroupEntry compute_overlay_texture_entry = compute_overlay_texture_view.create_bind_group_entry(9);
     WGPUBindGroupEntry compute_overlay_sampler_entry = compute_overlay_sampler.create_bind_group_entry(10);
 
-    m_compose_bind_group = std::make_unique<webgpu::raii::BindGroup>(m_device,
-        m_context->pipeline_manager()->compose_bind_group_layout(),
-        std::initializer_list<WGPUBindGroupEntry> {
-            m_gbuffer->color_texture_view(0).create_bind_group_entry(0), // albedo texture
-            m_gbuffer->color_texture_view(1).create_bind_group_entry(1), // position texture
-            m_gbuffer->color_texture_view(2).create_bind_group_entry(2), // normal texture
-            m_atmosphere_framebuffer->color_texture_view(0).create_bind_group_entry(3), // atmosphere texture
-            m_gbuffer->color_texture_view(3).create_bind_group_entry(4), // overlay texture
-            m_image_overlay_settings_uniform_buffer->raw_buffer().create_bind_group_entry(5), // image overlay aabb
-            m_image_overlay_texture->texture_view().create_bind_group_entry(6), // image overlay texture (in uv space)
-            m_image_overlay_texture->sampler().create_bind_group_entry(7), // image overlay sampler
-            m_compute_overlay_settings_uniform_buffer->raw_buffer().create_bind_group_entry(8), // compute overlay aabb
-            compute_overlay_texture_entry, // compute overlay texture (in uv space)
-            compute_overlay_sampler_entry, // compute overlay sampler
-        });
+    for (int i = 0; i < 2; ++i) {
+        m_compose_bind_groups[i] = std::make_unique<webgpu::raii::BindGroup>(m_device,
+            m_context->pipeline_manager()->compose_bind_group_layout(),
+            std::initializer_list<WGPUBindGroupEntry> {
+                m_gbuffer->color_texture_view(0).create_bind_group_entry(0), // albedo texture
+                m_gbuffer->color_texture_view(1).create_bind_group_entry(1), // position texture
+                m_gbuffer->color_texture_view(2).create_bind_group_entry(2), // normal texture
+                m_atmosphere_framebuffer->color_texture_view(0).create_bind_group_entry(3), // atmosphere texture
+                m_gbuffer->color_texture_view(3).create_bind_group_entry(4), // overlay texture
+                m_image_overlay_settings_uniform_buffer->raw_buffer().create_bind_group_entry(5), // image overlay aabb
+                m_image_overlay_texture->texture_view().create_bind_group_entry(6), // image overlay texture (in uv space)
+                m_image_overlay_texture->sampler().create_bind_group_entry(7), // image overlay sampler
+                m_compute_overlay_settings_uniform_buffer->raw_buffer().create_bind_group_entry(8), // compute overlay aabb
+                compute_overlay_texture_entry, // compute overlay texture (in uv space)
+                compute_overlay_sampler_entry, // compute overlay sampler
+                m_context->cloud_geometry()->result_color_view(i)->create_bind_group_entry(11),
+                m_context->cloud_geometry()->result_depth_view()->create_bind_group_entry(12),
+                m_shadow_texture->texture_view().create_bind_group_entry(13),
+                m_shadow_texture->sampler().create_bind_group_entry(14),
+                m_gbuffer->depth_texture_view().create_bind_group_entry(15),
+            });
+    }
+
 }
 
 void Window::update_required_gpu_limits(WGPULimits& limits, const WGPULimits& supported_limits)

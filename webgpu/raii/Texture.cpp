@@ -2,6 +2,7 @@
  * weBIGeo
  * Copyright (C) 2024 Gerald Kimmersdorfer
  * Copyright (C) 2024 Patrick Komon
+ * Copyright (C) 2026 Wendelin Muth
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -18,6 +19,9 @@
  *****************************************************************************/
 
 #include "Texture.h"
+
+#include "nucleus/utils/ColourTexture3D.h"
+
 #include <QDebug>
 #include <nucleus/utils/image_writer.h>
 
@@ -108,6 +112,39 @@ void Texture::write(WGPUQueue queue, const nucleus::utils::ColourTexture& data, 
 
     wgpuQueueWriteTexture(queue, &image_copy_texture, data.data(), data.n_bytes(), &texture_data_layout, &copy_extent);
 }
+
+void Texture::write(WGPUQueue queue, const nucleus::utils::ColourTexture3D& data, glm::uvec3 offset, uint32_t base_mip_level)
+{
+    assert(offset.x % 4 == 0);
+    assert(offset.y % 4 == 0);
+    assert(data.width() % 4 == 0);
+    assert(data.height() % 4 == 0);
+    WGPUTexelCopyTextureInfo image_copy_texture {};
+    image_copy_texture.texture = m_handle;
+    image_copy_texture.aspect = WGPUTextureAspect::WGPUTextureAspect_All;
+    image_copy_texture.mipLevel = base_mip_level;
+    image_copy_texture.origin = WGPUOrigin3D { offset.x, offset.y, offset.z };
+
+    WGPUTexelCopyBufferLayout texture_data_layout {};
+    switch (data.format()) {
+    case nucleus::utils::ColourTexture3D::Format::R8_UNORM:
+        texture_data_layout.bytesPerRow = data.width();
+        texture_data_layout.rowsPerImage = data.height();
+        break;
+    case nucleus::utils::ColourTexture3D::Format::BC4_UNORM:
+        texture_data_layout.bytesPerRow = ((data.width() + 3) / 4) * 8; // for BC4 its ceil(width/4) * 8
+        texture_data_layout.rowsPerImage = (data.height() + 3) / 4; // Also different for BC4
+        break;
+    default:
+        assert(false && "Texture format not Implemented");
+    }
+    texture_data_layout.offset = 0;
+
+    WGPUExtent3D copy_extent { data.width(), data.height(), data.depth() };
+
+    wgpuQueueWriteTexture(queue, &image_copy_texture, data.data(), data.n_bytes(), &texture_data_layout, &copy_extent);
+}
+
 
 void Texture::copy_to_texture(WGPUCommandEncoder encoder, uint32_t source_layer, const Texture& target_texture, uint32_t target_layer) const
 {

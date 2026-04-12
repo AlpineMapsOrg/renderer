@@ -2,6 +2,7 @@
  * weBIGeo
  * Copyright (C) 2024 Patrick Komon
  * Copyright (C) 2024 Gerald Kimmersdorfer
+ * Copyright (C) 2026 Wendelin Muth
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -271,10 +272,13 @@ void TerrainRenderer::start() {
     // this only works if ALP_ENABLE_THREADING is on, i.e., the tile scheduler is on an extra thread. -> potential issue on webassembly
     connect(m_camera_controller.get(), &nucleus::camera::Controller::definition_changed, m_context->geometry_scheduler(), &nucleus::tile::Scheduler::update_camera);
     connect(m_camera_controller.get(), &nucleus::camera::Controller::definition_changed, m_context->ortho_scheduler(),    &nucleus::tile::Scheduler::update_camera);
+    connect(m_camera_controller.get(), &nucleus::camera::Controller::definition_changed, m_context->cloud_scheduler(),    &nucleus::tile::Scheduler::update_camera);
     connect(m_camera_controller.get(), &nucleus::camera::Controller::definition_changed, m_webgpu_window.get(),           &webgpu_engine::Window::update_camera);
     
-    connect(m_context->geometry_scheduler(), &nucleus::tile::GeometryScheduler::gpu_tiles_updated, m_webgpu_window.get(), &webgpu_engine::Window::update_requested);
-    connect(m_context->ortho_scheduler(),    &nucleus::tile::TextureScheduler::gpu_tiles_updated,  m_webgpu_window.get(), &webgpu_engine::Window::update_requested);
+    connect(m_context->geometry_scheduler(), &nucleus::tile::GeometryScheduler::gpu_tiles_updated,  m_webgpu_window.get(), &webgpu_engine::Window::update_requested);
+    connect(m_context->ortho_scheduler(),    &nucleus::tile::TextureScheduler::gpu_tiles_updated,   m_webgpu_window.get(), &webgpu_engine::Window::update_requested);
+    connect(m_context->cloud_scheduler(),    &nucleus::tile::Texture3DScheduler::gpu_tiles_updated, m_webgpu_window.get(), &webgpu_engine::Window::update_requested);
+    connect(m_context->clouds_manager(),     &clouds::Manager::shadow_texture_ready,                m_webgpu_window.get(), &webgpu_engine::Window::on_shadow_texture_updated);
     // clang-format on
 
 #ifdef ALP_WEBGPU_APP_ENABLE_IMGUI
@@ -529,8 +533,6 @@ void TerrainRenderer::webgpu_create_context()
     dawnToggles.enabledToggles = enabledToggles.data();
     dawnToggles.enabledToggleCount = enabledToggles.size();
     dawnToggles.disabledToggleCount = 0;
-
-    m_instance_desc.nextInChain = &dawnToggles.chain;
 #endif
 
     const auto timed_wait_feature = WGPUInstanceFeatureName_TimedWaitAny;
@@ -572,12 +574,15 @@ void TerrainRenderer::webgpu_create_context()
     required_limits.minStorageBufferOffsetAlignment = supported_limits.minStorageBufferOffsetAlignment;
     required_limits.minUniformBufferOffsetAlignment = supported_limits.minUniformBufferOffsetAlignment;
     required_limits.maxInterStageShaderVariables = WGPU_LIMIT_U32_UNDEFINED; // required for current version of  Chrome Canary (2025-04-03)
+    required_limits.maxBufferSize = 2 * 1073741824ull; // 2 GiB
 
     // Let the engine change the required limits
     m_webgpu_window->update_required_gpu_limits(required_limits, supported_limits);
 
     std::vector<WGPUFeatureName> requiredFeatures;
     requiredFeatures.push_back(WGPUFeatureName_TimestampQuery);
+    requiredFeatures.push_back(WGPUFeatureName_TextureCompressionBC);
+    requiredFeatures.push_back(WGPUFeatureName_TextureCompressionBCSliced3D);
 
     WGPUDeviceDescriptor device_desc {};
     device_desc.label = WGPUStringView { .data = "webigeo device", .length = WGPU_STRLEN };
@@ -598,6 +603,10 @@ void TerrainRenderer::webgpu_create_context()
         .userdata1 = nullptr,
         .userdata2 = nullptr,
     };
+
+#ifndef __EMSCRIPTEN__
+    device_desc.nextInChain = &dawnToggles.chain;
+#endif
 
     m_device = webgpu::requestDeviceSync(m_instance, m_adapter, device_desc);
     if (!m_device) {

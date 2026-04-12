@@ -3,6 +3,8 @@
  * Copyright (C) 2024 Adam Celarek
  * Copyright (C) 2025 Patrick Komon
  * Copyright (C) 2025 Gerald Kimmersdorfer
+ * Copyright (C) 2026 Wendelin Muth
+ *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
@@ -22,6 +24,7 @@
 #include <QThread>
 #include <memory>
 
+#include "CloudsManager.h"
 #include "nucleus/tile/SchedulerDirector.h"
 #include "nucleus/tile/setup.h"
 #include "webgpu/webgpu.h"
@@ -35,6 +38,7 @@ class DataQuerier;
 }
 
 namespace nucleus::tile {
+class Texture3DScheduler;
 class GeometryScheduler;
 class TextureScheduler;
 class SchedulerDirector;
@@ -60,8 +64,11 @@ public:
     nucleus::tile::GeometryScheduler* geometry_scheduler();
     nucleus::tile::TileLoadService* geometry_tile_load_service();
     nucleus::tile::TextureScheduler* ortho_scheduler();
+    nucleus::tile::Texture3DScheduler* cloud_scheduler();
     nucleus::tile::SchedulerDirector* scheduler_director();
     nucleus::tile::TileLoadService* ortho_tile_load_service();
+    nucleus::tile::TileLoadService* cloud_tile_load_service();
+    clouds::Manager* clouds_manager();
 
 signals:
     void initialised();
@@ -73,7 +80,9 @@ private:
     std::shared_ptr<nucleus::DataQuerier> m_data_querier;
     nucleus::tile::setup::GeometrySchedulerHolder m_geometry_scheduler_holder;
     nucleus::tile::setup::TextureSchedulerHolder m_ortho_scheduler_holder;
+    nucleus::tile::setup::Texture3DSchedulerHolder m_cloud_scheduler_holder;
     std::unique_ptr<nucleus::tile::SchedulerDirector> m_scheduler_director;
+    std::unique_ptr<clouds::Manager> m_clous_manager;
 
     std::unique_ptr<QThread> m_scheduler_thread;
 };

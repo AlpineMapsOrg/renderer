@@ -29,7 +29,7 @@ struct shared_config {
     overlay_strength: f32,
     ssao_falloff_to_value: f32,
     atmosphere_enabled: u32,
-    padf2: f32,
+    clouds_enabled: u32,
 
     phong_enabled: u32,
     normal_mode: u32,

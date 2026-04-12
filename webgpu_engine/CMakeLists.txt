@@ -32,6 +32,7 @@ set(SOURCES
     PipelineManager.h PipelineManager.cpp
     UniformBufferObjects.h UniformBufferObjects.cpp
     TileGeometry.h TileGeometry.cpp
+    CloudRenderer.h CloudRenderer.cpp
     Buffer.h Buffer.cpp
     TrackRenderer.h TrackRenderer.cpp
     Context.h Context.cpp
@@ -115,6 +116,8 @@ qt_add_resources(webgpu_engine "shaders"
         "${SHADER_BASE_DIR}/render_lines.wgsl"
         "${SHADER_BASE_DIR}/compose_pass.wgsl"
         "${SHADER_BASE_DIR}/screen_pass_vert.wgsl"
+        "${SHADER_BASE_DIR}/render_clouds.wgsl"
+        "${SHADER_BASE_DIR}/upscale_clouds.wgsl"
 
         "${SHADER_BASE_DIR}/compute/downsample_compute.wgsl"
         "${SHADER_BASE_DIR}/compute/normals_compute.wgsl"
@@ -155,7 +158,10 @@ if (ALP_WEBGPU_APP_ENABLE_IMGUI)
     alp_add_git_repository(imgui URL https://github.com/AlpineMapsOrgDependencies/imgui_slim.git COMMITISH 4d8ecbf58ebf32e757ff56a60f1fb0446033edb8)
 
     set(IMNODES_IMGUI_TARGET_NAME imgui)
+    set(BUILD_SHARED_LIBS_SAVED ${BUILD_SHARED_LIBS})
+    set(BUILD_SHARED_LIBS OFF)
     alp_add_git_repository(imnodes URL https://github.com/AlpineMapsOrgDependencies/imnodes_slim.git COMMITISH 324355e64ed8b5bea02fe1439cdcb5c7773b4436)
+    set(BUILD_SHARED_LIBS ${BUILD_SHARED_LIBS_SAVED})
 
     alp_add_git_repository(ImGuiFileDialog URL https://github.com/AlpineMapsOrgDependencies/ImGuiFileDialog_slim.git COMMITISH 39f98eb131ee00d476f1002336fc7e9e1795ccc5)
     target_link_libraries(ImGuiFileDialog PRIVATE imgui)

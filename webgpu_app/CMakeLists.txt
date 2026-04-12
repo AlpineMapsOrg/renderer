@@ -26,6 +26,7 @@ set(SOURCES
     TerrainRenderer.h TerrainRenderer.cpp
     RenderingContext.h RenderingContext.cpp
     InputMapper.h InputMapper.cpp
+    CloudsManager.h CloudsManager.cpp
 
     util/error_logging.h util/error_logging.cpp
 
@@ -49,7 +50,7 @@ set_target_properties(webgpu_app PROPERTIES
     MACOSX_BUNDLE TRUE
 )
 
-target_link_libraries(webgpu_app PUBLIC webgpu webgpu_engine Qt::Core)
+target_link_libraries(webgpu_app PUBLIC webgpu webgpu_engine Qt::Core Qt::Network)
 target_include_directories(webgpu_app PRIVATE .)
 
 # Copy necessary DLLs to the output directory on Windows

@@ -2,6 +2,7 @@
  * weBIGeo
  * Copyright (C) 2024 Patrick Komon
  * Copyright (C) 2024 Gerald Kimmersdorfer
+ * Copyright (C) 2026 Wendelin Muth
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -41,6 +42,7 @@ public:
 
     const webgpu::raii::ShaderModule& render_tiles() const;
     const webgpu::raii::ShaderModule& render_atmosphere() const;
+    const webgpu::raii::ShaderModule& render_clouds() const;
     const webgpu::raii::ShaderModule& render_lines() const;
     const webgpu::raii::ShaderModule& compose_pass() const;
 
@@ -56,6 +58,7 @@ public:
     const webgpu::raii::ShaderModule& height_decode_compute() const;
     const webgpu::raii::ShaderModule& fxaa_compute() const;
     const webgpu::raii::ShaderModule& iterative_simulation_compute() const;
+    const webgpu::raii::ShaderModule& upscale_clouds_compute() const;
 
     const webgpu::raii::ShaderModule& mipmap_creation_compute() const;
 
@@ -73,6 +76,7 @@ private:
 
     std::unique_ptr<webgpu::raii::ShaderModule> m_render_tiles_shader_module;
     std::unique_ptr<webgpu::raii::ShaderModule> m_render_atmosphere_shader_module;
+    std::unique_ptr<webgpu::raii::ShaderModule> m_render_clouds_shader_module;
     std::unique_ptr<webgpu::raii::ShaderModule> m_render_lines_module;
     std::unique_ptr<webgpu::raii::ShaderModule> m_compose_pass_shader_module;
 
@@ -86,6 +90,7 @@ private:
     std::unique_ptr<webgpu::raii::ShaderModule> m_d8_compute_module;
     std::unique_ptr<webgpu::raii::ShaderModule> m_release_point_compute_module;
     std::unique_ptr<webgpu::raii::ShaderModule> m_height_decode_compute_module;
+    std::unique_ptr<webgpu::raii::ShaderModule> m_upscale_clouds_shader_module;
 
     std::unique_ptr<webgpu::raii::ShaderModule> m_mipmap_creation_compute_module;
     std::unique_ptr<webgpu::raii::ShaderModule> m_fxaa_compute_module;

@@ -35,6 +35,7 @@
 #include <QFile>
 #include <nucleus/camera/PositionStorage.h>
 #include <nucleus/tile/Scheduler.h>
+#include <glm/gtc/type_ptr.hpp>
 
 namespace webgpu_app {
 
@@ -305,6 +306,19 @@ void GuiManager::draw()
             }
             ImGui::EndCombo();
         }
+
+        {
+            auto& camera = m_terrain_renderer->get_camera_controller()->definition();
+            auto pos = camera.position();
+            glm::vec3 posf = pos;
+            ImGui::InputFloat3("Position", glm::value_ptr(posf), "%.2f", ImGuiInputTextFlags_ReadOnly);
+            glm::vec3 coords = nucleus::srs::world_to_lat_long_alt(pos);
+            ImGui::InputFloat3("Coords", glm::value_ptr(coords), "%.6f", ImGuiInputTextFlags_ReadOnly);
+            float fov = camera.field_of_view();
+            if (ImGui::SliderFloat("FoV", &fov, 1.0f, 179.0f)) {
+                m_terrain_renderer->get_camera_controller()->set_field_of_view(fov);
+            }
+        }
     }
 
     if (ImGui::CollapsingHeader(ICON_FA_COG "  App Settings")) {
@@ -351,6 +365,109 @@ void GuiManager::draw()
             }
             m_terrain_renderer->get_rendering_context()->ortho_scheduler()->clear_full_cache();
             m_terrain_renderer->get_camera_controller()->update();
+        }
+    }
+
+    {
+        auto rendering_context = m_terrain_renderer->get_rendering_context();
+        auto clouds_manger = rendering_context->clouds_manager();
+        const auto& times = clouds_manger->get_slots();
+        auto manifest_status = clouds_manger->get_manifest_status();
+
+        auto selected_slot = clouds_manger->selected_time_slot();
+
+        if (ImGui::CollapsingHeader(ICON_FA_CLOUD "  Clouds")) {
+
+            ImGui::SeparatorText("Data");
+
+            if (times.empty()) {
+                if (manifest_status == clouds::ManifestStatus::Pending) {
+                    ImGui::Text("Loading cloud data...");
+                } else {
+                    if (manifest_status == clouds::ManifestStatus::Error) {
+                        ImGui::Text("Failed to fetch cloud data.");
+                    } else {
+                        ImGui::Text("No cloud data available.");
+                    }
+                    ImGui::SameLine();
+                    if (ImGui::Button(ICON_FA_SYNC "##reload_clouds")) {
+                        clouds_manger->refresh_manifest();
+                    }
+                }
+            } else {
+                std::string preview_str = "Select time";
+                if (!selected_slot.id.isEmpty()) {
+                    preview_str = selected_slot.format_string() + " (" + clouds::to_string(selected_slot.status) + ")";
+                }
+                if (ImGui::BeginCombo("(UTC)", preview_str.c_str())) {
+                    for (int n = 0; n < (int)times.size(); n++) {
+                        auto slot = times[n];
+                        ImGui::PushID(slot.id.toStdString().c_str());
+                        const bool is_selected = slot.id == selected_slot.id;
+                        std::string label = slot.format_string() + " (" + clouds::to_string(slot.status) + ")";
+                        if (ImGui::Selectable(label.c_str(), is_selected)) {
+                            clouds_manger->select_time_slot(times[n]);
+                        }
+
+                        if (is_selected)
+                            ImGui::SetItemDefaultFocus();
+                        ImGui::PopID();
+                    }
+                    ImGui::EndCombo();
+                }
+
+                ImGui::SameLine();
+                if (manifest_status == clouds::ManifestStatus::Pending) ImGui::BeginDisabled();
+                if (ImGui::Button(ICON_FA_SYNC "##reload_clouds")) {
+                    clouds_manger->refresh_manifest();
+                }
+                if (manifest_status == clouds::ManifestStatus::Pending) ImGui::EndDisabled();
+
+                bool can_generate = selected_slot.is_generation_requestable();
+                if (!can_generate) ImGui::BeginDisabled();
+                if (ImGui::Button("Generate")) {
+                    clouds_manger->generate_selected_slot();
+                }
+                if (!can_generate) ImGui::EndDisabled();
+                if (selected_slot.status == clouds::SlotStatus::Pending) {
+                    ImGui::SameLine();
+                    ImGui::Text("Progress: %s %d%%", selected_slot.progress.stage.toStdString().c_str(), selected_slot.progress.percent);
+                }
+            }
+
+            ImGui::SeparatorText("Shading");
+            auto& shader_params = m_terrain_renderer->get_rendering_context()->engine_context()->cloud_geometry()->shader_params;
+            ImGui::Text("Step Size");
+            ImGui::Indent();
+            ImGui::DragFloat("Minimum", &shader_params.step_size_min, 1.0, 0.0, 10000.0);
+            float inv_dist_fact = 1.0 / shader_params.step_size_distance_factor;
+            if (ImGui::DragFloat("Distance Factor", &inv_dist_fact, 1.0, 0.0, 10000.0)) {
+                shader_params.step_size_distance_factor = 1.0 / inv_dist_fact;
+            }
+            ImGui::DragFloat("Horizon Factor", &shader_params.step_size_horizon_factor, 1.0, 0.0, 10000.0);
+            ImGui::Unindent();
+            ImGui::Text("Scattering");
+            ImGui::Indent();
+            ImGui::SliderFloat("Scattering Coeff", &shader_params.scattering_coeff, -1, 1);
+            ImGui::SliderFloat("Extinction Coeff", &shader_params.extinction_coeff, 0, 1, "%.5f");
+            ImGui::SliderFloat("Albedo", &shader_params.albedo, 0, 1);
+            ImGui::Unindent();
+            ImGui::Text("Lighting");
+            ImGui::Indent();
+            ImGui::DragFloat("Sun Light Scale", &shader_params.sun_light_scale, 1.0, 0.0, 10000.0);
+            ImGui::DragFloat("Ambient Light Scale", &shader_params.ambient_light_scale, 0.01f, 0.0f, 10000.0f);
+            ImGui::DragFloat("Atmospheric Light Scale", &shader_params.atmospheric_light_scale, 0.01f, 0.0f, 10000.0f);
+            ImGui::DragFloat("Shadow Extinction Scale", &shader_params.shadow_extinction_scale, 0.01f, 0.0f, 10000.0f);
+            ImGui::SliderFloat("Powder Effect Scale", &shader_params.powder_scale, 0, 1);
+            ImGui::Unindent();
+            ImGui::Text("Visibility");
+            ImGui::Indent();
+            ImGui::SliderFloat("Fade", &shader_params.fade_factor, 0.001f, 1.0f);
+            ImGui::Unindent();
+            ImGui::Text("Accumulation");
+            ImGui::Indent();
+            ImGui::SliderInt("Stable Frames Limit", &shader_params.stable_frames_limit, 1, 256);
+            ImGui::Unindent();
         }
     }
 
@@ -518,7 +635,7 @@ void GuiManager::draw_about_popup()
         ImGui::OpenPopup("about_webigeo");
     }
     ImGui::SetNextWindowPos(ImGui::GetMainViewport()->GetCenter(), ImGuiCond_Appearing, {0.5f, 0.5f});
-    ImGui::SetNextWindowSize({400,370});
+    ImGui::SetNextWindowSize({450,470});
 
     if (ImGui::BeginPopupModal("about_webigeo", NULL, ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoCollapse))
     {
@@ -548,9 +665,28 @@ void GuiManager::draw_about_popup()
         ImGui::TextLinkOpenURL("netidee project page", "https://www.netidee.at/webigeo");
 
         ImGui::Spacing(); ImGui::Spacing();
-        ImGui::Text("Authors: "); ImGui::SameLine();
-        ImGui::TextWrapped("Patrick Komon, Gerald Kimmersdorfer, Adam Celarek, "
-                           "Jakob Lindner, Jakob Maier, Markus Rampp");
+        ImGui::Text("Authors:");
+        ImGui::Text(" - "); ImGui::SameLine();
+        ImGui::TextLinkOpenURL("Adam Celarek", "https://github.com/adam-ce"); ImGui::SameLine();
+        ImGui::Text("(2022-2025)");
+        ImGui::Text(" - "); ImGui::SameLine();
+        ImGui::TextLinkOpenURL("Gerald Kimmersdorfer", "https://github.com/GeraldKimmersdorfer"); ImGui::SameLine();
+        ImGui::Text("(2023-2025)");
+        ImGui::Text(" - "); ImGui::SameLine();
+        ImGui::TextLinkOpenURL("Jakob Lindner", "https://github.com/JakobLindner"); ImGui::SameLine();
+        ImGui::Text("(2023)");
+        ImGui::Text(" - "); ImGui::SameLine();
+        ImGui::TextLinkOpenURL("Patrick Komon", "https://github.com/pkomon"); ImGui::SameLine();
+        ImGui::Text("(2024-2025)");
+        ImGui::Text(" - "); ImGui::SameLine();
+        ImGui::TextLinkOpenURL("Jakob Maier", "https://github.com/Gro2mi"); ImGui::SameLine();
+        ImGui::Text("(2024)");
+        ImGui::Text(" - "); ImGui::SameLine();
+        ImGui::TextLinkOpenURL("Markus Rampp", "https://github.com/gue-ni"); ImGui::SameLine();
+        ImGui::Text("(2025)");
+        ImGui::Text(" - "); ImGui::SameLine();
+        ImGui::TextLinkOpenURL("Wendelin Muth", "https://github.com/Qendolin"); ImGui::SameLine();
+        ImGui::Text("(2026)");
 
         ImGui::Spacing(); ImGui::Spacing();
         ImGui::Text("Height and ortho data is provided by "); ImGui::SameLine();

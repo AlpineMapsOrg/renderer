@@ -79,7 +79,7 @@
       "toolchainFile": "C:/Qt/6.10.1/wasm_multithread/lib/cmake/Qt6/qt.toolchain.cmake",
       "environment": {
         "PATH": "C:/Qt/Tools/Ninja;$penv{PATH}",
-        "EMSDK": "C:/tmp/webigeo/emsdk"
+        "EMSDK": "C:/tmp/alpinemaps/emsdk"
       }
     },
     {

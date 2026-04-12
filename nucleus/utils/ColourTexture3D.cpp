@@ -1,7 +1,8 @@
 /*****************************************************************************
  * AlpineMaps.org
  * Copyright (C) 2024 Adam Celarek
- *
+ * Copyright (C) 2024 Gerald Kimmersdorfer
+ * Copyright (C) 2026 Wendelin Muth
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
@@ -16,39 +17,22 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *****************************************************************************/
 
-#pragma once
+#include "ColourTexture3D.h"
 
-#include "types.h"
-#include <nucleus/Raster.h>
+nucleus::utils::ColourTexture3D::ColourTexture3D(const nucleus::Raster3D<glm::u8vec4>& image, Format format)
+    : m_data(reinterpret_cast<const uint8_t*>(image.data()), reinterpret_cast<const uint8_t*>(image.data()) + image.size_in_bytes())
+    , m_width(unsigned(image.width()))
+    , m_height(unsigned(image.height()))
+    , m_depth(unsigned(image.depth()))
+    , m_format(format)
+{
+}
 
-namespace nucleus::tile {
-
-class GpuArrayHelper {
-public:
-    struct Dictionary {
-        nucleus::Raster<glm::u32vec2> packed_ids;
-        nucleus::Raster<uint16_t> layers;
-    };
-    struct LayerInfo {
-        tile::Id id;
-        unsigned index;
-    };
-
-    GpuArrayHelper();
-
-    /// returns index in texture array
-    unsigned add_tile(const tile::Id& tile_id);
-    void remove_tile(const tile::Id& tile_id);
-    void set_tile_limit(unsigned new_limit);
-    unsigned size() const;
-    unsigned int n_occupied() const;
-    Dictionary generate_dictionary() const;
-    LayerInfo layer(Id tile_id) const;
-    bool contains(Id tile_id) const;
-
-private:
-    std::vector<tile::Id> m_array;
-    tile::IdMap<unsigned> m_id_to_layer;
-};
-
-} // namespace nucleus::tile
+nucleus::utils::ColourTexture3D::ColourTexture3D(std::span<uint8_t> data, unsigned width, unsigned height, unsigned depth, Format format)
+    : m_data(data.begin(), data.end())
+    , m_width(width)
+    , m_height(height)
+    , m_depth(depth)
+    , m_format(format)
+{
+}

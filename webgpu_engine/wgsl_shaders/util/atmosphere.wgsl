@@ -2,6 +2,7 @@
  * weBIGeo
  * Copyright (C) 2022 Adam Celarek
  * Copyright (C) 2024 Patrick Komon
+ * Copyright (C) 2026 Wendelin Muth
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -46,6 +47,22 @@ fn an_optical_depth(origin_height: f32, h_delta: f32, distance: f32) -> f32 {
 //    if (abs(h_delta) < 0.001)
 //        return distance * 0.5 * (density_at_height(origin_height) + density_at_height(end_height));
 //    return (1.0 / (w * h_delta)) * (exp(-origin_height * w) - exp(-end_height * w));
+}
+
+fn atmospheric_inscatter_at_point(pos_km: vec3f, sun_dir: vec3f) -> vec3f {
+    let height = pos_km.z;
+
+    // Optical depth from this point to top of atmosphere (sunlight path)
+    let sun_optical_depth = an_optical_depth(height, 1.0, atmosphere_height - height);
+
+    // Sunlight transmittance through atmosphere above this point
+    let sun_transmittance = exp(-sun_optical_depth * scattering_coefficients());
+
+    // Local air density
+    let air_density = density_at_height(height);
+
+    // Scattered light (before phase function)
+    return air_density * sun_transmittance;
 }
 
 fn evaluate_atmopshperic_light(h: f32, h_delta: f32, dist_from_start: f32) -> vec3f {

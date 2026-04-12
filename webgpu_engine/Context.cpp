@@ -43,6 +43,10 @@ void Context::internal_initialise()
         m_tile_geometry->set_pipeline_manager(*m_pipeline_manager);
         m_tile_geometry->init(m_webgpu_device);
     }
+    if (m_cloud_geometry) {
+        m_cloud_geometry->set_pipeline_manager(*m_pipeline_manager);
+        m_cloud_geometry->init(m_webgpu_device);
+    }
 
     // if (m_ortho_layer)
     //     m_ortho_layer->init();
@@ -63,9 +67,19 @@ void Context::set_tile_geometry(std::shared_ptr<TileGeometry> new_tile_geometry)
     m_tile_geometry = std::move(new_tile_geometry);
 }
 
+CloudRenderer* Context::cloud_geometry() const { return m_cloud_geometry.get(); }
+
+void Context::set_cloud_geometry(std::shared_ptr<CloudRenderer> new_cloud_geometry)
+{
+    assert(!is_alive()); // only set before init is called.
+    m_cloud_geometry = std::move(new_cloud_geometry);
+}
+
 WGPUInstance Context::webgpu_instance() const { return m_webgpu_instance; }
 
 void Context::set_webgpu_instance(WGPUInstance instance) { m_webgpu_instance = instance; }
+
+WGPUDevice Context::webgpu_device() const { return m_webgpu_device; }
 
 void Context::set_webgpu_device(WGPUDevice device) { m_webgpu_device = device; }
 

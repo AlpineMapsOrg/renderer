@@ -2,6 +2,7 @@
  * weBIGeo
  * Copyright (C) 2024 Patrick Komon
  * Copyright (C) 2024 Gerald Kimmersdorfer
+ * Copyright (C) 2026 Wendelin Muth
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -69,7 +70,7 @@ public:
     void set_wgpu_context(WGPUInstance instance, WGPUDevice device, WGPUAdapter adapter, WGPUSurface surface, WGPUQueue queue, Context* context);
     void initialise_gpu() override;
     void resize_framebuffer(int w, int h) override;
-    void paint(webgpu::Framebuffer* framebuffer, WGPUCommandEncoder encoder);
+    void paint(webgpu::Framebuffer* framebuffer, WGPUCommandEncoder command_encoder);
     // void paint(WGPUTextureView target_color_texture, WGPUTextureView target_depth_texture, WGPUCommandEncoder encoder);
     void paint([[maybe_unused]] QOpenGLFramebufferObject* framebuffer = nullptr) override { throw std::runtime_error("Not implemented"); }
 
@@ -99,6 +100,7 @@ public slots:
     void focus_region_2d(const radix::geometry::Aabb<2, double>& aabb);
     void reload_shaders();
     void on_pipeline_run_completed();
+    void on_shadow_texture_updated(const QByteArray& data);
 
 private slots:
     void file_upload_handler(const std::string& filename, const std::string& tag);
@@ -142,6 +144,8 @@ private:
 
     void display_message(const std::string& message);
 
+    std::unique_ptr<webgpu::raii::TextureWithSampler> create_shadow_texture(uint32_t width, uint32_t height, uint32_t mip_levels);
+
 private:
     WGPUInstance m_instance = nullptr;
     WGPUDevice m_device = nullptr;
@@ -155,7 +159,7 @@ private:
 
     std::unique_ptr<webgpu::raii::BindGroup> m_shared_config_bind_group;
     std::unique_ptr<webgpu::raii::BindGroup> m_camera_bind_group;
-    std::unique_ptr<webgpu::raii::BindGroup> m_compose_bind_group;
+    std::array<std::unique_ptr<webgpu::raii::BindGroup>, 2> m_compose_bind_groups;
     std::unique_ptr<webgpu::raii::BindGroup> m_depth_texture_bind_group;
 
     nucleus::camera::Definition m_camera;
@@ -173,6 +177,7 @@ private:
     bool m_needs_redraw = true;
     bool m_first_paint = true;
     bool m_is_first_pipeline_run = true;
+    uint32_t m_paint_number = 0;
 
     std::unique_ptr<TrackRenderer> m_track_renderer;
 
@@ -199,6 +204,8 @@ private:
 
     const webgpu::raii::TextureView* m_compute_overlay_texture_view = nullptr; // will be set to correct texture view after pipeline run completion
     const webgpu::raii::Sampler* m_compute_overlay_sampler = nullptr; // will be set to correct sampler after pipeline run completion
+
+    std::unique_ptr<webgpu::raii::TextureWithSampler> m_shadow_texture;
 
 #ifdef ALP_WEBGPU_APP_ENABLE_IMGUI
     std::unique_ptr<compute::NodeGraphRenderer> m_node_graph_renderer;
