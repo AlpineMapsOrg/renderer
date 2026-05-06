@@ -49,17 +49,11 @@ struct AvalancheTrajectoriesSettings {
     max_perturbation: f32, // randomness contribution on normal in [0,1], 0 means no randomness, 1 means only randomness
     persistence_contribution: f32, // persistence contribution on normal in [0,1], 0 means only local normal, 1 means only last normal
 
-    model_type: u32, //0 is simple, 1 is more complex
-    model1_linear_drag_coeff: f32,
-    model1_downward_acceleration_coeff: f32,
+    model_type: u32, // 0 = weBIGeo Avalanche Simulation, 1 = Physics Less Simple
     model2_gravity: f32,
     model2_mass: f32,
     model2_friction_coeff: f32,
     model2_drag_coeff: f32,
-
-    //model5_weights: array<f32, 8>, // wgsl compiler does not allow f32 arrays in uniforms because of padding requirements, altough it would work here
-    model5_center_height_offset: f32,
-    model5_weights: array<vec4f, 2>,
 
     runout_model_type: u32, //actually: friction model: 0 coulomb, 1 voellmy, 2 voellmy minshear, 3 samosAt
 
@@ -218,7 +212,6 @@ fn trajectory_overlay(id: vec3<u32>) {
     let start_point_height: f32 = sample_height_texture(uv);
     var world_space_travel_distance: f32 = 0.0;
 
-    var last_dir_index: i32 = -1;  // used for d8 with weights
     var last_uv = uv;
     var world_space_offset = vec2f(0, 0); // offset from original world position
 

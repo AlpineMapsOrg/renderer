@@ -60,7 +60,7 @@ void SelectTilesNode::select_tiles_in_world_aabb(const radix::geometry::Aabb<3, 
 
 void SelectTilesNode::run_impl()
 {
-    qDebug() << "running TileSelectNode ...";
+
     m_output_tile_ids.clear();
     const auto& tile_ids = m_tile_id_generator();
 
@@ -78,7 +78,7 @@ void SelectTilesNode::run_impl()
              << m_output_bounds.max.y << ")]";
 
     m_output_tile_ids.insert(m_output_tile_ids.begin(), tile_ids.begin(), tile_ids.end());
-    emit run_completed();
+    complete_run();
 }
 
 } // namespace webgpu_engine::compute::nodes

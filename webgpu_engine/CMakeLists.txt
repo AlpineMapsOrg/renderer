@@ -27,6 +27,7 @@ project(alpine-renderer-webgpu_engine LANGUAGES C CXX)
 
 set(SOURCES
     Window.h Window.cpp
+    gpu_utils.h gpu_utils.cpp
     PipelineSettings.h PipelineSettings.cpp
     ShaderModuleManager.h ShaderModuleManager.cpp
     PipelineManager.h PipelineManager.cpp
@@ -37,29 +38,23 @@ set(SOURCES
     TrackRenderer.h TrackRenderer.cpp
     Context.h Context.cpp
 
-    compute/GpuHashMap.h compute/GpuHashMap.cpp
     compute/GpuTileStorage.h compute/GpuTileStorage.cpp
     compute/GpuTileId.h compute/GpuTileId.cpp
     compute/RectangularTileRegion.h compute/RectangularTileRegion.cpp
     compute/nodes/Node.h compute/nodes/Node.cpp
     compute/nodes/SelectTilesNode.h compute/nodes/SelectTilesNode.cpp
     compute/nodes/RequestTilesNode.h compute/nodes/RequestTilesNode.cpp
-    compute/nodes/CreateHashMapNode.h compute/nodes/CreateHashMapNode.cpp
     compute/nodes/ComputeNormalsNode.h compute/nodes/ComputeNormalsNode.cpp
-    compute/nodes/DownsampleTilesNode.h compute/nodes/DownsampleTilesNode.cpp
-    compute/nodes/NodeGraph.h compute/nodes/NodeGraph.cpp
+    compute/GraphRunContext.h
+    compute/NodeGraph.h compute/NodeGraph.cpp
     compute/nodes/ComputeSnowNode.h compute/nodes/ComputeSnowNode.cpp
     compute/nodes/UpsampleTexturesNode.h compute/nodes/UpsampleTexturesNode.cpp
     compute/nodes/ComputeAvalancheTrajectoriesNode.h compute/nodes/ComputeAvalancheTrajectoriesNode.cpp
-    compute/nodes/ComputeAvalancheInfluenceAreaNode.h compute/nodes/ComputeAvalancheInfluenceAreaNode.cpp
-    compute/nodes/ComputeD8DirectionsNode.h compute/nodes/ComputeD8DirectionsNode.cpp
-    compute/nodes/TileExportNode.h compute/nodes/TileExportNode.cpp
-    compute/nodes/BufferExportNode.h compute/nodes/BufferExportNode.cpp
+    compute/nodes/ExportNode.h compute/nodes/ExportNode.cpp
     compute/nodes/BufferToTextureNode.h compute/nodes/BufferToTextureNode.cpp
     compute/nodes/ComputeReleasePointsNode.h compute/nodes/ComputeReleasePointsNode.cpp
     compute/nodes/TileStitchNode.h compute/nodes/TileStitchNode.cpp
     compute/nodes/HeightDecodeNode.h compute/nodes/HeightDecodeNode.cpp
-    compute/nodes/FxaaNode.h compute/nodes/FxaaNode.cpp
     compute/nodes/IterativeSimulationNode.h compute/nodes/IterativeSimulationNode.cpp
     compute/nodes/LoadTextureNode.h compute/nodes/LoadTextureNode.cpp
     compute/nodes/LoadRegionAabbNode.h compute/nodes/LoadRegionAabbNode.cpp
@@ -69,8 +64,15 @@ set(SOURCES
 # NodeGraphRenderer and NodeRenderer are only compiled when ImGui is enabled
 if (ALP_WEBGPU_APP_ENABLE_IMGUI)
     list(APPEND SOURCES
-        compute/NodeGraphRenderer.h compute/NodeGraphRenderer.cpp
-        compute/NodeRenderer.h compute/NodeRenderer.cpp
+        compute/imgui/NodeGraphRenderer.h compute/imgui/NodeGraphRenderer.cpp
+        compute/imgui/nodes/NodeRenderer.h compute/imgui/nodes/NodeRenderer.cpp
+        compute/imgui/nodes/NodeRendererFactory.h compute/imgui/nodes/NodeRendererFactory.cpp
+        compute/imgui/nodes/ExportNodeRenderer.h compute/imgui/nodes/ExportNodeRenderer.cpp
+        compute/imgui/nodes/BufferToTextureNodeRenderer.h compute/imgui/nodes/BufferToTextureNodeRenderer.cpp
+        compute/imgui/nodes/ComputeAvalancheTrajectoriesNodeRenderer.h compute/imgui/nodes/ComputeAvalancheTrajectoriesNodeRenderer.cpp
+        compute/imgui/nodes/ComputeReleasePointsNodeRenderer.h compute/imgui/nodes/ComputeReleasePointsNodeRenderer.cpp
+        compute/imgui/nodes/ComputeSnowNodeRenderer.h compute/imgui/nodes/ComputeSnowNodeRenderer.cpp
+        compute/imgui/nodes/RequestTilesNodeRenderer.h compute/imgui/nodes/RequestTilesNodeRenderer.cpp
     )
 endif()
 

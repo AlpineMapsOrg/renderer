@@ -32,8 +32,23 @@ set(SOURCES
 
     util/dark_mode.h util/dark_mode.cpp
 
-    GuiManager.h GuiManager.cpp
+    ImGuiManager.h ImGuiManager.cpp
 )
+
+if (ALP_WEBGPU_APP_ENABLE_IMGUI)
+    list(APPEND SOURCES
+        imgui/ImGuiPanel.h
+        imgui/TimingPanel.h imgui/TimingPanel.cpp
+        imgui/CameraPanel.h imgui/CameraPanel.cpp
+        imgui/AppPanel.h imgui/AppPanel.cpp
+        imgui/CloudPanel.h imgui/CloudPanel.cpp
+        imgui/IlluminationPanel.h imgui/IlluminationPanel.cpp
+        imgui/EnginePanel.h imgui/EnginePanel.cpp
+        imgui/AboutPanel.h imgui/AboutPanel.cpp
+        imgui/CompassPanel.h imgui/CompassPanel.cpp
+        imgui/LogoPanel.h imgui/LogoPanel.cpp
+    )
+endif()
 
 if (EMSCRIPTEN)
     list(APPEND SOURCES WebInterop.h WebInterop.cpp)

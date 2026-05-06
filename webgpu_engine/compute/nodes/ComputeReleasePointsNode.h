@@ -30,6 +30,8 @@ class ComputeReleasePointsNode : public Node {
     Q_OBJECT
 
 public:
+    NODE_TYPE_NAME(ComputeReleasePointsNode)
+
     struct ReleasePointsSettings {
         WGPUTextureFormat texture_format = WGPUTextureFormat_RGBA8Unorm;
         WGPUTextureUsage texture_usage
@@ -52,6 +54,7 @@ public:
     ComputeReleasePointsNode(const PipelineManager& pipeline_manager, WGPUDevice device, const ReleasePointsSettings& settings);
 
     void set_settings(const ReleasePointsSettings& settings) { m_settings = settings; }
+    const ReleasePointsSettings& get_settings() const { return m_settings; }
 
 public slots:
     void run_impl() override;

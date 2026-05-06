@@ -42,7 +42,7 @@ UpsampleTexturesNode::UpsampleTexturesNode(const PipelineManager& pipeline_manag
 
 void UpsampleTexturesNode::run_impl()
 {
-    qDebug() << "running UpsampleTexturesNode ...";
+
 
     const auto& input_textures = *std::get<data_type<TileStorageTexture*>()>(input_socket("source textures").get_connected_data());
     const std::vector<uint32_t> input_used_indices = input_textures.used_layer_indices();
@@ -97,7 +97,7 @@ void UpsampleTexturesNode::run_impl()
     const auto on_work_done
         = []([[maybe_unused]] WGPUQueueWorkDoneStatus status, [[maybe_unused]] WGPUStringView message, void* userdata, [[maybe_unused]] void* userdata2) {
               UpsampleTexturesNode* _this = reinterpret_cast<UpsampleTexturesNode*>(userdata);
-              emit _this->run_completed();
+              _this->complete_run();
           };
 
     WGPUQueueWorkDoneCallbackInfo callback_info {

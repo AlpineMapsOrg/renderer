@@ -44,7 +44,7 @@ void ComputeNormalsNode::set_settings(const NormalSettings& settings) { m_settin
 
 void ComputeNormalsNode::run_impl()
 {
-    qDebug() << "running NormalComputeNode ...";
+
 
     const auto& bounds = *std::get<data_type<const radix::geometry::Aabb<2, double>*>()>(input_socket("bounds").get_connected_data());
     const auto& height_texture = *std::get<data_type<const webgpu::raii::TextureWithSampler*>()>(input_socket("height texture").get_connected_data());
@@ -94,7 +94,7 @@ void ComputeNormalsNode::run_impl()
     const auto on_work_done
         = []([[maybe_unused]] WGPUQueueWorkDoneStatus status, [[maybe_unused]] WGPUStringView message, void* userdata, [[maybe_unused]] void* userdata2) {
               ComputeNormalsNode* _this = reinterpret_cast<ComputeNormalsNode*>(userdata);
-              emit _this->run_completed();
+              _this->complete_run();
           };
 
     WGPUQueueWorkDoneCallbackInfo callback_info {

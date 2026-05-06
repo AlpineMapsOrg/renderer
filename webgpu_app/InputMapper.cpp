@@ -22,7 +22,7 @@
 
 namespace webgpu_app {
 
-InputMapper::InputMapper(QObject* parent, nucleus::camera::Controller* camera_controller, GuiManager* gui_manager, ViewportSizeCallback vp_size_callback)
+InputMapper::InputMapper(QObject* parent, nucleus::camera::Controller* camera_controller, ImGuiManager* gui_manager, ViewportSizeCallback vp_size_callback)
     : QObject(parent)
     , m_gui_manager(gui_manager)
     , m_viewport_size_callback(vp_size_callback)

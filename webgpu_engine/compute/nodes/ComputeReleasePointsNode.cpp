@@ -45,7 +45,7 @@ ComputeReleasePointsNode::ComputeReleasePointsNode(const PipelineManager& pipeli
 
 void ComputeReleasePointsNode::run_impl()
 {
-    qDebug() << "running ComputeReleasePointsNode ...";
+
 
     const auto& normal_texture = *std::get<data_type<const webgpu::raii::TextureWithSampler*>()>(input_socket("normal texture").get_connected_data());
 
@@ -100,7 +100,7 @@ void ComputeReleasePointsNode::run_impl()
     const auto on_work_done
         = []([[maybe_unused]] WGPUQueueWorkDoneStatus status, [[maybe_unused]] WGPUStringView message, void* userdata, [[maybe_unused]] void* userdata2) {
               ComputeReleasePointsNode* _this = reinterpret_cast<ComputeReleasePointsNode*>(userdata);
-              emit _this->run_completed();
+              _this->complete_run();
           };
 
     WGPUQueueWorkDoneCallbackInfo callback_info {

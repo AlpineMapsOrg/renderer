@@ -27,6 +27,8 @@ class RequestTilesNode : public Node {
     Q_OBJECT
 
 public:
+    NODE_TYPE_NAME(RequestTilesNode)
+
     struct RequestTilesNodeSettings {
         std::string tile_path = "https://alpinemaps.cg.tuwien.ac.at/tiles/at_dtm_alpinemaps/";
         nucleus::tile::TileLoadService::UrlPattern url_pattern = nucleus::tile::TileLoadService::UrlPattern::ZXY;

@@ -89,8 +89,8 @@ RenderingContext::RenderingContext()
 #endif
 
     m_clous_manager = std::make_unique<clouds::Manager>();
-    connect(m_clous_manager.get(), &clouds::Manager::slot_ready, this, [this](const clouds::TimeSlot& slot) {
-        QString new_url = "http://127.0.0.1:8000" + slot.path + "tiles/";
+    connect(m_clous_manager.get(), &clouds::Manager::slot_ready, this, [this](const clouds::TileSetInfo& slot) {
+        QString new_url = m_clous_manager->server_url() + "/" + slot.folder + "/tiles/";
         nucleus::utils::thread::async_call(m_cloud_scheduler_holder.tile_service.get(), [this, new_url]() {
             m_cloud_scheduler_holder.tile_service->set_base_url(new_url);
         });

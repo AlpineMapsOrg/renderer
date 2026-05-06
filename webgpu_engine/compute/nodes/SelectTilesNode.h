@@ -26,6 +26,8 @@ class SelectTilesNode : public Node {
     Q_OBJECT
 
 public:
+    NODE_TYPE_NAME(SelectTilesNode)
+
     using TileIdGenerator = std::function<std::vector<radix::tile::Id>()>;
 
     SelectTilesNode();

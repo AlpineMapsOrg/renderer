@@ -318,7 +318,12 @@ fn fragmentMain(vertex_out : VertexOut) -> @location(0) vec4f {
         }
         out_Color = vec4(shaded_color, 1.0);
     } else {
-        out_Color = vec4(atmospheric_color, 1.0);
+        if (bool(conf.atmosphere_enabled)) {
+            out_Color = vec4(atmospheric_color, 1.0);
+        } else {
+            out_Color = vec4(1.0);
+        }
+        
     }
 
 

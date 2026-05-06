@@ -28,6 +28,8 @@ class IterativeSimulationNode : public Node {
     Q_OBJECT
 
 public:
+    NODE_TYPE_NAME(IterativeSimulationNode)
+
     static glm::uvec3 SHADER_WORKGROUP_SIZE; // TODO currently hardcoded in shader! can we somehow not hardcode it? maybe using overrides
 
     struct IterativeSimulationSettings {

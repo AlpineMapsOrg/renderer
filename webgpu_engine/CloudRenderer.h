@@ -38,9 +38,9 @@ class Definition;
 
 namespace webgpu_engine::clouds {
 static constexpr uint32_t ZOOM_MAX = 10;
-static constexpr glm::vec2 BOUNDS_MIN = {46.2, 9.4};
-static constexpr glm::vec2 BOUNDS_MAX = {49.2, 17.4};
-static constexpr glm::uvec2 TILE_COUNTS = {24, 14};
+static constexpr glm::vec2 BOUNDS_MIN = { 46.2, 9.4 };
+static constexpr glm::vec2 BOUNDS_MAX = { 49.2, 17.4 };
+static constexpr glm::uvec2 TILE_COUNTS = { 24, 14 };
 static constexpr uint32_t TILE_COUNT_TOTAL = TILE_COUNTS.x * TILE_COUNTS.y;
 static constexpr uint32_t TILE_RESOLUTION_XY = 256;
 static constexpr uint32_t TILE_RESOLUTION_Z = 64;
@@ -52,14 +52,13 @@ static constexpr uint32_t ATLAS_BITS_Z = 5;
 static constexpr uint32_t ATLAS_SCALE_Z = 1 << ATLAS_BITS_Z;
 static constexpr uint32_t ATLAS_MASK_Z = ATLAS_SCALE_Z - 1;
 static constexpr uint32_t LOADED_TILE_LIMIT = ATLAS_SCALE_XY * ATLAS_SCALE_XY * ATLAS_SCALE_Z;
-}
+} // namespace webgpu_engine::clouds
 
 namespace webgpu_engine {
 
 class CloudRenderer : public QObject {
     Q_OBJECT
 public:
-
     // Public shader parameters
     struct ShaderParameters {
         float step_size_min = 125.0f;
@@ -73,8 +72,8 @@ public:
         float atmospheric_light_scale = 1.0f;
         float shadow_extinction_scale = 0.5f;
         float powder_scale = 0.9f;
-        float fade_factor = 1.0f;
-        int stable_frames_limit = 64;
+        float fade_factor = 0.0f;
+        int stable_frames_limit = 1; // originally 64, but not necessary anymore due to improvements Wendelin made
     };
 
     ShaderParameters shader_params = {};
@@ -85,25 +84,26 @@ public:
 
     void resize(int w, int h);
 
-    void draw(const WGPUCommandEncoder& command_encoder, const WGPUBindGroup& depth_texture_bind_group, const WGPUBindGroup& shared_config_bind_group, const nucleus::camera::Definition& camera, uint32_t frame_number);
+    void draw(const WGPUCommandEncoder& command_encoder,
+        const WGPUBindGroup& depth_texture_bind_group,
+        const WGPUBindGroup& shared_config_bind_group,
+        const nucleus::camera::Definition& camera,
+        uint32_t frame_number);
 
-    [[nodiscard]] bool needs_redraw() const
-    {
-        return m_stable_frames <= static_cast<uint32_t>(shader_params.stable_frames_limit);
-    }
+    [[nodiscard]] bool needs_redraw() const { return m_stable_frames <= static_cast<uint32_t>(shader_params.stable_frames_limit); }
 
     void set_pipeline_manager(const PipelineManager& pipeline_manager);
 
     void set_tile_limit(unsigned new_limit);
 
-    [[nodiscard]] webgpu::raii::TextureView* result_color_view(int frame) const {
-        if (frame % 2 == 0) return m_clouds_hi_color_texture_view_b.get();
+    [[nodiscard]] webgpu::raii::TextureView* result_color_view(int frame) const
+    {
+        if (frame % 2 == 0)
+            return m_clouds_hi_color_texture_view_b.get();
         return m_clouds_hi_color_texture_view_a.get();
     }
 
-    [[nodiscard]] webgpu::raii::TextureView* result_depth_view() const {
-        return m_clouds_lo_depth_texture_view.get();
-    }
+    [[nodiscard]] webgpu::raii::TextureView* result_depth_view() const { return m_clouds_lo_depth_texture_view.get(); }
 
 signals:
     void tiles_changed();
@@ -112,8 +112,6 @@ public slots:
     void update_gpu_tiles_cloud(const std::vector<nucleus::tile::Id>& deleted_tiles, const std::vector<nucleus::tile::GpuTexture3DTile>& new_tiles);
 
 private:
-
-
     struct alignas(16) CameraConfig {
         glm::mat4 view_matrix;
         glm::mat4 proj_matrix;
@@ -162,7 +160,6 @@ private:
         glm::uint32 index;
         glm::uint32 zoom;
     };
-
 
     // tile coordinates of the bounds min corner at max zoom level
     glm::uvec2 m_tile_coords_offset = {};

@@ -2,6 +2,7 @@
  * weBIGeo
  * Copyright (C) 2024 Adam Celarek
  * Copyright (C) 2025 Patrick Komon
+ * Copyright (C) 2026 Gerald Kimmersdorfer
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -88,6 +89,10 @@ ShaderModuleManager* Context::shader_module_manager() { return m_shader_module_m
 PipelineManager* Context::pipeline_manager() { return m_pipeline_manager.get(); }
 
 nucleus::track::Manager* Context::track_manager() { return nullptr; }
+
+uboSharedConfig& Context::shared_config() { return m_shared_config; }
+
+void Context::request_redraw() { emit redraw_requested(); }
 
 /*TextureLayer* Context::ortho_layer() const { return m_ortho_layer.get(); }
 

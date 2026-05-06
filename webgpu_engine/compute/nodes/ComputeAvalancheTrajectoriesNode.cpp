@@ -65,24 +65,17 @@ void ComputeAvalancheTrajectoriesNode::update_gpu_settings(uint32_t run)
     m_settings_uniform.data.direction_offset = m_settings.persistence_contribution;
 
     m_settings_uniform.data.physics_model_type = m_settings.active_model;
-    m_settings_uniform.data.model1_linear_drag_coeff = m_settings.model1.slowdown_coefficient;
-    m_settings_uniform.data.model1_downward_acceleration_coeff = m_settings.model1.speedup_coefficient;
     m_settings_uniform.data.model2_gravity = m_settings.model2.gravity;
     m_settings_uniform.data.model2_mass = m_settings.model2.mass;
     m_settings_uniform.data.model2_friction_coeff = m_settings.model2.friction_coeff;
     m_settings_uniform.data.model2_drag_coeff = m_settings.model2.drag_coeff;
-
-    for (uint8_t i = 0; i < sizeof(m_settings.model_d8_with_weights.weights.size()); i++) {
-        m_settings_uniform.data.model_d8_with_weights_weights[i] = m_settings.model_d8_with_weights.weights[i];
-    }
-    m_settings_uniform.data.model_d8_with_weights_center_height_offset = m_settings.model_d8_with_weights.center_height_offset;
 
     m_settings_uniform.data.runout_model_type = m_settings.active_runout_model;
     m_settings_uniform.data.runout_perla_my = m_settings.runout_perla.my;
     m_settings_uniform.data.runout_perla_md = m_settings.runout_perla.md;
     m_settings_uniform.data.runout_perla_l = m_settings.runout_perla.l;
     m_settings_uniform.data.runout_perla_g = m_settings.runout_perla.g;
-    m_settings_uniform.data.runout_flowpy_alpha = m_settings.runout_flowpy.alpha;
+    m_settings_uniform.data.runout_flowpy_alpha = glm::radians(m_settings.runout_flowpy.alpha);
 
     // TODO: Get activation of layer if output socket is connected and following node is enabled?
     m_settings_uniform.data.output_layer = m_settings.output_layer;
@@ -98,7 +91,7 @@ const ComputeAvalancheTrajectoriesNode::AvalancheTrajectoriesSettings& ComputeAv
 
 void ComputeAvalancheTrajectoriesNode::run_impl()
 {
-    qDebug() << "running ComputeAvalancheTrajectoriesNode ...";
+
 
     const auto region_aabb = std::get<data_type<const radix::geometry::Aabb<2, double>*>()>(input_socket("region aabb").get_connected_data());
     const auto& normal_texture = *std::get<data_type<const webgpu::raii::TextureWithSampler*>()>(input_socket("normal texture").get_connected_data());
@@ -112,10 +105,9 @@ void ComputeAvalancheTrajectoriesNode::run_impl()
     // assert input textures have same size, otherwise fail run
     if (input_width != height_texture.texture().width() || input_height != height_texture.texture().height()
         || input_width != release_point_texture.texture().width() || input_height != release_point_texture.texture().height()) {
-        emit run_failed(NodeRunFailureInfo(*this,
-            std::format("failed to compute trajectories: input texture sizes must match (normals: {}x{}, heights: {}x{}, release points: {}x{})", input_width,
+        fail_run(std::format("failed to compute trajectories: input texture sizes must match (normals: {}x{}, heights: {}x{}, release points: {}x{})", input_width,
                 input_height, height_texture.texture().width(), height_texture.texture().height(), release_point_texture.texture().width(),
-                release_point_texture.texture().height())));
+                release_point_texture.texture().height()));
         return;
     }
 
@@ -203,7 +195,7 @@ void ComputeAvalancheTrajectoriesNode::run_impl()
     const auto on_work_done
         = []([[maybe_unused]] WGPUQueueWorkDoneStatus status, [[maybe_unused]] WGPUStringView message, void* userdata, [[maybe_unused]] void* userdata2) {
               ComputeAvalancheTrajectoriesNode* _this = reinterpret_cast<ComputeAvalancheTrajectoriesNode*>(userdata);
-              emit _this->run_completed(); // emits signal run_finished()
+              _this->complete_run();
           };
 
     WGPUQueueWorkDoneCallbackInfo callback_info {

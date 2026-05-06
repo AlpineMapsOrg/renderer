@@ -45,7 +45,7 @@ IterativeSimulationNode::IterativeSimulationNode(const PipelineManager& pipeline
 
 void IterativeSimulationNode::run_impl()
 {
-    qDebug() << "running IterativeAvalancheNode ...";
+
     const auto& input_height_texture = *std::get<data_type<const webgpu::raii::TextureWithSampler*>()>(input_socket("height texture").get_connected_data());
     const auto& input_release_point_texture
         = *std::get<data_type<const webgpu::raii::TextureWithSampler*>()>(input_socket("release point texture").get_connected_data());
@@ -117,7 +117,7 @@ void IterativeSimulationNode::run_impl()
     const auto on_work_done
         = []([[maybe_unused]] WGPUQueueWorkDoneStatus status, [[maybe_unused]] WGPUStringView message, void* userdata, [[maybe_unused]] void* userdata2) {
               IterativeSimulationNode* _this = reinterpret_cast<IterativeSimulationNode*>(userdata);
-              emit _this->run_completed();
+              _this->complete_run();
           };
 
     WGPUQueueWorkDoneCallbackInfo callback_info {

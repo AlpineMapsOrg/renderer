@@ -29,6 +29,8 @@ class TileStitchNode : public Node {
     Q_OBJECT
 
 public:
+    NODE_TYPE_NAME(TileStitchNode)
+
     struct StitchSettings {
         // The size of the input tiles (65x65?)
         glm::uvec2 tile_size;

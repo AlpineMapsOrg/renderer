@@ -42,7 +42,7 @@ RequestTilesNode::RequestTilesNode()
 
 void RequestTilesNode::run_impl()
 {
-    qDebug() << "running HeightRequestNode ...";
+
 
     // get tile ids to request
     // TODO maybe make get_input_data a template (so usage would become get_input_data<type>(socket_index))
@@ -95,6 +95,7 @@ void RequestTilesNode::on_single_tile_received(const nucleus::tile::Data& tile)
 void RequestTilesNode::set_settings(const RequestTilesNodeSettings& settings)
 {
     m_settings = settings;
+    m_requested_tile_ids.clear(); // force re-download on next run
     m_tile_loader = std::make_unique<nucleus::tile::TileLoadService>(QString::fromStdString(settings.tile_path), settings.url_pattern, QString::fromStdString(settings.file_extension));
     connect(m_tile_loader.get(), &nucleus::tile::TileLoadService::load_finished, this, &RequestTilesNode::on_single_tile_received);
 }
@@ -104,9 +105,9 @@ void RequestTilesNode::check_progress_and_emit_signals()
     // when all requests are finished (either failed or successfully)
     if (m_num_signals_received == m_num_tiles_requested) {
         if (m_num_tiles_unavailable > 0) {
-            emit run_failed(NodeRunFailureInfo(*this, std::format("failed to load {} tiles from {}", m_num_tiles_unavailable, m_settings.tile_path)));
+            fail_run(std::format("failed to load {} tiles from {}", m_num_tiles_unavailable, m_settings.tile_path));
         } else {
-            emit run_completed();
+            complete_run();
         }
     }
 }

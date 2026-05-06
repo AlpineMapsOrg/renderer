@@ -43,7 +43,7 @@ webgpu_engine::compute::nodes::TileStitchNode::TileStitchNode(const PipelineMana
 
 void TileStitchNode::run_impl()
 {
-    qDebug() << "running TileStitchNode ...";
+
 
     // get tile ids to process
     const auto& tile_ids = *std::get<data_type<const std::vector<radix::tile::Id>*>()>(input_socket("tile ids").get_connected_data());
@@ -78,9 +78,8 @@ void TileStitchNode::run_impl()
 
     // Check if inside bounds
     if (size_pixels.x > MAX_STITCHED_IMAGE_SIZE || size_pixels.y > MAX_STITCHED_IMAGE_SIZE) {
-        emit run_failed(NodeRunFailureInfo(*this,
-            std::format(
-                "Stitched image size would exceeds maximum size of {}x{} pixel for zoom level {}", MAX_STITCHED_IMAGE_SIZE, MAX_STITCHED_IMAGE_SIZE, zl)));
+        fail_run(std::format(
+                "Stitched image size would exceeds maximum size of {}x{} pixel for zoom level {}", MAX_STITCHED_IMAGE_SIZE, MAX_STITCHED_IMAGE_SIZE, zl));
         return;
     }
 
@@ -150,7 +149,7 @@ void TileStitchNode::run_impl()
         wgpuQueueWriteTexture(m_queue, &image_copy_texture, image.bytes(), uint32_t(image.size_in_bytes()), &texture_data_layout, &copy_extent);
     }
 
-    emit this->run_completed(); // emits signal run_finished()
+    complete_run();
 
     // Weird that this works here. Is wgpuQueueWriteTexture blocking after all?
     // m_output_texture->texture().save_to_file(m_device, "C:\\tmp\\asd.png");

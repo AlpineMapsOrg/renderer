@@ -23,7 +23,6 @@
 #include "TrackRenderer.h"
 #include "UniformBufferObjects.h"
 #include "compute/nodes/BufferToTextureNode.h"
-#include "compute/nodes/ComputeAvalancheInfluenceAreaNode.h"
 #include "compute/nodes/ComputeAvalancheTrajectoriesNode.h"
 #include "compute/nodes/ComputeNormalsNode.h"
 #include "compute/nodes/ComputeReleasePointsNode.h"
@@ -61,7 +60,6 @@ template class Buffer<compute::nodes::ComputeNormalsNode::NormalsSettingsUniform
 template class Buffer<compute::nodes::ComputeSnowNode::RegionBoundsUniform>;
 template class Buffer<compute::nodes::ComputeSnowNode::SnowSettingsUniform>;
 template class Buffer<compute::nodes::ComputeAvalancheTrajectoriesNode::AvalancheTrajectoriesSettingsUniform>;
-template class Buffer<compute::nodes::ComputeAvalancheInfluenceAreaNode::AvalancheInfluenceAreaSettings>;
 template class Buffer<compute::nodes::ComputeReleasePointsNode::ReleasePointsSettingsUniform>;
 template class Buffer<compute::nodes::BufferToTextureNode::BufferToTextureSettingsUniform>;
 template class Buffer<compute::nodes::IterativeSimulationNode::IterativeSimulationSettingsUniform>;

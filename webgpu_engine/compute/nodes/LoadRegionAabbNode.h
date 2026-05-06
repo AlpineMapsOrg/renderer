@@ -28,6 +28,8 @@ class LoadRegionAabbNode : public Node {
     Q_OBJECT
 
 public:
+    NODE_TYPE_NAME(LoadRegionAabbNode)
+
     struct LoadRegionAabbNodeSettings {
         // path to region aabb txt file to load
         std::string file_path;

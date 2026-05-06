@@ -26,6 +26,8 @@ class LoadTextureNode : public Node {
     Q_OBJECT
 
 public:
+    NODE_TYPE_NAME(LoadTextureNode)
+
     struct LoadTextureNodeSettings {
         // path to texture to load
         std::string file_path;

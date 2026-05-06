@@ -38,7 +38,7 @@ struct ComputePipelineSettings {
     bool sync_snow_settings_with_render_settings = true; // snow node
     compute::nodes::ComputeSnowNode::SnowSettingsUniform snow_settings; // snow node
 
-    compute::nodes::ComputeAvalancheTrajectoriesNode::PhysicsModelType model_type = compute::nodes::ComputeAvalancheTrajectoriesNode::PhysicsModelType::PHYSICS_SIMPLE;
+    compute::nodes::ComputeAvalancheTrajectoriesNode::PhysicsModelType model_type = compute::nodes::ComputeAvalancheTrajectoriesNode::PhysicsModelType::WEBIGEO_AVALANCHE_SIMULATION;
     compute::nodes::ComputeAvalancheTrajectoriesNode::ModelPhysicsLessSimpleParams model_less_simple_params = {};
 
     int release_point_interval = 8; // trajectories node
@@ -52,8 +52,6 @@ struct ComputePipelineSettings {
     float trigger_point_min_slope_angle = 30.0f; // release points node
     float trigger_point_max_slope_angle = 45.0f; // release points node
 
-    int tile_source_index = 0; // 0 DTM, 1 DSM
-
     int friction_model_type = int(compute::nodes::ComputeAvalancheTrajectoriesNode::FrictionModelType::VoellmyMinShear);
     compute::nodes::ComputeAvalancheTrajectoriesNode::RunoutPerlaParams perla;
     float runout_flowpy_alpha = 25.0f; // degrees
@@ -64,11 +62,6 @@ struct ComputePipelineSettings {
     bool use_bin_interpolation = false;
     bool use_transparency_buffer = true;
     bool texture_interpolation_mipmaps = false;
-
-    // file paths for evaluation pipeline
-    std::string release_points_texture_path;
-    std::string heightmap_texture_path;
-    std::string aabb_file_path;
 
     static void write_to_json_file(const ComputePipelineSettings& settings, const std::filesystem::path& output_path);
     static ComputePipelineSettings read_from_json_file(const std::filesystem::path& input_path);

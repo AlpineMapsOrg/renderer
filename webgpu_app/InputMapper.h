@@ -18,7 +18,7 @@
 
 #pragma once
 
-#include "GuiManager.h"
+#include "ImGuiManager.h"
 #include "nucleus/event_parameter.h"
 #include <QKeyCombination>
 #include <QObject>
@@ -37,7 +37,7 @@ class InputMapper : public QObject {
 public:
     using ViewportSizeCallback = std::function<glm::vec2()>;
 
-    InputMapper(QObject* parent, nucleus::camera::Controller* camera_controller, GuiManager* gui_manager, ViewportSizeCallback vp_size_callback);
+    InputMapper(QObject* parent, nucleus::camera::Controller* camera_controller, ImGuiManager* gui_manager, ViewportSizeCallback vp_size_callback);
     void on_sdl_event(const SDL_Event& event);
 
 signals:
@@ -50,7 +50,7 @@ signals:
 
 
 private:
-    GuiManager* m_gui_manager = nullptr;
+    ImGuiManager* m_gui_manager = nullptr;
     ViewportSizeCallback m_viewport_size_callback;
 
     nucleus::event_parameter::Mouse m_mouse;

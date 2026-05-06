@@ -42,13 +42,13 @@ void LoadTextureNode::set_settings(const LoadTextureNodeSettings& settings) { m_
 
 void LoadTextureNode::run_impl()
 {
-    qDebug() << "running LoadTextureNode ...";
+
     qDebug() << "loading texture from " << m_settings.file_path;
 
     auto path = QString::fromStdString(m_settings.file_path);
     tl::expected<nucleus::Raster<glm::u8vec4>, QString> expected_image = nucleus::utils::image_loader::rgba8(path);
     if (!expected_image.has_value()) {
-        emit run_failed(NodeRunFailureInfo(*this, std::format("Failed to load image file at {}: {}", m_settings.file_path, expected_image.error().toStdString())));
+        fail_run(std::format("Failed to load image file at {}: {}", m_settings.file_path, expected_image.error().toStdString()));
         return;
     }
 
@@ -57,7 +57,7 @@ void LoadTextureNode::run_impl()
     m_output_texture->texture().write(m_queue, image);
 
     // TODO not sure if we need to wait for the queue here?
-    emit run_completed();
+    complete_run();
 }
 
 std::unique_ptr<webgpu::raii::TextureWithSampler> LoadTextureNode::create_texture(WGPUDevice device, uint32_t width, uint32_t height, WGPUTextureFormat format, WGPUTextureUsage usage)

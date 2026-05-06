@@ -20,23 +20,18 @@
  *****************************************************************************/
 
 #include "Window.h"
-#include "compute/nodes/BufferExportNode.h"
 #include "compute/nodes/BufferToTextureNode.h"
 #include "compute/nodes/ComputeAvalancheTrajectoriesNode.h"
 #include "compute/nodes/ComputeReleasePointsNode.h"
 #include "compute/nodes/ComputeSnowNode.h"
 #include "compute/nodes/LoadRegionAabbNode.h"
-#include "compute/nodes/LoadTextureNode.h"
 #include "compute/nodes/SelectTilesNode.h"
-#include "compute/nodes/TileExportNode.h"
-#include "compute/nodes/util.h"
-#include "glm/gtc/type_ptr.hpp"
+#include "gpu_utils.h"
 #include "nucleus/tile/drawing.h"
 #include "nucleus/track/GPX.h"
 #include "nucleus/utils/image_loader.h"
 #include "webgpu/raii/RenderPassEncoder.h"
 #include "webgpu_engine/Context.h"
-#include <QFile>
 #include <ktx.h>
 
 #ifdef __EMSCRIPTEN__
@@ -44,9 +39,6 @@
 #include <webgpu_app/WebInterop.h>
 #endif
 #include <webgpu/webgpu.h>
-#include <webgpu/webgpu_interface.hpp>
-
-#include <glm/gtx/string_cast.hpp>
 
 #ifdef ALP_WEBGPU_APP_ENABLE_IMGUI
 #include "imgui.h"
@@ -55,7 +47,6 @@
 #include "ImGuiFileDialog.h"
 #endif
 // TODO: Remove ImGuiFileDialog dependency on Web-build
-
 
 #include <IconsFontAwesome5.h>
 #endif
@@ -82,6 +73,7 @@ void Window::set_wgpu_context(WGPUInstance instance, WGPUDevice device, WGPUAdap
     m_surface = surface;
     m_queue = queue;
     m_context = context;
+    connect(m_context, &Context::redraw_requested, this, &Window::request_redraw);
 }
 
 void Window::initialise_gpu()
@@ -114,7 +106,6 @@ void Window::initialise_gpu()
     qInfo() << "gpu_ready_changed";
     // emit gpu_ready_changed(true); //TODO remove/find replacement
 }
-
 
 std::unique_ptr<webgpu::raii::TextureWithSampler> Window::create_shadow_texture(uint32_t width, uint32_t height, uint32_t mip_levels)
 {
@@ -155,8 +146,8 @@ void Window::on_shadow_texture_updated(const QByteArray& data)
 
     size_t level_0_size = ktxTexture_GetLevelSize(ktx_texture, 0);
     size_t level_0_offset = 0;
-    ktxTexture_GetImageOffset(ktx_texture, 0,0,0, &level_0_offset);
-    std::span byte_span{ktxTexture_GetData(ktx_texture) + level_0_offset, level_0_size};
+    ktxTexture_GetImageOffset(ktx_texture, 0, 0, 0, &level_0_offset);
+    std::span byte_span { ktxTexture_GetData(ktx_texture) + level_0_offset, level_0_size };
 
     WGPUTexelCopyTextureInfo image_copy_texture {};
     image_copy_texture.texture = m_shadow_texture->texture().handle();
@@ -210,8 +201,9 @@ std::unique_ptr<webgpu::raii::RenderPassEncoder> begin_render_pass(
 void Window::paint(webgpu::Framebuffer* framebuffer, WGPUCommandEncoder command_encoder)
 {
     m_needs_redraw = false;
-    
+
     // ToDo only update on change?
+    m_shared_config_ubo->data = m_context->shared_config();
     m_shared_config_ubo->update_gpu_data(m_queue);
 
     // render atmosphere to color buffer
@@ -236,10 +228,10 @@ void Window::paint(webgpu::Framebuffer* framebuffer, WGPUCommandEncoder command_
         m_context->tile_geometry()->draw(render_pass->handle(), m_camera, culled_draw_list);
     }
 
-
     // render clouds
-    if (m_shared_config_ubo->data.m_clouds_enabled) {
-        m_context->cloud_geometry()->draw(command_encoder, m_depth_texture_bind_group->handle(), m_shared_config_bind_group->handle(), m_camera, m_paint_number);
+    if (m_context->shared_config().m_clouds_enabled) {
+        m_context->cloud_geometry()->draw(
+            command_encoder, m_depth_texture_bind_group->handle(), m_shared_config_bind_group->handle(), m_camera, m_paint_number);
         m_needs_redraw |= m_context->cloud_geometry()->needs_redraw(); // Repaint for TAAU
     }
 
@@ -254,7 +246,7 @@ void Window::paint(webgpu::Framebuffer* framebuffer, WGPUCommandEncoder command_
     }
 
     // render lines to color buffer
-    if (m_shared_config_ubo->data.m_track_render_mode > 0) {
+    if (m_context->shared_config().m_track_render_mode > 0) {
         m_track_renderer->render(
             command_encoder, *m_shared_config_bind_group, *m_camera_bind_group, *m_depth_texture_bind_group, framebuffer->color_texture_view(0));
     }
@@ -270,14 +262,21 @@ void Window::paint_gui()
 {
 #ifdef ALP_WEBGPU_APP_ENABLE_IMGUI
 
-    if (ImGui::Combo("Normal Mode", (int*)&m_shared_config_ubo->data.m_normal_mode, "None\0Flat\0Smooth\0\0")) {
+    if (ImGui::Combo("Normal Mode", (int*)&m_context->shared_config().m_normal_mode, "None\0Flat\0Smooth\0\0")) {
         m_needs_redraw = true;
     }
     {
         static int currentItem = 0;
-        static const std::vector<std::pair<std::string, int>> overlays
-            = { { "None", 0 }, { "Normals", 1 }, { "Tiles", 2 }, { "Zoomlevel", 3 }, { "Vertex-ID", 4 }, { "Vertex Height-Sample", 5 },
-                  { "Decoded Normals", 100 }, { "Steepness", 101 }, { "SSAO Buffer", 102 }, { "Shadow Cascades", 103 } };
+        static const std::vector<std::pair<std::string, int>> overlays = { { "None", 0 },
+            { "Normals", 1 },
+            { "Tiles", 2 },
+            { "Zoomlevel", 3 },
+            { "Vertex-ID", 4 },
+            { "Vertex Height-Sample", 5 },
+            { "Decoded Normals", 100 },
+            { "Steepness", 101 },
+            { "SSAO Buffer", 102 },
+            { "Shadow Cascades", 103 } };
         const char* currentItemLabel = overlays[currentItem].first.c_str();
         if (ImGui::BeginCombo("Overlay", currentItemLabel)) {
             for (size_t i = 0; i < overlays.size(); i++) {
@@ -291,34 +290,35 @@ void Window::paint_gui()
             }
             ImGui::EndCombo();
         }
-        m_shared_config_ubo->data.m_overlay_mode = overlays[currentItem].second;
-        if (m_shared_config_ubo->data.m_overlay_mode > 0) {
-            m_needs_redraw |= ImGui::SliderFloat("Overlay Strength", &m_shared_config_ubo->data.m_overlay_strength, 0.0f, 1.0f);
+        m_context->shared_config().m_overlay_mode = overlays[currentItem].second;
+        if (m_context->shared_config().m_overlay_mode > 0) {
+            m_needs_redraw |= ImGui::SliderFloat("Overlay Strength", &m_context->shared_config().m_overlay_strength, 0.0f, 1.0f);
         }
 
-        m_needs_redraw |= ImGui::Checkbox("Overlay Post Shading", (bool*)&m_shared_config_ubo->data.m_overlay_postshading_enabled);
+        m_needs_redraw |= ImGui::Checkbox("Overlay Post Shading", (bool*)&m_context->shared_config().m_overlay_postshading_enabled);
 
         ImGui::Separator();
 
-        m_needs_redraw |= ImGui::Checkbox("Phong Shading", (bool*)&m_shared_config_ubo->data.m_phong_enabled);
-        m_needs_redraw |= ImGui::Checkbox("Atmosphere", (bool*)&m_shared_config_ubo->data.m_atmosphere_enabled);
-        m_needs_redraw |= ImGui::Checkbox("Clouds", (bool*)&m_shared_config_ubo->data.m_clouds_enabled);
+        m_needs_redraw |= ImGui::Checkbox("Phong Shading", (bool*)&m_context->shared_config().m_phong_enabled);
+        m_needs_redraw |= ImGui::Checkbox("Atmosphere", (bool*)&m_context->shared_config().m_atmosphere_enabled);
+        m_needs_redraw |= ImGui::Checkbox("Clouds", (bool*)&m_context->shared_config().m_clouds_enabled);
 
-        bool snow_on = (m_shared_config_ubo->data.m_snow_settings_angle.x == 1.0f);
+        bool snow_on = (m_context->shared_config().m_snow_settings_angle.x == 1.0f);
         if (ImGui::Checkbox("Snow", &snow_on)) {
             m_needs_redraw = true;
-            m_shared_config_ubo->data.m_snow_settings_angle.x = (snow_on ? 1.0f : 0.0f);
+            m_context->shared_config().m_snow_settings_angle.x = (snow_on ? 1.0f : 0.0f);
         }
         if (snow_on) {
             ImGui::SameLine();
             if (ImGui::CollapsingHeader("###Snow Settings", ImGuiTreeNodeFlags_DefaultOpen)) {
-                auto& snow_settings_angle = m_shared_config_ubo->data.m_snow_settings_angle;
-                bool changed = ImGui::DragFloatRange2("Angle limit", &snow_settings_angle.y, &snow_settings_angle.z, 0.1f, 0.0f, 90.0f, "Min: %.1f°", "Max: %.1f°", ImGuiSliderFlags_AlwaysClamp);
+                auto& snow_settings_angle = m_context->shared_config().m_snow_settings_angle;
+                bool changed = ImGui::DragFloatRange2(
+                    "Angle limit", &snow_settings_angle.y, &snow_settings_angle.z, 0.1f, 0.0f, 90.0f, "Min: %.1f°", "Max: %.1f°", ImGuiSliderFlags_AlwaysClamp);
                 changed |= ImGui::SliderFloat("Angle blend", &snow_settings_angle.w, 0.0f, 90.0f, "%.1f°");
-                changed |= ImGui::SliderFloat("Altitude limit", &m_shared_config_ubo->data.m_snow_settings_alt.x, 0.0f, 4000.0f, "%.1fm");
-                changed |= ImGui::SliderFloat("Altitude variation", &m_shared_config_ubo->data.m_snow_settings_alt.y, 0.0f, 1000.0f, "%.1f°");
-                changed |= ImGui::SliderFloat("Altitude blend", &m_shared_config_ubo->data.m_snow_settings_alt.z, 0.0f, 1000.0f);
-                changed |= ImGui::SliderFloat("Specular", &m_shared_config_ubo->data.m_snow_settings_alt.w, 0.0f, 5.0f);
+                changed |= ImGui::SliderFloat("Altitude limit", &m_context->shared_config().m_snow_settings_alt.x, 0.0f, 4000.0f, "%.1fm");
+                changed |= ImGui::SliderFloat("Altitude variation", &m_context->shared_config().m_snow_settings_alt.y, 0.0f, 1000.0f, "%.1f°");
+                changed |= ImGui::SliderFloat("Altitude blend", &m_context->shared_config().m_snow_settings_alt.z, 0.0f, 1000.0f);
+                changed |= ImGui::SliderFloat("Specular", &m_context->shared_config().m_snow_settings_alt.w, 0.0f, 5.0f);
 
                 if (changed) {
                     m_needs_redraw = true;
@@ -327,52 +327,31 @@ void Window::paint_gui()
             }
         }
 
-        m_needs_redraw |= ImGui::Checkbox("Heightlines", (bool*)&m_shared_config_ubo->data.m_height_lines_enabled);
-        if (m_shared_config_ubo->data.m_height_lines_enabled) {
+        m_needs_redraw |= ImGui::Checkbox("Heightlines", (bool*)&m_context->shared_config().m_height_lines_enabled);
+        if (m_context->shared_config().m_height_lines_enabled) {
             ImGui::SameLine();
             if (ImGui::CollapsingHeader("###Height Lines", ImGuiTreeNodeFlags_DefaultOpen)) {
-                float& primary = m_shared_config_ubo->data.m_height_lines_settings.x;
-                float& secondary = m_shared_config_ubo->data.m_height_lines_settings.y;
+                float& primary = m_context->shared_config().m_height_lines_settings.x;
+                float& secondary = m_context->shared_config().m_height_lines_settings.y;
                 float ratio = primary / secondary;
                 if (ImGui::DragFloat("Primary Interval", &primary, 1.0f, 5.0f, 1000.0f, "%.2f m")) {
                     m_needs_redraw = true;
                     secondary = primary / ratio;
                 }
                 m_needs_redraw |= ImGui::DragFloat("Secondary Interval", &secondary, 1.0f, 1.0f, 1000.0f, "%.2f m");
-                m_needs_redraw |= ImGui::DragFloat("Base Line Width", &m_shared_config_ubo->data.m_height_lines_settings.z, 0.01f, 0.1f, 5.0f, "%.2f");
-                m_needs_redraw |= ImGui::DragFloat("Darkening Factor", &m_shared_config_ubo->data.m_height_lines_settings.w, 0.01f, 0.0f, 1.0f, "%.2f");
-            }
-        }
-
-        if (ImGui::CollapsingHeader("Illumination")) {
-            bool changed = ImGui::ColorEdit3("Light Color", (float*)&m_shared_config_ubo->data.m_sun_light);
-            changed |= ImGui::SliderFloat("Light Intensity", &m_shared_config_ubo->data.m_sun_light.w, 0.0f, 10.0f);
-            changed |= ImGui::DragFloat3("Light Direction", (float*)&m_shared_config_ubo->data.m_sun_light_dir, 0.01f, -1.0f, 1.0f);
-            ImGui::Separator();
-            changed |= ImGui::ColorEdit3("Ambient Color", (float*)&m_shared_config_ubo->data.m_amb_light);
-            changed |= ImGui::SliderFloat("Ambient Intensity", &m_shared_config_ubo->data.m_amb_light.w, 0.0f, 10.0f);
-            ImGui::Separator();
-            changed |= ImGui::ColorEdit4("Material Color", (float*)&m_shared_config_ubo->data.m_material_color);
-            ImGui::Separator();
-            changed |= ImGui::SliderFloat("Ambient Strength", &m_shared_config_ubo->data.m_material_light_response.x, 0.0f, 5.0f);
-            changed |= ImGui::SliderFloat("Diffuse Strength", &m_shared_config_ubo->data.m_material_light_response.y, 0.0f, 5.0f);
-            changed |= ImGui::SliderFloat("Specular Strength", &m_shared_config_ubo->data.m_material_light_response.z, 0.0f, 5.0f);
-            changed |= ImGui::SliderFloat("Shininess", &m_shared_config_ubo->data.m_material_light_response.w, 1.0f, 256.0f);
-
-            if (changed) {
-                m_shared_config_ubo->data.m_sun_light_dir = glm::normalize(m_shared_config_ubo->data.m_sun_light_dir);
-                m_needs_redraw = true;
+                m_needs_redraw |= ImGui::DragFloat("Base Line Width", &m_context->shared_config().m_height_lines_settings.z, 0.01f, 0.1f, 5.0f, "%.2f");
+                m_needs_redraw |= ImGui::DragFloat("Darkening Factor", &m_context->shared_config().m_height_lines_settings.w, 0.01f, 0.0f, 1.0f, "%.2f");
             }
         }
     }
 
     if (ImGui::CollapsingHeader("Image overlay")) {
-        if (ImGui::Button("Open overlay image file ...", ImVec2(350, 20))) {
+        if (ImGui::Button("Open overlay image file ...", ImVec2(350, 0))) {
 #ifdef __EMSCRIPTEN__
             WebInterop::instance().open_file_dialog(".png", "overlay_png");
 #else
             IGFD::FileDialogConfig config;
-            config.path = ".";
+            config.path = m_last_dialog_directory;
             ImGuiFileDialog::Instance()->OpenDialog("OverlayImageFileDialog", "Choose File", ".png,.*", config);
 #endif
         }
@@ -405,6 +384,7 @@ void Window::paint_gui()
 
                 // If the AABB file exists, call the appropriate functions
                 if (std::filesystem::exists(aabb_filepath)) {
+                    m_last_dialog_directory = filename.parent_path().string();
                     update_image_overlay_texture(filename_str);
                     update_image_overlay_aabb_and_focus(aabb_filepath.string());
                     m_needs_redraw = true;
@@ -418,7 +398,7 @@ void Window::paint_gui()
 
 #ifdef __EMSCRIPTEN__
         // NOTE: In the web we can't check the filesystem for the aabb file so the user has to open it separately
-        if (ImGui::Button("Open overlay aabb file ...", ImVec2(350, 20))) {
+        if (ImGui::Button("Open overlay aabb file ...", ImVec2(350, 0))) {
             WebInterop::instance().open_file_dialog(".txt", "overlay_aabb_txt");
         }
 #endif
@@ -432,9 +412,21 @@ void Window::paint_gui()
             m_needs_redraw = true;
         }
 
+        if (ImGui::Checkbox("Linear Interpolation##image overlay", &m_image_overlay_linear_interpolation)) {
+            if (!m_image_overlay_texture_path.empty()) {
+                update_image_overlay_texture(m_image_overlay_texture_path);
+                m_image_overlay_settings_uniform_buffer->update_gpu_data(m_queue);
+            }
+            m_needs_redraw = true;
+        }
+
         if (m_image_overlay_settings_uniform_buffer->data.mode == 1) {
-            if (ImGui::DragFloatRange2("Float Map Range", &m_image_overlay_settings_uniform_buffer->data.float_decoding_lower_bound,
-                    &m_image_overlay_settings_uniform_buffer->data.float_decoding_upper_bound, 1.0f, -10000, 10000)) {
+            if (ImGui::DragFloatRange2("Float Map Range",
+                    &m_image_overlay_settings_uniform_buffer->data.float_decoding_lower_bound,
+                    &m_image_overlay_settings_uniform_buffer->data.float_decoding_upper_bound,
+                    1.0f,
+                    -10000,
+                    10000)) {
                 m_image_overlay_settings_uniform_buffer->update_gpu_data(m_queue);
                 m_needs_redraw = true;
             }
@@ -442,24 +434,24 @@ void Window::paint_gui()
     }
 
     if (ImGui::CollapsingHeader("Track", ImGuiTreeNodeFlags_DefaultOpen)) {
-        if (ImGui::Button("Open GPX file ...", ImVec2(250, 20))) {
+        if (ImGui::Button("Open GPX file ...", ImVec2(250, 0))) {
 #ifdef __EMSCRIPTEN__
             WebInterop::instance().open_file_dialog(".gpx", "track");
 #else
             IGFD::FileDialogConfig config;
-            config.path = ".";
+            config.path = m_last_dialog_directory;
             ImGuiFileDialog::Instance()->OpenDialog("ChooseFileDlgKey", "Choose File", ".gpx,.*", config);
 #endif
         }
         ImGui::SameLine();
         ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(106 / 255.0f, 112 / 255.0f, 115 / 255.0f, 1.00f));
-        if (ImGui::Button("Open Preset ...", ImVec2(100, 20))) {
+        if (ImGui::Button("Open Preset ...", ImVec2(100, 0))) {
             load_track_and_focus(DEFAULT_GPX_TRACK_PATH);
         }
         ImGui::PopStyleColor(1);
 
         const char* items = "none\0without depth test\0with depth test\0semi-transparent\0";
-        if (ImGui::Combo("Line render mode", (int*)&(m_shared_config_ubo->data.m_track_render_mode), items)) {
+        if (ImGui::Combo("Line render mode", (int*)&(m_context->shared_config().m_track_render_mode), items)) {
             m_needs_redraw = true;
         }
     }
@@ -468,6 +460,7 @@ void Window::paint_gui()
     if (ImGuiFileDialog::Instance()->Display("ChooseFileDlgKey")) {
         if (ImGuiFileDialog::Instance()->IsOk()) { // action if OK
             std::string file_path = ImGuiFileDialog::Instance()->GetFilePathName();
+            m_last_dialog_directory = std::filesystem::path(file_path).parent_path().string();
             load_track_and_focus(file_path);
         }
         ImGuiFileDialog::Instance()->Close();
@@ -501,154 +494,23 @@ void Window::paint_gui()
 #endif
 }
 
-void Window::rewire_buffer_to_texture_node()
-{
-    if (m_compute_graph->exists_node("buffer_to_texture_node") && m_compute_graph->exists_node("compute_avalanche_trajectories_node")) {
-        auto& buffer_to_texture_node = m_compute_graph->get_node_as<compute::nodes::BufferToTextureNode>("buffer_to_texture_node");
-        auto& trajectories_node = m_compute_graph->get_node_as<compute::nodes::ComputeAvalancheTrajectoriesNode>("compute_avalanche_trajectories_node");
-
-        const std::string& current_color_socket = m_compute_overlay_layers[m_current_compute_color_layer_index].socket_name;
-        const std::string& current_alpha_socket = m_compute_overlay_layers[m_current_compute_alpha_layer_index].socket_name;
-        buffer_to_texture_node.input_socket("storage buffer").connect(trajectories_node.output_socket(current_color_socket));
-        buffer_to_texture_node.input_socket("transparency buffer").connect(trajectories_node.output_socket(current_alpha_socket));
-    } else {
-        qWarning() << "Compute graph nodes not found!";
-    }
-}
-
-bool Window::paint_legend_gui(float& min_value, float& max_value, bool& bin_interpolation, const std::string& unit)
-{
-#ifdef ALP_WEBGPU_APP_ENABLE_IMGUI
-    bool somethingChanged = false;
-
-    static bool print_mode = false;
-    if (ImGui::IsKeyPressed(ImGuiKey_J)) {
-        print_mode = !print_mode;
-    }
-
-    static uint32_t digit_count = 1;
-    // Up and down modifies digit count, clamp 0
-    if (ImGui::IsKeyPressed(ImGuiKey_UpArrow)) {
-        digit_count = std::min(digit_count + 1, 6u);
-    }
-    if (ImGui::IsKeyPressed(ImGuiKey_DownArrow)) {
-        digit_count = std::max(digit_count - 1, 0u);
-    }
-    std::string digit_format = "%." + std::to_string(digit_count) + "f";
-
-    // NOTE: Define the same color bins as in the WGSL shader
-    static const std::vector<ImVec4> colors = {
-        ImVec4(0x40 / 255.0f, 0x40 / 255.0f, 0x43 / 255.0f, 1.0f), // 404043
-        ImVec4(0x45 / 255.0f, 0x44 / 255.0f, 0x55 / 255.0f, 1.0f), // 454455
-        ImVec4(0x50 / 255.0f, 0x4a / 255.0f, 0x6b / 255.0f, 1.0f), // 504a6b
-        ImVec4(0x5e / 255.0f, 0x4c / 255.0f, 0x83 / 255.0f, 1.0f), // 5e4c83
-        ImVec4(0x6f / 255.0f, 0x4b / 255.0f, 0x96 / 255.0f, 1.0f), // 6f4b96
-        ImVec4(0x7f / 255.0f, 0x4f / 255.0f, 0x9d / 255.0f, 1.0f), // 7f4f9d
-        ImVec4(0x90 / 255.0f, 0x55 / 255.0f, 0xa1 / 255.0f, 1.0f), // 9055a1
-        ImVec4(0x9f / 255.0f, 0x5b / 255.0f, 0xa1 / 255.0f, 1.0f), // 9f5ba1
-        ImVec4(0xb0 / 255.0f, 0x61 / 255.0f, 0xa1 / 255.0f, 1.0f), // b061a1
-        ImVec4(0xc0 / 255.0f, 0x66 / 255.0f, 0x9d / 255.0f, 1.0f), // c0669d
-        ImVec4(0xd1 / 255.0f, 0x6b / 255.0f, 0x97 / 255.0f, 1.0f), // d16b97
-        ImVec4(0xe0 / 255.0f, 0x73 / 255.0f, 0x91 / 255.0f, 1.0f), // e07391
-        ImVec4(0xee / 255.0f, 0x7e / 255.0f, 0x89 / 255.0f, 1.0f), // ee7e89
-        ImVec4(0xf7 / 255.0f, 0x8e / 255.0f, 0x85 / 255.0f, 1.0f), // f78e85
-        ImVec4(0xfc / 255.0f, 0xa1 / 255.0f, 0x87 / 255.0f, 1.0f), // fca187
-        ImVec4(0xfe / 255.0f, 0xb3 / 255.0f, 0x8f / 255.0f, 1.0f), // feb38f
-        ImVec4(0xfe / 255.0f, 0xc7 / 255.0f, 0x9c / 255.0f, 1.0f), // fec79c
-        ImVec4(0xfe / 255.0f, 0xd9 / 255.0f, 0xab / 255.0f, 1.0f), // fed9ab
-        ImVec4(0xfe / 255.0f, 0xec / 255.0f, 0xbc / 255.0f, 1.0f), // feecbc
-        ImVec4(0xfd / 255.0f, 0xfe / 255.0f, 0xcf / 255.0f, 1.0f) // fdfecf
-    };
-
-    const int bin_count = static_cast<int>(colors.size());
-    const float step = (max_value - min_value) / (bin_count - 1);
-
-    // first calculate how much vertical space the legend will need
-    const float item_height = ImGui::GetTextLineHeightWithSpacing();
-    const float estimated_window_height = (bin_count + 1) * item_height;
-
-    // set window position to be vertically centered
-    ImVec2 window_pos = ImVec2(10, (ImGui::GetIO().DisplaySize.y - estimated_window_height) * 0.5f);
-
-    ImGui::SetNextWindowPos(window_pos, ImGuiCond_Always, ImVec2(0.0f, 0.0f));
-
-    if (print_mode) {
-        ImGui::PushStyleColor(ImGuiCol_WindowBg, IM_COL32(255, 255, 255, 255)); // Opaque white background
-        ImGui::PushStyleColor(ImGuiCol_Text, IM_COL32(0, 0, 0, 255)); // Black text
-    } else {
-        ImGui::SetNextWindowBgAlpha(0.5f); // Transparent background
-    }
-
-    if (ImGui::Begin("Flowpy Legend",
-            nullptr,
-            ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoSavedSettings
-                | ImGuiWindowFlags_NoFocusOnAppearing | ImGuiWindowFlags_NoNav)) {
-        for (int i = bin_count - 1; i >= 0; i--) {
-            ImGui::PushID(i);
-
-            if (print_mode) {
-                ImGui::ColorButton("##color", colors[i], ImGuiColorEditFlags_NoTooltip, ImVec2(16, 16));
-            } else {
-                ImGui::ColorButton("##color", colors[i], ImGuiColorEditFlags_NoTooltip, ImVec2(20, 20));
-            }
-            ImGui::SameLine();
-
-            float bin_value = min_value + (i * step);
-
-            if (print_mode) {
-                ImGui::Text(digit_format.c_str(), bin_value);
-                ImGui::SameLine(0.0f, 0.0f); // No spacing between the texts
-                ImGui::TextColored(ImVec4(0.5f, 0.5f, 0.5f, 1.0f), "%s", unit.c_str());
-            } else {
-                if (i == bin_count - 1) {
-                    ImGui::SetNextItemWidth(70);
-                    ImGui::DragFloat("##max", &max_value, 0.01f, min_value + step, FLT_MAX, ("%.1f" + unit).c_str());
-                    somethingChanged |= ImGui::IsItemDeactivatedAfterEdit();
-                } else if (i == 0) {
-                    ImGui::SetNextItemWidth(70);
-                    ImGui::DragFloat("##min", &min_value, 0.01f, -FLT_MAX, max_value - step, ("%.1f" + unit).c_str());
-                    somethingChanged |= ImGui::IsItemDeactivatedAfterEdit();
-                } else {
-                    ImGui::Text("%.1f %s", bin_value, unit.c_str());
-                }
-            }
-            ImGui::PopID();
-        }
-    }
-    if (!print_mode) {
-        somethingChanged |= ImGui::Checkbox("continuous", &bin_interpolation);
-    }
-    ImGui::End();
-
-    if (print_mode) {
-        ImGui::PopStyleColor(2); // Pop WindowBg and Text
-    }
-
-    return somethingChanged;
-#else
-    return false;
-#endif
-}
-
 void Window::paint_compute_pipeline_gui()
 {
 #if ALP_WEBGPU_APP_ENABLE_IMGUI
     if (ImGui::CollapsingHeader("Compute pipeline", ImGuiTreeNodeFlags_DefaultOpen)) {
 
-        if (ImGui::Button("Run", ImVec2(250, 20))) {
-            bool eval_ready_to_run = (m_active_compute_pipeline_type == ComputePipelineType::AVALANCHE_TRAJECTORIES_EVAL) && (!m_compute_pipeline_settings.heightmap_texture_path.empty());
-            bool normal_pipeline_ready_to_run = (m_active_compute_pipeline_type != ComputePipelineType::AVALANCHE_TRAJECTORIES_EVAL) && m_is_region_selected;
-            if (normal_pipeline_ready_to_run || eval_ready_to_run) {
+        if (ImGui::Button("Run", ImVec2(250, 0))) {
+            if (m_is_region_selected) {
                 update_settings_and_rerun_pipeline();
             } else {
-                display_message("Cannot run pipeline - No region selected (track for normal pipeline, eval dir for eval pipeline)");
+                display_message("Cannot run pipeline - No region selected");
             }
         }
 
         ImGui::SameLine();
 
         ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(150 / 255.0f, 10 / 255.0f, 10 / 255.0f, 1.00f));
-        if (ImGui::Button("Clear", ImVec2(100, 20))) {
+        if (ImGui::Button("Clear", ImVec2(100, 0))) {
             create_and_set_compute_pipeline(m_active_compute_pipeline_type);
             m_needs_redraw = true;
         }
@@ -656,12 +518,6 @@ void Window::paint_compute_pipeline_gui()
 
         if (ImGui::SliderFloat("Strength##compute overlay", &m_compute_overlay_settings_uniform_buffer->data.alpha, 0.0f, 1.0f, "%.2f")) {
             m_compute_overlay_settings_uniform_buffer->update_gpu_data(m_queue);
-            m_needs_redraw = true;
-        }
-
-        const char* tile_source_items = "DTM tiles\0DSM tiles\0";
-        if (ImGui::Combo("Tile source", &m_compute_pipeline_settings.tile_source_index, tile_source_items)) {
-            update_settings_and_rerun_pipeline();
             m_needs_redraw = true;
         }
 
@@ -677,8 +533,6 @@ void Window::paint_compute_pipeline_gui()
             { "Normals", ComputePipelineType::NORMALS },
             { "Snow", ComputePipelineType::SNOW },
             { "Avalanche trajectories", ComputePipelineType::AVALANCHE_TRAJECTORIES },
-            //{ "Avalanche trajectories (eval)", ComputePipelineType::AVALANCHE_TRAJECTORIES_EVAL },
-            //{ "D8 directions", ComputePipelineType::D8_DIRECTIONS },
             { "Release points", ComputePipelineType::RELEASE_POINTS },
             { "Iterative simulation (WIP)", ComputePipelineType::ITERATIVE_SIMULATION },
         };
@@ -694,430 +548,6 @@ void Window::paint_compute_pipeline_gui()
                     ImGui::SetItemDefaultFocus();
             }
             ImGui::EndCombo();
-        }
-
-        if (ImGui::TreeNodeEx("Pipeline-specific settings", ImGuiTreeNodeFlags_DefaultOpen)) {
-            ImGui::PushItemWidth(15.0f * ImGui::GetFontSize());
-            if (m_active_compute_pipeline_type == ComputePipelineType::AVALANCHE_TRAJECTORIES) {
-
-                if (ImGui::TreeNodeEx("General")) {
-
-                    const uint32_t min_resolution_multiplier = 1;
-                    const uint32_t max_resolution_multiplier = 32;
-                    ImGui::SliderScalar("Output resolution",
-                        ImGuiDataType_U32,
-                        &m_compute_pipeline_settings.trajectory_resolution_multiplier,
-                        &min_resolution_multiplier,
-                        &max_resolution_multiplier,
-                        "%ux");
-                    if (ImGui::IsItemDeactivatedAfterEdit()) {
-                        update_settings_and_rerun_pipeline("compute_avalanche_trajectories_node");
-                    }
-
-                    const uint32_t min_steps = 1;
-                    const uint32_t max_steps = 20000;
-                    ImGui::DragScalar("Num steps", ImGuiDataType_U32, &m_compute_pipeline_settings.num_steps, 1.0f, &min_steps, &max_steps, "%u");
-                    if (ImGui::IsItemDeactivatedAfterEdit()) {
-                        update_settings_and_rerun_pipeline("compute_avalanche_trajectories_node");
-                    }
-
-                    const uint32_t min_num_samples = 1;
-                    const uint32_t max_num_samples = 2048;
-                    ImGui::DragScalar("Num particles per cell",
-                        ImGuiDataType_U32,
-                        &m_compute_pipeline_settings.num_paths_per_release_cell,
-                        1.0f,
-                        &min_num_samples,
-                        &max_num_samples,
-                        "%u");
-                    if (ImGui::IsItemDeactivatedAfterEdit()) {
-                        update_settings_and_rerun_pipeline("compute_avalanche_trajectories_node");
-                    }
-
-                    const glm::uvec2 num_runs_bounds = glm::uvec2(1, 1000);
-                    ImGui::DragScalar("Number of runs##trajectories",
-                        ImGuiDataType_U32,
-                        &m_compute_pipeline_settings.num_runs,
-                        1.0f,
-                        &num_runs_bounds.x,
-                        &num_runs_bounds.y,
-                        "%u");
-                    if (ImGui::IsItemDeactivatedAfterEdit()) {
-                        update_settings_and_rerun_pipeline("compute_avalanche_trajectories_node");
-                    }
-
-                    // don't need random seed to be adjustable for end users
-
-                    const uint32_t min_seed = 1;
-                    const uint32_t max_seed = 1000000;
-                    ImGui::DragScalar("Random seed", ImGuiDataType_U32, &m_compute_pipeline_settings.random_seed, 1.0f, &min_seed, &max_seed);
-                    if (ImGui::IsItemDeactivatedAfterEdit()) {
-                        update_settings_and_rerun_pipeline("compute_avalanche_trajectories_node");
-                    }
-
-                    ImGui::TreePop();
-                }
-
-                // currently only default model works
-                /*if (ImGui::Combo("Model", (int*)&m_compute_pipeline_settings.model_type, "Default\0physics_less_simple\0")) {
-                    update_settings_and_rerun_pipeline("compute_avalanche_trajectories_node");
-                }*/
-
-                if (ImGui::TreeNodeEx("Release cells", ImGuiTreeNodeFlags_DefaultOpen)) {
-                    ImGui::SliderInt("Interval##release cells", &m_compute_pipeline_settings.release_point_interval, 1, 64, "%u");
-                    if (ImGui::IsItemDeactivatedAfterEdit()) {
-                        update_settings_and_rerun_pipeline("compute_release_points_node");
-                    }
-
-                    ImGui::DragFloatRange2("Steepness range##release cells",
-                        &m_compute_pipeline_settings.trigger_point_min_slope_angle,
-                        &m_compute_pipeline_settings.trigger_point_max_slope_angle,
-                        0.1f,
-                        0.0f,
-                        90.0f,
-                        "Min: %.1f°",
-                        "Max: %.1f°",
-                        ImGuiSliderFlags_AlwaysClamp);
-                    if (ImGui::IsItemDeactivatedAfterEdit()) {
-                        update_settings_and_rerun_pipeline("compute_release_points_node");
-                    }
-                    ImGui::TreePop();
-                }
-
-                if (ImGui::TreeNodeEx("Model parameters", ImGuiTreeNodeFlags_DefaultOpen)) {
-                    if (m_compute_pipeline_settings.model_type == compute::nodes::ComputeAvalancheTrajectoriesNode::PhysicsModelType::PHYSICS_SIMPLE) {
-                        ImGui::DragFloat("Randomness", &m_compute_pipeline_settings.random_contribution, 0.01f, 0.0f, 90.0f, "%.1f°");
-                        if (ImGui::IsItemDeactivatedAfterEdit()) {
-                            update_settings_and_rerun_pipeline("compute_avalanche_trajectories_node");
-                        }
-
-                        ImGui::DragFloat("Persistence", &m_compute_pipeline_settings.persistence_contribution, 0.01f, 0.0f, 0.99f, "%.2f");
-                        if (ImGui::IsItemDeactivatedAfterEdit()) {
-                            update_settings_and_rerun_pipeline("compute_avalanche_trajectories_node");
-                        }
-
-                        ImGui::DragFloat("Alpha##runout_flowpy", &m_compute_pipeline_settings.runout_flowpy_alpha, 0.01f, 0.0f, 90.0f, "%.2f°");
-                        if (ImGui::IsItemDeactivatedAfterEdit()) {
-                            update_settings_and_rerun_pipeline("compute_avalanche_trajectories_node");
-                        }
-
-                    } else if (m_compute_pipeline_settings.model_type
-                        == compute::nodes::ComputeAvalancheTrajectoriesNode::PhysicsModelType::PHYSICS_LESS_SIMPLE) {
-                        ImGui::SliderFloat("Gravity##model_less_simple", &m_compute_pipeline_settings.model_less_simple_params.gravity, 0.0f, 15.0f, "%.2f");
-                        if (ImGui::IsItemDeactivatedAfterEdit()) {
-                            update_settings_and_rerun_pipeline("compute_avalanche_trajectories_node");
-                        }
-                        ImGui::SliderFloat("Mass##model_less_simple", &m_compute_pipeline_settings.model_less_simple_params.mass, 0.0f, 100.0f, "%.2f");
-                        if (ImGui::IsItemDeactivatedAfterEdit()) {
-                            update_settings_and_rerun_pipeline("compute_avalanche_trajectories_node");
-                        }
-                        ImGui::SliderFloat(
-                            "Drag coeff##model_less_simple", &m_compute_pipeline_settings.model_less_simple_params.drag_coeff, 1.0f, 10000.0f, "%.0f");
-                        if (ImGui::IsItemDeactivatedAfterEdit()) {
-                            update_settings_and_rerun_pipeline("compute_avalanche_trajectories_node");
-                        }
-                        ImGui::SliderFloat(
-                            "Friction coeff##model_less_simple", &m_compute_pipeline_settings.model_less_simple_params.friction_coeff, 0.0f, 0.5f, "%.3f");
-                        if (ImGui::IsItemDeactivatedAfterEdit()) {
-                            update_settings_and_rerun_pipeline("compute_avalanche_trajectories_node");
-                        }
-                        static int friction_model_current_item = 1;
-                        const std::vector<std::pair<std::string, int>> friction_model = {
-                            { "Coulomb", 0 },
-                            { "Voellmy", 1 },
-                            { "Voellmy Min Shear", 2 },
-                            { "SamosAt", 3 },
-                            { "None", 4 },
-                        };
-                        const char* current_item_label_friction = friction_model[friction_model_current_item].first.c_str();
-                        if (ImGui::BeginCombo("Friction model", current_item_label_friction)) {
-                            for (size_t i = 0; i < friction_model.size(); i++) {
-                                bool is_selected = ((size_t)friction_model_current_item == i);
-                                if (ImGui::Selectable(friction_model[i].first.c_str(), is_selected)) {
-                                    friction_model_current_item = int(i);
-                                    m_compute_pipeline_settings.friction_model_type = friction_model[i].second;
-                                    update_settings_and_rerun_pipeline("compute_avalanche_trajectories_node");
-                                }
-                                if (is_selected)
-                                    ImGui::SetItemDefaultFocus();
-                            }
-                            ImGui::EndCombo();
-                        }
-                    }
-                    ImGui::TreePop();
-                }
-                if (ImGui::Button("redraw with export")) {
-                    update_settings_and_rerun_pipeline();
-                }
-
-                { // Buffer to Texture Settings
-                    ImGui::Separator();
-                    bool rerun_buffer_to_texture = false;
-                    rerun_buffer_to_texture |= ImGui::Checkbox("Alpha Blending", &m_compute_pipeline_settings.use_transparency_buffer);
-                    if (m_compute_pipeline_settings.use_transparency_buffer) {
-                        auto& bounds = m_compute_pipeline_settings.transparency_map_bounds;
-                        ImGui::DragFloat2("Alpha Bounds", &bounds.x, 1.0f, 0.0f, 1000.0f, "%.2f");
-                        if (bounds.x > bounds.y) {
-                            bounds.x = bounds.y;
-                        }
-                        rerun_buffer_to_texture |= ImGui::IsItemDeactivatedAfterEdit();
-                    }
-                    rerun_buffer_to_texture |= ImGui::Checkbox("Texture Interpolation & MipMaps", &m_compute_pipeline_settings.texture_interpolation_mipmaps);
-                    const std::string& unit = m_compute_overlay_layers[m_current_compute_color_layer_index].unit;
-                    rerun_buffer_to_texture |= paint_legend_gui(m_compute_pipeline_settings.color_map_bounds.x,
-                        m_compute_pipeline_settings.color_map_bounds.y,
-                        m_compute_pipeline_settings.use_bin_interpolation,
-                        unit);
-
-                    // HACK TO CHANGE INPUT LAYERS
-                    const char* current_color_layer = m_compute_overlay_layers[m_current_compute_color_layer_index].name.c_str();
-                    if (ImGui::BeginCombo("Color Layer", current_color_layer)) {
-                        for (size_t i = 0; i < m_compute_overlay_layers.size(); ++i) {
-                            bool is_selected = (m_current_compute_color_layer_index == i);
-                            if (ImGui::Selectable(m_compute_overlay_layers[i].name.c_str(), is_selected)) {
-                                m_current_compute_color_layer_index = i;
-                                rewire_buffer_to_texture_node();
-                                rerun_buffer_to_texture = true;
-                            }
-                            if (is_selected)
-                                ImGui::SetItemDefaultFocus();
-                        }
-                        ImGui::EndCombo();
-                    }
-                    const char* current_alpha_layer = m_compute_overlay_layers[m_current_compute_alpha_layer_index].name.c_str();
-                    if (ImGui::BeginCombo("Alpha Layer", current_alpha_layer)) {
-                        for (size_t i = 0; i < m_compute_overlay_layers.size(); ++i) {
-                            bool is_selected = (m_current_compute_alpha_layer_index == i);
-                            if (ImGui::Selectable(m_compute_overlay_layers[i].name.c_str(), is_selected)) {
-                                m_current_compute_alpha_layer_index = i;
-                                rewire_buffer_to_texture_node();
-                                rerun_buffer_to_texture = true;
-                            }
-                            if (is_selected)
-                                ImGui::SetItemDefaultFocus();
-                        }
-                        ImGui::EndCombo();
-                    }
-
-                    if (rerun_buffer_to_texture) {
-                        update_settings_and_rerun_pipeline("buffer_to_texture_node");
-                    }
-                }
-            } else if (m_active_compute_pipeline_type == ComputePipelineType::AVALANCHE_TRAJECTORIES_EVAL) {
-
-                const uint32_t min_resolution_multiplier = 1;
-                const uint32_t max_resolution_multiplier = 32;
-                ImGui::SliderScalar("Resolution", ImGuiDataType_U32, &m_compute_pipeline_settings.trajectory_resolution_multiplier, &min_resolution_multiplier, &max_resolution_multiplier, "%ux");
-                if (ImGui::IsItemDeactivatedAfterEdit()) {
-                    update_settings_and_rerun_pipeline();
-                }
-
-                const uint32_t min_steps = 1;
-                const uint32_t max_steps = 1024;
-                ImGui::DragScalar("Num steps", ImGuiDataType_U32, &m_compute_pipeline_settings.num_steps, 1.0f, &min_steps, &max_steps, "%u");
-                // ImGui::SliderScalar("Num steps", ImGuiDataType_U32, &m_compute_pipeline_settings.num_steps, &min_steps, &max_steps, "%u");
-                if (ImGui::IsItemDeactivatedAfterEdit()) {
-                    update_settings_and_rerun_pipeline();
-                }
-
-                const uint32_t min_num_samples = 1;
-                const uint32_t max_num_samples = 1024;
-                ImGui::DragScalar("Paths per release point", ImGuiDataType_U32, &m_compute_pipeline_settings.num_paths_per_release_cell, 1.0f, &min_num_samples, &max_num_samples, "%u");
-                if (ImGui::IsItemDeactivatedAfterEdit()) {
-                    update_settings_and_rerun_pipeline();
-                }
-
-                const glm::uvec2 num_runs_bounds = glm::uvec2(1, 1000);
-                ImGui::DragScalar("Runs##trajectories", ImGuiDataType_U32, &m_compute_pipeline_settings.num_runs, 1.0f, &num_runs_bounds.x, &num_runs_bounds.y, "%u");
-                if (ImGui::IsItemDeactivatedAfterEdit()) {
-                    update_settings_and_rerun_pipeline();
-                }
-
-                if (ImGui::Combo("Model", (int*)&m_compute_pipeline_settings.model_type, "Default\0physics_less_simple)\0Gradients\0Discretized gradients\0D8 (no weights)\0D8 (with weights)\0")) {
-                    update_settings_and_rerun_pipeline();
-                }
-
-                if (m_compute_pipeline_settings.model_type == compute::nodes::ComputeAvalancheTrajectoriesNode::PhysicsModelType::PHYSICS_SIMPLE) {
-                    ImGui::DragFloat("Randomness", &m_compute_pipeline_settings.random_contribution, 0.01f, 0.0f, 90.0f, "%.1f");
-                    if (ImGui::IsItemDeactivatedAfterEdit()) {
-                        update_settings_and_rerun_pipeline();
-                    }
-                    ImGui::DragFloat("Persistence", &m_compute_pipeline_settings.persistence_contribution, 0.01f, 0.0f, 1.0f, "%.3f");
-                    if (ImGui::IsItemDeactivatedAfterEdit()) {
-                        update_settings_and_rerun_pipeline();
-                    }
-                } else if (m_compute_pipeline_settings.model_type == compute::nodes::ComputeAvalancheTrajectoriesNode::PhysicsModelType::PHYSICS_LESS_SIMPLE) {
-                    ImGui::SliderFloat("Gravity##model2", &m_compute_pipeline_settings.model_less_simple_params.gravity, 0.0f, 15.0f, "%.2f");
-                    if (ImGui::IsItemDeactivatedAfterEdit()) {
-                        update_settings_and_rerun_pipeline();
-                    }
-                    ImGui::SliderFloat("Mass##model2", &m_compute_pipeline_settings.model_less_simple_params.mass, 0.0f, 100.0f, "%.2f");
-                    if (ImGui::IsItemDeactivatedAfterEdit()) {
-                        update_settings_and_rerun_pipeline();
-                    }
-                    ImGui::SliderFloat("Drag coeff##model2", &m_compute_pipeline_settings.model_less_simple_params.drag_coeff, 0.0f, 1.0f, "%.2f");
-                    if (ImGui::IsItemDeactivatedAfterEdit()) {
-                        update_settings_and_rerun_pipeline();
-                    }
-                    ImGui::SliderFloat("Friction coeff##model2", &m_compute_pipeline_settings.model_less_simple_params.friction_coeff, 0.0f, 1.0f, "%.4f");
-                    if (ImGui::IsItemDeactivatedAfterEdit()) {
-                        update_settings_and_rerun_pipeline();
-                    }
-                }
-                static int runout_models_current_item = 1;
-                const std::vector<std::pair<std::string, int>> runout_models = {
-                    { "None", 0 },
-                    { "FlowPy (Alpha)", 2 },
-                };
-                const char* current_item_label_model = runout_models[runout_models_current_item].first.c_str();
-                if (ImGui::BeginCombo("Runout model", current_item_label_model)) {
-                    for (size_t i = 0; i < runout_models.size(); i++) {
-                        bool is_selected = ((size_t)runout_models_current_item == i);
-                        if (ImGui::Selectable(runout_models[i].first.c_str(), is_selected)) {
-                            runout_models_current_item = int(i);
-                            m_compute_pipeline_settings.friction_model_type = runout_models[i].second;
-                            update_settings_and_rerun_pipeline();
-                        }
-                        if (is_selected)
-                            ImGui::SetItemDefaultFocus();
-                    }
-                    ImGui::EndCombo();
-                }
-
-                // if (m_compute_pipeline_settings.runout_model_type == compute::nodes::ComputeAvalancheTrajectoriesNode::FrictionModelType::PERLA) {
-                //     ImGui::SliderFloat("My##runout_perla", &m_compute_pipeline_settings.perla.my, 0.004f, 0.6f, "%.2f");
-                //     if (ImGui::IsItemDeactivatedAfterEdit()) {
-                //         update_settings_and_rerun_pipeline();
-                //     }
-                //     ImGui::SliderFloat("M/D##runout_perla", &m_compute_pipeline_settings.perla.md, 20.0f, 150.0f, "%.2f");
-                //     if (ImGui::IsItemDeactivatedAfterEdit()) {
-                //         update_settings_and_rerun_pipeline();
-                //     }
-                //     ImGui::SliderFloat("L##runout_perla", &m_compute_pipeline_settings.perla.l, 1.0f, 15.0f, "%.2f");
-                //     if (ImGui::IsItemDeactivatedAfterEdit()) {
-                //         update_settings_and_rerun_pipeline();
-                //     }
-                //     ImGui::SliderFloat("Gravity##runout_perla", &m_compute_pipeline_settings.perla.g, 0.0f, 15.0f, "%.2f");
-                //     if (ImGui::IsItemDeactivatedAfterEdit()) {
-                //         update_settings_and_rerun_pipeline();
-                //     }
-                // } else if (m_compute_pipeline_settings.runout_model_type == compute::nodes::ComputeAvalancheTrajectoriesNode::FrictionModelType::FLOWPY) {
-                //     ImGui::DragFloat("Alpha##runout_flowpy", &m_compute_pipeline_settings.runout_flowpy_alpha, 0.01f, 0.0f, 90.0f, "%.2f");
-                //     if (ImGui::IsItemDeactivatedAfterEdit()) {
-                //         update_settings_and_rerun_pipeline();
-                //     }
-                // }
-#ifndef __EMSCRIPTEN__
-                if (ImGui::Button("Open eval dir ...", ImVec2(250, 20))) {
-                    IGFD::FileDialogConfig config_eval_dir_file_dialog;
-                    config_eval_dir_file_dialog.path = ".";
-                    ImGuiFileDialog::Instance()->OpenDialog("EvalDirFileDialog", "Choose evaluation directory", nullptr, config_eval_dir_file_dialog);
-                }
-
-                if (ImGuiFileDialog::Instance()->Display("EvalDirFileDialog")) {
-                    if (ImGuiFileDialog::Instance()->IsOk()) { // action if OK
-                        std::string file_path = ImGuiFileDialog::Instance()->GetCurrentPath();
-                        load_eval_dir(file_path);
-                    }
-                    ImGuiFileDialog::Instance()->Close();
-                }
-
-                if (ImGui::CollapsingHeader("Loaded files", ImGuiTreeNodeFlags_DefaultOpen)) {
-
-                    ImGui::Text("Heights: %s", m_compute_pipeline_settings.heightmap_texture_path.c_str());
-                    if (ImGui::IsItemHovered()) {
-                        ImGui::BeginTooltip();
-                        ImGui::Text("%s", m_compute_pipeline_settings.heightmap_texture_path.c_str());
-                        ImGui::EndTooltip();
-                    }
-
-                    ImGui::Text("Release points: %s", m_compute_pipeline_settings.release_points_texture_path.c_str());
-                    if (ImGui::IsItemHovered()) {
-                        ImGui::BeginTooltip();
-                        ImGui::Text("%s", m_compute_pipeline_settings.release_points_texture_path.c_str());
-                        ImGui::EndTooltip();
-                    }
-
-                    ImGui::Text("AABB: %s", m_compute_pipeline_settings.aabb_file_path.c_str());
-                    if (ImGui::IsItemHovered()) {
-                        ImGui::BeginTooltip();
-                        ImGui::Text("%s", m_compute_pipeline_settings.aabb_file_path.c_str());
-                        ImGui::EndTooltip();
-                    }
-                }
-#endif
-
-            } else if (m_active_compute_pipeline_type == ComputePipelineType::SNOW) {
-                if (ImGui::Checkbox("Sync with render settings", &m_compute_pipeline_settings.sync_snow_settings_with_render_settings)) {
-                    update_settings_and_rerun_pipeline();
-                }
-
-                if (!m_compute_pipeline_settings.sync_snow_settings_with_render_settings) {
-                    if (ImGui::DragFloatRange2("Angle limit##compute",
-                            &m_compute_pipeline_settings.snow_settings.angle.y,
-                            &m_compute_pipeline_settings.snow_settings.angle.z,
-                            0.1f,
-                            0.0f,
-                            90.0f,
-                            "Min: %.1f°",
-                            "Max: %.1f°",
-                            ImGuiSliderFlags_AlwaysClamp)) {
-                        update_settings_and_rerun_pipeline();
-                    }
-                    if (ImGui::SliderFloat("Angle blend##compute", &m_compute_pipeline_settings.snow_settings.angle.w, 0.0f, 90.0f, "%.1f°")) {
-                        update_settings_and_rerun_pipeline();
-                    }
-                    if (ImGui::SliderFloat("Altitude limit##compute", &m_compute_pipeline_settings.snow_settings.alt.x, 0.0f, 4000.0f, "%.1fm")) {
-                        update_settings_and_rerun_pipeline();
-                    }
-                    if (ImGui::SliderFloat("Altitude variation##compute", &m_compute_pipeline_settings.snow_settings.alt.y, 0.0f, 1000.0f, "%.1f°")) {
-                        update_settings_and_rerun_pipeline();
-                    }
-                    if (ImGui::SliderFloat("Altitude blend##compute", &m_compute_pipeline_settings.snow_settings.alt.z, 0.0f, 1000.0f)) {
-                        update_settings_and_rerun_pipeline();
-                    }
-                }
-            } else if (m_active_compute_pipeline_type == ComputePipelineType::RELEASE_POINTS) {
-                ImGui::SliderInt("Release point interval", &m_compute_pipeline_settings.release_point_interval, 1, 64, "%u");
-                if (ImGui::IsItemDeactivatedAfterEdit()) {
-                    update_settings_and_rerun_pipeline();
-                }
-
-                ImGui::DragFloatRange2("Release point steepness",
-                    &m_compute_pipeline_settings.trigger_point_min_slope_angle,
-                    &m_compute_pipeline_settings.trigger_point_max_slope_angle,
-                    0.1f,
-                    0.0f,
-                    90.0f,
-                    "Min: %.1f°",
-                    "Max: %.1f°",
-                    ImGuiSliderFlags_AlwaysClamp);
-                if (ImGui::IsItemDeactivatedAfterEdit()) {
-                    update_settings_and_rerun_pipeline();
-                }
-            } else if (m_active_compute_pipeline_type == ComputePipelineType::ITERATIVE_SIMULATION) {
-                // TODO remove duplicate code!
-
-                ImGui::SliderInt("Release point interval##iterative", &m_compute_pipeline_settings.release_point_interval, 1, 64, "%u");
-                if (ImGui::IsItemDeactivatedAfterEdit()) {
-                    update_settings_and_rerun_pipeline();
-                }
-
-                ImGui::DragFloatRange2("Release point steepness",
-                    &m_compute_pipeline_settings.trigger_point_min_slope_angle,
-                    &m_compute_pipeline_settings.trigger_point_max_slope_angle,
-                    0.1f,
-                    0.0f,
-                    90.0f,
-                    "Min: %.1f°",
-                    "Max: %.1f°",
-                    ImGuiSliderFlags_AlwaysClamp);
-                if (ImGui::IsItemDeactivatedAfterEdit()) {
-                    update_settings_and_rerun_pipeline();
-                }
-            }
-            ImGui::PopItemWidth();
-            ImGui::TreePop();
         }
     }
 
@@ -1189,10 +619,6 @@ void Window::create_and_set_compute_pipeline(ComputePipelineType pipeline_type, 
     } else if (pipeline_type == ComputePipelineType::AVALANCHE_TRAJECTORIES) {
         m_compute_graph = compute::nodes::NodeGraph::create_trajectories_with_export_compute_graph(*m_context->pipeline_manager(), m_device);
         m_compute_graph->set_enabled_for_nodes_with_name("export", false);
-    } else if (pipeline_type == ComputePipelineType::AVALANCHE_TRAJECTORIES_EVAL) {
-        m_compute_graph = compute::nodes::NodeGraph::create_trajectories_evaluation_compute_graph(*m_context->pipeline_manager(), m_device);
-    } else if (pipeline_type == ComputePipelineType::D8_DIRECTIONS) {
-        m_compute_graph = compute::nodes::NodeGraph::create_d8_compute_graph(*m_context->pipeline_manager(), m_device);
     } else if (pipeline_type == ComputePipelineType::RELEASE_POINTS) {
         m_compute_graph = compute::nodes::NodeGraph::create_release_points_compute_graph(*m_context->pipeline_manager(), m_device);
     } else if (pipeline_type == ComputePipelineType::ITERATIVE_SIMULATION) {
@@ -1201,8 +627,8 @@ void Window::create_and_set_compute_pipeline(ComputePipelineType pipeline_type, 
 
     update_compute_pipeline_settings();
 
-    connect(m_compute_graph.get(), &compute::nodes::NodeGraph::run_completed, this, &Window::request_redraw);
-    connect(m_compute_graph.get(), &compute::nodes::NodeGraph::run_completed, this, &Window::on_pipeline_run_completed);
+    connect(m_compute_graph.get(), &compute::nodes::NodeGraph::run_completed, this, [this](compute::GraphRunContext) { request_redraw(); });
+    connect(m_compute_graph.get(), &compute::nodes::NodeGraph::run_completed, this, [this](compute::GraphRunContext) { on_pipeline_run_completed(); });
 
     connect(m_compute_graph.get(), &compute::nodes::NodeGraph::run_failed, this, [this](compute::nodes::GraphRunFailureInfo info) {
         qWarning() << "graph run failed. " << info.node_name() << ": " << info.node_run_failure_info().message();
@@ -1226,240 +652,20 @@ void Window::create_and_set_compute_pipeline(ComputePipelineType pipeline_type, 
     m_is_first_pipeline_run = true;
 }
 
-std::string get_current_date_time_string() { return std::format("{:%Y-%m-%d_%H-%M-%S}", std::chrono::system_clock::now()); }
-
 void Window::update_compute_pipeline_settings()
 {
     if (m_active_compute_pipeline_type == ComputePipelineType::NORMALS || m_active_compute_pipeline_type == ComputePipelineType::RELEASE_POINTS) {
-        // tile selection
         m_compute_graph->get_node_as<compute::nodes::SelectTilesNode>("select_tiles_node")
             .select_tiles_in_world_aabb(m_compute_pipeline_settings.target_region, m_compute_pipeline_settings.zoomlevel);
-
-        // tile source
-        m_compute_graph->get_node_as<compute::nodes::RequestTilesNode>("request_height_node")
-            .set_settings(m_tile_source_settings.at(m_compute_pipeline_settings.tile_source_index));
-
-        if (m_active_compute_pipeline_type == ComputePipelineType::RELEASE_POINTS) {
-            compute::nodes::ComputeReleasePointsNode::ReleasePointsSettings settings;
-            settings.min_slope_angle = glm::radians(m_compute_pipeline_settings.trigger_point_min_slope_angle);
-            settings.max_slope_angle = glm::radians(m_compute_pipeline_settings.trigger_point_max_slope_angle);
-            settings.sampling_interval = glm::uvec2(m_compute_pipeline_settings.release_point_interval);
-            m_compute_graph->get_node_as<compute::nodes::ComputeReleasePointsNode>("compute_release_points_node").set_settings(settings);
-        }
-
     } else if (m_active_compute_pipeline_type == ComputePipelineType::SNOW) {
-        // tile selection
         m_compute_graph->get_node_as<compute::nodes::SelectTilesNode>("select_tiles_node")
             .select_tiles_in_world_aabb(m_compute_pipeline_settings.target_region, m_compute_pipeline_settings.zoomlevel);
-
-        // tile source
-        m_compute_graph->get_node_as<compute::nodes::RequestTilesNode>("request_height_node")
-            .set_settings(m_tile_source_settings.at(m_compute_pipeline_settings.tile_source_index));
-
-        // snow settings
-        compute::nodes::ComputeSnowNode::SnowSettingsUniform snow_settings_uniform = m_compute_pipeline_settings.sync_snow_settings_with_render_settings
-            ? compute::nodes::ComputeSnowNode::SnowSettingsUniform { m_shared_config_ubo->data.m_snow_settings_angle,
-                  m_shared_config_ubo->data.m_snow_settings_alt }
-            : m_compute_pipeline_settings.snow_settings;
-        compute::nodes::ComputeSnowNode::SnowSettings snow_settings;
-        snow_settings.min_angle = snow_settings_uniform.angle.y;
-        snow_settings.max_angle = snow_settings_uniform.angle.z;
-        snow_settings.angle_blend = snow_settings_uniform.angle.w;
-        snow_settings.min_altitude = snow_settings_uniform.alt.x;
-        snow_settings.altitude_variation = snow_settings_uniform.alt.y;
-        snow_settings.altitude_blend = snow_settings_uniform.alt.z;
-        m_compute_graph->get_node_as<compute::nodes::ComputeSnowNode>("compute_snow_node").set_snow_settings(snow_settings);
-
     } else if (m_active_compute_pipeline_type == ComputePipelineType::AVALANCHE_TRAJECTORIES) {
-        // tile selection
         m_compute_graph->get_node_as<compute::nodes::SelectTilesNode>("select_tiles_node")
             .select_tiles_in_world_aabb(m_compute_pipeline_settings.target_region, m_compute_pipeline_settings.zoomlevel);
-
-        // tile source
-        m_compute_graph->get_node_as<compute::nodes::RequestTilesNode>("request_height_node")
-            .set_settings(m_tile_source_settings.at(m_compute_pipeline_settings.tile_source_index));
-
-        compute::nodes::ComputeReleasePointsNode::ReleasePointsSettings settings;
-        settings.min_slope_angle = glm::radians(m_compute_pipeline_settings.trigger_point_min_slope_angle);
-        settings.max_slope_angle = glm::radians(m_compute_pipeline_settings.trigger_point_max_slope_angle);
-        settings.sampling_interval = glm::uvec2(m_compute_pipeline_settings.release_point_interval);
-        m_compute_graph->get_node_as<compute::nodes::ComputeReleasePointsNode>("compute_release_points_node").set_settings(settings);
-
-        // trajectories settings
-        compute::nodes::ComputeAvalancheTrajectoriesNode::AvalancheTrajectoriesSettings trajectory_settings {};
-        trajectory_settings.resolution_multiplier = m_compute_pipeline_settings.trajectory_resolution_multiplier;
-        trajectory_settings.num_steps = m_compute_pipeline_settings.num_steps;
-        trajectory_settings.step_length = m_compute_pipeline_settings.step_length;
-        trajectory_settings.num_paths_per_release_cell = m_compute_pipeline_settings.num_paths_per_release_cell;
-        trajectory_settings.random_contribution = m_compute_pipeline_settings.random_contribution;
-        trajectory_settings.persistence_contribution = m_compute_pipeline_settings.persistence_contribution;
-        trajectory_settings.active_model = m_compute_pipeline_settings.model_type;
-        trajectory_settings.model2 = m_compute_pipeline_settings.model_less_simple_params;
-        trajectory_settings.active_runout_model
-            = compute::nodes::ComputeAvalancheTrajectoriesNode::FrictionModelType(m_compute_pipeline_settings.friction_model_type);
-        trajectory_settings.runout_perla = m_compute_pipeline_settings.perla;
-        trajectory_settings.runout_flowpy.alpha = glm::radians(m_compute_pipeline_settings.runout_flowpy_alpha);
-        trajectory_settings.random_seed = m_compute_pipeline_settings.random_seed;
-        trajectory_settings.num_runs = m_compute_pipeline_settings.num_runs;
-
-        auto& trajectories_node = m_compute_graph->get_node_as<compute::nodes::ComputeAvalancheTrajectoriesNode>("compute_avalanche_trajectories_node");
-        trajectories_node.set_settings(trajectory_settings);
-
-        // buffertotexture settings
-        {
-            auto& node = m_compute_graph->get_node_as<compute::nodes::BufferToTextureNode>("buffer_to_texture_node");
-            node.settings().color_map_bounds = m_compute_pipeline_settings.color_map_bounds;
-            node.settings().transparency_map_bounds = m_compute_pipeline_settings.transparency_map_bounds;
-            node.settings().use_bin_interpolation = m_compute_pipeline_settings.use_bin_interpolation;
-            node.settings().use_transparency_buffer = m_compute_pipeline_settings.use_transparency_buffer;
-            if (m_compute_pipeline_settings.texture_interpolation_mipmaps) {
-                node.settings().texture_filter_mode = WGPUFilterMode_Linear;
-                node.settings().texture_mipmap_filter_mode = WGPUMipmapFilterMode_Linear;
-                node.settings().texture_max_aniostropy = 16;
-                node.settings().create_mipmaps = true;
-            } else {
-                node.settings().texture_filter_mode = WGPUFilterMode_Nearest;
-                node.settings().texture_mipmap_filter_mode = WGPUMipmapFilterMode_Nearest;
-                node.settings().texture_max_aniostropy = 1;
-                node.settings().create_mipmaps = false;
-            }
-        }
-
-        // update file export path to include current date and time
-        {
-            const std::filesystem::path export_root_dir = "export_" + get_current_date_time_string();
-
-            // set trajectory layer export directories
-            compute::nodes::BufferExportNode::ExportSettings zdelta_export_settings { (export_root_dir / "trajectories/texture_layer1_zdelta.png").string() };
-            m_compute_graph->get_node_as<compute::nodes::BufferExportNode>("l1_export_node").set_settings(zdelta_export_settings);
-            compute::nodes::BufferExportNode::ExportSettings cell_counts_export_settings {
-                (export_root_dir / "trajectories/texture_layer2_cellCounts.png").string()
-            };
-            m_compute_graph->get_node_as<compute::nodes::BufferExportNode>("l2_export_node").set_settings(cell_counts_export_settings);
-            compute::nodes::BufferExportNode::ExportSettings travel_length_export_settings {
-                (export_root_dir / "trajectories/texture_layer3_travelLength.png").string()
-            };
-            m_compute_graph->get_node_as<compute::nodes::BufferExportNode>("l3_export_node").set_settings(travel_length_export_settings);
-            compute::nodes::BufferExportNode::ExportSettings travel_angle_export_settings {
-                (export_root_dir / "trajectories/texture_layer4_travelAngle.png").string()
-            };
-            m_compute_graph->get_node_as<compute::nodes::BufferExportNode>("l4_export_node").set_settings(travel_angle_export_settings);
-            compute::nodes::BufferExportNode::ExportSettings height_diff_export_settings {
-                (export_root_dir / "trajectories/texture_layer5_heightDifference.png").string()
-            };
-            m_compute_graph->get_node_as<compute::nodes::BufferExportNode>("l5_export_node").set_settings(height_diff_export_settings);
-
-            // set trajectory color buffer export directory
-            compute::nodes::TileExportNode::ExportSettings export_trajectory_settings = { true, true, true, true, (export_root_dir / "trajectories").string() };
-            m_compute_graph->get_node_as<compute::nodes::TileExportNode>("trajectories_export").set_settings(export_trajectory_settings);
-
-            // set heightmap export directory
-            compute::nodes::TileExportNode::ExportSettings export_height_settings = { true, true, true, true, (export_root_dir / "heights").string() };
-            m_compute_graph->get_node_as<compute::nodes::TileExportNode>("height_export").set_settings(export_height_settings);
-
-            // set release point export directory
-            compute::nodes::TileExportNode::ExportSettings export_releasepoints_settings
-                = { true, true, true, true, (export_root_dir / "release_points").string() };
-            m_compute_graph->get_node_as<compute::nodes::TileExportNode>("rp_export").set_settings(export_releasepoints_settings);
-        }
-    } else if (m_active_compute_pipeline_type == ComputePipelineType::AVALANCHE_TRAJECTORIES_EVAL) {
-
-        // trajectories settings
-        compute::nodes::ComputeAvalancheTrajectoriesNode::AvalancheTrajectoriesSettings trajectory_settings {};
-        trajectory_settings.resolution_multiplier = m_compute_pipeline_settings.trajectory_resolution_multiplier;
-        trajectory_settings.num_steps = m_compute_pipeline_settings.num_steps;
-        trajectory_settings.step_length = m_compute_pipeline_settings.step_length;
-        trajectory_settings.num_paths_per_release_cell = m_compute_pipeline_settings.num_paths_per_release_cell;
-        trajectory_settings.random_contribution = m_compute_pipeline_settings.random_contribution;
-        trajectory_settings.persistence_contribution = m_compute_pipeline_settings.persistence_contribution;
-        trajectory_settings.active_model = m_compute_pipeline_settings.model_type;
-        trajectory_settings.model2 = m_compute_pipeline_settings.model_less_simple_params;
-        trajectory_settings.active_runout_model
-            = compute::nodes::ComputeAvalancheTrajectoriesNode::FrictionModelType(m_compute_pipeline_settings.friction_model_type);
-        trajectory_settings.runout_perla = m_compute_pipeline_settings.perla;
-        trajectory_settings.runout_flowpy.alpha = glm::radians(m_compute_pipeline_settings.runout_flowpy_alpha);
-
-        auto& trajectories_node = m_compute_graph->get_node_as<compute::nodes::ComputeAvalancheTrajectoriesNode>("compute_avalanche_trajectories_node");
-        trajectories_node.set_settings(trajectory_settings);
-
-        {
-            compute::nodes::LoadTextureNode::LoadTextureNodeSettings settings;
-            settings.format = WGPUTextureFormat_RGBA8Unorm;
-            settings.file_path = m_compute_pipeline_settings.release_points_texture_path;
-            m_compute_graph->get_node_as<compute::nodes::LoadTextureNode>("load_rp_node").set_settings(settings);
-        }
-
-        {
-            compute::nodes::LoadTextureNode::LoadTextureNodeSettings settings;
-            settings.file_path = m_compute_pipeline_settings.heightmap_texture_path;
-            m_compute_graph->get_node_as<compute::nodes::LoadTextureNode>("load_heights_node").set_settings(settings);
-        }
-
-        {
-            compute::nodes::LoadRegionAabbNode::LoadRegionAabbNodeSettings settings;
-            settings.file_path = m_compute_pipeline_settings.aabb_file_path;
-            m_compute_graph->get_node_as<compute::nodes::LoadRegionAabbNode>("load_aabb_node").set_settings(settings);
-        }
-
-        // update file export path to include current date and time
-        {
-            const std::filesystem::path export_root_dir = "export_" + get_current_date_time_string();
-
-            // set trajectory layer export directories
-            compute::nodes::BufferExportNode::ExportSettings zdelta_export_settings { (export_root_dir / "trajectories/texture_layer1_zdelta.png").string() };
-            m_compute_graph->get_node_as<compute::nodes::BufferExportNode>("l1_export_node").set_settings(zdelta_export_settings);
-            compute::nodes::BufferExportNode::ExportSettings cell_counts_export_settings {
-                (export_root_dir / "trajectories/texture_layer2_cellCounts.png").string()
-            };
-            m_compute_graph->get_node_as<compute::nodes::BufferExportNode>("l2_export_node").set_settings(cell_counts_export_settings);
-            compute::nodes::BufferExportNode::ExportSettings travel_length_export_settings {
-                (export_root_dir / "trajectories/texture_layer3_travelLength.png").string()
-            };
-            m_compute_graph->get_node_as<compute::nodes::BufferExportNode>("l3_export_node").set_settings(travel_length_export_settings);
-            compute::nodes::BufferExportNode::ExportSettings travel_angle_export_settings {
-                (export_root_dir / "trajectories/texture_layer4_travelAngle.png").string()
-            };
-            m_compute_graph->get_node_as<compute::nodes::BufferExportNode>("l4_export_node").set_settings(travel_angle_export_settings);
-            compute::nodes::BufferExportNode::ExportSettings height_diff_export_settings {
-                (export_root_dir / "trajectories/texture_layer5_heightDifference.png").string()
-            };
-            m_compute_graph->get_node_as<compute::nodes::BufferExportNode>("l5_export_node").set_settings(height_diff_export_settings);
-
-            // set trajectory color buffer export directory
-            compute::nodes::TileExportNode::ExportSettings export_trajectory_settings = { true, true, true, true, (export_root_dir / "trajectories").string() };
-            m_compute_graph->get_node_as<compute::nodes::TileExportNode>("trajectories_export").set_settings(export_trajectory_settings);
-
-            // set heightmap export directory
-            compute::nodes::TileExportNode::ExportSettings export_height_settings = { true, true, true, true, (export_root_dir / "heights").string() };
-            m_compute_graph->get_node_as<compute::nodes::TileExportNode>("height_export").set_settings(export_height_settings);
-
-            // set release point export directory
-            compute::nodes::TileExportNode::ExportSettings export_releasepoints_settings
-                = { true, true, true, true, (export_root_dir / "release_points").string() };
-            m_compute_graph->get_node_as<compute::nodes::TileExportNode>("rp_export").set_settings(export_releasepoints_settings);
-        }
-    } else if (m_active_compute_pipeline_type == ComputePipelineType::D8_DIRECTIONS) {
-        // tile selection
-        m_compute_graph->get_node_as<compute::nodes::SelectTilesNode>("select_tiles_node")
-            .select_tiles_in_world_aabb(m_compute_pipeline_settings.target_region, m_compute_pipeline_settings.zoomlevel);
-
-        // tile source
-        m_compute_graph->get_node_as<compute::nodes::RequestTilesNode>("request_height_node")
-            .set_settings(m_tile_source_settings.at(m_compute_pipeline_settings.tile_source_index));
     } else if (m_active_compute_pipeline_type == ComputePipelineType::ITERATIVE_SIMULATION) {
-        // tile selection
         m_compute_graph->get_node_as<compute::nodes::SelectTilesNode>("select_tiles_node")
             .select_tiles_in_world_aabb(m_compute_pipeline_settings.target_region, m_compute_pipeline_settings.zoomlevel);
-
-        // tile source
-        m_compute_graph->get_node_as<compute::nodes::RequestTilesNode>("request_height_node")
-            .set_settings(m_tile_source_settings.at(m_compute_pipeline_settings.tile_source_index));
-
-        compute::nodes::ComputeReleasePointsNode::ReleasePointsSettings settings;
-        settings.min_slope_angle = glm::radians(m_compute_pipeline_settings.trigger_point_min_slope_angle);
-        settings.max_slope_angle = glm::radians(m_compute_pipeline_settings.trigger_point_max_slope_angle);
-        settings.sampling_interval = glm::uvec2(m_compute_pipeline_settings.release_point_interval);
-        m_compute_graph->get_node_as<compute::nodes::ComputeReleasePointsNode>("compute_release_points_node").set_settings(settings);
     }
 }
 
@@ -1469,7 +675,7 @@ void Window::update_settings_and_rerun_pipeline(const std::string& entry_node)
     if (m_is_region_selected) {
         if (!entry_node.empty() && !m_is_first_pipeline_run) {
             if (m_compute_graph->exists_node(entry_node)) {
-                m_compute_graph->get_node_as<compute::nodes::Node>(entry_node).run();
+                m_compute_graph->get_node_as<compute::nodes::Node>(entry_node).rerun();
             } else {
                 qCritical() << "Entry node" << entry_node << "does not exist.";
             }
@@ -1482,44 +688,27 @@ void Window::update_settings_and_rerun_pipeline(const std::string& entry_node)
     }
 }
 
-// Equivalent of std::bit_width that is available from C++20 onward
-// ToDo: there are intrinsics for this
-uint32_t bit_width(uint32_t m)
-{
-    if (m == 0)
-        return 0;
-    else {
-        uint32_t w = 0;
-        while (m >>= 1)
-            ++w;
-        return w;
-    }
-}
-
-uint32_t getMaxMipLevelCount(const glm::uvec2 textureSize) { return std::max(1u, bit_width(std::max(textureSize.x, textureSize.y))); }
-
-std::unique_ptr<webgpu::raii::TextureWithSampler> Window::create_overlay_texture(unsigned int width, unsigned int height)
+std::unique_ptr<webgpu::raii::TextureWithSampler> Window::create_overlay_texture(unsigned int width, unsigned int height, bool linear_interpolation)
 {
     WGPUTextureDescriptor texture_desc {};
     texture_desc.label = WGPUStringView { .data = "image overlay texture", .length = WGPU_STRLEN };
     texture_desc.dimension = WGPUTextureDimension::WGPUTextureDimension_2D;
     texture_desc.size = { uint32_t(width), uint32_t(height), uint32_t(1) };
-    texture_desc.mipLevelCount = getMaxMipLevelCount(glm::uvec2(width, height));
+    texture_desc.mipLevelCount = webgpu::raii::Texture::max_mip_level_count(glm::uvec2(width, height));
     texture_desc.sampleCount = 1;
     texture_desc.format = WGPUTextureFormat::WGPUTextureFormat_RGBA8Unorm;
     texture_desc.usage = WGPUTextureUsage_TextureBinding | WGPUTextureUsage_CopyDst | WGPUTextureUsage_StorageBinding;
-
-    qDebug() << "mip level count: " << texture_desc.mipLevelCount;
-    qDebug() << "for texture size: " << width << "x" << height << "pixels";
 
     WGPUSamplerDescriptor sampler_desc {};
     sampler_desc.label = WGPUStringView { .data = "image overlay sampler", .length = WGPU_STRLEN };
     sampler_desc.addressModeU = WGPUAddressMode::WGPUAddressMode_ClampToEdge;
     sampler_desc.addressModeV = WGPUAddressMode::WGPUAddressMode_ClampToEdge;
     sampler_desc.addressModeW = WGPUAddressMode::WGPUAddressMode_ClampToEdge;
-    sampler_desc.magFilter = WGPUFilterMode::WGPUFilterMode_Linear;
-    sampler_desc.minFilter = WGPUFilterMode::WGPUFilterMode_Nearest;
-    sampler_desc.mipmapFilter = WGPUMipmapFilterMode::WGPUMipmapFilterMode_Linear;
+    const auto filter_mode = linear_interpolation ? WGPUFilterMode::WGPUFilterMode_Linear : WGPUFilterMode::WGPUFilterMode_Nearest;
+    const auto mipmap_mode = linear_interpolation ? WGPUMipmapFilterMode::WGPUMipmapFilterMode_Linear : WGPUMipmapFilterMode::WGPUMipmapFilterMode_Nearest;
+    sampler_desc.magFilter = filter_mode;
+    sampler_desc.minFilter = filter_mode;
+    sampler_desc.mipmapFilter = mipmap_mode;
     sampler_desc.lodMinClamp = 0.0f;
     sampler_desc.lodMaxClamp = 1.0f;
     sampler_desc.compare = WGPUCompareFunction::WGPUCompareFunction_Undefined;
@@ -1528,73 +717,6 @@ std::unique_ptr<webgpu::raii::TextureWithSampler> Window::create_overlay_texture
     auto texture = std::make_unique<webgpu::raii::TextureWithSampler>(m_device, texture_desc, sampler_desc);
 
     return texture;
-}
-
-void Window::compute_mipmaps_for_texture(const webgpu::raii::Texture* texture)
-{
-    glm::uvec2 baseSize = { texture->width(), texture->height() };
-    uint32_t mipLevelCount = texture->mip_level_count();
-
-    if (mipLevelCount == 1) {
-        qDebug() << "No mipmaps to compute";
-        return;
-    } else {
-        qDebug() << "Computing" << mipLevelCount << "mipmaps for texture";
-    }
-
-    std::vector<std::unique_ptr<webgpu::raii::TextureView>> m_textureMipViews;
-    std::vector<WGPUExtent3D> mipSizes(mipLevelCount);
-
-    // Create texture views for each mip level
-    for (uint32_t i = 0; i < mipLevelCount; i++) {
-        WGPUTextureViewDescriptor viewDesc {};
-        viewDesc.dimension = WGPUTextureViewDimension::WGPUTextureViewDimension_2D;
-        viewDesc.format = WGPUTextureFormat::WGPUTextureFormat_RGBA8Unorm;
-        viewDesc.baseMipLevel = i;
-        viewDesc.mipLevelCount = 1;
-        viewDesc.baseArrayLayer = 0;
-        viewDesc.arrayLayerCount = 1;
-        viewDesc.aspect = WGPUTextureAspect::WGPUTextureAspect_All;
-        auto textureView = std::make_unique<webgpu::raii::TextureView>(texture->handle(), viewDesc);
-        m_textureMipViews.push_back(std::move(textureView));
-
-        mipSizes[i].width = std::max(1u, baseSize.x >> i);
-        mipSizes[i].height = std::max(1u, baseSize.y >> i);
-        mipSizes[i].depthOrArrayLayers = 1;
-    }
-
-    // Create bind groups for each invocation
-    std::vector<std::unique_ptr<webgpu::raii::BindGroup>> m_bindGroups;
-    for (uint32_t i = 0; i < mipLevelCount - 1; i++) {
-        std::vector<WGPUBindGroupEntry> bgEntries {
-            m_textureMipViews[i]->create_bind_group_entry(0),
-            m_textureMipViews[i + 1]->create_bind_group_entry(1),
-        };
-        auto bindGroup = std::make_unique<webgpu::raii::BindGroup>(m_device, m_context->pipeline_manager()->mipmap_creation_bind_group_layout(), bgEntries, "mipmap creation bindgroup");
-        m_bindGroups.push_back(std::move(bindGroup));
-    }
-
-    glm::uvec3 SHADER_WORKGROUP_SIZE = { 8, 8, 1 };
-    {
-        WGPUCommandEncoderDescriptor descriptor {};
-        webgpu::raii::CommandEncoder encoder(m_device, descriptor);
-
-        for (uint32_t i = 0; i < mipLevelCount - 1; i++) {
-            WGPUComputePassDescriptor compute_pass_desc {};
-            webgpu::raii::ComputePassEncoder compute_pass(encoder.handle(), compute_pass_desc);
-
-            glm::uvec3 workgroup_counts = glm::ceil(glm::vec3(mipSizes[i + 1].width, mipSizes[i + 1].height, 1) / glm::vec3(SHADER_WORKGROUP_SIZE));
-            // qDebug() << "executing mipmap creation for mip level " << i << " with workgroup counts: " << workgroup_counts.x << "x" << workgroup_counts.y;
-            wgpuComputePassEncoderSetBindGroup(compute_pass.handle(), 0, m_bindGroups[i]->handle(), 0, nullptr);
-            m_context->pipeline_manager()->mipmap_creation_pipeline().run(compute_pass, workgroup_counts);
-        }
-
-        WGPUCommandBufferDescriptor cmd_buffer_descriptor {};
-        cmd_buffer_descriptor.label = WGPUStringView { .data = "MipMap command buffer", .length = WGPU_STRLEN };
-        WGPUCommandBuffer command = wgpuCommandEncoderFinish(encoder.handle(), &cmd_buffer_descriptor);
-        wgpuQueueSubmit(m_queue, 1, &command);
-        wgpuCommandBufferRelease(command);
-    }
 }
 
 void Window::set_max_zoom_level(uint32_t max_zoom_level) { m_max_zoom_level = max_zoom_level; }
@@ -1697,9 +819,10 @@ void Window::load_track_and_focus(const std::string& path)
     const auto track_aabb = nucleus::track::compute_world_aabb(*gpx_track);
     focus_region_3d(track_aabb);
 
-    if (m_shared_config_ubo->data.m_track_render_mode == 0) {
-        m_shared_config_ubo->data.m_track_render_mode = 1;
+    if (m_context->shared_config().m_track_render_mode == 0) {
+        m_context->shared_config().m_track_render_mode = 1;
     }
+
     m_needs_redraw = true;
 }
 
@@ -1739,11 +862,32 @@ void Window::focus_region_2d(const radix::geometry::Aabb<2, double>& aabb)
 
 void Window::update_image_overlay_texture(const std::string& image_file_path)
 {
+    m_image_overlay_texture_path = image_file_path;
     nucleus::Raster<glm::u8vec4> image = nucleus::utils::image_loader::rgba8(QString::fromStdString(image_file_path)).value();
-    m_image_overlay_texture = create_overlay_texture(image.width(), image.height());
+    m_image_overlay_texture = create_overlay_texture(image.width(), image.height(), m_image_overlay_linear_interpolation);
     m_image_overlay_texture->texture().write(m_queue, image);
     m_image_overlay_settings_uniform_buffer->data.texture_size = glm::uvec2(image.width(), image.height());
-    compute_mipmaps_for_texture(&m_image_overlay_texture->texture());
+    compute_mipmaps_for_texture(m_device, m_queue, *m_context->pipeline_manager(), &m_image_overlay_texture->texture());
+
+    // Scan encoded float range across all non-zero pixels
+    constexpr float ENCODING_MIN = -10000.0f;
+    constexpr float ENCODING_MAX = 10000.0f;
+    float min_val = std::numeric_limits<float>::max();
+    float max_val = std::numeric_limits<float>::lowest();
+    for (const glm::u8vec4& px : image) {
+        uint32_t packed = (uint32_t(px.x) << 24) | (uint32_t(px.y) << 16) | (uint32_t(px.z) << 8) | uint32_t(px.w);
+        if (packed == 0)
+            continue;
+        float value = ENCODING_MIN + (float(packed) / float(0xFFFFFFFFu)) * (ENCODING_MAX - ENCODING_MIN);
+        min_val = std::min(min_val, value);
+        max_val = std::max(max_val, value);
+    }
+    if (min_val <= max_val) {
+        m_image_overlay_settings_uniform_buffer->data.float_decoding_lower_bound = min_val;
+        m_image_overlay_settings_uniform_buffer->data.float_decoding_upper_bound = max_val;
+        m_image_overlay_settings_uniform_buffer->update_gpu_data(m_queue);
+    }
+
     recreate_compose_bind_group();
 }
 
@@ -1792,7 +936,7 @@ void Window::update_compute_overlay_texture(const webgpu::raii::TextureWithSampl
     m_compute_overlay_sampler = &texture_with_sampler.sampler();
     m_compute_overlay_settings_uniform_buffer->data.texture_size = glm::uvec2(texture_with_sampler.texture().width(), texture_with_sampler.texture().height());
 
-    compute_mipmaps_for_texture(&texture_with_sampler.texture());
+    compute_mipmaps_for_texture(m_device, m_queue, *m_context->pipeline_manager(), &texture_with_sampler.texture());
     // update in following update_compute_overlay_aabb
     recreate_compose_bind_group();
 }
@@ -1802,45 +946,6 @@ void Window::update_compute_overlay_aabb(const radix::geometry::Aabb<2, double>&
     m_compute_overlay_settings_uniform_buffer->data.aabb_min = glm::fvec2(aabb.min);
     m_compute_overlay_settings_uniform_buffer->data.aabb_max = glm::fvec2(aabb.max);
     m_compute_overlay_settings_uniform_buffer->update_gpu_data(m_queue);
-}
-
-void Window::load_eval_dir(const std::string& path)
-{
-    const std::filesystem::path dir = path;
-    const auto settings_path = dir / "settings.json";
-
-    qDebug() << "try to load settings and raster files from directory " << path;
-
-    if (!std::filesystem::exists(settings_path)) {
-        display_message("Directory " + path + " does not contain settings.json - abort");
-        return;
-    }
-
-    const auto heights_path = (dir / "heights" / "texture.png");
-    if (!std::filesystem::exists(heights_path)) {
-        display_message("Directory " + path + " does not contain heights - expected in " + heights_path.string() + " - abort");
-        return;
-    }
-
-    const auto release_points_path = dir / "release_points" / "texture.png";
-    if (!std::filesystem::exists(release_points_path)) {
-        display_message("Directory " + path + " does not contain release points - expected in " + release_points_path.string() + " - abort");
-        return;
-    }
-
-    const auto aabb_path = dir / "heights" / "aabb.txt";
-    if (!std::filesystem::exists(aabb_path)) {
-        display_message("Directory " + path + " does not contain aabb - expected in " + aabb_path.string() + " - abort");
-        return;
-    }
-
-    qDebug() << "required files exist - update settings and set eval input paths";
-
-    m_compute_pipeline_settings = ComputePipelineSettings::read_from_json_file(settings_path);
-    m_compute_pipeline_settings.heightmap_texture_path = heights_path.string();
-    m_compute_pipeline_settings.release_points_texture_path = release_points_path.string();
-    m_compute_pipeline_settings.aabb_file_path = aabb_path.string();
-    update_compute_pipeline_settings();
 }
 
 void Window::after_first_frame()
@@ -1853,7 +958,6 @@ void Window::after_first_frame()
 
 void Window::reload_shaders()
 {
-    qDebug() << "reloading shaders...";
     m_context->shader_module_manager()->release_shader_modules();
     m_context->shader_module_manager()->create_shader_modules();
     m_context->pipeline_manager()->release_pipelines();
@@ -1872,19 +976,15 @@ void Window::on_pipeline_run_completed()
 
         const webgpu::raii::TextureWithSampler* texture = nullptr;
         if (m_active_compute_pipeline_type == ComputePipelineType::NORMALS) {
-            texture = std::get<const webgpu::raii::TextureWithSampler*>(
-                m_compute_graph->get_node("compute_normals_node").output_socket("normal texture").get_data());
+            texture = std::get<const webgpu::raii::TextureWithSampler*>(m_compute_graph->get_node("normals_node").output_socket("normal texture").get_data());
         } else if (m_active_compute_pipeline_type == ComputePipelineType::SNOW) {
-            texture
-                = std::get<const webgpu::raii::TextureWithSampler*>(m_compute_graph->get_node("compute_snow_node").output_socket("snow texture").get_data());
+            texture = std::get<const webgpu::raii::TextureWithSampler*>(m_compute_graph->get_node("snow_node").output_socket("snow texture").get_data());
         } else if (m_active_compute_pipeline_type == ComputePipelineType::RELEASE_POINTS) {
             texture = std::get<const webgpu::raii::TextureWithSampler*>(
-                m_compute_graph->get_node("compute_release_points_node").output_socket("release point texture").get_data());
+                m_compute_graph->get_node("release_points_node").output_socket("release point texture").get_data());
         } else if (m_active_compute_pipeline_type == ComputePipelineType::AVALANCHE_TRAJECTORIES) {
             texture
                 = std::get<const webgpu::raii::TextureWithSampler*>(m_compute_graph->get_node("buffer_to_texture_node").output_socket("texture").get_data());
-            // texture = std::get<const webgpu::raii::TextureWithSampler*>(m_compute_graph->get_node("fxaa_node").output_socket("texture").get_data()); // TO
-            // ENABLE FXAA
         } else if (m_active_compute_pipeline_type == ComputePipelineType::ITERATIVE_SIMULATION) {
             texture = std::get<const webgpu::raii::TextureWithSampler*>(m_compute_graph->get_node("flowpy").output_socket("texture").get_data());
         }
@@ -1892,11 +992,11 @@ void Window::on_pipeline_run_completed()
         update_compute_overlay_texture(*texture);
 
         auto& select_tiles_node = m_compute_graph->get_node_as<compute::nodes::SelectTilesNode&>("select_tiles_node");
-        radix::geometry::Aabb<2, double> selected_aabb = *std::get<const radix::geometry::Aabb<2, double>*>(select_tiles_node.output_socket("region aabb").get_data());
+        radix::geometry::Aabb<2, double> selected_aabb
+            = *std::get<const radix::geometry::Aabb<2, double>*>(select_tiles_node.output_socket("region aabb").get_data());
         selected_aabb.max -= glm::dvec2(nucleus::srs::tile_width(18) / 65, nucleus::srs::tile_height(18) / 65); // stitch node ignores last col/row
         update_compute_overlay_aabb(selected_aabb);
     }
-
 }
 
 void Window::create_buffers()
@@ -1909,11 +1009,13 @@ void Window::create_buffers()
 
 void Window::create_bind_groups()
 {
-    m_shared_config_bind_group = std::make_unique<webgpu::raii::BindGroup>(
-        m_device, m_context->pipeline_manager()->shared_config_bind_group_layout(), std::initializer_list<WGPUBindGroupEntry> { m_shared_config_ubo->raw_buffer().create_bind_group_entry(0) });
+    m_shared_config_bind_group = std::make_unique<webgpu::raii::BindGroup>(m_device,
+        m_context->pipeline_manager()->shared_config_bind_group_layout(),
+        std::initializer_list<WGPUBindGroupEntry> { m_shared_config_ubo->raw_buffer().create_bind_group_entry(0) });
 
-    m_camera_bind_group = std::make_unique<webgpu::raii::BindGroup>(
-        m_device, m_context->pipeline_manager()->camera_bind_group_layout(), std::initializer_list<WGPUBindGroupEntry> { m_camera_config_ubo->raw_buffer().create_bind_group_entry(0) });
+    m_camera_bind_group = std::make_unique<webgpu::raii::BindGroup>(m_device,
+        m_context->pipeline_manager()->camera_bind_group_layout(),
+        std::initializer_list<WGPUBindGroupEntry> { m_camera_config_ubo->raw_buffer().create_bind_group_entry(0) });
 }
 
 void Window::recreate_compose_bind_group()
@@ -1948,7 +1050,6 @@ void Window::recreate_compose_bind_group()
                 m_gbuffer->depth_texture_view().create_bind_group_entry(15),
             });
     }
-
 }
 
 void Window::update_required_gpu_limits(WGPULimits& limits, const WGPULimits& supported_limits)

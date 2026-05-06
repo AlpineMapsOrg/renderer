@@ -43,7 +43,7 @@ webgpu_engine::compute::nodes::HeightDecodeNode::HeightDecodeNode(const Pipeline
 
 void HeightDecodeNode::run_impl()
 {
-    qDebug() << "running HeightDecodeNode ...";
+
 
     const auto region_aabb = std::get<data_type<const radix::geometry::Aabb<2, double>*>()>(input_socket("region aabb").get_connected_data());
     const auto& input_texture = *std::get<data_type<const webgpu::raii::TextureWithSampler*>()>(input_socket("encoded texture").get_connected_data());
@@ -131,7 +131,7 @@ void HeightDecodeNode::run_impl()
 
     // NOTE: Maybe this needs to be inside onsubmittedworkdone callback? But technically
     // I don't think we should wait for the queue...
-    emit run_completed();
+    complete_run();
 }
 
 } // namespace webgpu_engine::compute::nodes

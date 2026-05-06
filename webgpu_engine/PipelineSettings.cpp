@@ -28,7 +28,6 @@ namespace webgpu_engine {
 void ComputePipelineSettings::write_to_json_file(const ComputePipelineSettings& settings, const std::filesystem::path& output_path)
 {
     QJsonObject object;
-    object["tile_source"] = settings.tile_source_index == 0 ? "dtm" : "dsm";
     object["source_zoomlevel"] = qint64(settings.zoomlevel);
 
     object["release_point_interval"] = qint64(settings.release_point_interval);
@@ -73,7 +72,6 @@ ComputePipelineSettings ComputePipelineSettings::read_from_json_file(const std::
     }
 
     ComputePipelineSettings settings;
-    settings.tile_source_index = object["tile_source"] == "dtm" ? 0 : 1;
     settings.zoomlevel = uint32_t(object["source_zoomlevel"].toInteger());
 
     settings.release_point_interval = uint32_t(object["release_point_interval"].toInteger());

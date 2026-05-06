@@ -26,10 +26,9 @@
 #include "TrackRenderer.h"
 #include "UniformBufferObjects.h"
 #ifdef ALP_WEBGPU_APP_ENABLE_IMGUI
-#include "compute/NodeGraphRenderer.h"
+#include "compute/imgui/NodeGraphRenderer.h"
 #endif
-#include "compute/nodes/NodeGraph.h"
-#include "compute/nodes/RequestTilesNode.h"
+#include "compute/NodeGraph.h"
 #include "nucleus/AbstractRenderWindow.h"
 #include "nucleus/camera/AbstractDepthTester.h"
 #include "nucleus/camera/Controller.h"
@@ -56,10 +55,8 @@ public:
         NORMALS = 0,
         SNOW = 1,
         AVALANCHE_TRAJECTORIES = 2,
-        AVALANCHE_TRAJECTORIES_EVAL = 3,
-        D8_DIRECTIONS = 4,
-        RELEASE_POINTS = 5,
-        ITERATIVE_SIMULATION = 6,
+        RELEASE_POINTS = 3,
+        ITERATIVE_SIMULATION = 4,
     };
 
 public:
@@ -85,7 +82,6 @@ public:
     void paint_gui();
     void paint_compute_pipeline_gui();
 
-    void compute_mipmaps_for_texture(const webgpu::raii::Texture* texture);
 
     void set_max_zoom_level(uint32_t max_zoom_level);
 
@@ -129,7 +125,7 @@ private:
     void update_compute_pipeline_settings();
     void update_settings_and_rerun_pipeline(const std::string& entry_node = "");
 
-    std::unique_ptr<webgpu::raii::TextureWithSampler> create_overlay_texture(unsigned int width, unsigned int height);
+    std::unique_ptr<webgpu::raii::TextureWithSampler> create_overlay_texture(unsigned int width, unsigned int height, bool linear_interpolation = true);
     void update_image_overlay_texture(const std::string& image_file_path);
     bool update_image_overlay_aabb(const radix::geometry::Aabb<2, double>& aabb);
     void update_image_overlay_aabb_and_focus(const std::string& aabb_file_path);
@@ -138,7 +134,6 @@ private:
     void update_compute_overlay_texture(const webgpu::raii::TextureWithSampler& texture_with_sampler);
     void update_compute_overlay_aabb(const radix::geometry::Aabb<2, double>& aabb);
 
-    void load_eval_dir(const std::string& path);
 
     void after_first_frame();
 
@@ -178,6 +173,7 @@ private:
     bool m_first_paint = true;
     bool m_is_first_pipeline_run = true;
     uint32_t m_paint_number = 0;
+    std::string m_last_dialog_directory = ".";
 
     std::unique_ptr<TrackRenderer> m_track_renderer;
 
@@ -187,17 +183,10 @@ private:
     bool m_is_region_selected = false;
     GuiErrorState m_gui_error_state;
 
-    std::vector<compute::nodes::RequestTilesNode::RequestTilesNodeSettings> m_tile_source_settings = {
-        compute::nodes::RequestTilesNode::RequestTilesNodeSettings(),
-        compute::nodes::RequestTilesNode::RequestTilesNodeSettings {
-            .tile_path = "https://alpinemaps.cg.tuwien.ac.at/tiles/alpine_png/",
-            .url_pattern = nucleus::tile::TileLoadService::UrlPattern::ZXY,
-            .file_extension = ".png",
-        },
-    };
-
     std::unique_ptr<webgpu::raii::TextureWithSampler> m_image_overlay_texture;
     std::unique_ptr<Buffer<ImageOverlaySettings>> m_image_overlay_settings_uniform_buffer;
+    std::string m_image_overlay_texture_path;
+    bool m_image_overlay_linear_interpolation = true;
 
     std::unique_ptr<webgpu::raii::TextureWithSampler> m_compute_overlay_dummy_texture;
     std::unique_ptr<Buffer<ImageOverlaySettings>> m_compute_overlay_settings_uniform_buffer;
@@ -212,25 +201,7 @@ private:
     bool m_should_render_node_graph = false;
 #endif
 
-    bool paint_legend_gui(float& min_value, float& max_value, bool& bin_interpolation, const std::string& unit = "");
 
-    // ToDo: THE FOLLOWING IS A HACK UNTIL WE CAN MODIFY THE NODE GRAPH DIRECTLY
-    void rewire_buffer_to_texture_node();
-    struct computeLayer {
-        std::string name;
-        std::string socket_name;
-        std::string unit;
-    };
-    const std::vector<computeLayer> m_compute_overlay_layers = {
-        { "Speed", "layer1_zdelta", " m/s" },
-        { "Cell Counts", "layer2_cellCounts", "" },
-        { "Travel Length", "layer3_travelLength", " m" },
-        { "Travel Angle", "layer4_travelAngle", " °" },
-        { "Altitude Difference", "layer5_altitudeDifference", " hm" },
-    };
-    size_t m_current_compute_color_layer_index = 0;
-    size_t m_current_compute_alpha_layer_index = 1;
-    // === UNTIL HERE ===
 };
 
 } // namespace webgpu_engine

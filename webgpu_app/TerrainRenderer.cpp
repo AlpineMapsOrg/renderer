@@ -124,7 +124,7 @@ void TerrainRenderer::render_gui()
     ImGui::Checkbox("Repaint each frame", &m_force_repaint);
     ImGui::Text("Repaint-Counter: %d", m_repaint_count);
 
-    if (ImGui::Button("Reload shaders [F5]", ImVec2(350, 20))) {
+    if (ImGui::Button("Reload shaders [F5]", ImVec2(350, 0))) {
         m_webgpu_window->reload_shaders();
     }
 #endif
@@ -282,12 +282,12 @@ void TerrainRenderer::start() {
     // clang-format on
 
 #ifdef ALP_WEBGPU_APP_ENABLE_IMGUI
-    m_gui_manager = std::make_unique<GuiManager>(this);
+    m_gui_manager = std::make_unique<ImGuiManager>(this);
 #endif
 
     m_input_mapper = std::make_unique<InputMapper>(this, m_camera_controller.get(), m_gui_manager.get(), [this]() { return m_viewport_size; });
 
-    // TODO connect this (is used from GuiManager to update camera when settings are changed)
+    // TODO connect this (is used from ImGuiManager to update camera when settings are changed)
     //  connect(this, &TerrainRenderer::update_camera_requested, camera_controller, &nucleus::camera::Controller::update_camera_request);
     connect(m_webgpu_window.get(),
         &webgpu_engine::Window::set_camera_definition_requested,
@@ -574,7 +574,10 @@ void TerrainRenderer::webgpu_create_context()
     required_limits.minStorageBufferOffsetAlignment = supported_limits.minStorageBufferOffsetAlignment;
     required_limits.minUniformBufferOffsetAlignment = supported_limits.minUniformBufferOffsetAlignment;
     required_limits.maxInterStageShaderVariables = WGPU_LIMIT_U32_UNDEFINED; // required for current version of  Chrome Canary (2025-04-03)
-    required_limits.maxBufferSize = 2 * 1073741824ull; // 2 GiB
+    constexpr uint64_t desired_max_buffer_size = 2 * 1073741824ull; // 2 GiB
+    if (supported_limits.maxBufferSize < desired_max_buffer_size)
+        qWarning() << "Adapter maxBufferSize" << supported_limits.maxBufferSize << "is below the desired" << desired_max_buffer_size << ". cloud rendering might fail.";
+    required_limits.maxBufferSize = std::min(supported_limits.maxBufferSize, desired_max_buffer_size);
 
     // Let the engine change the required limits
     m_webgpu_window->update_required_gpu_limits(required_limits, supported_limits);

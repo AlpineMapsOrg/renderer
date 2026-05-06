@@ -134,6 +134,7 @@ void setup_darkmode_imgui_style()
     style.GrabRounding = 0.0f;
     style.ScrollbarRounding = 0.0f;
     style.TabRounding = 0.0f;
+    style.FramePadding = ImVec2(8.0f, 5.0f);
 #endif
 }
 

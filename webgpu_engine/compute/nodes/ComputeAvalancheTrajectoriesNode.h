@@ -31,15 +31,13 @@ class ComputeAvalancheTrajectoriesNode : public Node {
     Q_OBJECT
 
 public:
+    NODE_TYPE_NAME(ComputeAvalancheTrajectoriesNode)
+
     static glm::uvec3 SHADER_WORKGROUP_SIZE; // TODO currently hardcoded in shader! can we somehow not hardcode it? maybe using overrides
 
     enum PhysicsModelType : uint32_t {
-        PHYSICS_SIMPLE = 0,
+        WEBIGEO_AVALANCHE_SIMULATION = 0,
         PHYSICS_LESS_SIMPLE = 1,
-        GRADIENT = 2,
-        DISCRETIZED_GRADIENT = 3,
-        D8_NO_WEIGHTS = 4,
-        D8_WEIGHTS = 5,
     };
 
     enum FrictionModelType : uint32_t {
@@ -50,21 +48,11 @@ public:
         SamosAt = 3,
     };
 
-    struct ModelPhysicsSimpleParams {
-        float slowdown_coefficient = 0.0033f;
-        float speedup_coefficient = 0.12f;
-    };
-
     struct ModelPhysicsLessSimpleParams {
         float gravity = 9.81f;
         float mass = 10.0f;
         float friction_coeff = 0.155f;
         float drag_coeff = 4000.f;
-    };
-
-    struct ModelD8WithWeightsParams {
-        std::array<float, 8> weights = { 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f };
-        float center_height_offset = 1.0f;
     };
 
     struct RunoutPerlaParams {
@@ -76,7 +64,7 @@ public:
 
     /* FlowPy runout model */
     struct RunoutFlowPyParams {
-        float alpha = glm::radians(25.0f);
+        float alpha = 25.0f; // in degrees
     };
 
     struct OutputLayerParams {
@@ -110,9 +98,7 @@ public:
         float persistence_contribution = 0.2f;
 
         PhysicsModelType active_model;
-        ModelPhysicsSimpleParams model1;
         ModelPhysicsLessSimpleParams model2;
-        ModelD8WithWeightsParams model_d8_with_weights;
 
         FrictionModelType active_runout_model = FrictionModelType::VoellmyMinShear;
         RunoutPerlaParams runout_perla;
@@ -140,16 +126,11 @@ private:
         // ^^ 4 byte ^^
 
         PhysicsModelType physics_model_type;
-        float model1_linear_drag_coeff;
-        float model1_downward_acceleration_coeff;
         float model2_gravity;
-        // ^^ 4 byte ^^
         float model2_mass;
         float model2_friction_coeff;
-        float model2_drag_coeff;
-        float model_d8_with_weights_center_height_offset;
         // ^^ 4 byte ^^
-        float model_d8_with_weights_weights[8];
+        float model2_drag_coeff;
 
         FrictionModelType runout_model_type;
 
@@ -165,6 +146,7 @@ private:
         // ^^ 8 byte ^^
 
         uint32_t random_seed;
+        uint32_t _pad = 0; // struct size must be a multiple of its alignment (8 bytes from vec2u/vec2f)
     };
 
 public:

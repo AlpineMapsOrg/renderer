@@ -105,7 +105,7 @@ void WebigeoApp::update_settings(const Settings& node_graph_settings)
 
     trajectory_settings.active_runout_model = static_cast<ComputeAvalancheTrajectoriesNode::FrictionModelType>(node_graph_settings.friction_model_type);
     trajectory_settings.runout_flowpy = {};
-    trajectory_settings.runout_flowpy.alpha = glm::radians(node_graph_settings.max_runout_angle);
+    trajectory_settings.runout_flowpy.alpha = node_graph_settings.max_runout_angle;
     trajectory_settings.runout_perla = {};
 
     trajectory_settings.active_model = static_cast<ComputeAvalancheTrajectoriesNode::PhysicsModelType>(node_graph_settings.model_type);
@@ -114,7 +114,7 @@ void WebigeoApp::update_settings(const Settings& node_graph_settings)
     // trajectory_settings.model2.gravity = node_graph_settings.slab_thickness;
     // trajectory_settings.model2.mass = node_graph_settings.density;
 
-    auto& trajectories_node = m_node_graph->get_node_as<ComputeAvalancheTrajectoriesNode>("compute_avalanche_trajectories_node");
+    auto& trajectories_node = m_node_graph->get_node_as<ComputeAvalancheTrajectoriesNode>("avalanche_trajectories_node");
     trajectories_node.set_settings(trajectory_settings);
     {
         BufferToTextureNode& node = m_node_graph->get_node_as<BufferToTextureNode>("buffer_to_texture_node");

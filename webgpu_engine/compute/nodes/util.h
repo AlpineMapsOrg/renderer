@@ -18,7 +18,7 @@
 
 #pragma once
 
-#include "NodeGraph.h"
+#include "../NodeGraph.h"
 
 namespace webgpu_engine::compute::nodes {
 

@@ -18,6 +18,7 @@
  *****************************************************************************/
 
 #include "BufferToTextureNode.h"
+#include "webgpu/raii/Texture.h"
 
 namespace webgpu_engine::compute::nodes {
 
@@ -47,7 +48,7 @@ BufferToTextureNode::BufferToTextureNode(const PipelineManager& pipeline_manager
 
 void BufferToTextureNode::run_impl()
 {
-    qDebug() << "running BufferToTextureNode ...";
+
     const auto input_raster_dimensions = std::get<data_type<glm::uvec2>()>(input_socket("raster dimensions").get_connected_data());
     const auto& input_storage_buffer = *std::get<data_type<webgpu::raii::RawBuffer<uint32_t>*>()>(input_socket("storage buffer").get_connected_data());
     const auto& input_transparency_buffer = *std::get<data_type<webgpu::raii::RawBuffer<uint32_t>*>()>(input_socket("transparency buffer").get_connected_data());
@@ -57,9 +58,8 @@ void BufferToTextureNode::run_impl()
 
     // assert input textures have same size, otherwise fail run
     if (input_raster_dimensions.x > MAX_TEXTURE_RESOLUTION || input_raster_dimensions.y > MAX_TEXTURE_RESOLUTION) {
-        emit run_failed(NodeRunFailureInfo(*this,
-            std::format(
-                "cannot create texture: texture dimensions ({}x{}) exceed {}", input_raster_dimensions.x, input_raster_dimensions.y, MAX_TEXTURE_RESOLUTION)));
+        fail_run(std::format(
+                "cannot create texture: texture dimensions ({}x{}) exceed {}", input_raster_dimensions.x, input_raster_dimensions.y, MAX_TEXTURE_RESOLUTION));
         return;
     }
 
@@ -101,7 +101,7 @@ void BufferToTextureNode::run_impl()
     const auto on_work_done
         = []([[maybe_unused]] WGPUQueueWorkDoneStatus status, [[maybe_unused]] WGPUStringView message, void* userdata, [[maybe_unused]] void* userdata2) {
               BufferToTextureNode* _this = reinterpret_cast<BufferToTextureNode*>(userdata);
-              emit _this->run_completed();
+              _this->complete_run();
           };
 
     WGPUQueueWorkDoneCallbackInfo callback_info {
@@ -124,20 +124,6 @@ void BufferToTextureNode::update_gpu_settings()
     m_settings_uniform.update_gpu_data(m_queue);
 }
 
-uint32_t bit_width(uint32_t m)
-{
-    if (m == 0)
-        return 0;
-    else {
-        uint32_t w = 0;
-        while (m >>= 1)
-            ++w;
-        return w;
-    }
-}
-
-uint32_t getMaxMipLevelCount(const glm::uvec2 textureSize) { return std::max(1u, bit_width(std::max(textureSize.x, textureSize.y))); }
-
 std::unique_ptr<webgpu::raii::TextureWithSampler> BufferToTextureNode::create_texture(WGPUDevice device, uint32_t width, uint32_t height, BufferToTextureSettings& settings)
 {
     // create output texture
@@ -145,7 +131,7 @@ std::unique_ptr<webgpu::raii::TextureWithSampler> BufferToTextureNode::create_te
     texture_desc.label = WGPUStringView { .data = "buffer to texture output texture", .length = WGPU_STRLEN };
     texture_desc.dimension = WGPUTextureDimension::WGPUTextureDimension_2D;
     texture_desc.size = { width, height, 1 };
-    texture_desc.mipLevelCount = settings.create_mipmaps ? getMaxMipLevelCount(glm::uvec2(width, height)) : 1;
+    texture_desc.mipLevelCount = settings.create_mipmaps ? webgpu::raii::Texture::max_mip_level_count(glm::uvec2(width, height)) : 1;
     texture_desc.sampleCount = 1;
     texture_desc.format = settings.texture_format;
     texture_desc.usage = settings.texture_usage;

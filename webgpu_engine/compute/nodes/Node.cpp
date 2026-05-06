@@ -78,7 +78,7 @@ const std::vector<InputSocket*>& OutputSocket::connected_sockets() const { retur
 Data OutputSocket::get_data()
 {
     Data output = m_output_func();
-    assert(output.index() == type()); // implementation returned correct type
+    assert(output.index() == type());
     return output;
 }
 
@@ -96,94 +96,108 @@ NodeRunFailureInfo::NodeRunFailureInfo(const Node& node, const std::string& mess
 }
 
 const std::string& NodeRunFailureInfo::message() const { return m_message; }
-
 const Node& NodeRunFailureInfo::node() const { return *m_node; }
 
 Node::Node(const std::vector<InputSocket>& input_sockets, const std::vector<OutputSocket>& output_sockets)
     : m_input_sockets(input_sockets)
     , m_output_sockets(output_sockets)
 {
-
-    connect(this, &webgpu_engine::compute::nodes::Node::run_started, this, [this]() { this->m_last_run_started = std::chrono::high_resolution_clock::now(); });
-    connect(
-        this, &webgpu_engine::compute::nodes::Node::run_completed, this, [this]() { this->m_last_run_finished = std::chrono::high_resolution_clock::now(); });
-    connect(this, &webgpu_engine::compute::nodes::Node::run_completed, this, [this]() {
-        if (is_enabled()) {
-            m_last_run_duration_in_ms = std::chrono::duration_cast<std::chrono::milliseconds>(m_last_run_finished - m_last_run_started).count();
-            m_is_running = false;
-            qDebug() << " node execution took " << this->m_last_run_duration_in_ms << "ms";
-        }
-    });
 }
 
-void Node::run()
+void Node::rerun() { run(m_run_context); }
+
+void Node::run(webgpu_engine::compute::GraphRunContext context)
 {
+    if (m_is_running) {
+        m_pending_contexts.push(context);
+        return;
+    }
+    m_run_context = context;
     if (m_enabled) {
-        emit run_started();
         m_is_running = true;
+        m_last_run_started = std::chrono::high_resolution_clock::now();
+        qDebug() << m_node_name << "started (run" << m_run_context.run_id << ")";
+        emit run_started();
         run_impl();
     } else {
-        emit run_completed();
+        emit run_completed(m_run_context);
+        process_pending();
+    }
+}
+
+void Node::complete_run()
+{
+    m_last_run_finished = std::chrono::high_resolution_clock::now();
+    m_last_run_duration_in_ms = static_cast<int>(
+        std::chrono::duration_cast<std::chrono::milliseconds>(m_last_run_finished - m_last_run_started).count());
+    m_is_running = false;
+    qDebug() << m_node_name << "done. Execution took" << m_last_run_duration_in_ms << "ms (run " << m_run_context.run_id << ")";
+    emit run_completed(m_run_context);
+    process_pending();
+}
+
+void Node::fail_run(const std::string& message)
+{
+    m_is_running = false;
+    while (!m_pending_contexts.empty())
+        m_pending_contexts.pop();
+    emit run_failed(NodeRunFailureInfo(*this, message));
+}
+
+void Node::process_pending()
+{
+    if (!m_pending_contexts.empty()) {
+        GraphRunContext next = m_pending_contexts.front();
+        m_pending_contexts.pop();
+        run(next);
     }
 }
 
 bool Node::has_input_socket(const std::string& name) const
 {
-    const auto it = std::find_if(m_input_sockets.begin(), m_input_sockets.end(), [&name](const InputSocket& socket) { return socket.name() == name; });
-    return it != m_input_sockets.end();
+    return std::find_if(m_input_sockets.begin(), m_input_sockets.end(), [&name](const InputSocket& s) { return s.name() == name; }) != m_input_sockets.end();
 }
 
 InputSocket& Node::input_socket(const std::string& name)
 {
-    const auto it = std::find_if(m_input_sockets.begin(), m_input_sockets.end(), [&name](const InputSocket& socket) { return socket.name() == name; });
-    if (it == m_input_sockets.end()) {
-        // TODO throw runtime error
+    auto it = std::find_if(m_input_sockets.begin(), m_input_sockets.end(), [&name](const InputSocket& s) { return s.name() == name; });
+    if (it == m_input_sockets.end())
         qWarning() << "input socket with name '" << name << "' not found";
-    }
     return *it;
 }
 
 const InputSocket& Node::input_socket(const std::string& name) const
 {
-    const auto it = std::find_if(m_input_sockets.begin(), m_input_sockets.end(), [&name](const InputSocket& socket) { return socket.name() == name; });
-    if (it == m_input_sockets.end()) {
-        // TODO throw runtime error
+    auto it = std::find_if(m_input_sockets.begin(), m_input_sockets.end(), [&name](const InputSocket& s) { return s.name() == name; });
+    if (it == m_input_sockets.end())
         qFatal() << "input socket with name '" << name << "' not found";
-    }
     return *it;
 }
 
 bool Node::has_output_socket(const std::string& name) const
 {
-    const auto it = std::find_if(m_output_sockets.begin(), m_output_sockets.end(), [&name](const OutputSocket& socket) { return socket.name() == name; });
-    return it != m_output_sockets.end();
+    return std::find_if(m_output_sockets.begin(), m_output_sockets.end(), [&name](const OutputSocket& s) { return s.name() == name; }) != m_output_sockets.end();
 }
 
 OutputSocket& Node::output_socket(const std::string& name)
 {
-    const auto it = std::find_if(m_output_sockets.begin(), m_output_sockets.end(), [&name](const OutputSocket& socket) { return socket.name() == name; });
-    if (it == m_output_sockets.end()) {
-        // TODO throw runtime error
+    auto it = std::find_if(m_output_sockets.begin(), m_output_sockets.end(), [&name](const OutputSocket& s) { return s.name() == name; });
+    if (it == m_output_sockets.end())
         qFatal() << "output socket with name '" << name << "' not found";
-    }
     return *it;
 }
 
 const OutputSocket& Node::output_socket(const std::string& name) const
 {
-    const auto it = std::find_if(m_output_sockets.begin(), m_output_sockets.end(), [&name](const OutputSocket& socket) { return socket.name() == name; });
-    if (it == m_output_sockets.end()) {
+    auto it = std::find_if(m_output_sockets.begin(), m_output_sockets.end(), [&name](const OutputSocket& s) { return s.name() == name; });
+    if (it == m_output_sockets.end())
         qFatal() << "output socket with name '" << name << "' not found";
-    }
     return *it;
 }
 
 std::vector<InputSocket>& Node::input_sockets() { return m_input_sockets; }
-
 const std::vector<InputSocket>& Node::input_sockets() const { return m_input_sockets; }
-
 std::vector<OutputSocket>& Node::output_sockets() { return m_output_sockets; }
-
 const std::vector<OutputSocket>& Node::output_sockets() const { return m_output_sockets; }
 
 Data Node::get_output_data(const std::string& output_socket_name)
@@ -201,16 +215,16 @@ Data Node::get_input_data(const std::string& input_socket_name)
         qFatal() << "input socket with name '" << input_socket_name << "' not found";
         return {};
     }
-    Data result = input_socket(input_socket_name).connected_socket().get_data();
-    return result;
+    return input_socket(input_socket_name).connected_socket().get_data();
 }
 
 int Node::get_last_run_duration_in_ms() const { return m_last_run_duration_in_ms; }
-
 bool Node::is_enabled() const { return m_enabled; }
-
 void Node::set_enabled(bool enabled) { m_enabled = enabled; }
-
 bool Node::is_running() const { return m_is_running; }
+void Node::set_node_name(const std::string& name) { m_node_name = name; }
+const std::string& Node::get_node_name() const { return m_node_name; }
+uint64_t Node::get_run_id() const { return m_run_context.run_id; }
+const std::string& Node::get_run_datetime() const { return m_run_context.run_datetime; }
 
 } // namespace webgpu_engine::compute::nodes

@@ -23,6 +23,7 @@
 #include "nucleus/utils/ColourTexture3D.h"
 
 #include <QDebug>
+#include <bit>
 #include <nucleus/utils/image_writer.h>
 
 namespace webgpu::raii {
@@ -90,6 +91,12 @@ uint8_t Texture::get_bytes_per_element(WGPUTextureFormat format)
 }
 
 const uint16_t Texture::BYTES_PER_ROW_PADDING = 256u;
+
+uint32_t Texture::max_mip_level_count(glm::uvec2 size)
+{
+    const uint32_t m = std::max(size.x, size.y);
+    return std::max<uint32_t>(1u, std::bit_width(m));
+}
 
 void Texture::write(WGPUQueue queue, const nucleus::utils::ColourTexture& data, uint32_t layer)
 {

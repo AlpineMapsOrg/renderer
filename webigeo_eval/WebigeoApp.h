@@ -23,7 +23,7 @@
 
 #include <webgpu_engine/Context.h>
 #include <webgpu_engine/PipelineManager.h>
-#include <webgpu_engine/compute/nodes/NodeGraph.h>
+#include <webgpu_engine/compute/NodeGraph.h>
 
 #include "Settings.h"
 

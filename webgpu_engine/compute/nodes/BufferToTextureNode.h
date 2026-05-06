@@ -42,6 +42,8 @@ class BufferToTextureNode : public Node {
     Q_OBJECT
 
 public:
+    NODE_TYPE_NAME(BufferToTextureNode)
+
     static glm::uvec3 SHADER_WORKGROUP_SIZE; // TODO currently hardcoded in shader! can we somehow not hardcode it? maybe using overrides
 
     static const uint32_t MAX_TEXTURE_RESOLUTION;

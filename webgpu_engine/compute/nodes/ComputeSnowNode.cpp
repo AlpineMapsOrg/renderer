@@ -51,7 +51,7 @@ ComputeSnowNode::ComputeSnowNode(const PipelineManager& pipeline_manager, WGPUDe
 
 void ComputeSnowNode::run_impl()
 {
-    qDebug() << "running SnowComputeNode ...";
+
 
     // read input data from input sockets
     const auto& bounds = *std::get<data_type<const radix::geometry::Aabb<2, double>*>()>(input_socket("bounds").get_connected_data());
@@ -117,7 +117,7 @@ void ComputeSnowNode::run_impl()
     const auto on_work_done
         = []([[maybe_unused]] WGPUQueueWorkDoneStatus status, [[maybe_unused]] WGPUStringView message, void* userdata, [[maybe_unused]] void* userdata2) {
               ComputeSnowNode* _this = reinterpret_cast<ComputeSnowNode*>(userdata);
-              emit _this->run_completed();
+              _this->complete_run();
           };
 
     WGPUQueueWorkDoneCallbackInfo callback_info {

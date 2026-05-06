@@ -29,6 +29,8 @@ class ComputeSnowNode : public Node {
     Q_OBJECT
 
 public:
+    NODE_TYPE_NAME(ComputeSnowNode)
+
     static glm::uvec3 SHADER_WORKGROUP_SIZE; // TODO currently hardcoded in shader! can we somehow not hardcode it? maybe using overrides
 
     struct SnowSettings {
@@ -69,6 +71,7 @@ public:
     ComputeSnowNode(const PipelineManager& pipeline_manager, WGPUDevice device, const SnowSettings& settings);
 
     void set_snow_settings(const SnowSettings& settings) { m_settings = settings; }
+    const SnowSettings& get_snow_settings() const { return m_settings; }
 
 public slots:
     void run_impl() override;

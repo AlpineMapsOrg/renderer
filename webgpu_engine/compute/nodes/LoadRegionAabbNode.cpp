@@ -40,18 +40,18 @@ void LoadRegionAabbNode::set_settings(const LoadRegionAabbNodeSettings& settings
 
 void LoadRegionAabbNode::run_impl()
 {
-    qDebug() << "running LoadRegionAabbNode ...";
+
     qDebug() << "loading region aabb txt file from " << m_settings.file_path;
 
     tl::expected<radix::geometry::Aabb<2, double>, std::string> expected_region_aabb = load_aabb_from_file(m_settings.file_path);
 
     if (!expected_region_aabb.has_value()) {
-        emit run_failed(NodeRunFailureInfo(*this, std::format("Failed to load aabb region file from {}: {}", m_settings.file_path, expected_region_aabb.error())));
+        fail_run(std::format("Failed to load aabb region file from {}: {}", m_settings.file_path, expected_region_aabb.error()));
         return;
     }
 
     m_output_bounds = expected_region_aabb.value();
-    emit run_completed();
+    complete_run();
 }
 
 tl::expected<radix::geometry::Aabb<2, double>, std::string> LoadRegionAabbNode::load_aabb_from_file(const std::string& file_path) { return load_aabb_from_file(QString::fromStdString(file_path)); }

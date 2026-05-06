@@ -19,7 +19,7 @@
 
 #pragma once
 
-#include "GuiManager.h"
+#include "ImGuiManager.h"
 #include "InputMapper.h"
 #include <SDL2/SDL.h>
 #include <memory>
@@ -60,7 +60,7 @@ public:
     void update_camera();
 
     [[nodiscard]] InputMapper* get_input_mapper() { return m_input_mapper.get(); }
-    [[nodiscard]] GuiManager* get_gui_manager() { return m_gui_manager.get(); }
+    [[nodiscard]] ImGuiManager* get_gui_manager() { return m_gui_manager.get(); }
     [[nodiscard]] webgpu::timing::GuiTimerManager* get_timer_manager() { return m_timer_manager.get(); }
     [[nodiscard]] webgpu_engine::Window* get_webgpu_window() { return m_webgpu_window.get(); }
     [[nodiscard]] RenderingContext* get_rendering_context() { return m_context.get(); }
@@ -81,7 +81,7 @@ private:
     std::unique_ptr<RenderingContext> m_context;
 
     std::unique_ptr<InputMapper> m_input_mapper;
-    std::unique_ptr<GuiManager> m_gui_manager;
+    std::unique_ptr<ImGuiManager> m_gui_manager;
     std::unique_ptr<webgpu::timing::GuiTimerManager> m_timer_manager;
 
     WGPUInstanceDescriptor m_instance_desc;

@@ -45,6 +45,7 @@ public:
     };
 
     static uint8_t get_bytes_per_element(WGPUTextureFormat format);
+    static uint32_t max_mip_level_count(glm::uvec2 size);
 
     static const uint16_t BYTES_PER_ROW_PADDING;
 
