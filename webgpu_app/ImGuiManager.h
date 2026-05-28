@@ -18,6 +18,7 @@
 
 #pragma once
 
+#include <QObject>
 #include <SDL2/SDL.h>
 #include <webgpu/webgpu.h>
 
@@ -31,7 +32,8 @@ namespace webgpu_app {
 
 class TerrainRenderer;
 
-class ImGuiManager {
+class ImGuiManager : public QObject {
+    Q_OBJECT
 public:
     explicit ImGuiManager(TerrainRenderer* terrain_renderer);
 

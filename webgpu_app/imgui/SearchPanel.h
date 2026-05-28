@@ -1,6 +1,5 @@
 /*****************************************************************************
  * weBIGeo
- * Copyright (C) 2026 Gerald Kimmersdorfer
  * Copyright (C) 2026 Patrick Komon
  *
  * This program is free software: you can redistribute it and/or modify
@@ -20,22 +19,38 @@
 #pragma once
 
 #include <QObject>
+#include <imgui.h>
+
+#include "ImGuiPanel.h"
+#include "SearchService.h"
 
 namespace webgpu_app {
 
-class ImGuiPanel : public QObject {
+class TerrainRenderer; // fwd decl
+
+class SearchPanel : public ImGuiPanel {
     Q_OBJECT
 public:
-    virtual ~ImGuiPanel() = default;
+    explicit SearchPanel(TerrainRenderer* renderer);
 
-    // Called once on the first rendered frame
-    virtual void on_first_frame() {}
+    void draw() override;
 
-    // Called outside the main sidebar window
-    virtual void draw() {}
+public slots:
+    void display_search_results(const std::vector<webgpu_app::SearchResult>& search_results);
 
-    // Called inside the main sidebar ImGui::Begin/End block
-    virtual void draw_panel() {}
+signals:
+    void search_requested(const std::string& searchText);
+    void search_result_selected(double latitude, double longitude);
+
+private:
+    void draw_open_search_button();
+    void draw_search_popup();
+
+private:
+    TerrainRenderer* m_terrain_renderer;
+    std::vector<SearchResult> m_search_results;
+    bool m_open_search_window = false;
+    bool m_set_focus_on_text = false;
 };
 
 } // namespace webgpu_app

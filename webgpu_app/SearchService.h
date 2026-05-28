@@ -1,6 +1,5 @@
 /*****************************************************************************
  * weBIGeo
- * Copyright (C) 2026 Gerald Kimmersdorfer
  * Copyright (C) 2026 Patrick Komon
  *
  * This program is free software: you can redistribute it and/or modify
@@ -19,23 +18,39 @@
 
 #pragma once
 
+#include <QNetworkAccessManager>
+#include <QNetworkReply>
 #include <QObject>
+#include <string>
 
 namespace webgpu_app {
 
-class ImGuiPanel : public QObject {
+struct SearchResult {
+    std::string name;
+
+    // TODO use classes that already exist in nucleus if there is any?
+    double longitude;
+    double latitude;
+};
+
+class SearchService : public QObject {
     Q_OBJECT
+
 public:
-    virtual ~ImGuiPanel() = default;
+    SearchService();
 
-    // Called once on the first rendered frame
-    virtual void on_first_frame() {}
+public slots:
+    void search(const std::string& search_term);
 
-    // Called outside the main sidebar window
-    virtual void draw() {}
+signals:
+    void search_results_arrived(const std::vector<webgpu_app::SearchResult>& results);
 
-    // Called inside the main sidebar ImGui::Begin/End block
-    virtual void draw_panel() {}
+private slots:
+    void http_reply_received(QNetworkReply* reply);
+
+private:
+    std::unique_ptr<QNetworkAccessManager> m_network_manager;
+    size_t m_limit = 15;
 };
 
 } // namespace webgpu_app

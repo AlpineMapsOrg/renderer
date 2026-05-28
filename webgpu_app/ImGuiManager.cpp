@@ -24,19 +24,20 @@
 #include "imgui/ImGuiPanel.h"
 
 #ifdef ALP_WEBGPU_APP_ENABLE_IMGUI
-#include "imgui/TimingPanel.h"
-#include "imgui/CameraPanel.h"
-#include "imgui/AppPanel.h"
-#include "imgui/CloudPanel.h"
-#include "imgui/IlluminationPanel.h"
-#include "imgui/EnginePanel.h"
-#include "imgui/AboutPanel.h"
-#include "imgui/CompassPanel.h"
-#include "imgui/LogoPanel.h"
-#include <imgui_internal.h>
 #include "backends/imgui_impl_sdl2.h"
 #include "backends/imgui_impl_wgpu.h"
+#include "imgui/AboutPanel.h"
+#include "imgui/AppPanel.h"
+#include "imgui/CameraPanel.h"
+#include "imgui/CloudPanel.h"
+#include "imgui/CompassPanel.h"
+#include "imgui/EnginePanel.h"
+#include "imgui/IlluminationPanel.h"
+#include "imgui/LogoPanel.h"
+#include "imgui/SearchPanel.h"
+#include "imgui/TimingPanel.h"
 #include <IconsFontAwesome5.h>
+#include <imgui_internal.h>
 #include <imnodes.h>
 #endif
 
@@ -84,12 +85,22 @@ void ImGuiManager::init(
     m_panels.push_back(std::make_unique<LogoPanel>(m_device));
     m_panels.push_back(std::make_unique<CompassPanel>(m_terrain_renderer));
     m_panels.push_back(std::make_unique<AboutPanel>());
+    m_panels.push_back(std::make_unique<SearchPanel>(m_terrain_renderer));
+    SearchPanel& search_panel = static_cast<SearchPanel&>(**(m_panels.end() - 1));
     m_panels.push_back(std::make_unique<TimingPanel>(m_terrain_renderer));
     m_panels.push_back(std::make_unique<CameraPanel>(m_terrain_renderer));
     m_panels.push_back(std::make_unique<AppPanel>(m_terrain_renderer));
     m_panels.push_back(std::make_unique<CloudPanel>(rc->clouds_manager(), engine_ctx->cloud_geometry()));
     m_panels.push_back(std::make_unique<IlluminationPanel>(engine_ctx));
     m_panels.push_back(std::make_unique<EnginePanel>(m_terrain_renderer));
+
+    connect(&search_panel, &SearchPanel::search_requested, rc->search_service(), &SearchService::search);
+    connect(&search_panel,
+        &SearchPanel::search_result_selected,
+        m_terrain_renderer->get_camera_controller(),
+        &nucleus::camera::Controller::fly_to_latitude_longitude);
+    connect(rc->search_service(), &SearchService::search_results_arrived, &search_panel, &SearchPanel::display_search_results);
+
 #endif
 }
 

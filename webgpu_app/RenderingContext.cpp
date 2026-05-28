@@ -99,6 +99,8 @@ RenderingContext::RenderingContext()
             m_cloud_scheduler_holder.scheduler->set_enabled(true);
         });
     });
+
+    m_search_service = std::make_unique<SearchService>();
 }
 
 void RenderingContext::initialize(WGPUInstance webgpu_instance, WGPUDevice webgpu_device)
@@ -196,5 +198,6 @@ nucleus::tile::TileLoadService* RenderingContext::cloud_tile_load_service() { re
 
 clouds::Manager* RenderingContext::clouds_manager() { return m_clous_manager.get(); }
 
+SearchService* RenderingContext::search_service() { return m_search_service.get(); }
 
 } // namespace webgpu_app

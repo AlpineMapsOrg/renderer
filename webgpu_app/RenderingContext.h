@@ -25,6 +25,7 @@
 #include <memory>
 
 #include "CloudsManager.h"
+#include "SearchService.h"
 #include "nucleus/tile/SchedulerDirector.h"
 #include "nucleus/tile/setup.h"
 #include "webgpu/webgpu.h"
@@ -69,6 +70,7 @@ public:
     nucleus::tile::TileLoadService* ortho_tile_load_service();
     nucleus::tile::TileLoadService* cloud_tile_load_service();
     clouds::Manager* clouds_manager();
+    SearchService* search_service();
 
 signals:
     void initialised();
@@ -83,6 +85,7 @@ private:
     nucleus::tile::setup::Texture3DSchedulerHolder m_cloud_scheduler_holder;
     std::unique_ptr<nucleus::tile::SchedulerDirector> m_scheduler_director;
     std::unique_ptr<clouds::Manager> m_clous_manager;
+    std::unique_ptr<SearchService> m_search_service;
 
     std::unique_ptr<QThread> m_scheduler_thread;
 };

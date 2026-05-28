@@ -17,6 +17,7 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *****************************************************************************/
 
+#include "SearchService.h"
 #include "TerrainRenderer.h"
 #include "util/error_logging.h"
 #include <QCoreApplication>
