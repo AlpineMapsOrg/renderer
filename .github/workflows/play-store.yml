@@ -1,0 +1,186 @@
+name: "Play Store"
+
+on:
+  push:
+    branches: [ "main" ]
+    tags: [ "*" ]
+  workflow_dispatch:
+
+concurrency:
+  group: play-store-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  check_release_tag:
+    if: github.repository == 'AlpineMapsOrg/renderer'
+    runs-on: ubuntu-24.04
+    outputs:
+      tagged: ${{ steps.release_tag.outputs.tagged }}
+      tag: ${{ steps.release_tag.outputs.tag }}
+
+    steps:
+    - name: Clone repository
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+        fetch-tags: true
+
+    - name: Check release tag
+      id: release_tag
+      shell: bash
+      run: |
+        TAGS="$(git tag --points-at HEAD | sort -V)"
+        if [ -z "$TAGS" ]; then
+          echo "No tag points at HEAD; skipping Play Store deployment."
+          echo "tagged=false" >> "$GITHUB_OUTPUT"
+          exit 0
+        fi
+
+        TAG="$(echo "$TAGS" | tail -n 1)"
+        echo "Deploying tag $TAG to Google Play."
+        echo "tagged=true" >> "$GITHUB_OUTPUT"
+        echo "tag=$TAG" >> "$GITHUB_OUTPUT"
+
+  build-aab:
+    if: needs.check_release_tag.outputs.tagged == 'true'
+    needs:
+    - check_release_tag
+    runs-on: ubuntu-24.04
+    env:
+      QT_VERSION: '6.8.1'
+      QT_MODULES: 'qtcharts qtpositioning'
+
+    steps:
+    - name: Install dependencies
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y build-essential ninja-build openjdk-17-jdk
+        echo "JAVA_HOME=/usr/lib/jvm/java-17-openjdk-amd64/" >> $GITHUB_ENV
+
+    - uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+        fetch-tags: true
+
+    - name: Install Qt native version
+      uses: jurplel/install-qt-action@v4
+      with:
+        aqtversion: '==3.1.*'
+        version: ${{ env.QT_VERSION }}
+        host: 'linux'
+        target: 'desktop'
+        arch: 'linux_gcc_64'
+        dir: '${{github.workspace}}/qt'
+        install-deps: 'true'
+        cache: true
+
+    - name: Set QT_HOST_ROOT_DIR
+      run: echo "QT_HOST_ROOT_DIR=${QT_ROOT_DIR}" >> "$GITHUB_ENV"
+
+    - name: Install Qt Android arm64-v8a
+      uses: jurplel/install-qt-action@v4
+      with:
+        aqtversion: '==3.1.*'
+        version: ${{ env.QT_VERSION }}
+        host: linux
+        target: android
+        arch: android_arm64_v8a
+        dir: '${{github.workspace}}/qt'
+        install-deps: 'true'
+        modules: ${{ env.QT_MODULES }}
+        cache: true
+
+    - name: Set QT_ANDROID_ROOT_DIR
+      run: echo "QT_ANDROID_ROOT_DIR=${QT_ROOT_DIR}" >> "$GITHUB_ENV"
+
+    - name: Install Qt Android armv7
+      uses: jurplel/install-qt-action@v4
+      with:
+        aqtversion: '==3.1.*'
+        version: ${{ env.QT_VERSION }}
+        host: linux
+        target: android
+        arch: android_armv7
+        dir: '${{github.workspace}}/qt'
+        install-deps: 'true'
+        modules: ${{ env.QT_MODULES }}
+        cache: true
+
+    - name: Make qt cross binaries executable
+      run: chmod u+x ${QT_ANDROID_ROOT_DIR}/bin/*
+
+    - name: Setup signing keys
+      shell: bash
+      env:
+        KEYSTORE_PASSWORD: ${{ secrets.KEYSTOREPASSWORD }}
+      run: |
+        if [ -z "${KEYSTORE_PASSWORD}" ]; then
+          echo "KEYSTOREPASSWORD is required for Play Store AAB uploads."
+          exit 1
+        fi
+
+        echo "${{ secrets.SIGNINGKEYBASE64 }}" > release.keystore.base64
+        base64 -d release.keystore.base64 > release.keystore
+        echo "QT_ANDROID_KEYSTORE_PATH=$(pwd)/release.keystore" >> "$GITHUB_ENV"
+        echo "QT_ANDROID_KEYSTORE_ALIAS=alpinemaps" >> "$GITHUB_ENV"
+        echo "QT_ANDROID_KEYSTORE_STORE_PASS=${KEYSTORE_PASSWORD}" >> "$GITHUB_ENV"
+        echo "QT_ANDROID_KEYSTORE_KEY_PASS=${KEYSTORE_PASSWORD}" >> "$GITHUB_ENV"
+
+    - name: Configure
+      shell: bash
+      env:
+        CMAKE_PREFIX_PATH: ${{ env.QT_ANDROID_ROOT_DIR }}/lib/cmake
+      run: |
+        BUILD_DIR="${{ github.workspace }}/build-play-store-aab"
+        echo "BUILD_DIR=$BUILD_DIR" >> "$GITHUB_ENV"
+
+        ${QT_ANDROID_ROOT_DIR}/bin/qt-cmake \
+          -G Ninja \
+          -B "${BUILD_DIR}" \
+          -DQT_HOST_PATH="${QT_HOST_ROOT_DIR}" \
+          -DCMAKE_BUILD_TYPE=Release \
+          -DQT_ANDROID_SIGN_AAB=ON \
+          -DQT_ANDROID_BUILD_ALL_ABIS=ON \
+          -DQT_USE_TARGET_ANDROID_BUILD_DIR:BOOL=ON \
+          -S "${{ github.workspace }}"
+
+    - name: Build AAB
+      run: cmake --build "$BUILD_DIR" --target alpineapp_make_aab
+
+    - name: Copy Play Store AAB
+      run: |
+        PLAY_STORE_DIR="${{ github.workspace }}/play-store"
+        mkdir -p "$PLAY_STORE_DIR"
+        find "$BUILD_DIR/app" -type f -iname "*.aab" -exec cp {} "$PLAY_STORE_DIR" \;
+        find "$PLAY_STORE_DIR" -type f -iname "*.aab"
+
+    - name: Create Play Store artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: play_store_aab
+        path: ${{ github.workspace }}/play-store/
+        if-no-files-found: error
+
+  deploy:
+    if: needs.check_release_tag.outputs.tagged == 'true'
+    needs:
+    - check_release_tag
+    - build-aab
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Download Play Store artifacts
+      uses: actions/download-artifact@v4
+      with:
+        pattern: play_store_aab
+        path: ${{ github.workspace }}/play-store
+        merge-multiple: true
+
+    - name: Upload to Google Play
+      uses: r0adkll/upload-google-play@v1
+      with:
+        serviceAccountJsonPlainText: ${{ secrets.GOOGLE_PLAY_SERVICE_ACCOUNT_JSON }}
+        packageName: 'org.alpinemaps.app'
+        releaseFiles: ${{ github.workspace }}/play-store/**/*.aab
+        track: 'alpha'
+        releaseName: ${{ needs.check_release_tag.outputs.tag }}
