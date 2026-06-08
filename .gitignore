@@ -3,3 +3,4 @@
 /doc/*
 /doc
 /build/*
+/.qtcreator/CMakeLists.txt.user
