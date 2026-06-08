@@ -107,7 +107,7 @@ std::unique_ptr<Scheduler> scheduler_with_aabb()
 QByteArray example_tile_data()
 {
     auto height_file = QFile(QString("%1%2").arg(ALP_TEST_DATA_DIR, "test-tile_ortho.jpeg"));
-    height_file.open(QFile::ReadOnly);
+    REQUIRE(height_file.open(QFile::ReadOnly));
     const auto height_bytes = height_file.readAll();
     REQUIRE(!QImage::fromData(height_bytes).isNull());
     return height_bytes;
