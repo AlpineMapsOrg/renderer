@@ -2,7 +2,6 @@ name: "Play Store"
 
 on:
   push:
-    branches: [ "main" ]
     tags: [ "*" ]
   workflow_dispatch:
 
@@ -139,39 +138,30 @@ jobs:
           -B "${BUILD_DIR}" \
           -DQT_HOST_PATH="${QT_HOST_ROOT_DIR}" \
           -DCMAKE_BUILD_TYPE=Release \
-          -DQT_ANDROID_SIGN_AAB=ON \
+          -DQT_ANDROID_SIGN_APK:BOOL=ON \
+          -DQT_ANDROID_SIGN_AAB:BOOL=ON \
           -DQT_ANDROID_BUILD_ALL_ABIS=ON \
           -DQT_USE_TARGET_ANDROID_BUILD_DIR:BOOL=ON \
           -S "${{ github.workspace }}"
 
     - name: Build AAB
-      run: cmake --build "$BUILD_DIR" --target alpineapp_make_aab
+      run: cmake --build "$BUILD_DIR" --config Release --target alpineapp_make_aab
 
-    - name: Sign Play Store AAB
+    - name: Copy Play Store AAB
       shell: bash
       run: |
         PLAY_STORE_DIR="${{ github.workspace }}/play-store"
         mkdir -p "$PLAY_STORE_DIR"
 
-        mapfile -t AABS < <(find "$BUILD_DIR/app" -type f -iname "*.aab")
+        mapfile -t AABS < <(find "$BUILD_DIR/app" -type f -path "*/build/outputs/bundle/release/*-release.aab")
         if [ "${#AABS[@]}" -ne 1 ]; then
-          echo "Expected exactly one AAB, found ${#AABS[@]}."
+          echo "Expected exactly one release AAB, found ${#AABS[@]}."
           printf '%s\n' "${AABS[@]}"
           exit 1
         fi
 
-        SIGNED_AAB="$PLAY_STORE_DIR/alpineapp-${{ needs.check_release_tag.outputs.tag }}.aab"
-        jarsigner \
-          -sigalg SHA256withRSA \
-          -digestalg SHA-256 \
-          -keystore "$QT_ANDROID_KEYSTORE_PATH" \
-          -storepass "$QT_ANDROID_KEYSTORE_STORE_PASS" \
-          -keypass "$QT_ANDROID_KEYSTORE_KEY_PASS" \
-          -signedjar "$SIGNED_AAB" \
-          "${AABS[0]}" \
-          "$QT_ANDROID_KEYSTORE_ALIAS"
-
-        jarsigner -verify -verbose -certs "$SIGNED_AAB"
+        cp "${AABS[0]}" "$PLAY_STORE_DIR/alpineapp-${{ needs.check_release_tag.outputs.tag }}.aab"
+        jarsigner -verify -verbose -certs "$PLAY_STORE_DIR/alpineapp-${{ needs.check_release_tag.outputs.tag }}.aab"
         find "$PLAY_STORE_DIR" -type f -iname "*.aab"
 
     - name: Create Play Store artifact
