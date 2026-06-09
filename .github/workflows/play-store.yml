@@ -147,11 +147,31 @@ jobs:
     - name: Build AAB
       run: cmake --build "$BUILD_DIR" --target alpineapp_make_aab
 
-    - name: Copy Play Store AAB
+    - name: Sign Play Store AAB
+      shell: bash
       run: |
         PLAY_STORE_DIR="${{ github.workspace }}/play-store"
         mkdir -p "$PLAY_STORE_DIR"
-        find "$BUILD_DIR/app" -type f -iname "*.aab" -exec cp {} "$PLAY_STORE_DIR" \;
+
+        mapfile -t AABS < <(find "$BUILD_DIR/app" -type f -iname "*.aab")
+        if [ "${#AABS[@]}" -ne 1 ]; then
+          echo "Expected exactly one AAB, found ${#AABS[@]}."
+          printf '%s\n' "${AABS[@]}"
+          exit 1
+        fi
+
+        SIGNED_AAB="$PLAY_STORE_DIR/alpineapp-${{ needs.check_release_tag.outputs.tag }}.aab"
+        jarsigner \
+          -sigalg SHA256withRSA \
+          -digestalg SHA-256 \
+          -keystore "$QT_ANDROID_KEYSTORE_PATH" \
+          -storepass "$QT_ANDROID_KEYSTORE_STORE_PASS" \
+          -keypass "$QT_ANDROID_KEYSTORE_KEY_PASS" \
+          -signedjar "$SIGNED_AAB" \
+          "${AABS[0]}" \
+          "$QT_ANDROID_KEYSTORE_ALIAS"
+
+        jarsigner -verify -verbose -certs "$SIGNED_AAB"
         find "$PLAY_STORE_DIR" -type f -iname "*.aab"
 
     - name: Create Play Store artifact
@@ -182,5 +202,5 @@ jobs:
         serviceAccountJsonPlainText: ${{ secrets.GOOGLE_PLAY_SERVICE_ACCOUNT_JSON }}
         packageName: 'org.alpinemaps.app'
         releaseFiles: ${{ github.workspace }}/play-store/**/*.aab
-        track: 'alpha'
+        tracks: 'alpha'
         releaseName: ${{ needs.check_release_tag.outputs.tag }}
