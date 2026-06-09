@@ -9,6 +9,9 @@ on:
 concurrency:
   group: windows-${{ github.event_name }}-${{ github.ref }}
   cancel-in-progress: true
+
+permissions:
+  contents: read
   
 jobs:
   build:
@@ -18,7 +21,7 @@ jobs:
             shell: 'powershell'
 
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v6
       with:
         submodules: 'true'
 
@@ -26,14 +29,11 @@ jobs:
       run: |
         Get-Content .github/ci-versions.env | Add-Content $env:GITHUB_ENV
 
-    - name: Install ninja-build tool (must be after Qt due PATH changes)
-      uses: turtlesec-no/get-ninja@main
-
     - name: Make sure MSVC is found when Ninja generator is in use
       uses: ilammy/msvc-dev-cmd@v1
         
-    - name: Install 7zip
-      run: choco install 7zip.install
+    - name: Install tools
+      run: choco install 7zip.install ninja
       
     - name: Install Mesa
       shell: cmd
@@ -61,7 +61,7 @@ jobs:
         CMAKE_PREFIX_PATH: ${{env.QT_ROOT_DIR}}/lib/cmake
       run: >
         cmake -G Ninja
-        -DCMAKE_BUILD_TYPE=${{env.BUILD_TYPE}}
+        -DCMAKE_BUILD_TYPE=Debug
         -DALP_ENABLE_POSITIONING=false
         -DALP_ENABLE_ASSERTS=ON
         -B ./build

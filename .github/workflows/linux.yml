@@ -9,6 +9,9 @@ on:
 concurrency:
   group: linux-${{ github.event_name }}-${{ github.ref }}
   cancel-in-progress: true
+
+permissions:
+  contents: read
   
 jobs:
   build:
@@ -16,7 +19,7 @@ jobs:
       fail-fast: false
       matrix:
         compiler: [gcc12, clang17, clang19]
-        build_type: [Release]
+        build_type: [Debug]
         include:
           - compiler: gcc12
             CC: "/usr/bin/gcc-12"
@@ -31,7 +34,7 @@ jobs:
     runs-on: ubuntu-24.04
 
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v6
       with:
         submodules: 'true'
 
@@ -89,7 +92,6 @@ jobs:
         -DALP_ENABLE_ASSERTS=ON
         -DALP_ENABLE_ADDRESS_SANITIZER=ON
         -DALP_ENABLE_APP_SHUTDOWN_AFTER_60S=ON
-        -DCMAKE_BUILD_TYPE=Debug
         -DALP_USE_LLVM_LINKER=ON
         -B ./build
 
