@@ -214,7 +214,7 @@ jobs:
     - name: Load CI versions
       run: cat .github/ci-versions.env >> "$GITHUB_ENV"
 
-    - uses: mymindstorm/setup-emsdk@v15
+    - uses: mymindstorm/setup-emsdk@v16
       with:
         version: ${{ env.WEBASSEMBLY_VERSION }}
 
