@@ -22,6 +22,10 @@ jobs:
       with:
         submodules: 'true'
 
+    - name: Load CI versions
+      run: |
+        Get-Content .github/ci-versions.env | Add-Content $env:GITHUB_ENV
+
     - name: Install ninja-build tool (must be after Qt due PATH changes)
       uses: turtlesec-no/get-ninja@main
 
@@ -42,14 +46,14 @@ jobs:
     - name: Install Qt
       uses: jurplel/install-qt-action@v4
       with:
-        aqtversion: '==3.1.*'
-        version: '6.8.1'
+        aqtversion: ${{ env.AQT_VERSION }}
+        version: ${{ env.QT_VERSION }}
         host: windows
         target: 'desktop'
         arch: 'win64_msvc2022_64'
         dir: '${{github.workspace}}/qt'
         install-deps: 'true'
-        modules: 'qtcharts qtpositioning'
+        modules: ${{ env.QT_MODULES }}
         cache: true
     
     - name: Configure
