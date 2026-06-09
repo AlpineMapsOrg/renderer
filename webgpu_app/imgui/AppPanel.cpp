@@ -23,8 +23,8 @@
 #include <IconsFontAwesome5.h>
 #include <imgui.h>
 
-#include "../TerrainRenderer.h"
 #include "../RenderingContext.h"
+#include "../TerrainRenderer.h"
 #include <QDebug>
 
 namespace webgpu_app {
@@ -34,7 +34,7 @@ AppPanel::AppPanel(TerrainRenderer* terrain_renderer)
 {
 }
 
-void AppPanel::on_first_frame()
+void AppPanel::ready()
 {
     m_terrain_renderer->get_webgpu_window()->set_max_zoom_level(m_max_zoom_level);
     m_terrain_renderer->get_camera_controller()->update();

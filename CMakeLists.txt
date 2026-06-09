@@ -19,13 +19,12 @@
 #############################################################################
 
 cmake_minimum_required(VERSION 3.25)
-project(alpine-renderer LANGUAGES CXX)
+project(alpine-renderer LANGUAGES C CXX)
 
 option(ALP_UNITTESTS "include unit test targets in the buildsystem" OFF)
 option(ALP_GL_ENGINE "include the gl engine in the buildsystem" OFF)
 option(ALP_WEBGPU_ENGINE "include the webgpu engine in the buildsystem" ON)
 option(ALP_WEBGPU_APP "include the webgpu app in the buildsystem" ON)
-option(ALP_WEBIGEO_EVAL "include the webigeo eval cli in the buildsystem" OFF)
 option(ALP_PLAIN_RENDERER "include the plain renderer in the buildsystem" OFF)
 option(ALP_QML_APP "include the qml app in the buildsystem" OFF)
 
@@ -143,7 +142,5 @@ if (ALP_WEBGPU_APP OR ALP_WEBGPU_ENGINE)
     if (ALP_WEBGPU_APP)
         add_subdirectory(webgpu_app)
     endif()
-    if (ALP_WEBIGEO_EVAL)
-        add_subdirectory(webigeo_eval)
-    endif()
+
 endif()

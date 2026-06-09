@@ -23,21 +23,24 @@
 
 namespace webgpu_engine {
 class CloudRenderer;
-}
+class Context;
+} // namespace webgpu_engine
 
 namespace webgpu_app {
 
 namespace clouds {
-class Manager;
+    class Manager;
 }
 
 class CloudPanel : public ImGuiPanel {
 public:
-    CloudPanel(clouds::Manager* clouds_manager, webgpu_engine::CloudRenderer* cloud_renderer);
+    CloudPanel(webgpu_engine::Context* context, clouds::Manager* clouds_manager, webgpu_engine::CloudRenderer* cloud_renderer);
 
+    void draw() override;
     void draw_panel() override;
 
 private:
+    webgpu_engine::Context* m_context;
     clouds::Manager* m_clouds_manager;
     webgpu_engine::CloudRenderer* m_cloud_renderer;
 };

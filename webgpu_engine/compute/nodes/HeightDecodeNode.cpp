@@ -24,26 +24,57 @@ namespace webgpu_engine::compute::nodes {
 
 glm::uvec3 HeightDecodeNode::SHADER_WORKGROUP_SIZE = { 16, 16, 1 };
 
-webgpu_engine::compute::nodes::HeightDecodeNode::HeightDecodeNode(const PipelineManager& manager, WGPUDevice device, HeightDecodeSettings settings)
-    : Node(
-          {
-              InputSocket(*this, "encoded texture", data_type<const webgpu::raii::TextureWithSampler*>()),
-              InputSocket(*this, "region aabb", data_type<const radix::geometry::Aabb<2, double>*>()),
-          },
-          {
-              OutputSocket(*this, "decoded texture", data_type<const webgpu::raii::TextureWithSampler*>(), [this]() { return m_output_texture.get(); }),
-          })
-    , m_pipeline_manager(&manager)
-    , m_device(device)
-    , m_queue(wgpuDeviceGetQueue(m_device))
-    , m_settings(settings)
-    , m_settings_uniform(m_device, WGPUBufferUsage_Uniform | WGPUBufferUsage_CopyDst)
+HeightDecodeNode::HeightDecodeNode(webgpu::Context& ctx)
+    : HeightDecodeNode(ctx, HeightDecodeSettings {})
 {
+}
+
+webgpu_engine::compute::nodes::HeightDecodeNode::HeightDecodeNode(webgpu::Context& ctx, HeightDecodeSettings settings)
+    : Node(
+        {
+            InputSocket(*this, "encoded texture", data_type<const webgpu::raii::TextureWithSampler*>()),
+            InputSocket(*this, "region aabb", data_type<const radix::geometry::Aabb<2, double>*>()),
+        },
+        {
+            OutputSocket(*this, "decoded texture", data_type<const webgpu::raii::TextureWithSampler*>(), [this]() { return m_output_texture.get(); }),
+        })
+    , m_ctx(&ctx)
+    , m_settings(settings)
+    , m_settings_uniform(m_ctx->device(), WGPUBufferUsage_Uniform | WGPUBufferUsage_CopyDst)
+{
+    auto& reg = ctx.resource_registry();
+    reg.register_shader("height_decode_compute", "compute/height_decode_compute.wgsl");
+    reg.register_bind_group_layout("height_decode_compute", [](WGPUDevice dev) {
+        WGPUBindGroupLayoutEntry e0 {};
+        e0.binding = 0;
+        e0.visibility = WGPUShaderStage_Compute;
+        e0.buffer.type = WGPUBufferBindingType_Uniform;
+
+        WGPUBindGroupLayoutEntry e1 {};
+        e1.binding = 1;
+        e1.visibility = WGPUShaderStage_Compute;
+        e1.storageTexture.access = WGPUStorageTextureAccess_ReadOnly;
+        e1.storageTexture.format = WGPUTextureFormat_RGBA8Uint;
+        e1.storageTexture.viewDimension = WGPUTextureViewDimension_2D;
+
+        WGPUBindGroupLayoutEntry e2 {};
+        e2.binding = 2;
+        e2.visibility = WGPUShaderStage_Compute;
+        e2.storageTexture.access = WGPUStorageTextureAccess_WriteOnly;
+        e2.storageTexture.format = WGPUTextureFormat_R32Float;
+        e2.storageTexture.viewDimension = WGPUTextureViewDimension_2D;
+
+        return std::make_unique<webgpu::raii::BindGroupLayout>(
+            dev, std::vector<WGPUBindGroupLayoutEntry> { e0, e1, e2 }, "height decode compute bind group layout");
+    });
+    reg.register_pipeline([this](WGPUDevice device, const webgpu::RenderResourceRegistry& reg) {
+        m_pipeline = std::make_unique<webgpu::raii::CombinedComputePipeline>(
+            device, reg.shader("height_decode_compute"), std::vector<const webgpu::raii::BindGroupLayout*> { &reg.bind_group_layout("height_decode_compute") });
+    });
 }
 
 void HeightDecodeNode::run_impl()
 {
-
 
     const auto region_aabb = std::get<data_type<const radix::geometry::Aabb<2, double>*>()>(input_socket("region aabb").get_connected_data());
     const auto& input_texture = *std::get<data_type<const webgpu::raii::TextureWithSampler*>()>(input_socket("encoded texture").get_connected_data());
@@ -72,12 +103,12 @@ void HeightDecodeNode::run_impl()
     sampler_desc.compare = WGPUCompareFunction::WGPUCompareFunction_Undefined;
     sampler_desc.maxAnisotropy = 1;
 
-    m_output_texture = std::make_unique<webgpu::raii::TextureWithSampler>(m_device, texture_desc, sampler_desc);
+    m_output_texture = std::make_unique<webgpu::raii::TextureWithSampler>(m_ctx->device(), texture_desc, sampler_desc);
 
     // update bounding box
     m_settings_uniform.data.aabb_min = glm::uvec2(region_aabb->min);
     m_settings_uniform.data.aabb_max = glm::uvec2(region_aabb->max);
-    m_settings_uniform.update_gpu_data(m_queue);
+    m_settings_uniform.update_gpu_data(m_ctx->queue());
 
     // create bind group
     // TODO re-create bind groups only when input handles change
@@ -87,12 +118,12 @@ void HeightDecodeNode::run_impl()
         m_output_texture->texture_view().create_bind_group_entry(2),
     };
     webgpu::raii::BindGroup compute_bind_group(
-        m_device, m_pipeline_manager->height_decode_compute_bind_group_layout(), entries, "compute controller bind group");
+        m_ctx->device(), m_ctx->resource_registry().bind_group_layout("height_decode_compute"), entries, "compute controller bind group");
 
     {
         WGPUCommandEncoderDescriptor descriptor {};
         descriptor.label = WGPUStringView { .data = "compute controller command encoder", .length = WGPU_STRLEN };
-        webgpu::raii::CommandEncoder encoder(m_device, descriptor);
+        webgpu::raii::CommandEncoder encoder(m_ctx->device(), descriptor);
 
         {
             WGPUComputePassDescriptor compute_pass_desc {};
@@ -101,33 +132,15 @@ void HeightDecodeNode::run_impl()
 
             glm::uvec3 workgroup_counts = glm::ceil(glm::vec3(size.x, size.y, 1) / glm::vec3(SHADER_WORKGROUP_SIZE));
             wgpuComputePassEncoderSetBindGroup(compute_pass.handle(), 0, compute_bind_group.handle(), 0, nullptr);
-            m_pipeline_manager->height_decode_compute_pipeline().run(compute_pass, workgroup_counts);
+            m_pipeline->run(compute_pass, workgroup_counts);
         }
 
         WGPUCommandBufferDescriptor cmd_buffer_descriptor {};
         cmd_buffer_descriptor.label = WGPUStringView { .data = "HeightDecode command buffer", .length = WGPU_STRLEN };
         WGPUCommandBuffer command = wgpuCommandEncoderFinish(encoder.handle(), &cmd_buffer_descriptor);
-        wgpuQueueSubmit(m_queue, 1, &command);
+        wgpuQueueSubmit(m_ctx->queue(), 1, &command);
         wgpuCommandBufferRelease(command);
     }
-
-    /*const auto on_work_done
-        = []([[maybe_unused]] WGPUQueueWorkDoneStatus status, [[maybe_unused]] WGPUStringView message, void* userdata, [[maybe_unused]] void* userdata2) {
-              //auto* _this = static_cast<HeightDecodeNode*>(userdata);
-              // auto& tex = _this->m_output_texture->texture();
-              // tex.save_to_file(_this->m_device, "C:\\tmp\\asd2.png");
-              //emit _this->run_completed();
-          };
-
-    WGPUQueueWorkDoneCallbackInfo callback_info {
-        .nextInChain = nullptr,
-        .mode = WGPUCallbackMode_AllowProcessEvents,
-        .callback = on_work_done,
-        .userdata1 = this,
-        .userdata2 = nullptr,
-    };
-
-    wgpuQueueOnSubmittedWorkDone(m_queue, callback_info);*/
 
     // NOTE: Maybe this needs to be inside onsubmittedworkdone callback? But technically
     // I don't think we should wait for the queue...

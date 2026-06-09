@@ -51,6 +51,8 @@ private slots:
 private:
     std::unique_ptr<QNetworkAccessManager> m_network_manager;
     size_t m_limit = 15;
+    // server-side filtering via Nominatim countrycodes parameter
+    std::string m_region_country_code = "at"; // only search in Austria
 };
 
 } // namespace webgpu_app

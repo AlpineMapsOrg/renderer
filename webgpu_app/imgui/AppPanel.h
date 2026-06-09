@@ -29,7 +29,7 @@ class AppPanel : public ImGuiPanel {
 public:
     explicit AppPanel(TerrainRenderer* terrain_renderer);
 
-    void on_first_frame() override;
+    void ready() override;
     void draw_panel() override;
 
 private:

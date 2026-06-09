@@ -1,6 +1,7 @@
 /*****************************************************************************
  * weBIGeo
  * Copyright (C) 2026 Patrick Komon
+ * Copyright (C) 2026 Gerald Kimmersdorfer
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -43,14 +44,14 @@ signals:
     void search_result_selected(double latitude, double longitude);
 
 private:
-    void draw_open_search_button();
-    void draw_search_popup();
-
-private:
+    void select_result(const SearchResult& result);
     TerrainRenderer* m_terrain_renderer;
     std::vector<SearchResult> m_search_results;
-    bool m_open_search_window = false;
-    bool m_set_focus_on_text = false;
+    std::array<char, 128> m_search_buffer {};
+    bool m_set_focus_on_text = true;
+    bool m_is_active = false;
+    bool m_show_no_results = false;
+    bool m_clear_input_requested = false;
 };
 
 } // namespace webgpu_app

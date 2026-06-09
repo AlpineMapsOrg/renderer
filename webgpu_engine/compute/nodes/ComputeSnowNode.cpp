@@ -25,33 +25,69 @@ namespace webgpu_engine::compute::nodes {
 
 glm::uvec3 ComputeSnowNode::SHADER_WORKGROUP_SIZE = { 1, 16, 16 };
 
-ComputeSnowNode::ComputeSnowNode(const PipelineManager& pipeline_manager, WGPUDevice device)
-    : ComputeSnowNode(pipeline_manager, device, SnowSettings())
+ComputeSnowNode::ComputeSnowNode(webgpu::Context& ctx)
+    : ComputeSnowNode(ctx, SnowSettings())
 {
 }
 
-ComputeSnowNode::ComputeSnowNode(const PipelineManager& pipeline_manager, WGPUDevice device, const SnowSettings& settings)
+ComputeSnowNode::ComputeSnowNode(webgpu::Context& ctx, const SnowSettings& settings)
     : Node(
-          {
-              InputSocket(*this, "bounds", data_type<const radix::geometry::Aabb<2, double>*>()),
-              InputSocket(*this, "normal texture", data_type<const webgpu::raii::TextureWithSampler*>()),
-              InputSocket(*this, "height texture", data_type<const webgpu::raii::TextureWithSampler*>()),
-          },
-          {
-              OutputSocket(*this, "snow texture", data_type<const webgpu::raii::TextureWithSampler*>(), [this]() { return m_output_snow_texture.get(); }),
-          })
-    , m_pipeline_manager { &pipeline_manager }
-    , m_device { device }
-    , m_queue(wgpuDeviceGetQueue(m_device))
+        {
+            InputSocket(*this, "bounds", data_type<const radix::geometry::Aabb<2, double>*>()),
+            InputSocket(*this, "normal texture", data_type<const webgpu::raii::TextureWithSampler*>()),
+            InputSocket(*this, "height texture", data_type<const webgpu::raii::TextureWithSampler*>()),
+        },
+        {
+            OutputSocket(*this, "snow texture", data_type<const webgpu::raii::TextureWithSampler*>(), [this]() { return m_output_snow_texture.get(); }),
+        })
+    , m_ctx(&ctx)
     , m_settings { settings }
-    , m_snow_settings_uniform_buffer(device, WGPUBufferUsage_CopyDst | WGPUBufferUsage_Uniform)
-    , m_region_bounds_uniform_buffer(device, WGPUBufferUsage_CopyDst | WGPUBufferUsage_Uniform)
+    , m_snow_settings_uniform_buffer(ctx.device(), WGPUBufferUsage_CopyDst | WGPUBufferUsage_Uniform)
+    , m_region_bounds_uniform_buffer(ctx.device(), WGPUBufferUsage_CopyDst | WGPUBufferUsage_Uniform)
 {
+    auto& reg = ctx.resource_registry();
+    reg.register_shader("snow_compute", "compute/snow_compute.wgsl");
+    reg.register_bind_group_layout("snow_compute", [](WGPUDevice dev) {
+        WGPUBindGroupLayoutEntry e0 {};
+        e0.binding = 0;
+        e0.visibility = WGPUShaderStage_Compute;
+        e0.buffer.type = WGPUBufferBindingType_Uniform;
+
+        WGPUBindGroupLayoutEntry e1 {};
+        e1.binding = 1;
+        e1.visibility = WGPUShaderStage_Compute;
+        e1.buffer.type = WGPUBufferBindingType_Uniform;
+
+        WGPUBindGroupLayoutEntry e2 {};
+        e2.binding = 2;
+        e2.visibility = WGPUShaderStage_Compute;
+        e2.texture.sampleType = WGPUTextureSampleType_Float;
+        e2.texture.viewDimension = WGPUTextureViewDimension_2D;
+
+        WGPUBindGroupLayoutEntry e3 {};
+        e3.binding = 3;
+        e3.visibility = WGPUShaderStage_Compute;
+        e3.texture.sampleType = WGPUTextureSampleType_UnfilterableFloat;
+        e3.texture.viewDimension = WGPUTextureViewDimension_2D;
+
+        WGPUBindGroupLayoutEntry e4 {};
+        e4.binding = 4;
+        e4.visibility = WGPUShaderStage_Compute;
+        e4.storageTexture.access = WGPUStorageTextureAccess_WriteOnly;
+        e4.storageTexture.format = WGPUTextureFormat_RGBA8Unorm;
+        e4.storageTexture.viewDimension = WGPUTextureViewDimension_2D;
+
+        return std::make_unique<webgpu::raii::BindGroupLayout>(
+            dev, std::vector<WGPUBindGroupLayoutEntry> { e0, e1, e2, e3, e4 }, "snow compute bind group layout");
+    });
+    reg.register_pipeline([this](WGPUDevice device, const webgpu::RenderResourceRegistry& reg) {
+        m_pipeline = std::make_unique<webgpu::raii::CombinedComputePipeline>(
+            device, reg.shader("snow_compute"), std::vector<const webgpu::raii::BindGroupLayout*> { &reg.bind_group_layout("snow_compute") });
+    });
 }
 
 void ComputeSnowNode::run_impl()
 {
-
 
     // read input data from input sockets
     const auto& bounds = *std::get<data_type<const radix::geometry::Aabb<2, double>*>()>(input_socket("bounds").get_connected_data());
@@ -60,7 +96,7 @@ void ComputeSnowNode::run_impl()
 
     // create output texture
     m_output_snow_texture = create_snow_texture(
-        m_device, uint32_t(heights_texture.texture().width()), uint32_t(heights_texture.texture().height()), m_settings.format, m_settings.usage);
+        m_ctx->device(), uint32_t(heights_texture.texture().width()), uint32_t(heights_texture.texture().height()), m_settings.format, m_settings.usage);
 
     // update uniform buffer
     m_snow_settings_uniform_buffer.data.angle.x = 1.0f; // always enabled, does not matter for compute
@@ -71,11 +107,11 @@ void ComputeSnowNode::run_impl()
     m_snow_settings_uniform_buffer.data.alt.y = m_settings.altitude_variation;
     m_snow_settings_uniform_buffer.data.alt.z = m_settings.altitude_blend;
     m_snow_settings_uniform_buffer.data.alt.w = 0.0f; // specular, does not matter for compute
-    m_snow_settings_uniform_buffer.update_gpu_data(m_queue);
+    m_snow_settings_uniform_buffer.update_gpu_data(m_ctx->queue());
 
     m_region_bounds_uniform_buffer.data.aabb_min = glm::fvec2(bounds.min);
     m_region_bounds_uniform_buffer.data.aabb_max = glm::fvec2(bounds.max);
-    m_region_bounds_uniform_buffer.update_gpu_data(m_queue);
+    m_region_bounds_uniform_buffer.update_gpu_data(m_ctx->queue());
 
     // create bind group
     // TODO re-create bind groups only when input handles change
@@ -88,13 +124,14 @@ void ComputeSnowNode::run_impl()
         heights_texture.texture_view().create_bind_group_entry(3),
         m_output_snow_texture->texture_view().create_bind_group_entry(4),
     };
-    webgpu::raii::BindGroup compute_bind_group(m_device, m_pipeline_manager->snow_compute_bind_group_layout(), entries, "snow compute bind group");
+    webgpu::raii::BindGroup compute_bind_group(
+        m_ctx->device(), m_ctx->resource_registry().bind_group_layout("snow_compute"), entries, "snow compute bind group");
 
     // bind GPU resources and run pipeline
     {
         WGPUCommandEncoderDescriptor descriptor {};
         descriptor.label = WGPUStringView { .data = "snow compute command encoder", .length = WGPU_STRLEN };
-        webgpu::raii::CommandEncoder encoder(m_device, descriptor);
+        webgpu::raii::CommandEncoder encoder(m_ctx->device(), descriptor);
 
         {
             WGPUComputePassDescriptor compute_pass_desc {};
@@ -104,13 +141,13 @@ void ComputeSnowNode::run_impl()
             glm::uvec3 workgroup_counts = glm::ceil(
                 glm::vec3(m_output_snow_texture->texture().width(), m_output_snow_texture->texture().height(), 1) / glm::vec3(SHADER_WORKGROUP_SIZE));
             wgpuComputePassEncoderSetBindGroup(compute_pass.handle(), 0, compute_bind_group.handle(), 0, nullptr);
-            m_pipeline_manager->snow_compute_pipeline().run(compute_pass, workgroup_counts);
+            m_pipeline->run(compute_pass, workgroup_counts);
         }
 
         WGPUCommandBufferDescriptor cmd_buffer_descriptor {};
         cmd_buffer_descriptor.label = WGPUStringView { .data = "SnowComputeNode command buffer", .length = WGPU_STRLEN };
         WGPUCommandBuffer command = wgpuCommandEncoderFinish(encoder.handle(), &cmd_buffer_descriptor);
-        wgpuQueueSubmit(m_queue, 1, &command);
+        wgpuQueueSubmit(m_ctx->queue(), 1, &command);
         wgpuCommandBufferRelease(command);
     }
 
@@ -128,7 +165,7 @@ void ComputeSnowNode::run_impl()
         .userdata2 = nullptr,
     };
 
-    wgpuQueueOnSubmittedWorkDone(m_queue, callback_info);
+    wgpuQueueOnSubmittedWorkDone(m_ctx->queue(), callback_info);
 }
 
 std::unique_ptr<webgpu::raii::TextureWithSampler> ComputeSnowNode::create_snow_texture(

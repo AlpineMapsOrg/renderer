@@ -19,8 +19,9 @@
 #pragma once
 
 #include "Node.h"
-#include "PipelineManager.h"
-#include "webgpu_engine/Buffer.h"
+#include <webgpu/Buffer.h>
+#include <webgpu/Context.h>
+#include <webgpu/raii/CombinedComputePipeline.h>
 
 namespace webgpu_engine::compute::nodes {
 
@@ -42,19 +43,19 @@ public:
         glm::vec2 aabb_max;
     };
 
-    HeightDecodeNode(const PipelineManager& manager, WGPUDevice device, HeightDecodeSettings settings);
+    explicit HeightDecodeNode(webgpu::Context& ctx); // default-configured; for the NodeRegistry
+    HeightDecodeNode(webgpu::Context& ctx, HeightDecodeSettings settings);
 
 public slots:
     void run_impl() override;
 
 private:
-    const PipelineManager* m_pipeline_manager;
-    WGPUDevice m_device;
-    WGPUQueue m_queue;
+    webgpu::Context* m_ctx;
 
     HeightDecodeSettings m_settings;
-    webgpu_engine::Buffer<HeightDecodeSettingsUniform> m_settings_uniform;
+    webgpu::Buffer<HeightDecodeSettingsUniform> m_settings_uniform;
     std::unique_ptr<webgpu::raii::TextureWithSampler> m_output_texture;
+    std::unique_ptr<webgpu::raii::CombinedComputePipeline> m_pipeline;
 };
 
 } // namespace webgpu_engine::compute::nodes

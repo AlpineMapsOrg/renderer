@@ -84,7 +84,6 @@ fn octNormalDecode2u16(e: vec2<u32>) -> vec3<f32> {
 
 // Common range constants
 const U32_ENCODING_RANGE_NORM: vec2f = vec2f(0.0, 1.0);
-const U32_ENCODING_RANGE_VALIDATION: vec2f = vec2f(- 10000.0, 10000.0);
 
 // Encodes a float value into a 32-bit unsigned integer using a range
 // - value: Input value to encode

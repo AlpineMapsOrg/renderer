@@ -24,14 +24,15 @@
 #include <SDL2/SDL.h>
 #include <memory>
 
+#include <nucleus/camera/Controller.h>
 #include <nucleus/tile/GeometryScheduler.h>
 #include <nucleus/tile/TextureScheduler.h>
 #include <nucleus/timing/TimerManager.h>
 
-#include <webgpu/webgpu.h>
 #include <webgpu/timing/CpuTimer.h>
 #include <webgpu/timing/GuiTimerManager.h>
 #include <webgpu/timing/WebGpuTimer.h>
+#include <webgpu/webgpu.h>
 
 #include "webgpu_engine/Context.h"
 #include "webgpu_engine/Window.h"
@@ -85,6 +86,8 @@ private:
     std::unique_ptr<webgpu::timing::GuiTimerManager> m_timer_manager;
 
     WGPUInstanceDescriptor m_instance_desc;
+
+    webgpu::Context m_webgpu_ctx;
 
     WGPUInstance m_instance = nullptr;
     WGPUSurface m_surface = nullptr;

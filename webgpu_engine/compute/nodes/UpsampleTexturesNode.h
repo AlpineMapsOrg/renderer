@@ -20,7 +20,8 @@
 
 #include "Node.h"
 #include "webgpu/raii/RawBuffer.h"
-#include "webgpu_engine/PipelineManager.h"
+#include <webgpu/Context.h>
+#include <webgpu/raii/CombinedComputePipeline.h>
 
 namespace webgpu_engine::compute::nodes {
 
@@ -32,15 +33,14 @@ public:
 
     static glm::uvec3 SHADER_WORKGROUP_SIZE; // TODO currently hardcoded in shader! can we somehow not hardcode it? maybe using overrides
 
-    UpsampleTexturesNode(const PipelineManager& pipeline_manager, WGPUDevice device, glm::uvec2 target_resolution, size_t capacity);
+    UpsampleTexturesNode(webgpu::Context& ctx, glm::uvec2 target_resolution, size_t capacity);
 
 public slots:
     void run_impl() override;
 
 private:
-    const PipelineManager* m_pipeline_manager;
-    WGPUDevice m_device;
-    WGPUQueue m_queue;
+    webgpu::Context* m_ctx;
+    std::unique_ptr<webgpu::raii::CombinedComputePipeline> m_pipeline;
 
     glm::uvec2 m_target_resolution;
 

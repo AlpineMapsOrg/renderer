@@ -42,12 +42,32 @@ if (ALP_WEBGPU_APP_ENABLE_IMGUI)
         imgui/CameraPanel.h imgui/CameraPanel.cpp
         imgui/AppPanel.h imgui/AppPanel.cpp
         imgui/CloudPanel.h imgui/CloudPanel.cpp
-        imgui/IlluminationPanel.h imgui/IlluminationPanel.cpp
-        imgui/EnginePanel.h imgui/EnginePanel.cpp
+        imgui/AtmospherePanel.h imgui/AtmospherePanel.cpp
+        imgui/ShadingPanel.h imgui/ShadingPanel.cpp
         imgui/AboutPanel.h imgui/AboutPanel.cpp
         imgui/CompassPanel.h imgui/CompassPanel.cpp
         imgui/LogoPanel.h imgui/LogoPanel.cpp
         imgui/SearchPanel.h imgui/SearchPanel.cpp
+        imgui/OverlaysPanel.h imgui/OverlaysPanel.cpp
+        imgui/TrackPanel.h imgui/TrackPanel.cpp
+        imgui/NodeGraphPanel.h imgui/NodeGraphPanel.cpp
+        imgui/nodes/NodeRenderer.h imgui/nodes/NodeRenderer.cpp
+        imgui/nodes/NodeRendererFactory.h imgui/nodes/NodeRendererFactory.cpp
+        imgui/nodes/ExportNodeRenderer.h imgui/nodes/ExportNodeRenderer.cpp
+        imgui/nodes/OverlayNodeRenderer.h imgui/nodes/OverlayNodeRenderer.cpp
+        imgui/nodes/BufferToTextureNodeRenderer.h imgui/nodes/BufferToTextureNodeRenderer.cpp
+        imgui/nodes/ComputeAvalancheTrajectoriesNodeRenderer.h imgui/nodes/ComputeAvalancheTrajectoriesNodeRenderer.cpp
+        imgui/nodes/ComputeReleasePointsNodeRenderer.h imgui/nodes/ComputeReleasePointsNodeRenderer.cpp
+        imgui/nodes/ComputeSnowNodeRenderer.h imgui/nodes/ComputeSnowNodeRenderer.cpp
+        imgui/nodes/RequestTilesNodeRenderer.h imgui/nodes/RequestTilesNodeRenderer.cpp
+        imgui/nodes/SelectTilesNodeRenderer.h imgui/nodes/SelectTilesNodeRenderer.cpp
+        imgui/nodes/GPXTrackNodeRenderer.h imgui/nodes/GPXTrackNodeRenderer.cpp
+        imgui/overlays/OverlayImGuiRenderer.h imgui/overlays/OverlayImGuiRenderer.cpp
+        imgui/overlays/OverlayImGuiRendererFactory.h imgui/overlays/OverlayImGuiRendererFactory.cpp
+        imgui/overlays/HeightLinesOverlayImGuiRenderer.h imgui/overlays/HeightLinesOverlayImGuiRenderer.cpp
+        imgui/overlays/ScreenSpaceSnowOverlayImGuiRenderer.h imgui/overlays/ScreenSpaceSnowOverlayImGuiRenderer.cpp
+        imgui/overlays/TextureOverlayImGuiRenderer.h imgui/overlays/TextureOverlayImGuiRenderer.cpp
+        imgui/overlays/TileDebugOverlayImGuiRenderer.h imgui/overlays/TileDebugOverlayImGuiRenderer.cpp
         SearchService.h SearchService.cpp
     )
 endif()
@@ -69,6 +89,26 @@ set_target_properties(webgpu_app PROPERTIES
 
 target_link_libraries(webgpu_app PUBLIC webgpu webgpu_engine Qt::Core Qt::Network)
 target_include_directories(webgpu_app PRIVATE .)
+
+if (ALP_WEBGPU_APP_ENABLE_IMGUI)
+    # For Font Awesome Icon Headers:
+    alp_add_git_repository(iconfontcppheaders URL https://github.com/juliettef/IconFontCppHeaders.git COMMITISH f30b1e73b2d71eb331d77619c3f1de34199afc38 DO_NOT_ADD_SUBPROJECT)
+    target_include_directories(webgpu_app PRIVATE ../extern/iconfontcppheaders)
+
+    alp_add_git_repository(imgui URL https://github.com/AlpineMapsOrgDependencies/imgui_slim.git COMMITISH 4d8ecbf58ebf32e757ff56a60f1fb0446033edb8)
+
+    set(IMNODES_IMGUI_TARGET_NAME imgui)
+    set(BUILD_SHARED_LIBS_SAVED ${BUILD_SHARED_LIBS})
+    set(BUILD_SHARED_LIBS OFF)
+    alp_add_git_repository(imnodes URL https://github.com/AlpineMapsOrgDependencies/imnodes_slim.git COMMITISH 324355e64ed8b5bea02fe1439cdcb5c7773b4436)
+    set(BUILD_SHARED_LIBS ${BUILD_SHARED_LIBS_SAVED})
+
+    alp_add_git_repository(ImGuiFileDialog URL https://github.com/AlpineMapsOrgDependencies/ImGuiFileDialog_slim.git COMMITISH 39f98eb131ee00d476f1002336fc7e9e1795ccc5)
+    target_link_libraries(ImGuiFileDialog PRIVATE imgui)
+
+    target_link_libraries(webgpu_app PRIVATE imgui imnodes ImGuiFileDialog)
+    target_compile_definitions(webgpu_app PRIVATE "ALP_WEBGPU_APP_ENABLE_IMGUI")
+endif()
 
 # Copy necessary DLLs to the output directory on Windows
 if (WIN32 AND NOT EMSCRIPTEN)

@@ -23,32 +23,16 @@ struct shared_config {
     amb_light: vec4f,
     material_color: vec4f,
     material_light_response: vec4f,
-    snow_settings_angle: vec4f,
-    snow_settings_alt: vec4f,
 
-    overlay_strength: f32,
-    ssao_falloff_to_value: f32,
     atmosphere_enabled: u32,
     clouds_enabled: u32,
-
-    phong_enabled: u32,
+    shading_enabled: u32,
     normal_mode: u32,
+
     overlay_mode: u32,
-    overlay_postshading_enabled: u32,
-
-    ssao_enabled: u32,
-    ssao_kernel: u32,
-    ssao_range_check: u32,
-    ssao_blur_kernel_size: u32,
-
-    height_lines_enabled: u32,
-    csm_enabled: u32,
-    overlay_shadowmaps_enabled: u32,
     track_render_mode: u32,
-
-    // primary interval, secondary interval, base size, base darkening
-    height_lines_settings: vec4f,
-
+    _padding0: u32,
+    _padding1: u32,
 }
 
 ;

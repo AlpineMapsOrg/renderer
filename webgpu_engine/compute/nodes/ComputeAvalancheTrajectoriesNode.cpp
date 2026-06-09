@@ -25,43 +25,120 @@ namespace webgpu_engine::compute::nodes {
 
 glm::uvec3 ComputeAvalancheTrajectoriesNode::SHADER_WORKGROUP_SIZE = { 16, 16, 1 };
 
-ComputeAvalancheTrajectoriesNode::ComputeAvalancheTrajectoriesNode(const PipelineManager& pipeline_manager, WGPUDevice device)
-    : ComputeAvalancheTrajectoriesNode(pipeline_manager, device, AvalancheTrajectoriesSettings())
+ComputeAvalancheTrajectoriesNode::ComputeAvalancheTrajectoriesNode(webgpu::Context& ctx)
+    : ComputeAvalancheTrajectoriesNode(ctx, AvalancheTrajectoriesSettings())
 {
 }
 
-ComputeAvalancheTrajectoriesNode::ComputeAvalancheTrajectoriesNode(const PipelineManager& pipeline_manager, WGPUDevice device, const AvalancheTrajectoriesSettings& settings)
+ComputeAvalancheTrajectoriesNode::ComputeAvalancheTrajectoriesNode(webgpu::Context& ctx, const AvalancheTrajectoriesSettings& settings)
     : Node(
-          {
-              InputSocket(*this, "region aabb", data_type<const radix::geometry::Aabb<2, double>*>()),
-              InputSocket(*this, "normal texture", data_type<const webgpu::raii::TextureWithSampler*>()),
-              InputSocket(*this, "height texture", data_type<const webgpu::raii::TextureWithSampler*>()),
-              InputSocket(*this, "release point texture", data_type<const webgpu::raii::TextureWithSampler*>()),
-          },
-          {
-              OutputSocket(*this, "storage buffer", data_type<webgpu::raii::RawBuffer<uint32_t>*>(), [this]() { return m_output_storage_buffer.get(); }),
-              OutputSocket(*this, "raster dimensions", data_type<glm::uvec2>(), [this]() { return m_output_dimensions; }),
-              OutputSocket(*this, "layer1_zdelta", data_type<webgpu::raii::RawBuffer<uint32_t>*>(), [this]() { return m_layer1_zdelta_buffer.get(); }),
-              OutputSocket(*this, "layer2_cellCounts", data_type<webgpu::raii::RawBuffer<uint32_t>*>(), [this]() { return m_layer2_cellCounts_buffer.get(); }),
-              OutputSocket(*this, "layer3_travelLength", data_type<webgpu::raii::RawBuffer<uint32_t>*>(), [this]() { return m_layer3_travelLength_buffer.get(); }),
-              OutputSocket(*this, "layer4_travelAngle", data_type<webgpu::raii::RawBuffer<uint32_t>*>(), [this]() { return m_layer4_travelAngle_buffer.get(); }),
-              OutputSocket(*this, "layer5_altitudeDifference", data_type<webgpu::raii::RawBuffer<uint32_t>*>(), [this]() { return m_layer5_altitudeDifference_buffer.get(); }),
-          })
-    , m_pipeline_manager { &pipeline_manager }
-    , m_device { device }
-    , m_queue(wgpuDeviceGetQueue(m_device))
+        {
+            InputSocket(*this, "region aabb", data_type<const radix::geometry::Aabb<2, double>*>()),
+            InputSocket(*this, "normal texture", data_type<const webgpu::raii::TextureWithSampler*>()),
+            InputSocket(*this, "height texture", data_type<const webgpu::raii::TextureWithSampler*>()),
+            InputSocket(*this, "release point texture", data_type<const webgpu::raii::TextureWithSampler*>()),
+        },
+        {
+            OutputSocket(*this, "storage buffer", data_type<webgpu::raii::RawBuffer<uint32_t>*>(), [this]() { return m_output_storage_buffer.get(); }),
+            OutputSocket(*this, "raster dimensions", data_type<glm::uvec2>(), [this]() { return m_output_dimensions; }),
+            OutputSocket(*this, "layer1_zdelta", data_type<webgpu::raii::RawBuffer<uint32_t>*>(), [this]() { return m_layer1_zdelta_buffer.get(); }),
+            OutputSocket(*this, "layer2_cellCounts", data_type<webgpu::raii::RawBuffer<uint32_t>*>(), [this]() { return m_layer2_cellCounts_buffer.get(); }),
+            OutputSocket(
+                *this, "layer3_travelLength", data_type<webgpu::raii::RawBuffer<uint32_t>*>(), [this]() { return m_layer3_travelLength_buffer.get(); }),
+            OutputSocket(*this, "layer4_travelAngle", data_type<webgpu::raii::RawBuffer<uint32_t>*>(), [this]() { return m_layer4_travelAngle_buffer.get(); }),
+            OutputSocket(*this,
+                "layer5_altitudeDifference",
+                data_type<webgpu::raii::RawBuffer<uint32_t>*>(),
+                [this]() { return m_layer5_altitudeDifference_buffer.get(); }),
+        })
+    , m_ctx(&ctx)
     , m_settings { settings }
-    , m_settings_uniform(device, WGPUBufferUsage_CopyDst | WGPUBufferUsage_Uniform)
-    , m_normal_sampler(create_normal_sampler(m_device))
-    , m_height_sampler(create_height_sampler(m_device))
+    , m_settings_uniform(ctx.device(), WGPUBufferUsage_CopyDst | WGPUBufferUsage_Uniform)
+    , m_normal_sampler(create_normal_sampler(m_ctx->device()))
+    , m_height_sampler(create_height_sampler(m_ctx->device()))
 {
+    auto& reg = ctx.resource_registry();
+    reg.register_shader("avalanche_trajectories_compute", "compute/avalanche_trajectories_compute.wgsl");
+    reg.register_bind_group_layout("avalanche_trajectories_compute", [](WGPUDevice dev) {
+        WGPUBindGroupLayoutEntry e0 {};
+        e0.binding = 0;
+        e0.visibility = WGPUShaderStage_Compute;
+        e0.buffer.type = WGPUBufferBindingType_Uniform;
+
+        WGPUBindGroupLayoutEntry e1 {};
+        e1.binding = 1;
+        e1.visibility = WGPUShaderStage_Compute;
+        e1.texture.sampleType = WGPUTextureSampleType_Float;
+        e1.texture.viewDimension = WGPUTextureViewDimension_2D;
+
+        WGPUBindGroupLayoutEntry e2 {};
+        e2.binding = 2;
+        e2.visibility = WGPUShaderStage_Compute;
+        e2.texture.sampleType = WGPUTextureSampleType_UnfilterableFloat;
+        e2.texture.viewDimension = WGPUTextureViewDimension_2D;
+
+        WGPUBindGroupLayoutEntry e3 {};
+        e3.binding = 3;
+        e3.visibility = WGPUShaderStage_Compute;
+        e3.texture.sampleType = WGPUTextureSampleType_UnfilterableFloat;
+        e3.texture.viewDimension = WGPUTextureViewDimension_2D;
+
+        WGPUBindGroupLayoutEntry e4 {};
+        e4.binding = 4;
+        e4.visibility = WGPUShaderStage_Compute;
+        e4.sampler.type = WGPUSamplerBindingType_Filtering;
+
+        WGPUBindGroupLayoutEntry e5 {};
+        e5.binding = 5;
+        e5.visibility = WGPUShaderStage_Compute;
+        e5.sampler.type = WGPUSamplerBindingType_NonFiltering;
+
+        WGPUBindGroupLayoutEntry e6 {};
+        e6.binding = 6;
+        e6.visibility = WGPUShaderStage_Compute;
+        e6.buffer.type = WGPUBufferBindingType_Storage;
+
+        WGPUBindGroupLayoutEntry e7 {};
+        e7.binding = 7;
+        e7.visibility = WGPUShaderStage_Compute;
+        e7.buffer.type = WGPUBufferBindingType_Storage;
+
+        WGPUBindGroupLayoutEntry e8 {};
+        e8.binding = 8;
+        e8.visibility = WGPUShaderStage_Compute;
+        e8.buffer.type = WGPUBufferBindingType_Storage;
+
+        WGPUBindGroupLayoutEntry e9 {};
+        e9.binding = 9;
+        e9.visibility = WGPUShaderStage_Compute;
+        e9.buffer.type = WGPUBufferBindingType_Storage;
+
+        WGPUBindGroupLayoutEntry e10 {};
+        e10.binding = 10;
+        e10.visibility = WGPUShaderStage_Compute;
+        e10.buffer.type = WGPUBufferBindingType_Storage;
+
+        WGPUBindGroupLayoutEntry e11 {};
+        e11.binding = 11;
+        e11.visibility = WGPUShaderStage_Compute;
+        e11.buffer.type = WGPUBufferBindingType_Storage;
+
+        return std::make_unique<webgpu::raii::BindGroupLayout>(dev,
+            std::vector<WGPUBindGroupLayoutEntry> { e0, e1, e2, e3, e4, e5, e6, e7, e8, e9, e10, e11 },
+            "avalanche trajectories compute bind group layout");
+    });
+    reg.register_pipeline([this](WGPUDevice device, const webgpu::RenderResourceRegistry& reg) {
+        m_pipeline = std::make_unique<webgpu::raii::CombinedComputePipeline>(device,
+            reg.shader("avalanche_trajectories_compute"),
+            std::vector<const webgpu::raii::BindGroupLayout*> { &reg.bind_group_layout("avalanche_trajectories_compute") });
+    });
 }
 
 void ComputeAvalancheTrajectoriesNode::update_gpu_settings(uint32_t run)
 {
     m_settings_uniform.data.num_steps = m_settings.num_steps;
     m_settings_uniform.data.step_length = m_settings.step_length;
-    m_settings_uniform.data.normal_offset = m_settings.random_contribution;
+    m_settings_uniform.data.max_perturbation = m_settings.max_perturbation;
     m_settings_uniform.data.direction_offset = m_settings.persistence_contribution;
 
     m_settings_uniform.data.physics_model_type = m_settings.active_model;
@@ -82,7 +159,7 @@ void ComputeAvalancheTrajectoriesNode::update_gpu_settings(uint32_t run)
 
     m_settings_uniform.data.random_seed = m_settings.random_seed + run;
 
-    m_settings_uniform.update_gpu_data(m_queue);
+    m_settings_uniform.update_gpu_data(m_ctx->queue());
 }
 
 void ComputeAvalancheTrajectoriesNode::set_settings(const AvalancheTrajectoriesSettings& settings) { m_settings = settings; }
@@ -91,7 +168,6 @@ const ComputeAvalancheTrajectoriesNode::AvalancheTrajectoriesSettings& ComputeAv
 
 void ComputeAvalancheTrajectoriesNode::run_impl()
 {
-
 
     const auto region_aabb = std::get<data_type<const radix::geometry::Aabb<2, double>*>()>(input_socket("region aabb").get_connected_data());
     const auto& normal_texture = *std::get<data_type<const webgpu::raii::TextureWithSampler*>()>(input_socket("normal texture").get_connected_data());
@@ -105,9 +181,13 @@ void ComputeAvalancheTrajectoriesNode::run_impl()
     // assert input textures have same size, otherwise fail run
     if (input_width != height_texture.texture().width() || input_height != height_texture.texture().height()
         || input_width != release_point_texture.texture().width() || input_height != release_point_texture.texture().height()) {
-        fail_run(std::format("failed to compute trajectories: input texture sizes must match (normals: {}x{}, heights: {}x{}, release points: {}x{})", input_width,
-                input_height, height_texture.texture().width(), height_texture.texture().height(), release_point_texture.texture().width(),
-                release_point_texture.texture().height()));
+        fail_run(std::format("failed to compute trajectories: input texture sizes must match (normals: {}x{}, heights: {}x{}, release points: {}x{})",
+            input_width,
+            input_height,
+            height_texture.texture().width(),
+            height_texture.texture().height(),
+            release_point_texture.texture().width(),
+            release_point_texture.texture().height()));
         return;
     }
 
@@ -117,28 +197,29 @@ void ComputeAvalancheTrajectoriesNode::run_impl()
     qDebug() << "output resolution: " << m_output_dimensions.x << "x" << m_output_dimensions.y;
 
     // create output storage buffer
-    m_output_storage_buffer
-        = std::make_unique<webgpu::raii::RawBuffer<uint32_t>>(m_device, WGPUBufferUsage_Storage | WGPUBufferUsage_CopyDst | WGPUBufferUsage_CopySrc,
-            m_output_dimensions.x * m_output_dimensions.y, "avalanche trajectories compute output storage");
+    m_output_storage_buffer = std::make_unique<webgpu::raii::RawBuffer<uint32_t>>(m_ctx->device(),
+        WGPUBufferUsage_Storage | WGPUBufferUsage_CopyDst | WGPUBufferUsage_CopySrc,
+        m_output_dimensions.x * m_output_dimensions.y,
+        "avalanche trajectories compute output storage");
 
     // create layer buffers
-    m_layer1_zdelta_buffer = std::make_unique<webgpu::raii::RawBuffer<uint32_t>>(m_device,
+    m_layer1_zdelta_buffer = std::make_unique<webgpu::raii::RawBuffer<uint32_t>>(m_ctx->device(),
         WGPUBufferUsage_Storage | WGPUBufferUsage_CopyDst | WGPUBufferUsage_CopySrc,
         m_settings.output_layer.layer1_zdelta_enabled ? (m_output_dimensions.x * m_output_dimensions.y) : 1,
         "avalanche trajectories zdelta storage");
-    m_layer2_cellCounts_buffer = std::make_unique<webgpu::raii::RawBuffer<uint32_t>>(m_device,
+    m_layer2_cellCounts_buffer = std::make_unique<webgpu::raii::RawBuffer<uint32_t>>(m_ctx->device(),
         WGPUBufferUsage_Storage | WGPUBufferUsage_CopyDst | WGPUBufferUsage_CopySrc,
         m_settings.output_layer.layer2_cellCounts_enabled ? (m_output_dimensions.x * m_output_dimensions.y) : 1,
         "avalanche trajectories cellCounts storage");
-    m_layer3_travelLength_buffer = std::make_unique<webgpu::raii::RawBuffer<uint32_t>>(m_device,
+    m_layer3_travelLength_buffer = std::make_unique<webgpu::raii::RawBuffer<uint32_t>>(m_ctx->device(),
         WGPUBufferUsage_Storage | WGPUBufferUsage_CopyDst | WGPUBufferUsage_CopySrc,
         m_settings.output_layer.layer3_travelLength_enabled ? (m_output_dimensions.x * m_output_dimensions.y) : 1,
         "avalanche trajectories travelLength storage");
-    m_layer4_travelAngle_buffer = std::make_unique<webgpu::raii::RawBuffer<uint32_t>>(m_device,
+    m_layer4_travelAngle_buffer = std::make_unique<webgpu::raii::RawBuffer<uint32_t>>(m_ctx->device(),
         WGPUBufferUsage_Storage | WGPUBufferUsage_CopyDst | WGPUBufferUsage_CopySrc,
         m_settings.output_layer.layer4_travelAngle_enabled ? (m_output_dimensions.x * m_output_dimensions.y) : 1,
         "avalanche trajectories travelAngle storage");
-    m_layer5_altitudeDifference_buffer = std::make_unique<webgpu::raii::RawBuffer<uint32_t>>(m_device,
+    m_layer5_altitudeDifference_buffer = std::make_unique<webgpu::raii::RawBuffer<uint32_t>>(m_ctx->device(),
         WGPUBufferUsage_Storage | WGPUBufferUsage_CopyDst | WGPUBufferUsage_CopySrc,
         m_settings.output_layer.layer5_altitudeDifference_enabled ? (m_output_dimensions.x * m_output_dimensions.y) : 1,
         "avalanche trajectories altitudeDifference storage");
@@ -165,14 +246,14 @@ void ComputeAvalancheTrajectoriesNode::run_impl()
     };
 
     webgpu::raii::BindGroup compute_bind_group(
-        m_device, m_pipeline_manager->avalanche_trajectories_bind_group_layout(), entries, "avalanche trajectories compute bind group");
+        m_ctx->device(), m_ctx->resource_registry().bind_group_layout("avalanche_trajectories_compute"), entries, "avalanche trajectories compute bind group");
 
     // bind GPU resources and run pipeline
     for (uint32_t run = 0; run < m_settings.num_runs; run++) {
         update_gpu_settings(run); // change seed each run
         WGPUCommandEncoderDescriptor descriptor {};
         descriptor.label = WGPUStringView { .data = "avalanche trajectories compute command encoder", .length = WGPU_STRLEN };
-        webgpu::raii::CommandEncoder encoder(m_device, descriptor);
+        webgpu::raii::CommandEncoder encoder(m_ctx->device(), descriptor);
 
         {
             WGPUComputePassDescriptor compute_pass_desc {};
@@ -182,13 +263,13 @@ void ComputeAvalancheTrajectoriesNode::run_impl()
             glm::uvec3 workgroup_counts
                 = glm::ceil(glm::vec3(input_width, input_height, m_settings.num_paths_per_release_cell) / glm::vec3(SHADER_WORKGROUP_SIZE));
             wgpuComputePassEncoderSetBindGroup(compute_pass.handle(), 0, compute_bind_group.handle(), 0, nullptr);
-            m_pipeline_manager->avalanche_trajectories_compute_pipeline().run(compute_pass, workgroup_counts);
+            m_pipeline->run(compute_pass, workgroup_counts);
         }
 
         WGPUCommandBufferDescriptor cmd_buffer_descriptor {};
         cmd_buffer_descriptor.label = WGPUStringView { .data = "avalanche trajectories compute command buffer", .length = WGPU_STRLEN };
         WGPUCommandBuffer command = wgpuCommandEncoderFinish(encoder.handle(), &cmd_buffer_descriptor);
-        wgpuQueueSubmit(m_queue, 1, &command);
+        wgpuQueueSubmit(m_ctx->queue(), 1, &command);
         wgpuCommandBufferRelease(command);
     }
 
@@ -206,7 +287,7 @@ void ComputeAvalancheTrajectoriesNode::run_impl()
         .userdata2 = nullptr,
     };
 
-    wgpuQueueOnSubmittedWorkDone(m_queue, callback_info);
+    wgpuQueueOnSubmittedWorkDone(m_ctx->queue(), callback_info);
 }
 
 std::unique_ptr<webgpu::raii::Sampler> ComputeAvalancheTrajectoriesNode::create_normal_sampler(WGPUDevice device)

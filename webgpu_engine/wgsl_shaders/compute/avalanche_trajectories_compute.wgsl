@@ -46,7 +46,7 @@ struct AvalancheTrajectoriesSettings {
     step_length: f32, // length of one simulation step in world space
 //    num_paths_per_release_cell: u32,
 
-    max_perturbation: f32, // randomness contribution on normal in [0,1], 0 means no randomness, 1 means only randomness
+    max_perturbation: f32, // maximum perturbation angle in radians
     persistence_contribution: f32, // persistence contribution on normal in [0,1], 0 means only local normal, 1 means only last normal
 
     model_type: u32, // 0 = weBIGeo Avalanche Simulation, 1 = Physics Less Simple
@@ -339,7 +339,7 @@ fn trajectory_overlay(id: vec3<u32>) {
 
 // Generates a random unit vector in a cone around the given vector
 fn perturb(v: vec3<f32>) -> vec3<f32> {
-    let cos_max_angle_rad = cos(settings.max_perturbation * PI / 180.0); // max angle in radians
+    let cos_max_angle_rad = cos(settings.max_perturbation);
     let r = rand2();
     let u1 = r.x;
     let u2 = r.y;

@@ -26,8 +26,12 @@
 #include "nucleus/tile/Texture3DScheduler.h"
 #include "nucleus/tile/TileLoadService.h"
 #include "nucleus/tile/setup.h"
-#include "webgpu_engine/CloudRenderer.h"
 #include "webgpu_engine/Context.h"
+#include "webgpu_engine/cloud/CloudRenderer.h"
+#include "webgpu_engine/overlay/HeightLinesOverlay.h"
+#include "webgpu_engine/overlay/OverlayRenderer.h"
+#include "webgpu_engine/overlay/TextureOverlay.h"
+#include "webgpu_engine/tile_mesh/TileMeshRenderer.h"
 
 namespace webgpu_app {
 
@@ -53,20 +57,27 @@ RenderingContext::RenderingContext()
     //                                           {"", "1", "2", "3", "4"}));
     m_aabb_decorator = nucleus::tile::setup::aabb_decorator();
     {
-        auto geometry_service = std::make_unique<nucleus::tile::TileLoadService>("https://alpinemaps.cg.tuwien.ac.at/tiles/alpine_png/", TilePattern::ZXY, ".png");
+        auto geometry_service
+            = std::make_unique<nucleus::tile::TileLoadService>("https://alpinemaps.cg.tuwien.ac.at/tiles/alpine_png/", TilePattern::ZXY, ".png");
         m_geometry_scheduler_holder = nucleus::tile::setup::geometry_scheduler(std::move(geometry_service), m_aabb_decorator, m_scheduler_thread.get());
         m_geometry_scheduler_holder.scheduler->set_gpu_quad_limit(256); // TODO
         m_scheduler_director->check_in("geometry", m_geometry_scheduler_holder.scheduler);
         m_data_querier = std::make_shared<nucleus::DataQuerier>(&m_geometry_scheduler_holder.scheduler->ram_cache());
-        auto ortho_service = std::make_unique<nucleus::tile::TileLoadService>("https://gataki.cg.tuwien.ac.at/raw/basemap/tiles/", TilePattern::ZYX_yPointingSouth, ".jpeg");
-        // auto ortho_service = std::make_unique<nucleus::tile::TileLoadService>("https://maps.wien.gv.at/basemap/bmaporthofoto30cm/normal/google3857/", TilePattern::ZYX_yPointingSouth, ".jpeg");
-        // auto ortho_service = std::make_unique<nucleus::tile::TileLoadService>("https://mapsneu.wien.gv.at/basemap/bmapgelaende/grau/google3857/", TilePattern::ZYX_yPointingSouth, ".jpeg");
+        auto ortho_service
+            = std::make_unique<nucleus::tile::TileLoadService>("https://gataki.cg.tuwien.ac.at/raw/basemap/tiles/", TilePattern::ZYX_yPointingSouth, ".jpeg");
+        // auto ortho_service = std::make_unique<nucleus::tile::TileLoadService>("https://maps.wien.gv.at/basemap/bmaporthofoto30cm/normal/google3857/",
+        // TilePattern::ZYX_yPointingSouth, ".jpeg"); auto ortho_service =
+        // std::make_unique<nucleus::tile::TileLoadService>("https://mapsneu.wien.gv.at/basemap/bmapgelaende/grau/google3857/", TilePattern::ZYX_yPointingSouth,
+        // ".jpeg");
         m_ortho_scheduler_holder = nucleus::tile::setup::texture_scheduler(std::move(ortho_service), m_aabb_decorator, m_scheduler_thread.get());
         m_ortho_scheduler_holder.scheduler->set_gpu_quad_limit(256); // TODO
         m_scheduler_director->check_in("ortho", m_ortho_scheduler_holder.scheduler);
 
         auto cloud_service = std::make_unique<nucleus::tile::TileLoadService>("", TilePattern::ZXY, ".ktx2");
-        m_cloud_scheduler_holder = nucleus::tile::setup::texture_scheduler_3d(std::move(cloud_service), m_aabb_decorator, m_scheduler_thread.get(), {.tile_resolution = webgpu_engine::clouds::TILE_RESOLUTION_XY, .max_zoom_level = 10, .gpu_quad_limit = 1024 });
+        m_cloud_scheduler_holder = nucleus::tile::setup::texture_scheduler_3d(std::move(cloud_service),
+            m_aabb_decorator,
+            m_scheduler_thread.get(),
+            { .tile_resolution = webgpu_engine::clouds::TILE_RESOLUTION_XY, .max_zoom_level = 10, .gpu_quad_limit = 1024 });
         m_cloud_scheduler_holder.scheduler->set_gpu_quad_limit(webgpu_engine::clouds::LOADED_TILE_LIMIT);
         m_scheduler_director->check_in("cloud", m_cloud_scheduler_holder.scheduler);
     }
@@ -91,9 +102,8 @@ RenderingContext::RenderingContext()
     m_clous_manager = std::make_unique<clouds::Manager>();
     connect(m_clous_manager.get(), &clouds::Manager::slot_ready, this, [this](const clouds::TileSetInfo& slot) {
         QString new_url = m_clous_manager->server_url() + "/" + slot.folder + "/tiles/";
-        nucleus::utils::thread::async_call(m_cloud_scheduler_holder.tile_service.get(), [this, new_url]() {
-            m_cloud_scheduler_holder.tile_service->set_base_url(new_url);
-        });
+        nucleus::utils::thread::async_call(
+            m_cloud_scheduler_holder.tile_service.get(), [this, new_url]() { m_cloud_scheduler_holder.tile_service->set_base_url(new_url); });
         nucleus::utils::thread::async_call(m_cloud_scheduler_holder.scheduler.get(), [this]() {
             m_cloud_scheduler_holder.scheduler->clear_full_cache();
             m_cloud_scheduler_holder.scheduler->set_enabled(true);
@@ -103,33 +113,38 @@ RenderingContext::RenderingContext()
     m_search_service = std::make_unique<SearchService>();
 }
 
-void RenderingContext::initialize(WGPUInstance webgpu_instance, WGPUDevice webgpu_device)
+void RenderingContext::initialize(webgpu::Context& ctx)
 {
-    auto tile_geometry = std::make_shared<webgpu_engine::TileGeometry>(65, 512);
-    tile_geometry->set_tile_limit(1024);
-    auto cloud_geometry = std::make_shared<webgpu_engine::CloudRenderer>();
+    auto tile_mesh_renderer = std::make_shared<webgpu_engine::TileMeshRenderer>(65, 512);
+    tile_mesh_renderer->set_tile_limit(1024);
+    auto cloud_renderer = std::make_shared<webgpu_engine::CloudRenderer>();
     // This doesn't really make any sense if you think about it
-    cloud_geometry->set_tile_limit(webgpu_engine::clouds::LOADED_TILE_LIMIT);
+    cloud_renderer->set_tile_limit(webgpu_engine::clouds::LOADED_TILE_LIMIT);
 
     m_engine_context = std::make_unique<webgpu_engine::Context>();
-    m_engine_context->set_webgpu_instance(webgpu_instance);
-    m_engine_context->set_webgpu_device(webgpu_device);
+    m_engine_context->set_webgpu_ctx(ctx);
     m_engine_context->set_aabb_decorator(m_aabb_decorator);
-    m_engine_context->set_tile_geometry(tile_geometry);
-    m_engine_context->set_cloud_geometry(cloud_geometry);
+    m_engine_context->set_tile_mesh_renderer(tile_mesh_renderer);
+    m_engine_context->set_cloud_renderer(cloud_renderer);
+    auto overlay_renderer = std::make_shared<webgpu_engine::OverlayRenderer>();
+    m_engine_context->set_overlay_renderer(overlay_renderer);
+    auto track_renderer = std::make_shared<webgpu_engine::TrackRenderer>();
+    m_engine_context->set_track_renderer(track_renderer);
+    auto atmosphere_renderer = std::make_shared<webgpu_engine::AtmosphereRenderer>();
+    m_engine_context->set_atmosphere_renderer(atmosphere_renderer);
 
     connect(m_geometry_scheduler_holder.scheduler.get(),
         &nucleus::tile::GeometryScheduler::gpu_tiles_updated,
-        m_engine_context->tile_geometry(),
-        &webgpu_engine::TileGeometry::update_gpu_tiles_height);
+        m_engine_context->tile_mesh_renderer(),
+        &webgpu_engine::TileMeshRenderer::update_gpu_tiles_height);
     connect(m_ortho_scheduler_holder.scheduler.get(),
         &nucleus::tile::TextureScheduler::gpu_tiles_updated,
-        m_engine_context->tile_geometry(),
-        &webgpu_engine::TileGeometry::update_gpu_tiles_ortho);
+        m_engine_context->tile_mesh_renderer(),
+        &webgpu_engine::TileMeshRenderer::update_gpu_tiles_ortho);
     connect(m_cloud_scheduler_holder.scheduler.get(),
-       &nucleus::tile::Texture3DScheduler::gpu_tiles_updated,
-       m_engine_context->cloud_geometry(),
-       &webgpu_engine::CloudRenderer::update_gpu_tiles_cloud);
+        &nucleus::tile::Texture3DScheduler::gpu_tiles_updated,
+        m_engine_context->cloud_renderer(),
+        &webgpu_engine::CloudRenderer::update_gpu_tiles_cloud);
     nucleus::utils::thread::async_call(m_geometry_scheduler_holder.scheduler.get(), [this]() { m_geometry_scheduler_holder.scheduler->set_enabled(true); });
 
     // TODO: texture compression

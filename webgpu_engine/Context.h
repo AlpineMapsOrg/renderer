@@ -20,13 +20,21 @@
 
 #pragma once
 
-#include "CloudRenderer.h"
-#include "TileGeometry.h"
 #include "UniformBufferObjects.h"
+#include "atmosphere/AtmosphereRenderer.h"
+#include "cloud/CloudRenderer.h"
 #include "nucleus/EngineContext.h"
 #include "nucleus/track/Manager.h"
+#include "overlay/OverlayRenderer.h"
+#include "tile_mesh/TileMeshRenderer.h"
+#include "track/TrackRenderer.h"
+#include <webgpu/Context.h>
 
 namespace webgpu_engine {
+
+namespace compute::nodes {
+    class NodeGraph;
+}
 
 class Context : public nucleus::EngineContext {
     Q_OBJECT
@@ -36,21 +44,26 @@ public:
     ~Context() override;
     void operator=(Context const&) = delete;
 
-    TileGeometry* tile_geometry() const;
-    void set_tile_geometry(std::shared_ptr<TileGeometry> new_tile_geometry);
+    TileMeshRenderer* tile_mesh_renderer() const;
+    void set_tile_mesh_renderer(std::shared_ptr<TileMeshRenderer> new_tile_mesh_renderer);
 
-    CloudRenderer* cloud_geometry() const;
-    void set_cloud_geometry(std::shared_ptr<CloudRenderer> new_cloud_geometry);
+    CloudRenderer* cloud_renderer() const;
+    void set_cloud_renderer(std::shared_ptr<CloudRenderer> new_cloud_renderer);
 
-    WGPUInstance webgpu_instance() const;
-    void set_webgpu_instance(WGPUInstance instance);
+    AtmosphereRenderer* atmosphere_renderer() const;
+    void set_atmosphere_renderer(std::shared_ptr<AtmosphereRenderer> new_atmosphere_renderer);
 
-    WGPUDevice webgpu_device() const;
-    void set_webgpu_device(WGPUDevice device);
+    OverlayRenderer* overlay_renderer() const;
+    void set_overlay_renderer(std::shared_ptr<OverlayRenderer> new_overlay_renderer);
 
-    webgpu_engine::ShaderModuleManager* shader_module_manager();
+    TrackRenderer* track_renderer() const;
+    void set_track_renderer(std::shared_ptr<TrackRenderer> new_track_renderer);
 
-    webgpu_engine::PipelineManager* pipeline_manager();
+    compute::nodes::NodeGraph* compute_graph() const;
+    void set_compute_graph(std::unique_ptr<compute::nodes::NodeGraph> graph);
+
+    webgpu::Context& webgpu_ctx() { return *m_webgpu_ctx_ptr; }
+    void set_webgpu_ctx(webgpu::Context& ctx);
 
     nucleus::track::Manager* track_manager() override;
 
@@ -69,15 +82,15 @@ protected:
     void internal_destroy() override;
 
 private:
-    WGPUDevice m_webgpu_device = 0;
-    WGPUInstance m_webgpu_instance = 0;
+    webgpu::Context* m_webgpu_ctx_ptr = nullptr;
     uboSharedConfig m_shared_config;
-    std::shared_ptr<TileGeometry> m_tile_geometry;
-    std::shared_ptr<CloudRenderer> m_cloud_geometry;
+    std::shared_ptr<TileMeshRenderer> m_tile_mesh_renderer;
+    std::shared_ptr<CloudRenderer> m_cloud_renderer;
+    std::shared_ptr<AtmosphereRenderer> m_atmosphere_renderer;
+    std::shared_ptr<OverlayRenderer> m_overlay_renderer;
+    std::shared_ptr<TrackRenderer> m_track_renderer;
+    std::unique_ptr<compute::nodes::NodeGraph> m_compute_graph;
     // std::shared_ptr<TextureLayer> m_ortho_layer;
-
-    std::unique_ptr<webgpu_engine::ShaderModuleManager> m_shader_module_manager;
-    std::unique_ptr<webgpu_engine::PipelineManager> m_pipeline_manager;
 };
 
 } // namespace webgpu_engine

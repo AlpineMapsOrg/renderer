@@ -22,8 +22,8 @@
 #include <imgui.h>
 #include <imgui_internal.h>
 
-#include "nucleus/utils/image_loader.h"
-#include "webgpu/raii/Texture.h"
+#include <nucleus/utils/image_loader.h>
+#include <webgpu/raii/Texture.h>
 
 namespace webgpu_app {
 

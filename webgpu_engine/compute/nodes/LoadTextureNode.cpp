@@ -22,18 +22,17 @@
 
 namespace webgpu_engine::compute::nodes {
 
-LoadTextureNode::LoadTextureNode(WGPUDevice device)
-    : LoadTextureNode(device, LoadTextureNodeSettings())
+LoadTextureNode::LoadTextureNode(webgpu::Context& ctx)
+    : LoadTextureNode(ctx, LoadTextureNodeSettings())
 {
 }
 
-LoadTextureNode::LoadTextureNode(WGPUDevice device, const LoadTextureNodeSettings& settings)
+LoadTextureNode::LoadTextureNode(webgpu::Context& ctx, const LoadTextureNodeSettings& settings)
     : Node({},
-          {
-              OutputSocket(*this, "texture", data_type<const webgpu::raii::TextureWithSampler*>(), [this]() { return m_output_texture.get(); }),
-          })
-    , m_device(device)
-    , m_queue(wgpuDeviceGetQueue(device))
+        {
+            OutputSocket(*this, "texture", data_type<const webgpu::raii::TextureWithSampler*>(), [this]() { return m_output_texture.get(); }),
+        })
+    , m_ctx(&ctx)
     , m_settings(settings)
 {
 }
@@ -53,14 +52,15 @@ void LoadTextureNode::run_impl()
     }
 
     nucleus::Raster<glm::u8vec4> image = expected_image.value();
-    m_output_texture = create_texture(m_device, image.width(), image.height(), m_settings.format, m_settings.usage);
-    m_output_texture->texture().write(m_queue, image);
+    m_output_texture = create_texture(m_ctx->device(), image.width(), image.height(), m_settings.format, m_settings.usage);
+    m_output_texture->texture().write(m_ctx->queue(), image);
 
     // TODO not sure if we need to wait for the queue here?
     complete_run();
 }
 
-std::unique_ptr<webgpu::raii::TextureWithSampler> LoadTextureNode::create_texture(WGPUDevice device, uint32_t width, uint32_t height, WGPUTextureFormat format, WGPUTextureUsage usage)
+std::unique_ptr<webgpu::raii::TextureWithSampler> LoadTextureNode::create_texture(
+    WGPUDevice device, uint32_t width, uint32_t height, WGPUTextureFormat format, WGPUTextureUsage usage)
 {
     // create output texture
     WGPUTextureDescriptor texture_desc {};

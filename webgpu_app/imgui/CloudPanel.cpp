@@ -19,22 +19,35 @@
 
 #include "CloudPanel.h"
 
+#include "../ImGuiManager.h"
 #include <IconsFontAwesome5.h>
 #include <imgui.h>
 
 #include "../CloudsManager.h"
-#include "webgpu_engine/CloudRenderer.h"
+#include <webgpu_engine/Context.h>
+#include <webgpu_engine/cloud/CloudRenderer.h>
 
 namespace webgpu_app {
 
-CloudPanel::CloudPanel(clouds::Manager* clouds_manager, webgpu_engine::CloudRenderer* cloud_renderer)
-    : m_clouds_manager(clouds_manager)
+CloudPanel::CloudPanel(webgpu_engine::Context* context, clouds::Manager* clouds_manager, webgpu_engine::CloudRenderer* cloud_renderer)
+    : m_context(context)
+    , m_clouds_manager(clouds_manager)
     , m_cloud_renderer(cloud_renderer)
 {
 }
 
+void CloudPanel::draw()
+{
+    auto& cfg = m_context->shared_config();
+    if (ImGuiManager::FloatingToggleButton("ToggleCloudsButton", ICON_FA_CLOUD, "Clouds", &cfg.m_clouds_enabled))
+        m_context->request_redraw();
+}
+
 void CloudPanel::draw_panel()
 {
+    if (!m_context->shared_config().m_clouds_enabled)
+        return;
+
     const auto& tilesets = m_clouds_manager->get_slots();
     auto selected_slot = m_clouds_manager->selected_time_slot();
 
@@ -75,11 +88,13 @@ void CloudPanel::draw_panel()
 
             ImGui::SameLine();
             const bool loading = m_clouds_manager->is_loading();
-            if (loading) ImGui::BeginDisabled();
+            if (loading)
+                ImGui::BeginDisabled();
             if (ImGui::Button(ICON_FA_SYNC "##reload_clouds")) {
                 m_clouds_manager->refresh_tileset_list();
             }
-            if (loading) ImGui::EndDisabled();
+            if (loading)
+                ImGui::EndDisabled();
         }
 
         ImGui::SeparatorText("Shading");

@@ -18,9 +18,10 @@
 
 #pragma once
 
-#include "Buffer.h"
 #include "Node.h"
-#include "webgpu_engine/PipelineManager.h"
+#include <webgpu/Buffer.h>
+#include <webgpu/Context.h>
+#include <webgpu/raii/CombinedComputePipeline.h>
 
 namespace webgpu_engine::compute::nodes {
 
@@ -43,7 +44,7 @@ public:
         glm::vec2 aabb_max;
     };
 
-    ComputeNormalsNode(const PipelineManager& pipeline_manager, WGPUDevice device);
+    explicit ComputeNormalsNode(webgpu::Context& ctx);
 
     void set_settings(const NormalSettings& settings);
 
@@ -55,14 +56,12 @@ private:
         WGPUDevice device, uint32_t width, uint32_t height, WGPUTextureFormat format, WGPUTextureUsage usage);
 
 private:
-    const PipelineManager* m_pipeline_manager;
-    WGPUDevice m_device;
-    WGPUQueue m_queue;
+    webgpu::Context* m_ctx;
 
     NormalSettings m_settings;
 
-    // input
-    webgpu_engine::Buffer<NormalsSettingsUniform> m_normals_settings_uniform_buffer;
+    webgpu::Buffer<NormalsSettingsUniform> m_normals_settings_uniform_buffer;
+    std::unique_ptr<webgpu::raii::CombinedComputePipeline> m_pipeline;
 
     // output
     std::unique_ptr<webgpu::raii::TextureWithSampler> m_output_texture; // normal texture

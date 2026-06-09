@@ -42,13 +42,15 @@ using Data = std::variant<const std::vector<radix::tile::Id>*,
     webgpu::raii::RawBuffer<uint32_t>*,
     const webgpu::raii::TextureWithSampler*,
     const radix::geometry::Aabb<2, double>*,
+    const radix::geometry::Aabb<3, double>*,
     glm::uvec2>;
 
 using SocketIndex = size_t;
 
 // Get data type (DataType value) for specific C++ type
 // adapted from https://stackoverflow.com/a/52303671
-template <typename T, typename VariantT, std::size_t index = 0> static constexpr DataType data_type()
+template <typename T, typename VariantT, std::size_t index = 0>
+static constexpr DataType data_type()
 {
     static_assert(std::variant_size_v<VariantT> > index, "Type not found in variant");
     if constexpr (index == std::variant_size_v<VariantT>) {
@@ -60,7 +62,11 @@ template <typename T, typename VariantT, std::size_t index = 0> static constexpr
     }
 }
 
-template <typename T> static constexpr DataType data_type() { return data_type<T, Data>(); }
+template <typename T>
+static constexpr DataType data_type()
+{
+    return data_type<T, Data>();
+}
 
 class Socket {
 public:
@@ -149,7 +155,7 @@ private:
 };
 
 // Place inside a Node subclass body to implement get_type_name().
-#define NODE_TYPE_NAME(ClassName) \
+#define NODE_TYPE_NAME(ClassName)                                                                                                                              \
     std::string get_type_name() const override { return #ClassName; }
 
 /// Abstract base class for nodes.

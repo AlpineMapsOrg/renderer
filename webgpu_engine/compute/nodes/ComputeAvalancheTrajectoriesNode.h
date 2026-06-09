@@ -22,8 +22,9 @@
 
 #include "Node.h"
 
-#include "webgpu_engine/Buffer.h"
-#include "webgpu_engine/PipelineManager.h"
+#include <webgpu/Buffer.h>
+#include <webgpu/Context.h>
+#include <webgpu/raii/CombinedComputePipeline.h>
 
 namespace webgpu_engine::compute::nodes {
 
@@ -41,7 +42,7 @@ public:
     };
 
     enum FrictionModelType : uint32_t {
-        //actually: friction model: 0 coulomb, 1 voellmy, 2 voellmy minshear, 3 samosAt
+        // actually: friction model: 0 coulomb, 1 voellmy, 2 voellmy minshear, 3 samosAt
         Coulomb = 0,
         Voellmy = 1,
         VoellmyMinShear = 2,
@@ -76,26 +77,26 @@ public:
     };
 
     struct AvalancheTrajectoriesSettings {
-        uint32_t resolution_multiplier = 1;
-        uint32_t num_steps = 2048;
+        uint32_t resolution_multiplier = 8;
+        uint32_t num_steps = 10000u;
         float step_length = 0.1f;
 
         /* Number of trajectories to start from the same release cell.
-         * This only makes sense when random_contribution is greater than 0.*/
-        uint32_t num_paths_per_release_cell = 500u;
+         * This only makes sense when max_perturbation is greater than 0.*/
+        uint32_t num_paths_per_release_cell = 1024u;
 
         /* With only num_paths_per_release_cell we are limited by a maximum of dispatches
          * for a single compute call. This is a workaround to allow more paths, by executing
          * the compute dispatch multiple times with a different seed.*/
         uint32_t num_runs = 1u;
 
-        /* Randomness contribution to the sampled normal in [0,1].
-           0 means no randomness, 1 means only randomness */
-        float random_contribution = 0.2f;
+        /* Maximum perturbation angle (in radians) applied to the sampled normal.
+           0 means no randomness. */
+        float max_perturbation = glm::radians(25.0f);
 
         /* Persistence contribution to the (randomly offset) normal in [0,1].
            0 means only local normal, 1 means only last normal*/
-        float persistence_contribution = 0.2f;
+        float persistence_contribution = 0.9f;
 
         PhysicsModelType active_model;
         ModelPhysicsLessSimpleParams model2;
@@ -116,12 +117,12 @@ private:
 
         // ^^ 4 byte ^^
 
-        uint32_t num_steps = 128;
-        float step_length = 0.5f;
+        uint32_t num_steps;
+        float step_length;
         // uint32_t num_paths_per_release_cell = 256;
 
-        float normal_offset = 0.2f;
-        float direction_offset = 0.0f;
+        float max_perturbation;
+        float direction_offset;
 
         // ^^ 4 byte ^^
 
@@ -146,12 +147,12 @@ private:
         // ^^ 8 byte ^^
 
         uint32_t random_seed;
-        uint32_t _pad = 0; // struct size must be a multiple of its alignment (8 bytes from vec2u/vec2f)
+        uint32_t _pad; // struct size must be a multiple of its alignment (8 bytes from vec2u/vec2f)
     };
 
 public:
-    ComputeAvalancheTrajectoriesNode(const PipelineManager& pipeline_manager, WGPUDevice device);
-    ComputeAvalancheTrajectoriesNode(const PipelineManager& pipeline_manager, WGPUDevice device, const AvalancheTrajectoriesSettings& settings);
+    ComputeAvalancheTrajectoriesNode(webgpu::Context& ctx);
+    ComputeAvalancheTrajectoriesNode(webgpu::Context& ctx, const AvalancheTrajectoriesSettings& settings);
 
     void set_settings(const AvalancheTrajectoriesSettings& settings);
     const AvalancheTrajectoriesSettings& get_settings() const;
@@ -166,14 +167,13 @@ private:
     static std::unique_ptr<webgpu::raii::Sampler> create_height_sampler(WGPUDevice device);
 
 private:
-    const PipelineManager* m_pipeline_manager;
-    WGPUDevice m_device;
-    WGPUQueue m_queue;
+    webgpu::Context* m_ctx;
 
     AvalancheTrajectoriesSettings m_settings;
-    webgpu_engine::Buffer<AvalancheTrajectoriesSettingsUniform> m_settings_uniform;
+    webgpu::Buffer<AvalancheTrajectoriesSettingsUniform> m_settings_uniform;
     std::unique_ptr<webgpu::raii::Sampler> m_normal_sampler;
     std::unique_ptr<webgpu::raii::Sampler> m_height_sampler;
+    std::unique_ptr<webgpu::raii::CombinedComputePipeline> m_pipeline;
     std::unique_ptr<webgpu::raii::RawBuffer<uint32_t>> m_output_storage_buffer;
 
     std::unique_ptr<webgpu::raii::RawBuffer<uint32_t>> m_layer1_zdelta_buffer;

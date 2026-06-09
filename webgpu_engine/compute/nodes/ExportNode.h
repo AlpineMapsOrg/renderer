@@ -20,6 +20,7 @@
 #pragma once
 
 #include "Node.h"
+#include <webgpu/Context.h>
 
 namespace webgpu_engine::compute::nodes {
 
@@ -40,8 +41,8 @@ public:
         std::string aabb_output_file = "export/{run_datetime}_{run_id}/exp_aabb.txt";
     };
 
-    explicit ExportNode(WGPUDevice device);
-    ExportNode(WGPUDevice device, const ExportSettings& settings);
+    explicit ExportNode(webgpu::Context& ctx);
+    ExportNode(webgpu::Context& ctx, const ExportSettings& settings);
 
     const ExportSettings& get_settings() const { return m_settings; }
     void set_settings(const ExportSettings& settings);
@@ -50,7 +51,7 @@ public slots:
     void run_impl() override;
 
 private:
-    WGPUDevice m_device;
+    webgpu::Context* m_ctx;
     ExportSettings m_settings;
 };
 

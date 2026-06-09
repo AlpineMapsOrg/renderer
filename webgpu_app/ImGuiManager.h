@@ -20,6 +20,7 @@
 
 #include <QObject>
 #include <SDL2/SDL.h>
+#include <cstdint>
 #include <webgpu/webgpu.h>
 
 #ifdef ALP_WEBGPU_APP_ENABLE_IMGUI
@@ -38,6 +39,7 @@ public:
     explicit ImGuiManager(TerrainRenderer* terrain_renderer);
 
     void init(SDL_Window* window, WGPUDevice device, WGPUTextureFormat swapchainFormat, WGPUTextureFormat depthTextureFormat);
+    void ready();
     void render(WGPURenderPassEncoder renderPass);
     void shutdown();
 
@@ -48,12 +50,17 @@ public:
     void set_gui_visibility(bool visible);
     bool get_gui_visibility() const;
 
+    // Top-left Y for the next floating tool button
+    static float s_tool_button_y;
+
+    // Draws a floating 48x48 icon tool button at the next bottom-left stack slot (claims s_tool_button_y).
+    static bool FloatingToggleButton(const char* id, const char* icon, const char* tooltip, uint32_t* enabled);
+
 private:
     SDL_Window* m_window = nullptr;
     WGPUDevice m_device = {};
     TerrainRenderer* m_terrain_renderer = nullptr;
     bool m_gui_visible = true;
-    bool m_first_frame = true;
 
 #ifdef ALP_WEBGPU_APP_ENABLE_IMGUI
     std::vector<std::unique_ptr<ImGuiPanel>> m_panels;

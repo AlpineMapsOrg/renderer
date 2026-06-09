@@ -19,8 +19,9 @@
 #pragma once
 
 #include "Node.h"
-#include "webgpu_engine/Buffer.h"
-#include "webgpu_engine/PipelineManager.h"
+#include <webgpu/Buffer.h>
+#include <webgpu/Context.h>
+#include <webgpu/raii/CombinedComputePipeline.h>
 
 namespace webgpu_engine::compute::nodes {
 
@@ -67,8 +68,8 @@ public:
         glm::vec2 aabb_max;
     };
 
-    ComputeSnowNode(const PipelineManager& pipeline_manager, WGPUDevice device);
-    ComputeSnowNode(const PipelineManager& pipeline_manager, WGPUDevice device, const SnowSettings& settings);
+    ComputeSnowNode(webgpu::Context& ctx);
+    ComputeSnowNode(webgpu::Context& ctx, const SnowSettings& settings);
 
     void set_snow_settings(const SnowSettings& settings) { m_settings = settings; }
     const SnowSettings& get_snow_settings() const { return m_settings; }
@@ -81,13 +82,12 @@ private:
         WGPUDevice device, uint32_t width, uint32_t height, WGPUTextureFormat format, WGPUTextureUsage usage);
 
 private:
-    const PipelineManager* m_pipeline_manager;
-    WGPUDevice m_device;
-    WGPUQueue m_queue;
+    webgpu::Context* m_ctx;
 
     SnowSettings m_settings;
-    webgpu_engine::Buffer<SnowSettingsUniform> m_snow_settings_uniform_buffer;
-    webgpu_engine::Buffer<RegionBoundsUniform> m_region_bounds_uniform_buffer;
+    webgpu::Buffer<SnowSettingsUniform> m_snow_settings_uniform_buffer;
+    webgpu::Buffer<RegionBoundsUniform> m_region_bounds_uniform_buffer;
+    std::unique_ptr<webgpu::raii::CombinedComputePipeline> m_pipeline;
 
     // input
     std::unique_ptr<webgpu::raii::TextureWithSampler> m_input_normals_texture; // normal texture

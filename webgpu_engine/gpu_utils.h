@@ -19,16 +19,15 @@
 
 #pragma once
 
-#include <webgpu/webgpu.h>
-
-namespace webgpu::raii {
-class Texture;
+namespace webgpu {
+class Context;
+namespace raii {
+    class Texture;
 }
+} // namespace webgpu
 
 namespace webgpu_engine {
 
-class PipelineManager;
-
-void compute_mipmaps_for_texture(WGPUDevice device, WGPUQueue queue, const PipelineManager& pipeline_manager, const webgpu::raii::Texture* texture);
+void compute_mipmaps_for_texture(webgpu::Context& ctx, const webgpu::raii::Texture* texture);
 
 } // namespace webgpu_engine

@@ -119,6 +119,7 @@ qt_add_library(nucleus STATIC
     track/GPX.h
     utils/image_loader.h utils/image_loader.cpp
     utils/image_writer.h utils/image_writer.cpp
+    utils/geopng_decoder.h utils/geopng_decoder.cpp
     utils/thread.h
     camera/RecordedAnimation.h camera/RecordedAnimation.cpp
     camera/recording.h camera/recording.cpp

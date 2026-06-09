@@ -28,20 +28,25 @@ class SelectTilesNode : public Node {
 public:
     NODE_TYPE_NAME(SelectTilesNode)
 
-    using TileIdGenerator = std::function<std::vector<radix::tile::Id>()>;
+    struct SelectTilesNodeSettings {
+        uint32_t zoomlevel = 15;
+    };
 
     SelectTilesNode();
-    SelectTilesNode(TileIdGenerator tile_id_generator);
 
-    void set_tile_id_generator(TileIdGenerator tile_id_generator);
-    void select_tiles_in_world_aabb(const radix::geometry::Aabb<3, double>& aabb, unsigned int zoomlevel);
+    void set_settings(const SelectTilesNodeSettings& settings) { m_settings = settings; }
+    const SelectTilesNodeSettings& get_settings() const { return m_settings; }
 
 public slots:
     void run_impl() override;
 
 private:
-    TileIdGenerator m_tile_id_generator;
+    SelectTilesNodeSettings m_settings;
     std::vector<radix::tile::Id> m_output_tile_ids;
     radix::geometry::Aabb<2, double> m_output_bounds;
+
+    radix::geometry::Aabb<3, double> m_cached_region;
+    uint32_t m_cached_zoom = 0;
+    bool m_has_cached = false;
 };
 } // namespace webgpu_engine::compute::nodes

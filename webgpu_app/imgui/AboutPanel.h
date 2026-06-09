@@ -21,15 +21,11 @@
 #include "ImGuiPanel.h"
 
 namespace webgpu_app {
-
-// Renders the copyright box with the About button, the About popup modal,
-// and the disclaimer popup modal. All three are co-located here since the
-// button and modals are tightly coupled.
 class AboutPanel : public ImGuiPanel {
 public:
     AboutPanel() = default;
 
-    void on_first_frame() override;
+    void ready() override;
     void draw() override;
 
 private:

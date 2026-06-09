@@ -18,8 +18,8 @@
  *****************************************************************************/
 
 #include "ImGuiManager.h"
-#include "TerrainRenderer.h"
 #include "RenderingContext.h"
+#include "TerrainRenderer.h"
 
 #include "imgui/ImGuiPanel.h"
 
@@ -28,14 +28,17 @@
 #include "backends/imgui_impl_wgpu.h"
 #include "imgui/AboutPanel.h"
 #include "imgui/AppPanel.h"
+#include "imgui/AtmospherePanel.h"
 #include "imgui/CameraPanel.h"
 #include "imgui/CloudPanel.h"
 #include "imgui/CompassPanel.h"
-#include "imgui/EnginePanel.h"
-#include "imgui/IlluminationPanel.h"
 #include "imgui/LogoPanel.h"
+#include "imgui/NodeGraphPanel.h"
+#include "imgui/OverlaysPanel.h"
 #include "imgui/SearchPanel.h"
+#include "imgui/ShadingPanel.h"
 #include "imgui/TimingPanel.h"
+#include "imgui/TrackPanel.h"
 #include <IconsFontAwesome5.h>
 #include <imgui_internal.h>
 #include <imnodes.h>
@@ -90,9 +93,12 @@ void ImGuiManager::init(
     m_panels.push_back(std::make_unique<TimingPanel>(m_terrain_renderer));
     m_panels.push_back(std::make_unique<CameraPanel>(m_terrain_renderer));
     m_panels.push_back(std::make_unique<AppPanel>(m_terrain_renderer));
-    m_panels.push_back(std::make_unique<CloudPanel>(rc->clouds_manager(), engine_ctx->cloud_geometry()));
-    m_panels.push_back(std::make_unique<IlluminationPanel>(engine_ctx));
-    m_panels.push_back(std::make_unique<EnginePanel>(m_terrain_renderer));
+    m_panels.push_back(std::make_unique<CloudPanel>(engine_ctx, rc->clouds_manager(), engine_ctx->cloud_renderer()));
+    m_panels.push_back(std::make_unique<AtmospherePanel>(engine_ctx));
+    m_panels.push_back(std::make_unique<ShadingPanel>(engine_ctx));
+    m_panels.push_back(std::make_unique<OverlaysPanel>(engine_ctx));
+    m_panels.push_back(std::make_unique<TrackPanel>(engine_ctx, m_terrain_renderer));
+    m_panels.push_back(std::make_unique<NodeGraphPanel>(engine_ctx));
 
     connect(&search_panel, &SearchPanel::search_requested, rc->search_service(), &SearchService::search);
     connect(&search_panel,
@@ -101,6 +107,14 @@ void ImGuiManager::init(
         &nucleus::camera::Controller::fly_to_latitude_longitude);
     connect(rc->search_service(), &SearchService::search_results_arrived, &search_panel, &SearchPanel::display_search_results);
 
+#endif
+}
+
+void ImGuiManager::ready()
+{
+#ifdef ALP_WEBGPU_APP_ENABLE_IMGUI
+    for (auto& panel : m_panels)
+        panel->ready();
 #endif
 }
 
@@ -199,17 +213,52 @@ void ImGuiManager::set_gui_visibility(bool visible) { m_gui_visible = visible; }
 
 bool ImGuiManager::get_gui_visibility() const { return m_gui_visible; }
 
+float ImGuiManager::s_tool_button_y = 0.0f;
+
+#ifdef ALP_WEBGPU_APP_ENABLE_IMGUI
+bool ImGuiManager::FloatingToggleButton(const char* id, const char* icon, const char* tooltip, uint32_t* enabled)
+{
+    const bool on = *enabled != 0u;
+
+    // Claim the next floating tool-button slot (bottom-left, stacking upward).
+    ImVec2 button_pos(10, s_tool_button_y);
+    s_tool_button_y -= 48 + 10;
+    ImGui::SetNextWindowPos(button_pos, ImGuiCond_Always);
+    ImGui::SetNextWindowBgAlpha(on ? 0.5f : 0.2f); // fade the background when disabled
+    ImGui::SetNextWindowSize(ImVec2(48, 48));
+
+    ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0, 0));
+    ImGui::Begin(id, nullptr, ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_AlwaysAutoResize);
+    ImGui::BringWindowToDisplayFront(ImGui::GetCurrentWindow());
+
+    ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.0f, 0.0f, 0.0f, 0.0f)); // fully transparent
+    ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(0.0f, 0.0f, 0.0f, 0.2f));
+    ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4(0.0f, 0.0f, 0.0f, 0.2f));
+    ImGui::PushStyleColor(ImGuiCol_Text, on ? ImVec4(1.0f, 1.0f, 1.0f, 1.0f) : ImVec4(1.0f, 1.0f, 1.0f, 0.5f)); // fade the icon when disabled
+
+    const bool clicked = ImGui::Button(icon, ImVec2(48, 48));
+    if (clicked)
+        *enabled = on ? 0u : 1u;
+    const bool hovered = ImGui::IsItemHovered();
+
+    ImGui::PopStyleColor(4);
+    ImGui::End();
+    ImGui::PopStyleVar();
+
+    if (hovered)
+        ImGui::SetTooltip("%s", tooltip);
+    return clicked;
+}
+#endif
+
 void ImGuiManager::draw()
 {
-    if (m_first_frame) {
-        for (auto& panel : m_panels)
-            panel->on_first_frame();
-        m_first_frame = false;
-    }
-
 #ifdef ALP_WEBGPU_APP_ENABLE_IMGUI
     if (!m_gui_visible)
         return;
+
+    // Reset the floating tool-button stack for this frame (bottom-left, stacking upward).
+    s_tool_button_y = ImGui::GetIO().DisplaySize.y - 48.0f - 40.0f;
 
     // Standalone windows, overlays, and modals
     for (auto& panel : m_panels)

@@ -27,12 +27,12 @@
 #include <limits>
 #include <memory>
 #include <nucleus/Raster.h>
+#include <nucleus/utils/geopng_decoder.h>
 #include <nucleus/utils/image_writer.h>
 
 namespace webgpu_engine::compute::nodes {
 
-static std::string resolve_placeholders(
-    const std::string& pattern, const std::string& node_name, uint64_t run_id, const std::string& run_datetime)
+static std::string resolve_placeholders(const std::string& pattern, const std::string& node_name, uint64_t run_id, const std::string& run_datetime)
 {
     std::string result = pattern;
     auto replace = [](std::string& s, const std::string& from, const std::string& to) {
@@ -48,10 +48,7 @@ static std::string resolve_placeholders(
     return result;
 }
 
-static void ensure_parent_dir(const std::string& file_path)
-{
-    std::filesystem::create_directories(std::filesystem::path(file_path).parent_path());
-}
+static void ensure_parent_dir(const std::string& file_path) { std::filesystem::create_directories(std::filesystem::path(file_path).parent_path()); }
 
 static void write_texture_file(const QByteArray& data, glm::uvec2 dims, const std::string& file_path)
 {
@@ -61,8 +58,7 @@ static void write_texture_file(const QByteArray& data, glm::uvec2 dims, const st
     for (uint32_t y = 0; y < dims.y; y++) {
         for (uint32_t x = 0; x < dims.x; x++) {
             const uint32_t idx = (y * dims.x + x) * bpp;
-            buf[y * dims.x + x] = glm::u8vec4(
-                static_cast<uint8_t>(data.at(idx + 0)),
+            buf[y * dims.x + x] = glm::u8vec4(static_cast<uint8_t>(data.at(idx + 0)),
                 bpp > 1 ? static_cast<uint8_t>(data.at(idx + 1)) : 0u,
                 bpp > 2 ? static_cast<uint8_t>(data.at(idx + 2)) : 0u,
                 bpp > 3 ? static_cast<uint8_t>(data.at(idx + 3)) : 255u);
@@ -75,19 +71,11 @@ static void write_texture_file(const QByteArray& data, glm::uvec2 dims, const st
 
 static void write_buffer_file(const std::vector<uint32_t>& data, glm::uvec2 dims, const std::string& file_path)
 {
-    nucleus::Raster<glm::u8vec4> raster(dims);
-    auto& buf = raster.buffer();
-    constexpr float FLOAT_MIN = -10000.0f;
-    constexpr float FLOAT_MAX = 10000.0f;
-    for (size_t i = 0; i < data.size(); i++) {
-        float f = static_cast<float>(data[i]);
-        float clamped = glm::clamp(f, FLOAT_MIN, FLOAT_MAX);
-        double normalized = (clamped - FLOAT_MIN) / (FLOAT_MAX - FLOAT_MIN);
-        uint32_t mapped = static_cast<uint32_t>(normalized * static_cast<double>(std::numeric_limits<uint32_t>::max()));
-        buf[i] = glm::u8vec4((mapped >> 24) & 0xFF, (mapped >> 16) & 0xFF, (mapped >> 8) & 0xFF, mapped & 0xFF);
-    }
+    nucleus::Raster<float> raster(dims);
+    for (size_t i = 0; i < data.size(); i++)
+        raster.buffer()[i] = static_cast<float>(data[i]);
     ensure_parent_dir(file_path);
-    nucleus::utils::image_writer::rgba8_as_png(raster, QString::fromStdString(file_path));
+    nucleus::utils::geopng::write_encoded_float_png(raster, QString::fromStdString(file_path));
     qDebug() << "[ExportNode] buffer written to" << QString::fromStdString(file_path);
 }
 
@@ -104,21 +92,21 @@ static void write_aabb_file(const std::string& file_path, const radix::geometry:
     }
 }
 
-ExportNode::ExportNode(WGPUDevice device)
-    : ExportNode(device, ExportSettings{})
+ExportNode::ExportNode(webgpu::Context& ctx)
+    : ExportNode(ctx, ExportSettings {})
 {
 }
 
-ExportNode::ExportNode(WGPUDevice device, const ExportSettings& settings)
+ExportNode::ExportNode(webgpu::Context& ctx, const ExportSettings& settings)
     : Node(
-          {
-              InputSocket(*this, "texture", data_type<const webgpu::raii::TextureWithSampler*>()),
-              InputSocket(*this, "buffer", data_type<webgpu::raii::RawBuffer<uint32_t>*>()),
-              InputSocket(*this, "dimensions", data_type<glm::uvec2>()),
-              InputSocket(*this, "region aabb", data_type<const radix::geometry::Aabb<2, double>*>()),
-          },
-          {})
-    , m_device(device)
+        {
+            InputSocket(*this, "texture", data_type<const webgpu::raii::TextureWithSampler*>()),
+            InputSocket(*this, "buffer", data_type<webgpu::raii::RawBuffer<uint32_t>*>()),
+            InputSocket(*this, "dimensions", data_type<glm::uvec2>()),
+            InputSocket(*this, "region aabb", data_type<const radix::geometry::Aabb<2, double>*>()),
+        },
+        {})
+    , m_ctx(&ctx)
     , m_settings(settings)
 {
 }
@@ -148,7 +136,7 @@ void ExportNode::run_impl()
         const glm::uvec2 dims { texture.texture().width(), texture.texture().height() };
         const std::string path = resolve_placeholders(m_settings.texture_output_file, node_name, run_id, run_datetime);
         (*pending)++;
-        texture.texture().read_back_async(m_device, 0, [path, dims, on_done]([[maybe_unused]] size_t, std::shared_ptr<QByteArray> data) {
+        texture.texture().read_back_async(m_ctx->device(), 0, [path, dims, on_done]([[maybe_unused]] size_t, std::shared_ptr<QByteArray> data) {
             write_texture_file(*data, dims, path);
             on_done();
         });
@@ -167,7 +155,7 @@ void ExportNode::run_impl()
             } else {
                 const std::string path = resolve_placeholders(m_settings.buffer_output_file, node_name, run_id, run_datetime);
                 (*pending)++;
-                buffer.read_back_async(m_device, [path, dims, on_done](WGPUMapAsyncStatus status, std::vector<uint32_t> data) {
+                buffer.read_back_async(m_ctx->device(), [path, dims, on_done](WGPUMapAsyncStatus status, std::vector<uint32_t> data) {
                     if (status == WGPUMapAsyncStatus_Success)
                         write_buffer_file(data, dims, path);
                     else

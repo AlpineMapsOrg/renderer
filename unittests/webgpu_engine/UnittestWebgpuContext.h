@@ -20,9 +20,7 @@
 #pragma once
 
 #include "webgpu/webgpu.h"
-#include "webgpu_engine/ShaderModuleManager.h"
-
-using namespace webgpu_engine;
+#include <webgpu/Context.h>
 
 struct UnittestWebgpuContext {
     WGPULimits default_limits();
@@ -37,5 +35,5 @@ struct UnittestWebgpuContext {
     WGPUDevice device = nullptr;
     WGPUQueue queue = nullptr;
 
-    std::unique_ptr<ShaderModuleManager> shader_module_manager = nullptr;
+    webgpu::Context ctx;
 };

@@ -33,6 +33,7 @@ set(SOURCES
     raii/Texture.h raii/Texture.cpp
     raii/TextureWithSampler.h raii/TextureWithSampler.cpp
     raii/RawBuffer.h
+    Buffer.h
     raii/TextureView.h raii/TextureView.cpp
     raii/Sampler.h raii/Sampler.cpp
     raii/BindGroup.h raii/BindGroup.cpp
@@ -53,6 +54,9 @@ set(SOURCES
     timing/WebGpuTimer.h timing/WebGpuTimer.cpp
 
     Framebuffer.h Framebuffer.cpp
+
+    Context.h
+    RenderResourceRegistry.h RenderResourceRegistry.cpp
 
     webgpu_interface.hpp webgpu_interface.cpp)
 

@@ -18,6 +18,7 @@
 
 #include "CompassPanel.h"
 
+#include "../ImGuiManager.h"
 #include <imgui.h>
 #include <imgui_internal.h>
 
@@ -35,8 +36,9 @@ CompassPanel::CompassPanel(TerrainRenderer* terrain_renderer)
 void CompassPanel::draw()
 {
     // === ROTATE NORTH BUTTON ===
-    // Offset position from the bottom-left corner by 32 pixels, then position the button
-    ImVec2 button_pos(10, ImGui::GetIO().DisplaySize.y - 48 - 40);
+    // Claim the next floating tool-button slot (bottom-left, stacking upward).
+    ImVec2 button_pos(10, ImGuiManager::s_tool_button_y);
+    ImGuiManager::s_tool_button_y -= 48 + 10;
     ImGui::SetNextWindowPos(button_pos, ImGuiCond_Always);
     ImGui::SetNextWindowBgAlpha(0.5f); // Semi-transparent background
     ImGui::SetNextWindowSize(ImVec2(48, 48)); // Set button size
@@ -54,6 +56,7 @@ void CompassPanel::draw()
     if (ImGui::Button("###RotateNorthButton", ImVec2(48, 48))) {
         camController->rotate_north();
     }
+    const bool hovered = ImGui::IsItemHovered();
 
     ImGui::PopStyleColor(3);
 
@@ -88,6 +91,9 @@ void CompassPanel::draw()
 
     ImGui::End();
     ImGui::PopStyleVar(); // Restore padding
+
+    if (hovered)
+        ImGui::SetTooltip("Rotate North");
 }
 
 } // namespace webgpu_app

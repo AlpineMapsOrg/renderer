@@ -28,14 +28,18 @@ project(alpine-renderer-webgpu_engine LANGUAGES C CXX)
 set(SOURCES
     Window.h Window.cpp
     gpu_utils.h gpu_utils.cpp
-    PipelineSettings.h PipelineSettings.cpp
-    ShaderModuleManager.h ShaderModuleManager.cpp
-    PipelineManager.h PipelineManager.cpp
-    UniformBufferObjects.h UniformBufferObjects.cpp
-    TileGeometry.h TileGeometry.cpp
-    CloudRenderer.h CloudRenderer.cpp
-    Buffer.h Buffer.cpp
-    TrackRenderer.h TrackRenderer.cpp
+    UniformBufferObjects.h
+    tile_mesh/TileMeshRenderer.h tile_mesh/TileMeshRenderer.cpp
+    cloud/CloudRenderer.h cloud/CloudRenderer.cpp
+    track/TrackRenderer.h track/TrackRenderer.cpp
+    atmosphere/AtmosphereRenderer.h atmosphere/AtmosphereRenderer.cpp
+    overlay/OverlayRenderer.h overlay/OverlayRenderer.cpp
+    overlay/Overlay.h
+    overlay/HeightLinesOverlay.h overlay/HeightLinesOverlay.cpp
+    overlay/ScreenSpaceSnowOverlay.h overlay/ScreenSpaceSnowOverlay.cpp
+    overlay/TextureOverlay.h overlay/TextureOverlay.cpp
+    overlay/TileDebugOverlay.h overlay/TileDebugOverlay.cpp
+    overlay/OverlayRenderNode.h overlay/OverlayRenderNode.cpp
     Context.h Context.cpp
 
     compute/GpuTileStorage.h compute/GpuTileStorage.cpp
@@ -47,34 +51,20 @@ set(SOURCES
     compute/nodes/ComputeNormalsNode.h compute/nodes/ComputeNormalsNode.cpp
     compute/GraphRunContext.h
     compute/NodeGraph.h compute/NodeGraph.cpp
+    compute/NodeRegistry.h compute/NodeRegistry.cpp
     compute/nodes/ComputeSnowNode.h compute/nodes/ComputeSnowNode.cpp
     compute/nodes/UpsampleTexturesNode.h compute/nodes/UpsampleTexturesNode.cpp
     compute/nodes/ComputeAvalancheTrajectoriesNode.h compute/nodes/ComputeAvalancheTrajectoriesNode.cpp
     compute/nodes/ExportNode.h compute/nodes/ExportNode.cpp
+    compute/nodes/GPXTrackNode.h compute/nodes/GPXTrackNode.cpp
     compute/nodes/BufferToTextureNode.h compute/nodes/BufferToTextureNode.cpp
     compute/nodes/ComputeReleasePointsNode.h compute/nodes/ComputeReleasePointsNode.cpp
     compute/nodes/TileStitchNode.h compute/nodes/TileStitchNode.cpp
     compute/nodes/HeightDecodeNode.h compute/nodes/HeightDecodeNode.cpp
     compute/nodes/IterativeSimulationNode.h compute/nodes/IterativeSimulationNode.cpp
     compute/nodes/LoadTextureNode.h compute/nodes/LoadTextureNode.cpp
-    compute/nodes/LoadRegionAabbNode.h compute/nodes/LoadRegionAabbNode.cpp
     compute/nodes/util.h compute/nodes/util.cpp
 )
-
-# NodeGraphRenderer and NodeRenderer are only compiled when ImGui is enabled
-if (ALP_WEBGPU_APP_ENABLE_IMGUI)
-    list(APPEND SOURCES
-        compute/imgui/NodeGraphRenderer.h compute/imgui/NodeGraphRenderer.cpp
-        compute/imgui/nodes/NodeRenderer.h compute/imgui/nodes/NodeRenderer.cpp
-        compute/imgui/nodes/NodeRendererFactory.h compute/imgui/nodes/NodeRendererFactory.cpp
-        compute/imgui/nodes/ExportNodeRenderer.h compute/imgui/nodes/ExportNodeRenderer.cpp
-        compute/imgui/nodes/BufferToTextureNodeRenderer.h compute/imgui/nodes/BufferToTextureNodeRenderer.cpp
-        compute/imgui/nodes/ComputeAvalancheTrajectoriesNodeRenderer.h compute/imgui/nodes/ComputeAvalancheTrajectoriesNodeRenderer.cpp
-        compute/imgui/nodes/ComputeReleasePointsNodeRenderer.h compute/imgui/nodes/ComputeReleasePointsNodeRenderer.cpp
-        compute/imgui/nodes/ComputeSnowNodeRenderer.h compute/imgui/nodes/ComputeSnowNodeRenderer.cpp
-        compute/imgui/nodes/RequestTilesNodeRenderer.h compute/imgui/nodes/RequestTilesNodeRenderer.cpp
-    )
-endif()
 
 qt_add_library(webgpu_engine STATIC ${SOURCES})
 
@@ -135,8 +125,14 @@ qt_add_resources(webgpu_engine "shaders"
         "${SHADER_BASE_DIR}/compute/fxaa_compute.wgsl"
         "${SHADER_BASE_DIR}/compute/iterative_simulation_compute.wgsl"
 
+        "${SHADER_BASE_DIR}/overlays/height_lines.wgsl"
+        "${SHADER_BASE_DIR}/overlays/texture_overlay.wgsl"
+        "${SHADER_BASE_DIR}/overlays/gbuffer_debug.wgsl"
+        "${SHADER_BASE_DIR}/overlays/screen_space_snow.wgsl"
+
         "${SHADER_BASE_DIR}/util/atmosphere.wgsl"
         "${SHADER_BASE_DIR}/util/snow.wgsl"
+        "${SHADER_BASE_DIR}/util/general.wgsl"
         "${SHADER_BASE_DIR}/util/tile_util.wgsl"
         "${SHADER_BASE_DIR}/util/normals_util.wgsl"
         "${SHADER_BASE_DIR}/util/tile_hashmap.wgsl"
@@ -149,28 +145,6 @@ qt_add_resources(webgpu_engine "shaders"
         "${SHADER_BASE_DIR}/util/noise.wgsl"
         "${SHADER_BASE_DIR}/util/random.wgsl"
     )
-
-# Note: This has to go into the webgpu_app as soon as we don't use ImGui in the engine anymore!!!
-# We can't do it right now as the engine is not dependent on the app. so we dont have acess in this case.
-if (ALP_WEBGPU_APP_ENABLE_IMGUI)
-    # For Font Awesome Icon Headers:
-    alp_add_git_repository(iconfontcppheaders URL https://github.com/juliettef/IconFontCppHeaders.git COMMITISH f30b1e73b2d71eb331d77619c3f1de34199afc38 DO_NOT_ADD_SUBPROJECT)
-    target_include_directories(webgpu_engine PUBLIC ../extern/iconfontcppheaders)
-
-    alp_add_git_repository(imgui URL https://github.com/AlpineMapsOrgDependencies/imgui_slim.git COMMITISH 4d8ecbf58ebf32e757ff56a60f1fb0446033edb8)
-
-    set(IMNODES_IMGUI_TARGET_NAME imgui)
-    set(BUILD_SHARED_LIBS_SAVED ${BUILD_SHARED_LIBS})
-    set(BUILD_SHARED_LIBS OFF)
-    alp_add_git_repository(imnodes URL https://github.com/AlpineMapsOrgDependencies/imnodes_slim.git COMMITISH 324355e64ed8b5bea02fe1439cdcb5c7773b4436)
-    set(BUILD_SHARED_LIBS ${BUILD_SHARED_LIBS_SAVED})
-
-    alp_add_git_repository(ImGuiFileDialog URL https://github.com/AlpineMapsOrgDependencies/ImGuiFileDialog_slim.git COMMITISH 39f98eb131ee00d476f1002336fc7e9e1795ccc5)
-    target_link_libraries(ImGuiFileDialog PRIVATE imgui)
-
-    target_link_libraries(webgpu_engine PUBLIC imgui imnodes ImGuiFileDialog)
-    target_compile_definitions(webgpu_engine PUBLIC "ALP_WEBGPU_APP_ENABLE_IMGUI")
-endif()
 
 target_link_libraries(webgpu_engine PUBLIC nucleus Qt::Core webgpu)
 target_include_directories(webgpu_engine PRIVATE .)

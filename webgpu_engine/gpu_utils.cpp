@@ -19,11 +19,13 @@
 
 #include "gpu_utils.h"
 
-#include "PipelineManager.h"
 #include "webgpu/raii/BindGroup.h"
 #include "webgpu/raii/Texture.h"
 #include "webgpu/raii/TextureView.h"
 #include "webgpu/raii/base_types.h"
+#include <webgpu/Context.h>
+#include <webgpu/RenderResourceRegistry.h>
+#include <webgpu/raii/CombinedComputePipeline.h>
 
 #include <QDebug>
 #include <glm/glm.hpp>
@@ -32,8 +34,12 @@
 
 namespace webgpu_engine {
 
-void compute_mipmaps_for_texture(WGPUDevice device, WGPUQueue queue, const PipelineManager& pipeline_manager, const webgpu::raii::Texture* texture)
+void compute_mipmaps_for_texture(webgpu::Context& ctx, const webgpu::raii::Texture* texture)
 {
+    WGPUDevice device = ctx.device();
+    WGPUQueue queue = ctx.queue();
+    const auto& reg = ctx.resource_registry();
+
     glm::uvec2 baseSize = { texture->width(), texture->height() };
     uint32_t mipLevelCount = texture->mip_level_count();
 
@@ -43,6 +49,11 @@ void compute_mipmaps_for_texture(WGPUDevice device, WGPUQueue queue, const Pipel
     } else {
         qDebug() << "Computing" << mipLevelCount << "mipmaps for texture";
     }
+
+    webgpu::raii::CombinedComputePipeline pipeline(device,
+        reg.shader("mipmap_creation"),
+        std::vector<const webgpu::raii::BindGroupLayout*> { &reg.bind_group_layout("mipmap_creation") },
+        "mipmap creation compute pipeline");
 
     std::vector<std::unique_ptr<webgpu::raii::TextureView>> textureMipViews;
     std::vector<WGPUExtent3D> mipSizes(mipLevelCount);
@@ -69,7 +80,8 @@ void compute_mipmaps_for_texture(WGPUDevice device, WGPUQueue queue, const Pipel
             textureMipViews[i]->create_bind_group_entry(0),
             textureMipViews[i + 1]->create_bind_group_entry(1),
         };
-        bindGroups.push_back(std::make_unique<webgpu::raii::BindGroup>(device, pipeline_manager.mipmap_creation_bind_group_layout(), bgEntries, "mipmap creation bindgroup"));
+        bindGroups.push_back(
+            std::make_unique<webgpu::raii::BindGroup>(device, reg.bind_group_layout("mipmap_creation"), bgEntries, "mipmap creation bindgroup"));
     }
 
     constexpr glm::uvec3 SHADER_WORKGROUP_SIZE = { 8, 8, 1 };
@@ -83,7 +95,7 @@ void compute_mipmaps_for_texture(WGPUDevice device, WGPUQueue queue, const Pipel
 
             glm::uvec3 workgroup_counts = glm::ceil(glm::vec3(mipSizes[i + 1].width, mipSizes[i + 1].height, 1) / glm::vec3(SHADER_WORKGROUP_SIZE));
             wgpuComputePassEncoderSetBindGroup(compute_pass.handle(), 0, bindGroups[i]->handle(), 0, nullptr);
-            pipeline_manager.mipmap_creation_pipeline().run(compute_pass, workgroup_counts);
+            pipeline.run(compute_pass, workgroup_counts);
         }
 
         WGPUCommandBufferDescriptor cmd_buffer_descriptor {};

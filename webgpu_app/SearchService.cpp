@@ -40,6 +40,7 @@ void SearchService::search(const std::string& search_term)
         { "q", QString::fromStdString(search_term) },
         { "limit", QString::number(m_limit) },
         { "format", QString::fromStdString(format) },
+        { "countrycodes", QString::fromStdString(m_region_country_code) },
     });
     url.setQuery(url_query);
 

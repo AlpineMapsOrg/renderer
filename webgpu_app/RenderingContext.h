@@ -30,6 +30,10 @@
 #include "nucleus/tile/setup.h"
 #include "webgpu/webgpu.h"
 
+namespace webgpu {
+class Context;
+}
+
 namespace webgpu_engine {
 class Context;
 }
@@ -56,7 +60,7 @@ class RenderingContext : public QObject {
 public:
     RenderingContext();
 
-    void initialize(WGPUInstance webgpu_instance, WGPUDevice webgpu_device);
+    void initialize(webgpu::Context& ctx);
     void destroy();
 
     webgpu_engine::Context* engine_context();

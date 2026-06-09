@@ -21,6 +21,7 @@
 #include "Texture.h"
 
 #include "nucleus/utils/ColourTexture3D.h"
+#include <nucleus/utils/geopng_decoder.h>
 
 #include <QDebug>
 #include <bit>
@@ -152,7 +153,6 @@ void Texture::write(WGPUQueue queue, const nucleus::utils::ColourTexture3D& data
     wgpuQueueWriteTexture(queue, &image_copy_texture, data.data(), data.n_bytes(), &texture_data_layout, &copy_extent);
 }
 
-
 void Texture::copy_to_texture(WGPUCommandEncoder encoder, uint32_t source_layer, const Texture& target_texture, uint32_t target_layer) const
 {
     WGPUTexelCopyTextureInfo source {};
@@ -233,33 +233,10 @@ void Texture::save_to_file(WGPUDevice device, const std::string& filename, size_
         // this image back to a tiff for investigation.
         case WGPUTextureFormat::WGPUTextureFormat_R32Float: {
             const float* float_data = reinterpret_cast<const float*>(data->data());
-            size_t num_floats = data->size() / sizeof(float);
-
-            float min_value_found = std::numeric_limits<float>::max();
-            float max_value_found = std::numeric_limits<float>::lowest();
-            double sum = 0.0;
-            std::vector<uint32_t> packed_data(num_floats);
-
-            // Constants for normalization
-            constexpr float min_value = -10000.0f;
-            constexpr float max_value = 10000.0f;
-            constexpr float range = max_value - min_value;
-
-            for (size_t i = 0; i < num_floats; ++i) {
-                float value = float_data[i];
-                min_value_found = std::min(min_value_found, value);
-                max_value_found = std::max(max_value_found, value);
-                sum += value;
-                float clamped = std::max(min_value, std::min(max_value, value));
-                float normalized = (clamped - min_value) / range;
-                uint32_t packed = static_cast<uint32_t>(normalized * static_cast<double>(std::numeric_limits<uint32_t>::max()));
-                packed_data[i] = packed;
-            }
-            float average_value = static_cast<float>(sum / num_floats);
-            qDebug() << "Float texture data: " << "min:" << min_value_found << "max:" << max_value_found << "avg:" << average_value;
-
-            QByteArray packed_byte_array(reinterpret_cast<const char*>(packed_data.data()), packed_data.size() * sizeof(uint32_t));
-            nucleus::utils::image_writer::rgba8_as_png(packed_byte_array, glm::uvec2(width(), height()), QString::fromStdString(filename));
+            const size_t num_floats = data->size() / sizeof(float);
+            nucleus::Raster<float> raster(glm::uvec2(width(), height()));
+            std::copy(float_data, float_data + num_floats, raster.buffer().data());
+            nucleus::utils::geopng::write_encoded_float_png(raster, QString::fromStdString(filename));
         } break;
 
         default:

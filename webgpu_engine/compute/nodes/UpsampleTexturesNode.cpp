@@ -22,27 +22,58 @@ namespace webgpu_engine::compute::nodes {
 
 glm::uvec3 UpsampleTexturesNode::SHADER_WORKGROUP_SIZE = { 1, 16, 16 };
 
-UpsampleTexturesNode::UpsampleTexturesNode(const PipelineManager& pipeline_manager, WGPUDevice device, glm::uvec2 target_resolution, size_t capacity)
+UpsampleTexturesNode::UpsampleTexturesNode(webgpu::Context& ctx, glm::uvec2 target_resolution, size_t capacity)
     : Node(
-          {
-              InputSocket(*this, "source textures", data_type<TileStorageTexture*>()),
-          },
-          {
-              OutputSocket(*this, "output textures", data_type<TileStorageTexture*>(), [this]() { return m_output_storage_texture.get(); }),
-          })
-    , m_pipeline_manager { &pipeline_manager }
-    , m_device { device }
-    , m_queue { wgpuDeviceGetQueue(m_device) }
+        {
+            InputSocket(*this, "source textures", data_type<TileStorageTexture*>()),
+        },
+        {
+            OutputSocket(*this, "output textures", data_type<TileStorageTexture*>(), [this]() { return m_output_storage_texture.get(); }),
+        })
+    , m_ctx(&ctx)
     , m_target_resolution { target_resolution }
     , m_input_indices(std::make_unique<webgpu::raii::RawBuffer<uint32_t>>(
-          m_device, WGPUBufferUsage_Storage | WGPUBufferUsage_CopyDst | WGPUBufferUsage_CopySrc, capacity, "compute: upsampling texture, index buffer"))
-    , m_output_storage_texture(std::make_unique<TileStorageTexture>(m_device, m_target_resolution, capacity, WGPUTextureFormat_RGBA8Unorm))
+          m_ctx->device(), WGPUBufferUsage_Storage | WGPUBufferUsage_CopyDst | WGPUBufferUsage_CopySrc, capacity, "compute: upsampling texture, index buffer"))
+    , m_output_storage_texture(std::make_unique<TileStorageTexture>(m_ctx->device(), m_target_resolution, capacity, WGPUTextureFormat_RGBA8Unorm))
 {
+    auto& reg = ctx.resource_registry();
+    reg.register_shader("upsample_textures_compute", "compute/upsample_textures_compute.wgsl");
+    reg.register_bind_group_layout("upsample_textures_compute", [](WGPUDevice dev) {
+        WGPUBindGroupLayoutEntry e0 {};
+        e0.binding = 0;
+        e0.visibility = WGPUShaderStage_Compute;
+        e0.buffer.type = WGPUBufferBindingType_ReadOnlyStorage;
+
+        WGPUBindGroupLayoutEntry e1 {};
+        e1.binding = 1;
+        e1.visibility = WGPUShaderStage_Compute;
+        e1.texture.sampleType = WGPUTextureSampleType_Float;
+        e1.texture.viewDimension = WGPUTextureViewDimension_2DArray;
+
+        WGPUBindGroupLayoutEntry e2 {};
+        e2.binding = 2;
+        e2.visibility = WGPUShaderStage_Compute;
+        e2.sampler.type = WGPUSamplerBindingType_Filtering;
+
+        WGPUBindGroupLayoutEntry e3 {};
+        e3.binding = 3;
+        e3.visibility = WGPUShaderStage_Compute;
+        e3.storageTexture.access = WGPUStorageTextureAccess_WriteOnly;
+        e3.storageTexture.format = WGPUTextureFormat_RGBA8Unorm;
+        e3.storageTexture.viewDimension = WGPUTextureViewDimension_2DArray;
+
+        return std::make_unique<webgpu::raii::BindGroupLayout>(
+            dev, std::vector<WGPUBindGroupLayoutEntry> { e0, e1, e2, e3 }, "compute: upsample textures bind group layout");
+    });
+    reg.register_pipeline([this](WGPUDevice device, const webgpu::RenderResourceRegistry& reg) {
+        m_pipeline = std::make_unique<webgpu::raii::CombinedComputePipeline>(device,
+            reg.shader("upsample_textures_compute"),
+            std::vector<const webgpu::raii::BindGroupLayout*> { &reg.bind_group_layout("upsample_textures_compute") });
+    });
 }
 
 void UpsampleTexturesNode::run_impl()
 {
-
 
     const auto& input_textures = *std::get<data_type<TileStorageTexture*>()>(input_socket("source textures").get_connected_data());
     const std::vector<uint32_t> input_used_indices = input_textures.used_layer_indices();
@@ -50,7 +81,7 @@ void UpsampleTexturesNode::run_impl()
     qDebug() << "upsampling " << input_used_indices.size() << " textures from (" << input_textures.width() << "," << input_textures.height() << ") to ("
              << m_output_storage_texture->width() << "," << m_output_storage_texture->height() << ")";
 
-    m_input_indices->write(m_queue, input_used_indices.data(), input_used_indices.size());
+    m_input_indices->write(m_ctx->queue(), input_used_indices.data(), input_used_indices.size());
 
     m_output_storage_texture->clear();
 
@@ -63,13 +94,13 @@ void UpsampleTexturesNode::run_impl()
     std::vector<WGPUBindGroupEntry> entries { input_indices_entry, input_textures_entry, input_sampler, output_textures_entry };
 
     auto compute_bind_group = std::make_unique<webgpu::raii::BindGroup>(
-        m_device, m_pipeline_manager->upsample_textures_compute_bind_group_layout(), entries, "compute: upsample textures bind group");
+        m_ctx->device(), m_ctx->resource_registry().bind_group_layout("upsample_textures_compute"), entries, "compute: upsample textures bind group");
 
     // bind GPU resources and run pipeline
     {
         WGPUCommandEncoderDescriptor descriptor {};
         descriptor.label = WGPUStringView { .data = "compute: upsample texture command encoder", .length = WGPU_STRLEN };
-        webgpu::raii::CommandEncoder encoder(m_device, descriptor);
+        webgpu::raii::CommandEncoder encoder(m_ctx->device(), descriptor);
 
         {
             WGPUComputePassDescriptor compute_pass_desc {};
@@ -79,13 +110,13 @@ void UpsampleTexturesNode::run_impl()
             glm::uvec3 workgroup_counts = glm::ceil(
                 glm::vec3(input_used_indices.size(), m_output_storage_texture->width(), m_output_storage_texture->height()) / glm::vec3(SHADER_WORKGROUP_SIZE));
             wgpuComputePassEncoderSetBindGroup(compute_pass.handle(), 0, compute_bind_group->handle(), 0, nullptr);
-            m_pipeline_manager->upsample_textures_compute_pipeline().run(compute_pass, workgroup_counts);
+            m_pipeline->run(compute_pass, workgroup_counts);
         }
 
         WGPUCommandBufferDescriptor cmd_buffer_descriptor {};
         cmd_buffer_descriptor.label = WGPUStringView { .data = "compute: upsampling texture command buffer", .length = WGPU_STRLEN };
         WGPUCommandBuffer command = wgpuCommandEncoderFinish(encoder.handle(), &cmd_buffer_descriptor);
-        wgpuQueueSubmit(m_queue, 1, &command);
+        wgpuQueueSubmit(m_ctx->queue(), 1, &command);
         wgpuCommandBufferRelease(command);
     }
 
@@ -108,7 +139,7 @@ void UpsampleTexturesNode::run_impl()
         .userdata2 = nullptr,
     };
 
-    wgpuQueueOnSubmittedWorkDone(m_queue, callback_info);
+    wgpuQueueOnSubmittedWorkDone(m_ctx->queue(), callback_info);
 }
 
 } // namespace webgpu_engine::compute::nodes

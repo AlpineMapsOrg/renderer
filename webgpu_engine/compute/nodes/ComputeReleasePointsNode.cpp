@@ -22,42 +22,70 @@ namespace webgpu_engine::compute::nodes {
 
 glm::uvec3 ComputeReleasePointsNode::SHADER_WORKGROUP_SIZE = { 16, 16, 1 };
 
-ComputeReleasePointsNode::ComputeReleasePointsNode(const PipelineManager& pipeline_manager, WGPUDevice device)
-    : ComputeReleasePointsNode(pipeline_manager, device, ReleasePointsSettings())
+ComputeReleasePointsNode::ComputeReleasePointsNode(webgpu::Context& ctx)
+    : ComputeReleasePointsNode(ctx, ReleasePointsSettings())
 {
 }
 
-ComputeReleasePointsNode::ComputeReleasePointsNode(const PipelineManager& pipeline_manager, WGPUDevice device, const ReleasePointsSettings& settings)
+ComputeReleasePointsNode::ComputeReleasePointsNode(webgpu::Context& ctx, const ReleasePointsSettings& settings)
     : Node(
-          {
-              InputSocket(*this, "normal texture", data_type<const webgpu::raii::TextureWithSampler*>()),
-          },
-          {
-              OutputSocket(*this, "release point texture", data_type<const webgpu::raii::TextureWithSampler*>(), [this]() { return m_output_texture.get(); }),
-          })
-    , m_pipeline_manager(&pipeline_manager)
-    , m_device(device)
-    , m_queue(wgpuDeviceGetQueue(device))
+        {
+            InputSocket(*this, "normal texture", data_type<const webgpu::raii::TextureWithSampler*>()),
+        },
+        {
+            OutputSocket(*this, "release point texture", data_type<const webgpu::raii::TextureWithSampler*>(), [this]() { return m_output_texture.get(); }),
+        })
+    , m_ctx(&ctx)
     , m_settings { settings }
-    , m_settings_uniform(device, WGPUBufferUsage_CopyDst | WGPUBufferUsage_Uniform)
+    , m_settings_uniform(ctx.device(), WGPUBufferUsage_CopyDst | WGPUBufferUsage_Uniform)
 {
+    auto& reg = ctx.resource_registry();
+    reg.register_shader("release_point_compute", "compute/compute_release_points.wgsl");
+    reg.register_bind_group_layout("release_point_compute", [](WGPUDevice dev) {
+        WGPUBindGroupLayoutEntry e0 {};
+        e0.binding = 0;
+        e0.visibility = WGPUShaderStage_Compute;
+        e0.buffer.type = WGPUBufferBindingType_Uniform;
+
+        WGPUBindGroupLayoutEntry e1 {};
+        e1.binding = 1;
+        e1.visibility = WGPUShaderStage_Compute;
+        e1.texture.sampleType = WGPUTextureSampleType_Float;
+        e1.texture.viewDimension = WGPUTextureViewDimension_2D;
+
+        WGPUBindGroupLayoutEntry e2 {};
+        e2.binding = 2;
+        e2.visibility = WGPUShaderStage_Compute;
+        e2.storageTexture.access = WGPUStorageTextureAccess_WriteOnly;
+        e2.storageTexture.format = WGPUTextureFormat_RGBA8Unorm;
+        e2.storageTexture.viewDimension = WGPUTextureViewDimension_2D;
+
+        return std::make_unique<webgpu::raii::BindGroupLayout>(
+            dev, std::vector<WGPUBindGroupLayoutEntry> { e0, e1, e2 }, "release point compute bind group layout");
+    });
+    reg.register_pipeline([this](WGPUDevice device, const webgpu::RenderResourceRegistry& reg) {
+        m_pipeline = std::make_unique<webgpu::raii::CombinedComputePipeline>(
+            device, reg.shader("release_point_compute"), std::vector<const webgpu::raii::BindGroupLayout*> { &reg.bind_group_layout("release_point_compute") });
+    });
 }
 
 void ComputeReleasePointsNode::run_impl()
 {
 
-
     const auto& normal_texture = *std::get<data_type<const webgpu::raii::TextureWithSampler*>()>(input_socket("normal texture").get_connected_data());
 
     // create output texture
-    m_output_texture = create_release_points_texture(
-        m_device, uint32_t(normal_texture.texture().width()), uint32_t(normal_texture.texture().height()), m_settings.texture_format, m_settings.texture_usage);
+    m_output_texture = create_release_points_texture(m_ctx->device(),
+        uint32_t(normal_texture.texture().width()),
+        uint32_t(normal_texture.texture().height()),
+        m_settings.texture_format,
+        m_settings.texture_usage);
 
     // update settings on GPU side
     m_settings_uniform.data.min_slope_angle = m_settings.min_slope_angle;
     m_settings_uniform.data.max_slope_angle = m_settings.max_slope_angle;
     m_settings_uniform.data.sampling_interval = m_settings.sampling_interval;
-    m_settings_uniform.update_gpu_data(m_queue);
+    m_settings_uniform.update_gpu_data(m_ctx->queue());
 
     // create bind group
     WGPUBindGroupEntry input_settings_buffer_entry = m_settings_uniform.raw_buffer().create_bind_group_entry(0);
@@ -70,14 +98,14 @@ void ComputeReleasePointsNode::run_impl()
         output_texture_entry,
     };
     webgpu::raii::BindGroup compute_bind_group(
-        m_device, m_pipeline_manager->release_point_compute_bind_group_layout(), entries, "release points compute bind group");
+        m_ctx->device(), m_ctx->resource_registry().bind_group_layout("release_point_compute"), entries, "release points compute bind group");
 
     // bind GPU resources and run pipeline
     // the result is a texture with the calculated release points
     {
         WGPUCommandEncoderDescriptor descriptor {};
         descriptor.label = WGPUStringView { .data = "release points compute command encoder", .length = WGPU_STRLEN };
-        webgpu::raii::CommandEncoder encoder(m_device, descriptor);
+        webgpu::raii::CommandEncoder encoder(m_ctx->device(), descriptor);
 
         {
             WGPUComputePassDescriptor compute_pass_desc {};
@@ -87,13 +115,13 @@ void ComputeReleasePointsNode::run_impl()
             glm::uvec3 workgroup_counts
                 = glm::ceil(glm::vec3(m_output_texture->texture().width(), m_output_texture->texture().height(), 1u) / glm::vec3(SHADER_WORKGROUP_SIZE));
             wgpuComputePassEncoderSetBindGroup(compute_pass.handle(), 0, compute_bind_group.handle(), 0, nullptr);
-            m_pipeline_manager->release_point_compute_pipeline().run(compute_pass, workgroup_counts);
+            m_pipeline->run(compute_pass, workgroup_counts);
         }
 
         WGPUCommandBufferDescriptor cmd_buffer_descriptor {};
         cmd_buffer_descriptor.label = WGPUStringView { .data = "release points compute command buffer", .length = WGPU_STRLEN };
         WGPUCommandBuffer command = wgpuCommandEncoderFinish(encoder.handle(), &cmd_buffer_descriptor);
-        wgpuQueueSubmit(m_queue, 1, &command);
+        wgpuQueueSubmit(m_ctx->queue(), 1, &command);
         wgpuCommandBufferRelease(command);
     }
 
@@ -111,7 +139,7 @@ void ComputeReleasePointsNode::run_impl()
         .userdata2 = nullptr,
     };
 
-    WGPUFuture future = wgpuQueueOnSubmittedWorkDone(m_queue, callback_info);
+    WGPUFuture future = wgpuQueueOnSubmittedWorkDone(m_ctx->queue(), callback_info);
 }
 
 std::unique_ptr<webgpu::raii::TextureWithSampler> ComputeReleasePointsNode::create_release_points_texture(

@@ -24,7 +24,7 @@
 
 namespace webgpu_app {
 
-void AboutPanel::on_first_frame()
+void AboutPanel::ready()
 {
 #ifndef QT_DEBUG
     m_open_disclaimer = true;
@@ -74,8 +74,8 @@ void AboutPanel::draw_about_popup()
         m_show_about_popup = false;
         ImGui::OpenPopup("about_webigeo");
     }
-    ImGui::SetNextWindowPos(ImGui::GetMainViewport()->GetCenter(), ImGuiCond_Appearing, {0.5f, 0.5f});
-    ImGui::SetNextWindowSize({450, 478});
+    ImGui::SetNextWindowPos(ImGui::GetMainViewport()->GetCenter(), ImGuiCond_Appearing, { 0.5f, 0.5f });
+    ImGui::SetNextWindowSize({ 450, 478 });
 
     if (ImGui::BeginPopupModal("about_webigeo", NULL, ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoCollapse)) {
         const char* title = "About weBIGeo";
@@ -92,55 +92,77 @@ void AboutPanel::draw_about_popup()
                            "visualizing of large datasets is possible in the browser near real-time.");
 
         ImGui::Spacing();
-        ImGui::Text("This project is based on "); ImGui::SameLine();
+        ImGui::Text("This project is based on ");
+        ImGui::SameLine();
         ImGui::TextLinkOpenURL("AlpineMaps.org", "https://github.com/AlpineMapsOrg/renderer");
 
         ImGui::Spacing();
-        ImGui::Text("It is licensed under the "); ImGui::SameLine();
+        ImGui::Text("It is licensed under the ");
+        ImGui::SameLine();
         ImGui::TextLinkOpenURL("GPLv3", "https://www.gnu.org/licenses/gpl-3.0.html#license-text");
 
         ImGui::Spacing();
         ImGui::TextLinkOpenURL("GitHub repository", "https://github.com/weBIGeo/webigeo");
         ImGui::TextLinkOpenURL("netidee project page", "https://www.netidee.at/webigeo");
 
-        ImGui::Spacing(); ImGui::Spacing();
+        ImGui::Spacing();
+        ImGui::Spacing();
         ImGui::Text("Authors:");
-        ImGui::Text(" - "); ImGui::SameLine();
-        ImGui::TextLinkOpenURL("Adam Celarek", "https://github.com/adam-ce"); ImGui::SameLine();
+        ImGui::Text(" - ");
+        ImGui::SameLine();
+        ImGui::TextLinkOpenURL("Adam Celarek", "https://github.com/adam-ce");
+        ImGui::SameLine();
         ImGui::Text("(2022-2025)");
-        ImGui::Text(" - "); ImGui::SameLine();
-        ImGui::TextLinkOpenURL("Gerald Kimmersdorfer", "https://github.com/GeraldKimmersdorfer"); ImGui::SameLine();
+        ImGui::Text(" - ");
+        ImGui::SameLine();
+        ImGui::TextLinkOpenURL("Gerald Kimmersdorfer", "https://github.com/GeraldKimmersdorfer");
+        ImGui::SameLine();
         ImGui::Text("(2023-2026)");
-        ImGui::Text(" - "); ImGui::SameLine();
-        ImGui::TextLinkOpenURL("Jakob Lindner", "https://github.com/JakobLindner"); ImGui::SameLine();
+        ImGui::Text(" - ");
+        ImGui::SameLine();
+        ImGui::TextLinkOpenURL("Jakob Lindner", "https://github.com/JakobLindner");
+        ImGui::SameLine();
         ImGui::Text("(2023)");
-        ImGui::Text(" - "); ImGui::SameLine();
-        ImGui::TextLinkOpenURL("Patrick Komon", "https://github.com/pkomon"); ImGui::SameLine();
+        ImGui::Text(" - ");
+        ImGui::SameLine();
+        ImGui::TextLinkOpenURL("Patrick Komon", "https://github.com/pkomon");
+        ImGui::SameLine();
         ImGui::Text("(2024-2026)");
-        ImGui::Text(" - "); ImGui::SameLine();
-        ImGui::TextLinkOpenURL("Jakob Maier", "https://github.com/Gro2mi"); ImGui::SameLine();
+        ImGui::Text(" - ");
+        ImGui::SameLine();
+        ImGui::TextLinkOpenURL("Jakob Maier", "https://github.com/Gro2mi");
+        ImGui::SameLine();
         ImGui::Text("(2024)");
-        ImGui::Text(" - "); ImGui::SameLine();
-        ImGui::TextLinkOpenURL("Markus Rampp", "https://github.com/gue-ni"); ImGui::SameLine();
+        ImGui::Text(" - ");
+        ImGui::SameLine();
+        ImGui::TextLinkOpenURL("Markus Rampp", "https://github.com/gue-ni");
+        ImGui::SameLine();
         ImGui::Text("(2025)");
-        ImGui::Text(" - "); ImGui::SameLine();
-        ImGui::TextLinkOpenURL("Wendelin Muth", "https://github.com/Qendolin"); ImGui::SameLine();
+        ImGui::Text(" - ");
+        ImGui::SameLine();
+        ImGui::TextLinkOpenURL("Wendelin Muth", "https://github.com/Qendolin");
+        ImGui::SameLine();
         ImGui::Text("(2026)");
 
-        ImGui::Spacing(); ImGui::Spacing();
-        ImGui::Text("Height and ortho data is provided by "); ImGui::SameLine();
+        ImGui::Spacing();
+        ImGui::Spacing();
+        ImGui::Text("Height and ortho data is provided by ");
+        ImGui::SameLine();
         ImGui::TextLinkOpenURL("basemap.at", "https://basemap.at/");
 
-        ImGui::Spacing(); ImGui::Spacing();
+        ImGui::Spacing();
+        ImGui::Spacing();
         ImGui::TextWrapped("If you have feedback or ideas for collaboration, contact us!");
-        ImGui::Text("E-Mail: "); ImGui::SameLine();
+        ImGui::Text("E-Mail: ");
+        ImGui::SameLine();
         ImGui::TextLinkOpenURL("alpinemaps@cg.tuwien.ac.at", "mailto:alpinemaps@cg.tuwien.ac.at");
         ImGui::TextLinkOpenURL("Join us on Discord", "https://discord.gg/j4MRrrbh");
 
-        ImGui::Spacing(); ImGui::Spacing();
+        ImGui::Spacing();
+        ImGui::Spacing();
 
         ImGui::SetCursorPosX(windowWidth - 200 - ImGui::GetStyle().WindowPadding.x);
-        if (ImGui::Button("Close", {200, 0})) {
+        if (ImGui::Button("Close", { 200, 0 })) {
             ImGui::CloseCurrentPopup();
         }
 

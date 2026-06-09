@@ -20,8 +20,9 @@
 #pragma once
 
 #include "Node.h"
-#include "webgpu_engine/Buffer.h"
-#include "webgpu_engine/PipelineManager.h"
+#include <webgpu/Buffer.h>
+#include <webgpu/Context.h>
+#include <webgpu/raii/CombinedComputePipeline.h>
 
 namespace webgpu_engine::compute::nodes {
 
@@ -50,16 +51,17 @@ public:
 
     struct BufferToTextureSettings {
         WGPUTextureFormat texture_format = WGPUTextureFormat_RGBA8Unorm;
-        WGPUTextureUsage texture_usage = (WGPUTextureUsage)(WGPUTextureUsage_StorageBinding | WGPUTextureUsage_TextureBinding | WGPUTextureUsage_RenderAttachment);
-        WGPUFilterMode texture_filter_mode = WGPUFilterMode_Nearest;
-        WGPUMipmapFilterMode texture_mipmap_filter_mode = WGPUMipmapFilterMode_Nearest;
+        WGPUTextureUsage texture_usage
+            = (WGPUTextureUsage)(WGPUTextureUsage_StorageBinding | WGPUTextureUsage_TextureBinding | WGPUTextureUsage_RenderAttachment);
+        WGPUFilterMode texture_filter_mode = WGPUFilterMode_Linear;
+        WGPUMipmapFilterMode texture_mipmap_filter_mode = WGPUMipmapFilterMode_Linear;
         uint16_t texture_max_aniostropy = 1;
 
-        bool create_mipmaps = false;
+        bool create_mipmaps = true;
 
-        glm::vec2 color_map_bounds = { 0.0f, 100.0f };
-        glm::vec2 transparency_map_bounds = { 0.0f, 10.0f }; // x gets mapped to fully invisible, y to fully visible
-        bool use_bin_interpolation = true; // if true, use linear interpolation between color bins
+        glm::vec2 color_map_bounds = { 0.0f, 40.0f };
+        glm::vec2 transparency_map_bounds = { 0.0f, 1.0f }; // x gets mapped to fully invisible, y to fully visible
+        bool use_bin_interpolation = false; // if true, use linear interpolation between color bins
         bool use_transparency_buffer = true; // if true, the transparency texture is used to evaluate an alpha factor based on the alpha_remap_bounds
     };
 
@@ -73,8 +75,8 @@ public:
 
     BufferToTextureSettings& settings() { return m_settings; }
 
-    BufferToTextureNode(const PipelineManager& pipeline_manager, WGPUDevice device);
-    BufferToTextureNode(const PipelineManager& pipeline_manager, WGPUDevice device, const BufferToTextureSettings& settings);
+    BufferToTextureNode(webgpu::Context& ctx);
+    BufferToTextureNode(webgpu::Context& ctx, const BufferToTextureSettings& settings);
 
 public slots:
     void run_impl() override;
@@ -85,12 +87,11 @@ private:
     std::unique_ptr<webgpu::raii::TextureWithSampler> create_texture(WGPUDevice device, uint32_t width, uint32_t height, BufferToTextureSettings& settings);
 
 private:
-    const PipelineManager* m_pipeline_manager;
-    WGPUDevice m_device;
-    WGPUQueue m_queue;
+    webgpu::Context* m_ctx;
 
     BufferToTextureSettings m_settings;
-    webgpu_engine::Buffer<BufferToTextureSettingsUniform> m_settings_uniform;
+    webgpu::Buffer<BufferToTextureSettingsUniform> m_settings_uniform;
+    std::unique_ptr<webgpu::raii::CombinedComputePipeline> m_pipeline;
 
     // output
     std::unique_ptr<webgpu::raii::TextureWithSampler> m_output_texture; // texture per tile

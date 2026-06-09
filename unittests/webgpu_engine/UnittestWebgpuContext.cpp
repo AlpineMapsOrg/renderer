@@ -22,6 +22,7 @@
 #include <cassert>
 #include <iostream>
 #include <limits>
+#include <webgpu/RenderResourceRegistry.h>
 
 WGPULimits UnittestWebgpuContext::default_limits()
 {
@@ -132,6 +133,6 @@ UnittestWebgpuContext::UnittestWebgpuContext(bool use_default_limits, WGPULimits
     queue = wgpuDeviceGetQueue(device);
     assert(queue);
 
-    shader_module_manager = std::make_unique<ShaderModuleManager>(device);
-    assert(shader_module_manager);
+    ctx.init(instance, device, adapter, nullptr, queue);
+    ctx.resource_registry().recreate_all(device);
 }

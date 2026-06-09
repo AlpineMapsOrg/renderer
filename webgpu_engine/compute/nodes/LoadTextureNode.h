@@ -19,6 +19,7 @@
 #pragma once
 
 #include "Node.h"
+#include <webgpu/Context.h>
 
 namespace webgpu_engine::compute::nodes {
 
@@ -34,11 +35,12 @@ public:
 
         // WebGPU texture parameters
         WGPUTextureFormat format = WGPUTextureFormat_RGBA8Uint;
-        WGPUTextureUsage usage = (WGPUTextureUsage)(WGPUTextureUsage_StorageBinding | WGPUTextureUsage_TextureBinding | WGPUTextureUsage_CopyDst | WGPUTextureUsage_CopySrc);
+        WGPUTextureUsage usage
+            = (WGPUTextureUsage)(WGPUTextureUsage_StorageBinding | WGPUTextureUsage_TextureBinding | WGPUTextureUsage_CopyDst | WGPUTextureUsage_CopySrc);
     };
 
-    LoadTextureNode(WGPUDevice device);
-    LoadTextureNode(WGPUDevice device, const LoadTextureNodeSettings& settings);
+    LoadTextureNode(webgpu::Context& ctx);
+    LoadTextureNode(webgpu::Context& ctx, const LoadTextureNodeSettings& settings);
 
     void set_settings(const LoadTextureNodeSettings& settings);
 
@@ -46,11 +48,11 @@ public slots:
     void run_impl() override;
 
 private:
-    static std::unique_ptr<webgpu::raii::TextureWithSampler> create_texture(WGPUDevice device, uint32_t width, uint32_t height, WGPUTextureFormat format, WGPUTextureUsage usage);
+    static std::unique_ptr<webgpu::raii::TextureWithSampler> create_texture(
+        WGPUDevice device, uint32_t width, uint32_t height, WGPUTextureFormat format, WGPUTextureUsage usage);
 
 private:
-    WGPUDevice m_device;
-    WGPUQueue m_queue;
+    webgpu::Context* m_ctx;
     LoadTextureNodeSettings m_settings;
     std::unique_ptr<webgpu::raii::TextureWithSampler> m_output_texture;
 };
