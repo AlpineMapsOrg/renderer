@@ -167,7 +167,7 @@ jobs:
         find "$BUILD_DIR" -type f -iname "*.apk" ! -name "android-build-*.apk" -exec cp {} "$INSTALL_DIR" \;
 
     - name: Create artifact
-      uses: actions/upload-artifact@v5
+      uses: actions/upload-artifact@v7
       with:
         name: files_${{ matrix.qtarch }}
         path: ${{ github.workspace }}/install/
@@ -301,7 +301,7 @@ jobs:
       run: cmake --build $BUILD_DIR --target install
 
     - name: Create artifact
-      uses: actions/upload-artifact@v5
+      uses: actions/upload-artifact@v7
       with:
         name: files_${{ matrix.config}}
         path: ${{ github.workspace }}/install/
