@@ -374,7 +374,7 @@ jobs:
         FOLDER: github_page
     
     - name: Create Pages artifact
-      uses: actions/upload-pages-artifact@v4
+      uses: actions/upload-pages-artifact@v5
       with:
         path: ${{github.workspace}}/github_page
     
