@@ -124,7 +124,7 @@ jobs:
         echo "${{ secrets.SIGNINGKEYBASE64 }}" > release.keystore.base64
         base64 -d release.keystore.base64 > release.keystore
         echo "QT_ANDROID_KEYSTORE_PATH=$(pwd)/release.keystore" >> "$GITHUB_ENV"
-        echo "QT_ANDROID_KEYSTORE_ALIAS=upload" >> "$GITHUB_ENV"
+        echo "QT_ANDROID_KEYSTORE_ALIAS=alpinemaps" >> "$GITHUB_ENV"
         echo "QT_ANDROID_KEYSTORE_STORE_PASS=${KEYSTORE_PASSWORD}" >> "$GITHUB_ENV"
         echo "QT_ANDROID_KEYSTORE_KEY_PASS=${KEYSTORE_PASSWORD}" >> "$GITHUB_ENV"
 
