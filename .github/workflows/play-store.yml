@@ -67,7 +67,6 @@ jobs:
     - name: Install Qt native version
       uses: jurplel/install-qt-action@v4
       with:
-        aqtversion: ${{ env.AQT_VERSION }}
         version: ${{ env.QT_VERSION }}
         host: 'linux'
         target: 'desktop'
@@ -82,7 +81,6 @@ jobs:
     - name: Install Qt Android arm64-v8a
       uses: jurplel/install-qt-action@v4
       with:
-        aqtversion: ${{ env.AQT_VERSION }}
         version: ${{ env.QT_VERSION }}
         host: linux
         target: android
@@ -98,7 +96,6 @@ jobs:
     - name: Install Qt Android armv7
       uses: jurplel/install-qt-action@v4
       with:
-        aqtversion: ${{ env.AQT_VERSION }}
         version: ${{ env.QT_VERSION }}
         host: linux
         target: android

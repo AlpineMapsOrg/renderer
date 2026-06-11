@@ -46,7 +46,6 @@ jobs:
     - name: Install Qt
       uses: jurplel/install-qt-action@v4
       with:
-        aqtversion: ${{ env.AQT_VERSION }}
         version: ${{ env.QT_VERSION }}
         host: windows
         target: 'desktop'
