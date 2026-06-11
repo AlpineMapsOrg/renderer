@@ -33,18 +33,18 @@ Rectangle {
 
     // similar to StatsWindow.qml
     function responsive_update() {
-        x = 8 + 64 + 8 // FAB(FloatingActionButtonGroup) margin + FAB width + FAB margin
+        x = main.safeLeft + 8 + 64 + 8 // FAB(FloatingActionButtonGroup) margin + FAB width + FAB margin
         if (map.width >= map.height) {
-            y = map.height - main_content.height - 8-64-8
-            maxHeight = main.height - tool_bar.height - 20
+            y = map.height - main.safeBottom - main_content.height - 8 - 64 - 8
+            maxHeight = main.height - main.safeTop - main.safeBottom - tool_bar.height - 20
             height = main_content.height
             width = 300
         } else {
             // usually on mobile devices (portrait mode)
-            y = map.height - main_content.height - 8-64-8
+            y = map.height - main.safeBottom - main_content.height - 8 - 64 - 8
             height = main_content.height
-            maxHeight = main.height - tool_bar.height - 20
-            width = main.width - 2 * x
+            maxHeight = main.height - main.safeTop - main.safeBottom - tool_bar.height - 20
+            width = main.width - x - main.safeRight - 8
 
         }
     }
@@ -143,5 +143,4 @@ Rectangle {
         }
     }
 }
-
 

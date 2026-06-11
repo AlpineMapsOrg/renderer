@@ -57,8 +57,8 @@ Rectangle {
         anchors {
             left: map_gui.left
             bottom: map_gui.bottom
-            leftMargin: 8
-            bottomMargin: 8
+            leftMargin: 8 + main.safeLeft
+            bottomMargin: 8 + main.safeBottom
         }
     }
 
@@ -71,6 +71,8 @@ Rectangle {
         anchors {
             bottom: map_gui.bottom
             right: map_gui.right
+            bottomMargin: main.safeBottom
+            rightMargin: main.safeRight
         }
         width: copyright.width + 16
         height: copyright.height + 4
