@@ -179,7 +179,7 @@ endif()
 
 if (ANDROID)
     set_target_properties(alpineapp PROPERTIES
-        QT_ANDROID_COMPILE_SDK_VERSION "35"
+        QT_ANDROID_COMPILE_SDK_VERSION "36"
         QT_ANDROID_TARGET_SDK_VERSION "35"
     )
 
