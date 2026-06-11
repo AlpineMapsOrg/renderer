@@ -25,10 +25,10 @@
 #include <string>
 #include <vector>
 
-#include <webgpu_engine/compute/nodes/Node.h>
+#include <webgpu_compute/nodes/Node.h>
 
 namespace webgpu_app {
-namespace nodes = webgpu_engine::compute::nodes;
+namespace nodes = webgpu_compute::nodes;
 
 class NodeRenderer {
 public:

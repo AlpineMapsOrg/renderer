@@ -20,10 +20,10 @@
 
 #include <glm/glm.hpp>
 #include <imgui.h>
-#include <webgpu_engine/compute/nodes/ComputeReleasePointsNode.h>
+#include <webgpu_compute/nodes/ComputeReleasePointsNode.h>
 
 namespace webgpu_app {
-namespace nodes = webgpu_engine::compute::nodes;
+namespace nodes = webgpu_compute::nodes;
 
 ComputeReleasePointsNodeRenderer::ComputeReleasePointsNodeRenderer(const std::string& name, nodes::ComputeReleasePointsNode& node)
     : NodeRenderer(name, node)

@@ -21,13 +21,12 @@
 #include <QObject>
 #include <SDL2/SDL.h>
 #include <cstdint>
+#include <string>
+#include <unordered_map>
+#include <vector>
 #include <webgpu/webgpu.h>
 
-#ifdef ALP_WEBGPU_APP_ENABLE_IMGUI
 #include "imgui/ImGuiPanel.h"
-#include <memory>
-#include <vector>
-#endif
 
 namespace webgpu_app {
 
@@ -56,15 +55,35 @@ public:
     // Draws a floating 48x48 icon tool button at the next bottom-left stack slot (claims s_tool_button_y).
     static bool FloatingToggleButton(const char* id, const char* icon, const char* tooltip, uint32_t* enabled);
 
+    // ImGui-style file picker. Call every frame inside an ImGui frame.
+    // Pass the return value of an ImGui::Button as wants_open to trigger the dialog.
+    // Returns true (once) when the user has confirmed a selection; out_paths is filled with selected paths.
+    static bool FilePicker(const char* dialog_id,
+        const char* title,
+        const char* filters,
+        bool wants_open,
+        std::vector<std::string>& out_paths,
+        bool allow_multiple = false,
+        const char* initial_path = ".");
+
+#ifdef __EMSCRIPTEN__
+private slots:
+    void on_file_uploaded(const std::string& filename, const std::string& tag);
+#endif
+
 private:
+    struct FilePickerState {
+        bool is_open = false;
+        std::vector<std::string> pending;
+    };
+    static std::unordered_map<std::string, FilePickerState> s_picker_states;
+
     SDL_Window* m_window = nullptr;
     WGPUDevice m_device = {};
     TerrainRenderer* m_terrain_renderer = nullptr;
     bool m_gui_visible = true;
 
-#ifdef ALP_WEBGPU_APP_ENABLE_IMGUI
     std::vector<std::unique_ptr<ImGuiPanel>> m_panels;
-#endif
 
     void draw();
     void install_fonts();

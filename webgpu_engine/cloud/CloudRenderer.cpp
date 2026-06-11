@@ -95,8 +95,8 @@ void CloudRenderer::init(webgpu::Context& ctx)
         });
 
     auto& reg = ctx.resource_registry();
-    reg.register_shader("render_clouds", "render_clouds.wgsl");
-    reg.register_shader("upscale_clouds", "upscale_clouds.wgsl");
+    reg.register_shader("render_clouds", "webgpu_engine::render_clouds");
+    reg.register_shader("upscale_clouds", "webgpu_engine::upscale_clouds");
 
     reg.register_bind_group_layout("render_clouds", [](WGPUDevice device) {
         WGPUBindGroupLayoutEntry shader_params_entry {};

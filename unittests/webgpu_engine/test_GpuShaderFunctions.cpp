@@ -23,16 +23,13 @@
 #include <glm/gtc/random.hpp>
 #include <glm/gtx/string_cast.hpp>
 #include <iostream>
+#include <webgpu/Buffer.h>
 #include <webgpu/raii/CombinedComputePipeline.h>
 #include <webgpu/raii/base_types.h>
-#include <webgpu/Buffer.h>
-
-using namespace webgpu_engine;
 
 TEST_CASE("encoder functions")
 {
     UnittestWebgpuContext context;
-
 
     SECTION("octahedron normal encoding")
     {
@@ -42,7 +39,7 @@ TEST_CASE("encoder functions")
         const int random_normals_count = 200;
 
         const char* wgsl_single_thread_octahedron_test = R"(
-            #include "util/encoder.wgsl"
+            ///use webgpu::encoder
 
             @group(0) @binding(0) var<storage, read_write> input_buffer: array<vec4f>;
             @group(0) @binding(1) var<storage, read_write> output_buffer: array<u32>;
@@ -73,10 +70,20 @@ TEST_CASE("encoder functions")
         // ==== GENERATE RANDOM TEST SET WITH ADDITIONAL EDGE CASES ====
         std::vector<glm::vec4> test_normals_buffer_data;
         {
-            std::vector<glm::vec3> testNormals = {
-                glm::vec3(1, 0, 0), glm::vec3(0, 1, 0), glm::vec3(0, 0, 1), glm::vec3(1, 1, 0), glm::vec3(1, 0, 1), glm::vec3(0, 1, 1), glm::vec3(1, 1, 1),
-                glm::vec3(-1, 0, 0),glm::vec3(0, -1, 0),glm::vec3(0, 0, -1),glm::vec3(-1, -1, 0),glm::vec3(-1, 0, -1),glm::vec3(0, -1, -1),glm::vec3(-1, -1, -1)
-            };
+            std::vector<glm::vec3> testNormals = { glm::vec3(1, 0, 0),
+                glm::vec3(0, 1, 0),
+                glm::vec3(0, 0, 1),
+                glm::vec3(1, 1, 0),
+                glm::vec3(1, 0, 1),
+                glm::vec3(0, 1, 1),
+                glm::vec3(1, 1, 1),
+                glm::vec3(-1, 0, 0),
+                glm::vec3(0, -1, 0),
+                glm::vec3(0, 0, -1),
+                glm::vec3(-1, -1, 0),
+                glm::vec3(-1, 0, -1),
+                glm::vec3(0, -1, -1),
+                glm::vec3(-1, -1, -1) };
 
             for (size_t i = 0; i < random_normals_count; i++) {
                 testNormals.push_back(glm::ballRand(1.0f)); // Generates a random point inside a unit sphere
@@ -116,14 +123,20 @@ TEST_CASE("encoder functions")
         auto compute_bind_group_layout = std::make_unique<webgpu::raii::BindGroupLayout>(
             context.device, std::vector<WGPUBindGroupLayoutEntry> { compute_input_binding, compute_output_binding }, "octahedron test bind group layout");
 
-        std::vector<WGPUBindGroupEntry> bindgroup_entries = {
-            WGPUBindGroupEntry {
-                .nextInChain =  nullptr, .binding = 0, .buffer = input_buffer->handle(), .offset = 0, .size = input_buffer->size_in_byte(), .sampler = nullptr, .textureView = nullptr
-            },
-            WGPUBindGroupEntry {
-                .nextInChain =  nullptr, .binding = 1, .buffer = output_buffer->handle(), .offset = 0, .size = output_buffer->size_in_byte(), .sampler = nullptr, .textureView = nullptr
-            }
-        };
+        std::vector<WGPUBindGroupEntry> bindgroup_entries = { WGPUBindGroupEntry { .nextInChain = nullptr,
+                                                                  .binding = 0,
+                                                                  .buffer = input_buffer->handle(),
+                                                                  .offset = 0,
+                                                                  .size = input_buffer->size_in_byte(),
+                                                                  .sampler = nullptr,
+                                                                  .textureView = nullptr },
+            WGPUBindGroupEntry { .nextInChain = nullptr,
+                .binding = 1,
+                .buffer = output_buffer->handle(),
+                .offset = 0,
+                .size = output_buffer->size_in_byte(),
+                .sampler = nullptr,
+                .textureView = nullptr } };
 
         auto compute_bind_group
             = std::make_unique<webgpu::raii::BindGroup>(context.device, *compute_bind_group_layout, bindgroup_entries, "octahedron test bindgroup");
@@ -153,10 +166,11 @@ TEST_CASE("encoder functions")
         // ==== WAIT FOR THE WORK TO BE DONE AND FOR BUFFERS TO BE MAPPED ====
         bool done = false;
         WGPUQueueWorkDoneStatus work_done_status = WGPUQueueWorkDoneStatus_Success;
-        const auto on_work_done = []([[maybe_unused]] WGPUQueueWorkDoneStatus status, [[maybe_unused]] WGPUStringView message, void* userdata1, void* userdata2) {
-            *reinterpret_cast<WGPUQueueWorkDoneStatus*>(userdata2) = status;
-            *reinterpret_cast<bool*>(userdata1) = true;
-        };
+        const auto on_work_done
+            = []([[maybe_unused]] WGPUQueueWorkDoneStatus status, [[maybe_unused]] WGPUStringView message, void* userdata1, void* userdata2) {
+                  *reinterpret_cast<WGPUQueueWorkDoneStatus*>(userdata2) = status;
+                  *reinterpret_cast<bool*>(userdata1) = true;
+              };
 
         WGPUQueueWorkDoneCallbackInfo callback_info {
             .nextInChain = nullptr,
@@ -180,10 +194,10 @@ TEST_CASE("encoder functions")
         for (size_t i = 0; i < output.size(); i++) {
             if (output[i] != 1) {
                 failed_normals++;
-                //std::cout << "Normal encoding/decoding failed for normal index " << i << ": " << glm::to_string(glm::vec3(test_normals_buffer_data[i])) << std::endl;
+                // std::cout << "Normal encoding/decoding failed for normal index " << i << ": " << glm::to_string(glm::vec3(test_normals_buffer_data[i])) <<
+                // std::endl;
             }
         }
         CHECK(failed_normals == 0); // None of the normals should have failed the encoding/decoding process
     }
-
 }

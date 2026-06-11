@@ -35,8 +35,7 @@ set(SOURCES
     ImGuiManager.h ImGuiManager.cpp
 )
 
-if (ALP_WEBGPU_APP_ENABLE_IMGUI)
-    list(APPEND SOURCES
+list(APPEND SOURCES
         imgui/ImGuiPanel.h
         imgui/TimingPanel.h imgui/TimingPanel.cpp
         imgui/CameraPanel.h imgui/CameraPanel.cpp
@@ -50,6 +49,18 @@ if (ALP_WEBGPU_APP_ENABLE_IMGUI)
         imgui/SearchPanel.h imgui/SearchPanel.cpp
         imgui/OverlaysPanel.h imgui/OverlaysPanel.cpp
         imgui/TrackPanel.h imgui/TrackPanel.cpp
+        imgui/overlays/OverlayImGuiRenderer.h imgui/overlays/OverlayImGuiRenderer.cpp
+        imgui/overlays/OverlayImGuiRendererFactory.h imgui/overlays/OverlayImGuiRendererFactory.cpp
+        imgui/overlays/HeightLinesOverlayImGuiRenderer.h imgui/overlays/HeightLinesOverlayImGuiRenderer.cpp
+        imgui/overlays/ScreenSpaceSnowOverlayImGuiRenderer.h imgui/overlays/ScreenSpaceSnowOverlayImGuiRenderer.cpp
+        imgui/overlays/TextureOverlayImGuiRenderer.h imgui/overlays/TextureOverlayImGuiRenderer.cpp
+        imgui/overlays/TileDebugOverlayImGuiRenderer.h imgui/overlays/TileDebugOverlayImGuiRenderer.cpp
+        SearchService.h SearchService.cpp
+    )
+
+if (ALP_WEBGPU_APP_ENABLE_COMPUTE)
+    list(APPEND SOURCES
+        compute/OverlayRenderNode.h compute/OverlayRenderNode.cpp
         imgui/NodeGraphPanel.h imgui/NodeGraphPanel.cpp
         imgui/nodes/NodeRenderer.h imgui/nodes/NodeRenderer.cpp
         imgui/nodes/NodeRendererFactory.h imgui/nodes/NodeRendererFactory.cpp
@@ -62,13 +73,6 @@ if (ALP_WEBGPU_APP_ENABLE_IMGUI)
         imgui/nodes/RequestTilesNodeRenderer.h imgui/nodes/RequestTilesNodeRenderer.cpp
         imgui/nodes/SelectTilesNodeRenderer.h imgui/nodes/SelectTilesNodeRenderer.cpp
         imgui/nodes/GPXTrackNodeRenderer.h imgui/nodes/GPXTrackNodeRenderer.cpp
-        imgui/overlays/OverlayImGuiRenderer.h imgui/overlays/OverlayImGuiRenderer.cpp
-        imgui/overlays/OverlayImGuiRendererFactory.h imgui/overlays/OverlayImGuiRendererFactory.cpp
-        imgui/overlays/HeightLinesOverlayImGuiRenderer.h imgui/overlays/HeightLinesOverlayImGuiRenderer.cpp
-        imgui/overlays/ScreenSpaceSnowOverlayImGuiRenderer.h imgui/overlays/ScreenSpaceSnowOverlayImGuiRenderer.cpp
-        imgui/overlays/TextureOverlayImGuiRenderer.h imgui/overlays/TextureOverlayImGuiRenderer.cpp
-        imgui/overlays/TileDebugOverlayImGuiRenderer.h imgui/overlays/TileDebugOverlayImGuiRenderer.cpp
-        SearchService.h SearchService.cpp
     )
 endif()
 
@@ -90,8 +94,12 @@ set_target_properties(webgpu_app PROPERTIES
 target_link_libraries(webgpu_app PUBLIC webgpu webgpu_engine Qt::Core Qt::Network)
 target_include_directories(webgpu_app PRIVATE .)
 
-if (ALP_WEBGPU_APP_ENABLE_IMGUI)
-    # For Font Awesome Icon Headers:
+if (ALP_WEBGPU_APP_ENABLE_COMPUTE)
+    target_link_libraries(webgpu_app PUBLIC webgpu_compute)
+    target_compile_definitions(webgpu_app PRIVATE ALP_WEBGPU_APP_ENABLE_COMPUTE)
+endif()
+
+# For Font Awesome Icon Headers:
     alp_add_git_repository(iconfontcppheaders URL https://github.com/juliettef/IconFontCppHeaders.git COMMITISH f30b1e73b2d71eb331d77619c3f1de34199afc38 DO_NOT_ADD_SUBPROJECT)
     target_include_directories(webgpu_app PRIVATE ../extern/iconfontcppheaders)
 
@@ -107,8 +115,6 @@ if (ALP_WEBGPU_APP_ENABLE_IMGUI)
     target_link_libraries(ImGuiFileDialog PRIVATE imgui)
 
     target_link_libraries(webgpu_app PRIVATE imgui imnodes ImGuiFileDialog)
-    target_compile_definitions(webgpu_app PRIVATE "ALP_WEBGPU_APP_ENABLE_IMGUI")
-endif()
 
 # Copy necessary DLLs to the output directory on Windows
 if (WIN32 AND NOT EMSCRIPTEN)

@@ -89,6 +89,57 @@ void OverlaysPanel::do_move(int gui_row, int direction, int P, int N)
     m_context->request_redraw();
 }
 
+namespace {
+    enum AddType { ADD_HEIGHT_LINES = 0, ADD_TEXTURE_OVERLAY = 1, ADD_TILE_DEBUG = 2, ADD_SCREEN_SPACE_SNOW = 3 };
+    constexpr const char* ADD_ITEMS[] = { "Height Lines", "Texture Overlay", "Tile Debug", "Screen-Space Snow" };
+    constexpr const char* ADD_POPUP_ID = "Add Overlay###add_overlay";
+} // namespace
+
+void OverlaysPanel::add_overlay_of_type(int type)
+{
+    std::shared_ptr<webgpu_engine::Overlay> new_overlay;
+    if (type == ADD_HEIGHT_LINES)
+        new_overlay = std::make_shared<webgpu_engine::HeightLinesOverlay>();
+    else if (type == ADD_TEXTURE_OVERLAY)
+        new_overlay = std::make_shared<webgpu_engine::TextureOverlay>();
+    else if (type == ADD_SCREEN_SPACE_SNOW)
+        new_overlay = std::make_shared<webgpu_engine::ScreenSpaceSnowOverlay>();
+    else
+        new_overlay = std::make_shared<webgpu_engine::TileDebugOverlay>();
+    // add_overlay() auto-assigns the topmost z_index
+    m_overlay_renderer->add_overlay(new_overlay);
+    rebuild_renderers();
+    m_selected_engine_idx = static_cast<int>(m_overlay_renderer->overlays().size()) - 1;
+    m_context->request_redraw();
+}
+
+void OverlaysPanel::draw_add_overlay_popup()
+{
+    if (!m_add_popup_modal)
+        ImGui::SetNextWindowPos(m_add_popup_pos, ImGuiCond_Appearing);
+
+    const bool open = m_add_popup_modal ? ImGui::BeginPopupModal(ADD_POPUP_ID, nullptr, ImGuiWindowFlags_AlwaysAutoResize) : ImGui::BeginPopup(ADD_POPUP_ID);
+    if (!open)
+        return;
+
+    if (!m_add_popup_modal)
+        ImGui::TextDisabled("Add Overlay");
+
+    ImGui::SetNextItemWidth(200.0f);
+    ImGui::Combo("##add_type", &m_add_type_index, ADD_ITEMS, IM_ARRAYSIZE(ADD_ITEMS));
+    ImGui::SameLine();
+    if (ImGui::Button("Add")) {
+        add_overlay_of_type(m_add_type_index);
+        ImGui::CloseCurrentPopup();
+    }
+    if (m_add_popup_modal) {
+        ImGui::SameLine();
+        if (ImGui::Button("Cancel"))
+            ImGui::CloseCurrentPopup();
+    }
+    ImGui::EndPopup();
+}
+
 void OverlaysPanel::draw_panel()
 {
     if (!m_overlay_renderer)
@@ -98,35 +149,13 @@ void OverlaysPanel::draw_panel()
     if (m_renderers.size() != m_overlay_renderer->overlays().size())
         rebuild_renderers();
 
-    if (!ImGui::CollapsingHeader(ICON_FA_LAYER_GROUP "  Overlays"))
+    if (!ImGui::CollapsingHeader(ICON_FA_LAYER_GROUP "  Overlays", ImGuiTreeNodeFlags_DefaultOpen))
         return;
 
-    enum AddType { ADD_HEIGHT_LINES = 0, ADD_TEXTURE_OVERLAY = 1, ADD_TILE_DEBUG = 2, ADD_SCREEN_SPACE_SNOW = 3 };
-    const char* add_items[] = { "Height Lines", "Texture Overlay", "Tile Debug", "Screen-Space Snow" };
-
-    ImGui::SetNextItemWidth(ImGui::GetContentRegionAvail().x - 36);
-    ImGui::Combo("##add_type", &m_add_type_index, add_items, IM_ARRAYSIZE(add_items));
-    ImGui::SameLine();
-
-    const bool add_disabled = false; // ToDo: Some Overlays (TileDebug are only allowed once -> GUI should reflect that)
-    ImGui::BeginDisabled(add_disabled);
-    if (ImGui::Button(ICON_FA_PLUS)) {
-        std::shared_ptr<webgpu_engine::Overlay> new_overlay;
-        if (m_add_type_index == ADD_HEIGHT_LINES)
-            new_overlay = std::make_shared<webgpu_engine::HeightLinesOverlay>();
-        else if (m_add_type_index == ADD_TEXTURE_OVERLAY)
-            new_overlay = std::make_shared<webgpu_engine::TextureOverlay>();
-        else if (m_add_type_index == ADD_SCREEN_SPACE_SNOW)
-            new_overlay = std::make_shared<webgpu_engine::ScreenSpaceSnowOverlay>();
-        else
-            new_overlay = std::make_shared<webgpu_engine::TileDebugOverlay>();
-        // add_overlay() auto-assigns the topmost z_index
-        m_overlay_renderer->add_overlay(new_overlay);
-        rebuild_renderers();
-        m_selected_engine_idx = static_cast<int>(m_overlay_renderer->overlays().size()) - 1;
-        m_context->request_redraw();
+    if (ImGui::Button(ICON_FA_PLUS "  Add Overlay [Shift + A]", ImVec2(ImGui::GetContentRegionAvail().x, 0.0f))) {
+        m_add_popup_modal = true;
+        m_open_chooser_request = true;
     }
-    ImGui::EndDisabled();
 
     ImGui::Separator();
 
@@ -134,12 +163,18 @@ void OverlaysPanel::draw_panel()
     const auto& overlays = m_overlay_renderer->overlays();
     const int N = static_cast<int>(overlays.size());
 
+    const float row_h = ImGui::GetTextLineHeightWithSpacing() + 6.0f;
+
+    if (N == 0) {
+        ImGui::Selectable("No overlay configured", false, ImGuiSelectableFlags_Disabled, ImVec2(0.0, row_h));
+        return;
+    }
+
     int P = 0; // count of post-shading overlays (z_index > 0)
     for (const auto& o : overlays)
         if (o->z_index > 0)
             ++P;
 
-    const float row_h = ImGui::GetTextLineHeightWithSpacing() + 6.0f;
     const float btn_w = row_h;
     const float spacing = ImGui::GetStyle().ItemSpacing.x;
     const float btns_w = btn_w * 3.0f + spacing * 2.0f;
@@ -226,27 +261,38 @@ void OverlaysPanel::draw_panel()
 
 void OverlaysPanel::draw()
 {
-    if (!m_overlay_renderer || m_selected_engine_idx < 0 || m_selected_engine_idx >= static_cast<int>(m_renderers.size()))
-        return;
+    if (!ImGui::GetIO().WantTextInput && ImGui::GetIO().KeyShift && ImGui::IsKeyPressed(ImGuiKey_A, false)) {
+        m_add_popup_modal = false;
+        m_add_popup_pos = ImGui::GetMousePos();
+        m_open_chooser_request = true;
+    }
+    // NOTE: OpenPopup must share scope with BeginPopup* below, so it lives here rather than in draw_panel().
+    if (m_open_chooser_request) {
+        ImGui::OpenPopup(ADD_POPUP_ID);
+        m_open_chooser_request = false;
+    }
+    draw_add_overlay_popup();
 
-    auto& renderer = m_renderers[m_selected_engine_idx];
+    if (m_overlay_renderer && m_selected_engine_idx >= 0 && m_selected_engine_idx < static_cast<int>(m_renderers.size())) {
+        auto& renderer = m_renderers[m_selected_engine_idx];
 
-    const float popup_w = 430.0f;
-    const float sidebar_x = ImGui::GetIO().DisplaySize.x - 430.0f;
-    ImGui::SetNextWindowPos(ImVec2(sidebar_x - popup_w - 8.0f, m_selected_row_screen_y), ImGuiCond_Always);
-    ImGui::SetNextWindowSize(ImVec2(popup_w, 0.0f));
+        const float popup_w = 430.0f;
+        const float sidebar_x = ImGui::GetIO().DisplaySize.x - 430.0f;
+        ImGui::SetNextWindowPos(ImVec2(sidebar_x - popup_w - 8.0f, m_selected_row_screen_y), ImGuiCond_Always);
+        ImGui::SetNextWindowSize(ImVec2(popup_w, 0.0f));
 
-    bool open = true;
-    const std::string title = renderer->effective_name() + "###overlay_settings";
-    ImGui::Begin(title.c_str(), &open, ImGuiWindowFlags_NoSavedSettings);
+        bool open = true;
+        const std::string title = renderer->effective_name() + "###overlay_settings";
+        ImGui::Begin(title.c_str(), &open, ImGuiWindowFlags_NoSavedSettings);
 
-    if (renderer->render_settings())
-        m_context->request_redraw();
+        if (renderer->render_settings())
+            m_context->request_redraw();
 
-    ImGui::End();
+        ImGui::End();
 
-    if (!open)
-        m_selected_engine_idx = -1;
+        if (!open)
+            m_selected_engine_idx = -1;
+    }
 }
 
 } // namespace webgpu_app

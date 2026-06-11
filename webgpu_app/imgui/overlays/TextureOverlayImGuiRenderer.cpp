@@ -18,14 +18,10 @@
 
 #include "TextureOverlayImGuiRenderer.h"
 
-#ifdef __EMSCRIPTEN__
-#include <webgpu_app/WebInterop.h>
-#endif
-
-#include <ImGuiFileDialog.h>
 #include <QDebug>
 #include <filesystem>
 #include <imgui.h>
+#include <webgpu_app/ImGuiManager.h>
 
 #include <nucleus/utils/geopng_decoder.h>
 #include <nucleus/utils/image_loader.h>
@@ -35,28 +31,11 @@ namespace webgpu_app {
 static int s_instance_counter = 0;
 
 TextureOverlayImGuiRenderer::TextureOverlayImGuiRenderer(webgpu_engine::TextureOverlay& overlay)
-    : QObject(nullptr)
-    , OverlayImGuiRenderer(overlay)
+    : OverlayImGuiRenderer(overlay)
     , m_texture_overlay(&overlay)
 {
-    const int id = s_instance_counter++;
-    m_png_tag = "textureoverlay_" + std::to_string(id) + "_png";
-    m_aabb_tag = "textureoverlay_" + std::to_string(id) + "_aabb";
-
-#ifdef __EMSCRIPTEN__
-    connect(&WebInterop::instance(), &WebInterop::file_uploaded, this, &TextureOverlayImGuiRenderer::on_file_uploaded);
-#endif
+    m_dialog_id = "textureoverlay_" + std::to_string(s_instance_counter++);
 }
-
-#ifdef __EMSCRIPTEN__
-void TextureOverlayImGuiRenderer::on_file_uploaded(const std::string& filename, const std::string& tag)
-{
-    if (tag == m_png_tag)
-        apply_image_file(filename);
-    else if (tag == m_aabb_tag)
-        apply_aabb_from_file(filename);
-}
-#endif
 
 void TextureOverlayImGuiRenderer::apply_image_file(const std::string& path)
 {
@@ -124,39 +103,23 @@ bool TextureOverlayImGuiRenderer::render_custom_settings()
             ImGui::TextUnformatted(std::filesystem::path(m_loaded_image_path).filename().string().c_str());
 
         const float full_w = ImGui::GetContentRegionAvail().x - ImGui::GetStyle().ItemSpacing.x;
-#ifdef __EMSCRIPTEN__
-        if (ImGui::Button("Load PNG...", ImVec2(full_w * 0.666f, 0)))
-            WebInterop::instance().open_file_dialog(".png", m_png_tag);
-#else
-        if (ImGui::Button("Load PNG...", ImVec2(full_w * 0.666f, 0))) {
-            IGFD::FileDialogConfig config;
-            config.path = m_last_dialog_directory.empty() ? "." : m_last_dialog_directory;
-            ImGuiFileDialog::Instance()->OpenDialog(m_png_tag.c_str(), "Choose Image", ".png,.*", config);
+        const bool btn = ImGui::Button("Load Files...", ImVec2(full_w, 0));
+        m_picked_files.clear();
+        if (ImGuiManager::FilePicker(m_dialog_id.c_str(),
+                "Choose PNG and/or AABB",
+                ".png,.txt,.*",
+                btn,
+                m_picked_files,
+                /*allow_multiple=*/true,
+                m_last_dialog_directory.empty() ? "." : m_last_dialog_directory.c_str())) {
+            for (const auto& path : m_picked_files) {
+                const auto ext = std::filesystem::path(path).extension().string();
+                if (ext == ".png" || ext == ".PNG")
+                    apply_image_file(path);
+                else
+                    apply_aabb_from_file(path);
+            }
         }
-        if (ImGuiFileDialog::Instance()->Display(m_png_tag.c_str())) {
-            if (ImGuiFileDialog::Instance()->IsOk())
-                apply_image_file(ImGuiFileDialog::Instance()->GetFilePathName());
-            ImGuiFileDialog::Instance()->Close();
-        }
-#endif
-
-        ImGui::SameLine();
-
-#ifdef __EMSCRIPTEN__
-        if (ImGui::Button("Load AABB...", ImVec2(-1, 0)))
-            WebInterop::instance().open_file_dialog(".txt", m_aabb_tag);
-#else
-        if (ImGui::Button("Load AABB...", ImVec2(-1, 0))) {
-            IGFD::FileDialogConfig config;
-            config.path = m_last_dialog_directory.empty() ? "." : m_last_dialog_directory;
-            ImGuiFileDialog::Instance()->OpenDialog(m_aabb_tag.c_str(), "Choose AABB File", ".txt,.*", config);
-        }
-        if (ImGuiFileDialog::Instance()->Display(m_aabb_tag.c_str())) {
-            if (ImGuiFileDialog::Instance()->IsOk())
-                apply_aabb_from_file(ImGuiFileDialog::Instance()->GetFilePathName());
-            ImGuiFileDialog::Instance()->Close();
-        }
-#endif
     }
 
     ImGui::PushItemWidth(-1);

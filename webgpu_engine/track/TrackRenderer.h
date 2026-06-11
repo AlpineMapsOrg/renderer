@@ -39,7 +39,7 @@ class TrackRenderer : public QObject {
     Q_OBJECT
 public:
     struct LineConfig {
-        glm::vec4 line_color = { 1.0f, 0.0, 0.0, 1.0f };
+        glm::vec4 color = { 1.0f, 0.0, 0.0, 1.0f };
     };
 
     // Built-in preset track, loadable from the GUI ("Open Preset ...") and the QT_DEBUG auto-load.

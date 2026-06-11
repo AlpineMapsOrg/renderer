@@ -37,7 +37,7 @@ void HeightLinesOverlay::init(Context& context)
 
     auto& reg = ctx.resource_registry();
     if (!reg.has_shader("height_lines_compute"))
-        reg.register_shader("height_lines_compute", "overlays/height_lines.wgsl");
+        reg.register_shader("height_lines_compute", "webgpu_engine::overlays/height_lines");
     if (!reg.has_bind_group_layout("height_lines_overlay"))
         reg.register_bind_group_layout("height_lines_overlay", [](WGPUDevice device) {
             WGPUBindGroupLayoutEntry position_entry {};

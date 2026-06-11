@@ -5,9 +5,17 @@ from pathlib import Path
 from setup_utils import log, fail
 
 def remove_comments(code):
-    code = re.sub(r'//.*?$', '', code, flags=re.MULTILINE)
+    # Strip block comments first.
     code = re.sub(r'/\*.*?\*/', '', code, flags=re.DOTALL)
-    return code
+    # Strip line comments, but preserve preprocessor directive lines (`///...`),
+    # which use a comment prefix so the files stay valid WGSL.
+    out_lines = []
+    for line in code.split('\n'):
+        if line.lstrip().startswith('///'):
+            out_lines.append(line)
+        else:
+            out_lines.append(re.sub(r'//.*$', '', line))
+    return '\n'.join(out_lines)
 
 def remove_empty_lines(code):
     lines = [line for line in code.split('\n') if line.strip()]

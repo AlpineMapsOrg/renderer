@@ -19,24 +19,18 @@
 #pragma once
 
 #include "OverlayImGuiRenderer.h"
-#include <QObject>
 #include <string>
+#include <vector>
 #include <webgpu_engine/overlay/TextureOverlay.h>
 
 namespace webgpu_app {
 
-class TextureOverlayImGuiRenderer : public QObject, public OverlayImGuiRenderer {
-    Q_OBJECT
+class TextureOverlayImGuiRenderer : public OverlayImGuiRenderer {
 public:
     explicit TextureOverlayImGuiRenderer(webgpu_engine::TextureOverlay& overlay);
 
     std::string display_name() const override { return "Texture Overlay"; }
     bool render_custom_settings() override;
-
-#ifdef __EMSCRIPTEN__
-private slots:
-    void on_file_uploaded(const std::string& filename, const std::string& tag);
-#endif
 
 private:
     void apply_image_file(const std::string& path);
@@ -46,8 +40,8 @@ private:
     std::string m_last_dialog_directory;
     std::string m_loaded_image_path;
     bool m_needs_redraw = false;
-    std::string m_png_tag;
-    std::string m_aabb_tag;
+    std::string m_dialog_id;
+    std::vector<std::string> m_picked_files;
 };
 
 } // namespace webgpu_app

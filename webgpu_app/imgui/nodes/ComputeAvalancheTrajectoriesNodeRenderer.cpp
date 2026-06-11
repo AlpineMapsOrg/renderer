@@ -20,10 +20,10 @@
 
 #include <glm/glm.hpp>
 #include <imgui.h>
-#include <webgpu_engine/compute/nodes/ComputeAvalancheTrajectoriesNode.h>
+#include <webgpu_compute/nodes/ComputeAvalancheTrajectoriesNode.h>
 
 namespace webgpu_app {
-namespace nodes = webgpu_engine::compute::nodes;
+namespace nodes = webgpu_compute::nodes;
 
 using Node = nodes::ComputeAvalancheTrajectoriesNode;
 

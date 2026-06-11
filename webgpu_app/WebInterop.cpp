@@ -32,9 +32,9 @@ void WebInterop::_file_uploaded(const char* filename, const char* tag)
     emit WebInterop::instance().file_uploaded(filename_str, tag_str);
 }
 
-void WebInterop::open_file_dialog(const std::string& filter, const std::string& tag)
+void WebInterop::open_file_dialog(const std::string& filter, const std::string& tag, bool allow_multiple)
 {
-    EM_ASM_({ eminstance.hacks.uploadFileWithDialog(UTF8ToString($0), UTF8ToString($1)); }, filter.c_str(), tag.c_str());
+    EM_ASM_({ eminstance.hacks.uploadFilesWithDialog(UTF8ToString($0), UTF8ToString($1), !!$2); }, filter.c_str(), tag.c_str(), (int)allow_multiple);
 }
 
 glm::uvec2 WebInterop::get_body_size()

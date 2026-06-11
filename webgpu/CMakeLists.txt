@@ -57,6 +57,7 @@ set(SOURCES
 
     Context.h
     RenderResourceRegistry.h RenderResourceRegistry.cpp
+    gpu_utils.h gpu_utils.cpp
 
     webgpu_interface.hpp webgpu_interface.cpp)
 
@@ -201,6 +202,54 @@ endif()
 
 # set public IMGUI_IMPL_WEBGPU_BACKEND_DAWN flag
 target_compile_definitions(webgpu PUBLIC IMGUI_IMPL_WEBGPU_BACKEND_DAWN)
+
+# --- WGSL shaders owned by the webgpu target: shared util/* helpers + the mipmap shader ---
+if (ALP_ENABLE_WGSL_MINIFICATION)
+    set(WEBGPU_SHADER_SOURCE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/shaders")
+    set(WEBGPU_SHADER_MINIFIED_DIR "${CMAKE_CURRENT_BINARY_DIR}/shaders_minified")
+    set(MINIFY_SCRIPT "${CMAKE_SOURCE_DIR}/scripts/minify_shaders.py")
+
+    find_package(Python3 COMPONENTS Interpreter REQUIRED)
+
+    execute_process(
+        COMMAND ${Python3_EXECUTABLE} "${MINIFY_SCRIPT}" "${WEBGPU_SHADER_SOURCE_DIR}" "${WEBGPU_SHADER_MINIFIED_DIR}"
+        WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}"
+        RESULT_VARIABLE MINIFY_RESULT
+    )
+    if(NOT MINIFY_RESULT EQUAL 0)
+        message(FATAL_ERROR "Shader minification failed")
+    endif()
+
+    file(GLOB_RECURSE WEBGPU_SHADER_SOURCES "${WEBGPU_SHADER_SOURCE_DIR}/*.wgsl")
+    add_custom_target(minify_webgpu_shaders
+        COMMAND ${Python3_EXECUTABLE} "${MINIFY_SCRIPT}" "${WEBGPU_SHADER_SOURCE_DIR}" "${WEBGPU_SHADER_MINIFIED_DIR}"
+        DEPENDS ${WEBGPU_SHADER_SOURCES} ${MINIFY_SCRIPT}
+        COMMENT "Minifying webgpu shaders"
+        VERBATIM
+    )
+    add_dependencies(webgpu minify_webgpu_shaders)
+
+    set(WEBGPU_SHADER_BASE_DIR "${WEBGPU_SHADER_MINIFIED_DIR}")
+else()
+    set(WEBGPU_SHADER_BASE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/shaders")
+endif()
+
+qt_add_resources(webgpu "webgpu_shaders"
+    PREFIX "/shaders/webgpu"
+    BASE "${WEBGPU_SHADER_BASE_DIR}"
+    FILES
+        "${WEBGPU_SHADER_BASE_DIR}/mipmap.wgsl"
+        "${WEBGPU_SHADER_BASE_DIR}/snow.wgsl"
+        "${WEBGPU_SHADER_BASE_DIR}/general.wgsl"
+        "${WEBGPU_SHADER_BASE_DIR}/tile_util.wgsl"
+        "${WEBGPU_SHADER_BASE_DIR}/normals_util.wgsl"
+        "${WEBGPU_SHADER_BASE_DIR}/hashing.wgsl"
+        "${WEBGPU_SHADER_BASE_DIR}/encoder.wgsl"
+        "${WEBGPU_SHADER_BASE_DIR}/filtering.wgsl"
+        "${WEBGPU_SHADER_BASE_DIR}/noise.wgsl"
+    )
+
+target_compile_definitions(webgpu PUBLIC ALP_SHADER_DIR_WEBGPU="${CMAKE_CURRENT_SOURCE_DIR}/shaders/")
 
 target_link_libraries(webgpu PUBLIC Qt::Core nucleus)
 target_include_directories(webgpu PRIVATE .)

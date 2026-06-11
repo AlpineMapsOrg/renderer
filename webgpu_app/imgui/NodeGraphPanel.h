@@ -29,19 +29,19 @@
 
 #include "ImGuiPanel.h"
 #include "nodes/NodeRenderer.h"
-#include <webgpu_engine/compute/NodeGraph.h>
+#include <webgpu_compute/NodeGraph.h>
 
 namespace webgpu_engine {
 class Context;
 }
 
-namespace webgpu_engine::compute::nodes {
+namespace webgpu_compute::nodes {
 class InputSocket;
 class OutputSocket;
-} // namespace webgpu_engine::compute::nodes
+} // namespace webgpu_compute::nodes
 
 namespace webgpu_app {
-namespace nodes = webgpu_engine::compute::nodes;
+namespace nodes = webgpu_compute::nodes;
 
 class NodeGraphPanel : public ImGuiPanel {
 public:
@@ -68,6 +68,7 @@ private:
     void render_error_modal();
 
     webgpu_engine::Context* m_context = nullptr;
+    std::unique_ptr<nodes::NodeGraph> m_owned_graph; // the panel owns the active compute graph
     nodes::NodeGraph* m_node_graph = nullptr;
 
     std::vector<PipelinePreset> m_presets;

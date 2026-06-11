@@ -34,8 +34,10 @@ class RenderResourceRegistry {
 public:
     RenderResourceRegistry();
 
-    // Set local filesystem path prefix for shader hot-reload
-    void set_local_shader_path(const std::string& path);
+    // Set the local filesystem path prefix for a target's shaders (for hot-reload).
+    // `target` matches the namespace used in shader names (e.g. "webgpu_engine"); `path`
+    // is the directory holding that target's shaders and must end with a separator.
+    void set_local_shader_path(const std::string& target, const std::string& path);
 
     // Register a shader by name and source path.
     void register_shader(const std::string& name, const std::string& source_path);
@@ -62,8 +64,8 @@ private:
     std::unique_ptr<raii::ShaderModule> compile_shader(WGPUDevice device, const std::string& source_path);
 
 private:
-    static constexpr const char* QRC_PREFIX = ":/wgsl_shaders/";
-    std::string m_local_shader_path;
+    static constexpr const char* QRC_PREFIX = ":/shaders/";
+    std::unordered_map<std::string, std::string> m_local_shader_paths; // target namespace -> local dir prefix
 
     webgpu::util::ShaderPreprocessor m_preprocessor;
 

@@ -38,7 +38,7 @@ void ScreenSpaceSnowOverlay::init(Context& context)
 
     auto& reg = ctx.resource_registry();
     if (!reg.has_shader("screen_space_snow_compute"))
-        reg.register_shader("screen_space_snow_compute", "overlays/screen_space_snow.wgsl");
+        reg.register_shader("screen_space_snow_compute", "webgpu_engine::overlays/screen_space_snow");
     if (!reg.has_bind_group_layout("screen_space_snow_overlay"))
         reg.register_bind_group_layout("screen_space_snow_overlay", [](WGPUDevice device) {
             WGPUBindGroupLayoutEntry position_entry {};

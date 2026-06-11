@@ -18,12 +18,8 @@
 
 #include "TrackPanel.h"
 
-#ifdef __EMSCRIPTEN__
-#include <webgpu_app/WebInterop.h>
-#else
-#include <ImGuiFileDialog.h>
 #include <filesystem>
-#endif
+#include <webgpu_app/ImGuiManager.h>
 
 #include <IconsFontAwesome5.h>
 #include <imgui.h>
@@ -41,9 +37,6 @@ TrackPanel::TrackPanel(webgpu_engine::Context* context, TerrainRenderer* terrain
     , m_terrain_renderer(terrain_renderer)
     , m_track_renderer(context->track_renderer())
 {
-#ifdef __EMSCRIPTEN__
-    connect(&WebInterop::instance(), &WebInterop::file_uploaded, this, &TrackPanel::on_file_uploaded);
-#endif
 }
 
 void TrackPanel::ready()
@@ -65,26 +58,10 @@ void TrackPanel::load_track_and_focus(const std::string& path)
     m_context->request_redraw();
 }
 
-#ifdef __EMSCRIPTEN__
-void TrackPanel::on_file_uploaded(const std::string& filename, const std::string& tag)
-{
-    if (tag == "track")
-        load_track_and_focus(filename);
-}
-#endif
-
 void TrackPanel::draw_panel()
 {
     if (ImGui::CollapsingHeader(ICON_FA_ROUTE "  Track", ImGuiTreeNodeFlags_DefaultOpen)) {
-        if (ImGui::Button("Open GPX file ...", ImVec2(250, 0))) {
-#ifdef __EMSCRIPTEN__
-            WebInterop::instance().open_file_dialog(".gpx", "track");
-#else
-            IGFD::FileDialogConfig config;
-            config.path = m_last_dialog_directory;
-            ImGuiFileDialog::Instance()->OpenDialog("ChooseFileDlgKey", "Choose File", ".gpx,.*", config);
-#endif
-        }
+        const bool btn = ImGui::Button("Open GPX file ...", ImVec2(250, 0));
         ImGui::SameLine();
         ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(106 / 255.0f, 112 / 255.0f, 115 / 255.0f, 1.00f));
         if (ImGui::Button("Open Preset ...", ImVec2(100, 0))) {
@@ -92,22 +69,18 @@ void TrackPanel::draw_panel()
         }
         ImGui::PopStyleColor(1);
 
+        m_picked_files.clear();
+        if (ImGuiManager::FilePicker(
+                "TrackFileDlgKey", "Choose GPX File", ".gpx,.*", btn, m_picked_files, /*allow_multiple=*/false, m_last_dialog_directory.c_str())) {
+            m_last_dialog_directory = std::filesystem::path(m_picked_files[0]).parent_path().string();
+            load_track_and_focus(m_picked_files[0]);
+        }
+
         const char* items = "none\0without depth test\0with depth test\0semi-transparent\0";
         if (ImGui::Combo("Line render mode", (int*)&(m_context->shared_config().m_track_render_mode), items)) {
             m_context->request_redraw();
         }
     }
-
-#ifndef __EMSCRIPTEN__
-    if (ImGuiFileDialog::Instance()->Display("ChooseFileDlgKey")) {
-        if (ImGuiFileDialog::Instance()->IsOk()) {
-            std::string file_path = ImGuiFileDialog::Instance()->GetFilePathName();
-            m_last_dialog_directory = std::filesystem::path(file_path).parent_path().string();
-            load_track_and_focus(file_path);
-        }
-        ImGuiFileDialog::Instance()->Close();
-    }
-#endif
 }
 
 } // namespace webgpu_app

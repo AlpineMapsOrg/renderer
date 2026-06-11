@@ -20,10 +20,10 @@
 
 #include <cstring>
 #include <imgui.h>
-#include <webgpu_engine/compute/nodes/ExportNode.h>
+#include <webgpu_compute/nodes/ExportNode.h>
 
 namespace webgpu_app {
-namespace nodes = webgpu_engine::compute::nodes;
+namespace nodes = webgpu_compute::nodes;
 
 ExportNodeRenderer::ExportNodeRenderer(const std::string& name, nodes::ExportNode& node)
     : NodeRenderer(name, node)

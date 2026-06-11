@@ -20,10 +20,10 @@
 #include "ComputeSnowNodeRenderer.h"
 
 #include <imgui.h>
-#include <webgpu_engine/compute/nodes/ComputeSnowNode.h>
+#include <webgpu_compute/nodes/ComputeSnowNode.h>
 
 namespace webgpu_app {
-namespace nodes = webgpu_engine::compute::nodes;
+namespace nodes = webgpu_compute::nodes;
 
 ComputeSnowNodeRenderer::ComputeSnowNodeRenderer(const std::string& name, nodes::ComputeSnowNode& node)
     : NodeRenderer(name, node)

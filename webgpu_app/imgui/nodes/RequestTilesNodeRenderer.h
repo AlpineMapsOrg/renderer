@@ -21,10 +21,10 @@
 #include "NodeRenderer.h"
 #include <string>
 #include <vector>
-#include <webgpu_engine/compute/nodes/RequestTilesNode.h>
+#include <webgpu_compute/nodes/RequestTilesNode.h>
 
 namespace webgpu_app {
-namespace nodes = webgpu_engine::compute::nodes;
+namespace nodes = webgpu_compute::nodes;
 
 class RequestTilesNodeRenderer : public NodeRenderer {
 public:

@@ -124,6 +124,7 @@ qt_add_library(nucleus STATIC
     camera/RecordedAnimation.h camera/RecordedAnimation.cpp
     camera/recording.h camera/recording.cpp
     tile/setup.h
+    tile/GpuTileId.h tile/GpuTileId.cpp
     tile/GpuArrayHelper.h tile/GpuArrayHelper.cpp
     tile/TextureScheduler.h tile/TextureScheduler.cpp
     tile/Texture3DScheduler.h tile/Texture3DScheduler.cpp

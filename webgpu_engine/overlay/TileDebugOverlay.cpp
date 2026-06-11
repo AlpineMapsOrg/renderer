@@ -45,7 +45,7 @@ void TileDebugOverlay::init(Context& context)
 
     auto& reg = ctx.resource_registry();
     if (!reg.has_shader("gbuffer_debug_compute"))
-        reg.register_shader("gbuffer_debug_compute", "overlays/gbuffer_debug.wgsl");
+        reg.register_shader("gbuffer_debug_compute", "webgpu_engine::overlays/gbuffer_debug");
     if (!reg.has_bind_group_layout("tile_debug_overlay"))
         reg.register_bind_group_layout("tile_debug_overlay", [](WGPUDevice device) {
             WGPUBindGroupLayoutEntry overlay_entry {};

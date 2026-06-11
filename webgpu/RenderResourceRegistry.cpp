@@ -31,7 +31,7 @@ RenderResourceRegistry::RenderResourceRegistry()
     m_preprocessor.set_error_callback([](const std::string& message) { qFatal("%s", message.c_str()); });
 }
 
-void RenderResourceRegistry::set_local_shader_path(const std::string& path) { m_local_shader_path = path; }
+void RenderResourceRegistry::set_local_shader_path(const std::string& target, const std::string& path) { m_local_shader_paths[target] = path; }
 
 void RenderResourceRegistry::register_shader(const std::string& name, const std::string& source_path)
 {
@@ -101,14 +101,23 @@ void RenderResourceRegistry::recreate_all(WGPUDevice device)
 
 std::string RenderResourceRegistry::read_shader_source(const std::string& source_path) const
 {
-    if (!m_local_shader_path.empty()) {
-        const std::string local = m_local_shader_path + source_path;
+    // source_path is a logical shader name "target::relpath" (extension omitted).
+    std::string target;
+    std::string relpath = source_path;
+    if (const auto sep = source_path.find("::"); sep != std::string::npos) {
+        target = source_path.substr(0, sep);
+        relpath = source_path.substr(sep + 2);
+    }
+    const std::string file_rel = relpath + ".wgsl";
+
+    if (const auto it = m_local_shader_paths.find(target); it != m_local_shader_paths.end() && !it->second.empty()) {
+        const std::string local = it->second + file_rel;
         QFile local_file(QString::fromStdString(local));
         if (local_file.open(QIODevice::ReadOnly | QIODevice::Text))
             return local_file.readAll().toStdString();
     }
 
-    const std::string qrc = std::string(QRC_PREFIX) + source_path;
+    const std::string qrc = std::string(QRC_PREFIX) + target + "/" + file_rel;
     QFile file(QString::fromStdString(qrc));
     if (!file.open(QIODevice::ReadOnly | QIODevice::Text))
         qFatal("Could not open shader file %s", qrc.c_str());

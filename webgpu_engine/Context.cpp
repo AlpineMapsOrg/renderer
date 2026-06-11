@@ -20,7 +20,6 @@
 
 #include "Context.h"
 
-#include "compute/NodeGraph.h"
 #include <webgpu/raii/BindGroupLayout.h>
 
 namespace webgpu_engine {
@@ -37,7 +36,8 @@ void Context::internal_initialise()
     assert(m_webgpu_ctx_ptr != nullptr);
 
     auto& reg = webgpu_ctx().resource_registry();
-    reg.set_local_shader_path(ALP_RESOURCES_PREFIX);
+    reg.set_local_shader_path("webgpu", ALP_SHADER_DIR_WEBGPU);
+    reg.set_local_shader_path("webgpu_engine", ALP_SHADER_DIR_WEBGPU_ENGINE);
 
     reg.register_bind_group_layout("shared_config", [](WGPUDevice device) {
         WGPUBindGroupLayoutEntry entry {};
@@ -157,26 +157,6 @@ void Context::internal_initialise()
             "compose bind group layout");
     });
 
-    reg.register_shader("mipmap_creation", "compute/mipmap_creation_compute.wgsl");
-
-    reg.register_bind_group_layout("mipmap_creation", [](WGPUDevice device) {
-        WGPUBindGroupLayoutEntry input_entry {};
-        input_entry.binding = 0;
-        input_entry.visibility = WGPUShaderStage_Compute;
-        input_entry.texture.sampleType = WGPUTextureSampleType_Float;
-        input_entry.texture.viewDimension = WGPUTextureViewDimension_2D;
-
-        WGPUBindGroupLayoutEntry output_entry {};
-        output_entry.binding = 1;
-        output_entry.visibility = WGPUShaderStage_Compute;
-        output_entry.storageTexture.viewDimension = WGPUTextureViewDimension_2D;
-        output_entry.storageTexture.access = WGPUStorageTextureAccess_WriteOnly;
-        output_entry.storageTexture.format = WGPUTextureFormat_RGBA8Unorm;
-
-        return std::make_unique<webgpu::raii::BindGroupLayout>(
-            device, std::vector<WGPUBindGroupLayoutEntry> { input_entry, output_entry }, "mipmap creation bind group layout");
-    });
-
     if (m_tile_mesh_renderer)
         m_tile_mesh_renderer->init(webgpu_ctx());
     if (m_atmosphere_renderer)
@@ -241,10 +221,6 @@ void Context::set_track_renderer(std::shared_ptr<TrackRenderer> new_track_render
     assert(!is_alive()); // only set before init is called.
     m_track_renderer = std::move(new_track_renderer);
 }
-
-compute::nodes::NodeGraph* Context::compute_graph() const { return m_compute_graph.get(); }
-
-void Context::set_compute_graph(std::unique_ptr<compute::nodes::NodeGraph> graph) { m_compute_graph = std::move(graph); }
 
 void Context::set_webgpu_ctx(webgpu::Context& ctx) { m_webgpu_ctx_ptr = &ctx; }
 

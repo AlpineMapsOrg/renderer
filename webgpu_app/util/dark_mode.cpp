@@ -28,9 +28,7 @@
 #endif
 #endif
 
-#ifdef ALP_WEBGPU_APP_ENABLE_IMGUI
 #include <imgui.h>
-#endif
 
 namespace webgpu_app::util {
 
@@ -68,8 +66,6 @@ void enable_darkmode_on_windows(SDL_Window* window)
 
 void setup_darkmode_imgui_style()
 {
-#ifdef ALP_WEBGPU_APP_ENABLE_IMGUI
-
     ImGuiStyle& style = ImGui::GetStyle();
     ImVec4* colors = style.Colors;
 
@@ -135,7 +131,6 @@ void setup_darkmode_imgui_style()
     style.ScrollbarRounding = 0.0f;
     style.TabRounding = 0.0f;
     style.FramePadding = ImVec2(8.0f, 5.0f);
-#endif
 }
 
 } // namespace webgpu_app::util

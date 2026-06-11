@@ -67,41 +67,29 @@ class WeBIGeoHacks {
     this.webgpuTimingsAvailable = true;
   }
 
-  uploadFileWithDialog(filter, tag) {
-    // Create a file input element if not already created
-    var fileInput = document.getElementById('fileInputDialog');
-    if (!fileInput) {
-      var fileInput = document.createElement('input');
-      fileInput.id = "fileInputDialog";
-      fileInput.type = 'file';
+  uploadFilesWithDialog(filter, tag, multiple) {
+    const fileInput = document.createElement('input');
+    fileInput.type = 'file';
+    fileInput.multiple = !!multiple;
+    if (typeof filter === 'string') fileInput.accept = filter;
 
-      fileInput.addEventListener('change', function (event) {
-        var file = event.target.files[0];  // Get the selected file
-        var reader = new FileReader();
+    fileInput.addEventListener('change', async function (event) {
+      try { eminstance.FS.mkdir('/upload'); } catch (e) {}
+      for (const file of Array.from(event.target.files)) {
+        const data = await new Promise(resolve => {
+          const reader = new FileReader();
+          reader.onload = e => resolve(new Uint8Array(e.target.result));
+          reader.readAsArrayBuffer(file);
+        });
+        const dstFileName = '/upload/' + file.name;
+        eminstance.FS.writeFile(dstFileName, data);
+        await eminstance.ccall('global_file_uploaded', null,
+          ['string', 'string'], [dstFileName, tag], { async: true });
+      }
+      fileInput.remove();
+    });
 
-        reader.onload = async function (e) {
-          var data = new Uint8Array(e.target.result);
-          let dstFileName = "/upload/" + file.name;
-
-          // Create the upload directory if not existing yet
-          try {
-            eminstance.FS.mkdir('/upload');
-          } catch (e) { }
-          // Write file to Emscripten's virtual file system
-          eminstance.FS.writeFile(dstFileName, data);
-
-          // Call the global_file_uploaded function in the Emscripten module (WebInterop)
-          await eminstance.ccall("global_file_uploaded", null, ["string", "string"], [dstFileName, tag], { async: true });
-
-          fileInput.remove();
-        };
-
-        reader.readAsArrayBuffer(file);  // Read file as ArrayBuffer
-      });
-    }
-    if (typeof filter === 'string') {
-      fileInput.accept = filter;
-    }
+    document.body.appendChild(fileInput);
     fileInput.click();
   }
 

@@ -54,7 +54,7 @@ void TrackRenderer::init(webgpu::Context& ctx)
     m_ctx = &ctx;
 
     auto& reg = ctx.resource_registry();
-    reg.register_shader("render_lines", "render_lines.wgsl");
+    reg.register_shader("render_lines", "webgpu_engine::render_lines");
     reg.register_bind_group_layout("lines", [](WGPUDevice device) {
         WGPUBindGroupLayoutEntry input_positions_entry {};
         input_positions_entry.binding = 0;
@@ -143,7 +143,7 @@ void TrackRenderer::add_world_positions(const std::vector<glm::vec4>& world_posi
     m_position_buffers.back()->write(m_ctx->queue(), world_positions.data(), world_positions.size());
 
     m_line_config_buffers.emplace_back(std::make_unique<webgpu::Buffer<LineConfig>>(m_ctx->device(), WGPUBufferUsage_Uniform | WGPUBufferUsage_CopyDst));
-    m_line_config_buffers.back()->data.line_color = color;
+    m_line_config_buffers.back()->data.color = color;
     m_line_config_buffers.back()->update_gpu_data(m_ctx->queue());
 
     m_bind_groups.emplace_back(std::make_unique<webgpu::raii::BindGroup>(m_ctx->device(),

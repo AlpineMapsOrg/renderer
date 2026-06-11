@@ -16,33 +16,28 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *****************************************************************************/
 
-#include <catch2/catch_test_macros.hpp>
 #include <catch2/benchmark/catch_benchmark.hpp>
-#include <webgpu/util/ShaderPreprocessor.h>
+#include <catch2/catch_test_macros.hpp>
 #include <filesystem>
 #include <fstream>
 #include <map>
 #include <sstream>
 #include <string>
 #include <vector>
+#include <webgpu/util/ShaderPreprocessor.h>
 
 using namespace webgpu::util;
 
 // Helper function to set up error callback for tests
 inline void setup_error_callback(ShaderPreprocessor& preprocessor)
 {
-    preprocessor.set_error_callback([](const std::string& message) {
-        FAIL(message);
-    });
+    preprocessor.set_error_callback([](const std::string& message) { FAIL(message); });
 }
 
 // Helper class to create a mock file system for testing
 class MockFileSystem {
 public:
-    void add_file(const std::string& name, const std::string& content)
-    {
-        m_files[name] = content;
-    }
+    void add_file(const std::string& name, const std::string& content) { m_files[name] = content; }
 
     std::string read_file(const std::string& name) const
     {
@@ -65,15 +60,13 @@ TEST_CASE("ShaderPreprocessor - Include Statement Tests")
 
     SECTION("Simple include")
     {
-        fs.add_file("header.wgsl", "// Header content\nfn helper() -> f32 { return 1.0; }");
+        fs.add_file("header", "// Header content\nfn helper() -> f32 { return 1.0; }");
 
-        preprocessor.set_file_reader([&fs](const std::string& name) {
-            return fs.read_file(name);
-        });
+        preprocessor.set_file_reader([&fs](const std::string& name) { return fs.read_file(name); });
 
         std::string input = R"(
 // Main file
-#include "header.wgsl"
+///use header
 
 fn main() -> f32 {
     return helper();
@@ -89,16 +82,14 @@ fn main() -> f32 {
 
     SECTION("Multiple includes of the same file (pragma once behavior)")
     {
-        fs.add_file("common.wgsl", "const PI: f32 = 3.14159;");
+        fs.add_file("common", "const PI: f32 = 3.14159;");
 
-        preprocessor.set_file_reader([&fs](const std::string& name) {
-            return fs.read_file(name);
-        });
+        preprocessor.set_file_reader([&fs](const std::string& name) { return fs.read_file(name); });
 
         std::string input = R"(
-#include "common.wgsl"
-#include "common.wgsl"
-#include "common.wgsl"
+///use common
+///use common
+///use common
 
 fn area(r: f32) -> f32 {
     return PI * r * r;
@@ -120,18 +111,16 @@ fn area(r: f32) -> f32 {
 
     SECTION("Nested includes with pragma once")
     {
-        fs.add_file("constants.wgsl", "const E: f32 = 2.71828;");
-        fs.add_file("math_utils.wgsl", "#include \"constants.wgsl\"\nfn exp_approx(x: f32) -> f32 { return E; }");
-        fs.add_file("physics.wgsl", "#include \"constants.wgsl\"\nfn decay(t: f32) -> f32 { return E; }");
+        fs.add_file("constants", "const E: f32 = 2.71828;");
+        fs.add_file("math_utils", "///use constants\nfn exp_approx(x: f32) -> f32 { return E; }");
+        fs.add_file("physics", "///use constants\nfn decay(t: f32) -> f32 { return E; }");
 
-        preprocessor.set_file_reader([&fs](const std::string& name) {
-            return fs.read_file(name);
-        });
+        preprocessor.set_file_reader([&fs](const std::string& name) { return fs.read_file(name); });
 
         std::string input = R"(
-#include "math_utils.wgsl"
-#include "physics.wgsl"
-#include "constants.wgsl"
+///use math_utils
+///use physics
+///use constants
 
 fn main() {}
 )";
@@ -151,15 +140,13 @@ fn main() {}
 
     SECTION("Circular include detection")
     {
-        fs.add_file("a.wgsl", "#include \"b.wgsl\"\nfn a() {}");
-        fs.add_file("b.wgsl", "#include \"c.wgsl\"\nfn b() {}");
-        fs.add_file("c.wgsl", "#include \"a.wgsl\"\nfn c() {}");
+        fs.add_file("a", "///use b\nfn a() {}");
+        fs.add_file("b", "///use c\nfn b() {}");
+        fs.add_file("c", "///use a\nfn c() {}");
 
-        preprocessor.set_file_reader([&fs](const std::string& name) {
-            return fs.read_file(name);
-        });
+        preprocessor.set_file_reader([&fs](const std::string& name) { return fs.read_file(name); });
 
-        std::string input = "#include \"a.wgsl\"";
+        std::string input = "///use a";
 
         // Should not throw or infinite loop - pragma once behavior should prevent cycles
         std::string result;
@@ -173,14 +160,12 @@ fn main() {}
 
     SECTION("Include with path separators")
     {
-        fs.add_file("util/helpers.wgsl", "fn utility() -> i32 { return 42; }");
+        fs.add_file("util/helpers", "fn utility() -> i32 { return 42; }");
 
-        preprocessor.set_file_reader([&fs](const std::string& name) {
-            return fs.read_file(name);
-        });
+        preprocessor.set_file_reader([&fs](const std::string& name) { return fs.read_file(name); });
 
         std::string input = R"(
-#include "util/helpers.wgsl"
+///use util/helpers
 
 fn test() -> i32 {
     return utility();
@@ -205,49 +190,49 @@ TEST_CASE("ShaderPreprocessor - Conditional Compilation Tests")
 
         std::string input = R"(
 fn main() {
-#ifdef FEATURE_ENABLED
+///ifdef FEATURE_ENABLED
     let x = 1.0;
-#endif
+///endif
 }
 )";
 
         std::string result = preprocessor.preprocess_code(input);
 
         REQUIRE(result.find("let x = 1.0;") != std::string::npos);
-        REQUIRE(result.find("#ifdef") == std::string::npos);
-        REQUIRE(result.find("#endif") == std::string::npos);
+        REQUIRE(result.find("///ifdef") == std::string::npos);
+        REQUIRE(result.find("///endif") == std::string::npos);
     }
 
     SECTION("Simple ifdef - symbol not defined")
     {
         std::string input = R"(
 fn main() {
-#ifdef FEATURE_DISABLED
+///ifdef FEATURE_DISABLED
     let x = 1.0;
-#endif
+///endif
 }
 )";
 
         std::string result = preprocessor.preprocess_code(input);
 
         REQUIRE(result.find("let x = 1.0;") == std::string::npos);
-        REQUIRE(result.find("#ifdef") == std::string::npos);
+        REQUIRE(result.find("///ifdef") == std::string::npos);
     }
 
     SECTION("Simple ifndef - symbol not defined")
     {
         std::string input = R"(
 fn main() {
-#ifndef DEBUG_MODE
+///ifndef DEBUG_MODE
     let optimized = true;
-#endif
+///endif
 }
 )";
 
         std::string result = preprocessor.preprocess_code(input);
 
         REQUIRE(result.find("let optimized = true;") != std::string::npos);
-        REQUIRE(result.find("#ifndef") == std::string::npos);
+        REQUIRE(result.find("///ifndef") == std::string::npos);
     }
 
     SECTION("Simple ifndef - symbol defined")
@@ -256,9 +241,9 @@ fn main() {
 
         std::string input = R"(
 fn main() {
-#ifndef DEBUG_MODE
+///ifndef DEBUG_MODE
     let optimized = true;
-#endif
+///endif
 }
 )";
 
@@ -273,11 +258,11 @@ fn main() {
 
         std::string input = R"(
 fn compute() {
-#ifdef USE_FAST_PATH
+///ifdef USE_FAST_PATH
     let result = fast_compute();
-#else
+///else
     let result = slow_compute();
-#endif
+///endif
 }
 )";
 
@@ -285,19 +270,19 @@ fn compute() {
 
         REQUIRE(result.find("fast_compute()") != std::string::npos);
         REQUIRE(result.find("slow_compute()") == std::string::npos);
-        REQUIRE(result.find("#ifdef") == std::string::npos);
-        REQUIRE(result.find("#else") == std::string::npos);
+        REQUIRE(result.find("///ifdef") == std::string::npos);
+        REQUIRE(result.find("///else") == std::string::npos);
     }
 
     SECTION("ifdef with else - false branch")
     {
         std::string input = R"(
 fn compute() {
-#ifdef USE_FAST_PATH
+///ifdef USE_FAST_PATH
     let result = fast_compute();
-#else
+///else
     let result = slow_compute();
-#endif
+///endif
 }
 )";
 
@@ -314,13 +299,13 @@ fn compute() {
 
         std::string input = R"(
 fn main() {
-#ifdef OUTER_FEATURE
+///ifdef OUTER_FEATURE
     let outer = 1;
-#ifdef INNER_FEATURE
+///ifdef INNER_FEATURE
     let inner = 2;
-#endif
+///endif
     let outer_end = 3;
-#endif
+///endif
 }
 )";
 
@@ -337,13 +322,13 @@ fn main() {
 
         std::string input = R"(
 fn main() {
-#ifdef OUTER_FEATURE
+///ifdef OUTER_FEATURE
     let outer = 1;
-#ifdef INNER_FEATURE
+///ifdef INNER_FEATURE
     let inner = 2;
-#endif
+///endif
     let outer_end = 3;
-#endif
+///endif
 }
 )";
 
@@ -362,17 +347,17 @@ fn main() {
 
         std::string input = R"(
 fn main() {
-#ifdef FEATURE_A
+///ifdef FEATURE_A
     let a = 1;
-#endif
+///endif
 
-#ifdef FEATURE_B
+///ifdef FEATURE_B
     let b = 2;
-#endif
+///endif
 
-#ifdef FEATURE_C
+///ifdef FEATURE_C
     let c = 3;
-#endif
+///endif
 }
 )";
 
@@ -403,20 +388,18 @@ TEST_CASE("ShaderPreprocessor - Combined Include and Conditional Tests")
     {
         preprocessor.define("ENABLE_SHADOWS");
 
-        fs.add_file("lighting.wgsl", R"(
-#ifdef ENABLE_SHADOWS
+        fs.add_file("lighting", R"(
+///ifdef ENABLE_SHADOWS
 fn compute_shadows() -> f32 { return 0.5; }
-#else
+///else
 fn compute_shadows() -> f32 { return 1.0; }
-#endif
+///endif
 )");
 
-        preprocessor.set_file_reader([&fs](const std::string& name) {
-            return fs.read_file(name);
-        });
+        preprocessor.set_file_reader([&fs](const std::string& name) { return fs.read_file(name); });
 
         std::string input = R"(
-#include "lighting.wgsl"
+///use lighting
 
 fn main() {
     let shadow = compute_shadows();
@@ -433,19 +416,17 @@ fn main() {
     {
         preprocessor.define("USE_ADVANCED_MATH");
 
-        fs.add_file("basic_math.wgsl", "fn add(a: f32, b: f32) -> f32 { return a + b; }");
-        fs.add_file("advanced_math.wgsl", "fn multiply(a: f32, b: f32) -> f32 { return a * b; }");
+        fs.add_file("basic_math", "fn add(a: f32, b: f32) -> f32 { return a + b; }");
+        fs.add_file("advanced_math", "fn multiply(a: f32, b: f32) -> f32 { return a * b; }");
 
-        preprocessor.set_file_reader([&fs](const std::string& name) {
-            return fs.read_file(name);
-        });
+        preprocessor.set_file_reader([&fs](const std::string& name) { return fs.read_file(name); });
 
         std::string input = R"(
-#ifdef USE_ADVANCED_MATH
-#include "advanced_math.wgsl"
-#else
-#include "basic_math.wgsl"
-#endif
+///ifdef USE_ADVANCED_MATH
+///use advanced_math
+///else
+///use basic_math
+///endif
 
 fn main() {}
 )";
@@ -462,27 +443,16 @@ TEST_CASE("ShaderPreprocessor - Error Handling")
     auto test_error = [](const std::string& input) {
         ShaderPreprocessor preprocessor;
         bool error_called = false;
-        preprocessor.set_error_callback([&error_called](const std::string&) {
-            error_called = true;
-        });
+        preprocessor.set_error_callback([&error_called](const std::string&) { error_called = true; });
         preprocessor.preprocess_code(input);
         REQUIRE(error_called);
     };
 
-    SECTION("Unclosed ifdef")
-    {
-        test_error("fn main() {\n#ifdef FEATURE\n    let x = 1;\n}\n");
-    }
+    SECTION("Unclosed ifdef") { test_error("fn main() {\n///ifdef FEATURE\n    let x = 1;\n}\n"); }
 
-    SECTION("endif without ifdef")
-    {
-        test_error("fn main() {\n    let x = 1;\n#endif\n}\n");
-    }
+    SECTION("endif without ifdef") { test_error("fn main() {\n    let x = 1;\n///endif\n}\n"); }
 
-    SECTION("else without ifdef")
-    {
-        test_error("fn main() {\n#else\n    let x = 1;\n#endif\n}\n");
-    }
+    SECTION("else without ifdef") { test_error("fn main() {\n///else\n    let x = 1;\n///endif\n}\n"); }
 }
 
 TEST_CASE("ShaderPreprocessor - Cache Management")
@@ -491,22 +461,20 @@ TEST_CASE("ShaderPreprocessor - Cache Management")
     setup_error_callback(preprocessor);
     MockFileSystem fs;
 
-    fs.add_file("cacheable.wgsl", "const VALUE: i32 = 42;");
+    fs.add_file("cacheable", "const VALUE: i32 = 42;");
 
-    preprocessor.set_file_reader([&fs](const std::string& name) {
-        return fs.read_file(name);
-    });
+    preprocessor.set_file_reader([&fs](const std::string& name) { return fs.read_file(name); });
 
     SECTION("Cache behavior")
     {
-        std::string input = "#include \"cacheable.wgsl\"";
+        std::string input = "///use cacheable";
 
         // First preprocess - should cache the file
         std::string result1 = preprocessor.preprocess_code(input);
         REQUIRE(result1.find("const VALUE") != std::string::npos);
 
         // Modify the file in the mock filesystem
-        fs.add_file("cacheable.wgsl", "const VALUE: i32 = 99;");
+        fs.add_file("cacheable", "const VALUE: i32 = 99;");
 
         // Second preprocess - should use cached version
         std::string result2 = preprocessor.preprocess_code(input);
@@ -526,11 +494,11 @@ TEST_CASE("ShaderPreprocessor - Define and Macro Replacement Tests")
     ShaderPreprocessor preprocessor;
     setup_error_callback(preprocessor);
 
-    SECTION("#define with value and macro replacement")
+    SECTION("///define with value and macro replacement")
     {
         std::string input = R"(
-#define PI 3.14159
-#define RADIUS 10.0
+///define PI 3.14159
+///define RADIUS 10.0
 
 fn area() -> f32 {
     return PI * RADIUS * RADIUS;
@@ -543,13 +511,13 @@ fn area() -> f32 {
         REQUIRE(result.find("10.0") != std::string::npos);
         REQUIRE(result.find("PI") == std::string::npos);
         REQUIRE(result.find("RADIUS") == std::string::npos);
-        REQUIRE(result.find("#define") == std::string::npos);
+        REQUIRE(result.find("///define") == std::string::npos);
     }
 
-    SECTION("#define without value defaults to 1")
+    SECTION("///define without value defaults to 1")
     {
         std::string input = R"(
-#define ENABLED
+///define ENABLED
 
 fn test() -> i32 {
     return ENABLED;
@@ -562,15 +530,15 @@ fn test() -> i32 {
         REQUIRE(result.find("ENABLED") == std::string::npos);
     }
 
-    SECTION("#if with value comparison")
+    SECTION("///if with value comparison")
     {
         std::string input = R"(
-#define MODUS 1
+///define MODUS 1
 
 fn main() {
-#if MODUS 1
+///if MODUS 1
     let x = 1.0;
-#endif
+///endif
 }
 )";
 
@@ -579,15 +547,15 @@ fn main() {
         REQUIRE(result.find("let x = 1.0;") != std::string::npos);
     }
 
-    SECTION("#if with value comparison - false")
+    SECTION("///if with value comparison - false")
     {
         std::string input = R"(
-#define MODUS 1
+///define MODUS 1
 
 fn main() {
-#if MODUS 2
+///if MODUS 2
     let x = 1.0;
-#endif
+///endif
 }
 )";
 
@@ -596,21 +564,21 @@ fn main() {
         REQUIRE(result.find("let x = 1.0;") == std::string::npos);
     }
 
-    SECTION("#if with #elif chain")
+    SECTION("///if with ///elif chain")
     {
         std::string input = R"(
-#define MODUS 2
+///define MODUS 2
 
 fn main() {
-#if MODUS 1
+///if MODUS 1
     let msg = first;
-#elif MODUS 2
+///elif MODUS 2
     let msg = second;
-#elif MODUS 3
+///elif MODUS 3
     let msg = third;
-#else
+///else
     let msg = default;
-#endif
+///endif
 }
 )";
 
@@ -622,19 +590,19 @@ fn main() {
         REQUIRE(result.find("let msg = default;") == std::string::npos);
     }
 
-    SECTION("#elif falls through to #else when no match")
+    SECTION("///elif falls through to ///else when no match")
     {
         std::string input = R"(
-#define MODUS 99
+///define MODUS 99
 
 fn main() {
-#if MODUS 1
+///if MODUS 1
     let msg = first;
-#elif MODUS 2
+///elif MODUS 2
     let msg = second;
-#else
+///else
     let msg = default;
-#endif
+///endif
 }
 )";
 
@@ -645,21 +613,21 @@ fn main() {
         REQUIRE(result.find("let msg = second;") == std::string::npos);
     }
 
-    SECTION("Combined #ifdef and #define")
+    SECTION("Combined ///ifdef and ///define")
     {
         std::string input = R"(
-#define PI 3.14159
-#define MODUS 1
+///define PI 3.14159
+///define MODUS 1
 
 fn main() {
-#ifdef PI
+///ifdef PI
     let pi = PI;
-#endif
-#if MODUS 1
+///endif
+///if MODUS 1
     let mode = MODUS;
-#else
+///else
     let mode = 0;
-#endif
+///endif
 }
 )";
 
@@ -675,7 +643,7 @@ fn main() {
         preprocessor.define("GLOBAL_VAR", "100");
 
         std::string input = R"(
-#define LOCAL_VAR 200
+///define LOCAL_VAR 200
 
 fn test() -> i32 {
     return GLOBAL_VAR + LOCAL_VAR;
@@ -704,7 +672,7 @@ fn test2() -> i32 {
         preprocessor.define("VALUE", "global");
 
         std::string input = R"(
-#define VALUE local
+///define VALUE local
 
 fn test() {
     let v = VALUE;
@@ -722,7 +690,7 @@ TEST_CASE("ShaderPreprocessor - Benchmark")
 {
     namespace fs = std::filesystem;
 
-    fs::path shader_dir = ALP_RESOURCES_PREFIX;
+    fs::path shader_dir = ALP_SHADER_DIR_WEBGPU_ENGINE;
 
     if (!fs::exists(shader_dir)) {
         SKIP("Shader directory not found - skipping benchmark");
@@ -730,10 +698,11 @@ TEST_CASE("ShaderPreprocessor - Benchmark")
 
     std::vector<std::string> shader_files;
 
-    // collect shader files in the root directory only
+    // collect shader files in the root directory only, addressed by their logical
+    // name "webgpu_engine::<stem>" (extension omitted), matching the new scheme.
     for (const auto& entry : fs::directory_iterator(shader_dir)) {
         if (entry.is_regular_file() && entry.path().extension() == ".wgsl") {
-            shader_files.push_back(entry.path().filename().string());
+            shader_files.push_back("webgpu_engine::" + entry.path().stem().string());
         }
     }
 
@@ -741,9 +710,14 @@ TEST_CASE("ShaderPreprocessor - Benchmark")
         SKIP("No shader files found - skipping benchmark");
     }
 
+    // Mimics RenderResourceRegistry::read_shader_source: strip the "target::" prefix
+    // and resolve "<relpath>.wgsl" against the shader directory.
     auto create_file_reader = [&shader_dir]() {
         return [&shader_dir](const std::string& name) -> std::string {
-            fs::path file_path = shader_dir / name;
+            std::string relpath = name;
+            if (const auto sep = name.find("::"); sep != std::string::npos)
+                relpath = name.substr(sep + 2);
+            fs::path file_path = shader_dir / (relpath + ".wgsl");
             std::ifstream file(file_path);
             if (!file.is_open()) {
                 throw std::runtime_error("File not found: " + name);
@@ -754,7 +728,8 @@ TEST_CASE("ShaderPreprocessor - Benchmark")
         };
     };
 
-    BENCHMARK("Preprocess all shaders (cache enabled)") {
+    BENCHMARK("Preprocess all shaders (cache enabled)")
+    {
         static ShaderPreprocessor preprocessor;
         setup_error_callback(preprocessor);
         preprocessor.set_file_reader(create_file_reader());
@@ -766,7 +741,8 @@ TEST_CASE("ShaderPreprocessor - Benchmark")
         return total;
     };
 
-    BENCHMARK("Preprocess all shaders (cache disabled)") {
+    BENCHMARK("Preprocess all shaders (cache disabled)")
+    {
         ShaderPreprocessor preprocessor;
         preprocessor.set_cache_enabled(false);
         preprocessor.set_file_reader(create_file_reader());

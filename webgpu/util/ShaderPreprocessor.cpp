@@ -27,17 +27,27 @@ namespace webgpu::util {
 
 namespace {
     // Helper function to trim leading and trailing whitespace
-    inline std::string trim_whitespace(std::string str) {
+    inline std::string trim_whitespace(std::string str)
+    {
         str.erase(0, str.find_first_not_of(" \t"));
         str.erase(str.find_last_not_of(" \t") + 1);
         return str;
     }
-}
 
-ShaderPreprocessor::ShaderPreprocessor()
-{
-    initialize_platform_defines();
-}
+    // Fast directive guard: returns the index of the leading "///" (skipping leading
+    // whitespace) if the line is a directive, or npos otherwise. Cheap enough to run on
+    // every line - it only scans the (usually empty) leading whitespace; the regex is then
+    // matched from this offset so the anchored patterns need no change and no substring is copied.
+    inline size_t directive_offset(const std::string& line)
+    {
+        const size_t first = line.find_first_not_of(" \t");
+        if (first != std::string::npos && line.compare(first, 3, "///") == 0)
+            return first;
+        return std::string::npos;
+    }
+} // namespace
+
+ShaderPreprocessor::ShaderPreprocessor() { initialize_platform_defines(); }
 
 void ShaderPreprocessor::initialize_platform_defines()
 {
@@ -71,25 +81,13 @@ void ShaderPreprocessor::initialize_platform_defines()
 #endif
 }
 
-void ShaderPreprocessor::define(const std::string& symbol)
-{
-    m_global_defines[symbol] = "1";
-}
+void ShaderPreprocessor::define(const std::string& symbol) { m_global_defines[symbol] = "1"; }
 
-void ShaderPreprocessor::define(const std::string& symbol, const std::string& value)
-{
-    m_global_defines[symbol] = value;
-}
+void ShaderPreprocessor::define(const std::string& symbol, const std::string& value) { m_global_defines[symbol] = value; }
 
-void ShaderPreprocessor::undefine(const std::string& symbol)
-{
-    m_global_defines.erase(symbol);
-}
+void ShaderPreprocessor::undefine(const std::string& symbol) { m_global_defines.erase(symbol); }
 
-bool ShaderPreprocessor::is_defined(const std::string& symbol) const
-{
-    return m_global_defines.contains(symbol);
-}
+bool ShaderPreprocessor::is_defined(const std::string& symbol) const { return m_global_defines.contains(symbol); }
 
 std::string ShaderPreprocessor::get_value(const std::string& symbol) const
 {
@@ -100,10 +98,7 @@ std::string ShaderPreprocessor::get_value(const std::string& symbol) const
     return "";
 }
 
-void ShaderPreprocessor::clear_cache()
-{
-    m_shader_name_to_code.clear();
-}
+void ShaderPreprocessor::clear_cache() { m_shader_name_to_code.clear(); }
 
 void ShaderPreprocessor::set_cache_enabled(bool enabled)
 {
@@ -113,15 +108,9 @@ void ShaderPreprocessor::set_cache_enabled(bool enabled)
     }
 }
 
-void ShaderPreprocessor::set_file_reader(std::function<std::string(const std::string&)> reader)
-{
-    m_file_reader = std::move(reader);
-}
+void ShaderPreprocessor::set_file_reader(std::function<std::string(const std::string&)> reader) { m_file_reader = std::move(reader); }
 
-void ShaderPreprocessor::set_error_callback(std::function<void(const std::string&)> callback)
-{
-    m_error_callback = std::move(callback);
-}
+void ShaderPreprocessor::set_error_callback(std::function<void(const std::string&)> callback) { m_error_callback = std::move(callback); }
 
 void ShaderPreprocessor::report_error(const std::string& message)
 {
@@ -155,24 +144,26 @@ std::string ShaderPreprocessor::get_file_contents_with_cache(const std::string& 
 
 std::string ShaderPreprocessor::process_defines(const std::string& code, std::map<std::string, std::string>& local_defines)
 {
-    static const std::regex define_regex(R"(^#define\s+([a-zA-Z_][a-zA-Z0-9_]*)\s*(.*)$)");
+    static const std::regex define_regex(R"(^///define\s+([a-zA-Z_][a-zA-Z0-9_]*)\s*(.*)$)");
 
     std::istringstream input(code);
     std::ostringstream output;
     std::string line;
 
     while (std::getline(input, line)) {
-        // Quick Check: skip regex if line doesn't start with '#'
-        if (line.empty() || line[0] != '#') {
+        // Quick Check: skip regex if the line isn't a directive (ignoring leading whitespace)
+        const size_t off = directive_offset(line);
+        if (off == std::string::npos) {
             output << line << '\n';
             continue;
         }
 
         std::smatch match;
-        if (std::regex_match(line, match, define_regex)) {
+        if (std::regex_match(line.cbegin() + static_cast<std::ptrdiff_t>(off), line.cend(), match, define_regex)) {
             const std::string symbol = match[1].str();
             std::string value = trim_whitespace(match[2].str());
-            if (value.empty()) value = "1"; // default to "1"
+            if (value.empty())
+                value = "1"; // default to "1"
             local_defines[symbol] = value;
             // Don't output the #define directive itself
         } else {
@@ -183,41 +174,52 @@ std::string ShaderPreprocessor::process_defines(const std::string& code, std::ma
     return output.str();
 }
 
-std::string ShaderPreprocessor::process_includes(const std::string& code, std::unordered_set<std::string>& already_included, std::map<std::string, std::string>& local_defines)
+std::string ShaderPreprocessor::process_includes(const std::string& code,
+    std::unordered_set<std::string>& already_included,
+    std::map<std::string, std::string>& local_defines,
+    const std::string& current_namespace)
 {
-    static const std::regex include_regex("#include \"([/a-zA-Z0-9 ._-]+)\"");
-    std::string preprocessed_code = code;
+    // ///use relpath            -> include from current_namespace
+    // ///use target::relpath    -> include from the given target namespace
+    static const std::regex use_regex(R"(^///use\s+(?:([a-zA-Z_][a-zA-Z0-9_]*)::)?([/a-zA-Z0-9 ._-]+?)\s*$)");
 
-    std::smatch include_match;
-    while (std::regex_search(preprocessed_code, include_match, include_regex)) {
-        const std::string included_filename = include_match[1].str(); // first submatch
-        const size_t match_pos = include_match.position();
-        const size_t match_len = include_match.length();
+    std::istringstream input(code);
+    std::ostringstream output;
+    std::string line;
 
-        if (already_included.contains(included_filename)) {
-            // replace with empty string if already included
-            preprocessed_code.replace(match_pos, match_len, "");
+    while (std::getline(input, line)) {
+        std::smatch match;
+        const size_t off = directive_offset(line);
+        if (off != std::string::npos && std::regex_match(line.cbegin() + static_cast<std::ptrdiff_t>(off), line.cend(), match, use_regex)) {
+            const std::string included_namespace = match[1].matched ? match[1].str() : current_namespace;
+            const std::string relpath = match[2].str();
+            // When no namespace is in play (e.g. inline shaders / tests) the name is just the relpath.
+            const std::string full_name = included_namespace.empty() ? relpath : included_namespace + "::" + relpath;
+
+            if (already_included.contains(full_name))
+                continue; // pragma-once: skip files already pulled in
+
+            // NOTE: mark as included BEFORE processing to prevent infinite recursion
+            already_included.insert(full_name);
+            const std::string included_file_contents = get_file_contents_with_cache(full_name);
+            output << process_includes(included_file_contents, already_included, local_defines, included_namespace) << '\n';
         } else {
-            // NOTE: mark file as included BEFORE processing to prevent infinite recursion
-            already_included.insert(included_filename);
-            const std::string included_file_contents = get_file_contents_with_cache(included_filename);
-            const std::string processed_included_contents = process_includes(included_file_contents, already_included, local_defines);
-            preprocessed_code.replace(match_pos, match_len, processed_included_contents);
+            output << line << '\n';
         }
     }
 
-    return preprocessed_code;
+    return output.str();
 }
 
 std::string ShaderPreprocessor::process_conditionals(const std::string& code, const std::map<std::string, std::string>& local_defines)
 {
     // NOTE: static for better performance
-    static const std::regex ifdef_regex(R"(^#ifdef\s+([a-zA-Z_][a-zA-Z0-9_]*)\s*$)");
-    static const std::regex ifndef_regex(R"(^#ifndef\s+([a-zA-Z_][a-zA-Z0-9_]*)\s*$)");
-    static const std::regex if_regex(R"(^#if\s+([a-zA-Z_][a-zA-Z0-9_]*)\s+(.+)$)");
-    static const std::regex elif_regex(R"(^#elif\s+([a-zA-Z_][a-zA-Z0-9_]*)\s+(.+)$)");
-    static const std::regex endif_regex(R"(^#endif\s*$)");
-    static const std::regex else_regex(R"(^#else\s*$)");
+    static const std::regex ifdef_regex(R"(^///ifdef\s+([a-zA-Z_][a-zA-Z0-9_]*)\s*$)");
+    static const std::regex ifndef_regex(R"(^///ifndef\s+([a-zA-Z_][a-zA-Z0-9_]*)\s*$)");
+    static const std::regex if_regex(R"(^///if\s+([a-zA-Z_][a-zA-Z0-9_]*)\s+(.+)$)");
+    static const std::regex elif_regex(R"(^///elif\s+([a-zA-Z_][a-zA-Z0-9_]*)\s+(.+)$)");
+    static const std::regex endif_regex(R"(^///endif\s*$)");
+    static const std::regex else_regex(R"(^///else\s*$)");
 
     std::istringstream input(code);
     std::ostringstream output;
@@ -225,16 +227,14 @@ std::string ShaderPreprocessor::process_conditionals(const std::string& code, co
 
     // Stack to track conditional compilation state
     struct ConditionalState {
-        bool is_active;          // Should we output code in this block?
+        bool is_active; // Should we output code in this block?
         bool was_any_branch_taken; // Has any branch been taken in this if/else chain?
     };
     std::stack<ConditionalState> condition_stack;
 
     bool is_currently_active = true;
 
-    auto is_symbol_defined = [&](const std::string& symbol) -> bool {
-        return m_global_defines.contains(symbol) || local_defines.contains(symbol);
-    };
+    auto is_symbol_defined = [&](const std::string& symbol) -> bool { return m_global_defines.contains(symbol) || local_defines.contains(symbol); };
 
     auto get_symbol_value = [&](const std::string& symbol) -> std::string {
         auto it = local_defines.find(symbol);
@@ -249,36 +249,40 @@ std::string ShaderPreprocessor::process_conditionals(const std::string& code, co
     };
 
     while (std::getline(input, line)) {
-        // Quick check: if line doesn't start with '#', it's regular code
-        if (line.empty() || line[0] != '#') {
-            if (is_currently_active) 
+        // Quick check: if line doesn't start with a directive prefix, it's regular code
+        const size_t off = directive_offset(line);
+        if (off == std::string::npos) {
+            if (is_currently_active)
                 output << line << '\n';
             continue;
         }
 
+        // Match the anchored directive regexes from the first non-whitespace char (no copy).
+        const auto dbegin = line.cbegin() + static_cast<std::ptrdiff_t>(off);
+        const auto dend = line.cend();
         std::smatch match;
 
-        if (std::regex_match(line, match, ifdef_regex)) {
+        if (std::regex_match(dbegin, dend, match, ifdef_regex)) {
             // #ifdef directive
             const std::string symbol = match[1].str();
             const bool symbol_defined = is_symbol_defined(symbol);
             const bool parent_active = is_currently_active;
             const bool this_active = parent_active && symbol_defined;
 
-            condition_stack.push({this_active, symbol_defined});
+            condition_stack.push({ this_active, symbol_defined });
             is_currently_active = this_active;
 
-        } else if (std::regex_match(line, match, ifndef_regex)) {
+        } else if (std::regex_match(dbegin, dend, match, ifndef_regex)) {
             // #ifndef directive
             const std::string symbol = match[1].str();
             const bool symbol_not_defined = !is_symbol_defined(symbol);
             const bool parent_active = is_currently_active;
             const bool this_active = parent_active && symbol_not_defined;
 
-            condition_stack.push({this_active, symbol_not_defined});
+            condition_stack.push({ this_active, symbol_not_defined });
             is_currently_active = this_active;
 
-        } else if (std::regex_match(line, match, if_regex)) {
+        } else if (std::regex_match(dbegin, dend, match, if_regex)) {
             // #if directive - compares symbol value with a string
             const std::string symbol = match[1].str();
             const std::string expected_value = trim_whitespace(match[2].str());
@@ -287,10 +291,10 @@ std::string ShaderPreprocessor::process_conditionals(const std::string& code, co
             const bool parent_active = is_currently_active;
             const bool this_active = parent_active && condition_met;
 
-            condition_stack.push({this_active, condition_met});
+            condition_stack.push({ this_active, condition_met });
             is_currently_active = this_active;
 
-        } else if (std::regex_match(line, match, elif_regex)) {
+        } else if (std::regex_match(dbegin, dend, match, elif_regex)) {
             // #elif directive
             if (condition_stack.empty()) {
                 report_error("Shader preprocessing error: #elif without matching #if/#ifdef/#ifndef");
@@ -324,7 +328,7 @@ std::string ShaderPreprocessor::process_conditionals(const std::string& code, co
                 is_currently_active = false;
             }
 
-        } else if (std::regex_match(line, else_regex)) {
+        } else if (std::regex_match(dbegin, dend, else_regex)) {
             // #else directive
             if (condition_stack.empty()) {
                 report_error("Shader preprocessing error: #else without matching #if/#ifdef/#ifndef");
@@ -346,7 +350,7 @@ std::string ShaderPreprocessor::process_conditionals(const std::string& code, co
             state.is_active = is_currently_active;
             state.was_any_branch_taken = true;
 
-        } else if (std::regex_match(line, endif_regex)) {
+        } else if (std::regex_match(dbegin, dend, endif_regex)) {
             if (condition_stack.empty()) {
                 report_error("Shader preprocessing error: #endif without matching #if/#ifdef/#ifndef");
                 continue;
@@ -362,7 +366,7 @@ std::string ShaderPreprocessor::process_conditionals(const std::string& code, co
             }
 
         } else {
-            //  starts with '#' but doesn't match any directive - treat as regular code
+            // starts with '///' but doesn't match any directive - treat as regular comment/code
             if (is_currently_active) {
                 output << line << '\n';
             }
@@ -387,8 +391,7 @@ std::string ShaderPreprocessor::replace_macros(const std::string& code, const st
     // NOTE: We process in reverse order of symbol length to handle longer symbols first
     // for the case where one symbol is a part of another (e.g., VALUE and VAL)
     std::vector<std::pair<std::string, std::string>> sorted_defines(all_defines.begin(), all_defines.end());
-    std::sort(sorted_defines.begin(), sorted_defines.end(),
-        [](const auto& a, const auto& b) { return a.first.length() > b.first.length(); });
+    std::sort(sorted_defines.begin(), sorted_defines.end(), [](const auto& a, const auto& b) { return a.first.length() > b.first.length(); });
 
     std::string result;
     result.reserve(code.length()); // Reserve space to avoid reallocations
@@ -429,15 +432,18 @@ std::string ShaderPreprocessor::replace_macros(const std::string& code, const st
 std::string ShaderPreprocessor::preprocess_file(const std::string& name)
 {
     const std::string code = get_file_contents_with_cache(name);
-    return preprocess_code(code);
+    // The root file's namespace (the part before "::") is inherited by its bare `///use` includes.
+    const auto sep = name.find("::");
+    const std::string current_namespace = (sep != std::string::npos) ? name.substr(0, sep) : std::string();
+    return preprocess_code(code, current_namespace);
 }
 
-std::string ShaderPreprocessor::preprocess_code(const std::string& code)
+std::string ShaderPreprocessor::preprocess_code(const std::string& code, const std::string& current_namespace)
 {
     std::map<std::string, std::string> local_defines;
     std::string code_with_defines = process_defines(code, local_defines);
     std::unordered_set<std::string> already_included;
-    std::string code_with_includes = process_includes(code_with_defines, already_included, local_defines);
+    std::string code_with_includes = process_includes(code_with_defines, already_included, local_defines, current_namespace);
     std::string code_with_conditionals = process_conditionals(code_with_includes, local_defines);
     std::string final_code = replace_macros(code_with_conditionals, local_defines);
     return final_code;

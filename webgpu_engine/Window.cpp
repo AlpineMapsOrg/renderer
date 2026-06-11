@@ -49,7 +49,7 @@ void Window::initialise_gpu()
     create_buffers();
 
     auto& reg = m_context->webgpu_ctx().resource_registry();
-    reg.register_shader("compose_pass", "compose_pass.wgsl");
+    reg.register_shader("compose_pass", "webgpu_engine::compose_pass");
     reg.register_pipeline([this](WGPUDevice dev, const webgpu::RenderResourceRegistry& reg) {
         webgpu::FramebufferFormat format {};
         format.depth_format = WGPUTextureFormat_Depth24Plus;

@@ -28,18 +28,19 @@
 #include "OverlayNodeRenderer.h"
 #include "RequestTilesNodeRenderer.h"
 #include "SelectTilesNodeRenderer.h"
-#include <webgpu_engine/compute/nodes/BufferToTextureNode.h>
-#include <webgpu_engine/compute/nodes/ComputeAvalancheTrajectoriesNode.h>
-#include <webgpu_engine/compute/nodes/ComputeReleasePointsNode.h>
-#include <webgpu_engine/compute/nodes/ComputeSnowNode.h>
-#include <webgpu_engine/compute/nodes/ExportNode.h>
-#include <webgpu_engine/compute/nodes/GPXTrackNode.h>
-#include <webgpu_engine/compute/nodes/RequestTilesNode.h>
-#include <webgpu_engine/compute/nodes/SelectTilesNode.h>
-#include <webgpu_engine/overlay/OverlayRenderNode.h>
+#include <webgpu_compute/nodes/BufferToTextureNode.h>
+#include <webgpu_compute/nodes/ComputeAvalancheTrajectoriesNode.h>
+#include <webgpu_compute/nodes/ComputeReleasePointsNode.h>
+#include <webgpu_compute/nodes/ComputeSnowNode.h>
+#include <webgpu_compute/nodes/ExportNode.h>
+#include <webgpu_compute/nodes/GPXTrackNode.h>
+#include <webgpu_compute/nodes/RequestTilesNode.h>
+#include <webgpu_compute/nodes/SelectTilesNode.h>
+
+#include "compute/OverlayRenderNode.h"
 
 namespace webgpu_app {
-namespace nodes = webgpu_engine::compute::nodes;
+namespace nodes = webgpu_compute::nodes;
 
 std::unique_ptr<NodeRenderer> NodeRendererFactory::create(const std::string& name, nodes::Node& node)
 {

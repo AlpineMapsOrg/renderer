@@ -20,6 +20,7 @@
 
 #include "ImGuiPanel.h"
 #include "overlays/OverlayImGuiRenderer.h"
+#include <imgui.h>
 #include <memory>
 #include <vector>
 
@@ -40,12 +41,18 @@ private:
     void rebuild_renderers();
     void do_move(int gui_row, int direction, int Q, int N);
 
+    void draw_add_overlay_popup();
+    void add_overlay_of_type(int type);
+
     webgpu_engine::Context* m_context;
     webgpu_engine::OverlayRenderer* m_overlay_renderer = nullptr;
     std::vector<std::unique_ptr<OverlayImGuiRenderer>> m_renderers;
     int m_selected_engine_idx = -1; // engine index of selected overlay (-1 = none)
     float m_selected_row_screen_y = 0.0f; // screen Y of selected row (for settings popup)
     int m_add_type_index = 0;
+    bool m_add_popup_modal = false; // true: button (modal); false: Shift+A (non-modal at cursor)
+    ImVec2 m_add_popup_pos {};
+    bool m_open_chooser_request = false;
 };
 
 } // namespace webgpu_app

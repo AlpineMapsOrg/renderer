@@ -26,7 +26,7 @@
 #include <qDebug>
 
 namespace webgpu_app {
-namespace nodes = webgpu_engine::compute::nodes;
+namespace nodes = webgpu_compute::nodes;
 
 static std::hash<std::string> hasher;
 

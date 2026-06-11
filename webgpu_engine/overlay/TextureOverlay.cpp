@@ -20,11 +20,11 @@
 #include "TextureOverlay.h"
 
 #include "webgpu_engine/Context.h"
-#include "webgpu_engine/gpu_utils.h"
 #include <nucleus/utils/geopng_decoder.h>
 #include <nucleus/utils/image_loader.h>
 #include <optional>
 #include <webgpu/RenderResourceRegistry.h>
+#include <webgpu/gpu_utils.h>
 #include <webgpu/raii/BindGroup.h>
 #include <webgpu/raii/BindGroupLayout.h>
 #include <webgpu/raii/RenderPassEncoder.h>
@@ -46,7 +46,7 @@ void TextureOverlay::load_image(const QString& path)
     create_texture(*m_ctx, uint32_t(image.width()), uint32_t(image.height()));
     m_overlay_texture->texture().write(m_ctx->queue(), image);
     if (settings.use_mipmaps)
-        compute_mipmaps_for_texture(*m_ctx, &m_overlay_texture->texture());
+        webgpu::compute_mipmaps_for_texture(*m_ctx, &m_overlay_texture->texture());
 }
 
 void TextureOverlay::link_texture(const webgpu::raii::TextureWithSampler* texture) { m_linked_texture = texture; }
@@ -69,7 +69,7 @@ void TextureOverlay::load_texture(const webgpu::raii::TextureWithSampler& source
     wgpuCommandBufferRelease(command);
 
     if (settings.use_mipmaps)
-        compute_mipmaps_for_texture(*m_ctx, &m_overlay_texture->texture());
+        webgpu::compute_mipmaps_for_texture(*m_ctx, &m_overlay_texture->texture());
 }
 
 void TextureOverlay::init(Context& context)
@@ -79,7 +79,7 @@ void TextureOverlay::init(Context& context)
 
     auto& reg = ctx.resource_registry();
     if (!reg.has_shader("texture_overlay_render"))
-        reg.register_shader("texture_overlay_render", "overlays/texture_overlay.wgsl");
+        reg.register_shader("texture_overlay_render", "webgpu_engine::overlays/texture_overlay");
     if (!reg.has_bind_group_layout("texture_overlay"))
         reg.register_bind_group_layout("texture_overlay", [](WGPUDevice device) {
             WGPUBindGroupLayoutEntry position_entry {};
@@ -133,6 +133,7 @@ void TextureOverlay::init(Context& context)
 
     m_settings_uniform = std::make_unique<webgpu::Buffer<GpuSettings>>(ctx.device(), WGPUBufferUsage_CopyDst | WGPUBufferUsage_Uniform);
     update_gpu_settings();
+    create_texture(context.webgpu_ctx(), 1, 1);
 }
 
 void TextureOverlay::ready(webgpu::Context& ctx) { m_is_ready = true; }
@@ -192,10 +193,8 @@ void TextureOverlay::draw(const WGPUCommandEncoder& command_encoder,
     webgpu::raii::TextureWithSampler& target_output,
     glm::uvec2 /*output_size*/)
 {
-    // A linked texture takes priority over the owned one.
     const webgpu::raii::TextureWithSampler* tex = m_linked_texture ? m_linked_texture : m_overlay_texture.get();
-    if (!tex || !m_pipeline)
-        return;
+    assert(tex && m_pipeline);
 
     webgpu::raii::BindGroup bind_group(m_ctx->device(),
         m_ctx->resource_registry().bind_group_layout("texture_overlay"),

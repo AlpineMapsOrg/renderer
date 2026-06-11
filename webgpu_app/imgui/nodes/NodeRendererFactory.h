@@ -21,12 +21,12 @@
 #include <memory>
 #include <string>
 
-namespace webgpu_engine::compute::nodes {
+namespace webgpu_compute::nodes {
 class Node;
 }
 
 namespace webgpu_app {
-namespace nodes = webgpu_engine::compute::nodes;
+namespace nodes = webgpu_compute::nodes;
 
 class NodeRenderer;
 

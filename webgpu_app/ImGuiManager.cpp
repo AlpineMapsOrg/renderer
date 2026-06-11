@@ -23,7 +23,13 @@
 
 #include "imgui/ImGuiPanel.h"
 
-#ifdef ALP_WEBGPU_APP_ENABLE_IMGUI
+#ifdef __EMSCRIPTEN__
+#include "WebInterop.h"
+#else
+#include <ImGuiFileDialog.h>
+#include <filesystem>
+#endif
+
 #include "backends/imgui_impl_sdl2.h"
 #include "backends/imgui_impl_wgpu.h"
 #include "imgui/AboutPanel.h"
@@ -33,16 +39,17 @@
 #include "imgui/CloudPanel.h"
 #include "imgui/CompassPanel.h"
 #include "imgui/LogoPanel.h"
-#include "imgui/NodeGraphPanel.h"
 #include "imgui/OverlaysPanel.h"
 #include "imgui/SearchPanel.h"
 #include "imgui/ShadingPanel.h"
 #include "imgui/TimingPanel.h"
 #include "imgui/TrackPanel.h"
+#ifdef ALP_WEBGPU_APP_ENABLE_COMPUTE
+#include "imgui/NodeGraphPanel.h"
+#endif
 #include <IconsFontAwesome5.h>
 #include <imgui_internal.h>
 #include <imnodes.h>
-#endif
 
 #include "util/dark_mode.h"
 #include <QDebug>
@@ -62,7 +69,6 @@ void ImGuiManager::init(
     m_window = window;
     m_device = device;
 
-#ifdef ALP_WEBGPU_APP_ENABLE_IMGUI
     // Setup Dear ImGui context
     IMGUI_CHECKVERSION();
     ImGui::CreateContext();
@@ -96,9 +102,11 @@ void ImGuiManager::init(
     m_panels.push_back(std::make_unique<CloudPanel>(engine_ctx, rc->clouds_manager(), engine_ctx->cloud_renderer()));
     m_panels.push_back(std::make_unique<AtmospherePanel>(engine_ctx));
     m_panels.push_back(std::make_unique<ShadingPanel>(engine_ctx));
-    m_panels.push_back(std::make_unique<OverlaysPanel>(engine_ctx));
     m_panels.push_back(std::make_unique<TrackPanel>(engine_ctx, m_terrain_renderer));
+#ifdef ALP_WEBGPU_APP_ENABLE_COMPUTE
     m_panels.push_back(std::make_unique<NodeGraphPanel>(engine_ctx));
+#endif
+    m_panels.push_back(std::make_unique<OverlaysPanel>(engine_ctx));
 
     connect(&search_panel, &SearchPanel::search_requested, rc->search_service(), &SearchService::search);
     connect(&search_panel,
@@ -107,20 +115,19 @@ void ImGuiManager::init(
         &nucleus::camera::Controller::fly_to_latitude_longitude);
     connect(rc->search_service(), &SearchService::search_results_arrived, &search_panel, &SearchPanel::display_search_results);
 
+#ifdef __EMSCRIPTEN__
+    connect(&WebInterop::instance(), &WebInterop::file_uploaded, this, &ImGuiManager::on_file_uploaded);
 #endif
 }
 
 void ImGuiManager::ready()
 {
-#ifdef ALP_WEBGPU_APP_ENABLE_IMGUI
     for (auto& panel : m_panels)
         panel->ready();
-#endif
 }
 
 void ImGuiManager::install_fonts()
 {
-#ifdef ALP_WEBGPU_APP_ENABLE_IMGUI
     ImGuiIO& io = ImGui::GetIO();
 
     float baseFontSize = 16.0f;
@@ -156,12 +163,10 @@ void ImGuiManager::install_fonts()
         icons_config.FontDataOwnedByAtlas = false;
         io.Fonts->AddFontFromMemoryTTF(byteArray.data(), byteArray.size(), iconFontSize, &icons_config, icons_ranges);
     }
-#endif
 }
 
 void ImGuiManager::render([[maybe_unused]] WGPURenderPassEncoder renderPass)
 {
-#ifdef ALP_WEBGPU_APP_ENABLE_IMGUI
     ImGui_ImplWGPU_NewFrame();
     ImGui_ImplSDL2_NewFrame();
     ImGui::NewFrame();
@@ -170,52 +175,85 @@ void ImGuiManager::render([[maybe_unused]] WGPURenderPassEncoder renderPass)
 
     ImGui::Render();
     ImGui_ImplWGPU_RenderDrawData(ImGui::GetDrawData(), renderPass);
-#endif
 }
 
 void ImGuiManager::shutdown()
 {
-#ifdef ALP_WEBGPU_APP_ENABLE_IMGUI
     qDebug() << "Releasing ImGuiManager...";
     ImGui_ImplWGPU_Shutdown();
     ImGui_ImplSDL2_Shutdown();
     ImNodes::DestroyContext();
     ImGui::DestroyContext();
-#endif
 }
 
-bool ImGuiManager::want_capture_keyboard()
-{
-#ifdef ALP_WEBGPU_APP_ENABLE_IMGUI
-    return ImGui::GetIO().WantCaptureKeyboard;
-#else
-    return false;
-#endif
-}
+bool ImGuiManager::want_capture_keyboard() { return ImGui::GetIO().WantCaptureKeyboard; }
 
-bool ImGuiManager::want_capture_mouse()
-{
-#ifdef ALP_WEBGPU_APP_ENABLE_IMGUI
-    return ImGui::GetIO().WantCaptureMouse;
-#else
-    return false;
-#endif
-}
+bool ImGuiManager::want_capture_mouse() { return ImGui::GetIO().WantCaptureMouse; }
 
-void ImGuiManager::on_sdl_event(SDL_Event& event)
-{
-#ifdef ALP_WEBGPU_APP_ENABLE_IMGUI
-    ImGui_ImplSDL2_ProcessEvent(&event);
-#endif
-}
+void ImGuiManager::on_sdl_event(SDL_Event& event) { ImGui_ImplSDL2_ProcessEvent(&event); }
 
 void ImGuiManager::set_gui_visibility(bool visible) { m_gui_visible = visible; }
 
 bool ImGuiManager::get_gui_visibility() const { return m_gui_visible; }
 
 float ImGuiManager::s_tool_button_y = 0.0f;
+std::unordered_map<std::string, ImGuiManager::FilePickerState> ImGuiManager::s_picker_states;
 
-#ifdef ALP_WEBGPU_APP_ENABLE_IMGUI
+#ifdef __EMSCRIPTEN__
+void ImGuiManager::on_file_uploaded(const std::string& filename, const std::string& tag)
+{
+    auto it = s_picker_states.find(tag);
+    if (it != s_picker_states.end() && it->second.is_open)
+        it->second.pending.push_back(filename);
+}
+#endif
+
+bool ImGuiManager::FilePicker(const char* dialog_id,
+    const char* title,
+    const char* filters,
+    bool wants_open,
+    std::vector<std::string>& out_paths,
+    bool allow_multiple,
+    const char* initial_path)
+{
+#ifdef __EMSCRIPTEN__
+    auto& state = s_picker_states[dialog_id];
+    if (wants_open) {
+        state.is_open = true;
+        state.pending.clear();
+        WebInterop::instance().open_file_dialog(filters, dialog_id, allow_multiple);
+    }
+    if (state.is_open && !state.pending.empty()) {
+        out_paths = std::move(state.pending);
+        state.pending.clear();
+        state.is_open = false;
+        return true;
+    }
+    return false;
+#else
+    if (wants_open) {
+        IGFD::FileDialogConfig config;
+        config.path = initial_path;
+        config.countSelectionMax = allow_multiple ? 0 : 1;
+        config.flags = ImGuiFileDialogFlags_Modal;
+        ImGuiFileDialog::Instance()->OpenDialog(dialog_id, title, filters, config);
+    }
+    const ImVec2 center = ImGui::GetMainViewport()->GetCenter();
+    ImGui::SetNextWindowPos(center, ImGuiCond_Always, ImVec2(0.5f, 0.5f));
+    const ImVec2 vp = ImGui::GetMainViewport()->Size;
+    const ImVec2 dialog_size(vp.x < 1000.0f ? vp.x * 0.9f : vp.x * 0.5f, vp.y < 1000.0f ? vp.y * 0.9f : vp.y * 0.5f);
+    if (ImGuiFileDialog::Instance()->Display(dialog_id, ImGuiWindowFlags_NoCollapse, dialog_size, dialog_size)) {
+        if (ImGuiFileDialog::Instance()->IsOk()) {
+            for (auto& [name, path] : ImGuiFileDialog::Instance()->GetSelection())
+                out_paths.push_back(path);
+        }
+        ImGuiFileDialog::Instance()->Close();
+        return !out_paths.empty();
+    }
+    return false;
+#endif
+}
+
 bool ImGuiManager::FloatingToggleButton(const char* id, const char* icon, const char* tooltip, uint32_t* enabled)
 {
     const bool on = *enabled != 0u;
@@ -249,22 +287,16 @@ bool ImGuiManager::FloatingToggleButton(const char* id, const char* icon, const 
         ImGui::SetTooltip("%s", tooltip);
     return clicked;
 }
-#endif
 
 void ImGuiManager::draw()
 {
-#ifdef ALP_WEBGPU_APP_ENABLE_IMGUI
     if (!m_gui_visible)
         return;
 
     // Reset the floating tool-button stack for this frame (bottom-left, stacking upward).
     s_tool_button_y = ImGui::GetIO().DisplaySize.y - 48.0f - 40.0f;
 
-    // Standalone windows, overlays, and modals
-    for (auto& panel : m_panels)
-        panel->draw();
-
-    // Main sidebar window with CollapsingHeader sections
+    // Main sidebar window with CollapsingHeader sections.
     ImGui::SetNextWindowPos(ImVec2(ImGui::GetIO().DisplaySize.x - 430, 0)); // Set position to top-right corner
     ImGui::SetNextWindowSize(ImVec2(430, ImGui::GetIO().DisplaySize.y)); // Set height to full screen height, width as desired
     ImGui::Begin("weBIGeo", nullptr, ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoTitleBar);
@@ -273,7 +305,9 @@ void ImGuiManager::draw()
         panel->draw_panel();
 
     ImGui::End();
-#endif
+
+    for (auto& panel : m_panels)
+        panel->draw();
 }
 
 } // namespace webgpu_app

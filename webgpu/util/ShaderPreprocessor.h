@@ -28,16 +28,24 @@ namespace webgpu::util {
 /**
  * A text-based shader preprocessor for intended use with WebGPU shaders.
  *
+ * Directives use a `///`-comment prefix so the files stay valid WGSL (linters
+ * and formatters treat them as comments). Shaders are addressed by a logical
+ * name `<target>::<relpath>` (no extension); a bare `///use <relpath>` inherits
+ * the including file's target namespace, while `///use <target>::<relpath>`
+ * switches it.
+ *
  * Features:
- * - File inclusion with #include "filename"
+ * - File inclusion with ///use relpath  (or ///use target::relpath)
  * - Automatic pragma once behavior (each file included only once)
- * - Conditional compilation with #ifdef/#ifndef/#else/#endif
- * - Value-based conditionals with #if/#elif/#else/#endif (only supports equality checks)
- * - Macro definitions with #define SYMBOL or #define SYMBOL value
+ * - Conditional compilation with ///ifdef / ///ifndef / ///else / ///endif
+ * - Value-based conditionals with ///if / ///elif / ///else / ///endif (equality only)
+ * - Macro definitions with ///define SYMBOL or ///define SYMBOL value
  * - Environment variable defines (global, persist across calls)
  * - File content caching
- * 
- * IMPORTANT: All directives must be at the start of a line (no leading spaces/tabs)!
+ *
+ * Directives must be the first non-whitespace content on their line (leading
+ * whitespace/indentation is allowed); anything after the leading `///` token is
+ * the directive.
  */
 class ShaderPreprocessor {
 public:
@@ -53,8 +61,9 @@ public:
     /**
      * Preprocesses shader code directly, resolving includes and conditional compilation.
      * @param code The shader code to preprocess
+     * @param current_namespace Target namespace that bare `///use` includes inherit (e.g. "webgpu_engine").
      */
-    std::string preprocess_code(const std::string& code);
+    std::string preprocess_code(const std::string& code, const std::string& current_namespace = "");
 
     /**
      * Defines a global preprocessor symbol for use in #ifdef/#ifndef directives.
@@ -108,7 +117,10 @@ public:
 private:
     std::string get_file_contents_with_cache(const std::string& name);
     std::string process_defines(const std::string& code, std::map<std::string, std::string>& local_defines);
-    std::string process_includes(const std::string& code, std::unordered_set<std::string>& already_included, std::map<std::string, std::string>& local_defines);
+    std::string process_includes(const std::string& code,
+        std::unordered_set<std::string>& already_included,
+        std::map<std::string, std::string>& local_defines,
+        const std::string& current_namespace);
     std::string process_conditionals(const std::string& code, const std::map<std::string, std::string>& local_defines);
     std::string replace_macros(const std::string& code, const std::map<std::string, std::string>& local_defines);
     void initialize_platform_defines();
@@ -116,10 +128,10 @@ private:
     void report_error(const std::string& message);
 
 private:
-    std::map<std::string, std::string> m_shader_name_to_code;  // Cache of file contents
-    std::map<std::string, std::string> m_global_defines;       // Global preprocessor symbols and their values (persist across calls, "1" if no value specified)
+    std::map<std::string, std::string> m_shader_name_to_code; // Cache of file contents
+    std::map<std::string, std::string> m_global_defines; // Global preprocessor symbols and their values (persist across calls, "1" if no value specified)
     std::function<std::string(const std::string&)> m_file_reader; // Callback for reading files
-    std::function<void(const std::string&)> m_error_callback;   // Callback for error reporting
+    std::function<void(const std::string&)> m_error_callback; // Callback for error reporting
     bool m_cache_enabled = true;
 };
 

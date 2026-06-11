@@ -38,13 +38,13 @@ class WebInterop : public QObject {
     Q_OBJECT
 
 public:
-
     // Deleted copy constructor and copy assignment operator
     WebInterop(const WebInterop&) = delete;
     WebInterop& operator=(const WebInterop&) = delete;
 
     // Static method to get the instance of the class
-    static WebInterop& instance() {
+    static WebInterop& instance()
+    {
         static WebInterop _instance;
         return _instance;
     }
@@ -54,7 +54,7 @@ public:
 
     static void _file_uploaded(const char* filename, const char* tag);
 
-    void open_file_dialog(const std::string& filter, const std::string& tag);
+    void open_file_dialog(const std::string& filter, const std::string& tag, bool allow_multiple = false);
 
     glm::uvec2 get_body_size();
 
@@ -67,4 +67,3 @@ private:
     // Private constructor
     WebInterop();
 };
-

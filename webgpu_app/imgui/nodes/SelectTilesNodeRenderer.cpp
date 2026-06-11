@@ -19,10 +19,10 @@
 #include "SelectTilesNodeRenderer.h"
 
 #include <imgui.h>
-#include <webgpu_engine/compute/nodes/SelectTilesNode.h>
+#include <webgpu_compute/nodes/SelectTilesNode.h>
 
 namespace webgpu_app {
-namespace nodes = webgpu_engine::compute::nodes;
+namespace nodes = webgpu_compute::nodes;
 
 SelectTilesNodeRenderer::SelectTilesNodeRenderer(const std::string& name, nodes::SelectTilesNode& node)
     : NodeRenderer(name, node)

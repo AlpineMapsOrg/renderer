@@ -73,7 +73,7 @@ void TileMeshRenderer::init(webgpu::Context& ctx)
         = std::make_unique<webgpu::raii::RawBuffer<int32_t>>(m_ctx->device(), WGPUBufferUsage_Vertex | WGPUBufferUsage_CopyDst, num_layers);
 
     m_tile_id_buffer
-        = std::make_unique<webgpu::raii::RawBuffer<compute::GpuTileId>>(m_ctx->device(), WGPUBufferUsage_Vertex | WGPUBufferUsage_CopyDst, num_layers);
+        = std::make_unique<webgpu::raii::RawBuffer<nucleus::tile::GpuTileId>>(m_ctx->device(), WGPUBufferUsage_Vertex | WGPUBufferUsage_CopyDst, num_layers);
     m_n_edge_vertices_buffer = std::make_unique<webgpu::Buffer<int32_t>>(m_ctx->device(), WGPUBufferUsage_Uniform | WGPUBufferUsage_CopyDst);
     m_n_edge_vertices_buffer->data = int(m_height_resolution);
     m_n_edge_vertices_buffer->update_gpu_data(m_ctx->queue());
@@ -132,7 +132,7 @@ void TileMeshRenderer::init(webgpu::Context& ctx)
     m_ortho_textures = std::make_unique<webgpu::raii::TextureWithSampler>(m_ctx->device(), ortho_texture_desc, ortho_sampler_desc);
 
     auto& reg = ctx.resource_registry();
-    reg.register_shader("render_tiles", "render_tiles.wgsl");
+    reg.register_shader("render_tiles", "webgpu_engine::render_tiles");
     reg.register_bind_group_layout("tile", [](WGPUDevice device) {
         WGPUBindGroupLayoutEntry n_vertices_entry {};
         n_vertices_entry.binding = 0;
@@ -234,7 +234,7 @@ void TileMeshRenderer::draw(
     std::vector<int32_t> ortho_texture_layers;
     ortho_texture_layers.reserve(draw_tiles.size());
 
-    std::vector<compute::GpuTileId> tile_ids;
+    std::vector<nucleus::tile::GpuTileId> tile_ids;
     tile_ids.reserve(draw_tiles.size());
 
     for (const auto& id_bounds : draw_tiles) {
@@ -254,7 +254,7 @@ void TileMeshRenderer::draw(
         ortho_zoom_levels.emplace_back(int(ortho_layer_info.id.zoom_level));
         ortho_texture_layers.emplace_back(int(ortho_layer_info.index));
 
-        tile_ids.emplace_back(compute::GpuTileId(id_bounds.id));
+        tile_ids.emplace_back(nucleus::tile::GpuTileId(id_bounds.id));
     }
 
     // write updated vertex buffers

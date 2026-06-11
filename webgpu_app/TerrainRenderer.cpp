@@ -37,9 +37,7 @@
 
 #include "util/dark_mode.h"
 
-#ifdef ALP_WEBGPU_APP_ENABLE_IMGUI
 #include "imgui.h"
-#endif
 #include "util/error_logging.h"
 
 #include <nucleus/DataQuerier.h>
@@ -118,7 +116,6 @@ void TerrainRenderer::init_window()
 
 void TerrainRenderer::render_gui()
 {
-#ifdef ALP_WEBGPU_APP_ENABLE_IMGUI
     static bool vsync_enabled = (m_surface_presentmode == WGPUPresentMode::WGPUPresentMode_Fifo);
     if (ImGui::Checkbox("VSync", &vsync_enabled)) {
         m_surface_presentmode = vsync_enabled ? WGPUPresentMode::WGPUPresentMode_Fifo : WGPUPresentMode::WGPUPresentMode_Immediate;
@@ -132,7 +129,6 @@ void TerrainRenderer::render_gui()
     if (ImGui::Button("Reload shaders [F5]", ImVec2(350, 0))) {
         m_webgpu_window->reload_shaders();
     }
-#endif
 }
 
 void TerrainRenderer::poll_events()
@@ -231,10 +227,8 @@ void TerrainRenderer::render()
         wgpuRenderPassEncoderSetBindGroup(render_pass.handle(), 0, m_gui_bind_group->handle(), 0, nullptr);
         wgpuRenderPassEncoderDraw(render_pass.handle(), 3, 1, 0, 0);
 
-#ifdef ALP_WEBGPU_APP_ENABLE_IMGUI
         // We add the GUI drawing commands to the render pass
         m_gui_manager->render(render_pass.handle());
-#endif
     }
 
     if (webgpu::isTimingSupported())
@@ -289,9 +283,7 @@ void TerrainRenderer::start()
     connect(m_context->clouds_manager(),     &clouds::Manager::shadow_texture_ready,                m_webgpu_window.get(), &webgpu_engine::Window::on_shadow_texture_updated);
     // clang-format on
 
-#ifdef ALP_WEBGPU_APP_ENABLE_IMGUI
     m_gui_manager = std::make_unique<ImGuiManager>(this);
-#endif
 
     m_input_mapper = std::make_unique<InputMapper>(this, m_camera_controller.get(), m_gui_manager.get(), [this]() { return m_viewport_size; });
 
@@ -390,9 +382,7 @@ void TerrainRenderer::start()
         std::initializer_list<WGPUBindGroupEntry> { m_framebuffer->color_texture_view(0).create_bind_group_entry(0), m_gui_ubo->create_bind_group_entry(1) });
 
     m_timer_manager = std::make_unique<webgpu::timing::GuiTimerManager>();
-#ifdef ALP_WEBGPU_APP_ENABLE_IMGUI
     m_gui_manager->init(m_sdl_window, m_device, m_surface_texture_format, WGPUTextureFormat_Undefined);
-#endif
 
     m_cputimer = std::make_shared<webgpu::timing::CpuTimer>(120);
     m_timer_manager->add_timer(m_cputimer, "CPU Timer", "Renderer");
@@ -407,9 +397,7 @@ void TerrainRenderer::start()
     qInfo() << "TerrainRenderer ready";
     m_webgpu_window->ready();
 
-#ifdef ALP_WEBGPU_APP_ENABLE_IMGUI
     m_gui_manager->ready();
-#endif
 
 #if defined(__EMSCRIPTEN__)
     emscripten_set_main_loop_arg(
@@ -431,9 +419,7 @@ void TerrainRenderer::start()
     // NOTE: Ressources are freed by the browser when the page is closed. Also keep in mind
     // that this part of code will be executed immediately since the main loop is not blocking.
 #ifndef __EMSCRIPTEN__
-#ifdef ALP_WEBGPU_APP_ENABLE_IMGUI
     m_gui_manager->shutdown();
-#endif
     webgpu_release_context();
     m_webgpu_window->destroy();
     m_context->destroy();

@@ -19,8 +19,6 @@
 
 #include "OverlayRenderer.h"
 
-#include "OverlayRenderNode.h"
-#include "compute/NodeRegistry.h"
 #include "webgpu_engine/Context.h"
 #include <algorithm>
 #include <memory>
@@ -77,9 +75,6 @@ void OverlayRenderer::rebucket()
 void OverlayRenderer::init(Context& ctx)
 {
     m_ctx = &ctx;
-
-    compute::NodeRegistry::instance().register_node(
-        "OverlayRenderNode", [&ctx](webgpu::Context&) { return std::make_unique<compute::nodes::OverlayRenderNode>(ctx); });
 
     for (auto& overlay : m_overlays)
         overlay->init(ctx);
