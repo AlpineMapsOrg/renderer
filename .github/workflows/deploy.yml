@@ -180,22 +180,22 @@ jobs:
         config: [wasm_st, wasm_st_debug, wasm_st_lto, wasm_mt, wasm_mt_debug, wasm_mt_lto]
         include:
           - config: wasm_st
-            qtflags: '-release -optimize-size -submodules qtdeclarative,qtbase -skip qtlanguageserver,qtquicktimeline,qtimageformats -gui $(cat $QT_LITE_CONFIG) -no-feature-thread'
+            qtflags: '-release -optimize-size -submodules qtdeclarative,qtbase,qtpositioning -skip qtlanguageserver,qtquicktimeline,qtimageformats -gui $(cat $QT_LITE_CONFIG) -no-feature-thread'
             cmakeflags: '-DALP_ENABLE_THREADING=OFF -DALP_ENABLE_ASSERTS=OFF'
           - config: wasm_st_debug
-            qtflags: '-release -optimize-size -submodules qtdeclarative,qtbase -skip qtlanguageserver,qtquicktimeline,qtimageformats -gui -no-feature-thread'
+            qtflags: '-release -optimize-size -submodules qtdeclarative,qtbase,qtpositioning -skip qtlanguageserver,qtquicktimeline,qtimageformats -gui -no-feature-thread'
             cmakeflags: '-DALP_ENABLE_THREADING=OFF -DALP_ENABLE_ASSERTS=ON'
           - config: wasm_st_lto
-            qtflags: '-release -optimize-size -submodules qtdeclarative,qtbase -skip qtlanguageserver,qtquicktimeline,qtimageformats -gui -ltcg $(cat $QT_LITE_CONFIG) -no-feature-thread'
+            qtflags: '-release -optimize-size -submodules qtdeclarative,qtbase,qtpositioning -skip qtlanguageserver,qtquicktimeline,qtimageformats -gui -ltcg $(cat $QT_LITE_CONFIG) -no-feature-thread'
             cmakeflags: '-DALP_ENABLE_THREADING=OFF -DALP_ENABLE_ASSERTS=OFF -DALP_ENABLE_LTO=ON'
           - config: wasm_mt
-            qtflags: '-release -optimize-size -submodules qtdeclarative,qtbase -skip qtlanguageserver,qtquicktimeline,qtimageformats -gui $(cat $QT_LITE_CONFIG) -feature-thread'
+            qtflags: '-release -optimize-size -submodules qtdeclarative,qtbase,qtpositioning -skip qtlanguageserver,qtquicktimeline,qtimageformats -gui $(cat $QT_LITE_CONFIG) -feature-thread'
             cmakeflags: '-DALP_ENABLE_THREADING=ON -DALP_ENABLE_ASSERTS=OFF'
           - config: wasm_mt_debug
-            qtflags: '-release -optimize-size -submodules qtdeclarative,qtbase -skip qtlanguageserver,qtquicktimeline,qtimageformats -gui -feature-thread'
+            qtflags: '-release -optimize-size -submodules qtdeclarative,qtbase,qtpositioning -skip qtlanguageserver,qtquicktimeline,qtimageformats -gui -feature-thread'
             cmakeflags: '-DALP_ENABLE_THREADING=ON -DALP_ENABLE_ASSERTS=ON'
           - config: wasm_mt_lto
-            qtflags: '-release -optimize-size -submodules qtdeclarative,qtbase -skip qtlanguageserver,qtquicktimeline,qtimageformats -gui -ltcg $(cat $QT_LITE_CONFIG) -feature-thread'
+            qtflags: '-release -optimize-size -submodules qtdeclarative,qtbase,qtpositioning -skip qtlanguageserver,qtquicktimeline,qtimageformats -gui -ltcg $(cat $QT_LITE_CONFIG) -feature-thread'
             cmakeflags: '-DALP_ENABLE_THREADING=ON -DALP_ENABLE_ASSERTS=OFF -DALP_ENABLE_LTO=ON'
             
     steps:
@@ -243,7 +243,7 @@ jobs:
       uses: actions/cache@v5
       with:
         path: qt_wasm_lite
-        key: ${{ matrix.config }}_qt-${{ env.QT_VERSION }}_emcc-${{ env.WEBASSEMBLY_VERSION }}
+        key: ${{ matrix.config }}_qt-${{ env.QT_VERSION }}_emcc-${{ env.WEBASSEMBLY_VERSION }}_qtpositioning
         
     - name: Download and patch Qt
       if: steps.qt-cache.outputs.cache-hit != 'true'
@@ -252,7 +252,7 @@ jobs:
         git clone --branch $QT_VERSION git://code.qt.io/qt/qt5.git qt_src
         mkdir qt_wasm_build
         cd qt_wasm_build
-        $QT_SRC_CONFIGURE -qt-host-path $QT_ROOT_DIR -platform wasm-emscripten -init-submodules -submodules qtdeclarative,qtbase -skip qtlanguageserver,qtquicktimeline,qtimageformats
+        $QT_SRC_CONFIGURE -qt-host-path $QT_ROOT_DIR -platform wasm-emscripten -init-submodules -submodules qtdeclarative,qtbase,qtpositioning -skip qtlanguageserver,qtquicktimeline,qtimageformats
         cd ${{github.workspace}}/qt_src/qtbase
         git apply ${{github.workspace}}/misc/qt_68_qtbase_remove_dejavu_fonts.patch
 
