@@ -1,0 +1,75 @@
+/*****************************************************************************
+ * weBIGeo
+ * Copyright (C) 2024 Patrick Komon
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ *****************************************************************************/
+
+#pragma once
+
+#include "webgpu/base/raii/BindGroup.h"
+#include "webgpu/base/raii/RawBuffer.h"
+#include <QObject>
+#include <glm/glm.hpp>
+#include <memory>
+#include <radix/geometry.h>
+#include <string>
+#include <vector>
+#include <webgpu/base/Buffer.h>
+#include <webgpu/base/Context.h>
+#include <webgpu/base/raii/Pipeline.h>
+
+namespace webgpu_engine {
+
+using Coordinates = glm::dvec3;
+using Track = std::vector<Coordinates>;
+
+class TrackRenderer : public QObject {
+    Q_OBJECT
+public:
+    struct LineConfig {
+        glm::vec4 color = { 1.0f, 0.0, 0.0, 1.0f };
+    };
+
+    // Built-in preset track, loadable from the GUI ("Open Preset ...") and the QT_DEBUG auto-load.
+    static constexpr const char* DEFAULT_GPX_TRACK_PATH = ":/gpx/breite_ries.gpx";
+
+public:
+    explicit TrackRenderer();
+
+    void init(webgpu::Context& ctx);
+
+    // Parses a GPX file, adds its track for rendering, and returns the track's world-space AABB.
+    radix::geometry::Aabb3d load_track(const std::string& path);
+
+    void add_track(const Track& track, const glm::vec4& color = { 78.0 / 255.0f, 163.0 / 255.0f, 196.0 / 255.0f, 1.0f });
+    void add_world_positions(const std::vector<glm::vec4>& world_positions, const glm::vec4& color = { 1.0f, 0.0f, 0.0f, 1.0f });
+
+    void render(WGPUCommandEncoder command_encoder,
+        const webgpu::raii::BindGroup& shared_config,
+        const webgpu::raii::BindGroup& camera_config,
+        const webgpu::raii::BindGroup& depth_texture,
+        const webgpu::raii::TextureView& color_texture);
+
+private:
+    webgpu::Context* m_ctx;
+
+    std::unique_ptr<webgpu::raii::RenderPipeline> m_pipeline;
+
+    std::vector<std::unique_ptr<webgpu::raii::RawBuffer<glm::fvec4>>> m_position_buffers;
+    std::vector<std::unique_ptr<webgpu::Buffer<TrackRenderer::LineConfig>>> m_line_config_buffers;
+    std::vector<std::unique_ptr<webgpu::raii::BindGroup>> m_bind_groups;
+};
+
+} // namespace webgpu_engine

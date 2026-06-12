@@ -17,15 +17,15 @@
  *****************************************************************************/
 
 #include "UnittestWebgpuContext.h"
-#include "webgpu/webgpu_interface.hpp"
+#include "webgpu/base/webgpu_interface.hpp"
 #include <catch2/catch_test_macros.hpp>
 #include <glm/glm.hpp>
 #include <glm/gtc/random.hpp>
 #include <glm/gtx/string_cast.hpp>
 #include <iostream>
-#include <webgpu/Buffer.h>
-#include <webgpu/raii/CombinedComputePipeline.h>
-#include <webgpu/raii/base_types.h>
+#include <webgpu/base/Buffer.h>
+#include <webgpu/base/raii/CombinedComputePipeline.h>
+#include <webgpu/base/raii/base_types.h>
 
 TEST_CASE("encoder functions")
 {

@@ -24,7 +24,7 @@
 #include <sstream>
 #include <string>
 #include <vector>
-#include <webgpu/util/ShaderPreprocessor.h>
+#include <webgpu/base/util/ShaderPreprocessor.h>
 
 using namespace webgpu::util;
 

@@ -1,0 +1,306 @@
+{
+    "connections": [
+        {
+            "from": {
+                "node": "Stitch Tiles",
+                "socket": "texture"
+            },
+            "to": {
+                "node": "Height Decode",
+                "socket": "encoded texture"
+            }
+        },
+        {
+            "from": {
+                "node": "Select Tiles",
+                "socket": "region aabb"
+            },
+            "to": {
+                "node": "Height Decode",
+                "socket": "region aabb"
+            }
+        },
+        {
+            "from": {
+                "node": "Select Tiles",
+                "socket": "region aabb"
+            },
+            "to": {
+                "node": "Normals",
+                "socket": "bounds"
+            }
+        },
+        {
+            "from": {
+                "node": "Height Decode",
+                "socket": "decoded texture"
+            },
+            "to": {
+                "node": "Normals",
+                "socket": "height texture"
+            }
+        },
+        {
+            "from": {
+                "node": "flowpy",
+                "socket": "texture"
+            },
+            "to": {
+                "node": "Overlay",
+                "socket": "texture"
+            }
+        },
+        {
+            "from": {
+                "node": "Select Tiles",
+                "socket": "region aabb"
+            },
+            "to": {
+                "node": "Overlay",
+                "socket": "region aabb"
+            }
+        },
+        {
+            "from": {
+                "node": "Normals",
+                "socket": "normal texture"
+            },
+            "to": {
+                "node": "Release Points",
+                "socket": "normal texture"
+            }
+        },
+        {
+            "from": {
+                "node": "Select Tiles",
+                "socket": "tile ids"
+            },
+            "to": {
+                "node": "Request Height",
+                "socket": "tile ids"
+            }
+        },
+        {
+            "from": {
+                "node": "GPX Input",
+                "socket": "region"
+            },
+            "to": {
+                "node": "Select Tiles",
+                "socket": "region"
+            }
+        },
+        {
+            "from": {
+                "node": "Select Tiles",
+                "socket": "tile ids"
+            },
+            "to": {
+                "node": "Stitch Tiles",
+                "socket": "tile ids"
+            }
+        },
+        {
+            "from": {
+                "node": "Request Height",
+                "socket": "tile data"
+            },
+            "to": {
+                "node": "Stitch Tiles",
+                "socket": "texture data"
+            }
+        },
+        {
+            "from": {
+                "node": "Height Decode",
+                "socket": "decoded texture"
+            },
+            "to": {
+                "node": "flowpy",
+                "socket": "height texture"
+            }
+        },
+        {
+            "from": {
+                "node": "Release Points",
+                "socket": "release point texture"
+            },
+            "to": {
+                "node": "flowpy",
+                "socket": "release point texture"
+            }
+        }
+    ],
+    "format": "webigeo/node-graph",
+    "name": "iterative_simulation_compute_graph",
+    "nodes": [
+        {
+            "enabled": true,
+            "name": "GPX Input",
+            "settings": {
+                "enable_caching": true,
+                "file_path": ":/gpx/breite_ries.gpx"
+            },
+            "type": "GPXTrackNode"
+        },
+        {
+            "enabled": true,
+            "name": "Height Decode",
+            "settings": {
+                "texture_usage": [
+                    "CopySrc",
+                    "CopyDst",
+                    "TextureBinding",
+                    "StorageBinding"
+                ]
+            },
+            "type": "HeightDecodeNode"
+        },
+        {
+            "enabled": true,
+            "name": "Normals",
+            "settings": {
+                "format": "RGBA8Unorm",
+                "usage": [
+                    "CopyDst",
+                    "TextureBinding",
+                    "StorageBinding"
+                ]
+            },
+            "type": "ComputeNormalsNode"
+        },
+        {
+            "enabled": true,
+            "name": "Overlay",
+            "settings": {
+                "copy": false
+            },
+            "type": "OverlayRenderNode"
+        },
+        {
+            "enabled": true,
+            "name": "Release Points",
+            "settings": {
+                "max_slope_angle": 0.7853981852531433,
+                "min_slope_angle": 0.5235987901687622,
+                "sampling_interval": [
+                    8,
+                    8
+                ],
+                "texture_format": "RGBA8Unorm",
+                "texture_usage": [
+                    "CopySrc",
+                    "CopyDst",
+                    "TextureBinding",
+                    "StorageBinding"
+                ]
+            },
+            "type": "ComputeReleasePointsNode"
+        },
+        {
+            "enabled": true,
+            "name": "Request Height",
+            "settings": {
+                "file_extension": ".png",
+                "tile_path": "https://alpinemaps.cg.tuwien.ac.at/tiles/at_dtm_alpinemaps/",
+                "url_pattern": "ZXY"
+            },
+            "type": "RequestTilesNode"
+        },
+        {
+            "enabled": true,
+            "name": "Select Tiles",
+            "settings": {
+                "zoomlevel": 15
+            },
+            "type": "SelectTilesNode"
+        },
+        {
+            "enabled": true,
+            "name": "Stitch Tiles",
+            "settings": {
+                "stitch_inverted_y": true,
+                "texture_format": "RGBA8Uint",
+                "texture_usage": [
+                    "CopySrc",
+                    "CopyDst",
+                    "TextureBinding",
+                    "StorageBinding"
+                ],
+                "tile_has_border": true,
+                "tile_size": [
+                    65,
+                    65
+                ]
+            },
+            "type": "TileStitchNode"
+        },
+        {
+            "enabled": true,
+            "name": "flowpy",
+            "settings": {
+                "max_num_iterations": 16
+            },
+            "type": "IterativeSimulationNode"
+        }
+    ],
+    "ui": {
+        "nodes": {
+            "GPX Input": {
+                "position": [
+                    150.7249755859375,
+                    538.109375
+                ]
+            },
+            "Height Decode": {
+                "position": [
+                    660.4249877929688,
+                    429.359375
+                ]
+            },
+            "Normals": {
+                "position": [
+                    810.4249877929688,
+                    527.484375
+                ]
+            },
+            "Overlay": {
+                "position": [
+                    1275.8250732421875,
+                    613.484375
+                ]
+            },
+            "Release Points": {
+                "position": [
+                    941.125,
+                    565.484375
+                ]
+            },
+            "Request Height": {
+                "position": [
+                    384.7249755859375,
+                    334.484375
+                ]
+            },
+            "Select Tiles": {
+                "position": [
+                    247.7249755859375,
+                    529.484375
+                ]
+            },
+            "Stitch Tiles": {
+                "position": [
+                    533.7249755859375,
+                    364.484375
+                ]
+            },
+            "flowpy": {
+                "position": [
+                    1100.1251220703125,
+                    470.484375
+                ]
+            }
+        }
+    },
+    "version": 1
+}

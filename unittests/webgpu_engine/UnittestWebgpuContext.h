@@ -20,7 +20,7 @@
 #pragma once
 
 #include "webgpu/webgpu.h"
-#include <webgpu/Context.h>
+#include <webgpu/base/Context.h>
 
 struct UnittestWebgpuContext {
     WGPULimits default_limits();

@@ -18,11 +18,11 @@
  *****************************************************************************/
 
 #include "UnittestWebgpuContext.h"
-#include "webgpu/webgpu_interface.hpp"
+#include "webgpu/base/webgpu_interface.hpp"
 #include <cassert>
 #include <iostream>
 #include <limits>
-#include <webgpu/RenderResourceRegistry.h>
+#include <webgpu/base/RenderResourceRegistry.h>
 
 WGPULimits UnittestWebgpuContext::default_limits()
 {

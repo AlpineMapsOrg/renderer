@@ -129,6 +129,7 @@ qt_add_library(nucleus STATIC
     tile/TextureScheduler.h tile/TextureScheduler.cpp
     tile/Texture3DScheduler.h tile/Texture3DScheduler.cpp
     tile/GeometryScheduler.h tile/GeometryScheduler.cpp
+    utils/easing.h
     utils/error.h
     utils/lang.h
     tile/SchedulerDirector.h tile/SchedulerDirector.cpp

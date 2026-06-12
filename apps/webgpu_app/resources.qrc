@@ -1,0 +1,21 @@
+<RCC>
+    <qresource prefix="/icons">
+        <file alias="logo32.png">resources/icons/logo32.png</file>
+    </qresource>
+    <qresource prefix="/fonts">
+        <file alias="Roboto-Regular.ttf">resources/fonts/Roboto-Regular.ttf</file>
+        <file alias="fa5-solid-900.ttf">resources/fonts/fa5-solid-900.ttf</file>
+    </qresource>
+    <qresource prefix="/gfx">
+        <file alias="sujet_shadow.png">resources/gfx/sujet_shadow.png</file>
+    </qresource>
+    <qresource prefix="/gpx">
+        <file alias="breite_ries.gpx">resources/gpx/breite_ries.gpx</file>
+    </qresource>
+    <qresource prefix="/graphs">
+        <file alias="snow.json">resources/graphs/snow.json</file>
+        <file alias="avalanche_simulation.json">resources/graphs/avalanche_simulation.json</file>
+        <file alias="avalanche_simulation_with_exports.json">resources/graphs/avalanche_simulation_with_exports.json</file>
+        <file alias="iterative_simulation_wip.json">resources/graphs/iterative_simulation_wip.json</file>
+    </qresource>
+</RCC>
