@@ -50,7 +50,6 @@
 -no-feature-imageformat_xbm
 -no-feature-sql-sqlite
 -no-feature-jpeg
--no-feature-tiff
 -no-feature-ico
 -no-feature-gif
 -no-feature-qml-jit
