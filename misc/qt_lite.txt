@@ -56,7 +56,6 @@
 -no-feature-quickcontrols2-fluentwinui3
 -no-feature-qml-profiler
 -no-feature-dom
--no-feature-webp
 -no-feature-dbus
 -no-feature-quickcontrols2-fluentwinui3
 -no-feature-stack_protector
