@@ -113,7 +113,7 @@ bool GnssInformation::enabled() const
 
 void GnssInformation::set_enabled(bool new_enabled)
 {
-    qDebug("GnssInformation::set_enabled(%b)", new_enabled);
+    qDebug("GnssInformation::set_enabled(%s)", new_enabled ? "true" : "false");
     if (m_enabled == new_enabled)
         return;
 
