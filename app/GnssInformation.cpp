@@ -75,6 +75,11 @@ QDateTime GnssInformation::timestamp() const
 void GnssInformation::position_updated(const QGeoPositionInfo& position)
 {
 #ifdef ALP_ENABLE_GNSS
+    if (!position.coordinate().isValid()) {
+        qDebug() << "GnssInformation: Ignoring invalid position update";
+        return;
+    }
+
     m_latitude = position.coordinate().latitude();
     m_longitude = position.coordinate().longitude();
     m_altitude = position.coordinate().altitude();
@@ -86,6 +91,21 @@ void GnssInformation::position_updated(const QGeoPositionInfo& position)
 #endif
 }
 
+void GnssInformation::start_position_updates()
+{
+#ifdef ALP_ENABLE_GNSS
+    if (!m_position_source)
+        return;
+
+    m_position_source->startUpdates();
+
+    int timeout_ms = m_position_source->minimumUpdateInterval();
+    if (timeout_ms < 10000)
+        timeout_ms = 10000;
+    m_position_source->requestUpdate(timeout_ms);
+#endif
+}
+
 bool GnssInformation::enabled() const
 {
     return m_enabled;
@@ -93,8 +113,20 @@ bool GnssInformation::enabled() const
 
 void GnssInformation::set_enabled(bool new_enabled)
 {
+    qDebug("GnssInformation::set_enabled(%b)", new_enabled);
     if (m_enabled == new_enabled)
         return;
+
+#ifdef ALP_ENABLE_GNSS
+    if (new_enabled && !m_position_source) {
+        qDebug("GnssInformation: Cannot enable without QGeoPositionInfoSource");
+        return;
+    }
+#else
+    if (new_enabled)
+        return;
+#endif
+
     m_enabled = new_enabled;
 #ifdef ALP_ENABLE_GNSS
     if (m_enabled) {
@@ -107,11 +139,12 @@ void GnssInformation::set_enabled(bool new_enabled)
             qApp->requestPermission(gnssPermission, this, [this](const QPermission& permission) {
                 qDebug() << "qApp->requestPermission" << permission;
                 if (permission.status() == Qt::PermissionStatus::Granted) {
-                    m_position_source->startUpdates();
+                    start_position_updates();
                 } else {
                     set_enabled(false);
                 }
             });
+            emit enabled_changed();
             return;
         case Qt::PermissionStatus::Denied:
             qDebug() << "Qt::PermissionStatus::Denied";
@@ -119,7 +152,7 @@ void GnssInformation::set_enabled(bool new_enabled)
             return;
         case Qt::PermissionStatus::Granted:
             qDebug() << "Qt::PermissionStatus::Granted";
-            m_position_source->startUpdates();
+            start_position_updates();
         }
     } else {
         m_position_source->stopUpdates();
