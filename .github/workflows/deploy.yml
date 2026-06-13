@@ -255,6 +255,9 @@ jobs:
         $QT_SRC_CONFIGURE -qt-host-path $QT_ROOT_DIR -platform wasm-emscripten -init-submodules -submodules qtdeclarative,qtbase,qtpositioning -skip qtlanguageserver,qtquicktimeline,qtimageformats
         cd ${{github.workspace}}/qt_src/qtbase
         git apply ${{github.workspace}}/misc/qt_68_qtbase_remove_dejavu_fonts.patch
+        cd ${{ github.workspace }}
+        rm -rf qt_wasm_build
+        mkdir qt_wasm_build
 
 
     - name: Build Qt for Webassembly (custom version)
