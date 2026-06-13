@@ -129,6 +129,7 @@ set_target_properties(alpineapp PROPERTIES
     QT_ANDROID_VERSION_CODE "${ALP_VERSION_INTEGER}"
 )
 target_link_libraries(alpineapp PUBLIC gl_engine Qt::Quick Qt::QuickControls2)
+alp_configure_target(alpineapp)
 
 if (ALP_ENABLE_QML_HOT_RELOAD)
     message(WARNING "building alpine app with qml-hot-reload. It'll slow incremental building due to a fix for hotreload.")
@@ -178,11 +179,6 @@ else()
 endif()
 
 if (ANDROID)
-    set_target_properties(alpineapp PROPERTIES
-        QT_ANDROID_COMPILE_SDK_VERSION "36"
-        QT_ANDROID_TARGET_SDK_VERSION "35"
-    )
-
     add_android_openssl_libraries(alpineapp)
     find_package(Qt6 REQUIRED COMPONENTS Widgets) # for QFileDialogue (adding tracks)
     target_link_libraries(alpineapp PUBLIC Qt::Widgets)
@@ -195,17 +191,18 @@ endif()
 if (EMSCRIPTEN)
     target_link_options(alpineapp PUBLIC -sASYNCIFY)
 
-    set(ALP_INSTALL_FILES
-        "$<TARGET_FILE_DIR:alpineapp>/alpineapp.js"
-        "$<TARGET_FILE_DIR:alpineapp>/alpineapp.wasm"
-        "$<TARGET_FILE_DIR:alpineapp>/alpineapp.html"
-        "$<TARGET_FILE_DIR:alpineapp>/qtloader.js"
+    install(
+        FILES
+            "$<TARGET_FILE_DIR:alpineapp>/alpineapp.js"
+            "$<TARGET_FILE_DIR:alpineapp>/alpineapp.wasm"
+            "$<TARGET_FILE_DIR:alpineapp>/alpineapp.html"
+            "$<TARGET_FILE_DIR:alpineapp>/qtloader.js"
+        DESTINATION
+            ${ALP_WWW_INSTALL_DIR})
+    install(FILES "$<TARGET_FILE_DIR:alpineapp>/alpineapp.worker.js"
+        DESTINATION ${ALP_WWW_INSTALL_DIR}
+        OPTIONAL
     )
-
-    if (ALP_ENABLE_THREADING)
-        list(APPEND ALP_INSTALL_FILES "$<TARGET_FILE_DIR:alpineapp>/alpineapp.worker.js")
-    endif()
-    install(FILES ${ALP_INSTALL_FILES} DESTINATION ${ALP_WWW_INSTALL_DIR})
 else()
     find_package(Qt6 REQUIRED COMPONENTS Widgets)
     target_link_libraries(alpineapp PUBLIC Qt::Widgets)
