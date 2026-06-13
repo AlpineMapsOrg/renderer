@@ -239,14 +239,23 @@ jobs:
         echo "QT_LITE_CONFIG=$(pwd)/misc/qt_lite.txt" >> $GITHUB_ENV
       
     - name: Cache Qt WebAssembly build
-      id: qt-cache
+      id: qt-cache-lite
+      if: ${{ !contains(matrix.config, 'debug') }}
       uses: actions/cache@v5
       with:
         path: qt_wasm_lite
-        key: ${{ matrix.config }}_qt-${{ env.QT_VERSION }}_emcc-${{ env.WEBASSEMBLY_VERSION }}_qtpositioning${{ contains(matrix.config, 'debug') && '' || format('_{0}', hashFiles('misc/qt_lite.txt', 'misc/qt_68_qtbase_remove_dejavu_fonts.patch')) }}
+        key: ${{ matrix.config }}_qt-${{ env.QT_VERSION }}_emcc-${{ env.WEBASSEMBLY_VERSION }}_qtpositioning_${{ hashFiles('misc/qt_lite.txt', 'misc/qt_68_qtbase_remove_dejavu_fonts.patch') }}
+
+    - name: Cache Qt WebAssembly build
+      id: qt-cache-debug
+      if: ${{ contains(matrix.config, 'debug') }}
+      uses: actions/cache@v5
+      with:
+        path: qt_wasm_lite
+        key: ${{ matrix.config }}_qt-${{ env.QT_VERSION }}_emcc-${{ env.WEBASSEMBLY_VERSION }}_qtpositioning
         
     - name: Download and patch Qt
-      if: steps.qt-cache.outputs.cache-hit != 'true'
+      if: steps.qt-cache-lite.outputs.cache-hit != 'true' && steps.qt-cache-debug.outputs.cache-hit != 'true'
       shell: bash
       run: |
         git clone --branch $QT_VERSION git://code.qt.io/qt/qt5.git qt_src
@@ -261,7 +270,7 @@ jobs:
 
 
     - name: Build Qt for Webassembly (custom version)
-      if: steps.qt-cache.outputs.cache-hit != 'true'
+      if: steps.qt-cache-lite.outputs.cache-hit != 'true' && steps.qt-cache-debug.outputs.cache-hit != 'true'
       shell: bash
       run: |
         cd qt_wasm_build
@@ -273,7 +282,7 @@ jobs:
         [ -d "$QT_WASM_ROOT_DIR" ] && [ "$(ls -A $QT_WASM_ROOT_DIR)" ] || exit 1
 
     - name: Debug output
-      if: steps.qt-cache.outputs.cache-hit != 'true'
+      if: steps.qt-cache-lite.outputs.cache-hit != 'true' && steps.qt-cache-debug.outputs.cache-hit != 'true'
       run: |
         emcc -v
         echo "cmake version:"
