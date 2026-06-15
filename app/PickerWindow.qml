@@ -59,7 +59,8 @@ Rectangle {
     anchors {
         bottom: parent.bottom
         right: parent.right
-        margins: 10
+        bottomMargin: 10 + main.safeBottom
+        rightMargin: 10 + main.safeRight
     }
     function source_file_for(pick_type) {
         if (typeof pick_type === "undefined")

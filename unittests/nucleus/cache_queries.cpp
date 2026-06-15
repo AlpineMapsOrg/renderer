@@ -37,7 +37,7 @@ QByteArray png_tile(unsigned size, float altitude)
     tile.fill(QColor(rgb.x, rgb.y, rgb.z));
     QByteArray arr;
     QBuffer buffer(&arr);
-    buffer.open(QIODevice::WriteOnly);
+    REQUIRE(buffer.open(QIODevice::WriteOnly));
     tile.save(&buffer, "PNG");
     return arr;
 }

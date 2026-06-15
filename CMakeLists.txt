@@ -31,6 +31,11 @@ option(ALP_ENABLE_AVLANCHE_WARNING_LAYER "Enables avalanche warning layer (requi
 option(ALP_ENABLE_LABELS "Enables label rendering" ON)
 
 set(ALP_EXTERN_DIR "extern" CACHE STRING "name of the directory to store external libraries, fonts etc..")
+set(ALP_ANDROID_MIN_SDK_VERSION 28 CACHE STRING "minimum Android API level")
+set(ALP_ANDROID_TARGET_SDK_VERSION 36 CACHE STRING "target Android API level")
+set(ALP_ANDROID_COMPILE_SDK_VERSION 36 CACHE STRING "compile Android API level")
+
+include(cmake/alp_configure_target.cmake)
 
 if(ALP_ENABLE_TRACK_OBJECT_LIFECYCLE)
     add_definitions(-DALP_ENABLE_TRACK_OBJECT_LIFECYCLE)
@@ -40,6 +45,7 @@ if (EMSCRIPTEN)
     set(ALP_WWW_INSTALL_DIR "${CMAKE_CURRENT_BINARY_DIR}" CACHE PATH "path to the install directory (for webassembly files, i.e., www directory)")
     option(ALP_ENABLE_THREADING "Puts the scheduler into an extra thread." OFF)
     option(ALP_ENABLE_DEV_TOOLS "HotReload, Renderstats, .. (increases binary size)" OFF)
+    option(ALP_ENABLE_POSITIONING "enable qt positioning (gnss / gps)" ON)
 elseif(ANDROID)
     option(ALP_ENABLE_THREADING "Puts the scheduler into an extra thread." ON)
     option(ALP_ENABLE_DEV_TOOLS "HotReload, Renderstats, .. (increases binary size)" OFF)

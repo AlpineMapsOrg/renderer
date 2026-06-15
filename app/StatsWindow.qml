@@ -33,24 +33,24 @@ Rectangle {
     color:  Qt.alpha(Material.backgroundColor, 0.7)
 
     function responsive_update() {
-        x = 10
+        x = main.safeLeft + innerMargin
         if (map.width >= map.height) {
             y = tool_bar.height + innerMargin
-            maxHeight = main.height - tool_bar.height - 20
+            maxHeight = main.height - main.safeBottom - tool_bar.height - 20
             height = main_content.height
             width = 300
         } else {
             // usually on mobile devices (portrait mode)
             if (main.selectedPage === "settings") {
                 y = tool_bar.height + innerMargin
-                height = main.height - main.height / 2.0 - tool_bar.height - 2 * innerMargin
+                height = main.height - main.safeBottom - main.height / 2.0 - tool_bar.height - 2 * innerMargin
                 maxHeight = height
-                width = main.width - 2 * innerMargin
+                width = main.width - main.safeLeft - main.safeRight - 2 * innerMargin
             } else {
                 y = parseInt(main.height / 2.0)
-                height = main.height / 2.0
+                height = main.height / 2.0 - main.safeBottom
                 maxHeight = height
-                width = main.width - 2 * innerMargin
+                width = main.width - main.safeLeft - main.safeRight - 2 * innerMargin
             }
         }
     }

@@ -29,6 +29,11 @@ Item {
     property int accent: Material.BlueGrey
     property string selectedPage: "map"
     property bool userInterfaceVisible: true
+    property real safeTop: SafeArea.margins.top
+    property real safeLeft: SafeArea.margins.left
+    property real safeRight: SafeArea.margins.right
+    property real safeBottom: SafeArea.margins.bottom
+
     Shortcut {
         id: ui_visibility_shortcut
         sequence: "F10"
@@ -50,6 +55,9 @@ Item {
             left: parent.left
             right: parent.right
             top: parent.top
+            leftMargin: main.safeLeft
+            rightMargin: main.safeRight
+            topMargin: main.safeTop
         }
         visible: userInterfaceVisible
 
@@ -98,7 +106,10 @@ Item {
             bottom: parent.bottom
             left: parent.left
             right: parent.right
-            margins: 10
+            topMargin: 10
+            leftMargin: 10 + main.safeLeft
+            rightMargin: 10 + main.safeRight
+            bottomMargin: 10 + main.safeBottom
         }
     }
 
@@ -233,6 +244,9 @@ Item {
             bottom: parent.bottom
             left: parent.left
             right: parent.right
+            leftMargin: main.safeLeft
+            rightMargin: main.safeRight
+            bottomMargin: main.safeBottom
         }
         visible: userInterfaceVisible
 
@@ -261,6 +275,8 @@ Item {
         border.color: Qt.alpha( "black", 0.5)
         border.width: 2
         radius: 8   // Optional: Rounded corners
+        anchors.left: parent.left
+        anchors.leftMargin: main.safeLeft
         anchors.top: tool_bar.bottom
         anchors.topMargin: 4
         visible: false
@@ -276,4 +292,3 @@ Item {
     }
 
 }
-

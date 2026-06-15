@@ -50,12 +50,13 @@ public:
         R8,
         RGB8,
         RGBA8,
+        // SRGBA8, // not supported as a framebuffer on android
         RG16UI,
-        RGB16F,         // NOT COLOR RENDERABLE ON OPENGLES
-        RGBA16F,        // NOT COLOR RENDERABLE ON OPENGLES
+        // RGB16F, // NOT COLOR RENDERABLE ON OPENGLES
+        // RGBA16F, // NOT COLOR RENDERABLE ON OPENGLES
         R32UI,
-        Float32,        // NOT COLOR RENDERABLE ON OPENGLES
-        RGBA32F,        // NOT COLOR RENDERABLE ON OPENGLES (weirdly it works, maybe because of extension, that qt activates?)
+        // Float32, // NOT COLOR RENDERABLE ON OPENGLES
+        RGBA32F, // NOT COLOR RENDERABLE ON OPENGLES (weirdly it works, maybe because of extension, that qt activates?)
     };
 
 private:

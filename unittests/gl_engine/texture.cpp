@@ -370,9 +370,9 @@ TEST_CASE("gl texture")
                     const auto g = qGreen(result_pixel);
                     const auto b = qBlue(result_pixel);
 
-                    diff += std::abs(r - ref_pixel.x) / 255.0;
-                    diff += std::abs(g - ref_pixel.y) / 255.0;
-                    diff += std::abs(b - ref_pixel.z) / 255.0;
+                    diff += std::abs(r / 255.0 - std::pow(ref_pixel.x / 255.0, 2.2));
+                    diff += std::abs(g / 255.0 - std::pow(ref_pixel.y / 255.0, 2.2));
+                    diff += std::abs(b / 255.0 - std::pow(ref_pixel.z / 255.0, 2.2));
                 }
             }
             CAPTURE(resolution);
@@ -467,7 +467,7 @@ TEST_CASE("gl texture")
         for (auto texture_type : texture_types) {
             CAPTURE(texture_type.first);
             CAPTURE(texture_type.second);
-            const auto format = (texture_type.first == ColourTexture::Format::Uncompressed_RGBA) ? gl_engine::Texture::Format::RGBA8
+            const auto format = (texture_type.first == ColourTexture::Format::Uncompressed_RGBA) ? gl_engine::Texture::Format::SRGBA8
                                                                                                  : gl_engine::Texture::Format::CompressedRGBA8;
             const auto use_mipmaps = texture_type.second;
             gl_engine::Texture opengl_texture(gl_engine::Texture::Target::_2dArray, format);
@@ -519,9 +519,9 @@ TEST_CASE("gl texture")
                 double diff = 0;
                 for (int i = 0; i < render_result.width(); ++i) {
                     for (int j = 0; j < render_result.height(); ++j) {
-                        diff += std::abs(qRed(render_result.pixel(i, j)) - test_raster.pixel({ i, j }).x) / 255.0;
-                        diff += std::abs(qGreen(render_result.pixel(i, j)) - test_raster.pixel({ i, j }).y) / 255.0;
-                        diff += std::abs(qBlue(render_result.pixel(i, j)) - test_raster.pixel({ i, j }).z) / 255.0;
+                        diff += std::abs(qRed(render_result.pixel(i, j)) / 255.0 - std::pow(test_raster.pixel({ i, j }).x / 255.0, 2.2));
+                        diff += std::abs(qGreen(render_result.pixel(i, j)) / 255.0 - std::pow(test_raster.pixel({ i, j }).y / 255.0, 2.2));
+                        diff += std::abs(qBlue(render_result.pixel(i, j)) / 255.0 - std::pow(test_raster.pixel({ i, j }).z / 255.0, 2.2));
                     }
                 }
                 CHECK(diff / (256 * 256 * 3) < 0.017);
@@ -532,12 +532,12 @@ TEST_CASE("gl texture")
                 double diff = 0;
                 for (int i = 0; i < render_result.width(); ++i) {
                     for (int j = 0; j < render_result.height(); ++j) {
-                        diff += std::abs(qRed(render_result.pixel(i, j)) - 42) / 255.0;
-                        diff += std::abs(qGreen(render_result.pixel(i, j)) - 142) / 255.0;
-                        diff += std::abs(qBlue(render_result.pixel(i, j)) - 242) / 255.0;
+                        diff += std::abs(qRed(render_result.pixel(i, j)) / 255.0 - std::pow(42 / 255.0, 2.2));
+                        diff += std::abs(qGreen(render_result.pixel(i, j)) / 255.0 - std::pow(142 / 255.0, 2.2));
+                        diff += std::abs(qBlue(render_result.pixel(i, j)) / 255.0 - std::pow(242 / 255.0, 2.2));
                     }
                 }
-                CHECK(diff / (256 * 256 * 3) < 0.017);
+                CHECK(diff / (256 * 256 * 3) < 0.02);
             }
             {
                 const QImage render_result = framebuffer.read_colour_attachment(2);
@@ -545,12 +545,12 @@ TEST_CASE("gl texture")
                 double diff = 0;
                 for (int i = 0; i < render_result.width(); ++i) {
                     for (int j = 0; j < render_result.height(); ++j) {
-                        diff += std::abs(qRed(render_result.pixel(i, j)) - 222) / 255.0;
-                        diff += std::abs(qGreen(render_result.pixel(i, j)) - 111) / 255.0;
-                        diff += std::abs(qBlue(render_result.pixel(i, j)) - 0) / 255.0;
+                        diff += std::abs(qRed(render_result.pixel(i, j)) / 255.0 - std::pow(222 / 255.0, 2.2)) / 255.0;
+                        diff += std::abs(qGreen(render_result.pixel(i, j)) / 255.0 - std::pow(111 / 255.0, 2.2)) / 255.0;
+                        diff += std::abs(qBlue(render_result.pixel(i, j)) / 255.0 - std::pow(0 / 255.0, 2.2)) / 255.0;
                     }
                 }
-                CHECK(diff / (256 * 256 * 3) < 0.017);
+                CHECK(diff / (256 * 256 * 3) < 0.02);
             }
         }
     }

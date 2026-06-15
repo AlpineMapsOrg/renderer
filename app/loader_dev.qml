@@ -18,15 +18,28 @@
 
 import QtQuick
 import QtQuick.Controls.Material
-import QtQuick.Layouts
 import app
 
 ApplicationWindow {
     visible: true
     id: application_window
     property alias loaded_item: mainLoader.item
+
+    flags: Qt.platform.os === "android"
+           ? Qt.Window | Qt.ExpandedClientAreaHint | Qt.NoTitleBarBackgroundHint
+           : Qt.Window
+
     Material.theme: loaded_item ? loaded_item.theme : Material.System
     Material.accent: loaded_item ? loaded_item.accent : Material.Pink
+
+    background: Rectangle {
+        color: Material.backgroundColor
+    }
+
+    topPadding: 0
+    leftPadding: 0
+    rightPadding: 0
+    bottomPadding: 0
 
     Loader {
         id: mainLoader

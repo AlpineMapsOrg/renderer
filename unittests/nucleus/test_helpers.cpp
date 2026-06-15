@@ -21,6 +21,7 @@
 
 #include <QImage>
 #include <QBuffer>
+#include <catch2/catch_test_macros.hpp>
 
 namespace test_helpers {
 
@@ -30,7 +31,7 @@ QByteArray white_jpeg_tile(unsigned int size)
     default_tile.fill(Qt::GlobalColor::white);
     QByteArray arr;
     QBuffer buffer(&arr);
-    buffer.open(QIODevice::WriteOnly);
+    REQUIRE(buffer.open(QIODevice::WriteOnly));
     default_tile.save(&buffer, "JPEG");
     return arr;
 }
@@ -41,7 +42,7 @@ QByteArray black_png_tile(unsigned size)
     default_tile.fill(Qt::GlobalColor::black);
     QByteArray arr;
     QBuffer buffer(&arr);
-    buffer.open(QIODevice::WriteOnly);
+    REQUIRE(buffer.open(QIODevice::WriteOnly));
     default_tile.save(&buffer, "PNG");
     return arr;
 }

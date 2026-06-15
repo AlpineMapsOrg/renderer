@@ -137,7 +137,7 @@ void TrackModel::upload_track()
     if (file.open(QFile::ReadOnly))
         fileContentReady(file.fileName(), file.readAll());
     else
-        qDebug() << "Failed to open " << file.fileName();
+        qDebug() << "TrackModel::upload_track: failed to read file!" << path;
 #endif
 }
 
