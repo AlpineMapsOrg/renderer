@@ -161,7 +161,7 @@ std::pair<CDT::TriangleVec, std::vector<CDT::V2d<double>>> triangulate(std::vect
 QImage example_rasterizer_image(QString filename)
 {
     auto image_file = QFile(QString("%1%2").arg(ALP_TEST_DATA_DIR, filename));
-    image_file.open(QFile::ReadOnly);
+    REQUIRE(image_file.open(QFile::ReadOnly));
     const auto image_bytes = image_file.readAll();
     REQUIRE(!QImage::fromData(image_bytes).isNull());
     return QImage::fromData(image_bytes);
