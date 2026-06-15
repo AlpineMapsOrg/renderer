@@ -15,7 +15,7 @@ After that it should be a normal cmake project. That is, you run cmake to genera
 We use Qt Creator (with mingw on Windows), which is the only tested setup atm and makes setup of Android and WebAssembly builds reasonably easy. If you have questions, please go to Discord.
 
 ## Dependencies
-* Qt 6.8.0, or greater
+* Qt 6.11.1, or greater
 * g++ 12+, clang or msvc
 * OpenGL
 * Qt Positioning and Charts modules

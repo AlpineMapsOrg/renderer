@@ -49,6 +49,7 @@ signals:
 
 private:
     void position_updated(const QGeoPositionInfo& position);
+    void start_position_updates();
 
 private:
     double m_latitude = 0;

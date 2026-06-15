@@ -3,3 +3,5 @@
 /doc/*
 /doc
 /build/*
+/.qtcreator/CMakeLists.txt.user
+**/.qmlls.ini

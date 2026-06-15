@@ -18,14 +18,26 @@
 
 import QtQuick
 import QtQuick.Controls.Material
-import QtQuick.Layouts
 
 ApplicationWindow {
     visible: true
     id: application_window
 
+    flags: Qt.platform.os === "android"
+           ? Qt.Window | Qt.ExpandedClientAreaHint | Qt.NoTitleBarBackgroundHint
+           : Qt.Window
+
     Material.theme: main.theme
     Material.accent: main.accent
+
+    background: Rectangle {
+        color: Material.backgroundColor
+    }
+
+    topPadding: 0
+    leftPadding: 0
+    rightPadding: 0
+    bottomPadding: 0
 
     Main {
         id: main

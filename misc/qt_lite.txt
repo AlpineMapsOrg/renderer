@@ -1,5 +1,5 @@
 -static -reduce-exports -gc-binaries 
--disable-deprecated-up-to 0x070000
+-disable-deprecated-up-to 0x060000
 -no-dbus
 -no-sql-sqlite
 -no-widgets
@@ -50,14 +50,12 @@
 -no-feature-imageformat_xbm
 -no-feature-sql-sqlite
 -no-feature-jpeg
--no-feature-tiff
 -no-feature-ico
 -no-feature-gif
 -no-feature-qml-jit
 -no-feature-quickcontrols2-fluentwinui3
 -no-feature-qml-profiler
 -no-feature-dom
--no-feature-webp
 -no-feature-dbus
 -no-feature-quickcontrols2-fluentwinui3
 -no-feature-stack_protector
