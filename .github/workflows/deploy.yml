@@ -5,11 +5,9 @@ on:
   pull_request:
     branches: [ "main" ]
 
-# Sets permissions of the GITHUB_TOKEN to allow deployment to GitHub Pages
+# Default token permissions; the Pages job requests its write permissions explicitly.
 permissions:
   contents: read
-  pages: write
-  id-token: write
 
 concurrency:
   group: deploy-${{ github.event_name }}-${{ github.ref }}
@@ -18,9 +16,6 @@ concurrency:
 jobs:
   build-android:
     runs-on: ubuntu-24.04
-    env:
-      QT_VERSION: '6.8.1'
-      QT_MODULES: 'qtcharts qtpositioning'
     strategy:
       fail-fast: false
       matrix:
@@ -34,15 +29,17 @@ jobs:
         echo "JAVA_HOME=/usr/lib/jvm/java-17-openjdk-amd64/" >> $GITHUB_ENV
         # dpkg-query -L  openjdk-17-jdk-headless
 
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@v6
       with:
         fetch-depth: 0
         fetch-tags: true
 
+    - name: Load CI versions
+      run: cat .github/ci-versions.env >> "$GITHUB_ENV"
+
     - name: Install Qt native version (the one provided by aqt doesn't seem to work)
       uses: jurplel/install-qt-action@v4
       with:
-        aqtversion: '==3.1.*'
         version: ${{ env.QT_VERSION }}
         host: 'linux'
         target: 'desktop'
@@ -57,7 +54,6 @@ jobs:
     - name: Install Qt crosscompile android version
       uses: jurplel/install-qt-action@v4
       with:
-        aqtversion: '==3.1.*'
         version: ${{ env.QT_VERSION }}
         host: linux
         target: android
@@ -169,7 +165,7 @@ jobs:
         find "$BUILD_DIR" -type f -iname "*.apk" ! -name "android-build-*.apk" -exec cp {} "$INSTALL_DIR" \;
 
     - name: Create artifact
-      uses: actions/upload-artifact@v4
+      uses: actions/upload-artifact@v5
       with:
         name: files_${{ matrix.qtarch }}
         path: ${{ github.workspace }}/install/
@@ -178,31 +174,28 @@ jobs:
         
   build-wasm:
     runs-on: ubuntu-24.04
-    env:
-      QT_VERSION: '6.8.1'
-      WEBASSEMBLY_VERSION: '3.1.56'
     strategy:
       fail-fast: false
       matrix:
         config: [wasm_st, wasm_st_debug, wasm_st_lto, wasm_mt, wasm_mt_debug, wasm_mt_lto]
         include:
           - config: wasm_st
-            qtflags: '-release -optimize-size -submodules qtdeclarative,qtbase -skip qtlanguageserver,qtquicktimeline,qtimageformats -make libs -gui $(cat $QT_LITE_CONFIG) -no-feature-thread'
+            qtflags: '-release -optimize-size -submodules qtdeclarative,qtbase,qtpositioning -skip qtlanguageserver,qtquicktimeline,qtimageformats -gui $(cat $QT_LITE_CONFIG) -no-feature-thread'
             cmakeflags: '-DALP_ENABLE_THREADING=OFF -DALP_ENABLE_ASSERTS=OFF'
           - config: wasm_st_debug
-            qtflags: '-release -optimize-size -submodules qtdeclarative,qtbase -skip qtlanguageserver,qtquicktimeline,qtimageformats -make libs -gui -no-feature-thread'
+            qtflags: '-release -optimize-size -submodules qtdeclarative,qtbase,qtpositioning -skip qtlanguageserver,qtquicktimeline,qtimageformats -gui -no-feature-thread'
             cmakeflags: '-DALP_ENABLE_THREADING=OFF -DALP_ENABLE_ASSERTS=ON'
           - config: wasm_st_lto
-            qtflags: '-release -optimize-size -submodules qtdeclarative,qtbase -skip qtlanguageserver,qtquicktimeline,qtimageformats -make libs -gui -ltcg $(cat $QT_LITE_CONFIG) -no-feature-thread'
+            qtflags: '-release -optimize-size -submodules qtdeclarative,qtbase,qtpositioning -skip qtlanguageserver,qtquicktimeline,qtimageformats -gui -ltcg $(cat $QT_LITE_CONFIG) -no-feature-thread'
             cmakeflags: '-DALP_ENABLE_THREADING=OFF -DALP_ENABLE_ASSERTS=OFF -DALP_ENABLE_LTO=ON'
           - config: wasm_mt
-            qtflags: '-release -optimize-size -submodules qtdeclarative,qtbase -skip qtlanguageserver,qtquicktimeline,qtimageformats -make libs -gui $(cat $QT_LITE_CONFIG) -feature-thread'
+            qtflags: '-release -optimize-size -submodules qtdeclarative,qtbase,qtpositioning -skip qtlanguageserver,qtquicktimeline,qtimageformats -gui $(cat $QT_LITE_CONFIG) -feature-thread'
             cmakeflags: '-DALP_ENABLE_THREADING=ON -DALP_ENABLE_ASSERTS=OFF'
           - config: wasm_mt_debug
-            qtflags: '-release -optimize-size -submodules qtdeclarative,qtbase -skip qtlanguageserver,qtquicktimeline,qtimageformats -make libs -gui -feature-thread'
+            qtflags: '-release -optimize-size -submodules qtdeclarative,qtbase,qtpositioning -skip qtlanguageserver,qtquicktimeline,qtimageformats -gui -feature-thread'
             cmakeflags: '-DALP_ENABLE_THREADING=ON -DALP_ENABLE_ASSERTS=ON'
           - config: wasm_mt_lto
-            qtflags: '-release -optimize-size -submodules qtdeclarative,qtbase -skip qtlanguageserver,qtquicktimeline,qtimageformats -make libs -gui -ltcg $(cat $QT_LITE_CONFIG) -feature-thread'
+            qtflags: '-release -optimize-size -submodules qtdeclarative,qtbase,qtpositioning -skip qtlanguageserver,qtquicktimeline,qtimageformats -gui -ltcg $(cat $QT_LITE_CONFIG) -feature-thread'
             cmakeflags: '-DALP_ENABLE_THREADING=ON -DALP_ENABLE_ASSERTS=OFF -DALP_ENABLE_LTO=ON'
             
     steps:
@@ -211,19 +204,21 @@ jobs:
         sudo apt-get update
         sudo apt-get install -y build-essential ninja-build
 
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@v6
       with:
         fetch-depth: 0
         fetch-tags: true
 
-    - uses: mymindstorm/setup-emsdk@v13
+    - name: Load CI versions
+      run: cat .github/ci-versions.env >> "$GITHUB_ENV"
+
+    - uses: mymindstorm/setup-emsdk@v15
       with:
         version: ${{ env.WEBASSEMBLY_VERSION }}
 
     - name: Install Qt native version (required for cross building)
       uses: jurplel/install-qt-action@v4
       with:
-        aqtversion: '==3.1.*'
         version: ${{ env.QT_VERSION }}
         host: linux
         target: 'desktop'
@@ -245,10 +240,10 @@ jobs:
       
     - name: Cache Qt WebAssembly build
       id: qt-cache
-      uses: actions/cache@v4
+      uses: actions/cache@v5
       with:
         path: qt_wasm_lite
-        key: ${{ matrix.config }}_qt-${{ env.QT_VERSION }}_emcc-${{ env.WEBASSEMBLY_VERSION }}
+        key: ${{ matrix.config }}_qt-${{ env.QT_VERSION }}_emcc-${{ env.WEBASSEMBLY_VERSION }}_qtpositioning_${{ hashFiles('misc/qt_lite.txt', 'misc/qt_68_qtbase_remove_dejavu_fonts.patch') }}
         
     - name: Download and patch Qt
       if: steps.qt-cache.outputs.cache-hit != 'true'
@@ -257,9 +252,12 @@ jobs:
         git clone --branch $QT_VERSION git://code.qt.io/qt/qt5.git qt_src
         mkdir qt_wasm_build
         cd qt_wasm_build
-        $QT_SRC_CONFIGURE -qt-host-path $QT_ROOT_DIR -platform wasm-emscripten -init-submodules -submodules qtdeclarative,qtbase -skip qtlanguageserver,qtquicktimeline,qtimageformats
+        $QT_SRC_CONFIGURE -qt-host-path $QT_ROOT_DIR -platform wasm-emscripten -init-submodules -submodules qtdeclarative,qtbase,qtpositioning -skip qtlanguageserver,qtquicktimeline,qtimageformats
         cd ${{github.workspace}}/qt_src/qtbase
         git apply ${{github.workspace}}/misc/qt_68_qtbase_remove_dejavu_fonts.patch
+        cd ${{ github.workspace }}
+        rm -rf qt_wasm_build
+        mkdir qt_wasm_build
 
 
     - name: Build Qt for Webassembly (custom version)
@@ -303,7 +301,7 @@ jobs:
       run: cmake --build $BUILD_DIR --target install
 
     - name: Create artifact
-      uses: actions/upload-artifact@v4
+      uses: actions/upload-artifact@v5
       with:
         name: files_${{ matrix.config}}
         path: ${{ github.workspace }}/install/
@@ -314,6 +312,10 @@ jobs:
     needs:
     - build-android
     - build-wasm
+    permissions:
+      contents: read
+      pages: write
+      id-token: write
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
@@ -321,17 +323,20 @@ jobs:
     
     steps:
     - name: Install dependencies
-      run: sudo apt-get install -y lftp
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y lftp
       
     - name: Clone repository (only for version number)
-      uses: actions/checkout@v4
+      uses: actions/checkout@v6
       with:
         fetch-depth: 0
         fetch-tags: true
     
     - name: Download artifacts
-      uses: actions/download-artifact@v4
+      uses: actions/download-artifact@v8
       with:
+        pattern: files_*
         path: ${{github.workspace}}/downloaded
     
     - name: Move into place
@@ -369,14 +374,13 @@ jobs:
         FOLDER: github_page
     
     - name: Create Pages artifact
-      uses: actions/upload-pages-artifact@v3
+      uses: actions/upload-pages-artifact@v4
       with:
         path: ${{github.workspace}}/github_page
     
     - name: Setup Pages
-      uses: actions/configure-pages@v4
+      uses: actions/configure-pages@v5
 
     - name: Deploy to GitHub Pages
       id: deployment
       uses: actions/deploy-pages@v4
-
