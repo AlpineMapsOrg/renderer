@@ -41,6 +41,19 @@ if (EMSCRIPTEN)
     target_compile_options(ktx PUBLIC -pthread)
     target_link_options(ktx PUBLIC -pthread)
 endif()
+if (NOT EMSCRIPTEN)
+    # NOTE: KTX builds into an additional Release/Debug directory. The following
+    # moves the builds directory for the targets ktx and ktx_read to the binary dir
+    foreach(ktx_target ktx ktx_read)
+        if (TARGET ${ktx_target})
+            set_target_properties(${ktx_target} PROPERTIES
+                RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}"
+                RUNTIME_OUTPUT_DIRECTORY_DEBUG "${CMAKE_BINARY_DIR}"
+                RUNTIME_OUTPUT_DIRECTORY_RELEASE "${CMAKE_BINARY_DIR}"
+            )
+        endif()
+    endforeach()
+endif()
 
 add_library(zppbits INTERFACE)
 target_include_directories(zppbits SYSTEM INTERFACE ${zppbits_SOURCE_DIR})
