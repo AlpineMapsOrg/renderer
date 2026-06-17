@@ -24,6 +24,7 @@ GpuArrayHelper::GpuArrayHelper() { }
 
 unsigned GpuArrayHelper::add_tile(const tile::Id& id)
 {
+    // Note (Wendelin): These asserts don't work really, because Qt catches the exception and does weird stuff. Use if + __debugbreak().
     assert(!m_id_to_layer.contains(id));
     const auto t = std::find(m_array.begin(), m_array.end(), tile::Id { unsigned(-1), {} });
     assert(t != m_array.end());
@@ -62,6 +63,11 @@ GpuArrayHelper::LayerInfo GpuArrayHelper::layer(Id tile_id) const
     if (!m_id_to_layer.contains(tile_id))
         return { {}, 0 }; // may be empty during startup.
     return { tile_id, m_id_to_layer.at(tile_id) };
+}
+
+bool GpuArrayHelper::contains(Id tile_id) const
+{
+    return m_id_to_layer.contains(tile_id);
 }
 
 GpuArrayHelper::Dictionary GpuArrayHelper::generate_dictionary() const

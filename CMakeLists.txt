@@ -19,15 +19,16 @@
 #############################################################################
 
 cmake_minimum_required(VERSION 3.25)
-project(alpine-renderer LANGUAGES CXX)
+project(alpine-renderer LANGUAGES C CXX)
 
 option(ALP_UNITTESTS "include unit test targets in the buildsystem" OFF)
 option(ALP_GL_ENGINE "include the gl engine in the buildsystem" OFF)
 option(ALP_WEBGPU_ENGINE "include the webgpu engine in the buildsystem" ON)
 option(ALP_WEBGPU_APP "include the webgpu app in the buildsystem" ON)
-option(ALP_WEBIGEO_EVAL "include the webigeo eval cli in the buildsystem" OFF)
 option(ALP_PLAIN_RENDERER "include the plain renderer in the buildsystem" OFF)
 option(ALP_QML_APP "include the qml app in the buildsystem" OFF)
+
+option(ALP_WEBGPU_APP_ENABLE_COMPUTE "Build the webgpu_compute graph into the app" ON)
 
 option(ALP_ENABLE_ADDRESS_SANITIZER "compiles atb with address sanitizer enabled (only debug, works only on g++ and clang)" OFF)
 option(ALP_ENABLE_THREAD_SANITIZER "compiles atb with thread sanitizer enabled (only debug, works only on g++ and clang)" OFF)
@@ -40,6 +41,11 @@ option(ALP_ENABLE_AVLANCHE_WARNING_LAYER "Enables avalanche warning layer (requi
 option(ALP_ENABLE_LABELS "Enables label rendering" OFF)
 
 set(ALP_EXTERN_DIR "extern" CACHE STRING "name of the directory to store external libraries, fonts etc..")
+set(ALP_ANDROID_MIN_SDK_VERSION 28 CACHE STRING "minimum Android API level")
+set(ALP_ANDROID_TARGET_SDK_VERSION 36 CACHE STRING "target Android API level")
+set(ALP_ANDROID_COMPILE_SDK_VERSION 36 CACHE STRING "compile Android API level")
+
+include(cmake/alp_configure_target.cmake)
 
 if(ALP_ENABLE_TRACK_OBJECT_LIFECYCLE)
     add_definitions(-DALP_ENABLE_TRACK_OBJECT_LIFECYCLE)
@@ -49,6 +55,7 @@ if (EMSCRIPTEN)
     set(ALP_WWW_INSTALL_DIR "${CMAKE_CURRENT_BINARY_DIR}" CACHE PATH "path to the install directory (for webassembly files, i.e., www directory)")
     option(ALP_ENABLE_THREADING "Puts the scheduler into an extra thread." ON)
     option(ALP_ENABLE_DEV_TOOLS "HotReload, Renderstats, .. (increases binary size)" ON)
+    option(ALP_ENABLE_POSITIONING "enable qt positioning (gnss / gps)" ON)
 elseif(ANDROID)
     option(ALP_ENABLE_THREADING "Puts the scheduler into an extra thread." ON)
     option(ALP_ENABLE_DEV_TOOLS "HotReload, Renderstats, .. (increases binary size)" OFF)
@@ -102,7 +109,7 @@ qt_standard_project_setup(REQUIRES 6.7)
 
 alp_add_git_repository(renderer_static_data URL https://github.com/AlpineMapsOrg/renderer_static_data.git COMMITISH v23.11 DO_NOT_ADD_SUBPROJECT)
 alp_add_git_repository(alpineapp_fonts URL https://github.com/AlpineMapsOrg/fonts.git COMMITISH v24.02 DO_NOT_ADD_SUBPROJECT)
-alp_add_git_repository(doc URL https://github.com/AlpineMapsOrg/documentation.git COMMITISH origin/main DO_NOT_ADD_SUBPROJECT DESTINATION_PATH extern/doc)
+alp_add_git_repository(doc URL https://github.com/AlpineMapsOrg/documentation.git COMMITISH origin/main DO_NOT_ADD_SUBPROJECT DESTINATION_PATH docs/binary)
 
 
 if (ANDROID)
@@ -135,15 +142,17 @@ endif()
 if (ALP_UNITTESTS)
     add_subdirectory(unittests)
 endif()
+
 if (ALP_WEBGPU_APP OR ALP_WEBGPU_ENGINE)
-    add_subdirectory(webgpu)
+    add_subdirectory(webgpu/base)
     if (ALP_WEBGPU_ENGINE)
-        add_subdirectory(webgpu_engine)
+        add_subdirectory(webgpu/engine)
     endif()
     if (ALP_WEBGPU_APP)
-        add_subdirectory(webgpu_app)
+        if (ALP_WEBGPU_APP_ENABLE_COMPUTE)
+            add_subdirectory(webgpu/compute)
+        endif()
+        add_subdirectory(apps/webgpu_app)
     endif()
-    if (ALP_WEBIGEO_EVAL)
-        add_subdirectory(webigeo_eval)
-    endif()
+
 endif()

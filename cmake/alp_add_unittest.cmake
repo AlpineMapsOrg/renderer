@@ -37,21 +37,24 @@ function(alp_add_unittest name)
             FILES
             ${alpineapp_fonts_SOURCE_DIR}/Roboto/Roboto-Regular.ttf
         )
-        set(ALP_INSTALL_FILES
-            "$<TARGET_FILE_DIR:${name}>/${name}.js"
-            "$<TARGET_FILE_DIR:${name}>/${name}.wasm"
-            "$<TARGET_FILE_DIR:${name}>/${name}.html"
-            "$<TARGET_FILE_DIR:${name}>/qtloader.js"
+        install(
+            FILES
+                "$<TARGET_FILE_DIR:${name}>/${name}.js"
+                "$<TARGET_FILE_DIR:${name}>/${name}.wasm"
+                "$<TARGET_FILE_DIR:${name}>/${name}.html"
+                "$<TARGET_FILE_DIR:${name}>/qtloader.js"
+            DESTINATION
+                ${ALP_WWW_INSTALL_DIR})
+        install(
+            FILES "$<TARGET_FILE_DIR:${name}>/${name}.worker.js"
+            DESTINATION ${ALP_WWW_INSTALL_DIR}
+            OPTIONAL
         )
-
-        if (ALP_ENABLE_THREADING)
-            list(APPEND ALP_INSTALL_FILES "$<TARGET_FILE_DIR:${name}>/${name}.worker.js")
-        endif()
-        install(FILES ${ALP_INSTALL_FILES} DESTINATION ${ALP_WWW_INSTALL_DIR})
     elseif(ANDROID)
         add_qml_catch2_console_unittests(${name} ${ARGN})
     else()
         qt_add_executable(${name} ${ARGN} ${CMAKE_SOURCE_DIR}/unittests/main.cpp)
         target_link_libraries(${name} PUBLIC Catch2::Catch2)
     endif()
+    alp_configure_target(${name})
 endfunction()

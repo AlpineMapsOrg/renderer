@@ -54,6 +54,7 @@ struct RenderingContext::Data {
     // the ones below are on the scheduler thread.
     nucleus::tile::setup::GeometrySchedulerHolder geometry;
     nucleus::tile::setup::TextureSchedulerHolder ortho_texture;
+    nucleus::tile::setup::TextureSchedulerHolder cloud_texture;
     nucleus::map_label::setup::SchedulerHolder map_label;
     std::shared_ptr<nucleus::DataQuerier> data_querier;
     std::unique_ptr<nucleus::camera::Controller> camera_controller;
@@ -97,6 +98,9 @@ RenderingContext::RenderingContext(QObject* parent)
         auto map_label_service = std::make_unique<TileLoadService>("https://osm.cg.tuwien.ac.at/vector_tiles/poi_v1/", TilePattern::ZXY_yPointingSouth, "");
         m->map_label = nucleus::map_label::setup::scheduler(std::move(map_label_service), m->aabb_decorator, m->data_querier, m->scheduler_thread.get());
         m->scheduler_director->check_in("map_label", m->map_label.scheduler);
+        auto cloud_service = std::make_unique<TileLoadService>("http://127.0.0.1:8000/tiles/", TilePattern::ZYX_yPointingSouth, ".png");
+        m->cloud_texture = nucleus::tile::setup::texture_scheduler(std::move(cloud_service), m->aabb_decorator, m->scheduler_thread.get());
+        m->scheduler_director->check_in("cloud", m->cloud_texture.scheduler);
         // clang-format on
 
         m->scheduler_director->visit([](nucleus::tile::Scheduler* sch) { nucleus::utils::thread::async_call(sch, [sch]() { sch->read_disk_cache(); }); });

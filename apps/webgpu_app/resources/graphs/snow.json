@@ -1,0 +1,292 @@
+{
+    "connections": [
+        {
+            "from": {
+                "node": "Stitch Tiles",
+                "socket": "texture"
+            },
+            "to": {
+                "node": "Height Decode",
+                "socket": "encoded texture"
+            }
+        },
+        {
+            "from": {
+                "node": "Select Tiles",
+                "socket": "region aabb"
+            },
+            "to": {
+                "node": "Height Decode",
+                "socket": "region aabb"
+            }
+        },
+        {
+            "from": {
+                "node": "Select Tiles",
+                "socket": "region aabb"
+            },
+            "to": {
+                "node": "Normals",
+                "socket": "bounds"
+            }
+        },
+        {
+            "from": {
+                "node": "Height Decode",
+                "socket": "decoded texture"
+            },
+            "to": {
+                "node": "Normals",
+                "socket": "height texture"
+            }
+        },
+        {
+            "from": {
+                "node": "Snow",
+                "socket": "snow texture"
+            },
+            "to": {
+                "node": "Overlay",
+                "socket": "texture"
+            }
+        },
+        {
+            "from": {
+                "node": "Select Tiles",
+                "socket": "region aabb"
+            },
+            "to": {
+                "node": "Overlay",
+                "socket": "region aabb"
+            }
+        },
+        {
+            "from": {
+                "node": "Select Tiles",
+                "socket": "tile ids"
+            },
+            "to": {
+                "node": "Request Height",
+                "socket": "tile ids"
+            }
+        },
+        {
+            "from": {
+                "node": "GPX Input",
+                "socket": "region"
+            },
+            "to": {
+                "node": "Select Tiles",
+                "socket": "region"
+            }
+        },
+        {
+            "from": {
+                "node": "Select Tiles",
+                "socket": "region aabb"
+            },
+            "to": {
+                "node": "Snow",
+                "socket": "bounds"
+            }
+        },
+        {
+            "from": {
+                "node": "Normals",
+                "socket": "normal texture"
+            },
+            "to": {
+                "node": "Snow",
+                "socket": "normal texture"
+            }
+        },
+        {
+            "from": {
+                "node": "Height Decode",
+                "socket": "decoded texture"
+            },
+            "to": {
+                "node": "Snow",
+                "socket": "height texture"
+            }
+        },
+        {
+            "from": {
+                "node": "Select Tiles",
+                "socket": "tile ids"
+            },
+            "to": {
+                "node": "Stitch Tiles",
+                "socket": "tile ids"
+            }
+        },
+        {
+            "from": {
+                "node": "Request Height",
+                "socket": "tile data"
+            },
+            "to": {
+                "node": "Stitch Tiles",
+                "socket": "texture data"
+            }
+        }
+    ],
+    "format": "webigeo/node-graph",
+    "name": "snow_compute_graph",
+    "nodes": [
+        {
+            "enabled": true,
+            "name": "GPX Input",
+            "settings": {
+                "enable_caching": true,
+                "file_path": ":/gpx/breite_ries.gpx"
+            },
+            "type": "GPXTrackNode"
+        },
+        {
+            "enabled": true,
+            "name": "Height Decode",
+            "settings": {
+                "texture_usage": [
+                    "CopySrc",
+                    "CopyDst",
+                    "TextureBinding",
+                    "StorageBinding"
+                ]
+            },
+            "type": "HeightDecodeNode"
+        },
+        {
+            "enabled": true,
+            "name": "Normals",
+            "settings": {
+                "format": "RGBA8Unorm",
+                "usage": [
+                    "CopyDst",
+                    "TextureBinding",
+                    "StorageBinding"
+                ]
+            },
+            "type": "ComputeNormalsNode"
+        },
+        {
+            "enabled": true,
+            "name": "Overlay",
+            "settings": {
+                "copy": false
+            },
+            "type": "OverlayRenderNode"
+        },
+        {
+            "enabled": true,
+            "name": "Request Height",
+            "settings": {
+                "file_extension": ".png",
+                "tile_path": "https://alpinemaps.cg.tuwien.ac.at/tiles/at_dtm_alpinemaps/",
+                "url_pattern": "ZXY"
+            },
+            "type": "RequestTilesNode"
+        },
+        {
+            "enabled": true,
+            "name": "Select Tiles",
+            "settings": {
+                "zoomlevel": 15
+            },
+            "type": "SelectTilesNode"
+        },
+        {
+            "enabled": true,
+            "name": "Snow",
+            "settings": {
+                "altitude_blend": 200,
+                "altitude_variation": 200,
+                "angle_blend": 0,
+                "format": "RGBA8Unorm",
+                "max_angle": 45,
+                "min_altitude": 1000,
+                "min_angle": 0,
+                "usage": [
+                    "CopySrc",
+                    "CopyDst",
+                    "TextureBinding",
+                    "StorageBinding"
+                ]
+            },
+            "type": "ComputeSnowNode"
+        },
+        {
+            "enabled": true,
+            "name": "Stitch Tiles",
+            "settings": {
+                "stitch_inverted_y": true,
+                "texture_format": "RGBA8Uint",
+                "texture_usage": [
+                    "CopySrc",
+                    "CopyDst",
+                    "TextureBinding",
+                    "StorageBinding"
+                ],
+                "tile_has_border": true,
+                "tile_size": [
+                    65,
+                    65
+                ]
+            },
+            "type": "TileStitchNode"
+        }
+    ],
+    "ui": {
+        "nodes": {
+            "GPX Input": {
+                "position": [
+                    245.57504272460938,
+                    457.125
+                ]
+            },
+            "Height Decode": {
+                "position": [
+                    747.574951171875,
+                    393.375
+                ]
+            },
+            "Normals": {
+                "position": [
+                    898.574951171875,
+                    464.375
+                ]
+            },
+            "Overlay": {
+                "position": [
+                    1181.3748779296875,
+                    622.375
+                ]
+            },
+            "Request Height": {
+                "position": [
+                    472.6750183105469,
+                    325.375
+                ]
+            },
+            "Select Tiles": {
+                "position": [
+                    356.5750427246094,
+                    457.375
+                ]
+            },
+            "Snow": {
+                "position": [
+                    1038.4749755859375,
+                    535.375
+                ]
+            },
+            "Stitch Tiles": {
+                "position": [
+                    614.675048828125,
+                    352.375
+                ]
+            }
+        }
+    },
+    "version": 1
+}

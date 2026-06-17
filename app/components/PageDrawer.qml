@@ -31,6 +31,7 @@ Drawer {
 
     property color iconBgColorLeft: Material.backgroundColor
     property color iconBgColorRight: Qt.alpha(Material.accentColor, 0.2)
+    property real safeTop: SafeArea.margins.top
 
     property int selectedButtonId: -1
     function handleClick(button) {
@@ -55,7 +56,9 @@ Drawer {
         color:  Qt.alpha(Material.backgroundColor, 0.8)
     }
     topPadding: 0
-    bottomPadding: 0
+    leftPadding: SafeArea.margins.left
+    rightPadding: SafeArea.margins.right
+    bottomPadding: SafeArea.margins.bottom
 
     ColumnLayout {
         spacing: 0
@@ -67,8 +70,8 @@ Drawer {
         //
         Rectangle {
             z: 1
-            height: 120
             id: banner
+            Layout.preferredHeight: 120 + drawer.safeTop
             Layout.fillWidth: true
             Layout.alignment: Qt.AlignTop
             Rectangle {
@@ -79,38 +82,50 @@ Drawer {
                     GradientStop { position: 1.0; color: iconBgColorRight }
                 }
             }
-            Image {
-                id: logo_mark
-                source: _r + "icons/icon.png"
-                sourceSize: Qt.size (64, 64)
-                fillMode: Image.PreserveAspectFit
-                width: banner.width * 0.16
+
+            Item {
+                id: banner_content
                 anchors {
-                    left: banner.left
-                    verticalCenter: banner.verticalCenter
-                    margins: 16
-                }
-            }
-            Image {
-                id: logo_type
-                source: _r + "icons/logo_type_horizontal_short.png"
-                width: banner.width * 0.65
-                fillMode: Image.PreserveAspectFit
-                anchors {
-                    left: logo_mark.right
-                    verticalCenter: banner.verticalCenter
-                    leftMargin: banner.width * 0.02
-                }
-            }
-            Label {
-                color: "#1b1b1b"
-                opacity: 0.87
-                text: _alpine_renderer_version
-                font.pixelSize: 10
-                anchors {
-                    right: banner.right
+                    top: parent.top
+                    left: parent.left
+                    right: parent.right
                     bottom: banner.bottom
-                    margins: 8
+                    topMargin: drawer.safeTop
+                }
+
+                Image {
+                    id: logo_mark
+                    source: _r + "icons/icon.png"
+                    sourceSize: Qt.size (64, 64)
+                    fillMode: Image.PreserveAspectFit
+                    width: banner.width * 0.16
+                    anchors {
+                        left: banner_content.left
+                        verticalCenter: banner_content.verticalCenter
+                        margins: 16
+                    }
+                }
+                Image {
+                    id: logo_type
+                    source: _r + "icons/logo_type_horizontal_short.png"
+                    width: banner.width * 0.65
+                    fillMode: Image.PreserveAspectFit
+                    anchors {
+                        left: logo_mark.right
+                        verticalCenter: banner_content.verticalCenter
+                        leftMargin: banner.width * 0.02
+                    }
+                }
+                Label {
+                    color: "#1b1b1b"
+                    opacity: 0.87
+                    text: _alpine_renderer_version
+                    font.pixelSize: 10
+                    anchors {
+                        right: banner_content.right
+                        bottom: banner_content.bottom
+                        margins: 8
+                    }
                 }
             }
         }

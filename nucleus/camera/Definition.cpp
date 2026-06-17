@@ -55,6 +55,24 @@ Definition::Definition(const glm::dvec3& position,
     set_perspective_params(75, m_viewport_size, m_near_clipping);
 }
 
+Definition Definition::looking_down_at_aabb(const geometry::Aabb<3, double>& aabb, const glm::uvec2& viewport_size)
+{
+    const auto aabb_size = aabb.size();
+    Definition definition = { aabb.centre() + glm::dvec3 { 0, 0, std::max(aabb_size.x, aabb_size.y) }, aabb.centre() };
+    definition.set_viewport_size(viewport_size);
+    return definition;
+}
+
+Definition Definition::looking_down_at_aabb(const geometry::Aabb<2, double>& aabb, const glm::uvec2& viewport_size)
+{
+    const glm::dvec2 centre = (aabb.min + aabb.max) / 2.0;
+    const auto size_x = aabb.max.x - aabb.min.x;
+    const auto size_y = aabb.max.y - aabb.min.y;
+    Definition definition = { glm::dvec3 { centre.x, centre.y, std::max(size_x, size_y) }, { centre.x, centre.y, 0 } };
+    definition.set_viewport_size(viewport_size);
+    return definition;
+}
+
 glm::dmat4 Definition::camera_matrix() const
 {
     return glm::inverse(m_camera_transformation);

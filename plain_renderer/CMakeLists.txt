@@ -29,20 +29,27 @@ set_target_properties(plain_renderer PROPERTIES
 target_link_libraries(plain_renderer PUBLIC gl_engine)
 target_include_directories(plain_renderer PRIVATE .)
 
+alp_configure_target(plain_renderer)
 
 if (EMSCRIPTEN)
     message(NOTICE "ALP_WWW_INSTALL_DIR = ${ALP_WWW_INSTALL_DIR}")
     configure_file(../site/mascot.png mascot.png COPYONLY)
     set(ALP_INSTALL_FILES
-        "$<TARGET_FILE_DIR:plain_renderer>/plain_renderer.js"
-        "$<TARGET_FILE_DIR:plain_renderer>/plain_renderer.wasm"
-        "$<TARGET_FILE_DIR:plain_renderer>/plain_renderer.html"
-        "$<TARGET_FILE_DIR:plain_renderer>/qtloader.js"
-        "${CMAKE_SOURCE_DIR}/site/mascot.png"
     )
-    if (ALP_ENABLE_THREADING)
-        list(APPEND ALP_INSTALL_FILES "$<TARGET_FILE_DIR:plain_renderer>/plain_renderer.worker.js")
-    endif()
-    install(FILES ${ALP_INSTALL_FILES} DESTINATION ${ALP_WWW_INSTALL_DIR})
+    install(
+        FILES
+            "$<TARGET_FILE_DIR:plain_renderer>/plain_renderer.js"
+            "$<TARGET_FILE_DIR:plain_renderer>/plain_renderer.wasm"
+            "$<TARGET_FILE_DIR:plain_renderer>/plain_renderer.html"
+            "$<TARGET_FILE_DIR:plain_renderer>/qtloader.js"
+            "${CMAKE_SOURCE_DIR}/site/mascot.png"
+        DESTINATION
+            ${ALP_WWW_INSTALL_DIR}
+    )
+    install(
+        FILES "$<TARGET_FILE_DIR:plain_renderer>/plain_renderer.worker.js"
+        DESTINATION ${ALP_WWW_INSTALL_DIR}
+        OPTIONAL
+    )
 
 endif()

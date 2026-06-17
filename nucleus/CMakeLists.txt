@@ -19,7 +19,7 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #############################################################################
 
-project(alpine-renderer-nucleus LANGUAGES CXX)
+project(alpine-renderer-nucleus LANGUAGES C CXX)
 
 alp_add_git_repository(stb_slim URL https://github.com/AlpineMapsOrgDependencies/stb_slim.git COMMITISH 547fade2a12793e1bea4733d59646b4f436e25a4)
 alp_add_git_repository(radix URL https://github.com/AlpineMapsOrg/radix.git COMMITISH e939e10c5a40866950b68a0bc04c851bcfcf5dad NOT_SYSTEM)
@@ -29,6 +29,31 @@ if(ALP_ENABLE_LABELS)
     alp_add_git_repository(vector_tiles URL https://github.com/AlpineMapsOrg/vector-tile.git COMMITISH faba88257716c4bc01ebd44d8b8b98f711ecb78c)
 endif()
 alp_add_git_repository(goofy_tc URL https://github.com/AlpineMapsOrgDependencies/Goofy_slim.git COMMITISH 13b228784960a6227bb6ca704ff34161bbac1b91 DO_NOT_ADD_SUBPROJECT)
+set(KTX_FEATURE_TESTS OFF CACHE BOOL "" FORCE)
+set(KTX_FEATURE_TOOLS OFF CACHE BOOL "" FORCE)
+set(KTX_FEATURE_DOC OFF CACHE BOOL "" FORCE)
+set(KTX_FEATURE_JS OFF CACHE BOOL "" FORCE)
+set(CMAKE_INSTALL_BINDIR_SAVED ${CMAKE_INSTALL_BINDIR})
+set(CMAKE_INSTALL_BINDIR "." CACHE STRING "" FORCE)
+alp_add_git_repository(libktx URL https://github.com/KhronosGroup/KTX-Software.git COMMITISH 952d74f1d53452e4e976a2b7698ff7af6c13a9ed)
+set(CMAKE_INSTALL_BINDIR ${CMAKE_INSTALL_BINDIR_SAVED} CACHE STRING "" FORCE)
+if (EMSCRIPTEN)
+    target_compile_options(ktx PUBLIC -pthread)
+    target_link_options(ktx PUBLIC -pthread)
+endif()
+if (NOT EMSCRIPTEN)
+    # NOTE: KTX builds into an additional Release/Debug directory. The following
+    # moves the builds directory for the targets ktx and ktx_read to the binary dir
+    foreach(ktx_target ktx ktx_read)
+        if (TARGET ${ktx_target})
+            set_target_properties(${ktx_target} PROPERTIES
+                RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}"
+                RUNTIME_OUTPUT_DIRECTORY_DEBUG "${CMAKE_BINARY_DIR}"
+                RUNTIME_OUTPUT_DIRECTORY_RELEASE "${CMAKE_BINARY_DIR}"
+            )
+        endif()
+    endforeach()
+endif()
 
 add_library(zppbits INTERFACE)
 target_include_directories(zppbits SYSTEM INTERFACE ${zppbits_SOURCE_DIR})
@@ -62,6 +87,7 @@ qt_add_library(nucleus STATIC
     AbstractRenderWindow.h
     event_parameter.h
     Raster.h
+    Raster3D.h
     srs.h srs.cpp
     tile/utils.h tile/utils.cpp
     tile/DrawListGenerator.h tile/DrawListGenerator.cpp
@@ -99,19 +125,24 @@ qt_add_library(nucleus STATIC
     timing/TimerInterface.h timing/TimerInterface.cpp
     timing/CpuTimer.h timing/CpuTimer.cpp
     utils/ColourTexture.h utils/ColourTexture.cpp
+    utils/ColourTexture3D.h utils/ColourTexture3D.cpp
     EngineContext.h EngineContext.cpp
     track/Manager.h track/Manager.cpp
     track/GPX.cpp
     track/GPX.h
     utils/image_loader.h utils/image_loader.cpp
     utils/image_writer.h utils/image_writer.cpp
+    utils/geopng_decoder.h utils/geopng_decoder.cpp
     utils/thread.h
     camera/RecordedAnimation.h camera/RecordedAnimation.cpp
     camera/recording.h camera/recording.cpp
     tile/setup.h
+    tile/GpuTileId.h tile/GpuTileId.cpp
     tile/GpuArrayHelper.h tile/GpuArrayHelper.cpp
     tile/TextureScheduler.h tile/TextureScheduler.cpp
+    tile/Texture3DScheduler.h tile/Texture3DScheduler.cpp
     tile/GeometryScheduler.h tile/GeometryScheduler.cpp
+    utils/easing.h
     utils/error.h
     utils/lang.h
     tile/SchedulerDirector.h tile/SchedulerDirector.cpp
@@ -148,7 +179,7 @@ endif()
 
 target_include_directories(nucleus PUBLIC ${CMAKE_SOURCE_DIR})
 # Please keep Qt::Gui outside the nucleus. If you need it optional via a cmake based switch
-target_link_libraries(nucleus PUBLIC radix Qt::Core Qt::Network zppbits tl_expected nucleus_version stb_slim goofy_tc)
+target_link_libraries(nucleus PUBLIC radix Qt::Core Qt::Network zppbits tl_expected nucleus_version stb_slim goofy_tc ktx)
 
 qt_add_resources(nucleus "icons"
     PREFIX "/map_icons"
