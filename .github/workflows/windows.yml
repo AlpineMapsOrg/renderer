@@ -63,6 +63,9 @@ jobs:
         -DCMAKE_BUILD_TYPE=Debug
         -DALP_ENABLE_POSITIONING=false
         -DALP_ENABLE_ASSERTS=ON
+        -DALP_WEBGPU_ENGINE=OFF
+        -DALP_WEBGPU_APP=OFF
+        -DALP_UNITTESTS=ON
         -B ./build
 
     - name: Build
