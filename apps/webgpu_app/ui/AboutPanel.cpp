@@ -24,20 +24,8 @@
 
 namespace webgpu_app {
 
-void AboutPanel::ready()
-{
-#ifndef QT_DEBUG
-    m_open_disclaimer = true;
-#endif
-}
-
 void AboutPanel::draw()
 {
-    if (m_open_disclaimer) {
-        ImGui::OpenPopup("research_preview");
-        m_open_disclaimer = false;
-    }
-    draw_disclaimer_popup();
     draw_copyright_box();
     draw_about_popup();
 }
@@ -170,34 +158,5 @@ void AboutPanel::draw_about_popup()
     }
 }
 
-void AboutPanel::draw_disclaimer_popup()
-{
-    ImGui::SetNextWindowPos(ImGui::GetMainViewport()->GetCenter(), ImGuiCond_Appearing, ImVec2(0.5f, 0.5f));
-    ImGui::SetNextWindowSize(ImVec2(365, 208));
-
-    if (ImGui::BeginPopupModal("research_preview", NULL, ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoResize)) {
-        const char* text = "WARNING: RESEARCH PREVIEW";
-        auto windowWidth = ImGui::GetWindowSize().x;
-        auto textWidth = ImGui::CalcTextSize(text).x;
-        ImGui::SetCursorPosX((windowWidth - textWidth) * 0.5f);
-        ImGui::Text("%s", text);
-
-        ImGui::Spacing();
-        ImGui::TextWrapped(
-            "The avalanche simulation and visualization is part of a research project and should not be used as a basis for decision-making during "
-            "actual route planning.");
-        ImGui::Spacing();
-        ImGui::TextWrapped("Simulations always contain uncertainty and their results\n"
-                           "may differ drastically from reality in some cases.");
-        ImGui::Spacing();
-        ImGui::TextWrapped("We exclude liability for any accidents or damages in connection to this service.");
-        ImGui::Spacing();
-        ImGui::SetCursorPosX(205);
-        if (ImGui::Button("OK", ImVec2(150, 0))) {
-            ImGui::CloseCurrentPopup();
-        }
-        ImGui::EndPopup();
-    }
-}
 
 } // namespace webgpu_app

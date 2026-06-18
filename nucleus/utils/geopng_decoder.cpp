@@ -26,8 +26,8 @@
 #include <algorithm>
 #include <array>
 #include <cstdint>
-#include <format>
 #include <limits>
+#include <string>
 
 namespace nucleus::utils::geopng {
 
@@ -56,7 +56,7 @@ tl::expected<radix::geometry::Aabb<2, double>, std::string> load_aabb_from_file(
 
     QFile aabb_file(QString::fromStdString(path_str));
     if (!aabb_file.open(QIODevice::ReadOnly)) {
-        return tl::make_unexpected(std::format("Failed to open file {}", path_str));
+        return tl::make_unexpected("Failed to open file " + path_str);
     }
     QTextStream file_contents(&aabb_file);
 
@@ -66,16 +66,16 @@ tl::expected<radix::geometry::Aabb<2, double>, std::string> load_aabb_from_file(
         QString line = file_contents.readLine();
         contents[i] = line.toFloat(&float_conversion_ok);
         if (!float_conversion_ok) {
-            return tl::make_unexpected(std::format("Failed to parse file {}: Could not convert \"{}\" to float", path_str, line.toStdString()));
+            return tl::make_unexpected("Failed to parse file " + path_str + ": Could not convert \"" + line.toStdString() + "\" to float");
         }
     }
 
     if (contents[0] >= contents[2]) {
-        return tl::make_unexpected(std::format("Failed to parse file {}: x_min ({}) must not be >= x_max ({})", path_str, contents[0], contents[2]));
+        return tl::make_unexpected("Failed to parse file " + path_str + ": x_min (" + std::to_string(contents[0]) + ") must not be >= x_max (" + std::to_string(contents[2]) + ")");
     }
 
     if (contents[1] >= contents[3]) {
-        return tl::make_unexpected(std::format("Failed to parse file {}: y_min ({}) must not be >= y_max ({})", path_str, contents[1], contents[3]));
+        return tl::make_unexpected("Failed to parse file " + path_str + ": y_min (" + std::to_string(contents[1]) + ") must not be >= y_max (" + std::to_string(contents[3]) + ")");
     }
 
     return radix::geometry::Aabb<2, double> { { contents[0], contents[1] }, { contents[2], contents[3] } };

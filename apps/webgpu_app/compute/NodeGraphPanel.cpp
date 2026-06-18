@@ -57,7 +57,13 @@ void NodeGraphPanel::attach_graph(std::unique_ptr<nodes::NodeGraph> graph)
     m_owned_graph = std::move(graph);
     m_node_graph = m_owned_graph.get();
 
-    QObject::connect(m_node_graph, &nodes::NodeGraph::run_completed, m_context, [this](webgpu_compute::GraphRunContext) { m_context->request_redraw(); });
+    QObject::connect(m_node_graph, &nodes::NodeGraph::run_completed, m_context, [this](webgpu_compute::GraphRunContext) {
+        if (!m_pending_first_run_notice.empty()) {
+            m_notice_state = { true, std::move(m_pending_first_run_notice) };
+            m_pending_first_run_notice.clear();
+        }
+        m_context->request_redraw();
+    });
     QObject::connect(m_node_graph, &nodes::NodeGraph::run_failed, m_context, [this](nodes::GraphRunFailureInfo info) {
         qWarning() << "graph run failed. " << info.node_name() << ": " << info.node_run_failure_info().message();
         m_error_state.text = "Execution of pipeline failed.\n\nNode \"" + info.node_name() + "\" reported \"" + info.node_run_failure_info().message() + "\"";
@@ -105,7 +111,11 @@ void NodeGraphPanel::import_graph_json(const QByteArray& data, const std::string
         return;
     }
 
-    const QJsonObject ui_nodes = doc.object()["ui"].toObject()["nodes"].toObject();
+    const QJsonObject root = doc.object();
+    const QJsonObject ui_nodes = root["ui"].toObject()["nodes"].toObject();
+
+    const QString notice = root["first_run_notice"].toString();
+    m_pending_first_run_notice = notice.isEmpty() ? std::string{} : notice.toStdString();
 
     attach_graph(std::move(*result));
 
@@ -483,6 +493,7 @@ void NodeGraphPanel::draw()
 
     ImGuiManager::FloatingToggleButton("###ToggleGraphRenderer", ICON_FA_NETWORK_WIRED, "Toggle compute graph editor", &m_editor_visible);
     render_error_modal();
+    render_first_run_notice_modal();
     render_save_dialog();
     render_open_dialog();
 
@@ -718,6 +729,29 @@ void NodeGraphPanel::render_error_modal()
         if (ImGui::Button("OK", ImVec2(120, 0))) {
             ImGui::CloseCurrentPopup();
         }
+        ImGui::EndPopup();
+    }
+}
+
+void NodeGraphPanel::render_first_run_notice_modal()
+{
+    if (m_notice_state.should_open) {
+        ImGui::OpenPopup("first_run_notice");
+        m_notice_state.should_open = false;
+    }
+
+    ImGui::SetNextWindowPos(ImGui::GetMainViewport()->GetCenter(), ImGuiCond_Appearing, ImVec2(0.5f, 0.5f));
+    ImGui::SetNextWindowSize(ImVec2(400, 0));
+
+    if (ImGui::BeginPopupModal("first_run_notice", nullptr, ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_AlwaysAutoResize)) {
+        ImGui::PushTextWrapPos(ImGui::GetContentRegionAvail().x);
+        ImGui::TextWrapped("%s", m_notice_state.text.c_str());
+        ImGui::PopTextWrapPos();
+        ImGui::Spacing();
+        const float button_width = 150.0f;
+        ImGui::SetCursorPosX(ImGui::GetContentRegionAvail().x - button_width + ImGui::GetStyle().WindowPadding.x);
+        if (ImGui::Button("OK", ImVec2(button_width, 0)))
+            ImGui::CloseCurrentPopup();
         ImGui::EndPopup();
     }
 }

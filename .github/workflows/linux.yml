@@ -86,8 +86,8 @@ jobs:
         CXX: ${{ matrix.CXX }}
         CMAKE_PREFIX_PATH: ${{env.QT_ROOT_DIR}}/lib/cmake
       run: >
-        cmake -G Ninja 
-        -DCMAKE_BUILD_TYPE=${{matrix.BUILD_TYPE}} 
+        cmake -G Ninja
+        -DCMAKE_BUILD_TYPE=${{matrix.BUILD_TYPE}}
         -DALP_ENABLE_ASSERTS=ON
         -DALP_ENABLE_ADDRESS_SANITIZER=ON
         -DALP_ENABLE_APP_SHUTDOWN_AFTER_60S=ON

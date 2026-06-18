@@ -48,7 +48,7 @@ void LoadTextureNode::run_impl()
     auto path = QString::fromStdString(m_settings.file_path);
     tl::expected<nucleus::Raster<glm::u8vec4>, QString> expected_image = nucleus::utils::image_loader::rgba8(path);
     if (!expected_image.has_value()) {
-        fail_run(std::format("Failed to load image file at {}: {}", m_settings.file_path, expected_image.error().toStdString()));
+        fail_run("Failed to load image file at " + m_settings.file_path + ": " + expected_image.error().toStdString());
         return;
     }
 

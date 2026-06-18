@@ -24,7 +24,7 @@
 #include <imgui.h>
 #include <imnodes.h>
 #include <iomanip>
-#include <qDebug>
+#include <QDebug>
 
 namespace webgpu_app {
 namespace nodes = webgpu_compute::nodes;

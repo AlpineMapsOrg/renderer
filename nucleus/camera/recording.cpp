@@ -18,11 +18,19 @@
 
 #include "recording.h"
 
+// NOTE: This smoothing code was a last minute addition for the VIS conference to
+// have smooth camera looped animations. It does smooth the the camera definitions
+// directly which end up in weird shit if they are far apart from each other. A correct
+// way would probably to decompose it and calculate the inbetween frames with quaternions
+// I'll still leave this code here but with the:
+// TODO: Implement actual/correct camera smoothing
+#define SIMPLE_SMOOTHING_ENABLED 0
+
+#if SIMPLE_SMOOTHING_ENABLED
 #include <glm/gtx/matrix_decompose.hpp>
 #include <glm/gtx/quaternion.hpp>
 #include <glm/gtx/transform.hpp>
-
-#include <QDebug>
+#endif
 
 nucleus::camera::recording::Device::Device() { }
 
@@ -51,6 +59,7 @@ void nucleus::camera::recording::Device::stop()
 {
     m_enabled = false;
 
+#if SIMPLE_SMOOTHING_ENABLED
     // --- Configuration constants ---
     const bool REMOVE_DUPLICATES = true;
     const double DUPLICATE_EPSILON = 1e-6;
@@ -155,4 +164,5 @@ void nucleus::camera::recording::Device::stop()
 
         m_frames.swap(smoothed);
     }
+#endif
 }

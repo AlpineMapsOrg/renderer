@@ -70,6 +70,7 @@ private:
     };
 
     void render_error_modal();
+    void render_first_run_notice_modal();
 
     webgpu_engine::Context* m_context = nullptr;
     std::unique_ptr<nodes::NodeGraph> m_owned_graph; // the panel owns the active compute graph
@@ -85,6 +86,13 @@ private:
         std::string text;
     };
     ErrorModalState m_error_state;
+
+    struct NoticeModalState {
+        bool should_open = false;
+        std::string text;
+    };
+    NoticeModalState m_notice_state;
+    std::string m_pending_first_run_notice;
 
     ImVec2 m_window_size = ImVec2(0, 0);
 

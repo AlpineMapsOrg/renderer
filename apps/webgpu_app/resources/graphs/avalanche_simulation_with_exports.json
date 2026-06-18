@@ -341,6 +341,7 @@
             }
         }
     ],
+    "first_run_notice": "WARNING: RESEARCH PREVIEW\n\nThe avalanche simulation and visualization is part of a research project and should not be used as a basis for decision-making during actual route planning.\n\nSimulations always contain uncertainty and their results may differ drastically from reality in some cases.\n\nWe exclude liability for any accidents or damages in connection to this service.",
     "format": "webigeo/node-graph",
     "name": "trajectories_with_export_compute_graph",
     "nodes": [

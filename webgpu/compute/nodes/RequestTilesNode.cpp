@@ -106,7 +106,7 @@ void RequestTilesNode::check_progress_and_emit_signals()
     // when all requests are finished (either failed or successfully)
     if (m_num_signals_received == m_num_tiles_requested) {
         if (m_num_tiles_unavailable > 0) {
-            fail_run(std::format("failed to load {} tiles from {}", m_num_tiles_unavailable, m_settings.tile_path));
+            fail_run("failed to load " + std::to_string(m_num_tiles_unavailable) + " tiles from " + m_settings.tile_path);
         } else {
             complete_run();
         }

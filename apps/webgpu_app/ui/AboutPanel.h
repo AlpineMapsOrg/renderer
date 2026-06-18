@@ -25,16 +25,13 @@ class AboutPanel : public ImGuiPanel {
 public:
     AboutPanel() = default;
 
-    void ready() override;
     void draw() override;
 
 private:
     bool m_show_about_popup = false;
-    bool m_open_disclaimer = false;
 
     void draw_copyright_box();
     void draw_about_popup();
-    void draw_disclaimer_popup();
 };
 
 } // namespace webgpu_app
