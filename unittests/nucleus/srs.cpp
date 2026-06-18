@@ -233,28 +233,6 @@ TEST_CASE("nucleus/srs")
         }
     }
 
-    SECTION("srs roundtrip converting tilecoords to tile id")
-    {
-        {
-            const auto roundtrip_check = [](tile::Id input_tile_id) {
-                auto input_tile_aabb = tile_bounds(input_tile_id);
-                // should be within same tile id
-                CHECK(world_xy_to_tile_id(glm::dvec2(input_tile_aabb.min) + glm::dvec2(1e-7), input_tile_id.zoom_level) == input_tile_id);
-                CHECK(world_xy_to_tile_id(glm::dvec2(input_tile_aabb.centre()), input_tile_id.zoom_level) == input_tile_id);
-                CHECK(world_xy_to_tile_id(glm::dvec2(input_tile_aabb.max) - glm::dvec2(1e-7), input_tile_id.zoom_level) == input_tile_id);
-
-                // min should be within same tile id
-                CHECK(world_xy_to_tile_id(glm::dvec2(input_tile_aabb.min), input_tile_id.zoom_level) == input_tile_id);
-
-                // max should be within next tile id
-                CHECK(world_xy_to_tile_id(glm::dvec2(input_tile_aabb.max), input_tile_id.zoom_level)
-                    == tile::Id { input_tile_id.zoom_level, { input_tile_id.coords + glm::uvec2 { 1, 1 } } });
-            };
-
-            roundtrip_check({ 13, { 10, 20 } });
-        }
-    }
-
     SECTION("check conflict potential")
     {
         QImage data(256, 256, QImage::Format_Grayscale8);

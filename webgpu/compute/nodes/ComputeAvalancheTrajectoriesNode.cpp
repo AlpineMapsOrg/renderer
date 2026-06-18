@@ -182,13 +182,10 @@ void ComputeAvalancheTrajectoriesNode::run_impl()
     // assert input textures have same size, otherwise fail run
     if (input_width != height_texture.texture().width() || input_height != height_texture.texture().height()
         || input_width != release_point_texture.texture().width() || input_height != release_point_texture.texture().height()) {
-        fail_run(std::format("failed to compute trajectories: input texture sizes must match (normals: {}x{}, heights: {}x{}, release points: {}x{})",
-            input_width,
-            input_height,
-            height_texture.texture().width(),
-            height_texture.texture().height(),
-            release_point_texture.texture().width(),
-            release_point_texture.texture().height()));
+        fail_run("failed to compute trajectories: input texture sizes must match (normals: " + std::to_string(input_width) + "x" + std::to_string(input_height)
+            + ", heights: " + std::to_string(height_texture.texture().width()) + "x" + std::to_string(height_texture.texture().height())
+            + ", release points: " + std::to_string(release_point_texture.texture().width()) + "x"
+            + std::to_string(release_point_texture.texture().height()) + ")");
         return;
     }
 

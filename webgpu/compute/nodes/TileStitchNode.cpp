@@ -81,8 +81,8 @@ void TileStitchNode::run_impl()
 
     // Check if inside bounds
     if (size_pixels.x > MAX_STITCHED_IMAGE_SIZE || size_pixels.y > MAX_STITCHED_IMAGE_SIZE) {
-        fail_run(std::format(
-            "Stitched image size would exceeds maximum size of {}x{} pixel for zoom level {}", MAX_STITCHED_IMAGE_SIZE, MAX_STITCHED_IMAGE_SIZE, zl));
+        fail_run("Stitched image size would exceeds maximum size of " + std::to_string(MAX_STITCHED_IMAGE_SIZE) + "x"
+            + std::to_string(MAX_STITCHED_IMAGE_SIZE) + " pixel for zoom level " + std::to_string(zl));
         return;
     }
 

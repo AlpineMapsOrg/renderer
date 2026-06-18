@@ -20,6 +20,7 @@
 #include "CloudsManager.h"
 
 #include <QDebug>
+#include <cstdio>
 #include <QJsonArray>
 #include <QJsonDocument>
 #include <QJsonObject>
@@ -32,7 +33,9 @@ std::string TileSetInfo::format_string() const
     if (id.isEmpty())
         return "invalid";
     double mib = size / (1024.0 * 1024.0);
-    return std::format("{:02d}.{:02d}.{:04d} {:02d}:00 (+{:02d}, {:.0f} MiB)", date.day, date.month, date.year, date.hour, step, mib);
+    char buf[64];
+    std::snprintf(buf, sizeof(buf), "%02d.%02d.%04d %02d:00 (+%02d, %.0f MiB)", date.day, date.month, date.year, date.hour, step, mib);
+    return std::string(buf);
 }
 
 APIService::APIService(QObject* parent)

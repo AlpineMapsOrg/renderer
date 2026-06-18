@@ -92,8 +92,8 @@ void BufferToTextureNode::run_impl()
 
     // assert input textures have same size, otherwise fail run
     if (input_raster_dimensions.x > MAX_TEXTURE_RESOLUTION || input_raster_dimensions.y > MAX_TEXTURE_RESOLUTION) {
-        fail_run(std::format(
-            "cannot create texture: texture dimensions ({}x{}) exceed {}", input_raster_dimensions.x, input_raster_dimensions.y, MAX_TEXTURE_RESOLUTION));
+        fail_run("cannot create texture: texture dimensions (" + std::to_string(input_raster_dimensions.x) + "x"
+            + std::to_string(input_raster_dimensions.y) + ") exceed " + std::to_string(MAX_TEXTURE_RESOLUTION));
         return;
     }
 
