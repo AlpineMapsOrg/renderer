@@ -152,6 +152,7 @@ jobs:
           -DCMAKE_BUILD_TYPE=Release \
           -DALP_ENABLE_ASSERTS=ON \
           -DALP_ENABLE_GL_ENGINE=ON \
+          -DALP_ENABLE_LABELS=ON \
           -DALP_WEBGPU_ENGINE=OFF \
           -DALP_WEBGPU_APP=OFF \
           -DQT_ANDROID_SIGN_APK=ON \
@@ -298,6 +299,7 @@ jobs:
         -DALP_WWW_INSTALL_DIR=$INSTALL_DIR
         -DFMT_INSTALL=OFF
         -DALP_ENABLE_GL_ENGINE=ON
+        -DALP_ENABLE_LABELS=ON
         -DALP_WEBGPU_ENGINE=OFF
         -DALP_WEBGPU_APP=OFF
         ${{ matrix.cmakeflags }}

@@ -66,6 +66,7 @@ jobs:
         -DALP_WEBGPU_ENGINE=OFF
         -DALP_WEBGPU_APP=OFF
         -DALP_UNITTESTS=ON
+        -DALP_ENABLE_LABELS=ON
         -B ./build
 
     - name: Build
