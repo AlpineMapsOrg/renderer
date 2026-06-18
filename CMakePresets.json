@@ -23,7 +23,12 @@
       "cacheVariables": {
         "CMAKE_C_COMPILER": "cl.exe",
         "CMAKE_CXX_COMPILER": "cl.exe",
-        "Qt6_DIR": "C:/Qt/6.10.1/msvc2022_64/lib/cmake/Qt6"
+        "Qt6_DIR": "C:/Qt/6.10.1/msvc2022_64/lib/cmake/Qt6",
+        "ALP_ENABLE_GL_ENGINE": "OFF",
+        "ALP_ENABLE_LABELS": "OFF",
+        "ALP_UNITTESTS": "OFF",
+        "ALP_WEBGPU_ENGINE": "ON",
+        "ALP_WEBGPU_APP": "ON"
       },
       "condition": {
         "type": "equals",
@@ -89,7 +94,9 @@
       "inherits": "emscripten-base",
       "cacheVariables": {
         "CMAKE_BUILD_TYPE": "Debug",
-        "CMAKE_CXX_FLAGS": "-DQT_DEBUG"
+        "CMAKE_CXX_FLAGS": "-DQT_DEBUG",
+        "ALP_ENABLE_THREADING": "ON",
+        "ALP_ENABLE_DEV_TOOLS": "ON"
       }
     },
     {
@@ -98,7 +105,9 @@
       "description": "Release build for WebAssembly using Emscripten",
       "inherits": "emscripten-base",
       "cacheVariables": {
-        "CMAKE_BUILD_TYPE": "Release"
+        "CMAKE_BUILD_TYPE": "Release",
+        "ALP_ENABLE_THREADING": "ON",
+        "ALP_ENABLE_DEV_TOOLS": "ON"
       }
     },
     {
@@ -109,6 +118,8 @@
       "cacheVariables": {
         "CMAKE_BUILD_TYPE": "Release",
         "CMAKE_CXX_FLAGS": "-DQT_NO_DEBUG_OUTPUT -DQT_NO_WARNING_OUTPUT -DQT_NO_INFO_OUTPUT",
+        "ALP_ENABLE_THREADING": "ON",
+        "ALP_ENABLE_DEV_TOOLS": "ON",
         "ALP_ENABLE_WGSL_MINIFICATION": "ON"
       }
     }
