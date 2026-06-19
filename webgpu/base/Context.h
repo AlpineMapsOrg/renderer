@@ -36,6 +36,8 @@ public:
     WGPUAdapter adapter() const { return m_adapter; }
     WGPUSurface surface() const { return m_surface; }
     WGPUQueue queue() const { return m_queue; }
+    WGPUTextureFormat surface_texture_format() const { return m_surface_texture_format; }
+    void set_surface_texture_format(WGPUTextureFormat format) { m_surface_texture_format = format; }
 
     void init(WGPUInstance instance, WGPUDevice device, WGPUAdapter adapter, WGPUSurface surface, WGPUQueue queue)
     {
@@ -55,6 +57,7 @@ private:
     WGPUAdapter m_adapter = nullptr;
     WGPUSurface m_surface = nullptr;
     WGPUQueue m_queue = nullptr;
+    WGPUTextureFormat m_surface_texture_format = WGPUTextureFormat_BGRA8Unorm;
 
     RenderResourceRegistry m_registry;
 };

@@ -83,7 +83,7 @@ void TrackRenderer::init(webgpu::Context& ctx)
         WGPUColorTargetState color_target_state {};
         color_target_state.blend = &blend_state;
         color_target_state.writeMask = WGPUColorWriteMask_All;
-        color_target_state.format = WGPUTextureFormat_BGRA8Unorm;
+        color_target_state.format = m_ctx->surface_texture_format();
 
         WGPUFragmentState fragment_state {};
         fragment_state.module = reg.shader("render_lines").handle();
