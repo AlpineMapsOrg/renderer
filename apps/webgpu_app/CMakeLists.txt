@@ -117,6 +117,8 @@ endif()
 
 # Copy necessary DLLs to the output directory on Windows
 if (WIN32 AND NOT EMSCRIPTEN)
+    include("${CMAKE_SOURCE_DIR}/cmake/alp_find_dawn_dxc.cmake")
+
     # Copy SDL2 DLL
     if (EXISTS "${CMAKE_SOURCE_DIR}/${ALP_EXTERN_DIR}/sdl/bin/SDL2.dll")
         add_custom_command(TARGET webgpu_app POST_BUILD
@@ -127,73 +129,7 @@ if (WIN32 AND NOT EMSCRIPTEN)
         )
     endif()
 
-    set(ALP_DAWN_DXC_DIR "" CACHE PATH "Directory containing dxcompiler.dll and dxil.dll for Dawn's DirectX backend")
-    set(ALP_DAWN_DXC_HINT_DIRS)
-
-    if (ALP_DAWN_DXC_DIR)
-        list(APPEND ALP_DAWN_DXC_HINT_DIRS "${ALP_DAWN_DXC_DIR}")
-        set(ALP_DAWN_DXCOMPILER_DLL "${ALP_DAWN_DXC_DIR}/dxcompiler.dll" CACHE FILEPATH "Path to dxcompiler.dll for Dawn's DirectX backend" FORCE)
-        set(ALP_DAWN_DXIL_DLL "${ALP_DAWN_DXC_DIR}/dxil.dll" CACHE FILEPATH "Path to dxil.dll for Dawn's DirectX backend" FORCE)
-    else()
-        if (CMAKE_GENERATOR_PLATFORM MATCHES "^[Aa][Rr][Mm]64$" OR CMAKE_SYSTEM_PROCESSOR MATCHES "^(ARM64|arm64|aarch64)$")
-            set(ALP_DAWN_DXC_ARCH_DIRS arm64 x64 x86)
-        elseif (CMAKE_SIZEOF_VOID_P EQUAL 8)
-            set(ALP_DAWN_DXC_ARCH_DIRS x64 arm64 x86)
-        else()
-            set(ALP_DAWN_DXC_ARCH_DIRS x86 x64 arm64)
-        endif()
-
-        set(ALP_DAWN_DXC_SDK_ROOTS "$ENV{WindowsSdkDir}")
-        set(ALP_DAWN_DXC_PROGRAM_FILES_X86_ENV "ProgramFiles(x86)")
-        if (DEFINED ENV{${ALP_DAWN_DXC_PROGRAM_FILES_X86_ENV}})
-            list(APPEND ALP_DAWN_DXC_SDK_ROOTS "$ENV{${ALP_DAWN_DXC_PROGRAM_FILES_X86_ENV}}/Windows Kits/10")
-        endif()
-
-        foreach(ALP_DAWN_DXC_SDK_ROOT IN LISTS ALP_DAWN_DXC_SDK_ROOTS)
-            if (ALP_DAWN_DXC_SDK_ROOT)
-                file(TO_CMAKE_PATH "${ALP_DAWN_DXC_SDK_ROOT}" ALP_DAWN_DXC_SDK_ROOT)
-                file(GLOB ALP_DAWN_DXC_SDK_BIN_DIRS LIST_DIRECTORIES true "${ALP_DAWN_DXC_SDK_ROOT}/bin/10.*")
-                list(SORT ALP_DAWN_DXC_SDK_BIN_DIRS COMPARE NATURAL ORDER DESCENDING)
-                foreach(ALP_DAWN_DXC_SDK_BIN_DIR IN LISTS ALP_DAWN_DXC_SDK_BIN_DIRS)
-                    foreach(ALP_DAWN_DXC_ARCH_DIR IN LISTS ALP_DAWN_DXC_ARCH_DIRS)
-                        list(APPEND ALP_DAWN_DXC_HINT_DIRS "${ALP_DAWN_DXC_SDK_BIN_DIR}/${ALP_DAWN_DXC_ARCH_DIR}")
-                    endforeach()
-                endforeach()
-            endif()
-        endforeach()
-
-        if (ALP_DAWN_DXC_HINT_DIRS)
-            list(REMOVE_DUPLICATES ALP_DAWN_DXC_HINT_DIRS)
-        endif()
-
-        find_file(ALP_DAWN_DXCOMPILER_DLL
-            NAMES dxcompiler.dll
-            HINTS ${ALP_DAWN_DXC_HINT_DIRS}
-            DOC "Path to dxcompiler.dll for Dawn's DirectX backend"
-        )
-        find_file(ALP_DAWN_DXIL_DLL
-            NAMES dxil.dll
-            HINTS ${ALP_DAWN_DXC_HINT_DIRS}
-            DOC "Path to dxil.dll for Dawn's DirectX backend"
-        )
-    endif()
-
-    if (NOT EXISTS "${ALP_DAWN_DXCOMPILER_DLL}" OR NOT EXISTS "${ALP_DAWN_DXIL_DLL}")
-        if (ALP_DAWN_DXC_HINT_DIRS)
-            string(REPLACE ";" "\n  " ALP_DAWN_DXC_SEARCH_PATHS "${ALP_DAWN_DXC_HINT_DIRS}")
-        else()
-            set(ALP_DAWN_DXC_SEARCH_PATHS "CMake default search paths")
-        endif()
-
-        message(FATAL_ERROR
-            "Dawn's Windows package does not ship the DirectX Shader Compiler runtime DLLs, "
-            "and CMake could not find dxcompiler.dll and dxil.dll.\n"
-            "Set -DALP_DAWN_DXC_DIR=<directory containing dxcompiler.dll and dxil.dll>.\n"
-            "Searched:\n  ${ALP_DAWN_DXC_SEARCH_PATHS}"
-        )
-    endif()
-
-    set(ALP_DAWN_DXC_DLLS "${ALP_DAWN_DXCOMPILER_DLL}" "${ALP_DAWN_DXIL_DLL}")
+    alp_find_dawn_dxc_dlls(ALP_DAWN_DXC_DLLS)
     foreach(ALP_DAWN_DXC_DLL IN LISTS ALP_DAWN_DXC_DLLS)
         get_filename_component(ALP_DAWN_DXC_DLL_NAME "${ALP_DAWN_DXC_DLL}" NAME)
         add_custom_command(TARGET webgpu_app POST_BUILD
