@@ -393,10 +393,11 @@ void App::start()
     this->on_window_resize(m_viewport_size.x, m_viewport_size.y);
     m_initialized = true;
 
-    qInfo() << "App ready";
     m_webgpu_window->ready();
 
     m_gui_manager->ready();
+    // IMPORTANT: Don't delete: its a hook for the shell
+    qInfo() << "webgpu_app ready";
 
 #if defined(__EMSCRIPTEN__)
     emscripten_set_main_loop_arg(

@@ -1,40 +1,26 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<svg enable-background="new 0 0 612 612" version="1.1" viewBox="0 0 612 612" xml:space="preserve" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
-<style type="text/css">
-	.st0{fill:none;stroke:#6A7073;stroke-width:33;stroke-miterlimit:10;stroke-dasharray:120,40;}
-	.st1{fill:#FFFFFF;stroke:#000000;stroke-width:32;stroke-miterlimit:10;}
-	.st2{display:none;fill:#161616;stroke:#000000;stroke-width:32;stroke-miterlimit:10;}
-	.st3{clip-path:url(#XMLID_00000133498038049796904260000016962830729436535680_);}
-	.st4{fill:#006599;}
-	.st5{fill:#044660;}
-	.st6{fill:#4EA3C4;}
-</style>
-<path class="st0" d="m32.8 359.6c29.6 149.9 175 247.4 324.9 217.8s247.4-175 217.8-324.9"/>
-<path class="st0" d="M32.8,253.1C62.4,103.3,207.9,5.8,357.7,35.4s247.4,175,217.8,324.9"/>
-<path class="st1" d="m149.4 399h-101.1c-16.1 0-29.1-13-29.1-29.1v-127.6c0-16.1 13-29.1 29.1-29.1h101.1c16.1 0 29.1 13 29.1 29.1v127.6c0 16.1-13 29.1-29.1 29.1z"/>
-<path class="st1" d="m561.3 399h-101.1c-16.1 0-29.1-13-29.1-29.1v-127.6c0-16.1 13-29.1 29.1-29.1h101.1c16.1 0 29.1 13 29.1 29.1v127.6c0 16.1-13.1 29.1-29.1 29.1z"/>
-<rect class="st2" x="-212.4" y="-185.4" width="1316.1" height="1064.9"/>
-
-	<defs>
-		<circle id="a" cx="305.7" cy="306" r="212.3"/>
-	</defs>
-	<use fill="#FFFFFF" xlink:href="#a"/>
-	<clipPath id="b">
-		<use xlink:href="#a"/>
-	</clipPath>
-	
-		<g clip-path="url(#b)">
-		<g transform="matrix(1.1222 0 0 1.1222 -26.637 -12.567)">
-			<path class="st4" d="m151.7 480 105.2-315.4 79.3 100.8-87.6 256"/>
-			<path class="st5" d="m72.5 343 194.8-181.1-150.6 287.5"/>
-			<path class="st6" d="m295.3 530.2 40.5-350.8 64.1 15.2 125.4 231.7"/>
-			<path d="m257.7 163.5-141 285.9 35 30.5 124.7-311.5-18.7-4.9z"/>
-			<path d="m331.9 171-83.3 350.4 46.7 8.8 54.9-331.9 39.4 7.9 131.1 224.1 22.7-36.9-139.1-211.2-72.4-11.2z"/>
-			<path d="m267.2 147.8-194.7 139.5v55.7l188.5-163.4 53.7 98 14.7-44.8-62.2-85z"/>
-		</g>
-	</g>
-	
-		<use fill="none" stroke="#000000" stroke-miterlimit="10" stroke-width="32" xlink:href="#a"/>
-
-
+<svg id="Layer_1" xmlns="http://www.w3.org/2000/svg" version="1.1" xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="0 0 603.2 585.59">
+  <!-- Generator: Adobe Illustrator 30.5.1, SVG Export Plug-In . SVG Version: 2.1.4 Build 3)  -->
+  <defs>
+    <clipPath id="clippath">
+      <circle cx="302.5" cy="292.39" r="212.3" style="fill: none;"/>
+    </clipPath>
+  </defs>
+  <path d="M29.6,345.99c29.6,149.9,175,247.4,324.9,217.8,149.9-29.6,247.4-175,217.8-324.9" style="fill: none; stroke: #b3bdc2; stroke-dasharray: 120 40; stroke-miterlimit: 10; stroke-width: 33px;"/>
+  <path d="M29.6,239.49C59.2,89.69,204.7-7.81,354.5,21.79c149.8,29.6,247.4,175,217.8,324.9" style="fill: none; stroke: #b3bdc2; stroke-dasharray: 120 40; stroke-miterlimit: 10; stroke-width: 33px;"/>
+  <path d="M146.2,385.39H45.1c-16.1,0-29.1-13-29.1-29.1v-127.6c0-16.1,13-29.1,29.1-29.1h101.1c16.1,0,29.1,13,29.1,29.1v127.6c0,16.1-13,29.1-29.1,29.1Z" style="fill: #fff; stroke: #000; stroke-miterlimit: 10; stroke-width: 32px;"/>
+  <path d="M558.1,385.39h-101.1c-16.1,0-29.1-13-29.1-29.1v-127.6c0-16.1,13-29.1,29.1-29.1h101.1c16.1,0,29.1,13,29.1,29.1v127.6c0,16.1-13.1,29.1-29.1,29.1Z" style="fill: #fff; stroke: #000; stroke-miterlimit: 10; stroke-width: 32px;"/>
+  <rect x="-215.6" y="-199.01" width="1316.1" height="1064.9" style="display: none; fill: #161616; stroke: #000; stroke-miterlimit: 10; stroke-width: 32px;"/>
+  <circle id="a" cx="302.5" cy="292.39" r="212.3" style="fill: #fff;"/>
+  <g style="clip-path: url(#clippath);">
+    <g>
+      <path d="M140.4,512.48l118.06-353.94,88.99,113.12-98.3,287.28" style="fill: #006599;"/>
+      <path d="M51.52,358.74l218.6-203.23L101.12,478.14" style="fill: #044660;"/>
+      <path d="M301.55,568.82l45.45-393.67,71.93,17.06,140.72,260.01" style="fill: #4ea3c4;"/>
+      <path d="M259.35,157.31L101.12,478.14l39.28,34.23,139.94-349.57-20.99-5.5Z"/>
+      <path d="M342.62,165.72l-93.48,393.22,52.41,9.88,61.61-372.46,44.21,8.87,147.12,251.49,25.47-41.41-156.1-237.01-81.25-12.57h0Z"/>
+      <path d="M270.01,139.69L51.52,296.24v62.51l211.53-183.37,60.26,109.98,16.5-50.27-69.8-95.39Z"/>
+    </g>
+  </g>
+  <circle id="a1" data-name="a" cx="302.5" cy="292.39" r="212.3" style="fill: none; stroke: #000; stroke-miterlimit: 10; stroke-width: 32px;"/>
 </svg>

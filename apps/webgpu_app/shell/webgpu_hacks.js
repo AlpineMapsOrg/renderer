@@ -2,10 +2,13 @@ const JS_MAX_TOUCHES = 3;
 
 class WeBIGeoHacks {
 
-  constructor(webgpuCanvas, logWrapper, logElement) {
+  constructor(webgpuCanvas, logWrapper, logElement, spinnerElement, loadingStatusElement) {
     this.logWrapper = logWrapper;
     this.logElement = logElement;
     this.webgpuCanvas = webgpuCanvas;
+    this.spinnerElement = spinnerElement;
+    this.loadingStatusElement = loadingStatusElement;
+    this._readyCallback = null;
 
     logWrapper.querySelector('#butclearlog').onclick = () => this.clearLog();
     logWrapper.querySelector('#buthidelog').onclick = () => this.hideLog();
@@ -110,12 +113,37 @@ class WeBIGeoHacks {
     }
   }
 
+  onWasmLoaded(readyCallback) {
+    this._readyCallback = readyCallback;
+  }
+
+  _stripAnsi(text) {
+    return text.replace(/\x1b\[\d+m/g, '');
+  }
+
+  _fadeOutSpinner(callback) {
+    if (!this.spinnerElement) { callback(); return; }
+    this.spinnerElement.addEventListener('transitionend', () => callback(), { once: true });
+    this.spinnerElement.classList.add('fade-out');
+  }
+
   log(text) {
     if (this.debug) console.log(text);
     if (this.logElement) {
       let htmlText = this.prepareAnsiLogString(text + '\n');
       this.logElement.innerHTML += htmlText;
       this.logElement.scrollTop = this.logElement.scrollHeight; // focus on bottom
+    }
+    if (this._readyCallback) {
+      const isError = text.includes('\x1b[31m') || text.includes('\x1b[33m');
+      if (!isError && this.loadingStatusElement) {
+        this.loadingStatusElement.textContent = this._stripAnsi(text).trim();
+      }
+      if (text.includes('webgpu_app ready')) {
+        const cb = this._readyCallback;
+        this._readyCallback = null;
+        setTimeout(() => this._fadeOutSpinner(cb), 1000);
+      }
     }
   }
 

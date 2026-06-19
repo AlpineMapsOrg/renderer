@@ -110,10 +110,13 @@ endif()
     alp_add_git_repository(imnodes URL https://github.com/AlpineMapsOrgDependencies/imnodes_slim.git COMMITISH 324355e64ed8b5bea02fe1439cdcb5c7773b4436)
     set(BUILD_SHARED_LIBS ${BUILD_SHARED_LIBS_SAVED})
 
+    target_link_libraries(webgpu_app PRIVATE imgui imnodes)
+
+if (NOT EMSCRIPTEN)
     alp_add_git_repository(ImGuiFileDialog URL https://github.com/AlpineMapsOrgDependencies/ImGuiFileDialog_slim.git COMMITISH 39f98eb131ee00d476f1002336fc7e9e1795ccc5)
     target_link_libraries(ImGuiFileDialog PRIVATE imgui)
-
-    target_link_libraries(webgpu_app PRIVATE imgui imnodes ImGuiFileDialog)
+    target_link_libraries(webgpu_app PRIVATE ImGuiFileDialog)
+endif()
 
 # Copy necessary DLLs to the output directory on Windows
 if (WIN32 AND NOT EMSCRIPTEN)

@@ -171,6 +171,21 @@ if(ALP_ENABLE_LABELS)
     )
     target_link_libraries(nucleus PUBLIC vector_tiles Qt::Gui)
     target_compile_definitions(nucleus PUBLIC ALP_ENABLE_LABELS)
+    qt_add_resources(nucleus "icons"
+        PREFIX "/map_icons"
+        BASE ${CMAKE_SOURCE_DIR}/app/icons/labels
+        FILES
+            ${CMAKE_SOURCE_DIR}/app/icons/labels/alpinehut.png
+            ${CMAKE_SOURCE_DIR}/app/icons/labels/city.png
+            ${CMAKE_SOURCE_DIR}/app/icons/labels/peak.png
+            ${CMAKE_SOURCE_DIR}/app/icons/labels/camera.png
+    )
+    qt_add_resources(nucleus "nucleus_fonts"
+        BASE ${alpineapp_fonts_SOURCE_DIR}/
+        PREFIX "/fonts"
+        FILES
+        ${alpineapp_fonts_SOURCE_DIR}/Roboto/Roboto-Bold.ttf
+    )
 endif()
 
 if (ALP_ENABLE_DEV_TOOLS)
@@ -181,25 +196,10 @@ target_include_directories(nucleus PUBLIC ${CMAKE_SOURCE_DIR})
 # Please keep Qt::Gui outside the nucleus. If you need it optional via a cmake based switch
 target_link_libraries(nucleus PUBLIC radix Qt::Core Qt::Network zppbits tl_expected nucleus_version stb_slim goofy_tc ktx)
 
-qt_add_resources(nucleus "icons"
-    PREFIX "/map_icons"
-    BASE ${CMAKE_SOURCE_DIR}/app/icons/labels
-    FILES
-        ${CMAKE_SOURCE_DIR}/app/icons/labels/alpinehut.png
-        ${CMAKE_SOURCE_DIR}/app/icons/labels/city.png
-        ${CMAKE_SOURCE_DIR}/app/icons/labels/peak.png
-        ${CMAKE_SOURCE_DIR}/app/icons/labels/camera.png
-)
 qt_add_resources(nucleus "height_data"
     PREFIX "/map"
     BASE ${renderer_static_data_SOURCE_DIR}
     FILES ${renderer_static_data_SOURCE_DIR}/height_data.atb
-)
-qt_add_resources(nucleus "nucleus_fonts"
-    BASE ${alpineapp_fonts_SOURCE_DIR}/
-    PREFIX "/fonts"
-    FILES
-    ${alpineapp_fonts_SOURCE_DIR}/Roboto/Roboto-Bold.ttf
 )
 
 if (ALP_ENABLE_LTO)
