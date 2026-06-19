@@ -214,7 +214,6 @@ if (EMSCRIPTEN)
         get_filename_component(SHELL_FILE_NAME ${SHELL_FILE} NAME)
         list(APPEND WASM_OUTPUT_FILES ${CMAKE_CURRENT_BINARY_DIR}/${SHELL_FILE_NAME})
     endforeach()
-    install(FILES ${WASM_OUTPUT_FILES} DESTINATION .)
-    install(CODE "file(RENAME \"\${CMAKE_INSTALL_PREFIX}/webgpu_app.html\" \"\${CMAKE_INSTALL_PREFIX}/index.html\")")
+    install(FILES ${WASM_OUTPUT_FILES} DESTINATION ${ALP_WWW_INSTALL_DIR})
     # ================================================
 endif()
