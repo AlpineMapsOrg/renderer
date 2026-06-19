@@ -41,6 +41,13 @@ if (EMSCRIPTEN AND ALP_ENABLE_THREADING)
     target_compile_options(ktx PUBLIC -pthread)
     target_link_options(ktx PUBLIC -pthread)
 endif()
+if (EMSCRIPTEN AND TARGET ktx)
+    get_target_property(KTX_INTERFACE_LINK_OPTIONS ktx INTERFACE_LINK_OPTIONS)
+    if (KTX_INTERFACE_LINK_OPTIONS)
+        list(FILTER KTX_INTERFACE_LINK_OPTIONS EXCLUDE REGEX "STACK_SIZE=96kb")
+        set_target_properties(ktx PROPERTIES INTERFACE_LINK_OPTIONS "${KTX_INTERFACE_LINK_OPTIONS}")
+    endif()
+endif()
 if (NOT EMSCRIPTEN)
     # NOTE: KTX builds into an additional Release/Debug directory. The following
     # moves the builds directory for the targets ktx and ktx_read to the binary dir
