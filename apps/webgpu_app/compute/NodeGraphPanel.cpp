@@ -31,7 +31,7 @@
 #include <imgui_internal.h>
 #include <imnodes.h>
 #include <imnodes_internal.h>
-#include <qDebug>
+#include <QDebug>
 #include <webgpu/compute/NodeGraphSerialization.h>
 #include <webgpu/compute/NodeRegistry.h>
 #include <webgpu/engine/Context.h>
