@@ -117,7 +117,7 @@ endif()
 
 # Copy necessary DLLs to the output directory on Windows
 if (WIN32 AND NOT EMSCRIPTEN)
-    include("${CMAKE_SOURCE_DIR}/cmake/alp_find_dawn_dxc.cmake")
+    include("${CMAKE_SOURCE_DIR}/cmake/alp_provide_dawn_dxc.cmake")
 
     # Copy SDL2 DLL
     if (EXISTS "${CMAKE_SOURCE_DIR}/${ALP_EXTERN_DIR}/sdl/bin/SDL2.dll")
@@ -129,7 +129,7 @@ if (WIN32 AND NOT EMSCRIPTEN)
         )
     endif()
 
-    alp_find_dawn_dxc_dlls(ALP_DAWN_DXC_DLLS)
+    alp_provide_dawn_dxc_dlls(ALP_DAWN_DXC_DLLS)
     foreach(ALP_DAWN_DXC_DLL IN LISTS ALP_DAWN_DXC_DLLS)
         get_filename_component(ALP_DAWN_DXC_DLL_NAME "${ALP_DAWN_DXC_DLL}" NAME)
         add_custom_command(TARGET webgpu_app POST_BUILD

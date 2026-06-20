@@ -23,6 +23,8 @@ project(alpine-renderer-webgpu LANGUAGES C CXX)
 # dependent such that we only have the webgpu cmake target for the other projects to link against.
 
 set(ALP_DAWN_VERSION "20260420.230544") # Version of Dawn to download (see https://github.com/google/dawn/releases)
+set(ALP_DXC_URL "https://github.com/microsoft/DirectXShaderCompiler/releases/download/v1.9.2602/dxc_2026_02_20.zip"
+    CACHE INTERNAL "DXC release archive whose dxcompiler.dll/dxil.dll match ALP_DAWN_VERSION")
 set(ALP_DAWN_DIR "${CMAKE_SOURCE_DIR}/${ALP_EXTERN_DIR}/dawn")
 set(ALP_SDL_INSTALL_DIR "${CMAKE_SOURCE_DIR}/${ALP_EXTERN_DIR}/sdl")
 set(ALP_DAWN_PORT_DIR "${CMAKE_SOURCE_DIR}/${ALP_EXTERN_DIR}/emdawnwebgpu_pkg/emdawnwebgpu.port.py")
