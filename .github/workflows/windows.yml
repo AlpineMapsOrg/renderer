@@ -54,6 +54,7 @@ jobs:
         install-deps: 'true'
         modules: ${{ env.QT_MODULES }}
         cache: true
+        aqtsource: 'git+https://github.com/miurahr/aqtinstall.git@bbfb1f7c0590b9eb3fa91356e75bb64fb15d3643'
     
     - name: Configure
       env:
