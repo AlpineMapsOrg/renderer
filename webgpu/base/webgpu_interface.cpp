@@ -112,7 +112,7 @@ WGPUSurface SDL_GetWGPUSurface(WGPUInstance instance, SDL_Window* window)
 
         WGPUSurfaceDescriptor surfaceDescriptor;
         surfaceDescriptor.nextInChain = &fromMetalLayer.chain;
-        surfaceDescriptor.label = NULL;
+        surfaceDescriptor.label = WGPUStringView {};
 
         return wgpuInstanceCreateSurface(instance, &surfaceDescriptor);
     }
@@ -139,7 +139,7 @@ WGPUSurface SDL_GetWGPUSurface(WGPUInstance instance, SDL_Window* window)
 
         WGPUSurfaceDescriptor surfaceDescriptor;
         surfaceDescriptor.nextInChain = &fromMetalLayer.chain;
-        surfaceDescriptor.label = NULL;
+        surfaceDescriptor.label = WGPUStringView {};
 
         return wgpuInstanceCreateSurface(instance, &surfaceDescriptor);
     }
@@ -161,7 +161,7 @@ WGPUSurface SDL_GetWGPUSurface(WGPUInstance instance, SDL_Window* window)
 
         WGPUSurfaceDescriptor surfaceDescriptor;
         surfaceDescriptor.nextInChain = &fromXlibWindow.chain;
-        surfaceDescriptor.label = NULL;
+        surfaceDescriptor.label = WGPUStringView {};
 
         return wgpuInstanceCreateSurface(instance, &surfaceDescriptor);
     }
@@ -183,7 +183,7 @@ WGPUSurface SDL_GetWGPUSurface(WGPUInstance instance, SDL_Window* window)
 
         WGPUSurfaceDescriptor surfaceDescriptor;
         surfaceDescriptor.nextInChain = &fromWaylandSurface.chain;
-        surfaceDescriptor.label = NULL;
+        surfaceDescriptor.label = WGPUStringView {};
 
         return wgpuInstanceCreateSurface(instance, &surfaceDescriptor);
     }

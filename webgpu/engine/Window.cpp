@@ -53,7 +53,7 @@ void Window::initialise_gpu()
     reg.register_pipeline([this](WGPUDevice dev, const webgpu::RenderResourceRegistry& reg) {
         webgpu::FramebufferFormat format {};
         format.depth_format = WGPUTextureFormat_Depth24Plus;
-        format.color_formats.emplace_back(WGPUTextureFormat_BGRA8Unorm);
+        format.color_formats.emplace_back(m_context->webgpu_ctx().surface_texture_format());
         m_compose_pipeline = std::make_unique<webgpu::raii::GenericRenderPipeline>(dev,
             reg.shader("compose_pass"),
             reg.shader("compose_pass"),

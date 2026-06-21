@@ -262,6 +262,8 @@ void App::start()
     webgpu_create_context();
 
     m_context = std::make_unique<RenderingContext>();
+    configure_surface(m_viewport_size.x, m_viewport_size.y);
+    m_webgpu_ctx.set_surface_texture_format(m_surface_texture_format);
     m_context->initialize(m_webgpu_ctx);
 
     m_camera_controller = std::make_unique<nucleus::camera::Controller>(

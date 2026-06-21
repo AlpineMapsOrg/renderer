@@ -59,7 +59,7 @@ After building, you can use the `serve_wasm.py` script to serve the build files 
 * Qt 6.10.1 with
   * MSVC2022 pre-built binaries
 * Python 3
-* Microsoft Visual C++ Compiler 17.6 (aka. MSVC2022, comes with Visual Studio 2022)
+* Microsoft Visual C++ Compiler 17.13 or later (aka. MSVC2022, comes with Visual Studio 2022 - keep VS up to date as the prebuilt Dawn library may require a recent toolset version)
 * cmake and ninja (come with Qt)
 
 #### Configuration
@@ -71,19 +71,12 @@ Before building, you need to ensure the following paths are correctly configured
 1. **Qt6_DIR**: Verify that the `Qt6_DIR` in the `msvc-base` preset points to your actual Qt installation's CMake directory (e.g., `C:/Qt/6.10.1/msvc2022_64/lib/cmake/Qt6`).
 
 #### Troubleshoot
-- MY CONFIGURATION TAKES FOREVER: Upon first cmake configuration DAWN as well as SDL is being pulled, build and installed. This might take a while. (~10-40 min)
-- Dawn and SDL installation as well as fetching the custom dawn port for emscripten now happens in the python scripts inside the respective folder. They get executed by the CMAKE-Setup. A change requires a reconfiguration of CMAKE as well as the deletion of the directory in the `extern` directory.
-- If you have issues with your currently installed Vulkan SDK you may try one or all of the following:
-  - disable `DDAWN_FORCE_SYSTEM_COMPONENT_LOAD`
-  - Try with a different DAWN backend
-  - copying the include files from your sdk into the respective folders in the dawn binaries `dawn\third_party\vulkan-utility-libraries\src\include\vulkan\utility\` and `dawn\third_party\vulkan-headers\src\include\vulkan\` and rebuild dawn.
+- **`LNK2019: unresolved external symbol __std_find_first_of_trivial_pos_1`**: The prebuilt Dawn library was compiled with a newer MSVC toolset than what is installed. **Solution: update Visual Studio 2022 to the latest version** via the Visual Studio Installer.
+- **MY CONFIGURATION TAKES FOREVER (first run)**: On first CMake configuration, SDL is cloned and built from source (~5–15 min). Dawn is normally downloaded as a prebuilt binary from GitHub releases (fast), but if the download fails it falls back to building Dawn from source, which can take an additional 10–40 min.
+- Dawn and SDL setup is driven by Python scripts in `misc/scripts/` which are invoked automatically by CMake during configuration. To force a re-fetch (e.g. after a version bump), delete the relevant subdirectory under `extern/` and reconfigure.
 
 #### About DAWN Backends
-Per default we opt for an only Vulkan-Backend Build for two reasons:
-- Vulkan is probably the most supported Backend running on most devices
-- We have more knowledge about Vulkan which comes to play when we use GPU debuggers
-
-That being said you may enable different Backends in the `install_dawn.py` script.
+In the normal flow, a prebuilt Dawn binary is downloaded during CMake configuration and includes multiple backends. If the download fails and Dawn is built from source via `misc/scripts/install_dawn.py`, only the Vulkan backend is enabled — you can change this by modifying the CMake flags in that script.
 
 ### Install Targets
 Install targets are now available for both web and native builds. These targets install all necessary files into the install directory, making it easy to deploy or distribute the built application.
