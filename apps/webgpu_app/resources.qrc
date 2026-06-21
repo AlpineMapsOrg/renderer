@@ -7,7 +7,7 @@
         <file alias="fa5-solid-900.ttf">resources/fonts/fa5-solid-900.ttf</file>
     </qresource>
     <qresource prefix="/gfx">
-        <file alias="sujet_shadow.png">resources/gfx/sujet_shadow.png</file>
+        <file alias="sujet.png">resources/gfx/sujet.png</file>
     </qresource>
     <qresource prefix="/gpx">
         <file alias="breite_ries.gpx">resources/gpx/breite_ries.gpx</file>

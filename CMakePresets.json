@@ -124,7 +124,7 @@
       "inherits": "emscripten-base",
       "cacheVariables": {
         "CMAKE_BUILD_TYPE": "Release",
-        "CMAKE_CXX_FLAGS": "-DQT_NO_DEBUG_OUTPUT -DQT_NO_WARNING_OUTPUT -DQT_NO_INFO_OUTPUT",
+        "CMAKE_CXX_FLAGS": "-DQT_NO_DEBUG_OUTPUT",
         "ALP_ENABLE_WGSL_MINIFICATION": "ON"
       }
     }

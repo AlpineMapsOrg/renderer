@@ -21,6 +21,7 @@
       style="display:inline; padding-bottom: 20px; padding-top: 100px;"></img><br>
     <strong style="font-size: larger">weBIGeo</strong><br>
     <span id="qtstatus"></span>
+    <span id="loadingstatus"></span>
     <noscript>JavaScript is disabled. Please enable JavaScript to use this application.</noscript>
   </div>
   <div id="screen"></div>
@@ -47,7 +48,8 @@
       const log_element = document.querySelector('#log');
       const log_wrapper = document.querySelector('#logwrapper');
 
-      const hacks = new WeBIGeoHacks(webgpu_canvas, log_wrapper, log_element);
+      const loading_status = document.querySelector('#loadingstatus');
+      const hacks = new WeBIGeoHacks(webgpu_canvas, log_wrapper, log_element, spinner, loading_status);
       await hacks.checkWebGPU();
 
       if (!hacks.webgpuAvailable) {
@@ -68,7 +70,7 @@
 
         eminstance = await qtLoad({
           qt: {
-            onLoaded: () => showUi(screen),
+            onLoaded: () => hacks.onWasmLoaded(() => showUi(screen)),
             onExit: exitData => {
               status.innerHTML = 'Application exit';
               status.innerHTML +=

@@ -35,7 +35,7 @@ LogoPanel::LogoPanel(WGPUDevice device)
 
 void LogoPanel::init_logo()
 {
-    nucleus::Raster<glm::u8vec4> logo = nucleus::utils::image_loader::rgba8(":/gfx/sujet_shadow.png").value();
+    nucleus::Raster<glm::u8vec4> logo = nucleus::utils::image_loader::rgba8(":/gfx/sujet.png").value();
     m_webigeo_logo_size = ImVec2(float(logo.width()), float(logo.height()));
 
     WGPUTextureDescriptor texture_desc {};
@@ -68,9 +68,24 @@ void LogoPanel::draw()
     } else {
         scaleFactor = 0.5f + 0.5f * ((viewportWidth - minWidth) / (maxWidth - minWidth));
     }
-    ImVec2 scaledSize = ImVec2(m_webigeo_logo_size.x * scaleFactor, m_webigeo_logo_size.y * scaleFactor);
-    ImGui::SetNextWindowPos(ImVec2(0, 0), ImGuiCond_Always);
-    ImGui::SetNextWindowBgAlpha(0.0f);
+    ImVec2 scaledSize = ImVec2(m_webigeo_logo_size.x * scaleFactor * 0.75f, m_webigeo_logo_size.y * scaleFactor * 0.75f);
+    const float padX = 20.0f;
+    const float padY = 10.0f;
+    const float offsetY = 30.0f;
+    const float topRightSkew = 50.0f;
+
+    float bgRight = padX + scaledSize.x + padX;
+    float bgBottom = offsetY + padY + scaledSize.y + padY;
+    ImU32 bgColor = ImGui::GetColorU32(ImGuiCol_WindowBg, 0.5f);
+    ImGui::GetBackgroundDrawList()->AddQuadFilled(
+        ImVec2(0.0f, offsetY),
+        ImVec2(bgRight + topRightSkew, offsetY),
+        ImVec2(bgRight, bgBottom),
+        ImVec2(0.0f, bgBottom),
+        bgColor);
+
+    ImGui::SetNextWindowPos(ImVec2(0, offsetY), ImGuiCond_Always);
+    ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(padX, padY));
     ImGui::Begin("weBIGeo-Logo",
         nullptr,
         ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoBackground | ImGuiWindowFlags_NoInputs | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoScrollbar
@@ -79,6 +94,7 @@ void LogoPanel::draw()
 
     ImGui::Image((ImTextureID)m_webigeo_logo_view->handle(), scaledSize);
     ImGui::End();
+    ImGui::PopStyleVar();
 }
 
 } // namespace webgpu_app

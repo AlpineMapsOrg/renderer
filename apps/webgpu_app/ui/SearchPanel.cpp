@@ -42,7 +42,7 @@ void SearchPanel::draw()
     const int search_text_width = 340;
     const int window_width = search_text_width + search_button_width + 2 * ImGui::GetStyle().WindowPadding.x + ImGui::GetStyle().ItemSpacing.x;
 
-    ImVec2 window_pos((ImGui::GetIO().DisplaySize.x - 215) / 2 - window_width / 2, ImGui::GetTextLineHeightWithSpacing());
+    ImVec2 window_pos((ImGui::GetIO().DisplaySize.x - 215) / 2 - window_width / 2, 30);
     ImGui::SetNextWindowPos(window_pos, ImGuiCond_Always);
     ImGui::SetNextWindowSize(ImVec2(window_width, window_height));
 
