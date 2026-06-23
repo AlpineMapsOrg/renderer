@@ -5,3 +5,4 @@
 /build/*
 /.qtcreator/CMakeLists.txt.user
 **/.qmlls.ini
+**/__pycache__/*.pyc
