@@ -32,7 +32,9 @@
 #include <emscripten/emscripten.h>
 #else
 #include "nucleus/utils/image_loader.h"
+#if defined(_WIN32) || defined(_WIN64)
 #pragma comment(lib, "dwmapi.lib")
+#endif
 #endif
 
 #include "util/dark_mode.h"

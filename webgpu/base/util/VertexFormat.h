@@ -23,6 +23,8 @@
 
 namespace webgpu::util {
 
+template <typename, int> constexpr bool unmapped_vertex_format = false;
+
 template <typename T, int N> struct VertexFormat {
     static constexpr WGPUVertexFormat format();
     static constexpr size_t size() { return sizeof(T) * N; }
@@ -30,7 +32,7 @@ template <typename T, int N> struct VertexFormat {
 
 template <typename T, int N> constexpr WGPUVertexFormat VertexFormat<T, N>::format()
 {
-    static_assert(sizeof N != sizeof N, "tried to get unmapped vertex format");
+    static_assert(unmapped_vertex_format<T, N>, "tried to get unmapped vertex format");
     return static_cast<WGPUVertexFormat>(0);
 }
 template <> constexpr WGPUVertexFormat VertexFormat<float, 1>::format() { return WGPUVertexFormat_Float32; }
