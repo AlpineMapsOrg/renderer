@@ -102,6 +102,10 @@ uint16_t hash_uint16(const tile::Id& id)
 
 glm::vec<2, uint32_t> pack(const tile::Id& id)
 {
+    Q_ASSERT(id.zoom_level <= 29);
+    Q_ASSERT(id.coords.x < (uint32_t { 1 } << id.zoom_level));
+    Q_ASSERT(id.coords.y < (uint32_t { 1 } << id.zoom_level));
+
     uint32_t a = id.zoom_level << (32 - 5);
     a = a | (id.coords.x >> 3);
     uint32_t b = id.coords.x << (32 - 3);
