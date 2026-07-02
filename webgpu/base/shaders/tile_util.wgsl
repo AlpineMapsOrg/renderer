@@ -35,6 +35,25 @@ const EMPTY_TILE_ZOOMLEVEL: u32 = 4294967295u;
 fn tile_ids_equal(a: TileId, b: TileId) -> bool { return a.x == b.x && a.y == b.y && a.zoomlevel == b.zoomlevel; }
 fn tile_id_empty(id: TileId) -> bool { return id.zoomlevel == EMPTY_TILE_ZOOMLEVEL; }
 
+// equivalent of nucleus::srs::pack
+fn pack_tile_id(id: TileId) -> vec2<u32> {
+    var a: u32 = id.zoomlevel << (32u - 5u);
+    a = a | (id.x >> 3u);
+    var b: u32 = id.x << (32u - 3u);
+    b = b | id.y;
+    return vec2<u32>(a, b);
+}
+
+// equivalent of nucleus::srs::unpack
+fn unpack_tile_id(packed: vec2<u32>) -> TileId {
+    var id: TileId;
+    id.zoomlevel = packed.x >> (32u - 5u);
+    id.x = (packed.x & ((1u << (32u - 5u)) - 1u)) << 3u;
+    id.x = id.x | (packed.y >> (32u - 3u));
+    id.y = packed.y & ((1u << (32u - 3u)) - 1u);
+    return id;
+}
+
 struct Bounds {
     min: vec2f,
     max: vec2f,

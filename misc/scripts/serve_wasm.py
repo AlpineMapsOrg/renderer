@@ -9,26 +9,10 @@ import time
 import threading
 from pathlib import Path
 
-SUPPORTED_TARGETS = [
-    "wasm-debug",
-    "wasm-release",
-    "wasm-publish",
-]
-
-
-def auto_detect_build_type(project_root):
-    build_dirs = {}
-
-    for target in SUPPORTED_TARGETS:
-        target_dir = project_root / "build" / target / "apps" / "webgpu_app"
-        if target_dir.exists():
-            build_dirs[target] = target_dir.stat().st_mtime
-
-    if not build_dirs:
-        return None
-
-    most_recent_target = max(build_dirs.items(), key=lambda x: x[1])[0]
-    return most_recent_target
+def find_latest_build_dir(project_root):
+    wasm_files = project_root.glob("build/*/apps/webgpu_app/*.wasm")
+    latest_wasm = max(wasm_files, key=lambda f: f.stat().st_mtime, default=None)
+    return latest_wasm.parent if latest_wasm else None
 
 
 def get_html_file(build_dir):
@@ -57,13 +41,12 @@ def serve_wasm(port=8000):
     project_root = Path(__file__).parent.parent.parent
 
     while True:
-        build_type = auto_detect_build_type(project_root)
-        if build_type is None:
+        build_dir = find_latest_build_dir(project_root)
+        if build_dir is None:
             print("Error: No WebAssembly build found.")
             sys.exit(1)
 
-        print(f"Auto-detected build target: {build_type}")
-        build_dir = project_root / "build" / build_type / "apps" / "webgpu_app"
+        print(f"Auto-detected build target: {build_dir.parent.parent.name}")
 
         html_file = get_html_file(build_dir)
         if not html_file:
@@ -74,7 +57,7 @@ def serve_wasm(port=8000):
         css_mtimes = {f: f.stat().st_mtime for f in css_files}
 
         last_mtime = html_file.stat().st_mtime
-        last_build_type = build_type
+        last_build_dir = build_dir
         pending_change_time = None
         should_restart = False
 
@@ -100,14 +83,14 @@ def serve_wasm(port=8000):
                 pass
 
         def monitor_changes():
-            nonlocal last_mtime, last_build_type, build_dir, html_file, css_files, css_mtimes, pending_change_time, should_restart
+            nonlocal last_mtime, last_build_dir, build_dir, html_file, css_files, css_mtimes, pending_change_time, should_restart
 
             while True:
                 time.sleep(1)
 
-                current_build_type = auto_detect_build_type(project_root)
-                if current_build_type != last_build_type:
-                    print(f"\n[RELOAD] Build type changed: {last_build_type} -> {current_build_type}")
+                current_build_dir = find_latest_build_dir(project_root)
+                if current_build_dir != last_build_dir:
+                    print(f"\n[RELOAD] Build target changed: {last_build_dir} -> {current_build_dir}")
                     print("Restarting server...\n")
                     should_restart = True
                     httpd.shutdown()

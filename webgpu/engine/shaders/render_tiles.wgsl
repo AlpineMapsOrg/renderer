@@ -42,7 +42,7 @@ struct VertexIn {
     @location(2) ortho_texture_layer: i32,
     @location(3) tileset_id: i32,
     @location(4) height_zoomlevel: i32,
-    @location(5) tile_id: vec4<u32>,
+    @location(5) tile_id: vec2<u32>,
     @location(6) ortho_zoomlevel: i32,
 }
 
@@ -54,7 +54,7 @@ struct VertexOut {
     @location(3) @interpolate(flat) height_texture_layer: i32,
     @location(4) @interpolate(flat) ortho_texture_layer: i32,
     @location(5) @interpolate(flat) color: vec3f,
-    @location(6) @interpolate(flat) tile_id: vec3<u32>,
+    @location(6) @interpolate(flat) tile_id: vec2<u32>,
     @location(7) @interpolate(flat) ortho_zoomlevel: i32,
 }
 
@@ -174,7 +174,7 @@ fn normal_by_fragment_position_interpolation(pos_cws: vec3<f32>) -> vec3<f32> {
 
 @vertex
 fn vertexMain(@builtin(vertex_index) vertex_index: u32, vertex_in: VertexIn) -> VertexOut {
-    let render_tile_id = TileId(vertex_in.tile_id.x, vertex_in.tile_id.y, vertex_in.tile_id.z, 4294967295u);
+    let render_tile_id = unpack_tile_id(vertex_in.tile_id);
 
     var position: vec3f;
     var uv: vec2f;
@@ -203,14 +203,14 @@ fn vertexMain(@builtin(vertex_index) vertex_index: u32, vertex_in: VertexIn) -> 
         vertex_color = color_from_id_hash(u32(vertex_index));
     }
     vertex_out.color = vertex_color;
-    vertex_out.tile_id = vertex_in.tile_id.xyz;
+    vertex_out.tile_id = vertex_in.tile_id;
     vertex_out.ortho_zoomlevel = vertex_in.ortho_zoomlevel;
     return vertex_out;
 }
 
 @fragment
 fn fragmentMain(vertex_out: VertexOut) -> FragOut {
-    let tile_id = TileId(vertex_out.tile_id.x, vertex_out.tile_id.y, vertex_out.tile_id.z, 4294967295u);
+    let tile_id = unpack_tile_id(vertex_out.tile_id);
 
     //obtain uv coordinates for desired ortho zoom level and sample
     var ortho_tile_id: TileId;

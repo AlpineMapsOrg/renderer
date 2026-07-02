@@ -14,13 +14,13 @@ weBIGeo can be deployed to the web via emscripten and additionally we support na
 ### CMake Presets
 | Preset | Description |
 |--------|-------------|
-| **msvc-debug** | MSVC Debug build for Windows (native) |
-| **msvc-release** | MSVC Release build for Windows (native) |
-| **msvc-debug-test** | MSVC Debug build for unit tests |
-| **msvc-release-test** | MSVC Release build for unit tests |
-| **wasm-debug** | WebAssembly Debug build |
-| **wasm-release** | WebAssembly Release build |
-| **wasm-publish** | WebAssembly Production build with minified shaders and no debug output |
+| **webgpu_app_msvc_debug** | MSVC Debug build for Windows (native) |
+| **webgpu_app_msvc_release** | MSVC Release build for Windows (native) |
+| **unittests_msvc_debug** | MSVC Debug build for unit tests |
+| **unittests_msvc_release** | MSVC Release build for unit tests |
+| **webgpu_app_wasm_debug** | WebAssembly Debug build |
+| **webgpu_app_wasm_release** | WebAssembly Release build |
+| **webgpu_app_wasm_publish** | WebAssembly Production build with minified shaders and no debug output |
 
 ### Building the web version
 
@@ -41,13 +41,18 @@ weBIGeo can be deployed to the web via emscripten and additionally we support na
 > [!IMPORTANT]
 > If you're using Qt Creator, you can simply use the default kit *WebAssembly Qt 6.10.1 (multi-threaded)* - no additional setup is needed.
 
-Before building, you need to ensure the following paths are correctly configured in [CMakePresets.json](../CMakePresets.json):
+The WASM `toolchainFile` **is hardcoded** in `webgpu_wasm_base` (currently `C:/Qt/6.10.1/wasm_multithread/lib/cmake/Qt6/qt.toolchain.cmake`) -> edit it directly if your Qt install differs.
 
-1. **Ninja**: Make sure Ninja is in your system PATH, OR update the `PATH` environment variable in the `emscripten-base` preset to point to your Ninja installation (e.g., `C:/Qt/Tools/Ninja`).
-
-2. **EMSDK**: The `EMSDK` environment variable in the `emscripten-base` preset must point to your emsdk installation directory (e.g., `C:/tmp/webigeo/emsdk`).
-
-3. **Toolchain file**: The `toolchainFile` path in the `emscripten-base` preset might need to be adapted depending on where Qt is installed (e.g., `C:/Qt/6.10.1/wasm_multithread/lib/cmake/Qt6/qt.toolchain.cmake`).
+If you're using **VS Code** with the CMake Tools extension, the remaining variables (`Qt6_DIR`, `PATH`, `EMSDK`) can go in `.vscode/settings.json` (gitignored) under `cmake.environment` and will be injected automatically every time CMake Tools configures -> no manual step needed:
+```jsonc
+{
+  "cmake.environment": {
+    "Qt6_DIR": "C:/Qt/6.10.1/msvc2022_64/lib/cmake/Qt6",
+    "PATH": "C:/Qt/Tools/Ninja;${env:PATH}",
+    "EMSDK": "C:/tmp/webigeo/emsdk"
+  }
+}
+```
 
 #### Serving the WASM Build
 After building, you can use the `serve_wasm.py` script to serve the build files for the WebAssembly build locally. This script sets up a local server with the correct headers required for WebAssembly.
@@ -66,17 +71,19 @@ After building, you can use the `serve_wasm.py` script to serve the build files 
 > [!IMPORTANT]
 > If you're using Qt Creator, you can simply use the default kit *Desktop Qt 6.10.1 MSVC2022 (64-bit)* - no additional setup is needed.
 
-Before building, you need to ensure the following paths are correctly configured in [CMakePresets.json](../CMakePresets.json):
-
-1. **Qt6_DIR**: Verify that the `Qt6_DIR` in the `msvc-base` preset points to your actual Qt installation's CMake directory (e.g., `C:/Qt/6.10.1/msvc2022_64/lib/cmake/Qt6`).
+If you use the Cmake Presets make sure that **Qt6_DIR** points at your actual Qt installation's CMake directory (e.g., `C:/Qt/6.10.1/msvc2022_64/lib/cmake/Qt6`).
 
 #### Troubleshoot
 - **`LNK2019: unresolved external symbol __std_find_first_of_trivial_pos_1`**: The prebuilt Dawn library was compiled with a newer MSVC toolset than what is installed. **Solution: update Visual Studio 2022 to the latest version** via the Visual Studio Installer.
 - **MY CONFIGURATION TAKES FOREVER (first run)**: On first CMake configuration, SDL is cloned and built from source (~5–15 min). Dawn is normally downloaded as a prebuilt binary from GitHub releases (fast), but if the download fails it falls back to building Dawn from source, which can take an additional 10–40 min.
 - Dawn and SDL setup is driven by Python scripts in `misc/scripts/` which are invoked automatically by CMake during configuration. To force a re-fetch (e.g. after a version bump), delete the relevant subdirectory under `extern/` and reconfigure.
+- **`CMake Error at CMakeLists.txt:111 (find_package): By not providing "FindQt6.cmake" ...`**: Qt6 couldn't be located. Make sure `Qt6_DIR` is set (see Configuration above, for both the native and WASM builds).
+- **`CMake Error: CMake was unable to find a build program corresponding to "Ninja"`**: Make sure Ninja is in your `PATH`.
+- **`Could not find toolchain file: .`**: Make sure the `toolchainFile` path in `CMakePresets.json` points to the proper location for your Qt WASM install.
+- **`The toolchain file to be chainloaded '/opt/emsdk/upstream/emscripten/cmake/Modules/Platform/Emscripten.cmake' does not exist`**: Make sure `EMSDK` is set and points at your emsdk installation directory.
 
 #### About DAWN Backends
-In the normal flow, a prebuilt Dawn binary is downloaded during CMake configuration and includes multiple backends. If the download fails and Dawn is built from source via `misc/scripts/install_dawn.py`, only the Vulkan backend is enabled — you can change this by modifying the CMake flags in that script.
+In the normal flow, a prebuilt Dawn binary is downloaded during CMake configuration and includes multiple backends. If the download fails and Dawn is built from source via `misc/scripts/install_dawn.py`, only the Vulkan backend is enabled -> you can change this by modifying the CMake flags in that script.
 
 ### Install Targets
 Install targets are now available for both web and native builds. These targets install all necessary files into the install directory, making it easy to deploy or distribute the built application.
@@ -87,8 +94,8 @@ cmake --build build/<preset-name> --target install
 ```
 
 The install directory is automatically configured in the CMake presets and will be located at:
-- Native builds: `install/msvc-debug` or `install/msvc-release`
-- Web builds: `install/wasm-debug`, `install/wasm-release`, or `install/wasm-publish`
+- Native builds: `install/webgpu_app_msvc_debug` or `install/webgpu_app_msvc_release`
+- Web builds: `install/webgpu_app_wasm_debug`, `install/webgpu_app_wasm_release`, or `install/webgpu_app_wasm_publish`
 
 ### Tested Coding Environments
 The following development environments have been tested and are known to work with this project:

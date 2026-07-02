@@ -21,6 +21,7 @@
 #include "TileMeshRenderer.h"
 
 #include "nucleus/camera/Definition.h"
+#include "nucleus/srs.h"
 #include "nucleus/utils/terrain_mesh_index_generator.h"
 #include <QDebug>
 #include <webgpu/base/RenderResourceRegistry.h>
@@ -73,7 +74,7 @@ void TileMeshRenderer::init(webgpu::Context& ctx)
         = std::make_unique<webgpu::raii::RawBuffer<int32_t>>(m_ctx->device(), WGPUBufferUsage_Vertex | WGPUBufferUsage_CopyDst, num_layers);
 
     m_tile_id_buffer
-        = std::make_unique<webgpu::raii::RawBuffer<nucleus::tile::GpuTileId>>(m_ctx->device(), WGPUBufferUsage_Vertex | WGPUBufferUsage_CopyDst, num_layers);
+        = std::make_unique<webgpu::raii::RawBuffer<glm::u32vec2>>(m_ctx->device(), WGPUBufferUsage_Vertex | WGPUBufferUsage_CopyDst, num_layers);
     m_n_edge_vertices_buffer = std::make_unique<webgpu::Buffer<int32_t>>(m_ctx->device(), WGPUBufferUsage_Uniform | WGPUBufferUsage_CopyDst);
     m_n_edge_vertices_buffer->data = int(m_height_resolution);
     m_n_edge_vertices_buffer->update_gpu_data(m_ctx->queue());
@@ -179,7 +180,7 @@ void TileMeshRenderer::init(webgpu::Context& ctx)
         webgpu::util::SingleVertexBufferInfo height_zoomlevel_buffer_info(WGPUVertexStepMode_Instance);
         height_zoomlevel_buffer_info.add_attribute<int32_t, 1>(4);
         webgpu::util::SingleVertexBufferInfo tile_id_buffer_info(WGPUVertexStepMode_Instance);
-        tile_id_buffer_info.add_attribute<uint32_t, 4>(5);
+        tile_id_buffer_info.add_attribute<uint32_t, 2>(5);
         webgpu::util::SingleVertexBufferInfo ortho_zoomlevel_buffer_info(WGPUVertexStepMode_Instance);
         ortho_zoomlevel_buffer_info.add_attribute<int32_t, 1>(6);
 
@@ -234,7 +235,7 @@ void TileMeshRenderer::draw(
     std::vector<int32_t> ortho_texture_layers;
     ortho_texture_layers.reserve(draw_tiles.size());
 
-    std::vector<nucleus::tile::GpuTileId> tile_ids;
+    std::vector<glm::u32vec2> tile_ids;
     tile_ids.reserve(draw_tiles.size());
 
     for (const auto& id_bounds : draw_tiles) {
@@ -254,7 +255,7 @@ void TileMeshRenderer::draw(
         ortho_zoom_levels.emplace_back(int(ortho_layer_info.id.zoom_level));
         ortho_texture_layers.emplace_back(int(ortho_layer_info.index));
 
-        tile_ids.emplace_back(nucleus::tile::GpuTileId(id_bounds.id));
+        tile_ids.emplace_back(nucleus::srs::pack(id_bounds.id));
     }
 
     // write updated vertex buffers

@@ -52,14 +52,14 @@ graph TD
 ## Code style
 * class names are CamelCase, method, function and variable names are snake_case.
 * class attributes have an m_ prefix and are usually private, struct attributes don't and are usually public.
-* "use `void set_attribute(int value)` and `int attribute() const` for setters and getters (that is, avoid the get_)." Use Qt recommendations for naming boolean getters.
+* "use `void set_attribute(int value)` and `int attribute() const` for setters and getters (that is, avoid the get_)." Use [the Qt recommendations](https://wiki.qt.io/API_Design_Principles#Naming_Boolean_Getters,_Setters,_and_Properties) for naming boolean getters.
 * structs are usually small, simple, and have no or only few methods. they never have inheritance.
 * files are CamelCase if the content is a CamelCase class. otherwise they are snake_case, and have a snake_case namespace with stuff.
 * the folder/structure.h is reflected in namespace folder::structure{ .. }
 * indent with space only, indent 4 spaces
 * ideally, use the clang-format file provided with the project
   (in case you use Qt Creator, go to Preferences -> C++ -> Code Style: Formatting mode: Full, Format while typing, Format edited code on file save, don't override formatting)
-* follow the Qt recommendations and the C++ core guidelines everywhere else.
+* follow the [Qt recommendations](https://wiki.qt.io/API_Design_Principles) and the [c++ core guidelines](https://isocpp.github.io/CppCoreGuidelines/CppCoreGuidelines) everywhere else.
 
 ## Developer workflow
 * Fork this repository.
@@ -69,4 +69,4 @@ graph TD
 * Github Actions will run the unit tests and create packages for the browser and Android and deploy them to your_username.github.io/your_clone_name/.
 * Make sure that the unit tests run through.
 * We will also look at the browser version during the pull request.
-* Ideally you'll also setup the signing keys for Android packages.
+* Ideally you'll also setup the signing keys for Android packages. ([instructions](docs/app_creating_apk_keys.md)).

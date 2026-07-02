@@ -29,38 +29,8 @@ if(ALP_ENABLE_LABELS)
     alp_add_git_repository(vector_tiles URL https://github.com/AlpineMapsOrg/vector-tile.git COMMITISH faba88257716c4bc01ebd44d8b8b98f711ecb78c)
 endif()
 alp_add_git_repository(goofy_tc URL https://github.com/AlpineMapsOrgDependencies/Goofy_slim.git COMMITISH 13b228784960a6227bb6ca704ff34161bbac1b91 DO_NOT_ADD_SUBPROJECT)
-set(KTX_FEATURE_TESTS OFF CACHE BOOL "" FORCE)
-set(KTX_FEATURE_TOOLS OFF CACHE BOOL "" FORCE)
-set(KTX_FEATURE_DOC OFF CACHE BOOL "" FORCE)
-set(KTX_FEATURE_JS OFF CACHE BOOL "" FORCE)
-set(CMAKE_INSTALL_BINDIR_SAVED ${CMAKE_INSTALL_BINDIR})
-set(CMAKE_INSTALL_BINDIR "." CACHE STRING "" FORCE)
-alp_add_git_repository(libktx URL https://github.com/KhronosGroup/KTX-Software.git COMMITISH 952d74f1d53452e4e976a2b7698ff7af6c13a9ed)
-set(CMAKE_INSTALL_BINDIR ${CMAKE_INSTALL_BINDIR_SAVED} CACHE STRING "" FORCE)
-if (EMSCRIPTEN AND ALP_ENABLE_THREADING)
-    target_compile_options(ktx PUBLIC -pthread)
-    target_link_options(ktx PUBLIC -pthread)
-endif()
-if (EMSCRIPTEN AND TARGET ktx)
-    get_target_property(KTX_INTERFACE_LINK_OPTIONS ktx INTERFACE_LINK_OPTIONS)
-    if (KTX_INTERFACE_LINK_OPTIONS)
-        list(FILTER KTX_INTERFACE_LINK_OPTIONS EXCLUDE REGEX "STACK_SIZE=96kb")
-        set_target_properties(ktx PROPERTIES INTERFACE_LINK_OPTIONS "${KTX_INTERFACE_LINK_OPTIONS}")
-    endif()
-endif()
-if (NOT EMSCRIPTEN)
-    # NOTE: KTX builds into an additional Release/Debug directory. The following
-    # moves the builds directory for the targets ktx and ktx_read to the binary dir
-    foreach(ktx_target ktx ktx_read)
-        if (TARGET ${ktx_target})
-            set_target_properties(${ktx_target} PROPERTIES
-                RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}"
-                RUNTIME_OUTPUT_DIRECTORY_DEBUG "${CMAKE_BINARY_DIR}"
-                RUNTIME_OUTPUT_DIRECTORY_RELEASE "${CMAKE_BINARY_DIR}"
-            )
-        endif()
-    endforeach()
-endif()
+include(${CMAKE_SOURCE_DIR}/cmake/SetupKTX.cmake)
+alp_setup_ktx(952d74f1d53452e4e976a2b7698ff7af6c13a9ed)
 
 add_library(zppbits INTERFACE)
 target_include_directories(zppbits SYSTEM INTERFACE ${zppbits_SOURCE_DIR})
@@ -144,7 +114,6 @@ qt_add_library(nucleus STATIC
     camera/RecordedAnimation.h camera/RecordedAnimation.cpp
     camera/recording.h camera/recording.cpp
     tile/setup.h
-    tile/GpuTileId.h tile/GpuTileId.cpp
     tile/GpuArrayHelper.h tile/GpuArrayHelper.cpp
     tile/TextureScheduler.h tile/TextureScheduler.cpp
     tile/Texture3DScheduler.h tile/Texture3DScheduler.cpp

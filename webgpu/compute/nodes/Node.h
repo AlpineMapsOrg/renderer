@@ -25,7 +25,6 @@
 #include <QByteArray>
 #include <QJsonObject>
 #include <QObject>
-#include <nucleus/tile/GpuTileId.h>
 #include <queue>
 #include <variant>
 #include <vector>
