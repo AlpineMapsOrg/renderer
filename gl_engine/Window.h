@@ -38,14 +38,12 @@
 #include <nucleus/camera/Definition.h>
 #include <nucleus/timing/TimerManager.h>
 #include <nucleus/track/GPX.h>
-#include <string>
 
 class QOpenGLTexture;
 class QOpenGLShaderProgram;
 class QOpenGLVertexArrayObject;
 
 namespace nucleus::avalanche {
-class UIntIdManager;
 struct UboEawsReports;
 } // namespace nucleus::avalanche
 
@@ -69,7 +67,6 @@ public:
 
     [[nodiscard]] float depth(const glm::dvec2& normalised_device_coordinates) override;
     [[nodiscard]] glm::dvec3 position(const glm::dvec2& normalised_device_coordinates) override;
-    void destroy() override;
     [[nodiscard]] nucleus::camera::AbstractDepthTester* depth_tester() override;
     [[nodiscard]] nucleus::utils::ColourTexture::Format ortho_tile_compression_algorithm() const override;
 

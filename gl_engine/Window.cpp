@@ -84,7 +84,9 @@ Window::Window(std::shared_ptr<Context> context)
 
 Window::~Window()
 {
-    destroy();
+    m_gbuffer.reset();
+    m_screen_quad_geometry = {};
+
 #ifdef ALP_ENABLE_TRACK_OBJECT_LIFECYCLE
     qDebug("gl_engine::~Window()");
 #endif
@@ -540,12 +542,6 @@ void Window::update_eaws_reports(const nucleus::avalanche::UboEawsReports& newUb
 glm::dvec3 Window::position(const glm::dvec2& normalised_device_coordinates)
 {
     return m_camera.position() + m_camera.ray_direction(normalised_device_coordinates) * (double)depth(normalised_device_coordinates);
-}
-
-void Window::destroy()
-{
-    m_gbuffer.reset();
-    m_screen_quad_geometry = {};
 }
 
 nucleus::camera::AbstractDepthTester* Window::depth_tester() { return this; }

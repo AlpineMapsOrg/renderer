@@ -47,7 +47,6 @@ class AabbDecorator;
 
 namespace nucleus::avalanche {
 class Scheduler;
-class UIntIdManager;
 class ReportLoadService;
 } // namespace nucleus::avalanche
 

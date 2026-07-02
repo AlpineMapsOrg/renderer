@@ -21,10 +21,6 @@
 #include "TrackManager.h"
 #include <nucleus/EngineContext.h>
 
-namespace nucleus::avalanche {
-class UIntIdManager;
-}
-
 namespace gl_engine {
 class MapLabels;
 class ShaderRegistry;
