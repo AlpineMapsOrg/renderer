@@ -240,7 +240,7 @@ jobs:
       
     - name: Cache Qt WebAssembly build
       id: qt-cache
-      uses: actions/cache@v5
+      uses: actions/cache@v6
       with:
         path: qt_wasm_lite
         key: ${{ matrix.config }}_qt-${{ env.QT_VERSION }}_emcc-${{ env.WEBASSEMBLY_VERSION }}_qtpositioning_${{ hashFiles('misc/qt_lite.txt', 'misc/qt_68_qtbase_remove_dejavu_fonts.patch') }}
