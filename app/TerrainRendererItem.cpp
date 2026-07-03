@@ -164,6 +164,7 @@ QQuickFramebufferObject::Renderer* TerrainRendererItem::createRenderer() const
     return r;
 }
 
+
 void TerrainRendererItem::touchEvent(QTouchEvent* e)
 {
     this->setFocus(true);

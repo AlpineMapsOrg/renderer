@@ -56,11 +56,11 @@ std::vector<Index> surface_quads(unsigned vertex_side_length)
 
     for (size_t row = 0; row < height - 1; row++) {
         for (size_t col = 0; col < width; col++) {
-            indices.push_back(index_for(row, col));
-            indices.push_back(index_for(row + 1, col));
+            indices.push_back(Index(index_for(row, col)));
+            indices.push_back(Index(index_for(row + 1, col)));
         }
-        indices.push_back(index_for(row + 1, width - 1));
-        indices.push_back(index_for(row + 1, 0));
+        indices.push_back(Index(index_for(row + 1, width - 1)));
+        indices.push_back(Index(index_for(row + 1, 0)));
     }
     indices.resize(indices.size() - 2);
     return indices;
@@ -79,22 +79,22 @@ std::vector<Index> surface_quads_with_curtains(unsigned vertex_side_length)
     const auto first_curtain_index = curtain_index;
 
     for (size_t row = height - 1; row >= 1; row--) {
-        indices.push_back(index_for(row, width - 1));
+        indices.push_back(Index(index_for(row, width - 1)));
         indices.push_back(curtain_index++);
     }
 
     for (size_t col = width - 1; col >= 1; col--) {
-        indices.push_back(index_for(0, col));
+        indices.push_back(Index(index_for(0, col)));
         indices.push_back(curtain_index++);
     }
 
     for (size_t row = 0; row < height - 1; row++) {
-        indices.push_back(index_for(row, 0));
+        indices.push_back(Index(index_for(row, 0)));
         indices.push_back(curtain_index++);
     }
 
     for (size_t col = 0; col < width - 1; col++) {
-        indices.push_back(index_for(height - 1, col));
+        indices.push_back(Index(index_for(height - 1, col)));
         indices.push_back(curtain_index++);
     }
     indices.push_back(index_for(height - 1, width - 1));

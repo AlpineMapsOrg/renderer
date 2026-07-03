@@ -44,7 +44,7 @@ jobs:
     - name: Install Linux Dependencies
       run: |
         sudo apt-get update
-        sudo apt-get install -y build-essential ninja-build lld libgl1-mesa-dev libxcb-cursor-dev xorg-dev libxrandr-dev libxcursor-dev libudev-dev libopenal-dev libflac-dev libvorbis-dev libgl1-mesa-dev libegl1-mesa-dev libdrm-dev libgbm-dev xvfb libxcb-cursor0 libxcb-icccm4 libxcb-image0 libxcb-keysyms1 libxcb-render-util0
+        sudo apt-get install -y build-essential ninja-build lld libgl1-mesa-dev libxcb-cursor-dev xorg-dev libx11-xcb-dev libxrandr-dev libxcursor-dev libudev-dev libopenal-dev libflac-dev libvorbis-dev libgl1-mesa-dev libegl1-mesa-dev libdrm-dev libgbm-dev xvfb libxcb-cursor0 libxcb-icccm4 libxcb-image0 libxcb-keysyms1 libxcb-render-util0
 
     - name: Install Clang 17
       if: matrix.compiler == 'clang17'
@@ -86,8 +86,8 @@ jobs:
         CXX: ${{ matrix.CXX }}
         CMAKE_PREFIX_PATH: ${{env.QT_ROOT_DIR}}/lib/cmake
       run: >
-        cmake -G Ninja 
-        -DCMAKE_BUILD_TYPE=${{matrix.BUILD_TYPE}} 
+        cmake -G Ninja
+        -DCMAKE_BUILD_TYPE=${{matrix.BUILD_TYPE}}
         -DALP_ENABLE_ASSERTS=ON
         -DALP_ENABLE_ADDRESS_SANITIZER=ON
         -DALP_ENABLE_APP_SHUTDOWN_AFTER_60S=ON
@@ -115,7 +115,7 @@ jobs:
         QT_QPA_PLATFORM: offscreen
         DISPLAY: :1
         LD_PRELOAD: ./libdlclose.so
-        LSAN_OPTIONS: suppressions=./sanitizer_supressions/linux_leak.supp
+        LSAN_OPTIONS: suppressions=./misc/sanitizer_suppressions/linux_leak.supp
         ASAN_OPTIONS: verify_asan_link_order=0
         # QSG_RENDER_LOOP: basic
       run: |

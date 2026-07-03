@@ -1,0 +1,113 @@
+<!doctype html>
+<html lang="en-us">
+
+<head>
+  <meta charset="utf-8">
+  <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+
+  <!--Set visual viewport size for mobile devices to the device size,
+        witch results in a scale of 1 and a 1:1 mapping between CSS pixels
+        and Qt device independent pixels. -->
+  <meta name="viewport" content="width=device-width, height=device-height, user-scalable=0" />
+
+  <title>weBIGeo - Geospatial Visualization Tool</title>
+
+  <link rel="stylesheet" type="text/css" href="webgpu_app.css">
+</head>
+
+<body onload="init()">
+  <div id="qtspinner">
+    <img src="webigeo_logo.svg" width="320" height="320"
+      style="display:inline; padding-bottom: 20px; padding-top: 100px;"></img><br>
+    <strong style="font-size: larger">weBIGeo</strong><br>
+    <span id="qtstatus"></span>
+    <span id="loadingstatus"></span>
+    <noscript>JavaScript is disabled. Please enable JavaScript to use this application.</noscript>
+  </div>
+  <div id="screen"></div>
+  <div id="logwrapper">
+    <div id="log"></div>
+    <div id="logbuttonwrapper">
+      <div id="buttouchemulator" class="button">Touch-Emulator</div>
+      <div id="buthidelog" class="button">Hide Log [^]</div>
+      <div id="butclearlog" class="button">Clear Log</div>
+    </div>
+  </div>
+
+  <canvas width="800" height="600" class="emscripten" id="canvas"></canvas>
+
+  <script src="webgpu_hacks.js"></script>
+  <script type="text/javascript">
+    window.addEventListener('unhandledrejection', event => {
+      if (event.reason === 'unwind')
+        event.preventDefault();
+    });
+
+    async function init() {
+      const spinner = document.querySelector('#qtspinner');
+      const screen = document.querySelector('#screen');
+      const status = document.querySelector('#qtstatus');
+      const webgpu_canvas = document.querySelector('#canvas');
+      const log_element = document.querySelector('#log');
+      const log_wrapper = document.querySelector('#logwrapper');
+
+      const loading_status = document.querySelector('#loadingstatus');
+      const hacks = new WeBIGeoHacks(webgpu_canvas, log_wrapper, log_element, spinner, loading_status);
+      await hacks.checkWebGPU();
+
+      if (!hacks.webgpuAvailable) {
+        console.error('WebGPU is not supported in this browser');
+        status.innerHTML = 'Error: WebGPU is not supported in this browser!';
+        return;
+      }
+
+      const showUi = (ui) => {
+        [spinner, screen].forEach(element => element.style.display = 'none');
+        if (screen === ui)
+          screen.style.position = 'default';
+        ui.style.display = 'block';
+      }
+
+      try {
+        status.innerHTML = 'Loading...';
+
+        eminstance = await qtLoad({
+          qt: {
+            onLoaded: () => hacks.onWasmLoaded(() => showUi(screen)),
+            onExit: exitData => {
+              status.innerHTML = 'Application exit';
+              status.innerHTML +=
+                exitData.code !== undefined ? ` with code ${exitData.code}` : '';
+              status.innerHTML +=
+                exitData.text !== undefined ? ` (${exitData.text})` : '';
+              showUi(spinner);
+            },
+            entryFunction: window.webgpu_app_entry,
+            containerElements: [screen],
+          },
+          webgpuTimingsAvailable: (() => {
+            return hacks.webgpuTimingsAvailable;
+          })(),
+          print: (function () {
+            return (...args) => {
+              var text = args.join(' ');
+              hacks.log(text);
+            };
+          })(),
+        });
+
+        await hacks.setEminstance(eminstance);
+        if (hacks.debugBuild) hacks.showLog();
+        eminstance.hacks = hacks; // expose hacks to the emscripten instance
+
+      } catch (e) {
+        console.error(e);
+        console.error(e.stack);
+      }
+    }
+  </script>
+  <script src="webgpu_app.js"></script>
+  <script type="text/javascript" src="qtloader.js"></script>
+</body>
+
+</html>

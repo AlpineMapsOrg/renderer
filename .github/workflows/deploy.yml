@@ -300,6 +300,12 @@ jobs:
     - name: Build
       run: cmake --build $BUILD_DIR --target install
 
+    - name: Verify WebGPU app artifacts
+      run: |
+        test -f "$INSTALL_DIR/webgpu_app.html"
+        test -f "$INSTALL_DIR/webgpu_app.js"
+        test -f "$INSTALL_DIR/webgpu_app.wasm"
+
     - name: Create artifact
       uses: actions/upload-artifact@v5
       with:
@@ -360,13 +366,14 @@ jobs:
       
     - name: Fix headers for wasm multithread
       run: |
-        cd $GITHUB_WORKSPACE/github_page/wasm_mt_lto
-        wget https://raw.githubusercontent.com/gzuidhof/coi-serviceworker/master/coi-serviceworker.min.js
-        sed -i -e 's#<body onload="init()">#<body onload="init()"><script src="coi-serviceworker\.min\.js"></script>#g' alpineapp.html
-        
-        cd $GITHUB_WORKSPACE/github_page/wasm_mt
-        wget https://raw.githubusercontent.com/gzuidhof/coi-serviceworker/master/coi-serviceworker.min.js
-        sed -i -e 's#<body onload="init()">#<body onload="init()"><script src="coi-serviceworker\.min\.js"></script>#g' alpineapp.html
+        for config in wasm_mt wasm_mt_debug wasm_mt_lto; do
+          cd "$GITHUB_WORKSPACE/github_page/$config"
+          wget -q https://raw.githubusercontent.com/gzuidhof/coi-serviceworker/master/coi-serviceworker.min.js
+          for html in alpineapp.html webgpu_app.html; do
+            test -f "$html"
+            sed -i -e 's#<body onload="init()">#<body onload="init()"><script src="coi-serviceworker\.min\.js"></script>#g' "$html"
+          done
+        done
         
     - name: Generate Directory Listings
       uses: jayanta525/github-pages-directory-listing@v4.0.0

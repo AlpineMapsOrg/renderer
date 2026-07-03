@@ -1,8 +1,12 @@
 /CMakeLists.txt.user
 /extern/*
-/doc/*
-/doc
 /build/*
+/install/*
+.vs
+.vscode
+.qtcreator
+__pycache__
 /.qtcreator/CMakeLists.txt.user
 **/.qmlls.ini
+/docs/project_reports
 **/__pycache__/*.pyc

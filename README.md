@@ -1,48 +1,58 @@
-# AlpineMaps.org Renderer
-This is the software behind [alpinemaps.org](https://alpinemaps.org).
+# <img src="app/icons/icon.png" width="40" height="40" align="left" style="margin-right:8px"/> AlpineMaps.org
 
-A developer version (trunk) is released [here](https://alpinemapsorg.github.io/renderer/), including APKs for android. Be aware that it can break at any time!
+![License](https://img.shields.io/github/license/AlpineMapsOrg/renderer) [![AlpineMaps.org | live](https://img.shields.io/badge/AlpineMaps.org-live-brightgreen)](https://alpinemaps.org) [![weBIGeo | live](https://img.shields.io/badge/weBIGeo-live-brightgreen)](https://webigeo.alpinemaps.org/) [![Discord](https://img.shields.io/badge/discord-join-5865F2?logo=discord&logoColor=white)](https://discord.gg/p8T9XzVwRa)
+
+This is a mono-repository containing the [AlpineMaps.org](https://alpinemaps.org) and [weBIGeo](https://webigeo.alpinemaps.org/) projects alongside their shared dependencies. Both are under active development and aim to provide state-of-the-art real-time rendering and processing for large-scale, tile-based geodata.
+
+### <img src="app/icons/icon.png" width="20" height="20"/> [AlpineMaps.org (`app`)](docs/app.md)
+Qt Quick / OpenGL frontend, the original alpinemaps.org client.
+
+### <img src="apps/webgpu_app/shell/webigeo_logo.svg" width="20" height="20"/> [weBIGeo (`webgpu_app`)](docs/webgpu_app.md)
+WebGPU rendering engine with ImGui UI and GPU compute graph.
 
 [If looking at the issues, best to filter out projects!](https://github.com/AlpineMapsOrg/renderer/issues?q=is%3Aissue%20state%3Aopen%20no%3Aproject)
 
 We are in discord, talk to us!
 https://discord.gg/p8T9XzVwRa
 
-# Cloning and building
-`git clone git@github.com:AlpineMapsOrg/renderer.git`
 
-After that it should be a normal cmake project. That is, you run cmake to generate a project or build file and then run your favourite tool. All dependencies should be pulled automatically while you run CMake. 
-We use Qt Creator (with mingw on Windows), which is the only tested setup atm and makes setup of Android and WebAssembly builds reasonably easy. If you have questions, please go to Discord.
+## Architecture
 
-## Dependencies
-* Qt 6.11.1, or greater
-* g++ 12+, clang or msvc
-* OpenGL
-* Qt Positioning and Charts modules
-* Some other dependencies will be pulled automatically during building.
+```mermaid
+graph TD
+    app["AlpineMaps.org [app]"]
+    webgpu_app["weBIGeo [webgpu_app]"]
+    gl_engine(["gl_engine"])
+    webgpu_compute(["webgpu_compute"])
+    webgpu(["webgpu"])
+    nucleus(["nucleus"])
+    webgpu_engine(["webgpu_engine"])
 
-## Building the native version
-* just run cmake and build
+    app ---> gl_engine
+    webgpu_app --> webgpu_engine
+    webgpu_app --> webgpu_compute
+    gl_engine --> nucleus
+    webgpu_engine --> webgpu
+    webgpu_compute --> webgpu
+    webgpu --> nucleus
 
-## Building the android version
-* We are usually building with Qt Creator, because it works relatively out of the box. However, it should also work on the command line or other IDEs if you set it up correctly.
-* You need a Java JDK before you can do anything else. Not all Java versions work, and the error messages might be surprising (or non-existant). I'm running with Java 19, and I can compile for old devices. Iirc a newer version of Java caused issues. [Android documents the required Java version](https://developer.android.com/build/jdks), but as said, for me Java 19 works as well. It might change in the future.
-* Once you have Java, go to Qt Creator Preferences -> Devices -> Android. There click "Set Up SDK" to automatically download and install an Android SDK.
-* Finally, you might need to click on SDK Manager to install a fitting SDK Platform (take the newest, it also works for older devices), and ndk (newest as well).
-* Then Google the internet to find out how to enable the developer mode on Android.
-* On linux, you'll have to setup some udev rules. Run `Android/SDK/platform-tools/adb devices` and you should get instructions.
-* If there are problems, check out the [documentation from Qt](https://doc.qt.io/qt-6/android-getting-started.html) 
-* Finally, you are welcome to ask in discord if something is not working! 
 
-## Building the WebAssembly version:
-* [The Qt documentation is quite good on how to get it to run](https://doc-snapshots.qt.io/qt6-dev/wasm.html#installing-emscripten).
-* Be aware that only specific versions of emscripten work for specific versions of Qt, and the error messages are not helpfull.
-* [More info on building and getting Hotreload to work](https://github.com/AlpineMapsOrg/documentation/blob/main/WebAssembly_local_build.md)
+```
 
-# Code style
+*...only top-level dependencies are shown.*
+
+| Module | Description |
+|--------|-------------|
+| `nucleus` | Shared core: tile management, camera, data structures |
+| [`webgpu`](docs/webgpu_base.md) | RAII WebGPU wrappers (device, pipelines, buffers), WGSL preprocessor and GPU resource registry |
+| `gl_engine` | OpenGL rendering engine (used by the QML app) |
+| [`webgpu_engine`](docs/webgpu_engine.md) | WebGPU rendering engine (used by the webgpu_app) |
+| `webgpu_compute` | CPU/GPU compute node graph library |
+
+## Code style
 * class names are CamelCase, method, function and variable names are snake_case.
 * class attributes have an m_ prefix and are usually private, struct attributes don't and are usually public.
-* use `void set_attribute(int value)` and `int attribute() const` for setters and getters (that is, avoid the get_). Use [the Qt recommendations](https://wiki.qt.io/API_Design_Principles#Naming_Boolean_Getters,_Setters,_and_Properties) for naming boolean getters.
+* "use `void set_attribute(int value)` and `int attribute() const` for setters and getters (that is, avoid the get_)." Use [the Qt recommendations](https://wiki.qt.io/API_Design_Principles#Naming_Boolean_Getters,_Setters,_and_Properties) for naming boolean getters.
 * structs are usually small, simple, and have no or only few methods. they never have inheritance.
 * files are CamelCase if the content is a CamelCase class. otherwise they are snake_case, and have a snake_case namespace with stuff.
 * the folder/structure.h is reflected in namespace folder::structure{ .. }
@@ -51,7 +61,7 @@ We use Qt Creator (with mingw on Windows), which is the only tested setup atm an
   (in case you use Qt Creator, go to Preferences -> C++ -> Code Style: Formatting mode: Full, Format while typing, Format edited code on file save, don't override formatting)
 * follow the [Qt recommendations](https://wiki.qt.io/API_Design_Principles) and the [c++ core guidelines](https://isocpp.github.io/CppCoreGuidelines/CppCoreGuidelines) everywhere else.
 
-# Developer workflow
+## Developer workflow
 * Fork this repository.
 * Enable github pages from actions (Repository Settings -> Pages -> Source -> GitHub Actions)
 * Work in branches or your main.
@@ -59,4 +69,4 @@ We use Qt Creator (with mingw on Windows), which is the only tested setup atm an
 * Github Actions will run the unit tests and create packages for the browser and Android and deploy them to your_username.github.io/your_clone_name/.
 * Make sure that the unit tests run through.
 * We will also look at the browser version during the pull request.
-* Ideally you'll also setup the signing keys for Android packages ([instructions](https://github.com/AlpineMapsOrg/renderer/blob/main/creating_apk_keys.md)).
+* Ideally you'll also setup the signing keys for Android packages. ([instructions](docs/app_creating_apk_keys.md)).

@@ -1,6 +1,8 @@
 #############################################################################
 # Alpine Terrain Renderer
 # Copyright (C) 2023 Adam Celarek <family name at cg tuwien ac at>
+# Copyright (C) 2024 Gerald Kimmersdorfer
+# Copyright (C) 2024 Patrick Komon
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -17,9 +19,21 @@
 #############################################################################
 
 cmake_minimum_required(VERSION 3.25)
-project(alpine-renderer LANGUAGES CXX)
+project(alpine-renderer LANGUAGES C CXX)
 
 option(ALP_UNITTESTS "include unit test targets in the buildsystem" ON)
+option(ALP_GL_ENGINE "include the gl engine in the buildsystem" OFF)
+set(ALP_WEBGPU_DEFAULT OFF)
+if (EMSCRIPTEN OR (UNIX AND NOT APPLE AND NOT ANDROID))
+    set(ALP_WEBGPU_DEFAULT ON)
+endif()
+option(ALP_WEBGPU_ENGINE "include the webgpu engine in the buildsystem" ${ALP_WEBGPU_DEFAULT})
+option(ALP_WEBGPU_APP "include the webgpu app in the buildsystem" ${ALP_WEBGPU_DEFAULT})
+option(ALP_PLAIN_RENDERER "include the plain renderer in the buildsystem" OFF)
+option(ALP_QML_APP "include the qml app in the buildsystem" OFF)
+
+option(ALP_WEBGPU_APP_ENABLE_COMPUTE "Build the webgpu_compute graph into the app" ON)
+
 option(ALP_ENABLE_ADDRESS_SANITIZER "compiles atb with address sanitizer enabled (only debug, works only on g++ and clang)" OFF)
 option(ALP_ENABLE_THREAD_SANITIZER "compiles atb with thread sanitizer enabled (only debug, works only on g++ and clang)" OFF)
 option(ALP_ENABLE_ASSERTS "enable asserts (do not define NDEBUG)" ON)
@@ -88,13 +102,18 @@ if (ALP_USE_LLVM_LINKER)
     string(APPEND CMAKE_EXE_LINKER_FLAGS " -fuse-ld=lld")
 endif()
 
+# Disable Qt debug output in release builds
+if(CMAKE_BUILD_TYPE STREQUAL "Release")
+    add_compile_definitions(QT_NO_DEBUG_OUTPUT)
+endif()
+
 ########################################### dependencies #################################################
 find_package(Qt6 REQUIRED COMPONENTS Core Gui OpenGL Network Quick QuickControls2 LinguistTools)
-qt_standard_project_setup(REQUIRES 6.8)
+qt_standard_project_setup(REQUIRES 6.10)
 
 alp_add_git_repository(renderer_static_data URL https://github.com/AlpineMapsOrg/renderer_static_data.git COMMITISH v23.11 DO_NOT_ADD_SUBPROJECT)
 alp_add_git_repository(alpineapp_fonts URL https://github.com/AlpineMapsOrg/fonts.git COMMITISH v24.02 DO_NOT_ADD_SUBPROJECT)
-alp_add_git_repository(doc URL https://github.com/AlpineMapsOrg/documentation.git COMMITISH origin/main DO_NOT_ADD_SUBPROJECT DESTINATION_PATH doc)
+alp_add_git_repository(doc URL https://github.com/AlpineMapsOrg/documentation.git COMMITISH origin/main DO_NOT_ADD_SUBPROJECT DESTINATION_PATH docs/project_reports)
 
 
 if (ANDROID)
@@ -113,6 +132,29 @@ if (ALP_ENABLE_GL_ENGINE)
     add_subdirectory(gl_engine)
     add_subdirectory(plain_renderer)
     add_subdirectory(app)
+endif()
+
+if (ALP_GL_ENGINE)
+    add_subdirectory(gl_engine)
+endif()
+if (ALP_PLAIN_RENDERER)
+    add_subdirectory(plain_renderer)
+endif()
+if (ALP_QML_APP)
+    add_subdirectory(app)
+endif()
+if (ALP_WEBGPU_APP OR ALP_WEBGPU_ENGINE)
+    add_subdirectory(webgpu/base)
+    if (ALP_WEBGPU_ENGINE)
+        add_subdirectory(webgpu/engine)
+    endif()
+    if (ALP_WEBGPU_APP)
+        if (ALP_WEBGPU_APP_ENABLE_COMPUTE)
+            add_subdirectory(webgpu/compute)
+        endif()
+        add_subdirectory(apps/webgpu_app)
+    endif()
+
 endif()
 
 if (ALP_UNITTESTS)

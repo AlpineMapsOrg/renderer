@@ -301,4 +301,15 @@ void reduce_point_count(std::vector<glm::vec4>& points, float threshold)
     }
 }
 
+BoundingBox compute_world_aabb(const Gpx& gpx)
+{
+    BoundingBox aabb { glm::dvec3(std::numeric_limits<double>::max()), glm::dvec3(std::numeric_limits<double>::min()) };
+    for (const auto& segment : gpx.track) {
+        for (const auto& point : segment) {
+            aabb.expand_by(srs::lat_long_alt_to_world({ point.latitude, point.longitude, point.elevation }));
+        }
+    }
+    return aabb;
+}
+
 } // namespace nucleus::track

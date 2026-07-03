@@ -17,6 +17,7 @@
  *****************************************************************************/
 
 #include "GpuArrayHelper.h"
+#include <QtGlobal>
 #include <nucleus/srs.h>
 
 namespace nucleus::tile {
@@ -24,9 +25,9 @@ GpuArrayHelper::GpuArrayHelper() { }
 
 unsigned GpuArrayHelper::add_tile(const tile::Id& id)
 {
-    assert(!m_id_to_layer.contains(id));
+    Q_ASSERT(!m_id_to_layer.contains(id));
     const auto t = std::find(m_array.begin(), m_array.end(), tile::Id { unsigned(-1), {} });
-    assert(t != m_array.end());
+    Q_ASSERT(t != m_array.end());
     *t = id;
 
     // returns index in texture array
@@ -37,16 +38,16 @@ unsigned GpuArrayHelper::add_tile(const tile::Id& id)
 
 void GpuArrayHelper::remove_tile(const tile::Id& tile_id)
 {
-    assert(m_id_to_layer.contains(tile_id));
+    Q_ASSERT(m_id_to_layer.contains(tile_id));
     m_id_to_layer.erase(tile_id);
     const auto t = std::find(m_array.begin(), m_array.end(), tile_id);
-    assert(t != m_array.end()); // removing a tile that's not here. likely there is a race.
+    Q_ASSERT(t != m_array.end()); // removing a tile that's not here. likely there is a race.
     *t = tile::Id { unsigned(-1), {} };
 }
 
 void GpuArrayHelper::set_tile_limit(unsigned int new_limit)
 {
-    assert(m_array.empty());
+    Q_ASSERT(m_array.empty());
     m_array.resize(new_limit);
     std::fill(m_array.begin(), m_array.end(), tile::Id { unsigned(-1), {} });
 }
@@ -62,6 +63,11 @@ GpuArrayHelper::LayerInfo GpuArrayHelper::layer(Id tile_id) const
     if (!m_id_to_layer.contains(tile_id))
         return { {}, 0 }; // may be empty during startup.
     return { tile_id, m_id_to_layer.at(tile_id) };
+}
+
+bool GpuArrayHelper::contains(Id tile_id) const
+{
+    return m_id_to_layer.contains(tile_id);
 }
 
 GpuArrayHelper::Dictionary GpuArrayHelper::generate_dictionary() const

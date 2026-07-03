@@ -37,6 +37,10 @@ class Definition {
 public:
     Definition();
     Definition(const glm::dvec3& position, const glm::dvec3& view_at_point);
+
+    // returns a camera position above the centre of the given world-space region, looking straight down fitting the whole region
+    [[nodiscard]] static Definition looking_down_at_aabb(const radix::geometry::Aabb<3, double>& aabb, const glm::uvec2& viewport_size);
+    [[nodiscard]] static Definition looking_down_at_aabb(const radix::geometry::Aabb<2, double>& aabb, const glm::uvec2& viewport_size);
     [[nodiscard]] glm::dmat4 camera_matrix() const;
     [[nodiscard]] glm::dmat4 model_matrix() const;
     void set_model_matrix(const glm::dmat4& new_camera_transformation);
