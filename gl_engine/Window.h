@@ -38,11 +38,14 @@
 #include <nucleus/camera/Definition.h>
 #include <nucleus/timing/TimerManager.h>
 #include <nucleus/track/GPX.h>
-#include <string>
 
 class QOpenGLTexture;
 class QOpenGLShaderProgram;
 class QOpenGLVertexArrayObject;
+
+namespace nucleus::avalanche {
+struct UboEawsReports;
+} // namespace nucleus::avalanche
 
 namespace gl_engine {
 
@@ -52,7 +55,6 @@ class Framebuffer;
 class SSAO;
 class ShadowMapping;
 class Context;
-
 class Window : public nucleus::AbstractRenderWindow, public nucleus::camera::AbstractDepthTester {
     Q_OBJECT
 public:
@@ -65,7 +67,6 @@ public:
 
     [[nodiscard]] float depth(const glm::dvec2& normalised_device_coordinates) override;
     [[nodiscard]] glm::dvec3 position(const glm::dvec2& normalised_device_coordinates) override;
-    void destroy() override;
     [[nodiscard]] nucleus::camera::AbstractDepthTester* depth_tester() override;
     [[nodiscard]] nucleus::utils::ColourTexture::Format ortho_tile_compression_algorithm() const override;
 
@@ -75,6 +76,7 @@ public slots:
     void shared_config_changed(gl_engine::uboSharedConfig ubo);
     void reload_shader();
     void pick_value(const glm::dvec2& screen_space_coordinates) override;
+    void update_eaws_reports(const nucleus::avalanche::UboEawsReports& uboEawsReports);
 
 signals:
     void timer_measurements_ready(QList<nucleus::timing::TimerReport> values);
@@ -98,7 +100,7 @@ private:
     std::shared_ptr<UniformBuffer<uboSharedConfig>> m_shared_config_ubo; // needs opengl context
     std::shared_ptr<UniformBuffer<uboCameraConfig>> m_camera_config_ubo;
     std::shared_ptr<UniformBuffer<uboShadowConfig>> m_shadow_config_ubo;
-
+    std::shared_ptr<UniformBuffer<nucleus::avalanche::UboEawsReports>> m_eaws_reports_ubo;
     helpers::ScreenQuadGeometry m_screen_quad_geometry;
 
     nucleus::camera::Definition m_camera;
@@ -110,7 +112,6 @@ private:
     QString m_debug_scheduler_stats;
 
     std::unique_ptr<nucleus::timing::TimerManager> m_timer;
-
 };
 
-} // namespace
+} // namespace gl_engine

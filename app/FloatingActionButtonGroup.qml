@@ -20,8 +20,10 @@
 import QtQuick
 import QtQuick.Controls.Material
 import QtQuick.Layouts
-import app
 import "components"
+import app
+
+
 
 ColumnLayout {
     id: fab_group
@@ -76,7 +78,13 @@ ColumnLayout {
 
                 FloatingActionButton {
                     image: _r + "icons/presets/basic.png"
-                    onClicked: map.set_gl_preset("AAABIHjaY2BgYLL_wAAGGPRhY2EHEP303YEDIPrZPr0FQHr_EU-HBAYEwKn_5syZIPX2DxgEGLDQcP0_ILQDBwMKcHBgwAoc7KC0CJTuhyh0yGRAoeHueIBK4wAKQMwIxXAAAFQuIIw")
+                    onClicked: {
+                        risk_level_toggle.checked = false;
+                        eaws_report_toggle.checked = false;
+                        slope_angle_toggle.checked = false;
+                        stop_or_go_toggle.checked = false;
+                        map.set_gl_preset("AAABIHjaY2BgYLL_wAAGGPRhY2EHEP303YEDIPrZPr0FQHr_EU-HBAYEwKn_5syZIPX2DxgEGLDQcP0_ILQDBwMKcHBgwAoc7KC0CJTuhyh0yGRAoeHueIBK4wAKQMwIxXAAAFQuIIw")
+                    }
                     size: parent.height
                     image_size: 42
                     image_opacity: 1.0
@@ -87,7 +95,13 @@ ColumnLayout {
 
                 FloatingActionButton {
                     image: _r + "icons/presets/shaded.png"
-                    onClicked: map.set_gl_preset("AAABIHjaY2BgYLL_wAAGGPRhY2EHEP1s0rwEMG32D0TvPxS4yIEBAXDqvzlz5gIQ_YBBgAELDdf_A0I7cDCgAAcHBqzAwQ5Ki0DpfohCh0wGFBrujgeoNBAwQjEyXwFNHEwDAMaIIAM")
+                    onClicked: {
+                        risk_level_toggle.checked = false;
+                        eaws_report_toggle.checked = false;
+                        slope_angle_toggle.checked = false;
+                        stop_or_go_toggle.checked = false;
+                        map.set_gl_preset("AAABIHjaY2BgYLL_wAAGGPRhY2EHEP1s0rwEMG32D0TvPxS4yIEBAXDqvzlz5gIQ_YBBgAELDdf_A0I7cDCgAAcHBqzAwQ5Ki0DpfohCh0wGFBrujgeoNBAwQjEyXwFNHEwDAMaIIAM")
+                    }
                     size: parent.height
                     image_size: 42
                     image_opacity: 1.0
@@ -98,7 +112,13 @@ ColumnLayout {
 
                 FloatingActionButton {
                     image: _r + "icons/presets/snow.png"
-                    onClicked: map.set_gl_preset("AAABIHjaY2BgYLL_wAAGGPRhY2EHEP1s0rwEMG32D0TvPxS4yIEBAXDqvzlz5gIQ_YBBgAELDdf_A0I7cDCgAAcHVPPg4nZQWgRK90MUOmQyoNBwdzxApYGAEYqR-Qpo4mAaAFhrITI")
+                    onClicked: {
+                        risk_level_toggle.checked = false;
+                        eaws_report_toggle.checked = false;
+                        slope_angle_toggle.checked = false;
+                        stop_or_go_toggle.checked = false;
+                        map.set_gl_preset("AAABIHjaY2BgYLL_wAAGGPRhY2EHEP1s0rwEMG32D0TvPxS4yIEBAXDqvzlz5gIQ_YBBgAELDdf_A0I7cDCgAAcHVPPg4nZQWgRK90MUOmQyoNBwdzxApYGAEYqR-Qpo4mAaAFhrITI")
+                    }
                     size: parent.height
                     image_size: 42
                     image_opacity: 1.0
@@ -119,7 +139,14 @@ ColumnLayout {
                 }
                 FloatingActionButton {
                     image: _r + "icons/material/steepness.png"
-                    onClicked: {map.shared_config.overlay_mode = 101; toggleSteepnessLegend();}
+                    onClicked: {
+                        risk_level_toggle.checked = false;
+                        eaws_report_toggle.checked = false;
+                        slope_angle_toggle.checked = false;
+                        stop_or_go_toggle.checked = false;
+
+                        map.shared_config.overlay_mode = 101;
+                        toggleSteepnessLegend();}
                     size: parent.height
                     image_size: 24
                     image_opacity: 1.0
@@ -130,6 +157,279 @@ ColumnLayout {
             }
         }
     }
+
+    // Button for avalanche menu
+    FloatingActionButton {
+        id: avalanche_menu
+        image: _r + "icons/" + (checked ? "material/chevron_left.png": "eaws/eaws_menu.png")
+        size: parent.width
+        checkable: true
+        property bool firstClickDone: false // Tracks if the button was clicked before
+        onClicked:{
+            if (!firstClickDone) {firstClickDone = false}
+            map.updateEawsReportDate(date_picker.selectedDate.getDate(), date_picker.selectedDate.getMonth()+1, date_picker.selectedDate.getFullYear())
+        }
+
+        // Textbox for warning , only shown on first click of avalanche menu button
+        Rectangle {
+            id: warning
+            visible: avalanche_menu.checked && !avalanche_menu.firstClickDone //parent.checked
+            height: 300
+            width: 400
+            radius: avalanche_menu.radius
+            anchors.bottom: parent.bottom
+            ColumnLayout {
+                anchors.fill: parent
+
+                Label {
+                    id: warning_text
+                    textFormat: Text.StyledText
+                    text: "<b>EXPERIMENTAL FEATURE!</b>
+                    <br>These visualisation tools are experimental and should <b>not</b> be used as a sole basis for decision-making during tour planning.
+                    <br><b>We cannot guarantee the correctness of the information displayed.</b>
+                    <br>Any liability for accidents and damages in connection with the use of this service is excluded. The planning and execution of your winter sports activities is at your own risk and under your sole responsibility."
+                    wrapMode: Text.WordWrap
+                    horizontalAlignment: Text.AlignJustify
+                    Layout.alignment: Qt.AlignHCenter
+                    Layout.maximumWidth: parent.width - 30 // prevent overflow
+                    Layout.margins: 15
+                }
+
+                Rectangle {
+                    Layout.alignment: Qt.AlignCenter
+                    Layout.fillHeight: true
+                    color: "blue"
+                    Layout.preferredWidth: 0
+                }
+                RowLayout {
+                    Layout.alignment: Qt.AlignHCenter
+                    Layout.margins: 15
+                    Button {
+                        text: "Read more"
+                        ToolTip.visible: hovered
+                        ToolTip.text: qsTr("Open Thesis by Johannes Eschner at TU Wien")
+                        onClicked: {
+                            Qt.openUrlExternally("https://repositum.tuwien.at/handle/20.500.12708/177341?mode=simple")
+                        }
+                    }
+
+                    Button {
+                        text: "Accept and Continue"
+                        ToolTip.visible: hovered
+                        ToolTip.text: qsTr("Accept terms of use and open avalanche risk visualisation menu")
+                        onClicked: {
+                            avalanche_menu.firstClickDone = true
+                        }
+                    }
+                }
+            }
+        }
+
+        // Box with all avalanche menu buttons , shown after opening avalanche menu
+        Rectangle {
+            visible: avalanche_menu.checked && avalanche_menu.firstClickDone //parent.checked
+            height: 64
+            width: avalanche_subgroup.implicitWidth
+            radius: avalanche_menu.radius
+            anchors.left: parent.right
+            anchors.bottom: parent.bottom
+
+            color: Qt.alpha(Material.backgroundColor, 0.9)
+            border { width: 2; color: Qt.alpha( "black", 0.5); }
+
+            RowLayout {
+                anchors.fill: parent
+                id: avalanche_subgroup
+                spacing: 0
+                height: parent.height
+
+                // stop-or-go toggle button
+                FloatingActionButton {
+                    id: stop_or_go_toggle
+                    image: _r + "icons/eaws/stop_or_go.png"
+                    onClicked:{
+                        eaws_report_toggle.checked = false;
+                        risk_level_toggle.checked = false;
+                        slope_angle_toggle.checked  = false;
+                        banner_image.source = "eaws/banner_stop_or_go.png"
+                        map.set_stop_or_go_layer(checked);
+                    }
+                    size: parent.height
+                    image_size: 42
+                    image_opacity: (checked? 1.0 : 0.4)
+                    checkable: true
+
+                    ToolTip.visible: hovered
+                    ToolTip.text: qsTr("Stop or Go")
+                }
+
+                // Risk Level Toggle Button
+                FloatingActionButton {
+                    id: risk_level_toggle
+                    image: _r + "icons/eaws/risk_level.png"
+                    onClicked:{
+                        eaws_report_toggle.checked = false;
+                        slope_angle_toggle.checked = false;
+                        stop_or_go_toggle.checked = false;
+                        banner_image.source = "eaws/banner_risk_level.png"
+                        map.set_risk_level_layer(checked);
+                    }
+                    size: parent.height
+                    image_size: 42
+                    image_opacity: (checked? 1.0 : 0.4)
+                    checkable: true
+
+                    ToolTip.visible: hovered
+                    ToolTip.text: qsTr("Risk Level")
+                }
+
+                // Slope Angle Toggle Button
+                FloatingActionButton {
+                    id: slope_angle_toggle
+                    image: _r + "icons/eaws/slope_angle.png"
+
+                    onClicked:{
+                        eaws_report_toggle.checked = false;
+                        risk_level_toggle.checked = false;
+                        stop_or_go_toggle.checked = false;
+                        banner_image.source = "eaws/banner_slope_angle.png"
+                        map.set_slope_angle_layer(checked);
+                    }
+                    size: parent.height
+                    image_size: 42
+                    image_opacity: (checked? 1.0 : 0.4)
+                    checkable: true
+
+                    ToolTip.visible: hovered
+                    ToolTip.text: qsTr("Slope Angle")
+                }
+
+                //EAWS Report Toggle Button
+                FloatingActionButton {
+                    id: eaws_report_toggle
+                    image: _r + "icons/eaws/eaws_report.png"
+                    image_opacity: (checked? 1.0 : 0.4)
+                    onClicked:{
+                        risk_level_toggle.checked = false;
+                        slope_angle_toggle.checked  = false;
+                        stop_or_go_toggle.checked = false;
+                        banner_image.source = "eaws/banner_eaws_report.png"
+                        map.set_eaws_warning_layer(checked);
+                    }
+                    size: parent.height
+                    image_size: 42
+                    checkable: true
+
+                    ToolTip.visible: hovered
+                    ToolTip.text: qsTr("Show EAWS Report")
+
+                }
+
+                // Banner with color chart (only visible when an avalanche overlay is active
+                Image{
+                    id: banner_image
+                    Layout.preferredWidth: implicitWidth * Layout.preferredHeight / implicitHeight + 20
+                    Layout.preferredHeight: 60
+                    fillMode: Image.PreserveAspectFit  // Keep aspect ratio
+                    visible: (eaws_report_toggle.checked || risk_level_toggle.checked || slope_angle_toggle.checked || stop_or_go_toggle.checked)
+                }
+
+                // subrectangle with date slection functionality
+                RowLayout {
+                    id: dateControls
+                    spacing: 0
+                    Layout.alignment: Qt.AlignVCenter
+                    Layout.fillHeight: true
+
+                    // Previous day button
+                    FloatingActionButton  {
+                        text: "<"
+                        Layout.fillHeight: true
+                        onClicked: {
+                            let d = new Date(date_picker.selectedDate)
+                            d.setDate(d.getDate() - 1)
+                            date_picker.selectedDate = d
+                        }
+                        ToolTip.visible: hovered
+                        ToolTip.text: qsTr("previous day")
+                    }
+
+                    // Date picker. Item ensures it is vertically centered in the rectangle
+                    Item {
+                        id: datePickerWrapper
+                        Layout.alignment: Qt.AlignVCenter
+                        width:80
+                        height:25
+
+                        DatePicker {
+                            id: date_picker
+                            Layout.alignment: Qt.AlignVCenter
+                            Layout.preferredWidth: 80
+                            Layout.preferredHeight: 60
+                            selectedDate: new Date()
+                            onSelectedDateChanged: {
+                                map.updateEawsReportDate(
+                                    selectedDate.getDate(),
+                                    selectedDate.getMonth() + 1,
+                                    selectedDate.getFullYear()
+                                )
+                            }
+                        }
+                    }
+
+                    // Next day button
+                    FloatingActionButton  {
+                        text: ">"
+                        Layout.fillHeight: true
+                        onClicked: {
+                            let d = new Date(date_picker.selectedDate)
+                            d.setDate(d.getDate() + 1)
+                            date_picker.selectedDate = d
+                        }
+
+                        ToolTip.visible: hovered
+                        ToolTip.text: qsTr("next day")
+                    }
+
+                    // Today button only appears when selected date differs from today
+                    FloatingActionButton  {
+                        text: "Today"
+                        width: 60
+                        height: 20
+                        onClicked: { date_picker.selectedDate = new Date() }
+                        ToolTip.visible: hovered
+                        ToolTip.text: qsTr("Set date to today")
+                        visible: {
+                           var today = new Date()
+                           var sel = date_picker.selectedDate
+                           return !(sel.getDate() === today.getDate() &&
+                                    sel.getMonth() === today.getMonth() &&
+                                    sel.getFullYear() === today.getFullYear())
+                        }
+                    }
+
+                    // Button that opens report of selected date on www.avalanche.report
+                    ToolButton {
+                        text: "avalanche.report"
+                        onClicked: {
+                            if (date_picker.selectedDate) {
+                                let date = date_picker.selectedDate;
+                                let year = date.getFullYear();
+                                let month = (date.getMonth() + 1).toString().padStart(2, "0");
+                                let day = date.getDate().toString().padStart(2, "0");
+                                let url = "https://avalanche.report/bulletin/" + year + "-" + month + "-" + day;
+                                Qt.openUrlExternally(url);
+                            }
+                        }
+
+                        ToolTip.visible: hovered
+                        ToolTip.text: qsTr("Open the selected date on Avalanche.report")
+                    }
+                }
+            }
+        }
+    }
+
 
     Connections {
         enabled: fab_location.checked || fab_presets.checked
@@ -154,5 +454,7 @@ ColumnLayout {
     }
 
 }
+
+
 
 

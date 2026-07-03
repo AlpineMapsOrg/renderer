@@ -37,8 +37,8 @@ highp float y_to_lat(highp float y) {
     return latRad;
 }
 
-
-void compute_vertex(out vec3 position, out vec2 uv, out uvec3 tile_id, bool compute_normal, out vec3 normal) {
+// Note: position contains a corrected z value for normal calculation, altitude is the height above sealevel
+void compute_vertex(out vec3 position, out vec2 uv, out uvec3 tile_id, bool compute_normal, out vec3 normal, out float altitude) {
     tile_id = unpack_tile_id(instance_tile_id_packed);
 
     highp uvec3 dtm_tile_id = tile_id;
@@ -90,7 +90,7 @@ void compute_vertex(out vec3 position, out vec2 uv, out uvec3 tile_id, bool comp
     // highp float dtm_texture_layer_f = float(texelFetch(instance_2_array_index_sampler, ivec2(uint(gl_InstanceID), 0), 0).x);
     highp float dtm_texture_layer_f = float(dtm_array_index);
     float altitude_tex = float(texture(height_tex_sampler, vec3(dtm_uv, dtm_texture_layer_f)).r);
-
+    altitude = 0.125 * altitude_tex;
     // Note: for higher zoom levels it would be enough to calculate the altitude_correction_factor on cpu
     // for lower zoom levels we could bake it into the texture.
     // there was no measurable difference despite a cos and a atan, so leaving as is for now.
@@ -142,5 +142,6 @@ void compute_vertex(out vec3 position) {
     highp vec2 uv;
     highp uvec3 tile_id;
     vec3 normal;
-    compute_vertex(position, uv, tile_id, false, normal);
+    highp float altitude;
+    compute_vertex(position, uv, tile_id, false, normal, altitude);
 }

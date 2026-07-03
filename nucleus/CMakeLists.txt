@@ -125,7 +125,13 @@ qt_add_library(nucleus STATIC
 
 if (ALP_ENABLE_AVLANCHE_WARNING_LAYER)
     target_sources(nucleus
-        PUBLIC avalanche/eaws.h avalanche/eaws.cpp
+         PRIVATE
+            avalanche/eaws.h avalanche/eaws.cpp
+            avalanche/Scheduler.h avalanche/Scheduler.cpp
+            avalanche/ReportLoadService.h avalanche/ReportLoadService.cpp
+            avalanche/UIntIdManager.h avalanche/UIntIdManager.cpp
+            avalanche/eaws.h avalanche/eaws.cpp
+            avalanche/setup.h
     )
     target_link_libraries(nucleus PUBLIC Qt::Gui)
 endif()

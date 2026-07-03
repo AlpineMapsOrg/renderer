@@ -1,0 +1,8 @@
+[CppEditor.QuickFix]
+GettersOutsideClassFrom=-1
+ResetNameTemplateV2=\"reset_\" + name
+SetterNameTemplateV2=\"set_\" + name
+SetterParameterNameV2=\"new_\" + name
+SettersOutsideClassFrom=-1
+SignalNameTemplateV2=name + \"_changed\"
+SignalWithNewValue=true

@@ -20,11 +20,9 @@
 #pragma once
 
 #include <QObject>
-#include <unordered_set>
 
 #include <glm/glm.hpp>
 
-#include "nucleus/tile/types.h"
 #include "utils/ColourTexture.h"
 
 class QOpenGLFramebufferObject;
@@ -45,12 +43,11 @@ public:
     virtual void initialise_gpu() = 0;
     virtual void resize_framebuffer(int width, int height) = 0;
     virtual void paint(QOpenGLFramebufferObject* framebuffer = nullptr) = 0;
-    virtual void destroy() = 0;
     [[nodiscard]] virtual camera::AbstractDepthTester* depth_tester() = 0;
     [[nodiscard]] virtual utils::ColourTexture::Format ortho_tile_compression_algorithm() const = 0;
 
 public slots:
-    virtual void update_camera(const camera::Definition& new_definition) = 0;
+    virtual void update_camera(const nucleus::camera::Definition& new_definition) = 0;
     virtual void update_debug_scheduler_stats(const QString& stats) = 0;
     virtual void pick_value(const glm::dvec2& screen_space_coordinates) = 0;
 
