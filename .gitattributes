@@ -1,0 +1,17 @@
+# Normalize all text files to LF line endings in the repository, regardless of a
+# contributor's local core.autocrlf setting. Checked-out working copies may still show
+# CRLF on Windows if core.autocrlf=true, but what gets committed is always LF.
+* text=auto eol=lf
+
+# Binary files: never touch, never diff as text.
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.bmp binary
+*.ico binary
+*.ttf binary
+*.otf binary
+*.mvt binary
+*.atb binary
+*.ktx2 binary
+*.zip binary
