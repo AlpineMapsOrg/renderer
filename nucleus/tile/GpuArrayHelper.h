@@ -44,6 +44,7 @@ public:
     unsigned int n_occupied() const;
     Dictionary generate_dictionary() const;
     LayerInfo layer(Id tile_id) const;
+    bool contains(Id tile_id) const;
 
 private:
     std::vector<tile::Id> m_array;

@@ -110,3 +110,5 @@ void TileLoadService::set_transfer_timeout(unsigned int new_transfer_timeout)
     assert(new_transfer_timeout < unsigned(std::numeric_limits<int>::max()));
     m_transfer_timeout = new_transfer_timeout;
 }
+
+void TileLoadService::set_base_url(const QString& base_url) { m_base_url = base_url; }

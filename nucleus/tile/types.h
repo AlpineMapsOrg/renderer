@@ -18,9 +18,11 @@
 
 #pragma once
 
+
 #include <QByteArray>
 
 #include <nucleus/utils/ColourTexture.h>
+#include <nucleus/utils/ColourTexture3D.h>
 #include <nucleus/utils/lang.h>
 #include <radix/tile.h>
 
@@ -97,6 +99,12 @@ struct GpuEawsTile {
     std::shared_ptr<const nucleus::Raster<glm::uint16>> texture;
 };
 static_assert(NamedTile<GpuEawsTile>);
+
+struct GpuTexture3DTile {
+    tile::Id id;
+    std::shared_ptr<const nucleus::utils::MipmappedColourTexture3D> texture;
+};
+static_assert(NamedTile<GpuTexture3DTile>);
 
 struct TileBounds {
     tile::Id id;

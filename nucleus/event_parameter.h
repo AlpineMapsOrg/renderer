@@ -36,10 +36,10 @@ namespace nucleus::event_parameter {
 // compatible to QEventPoint::State
 enum TouchPointState {
     TouchPointUnknownState = 0x00,
-    TouchPointPressed = 0x01,
-    TouchPointMoved = 0x02,
+    TouchPointPressed    = 0x01,
+    TouchPointMoved      = 0x02,
     TouchPointStationary = 0x04,
-    TouchPointReleased = 0x08
+    TouchPointReleased   = 0x08
 };
 
 // loosely based on QEventPoint
@@ -105,8 +105,7 @@ inline Touch make(QTouchEvent* e)
     return touch;
 }
 
-inline Mouse make(QMouseEvent* e)
-{
+inline Mouse make(QMouseEvent* e) {
     Mouse mouse;
     mouse.is_begin_event = e->isBeginEvent();
     mouse.is_end_event = e->isEndEvent();
@@ -117,8 +116,7 @@ inline Mouse make(QMouseEvent* e)
     return mouse;
 }
 
-inline Wheel make(QWheelEvent* e)
-{
+inline Wheel make(QWheelEvent* e) {
     Wheel wheel;
     wheel.is_begin_event = e->isBeginEvent();
     wheel.is_end_event = e->isEndEvent();
@@ -129,3 +127,4 @@ inline Wheel make(QWheelEvent* e)
 }
 } // namespace nucleus::event_parameter
 #endif
+

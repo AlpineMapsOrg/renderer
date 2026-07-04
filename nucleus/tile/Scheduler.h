@@ -96,6 +96,9 @@ public:
     [[nodiscard]] const QString& name() const;
     void set_name(const QString& new_name);
 
+    // a hacky way to clear the gpu/ram and file cache by temporarily setting the limits to 0
+    void clear_full_cache();
+
 signals:
     void statistics_updated(Statistics stats);
     void stats_ready(const QString& scheduler_name, const QVariantMap& new_stats);

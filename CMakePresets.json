@@ -1,0 +1,157 @@
+{
+  "version": 6,
+  "cmakeMinimumRequired": {
+    "major": 3,
+    "minor": 25,
+    "patch": 0
+  },
+  "configurePresets": [
+    {
+      "name": "webgpu_base",
+      "hidden": true,
+      "cacheVariables": {
+        "ALP_ENABLE_GL_ENGINE": "OFF",
+        "ALP_QML_APP": "OFF",
+        "ALP_ENABLE_LABELS": "OFF",
+        "ALP_UNITTESTS": "OFF",
+        "ALP_WEBGPU_ENGINE": "ON",
+        "ALP_WEBGPU_APP": "ON",
+        "ALP_ENABLE_THREADING": "ON",
+        "ALP_ENABLE_DEV_TOOLS": "ON"
+      }
+    },
+    {
+      "name": "webgpu_msvc_base",
+      "hidden": true,
+      "inherits": "webgpu_base",
+      "generator": "Ninja",
+      "binaryDir": "${sourceDir}/build/${presetName}",
+      "installDir": "${sourceDir}/install/${presetName}",
+      "architecture": {
+        "value": "x64",
+        "strategy": "external"
+      },
+      "toolset": {
+        "value": "host=x64",
+        "strategy": "external"
+      },
+      "cacheVariables": {
+        "CMAKE_C_COMPILER": "cl.exe",
+        "CMAKE_CXX_COMPILER": "cl.exe"
+      },
+      "condition": {
+        "type": "equals",
+        "lhs": "${hostSystemName}",
+        "rhs": "Windows"
+      }
+    },
+    {
+      "name": "webgpu_app_msvc_debug",
+      "displayName": "weBIGeo (webgpu_app) MSVC Debug",
+      "description": "Debug build using MSVC compiler",
+      "inherits": "webgpu_msvc_base",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Debug",
+        "CMAKE_CXX_FLAGS": "/DQT_DEBUG"
+      }
+    },
+    {
+      "name": "webgpu_app_msvc_release",
+      "displayName": "weBIGeo (webgpu_app) MSVC Release",
+      "description": "Release build using MSVC compiler",
+      "inherits": "webgpu_msvc_base",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Release"
+      }
+    },
+    {
+      "name": "unittests_msvc_debug",
+      "displayName": "Unittests MSVC Debug",
+      "description": "Debug build for unit tests using MSVC compiler",
+      "inherits": "webgpu_app_msvc_debug",
+      "cacheVariables": {
+        "ALP_UNITTESTS": "ON",
+        "ALP_WEBGPU_APP": "OFF"
+      }
+    },
+    {
+      "name": "unittests_msvc_release",
+      "displayName": "Unittests MSVC Release",
+      "description": "Release build for unit tests using MSVC compiler",
+      "inherits": "webgpu_app_msvc_release",
+      "cacheVariables": {
+        "ALP_UNITTESTS": "ON",
+        "ALP_WEBGPU_APP": "OFF"
+      }
+    },
+    {
+      "name": "webgpu_wasm_base",
+      "hidden": true,
+      "inherits": "webgpu_base",
+      "generator": "Ninja",
+      "binaryDir": "${sourceDir}/build/${presetName}",
+      "installDir": "${sourceDir}/install/${presetName}",
+      "toolchainFile": "C:/Qt/6.10.1/wasm_multithread/lib/cmake/Qt6/qt.toolchain.cmake"
+    },
+    {
+      "name": "webgpu_app_wasm_debug",
+      "displayName": "weBIGeo (webgpu_app) WASM Debug",
+      "description": "Debug build for WebAssembly using Emscripten",
+      "inherits": "webgpu_wasm_base",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Debug",
+        "CMAKE_CXX_FLAGS": "-DQT_DEBUG"
+      }
+    },
+    {
+      "name": "webgpu_app_wasm_release",
+      "displayName": "weBIGeo (webgpu_app) WASM Release",
+      "description": "Release build for WebAssembly using Emscripten",
+      "inherits": "webgpu_wasm_base",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Release"
+      }
+    },
+    {
+      "name": "webgpu_app_wasm_publish",
+      "displayName": "weBIGeo (webgpu_app) WASM Publish",
+      "description": "Production build for WebAssembly using Emscripten",
+      "inherits": "webgpu_wasm_base",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Release",
+        "CMAKE_CXX_FLAGS": "-DQT_NO_DEBUG_OUTPUT",
+        "ALP_ENABLE_WGSL_MINIFICATION": "ON"
+      }
+    }
+  ],
+  "buildPresets": [
+    {
+      "name": "webgpu_app_msvc_debug",
+      "configurePreset": "webgpu_app_msvc_debug"
+    },
+    {
+      "name": "webgpu_app_msvc_release",
+      "configurePreset": "webgpu_app_msvc_release"
+    },
+    {
+      "name": "unittests_msvc_debug",
+      "configurePreset": "unittests_msvc_debug"
+    },
+    {
+      "name": "unittests_msvc_release",
+      "configurePreset": "unittests_msvc_release"
+    },
+    {
+      "name": "webgpu_app_wasm_debug",
+      "configurePreset": "webgpu_app_wasm_debug"
+    },
+    {
+      "name": "webgpu_app_wasm_release",
+      "configurePreset": "webgpu_app_wasm_release"
+    },
+    {
+      "name": "webgpu_app_wasm_publish",
+      "configurePreset": "webgpu_app_wasm_publish"
+    }
+  ]
+}

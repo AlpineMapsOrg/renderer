@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg id="Layer_1" xmlns="http://www.w3.org/2000/svg" version="1.1" xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="0 0 603.2 585.59">
+  <!-- Generator: Adobe Illustrator 30.5.1, SVG Export Plug-In . SVG Version: 2.1.4 Build 3)  -->
+  <defs>
+    <clipPath id="clippath">
+      <circle cx="302.5" cy="292.39" r="212.3" style="fill: none;"/>
+    </clipPath>
+  </defs>
+  <path d="M29.6,345.99c29.6,149.9,175,247.4,324.9,217.8,149.9-29.6,247.4-175,217.8-324.9" style="fill: none; stroke: #b3bdc2; stroke-dasharray: 120 40; stroke-miterlimit: 10; stroke-width: 33px;"/>
+  <path d="M29.6,239.49C59.2,89.69,204.7-7.81,354.5,21.79c149.8,29.6,247.4,175,217.8,324.9" style="fill: none; stroke: #b3bdc2; stroke-dasharray: 120 40; stroke-miterlimit: 10; stroke-width: 33px;"/>
+  <path d="M146.2,385.39H45.1c-16.1,0-29.1-13-29.1-29.1v-127.6c0-16.1,13-29.1,29.1-29.1h101.1c16.1,0,29.1,13,29.1,29.1v127.6c0,16.1-13,29.1-29.1,29.1Z" style="fill: #fff; stroke: #000; stroke-miterlimit: 10; stroke-width: 32px;"/>
+  <path d="M558.1,385.39h-101.1c-16.1,0-29.1-13-29.1-29.1v-127.6c0-16.1,13-29.1,29.1-29.1h101.1c16.1,0,29.1,13,29.1,29.1v127.6c0,16.1-13.1,29.1-29.1,29.1Z" style="fill: #fff; stroke: #000; stroke-miterlimit: 10; stroke-width: 32px;"/>
+  <rect x="-215.6" y="-199.01" width="1316.1" height="1064.9" style="display: none; fill: #161616; stroke: #000; stroke-miterlimit: 10; stroke-width: 32px;"/>
+  <circle id="a" cx="302.5" cy="292.39" r="212.3" style="fill: #fff;"/>
+  <g style="clip-path: url(#clippath);">
+    <g>
+      <path d="M140.4,512.48l118.06-353.94,88.99,113.12-98.3,287.28" style="fill: #006599;"/>
+      <path d="M51.52,358.74l218.6-203.23L101.12,478.14" style="fill: #044660;"/>
+      <path d="M301.55,568.82l45.45-393.67,71.93,17.06,140.72,260.01" style="fill: #4ea3c4;"/>
+      <path d="M259.35,157.31L101.12,478.14l39.28,34.23,139.94-349.57-20.99-5.5Z"/>
+      <path d="M342.62,165.72l-93.48,393.22,52.41,9.88,61.61-372.46,44.21,8.87,147.12,251.49,25.47-41.41-156.1-237.01-81.25-12.57h0Z"/>
+      <path d="M270.01,139.69L51.52,296.24v62.51l211.53-183.37,60.26,109.98,16.5-50.27-69.8-95.39Z"/>
+    </g>
+  </g>
+  <circle id="a1" data-name="a" cx="302.5" cy="292.39" r="212.3" style="fill: none; stroke: #000; stroke-miterlimit: 10; stroke-width: 32px;"/>
+</svg>
