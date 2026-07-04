@@ -23,10 +23,10 @@ include(${CMAKE_SOURCE_DIR}/cmake/alp_add_unittest.cmake)
 
 add_subdirectory(nucleus)
 
-if (ALP_ENABLE_GL_ENGINE)
+if (TARGET gl_engine)
     add_subdirectory(gl_engine)
 endif()
 
-if (ALP_WEBGPU_ENGINE)
+if (TARGET webgpu_engine)
     add_subdirectory(webgpu_engine)
 endif()

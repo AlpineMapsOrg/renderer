@@ -38,9 +38,12 @@ class ShaderRegistry;
 class ShaderProgram;
 class Texture;
 class TileGeometry;
+class AvalancheWarningLayer;
 
 class TextureLayer : public QObject {
     Q_OBJECT
+    friend class AvalancheWarningLayer;
+
 public:
     explicit TextureLayer(unsigned resolution = 256, QObject* parent = nullptr);
     void init(ShaderRegistry* shader_registry); // needs OpenGL context

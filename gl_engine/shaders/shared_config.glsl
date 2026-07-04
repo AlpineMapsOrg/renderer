@@ -52,4 +52,9 @@ layout (std140) uniform shared_config {
     highp uint csm_enabled;
     highp uint overlay_shadowmaps_enabled;
     highp uint padi1;
+
+    highp uint eaws_danger_rating_enabled;
+    highp uint eaws_risk_level_enabled;
+    highp uint eaws_slope_angle_enabled;
+    highp uint eaws_stop_or_go_enabled;
 } conf;

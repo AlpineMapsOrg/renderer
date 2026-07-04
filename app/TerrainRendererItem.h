@@ -85,7 +85,6 @@ signals:
     void shared_config_changed(gl_engine::uboSharedConfig new_shared_config) const;
     void label_filter_changed(const nucleus::map_label::FilterDefinitions label_filter) const;
     void hud_visible_changed(bool new_hud_visible);
-
     void rotation_north_requested();
     void camera_changed();
     void camera_width_changed();
@@ -113,6 +112,8 @@ signals:
 
     void world_space_cursor_position_changed(const QVector3D& world_space_cursor_position);
 
+    void eaws_report_date_changed(QDate newDate) const; // This is emitted after user picked a date for eaws avalanche report in the gui
+
 protected:
     void touchEvent(QTouchEvent*) override;
     void mousePressEvent(QMouseEvent*) override;
@@ -127,7 +128,11 @@ public slots:
     void rotate_north();
     void set_gl_preset(const QString& preset_b64_string);
     void camera_definition_changed(const nucleus::camera::Definition& new_definition); // gets called whenever camera changes
-
+    void set_eaws_warning_layer(bool value);
+    void set_risk_level_layer(bool value);
+    void set_slope_angle_layer(bool value);
+    void set_stop_or_go_layer(bool value);
+    void updateEawsReportDate(int day, int month, int year);
 private slots:
     void schedule_update();
     void init_after_creation_slot();

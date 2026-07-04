@@ -29,6 +29,7 @@ if(ALP_ENABLE_LABELS)
     alp_add_git_repository(vector_tiles URL https://github.com/AlpineMapsOrg/vector-tile.git COMMITISH faba88257716c4bc01ebd44d8b8b98f711ecb78c)
 endif()
 alp_add_git_repository(goofy_tc URL https://github.com/AlpineMapsOrgDependencies/Goofy_slim.git COMMITISH 13b228784960a6227bb6ca704ff34161bbac1b91 DO_NOT_ADD_SUBPROJECT)
+alp_add_git_repository(cdt URL https://github.com/artem-ogre/CDT.git COMMITISH 46f1ce1f495a97617d90e8c833d0d29406335fdf DO_NOT_ADD_SUBPROJECT)
 include(${CMAKE_SOURCE_DIR}/cmake/SetupKTX.cmake)
 alp_setup_ktx(952d74f1d53452e4e976a2b7698ff7af6c13a9ed)
 
@@ -41,6 +42,9 @@ set_target_properties(goofy_tc PROPERTIES SYSTEM true)
 
 add_library(tl_expected INTERFACE)
 target_include_directories(tl_expected INTERFACE ${tl_expected_SOURCE_DIR}/include)
+
+add_library(cdt INTERFACE)
+target_include_directories(cdt INTERFACE ${cdt_SOURCE_DIR}/CDT/include)
 
 set(alp_version_out ${CMAKE_BINARY_DIR}/alp_version/nucleus/version.cpp)
 
@@ -121,16 +125,24 @@ qt_add_library(nucleus STATIC
     utils/easing.h
     utils/error.h
     utils/lang.h
+    utils/rasterizer.h utils/rasterizer.cpp
     tile/SchedulerDirector.h tile/SchedulerDirector.cpp
     tile/drawing.h tile/drawing.cpp
     camera/gesture.h
 )
 
-if (ALP_ENABLE_AVLANCHE_WARNING_LAYER)
+if (ALP_ENABLE_AVALANCHE_WARNING_LAYER)
     target_sources(nucleus
-        PUBLIC avalanche/eaws.h avalanche/eaws.cpp
+         PRIVATE
+            avalanche/eaws.h avalanche/eaws.cpp
+            avalanche/Scheduler.h avalanche/Scheduler.cpp
+            avalanche/ReportLoadService.h avalanche/ReportLoadService.cpp
+            avalanche/UIntIdManager.h avalanche/UIntIdManager.cpp
+            avalanche/eaws.h avalanche/eaws.cpp
+            avalanche/setup.h
     )
     target_link_libraries(nucleus PUBLIC Qt::Gui)
+    target_compile_definitions(nucleus PUBLIC ALP_ENABLE_AVALANCHE_WARNING_LAYER)
 endif()
 if(ALP_ENABLE_LABELS)
     target_sources(nucleus PRIVATE
@@ -170,7 +182,7 @@ endif()
 
 target_include_directories(nucleus PUBLIC ${CMAKE_SOURCE_DIR})
 # Please keep Qt::Gui outside the nucleus. If you need it optional via a cmake based switch
-target_link_libraries(nucleus PUBLIC radix Qt::Core Qt::Network zppbits tl_expected nucleus_version stb_slim goofy_tc ktx)
+target_link_libraries(nucleus PUBLIC radix Qt::Core Qt::Network zppbits tl_expected nucleus_version stb_slim goofy_tc cdt ktx)
 
 qt_add_resources(nucleus "height_data"
     PREFIX "/map"

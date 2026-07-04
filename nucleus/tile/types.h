@@ -94,6 +94,12 @@ struct GpuTextureTile {
 };
 static_assert(NamedTile<GpuTextureTile>);
 
+struct GpuEawsTile {
+    tile::Id id;
+    std::shared_ptr<const nucleus::Raster<glm::uint16>> texture;
+};
+static_assert(NamedTile<GpuEawsTile>);
+
 struct GpuTexture3DTile {
     tile::Id id;
     std::shared_ptr<const nucleus::utils::MipmappedColourTexture3D> texture;
@@ -104,6 +110,15 @@ struct TileBounds {
     tile::Id id;
     tile::SrsAndHeightBounds bounds = {};
 };
+
+
+struct GpuEawsQuad {
+    tile::Id id;
+    std::array<GpuEawsTile, 4> tiles;
+};
+
+static_assert(NamedTile<GpuEawsQuad>);
+
 
 struct GpuGeometryTile {
     tile::Id id;

@@ -25,8 +25,7 @@
 #include "gl_engine/Window.h"
 #include "nucleus/event_parameter.h"
 
-class Window : public QOpenGLWindow
-{
+class Window : public QOpenGLWindow {
     Q_OBJECT
 public:
     Window(std::shared_ptr<gl_engine::Context> context);
@@ -65,4 +64,3 @@ private:
     int m_keys_pressed = 0;
     bool m_closing = false;
 };
-

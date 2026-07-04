@@ -10,12 +10,14 @@
       "name": "webgpu_base",
       "hidden": true,
       "cacheVariables": {
-        "ALP_ENABLE_GL_ENGINE": "OFF",
-        "ALP_QML_APP": "OFF",
+        "ALP_BUILD_GL_ENGINE": "OFF",
+        "ALP_BUILD_PLAIN_RENDERER": "OFF",
+        "ALP_BUILD_ALPINEAPP": "OFF",
         "ALP_ENABLE_LABELS": "OFF",
-        "ALP_UNITTESTS": "OFF",
-        "ALP_WEBGPU_ENGINE": "ON",
-        "ALP_WEBGPU_APP": "ON",
+        "ALP_ENABLE_AVALANCHE_WARNING_LAYER": "OFF",
+        "ALP_BUILD_UNITTESTS": "OFF",
+        "ALP_BUILD_WEBGPU_ENGINE": "ON",
+        "ALP_BUILD_WEBGPU_APP": "ON",
         "ALP_ENABLE_THREADING": "ON",
         "ALP_ENABLE_DEV_TOOLS": "ON"
       }
@@ -70,8 +72,8 @@
       "description": "Debug build for unit tests using MSVC compiler",
       "inherits": "webgpu_app_msvc_debug",
       "cacheVariables": {
-        "ALP_UNITTESTS": "ON",
-        "ALP_WEBGPU_APP": "OFF"
+        "ALP_BUILD_UNITTESTS": "ON",
+        "ALP_BUILD_WEBGPU_APP": "OFF"
       }
     },
     {
@@ -80,8 +82,8 @@
       "description": "Release build for unit tests using MSVC compiler",
       "inherits": "webgpu_app_msvc_release",
       "cacheVariables": {
-        "ALP_UNITTESTS": "ON",
-        "ALP_WEBGPU_APP": "OFF"
+        "ALP_BUILD_UNITTESTS": "ON",
+        "ALP_BUILD_WEBGPU_APP": "OFF"
       }
     },
     {

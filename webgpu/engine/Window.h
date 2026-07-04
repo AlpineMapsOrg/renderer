@@ -50,7 +50,7 @@ public:
 
     [[nodiscard]] float depth(const glm::dvec2& normalised_device_coordinates) override;
     [[nodiscard]] glm::dvec3 position(const glm::dvec2& normalised_device_coordinates) override;
-    void destroy() override;
+    void destroy();
     [[nodiscard]] nucleus::camera::AbstractDepthTester* depth_tester() override;
     nucleus::utils::ColourTexture::Format ortho_tile_compression_algorithm() const override;
     bool needs_redraw() { return m_needs_redraw; }

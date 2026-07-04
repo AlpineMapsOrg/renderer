@@ -33,6 +33,7 @@ layout (location = 0) out lowp vec3 texout_albedo;
 layout (location = 1) out highp vec4 texout_position;
 layout (location = 2) out highp uvec2 texout_normal;
 layout (location = 3) out lowp vec4 texout_depth;
+layout (location = 4) out lowp vec4 texout_eaws;
 
 flat in highp uvec3 var_tile_id;
 in highp vec2 var_uv;
@@ -43,10 +44,6 @@ in lowp float is_curtain;
 #endif
 flat in lowp vec3 vertex_color;
 flat in highp uint instance_id;
-
-highp float calculate_falloff(highp float dist, highp float from, highp float to) {
-    return clamp(1.0 - (dist - from) / (to - from), 0.0, 1.0);
-}
 
 highp vec3 normal_by_fragment_position_interpolation() {
     highp vec3 dFdxPos = dFdx(var_pos_cws);

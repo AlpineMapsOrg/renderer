@@ -142,6 +142,14 @@ jobs:
           -DQT_ANDROID_SIGN_AAB:BOOL=ON \
           -DQT_ANDROID_BUILD_ALL_ABIS=ON \
           -DQT_USE_TARGET_ANDROID_BUILD_DIR:BOOL=ON \
+          -DALP_BUILD_UNITTESTS=OFF \
+          -DALP_BUILD_GL_ENGINE=OFF \
+          -DALP_BUILD_PLAIN_RENDERER=OFF \
+          -DALP_BUILD_ALPINEAPP=ON \
+          -DALP_BUILD_WEBGPU_BASE=OFF \
+          -DALP_BUILD_WEBGPU_ENGINE=OFF \
+          -DALP_BUILD_WEBGPU_COMPUTE=OFF \
+          -DALP_BUILD_WEBGPU_APP=OFF \
           -S "${{ github.workspace }}"
 
     - name: Build AAB

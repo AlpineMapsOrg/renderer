@@ -30,6 +30,9 @@
 #include <gl_engine/Context.h>
 #include <gl_engine/Window.h>
 #include <nucleus/EngineContext.h>
+#include <nucleus/avalanche/ReportLoadService.h>
+#include <nucleus/avalanche/Scheduler.h>
+#include <nucleus/avalanche/eaws.h>
 #include <nucleus/camera/Controller.h>
 #include <nucleus/camera/PositionStorage.h>
 #include <nucleus/map_label/Filter.h>
@@ -38,7 +41,6 @@
 #include <nucleus/tile/GeometryScheduler.h>
 #include <nucleus/tile/TextureScheduler.h>
 #include <nucleus/utils/thread.h>
-
 TerrainRenderer::TerrainRenderer()
 {
     using nucleus::map_label::Filter;
@@ -59,14 +61,17 @@ TerrainRenderer::TerrainRenderer()
     // In Qt/QML the rendering thread goes to sleep (at least until Qt 6.5, See RenderThreadNotifier).
     // At the time of writing, an additional connection from tile_ready and tile_expired to the notifier is made.
     // this only works if ALP_ENABLE_THREADING is on, i.e., the tile scheduler is on an extra thread. -> potential issue on webassembly
-    connect(m_camera_controller.get(), &CameraController::definition_changed, ctx->geometry_scheduler(),   &Scheduler::update_camera);
-    connect(m_camera_controller.get(), &CameraController::definition_changed, ctx->map_label_scheduler(),  &Scheduler::update_camera);
-    connect(m_camera_controller.get(), &CameraController::definition_changed, ctx->ortho_scheduler(),      &Scheduler::update_camera);
-    connect(m_camera_controller.get(), &CameraController::definition_changed, m_glWindow.get(),            &gl_engine::Window::update_camera);
+    connect(m_camera_controller.get(), &CameraController::definition_changed, ctx->geometry_scheduler(),      &Scheduler::update_camera);
+    connect(m_camera_controller.get(), &CameraController::definition_changed, ctx->map_label_scheduler(),     &Scheduler::update_camera);
+    connect(m_camera_controller.get(), &CameraController::definition_changed, ctx->ortho_scheduler(),         &Scheduler::update_camera);
+    connect(m_camera_controller.get(), &CameraController::definition_changed, ctx->surfaceshaded_scheduler(), &Scheduler::update_camera);
+    connect(m_camera_controller.get(), &CameraController::definition_changed, ctx->eaws_scheduler(),          &Scheduler::update_camera);
+    connect(m_camera_controller.get(), &CameraController::definition_changed, m_glWindow.get(),               &gl_engine::Window::update_camera);
 
-    connect(ctx->geometry_scheduler(), &nucleus::tile::GeometryScheduler::gpu_tiles_updated, gl_window_ptr, &gl_engine::Window::update_requested);
-    connect(ctx->ortho_scheduler(),    &nucleus::tile::TextureScheduler::gpu_tiles_updated,  gl_window_ptr, &gl_engine::Window::update_requested);
-    connect(ctx->label_filter().get(), &Filter::filter_finished,                             gl_window_ptr, &gl_engine::Window::update_requested);
+    connect(ctx->geometry_scheduler(), &nucleus::tile::GeometryScheduler::gpu_tiles_updated,  gl_window_ptr, &gl_engine::Window::update_requested);
+    connect(ctx->ortho_scheduler(),    &nucleus::tile::TextureScheduler::gpu_tiles_updated,   gl_window_ptr, &gl_engine::Window::update_requested);
+    connect(ctx->eaws_scheduler(),     &nucleus::avalanche::Scheduler::gpu_tiles_updated, gl_window_ptr, &gl_engine::Window::update_requested);
+    connect(ctx->label_filter().get(), &Filter::filter_finished,                              gl_window_ptr, &gl_engine::Window::update_requested);
 
     connect(ctx->picker_manager().get(),   &PickerManager::pick_requested,     gl_window_ptr,                  &gl_engine::Window::pick_value);
     connect(gl_window_ptr,                 &gl_engine::Window::value_picked,   ctx->picker_manager().get(),    &PickerManager::eval_pick);
@@ -74,6 +79,12 @@ TerrainRenderer::TerrainRenderer()
 
     m_glWindow->initialise_gpu();
     // ctx->scheduler()->set_enabled(true); // after tile manager moves to ctx.
+
+    m_eaws_report_load_service = ctx->eaws_report_load_service();
+    connect(ctx->eaws_report_load_service().get(),
+        &nucleus::avalanche::ReportLoadService::load_from_TU_Wien_finished,
+        gl_window_ptr,
+        &gl_engine::Window::update_eaws_reports);
 }
 
 TerrainRenderer::~TerrainRenderer() = default;
@@ -147,3 +158,9 @@ gl_engine::Window *TerrainRenderer::glWindow() const
 }
 
 nucleus::camera::Controller* TerrainRenderer::controller() const { return m_camera_controller.get(); }
+
+std::shared_ptr<nucleus::avalanche::ReportLoadService> TerrainRenderer::eaws_report_load_service()
+{
+    assert(m_eaws_report_load_service);
+    return m_eaws_report_load_service;
+}

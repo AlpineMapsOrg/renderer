@@ -31,10 +31,10 @@ out lowp float is_curtain;
 #endif
 flat out lowp vec3 vertex_color;
 flat out highp uint instance_id;
-
+out highp float var_altitude;
 
 void main() {
-    compute_vertex(var_pos_cws, var_uv, var_tile_id, conf.normal_mode == 1u, var_normal);
+    compute_vertex(var_pos_cws, var_uv, var_tile_id, conf.normal_mode == 1u, var_normal, var_altitude);
 
     gl_Position = camera.view_proj_matrix * vec4(var_pos_cws, 1);
     instance_id = uint(gl_InstanceID);
