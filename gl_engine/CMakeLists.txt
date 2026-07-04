@@ -20,6 +20,10 @@
 
 project(alpine-renderer-gl_engine LANGUAGES CXX)
 
+if (NOT ALP_ENABLE_AVALANCHE_WARNING_LAYER)
+    message(FATAL_ERROR "gl_engine requires ALP_ENABLE_AVALANCHE_WARNING_LAYER=ON")
+endif()
+
 # If true the shaders will be loaded from the given ALP_SHADER_NETWORK_URL and can be reloaded
 # inside the APP without the need for recompilation. You have to serve the files yourself. There is no HTTP-Server!
 option(ALP_ENABLE_SHADER_NETWORK_HOTRELOAD "reload shader files per HTTP request. Allows Hot-Reload on Android/WebGL" OFF)
@@ -42,14 +46,8 @@ qt_add_library(gl_engine STATIC
     TileGeometry.h TileGeometry.cpp
     TextureLayer.h TextureLayer.cpp
     types.h
+    AvalancheWarningLayer.h AvalancheWarningLayer.cpp
 )
-
-
-if (ALP_ENABLE_AVLANCHE_WARNING_LAYER)
-    target_sources(gl_engine PRIVATE
-        AvalancheWarningLayer.h AvalancheWarningLayer.cpp
-    )
-endif()
 
 if(ALP_ENABLE_LABELS)
     target_sources(gl_engine PRIVATE

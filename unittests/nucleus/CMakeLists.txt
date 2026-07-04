@@ -45,7 +45,7 @@ alp_add_unittest(unittests_nucleus
 )
 
 
-if (ALP_ENABLE_AVLANCHE_WARNING_LAYER)
+if (ALP_ENABLE_AVALANCHE_WARNING_LAYER)
     target_sources(unittests_nucleus PRIVATE
         avalanche_warning_layer.cpp
     )
@@ -74,19 +74,26 @@ qt_add_resources(unittests_nucleus "test_data"
     data/quad/7_69_82.jpg
     data/quad/7_69_83.jpg
     data/quad/merged.jpg
-    data/eaws_0-0-0.mvt
-    data/eaws_2-2-0.mvt
-    data/eaws_10-236-299.mvt
-    data/eaws_6-33-22.mvt
-    data/eaws_7-66-44.mvt
-    data/eaws_7-66-45.mvt
-    data/eaws_7-67-44.mvt
-    data/eaws_7-67-45.mvt
 )
+
+if (ALP_ENABLE_AVALANCHE_WARNING_LAYER)
+    qt_add_resources(unittests_nucleus "eaws_test_data"
+        PREFIX "/test_data"
+        BASE ${CMAKE_CURRENT_SOURCE_DIR}/data/
+        FILES
+        data/eaws_0-0-0.mvt
+        data/eaws_2-2-0.mvt
+        data/eaws_10-236-299.mvt
+        data/eaws_6-33-22.mvt
+        data/eaws_7-66-44.mvt
+        data/eaws_7-66-45.mvt
+        data/eaws_7-67-44.mvt
+        data/eaws_7-67-45.mvt
+    )
+endif()
 target_link_libraries(unittests_nucleus PUBLIC nucleus Catch2::Catch2 Qt::Test Qt::Gui)
 target_compile_definitions(unittests_nucleus PUBLIC "ALP_TEST_DATA_DIR=\":/test_data/\"")
 
 if (ANDROID)
     add_android_openssl_libraries(unittests_nucleus)
 endif()
-

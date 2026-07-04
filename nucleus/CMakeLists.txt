@@ -131,7 +131,7 @@ qt_add_library(nucleus STATIC
     camera/gesture.h
 )
 
-if (ALP_ENABLE_AVLANCHE_WARNING_LAYER)
+if (ALP_ENABLE_AVALANCHE_WARNING_LAYER)
     target_sources(nucleus
          PRIVATE
             avalanche/eaws.h avalanche/eaws.cpp
@@ -142,6 +142,7 @@ if (ALP_ENABLE_AVLANCHE_WARNING_LAYER)
             avalanche/setup.h
     )
     target_link_libraries(nucleus PUBLIC Qt::Gui)
+    target_compile_definitions(nucleus PUBLIC ALP_ENABLE_AVALANCHE_WARNING_LAYER)
 endif()
 if(ALP_ENABLE_LABELS)
     target_sources(nucleus PRIVATE
