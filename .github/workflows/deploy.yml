@@ -243,6 +243,8 @@ jobs:
     - uses: mymindstorm/setup-emsdk@v15
       with:
         version: ${{ env.WEBASSEMBLY_VERSION }}
+        actions-cache-folder: emsdk-cache
+        cache-key: emsdk-${{ runner.os }}-${{ env.WEBASSEMBLY_VERSION }}
 
     # Do not cache Dawn here. It is fetched, not built, and measured CI timings
     # showed no useful speedup from restoring/saving the cache.
@@ -329,9 +331,9 @@ jobs:
       uses: actions/cache@v6
       with:
         path: ${{ github.workspace }}/.ccache
-        key: ccache-${{ runner.os }}-${{ env.ALP_CACHE_CONFIG }}-${{ env.ALP_CACHE_TOOLCHAIN }}-v1-${{ github.run_id }}-${{ github.run_attempt }}
+        key: ccache-${{ runner.os }}-${{ env.ALP_CACHE_CONFIG }}-${{ env.ALP_CACHE_TOOLCHAIN }}-v2-${{ github.run_id }}-${{ github.run_attempt }}
         restore-keys: |
-          ccache-${{ runner.os }}-${{ env.ALP_CACHE_CONFIG }}-${{ env.ALP_CACHE_TOOLCHAIN }}-v1-
+          ccache-${{ runner.os }}-${{ env.ALP_CACHE_CONFIG }}-${{ env.ALP_CACHE_TOOLCHAIN }}-v2-
       
     - name: Configure
       env:
