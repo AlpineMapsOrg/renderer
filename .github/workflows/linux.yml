@@ -41,11 +41,8 @@ jobs:
     - name: Load CI versions
       run: cat .github/ci-versions.env >> "$GITHUB_ENV"
 
-    - name: Cache native Dawn
-      uses: actions/cache@v6
-      with:
-        path: extern/dawn
-        key: ${{ runner.os }}-dawn-native-debug-${{ hashFiles('webgpu/base/CMakeLists.txt', 'misc/scripts/fetch_dawn_native.py', 'misc/scripts/install_dawn.py') }}
+    # Do not cache Dawn here. It is fetched, not built, and measured CI timings
+    # showed no useful speedup from restoring/saving the cache.
 
     - name: Install Linux Dependencies
       run: |
