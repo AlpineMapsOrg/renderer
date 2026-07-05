@@ -246,6 +246,29 @@ jobs:
         actions-cache-folder: emsdk-cache
         cache-key: emsdk-${{ runner.os }}-${{ env.WEBASSEMBLY_VERSION }}
 
+    - name: Use stable Emscripten path
+      shell: bash
+      run: |
+        STABLE_EMSDK_ROOT="${{ github.workspace }}/emsdk-cache/emsdk-main"
+        if [ ! -x "$STABLE_EMSDK_ROOT/emsdk" ]; then
+          echo "Expected emsdk at $STABLE_EMSDK_ROOT/emsdk"
+          exit 1
+        fi
+
+        "$STABLE_EMSDK_ROOT/emsdk" activate "$WEBASSEMBLY_VERSION"
+        "$STABLE_EMSDK_ROOT/emsdk" construct_env | while IFS= read -r line; do
+          case "$line" in
+            "PATH += "*)
+              echo "${line#PATH += }" >> "$GITHUB_PATH"
+              ;;
+            *" = "*)
+              name="${line%% = *}"
+              value="${line#* = }"
+              echo "$name=$value" >> "$GITHUB_ENV"
+              ;;
+          esac
+        done
+
     # Do not cache Dawn here. It is fetched, not built, and measured CI timings
     # showed no useful speedup from restoring/saving the cache.
 
@@ -331,9 +354,9 @@ jobs:
       uses: actions/cache@v6
       with:
         path: ${{ github.workspace }}/.ccache
-        key: ccache-${{ runner.os }}-${{ env.ALP_CACHE_CONFIG }}-${{ env.ALP_CACHE_TOOLCHAIN }}-v2-${{ github.run_id }}-${{ github.run_attempt }}
+        key: ccache-${{ runner.os }}-${{ env.ALP_CACHE_CONFIG }}-${{ env.ALP_CACHE_TOOLCHAIN }}-v3-${{ github.run_id }}-${{ github.run_attempt }}
         restore-keys: |
-          ccache-${{ runner.os }}-${{ env.ALP_CACHE_CONFIG }}-${{ env.ALP_CACHE_TOOLCHAIN }}-v2-
+          ccache-${{ runner.os }}-${{ env.ALP_CACHE_CONFIG }}-${{ env.ALP_CACHE_TOOLCHAIN }}-v3-
       
     - name: Configure
       env:
