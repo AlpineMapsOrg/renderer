@@ -282,7 +282,6 @@ jobs:
         echo "cmake version:"
         cmake --version
         cd ${{ github.workspace }} && ls -l
-        cat ./qt_wasm_build/build.ninja
 
     - name: Remove StatsWindow, otherwise the webassembly will link against qtwidgets and charts.
       run: rm ./app/StatsWindow.qml
