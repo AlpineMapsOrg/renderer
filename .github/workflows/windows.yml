@@ -29,6 +29,22 @@ jobs:
       run: |
         Get-Content .github/ci-versions.env | Add-Content $env:GITHUB_ENV
 
+    - name: Set sccache config
+      run: |
+        "SCCACHE_VERSION=v0.16.0" | Add-Content $env:GITHUB_ENV
+        "ALP_CACHE_CONFIG=windows_msvc2022_Debug" | Add-Content $env:GITHUB_ENV
+        "ALP_CACHE_TOOLCHAIN=msvc2022-qt-$env:QT_VERSION-sccache-v0.16.0" | Add-Content $env:GITHUB_ENV
+        "SCCACHE_DIR=${{ github.workspace }}\.sccache" | Add-Content $env:GITHUB_ENV
+        "SCCACHE_CACHE_SIZE=500M" | Add-Content $env:GITHUB_ENV
+
+    - name: Cache sccache
+      uses: actions/cache@v6
+      with:
+        path: ${{ github.workspace }}\.sccache
+        key: sccache-${{ runner.os }}-${{ env.ALP_CACHE_CONFIG }}-${{ env.ALP_CACHE_TOOLCHAIN }}-v1-${{ github.run_id }}-${{ github.run_attempt }}
+        restore-keys: |
+          sccache-${{ runner.os }}-${{ env.ALP_CACHE_CONFIG }}-${{ env.ALP_CACHE_TOOLCHAIN }}-v1-
+
     # Do not cache Dawn here. It is fetched, not built, and measured CI timings
     # showed no useful speedup from restoring/saving the cache.
 
@@ -37,6 +53,17 @@ jobs:
         
     - name: Install tools
       run: choco install 7zip.install ninja
+
+    - name: Install sccache
+      run: |
+        $Archive = "sccache-$env:SCCACHE_VERSION-x86_64-pc-windows-msvc.zip"
+        $Url = "https://github.com/mozilla/sccache/releases/download/$env:SCCACHE_VERSION/$Archive"
+        Invoke-WebRequest -Uri $Url -OutFile $Archive
+        Expand-Archive -Path $Archive -DestinationPath sccache-download
+        New-Item -ItemType Directory -Force -Path sccache-bin | Out-Null
+        $SccacheExe = Get-ChildItem -Path sccache-download -Filter sccache.exe -Recurse | Select-Object -First 1
+        Copy-Item $SccacheExe.FullName sccache-bin\sccache.exe
+        "${{ github.workspace }}\sccache-bin" | Add-Content $env:GITHUB_PATH
       
     - name: Install Mesa
       shell: cmd
@@ -68,10 +95,21 @@ jobs:
         -DALP_ENABLE_POSITIONING=false
         -DALP_ENABLE_ASSERTS=ON
         -DALP_BUILD_WEBGPU_APP=ON
+        -DCMAKE_C_COMPILER_LAUNCHER=sccache
+        -DCMAKE_CXX_COMPILER_LAUNCHER=sccache
         -B ./build
+
+    - name: Reset sccache stats
+      run: |
+        sccache --start-server
+        sccache --zero-stats
 
     - name: Build
       run: cmake --build ./build --config Debug
+
+    - name: Show sccache stats
+      if: always()
+      run: sccache --show-stats
 
     - name: List .exe files in ./build
       shell: pwsh

@@ -25,7 +25,7 @@ jobs:
     - name: Install dependencies
       run: |
         sudo apt-get update
-        sudo apt-get install -y build-essential ninja-build openjdk-17-jdk
+        sudo apt-get install -y build-essential ccache ninja-build openjdk-17-jdk
         echo "JAVA_HOME=/usr/lib/jvm/java-17-openjdk-amd64/" >> $GITHUB_ENV
         # dpkg-query -L  openjdk-17-jdk-headless
 
@@ -94,6 +94,25 @@ jobs:
         echo "ANDROID_BUILD_DIR_ARR=${ANDROID_BUILD_DIR_ARR[*]}" >> $GITHUB_ENV
         echo "DEPLOYMENT_SETTINGS_ARR=${DEPLOYMENT_SETTINGS_ARR[*]}" >> $GITHUB_ENV
 
+    - name: Set ccache config
+      shell: bash
+      run: |
+        echo "ALP_CACHE_CONFIG=android_${{ matrix.qtarch }}_Release" >> "$GITHUB_ENV"
+        echo "ALP_CACHE_TOOLCHAIN=android-${{ matrix.qtarch }}-qt-${QT_VERSION}" >> "$GITHUB_ENV"
+        echo "CCACHE_DIR=${{ github.workspace }}/.ccache" >> "$GITHUB_ENV"
+        echo "CCACHE_BASEDIR=${{ github.workspace }}" >> "$GITHUB_ENV"
+        echo "CCACHE_COMPRESS=true" >> "$GITHUB_ENV"
+        echo "CCACHE_COMPILERCHECK=content" >> "$GITHUB_ENV"
+        echo "CCACHE_MAXSIZE=500M" >> "$GITHUB_ENV"
+
+    - name: Cache ccache
+      uses: actions/cache@v6
+      with:
+        path: ${{ github.workspace }}/.ccache
+        key: ccache-${{ runner.os }}-${{ env.ALP_CACHE_CONFIG }}-${{ env.ALP_CACHE_TOOLCHAIN }}-v1-${{ github.run_id }}-${{ github.run_attempt }}
+        restore-keys: |
+          ccache-${{ runner.os }}-${{ env.ALP_CACHE_CONFIG }}-${{ env.ALP_CACHE_TOOLCHAIN }}-v1-
+
     - name: Setup signing keys
       shell: bash
       env:
@@ -153,10 +172,19 @@ jobs:
           -DALP_ENABLE_ASSERTS=ON \
           -DQT_ANDROID_SIGN_APK=ON \
           -DQT_USE_TARGET_ANDROID_BUILD_DIR:BOOL=ON \
+          -DCMAKE_C_COMPILER_LAUNCHER=ccache \
+          -DCMAKE_CXX_COMPILER_LAUNCHER=ccache \
           -S "${{ github.workspace }}"
+
+    - name: Reset ccache stats
+      run: ccache --zero-stats
 
     - name: Build
       run: cmake --build $BUILD_DIR --target apk
+
+    - name: Show ccache stats
+      if: always()
+      run: ccache --show-stats --verbose
 
     - name: Copy android packages
       run: |
@@ -202,7 +230,7 @@ jobs:
     - name: Install dependencies
       run: |
         sudo apt-get update
-        sudo apt-get install -y build-essential ninja-build
+        sudo apt-get install -y build-essential ccache ninja-build
 
     - uses: actions/checkout@v7
       with:
@@ -285,6 +313,25 @@ jobs:
 
     - name: Remove StatsWindow, otherwise the webassembly will link against qtwidgets and charts.
       run: rm ./app/StatsWindow.qml
+
+    - name: Set ccache config
+      shell: bash
+      run: |
+        echo "ALP_CACHE_CONFIG=${{ matrix.config }}" >> "$GITHUB_ENV"
+        echo "ALP_CACHE_TOOLCHAIN=emscripten-${WEBASSEMBLY_VERSION}-qt-${QT_VERSION}" >> "$GITHUB_ENV"
+        echo "CCACHE_DIR=${{ github.workspace }}/.ccache" >> "$GITHUB_ENV"
+        echo "CCACHE_BASEDIR=${{ github.workspace }}" >> "$GITHUB_ENV"
+        echo "CCACHE_COMPRESS=true" >> "$GITHUB_ENV"
+        echo "CCACHE_COMPILERCHECK=content" >> "$GITHUB_ENV"
+        echo "CCACHE_MAXSIZE=500M" >> "$GITHUB_ENV"
+
+    - name: Cache ccache
+      uses: actions/cache@v6
+      with:
+        path: ${{ github.workspace }}/.ccache
+        key: ccache-${{ runner.os }}-${{ env.ALP_CACHE_CONFIG }}-${{ env.ALP_CACHE_TOOLCHAIN }}-v1-${{ github.run_id }}-${{ github.run_attempt }}
+        restore-keys: |
+          ccache-${{ runner.os }}-${{ env.ALP_CACHE_CONFIG }}-${{ env.ALP_CACHE_TOOLCHAIN }}-v1-
       
     - name: Configure
       env:
@@ -297,10 +344,19 @@ jobs:
         -DALP_WWW_INSTALL_DIR=$INSTALL_DIR
         -DFMT_INSTALL=OFF
         ${{ matrix.cmakeflags }}
+        -DCMAKE_C_COMPILER_LAUNCHER=ccache
+        -DCMAKE_CXX_COMPILER_LAUNCHER=ccache
         -S ${{ github.workspace }}
+
+    - name: Reset ccache stats
+      run: ccache --zero-stats
 
     - name: Build
       run: cmake --build $BUILD_DIR --target install
+
+    - name: Show ccache stats
+      if: always()
+      run: ccache --show-stats --verbose
 
     - name: Verify WebGPU app artifacts
       run: |

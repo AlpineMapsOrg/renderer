@@ -47,7 +47,7 @@ jobs:
     - name: Install Linux Dependencies
       run: |
         sudo apt-get update
-        sudo apt-get install -y build-essential ninja-build lld libgl1-mesa-dev libxcb-cursor-dev xorg-dev libx11-xcb-dev libxrandr-dev libxcursor-dev libudev-dev libopenal-dev libflac-dev libvorbis-dev libgl1-mesa-dev libegl1-mesa-dev libdrm-dev libgbm-dev xvfb libxcb-cursor0 libxcb-icccm4 libxcb-image0 libxcb-keysyms1 libxcb-render-util0
+        sudo apt-get install -y build-essential ccache ninja-build lld libgl1-mesa-dev libxcb-cursor-dev xorg-dev libx11-xcb-dev libxrandr-dev libxcursor-dev libudev-dev libopenal-dev libflac-dev libvorbis-dev libgl1-mesa-dev libegl1-mesa-dev libdrm-dev libgbm-dev xvfb libxcb-cursor0 libxcb-icccm4 libxcb-image0 libxcb-keysyms1 libxcb-render-util0
 
     - name: Install Clang 17
       if: matrix.compiler == 'clang17'
@@ -72,6 +72,25 @@ jobs:
         install-deps: 'true'
         modules: ${{ env.QT_MODULES }}
         cache: true
+
+    - name: Set ccache config
+      shell: bash
+      run: |
+        echo "ALP_CACHE_CONFIG=linux_${{ matrix.compiler }}_${{ matrix.build_type }}" >> "$GITHUB_ENV"
+        echo "ALP_CACHE_TOOLCHAIN=${{ matrix.compiler }}-qt-${QT_VERSION}" >> "$GITHUB_ENV"
+        echo "CCACHE_DIR=${{ github.workspace }}/.ccache" >> "$GITHUB_ENV"
+        echo "CCACHE_BASEDIR=${{ github.workspace }}" >> "$GITHUB_ENV"
+        echo "CCACHE_COMPRESS=true" >> "$GITHUB_ENV"
+        echo "CCACHE_COMPILERCHECK=content" >> "$GITHUB_ENV"
+        echo "CCACHE_MAXSIZE=500M" >> "$GITHUB_ENV"
+
+    - name: Cache ccache
+      uses: actions/cache@v6
+      with:
+        path: ${{ github.workspace }}/.ccache
+        key: ccache-${{ runner.os }}-${{ env.ALP_CACHE_CONFIG }}-${{ env.ALP_CACHE_TOOLCHAIN }}-v1-${{ github.run_id }}-${{ github.run_attempt }}
+        restore-keys: |
+          ccache-${{ runner.os }}-${{ env.ALP_CACHE_CONFIG }}-${{ env.ALP_CACHE_TOOLCHAIN }}-v1-
         
     - name: Debug output
       shell: bash
@@ -95,7 +114,12 @@ jobs:
         -DALP_ENABLE_ADDRESS_SANITIZER=ON
         -DALP_ENABLE_APP_SHUTDOWN_AFTER_60S=ON
         -DALP_USE_LLVM_LINKER=ON
+        -DCMAKE_C_COMPILER_LAUNCHER=ccache
+        -DCMAKE_CXX_COMPILER_LAUNCHER=ccache
         -B ./build
+
+    - name: Reset ccache stats
+      run: ccache --zero-stats
 
     - name: Build
       env:
@@ -103,6 +127,10 @@ jobs:
         CXX: ${{ matrix.CXX }}
       run: |
         cmake --build ./build
+
+    - name: Show ccache stats
+      if: always()
+      run: ccache --show-stats --verbose
 
     - name: Don't close loaded libraries for better sanitizer output
       env:
