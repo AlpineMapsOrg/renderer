@@ -216,6 +216,18 @@ jobs:
       with:
         version: ${{ env.WEBASSEMBLY_VERSION }}
 
+    - name: Cache Dawn WebAssembly port package
+      uses: actions/cache@v6
+      with:
+        path: extern/emdawnwebgpu_pkg
+        key: dawn-wasm-port-${{ hashFiles('webgpu/base/CMakeLists.txt', 'misc/scripts/fetch_dawn_port.py') }}
+
+    - name: Cache Emscripten Dawn port build
+      uses: actions/cache@v6
+      with:
+        path: ${{ env.EMSDK }}/upstream/emscripten/cache
+        key: ${{ matrix.config }}-emscripten-dawn-${{ runner.os }}-emcc-${{ env.WEBASSEMBLY_VERSION }}-${{ hashFiles('webgpu/base/CMakeLists.txt', 'misc/scripts/fetch_dawn_port.py') }}
+
     - name: Install Qt native version (required for cross building)
       uses: jurplel/install-qt-action@v4
       with:
