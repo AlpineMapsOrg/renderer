@@ -41,6 +41,12 @@ jobs:
     - name: Load CI versions
       run: cat .github/ci-versions.env >> "$GITHUB_ENV"
 
+    - name: Cache native Dawn
+      uses: actions/cache@v6
+      with:
+        path: extern/dawn
+        key: ${{ runner.os }}-dawn-native-debug-${{ hashFiles('webgpu/base/CMakeLists.txt', 'misc/scripts/fetch_dawn_native.py', 'misc/scripts/install_dawn.py') }}
+
     - name: Install Linux Dependencies
       run: |
         sudo apt-get update
