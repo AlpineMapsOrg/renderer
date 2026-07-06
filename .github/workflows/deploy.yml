@@ -459,9 +459,9 @@ jobs:
         done
         
     - name: Generate Directory Listings
-      uses: jayanta525/github-pages-directory-listing@v4.0.0
+      uses: gacts/directory-listing@v1
       with:
-        FOLDER: github_page
+        target: github_page
     
     - name: Create Pages artifact
       uses: actions/upload-pages-artifact@v4
