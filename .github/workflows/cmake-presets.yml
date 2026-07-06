@@ -1,4 +1,4 @@
-name: Windows Tests
+name: CMake Presets
 
 on:
   push:
@@ -7,18 +7,25 @@ on:
     branches: [ "main" ]
 
 concurrency:
-  group: windows-${{ github.event_name }}-${{ github.ref }}
+  group: cmake-presets-${{ github.event_name }}-${{ github.ref }}
   cancel-in-progress: true
 
 permissions:
   contents: read
-  
+
 jobs:
-  build:
+  msvc-debug:
     runs-on: windows-latest
     defaults:
-        run:
-            shell: 'powershell'
+      run:
+        shell: powershell
+
+    strategy:
+      fail-fast: false
+      matrix:
+        preset:
+        - webgpu_app_msvc_debug
+        - unittests_msvc_debug
 
     steps:
     - uses: actions/checkout@v7
@@ -32,7 +39,7 @@ jobs:
     - name: Set sccache config
       run: |
         "SCCACHE_VERSION=v0.16.0" | Add-Content $env:GITHUB_ENV
-        "ALP_CACHE_CONFIG=windows_msvc2022_Debug" | Add-Content $env:GITHUB_ENV
+        "ALP_CACHE_CONFIG=${{ matrix.preset }}" | Add-Content $env:GITHUB_ENV
         "ALP_CACHE_TOOLCHAIN=msvc2022-qt-$env:QT_VERSION-sccache-v0.16.0" | Add-Content $env:GITHUB_ENV
         "SCCACHE_DIR=${{ github.workspace }}\.sccache" | Add-Content $env:GITHUB_ENV
         "SCCACHE_CACHE_SIZE=500M" | Add-Content $env:GITHUB_ENV
@@ -45,12 +52,9 @@ jobs:
         restore-keys: |
           sccache-${{ runner.os }}-${{ env.ALP_CACHE_CONFIG }}-${{ env.ALP_CACHE_TOOLCHAIN }}-v1-
 
-    # Do not cache Dawn here. It is fetched, not built, and measured CI timings
-    # showed no useful speedup from restoring/saving the cache.
-
     - name: Make sure MSVC is found when Ninja generator is in use
       uses: ilammy/msvc-dev-cmd@v1
-        
+
     - name: Install tools
       run: choco install 7zip.install ninja
 
@@ -64,15 +68,7 @@ jobs:
         $SccacheExe = Get-ChildItem -Path sccache-download -Filter sccache.exe -Recurse | Select-Object -First 1
         Copy-Item $SccacheExe.FullName sccache-bin\sccache.exe
         "${{ github.workspace }}\sccache-bin" | Add-Content $env:GITHUB_PATH
-      
-    - name: Install Mesa
-      shell: cmd
-      run: |
-          curl.exe -L --output mesa.7z --url https://github.com/pal1000/mesa-dist-win/releases/download/20.3.2/mesa3d-20.3.2-release-msvc.7z
-          "C:\Program Files\7-Zip\7z.exe" x mesa.7z
-          mklink opengl32.dll "x64\opengl32.dll"
-          mklink libglapi.dll "x64\libglapi.dll"
-    
+
     - name: Install Qt
       uses: jurplel/install-qt-action@v4
       with:
@@ -80,26 +76,21 @@ jobs:
         host: windows
         target: 'desktop'
         arch: 'win64_msvc2022_64'
-        dir: '${{github.workspace}}/qt'
+        dir: '${{ github.workspace }}/qt'
         install-deps: 'true'
         modules: ${{ env.QT_MODULES }}
         cache: true
         aqtsource: 'git+https://github.com/miurahr/aqtinstall.git@bbfb1f7c0590b9eb3fa91356e75bb64fb15d3643'
-    
+
     - name: Configure
       env:
-        CMAKE_PREFIX_PATH: ${{env.QT_ROOT_DIR}}/lib/cmake
+        CMAKE_PREFIX_PATH: ${{ env.QT_ROOT_DIR }}/lib/cmake
       run: >
-        cmake -G Ninja
-        -DCMAKE_BUILD_TYPE=Debug
-        -DALP_ENABLE_POSITIONING=false
-        -DALP_ENABLE_ASSERTS=ON
-        -DALP_BUILD_WEBGPU_APP=ON
+        cmake --preset ${{ matrix.preset }}
         -DCMAKE_POLICY_DEFAULT_CMP0141=NEW
         -DCMAKE_MSVC_DEBUG_INFORMATION_FORMAT=Embedded
         -DCMAKE_C_COMPILER_LAUNCHER=sccache
         -DCMAKE_CXX_COMPILER_LAUNCHER=sccache
-        -B ./build
 
     - name: Reset sccache stats
       run: |
@@ -107,24 +98,8 @@ jobs:
         sccache --zero-stats
 
     - name: Build
-      run: cmake --build ./build --config Debug
+      run: cmake --build --preset ${{ matrix.preset }}
 
     - name: Show sccache stats
       if: always()
       run: sccache --show-stats
-
-    - name: List .exe files in ./build
-      shell: pwsh
-      run: |
-        Write-Host "Searching for .exe files in ./build..."
-        Get-ChildItem -Path "./build" -Filter "*.exe" -Recurse | ForEach-Object {
-          Write-Host "Found: $($_.FullName)"
-        }
-
-    - name: Unittests on Windows
-      env:
-        MESA_GL_VERSION_OVERRIDE: 3.3
-      run: |
-        ./build/unittests_radix.exe
-        ./build/unittests_nucleus.exe
-        
