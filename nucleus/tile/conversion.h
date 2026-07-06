@@ -116,6 +116,7 @@ inline glm::u8vec4 uint162alpineRGBA(uint16_t v)
     return { v >> 8, v & 255, 0, 255 };
 }
 
+#ifdef QT_GUI_LIB
 inline QImage u8raster_to_qimage(const nucleus::Raster<uint8_t>& raster)
 {
     size_t width = raster.width();
@@ -148,5 +149,6 @@ inline QImage u8raster_2_to_qimage(const nucleus::Raster<uint8_t>& raster1, cons
 
     return image;
 }
+#endif
 
 } // namespace nucleus::tile::conversion
