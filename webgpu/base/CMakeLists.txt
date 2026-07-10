@@ -60,7 +60,7 @@ set(SOURCES
     Context.h
     RenderResourceRegistry.h RenderResourceRegistry.cpp
     gpu_utils.h gpu_utils.cpp
-
+    wgpu_string.h
     webgpu_interface.hpp webgpu_interface.cpp)
 
 add_library(webgpu STATIC ${SOURCES})

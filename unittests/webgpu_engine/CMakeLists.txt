@@ -24,6 +24,7 @@ alp_add_unittest(unittests_webgpu_engine
     UnittestWebgpuContext.h UnittestWebgpuContext.cpp
     test_GpuShaderFunctions.cpp
     test_ShaderPreprocessor.cpp
+    test_wgpu_string.cpp
 )
 
 target_link_libraries(unittests_webgpu_engine PUBLIC webgpu_engine)
@@ -47,5 +48,18 @@ if (WIN32 AND NOT EMSCRIPTEN)
             COMMENT "Copying SDL2.dll to unittests"
         )
     endif()
+
+    # Copy DXC DLLs (dxcompiler.dll, dxil.dll) required by prebuilt Dawn's D3D12 backend
+    include("${CMAKE_SOURCE_DIR}/cmake/alp_provide_dawn_dxc.cmake")
+    alp_provide_dawn_dxc_dlls(ALP_DAWN_DXC_DLLS)
+    foreach(ALP_DAWN_DXC_DLL IN LISTS ALP_DAWN_DXC_DLLS)
+        get_filename_component(ALP_DAWN_DXC_DLL_NAME "${ALP_DAWN_DXC_DLL}" NAME)
+        add_custom_command(TARGET unittests_webgpu_engine POST_BUILD
+            COMMAND ${CMAKE_COMMAND} -E copy_if_different
+            "${ALP_DAWN_DXC_DLL}"
+            "$<TARGET_FILE_DIR:unittests_webgpu_engine>"
+            COMMENT "Copying ${ALP_DAWN_DXC_DLL_NAME} to unittests"
+        )
+    endforeach()
 endif()
 
