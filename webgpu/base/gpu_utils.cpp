@@ -141,4 +141,30 @@ void compute_mipmaps_for_texture(Context& ctx, const raii::Texture* texture, WGP
         wgpuQueueOnSubmittedWorkDone(queue, on_done);
 }
 
+WGPUBindGroupEntry bind(uint32_t binding, WGPUTextureView view)
+{
+    WGPUBindGroupEntry e {};
+    e.binding = binding;
+    e.textureView = view;
+    return e;
+}
+
+WGPUBindGroupEntry bind(uint32_t binding, WGPUSampler sampler)
+{
+    WGPUBindGroupEntry e {};
+    e.binding = binding;
+    e.sampler = sampler;
+    return e;
+}
+
+WGPUBindGroupEntry bind(uint32_t binding, WGPUBuffer buffer, uint64_t offset, uint64_t size)
+{
+    WGPUBindGroupEntry e {};
+    e.binding = binding;
+    e.buffer = buffer;
+    e.offset = offset;
+    e.size = size;
+    return e;
+}
+
 } // namespace webgpu
