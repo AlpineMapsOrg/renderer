@@ -41,6 +41,7 @@
 #include "ui/CameraPanel.h"
 #include "ui/CompassPanel.h"
 #include "ui/LogoPanel.h"
+#include "ui/RenderGraphPanel.h"
 #include "ui/SearchPanel.h"
 #include "ui/ShadingPanel.h"
 #include "ui/TimingPanel.h"
@@ -56,6 +57,9 @@
 #include <QFile>
 
 namespace webgpu_app {
+
+bool g_use_render_graph = false;
+webgpu::rg::RenderGraph* g_render_graph = nullptr;
 
 ImGuiManager::ImGuiManager(App* terrain_renderer)
     : m_terrain_renderer(terrain_renderer)
@@ -107,6 +111,8 @@ void ImGuiManager::init(
     m_panels.push_back(std::make_unique<NodeGraphPanel>(engine_ctx));
 #endif
     m_panels.push_back(std::make_unique<OverlaysPanel>(engine_ctx));
+
+    m_panels.push_back(std::make_unique<RenderGraphPanel>());
 
     connect(&search_panel, &SearchPanel::search_requested, rc->search_service(), &SearchService::search);
     connect(&search_panel,

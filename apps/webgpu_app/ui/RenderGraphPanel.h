@@ -1,7 +1,5 @@
 /*****************************************************************************
- * weBIGeo
- * Copyright (C) 2024 Patrick Komon
- * Copyright (C) 2024 Gerald Kimmersdorfer
+ * Copyright (C) 2026 Matthias Huerbe
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -19,23 +17,14 @@
 
 #pragma once
 
-#include <webgpu/webgpu.h>
+#include "ImGuiPanel.h"
 
-namespace webgpu {
+namespace webgpu_app {
 
-class Context;
-namespace raii {
-    class Texture;
-}
 
-// Computes the mipmap chain for the given RGBA8Unorm texture using a compute shader
-void compute_mipmaps_for_texture(Context& ctx, const raii::Texture* texture);
+class RenderGraphPanel : public ImGuiPanel {
+public:
+    void draw() override;
+};
 
-// Async overload: calls on_done after the mipmap work is submitted to the queue.
-void compute_mipmaps_for_texture(Context& ctx, const raii::Texture* texture, WGPUQueueWorkDoneCallbackInfo on_done);
-
-WGPUBindGroupEntry bind(uint32_t binding, WGPUTextureView view);
-WGPUBindGroupEntry bind(uint32_t binding, WGPUSampler sampler);
-WGPUBindGroupEntry bind(uint32_t binding, WGPUBuffer buffer, uint64_t offset, uint64_t size);
-
-} // namespace webgpu
+} // namespace webgpu_app

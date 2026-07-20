@@ -57,6 +57,19 @@ public:
         const WGPUBindGroup& shared_config_bg,
         const WGPUBindGroup& camera_bg);
 
+
+    struct GraphResult {
+        webgpu::rg::TextureHandle pre;
+        webgpu::rg::TextureHandle post;
+    };
+
+    [[nodiscard]] GraphResult draw(webgpu::rg::RenderGraph* render_graph,
+        webgpu::rg::TextureHandle position,
+        webgpu::rg::TextureHandle normal,
+        webgpu::rg::TextureHandle overlay,
+        const WGPUBindGroup& shared_config_bg,
+        const WGPUBindGroup& camera_bg);
+
     [[nodiscard]] const webgpu::raii::TextureView* result_pre_view() const;
     [[nodiscard]] const webgpu::raii::TextureView* result_post_view() const;
 

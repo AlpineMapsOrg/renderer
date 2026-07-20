@@ -25,6 +25,7 @@ alp_add_unittest(unittests_webgpu_engine
     test_GpuShaderFunctions.cpp
     test_ShaderPreprocessor.cpp
     test_wgpu_string.cpp
+    test_RenderGraph.cpp
 )
 
 target_link_libraries(unittests_webgpu_engine PUBLIC webgpu_engine)

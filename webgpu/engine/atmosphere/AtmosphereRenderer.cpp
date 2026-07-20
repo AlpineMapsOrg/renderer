@@ -23,6 +23,7 @@
 #include <webgpu/base/Framebuffer.h>
 #include <webgpu/base/RenderResourceRegistry.h>
 #include <webgpu/base/raii/RenderPassEncoder.h>
+#include <webgpu/base/RenderGraph.h>
 
 namespace webgpu_engine {
 
@@ -63,6 +64,32 @@ void AtmosphereRenderer::draw(const WGPUCommandEncoder& command_encoder, const W
     wgpuRenderPassEncoderSetBindGroup(render_pass->handle(), 0, camera_bind_group, 0, nullptr);
     wgpuRenderPassEncoderSetPipeline(render_pass->handle(), m_pipeline->pipeline().handle());
     wgpuRenderPassEncoderDraw(render_pass->handle(), 3, 1, 0, 0);
+}
+
+webgpu::rg::TextureHandle AtmosphereRenderer::draw(webgpu::rg::RenderGraph* rg, const WGPUBindGroup& camera_bind_group)
+{
+    auto s = m_atmosphere_framebuffer->size();
+
+    auto renderTarget = rg->create_transient_texture("atmosphere_framebuffer", 
+        {
+            .dimension = WGPUTextureDimension_2D,
+            .format = WGPUTextureFormat_RGBA8Unorm,
+            .absolute = {s.x, s.y, 1},
+        });
+
+    
+    rg->add_pass("Atmosphere", webgpu::rg::PassKind::Graphics, 
+    [&](webgpu::rg::PassBuilder& b) {
+        b.color(renderTarget, 0);
+    },
+    [camera_bind_group, pipeline = m_pipeline->pipeline().handle()] (webgpu::rg::PassContext& ctx) {
+            wgpuRenderPassEncoderSetBindGroup(ctx.render_pass, 0, camera_bind_group, 0, nullptr);
+            wgpuRenderPassEncoderSetPipeline(ctx.render_pass, pipeline);
+            wgpuRenderPassEncoderDraw(ctx.render_pass, 3, 1, 0, 0);
+        }
+    );
+
+    return renderTarget;
 }
 
 const webgpu::raii::TextureView* AtmosphereRenderer::result_view() const { return &m_atmosphere_framebuffer->color_texture_view(0); }

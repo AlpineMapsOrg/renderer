@@ -20,6 +20,7 @@
 #include "ScreenSpaceSnowOverlay.h"
 
 #include "webgpu/engine/Context.h"
+#include <array>
 #include <webgpu/base/RenderResourceRegistry.h>
 #include <webgpu/base/raii/BindGroup.h>
 #include <webgpu/base/raii/BindGroupLayout.h>
@@ -133,6 +134,45 @@ void ScreenSpaceSnowOverlay::draw(const WGPUCommandEncoder& command_encoder,
 
     const glm::uvec3 workgroup_counts = glm::ceil(glm::vec3(float(output_size.x), float(output_size.y), 1.0f) / glm::vec3(16.0f, 16.0f, 1.0f));
     m_pipeline->run(compute_pass, workgroup_counts);
+}
+
+void ScreenSpaceSnowOverlay::draw(webgpu::rg::RenderGraph* render_graph,
+    webgpu::rg::TextureHandle position,
+    webgpu::rg::TextureHandle normal,
+    webgpu::rg::TextureHandle /*overlay*/,
+    const WGPUBindGroup& shared_config_bg,
+    const WGPUBindGroup& camera_bg,
+    webgpu::rg::TextureHandle source,
+    webgpu::rg::TextureHandle target,
+    glm::uvec2 output_size)
+{
+    if (!m_pipeline)
+        return;
+
+    render_graph->add_pass("overlay.screen_space_snow", webgpu::rg::PassKind::Compute,
+        [position, normal, source, target](webgpu::rg::PassBuilder& b) {
+            b.sampled(position);
+            b.sampled(normal);
+            b.storage_write(target);
+            b.sampled(source);
+        },
+        [this, position, normal, source, target, shared_config_bg, camera_bg, output_size](webgpu::rg::PassContext& c) {
+            webgpu::raii::BindGroup bind_group(c.device, m_ctx->resource_registry().bind_group_layout("screen_space_snow_overlay"),
+                {
+                    c.bind(0, position),
+                    c.bind(1, normal),
+                    m_settings_uniform->raw_buffer().create_bind_group_entry(2),
+                    c.bind(3, target),
+                    c.bind(4, source),
+                },
+                "overlay.screen_space_snow");
+
+            wgpuComputePassEncoderSetPipeline(c.compute_pass, m_pipeline->handle());
+            wgpuComputePassEncoderSetBindGroup(c.compute_pass, 0, shared_config_bg, 0, nullptr);
+            wgpuComputePassEncoderSetBindGroup(c.compute_pass, 1, camera_bg, 0, nullptr);
+            wgpuComputePassEncoderSetBindGroup(c.compute_pass, 2, bind_group.handle(), 0, nullptr);
+            wgpuComputePassEncoderDispatchWorkgroups(c.compute_pass, (output_size.x + 15u) / 16u, (output_size.y + 15u) / 16u, 1);
+        });
 }
 
 } // namespace webgpu_engine

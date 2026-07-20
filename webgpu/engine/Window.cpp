@@ -27,8 +27,11 @@
 #include <ktx.h>
 #include <webgpu/base/RenderResourceRegistry.h>
 #include <webgpu/base/util/VertexBufferInfo.h>
+#include "webgpu/base/RenderGraph.h"
 
 #include <webgpu/webgpu.h>
+
+#include <array>
 
 namespace webgpu_engine {
 
@@ -213,6 +216,152 @@ void Window::paint(webgpu::Framebuffer* framebuffer, WGPUCommandEncoder command_
     }
 
     m_paint_number++;
+}
+
+webgpu::rg::TextureHandle Window::paint(webgpu::rg::RenderGraph* rg, bool use_render_graph)
+{
+    // ToDo only update on change?
+    m_shared_config_ubo->data = m_context->shared_config();
+    m_shared_config_ubo->update_gpu_data(m_context->webgpu_ctx().queue());
+
+    webgpu::rg::TextureHandle atmosphere;
+    if (m_context->shared_config().m_atmosphere_enabled) {
+        atmosphere = m_context->atmosphere_renderer()->draw(rg, m_camera_bind_group->handle());
+    } else {
+        atmosphere = rg->create_initialized_texture("atmosphere.fallback",
+            { .dimension = WGPUTextureDimension_2D, .format = WGPUTextureFormat_RGBA8Unorm, .absolute = { 1, 1, 1 } },
+            { 0, 0, 0, 1 });
+    }
+
+    if (!use_render_graph)
+        return atmosphere;
+
+    const uint32_t w = uint32_t(m_swapchain_size.x);
+    const uint32_t h = uint32_t(m_swapchain_size.y);
+
+    auto make_target = [&](std::string_view id, WGPUTextureFormat fmt) {
+        return rg->create_transient_texture(id,
+            {
+                .dimension = WGPUTextureDimension_2D,
+                .format = fmt,
+                .absolute = { w, h, 1 },
+            });
+    };
+    auto albedo = make_target("gbuffer.albedo", WGPUTextureFormat_R32Uint);
+
+    auto position = rg->import_texture("gbuffer.position",
+        { .view = m_gbuffer->color_texture_view(1).handle(),
+            .size = { w, h, 1 },
+            .format = WGPUTextureFormat_RGBA32Float });
+    auto normal = make_target("gbuffer.normal", WGPUTextureFormat_RG16Uint);
+    auto overlay = make_target("gbuffer.overlay", WGPUTextureFormat_R32Uint);
+
+    auto gdepth = rg->import_texture("gbuffer.depth",
+        { .view = m_gbuffer->depth_texture_view().handle(),
+            .size = { w, h, 1 },
+            .format = m_gbuffer_format.depth_format });
+
+
+    rg->add_pass("Tiles", webgpu::rg::PassKind::Graphics,
+        [albedo, position, normal, overlay, gdepth](webgpu::rg::PassBuilder& b) {
+            b.color(albedo, 0, { .clear = { 0, 0, 0, 0 } });
+            b.color(position, 1, { .clear = { 0, 0, 0, 0 } });
+            b.color(normal, 2, { .clear = { 0, 0, 0, 0 } });
+            b.color(overlay, 3, { .clear = { 0, 0, 0, 0 } });
+            b.depth_stencil(gdepth, { .clearDepth = 0.0f }); // reverse-Z: clear to 0
+        },
+        [this](webgpu::rg::PassContext& c) {
+
+            // render tiles to geometry buffers
+            using namespace nucleus::tile;
+            const auto draw_list = drawing::compute_bounds(
+                drawing::limit(drawing::generate_list(m_camera, m_context->aabb_decorator(), m_max_zoom_level), 1024), m_context->aabb_decorator());
+            const auto culled_draw_list = drawing::sort(drawing::cull(draw_list, m_camera), m_camera.position());
+
+            wgpuRenderPassEncoderSetBindGroup(c.render_pass, 0, m_shared_config_bind_group->handle(), 0, nullptr);
+            wgpuRenderPassEncoderSetBindGroup(c.render_pass, 1, m_camera_bind_group->handle(), 0, nullptr);
+            m_context->tile_mesh_renderer()->draw(c.render_pass, m_camera, culled_draw_list);
+        });
+
+    // Compose: resolve G-buffer + atmosphere into a full-size colour target.
+    auto composed = rg->create_transient_texture("composed_color",
+        {
+            .dimension = WGPUTextureDimension_2D,
+            .format = m_context->webgpu_ctx().surface_texture_format(),
+            .absolute = { w, h, 1 },
+        });
+    auto compose_depth = make_target("compose_depth", WGPUTextureFormat_Depth24Plus);
+
+    webgpu::rg::TextureHandle cloud_color;
+    webgpu::rg::TextureHandle cloud_depth;
+    if (m_context->shared_config().m_clouds_enabled) {
+        auto cloud = m_context->cloud_renderer()->draw(
+            rg, m_depth_texture_bind_group->handle(), m_shared_config_bind_group->handle(), m_camera, m_paint_number, gdepth);
+        cloud_color = cloud.color;
+        cloud_depth = cloud.depth;
+        m_needs_redraw |= m_context->cloud_renderer()->needs_redraw();
+    } else {
+
+        cloud_color = rg->create_initialized_texture("clouds.fallback_color",
+            { .dimension = WGPUTextureDimension_2D, .format = WGPUTextureFormat_RGBA16Float, .absolute = { 1, 1, 1 } },
+            { 0, 0, 0, 1 });
+        cloud_depth = rg->create_initialized_texture("clouds.fallback_depth",
+            { .dimension = WGPUTextureDimension_2D, .format = WGPUTextureFormat_R32Float, .absolute = { 1, 1, 1 } },
+            { 0, 0, 0, 0 });
+    }
+
+    auto overlay_result = m_context->overlay_renderer()->draw(
+        rg, position, normal, overlay, m_shared_config_bind_group->handle(), m_camera_bind_group->handle());
+    auto overlay_pre = overlay_result.pre;
+    auto overlay_post = overlay_result.post;
+
+    rg->add_pass("Compose", webgpu::rg::PassKind::Graphics,
+        [composed, compose_depth, albedo, position, normal, atmosphere, overlay, cloud_color, cloud_depth, overlay_pre, overlay_post](webgpu::rg::PassBuilder& b) {
+            b.color(composed, 0, { .clear = { 0, 0, 0, 1 } });
+            b.depth_stencil(compose_depth, { .clearDepth = 0.0f });
+            b.sampled(albedo);
+            b.sampled(position);
+            b.sampled(normal);
+            b.sampled(atmosphere);
+            b.sampled(overlay);
+            b.sampled(cloud_color);
+            b.storage_read(cloud_depth);
+            b.sampled(overlay_pre);
+            b.sampled(overlay_post);
+        },
+        [this, albedo, position, normal, atmosphere, overlay, cloud_color, cloud_depth, overlay_pre, overlay_post](webgpu::rg::PassContext& c) {
+            auto& webgpu_ctx = m_context->webgpu_ctx();
+            webgpu::raii::BindGroup compose_bind_group(c.device, webgpu_ctx.resource_registry().bind_group_layout("compose"),
+                {
+                    c.bind(0, albedo),
+                    c.bind(1, position),
+                    c.bind(2, normal),
+                    c.bind(3, atmosphere),
+                    c.bind(4, overlay),
+                    c.bind(5, cloud_color),
+                    c.bind(6, cloud_depth),
+                    m_shadow_texture->texture_view().create_bind_group_entry(7),
+                    m_shadow_texture->sampler().create_bind_group_entry(8),
+                    c.bind(9, position),
+                    c.bind(10, overlay_post),
+                    c.bind(11, overlay_pre),
+                },
+                "Compose");
+
+            wgpuRenderPassEncoderSetPipeline(c.render_pass, m_compose_pipeline->pipeline().handle());
+            wgpuRenderPassEncoderSetBindGroup(c.render_pass, 0, m_shared_config_bind_group->handle(), 0, nullptr);
+            wgpuRenderPassEncoderSetBindGroup(c.render_pass, 1, m_camera_bind_group->handle(), 0, nullptr);
+            wgpuRenderPassEncoderSetBindGroup(c.render_pass, 2, compose_bind_group.handle(), 0, nullptr);
+            wgpuRenderPassEncoderDraw(c.render_pass, 3, 1, 0, 0);
+        });
+
+    if (m_context->shared_config().m_track_render_mode > 0) {
+        m_context->track_renderer()->render(rg, composed, gdepth,
+            m_shared_config_bind_group->handle(), m_camera_bind_group->handle(), m_depth_texture_bind_group->handle());
+    }
+
+    m_paint_number++;
+    return composed;
 }
 
 glm::vec4 Window::synchronous_position_readback(const glm::dvec2& ndc)

@@ -20,6 +20,7 @@
 #include "TileDebugOverlay.h"
 
 #include "webgpu/engine/Context.h"
+#include <array>
 #include <webgpu/base/RenderResourceRegistry.h>
 #include <webgpu/base/raii/BindGroup.h>
 #include <webgpu/base/raii/BindGroupLayout.h>
@@ -132,6 +133,42 @@ void TileDebugOverlay::draw(const WGPUCommandEncoder& command_encoder,
 
     const glm::uvec3 workgroup_counts = glm::ceil(glm::vec3(float(output_size.x), float(output_size.y), 1.0f) / glm::vec3(16.0f, 16.0f, 1.0f));
     m_pipeline->run(compute_pass, workgroup_counts);
+}
+
+void TileDebugOverlay::draw(webgpu::rg::RenderGraph* render_graph,
+    webgpu::rg::TextureHandle /*position*/,
+    webgpu::rg::TextureHandle /*normal*/,
+    webgpu::rg::TextureHandle overlay,
+    const WGPUBindGroup& /*shared_config_bg*/,
+    const WGPUBindGroup& /*camera_bg*/,
+    webgpu::rg::TextureHandle source,
+    webgpu::rg::TextureHandle target,
+    glm::uvec2 output_size)
+{
+    if (!m_pipeline)
+        return;
+
+    render_graph->add_pass("overlay.tile_debug", webgpu::rg::PassKind::Compute,
+        [overlay, source, target](webgpu::rg::PassBuilder& b) {
+            b.sampled(overlay);
+            b.storage_write(target);
+            b.sampled(source);
+        },
+        [this, overlay, source, target, output_size](webgpu::rg::PassContext& c) {
+
+            webgpu::raii::BindGroup bind_group(c.device, m_ctx->resource_registry().bind_group_layout("tile_debug_overlay"),
+                {
+                    c.bind(0, overlay),
+                    m_settings_uniform->raw_buffer().create_bind_group_entry(1),
+                    c.bind(2, target),
+                    c.bind(3, source),
+                },
+                "overlay.tile_debug");
+
+            wgpuComputePassEncoderSetPipeline(c.compute_pass, m_pipeline->handle());
+            wgpuComputePassEncoderSetBindGroup(c.compute_pass, 0, bind_group.handle(), 0, nullptr);
+            wgpuComputePassEncoderDispatchWorkgroups(c.compute_pass, (output_size.x + 15u) / 16u, (output_size.y + 15u) / 16u, 1);
+        });
 }
 
 } // namespace webgpu_engine

@@ -54,6 +54,16 @@ public:
         webgpu::raii::TextureWithSampler& target_output,
         glm::uvec2 output_size) override;
 
+    void draw(webgpu::rg::RenderGraph* render_graph,
+        webgpu::rg::TextureHandle position,
+        webgpu::rg::TextureHandle normal,
+        webgpu::rg::TextureHandle overlay,
+        const WGPUBindGroup& shared_config_bg,
+        const WGPUBindGroup& camera_bg,
+        webgpu::rg::TextureHandle source,
+        webgpu::rg::TextureHandle target,
+        glm::uvec2 output_size) override;
+
     Settings settings;
 
 private:
