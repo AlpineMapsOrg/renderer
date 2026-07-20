@@ -27,6 +27,7 @@
 #include <webgpu/base/raii/Pipeline.h>
 #include <webgpu/base/raii/TextureView.h>
 #include <webgpu/webgpu.h>
+#include <webgpu/base/RenderGraph.h>
 
 namespace webgpu_engine {
 
@@ -40,7 +41,7 @@ public:
     void resize(int w, int h);
 
     void draw(const WGPUCommandEncoder& command_encoder, const WGPUBindGroup& camera_bind_group);
-
+    webgpu::rg::TextureHandle draw(webgpu::rg::RenderGraph* rg, const WGPUBindGroup& camera_bind_group);
     [[nodiscard]] const webgpu::raii::TextureView* result_view() const;
 
 private:

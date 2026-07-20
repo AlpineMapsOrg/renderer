@@ -28,6 +28,7 @@
 #include <vector>
 #include <webgpu/base/Buffer.h>
 #include <webgpu/base/Context.h>
+#include <webgpu/base/RenderGraph.h>
 #include <webgpu/base/raii/Pipeline.h>
 
 namespace webgpu_engine {
@@ -61,6 +62,13 @@ public:
         const webgpu::raii::BindGroup& camera_config,
         const webgpu::raii::BindGroup& depth_texture,
         const webgpu::raii::TextureView& color_texture);
+
+    void render(webgpu::rg::RenderGraph* rg,
+        webgpu::rg::TextureHandle target_color,
+        webgpu::rg::TextureHandle gbuffer_depth,
+        const WGPUBindGroup& shared_config,
+        const WGPUBindGroup& camera_config,
+        const WGPUBindGroup& depth_texture);
 
 private:
     webgpu::Context* m_ctx;

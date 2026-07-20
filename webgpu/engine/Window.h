@@ -24,12 +24,18 @@
 #include "nucleus/AbstractRenderWindow.h"
 #include "nucleus/camera/AbstractDepthTester.h"
 #include "nucleus/camera/Definition.h"
+#include "nucleus/tile/types.h"
 #include "nucleus/utils/ColourTexture.h"
 #include <webgpu/base/Buffer.h>
 #include <webgpu/base/raii/BindGroup.h>
 #include <webgpu/webgpu.h>
 
 class QOpenGLFramebufferObject;
+
+namespace webgpu::rg
+{
+struct RenderGraph;
+}
 
 namespace webgpu_engine {
 
@@ -45,6 +51,7 @@ public:
     void resize_framebuffer(int w, int h) override;
     void ready();
     void paint(webgpu::Framebuffer* framebuffer, WGPUCommandEncoder command_encoder);
+    webgpu::rg::TextureHandle paint(webgpu::rg::RenderGraph* rg, bool use_render_graph);
     // void paint(WGPUTextureView target_color_texture, WGPUTextureView target_depth_texture, WGPUCommandEncoder encoder);
     void paint([[maybe_unused]] QOpenGLFramebufferObject* framebuffer = nullptr) override { throw std::runtime_error("Not implemented"); }
 

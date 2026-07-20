@@ -30,7 +30,14 @@ struct ImFont;
 
 #include "ui/ImGuiPanel.h"
 
+namespace webgpu::rg {
+struct RenderGraph;
+}
+
 namespace webgpu_app {
+
+extern bool g_use_render_graph;
+extern webgpu::rg::RenderGraph* g_render_graph;
 
 class App;
 

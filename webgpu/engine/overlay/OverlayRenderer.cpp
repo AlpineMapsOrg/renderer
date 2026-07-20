@@ -22,6 +22,7 @@
 #include "webgpu/engine/Context.h"
 #include <algorithm>
 #include <memory>
+#include <string>
 #include <webgpu/base/raii/RenderPassEncoder.h>
 
 namespace webgpu_engine {
@@ -176,6 +177,40 @@ void OverlayRenderer::draw_bucket(const WGPUCommandEncoder& command_encoder,
             output_size);
         current = target;
     }
+}
+
+OverlayRenderer::GraphResult OverlayRenderer::draw(webgpu::rg::RenderGraph* render_graph,
+    webgpu::rg::TextureHandle position,
+    webgpu::rg::TextureHandle normal,
+    webgpu::rg::TextureHandle overlay,
+    const WGPUBindGroup& shared_config_bg,
+    const WGPUBindGroup& camera_bg)
+{
+    const glm::uvec2 output_size(m_pre[0]->texture().width(), m_pre[0]->texture().height());
+
+
+    auto run_bucket = [&](const std::vector<Overlay*>& bucket, std::string_view clear_id, const char* target_prefix) -> webgpu::rg::TextureHandle {
+        webgpu::rg::TextureDesc desc {};
+        desc.dimension = WGPUTextureDimension_2D;
+        desc.format = WGPUTextureFormat_RGBA8Unorm;
+        desc.absolute = { output_size.x, output_size.y, 1 };
+
+        webgpu::rg::TextureHandle source = render_graph->create_initialized_texture(clear_id, desc, { 0.0, 0.0, 0.0, 0.0 });
+
+        int stage = 0;
+        for (Overlay* o : bucket) {
+            const std::string name = std::string(target_prefix) + std::to_string(stage++);
+            const webgpu::rg::TextureHandle target = render_graph->create_transient_texture(name, desc);
+
+            o->draw(render_graph, position, normal, overlay, shared_config_bg, camera_bg, source, target, output_size);
+            source = target;
+        }
+        return source;
+    };
+
+    webgpu::rg::TextureHandle pre = run_bucket(m_pre_overlays, "overlay.pre.clear", "overlay.pre.");
+    webgpu::rg::TextureHandle post = run_bucket(m_post_overlays, "overlay.post.clear", "overlay.post.");
+    return { pre, post };
 }
 
 const webgpu::raii::TextureView* OverlayRenderer::result_pre_view() const { return m_pre[0] ? &m_pre[0]->texture_view() : nullptr; }

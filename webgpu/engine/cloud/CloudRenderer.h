@@ -27,6 +27,7 @@
 #include <nucleus/tile/types.h>
 #include <webgpu/base/Buffer.h>
 #include <webgpu/base/Context.h>
+#include <webgpu/base/RenderGraph.h>
 #include <webgpu/base/raii/BindGroup.h>
 #include <webgpu/base/raii/BindGroupLayout.h>
 #include <webgpu/base/raii/CombinedComputePipeline.h>
@@ -90,6 +91,18 @@ public:
         const WGPUBindGroup& shared_config_bind_group,
         const nucleus::camera::Definition& camera,
         uint32_t frame_number);
+
+    struct GraphOutput {
+        webgpu::rg::TextureHandle color; // hi-res TAAU colour (.curr)
+        webgpu::rg::TextureHandle depth; // lo-res ray depth
+    };
+
+    GraphOutput draw(webgpu::rg::RenderGraph* rg,
+        const WGPUBindGroup& depth_texture_bind_group,
+        const WGPUBindGroup& shared_config_bind_group,
+        const nucleus::camera::Definition& camera,
+        uint32_t frame_number,
+        webgpu::rg::TextureHandle gbuffer_depth);
 
     [[nodiscard]] bool needs_redraw() const { return m_stable_frames <= static_cast<uint32_t>(shader_params.stable_frames_limit); }
 

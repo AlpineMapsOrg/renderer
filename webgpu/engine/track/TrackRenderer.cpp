@@ -193,4 +193,28 @@ void TrackRenderer::render(WGPUCommandEncoder command_encoder,
     }
 }
 
+void TrackRenderer::render(webgpu::rg::RenderGraph* rg,
+    webgpu::rg::TextureHandle target_color,
+    webgpu::rg::TextureHandle gbuffer_depth,
+    const WGPUBindGroup& shared_config,
+    const WGPUBindGroup& camera_config,
+    const WGPUBindGroup& depth_texture)
+{
+    rg->add_pass("Track", webgpu::rg::PassKind::Graphics,
+        [target_color, gbuffer_depth](webgpu::rg::PassBuilder& b) {
+            b.color(target_color, 0, { .load = WGPULoadOp_Load });
+            b.sampled(gbuffer_depth);
+        },
+        [this, shared_config, camera_config, depth_texture](webgpu::rg::PassContext& c) {
+            wgpuRenderPassEncoderSetPipeline(c.render_pass, m_pipeline->handle());
+            wgpuRenderPassEncoderSetBindGroup(c.render_pass, 0, shared_config, 0, nullptr);
+            wgpuRenderPassEncoderSetBindGroup(c.render_pass, 1, camera_config, 0, nullptr);
+            wgpuRenderPassEncoderSetBindGroup(c.render_pass, 2, depth_texture, 0, nullptr);
+            for (size_t i = 0; i < m_bind_groups.size(); i++) {
+                wgpuRenderPassEncoderSetBindGroup(c.render_pass, 3, m_bind_groups.at(i)->handle(), 0, nullptr);
+                wgpuRenderPassEncoderDraw(c.render_pass, uint32_t(m_position_buffers.at(i)->size()), 1, 0, 0);
+            }
+        });
+}
+
 } // namespace webgpu_engine
