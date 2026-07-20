@@ -34,4 +34,8 @@ void compute_mipmaps_for_texture(Context& ctx, const raii::Texture* texture);
 // Async overload: calls on_done after the mipmap work is submitted to the queue.
 void compute_mipmaps_for_texture(Context& ctx, const raii::Texture* texture, WGPUQueueWorkDoneCallbackInfo on_done);
 
+WGPUBindGroupEntry bind(uint32_t binding, WGPUTextureView view);
+WGPUBindGroupEntry bind(uint32_t binding, WGPUSampler sampler);
+WGPUBindGroupEntry bind(uint32_t binding, WGPUBuffer buffer, uint64_t offset, uint64_t size);
+
 } // namespace webgpu
