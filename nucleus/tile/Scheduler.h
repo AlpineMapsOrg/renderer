@@ -112,7 +112,7 @@ public slots:
     void update_gpu_quads();
     void send_quad_requests();
     void purge_ram_cache();
-    std::expected<void, QString> persist_tiles();
+    bool persist_tiles();
 
 protected:
     void schedule_update();

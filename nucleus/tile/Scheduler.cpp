@@ -189,11 +189,10 @@ void Scheduler::purge_ram_cache()
     emit stats_ready(m_name, stats);
 }
 
-std::expected<void, QString> Scheduler::persist_tiles()
+bool Scheduler::persist_tiles()
 {
     if (m_name == "unnamed" || m_name.isEmpty()) {
-        return std::unexpected(QString("Not persisitng tiles as the scheduler is not named, and this would cause name conflicts in the file system."
-                                       "Name your scheduler, e.g., by using the scheduler director."));
+        return false;
     }
     const auto start = std::chrono::steady_clock::now();
     const auto r = m_ram_cache.write_to_disk(disk_cache_path());
@@ -209,7 +208,7 @@ std::expected<void, QString> Scheduler::persist_tiles()
             << QString("Writing tiles to disk into %1 failed: %2. Removing all files.").arg(QString::fromStdString(disk_cache_path().string())).arg(r.error());
         std::filesystem::remove_all(disk_cache_path());
     }
-    return r;
+    return r.has_value();
 }
 
 void Scheduler::schedule_update()
@@ -251,7 +250,7 @@ void Scheduler::clear_full_cache()
     set_ram_quad_limit(0);
     update_gpu_quads();
     purge_ram_cache();
-    (void)persist_tiles();
+    persist_tiles();
     set_gpu_quad_limit(old_gpu_quad_limit);
     set_ram_quad_limit(old_ram_quad_limit);
 }
