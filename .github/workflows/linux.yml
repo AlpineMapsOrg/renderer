@@ -59,10 +59,10 @@ jobs:
     - name: Install Clang 23
       if: matrix.compiler == 'clang23'
       run: |
-        wget -qO /tmp/llvm.sh https://apt.llvm.org/llvm.sh
-        chmod +x /tmp/llvm.sh
-        sudo /tmp/llvm.sh 23
-        sudo apt-get install -y --no-install-recommends libclang-rt-23-dev
+        wget -qO- https://apt.llvm.org/llvm-snapshot.gpg.key | sudo tee /etc/apt/trusted.gpg.d/apt.llvm.org.asc > /dev/null
+        echo "deb https://apt.llvm.org/noble/ llvm-toolchain-noble-23 main" | sudo tee /etc/apt/sources.list.d/llvm-23.list
+        sudo apt-get update
+        sudo apt-get install -y --no-install-recommends clang-23 lld-23 libclang-rt-23-dev
 
     - name: Install Qt
       uses: jurplel/install-qt-action@v4
