@@ -192,6 +192,7 @@ void Scheduler::purge_ram_cache()
 bool Scheduler::persist_tiles()
 {
     if (m_name == "unnamed" || m_name.isEmpty()) {
+        qWarning() << "Not persisting tiles because the scheduler is not named.";
         return false;
     }
     const auto start = std::chrono::steady_clock::now();
@@ -204,7 +205,7 @@ bool Scheduler::persist_tiles()
                         .arg(m_ram_cache.n_cached_objects());
 
     if (!r.has_value()) {
-        qDebug()
+        qWarning()
             << QString("Writing tiles to disk into %1 failed: %2. Removing all files.").arg(QString::fromStdString(disk_cache_path().string())).arg(r.error());
         std::filesystem::remove_all(disk_cache_path());
     }
