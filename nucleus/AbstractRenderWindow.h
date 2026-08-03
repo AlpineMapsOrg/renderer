@@ -23,6 +23,7 @@
 
 #include <glm/glm.hpp>
 
+#include "camera/Definition.h"
 #include "utils/ColourTexture.h"
 
 class QOpenGLFramebufferObject;
@@ -33,7 +34,6 @@ namespace tile::utils {
     using AabbDecoratorPtr = std::shared_ptr<AabbDecorator>;
 }
 namespace camera {
-    class Definition;
     class AbstractDepthTester;
 }
 

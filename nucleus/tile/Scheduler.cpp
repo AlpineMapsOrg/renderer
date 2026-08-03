@@ -251,7 +251,7 @@ void Scheduler::clear_full_cache()
     set_ram_quad_limit(0);
     update_gpu_quads();
     purge_ram_cache();
-    persist_tiles();
+    (void)persist_tiles();
     set_gpu_quad_limit(old_gpu_quad_limit);
     set_ram_quad_limit(old_ram_quad_limit);
 }
