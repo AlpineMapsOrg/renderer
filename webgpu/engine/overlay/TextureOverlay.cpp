@@ -129,7 +129,7 @@ void TextureOverlay::init(Context& context)
             std::vector<const webgpu::raii::BindGroupLayout*> {
                 &reg.bind_group_layout("shared_config"),
                 &reg.bind_group_layout("camera"),
-                &reg.bind_group_layout("texture_overlay"),
+                m_bind_group_layout = &reg.bind_group_layout("texture_overlay"),
             });
     });
 
@@ -185,50 +185,41 @@ void TextureOverlay::update_gpu_settings()
     m_settings_uniform->update_gpu_data(m_ctx->queue());
 }
 
-void TextureOverlay::draw(const WGPUCommandEncoder& command_encoder,
-    const webgpu::raii::TextureView& position_view,
-    const webgpu::raii::TextureView& /*normal_view*/,
-    const webgpu::raii::TextureView& /*overlay_view*/,
+void TextureOverlay::draw(webgpu::rg::RenderGraph* render_graph,
+    webgpu::rg::TextureHandle position,
+    webgpu::rg::TextureHandle /*normal*/,
+    webgpu::rg::TextureHandle /*overlay*/,
     const WGPUBindGroup& shared_config_bg,
     const WGPUBindGroup& camera_bg,
-    const webgpu::raii::TextureWithSampler& current_input,
-    webgpu::raii::TextureWithSampler& target_output,
-    glm::uvec2 /*output_size*/)
+    webgpu::rg::TextureHandle source,
+    webgpu::rg::TextureHandle target)
 {
-    const webgpu::raii::TextureWithSampler* tex = m_linked_texture ? m_linked_texture : m_overlay_texture.get();
-    Q_ASSERT(tex && m_pipeline);
-
-    webgpu::raii::BindGroup bind_group(m_ctx->device(),
-        m_ctx->resource_registry().bind_group_layout("texture_overlay"),
-        std::vector<WGPUBindGroupEntry> {
-            position_view.create_bind_group_entry(0),
-            m_settings_uniform->raw_buffer().create_bind_group_entry(1),
-            tex->texture_view().create_bind_group_entry(2),
-            tex->sampler().create_bind_group_entry(3),
-            current_input.texture_view().create_bind_group_entry(4),
+    render_graph->add_pass("overlay.texture", webgpu::rg::PassKind::Graphics,
+        [position, source, target](webgpu::rg::PassBuilder& b) {
+            b.color(target, 0, { .clear = { 0.0, 0.0, 0.0, 0.0 } });
+            b.sampled(position);
+            b.sampled(source);
         },
-        "texture overlay bind group");
+        [this, position, source, shared_config_bg, camera_bg](webgpu::rg::PassContext& c) {
+            const webgpu::raii::TextureWithSampler* raster = m_linked_texture ? m_linked_texture : m_overlay_texture.get();
+            Q_ASSERT(raster && m_pipeline);
 
-    // The fullscreen triangle writes every pixel, so loadOp doesnt matter (clear=fastest)
-    WGPURenderPassColorAttachment color_attachment {};
-    color_attachment.view = target_output.texture_view().handle();
-    color_attachment.depthSlice = WGPU_DEPTH_SLICE_UNDEFINED;
-    color_attachment.loadOp = WGPULoadOp_Clear;
-    color_attachment.storeOp = WGPUStoreOp_Store;
-    color_attachment.clearValue = { 0.0, 0.0, 0.0, 0.0 };
+            webgpu::raii::BindGroup bind_group(c.device, *m_bind_group_layout,
+                {
+                    c.bind(0, position),
+                    m_settings_uniform->raw_buffer().create_bind_group_entry(1),
+                    raster->texture_view().create_bind_group_entry(2),
+                    raster->sampler().create_bind_group_entry(3),
+                    c.bind(4, source),
+                },
+                "overlay.texture");
 
-    WGPURenderPassDescriptor render_pass_desc {};
-    render_pass_desc.label = WGPUStringView { .data = "texture overlay render pass", .length = WGPU_STRLEN };
-    render_pass_desc.colorAttachmentCount = 1;
-    render_pass_desc.colorAttachments = &color_attachment;
-
-    webgpu::raii::RenderPassEncoder render_pass(command_encoder, render_pass_desc);
-
-    wgpuRenderPassEncoderSetPipeline(render_pass.handle(), m_pipeline->pipeline().handle());
-    wgpuRenderPassEncoderSetBindGroup(render_pass.handle(), 0, shared_config_bg, 0, nullptr);
-    wgpuRenderPassEncoderSetBindGroup(render_pass.handle(), 1, camera_bg, 0, nullptr);
-    wgpuRenderPassEncoderSetBindGroup(render_pass.handle(), 2, bind_group.handle(), 0, nullptr);
-    wgpuRenderPassEncoderDraw(render_pass.handle(), 3, 1, 0, 0);
+            wgpuRenderPassEncoderSetPipeline(c.render_pass, m_pipeline->pipeline().handle());
+            wgpuRenderPassEncoderSetBindGroup(c.render_pass, 0, shared_config_bg, 0, nullptr);
+            wgpuRenderPassEncoderSetBindGroup(c.render_pass, 1, camera_bg, 0, nullptr);
+            wgpuRenderPassEncoderSetBindGroup(c.render_pass, 2, bind_group.handle(), 0, nullptr);
+            wgpuRenderPassEncoderDraw(c.render_pass, 3, 1, 0, 0);
+        });
 }
 
 } // namespace webgpu_engine

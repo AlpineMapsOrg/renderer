@@ -20,6 +20,7 @@
 #include "ScreenSpaceSnowOverlay.h"
 
 #include "webgpu/engine/Context.h"
+#include <array>
 #include <webgpu/base/RenderResourceRegistry.h>
 #include <webgpu/base/raii/BindGroup.h>
 #include <webgpu/base/raii/BindGroupLayout.h>
@@ -81,7 +82,7 @@ void ScreenSpaceSnowOverlay::init(Context& context)
             std::vector<const webgpu::raii::BindGroupLayout*> {
                 &reg.bind_group_layout("shared_config"),
                 &reg.bind_group_layout("camera"),
-                &reg.bind_group_layout("screen_space_snow_overlay"),
+                m_bind_group_layout = &reg.bind_group_layout("screen_space_snow_overlay"),
             },
             "screen space snow compute pipeline");
     });
@@ -99,40 +100,43 @@ void ScreenSpaceSnowOverlay::update_settings()
     m_settings_uniform->update_gpu_data(m_ctx->queue());
 }
 
-void ScreenSpaceSnowOverlay::draw(const WGPUCommandEncoder& command_encoder,
-    const webgpu::raii::TextureView& position_view,
-    const webgpu::raii::TextureView& normal_view,
-    const webgpu::raii::TextureView& /*overlay_view*/,
+void ScreenSpaceSnowOverlay::draw(webgpu::rg::RenderGraph* render_graph,
+    webgpu::rg::TextureHandle position,
+    webgpu::rg::TextureHandle normal,
+    webgpu::rg::TextureHandle /*overlay*/,
     const WGPUBindGroup& shared_config_bg,
     const WGPUBindGroup& camera_bg,
-    const webgpu::raii::TextureWithSampler& current_input,
-    webgpu::raii::TextureWithSampler& target_output,
-    glm::uvec2 output_size)
+    webgpu::rg::TextureHandle source,
+    webgpu::rg::TextureHandle target)
 {
     if (!m_pipeline)
         return;
 
-    webgpu::raii::BindGroup bind_group(m_ctx->device(),
-        m_ctx->resource_registry().bind_group_layout("screen_space_snow_overlay"),
-        std::vector<WGPUBindGroupEntry> {
-            position_view.create_bind_group_entry(0),
-            normal_view.create_bind_group_entry(1),
-            m_settings_uniform->raw_buffer().create_bind_group_entry(2),
-            target_output.texture_view().create_bind_group_entry(3),
-            current_input.texture_view().create_bind_group_entry(4),
+    render_graph->add_pass("overlay.screen_space_snow", webgpu::rg::PassKind::Compute,
+        [position, normal, source, target](webgpu::rg::PassBuilder& b) {
+            b.sampled(position);
+            b.sampled(normal);
+            b.storage_write(target);
+            b.sampled(source);
         },
-        "screen space snow overlay bind group");
+        [this, position, normal, source, target, shared_config_bg, camera_bg](webgpu::rg::PassContext& c) {
+            webgpu::raii::BindGroup bind_group(c.device, *m_bind_group_layout,
+                {
+                    c.bind(0, position),
+                    c.bind(1, normal),
+                    m_settings_uniform->raw_buffer().create_bind_group_entry(2),
+                    c.bind(3, target),
+                    c.bind(4, source),
+                },
+                "overlay.screen_space_snow");
 
-    WGPUComputePassDescriptor compute_pass_desc {};
-    compute_pass_desc.label = WGPUStringView { .data = "screen space snow compute pass", .length = WGPU_STRLEN };
-    webgpu::raii::ComputePassEncoder compute_pass(command_encoder, compute_pass_desc);
-
-    wgpuComputePassEncoderSetBindGroup(compute_pass.handle(), 0, shared_config_bg, 0, nullptr);
-    wgpuComputePassEncoderSetBindGroup(compute_pass.handle(), 1, camera_bg, 0, nullptr);
-    wgpuComputePassEncoderSetBindGroup(compute_pass.handle(), 2, bind_group.handle(), 0, nullptr);
-
-    const glm::uvec3 workgroup_counts = glm::ceil(glm::vec3(float(output_size.x), float(output_size.y), 1.0f) / glm::vec3(16.0f, 16.0f, 1.0f));
-    m_pipeline->run(compute_pass, workgroup_counts);
+            wgpuComputePassEncoderSetPipeline(c.compute_pass, m_pipeline->handle());
+            wgpuComputePassEncoderSetBindGroup(c.compute_pass, 0, shared_config_bg, 0, nullptr);
+            wgpuComputePassEncoderSetBindGroup(c.compute_pass, 1, camera_bg, 0, nullptr);
+            wgpuComputePassEncoderSetBindGroup(c.compute_pass, 2, bind_group.handle(), 0, nullptr);
+            const WGPUExtent3D size = c.texture_size(target);
+            wgpuComputePassEncoderDispatchWorkgroups(c.compute_pass, (size.width + 15u) / 16u, (size.height + 15u) / 16u, 1);
+        });
 }
 
 } // namespace webgpu_engine

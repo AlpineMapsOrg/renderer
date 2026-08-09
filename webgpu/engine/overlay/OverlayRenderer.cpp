@@ -22,7 +22,7 @@
 #include "webgpu/engine/Context.h"
 #include <algorithm>
 #include <memory>
-#include <webgpu/base/raii/RenderPassEncoder.h>
+#include <string>
 
 namespace webgpu_engine {
 
@@ -87,99 +87,34 @@ void OverlayRenderer::ready(webgpu::Context& ctx)
         overlay->ready(ctx);
 }
 
-std::unique_ptr<webgpu::raii::TextureWithSampler> OverlayRenderer::create_output_texture(int w, int h, const char* label) const
-{
-    WGPUTextureDescriptor texture_desc {};
-    texture_desc.label = WGPUStringView { .data = label, .length = WGPU_STRLEN };
-    texture_desc.dimension = WGPUTextureDimension_2D;
-    texture_desc.size = { uint32_t(w), uint32_t(h), 1 };
-    texture_desc.mipLevelCount = 1;
-    texture_desc.sampleCount = 1;
-    texture_desc.format = WGPUTextureFormat_RGBA8Unorm;
-    texture_desc.usage = WGPUTextureUsage_RenderAttachment | WGPUTextureUsage_StorageBinding | WGPUTextureUsage_CopySrc | WGPUTextureUsage_TextureBinding;
+void OverlayRenderer::resize(int /*w*/, int /*h*/) { }
 
-    WGPUSamplerDescriptor sampler_desc {};
-    sampler_desc.label = WGPUStringView { .data = label, .length = WGPU_STRLEN };
-    sampler_desc.addressModeU = WGPUAddressMode_ClampToEdge;
-    sampler_desc.addressModeV = WGPUAddressMode_ClampToEdge;
-    sampler_desc.addressModeW = WGPUAddressMode_ClampToEdge;
-    sampler_desc.magFilter = WGPUFilterMode_Nearest;
-    sampler_desc.mipmapFilter = WGPUMipmapFilterMode_Nearest;
-    sampler_desc.minFilter = WGPUFilterMode_Nearest;
-    sampler_desc.lodMinClamp = 0.0f;
-    sampler_desc.lodMaxClamp = 1.0f;
-    sampler_desc.compare = WGPUCompareFunction_Undefined;
-    sampler_desc.maxAnisotropy = 1;
-
-    return std::make_unique<webgpu::raii::TextureWithSampler>(m_ctx->webgpu_ctx().device(), texture_desc, sampler_desc);
-}
-
-void OverlayRenderer::resize(int w, int h)
-{
-    if (!m_ctx)
-        return;
-    m_pre[0] = create_output_texture(w, h, "overlay pre-shading texture 0");
-    m_pre[1] = create_output_texture(w, h, "overlay pre-shading texture 1");
-    m_post[0] = create_output_texture(w, h, "overlay post-shading texture 0");
-    m_post[1] = create_output_texture(w, h, "overlay post-shading texture 1");
-}
-
-void OverlayRenderer::draw(const WGPUCommandEncoder& command_encoder,
-    const webgpu::raii::TextureView& position_view,
-    const webgpu::raii::TextureView& normal_view,
-    const webgpu::raii::TextureView& overlay_view,
+OverlayRenderer::GraphResult OverlayRenderer::draw(webgpu::rg::RenderGraph* render_graph,
+    webgpu::rg::TextureHandle position,
+    webgpu::rg::TextureHandle normal,
+    webgpu::rg::TextureHandle overlay,
     const WGPUBindGroup& shared_config_bg,
     const WGPUBindGroup& camera_bg)
 {
-    const glm::uvec2 output_size(m_pre[0]->texture().width(), m_pre[0]->texture().height());
-    draw_bucket(command_encoder, m_pre_overlays, m_pre, position_view, normal_view, overlay_view, shared_config_bg, camera_bg, output_size);
-    draw_bucket(command_encoder, m_post_overlays, m_post, position_view, normal_view, overlay_view, shared_config_bg, camera_bg, output_size);
+    auto run_bucket = [&](const std::vector<Overlay*>& bucket, std::string_view clear_id, std::string_view target_prefix) -> webgpu::rg::TextureHandle {
+        const webgpu::rg::TextureDesc desc = webgpu::rg::texture_relative(WGPUTextureFormat_RGBA8Unorm, position, 1.0f);
+
+        webgpu::rg::TextureHandle source = render_graph->create_initialized_texture(clear_id, desc, { 0.0, 0.0, 0.0, 0.0 });
+
+        int stage = 0;
+        for (Overlay* o : bucket) {
+            const std::string name = std::format("{}{}", target_prefix, stage++);
+            const webgpu::rg::TextureHandle target = render_graph->create_transient_texture(name, desc);
+
+            o->draw(render_graph, position, normal, overlay, shared_config_bg, camera_bg, source, target);
+            source = target;
+        }
+        return source;
+    };
+
+    webgpu::rg::TextureHandle pre = run_bucket(m_pre_overlays, "overlay.pre.clear", "overlay.pre.");
+    webgpu::rg::TextureHandle post = run_bucket(m_post_overlays, "overlay.post.clear", "overlay.post.");
+    return { pre, post };
 }
-
-void OverlayRenderer::draw_bucket(const WGPUCommandEncoder& command_encoder,
-    const std::vector<Overlay*>& bucket,
-    TexturePair& tex,
-    const webgpu::raii::TextureView& position_view,
-    const webgpu::raii::TextureView& normal_view,
-    const webgpu::raii::TextureView& overlay_view,
-    const WGPUBindGroup& shared_config_bg,
-    const WGPUBindGroup& camera_bg,
-    glm::uvec2 output_size)
-{
-    // Start on T[N % 2] so the final write lands on index 0
-    int current = static_cast<int>(bucket.size() % 2);
-
-    // Clear the start texture
-    WGPURenderPassColorAttachment clear_attachment {};
-    clear_attachment.view = tex[static_cast<size_t>(current)]->texture_view().handle();
-    clear_attachment.depthSlice = WGPU_DEPTH_SLICE_UNDEFINED;
-    clear_attachment.loadOp = WGPULoadOp_Clear;
-    clear_attachment.storeOp = WGPUStoreOp_Store;
-    clear_attachment.clearValue = { 0.0, 0.0, 0.0, 0.0 };
-    WGPURenderPassDescriptor clear_pass_desc {};
-    clear_pass_desc.colorAttachmentCount = 1;
-    clear_pass_desc.colorAttachments = &clear_attachment;
-    {
-        webgpu::raii::RenderPassEncoder clear_pass(command_encoder, clear_pass_desc);
-    }
-
-    for (auto& overlay : bucket) {
-        const int target = current ^ 1;
-        overlay->draw(command_encoder,
-            position_view,
-            normal_view,
-            overlay_view,
-            shared_config_bg,
-            camera_bg,
-            *tex[static_cast<size_t>(current)],
-            *tex[static_cast<size_t>(target)],
-            output_size);
-        current = target;
-    }
-}
-
-const webgpu::raii::TextureView* OverlayRenderer::result_pre_view() const { return m_pre[0] ? &m_pre[0]->texture_view() : nullptr; }
-
-const webgpu::raii::TextureView* OverlayRenderer::result_post_view() const { return m_post[0] ? &m_post[0]->texture_view() : nullptr; }
 
 } // namespace webgpu_engine

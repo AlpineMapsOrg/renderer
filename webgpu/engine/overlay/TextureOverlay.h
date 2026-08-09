@@ -60,15 +60,14 @@ public:
     void init(Context& ctx) override;
     void ready(webgpu::Context& ctx) override;
     void update_gpu_settings();
-    void draw(const WGPUCommandEncoder& command_encoder,
-        const webgpu::raii::TextureView& position_view,
-        const webgpu::raii::TextureView& normal_view,
-        const webgpu::raii::TextureView& overlay_view,
+    void draw(webgpu::rg::RenderGraph* render_graph,
+        webgpu::rg::TextureHandle position,
+        webgpu::rg::TextureHandle normal,
+        webgpu::rg::TextureHandle overlay,
         const WGPUBindGroup& shared_config_bg,
         const WGPUBindGroup& camera_bg,
-        const webgpu::raii::TextureWithSampler& current_input,
-        webgpu::raii::TextureWithSampler& target_output,
-        glm::uvec2 output_size) override;
+        webgpu::rg::TextureHandle source,
+        webgpu::rg::TextureHandle target) override;
 
 private:
     struct GpuSettings {
@@ -86,6 +85,7 @@ private:
     bool m_is_ready = false;
 
     std::unique_ptr<webgpu::raii::GenericRenderPipeline> m_pipeline;
+    const webgpu::raii::BindGroupLayout* m_bind_group_layout = nullptr;
     std::unique_ptr<webgpu::Buffer<GpuSettings>> m_settings_uniform;
     std::unique_ptr<webgpu::raii::TextureWithSampler> m_overlay_texture; // owned source (load_image/load_texture)
     const webgpu::raii::TextureWithSampler* m_linked_texture = nullptr; // borrowed source (link_texture)

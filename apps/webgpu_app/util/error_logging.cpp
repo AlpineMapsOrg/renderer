@@ -24,6 +24,11 @@
 #include <QFileInfo>
 #include <iostream>
 
+#if defined(_WIN32) && !defined(NDEBUG)
+#include <intrin.h> // __debugbreak
+#include <windows.h> // IsDebuggerPresent
+#endif
+
 #if LOG_MESSAGE_FILTERING
 static const std::map<QtMsgType, QString> logMessageFilters = { { QtWarningMsg, "QNetworkAccess: got HTTP status code 0" } };
 #endif
@@ -97,6 +102,12 @@ void qt_logging_callback(QtMsgType type, const QMessageLogContext& context, cons
     // (*stream) << logMessage.toStdString() << category.toStdString() << std::endl;
 
     if (type == QtFatalMsg) {
+#if defined(_WIN32) && !defined(NDEBUG)
+        // Break at the fatal site so the debugger stack still shows the call path
+        // qt_logging_callback -> qFatal -> caller, before abort() tears down the CRT.
+        if (IsDebuggerPresent())
+            __debugbreak();
+#endif
         abort();
     }
 

@@ -23,6 +23,7 @@
 #include <webgpu/base/Framebuffer.h>
 #include <webgpu/base/RenderResourceRegistry.h>
 #include <webgpu/base/raii/RenderPassEncoder.h>
+#include <webgpu/base/RenderGraph.h>
 
 namespace webgpu_engine {
 
@@ -50,21 +51,25 @@ void AtmosphereRenderer::init(webgpu::Context& ctx)
     });
 }
 
-void AtmosphereRenderer::resize(int /*w*/, int h)
-{
-    webgpu::FramebufferFormat format(m_pipeline->framebuffer_format());
-    format.size = glm::uvec2(1, h);
-    m_atmosphere_framebuffer = std::make_unique<webgpu::Framebuffer>(m_ctx->device(), format);
-}
+void AtmosphereRenderer::resize(int /*w*/, int h) { m_height = uint32_t(h); }
 
-void AtmosphereRenderer::draw(const WGPUCommandEncoder& command_encoder, const WGPUBindGroup& camera_bind_group)
+webgpu::rg::TextureHandle AtmosphereRenderer::draw(webgpu::rg::RenderGraph* rg, const WGPUBindGroup& camera_bind_group)
 {
-    std::unique_ptr<webgpu::raii::RenderPassEncoder> render_pass = m_atmosphere_framebuffer->begin_render_pass(command_encoder);
-    wgpuRenderPassEncoderSetBindGroup(render_pass->handle(), 0, camera_bind_group, 0, nullptr);
-    wgpuRenderPassEncoderSetPipeline(render_pass->handle(), m_pipeline->pipeline().handle());
-    wgpuRenderPassEncoderDraw(render_pass->handle(), 3, 1, 0, 0);
-}
+    auto renderTarget = rg->create_transient_texture("atmosphere_framebuffer",
+        webgpu::rg::texture_2d(WGPUTextureFormat_RGBA8Unorm, 1, m_height));
 
-const webgpu::raii::TextureView* AtmosphereRenderer::result_view() const { return &m_atmosphere_framebuffer->color_texture_view(0); }
+    rg->add_pass("Atmosphere", webgpu::rg::PassKind::Graphics, 
+        [&](webgpu::rg::PassBuilder& b) {
+           b.color(renderTarget, 0);
+        },
+        [camera_bind_group, pipeline = m_pipeline->pipeline().handle()] (webgpu::rg::PassContext& ctx) {
+            wgpuRenderPassEncoderSetBindGroup(ctx.render_pass, 0, camera_bind_group, 0, nullptr);
+            wgpuRenderPassEncoderSetPipeline(ctx.render_pass, pipeline);
+            wgpuRenderPassEncoderDraw(ctx.render_pass, 3, 1, 0, 0);
+        }
+    );
+
+    return renderTarget;
+}
 
 } // namespace webgpu_engine

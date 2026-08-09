@@ -28,6 +28,7 @@
 #include <vector>
 #include <webgpu/base/Buffer.h>
 #include <webgpu/base/Context.h>
+#include <webgpu/base/RenderGraph.h>
 #include <webgpu/base/raii/Pipeline.h>
 
 namespace webgpu_engine {
@@ -56,16 +57,17 @@ public:
     void add_track(const Track& track, const glm::vec4& color = { 78.0 / 255.0f, 163.0 / 255.0f, 196.0 / 255.0f, 1.0f });
     void add_world_positions(const std::vector<glm::vec4>& world_positions, const glm::vec4& color = { 1.0f, 0.0f, 0.0f, 1.0f });
 
-    void render(WGPUCommandEncoder command_encoder,
-        const webgpu::raii::BindGroup& shared_config,
-        const webgpu::raii::BindGroup& camera_config,
-        const webgpu::raii::BindGroup& depth_texture,
-        const webgpu::raii::TextureView& color_texture);
+    void render(webgpu::rg::RenderGraph* rg,
+        webgpu::rg::TextureHandle color,
+        webgpu::rg::TextureHandle depth,
+        const WGPUBindGroup& shared_config,
+        const WGPUBindGroup& camera_config);
 
 private:
     webgpu::Context* m_ctx;
 
     std::unique_ptr<webgpu::raii::RenderPipeline> m_pipeline;
+    const webgpu::raii::BindGroupLayout* m_depth_texture_layout = nullptr;
 
     std::vector<std::unique_ptr<webgpu::raii::RawBuffer<glm::fvec4>>> m_position_buffers;
     std::vector<std::unique_ptr<webgpu::Buffer<TrackRenderer::LineConfig>>> m_line_config_buffers;

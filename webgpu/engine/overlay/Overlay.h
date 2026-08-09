@@ -21,6 +21,7 @@
 #include <glm/glm.hpp>
 #include <string>
 #include <webgpu/base/Context.h>
+#include <webgpu/base/RenderGraph.h>
 #include <webgpu/base/raii/TextureView.h>
 #include <webgpu/base/raii/TextureWithSampler.h>
 #include <webgpu/webgpu.h>
@@ -47,16 +48,14 @@ public:
     //   read the previous overlay state from current_input, write the composited result to target_output,
     //   and write EVERY pixel. Skipping a pixel leaves color in undefined state!
     //   Use man
-    virtual void draw(const WGPUCommandEncoder& command_encoder,
-        const webgpu::raii::TextureView& position_view,
-        const webgpu::raii::TextureView& normal_view,
-        const webgpu::raii::TextureView& overlay_view, // GBuffer slot 3 (packed tile-debug data)
+    virtual void draw(webgpu::rg::RenderGraph* render_graph,
+        webgpu::rg::TextureHandle position,
+        webgpu::rg::TextureHandle normal,
+        webgpu::rg::TextureHandle overlay, // GBuffer slot 3 (packed tile-debug data)
         const WGPUBindGroup& shared_config_bg,
         const WGPUBindGroup& camera_bg,
-        const webgpu::raii::TextureWithSampler& current_input,
-        webgpu::raii::TextureWithSampler& target_output,
-        glm::uvec2 output_size)
-        = 0;
+        webgpu::rg::TextureHandle source,
+        webgpu::rg::TextureHandle target) = 0;
 };
 
 } // namespace webgpu_engine

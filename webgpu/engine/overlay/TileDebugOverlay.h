@@ -50,15 +50,15 @@ public:
     // Pushes settings to the GPU and the selected debug mode into shared_config (consumed by the tile pass).
     // Call from the frontend whenever settings change.
     void update_settings();
-    void draw(const WGPUCommandEncoder& command_encoder,
-        const webgpu::raii::TextureView& position_view,
-        const webgpu::raii::TextureView& normal_view,
-        const webgpu::raii::TextureView& overlay_view,
+
+    void draw(webgpu::rg::RenderGraph* render_graph,
+        webgpu::rg::TextureHandle position,
+        webgpu::rg::TextureHandle normal,
+        webgpu::rg::TextureHandle overlay,
         const WGPUBindGroup& shared_config_bg,
         const WGPUBindGroup& camera_bg,
-        const webgpu::raii::TextureWithSampler& current_input,
-        webgpu::raii::TextureWithSampler& target_output,
-        glm::uvec2 output_size) override;
+        webgpu::rg::TextureHandle source,
+        webgpu::rg::TextureHandle target) override;
 
     Settings settings;
 
@@ -70,6 +70,7 @@ private:
     webgpu::Context* m_ctx = nullptr;
     Context* m_engine_ctx = nullptr; // for shared_config access (overlay_mode)
     std::unique_ptr<webgpu::raii::CombinedComputePipeline> m_pipeline;
+    const webgpu::raii::BindGroupLayout* m_bind_group_layout = nullptr;
     std::unique_ptr<webgpu::Buffer<GpuSettings>> m_settings_uniform;
 };
 

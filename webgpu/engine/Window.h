@@ -24,12 +24,20 @@
 #include "nucleus/AbstractRenderWindow.h"
 #include "nucleus/camera/AbstractDepthTester.h"
 #include "nucleus/camera/Definition.h"
+#include "nucleus/tile/types.h"
 #include "nucleus/utils/ColourTexture.h"
 #include <webgpu/base/Buffer.h>
 #include <webgpu/base/raii/BindGroup.h>
+#include <webgpu/base/raii/Texture.h>
+#include <webgpu/base/raii/TextureView.h>
 #include <webgpu/webgpu.h>
 
 class QOpenGLFramebufferObject;
+
+namespace webgpu::rg
+{
+struct RenderGraph;
+}
 
 namespace webgpu_engine {
 
@@ -44,8 +52,10 @@ public:
     void initialise_gpu() override;
     void resize_framebuffer(int w, int h) override;
     void ready();
-    void paint(webgpu::Framebuffer* framebuffer, WGPUCommandEncoder command_encoder);
-    // void paint(WGPUTextureView target_color_texture, WGPUTextureView target_depth_texture, WGPUCommandEncoder encoder);
+
+
+    void paint(webgpu::rg::RenderGraph* rg, webgpu::rg::TextureHandle target, glm::uvec2 size);
+
     void paint([[maybe_unused]] QOpenGLFramebufferObject* framebuffer = nullptr) override { throw std::runtime_error("Not implemented"); }
 
     [[nodiscard]] float depth(const glm::dvec2& normalised_device_coordinates) override;
@@ -77,7 +87,6 @@ private:
 
     void create_buffers();
     void create_bind_groups();
-    void recreate_compose_bind_group();
 
     // A helper function for the depth and position method.
     // ATTENTION: This function is synchronous and will hold rendering. Use with caution!
@@ -96,16 +105,16 @@ private:
 
     std::unique_ptr<webgpu::raii::BindGroup> m_shared_config_bind_group;
     std::unique_ptr<webgpu::raii::BindGroup> m_camera_bind_group;
-    std::array<std::unique_ptr<webgpu::raii::BindGroup>, 2> m_compose_bind_groups;
-    std::unique_ptr<webgpu::raii::BindGroup> m_depth_texture_bind_group;
 
     nucleus::camera::Definition m_camera;
     uint32_t m_max_zoom_level = 18;
 
-    webgpu::FramebufferFormat m_gbuffer_format;
-    std::unique_ptr<webgpu::Framebuffer> m_gbuffer;
+    WGPUTextureFormat m_gbuffer_depth_format = WGPUTextureFormat_Undefined;
+    std::unique_ptr<webgpu::raii::Texture> m_position_texture;
+    std::unique_ptr<webgpu::raii::TextureView> m_position_texture_view;
 
     std::unique_ptr<webgpu::raii::GenericRenderPipeline> m_compose_pipeline;
+    const webgpu::raii::BindGroupLayout* m_compose_layout = nullptr;
 
     // ToDo: Swapchain should get a raii class and the size could be saved in there
     glm::vec2 m_swapchain_size = glm::vec2(0.0f);

@@ -97,7 +97,7 @@ void TrackRenderer::init(webgpu::Context& ctx)
         std::vector<WGPUBindGroupLayout> bind_group_layout_handles {
             reg.bind_group_layout("shared_config").handle(),
             reg.bind_group_layout("camera").handle(),
-            reg.bind_group_layout("depth_texture").handle(),
+            (m_depth_texture_layout = &reg.bind_group_layout("depth_texture"))->handle(),
             reg.bind_group_layout("lines").handle(),
         };
         webgpu::raii::PipelineLayout layout(dev, bind_group_layout_handles);
@@ -153,45 +153,30 @@ void TrackRenderer::add_world_positions(const std::vector<glm::vec4>& world_posi
             m_position_buffers.back()->create_bind_group_entry(0), m_line_config_buffers.back()->raw_buffer().create_bind_group_entry(1) }));
 }
 
-void TrackRenderer::render(WGPUCommandEncoder command_encoder,
-    const webgpu::raii::BindGroup& shared_config,
-    const webgpu::raii::BindGroup& camera_config,
-    const webgpu::raii::BindGroup& depth_texture,
-    const webgpu::raii::TextureView& color_texture)
+void TrackRenderer::render(webgpu::rg::RenderGraph* rg,
+    webgpu::rg::TextureHandle color,
+    webgpu::rg::TextureHandle depth,
+    const WGPUBindGroup& shared_config,
+    const WGPUBindGroup& camera_config)
 {
-    WGPURenderPassColorAttachment color_attachment {};
-    color_attachment.view = color_texture.handle();
-    color_attachment.resolveTarget = nullptr;
-    color_attachment.loadOp = WGPULoadOp::WGPULoadOp_Load;
-    color_attachment.storeOp = WGPUStoreOp::WGPUStoreOp_Store;
-    color_attachment.clearValue = WGPUColor { 0.0, 0.0, 0.0, 0.0 };
-    color_attachment.depthSlice = WGPU_DEPTH_SLICE_UNDEFINED;
+    rg->add_pass("Track", webgpu::rg::PassKind::Graphics,
+        [color, depth](webgpu::rg::PassBuilder& b) {
+            b.color(color, 0, { .load = WGPULoadOp_Load });
+            b.sampled(depth);
+        },
+        [this, depth, shared_config, camera_config](webgpu::rg::PassContext& c) {
+            webgpu::raii::BindGroup depth_bind_group(c.device, *m_depth_texture_layout,
+                { c.bind(0, depth) }, "TrackDepth");
 
-    /*WGPURenderPassDepthStencilAttachment depth_stencil_attachment {};
-    depth_stencil_attachment.view = depth_texture_view.handle();
-    depth_stencil_attachment.depthLoadOp = WGPULoadOp_Undefined;
-    depth_stencil_attachment.depthStoreOp = WGPUStoreOp_Undefined;
-    depth_stencil_attachment.depthReadOnly = true;
-    depth_stencil_attachment.stencilLoadOp = WGPULoadOp::WGPULoadOp_Undefined;
-    depth_stencil_attachment.stencilStoreOp = WGPUStoreOp::WGPUStoreOp_Undefined;
-    depth_stencil_attachment.stencilReadOnly = true;*/
-
-    WGPURenderPassDescriptor render_pass_descriptor {};
-    render_pass_descriptor.label = WGPUStringView { .data = "line render render pass", .length = WGPU_STRLEN };
-    render_pass_descriptor.colorAttachmentCount = 1;
-    render_pass_descriptor.colorAttachments = &color_attachment;
-    render_pass_descriptor.depthStencilAttachment = nullptr;
-    render_pass_descriptor.timestampWrites = nullptr;
-
-    auto render_pass = webgpu::raii::RenderPassEncoder(command_encoder, render_pass_descriptor);
-    wgpuRenderPassEncoderSetPipeline(render_pass.handle(), m_pipeline->handle());
-    wgpuRenderPassEncoderSetBindGroup(render_pass.handle(), 0, shared_config.handle(), 0, nullptr);
-    wgpuRenderPassEncoderSetBindGroup(render_pass.handle(), 1, camera_config.handle(), 0, nullptr);
-    wgpuRenderPassEncoderSetBindGroup(render_pass.handle(), 2, depth_texture.handle(), 0, nullptr);
-    for (size_t i = 0; i < m_bind_groups.size(); i++) {
-        wgpuRenderPassEncoderSetBindGroup(render_pass.handle(), 3, m_bind_groups.at(i)->handle(), 0, nullptr);
-        wgpuRenderPassEncoderDraw(render_pass.handle(), uint32_t(m_position_buffers.at(i)->size()), 1, 0, 0);
-    }
+            wgpuRenderPassEncoderSetPipeline(c.render_pass, m_pipeline->handle());
+            wgpuRenderPassEncoderSetBindGroup(c.render_pass, 0, shared_config, 0, nullptr);
+            wgpuRenderPassEncoderSetBindGroup(c.render_pass, 1, camera_config, 0, nullptr);
+            wgpuRenderPassEncoderSetBindGroup(c.render_pass, 2, depth_bind_group.handle(), 0, nullptr);
+            for (size_t i = 0; i < m_bind_groups.size(); i++) {
+                wgpuRenderPassEncoderSetBindGroup(c.render_pass, 3, m_bind_groups.at(i)->handle(), 0, nullptr);
+                wgpuRenderPassEncoderDraw(c.render_pass, uint32_t(m_position_buffers.at(i)->size()), 1, 0, 0);
+            }
+        });
 }
 
 } // namespace webgpu_engine

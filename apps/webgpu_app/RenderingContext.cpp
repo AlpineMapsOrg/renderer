@@ -33,6 +33,7 @@
 #include "webgpu/engine/overlay/HeightLinesOverlay.h"
 #include "webgpu/engine/overlay/OverlayRenderer.h"
 #include "webgpu/engine/overlay/TextureOverlay.h"
+#include "webgpu/base/RenderGraph.h"
 #include "webgpu/engine/tile_mesh/TileMeshRenderer.h"
 
 #ifdef ALP_WEBGPU_APP_ENABLE_COMPUTE
@@ -180,11 +181,17 @@ void RenderingContext::initialize(webgpu::Context& ctx)
         "OverlayRenderNode", [ctx = m_engine_context.get()](webgpu::Context&) { return std::make_unique<webgpu_compute::nodes::OverlayRenderNode>(*ctx); });
 #endif
 
+    graph_allocator = webgpu::rg::create_allocator();
+
     nucleus::utils::thread::async_call(this, [this]() { emit this->initialised(); });
 }
 
 void RenderingContext::destroy()
 {
+    if (graph_allocator) {
+        webgpu::rg::destroy_allocator(graph_allocator);
+        graph_allocator = nullptr;
+    }
     if (!m_geometry_scheduler_holder.scheduler)
         return;
 

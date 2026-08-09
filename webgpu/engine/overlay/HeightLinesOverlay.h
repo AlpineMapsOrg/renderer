@@ -40,21 +40,21 @@ public:
 
     void init(Context& ctx) override;
     void update_settings();
-    void draw(const WGPUCommandEncoder& command_encoder,
-        const webgpu::raii::TextureView& position_view,
-        const webgpu::raii::TextureView& normal_view,
-        const webgpu::raii::TextureView& overlay_view,
+    void draw(webgpu::rg::RenderGraph* render_graph,
+        webgpu::rg::TextureHandle position,
+        webgpu::rg::TextureHandle normal,
+        webgpu::rg::TextureHandle overlay,
         const WGPUBindGroup& shared_config_bg,
         const WGPUBindGroup& camera_bg,
-        const webgpu::raii::TextureWithSampler& current_input,
-        webgpu::raii::TextureWithSampler& target_output,
-        glm::uvec2 output_size) override;
+        webgpu::rg::TextureHandle source,
+        webgpu::rg::TextureHandle target) override;
 
     Settings settings;
 
 private:
     webgpu::Context* m_ctx = nullptr;
     std::unique_ptr<webgpu::raii::CombinedComputePipeline> m_pipeline;
+    const webgpu::raii::BindGroupLayout* m_bind_group_layout = nullptr;
     std::unique_ptr<webgpu::Buffer<Settings>> m_settings_uniform;
 };
 

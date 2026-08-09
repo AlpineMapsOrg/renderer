@@ -21,6 +21,10 @@
 #include "App.h"
 #include "RenderingContext.h"
 
+#include <webgpu/base/Framebuffer.h>
+#include <webgpu/base/raii/BindGroup.h>
+#include <webgpu/base/util/VertexBufferInfo.h>
+
 #include "ui/ImGuiPanel.h"
 
 #ifdef __EMSCRIPTEN__
@@ -41,6 +45,7 @@
 #include "ui/CameraPanel.h"
 #include "ui/CompassPanel.h"
 #include "ui/LogoPanel.h"
+#include "ui/RenderGraphPanel.h"
 #include "ui/SearchPanel.h"
 #include "ui/ShadingPanel.h"
 #include "ui/TimingPanel.h"
@@ -57,17 +62,23 @@
 
 namespace webgpu_app {
 
+    //TODO: move
+webgpu::rg::RenderGraph* g_render_graph = nullptr;
+
 ImGuiManager::ImGuiManager(App* terrain_renderer)
     : m_terrain_renderer(terrain_renderer)
 {
 }
 
 void ImGuiManager::init(
-    SDL_Window* window, WGPUDevice device, [[maybe_unused]] WGPUTextureFormat swapchainFormat, [[maybe_unused]] WGPUTextureFormat depthTextureFormat)
+    SDL_Window* window, WGPUDevice device, WGPUTextureFormat swapchainFormat, [[maybe_unused]] WGPUTextureFormat depthTextureFormat)
 {
     qDebug() << "Setup ImGuiManager...";
     m_window = window;
     m_device = device;
+    m_queue = wgpuDeviceGetQueue(m_device);
+
+    create_blit_pipeline(swapchainFormat);
 
     // Setup Dear ImGui context
     IMGUI_CHECKVERSION();
@@ -107,6 +118,8 @@ void ImGuiManager::init(
     m_panels.push_back(std::make_unique<NodeGraphPanel>(engine_ctx));
 #endif
     m_panels.push_back(std::make_unique<OverlaysPanel>(engine_ctx));
+
+    m_panels.push_back(std::make_unique<RenderGraphPanel>());
 
     connect(&search_panel, &SearchPanel::search_requested, rc->search_service(), &SearchService::search);
     connect(&search_panel,
@@ -186,7 +199,87 @@ void ImGuiManager::install_fonts()
     }
 }
 
-void ImGuiManager::render([[maybe_unused]] WGPURenderPassEncoder renderPass)
+void ImGuiManager::create_blit_pipeline(WGPUTextureFormat target_format)
+{
+    qDebug() << "Create GUI blit pipeline...";
+
+    webgpu::FramebufferFormat format {};
+    format.color_formats.emplace_back(target_format);
+
+    WGPUBindGroupLayoutEntry backbuffer_texture_entry {};
+    backbuffer_texture_entry.binding = 0;
+    backbuffer_texture_entry.visibility = WGPUShaderStage_Fragment;
+    backbuffer_texture_entry.texture.sampleType = WGPUTextureSampleType_Float;
+    backbuffer_texture_entry.texture.viewDimension = WGPUTextureViewDimension_2D;
+
+    WGPUBindGroupLayoutEntry gui_ubo_entry = {};
+    gui_ubo_entry.binding = 1;
+    gui_ubo_entry.visibility = WGPUShaderStage_Fragment;
+    gui_ubo_entry.buffer.type = WGPUBufferBindingType_Uniform;
+    gui_ubo_entry.buffer.minBindingSize = sizeof(GuiPipelineUBO);
+
+    m_blit_bind_group_layout = std::make_unique<webgpu::raii::BindGroupLayout>(
+        m_device, std::vector<WGPUBindGroupLayoutEntry> { backbuffer_texture_entry, gui_ubo_entry }, "gui bind group layout");
+
+    m_blit_ubo = std::make_unique<webgpu::raii::RawBuffer<GuiPipelineUBO>>(m_device, WGPUBufferUsage_Uniform | WGPUBufferUsage_CopyDst, 1, "gui ubo");
+    GuiPipelineUBO initial { glm::vec2(1280.0f, 1024.0f) };
+    m_blit_ubo->write(m_queue, &initial);
+
+    const char preprocessed_code[] = R"(
+    @group(0) @binding(0) var backbuffer_texture : texture_2d<f32>;
+    @group(0) @binding(1) var<uniform> gui_ubo : vec2f;
+
+    struct VertexOut {
+        @builtin(position) position : vec4f,
+        @location(0) texcoords : vec2f
+    }
+
+    @vertex
+    fn vertexMain(@builtin(vertex_index) vertex_index : u32) -> VertexOut {
+        const VERTICES = array(vec2f(-1.0, -1.0), vec2f(3.0, -1.0), vec2f(-1.0, 3.0));
+        var vertex_out : VertexOut;
+        vertex_out.position = vec4(VERTICES[vertex_index], 0.0, 1.0);
+        vertex_out.texcoords = vec2(0.5, -0.5) * vertex_out.position.xy + vec2(0.5);
+        return vertex_out;
+    }
+
+    @fragment
+    fn fragmentMain(vertex_out : VertexOut) -> @location(0) vec4f {
+        let tci : vec2<u32> = vec2u(vertex_out.texcoords * gui_ubo);
+        var backbuffer_color = textureLoad(backbuffer_texture, tci, 0);
+        return backbuffer_color;
+    }
+    )";
+
+    WGPUShaderSourceWGSL wgsl_desc {};
+    wgsl_desc.chain.next = nullptr;
+    wgsl_desc.chain.sType = WGPUSType_ShaderSourceWGSL;
+    wgsl_desc.code = WGPUStringView {
+        .data = preprocessed_code,
+        .length = WGPU_STRLEN,
+    };
+    WGPUShaderModuleDescriptor shader_module_desc {};
+    shader_module_desc.label = WGPUStringView { .data = "Gui Shader Module", .length = WGPU_STRLEN };
+    shader_module_desc.nextInChain = &wgsl_desc.chain;
+    auto shader_module = std::make_unique<webgpu::raii::ShaderModule>(m_device, shader_module_desc);
+
+    m_blit_pipeline = std::make_unique<webgpu::raii::GenericRenderPipeline>(m_device,
+        *shader_module,
+        *shader_module,
+        std::vector<webgpu::util::SingleVertexBufferInfo> {},
+        format,
+        std::vector<const webgpu::raii::BindGroupLayout*> { m_blit_bind_group_layout.get() });
+}
+
+void ImGuiManager::set_viewport_size(glm::vec2 resolution)
+{
+    if (!m_blit_ubo)
+        return;
+    GuiPipelineUBO data { resolution };
+    m_blit_ubo->write(m_queue, &data);
+}
+
+void ImGuiManager::render(WGPUCommandEncoder encoder, WGPUTextureView target_view, WGPUBindGroupEntry blit_texture)
 {
     ImGui_ImplWGPU_NewFrame();
     ImGui_ImplSDL2_NewFrame();
@@ -195,7 +288,31 @@ void ImGuiManager::render([[maybe_unused]] WGPURenderPassEncoder renderPass)
     draw();
 
     ImGui::Render();
-    ImGui_ImplWGPU_RenderDrawData(ImGui::GetDrawData(), renderPass);
+
+    webgpu::raii::BindGroup blit_bind_group(m_device, *m_blit_bind_group_layout, { blit_texture, m_blit_ubo->create_bind_group_entry(1) }, "gui blit");
+
+    WGPURenderPassColorAttachment color_attachment {};
+    color_attachment.view = target_view;
+    color_attachment.loadOp = WGPULoadOp_Clear;
+    color_attachment.storeOp = WGPUStoreOp_Store;
+    color_attachment.depthSlice = WGPU_DEPTH_SLICE_UNDEFINED;
+
+    WGPURenderPassDescriptor pass_desc {};
+    pass_desc.label = WGPUStringView { .data = "gui pass", .length = WGPU_STRLEN };
+    pass_desc.colorAttachmentCount = 1;
+    pass_desc.colorAttachments = &color_attachment;
+
+    WGPURenderPassEncoder pass = wgpuCommandEncoderBeginRenderPass(encoder, &pass_desc);
+
+    // fullscreen blit of the scene target, then the gui draws on top
+    wgpuRenderPassEncoderSetPipeline(pass, m_blit_pipeline->pipeline().handle());
+    wgpuRenderPassEncoderSetBindGroup(pass, 0, blit_bind_group.handle(), 0, nullptr);
+    wgpuRenderPassEncoderDraw(pass, 3, 1, 0, 0);
+
+    ImGui_ImplWGPU_RenderDrawData(ImGui::GetDrawData(), pass);
+
+    wgpuRenderPassEncoderEnd(pass);
+    wgpuRenderPassEncoderRelease(pass);
 }
 
 void ImGuiManager::shutdown()
@@ -205,6 +322,8 @@ void ImGuiManager::shutdown()
     ImGui_ImplSDL2_Shutdown();
     ImNodes::DestroyContext();
     ImGui::DestroyContext();
+    if (m_queue)
+        wgpuQueueRelease(m_queue);
 }
 
 bool ImGuiManager::want_capture_keyboard() { return ImGui::GetIO().WantCaptureKeyboard; }

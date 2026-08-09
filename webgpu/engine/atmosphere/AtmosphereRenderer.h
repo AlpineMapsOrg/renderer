@@ -23,10 +23,10 @@
 
 #include <QObject>
 #include <webgpu/base/Context.h>
-#include <webgpu/base/Framebuffer.h>
 #include <webgpu/base/raii/Pipeline.h>
 #include <webgpu/base/raii/TextureView.h>
 #include <webgpu/webgpu.h>
+#include <webgpu/base/RenderGraph.h>
 
 namespace webgpu_engine {
 
@@ -39,14 +39,12 @@ public:
 
     void resize(int w, int h);
 
-    void draw(const WGPUCommandEncoder& command_encoder, const WGPUBindGroup& camera_bind_group);
-
-    [[nodiscard]] const webgpu::raii::TextureView* result_view() const;
+    webgpu::rg::TextureHandle draw(webgpu::rg::RenderGraph* rg, const WGPUBindGroup& camera_bind_group);
 
 private:
     webgpu::Context* m_ctx = nullptr;
     std::unique_ptr<webgpu::raii::GenericRenderPipeline> m_pipeline;
-    std::unique_ptr<webgpu::Framebuffer> m_atmosphere_framebuffer;
+    uint32_t m_height = 0;
 };
 
 } // namespace webgpu_engine
