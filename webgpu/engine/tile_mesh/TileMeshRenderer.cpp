@@ -319,8 +319,11 @@ void TileMeshRenderer::update_gpu_tiles_height(const std::vector<radix::tile::Id
         Q_ASSERT(tile.id.zoom_level < 100);
         Q_ASSERT(tile.surface);
 
-        // find empty spot and upload texture
         const uint32_t layer_index = m_loaded_height_textures.add_tile(tile.id);
+        if (layer_index == nucleus::tile::GpuArrayHelper::invalid_layer) {
+            qWarning() << "TileMeshRenderer: height texture array full, dropping remaining tiles this update";
+            break;
+        }
         m_heightmap_textures->texture().write(m_ctx->queue(), *tile.surface, layer_index);
     }
 }
@@ -335,8 +338,11 @@ void TileMeshRenderer::update_gpu_tiles_ortho(const std::vector<nucleus::tile::I
         Q_ASSERT(tile.id.zoom_level < 100);
         Q_ASSERT(tile.texture);
 
-        // find empty spot and upload texture
         const auto layer_index = m_loaded_ortho_textures.add_tile(tile.id);
+        if (layer_index == nucleus::tile::GpuArrayHelper::invalid_layer) {
+            qWarning() << "TileMeshRenderer: ortho texture array full, dropping remaining tiles this update";
+            break;
+        }
         m_ortho_textures->texture().write(m_ctx->queue(), tile.texture->front(), uint32_t(layer_index));
     }
 }

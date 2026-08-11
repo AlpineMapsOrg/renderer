@@ -207,8 +207,11 @@ void TileGeometry::update_gpu_tiles(const std::vector<radix::tile::Id>& deleted_
         Q_ASSERT(tile.id.zoom_level < 100);
         Q_ASSERT(tile.surface);
 
-        // find empty spot and upload texture
         const auto layer_index = m_gpu_array_helper.add_tile(tile.id);
+        if (layer_index == nucleus::tile::GpuArrayHelper::invalid_layer) {
+            qWarning() << "TileGeometry: DTM texture array full, dropping remaining tiles this update";
+            break;
+        }
         m_dtm_textures->upload(*tile.surface, layer_index);
     }
 }

@@ -23,46 +23,65 @@
 namespace nucleus::tile {
 GpuArrayHelper::GpuArrayHelper() { }
 
-unsigned GpuArrayHelper::add_tile(const tile::Id& id)
+uint16_t GpuArrayHelper::add_tile(const tile::Id& id)
 {
-    Q_ASSERT(!m_id_to_layer.contains(id));
-    const auto t = std::find(m_array.begin(), m_array.end(), tile::Id { unsigned(-1), {} });
-    Q_ASSERT(t != m_array.end());
-    *t = id;
+    const auto existing = m_id_to_layer.find(id);
+    Q_ASSERT(existing == m_id_to_layer.end());
+    if (existing != m_id_to_layer.end())
+        return existing->second;
 
-    // returns index in texture array
-    const auto layer = unsigned(t - m_array.begin());
+    if (m_free_layers.empty())
+        return invalid_layer;
+
+    const auto layer = m_free_layers.back();
+    m_free_layers.pop_back();
     m_id_to_layer.emplace(id, layer);
     return layer;
 }
 
 void GpuArrayHelper::remove_tile(const tile::Id& tile_id)
 {
-    Q_ASSERT(m_id_to_layer.contains(tile_id));
-    m_id_to_layer.erase(tile_id);
-    const auto t = std::find(m_array.begin(), m_array.end(), tile_id);
-    Q_ASSERT(t != m_array.end()); // removing a tile that's not here. likely there is a race.
-    *t = tile::Id { unsigned(-1), {} };
+    const auto layer_it = m_id_to_layer.find(tile_id);
+
+    // TODO: should this assert or be a noop?
+    Q_ASSERT(layer_it != m_id_to_layer.end());
+    if (layer_it == m_id_to_layer.end())
+        return;
+
+    m_free_layers.push_back(layer_it->second);
+    m_id_to_layer.erase(layer_it);
 }
 
 void GpuArrayHelper::set_tile_limit(unsigned int new_limit)
 {
-    Q_ASSERT(m_array.empty());
-    m_array.resize(new_limit);
-    std::fill(m_array.begin(), m_array.end(), tile::Id { unsigned(-1), {} });
+    Q_ASSERT(m_size == 0);
+    Q_ASSERT(new_limit <= invalid_layer);  
+    if (new_limit > invalid_layer)
+        new_limit = invalid_layer;
+
+    m_size = new_limit;
+    m_free_layers.resize(new_limit);
+    // fill freelist
+    for (unsigned i = 0; i < new_limit; ++i)
+        m_free_layers[i] = uint16_t(new_limit - 1 - i);
+
+    m_id_to_layer.reserve(new_limit);
 }
 
-unsigned GpuArrayHelper::size() const { return unsigned(m_array.size()); }
+unsigned GpuArrayHelper::size() const { return m_size; }
 
 unsigned GpuArrayHelper::n_occupied() const { return unsigned(m_id_to_layer.size()); }
 
 GpuArrayHelper::LayerInfo GpuArrayHelper::layer(Id tile_id) const
 {
-    while (!m_id_to_layer.contains(tile_id) && tile_id.zoom_level > 0)
+    auto it = m_id_to_layer.find(tile_id);
+    while (it == m_id_to_layer.end() && tile_id.zoom_level > 0) {
         tile_id = tile_id.parent();
-    if (!m_id_to_layer.contains(tile_id))
+        it = m_id_to_layer.find(tile_id);
+    }
+    if (it == m_id_to_layer.end())
         return { {}, 0 }; // may be empty during startup.
-    return { tile_id, m_id_to_layer.at(tile_id) };
+    return { tile_id, it->second };
 }
 
 bool GpuArrayHelper::contains(Id tile_id) const { return m_id_to_layer.contains(tile_id); }

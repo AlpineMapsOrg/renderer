@@ -22,6 +22,7 @@
 #include "nucleus/camera/Definition.h"
 #include "nucleus/srs.h"
 #include "nucleus/utils/terrain_mesh_index_generator.h"
+#include <QDebug>
 #include <QtAssert>
 
 #include <webgpu/base/RenderResourceRegistry.h>
@@ -479,13 +480,11 @@ void CloudRenderer::update_gpu_tiles_cloud(const std::vector<nucleus::tile::Id>&
         Q_ASSERT(tile.id.zoom_level < 100);
         Q_ASSERT(tile.texture);
 
-        // Atlas is full
-        if (m_loaded_cloud_textures.n_occupied() >= m_loaded_cloud_textures.size()) {
+        const auto layer_index = m_loaded_cloud_textures.add_tile(tile.id);
+        if (layer_index == nucleus::tile::GpuArrayHelper::invalid_layer) {
+            qWarning() << "CloudRenderer: cloud atlas full, dropping remaining tiles this update";
             break;
         }
-
-        // find empty spot and upload texture
-        const auto layer_index = m_loaded_cloud_textures.add_tile(tile.id);
 
         uint32_t atlas_x = layer_index & ATLAS_MASK_XY;
         uint32_t atlas_y = (layer_index >> ATLAS_BITS_XY) & ATLAS_MASK_XY;

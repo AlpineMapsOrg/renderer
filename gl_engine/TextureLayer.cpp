@@ -22,6 +22,7 @@
 #include "ShaderRegistry.h"
 #include "Texture.h"
 #include "TileGeometry.h"
+#include <QDebug>
 #include <QOpenGLExtraFunctions>
 #include <QtAssert>
 
@@ -90,8 +91,11 @@ void TextureLayer::update_gpu_tiles(const std::vector<nucleus::tile::Id>& delete
         Q_ASSERT(tile.id.zoom_level < 100);
         Q_ASSERT(tile.texture);
 
-        // find empty spot and upload texture
         const auto layer_index = m_gpu_array_helper.add_tile(tile.id);
+        if (layer_index == nucleus::tile::GpuArrayHelper::invalid_layer) {
+            qWarning() << "TextureLayer: texture array full, dropping remaining tiles this update";
+            break;
+        }
         m_texture_array->upload(*tile.texture, layer_index);
     }
 }
