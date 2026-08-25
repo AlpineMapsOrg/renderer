@@ -202,8 +202,8 @@ fn calculate_lod(step_size: f32, tile_zoom: u32, distance: f32, view_dir: vec3f)
     return clamp(min(lod_xy, lod_z) - 0.5, 0.0, 5.0);
 }
 
-// Saturate helper
-fn saturate(x: f32) -> f32 {
+// Saturate helper ('saturate' is a reserved function name in apple metal shading language)
+fn saturate_clamp(x: f32) -> f32 {
     return clamp(x, 0.0, 1.0);
 }
 
@@ -341,7 +341,7 @@ fn calculate_point_radiance(
     // --- Ambient ---
     // Ambient: only modulate by height, since we have no way to estimate
     // depth-into-cloud from density alone. Cloud tops receive more sky light.
-    let height_factor = saturate(pos.z / params.bounds_max.z);
+    let height_factor = saturate_clamp(pos.z / params.bounds_max.z);
     let ambient_occlusion = mix(0.3, 1.0, height_factor);
 
     let ambient_radiance = sconf.amb_light.rgb * sconf.amb_light.a * params.ambient_light_scale;
@@ -427,7 +427,7 @@ fn step_fine(
 
     // Volume camera fade
     let dist_cylinder = max(length(pos.xy - ray_origin.xy), (ray_origin.z - pos.z) * 0.5);
-    let fade_t = saturate((dist_cylinder - fade_params.x) / (fade_params.y - fade_params.x));
+    let fade_t = saturate_clamp((dist_cylinder - fade_params.x) / (fade_params.y - fade_params.x));
     let fade = fade_t * fade_t * fade_t;
 
     let base_beta = sample_volume(pos, lod, tile_id, tile, atlas_sampler_l);

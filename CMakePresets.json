@@ -87,13 +87,51 @@
       }
     },
     {
+      "name": "webgpu_macos_base",
+      "hidden": true,
+      "inherits": "webgpu_base",
+      "generator": "Ninja",
+      "binaryDir": "${sourceDir}/build/${presetName}",
+      "installDir": "${sourceDir}/install/${presetName}",
+      "cacheVariables": {
+        "CMAKE_PREFIX_PATH": "/Users/emanum/Qt/6.11.1/macos/lib/cmake"
+      },
+      "condition": {
+        "type": "equals",
+        "lhs": "${hostSystemName}",
+        "rhs": "Darwin"
+      }
+    },
+    {
+      "name": "webgpu_app_macos_debug",
+      "displayName": "weBIGeo (webgpu_app) macOS Debug",
+      "description": "Debug build using native macOS Clang compiler",
+      "inherits": "webgpu_macos_base",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Debug",
+        "CMAKE_CXX_FLAGS": "-DQT_DEBUG"
+      }
+    },
+    {
+      "name": "webgpu_app_macos_release",
+      "displayName": "weBIGeo (webgpu_app) macOS Release",
+      "description": "Release build using native macOS Clang compiler",
+      "inherits": "webgpu_macos_base",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Release"
+      }
+    },
+    {
       "name": "webgpu_wasm_base",
       "hidden": true,
       "inherits": "webgpu_base",
       "generator": "Ninja",
       "binaryDir": "${sourceDir}/build/${presetName}",
       "installDir": "${sourceDir}/install/${presetName}",
-      "toolchainFile": "C:/Qt/6.10.1/wasm_multithread/lib/cmake/Qt6/qt.toolchain.cmake"
+      "toolchainFile": "/Users/emanum/Qt/6.11.1/wasm_multithread/lib/cmake/Qt6/qt.toolchain.cmake",
+      "cacheVariables": {
+        "QT_HOST_PATH": "/Users/emanum/Qt/6.11.1/macos"
+      }
     },
     {
       "name": "webgpu_app_wasm_debug",
@@ -142,6 +180,14 @@
     {
       "name": "unittests_msvc_release",
       "configurePreset": "unittests_msvc_release"
+    },
+    {
+      "name": "webgpu_app_macos_debug",
+      "configurePreset": "webgpu_app_macos_debug"
+    },
+    {
+      "name": "webgpu_app_macos_release",
+      "configurePreset": "webgpu_app_macos_release"
     },
     {
       "name": "webgpu_app_wasm_debug",

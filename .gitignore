@@ -12,6 +12,7 @@ app/icons/eaws/stop_or_go_active.png
 app/icons/eaws/stop_or_go_inactive.png
 /install/*
 .vs
+.idea
 .vscode
 .qtcreator
 __pycache__
