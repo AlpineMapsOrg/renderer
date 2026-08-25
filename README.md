@@ -43,7 +43,7 @@ graph TD
 
 | Module | Description |
 |--------|-------------|
-| `nucleus` | Shared core: tile management, camera, data structures |
+| [`nucleus`](docs/camera_controls.md) | Shared core: tile management, camera, data structures |
 | [`webgpu`](docs/webgpu_base.md) | RAII WebGPU wrappers (device, pipelines, buffers), WGSL preprocessor and GPU resource registry |
 | `gl_engine` | OpenGL rendering engine (used by the QML app) |
 | [`webgpu_engine`](docs/webgpu_engine.md) | WebGPU rendering engine (used by the webgpu_app) |
