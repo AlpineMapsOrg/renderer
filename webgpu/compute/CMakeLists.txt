@@ -39,6 +39,7 @@ set(SOURCES
     nodes/TileStitchNode.h nodes/TileStitchNode.cpp
     nodes/HeightDecodeNode.h nodes/HeightDecodeNode.cpp
     nodes/IterativeSimulationNode.h nodes/IterativeSimulationNode.cpp
+    nodes/MpmSolverNode.h nodes/MpmSolverNode.cpp
     nodes/LoadTextureNode.h nodes/LoadTextureNode.cpp
     nodes/util.h nodes/util.cpp
 )
@@ -86,6 +87,16 @@ qt_add_resources(webgpu_compute "webgpu_compute_shaders"
         "${SHADER_BASE_DIR}/compute_release_points.wgsl"
         "${SHADER_BASE_DIR}/height_decode_compute.wgsl"
         "${SHADER_BASE_DIR}/iterative_simulation_compute.wgsl"
+
+        "${SHADER_BASE_DIR}/mpm_common.wgsl"
+        "${SHADER_BASE_DIR}/mpm_prepare.wgsl"
+        "${SHADER_BASE_DIR}/mpm_seed.wgsl"
+        "${SHADER_BASE_DIR}/mpm_clear_grid.wgsl"
+        "${SHADER_BASE_DIR}/mpm_p2g.wgsl"
+        "${SHADER_BASE_DIR}/mpm_grid_update.wgsl"
+        "${SHADER_BASE_DIR}/mpm_g2p.wgsl"
+        "${SHADER_BASE_DIR}/mpm_splat.wgsl"
+        "${SHADER_BASE_DIR}/mpm_rasterize.wgsl"
 
         "${SHADER_BASE_DIR}/tile_hashmap.wgsl"
         "${SHADER_BASE_DIR}/color_mapping.wgsl"

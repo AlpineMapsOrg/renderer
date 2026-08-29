@@ -17,5 +17,6 @@
         <file alias="avalanche_simulation.json">resources/graphs/avalanche_simulation.json</file>
         <file alias="avalanche_simulation_with_exports.json">resources/graphs/avalanche_simulation_with_exports.json</file>
         <file alias="iterative_simulation_wip.json">resources/graphs/iterative_simulation_wip.json</file>
+        <file alias="mpm_avalanche_simulation.json">resources/graphs/mpm_avalanche_simulation.json</file>
     </qresource>
 </RCC>

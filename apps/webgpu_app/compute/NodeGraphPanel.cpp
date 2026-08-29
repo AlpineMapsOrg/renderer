@@ -46,6 +46,7 @@ NodeGraphPanel::NodeGraphPanel(webgpu_engine::Context* context)
           { "Avalanche simulation", ":/graphs/avalanche_simulation.json" },
           { "Avalanche simulation (with exports)", ":/graphs/avalanche_simulation_with_exports.json" },
           { "Iterative simulation (WIP)", ":/graphs/iterative_simulation_wip.json" },
+          { "Avalanche simulation (MLS-MPM)", ":/graphs/mpm_avalanche_simulation.json" },
       })
 {
 }

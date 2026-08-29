@@ -8,6 +8,58 @@ Personal working plan for the VisComp WS26 project. Source of truth for scope/ra
 
 A physically based MLS-MPM snow/avalanche solver that runs as WebGPU compute passes inside weBIGeo, coupled to the real terrain the app already renders, plus a particle-based renderer for the result. It sits **alongside** the avalanche simulation weBIGeo already has (a cheap statistical trajectory/runout model), not instead of it — reusing the same terrain-prep front end. Minimal deliverable: one stored scenario, MLS-MPM particles falling and flowing over real terrain, rendered as points/billboards, at interactive frame rates on desktop. Stretch: CK-MPM kernel swap, better rendering, avalanche.report-driven scenarios, upstream PR.
 
+## 1a. Implementation status (updated 2026-08-29)
+
+The solver is in and building. What landed:
+
+- `webgpu/compute/nodes/MpmSolverNode.{h,cpp}` — the solver node. Owns particles, grid and
+  sim state on the GPU; runs `substeps_per_run` MPM steps per execution; re-running
+  continues the simulation, which is what makes it animate. Registered in `NodeRegistry`.
+- `webgpu/compute/shaders/mpm_*.wgsl` — eight kernels: `common` (shared bindings, terrain
+  sampling, signed 3×3 SVD, Stomakhin constitutive model), `prepare`, `seed`, `clear_grid`,
+  `p2g`, `grid_update`, `g2p`, `splat`, `rasterize`.
+- `apps/webgpu_app/compute/nodes/MpmSolverNodeRenderer.{h,cpp}` — settings panel with
+  Play/Step/Reset, a live CFL estimate, and every material parameter exposed.
+- `apps/webgpu_app/resources/graphs/mpm_avalanche_simulation.json` — ready-to-run graph,
+  listed in the editor as "Avalanche simulation (MLS-MPM)".
+
+Decisions from §3, as actually resolved:
+1. **Buffer layout** — `Particle` is 128 B (position+mass, velocity+jp, C rows, F rows), all
+   `vec3` at 16 B boundaries. `GridNode` is 16 B.
+2. **Atomics** — fixed point `atomic<i32>` at `FIXED_SCALE = 1e4`, with clamping before every
+   `atomicAdd`. Particle mass is *normalised to 1* and volume set to `1/density`; this leaves
+   the MPM equations invariant and bounds the accumulators independently of real snow mass,
+   which is what makes the scale factor safe to fix at compile time.
+3. **Height sampling** — sampled directly from the stitched R32Float texture with manual
+   bilinear (it is unfilterable, so `textureSample` is unavailable).
+4. **Collision** — both, as the research doc suggested: a grid-level Coulomb friction
+   condition plus a particle-level position clamp.
+5. **Substeps** — decoupled from the frame rate via `substeps_per_run`; the UI shows the CFL
+   bound and warns when `dt` exceeds it.
+
+Verified (not just compiled):
+- All eight kernels pass `tint` validation.
+- The SVD was ported verbatim to Python and checked against numpy over 700+ matrices —
+  exact reconstruction, orthonormal U/V with det +1, correct handling of inverted (det F < 0)
+  and near-degenerate cases.
+- The full substep loop was ported offline (Phase 2, done *after* the fact rather than
+  before): mass conserved exactly, free fall reproduces g to 3 decimals, snow lands, settles
+  to rest, and `jp` drops 1.0 → 0.75 — i.e. it compacts plastically instead of bouncing.
+- Booted the app with the MPM graph as the startup preset: all eight shaders compiled and
+  all eight compute pipelines were created on Metal with no Dawn validation errors.
+
+Not done yet — the honest gap:
+- **The solver has never been run against real terrain.** Everything above validates the
+  math and the plumbing, not the coupling. Phases 3's "sanity-check on a flat synthetic
+  field" and Phase 4's "switch to the real DEM" still need a human at the keyboard.
+- **Phase 5 proper (3D particle rendering) is not implemented.** The current output is a
+  top-down density raster projected onto the map through the existing overlay path, which
+  needs no engine changes. A real `AvalancheRenderer` in `webgpu/engine/` (see §2.3) is
+  still the right next step, and the node already exposes its raw `particle buffer` socket
+  so a renderer can bind it without CPU readback.
+- Parameter tuning at avalanche scale. Defaults are Stomakhin's paper values, which were
+  authored for metre-scale snow, not a 1 km domain.
+
 ## 2. Repo orientation (as found, not as assumed)
 
 This matters because the Notion research subpages were written partly from GitHub browsing / AI research and explicitly flagged some of this as unconfirmed. Checked directly in the connected `webigeo` checkout:
@@ -61,18 +113,64 @@ None of these need to be fully answered before Phase 0/1 below — but they shou
 ## 5. Phased task breakdown
 
 ### Phase 0 — Environment & orientation (get to a running build)
-- [ ] Set up the native build (Qt 6.10.1, CMake+Ninja, MSVC2022 on Windows — see `docs/webgpu_app.md` for the exact preset and troubleshooting steps). Confirm `webgpu_app_msvc_debug` builds and runs against the live terrain.
+- [ ] Set up a build. On Windows, use the documented native path (`docs/webgpu_app.md`, preset `webgpu_app_msvc_debug`). **On macOS there is no CMake preset, no CI job, and no doc page** — it's unofficial territory; see the macOS note below before starting. Confirm the app builds and runs against the live terrain.
 - [ ] Load `apps/webgpu_app/resources/graphs/avalanche_simulation.json` in the running app's node-graph editor, run it, watch the existing overlay render. This is the single fastest way to internalize the node graph model.
 - [ ] Load `iterative_simulation_wip.json` too and step through what it does.
 - [ ] Read `docs/webgpu_app_dev.md`, `docs/webgpu_engine.md`, `docs/webgpu_base.md` fully (short, high signal).
 - [ ] Read `Node.h`, `IterativeSimulationNode.{h,cpp}`, `ComputeReleasePointsNode.h`, `TileStitchNode.h` in the editor with the running app open side by side.
 
+#### macOS native build — status and steps
+
+Not documented, not in CI (`.github/workflows/` has `linux.yml` and `windows.yml`, no `macos.yml`), no CMake preset. But it isn't vapourware either — the source has real support wired in: `webgpu/base/webgpu_interface.cpp` has a Cocoa/`CAMetalLayer` code path for surface creation guarded by `SDL_VIDEO_DRIVER_COCOA`, and `webgpu/base/CMakeLists.txt` fetches a prebuilt Dawn package for `"macos-latest"` automatically (`elseif(APPLE) set(ALP_DAWN_NATIVE_PLATFORM "macos-latest")`). So: plausible, but untested by anyone upstream as far as the repo shows — expect to be the first to hit mac-specific issues.
+
+1. **Prerequisites** (Terminal, on the Mac itself — not reachable from in-session tools): `xcode-select --install`, then via Homebrew: `brew install cmake ninja python git`.
+2. **Qt 6.11.1** for macOS (the CI pin in `.github/ci-versions.env` — newer than the 6.10.1 the docs mention, `qt_standard_project_setup(REQUIRES 6.10)` just means "at least 6.10" so 6.11.1 is fine). Easiest via `aqtinstall` (`pip3 install aqtinstall`, then `aqt install-qt mac desktop 6.11.1 clang_64 -O ~/Qt -m qtcharts qtpositioning` — those two extra modules match `QT_MODULES` in CI).
+3. **Configure manually** (no preset exists yet), from the repo root:
+   `cmake -G Ninja -S . -B build/webgpu_app_macos_debug -DCMAKE_BUILD_TYPE=Debug -DALP_BUILD_WEBGPU_APP=ON -DALP_ENABLE_ASSERTS=ON -DCMAKE_PREFIX_PATH=~/Qt/6.11.1/macos/lib/cmake`
+   (`-DALP_BUILD_WEBGPU_APP=ON` is required — the default flips OFF on `APPLE` in the top-level `CMakeLists.txt`, unlike Windows/Linux where it defaults on.)
+4. **Build**: `cmake --build build/webgpu_app_macos_debug`. First run auto-fetches Dawn and builds SDL2 from source (`misc/scripts/install_sdl.py`) — can take a while.
+5. **Watch the configure log for**: `Fetching native Dawn package failed - running install_dawn.py...`. If that fires, the fallback (`misc/scripts/install_dawn.py`) builds Dawn from source with `-DDAWN_ENABLE_METAL=OFF` and only Vulkan on — which macOS doesn't support natively here. If you hit this, don't sink time debugging it; fall back to the WASM build below instead.
+6. **Run**: the target is `webgpu_app` (`apps/webgpu_app/CMakeLists.txt`, built as a Qt app bundle on macOS) — look for `webgpu_app.app` under `build/webgpu_app_macos_debug/apps/webgpu_app/`.
+
+**Fallback that's actually documented and OS-agnostic:** the WASM build (`docs/webgpu_app.md`, presets `webgpu_app_wasm_debug`/`_release`) via Emscripten + Qt's WASM kit, served locally (`misc/scripts/serve_wasm.py`, which already has a `platform.system() == "Darwin"` branch) and opened in a WebGPU-capable Chrome. Slower iteration than native, but it's the one path someone has actually verified works, host OS aside. If native macOS build fights you for more than an hour or two, switch to this rather than debugging unofficial platform support.
+
+#### WASM build on macOS — concrete steps (verified against current Qt/aqt docs, 2026-08-25)
+
+The `webgpu_app_wasm_debug`/`_release` presets exist and their cache variables are platform-agnostic, but `toolchainFile` in `CMakePresets.json` is hardcoded to a Windows path (`C:/Qt/6.10.1/wasm_multithread/...`) — so don't `cmake --preset` this on macOS. Instead, invoke the WASM Qt kit's own `qt-cmake` wrapper directly with the same cache variables the preset would set.
+
+1. **Prerequisites**: `xcode-select --install`; `brew install cmake ninja python git`.
+2. **Emscripten 4.0.7** (pinned in `.github/ci-versions.env` as `WEBASSEMBLY_VERSION`, matches what Qt 6.11.x requires):
+   ```
+   git clone https://github.com/emscripten-core/emsdk.git
+   cd emsdk && ./emsdk install 4.0.7 && ./emsdk activate 4.0.7
+   source ./emsdk_env.sh
+   ```
+   Re-run `source ./emsdk_env.sh` in every new terminal session before configuring/building.
+3. **Qt 6.11.1 WebAssembly multithreaded kit** (CI's actual pin, per `.github/ci-versions.env` — newer than the 6.10.1 in `docs/webgpu_app.md`). Qt 6 WASM installs need a matching desktop/host Qt alongside the WASM kit for the cross-compile tools; `aqt`'s `--autodesktop` handles that automatically:
+   ```
+   pip3 install aqtinstall
+   aqt install-qt all_os wasm 6.11.1 wasm_multithread -m qtcharts qtpositioning --autodesktop -O ~/Qt
+   ```
+4. **Configure**, from the repo root, using the WASM kit's `qt-cmake` (avoids the Windows-hardcoded preset toolchain), reproducing the `webgpu_app_wasm_debug` preset's variables by hand:
+   ```
+   ~/Qt/6.11.1/wasm_multithread/bin/qt-cmake -G Ninja \
+     -B build/webgpu_app_wasm_debug \
+     -DCMAKE_BUILD_TYPE=Debug -DCMAKE_CXX_FLAGS=-DQT_DEBUG \
+     -DALP_BUILD_GL_ENGINE=OFF -DALP_BUILD_PLAIN_RENDERER=OFF -DALP_BUILD_ALPINEAPP=OFF \
+     -DALP_ENABLE_LABELS=OFF -DALP_ENABLE_AVALANCHE_WARNING_LAYER=OFF -DALP_BUILD_UNITTESTS=OFF \
+     -DALP_BUILD_WEBGPU_ENGINE=ON -DALP_BUILD_WEBGPU_APP=ON -DALP_ENABLE_THREADING=ON -DALP_ENABLE_DEV_TOOLS=ON
+   ```
+5. **Build**: `cmake --build build/webgpu_app_wasm_debug`. This also triggers the Dawn-for-Emscripten port fetch (`fetch_dawn_port.py`) — no Dawn platform ambiguity here, it's Emscripten's own WebGPU shim, not native Dawn.
+6. **Serve & run**: `python3 misc/scripts/serve_wasm.py` — auto-detects the newest build under `build/*/apps/webgpu_app/*.wasm`, serves it with the COOP/COEP headers multithreaded WASM needs (already in the script, no manual header setup required locally), and opens it in your default browser via macOS `open`. Use Chrome — WebGPU has been on by default there for a while, but if the canvas stays black, check `chrome://gpu` and `chrome://flags/#enable-unsafe-webgpu`.
+
+Sources: [Qt for WebAssembly (Qt 6.11)](https://doc.qt.io/qt-6/wasm.html), [aqtinstall — Getting Started](https://aqtinstall.readthedocs.io/en/v3.2.1/getting_started.html).
+
 ### Phase 1 — Warm-up: a no-op node, end to end
 Goal: touch every seam (compute node → registry → UI renderer → graph JSON → build) before any MPM math exists, so that when Phase 3 breaks, you know it's the physics and not the plumbing.
-- [ ] Create `MpmSolverNode` (empty `run_impl()` for now) in `webgpu/compute/nodes/`, with the two inputs it will eventually need (`height texture`, `release point texture` — same types as `IterativeSimulationNode`'s sockets) and a placeholder output (e.g. a fixed-size dummy buffer).
-- [ ] Register it in `NodeRegistry`.
-- [ ] Wire it into a copy of the existing avalanche graph in the node editor, save as a new `.json` under `resources/graphs/`, confirm it runs (no-op) without errors.
-- [ ] Optional: minimal `NodeRenderer` subclass so it has a name/socket display in the editor.
+- [x] Create `MpmSolverNode` (empty `run_impl()` for now) in `webgpu/compute/nodes/`, with the two inputs it will eventually need (`height texture`, `release point texture` — same types as `IterativeSimulationNode`'s sockets) and a placeholder output (e.g. a fixed-size dummy buffer).
+- [x] Register it in `NodeRegistry`.
+- [x] Wire it into a copy of the existing avalanche graph in the node editor, save as a new `.json` under `resources/graphs/`, confirm it runs (no-op) without errors.
+- [x] Optional: minimal `NodeRenderer` subclass so it has a name/socket display in the editor.
 
 ### Phase 2 — De-risk the algorithm offline, outside WebGPU/WGSL
 Don't debug MLS-MPM math and WGSL/atomics/alignment issues at the same time.
@@ -81,17 +179,17 @@ Don't debug MLS-MPM math and WGSL/atomics/alignment issues at the same time.
 - [ ] This offline prototype is also useful later as a written appendix in the report ("verified the constitutive model in isolation before the GPU port").
 
 ### Phase 3 — Port the solver into `MpmSolverNode`, one stage at a time
-- [ ] Particle initialisation: seed particles inside `ComputeReleasePointsNode`'s output area, on/above the stitched terrain height. Get this rendering as raw points (ties into Phase 5 early, as a debug view) before writing any of P2G/grid update/G2P.
-- [ ] Grid reset + P2G compute shader (mass/momentum scatter, fixed-point atomics per decision #2).
-- [ ] Grid update compute shader (normalize momentum→velocity, gravity, snow constitutive model — start with something simple and get it visibly working, then bring in Stomakhin-style plasticity/hardening).
-- [ ] G2P compute shader.
-- [ ] Advection compute shader.
-- [ ] Wire the four shaders into the per-frame/per-substep dispatch sequence inside `run_impl()`, following `IterativeSimulationNode`'s ping-pong pattern. Expose particle count, grid resolution, and substep count as node settings from the start (mirrors how every other node here exposes tunables via a `*Settings`/`*SettingsUniform` struct pair).
+- [x] Particle initialisation: seed particles inside `ComputeReleasePointsNode`'s output area, on/above the stitched terrain height. Get this rendering as raw points (ties into Phase 5 early, as a debug view) before writing any of P2G/grid update/G2P.
+- [x] Grid reset + P2G compute shader (mass/momentum scatter, fixed-point atomics per decision #2).
+- [x] Grid update compute shader (normalize momentum→velocity, gravity, snow constitutive model — start with something simple and get it visibly working, then bring in Stomakhin-style plasticity/hardening).
+- [x] G2P compute shader.
+- [x] Advection compute shader (fused into G2P).
+- [x] Wire the four shaders into the per-frame/per-substep dispatch sequence inside `run_impl()`, following `IterativeSimulationNode`'s ping-pong pattern. Expose particle count, grid resolution, and substep count as node settings from the start (mirrors how every other node here exposes tunables via a `*Settings`/`*SettingsUniform` struct pair).
 - [ ] Sanity-check on a **flat** synthetic height field before switching to real terrain — isolates solver bugs from terrain-coupling bugs.
 
 ### Phase 4 — Terrain coupling
-- [ ] Bind the real stitched height texture (decision #3) and implement `terrain_height`/`terrain_normal` sampling in WGSL (manual bilinear — height formats aren't filterable, `textureSample` won't work).
-- [ ] Implement collision (decision #4): grid-level boundary condition first, add particle-level clamp if snow visibly clips through terrain.
+- [x] Bind the real stitched height texture (decision #3) and implement `terrain_height`/`terrain_normal` sampling in WGSL (manual bilinear — height formats aren't filterable, `textureSample` won't work).
+- [x] Implement collision (decision #4): grid-level boundary condition first, add particle-level clamp if snow visibly clips through terrain.
 - [ ] Switch from the flat synthetic test field to the real DEM for one real location.
 
 ### Phase 5 — Minimal rendering: direct particle rendering

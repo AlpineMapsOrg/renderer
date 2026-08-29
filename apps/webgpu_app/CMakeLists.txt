@@ -72,6 +72,7 @@ if (ALP_WEBGPU_APP_ENABLE_COMPUTE)
         compute/nodes/RequestTilesNodeRenderer.h compute/nodes/RequestTilesNodeRenderer.cpp
         compute/nodes/SelectTilesNodeRenderer.h compute/nodes/SelectTilesNodeRenderer.cpp
         compute/nodes/GPXTrackNodeRenderer.h compute/nodes/GPXTrackNodeRenderer.cpp
+        compute/nodes/MpmSolverNodeRenderer.h compute/nodes/MpmSolverNodeRenderer.cpp
     )
 endif()
 

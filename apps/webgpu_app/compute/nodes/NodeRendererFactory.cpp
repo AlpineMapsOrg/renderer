@@ -24,6 +24,7 @@
 #include "ComputeSnowNodeRenderer.h"
 #include "ExportNodeRenderer.h"
 #include "GPXTrackNodeRenderer.h"
+#include "MpmSolverNodeRenderer.h"
 #include "NodeRenderer.h"
 #include "OverlayNodeRenderer.h"
 #include "RequestTilesNodeRenderer.h"
@@ -34,6 +35,7 @@
 #include <webgpu/compute/nodes/ComputeSnowNode.h>
 #include <webgpu/compute/nodes/ExportNode.h>
 #include <webgpu/compute/nodes/GPXTrackNode.h>
+#include <webgpu/compute/nodes/MpmSolverNode.h>
 #include <webgpu/compute/nodes/RequestTilesNode.h>
 #include <webgpu/compute/nodes/SelectTilesNode.h>
 
@@ -62,6 +64,8 @@ std::unique_ptr<NodeRenderer> NodeRendererFactory::create(const std::string& nam
         return std::make_unique<SelectTilesNodeRenderer>(name, *n);
     if (auto* n = dynamic_cast<nodes::GPXTrackNode*>(&node))
         return std::make_unique<GPXTrackNodeRenderer>(name, *n);
+    if (auto* n = dynamic_cast<nodes::MpmSolverNode*>(&node))
+        return std::make_unique<MpmSolverNodeRenderer>(name, *n);
     return std::make_unique<NodeRenderer>(name, node);
 }
 
