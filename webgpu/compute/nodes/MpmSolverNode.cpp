@@ -22,6 +22,7 @@
 #include <array>
 #include <cstring>
 #include <limits>
+#include <nucleus/srs.h>
 
 namespace webgpu_compute::nodes {
 
@@ -193,7 +194,10 @@ void MpmSolverNode::create_bind_group(const webgpu::raii::TextureWithSampler& he
 void MpmSolverNode::update_gpu_settings(const radix::geometry::Aabb<2, double>& region_aabb, const webgpu::raii::TextureWithSampler& height_texture)
 {
     const glm::fvec2 region_size = glm::fvec2(region_aabb.size());
-    const float domain_size = std::max(m_settings.domain_size_xy, 1.0f);
+    // The domain cannot usefully exceed the terrain we actually have: outside the region the
+    // height texture clamps to its edge texel, which would be a flat extrusion, not terrain.
+    const float region_limit = std::max(std::min(region_size.x, region_size.y), 1.0f);
+    const float domain_size = std::clamp(m_settings.domain_size_xy, 1.0f, region_limit);
     const float dx = domain_size / float(m_allocated_grid_res.x);
 
     // Place the domain inside the region and keep it fully covered by the terrain data.
@@ -231,8 +235,29 @@ void MpmSolverNode::update_gpu_settings(const radix::geometry::Aabb<2, double>& 
     data.raster_dim = m_output_dimensions;
     data.domain_uv_min = domain_origin / region_size;
     data.domain_uv_size = glm::fvec2(domain_size) / region_size;
-    data._pad0 = 0.0f;
-    data._pad1 = 0.0f;
+    data.seed_anywhere = m_settings.seed_anywhere ? 1.0f : 0.0f;
+
+    // Splat radius in texels, capped so the per-particle loop stays bounded.
+    const float metres_per_texel = domain_size / float(m_output_dimensions.x);
+    const float radius_texels = std::clamp(std::max(m_settings.splat_radius, 0.0f) / metres_per_texel, 0.5f, 8.0f);
+    data.splat_radius_texels = radius_texels;
+
+    // Release zone, in region-relative metres, clamped into the domain so seeding can succeed.
+    const glm::fvec2 release_centre
+        = glm::clamp(m_settings.release_center, glm::fvec2(0.0f), glm::fvec2(1.0f)) * region_size;
+    data.release_centre_x = release_centre.x;
+    data.release_centre_y = release_centre.y;
+    data.release_radius = std::clamp(m_settings.release_radius, 1.0f, domain_size * 0.5f);
+
+    // Reference coverage for full opacity. Derived from the release disc rather than the
+    // whole domain: the snow starts concentrated there, and basing the scale on the domain
+    // would make a small avalanche in a large box saturate everywhere. The spread factor
+    // keeps the runout visible as the same snow covers a larger area.
+    constexpr float SPREAD_TOLERANCE = 6.0f;
+    const float splat_area = 3.14159265f * radius_texels * radius_texels;
+    const float release_radius_texels = std::max(data.release_radius / metres_per_texel, 1.0f);
+    const float release_area = 3.14159265f * release_radius_texels * release_radius_texels;
+    data.density_reference = std::max(float(m_allocated_particles) * splat_area / (SPREAD_TOLERANCE * release_area), 1.0f);
 
     m_settings_uniform.update_gpu_data(m_ctx->queue());
 
@@ -254,11 +279,29 @@ void MpmSolverNode::write_initial_state()
     m_state_buffer->write(m_ctx->queue(), initial.data(), initial.size(), 0);
 }
 
+bool MpmSolverNode::has_valid_inputs()
+{
+    static constexpr const char* REQUIRED[] = { "region aabb", "height texture", "release point texture" };
+    for (const char* name : REQUIRED) {
+        if (!input_socket(name).is_socket_connected())
+            return false;
+    }
+    // Connected is not the same as ready: an upstream node's output socket returns a null
+    // pointer until that node has actually produced its resource. rerun() re-runs only this
+    // node, so it can easily be reached before the graph has ever run end to end.
+    if (std::get<data_type<const radix::geometry::Aabb<2, double>*>()>(input_socket("region aabb").get_connected_data()) == nullptr)
+        return false;
+    if (std::get<data_type<const webgpu::raii::TextureWithSampler*>()>(input_socket("height texture").get_connected_data()) == nullptr)
+        return false;
+    if (std::get<data_type<const webgpu::raii::TextureWithSampler*>()>(input_socket("release point texture").get_connected_data()) == nullptr)
+        return false;
+    return true;
+}
+
 void MpmSolverNode::run_impl()
 {
-    if (!input_socket("region aabb").is_socket_connected() || !input_socket("height texture").is_socket_connected()
-        || !input_socket("release point texture").is_socket_connected()) {
-        fail_run("MpmSolverNode requires a region aabb, a height texture and a release point texture");
+    if (!has_valid_inputs()) {
+        fail_run("MpmSolverNode inputs are not ready. Run the full graph (Shift+R) before stepping the solver.");
         return;
     }
 
@@ -277,6 +320,16 @@ void MpmSolverNode::run_impl()
     if (reset) {
         write_initial_state();
         m_simulated_time = 0.0f;
+
+        // Report where on the planet we are actually simulating - without this there is no
+        // way to tell from the UI which slope the domain landed on.
+        const glm::dvec2 south_west = nucleus::srs::world_to_lat_long(m_domain_aabb.min);
+        const glm::dvec2 north_east = nucleus::srs::world_to_lat_long(m_domain_aabb.max);
+        const glm::dvec2 centre = nucleus::srs::world_to_lat_long((m_domain_aabb.min + m_domain_aabb.max) * 0.5);
+        qInfo().nospace() << "MpmSolverNode: simulating " << m_settings.domain_size_xy << " m domain at centre " << centre.x << ", " << centre.y
+                          << " (lat " << south_west.x << ".." << north_east.x << ", lon " << south_west.y << ".." << north_east.y << "), "
+                          << m_allocated_grid_res.x << "x" << m_allocated_grid_res.y << "x" << m_allocated_grid_res.z << " grid, dx "
+                          << m_settings_uniform.data.dx << " m, " << m_allocated_particles << " particles";
     }
 
     const uint32_t substeps = std::clamp(m_settings.substeps_per_run, 1u, 4096u);
@@ -398,7 +451,12 @@ void MpmSolverNode::serialize_settings(QJsonObject& out) const
     out["gravity"] = s.gravity;
     out["terrain_friction"] = s.terrain_friction;
     out["raster_resolution"] = static_cast<int>(s.raster_resolution);
+    out["splat_radius"] = s.splat_radius;
+    out["release_center_x"] = s.release_center.x;
+    out["release_center_y"] = s.release_center.y;
+    out["release_radius"] = s.release_radius;
     out["random_seed"] = static_cast<int>(s.random_seed);
+    out["seed_anywhere"] = s.seed_anywhere;
 }
 
 void MpmSolverNode::deserialize_settings(const QJsonObject& in)
@@ -426,7 +484,13 @@ void MpmSolverNode::deserialize_settings(const QJsonObject& in)
     s.gravity = read_float("gravity", s.gravity);
     s.terrain_friction = read_float("terrain_friction", s.terrain_friction);
     s.raster_resolution = read_uint("raster_resolution", s.raster_resolution);
+    s.splat_radius = read_float("splat_radius", s.splat_radius);
+    s.release_center.x = read_float("release_center_x", s.release_center.x);
+    s.release_center.y = read_float("release_center_y", s.release_center.y);
+    s.release_radius = read_float("release_radius", s.release_radius);
     s.random_seed = read_uint("random_seed", s.random_seed);
+    if (in.contains("seed_anywhere"))
+        s.seed_anywhere = in["seed_anywhere"].toBool(s.seed_anywhere);
     s.reset_on_next_run = true;
 }
 

@@ -50,14 +50,26 @@ fn computeMain(@builtin(global_invocation_id) id: vec3<u32>) {
     store_c(&p, mat3x3f(vec3f(0.0), vec3f(0.0), vec3f(0.0)));
     store_f(&p, identity3());
 
-    // Rejection sampling: draw a point in the domain footprint until one lands in a
-    // release area. The domain is normally chosen to overlap one, so this converges fast.
+    // Particles start in the release disc, not across the whole domain - the start zone is
+    // small and the domain is large so the avalanche has somewhere to run out to.
+    let release_centre = vec2f(settings.release_centre_x, settings.release_centre_y);
+    let domain_min = settings.domain_origin + vec2f(2.0 * settings.dx);
+    let domain_max = settings.domain_origin + vec2f(settings.domain_size_xy - 2.0 * settings.dx);
+
     var found = false;
     var world_xy = vec2f(0.0);
     for (var attempt = 0u; attempt < MAX_SEED_ATTEMPTS; attempt++) {
+        // sqrt on the radius keeps the samples uniform over the disc area.
         let r = rand2();
-        let candidate = settings.domain_origin + r * settings.domain_size_xy;
-        if is_release_point(world_to_uv(candidate)) {
+        let angle = r.x * 6.28318530718;
+        let distance = sqrt(r.y) * settings.release_radius;
+        let candidate = release_centre + vec2f(cos(angle), sin(angle)) * distance;
+
+        // A particle outside the grid box would be clamped onto its wall immediately.
+        if any(candidate < domain_min) || any(candidate > domain_max) {
+            continue;
+        }
+        if settings.seed_anywhere > 0.5 || is_release_point(world_to_uv(candidate)) {
             found = true;
             world_xy = candidate;
             break;

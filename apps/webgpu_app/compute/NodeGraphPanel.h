@@ -54,6 +54,10 @@ public:
 
     enum class GraphRenderingMode { Default, Transparent, White };
 
+    /// Currently loaded graph, or nullptr before one is attached. Lets other panels drive
+    /// nodes without going through the editor - note it changes when a preset is loaded.
+    [[nodiscard]] nodes::NodeGraph* node_graph() const { return m_node_graph; }
+
 private:
     // (Re)builds the node renderers for the currently loaded graph.
     void init(nodes::NodeGraph& node_graph);

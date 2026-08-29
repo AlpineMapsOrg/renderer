@@ -132,3 +132,94 @@ diagnostics that need to appear in the console.
 
 Created this file and recorded the standing instruction in Claude's project memory so
 future sessions append to it.
+
+### 5. "How can i test it now" / "How do i know in which region the avalanche is"
+
+Two usability gaps surfaced while writing test instructions, both fixed:
+
+- **No feedback when nothing seeds.** If the domain does not overlap a release area, every
+  particle stays inactive and the overlay is simply blank — with no error. Added a
+  **"Seed anywhere (ignore release areas)"** debug toggle that fills the whole domain, so a
+  first run can confirm the solver works and show where the domain sits. Implemented by
+  repurposing a spare `_pad0` float in the uniform, so the struct layout is unchanged.
+- **No way to tell where the simulation is.** The region is not configured in the MPM node
+  at all — it comes from the **GPX Input** node (`:/gpx/breite_ries.gpx`) via Select Tiles.
+  Added a lat/lon readout of the domain centre to the settings panel plus a `qInfo` line on
+  every reset (both via `nucleus::srs::world_to_lat_long`).
+
+Location of the default test scenario, computed from the GPX file: **Breite Ries gully,
+Schneeberg, Lower Austria**. Track lat 47.77442–47.77892, lon 15.80953–15.82461, elevation
+1364–1931 m. Region = 2×2 zoom-15 tiles = 2446 × 2446 m. Default domain (centre 0.5/0.5,
+1024 m) is centred at **47.77625, 15.82031**; the track centre sits at normalised
+x = 0.352, y = 0.528, i.e. inside the default domain near its western edge — so the default
+already covers the gully.
+
+Also corrected misleading UI text: the settings panel only renders for the *selected* node,
+and that is what drives stepping, so "keep this panel open" became "keep this node
+selected".
+
+### 6. SIGSEGV on toggling "Seed anywhere" — fixed
+
+Crash reported immediately on ticking the new checkbox. Stack:
+
+```
+MpmSolverNodeRenderer::render_settings_content()
+  -> Node::rerun() -> Node::run() -> MpmSolverNode::run_impl()
+    -> update_gpu_settings() -> TextureWithSampler::texture()   <- null deref
+```
+
+**Root cause (my bug).** `run_impl()` validated inputs with `is_socket_connected()` only,
+then dereferenced the socket data. But *connected is not the same as ready*:
+`HeightDecodeNode`'s output socket returns `m_output_texture.get()`, which is **null until
+that node has actually run**. `rerun()` re-runs only this node using the last buffered
+context, so any UI control that calls it before a full graph run dereferences null.
+
+This was latent in every transport control (Play/Step/Reset) — the checkbox just happened
+to be the first one pressed before `Shift+R`.
+
+**Fix**, in two layers:
+1. `MpmSolverNode::has_valid_inputs()` checks connectivity *and* non-null payloads;
+   `run_impl()` calls `fail_run()` with an actionable message instead of dereferencing.
+   This makes the node safe regardless of who calls `rerun()`.
+2. The renderer computes `ready` once per frame, wraps the transport buttons in
+   `BeginDisabled`, clears `m_playing`, shows "Run the full graph once (Shift+R)", and gates
+   the `rerun()` call — otherwise auto-play would spam error modals.
+
+**Lesson for future node work in this repo:** an output socket returning `unique_ptr::get()`
+is null before its node runs. Any code path that can trigger a single node out of graph
+order must null-check payloads, not just check `is_socket_connected()`.
+
+### 7. Visible, but only animating with the graph editor open — sidebar panel added
+
+Two reports after the first successful run (9.36 s simulated, domain centre correct):
+
+**a) Nothing visible on screen.** Not a solver bug — a display one. The domain was 1024 m
+across a 1024-texel raster (1 m/texel) and `mpm_splat` wrote each particle into *exactly
+one* texel. 65536 particles over 1,048,576 texels covered ~6% at count 1, i.e. isolated
+1-metre pixels at ~37% alpha seen from kilometres away. Rendering was correct; what it was
+told to render was invisible. Particles represent parcels of snow, not points.
+
+Fixes: `mpm_splat` now draws a disc of `splat_radius` metres (default 6 m, loop capped at 8
+texels); `mpm_rasterize` normalises against a CPU-computed `density_reference` (the coverage
+a uniform spread would give) instead of a magic `/6.0`, so the display rescales itself when
+particle count or resolution change; default raster 1024 -> 512. Uniform struct grew to
+144 B. New "Splat radius" slider plus an "Output texel: X m" readout.
+
+**b) Animation only advanced while the graph editor was open.** Root cause: stepping was
+driven from `MpmSolverNodeRenderer::render_settings_content()`, which only runs while the
+node graph editor is open *and* that node is selected.
+
+Fix: new `apps/webgpu_app/avalanche/AvalanchePanel.{h,cpp}`, a sidebar panel that owns the
+transport. Key detail of the `ImGuiPanel` interface: `draw_panel()` renders inside the
+sidebar (so it stops when the section is collapsed), while **`draw()` runs every frame
+regardless of panel visibility**. Stepping therefore lives in `draw()`, and the animation
+keeps running with the sidebar section collapsed and the editor closed.
+
+The panel resolves the solver by scanning `NodeGraphPanel::node_graph()` (new accessor) with
+a `dynamic_cast` every frame, because loading a preset replaces the graph and every node in
+it. It renders nothing when the active graph has no MPM node, so it only appears for the
+MLS-MPM preset.
+
+Play/Pause was *removed* from the node renderer so there is exactly one animation driver;
+Step and Reset are one-shot and stayed. Registered under `ALP_WEBGPU_APP_ENABLE_COMPUTE`
+right after `NodeGraphPanel`, whose pointer it holds.

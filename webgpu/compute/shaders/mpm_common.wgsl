@@ -59,8 +59,13 @@ struct MpmSettings {
     domain_uv_min: vec2f, // region uv of the domain's min corner
 
     domain_uv_size: vec2f,
-    _pad0: f32,
-    _pad1: f32,
+    seed_anywhere: f32, // 1.0 = ignore the release point mask when seeding
+    splat_radius_texels: f32,
+
+    density_reference: f32, // coverage count that maps to full opacity
+    release_centre_x: f32, // region-relative metres
+    release_centre_y: f32,
+    release_radius: f32,
 }
 
 struct Particle {

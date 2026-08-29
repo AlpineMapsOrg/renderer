@@ -67,6 +67,12 @@ public:
         uint32_t grid_resolution_xy = 64u; // grid nodes along x and y
         uint32_t grid_resolution_z = 64u; // grid nodes along the vertical axis
 
+        /* Release (start) zone. Deliberately independent of the domain: a real avalanche
+         * starts in a small area and runs out over a much larger one, so the seeded disc
+         * is positioned in the region like the domain is, not derived from it. */
+        glm::fvec2 release_center = glm::fvec2(0.5f, 0.5f); // normalized position in the region
+        float release_radius = 120.0f; // [m]
+
         uint32_t num_particles = 65536u;
         float slab_thickness = 1.5f; // depth of the released snow slab [m]
         float snow_density = 400.0f; // [kg/m^3]
@@ -87,8 +93,18 @@ public:
         float gravity = 9.81f;
         float terrain_friction = 0.4f; // Coulomb friction against the terrain
 
-        uint32_t raster_resolution = 1024u; // output density raster / texture edge length
+        uint32_t raster_resolution = 512u; // output density raster / texture edge length
+
+        /* Particles are points; splatting them as single texels makes the result invisible
+         * at map scale. Each particle is drawn as a disc of this radius instead. */
+        float splat_radius = 6.0f; // [m]
+
         uint32_t random_seed = 1u;
+
+        /* Debug aid: fill the whole domain with snow instead of only the release areas.
+         * Useful to confirm the solver and the domain placement before hunting for a
+         * release area to sit on. */
+        bool seed_anywhere = false;
 
         bool reset_on_next_run = true;
     };
@@ -125,10 +141,15 @@ private:
         glm::fvec2 domain_uv_min;
 
         glm::fvec2 domain_uv_size;
-        float _pad0;
-        float _pad1;
+        float seed_anywhere; // 1.0 = ignore the release point mask when seeding
+        float splat_radius_texels;
+
+        float density_reference; // coverage count that maps to full opacity
+        float release_centre_x; // region-relative metres
+        float release_centre_y;
+        float release_radius;
     };
-    static_assert(sizeof(MpmSolverSettingsUniform) == 128, "uniform layout must match the WGSL struct");
+    static_assert(sizeof(MpmSolverSettingsUniform) == 144, "uniform layout must match the WGSL struct");
 
 public:
     MpmSolverNode(webgpu::Context& ctx);
@@ -143,6 +164,14 @@ public:
 
     /// Simulated time [s] accumulated since the last reset.
     float simulated_time() const { return m_simulated_time; }
+
+    /// World space bounds of the simulated box. Only meaningful after the first run.
+    const radix::geometry::Aabb<2, double>& domain_aabb() const { return m_domain_aabb; }
+
+    /// True when every input is both connected and actually carrying a resource.
+    /// Callers driving the solver directly (e.g. rerun() from the UI) must check this:
+    /// upstream nodes hand out null pointers until they have produced their outputs.
+    [[nodiscard]] bool has_valid_inputs();
 
     void serialize_settings(QJsonObject& out) const override;
     void deserialize_settings(const QJsonObject& in) override;

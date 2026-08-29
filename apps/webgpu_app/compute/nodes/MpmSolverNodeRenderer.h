@@ -38,8 +38,6 @@ public:
 private:
     nodes::MpmSolverNode* m_node;
 
-    /// While set, the node is re-run every frame to animate the avalanche.
-    bool m_playing = false;
 };
 
 } // namespace webgpu_app

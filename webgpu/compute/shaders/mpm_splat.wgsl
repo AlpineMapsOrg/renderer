@@ -40,9 +40,26 @@ fn computeMain(@builtin(global_invocation_id) id: vec3<u32>) {
         return;
     }
 
-    let texel = vec2u(vec2f(local.x, 1.0 - local.y) * vec2f(settings.raster_dim));
-    let clamped = min(texel, settings.raster_dim - vec2u(1));
-    let raster_index = clamped.y * settings.raster_dim.x + clamped.x;
+    let centre = vec2f(local.x, 1.0 - local.y) * vec2f(settings.raster_dim);
 
-    atomicAdd(&density_raster[raster_index], 1u);
+    // A particle stands for a parcel of snow, not a point - splat it as a disc, otherwise
+    // the result is a scatter of single texels and invisible at map scale.
+    let radius = settings.splat_radius_texels;
+    let extent = i32(ceil(radius));
+    let radius_sq = radius * radius;
+    let dim = vec2i(settings.raster_dim);
+
+    for (var dy = -extent; dy <= extent; dy++) {
+        for (var dx = -extent; dx <= extent; dx++) {
+            if f32(dx * dx + dy * dy) > radius_sq {
+                continue;
+            }
+            let texel = vec2i(centre) + vec2i(dx, dy);
+            if any(texel < vec2i(0)) || any(texel >= dim) {
+                continue;
+            }
+            let raster_index = u32(texel.y * dim.x + texel.x);
+            atomicAdd(&density_raster[raster_index], 1u);
+        }
+    }
 }

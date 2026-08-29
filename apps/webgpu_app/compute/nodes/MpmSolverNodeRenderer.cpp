@@ -20,6 +20,7 @@
 
 #include <cmath>
 #include <imgui.h>
+#include <nucleus/srs.h>
 #include <webgpu/compute/nodes/MpmSolverNode.h>
 
 namespace webgpu_app {
@@ -39,13 +40,34 @@ void MpmSolverNodeRenderer::render_settings_content()
     bool settings_changed = false;
     bool rerun = false;
 
+    // Upstream nodes hand out null resources until the graph has run end to end, so the
+    // transport controls stay inert until the solver actually has terrain to work with.
+    const bool ready = m_node->has_valid_inputs();
+    if (!ready) {
+        ImGui::TextColored(ImVec4(1.0f, 0.6f, 0.2f, 1.0f), "Inputs not ready.");
+        ImGui::TextDisabled("Run the full graph once (Shift+R), then step the solver.");
+        ImGui::Separator();
+    }
+
     // --- Transport ---
     ImGui::Text("Simulated time: %.2f s", double(m_node->simulated_time()));
 
-    if (ImGui::Button(m_playing ? "Pause" : "Play")) {
-        m_playing = !m_playing;
+    // Where the simulated box actually sits, so the domain is not an anonymous square.
+    const auto& aabb = m_node->domain_aabb();
+    if (aabb.size().x > 0.0) {
+        const glm::dvec2 centre = nucleus::srs::world_to_lat_long((aabb.min + aabb.max) * 0.5);
+        ImGui::Text("Domain centre: %.5f, %.5f", centre.x, centre.y);
+        if (ImGui::IsItemHovered())
+            ImGui::SetTooltip("Latitude, longitude of the simulated box.\nPaste into a map to see which slope this is.");
+    } else {
+        ImGui::TextDisabled("Domain centre: run the graph once");
     }
-    ImGui::SameLine();
+
+    // Play/Pause deliberately lives in the sidebar's Avalanche panel, not here: this
+    // settings panel only renders while the node is selected, so driving the animation
+    // from it would stop the moment the editor is closed. Step and Reset are one-shot and
+    // safe to keep alongside the parameters.
+    ImGui::BeginDisabled(!ready);
     if (ImGui::Button("Step")) {
         rerun = true;
     }
@@ -55,9 +77,8 @@ void MpmSolverNodeRenderer::render_settings_content()
         settings = m_node->get_settings();
         rerun = true;
     }
-    if (m_playing) {
-        ImGui::TextDisabled("Playing - keep this panel open to keep stepping.");
-    }
+    ImGui::EndDisabled();
+    ImGui::TextDisabled("Play/Pause: sidebar > Avalanche.");
 
     ImGui::Separator();
 
@@ -109,6 +130,19 @@ void MpmSolverNodeRenderer::render_settings_content()
     const uint32_t min_seed = 1, max_seed = 1000000;
     settings_changed |= ImGui::DragScalar("Random seed", ImGuiDataType_U32, &settings.random_seed, 1.0f, &min_seed, &max_seed);
 
+    if (ImGui::Checkbox("Seed anywhere (ignore release areas)", &settings.seed_anywhere)) {
+        settings_changed = true;
+        // Set the flag on the local copy - set_settings() below would otherwise overwrite
+        // whatever request_reset() had written straight onto the node.
+        settings.reset_on_next_run = true;
+        rerun = true;
+    }
+    if (ImGui::IsItemHovered()) {
+        ImGui::SetTooltip("Debug aid: fills the whole domain with snow.\n"
+                          "Use it to confirm the solver runs and to see where the domain\n"
+                          "sits before positioning it over a real release area.");
+    }
+
     ImGui::Separator();
 
     // --- Snow material (Stomakhin et al. 2013) ---
@@ -128,12 +162,19 @@ void MpmSolverNodeRenderer::render_settings_content()
     settings_changed |= ImGui::DragScalar("Output resolution", ImGuiDataType_U32, &settings.raster_resolution, 8.0f, &min_raster, &max_raster, "%u");
     rerun |= ImGui::IsItemDeactivatedAfterEdit();
 
+    settings_changed |= ImGui::DragFloat("Splat radius", &settings.splat_radius, 0.25f, 0.0f, 64.0f, "%.1f m");
+    if (ImGui::IsItemHovered()) {
+        ImGui::SetTooltip("Radius each particle is drawn with on the map.\n"
+                          "Too small and the result is an invisible scatter of single pixels.");
+    }
+    ImGui::TextDisabled("Output texel: %.1f m", double(settings.domain_size_xy / float(std::max(settings.raster_resolution, 1u))));
+
     if (settings_changed)
         m_node->set_settings(settings);
 
-    // Drive the animation. is_running() keeps runs from piling up if the GPU falls behind
-    // the UI frame rate.
-    if ((rerun || m_playing) && !m_node->is_running())
+    // One-shot steps only; continuous playback is driven by AvalanchePanel. `ready` keeps
+    // us from stepping a solver whose inputs are still null.
+    if (rerun && ready && !m_node->is_running())
         m_node->rerun();
 }
 

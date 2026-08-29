@@ -31,6 +31,7 @@
 #endif
 
 #include "atmosphere/AtmospherePanel.h"
+#include "avalanche/AvalanchePanel.h"
 #include "backends/imgui_impl_sdl2.h"
 #include "backends/imgui_impl_wgpu.h"
 #include "cloud/CloudPanel.h"
@@ -105,6 +106,9 @@ void ImGuiManager::init(
     m_panels.push_back(std::make_unique<TrackPanel>(engine_ctx, m_terrain_renderer));
 #ifdef ALP_WEBGPU_APP_ENABLE_COMPUTE
     m_panels.push_back(std::make_unique<NodeGraphPanel>(engine_ctx));
+    // Keeps a pointer to the graph panel so it can find the solver node in the active graph.
+    auto* node_graph_panel = static_cast<NodeGraphPanel*>((m_panels.end() - 1)->get());
+    m_panels.push_back(std::make_unique<AvalanchePanel>(node_graph_panel));
 #endif
     m_panels.push_back(std::make_unique<OverlaysPanel>(engine_ctx));
 
