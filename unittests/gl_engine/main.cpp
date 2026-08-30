@@ -58,23 +58,23 @@ CATCH_REGISTER_LISTENER(ProgressPrinter)
 
 int main( int argc, char* argv[] ) {
     std::fflush(stdout);
-    int argc_qt = 0;
-    QGuiApplication app = {argc_qt, argv};
-
     QSurfaceFormat fmt;
     fmt.setDepthBufferSize(24);
     fmt.setOption(QSurfaceFormat::DebugContext);
 
-    // Request OpenGL 3.3 core or OpenGL ES 3.0.
-    if (QOpenGLContext::openGLModuleType() == QOpenGLContext::LibGL) {
-        qDebug("Requesting 3.3 core context");
-        fmt.setVersion(3, 3);
-        fmt.setProfile(QSurfaceFormat::CoreProfile);
-    } else {
-        qDebug("Requesting 3.0 context");
-        fmt.setVersion(3, 0);
-    }
+#if QT_CONFIG(opengles2)
+    qDebug("Requesting 3.0 context");
+    fmt.setVersion(3, 0);
+#else
+    qDebug("Requesting 3.3 core context");
+    fmt.setRenderableType(QSurfaceFormat::OpenGL);
+    fmt.setVersion(3, 3);
+    fmt.setProfile(QSurfaceFormat::CoreProfile);
+#endif
     QSurfaceFormat::setDefaultFormat(fmt);
+
+    int argc_qt = 0;
+    QGuiApplication app = {argc_qt, argv};
 
     // Catch::Session().run(m_argc, m_argv); is in UnittestGlWindow::initializeGL()
     // to my understanding this is necessary for webassembly, because stuff is started

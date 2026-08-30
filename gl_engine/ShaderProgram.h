@@ -102,6 +102,7 @@ public:
 
     void set_uniform_array(const std::string& name, const std::vector<glm::vec4>& array);
     void set_uniform_array(const std::string& name, const std::vector<glm::vec3>& array);
+    void set_uniform_array(const std::string& name, const std::vector<int>& array);
 
     static void reset_shader_cache();
 

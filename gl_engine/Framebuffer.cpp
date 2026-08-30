@@ -56,6 +56,10 @@ QOpenGLTexture::TextureFormat internal_format_qt(Framebuffer::ColourFormat f)
     // return QOpenGLTexture::TextureFormat::RGBA16F;
     case Framebuffer::ColourFormat::R32UI:
         return QOpenGLTexture::TextureFormat::R32U;
+    case Framebuffer::ColourFormat::RG32UI:
+        return QOpenGLTexture::TextureFormat::RG32U;
+    case Framebuffer::ColourFormat::RGBA32UI:
+        return QOpenGLTexture::TextureFormat::RGBA32U;
     case Framebuffer::ColourFormat::RGBA32F:
         return QOpenGLTexture::TextureFormat::RGBA32F;
     }
@@ -84,6 +88,10 @@ GLenum format(Framebuffer::ColourFormat f)
     // return GL_RGBA;
     case Framebuffer::ColourFormat::R32UI:
         return GL_RED_INTEGER;
+    case Framebuffer::ColourFormat::RG32UI:
+        return GL_RG_INTEGER;
+    case Framebuffer::ColourFormat::RGBA32UI:
+        return GL_RGBA_INTEGER;
     case Framebuffer::ColourFormat::RGBA32F:
         return GL_RGBA;
     }
@@ -131,6 +139,8 @@ GLenum type(Framebuffer::ColourFormat f)
     // case Framebuffer::ColourFormat::RGBA16F:
     // return GL_HALF_FLOAT;
     case Framebuffer::ColourFormat::R32UI:
+    case Framebuffer::ColourFormat::RG32UI:
+    case Framebuffer::ColourFormat::RGBA32UI:
         return GL_UNSIGNED_INT;
     }
     Q_ASSERT(false);
@@ -254,6 +264,18 @@ void Framebuffer::bind()
     f->glBindFramebuffer(GL_FRAMEBUFFER, m_frame_buffer);
 }
 
+void Framebuffer::bind_for_drawing()
+{
+    QOpenGLFunctions* f = QOpenGLContext::currentContext()->functions();
+    f->glBindFramebuffer(GL_DRAW_FRAMEBUFFER, m_frame_buffer);
+}
+
+void Framebuffer::bind_for_reading()
+{
+    QOpenGLFunctions* f = QOpenGLContext::currentContext()->functions();
+    f->glBindFramebuffer(GL_READ_FRAMEBUFFER, m_frame_buffer);
+}
+
 void Framebuffer::bind_colour_texture(unsigned index, unsigned location)
 {
     Q_ASSERT(index < m_colour_textures.size());
@@ -314,6 +336,8 @@ T Framebuffer::read_colour_attachment_pixel(unsigned int index, const glm::dvec2
     // case Framebuffer::ColourFormat::RGB16F:
     // case Framebuffer::ColourFormat::RGBA16F:
     case Framebuffer::ColourFormat::R32UI: // fails on linux firefox
+    case Framebuffer::ColourFormat::RG32UI:
+    case Framebuffer::ColourFormat::RGBA32UI:
         // unsupported or untested.
         // you really should add a unit test if you move something down to the supported section
         // as the support accross platforms (webassembly, android, ios?) is patchy

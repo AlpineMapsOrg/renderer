@@ -28,11 +28,14 @@
 #include <nucleus/utils/ColourTexture.h>
 
 namespace gl_engine {
+class TextureCompressor;
+
 class Texture {
 public:
     enum class Target : GLenum { _2d = GL_TEXTURE_2D, _2dArray = GL_TEXTURE_2D_ARRAY }; // no 1D textures in webgl
     enum class Format {
         RGBA8, // normalised on gpu
+        RGB565, // normalised on gpu
         SRGBA8, // normalised on gpu
         CompressedRGBA8, // normalised on gpu, compression format depends on desktop/mobile
         RGBA8UI,
@@ -57,7 +60,8 @@ public:
 
     void bind(unsigned texture_unit);
     void setParams(Filter min_filter, Filter mag_filter, bool anisotropic_filtering = false);
-    void allocate_array(unsigned width, unsigned height, unsigned n_layers);
+    void allocate_array(unsigned width, unsigned height, unsigned n_layers, unsigned mip_levels = 0);
+    void generate_mipmaps();
     void upload(const nucleus::utils::ColourTexture& texture);
     void upload(const nucleus::utils::ColourTexture& texture, unsigned array_index);
     void upload(const nucleus::utils::MipmappedColourTexture& mipped_texture, unsigned array_index);
@@ -72,6 +76,8 @@ protected:
     static float max_anisotropy();
 
 private:
+    friend class TextureCompressor;
+
     GLuint m_id = GLuint(-1);
     Target m_target = Target::_2d;
     Format m_format = Format::Invalid;
@@ -80,6 +86,7 @@ private:
     unsigned m_width = unsigned(-1);
     unsigned m_height = unsigned(-1);
     unsigned m_n_layers = unsigned(-1);
+    unsigned m_mip_levels = unsigned(-1);
 };
 
 extern template void gl_engine::Texture::upload<uint16_t>(const radix::Raster<uint16_t>&);

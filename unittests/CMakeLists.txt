@@ -25,6 +25,7 @@ add_subdirectory(nucleus)
 
 if (TARGET gl_engine)
     add_subdirectory(gl_engine)
+    add_subdirectory(texture_compression_benchmark)
 endif()
 
 if (TARGET webgpu_engine)

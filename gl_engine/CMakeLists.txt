@@ -41,6 +41,7 @@ qt_add_library(gl_engine STATIC
     ShadowMapping.h ShadowMapping.cpp
     GpuAsyncQueryTimer.h GpuAsyncQueryTimer.cpp
     Texture.h Texture.cpp
+    TextureCompressor.h TextureCompressor.cpp
     TrackManager.h TrackManager.cpp
     Context.h Context.cpp
     TileGeometry.h TileGeometry.cpp
@@ -87,6 +88,8 @@ qt_add_resources(gl_engine "shaders"
     shaders/tile_id.glsl
     shaders/track.frag
     shaders/track.vert
+    shaders/texture_compress.frag
+    shaders/texture_copy.frag
     shaders/turbo_colormap.glsl
     shaders/intersection.glsl
     shaders/eaws.glsl

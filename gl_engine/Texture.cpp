@@ -19,9 +19,12 @@
 #include "Texture.h"
 #include "nucleus/utils/ColourTexture.h"
 
+#include <QDebug>
 #include <QOpenGLExtraFunctions>
 #include <QOpenGLFunctions>
 #include <QtAssert>
+#include <algorithm>
+#include <cmath>
 #ifdef __EMSCRIPTEN__
 #include <emscripten/html5_webgl.h>
 #endif
@@ -48,6 +51,8 @@ GlParams gl_tex_params(gl_engine::Texture::Format format)
         return { GLint(gl_engine::Texture::compressed_texture_format()), 0, 0, 0, 0, true };
     case F::RGBA8:
         return { GL_RGBA8, GL_RGBA, GL_UNSIGNED_BYTE, 4, 1, true };
+    case F::RGB565:
+        return { GL_RGB565, GL_RGB, GL_UNSIGNED_SHORT_5_6_5, 1, 2, true };
     case F::SRGBA8:
         return { GL_SRGB8_ALPHA8, GL_RGBA, GL_UNSIGNED_BYTE, 4, 1, true };
     case F::RGBA8UI:
@@ -114,22 +119,43 @@ void gl_engine::Texture::setParams(Filter min_filter, Filter mag_filter, bool an
         f->glTexParameterf(GLenum(m_target), max_anisotropy_param(), max_anisotropy());
 }
 
-void gl_engine::Texture::allocate_array(unsigned int width, unsigned int height, unsigned int n_layers)
+void gl_engine::Texture::allocate_array(unsigned int width, unsigned int height, unsigned int n_layers, unsigned mip_levels)
 {
     Q_ASSERT(m_target == Target::_2dArray);
     Q_ASSERT(m_format != Format::Invalid);
+    Q_ASSERT(width > 0);
+    Q_ASSERT(height > 0);
+    Q_ASSERT(n_layers > 0);
 
-    auto mip_level_count = 1;
-    if (m_min_filter == Filter::MipMapLinear)
-        mip_level_count = GLsizei(1 + std::floor(std::log2(std::max(width, height))));
+    const auto maximum_mip_levels = 1u + unsigned(std::floor(std::log2((std::max)(width, height))));
+    Q_ASSERT(mip_levels <= maximum_mip_levels);
+
+    auto mip_level_count = GLsizei(mip_levels);
+    if (mip_level_count == 0) {
+        mip_level_count = 1;
+        if (m_min_filter == Filter::MipMapLinear)
+            mip_level_count = GLsizei(1 + std::floor(std::log2(std::max(width, height))));
+    }
 
     m_width = width;
     m_height = height;
     m_n_layers = n_layers;
+    m_mip_levels = unsigned(mip_level_count);
 
     auto* f = QOpenGLContext::currentContext()->extraFunctions();
     f->glBindTexture(GLenum(m_target), m_id);
     f->glTexStorage3D(GLenum(m_target), mip_level_count, gl_tex_params(m_format).internal_format, GLsizei(width), GLsizei(height), GLsizei(n_layers));
+}
+
+void gl_engine::Texture::generate_mipmaps()
+{
+    Q_ASSERT(m_target == Target::_2dArray);
+    Q_ASSERT(m_mip_levels > 1);
+    Q_ASSERT(m_format != Format::CompressedRGBA8);
+    Q_ASSERT(gl_tex_params(m_format).is_texture_filterable);
+    auto* f = QOpenGLContext::currentContext()->extraFunctions();
+    f->glBindTexture(GLenum(m_target), m_id);
+    f->glGenerateMipmap(GLenum(m_target));
 }
 
 void gl_engine::Texture::upload(const nucleus::utils::ColourTexture& texture)

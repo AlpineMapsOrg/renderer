@@ -24,6 +24,7 @@ alp_add_unittest(unittests_gl_engine
     framebuffer.cpp
     uniformbuffer.cpp
     texture.cpp
+    texture_compressor.cpp
 )
 
 target_sources(unittests_gl_engine
@@ -32,4 +33,3 @@ target_sources(unittests_gl_engine
 )
 
 target_link_libraries(unittests_gl_engine PUBLIC gl_engine)
-

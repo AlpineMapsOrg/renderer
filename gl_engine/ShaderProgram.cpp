@@ -273,6 +273,15 @@ void ShaderProgram::set_uniform_array(const std::string& name, const std::vector
     m_q_shader_program->setUniformValueArray(uniform_location, reinterpret_cast<const float*>(array.data()), int(array.size()), 3);
 }
 
+void ShaderProgram::set_uniform_array(const std::string& name, const std::vector<int>& array)
+{
+    if (!m_cached_uniforms.contains(name))
+        m_cached_uniforms[name] = m_q_shader_program->uniformLocation(name.c_str());
+
+    const auto uniform_location = m_cached_uniforms.at(name);
+    m_q_shader_program->setUniformValueArray(uniform_location, array.data(), int(array.size()));
+}
+
 // Helper function because i get frustrated with the shader compile errors...
 // I want the actual line that an error relates to also outputed...
 void outputMeaningfullErrors(const QString& qtLog, const QString& code, const QString& file)

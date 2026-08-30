@@ -65,6 +65,25 @@ int main(int argc, char **argv)
 {
     // originalHandler = qInstallMessageHandler(filter_log);
     QQuickWindow::setGraphicsApi(QSGRendererInterface::GraphicsApi::OpenGLRhi);
+
+    QSurfaceFormat fmt;
+    fmt.setDepthBufferSize(24);
+#ifdef ALP_ENABLE_DEV_TOOLS
+    fmt.setOption(QSurfaceFormat::DebugContext);
+#endif
+
+    if (QOpenGLContext::openGLModuleType() == QOpenGLContext::LibGL) {
+        qDebug("Requesting 3.3 core context");
+        fmt.setRenderableType(QSurfaceFormat::OpenGL);
+        fmt.setVersion(3, 3);
+        fmt.setProfile(QSurfaceFormat::CoreProfile);
+    } else {
+        qDebug("Requesting 3.0 context");
+        fmt.setVersion(3, 0);
+    }
+
+    QSurfaceFormat::setDefaultFormat(fmt);
+
 #if defined(ALP_ENABLE_DEV_TOOLS) || defined(__ANDROID__)
     QApplication app(argc, argv);
 #else
@@ -121,23 +140,6 @@ int main(int argc, char **argv)
         }
     }
 
-    QSurfaceFormat fmt;
-    fmt.setDepthBufferSize(24);
-#ifdef ALP_ENABLE_DEV_TOOLS
-    fmt.setOption(QSurfaceFormat::DebugContext);
-#endif
-
-    if (QOpenGLContext::openGLModuleType() == QOpenGLContext::LibGL) {
-        qDebug("Requesting 3.3 core context");
-        fmt.setVersion(3, 3);
-        fmt.setProfile(QSurfaceFormat::CoreProfile);
-    } else {
-        qDebug("Requesting 3.0 context");
-        fmt.setVersion(3, 0);
-    }
-
-    QSurfaceFormat::setDefaultFormat(fmt);
-
     // create in main thread
 #ifdef ALP_ENABLE_DEV_TOOLS
     TimerFrontendManager::instance();
@@ -192,4 +194,3 @@ int main(int argc, char **argv)
 
     return app.exec();
 }
-

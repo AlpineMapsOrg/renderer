@@ -37,6 +37,7 @@ UnittestGLContext::UnittestGLContext()
     // Request OpenGL 3.3 core or OpenGL ES 3.0.
     if (QOpenGLContext::openGLModuleType() == QOpenGLContext::LibGL) {
         qDebug("Requesting 3.3 core context");
+        surface_format.setRenderableType(QSurfaceFormat::OpenGL);
         surface_format.setVersion(3, 3);
         surface_format.setProfile(QSurfaceFormat::CoreProfile);
     } else {
@@ -47,6 +48,7 @@ UnittestGLContext::UnittestGLContext()
     QSurfaceFormat::setDefaultFormat(surface_format);
     m_context.setFormat(surface_format);
 
+    surface.setFormat(surface_format);
     surface.create();
     const auto r = m_context.create();
     Q_ASSERT(r);

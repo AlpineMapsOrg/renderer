@@ -18,6 +18,9 @@
 
 #include <QPainter>
 #include <QtAssert>
+#include <array>
+#include <cmath>
+#include <limits>
 #include <catch2/catch_test_macros.hpp>
 
 #include "UnittestGLContext.h"
