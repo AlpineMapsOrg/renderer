@@ -13,6 +13,37 @@ capture of the terminal.
 
 ---
 
+## 2026-09-06
+
+### 1. "Make a folder mpm-mls-doc and document ... for my final report"
+
+Created `mpm-mls-doc/` — implementation notes in an informal, technical register (own-notes
+style, not a paper), sized for reuse in the final report.
+
+- `README.md` — index, 60-second orientation, honest status/gaps
+- `01-theory.md` — FLIP -> MPM -> MLS-MPM -> snow model; only the maths actually implemented,
+  with pointers into the papers; a table of every deliberate deviation from the literature
+- `02-files-and-api.md` — files added/changed, classes, methods, the null-socket gotcha
+- `03-shaders.md` — the eight kernels one at a time, dispatch order, why one compute pass
+- `04-data-layout.md` — struct layouts, fixed-point atomics, the mass-normalisation
+  argument, coordinate conventions, uniform alignment rules
+- `05-tuning.md` — what each knob does, failure-mode table, the resolution problem, how to
+  extend (incl. where CK-MPM and the 3D renderer would go)
+- `06-verification.md` — what was tested vs what wasn't, plus the bug post-mortems
+- `refs.md` — bibliography, numbering matching the Notion proposal
+- `scripts/` — `validate_wgsl.py`, `test_svd.py`, `test_mpm.py`
+
+Note on "quotes": interpreted as *citations*, not verbatim quotations — each section points
+at the specific paper/section/equation it follows rather than reproducing text. Better for a
+report anyway, since the wording has to be the author's own.
+
+The verification scripts had been lost when the session scratchpad was cleared overnight, so
+they were rewritten into `mpm-mls-doc/scripts/` with repo-relative paths and **re-run** to
+confirm the documented numbers rather than quoting them from memory: 8/8 kernels pass
+`tint`; SVD exact over 700+ matrices; MPM loop conserves mass at 150.00, rests at min z 3.00,
+mean jp 0.7456.
+
+
 ## 2026-08-29
 
 Model: Claude Opus 5 (repo overview answered by Sonnet 5 before the model switch).
