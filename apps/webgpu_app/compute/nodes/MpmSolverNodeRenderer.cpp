@@ -102,7 +102,13 @@ void MpmSolverNodeRenderer::render_settings_content()
     // --- Domain ---
     // Changing any of these reallocates GPU buffers, which forces a reseed.
     ImGui::TextDisabled("Domain (changes trigger a reset)");
-    settings_changed |= ImGui::SliderFloat2("Center in region", &settings.domain_center.x, 0.0f, 1.0f, "%.3f");
+    settings_changed |= ImGui::DragScalarN("Domain lat/lon", ImGuiDataType_Double, &settings.domain_center.x, 2, 0.0001f, nullptr, nullptr, "%.5f");
+    rerun |= ImGui::IsItemDeactivatedAfterEdit();
+
+    settings_changed |= ImGui::DragScalarN("Release lat/lon", ImGuiDataType_Double, &settings.release_center.x, 2, 0.0001f, nullptr, nullptr, "%.5f");
+    rerun |= ImGui::IsItemDeactivatedAfterEdit();
+
+    settings_changed |= ImGui::DragFloat("Release radius", &settings.release_radius, 2.0f, 1.0f, 2000.0f, "%.0f m");
     rerun |= ImGui::IsItemDeactivatedAfterEdit();
 
     settings_changed |= ImGui::DragFloat("Domain size", &settings.domain_size_xy, 8.0f, 64.0f, 8192.0f, "%.0f m");

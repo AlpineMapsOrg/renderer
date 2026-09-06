@@ -24,26 +24,74 @@
 #include <algorithm>
 #include <nucleus/srs.h>
 #include <webgpu/compute/NodeGraph.h>
+#include <webgpu/compute/nodes/GeoRegionNode.h>
 #include <webgpu/compute/nodes/MpmSolverNode.h>
+#include <webgpu/compute/nodes/SelectTilesNode.h>
 
 namespace webgpu_app {
 namespace nodes = webgpu_compute::nodes;
 
 AvalanchePanel::AvalanchePanel(NodeGraphPanel* graph_panel)
     : m_graph_panel(graph_panel)
+    , m_scenarios({
+          Scenario { "Breite Ries (Schneeberg)", "Gully on Austria's easternmost 2000er, 1931 m to 1364 m.",
+              glm::dvec2(47.77663, 15.81600), 2500.0f, 15, glm::dvec2(47.77663, 15.81600), 1600.0f, 128, glm::dvec2(47.77480, 15.81050), 100.0f, 1.5f },
+          Scenario { "Grossglockner (Pasterze side)", "Austria's highest summit, 3798 m, above the Pasterze glacier.",
+              glm::dvec2(47.07900, 12.70200), 4500.0f, 15, glm::dvec2(47.07900, 12.70200), 2600.0f, 128, glm::dvec2(47.07500, 12.69600), 150.0f, 2.0f },
+          Scenario { "Dachstein (Hallstatt Glacier)", "North side of the Dachstein plateau above the glacier.",
+              glm::dvec2(47.47800, 13.60600), 3500.0f, 15, glm::dvec2(47.47800, 13.60600), 2200.0f, 128, glm::dvec2(47.47300, 13.60400), 130.0f, 2.0f },
+      })
 {
 }
 
-nodes::MpmSolverNode* AvalanchePanel::find_solver() const
+template <typename T> T* AvalanchePanel::find_node() const
 {
     auto* graph = m_graph_panel->node_graph();
     if (graph == nullptr)
         return nullptr;
     for (auto& [name, node] : graph->get_nodes()) {
-        if (auto* solver = dynamic_cast<nodes::MpmSolverNode*>(node.get()))
-            return solver;
+        if (auto* typed = dynamic_cast<T*>(node.get()))
+            return typed;
     }
     return nullptr;
+}
+
+nodes::MpmSolverNode* AvalanchePanel::find_solver() const { return find_node<nodes::MpmSolverNode>(); }
+
+bool AvalanchePanel::apply_scenario(const Scenario& scenario)
+{
+    auto* graph = m_graph_panel->node_graph();
+    auto* region = find_node<nodes::GeoRegionNode>();
+    auto* solver = find_solver();
+    if (graph == nullptr || region == nullptr || solver == nullptr)
+        return false;
+
+    auto region_settings = region->get_settings();
+    region_settings.center_latitude = scenario.region_center.x;
+    region_settings.center_longitude = scenario.region_center.y;
+    region_settings.extent = scenario.region_extent;
+    region->set_settings(region_settings);
+
+    if (auto* tiles = find_node<nodes::SelectTilesNode>()) {
+        auto tile_settings = tiles->get_settings();
+        tile_settings.zoomlevel = scenario.zoomlevel;
+        tiles->set_settings(tile_settings);
+    }
+
+    auto solver_settings = solver->get_settings();
+    solver_settings.domain_center = scenario.domain_center;
+    solver_settings.domain_size_xy = scenario.domain_size;
+    solver_settings.grid_resolution_xy = scenario.grid_resolution;
+    solver_settings.grid_resolution_z = scenario.grid_resolution;
+    solver_settings.release_center = scenario.release_center;
+    solver_settings.release_radius = scenario.release_radius;
+    solver_settings.slab_thickness = scenario.slab_thickness;
+    solver_settings.reset_on_next_run = true;
+    solver->set_settings(solver_settings);
+
+    m_playing = false; // the terrain has to be fetched and stitched before stepping again
+    graph->run();
+    return true;
 }
 
 void AvalanchePanel::draw()
@@ -71,6 +119,31 @@ void AvalanchePanel::draw_panel()
 
     if (!ImGui::CollapsingHeader(ICON_FA_SNOWFLAKE "  Avalanche", ImGuiTreeNodeFlags_DefaultOpen))
         return;
+
+    // --- Location ---
+    // Needs a GeoRegionNode in the graph; a GPX-driven graph has no coordinates to set.
+    const bool can_switch_location = find_node<nodes::GeoRegionNode>() != nullptr;
+    ImGui::BeginDisabled(!can_switch_location);
+    std::vector<const char*> names;
+    names.reserve(m_scenarios.size());
+    for (const auto& scenario : m_scenarios)
+        names.push_back(scenario.name.c_str());
+    if (ImGui::Combo("Location", &m_selected_scenario, names.data(), int(names.size()))) {
+        m_scenario_error = apply_scenario(m_scenarios[size_t(m_selected_scenario)])
+            ? std::string {}
+            : std::string { "Could not apply - the active graph has no GeoRegionNode." };
+    }
+    ImGui::EndDisabled();
+
+    if (!can_switch_location) {
+        ImGui::TextDisabled("Load the MLS-MPM preset to switch location.");
+    } else {
+        ImGui::TextDisabled("%s", m_scenarios[size_t(m_selected_scenario)].note.c_str());
+    }
+    if (!m_scenario_error.empty())
+        ImGui::TextColored(ImVec4(1.0f, 0.4f, 0.4f, 1.0f), "%s", m_scenario_error.c_str());
+
+    ImGui::Separator();
 
     const bool ready = solver->has_valid_inputs();
     if (!ready) {
@@ -113,7 +186,7 @@ void AvalanchePanel::draw_panel()
 
     // Domain changes reallocate GPU buffers, so they reseed - apply them on release only.
     ImGui::TextDisabled("Simulation domain (changes reset the run)");
-    settings_changed |= ImGui::SliderFloat2("Centre in region", &settings.domain_center.x, 0.0f, 1.0f, "%.3f");
+    settings_changed |= ImGui::DragScalarN("Domain lat/lon", ImGuiDataType_Double, &settings.domain_center.x, 2, 0.0001f, nullptr, nullptr, "%.5f");
     step_now |= ImGui::IsItemDeactivatedAfterEdit();
     settings_changed |= ImGui::DragFloat("Domain size", &settings.domain_size_xy, 16.0f, 64.0f, 16384.0f, "%.0f m");
     step_now |= ImGui::IsItemDeactivatedAfterEdit();
@@ -141,7 +214,7 @@ void AvalanchePanel::draw_panel()
 
     // Release zone is independent of the domain: small start area, large runout box.
     ImGui::TextDisabled("Release zone (changes reset the run)");
-    settings_changed |= ImGui::SliderFloat2("Release centre", &settings.release_center.x, 0.0f, 1.0f, "%.3f");
+    settings_changed |= ImGui::DragScalarN("Release lat/lon", ImGuiDataType_Double, &settings.release_center.x, 2, 0.0001f, nullptr, nullptr, "%.5f");
     step_now |= ImGui::IsItemDeactivatedAfterEdit();
     settings_changed |= ImGui::DragFloat("Release radius", &settings.release_radius, 2.0f, 1.0f, 2000.0f, "%.0f m");
     step_now |= ImGui::IsItemDeactivatedAfterEdit();

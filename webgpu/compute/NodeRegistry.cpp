@@ -28,6 +28,7 @@
 #include "nodes/HeightDecodeNode.h"
 #include "nodes/IterativeSimulationNode.h"
 #include "nodes/LoadTextureNode.h"
+#include "nodes/GeoRegionNode.h"
 #include "nodes/MpmSolverNode.h"
 #include "nodes/RequestTilesNode.h"
 #include "nodes/SelectTilesNode.h"
@@ -53,6 +54,7 @@ NodeRegistry::NodeRegistry()
     register_node("ComputeSnowNode", [](webgpu::Context& c) { return std::make_unique<nodes::ComputeSnowNode>(c); });
     register_node("IterativeSimulationNode", [](webgpu::Context& c) { return std::make_unique<nodes::IterativeSimulationNode>(c); });
     register_node("MpmSolverNode", [](webgpu::Context& c) { return std::make_unique<nodes::MpmSolverNode>(c); });
+    register_node("GeoRegionNode", [](webgpu::Context&) { return std::make_unique<nodes::GeoRegionNode>(); });
     register_node("ExportNode", [](webgpu::Context& c) { return std::make_unique<nodes::ExportNode>(c); });
     register_node("LoadTextureNode", [](webgpu::Context& c) { return std::make_unique<nodes::LoadTextureNode>(c); });
 }

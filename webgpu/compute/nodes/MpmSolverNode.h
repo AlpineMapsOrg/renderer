@@ -59,9 +59,10 @@ public:
 
     struct MpmSolverSettings {
         /* Simulation domain. The solver works on a box that is normally much smaller than
-         * the region the terrain nodes prepared - `domain_center` positions it inside that
-         * region in normalized coordinates. */
-        glm::fvec2 domain_center = glm::fvec2(0.5f, 0.5f);
+         * the region the terrain nodes prepared. Anchored geographically rather than as a
+         * fraction of the region, so a scenario stays put when the region changes size or
+         * snaps to different tile boundaries. */
+        glm::dvec2 domain_center = glm::dvec2(47.77663, 15.81600); // latitude, longitude
         float domain_size_xy = 1024.0f; // horizontal edge length [m]
 
         uint32_t grid_resolution_xy = 64u; // grid nodes along x and y
@@ -70,7 +71,7 @@ public:
         /* Release (start) zone. Deliberately independent of the domain: a real avalanche
          * starts in a small area and runs out over a much larger one, so the seeded disc
          * is positioned in the region like the domain is, not derived from it. */
-        glm::fvec2 release_center = glm::fvec2(0.5f, 0.5f); // normalized position in the region
+        glm::dvec2 release_center = glm::dvec2(47.77480, 15.81050); // latitude, longitude
         float release_radius = 120.0f; // [m]
 
         uint32_t num_particles = 65536u;

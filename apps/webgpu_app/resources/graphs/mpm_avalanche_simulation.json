@@ -2,16 +2,6 @@
     "connections": [
         {
             "from": {
-                "node": "GPX Input",
-                "socket": "region"
-            },
-            "to": {
-                "node": "Select Tiles",
-                "socket": "region"
-            }
-        },
-        {
-            "from": {
                 "node": "Select Tiles",
                 "socket": "tile ids"
             },
@@ -139,21 +129,22 @@
                 "node": "Overlay",
                 "socket": "region aabb"
             }
+        },
+        {
+            "from": {
+                "node": "Region",
+                "socket": "region"
+            },
+            "to": {
+                "node": "Select Tiles",
+                "socket": "region"
+            }
         }
     ],
     "first_run_notice": "WARNING: RESEARCH PREVIEW\n\nThis MLS-MPM snow simulation is for educational and illustrative purposes only.\nIt is not calibrated against real snowpack or terrain conditions and must NOT be\nused for route planning or any avalanche safety decision.\n\nOpen the MPM Solver node's settings and press Play to run the simulation.",
     "format": "webigeo/node-graph",
     "name": "mpm_avalanche_simulation_graph",
     "nodes": [
-        {
-            "enabled": true,
-            "name": "GPX Input",
-            "settings": {
-                "enable_caching": true,
-                "file_path": ":/gpx/breite_ries.gpx"
-            },
-            "type": "GPXTrackNode"
-        },
         {
             "enabled": true,
             "name": "Height Decode",
@@ -172,8 +163,6 @@
             "name": "MPM Solver",
             "type": "MpmSolverNode",
             "settings": {
-                "domain_center_x": 0.41,
-                "domain_center_y": 0.53,
                 "domain_size_xy": 1600.0,
                 "grid_resolution_xy": 128,
                 "grid_resolution_z": 128,
@@ -192,10 +181,12 @@
                 "raster_resolution": 512,
                 "random_seed": 1,
                 "splat_radius": 8.0,
-                "release_center_x": 0.15,
-                "release_center_y": 0.46,
                 "release_radius": 100.0,
-                "seed_anywhere": true
+                "seed_anywhere": true,
+                "domain_center_lat": 47.77663,
+                "domain_center_lon": 15.816,
+                "release_center_lat": 47.7748,
+                "release_center_lon": 15.8105
             }
         },
         {
@@ -218,6 +209,18 @@
                 "copy": false
             },
             "type": "OverlayRenderNode"
+        },
+        {
+            "enabled": true,
+            "name": "Region",
+            "type": "GeoRegionNode",
+            "settings": {
+                "center_latitude": 47.77663,
+                "center_longitude": 15.816,
+                "extent": 2500.0,
+                "min_altitude": 0.0,
+                "max_altitude": 4000.0
+            }
         },
         {
             "enabled": true,
@@ -280,12 +283,6 @@
     ],
     "ui": {
         "nodes": {
-            "GPX Input": {
-                "position": [
-                    112.54681396484375,
-                    668.1796875
-                ]
-            },
             "Select Tiles": {
                 "position": [
                     237.54681396484375,
@@ -332,6 +329,12 @@
                 "position": [
                     980.0,
                     400.0
+                ]
+            },
+            "Region": {
+                "position": [
+                    112.0,
+                    668.0
                 ]
             }
         }

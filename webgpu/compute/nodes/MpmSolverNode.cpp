@@ -201,7 +201,10 @@ void MpmSolverNode::update_gpu_settings(const radix::geometry::Aabb<2, double>& 
     const float dx = domain_size / float(m_allocated_grid_res.x);
 
     // Place the domain inside the region and keep it fully covered by the terrain data.
-    const glm::fvec2 requested_origin = glm::clamp(m_settings.domain_center, glm::fvec2(0.0f), glm::fvec2(1.0f)) * region_size - glm::fvec2(domain_size * 0.5f);
+    // Geographic anchors are converted here, where the region bounds are known, so tile
+    // snapping cannot move the scenario relative to the ground.
+    const glm::dvec2 domain_centre_world = nucleus::srs::lat_long_to_world(m_settings.domain_center);
+    const glm::fvec2 requested_origin = glm::fvec2(domain_centre_world - region_aabb.min) - glm::fvec2(domain_size * 0.5f);
     const glm::fvec2 max_origin = glm::max(region_size - glm::fvec2(domain_size), glm::fvec2(0.0f));
     const glm::fvec2 domain_origin = glm::clamp(requested_origin, glm::fvec2(0.0f), max_origin);
 
@@ -242,12 +245,17 @@ void MpmSolverNode::update_gpu_settings(const radix::geometry::Aabb<2, double>& 
     const float radius_texels = std::clamp(std::max(m_settings.splat_radius, 0.0f) / metres_per_texel, 0.5f, 8.0f);
     data.splat_radius_texels = radius_texels;
 
-    // Release zone, in region-relative metres, clamped into the domain so seeding can succeed.
-    const glm::fvec2 release_centre
-        = glm::clamp(m_settings.release_center, glm::fvec2(0.0f), glm::fvec2(1.0f)) * region_size;
+    // Release zone, in region-relative metres. Clamped into the domain (with a margin for
+    // its own radius) so a slightly misplaced scenario still seeds instead of silently
+    // producing nothing.
+    const glm::dvec2 release_world = nucleus::srs::lat_long_to_world(m_settings.release_center);
+    data.release_radius = std::clamp(m_settings.release_radius, 1.0f, domain_size * 0.4f);
+    const float margin = data.release_radius + 2.0f * dx;
+    const glm::fvec2 release_centre = glm::clamp(glm::fvec2(release_world - region_aabb.min),
+        domain_origin + glm::fvec2(margin),
+        domain_origin + glm::fvec2(domain_size - margin));
     data.release_centre_x = release_centre.x;
     data.release_centre_y = release_centre.y;
-    data.release_radius = std::clamp(m_settings.release_radius, 1.0f, domain_size * 0.5f);
 
     // Reference coverage for full opacity. Derived from the release disc rather than the
     // whole domain: the snow starts concentrated there, and basing the scale on the domain
@@ -433,8 +441,8 @@ std::unique_ptr<webgpu::raii::TextureWithSampler> MpmSolverNode::create_output_t
 void MpmSolverNode::serialize_settings(QJsonObject& out) const
 {
     const auto& s = m_settings;
-    out["domain_center_x"] = s.domain_center.x;
-    out["domain_center_y"] = s.domain_center.y;
+    out["domain_center_lat"] = s.domain_center.x;
+    out["domain_center_lon"] = s.domain_center.y;
     out["domain_size_xy"] = s.domain_size_xy;
     out["grid_resolution_xy"] = static_cast<int>(s.grid_resolution_xy);
     out["grid_resolution_z"] = static_cast<int>(s.grid_resolution_z);
@@ -452,8 +460,8 @@ void MpmSolverNode::serialize_settings(QJsonObject& out) const
     out["terrain_friction"] = s.terrain_friction;
     out["raster_resolution"] = static_cast<int>(s.raster_resolution);
     out["splat_radius"] = s.splat_radius;
-    out["release_center_x"] = s.release_center.x;
-    out["release_center_y"] = s.release_center.y;
+    out["release_center_lat"] = s.release_center.x;
+    out["release_center_lon"] = s.release_center.y;
     out["release_radius"] = s.release_radius;
     out["random_seed"] = static_cast<int>(s.random_seed);
     out["seed_anywhere"] = s.seed_anywhere;
@@ -463,11 +471,12 @@ void MpmSolverNode::deserialize_settings(const QJsonObject& in)
 {
     auto& s = m_settings;
     const auto read_float = [&in](const char* key, float fallback) { return in.contains(key) ? float(in[key].toDouble(fallback)) : fallback; };
+    const auto read_double = [&in](const char* key, double fallback) { return in.contains(key) ? in[key].toDouble(fallback) : fallback; };
     const auto read_uint
         = [&in](const char* key, uint32_t fallback) { return in.contains(key) ? uint32_t(in[key].toInt(static_cast<int>(fallback))) : fallback; };
 
-    s.domain_center.x = read_float("domain_center_x", s.domain_center.x);
-    s.domain_center.y = read_float("domain_center_y", s.domain_center.y);
+    s.domain_center.x = read_double("domain_center_lat", s.domain_center.x);
+    s.domain_center.y = read_double("domain_center_lon", s.domain_center.y);
     s.domain_size_xy = read_float("domain_size_xy", s.domain_size_xy);
     s.grid_resolution_xy = read_uint("grid_resolution_xy", s.grid_resolution_xy);
     s.grid_resolution_z = read_uint("grid_resolution_z", s.grid_resolution_z);
@@ -485,8 +494,8 @@ void MpmSolverNode::deserialize_settings(const QJsonObject& in)
     s.terrain_friction = read_float("terrain_friction", s.terrain_friction);
     s.raster_resolution = read_uint("raster_resolution", s.raster_resolution);
     s.splat_radius = read_float("splat_radius", s.splat_radius);
-    s.release_center.x = read_float("release_center_x", s.release_center.x);
-    s.release_center.y = read_float("release_center_y", s.release_center.y);
+    s.release_center.x = read_double("release_center_lat", s.release_center.x);
+    s.release_center.y = read_double("release_center_lon", s.release_center.y);
     s.release_radius = read_float("release_radius", s.release_radius);
     s.random_seed = read_uint("random_seed", s.random_seed);
     if (in.contains("seed_anywhere"))

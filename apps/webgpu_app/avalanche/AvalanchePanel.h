@@ -20,8 +20,15 @@
 
 #include "ui/ImGuiPanel.h"
 
+#include <glm/glm.hpp>
+#include <string>
+#include <vector>
+
 namespace webgpu_compute::nodes {
 class MpmSolverNode;
+class GeoRegionNode;
+class SelectTilesNode;
+class Node;
 }
 
 namespace webgpu_app {
@@ -38,6 +45,25 @@ class AvalanchePanel : public ImGuiPanel {
     Q_OBJECT
 
 public:
+    /// A place the user can pick, expressed geographically so it does not depend on the
+    /// tiles the graph happens to load.
+    struct Scenario {
+        std::string name;
+        std::string note; // one-line description shown under the picker
+
+        glm::dvec2 region_center; // latitude, longitude
+        float region_extent; // terrain to load around the centre [m]
+        uint32_t zoomlevel; // tile zoom; lower means larger area, coarser DEM
+
+        glm::dvec2 domain_center; // latitude, longitude
+        float domain_size; // [m]
+        uint32_t grid_resolution;
+
+        glm::dvec2 release_center; // latitude, longitude
+        float release_radius; // [m]
+        float slab_thickness; // [m]
+    };
+
     explicit AvalanchePanel(NodeGraphPanel* graph_panel);
 
     // Advances the simulation. Runs every frame, independent of any panel visibility.
@@ -50,9 +76,20 @@ private:
     /// the graph and every node in it.
     webgpu_compute::nodes::MpmSolverNode* find_solver() const;
 
+    /// Finds the first node of the given type in the active graph, or nullptr.
+    template <typename T> T* find_node() const;
+
+    /// Writes the scenario into the region, tile and solver nodes and re-runs the graph.
+    /// Returns false when the active graph cannot express it (e.g. no GeoRegionNode).
+    bool apply_scenario(const Scenario& scenario);
+
 private:
     NodeGraphPanel* m_graph_panel;
     bool m_playing = false;
+
+    std::vector<Scenario> m_scenarios;
+    int m_selected_scenario = 0;
+    std::string m_scenario_error;
 };
 
 } // namespace webgpu_app
