@@ -110,11 +110,15 @@ struct GridNode {
     vz: atomic<i32>,
 }
 
+// Read back to the CPU after every run (see MpmSolverNode::SimStateReadback). Slots 0-2 are
+// written once per reset; slots 3-4 are zeroed by the CPU before every run.
 struct SimState {
     min_altitude_cm: atomic<i32>,
     max_altitude_cm: atomic<i32>,
     active_particles: atomic<u32>,
     max_speed_mm: atomic<u32>,
+    plastic_particles: atomic<u32>, // particles whose plastic state has left its initial value
+    _reserved: atomic<u32>,
 }
 
 // Result of a constitutive model's plastic return mapping (see mpm_material.wgsl).

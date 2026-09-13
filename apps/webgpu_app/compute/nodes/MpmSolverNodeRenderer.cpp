@@ -155,7 +155,13 @@ void MpmSolverNodeRenderer::render_settings_content()
     // Model-specific parameters are shown only for the active model; the combo strings
     // must stay in enum order.
     ImGui::TextDisabled("Constitutive model (internal snow behaviour)");
+    const auto previous_model = settings.constitutive_model;
     settings_changed |= ImGui::Combo("Material model", reinterpret_cast<int*>(&settings.constitutive_model), "Stomakhin 2013\0Drucker-Prager (Klar 2016)\0Cohesive Cam Clay (Gaume 2018)\0");
+    if (settings.constitutive_model != previous_model) {
+        // plastic_state is model-specific (Jp / plastic strain / alpha): reseed on switch
+        settings.reset_on_next_run = true;
+        rerun = true;
+    }
 
     // Stiffness is shared by every model; only the plasticity parameters are model-specific.
     settings_changed |= ImGui::DragFloat("Young's modulus", &settings.youngs_modulus, 1000.0f, 1.0e3f, 1.0e7f, "%.0f Pa");

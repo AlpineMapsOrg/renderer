@@ -50,7 +50,7 @@ Three files carry no entry point; kernels `///use` them.
 | Module | Provides | Used by |
 |---|---|---|
 | `mpm_common` | bindings, structs, terrain sampling, B-spline kernel, SVD, matrix helpers | all |
-| `mpm_material` | `material_initial_state()`, `material_stress()`, `material_plasticity()` — a `switch` on `settings.constitutive_model` over `mpm_material_stomakhin` / `mpm_material_drucker_prager` / `mpm_material_ccc` | seed, p2g, g2p |
+| `mpm_material` | `material_initial_state()`, `material_stress()`, `material_plasticity()` — a `switch` on `settings.constitutive_model` over `mpm_material_stomakhin` / `mpm_material_drucker_prager` / `mpm_material_ccc` | seed, p2g, g2p, splat |
 | `mpm_friction` | `resolve_terrain_collision(v, n, apply_basal_drag)` — a `switch` on `settings.basal_friction_model`; Coulomb, Voellmy | grid_update (`true`), g2p (`false`) |
 
 `mpm_material` and `mpm_friction` are separate on purpose: internal friction (M, inside the
@@ -166,7 +166,9 @@ wrong results.
 
 ## `mpm_splat` — 256×1×1, over particles
 
-Projects particles top-down into the density raster. Each particle is drawn as a **disc** of
+Also counts, once per run, particles whose `plastic_state` has left its initial value into
+`SimState.plastic_particles` — the plastic-particle-ratio diagnostic. Then projects
+particles top-down into the density raster. Each particle is drawn as a **disc** of
 `splat_radius_texels` (capped at 8), not a single texel:
 
 ```

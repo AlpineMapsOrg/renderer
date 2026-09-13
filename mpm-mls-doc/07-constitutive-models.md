@@ -16,7 +16,7 @@ too.
 |---|---|
 | MLS-MPM solver | **done** |
 | A constitutive model — Stomakhin [5] *or* successors Gaume CCC [11], Li et al. [12,13] | **done** — Stomakhin, Drucker–Prager and Cohesive Cam Clay behind a switch |
-| Model is configurable / regime presets (Li 2021 Table 1) | switch done; **presets still to do** (step 5) |
+| Model is configurable / regime presets (Li 2021 Table 1) | **done** — switch + seven presets in the sidebar |
 | Basal friction via simple Coulomb using terrain normals | **done**; Voellmy added alongside (2026-09-13) |
 | Single-particle rendering | not done (2D density overlay instead) |
 | Entrainable material along the flow path | **not done** |
@@ -152,11 +152,38 @@ flattens to a pancake (mean z 3.02) because impact pressure ~14 kPa is far above
 and Cam-Clay loses shear strength above p₀ — the opposite of DP's cone; strong Case III
 (p₀ 42 kPa) piles at 4.13, alongside Stomakhin's 4.00. Both come to rest, unlike DP.
 
+### 2f. Regime presets and the diagnostics readback — 2026-09-13
+
+`AvalanchePanel::MaterialPreset`, seven entries behind a "Material preset" combo: Stomakhin
+2013 (film snow); Li 2021 Cases I–IV (cold dense, warm shear, sliding slab, warm plug) and
+Case V (Vallée de la Sionne 2003); and a Drucker–Prager cold-dense fallback with φ ≈ 13.3°
+derived from M = 0.5. Presets **write the ordinary settings** — model, E, ν, ρ, μ and the
+model-specific parameters — and are not a third configuration path. Applying one forces a
+reseed and pulls `dt` under the new CFL bound (Li's 3 MPa is ~6× the wave speed of
+Stomakhin's 0.14 MPa; without this the first run would explode). Hand-editing any material
+parameter drops the combo back to "(custom)".
+
+**Bug fixed along the way:** switching the material combo did not reseed, so particles
+seeded under Stomakhin (`plastic_state = Jp = 1`) were interpreted by Cam-Clay as
+`α = 1` — fully softened, `p₀ = 0`, a material that carries no stress. Any model switch
+now forces `reset_on_next_run` in both panels.
+
+**Diagnostics readback.** `SimState` gained `plastic_particles`, counted once per run in
+`mpm_splat` as particles whose `plastic_state` has left `material_initial_state()`. The
+state buffer is now allocated **once, in the constructor** — it is fixed-size, and an async
+readback in flight across an `ensure_resources()` reallocation would be a use-after-free.
+Per-run counters (max speed, plastic count) are zeroed by a 2-slot `write()` before each
+non-reset run; the terrain scan and seed count survive. `read_back_state()` runs from the
+work-done callback and fills `last_state()`, which the sidebar shows as
+"N particles, X % plastic, max V m/s, terrain A–B m". It lags one run behind.
+
+First real-terrain diagnostic ever read back (Breite Ries preset, 0.24 s simulated):
+131072 active, 968 plastic (0.7 %), max 1.57 m/s (≈ `g·sinθ·t`), terrain 1303–2060 m.
+
 ### 2c. Not implemented
 
 - ~~**Gaume 2018 Cohesive Cam Clay**~~ — **done 2026-09-13**, see §2e.
-- **Li 2020/2021 regime presets** — the parameters now exist (M, β, ξ, p₀); the preset
-  table itself is step 5.
+- ~~**Li 2020/2021 regime presets**~~ — **done 2026-09-13**, see §2f.
 - ~~**Model selection**~~ — **done 2026-09-13.** `ConstitutiveModel` / `BasalFrictionModel`
   enums, `u32` uniform fields, runtime `switch` dispatchers, combos in both panels.
 - ~~**Drucker–Prager**~~ — **done 2026-09-13**, see §2d.
@@ -302,9 +329,8 @@ E = 3 MPa, ρ = 250 the wave speed is ~110 m/s vs ~19 m/s at Stomakhin's values,
 allowed dt drops ~6×. The CFL readout already uses the shared E, so switching a preset will
 show it.
 
-**5. Regime presets** from §3f in the sidebar, plus a plastic-particle-ratio readout
-(Li 2021 reports 77 / 26 / 10 / 34 % for Cases I–IV — a cheap sanity metric that needs the
-`active_particles`-style readback that is still missing).
+**5. Regime presets** ✅ **Done 2026-09-13.** See §2f — presets, the plastic-particle
+readout, and the readback it needed.
 
 **6. Energy-line validation** (com1DFA §5.2). GPU reduction of centre-of-mass and kinetic
 energy per run, then check the energy balance along the path. Answers "how do you know this

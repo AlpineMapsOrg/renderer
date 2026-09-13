@@ -222,6 +222,18 @@ public:
     /// World space bounds of the simulated box. Only meaningful after the first run.
     const radix::geometry::Aabb<2, double>& domain_aabb() const { return m_domain_aabb; }
 
+    /// Diagnostics read back from the GPU after each run. Arrives asynchronously, so it
+    /// describes the *previous* completed run; `valid` is false until the first readback.
+    struct SimStateReadback {
+        bool valid = false;
+        float min_altitude = 0.0f; // terrain scan in the domain [m]
+        float max_altitude = 0.0f;
+        uint32_t active_particles = 0; // seeded successfully
+        float max_speed = 0.0f; // fastest particle in the last run [m/s]
+        uint32_t plastic_particles = 0; // plastic state has left its initial value
+    };
+    const SimStateReadback& last_state() const { return m_last_state; }
+
     /// True when every input is both connected and actually carrying a resource.
     /// Callers driving the solver directly (e.g. rerun() from the UI) must check this:
     /// upstream nodes hand out null pointers until they have produced their outputs.
@@ -240,6 +252,11 @@ private:
     void create_bind_group(const webgpu::raii::TextureWithSampler& height_texture, const webgpu::raii::TextureWithSampler& release_point_texture);
     void update_gpu_settings(const radix::geometry::Aabb<2, double>& region_aabb, const webgpu::raii::TextureWithSampler& height_texture);
     void write_initial_state();
+    /// Zeroes the per-run counters (max speed, plastic particles) without touching the
+    /// terrain scan or the seed count.
+    void reset_run_counters();
+    /// Issues the asynchronous readback of SimState into m_last_state.
+    void read_back_state();
 
     static std::unique_ptr<webgpu::raii::TextureWithSampler> create_output_texture(WGPUDevice device, uint32_t width, uint32_t height);
 
@@ -273,6 +290,7 @@ private:
     radix::geometry::Aabb<2, double> m_domain_aabb;
     glm::uvec2 m_output_dimensions = glm::uvec2(0);
     float m_simulated_time = 0.0f;
+    SimStateReadback m_last_state;
 };
 
 } // namespace webgpu_compute::nodes

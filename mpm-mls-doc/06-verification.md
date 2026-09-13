@@ -166,6 +166,22 @@ Weak snow flattens on impact (14 kPa ≫ 3 kPa cap — Cam-Clay loses shear stre
 p₀, the opposite of the cone), strong snow piles like Stomakhin. Same code, four parameters
 changed, behaviour moves the way Li et al. describe. Both CCC cases come to rest; DP does not.
 
+## 4f. Diagnostics readback — end to end on real terrain
+
+The async GPU→CPU readback is a path neither `tint` nor the offline ports touch, so it was
+checked by temporarily auto-running the graph on load and logging what came back
+(Breite Ries preset, 24 substeps × 0.01 s = 0.24 s simulated):
+
+| Value | Read back | Sanity |
+|---|---|---|
+| active particles | 131072 | all seeded (`seed_anywhere` on in the preset) |
+| plastic particles | 968 (0.7 %) | slab barely moving yet; only edges have yielded |
+| max speed | 1.57 m/s | `g·sinθ·t` on a ~35° slope ≈ 1.4 m/s |
+| terrain range | 1303–2060 m | Schneeberg domain; track spans 1364–1931 m |
+
+Every number is physically plausible, and it is the first real-terrain diagnostic the solver
+has ever produced. Temporary changes reverted.
+
 ## 5. On real terrain
 
 Runs end to end on the Schneeberg DEM: seeds, flows downhill, deposits, animates, and the
@@ -199,6 +215,11 @@ Worth keeping — they are the interesting part of the implementation story.
 
 5. **`qDebug()` is filtered** in this app's logger — use `qInfo()` for anything that needs to
    show up in the console. Cost an entire debugging round to notice.
+
+6. **Switching the material model without reseeding.** `plastic_state` is model-specific.
+   Stomakhin's `Jp = 1` read as Cam-Clay's `α = 1` is a fully softened material with
+   `p₀ = 0` that carries no stress. Found while adding presets; both panels now force a
+   reset on any model change.
 
 ## Re-running the checks
 

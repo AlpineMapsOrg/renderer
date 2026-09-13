@@ -18,6 +18,23 @@
 | `voellmy_xi` | 4000 m/s² | Voellmy only. Turbulent drag `g|v|²/(ξ·h)`; lower ξ = more drag, lower terminal speed. |
 | `splat_radius` | 6 m | **Display only.** Too small = invisible. |
 
+## Start from a preset
+
+The sidebar's **Material preset** combo writes a coherent parameter set — model, E, ν, ρ,
+μ and the model's own parameters — and pulls `dt` under the resulting CFL bound. Seven
+entries: Stomakhin 2013; Li 2021 Cases I–IV (cold dense / warm shear / sliding slab / warm
+plug) and V (Vallée de la Sionne 2003, the real-avalanche back-calculation); and a
+Drucker–Prager cold-dense fallback. Hand-editing anything afterwards drops it to "(custom)".
+
+Two traps from the Li papers, already baked in so they aren't rediscovered: **warm plug has
+the lowest M with the highest β**, and **ξ, not Mβ, is what separates sliding slab from
+warm plug**. Also: in 3D on real terrain, Li's Cases II and III did *not* reproduce their 2D
+regimes — expect re-tuning and say so in the report.
+
+**Switching the material model reseeds.** The per-particle plastic state means different
+things per model (Jp / plastic strain / α); particles seeded under one model are garbage
+under another. Both panels force a reset on a model change.
+
 ## The two relationships to keep in your head
 
 **1. Grid spacing.** `dx = domain_size / grid_resolution_xy`. Everything else follows:
@@ -48,7 +65,8 @@ not just different.
 | Snow sinks into terrain | Vertical range too small, or terrain relief exceeds `dx × res_z` | Raise `grid_resolution_z` |
 | Buttons greyed out | Graph has not run end to end | `Shift+R` first |
 | Domain smaller than requested | Clamped to the region | Lower Select Tiles zoom for more terrain |
-| Nothing seeds with release areas on | Disc doesn't overlap a 30–45° slope | Move the release lat/lon, or tick Seed anywhere |
+| Nothing seeds with release areas on | Disc doesn't overlap a 30–45° slope | Move the release lat/lon, or tick Seed anywhere — the panel now says "0 particles seeded" |
+| Explodes right after picking a preset | Stiffer preset, dt above the new CFL bound | Presets pull dt under the bound automatically; if hand-set, watch the orange warning |
 
 ## The resolution problem (be honest about this in the report)
 

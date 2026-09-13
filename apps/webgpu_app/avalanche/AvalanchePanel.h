@@ -64,6 +64,39 @@ public:
         float slab_thickness; // [m]
     };
 
+    /// A named material parameter set. Presets are a UI concept layered on top of the
+    /// solver's ordinary settings: applying one *writes* those settings, nothing more. That
+    /// keeps a single source of truth and lets a preset be edited afterwards.
+    ///
+    /// Values for the four flow regimes are Li et al. 2021, Table 1 (Cases I-IV) and their
+    /// verification case (V); Stomakhin 2013 Table 1 for the film-snow default.
+    struct MaterialPreset {
+        std::string name;
+        std::string note; // one line, shown under the picker
+
+        uint32_t model; // webgpu_compute::nodes::MpmSolverNode::ConstitutiveModel
+
+        // shared by every model
+        float youngs_modulus;
+        float poissons_ratio;
+        float snow_density;
+        float terrain_friction; // basal mu
+
+        // Stomakhin 2013
+        float hardening;
+        float critical_compression;
+        float critical_stretch;
+
+        // Drucker-Prager
+        float dp_friction_angle;
+
+        // Cohesive Cam Clay
+        float ccc_m;
+        float ccc_beta;
+        float ccc_xi;
+        float ccc_p0_initial;
+    };
+
     explicit AvalanchePanel(NodeGraphPanel* graph_panel);
 
     // Advances the simulation. Runs every frame, independent of any panel visibility.
@@ -83,6 +116,10 @@ private:
     /// Returns false when the active graph cannot express it (e.g. no GeoRegionNode).
     bool apply_scenario(const Scenario& scenario);
 
+    /// Writes a material preset into the solver settings, forces a reseed (the plastic state
+    /// is model-specific) and pulls dt under the CFL bound of the new stiffness.
+    void apply_material_preset(const MaterialPreset& preset);
+
 private:
     NodeGraphPanel* m_graph_panel;
     bool m_playing = false;
@@ -90,6 +127,9 @@ private:
     std::vector<Scenario> m_scenarios;
     int m_selected_scenario = 0;
     std::string m_scenario_error;
+
+    std::vector<MaterialPreset> m_material_presets;
+    int m_selected_material_preset = 0; // 0 = custom (no preset active)
 };
 
 } // namespace webgpu_app

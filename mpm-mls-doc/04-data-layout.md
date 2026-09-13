@@ -84,21 +84,27 @@ With k = 1/m_real: mass' = 1, volume' = V_real/m_real = 1/ρ. Grid mass then rea
 "particles in the neighbourhood" — O(10–1000) — which is safely inside i32 at scale 1e4
 regardless of how much snow the scenario actually contains.
 
-## `SimState` — 16 bytes
+## `SimState` — 24 bytes
 
 ```wgsl
 struct SimState {
-    min_altitude_cm: atomic<i32>,    // grid vertical origin
-    max_altitude_cm: atomic<i32>,
-    active_particles: atomic<u32>,   // written but not read back yet
-    max_speed_mm:     atomic<u32>,
+    min_altitude_cm: atomic<i32>,    // grid vertical origin        - written once per reset
+    max_altitude_cm: atomic<i32>,    //                               - written once per reset
+    active_particles: atomic<u32>,   // seeded successfully          - written once per reset
+    max_speed_mm:     atomic<u32>,   // fastest particle this run    - zeroed before each run
+    plastic_particles: atomic<u32>,  // plastic state left initial   - zeroed before each run
+    _reserved: atomic<u32>,
 }
 ```
 
 Written from the CPU on reset via `RawBuffer::write()` with ±INT_MAX so the atomics
-converge. `active_particles` and `max_speed_mm` are populated but **not currently read back**
-— readback is async and would complicate `run_impl()`. Low-hanging fruit if diagnostics are
-wanted.
+converge; slots 3–4 are zeroed by a 2-element `write()` before every non-reset run.
+**Read back** after each run via `read_back_async()` from the work-done callback into
+`MpmSolverNode::last_state()`; the value therefore describes the previous completed run.
+
+The buffer is **allocated once in the constructor and never reallocated** — an async
+readback in flight while `ensure_resources()` recreated it would be a use-after-free. It
+is fixed-size, so there is no reason to reallocate it anyway.
 
 ## Uniform — 176 bytes
 

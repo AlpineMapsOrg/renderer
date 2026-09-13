@@ -207,6 +207,43 @@ step 4 ticked, v3.0 table: all three named models done), README, refs (Wolper 20
 **Not done in step 4, flagged in 07:** benchmark it. One SVD + scalars per particle, same
 order as Stomakhin, so the expectation is fine — but that is an expectation.
 
+### 6. "commit step 4 then continue with step 5" — regime presets + diagnostics readback
+
+Step 4 committed as `90991efa`.
+
+**Presets.** `AvalanchePanel::MaterialPreset`, seven entries: Stomakhin 2013; Li 2021
+Cases I–IV and V; a Drucker–Prager cold-dense fallback (φ ≈ 13.3° from M = 0.5). Presets
+*write the ordinary settings* — model, E, ν, ρ, μ, model params — nothing more, so there is
+one source of truth and a preset can be edited afterwards. Applying one forces a reseed and
+pulls dt under the new CFL bound (3 MPa is ~6× the wave speed of 0.14 MPa; the first run
+would otherwise explode). Hand edits drop the combo to "(custom)".
+
+**Bug found while doing it.** Switching the material combo did not reseed. `plastic_state`
+is model-specific: Stomakhin's `Jp = 1` read by Cam-Clay is `α = 1` → fully softened,
+`p₀ = 0`, a material that carries no stress. Latent since step 3. Both panels now force
+`reset_on_next_run` on any model change.
+
+**Readback.** `SimState` +`plastic_particles` (24 B); counted once per run in `mpm_splat`
+as particles whose state left `material_initial_state()`. The state buffer is now
+allocated once in the constructor — fixed-size, and an async readback in flight across an
+`ensure_resources()` reallocation would be a use-after-free. Per-run counters zeroed by a
+2-slot `write()` before non-reset runs so the terrain scan and seed count survive.
+`read_back_state()` fires from the work-done callback into `last_state()`; sidebar shows
+"N particles, X % plastic, max V m/s, terrain A–B m", plus a warning when 0 seeded.
+
+One edit went wrong and was caught on re-read: inserting the `else { reset_run_counters() }`
+split the block so the location log moved into the non-reset branch. Fixed before build.
+
+**Verification.** `tint` 8/8, build clean. Then the real one — the readback is a path no
+offline check covers — by temporarily auto-running the graph on load: 131072 active,
+968 plastic (0.7 %), max 1.57 m/s (≈ g·sinθ·t for 0.24 s), terrain 1303–2060 m. Every
+number plausible; first real-terrain diagnostic the solver has produced. Temporaries
+reverted, tree clean.
+
+Docs: 02, 03, 04 (SimState 24 B, allocation rule), 05 ("start from a preset", the
+model-switch rule, two new failure-mode rows), 06 (§4f, bug #6), 07 (§2f, step 5 ticked;
+v3.0 table now shows the whole material layer done), README.
+
 ## 2026-09-06
 
 ### 1. "Make a folder mpm-mls-doc and document ... for my final report"

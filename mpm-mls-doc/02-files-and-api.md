@@ -82,6 +82,7 @@ a future 3D particle renderer**, no CPU readback needed).
 | `has_valid_inputs()` | Checks sockets are connected **and** payloads non-null. Must be called before driving the node out of graph order — see the gotcha below. |
 | `request_reset()` | Re-scan terrain and reseed on next run. |
 | `simulated_time()` | Seconds accumulated since last reset. |
+| `last_state()` | `SimStateReadback`: active/plastic particle counts, max speed, terrain range. Async — describes the *previous* completed run; `valid` false until the first arrives. |
 | `domain_aabb()` | World bounds of the simulated box. Only valid after the first run. |
 | `set_settings()` / `get_settings()` | Settings are consumed lazily in `run_impl()`, so applying them any time is safe. |
 | `serialize_settings()` / `deserialize_settings()` | Graph JSON persistence. |
@@ -124,6 +125,11 @@ replaces the graph and every node in it, so a cached pointer would dangle.
 
 `apply_scenario()` writes region/zoom/domain/release into the nodes, forces a reset, pauses
 playback (terrain must be fetched first) and calls `graph->run()`.
+
+`apply_material_preset()` writes model + E/ν/ρ/μ + model-specific parameters into the
+solver settings, forces a reseed (plastic state is model-specific) and pulls `dt` under
+the CFL bound of the new stiffness. Seven presets: Stomakhin, Li 2021 Cases I–V, and a
+Drucker–Prager cold-dense fallback.
 
 Play/Pause deliberately exists **only here** — two things calling `rerun()` per frame would
 race. The node renderer keeps Step and Reset, which are one-shot and safe.

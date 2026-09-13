@@ -41,7 +41,7 @@ namespace {
     /* Size of struct GridNode in mpm_common.wgsl, in units of uint32. */
     constexpr uint32_t GRID_NODE_STRIDE_U32 = 4u; // 16 bytes
     /* Size of struct SimState in mpm_common.wgsl, in units of uint32. */
-    constexpr uint32_t SIM_STATE_SIZE_U32 = 4u;
+    constexpr uint32_t SIM_STATE_SIZE_U32 = 6u;
 
     constexpr uint32_t div_ceil(uint32_t value, uint32_t divisor) { return (value + divisor - 1u) / divisor; }
 
@@ -90,6 +90,12 @@ MpmSolverNode::MpmSolverNode(webgpu::Context& ctx, const MpmSolverSettings& sett
     , m_settings_uniform(ctx.device(), WGPUBufferUsage(WGPUBufferUsage_CopyDst | WGPUBufferUsage_Uniform))
     , m_domain_aabb { glm::dvec2(0.0), glm::dvec2(0.0) }
 {
+    // Fixed size, so allocated exactly once: an asynchronous readback may be in flight while
+    // ensure_resources() reallocates everything else, and a readback into a freed buffer
+    // would be a use-after-free.
+    m_state_buffer = std::make_unique<webgpu::raii::RawBuffer<uint32_t>>(ctx.device(),
+        WGPUBufferUsage(WGPUBufferUsage_Storage | WGPUBufferUsage_CopyDst | WGPUBufferUsage_CopySrc), SIM_STATE_SIZE_U32, "mpm state buffer");
+
     auto& reg = ctx.resource_registry();
 
     reg.register_shader("mpm_prepare", "webgpu_compute::mpm_prepare");
@@ -160,7 +166,6 @@ bool MpmSolverNode::ensure_resources()
         m_ctx->device(), storage_usage, size_t(num_particles) * PARTICLE_STRIDE_U32, "mpm particle buffer");
     m_grid_buffer = std::make_unique<webgpu::raii::RawBuffer<uint32_t>>(
         m_ctx->device(), storage_usage, size_t(grid_res.x) * grid_res.y * grid_res.z * GRID_NODE_STRIDE_U32, "mpm grid buffer");
-    m_state_buffer = std::make_unique<webgpu::raii::RawBuffer<uint32_t>>(m_ctx->device(), storage_usage, SIM_STATE_SIZE_U32, "mpm state buffer");
     m_density_buffer = std::make_unique<webgpu::raii::RawBuffer<uint32_t>>(
         m_ctx->device(), storage_usage, size_t(raster_resolution) * raster_resolution, "mpm density raster");
     m_output_texture = create_output_texture(m_ctx->device(), raster_resolution, raster_resolution);
@@ -298,8 +303,33 @@ void MpmSolverNode::write_initial_state()
     std::memcpy(&initial[1], &max_init, sizeof(int32_t));
     initial[2] = 0u; // active particles
     initial[3] = 0u; // max speed
+    initial[4] = 0u; // plastic particles
+    initial[5] = 0u;
 
     m_state_buffer->write(m_ctx->queue(), initial.data(), initial.size(), 0);
+}
+
+void MpmSolverNode::reset_run_counters()
+{
+    const std::array<uint32_t, 2> zeros { 0u, 0u };
+    m_state_buffer->write(m_ctx->queue(), zeros.data(), zeros.size(), 3); // slots 3 and 4
+}
+
+void MpmSolverNode::read_back_state()
+{
+    m_state_buffer->read_back_async(m_ctx->device(), [this](WGPUMapAsyncStatus status, std::vector<uint32_t> data) {
+        if (status != WGPUMapAsyncStatus_Success || data.size() < SIM_STATE_SIZE_U32)
+            return;
+        int32_t min_cm = 0, max_cm = 0;
+        std::memcpy(&min_cm, &data[0], sizeof(int32_t));
+        std::memcpy(&max_cm, &data[1], sizeof(int32_t));
+        m_last_state.min_altitude = float(min_cm) / 100.0f;
+        m_last_state.max_altitude = float(max_cm) / 100.0f;
+        m_last_state.active_particles = data[2];
+        m_last_state.max_speed = float(data[3]) / 1000.0f;
+        m_last_state.plastic_particles = data[4];
+        m_last_state.valid = true;
+    });
 }
 
 bool MpmSolverNode::has_valid_inputs()
@@ -343,6 +373,7 @@ void MpmSolverNode::run_impl()
     if (reset) {
         write_initial_state();
         m_simulated_time = 0.0f;
+        m_last_state = {};
 
         // Report where on the planet we are actually simulating - without this there is no
         // way to tell from the UI which slope the domain landed on.
@@ -353,6 +384,9 @@ void MpmSolverNode::run_impl()
                           << " (lat " << south_west.x << ".." << north_east.x << ", lon " << south_west.y << ".." << north_east.y << "), "
                           << m_allocated_grid_res.x << "x" << m_allocated_grid_res.y << "x" << m_allocated_grid_res.z << " grid, dx "
                           << m_settings_uniform.data.dx << " m, " << m_allocated_particles << " particles";
+    } else {
+        // Per-run counters only; the terrain scan and seed count from the reset must survive.
+        reset_run_counters();
     }
 
     const uint32_t substeps = std::clamp(m_settings.substeps_per_run, 1u, 4096u);
@@ -412,6 +446,7 @@ void MpmSolverNode::run_impl()
     const auto on_work_done
         = []([[maybe_unused]] WGPUQueueWorkDoneStatus status, [[maybe_unused]] WGPUStringView message, void* userdata, [[maybe_unused]] void* userdata2) {
               MpmSolverNode* _this = reinterpret_cast<MpmSolverNode*>(userdata);
+              _this->read_back_state();
               _this->complete_run();
           };
 
