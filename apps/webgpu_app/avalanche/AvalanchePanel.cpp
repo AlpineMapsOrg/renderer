@@ -36,11 +36,11 @@ AvalanchePanel::AvalanchePanel(NodeGraphPanel* graph_panel)
     : m_graph_panel(graph_panel)
     , m_scenarios({
           Scenario { "Breite Ries (Schneeberg)", "Gully on Austria's easternmost 2000er, 1931 m to 1364 m.",
-              glm::dvec2(47.77663, 15.81600), 2500.0f, 15, glm::dvec2(47.77663, 15.81600), 1600.0f, 128, glm::dvec2(47.77480, 15.81050), 100.0f, 1.5f },
+              glm::dvec2(47.77663, 15.81600), 8000.0f, 15, glm::dvec2(47.77663, 15.81600), 4000.0f, 320, glm::dvec2(47.77480, 15.81050), 100.0f, 1.5f },
           Scenario { "Grossglockner (Pasterze side)", "Austria's highest summit, 3798 m, above the Pasterze glacier.",
-              glm::dvec2(47.07900, 12.70200), 4500.0f, 15, glm::dvec2(47.07900, 12.70200), 2600.0f, 128, glm::dvec2(47.07500, 12.69600), 150.0f, 2.0f },
+              glm::dvec2(47.07900, 12.70200), 8000.0f, 15, glm::dvec2(47.07900, 12.70200), 4000.0f, 320, glm::dvec2(47.07500, 12.69600), 150.0f, 2.0f },
           Scenario { "Dachstein (Hallstatt Glacier)", "North side of the Dachstein plateau above the glacier.",
-              glm::dvec2(47.47800, 13.60600), 3500.0f, 15, glm::dvec2(47.47800, 13.60600), 2200.0f, 128, glm::dvec2(47.47300, 13.60400), 130.0f, 2.0f },
+              glm::dvec2(47.47800, 13.60600), 8000.0f, 15, glm::dvec2(47.47800, 13.60600), 4000.0f, 320, glm::dvec2(47.47300, 13.60400), 130.0f, 2.0f },
       })
     , m_material_presets({
           // name, note, model, E, nu, rho, mu, | Stomakhin xi, theta_c, theta_s | DP phi | CCC M, beta, xi, p0
@@ -102,7 +102,6 @@ bool AvalanchePanel::apply_scenario(const Scenario& scenario)
     solver_settings.domain_center = scenario.domain_center;
     solver_settings.domain_size_xy = scenario.domain_size;
     solver_settings.grid_resolution_xy = scenario.grid_resolution;
-    solver_settings.grid_resolution_z = scenario.grid_resolution;
     solver_settings.release_center = scenario.release_center;
     solver_settings.release_radius = scenario.release_radius;
     solver_settings.slab_thickness = scenario.slab_thickness;
@@ -329,18 +328,21 @@ void AvalanchePanel::draw_panel()
     settings_changed |= ImGui::DragFloat("Domain size", &settings.domain_size_xy, 16.0f, 64.0f, 16384.0f, "%.0f m");
     step_now |= ImGui::IsItemDeactivatedAfterEdit();
 
-    const uint32_t min_res = 8, max_res = 256;
+    const uint32_t min_res = 8, max_res = nodes::MpmSolverNode::MAX_GRID_RESOLUTION_XY, max_layers = nodes::MpmSolverNode::MAX_GRID_LAYERS;
     settings_changed |= ImGui::DragScalar("Grid resolution XY", ImGuiDataType_U32, &settings.grid_resolution_xy, 1.0f, &min_res, &max_res, "%u");
     step_now |= ImGui::IsItemDeactivatedAfterEdit();
-    settings_changed |= ImGui::DragScalar("Grid resolution Z", ImGuiDataType_U32, &settings.grid_resolution_z, 1.0f, &min_res, &max_res, "%u");
+    settings_changed |= ImGui::DragScalar("Grid layers", ImGuiDataType_U32, &settings.grid_layers, 1.0f, &min_res, &max_layers, "%u");
     step_now |= ImGui::IsItemDeactivatedAfterEdit();
+    if (ImGui::IsItemHovered())
+        ImGui::SetTooltip("Node layers stored above the terrain in each column. The grid follows the surface,\n"
+                          "so this is headroom for piles and terrain steps, not the relief of the domain.");
 
     // The domain is clamped to the terrain the graph actually stitched, so report what the
     // solver settled on rather than what was asked for.
     const float effective_domain = float(aabb.size().x);
     const float dx = effective_domain / float(std::max(settings.grid_resolution_xy, 1u));
-    ImGui::TextDisabled("Effective: %.0f m box, %.1f m cells, %.0f m vertical", double(effective_domain), double(dx),
-        double(dx * float(settings.grid_resolution_z)));
+    ImGui::TextDisabled("Effective: %.0f m box, %.1f m cells, %.0f m band above terrain", double(effective_domain), double(dx),
+        double(dx * float(settings.grid_layers)));
     if (effective_domain + 1.0f < settings.domain_size_xy) {
         ImGui::TextColored(ImVec4(1.0f, 0.6f, 0.2f, 1.0f), "Clamped to the tiled region.");
         if (ImGui::IsItemHovered())

@@ -57,7 +57,8 @@ public:
     static glm::uvec3 RASTER_WORKGROUP_SIZE;
 
     static const uint32_t MAX_PARTICLES;
-    static const uint32_t MAX_GRID_RESOLUTION;
+    static const uint32_t MAX_GRID_RESOLUTION_XY;
+    static const uint32_t MAX_GRID_LAYERS;
 
     /* The material law relating stress to elastic deformation - what makes the particles
      * behave like snow rather than water or sand. Values must match the constants in
@@ -89,7 +90,13 @@ public:
         float domain_size_xy = 1024.0f; // horizontal edge length [m]
 
         uint32_t grid_resolution_xy = 64u; // grid nodes along x and y
-        uint32_t grid_resolution_z = 64u; // grid nodes along the vertical axis
+
+        /* The grid follows the terrain: only this many layers of nodes are stored per
+         * (x, y) column, starting two cells below the surface (grid_slot() in
+         * mpm_common.wgsl). Snow lives in the bottom few; the rest is headroom for piles
+         * and for the terrain step between neighbouring columns. Memory and grid work
+         * scale with resolution_xy^2 * layers, so the domain can be kilometres wide. */
+        uint32_t grid_layers = 16u;
 
         /* Release (start) zone. Deliberately independent of the domain: a real avalanche
          * starts in a small area and runs out over a much larger one, so the seeded disc
@@ -289,6 +296,7 @@ private:
 
     std::unique_ptr<webgpu::raii::RawBuffer<uint32_t>> m_particle_buffer;
     std::unique_ptr<webgpu::raii::RawBuffer<uint32_t>> m_grid_buffer;
+    std::unique_ptr<webgpu::raii::RawBuffer<uint32_t>> m_column_floor_buffer; // i32 per (x, y) column
     std::unique_ptr<webgpu::raii::RawBuffer<uint32_t>> m_state_buffer;
     std::unique_ptr<webgpu::raii::RawBuffer<uint32_t>> m_density_buffer;
     std::unique_ptr<webgpu::raii::TextureWithSampler> m_output_texture;

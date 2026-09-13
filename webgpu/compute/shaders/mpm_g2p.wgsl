@@ -47,12 +47,12 @@ fn computeMain(@builtin(global_invocation_id) id: vec3<u32>) {
         for (var j = 0; j < 3; j++) {
             for (var l = 0; l < 3; l++) {
                 let offset = vec3i(i, j, l);
-                let node = k.base + offset;
-                if !is_inside_grid(node) {
+                let slot = grid_slot(k.base + offset);
+                if slot < 0 {
                     continue;
                 }
+                let cell = u32(slot);
 
-                let cell = grid_index(node);
                 let node_velocity
                     = vec3f(from_fixed(atomicLoad(&grid[cell].vx)), from_fixed(atomicLoad(&grid[cell].vy)), from_fixed(atomicLoad(&grid[cell].vz)));
 
@@ -94,12 +94,12 @@ fn computeMain(@builtin(global_invocation_id) id: vec3<u32>) {
     if clamped_xy.y != p.position.xy.y { p.velocity.y = 0.0; }
     p.position = vec3f(clamped_xy, p.position.z);
 
-    let base_altitude = domain_base_altitude();
-    let max_altitude = base_altitude + (f32(settings.grid_res.z) * settings.dx) - margin;
-    let clamped_z = clamp(p.position.z, base_altitude + margin, max_altitude);
-    if clamped_z != p.position.z {
+    // Ceiling of the column's band: keep the stencil (1.5 cells) inside the stored layers.
+    let column = column_index(vec2i(floor((p.position.xy - settings.domain_origin) / settings.dx)));
+    let max_altitude = (f32(column_floor[column] + i32(settings.grid_res.z)) - 2.5) * settings.dx;
+    if p.position.z > max_altitude {
         p.velocity.z = 0.0;
-        p.position.z = clamped_z;
+        p.position.z = max_altitude;
     }
 
     particles[index] = p;

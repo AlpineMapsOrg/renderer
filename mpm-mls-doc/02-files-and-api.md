@@ -14,7 +14,7 @@
 | `shaders/mpm_material_drucker_prager.wgsl` | Klár 2016: Hencky elasticity + friction cone, closed-form projection. Cohesionless. |
 | `shaders/mpm_material_ccc.wgsl` | Gaume 2018: Hencky elasticity + Cam-Clay ellipse, sinh hardening; Wolper 2019 three-case return. |
 | `shaders/mpm_friction.wgsl` | Basal-friction dispatcher: `switch` on `settings.basal_friction_model`; Coulomb, Voellmy. |
-| `shaders/mpm_prepare.wgsl` | Scans terrain for the grid's vertical origin. |
+| `shaders/mpm_prepare.wgsl` | Scans terrain once per reset: altitude range for the readout, and the per-column floor of the terrain-following grid. |
 | `shaders/mpm_seed.wgsl` | Places particles in the release disc. |
 | `shaders/mpm_clear_grid.wgsl` | Zeroes the grid each substep. |
 | `shaders/mpm_p2g.wgsl` | Stage 1: particle → grid. |

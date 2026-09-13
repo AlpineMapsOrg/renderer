@@ -29,8 +29,10 @@ fn computeMain(@builtin(global_invocation_id) id: vec3<u32>) {
         return;
     }
 
-    let node = vec3i(id);
-    let cell = grid_index(node);
+    // id.z is the layer within the column's band, not an absolute z index.
+    let node_xy = vec2i(id.xy);
+    let layer = i32(id.z);
+    let cell = u32(layer) * settings.grid_res.x * settings.grid_res.y + column_index(node_xy);
 
     let mass = node_mass(cell);
     if mass <= 0.0 {
@@ -47,20 +49,20 @@ fn computeMain(@builtin(global_invocation_id) id: vec3<u32>) {
     velocity.z -= settings.gravity * settings.dt; // z is altitude
 
     // Terrain boundary: nodes below the surface push the material back out.
-    let world = to_world_space(vec3f(node));
+    let world = column_node_world(node_xy, layer);
     let surface = terrain_height(world.xy);
     if world.z < surface {
         velocity = resolve_terrain_collision(velocity, terrain_normal(world.xy), true);
     }
 
-    // Domain walls: no outflow through the sides, floor or ceiling of the grid box.
+    // Domain walls: no outflow through the sides of the box or the top of the band. The
+    // bottom of the band lies inside the terrain, which the condition above handles.
     let res = vec3i(settings.grid_res);
-    if node.x < 2 && velocity.x < 0.0 { velocity.x = 0.0; }
-    if node.x >= res.x - 3 && velocity.x > 0.0 { velocity.x = 0.0; }
-    if node.y < 2 && velocity.y < 0.0 { velocity.y = 0.0; }
-    if node.y >= res.y - 3 && velocity.y > 0.0 { velocity.y = 0.0; }
-    if node.z < 2 && velocity.z < 0.0 { velocity.z = 0.0; }
-    if node.z >= res.z - 3 && velocity.z > 0.0 { velocity.z = 0.0; }
+    if node_xy.x < 2 && velocity.x < 0.0 { velocity.x = 0.0; }
+    if node_xy.x >= res.x - 3 && velocity.x > 0.0 { velocity.x = 0.0; }
+    if node_xy.y < 2 && velocity.y < 0.0 { velocity.y = 0.0; }
+    if node_xy.y >= res.y - 3 && velocity.y > 0.0 { velocity.y = 0.0; }
+    if layer >= res.z - 3 && velocity.z > 0.0 { velocity.z = 0.0; }
 
     atomicStore(&grid[cell].vx, to_fixed(velocity.x));
     atomicStore(&grid[cell].vy, to_fixed(velocity.y));

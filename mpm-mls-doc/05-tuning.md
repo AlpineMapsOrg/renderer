@@ -4,8 +4,9 @@
 
 | Setting | Default | Effect |
 |---|---|---|
-| `domain_size_xy` | 1024 m | Simulated box. **Clamped to the tiled region** — bigger needs a bigger region. |
-| `grid_resolution_xy/z` | 64 (preset: 128) | With domain size, sets `dx`. Memory is O(N³). |
+| `domain_size_xy` | 1024 m (preset: 4000) | Simulated box. **Clamped to the tiled region** — bigger needs a bigger `GeoRegionNode.extent` (preset: 8000 m). |
+| `grid_resolution_xy` | 64 (preset: 320) | With domain size, sets `dx`. Memory and grid work are `res² × layers`. |
+| `grid_layers` | 16 | Node layers stored above the terrain per column (the grid follows the surface). Headroom for piles and terrain steps, not the relief. 12–16 is plenty; `dx × layers` is the maximum pile height. |
 | `dt` | 0.01 s | CFL bound. Too large = explosion. |
 | `substeps_per_run` | 32 (preset: 24) | Simulated time per node execution = `dt × substeps`. |
 | `num_particles` | 65536 (preset: 131072) | Flow resolution. Cost is linear. |
@@ -43,8 +44,8 @@ under another. Both panels force a reset on a model change.
 ## The two relationships to keep in your head
 
 **1. Grid spacing.** `dx = domain_size / grid_resolution_xy`. Everything else follows:
-vertical extent is `dx × grid_resolution_z` (must cover the terrain relief), and the CFL
-bound scales with `dx`.
+the band above the terrain is `dx × grid_layers` (needs to cover piles, *not* the relief —
+the grid follows the surface), and the CFL bound scales with `dx`.
 
 **2. CFL.** MPM is explicit, so the timestep is bounded by how far a wave travels in one
 step:
@@ -67,7 +68,8 @@ not just different.
 | Nothing visible at all | Splat radius too small for the raster scale, or nothing seeded | Tick **Seed anywhere**; raise splat radius; check "Output texel: X m" |
 | Snow vanishes / flickers | dt above CFL | Lower dt or raise grid resolution (watch the orange warning) |
 | Snow behaves like water | Slab is sub-cell at this `dx` | Shrink the domain, or accept it — see below |
-| Snow sinks into terrain | Vertical range too small, or terrain relief exceeds `dx × res_z` | Raise `grid_resolution_z` |
+| Snow stalls against an invisible wall | Reached the domain edge | Raise `domain_size_xy` (and the region extent if it is clamped); the grid is cheap in xy now |
+| Snow flattens at a fixed height above ground | Pile reached the band ceiling `dx × (layers − 2.5)` | Raise `grid_layers` |
 | Buttons greyed out | Graph has not run end to end | `Shift+R` first |
 | Domain smaller than requested | Clamped to the region | Lower Select Tiles zoom for more terrain |
 | Nothing seeds with release areas on | Disc doesn't overlap a 30–45° slope | Move the release lat/lon, or tick Seed anywhere — the panel now says "0 particles seeded" |
@@ -89,11 +91,25 @@ This is inherent to the scale gap, not a bug. Options, none free:
   out into the valley — the thing the simulation is *for*.
 - **Thicken the slab** to a few cells. Visually better, physically dishonest about how much
   snow is involved.
-- **Sparse / multi-resolution grid.** The real fix, and a genuine research direction —
-  a dense O(N³) grid over a whole valley is the actual constraint.
+- **Multi-resolution grid.** The real fix, and a genuine research direction. The
+  terrain-following band (2026-09-13) removed the O(N³) memory problem and lets the domain
+  span the whole path, but `dx` is still set by the footprint: 4 km at 320² is 12.5 m.
+  Finer cells over a whole valley need a second level, which is out of scope.
 
 Worth stating plainly in the report: at avalanche scale, the interesting limitation is
 **resolution**, not the constitutive model.
+
+## Cost
+
+Measured on an Apple M5 (08-domain-size-options.md §5), per run of 24 substeps:
+
+```
+ms ≈ 9 + 25 · (grid nodes / 10⁶) + 0.38 · (particles / 10³)
+```
+
+The preset (320² × 16 = 1.6 M nodes, 131 k particles) runs in ~100 ms for 0.24 s of
+simulated time — 2.4× real time. Particles are the steeper axis: ~550 k is the real-time
+ceiling at this substep count, whatever the grid.
 
 ## Where to make changes
 

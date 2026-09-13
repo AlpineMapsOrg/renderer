@@ -17,6 +17,9 @@ here must match the float reference; the old scheme is printed for comparison.
     python3 test_sheet_fixed_point.py            # ~4 min: float, new scheme, old scheme
     QUICK=1 python3 test_sheet_fixed_point.py    # float + new scheme only
 
+Also runs the float case on the terrain-following grid (8 layers per column) - it must
+match the dense grid, since no stencil node of a surface flow ever leaves the band.
+
 Vectorised (numpy) rewrite of the test_mpm.py loop, Stomakhin model, Coulomb friction.
 """
 import math
@@ -30,9 +33,11 @@ G = 9.81
 
 def run(dx=12.5, dt=0.01, slope=35.0, mu=0.47, thick=1.5, per_m3=2.0, patch_cells=3, T=20.0,
         E=1.4e5, nu=0.2, rho=400.0, hard=10.0, tc=2.5e-2, ts=7.5e-3,
-        momentum_scale=0.0, mass_scale=0.0, rounding=True, grid=(64, 12, 64), seed=1, report=4.0):
+        momentum_scale=0.0, mass_scale=0.0, rounding=True, grid=(64, 12, 64), seed=1, report=4.0, layers=0):
     """Returns (t, mean speed) samples of a sliding slab. momentum_scale / mass_scale = 0
-    means exact floats; otherwise every P2G contribution is quantised like the shader."""
+    means exact floats; otherwise every P2G contribution is quantised like the shader.
+    layers > 0 emulates the terrain-following grid (grid_slot() in mpm_common.wgsl): a
+    node exists only if its z index lies within `layers` of its column's floor."""
     mu0 = E / (2 * (1 + nu))
     lam0 = E * nu / ((1 + nu) * (1 - 2 * nu))
     vol = 1.0 / rho
@@ -61,6 +66,13 @@ def run(dx=12.5, dt=0.01, slope=35.0, mu=0.47, thick=1.5, per_m3=2.0, patch_cell
     node_below = np.zeros(tuple(grid), bool)
     for k in range(grid[2]):
         node_below[:, :, k] = (k * dx < height(node_x))[:, None]
+    if layers > 0:
+        column_floor = np.floor(height(node_x) / dx).astype(int) - 2
+        stored = np.zeros(tuple(grid), bool)
+        for k in range(grid[2]):
+            stored[:, :, k] = ((k - column_floor >= 0) & (k - column_floor < layers))[:, None]
+    else:
+        stored = np.ones(tuple(grid), bool)
 
     def coulomb(v):
         vn = v @ nrm
@@ -102,8 +114,9 @@ def run(dx=12.5, dt=0.01, slope=35.0, mu=0.47, thick=1.5, per_m3=2.0, patch_cell
             if momentum_scale > 0:
                 mom = quant(mom * momentum_scale) / momentum_scale
             idx = (node[:, 0], node[:, 1], node[:, 2])
-            np.add.at(gm, idx, wt)
-            np.add.at(gv, idx, mom)
+            keep = stored[idx]
+            np.add.at(gm, idx, wt * keep)
+            np.add.at(gv, idx, mom * keep[:, None])
 
         # --- grid update ---
         occupied = gm > 0
@@ -148,6 +161,7 @@ def main():
     slope, mu = 35.0, 0.47
     a = G * (math.sin(math.radians(slope)) - mu * math.cos(math.radians(slope)))
     configs = [("float reference", dict()),
+               ("float reference on the terrain-following grid, 8 layers", dict(layers=8)),
                ("shader (round, momentum 1e4, mass 2^20)", dict(momentum_scale=1e4, mass_scale=2.0 ** 20))]
     if not os.environ.get("QUICK"):
         configs.append(("old scheme (truncate, both 1e4)", dict(momentum_scale=1e4, mass_scale=1e4, rounding=False)))

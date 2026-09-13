@@ -22,6 +22,8 @@ from the sources when writing the report. Full list in [refs.md](refs.md).
 | [05-tuning.md](05-tuning.md) | Which knob does what, sensible ranges, failure modes, how to extend. |
 | [06-verification.md](06-verification.md) | What was actually tested, how, and what is still unverified. |
 | [07-constitutive-models.md](07-constitutive-models.md) | Proposal v3.0 gap analysis: which material/friction models exist, and the design for making them exchangeable. |
+| [08-domain-size-options.md](08-domain-size-options.md) | Why the domain was 1.6 km, the options for a whole avalanche path, measured GPU cost, and what was chosen (terrain-following grid). |
+| [report-fixed-point-energy-pump.md](report-fixed-point-energy-pump.md) | Standalone write-up of the fixed-point blow-up investigation. |
 | [refs.md](refs.md) | Bibliography. |
 
 ## 60-second orientation

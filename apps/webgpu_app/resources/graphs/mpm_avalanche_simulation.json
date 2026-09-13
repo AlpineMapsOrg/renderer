@@ -163,9 +163,9 @@
             "name": "MPM Solver",
             "type": "MpmSolverNode",
             "settings": {
-                "domain_size_xy": 1600.0,
-                "grid_resolution_xy": 128,
-                "grid_resolution_z": 128,
+                "domain_size_xy": 4000.0,
+                "grid_resolution_xy": 320,
+                "grid_layers": 16,
                 "num_particles": 131072,
                 "slab_thickness": 1.5,
                 "snow_density": 400.0,
@@ -178,7 +178,7 @@
                 "critical_stretch": 0.0075,
                 "gravity": 9.81,
                 "terrain_friction": 0.47,
-                "raster_resolution": 512,
+                "raster_resolution": 1024,
                 "random_seed": 1,
                 "splat_radius": 8.0,
                 "release_radius": 100.0,
@@ -219,7 +219,7 @@
             "settings": {
                 "center_latitude": 47.77663,
                 "center_longitude": 15.816,
-                "extent": 2500.0,
+                "extent": 8000.0,
                 "min_altitude": 0.0,
                 "max_altitude": 4000.0
             }

@@ -229,6 +229,20 @@ Passes when floats and the shader scheme are within 3 % of the block. This is th
 regression test for bug 8; it is the only offline check that exercises the integer
 arithmetic, so run it after touching `to_fixed`, `add_node_mass` or the scales.
 
+## 4i. Terrain-following grid — band vs dense
+
+Two checks that the band grid is a memory layout, not a physics change:
+
+- Offline, `test_sheet_fixed_point.py` also runs the float reference with the band
+  emulated (8 layers per column, nodes outside skipped): identical to the dense grid to
+  the printed precision (37.00 / 37.04 m/s at 20 s).
+- On device, the Breite Ries run (Stomakhin preset, 131 k particles, 144 s) before and
+  after: dense 128³ over a 1.6 km box vs band 320² × 16 over a 4 km box at the same
+  `dx = 12.5 m`. Path 380.7 vs 378.3 m, final centre-of-mass altitude 1756.5 vs 1757.6 m,
+  `μ_eff` 0.4903 vs 0.4904, max speed 21–26 m/s in both. The remaining difference is the
+  different domain origin (particles fall on different sub-cell positions). Run time
+  116 → 100 ms for 6× the area.
+
 ## 5. On real terrain
 
 Runs end to end on the Schneeberg DEM: seeds, flows downhill, deposits, animates, and the

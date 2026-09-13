@@ -10,7 +10,7 @@ error — so it is written down.
 | `particle.position.xy` | World metres, **relative to the min corner of the region AABB** |
 | `particle.position.z` | **Absolute altitude** in metres (same units as the height texture) |
 | Texture UV | u grows with +x, **v grows with −y** (`v = 1 − y/region_size.y`) |
-| Grid space | `(position − domain_origin) / dx`; vertical origin from `SimState.min_altitude − 2·dx` |
+| Grid space | `(position.xy − domain_origin) / dx` horizontally; **`position.z / dx`** vertically, i.e. the z index is absolute altitude in cells. Only a band of layers per column is stored — see below. |
 | Settings lat/lon | `glm::dvec2(latitude, longitude)`, converted in `update_gpu_settings()` |
 
 The v-flip matches `avalanche_trajectories_compute.wgsl` and the height texture (row 0 =
@@ -123,7 +123,7 @@ statement about particle counts and speeds, not about how much snow the scenario
 
 ```wgsl
 struct SimState {
-    min_altitude_cm: atomic<i32>,    // grid vertical origin        - written once per reset
+    min_altitude_cm: atomic<i32>,    // terrain scan, readout only  - written once per reset
     max_altitude_cm: atomic<i32>,    //                               - written once per reset
     active_particles: atomic<u32>,   // seeded successfully          - written once per reset
     max_speed_mm:     atomic<u32>,   // fastest particle this run    - zeroed before each run
@@ -179,12 +179,47 @@ No pad slots left. The next field grows the struct to 192 B.
 | Buffer | Size |
 |---|---|
 | particles | `num_particles × 32` u32 (128 B each) |
-| grid | `res.x·res.y·res.z × 4` u32 (16 B each) |
-| state | 4 u32 |
+| grid | `res.x·res.y·layers × 5` u32 (20 B each) |
+| column floors | `res.x·res.y` i32 |
+| state | 14 u32 |
 | density raster | `raster_resolution²` u32 |
 
-Grid memory is the one that bites: **O(N³)**. 64³ = 4 MB, 128³ = 33 MB, 256³ = 268 MB.
-128³ is the practical sweet spot.
+Grid memory used to be **O(N³)** — 128³ = 42 MB, 256³ = 335 MB — and that is what kept
+the domain at 1.6 km. It is now `res_xy² × layers`: 320² × 16 = 33 MB for a 4 km domain
+at 12.5 m, 512² × 16 = 84 MB for 6.4 km.
+
+## The terrain-following grid (2026-09-13)
+
+Snow only ever occupies a few cells above the surface, so a dense box over a 600 m relief
+was ~98 % air, cleared and updated every substep. The grid now stores `grid_res.z`
+(= `grid_layers`, default 16) node layers per `(x, y)` column, starting two cells below
+the terrain at that column:
+
+```
+column_floor[column] = floor(terrain(node_xy) / dx) − 2      # absolute z index of layer 0
+slot(node)           = layer · res.x · res.y + column,  layer = node.z − column_floor[column]
+```
+
+written once per reset by `mpm_prepare`, read through `grid_slot()` in `mpm_common.wgsl`,
+which returns −1 for a node outside the band. P2G and G2P skip those; `mpm_grid_update`
+iterates `(x, y, layer)` and gets the node's altitude back through `column_node_world()`.
+
+What this changes physically: nothing, as long as every stencil node of a particle is
+stored. A stencil reaches 1.5 cells; particles sit within a cell of the surface and the
+band starts two cells below it, so the only nodes that can be missing are ≥ 2 cells inside
+the terrain of a *neighbouring* column — i.e. the terrain steps by more than a cell between
+adjacent columns (> 45° at any `dx`, and even then the weight involved is a corner of the
+stencil). Nodes deep inside the terrain carried no particles anyway; they only had their
+velocity projected. Verified on device: the Breite Ries run on the band grid reproduces
+the dense-grid run to three digits (06-verification.md §5).
+
+The ceiling of the band replaces the old vertical clamp: `mpm_g2p` keeps a particle below
+`(column_floor + layers − 2.5) · dx`, so its stencil stays inside the stored layers. With
+16 layers at 12.5 m that is 170 m of pile above the ground — nothing reaches it.
+
+The absolute-altitude z index is what makes the per-column floors trivial: no vertical
+origin to agree on, no `min_altitude` in the addressing. `SimState.min/max_altitude` are
+now readout only.
 
 All buffers use `Storage | CopyDst | CopySrc` — `CopyDst` is required for
 `wgpuCommandEncoderClearBuffer`, `CopySrc` lets `ExportNode` read them.

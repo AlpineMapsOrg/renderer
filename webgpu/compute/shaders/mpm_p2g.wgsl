@@ -52,16 +52,16 @@ fn computeMain(@builtin(global_invocation_id) id: vec3<u32>) {
         for (var j = 0; j < 3; j++) {
             for (var l = 0; l < 3; l++) {
                 let offset = vec3i(i, j, l);
-                let node = k.base + offset;
-                if !is_inside_grid(node) {
+                let slot = grid_slot(k.base + offset);
+                if slot < 0 {
                     continue;
                 }
+                let cell = u32(slot);
 
                 let weight = kernel_weight(k, offset);
                 let dpos = (vec3f(offset) - k.fx) * settings.dx;
                 let momentum = weight * (p.mass * p.velocity + affine * dpos);
 
-                let cell = grid_index(node);
                 add_node_mass(cell, weight * p.mass);
                 atomicAdd(&grid[cell].vx, to_fixed(momentum.x));
                 atomicAdd(&grid[cell].vy, to_fixed(momentum.y));

@@ -26,11 +26,12 @@
 // * particle.position.xy  world meters, relative to the min corner of the region aabb.
 // * particle.position.z   absolute altitude in meters (same units as the height texture).
 // * texture uv            u grows with +x, v grows with -y (matches avalanche_trajectories_compute).
-// * grid space            (position - domain origin) / dx, where the vertical origin is
-//                         state.min_altitude (written by the prepare kernel) minus a margin.
+// * grid space            (position - domain origin) / dx horizontally; vertically plain
+//                         altitude / dx, so a node's z index is absolute. Only a band of
+//                         grid_res.z layers per column is stored - see grid_slot().
 
 struct MpmSettings {
-    grid_res: vec3u, // number of grid nodes in x, y, z
+    grid_res: vec3u, // nodes in x, y; z = layers stored per column (the band height)
     num_particles: u32,
 
     domain_origin: vec2f, // region-relative meters of the domain's min corner
@@ -169,6 +170,7 @@ struct PlasticReturn {
 @group(0) @binding(5) var<storage, read_write> state: SimState;
 @group(0) @binding(6) var<storage, read_write> density_raster: array<atomic<u32>>;
 @group(0) @binding(7) var output_texture: texture_storage_2d<rgba8unorm, write>;
+@group(0) @binding(8) var<storage, read_write> column_floor: array<i32>; // per (x, y) column, see grid_slot()
 
 // ---------------------------------------------------------------------------------------
 // Fixed point helpers
@@ -236,29 +238,44 @@ fn terrain_normal(world_xy: vec2f) -> vec3f {
     return normalize(vec3f(-dhdx, -dhdy, 1.0));
 }
 
-// Vertical origin of the grid, derived from the terrain scan done by the prepare kernel.
-fn domain_base_altitude() -> f32 {
-    return f32(atomicLoad(&state.min_altitude_cm)) / 100.0 - 2.0 * settings.dx;
-}
+// ---------------------------------------------------------------------------------------
+// Terrain-following grid
+// ---------------------------------------------------------------------------------------
+// Snow only ever occupies a few cells above the terrain, so a dense res^3 box is ~98 %
+// air. The grid stores grid_res.z layers per (x, y) column instead, starting
+// COLUMN_FLOOR_MARGIN cells below the terrain at that column. column_floor[] holds the
+// absolute z index (altitude / dx) of layer 0, written once per reset by mpm_prepare. A
+// stencil node is mapped through the floor of *its own* column; if it lands outside the
+// band it does not exist and is skipped - which only happens deep inside the terrain or
+// far above it, where nothing carries mass. Memory and grid work then scale with the
+// footprint, not the relief, which is what lets the domain grow to whole avalanche paths.
+const COLUMN_FLOOR_MARGIN: i32 = 2;
 
-fn grid_index(node: vec3i) -> u32 {
+fn column_index(node_xy: vec2i) -> u32 { return u32(node_xy.y * i32(settings.grid_res.x) + node_xy.x); }
+
+// Linear storage slot of an absolute grid node, or -1 if the node is not stored.
+fn grid_slot(node: vec3i) -> i32 {
     let res = vec3i(settings.grid_res);
-    return u32((node.z * res.y + node.y) * res.x + node.x);
+    if any(node.xy < vec2i(0)) || any(node.xy >= res.xy) {
+        return -1;
+    }
+    let column = column_index(node.xy);
+    let layer = node.z - column_floor[column];
+    if layer < 0 || layer >= res.z {
+        return -1;
+    }
+    return layer * res.x * res.y + i32(column);
 }
 
-fn is_inside_grid(node: vec3i) -> bool {
-    return all(node >= vec3i(0)) && all(node < vec3i(settings.grid_res));
-}
-
-// Particle world position -> continuous grid coordinates.
+// Particle world position -> continuous grid coordinates (z absolute, in cells).
 fn to_grid_space(position: vec3f) -> vec3f {
-    let origin = vec3f(settings.domain_origin, domain_base_altitude());
-    return (position - origin) / settings.dx;
+    return vec3f((position.xy - settings.domain_origin) / settings.dx, position.z / settings.dx);
 }
 
-fn to_world_space(grid_pos: vec3f) -> vec3f {
-    let origin = vec3f(settings.domain_origin, domain_base_altitude());
-    return grid_pos * settings.dx + origin;
+// World position of a stored node given by column and layer.
+fn column_node_world(node_xy: vec2i, layer: i32) -> vec3f {
+    let z_index = column_floor[column_index(node_xy)] + layer;
+    return vec3f(settings.domain_origin + vec2f(node_xy) * settings.dx, f32(z_index) * settings.dx);
 }
 
 // ---------------------------------------------------------------------------------------

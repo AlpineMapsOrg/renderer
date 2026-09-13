@@ -32,7 +32,8 @@ glm::uvec3 MpmSolverNode::GRID_WORKGROUP_SIZE = { 4, 4, 4 };
 glm::uvec3 MpmSolverNode::RASTER_WORKGROUP_SIZE = { 16, 16, 1 };
 
 const uint32_t MpmSolverNode::MAX_PARTICLES = 1u << 21;
-const uint32_t MpmSolverNode::MAX_GRID_RESOLUTION = 256u;
+const uint32_t MpmSolverNode::MAX_GRID_RESOLUTION_XY = 512u;
+const uint32_t MpmSolverNode::MAX_GRID_LAYERS = 64u;
 
 namespace {
 
@@ -133,6 +134,7 @@ MpmSolverNode::MpmSolverNode(webgpu::Context& ctx, const MpmSolverSettings& sett
                 buffer_entry(5, WGPUBufferBindingType_Storage), // simulation state
                 buffer_entry(6, WGPUBufferBindingType_Storage), // density raster
                 e7, // output texture
+                buffer_entry(8, WGPUBufferBindingType_Storage), // column floors of the terrain-following grid
             },
             "mpm solver bind group layout");
     });
@@ -156,9 +158,9 @@ MpmSolverNode::MpmSolverNode(webgpu::Context& ctx, const MpmSolverSettings& sett
 bool MpmSolverNode::ensure_resources()
 {
     const uint32_t num_particles = std::clamp(m_settings.num_particles, 1u, MAX_PARTICLES);
-    const glm::uvec3 grid_res(std::clamp(m_settings.grid_resolution_xy, 8u, MAX_GRID_RESOLUTION),
-        std::clamp(m_settings.grid_resolution_xy, 8u, MAX_GRID_RESOLUTION),
-        std::clamp(m_settings.grid_resolution_z, 8u, MAX_GRID_RESOLUTION));
+    const glm::uvec3 grid_res(std::clamp(m_settings.grid_resolution_xy, 8u, MAX_GRID_RESOLUTION_XY),
+        std::clamp(m_settings.grid_resolution_xy, 8u, MAX_GRID_RESOLUTION_XY),
+        std::clamp(m_settings.grid_layers, 8u, MAX_GRID_LAYERS));
     const uint32_t raster_resolution = std::clamp(m_settings.raster_resolution, 64u, 4096u);
 
     if (m_particle_buffer && num_particles == m_allocated_particles && grid_res == m_allocated_grid_res
@@ -172,6 +174,8 @@ bool MpmSolverNode::ensure_resources()
         m_ctx->device(), storage_usage, size_t(num_particles) * PARTICLE_STRIDE_U32, "mpm particle buffer");
     m_grid_buffer = std::make_unique<webgpu::raii::RawBuffer<uint32_t>>(
         m_ctx->device(), storage_usage, size_t(grid_res.x) * grid_res.y * grid_res.z * GRID_NODE_STRIDE_U32, "mpm grid buffer");
+    m_column_floor_buffer = std::make_unique<webgpu::raii::RawBuffer<uint32_t>>(
+        m_ctx->device(), storage_usage, size_t(grid_res.x) * grid_res.y, "mpm column floor buffer");
     m_density_buffer = std::make_unique<webgpu::raii::RawBuffer<uint32_t>>(
         m_ctx->device(), storage_usage, size_t(raster_resolution) * raster_resolution, "mpm density raster");
     m_output_texture = create_output_texture(m_ctx->device(), raster_resolution, raster_resolution);
@@ -199,6 +203,7 @@ void MpmSolverNode::create_bind_group(const webgpu::raii::TextureWithSampler& he
             m_state_buffer->create_bind_group_entry(5),
             m_density_buffer->create_bind_group_entry(6),
             m_output_texture->texture_view().create_bind_group_entry(7),
+            m_column_floor_buffer->create_bind_group_entry(8),
         },
         "mpm solver bind group");
 }
@@ -442,7 +447,7 @@ void MpmSolverNode::run_impl()
         const glm::dvec2 centre = nucleus::srs::world_to_lat_long((m_domain_aabb.min + m_domain_aabb.max) * 0.5);
         qInfo().nospace() << "MpmSolverNode: simulating " << m_settings.domain_size_xy << " m domain at centre " << centre.x << ", " << centre.y
                           << " (lat " << south_west.x << ".." << north_east.x << ", lon " << south_west.y << ".." << north_east.y << "), "
-                          << m_allocated_grid_res.x << "x" << m_allocated_grid_res.y << "x" << m_allocated_grid_res.z << " grid, dx "
+                          << m_allocated_grid_res.x << "x" << m_allocated_grid_res.y << " grid, " << m_allocated_grid_res.z << " layers, dx "
                           << m_settings_uniform.data.dx << " m, " << m_allocated_particles << " particles";
     } else {
         // Per-run counters only; the terrain scan and seed count from the reset must survive.
@@ -555,7 +560,7 @@ void MpmSolverNode::serialize_settings(QJsonObject& out) const
     out["domain_center_lon"] = s.domain_center.y;
     out["domain_size_xy"] = s.domain_size_xy;
     out["grid_resolution_xy"] = static_cast<int>(s.grid_resolution_xy);
-    out["grid_resolution_z"] = static_cast<int>(s.grid_resolution_z);
+    out["grid_layers"] = static_cast<int>(s.grid_layers);
     out["num_particles"] = static_cast<int>(s.num_particles);
     out["slab_thickness"] = s.slab_thickness;
     out["snow_density"] = s.snow_density;
@@ -597,7 +602,7 @@ void MpmSolverNode::deserialize_settings(const QJsonObject& in)
     s.domain_center.y = read_double("domain_center_lon", s.domain_center.y);
     s.domain_size_xy = read_float("domain_size_xy", s.domain_size_xy);
     s.grid_resolution_xy = read_uint("grid_resolution_xy", s.grid_resolution_xy);
-    s.grid_resolution_z = read_uint("grid_resolution_z", s.grid_resolution_z);
+    s.grid_layers = read_uint("grid_layers", s.grid_layers);
     s.num_particles = read_uint("num_particles", s.num_particles);
     s.slab_thickness = read_float("slab_thickness", s.slab_thickness);
     s.snow_density = read_float("snow_density", s.snow_density);

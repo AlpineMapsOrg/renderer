@@ -334,6 +334,48 @@ TEMP harness/instrumentation reverted; `SimState` back to 14 u32. Offline suite 
 Docs: 03 (P2G/grid pseudo-code), 04 (GridNode 20 B, "round, don't truncate"), 05 (two
 new failure-mode rows), 06 (§4h, bug #8 with the detours), 07 (§2g addendum, step 6).
 
+### 9. "work instead on getting the grid correct" — domain size analysis, then E + B
+
+Step 7 (entrainment) was started and abandoned at the user's request; partial edits
+reverted. Task: the simulation is boxed into a fixed area and clamps at the walls;
+research fixes, list options, estimate the non-MPM code each touches (less = easier
+upstream approval).
+
+**Analysis** (`mpm-mls-doc/08-domain-size-options.md`). Two boxes: the terrain *region*
+(`GeoRegionNode.extent` 2500 m, upstream limit 8192 px stitched ≈ 100 km at z15) and the
+MPM *domain* (1600 m, 128³, dx 12.5). The domain was small because the grid was a dense
+`res³` box while the snow lives in 2–3 of 128 layers — 98 % air, cleared and updated every
+substep. Faces are frictionless walls (`grid_update` zeroes outflow, `g2p` clamps). Two
+facts make fixes cheap: the grid holds no state between substeps, and `rerun()` chains
+down the graph so the overlay re-reads the domain aabb every run. Options: A bigger dense
+grid (settings only, still `res³`), B terrain-following band grid (K layers per column,
+~150 MPM lines, 0 upstream), C sparse/blocked (rejected: hash table + activation in WGSL
+for reach nobody needs), D moving window (0 upstream, ~80 MPM lines, stateless grid makes
+it free), E bigger region (settings). All options: **0 lines outside files we own**.
+
+**Measured** with a temporary harness on the M5 (reverted): per run of 24 substeps,
+`ms ≈ 9 + 25·(nodes/10⁶) + 0.38·(particles/10³)`. Preset 116 ms; 512² × 16 band ≈ 157 ms
+(real time = 240 ms); particles cap real time at ~550 k.
+
+**Implemented E + B.** `mpm_common`: z grid coordinate is now absolute `altitude / dx`;
+`column_floor[]` (binding 8) written by `mpm_prepare` as `floor(terrain/dx) − 2`;
+`grid_slot(node)` maps a stencil node through its own column's floor and returns −1
+outside the band; P2G/G2P skip those; `grid_update` iterates `(x, y, layer)` and uses
+`column_node_world()`; `g2p` clamps particles below the band ceiling
+`(floor + layers − 2.5)·dx`. `grid_resolution_z` → `grid_layers` (default 16),
+`MAX_GRID_RESOLUTION` → `_XY` 512 and `MAX_GRID_LAYERS` 64; both panels, JSON key,
+scenario table (region 8000 m, domain 4000 m, 320 nodes → dx 12.5), preset JSON (raster
+1024). `domain_base_altitude()` gone; `min/max_altitude` readout only.
+
+**Verified.** Offline: the sheet test with the band emulated (8 layers) matches the
+dense grid exactly. Device, Breite Ries 144 s, band 320² × 16 over 4 km vs dense 128³
+over 1.6 km: path 378.3 vs 380.7 m, z_com 1757.6 vs 1756.5, `μ_eff` 0.4904 vs 0.4903,
+100 vs 116 ms per run. So the flow really does stop at 1757 m on its own (slope under
+tan⁻¹ 0.47 ≈ 25°) — it was not the wall.
+
+Docs: 02, 03 (prepare, grid update, stencil), 04 (band section, buffer sizes), 05
+(settings table, failure modes, cost), 06 (§4i), 08 (marked implemented), README.
+
 ## 2026-09-06
 
 ### 1. "Make a folder mpm-mls-doc and document ... for my final report"

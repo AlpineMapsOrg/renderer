@@ -60,12 +60,15 @@ mpm_common` for itself without double-declaring the bindings.
 
 ## `mpm_prepare` — 16×16×1, over grid XY
 
-Runs once per reset, before seeding. Samples terrain at each grid column's centre and
-`atomicMin`/`atomicMax` the altitude (in cm, as i32) into `SimState`.
+Runs once per reset, before seeding. Samples the terrain at each grid column's node and
+does two things: `atomicMin`/`atomicMax` the altitude (in cm, as i32) into `SimState` for
+the readout, and writes the column's **band floor**
+`column_floor[column] = floor(altitude / dx) − 2` — the absolute z index of the first
+stored layer. See "The terrain-following grid" in
+[04-data-layout.md](04-data-layout.md#the-terrain-following-grid-2026-09-13).
 
-Establishes the grid's vertical origin without a CPU readback. `SimState` is pre-seeded from
-the CPU with ±INT_MAX so the atomics converge — a zero-cleared buffer would make `atomicMin`
-stick at 0.
+`SimState` is pre-seeded from the CPU with ±INT_MAX so the atomics converge — a
+zero-cleared buffer would make `atomicMin` stick at 0.
 
 ## `mpm_seed` — 256×1×1, over particles
 
@@ -106,6 +109,7 @@ stress_term = −dt · volume · (4/dx²) · stress
 affine      = stress_term + mass · C
 
 for offset in 3×3×3:
+    slot = grid_slot(base + offset)                     # −1 outside the box or the column's band → skip
     dpos = (offset − fx) · dx
     w    = kernel_weight(...)
     add_node_mass(cell, w · mass)                       # u32 lo/hi at 2^20, carry from atomicAdd's return
@@ -121,17 +125,18 @@ term (Hu et al. [3]).
 
 27 nodes × 4 atomics (+1 on a mass carry, rare) = **108 atomic adds per particle per substep**. This is the hot loop.
 
-## `mpm_grid_update` — 4×4×4, over grid nodes
+## `mpm_grid_update` — 4×4×4, over (x, y, layer)
 
-Stage 2.
+Stage 2. The dispatch's z is the layer within the column's band, not an altitude.
 
 ```
+cell  = layer · res.x · res.y + column(x, y)
 mass = node_mass(cell)                                 # (hi · 2^32 + lo) / 2^20
 if mass <= 0:  zero the velocity slots and return      # so G2P never reads stale data
 v = momentum / mass
 v.z −= gravity · dt
 
-world = to_world_space(node)
+world = column_node_world(node_xy, layer)             # altitude = (column_floor + layer) · dx
 if world.z < terrain_height(world.xy):
     v = resolve_terrain_collision(v, terrain_normal(world.xy), true)   # basal drag applied here
 

@@ -114,14 +114,14 @@ void MpmSolverNodeRenderer::render_settings_content()
     settings_changed |= ImGui::DragFloat("Domain size", &settings.domain_size_xy, 8.0f, 64.0f, 8192.0f, "%.0f m");
     rerun |= ImGui::IsItemDeactivatedAfterEdit();
 
-    const uint32_t min_res = 8, max_res = 256;
+    const uint32_t min_res = 8, max_res = Node::MAX_GRID_RESOLUTION_XY, max_layers = Node::MAX_GRID_LAYERS;
     settings_changed |= ImGui::DragScalar("Grid resolution XY", ImGuiDataType_U32, &settings.grid_resolution_xy, 1.0f, &min_res, &max_res, "%u");
     rerun |= ImGui::IsItemDeactivatedAfterEdit();
 
-    settings_changed |= ImGui::DragScalar("Grid resolution Z", ImGuiDataType_U32, &settings.grid_resolution_z, 1.0f, &min_res, &max_res, "%u");
+    settings_changed |= ImGui::DragScalar("Grid layers", ImGuiDataType_U32, &settings.grid_layers, 1.0f, &min_res, &max_layers, "%u");
     rerun |= ImGui::IsItemDeactivatedAfterEdit();
 
-    ImGui::TextDisabled("Vertical range: %.0f m", double(dx * float(settings.grid_resolution_z)));
+    ImGui::TextDisabled("Band above terrain: %.0f m (the grid follows the surface)", double(dx * float(settings.grid_layers)));
 
     ImGui::Separator();
 
