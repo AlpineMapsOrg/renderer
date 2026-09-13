@@ -41,6 +41,17 @@ fn computeMain(@builtin(global_invocation_id) id: vec3<u32>) {
         atomicAdd(&state.plastic_particles, 1u);
     }
 
+    // Centre of mass and mean kinetic energy, see SimState in mpm_common. 64-bit sums as
+    // lo/hi u32 pairs: the carry is detected from the value atomicAdd hands back.
+    let sx = u32(max(p.position.x, 0.0) * SUM_POSITION_SCALE);
+    if atomicAdd(&state.sum_x_lo, sx) > 0xFFFFFFFFu - sx { atomicAdd(&state.sum_x_hi, 1u); }
+    let sy = u32(max(p.position.y, 0.0) * SUM_POSITION_SCALE);
+    if atomicAdd(&state.sum_y_lo, sy) > 0xFFFFFFFFu - sy { atomicAdd(&state.sum_y_hi, 1u); }
+    let sz = u32(max(p.position.z, 0.0) * SUM_POSITION_SCALE);
+    if atomicAdd(&state.sum_z_lo, sz) > 0xFFFFFFFFu - sz { atomicAdd(&state.sum_z_hi, 1u); }
+    let sv = u32(min(dot(p.velocity, p.velocity) * SUM_SPEED_SQ_SCALE, 4.0e9));
+    if atomicAdd(&state.sum_speed_sq_lo, sv) > 0xFFFFFFFFu - sv { atomicAdd(&state.sum_speed_sq_hi, 1u); }
+
     // Domain-local position in [0,1]^2, with v flipped to match the texture convention.
     let local = (p.position.xy - settings.domain_origin) / settings.domain_size_xy;
     if any(local < vec2f(0.0)) || any(local >= vec2f(1.0)) {

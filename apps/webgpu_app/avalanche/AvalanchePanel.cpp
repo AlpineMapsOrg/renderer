@@ -234,6 +234,32 @@ void AvalanchePanel::draw_panel()
         ImGui::TextColored(ImVec4(1.0f, 0.6f, 0.2f, 1.0f), "0 particles seeded - move the release zone or tick Seed anywhere.");
     }
 
+    // Energy-line test (com1DFA section 5.2): Coulomb friction removes exactly mu of energy
+    // height per horizontal metre of centre-of-mass travel, so the fitted slope is the
+    // effective friction the flow experiences; the excess over the set mu is internal
+    // (plastic) dissipation.
+    const auto& energy_line = solver->energy_line();
+    const float mu_eff = solver->energy_line_friction();
+    if (!energy_line.empty()) {
+        if (std::isfinite(mu_eff)) {
+            ImGui::TextDisabled("Energy line: mu_eff %.3f over %.0f m (basal mu %.2f, internal %+.3f)", double(mu_eff),
+                double(energy_line.back().path), double(settings.terrain_friction), double(mu_eff - settings.terrain_friction));
+        } else {
+            ImGui::TextDisabled("Energy line: %zu samples, not moving yet", energy_line.size());
+        }
+        if (ImGui::IsItemHovered())
+            ImGui::SetTooltip("Energy height z + v^2/2g of the centre of mass against its horizontal path.\n"
+                              "Slope = -mu_eff. For pure Coulomb sliding mu_eff == mu; anything above it\n"
+                              "is dissipated inside the snow. Tonnel et al. 2023, com1DFA section 5.2.");
+        if (energy_line.size() >= 2) {
+            std::vector<float> heights;
+            heights.reserve(energy_line.size());
+            for (const auto& sample : energy_line)
+                heights.push_back(sample.energy_height);
+            ImGui::PlotLines("##energy_line", heights.data(), int(heights.size()), 0, "energy height vs run", FLT_MAX, FLT_MAX, ImVec2(0, 40));
+        }
+    }
+
     if (ImGui::Button(m_playing ? ICON_FA_PAUSE "  Pause" : ICON_FA_PLAY "  Play", ImVec2(110, 0)))
         m_playing = !m_playing;
     ImGui::SameLine();

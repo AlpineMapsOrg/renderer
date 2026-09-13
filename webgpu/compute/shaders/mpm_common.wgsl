@@ -119,7 +119,28 @@ struct SimState {
     max_speed_mm: atomic<u32>,
     plastic_particles: atomic<u32>, // particles whose plastic state has left its initial value
     _reserved: atomic<u32>,
+
+    // Sums of position and |v|^2 over the active particles, for the centre of mass and the
+    // mean kinetic energy of the energy-line test (Tonnel et al. 2023, com1DFA section 5.2).
+    // WGSL has no 64-bit atomics, and a fixed-point sum over 10^5 particles overflows a u32
+    // at any useful precision - so each sum is a lo/hi pair: add to lo, and if the returned
+    // old value shows the add wrapped, carry into hi. All summands are non-negative
+    // (region-relative x/y, altitude, |v|^2), so unsigned is fine. See wide_add() in
+    // mpm_splat.wgsl and MpmSolverNode::read_back_state() for the two halves.
+    sum_x_lo: atomic<u32>, // region-relative metres * SUM_POSITION_SCALE
+    sum_x_hi: atomic<u32>,
+    sum_y_lo: atomic<u32>,
+    sum_y_hi: atomic<u32>,
+    sum_z_lo: atomic<u32>, // absolute altitude
+    sum_z_hi: atomic<u32>,
+    sum_speed_sq_lo: atomic<u32>, // m^2/s^2 * SUM_SPEED_SQ_SCALE
+    sum_speed_sq_hi: atomic<u32>,
 }
+
+// Per-particle contributions have to fit a u32 on their own: 4500 m * 1e4 = 4.5e7 and
+// (100 m/s)^2 * 1e5 = 1e9 both do. The sums are 64-bit, so particle count is irrelevant.
+const SUM_POSITION_SCALE: f32 = 1.0e4; // 0.1 mm
+const SUM_SPEED_SQ_SCALE: f32 = 1.0e5; // 1e-5 m^2/s^2
 
 // Result of a constitutive model's plastic return mapping (see mpm_material.wgsl).
 struct PlasticReturn {

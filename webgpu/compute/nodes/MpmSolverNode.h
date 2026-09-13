@@ -25,6 +25,8 @@
 #include <webgpu/base/raii/CombinedComputePipeline.h>
 #include <webgpu/base/raii/TextureWithSampler.h>
 
+#include <vector>
+
 namespace webgpu_compute::nodes {
 
 /// Real-time snow avalanche simulation using MLS-MPM (Hu et al. 2018) with the snow
@@ -231,8 +233,27 @@ public:
         uint32_t active_particles = 0; // seeded successfully
         float max_speed = 0.0f; // fastest particle in the last run [m/s]
         uint32_t plastic_particles = 0; // plastic state has left its initial value
+        glm::dvec3 centre_of_mass = glm::dvec3(0.0); // region-relative x, y; absolute z [m]
+        float mean_speed_sq = 0.0f; // mean |v|^2 over active particles [m^2/s^2]
     };
     const SimStateReadback& last_state() const { return m_last_state; }
+
+    /// One point of the energy-line record (Tonnel et al. 2023, com1DFA section 5.2):
+    /// the centre of mass's energy height z + v^2/(2g) against its horizontal path length.
+    /// Coulomb friction removes exactly mu of energy height per horizontal metre, so the
+    /// slope of this record is -mu_eff, and mu_eff - mu is the internal dissipation.
+    struct EnergySample {
+        float time; // simulated [s]
+        float path; // horizontal distance travelled by the centre of mass [m]
+        float altitude; // centre of mass [m]
+        float energy_height; // altitude + mean_speed_sq / (2 g) [m]
+    };
+    const std::vector<EnergySample>& energy_line() const { return m_energy_line; }
+
+    /// Least-squares slope of energy height over path, negated: the effective friction
+    /// coefficient the flow is experiencing. NaN until there are enough samples with
+    /// actual movement.
+    float energy_line_friction() const;
 
     /// True when every input is both connected and actually carrying a resource.
     /// Callers driving the solver directly (e.g. rerun() from the UI) must check this:
@@ -291,6 +312,8 @@ private:
     glm::uvec2 m_output_dimensions = glm::uvec2(0);
     float m_simulated_time = 0.0f;
     SimStateReadback m_last_state;
+    std::vector<EnergySample> m_energy_line;
+    glm::dvec2 m_last_com_xy = glm::dvec2(0.0); // for the path increment between samples
 };
 
 } // namespace webgpu_compute::nodes

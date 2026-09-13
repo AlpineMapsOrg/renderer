@@ -41,7 +41,13 @@ namespace {
     /* Size of struct GridNode in mpm_common.wgsl, in units of uint32. */
     constexpr uint32_t GRID_NODE_STRIDE_U32 = 4u; // 16 bytes
     /* Size of struct SimState in mpm_common.wgsl, in units of uint32. */
-    constexpr uint32_t SIM_STATE_SIZE_U32 = 6u;
+    constexpr uint32_t SIM_STATE_SIZE_U32 = 14u; // 56 bytes
+    /* Mirrors the constants in mpm_common.wgsl. */
+    constexpr double SUM_POSITION_SCALE = 1.0e4;
+    constexpr double SUM_SPEED_SQ_SCALE = 1.0e5;
+
+    /* Reassembles a lo/hi u32 pair written by the shader's carry-detecting atomic adds. */
+    uint64_t wide(const std::vector<uint32_t>& data, size_t lo_slot) { return (uint64_t(data[lo_slot + 1]) << 32) | uint64_t(data[lo_slot]); }
 
     constexpr uint32_t div_ceil(uint32_t value, uint32_t divisor) { return (value + divisor - 1u) / divisor; }
 
@@ -303,33 +309,86 @@ void MpmSolverNode::write_initial_state()
     std::memcpy(&initial[1], &max_init, sizeof(int32_t));
     initial[2] = 0u; // active particles
     initial[3] = 0u; // max speed
-    initial[4] = 0u; // plastic particles
-    initial[5] = 0u;
+    // slots 4..13 (plastic count, reserved, the four 64-bit sums) start at zero
 
     m_state_buffer->write(m_ctx->queue(), initial.data(), initial.size(), 0);
 }
 
 void MpmSolverNode::reset_run_counters()
 {
-    const std::array<uint32_t, 2> zeros { 0u, 0u };
-    m_state_buffer->write(m_ctx->queue(), zeros.data(), zeros.size(), 3); // slots 3 and 4
+    // slots 3..13: max speed, plastic count, reserved, four 64-bit sums (lo/hi each)
+    const std::array<uint32_t, 11> zeros {};
+    m_state_buffer->write(m_ctx->queue(), zeros.data(), zeros.size(), 3);
 }
 
 void MpmSolverNode::read_back_state()
 {
-    m_state_buffer->read_back_async(m_ctx->device(), [this](WGPUMapAsyncStatus status, std::vector<uint32_t> data) {
+    // Stamp the sample with the time of the run it describes; the callback fires later.
+    const float time = m_simulated_time;
+    const float gravity = std::max(m_settings.gravity, 1e-3f);
+
+    m_state_buffer->read_back_async(m_ctx->device(), [this, time, gravity](WGPUMapAsyncStatus status, std::vector<uint32_t> data) {
         if (status != WGPUMapAsyncStatus_Success || data.size() < SIM_STATE_SIZE_U32)
             return;
-        int32_t min_cm = 0, max_cm = 0;
-        std::memcpy(&min_cm, &data[0], sizeof(int32_t));
-        std::memcpy(&max_cm, &data[1], sizeof(int32_t));
-        m_last_state.min_altitude = float(min_cm) / 100.0f;
-        m_last_state.max_altitude = float(max_cm) / 100.0f;
+        const auto as_i32 = [&data](size_t slot) {
+            int32_t value = 0;
+            std::memcpy(&value, &data[slot], sizeof(int32_t));
+            return value;
+        };
+        m_last_state.min_altitude = float(as_i32(0)) / 100.0f;
+        m_last_state.max_altitude = float(as_i32(1)) / 100.0f;
         m_last_state.active_particles = data[2];
         m_last_state.max_speed = float(data[3]) / 1000.0f;
         m_last_state.plastic_particles = data[4];
+
+        const double active = std::max(double(m_last_state.active_particles), 1.0);
+        m_last_state.centre_of_mass = glm::dvec3(double(wide(data, 6)), double(wide(data, 8)), double(wide(data, 10))) / SUM_POSITION_SCALE / active;
+        m_last_state.mean_speed_sq = float(double(wide(data, 12)) / SUM_SPEED_SQ_SCALE / active);
         m_last_state.valid = true;
+
+        if (m_last_state.active_particles == 0)
+            return;
+
+        // Energy line: path is the horizontal distance the centre of mass has covered.
+        float path = 0.0f;
+        if (!m_energy_line.empty()) {
+            const auto& previous = m_energy_line.back();
+            const glm::dvec2 delta = glm::dvec2(m_last_state.centre_of_mass) - m_last_com_xy;
+            path = previous.path + float(glm::length(delta));
+        }
+        m_last_com_xy = glm::dvec2(m_last_state.centre_of_mass);
+        m_energy_line.push_back(EnergySample { time, path, float(m_last_state.centre_of_mass.z),
+            float(m_last_state.centre_of_mass.z) + m_last_state.mean_speed_sq / (2.0f * gravity) });
     });
+}
+
+float MpmSolverNode::energy_line_friction() const
+{
+    // Ordinary least squares of energy height on path. Needs movement to be meaningful:
+    // a resting slab has path ~ 0 and the slope is undefined.
+    if (m_energy_line.size() < 3)
+        return std::numeric_limits<float>::quiet_NaN();
+    // Skip the settling phase - the slab is seeded slightly above the terrain and compacts
+    // before it slides, which drops energy height with almost no path and would dominate a
+    // fit over few samples. Fit the sliding regime: samples past 10 % of the total path.
+    const float skip = std::max(0.5f, 0.1f * m_energy_line.back().path);
+    double sum_s = 0, sum_h = 0, sum_ss = 0, sum_sh = 0, n = 0;
+    for (const auto& sample : m_energy_line) {
+        if (sample.path < skip)
+            continue;
+        n += 1;
+        sum_s += sample.path;
+        sum_h += sample.energy_height;
+        sum_ss += double(sample.path) * sample.path;
+        sum_sh += double(sample.path) * sample.energy_height;
+    }
+    if (n < 3)
+        return std::numeric_limits<float>::quiet_NaN();
+    const double variance = sum_ss - sum_s * sum_s / n;
+    if (variance < 1.0) // less than ~1 m^2 of spread in path: not moving yet
+        return std::numeric_limits<float>::quiet_NaN();
+    const double slope = (sum_sh - sum_s * sum_h / n) / variance;
+    return float(-slope);
 }
 
 bool MpmSolverNode::has_valid_inputs()
@@ -374,6 +433,7 @@ void MpmSolverNode::run_impl()
         write_initial_state();
         m_simulated_time = 0.0f;
         m_last_state = {};
+        m_energy_line.clear();
 
         // Report where on the planet we are actually simulating - without this there is no
         // way to tell from the UI which slope the domain landed on.

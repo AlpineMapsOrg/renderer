@@ -35,8 +35,18 @@ CRIT_COMP, CRIT_STRETCH = 2.5e-2, 7.5e-3
 GRAVITY = 9.81
 FRICTION = 0.4
 FLOOR_Z = 3.0
+SLOPE_DEG = 0.0              # terrain z = FLOOR_Z + tan(slope) * x; 0 = the flat floor of the drop test
 PARTICLE_MASS = 1.0          # normalised; see 04-data-layout.md
 PARTICLE_VOLUME = 1.0 / DENSITY
+
+
+def terrain_height(x):
+    return FLOOR_Z + np.tan(np.radians(SLOPE_DEG)) * x
+
+
+def terrain_normal():
+    theta = np.radians(SLOPE_DEG)
+    return np.array([-np.sin(theta), 0.0, np.cos(theta)])
 
 
 def compute_kernel(gp):
@@ -131,8 +141,8 @@ def substep(pos, vel, C, F, jp):
         t = tuple(node)
         v = gv[t] / gm[t]
         v[2] -= GRAVITY * DT
-        if node[2] * DX < FLOOR_Z:
-            v = resolve_collision(v, np.array([0.0, 0.0, 1.0]))
+        if node[2] * DX < terrain_height(node[0] * DX):
+            v = resolve_collision(v, terrain_normal())
         for d in range(3):
             if node[d] < 2 and v[d] < 0:
                 v[d] = 0.0
@@ -161,9 +171,10 @@ def substep(pos, vel, C, F, jp):
         C[p] = new_C
         F[p], jp[p] = material_plasticity((np.eye(3) + DT * new_C) @ F[p], jp[p])
         pos[p] = pos[p] + DT * new_v
-        if pos[p][2] < FLOOR_Z:
-            pos[p][2] = FLOOR_Z
-            vel[p] = resolve_collision(vel[p], np.array([0.0, 0.0, 1.0]))
+        surface = terrain_height(pos[p][0])
+        if pos[p][2] < surface:
+            pos[p][2] = surface
+            vel[p] = resolve_collision(vel[p], terrain_normal())
         pos[p] = np.clip(pos[p], 2.0 * DX, (GRID - 3) * DX)
     return gm.sum()
 
