@@ -50,7 +50,7 @@ Three files carry no entry point; kernels `///use` them.
 | Module | Provides | Used by |
 |---|---|---|
 | `mpm_common` | bindings, structs, terrain sampling, B-spline kernel, SVD, matrix helpers | all |
-| `mpm_material` | `material_initial_state()`, `material_stress()`, `material_plasticity()` — a `switch` on `settings.constitutive_model` over `mpm_material_<name>` implementations | seed, p2g, g2p |
+| `mpm_material` | `material_initial_state()`, `material_stress()`, `material_plasticity()` — a `switch` on `settings.constitutive_model` over `mpm_material_stomakhin` / `mpm_material_drucker_prager` | seed, p2g, g2p |
 | `mpm_friction` | `resolve_terrain_collision(v, n, apply_basal_drag)` — a `switch` on `settings.basal_friction_model`; Coulomb, Voellmy | grid_update (`true`), g2p (`false`) |
 
 `mpm_material` and `mpm_friction` are separate on purpose: internal friction (M, inside the

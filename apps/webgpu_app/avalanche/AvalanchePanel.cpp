@@ -187,7 +187,9 @@ void AvalanchePanel::draw_panel()
     // Two independent choices - internal snow behaviour vs. contact with the ground - kept
     // side by side here so the distinction is visible. Combo strings must stay in enum order.
     ImGui::TextDisabled("Models");
-    settings_changed |= ImGui::Combo("Material", reinterpret_cast<int*>(&settings.constitutive_model), "Stomakhin 2013\0");
+    settings_changed |= ImGui::Combo("Material", reinterpret_cast<int*>(&settings.constitutive_model), "Stomakhin 2013\0Drucker-Prager\0");
+    if (settings.constitutive_model == nodes::MpmSolverNode::DRUCKER_PRAGER)
+        settings_changed |= ImGui::DragFloat("Friction angle", &settings.dp_friction_angle, 0.25f, 0.0f, 89.0f, "%.1f deg");
     settings_changed |= ImGui::Combo("Basal friction", reinterpret_cast<int*>(&settings.basal_friction_model), "Coulomb\0Voellmy\0");
     settings_changed |= ImGui::DragFloat("Friction coefficient", &settings.terrain_friction, 0.01f, 0.0f, 2.0f, "%.2f");
     if (settings.basal_friction_model == nodes::MpmSolverNode::VOELLMY)

@@ -20,6 +20,7 @@
 
 #include <QDebug>
 #include <array>
+#include <cmath>
 #include <cstring>
 #include <limits>
 #include <nucleus/srs.h>
@@ -270,7 +271,11 @@ void MpmSolverNode::update_gpu_settings(const radix::geometry::Aabb<2, double>& 
     data.constitutive_model = static_cast<uint32_t>(m_settings.constitutive_model);
     data.basal_friction_model = static_cast<uint32_t>(m_settings.basal_friction_model);
     data.voellmy_xi = std::max(m_settings.voellmy_xi, 1.0f);
-    data._pad_b = 0u;
+
+    // Drucker-Prager cone slope from the friction angle (Klar et al. 2016, eq. after (27)):
+    // alpha = sqrt(2/3) * 2 sin(phi) / (3 - sin(phi)).
+    const float sin_phi = std::sin(glm::radians(std::clamp(m_settings.dp_friction_angle, 0.0f, 89.0f)));
+    data.dp_alpha = std::sqrt(2.0f / 3.0f) * 2.0f * sin_phi / (3.0f - sin_phi);
 
     m_settings_uniform.update_gpu_data(m_ctx->queue());
 
@@ -466,6 +471,7 @@ void MpmSolverNode::serialize_settings(QJsonObject& out) const
     out["constitutive_model"] = static_cast<int>(s.constitutive_model);
     out["basal_friction_model"] = static_cast<int>(s.basal_friction_model);
     out["voellmy_xi"] = s.voellmy_xi;
+    out["dp_friction_angle"] = s.dp_friction_angle;
     out["raster_resolution"] = static_cast<int>(s.raster_resolution);
     out["splat_radius"] = s.splat_radius;
     out["release_center_lat"] = s.release_center.x;
@@ -503,6 +509,7 @@ void MpmSolverNode::deserialize_settings(const QJsonObject& in)
     s.constitutive_model = static_cast<ConstitutiveModel>(read_uint("constitutive_model", s.constitutive_model));
     s.basal_friction_model = static_cast<BasalFrictionModel>(read_uint("basal_friction_model", s.basal_friction_model));
     s.voellmy_xi = read_float("voellmy_xi", s.voellmy_xi);
+    s.dp_friction_angle = read_float("dp_friction_angle", s.dp_friction_angle);
     s.raster_resolution = read_uint("raster_resolution", s.raster_resolution);
     s.splat_radius = read_float("splat_radius", s.splat_radius);
     s.release_center.x = read_double("release_center_lat", s.release_center.x);

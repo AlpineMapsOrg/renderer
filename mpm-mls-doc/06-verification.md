@@ -104,6 +104,35 @@ Added with Voellmy on 2026-09-13; it also pins the Coulomb path.
 The Coulomb row is the regression check for the refactor; the terminal-velocity row is the
 only property that distinguishes Voellmy from Coulomb, so it is the one that matters.
 
+## 4d. Drucker–Prager — return mapping vs the yield surface
+
+`scripts/test_material_dp.py` ports `mpm_material_drucker_prager.wgsl` verbatim. The yield
+function `y(τ) = ‖dev τ‖ + α tr τ` is closed-form, so every projection can be checked
+against it directly:
+
+| Check | Result |
+|---|---|
+| F = I | zero stress, Case I |
+| **Pure hydrostatic compression** | Case I, unchanged — *the first draft got this wrong* |
+| Hydrostatic expansion | Case II, F → I, plastic strain > 0 |
+| Small shear under compression | y < 0, Case I, unchanged |
+| Large shear under compression | Case III, and the projected stress satisfies **\|y\| = 1.8e-12** |
+| Idempotence | re-projecting an on-cone state moves it by < 1e-9 |
+| 500 random gradients | never outside the cone (max y 1.5e-10); every Case III lands on it |
+| Stress symmetry / rotation covariance | τ symmetric; `τ(RF) = R τ(F) Rᵀ` |
+
+`test_mpm.py` now takes `MPM_MODEL=drucker_prager`. Same drop test, side by side:
+
+| | Stomakhin | Drucker–Prager |
+|---|---|---|
+| mean z at 900 steps | 4.00, stable since step 450 | 3.65, still falling |
+| max \|v\| at 900 steps | 0.06 m/s, at rest | 2.7 m/s, still spreading |
+| plastic state | saturates at 0.746 | grows without bound, 0.25 → 0.92 |
+
+Cohesive snow piles and stops; cohesionless material keeps yielding and spreading. That is
+the expected physical difference, and it falls out of the ports without any tuning. Mass
+conserved exactly in both; nothing below the floor.
+
 ## 5. On real terrain
 
 Runs end to end on the Schneeberg DEM: seeds, flows downhill, deposits, animates, and the
@@ -154,6 +183,8 @@ python3 -m venv .venv && ./.venv/bin/pip install numpy
 ./.venv/bin/python test_svd.py
 ./.venv/bin/python test_mpm.py      # slow, pure Python: ~900 substeps
 ./.venv/bin/python test_friction.py # basal friction laws vs closed-form slope mechanics
+./.venv/bin/python test_material_dp.py               # Drucker-Prager return mapping vs yield surface
+MPM_MODEL=drucker_prager ./.venv/bin/python test_mpm.py   # full loop with DP
 
 # 4b. refactor safety - resolved WGSL vs git HEAD (edit its tables for a new refactor)
 python3 check_refactor_preserving.py

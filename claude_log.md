@@ -120,6 +120,48 @@ Docs: 01 (Voellmy formula + terminal velocity), 02, 03 (flagged call sites, seed
 05 (params table, the impulse-vs-drag rule), 06 (§4c friction bench), 07 (step 2 ticked, §2b
 rewritten), README, refs (Tonnel 2023, Li 2021 entries).
 
+### 4. "continue with step 3" — Drucker–Prager (Klár 2016)
+
+First real second *constitutive* model, deliberately before CCC: its return mapping is a
+closed-form projection, and it brings in the Hencky elasticity CCC will reuse.
+
+**Implementation.** `mpm_material_drucker_prager.wgsl`, `ConstitutiveModel::DRUCKER_PRAGER = 1`.
+Hencky strain `ε = log Σ`, Kirchhoff stress `τ = 2με + λ tr(ε)` in the principal frame,
+`P Fᵀ = U diag(τ) Uᵀ`. Yield cone `‖dev τ‖ + α tr τ ≤ 0`, `α = √(2/3)·2sinφ/(3−sinφ)`
+precomputed CPU-side from a `dp_friction_angle` setting (default 30°). Return mapping is
+Klár §5.3 Cases I/II/III. `plastic_state` accumulates δγ; hardening of φ left out.
+
+**Two design changes against the plan in `07`, both recorded there.** (a) E/ν are *shared*
+across models instead of duplicated as `hencky_*` — two stiffness knobs that silently
+disagree is worse than one, the CFL readout keys off the shared E, and presets are the
+right place for per-model defaults. So DP needed exactly one field (`dp_alpha`, last pad
+slot, uniform still 160 B). (b) `DRUCKER_PRAGER = 1` not 2, so the combo stays contiguous
+until CCC exists.
+
+**Bug caught by the test before it shipped.** The first draft guarded Case II with
+`‖ε̂‖ = 0 OR tr ε > 0`, which sends *pure hydrostatic compression* to the cone apex and
+drops all elastic strain. Hydrostatic compression has zero deviatoric strain but sits on
+the cone's axis, inside the surface — it must stay elastic. With `tr ≤ 0` the second term
+of δγ is ≤ 0, so `δγ > 0` already implies `‖ε̂‖ > 0`; the division guard was unnecessary
+and the condition is `tr > 0` alone. Test case 1 in `test_material_dp.py` pins it.
+
+**Verification.**
+- `test_material_dp.py`: 12 checks. The substantive one — every Case III projection lands
+  *on* the cone, `|y| < 1.5e-10` over 500 random gradients; never outside it. Idempotence
+  check needed loosening from "case label is I" to "state doesn't move": an on-cone state
+  has `y ≈ +1e-12` and the re-projection fires Case III with δγ ≈ 1e-15. Test strictness,
+  not physics.
+- `test_mpm.py` parametrised by `MPM_MODEL`, reusing the DP port. Stomakhin regression
+  unchanged (jp 0.7456). DP on the same drop: mean z 3.65 and still falling vs 4.00 stable;
+  max|v| 2.7 m/s still spreading vs 0.06 at rest; plastic strain growing 0.25 → 0.92 vs
+  saturated. Cohesive piles and stops, cohesionless keeps spreading — the expected physical
+  difference, with no tuning.
+- `tint` 8/8; 8 pipelines on Metal; temporaries reverted.
+
+Docs: 01 (§4b Hencky + cone), 02, 03, 04 (no pad slots left → next field is 176 B), 05
+(shared-E rule), 06 (§4d), 07 (§2d incl. the bug and the design changes; step 3 ticked),
+README, refs (Klár 2016).
+
 ## 2026-09-06
 
 ### 1. "Make a folder mpm-mls-doc and document ... for my final report"

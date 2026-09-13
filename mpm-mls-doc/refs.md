@@ -73,6 +73,11 @@ https://doi.org/10.1007/s10346-021-01692-8
 → Proposal ref [13]. Source of the basal μ = **0.47** default (Table 1, real terrain) and of the
 per-regime CCC parameter table the presets will use.
 
+**Klár, G., Gast, T., Pradhana, A., Fu, C., Schroeder, C., Jiang, C., Teran, J.** 2016.
+*Drucker-Prager elastoplasticity for sand animation.* ACM Trans. Graph. 35(4), Article 103.
+→ **Implemented** in `mpm_material_drucker_prager.wgsl`: Hencky strain, friction cone, the
+closed-form return mapping of §5.3 (Cases I–III). Hardening of φ (§5.4) left out.
+
 ## Implementation references (not papers)
 
 - **`mls-mpm88`** — Hu's ~88-line reference MLS-MPM implementation. The canonical source for

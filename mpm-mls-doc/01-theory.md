@@ -184,6 +184,32 @@ WGSL has no linear algebra library. Implemented from scratch in `svd3()`:
 
 Verified against numpy over 700+ matrices — see [06-verification.md](06-verification.md).
 
+## 4b. Drucker–Prager (Klár et al. 2016) — second model
+
+Same slot in the loop as Stomakhin, different physics. **Hencky** (logarithmic) strain
+hyperelasticity in the principal frame of `F = U Σ Vᵀ`:
+
+```
+ε   = log Σ
+τ   = 2μ ε + λ tr(ε) I           Kirchhoff stress, principal values
+P Fᵀ = U diag(τ) Uᵀ
+```
+
+Yield surface is a **pressure-dependent friction cone** with its apex at zero stress:
+
+```
+‖dev τ‖ + α tr τ ≤ 0,     α = √(2/3) · 2 sinφ / (3 − sinφ)
+```
+
+φ is the internal friction angle. It relates to the Cam-Clay slope M via
+`sinφ = 3M/(6+M)`: Li's cold-dense M = 0.5 is ≈ 13°, warm-shear M = 1.5 is ≈ 37°.
+
+The return mapping is a closed-form projection in strain space (Klár §5.3): expansion
+(`tr ε > 0`) projects to the apex since a cohesionless material carries no tension;
+otherwise the deviatoric part is shortened by `δγ = ‖ε̂‖ + (3λ+2μ)/(2μ)·tr(ε)·α` onto the
+cone if `δγ > 0`, else elastic. Cheaper than Cam-Clay (no implicit solve), cohesionless (no
+slab, no fracture, no plug). Covers Li et al.'s cold-dense regime only.
+
 ## 5. Terrain coupling
 
 Not in the source papers — this is the geographic part of the project.

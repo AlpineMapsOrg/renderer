@@ -15,7 +15,7 @@ too.
 | v3.0 goal | Status |
 |---|---|
 | MLS-MPM solver | **done** |
-| A constitutive model — Stomakhin [5] *or* successors Gaume CCC [11], Li et al. [12,13] | **Stomakhin only**, now behind a switch |
+| A constitutive model — Stomakhin [5] *or* successors Gaume CCC [11], Li et al. [12,13] | **Stomakhin + Drucker–Prager** behind a switch; CCC still to do |
 | Model is configurable / regime presets (Li 2021 Table 1) | **switch in place** (2026-09-13); one model behind it, no presets yet |
 | Basal friction via simple Coulomb using terrain normals | **done**; Voellmy added alongside (2026-09-13) |
 | Single-particle rendering | not done (2D density overlay instead) |
@@ -69,15 +69,49 @@ applying it at the particle level too would double-count it per substep. Coulomb
 the flag and is bit-identical to before. Verified against the analytic terminal velocity
 `v∞ = √(ξh(sinθ − μcosθ))` to 0.085% — see [06-verification.md](06-verification.md).
 
+### 2d. Drucker–Prager (Klár 2016) — implemented 2026-09-13
+
+`mpm_material_drucker_prager.wgsl`, `ConstitutiveModel::DRUCKER_PRAGER = 1`. Hencky
+(log-strain) elasticity `τ = 2με + λ tr(ε) I` in the principal frame, `P Fᵀ = U diag(τ) Uᵀ`;
+yield surface the friction cone `‖dev τ‖ + α tr τ ≤ 0` with
+`α = √(2/3)·2 sinφ/(3 − sinφ)` precomputed CPU-side from `dp_friction_angle` (default 30°,
+Klár's sand). Return mapping is Klár §5.3's closed-form projection in Hencky-strain space:
+
+```
+ε = log Σ,   ε̂ = ε − tr(ε)/3
+if tr(ε) > 0:                          Case II  – tension, project to the apex (ε ← 0)
+δγ = ‖ε̂‖ + (3λ+2μ)/(2μ) · tr(ε) · α
+if δγ ≤ 0:                             Case I   – elastic
+else:  ε ← ε − δγ · ε̂/‖ε̂‖             Case III – onto the cone
+```
+
+`plastic_state` accumulates δγ (a free "has this particle yielded" diagnostic); Klár's
+hardening of φ is left out. Cohesionless, so cold-dense regime only — the documented
+fallback if CCC is too slow. Verified: `test_material_dp.py` checks every Case III output
+lands on the cone to `|y| < 1.5e-10` over 500 random gradients; `test_mpm.py` with
+`MPM_MODEL=drucker_prager` shows the qualitative signature (spreads instead of piling).
+
+**One bug caught by the test, worth remembering:** the first draft sent *pure hydrostatic
+compression* to the cone apex because it guarded Case II with `‖ε̂‖ = 0 OR tr > 0`.
+Hydrostatic compression has `ε̂ = 0` but sits *inside* the cone on its axis and must stay
+elastic. With `tr ≤ 0` the second term of δγ is ≤ 0, so `δγ > 0` already implies
+`‖ε̂‖ > 0` — the division guard was unnecessary and wrong. Condition is `tr > 0` alone.
+
+**Design change from §3e:** E and ν are **shared** across models rather than duplicated as
+`hencky_*`. Two stiffness knobs that silently disagree is worse than one; the CFL readout
+already keys off the shared E; per-model recommended values are what presets (step 5) are
+for. DP therefore needed one new field (`dp_alpha`, in the last pad slot) and the uniform
+stayed 160 B. Enum numbering is also `DRUCKER_PRAGER = 1` (not 2) so the combo stays
+contiguous until CCC lands.
+
 ### 2c. Not implemented
 
 - **Gaume 2018 Cohesive Cam Clay** — the recommended model. Nothing present.
 - **Li 2020/2021 regime parameters** — no presets, and the parameters they need
   (M, β, ξ, p₀, Hencky elasticity) do not exist in the settings or uniform.
-- **Drucker–Prager** (Klár 2016) — nothing present.
 - ~~**Model selection**~~ — **done 2026-09-13.** `ConstitutiveModel` / `BasalFrictionModel`
-  enums, `u32` uniform fields, runtime `switch` dispatchers, combos in both panels. Only one
-  entry in each enum so far, so the switch is real but currently has nothing to switch *to*.
+  enums, `u32` uniform fields, runtime `switch` dispatchers, combos in both panels.
+- ~~**Drucker–Prager**~~ — **done 2026-09-13**, see §2d.
 - **Entrainment**, **energy-line validation**, **comparison to com1DFA/Flow-Py** — nothing.
 
 ## 3. Making models exchangeable — design
@@ -122,7 +156,7 @@ Per-particle state needed by each model is **one scalar**:
 |---|---|---|
 | Stomakhin | Jp, plastic volume ratio | fixed corotated |
 | CCC | εᵥᵖ, accumulated volumetric plastic strain (drives p₀ via sinh) | Hencky |
-| Drucker–Prager | none needed (or hardening α) | Hencky |
+| Drucker–Prager | accumulated plastic strain Σδγ (diagnostic only) | Hencky |
 
 So the `Particle` struct **does not change** — rename `jp` → `plastic_state` and document its
 meaning per model. Elasticity is part of the model, so it lives inside each model's
@@ -204,10 +238,8 @@ All 8 pipelines confirmed on Metal.
 **2. Basal friction: μ → 0.47, add Voellmy.** ✅ **Done 2026-09-13.** See §2b. First real
 second case in a dispatcher; `test_friction.py` checks it.
 
-**3. Drucker–Prager (Klár 2016).** Hencky strain, friction cone, **closed-form projection in
-principal-strain space** — cheap and simple. Do this *before* CCC: it validates Hencky
-elasticity and the dispatcher with a second real model, and it is the documented fallback if
-CCC proves too slow. Covers the cold-dense regime only (cohesionless).
+**3. Drucker–Prager (Klár 2016).** ✅ **Done 2026-09-13.** See §2d. Hencky elasticity is
+now in and verified, which CCC reuses.
 
 **4. Cohesive Cam Clay (Gaume 2018).** The model the paper summaries recommend.
 - Hencky (log-strain) elasticity: ε = log Σ in principal space, τ = 2με + λ tr(ε) I

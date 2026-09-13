@@ -155,11 +155,17 @@ void MpmSolverNodeRenderer::render_settings_content()
     // Model-specific parameters are shown only for the active model; the combo strings
     // must stay in enum order.
     ImGui::TextDisabled("Constitutive model (internal snow behaviour)");
-    settings_changed |= ImGui::Combo("Material model", reinterpret_cast<int*>(&settings.constitutive_model), "Stomakhin 2013\0");
+    settings_changed |= ImGui::Combo("Material model", reinterpret_cast<int*>(&settings.constitutive_model), "Stomakhin 2013\0Drucker-Prager (Klar 2016)\0");
 
+    // Stiffness is shared by every model; only the plasticity parameters are model-specific.
+    settings_changed |= ImGui::DragFloat("Young's modulus", &settings.youngs_modulus, 1000.0f, 1.0e3f, 1.0e7f, "%.0f Pa");
+    settings_changed |= ImGui::DragFloat("Poisson's ratio", &settings.poissons_ratio, 0.005f, 0.0f, 0.45f, "%.3f");
+
+    if (settings.constitutive_model == Node::DRUCKER_PRAGER) {
+        settings_changed |= ImGui::DragFloat("Friction angle", &settings.dp_friction_angle, 0.25f, 0.0f, 89.0f, "%.1f deg");
+        ImGui::TextDisabled("Cohesionless: cold-dense regime only. Klar sand default 30 deg.");
+    }
     if (settings.constitutive_model == Node::STOMAKHIN_2013) {
-        settings_changed |= ImGui::DragFloat("Young's modulus", &settings.youngs_modulus, 1000.0f, 1.0e3f, 1.0e7f, "%.0f Pa");
-        settings_changed |= ImGui::DragFloat("Poisson's ratio", &settings.poissons_ratio, 0.005f, 0.0f, 0.45f, "%.3f");
         settings_changed |= ImGui::DragFloat("Hardening", &settings.hardening, 0.1f, 0.0f, 30.0f, "%.2f");
         settings_changed |= ImGui::DragFloat("Critical compression", &settings.critical_compression, 0.001f, 0.0f, 0.5f, "%.4f");
         settings_changed |= ImGui::DragFloat("Critical stretch", &settings.critical_stretch, 0.0005f, 0.0f, 0.5f, "%.4f");

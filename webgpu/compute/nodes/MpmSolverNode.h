@@ -62,6 +62,7 @@ public:
      * mpm_material.wgsl. Adding a model: see the comment at the top of that file. */
     enum ConstitutiveModel : uint32_t {
         STOMAKHIN_2013 = 0, // fixed corotated + singular value clamp + exponential hardening
+        DRUCKER_PRAGER = 1, // Hencky elasticity + friction cone (Klar 2016); cohesionless
     };
 
     /* The contact law between flowing snow and the terrain surface. Kept separate from the
@@ -103,12 +104,21 @@ public:
         float dt = 0.01f; // [s]
         uint32_t substeps_per_run = 32u;
 
-        /* Snow parameters from Stomakhin et al. 2013, table 1. */
+        /* Elastic stiffness, shared by every constitutive model - one knob, with per-model
+         * recommended values coming from presets. Defaults are Stomakhin et al. 2013, table 1;
+         * Li et al. 2021 use E = 3 MPa, nu = 0.3 for the Cam-Clay regimes. */
         float youngs_modulus = 1.4e5f;
         float poissons_ratio = 0.2f;
+
+        /* Stomakhin 2013 only. */
         float hardening = 10.0f;
         float critical_compression = 2.5e-2f;
         float critical_stretch = 7.5e-3f;
+
+        /* Drucker-Prager only. Internal friction angle of the material [degrees]. Relates to
+         * the Cam-Clay slope M via sin(phi) = 3M / (6 + M): Li's cold-dense M = 0.5 is ~13
+         * degrees, the warm-shear M = 1.5 is ~37 degrees. 30 is Klar's sand default. */
+        float dp_friction_angle = 30.0f;
 
         float gravity = 9.81f;
         /* Basal friction. mu = 0.47 is what Li et al. 2021 use on real terrain (0.49
@@ -176,7 +186,7 @@ private:
         uint32_t constitutive_model;
         uint32_t basal_friction_model;
         float voellmy_xi;
-        uint32_t _pad_b;
+        float dp_alpha;
     };
     static_assert(sizeof(MpmSolverSettingsUniform) == 160, "uniform layout must match the WGSL struct");
 

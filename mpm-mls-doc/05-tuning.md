@@ -11,7 +11,8 @@
 | `num_particles` | 65536 (preset: 131072) | Flow resolution. Cost is linear. |
 | `release_radius` | 120 m | Start-zone size, independent of the domain. |
 | `slab_thickness` | 1.5 m | Depth of released snow. |
-| `youngs_modulus` | 1.4e5 Pa | Stiffness. Drives the CFL bound via wave speed. |
+| `youngs_modulus` | 1.4e5 Pa | Stiffness, **shared by all models**. Drives the CFL bound via wave speed. Li 2021 uses 3 MPa. |
+| `dp_friction_angle` | 30° | Drucker–Prager only. Angle of repose of the granular flow; ≈ 13° for Li's cold-dense M = 0.5. |
 | `terrain_friction` | 0.47 | Basal μ (Li 2021, real terrain). Higher = shorter runout. Pair Voellmy with ~0.155. |
 | `voellmy_xi` | 4000 m/s² | Voellmy only. Turbulent drag `g|v|²/(ξ·h)`; lower ξ = more drag, lower terminal speed. |
 | `splat_radius` | 6 m | **Display only.** Too small = invisible. |
@@ -103,8 +104,12 @@ The material law is behind a runtime dispatcher (`mpm_material.wgsl`), selected 
 <name>_plasticity(F_trial, state) -> PlasticReturn  return mapping after the elastic predictor
 ```
 
-Per-particle plastic state is **one `f32`** whose meaning the model defines (Stomakhin: Jp).
-If a model genuinely needs more, that is a `Particle` layout change — think twice.
+Per-particle plastic state is **one `f32`** whose meaning the model defines (Stomakhin: Jp;
+Drucker–Prager: accumulated plastic strain). If a model genuinely needs more, that is a
+`Particle` layout change — think twice.
+
+E and ν (`mu_0`, `lambda_0`) are **shared** by every model. Don't add per-model stiffness
+fields; put per-model recommended values in presets.
 
 1. `webgpu/compute/shaders/mpm_material_<name>.wgsl` — the three functions, `///use mpm_common`
    at the top. Model parameters are read from `settings.*`; add them per the recipe above.

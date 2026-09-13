@@ -27,7 +27,7 @@ relative to the terrain.
 ```wgsl
 struct Particle {
     position: vec3f,  mass: f32,     // mass = 0 marks an INACTIVE particle
-    velocity: vec3f,  plastic_state: f32,  // meaning set by the constitutive model (Stomakhin: Jp)
+    velocity: vec3f,  plastic_state: f32,  // per model: Stomakhin Jp (starts 1), DP accumulated plastic strain (starts 0)
     c0: vec3f,        volume: f32,   // c0..c2 = rows of the APIC affine matrix C
     c1: vec3f,        _p1: f32,
     c2: vec3f,        _p2: f32,
@@ -117,7 +117,9 @@ Rules that make the two agree:
 Field groups, in order: grid/particle counts · domain origin+size+dx · region size + height
 texture dims · dt, gravity, mass, volume · μ₀, λ₀, ξ, θ_c · θ_s, friction, slab, seed ·
 raster dims + domain UV · domain UV size, seed_anywhere, splat radius · density reference,
-release centre x/y, release radius · constitutive_model, basal_friction_model, voellmy_xi, one u32 pad.
+release centre x/y, release radius · constitutive_model, basal_friction_model, voellmy_xi, dp_alpha.
+
+No pad slots left. The next field grows the struct to 176 B.
 
 ## Buffer sizes
 

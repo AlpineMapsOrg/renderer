@@ -18,6 +18,7 @@
 
 ///use mpm_common
 ///use mpm_material_stomakhin
+///use mpm_material_drucker_prager
 
 // Constitutive model dispatcher.
 //
@@ -33,15 +34,21 @@
 // the same pattern ComputeAvalancheTrajectoriesNode uses for its physics models.
 //
 // Per-particle plastic state is one scalar for every model; what it means is up to the
-// model (Stomakhin: plastic volume ratio Jp).
+// model (Stomakhin: plastic volume ratio Jp; Drucker-Prager: accumulated plastic strain).
+// The Lame parameters mu_0 / lambda_0 are shared by all models - one stiffness knob, with
+// per-model recommended values supplied by presets rather than by duplicated settings.
 //
 // Adding a model: one new mpm_material_<name>.wgsl, a ///use above, a case in each of the
 // three switches, an enum value in MpmSolverNode.h and a combo entry in the UI.
 
 const MATERIAL_STOMAKHIN: u32 = 0u;
+const MATERIAL_DRUCKER_PRAGER: u32 = 1u;
 
 fn material_initial_state() -> f32 {
     switch settings.constitutive_model {
+        case MATERIAL_DRUCKER_PRAGER: {
+            return dp_initial_state();
+        }
         default: {
             return stomakhin_initial_state();
         }
@@ -50,6 +57,9 @@ fn material_initial_state() -> f32 {
 
 fn material_stress(f_elastic: mat3x3f, plastic_state: f32) -> mat3x3f {
     switch settings.constitutive_model {
+        case MATERIAL_DRUCKER_PRAGER: {
+            return dp_stress(f_elastic, plastic_state);
+        }
         default: {
             return stomakhin_stress(f_elastic, plastic_state);
         }
@@ -58,6 +68,9 @@ fn material_stress(f_elastic: mat3x3f, plastic_state: f32) -> mat3x3f {
 
 fn material_plasticity(f_trial: mat3x3f, plastic_state: f32) -> PlasticReturn {
     switch settings.constitutive_model {
+        case MATERIAL_DRUCKER_PRAGER: {
+            return dp_plasticity(f_trial, plastic_state);
+        }
         default: {
             return stomakhin_plasticity(f_trial, plastic_state);
         }

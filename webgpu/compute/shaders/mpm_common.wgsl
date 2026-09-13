@@ -70,7 +70,7 @@ struct MpmSettings {
     constitutive_model: u32, // see mpm_material.wgsl
     basal_friction_model: u32, // see mpm_friction.wgsl
     voellmy_xi: f32, // turbulent friction coefficient [m/s^2], Voellmy only
-    _pad_b: u32,
+    dp_alpha: f32, // Drucker-Prager cone slope, precomputed from the friction angle
 }
 
 struct Particle {

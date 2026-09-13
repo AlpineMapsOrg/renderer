@@ -8,11 +8,17 @@ and compacts plastically instead of bouncing.
 This is the plan's "Phase 2: de-risk the algorithm outside WGSL" step -- debugging MPM maths
 and WGSL atomics/alignment at the same time is a bad idea.
 
-    python3 test_mpm.py            # drop + land + settle (~900 substeps, slow: pure Python)
+    python3 test_mpm.py                        # Stomakhin (default)
+    MPM_MODEL=drucker_prager python3 test_mpm.py
 """
+import os
+
 import numpy as np
 
 from test_svd import svd3
+import test_material_dp as dp
+
+MODEL = os.environ.get("MPM_MODEL", "stomakhin")
 
 # --- settings mirroring MpmSolverSettings, at a small test scale ---
 DX = 1.0
@@ -68,6 +74,23 @@ def resolve_collision(v, n):
     return vt * (1.0 + FRICTION * vn / vt_len)
 
 
+def material_stress(F, state):
+    if MODEL == "drucker_prager":
+        return dp.dp_stress(F)
+    return snow_stress(F, state)
+
+
+def material_plasticity(F_trial, state):
+    if MODEL == "drucker_prager":
+        F_new, state_new, _case = dp.dp_plasticity(F_trial, state)
+        return F_new, state_new
+    return apply_plasticity(F_trial, state)
+
+
+def material_initial_state():
+    return 0.0 if MODEL == "drucker_prager" else 1.0
+
+
 def substep(pos, vel, C, F, jp):
     n = len(pos)
     gm = np.zeros(tuple(GRID))
@@ -77,7 +100,7 @@ def substep(pos, vel, C, F, jp):
     # --- P2G ---
     for p in range(n):
         base, fx, w = compute_kernel(pos[p] / DX)
-        stress = snow_stress(F[p], jp[p])
+        stress = material_stress(F[p], jp[p])
         stress_term = -DT * PARTICLE_VOLUME * (4.0 * inv_dx * inv_dx) * stress
         affine = stress_term + PARTICLE_MASS * C[p]
         for i in range(3):
@@ -125,7 +148,7 @@ def substep(pos, vel, C, F, jp):
                     new_C += 4.0 * inv_dx * weight * np.outer(g_v, dpos)
         vel[p] = new_v
         C[p] = new_C
-        F[p], jp[p] = apply_plasticity((np.eye(3) + DT * new_C) @ F[p], jp[p])
+        F[p], jp[p] = material_plasticity((np.eye(3) + DT * new_C) @ F[p], jp[p])
         pos[p] = pos[p] + DT * new_v
         if pos[p][2] < FLOOR_Z:
             pos[p][2] = FLOOR_Z
@@ -142,9 +165,10 @@ def main(n_particles=150, steps=900, drop=(5, 9)):
     vel = np.zeros((n_particles, 3))
     C = np.zeros((n_particles, 3, 3))
     F = np.array([np.eye(3)] * n_particles)
-    jp = np.ones(n_particles)
+    jp = np.full(n_particles, material_initial_state())
 
-    print(f"{'step':>5} {'grid mass':>10} {'mean z':>8} {'min z':>7} {'max|v|':>8} {'mean jp':>8}")
+    print(f"model: {MODEL}")
+    print(f"{'step':>5} {'grid mass':>10} {'mean z':>8} {'min z':>7} {'max|v|':>8} {'plastic':>8}")
     mass = 0.0
     for step in range(steps):
         mass = substep(pos, vel, C, F, jp)
@@ -162,12 +186,19 @@ def main(n_particles=150, steps=900, drop=(5, 9)):
         print(f"FAIL: particles below the floor (min z {pos[:,2].min():.3f})"); ok = False
     if np.abs(vel).max() > 50:
         print(f"FAIL: not settling (max |v| {np.abs(vel).max():.1f})"); ok = False
-    if jp.mean() >= 0.999:
+    if MODEL == "drucker_prager":
+        if jp.mean() <= 0.0:
+            print("FAIL: no particle yielded"); ok = False
+    elif jp.mean() >= 0.999:
         print(f"FAIL: no plastic compaction (mean jp {jp.mean():.4f})"); ok = False
 
     print("\nALL OK" if ok else "\nFAILURES PRESENT")
-    print("Expected: mass exactly conserved, min z == floor, velocity decaying to ~0,\n"
-          "mean jp dropping well below 1 (plastic compaction on impact, not a bounce).")
+    if MODEL == "drucker_prager":
+        print("Expected: mass exactly conserved, min z == floor, velocity decaying to ~0,\n"
+              "plastic strain > 0 (cohesionless material yields and spreads on impact).")
+    else:
+        print("Expected: mass exactly conserved, min z == floor, velocity decaying to ~0,\n"
+              "mean jp dropping well below 1 (plastic compaction on impact, not a bounce).")
     return 0 if ok else 1
 
 
