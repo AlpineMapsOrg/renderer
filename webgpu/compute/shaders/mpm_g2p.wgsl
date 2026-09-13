@@ -17,6 +17,8 @@
  *****************************************************************************/
 
 ///use mpm_common
+///use mpm_material
+///use mpm_friction
 
 // Stages 3 and 4 of the MPM step, fused into one pass over the particles: gather the
 // updated grid velocity (plus the APIC affine matrix C), evolve the deformation gradient
@@ -68,9 +70,9 @@ fn computeMain(@builtin(global_invocation_id) id: vec3<u32>) {
 
     // Elastic predictor, then return the deformation gradient to the admissible set.
     let f_trial = (identity3() + settings.dt * new_c) * particle_f(p);
-    let plastic = apply_plasticity(f_trial, p.jp);
+    let plastic = material_plasticity(f_trial, p.plastic_state);
     store_f(&p, plastic.f_elastic);
-    p.jp = plastic.jp;
+    p.plastic_state = plastic.plastic_state;
 
     // Advection.
     p.position += settings.dt * p.velocity;
@@ -80,7 +82,7 @@ fn computeMain(@builtin(global_invocation_id) id: vec3<u32>) {
     let surface = terrain_height(p.position.xy);
     if p.position.z < surface {
         p.position.z = surface;
-        p.velocity = resolve_terrain_collision(p.velocity, terrain_normal(p.position.xy));
+        p.velocity = resolve_terrain_collision(p.velocity, terrain_normal(p.position.xy), false);
     }
 
     // Keep particles inside the simulation box so grid indexing stays in range.

@@ -32,7 +32,7 @@ methods.* Mathematics of Computation 37, 155 (1981), 141–158.
 (July 2013), 10 pages.
 → **The constitutive model implemented.** Fixed-corotated elasticity, singular-value
 clamping for plasticity, exponential compaction hardening. Table 1 supplies every default
-material parameter in the code. Implemented in `snow_stress()` / `apply_plasticity()`.
+material parameter in the code. Implemented in `mpm_material_stomakhin.wgsl`.
 
 **[6]** Michael Liu, Xinlei Wang, and Minchen Li. 2025. *CK-MPM: A Compact-Kernel Material
 Point Method.* ACM Trans. Graph. 44, 4, Article 152 (August 2025), 14 pages.
@@ -59,6 +59,19 @@ Symposium on Rendering 2022.
 186–190. 10.1109/VIS60296.2025.00043.
 → The compute-node-graph architecture this plugs into, and the existing statistical
 avalanche model the MPM solver sits **alongside**.
+
+**Tonnel, M., Wirbel, A., Oesterle, F., Fischer, J.-T.** 2023. *AvaFrame com1DFA (v1.3): a
+thickness-integrated computational avalanche module – theory, numerics, and testing.*
+Geosci. Model Dev. 16, 7013–7035. https://doi.org/10.5194/gmd-16-7013-2023
+→ Source for the **Voellmy** friction form implemented in `mpm_friction.wgsl` (τ = μσₙ +
+ρg|v|²/ξ, default ξ = 4000, μ = 0.155) and for the energy-line validation test planned in
+[07-constitutive-models.md](07-constitutive-models.md). Not an MPM paper.
+
+**Li, X., Sovilla, B., Jiang, C., Gaume, J.** 2021. *Three-dimensional and real-scale modeling
+of flow regimes in dense snow avalanches.* Landslides 18, 3393–3406.
+https://doi.org/10.1007/s10346-021-01692-8
+→ Proposal ref [13]. Source of the basal μ = **0.47** default (Table 1, real terrain) and of the
+per-regime CCC parameter table the presets will use.
 
 ## Implementation references (not papers)
 

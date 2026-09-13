@@ -57,7 +57,26 @@ public:
     static const uint32_t MAX_PARTICLES;
     static const uint32_t MAX_GRID_RESOLUTION;
 
+    /* The material law relating stress to elastic deformation - what makes the particles
+     * behave like snow rather than water or sand. Values must match the constants in
+     * mpm_material.wgsl. Adding a model: see the comment at the top of that file. */
+    enum ConstitutiveModel : uint32_t {
+        STOMAKHIN_2013 = 0, // fixed corotated + singular value clamp + exponential hardening
+    };
+
+    /* The contact law between flowing snow and the terrain surface. Kept separate from the
+     * constitutive model on purpose: internal friction (within the snow) belongs to the
+     * material law, basal friction (against the ground) is a boundary condition. Values
+     * must match the constants in mpm_friction.wgsl. */
+    enum BasalFrictionModel : uint32_t {
+        COULOMB = 0, // contact impulse, mu * normal impact speed
+        VOELLMY = 1, // Coulomb + turbulent drag g|v|^2/(xi h); pair with a lower mu (~0.155)
+    };
+
     struct MpmSolverSettings {
+        ConstitutiveModel constitutive_model = STOMAKHIN_2013;
+        BasalFrictionModel basal_friction_model = COULOMB;
+
         /* Simulation domain. The solver works on a box that is normally much smaller than
          * the region the terrain nodes prepared. Anchored geographically rather than as a
          * fraction of the region, so a scenario stays put when the region changes size or
@@ -92,7 +111,11 @@ public:
         float critical_stretch = 7.5e-3f;
 
         float gravity = 9.81f;
-        float terrain_friction = 0.4f; // Coulomb friction against the terrain
+        /* Basal friction. mu = 0.47 is what Li et al. 2021 use on real terrain (0.49
+         * back-calculated for their verification case); the Voellmy pairing in com1DFA is
+         * mu = 0.155 with xi = 4000, the drag term carrying the rest of the resistance. */
+        float terrain_friction = 0.47f; // Coulomb mu
+        float voellmy_xi = 4000.0f; // [m/s^2], Voellmy only
 
         uint32_t raster_resolution = 512u; // output density raster / texture edge length
 
@@ -149,8 +172,13 @@ private:
         float release_centre_x; // region-relative metres
         float release_centre_y;
         float release_radius;
+
+        uint32_t constitutive_model;
+        uint32_t basal_friction_model;
+        float voellmy_xi;
+        uint32_t _pad_b;
     };
-    static_assert(sizeof(MpmSolverSettingsUniform) == 144, "uniform layout must match the WGSL struct");
+    static_assert(sizeof(MpmSolverSettingsUniform) == 160, "uniform layout must match the WGSL struct");
 
 public:
     MpmSolverNode(webgpu::Context& ctx);

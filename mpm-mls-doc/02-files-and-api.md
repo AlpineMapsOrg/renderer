@@ -8,7 +8,10 @@
 |---|---|
 | `nodes/MpmSolverNode.h/.cpp` | The solver. Owns particles, grid and sim state on the GPU; runs the substep loop. |
 | `nodes/GeoRegionNode.h/.cpp` | Emits a region AABB from lat/lon + extent, so a scenario needs no GPX file. |
-| `shaders/mpm_common.wgsl` | Shared bindings, structs, terrain sampling, B-spline kernel, 3×3 SVD, snow model, collision. Included by every kernel. |
+| `shaders/mpm_common.wgsl` | Shared bindings, structs, terrain sampling, B-spline kernel, 3×3 SVD, matrix helpers. Included by every kernel. |
+| `shaders/mpm_material.wgsl` | Constitutive-model dispatcher: `switch` on `settings.constitutive_model`. |
+| `shaders/mpm_material_stomakhin.wgsl` | Stomakhin 2013 — the one model so far. |
+| `shaders/mpm_friction.wgsl` | Basal-friction dispatcher: `switch` on `settings.basal_friction_model`; Coulomb, Voellmy. |
 | `shaders/mpm_prepare.wgsl` | Scans terrain for the grid's vertical origin. |
 | `shaders/mpm_seed.wgsl` | Places particles in the release disc. |
 | `shaders/mpm_clear_grid.wgsl` | Zeroes the grid each substep. |
@@ -45,6 +48,19 @@ subclass, one line in `NodeRegistry`, and optionally a `NodeRenderer` + factory 
 ## `MpmSolverNode`
 
 Namespace `webgpu_compute::nodes`. Subclass of `Node`.
+
+### Model selection
+
+Two independent enums, mirrored by `u32` constants in the WGSL dispatchers:
+
+```cpp
+enum ConstitutiveModel  : uint32_t { STOMAKHIN_2013 = 0 };
+enum BasalFrictionModel : uint32_t { COULOMB = 0, VOELLMY = 1 };
+```
+
+Set through `MpmSolverSettings::constitutive_model` / `basal_friction_model`, serialised as
+ints, switchable at runtime with no pipeline rebuild. Recipe for adding one in
+[05-tuning.md](05-tuning.md#adding-a-constitutive-model).
 
 ### Sockets
 

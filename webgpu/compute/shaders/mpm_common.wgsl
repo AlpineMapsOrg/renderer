@@ -66,13 +66,18 @@ struct MpmSettings {
     release_centre_x: f32, // region-relative metres
     release_centre_y: f32,
     release_radius: f32,
+
+    constitutive_model: u32, // see mpm_material.wgsl
+    basal_friction_model: u32, // see mpm_friction.wgsl
+    voellmy_xi: f32, // turbulent friction coefficient [m/s^2], Voellmy only
+    _pad_b: u32,
 }
 
 struct Particle {
     position: vec3f,
     mass: f32, // 0 marks an inactive particle
     velocity: vec3f,
-    jp: f32, // plastic volume change (hardening state)
+    plastic_state: f32, // meaning depends on the constitutive model (Stomakhin: Jp)
     c0: vec3f, // rows of the APIC affine velocity matrix C
     volume: f32,
     c1: vec3f,
@@ -105,6 +110,12 @@ struct SimState {
     max_altitude_cm: atomic<i32>,
     active_particles: atomic<u32>,
     max_speed_mm: atomic<u32>,
+}
+
+// Result of a constitutive model's plastic return mapping (see mpm_material.wgsl).
+struct PlasticReturn {
+    f_elastic: mat3x3f,
+    plastic_state: f32,
 }
 
 @group(0) @binding(0) var<uniform> settings: MpmSettings;
@@ -394,63 +405,9 @@ fn svd3(f: mat3x3f) -> Svd {
 }
 
 // ---------------------------------------------------------------------------------------
-// Constitutive model (Stomakhin et al. 2013 snow)
+// Constitutive model and basal friction
 // ---------------------------------------------------------------------------------------
-
-// First Piola-Kirchhoff stress premultiplied by F^T, as required by the MLS-MPM force term.
-fn snow_stress(f_elastic: mat3x3f, jp: f32) -> mat3x3f {
-    let svd = svd3(f_elastic);
-
-    // Hardening: compacted snow (jp < 1) becomes stiffer.
-    let h = clamp(exp(settings.hardening * (1.0 - jp)), 0.05, 20.0);
-    let mu = settings.mu_0 * h;
-    let lambda = settings.lambda_0 * h;
-
-    let r = svd.u * transpose(svd.v); // rotational part of F
-    let j = svd.sigma.x * svd.sigma.y * svd.sigma.z;
-
-    let deviatoric = 2.0 * mu * (f_elastic - r) * transpose(f_elastic);
-    let volumetric = lambda * j * (j - 1.0);
-    return deviatoric + identity3() * volumetric;
-}
-
-struct PlasticState {
-    f_elastic: mat3x3f,
-    jp: f32,
-}
-
-// Push the elastic deformation gradient back into the admissible range and move the
-// removed part into the plastic state jp.
-fn apply_plasticity(f_trial: mat3x3f, jp: f32) -> PlasticState {
-    let svd = svd3(f_trial);
-
-    let lo = 1.0 - settings.critical_compression;
-    let hi = 1.0 + settings.critical_stretch;
-    let clamped = clamp(svd.sigma, vec3f(lo), vec3f(hi));
-
-    // jp accumulates the volume change that was clamped away.
-    let ratio = (svd.sigma.x / clamped.x) * (svd.sigma.y / clamped.y) * (svd.sigma.z / clamped.z);
-
-    var result: PlasticState;
-    result.jp = clamp(jp * ratio, 0.05, 20.0);
-    result.f_elastic = svd.u * mat3x3f(vec3f(clamped.x, 0, 0), vec3f(0, clamped.y, 0), vec3f(0, 0, clamped.z)) * transpose(svd.v);
-    return result;
-}
-
-// ---------------------------------------------------------------------------------------
-// Terrain collision
-// ---------------------------------------------------------------------------------------
-
-// Coulomb friction against the terrain surface; returns the corrected velocity.
-fn resolve_terrain_collision(velocity: vec3f, normal: vec3f) -> vec3f {
-    let vn = dot(velocity, normal);
-    if vn >= 0.0 {
-        return velocity; // separating, nothing to do
-    }
-    let vt = velocity - normal * vn;
-    let vt_len = length(vt);
-    if vt_len <= -settings.terrain_friction * vn {
-        return vec3f(0.0); // sticking
-    }
-    return vt * (1.0 + settings.terrain_friction * vn / vt_len);
-}
+// Not defined here. The material law lives in mpm_material_<name>.wgsl behind the
+// dispatcher in mpm_material.wgsl; the terrain contact law lives in mpm_friction.wgsl.
+// Kernels that need them include those modules explicitly, which keeps the two concerns
+// - internal friction of the snow vs. friction against the ground - visibly separate.

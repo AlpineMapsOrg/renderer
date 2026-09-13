@@ -151,18 +151,34 @@ void MpmSolverNodeRenderer::render_settings_content()
 
     ImGui::Separator();
 
-    // --- Snow material (Stomakhin et al. 2013) ---
-    ImGui::TextDisabled("Snow material (Stomakhin et al. 2013)");
-    settings_changed |= ImGui::DragFloat("Young's modulus", &settings.youngs_modulus, 1000.0f, 1.0e3f, 1.0e7f, "%.0f Pa");
-    settings_changed |= ImGui::DragFloat("Poisson's ratio", &settings.poissons_ratio, 0.005f, 0.0f, 0.45f, "%.3f");
-    settings_changed |= ImGui::DragFloat("Hardening", &settings.hardening, 0.1f, 0.0f, 30.0f, "%.2f");
-    settings_changed |= ImGui::DragFloat("Critical compression", &settings.critical_compression, 0.001f, 0.0f, 0.5f, "%.4f");
-    settings_changed |= ImGui::DragFloat("Critical stretch", &settings.critical_stretch, 0.0005f, 0.0f, 0.5f, "%.4f");
+    // --- Constitutive model ---
+    // Model-specific parameters are shown only for the active model; the combo strings
+    // must stay in enum order.
+    ImGui::TextDisabled("Constitutive model (internal snow behaviour)");
+    settings_changed |= ImGui::Combo("Material model", reinterpret_cast<int*>(&settings.constitutive_model), "Stomakhin 2013\0");
+
+    if (settings.constitutive_model == Node::STOMAKHIN_2013) {
+        settings_changed |= ImGui::DragFloat("Young's modulus", &settings.youngs_modulus, 1000.0f, 1.0e3f, 1.0e7f, "%.0f Pa");
+        settings_changed |= ImGui::DragFloat("Poisson's ratio", &settings.poissons_ratio, 0.005f, 0.0f, 0.45f, "%.3f");
+        settings_changed |= ImGui::DragFloat("Hardening", &settings.hardening, 0.1f, 0.0f, 30.0f, "%.2f");
+        settings_changed |= ImGui::DragFloat("Critical compression", &settings.critical_compression, 0.001f, 0.0f, 0.5f, "%.4f");
+        settings_changed |= ImGui::DragFloat("Critical stretch", &settings.critical_stretch, 0.0005f, 0.0f, 0.5f, "%.4f");
+    }
+
+    ImGui::Separator();
+
+    // --- Basal friction ---
+    ImGui::TextDisabled("Basal friction (snow against terrain)");
+    settings_changed |= ImGui::Combo("Friction model", reinterpret_cast<int*>(&settings.basal_friction_model), "Coulomb\0Voellmy\0");
+    settings_changed |= ImGui::DragFloat("Friction coefficient", &settings.terrain_friction, 0.01f, 0.0f, 2.0f, "%.2f");
+    if (settings.basal_friction_model == Node::VOELLMY) {
+        settings_changed |= ImGui::DragFloat("Turbulent friction", &settings.voellmy_xi, 10.0f, 100.0f, 20000.0f, "%.0f m/s2");
+        ImGui::TextDisabled("com1DFA default: mu 0.155, xi 4000");
+    }
 
     ImGui::Separator();
 
     settings_changed |= ImGui::DragFloat("Gravity", &settings.gravity, 0.05f, 0.0f, 30.0f, "%.2f m/s2");
-    settings_changed |= ImGui::DragFloat("Terrain friction", &settings.terrain_friction, 0.01f, 0.0f, 2.0f, "%.2f");
 
     const uint32_t min_raster = 64, max_raster = 4096;
     settings_changed |= ImGui::DragScalar("Output resolution", ImGuiDataType_U32, &settings.raster_resolution, 8.0f, &min_raster, &max_raster, "%u");

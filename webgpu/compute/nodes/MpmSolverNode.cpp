@@ -267,6 +267,11 @@ void MpmSolverNode::update_gpu_settings(const radix::geometry::Aabb<2, double>& 
     const float release_area = 3.14159265f * release_radius_texels * release_radius_texels;
     data.density_reference = std::max(float(m_allocated_particles) * splat_area / (SPREAD_TOLERANCE * release_area), 1.0f);
 
+    data.constitutive_model = static_cast<uint32_t>(m_settings.constitutive_model);
+    data.basal_friction_model = static_cast<uint32_t>(m_settings.basal_friction_model);
+    data.voellmy_xi = std::max(m_settings.voellmy_xi, 1.0f);
+    data._pad_b = 0u;
+
     m_settings_uniform.update_gpu_data(m_ctx->queue());
 
     // World space bounds of the simulated area, so the result can be placed on the map.
@@ -458,6 +463,9 @@ void MpmSolverNode::serialize_settings(QJsonObject& out) const
     out["critical_stretch"] = s.critical_stretch;
     out["gravity"] = s.gravity;
     out["terrain_friction"] = s.terrain_friction;
+    out["constitutive_model"] = static_cast<int>(s.constitutive_model);
+    out["basal_friction_model"] = static_cast<int>(s.basal_friction_model);
+    out["voellmy_xi"] = s.voellmy_xi;
     out["raster_resolution"] = static_cast<int>(s.raster_resolution);
     out["splat_radius"] = s.splat_radius;
     out["release_center_lat"] = s.release_center.x;
@@ -492,6 +500,9 @@ void MpmSolverNode::deserialize_settings(const QJsonObject& in)
     s.critical_stretch = read_float("critical_stretch", s.critical_stretch);
     s.gravity = read_float("gravity", s.gravity);
     s.terrain_friction = read_float("terrain_friction", s.terrain_friction);
+    s.constitutive_model = static_cast<ConstitutiveModel>(read_uint("constitutive_model", s.constitutive_model));
+    s.basal_friction_model = static_cast<BasalFrictionModel>(read_uint("basal_friction_model", s.basal_friction_model));
+    s.voellmy_xi = read_float("voellmy_xi", s.voellmy_xi);
     s.raster_resolution = read_uint("raster_resolution", s.raster_resolution);
     s.splat_radius = read_float("splat_radius", s.splat_radius);
     s.release_center.x = read_double("release_center_lat", s.release_center.x);

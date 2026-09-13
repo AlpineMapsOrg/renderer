@@ -157,7 +157,8 @@ P Fᵀ   = 2μ (F − R) Fᵀ + λ J (J−1) I
 ```
 
 First term = deviatoric (shear) response, second = volumetric. Implemented in
-`snow_stress()` and `apply_plasticity()`.
+`stomakhin_stress()` and `stomakhin_plasticity()` in `mpm_material_stomakhin.wgsl`, reached
+through the dispatcher in `mpm_material.wgsl` (see [03-shaders.md](03-shaders.md)).
 
 **Paper parameter values** (Stomakhin et al. [5], table 1) are the defaults in the code:
 E = 1.4e5 Pa, ν = 0.2, ξ = 10, θ_c = 2.5e-2, θ_s = 7.5e-3, ρ = 400 kg/m³.
@@ -212,6 +213,20 @@ turns out to be necessary:
 - **Particle level** — after advection, any particle below the surface is pushed back up to
   it and gets the same friction response. The grid condition alone is quantised to node
   spacing, so snow creeps through the surface between nodes without this.
+
+**Voellmy** (Tonnel et al. 2023, com1DFA; same form as `ComputeAvalancheTrajectoriesNode`)
+adds a turbulent drag quadratic in speed on top of Coulomb:
+
+```
+τ = μ·σₙ + ρ·g·|v|²/ξ            →  deceleration  g·|v|²/(ξ·h)
+```
+
+with `h` = `slab_thickness` as the reference flow depth, so ξ keeps com1DFA's units
+(default ξ = 4000 m/s², conventionally paired with a *lower* μ ≈ 0.155). Unlike Coulomb it
+gives a **terminal velocity** on a slope, `v∞ = √(ξh(sinθ − μcosθ))`. Applied at the grid
+level only — the drag depends on `|v_t|²`, not the impact speed, so a second application at
+the particle level would double-count it. Not in the MPM snow papers (Li et al. use pure
+Coulomb); included because it is the standard second option in avalanche practice.
 
 **Vertical grid origin.** The Eulerian grid box needs a base altitude. Rather than making
 the user guess one, the `mpm_prepare` kernel scans the terrain inside the domain footprint

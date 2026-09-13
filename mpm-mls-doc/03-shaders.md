@@ -43,6 +43,21 @@ is not.
 
 ---
 
+## Modules (not kernels)
+
+Three files carry no entry point; kernels `///use` them.
+
+| Module | Provides | Used by |
+|---|---|---|
+| `mpm_common` | bindings, structs, terrain sampling, B-spline kernel, SVD, matrix helpers | all |
+| `mpm_material` | `material_initial_state()`, `material_stress()`, `material_plasticity()` — a `switch` on `settings.constitutive_model` over `mpm_material_<name>` implementations | seed, p2g, g2p |
+| `mpm_friction` | `resolve_terrain_collision(v, n, apply_basal_drag)` — a `switch` on `settings.basal_friction_model`; Coulomb, Voellmy | grid_update (`true`), g2p (`false`) |
+
+`mpm_material` and `mpm_friction` are separate on purpose: internal friction (M, inside the
+material law) and basal friction (μ, a boundary condition) are different things and are
+selected independently. The include mechanism is pragma-once, so a module can `///use
+mpm_common` for itself without double-declaring the bindings.
+
 ## `mpm_prepare` — 16×16×1, over grid XY
 
 Runs once per reset, before seeding. Samples terrain at each grid column's centre and
@@ -68,7 +83,8 @@ clamped onto its wall immediately). Then requires a release-point-texture hit un
 (`mass = 0`), which every later stage skips.
 
 Particle z = terrain height + `rand · slab_thickness`, so the slab has real depth.
-Initialised with `F = I`, `C = 0`, `Jp = 1`.
+Initialised with `F = I`, `C = 0`, `plastic_state = material_initial_state()` (Jp = 1 for
+Stomakhin — the initial state is model-dependent, which is why it is a dispatcher call).
 
 Uses `///use random` (PCG hash from the existing `random.wgsl`).
 
@@ -84,7 +100,7 @@ Stage 1. Skips `mass <= 0`.
 ```
 gp     = to_grid_space(position)
 kernel = compute_kernel(gp)
-stress = snow_stress(F, jp)
+stress = material_stress(F, plastic_state)      # dispatches on settings.constitutive_model
 
 stress_term = −dt · volume · (4/dx²) · stress
 affine      = stress_term + mass · C
@@ -113,7 +129,7 @@ v.z −= gravity · dt
 
 world = to_world_space(node)
 if world.z < terrain_height(world.xy):
-    v = resolve_terrain_collision(v, terrain_normal(world.xy))
+    v = resolve_terrain_collision(v, terrain_normal(world.xy), true)   # basal drag applied here
 
 clamp at domain walls (2-node margin, only blocks outflow)
 store v back into the momentum slots
@@ -133,12 +149,12 @@ for offset in 3×3×3:
     C_new += 4·(1/dx) · w · outer(node_velocity, dpos)
 
 F_trial = (I + dt·C_new) · F
-F, jp   = apply_plasticity(F_trial, jp)
+F, plastic_state = material_plasticity(F_trial, plastic_state)
 position += dt · v_new
 
 if position.z < terrain_height:              # particle-level collision
     position.z = terrain_height
-    velocity = resolve_terrain_collision(velocity, normal)
+    velocity = resolve_terrain_collision(velocity, normal, false)  # contact impulse only
 
 clamp into the domain box, zeroing the velocity component that hit
 atomicMax(state.max_speed_mm, ...)

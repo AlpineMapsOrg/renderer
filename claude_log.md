@@ -13,6 +13,113 @@ capture of the terminal.
 
 ---
 
+## 2026-09-13
+
+### 1. Proposal v3.0 gap analysis — constitutive & friction models
+
+Read the Notion proposal (now **v3.0**, edited today) and the new *Snow/Avalanche Sim Paper
+Summaries* page, then checked each named model against the shader source.
+
+**v3.0 changes vs v1.0:** constitutive model becomes a configurable choice (Stomakhin [5] or
+successors Gaume CCC [11], Li et al. [12,13]) with per-regime presets; basal friction is
+explicitly a separate simple Coulomb model using terrain normals; entrainable material is a
+new goal; comparison against non-real-time models is a new final stage.
+
+**Verified implemented:** Stomakhin 2013 in full (fixed-corotated elasticity, SV box clamp,
+exponential hardening, paper defaults). Coulomb basal friction at grid + particle level using
+terrain normals — exactly what v3.0 asks for, though μ defaults to 0.4 where Li 2021 uses
+0.47 on real terrain.
+
+**Not implemented:** CCC, Li regime parameters/presets, Drucker–Prager, Voellmy, any model
+*switch* at all (Stomakhin is called unconditionally), entrainment, energy-line validation.
+
+Wrote `mpm-mls-doc/07-constitutive-models.md`: the gap table, the design for exchangeable
+models, and an ordered next-steps list. Key design decision: follow the codebase precedent
+in `ComputeAvalancheTrajectoriesNode` — C++ enum → `u32` uniform → runtime `switch` in WGSL
+→ ImGui combo — rather than compile-time `///if` variants, because the preprocessor's
+defines are global and a uniform branch has no divergence cost. Two *separate* enums
+(constitutive vs basal friction) so internal and basal friction cannot be conflated, which
+both the proposal and the paper summaries warn about. Per-particle state stays one scalar
+for all three candidate models, so `Particle` does not change (`jp` → `plastic_state`).
+
+Next-steps order deliberately puts the no-physics refactor first, then Drucker–Prager
+(closed-form, validates Hencky + the dispatcher) *before* CCC (implicit ellipse return
+mapping, the hard part, and the documented fallback target if CCC is too slow).
+
+### 2. "yes start with step 1" — model dispatcher refactor, no new physics
+
+Made the constitutive model and basal friction exchangeable without changing behaviour.
+
+**Shaders.** Moved the Stomakhin model out of `mpm_common.wgsl` into
+`mpm_material_stomakhin.wgsl` (`stomakhin_initial_state/stress/plasticity`). Added
+`mpm_material.wgsl` — three `switch settings.constitutive_model` dispatchers — and
+`mpm_friction.wgsl` — Coulomb behind `switch settings.basal_friction_model`. `PlasticReturn`
+(the return-mapping result type) lives in `mpm_common` as shared interface. `p2g`/`g2p`/`seed`
+call the dispatchers; `grid_update`/`g2p` include the friction module. Renamed `Particle.jp` →
+`plastic_state` everywhere. `mpm_common` no longer injects material/collision code into
+kernels that never used it (`prepare`, `splat`, `rasterize`, `clear_grid`).
+
+One interface addition beyond the plan: `material_initial_state()`. The initial plastic state
+is model-dependent (Jp = 1 for Stomakhin, εᵥᵖ = 0 for CCC/DP), so `mpm_seed` cannot hard-code
+`1.0`.
+
+**C++.** `enum ConstitutiveModel { STOMAKHIN_2013 }`, `enum BasalFrictionModel { COULOMB }`;
+settings fields; uniform +16 B (144 → 160, `static_assert` updated); serialised as ints;
+`Combo` in both the node renderer and the sidebar, with Stomakhin's parameters shown under an
+`if` on the active model. Three shaders added to the CMake resource list.
+
+**Verification — the point of step 1 is that nothing changed:**
+- `tint`: 8/8 pass with the modular includes (the preprocessor is pragma-once, confirmed in
+  `ShaderPreprocessor.cpp:199`, so modules can `///use mpm_common` for themselves).
+- **Resolved-shader diff against git HEAD** (`scripts/check_refactor_preserving.py`): resolves
+  includes on both sides, extracts every top-level definition, normalises the intentional
+  renames, folds the dispatcher wrappers away. Result: every retained function body identical
+  modulo renames; the only definitions that vanished from a kernel are ones it never referenced;
+  `MpmSettings` +4 fields exactly. Two rounds of false positives were bugs in the checker
+  (renaming a call site also renamed the dispatcher's *definition* and clobbered the real one in
+  the dict; dict keys weren't renamed alongside bodies), not in the refactor.
+- Runtime: booted with the MPM graph, all 8 pipelines created on Metal, no Dawn errors.
+  Temporary boot/log changes reverted.
+
+Docs updated: 02 (files, enums), 03 (modules section), 04 (160 B, `plastic_state`), 05 (the
+"adding a constitutive model" recipe), 06 (§4b resolved-shader diff), 07 (status reconciled,
+step 1 ticked), refs.
+
+### 3. "yes continue with step 2" — μ → 0.47, Voellmy basal friction
+
+**Changes.** `terrain_friction` default 0.4 → **0.47** (Li et al. 2021 Table 1, real terrain);
+preset updated. `BasalFrictionModel::VOELLMY = 1` with `voellmy_friction()` in
+`mpm_friction.wgsl`: Coulomb plus the turbulent term, `τ = μσₙ + ρg|v|²/ξ` → deceleration
+`g|v|²/(ξ·h)`. Used `h = slab_thickness` as the reference depth because that is the
+convention both com1DFA and `ComputeAvalancheTrajectoriesNode` use (the latter hard-codes
+`h = 1 m`), so ξ stays in literature units — default 4000, with a note that the conventional
+pairing is a lower μ ≈ 0.155. `voellmy_xi` took the spare `_pad_a` slot in the uniform, so no
+layout growth. Combos in both panels gained "Voellmy" and a ξ slider shown only when active.
+
+**A subtlety worth recording.** `resolve_terrain_collision()` is called at both the grid
+and the particle level. Coulomb is a contact *impulse* depending on `vn`, which is ≈ 0 by the
+particle-level call, so double application is benign. Voellmy's drag depends on `|v_t|²`, not
+`vn`, so the same double call would apply it **twice per substep**. Added an
+`apply_basal_drag` flag: `true` in `mpm_grid_update`, `false` in `mpm_g2p`. Coulomb ignores
+it. This distinction — impulse terms are level-agnostic, velocity-dependent drag is grid-only
+— is now written into the friction module header and `05-tuning.md` for the next model.
+
+**Verification.**
+- New `scripts/test_friction.py`: verbatim port, point mass on an inclined plane stepped the
+  way `mpm_grid_update` does it. Voellmy reaches the analytic terminal velocity
+  `√(ξh(sinθ − μcosθ))` to **0.085 %** (explicit-Euler lag); Coulomb's slope acceleration
+  matches `g(sinθ − μcosθ)` to 3 dp (regression for the untouched path); both stick below
+  atan(μ); `apply_basal_drag = false` reduces *exactly* to Coulomb; a 500 m/s / dt = 1 s
+  reversal guard holds.
+- `check_refactor_preserving.py` extended (flag stripped at call sites, Voellmy defs
+  allowed) and re-run against pre-step-1 HEAD: still behaviour-preserving for the Coulomb
+  path with steps 1 + 2 combined.
+- `tint` 8/8; boot with MPM graph, 8 pipelines on Metal, no Dawn errors; temporaries reverted.
+
+Docs: 01 (Voellmy formula + terminal velocity), 02, 03 (flagged call sites, seed init), 04,
+05 (params table, the impulse-vs-drag rule), 06 (§4c friction bench), 07 (step 2 ticked, §2b
+rewritten), README, refs (Tonnel 2023, Li 2021 entries).
+
 ## 2026-09-06
 
 ### 1. "Make a folder mpm-mls-doc and document ... for my final report"

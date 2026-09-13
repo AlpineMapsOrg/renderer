@@ -17,6 +17,7 @@
  *****************************************************************************/
 
 ///use mpm_common
+///use mpm_material
 ///use random
 
 // Places one particle per thread inside the release area that overlaps the simulation
@@ -45,7 +46,7 @@ fn computeMain(@builtin(global_invocation_id) id: vec3<u32>) {
     p.mass = 0.0;
     p.volume = settings.particle_volume;
     p.velocity = vec3f(0.0);
-    p.jp = 1.0;
+    p.plastic_state = material_initial_state();
     p.position = vec3f(0.0);
     store_c(&p, mat3x3f(vec3f(0.0), vec3f(0.0), vec3f(0.0)));
     store_f(&p, identity3());

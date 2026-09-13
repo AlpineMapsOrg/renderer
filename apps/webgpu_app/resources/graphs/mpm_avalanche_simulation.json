@@ -177,7 +177,7 @@
                 "critical_compression": 0.025,
                 "critical_stretch": 0.0075,
                 "gravity": 9.81,
-                "terrain_friction": 0.4,
+                "terrain_friction": 0.47,
                 "raster_resolution": 512,
                 "random_seed": 1,
                 "splat_radius": 8.0,
@@ -186,7 +186,9 @@
                 "domain_center_lat": 47.77663,
                 "domain_center_lon": 15.816,
                 "release_center_lat": 47.7748,
-                "release_center_lon": 15.8105
+                "release_center_lon": 15.8105,
+                "basal_friction_model": 0,
+                "voellmy_xi": 4000.0
             }
         },
         {

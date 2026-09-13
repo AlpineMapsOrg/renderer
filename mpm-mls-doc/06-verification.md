@@ -50,7 +50,7 @@ Results over 900 substeps, 150 particles:
 | Impact and settling | 5.98 → 1.48 → 0.19 → 0.06 m/s, comes to rest |
 | Penetration | min z = 3.00 exactly — rests on the floor, no sinking |
 | Deposit shape | mean z stabilises at 4.00 — a pile, not a collapsed plane |
-| **Plastic compaction** | mean `jp` 1.0 → 0.746 on impact |
+| **Plastic compaction** | mean `jp` (now `plastic_state`) 1.0 → 0.746 on impact |
 
 That last row is the important one: the snow **permanently densifies on impact instead of
 bouncing back elastically**. That is the Stomakhin model doing its job, and it is the
@@ -68,6 +68,41 @@ validation errors**. Temporary changes reverted.
 Note `register_shader` / `register_bind_group_layout` / `register_pipeline` build
 **immediately** when a device already exists, so constructing the node is what compiles the
 shaders — loading the graph is a real test, not just a parse.
+
+## 4b. Refactor safety — resolved-shader diff against HEAD
+
+For the 2026-09-13 dispatcher refactor (`snow_stress` → `mpm_material_stomakhin`, `jp` →
+`plastic_state`, friction split into `mpm_friction`), "behaviour-preserving" was checked
+rather than assumed. `scripts/check_refactor_preserving.py` resolves the `///use` includes
+for each kernel from **git HEAD** and from the working tree, extracts every top-level
+definition, normalises the intentional renames inside each body, folds the dispatcher
+wrappers away, and diffs what is left.
+
+Result: every retained function body identical modulo renames. The only definitions that
+disappeared from a kernel were ones it never called (the old `mpm_common` injected the
+material and collision code into *every* kernel, including `mpm_prepare` and `mpm_splat`),
+verified by checking each against that kernel's `computeMain`. `MpmSettings` gained exactly
+the four expected fields.
+
+A Python port cannot show this — it only shows the *maths* is unchanged. Diffing the
+flattened WGSL shows the *code* is. Both were done.
+
+## 4c. Friction laws — closed-form slope mechanics
+
+`scripts/test_friction.py` ports `mpm_friction.wgsl` verbatim and steps a point mass on an
+inclined plane exactly the way `mpm_grid_update` does (gravity, then contact response).
+Added with Voellmy on 2026-09-13; it also pins the Coulomb path.
+
+| Check | Result |
+|---|---|
+| Voellmy terminal velocity, 35°, μ 0.155, ξ 4000, h 1.5 | 51.72 m/s vs analytic `√(ξh(sinθ−μcosθ))` = 51.77 — **0.085%** (explicit-Euler lag) |
+| Coulomb slope acceleration, same slope | 4.381 m/s² vs analytic `g(sinθ−μcosθ)` = 4.381 — exact to 3 dp |
+| Below atan(μ), both models | stick, final speed exactly 0 |
+| `apply_basal_drag = false` | reduces **exactly** to Coulomb — the particle-level call is unchanged |
+| Reversal guard | 500 m/s with dt = 1 s → 91 m/s, never negative |
+
+The Coulomb row is the regression check for the refactor; the terminal-velocity row is the
+only property that distinguishes Voellmy from Coulomb, so it is the one that matters.
 
 ## 5. On real terrain
 
@@ -118,10 +153,15 @@ python3 validate_wgsl.py
 python3 -m venv .venv && ./.venv/bin/pip install numpy
 ./.venv/bin/python test_svd.py
 ./.venv/bin/python test_mpm.py      # slow, pure Python: ~900 substeps
+./.venv/bin/python test_friction.py # basal friction laws vs closed-form slope mechanics
+
+# 4b. refactor safety - resolved WGSL vs git HEAD (edit its tables for a new refactor)
+python3 check_refactor_preserving.py
 ```
 
 All three were last re-run from this location on 2026-09-06 and reproduce the numbers
-above exactly (mass 150.00, min z 3.00, mean jp 0.7456).
+above exactly (mass 150.00, min z 3.00, mean jp 0.7456). `validate_wgsl.py` and
+`check_refactor_preserving.py` were re-run on 2026-09-13 after the dispatcher refactor.
 
 `validate_wgsl.py` is the one worth running habitually — WGSL otherwise only fails at
 runtime, and it takes seconds. It keeps a `_resolved_*.wgsl` file for any kernel that fails

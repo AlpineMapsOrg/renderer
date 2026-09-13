@@ -17,6 +17,7 @@
  *****************************************************************************/
 
 ///use mpm_common
+///use mpm_friction
 
 // Stage 2 of the MPM step: turn accumulated momentum into velocity, apply gravity and
 // resolve boundary conditions (terrain and domain walls). The velocity is written back
@@ -49,7 +50,7 @@ fn computeMain(@builtin(global_invocation_id) id: vec3<u32>) {
     let world = to_world_space(vec3f(node));
     let surface = terrain_height(world.xy);
     if world.z < surface {
-        velocity = resolve_terrain_collision(velocity, terrain_normal(world.xy));
+        velocity = resolve_terrain_collision(velocity, terrain_normal(world.xy), true);
     }
 
     // Domain walls: no outflow through the sides, floor or ceiling of the grid box.

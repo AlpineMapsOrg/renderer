@@ -21,6 +21,7 @@ from the sources when writing the report. Full list in [refs.md](refs.md).
 | [04-data-layout.md](04-data-layout.md) | Buffer/struct layouts, fixed-point atomics, coordinate conventions, uniform layout rules. |
 | [05-tuning.md](05-tuning.md) | Which knob does what, sensible ranges, failure modes, how to extend. |
 | [06-verification.md](06-verification.md) | What was actually tested, how, and what is still unverified. |
+| [07-constitutive-models.md](07-constitutive-models.md) | Proposal v3.0 gap analysis: which material/friction models exist, and the design for making them exchangeable. |
 | [refs.md](refs.md) | Bibliography. |
 
 ## 60-second orientation
@@ -61,5 +62,9 @@ Known gaps, honestly:
 - **Parameters are Stomakhin's paper values**, authored for metre-scale snow. At 12–16 m
   grid cells the released slab is sub-cell and the flow reads more fluid than slab-like.
   See [05-tuning.md](05-tuning.md).
+- **Only Stomakhin's constitutive model.** Proposal v3.0 wants the
+  model configurable (Gaume Cohesive Cam Clay, Li et al. regime presets). The dispatcher is
+  in place (2026-09-13) with Stomakhin behind it; Coulomb **and Voellmy** basal friction are
+  in. Plan and status in [07-constitutive-models.md](07-constitutive-models.md).
 - **No CK-MPM** [6]. Would touch only P2G/G2P transfer, per the stretch goal.
 - Not validated against any real avalanche. Educational only — as the proposal states.

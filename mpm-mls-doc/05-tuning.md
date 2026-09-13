@@ -12,7 +12,8 @@
 | `release_radius` | 120 m | Start-zone size, independent of the domain. |
 | `slab_thickness` | 1.5 m | Depth of released snow. |
 | `youngs_modulus` | 1.4e5 Pa | Stiffness. Drives the CFL bound via wave speed. |
-| `terrain_friction` | 0.4 | Coulomb μ. Higher = shorter runout. |
+| `terrain_friction` | 0.47 | Basal μ (Li 2021, real terrain). Higher = shorter runout. Pair Voellmy with ~0.155. |
+| `voellmy_xi` | 4000 m/s² | Voellmy only. Turbulent drag `g|v|²/(ξ·h)`; lower ξ = more drag, lower terminal speed. |
 | `splat_radius` | 6 m | **Display only.** Too small = invisible. |
 
 ## The two relationships to keep in your head
@@ -71,9 +72,9 @@ Worth stating plainly in the report: at avalanche scale, the interesting limitat
 
 | Want to | Touch |
 |---|---|
-| Different snow behaviour | `snow_stress()` / `apply_plasticity()` in `mpm_common.wgsl` |
+| Different snow behaviour | a new `mpm_material_<name>.wgsl` + one case in `mpm_material.wgsl` — see below |
 | Different transfer kernel (**CK-MPM** [6]) | `compute_kernel()` + the P2G/G2P loops only — the stretch goal is genuinely localised |
-| Better collision | `resolve_terrain_collision()`, plus the particle branch in `mpm_g2p` |
+| Different basal friction | a new case in `mpm_friction.wgsl` (Coulomb lives there) |
 | Different visualisation | `mpm_splat` / `mpm_rasterize`, or bypass both — see below |
 | Add a location | One `Scenario` entry in `AvalanchePanel`'s constructor |
 | New tunable | Settings struct → uniform (**both sides**) → `update_gpu_settings()` → serialize/deserialize → panel |
@@ -90,6 +91,42 @@ Order matters and the compiler will not catch mistakes:
 6. Panel control
 
 Reuse an existing pad float if the size allows — that avoids touching the layout at all.
+
+### Adding a constitutive model
+
+The material law is behind a runtime dispatcher (`mpm_material.wgsl`), selected by
+`settings.constitutive_model`. A model is three functions and nothing else:
+
+```
+<name>_initial_state() -> f32                      plastic state of a fresh particle
+<name>_stress(F, state) -> mat3x3f                 P·Fᵀ for the MLS-MPM force term
+<name>_plasticity(F_trial, state) -> PlasticReturn  return mapping after the elastic predictor
+```
+
+Per-particle plastic state is **one `f32`** whose meaning the model defines (Stomakhin: Jp).
+If a model genuinely needs more, that is a `Particle` layout change — think twice.
+
+1. `webgpu/compute/shaders/mpm_material_<name>.wgsl` — the three functions, `///use mpm_common`
+   at the top. Model parameters are read from `settings.*`; add them per the recipe above.
+2. `mpm_material.wgsl` — `///use` the new file, add a `MATERIAL_<NAME>` constant, add a
+   `case` to each of the three switches.
+3. `MpmSolverNode.h` — a value in `enum ConstitutiveModel`, same number as the WGSL constant.
+4. `MpmSolverNodeRenderer.cpp` and `AvalanchePanel.cpp` — append to the `Combo` string (**in
+   enum order** — the combo index *is* the enum value) and show the model's parameters under
+   an `if (settings.constitutive_model == ...)`.
+5. `webgpu/compute/CMakeLists.txt` — add the shader to the resource list, or the include
+   fails at runtime with a `qFatal`.
+
+Basal friction is the same shape in `mpm_friction.wgsl` / `enum BasalFrictionModel`. Two
+kinds of term, applied at different places: a **contact impulse** depending on `vn` (safe at
+both grid and particle level — by the particle-level call `vn ≈ 0`), and a **velocity-dependent
+drag** depending on `|v_t|²` (grid level only, or it double-counts). The `apply_basal_drag`
+flag is `true` at exactly one call site per substep. Voellmy is the worked example.
+
+Why runtime dispatch and not compiled variants: the preprocessor's defines are global, so
+per-model shader variants would need pipeline recreation on every switch. A branch on a
+uniform costs nothing — every particle takes the same path. `ComputeAvalancheTrajectoriesNode`
+does exactly this for its physics/runout models.
 
 ## The 3D renderer (next big thing)
 

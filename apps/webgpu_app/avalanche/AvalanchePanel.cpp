@@ -184,6 +184,15 @@ void AvalanchePanel::draw_panel()
     settings_changed |= ImGui::DragFloat("Time step", &settings.dt, 0.0005f, 0.0001f, 0.5f, "%.4f s");
     settings_changed |= ImGui::DragFloat("Splat radius", &settings.splat_radius, 0.25f, 0.0f, 64.0f, "%.1f m");
 
+    // Two independent choices - internal snow behaviour vs. contact with the ground - kept
+    // side by side here so the distinction is visible. Combo strings must stay in enum order.
+    ImGui::TextDisabled("Models");
+    settings_changed |= ImGui::Combo("Material", reinterpret_cast<int*>(&settings.constitutive_model), "Stomakhin 2013\0");
+    settings_changed |= ImGui::Combo("Basal friction", reinterpret_cast<int*>(&settings.basal_friction_model), "Coulomb\0Voellmy\0");
+    settings_changed |= ImGui::DragFloat("Friction coefficient", &settings.terrain_friction, 0.01f, 0.0f, 2.0f, "%.2f");
+    if (settings.basal_friction_model == nodes::MpmSolverNode::VOELLMY)
+        settings_changed |= ImGui::DragFloat("Turbulent friction", &settings.voellmy_xi, 10.0f, 100.0f, 20000.0f, "%.0f m/s2");
+
     // Domain changes reallocate GPU buffers, so they reseed - apply them on release only.
     ImGui::TextDisabled("Simulation domain (changes reset the run)");
     settings_changed |= ImGui::DragScalarN("Domain lat/lon", ImGuiDataType_Double, &settings.domain_center.x, 2, 0.0001f, nullptr, nullptr, "%.5f");
