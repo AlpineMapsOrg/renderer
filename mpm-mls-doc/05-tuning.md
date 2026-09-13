@@ -26,6 +26,11 @@ entries: Stomakhin 2013; Li 2021 Cases I–IV (cold dense / warm shear / sliding
 plug) and V (Vallée de la Sionne 2003, the real-avalanche back-calculation); and a
 Drucker–Prager cold-dense fallback. Hand-editing anything afterwards drops it to "(custom)".
 
+The sidebar also shows the **energy line**: `μ_eff`, the set μ, and their difference. On a
+smooth plane with pure Coulomb sliding `μ_eff == μ`; on real terrain expect `μ_eff` above μ
+by the internal (plastic) dissipation — ~0.1 for Stomakhin on the Breite Ries. If `μ_eff` is
+*below* the set μ, energy is being created and something is wrong.
+
 Two traps from the Li papers, already baked in so they aren't rediscovered: **warm plug has
 the lowest M with the highest β**, and **ξ, not Mβ, is what separates sliding slab from
 warm plug**. Also: in 3D on real terrain, Li's Cases II and III did *not* reproduce their 2D
@@ -67,6 +72,8 @@ not just different.
 | Domain smaller than requested | Clamped to the region | Lower Select Tiles zoom for more terrain |
 | Nothing seeds with release areas on | Disc doesn't overlap a 30–45° slope | Move the release lat/lon, or tick Seed anywhere — the panel now says "0 particles seeded" |
 | Explodes right after picking a preset | Stiffer preset, dt above the new CFL bound | Presets pull dt under the bound automatically; if hand-set, watch the orange warning |
+| Flow speeds up forever, `mu_eff` drops below the basal μ, never stops | Fixed-point bias at low-weight grid nodes (fixed 2026-09-13: rounding + 64-bit mass). If it reappears: particles-per-node × speed > 2·10⁵ saturates the momentum accumulator | Fewer particles or a larger release area (keep < ~1000 particles per cell); check `mu_eff` in the energy-line readout — healthy flows sit at or above the basal μ |
+| A few particles keep moving at 20+ m/s after the mass has stopped | Lone particles on a coarse grid see almost no basal friction (their nodes barely touch the terrain layer) | Cosmetic at < 0.1 % of particles; ignore or hide with a density threshold in the overlay |
 
 ## The resolution problem (be honest about this in the report)
 

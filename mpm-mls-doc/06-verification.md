@@ -182,6 +182,53 @@ checked by temporarily auto-running the graph on load and logging what came back
 Every number is physically plausible, and it is the first real-terrain diagnostic the solver
 has ever produced. Temporary changes reverted.
 
+## 4g. Energy-line test — force balance of the coupled loop
+
+The validation com1DFA uses (Tonnel et al. 2023 §5.2). Along the centre-of-mass path the
+energy height `h_E = z + v̄²/2g` drops by exactly μ per horizontal metre under Coulomb
+friction, independent of slope geometry; so the slope of `h_E` vs horizontal distance is
+`−μ_eff`, and `μ_eff − μ` is internal dissipation.
+
+`scripts/test_energy_line.py` — a slab on a 30° plane, 60 particles, 3.2 s, Stomakhin:
+
+| Run | Travelled | `h_E` change | `μ_eff` |
+|---|---|---|---|
+| μ = 0.0 | 21.2 m (87 % of free slide) | 34.79 → 34.72 m | **0.0026** |
+| μ = 0.3 | 10.2 m (87 % of free slide) | 34.79 → 31.65 m | **0.3050** |
+| difference | | | **0.3024** vs 0.3 expected |
+
+The frictionless run loses 7 cm of energy height over 21 m — the loop conserves energy.
+The basal contribution is recovered to under 1 %. Both runs reach the same 87 % of the
+ideal free-slide distance, so that shortfall is seeding/startup geometry, not friction.
+This is the strongest single validation in this document: every stage of the loop and the
+boundary condition, balanced together.
+
+The first version of the test *failed*, informatively: the terrain rises with +x so
+downhill is −x, and the slab was seeded 2–7 m from the domain wall. It slid into the wall
+and reported `μ_eff = 0.91` on a frictionless plane. Test geometry, fixed by seeding at the
+top of the slope.
+
+**On device** (temporary auto-play, Breite Ries preset, 12 runs = 2.9 s): path 0 → 4.9 m,
+`h_E` 1950.2 → 1946.9 m, `v̄²` 0.74 → 30.1 m²/s², `μ_eff` 0.65 → 0.61 and converging;
+~0.59 over the last window against μ = 0.47. That ~0.12 excess is internal dissipation on
+real non-planar terrain — the smooth plane gave 0.003.
+
+## 4h. Fixed-point accumulation at device scale — `test_sheet_fixed_point.py`
+
+A vectorised (numpy) copy of the loop with the P2G quantisation emulated per contribution:
+a 1.5 m slab in 12.5 m cells on a 35° plane, μ = 0.47, Stomakhin, 20 s. The rigid-block
+answer is `a = g(sin θ − μ cos θ) = 1.85 m/s²`.
+
+| Scheme | mean speed at 20 s | vs block |
+|---|---|---|
+| floats | 37.00 m/s | 0.0 % |
+| shader: round, momentum 1e-4, mass 2⁻²⁰ | 36.97 m/s | −0.1 % |
+| old: truncate, both 1e-4 | 161 m/s, node velocities > 1000 m/s | +336 % |
+
+Passes when floats and the shader scheme are within 3 % of the block. This is the
+regression test for bug 8; it is the only offline check that exercises the integer
+arithmetic, so run it after touching `to_fixed`, `add_node_mass` or the scales.
+
 ## 5. On real terrain
 
 Runs end to end on the Schneeberg DEM: seeds, flows downhill, deposits, animates, and the
@@ -216,6 +263,34 @@ Worth keeping — they are the interesting part of the implementation story.
 5. **`qDebug()` is filtered** in this app's logger — use `qInfo()` for anything that needs to
    show up in the console. Cost an entire debugging round to notice.
 
+7. **Quantised GPU reduction.** Summing `value/N × scale` to keep a mean in an `i32`
+   quantises each particle to `floor(v²/N × 10⁴)` — zero below 3.6 m/s at N = 131072.
+   Kinetic energy read 0 for the first three runs and ~30 % low after. Found by looking
+   at the raw samples, not by any test. Replaced with 64-bit lo/hi sums with carry
+   detection from `atomicAdd`'s return value.
+
+8. **The simulation never cools down** (found by the energy-line readout: `μ_eff` fell to
+   0.03 and negative while the basal μ was 0.47; max speed 17 000 m/s after two minutes).
+   Symptoms that mattered: model-independent, particle-count-independent, per-step energy
+   injection *independent of dt* (a smaller dt blew up sooner), all particles within one
+   cell of the surface, and dropping the APIC `C` from P2G made it go away. That last one
+   was a red herring — `C` was the amplifier, not the source. Every offline plane test was
+   perfect because they ran at `dx = 1` with a 1.5 m slab, where no stencil weight is
+   small. Re-running the plane at device scale (`dx = 12.5`, slab 0.12 cells thick) was
+   still perfect in floats, and reproduced the blow-up the moment the shader's fixed-point
+   truncation was emulated: truncating `i32(w · 1e4)` loses relatively more of a small
+   mass contribution than of its momentum, so `momentum / mass` is biased high at every
+   low-weight node, and APIC feeds it back. Fixed by rounding both accumulators and moving
+   the mass to a 64-bit `u32` pair at 2⁻²⁰ (§4h). On device afterwards: max speed 21–26 m/s
+   for the whole run, `μ_eff` 0.58 → 0.49 against a basal 0.47, flow stops at 340–380 m.
+   Lesson for the report: **verify the numerics at the production scale, including the
+   integer arithmetic** — the maths port had passed everything.
+
+   Detours that were ruled out along the way, so nobody repeats them: particle-level speed
+   clamps, a strain-rate limit on the F update, a contact band / two-sided terrain BC,
+   smoothed terrain normals, CFL (dt = 0.005 was worse), RPIC (rotation-only C) and a cap
+   on `|C·dpos|` — the last two delayed the runaway without removing it.
+
 6. **Switching the material model without reseeding.** `plastic_state` is model-specific.
    Stomakhin's `Jp = 1` read as Cam-Clay's `α = 1` is a fully softened material with
    `p₀ = 0` that carries no stress. Found while adding presets; both panels now force a
@@ -241,6 +316,8 @@ python3 -m venv .venv && ./.venv/bin/pip install numpy
 ./.venv/bin/python test_material_ccc.py              # Cam-Clay return mapping, hardening, Li 2021 params
 MPM_MODEL=drucker_prager ./.venv/bin/python test_mpm.py   # full loop with DP
 MPM_MODEL=ccc ./.venv/bin/python test_mpm.py              # full loop with CCC
+./.venv/bin/python test_energy_line.py               # force balance of the coupled loop (~3 min)
+./.venv/bin/python test_sheet_fixed_point.py         # fixed-point scheme at device scale (~4 min; QUICK=1 skips the old scheme)
 
 # 4b. refactor safety - resolved WGSL vs git HEAD (edit its tables for a new refactor)
 python3 check_refactor_preserving.py

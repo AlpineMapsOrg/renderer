@@ -64,8 +64,9 @@ Known gaps, honestly:
   See [05-tuning.md](05-tuning.md).
 - Material layer is **done** as far as proposal v3.0 goes (2026-09-13): Stomakhin,
   Drucker–Prager and Cohesive Cam Clay switchable at runtime, Coulomb and Voellmy basal
-  friction, seven presets from Li et al. 2021, and a per-run diagnostics readback. What
-  remains there is validation (energy line) and entrainment —
+  friction, seven presets from Li et al. 2021, a per-run diagnostics readback, and the
+  com1DFA energy-line test — which recovers the set basal friction to under 1 % offline
+  and runs live in the sidebar. What remains there is entrainment —
   [07-constitutive-models.md](07-constitutive-models.md).
 - **No CK-MPM** [6]. Would touch only P2G/G2P transfer, per the stretch goal.
 - Not validated against any real avalanche. Educational only — as the proposal states.

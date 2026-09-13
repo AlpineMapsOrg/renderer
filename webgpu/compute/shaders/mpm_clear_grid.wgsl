@@ -29,7 +29,8 @@ fn computeMain(@builtin(global_invocation_id) id: vec3<u32>) {
         return;
     }
 
-    atomicStore(&grid[id.x].mass, 0);
+    atomicStore(&grid[id.x].mass_lo, 0u);
+    atomicStore(&grid[id.x].mass_hi, 0u);
     atomicStore(&grid[id.x].vx, 0);
     atomicStore(&grid[id.x].vy, 0);
     atomicStore(&grid[id.x].vz, 0);

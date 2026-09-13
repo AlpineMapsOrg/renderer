@@ -244,6 +244,96 @@ Docs: 02, 03, 04 (SimState 24 B, allocation rule), 05 ("start from a preset", th
 model-switch rule, two new failure-mode rows), 06 (§4f, bug #6), 07 (§2f, step 5 ticked;
 v3.0 table now shows the whole material layer done), README.
 
+### 7. "step 6" — energy-line validation (com1DFA §5.2)
+
+Step 5 committed as `8779515d` first.
+
+**What it measures.** Energy height `h_E = z_com + v̄²/2g` drops by exactly μ per
+*horizontal* metre under Coulomb friction, whatever the slope, because the friction work
+`μ m g cosθ ds` has `cosθ ds` = horizontal increment. So the slope of `h_E` vs horizontal
+path is `−μ_eff`, and `μ_eff − μ` is internal dissipation. A force-balance check of the
+whole loop that needs no real avalanche.
+
+**Offline** (`test_energy_line.py`, `test_mpm.py` terrain generalised to a slope with the
+flat regression unchanged at 150.00 / 3.00 / 0.7456). Slab on a 30° plane, two runs:
+μ = 0 → `μ_eff = 0.0026` (energy conserved); μ = 0.3 → `μ_eff = 0.305`; **difference 0.3024
+vs 0.3 expected** — under 1 %. The strongest single validation so far.
+
+The first version *failed* and the failure was mine: terrain rises with +x so downhill is
+−x, and the slab was seeded 2–7 m from the wall at x = 2. It slid into the wall and
+reported `μ_eff = 0.91` on a frictionless plane and a *negative* basal contribution. Seeded
+at the top of the slope instead; both runs then reach the same 87 % of ideal free-slide
+distance, so the shortfall is startup geometry.
+
+**On device.** `mpm_splat` sums position and `|v|²`; `read_back_state()` appends an
+`EnergySample`; `energy_line_friction()` fits over the sliding regime (past 10 % of total
+path — the seeded slab compacts before sliding). Sidebar shows `μ_eff`, set μ, difference,
+sparkline.
+
+**Bug caught by looking at the raw samples, not by a test.** First GPU version summed
+`value/N × scale` to keep a mean inside an `i32`. Per particle that is
+`floor(v²/131072 × 10⁴)` → 0 below 3.6 m/s. KE read **0 for the first three runs and ~30 %
+low after** (sample 8: 9.79 vs 14.78 corrected). Replaced with real 64-bit sums: lo/hi `u32`
+pairs, carry detected as `atomicAdd(lo, x) > 0xFFFFFFFF − x`. `SimState` 24 → 56 B.
+On device after the fix: KE resolved from run 1; `μ_eff` 0.65 → 0.61 converging, ~0.59
+over the last window vs μ = 0.47 — ~0.12 internal dissipation on real terrain, where the
+smooth plane gave 0.003. Temporaries reverted; `NodeGraphPanel.cpp` back to committed.
+
+Docs: 02 (API), 03 (the lo/hi carry trick), 04 (SimState 56 B, why 64-bit), 05 (reading
+`μ_eff`), 06 (§4g, bug #7), 07 (§2g, step 6 ticked), README.
+
+### 8. "there is still an issue that the simulation doesn't cool down" — fixed-point energy pump
+
+Screenshot: Sliding slab (CCC), 127 s, 100 % plastic, max speed 17 526 m/s, `μ_eff` 0.31
+and falling. The energy-line readout from step 6 was the instrument that made this
+visible as *energy creation* rather than "it's fast".
+
+**Facts established on device** (a temporary harness in `AvalanchePanel::draw()` applying
+a preset, auto-playing and logging `t / vmax / plastic / μ_eff / path / z / h_E` per run):
+model-independent (Stomakhin, DP, CCC all blow up); particle-count-independent; the energy
+injected per *step* is independent of dt (dt = 0.005 blew up sooner); no particle ever
+flies or sinks — it is purely tangential; dropping the APIC `C` from P2G removes it, halving
+`C` delays it 10 → 55 s, RPIC (rotation-only `C`) and a `|C·dpos| ≤ |v|` cap delay it
+without removing it. So `C` looked like the culprit and PIC would have "fixed" it — at the
+cost of a solver that creeps at 4 m/s.
+
+**Ruled out** (each tested, none changed anything): particle-level speed clamps, a
+strain-rate limit on the F update, a contact band and a two-sided terrain BC, smoothed
+terrain normals, CFL.
+
+**What found it.** All offline plane tests were at `dx = 1`. A vectorised numpy copy of
+the loop at *device* scale (`dx = 12.5`, 1.5 m slab = 0.12 cells, dt = 0.01, 4 k
+particles, 35° plane, μ = 0.47) was still exact against the rigid block: 37.00 vs 37.0 m/s
+at 20 s. Adding one line — emulate the shader's `i32(x · 1e4)` truncation per P2G
+contribution — reproduced the blow-up: 161 m/s mean, node velocities > 1000 m/s, same
+exponential shape as the device. Mechanism: truncation loses up to one unit per
+contribution; for a mass contribution `w = 1e-3` that is ~10 %, for its momentum `w·v` at
+10 m/s ~1 %, so `momentum/mass` is biased *high* at every low-weight node, per step,
+independent of dt. A slab 0.12 cells thick gives its third z layer exactly such weights
+for every particle, and APIC's `C` carries the excess back into the particles. (First
+attempt at this offline reproduction had its own bug — `svd` returns `Vh`, I transposed it
+— which produced a rotation matrix for F and a fake "elastic instability"; caught by
+printing F.)
+
+**Fix** (`mpm_common.wgsl`, `mpm_p2g.wgsl`, `mpm_clear_grid.wgsl`, `mpm_grid_update.wgsl`,
+`GRID_NODE_STRIDE_U32` 4 → 5): round instead of truncate; mass in its own 64-bit `u32`
+lo/hi pair at 2⁻²⁰ (same carry trick as `SimState`), momentum unchanged at 1e-4 in an
+`i32`, now with the range limit stated (particles-per-node × speed < 2·10⁵). Emulated
+offline: shader scheme −0.1 % vs block; rounding alone still drifted +2 %, truncation with
+a fine mass was 8 % *slow* (momentum truncation is dissipative), hence both changes.
+
+**On device after the fix**, same harness: Stomakhin — vmax 21–26 m/s for all 144 s,
+`μ_eff` 0.58 → 0.49 (basal 0.47), stops after 380 m; Sliding slab CCC — vmax ≤ 25 m/s,
+plastic fraction 25 → 55 % (was 100 %), `μ_eff` 0.60 → 0.49, stops after 340 m. Residual:
+~90 of 131 k particles keep moving at > 10 m/s after the mass has stopped — lone particles
+on a coarse grid see little basal friction; noted in 05 as cosmetic.
+
+New: `scripts/test_sheet_fixed_point.py` (regression test, emulates both schemes). All
+TEMP harness/instrumentation reverted; `SimState` back to 14 u32. Offline suite re-run:
+`test_mpm.py` ×3, `test_energy_line.py`, `test_sheet_fixed_point.py` all OK.
+Docs: 03 (P2G/grid pseudo-code), 04 (GridNode 20 B, "round, don't truncate"), 05 (two
+new failure-mode rows), 06 (§4h, bug #8 with the detours), 07 (§2g addendum, step 6).
+
 ## 2026-09-06
 
 ### 1. "Make a folder mpm-mls-doc and document ... for my final report"

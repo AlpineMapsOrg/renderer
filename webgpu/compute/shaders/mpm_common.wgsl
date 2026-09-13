@@ -99,13 +99,26 @@ struct Particle {
 
 // Grid quantities are accumulated with fixed point atomics because WGSL has no atomic
 // float add. Particle mass is normalised to 1, so a node accumulates roughly the number
-// of particles in its neighbourhood - well inside i32 range at this scale factor.
-const FIXED_SCALE: f32 = 10000.0;
-const FIXED_LIMIT: f32 = 2.0e9;
+// of particles in its neighbourhood.
+//
+// Two things matter here, both learned the hard way (06-verification.md, sheet test):
+//  - Contributions are ROUNDED, not truncated. Truncation toward zero shrinks a small
+//    mass contribution by more (relative) than the matching momentum contribution, so
+//    momentum / mass comes out too large at every low-weight node. APIC then carries
+//    those node velocities back into C and the flow pumps energy without limit.
+//  - Mass gets its own, much finer scale and a 64-bit accumulator. A 1.5 m slab in a
+//    12.5 m cell hands its third z layer weights of ~1e-3; at 1e-4 resolution that is a
+//    handful of units and the ratio above is off by tens of percent per step.
+// Momentum stays at 1e-4 in a single i32: its range (2e5 units per node) is the real
+// limit - particles-per-node * speed has to stay below it, see 05-tuning.md.
+const MOMENTUM_SCALE: f32 = 10000.0;
+const MOMENTUM_LIMIT: f32 = 2.0e9;
+const MASS_SCALE: f32 = 1048576.0; // 2^20
 
 struct GridNode {
-    mass: atomic<i32>,
-    vx: atomic<i32>,
+    mass_lo: atomic<u32>, // 64-bit fixed point mass, MASS_SCALE (carry via atomicAdd's return)
+    mass_hi: atomic<u32>,
+    vx: atomic<i32>, // momentum during P2G, then velocity - MOMENTUM_SCALE
     vy: atomic<i32>,
     vz: atomic<i32>,
 }
@@ -163,10 +176,23 @@ struct PlasticReturn {
 
 fn to_fixed(value: f32) -> i32 {
     // Clamping keeps a diverging simulation from wrapping the accumulator into garbage.
-    return i32(clamp(value * FIXED_SCALE, -FIXED_LIMIT, FIXED_LIMIT));
+    return i32(clamp(round(value * MOMENTUM_SCALE), -MOMENTUM_LIMIT, MOMENTUM_LIMIT));
 }
 
-fn from_fixed(value: i32) -> f32 { return f32(value) / FIXED_SCALE; }
+fn from_fixed(value: i32) -> f32 { return f32(value) / MOMENTUM_SCALE; }
+
+fn add_node_mass(cell: u32, mass: f32) {
+    let units = u32(round(mass * MASS_SCALE));
+    if atomicAdd(&grid[cell].mass_lo, units) > 0xFFFFFFFFu - units {
+        atomicAdd(&grid[cell].mass_hi, 1u);
+    }
+}
+
+fn node_mass(cell: u32) -> f32 {
+    let lo = f32(atomicLoad(&grid[cell].mass_lo));
+    let hi = f32(atomicLoad(&grid[cell].mass_hi));
+    return (hi * 4294967296.0 + lo) / MASS_SCALE;
+}
 
 // ---------------------------------------------------------------------------------------
 // Terrain sampling

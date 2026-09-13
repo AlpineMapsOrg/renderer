@@ -180,6 +180,50 @@ work-done callback and fills `last_state()`, which the sidebar shows as
 First real-terrain diagnostic ever read back (Breite Ries preset, 0.24 s simulated):
 131072 active, 968 plastic (0.7 %), max 1.57 m/s (≈ `g·sinθ·t`), terrain 1303–2060 m.
 
+### 2g. Energy-line test — 2026-09-13
+
+The validation com1DFA uses (Tonnel et al. 2023 §5.2), in two places.
+
+**The idea.** Along the centre-of-mass path define the *energy height*
+`h_E = z_com + v̄²/(2g)`. Coulomb friction does work `μ·m·g·cosθ·ds` per path length, and
+`cosθ·ds` is the horizontal increment — so `h_E` drops by **exactly μ per horizontal metre,
+whatever the slope geometry**. The least-squares slope of `h_E` against horizontal distance
+is therefore `−μ_eff`, and `μ_eff − μ` is what the material dissipates internally. It checks
+that driving and resisting forces balance without a real avalanche to compare against.
+
+**Offline, on the coupled solver** (`test_energy_line.py`): a slab on a 30° plane, two runs.
+`μ = 0` → `μ_eff = 0.0026` (7 cm of energy height lost over 21 m: the loop conserves
+energy). `μ = 0.3` → `μ_eff = 0.305`. Difference **0.3024 vs 0.3 expected** — under 1 %.
+Both reach 87 % of the ideal free-slide distance, so the shortfall is seeding/startup, not
+friction. This is the strongest single validation of the solver: gravity, both transfers,
+the constitutive model and the boundary condition, all balanced.
+
+**On the GPU**: `mpm_splat` sums position and `|v|²` over active particles into `SimState`;
+the node turns each readback into an `EnergySample {time, path, altitude, energy_height}`
+and fits `energy_line_friction()` over the sliding regime (samples past 10 % of the total
+path — the seeded slab compacts before it slides, which drops `h_E` with no path and
+would dominate a short fit). The sidebar shows `μ_eff`, the set μ, their difference, and a
+sparkline. On the Breite Ries preset after 2.9 s: `μ_eff ≈ 0.59–0.61` vs μ = 0.47, i.e.
+~0.12 of internal dissipation on real terrain — where the smooth plane gave 0.003.
+
+**Bug caught on the way.** The first GPU version summed `value/N × scale` so the total
+could not overflow an `i32`. Per particle that is `floor(v²/131072 × 10⁴)` — zero for any
+particle under 3.6 m/s. Kinetic energy read **0 for the first three runs and ~30 % low
+after**. Replaced with genuine 64-bit sums: a lo/hi `u32` pair, carry detected from the
+value `atomicAdd` returns (`old > 0xFFFFFFFF − x` ⟹ it wrapped). Precision is now 0.1 mm
+and 10⁻⁵ m²/s² per particle at any particle count.
+
+**What the readout then found.** Left running, `μ_eff` fell below the basal μ and went
+negative while the max speed climbed past 10⁴ m/s — the solver was creating energy. That
+turned out to be the fixed-point *truncation* in P2G biasing `momentum/mass` high at
+low-weight grid nodes, amplified by APIC; every offline test had passed because none ran
+at device scale with the integer arithmetic. Fixed (rounding, 64-bit mass), reproduced
+and regression-tested offline in `test_sheet_fixed_point.py` — the full story is bug 8 in
+[06-verification.md](06-verification.md#bugs-found-and-fixed-along-the-way). With the
+fix, the Breite Ries run gives `μ_eff` 0.58 → 0.49 over the whole 144 s (basal 0.47),
+speeds of 21–26 m/s, and the flow stops after 340–380 m. The energy line earned its keep
+on day one.
+
 ### 2c. Not implemented
 
 - ~~**Gaume 2018 Cohesive Cam Clay**~~ — **done 2026-09-13**, see §2e.
@@ -187,7 +231,8 @@ First real-terrain diagnostic ever read back (Breite Ries preset, 0.24 s simulat
 - ~~**Model selection**~~ — **done 2026-09-13.** `ConstitutiveModel` / `BasalFrictionModel`
   enums, `u32` uniform fields, runtime `switch` dispatchers, combos in both panels.
 - ~~**Drucker–Prager**~~ — **done 2026-09-13**, see §2d.
-- **Entrainment**, **energy-line validation**, **comparison to com1DFA/Flow-Py** — nothing.
+- ~~**Energy-line validation**~~ — **done 2026-09-13**, see §2g.
+- **Entrainment**, **comparison to com1DFA/Flow-Py** — nothing.
 
 ## 3. Making models exchangeable — design
 
@@ -332,9 +377,10 @@ show it.
 **5. Regime presets** ✅ **Done 2026-09-13.** See §2f — presets, the plastic-particle
 readout, and the readback it needed.
 
-**6. Energy-line validation** (com1DFA §5.2). GPU reduction of centre-of-mass and kinetic
-energy per run, then check the energy balance along the path. Answers "how do you know this
-isn't nonsense" without needing real-avalanche data, which v3.0 puts out of scope.
+**6. Energy-line validation** ✅ **Done 2026-09-13.** See §2g. Offline: basal friction
+recovered to < 1 %. On-device: live `μ_eff` readout — which immediately exposed the
+fixed-point energy pump (06, bug 8). Fixed the same day; the sliding-slab and Stomakhin
+runs now cool down and stop.
 
 **7. Entrainment.** Input: an entrainable-snow-depth texture (v3.0 says computing it is out
 of scope). Cheapest MPM-compatible mechanism: a flowing particle over a cell with entrainable

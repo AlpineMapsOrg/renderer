@@ -108,22 +108,26 @@ affine      = stress_term + mass · C
 for offset in 3×3×3:
     dpos = (offset − fx) · dx
     w    = kernel_weight(...)
-    atomicAdd(mass, to_fixed(w · mass))
-    atomicAdd(v*,   to_fixed(w · (mass·velocity + affine·dpos)))
+    add_node_mass(cell, w · mass)                       # u32 lo/hi at 2^20, carry from atomicAdd's return
+    atomicAdd(v*, to_fixed(w · (mass·velocity + affine·dpos)))   # i32 at 1e4, rounded
 ```
+
+Both quantise with `round`, never truncation — see the fixed-point section of
+[04-data-layout.md](04-data-layout.md#round-dont-truncate--and-give-the-mass-its-own-scale-2026-09-13)
+for the blow-up that truncation caused.
 
 The single `affine · dpos` product is the MLS-MPM payoff — no separate weight-gradient force
 term (Hu et al. [3]).
 
-27 nodes × 4 atomics = **108 atomic adds per particle per substep**. This is the hot loop.
+27 nodes × 4 atomics (+1 on a mass carry, rare) = **108 atomic adds per particle per substep**. This is the hot loop.
 
 ## `mpm_grid_update` — 4×4×4, over grid nodes
 
 Stage 2.
 
 ```
-mass = from_fixed(...)
-if mass <= 1e-9:  zero the velocity slots and return   # so G2P never reads stale data
+mass = node_mass(cell)                                 # (hi · 2^32 + lo) / 2^20
+if mass <= 0:  zero the velocity slots and return      # so G2P never reads stale data
 v = momentum / mass
 v.z −= gravity · dt
 
@@ -166,8 +170,16 @@ wrong results.
 
 ## `mpm_splat` — 256×1×1, over particles
 
-Also counts, once per run, particles whose `plastic_state` has left its initial value into
-`SimState.plastic_particles` — the plastic-particle-ratio diagnostic. Then projects
+Also, once per run: counts particles whose `plastic_state` has left its initial value into
+`SimState.plastic_particles`, and sums position and `|v|²` over active particles for the
+energy-line test. The sums are **64-bit** as lo/hi `u32` pairs — WGSL has no 64-bit atomics,
+and `atomicAdd` returns the old value, so a wrap is detectable:
+
+```
+let old = atomicAdd(&lo, x);   if old > 0xFFFFFFFF − x { atomicAdd(&hi, 1u); }
+```
+
+All summands are non-negative, so unsigned suffices. Then projects
 particles top-down into the density raster. Each particle is drawn as a **disc** of
 `splat_radius_texels` (capped at 8), not a single texel:
 

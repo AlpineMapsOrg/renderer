@@ -39,7 +39,7 @@ namespace {
     /* Size of struct Particle in mpm_common.wgsl, in units of uint32. */
     constexpr uint32_t PARTICLE_STRIDE_U32 = 32u; // 128 bytes
     /* Size of struct GridNode in mpm_common.wgsl, in units of uint32. */
-    constexpr uint32_t GRID_NODE_STRIDE_U32 = 4u; // 16 bytes
+    constexpr uint32_t GRID_NODE_STRIDE_U32 = 5u; // 20 bytes
     /* Size of struct SimState in mpm_common.wgsl, in units of uint32. */
     constexpr uint32_t SIM_STATE_SIZE_U32 = 14u; // 56 bytes
     /* Mirrors the constants in mpm_common.wgsl. */

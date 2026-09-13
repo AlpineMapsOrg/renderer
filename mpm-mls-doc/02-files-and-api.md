@@ -82,7 +82,9 @@ a future 3D particle renderer**, no CPU readback needed).
 | `has_valid_inputs()` | Checks sockets are connected **and** payloads non-null. Must be called before driving the node out of graph order — see the gotcha below. |
 | `request_reset()` | Re-scan terrain and reseed on next run. |
 | `simulated_time()` | Seconds accumulated since last reset. |
-| `last_state()` | `SimStateReadback`: active/plastic particle counts, max speed, terrain range. Async — describes the *previous* completed run; `valid` false until the first arrives. |
+| `last_state()` | `SimStateReadback`: active/plastic particle counts, max speed, terrain range, centre of mass, mean \|v\|². Async — describes the *previous* completed run; `valid` false until the first arrives. |
+| `energy_line()` | Vector of `EnergySample {time, path, altitude, energy_height}`, one per completed run since the last reset. |
+| `energy_line_friction()` | `−slope` of energy height over horizontal path, fitted over the sliding regime (past 10 % of total path). The effective friction coefficient the flow experiences; NaN until there is movement. |
 | `domain_aabb()` | World bounds of the simulated box. Only valid after the first run. |
 | `set_settings()` / `get_settings()` | Settings are consumed lazily in `run_impl()`, so applying them any time is safe. |
 | `serialize_settings()` / `deserialize_settings()` | Graph JSON persistence. |

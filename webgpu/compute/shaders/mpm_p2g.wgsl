@@ -62,7 +62,7 @@ fn computeMain(@builtin(global_invocation_id) id: vec3<u32>) {
                 let momentum = weight * (p.mass * p.velocity + affine * dpos);
 
                 let cell = grid_index(node);
-                atomicAdd(&grid[cell].mass, to_fixed(weight * p.mass));
+                add_node_mass(cell, weight * p.mass);
                 atomicAdd(&grid[cell].vx, to_fixed(momentum.x));
                 atomicAdd(&grid[cell].vy, to_fixed(momentum.y));
                 atomicAdd(&grid[cell].vz, to_fixed(momentum.z));

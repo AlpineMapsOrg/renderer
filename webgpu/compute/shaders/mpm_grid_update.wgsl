@@ -32,8 +32,8 @@ fn computeMain(@builtin(global_invocation_id) id: vec3<u32>) {
     let node = vec3i(id);
     let cell = grid_index(node);
 
-    let mass = from_fixed(atomicLoad(&grid[cell].mass));
-    if mass <= 1e-9 {
+    let mass = node_mass(cell);
+    if mass <= 0.0 {
         // Empty node - make sure G2P never gathers stale velocity from it.
         atomicStore(&grid[cell].vx, 0);
         atomicStore(&grid[cell].vy, 0);
