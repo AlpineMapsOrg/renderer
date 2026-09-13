@@ -73,6 +73,13 @@ https://doi.org/10.1007/s10346-021-01692-8
 → Proposal ref [13]. Source of the basal μ = **0.47** default (Table 1, real terrain) and of the
 per-regime CCC parameter table the presets will use.
 
+**Wolper, J., Fang, Y., Li, M., Lu, J., Gao, M., Jiang, C.** 2019. *CD-MPM: Continuum damage
+material point methods for dynamic fracture animation.* ACM Trans. Graph. 38(4), Article 119.
+→ Source of the **three-case return mapping** (compressive cap / tensile tip / fixed-p shear
+projection) used in `mpm_material_ccc.wgsl` for the Gaume [11] yield surface — the same
+group's implementation of it (their "NACC"). Gaume describes an associative rule; this is
+the non-associated variant, and the docs say so.
+
 **Klár, G., Gast, T., Pradhana, A., Fu, C., Schroeder, C., Jiang, C., Teran, J.** 2016.
 *Drucker-Prager elastoplasticity for sand animation.* ACM Trans. Graph. 35(4), Article 103.
 → **Implemented** in `mpm_material_drucker_prager.wgsl`: Hencky strain, friction cone, the

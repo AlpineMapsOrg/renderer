@@ -15,8 +15,8 @@ too.
 | v3.0 goal | Status |
 |---|---|
 | MLS-MPM solver | **done** |
-| A constitutive model — Stomakhin [5] *or* successors Gaume CCC [11], Li et al. [12,13] | **Stomakhin + Drucker–Prager** behind a switch; CCC still to do |
-| Model is configurable / regime presets (Li 2021 Table 1) | **switch in place** (2026-09-13); one model behind it, no presets yet |
+| A constitutive model — Stomakhin [5] *or* successors Gaume CCC [11], Li et al. [12,13] | **done** — Stomakhin, Drucker–Prager and Cohesive Cam Clay behind a switch |
+| Model is configurable / regime presets (Li 2021 Table 1) | switch done; **presets still to do** (step 5) |
 | Basal friction via simple Coulomb using terrain normals | **done**; Voellmy added alongside (2026-09-13) |
 | Single-particle rendering | not done (2D density overlay instead) |
 | Entrainable material along the flow path | **not done** |
@@ -104,11 +104,59 @@ for. DP therefore needed one new field (`dp_alpha`, in the last pad slot) and th
 stayed 160 B. Enum numbering is also `DRUCKER_PRAGER = 1` (not 2) so the combo stays
 contiguous until CCC lands.
 
+### 2e. Cohesive Cam Clay (Gaume 2018) — implemented 2026-09-13
+
+`mpm_material_ccc.wgsl`, `ConstitutiveModel::COHESIVE_CAM_CLAY = 2`. Same Hencky elasticity
+as DP; the yield surface is Gaume's ellipse in (p, q):
+
+```
+p = −K tr ε,   q = √(3/2)·2μ‖dev ε‖,   K = λ + 2μ/3
+y = (1+2β)q² + M²(p + βp₀)(p − p₀) ≤ 0        admissible p ∈ [−βp₀, p₀]
+p₀ = K·sinh(ξ·max(−α, 0))                     α = plastic volumetric strain
+```
+
+`plastic_state` is α, initialised to `−asinh(p₀ⁱⁿⁱ/K)/ξ` so that `p₀(α₀) = p₀ⁱⁿⁱ` exactly
+(`ccc_initial_state()` — this is why the initial state had to be a dispatcher call).
+
+**Return mapping — a documented choice.** Gaume 2018 describes an associative flow rule,
+which needs a per-particle Newton solve on the ellipse. Implemented instead is the
+three-case projection of **Wolper et al. 2019 (NACC)** — the same group's implementation
+of the same surface and hardening law:
+
+```
+Case 1  p > p₀          → (p₀, 0),      α += tr ε + p₀/K      (compaction: harden)
+Case 2  p < −βp₀        → (−βp₀, 0),    α += tr ε − βp₀/K     (dilation: soften)
+Case 3  y > 0 otherwise → q onto the ellipse at fixed p, α unchanged
+```
+
+Explicit: the old p₀ is used for the projection, then hardening is updated. Case 3's
+`q_new/q` division is safe by construction: with p in range the ellipse term is ≤ 0, so
+`y > 0` implies `q > 0`. The sinh argument is clamped at 20 so runaway compaction cannot
+overflow. Swapping in an associative return only touches `ccc_plasticity()`.
+
+Defaults are Li 2021 **Case V** — the case back-calculated from the real Vallée de la
+Sionne avalanche (M 0.7, β 0.2, ξ 0.002, p₀ 3 kPa) — as the most defensible single
+setting; Cases I–IV become presets. Four new uniform fields; **uniform now 176 B**, no
+pad slots left.
+
+**Verified** (`test_material_ccc.py`, 12 checks): initial α round-trips to p₀ exactly;
+Case 3 lands on the ellipse (`|y| ≈ 7e-8` on a 1e7-scale surface) *at the same p*; Case 1
+returns to `(p₀, 0)` and hardens; Case 2 returns to `(−βp₀, 0)` and softens; 500 random
+gradients never leave the surface; repeated tension softens monotonically to `p₀ = 0`
+(fracture); repeated compression hardens until admissible then stops; β = 0 has no
+tensile strength; all five Li 2021 Table 1 cases produce finite initial states that
+round-trip at E = 3 MPa.
+
+In the drop test the **parameter → behaviour link works**: weak Case V (p₀ 3 kPa)
+flattens to a pancake (mean z 3.02) because impact pressure ~14 kPa is far above the cap
+and Cam-Clay loses shear strength above p₀ — the opposite of DP's cone; strong Case III
+(p₀ 42 kPa) piles at 4.13, alongside Stomakhin's 4.00. Both come to rest, unlike DP.
+
 ### 2c. Not implemented
 
-- **Gaume 2018 Cohesive Cam Clay** — the recommended model. Nothing present.
-- **Li 2020/2021 regime parameters** — no presets, and the parameters they need
-  (M, β, ξ, p₀, Hencky elasticity) do not exist in the settings or uniform.
+- ~~**Gaume 2018 Cohesive Cam Clay**~~ — **done 2026-09-13**, see §2e.
+- **Li 2020/2021 regime presets** — the parameters now exist (M, β, ξ, p₀); the preset
+  table itself is step 5.
 - ~~**Model selection**~~ — **done 2026-09-13.** `ConstitutiveModel` / `BasalFrictionModel`
   enums, `u32` uniform fields, runtime `switch` dispatchers, combos in both panels.
 - ~~**Drucker–Prager**~~ — **done 2026-09-13**, see §2d.
@@ -133,9 +181,12 @@ Why runtime rather than compile-time (`///if` variants):
 ### 3b. Two independent enums
 
 ```cpp
-enum ConstitutiveModel : uint32_t { STOMAKHIN = 0, COHESIVE_CAM_CLAY = 1, DRUCKER_PRAGER = 2 };
+enum ConstitutiveModel  : uint32_t { STOMAKHIN_2013 = 0, DRUCKER_PRAGER = 1, COHESIVE_CAM_CLAY = 2 };
 enum BasalFrictionModel : uint32_t { COULOMB = 0, VOELLMY = 1 };
 ```
+
+(As implemented. DP took 1 because it landed first; numbering is arbitrary, contiguity is
+what the combos need.)
 
 Kept separate on purpose — v3.0 and the paper summaries both stress that internal friction
 (M, part of the constitutive model) and basal friction (μ, a boundary condition) must not be
@@ -155,7 +206,7 @@ Per-particle state needed by each model is **one scalar**:
 | Model | `plastic_state` means | Elasticity |
 |---|---|---|
 | Stomakhin | Jp, plastic volume ratio | fixed corotated |
-| CCC | εᵥᵖ, accumulated volumetric plastic strain (drives p₀ via sinh) | Hencky |
+| CCC | α, plastic volumetric strain (drives p₀ via sinh); starts at −asinh(p₀ⁱⁿⁱ/K)/ξ | Hencky |
 | Drucker–Prager | accumulated plastic strain Σδγ (diagnostic only) | Hencky |
 
 So the `Particle` struct **does not change** — rename `jp` → `plastic_state` and document its
@@ -241,22 +292,15 @@ second case in a dispatcher; `test_friction.py` checks it.
 **3. Drucker–Prager (Klár 2016).** ✅ **Done 2026-09-13.** See §2d. Hencky elasticity is
 now in and verified, which CCC reuses.
 
-**4. Cohesive Cam Clay (Gaume 2018).** The model the paper summaries recommend.
-- Hencky (log-strain) elasticity: ε = log Σ in principal space, τ = 2με + λ tr(ε) I
-- p = −tr τ/3, q = √(3/2)·|dev τ|
-- Yield `y = (1+2β)q² + M²(p+βp₀)(p−p₀) ≤ 0`
-- Hardening `p₀ = K·sinh(ξ·max(−εᵥᵖ, 0))`; state = εᵥᵖ
-- Associative flow rule
+**4. Cohesive Cam Clay (Gaume 2018).** ✅ **Done 2026-09-13.** See §2e — including the
+return-mapping choice (Wolper's three-case projection rather than the associative rule).
 
-The hard part is the **return mapping onto the ellipse** — an implicit projection, not a
-radial return, and hardening moves the ellipse during the projection. Follow the algorithm in
-Gaume 2018's appendix / Li 2020 rather than improvising; the SVD in `svd3()` already gives
-the principal frame it needs. Budget real time for this and benchmark: nobody has run CCC
-interactively, and Li 2021 was ~180× slower than real time on 36 cores.
-
-Note the CFL consequence: E = 3 MPa at ρ = 250 gives a wave speed of ~110 m/s vs ~19 m/s at
-Stomakhin's values, so the allowed dt drops ~6×. The panel's CFL readout must use the active
-model's E.
+Still true and still worth doing: **benchmark it.** Nobody has run CCC interactively. Per
+particle it is one SVD plus a handful of scalars — same order as Stomakhin — so it should be
+fine, but that is an expectation, not a measurement. And the CFL note stands: at Li's
+E = 3 MPa, ρ = 250 the wave speed is ~110 m/s vs ~19 m/s at Stomakhin's values, so the
+allowed dt drops ~6×. The CFL readout already uses the shared E, so switching a preset will
+show it.
 
 **5. Regime presets** from §3f in the sidebar, plus a plastic-particle-ratio readout
 (Li 2021 reports 77 / 26 / 10 / 34 % for Cases I–IV — a cheap sanity metric that needs the

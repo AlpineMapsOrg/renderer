@@ -62,9 +62,9 @@ Known gaps, honestly:
 - **Parameters are Stomakhin's paper values**, authored for metre-scale snow. At 12–16 m
   grid cells the released slab is sub-cell and the flow reads more fluid than slab-like.
   See [05-tuning.md](05-tuning.md).
-- **No Cohesive Cam Clay yet.** Proposal v3.0 wants Gaume's CCC with Li et al.'s regime
-  presets. The model layer is exchangeable (2026-09-13) with **Stomakhin and Drucker–Prager**
-  behind it, and Coulomb **and Voellmy** basal friction. CCC and the presets are the next
-  steps — plan and status in [07-constitutive-models.md](07-constitutive-models.md).
+- **No regime presets yet.** The model layer is exchangeable (2026-09-13) with **Stomakhin,
+  Drucker–Prager and Cohesive Cam Clay** behind it, plus Coulomb **and Voellmy** basal
+  friction — all three constitutive models the proposal names are in. Li et al.'s per-regime
+  parameter presets are the next step — [07-constitutive-models.md](07-constitutive-models.md).
 - **No CK-MPM** [6]. Would touch only P2G/G2P transfer, per the stretch goal.
 - Not validated against any real avalanche. Educational only — as the proposal states.

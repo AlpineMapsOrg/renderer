@@ -10,6 +10,7 @@ and WGSL atomics/alignment at the same time is a bad idea.
 
     python3 test_mpm.py                        # Stomakhin (default)
     MPM_MODEL=drucker_prager python3 test_mpm.py
+    MPM_MODEL=ccc python3 test_mpm.py
 """
 import os
 
@@ -17,6 +18,7 @@ import numpy as np
 
 from test_svd import svd3
 import test_material_dp as dp
+import test_material_ccc as ccc
 
 MODEL = os.environ.get("MPM_MODEL", "stomakhin")
 
@@ -77,6 +79,8 @@ def resolve_collision(v, n):
 def material_stress(F, state):
     if MODEL == "drucker_prager":
         return dp.dp_stress(F)
+    if MODEL == "ccc":
+        return ccc.ccc_stress(F)
     return snow_stress(F, state)
 
 
@@ -84,11 +88,18 @@ def material_plasticity(F_trial, state):
     if MODEL == "drucker_prager":
         F_new, state_new, _case = dp.dp_plasticity(F_trial, state)
         return F_new, state_new
+    if MODEL == "ccc":
+        F_new, state_new, _case, _p0 = ccc.ccc_plasticity(F_trial, state)
+        return F_new, state_new
     return apply_plasticity(F_trial, state)
 
 
 def material_initial_state():
-    return 0.0 if MODEL == "drucker_prager" else 1.0
+    if MODEL == "drucker_prager":
+        return 0.0
+    if MODEL == "ccc":
+        return ccc.ccc_initial_state()
+    return 1.0
 
 
 def substep(pos, vel, C, F, jp):
@@ -189,6 +200,8 @@ def main(n_particles=150, steps=900, drop=(5, 9)):
     if MODEL == "drucker_prager":
         if jp.mean() <= 0.0:
             print("FAIL: no particle yielded"); ok = False
+    elif MODEL == "ccc":
+        pass  # alpha may go either way; the surface checks live in test_material_ccc.py
     elif jp.mean() >= 0.999:
         print(f"FAIL: no plastic compaction (mean jp {jp.mean():.4f})"); ok = False
 
@@ -196,6 +209,9 @@ def main(n_particles=150, steps=900, drop=(5, 9)):
     if MODEL == "drucker_prager":
         print("Expected: mass exactly conserved, min z == floor, velocity decaying to ~0,\n"
               "plastic strain > 0 (cohesionless material yields and spreads on impact).")
+    elif MODEL == "ccc":
+        print("Expected: mass exactly conserved, min z == floor, velocity decaying to ~0;\n"
+              "cohesive, so it should pile and stop like Stomakhin rather than spread like DP.")
     else:
         print("Expected: mass exactly conserved, min z == floor, velocity decaying to ~0,\n"
               "mean jp dropping well below 1 (plastic compaction on impact, not a bounce).")

@@ -27,7 +27,7 @@ relative to the terrain.
 ```wgsl
 struct Particle {
     position: vec3f,  mass: f32,     // mass = 0 marks an INACTIVE particle
-    velocity: vec3f,  plastic_state: f32,  // per model: Stomakhin Jp (starts 1), DP accumulated plastic strain (starts 0)
+    velocity: vec3f,  plastic_state: f32,  // per model: Stomakhin Jp (1), DP plastic strain (0), CCC alpha (−asinh(p₀/K)/ξ)
     c0: vec3f,        volume: f32,   // c0..c2 = rows of the APIC affine matrix C
     c1: vec3f,        _p1: f32,
     c2: vec3f,        _p2: f32,
@@ -100,26 +100,27 @@ converge. `active_particles` and `max_speed_mm` are populated but **not currentl
 — readback is async and would complicate `run_impl()`. Low-hanging fruit if diagnostics are
 wanted.
 
-## Uniform — 160 bytes
+## Uniform — 176 bytes
 
 Mirrored between `MpmSolverSettingsUniform` (C++) and `MpmSettings` (WGSL). A
-`static_assert(sizeof(...) == 160)` catches size drift, **but not field reordering** — if you
+`static_assert(sizeof(...) == 176)` catches size drift, **but not field reordering** — if you
 add a field, change both sides and check the offsets by hand.
 
 Rules that make the two agree:
 
 - `vec3` aligns to 16, `vec2` to 8, scalars to 4
 - struct alignment = its largest member's (16 here, from the leading `vec3u`)
-- struct size must be a multiple of its alignment → 160 ✓
+- struct size must be a multiple of its alignment → 176 ✓
 - glm types in C++ are tightly packed at 4-byte alignment, which happens to match because
   every `vec2` in this layout already sits at an 8-byte offset
 
 Field groups, in order: grid/particle counts · domain origin+size+dx · region size + height
 texture dims · dt, gravity, mass, volume · μ₀, λ₀, ξ, θ_c · θ_s, friction, slab, seed ·
 raster dims + domain UV · domain UV size, seed_anywhere, splat radius · density reference,
-release centre x/y, release radius · constitutive_model, basal_friction_model, voellmy_xi, dp_alpha.
+release centre x/y, release radius · constitutive_model, basal_friction_model, voellmy_xi, dp_alpha ·
+ccc_m, ccc_beta, ccc_xi, ccc_p0_initial.
 
-No pad slots left. The next field grows the struct to 176 B.
+No pad slots left. The next field grows the struct to 192 B.
 
 ## Buffer sizes
 

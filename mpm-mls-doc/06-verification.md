@@ -133,6 +133,39 @@ Cohesive snow piles and stops; cohesionless material keeps yielding and spreadin
 the expected physical difference, and it falls out of the ports without any tuning. Mass
 conserved exactly in both; nothing below the floor.
 
+## 4e. Cohesive Cam Clay — return mapping, hardening law, Li 2021 parameters
+
+`scripts/test_material_ccc.py` ports `mpm_material_ccc.wgsl` verbatim. Twelve checks:
+
+| Check | Result |
+|---|---|
+| `p₀(initial α) == p₀ⁱⁿⁱ` | exact (α₀ = −19.28 at Case V's ξ = 0.002) |
+| Inside ellipse | elastic, unchanged |
+| **Shear (Case 3)** | projected onto the ellipse, `\|y\| ≈ 7e-8` on a 1e7 scale, **at the same p**, no hardening |
+| **Compressive cap (Case 1)** | returns to `(p₀, 0)` exactly; α down, p₀ 3000 → 3012 |
+| **Tensile tip (Case 2)** | returns to `(−βp₀, 0)` exactly; α up, p₀ 3000 → 2997.6 |
+| 500 random gradients | never outside the surface they were projected onto |
+| Repeated tension, ξ = 1 | p₀ monotone down to **exactly 0** — fracture |
+| Repeated compression | p₀ monotone up 3000 → 4716, then stops once admissible |
+| β = 0 | no tensile strength — any tension is Case 2 |
+| **Li 2021 Table 1, all five cases** | finite α₀, p₀ round-trips at E = 3 MPa, ν = 0.3 |
+| Stress symmetry / rotation covariance | holds |
+
+Two of these failed on the first run because the test's strains were too small to reach
+the yield surface (0.2 % expansion gives p = −467 Pa against a 600 Pa tensile strength) —
+the loops were correctly elastic. Test inputs, not the model.
+
+`test_mpm.py` with `MPM_MODEL=ccc`, same drop:
+
+| | Stomakhin | Drucker–Prager | CCC Case V (p₀ 3 kPa) | CCC Case III (p₀ 42 kPa) |
+|---|---|---|---|---|
+| mean z | 4.00 | 3.65, falling | **3.02** — pancake | **4.13** — pile |
+| max \|v\| | 0.06, at rest | 2.7, spreading | 0.05, at rest | 1.3, settling |
+
+Weak snow flattens on impact (14 kPa ≫ 3 kPa cap — Cam-Clay loses shear strength above
+p₀, the opposite of the cone), strong snow piles like Stomakhin. Same code, four parameters
+changed, behaviour moves the way Li et al. describe. Both CCC cases come to rest; DP does not.
+
 ## 5. On real terrain
 
 Runs end to end on the Schneeberg DEM: seeds, flows downhill, deposits, animates, and the
@@ -184,7 +217,9 @@ python3 -m venv .venv && ./.venv/bin/pip install numpy
 ./.venv/bin/python test_mpm.py      # slow, pure Python: ~900 substeps
 ./.venv/bin/python test_friction.py # basal friction laws vs closed-form slope mechanics
 ./.venv/bin/python test_material_dp.py               # Drucker-Prager return mapping vs yield surface
+./.venv/bin/python test_material_ccc.py              # Cam-Clay return mapping, hardening, Li 2021 params
 MPM_MODEL=drucker_prager ./.venv/bin/python test_mpm.py   # full loop with DP
+MPM_MODEL=ccc ./.venv/bin/python test_mpm.py              # full loop with CCC
 
 # 4b. refactor safety - resolved WGSL vs git HEAD (edit its tables for a new refactor)
 python3 check_refactor_preserving.py

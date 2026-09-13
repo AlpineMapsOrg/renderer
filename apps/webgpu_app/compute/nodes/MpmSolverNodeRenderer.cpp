@@ -155,7 +155,7 @@ void MpmSolverNodeRenderer::render_settings_content()
     // Model-specific parameters are shown only for the active model; the combo strings
     // must stay in enum order.
     ImGui::TextDisabled("Constitutive model (internal snow behaviour)");
-    settings_changed |= ImGui::Combo("Material model", reinterpret_cast<int*>(&settings.constitutive_model), "Stomakhin 2013\0Drucker-Prager (Klar 2016)\0");
+    settings_changed |= ImGui::Combo("Material model", reinterpret_cast<int*>(&settings.constitutive_model), "Stomakhin 2013\0Drucker-Prager (Klar 2016)\0Cohesive Cam Clay (Gaume 2018)\0");
 
     // Stiffness is shared by every model; only the plasticity parameters are model-specific.
     settings_changed |= ImGui::DragFloat("Young's modulus", &settings.youngs_modulus, 1000.0f, 1.0e3f, 1.0e7f, "%.0f Pa");
@@ -164,6 +164,13 @@ void MpmSolverNodeRenderer::render_settings_content()
     if (settings.constitutive_model == Node::DRUCKER_PRAGER) {
         settings_changed |= ImGui::DragFloat("Friction angle", &settings.dp_friction_angle, 0.25f, 0.0f, 89.0f, "%.1f deg");
         ImGui::TextDisabled("Cohesionless: cold-dense regime only. Klar sand default 30 deg.");
+    }
+    if (settings.constitutive_model == Node::COHESIVE_CAM_CLAY) {
+        settings_changed |= ImGui::DragFloat("Friction M", &settings.ccc_m, 0.01f, 0.05f, 3.0f, "%.2f");
+        settings_changed |= ImGui::DragFloat("Cohesion beta", &settings.ccc_beta, 0.01f, 0.0f, 2.0f, "%.2f");
+        settings_changed |= ImGui::DragFloat("Hardening xi", &settings.ccc_xi, 0.01f, 0.0f, 20.0f, "%.3f");
+        settings_changed |= ImGui::DragFloat("Consolidation p0", &settings.ccc_p0_initial, 100.0f, 0.0f, 200000.0f, "%.0f Pa");
+        ImGui::TextDisabled("Tensile strength: %.0f Pa (beta p0). Li 2021: Table 1.", double(settings.ccc_beta * settings.ccc_p0_initial));
     }
     if (settings.constitutive_model == Node::STOMAKHIN_2013) {
         settings_changed |= ImGui::DragFloat("Hardening", &settings.hardening, 0.1f, 0.0f, 30.0f, "%.2f");

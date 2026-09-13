@@ -101,6 +101,7 @@ qt_add_resources(webgpu_compute "webgpu_compute_shaders"
         "${SHADER_BASE_DIR}/mpm_material.wgsl"
         "${SHADER_BASE_DIR}/mpm_material_stomakhin.wgsl"
         "${SHADER_BASE_DIR}/mpm_material_drucker_prager.wgsl"
+        "${SHADER_BASE_DIR}/mpm_material_ccc.wgsl"
         "${SHADER_BASE_DIR}/mpm_friction.wgsl"
 
         "${SHADER_BASE_DIR}/tile_hashmap.wgsl"

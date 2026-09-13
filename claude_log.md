@@ -162,6 +162,51 @@ Docs: 01 (§4b Hencky + cone), 02, 03, 04 (no pad slots left → next field is 1
 (shared-E rule), 06 (§4d), 07 (§2d incl. the bug and the design changes; step 3 ticked),
 README, refs (Klár 2016).
 
+### 5. "commit step 3 then continue with step 4" — Cohesive Cam Clay (Gaume 2018)
+
+Step 3 committed as `be83247d`. Then the model the proposal's paper survey recommends.
+
+**Implementation.** `mpm_material_ccc.wgsl`, `ConstitutiveModel::COHESIVE_CAM_CLAY = 2`.
+Hencky elasticity (shared with DP). Gaume's ellipse `(1+2β)q² + M²(p+βp₀)(p−p₀) ≤ 0` with
+`p = −K tr ε`, `q = √(3/2)·2μ‖dev ε‖`; hardening `p₀ = K sinh(ξ max(−α,0))`, α the
+plastic volumetric strain. `plastic_state` = α, initialised to `−asinh(p₀ⁱⁿⁱ/K)/ξ` so
+`p₀(α₀) = p₀ⁱⁿⁱ` — the reason `material_initial_state()` had to exist. Four new uniform
+fields; **uniform 160 → 176 B**, no pad slots left. Defaults are Li 2021 Case V (the
+real-avalanche back-calculation): M 0.7, β 0.2, ξ 0.002, p₀ 3 kPa.
+
+**The return-mapping decision, made explicit.** Gaume describes an associative flow rule,
+which needs a per-particle Newton solve on the ellipse. Implemented instead is the
+three-case projection of Wolper et al. 2019 (NACC) — the same group's own implementation
+of this yield surface and hardening law: cap → `(p₀,0)` + harden; tensile tip → `(−βp₀,0)`
++ soften; shear → `q` onto the ellipse at fixed p. Explicit (old p₀ for the projection).
+Both papers cited; the docs say which is which; swapping in an associative return only
+touches `ccc_plasticity()`. Checked on paper that Case 3's `q_new/q` division is safe: with
+p in range the ellipse term is ≤ 0, so `y > 0 ⟹ q > 0`.
+
+**Verification.**
+- `test_material_ccc.py`, 12 checks — the yield surface and hardening law are closed-form,
+  so every projection is checked directly. α₀ round-trips exactly; Case 3 lands on the
+  ellipse (`|y| ≈ 7e-8` on a 1e7 scale) *at the same p*; Case 1 returns to `(p₀,0)` and
+  hardens (3000 → 3012); Case 2 returns to `(−βp₀,0)` and softens; 500 random gradients
+  never leave the surface; repeated tension softens monotonically to **exactly p₀ = 0**
+  (fracture); repeated compression hardens until admissible then stops; β = 0 has no
+  tensile strength; all five Li 2021 Table 1 cases produce finite α₀ that round-trip at
+  E = 3 MPa. Two first-run failures were test strains too small to reach the surface
+  (0.2 % expansion = −467 Pa vs 600 Pa strength) — inputs, not model.
+- `test_mpm.py` with `MPM_MODEL=ccc`. **The parameter → behaviour link works**: weak Case V
+  flattens to a pancake (mean z 3.02) because a 14 kPa impact is far above the 3 kPa cap
+  and Cam-Clay *loses* shear strength above p₀ — the opposite of DP's cone; strong Case III
+  (42 kPa) piles at 4.13 alongside Stomakhin's 4.00. Same code, four parameters. Both come
+  to rest; DP doesn't.
+- `tint` 8/8; 8 pipelines on Metal; temporaries reverted.
+
+Docs: 01 (§4c, incl. the "softer than DP above p₀" point), 02, 03, 04 (176 B), 05
+(params row — p₀ is the knob), 06 (§4e with the four-way drop comparison), 07 (§2e,
+step 4 ticked, v3.0 table: all three named models done), README, refs (Wolper 2019).
+
+**Not done in step 4, flagged in 07:** benchmark it. One SVD + scalars per particle, same
+order as Stomakhin, so the expectation is fine — but that is an expectation.
+
 ## 2026-09-06
 
 ### 1. "Make a folder mpm-mls-doc and document ... for my final report"

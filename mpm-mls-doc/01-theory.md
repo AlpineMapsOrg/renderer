@@ -210,6 +210,47 @@ otherwise the deviatoric part is shortened by `δγ = ‖ε̂‖ + (3λ+2μ)/(2�
 cone if `δγ > 0`, else elastic. Cheaper than Cam-Clay (no implicit solve), cohesionless (no
 slab, no fracture, no plug). Covers Li et al.'s cold-dense regime only.
 
+## 4c. Cohesive Cam Clay (Gaume et al. 2018) — third model
+
+The snow-science model, and the one the proposal's paper survey recommends. Critical-state
+soil mechanics for a porous cohesive material. Same Hencky elasticity as Drucker–Prager;
+the yield surface is an **ellipse** in mean-pressure / equivalent-stress space:
+
+```
+p = −K tr ε           mean pressure, positive in compression
+q = √(3/2) ‖dev τ‖    von Mises equivalent stress
+(1+2β) q² + M² (p + βp₀)(p − p₀) ≤ 0
+```
+
+Admissible pressures run from `−βp₀` (tensile strength) to `p₀` (consolidation strength).
+One surface therefore gives **tensile, shear and compressive failure** — the mixed-mode
+failure measured for real snow, and the thing a box clamp or a cone cannot express.
+
+Four parameters, each with a physical meaning (Li et al. 2021 Table 1 gives values per
+flow regime): **M** slope of the critical state line — internal friction; **β** cohesion,
+tensile strength `βp₀`; **ξ** hardening factor — brittleness; **p₀** consolidation pressure.
+
+Hardening and softening in a single law:
+
+```
+p₀ = K · sinh(ξ · max(−α, 0)),   α = plastic volumetric strain
+```
+
+Compaction (`α < 0`) grows `p₀`; dilation shrinks it towards zero, where the ellipse
+collapses to a point and the material carries no stress — that is fracture / granulation.
+
+**Return mapping.** Gaume describes an associative flow rule. Implemented is the three-case
+projection of Wolper et al. 2019 (NACC), the same group's implementation of this surface:
+beyond the compressive cap → `(p₀, 0)` with hardening; beyond the tensile strength →
+`(−βp₀, 0)` with softening; otherwise if outside, project `q` onto the ellipse **at fixed
+p**, no volumetric change. Explicit — the projection uses the old `p₀`, then hardening
+updates it.
+
+A consequence worth understanding: above `p₀`, Cam-Clay *loses* shear strength (Case 1
+drops the deviatoric strain), whereas Drucker–Prager's cone *gains* it with pressure. So a
+weak snow (`p₀ = 3 kPa`) under a 14 kPa impact flattens where sand would resist. That is
+the model being right about weak snow, not a bug.
+
 ## 5. Terrain coupling
 
 Not in the source papers — this is the geographic part of the project.

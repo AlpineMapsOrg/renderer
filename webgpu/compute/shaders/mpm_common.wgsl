@@ -71,6 +71,11 @@ struct MpmSettings {
     basal_friction_model: u32, // see mpm_friction.wgsl
     voellmy_xi: f32, // turbulent friction coefficient [m/s^2], Voellmy only
     dp_alpha: f32, // Drucker-Prager cone slope, precomputed from the friction angle
+
+    ccc_m: f32, // Cam-Clay: critical state line slope (internal friction)
+    ccc_beta: f32, // Cam-Clay: cohesion, tensile strength = beta p0
+    ccc_xi: f32, // Cam-Clay: hardening factor (brittleness)
+    ccc_p0_initial: f32, // Cam-Clay: initial consolidation pressure [Pa]
 }
 
 struct Particle {

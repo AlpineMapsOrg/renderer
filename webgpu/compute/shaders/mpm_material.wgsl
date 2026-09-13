@@ -19,6 +19,7 @@
 ///use mpm_common
 ///use mpm_material_stomakhin
 ///use mpm_material_drucker_prager
+///use mpm_material_ccc
 
 // Constitutive model dispatcher.
 //
@@ -34,7 +35,8 @@
 // the same pattern ComputeAvalancheTrajectoriesNode uses for its physics models.
 //
 // Per-particle plastic state is one scalar for every model; what it means is up to the
-// model (Stomakhin: plastic volume ratio Jp; Drucker-Prager: accumulated plastic strain).
+// model (Stomakhin: plastic volume ratio Jp; Drucker-Prager: accumulated plastic strain;
+// Cam-Clay: plastic volumetric strain alpha driving the consolidation pressure).
 // The Lame parameters mu_0 / lambda_0 are shared by all models - one stiffness knob, with
 // per-model recommended values supplied by presets rather than by duplicated settings.
 //
@@ -43,11 +45,15 @@
 
 const MATERIAL_STOMAKHIN: u32 = 0u;
 const MATERIAL_DRUCKER_PRAGER: u32 = 1u;
+const MATERIAL_COHESIVE_CAM_CLAY: u32 = 2u;
 
 fn material_initial_state() -> f32 {
     switch settings.constitutive_model {
         case MATERIAL_DRUCKER_PRAGER: {
             return dp_initial_state();
+        }
+        case MATERIAL_COHESIVE_CAM_CLAY: {
+            return ccc_initial_state();
         }
         default: {
             return stomakhin_initial_state();
@@ -60,6 +66,9 @@ fn material_stress(f_elastic: mat3x3f, plastic_state: f32) -> mat3x3f {
         case MATERIAL_DRUCKER_PRAGER: {
             return dp_stress(f_elastic, plastic_state);
         }
+        case MATERIAL_COHESIVE_CAM_CLAY: {
+            return ccc_stress(f_elastic, plastic_state);
+        }
         default: {
             return stomakhin_stress(f_elastic, plastic_state);
         }
@@ -70,6 +79,9 @@ fn material_plasticity(f_trial: mat3x3f, plastic_state: f32) -> PlasticReturn {
     switch settings.constitutive_model {
         case MATERIAL_DRUCKER_PRAGER: {
             return dp_plasticity(f_trial, plastic_state);
+        }
+        case MATERIAL_COHESIVE_CAM_CLAY: {
+            return ccc_plasticity(f_trial, plastic_state);
         }
         default: {
             return stomakhin_plasticity(f_trial, plastic_state);

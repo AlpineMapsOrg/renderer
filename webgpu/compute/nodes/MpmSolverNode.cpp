@@ -277,6 +277,11 @@ void MpmSolverNode::update_gpu_settings(const radix::geometry::Aabb<2, double>& 
     const float sin_phi = std::sin(glm::radians(std::clamp(m_settings.dp_friction_angle, 0.0f, 89.0f)));
     data.dp_alpha = std::sqrt(2.0f / 3.0f) * 2.0f * sin_phi / (3.0f - sin_phi);
 
+    data.ccc_m = std::max(m_settings.ccc_m, 1e-3f);
+    data.ccc_beta = std::max(m_settings.ccc_beta, 0.0f);
+    data.ccc_xi = std::max(m_settings.ccc_xi, 1e-6f);
+    data.ccc_p0_initial = std::max(m_settings.ccc_p0_initial, 0.0f);
+
     m_settings_uniform.update_gpu_data(m_ctx->queue());
 
     // World space bounds of the simulated area, so the result can be placed on the map.
@@ -472,6 +477,10 @@ void MpmSolverNode::serialize_settings(QJsonObject& out) const
     out["basal_friction_model"] = static_cast<int>(s.basal_friction_model);
     out["voellmy_xi"] = s.voellmy_xi;
     out["dp_friction_angle"] = s.dp_friction_angle;
+    out["ccc_m"] = s.ccc_m;
+    out["ccc_beta"] = s.ccc_beta;
+    out["ccc_xi"] = s.ccc_xi;
+    out["ccc_p0_initial"] = s.ccc_p0_initial;
     out["raster_resolution"] = static_cast<int>(s.raster_resolution);
     out["splat_radius"] = s.splat_radius;
     out["release_center_lat"] = s.release_center.x;
@@ -510,6 +519,10 @@ void MpmSolverNode::deserialize_settings(const QJsonObject& in)
     s.basal_friction_model = static_cast<BasalFrictionModel>(read_uint("basal_friction_model", s.basal_friction_model));
     s.voellmy_xi = read_float("voellmy_xi", s.voellmy_xi);
     s.dp_friction_angle = read_float("dp_friction_angle", s.dp_friction_angle);
+    s.ccc_m = read_float("ccc_m", s.ccc_m);
+    s.ccc_beta = read_float("ccc_beta", s.ccc_beta);
+    s.ccc_xi = read_float("ccc_xi", s.ccc_xi);
+    s.ccc_p0_initial = read_float("ccc_p0_initial", s.ccc_p0_initial);
     s.raster_resolution = read_uint("raster_resolution", s.raster_resolution);
     s.splat_radius = read_float("splat_radius", s.splat_radius);
     s.release_center.x = read_double("release_center_lat", s.release_center.x);

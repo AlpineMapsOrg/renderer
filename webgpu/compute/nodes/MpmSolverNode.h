@@ -63,6 +63,7 @@ public:
     enum ConstitutiveModel : uint32_t {
         STOMAKHIN_2013 = 0, // fixed corotated + singular value clamp + exponential hardening
         DRUCKER_PRAGER = 1, // Hencky elasticity + friction cone (Klar 2016); cohesionless
+        COHESIVE_CAM_CLAY = 2, // Hencky elasticity + Cam-Clay ellipse (Gaume 2018); the snow-science model
     };
 
     /* The contact law between flowing snow and the terrain surface. Kept separate from the
@@ -119,6 +120,15 @@ public:
          * the Cam-Clay slope M via sin(phi) = 3M / (6 + M): Li's cold-dense M = 0.5 is ~13
          * degrees, the warm-shear M = 1.5 is ~37 degrees. 30 is Klar's sand default. */
         float dp_friction_angle = 30.0f;
+
+        /* Cohesive Cam Clay only (Gaume et al. 2018). Defaults are Li et al. 2021 Table 1,
+         * Case V - the case back-calculated from the real Vallee de la Sionne avalanche of
+         * 7 Feb 2003, which is the most defensible single default. The four flow-regime
+         * cases (I-IV) become presets. */
+        float ccc_m = 0.7f; // critical state line slope - internal friction
+        float ccc_beta = 0.2f; // cohesion; tensile strength = beta * p0
+        float ccc_xi = 0.002f; // hardening factor - brittleness
+        float ccc_p0_initial = 3000.0f; // initial consolidation pressure [Pa]
 
         float gravity = 9.81f;
         /* Basal friction. mu = 0.47 is what Li et al. 2021 use on real terrain (0.49
@@ -187,8 +197,13 @@ private:
         uint32_t basal_friction_model;
         float voellmy_xi;
         float dp_alpha;
+
+        float ccc_m;
+        float ccc_beta;
+        float ccc_xi;
+        float ccc_p0_initial;
     };
-    static_assert(sizeof(MpmSolverSettingsUniform) == 160, "uniform layout must match the WGSL struct");
+    static_assert(sizeof(MpmSolverSettingsUniform) == 176, "uniform layout must match the WGSL struct");
 
 public:
     MpmSolverNode(webgpu::Context& ctx);
