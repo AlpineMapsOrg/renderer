@@ -195,3 +195,4 @@ carries up to one event-loop tick of latency (a few ms); the 16-layer dense-grid
 have all particles piled at the vertical clamp, which changes atomic contention in P2G
 somewhat. Neither changes the picture: B buys the area for roughly the cost of the
 preset's own wasted air.
+
