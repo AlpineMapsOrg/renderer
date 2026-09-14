@@ -55,7 +55,9 @@ jobs:
       uses: jurplel/install-qt-action@v4
       with:
         version: ${{ env.QT_VERSION }}
-        host: linux
+        # Qt >= 6.8 ships its Android packages host-independently under all_os; the
+        # linux index stopped listing them on 2026-09-14 ("No latest version available").
+        host: all_os
         target: android
         arch: ${{ matrix.qtarch }}
         dir: '${{github.workspace}}/qt'

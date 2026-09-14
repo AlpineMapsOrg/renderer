@@ -82,7 +82,7 @@ jobs:
       uses: jurplel/install-qt-action@v4
       with:
         version: ${{ env.QT_VERSION }}
-        host: linux
+        host: all_os # Qt >= 6.8 Android packages live under all_os, see deploy.yml
         target: android
         arch: android_arm64_v8a
         dir: '${{github.workspace}}/qt'
@@ -97,7 +97,7 @@ jobs:
       uses: jurplel/install-qt-action@v4
       with:
         version: ${{ env.QT_VERSION }}
-        host: linux
+        host: all_os # Qt >= 6.8 Android packages live under all_os, see deploy.yml
         target: android
         arch: android_armv7
         dir: '${{github.workspace}}/qt'
