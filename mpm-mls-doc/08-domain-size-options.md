@@ -63,6 +63,8 @@ what the relief needs.
 
 ### B. Terrain-following grid ("column band") — the real fix
 
+*Implemented; sketch and explanation in [04-data-layout.md](04-data-layout.md#the-terrain-following-grid-2026-09-13).*
+
 Keep only `K` layers per (x, y) column, starting a fixed number of cells below the
 terrain: node `(i, j, k)` lives at `z = floor(i, j) + k · dx`, with
 `floor(i, j) = ⌊terrain(i, j) / dx⌋ · dx − 2 dx` written once per reset by `mpm_prepare`

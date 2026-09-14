@@ -1,0 +1,175 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="680" height="520" viewBox="0 0 680 520" role="img" font-family="Helvetica, Arial, sans-serif">
+<title>Terrain-following grid</title>
+<desc>Cross-section of a bumpy slope: the former dense grid on the left, the band of a few node layers per column that follows every step of the terrain on the right.</desc>
+<defs>
+<pattern id="hatch" width="6" height="6" patternUnits="userSpaceOnUse"><path d="M0 6 L6 0" stroke="#B4B2A9" stroke-width="0.5" fill="none"/></pattern>
+<pattern id="grid" width="20" height="20" patternUnits="userSpaceOnUse"><path d="M20 0 L0 0 L0 20" stroke="#D3D1C7" stroke-width="0.5" fill="none"/></pattern>
+<style>.th{font-size:14px;font-weight:600;fill:#2C2C2A}.ts{font-size:12px;fill:#5F5E5A}</style>
+</defs>
+<rect x="0" y="0" width="680" height="520" fill="#FFFFFF"/>
+<text class="th" x="40" y="56">Before: dense box</text>
+<text class="ts" x="40" y="76">14 × 13 = 182 nodes, 26 carry snow</text>
+<text class="th" x="370" y="56">Now: terrain-following band</text>
+<text class="ts" x="370" y="76">6 layers per column = 78 nodes (16 in the code)</text>
+<rect fill="#F1EFE8" stroke="#5F5E5A" x="40" y="184" width="20" height="200" stroke-width="0.5"/>
+<rect x="40" y="184" width="20" height="200" fill="url(#hatch)" stroke="none"/>
+<rect fill="#9FE1CB" stroke="#0F6E56" x="40" y="144" width="20" height="40" stroke-width="0.5"/>
+<rect fill="none" stroke="#D3D1C7" x="40" y="104" width="20" height="40" stroke-width="0.5"/>
+<rect x="40" y="104" width="20" height="280" fill="url(#grid)" stroke="none"/>
+<rect fill="#F1EFE8" stroke="#5F5E5A" x="60" y="184" width="20" height="200" stroke-width="0.5"/>
+<rect x="60" y="184" width="20" height="200" fill="url(#hatch)" stroke="none"/>
+<rect fill="#9FE1CB" stroke="#0F6E56" x="60" y="144" width="20" height="40" stroke-width="0.5"/>
+<rect fill="none" stroke="#D3D1C7" x="60" y="104" width="20" height="40" stroke-width="0.5"/>
+<rect x="60" y="104" width="20" height="280" fill="url(#grid)" stroke="none"/>
+<rect fill="#F1EFE8" stroke="#5F5E5A" x="80" y="204" width="20" height="180" stroke-width="0.5"/>
+<rect x="80" y="204" width="20" height="180" fill="url(#hatch)" stroke="none"/>
+<rect fill="#9FE1CB" stroke="#0F6E56" x="80" y="164" width="20" height="40" stroke-width="0.5"/>
+<rect fill="none" stroke="#D3D1C7" x="80" y="104" width="20" height="60" stroke-width="0.5"/>
+<rect x="80" y="104" width="20" height="280" fill="url(#grid)" stroke="none"/>
+<rect fill="#F1EFE8" stroke="#5F5E5A" x="100" y="224" width="20" height="160" stroke-width="0.5"/>
+<rect x="100" y="224" width="20" height="160" fill="url(#hatch)" stroke="none"/>
+<rect fill="#9FE1CB" stroke="#0F6E56" x="100" y="184" width="20" height="40" stroke-width="0.5"/>
+<rect fill="none" stroke="#D3D1C7" x="100" y="104" width="20" height="80" stroke-width="0.5"/>
+<rect x="100" y="104" width="20" height="280" fill="url(#grid)" stroke="none"/>
+<rect fill="#F1EFE8" stroke="#5F5E5A" x="120" y="204" width="20" height="180" stroke-width="0.5"/>
+<rect x="120" y="204" width="20" height="180" fill="url(#hatch)" stroke="none"/>
+<rect fill="#9FE1CB" stroke="#0F6E56" x="120" y="164" width="20" height="40" stroke-width="0.5"/>
+<rect fill="none" stroke="#D3D1C7" x="120" y="104" width="20" height="60" stroke-width="0.5"/>
+<rect x="120" y="104" width="20" height="280" fill="url(#grid)" stroke="none"/>
+<rect fill="#F1EFE8" stroke="#5F5E5A" x="140" y="224" width="20" height="160" stroke-width="0.5"/>
+<rect x="140" y="224" width="20" height="160" fill="url(#hatch)" stroke="none"/>
+<rect fill="#9FE1CB" stroke="#0F6E56" x="140" y="184" width="20" height="40" stroke-width="0.5"/>
+<rect fill="none" stroke="#D3D1C7" x="140" y="104" width="20" height="80" stroke-width="0.5"/>
+<rect x="140" y="104" width="20" height="280" fill="url(#grid)" stroke="none"/>
+<rect fill="#F1EFE8" stroke="#5F5E5A" x="160" y="244" width="20" height="140" stroke-width="0.5"/>
+<rect x="160" y="244" width="20" height="140" fill="url(#hatch)" stroke="none"/>
+<rect fill="#9FE1CB" stroke="#0F6E56" x="160" y="204" width="20" height="40" stroke-width="0.5"/>
+<rect fill="none" stroke="#D3D1C7" x="160" y="104" width="20" height="100" stroke-width="0.5"/>
+<rect x="160" y="104" width="20" height="280" fill="url(#grid)" stroke="none"/>
+<rect fill="#F1EFE8" stroke="#5F5E5A" x="180" y="264" width="20" height="120" stroke-width="0.5"/>
+<rect x="180" y="264" width="20" height="120" fill="url(#hatch)" stroke="none"/>
+<rect fill="#9FE1CB" stroke="#0F6E56" x="180" y="224" width="20" height="40" stroke-width="0.5"/>
+<rect fill="none" stroke="#D3D1C7" x="180" y="104" width="20" height="120" stroke-width="0.5"/>
+<rect x="180" y="104" width="20" height="280" fill="url(#grid)" stroke="none"/>
+<rect fill="#F1EFE8" stroke="#5F5E5A" x="200" y="264" width="20" height="120" stroke-width="0.5"/>
+<rect x="200" y="264" width="20" height="120" fill="url(#hatch)" stroke="none"/>
+<rect fill="#9FE1CB" stroke="#0F6E56" x="200" y="224" width="20" height="40" stroke-width="0.5"/>
+<rect fill="none" stroke="#D3D1C7" x="200" y="104" width="20" height="120" stroke-width="0.5"/>
+<rect x="200" y="104" width="20" height="280" fill="url(#grid)" stroke="none"/>
+<rect fill="#F1EFE8" stroke="#5F5E5A" x="220" y="284" width="20" height="100" stroke-width="0.5"/>
+<rect x="220" y="284" width="20" height="100" fill="url(#hatch)" stroke="none"/>
+<rect fill="#9FE1CB" stroke="#0F6E56" x="220" y="244" width="20" height="40" stroke-width="0.5"/>
+<rect fill="none" stroke="#D3D1C7" x="220" y="104" width="20" height="140" stroke-width="0.5"/>
+<rect x="220" y="104" width="20" height="280" fill="url(#grid)" stroke="none"/>
+<rect fill="#F1EFE8" stroke="#5F5E5A" x="240" y="304" width="20" height="80" stroke-width="0.5"/>
+<rect x="240" y="304" width="20" height="80" fill="url(#hatch)" stroke="none"/>
+<rect fill="#9FE1CB" stroke="#0F6E56" x="240" y="264" width="20" height="40" stroke-width="0.5"/>
+<rect fill="none" stroke="#D3D1C7" x="240" y="104" width="20" height="160" stroke-width="0.5"/>
+<rect x="240" y="104" width="20" height="280" fill="url(#grid)" stroke="none"/>
+<rect fill="#F1EFE8" stroke="#5F5E5A" x="260" y="324" width="20" height="60" stroke-width="0.5"/>
+<rect x="260" y="324" width="20" height="60" fill="url(#hatch)" stroke="none"/>
+<rect fill="#9FE1CB" stroke="#0F6E56" x="260" y="284" width="20" height="40" stroke-width="0.5"/>
+<rect fill="none" stroke="#D3D1C7" x="260" y="104" width="20" height="180" stroke-width="0.5"/>
+<rect x="260" y="104" width="20" height="280" fill="url(#grid)" stroke="none"/>
+<rect fill="#F1EFE8" stroke="#5F5E5A" x="280" y="324" width="20" height="60" stroke-width="0.5"/>
+<rect x="280" y="324" width="20" height="60" fill="url(#hatch)" stroke="none"/>
+<rect fill="#9FE1CB" stroke="#0F6E56" x="280" y="284" width="20" height="40" stroke-width="0.5"/>
+<rect fill="none" stroke="#D3D1C7" x="280" y="104" width="20" height="180" stroke-width="0.5"/>
+<rect x="280" y="104" width="20" height="280" fill="url(#grid)" stroke="none"/>
+<path d="M40,172 L50,172 L70,182 L90,200 L110,206 L130,196 L150,212 L170,236 L190,254 L210,246 L230,272 L250,300 L270,306 L290,322 L300,322" fill="none" stroke="#2C2C2A" stroke-width="1.5" stroke-linejoin="round"/>
+<rect x="160" y="224" width="60" height="60" fill="none" stroke="#D85A30" stroke-width="1.5" stroke-dasharray="4 3"/>
+<circle cx="190" cy="254" r="4" fill="#D85A30"/>
+<rect fill="#F1EFE8" stroke="#5F5E5A" x="370" y="184" width="20" height="40" stroke-width="0.5"/>
+<rect x="370" y="184" width="20" height="40" fill="url(#hatch)" stroke="none"/>
+<rect fill="#9FE1CB" stroke="#0F6E56" x="370" y="144" width="20" height="40" stroke-width="0.5"/>
+<rect fill="none" stroke="#D3D1C7" x="370" y="104" width="20" height="40" stroke-width="0.5"/>
+<rect x="370" y="104" width="20" height="120" fill="url(#grid)" stroke="none"/>
+<rect fill="#F1EFE8" stroke="#5F5E5A" x="390" y="184" width="20" height="40" stroke-width="0.5"/>
+<rect x="390" y="184" width="20" height="40" fill="url(#hatch)" stroke="none"/>
+<rect fill="#9FE1CB" stroke="#0F6E56" x="390" y="144" width="20" height="40" stroke-width="0.5"/>
+<rect fill="none" stroke="#D3D1C7" x="390" y="104" width="20" height="40" stroke-width="0.5"/>
+<rect x="390" y="104" width="20" height="120" fill="url(#grid)" stroke="none"/>
+<rect fill="#F1EFE8" stroke="#5F5E5A" x="410" y="204" width="20" height="40" stroke-width="0.5"/>
+<rect x="410" y="204" width="20" height="40" fill="url(#hatch)" stroke="none"/>
+<rect fill="#9FE1CB" stroke="#0F6E56" x="410" y="164" width="20" height="40" stroke-width="0.5"/>
+<rect fill="none" stroke="#D3D1C7" x="410" y="124" width="20" height="40" stroke-width="0.5"/>
+<rect x="410" y="124" width="20" height="120" fill="url(#grid)" stroke="none"/>
+<rect fill="#F1EFE8" stroke="#5F5E5A" x="430" y="224" width="20" height="40" stroke-width="0.5"/>
+<rect x="430" y="224" width="20" height="40" fill="url(#hatch)" stroke="none"/>
+<rect fill="#9FE1CB" stroke="#0F6E56" x="430" y="184" width="20" height="40" stroke-width="0.5"/>
+<rect fill="none" stroke="#D3D1C7" x="430" y="144" width="20" height="40" stroke-width="0.5"/>
+<rect x="430" y="144" width="20" height="120" fill="url(#grid)" stroke="none"/>
+<rect fill="#F1EFE8" stroke="#5F5E5A" x="450" y="204" width="20" height="40" stroke-width="0.5"/>
+<rect x="450" y="204" width="20" height="40" fill="url(#hatch)" stroke="none"/>
+<rect fill="#9FE1CB" stroke="#0F6E56" x="450" y="164" width="20" height="40" stroke-width="0.5"/>
+<rect fill="none" stroke="#D3D1C7" x="450" y="124" width="20" height="40" stroke-width="0.5"/>
+<rect x="450" y="124" width="20" height="120" fill="url(#grid)" stroke="none"/>
+<rect fill="#F1EFE8" stroke="#5F5E5A" x="470" y="224" width="20" height="40" stroke-width="0.5"/>
+<rect x="470" y="224" width="20" height="40" fill="url(#hatch)" stroke="none"/>
+<rect fill="#9FE1CB" stroke="#0F6E56" x="470" y="184" width="20" height="40" stroke-width="0.5"/>
+<rect fill="none" stroke="#D3D1C7" x="470" y="144" width="20" height="40" stroke-width="0.5"/>
+<rect x="470" y="144" width="20" height="120" fill="url(#grid)" stroke="none"/>
+<rect fill="#F1EFE8" stroke="#5F5E5A" x="490" y="244" width="20" height="40" stroke-width="0.5"/>
+<rect x="490" y="244" width="20" height="40" fill="url(#hatch)" stroke="none"/>
+<rect fill="#9FE1CB" stroke="#0F6E56" x="490" y="204" width="20" height="40" stroke-width="0.5"/>
+<rect fill="none" stroke="#D3D1C7" x="490" y="164" width="20" height="40" stroke-width="0.5"/>
+<rect x="490" y="164" width="20" height="120" fill="url(#grid)" stroke="none"/>
+<rect fill="#F1EFE8" stroke="#5F5E5A" x="510" y="264" width="20" height="40" stroke-width="0.5"/>
+<rect x="510" y="264" width="20" height="40" fill="url(#hatch)" stroke="none"/>
+<rect fill="#9FE1CB" stroke="#0F6E56" x="510" y="224" width="20" height="40" stroke-width="0.5"/>
+<rect fill="none" stroke="#D3D1C7" x="510" y="184" width="20" height="40" stroke-width="0.5"/>
+<rect x="510" y="184" width="20" height="120" fill="url(#grid)" stroke="none"/>
+<rect fill="#F1EFE8" stroke="#5F5E5A" x="530" y="264" width="20" height="40" stroke-width="0.5"/>
+<rect x="530" y="264" width="20" height="40" fill="url(#hatch)" stroke="none"/>
+<rect fill="#9FE1CB" stroke="#0F6E56" x="530" y="224" width="20" height="40" stroke-width="0.5"/>
+<rect fill="none" stroke="#D3D1C7" x="530" y="184" width="20" height="40" stroke-width="0.5"/>
+<rect x="530" y="184" width="20" height="120" fill="url(#grid)" stroke="none"/>
+<rect fill="#F1EFE8" stroke="#5F5E5A" x="550" y="284" width="20" height="40" stroke-width="0.5"/>
+<rect x="550" y="284" width="20" height="40" fill="url(#hatch)" stroke="none"/>
+<rect fill="#9FE1CB" stroke="#0F6E56" x="550" y="244" width="20" height="40" stroke-width="0.5"/>
+<rect fill="none" stroke="#D3D1C7" x="550" y="204" width="20" height="40" stroke-width="0.5"/>
+<rect x="550" y="204" width="20" height="120" fill="url(#grid)" stroke="none"/>
+<rect fill="#F1EFE8" stroke="#5F5E5A" x="570" y="304" width="20" height="40" stroke-width="0.5"/>
+<rect x="570" y="304" width="20" height="40" fill="url(#hatch)" stroke="none"/>
+<rect fill="#9FE1CB" stroke="#0F6E56" x="570" y="264" width="20" height="40" stroke-width="0.5"/>
+<rect fill="none" stroke="#D3D1C7" x="570" y="224" width="20" height="40" stroke-width="0.5"/>
+<rect x="570" y="224" width="20" height="120" fill="url(#grid)" stroke="none"/>
+<rect fill="#F1EFE8" stroke="#5F5E5A" x="590" y="324" width="20" height="40" stroke-width="0.5"/>
+<rect x="590" y="324" width="20" height="40" fill="url(#hatch)" stroke="none"/>
+<rect fill="#9FE1CB" stroke="#0F6E56" x="590" y="284" width="20" height="40" stroke-width="0.5"/>
+<rect fill="none" stroke="#D3D1C7" x="590" y="244" width="20" height="40" stroke-width="0.5"/>
+<rect x="590" y="244" width="20" height="120" fill="url(#grid)" stroke="none"/>
+<rect fill="#F1EFE8" stroke="#5F5E5A" x="610" y="324" width="20" height="40" stroke-width="0.5"/>
+<rect x="610" y="324" width="20" height="40" fill="url(#hatch)" stroke="none"/>
+<rect fill="#9FE1CB" stroke="#0F6E56" x="610" y="284" width="20" height="40" stroke-width="0.5"/>
+<rect fill="none" stroke="#D3D1C7" x="610" y="244" width="20" height="40" stroke-width="0.5"/>
+<rect x="610" y="244" width="20" height="120" fill="url(#grid)" stroke="none"/>
+<path d="M370,172 L380,172 L400,182 L420,200 L440,206 L460,196 L480,212 L500,236 L520,254 L540,246 L560,272 L580,300 L600,306 L620,322 L630,322" fill="none" stroke="#2C2C2A" stroke-width="1.5" stroke-linejoin="round"/>
+<rect x="490" y="224" width="60" height="60" fill="none" stroke="#D85A30" stroke-width="1.5" stroke-dasharray="4 3"/>
+<circle cx="520" cy="254" r="4" fill="#D85A30"/>
+<line x1="372" y1="224" x2="388" y2="224" stroke="#534AB7" stroke-width="3"/>
+<line x1="392" y1="224" x2="408" y2="224" stroke="#534AB7" stroke-width="3"/>
+<line x1="412" y1="244" x2="428" y2="244" stroke="#534AB7" stroke-width="3"/>
+<line x1="432" y1="264" x2="448" y2="264" stroke="#534AB7" stroke-width="3"/>
+<line x1="452" y1="244" x2="468" y2="244" stroke="#534AB7" stroke-width="3"/>
+<line x1="472" y1="264" x2="488" y2="264" stroke="#534AB7" stroke-width="3"/>
+<line x1="492" y1="284" x2="508" y2="284" stroke="#534AB7" stroke-width="3"/>
+<line x1="512" y1="304" x2="528" y2="304" stroke="#534AB7" stroke-width="3"/>
+<line x1="532" y1="304" x2="548" y2="304" stroke="#534AB7" stroke-width="3"/>
+<line x1="552" y1="324" x2="568" y2="324" stroke="#534AB7" stroke-width="3"/>
+<line x1="572" y1="344" x2="588" y2="344" stroke="#534AB7" stroke-width="3"/>
+<line x1="592" y1="364" x2="608" y2="364" stroke="#534AB7" stroke-width="3"/>
+<line x1="612" y1="364" x2="628" y2="364" stroke="#534AB7" stroke-width="3"/>
+<rect fill="#F1EFE8" stroke="#5F5E5A" x="40" y="420" width="14" height="14" stroke-width="0.5"/><rect x="40" y="420" width="14" height="14" fill="url(#hatch)" stroke="none"/>
+<text class="ts" x="60" y="431">in the terrain (boundary condition only)</text>
+<rect fill="#9FE1CB" stroke="#0F6E56" x="300" y="420" width="14" height="14" stroke-width="0.5"/>
+<text class="ts" x="320" y="431">snow, 2–3 layers</text>
+<rect x="436" y="420" width="14" height="14" fill="none" stroke="#D3D1C7" stroke-width="0.5"/>
+<text class="ts" x="456" y="431">stored, empty (air)</text>
+<line x1="586" y1="427" x2="606" y2="427" stroke="#2C2C2A" stroke-width="1.5"/>
+<text class="ts" x="612" y="431">terrain</text>
+<rect x="40" y="448" width="14" height="14" fill="none" stroke="#D85A30" stroke-width="1.5" stroke-dasharray="3 2"/><circle cx="47" cy="455" r="2.5" fill="#D85A30"/>
+<text class="ts" x="60" y="459">particle with its 3×3 stencil: inside the stored grid in both cases</text>
+<line x1="40" y1="483" x2="54" y2="483" stroke="#534AB7" stroke-width="3"/>
+<text class="ts" x="60" y="487">column_floor per column = terrain surface − 2 cells; the band steps up and down with it</text>
+</svg>

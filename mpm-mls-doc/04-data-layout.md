@@ -195,6 +195,24 @@ was ~98 % air, cleared and updated every substep. The grid now stores `grid_res.
 (= `grid_layers`, default 16) node layers per `(x, y)` column, starting two cells below
 the terrain at that column:
 
+![Dense box vs terrain-following band](terrain-following-grid.svg)
+
+Reading the sketch (a cross-section, x to the right, altitude up): on the left every
+column is stored from the valley floor to the top of the box — the empty cells are air,
+the hatched ones lie inside the terrain, and both cost memory and a clear + update every
+substep although only the two green cells per column carry snow; the higher the relief,
+the more layers the box needs. On the right each column has its own window of layers
+(6 in the sketch, 16 in the code) that starts two cells below the surface — the purple
+marks are the columns' `column_floor` values — and follows every shoulder, hump and dip
+of the terrain up and down, so the stored band is always the same thickness above the
+ground whatever the relief does. Two
+cells inside the terrain stay because the boundary condition acts there; above the snow
+is headroom for piles. The orange dot is a particle, the dashed square its 3×3 stencil,
+the nodes it exchanges mass and momentum with: all nine lie in stored cells in both
+pictures, which is why the band computes exactly what the box did. Only where two
+neighbouring columns differ by more than the window (a cliff) would a stencil node be
+missing.
+
 ```
 column_floor[column] = floor(terrain(node_xy) / dx) − 2      # absolute z index of layer 0
 slot(node)           = layer · res.x · res.y + column,  layer = node.z − column_floor[column]

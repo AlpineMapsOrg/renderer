@@ -420,6 +420,15 @@ COOP/COEP static server): default and `?avalanche=play` seed the 4 km run and pl
 `?avalanche=0` shows the default graph with the panel's "Load the MLS-MPM simulation"
 button. The graph's first-run notice text updated (it still pointed at the node editor).
 
+### 3. Meeting notes and a sketch of the band grid
+
+Notion page "Meeting Minutes 15.9.2026" written (papers, com1DFA rationale, what was
+implemented, verification, open points, references) with the disclaimer that all of it
+is Claude's work pending the user's own verification. Concept sketch of the
+terrain-following grid — dense box vs band, cross-section with terrain, snow layers,
+per-column floor and a particle's stencil — added as `mpm-mls-doc/terrain-following-grid.svg`
+and explained in 04-data-layout.md.
+
 ## 2026-09-06
 
 ### 1. "Make a folder mpm-mls-doc and document ... for my final report"
