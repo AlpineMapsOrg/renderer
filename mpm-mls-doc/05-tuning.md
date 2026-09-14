@@ -8,7 +8,8 @@
 | `grid_resolution_xy` | 64 (preset: 320) | With domain size, sets `dx`. Memory and grid work are `res² × layers`. |
 | `grid_layers` | 16 | Node layers stored above the terrain per column (the grid follows the surface). Headroom for piles and terrain steps, not the relief. 12–16 is plenty; `dx × layers` is the maximum pile height. |
 | `dt` | 0.01 s | CFL bound. Too large = explosion. |
-| `substeps_per_run` | 32 (preset: 24) | Simulated time per node execution = `dt × substeps`. |
+| `substeps_per_run` | 32 (preset: 24) | Simulated time per node execution = `dt × substeps`; the overlay and the readback update once per run. |
+| `substeps_per_submit` | 2 | Chunk size the run is submitted in. WebGPU has one queue, so rendering and simulation take turns on the GPU; small chunks keep the view smooth, one big chunk maximises simulated time per second. See "Cost". |
 | `num_particles` | 65536 (preset: 131072) | Flow resolution. Cost is linear. |
 | `release_radius` | 120 m | Start-zone size, independent of the domain. |
 | `slab_thickness` | 1.5 m | Depth of released snow. |
@@ -107,9 +108,28 @@ Measured on an Apple M5 (08-domain-size-options.md §5), per run of 24 substeps:
 ms ≈ 9 + 25 · (grid nodes / 10⁶) + 0.38 · (particles / 10³)
 ```
 
-The preset (320² × 16 = 1.6 M nodes, 131 k particles) runs in ~100 ms for 0.24 s of
-simulated time — 2.4× real time. Particles are the steeper axis: ~550 k is the real-time
-ceiling at this substep count, whatever the grid.
+The preset (320² × 16 = 1.6 M nodes, 131 k particles) runs in ~100 ms of GPU time for
+0.24 s of simulated time — 2.4× real time. Particles are the steeper axis: ~550 k is the
+real-time ceiling at this substep count, whatever the grid.
+
+**Frame rate vs simulation speed.** There is no second GPU queue in WebGPU, so a run
+submitted as one 100 ms command buffer parks the next rendered frame behind it: the view
+drops to ~25 fps while playing. The run is therefore submitted in chunks of
+`substeps_per_submit` substeps with two chunks in flight (`MpmSolverNode::submit_chunk`),
+so every frame's command buffer only ever waits for one chunk. Measured on the M5, preset
+scenario, vsync at 60 Hz:
+
+| `substeps_per_submit` | fps while playing | simulated s per wall s |
+|---|---|---|
+| 24 (one submit) | 25 | 2.0 |
+| 8 | 53 | 1.7 |
+| 4 | 53 | 1.8 |
+| **2 (default)** | **60** | **1.65** |
+
+A CPU thread would not help: the CPU side of a run is microseconds of command encoding;
+the contention is on the GPU queue. A second WebGPU *device* would give a second queue,
+but buffers and textures cannot be shared across devices, so the overlay texture and the
+terrain would have to round-trip through the CPU every run — not worth it for 20 %.
 
 ## Where to make changes
 

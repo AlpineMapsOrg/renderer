@@ -171,6 +171,7 @@
                 "snow_density": 400.0,
                 "dt": 0.01,
                 "substeps_per_run": 24,
+                "substeps_per_submit": 2,
                 "youngs_modulus": 140000.0,
                 "poissons_ratio": 0.2,
                 "hardening": 10.0,

@@ -114,6 +114,13 @@ public:
         float dt = 0.01f; // [s]
         uint32_t substeps_per_run = 32u;
 
+        /* WebGPU has a single queue, so a run submitted as one command buffer parks the
+         * next rendered frame behind ~100 ms of compute and the view stutters. The run is
+         * therefore submitted in chunks of this many substeps, one per frame (the next
+         * chunk goes out from the previous one's work-done callback), so frames interleave
+         * with the simulation. Smaller = smoother view, less simulated time per second. */
+        uint32_t substeps_per_submit = 2u;
+
         /* Elastic stiffness, shared by every constitutive model - one knob, with per-model
          * recommended values coming from presets. Defaults are Stomakhin et al. 2013, table 1;
          * Li et al. 2021 use E = 3 MPa, nu = 0.3 for the Cam-Clay regimes. */
@@ -272,6 +279,9 @@ public:
 
 public slots:
     void run_impl() override;
+    /// Encodes and submits the next chunk of the current run; chains itself through the
+    /// queue's work-done callback until the run's substeps are exhausted.
+    void submit_chunk();
 
 private:
     /// (Re)allocates GPU buffers and the output texture if the configured sizes changed.
@@ -319,6 +329,12 @@ private:
     radix::geometry::Aabb<2, double> m_domain_aabb;
     glm::uvec2 m_output_dimensions = glm::uvec2(0);
     float m_simulated_time = 0.0f;
+
+    /* State of the run in flight, see submit_chunk(). */
+    uint32_t m_run_substeps_left = 0;
+    uint32_t m_chunks_in_flight = 0;
+    bool m_run_first_chunk = true;
+    bool m_run_is_reset = false;
     SimStateReadback m_last_state;
     std::vector<EnergySample> m_energy_line;
     glm::dvec2 m_last_com_xy = glm::dvec2(0.0); // for the path increment between samples

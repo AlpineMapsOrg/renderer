@@ -454,7 +454,22 @@ void MpmSolverNode::run_impl()
         reset_run_counters();
     }
 
-    const uint32_t substeps = std::clamp(m_settings.substeps_per_run, 1u, 4096u);
+    m_run_substeps_left = std::clamp(m_settings.substeps_per_run, 1u, 4096u);
+    m_run_first_chunk = true;
+    m_run_is_reset = reset;
+    m_settings.reset_on_next_run = false;
+    m_chunks_in_flight = 0;
+    // Two chunks in flight: the work-done callback of one arrives two frames after its
+    // submission (GPU finish, then the next event pump), so a single chunk in flight would
+    // leave the queue idle every other frame. With two, a frame always finds one chunk
+    // ahead of its own command buffer and never more.
+    submit_chunk();
+    if (m_run_substeps_left > 0)
+        submit_chunk();
+}
+
+void MpmSolverNode::submit_chunk()
+{
     const glm::uvec3 particle_workgroups(div_ceil(m_allocated_particles, PARTICLE_WORKGROUP_SIZE.x), 1, 1);
     const glm::uvec3 grid_workgroups(div_ceil(m_allocated_grid_res.x, GRID_WORKGROUP_SIZE.x),
         div_ceil(m_allocated_grid_res.y, GRID_WORKGROUP_SIZE.y),
@@ -466,12 +481,17 @@ void MpmSolverNode::run_impl()
     const glm::uvec3 raster_workgroups(
         div_ceil(m_output_dimensions.x, RASTER_WORKGROUP_SIZE.x), div_ceil(m_output_dimensions.y, RASTER_WORKGROUP_SIZE.y), 1);
 
+    const uint32_t substeps = std::min(m_run_substeps_left, std::clamp(m_settings.substeps_per_submit, 1u, 4096u));
+    m_run_substeps_left -= substeps;
+    const bool last_chunk = m_run_substeps_left == 0;
+
     WGPUCommandEncoderDescriptor encoder_desc {};
     encoder_desc.label = WGPUStringView { .data = "mpm solver command encoder", .length = WGPU_STRLEN };
     webgpu::raii::CommandEncoder encoder(m_ctx->device(), encoder_desc);
 
     // Cleared outside the compute pass; the density raster only accumulates once per run.
-    m_density_buffer->clear(encoder.handle());
+    if (m_run_first_chunk)
+        m_density_buffer->clear(encoder.handle());
 
     {
         WGPUComputePassDescriptor compute_pass_desc {};
@@ -481,7 +501,7 @@ void MpmSolverNode::run_impl()
         // Every pipeline shares the layout, so the bind group is set once for the pass.
         wgpuComputePassEncoderSetBindGroup(compute_pass.handle(), 0, m_bind_group->handle(), 0, nullptr);
 
-        if (reset) {
+        if (m_run_first_chunk && m_run_is_reset) {
             m_prepare_pipeline->run(compute_pass, prepare_workgroups);
             m_seed_pipeline->run(compute_pass, particle_workgroups);
         }
@@ -495,8 +515,10 @@ void MpmSolverNode::run_impl()
             m_g2p_pipeline->run(compute_pass, particle_workgroups);
         }
 
-        m_splat_pipeline->run(compute_pass, particle_workgroups);
-        m_rasterize_pipeline->run(compute_pass, raster_workgroups);
+        if (last_chunk) {
+            m_splat_pipeline->run(compute_pass, particle_workgroups);
+            m_rasterize_pipeline->run(compute_pass, raster_workgroups);
+        }
     }
 
     WGPUCommandBufferDescriptor cmd_buffer_desc {};
@@ -505,12 +527,22 @@ void MpmSolverNode::run_impl()
     wgpuQueueSubmit(m_ctx->queue(), 1, &command);
     wgpuCommandBufferRelease(command);
 
-    m_settings.reset_on_next_run = false;
+    m_run_first_chunk = false;
+    m_chunks_in_flight++;
     m_simulated_time += float(substeps) * m_settings.dt;
 
+    // The callback fires from the app's event pump, i.e. once per frame - which is what
+    // lets a rendered frame slip in between two chunks.
     const auto on_work_done
         = []([[maybe_unused]] WGPUQueueWorkDoneStatus status, [[maybe_unused]] WGPUStringView message, void* userdata, [[maybe_unused]] void* userdata2) {
               MpmSolverNode* _this = reinterpret_cast<MpmSolverNode*>(userdata);
+              _this->m_chunks_in_flight--;
+              if (_this->m_run_substeps_left > 0) {
+                  _this->submit_chunk();
+                  return;
+              }
+              if (_this->m_chunks_in_flight > 0)
+                  return; // the last chunk is still running; its own callback finishes the run
               _this->read_back_state();
               _this->complete_run();
           };
@@ -566,6 +598,7 @@ void MpmSolverNode::serialize_settings(QJsonObject& out) const
     out["snow_density"] = s.snow_density;
     out["dt"] = s.dt;
     out["substeps_per_run"] = static_cast<int>(s.substeps_per_run);
+    out["substeps_per_submit"] = static_cast<int>(s.substeps_per_submit);
     out["youngs_modulus"] = s.youngs_modulus;
     out["poissons_ratio"] = s.poissons_ratio;
     out["hardening"] = s.hardening;
@@ -608,6 +641,7 @@ void MpmSolverNode::deserialize_settings(const QJsonObject& in)
     s.snow_density = read_float("snow_density", s.snow_density);
     s.dt = read_float("dt", s.dt);
     s.substeps_per_run = read_uint("substeps_per_run", s.substeps_per_run);
+    s.substeps_per_submit = read_uint("substeps_per_submit", s.substeps_per_submit);
     s.youngs_modulus = read_float("youngs_modulus", s.youngs_modulus);
     s.poissons_ratio = read_float("poissons_ratio", s.poissons_ratio);
     s.hardening = read_float("hardening", s.hardening);

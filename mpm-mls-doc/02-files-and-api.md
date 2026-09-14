@@ -78,7 +78,8 @@ a future 3D particle renderer**, no CPU readback needed).
 
 | Method | Notes |
 |---|---|
-| `run_impl()` | One node execution: optional reset, then `substeps_per_run` MPM steps, then splat + rasterize. Single compute pass. |
+| `run_impl()` | One node execution: optional reset, then `substeps_per_run` MPM steps, then splat + rasterize. Submitted in chunks by `submit_chunk()`. |
+| `submit_chunk()` | Encodes and submits `substeps_per_submit` steps as one command buffer (first chunk: raster clear, prepare + seed on reset; last chunk: splat + rasterize) and re-arms itself from the queue's work-done callback, two chunks in flight, so rendered frames interleave with the run. |
 | `has_valid_inputs()` | Checks sockets are connected **and** payloads non-null. Must be called before driving the node out of graph order — see the gotcha below. |
 | `request_reset()` | Re-scan terrain and reseed on next run. |
 | `simulated_time()` | Seconds accumulated since last reset. |

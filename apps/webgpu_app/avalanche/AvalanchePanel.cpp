@@ -275,6 +275,11 @@ void AvalanchePanel::draw_panel()
 
     const uint32_t min_substeps = 1, max_substeps = 512;
     settings_changed |= ImGui::DragScalar("Substeps per run", ImGuiDataType_U32, &settings.substeps_per_run, 1.0f, &min_substeps, &max_substeps, "%u");
+    settings_changed |= ImGui::DragScalar("Substeps per frame", ImGuiDataType_U32, &settings.substeps_per_submit, 1.0f, &min_substeps, &max_substeps, "%u");
+    if (ImGui::IsItemHovered())
+        ImGui::SetTooltip("The GPU has one queue, so simulation and rendering take turns. A run is submitted in\n"
+                          "chunks of this many substeps, one per frame: fewer = smoother view, less simulated\n"
+                          "time per second. Equal to substeps per run = the whole run in one go.");
     settings_changed |= ImGui::DragFloat("Time step", &settings.dt, 0.0005f, 0.0001f, 0.5f, "%.4f s");
     settings_changed |= ImGui::DragFloat("Splat radius", &settings.splat_radius, 0.25f, 0.0f, 64.0f, "%.1f m");
 

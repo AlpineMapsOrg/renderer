@@ -375,6 +375,26 @@ tan⁻¹ 0.47 ≈ 25°) — it was not the wall.
 
 Docs: 02, 03 (prepare, grid update, stencil), 04 (band section, buffer sizes), 05
 (settings table, failure modes, cost), 06 (§4i), 08 (marked implemented), README.
+Committed by the user as `f02ad59a` "Extend terrain".
+
+## 2026-09-14
+
+### 1. "the simulation runs in the same thread as the normal rendering - can we separate this?"
+
+Diagnosis first, with a temporary fps harness (reverted): 13–25 fps while playing. Not a
+thread problem — the CPU side of a run is microseconds of command encoding and the
+work-done callback. WebGPU has a single queue; a run submitted as one ~100 ms command
+buffer parks the next frame's render behind it. A CPU thread changes nothing; a second
+device would give a second queue but cannot share the overlay texture or the terrain.
+
+Fix: `MpmSolverNode::submit_chunk()` — the run is submitted in chunks of
+`substeps_per_submit` substeps (first chunk clears the raster and does prepare/seed on a
+reset, last chunk splats and rasterises), re-armed from the queue's work-done callback.
+One chunk in flight left the queue idle every other frame (the callback lands two frames
+after submission), so two are kept in flight with a counter deciding when the run is
+complete. Measured (M5, preset, vsync 60): one submit 25 fps / 2.0× real time; chunks of
+2 → **60 fps / 1.65×**; 4 → 53 fps / 1.8×. Default 2, setting in both panels ("Substeps
+per frame"), JSON key. Docs: 02, 05 (setting, "frame rate vs simulation speed").
 
 ## 2026-09-06
 

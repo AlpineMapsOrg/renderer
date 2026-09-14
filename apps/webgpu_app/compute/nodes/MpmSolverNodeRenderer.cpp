@@ -96,6 +96,8 @@ void MpmSolverNodeRenderer::render_settings_content()
 
     const uint32_t min_substeps = 1, max_substeps = 512;
     settings_changed |= ImGui::DragScalar("Substeps per run", ImGuiDataType_U32, &settings.substeps_per_run, 1.0f, &min_substeps, &max_substeps, "%u");
+    settings_changed |= ImGui::DragScalar("Substeps per frame", ImGuiDataType_U32, &settings.substeps_per_submit, 1.0f, &min_substeps, &max_substeps, "%u");
+    ImGui::TextDisabled("Run submitted in chunks so rendered frames interleave with it");
 
     ImGui::Separator();
 
