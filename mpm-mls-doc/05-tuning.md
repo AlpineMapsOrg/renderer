@@ -71,7 +71,7 @@ not just different.
 | Snow behaves like water | Slab is sub-cell at this `dx` | Shrink the domain, or accept it — see below |
 | Snow stalls against an invisible wall | Reached the domain edge | Raise `domain_size_xy` (and the region extent if it is clamped); the grid is cheap in xy now |
 | Snow flattens at a fixed height above ground | Pile reached the band ceiling `dx × (layers − 2.5)` | Raise `grid_layers` |
-| Buttons greyed out | Graph has not run end to end | `Shift+R` first |
+| Buttons greyed out | Graph has not run end to end | `Shift+R` first — or tick "Load this simulation at launch" in the panel and never think about it again |
 | Domain smaller than requested | Clamped to the region | Lower Select Tiles zoom for more terrain |
 | Nothing seeds with release areas on | Disc doesn't overlap a 30–45° slope | Move the release lat/lon, or tick Seed anywhere — the panel now says "0 particles seeded" |
 | Explodes right after picking a preset | Stiffer preset, dt above the new CFL bound | Presets pull dt under the bound automatically; if hand-set, watch the orange warning |

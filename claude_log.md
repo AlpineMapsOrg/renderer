@@ -395,6 +395,30 @@ after submission), so two are kept in flight with a counter deciding when the ru
 complete. Measured (M5, preset, vsync 60): one submit 25 fps / 2.0× real time; chunks of
 2 → **60 fps / 1.65×**; 4 → 53 fps / 1.8×. Default 2, setting in both panels ("Substeps
 per frame"), JSON key. Docs: 02, 05 (setting, "frame rate vs simulation speed").
+Committed as `9fd10f0d`.
+
+### 2. "Can i get a config setting that automatically loads the graph and applies it"
+
+No config mechanism existed in the app (no settings file, no CLI parsing in our reach).
+Added it to the panel we own, persisted with `QSettings("weBIGeo", "avalanche")`:
+`AvalanchePanel::ready()` (runs after `NodeGraphPanel::ready()` loaded the default
+graph) loads the MLS-MPM preset, applies the stored material preset and scenario
+(`apply_scenario` runs the graph → terrain fetch → seed) and optionally starts playing
+once `has_valid_inputs()`. UI: "Load this simulation at launch" + "and play"; the
+scenario and material combos save their choice. When the active graph has no MPM node
+the panel now offers a "Load the MLS-MPM simulation" button instead of hiding.
+Upstream footprint: `NodeGraphPanel::load_preset()` moved to public (one line).
+Verified on device: with the plist set, the log shows the 4 km run seeded and autoplay
+starting at launch. Plist reset to off afterwards. Docs: 02, 05.
+
+"But what about the webGPU build for chrome. I want that to be in the release
+temporary": under `__EMSCRIPTEN__` there is no usable settings store (Qt's WASM
+QSettings loads asynchronously), so the web build loads the simulation by default and a
+URL parameter overrides it — `?avalanche=0` skips, `?avalanche=play` also plays — read
+once with `EM_ASM_INT`. Verified in Chrome (browser pane, wasm release build behind a
+COOP/COEP static server): default and `?avalanche=play` seed the 4 km run and play,
+`?avalanche=0` shows the default graph with the panel's "Load the MLS-MPM simulation"
+button. The graph's first-run notice text updated (it still pointed at the node editor).
 
 ## 2026-09-06
 

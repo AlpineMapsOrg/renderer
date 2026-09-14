@@ -20,6 +20,11 @@
 
 #include "compute/NodeGraphPanel.h"
 #include <IconsFontAwesome5.h>
+#ifdef __EMSCRIPTEN__
+#include <emscripten.h>
+#else
+#include <QSettings>
+#endif
 #include <imgui.h>
 #include <algorithm>
 #include <cmath>
@@ -62,6 +67,83 @@ AvalanchePanel::AvalanchePanel(NodeGraphPanel* graph_panel)
               nodes::MpmSolverNode::DRUCKER_PRAGER, 3.0e6f, 0.3f, 250.0f, 0.47f, 10.0f, 2.5e-2f, 7.5e-3f, 13.3f, 0.5f, 0.0f, 1.0f, 3000.0f },
       })
 {
+}
+
+namespace {
+constexpr const char* MPM_GRAPH_PRESET = ":/graphs/mpm_avalanche_simulation.json";
+#ifndef __EMSCRIPTEN__
+constexpr const char* SETTINGS_ORGANISATION = "weBIGeo";
+constexpr const char* SETTINGS_APPLICATION = "avalanche";
+#endif
+} // namespace
+
+void AvalanchePanel::load_startup_settings()
+{
+#ifdef __EMSCRIPTEN__
+    // Web build: there is no per-user settings store worth relying on (Qt's WASM QSettings
+    // backend loads asynchronously), and the deployment exists to show the simulation - so
+    // it loads by default. The URL decides the rest:  ?avalanche=0 skips it, ?avalanche=play
+    // also starts playing. Temporary for the release; a proper setting would go into the
+    // site's own configuration.
+    const int mode = EM_ASM_INT({
+        const value = new URLSearchParams(window.location.search).get('avalanche');
+        if (value === '0' || value === 'off' || value === 'false') return 0;
+        if (value === 'play') return 2;
+        return 1;
+    });
+    m_autostart = mode != 0;
+    m_autoplay = mode == 2;
+#else
+    QSettings settings(SETTINGS_ORGANISATION, SETTINGS_APPLICATION);
+    m_autostart = settings.value("startup/autostart", false).toBool();
+    m_autoplay = settings.value("startup/autoplay", false).toBool();
+    m_selected_scenario = std::clamp(settings.value("startup/scenario", 0).toInt(), 0, int(m_scenarios.size()) - 1);
+    m_selected_material_preset = std::clamp(settings.value("startup/material_preset", 0).toInt(), 0, int(m_material_presets.size()) - 1);
+#endif
+}
+
+void AvalanchePanel::save_startup_settings() const
+{
+#ifndef __EMSCRIPTEN__
+    QSettings settings(SETTINGS_ORGANISATION, SETTINGS_APPLICATION);
+    settings.setValue("startup/autostart", m_autostart);
+    settings.setValue("startup/autoplay", m_autoplay);
+    settings.setValue("startup/scenario", m_selected_scenario);
+    settings.setValue("startup/material_preset", m_selected_material_preset);
+#endif
+}
+
+void AvalanchePanel::ready()
+{
+    load_startup_settings();
+    if (!m_autostart)
+        return;
+    m_graph_panel->load_preset(MPM_GRAPH_PRESET);
+    // Material first: it only writes solver settings. The scenario then writes the
+    // remaining ones and runs the graph, which fetches the terrain and seeds.
+    if (m_selected_material_preset > 0)
+        apply_material_preset(m_material_presets[size_t(m_selected_material_preset)]);
+    m_scenario_error = apply_scenario(m_scenarios[size_t(m_selected_scenario)]) ? std::string {} : std::string { "Autostart: could not apply the scenario." };
+    m_autoplay_pending = m_autoplay;
+}
+
+void AvalanchePanel::draw_startup_settings()
+{
+    ImGui::TextDisabled("Startup");
+#ifdef __EMSCRIPTEN__
+    ImGui::TextWrapped("Web build: loads at launch. Add ?avalanche=0 to the URL to skip it, ?avalanche=play to start playing too.");
+    return;
+#endif
+    bool changed = ImGui::Checkbox("Load this simulation at launch", &m_autostart);
+    if (ImGui::IsItemHovered())
+        ImGui::SetTooltip("Loads the MLS-MPM graph, applies the selected location and material preset\n"
+                          "and fetches the terrain when the app starts. Stored per user, not in the graph.");
+    if (m_autostart) {
+        ImGui::SameLine();
+        changed |= ImGui::Checkbox("and play", &m_autoplay);
+    }
+    if (changed)
+        save_startup_settings();
 }
 
 template <typename T> T* AvalanchePanel::find_node() const
@@ -153,6 +235,13 @@ void AvalanchePanel::draw()
 {
     // Stepping lives here rather than in draw_panel() so the animation keeps running with
     // the sidebar section collapsed and the node graph editor closed.
+    if (m_autoplay_pending) {
+        auto* solver = find_solver();
+        if (solver && solver->has_valid_inputs() && !solver->is_running()) {
+            m_playing = true;
+            m_autoplay_pending = false;
+        }
+    }
     if (!m_playing)
         return;
 
@@ -169,11 +258,19 @@ void AvalanchePanel::draw()
 void AvalanchePanel::draw_panel()
 {
     auto* solver = find_solver();
-    if (solver == nullptr)
-        return; // active graph has no avalanche simulation
-
     if (!ImGui::CollapsingHeader(ICON_FA_SNOWFLAKE "  Avalanche", ImGuiTreeNodeFlags_DefaultOpen))
         return;
+
+    if (solver == nullptr) {
+        // The active graph has no MLS-MPM node - offer the preset instead of hiding.
+        ImGui::TextDisabled("The active graph has no MLS-MPM simulation.");
+        if (ImGui::Button("Load the MLS-MPM simulation")) {
+            m_graph_panel->load_preset(MPM_GRAPH_PRESET);
+            m_scenario_error = apply_scenario(m_scenarios[size_t(m_selected_scenario)]) ? std::string {} : std::string { "Could not apply the scenario." };
+        }
+        draw_startup_settings();
+        return;
+    }
 
     // --- Location ---
     // Needs a GeoRegionNode in the graph; a GPX-driven graph has no coordinates to set.
@@ -187,6 +284,7 @@ void AvalanchePanel::draw_panel()
         m_scenario_error = apply_scenario(m_scenarios[size_t(m_selected_scenario)])
             ? std::string {}
             : std::string { "Could not apply - the active graph has no GeoRegionNode." };
+        save_startup_settings();
     }
     ImGui::EndDisabled();
 
@@ -293,11 +391,13 @@ void AvalanchePanel::draw_panel()
         preset_names.reserve(m_material_presets.size());
         for (const auto& preset : m_material_presets)
             preset_names.push_back(preset.name.c_str());
-        if (ImGui::Combo("Material preset", &m_selected_material_preset, preset_names.data(), int(preset_names.size()))
-            && m_selected_material_preset > 0) {
-            apply_material_preset(m_material_presets[size_t(m_selected_material_preset)]);
-            settings = solver->get_settings();
-            step_now = true;
+        if (ImGui::Combo("Material preset", &m_selected_material_preset, preset_names.data(), int(preset_names.size()))) {
+            save_startup_settings();
+            if (m_selected_material_preset > 0) {
+                apply_material_preset(m_material_presets[size_t(m_selected_material_preset)]);
+                settings = solver->get_settings();
+                step_now = true;
+            }
         }
         ImGui::TextDisabled("%s", m_material_presets[size_t(m_selected_material_preset)].note.c_str());
     }
@@ -371,6 +471,7 @@ void AvalanchePanel::draw_panel()
     }
 
     ImGui::TextDisabled("Full parameters: compute graph editor.");
+    draw_startup_settings();
 
     if (settings_changed)
         solver->set_settings(settings);

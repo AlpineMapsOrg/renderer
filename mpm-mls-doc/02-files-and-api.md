@@ -137,6 +137,24 @@ Drucker–Prager cold-dense fallback.
 Play/Pause deliberately exists **only here** — two things calling `rerun()` per frame would
 race. The node renderer keeps Step and Reset, which are one-shot and safe.
 
+**Startup (2026-09-14).** "Load this simulation at launch" (+ "and play") in the panel.
+`ready()` runs after `NodeGraphPanel::ready()` has loaded the default graph; with
+autostart on it replaces that with the MLS-MPM preset, applies the remembered material
+preset and scenario (which runs the graph) and, if asked, starts playing once the solver
+has valid inputs. Stored per user with `QSettings("weBIGeo", "avalanche")` — on macOS
+`~/Library/Preferences/com.webigeo.avalanche.plist`, keys `startup/autostart`,
+`startup/autoplay`, `startup/scenario`, `startup/material_preset` — deliberately *not* in
+the graph JSON, so the preset stays a plain preset. When the active graph has no MPM
+node, the panel now shows a "Load the MLS-MPM simulation" button instead of hiding.
+`NodeGraphPanel::load_preset()` became public for this (one moved line upstream).
+
+*Web build* (`__EMSCRIPTEN__`): no settings store — Qt's WASM `QSettings` backend loads
+asynchronously and the deployment exists to show the simulation — so it **loads by
+default** and the URL decides: `webgpu_app.html?avalanche=0` skips it, `?avalanche=play`
+also starts playing (read once with `EM_ASM_INT` from `window.location.search`).
+Temporary for the release; verified in Chrome via a COOP/COEP static server on the
+wasm release build.
+
 ## Where the settings live
 
 Split by how often you touch them:

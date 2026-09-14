@@ -99,6 +99,9 @@ public:
 
     explicit AvalanchePanel(NodeGraphPanel* graph_panel);
 
+    // Loads the MLS-MPM graph and applies the remembered scenario when autostart is on.
+    // Runs after NodeGraphPanel::ready() has loaded the default graph, so it replaces it.
+    void ready() override;
     // Advances the simulation. Runs every frame, independent of any panel visibility.
     void draw() override;
     void draw_panel() override;
@@ -120,9 +123,20 @@ private:
     /// is model-specific) and pulls dt under the CFL bound of the new stiffness.
     void apply_material_preset(const MaterialPreset& preset);
 
+    /// Startup preferences live outside the graph (QSettings, per user): whether to load
+    /// the MLS-MPM graph at launch, which scenario and material to apply, and whether to
+    /// start playing. The graph presets themselves stay untouched.
+    void load_startup_settings();
+    void save_startup_settings() const;
+    void draw_startup_settings();
+
 private:
     NodeGraphPanel* m_graph_panel;
     bool m_playing = false;
+
+    bool m_autostart = false; // load the MLS-MPM graph and apply the scenario at launch
+    bool m_autoplay = false; // ... and start playing once the terrain is in
+    bool m_autoplay_pending = false;
 
     std::vector<Scenario> m_scenarios;
     int m_selected_scenario = 0;

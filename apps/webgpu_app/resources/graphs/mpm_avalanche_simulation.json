@@ -141,7 +141,7 @@
             }
         }
     ],
-    "first_run_notice": "WARNING: RESEARCH PREVIEW\n\nThis MLS-MPM snow simulation is for educational and illustrative purposes only.\nIt is not calibrated against real snowpack or terrain conditions and must NOT be\nused for route planning or any avalanche safety decision.\n\nOpen the MPM Solver node's settings and press Play to run the simulation.",
+    "first_run_notice": "WARNING: RESEARCH PREVIEW\n\nThis MLS-MPM snow simulation is for educational and illustrative purposes only.\nIt is not calibrated against real snowpack or terrain conditions and must NOT be\nused for route planning or any avalanche safety decision.\n\nUse the Avalanche section of the sidebar to run it: pick a location, press Play.",
     "format": "webigeo/node-graph",
     "name": "mpm_avalanche_simulation_graph",
     "nodes": [
