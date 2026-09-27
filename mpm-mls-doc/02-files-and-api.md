@@ -16,7 +16,6 @@
 | `shaders/mpm_friction.wgsl` | Basal-friction dispatcher: `switch` on `settings.basal_friction_model`; Coulomb, Voellmy. |
 | `shaders/mpm_prepare.wgsl` | Scans terrain once per reset: altitude range for the readout, and the per-column floor of the terrain-following grid. |
 | `shaders/mpm_seed.wgsl` | Places particles in the release disc. |
-| `shaders/mpm_clear_grid.wgsl` | Zeroes the grid each substep. |
 | `shaders/mpm_p2g.wgsl` | Stage 1: particle → grid. |
 | `shaders/mpm_grid_update.wgsl` | Stage 2: momentum → velocity, gravity, collisions. |
 | `shaders/mpm_g2p.wgsl` | Stages 3+4: grid → particle, plasticity, advection. |
@@ -79,21 +78,29 @@ a future 3D particle renderer**, no CPU readback needed).
 | Method | Notes |
 |---|---|
 | `run_impl()` | One node execution: optional reset, then `substeps_per_run` MPM steps, then splat + rasterize. Submitted in chunks by `submit_chunk()`. |
-| `submit_chunk()` | Encodes and submits `substeps_per_submit` steps as one command buffer (first chunk: raster clear, prepare + seed on reset; last chunk: splat + rasterize) and re-arms itself from the queue's work-done callback, two chunks in flight, so rendered frames interleave with the run. |
+| `submit_chunk()` | Encodes and submits `substeps_per_submit` steps as one command buffer (first chunk: raster clear, on reset also grid + tile-flag clear and prepare + seed; last chunk: splat + rasterize + state copy into the readback buffer) and re-arms itself from the queue's work-done callback, two chunks in flight, so rendered frames interleave with the run. Chunks carry timestamp writes when their query slot is free. |
+| `perf_stats()` | `PerfStats`: runs since reset, ms per run, **GPU ms per substep** (timestamp queries; 0 without `timestamp-query`), solver GPU bytes. Read by the avalanche panel's pacing and readout. |
 | `has_valid_inputs()` | Checks sockets are connected **and** payloads non-null. Must be called before driving the node out of graph order — see the gotcha below. |
 | `request_reset()` | Re-scan terrain and reseed on next run. |
 | `simulated_time()` | Seconds accumulated since last reset. |
 | `last_state()` | `SimStateReadback`: active/plastic particle counts, max speed, terrain range, centre of mass, mean \|v\|². Async — describes the *previous* completed run; `valid` false until the first arrives. |
-| `energy_line()` | Vector of `EnergySample {time, path, altitude, energy_height}`, one per completed run since the last reset. |
+| `energy_line()` | Vector of `EnergySample {time, path, altitude, energy_height}`, one per completed run since the last reset; halved when it reaches `MAX_ENERGY_SAMPLES` (2048). |
 | `energy_line_friction()` | `−slope` of energy height over horizontal path, fitted over the sliding regime (past 10 % of total path). The effective friction coefficient the flow experiences; NaN until there is movement. |
 | `domain_aabb()` | World bounds of the simulated box. Only valid after the first run. |
 | `set_settings()` / `get_settings()` | Settings are consumed lazily in `run_impl()`, so applying them any time is safe. |
 | `serialize_settings()` / `deserialize_settings()` | Graph JSON persistence. |
 
-Private helpers: `ensure_resources()` (reallocates buffers when sizes change; forces a
-reset), `create_bind_group()` (rebuilt every run — input textures can be recreated
-upstream), `update_gpu_settings()` (fills the uniform; converts lat/lon → region-relative
-metres), `write_initial_state()` (seeds the SimState atomics from the CPU).
+Private helpers: `ensure_resources()` (reallocates buffers when sizes change, clamped to the
+device's storage-binding limit; forces a reset), `ensure_bind_group()` (cached; rebuilt when
+our buffers, the input texture handles or the graph run id change — upstream nodes recreate
+their textures on a full graph run), `update_gpu_settings()` (fills the uniform; converts
+lat/lon → region-relative metres), `write_initial_state()` (seeds the SimState atomics from
+the CPU), `create_pipelines()` (called through the one pipeline factory registered per
+resource registry, for every live solver — see 09-performance-analysis.md §5, L3).
+
+Async callbacks (work done, buffer maps) never capture `this`: they carry a copy of
+`m_alive`, a `shared_ptr<MpmSolverNode*>` the destructor sets to null, so a callback that
+fires after the graph was replaced returns instead of touching a destroyed node.
 
 > **Gotcha, learned the hard way (SIGSEGV).** An output socket returning `unique_ptr::get()`
 > is **null until its node has run**. `is_socket_connected()` returning true does *not* mean

@@ -28,14 +28,21 @@ relative to the terrain.
 struct Particle {
     position: vec3f,  mass: f32,     // mass = 0 marks an INACTIVE particle
     velocity: vec3f,  plastic_state: f32,  // per model: Stomakhin Jp (1), DP plastic strain (0), CCC alpha (−asinh(p₀/K)/ξ)
-    c0: vec3f,        volume: f32,   // c0..c2 = rows of the APIC affine matrix C
-    c1: vec3f,        _p1: f32,
-    c2: vec3f,        _p2: f32,
-    f0: vec3f,        _p3: f32,      // f0..f2 = rows of the deformation gradient F
-    f1: vec3f,        _p4: f32,
-    f2: vec3f,        _p5: f32,
+    c0: vec3f,        tau_xx: f32,   // c0..c2 = rows of the APIC affine matrix C
+    c1: vec3f,        tau_yy: f32,
+    c2: vec3f,        tau_zz: f32,
+    f0: vec3f,        tau_xy: f32,   // f0..f2 = rows of the deformation gradient F
+    f1: vec3f,        tau_xz: f32,
+    f2: vec3f,        tau_yz: f32,   // tau = P Fᵀ (symmetric), written by G2P, read by P2G
 }
 ```
+
+The six `tau_*` slots used to be `volume` and five pads (2026-09-27). The volume was the same
+for every particle and now comes from `settings.particle_volume`; the pads carry the Kirchhoff
+stress of the particle's current elastic state, which G2P computes from the SVD its return
+mapping already did, so P2G no longer needs an SVD of its own
+([09-performance-analysis.md](09-performance-analysis.md) §9.1). Seeded as zero (F = I is
+stress-free in every model).
 
 Every `vec3f` sits at a multiple of 16 — WGSL aligns vec3 to 16 bytes, so the padding floats
 are not optional. Useful scalars are tucked into those slots rather than wasted. Total is
@@ -53,8 +60,14 @@ struct GridNode {
 }
 ```
 
-20 bytes, stride 5 u32 (`GRID_NODE_STRIDE_U32`). `v*` holds **momentum** after P2G and
-**velocity** after the grid update — same slots, reused.
+20 bytes, stride 5 u32 (`GRID_NODE_STRIDE_U32`). Accumulators only: P2G adds into them, the
+grid update reads them, **zeroes them** (there is no separate clear pass any more) and writes
+the node velocity to a separate `grid_velocity: array<vec4f>` (16 B per node), which G2P reads
+with plain loads.
+
+Next to it, `tile_flags: array<atomic<u32>>` holds one flag per tile of 8 × 8 columns: P2G
+sets the tiles its stencil touches, the grid update skips tiles that are not set and resets
+the ones that are.
 
 ## Fixed-point atomics
 
@@ -145,12 +158,15 @@ branch per add and has no such limit. Reassembled on the CPU by `wide()`.
 
 Written from the CPU on reset via `RawBuffer::write()` with ±INT_MAX so the atomics
 converge; slots 3–4 are zeroed by a 2-element `write()` before every non-reset run.
-**Read back** after each run via `read_back_async()` from the work-done callback into
-`MpmSolverNode::last_state()`; the value therefore describes the previous completed run.
+**Read back** after each run: the last chunk's command buffer copies it into a persistent
+MapRead buffer (`m_state_readback`), which the work-done callback maps into
+`MpmSolverNode::last_state()`; the value therefore describes the previous completed run. (It
+used to go through `RawBuffer::read_back_async()`, which allocated a staging buffer per call
+and leaked a command buffer per call — 09-performance-analysis.md §5.)
 
-The buffer is **allocated once in the constructor and never reallocated** — an async
-readback in flight while `ensure_resources()` recreated it would be a use-after-free. It
-is fixed-size, so there is no reason to reallocate it anyway.
+Both buffers are **allocated once in the constructor and never reallocated** — an async
+readback in flight while `ensure_resources()` recreated them would be a use-after-free. They
+are fixed-size, so there is no reason to reallocate them anyway.
 
 ## Uniform — 176 bytes
 

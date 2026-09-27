@@ -11,7 +11,9 @@
 // current one, see run_headless.mjs --baseline) runs through the schedule it was written for.
 
 export const DEFAULTS = {
-    // Mirrors the Breite Ries scenario of the graph preset (mpm_avalanche_simulation.json).
+    // The Breite Ries scenario as the graph preset had it before 2026-09-27 (131k particles,
+    // 16 layers, dt 0.01). Kept as the fixed reference so results stay comparable across
+    // revisions; the current preset is particles=65536 gridLayers=12 dt=0.02.
     regionSize: 8000, // m, square
     heightTexels: 640, // ~12.5 m DEM, like zoom 15
     domainSize: 4000,

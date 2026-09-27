@@ -1,4 +1,4 @@
-# The eight kernels
+# The seven kernels
 
 All in `webgpu/compute/shaders/`. Every one starts with `///use mpm_common` (weBIGeo's
 shader preprocessor include directive), so they all declare the **identical binding set** —
@@ -9,21 +9,25 @@ which is why one bind group layout and one bind group serve all of them.
 One node execution, all inside a **single compute pass**:
 
 ```
-[buffer clear] density_raster                 (outside the pass)
-begin compute pass
+[buffer clear] density_raster; on reset also grid + tile_flags     (outside the pass)
+begin compute pass                                                  (one per chunk)
   if reset:  mpm_prepare  →  mpm_seed
-  repeat substeps_per_run times:
-      mpm_clear_grid → mpm_p2g → mpm_grid_update → mpm_g2p
-  mpm_splat → mpm_rasterize
+  repeat substeps_per_submit times:
+      mpm_p2g → mpm_grid_update → mpm_g2p
+  last chunk: mpm_splat → mpm_rasterize
 end pass
-submit → wgpuQueueOnSubmittedWorkDone → complete_run()
+last chunk: copy state → readback buffer
+submit → wgpuQueueOnSubmittedWorkDone → next chunk, or map readback + complete_run()
 ```
 
 **Why one pass matters:** dispatches within a single WebGPU compute pass are ordered and see
 each other's storage writes. That is exactly the MPM dependency chain, so no pass churn is
-needed between stages. The grid is cleared by a *kernel* rather than
-`wgpuCommandEncoderClearBuffer` precisely because a buffer clear cannot happen inside a pass
-and would force it to end and restart every substep.
+needed between stages.
+
+**No clear pass (2026-09-27).** There used to be a `mpm_clear_grid` kernel zeroing every node
+every substep. The grid update is the last reader of the P2G accumulators, so it now zeroes
+the nodes it consumed itself; together with the active-tile flags (below) the grid work
+follows the snow instead of the domain. See [09-performance-analysis.md](09-performance-analysis.md) §9.1.
 
 ## Bindings (shared by all)
 
@@ -36,6 +40,9 @@ and would force it to end and restart every substep.
 5  storage    state          SimState              read_write, atomics
 6  storage    density_raster array<atomic<u32>>    read_write
 7  storage    output_texture rgba8unorm            write
+8  storage    column_floor   array<i32>            read_write (written by prepare)
+9  storage    grid_velocity  array<vec4f>          read_write (grid update → G2P)
+10 storage    tile_flags     array<atomic<u32>>    read_write (P2G → grid update)
 ```
 
 Unused bindings in a given kernel are fine; the reverse (using something not in the layout)
@@ -50,7 +57,7 @@ Three files carry no entry point; kernels `///use` them.
 | Module | Provides | Used by |
 |---|---|---|
 | `mpm_common` | bindings, structs, terrain sampling, B-spline kernel, SVD, matrix helpers | all |
-| `mpm_material` | `material_initial_state()`, `material_stress()`, `material_plasticity()` — a `switch` on `settings.constitutive_model` over `mpm_material_stomakhin` / `mpm_material_drucker_prager` / `mpm_material_ccc` | seed, p2g, g2p, splat |
+| `mpm_material` | `material_initial_state()`, `material_plasticity()` (which also returns τ = P·Fᵀ of the returned state) — a `switch` on `settings.constitutive_model` over `mpm_material_stomakhin` / `mpm_material_drucker_prager` / `mpm_material_ccc` | seed, g2p, splat |
 | `mpm_friction` | `resolve_terrain_collision(v, n, apply_basal_drag)` — a `switch` on `settings.basal_friction_model`; Coulomb, Voellmy | grid_update (`true`), g2p (`false`) |
 
 `mpm_material` and `mpm_friction` are separate on purpose: internal friction (M, inside the
@@ -91,11 +98,6 @@ Stomakhin — the initial state is model-dependent, which is why it is a dispatc
 
 Uses `///use random` (PCG hash from the existing `random.wgsl`).
 
-## `mpm_clear_grid` — 256×1×1, over grid nodes
-
-Zeroes mass and the three momentum components. Trivial, but see the note above on why it is
-a kernel.
-
 ## `mpm_p2g` — 256×1×1, over particles
 
 Stage 1. Skips `mass <= 0`.
@@ -103,9 +105,10 @@ Stage 1. Skips `mass <= 0`.
 ```
 gp     = to_grid_space(position)
 kernel = compute_kernel(gp)
-stress = material_stress(F, plastic_state)      # dispatches on settings.constitutive_model
+mark_tiles(kernel.base.xy)                      # flag the ≤ 4 tiles of 8×8 columns the stencil reaches
+tau    = particle_kirchhoff(p)                  # P·Fᵀ, stored by the previous G2P — no SVD here
 
-stress_term = −dt · volume · (4/dx²) · stress
+stress_term = −dt · particle_volume · (4/dx²) · tau
 affine      = stress_term + mass · C
 
 for offset in 3×3×3:
@@ -123,29 +126,34 @@ for the blow-up that truncation caused.
 The single `affine · dpos` product is the MLS-MPM payoff — no separate weight-gradient force
 term (Hu et al. [3]).
 
-27 nodes × 4 atomics (+1 on a mass carry, rare) = **108 atomic adds per particle per substep**. This is the hot loop.
+27 nodes × 4 atomics (+1 on a mass carry, rare) = **108 atomic adds per particle per substep**. This is the hot loop — and with
+hundreds of particles per cell, the atomics to the same node serialise ([09-performance-analysis.md](09-performance-analysis.md) §2.2).
 
-## `mpm_grid_update` — 4×4×4, over (x, y, layer)
+## `mpm_grid_update` — 8×8×1, one workgroup per tile of columns
 
-Stage 2. The dispatch's z is the layer within the column's band, not an altitude.
+Stage 2. Each thread owns one column and walks its layers (the band, not altitudes).
 
 ```
-cell  = layer · res.x · res.y + column(x, y)
-mass = node_mass(cell)                                 # (hi · 2^32 + lo) / 2^20
-if mass <= 0:  zero the velocity slots and return      # so G2P never reads stale data
-v = momentum / mass
+thread 0: active = tile_flags[tile];  workgroupUniformLoad → all threads
+if !active: return                                     # no particle touched this tile this substep
+thread 0: tile_flags[tile] = 0                         # P2G of the next substep flags it again
+for layer in 0 .. res.z:
+    cell = layer · res.x · res.y + column(x, y)
+    read mass (lo/hi) and momentum; zero them unless already zero   # replaces the clear pass
+    if mass <= 0:  grid_velocity[cell] = 0; continue
+    v = momentum / mass
 v.z −= gravity · dt
 
 world = column_node_world(node_xy, layer)             # altitude = (column_floor + layer) · dx
 if world.z < terrain_height(world.xy):
     v = resolve_terrain_collision(v, terrain_normal(world.xy), true)   # basal drag applied here
 
-clamp at domain walls (2-node margin, only blocks outflow)
-store v back into the momentum slots
+    clamp at domain walls (2-node margin, only blocks outflow)
+    grid_velocity[cell] = v                            # plain floats for G2P
 ```
 
-Velocity is written into the momentum slots — G2P then reads nodes as plain velocities. The
-explicit zeroing of empty nodes is what makes that safe.
+Nodes outside flagged tiles are never visited: their accumulators are still zero from the
+last time they were consumed, and no particle's stencil reads their velocity this substep.
 
 ## `mpm_g2p` — 256×1×1, over particles
 
@@ -158,7 +166,7 @@ for offset in 3×3×3:
     C_new += 4·(1/dx) · w · outer(node_velocity, dpos)
 
 F_trial = (I + dt·C_new) · F
-F, plastic_state = material_plasticity(F_trial, plastic_state)
+F, plastic_state, tau = material_plasticity(F_trial, plastic_state)   # tau from the same SVD, stored for P2G
 position += dt · v_new
 
 if position.z < terrain_height:              # particle-level collision

@@ -157,7 +157,8 @@ P Fᵀ   = 2μ (F − R) Fᵀ + λ J (J−1) I
 ```
 
 First term = deviatoric (shear) response, second = volumetric. Implemented in
-`stomakhin_stress()` and `stomakhin_plasticity()` in `mpm_material_stomakhin.wgsl`, reached
+`stomakhin_kirchhoff()` (in the principal frame, U diag(2μ(σ²−σ) + λJ(J−1)) Uᵀ, since
+(F − R)Fᵀ = U(Σ − I)ΣUᵀ) and `stomakhin_plasticity()` in `mpm_material_stomakhin.wgsl`, reached
 through the dispatcher in `mpm_material.wgsl` (see [03-shaders.md](03-shaders.md)).
 
 **Paper parameter values** (Stomakhin et al. [5], table 1) are the defaults in the code:

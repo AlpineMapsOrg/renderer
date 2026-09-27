@@ -6,11 +6,11 @@
 |---|---|---|
 | `domain_size_xy` | 1024 m (preset: 4000) | Simulated box. **Clamped to the tiled region** — bigger needs a bigger `GeoRegionNode.extent` (preset: 8000 m). |
 | `grid_resolution_xy` | 64 (preset: 320) | With domain size, sets `dx`. Memory and grid work are `res² × layers`. |
-| `grid_layers` | 16 | Node layers stored above the terrain per column (the grid follows the surface). Headroom for piles and terrain steps, not the relief. 12–16 is plenty; `dx × layers` is the maximum pile height. |
-| `dt` | 0.01 s | CFL bound. Too large = explosion. |
+| `grid_layers` | 12 (was 16) | Node layers stored above the terrain per column (the grid follows the surface). Headroom for piles and terrain steps, not the relief. 10–16 is plenty; the pile headroom is `dx × (layers − 4.5)`. |
+| `dt` | 0.01 s (preset: 0.02) | CFL bound. Too large = explosion. Stomakhin at 12.5 m cells is fine up to at least 0.03 (09-performance-analysis.md §8.4). |
 | `substeps_per_run` | 32 (preset: 24) | Simulated time per node execution = `dt × substeps`; the overlay and the readback update once per run. |
-| `substeps_per_submit` | 2 | Chunk size the run is submitted in. WebGPU has one queue, so rendering and simulation take turns on the GPU; small chunks keep the view smooth, one big chunk maximises simulated time per second. See "Cost". |
-| `num_particles` | 65536 (preset: 131072) | Flow resolution. Cost is linear. |
+| `substeps_per_submit` | 2 | Chunk size the run is submitted in. WebGPU has one queue, so rendering and simulation take turns on the GPU; small chunks keep the view smooth, one big chunk maximises simulated time per second. **Set automatically by the panel's Pacing** unless it is Manual. See "Cost". |
+| `num_particles` | 65536 (preset: 131072 → 65536) | Mostly visual density: even 32k is > 100 particles per 12.5 m cell. Cost is linear, P2G contention worse than linear. Panel: **Detail** Low / Medium / High. |
 | `release_radius` | 120 m | Start-zone size, independent of the domain. |
 | `slab_thickness` | 1.5 m | Depth of released snow. |
 | `youngs_modulus` | 1.4e5 Pa | Stiffness, **shared by all models**. Drives the CFL bound via wave speed. Li 2021 uses 3 MPa. |
@@ -57,7 +57,7 @@ dt  ≲ 0.1 · dx / c
 ```
 
 The panel computes and displays this, and warns in orange when `dt` exceeds it. At dx = 12.5 m
-that gives dt ≲ 0.067 s, so the 0.01 s default has comfortable margin.
+that gives dt ≲ 0.067 s, so the preset's 0.02 s still has a 3× margin.
 
 Raising E raises the wave speed and *lowers* the allowed dt — stiffer snow is more expensive,
 not just different.
@@ -101,6 +101,12 @@ Worth stating plainly in the report: at avalanche scale, the interesting limitat
 **resolution**, not the constitutive model.
 
 ## Cost
+
+> **Superseded in part (2026-09-27):** the kernels no longer clear or update the whole grid
+> every substep, P2G no longer runs an SVD, and the panel now paces substeps per frame from
+> measured GPU time. The numbers below are the *old* kernels on the M5 and remain the
+> baseline; the new analysis, the benchmark and the A/B results are in
+> [09-performance-analysis.md](09-performance-analysis.md).
 
 Measured on an Apple M5 (08-domain-size-options.md §5), per run of 24 substeps:
 
@@ -158,12 +164,13 @@ Reuse an existing pad float if the size allows — that avoids touching the layo
 ### Adding a constitutive model
 
 The material law is behind a runtime dispatcher (`mpm_material.wgsl`), selected by
-`settings.constitutive_model`. A model is three functions and nothing else:
+`settings.constitutive_model`. A model is two functions and nothing else:
 
 ```
 <name>_initial_state() -> f32                      plastic state of a fresh particle
-<name>_stress(F, state) -> mat3x3f                 P·Fᵀ for the MLS-MPM force term
-<name>_plasticity(F_trial, state) -> PlasticReturn  return mapping after the elastic predictor
+<name>_plasticity(F_trial, state) -> PlasticReturn  return mapping after the elastic predictor;
+                                                   PlasticReturn.kirchhoff = P·Fᵀ of the returned
+                                                   state, from the same SVD (stored for P2G)
 ```
 
 Per-particle plastic state is **one `f32`** whose meaning the model defines (Stomakhin: Jp;
@@ -173,10 +180,10 @@ model genuinely needs more, that is a `Particle` layout change — think twice.
 E and ν (`mu_0`, `lambda_0`) are **shared** by every model. Don't add per-model stiffness
 fields; put per-model recommended values in presets.
 
-1. `webgpu/compute/shaders/mpm_material_<name>.wgsl` — the three functions, `///use mpm_common`
+1. `webgpu/compute/shaders/mpm_material_<name>.wgsl` — the two functions, `///use mpm_common`
    at the top. Model parameters are read from `settings.*`; add them per the recipe above.
 2. `mpm_material.wgsl` — `///use` the new file, add a `MATERIAL_<NAME>` constant, add a
-   `case` to each of the three switches.
+   `case` to each of the two switches.
 3. `MpmSolverNode.h` — a value in `enum ConstitutiveModel`, same number as the WGSL constant.
 4. `MpmSolverNodeRenderer.cpp` and `AvalanchePanel.cpp` — append to the `Combo` string (**in
    enum order** — the combo index *is* the enum value) and show the model's parameters under

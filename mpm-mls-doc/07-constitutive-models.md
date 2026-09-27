@@ -296,6 +296,10 @@ mpm_material_drucker_prager.wgsl  dp_stress(), dp_plasticity()
 mpm_material.wgsl                 material_stress(), material_plasticity()  — the dispatcher
 ```
 
+*(2026-09-27: the `*_stress()` functions became `*_kirchhoff(U, …)` helpers called at the end of
+each `*_plasticity()`, which now also returns τ = P·Fᵀ; `material_stress()` is gone. P2G reads τ
+from the particle instead of running a second SVD — 09-performance-analysis.md §9.1.)*
+
 Each model file is self-contained and `///use`d by the dispatcher. `mpm_p2g` / `mpm_g2p` call
 only the dispatcher. **Adding a model = one new file + one `case` + one enum entry + one
 combo item.** Same for `mpm_friction.wgsl` dispatching Coulomb / Voellmy.
