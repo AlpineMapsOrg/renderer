@@ -310,9 +310,10 @@ void AvalanchePanel::apply_pacing(nodes::MpmSolverNode& solver)
     const uint32_t tolerance = std::max(1u, current / 8u);
     if (target + tolerance <= current || target >= current + tolerance) {
         settings.substeps_per_submit = target;
-        // A run is never split into more chunks than it has substeps; let it grow so the
-        // budget is actually used on a fast GPU.
-        settings.substeps_per_run = std::max(settings.substeps_per_run, target);
+        // At least two chunks per run: the node keeps two chunks in flight, and a run that is
+        // a single chunk leaves the GPU idle until the next frame starts the next run. 24
+        // substeps keep the overlay and the diagnostics updating several times per second.
+        settings.substeps_per_run = std::max(2u * target, 24u);
     }
 }
 
@@ -481,13 +482,13 @@ void AvalanchePanel::draw_panel()
                           "cost. Changing it restarts the simulation.");
 
     const uint32_t min_substeps = 1, max_substeps = 512;
-    settings_changed |= ImGui::DragScalar("Substeps per run", ImGuiDataType_U32, &settings.substeps_per_run, 1.0f, &min_substeps, &max_substeps, "%u");
     ImGui::BeginDisabled(m_pacing != Pacing::Manual);
+    settings_changed |= ImGui::DragScalar("Substeps per run", ImGuiDataType_U32, &settings.substeps_per_run, 1.0f, &min_substeps, &max_substeps, "%u");
     settings_changed |= ImGui::DragScalar("Substeps per frame", ImGuiDataType_U32, &settings.substeps_per_submit, 1.0f, &min_substeps, &max_substeps, "%u");
     ImGui::EndDisabled();
     if (ImGui::IsItemHovered(ImGuiHoveredFlags_AllowWhenDisabled))
         ImGui::SetTooltip("A run is submitted in chunks of this many substeps, one per frame: fewer = smoother view,\n"
-                          "less simulated time per second. Set automatically unless Pacing is Manual.");
+                          "less simulated time per second. Both are set automatically unless Pacing is Manual.");
     settings_changed |= ImGui::DragFloat("Time step", &settings.dt, 0.0005f, 0.0001f, 0.5f, "%.4f s");
     settings_changed |= ImGui::DragFloat("Splat radius", &settings.splat_radius, 0.25f, 0.0f, 64.0f, "%.1f m");
 
