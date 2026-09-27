@@ -20,6 +20,7 @@
 
 #include "ui/ImGuiPanel.h"
 
+#include <chrono>
 #include <glm/glm.hpp>
 #include <string>
 #include <vector>
@@ -97,6 +98,20 @@ public:
         float ccc_p0_initial;
     };
 
+    /// How much of each frame the simulation may take. The GPU has one queue, so every
+    /// millisecond of simulation per frame is a millisecond the rendered frame waits.
+    /// The automatic modes pick the substeps per frame from the solver's measured GPU time
+    /// per substep; Manual leaves the "Substeps per frame" setting alone.
+    enum class Pacing : int { Manual = 0, Smooth, Balanced, Fast };
+
+    /// Resolution presets: particle count and grid band height, the two knobs that decide
+    /// the GPU cost (see 09-performance-analysis.md). Domain and cell size stay per scenario.
+    struct DetailPreset {
+        const char* name;
+        uint32_t particles;
+        uint32_t grid_layers;
+    };
+
     explicit AvalanchePanel(NodeGraphPanel* graph_panel);
 
     // Loads the MLS-MPM graph and applies the remembered scenario when autostart is on.
@@ -130,6 +145,11 @@ private:
     void save_startup_settings() const;
     void draw_startup_settings();
 
+    /// Sets substeps per frame from the GPU budget of the pacing mode. Called every frame
+    /// while playing; cheap, and a no-op until the solver has timed a chunk.
+    void apply_pacing(webgpu_compute::nodes::MpmSolverNode& solver);
+    void draw_performance(webgpu_compute::nodes::MpmSolverNode& solver);
+
 private:
     NodeGraphPanel* m_graph_panel;
     bool m_playing = false;
@@ -144,6 +164,13 @@ private:
 
     std::vector<MaterialPreset> m_material_presets;
     int m_selected_material_preset = 0; // 0 = custom (no preset active)
+
+    Pacing m_pacing = Pacing::Balanced;
+
+    /* Simulated seconds per wall-clock second, measured over ~1 s windows while playing. */
+    std::chrono::steady_clock::time_point m_speed_window_start;
+    float m_speed_window_sim_time = -1.0f;
+    float m_sim_speed = 0.0f;
 };
 
 } // namespace webgpu_app

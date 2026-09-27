@@ -71,6 +71,31 @@ AvalanchePanel::AvalanchePanel(NodeGraphPanel* graph_panel)
 
 namespace {
 constexpr const char* MPM_GRAPH_PRESET = ":/graphs/mpm_avalanche_simulation.json";
+
+// Particles per cell are far above the 8 of Li et al. 2021 at every level (a 100 m release
+// disc at 12.5 m cells is ~200 columns), so fewer particles mostly thin the rendered cloud
+// rather than coarsen the mechanics. 12 layers still leave ~90 m of headroom above the
+// terrain at 12.5 m cells. See 09-performance-analysis.md, "Defaults".
+constexpr AvalanchePanel::DetailPreset DETAIL_PRESETS[] = {
+    { "Low (fast)", 32768u, 10u },
+    { "Medium", 65536u, 12u },
+    { "High", 131072u, 16u },
+};
+
+// GPU milliseconds per frame the simulation may use, per pacing mode.
+float pacing_budget_ms(AvalanchePanel::Pacing pacing)
+{
+    switch (pacing) {
+    case AvalanchePanel::Pacing::Smooth:
+        return 6.0f; // leaves a 60 Hz frame room for the terrain
+    case AvalanchePanel::Pacing::Balanced:
+        return 14.0f; // ~30 fps on a GPU that renders the terrain in a few ms
+    case AvalanchePanel::Pacing::Fast:
+        return 30.0f; // simulation first, ~20 fps
+    default:
+        return 0.0f;
+    }
+}
 #ifndef __EMSCRIPTEN__
 constexpr const char* SETTINGS_ORGANISATION = "weBIGeo";
 constexpr const char* SETTINGS_APPLICATION = "avalanche";
@@ -97,6 +122,7 @@ void AvalanchePanel::load_startup_settings()
     QSettings settings(SETTINGS_ORGANISATION, SETTINGS_APPLICATION);
     m_autostart = settings.value("startup/autostart", false).toBool();
     m_autoplay = settings.value("startup/autoplay", false).toBool();
+    m_pacing = Pacing(std::clamp(settings.value("playback/pacing", int(Pacing::Balanced)).toInt(), 0, int(Pacing::Fast)));
     m_selected_scenario = std::clamp(settings.value("startup/scenario", 0).toInt(), 0, int(m_scenarios.size()) - 1);
     m_selected_material_preset = std::clamp(settings.value("startup/material_preset", 0).toInt(), 0, int(m_material_presets.size()) - 1);
 #endif
@@ -110,6 +136,7 @@ void AvalanchePanel::save_startup_settings() const
     settings.setValue("startup/autoplay", m_autoplay);
     settings.setValue("startup/scenario", m_selected_scenario);
     settings.setValue("startup/material_preset", m_selected_material_preset);
+    settings.setValue("playback/pacing", int(m_pacing));
 #endif
 }
 
@@ -242,17 +269,67 @@ void AvalanchePanel::draw()
             m_autoplay_pending = false;
         }
     }
-    if (!m_playing)
+    if (!m_playing) {
+        m_speed_window_sim_time = -1.0f; // a pause must not count as slow simulation
         return;
+    }
 
     auto* solver = find_solver();
     if (solver == nullptr || !solver->has_valid_inputs()) {
         m_playing = false;
         return;
     }
+    apply_pacing(*solver);
+
+    // Simulation speed over ~1 s windows, for the readout.
+    const auto now = std::chrono::steady_clock::now();
+    if (m_speed_window_sim_time < 0.0f || solver->simulated_time() < m_speed_window_sim_time) {
+        m_speed_window_start = now;
+        m_speed_window_sim_time = solver->simulated_time();
+    } else if (const float wall = std::chrono::duration<float>(now - m_speed_window_start).count(); wall >= 1.0f) {
+        m_sim_speed = (solver->simulated_time() - m_speed_window_sim_time) / wall;
+        m_speed_window_start = now;
+        m_speed_window_sim_time = solver->simulated_time();
+    }
+
     // is_running() keeps runs from piling up when the GPU falls behind the frame rate.
     if (!solver->is_running())
         solver->rerun();
+}
+
+void AvalanchePanel::apply_pacing(nodes::MpmSolverNode& solver)
+{
+    const float per_substep = solver.perf_stats().gpu_ms_per_substep;
+    if (m_pacing == Pacing::Manual || per_substep <= 0.0f)
+        return;
+
+    auto& settings = solver.settings();
+    const uint32_t target = std::clamp(uint32_t(pacing_budget_ms(m_pacing) / per_substep), 1u, 64u);
+    // Hysteresis: the timing jitters by a few percent, and every change moves the frame time.
+    const uint32_t current = std::max(settings.substeps_per_submit, 1u);
+    const uint32_t tolerance = std::max(1u, current / 8u);
+    if (target + tolerance <= current || target >= current + tolerance) {
+        settings.substeps_per_submit = target;
+        // A run is never split into more chunks than it has substeps; let it grow so the
+        // budget is actually used on a fast GPU.
+        settings.substeps_per_run = std::max(settings.substeps_per_run, target);
+    }
+}
+
+void AvalanchePanel::draw_performance(nodes::MpmSolverNode& solver)
+{
+    const auto& perf = solver.perf_stats();
+    const auto& settings = solver.get_settings();
+    if (m_playing && m_sim_speed > 0.0f)
+        ImGui::TextDisabled("Speed: %.2fx real time, %u substeps/frame", double(m_sim_speed), settings.substeps_per_submit);
+    if (perf.gpu_ms_per_substep > 0.0f)
+        ImGui::TextDisabled("GPU: %.2f ms/substep, %.0f ms/run, %.0f MiB", double(perf.gpu_ms_per_substep), double(perf.mean_run_ms),
+            double(perf.gpu_bytes) / (1024.0 * 1024.0));
+    else if (perf.gpu_bytes > 0)
+        ImGui::TextDisabled("%.0f ms/run, %.0f MiB on the GPU", double(perf.mean_run_ms), double(perf.gpu_bytes) / (1024.0 * 1024.0));
+    if (ImGui::IsItemHovered())
+        ImGui::SetTooltip("GPU time per MPM substep (timestamp queries on the solver's own pass), wall time\n"
+                          "per run including frame waits, and the solver's own GPU buffers.");
 }
 
 void AvalanchePanel::draw_panel()
@@ -369,15 +446,48 @@ void AvalanchePanel::draw_panel()
         step_now = true;
     }
 
+    draw_performance(*solver);
+
     ImGui::Separator();
+
+    // --- Playback speed and detail ---
+    if (ImGui::Combo("Pacing", reinterpret_cast<int*>(&m_pacing), "Manual\0Smooth (60 fps)\0Balanced (30 fps)\0Fast simulation\0"))
+        save_startup_settings();
+    if (ImGui::IsItemHovered())
+        ImGui::SetTooltip("The GPU has one queue, so simulation and rendering take turns. The automatic modes give\n"
+                          "the simulation a fixed GPU budget per frame (6 / 14 / 30 ms) and pick the substeps per\n"
+                          "frame from the measured cost of one substep. Manual uses the value below as is.");
+
+    int detail = -1;
+    for (int i = 0; i < int(std::size(DETAIL_PRESETS)); i++) {
+        if (settings.num_particles == DETAIL_PRESETS[i].particles && settings.grid_layers == DETAIL_PRESETS[i].grid_layers)
+            detail = i;
+    }
+    const char* detail_label = detail >= 0 ? DETAIL_PRESETS[detail].name : "(custom)";
+    if (ImGui::BeginCombo("Detail", detail_label)) {
+        for (int i = 0; i < int(std::size(DETAIL_PRESETS)); i++) {
+            if (ImGui::Selectable(DETAIL_PRESETS[i].name, i == detail)) {
+                settings.num_particles = DETAIL_PRESETS[i].particles;
+                settings.grid_layers = DETAIL_PRESETS[i].grid_layers;
+                settings.reset_on_next_run = true; // reallocates the particle and grid buffers
+                settings_changed = true;
+                step_now = true;
+            }
+        }
+        ImGui::EndCombo();
+    }
+    if (ImGui::IsItemHovered())
+        ImGui::SetTooltip("Particle count and grid layers above the terrain - the two settings that decide the GPU\n"
+                          "cost. Changing it restarts the simulation.");
 
     const uint32_t min_substeps = 1, max_substeps = 512;
     settings_changed |= ImGui::DragScalar("Substeps per run", ImGuiDataType_U32, &settings.substeps_per_run, 1.0f, &min_substeps, &max_substeps, "%u");
+    ImGui::BeginDisabled(m_pacing != Pacing::Manual);
     settings_changed |= ImGui::DragScalar("Substeps per frame", ImGuiDataType_U32, &settings.substeps_per_submit, 1.0f, &min_substeps, &max_substeps, "%u");
-    if (ImGui::IsItemHovered())
-        ImGui::SetTooltip("The GPU has one queue, so simulation and rendering take turns. A run is submitted in\n"
-                          "chunks of this many substeps, one per frame: fewer = smoother view, less simulated\n"
-                          "time per second. Equal to substeps per run = the whole run in one go.");
+    ImGui::EndDisabled();
+    if (ImGui::IsItemHovered(ImGuiHoveredFlags_AllowWhenDisabled))
+        ImGui::SetTooltip("A run is submitted in chunks of this many substeps, one per frame: fewer = smoother view,\n"
+                          "less simulated time per second. Set automatically unless Pacing is Manual.");
     settings_changed |= ImGui::DragFloat("Time step", &settings.dt, 0.0005f, 0.0001f, 0.5f, "%.4f s");
     settings_changed |= ImGui::DragFloat("Splat radius", &settings.splat_radius, 0.25f, 0.0f, 64.0f, "%.1f m");
 

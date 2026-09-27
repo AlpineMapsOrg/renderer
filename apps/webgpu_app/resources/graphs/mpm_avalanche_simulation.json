@@ -165,8 +165,8 @@
             "settings": {
                 "domain_size_xy": 4000.0,
                 "grid_resolution_xy": 320,
-                "grid_layers": 16,
-                "num_particles": 131072,
+                "grid_layers": 12,
+                "num_particles": 65536,
                 "slab_thickness": 1.5,
                 "snow_density": 400.0,
                 "dt": 0.01,
