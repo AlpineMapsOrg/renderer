@@ -31,21 +31,20 @@
 
 fn stomakhin_initial_state() -> f32 { return 1.0; }
 
-// First Piola-Kirchhoff stress premultiplied by F^T, as required by the MLS-MPM force term.
-fn stomakhin_stress(f_elastic: mat3x3f, jp: f32) -> mat3x3f {
-    let svd = svd3(f_elastic);
-
+// Kirchhoff stress tau = P F^T of the elastic state F = U diag(sigma) V^T, as required by the
+// MLS-MPM force term. Fixed corotated: P = 2 mu (F - R) + lambda J (J - 1) F^-T with R = U V^T,
+// so (F - R) F^T = U (Sigma - I) Sigma U^T and tau is diagonal in the frame of U - no second
+// SVD needed, the return mapping hands over the one it has just done.
+fn stomakhin_kirchhoff(u: mat3x3f, sigma: vec3f, jp: f32) -> mat3x3f {
     // Hardening: compacted snow (jp < 1) becomes stiffer.
     let h = clamp(exp(settings.hardening * (1.0 - jp)), 0.05, 20.0);
     let mu = settings.mu_0 * h;
     let lambda = settings.lambda_0 * h;
 
-    let r = svd.u * transpose(svd.v); // rotational part of F
-    let j = svd.sigma.x * svd.sigma.y * svd.sigma.z;
-
-    let deviatoric = 2.0 * mu * (f_elastic - r) * transpose(f_elastic);
+    let j = sigma.x * sigma.y * sigma.z;
+    let deviatoric = 2.0 * mu * (sigma - vec3f(1.0)) * sigma;
     let volumetric = lambda * j * (j - 1.0);
-    return deviatoric + identity3() * volumetric;
+    return from_principal(u, deviatoric + vec3f(volumetric));
 }
 
 // Push the elastic deformation gradient back into the admissible range and move the
@@ -62,6 +61,7 @@ fn stomakhin_plasticity(f_trial: mat3x3f, jp: f32) -> PlasticReturn {
 
     var result: PlasticReturn;
     result.plastic_state = clamp(jp * ratio, 0.05, 20.0);
-    result.f_elastic = svd.u * mat3x3f(vec3f(clamped.x, 0, 0), vec3f(0, clamped.y, 0), vec3f(0, 0, clamped.z)) * transpose(svd.v);
+    result.f_elastic = svd.u * diag3(clamped) * transpose(svd.v);
+    result.kirchhoff = stomakhin_kirchhoff(svd.u, clamped, result.plastic_state);
     return result;
 }

@@ -17,7 +17,6 @@
  *****************************************************************************/
 
 ///use mpm_common
-///use mpm_material
 
 // Stage 1 of the MPM step: scatter particle mass and momentum onto the background grid.
 // Uses the MLS-MPM formulation of Hu et al. [3], where the internal force and the APIC
@@ -39,13 +38,12 @@ fn computeMain(@builtin(global_invocation_id) id: vec3<u32>) {
 
     let grid_pos = to_grid_space(p.position);
     let k = compute_kernel(grid_pos);
+    mark_tiles(k.base.xy);
 
-    let f_elastic = particle_f(p);
-    let stress = material_stress(f_elastic, p.plastic_state);
-
-    // MLS-MPM force term: -dt * V0 * (4 / dx^2) * (P F^T)
+    // MLS-MPM force term: -dt * V0 * (4 / dx^2) * (P F^T). P F^T was computed by the previous
+    // G2P from the SVD of its return mapping (see mpm_material.wgsl), so no SVD here.
     let inv_dx = 1.0 / settings.dx;
-    let stress_term = -settings.dt * p.volume * (4.0 * inv_dx * inv_dx) * stress;
+    let stress_term = -settings.dt * settings.particle_volume * (4.0 * inv_dx * inv_dx) * particle_kirchhoff(p);
     let affine = stress_term + p.mass * particle_c(p);
 
     for (var i = 0; i < 3; i++) {

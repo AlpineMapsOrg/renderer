@@ -70,16 +70,11 @@ fn ccc_initial_state() -> f32 {
 
 fn ccc_hencky_strain(sigma: vec3f) -> vec3f { return log(clamp(sigma, vec3f(1e-3), vec3f(1e3))); }
 
-fn ccc_diag(v: vec3f) -> mat3x3f { return mat3x3f(vec3f(v.x, 0, 0), vec3f(0, v.y, 0), vec3f(0, 0, v.z)); }
-
 // P F^T for Hencky elasticity - identical to the Drucker-Prager stress; only the yield
-// surface differs between the two models.
-fn ccc_stress(f_elastic: mat3x3f, alpha: f32) -> mat3x3f {
-    let svd = svd3(f_elastic);
-    let eps = ccc_hencky_strain(svd.sigma);
+// surface differs between the two models. Takes the principal Hencky strain.
+fn ccc_kirchhoff(u: mat3x3f, eps: vec3f) -> mat3x3f {
     let trace = eps.x + eps.y + eps.z;
-    let tau = 2.0 * settings.mu_0 * eps + vec3f(settings.lambda_0 * trace);
-    return svd.u * ccc_diag(tau) * transpose(svd.u);
+    return from_principal(u, 2.0 * settings.mu_0 * eps + vec3f(settings.lambda_0 * trace));
 }
 
 fn ccc_plasticity(f_trial: mat3x3f, alpha: f32) -> PlasticReturn {
@@ -124,7 +119,8 @@ fn ccc_plasticity(f_trial: mat3x3f, alpha: f32) -> PlasticReturn {
     }
 
     var result: PlasticReturn;
-    result.f_elastic = svd.u * ccc_diag(exp(new_eps)) * transpose(svd.v);
+    result.f_elastic = svd.u * diag3(exp(new_eps)) * transpose(svd.v);
     result.plastic_state = new_alpha;
+    result.kirchhoff = ccc_kirchhoff(svd.u, new_eps);
     return result;
 }

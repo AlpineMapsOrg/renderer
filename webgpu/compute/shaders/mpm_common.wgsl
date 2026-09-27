@@ -79,23 +79,28 @@ struct MpmSettings {
     ccc_p0_initial: f32, // Cam-Clay: initial consolidation pressure [Pa]
 }
 
+// The six scalars in the vec3 padding hold the Kirchhoff stress tau = P F^T of the particle's
+// current elastic state (symmetric for every model here, so six components). G2P computes it
+// from the SVD the return mapping has just done, and P2G of the next substep only reads it -
+// one SVD per particle and substep instead of two. The particle volume is not stored: it is
+// the same for every particle (settings.particle_volume, mass is normalised to 1).
 struct Particle {
     position: vec3f,
     mass: f32, // 0 marks an inactive particle
     velocity: vec3f,
     plastic_state: f32, // meaning depends on the constitutive model (Stomakhin: Jp)
     c0: vec3f, // rows of the APIC affine velocity matrix C
-    volume: f32,
+    tau_xx: f32,
     c1: vec3f,
-    _p1: f32,
+    tau_yy: f32,
     c2: vec3f,
-    _p2: f32,
+    tau_zz: f32,
     f0: vec3f, // rows of the elastic deformation gradient F
-    _p3: f32,
+    tau_xy: f32,
     f1: vec3f,
-    _p4: f32,
+    tau_xz: f32,
     f2: vec3f,
-    _p5: f32,
+    tau_yz: f32,
 }
 
 // Grid quantities are accumulated with fixed point atomics because WGSL has no atomic
@@ -119,7 +124,8 @@ const MASS_SCALE: f32 = 1048576.0; // 2^20
 struct GridNode {
     mass_lo: atomic<u32>, // 64-bit fixed point mass, MASS_SCALE (carry via atomicAdd's return)
     mass_hi: atomic<u32>,
-    vx: atomic<i32>, // momentum during P2G, then velocity - MOMENTUM_SCALE
+    vx: atomic<i32>, // momentum, MOMENTUM_SCALE. Zeroed again by the grid update, which
+                     // writes the node velocity to grid_velocity as plain floats.
     vy: atomic<i32>,
     vz: atomic<i32>,
 }
@@ -160,6 +166,7 @@ const SUM_SPEED_SQ_SCALE: f32 = 1.0e5; // 1e-5 m^2/s^2
 struct PlasticReturn {
     f_elastic: mat3x3f,
     plastic_state: f32,
+    kirchhoff: mat3x3f, // tau = P F^T at (f_elastic, plastic_state), for the next P2G
 }
 
 @group(0) @binding(0) var<uniform> settings: MpmSettings;
@@ -171,6 +178,8 @@ struct PlasticReturn {
 @group(0) @binding(6) var<storage, read_write> density_raster: array<atomic<u32>>;
 @group(0) @binding(7) var output_texture: texture_storage_2d<rgba8unorm, write>;
 @group(0) @binding(8) var<storage, read_write> column_floor: array<i32>; // per (x, y) column, see grid_slot()
+@group(0) @binding(9) var<storage, read_write> grid_velocity: array<vec4f>; // per node, written by the grid update, read by G2P
+@group(0) @binding(10) var<storage, read_write> tile_flags: array<atomic<u32>>; // per tile of columns, see mark_tiles()
 
 // ---------------------------------------------------------------------------------------
 // Fixed point helpers
@@ -267,6 +276,42 @@ fn grid_slot(node: vec3i) -> i32 {
     return layer * res.x * res.y + i32(column);
 }
 
+// ---------------------------------------------------------------------------------------
+// Active tiles
+// ---------------------------------------------------------------------------------------
+// The snow covers a small part of the domain - a release disc of 100 m in a 4 km box is
+// 0.2 % of the columns - yet a grid pass over every stored node costs as much as the whole
+// particle work. So the columns are grouped into TILE_SIZE x TILE_SIZE tiles; P2G flags the
+// tiles its stencil writes to, and the grid update runs one workgroup per tile and returns
+// at once for an unflagged one. The grid update is also the last reader of the P2G
+// accumulators, so it zeroes them there: nodes outside flagged tiles were never written and
+// are still zero, which is what makes a separate clear pass over the whole grid unnecessary.
+const TILE_SIZE: i32 = 8; // the grid update's workgroup is TILE_SIZE x TILE_SIZE columns
+
+fn tiles_x() -> u32 { return (settings.grid_res.x + u32(TILE_SIZE) - 1u) / u32(TILE_SIZE); }
+
+fn tile_index(node_xy: vec2i) -> u32 {
+    let tile = clamp(node_xy, vec2i(0), vec2i(settings.grid_res.xy) - vec2i(1)) / TILE_SIZE;
+    return u32(tile.y) * tiles_x() + u32(tile.x);
+}
+
+fn mark_tile(node_xy: vec2i) {
+    let tile = tile_index(node_xy);
+    // Most particles find their tile flagged already; the load keeps them from all writing.
+    if atomicLoad(&tile_flags[tile]) == 0u {
+        atomicStore(&tile_flags[tile], 1u);
+    }
+}
+
+// Flags every tile the 3 x 3 column stencil starting at base_xy reaches. The stencil is
+// narrower than a tile, so its corners cover all (at most four) of them.
+fn mark_tiles(base_xy: vec2i) {
+    mark_tile(base_xy);
+    mark_tile(base_xy + vec2i(2, 0));
+    mark_tile(base_xy + vec2i(0, 2));
+    mark_tile(base_xy + vec2i(2, 2));
+}
+
 // Particle world position -> continuous grid coordinates (z absolute, in cells).
 fn to_grid_space(position: vec3f) -> vec3f {
     return vec3f((position.xy - settings.domain_origin) / settings.dx, position.z / settings.dx);
@@ -339,6 +384,25 @@ fn store_f(p: ptr<function, Particle>, m: mat3x3f) {
     (*p).f1 = vec3f(m[0][1], m[1][1], m[2][1]);
     (*p).f2 = vec3f(m[0][2], m[1][2], m[2][2]);
 }
+
+fn particle_kirchhoff(p: Particle) -> mat3x3f {
+    return mat3x3f(vec3f(p.tau_xx, p.tau_xy, p.tau_xz), vec3f(p.tau_xy, p.tau_yy, p.tau_yz), vec3f(p.tau_xz, p.tau_yz, p.tau_zz));
+}
+
+// Stores the symmetric part; every model's tau is U diag(.) U^T and hence symmetric.
+fn store_kirchhoff(p: ptr<function, Particle>, m: mat3x3f) {
+    (*p).tau_xx = m[0][0];
+    (*p).tau_yy = m[1][1];
+    (*p).tau_zz = m[2][2];
+    (*p).tau_xy = 0.5 * (m[1][0] + m[0][1]);
+    (*p).tau_xz = 0.5 * (m[2][0] + m[0][2]);
+    (*p).tau_yz = 0.5 * (m[2][1] + m[1][2]);
+}
+
+fn diag3(v: vec3f) -> mat3x3f { return mat3x3f(vec3f(v.x, 0, 0), vec3f(0, v.y, 0), vec3f(0, 0, v.z)); }
+
+// U diag(d) U^T - a principal-frame stress rotated back to world space.
+fn from_principal(u: mat3x3f, d: vec3f) -> mat3x3f { return u * diag3(d) * transpose(u); }
 
 // ---------------------------------------------------------------------------------------
 // 3x3 signed SVD

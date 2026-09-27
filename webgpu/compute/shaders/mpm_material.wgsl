@@ -23,12 +23,18 @@
 
 // Constitutive model dispatcher.
 //
-// The MPM loop touches the material law in exactly three places, and every model has to
-// provide these three functions:
+// The MPM loop touches the material law in exactly two places, and every model has to
+// provide these two functions:
 //
 //   <model>_initial_state()          plastic state a freshly seeded particle starts with
-//   <model>_stress(F, state)         P F^T, consumed by the MLS-MPM force term in P2G
-//   <model>_plasticity(F_trial, s)   return mapping after the elastic predictor in G2P
+//   <model>_plasticity(F_trial, s)   return mapping after the elastic predictor in G2P; also
+//                                    returns the Kirchhoff stress tau = P F^T of the result,
+//                                    which the particle stores for the MLS-MPM force term of
+//                                    the next P2G
+//
+// The stress used to be a third function evaluated in P2G, with its own SVD of F. Computing
+// it at the end of the return mapping reuses that SVD - the elastic state after the return
+// is U diag(sigma') V^T with the very same U and V - which halves the SVDs per substep.
 //
 // The active model is selected at runtime through settings.constitutive_model. The branch
 // is on a uniform, so every particle takes the same path and there is no divergence cost -
@@ -41,7 +47,7 @@
 // per-model recommended values supplied by presets rather than by duplicated settings.
 //
 // Adding a model: one new mpm_material_<name>.wgsl, a ///use above, a case in each of the
-// three switches, an enum value in MpmSolverNode.h and a combo entry in the UI.
+// two switches, an enum value in MpmSolverNode.h and a combo entry in the UI.
 
 const MATERIAL_STOMAKHIN: u32 = 0u;
 const MATERIAL_DRUCKER_PRAGER: u32 = 1u;
@@ -57,20 +63,6 @@ fn material_initial_state() -> f32 {
         }
         default: {
             return stomakhin_initial_state();
-        }
-    }
-}
-
-fn material_stress(f_elastic: mat3x3f, plastic_state: f32) -> mat3x3f {
-    switch settings.constitutive_model {
-        case MATERIAL_DRUCKER_PRAGER: {
-            return dp_stress(f_elastic, plastic_state);
-        }
-        case MATERIAL_COHESIVE_CAM_CLAY: {
-            return ccc_stress(f_elastic, plastic_state);
-        }
-        default: {
-            return stomakhin_stress(f_elastic, plastic_state);
         }
     }
 }

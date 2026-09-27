@@ -20,31 +20,39 @@
 ///use mpm_friction
 
 // Stage 2 of the MPM step: turn accumulated momentum into velocity, apply gravity and
-// resolve boundary conditions (terrain and domain walls). The velocity is written back
-// into the momentum slots, so the G2P stage reads these nodes as plain velocities.
+// resolve boundary conditions (terrain and domain walls). The velocity goes to grid_velocity
+// as plain floats for G2P; the fixed-point accumulators are zeroed on the way out, because
+// this pass is their last reader - the next P2G finds a clean grid without a clear pass.
+//
+// One workgroup per TILE_SIZE x TILE_SIZE tile of columns, each thread walks its column's
+// layers. Tiles that no particle's stencil reached this substep (P2G flags them, see
+// mark_tiles() in mpm_common) return straight away: their accumulators are still zero and no
+// particle will read their velocities.
 
-@compute @workgroup_size(4, 4, 4)
-fn computeMain(@builtin(global_invocation_id) id: vec3<u32>) {
-    if any(id >= settings.grid_res) {
-        return;
-    }
+var<workgroup> tile_active: u32;
 
-    // id.z is the layer within the column's band, not an absolute z index.
-    let node_xy = vec2i(id.xy);
-    let layer = i32(id.z);
-    let cell = u32(layer) * settings.grid_res.x * settings.grid_res.y + column_index(node_xy);
+fn update_node(node_xy: vec2i, layer: i32, cell: u32) {
+    let mass_lo = atomicLoad(&grid[cell].mass_lo);
+    let mass_hi = atomicLoad(&grid[cell].mass_hi);
+    let momentum_fixed = vec3i(atomicLoad(&grid[cell].vx), atomicLoad(&grid[cell].vy), atomicLoad(&grid[cell].vz));
 
-    let mass = node_mass(cell);
-    if mass <= 0.0 {
-        // Empty node - make sure G2P never gathers stale velocity from it.
+    let untouched = mass_lo == 0u && mass_hi == 0u && all(momentum_fixed == vec3i(0));
+    if !untouched {
+        atomicStore(&grid[cell].mass_lo, 0u);
+        atomicStore(&grid[cell].mass_hi, 0u);
         atomicStore(&grid[cell].vx, 0);
         atomicStore(&grid[cell].vy, 0);
         atomicStore(&grid[cell].vz, 0);
+    }
+
+    let mass = (f32(mass_hi) * 4294967296.0 + f32(mass_lo)) / MASS_SCALE;
+    if mass <= 0.0 {
+        // Empty node - make sure G2P never gathers stale velocity from it.
+        grid_velocity[cell] = vec4f(0.0);
         return;
     }
 
-    let momentum = vec3f(from_fixed(atomicLoad(&grid[cell].vx)), from_fixed(atomicLoad(&grid[cell].vy)), from_fixed(atomicLoad(&grid[cell].vz)));
-
+    let momentum = vec3f(momentum_fixed) / MOMENTUM_SCALE;
     var velocity = momentum / mass;
     velocity.z -= settings.gravity * settings.dt; // z is altitude
 
@@ -64,7 +72,31 @@ fn computeMain(@builtin(global_invocation_id) id: vec3<u32>) {
     if node_xy.y >= res.y - 3 && velocity.y > 0.0 { velocity.y = 0.0; }
     if layer >= res.z - 3 && velocity.z > 0.0 { velocity.z = 0.0; }
 
-    atomicStore(&grid[cell].vx, to_fixed(velocity.x));
-    atomicStore(&grid[cell].vy, to_fixed(velocity.y));
-    atomicStore(&grid[cell].vz, to_fixed(velocity.z));
+    grid_velocity[cell] = vec4f(velocity, 0.0);
+}
+
+@compute @workgroup_size(8, 8, 1) // TILE_SIZE x TILE_SIZE
+fn computeMain(@builtin(global_invocation_id) id: vec3<u32>, @builtin(workgroup_id) group: vec3<u32>,
+    @builtin(local_invocation_index) local_index: u32) {
+    let tile = group.y * tiles_x() + group.x;
+    if local_index == 0u {
+        tile_active = atomicLoad(&tile_flags[tile]);
+    }
+    // Barrier included: every thread has the flag before thread 0 resets it below.
+    if workgroupUniformLoad(&tile_active) == 0u {
+        return;
+    }
+    if local_index == 0u {
+        atomicStore(&tile_flags[tile], 0u); // the next P2G flags it again if still needed
+    }
+
+    if any(id.xy >= settings.grid_res.xy) {
+        return;
+    }
+    let node_xy = vec2i(id.xy);
+    let column = column_index(node_xy);
+    let layer_stride = settings.grid_res.x * settings.grid_res.y;
+    for (var layer = 0u; layer < settings.grid_res.z; layer++) {
+        update_node(node_xy, i32(layer), layer * layer_stride + column);
+    }
 }

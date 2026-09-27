@@ -53,8 +53,7 @@ fn computeMain(@builtin(global_invocation_id) id: vec3<u32>) {
                 }
                 let cell = u32(slot);
 
-                let node_velocity
-                    = vec3f(from_fixed(atomicLoad(&grid[cell].vx)), from_fixed(atomicLoad(&grid[cell].vy)), from_fixed(atomicLoad(&grid[cell].vz)));
+                let node_velocity = grid_velocity[cell].xyz;
 
                 let weight = kernel_weight(k, offset);
                 let dpos = vec3f(offset) - k.fx; // in grid units
@@ -68,11 +67,13 @@ fn computeMain(@builtin(global_invocation_id) id: vec3<u32>) {
     p.velocity = new_velocity;
     store_c(&p, new_c);
 
-    // Elastic predictor, then return the deformation gradient to the admissible set.
+    // Elastic predictor, then return the deformation gradient to the admissible set. The
+    // return mapping also yields the stress of the new state, which the next P2G consumes.
     let f_trial = (identity3() + settings.dt * new_c) * particle_f(p);
     let plastic = material_plasticity(f_trial, p.plastic_state);
     store_f(&p, plastic.f_elastic);
     p.plastic_state = plastic.plastic_state;
+    store_kirchhoff(&p, plastic.kirchhoff);
 
     // Advection.
     p.position += settings.dt * p.velocity;

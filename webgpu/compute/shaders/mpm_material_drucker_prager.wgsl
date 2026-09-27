@@ -44,16 +44,11 @@ fn dp_initial_state() -> f32 { return 0.0; }
 // inverted element; the clamp treats that as extreme compression instead of producing NaN.
 fn dp_hencky_strain(sigma: vec3f) -> vec3f { return log(clamp(sigma, vec3f(1e-3), vec3f(1e3))); }
 
-fn dp_diag(v: vec3f) -> mat3x3f { return mat3x3f(vec3f(v.x, 0, 0), vec3f(0, v.y, 0), vec3f(0, 0, v.z)); }
-
 // P F^T = U diag(tau) U^T for the Hencky model - the Kirchhoff stress rotated back out of
-// the principal frame.
-fn dp_stress(f_elastic: mat3x3f, plastic_state: f32) -> mat3x3f {
-    let svd = svd3(f_elastic);
-    let eps = dp_hencky_strain(svd.sigma);
+// the principal frame. Takes the principal Hencky strain, which the return mapping has.
+fn dp_kirchhoff(u: mat3x3f, eps: vec3f) -> mat3x3f {
     let trace = eps.x + eps.y + eps.z;
-    let tau = 2.0 * settings.mu_0 * eps + vec3f(settings.lambda_0 * trace);
-    return svd.u * dp_diag(tau) * transpose(svd.u);
+    return from_principal(u, 2.0 * settings.mu_0 * eps + vec3f(settings.lambda_0 * trace));
 }
 
 // Return mapping (Klar et al. 2016, section 5.3), on the Hencky strain in the principal frame.
@@ -88,7 +83,8 @@ fn dp_plasticity(f_trial: mat3x3f, plastic_state: f32) -> PlasticReturn {
     }
 
     var result: PlasticReturn;
-    result.f_elastic = svd.u * dp_diag(exp(new_eps)) * transpose(svd.v);
+    result.f_elastic = svd.u * diag3(exp(new_eps)) * transpose(svd.v);
     result.plastic_state = plastic_state + delta_gamma;
+    result.kirchhoff = dp_kirchhoff(svd.u, new_eps);
     return result;
 }

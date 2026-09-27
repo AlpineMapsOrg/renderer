@@ -1,14 +1,18 @@
 #!/usr/bin/env python3
-"""Validate the MPM WGSL kernels with tint.
+"""Validate the MPM WGSL kernels with tint (or naga, if tint is not built).
 
-The kernels use weBIGeo's `///use` include directive, which tint does not understand, so
-includes are resolved into a flat file first. Much faster than launching the app, and WGSL
-otherwise only fails at runtime.
+The kernels use weBIGeo's `///use` include directive, which neither validator understands,
+so includes are resolved into a flat file first. Much faster than launching the app, and
+WGSL otherwise only fails at runtime.
+
+tint ships with the vendored Dawn once the app has been built. Without a build, naga
+(`cargo install naga-cli`) is a good second opinion: it is the validator Firefox uses.
 
     python3 mpm-mls-doc/scripts/validate_wgsl.py
 """
 import os
 import re
+import shutil
 import subprocess
 import sys
 
@@ -20,7 +24,7 @@ NS_DIRS = {
 }
 USE_RE = re.compile(r"^\s*///use\s+(?:([A-Za-z_][A-Za-z0-9_]*)::)?([/\w .-]+?)\s*$")
 
-KERNELS = ["mpm_prepare", "mpm_seed", "mpm_clear_grid", "mpm_p2g",
+KERNELS = ["mpm_prepare", "mpm_seed", "mpm_p2g",
            "mpm_grid_update", "mpm_g2p", "mpm_splat", "mpm_rasterize"]
 
 
@@ -50,12 +54,25 @@ def resolve(path, namespace, seen):
     return "".join(out)
 
 
+def validator():
+    """Command prefix of the validator to use: tint if built, else naga."""
+    if os.path.exists(TINT):
+        return [TINT, "--format", "wgsl"]
+    naga = shutil.which("naga") or os.path.expanduser("~/.cargo/bin/naga")
+    if os.path.exists(naga):
+        return [naga]
+    return None
+
+
 def main():
-    if not os.path.exists(TINT):
-        print(f"tint not found at {TINT}\n"
-              "It ships with the vendored Dawn; build once so extern/dawn is populated.",
+    command = validator()
+    if command is None:
+        print(f"Neither tint ({TINT}) nor naga found.\n"
+              "tint ships with the vendored Dawn (build once so extern/dawn is populated);\n"
+              "naga installs with `cargo install naga-cli`.",
               file=sys.stderr)
         return 2
+    print(f"validator: {os.path.basename(command[0])}")
 
     failed = 0
     for kernel in KERNELS:
@@ -64,7 +81,7 @@ def main():
         tmp = os.path.join(os.path.dirname(__file__), f"_resolved_{kernel}.wgsl")
         with open(tmp, "w") as f:
             f.write(src)
-        result = subprocess.run([TINT, "--format", "wgsl", tmp],
+        result = subprocess.run(command + [tmp],
                                 capture_output=True, text=True)
         if result.returncode != 0:
             failed += 1

@@ -25,6 +25,9 @@
 #include <webgpu/base/raii/CombinedComputePipeline.h>
 #include <webgpu/base/raii/TextureWithSampler.h>
 
+#include <array>
+#include <chrono>
+#include <memory>
 #include <vector>
 
 namespace webgpu_compute::nodes {
@@ -33,10 +36,10 @@ namespace webgpu_compute::nodes {
 /// constitutive model of Stomakhin et al. 2013.
 ///
 /// The node owns the whole solver state on the GPU (particles, background grid) and
-/// advances it by `substeps_per_run` MPM steps per run. Each step is the classic
-/// four-stage loop, dispatched as separate compute passes:
+/// advances it by `substeps_per_run` MPM steps per run. Each step is three dispatches:
 ///
-///     grid clear -> P2G -> grid update -> G2P + advection
+///     P2G (flags active tiles) -> grid update (active tiles only, clears the accumulators)
+///     -> G2P + advection (also computes the stress for the next P2G)
 ///
 /// Re-running the node continues the simulation from its current state, which is what
 /// makes an animation possible without re-seeding; set `reset_on_next_run` (or call
@@ -53,7 +56,7 @@ public:
 
     // TODO currently hardcoded in the shaders - could become pipeline overrides
     static glm::uvec3 PARTICLE_WORKGROUP_SIZE;
-    static glm::uvec3 GRID_WORKGROUP_SIZE;
+    static glm::uvec3 GRID_WORKGROUP_SIZE; // one workgroup per tile of columns, TILE_SIZE in mpm_common.wgsl
     static glm::uvec3 RASTER_WORKGROUP_SIZE;
 
     static const uint32_t MAX_PARTICLES;
@@ -96,7 +99,7 @@ public:
          * mpm_common.wgsl). Snow lives in the bottom few; the rest is headroom for piles
          * and for the terrain step between neighbouring columns. Memory and grid work
          * scale with resolution_xy^2 * layers, so the domain can be kilometres wide. */
-        uint32_t grid_layers = 16u;
+        uint32_t grid_layers = 12u;
 
         /* Release (start) zone. Deliberately independent of the domain: a real avalanche
          * starts in a small area and runs out over a much larger one, so the seeded disc
@@ -224,6 +227,7 @@ private:
 public:
     MpmSolverNode(webgpu::Context& ctx);
     MpmSolverNode(webgpu::Context& ctx, const MpmSolverSettings& settings);
+    ~MpmSolverNode() override;
 
     void set_settings(const MpmSolverSettings& settings) { m_settings = settings; }
     const MpmSolverSettings& get_settings() const { return m_settings; }
@@ -262,12 +266,28 @@ public:
         float altitude; // centre of mass [m]
         float energy_height; // altitude + mean_speed_sq / (2 g) [m]
     };
+    /// Bounded: past MAX_ENERGY_SAMPLES every other sample is dropped, which keeps the fit
+    /// (and the per-frame plot) cheap however long the simulation plays.
     const std::vector<EnergySample>& energy_line() const { return m_energy_line; }
+    static constexpr size_t MAX_ENERGY_SAMPLES = 2048;
 
     /// Least-squares slope of energy height over path, negated: the effective friction
     /// coefficient the flow is experiencing. NaN until there are enough samples with
     /// actual movement.
     float energy_line_friction() const;
+
+    /// Performance counters, for the panel and for benchmarking in the app.
+    struct PerfStats {
+        uint32_t runs = 0; // since the last reset
+        float last_run_ms = 0.0f; // wall time of the last run, first submit to readback
+        float mean_run_ms = 0.0f; // exponential average over runs
+        uint64_t gpu_bytes = 0; // solver-owned buffers and textures
+        /* GPU time per MPM substep, measured with timestamp queries on the solver's own
+         * compute pass (exponential average). 0 until measured, and stays 0 on devices
+         * without timestamp-query. Drives the adaptive pacing in the avalanche panel. */
+        float gpu_ms_per_substep = 0.0f;
+    };
+    const PerfStats& perf_stats() const { return m_perf; }
 
     /// True when every input is both connected and actually carrying a resource.
     /// Callers driving the solver directly (e.g. rerun() from the UI) must check this:
@@ -287,14 +307,24 @@ private:
     /// (Re)allocates GPU buffers and the output texture if the configured sizes changed.
     /// Returns true if anything was recreated, which also invalidates the bind group.
     bool ensure_resources();
-    void create_bind_group(const webgpu::raii::TextureWithSampler& height_texture, const webgpu::raii::TextureWithSampler& release_point_texture);
+    /// Builds the bind group unless the cached one still refers to the current resources.
+    void ensure_bind_group(const webgpu::raii::TextureWithSampler& height_texture, const webgpu::raii::TextureWithSampler& release_point_texture);
+    void create_pipelines(WGPUDevice device, const webgpu::RenderResourceRegistry& reg);
     void update_gpu_settings(const radix::geometry::Aabb<2, double>& region_aabb, const webgpu::raii::TextureWithSampler& height_texture);
     void write_initial_state();
     /// Zeroes the per-run counters (max speed, plastic particles) without touching the
     /// terrain scan or the seed count.
     void reset_run_counters();
-    /// Issues the asynchronous readback of SimState into m_last_state.
+    /// Completes the run and maps the staging copy of SimState that its last chunk made;
+    /// m_last_state is filled in when the map resolves.
     void read_back_state();
+    void map_state_readback();
+    void on_state_mapped(float time, float gravity, bool current);
+    void finish_run();
+    void append_energy_sample(float time, float gravity);
+    /// Work-done callback of one chunk: chains the next one, or finishes the run.
+    void on_chunk_done(int timestamp_slot, uint32_t substeps);
+    void read_back_timestamps(int slot, uint32_t substeps);
 
     static std::unique_ptr<webgpu::raii::TextureWithSampler> create_output_texture(WGPUDevice device, uint32_t width, uint32_t height);
 
@@ -308,18 +338,33 @@ private:
     std::unique_ptr<webgpu::raii::RawBuffer<uint32_t>> m_grid_buffer;
     std::unique_ptr<webgpu::raii::RawBuffer<uint32_t>> m_column_floor_buffer; // i32 per (x, y) column
     std::unique_ptr<webgpu::raii::RawBuffer<uint32_t>> m_state_buffer;
+    std::unique_ptr<webgpu::raii::RawBuffer<uint32_t>> m_state_readback; // MapRead staging copy of m_state_buffer
     std::unique_ptr<webgpu::raii::RawBuffer<uint32_t>> m_density_buffer;
+    std::unique_ptr<webgpu::raii::RawBuffer<uint32_t>> m_grid_velocity_buffer; // vec4f per node
+    std::unique_ptr<webgpu::raii::RawBuffer<uint32_t>> m_tile_flag_buffer; // u32 per tile of columns
     std::unique_ptr<webgpu::raii::TextureWithSampler> m_output_texture;
     std::unique_ptr<webgpu::raii::BindGroup> m_bind_group;
 
     std::unique_ptr<webgpu::raii::CombinedComputePipeline> m_prepare_pipeline;
     std::unique_ptr<webgpu::raii::CombinedComputePipeline> m_seed_pipeline;
-    std::unique_ptr<webgpu::raii::CombinedComputePipeline> m_clear_grid_pipeline;
     std::unique_ptr<webgpu::raii::CombinedComputePipeline> m_p2g_pipeline;
     std::unique_ptr<webgpu::raii::CombinedComputePipeline> m_grid_update_pipeline;
     std::unique_ptr<webgpu::raii::CombinedComputePipeline> m_g2p_pipeline;
     std::unique_ptr<webgpu::raii::CombinedComputePipeline> m_splat_pipeline;
     std::unique_ptr<webgpu::raii::CombinedComputePipeline> m_rasterize_pipeline;
+
+    /* Bind group cache key: rebuilt when our buffers or the upstream textures change. A full
+     * graph run gets a new run id, which covers upstream nodes recreating their textures. */
+    uint64_t m_resource_generation = 0;
+    uint64_t m_bind_group_generation = ~uint64_t(0);
+    uint64_t m_bind_group_run_id = ~uint64_t(0);
+    WGPUTexture m_bind_group_height = nullptr;
+    WGPUTexture m_bind_group_release = nullptr;
+
+    /* Async callbacks (queue work done, buffer map) carry a copy of this instead of `this`.
+     * The destructor clears the pointee, so a callback that fires after the node is gone -
+     * e.g. the graph was replaced while a run was in flight - finds nullptr and returns. */
+    std::shared_ptr<MpmSolverNode*> m_alive;
 
     /* Sizes the currently allocated resources were created for. */
     uint32_t m_allocated_particles = 0;
@@ -335,6 +380,20 @@ private:
     uint32_t m_chunks_in_flight = 0;
     bool m_run_first_chunk = true;
     bool m_run_is_reset = false;
+    bool m_readback_in_flight = false; // m_state_readback is being mapped - skip this run's copy
+    bool m_readback_copied = false; // the last chunk of the current run copied the state
+    uint32_t m_reset_count = 0; // tags readbacks, so one issued before a reset is dropped
+
+    /* GPU timing of the chunks: two query pairs, one per chunk in flight, each resolved into
+     * its own MapRead buffer. A slot whose buffer is still mapped is simply not timed. */
+    static constexpr int TIMESTAMP_SLOTS = 2;
+    WGPUQuerySet m_timestamp_queries = nullptr;
+    std::unique_ptr<webgpu::raii::RawBuffer<uint64_t>> m_timestamp_resolve;
+    std::array<std::unique_ptr<webgpu::raii::RawBuffer<uint64_t>>, TIMESTAMP_SLOTS> m_timestamp_readback;
+    std::array<bool, TIMESTAMP_SLOTS> m_timestamp_busy {};
+    uint32_t m_chunk_counter = 0;
+    std::chrono::steady_clock::time_point m_run_started;
+    PerfStats m_perf;
     SimStateReadback m_last_state;
     std::vector<EnergySample> m_energy_line;
     glm::dvec2 m_last_com_xy = glm::dvec2(0.0); // for the path increment between samples
