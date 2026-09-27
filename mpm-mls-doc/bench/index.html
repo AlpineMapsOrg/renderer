@@ -1,0 +1,89 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>MLS-MPM kernel benchmark</title>
+<style>
+  :root { color-scheme: light dark; font-family: system-ui, sans-serif; }
+  body { max-width: 900px; margin: 1.5rem auto; padding: 0 1rem; }
+  fieldset { display: grid; grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); gap: .4rem .8rem; }
+  label { display: flex; flex-direction: column; font-size: .85rem; }
+  pre { background: rgba(127,127,127,.12); padding: .8rem; overflow-x: auto; font-size: .8rem; }
+  table { border-collapse: collapse; font-variant-numeric: tabular-nums; }
+  td, th { padding: .2rem .7rem; text-align: right; border-bottom: 1px solid rgba(127,127,127,.3); }
+  td:first-child, th:first-child { text-align: left; }
+</style>
+</head>
+<body>
+<h1>MLS-MPM kernel benchmark</h1>
+<p>Runs the solver's real WGSL kernels on a synthetic slope with the dispatch sequence of
+<code>MpmSolverNode</code>. Serve the <em>repository root</em> (e.g. <code>npx http-server -c-1 .</code>) and open
+<code>/mpm-mls-doc/bench/</code>. Query parameters override any setting, e.g.
+<code>?particles=65536&amp;gridLayers=12&amp;autorun=1</code>. For unquantised per-stage timings in Chrome enable
+<code>chrome://flags/#enable-webgpu-developer-features</code>. See <code>mpm-mls-doc/09-performance-analysis.md</code>.</p>
+<form id="form"><fieldset id="fields"></fieldset><p><button type="submit">Run benchmark</button> <button type="button" id="save" disabled>Save JSON</button></p></form>
+<div id="out"></div>
+<pre id="log"></pre>
+<script type="module">
+import { DEFAULTS, MpmBench, loadKernelSources, requestDevice } from './mpm_bench.js';
+
+const params = new URLSearchParams(location.search);
+const shaderBase = params.get('shaders') ?? '../../webgpu/compute/shaders/';
+const cfg = { ...DEFAULTS };
+for (const [k, v] of params) if (k in cfg) cfg[k] = typeof cfg[k] === 'number' ? Number(v) : v;
+
+const fields = document.getElementById('fields');
+for (const [k, v] of Object.entries(cfg)) {
+  const label = document.createElement('label');
+  label.textContent = k;
+  const input = document.createElement('input');
+  input.name = k; input.value = v;
+  label.append(input); fields.append(label);
+}
+const log = (s) => { document.getElementById('log').textContent += s + '\n'; console.log(s); };
+let lastResult = null;
+
+async function run() {
+  for (const input of fields.querySelectorAll('input')) cfg[input.name] = typeof DEFAULTS[input.name] === 'number' ? Number(input.value) : input.value;
+  const { device, adapterInfo } = await requestDevice();
+  device.lost.then((info) => log(`device lost: ${info.message}`));
+  log(`adapter: ${JSON.stringify(adapterInfo)}; shaders: ${shaderBase}`);
+  const bench = new MpmBench(device, await loadKernelSources(shaderBase), cfg);
+  await bench.init();
+  log(`schedule ${bench.schedule}, pipelines compiled in ${bench.pipelineCompileMs.toFixed(0)} ms, solver memory ${(bench.solverBytes() / 2 ** 20).toFixed(1)} MiB`);
+  const result = await bench.benchmark((i, n) => { if (i % 5 === 0) log(`run ${i}/${n}`); });
+  result.adapter = adapterInfo;
+  result.shaders = shaderBase;
+  result.userAgent = navigator.userAgent;
+  bench.destroy();
+  device.destroy();
+  lastResult = result;
+  render(result);
+  document.getElementById('save').disabled = false;
+  window.__result = result; // picked up by run_headless.mjs
+  return result;
+}
+
+function render(r) {
+  const rows = Object.entries(r.perRun.stagesMs).map(([k, v]) => `<tr><td>${k}</td><td>${v.toFixed(2)}</td><td>${(100 * v / r.perRun.gpuMs).toFixed(0)} %</td></tr>`).join('');
+  document.getElementById('out').innerHTML = `
+    <h2>Result</h2>
+    <table><tr><th>per run (${r.config.substepsPerRun} substeps)</th><th>ms</th><th></th></tr>${rows}
+    <tr><th>GPU total</th><th>${r.perRun.gpuMs.toFixed(2)}</th><th></th></tr>
+    <tr><td>wall (median)</td><td>${r.perRun.wallMsMedian.toFixed(2)}</td><td></td></tr></table>
+    <p>${r.perSubstepGpuMs} ms GPU per substep &middot; ${r.simSecondsPerWallSecond}&times; real time (GPU bound, no rendering) &middot;
+    solver memory ${(r.memory.solverBytes / 2 ** 20).toFixed(1)} MiB &middot; final centre of mass ${r.physics.finalCom.join(', ')}</p>`;
+}
+
+document.getElementById('form').addEventListener('submit', (e) => { e.preventDefault(); run().catch((err) => log(`ERROR: ${err.message}`)); });
+document.getElementById('save').addEventListener('click', () => {
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob([JSON.stringify(lastResult, null, 2)], { type: 'application/json' }));
+  a.download = `mpm-bench-${Date.now()}.json`;
+  a.click();
+});
+if (params.get('autorun')) run().catch((err) => { log(`ERROR: ${err.message}`); window.__error = err.message; });
+</script>
+</body>
+</html>

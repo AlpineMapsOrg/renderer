@@ -1,0 +1,313 @@
+{
+  "date": "2026-09-27T22:12:01.790Z",
+  "commit": "4d2f534",
+  "dirty": false,
+  "runs": {
+    "current": {
+      "config": {
+        "regionSize": 8000,
+        "heightTexels": 640,
+        "domainSize": 4000,
+        "gridRes": 320,
+        "gridLayers": 16,
+        "particles": 131072,
+        "releaseRadius": 100,
+        "slabThickness": 1.5,
+        "density": 400,
+        "dt": 0.01,
+        "substepsPerRun": 24,
+        "substepsPerSubmit": 24,
+        "rasterRes": 1024,
+        "splatRadius": 8,
+        "model": "stomakhin",
+        "friction": "coulomb",
+        "mu": 0.47,
+        "seed": 1,
+        "warmupRuns": 3,
+        "runs": 20,
+        "timing": "stages"
+      },
+      "schedule": "v1",
+      "pipelineCompileMs": 724.2,
+      "perRun": {
+        "wallMsMedian": 9913.7,
+        "wallMsMean": 9912.38,
+        "gpuMs": 9909.67,
+        "stagesMs": {
+          "clear": 296.423,
+          "p2g": 3998.12,
+          "grid_update": 2348.045,
+          "g2p": 3214.274,
+          "splat": 40.53,
+          "rasterize": 12.276
+        }
+      },
+      "perSubstepGpuMs": 412.903,
+      "simSecondsPerWallSecond": 0.024,
+      "memory": {
+        "solverBytes": 58343656,
+        "buffers": {
+          "settings": 176,
+          "particles": 16777216,
+          "grid": 32768000,
+          "state": 56,
+          "density_raster": 4194304,
+          "column_floor": 409600,
+          "output_texture": 4194304,
+          "height_texture": 1638400,
+          "release_point_texture": 1638400
+        },
+        "jsHeapBytes": 10000000
+      },
+      "physics": {
+        "activeParticles": 131072,
+        "plasticRatio": 1,
+        "finalCom": [
+          3999.997,
+          5525.2,
+          2384.294
+        ],
+        "trace": [
+          {
+            "t": 0.24,
+            "com": [
+              3999.997,
+              5550.288,
+              2405.853
+            ],
+            "meanSpeed": 0.9219,
+            "maxSpeed": 1.315
+          },
+          {
+            "t": 0.48,
+            "com": [
+              3999.997,
+              5550.164,
+              2405.614
+            ],
+            "meanSpeed": 1.4354,
+            "maxSpeed": 2.186
+          },
+          {
+            "t": 0.72,
+            "com": [
+              3999.997,
+              5549.938,
+              2405.316
+            ],
+            "meanSpeed": 1.9532,
+            "maxSpeed": 3.018
+          },
+          {
+            "t": 0.96,
+            "com": [
+              3999.997,
+              5549.611,
+              2404.955
+            ],
+            "meanSpeed": 2.4989,
+            "maxSpeed": 3.886
+          },
+          {
+            "t": 1.2,
+            "com": [
+              3999.997,
+              5549.184,
+              2404.522
+            ],
+            "meanSpeed": 3.0608,
+            "maxSpeed": 4.743
+          },
+          {
+            "t": 1.44,
+            "com": [
+              3999.997,
+              5548.658,
+              2404.012
+            ],
+            "meanSpeed": 3.628,
+            "maxSpeed": 5.574
+          },
+          {
+            "t": 1.68,
+            "com": [
+              3999.997,
+              5548.036,
+              2403.421
+            ],
+            "meanSpeed": 4.1861,
+            "maxSpeed": 6.361
+          },
+          {
+            "t": 1.92,
+            "com": [
+              3999.997,
+              5547.318,
+              2402.75
+            ],
+            "meanSpeed": 4.7336,
+            "maxSpeed": 7.107
+          },
+          {
+            "t": 2.16,
+            "com": [
+              3999.997,
+              5546.503,
+              2402.002
+            ],
+            "meanSpeed": 5.2728,
+            "maxSpeed": 7.82
+          },
+          {
+            "t": 2.4,
+            "com": [
+              3999.997,
+              5545.594,
+              2401.177
+            ],
+            "meanSpeed": 5.8034,
+            "maxSpeed": 8.508
+          },
+          {
+            "t": 2.64,
+            "com": [
+              3999.997,
+              5544.589,
+              2400.276
+            ],
+            "meanSpeed": 6.3247,
+            "maxSpeed": 9.175
+          },
+          {
+            "t": 2.88,
+            "com": [
+              3999.997,
+              5543.489,
+              2399.302
+            ],
+            "meanSpeed": 6.8359,
+            "maxSpeed": 9.817
+          },
+          {
+            "t": 3.12,
+            "com": [
+              3999.997,
+              5542.294,
+              2398.255
+            ],
+            "meanSpeed": 7.3358,
+            "maxSpeed": 10.422
+          },
+          {
+            "t": 3.36,
+            "com": [
+              3999.997,
+              5541.006,
+              2397.138
+            ],
+            "meanSpeed": 7.8234,
+            "maxSpeed": 10.978
+          },
+          {
+            "t": 3.6,
+            "com": [
+              3999.997,
+              5539.622,
+              2395.953
+            ],
+            "meanSpeed": 8.2981,
+            "maxSpeed": 11.479
+          },
+          {
+            "t": 3.84,
+            "com": [
+              3999.997,
+              5538.145,
+              2394.701
+            ],
+            "meanSpeed": 8.7593,
+            "maxSpeed": 11.931
+          },
+          {
+            "t": 4.08,
+            "com": [
+              3999.997,
+              5536.574,
+              2393.386
+            ],
+            "meanSpeed": 9.2066,
+            "maxSpeed": 12.337
+          },
+          {
+            "t": 4.32,
+            "com": [
+              3999.997,
+              5534.909,
+              2392.01
+            ],
+            "meanSpeed": 9.6397,
+            "maxSpeed": 12.698
+          },
+          {
+            "t": 4.56,
+            "com": [
+              3999.997,
+              5533.151,
+              2390.575
+            ],
+            "meanSpeed": 10.0591,
+            "maxSpeed": 13.008
+          },
+          {
+            "t": 4.8,
+            "com": [
+              3999.997,
+              5531.301,
+              2389.085
+            ],
+            "meanSpeed": 10.4667,
+            "maxSpeed": 13.274
+          },
+          {
+            "t": 5.04,
+            "com": [
+              3999.997,
+              5529.358,
+              2387.539
+            ],
+            "meanSpeed": 10.8637,
+            "maxSpeed": 13.483
+          },
+          {
+            "t": 5.28,
+            "com": [
+              3999.997,
+              5527.324,
+              2385.942
+            ],
+            "meanSpeed": 11.2508,
+            "maxSpeed": 13.635
+          },
+          {
+            "t": 5.52,
+            "com": [
+              3999.997,
+              5525.2,
+              2384.294
+            ],
+            "meanSpeed": 11.6291,
+            "maxSpeed": 13.754
+          }
+        ]
+      },
+      "adapter": {
+        "vendor": "google",
+        "architecture": "swiftshader",
+        "device": "0xc0de",
+        "description": "SwiftShader Device (Subzero)"
+      },
+      "shaders": "../../webgpu/compute/shaders/",
+      "userAgent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/141.0.7390.37 Safari/537.36"
+    }
+  }
+}
