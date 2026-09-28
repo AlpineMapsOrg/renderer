@@ -116,7 +116,7 @@ void TextureOverlay::init(Context& context)
                 std::vector<WGPUBindGroupLayoutEntry> { position_entry, settings_entry, overlay_texture_entry, overlay_sampler_entry, background_entry },
                 "texture overlay bind group layout");
         });
-    reg.register_pipeline([this](WGPUDevice device, const webgpu::RenderResourceRegistry& reg) {
+    m_pipeline_registration = reg.register_pipeline([this](WGPUDevice device, const webgpu::RenderResourceRegistry& reg) {
         webgpu::FramebufferFormat format {};
         format.depth_format = WGPUTextureFormat_Undefined;
         format.color_formats = { WGPUTextureFormat_RGBA8Unorm };

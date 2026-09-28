@@ -84,7 +84,7 @@ IterativeSimulationNode::IterativeSimulationNode(webgpu::Context& ctx, const Ite
         return std::make_unique<webgpu::raii::BindGroupLayout>(
             dev, std::vector<WGPUBindGroupLayoutEntry> { e0, e1, e2, e3, e4, e5, e6 }, "iterative simulation bind group layout");
     });
-    reg.register_pipeline([this](WGPUDevice device, const webgpu::RenderResourceRegistry& reg) {
+    m_pipeline_registration = reg.register_pipeline([this](WGPUDevice device, const webgpu::RenderResourceRegistry& reg) {
         m_pipeline = std::make_unique<webgpu::raii::CombinedComputePipeline>(device,
             reg.shader("iterative_simulation_compute"),
             std::vector<const webgpu::raii::BindGroupLayout*> { &reg.bind_group_layout("iterative_simulation_compute") });

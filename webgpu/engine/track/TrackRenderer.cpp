@@ -72,7 +72,7 @@ void TrackRenderer::init(webgpu::Context& ctx)
         return std::make_unique<webgpu::raii::BindGroupLayout>(
             device, std::vector<WGPUBindGroupLayoutEntry> { input_positions_entry, input_config_entry }, "line renderer, bind group layout");
     });
-    reg.register_pipeline([this](WGPUDevice dev, const webgpu::RenderResourceRegistry& reg) {
+    m_pipeline_registration = reg.register_pipeline([this](WGPUDevice dev, const webgpu::RenderResourceRegistry& reg) {
         WGPUBlendState blend_state {};
         blend_state.color.operation = WGPUBlendOperation_Add;
         blend_state.color.srcFactor = WGPUBlendFactor_One;

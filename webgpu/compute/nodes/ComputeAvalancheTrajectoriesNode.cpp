@@ -128,7 +128,7 @@ ComputeAvalancheTrajectoriesNode::ComputeAvalancheTrajectoriesNode(webgpu::Conte
             std::vector<WGPUBindGroupLayoutEntry> { e0, e1, e2, e3, e4, e5, e6, e7, e8, e9, e10, e11 },
             "avalanche trajectories compute bind group layout");
     });
-    reg.register_pipeline([this](WGPUDevice device, const webgpu::RenderResourceRegistry& reg) {
+    m_pipeline_registration = reg.register_pipeline([this](WGPUDevice device, const webgpu::RenderResourceRegistry& reg) {
         m_pipeline = std::make_unique<webgpu::raii::CombinedComputePipeline>(device,
             reg.shader("avalanche_trajectories_compute"),
             std::vector<const webgpu::raii::BindGroupLayout*> { &reg.bind_group_layout("avalanche_trajectories_compute") });

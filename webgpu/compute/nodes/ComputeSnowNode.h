@@ -90,6 +90,7 @@ private:
     webgpu::Buffer<SnowSettingsUniform> m_snow_settings_uniform_buffer;
     webgpu::Buffer<RegionBoundsUniform> m_region_bounds_uniform_buffer;
     std::unique_ptr<webgpu::raii::CombinedComputePipeline> m_pipeline;
+    webgpu::PipelineRegistration m_pipeline_registration;
 
     // input
     std::unique_ptr<webgpu::raii::TextureWithSampler> m_input_normals_texture; // normal texture

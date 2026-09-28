@@ -60,7 +60,7 @@ ComputeNormalsNode::ComputeNormalsNode(webgpu::Context& ctx)
 
         return std::make_unique<webgpu::raii::BindGroupLayout>(dev, std::vector<WGPUBindGroupLayoutEntry> { e0, e1, e2 }, "normals compute bind group layout");
     });
-    reg.register_pipeline([this](WGPUDevice device, const webgpu::RenderResourceRegistry& reg) {
+    m_pipeline_registration = reg.register_pipeline([this](WGPUDevice device, const webgpu::RenderResourceRegistry& reg) {
         m_pipeline = std::make_unique<webgpu::raii::CombinedComputePipeline>(
             device, reg.shader("normals_compute"), std::vector<const webgpu::raii::BindGroupLayout*> { &reg.bind_group_layout("normals_compute") });
     });

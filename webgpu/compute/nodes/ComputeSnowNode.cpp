@@ -81,7 +81,7 @@ ComputeSnowNode::ComputeSnowNode(webgpu::Context& ctx, const SnowSettings& setti
         return std::make_unique<webgpu::raii::BindGroupLayout>(
             dev, std::vector<WGPUBindGroupLayoutEntry> { e0, e1, e2, e3, e4 }, "snow compute bind group layout");
     });
-    reg.register_pipeline([this](WGPUDevice device, const webgpu::RenderResourceRegistry& reg) {
+    m_pipeline_registration = reg.register_pipeline([this](WGPUDevice device, const webgpu::RenderResourceRegistry& reg) {
         m_pipeline = std::make_unique<webgpu::raii::CombinedComputePipeline>(
             device, reg.shader("snow_compute"), std::vector<const webgpu::raii::BindGroupLayout*> { &reg.bind_group_layout("snow_compute") });
     });

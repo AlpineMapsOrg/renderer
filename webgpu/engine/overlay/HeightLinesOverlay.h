@@ -55,6 +55,7 @@ public:
 private:
     webgpu::Context* m_ctx = nullptr;
     std::unique_ptr<webgpu::raii::CombinedComputePipeline> m_pipeline;
+    webgpu::PipelineRegistration m_pipeline_registration;
     std::unique_ptr<webgpu::Buffer<Settings>> m_settings_uniform;
 };
 

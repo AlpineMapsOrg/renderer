@@ -99,6 +99,7 @@ private:
     BufferToTextureSettings m_settings;
     webgpu::Buffer<BufferToTextureSettingsUniform> m_settings_uniform;
     std::unique_ptr<webgpu::raii::CombinedComputePipeline> m_pipeline;
+    webgpu::PipelineRegistration m_pipeline_registration;
 
     // IMPORTANT: The output needs to be double-buffered if linked to rendering
     std::array<std::unique_ptr<webgpu::raii::TextureWithSampler>, 2> m_output_textures;

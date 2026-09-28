@@ -46,6 +46,7 @@ public:
 private:
     webgpu::Context* m_ctx = nullptr;
     std::unique_ptr<webgpu::raii::GenericRenderPipeline> m_pipeline;
+    webgpu::PipelineRegistration m_pipeline_registration;
     std::unique_ptr<webgpu::Framebuffer> m_atmosphere_framebuffer;
 };
 

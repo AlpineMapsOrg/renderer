@@ -199,7 +199,7 @@ void CloudRenderer::init(webgpu::Context& ctx)
             "upscale clouds bind group layout");
     });
 
-    reg.register_pipeline([this](WGPUDevice dev, const webgpu::RenderResourceRegistry& reg) {
+    m_render_clouds_pipeline_registration = reg.register_pipeline([this](WGPUDevice dev, const webgpu::RenderResourceRegistry& reg) {
         glm::dvec2 bounds_min = nucleus::srs::lat_long_to_world(BOUNDS_MIN);
         // Note: This is different from nucleus::srs::world_xy_to_tile_id because it doesn't apply the origin shift, resulting in signed coords.
         // This calculation matches the shader.
@@ -234,7 +234,7 @@ void CloudRenderer::init(webgpu::Context& ctx)
             pipeline_desc);
     });
 
-    reg.register_pipeline([this](WGPUDevice dev, const webgpu::RenderResourceRegistry& reg) {
+    m_upscale_clouds_pipeline_registration = reg.register_pipeline([this](WGPUDevice dev, const webgpu::RenderResourceRegistry& reg) {
         m_upscale_clouds_pipeline = std::make_unique<webgpu::raii::CombinedComputePipeline>(dev,
             reg.shader("upscale_clouds"),
             std::vector<const webgpu::raii::BindGroupLayout*> { &reg.bind_group_layout("upscale_clouds") },

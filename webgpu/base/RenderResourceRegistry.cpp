@@ -22,8 +22,41 @@
 #include <QFile>
 #include <QtAssert>
 #include <chrono>
+#include <utility>
 
 namespace webgpu {
+
+PipelineRegistration::PipelineRegistration(std::weak_ptr<FactoryMap> factories, uint64_t id)
+    : m_factories(std::move(factories))
+    , m_id(id)
+{
+}
+
+PipelineRegistration::~PipelineRegistration() { reset(); }
+
+PipelineRegistration::PipelineRegistration(PipelineRegistration&& other) noexcept
+    : m_factories(std::move(other.m_factories))
+    , m_id(std::exchange(other.m_id, 0))
+{
+}
+
+PipelineRegistration& PipelineRegistration::operator=(PipelineRegistration&& other) noexcept
+{
+    if (this != &other) {
+        reset();
+        m_factories = std::move(other.m_factories);
+        m_id = std::exchange(other.m_id, 0);
+    }
+    return *this;
+}
+
+void PipelineRegistration::reset()
+{
+    if (auto factories = m_factories.lock()) // expired if the registry is already gone
+        factories->erase(m_id);
+    m_factories.reset();
+    m_id = 0;
+}
 
 RenderResourceRegistry::RenderResourceRegistry()
 {
@@ -71,11 +104,13 @@ const raii::BindGroupLayout& RenderResourceRegistry::bind_group_layout(const std
     return *m_layouts[it->second].layout;
 }
 
-void RenderResourceRegistry::register_pipeline(std::function<void(WGPUDevice, const RenderResourceRegistry&)> recreate_fn)
+PipelineRegistration RenderResourceRegistry::register_pipeline(PipelineFactory recreate_fn)
 {
-    m_pipeline_fns.push_back(recreate_fn);
+    const uint64_t id = m_next_pipeline_id++;
+    const auto& fn = m_pipeline_fns->emplace(id, std::move(recreate_fn)).first->second;
     if (m_device != nullptr)
-        recreate_fn(m_device, *this);
+        fn(m_device, *this);
+    return PipelineRegistration(m_pipeline_fns, id);
 }
 
 void RenderResourceRegistry::recreate_all(WGPUDevice device)
@@ -92,7 +127,7 @@ void RenderResourceRegistry::recreate_all(WGPUDevice device)
     for (auto& entry : m_layouts)
         entry.layout = entry.factory(device);
 
-    for (auto& fn : m_pipeline_fns)
+    for (auto& [id, fn] : *m_pipeline_fns)
         fn(device, *this);
 
     auto end = std::chrono::high_resolution_clock::now();

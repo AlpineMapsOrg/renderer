@@ -75,7 +75,7 @@ void ScreenSpaceSnowOverlay::init(Context& context)
                 std::vector<WGPUBindGroupLayoutEntry> { position_entry, normal_entry, settings_entry, output_entry, prev_output_entry },
                 "screen space snow overlay bind group layout");
         });
-    reg.register_pipeline([this](WGPUDevice device, const webgpu::RenderResourceRegistry& reg) {
+    m_pipeline_registration = reg.register_pipeline([this](WGPUDevice device, const webgpu::RenderResourceRegistry& reg) {
         m_pipeline = std::make_unique<webgpu::raii::CombinedComputePipeline>(device,
             reg.shader("screen_space_snow_compute"),
             std::vector<const webgpu::raii::BindGroupLayout*> {

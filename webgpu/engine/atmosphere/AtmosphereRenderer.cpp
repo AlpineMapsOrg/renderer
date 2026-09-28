@@ -37,7 +37,7 @@ void AtmosphereRenderer::init(webgpu::Context& ctx)
 
     auto& reg = ctx.resource_registry();
     reg.register_shader("render_atmosphere", "webgpu_engine::render_atmosphere");
-    reg.register_pipeline([this](WGPUDevice dev, const webgpu::RenderResourceRegistry& reg) {
+    m_pipeline_registration = reg.register_pipeline([this](WGPUDevice dev, const webgpu::RenderResourceRegistry& reg) {
         webgpu::FramebufferFormat format {};
         format.depth_format = WGPUTextureFormat_Undefined;
         format.color_formats.emplace_back(WGPUTextureFormat_RGBA8Unorm);

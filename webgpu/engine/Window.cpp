@@ -52,7 +52,7 @@ void Window::initialise_gpu()
 
     auto& reg = m_context->webgpu_ctx().resource_registry();
     reg.register_shader("compose_pass", "webgpu_engine::compose_pass");
-    reg.register_pipeline([this](WGPUDevice dev, const webgpu::RenderResourceRegistry& reg) {
+    m_pipeline_registration = reg.register_pipeline([this](WGPUDevice dev, const webgpu::RenderResourceRegistry& reg) {
         webgpu::FramebufferFormat format {};
         format.depth_format = WGPUTextureFormat_Depth24Plus;
         format.color_formats.emplace_back(m_context->webgpu_ctx().surface_texture_format());

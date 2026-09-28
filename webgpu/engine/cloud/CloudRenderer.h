@@ -196,6 +196,8 @@ private:
 
     std::unique_ptr<webgpu::raii::CombinedComputePipeline> m_render_clouds_pipeline;
     std::unique_ptr<webgpu::raii::CombinedComputePipeline> m_upscale_clouds_pipeline;
+    webgpu::PipelineRegistration m_render_clouds_pipeline_registration;
+    webgpu::PipelineRegistration m_upscale_clouds_pipeline_registration;
 
     uint32_t m_stable_frames = 0;
 

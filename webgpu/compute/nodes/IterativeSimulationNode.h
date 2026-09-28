@@ -65,6 +65,7 @@ private:
 
     IterativeSimulationSettings m_settings;
     std::unique_ptr<webgpu::raii::CombinedComputePipeline> m_pipeline;
+    webgpu::PipelineRegistration m_pipeline_registration;
 
     std::unique_ptr<webgpu::Buffer<IterativeSimulationSettingsUniform>> m_settings_uniform;
     std::unique_ptr<webgpu::raii::RawBuffer<uint32_t>> m_flux_buffer;
