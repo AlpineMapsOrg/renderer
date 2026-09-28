@@ -305,6 +305,16 @@ Worth keeping — they are the interesting part of the implementation story.
    smoothed terrain normals, CFL (dt = 0.005 was worse), RPIC (rotation-only C) and a cap
    on `|C·dpos|` — the last two delayed the runaway without removing it.
 
+9. **Every second chunk silently dropped.** `ResolveQuerySet`'s destination offset must be
+   a multiple of 256 (`QUERY_RESOLVE_BUFFER_ALIGNMENT`), but the two timestamp slots were
+   packed at their natural 16 B stride, so slot 1 resolved at offset 16. Dawn then rejected
+   the **whole command buffer** — not just the resolve — so half the chunks never ran: the
+   solver advanced at half speed, the GPU timing never arrived and the adaptive pacing had
+   nothing to pace on. Visible only as a wall of validation messages in the console, never
+   as a wrong number. Fixed with a 256 B stride per slot (`TIMESTAMP_SLOT_STRIDE_BYTES`).
+   Lesson: a validation error on a profiling side-channel can invalidate the work it was
+   measuring — treat the console as part of the test.
+
 6. **Switching the material model without reseeding.** `plastic_state` is model-specific.
    Stomakhin's `Jp = 1` read as Cam-Clay's `α = 1` is a fully softened material with
    `p₀ = 0` that carries no stress. Found while adding presets; both panels now force a

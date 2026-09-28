@@ -377,6 +377,23 @@ Docs: 02, 03 (prepare, grid update, stencil), 04 (band section, buffer sizes), 0
 (settings table, failure modes, cost), 06 (§4i), 08 (marked implemented), README.
 Committed by the user as `f02ad59a` "Extend terrain".
 
+## 2026-09-28
+
+### 1. "fix this" — validation errors from the timestamp resolve
+
+Console full of `The destination buffer [mpm timestamp resolve] offset (16) is not a
+multiple of 256` followed by `[Invalid CommandBuffer ...] is invalid due to a previous
+error`. Not cosmetic: the rejected command buffer is the one carrying that chunk's P2G /
+grid / G2P dispatches, so **every second chunk was dropped** — half speed, no GPU timing,
+and the adaptive pacing running blind.
+
+Cause: `ResolveQuerySet`'s destination offset must be a multiple of 256
+(`QUERY_RESOLVE_BUFFER_ALIGNMENT`); the two timestamp slots were packed at their natural
+16 B stride, so slot 0 was fine and slot 1 was not. Fix: `TIMESTAMP_SLOT_STRIDE_BYTES =
+256`, resolve buffer sized `TIMESTAMP_SLOTS × 256 B`, offset `slot × 256`. Verified on
+device: 0 validation errors over a 60 s run, 614 timestamp samples arriving,
+`gpu_ms_per_substep` 0.55 → 1.7 as the flow spreads. Docs: 06 (bug 9), 09 (§9.2).
+
 ## 2026-09-14
 
 ### 1. "the simulation runs in the same thread as the normal rendering - can we separate this?"

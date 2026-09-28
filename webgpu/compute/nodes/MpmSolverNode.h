@@ -387,6 +387,10 @@ private:
     /* GPU timing of the chunks: two query pairs, one per chunk in flight, each resolved into
      * its own MapRead buffer. A slot whose buffer is still mapped is simply not timed. */
     static constexpr int TIMESTAMP_SLOTS = 2;
+    /* ResolveQuerySet's destination offset must be a multiple of 256 (the spec's
+     * QUERY_RESOLVE_BUFFER_ALIGNMENT), so each slot gets a 256 byte stride in the resolve
+     * buffer even though it only holds two u64 timestamps. */
+    static constexpr size_t TIMESTAMP_SLOT_STRIDE_BYTES = 256;
     WGPUQuerySet m_timestamp_queries = nullptr;
     std::unique_ptr<webgpu::raii::RawBuffer<uint64_t>> m_timestamp_resolve;
     std::array<std::unique_ptr<webgpu::raii::RawBuffer<uint64_t>>, TIMESTAMP_SLOTS> m_timestamp_readback;

@@ -136,8 +136,9 @@ MpmSolverNode::MpmSolverNode(webgpu::Context& ctx, const MpmSolverSettings& sett
         query_desc.type = WGPUQueryType_Timestamp;
         query_desc.count = 2 * TIMESTAMP_SLOTS;
         m_timestamp_queries = wgpuDeviceCreateQuerySet(ctx.device(), &query_desc);
-        m_timestamp_resolve = std::make_unique<webgpu::raii::RawBuffer<uint64_t>>(
-            ctx.device(), WGPUBufferUsage(WGPUBufferUsage_QueryResolve | WGPUBufferUsage_CopySrc), 2 * TIMESTAMP_SLOTS, "mpm timestamp resolve");
+        m_timestamp_resolve = std::make_unique<webgpu::raii::RawBuffer<uint64_t>>(ctx.device(),
+            WGPUBufferUsage(WGPUBufferUsage_QueryResolve | WGPUBufferUsage_CopySrc),
+            TIMESTAMP_SLOTS * TIMESTAMP_SLOT_STRIDE_BYTES / sizeof(uint64_t), "mpm timestamp resolve");
         for (auto& buffer : m_timestamp_readback)
             buffer = std::make_unique<webgpu::raii::RawBuffer<uint64_t>>(
                 ctx.device(), WGPUBufferUsage(WGPUBufferUsage_MapRead | WGPUBufferUsage_CopyDst), 2, "mpm timestamp readback");
@@ -715,9 +716,9 @@ void MpmSolverNode::submit_chunk()
     }
 
     if (timestamp_slot >= 0) {
-        const uint64_t offset = uint64_t(2 * timestamp_slot) * sizeof(uint64_t);
+        const size_t offset = size_t(timestamp_slot) * TIMESTAMP_SLOT_STRIDE_BYTES;
         wgpuCommandEncoderResolveQuerySet(encoder.handle(), m_timestamp_queries, uint32_t(2 * timestamp_slot), 2, m_timestamp_resolve->handle(), offset);
-        m_timestamp_resolve->copy_to_buffer(encoder.handle(), size_t(offset), *m_timestamp_readback[size_t(timestamp_slot)], 0, 2 * sizeof(uint64_t));
+        m_timestamp_resolve->copy_to_buffer(encoder.handle(), offset, *m_timestamp_readback[size_t(timestamp_slot)], 0, 2 * sizeof(uint64_t));
         m_timestamp_busy[size_t(timestamp_slot)] = true;
     }
 

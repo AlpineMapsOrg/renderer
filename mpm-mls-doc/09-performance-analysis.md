@@ -501,7 +501,9 @@ L1–L7 of §5, the storage-binding clamps of §4.2, and:
 
 - **GPU timing**: timestamp writes on the solver's own compute pass (two query slots, one per
   chunk in flight, each resolved into its own MapRead buffer; a busy slot is simply not
-  timed). Core WebGPU with the `timestamp-query` feature the app already requires, so it works
+  timed). Each slot is resolved at a **256 B stride** — `ResolveQuerySet`'s destination
+  offset must be a multiple of `QUERY_RESOLVE_BUFFER_ALIGNMENT`, and an unaligned offset
+  invalidates the entire command buffer, not just the resolve. Core WebGPU with the `timestamp-query` feature the app already requires, so it works
   on the web. Exposed as `perf_stats().gpu_ms_per_substep`.
 - `perf_stats()`: runs since reset, ms per run, solver GPU bytes.
 
