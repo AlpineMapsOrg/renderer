@@ -152,6 +152,34 @@ void Node::fail_run(const std::string& message)
     emit run_failed(NodeRunFailureInfo(*this, message));
 }
 
+std::weak_ptr<const void> Node::lifetime_token() const { return m_lifetime; }
+
+void Node::on_submitted_work_done(WGPUQueue queue, std::function<void()> fn)
+{
+    struct PendingCall {
+        std::weak_ptr<const void> node_lifetime;
+        std::function<void()> fn;
+    };
+
+    const auto on_work_done
+        = []([[maybe_unused]] WGPUQueueWorkDoneStatus status, [[maybe_unused]] WGPUStringView message, void* userdata, [[maybe_unused]] void* userdata2) {
+              // WebGPU calls this exactly once, so it owns the pending call
+              std::unique_ptr<PendingCall> pending(static_cast<PendingCall*>(userdata));
+              if (!pending->node_lifetime.expired())
+                  pending->fn();
+          };
+
+    WGPUQueueWorkDoneCallbackInfo callback_info {
+        .nextInChain = nullptr,
+        .mode = WGPUCallbackMode_AllowProcessEvents,
+        .callback = on_work_done,
+        .userdata1 = new PendingCall { m_lifetime, std::move(fn) },
+        .userdata2 = nullptr,
+    };
+
+    wgpuQueueOnSubmittedWorkDone(queue, callback_info);
+}
+
 void Node::process_pending()
 {
     if (!m_pending_contexts.empty()) {

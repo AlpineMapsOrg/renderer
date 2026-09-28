@@ -25,9 +25,12 @@
 #include <QByteArray>
 #include <QJsonObject>
 #include <QObject>
+#include <functional>
+#include <memory>
 #include <queue>
 #include <variant>
 #include <vector>
+#include <webgpu/webgpu.h>
 
 namespace webgpu_compute::nodes {
 
@@ -165,6 +168,10 @@ private:
 /// fail_run(). The base class owns the run lifecycle: it buffers the GraphRunContext,
 /// queues concurrent run() calls received while an async op is in-flight, and emits
 /// run_completed / run_failed.
+///
+/// A node can be destroyed while one of its async ops is in flight (e.g. when another graph
+/// is loaded). Async callbacks must therefore not hold a raw `this`: use
+/// on_submitted_work_done(), or check lifetime_token() before touching the node.
 class Node : public QObject {
     Q_OBJECT
 
@@ -222,6 +229,15 @@ protected:
     void complete_run();
     void fail_run(const std::string& message);
 
+    /// Expires when this node is destroyed. Async callbacks keep a copy and return early if it has expired.
+    /// Checking it is enough: WebGPU callbacks run from event processing on the thread that owns the node,
+    /// never concurrently with its destruction.
+    [[nodiscard]] std::weak_ptr<const void> lifetime_token() const;
+
+    /// Calls fn once the GPU has finished all work submitted to queue so far, unless this node
+    /// has been destroyed by then. fn may capture `this`.
+    void on_submitted_work_done(WGPUQueue queue, std::function<void()> fn);
+
     [[nodiscard]] Data get_output_data(const std::string& output_socket_name);
     [[nodiscard]] Data get_input_data(const std::string& input_socket_name);
 
@@ -242,6 +258,8 @@ private:
 
     bool m_enabled = true;
     bool m_is_running = false;
+
+    std::shared_ptr<const bool> m_lifetime = std::make_shared<const bool>(true);
 };
 
 } // namespace webgpu_compute::nodes

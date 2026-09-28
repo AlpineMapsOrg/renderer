@@ -126,21 +126,7 @@ void ComputeReleasePointsNode::run_impl()
         wgpuCommandBufferRelease(command);
     }
 
-    const auto on_work_done
-        = []([[maybe_unused]] WGPUQueueWorkDoneStatus status, [[maybe_unused]] WGPUStringView message, void* userdata, [[maybe_unused]] void* userdata2) {
-              ComputeReleasePointsNode* _this = reinterpret_cast<ComputeReleasePointsNode*>(userdata);
-              _this->complete_run();
-          };
-
-    WGPUQueueWorkDoneCallbackInfo callback_info {
-        .nextInChain = nullptr,
-        .mode = WGPUCallbackMode_AllowProcessEvents,
-        .callback = on_work_done,
-        .userdata1 = this,
-        .userdata2 = nullptr,
-    };
-
-    wgpuQueueOnSubmittedWorkDone(m_ctx->queue(), callback_info);
+    on_submitted_work_done(m_ctx->queue(), [this]() { complete_run(); });
 }
 
 std::unique_ptr<webgpu::raii::TextureWithSampler> ComputeReleasePointsNode::create_release_points_texture(
