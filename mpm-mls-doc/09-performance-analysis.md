@@ -269,7 +269,11 @@ which at 512² × 64 is 65 536 — one more than WebGPU's 65 535 limit.)
 | L7 | A readback that lands after *Reset* appended a stale pre-reset sample | map callback | per reset | Readbacks are tagged with a reset counter |
 
 L1 and L3 remain in the upstream base code for every other user of those paths (other nodes
-still register `[this]` factories). Both are two-to-ten-line fixes there (release the command
+still register `[this]` factories). **Confirmed on the M5 (2026-09-28):** after graph reloads F5
+crashes in `HeightDecodeNode`'s factory (6 → 16 registered factories after two reloads), and
+replacing the graph while a run is in flight crashes in `Node::complete_run` from another
+node's raw-`this` work-done callback — L3 and L4 for the upstream nodes. Fixed in a separate
+PR (registration handle + liveness token in `Node`), not in this branch. Both are two-to-ten-line fixes there (release the command
 buffer and the queue in `copy_to_buffer(WGPUDevice…)`; give `register_pipeline` a handle to
 unregister) — worth sending upstream, but outside this extension.
 
@@ -366,7 +370,7 @@ which is how the optimisations below were checked for physics changes.
 
 ## 8. Measurements
 
-All numbers below are from the headless harness on **SwiftShader** (Chromium's CPU Vulkan),
+All numbers in §8.1–8.4 are from the headless harness on **SwiftShader** (Chromium's CPU Vulkan),
 the only "GPU" available where this was written. Absolute times are meaningless for a real GPU;
 the *ratios* between stages and between kernel versions are what carry over, with the caveat
 that a CPU executes atomics and SVDs with different relative costs than a GPU. The same
@@ -463,6 +467,38 @@ substep is proportional to `dt` and the cost is not, so **the graph preset now u
 pulled under 0.8 × the conservative bound by `apply_material_preset`; relaxing that factor from
 0.1 to ~0.2 would double their speed too, but wants a check of the deposition phase (impacts,
 piling) on real terrain first, which 7 s on this slope does not reach — §11 #2.
+
+### 8.5 Real GPU: Apple M5 (2026-09-28)
+
+**Kernel benchmark** in Chrome 152 (Metal, `timestamp-query` available), same analytic slope,
+30 runs of 24 substeps at dt 0.01. Files `bench/results/m5-chrome152-*.json`.
+
+| Configuration | GPU per run | per substep | P2G / grid / G2P | ceiling (GPU bound) | solver memory |
+|---|---|---|---|---|---|
+| Medium: 65 536 particles, 320² × 12 | 14.0 ms | **0.58 ms** | 10.3 / 0.51 / 3.1 ms (74 / 4 / 22 %) | 15.5× real time | 58.6 MiB |
+| Medium, `timing=pass` (one query pair per chunk, as the app) | 13.9 ms | 0.58 ms | — | 16.1× | 58.6 MiB |
+| High: 131 072 particles, 320² × 16 | 27.7 ms | **1.15 ms** | 18.1 / 1.43 / 7.8 ms | 8.3× | 80.6 MiB |
+
+On a real GPU P2G dominates (74 %): its 27 × 5 fixed-point atomics per particle are the cost,
+and the tile-flagged grid update is down to 4 % — the SwiftShader "grid-update floor" of §8.3
+was indeed a CPU-backend artefact. Per-stage and per-pass timing agree, so the per-stage
+passes cost nothing measurable here.
+
+**In the app**, Breite Ries, Medium detail:
+
+| | Web build (Chrome 152) | Native |
+|---|---|---|
+| Pacing | Balanced (14 ms GPU per frame) | Smooth (6 ms) |
+| Speed readout | 12–14× real time at 59 fps | 5.8–7.7× at 60 fps |
+| Substeps per frame | 13–14 | 3–6 |
+| GPU per substep | 1.0 ms | 1.0–1.9 ms |
+| Solver memory | 59 MiB | 58.6 MiB (identical to the benchmark) |
+
+The web readout was checked with a stopwatch: 59.8 simulated seconds in 5.08 wall seconds =
+11.8×. In the app a substep costs ~2× the benchmark's: the flow on real terrain spreads over
+more tiles than the slab on the analytic slope, and the terrain is rendered at the same time.
+From release the avalanche visibly moves within about a second of wall time (the original
+report was ~15 s).
 
 
 ---
