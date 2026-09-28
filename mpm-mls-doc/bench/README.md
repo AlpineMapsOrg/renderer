@@ -14,7 +14,9 @@ npx http-server -c-1 .          # or: python3 -m http.server
 # open http://localhost:8080/mpm-mls-doc/bench/
 ```
 
-Press *Run benchmark*, then *Save JSON*. Every setting is also a query parameter:
+Press *Run benchmark*, then *Save JSON*. The default material is **Cohesive Cam Clay** (Li et al.
+2021 case V: E = 3 MPa, M 0.7, β 0.2, ξ 0.002, p₀ 3 kPa); `model=stomakhin` or `model=dp` selects the
+others. Results files before 2026-09-28 used Stomakhin. Every setting is also a query parameter:
 `?particles=65536&gridLayers=12&runs=30&autorun=1`. Per-stage GPU times come from timestamp
 queries; Chrome quantises them to 0.1 ms unless
 `chrome://flags/#enable-webgpu-developer-features` is on (the totals are fine either way).

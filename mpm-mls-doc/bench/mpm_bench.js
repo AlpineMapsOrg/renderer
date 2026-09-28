@@ -28,7 +28,9 @@ export const DEFAULTS = {
     substepsPerSubmit: 24, // benchmark default: one submit per run, pure GPU throughput
     rasterRes: 1024,
     splatRadius: 8,
-    model: 'stomakhin',
+    // Cam Clay (Li et al. 2021 case V) by default: the snow-science model, and the most expensive
+    // return mapping of the three. model=stomakhin / model=dp for the others.
+    model: 'ccc',
     friction: 'coulomb',
     mu: 0.47,
     seed: 1,
