@@ -40,7 +40,10 @@ public:
     using ReadBackCallback = std::function<void(size_t layer_index, std::shared_ptr<QByteArray>)>;
 
     struct ReadBackState {
-        const Texture* texture;
+        // copied from the texture, which may be destroyed while the read back is in flight
+        uint32_t height;
+        size_t bytes_per_row; // padded, as laid out in buffer
+        size_t row_size_in_bytes;
         std::unique_ptr<RawBuffer<char>> buffer;
         ReadBackCallback callback;
         size_t layer_index;
