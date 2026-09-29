@@ -479,6 +479,21 @@ piling) on real terrain first, which 7 s on this slope does not reach — §11 #
 | Medium, `timing=pass` (one query pair per chunk, as the app) | 13.9 ms | 0.58 ms | — | 16.1× | 58.6 MiB |
 | High: 131 072 particles, 320² × 16 | 27.7 ms | **1.15 ms** | 18.1 / 1.43 / 7.8 ms | 8.3× | 80.6 MiB |
 
+**Material model** (same Medium configuration, 30 runs; files `m5-chrome152-medium{,-dp,-ccc}.json`,
+`m5-chrome152-high-ccc.json`). The benchmark's default is now Cam Clay (Li 2021 case V):
+
+| Model | GPU per run | per substep | P2G / grid / G2P | mean / max speed at 7.9 s |
+|---|---|---|---|---|
+| Stomakhin | 14.0 ms | 0.58 ms | 10.3 / 0.51 / 3.1 | 15.5 / 18.1 m/s |
+| Drucker–Prager | 15.9 ms | 0.66 ms | 10.7 / 1.28 / 3.7 | 17.5 / 27.5 m/s |
+| **Cam Clay** | **15.3 ms** | **0.64 ms** | 10.5 / 1.06 / 3.5 | 17.6 / 25.6 m/s |
+| Cam Clay, High (131 072, 16 layers) | 28.2 ms | 1.18 ms | 18.5 / 1.82 / 7.6 | — |
+
+The most expensive return mapping costs only **+9 %** over Stomakhin per substep (G2P +15 %,
+grid update ×2 in absolute terms but still < 7 %): the SVD and the sinh hardening are cheap
+next to P2G's atomics, so the material model is not a performance factor. (Speeds differ with
+the model because the elastic parameters do, not because of numerics.)
+
 On a real GPU P2G dominates (74 %): its 27 × 5 fixed-point atomics per particle are the cost,
 and the tile-flagged grid update is down to 4 % — the SwiftShader "grid-update floor" of §8.3
 was indeed a CPU-backend artefact. Per-stage and per-pass timing agree, so the per-stage

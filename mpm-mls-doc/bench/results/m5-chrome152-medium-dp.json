@@ -1,0 +1,407 @@
+{
+  "config": {
+    "regionSize": 8000,
+    "heightTexels": 640,
+    "domainSize": 4000,
+    "gridRes": 320,
+    "gridLayers": 12,
+    "particles": 65536,
+    "releaseRadius": 100,
+    "slabThickness": 1.5,
+    "density": 400,
+    "dt": 0.01,
+    "substepsPerRun": 24,
+    "substepsPerSubmit": 24,
+    "rasterRes": 1024,
+    "splatRadius": 8,
+    "model": "dp",
+    "friction": "coulomb",
+    "mu": 0.47,
+    "seed": 1,
+    "warmupRuns": 3,
+    "runs": 30,
+    "timing": "stages"
+  },
+  "schedule": "v2",
+  "pipelineCompileMs": 14.8,
+  "perRun": {
+    "wallMsMedian": 15.8,
+    "wallMsMean": 16.87,
+    "gpuMs": 15.93,
+    "stagesMs": {
+      "p2g": 10.715,
+      "grid_update": 1.278,
+      "g2p": 3.705,
+      "splat": 0.074,
+      "rasterize": 0.159
+    }
+  },
+  "perSubstepGpuMs": 0.664,
+  "simSecondsPerWallSecond": 15.19,
+  "memory": {
+    "solverBytes": 61430248,
+    "buffers": {
+      "settings": 176,
+      "particles": 8388608,
+      "grid": 24576000,
+      "state": 56,
+      "density_raster": 4194304,
+      "column_floor": 409600,
+      "grid_velocity": 19660800,
+      "tile_flags": 6400,
+      "output_texture": 4194304,
+      "height_texture": 1638400,
+      "release_point_texture": 1638400
+    },
+    "jsHeapBytes": 5580967
+  },
+  "physics": {
+    "activeParticles": 65536,
+    "plasticRatio": 1,
+    "finalCom": [
+      3999.956,
+      5496.645,
+      2364.015
+    ],
+    "trace": [
+      {
+        "t": 0.24,
+        "com": [
+          3999.903,
+          5550.26,
+          2405.869
+        ],
+        "meanSpeed": 0.6902,
+        "maxSpeed": 1.02
+      },
+      {
+        "t": 0.48,
+        "com": [
+          3999.903,
+          5550.108,
+          2405.72
+        ],
+        "meanSpeed": 1.2229,
+        "maxSpeed": 2.097
+      },
+      {
+        "t": 0.72,
+        "com": [
+          3999.904,
+          5549.848,
+          2405.493
+        ],
+        "meanSpeed": 1.7997,
+        "maxSpeed": 2.89
+      },
+      {
+        "t": 0.96,
+        "com": [
+          3999.904,
+          5549.489,
+          2405.186
+        ],
+        "meanSpeed": 2.3557,
+        "maxSpeed": 3.669
+      },
+      {
+        "t": 1.2,
+        "com": [
+          3999.905,
+          5549.032,
+          2404.801
+        ],
+        "meanSpeed": 2.9108,
+        "maxSpeed": 4.491
+      },
+      {
+        "t": 1.44,
+        "com": [
+          3999.905,
+          5548.476,
+          2404.338
+        ],
+        "meanSpeed": 3.4642,
+        "maxSpeed": 5.301
+      },
+      {
+        "t": 1.68,
+        "com": [
+          3999.906,
+          5547.823,
+          2403.796
+        ],
+        "meanSpeed": 4.015,
+        "maxSpeed": 6.145
+      },
+      {
+        "t": 1.92,
+        "com": [
+          3999.907,
+          5547.072,
+          2403.177
+        ],
+        "meanSpeed": 4.5638,
+        "maxSpeed": 6.992
+      },
+      {
+        "t": 2.16,
+        "com": [
+          3999.908,
+          5546.224,
+          2402.481
+        ],
+        "meanSpeed": 5.1108,
+        "maxSpeed": 7.857
+      },
+      {
+        "t": 2.4,
+        "com": [
+          3999.909,
+          5545.278,
+          2401.709
+        ],
+        "meanSpeed": 5.6557,
+        "maxSpeed": 8.726
+      },
+      {
+        "t": 2.64,
+        "com": [
+          3999.91,
+          5544.235,
+          2400.86
+        ],
+        "meanSpeed": 6.1985,
+        "maxSpeed": 9.595
+      },
+      {
+        "t": 2.88,
+        "com": [
+          3999.911,
+          5543.095,
+          2399.936
+        ],
+        "meanSpeed": 6.739,
+        "maxSpeed": 10.461
+      },
+      {
+        "t": 3.12,
+        "com": [
+          3999.913,
+          5541.857,
+          2398.937
+        ],
+        "meanSpeed": 7.2772,
+        "maxSpeed": 11.32
+      },
+      {
+        "t": 3.36,
+        "com": [
+          3999.914,
+          5540.522,
+          2397.863
+        ],
+        "meanSpeed": 7.8132,
+        "maxSpeed": 12.175
+      },
+      {
+        "t": 3.6,
+        "com": [
+          3999.916,
+          5539.09,
+          2396.714
+        ],
+        "meanSpeed": 8.3467,
+        "maxSpeed": 13.025
+      },
+      {
+        "t": 3.84,
+        "com": [
+          3999.918,
+          5537.56,
+          2395.493
+        ],
+        "meanSpeed": 8.8779,
+        "maxSpeed": 13.872
+      },
+      {
+        "t": 4.08,
+        "com": [
+          3999.919,
+          5535.932,
+          2394.198
+        ],
+        "meanSpeed": 9.4066,
+        "maxSpeed": 14.716
+      },
+      {
+        "t": 4.32,
+        "com": [
+          3999.921,
+          5534.207,
+          2392.831
+        ],
+        "meanSpeed": 9.9326,
+        "maxSpeed": 15.551
+      },
+      {
+        "t": 4.56,
+        "com": [
+          3999.923,
+          5532.384,
+          2391.392
+        ],
+        "meanSpeed": 10.4559,
+        "maxSpeed": 16.381
+      },
+      {
+        "t": 4.8,
+        "com": [
+          3999.925,
+          5530.463,
+          2389.881
+        ],
+        "meanSpeed": 10.9766,
+        "maxSpeed": 17.205
+      },
+      {
+        "t": 5.04,
+        "com": [
+          3999.927,
+          5528.445,
+          2388.301
+        ],
+        "meanSpeed": 11.4948,
+        "maxSpeed": 18.03
+      },
+      {
+        "t": 5.28,
+        "com": [
+          3999.929,
+          5526.33,
+          2386.65
+        ],
+        "meanSpeed": 12.0105,
+        "maxSpeed": 18.856
+      },
+      {
+        "t": 5.52,
+        "com": [
+          3999.931,
+          5524.117,
+          2384.93
+        ],
+        "meanSpeed": 12.5236,
+        "maxSpeed": 19.674
+      },
+      {
+        "t": 5.76,
+        "com": [
+          3999.933,
+          5521.807,
+          2383.141
+        ],
+        "meanSpeed": 13.0341,
+        "maxSpeed": 20.481
+      },
+      {
+        "t": 6,
+        "com": [
+          3999.936,
+          5519.4,
+          2381.283
+        ],
+        "meanSpeed": 13.5423,
+        "maxSpeed": 21.284
+      },
+      {
+        "t": 6.24,
+        "com": [
+          3999.938,
+          5516.895,
+          2379.358
+        ],
+        "meanSpeed": 14.0482,
+        "maxSpeed": 22.08
+      },
+      {
+        "t": 6.48,
+        "com": [
+          3999.941,
+          5514.293,
+          2377.365
+        ],
+        "meanSpeed": 14.552,
+        "maxSpeed": 22.861
+      },
+      {
+        "t": 6.72,
+        "com": [
+          3999.943,
+          5511.594,
+          2375.305
+        ],
+        "meanSpeed": 15.0538,
+        "maxSpeed": 23.638
+      },
+      {
+        "t": 6.96,
+        "com": [
+          3999.946,
+          5508.798,
+          2373.179
+        ],
+        "meanSpeed": 15.5534,
+        "maxSpeed": 24.418
+      },
+      {
+        "t": 7.2,
+        "com": [
+          3999.948,
+          5505.905,
+          2370.986
+        ],
+        "meanSpeed": 16.051,
+        "maxSpeed": 25.198
+      },
+      {
+        "t": 7.44,
+        "com": [
+          3999.951,
+          5502.915,
+          2368.728
+        ],
+        "meanSpeed": 16.5464,
+        "maxSpeed": 25.967
+      },
+      {
+        "t": 7.68,
+        "com": [
+          3999.953,
+          5499.828,
+          2366.404
+        ],
+        "meanSpeed": 17.0396,
+        "maxSpeed": 26.722
+      },
+      {
+        "t": 7.92,
+        "com": [
+          3999.956,
+          5496.645,
+          2364.015
+        ],
+        "meanSpeed": 17.5307,
+        "maxSpeed": 27.46
+      }
+    ]
+  },
+  "adapter": {
+    "vendor": "apple",
+    "architecture": "metal-3",
+    "device": "",
+    "description": ""
+  },
+  "shaders": "../../webgpu/compute/shaders/",
+  "userAgent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Claude/2.9939.4 Chrome/152.0.7977.130 Safari/537.36"
+}
