@@ -366,6 +366,29 @@ which is how the optimisations below were checked for physics changes.
 - Graph-reload check (L3/L4): switch *Load the MLS-MPM simulation* 20× and press F5 — before
   this branch that was a use-after-free.
 
+**Result of the leak check, native, Apple M5 (2026-09-29)** — 15 minutes of continuous play
+from autostart (Breite Ries, Medium, Cam Clay preset off = Stomakhin, Smooth pacing), 10 s log
+lines from the panel plus `ps` every 10 s; 8 415 simulated seconds, 90 samples:
+
+| | |
+|---|---|
+| frame rate | 59–60 fps throughout, no dip |
+| speed | 9.6× real time (min 7.1×, median 9.6×) |
+| ms per run | 33.3 median; episodes of 37–50 ms at ~400–600 s, then back to 33 |
+| GPU per substep | 0.70–0.98 ms; 0.75 in the first 5 minutes, 0.81 afterwards (the flow's tile footprint changes, memory does not) |
+| solver GPU memory | **58.58 MiB, constant** |
+| energy-line samples | 184 → 2 037, halved by the cap, rising again — bounded as designed |
+| process RSS | 600 MiB at start (tile loading) → 290 → 260 → 253 MiB at the end; sawtooth with ~2 MiB/min creep between drops and **no net growth** |
+| errors / validation messages | 0; the app was still running at the end |
+
+First-half vs second-half means: 33.9 → 35.2 ms/run (+4 %), 0.77 → 0.82 ms/substep (+7 %),
+speed 9.5× → 9.2×. That is the 400–600 s episode plus a slightly different flow footprint, not
+a slope: the 100 s buckets go 33.3, 33.3, 33.3, 33.6, 36.9, 37.8, 33.9, 33.3, 35.8. What it
+does **not** show: a weak GPU, the web build over a long time, or a fresh reset every few
+minutes (the avalanche has come to rest after the first few minutes, so the later minutes
+measure an idle-but-running solver — which is what the leak paths L1–L7 act on, but not the
+GPU cost of a moving flow).
+
 ---
 
 ## 8. Measurements
