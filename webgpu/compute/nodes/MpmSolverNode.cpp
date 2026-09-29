@@ -151,6 +151,7 @@ MpmSolverNode::MpmSolverNode(webgpu::Context& ctx, const MpmSolverSettings& sett
     reg.register_shader("mpm_p2g", "webgpu_compute::mpm_p2g");
     reg.register_shader("mpm_grid_update", "webgpu_compute::mpm_grid_update");
     reg.register_shader("mpm_g2p", "webgpu_compute::mpm_g2p");
+    reg.register_shader("mpm_refresh_stress", "webgpu_compute::mpm_refresh_stress");
     reg.register_shader("mpm_splat", "webgpu_compute::mpm_splat");
     reg.register_shader("mpm_rasterize", "webgpu_compute::mpm_rasterize");
 
@@ -218,6 +219,7 @@ void MpmSolverNode::create_pipelines(WGPUDevice device, const webgpu::RenderReso
     m_p2g_pipeline = make("mpm_p2g");
     m_grid_update_pipeline = make("mpm_grid_update");
     m_g2p_pipeline = make("mpm_g2p");
+    m_refresh_stress_pipeline = make("mpm_refresh_stress");
     m_splat_pipeline = make("mpm_splat");
     m_rasterize_pipeline = make("mpm_rasterize");
 }
@@ -636,6 +638,13 @@ void MpmSolverNode::run_impl()
     m_run_substeps_left = std::clamp(m_settings.substeps_per_run, 1u, 4096u);
     m_run_first_chunk = true;
     m_run_is_reset = reset;
+    // Particles cache the stress G2P computed with the previous parameters; after a material
+    // edit that kept them, recompute it before the first P2G (a reseed computes it anyway).
+    const auto& u = m_settings_uniform.data;
+    const std::array<float, 11> stress_parameters { u.mu_0, u.lambda_0, u.hardening, u.critical_compression, u.critical_stretch,
+        float(u.constitutive_model), u.dp_alpha, u.ccc_m, u.ccc_beta, u.ccc_xi, u.ccc_p0_initial };
+    m_run_refresh_stress = !reset && stress_parameters != m_stress_parameters;
+    m_stress_parameters = stress_parameters;
     m_readback_copied = false;
     m_settings.reset_on_next_run = false;
     m_chunks_in_flight = 0;
@@ -699,6 +708,8 @@ void MpmSolverNode::submit_chunk()
         if (m_run_first_chunk && m_run_is_reset) {
             m_prepare_pipeline->run(compute_pass, prepare_workgroups);
             m_seed_pipeline->run(compute_pass, particle_workgroups);
+        } else if (m_run_first_chunk && m_run_refresh_stress) {
+            m_refresh_stress_pipeline->run(compute_pass, particle_workgroups);
         }
 
         // Dispatches within one compute pass are ordered and see each other's storage

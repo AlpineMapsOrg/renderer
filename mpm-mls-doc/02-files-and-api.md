@@ -19,6 +19,7 @@
 | `shaders/mpm_p2g.wgsl` | Stage 1: particle → grid. |
 | `shaders/mpm_grid_update.wgsl` | Stage 2: momentum → velocity, gravity, collisions. |
 | `shaders/mpm_g2p.wgsl` | Stages 3+4: grid → particle, plasticity, advection. |
+| `shaders/mpm_refresh_stress.wgsl` | Recomputes the cached particle stress after a material edit without a reseed. |
 | `shaders/mpm_splat.wgsl` | Accumulates particles into a density raster. |
 | `shaders/mpm_rasterize.wgsl` | Density raster → RGBA texture. |
 

@@ -17,7 +17,7 @@ from the sources when writing the report. Full list in [refs.md](refs.md).
 |---|---|
 | [01-theory.md](01-theory.md) | FLIP → MPM → MLS-MPM → snow model. The maths that is actually implemented, with pointers into the papers. |
 | [02-files-and-api.md](02-files-and-api.md) | Every file added or touched, the C++ classes, what each method does. |
-| [03-shaders.md](03-shaders.md) | The seven WGSL kernels, one at a time, with the formula each implements. |
+| [03-shaders.md](03-shaders.md) | The eight WGSL kernels, one at a time, with the formula each implements. |
 | [04-data-layout.md](04-data-layout.md) | Buffer/struct layouts, fixed-point atomics, coordinate conventions, uniform layout rules. |
 | [05-tuning.md](05-tuning.md) | Which knob does what, sensible ranges, failure modes, how to extend. |
 | [06-verification.md](06-verification.md) | What was actually tested, how, and what is still unverified. |

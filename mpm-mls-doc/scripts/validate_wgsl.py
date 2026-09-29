@@ -25,7 +25,7 @@ NS_DIRS = {
 USE_RE = re.compile(r"^\s*///use\s+(?:([A-Za-z_][A-Za-z0-9_]*)::)?([/\w .-]+?)\s*$")
 
 KERNELS = ["mpm_prepare", "mpm_seed", "mpm_p2g",
-           "mpm_grid_update", "mpm_g2p", "mpm_splat", "mpm_rasterize"]
+           "mpm_grid_update", "mpm_g2p", "mpm_refresh_stress", "mpm_splat", "mpm_rasterize"]
 
 
 def resolve(path, namespace, seen):

@@ -304,6 +304,11 @@ void AvalanchePanel::apply_pacing(nodes::MpmSolverNode& solver)
         return;
 
     auto& settings = solver.settings();
+    // The budget is per chunk, and it is also per frame: the node submits the next chunk from
+    // a chunk's work-done callback, so in steady state one chunk completes per frame. The two
+    // chunks in flight are queue depth (a frame's render can wait behind up to two), not two
+    // chunks' worth of GPU time per frame - measured on the M5 (web build, Balanced): 59 fps with
+    // 14 ms chunks, and a simulation speed matching one chunk per frame.
     const uint32_t target = std::clamp(uint32_t(pacing_budget_ms(m_pacing) / per_substep), 1u, 64u);
     // Hysteresis: the timing jitters by a few percent, and every change moves the frame time.
     const uint32_t current = std::max(settings.substeps_per_submit, 1u);

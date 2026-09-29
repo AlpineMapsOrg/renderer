@@ -83,7 +83,7 @@ export async function loadKernelSources(shaderBase) {
         return out.join('\n');
     };
 
-    const names = ['mpm_prepare', 'mpm_seed', 'mpm_clear_grid', 'mpm_p2g', 'mpm_grid_update', 'mpm_g2p', 'mpm_splat', 'mpm_rasterize'];
+    const names = ['mpm_prepare', 'mpm_seed', 'mpm_clear_grid', 'mpm_p2g', 'mpm_grid_update', 'mpm_g2p', 'mpm_refresh_stress', 'mpm_splat', 'mpm_rasterize'];
     const kernels = {};
     for (const name of names) {
         if ((await read(name)) === null) continue; // a revision may not have every kernel
@@ -148,6 +148,10 @@ export class MpmBench {
     constructor(device, sources, cfg) {
         this.device = device;
         this.cfg = { ...DEFAULTS, ...cfg };
+        // run() loops until substepsPerRun are submitted in chunks of substepsPerSubmit: a zero,
+        // negative or NaN chunk (e.g. from an empty form field) would never terminate.
+        for (const k of ['substepsPerRun', 'substepsPerSubmit', 'particles', 'gridLayers', 'runs'])
+            if (!Number.isInteger(this.cfg[k]) || this.cfg[k] < 1) throw new Error(`${k} must be a positive integer, got ${this.cfg[k]}`);
         this.kernels = sources.kernels;
         this.schedule = detectSchedule(sources.common);
         this.bindings = bindingTable(sources.common);

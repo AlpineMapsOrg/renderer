@@ -1,4 +1,4 @@
-# The seven kernels
+# The eight kernels
 
 All in `webgpu/compute/shaders/`. Every one starts with `///use mpm_common` (weBIGeo's
 shader preprocessor include directive), so they all declare the **identical binding set** —
@@ -12,6 +12,7 @@ One node execution, all inside a **single compute pass**:
 [buffer clear] density_raster; on reset also grid + tile_flags     (outside the pass)
 begin compute pass                                                  (one per chunk)
   if reset:  mpm_prepare  →  mpm_seed
+  else if a stress parameter changed since the last run:  mpm_refresh_stress
   repeat substeps_per_submit times:
       mpm_p2g → mpm_grid_update → mpm_g2p
   last chunk: mpm_splat → mpm_rasterize
@@ -180,6 +181,22 @@ atomicMax(state.max_speed_mm, ...)
 Watch the `dpos` asymmetry against P2G — world units there, grid units here with a `4/dx`
 factor. Both match the reference formulation; mixing them up gives plausible-looking but
 wrong results.
+
+## `mpm_refresh_stress` — 256×1×1, over particles
+
+Only in the first chunk of a run whose stress parameters (Lamé parameters, the model's
+plasticity parameters) changed without a reseed (a material edit while the avalanche runs).
+
+```
+F, plastic_state, tau = material_plasticity(F, plastic_state)   # under the new settings
+```
+
+G2P caches τ for the next P2G, and that τ belongs to the parameters G2P ran with. Without
+this pass the first P2G after an edit pushes with the old stress. The stored F is already
+admissible, so for unchanged settings the return mapping is a no-op; after a change it is the
+projection the next G2P would apply anyway. Halving E halves the stored τ (checked on
+SwiftShader for all three models); the node compares the uniform fields each run and never
+dispatches it otherwise.
 
 ## `mpm_splat` — 256×1×1, over particles
 

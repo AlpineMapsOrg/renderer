@@ -64,7 +64,7 @@ function serve(revDirs) {
     const server = http.createServer((req, res) => {
         const url = decodeURIComponent(new URL(req.url, 'http://x').pathname);
         let file;
-        const rev = url.match(/^\/__rev\/([^/]+)\/(.+)$/);
+        const rev = url.match(/^\/__rev\/(.+)\/([^/]+)$/); // refs may contain slashes (feature/foo)
         if (rev && revDirs[rev[1]]) file = path.join(revDirs[rev[1]], path.basename(rev[2]));
         else file = path.join(ROOT, path.normalize(url));
         if (!file.startsWith(ROOT) && !Object.values(revDirs).some((d) => file.startsWith(d))) { res.writeHead(403); res.end(); return; }

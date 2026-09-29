@@ -350,6 +350,7 @@ private:
     std::unique_ptr<webgpu::raii::CombinedComputePipeline> m_p2g_pipeline;
     std::unique_ptr<webgpu::raii::CombinedComputePipeline> m_grid_update_pipeline;
     std::unique_ptr<webgpu::raii::CombinedComputePipeline> m_g2p_pipeline;
+    std::unique_ptr<webgpu::raii::CombinedComputePipeline> m_refresh_stress_pipeline;
     std::unique_ptr<webgpu::raii::CombinedComputePipeline> m_splat_pipeline;
     std::unique_ptr<webgpu::raii::CombinedComputePipeline> m_rasterize_pipeline;
 
@@ -380,6 +381,9 @@ private:
     uint32_t m_chunks_in_flight = 0;
     bool m_run_first_chunk = true;
     bool m_run_is_reset = false;
+    bool m_run_refresh_stress = false; // material edited without a reseed, see mpm_refresh_stress.wgsl
+    /* The uniform fields the cached particle stress depends on, as of the last run. */
+    std::array<float, 11> m_stress_parameters {};
     bool m_readback_in_flight = false; // m_state_readback is being mapped - skip this run's copy
     bool m_readback_copied = false; // the last chunk of the current run copied the state
     uint32_t m_reset_count = 0; // tags readbacks, so one issued before a reset is dropped
