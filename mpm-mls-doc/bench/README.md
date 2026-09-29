@@ -58,4 +58,9 @@ trace bit for bit on the same device.
 ## Results in this directory
 
 `results/*.json` are runs checked in as reference points; the file name says device and
-configuration. Add your own (M-series Mac, a 4 GB NVIDIA laptop, ...) the same way.
+configuration. Add your own (M-series Mac, a 4 GB NVIDIA laptop, ...) the same way, then
+regenerate the tables with `python3 mpm-mls-doc/bench/results_to_markdown.py`.
+
+**The numbers are in [../10-benchmark-results.md](../10-benchmark-results.md)** (generated from
+these files). Headline, Apple M5 in Chrome, Cam Clay: 0.64 ms GPU per substep at 65 536
+particles (15.6× real-time ceiling), 1.18 ms at 131 072 (8.0×).

@@ -493,6 +493,8 @@ piling) on real terrain first, which 7 s on this slope does not reach — §11 #
 
 ### 8.5 Real GPU: Apple M5 (2026-09-28)
 
+*All benchmark files as tables (real GPU and SwiftShader): [10-benchmark-results.md](10-benchmark-results.md).*
+
 **Kernel benchmark** in Chrome 152 (Metal, `timestamp-query` available), same analytic slope,
 30 runs of 24 substeps at dt 0.01. Files `bench/results/m5-chrome152-*.json`.
 
