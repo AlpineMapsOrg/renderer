@@ -265,7 +265,7 @@ p× = p_c + t (p_tr − p_c)
 
 Shear on the tensile side of the centre (`p_tr < p_c`) softens, on the compressive side
 hardens — without it, shear would never change `p₀` and a slab could not weaken in shear.
-Until 2026-10-03 this step was missing (audit H1, [report-implementation-audit-final.md](report-implementation-audit-final.md)).
+Until 2026-10-03 this step was missing (audit H1, [report-implementation-audit-final-2026-10-03.md](report-implementation-audit-final-2026-10-03.md)).
 Explicit — the projection uses the old `p₀`, then hardening updates it.
 
 `q` follows Gaume and Li, `√(3/2)‖s‖`; Wolper's framework writes `q = (6−d)/2·‖s‖ = 1.5‖s‖`

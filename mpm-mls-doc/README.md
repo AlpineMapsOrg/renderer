@@ -22,7 +22,7 @@ from the sources when writing the report. Full list in [refs.md](refs.md).
 | [05-tuning.md](05-tuning.md) | Which knob does what, sensible ranges, failure modes, how to extend. |
 | [06-verification.md](06-verification.md) | What was actually tested, how, and what is still unverified. |
 | [07-constitutive-models.md](07-constitutive-models.md) | Proposal v3.0 gap analysis: which material/friction models exist, and the design for making them exchangeable. |
-| [report-implementation-audit-final.md](report-implementation-audit-final.md) | **Issue #3 final audit**: both independent audits merged, findings by severity with their source, comparison of the two, and the merged recommendations. |
+| [report-implementation-audit-final-2026-10-03.md](report-implementation-audit-final-2026-10-03.md) | **Issue #3 final audit**: both independent audits merged, findings by severity with their source, comparison of the two, and the merged recommendations. |
 | [report-implementation-audit.md](report-implementation-audit.md) | Issue #3 report: paper-to-code comparison, deviations, verification boundaries, and recommended next steps. |
 | [report-implementation-audit-opus.md](report-implementation-audit-opus.md) | Issue #3 second, independent audit, checked against the paper texts. |
 | [08-domain-size-options.md](08-domain-size-options.md) | Why the domain was 1.6 km, the options for a whole avalanche path, measured GPU cost, and what was chosen (terrain-following grid). |

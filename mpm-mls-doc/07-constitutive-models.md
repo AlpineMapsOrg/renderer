@@ -232,7 +232,7 @@ on day one.
 
 ### 2h. Audit fixes — 2026-10-03
 
-Issue #3's audit ([report-implementation-audit-final.md](report-implementation-audit-final.md))
+Issue #3's audit ([report-implementation-audit-final-2026-10-03.md](report-implementation-audit-final-2026-10-03.md))
 re-checked every formula against the papers. What it changed in the code:
 
 - **H1, Cam Clay shear hardening.** The fixed-p return was Wolper's NACC for Cases 1–2 but
