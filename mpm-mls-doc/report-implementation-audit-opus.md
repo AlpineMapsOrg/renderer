@@ -24,8 +24,8 @@ the papers, in particular the formulas. This report covers the solver path end t
 | Li et al. 2020 (The Cryosphere) | yes | model summary, numerics (Table 1) |
 | Li et al. 2021 (Landslides) | yes | Table 1 (presets), numerics, plastic-particle ratio |
 | Tonnel et al. 2023 (com1DFA) | yes | friction laws (§2.3), energy-line test (§5.2, App. A) |
-| Klár et al. 2016 (Drucker–Prager) | **no** | checked against the published closed form from memory; marked as such |
-| Wolper et al. 2019 (CD-MPM) | **no** | not verifiable here; marked as such |
+| Klár et al. 2016 (Drucker–Prager) | added later | first checked from memory; re-checked against §7.1 and §7.3 in the [Addendum](#addendum-re-check-with-klár-2016-and-wolper-2019) |
+| Wolper et al. 2019 (CD-MPM) | added later | first not verifiable; re-checked against §6.1–6.2 in the [Addendum](#addendum-re-check-with-klár-2016-and-wolper-2019) |
 
 Severity: **High** means it changes what the simulation shows or invalidates a claim. **Medium** means a
 real deviation with a limited or situational effect. **Low** means a minor deviation or guard.
@@ -113,7 +113,8 @@ Each of these is detailed below, along with smaller items and the list of what w
 
 ## 3. Drucker–Prager (Klár et al. 2016)
 
-*The paper isn't in the folder; checked against the published closed form.*
+*Written without the paper. The Addendum re-checked it against Klár §7.1 and §7.3; everything below
+holds.*
 
 **Consistent**
 - **Elasticity:** Hencky strain ε = log Σ, with τ = 2μ ε + λ tr(ε) I.
@@ -167,6 +168,10 @@ regime names, and the panel's notes ("breaks into blocks shortly after release",
 results, not this model's. *Wolper 2019 isn't in the folder, so I couldn't check that the fixed-p
 projection is exactly Wolper's.* The recommendation is to implement the associative return:
 Gaume Supplementary Note 1, Simo–Meschke. Keep the fixed-p return as an option, and compare.
+
+*Corrected in the Addendum: the fixed-p projection is Wolper's, but Wolper also hardens and softens
+in shear (§6.2.3), and the code leaves that out. The first consequence above is therefore an omission,
+not a property of the non-associative rule.*
 
 **High: resolution and regularisation.** Li 2021 runs at Δx = 0.5 m with 8 particles per cell,
 Δt = 2·10⁻³ s, 1.9 M particles and a 1.05 m release depth. Li 2020 uses Δx = 0.05 m. The app runs at
@@ -278,8 +283,8 @@ items need fixing:
    that they come from the paper, with a different flow rule and resolution.
 5. **The issue's DOI for Tonnel 2023 is wrong.** It gives `10.5194/gmd-16-533-2023`; the paper is
    `10.5194/gmd-16-7013-2023`, which `refs.md` already has right.
-6. **Klár 2016 and Wolper 2019 aren't in the paper folder**, so the two return mappings that cite them
-   can't be checked against the source by a reader.
+6. **Klár 2016 and Wolper 2019 weren't in the paper folder** when this was written. They are now; see
+   the Addendum for the wrong Klár section numbers this turned up.
 
 ## 10. Recommendations, in order
 
@@ -294,4 +299,44 @@ items need fixing:
 5. **Documentation and guards:** list the Stomakhin J_P and hardening clamps and the Cam Clay guards as
    deviations, fix the Drucker–Prager cost claim, and re-check dt when E or ρ is edited.
 6. **Put Klár 2016 and Wolper 2019 in the paper folder,** so the Drucker–Prager and fixed-p returns can
-   be checked against the source.
+   be checked against the source. *(Done; see the Addendum.)*
+
+## Addendum: re-check with Klár 2016 and Wolper 2019
+
+*Added later on 2026-10-03, once both PDFs were in the folder, and after the final report had been
+written. The main text above is left as it was.*
+
+**Klár 2016: the Drucker–Prager verdict holds.**
+- **δγ and the three cases** match §7.1, Eq. 27–28 with d = 3. The code tests tr ε > 0 before
+  δγ ≤ 0, while Klár states Case I first. That's equivalent: with α > 0, tr ε > 0 forces δγ > 0. With
+  ‖ε̂‖ = 0 and tr ε ≤ 0, δγ ≤ 0, so the code never divides by zero.
+- **Klár's own flow rule is non-associative.** §7.1 states that the model preserves volume through a
+  non-associative flow, so the code follows the paper here.
+- **Hardening** is §7.3, Eq. 29–31: q += δq with δq = 0 / ‖ε‖ / δγ for Cases I / II / III,
+  φ_F = h₀ + (h₁q − h₃)e^{−h₂q}, and α from φ_F. It's still left out (Low).
+- **Wrong section numbers.** The code and docs cite §5.3 and §5.4 for the return and the hardening.
+  In Klár those are "Transfer to particles" and "Update particle state". Affected:
+  `mpm_material_drucker_prager.wgsl:54`, `01-theory.md:208`, `07-constitutive-models.md:78` and
+  `refs.md:86`.
+- **"30° is Klár's sand default"** (`MpmSolverNode.h:140`) is inaccurate. Table 3's sand scenes harden
+  φ with h₀–h₃ = 35/9/0.2/10, so φ starts at 25°. 30° appears only in the fixed-angle sweep 20–40°.
+
+**Wolper 2019: the fixed-p return is NACC, but incomplete.**
+- **Cases 1–3 match §6.2.1–6.2.2 exactly.** p_{n+1} = p_tr. Above p₀ the return goes to (p₀, 0) and
+  below −βp₀ to (−βp₀, 0). Otherwise q comes from y(p_tr, q) = 0 (Eq. 14). At the tips, α changes by
+  log(J_E,tr / J_E,n+1), which is the code's `trace_trial − trace_returned`.
+- **Missing: §6.2.3, "fracture-friendly hardening".** In the shear case Wolper intersects the ellipse
+  with the line from the trial state to the ellipse centre, and updates α by log(J_E,tr / J_E,×).
+  Trial states on the tensile side of the centre soften, those on the compressive side harden. The
+  code does no update in Case 3 ("no hardening from shear alone"). So shear-driven softening is
+  missing under both Gaume's rule and Wolper's. That changes my H1. The problem isn't that the rule is
+  non-associative. The NACC the docs cite is only partly implemented. The cheap fix is §6.2.3: a
+  quadratic per yielding particle. The associative return is still the option for comparability with
+  Li, and needs a local Newton solve per particle (Wolper §6.1).
+- **q convention.** Wolper's framework uses q = (6−d)/2·‖s‖ = 1.5‖s‖. The code uses Gaume and Li's
+  √(3/2)‖s‖, which is right for Li's M values.
+- **Elasticity.** Wolper pairs NACC with a split Neo-Hookean energy (Eq. 8–10). The code uses Gaume's
+  Hencky elasticity. That's consistent, since the tip returns use tr ε = −p/K.
+
+**Still not available:** Gaume's Supplementary Note 1 and Wolper's technical document. Both are cited
+for derivations. Neither is needed for the points above.
