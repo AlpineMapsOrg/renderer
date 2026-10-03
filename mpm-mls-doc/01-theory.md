@@ -205,11 +205,14 @@ Yield surface is a **pressure-dependent friction cone** with its apex at zero st
 φ is the internal friction angle. It relates to the Cam-Clay slope M via
 `sinφ = 3M/(6+M)`: Li's cold-dense M = 0.5 is ≈ 13°, warm-shear M = 1.5 is ≈ 37°.
 
-The return mapping is a closed-form projection in strain space (Klár §5.3): expansion
-(`tr ε > 0`) projects to the apex since a cohesionless material carries no tension;
+The return mapping is a closed-form projection in strain space (Klár §7.1, Eq. 27–28):
+expansion (`tr ε > 0`) projects to the apex since a cohesionless material carries no tension;
 otherwise the deviatoric part is shortened by `δγ = ‖ε̂‖ + (3λ+2μ)/(2μ)·tr(ε)·α` onto the
-cone if `δγ > 0`, else elastic. Cheaper than Cam-Clay (no implicit solve), cohesionless (no
-slab, no fracture, no plug). Covers Li et al.'s cold-dense regime only.
+cone if `δγ > 0`, else elastic. Klár's flow rule is itself non-associative: Case III keeps
+the volume. Klár also hardens φ with the accumulated plastic strain (§7.3, Eq. 29–31); that
+is left out, φ is fixed. Cohesionless (no slab, no fracture, no plug), so it covers Li et
+al.'s cold-dense regime only. **Not** cheaper than Cam Clay on the GPU: both returns are
+closed form and the shared SVD dominates (M5: 0.66 vs 0.64 ms per substep).
 
 ## 4c. Cohesive Cam Clay (Gaume et al. 2018) — third model
 
@@ -240,12 +243,33 @@ p₀ = K · sinh(ξ · max(−α, 0)),   α = plastic volumetric strain
 Compaction (`α < 0`) grows `p₀`; dilation shrinks it towards zero, where the ellipse
 collapses to a point and the material carries no stress — that is fracture / granulation.
 
-**Return mapping.** Gaume describes an associative flow rule. Implemented is the three-case
-projection of Wolper et al. 2019 (NACC), the same group's implementation of this surface:
-beyond the compressive cap → `(p₀, 0)` with hardening; beyond the tensile strength →
-`(−βp₀, 0)` with softening; otherwise if outside, project `q` onto the ellipse **at fixed
-p**, no volumetric change. Explicit — the projection uses the old `p₀`, then hardening
-updates it.
+**Return mapping.** Gaume (and Li) use an associative flow rule. Implemented is the
+non-associated "NACC" return of Wolper et al. 2019 (§6.2), which keeps Gaume's surface and
+`p₀` law but preserves volume (`p_{n+1} = p_tr`):
+
+- beyond the compressive cap → `(p₀, 0)`, hardening;
+- beyond the tensile strength → `(−βp₀, 0)`, softening;
+- otherwise, if outside, `q` is projected onto the ellipse **at fixed p** (Wolper Eq. 14).
+
+In every case `α` changes by `log(J_E,tr / J_E,target) = tr ε_tr − tr ε_target`. At the tips
+the target is the returned state. In the shear case it is Wolper's **"fracture-friendly
+hardening"** (§6.2.3): the point `(p×, q×)` where the line from the trial state to the
+ellipse centre `(p_c, 0)`, `p_c = p₀(1−β)/2`, meets the ellipse. With `r = p₀(1+β)/2` that is
+closed form:
+
+```
+t  = M r / √((1+2β) q_tr² + M² (p_tr − p_c)²)      (0 < t < 1 for a state outside)
+p× = p_c + t (p_tr − p_c)
+Δα = (p× − p_tr) / K                               (Hencky: tr ε = −p/K)
+```
+
+Shear on the tensile side of the centre (`p_tr < p_c`) softens, on the compressive side
+hardens — without it, shear would never change `p₀` and a slab could not weaken in shear.
+Until 2026-10-03 this step was missing (audit H1, [report-implementation-audit-final.md](report-implementation-audit-final.md)).
+Explicit — the projection uses the old `p₀`, then hardening updates it.
+
+`q` follows Gaume and Li, `√(3/2)‖s‖`; Wolper's framework writes `q = (6−d)/2·‖s‖ = 1.5‖s‖`
+in 3D. The difference only rescales M, and Li's M values are for Gaume's definition.
 
 A consequence worth understanding: above `p₀`, Cam-Clay *loses* shear strength (Case 1
 drops the deviatoric strain), whereas Drucker–Prager's cone *gains* it with pressure. So a
@@ -282,19 +306,30 @@ turns out to be necessary:
   it and gets the same friction response. The grid condition alone is quantised to node
   spacing, so snow creeps through the surface between nodes without this.
 
-**Voellmy** (Tonnel et al. 2023, com1DFA; same form as `ComputeAvalancheTrajectoriesNode`)
-adds a turbulent drag quadratic in speed on top of Coulomb:
+**Voellmy** (Voellmy 1955, in the form depth-averaged codes use; same form as
+`ComputeAvalancheTrajectoriesNode`) adds a turbulent drag quadratic in speed on top of
+Coulomb:
 
 ```
 τ = μ·σₙ + ρ·g·|v|²/ξ            →  deceleration  g·|v|²/(ξ·h)
 ```
 
-with `h` = `slab_thickness` as the reference flow depth, so ξ keeps com1DFA's units
-(default ξ = 4000 m/s², conventionally paired with a *lower* μ ≈ 0.155). Unlike Coulomb it
-gives a **terminal velocity** on a slope, `v∞ = √(ξh(sinθ − μcosθ))`. Applied at the grid
-level only — the drag depends on `|v_t|²`, not the impact speed, so a second application at
-the particle level would double-count it. Not in the MPM snow papers (Li et al. use pure
-Coulomb); included because it is the standard second option in avalanche practice.
+`h` is the **local flow depth** of the node's column, as in a depth-averaged model: the
+column's node masses (a B-spline-smoothed areal mass) times the real snow volume per
+particle, over dx². The real volume is the seeded area × `slab_thickness` / particles,
+the seeded area being the release disc times the share of seeding threads whose first
+random sample hit a release point (`seeded_particle_volume()` in `mpm_common`; the particle
+volume in the uniform is normalised and useless as a length). Floored at 0.1 m for the
+flow's fringe. Until 2026-10-03 `h` was the constant `slab_thickness` (audit M3).
+
+μ = 0.155 with ξ = 4000 m/s² are the parameters of **com1DFA's Voellmy option**; com1DFA's
+default friction model is samosAT, and Tonnel et al. 2023 name Voellmy but give no formula
+(audit M4). Unlike Coulomb it gives a **terminal velocity** on a slope,
+`v∞ = √(ξh(sinθ − μcosθ))`. Applied at the grid level only — the drag depends on `|v_t|²`,
+not the impact speed, so a second application at the particle level would double-count it.
+Only nodes below the terrain with `v·n < 0` get it, which under gravity is every node in
+contact. Not in the MPM snow papers (Li et al. use pure Coulomb); included because it is
+the standard second option in avalanche practice.
 
 **Vertical grid origin.** The Eulerian grid box needs a base altitude. Rather than making
 the user guess one, the `mpm_prepare` kernel scans the terrain inside the domain footprint
@@ -310,3 +345,8 @@ subtracts a 2·dx margin. Fully GPU-side, no readback.
 | G2P and advection fused into one kernel | Both are per-particle passes over the same data; no reason to split. |
 | Grid cleared by a compute kernel, not `clearBuffer` | Keeps the whole run inside one compute pass. |
 | Terrain collision at grid *and* particle level | Grid-only lets snow leak through between nodes at these cell sizes. |
+| Guards not in the papers: Stomakhin `J_P` and its hardening factor clamped to [0.05, 20]; Cam Clay sinh argument ≤ 20; σ clamped to [10⁻³, 10³] before the log; M ≥ 10⁻³, ξ ≥ 10⁻⁶ | Keep a diverging particle from producing inf/NaN. The `J_P` clamp caps compaction stiffening at 20×; the CFL bound uses the unhardened stiffness. |
+| Cam Clay: Wolper's non-associated return (volume-preserving) instead of Gaume's associative one | Closed form; the associative return needs a local Newton solve per particle (Wolper §6.1). Li's regime presets were calibrated with the associative rule. |
+| Drucker–Prager: fixed φ, no Klár §7.3 hardening | Simplicity; it is the cohesionless alternative, not the main model. |
+| Box boundaries: domain walls and the band ceiling stop outward flow | Finite memory. The readback counts particle-substeps in contact with them, and the panel warns when that is not zero. |
+| SVD from the eigen-decomposition of FᵀF in f32 | Fast and branch-light. Squares the condition number: fine near the identity, where the elastic strains stay, weaker for strongly distorted F. |

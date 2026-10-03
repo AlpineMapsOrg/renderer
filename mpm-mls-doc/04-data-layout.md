@@ -132,22 +132,39 @@ With k = 1/m_real: mass' = 1, volume' = V_real/m_real = 1/ρ. Grid mass then rea
 "particles in the neighbourhood" — O(10–1000) — and the momentum accumulator's range is a
 statement about particle counts and speeds, not about how much snow the scenario contains.
 
-## `SimState` — 56 bytes
+## `SimState` — 72 bytes
 
 ```wgsl
 struct SimState {
-    min_altitude_cm: atomic<i32>,    // terrain scan, readout only  - written once per reset
-    max_altitude_cm: atomic<i32>,    //                               - written once per reset
-    active_particles: atomic<u32>,   // seeded successfully          - written once per reset
-    max_speed_mm:     atomic<u32>,   // fastest particle this run    - zeroed before each run
-    plastic_particles: atomic<u32>,  // plastic state left initial   - zeroed before each run
-    _reserved: atomic<u32>,
-    sum_x_lo / sum_x_hi,             // 64-bit sums over active particles, zeroed each run:
-    sum_y_lo / sum_y_hi,             //   position * 1e4 (0.1 mm) ...
-    sum_z_lo / sum_z_hi,
-    sum_speed_sq_lo / _hi,           //   ... and |v|^2 * 1e5
+    min_altitude_cm: atomic<i32>,    // 0  terrain scan, readout only  - written once per reset
+    max_altitude_cm: atomic<i32>,    // 1                                - written once per reset
+    active_particles: atomic<u32>,   // 2  seeded successfully          - written once per reset
+    max_speed_mm:     atomic<u32>,   // 3  fastest particle this run    - zeroed before each run
+    plastic_particles: atomic<u32>,  // 4  yielded in the LAST substep  - zeroed by P2G every substep
+    seed_first_hits: atomic<u32>,    // 5  first seeding sample hit     - written once per reset
+    sum_x_lo / sum_x_hi,             // 6  64-bit sums over active particles, zeroed each run:
+    sum_y_lo / sum_y_hi,             // 8    position * 1e4 (0.1 mm) ...
+    sum_z_lo / sum_z_hi,             // 10
+    sum_speed_sq_lo / _hi,           // 12   ... and |v|^2 * 1e5
+    sum_path_lo / _hi,               // 14 horizontal path * 1e5, summed since the RESET
+    ceiling_contacts: atomic<u32>,   // 16 particle-substeps touching the band ceiling - zeroed each run
+    wall_contacts: atomic<u32>,      // 17 ... touching the domain walls             - zeroed each run
 }
 ```
+
+Three slots changed meaning or were added on 2026-10-03 (audit M1, M2, M3, M5):
+
+- `plastic_particles` was "plastic state has ever left its initial value", counted once per
+  run in `mpm_splat`. Li et al. 2021's ratio is the share yielding *at* a time, so it is now
+  the count of `PlasticReturn.yielded` in the last substep's G2P.
+- `seed_first_hits` (the old `_reserved`) gives the seeded area, and from it the real snow
+  volume per particle the Voellmy depth needs (`seeded_particle_volume()`).
+- `sum_path` is the energy line's `s`, mass-averaged per particle. It is cumulative since the
+  reset, not per run, so a run whose readback is skipped loses nothing.
+
+G2P reduces its diagnostics (max speed, yield count, path, contacts) in workgroup memory and
+touches the global atomics once per workgroup. Before, every particle did a global
+`atomicMax` on one address every substep; the M5 benchmark shows no measurable cost either way.
 
 **Why 64-bit.** A fixed-point sum over 10⁵ particles overflows a `u32` at any useful
 precision, and the obvious dodge — summing `value/N` so the total is the mean — quantises
@@ -157,7 +174,8 @@ The lo/hi pair with carry detection (see `03-shaders.md`, `mpm_splat`) costs one
 branch per add and has no such limit. Reassembled on the CPU by `wide()`.
 
 Written from the CPU on reset via `RawBuffer::write()` with ±INT_MAX so the atomics
-converge; slots 3–4 are zeroed by a 2-element `write()` before every non-reset run.
+converge; before every non-reset run `reset_run_counters()` zeroes slots 3–4, 6–13 and
+16–17 — not 5 and 14–15, which hold from the reset on.
 **Read back** after each run: the last chunk's command buffer copies it into a persistent
 MapRead buffer (`m_state_readback`), which the work-done callback maps into
 `MpmSolverNode::last_state()`; the value therefore describes the previous completed run. (It

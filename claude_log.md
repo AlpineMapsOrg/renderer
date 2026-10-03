@@ -13,6 +13,38 @@ capture of the terminal.
 
 ---
 
+## 2026-10-03
+
+### 1. Issue #3 audit, re-checked with Klár 2016 and Wolper 2019
+
+Manuel added both PDFs. Klár confirmed the Drucker–Prager code (§7.1 Eq. 27–28; Klár's flow
+is itself non-associative) and showed the cited section numbers (§5.3/§5.4) are wrong.
+Wolper showed the fixed-p Cam Clay return is NACC for Cases 1–2 but **omits §6.2.3**, the
+shear hardening — so shear never softened. Final and Opus audit reports updated, pushed to
+main (`f63e91e8`).
+
+### 2. PR addressing the final report (branch `audit-fixes`)
+
+**Done:** H1 (Wolper §6.2.3 in Case 3), M1 (plastic ratio per substep via
+`PlasticReturn.yielded`), M2 (energy-line path = mass-averaged particle path, summed in G2P,
+cumulative since reset), M3 (Voellmy local flow depth; real particle volume from a Monte
+Carlo estimate of the seeded area in `mpm_seed`), M4 (attribution), M5 (box-contact
+counters + sidebar warning), H2 (preset names/notes), L3, L5 (`max_stable_dt()` on P-wave
+speed, enforced every run), D4, guard/deviation table in 01-theory. G2P diagnostics reduced
+in workgroup memory. Bench: `SimState` 72 B, new `ccc_slab` material.
+
+**Decisions.** §6.2.3 rather than the associative return: closed form, and it makes the code
+the model it cites; associative stays a follow-up. Box counter uses stencil contact, not
+clamps: a 640 m test box showed 0 clamps while the flow piled against the wall (the grid
+wall nodes stop it first). ξ not rescaled with Δx: Li gives no rule.
+
+**Verified:** all offline scripts; tint; native build; app runs on M5 for Li V, Li III,
+Stomakhin, DP, Voellmy, partial-cover seeding and a small box (06 §4j). Headless-Chrome A/B
+vs main: no measurable cost; Li V trace unchanged, Li III mean speed 19.4 → 18.1 m/s.
+**Not verified:** web (wasm) build locally — CI builds it; behaviour on non-Apple GPUs.
+**Not done:** associative Cam Clay return, Klár φ hardening, convergence study at two Δx,
+GPU golden readbacks vs the Python ports, the DOI in issue #3's text.
+
 ## 2026-09-13
 
 ### 1. Proposal v3.0 gap analysis — constitutive & friction models

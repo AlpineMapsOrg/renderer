@@ -182,6 +182,13 @@ implemented maths is right.
 
 ## 4. Recommendations (merged, in priority order)
 
+> **Status, 2026-10-03 (branch `audit-fixes`).** Done: 1 (§6.2.3 shear hardening; the
+> associative return is not), 2 (labels and notes; ξ not rescaled — Li gives no rule), 3,
+> 4, 5 only in part (box-contact counters with a sidebar warning; no convergence study and
+> no GPU golden readbacks yet), 6 except the issue's DOI (L1 guards, L3, L5, D4 fixed;
+> D6 followed). Details and measurements: [07-constitutive-models.md](07-constitutive-models.md)
+> §2h and [06-verification.md](06-verification.md) §4j.
+
 1. **Cam Clay shear hardening:** add Wolper §6.2.3 to Case 3 of `ccc_plasticity()`: intersect the
    line from the trial state to the ellipse centre with the ellipse, then α += log(J_E,tr / J_E,×).
    This is cheap and makes the shader the NACC it cites. Then fix the "no hardening from shear alone"

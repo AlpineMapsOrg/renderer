@@ -58,8 +58,8 @@ Three files carry no entry point; kernels `///use` them.
 | Module | Provides | Used by |
 |---|---|---|
 | `mpm_common` | bindings, structs, terrain sampling, B-spline kernel, SVD, matrix helpers | all |
-| `mpm_material` | `material_initial_state()`, `material_plasticity()` (which also returns τ = P·Fᵀ of the returned state) — a `switch` on `settings.constitutive_model` over `mpm_material_stomakhin` / `mpm_material_drucker_prager` / `mpm_material_ccc` | seed, g2p, splat |
-| `mpm_friction` | `resolve_terrain_collision(v, n, apply_basal_drag)` — a `switch` on `settings.basal_friction_model`; Coulomb, Voellmy | grid_update (`true`), g2p (`false`) |
+| `mpm_material` | `material_initial_state()`, `material_plasticity()` (which also returns τ = P·Fᵀ of the returned state) — a `switch` on `settings.constitutive_model` over `mpm_material_stomakhin` / `mpm_material_drucker_prager` / `mpm_material_ccc` | seed, g2p, refresh_stress |
+| `mpm_friction` | `resolve_terrain_collision(v, n, apply_basal_drag, flow_depth)` — a `switch` on `settings.basal_friction_model`; Coulomb, Voellmy | grid_update (`true`, column depth), g2p (`false`, 0) |
 
 `mpm_material` and `mpm_friction` are separate on purpose: internal friction (M, inside the
 material law) and basal friction (μ, a boundary condition) are different things and are
@@ -91,7 +91,10 @@ candidate = release_centre + (cos, sin)·distance
 Rejects candidates outside the domain (with a 2·dx margin — a particle outside the box gets
 clamped onto its wall immediately). Then requires a release-point-texture hit unless
 `seed_anywhere` is set. Up to 32 attempts; failures leave the particle **inactive**
-(`mass = 0`), which every later stage skips.
+(`mass = 0`), which every later stage skips. A thread whose *first* sample hits counts into
+`SimState.seed_first_hits`: the first sample is uniform over the disc, so hits / threads is
+the share of the disc that holds snow — the seeded area, from which
+`seeded_particle_volume()` gets the real volume per particle (Voellmy depth).
 
 Particle z = terrain height + `rand · slab_thickness`, so the slab has real depth.
 Initialised with `F = I`, `C = 0`, `plastic_state = material_initial_state()` (Jp = 1 for
@@ -101,7 +104,9 @@ Uses `///use random` (PCG hash from the existing `random.wgsl`).
 
 ## `mpm_p2g` — 256×1×1, over particles
 
-Stage 1. Skips `mass <= 0`.
+Stage 1. Skips `mass <= 0`. Invocation 0 first zeroes `SimState.plastic_particles`: the
+yield count is per substep, and dispatches in one pass are ordered, so the store lands
+before this substep's G2P counts.
 
 ```
 gp     = to_grid_space(position)
@@ -138,6 +143,8 @@ Stage 2. Each thread owns one column and walks its layers (the band, not altitud
 thread 0: active = tile_flags[tile];  workgroupUniformLoad → all threads
 if !active: return                                     # no particle touched this tile this substep
 thread 0: tile_flags[tile] = 0                         # P2G of the next substep flags it again
+if Voellmy:                                            # uniform branch
+    flow_depth = Σ_layers node_mass · seeded_particle_volume() / dx²   # local depth of the column
 for layer in 0 .. res.z:
     cell = layer · res.x · res.y + column(x, y)
     read mass (lo/hi) and momentum; zero them unless already zero   # replaces the clear pass
@@ -147,7 +154,7 @@ v.z −= gravity · dt
 
 world = column_node_world(node_xy, layer)             # altitude = (column_floor + layer) · dx
 if world.z < terrain_height(world.xy):
-    v = resolve_terrain_collision(v, terrain_normal(world.xy), true)   # basal drag applied here
+    v = resolve_terrain_collision(v, terrain_normal(world.xy), true, flow_depth)   # basal drag applied here
 
     clamp at domain walls (2-node margin, only blocks outflow)
     grid_velocity[cell] = v                            # plain floats for G2P
@@ -158,24 +165,31 @@ last time they were consumed, and no particle's stencil reads their velocity thi
 
 ## `mpm_g2p` — 256×1×1, over particles
 
-Stages 3+4 fused.
+Stages 3+4 fused. No early return: each invocation calls `update_particle()` if it has
+one, then the workgroup reduces its diagnostics and invocation 0 adds them to `SimState`
+once (max speed, yield count, path, box contacts).
 
 ```
+wall_contact    = stencil reaches the 2 outer node rows      # where the grid update blocks outflow
+ceiling_contact = stencil reaches the top 3 band layers
 for offset in 3×3×3:
     dpos = offset − fx                       # GRID units here, not world
     v_new += w · node_velocity
     C_new += 4·(1/dx) · w · outer(node_velocity, dpos)
 
 F_trial = (I + dt·C_new) · F
-F, plastic_state, tau = material_plasticity(F_trial, plastic_state)   # tau from the same SVD, stored for P2G
+F, plastic_state, tau, yielded = material_plasticity(F_trial, plastic_state)   # tau from the same SVD, stored for P2G
+wg_yielded += yielded
 position += dt · v_new
 
 if position.z < terrain_height:              # particle-level collision
     position.z = terrain_height
-    velocity = resolve_terrain_collision(velocity, normal, false)  # contact impulse only
+    velocity = resolve_terrain_collision(velocity, normal, false, 0)  # contact impulse only
 
-clamp into the domain box, zeroing the velocity component that hit
-atomicMax(state.max_speed_mm, ...)
+clamp into the domain box, zeroing the velocity component that hit   # counts as a wall contact
+clamp under the band ceiling                                         # counts as a ceiling contact
+wg_max_speed = max(…);  wg_path += round(|Δxy| · 1e5)
+barrier; invocation 0: one global atomic per counter
 ```
 
 Watch the `dpos` asymmetry against P2G — world units there, grid units here with a `4/dx`
@@ -200,9 +214,8 @@ dispatches it otherwise.
 
 ## `mpm_splat` — 256×1×1, over particles
 
-Also, once per run: counts particles whose `plastic_state` has left its initial value into
-`SimState.plastic_particles`, and sums position and `|v|²` over active particles for the
-energy-line test. The sums are **64-bit** as lo/hi `u32` pairs — WGSL has no 64-bit atomics,
+Also, once per run: sums position and `|v|²` over active particles for the energy-line
+test. (The plastic count moved to G2P on 2026-10-03: it is now per substep, see below.) The sums are **64-bit** as lo/hi `u32` pairs — WGSL has no 64-bit atomics,
 and `atomicAdd` returns the old value, so a wrap is detectable:
 
 ```

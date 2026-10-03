@@ -63,7 +63,9 @@ applied where the paper summaries recommend (grid-update pass).
 **Done 2026-09-13:** μ default 0.4 → **0.47** (Li et al. 2021, real terrain). **Voellmy** added
 as a second `BasalFrictionModel` — Coulomb plus the turbulent term `g|v|²/(ξ·h)`, ξ = 4000
 default, `h` = `slab_thickness` as the reference depth so ξ stays in com1DFA units (the
-trajectories node uses the same convention with `h` hard-coded to 1 m). The drag is applied
+trajectories node uses the same convention with `h` hard-coded to 1 m). *(2026-10-03: `h` is
+now the local flow depth of the column, and μ 0.155 / ξ 4000 are com1DFA's Voellmy-option
+values, not its default — see §2h.)* The drag is applied
 at the **grid level only** via an `apply_basal_drag` flag — it depends on `|v|²` not `vn`, so
 applying it at the particle level too would double-count it per substep. Coulomb ignores
 the flag and is bit-identical to before. Verified against the analytic terminal velocity
@@ -75,7 +77,9 @@ the flag and is bit-identical to before. Verified against the analytic terminal 
 (log-strain) elasticity `τ = 2με + λ tr(ε) I` in the principal frame, `P Fᵀ = U diag(τ) Uᵀ`;
 yield surface the friction cone `‖dev τ‖ + α tr τ ≤ 0` with
 `α = √(2/3)·2 sinφ/(3 − sinφ)` precomputed CPU-side from `dp_friction_angle` (default 30°,
-Klár's sand). Return mapping is Klár §5.3's closed-form projection in Hencky-strain space:
+a typical sand value inside the 20–40° sweep of Klár Table 3; Klár's own sand scenes harden
+φ from 25° towards 35°). Return mapping is Klár §7.1's closed-form projection (Eq. 27–28) in
+Hencky-strain space — itself non-associative, it keeps the volume in Case III:
 
 ```
 ε = log Σ,   ε̂ = ε − tr(ε)/3
@@ -85,9 +89,10 @@ if δγ ≤ 0:                             Case I   – elastic
 else:  ε ← ε − δγ · ε̂/‖ε̂‖             Case III – onto the cone
 ```
 
-`plastic_state` accumulates δγ (a free "has this particle yielded" diagnostic); Klár's
-hardening of φ is left out. Cohesionless, so cold-dense regime only — the documented
-fallback if CCC is too slow. Verified: `test_material_dp.py` checks every Case III output
+`plastic_state` accumulates δγ (Klár's hardening state q); Klár's hardening of φ (§7.3,
+Eq. 29–31) is left out. Cohesionless, so cold-dense regime only. *(Originally "the
+fallback if CCC is too slow" — the M5 benchmark shows it is not cheaper, 0.66 vs 0.64 ms per
+substep, so it is an alternative material, not a performance fallback.)* Verified: `test_material_dp.py` checks every Case III output
 lands on the cone to `|y| < 1.5e-10` over 500 random gradients; `test_mpm.py` with
 `MPM_MODEL=drucker_prager` shows the qualitative signature (spreads instead of piling).
 
@@ -120,13 +125,14 @@ p₀ = K·sinh(ξ·max(−α, 0))                     α = plastic volumetric st
 
 **Return mapping — a documented choice.** Gaume 2018 describes an associative flow rule,
 which needs a per-particle Newton solve on the ellipse. Implemented instead is the
-three-case projection of **Wolper et al. 2019 (NACC)** — the same group's implementation
-of the same surface and hardening law:
+non-associated return of **Wolper et al. 2019 (NACC, §6.2)** — the same group's
+implementation of the same surface and hardening law:
 
 ```
 Case 1  p > p₀          → (p₀, 0),      α += tr ε + p₀/K      (compaction: harden)
 Case 2  p < −βp₀        → (−βp₀, 0),    α += tr ε − βp₀/K     (dilation: soften)
-Case 3  y > 0 otherwise → q onto the ellipse at fixed p, α unchanged
+Case 3  y > 0 otherwise → q onto the ellipse at fixed p,
+                          α += (p× − p)/K  (Wolper §6.2.3, since 2026-10-03; see §2h)
 ```
 
 Explicit: the old p₀ is used for the projection, then hardening is updated. Case 3's
@@ -156,7 +162,7 @@ and Cam-Clay loses shear strength above p₀ — the opposite of DP's cone; stro
 
 `AvalanchePanel::MaterialPreset`, seven entries behind a "Material preset" combo: Stomakhin
 2013 (film snow); Li 2021 Cases I–IV (cold dense, warm shear, sliding slab, warm plug) and
-Case V (Vallée de la Sionne 2003); and a Drucker–Prager cold-dense fallback with φ ≈ 13.3°
+Case V (Vallée de la Sionne 2003); and a Drucker–Prager cold-dense alternative with φ ≈ 13.3°
 derived from M = 0.5. Presets **write the ordinary settings** — model, E, ν, ρ, μ and the
 model-specific parameters — and are not a third configuration path. Applying one forces a
 reseed and pulls `dt` under the new CFL bound (Li's 3 MPa is ~6× the wave speed of
@@ -223,6 +229,44 @@ and regression-tested offline in `test_sheet_fixed_point.py` — the full story 
 fix, the Breite Ries run gives `μ_eff` 0.58 → 0.49 over the whole 144 s (basal 0.47),
 speeds of 21–26 m/s, and the flow stops after 340–380 m. The energy line earned its keep
 on day one.
+
+### 2h. Audit fixes — 2026-10-03
+
+Issue #3's audit ([report-implementation-audit-final.md](report-implementation-audit-final.md))
+re-checked every formula against the papers. What it changed in the code:
+
+- **H1, Cam Clay shear hardening.** The fixed-p return was Wolper's NACC for Cases 1–2 but
+  left out Wolper §6.2.3: in Case 3, α moves by `log(J_E,tr/J_E,×)` with `(p×, q×)` the
+  point where the line from the trial state to the ellipse centre meets the ellipse
+  (closed form, see [01-theory.md](01-theory.md) §4c). Shear on the tensile side of the
+  centre now softens, on the compressive side hardens. `test_material_ccc.py` checks the
+  update against an independent bisection and the sign on both sides. On the bench slope the
+  Li V preset (p₀ ≈ the slab's weight, everything at the cap) is unchanged; Li III (p₀ 42 kPa,
+  shear-dominated) flows slower (mean speed 18.1 vs 19.4 m/s after 40 runs).
+- **M1, plastic ratio.** Now the share of particles whose return mapping yielded in the
+  last substep (`PlasticReturn.yielded`), which is Li 2021's definition, instead of "ever
+  left the initial state". Measured on Breite Ries: Li III 0 % at release, ~90 % while
+  flowing; Li V 100 % throughout (the slab's 2.9 kPa weight is ≈ p₀ = 3 kPa).
+- **M2, energy-line path.** `s` is the mass-averaged particle path (Tonnel App. A), summed in
+  G2P per substep, not the centre of mass's path, which is shorter for a spreading flow.
+- **M3, Voellmy depth.** `h` is the local flow depth from the column's node masses and the
+  real volume per particle (seeded area × slab thickness / particles). Checked: a disc fully
+  covered gives depth = slab thickness at release; a 256 m disc over sparse release area
+  read 0.5 % coverage, and the active count matched what 32 seeding attempts at that hit
+  rate predict.
+- **M4, attribution.** μ 0.155 / ξ 4000 are com1DFA's Voellmy-option values; its default is
+  samosAT; the formula is Voellmy's, not in Tonnel 2023.
+- **M5, box boundaries.** G2P counts particle-substeps whose stencil reaches the nodes
+  where the grid update stops outward flow (two outer rows, top three band layers) or that
+  get clamped. The sidebar warns with the share. A 640 m test box showed why counting only
+  the clamps is not enough: the flow piled up against the wall with zero clamps, because the
+  grid had already stopped it.
+- **H2, presets.** Renamed "Li 2021 … parameters" with notes that say what *Li* observed —
+  at 0.5 m cells with the associative rule. ξ is not rescaled with Δx: Li 2021 mentions it,
+  but gives no rule.
+- **L3, L5, D4.** Drucker–Prager's cost claim removed; dt is checked against a CFL bound
+  on the P-wave speed `√((λ+2μ)/ρ)` on every run (`MpmSolverNode::max_stable_dt()`), not
+  only when a preset is applied; Klár section numbers corrected (§7.1/§7.3, not §5.3/§5.4).
 
 ### 2c. Not implemented
 
@@ -370,6 +414,7 @@ now in and verified, which CCC reuses.
 
 **4. Cohesive Cam Clay (Gaume 2018).** ✅ **Done 2026-09-13.** See §2e — including the
 return-mapping choice (Wolper's three-case projection rather than the associative rule).
+Wolper's shear hardening (§6.2.3) was missing until 2026-10-03, see §2h.
 
 Still true and still worth doing: **benchmark it.** Nobody has run CCC interactively. Per
 particle it is one SVD plus a handful of scalars — same order as Stomakhin — so it should be

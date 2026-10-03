@@ -63,27 +63,38 @@ avalanche model the MPM solver sits **alongside**.
 **Tonnel, M., Wirbel, A., Oesterle, F., Fischer, J.-T.** 2023. *AvaFrame com1DFA (v1.3): a
 thickness-integrated computational avalanche module – theory, numerics, and testing.*
 Geosci. Model Dev. 16, 7013–7035. https://doi.org/10.5194/gmd-16-7013-2023
-→ Source for the **Voellmy** friction form implemented in `mpm_friction.wgsl` (τ = μσₙ +
-ρg|v|²/ξ, default ξ = 4000, μ = 0.155) and for the energy-line validation test planned in
-[07-constitutive-models.md](07-constitutive-models.md). Not an MPM paper.
+→ Source of the **energy-line test** (§5.2, App. A — `s` is the mass-averaged path of the
+points) in [07-constitutive-models.md](07-constitutive-models.md) §2g, and of the friction
+laws com1DFA offers (Coulomb, Voellmy, samosAT). Its Coulomb law is τ = μσₙ (Eq. 15); it
+names Voellmy but gives no formula. com1DFA's **default** friction model is samosAT; μ = 0.155
+with ξ = 4000 are the parameters of its Voellmy option. Not an MPM paper.
+
+**Voellmy, A.** 1955. *Über die Zerstörungskraft von Lawinen.* Schweizerische Bauzeitung 73.
+→ The **Voellmy** friction form in `mpm_friction.wgsl`, τ = μσₙ + ρg|v|²/ξ, in the
+depth-averaged form avalanche codes use (divided by ρh, h the local flow depth).
 
 **Li, X., Sovilla, B., Jiang, C., Gaume, J.** 2021. *Three-dimensional and real-scale modeling
 of flow regimes in dense snow avalanches.* Landslides 18, 3393–3406.
 https://doi.org/10.1007/s10346-021-01692-8
 → Proposal ref [13]. Source of the basal μ = **0.47** default (Table 1, real terrain) and of the
-per-regime CCC parameter table the presets will use.
+per-regime CCC parameter table (Table 1) the presets use. Δx 0.5 m, 8 particles per cell,
+associative return — the presets carry the parameters, not the resolution or flow rule.
 
 **Wolper, J., Fang, Y., Li, M., Lu, J., Gao, M., Jiang, C.** 2019. *CD-MPM: Continuum damage
 material point methods for dynamic fracture animation.* ACM Trans. Graph. 38(4), Article 119.
-→ Source of the **three-case return mapping** (compressive cap / tensile tip / fixed-p shear
-projection) used in `mpm_material_ccc.wgsl` for the Gaume [11] yield surface — the same
-group's implementation of it (their "NACC"). Gaume describes an associative rule; this is
-the non-associated variant, and the docs say so.
+→ Source of the **non-associated return mapping** (§6.2, "NACC": compressive cap / tensile
+tip / fixed-p shear projection, Eq. 14, plus the shear hardening of §6.2.3) used in
+`mpm_material_ccc.wgsl` for the Gaume [11] yield surface — the same group's implementation
+of it. Gaume describes an associative rule; this is the non-associated variant, and the
+docs say so. Note Wolper's `q = (6−d)/2·‖s‖`; the code keeps Gaume's `√(3/2)‖s‖`, for
+which Li's M values are given.
 
 **Klár, G., Gast, T., Pradhana, A., Fu, C., Schroeder, C., Jiang, C., Teran, J.** 2016.
 *Drucker-Prager elastoplasticity for sand animation.* ACM Trans. Graph. 35(4), Article 103.
 → **Implemented** in `mpm_material_drucker_prager.wgsl`: Hencky strain, friction cone, the
-closed-form return mapping of §5.3 (Cases I–III). Hardening of φ (§5.4) left out.
+closed-form return mapping of §7.1 (Eq. 27–28, Cases I–III; non-associative, volume-
+preserving). Hardening of φ (§7.3, Eq. 29–31) left out. Table 3: ρ 2200, E 3.537×10⁵,
+ν 0.3; sand hardening h₀–h₃ = 35/9/0.2/10 (φ from 25°), fixed-angle sweep 20–40°.
 
 ## Implementation references (not papers)
 

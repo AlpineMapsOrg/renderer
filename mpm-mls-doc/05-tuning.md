@@ -7,17 +7,17 @@
 | `domain_size_xy` | 1024 m (preset: 4000) | Simulated box. **Clamped to the tiled region** — bigger needs a bigger `GeoRegionNode.extent` (preset: 8000 m). |
 | `grid_resolution_xy` | 64 (preset: 320) | With domain size, sets `dx`. Memory and grid work are `res² × layers`. |
 | `grid_layers` | 12 (was 16) | Node layers stored above the terrain per column (the grid follows the surface). Headroom for piles and terrain steps, not the relief. 10–16 is plenty; the pile headroom is `dx × (layers − 4.5)`. |
-| `dt` | 0.01 s (preset: 0.02) | CFL bound. Too large = explosion. Stomakhin at 12.5 m cells is fine up to at least 0.03 (09-performance-analysis.md §8.4). |
+| `dt` | 0.01 s (preset: 0.02) | CFL bound; the node lowers it to 80 % of `max_stable_dt()` before any run that exceeds it. Too large = explosion. Stomakhin at 12.5 m cells is fine up to at least 0.03 (09-performance-analysis.md §8.4). |
 | `substeps_per_run` | 32 (preset: 24) | Simulated time per node execution = `dt × substeps`; the overlay and the readback update once per run. |
 | `substeps_per_submit` | 2 | Chunk size the run is submitted in. WebGPU has one queue, so rendering and simulation take turns on the GPU; small chunks keep the view smooth, one big chunk maximises simulated time per second. **Set automatically by the panel's Pacing** unless it is Manual. See "Cost". |
 | `num_particles` | 65536 (preset: 131072 → 65536) | Mostly visual density: even 32k is > 100 particles per 12.5 m cell. Cost is linear, P2G contention worse than linear. Panel: **Detail** Low / Medium / High. |
 | `release_radius` | 120 m | Start-zone size, independent of the domain. |
 | `slab_thickness` | 1.5 m | Depth of released snow. |
-| `youngs_modulus` | 1.4e5 Pa | Stiffness, **shared by all models**. Drives the CFL bound via wave speed. Li 2021 uses 3 MPa. |
-| `dp_friction_angle` | 30° | Drucker–Prager only. Angle of repose of the granular flow; ≈ 13° for Li's cold-dense M = 0.5. |
+| `youngs_modulus` | 1.4e5 Pa | Stiffness, **shared by all models**. Drives the CFL bound via the P-wave speed. Li 2021 uses 3 MPa. |
+| `dp_friction_angle` | 30° | Drucker–Prager only, fixed (no Klár hardening). Angle of repose of the granular flow; ≈ 13° for Li's cold-dense M = 0.5. Klár's sand: 20–40° sweep, hardened sand 25°→35°. |
 | `ccc_m` / `ccc_beta` / `ccc_xi` / `ccc_p0_initial` | 0.7 / 0.2 / 0.002 / 3 kPa | Cam-Clay only; Li 2021 Case V. Higher M·β and βp₀ = more solid-like; ξ = brittleness. **p₀ is the one to reach for**: 3 kPa pancakes on impact, 42 kPa piles. |
-| `terrain_friction` | 0.47 | Basal μ (Li 2021, real terrain). Higher = shorter runout. Pair Voellmy with ~0.155. |
-| `voellmy_xi` | 4000 m/s² | Voellmy only. Turbulent drag `g|v|²/(ξ·h)`; lower ξ = more drag, lower terminal speed. |
+| `terrain_friction` | 0.47 | Basal μ (Li 2021, real terrain). Higher = shorter runout. Pair Voellmy with ~0.155 (com1DFA's Voellmy option). |
+| `voellmy_xi` | 4000 m/s² | Voellmy only. Turbulent drag `g|v|²/(ξ·h)`, `h` the local flow depth; lower ξ = more drag, lower terminal speed. Thin flow is braked harder. |
 | `splat_radius` | 6 m | **Display only.** Too small = invisible. |
 
 ## Start from a preset
@@ -26,12 +26,28 @@ The sidebar's **Material preset** combo writes a coherent parameter set — mode
 μ and the model's own parameters — and pulls `dt` under the resulting CFL bound. Seven
 entries: Stomakhin 2013; Li 2021 Cases I–IV (cold dense / warm shear / sliding slab / warm
 plug) and V (Vallée de la Sionne 2003, the real-avalanche back-calculation); and a
-Drucker–Prager cold-dense fallback. Hand-editing anything afterwards drops it to "(custom)".
+Drucker–Prager cold-dense alternative. Hand-editing anything afterwards drops it to "(custom)".
+
+The Li entries are **parameters, not reproductions**: Li ran them at 0.5 m cells with an
+associative return; here the 1.5 m slab is a tenth of a 12.5 m cell. The notes say what Li
+observed. Expect different behaviour — and a different plastic ratio (see below).
 
 The sidebar also shows the **energy line**: `μ_eff`, the set μ, and their difference. On a
 smooth plane with pure Coulomb sliding `μ_eff == μ`; on real terrain expect `μ_eff` above μ
 by the internal (plastic) dissipation — ~0.1 for Stomakhin on the Breite Ries. If `μ_eff` is
-*below* the set μ, energy is being created and something is wrong.
+*below* the set μ, energy is being created and something is wrong. The path is the
+mass-averaged particle path (Tonnel App. A), and the "internal" label only holds for Coulomb:
+under Voellmy the difference also contains the drag, and the readout says so.
+
+**Plastic ratio** is the share of particles that yielded in the last substep — Li 2021's
+definition. It depends on how close the slab's own weight puts it to the yield surface: on
+the Breite Ries the Li V parameters (p₀ = 3 kPa ≈ the 1.5 m slab's 2.9 kPa weight) sit at
+100 % from the first substep; Li III (p₀ = 42 kPa) starts at 0 % and reaches ~90 % flowing.
+
+**"Box edge reached"** (orange, under the particle line) is the share of particle-substeps
+in the last run whose stencil touched the band ceiling or the domain walls, where the grid
+stops outward flow. It should stay at 0 %. If it doesn't, the runout and deposit are partly
+the box's doing: raise Grid layers (ceiling) or enlarge / move the domain (walls).
 
 Two traps from the Li papers, already baked in so they aren't rediscovered: **warm plug has
 the lowest M with the highest β**, and **ξ, not Mβ, is what separates sliding slab from
@@ -52,12 +68,16 @@ the grid follows the surface), and the CFL bound scales with `dx`.
 step:
 
 ```
-c    = √(E/ρ)                 ≈ 18.7 m/s at defaults
-dt  ≲ 0.1 · dx / c
+c    = √((λ+2μ)/ρ) = √(E(1−ν)/((1+ν)(1−2ν)ρ))    P-wave speed, ≈ 19.7 m/s at defaults
+dt  ≲ 0.1 · dx / c                              MpmSolverNode::max_stable_dt()
 ```
 
-The panel computes and displays this, and warns in orange when `dt` exceeds it. At dx = 12.5 m
-that gives dt ≲ 0.067 s, so the preset's 0.02 s still has a 3× margin.
+The node checks it before every run and lowers `dt` to 80 % of the bound (with a warning in
+the log), so a hand edit of E, ρ, ν or the grid cannot slip past it; the graph editor shows
+the bound in orange when `dt` exceeds it. Until 2026-10-03 the bound used `√(E/ρ)` — 16 %
+too slow at ν = 0.3 — and was only applied with a preset. At dx = 12.5 m it gives dt ≲ 0.063 s,
+so the preset's 0.02 s still has a 3× margin. Stomakhin's compaction hardening (up to 20×
+stiffer) is not in the bound.
 
 Raising E raises the wave speed and *lowers* the allowed dt — stiffer snow is more expensive,
 not just different.
@@ -170,7 +190,9 @@ The material law is behind a runtime dispatcher (`mpm_material.wgsl`), selected 
 <name>_initial_state() -> f32                      plastic state of a fresh particle
 <name>_plasticity(F_trial, state) -> PlasticReturn  return mapping after the elastic predictor;
                                                    PlasticReturn.kirchhoff = P·Fᵀ of the returned
-                                                   state, from the same SVD (stored for P2G)
+                                                   state, from the same SVD (stored for P2G);
+                                                   PlasticReturn.yielded = the trial state was
+                                                   projected (feeds the plastic ratio)
 ```
 
 Per-particle plastic state is **one `f32`** whose meaning the model defines (Stomakhin: Jp;

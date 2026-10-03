@@ -78,5 +78,11 @@ Known gaps, honestly:
   com1DFA energy-line test — which recovers the set basal friction to under 1 % offline
   and runs live in the sidebar. What remains there is entrainment —
   [07-constitutive-models.md](07-constitutive-models.md).
+- **Audited against the papers** (issue #3, 2026-10-03). The fixes are in: Cam Clay is now
+  the full Wolper NACC return including its shear hardening, the plastic ratio and the
+  energy line measure what Li and Tonnel measure, Voellmy uses the local flow depth, and the
+  sidebar warns when the box (band ceiling, walls) shapes the result — 07 §2h. Still a
+  deliberate deviation: the non-associated Cam Clay return (Li's presets were calibrated
+  with the associative one) and the resolution (Li: 0.5 m cells, here ~12 m).
 - **No CK-MPM** [6]. Would touch only P2G/G2P transfer, per the stretch goal.
 - Not validated against any real avalanche. Educational only — as the proposal states.

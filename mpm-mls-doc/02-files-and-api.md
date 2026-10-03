@@ -12,13 +12,13 @@
 | `shaders/mpm_material.wgsl` | Constitutive-model dispatcher: `switch` on `settings.constitutive_model`. |
 | `shaders/mpm_material_stomakhin.wgsl` | Stomakhin 2013: fixed corotated + SV clamp + exponential hardening. |
 | `shaders/mpm_material_drucker_prager.wgsl` | Klár 2016: Hencky elasticity + friction cone, closed-form projection. Cohesionless. |
-| `shaders/mpm_material_ccc.wgsl` | Gaume 2018: Hencky elasticity + Cam-Clay ellipse, sinh hardening; Wolper 2019 three-case return. |
-| `shaders/mpm_friction.wgsl` | Basal-friction dispatcher: `switch` on `settings.basal_friction_model`; Coulomb, Voellmy. |
+| `shaders/mpm_material_ccc.wgsl` | Gaume 2018: Hencky elasticity + Cam-Clay ellipse, sinh hardening; Wolper 2019 NACC return incl. its shear hardening (§6.2.3). |
+| `shaders/mpm_friction.wgsl` | Basal-friction dispatcher: `switch` on `settings.basal_friction_model`; Coulomb, Voellmy (local flow depth from the grid update). |
 | `shaders/mpm_prepare.wgsl` | Scans terrain once per reset: altitude range for the readout, and the per-column floor of the terrain-following grid. |
 | `shaders/mpm_seed.wgsl` | Places particles in the release disc. |
 | `shaders/mpm_p2g.wgsl` | Stage 1: particle → grid. |
 | `shaders/mpm_grid_update.wgsl` | Stage 2: momentum → velocity, gravity, collisions. |
-| `shaders/mpm_g2p.wgsl` | Stages 3+4: grid → particle, plasticity, advection. |
+| `shaders/mpm_g2p.wgsl` | Stages 3+4: grid → particle, plasticity, advection; per-substep diagnostics reduced per workgroup. |
 | `shaders/mpm_refresh_stress.wgsl` | Recomputes the cached particle stress after a material edit without a reseed. |
 | `shaders/mpm_splat.wgsl` | Accumulates particles into a density raster. |
 | `shaders/mpm_rasterize.wgsl` | Density raster → RGBA texture. |
@@ -84,8 +84,8 @@ a future 3D particle renderer**, no CPU readback needed).
 | `has_valid_inputs()` | Checks sockets are connected **and** payloads non-null. Must be called before driving the node out of graph order — see the gotcha below. |
 | `request_reset()` | Re-scan terrain and reseed on next run. |
 | `simulated_time()` | Seconds accumulated since last reset. |
-| `last_state()` | `SimStateReadback`: active/plastic particle counts, max speed, terrain range, centre of mass, mean \|v\|². Async — describes the *previous* completed run; `valid` false until the first arrives. |
-| `energy_line()` | Vector of `EnergySample {time, path, altitude, energy_height}`, one per completed run since the last reset; halved when it reaches `MAX_ENERGY_SAMPLES` (2048). |
+| `last_state()` | `SimStateReadback`: active particles, particles that yielded in the last substep, max speed, terrain range, centre of mass, mean \|v\|², mean particle path, box contacts (band ceiling, walls) with the run's substep count, seeded share of the release disc. Async — describes the *previous* completed run; `valid` false until the first arrives. |
+| `energy_line()` | Vector of `EnergySample {time, path, altitude, energy_height}` — `path` the mass-averaged particle path — one per completed run since the last reset; halved when it reaches `MAX_ENERGY_SAMPLES` (2048). |
 | `energy_line_friction()` | `−slope` of energy height over horizontal path, fitted over the sliding regime (past 10 % of total path). The effective friction coefficient the flow experiences; NaN until there is movement. |
 | `domain_aabb()` | World bounds of the simulated box. Only valid after the first run. |
 | `set_settings()` / `get_settings()` | Settings are consumed lazily in `run_impl()`, so applying them any time is safe. |
@@ -139,8 +139,10 @@ playback (terrain must be fetched first) and calls `graph->run()`.
 
 `apply_material_preset()` writes model + E/ν/ρ/μ + model-specific parameters into the
 solver settings, forces a reseed (plastic state is model-specific) and pulls `dt` under
-the CFL bound of the new stiffness. Seven presets: Stomakhin, Li 2021 Cases I–V, and a
-Drucker–Prager cold-dense fallback.
+the CFL bound of the new stiffness (`MpmSolverNode::max_stable_dt()`, which the node also
+enforces on every run). Seven presets: Stomakhin, Li 2021 Cases I–V (named "… parameters":
+the notes say what Li observed), and a Drucker–Prager cold-dense alternative. The sidebar
+warns when the last run touched the box (band ceiling or walls).
 
 Play/Pause deliberately exists **only here** — two things calling `rerun()` per frame would
 race. The node renderer keeps Step and Reset, which are one-shot and safe.

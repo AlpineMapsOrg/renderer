@@ -135,13 +135,16 @@ conserved exactly in both; nothing below the floor.
 
 ## 4e. Cohesive Cam Clay — return mapping, hardening law, Li 2021 parameters
 
-`scripts/test_material_ccc.py` ports `mpm_material_ccc.wgsl` verbatim. Twelve checks:
+`scripts/test_material_ccc.py` ports `mpm_material_ccc.wgsl` verbatim. Fifteen checks:
 
 | Check | Result |
 |---|---|
 | `p₀(initial α) == p₀ⁱⁿⁱ` | exact (α₀ = −19.28 at Case V's ξ = 0.002) |
 | Inside ellipse | elastic, unchanged |
-| **Shear (Case 3)** | projected onto the ellipse, `\|y\| ≈ 7e-8` on a 1e7 scale, **at the same p**, no hardening |
+| **Shear (Case 3)** | projected onto the ellipse, `\|y\| ≈ 7e-8` on a 1e7 scale, **at the same p** |
+| **Shear hardening (Wolper §6.2.3, 2026-10-03)** | Δα equals `(p× − p_tr)/K` with `p×` found independently by bisection along the centre–trial line, to 1e-9 |
+| Shear on the tensile / compressive side of the centre | softens (p₀ 3000 → 2998.1) / hardens (3000 → 3002.2) |
+| Repeated tensile-side shear, ξ = 1 | p₀ 3000 → 0: shear alone can now fracture the material |
 | **Compressive cap (Case 1)** | returns to `(p₀, 0)` exactly; α down, p₀ 3000 → 3012 |
 | **Tensile tip (Case 2)** | returns to `(−βp₀, 0)` exactly; α up, p₀ 3000 → 2997.6 |
 | 500 random gradients | never outside the surface they were projected onto |
@@ -242,6 +245,41 @@ Two checks that the band grid is a memory layout, not a physics change:
   `μ_eff` 0.4903 vs 0.4904, max speed 21–26 m/s in both. The remaining difference is the
   different domain origin (particles fall on different sub-cell positions). Run time
   116 → 100 ms for 6× the area.
+
+## 4j. Audit fixes — on the device, 2026-10-03
+
+The issue #3 fixes ([07-constitutive-models.md](07-constitutive-models.md) §2h) change what
+the readback reports, so they were checked in the app the same way as §4f: autostart with a
+preset, an env-guarded log line per tenth readback, reverted afterwards. Breite Ries unless
+noted, M5, native Metal.
+
+| Run | Result |
+|---|---|
+| Li V (CCC, p₀ 3 kPa), 90 s wall | stable; plastic ratio 100 % from 0.17 s (the slab's 2.9 kPa weight is ≈ p₀, all on the cap); `μ_eff` 0.63 → 0.45 vs μ 0.49; no box contact |
+| Li III (CCC, p₀ 42 kPa) | plastic ratio **0 %** at release, 88–95 % while flowing — the per-substep count works |
+| Stomakhin / Drucker–Prager | 95–100 % / 100 % — Stomakhin's box clamp and the cohesionless cone yield almost everywhere |
+| Li V + Voellmy (μ 0.155, ξ 4000), local depth | stable; `μ_eff` 0.25–0.35 (drag + internal); runs 1.4 km |
+| 640 m box, 256 m disc, `seed_anywhere` off (Grossglockner) | seeded share **0.51 %**; 10295 of 65536 active, as 32 attempts at that rate predict (15 %) |
+| 640 m box, Voellmy (Schneeberg) | flow piles against the wall: **wall contacts ~450 000 particle-substeps per run, 0 clamps**. The first version counted only clamps and read 0 — the grid's wall nodes stop the flow before the particle clamp fires, so the counter now uses stencil contact |
+
+Offline: all scripts pass (`test_material_ccc`, `test_material_dp`, `test_friction` with the
+depth argument, `test_mpm` for all three models, `test_energy_line` with the mass-averaged
+path: 0.3024 vs 0.3, unchanged — the slab does not spread on the plane, so both paths agree).
+
+**Benchmark** (headless Chrome, M5, 65 536 particles, `main` vs this branch, alternating):
+
+| | `main` | branch |
+|---|---|---|
+| Cam Clay Li V, ms per substep | 0.52, 0.61 | 0.53, 0.51 |
+| Li V + Voellmy | 0.52, 0.48 | 0.50, 0.51 |
+| G2P per 24-substep run (stage timing) | 2.86 ms | 3.06 ms |
+| Li V centre of mass after 20 runs | 3999.932, 5524.953, 2383.177 | 3999.932, 5524.953, 2383.178 |
+| Li III mean speed after 40 runs | 19.40 m/s | 18.11 m/s |
+
+No measurable cost. Li V is unchanged (everything is at the cap, Case 3 rarely fires); Li III,
+shear-dominated, changes — the shear softening at work. The built-in browser pane's numbers
+were 2–4× slower and are not usable: the pane was hidden (`visibilityState: hidden`), which
+throttles the page.
 
 ## 5. On real terrain
 
