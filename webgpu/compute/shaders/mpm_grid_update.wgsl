@@ -31,7 +31,7 @@
 
 var<workgroup> tile_active: u32;
 
-fn update_node(node_xy: vec2i, layer: i32, cell: u32) {
+fn update_node(node_xy: vec2i, layer: i32, cell: u32, flow_depth: f32) {
     let mass_lo = atomicLoad(&grid[cell].mass_lo);
     let mass_hi = atomicLoad(&grid[cell].mass_hi);
     let momentum_fixed = vec3i(atomicLoad(&grid[cell].vx), atomicLoad(&grid[cell].vy), atomicLoad(&grid[cell].vz));
@@ -60,7 +60,7 @@ fn update_node(node_xy: vec2i, layer: i32, cell: u32) {
     let world = column_node_world(node_xy, layer);
     let surface = terrain_height(world.xy);
     if world.z < surface {
-        velocity = resolve_terrain_collision(velocity, terrain_normal(world.xy), true);
+        velocity = resolve_terrain_collision(velocity, terrain_normal(world.xy), true, flow_depth);
     }
 
     // Domain walls: no outflow through the sides of the box or the top of the band. The
@@ -96,7 +96,21 @@ fn computeMain(@builtin(global_invocation_id) id: vec3<u32>, @builtin(workgroup_
     let node_xy = vec2i(id.xy);
     let column = column_index(node_xy);
     let layer_stride = settings.grid_res.x * settings.grid_res.y;
+
+    // Local flow depth for the Voellmy drag: the snow volume above this column per unit
+    // area. The column's node masses sum the particles' B-spline weights over x and y only
+    // (the z weights add up to 1), so this is a smoothed areal mass, turned into a depth with
+    // the real volume per particle. Only Voellmy needs it, and the branch is uniform.
+    var flow_depth = 0.0;
+    if settings.basal_friction_model == FRICTION_VOELLMY {
+        var column_mass = 0.0;
+        for (var layer = 0u; layer < settings.grid_res.z; layer++) {
+            column_mass += node_mass(layer * layer_stride + column);
+        }
+        flow_depth = column_mass / settings.particle_mass * seeded_particle_volume() / (settings.dx * settings.dx);
+    }
+
     for (var layer = 0u; layer < settings.grid_res.z; layer++) {
-        update_node(node_xy, i32(layer), layer * layer_stride + column);
+        update_node(node_xy, i32(layer), layer * layer_stride + column, flow_depth);
     }
 }

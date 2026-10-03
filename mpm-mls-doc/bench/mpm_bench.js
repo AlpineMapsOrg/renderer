@@ -43,11 +43,14 @@ const MATERIALS = {
     stomakhin: { id: 0, E: 1.4e5, nu: 0.2 },
     dp: { id: 1, E: 3.0e6, nu: 0.3, phi: 13.3 },
     ccc: { id: 2, E: 3.0e6, nu: 0.3, M: 0.7, beta: 0.2, xi: 0.002, p0: 3000 },
+    // Li et al. 2021 case III (sliding slab): p0 far above the slab's weight, so yielding is
+    // shear-dominated - the case where the Cam Clay shear hardening shows in the trace.
+    ccc_slab: { id: 2, E: 3.0e6, nu: 0.3, M: 1.5, beta: 0.5, xi: 1.0, p0: 42000 },
 };
 
 const PARTICLE_BYTES = 128;
 const GRID_NODE_BYTES = 20;
-const SIM_STATE_BYTES = 56;
+const SIM_STATE_BYTES = 72; // struct SimState; revisions before the audit fixes use the first 56
 const TILE = 8; // columns per tile edge, must match TILE_SIZE in mpm_common.wgsl (v2 kernels)
 
 // --------------------------------------------------------------------------------------
@@ -305,7 +308,12 @@ export class MpmBench {
     }
 
     resetRunCounters() {
-        this.device.queue.writeBuffer(this.resources.state, 12, new Uint32Array(11));
+        // Mirrors MpmSolverNode::reset_run_counters: slot 5 (seed hits) and the path sum
+        // (14-15) hold from the reset on. Older layouts had nothing there that mattered.
+        const q = this.device.queue, state = this.resources.state;
+        q.writeBuffer(state, 3 * 4, new Uint32Array(2));
+        q.writeBuffer(state, 6 * 4, new Uint32Array(8));
+        q.writeBuffer(state, 16 * 4, new Uint32Array(2));
     }
 
     workgroups() {
@@ -432,6 +440,9 @@ export class MpmBench {
             maxAltitude: i32[1] / 100,
             com: [wide(6) / 1e4 / active, wide(8) / 1e4 / active, wide(10) / 1e4 / active],
             meanSpeedSq: wide(12) / 1e5 / active,
+            meanPath: wide(14) / 1e5 / active, // 0 for revisions before the audit fixes
+            ceilingContacts: raw[16],
+            wallContacts: raw[17],
         };
     }
 

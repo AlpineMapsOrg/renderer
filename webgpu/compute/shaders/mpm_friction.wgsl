@@ -37,6 +37,8 @@
 const FRICTION_COULOMB: u32 = 0u;
 const FRICTION_VOELLMY: u32 = 1u;
 
+const MIN_VOELLMY_DEPTH: f32 = 0.1; // [m]
+
 // Coulomb: the tangential velocity loses mu times the normal impact speed per contact;
 // if that would reverse it, the material sticks.
 fn coulomb_friction(velocity: vec3f, normal: vec3f, vn: f32) -> vec3f {
@@ -50,12 +52,14 @@ fn coulomb_friction(velocity: vec3f, normal: vec3f, vn: f32) -> vec3f {
 
 // Voellmy: Coulomb plus a turbulent drag quadratic in speed,
 //     tau = mu * sigma_n + rho * g * |v|^2 / xi
-// (Tonnel et al. 2023, com1DFA; same form as ComputeAvalancheTrajectoriesNode). Divided by
-// rho * h to get a deceleration, with h = slab_thickness as the reference flow depth - the
-// convention the trajectories node also uses (it hard-codes h = 1 m). Keeping the 1/h makes
-// xi transferable from the literature: com1DFA's default is xi = 4000 m/s^2 paired with a
-// lower mu of 0.155, since the drag term carries part of the resistance.
-fn voellmy_friction(velocity: vec3f, normal: vec3f, vn: f32, apply_basal_drag: bool) -> vec3f {
+// (Voellmy 1955, in the form depth-averaged codes use it; ComputeAvalancheTrajectoriesNode
+// has the same form). Divided by rho * h to get a deceleration, with h the local flow depth
+// of the column (see mpm_grid_update), so a thin tongue is braked harder than the deep core
+// as in a depth-averaged model. AvaFrame's com1DFA offers Voellmy as an option with
+// mu = 0.155 and xi = 4000 m/s^2; its default friction model is samosAT, and Tonnel et al.
+// 2023 give no Voellmy formula - so the values are com1DFA's Voellmy parameters, not its
+// default. The drag carries part of the resistance, hence the lower mu.
+fn voellmy_friction(velocity: vec3f, normal: vec3f, vn: f32, apply_basal_drag: bool, flow_depth: f32) -> vec3f {
     var vt = coulomb_friction(velocity, normal, vn);
     if !apply_basal_drag {
         return vt;
@@ -64,23 +68,26 @@ fn voellmy_friction(velocity: vec3f, normal: vec3f, vn: f32, apply_basal_drag: b
     if speed < 1e-6 {
         return vt;
     }
-    let reference_depth = max(settings.slab_thickness, 0.1);
-    let deceleration = settings.gravity * speed * speed / (settings.voellmy_xi * reference_depth);
+    // Floor against the vanishing depth at the flow's fringe, where 1/h would stop any
+    // particle dead in one substep.
+    let depth = max(flow_depth, MIN_VOELLMY_DEPTH);
+    let deceleration = settings.gravity * speed * speed / (settings.voellmy_xi * depth);
     // Never let the drag reverse the flow.
     let new_speed = max(speed - deceleration * settings.dt, 0.0);
     return vt * (new_speed / speed);
 }
 
 // Resolves a velocity against the terrain; returns the corrected velocity.
-// `apply_basal_drag` must be true for exactly one call site per substep (the grid update).
-fn resolve_terrain_collision(velocity: vec3f, normal: vec3f, apply_basal_drag: bool) -> vec3f {
+// `apply_basal_drag` must be true for exactly one call site per substep (the grid update),
+// which also supplies the local flow depth [m]; other call sites pass 0.
+fn resolve_terrain_collision(velocity: vec3f, normal: vec3f, apply_basal_drag: bool, flow_depth: f32) -> vec3f {
     let vn = dot(velocity, normal);
     if vn >= 0.0 {
         return velocity; // separating, nothing to do
     }
     switch settings.basal_friction_model {
         case FRICTION_VOELLMY: {
-            return voellmy_friction(velocity, normal, vn, apply_basal_drag);
+            return voellmy_friction(velocity, normal, vn, apply_basal_drag, flow_depth);
         }
         default: {
             return coulomb_friction(velocity, normal, vn);

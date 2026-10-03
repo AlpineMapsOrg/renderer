@@ -42,25 +42,28 @@ def coulomb_friction(velocity, normal, vn):
     return vt * (1.0 + settings.terrain_friction * vn / vt_len)
 
 
-def voellmy_friction(velocity, normal, vn, apply_basal_drag):
+MIN_VOELLMY_DEPTH = 0.1
+
+
+def voellmy_friction(velocity, normal, vn, apply_basal_drag, flow_depth):
     vt = coulomb_friction(velocity, normal, vn)
     if not apply_basal_drag:
         return vt
     speed = np.linalg.norm(vt)
     if speed < 1e-6:
         return vt
-    reference_depth = max(settings.slab_thickness, 0.1)
-    deceleration = settings.gravity * speed * speed / (settings.voellmy_xi * reference_depth)
+    depth = max(flow_depth, MIN_VOELLMY_DEPTH)
+    deceleration = settings.gravity * speed * speed / (settings.voellmy_xi * depth)
     new_speed = max(speed - deceleration * settings.dt, 0.0)
     return vt * (new_speed / speed)
 
 
-def resolve_terrain_collision(velocity, normal, apply_basal_drag):
+def resolve_terrain_collision(velocity, normal, apply_basal_drag, flow_depth=0.0):
     vn = float(np.dot(velocity, normal))
     if vn >= 0.0:
         return velocity
     if settings.basal_friction_model == 1:
-        return voellmy_friction(velocity, normal, vn, apply_basal_drag)
+        return voellmy_friction(velocity, normal, vn, apply_basal_drag, flow_depth)
     return coulomb_friction(velocity, normal, vn)
 
 
@@ -76,7 +79,7 @@ def run_slope(theta_deg, model, mu, steps=20000):
     history = []
     for _ in range(steps):
         v = v + np.array([0.0, 0.0, -G * settings.dt])          # gravity, as in mpm_grid_update
-        v = resolve_terrain_collision(v, normal, True)             # then the contact response
+        v = resolve_terrain_collision(v, normal, True, settings.slab_thickness)  # then the contact response
         history.append(np.linalg.norm(v))
     return np.array(history)
 
@@ -121,7 +124,7 @@ def main():
     settings.basal_friction_model = 1
     n = np.array([0.0, 0.0, 1.0])
     v = np.array([30.0, 0.0, -0.1])
-    grid = resolve_terrain_collision(v, n, True)
+    grid = resolve_terrain_collision(v, n, True, 1.5)
     particle = resolve_terrain_collision(v, n, False)
     coulomb_only = coulomb_friction(v, n, float(np.dot(v, n)))
     print(f"flag: grid-level speed {np.linalg.norm(grid):.4f}, particle-level {np.linalg.norm(particle):.4f}, "

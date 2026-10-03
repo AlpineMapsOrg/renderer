@@ -71,7 +71,11 @@ fn computeMain(@builtin(global_invocation_id) id: vec3<u32>) {
             continue;
         }
         if settings.seed_anywhere > 0.5 || is_release_point(world_to_uv(candidate)) {
-            found = true;
+            // The first sample is uniform over the disc, so the share of threads whose first
+            // sample hits is the share of the disc that holds snow - see seeded_particle_volume().
+            if attempt == 0u {
+                atomicAdd(&state.seed_first_hits, 1u);
+            }            found = true;
             world_xy = candidate;
             break;
         }

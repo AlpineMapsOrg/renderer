@@ -23,22 +23,66 @@
 // Stages 3 and 4 of the MPM step, fused into one pass over the particles: gather the
 // updated grid velocity (plus the APIC affine matrix C), evolve the deformation gradient
 // through the snow plasticity model, then advect the particle.
+//
+// Also gathers the per-substep diagnostics (SimState in mpm_common): max speed, how many
+// particles yielded, the path travelled, and contacts with the box's artificial walls. They
+// are reduced in workgroup memory first, so each workgroup touches the global counters once
+// instead of every particle hammering the same few addresses.
+
+var<workgroup> wg_max_speed_mm: atomic<u32>;
+var<workgroup> wg_yielded: atomic<u32>;
+var<workgroup> wg_path: atomic<u32>; // SUM_PATH_SCALE units; 256 particles fit a u32
+var<workgroup> wg_ceiling_contacts: atomic<u32>;
+var<workgroup> wg_wall_contacts: atomic<u32>;
 
 @compute @workgroup_size(256, 1, 1)
-fn computeMain(@builtin(global_invocation_id) id: vec3<u32>) {
+fn computeMain(@builtin(global_invocation_id) id: vec3<u32>, @builtin(local_invocation_index) local_index: u32) {
+    // No early return: the workgroup barrier below has to be reached by every invocation.
     let index = id.x;
-    if index >= settings.num_particles {
-        return;
+    if index < settings.num_particles {
+        update_particle(index);
     }
 
+    workgroupBarrier();
+    if local_index == 0u {
+        atomicMax(&state.max_speed_mm, atomicLoad(&wg_max_speed_mm));
+        let yielded = atomicLoad(&wg_yielded);
+        if yielded > 0u {
+            atomicAdd(&state.plastic_particles, yielded);
+        }
+        let path = atomicLoad(&wg_path);
+        if path > 0u && atomicAdd(&state.sum_path_lo, path) > 0xFFFFFFFFu - path {
+            atomicAdd(&state.sum_path_hi, 1u);
+        }
+        let ceiling = atomicLoad(&wg_ceiling_contacts);
+        if ceiling > 0u {
+            atomicAdd(&state.ceiling_contacts, ceiling);
+        }
+        let walls = atomicLoad(&wg_wall_contacts);
+        if walls > 0u {
+            atomicAdd(&state.wall_contacts, walls);
+        }
+    }
+}
+
+fn update_particle(index: u32) {
     var p = particles[index];
     if p.mass <= 0.0 {
         return;
     }
+    let old_xy = p.position.xy;
 
     let grid_pos = to_grid_space(p.position);
     let k = compute_kernel(grid_pos);
     let inv_dx = 1.0 / settings.dx;
+
+    // Does the stencil reach the nodes where mpm_grid_update stops outward flow - the two
+    // outer node rows of the box, the top three layers of the band? Then the box, not the
+    // physics, is shaping this particle's motion.
+    let res = vec3i(settings.grid_res);
+    let wall_contact = any(k.base.xy < vec2i(2)) || any(k.base.xy + vec2i(2) >= res.xy - vec2i(3));
+    let centre_column = column_index(clamp(k.base.xy + vec2i(1), vec2i(0), res.xy - vec2i(1)));
+    let ceiling_contact = k.base.z + 2 - column_floor[centre_column] >= res.z - 3;
 
     var new_velocity = vec3f(0.0);
     var new_c = mat3x3f(vec3f(0.0), vec3f(0.0), vec3f(0.0));
@@ -74,6 +118,9 @@ fn computeMain(@builtin(global_invocation_id) id: vec3<u32>) {
     store_f(&p, plastic.f_elastic);
     p.plastic_state = plastic.plastic_state;
     store_kirchhoff(&p, plastic.kirchhoff);
+    if plastic.yielded {
+        atomicAdd(&wg_yielded, 1u);
+    }
 
     // Advection.
     p.position += settings.dt * p.velocity;
@@ -83,7 +130,7 @@ fn computeMain(@builtin(global_invocation_id) id: vec3<u32>) {
     let surface = terrain_height(p.position.xy);
     if p.position.z < surface {
         p.position.z = surface;
-        p.velocity = resolve_terrain_collision(p.velocity, terrain_normal(p.position.xy), false);
+        p.velocity = resolve_terrain_collision(p.velocity, terrain_normal(p.position.xy), false, 0.0);
     }
 
     // Keep particles inside the simulation box so grid indexing stays in range.
@@ -93,17 +140,29 @@ fn computeMain(@builtin(global_invocation_id) id: vec3<u32>) {
     let clamped_xy = clamp(p.position.xy, min_xy, max_xy);
     if clamped_xy.x != p.position.xy.x { p.velocity.x = 0.0; }
     if clamped_xy.y != p.position.xy.y { p.velocity.y = 0.0; }
+    if wall_contact || any(clamped_xy != p.position.xy) {
+        atomicAdd(&wg_wall_contacts, 1u);
+    }
     p.position = vec3f(clamped_xy, p.position.z);
 
     // Ceiling of the column's band: keep the stencil (1.5 cells) inside the stored layers.
     let column = column_index(vec2i(floor((p.position.xy - settings.domain_origin) / settings.dx)));
     let max_altitude = (f32(column_floor[column] + i32(settings.grid_res.z)) - 2.5) * settings.dx;
+    var at_ceiling = ceiling_contact;
     if p.position.z > max_altitude {
         p.velocity.z = 0.0;
         p.position.z = max_altitude;
+        at_ceiling = true;
+    }
+    if at_ceiling {
+        atomicAdd(&wg_ceiling_contacts, 1u);
     }
 
     particles[index] = p;
 
-    atomicMax(&state.max_speed_mm, u32(clamp(length(p.velocity) * 1000.0, 0.0, 4.0e9)));
+    atomicMax(&wg_max_speed_mm, u32(clamp(length(p.velocity) * 1000.0, 0.0, 4.0e9)));
+    // Rounded, not truncated, so the sum carries no systematic bias; below 0.005 mm per
+    // substep (well under 1 mm/s) a particle counts as resting. Capped at 100 m per substep,
+    // which only a diverging particle reaches, so 256 of them still fit the u32.
+    atomicAdd(&wg_path, u32(round(min(length(p.position.xy - old_xy), 100.0) * SUM_PATH_SCALE)));
 }

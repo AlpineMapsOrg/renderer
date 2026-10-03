@@ -1,10 +1,12 @@
 #!/usr/bin/env python3
 """Energy-line test of the coupled solver (Tonnel et al. 2023, com1DFA section 5.2).
 
-A slab of snow is placed on an inclined plane and slides. Along the centre-of-mass path,
-Coulomb friction removes exactly mu of *energy height*  h_E = z + v^2/(2g)  per horizontal
-metre, whatever the slope geometry. So the least-squares slope of h_E against horizontal
-distance is -mu_eff, and mu_eff - mu is whatever the material dissipates internally.
+A slab of snow is placed on an inclined plane and slides. Coulomb friction removes exactly mu
+of *energy height*  h_E = z + v^2/(2g)  per horizontal metre each point travels, whatever the
+slope geometry. Averaged over the points (Tonnel et al. 2023, App. A), the least-squares slope
+of the mean h_E against the mean horizontal path is -mu_eff, and mu_eff - mu is whatever the
+material dissipates internally. The path is the particles' own, summed per substep as
+mpm_g2p does, not the centre of mass's: once the flow spreads the latter is shorter.
 
 This checks that the driving and resisting forces of the whole loop - gravity, the grid
 transfers, the constitutive model and the basal friction boundary condition - balance the
@@ -23,7 +25,7 @@ G = mpm.GRAVITY
 
 
 def run(mu, slope_deg, n_particles=60, steps=1600, seed=5):
-    """Slide a slab; return (path, energy_height) samples of the centre of mass."""
+    """Slide a slab; return (mean particle path, mean energy height, time) samples."""
     mpm.FRICTION = mu
     mpm.SLOPE_DEG = slope_deg
     # Terrain rises with +x, so downhill is -x: seed near the top and give it ~50 m of
@@ -42,15 +44,14 @@ def run(mu, slope_deg, n_particles=60, steps=1600, seed=5):
     jp = np.full(n_particles, mpm.material_initial_state())
 
     path, heights, times = [], [], []
-    prev_com_xy, s = None, 0.0
+    s = 0.0
     for step in range(steps):
+        old_xy = pos[:, :2].copy()
         mpm.substep(pos, vel, C, F, jp)
+        s += np.linalg.norm(pos[:, :2] - old_xy, axis=1).mean()
         if step % 20:
             continue
         com = pos.mean(axis=0)
-        if prev_com_xy is not None:
-            s += np.linalg.norm(com[:2] - prev_com_xy)
-        prev_com_xy = com[:2]
         mean_v2 = (vel * vel).sum(axis=1).mean()
         path.append(s)
         heights.append(com[2] + mean_v2 / (2 * G))

@@ -69,7 +69,7 @@ public:
     enum ConstitutiveModel : uint32_t {
         STOMAKHIN_2013 = 0, // fixed corotated + singular value clamp + exponential hardening
         DRUCKER_PRAGER = 1, // Hencky elasticity + friction cone (Klar 2016); cohesionless
-        COHESIVE_CAM_CLAY = 2, // Hencky elasticity + Cam-Clay ellipse (Gaume 2018); the snow-science model
+        COHESIVE_CAM_CLAY = 2, // Hencky elasticity + Cam-Clay ellipse (Gaume 2018), NACC return (Wolper 2019)
     };
 
     /* The contact law between flowing snow and the terrain surface. Kept separate from the
@@ -78,7 +78,7 @@ public:
      * must match the constants in mpm_friction.wgsl. */
     enum BasalFrictionModel : uint32_t {
         COULOMB = 0, // contact impulse, mu * normal impact speed
-        VOELLMY = 1, // Coulomb + turbulent drag g|v|^2/(xi h); pair with a lower mu (~0.155)
+        VOELLMY = 1, // Coulomb + turbulent drag g|v|^2/(xi h), h the local flow depth; pair with a lower mu (~0.155)
     };
 
     struct MpmSolverSettings {
@@ -112,8 +112,9 @@ public:
         float snow_density = 400.0f; // [kg/m^3]
 
         /* An MPM step is CFL bound, so the time step has to stay small relative to
-         * dx / wave speed. Several substeps are run per node execution to keep the ratio
-         * of simulated time to graph overhead reasonable. */
+         * dx / wave speed; the node pulls it under max_stable_dt() before every run. Several
+         * substeps are run per node execution to keep the ratio of simulated time to graph
+         * overhead reasonable. */
         float dt = 0.01f; // [s]
         uint32_t substeps_per_run = 32u;
 
@@ -135,9 +136,11 @@ public:
         float critical_compression = 2.5e-2f;
         float critical_stretch = 7.5e-3f;
 
-        /* Drucker-Prager only. Internal friction angle of the material [degrees]. Relates to
-         * the Cam-Clay slope M via sin(phi) = 3M / (6 + M): Li's cold-dense M = 0.5 is ~13
-         * degrees, the warm-shear M = 1.5 is ~37 degrees. 30 is Klar's sand default. */
+        /* Drucker-Prager only. Internal friction angle of the material [degrees], fixed (Klar
+         * et al. 2016 harden it, section 7.3; not done here). Relates to the Cam-Clay slope M
+         * via sin(phi) = 3M / (6 + M): Li's cold-dense M = 0.5 is ~13 degrees, the warm-shear
+         * M = 1.5 is ~37 degrees. 30 is a typical sand value, inside the 20-40 degree range
+         * Klar sweep (their hardened sand starts at 25 and rises towards 35). */
         float dp_friction_angle = 30.0f;
 
         /* Cohesive Cam Clay only (Gaume et al. 2018). Defaults are Li et al. 2021 Table 1,
@@ -151,8 +154,9 @@ public:
 
         float gravity = 9.81f;
         /* Basal friction. mu = 0.47 is what Li et al. 2021 use on real terrain (0.49
-         * back-calculated for their verification case); the Voellmy pairing in com1DFA is
-         * mu = 0.155 with xi = 4000, the drag term carrying the rest of the resistance. */
+         * back-calculated for their verification case). com1DFA's Voellmy option uses
+         * mu = 0.155 with xi = 4000, the drag term carrying the rest of the resistance (its
+         * default friction model is samosAT, not Voellmy). */
         float terrain_friction = 0.47f; // Coulomb mu
         float voellmy_xi = 4000.0f; // [m/s^2], Voellmy only
 
@@ -236,6 +240,10 @@ public:
     /// Re-scan the terrain and seed a fresh snow slab on the next run.
     void request_reset() { m_settings.reset_on_next_run = true; }
 
+    /// Largest time step the explicit solver resolves at cell size dx: a CFL bound on the
+    /// P-wave speed of the base stiffness. Runs pull dt below it (to 80 %) automatically.
+    static float max_stable_dt(const MpmSolverSettings& settings, float dx);
+
     /// Simulated time [s] accumulated since the last reset.
     float simulated_time() const { return m_simulated_time; }
 
@@ -250,19 +258,29 @@ public:
         float max_altitude = 0.0f;
         uint32_t active_particles = 0; // seeded successfully
         float max_speed = 0.0f; // fastest particle in the last run [m/s]
-        uint32_t plastic_particles = 0; // plastic state has left its initial value
+        uint32_t plastic_particles = 0; // yielded in the last substep (instantaneous, as in Li et al. 2021)
         glm::dvec3 centre_of_mass = glm::dvec3(0.0); // region-relative x, y; absolute z [m]
         float mean_speed_sq = 0.0f; // mean |v|^2 over active particles [m^2/s^2]
+        float mean_path = 0.0f; // horizontal path per particle since the reset, mass-averaged [m]
+        /* Particle-substeps in the last run in contact with an artificial boundary (the
+         * stencil reaches the nodes where the grid stops outward flow): the ceiling of the
+         * terrain-following band, and the walls of the domain box. Anything above zero means
+         * the result depends on the box size, not only on the physics. */
+        uint32_t ceiling_contacts = 0;
+        uint32_t wall_contacts = 0;
+        uint32_t run_substeps = 0; // substeps of the run these counters describe
+        float release_area_share = 0.0f; // share of the release disc that holds snow (seeding estimate)
     };
     const SimStateReadback& last_state() const { return m_last_state; }
 
-    /// One point of the energy-line record (Tonnel et al. 2023, com1DFA section 5.2):
-    /// the centre of mass's energy height z + v^2/(2g) against its horizontal path length.
-    /// Coulomb friction removes exactly mu of energy height per horizontal metre, so the
-    /// slope of this record is -mu_eff, and mu_eff - mu is the internal dissipation.
+    /// One point of the energy-line record (Tonnel et al. 2023, com1DFA section 5.2 and
+    /// App. A): mass-averaged energy height z + v^2/(2g) against the mass-averaged horizontal
+    /// path. Coulomb friction removes exactly mu of energy height per horizontal metre, so
+    /// the slope of this record is -mu_eff, and under the Coulomb basal law mu_eff - mu is
+    /// the internal dissipation (under Voellmy the drag adds to it).
     struct EnergySample {
         float time; // simulated [s]
-        float path; // horizontal distance travelled by the centre of mass [m]
+        float path; // mean horizontal distance travelled per particle [m]
         float altitude; // centre of mass [m]
         float energy_height; // altitude + mean_speed_sq / (2 g) [m]
     };
@@ -319,7 +337,7 @@ private:
     /// m_last_state is filled in when the map resolves.
     void read_back_state();
     void map_state_readback();
-    void on_state_mapped(float time, float gravity, bool current);
+    void on_state_mapped(float time, float gravity, uint32_t substeps, bool current);
     void finish_run();
     void append_energy_sample(float time, float gravity);
     /// Work-done callback of one chunk: chains the next one, or finishes the run.
@@ -378,6 +396,7 @@ private:
 
     /* State of the run in flight, see submit_chunk(). */
     uint32_t m_run_substeps_left = 0;
+    uint32_t m_run_substeps = 0; // total of the current run
     uint32_t m_chunks_in_flight = 0;
     bool m_run_first_chunk = true;
     bool m_run_is_reset = false;
@@ -404,7 +423,6 @@ private:
     PerfStats m_perf;
     SimStateReadback m_last_state;
     std::vector<EnergySample> m_energy_line;
-    glm::dvec2 m_last_com_xy = glm::dvec2(0.0); // for the path increment between samples
 };
 
 } // namespace webgpu_compute::nodes

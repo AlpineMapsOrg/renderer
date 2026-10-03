@@ -27,6 +27,11 @@
 @compute @workgroup_size(256, 1, 1)
 fn computeMain(@builtin(global_invocation_id) id: vec3<u32>) {
     let index = id.x;
+    // The yield count is per substep: zeroed here, counted by this substep's G2P. Dispatches
+    // in one compute pass are ordered, so the store lands before any of G2P's adds.
+    if index == 0u {
+        atomicStore(&state.plastic_particles, 0u);
+    }
     if index >= settings.num_particles {
         return;
     }

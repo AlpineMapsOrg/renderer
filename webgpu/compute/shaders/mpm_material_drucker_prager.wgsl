@@ -23,18 +23,18 @@
 // Hencky (logarithmic) strain hyperelasticity with a pressure-dependent friction cone as
 // the yield surface and a closed-form projection back onto it. Cohesionless: it produces a
 // dry granular flow with an angle of repose, but no slab, no fracture, no plug - in the
-// language of Li et al. 2021 it covers the cold-dense regime only. Cheaper than Cam-Clay
-// (a projection onto a cone versus an implicit return onto an ellipse), which is why it is
-// the documented fallback if CCC proves too slow.
+// language of Li et al. 2021 it covers the cold-dense regime only. Not cheaper than Cam Clay
+// here: both returns are closed form and the cost is the shared SVD (M5 benchmark, 2026-09:
+// 0.66 vs 0.64 ms per substep), so it is an alternative material, not a performance fallback.
 //
 // Everything happens in the principal frame of F = U diag(sigma) V^T:
 //   eps   = log(sigma)                              Hencky strain
 //   tau   = 2 mu eps + lambda tr(eps)               Kirchhoff stress, principal values
 //   yield = |dev(tau)| + alpha tr(tau) <= 0         Drucker-Prager cone
 //
-// Per-particle plastic state: accumulated plastic strain magnitude (sum of the projection
-// distances). Not fed back into the model here - Klar's hardening of the friction angle is
-// left out - but it is a free diagnostic of which particles have yielded.
+// Per-particle plastic state: accumulated plastic strain magnitude, the same quantity as
+// Klar's hardening state q (section 7.3: delta q = 0, |eps|, delta gamma in Cases I-III).
+// Not fed back into the model - Klar's hardening of the friction angle, eq. 29-31, is left out.
 // Parameters: settings.mu_0, lambda_0 (shared Lame parameters), dp_alpha (precomputed
 // from the friction angle, see MpmSolverNode::update_gpu_settings).
 
@@ -51,7 +51,8 @@ fn dp_kirchhoff(u: mat3x3f, eps: vec3f) -> mat3x3f {
     return from_principal(u, 2.0 * settings.mu_0 * eps + vec3f(settings.lambda_0 * trace));
 }
 
-// Return mapping (Klar et al. 2016, section 5.3), on the Hencky strain in the principal frame.
+// Return mapping (Klar et al. 2016, section 7.1, eq. 27-28), on the Hencky strain in the
+// principal frame. Klar's flow rule is itself non-associative (it preserves volume in Case III).
 fn dp_plasticity(f_trial: mat3x3f, plastic_state: f32) -> PlasticReturn {
     let svd = svd3(f_trial);
     let eps = dp_hencky_strain(svd.sigma);
@@ -83,6 +84,7 @@ fn dp_plasticity(f_trial: mat3x3f, plastic_state: f32) -> PlasticReturn {
     }
 
     var result: PlasticReturn;
+    result.yielded = delta_gamma > 0.0;
     result.f_elastic = svd.u * diag3(exp(new_eps)) * transpose(svd.v);
     result.plastic_state = plastic_state + delta_gamma;
     result.kirchhoff = dp_kirchhoff(svd.u, new_eps);

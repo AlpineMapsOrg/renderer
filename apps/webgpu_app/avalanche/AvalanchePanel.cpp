@@ -53,17 +53,20 @@ AvalanchePanel::AvalanchePanel(NodeGraphPanel* graph_panel)
           MaterialPreset { "(custom)", "Parameters edited by hand.", 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 },
           MaterialPreset { "Stomakhin 2013 (film snow)", "Disney's parameters, tuned for metre-scale visuals, not measured snow.",
               nodes::MpmSolverNode::STOMAKHIN_2013, 1.4e5f, 0.2f, 400.0f, 0.47f, 10.0f, 2.5e-2f, 7.5e-3f, 30.0f, 0.7f, 0.2f, 0.002f, 3000.0f },
-          MaterialPreset { "Cold dense (Li 2021 I)", "Fluid-like, fully sheared, low flow height, surges at the front.",
+          // The Li 2021 entries carry the paper's Table 1 parameters, and their notes describe what
+          // Li observed - with an associative return at 0.5 m cells. At this solver's ~12 m cells
+          // the slab is under one cell thick, so the regimes are a starting point, not a result.
+          MaterialPreset { "Cold dense (Li 2021 I parameters)", "Li observed: fluid-like, fully sheared, low flow height, surges at the front.",
               nodes::MpmSolverNode::COHESIVE_CAM_CLAY, 3.0e6f, 0.3f, 250.0f, 0.47f, 10.0f, 2.5e-2f, 7.5e-3f, 30.0f, 0.5f, 0.0f, 1.0f, 3000.0f },
-          MaterialPreset { "Warm shear (Li 2021 II)", "Granulation, fluctuating surface, piles above initial height.",
+          MaterialPreset { "Warm shear (Li 2021 II parameters)", "Li observed: granulation, fluctuating surface, piles above initial height.",
               nodes::MpmSolverNode::COHESIVE_CAM_CLAY, 3.0e6f, 0.3f, 250.0f, 0.47f, 10.0f, 2.5e-2f, 7.5e-3f, 30.0f, 1.5f, 0.3f, 1.0f, 30000.0f },
-          MaterialPreset { "Sliding slab (Li 2021 III)", "Brittle; breaks into blocks shortly after release.",
+          MaterialPreset { "Sliding slab (Li 2021 III parameters)", "Li observed: brittle, breaks into blocks shortly after release.",
               nodes::MpmSolverNode::COHESIVE_CAM_CLAY, 3.0e6f, 0.3f, 250.0f, 0.47f, 10.0f, 2.5e-2f, 7.5e-3f, 30.0f, 1.5f, 0.5f, 1.0f, 42000.0f },
-          MaterialPreset { "Warm plug (Li 2021 IV)", "Ductile block sheared only at the base. Lowest M, highest beta - not a typo.",
+          MaterialPreset { "Warm plug (Li 2021 IV parameters)", "Li observed: ductile block sheared only at the base. Lowest M, highest beta - not a typo.",
               nodes::MpmSolverNode::COHESIVE_CAM_CLAY, 3.0e6f, 0.3f, 250.0f, 0.47f, 10.0f, 2.5e-2f, 7.5e-3f, 30.0f, 0.5f, 1.0f, 0.1f, 12000.0f },
-          MaterialPreset { "Vallee de la Sionne 2003 (Li 2021 V)", "Back-calculated from the real avalanche of 7 Feb 2003. New snow.",
+          MaterialPreset { "Vallee de la Sionne 2003 (Li 2021 V parameters)", "Li back-calculated these from the real avalanche of 7 Feb 2003. New snow.",
               nodes::MpmSolverNode::COHESIVE_CAM_CLAY, 3.0e6f, 0.3f, 200.0f, 0.49f, 10.0f, 2.5e-2f, 7.5e-3f, 30.0f, 0.7f, 0.2f, 0.002f, 3000.0f },
-          MaterialPreset { "Cold dense, cohesionless (Drucker-Prager)", "Fallback for the cold-dense regime: friction cone, no cohesion. phi from M = 0.5.",
+          MaterialPreset { "Cold dense, cohesionless (Drucker-Prager)", "Cohesionless alternative for the cold-dense regime: friction cone. phi from M = 0.5.",
               nodes::MpmSolverNode::DRUCKER_PRAGER, 3.0e6f, 0.3f, 250.0f, 0.47f, 10.0f, 2.5e-2f, 7.5e-3f, 13.3f, 0.5f, 0.0f, 1.0f, 3000.0f },
       })
 {
@@ -244,11 +247,10 @@ void AvalanchePanel::apply_material_preset(const MaterialPreset& preset)
     s.ccc_p0_initial = preset.ccc_p0_initial;
 
     // A stiffer preset raises the wave speed and lowers the CFL bound - Li's 3 MPa is ~6x
-    // faster than Stomakhin's 0.14 MPa. Pull dt under the bound rather than let the first
-    // run explode.
+    // faster than Stomakhin's 0.14 MPa. The node enforces the bound on every run; pulling dt
+    // down here as well just shows the value it will run with right away.
     const float dx = s.domain_size_xy / float(std::max(s.grid_resolution_xy, 1u));
-    const float wave_speed = std::sqrt(std::max(s.youngs_modulus, 1.0f) / std::max(s.snow_density, 1.0f));
-    const float cfl_dt = 0.1f * dx / std::max(wave_speed, 1e-3f);
+    const float cfl_dt = nodes::MpmSolverNode::max_stable_dt(s, dx);
     if (s.dt > cfl_dt)
         s.dt = 0.8f * cfl_dt;
 
@@ -408,29 +410,42 @@ void AvalanchePanel::draw_panel()
         ImGui::TextDisabled("%u particles, %.0f%% plastic, max %.1f m/s, terrain %.0f-%.0f m", state.active_particles, double(plastic_ratio),
             double(state.max_speed), double(state.min_altitude), double(state.max_altitude));
         if (ImGui::IsItemHovered())
-            ImGui::SetTooltip("Plastic ratio: particles whose plastic state has left its initial value.\n"
-                              "Li et al. 2021 report 77 / 26 / 10 / 34 %% for their cases I-IV at the end of the run.");
+            ImGui::SetTooltip("Plastic ratio: particles whose return mapping yielded in the last substep.\n"
+                              "Same definition as Li et al. 2021, who report 77 / 26 / 10 / 34 %% for their cases I-IV\n"
+                              "at t = 10 s - but at 0.5 m cells with an associative flow rule, so expect different values.");
+        // Artificial boundaries: a run that touches them depends on the box, not just the physics.
+        if (state.ceiling_contacts > 0 || state.wall_contacts > 0) {
+            const double particle_substeps = double(state.active_particles) * double(std::max(state.run_substeps, 1u));
+            ImGui::TextColored(ImVec4(1.0f, 0.6f, 0.2f, 1.0f), "Box edge reached: %.2f%% at the band ceiling, %.2f%% at the walls",
+                100.0 * double(state.ceiling_contacts) / particle_substeps, 100.0 * double(state.wall_contacts) / particle_substeps);
+            if (ImGui::IsItemHovered())
+                ImGui::SetTooltip("Share of particle-substeps in the last run that reached the edge of the simulation box, where the\n"
+                                  "grid stops outward flow. Ceiling: raise Grid layers. Walls: enlarge the domain or move it.\n"
+                                  "Until this stays at 0, runout and deposits are not purely the model's result.");
+        }
     } else if (state.valid) {
         ImGui::TextColored(ImVec4(1.0f, 0.6f, 0.2f, 1.0f), "0 particles seeded - move the release zone or tick Seed anywhere.");
     }
 
-    // Energy-line test (com1DFA section 5.2): Coulomb friction removes exactly mu of energy
-    // height per horizontal metre of centre-of-mass travel, so the fitted slope is the
-    // effective friction the flow experiences; the excess over the set mu is internal
-    // (plastic) dissipation.
+    // Energy-line test (com1DFA section 5.2, App. A): Coulomb friction removes exactly mu of
+    // energy height per horizontal metre each particle travels, so the fitted slope over the
+    // mass-averaged path is the effective friction the flow experiences; under Coulomb the
+    // excess over the set mu is internal (plastic) dissipation.
     const auto& energy_line = solver->energy_line();
     const float mu_eff = solver->energy_line_friction();
     if (!energy_line.empty()) {
+        const bool coulomb = settings.basal_friction_model == nodes::MpmSolverNode::COULOMB;
         if (std::isfinite(mu_eff)) {
-            ImGui::TextDisabled("Energy line: mu_eff %.3f over %.0f m (basal mu %.2f, internal %+.3f)", double(mu_eff),
-                double(energy_line.back().path), double(settings.terrain_friction), double(mu_eff - settings.terrain_friction));
+            ImGui::TextDisabled("Energy line: mu_eff %.3f over %.0f m (basal mu %.2f, %s %+.3f)", double(mu_eff), double(energy_line.back().path),
+                double(settings.terrain_friction), coulomb ? "internal" : "drag + internal", double(mu_eff - settings.terrain_friction));
         } else {
             ImGui::TextDisabled("Energy line: %zu samples, not moving yet", energy_line.size());
         }
         if (ImGui::IsItemHovered())
-            ImGui::SetTooltip("Energy height z + v^2/2g of the centre of mass against its horizontal path.\n"
-                              "Slope = -mu_eff. For pure Coulomb sliding mu_eff == mu; anything above it\n"
-                              "is dissipated inside the snow. Tonnel et al. 2023, com1DFA section 5.2.");
+            ImGui::SetTooltip("Mean energy height z + v^2/2g of the particles against their mean horizontal path.\n"
+                              "Slope = -mu_eff. For pure Coulomb sliding mu_eff == mu; anything above it is dissipated\n"
+                              "inside the snow - or, with Voellmy, also by the turbulent drag. Tonnel et al. 2023, com1DFA\n"
+                              "section 5.2 and App. A.");
         if (energy_line.size() >= 2) {
             std::vector<float> heights;
             heights.reserve(energy_line.size());

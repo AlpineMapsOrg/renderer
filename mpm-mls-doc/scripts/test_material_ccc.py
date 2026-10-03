@@ -85,7 +85,25 @@ def ccc_plasticity(F_trial, alpha):
         if yield_value(p, q, p0) > 0.0:
             q_new = m * math.sqrt(max((p + b * p0) * (p0 - p) / (1.0 + 2.0 * b), 0.0))
             new_eps = trace / 3.0 + dev * (q_new / max(q, 1e-12)); case = 3
+            p_c, r = 0.5 * p0 * (1.0 - b), 0.5 * p0 * (1.0 + b)
+            t = m * r / math.sqrt((1.0 + 2.0 * b) * q * q + m * m * (p - p_c) * (p - p_c))
+            p_x = p_c + t * (p - p_c)
+            new_alpha = alpha + (p_x - p) / k
     return U @ np.diag(np.exp(new_eps)) @ V.T, new_alpha, case, p0
+
+
+def wolper_intersection(p_tr, q_tr, p0):
+    """Wolper 2019 6.2.3 solved independently: walk the line from the ellipse centre towards
+    the trial state and bisect for y = 0. Returns (p_x, q_x)."""
+    p_c = 0.5 * p0 * (1.0 - settings.ccc_beta)
+    lo, hi = 0.0, 1.0  # y(centre) < 0, y(trial) > 0
+    for _ in range(200):
+        mid = 0.5 * (lo + hi)
+        if yield_value(p_c + mid * (p_tr - p_c), mid * q_tr, p0) > 0.0:
+            hi = mid
+        else:
+            lo = mid
+    return p_c + lo * (p_tr - p_c), lo * q_tr
 
 
 def state_of(F):
@@ -131,7 +149,35 @@ def main():
     report("shear is Case 3", case == 3 and yield_value(p_tr, q_tr, p0) > 0, f"y_tr={yield_value(p_tr, q_tr, p0):+.3e}")
     report("  projected onto the ellipse", abs(yield_value(p_new, q_new, p0)) < tol * tol, f"y={yield_value(p_new, q_new, p0):+.3e}")
     report("  at fixed p", abs(p_new - p_tr) < tol, f"p {p_tr:.3f} -> {p_new:.3f}")
-    report("  no hardening from shear", a == a0)
+    # Wolper 6.2.3: alpha moves by log(J_tr / J_x) = (p_x - p_tr) / K, with (p_x, q_x) the
+    # ellipse point on the line from the centre to the trial state, solved by bisection here.
+    p_x, q_x = wolper_intersection(p_tr, q_tr, p0)
+    report("  shear hardening matches Wolper 6.2.3", abs((a - a0) - (p_x - p_tr) / bulk()) < 1e-9,
+           f"dalpha={a - a0:+.3e} expected={(p_x - p_tr) / bulk():+.3e}")
+
+    # 4b. Sides of the centre: shear with p below p_c softens, above p_c hardens.
+    p_c = 0.5 * p0 * (1.0 - settings.ccc_beta)
+    for label, p_target, expect_soften in (("tensile side", -0.1 * settings.ccc_beta * p0, True),
+                                           ("compressive side", 0.9 * p0, False)):
+        tr = -p_target / bulk()
+        F = np.diag(np.exp(np.array([tr / 3.0 + 0.02, tr / 3.0 - 0.02, tr / 3.0])))
+        p_tr, q_tr = state_of(F)
+        _, a, case, p0_used = ccc_plasticity(F, a0)
+        softened = ccc_p0(a) < p0_used
+        report(f"  shear on the {label} {'softens' if expect_soften else 'hardens'}",
+               case == 3 and (p_tr < p_c) == expect_soften and softened == expect_soften,
+               f"p_tr={p_tr:.0f} p_c={p_c:.0f} p0 {p0_used:.1f} -> {ccc_p0(a):.1f}")
+
+    # 4c. Repeated shear on the tensile side weakens the material towards fracture, which the
+    #     fixed-p return without 6.2.3 could not do.
+    settings = Settings(xi=1.0, p0=3000.0)
+    a = ccc_initial_state()
+    F_s = np.diag(np.exp(np.array([0.004, -0.004, 0.0]))) * math.exp(1e-4)  # shear plus slight tension
+    first = ccc_p0(a)
+    for _ in range(300):
+        _, a, _, _ = ccc_plasticity(F_s, a)
+    report("repeated tensile-side shear: p0 falls", ccc_p0(a) < 0.5 * first, f"p0 {first:.1f} -> {ccc_p0(a):.2e}")
+    settings = Settings()
 
     # 5. Compressive cap (Case 1): return to (p0, 0), alpha decreases, p0 then increases.
     F = np.eye(3) * math.exp(-(settings.ccc_p0_initial * 3.0) / (3.0 * bulk()))  # p = 3 p0

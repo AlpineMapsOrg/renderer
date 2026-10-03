@@ -60,6 +60,7 @@ fn stomakhin_plasticity(f_trial: mat3x3f, jp: f32) -> PlasticReturn {
     let ratio = (svd.sigma.x / clamped.x) * (svd.sigma.y / clamped.y) * (svd.sigma.z / clamped.z);
 
     var result: PlasticReturn;
+    result.yielded = any(clamped != svd.sigma);
     result.plastic_state = clamp(jp * ratio, 0.05, 20.0);
     result.f_elastic = svd.u * diag3(clamped) * transpose(svd.v);
     result.kirchhoff = stomakhin_kirchhoff(svd.u, clamped, result.plastic_state);

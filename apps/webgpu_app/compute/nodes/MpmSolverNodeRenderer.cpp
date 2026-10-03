@@ -84,12 +84,11 @@ void MpmSolverNodeRenderer::render_settings_content()
 
     // --- Time stepping ---
     const float dx = settings.domain_size_xy / float(std::max(settings.grid_resolution_xy, 1u));
-    const float wave_speed = std::sqrt(std::max(settings.youngs_modulus, 1.0f) / std::max(settings.snow_density, 1.0f));
-    const float cfl_dt = 0.1f * dx / std::max(wave_speed, 1e-3f);
+    const float cfl_dt = nodes::MpmSolverNode::max_stable_dt(settings, dx);
     ImGui::Text("Grid spacing: %.2f m", double(dx));
-    ImGui::Text("CFL suggestion: dt <= %.4f s", double(cfl_dt));
+    ImGui::Text("CFL bound: dt <= %.4f s", double(cfl_dt));
     if (settings.dt > cfl_dt) {
-        ImGui::TextColored(ImVec4(1.0f, 0.6f, 0.2f, 1.0f), "dt above the CFL estimate - may go unstable.");
+        ImGui::TextColored(ImVec4(1.0f, 0.6f, 0.2f, 1.0f), "dt above the CFL bound - the next run lowers it to %.4f s.", double(0.8f * cfl_dt));
     }
 
     settings_changed |= ImGui::DragFloat("Time step (dt)", &settings.dt, 0.0005f, 0.0001f, 0.5f, "%.4f s");
@@ -194,7 +193,7 @@ void MpmSolverNodeRenderer::render_settings_content()
     settings_changed |= ImGui::DragFloat("Friction coefficient", &settings.terrain_friction, 0.01f, 0.0f, 2.0f, "%.2f");
     if (settings.basal_friction_model == Node::VOELLMY) {
         settings_changed |= ImGui::DragFloat("Turbulent friction", &settings.voellmy_xi, 10.0f, 100.0f, 20000.0f, "%.0f m/s2");
-        ImGui::TextDisabled("com1DFA default: mu 0.155, xi 4000");
+        ImGui::TextDisabled("com1DFA's Voellmy option: mu 0.155, xi 4000");
     }
 
     ImGui::Separator();

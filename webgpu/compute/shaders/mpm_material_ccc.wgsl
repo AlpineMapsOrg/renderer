@@ -19,8 +19,8 @@
 ///use mpm_common
 
 // Constitutive model: Cohesive Cam Clay - Gaume et al. 2018, "Dynamic anticrack propagation
-// in snow" (yield surface, hardening law, parameters), with the three-case return mapping
-// of Wolper et al. 2019 (NACC), the same group's implementation of this yield surface.
+// in snow" (yield surface, hardening law, parameters), with the non-associated return
+// mapping of Wolper et al. 2019, section 6.2 (NACC: three cases plus its shear hardening).
 // Parameter values per flow regime come from Li et al. 2021, Table 1.
 //
 // Critical-state soil mechanics for a porous cohesive material. Hencky elasticity as in the
@@ -43,10 +43,16 @@
 // Return mapping, explicit (old p0 used for the projection, then hardening updated):
 //   Case 1  p > p0            compressive cap:  -> (p0, 0), alpha decreases (harden)
 //   Case 2  p < -beta p0      tensile tip:      -> (-beta p0, 0), alpha increases (soften)
-//   Case 3  y > 0 otherwise   shear failure:    q projected onto the ellipse at fixed p
+//   Case 3  y > 0 otherwise   shear failure:    q projected onto the ellipse at fixed p;
+//                             alpha from Wolper's "fracture-friendly hardening" (6.2.3)
 //   else                      elastic
-// Gaume describes an associative flow rule; the fixed-p projection here is Wolper's
-// non-associated variant. Swapping in an associative return only touches ccc_plasticity().
+// In every case alpha changes by log(J_E,tr / J_E,target) = tr(eps_tr) - tr(eps_target).
+// The flow rule keeps p, so in Case 3 the target is not the returned state but the point
+// where the line from the trial state to the ellipse centre (p0 (1 - beta) / 2, 0) meets
+// the ellipse: shear on the tensile side of the centre softens, on the compressive side
+// hardens. Without it shear would never change p0 and a slab could not weaken in shear.
+// Gaume (and Li) use an associative flow rule instead, where the projection itself changes
+// the volume; swapping one in only touches ccc_plasticity().
 //
 // Per-particle plastic state: alpha, initialised so that p0(alpha) = ccc_p0_initial.
 // Parameters: settings.mu_0, lambda_0 (shared), ccc_m, ccc_beta, ccc_xi, ccc_p0_initial.
@@ -95,6 +101,7 @@ fn ccc_plasticity(f_trial: mat3x3f, alpha: f32) -> PlasticReturn {
 
     var new_eps = eps;
     var new_alpha = alpha;
+    var yielded = true;
 
     if p > p0 {
         // Case 1: beyond the compressive cap. Return to (p0, 0): a purely volumetric strain
@@ -111,14 +118,27 @@ fn ccc_plasticity(f_trial: mat3x3f, alpha: f32) -> PlasticReturn {
         if y > 0.0 {
             // Case 3: shear failure. With p inside [-beta p0, p0] the ellipse term is <= 0,
             // so y > 0 implies q > 0 - the division is safe. Project q onto the ellipse at
-            // fixed p; no volumetric plastic strain, so no hardening from shear alone.
+            // fixed p; the flow rule produces no volumetric plastic strain.
             let q_new = m * sqrt(max((p + beta * p0) * (p0 - p) / (1.0 + 2.0 * beta), 0.0));
             new_eps = vec3f(trace / 3.0) + dev * (q_new / max(q, 1e-12));
+
+            // Hardening (Wolper 6.2.3). With the centre at p_c = p0 (1 - beta) / 2 the
+            // ellipse is (1 + 2 beta) q^2 + M^2 ((p - p_c)^2 - r^2) = 0, r = p0 (1 + beta) / 2,
+            // so the point (p_c, 0) + t (p - p_c, q) lies on it for
+            // t = M r / sqrt((1 + 2 beta) q^2 + M^2 (p - p_c)^2), 0 < t < 1 outside. Hencky:
+            // tr(eps) = -p / K, so the alpha change is (p_x - p) / K.
+            let p_c = 0.5 * p0 * (1.0 - beta);
+            let r = 0.5 * p0 * (1.0 + beta);
+            let t = m * r / sqrt((1.0 + 2.0 * beta) * q * q + m * m * (p - p_c) * (p - p_c));
+            let p_x = p_c + t * (p - p_c);
+            new_alpha = alpha + (p_x - p) / k;
+        } else {
+            yielded = false; // inside the yield surface, elastic
         }
-        // else: inside the yield surface, elastic.
     }
 
     var result: PlasticReturn;
+    result.yielded = yielded;
     result.f_elastic = svd.u * diag3(exp(new_eps)) * transpose(svd.v);
     result.plastic_state = new_alpha;
     result.kirchhoff = ccc_kirchhoff(svd.u, new_eps);

@@ -17,7 +17,6 @@
  *****************************************************************************/
 
 ///use mpm_common
-///use mpm_material
 
 // Accumulates the particle cloud into a top-down density raster covering the simulation
 // domain. This is the 2D projection used for the map overlay and for export; the raster
@@ -33,12 +32,6 @@ fn computeMain(@builtin(global_invocation_id) id: vec3<u32>) {
     let p = particles[index];
     if p.mass <= 0.0 {
         return;
-    }
-
-    // Li et al. 2021 report the plastic particle ratio per flow regime (77 / 26 / 10 / 34 %
-    // for their cases I-IV); counting it here, once per run, makes that a cheap sanity metric.
-    if abs(p.plastic_state - material_initial_state()) > 1e-6 {
-        atomicAdd(&state.plastic_particles, 1u);
     }
 
     // Centre of mass and mean kinetic energy, see SimState in mpm_common. 64-bit sums as

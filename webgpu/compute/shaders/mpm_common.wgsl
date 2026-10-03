@@ -130,15 +130,22 @@ struct GridNode {
     vz: atomic<i32>,
 }
 
-// Read back to the CPU after every run (see MpmSolverNode::SimStateReadback). Slots 0-2 are
-// written once per reset; slots 3-4 are zeroed by the CPU before every run.
+// Read back to the CPU after every run (see MpmSolverNode::SimStateReadback). Slots 0-2, 5
+// and the path sum are written from the reset on; the CPU zeroes the rest before every run
+// (MpmSolverNode::reset_run_counters, which skips the slots that must survive).
 struct SimState {
     min_altitude_cm: atomic<i32>,
     max_altitude_cm: atomic<i32>,
     active_particles: atomic<u32>,
     max_speed_mm: atomic<u32>,
-    plastic_particles: atomic<u32>, // particles whose plastic state has left its initial value
-    _reserved: atomic<u32>,
+    // Particles whose return mapping yielded in the last substep - an instantaneous count,
+    // like the plastic ratio of Li et al. 2021, not "ever yielded". P2G zeroes it every
+    // substep, G2P counts.
+    plastic_particles: atomic<u32>,
+    // Seeding threads whose first random sample landed on a release point: hits / threads
+    // is the share of the release disc that got snow, i.e. the seeded area, from which
+    // seeded_particle_volume() recovers the real snow volume per particle.
+    seed_first_hits: atomic<u32>,
 
     // Sums of position and |v|^2 over the active particles, for the centre of mass and the
     // mean kinetic energy of the energy-line test (Tonnel et al. 2023, com1DFA section 5.2).
@@ -155,18 +162,47 @@ struct SimState {
     sum_z_hi: atomic<u32>,
     sum_speed_sq_lo: atomic<u32>, // m^2/s^2 * SUM_SPEED_SQ_SCALE
     sum_speed_sq_hi: atomic<u32>,
+
+    // Horizontal distance travelled, summed over particles, since the reset - not per run,
+    // so a run whose readback is skipped loses nothing. Divided by the particle count it is
+    // the mass-averaged path s of the energy line (Tonnel et al. 2023, App. A), which is
+    // longer than the centre of mass's own path once the flow spreads. G2P adds it.
+    sum_path_lo: atomic<u32>, // metres * SUM_PATH_SCALE
+    sum_path_hi: atomic<u32>,
+
+    // Artificial boundaries touched during the run, in particle-substeps whose stencil reached
+    // the nodes where the grid update stops outward flow (or that got clamped outright): the
+    // ceiling of the terrain-following band and the walls of the domain box. Nonzero means the
+    // result depends on the box, not only on the physics - more layers or a larger domain.
+    ceiling_contacts: atomic<u32>,
+    wall_contacts: atomic<u32>,
 }
 
 // Per-particle contributions have to fit a u32 on their own: 4500 m * 1e4 = 4.5e7 and
 // (100 m/s)^2 * 1e5 = 1e9 both do. The sums are 64-bit, so particle count is irrelevant.
 const SUM_POSITION_SCALE: f32 = 1.0e4; // 0.1 mm
 const SUM_SPEED_SQ_SCALE: f32 = 1.0e5; // 1e-5 m^2/s^2
+// Per substep a particle moves a few cm (dt * speed); G2P first sums a workgroup's 256
+// particles in a u32, with each capped at 100 m: 256 * 100 m * 1e5 = 2.6e9 still fits.
+const SUM_PATH_SCALE: f32 = 1.0e5; // 0.01 mm
+
+// Real snow volume one particle stands for [m^3]. Not settings.particle_volume: mass is
+// normalised to 1 per particle and the volume scaled with it, which leaves the MPM equations
+// unchanged but makes that volume meaningless as a length scale. The slab's real volume is
+// the seeded area times its thickness, the area being the release disc times the share of
+// first seeding samples that hit a release point (Monte Carlo over every seeding thread).
+fn seeded_particle_volume() -> f32 {
+    let hit_share = f32(atomicLoad(&state.seed_first_hits)) / f32(max(settings.num_particles, 1u));
+    let area = hit_share * 3.14159265 * settings.release_radius * settings.release_radius;
+    return area * settings.slab_thickness / max(f32(atomicLoad(&state.active_particles)), 1.0);
+}
 
 // Result of a constitutive model's plastic return mapping (see mpm_material.wgsl).
 struct PlasticReturn {
     f_elastic: mat3x3f,
     plastic_state: f32,
     kirchhoff: mat3x3f, // tau = P F^T at (f_elastic, plastic_state), for the next P2G
+    yielded: bool, // the trial state was outside the admissible set and got projected
 }
 
 @group(0) @binding(0) var<uniform> settings: MpmSettings;

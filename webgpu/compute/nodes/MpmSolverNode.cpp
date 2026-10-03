@@ -46,10 +46,23 @@ namespace {
     /* grid_velocity in mpm_common.wgsl: one vec4f per node. */
     constexpr uint32_t GRID_VELOCITY_STRIDE_U32 = 4u; // 16 bytes
     /* Size of struct SimState in mpm_common.wgsl, in units of uint32. */
-    constexpr uint32_t SIM_STATE_SIZE_U32 = 14u; // 56 bytes
+    constexpr uint32_t SIM_STATE_SIZE_U32 = 18u; // 72 bytes
+    /* Slots of struct SimState. */
+    constexpr size_t STATE_SEED_FIRST_HITS = 5;
+    constexpr size_t STATE_SUM_X = 6;
+    constexpr size_t STATE_SUM_Y = 8;
+    constexpr size_t STATE_SUM_Z = 10;
+    constexpr size_t STATE_SUM_SPEED_SQ = 12;
+    constexpr size_t STATE_SUM_PATH = 14;
+    constexpr size_t STATE_CEILING_CONTACTS = 16;
+    constexpr size_t STATE_WALL_CONTACTS = 17;
     /* Mirrors the constants in mpm_common.wgsl. */
     constexpr double SUM_POSITION_SCALE = 1.0e4;
     constexpr double SUM_SPEED_SQ_SCALE = 1.0e5;
+    constexpr double SUM_PATH_SCALE = 1.0e5;
+
+    /* Fraction of the time a P wave needs to cross one cell that a substep may take. */
+    constexpr float CFL_NUMBER = 0.1f;
 
     /* Reassembles a lo/hi u32 pair written by the shader's carry-detecting atomic adds. */
     uint64_t wide(const std::vector<uint32_t>& data, size_t lo_slot) { return (uint64_t(data[lo_slot + 1]) << 32) | uint64_t(data[lo_slot]); }
@@ -317,6 +330,18 @@ void MpmSolverNode::ensure_bind_group(const webgpu::raii::TextureWithSampler& he
         "mpm solver bind group");
 }
 
+float MpmSolverNode::max_stable_dt(const MpmSolverSettings& settings, float dx)
+{
+    // P-wave speed sqrt((lambda + 2 mu) / rho), the fastest elastic wave - 16 % above
+    // sqrt(E / rho) at nu = 0.3. Uses the base stiffness: Stomakhin's compaction hardening
+    // can stiffen the material further (up to 20x, see its clamp), which this ignores.
+    const float nu = std::clamp(settings.poissons_ratio, 0.0f, 0.45f);
+    const float e = std::max(settings.youngs_modulus, 1.0f);
+    const float p_modulus = e * (1.0f - nu) / ((1.0f + nu) * (1.0f - 2.0f * nu)); // lambda + 2 mu
+    const float wave_speed = std::sqrt(p_modulus / std::max(settings.snow_density, 1.0f));
+    return CFL_NUMBER * dx / std::max(wave_speed, 1e-3f);
+}
+
 void MpmSolverNode::update_gpu_settings(const radix::geometry::Aabb<2, double>& region_aabb, const webgpu::raii::TextureWithSampler& height_texture)
 {
     const glm::fvec2 region_size = glm::fvec2(region_aabb.size());
@@ -342,7 +367,6 @@ void MpmSolverNode::update_gpu_settings(const radix::geometry::Aabb<2, double>& 
     data.dx = dx;
     data.region_size = region_size;
     data.height_texture_dim = glm::uvec2(height_texture.texture().width(), height_texture.texture().height());
-    data.dt = m_settings.dt;
     data.gravity = m_settings.gravity;
 
     // Mass is normalised to 1 per particle. Scaling mass and volume by the same factor
@@ -355,6 +379,17 @@ void MpmSolverNode::update_gpu_settings(const radix::geometry::Aabb<2, double>& 
     const float e = std::max(m_settings.youngs_modulus, 1.0f);
     data.mu_0 = e / (2.0f * (1.0f + nu));
     data.lambda_0 = e * nu / ((1.0f + nu) * (1.0f - 2.0f * nu));
+
+    // The time step has to resolve the fastest elastic wave across a cell. Checked here, on
+    // every run, so a hand edit of the stiffness, density, grid or dt cannot slip past it the
+    // way it could when only applying a preset pulled dt down.
+    const float limit = max_stable_dt(m_settings, dx);
+    if (m_settings.dt > limit) {
+        qWarning().nospace() << "MpmSolverNode: dt " << m_settings.dt << " s exceeds the CFL bound " << limit << " s for dx " << dx
+                             << " m; reduced to " << 0.8f * limit << " s";
+        m_settings.dt = 0.8f * limit;
+    }
+    data.dt = m_settings.dt;
     data.hardening = m_settings.hardening;
     data.critical_compression = m_settings.critical_compression;
     data.critical_stretch = m_settings.critical_stretch;
@@ -397,7 +432,7 @@ void MpmSolverNode::update_gpu_settings(const radix::geometry::Aabb<2, double>& 
     data.basal_friction_model = static_cast<uint32_t>(m_settings.basal_friction_model);
     data.voellmy_xi = std::max(m_settings.voellmy_xi, 1.0f);
 
-    // Drucker-Prager cone slope from the friction angle (Klar et al. 2016, eq. after (27)):
+    // Drucker-Prager cone slope from the friction angle (Klar et al. 2016, section 7.3):
     // alpha = sqrt(2/3) * 2 sin(phi) / (3 - sin(phi)).
     const float sin_phi = std::sin(glm::radians(std::clamp(m_settings.dp_friction_angle, 0.0f, 89.0f)));
     data.dp_alpha = std::sqrt(2.0f / 3.0f) * 2.0f * sin_phi / (3.0f - sin_phi);
@@ -423,16 +458,19 @@ void MpmSolverNode::write_initial_state()
     std::memcpy(&initial[1], &max_init, sizeof(int32_t));
     initial[2] = 0u; // active particles
     initial[3] = 0u; // max speed
-    // slots 4..13 (plastic count, reserved, the four 64-bit sums) start at zero
+    // the rest (counts, seed hits, the 64-bit sums, clamp counters) starts at zero
 
     m_state_buffer->write(m_ctx->queue(), initial.data(), initial.size(), 0);
 }
 
 void MpmSolverNode::reset_run_counters()
 {
-    // slots 3..13: max speed, plastic count, reserved, four 64-bit sums (lo/hi each)
-    const std::array<uint32_t, 11> zeros {};
-    m_state_buffer->write(m_ctx->queue(), zeros.data(), zeros.size(), 3);
+    // Max speed and the yield count, the four instantaneous sums, the clamp counters. Not the
+    // seed hits and the path sum, which hold from the reset on.
+    const std::array<uint32_t, 8> zeros {};
+    m_state_buffer->write(m_ctx->queue(), zeros.data(), 2, 3);
+    m_state_buffer->write(m_ctx->queue(), zeros.data(), 8, STATE_SUM_X);
+    m_state_buffer->write(m_ctx->queue(), zeros.data(), 2, STATE_CEILING_CONTACTS);
 }
 
 void MpmSolverNode::read_back_state()
@@ -455,8 +493,9 @@ void MpmSolverNode::map_state_readback()
         uint32_t reset_count;
         float time;
         float gravity;
+        uint32_t substeps;
     };
-    auto* request = new Request { m_alive, m_reset_count, m_simulated_time, std::max(m_settings.gravity, 1e-3f) };
+    auto* request = new Request { m_alive, m_reset_count, m_simulated_time, std::max(m_settings.gravity, 1e-3f), m_run_substeps };
 
     const auto on_mapped = [](WGPUMapAsyncStatus status, [[maybe_unused]] WGPUStringView message, void* userdata, [[maybe_unused]] void* userdata2) {
         std::unique_ptr<Request> request(reinterpret_cast<Request*>(userdata));
@@ -469,7 +508,7 @@ void MpmSolverNode::map_state_readback()
             return;
         }
         // A sample from before a reset would land in the fresh energy line; drop it.
-        self->on_state_mapped(request->time, request->gravity, request->reset_count == self->m_reset_count);
+        self->on_state_mapped(request->time, request->gravity, request->substeps, request->reset_count == self->m_reset_count);
     };
 
     WGPUBufferMapCallbackInfo callback_info {
@@ -482,7 +521,7 @@ void MpmSolverNode::map_state_readback()
     wgpuBufferMapAsync(m_state_readback->handle(), WGPUMapMode_Read, 0, m_state_readback->size_in_byte(), callback_info);
 }
 
-void MpmSolverNode::on_state_mapped(float time, float gravity, bool current)
+void MpmSolverNode::on_state_mapped(float time, float gravity, uint32_t substeps, bool current)
 {
     std::vector<uint32_t> data(SIM_STATE_SIZE_U32);
     const auto* mapped = static_cast<const uint32_t*>(wgpuBufferGetConstMappedRange(m_state_readback->handle(), 0, m_state_readback->size_in_byte()));
@@ -504,8 +543,14 @@ void MpmSolverNode::on_state_mapped(float time, float gravity, bool current)
     m_last_state.plastic_particles = data[4];
 
     const double active = std::max(double(m_last_state.active_particles), 1.0);
-    m_last_state.centre_of_mass = glm::dvec3(double(wide(data, 6)), double(wide(data, 8)), double(wide(data, 10))) / SUM_POSITION_SCALE / active;
-    m_last_state.mean_speed_sq = float(double(wide(data, 12)) / SUM_SPEED_SQ_SCALE / active);
+    m_last_state.centre_of_mass = glm::dvec3(double(wide(data, STATE_SUM_X)), double(wide(data, STATE_SUM_Y)), double(wide(data, STATE_SUM_Z)))
+        / SUM_POSITION_SCALE / active;
+    m_last_state.mean_speed_sq = float(double(wide(data, STATE_SUM_SPEED_SQ)) / SUM_SPEED_SQ_SCALE / active);
+    m_last_state.mean_path = float(double(wide(data, STATE_SUM_PATH)) / SUM_PATH_SCALE / active);
+    m_last_state.ceiling_contacts = data[STATE_CEILING_CONTACTS];
+    m_last_state.wall_contacts = data[STATE_WALL_CONTACTS];
+    m_last_state.run_substeps = substeps;
+    m_last_state.release_area_share = float(double(data[STATE_SEED_FIRST_HITS]) / std::max(double(m_allocated_particles), 1.0));
     m_last_state.valid = true;
 
     if (m_last_state.active_particles > 0)
@@ -514,14 +559,10 @@ void MpmSolverNode::on_state_mapped(float time, float gravity, bool current)
 
 void MpmSolverNode::append_energy_sample(float time, float gravity)
 {
-    // Energy line: path is the horizontal distance the centre of mass has covered.
-    float path = 0.0f;
-    if (!m_energy_line.empty()) {
-        const auto& previous = m_energy_line.back();
-        const glm::dvec2 delta = glm::dvec2(m_last_state.centre_of_mass) - m_last_com_xy;
-        path = previous.path + float(glm::length(delta));
-    }
-    m_last_com_xy = glm::dvec2(m_last_state.centre_of_mass);
+    // Energy line (Tonnel et al. 2023, App. A): every point loses mu of energy height per metre
+    // of its own path, so the average is over the particles' paths. The centre of mass's
+    // own path is shorter once the flow spreads, and would bias mu_eff high.
+    const float path = m_last_state.mean_path;
     m_energy_line.push_back(EnergySample { time, path, float(m_last_state.centre_of_mass.z),
         float(m_last_state.centre_of_mass.z) + m_last_state.mean_speed_sq / (2.0f * gravity) });
 
@@ -636,6 +677,7 @@ void MpmSolverNode::run_impl()
     }
 
     m_run_substeps_left = std::clamp(m_settings.substeps_per_run, 1u, 4096u);
+    m_run_substeps = m_run_substeps_left;
     m_run_first_chunk = true;
     m_run_is_reset = reset;
     // Particles cache the stress G2P computed with the previous parameters; after a material
