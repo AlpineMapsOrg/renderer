@@ -309,6 +309,15 @@ public:
     /// since the reset (com1DFA's stop criterion). Like last_state(), one run behind.
     bool at_rest() const { return m_at_rest; }
 
+    /// Box contacts (see SimStateReadback) summed over every run since the reset, and the
+    /// particle-substeps they are a share of. Non-zero walls mean the runout depends on the box.
+    struct BoundaryContacts {
+        uint64_t ceiling = 0;
+        uint64_t wall = 0;
+        uint64_t particle_substeps = 0;
+    };
+    const BoundaryContacts& contacts_since_reset() const { return m_contacts_since_reset; }
+
     /// Peak flow depth and depth-averaged speed per grid column since the last reset, read
     /// back from the GPU (column_peaks in mpm_common.wgsl). Column (i, j) is the grid node at
     /// domain origin + (i, j) dx; j grows northwards.
@@ -480,6 +489,7 @@ private:
     PerfStats m_perf;
     SimStateReadback m_last_state;
     float m_peak_mean_speed_sq = 0.0f; // since the reset, for the stop criterion
+    BoundaryContacts m_contacts_since_reset;
     bool m_at_rest = false;
     std::vector<EnergySample> m_energy_line;
 };

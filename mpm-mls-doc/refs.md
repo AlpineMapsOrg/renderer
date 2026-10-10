@@ -69,6 +69,30 @@ laws com1DFA offers (Coulomb, Voellmy, samosAT). Its Coulomb law is τ = μσₙ
 names Voellmy but gives no formula. com1DFA's **default** friction model is samosAT; μ = 0.155
 with ξ = 4000 are the parameters of its Voellmy option. Not an MPM paper.
 
+**Fischer, J.-T.** 2013. *A novel approach to evaluate and compare computational snow
+avalanche simulation.* Nat. Hazards Earth Syst. Sci. 13(6), 1655–1667.
+https://doi.org/10.5194/nhess-13-1655-2013
+→ **AIMEC**, the evaluation method of the AvaFrame comparison: results transformed into the
+coordinate system of the avalanche path, runout point by a threshold on the peak field,
+runout difference, and the area indicators TP/FN/FP against a reference. Run through AvaFrame's
+implementation (`ana3AIMEC`) in [11-avaframe-comparison.md](11-avaframe-comparison.md).
+
+**D'Amboise, C. J. L., Neuhauser, M., Teich, M., Huber, A., Kofler, A., Perzl, F., Fromm, R.,
+Kleemayr, K., Fischer, J.-T.** 2022. *Flow-Py v1.0: a customizable, open-source simulation tool
+to estimate runout and intensity of gravitational mass flows.* Geosci. Model Dev. 15, 2423–2439.
+https://doi.org/10.5194/gmd-15-2423-2022
+→ **com4FlowPy**, the data-driven comparison model (AvaFrame's implementation, default
+parameters). Its zδ is the height of the energy line above the terrain, a kinetic-energy
+height. The comparison turns it into a velocity, √(2g·zδ), the same conversion weBIGeo's
+trajectory shader uses (`avalanche_trajectories_compute.wgsl`). That conversion is ours: check it
+against the paper before quoting it.
+
+**AvaFrame** — open-source avalanche modelling framework (BFW, Univ. Innsbruck). Version 2.1
+(tag `2.1`, commit `9c3cefb`) for the test data and AIMEC; benchmarks computed with v1.11.
+https://github.com/OpenNHM/AvaFrame, https://docs.avaframe.org
+→ Test cases, com1DFA reference results and the evaluation code of the comparison
+([avaframe/README.md](avaframe/README.md)).
+
 **Voellmy, A.** 1955. *Über die Zerstörungskraft von Lawinen.* Schweizerische Bauzeitung 73.
 → The **Voellmy** friction form in `mpm_friction.wgsl`, τ = μσₙ + ρg|v|²/ξ, in the
 depth-averaged form avalanche codes use (divided by ρh, h the local flow depth).

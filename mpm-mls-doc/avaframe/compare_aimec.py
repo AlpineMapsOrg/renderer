@@ -109,8 +109,11 @@ def run_aimec(ava, cfg_file):
     setup = cfg["AIMECSETUP"]
     inputs_df, path_dict = dfa2Aimec.dfaBench2Aimec(ava, cfg)
     path_dict = aimecTools.readAIMECinputs(ava, path_dict, setup.getboolean("defineRunoutArea"), dirName="com1DFA_mpm")
-    _, results, _, _ = ana3AIMEC.mainAIMEC(path_dict, inputs_df, cfg)
-    return results, path_dict["refSimRowHash"]
+    transfo, results, _, _ = ana3AIMEC.mainAIMEC(path_dict, inputs_df, cfg)
+    # The analysis ends with the AIMEC path: a result above the threshold in the last cross
+    # section has a runout of "at least" there, not a measured one.
+    s = transfo["s"]
+    return results, path_dict["refSimRowHash"], float(s[-1]), float(s[-1] - s[-2])
 
 
 def to_plain(value):
@@ -134,7 +137,7 @@ def compare(run_dir):
     summary = {"run": str(run_dir.relative_to(REPO)), "variants": {}}
     for label, res_type, threshold in VARIANTS:
         ava, cfg_file, params, ref = build_avalanche_dir(run_dir, label, res_type, threshold)
-        results, ref_hash = run_aimec(ava, cfg_file)
+        results, ref_hash, path_end, ds = run_aimec(ava, cfg_file)
         rows = {}
         for row_hash, row in results.iterrows():
             key = "com1DFA" if row_hash == ref_hash else "mpm"
@@ -156,6 +159,9 @@ def compare(run_dir):
             "runout_area_recall": tp / (tp + fn) if tp + fn > 0 else None,
             "runout_area_precision": tp / (tp + fp) if tp + fp > 0 else None,
             "runout_area_fp_over_ref": fp / (tp + fn) if tp + fn > 0 else None,
+            "path_end_s_m": path_end,
+            "mpm_reaches_path_end": s_mpm is not None and s_mpm >= path_end - 1.5 * ds,
+            "com1DFA_reaches_path_end": s_com is not None and s_com >= path_end - 1.5 * ds,
         }
         summary["variants"][label] = {"threshold": f"{res_type} > {threshold}", "derived": derived, "mpm": mpm, "com1DFA": com,
                                       "avalanche_dir": str(ava.relative_to(REPO))}

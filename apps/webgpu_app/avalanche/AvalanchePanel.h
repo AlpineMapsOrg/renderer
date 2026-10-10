@@ -190,11 +190,12 @@ private:
         std::string material_preset; // preset name; empty = keep the current material
         QJsonObject settings; // solver settings to override, keys as in MpmSolverNode::serialize_settings
         float max_time = 400.0f; // [s] simulated; com1DFA's default tEnd
+        bool trajectories = false; // "model": "trajectories" - the weBIGeo trajectory model instead of the MPM
     };
     enum class BatchPhase { Idle, Loading, Running, Exporting, Done };
     bool load_batch(const QString& path);
     void start_batch_run();
-    void batch_tick(webgpu_compute::nodes::MpmSolverNode& solver);
+    void batch_tick();
     void finish_batch();
 
 private:
@@ -233,6 +234,7 @@ private:
     BatchPhase m_batch_phase = BatchPhase::Idle;
     bool m_batch_quit = true;
     QJsonArray m_batch_results;
+    std::chrono::steady_clock::time_point m_batch_run_started;
     SandboxView m_sandbox_view;
 
     /* Simulated seconds per wall-clock second, measured over ~1 s windows while playing. */

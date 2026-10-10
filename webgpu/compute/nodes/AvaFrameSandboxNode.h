@@ -25,6 +25,7 @@
 #include <webgpu/base/Context.h>
 #include <webgpu/base/raii/TextureWithSampler.h>
 
+#include <functional>
 #include <memory>
 #include <optional>
 #include <string>
@@ -129,6 +130,10 @@ struct SandboxRunSummary {
 };
 SandboxRunSummary write_sandbox_result(const SandboxTerrain& terrain, const SandboxPeaks& peaks, const MpmSolverNode::ColumnPeaks& columns, float density,
     const QJsonObject& run_info);
+/// Writes pft/pfv/ppr and params.json (plus dataset, release, reference) into a new
+/// <dataset>/mpm/<time>_<release>[_<label>]/; fills summary.directory, or summary.error.
+void write_run_files(const SandboxTerrain& terrain, const std::vector<float>& pft, const std::vector<float>& pfv, const std::vector<float>& ppr,
+    QJsonObject params, SandboxRunSummary& summary);
 
 /// Loads one prepared AvaFrame dataset and hands it to the MPM solver as a sandbox: the DEM
 /// as height texture, the release as a depth texture and the region in metres. See
@@ -172,6 +177,12 @@ public:
     /// Synthetic datasets keep a 1x1 transparent texture, so the overlay always has one.
     void update_map_overlay(const std::vector<float>* mpm_pft);
 
+    /// Exports a run of the weBIGeo trajectory model (ComputeAvalancheTrajectoriesNode at
+    /// resolution multiplier 1, so its layers are on the DEM grid) like a com4FlowPy run:
+    /// footprint flag, sqrt(2 g zdelta), rho v^2. Asynchronous; the layer buffers must outlive it.
+    void export_trajectories(webgpu::raii::RawBuffer<uint32_t>& zdelta, webgpu::raii::RawBuffer<uint32_t>& counts, QJsonObject run_info,
+        std::function<void(const SandboxRunSummary&)> done);
+
 public slots:
     void run_impl() override;
 
@@ -186,6 +197,7 @@ private:
     std::unique_ptr<webgpu::raii::TextureWithSampler> m_release_texture;
     std::unique_ptr<webgpu::raii::TextureWithSampler> m_preview_texture;
     std::unique_ptr<webgpu::raii::TextureWithSampler> m_layer_texture;
+    std::unique_ptr<webgpu::raii::TextureWithSampler> m_release_mask_texture;
 
     /* Map overlay (OverlayRenderNode links the texture; it must never be null). */
     std::unique_ptr<webgpu::raii::TextureWithSampler> m_map_texture;

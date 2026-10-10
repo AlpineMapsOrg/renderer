@@ -605,6 +605,9 @@ void MpmSolverNode::on_state_mapped(float time, float gravity, uint32_t substeps
     m_last_state.mean_path = float(double(wide(data, STATE_SUM_PATH)) / SUM_PATH_SCALE / active);
     m_last_state.ceiling_contacts = data[STATE_CEILING_CONTACTS];
     m_last_state.wall_contacts = data[STATE_WALL_CONTACTS];
+    m_contacts_since_reset.ceiling += m_last_state.ceiling_contacts;
+    m_contacts_since_reset.wall += m_last_state.wall_contacts;
+    m_contacts_since_reset.particle_substeps += uint64_t(m_last_state.active_particles) * substeps;
     m_last_state.run_substeps = substeps;
     m_last_state.release_area_share = float(double(data[STATE_SEED_FIRST_HITS]) / std::max(double(m_allocated_particles), 1.0));
     m_last_state.valid = true;
@@ -734,6 +737,7 @@ void MpmSolverNode::run_impl()
         m_reset_wall_start = std::chrono::steady_clock::now();
         m_last_state = {};
         m_peak_mean_speed_sq = 0.0f;
+        m_contacts_since_reset = {};
         m_at_rest = false;
         m_energy_line.clear();
         m_perf.runs = 0;

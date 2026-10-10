@@ -181,6 +181,32 @@ sRunout(com1DFA), and the area indicators are labelled as runout-area only.
 - Voellmy (com1DFA's mu 0.155, xi 4000) runs further than Coulomb on avaKot: +291 m against
   +198 m (ppr).
 
+### 8. AvaFrame comparison, phase 6: models compared
+
+- **com4FlowPy** through AvaFrame (`run_com4flowpy.py`).
+- **weBIGeo trajectory model** in the sandbox: a new preset, a release mask from the sandbox node,
+  `export_trajectories`, and the batch `"model": "trajectories"`.
+- **35-run batch** (`batch_phase6.json`). `summarise.py` runs AIMEC and writes the tables, and
+  `11-avaframe-comparison.md` holds the write-up.
+
+**Two measurement problems found and fixed before reporting:**
+1. **Runs cut off by the MPM box.** Different models ended at exactly the same runout per
+   dataset. The suggested domain (com1DFA footprint + 15 %) stopped them. Rerun on the whole DEM;
+   runs now record their wall contacts, which are 0–0.1 %.
+2. **Runs reaching the end of the AIMEC path.** A remaining identical value turned out to be the
+   end of AvaFrame's path. compare_aimec records the path length and marks such runouts "≥"
+   (lower bound).
+
+**Result** (pft > 0.1 m, five avalanches):
+- **Cam Clay with Li V parameters and Coulomb is closest.** Mean |Δrunout| 135 m, |Δangle| 1.5°.
+- **Every Coulomb variant except Stomakhin is about 2–2.5× too fast.**
+- **Voellmy with com1DFA's μ 0.155 / ξ 4000 runs too far for every material.** Open: the flow
+  depth the drag uses.
+- **Stomakhin's film snow stops early on the long avalanches.**
+- **The trajectory model is good where com1DFA's angle is near its α of 25°** and overshoots
+  elsewhere.
+- **com4FlowPy finished only avaKot and avaGar** (5½ and 53 min).
+
 ### 3. iOS build (PR #5, merged) — log entry added after the fact
 
 webgpu_app runs on an iPhone 17 Pro Max. The build uses:

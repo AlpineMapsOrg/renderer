@@ -1,0 +1,152 @@
+{
+    "format": "webigeo/node-graph",
+    "version": 1,
+    "name": "weBIGeo trajectories - AvaFrame sandbox",
+    "nodes": [
+        {
+            "enabled": true,
+            "name": "AvaFrame Sandbox",
+            "type": "AvaFrameSandboxNode",
+            "settings": {
+                "dataset_path": "",
+                "release_scenario": ""
+            }
+        },
+        {
+            "enabled": true,
+            "name": "Normals",
+            "type": "ComputeNormalsNode",
+            "settings": {
+                "format": "RGBA8Unorm",
+                "usage": [
+                    "CopyDst",
+                    "TextureBinding",
+                    "StorageBinding"
+                ]
+            }
+        },
+        {
+            "enabled": true,
+            "name": "Trajectories",
+            "type": "ComputeAvalancheTrajectoriesNode",
+            "settings": {
+                "active_model": 0,
+                "active_runout_model": 2,
+                "max_perturbation": 0.4188790204786391,
+                "model2": {
+                    "drag_coeff": 4000,
+                    "friction_coeff": 0.1550000011920929,
+                    "gravity": 9.8100004196167,
+                    "mass": 10
+                },
+                "num_paths_per_release_cell": 8,
+                "num_runs": 1,
+                "num_steps": 10000,
+                "output_layer": {
+                    "layer1_zdelta_enabled": 1,
+                    "layer2_cellCounts_enabled": 1,
+                    "layer3_travelLength_enabled": 1,
+                    "layer4_travelAngle_enabled": 1,
+                    "layer5_altitudeDifference_enabled": 1
+                },
+                "persistence_contribution": 0.4,
+                "random_seed": 1,
+                "resolution_multiplier": 1,
+                "runout_flowpy": {
+                    "alpha": 25
+                },
+                "runout_perla": {
+                    "g": 9.8100004196167,
+                    "l": 1,
+                    "md": 40,
+                    "my": 0.10999999940395355
+                },
+                "step_length": 1.0
+            }
+        }
+    ],
+    "connections": [
+        {
+            "from": {
+                "node": "AvaFrame Sandbox",
+                "socket": "region aabb"
+            },
+            "to": {
+                "node": "Normals",
+                "socket": "bounds"
+            }
+        },
+        {
+            "from": {
+                "node": "AvaFrame Sandbox",
+                "socket": "height texture"
+            },
+            "to": {
+                "node": "Normals",
+                "socket": "height texture"
+            }
+        },
+        {
+            "from": {
+                "node": "AvaFrame Sandbox",
+                "socket": "region aabb"
+            },
+            "to": {
+                "node": "Trajectories",
+                "socket": "region aabb"
+            }
+        },
+        {
+            "from": {
+                "node": "Normals",
+                "socket": "normal texture"
+            },
+            "to": {
+                "node": "Trajectories",
+                "socket": "normal texture"
+            }
+        },
+        {
+            "from": {
+                "node": "AvaFrame Sandbox",
+                "socket": "height texture"
+            },
+            "to": {
+                "node": "Trajectories",
+                "socket": "height texture"
+            }
+        },
+        {
+            "from": {
+                "node": "AvaFrame Sandbox",
+                "socket": "release mask"
+            },
+            "to": {
+                "node": "Trajectories",
+                "socket": "release point texture"
+            }
+        }
+    ],
+    "ui": {
+        "nodes": {
+            "AvaFrame Sandbox": {
+                "position": [
+                    150.0,
+                    400.0
+                ]
+            },
+            "Normals": {
+                "position": [
+                    450.0,
+                    300.0
+                ]
+            },
+            "Trajectories": {
+                "position": [
+                    750.0,
+                    400.0
+                ]
+            }
+        }
+    }
+}

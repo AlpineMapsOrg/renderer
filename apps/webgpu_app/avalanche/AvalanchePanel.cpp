@@ -39,6 +39,7 @@
 #include <SDL2/SDL.h>
 #include <cstdlib>
 #include <webgpu/compute/nodes/AvaFrameSandboxNode.h>
+#include <webgpu/compute/nodes/ComputeAvalancheTrajectoriesNode.h>
 #include <webgpu/compute/nodes/GeoRegionNode.h>
 #include <webgpu/compute/nodes/MpmSolverNode.h>
 #include <webgpu/compute/nodes/SelectTilesNode.h>
@@ -84,6 +85,7 @@ AvalanchePanel::AvalanchePanel(NodeGraphPanel* graph_panel)
 namespace {
 constexpr const char* MPM_GRAPH_PRESET = ":/graphs/mpm_avalanche_simulation.json";
 constexpr const char* SANDBOX_GRAPH_PRESET = ":/graphs/mpm_avaframe_sandbox.json";
+constexpr const char* TRAJECTORIES_SANDBOX_GRAPH_PRESET = ":/graphs/trajectories_avaframe_sandbox.json";
 
 // Where prepare_dataset.py writes the sandbox datasets. Native builds from a source tree only;
 // elsewhere the folder has to be entered in the panel.
@@ -432,6 +434,12 @@ void AvalanchePanel::export_sandbox_result(const std::string& stopped_by)
     // and the solver's own GPU time, measured per substep with timestamp queries.
     const auto& s = solver->get_settings();
     run_info["wall_time_s"] = double(solver->wall_time_since_reset());
+    // Did the run touch the box? Shares of particle-substeps since the reset (see SimStateReadback).
+    const auto& contacts = solver->contacts_since_reset();
+    const double particle_substeps = std::max(double(contacts.particle_substeps), 1.0);
+    run_info["wall_contact_share"] = double(contacts.wall) / particle_substeps;
+    run_info["ceiling_contact_share"] = double(contacts.ceiling) / particle_substeps;
+    run_info["domain_size_m"] = double(solver->domain_size_metres());
     run_info["gpu_time_s"] = double(solver->perf_stats().gpu_ms_per_substep) / 1000.0 * double(solver->simulated_time() / std::max(s.dt, 1e-6f));
     if (m_batch_phase != BatchPhase::Idle && m_batch_index < m_batch.size())
         run_info["label"] = QString::fromStdString(m_batch[m_batch_index].label);
@@ -553,6 +561,7 @@ bool AvalanchePanel::load_batch(const QString& path)
         run.material_preset = r["material_preset"].toString().toStdString();
         run.settings = r["settings"].toObject();
         run.max_time = float(r["max_time"].toDouble(400.0));
+        run.trajectories = r["model"].toString() == "trajectories";
         run.label = r["label"].toString(QString::fromStdString(run.dataset + "_" + std::to_string(m_batch.size()))).toStdString();
         m_batch.push_back(std::move(run));
     }
@@ -595,14 +604,26 @@ void AvalanchePanel::start_batch_run()
         qInfo().nospace() << "AvaFrame batch: run " << (m_batch_index + 1) << "/" << m_batch.size() << " " << QString::fromStdString(run.label);
         m_sandbox_dataset = int(dataset - m_sandbox_datasets.begin());
         m_sandbox_scenario = scenario;
-        if (find_node<nodes::AvaFrameSandboxNode>() == nullptr)
+        if (run.trajectories) {
+            // A fresh graph per run: its layer buffers exist only once the model has run.
+            m_graph_panel->load_preset(TRAJECTORIES_SANDBOX_GRAPH_PRESET);
+            if (auto* model = find_node<nodes::ComputeAvalancheTrajectoriesNode>()) {
+                QJsonObject settings;
+                model->serialize_settings(settings);
+                for (auto it = run.settings.begin(); it != run.settings.end(); ++it)
+                    settings[it.key()] = it.value();
+                model->deserialize_settings(settings);
+            }
+        } else if (find_node<nodes::AvaFrameSandboxNode>() == nullptr || find_solver() == nullptr) {
             m_graph_panel->load_preset(SANDBOX_GRAPH_PRESET);
+        }
         if (preset != m_material_presets.end()) {
             m_selected_material_preset = int(preset - m_material_presets.begin());
             apply_material_preset(*preset);
         }
         m_sandbox_configured.clear(); // configure again even on the same dataset
         m_last_export.clear();
+        m_batch_run_started = std::chrono::steady_clock::now();
         apply_sandbox_dataset();
         m_batch_phase = BatchPhase::Loading;
         return;
@@ -610,9 +631,45 @@ void AvalanchePanel::start_batch_run()
     finish_batch();
 }
 
-void AvalanchePanel::batch_tick(nodes::MpmSolverNode& solver)
+void AvalanchePanel::batch_tick()
 {
     const BatchRun& run = m_batch[m_batch_index];
+    if (run.trajectories) {
+        // The trajectory model runs once with the graph; export when its layers exist.
+        auto* sandbox = find_node<nodes::AvaFrameSandboxNode>();
+        auto* model = find_node<nodes::ComputeAvalancheTrajectoriesNode>();
+        if (m_batch_phase == BatchPhase::Loading) {
+            if (sandbox == nullptr || model == nullptr || sandbox->terrain() == nullptr || model->is_running())
+                return;
+            auto* zdelta = std::get<nodes::data_type<webgpu::raii::RawBuffer<uint32_t>*>()>(model->output_socket("layer1_zdelta").get_data());
+            auto* counts = std::get<nodes::data_type<webgpu::raii::RawBuffer<uint32_t>*>()>(model->output_socket("layer2_cellCounts").get_data());
+            if (zdelta == nullptr || counts == nullptr)
+                return;
+            QJsonObject settings;
+            model->serialize_settings(settings);
+            QJsonObject run_info { { "label", QString::fromStdString(run.label) }, { "trajectory_settings", settings },
+                { "wall_time_s", std::chrono::duration<double>(std::chrono::steady_clock::now() - m_batch_run_started).count() } };
+            m_last_export.clear();
+            m_batch_phase = BatchPhase::Exporting;
+            sandbox->export_trajectories(*zdelta, *counts, run_info, [this](const nodes::SandboxRunSummary& summary) {
+                m_last_export = summary.directory.empty() ? "error: " + summary.error : summary.directory;
+                qInfo().nospace() << "AvaFrame batch: trajectories exported " << QString::fromStdString(m_last_export) << ", footprint "
+                                  << summary.footprint_area / 1e4 << " ha";
+            });
+            return;
+        }
+        if (m_batch_phase == BatchPhase::Exporting && !m_last_export.empty()) {
+            m_batch_results.append(QJsonObject { { "label", QString::fromStdString(run.label) }, { "dataset", QString::fromStdString(run.dataset) },
+                { "result", QString::fromStdString(m_last_export) } });
+            m_batch_index++;
+            start_batch_run();
+        }
+        return;
+    }
+    auto* solver_node = find_solver();
+    if (solver_node == nullptr)
+        return;
+    auto& solver = *solver_node;
     switch (m_batch_phase) {
     case BatchPhase::Loading: {
         // Wait until the dataset is in and the solver sized for it, then apply the run's settings.
@@ -672,11 +729,14 @@ void AvalanchePanel::finish_batch()
 
 void AvalanchePanel::draw()
 {
+    if (m_batch_phase != BatchPhase::Idle && m_batch_phase != BatchPhase::Done && m_batch_index < m_batch.size()) {
+        if (auto* sandbox = find_node<nodes::AvaFrameSandboxNode>(); sandbox != nullptr && find_solver() != nullptr)
+            configure_sandbox_solver(*sandbox, *find_solver());
+        batch_tick();
+    }
     if (auto* sandbox = find_node<nodes::AvaFrameSandboxNode>()) {
         if (auto* solver = find_solver()) {
             configure_sandbox_solver(*sandbox, *solver);
-            if (m_batch_phase != BatchPhase::Idle && m_batch_phase != BatchPhase::Done && m_batch_index < m_batch.size())
-                batch_tick(*solver);
             // com1DFA's stop criterion: pause once at rest and export if asked to. Play continues
             // past it; a reset (simulated time going back) re-arms it.
             if (solver->simulated_time() < m_sandbox_last_time)

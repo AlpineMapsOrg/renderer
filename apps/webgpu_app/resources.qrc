@@ -19,5 +19,6 @@
         <file alias="iterative_simulation_wip.json">resources/graphs/iterative_simulation_wip.json</file>
         <file alias="mpm_avalanche_simulation.json">resources/graphs/mpm_avalanche_simulation.json</file>
         <file alias="mpm_avaframe_sandbox.json">resources/graphs/mpm_avaframe_sandbox.json</file>
+        <file alias="trajectories_avaframe_sandbox.json">resources/graphs/trajectories_avaframe_sandbox.json</file>
     </qresource>
 </RCC>

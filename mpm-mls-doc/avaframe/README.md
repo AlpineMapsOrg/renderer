@@ -266,10 +266,33 @@ run exactly (deterministic solver). AIMEC (ppr > 1 kPa / pft > 0.1 m):
 | Li V, Coulomb mu 0.49 | +198 m / +130 m | 28.2° / 29.1° | 1.00 / 1.00 | 0.17 / 0.42 |
 | Li V, Voellmy mu 0.155, xi 4000 | +291 m / +281 m | 27.2° / 27.3° | 1.00 / 0.70 | 0.11 / 0.13 |
 
+## Phase 6: comparing models
+
+| step | command | time |
+|---|---|---|
+| com4FlowPy, AvaFrame defaults | `.venv-avaframe/bin/python run_com4flowpy.py avaKot avaGar …` (`--reuse` converts an existing output) | 5–50 min per dataset |
+| MPM variants and the weBIGeo trajectory model | `WEBIGEO_SANDBOX_BATCH=mpm-mls-doc/avaframe/batch_phase6.json <app>` | about 25 min for 35 runs |
+| AIMEC on every labelled run, then the tables | `.venv-avaframe/bin/python summarise.py --jobs 4` | about 15 min |
+
+The batch runs the trajectory model with `"model": "trajectories"`:
+- preset `trajectories_avaframe_sandbox.json`: sandbox → normals → `ComputeAvalancheTrajectoriesNode`;
+- on the DEM grid (resolution multiplier 1);
+- with the earlier evaluation's parameters.
+
+The MPM runs on the **whole DEM** (`domain_size_xy` clamped to its longer side, 512 cells). The
+suggested domain around the com1DFA footprint cut off every run that went further. The first
+batch showed it: different models stopped at the same distance.
+
+`summarise.py` writes `results/phase6.csv` and `results/phase6.md`. Runouts that reach the end
+of the AIMEC path are marked "≥" (lower bounds). Results and discussion:
+[../11-avaframe-comparison.md](../11-avaframe-comparison.md).
+
 ## Not done yet
 
 - Phase 1's overlay PNGs, for the Overlays panel, are superseded by Phase 4's in-app overlay,
   but kept: they come straight from pyproj.
+- com4FlowPy on avaHit, avaWog and avaMal (still running when the tables were made).
+- Why Voellmy with com1DFA's parameters gives so little drag in the MPM (see 11, finding 3).
 - GeoTIFF DEMs.
 - Entrainment and resistance benchmarks. They are ignored on purpose: the MPM solver has
   neither.

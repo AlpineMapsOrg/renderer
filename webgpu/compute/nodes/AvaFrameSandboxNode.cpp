@@ -325,21 +325,6 @@ SandboxRunSummary write_sandbox_result(
         summary.footprint_area_10cm += pft[i] > SANDBOX_FOOTPRINT_THICKNESS ? cell_area : 0.0;
     }
 
-    const QString label = run_info["label"].toString();
-    const QString run_name = QDateTime::currentDateTime().toString("yyyyMMdd-HHmmss") + "_" + QString::fromStdString(t.scenario)
-        + (label.isEmpty() ? QString() : "_" + label);
-    QDir dir(QString::fromStdString(t.dataset_path));
-    if (!dir.mkpath("mpm/" + run_name)) {
-        summary.error = "cannot create " + dir.filePath("mpm/" + run_name).toStdString();
-        return summary;
-    }
-    dir.cd("mpm/" + run_name);
-    if (!write_ascii_grid(dir.filePath("pft.asc"), t, pft) || !write_ascii_grid(dir.filePath("pfv.asc"), t, pfv)
-        || !write_ascii_grid(dir.filePath("ppr.asc"), t, ppr)) {
-        summary.error = "cannot write the rasters in " + dir.path().toStdString();
-        return summary;
-    }
-
     QJsonObject params = run_info;
     params["dataset"] = QString::fromStdString(t.name);
     params["release_scenario"] = QString::fromStdString(t.scenario);
@@ -355,14 +340,84 @@ SandboxRunSummary write_sandbox_result(
     params["footprint_area_pft_gt_0.1m_m2"] = summary.footprint_area_10cm;
     params["conventions"] = "pft slope-normal (vertical column depth * cos slope), pfv mean speed of the particles in the grid column, ppr = rho pfv^2 / 1000; "
                             "values from the nearest MPM grid column at each DEM cell centre, 0 outside the simulation domain";
+    write_run_files(t, pft, pfv, ppr, params, summary);
+    return summary;
+}
+
+void write_run_files(const SandboxTerrain& t, const std::vector<float>& pft, const std::vector<float>& pfv, const std::vector<float>& ppr, QJsonObject params,
+    SandboxRunSummary& summary)
+{
+    const QString label = params["label"].toString();
+    const QString run_name = QDateTime::currentDateTime().toString("yyyyMMdd-HHmmss") + "_" + QString::fromStdString(t.scenario)
+        + (label.isEmpty() ? QString() : "_" + label);
+    QDir dir(QString::fromStdString(t.dataset_path));
+    if (!dir.mkpath("mpm/" + run_name)) {
+        summary.error = "cannot create " + dir.filePath("mpm/" + run_name).toStdString();
+        return;
+    }
+    dir.cd("mpm/" + run_name);
+    if (!write_ascii_grid(dir.filePath("pft.asc"), t, pft) || !write_ascii_grid(dir.filePath("pfv.asc"), t, pfv)
+        || !write_ascii_grid(dir.filePath("ppr.asc"), t, ppr)) {
+        summary.error = "cannot write the rasters in " + dir.path().toStdString();
+        return;
+    }
+    params["dataset"] = QString::fromStdString(t.name);
+    params["release_scenario"] = QString::fromStdString(t.scenario);
+    params["reference"] = QString::fromStdString(t.reference_name);
     QFile params_file(dir.filePath("params.json"));
     if (!params_file.open(QIODevice::WriteOnly)) {
         summary.error = "cannot write params.json";
-        return summary;
+        return;
     }
     params_file.write(QJsonDocument(params).toJson());
     summary.directory = dir.path().toStdString();
-    return summary;
+}
+
+void AvaFrameSandboxNode::export_trajectories(webgpu::raii::RawBuffer<uint32_t>& zdelta, webgpu::raii::RawBuffer<uint32_t>& counts, QJsonObject run_info,
+    std::function<void(const SandboxRunSummary&)> done)
+{
+    const SandboxTerrain* t = m_terrain.get();
+    if (t == nullptr || zdelta.size() != size_t(t->grid_size.x) * t->grid_size.y || counts.size() != zdelta.size()) {
+        SandboxRunSummary failed;
+        failed.error = "trajectory layers do not match the DEM grid (resolution multiplier must be 1)";
+        done(failed);
+        return;
+    }
+    // Two readbacks in a row; the buffers belong to the trajectory node, which must stay alive
+    // until done fires (the batch waits for it).
+    const std::weak_ptr<bool> alive = m_alive;
+    auto* counts_buffer = &counts;
+    WGPUDevice device = m_ctx->device();
+    zdelta.read_back_async(device, [this, alive, counts_buffer, device, run_info, done](WGPUMapAsyncStatus status, std::vector<uint32_t> zd) {
+        if (alive.expired() || status != WGPUMapAsyncStatus_Success)
+            return;
+        counts_buffer->read_back_async(device, [this, alive, zd = std::move(zd), run_info, done](WGPUMapAsyncStatus status, std::vector<uint32_t> cc) {
+            if (alive.expired() || status != WGPUMapAsyncStatus_Success || m_terrain == nullptr)
+                return;
+            const SandboxTerrain& t = *m_terrain;
+            // The model's own output (avalanche_trajectories_compute.wgsl): zdelta = energy-line
+            // height [m, whole metres], cellCounts = steps through the cell. Mapped like
+            // com4FlowPy's (run_com4flowpy.py): footprint flag, v = sqrt(2 g zdelta), rho v^2.
+            const size_t cells = cc.size();
+            std::vector<float> pft(cells), pfv(cells), ppr(cells);
+            SandboxRunSummary summary;
+            const double cell_area = t.cellsize * t.cellsize;
+            for (size_t i = 0; i < cells; i++) {
+                pft[i] = cc[i] > 0 ? 1.0f : 0.0f;
+                pfv[i] = cc[i] > 0 ? std::sqrt(2.0f * 9.81f * float(zd[i])) : 0.0f;
+                ppr[i] = 200.0f * pfv[i] * pfv[i] / 1000.0f;
+                summary.max_speed = std::max(summary.max_speed, pfv[i]);
+                summary.footprint_area += pft[i] > 0.0f ? cell_area : 0.0;
+            }
+            QJsonObject params = run_info;
+            params["model"] = "weBIGeo trajectories";
+            params["max_pfv_m_s"] = double(summary.max_speed);
+            params["footprint_area_m2"] = summary.footprint_area;
+            params["conventions"] = "pft = footprint flag (cellCounts > 0), pfv = sqrt(2 g zdelta), ppr = 200 pfv^2 / 1000 (like run_com4flowpy.py)";
+            write_run_files(t, pft, pfv, ppr, params, summary);
+            done(summary);
+        });
+    });
 }
 
 AvaFrameSandboxNode::AvaFrameSandboxNode(webgpu::Context& ctx)
@@ -380,6 +435,7 @@ AvaFrameSandboxNode::AvaFrameSandboxNode(webgpu::Context& ctx, const AvaFrameSan
               OutputSocket(*this, "preview texture", data_type<const webgpu::raii::TextureWithSampler*>(), [this]() { return m_preview_texture.get(); }),
               OutputSocket(*this, "map texture", data_type<const webgpu::raii::TextureWithSampler*>(), [this]() { return m_map_texture.get(); }),
               OutputSocket(*this, "map aabb", data_type<const radix::geometry::Aabb<2, double>*>(), [this]() { return &m_map_aabb; }),
+              OutputSocket(*this, "release mask", data_type<const webgpu::raii::TextureWithSampler*>(), [this]() { return m_release_mask_texture.get(); }),
           })
     , m_ctx(&ctx)
     , m_settings(settings)
@@ -562,6 +618,12 @@ void AvaFrameSandboxNode::run_impl()
     m_release_texture->texture().write(m_ctx->queue(), t->release_depth);
     m_preview_texture = create_texture(m_ctx->device(), t->grid_size, WGPUTextureFormat_RGBA8Unorm, "avaframe sandbox preview");
     m_preview_texture->texture().write(m_ctx->queue(), make_preview(*t));
+    // For models that take a release point mask (alpha > 0), like the trajectory model.
+    nucleus::Raster<glm::u8vec4> mask(t->grid_size, glm::u8vec4(0));
+    for (size_t i = 0; i < mask.buffer().size(); i++)
+        mask.buffer()[i] = t->release_depth.buffer()[i] > 0.0f ? glm::u8vec4(255) : glm::u8vec4(0);
+    m_release_mask_texture = create_texture(m_ctx->device(), t->grid_size, WGPUTextureFormat_RGBA8Unorm, "avaframe sandbox release mask");
+    m_release_mask_texture->texture().write(m_ctx->queue(), mask);
 
     m_region_aabb = { glm::dvec2(0.0), t->size_metres };
     m_layer_texture.reset();
