@@ -30,6 +30,7 @@ from the sources when writing the report. Full list in [refs.md](refs.md).
 | [bench/](bench/README.md) | Standalone WebGPU benchmark of the real kernels, headless A/B against any git revision. |
 | [10-benchmark-results.md](10-benchmark-results.md) | Every checked-in benchmark result as a table: Apple M5 (Chrome/Metal) and SwiftShader, per material, per stage. Generated from `bench/results/*.json`. |
 | [report-fixed-point-energy-pump.md](report-fixed-point-energy-pump.md) | Standalone write-up of the fixed-point blow-up investigation. |
+| [avaframe/](avaframe/README.md) | **AvaFrame comparison, phase 1**: prepares AvaFrame's test cases (DEM, release, com1DFA reference rasters, AIMEC path, map overlays) for comparing against the MPM solver. |
 | [refs.md](refs.md) | Bibliography. |
 
 ## 60-second orientation
