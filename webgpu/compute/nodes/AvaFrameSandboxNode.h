@@ -57,10 +57,14 @@ struct SandboxTerrain {
     glm::dvec2 release_min = glm::dvec2(0.0); // bounds of the release cells, sandbox metres
     glm::dvec2 release_max = glm::dvec2(0.0);
 
-    /* com1DFA reference footprint of this scenario (peak flow thickness > 0), resampled onto
-     * the DEM grid. Empty when the dataset has no benchmark for the scenario. */
+    /* com1DFA reference of this scenario, resampled onto the DEM grid (nearest cell): peak flow
+     * thickness [m], velocity [m/s], pressure [kPa], and the footprint pft > 0. All empty when
+     * the dataset has no benchmark for the scenario. */
     std::string reference_name;
     nucleus::Raster<uint8_t> reference_footprint;
+    std::vector<float> reference_pft;
+    std::vector<float> reference_pfv;
+    std::vector<float> reference_ppr;
 
     /* Square box covering release and reference footprint (or the whole DEM without a
      * reference), with a margin. A suggestion; the solver's domain size setting decides. */
@@ -68,7 +72,45 @@ struct SandboxTerrain {
     double suggested_domain_size = 0.0;
 
     std::optional<glm::dvec2> centre_lat_lon; // only for geolocated (real) datasets
+
+    /* Geolocated datasets: sandbox metres -> weBIGeo world coordinates (EPSG:3857), an affine
+     * map least-squares fitted to the DEM's four corners from dataset.json (computed there with
+     * pyproj from EPSG:31287). Over a few km both projections are conformal and nearly linear;
+     * the fit residual is logged and stays well under a DEM cell. */
+    std::optional<glm::dmat3> sandbox_to_world;
+    double sandbox_to_world_residual = 0.0; // [world units], largest corner residual
 };
+
+/// Peak rasters on the DEM grid (row 0 north), as written by write_sandbox_result.
+struct SandboxPeaks {
+    std::vector<float> pft; // [m], slope-normal
+    std::vector<float> pfv; // [m/s]
+    std::vector<float> ppr; // [kPa]
+    float simulated_time = 0.0f;
+};
+/// Resamples the solver's column peaks onto the DEM grid: nearest column at each cell centre,
+/// depth * cos(slope) for pft, rho pfv^2 for ppr, 0 outside the domain.
+SandboxPeaks resample_sandbox_peaks(const SandboxTerrain& terrain, const MpmSolverNode::ColumnPeaks& peaks, float density);
+
+enum class SandboxQuantity { Thickness, Velocity, Pressure };
+/// Colour scale shared by the 2D view, its legend and the map overlay: viridis over
+/// [0, 5 m], [0, 100 m/s], and log10 over [1, 1000 kPa]. 0 is transparent.
+struct SandboxScale {
+    const char* label;
+    const char* unit;
+    float min;
+    float max;
+    bool logarithmic;
+};
+SandboxScale sandbox_scale(SandboxQuantity quantity);
+glm::u8vec4 sandbox_colour(SandboxQuantity quantity, float value);
+/// A DEM-grid raster coloured with sandbox_colour. Cells whose flow thickness (thickness, same
+/// source) is below SANDBOX_FOOTPRINT_THICKNESS are drawn faint: for the MPM that is the
+/// sub-centimetre layer of single particles, which would otherwise dominate the picture.
+nucleus::Raster<glm::u8vec4> colour_sandbox_raster(
+    const SandboxTerrain& terrain, const std::vector<float>& values, const std::vector<float>& thickness, SandboxQuantity quantity);
+/// Flow thickness that counts as the footprint in the displays and the export summary [m].
+constexpr float SANDBOX_FOOTPRINT_THICKNESS = 0.1f;
 
 /// Result of a sandbox run, written next to the dataset in AvaFrame's raster format so the
 /// comparison tools treat it like a com1DFA result: <dataset>/mpm/<run>/{pft,pfv,ppr}.asc on the
@@ -85,7 +127,8 @@ struct SandboxRunSummary {
     double footprint_area = 0.0; // pft > 0 [m^2]
     double footprint_area_10cm = 0.0; // pft > 0.1 m [m^2]
 };
-SandboxRunSummary write_sandbox_result(const SandboxTerrain& terrain, const MpmSolverNode::ColumnPeaks& peaks, float density, const QJsonObject& run_info);
+SandboxRunSummary write_sandbox_result(const SandboxTerrain& terrain, const SandboxPeaks& peaks, const MpmSolverNode::ColumnPeaks& columns, float density,
+    const QJsonObject& run_info);
 
 /// Loads one prepared AvaFrame dataset and hands it to the MPM solver as a sandbox: the DEM
 /// as height texture, the release as a depth texture and the region in metres. See
@@ -103,6 +146,10 @@ public:
 
     AvaFrameSandboxNode(webgpu::Context& ctx);
     AvaFrameSandboxNode(webgpu::Context& ctx, const AvaFrameSandboxSettings& settings);
+    ~AvaFrameSandboxNode() override;
+
+    /// Expires when the node is destroyed - for asynchronous callbacks that hold a pointer to it.
+    std::weak_ptr<bool> alive_token() const { return m_alive; }
 
     void set_settings(const AvaFrameSandboxSettings& settings) { m_settings = settings; }
     const AvaFrameSandboxSettings& get_settings() const { return m_settings; }
@@ -115,18 +162,35 @@ public:
     /// (green), for the 2D sandbox view. Same grid as the DEM.
     const webgpu::raii::TextureWithSampler* preview_texture() const { return m_preview_texture.get(); }
 
+    /// A DEM-sized RGBA layer for the 2D view (peak rasters), written by the caller.
+    void set_layer_image(const nucleus::Raster<glm::u8vec4>& image);
+    const webgpu::raii::TextureWithSampler* layer_texture() const { return m_layer_texture.get(); }
+
+    /// Redraws the map overlay of a geolocated dataset: release (cyan), the MPM peak flow
+    /// thickness where given (pft > 0.1 m, colour scale as in the 2D view) and the com1DFA
+    /// footprint outline (green), resampled into a texture aligned with the world axes.
+    /// Synthetic datasets keep a 1x1 transparent texture, so the overlay always has one.
+    void update_map_overlay(const std::vector<float>* mpm_pft);
+
 public slots:
     void run_impl() override;
 
 private:
     webgpu::Context* m_ctx;
     AvaFrameSandboxSettings m_settings;
+    std::shared_ptr<bool> m_alive = std::make_shared<bool>(true);
 
     std::unique_ptr<SandboxTerrain> m_terrain;
     radix::geometry::Aabb<2, double> m_region_aabb;
     std::unique_ptr<webgpu::raii::TextureWithSampler> m_height_texture;
     std::unique_ptr<webgpu::raii::TextureWithSampler> m_release_texture;
     std::unique_ptr<webgpu::raii::TextureWithSampler> m_preview_texture;
+    std::unique_ptr<webgpu::raii::TextureWithSampler> m_layer_texture;
+
+    /* Map overlay (OverlayRenderNode links the texture; it must never be null). */
+    std::unique_ptr<webgpu::raii::TextureWithSampler> m_map_texture;
+    radix::geometry::Aabb<2, double> m_map_aabb;
+    glm::dvec2 m_map_texel_size = glm::dvec2(1.0); // [world units]
 };
 
 } // namespace webgpu_compute::nodes

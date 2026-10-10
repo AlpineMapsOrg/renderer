@@ -173,10 +173,38 @@ Notes:
   sqrt(2gh(1 − mu/tan theta)) is about 90 m/s. samosAT's turbulent term keeps com1DFA near 40 m/s.
 - AIMEC (Phase 5) and the model variants (Phase 6) make this a proper comparison.
 
+## Phase 4: display for the comparison
+
+**2D view.** The sandbox window has a **Layer** picker:
+- the live particle raster;
+- the MPM peak thickness, velocity or pressure, read back from the GPU about once a second;
+- com1DFA's peak thickness, velocity or pressure.
+
+MPM and com1DFA layers share one colour scale (viridis over 0–5 m and 0–100 m/s, log over
+1–1000 kPa; legend above the view). Cells under 0.1 m peak thickness are drawn faint, which
+for the MPM is the sub-centimetre layer of single particles. Hovering shows MPM and com1DFA
+side by side at the cell. That makes it an interactive version of the plots in the earlier
+weBIGeo evaluation (`docs/Evaluation.md` on `release/lawinensymposium2025`). The layer and
+whether the window is open are remembered.
+
+**On the map (real datasets).** The graph has an `OverlayRenderNode` ("Map Overlay", stitch
+trim off) fed by the sandbox node. It draws the release (cyan), the MPM peak thickness above
+0.1 m (same colour scale) and the com1DFA footprint outline (green) on weBIGeo's own terrain.
+Loading a real dataset flies the camera there; "Show on the map" does it again.
+- **Placement.** The sandbox node fits an affine map from sandbox metres to Web Mercator to the
+  DEM's four corners in `dataset.json` (pyproj, EPSG:31287 → WGS 84). It resamples into a
+  texture aligned with the world axes.
+- **Checked against pyproj's exact transformation** on a 21 × 21 grid over each DEM:
+  largest error 0.26 m (avaKot), 0.24 (avaGar), 0.29 (avaHit), 0.31 (avaWog), 0.49 m (avaMal);
+  mean 0.1–0.2 m. That is below the datum transformation's own accuracy (0.5–1.5 m) and a
+  tenth of a DEM cell.
+- **This shows place, not physics.** weBIGeo's terrain is not AvaFrame's DEM, so the overlay
+  shows where the avalanche is, not how it would run on the map's terrain.
+
 ## Not done yet
 
-- **Overlay alignment:** checked only numerically (the corner transform and the preview
-  against AvaFrame's own plots). It has not yet been checked on the map in the app.
+- Phase 1's overlay PNGs, for the Overlays panel, are superseded by Phase 4's in-app overlay,
+  but kept: they come straight from pyproj.
 - GeoTIFF DEMs.
 - Entrainment and resistance benchmarks. They are ignored on purpose: the MPM solver has
   neither.

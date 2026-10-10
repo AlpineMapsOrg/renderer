@@ -70,7 +70,8 @@ void OverlayRenderNode::run_impl()
         // TODO: the stitch node ignores the last col/row; trim the aabb to match. This
         // correction should eventually move into the stitch node's "region aabb" output.
         radix::geometry::Aabb<2, double> trimmed = *aabb;
-        trimmed.max -= glm::dvec2(nucleus::srs::tile_width(18) / 65, nucleus::srs::tile_height(18) / 65);
+        if (m_settings.trim_stitch_edge)
+            trimmed.max -= glm::dvec2(nucleus::srs::tile_width(18) / 65, nucleus::srs::tile_height(18) / 65);
         overlay->settings.aabb = trimmed;
         if (texture) {
             if (copy) {

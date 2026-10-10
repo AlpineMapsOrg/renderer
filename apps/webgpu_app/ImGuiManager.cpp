@@ -109,6 +109,8 @@ void ImGuiManager::init(
     // Keeps a pointer to the graph panel so it can find the solver node in the active graph.
     auto* node_graph_panel = static_cast<NodeGraphPanel*>((m_panels.end() - 1)->get());
     m_panels.push_back(std::make_unique<AvalanchePanel>(node_graph_panel));
+    connect(static_cast<AvalanchePanel*>((m_panels.end() - 1)->get()), &AvalanchePanel::fly_to_requested, m_terrain_renderer->get_camera_controller(),
+        &nucleus::camera::Controller::fly_to_latitude_longitude);
 #endif
     m_panels.push_back(std::make_unique<OverlaysPanel>(engine_ctx));
 

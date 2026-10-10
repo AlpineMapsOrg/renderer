@@ -40,6 +40,15 @@
                 "basal_friction_model": 0,
                 "voellmy_xi": 4000.0
             }
+        },
+        {
+            "enabled": true,
+            "name": "Map Overlay",
+            "type": "OverlayRenderNode",
+            "settings": {
+                "copy": false,
+                "trim_stitch_edge": false
+            }
         }
     ],
     "connections": [
@@ -82,6 +91,26 @@
                 "node": "MPM Solver",
                 "socket": "sandbox"
             }
+        },
+        {
+            "from": {
+                "node": "AvaFrame Sandbox",
+                "socket": "map texture"
+            },
+            "to": {
+                "node": "Map Overlay",
+                "socket": "texture"
+            }
+        },
+        {
+            "from": {
+                "node": "AvaFrame Sandbox",
+                "socket": "map aabb"
+            },
+            "to": {
+                "node": "Map Overlay",
+                "socket": "region aabb"
+            }
         }
     ],
     "ui": {
@@ -96,6 +125,12 @@
                 "position": [
                     600.0,
                     400.0
+                ]
+            },
+            "Map Overlay": {
+                "position": [
+                    600.0,
+                    650.0
                 ]
             }
         }

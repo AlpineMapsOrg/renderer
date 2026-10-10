@@ -42,6 +42,9 @@ public:
         // false: link the source texture directly (non-owning).
         // true: copy the source into the overlay's own texture (requires CopySrc on the source).
         bool copy = false;
+        // Trim the AABB by the column/row the tile stitch node leaves out. Off for inputs that
+        // do not come from stitched tiles (the AvaFrame sandbox's map overlay).
+        bool trim_stitch_edge = true;
     };
 
     explicit OverlayRenderNode(webgpu_engine::Context& context);
@@ -50,11 +53,17 @@ public:
 
     void set_settings(const OverlaySettings& settings) { m_settings = settings; }
     const OverlaySettings& get_settings() const { return m_settings; }
-    void serialize_settings(QJsonObject& out) const override { out["copy"] = m_settings.copy; }
+    void serialize_settings(QJsonObject& out) const override
+    {
+        out["copy"] = m_settings.copy;
+        out["trim_stitch_edge"] = m_settings.trim_stitch_edge;
+    }
     void deserialize_settings(const QJsonObject& in) override
     {
         if (in.contains("copy"))
             m_settings.copy = in["copy"].toBool(m_settings.copy);
+        if (in.contains("trim_stitch_edge"))
+            m_settings.trim_stitch_edge = in["trim_stitch_edge"].toBool(m_settings.trim_stitch_edge);
     }
 
 public slots:

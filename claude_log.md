@@ -134,6 +134,31 @@ solver in metres. Then:
 - Export headers equal the DEM's.
 - Benchmark bit-identical to phase 2.
 
+### 6. AvaFrame comparison, phase 4: display
+
+- **2D view layers:** live particles; MPM peak pft, pfv and ppr; com1DFA pft, pfv and ppr.
+  One colour scale for MPM and com1DFA, a legend, values under 0.1 m faint, and a hover table
+  with MPM against com1DFA at the cell.
+- **The sandbox node now loads all three reference rasters.**
+- **Map overlay for real datasets.** An affine fit to the DEM corners, resampled into a
+  world-aligned texture, through an `OverlayRenderNode`. That node gets a `trim_stitch_edge`
+  switch, because its trim is for stitched tiles only. The texture is never null, since
+  `TextureOverlay::render` asserts on it; synthetic datasets get 1x1 transparent.
+- The camera flies to real datasets, wired to the controller like the search panel.
+- The view's layer and visibility are stored per user.
+
+**Verified:**
+- Screenshot of the 2D peak layer with legend and hover table.
+- Screenshot of the overlay on the map at the Lechtal: the fan sits at the slope foot.
+- Affine placement against pyproj's exact transformation over each real DEM: ≤ 0.49 m,
+  mean 0.1–0.2 m.
+
+**Process note:**
+- Screenshots now capture only the app window, matched by process ID. A full-screen capture had
+  caught another window, and the first by-name match hit the user's own webgpu_app instance.
+- Test runs now back up and restore the user's app preferences and imgui.ini. They had
+  overwritten startup preset, location and pacing; those were restored by hand.
+
 ### 3. iOS build (PR #5, merged) — log entry added after the fact
 
 webgpu_app runs on an iPhone 17 Pro Max. The build uses:

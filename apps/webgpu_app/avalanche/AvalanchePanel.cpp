@@ -147,6 +147,8 @@ void AvalanchePanel::load_startup_settings()
     m_startup_sandbox = settings.value("startup/sandbox", false).toBool();
     m_sandbox_root = settings.value("sandbox/root", QString(DEFAULT_SANDBOX_ROOT)).toString().toStdString();
     m_sandbox_auto_export = settings.value("sandbox/auto_export", false).toBool();
+    m_sandbox_view.set_layer(SandboxView::Layer(std::clamp(settings.value("sandbox/view_layer", 0).toInt(), 0, int(SandboxView::Layer::RefPressure))));
+    m_sandbox_view.open = settings.value("sandbox/view_open", true).toBool();
 #endif
     if (m_sandbox_root.empty())
         m_sandbox_root = DEFAULT_SANDBOX_ROOT;
@@ -179,6 +181,8 @@ void AvalanchePanel::save_startup_settings() const
     settings.setValue("startup/sandbox", m_startup_sandbox);
     settings.setValue("sandbox/root", QString::fromStdString(m_sandbox_root));
     settings.setValue("sandbox/auto_export", m_sandbox_auto_export);
+    settings.setValue("sandbox/view_layer", int(m_sandbox_view.layer()));
+    settings.setValue("sandbox/view_open", m_sandbox_view.open);
     if (m_sandbox_dataset < int(m_sandbox_datasets.size())) {
         const auto& dataset = m_sandbox_datasets[size_t(m_sandbox_dataset)];
         settings.setValue("sandbox/dataset", QString::fromStdString(dataset.name));
@@ -343,7 +347,6 @@ void AvalanchePanel::load_sandbox()
 {
     m_graph_panel->load_preset(SANDBOX_GRAPH_PRESET);
     m_sandbox_configured.clear();
-    m_sandbox_view.open = true;
     m_startup_sandbox = true;
     save_startup_settings();
     m_scenario_error = apply_sandbox_dataset() ? std::string {} : std::string { "Could not load the sandbox dataset." };
@@ -394,6 +397,9 @@ void AvalanchePanel::configure_sandbox_solver(const nodes::AvaFrameSandboxNode& 
     m_sandbox_status.clear();
     if (solver.has_valid_inputs())
         solver.rerun();
+    // A real dataset also shows on the map (AvaFrameSandboxNode::update_map_overlay): go there.
+    if (terrain->centre_lat_lon)
+        emit fly_to_requested(terrain->centre_lat_lon->x, terrain->centre_lat_lon->y);
 }
 
 void AvalanchePanel::export_sandbox_result(const std::string& stopped_by)
@@ -420,7 +426,8 @@ void AvalanchePanel::export_sandbox_result(const std::string& stopped_by)
         const nodes::SandboxTerrain* terrain = current ? current->terrain() : nullptr;
         if (terrain == nullptr || terrain->dataset_path + "/" + terrain->scenario != key)
             return;
-        const auto summary = nodes::write_sandbox_result(*terrain, peaks, density, run_info);
+        const auto rasters = nodes::resample_sandbox_peaks(*terrain, peaks, density);
+        const auto summary = nodes::write_sandbox_result(*terrain, rasters, peaks, density, run_info);
         if (summary.directory.empty()) {
             m_sandbox_status = "Export failed: " + summary.error;
             qWarning() << "AvaFrame sandbox:" << QString::fromStdString(m_sandbox_status);
@@ -488,8 +495,19 @@ void AvalanchePanel::draw_sandbox_section(nodes::AvaFrameSandboxNode& sandbox)
         if (!m_sandbox_status.empty())
             ImGui::TextWrapped("%s", m_sandbox_status.c_str());
     }
-    if (ImGui::Button(m_sandbox_view.open ? "Hide sandbox view" : "Show sandbox view"))
+    if (ImGui::Button(m_sandbox_view.open ? "Hide sandbox view" : "Show sandbox view")) {
         m_sandbox_view.open = !m_sandbox_view.open;
+        save_startup_settings();
+    }
+    if (const nodes::SandboxTerrain* t = sandbox.terrain(); t != nullptr && t->centre_lat_lon) {
+        ImGui::SameLine();
+        if (ImGui::Button("Show on the map"))
+            emit fly_to_requested(t->centre_lat_lon->x, t->centre_lat_lon->y);
+        if (ImGui::IsItemHovered())
+            ImGui::SetTooltip("Flies the camera to the dataset. The overlay there shows the release (cyan), the MPM peak flow\n"
+                              "thickness above 0.1 m (colour scale of the sandbox view) and the com1DFA footprint (green),\n"
+                              "on weBIGeo's own terrain - placed by an affine fit to AvaFrame's DEM corners.");
+    }
     ImGui::SameLine();
     if (ImGui::Button("Back to the map")) {
         m_startup_sandbox = false;
@@ -518,6 +536,10 @@ void AvalanchePanel::draw()
                     export_sandbox_result("at rest");
             }
             m_sandbox_view.draw(*sandbox, *solver);
+            if (m_sandbox_view.layer_changed) {
+                m_sandbox_view.layer_changed = false;
+                save_startup_settings();
+            }
         }
     }
 

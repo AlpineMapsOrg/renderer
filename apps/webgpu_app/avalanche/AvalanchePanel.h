@@ -123,6 +123,10 @@ public:
     void draw() override;
     void draw_panel() override;
 
+signals:
+    /// "Show on the map" for a geolocated sandbox dataset; connected to the camera controller.
+    void fly_to_requested(double latitude, double longitude);
+
 private:
     /// Looks up the solver in the currently loaded graph. Returns nullptr if the active
     /// graph has no MPM node. Re-resolved every frame because loading a preset replaces
