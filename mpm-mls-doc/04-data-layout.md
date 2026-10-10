@@ -230,6 +230,7 @@ release.
 | column floors | `res.x·res.y` i32 |
 | state | 14 u32 |
 | density raster | `raster_resolution²` u32 |
+| column stats | `res.x·res.y × 4` u32 (16 B: peak depth, peak speed as f32; particle count, speed sum as atomic u32) |
 
 Grid memory used to be **O(N³)** — 128³ = 42 MB, 256³ = 335 MB — and that is what kept
 the domain at 1.6 km. It is now `res_xy² × layers`: 320² × 16 = 33 MB for a 4 km domain

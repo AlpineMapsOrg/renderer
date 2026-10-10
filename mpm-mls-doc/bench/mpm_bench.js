@@ -230,6 +230,8 @@ export class MpmBench {
             r.grid_velocity = this.buffer('grid_velocity', this.nodes * 16);
             r.tile_flags = this.buffer('tile_flags', this.tiles[0] * this.tiles[1] * 4);
         }
+        if (this.bindings.some((b) => b.name === 'column_stats'))
+            r.column_stats = this.buffer('column_stats', c.gridRes * c.gridRes * 16);
         const texture = (name, w, h, format, usage) => {
             this.bytes[name] = w * h * 4;
             return d.createTexture({ size: [w, h], format, usage, label: name });

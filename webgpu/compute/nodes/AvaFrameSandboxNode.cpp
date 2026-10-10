@@ -18,6 +18,7 @@
 
 #include "AvaFrameSandboxNode.h"
 
+#include <QDateTime>
 #include <QDebug>
 #include <QDir>
 #include <QFile>
@@ -191,7 +192,95 @@ namespace {
         return image;
     }
 
+    bool write_ascii_grid(const QString& path, const SandboxTerrain& t, const std::vector<float>& values)
+    {
+        QFile file(path);
+        if (!file.open(QIODevice::WriteOnly | QIODevice::Text))
+            return false;
+        QTextStream out(&file);
+        out.setRealNumberNotation(QTextStream::FixedNotation);
+        out.setRealNumberPrecision(9); // the header as precise as prepare_dataset.py writes it
+        out << "ncols " << t.grid_size.x << "\nnrows " << t.grid_size.y << "\nxllcorner " << t.source_origin.x << "\nyllcorner "
+            << t.source_origin.y << "\ncellsize " << t.cellsize << "\nNODATA_value -9999\n";
+        out.setRealNumberNotation(QTextStream::FixedNotation);
+        out.setRealNumberPrecision(4);
+        for (uint32_t y = 0; y < t.grid_size.y; y++) {
+            for (uint32_t x = 0; x < t.grid_size.x; x++)
+                out << (x ? " " : "") << values[size_t(y) * t.grid_size.x + x];
+            out << "\n";
+        }
+        return out.status() == QTextStream::Ok;
+    }
+
 } // namespace
+
+SandboxRunSummary write_sandbox_result(const SandboxTerrain& t, const MpmSolverNode::ColumnPeaks& peaks, float density, const QJsonObject& run_info)
+{
+    SandboxRunSummary summary;
+    const size_t cells = size_t(t.grid_size.x) * t.grid_size.y;
+    std::vector<float> pft(cells, 0.0f), pfv(cells, 0.0f), ppr(cells, 0.0f);
+    const glm::ivec2 size(t.grid_size);
+    const auto h = [&](int x, int y) { return double(t.heights.pixel(glm::uvec2(std::clamp(x, 0, size.x - 1), std::clamp(y, 0, size.y - 1)))); };
+    const double cell_area = t.cellsize * t.cellsize;
+    for (int y = 0; y < size.y; y++) {
+        for (int x = 0; x < size.x; x++) {
+            // Cell centre in sandbox metres -> nearest grid column.
+            const glm::dvec2 centre = glm::dvec2(x + 0.5, size.y - 1 - y + 0.5) * t.cellsize;
+            const glm::dvec2 node = glm::round((centre - peaks.domain_origin) / double(peaks.dx));
+            if (node.x < 0.0 || node.y < 0.0 || node.x >= double(peaks.size.x) || node.y >= double(peaks.size.y))
+                continue;
+            const size_t column = size_t(node.y) * peaks.size.x + size_t(node.x);
+            const double dzdx = (h(x + 1, y) - h(x - 1, y)) / (2.0 * t.cellsize);
+            const double dzdy = (h(x, y - 1) - h(x, y + 1)) / (2.0 * t.cellsize);
+            const double cos_slope = 1.0 / std::sqrt(1.0 + dzdx * dzdx + dzdy * dzdy);
+            const size_t i = size_t(y) * size.x + x;
+            pft[i] = float(double(peaks.depth[column]) * cos_slope);
+            pfv[i] = pft[i] > 0.0f ? peaks.speed[column] : 0.0f;
+            ppr[i] = density * pfv[i] * pfv[i] / 1000.0f;
+            summary.max_thickness = std::max(summary.max_thickness, pft[i]);
+            summary.max_speed = std::max(summary.max_speed, pfv[i]);
+            summary.footprint_area += pft[i] > 0.0f ? cell_area : 0.0;
+            summary.footprint_area_10cm += pft[i] > 0.1f ? cell_area : 0.0;
+        }
+    }
+
+    const QString run_name = QDateTime::currentDateTime().toString("yyyyMMdd-HHmmss") + "_" + QString::fromStdString(t.scenario);
+    QDir dir(QString::fromStdString(t.dataset_path));
+    if (!dir.mkpath("mpm/" + run_name)) {
+        summary.error = "cannot create " + dir.filePath("mpm/" + run_name).toStdString();
+        return summary;
+    }
+    dir.cd("mpm/" + run_name);
+    if (!write_ascii_grid(dir.filePath("pft.asc"), t, pft) || !write_ascii_grid(dir.filePath("pfv.asc"), t, pfv)
+        || !write_ascii_grid(dir.filePath("ppr.asc"), t, ppr)) {
+        summary.error = "cannot write the rasters in " + dir.path().toStdString();
+        return summary;
+    }
+
+    QJsonObject params = run_info;
+    params["dataset"] = QString::fromStdString(t.name);
+    params["release_scenario"] = QString::fromStdString(t.scenario);
+    params["reference"] = QString::fromStdString(t.reference_name);
+    params["release_volume_m3"] = t.release_volume;
+    params["simulated_time_s"] = double(peaks.simulated_time);
+    params["grid"] = QJsonObject { { "columns", int(peaks.size.x) }, { "rows", int(peaks.size.y) }, { "dx_m", double(peaks.dx) },
+        { "domain_origin_m", QJsonArray { peaks.domain_origin.x, peaks.domain_origin.y } } };
+    params["density_kg_m3"] = double(density);
+    params["max_pft_m"] = double(summary.max_thickness);
+    params["max_pfv_m_s"] = double(summary.max_speed);
+    params["footprint_area_m2"] = summary.footprint_area;
+    params["footprint_area_pft_gt_0.1m_m2"] = summary.footprint_area_10cm;
+    params["conventions"] = "pft slope-normal (vertical column depth * cos slope), pfv mean speed of the particles in the grid column, ppr = rho pfv^2 / 1000; "
+                            "values from the nearest MPM grid column at each DEM cell centre, 0 outside the simulation domain";
+    QFile params_file(dir.filePath("params.json"));
+    if (!params_file.open(QIODevice::WriteOnly)) {
+        summary.error = "cannot write params.json";
+        return summary;
+    }
+    params_file.write(QJsonDocument(params).toJson());
+    summary.directory = dir.path().toStdString();
+    return summary;
+}
 
 AvaFrameSandboxNode::AvaFrameSandboxNode(webgpu::Context& ctx)
     : AvaFrameSandboxNode(ctx, AvaFrameSandboxSettings())

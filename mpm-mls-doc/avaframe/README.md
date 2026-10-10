@@ -131,6 +131,48 @@ First run (avaKot / relKot, Li 2021 V parameters, 65 536 particles, 2026-10-10, 
 
 These numbers are only a smoke test. Quantitative comparison is Phase 5.
 
+## Phase 3: comparable output
+
+The solver tracks, per grid column and since the reset, the **peak flow depth** (the column's
+mass as snow volume per area) and the **peak mean particle speed**. The latter is from a small
+extra pass that runs only in the sandbox; 03-shaders explains why it is particle-based and a
+separate pass. The run **stops like com1DFA's**: in the sandbox the panel pauses once the
+kinetic energy is below 1 % of its peak (the benchmarks' desDict: "Stop criterion: < 1.00
+percent of PKE"; checkbox "Stop at rest"). **Export** ("Export now", or "then export" at rest) writes AvaFrame's raster layout
+next to the dataset:
+
+```
+extern/avaframe_sandbox/<dataset>/mpm/<yyyyMMdd-HHmmss>_<release>/
+    pft.asc   peak flow thickness [m], slope-normal like com1DFA: vertical depth * cos(slope)
+    pfv.asc   peak velocity [m/s], mean speed of the particles in the grid column
+    ppr.asc   peak pressure [kPa] = rho * pfv^2 / 1000 (com1DFA's definition)
+    params.json  dataset, release volume, solver settings, material preset, grid, stop reason,
+                 simulated time, GPU time per substep, energy-line mu_eff, maxima, footprint areas
+```
+
+The rasters are on the DEM grid with the DEM's header (EPSG:31287 origin), so they overlay the
+com1DFA references directly. Each value comes from the nearest grid column at the cell centre,
+and is 0 outside the simulation domain.
+
+First result (avaKot / relKot, Li 2021 V parameters, Coulomb mu 0.49, 65 536 particles,
+4.99 m cells, M5, 2026-10-10). Reference is avaKotNullTest:
+
+| | MPM | com1DFA (avaKotNullTest) |
+|---|---|---|
+| stop (KE < 1 % of peak) | 95.4 s | run time 117.6 s |
+| max pft | 13.4 m | 5.9 m |
+| max pfv | 104.5 m/s | 39.7 m/s |
+| footprint | 71.1 ha (pft > 0), 17.9 ha (pft > 0.1 m) | 11.7 ha (pft > 0) |
+| reference cells covered by MPM pft > 0.1 m | 97 % | |
+| MPM cells (pft > 0.1 m) inside the reference | 64 % | |
+
+Notes:
+- The 71 ha at pft > 0 is a sub-centimetre layer of single particles. One particle on a 5 m cell
+  is 1.3 cm deep.
+- The speed is what Coulomb friction without a velocity-dependent drag allows on an 800 m drop:
+  sqrt(2gh(1 − mu/tan theta)) is about 90 m/s. samosAT's turbulent term keeps com1DFA near 40 m/s.
+- AIMEC (Phase 5) and the model variants (Phase 6) make this a proper comparison.
+
 ## Not done yet
 
 - **Overlay alignment:** checked only numerically (the corner transform and the preview

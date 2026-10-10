@@ -232,6 +232,20 @@ struct PlasticReturn {
 @group(0) @binding(8) var<storage, read_write> column_floor: array<i32>; // per (x, y) column, see grid_slot()
 @group(0) @binding(9) var<storage, read_write> grid_velocity: array<vec4f>; // per node, written by the grid update, read by G2P
 @group(0) @binding(10) var<storage, read_write> tile_flags: array<atomic<u32>>; // per tile of columns, see mark_tiles()
+// Per (x, y) column: the peaks since the last reset, which the AvaFrame comparison exports
+// (com1DFA's peak flow thickness and velocity), and the particle sums the speed comes from.
+// mpm_column_stats adds every particle to the column of its nearest node after G2P; the next
+// grid update, which owns each column in one thread, turns the sums into the column's mean
+// particle speed and zeroes them. Without that pass (on the map) the sums stay zero and only
+// the depth is tracked.
+struct ColumnStats {
+    peak_depth: f32, // [m], vertical: the column's (B-spline) mass as snow volume per area
+    peak_speed: f32, // [m/s], mean speed of the particles in the column
+    particles: atomic<u32>, // this substep
+    speed_sum: atomic<u32>, // this substep, [SPEED_SUM_SCALE]
+}
+const SPEED_SUM_SCALE: f32 = 100.0; // cm/s; 2^21 particles at 20 m/s still fit a u32
+@group(0) @binding(11) var<storage, read_write> column_stats: array<ColumnStats>;
 
 // ---------------------------------------------------------------------------------------
 // Fixed point helpers

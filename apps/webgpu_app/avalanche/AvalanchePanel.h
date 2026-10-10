@@ -169,6 +169,9 @@ private:
     /// reseed. The suggestion needs the loaded data, so this runs after the graph, not before.
     void configure_sandbox_solver(const webgpu_compute::nodes::AvaFrameSandboxNode& sandbox, webgpu_compute::nodes::MpmSolverNode& solver);
     void draw_sandbox_section(webgpu_compute::nodes::AvaFrameSandboxNode& sandbox);
+    /// Reads the solver's peak rasters back and writes them next to the dataset
+    /// (write_sandbox_result). Asynchronous; the outcome lands in m_sandbox_status.
+    void export_sandbox_result(const std::string& stopped_by);
 
 private:
     NodeGraphPanel* m_graph_panel;
@@ -194,6 +197,10 @@ private:
     int m_sandbox_dataset = 0;
     int m_sandbox_scenario = 0;
     std::string m_sandbox_configured; // "dataset/scenario" the solver was last sized for
+    bool m_sandbox_auto_export = false; // export the peak rasters when the flow comes to rest
+    bool m_sandbox_stopped = false; // this run has come to rest (paused once, exported once), until the next reset
+    float m_sandbox_last_time = 0.0f; // simulated time last frame; going back means a reset
+    std::string m_sandbox_status;
     SandboxView m_sandbox_view;
 
     /* Simulated seconds per wall-clock second, measured over ~1 s windows while playing. */

@@ -103,6 +103,37 @@ solver in metres. Then:
   because the browser pane works.
 - The web and iOS builds of the new files (no sandbox folder there by default).
 
+### 5. AvaFrame comparison, phase 3: peak rasters, stop rule, export
+
+- **Peaks per grid column** (`ColumnStats`, binding 11): depth from the column's mass, as for
+  Voellmy, and speed from the mean speed of the particles in the column.
+- **Stop rule** `at_rest()`: kinetic energy below 1 % of its peak, the benchmarks' "< 1.00
+  percent of PKE". The panel pauses there.
+- **Export** `write_sandbox_result`: pft (slope-normal), pfv and ppr (ρv²) on the DEM grid,
+  with the DEM header, in `<dataset>/mpm/<time>_<release>/`, plus params.json.
+
+**Two problems found and fixed on the way:**
+1. **Grid velocity is the wrong speed.** Using the node momentum, or the updated grid velocity,
+   gave up to 234 m/s at the flow's edge, where columns hold almost no mass and the MLS-MPM
+   stress impulse dominates. The fastest particle was 101 m/s. Gating by peak depth did not
+   help, because depth and speed peaks happen at different times. Now particle-based.
+2. **Two atomics in P2G changed the physics trace.** They shifted it by 2 mm after 10 s,
+   deterministically. Bisected in the benchmark: without the atomics the trace is
+   bit-identical, and with them it differs even when they add a constant. That is the
+   compiler's float arrangement, not data flow. They moved to a separate `mpm_column_stats`
+   pass that runs only in the sandbox; the trace is bit-identical again and the GPU time
+   unchanged.
+
+**Verified:**
+- avaKot: at rest after 95 s. Max pft 13.4 m (com1DFA 5.9 m), max pfv 104.5 m/s (39.7). The
+  speed is right for Coulomb friction without drag.
+- avaKot with pft > 0.1 m: 97 % of the reference cells covered, 64 % of the MPM cells inside
+  the reference.
+- avaGar: at rest after 116 s; 88 % covered, 79 % inside. The 35 m maximum sits at the gully
+  constriction where com1DFA also peaks (12.3 m).
+- Export headers equal the DEM's.
+- Benchmark bit-identical to phase 2.
+
 ### 3. iOS build (PR #5, merged) — log entry added after the fact
 
 webgpu_app runs on an iPhone 17 Pro Max. The build uses:

@@ -20,6 +20,7 @@
 | `shaders/mpm_p2g.wgsl` | Stage 1: particle → grid. |
 | `shaders/mpm_grid_update.wgsl` | Stage 2: momentum → velocity, gravity, collisions. |
 | `shaders/mpm_g2p.wgsl` | Stages 3+4: grid → particle, plasticity, advection; per-substep diagnostics reduced per workgroup. |
+| `shaders/mpm_column_stats.wgsl` | Sandbox only: sums particle speeds per grid column for the peak velocity raster. |
 | `shaders/mpm_refresh_stress.wgsl` | Recomputes the cached particle stress after a material edit without a reseed. |
 | `shaders/mpm_splat.wgsl` | Accumulates particles into a density raster. |
 | `shaders/mpm_rasterize.wgsl` | Density raster → RGBA texture. |
@@ -98,7 +99,10 @@ a future 3D particle renderer**, no CPU readback needed).
 | `last_state()` | `SimStateReadback`: active particles, particles that yielded in the last substep, max speed, terrain range, centre of mass, mean \|v\|², mean particle path, box contacts (band ceiling, walls) with the run's substep count, seeded share of the release disc. Async — describes the *previous* completed run; `valid` false until the first arrives. |
 | `energy_line()` | Vector of `EnergySample {time, path, altitude, energy_height}` — `path` the mass-averaged particle path — one per completed run since the last reset; halved when it reaches `MAX_ENERGY_SAMPLES` (2048). |
 | `energy_line_friction()` | `−slope` of energy height over horizontal path, fitted over the sliding regime (past 10 % of total path). The effective friction coefficient the flow experiences; NaN until there is movement. |
-| `domain_aabb()` | World bounds of the simulated box. Only valid after the first run. |
+| `domain_aabb()` | World bounds of the simulated box (sandbox metres in the sandbox). Only valid after the first run. |
+| `at_rest()` | com1DFA's stop criterion: mean kinetic energy below `stop_kinetic_fraction` (default 0.01) of its peak since the reset. One run behind, like `last_state()`. The caller decides what to do (the panel pauses in the sandbox). |
+| `read_back_peaks(callback)` | `ColumnPeaks`: peak depth and peak mean particle speed per grid column since the reset, with domain origin, dx and simulated time. Own staging buffer per request; the callback fires from the event pump and not at all if the node is gone. |
+| `sandbox()` | The connected `SandboxTerrain`, or nullptr on the map. |
 | `set_settings()` / `get_settings()` | Settings are consumed lazily in `run_impl()`, so applying them any time is safe. |
 | `serialize_settings()` / `deserialize_settings()` | Graph JSON persistence. |
 

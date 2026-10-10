@@ -18,6 +18,7 @@
 
 #pragma once
 
+#include "MpmSolverNode.h"
 #include "Node.h"
 
 #include <nucleus/Raster.h>
@@ -68,6 +69,23 @@ struct SandboxTerrain {
 
     std::optional<glm::dvec2> centre_lat_lon; // only for geolocated (real) datasets
 };
+
+/// Result of a sandbox run, written next to the dataset in AvaFrame's raster format so the
+/// comparison tools treat it like a com1DFA result: <dataset>/mpm/<run>/{pft,pfv,ppr}.asc on the
+/// DEM grid and in the dataset's CRS, plus params.json.
+///   pft  peak flow thickness [m], slope-normal like com1DFA's: vertical depth * cos(slope)
+///   pfv  peak of the mean particle speed in the grid column [m/s] (depth-averaged)
+///   ppr  peak pressure rho * pfv^2 [kPa], com1DFA's definition
+/// Values at DEM cell centres from the nearest grid column; 0 outside the domain.
+struct SandboxRunSummary {
+    std::string directory; // empty on failure
+    std::string error;
+    float max_thickness = 0.0f;
+    float max_speed = 0.0f;
+    double footprint_area = 0.0; // pft > 0 [m^2]
+    double footprint_area_10cm = 0.0; // pft > 0.1 m [m^2]
+};
+SandboxRunSummary write_sandbox_result(const SandboxTerrain& terrain, const MpmSolverNode::ColumnPeaks& peaks, float density, const QJsonObject& run_info);
 
 /// Loads one prepared AvaFrame dataset and hands it to the MPM solver as a sandbox: the DEM
 /// as height texture, the release as a depth texture and the region in metres. See

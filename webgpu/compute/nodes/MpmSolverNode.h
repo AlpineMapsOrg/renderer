@@ -27,6 +27,7 @@
 
 #include <array>
 #include <chrono>
+#include <functional>
 #include <memory>
 #include <vector>
 
@@ -176,6 +177,11 @@ public:
 
         uint32_t random_seed = 1u;
 
+        /* Stop criterion of com1DFA: the flow has stopped once the kinetic energy has fallen
+         * below this fraction of its peak since the reset - "< 1.00 percent of PKE" in the
+         * AvaFrame benchmark runs. 0 = never. Reported by at_rest(); the caller decides. */
+        float stop_kinetic_fraction = 0.01f;
+
         /* Debug aid: fill the whole domain with snow instead of only the release areas.
          * Useful to confirm the solver and the domain placement before hunting for a
          * release area to sit on. */
@@ -297,6 +303,25 @@ public:
     };
     const SimStateReadback& last_state() const { return m_last_state; }
 
+    /// True once the mean kinetic energy has fallen below stop_kinetic_fraction of its peak
+    /// since the reset (com1DFA's stop criterion). Like last_state(), one run behind.
+    bool at_rest() const { return m_at_rest; }
+
+    /// Peak flow depth and depth-averaged speed per grid column since the last reset, read
+    /// back from the GPU (column_peaks in mpm_common.wgsl). Column (i, j) is the grid node at
+    /// domain origin + (i, j) dx; j grows northwards.
+    struct ColumnPeaks {
+        glm::uvec2 size = glm::uvec2(0);
+        glm::dvec2 domain_origin = glm::dvec2(0.0); // region-relative metres (sandbox metres in the sandbox)
+        float dx = 0.0f;
+        float simulated_time = 0.0f;
+        std::vector<float> depth; // [m], vertical: snow volume per horizontal area
+        std::vector<float> speed; // [m/s]
+    };
+    /// Copies the peaks to a staging buffer and maps it; the callback fires from the event pump
+    /// a frame or so later, and not at all if the node is destroyed first.
+    void read_back_peaks(std::function<void(const ColumnPeaks&)> callback);
+
     /// One point of the energy-line record (Tonnel et al. 2023, com1DFA section 5.2 and
     /// App. A): mass-averaged energy height z + v^2/(2g) against the mass-averaged horizontal
     /// path. Coulomb friction removes exactly mu of energy height per horizontal metre, so
@@ -385,6 +410,7 @@ private:
     std::unique_ptr<webgpu::raii::RawBuffer<uint32_t>> m_density_buffer;
     std::unique_ptr<webgpu::raii::RawBuffer<uint32_t>> m_grid_velocity_buffer; // vec4f per node
     std::unique_ptr<webgpu::raii::RawBuffer<uint32_t>> m_tile_flag_buffer; // u32 per tile of columns
+    std::unique_ptr<webgpu::raii::RawBuffer<uint32_t>> m_column_peak_buffer; // ColumnStats per (x, y) column
     std::unique_ptr<webgpu::raii::TextureWithSampler> m_output_texture;
     std::unique_ptr<webgpu::raii::BindGroup> m_bind_group;
 
@@ -393,6 +419,7 @@ private:
     std::unique_ptr<webgpu::raii::CombinedComputePipeline> m_p2g_pipeline;
     std::unique_ptr<webgpu::raii::CombinedComputePipeline> m_grid_update_pipeline;
     std::unique_ptr<webgpu::raii::CombinedComputePipeline> m_g2p_pipeline;
+    std::unique_ptr<webgpu::raii::CombinedComputePipeline> m_column_stats_pipeline;
     std::unique_ptr<webgpu::raii::CombinedComputePipeline> m_refresh_stress_pipeline;
     std::unique_ptr<webgpu::raii::CombinedComputePipeline> m_splat_pipeline;
     std::unique_ptr<webgpu::raii::CombinedComputePipeline> m_rasterize_pipeline;
@@ -427,6 +454,7 @@ private:
     bool m_run_first_chunk = true;
     bool m_run_is_reset = false;
     bool m_run_refresh_stress = false; // material edited without a reseed, see mpm_refresh_stress.wgsl
+    bool m_run_column_stats = false; // sum particle speeds per column (peak velocity), sandbox only
     /* The uniform fields the cached particle stress depends on, as of the last run. */
     std::array<float, 11> m_stress_parameters {};
     bool m_readback_in_flight = false; // m_state_readback is being mapped - skip this run's copy
@@ -448,6 +476,8 @@ private:
     std::chrono::steady_clock::time_point m_run_started;
     PerfStats m_perf;
     SimStateReadback m_last_state;
+    float m_peak_mean_speed_sq = 0.0f; // since the reset, for the stop criterion
+    bool m_at_rest = false;
     std::vector<EnergySample> m_energy_line;
 };
 

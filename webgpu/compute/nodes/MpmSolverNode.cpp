@@ -47,6 +47,9 @@ namespace {
     constexpr uint32_t GRID_NODE_STRIDE_U32 = 5u; // 20 bytes
     /* grid_velocity in mpm_common.wgsl: one vec4f per node. */
     constexpr uint32_t GRID_VELOCITY_STRIDE_U32 = 4u; // 16 bytes
+    /* Size of struct ColumnStats in mpm_common.wgsl, in units of uint32: peak depth and speed
+     * (f32), then two per-substep accumulators. */
+    constexpr uint32_t COLUMN_STATS_STRIDE_U32 = 4u; // 16 bytes
     /* Size of struct SimState in mpm_common.wgsl, in units of uint32. */
     constexpr uint32_t SIM_STATE_SIZE_U32 = 18u; // 72 bytes
     /* Slots of struct SimState. */
@@ -168,6 +171,7 @@ MpmSolverNode::MpmSolverNode(webgpu::Context& ctx, const MpmSolverSettings& sett
     reg.register_shader("mpm_p2g", "webgpu_compute::mpm_p2g");
     reg.register_shader("mpm_grid_update", "webgpu_compute::mpm_grid_update");
     reg.register_shader("mpm_g2p", "webgpu_compute::mpm_g2p");
+    reg.register_shader("mpm_column_stats", "webgpu_compute::mpm_column_stats");
     reg.register_shader("mpm_refresh_stress", "webgpu_compute::mpm_refresh_stress");
     reg.register_shader("mpm_splat", "webgpu_compute::mpm_splat");
     reg.register_shader("mpm_rasterize", "webgpu_compute::mpm_rasterize");
@@ -197,6 +201,7 @@ MpmSolverNode::MpmSolverNode(webgpu::Context& ctx, const MpmSolverSettings& sett
                 buffer_entry(8, WGPUBufferBindingType_Storage), // column floors of the terrain-following grid
                 buffer_entry(9, WGPUBufferBindingType_Storage), // grid node velocities
                 buffer_entry(10, WGPUBufferBindingType_Storage), // active tile flags
+                buffer_entry(11, WGPUBufferBindingType_Storage), // column stats: peak depth and speed
             },
             "mpm solver bind group layout");
     });
@@ -238,6 +243,7 @@ void MpmSolverNode::create_pipelines(WGPUDevice device, const webgpu::RenderReso
     m_p2g_pipeline = make("mpm_p2g");
     m_grid_update_pipeline = make("mpm_grid_update");
     m_g2p_pipeline = make("mpm_g2p");
+    m_column_stats_pipeline = make("mpm_column_stats");
     m_refresh_stress_pipeline = make("mpm_refresh_stress");
     m_splat_pipeline = make("mpm_splat");
     m_rasterize_pipeline = make("mpm_rasterize");
@@ -288,6 +294,8 @@ bool MpmSolverNode::ensure_resources()
         m_ctx->device(), storage_usage, size_t(grid_res.x) * grid_res.y * grid_res.z * GRID_VELOCITY_STRIDE_U32, "mpm grid velocity buffer");
     const glm::uvec2 tiles(div_ceil(grid_res.x, GRID_WORKGROUP_SIZE.x), div_ceil(grid_res.y, GRID_WORKGROUP_SIZE.y));
     m_tile_flag_buffer = std::make_unique<webgpu::raii::RawBuffer<uint32_t>>(m_ctx->device(), storage_usage, size_t(tiles.x) * tiles.y, "mpm tile flags");
+    m_column_peak_buffer = std::make_unique<webgpu::raii::RawBuffer<uint32_t>>(
+        m_ctx->device(), storage_usage, size_t(grid_res.x) * grid_res.y * COLUMN_STATS_STRIDE_U32, "mpm column stats");
     m_density_buffer = std::make_unique<webgpu::raii::RawBuffer<uint32_t>>(
         m_ctx->device(), storage_usage, size_t(raster_resolution) * raster_resolution, "mpm density raster");
     m_output_texture = create_output_texture(m_ctx->device(), raster_resolution, raster_resolution);
@@ -300,7 +308,7 @@ bool MpmSolverNode::ensure_resources()
 
     const auto bytes = [](const auto& buffer) { return uint64_t(buffer->size_in_byte()); };
     m_perf.gpu_bytes = bytes(m_particle_buffer) + bytes(m_grid_buffer) + bytes(m_grid_velocity_buffer) + bytes(m_tile_flag_buffer)
-        + bytes(m_column_floor_buffer) + bytes(m_density_buffer) + bytes(m_state_buffer) + bytes(m_state_readback)
+        + bytes(m_column_peak_buffer) + bytes(m_column_floor_buffer) + bytes(m_density_buffer) + bytes(m_state_buffer) + bytes(m_state_readback)
         + uint64_t(raster_resolution) * raster_resolution * 4u /* RGBA8 output texture */;
 
     // Fresh buffers hold garbage - the simulation has to be re-seeded.
@@ -332,6 +340,7 @@ void MpmSolverNode::ensure_bind_group(const webgpu::raii::TextureWithSampler& he
             m_column_floor_buffer->create_bind_group_entry(8),
             m_grid_velocity_buffer->create_bind_group_entry(9),
             m_tile_flag_buffer->create_bind_group_entry(10),
+            m_column_peak_buffer->create_bind_group_entry(11),
         },
         "mpm solver bind group");
 }
@@ -600,6 +609,12 @@ void MpmSolverNode::on_state_mapped(float time, float gravity, uint32_t substeps
     m_last_state.release_area_share = float(double(data[STATE_SEED_FIRST_HITS]) / std::max(double(m_allocated_particles), 1.0));
     m_last_state.valid = true;
 
+    // com1DFA's stop criterion on the kinetic energy (equal particle masses, so the mean of
+    // v^2 is proportional to it). The peak must be a real flow, not the settling of the seed.
+    m_peak_mean_speed_sq = std::max(m_peak_mean_speed_sq, m_last_state.mean_speed_sq);
+    m_at_rest = m_settings.stop_kinetic_fraction > 0.0f && m_peak_mean_speed_sq > 1.0f
+        && m_last_state.mean_speed_sq < m_settings.stop_kinetic_fraction * m_peak_mean_speed_sq;
+
     if (m_last_state.active_particles > 0)
         append_energy_sample(time, gravity);
 }
@@ -717,6 +732,8 @@ void MpmSolverNode::run_impl()
         write_initial_state();
         m_simulated_time = 0.0f;
         m_last_state = {};
+        m_peak_mean_speed_sq = 0.0f;
+        m_at_rest = false;
         m_energy_line.clear();
         m_perf.runs = 0;
         m_reset_count++;
@@ -755,6 +772,8 @@ void MpmSolverNode::run_impl()
     const std::array<float, 11> stress_parameters { u.mu_0, u.lambda_0, u.hardening, u.critical_compression, u.critical_stretch,
         float(u.constitutive_model), u.dp_alpha, u.ccc_m, u.ccc_beta, u.ccc_xi, u.ccc_p0_initial };
     m_run_refresh_stress = !reset && stress_parameters != m_stress_parameters;
+    // The peak velocity is for the comparison with AvaFrame; the map run skips the extra pass.
+    m_run_column_stats = sandbox_terrain != nullptr;
     m_stress_parameters = stress_parameters;
     m_readback_copied = false;
     m_settings.reset_on_next_run = false;
@@ -795,6 +814,7 @@ void MpmSolverNode::submit_chunk()
     if (m_run_first_chunk && m_run_is_reset) {
         m_grid_buffer->clear(encoder.handle());
         m_tile_flag_buffer->clear(encoder.handle());
+        m_column_peak_buffer->clear(encoder.handle());
     }
 
     // Time this chunk if its timestamp slot is free (its readback from two chunks ago is done).
@@ -829,6 +849,8 @@ void MpmSolverNode::submit_chunk()
             m_p2g_pipeline->run(compute_pass, particle_workgroups);
             m_grid_update_pipeline->run(compute_pass, grid_workgroups);
             m_g2p_pipeline->run(compute_pass, particle_workgroups);
+            if (m_run_column_stats)
+                m_column_stats_pipeline->run(compute_pass, particle_workgroups);
         }
 
         if (last_chunk) {
@@ -941,6 +963,68 @@ void MpmSolverNode::read_back_timestamps(int slot, uint32_t substeps)
     wgpuBufferMapAsync(buffer.handle(), WGPUMapMode_Read, 0, buffer.size_in_byte(), callback_info);
 }
 
+void MpmSolverNode::read_back_peaks(std::function<void(const ColumnPeaks&)> callback)
+{
+    if (!m_column_peak_buffer)
+        return;
+    // Own staging buffer per request, kept alive by the request itself: the node (and its
+    // buffers) may be replaced while the map is pending.
+    struct Request {
+        std::shared_ptr<MpmSolverNode*> alive;
+        std::shared_ptr<webgpu::raii::RawBuffer<uint32_t>> staging;
+        std::function<void(const ColumnPeaks&)> callback;
+        ColumnPeaks peaks;
+    };
+    auto* request = new Request { m_alive,
+        std::make_shared<webgpu::raii::RawBuffer<uint32_t>>(m_ctx->device(), WGPUBufferUsage(WGPUBufferUsage_MapRead | WGPUBufferUsage_CopyDst),
+            m_column_peak_buffer->size(), "mpm column peaks readback"),
+        std::move(callback), {} };
+    request->peaks.size = glm::uvec2(m_allocated_grid_res);
+    request->peaks.domain_origin = glm::dvec2(m_settings_uniform.data.domain_origin);
+    request->peaks.dx = m_settings_uniform.data.dx;
+    request->peaks.simulated_time = m_simulated_time;
+
+    WGPUCommandEncoderDescriptor encoder_desc {};
+    encoder_desc.label = WGPUStringView { .data = "mpm peaks readback encoder", .length = WGPU_STRLEN };
+    webgpu::raii::CommandEncoder encoder(m_ctx->device(), encoder_desc);
+    m_column_peak_buffer->copy_to_buffer(encoder.handle(), *request->staging);
+    WGPUCommandBufferDescriptor cmd_buffer_desc {};
+    WGPUCommandBuffer command = wgpuCommandEncoderFinish(encoder.handle(), &cmd_buffer_desc);
+    wgpuQueueSubmit(m_ctx->queue(), 1, &command);
+    wgpuCommandBufferRelease(command);
+
+    const auto on_mapped = [](WGPUMapAsyncStatus status, [[maybe_unused]] WGPUStringView message, void* userdata, [[maybe_unused]] void* userdata2) {
+        std::unique_ptr<Request> request(reinterpret_cast<Request*>(userdata));
+        if (*request->alive == nullptr)
+            return;
+        if (status != WGPUMapAsyncStatus_Success) {
+            qWarning() << "MpmSolverNode: peak readback failed, status" << int(status);
+            return;
+        }
+        auto& staging = *request->staging;
+        const auto* mapped = static_cast<const float*>(wgpuBufferGetConstMappedRange(staging.handle(), 0, staging.size_in_byte()));
+        auto& peaks = request->peaks;
+        const size_t columns = size_t(peaks.size.x) * peaks.size.y;
+        peaks.depth.resize(columns);
+        peaks.speed.resize(columns);
+        for (size_t i = 0; mapped != nullptr && i < columns; i++) {
+            peaks.depth[i] = mapped[COLUMN_STATS_STRIDE_U32 * i];
+            peaks.speed[i] = mapped[COLUMN_STATS_STRIDE_U32 * i + 1];
+        }
+        wgpuBufferUnmap(staging.handle());
+        if (mapped != nullptr)
+            request->callback(peaks);
+    };
+    WGPUBufferMapCallbackInfo callback_info {
+        .nextInChain = nullptr,
+        .mode = WGPUCallbackMode_AllowProcessEvents,
+        .callback = on_mapped,
+        .userdata1 = request,
+        .userdata2 = nullptr,
+    };
+    wgpuBufferMapAsync(request->staging->handle(), WGPUMapMode_Read, 0, request->staging->size_in_byte(), callback_info);
+}
+
 std::unique_ptr<webgpu::raii::TextureWithSampler> MpmSolverNode::create_output_texture(WGPUDevice device, uint32_t width, uint32_t height)
 {
     WGPUTextureDescriptor texture_desc {};
@@ -1004,6 +1088,7 @@ void MpmSolverNode::serialize_settings(QJsonObject& out) const
     out["release_radius"] = s.release_radius;
     out["random_seed"] = static_cast<int>(s.random_seed);
     out["seed_anywhere"] = s.seed_anywhere;
+    out["stop_kinetic_fraction"] = s.stop_kinetic_fraction;
 }
 
 void MpmSolverNode::deserialize_settings(const QJsonObject& in)
@@ -1046,6 +1131,7 @@ void MpmSolverNode::deserialize_settings(const QJsonObject& in)
     s.release_center.y = read_double("release_center_lon", s.release_center.y);
     s.release_radius = read_float("release_radius", s.release_radius);
     s.random_seed = read_uint("random_seed", s.random_seed);
+    s.stop_kinetic_fraction = read_float("stop_kinetic_fraction", s.stop_kinetic_fraction);
     if (in.contains("seed_anywhere"))
         s.seed_anywhere = in["seed_anywhere"].toBool(s.seed_anywhere);
     s.reset_on_next_run = true;

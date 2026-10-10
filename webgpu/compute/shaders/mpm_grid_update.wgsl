@@ -31,7 +31,8 @@
 
 var<workgroup> tile_active: u32;
 
-fn update_node(node_xy: vec2i, layer: i32, cell: u32, flow_depth: f32) {
+// Returns the node's mass, which the column sums into its peak depth.
+fn update_node(node_xy: vec2i, layer: i32, cell: u32, flow_depth: f32) -> f32 {
     let mass_lo = atomicLoad(&grid[cell].mass_lo);
     let mass_hi = atomicLoad(&grid[cell].mass_hi);
     let momentum_fixed = vec3i(atomicLoad(&grid[cell].vx), atomicLoad(&grid[cell].vy), atomicLoad(&grid[cell].vz));
@@ -49,7 +50,7 @@ fn update_node(node_xy: vec2i, layer: i32, cell: u32, flow_depth: f32) {
     if mass <= 0.0 {
         // Empty node - make sure G2P never gathers stale velocity from it.
         grid_velocity[cell] = vec4f(0.0);
-        return;
+        return 0.0;
     }
 
     let momentum = vec3f(momentum_fixed) / MOMENTUM_SCALE;
@@ -73,6 +74,7 @@ fn update_node(node_xy: vec2i, layer: i32, cell: u32, flow_depth: f32) {
     if layer >= res.z - 3 && velocity.z > 0.0 { velocity.z = 0.0; }
 
     grid_velocity[cell] = vec4f(velocity, 0.0);
+    return mass;
 }
 
 @compute @workgroup_size(8, 8, 1) // TILE_SIZE x TILE_SIZE
@@ -110,7 +112,25 @@ fn computeMain(@builtin(global_invocation_id) id: vec3<u32>, @builtin(workgroup_
         flow_depth = column_mass / settings.particle_mass * seeded_particle_volume() / (settings.dx * settings.dx);
     }
 
+    var column_mass = 0.0;
     for (var layer = 0u; layer < settings.grid_res.z; layer++) {
-        update_node(node_xy, i32(layer), layer * layer_stride + column, flow_depth);
+        column_mass += update_node(node_xy, i32(layer), layer * layer_stride + column, flow_depth);
+    }
+
+    // Peaks of the column (see ColumnStats). Depth from the column's mass as for Voellmy above.
+    // Speed from the particles, not the grid: in MLS-MPM a node's momentum holds the stress
+    // impulse too, which at the edge of the flow, on nodes with almost no mass, gives grid
+    // speeds of hundreds of m/s that no particle has.
+    let stats = &column_stats[column];
+    if column_mass > 0.0 {
+        let depth = column_mass / settings.particle_mass * seeded_particle_volume() / (settings.dx * settings.dx);
+        (*stats).peak_depth = max((*stats).peak_depth, depth);
+    }
+    let particles = atomicLoad(&(*stats).particles);
+    if particles > 0u {
+        let speed = f32(atomicLoad(&(*stats).speed_sum)) / SPEED_SUM_SCALE / f32(particles);
+        (*stats).peak_speed = max((*stats).peak_speed, speed);
+        atomicStore(&(*stats).particles, 0u);
+        atomicStore(&(*stats).speed_sum, 0u);
     }
 }

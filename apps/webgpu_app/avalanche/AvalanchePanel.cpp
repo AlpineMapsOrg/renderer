@@ -35,6 +35,7 @@
 #include <cmath>
 #include <nucleus/srs.h>
 #include <webgpu/compute/NodeGraph.h>
+#include <QJsonObject>
 #include <webgpu/compute/nodes/AvaFrameSandboxNode.h>
 #include <webgpu/compute/nodes/GeoRegionNode.h>
 #include <webgpu/compute/nodes/MpmSolverNode.h>
@@ -145,6 +146,7 @@ void AvalanchePanel::load_startup_settings()
     m_selected_material_preset = std::clamp(settings.value("startup/material_preset", 0).toInt(), 0, int(m_material_presets.size()) - 1);
     m_startup_sandbox = settings.value("startup/sandbox", false).toBool();
     m_sandbox_root = settings.value("sandbox/root", QString(DEFAULT_SANDBOX_ROOT)).toString().toStdString();
+    m_sandbox_auto_export = settings.value("sandbox/auto_export", false).toBool();
 #endif
     if (m_sandbox_root.empty())
         m_sandbox_root = DEFAULT_SANDBOX_ROOT;
@@ -176,6 +178,7 @@ void AvalanchePanel::save_startup_settings() const
     settings.setValue("playback/pacing", int(m_pacing));
     settings.setValue("startup/sandbox", m_startup_sandbox);
     settings.setValue("sandbox/root", QString::fromStdString(m_sandbox_root));
+    settings.setValue("sandbox/auto_export", m_sandbox_auto_export);
     if (m_sandbox_dataset < int(m_sandbox_datasets.size())) {
         const auto& dataset = m_sandbox_datasets[size_t(m_sandbox_dataset)];
         settings.setValue("sandbox/dataset", QString::fromStdString(dataset.name));
@@ -387,8 +390,47 @@ void AvalanchePanel::configure_sandbox_solver(const nodes::AvaFrameSandboxNode& 
         settings.dt = 0.8f * cfl_dt;
     settings.reset_on_next_run = true;
     solver.set_settings(settings);
+    m_sandbox_stopped = false;
+    m_sandbox_status.clear();
     if (solver.has_valid_inputs())
         solver.rerun();
+}
+
+void AvalanchePanel::export_sandbox_result(const std::string& stopped_by)
+{
+    auto* solver = find_solver();
+    auto* sandbox = find_node<nodes::AvaFrameSandboxNode>();
+    if (solver == nullptr || sandbox == nullptr || sandbox->terrain() == nullptr)
+        return;
+    QJsonObject run_info;
+    QJsonObject solver_settings;
+    solver->serialize_settings(solver_settings);
+    run_info["solver_settings"] = solver_settings;
+    run_info["material_preset"] = QString::fromStdString(m_material_presets[size_t(m_selected_material_preset)].name);
+    run_info["stopped_by"] = QString::fromStdString(stopped_by);
+    run_info["particles"] = int(solver->last_state().active_particles);
+    run_info["gpu_ms_per_substep"] = double(solver->perf_stats().gpu_ms_per_substep);
+    run_info["energy_line_mu_eff"] = double(solver->energy_line_friction());
+    const float density = solver->get_settings().snow_density;
+    const std::string key = sandbox->terrain()->dataset_path + "/" + sandbox->terrain()->scenario;
+    m_sandbox_status = "Exporting...";
+    solver->read_back_peaks([this, key, density, run_info](const nodes::MpmSolverNode::ColumnPeaks& peaks) {
+        // The dataset may have changed while the readback was pending.
+        auto* current = find_node<nodes::AvaFrameSandboxNode>();
+        const nodes::SandboxTerrain* terrain = current ? current->terrain() : nullptr;
+        if (terrain == nullptr || terrain->dataset_path + "/" + terrain->scenario != key)
+            return;
+        const auto summary = nodes::write_sandbox_result(*terrain, peaks, density, run_info);
+        if (summary.directory.empty()) {
+            m_sandbox_status = "Export failed: " + summary.error;
+            qWarning() << "AvaFrame sandbox:" << QString::fromStdString(m_sandbox_status);
+            return;
+        }
+        m_sandbox_status = "Exported to " + summary.directory;
+        qInfo().nospace() << "AvaFrame sandbox: exported " << QString::fromStdString(summary.directory) << " - t " << peaks.simulated_time
+                          << " s, max pft " << summary.max_thickness << " m, max pfv " << summary.max_speed << " m/s, footprint "
+                          << summary.footprint_area / 1e4 << " ha (" << summary.footprint_area_10cm / 1e4 << " ha with pft > 0.1 m)";
+    });
 }
 
 void AvalanchePanel::draw_sandbox_section(nodes::AvaFrameSandboxNode& sandbox)
@@ -424,6 +466,28 @@ void AvalanchePanel::draw_sandbox_section(nodes::AvaFrameSandboxNode& sandbox)
             ImGui::SetTooltip("Release volume from AvaFrame's slope-normal thickness: sum of thickness x surface area.\n"
                               "Reference: the com1DFA benchmark run of this release scenario (AvaFrame v1.11).");
     }
+    if (auto* solver = find_solver()) {
+        auto settings = solver->get_settings();
+        bool stop_at_rest = settings.stop_kinetic_fraction > 0.0f;
+        if (ImGui::Checkbox("Stop at rest", &stop_at_rest)) {
+            settings.stop_kinetic_fraction = stop_at_rest ? 0.01f : 0.0f;
+            solver->set_settings(settings);
+        }
+        if (ImGui::IsItemHovered())
+            ImGui::SetTooltip("Pause once the kinetic energy has fallen below 1 %% of its peak - com1DFA's stop criterion\n"
+                              "(the AvaFrame benchmarks: \"< 1.00 percent of PKE\").");
+        ImGui::SameLine();
+        if (ImGui::Checkbox("then export", &m_sandbox_auto_export))
+            save_startup_settings();
+        ImGui::SameLine();
+        if (ImGui::Button("Export now"))
+            export_sandbox_result("manual");
+        if (ImGui::IsItemHovered())
+            ImGui::SetTooltip("Peak flow thickness, velocity and pressure since the reset, as pft/pfv/ppr .asc on the DEM grid\n"
+                              "in <dataset>/mpm/<time>_<release>/, with params.json - the same layout as AvaFrame's results.");
+        if (!m_sandbox_status.empty())
+            ImGui::TextWrapped("%s", m_sandbox_status.c_str());
+    }
     if (ImGui::Button(m_sandbox_view.open ? "Hide sandbox view" : "Show sandbox view"))
         m_sandbox_view.open = !m_sandbox_view.open;
     ImGui::SameLine();
@@ -440,6 +504,19 @@ void AvalanchePanel::draw()
     if (auto* sandbox = find_node<nodes::AvaFrameSandboxNode>()) {
         if (auto* solver = find_solver()) {
             configure_sandbox_solver(*sandbox, *solver);
+            // com1DFA's stop criterion: pause once at rest and export if asked to. Play continues
+            // past it; a reset (simulated time going back) re-arms it.
+            if (solver->simulated_time() < m_sandbox_last_time)
+                m_sandbox_stopped = false;
+            m_sandbox_last_time = solver->simulated_time();
+            if (m_playing && solver->at_rest() && !m_sandbox_stopped) {
+                m_sandbox_stopped = true;
+                m_playing = false;
+                m_sandbox_status = "At rest after " + std::to_string(int(solver->simulated_time())) + " s (kinetic energy < 1 % of its peak).";
+                qInfo().nospace() << "AvaFrame sandbox: at rest after " << solver->simulated_time() << " s";
+                if (m_sandbox_auto_export)
+                    export_sandbox_result("at rest");
+            }
             m_sandbox_view.draw(*sandbox, *solver);
         }
     }
