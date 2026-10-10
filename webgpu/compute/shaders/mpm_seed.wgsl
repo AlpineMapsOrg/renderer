@@ -21,17 +21,23 @@
 ///use random
 
 // Places one particle per thread inside the release area that overlaps the simulation
-// domain, forming a snow slab of settings.slab_thickness on top of the terrain.
+// domain, forming a snow slab on top of the terrain: settings.slab_thickness deep in a disc
+// on the map, the release depth of each cell in the sandbox (RELEASE_GRID).
 // Particles that fail to find a release point stay inactive (mass = 0) and are skipped
 // by every later stage.
 
 const MAX_SEED_ATTEMPTS: u32 = 32u;
+// The sandbox's release cells can fill only a small share of their bounding box (avaMal's
+// three separate areas, a narrow diagonal gully) - more attempts keep the misses rare.
+const MAX_GRID_SEED_ATTEMPTS: u32 = 256u;
 
-fn is_release_point(uv: vec2f) -> bool {
+fn release_texel(uv: vec2f) -> vec4f {
     let dim = textureDimensions(release_point_texture);
     let texel = vec2u(clamp(uv, vec2f(0.0), vec2f(0.9999)) * vec2f(dim));
-    return textureLoad(release_point_texture, texel, 0).a > 0.0;
+    return textureLoad(release_point_texture, texel, 0);
 }
+
+fn is_release_point(uv: vec2f) -> bool { return release_texel(uv).a > 0.0; }
 
 @compute @workgroup_size(256, 1, 1)
 fn computeMain(@builtin(global_invocation_id) id: vec3<u32>) {
@@ -59,7 +65,27 @@ fn computeMain(@builtin(global_invocation_id) id: vec3<u32>) {
 
     var found = false;
     var world_xy = vec2f(0.0);
-    for (var attempt = 0u; attempt < MAX_SEED_ATTEMPTS; attempt++) {
+    var slab_depth = settings.slab_thickness;
+    if settings.release_mode == RELEASE_GRID {
+        // Rejection sampling over the bounds of the release cells: a sample is kept with
+        // probability depth / max depth, so particles per area follow the release depth and
+        // every particle stands for the same volume (seeded_particle_volume()).
+        let half = vec2f(settings.release_radius, settings.release_half_y);
+        for (var attempt = 0u; attempt < MAX_GRID_SEED_ATTEMPTS; attempt++) {
+            let candidate = release_centre + (rand2() * 2.0 - vec2f(1.0)) * half;
+            if any(candidate < domain_min) || any(candidate > domain_max) {
+                continue;
+            }
+            let depth = release_texel(world_to_uv(candidate)).r;
+            if depth > 0.0 && rand() * settings.release_max_depth < depth {
+                found = true;
+                world_xy = candidate;
+                slab_depth = depth;
+                break;
+            }
+        }
+    }
+    for (var attempt = 0u; attempt < MAX_SEED_ATTEMPTS && settings.release_mode == RELEASE_DISC; attempt++) {
         // sqrt on the radius keeps the samples uniform over the disc area.
         let r = rand2();
         let angle = r.x * 6.28318530718;
@@ -84,7 +110,7 @@ fn computeMain(@builtin(global_invocation_id) id: vec3<u32>) {
 
     if found {
         // Stack particles through the slab so the release volume has real thickness.
-        let depth = rand() * settings.slab_thickness;
+        let depth = rand() * slab_depth;
         p.position = vec3f(world_xy, terrain_height(world_xy) + depth);
         p.mass = settings.particle_mass;
         atomicAdd(&state.active_particles, 1u);

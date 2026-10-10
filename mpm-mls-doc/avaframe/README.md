@@ -97,6 +97,40 @@ avaTripleBowl.
   `04-data-layout.md`). The overlay rasters keep the 5 m source resolution on the ground, so
   their pixel size in world units is 5 / cos(lat).
 
+## Phase 2: the sandbox in the app
+
+In the Avalanche sidebar section, **AvaFrame sandbox** loads the graph preset
+`mpm_avaframe_sandbox.json` (`AvaFrameSandboxNode` → `MpmSolverNode`). Pick the dataset and the
+release scenario there. The run shows in the **AvaFrame sandbox** window: hillshade, release (cyan),
+com1DFA footprint outline (green), the particle raster and the domain box (white). Hover gives
+position, height and release depth. Material, friction and playback are the usual sidebar
+controls. Native builds find the datasets in `<source>/extern/avaframe_sandbox`; the folder is
+stored per user (`sandbox/root`).
+
+What the node does with a dataset:
+- **Release depth.** AvaFrame's slope-normal thickness becomes vertical depth, thickness / cos(slope),
+  with the slope from central differences on the DEM. The solver seeds particles in proportion to
+  the depth, each standing for release volume / particles (03-shaders, `mpm_seed`). The avaKot
+  volume comes out at 21 681 m³, the same as Phase 1.
+- **NODATA** is filled from the nearest valid cell (breadth-first), so the terrain continues as
+  a plateau at the edge height. The plan said "walls". A wall tall enough to stop the flow would
+  exceed the step the terrain-following band can hold ((layers − 4)·dx) and lose particles, so
+  the plateau is the safer choice. Particles that reach it are past AvaFrame's DEM, and the
+  2D view shows those cells darkened.
+- **Domain.** A square around the release and the com1DFA footprint, with 15 % margin (at
+  least 100 m) on each side; the whole DEM where there is no reference. Cell size = max(DEM
+  cell, domain / 512): avaKot gets a 1760 m box at 5.0 m cells.
+- **No map position yet.** The domain box is in sandbox metres. Phase 4 puts real datasets on the map.
+
+First run (avaKot / relKot, Li 2021 V parameters, 65 536 particles, 2026-10-10, M5):
+- All particles seeded.
+- Faster than real time (85 s simulated in about 65 s).
+- The centre of mass drops from 1921 m to 1094 m over 1372 m of mean path.
+- The flow spreads across the valley floor well beyond the com1DFA footprint, and reaches the
+  domain walls after about 55 s.
+
+These numbers are only a smoke test. Quantitative comparison is Phase 5.
+
 ## Not done yet
 
 - **Overlay alignment:** checked only numerically (the corner transform and the preview

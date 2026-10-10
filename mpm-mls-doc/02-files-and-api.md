@@ -8,6 +8,7 @@
 |---|---|
 | `nodes/MpmSolverNode.h/.cpp` | The solver. Owns particles, grid and sim state on the GPU; runs the substep loop. |
 | `nodes/GeoRegionNode.h/.cpp` | Emits a region AABB from lat/lon + extent, so a scenario needs no GPX file. |
+| `nodes/AvaFrameSandboxNode.h/.cpp` | AvaFrame sandbox: loads a dataset prepared by `mpm-mls-doc/avaframe/prepare_dataset.py` (DEM, release, com1DFA footprint) and feeds the solver in metres. Defines `SandboxTerrain`. |
 | `shaders/mpm_common.wgsl` | Shared bindings, structs, terrain sampling, B-spline kernel, 3×3 SVD, matrix helpers. Included by every kernel. |
 | `shaders/mpm_material.wgsl` | Constitutive-model dispatcher: `switch` on `settings.constitutive_model`. |
 | `shaders/mpm_material_stomakhin.wgsl` | Stomakhin 2013: fixed corotated + SV clamp + exponential hardening. |
@@ -15,7 +16,7 @@
 | `shaders/mpm_material_ccc.wgsl` | Gaume 2018: Hencky elasticity + Cam-Clay ellipse, sinh hardening; Wolper 2019 NACC return incl. its shear hardening (§6.2.3). |
 | `shaders/mpm_friction.wgsl` | Basal-friction dispatcher: `switch` on `settings.basal_friction_model`; Coulomb, Voellmy (local flow depth from the grid update). |
 | `shaders/mpm_prepare.wgsl` | Scans terrain once per reset: altitude range for the readout, and the per-column floor of the terrain-following grid. |
-| `shaders/mpm_seed.wgsl` | Places particles in the release disc. |
+| `shaders/mpm_seed.wgsl` | Places particles in the release disc (map) or by release depth per cell (sandbox). |
 | `shaders/mpm_p2g.wgsl` | Stage 1: particle → grid. |
 | `shaders/mpm_grid_update.wgsl` | Stage 2: momentum → velocity, gravity, collisions. |
 | `shaders/mpm_g2p.wgsl` | Stages 3+4: grid → particle, plasticity, advection; per-substep diagnostics reduced per workgroup. |
@@ -27,16 +28,19 @@
 
 | File | Purpose |
 |---|---|
-| `avalanche/AvalanchePanel.h/.cpp` | Sidebar panel: location picker + transport + main knobs. **Owns the animation driver.** |
+| `avalanche/AvalanchePanel.h/.cpp` | Sidebar panel: location picker + transport + main knobs. **Owns the animation driver.** Also the sandbox dataset picker. |
+| `avalanche/SandboxView.h/.cpp` | 2D window for sandbox runs: hillshade, release, com1DFA outline, particle raster, domain box. |
 | `compute/nodes/MpmSolverNodeRenderer.h/.cpp` | Node-editor settings panel (full parameter set). |
 | `resources/graphs/mpm_avalanche_simulation.json` | Ready-to-run graph preset. |
+| `resources/graphs/mpm_avaframe_sandbox.json` | Sandbox preset: `AvaFrameSandboxNode` → `MpmSolverNode`, no map nodes. |
 
 ## Modified
 
 | File | Change |
 |---|---|
 | `webgpu/compute/CMakeLists.txt` | Source + shader resource entries. |
-| `webgpu/compute/NodeRegistry.cpp` | `register_node()` for `MpmSolverNode`, `GeoRegionNode`. |
+| `webgpu/compute/NodeRegistry.cpp` | `register_node()` for `MpmSolverNode`, `GeoRegionNode`, `AvaFrameSandboxNode`. |
+| `webgpu/compute/nodes/Node.h` | `const SandboxTerrain*` added to the socket data variant. |
 | `apps/webgpu_app/CMakeLists.txt` | Source entries. |
 | `apps/webgpu_app/compute/nodes/NodeRendererFactory.cpp` | `dynamic_cast` branch for the solver renderer. |
 | `apps/webgpu_app/compute/NodeGraphPanel.h` | Added `node_graph()` accessor so other panels can reach the graph. |
@@ -67,7 +71,14 @@ ints, switchable at runtime with no pipeline rebuild. Recipe for adding one in
 ### Sockets
 
 **In:** `region aabb` (`Aabb<2,double>*`), `height texture`, `release point texture`
-(`TextureWithSampler*`)
+(`TextureWithSampler*`), and the optional `sandbox` (`const SandboxTerrain*`). Connecting
+`sandbox` switches the solver to the AvaFrame sandbox:
+- the region is taken as metres (no Mercator factor);
+- the domain is centred on the dataset's suggestion, and may use the DEM's longer side;
+- the release texture is read as vertical depth per cell (R32Float) instead of a mask on a disc
+  (`release_mode = 1`, see 03-shaders `mpm_seed`).
+
+See `mpm-mls-doc/avaframe/README.md`.
 
 **Out:** `texture` (RGBA result), `domain aabb` (wire to the overlay's region input —
 the result covers the *domain*, not the whole region), `density buffer` (`RawBuffer<u32>*`),

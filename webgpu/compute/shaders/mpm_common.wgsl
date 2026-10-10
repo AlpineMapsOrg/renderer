@@ -79,7 +79,17 @@ struct MpmSettings {
     ccc_beta: f32, // Cam-Clay: cohesion, tensile strength = beta p0
     ccc_xi: f32, // Cam-Clay: hardening factor (brittleness)
     ccc_p0_initial: f32, // Cam-Clay: initial consolidation pressure [Pa]
+
+    release_mode: u32, // RELEASE_DISC or RELEASE_GRID, see mpm_seed.wgsl
+    release_volume: f32, // [m^3], RELEASE_GRID only
+    release_max_depth: f32, // [m], RELEASE_GRID only
+    release_half_y: f32, // half height of the release bounds [m]; release_radius is the half width
 }
+
+// Release disc masked by the release point texture (alpha) - the map.
+const RELEASE_DISC: u32 = 0u;
+// Release depth per cell in the release texture (r, metres, vertical) - the AvaFrame sandbox.
+const RELEASE_GRID: u32 = 1u;
 
 // The six scalars in the vec3 padding hold the Kirchhoff stress tau = P F^T of the particle's
 // current elastic state (symmetric for every model here, so six components). G2P computes it
@@ -194,6 +204,10 @@ const SUM_PATH_SCALE: f32 = 1.0e5; // 0.01 mm
 // the seeded area times its thickness, the area being the release disc times the share of
 // first seeding samples that hit a release point (Monte Carlo over every seeding thread).
 fn seeded_particle_volume() -> f32 {
+    // The sandbox knows its release volume exactly (AvaFrame's thickness times surface area).
+    if settings.release_mode == RELEASE_GRID {
+        return settings.release_volume / max(f32(atomicLoad(&state.active_particles)), 1.0);
+    }
     let hit_share = f32(atomicLoad(&state.seed_first_hits)) / f32(max(settings.num_particles, 1u));
     let area = hit_share * 3.14159265 * settings.release_radius * settings.release_radius;
     return area * settings.slab_thickness / max(f32(atomicLoad(&state.active_particles)), 1.0);

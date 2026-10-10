@@ -18,6 +18,7 @@
 
 #pragma once
 
+#include "SandboxView.h"
 #include "ui/ImGuiPanel.h"
 
 #include <chrono>
@@ -27,6 +28,7 @@
 
 namespace webgpu_compute::nodes {
 class MpmSolverNode;
+class AvaFrameSandboxNode;
 class GeoRegionNode;
 class SelectTilesNode;
 class Node;
@@ -150,6 +152,24 @@ private:
     void apply_pacing(webgpu_compute::nodes::MpmSolverNode& solver);
     void draw_performance(webgpu_compute::nodes::MpmSolverNode& solver);
 
+    /// AvaFrame sandbox (see AvaFrameSandboxNode): datasets prepared by
+    /// mpm-mls-doc/avaframe/prepare_dataset.py, listed from <root>/index.json.
+    struct SandboxDataset {
+        std::string name;
+        std::vector<std::string> scenarios;
+        bool geolocated = false;
+        bool has_reference = false;
+    };
+    void scan_sandbox_datasets();
+    /// Loads the sandbox graph preset and the selected dataset.
+    void load_sandbox();
+    /// Points the sandbox node at the selected dataset and scenario and runs the graph.
+    bool apply_sandbox_dataset();
+    /// Once the sandbox node has loaded a dataset: domain size and grid from its suggestion,
+    /// reseed. The suggestion needs the loaded data, so this runs after the graph, not before.
+    void configure_sandbox_solver(const webgpu_compute::nodes::AvaFrameSandboxNode& sandbox, webgpu_compute::nodes::MpmSolverNode& solver);
+    void draw_sandbox_section(webgpu_compute::nodes::AvaFrameSandboxNode& sandbox);
+
 private:
     NodeGraphPanel* m_graph_panel;
     bool m_playing = false;
@@ -166,6 +186,15 @@ private:
     int m_selected_material_preset = 0; // 0 = custom (no preset active)
 
     Pacing m_pacing = Pacing::Balanced;
+
+    bool m_startup_sandbox = false; // autostart loads the sandbox instead of the map
+    std::string m_sandbox_root;
+    std::vector<SandboxDataset> m_sandbox_datasets;
+    std::string m_sandbox_scan_error;
+    int m_sandbox_dataset = 0;
+    int m_sandbox_scenario = 0;
+    std::string m_sandbox_configured; // "dataset/scenario" the solver was last sized for
+    SandboxView m_sandbox_view;
 
     /* Simulated seconds per wall-clock second, measured over ~1 s windows while playing. */
     std::chrono::steady_clock::time_point m_speed_window_start;

@@ -1,0 +1,103 @@
+{
+    "format": "webigeo/node-graph",
+    "version": 1,
+    "name": "MLS-MPM avalanche - AvaFrame sandbox",
+    "nodes": [
+        {
+            "enabled": true,
+            "name": "AvaFrame Sandbox",
+            "type": "AvaFrameSandboxNode",
+            "settings": {
+                "dataset_path": "",
+                "release_scenario": ""
+            }
+        },
+        {
+            "enabled": true,
+            "name": "MPM Solver",
+            "type": "MpmSolverNode",
+            "settings": {
+                "domain_size_xy": 2000.0,
+                "grid_resolution_xy": 400,
+                "grid_layers": 12,
+                "num_particles": 65536,
+                "slab_thickness": 1.0,
+                "snow_density": 400.0,
+                "dt": 0.02,
+                "substeps_per_run": 24,
+                "substeps_per_submit": 2,
+                "youngs_modulus": 140000.0,
+                "poissons_ratio": 0.2,
+                "hardening": 10.0,
+                "critical_compression": 0.025,
+                "critical_stretch": 0.0075,
+                "gravity": 9.81,
+                "terrain_friction": 0.47,
+                "raster_resolution": 1024,
+                "random_seed": 1,
+                "splat_radius": 5.0,
+                "seed_anywhere": false,
+                "basal_friction_model": 0,
+                "voellmy_xi": 4000.0
+            }
+        }
+    ],
+    "connections": [
+        {
+            "from": {
+                "node": "AvaFrame Sandbox",
+                "socket": "region aabb"
+            },
+            "to": {
+                "node": "MPM Solver",
+                "socket": "region aabb"
+            }
+        },
+        {
+            "from": {
+                "node": "AvaFrame Sandbox",
+                "socket": "height texture"
+            },
+            "to": {
+                "node": "MPM Solver",
+                "socket": "height texture"
+            }
+        },
+        {
+            "from": {
+                "node": "AvaFrame Sandbox",
+                "socket": "release texture"
+            },
+            "to": {
+                "node": "MPM Solver",
+                "socket": "release point texture"
+            }
+        },
+        {
+            "from": {
+                "node": "AvaFrame Sandbox",
+                "socket": "sandbox"
+            },
+            "to": {
+                "node": "MPM Solver",
+                "socket": "sandbox"
+            }
+        }
+    ],
+    "ui": {
+        "nodes": {
+            "AvaFrame Sandbox": {
+                "position": [
+                    200.0,
+                    400.0
+                ]
+            },
+            "MPM Solver": {
+                "position": [
+                    600.0,
+                    400.0
+                ]
+            }
+        }
+    }
+}

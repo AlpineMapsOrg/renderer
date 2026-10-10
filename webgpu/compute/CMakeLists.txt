@@ -42,6 +42,7 @@ set(SOURCES
     nodes/MpmSolverNode.h nodes/MpmSolverNode.cpp
     nodes/GeoRegionNode.h nodes/GeoRegionNode.cpp
     nodes/LoadTextureNode.h nodes/LoadTextureNode.cpp
+    nodes/AvaFrameSandboxNode.h nodes/AvaFrameSandboxNode.cpp
     nodes/util.h nodes/util.cpp
 )
 

@@ -18,6 +18,8 @@
 
 #include "MpmSolverNode.h"
 
+#include "AvaFrameSandboxNode.h"
+
 #include <QDebug>
 #include <algorithm>
 #include <array>
@@ -117,6 +119,8 @@ MpmSolverNode::MpmSolverNode(webgpu::Context& ctx, const MpmSolverSettings& sett
               InputSocket(*this, "region aabb", data_type<const radix::geometry::Aabb<2, double>*>()),
               InputSocket(*this, "height texture", data_type<const webgpu::raii::TextureWithSampler*>()),
               InputSocket(*this, "release point texture", data_type<const webgpu::raii::TextureWithSampler*>()),
+              // Optional. Connected = sandbox mode, see the class comment.
+              InputSocket(*this, "sandbox", data_type<const SandboxTerrain*>()),
           },
           {
               OutputSocket(*this, "texture", data_type<const webgpu::raii::TextureWithSampler*>(), [this]() { return m_output_texture.get(); }),
@@ -182,7 +186,9 @@ MpmSolverNode::MpmSolverNode(webgpu::Context& ctx, const MpmSolverSettings& sett
             std::vector<WGPUBindGroupLayoutEntry> {
                 buffer_entry(0, WGPUBufferBindingType_Uniform),
                 texture_entry(1, WGPUTextureSampleType_UnfilterableFloat), // height texture is R32Float
-                texture_entry(2, WGPUTextureSampleType_Float), // release points are RGBA8Unorm
+                // Release points (RGBA8Unorm) on the map, release depth (R32Float) in the sandbox.
+                // Only read with textureLoad, so unfilterable-float accepts both.
+                texture_entry(2, WGPUTextureSampleType_UnfilterableFloat),
                 buffer_entry(3, WGPUBufferBindingType_Storage), // particles
                 buffer_entry(4, WGPUBufferBindingType_Storage), // background grid
                 buffer_entry(5, WGPUBufferBindingType_Storage), // simulation state
@@ -342,28 +348,39 @@ float MpmSolverNode::max_stable_dt(const MpmSolverSettings& settings, float dx)
     return CFL_NUMBER * dx / std::max(wave_speed, 1e-3f);
 }
 
-void MpmSolverNode::update_gpu_settings(const radix::geometry::Aabb<2, double>& region_aabb, const webgpu::raii::TextureWithSampler& height_texture)
+void MpmSolverNode::update_gpu_settings(
+    const radix::geometry::Aabb<2, double>& region_aabb, const webgpu::raii::TextureWithSampler& height_texture, const SandboxTerrain* sandbox)
 {
     // The solver works in metres. World units are Web Mercator, which stretches distances by
     // 1/cos(latitude) - 1.47 at 47 degrees N - while heights are real metres, so taking world
     // units as metres simulates every slope too flat (a 37 degree slope at about 27). Region
     // offsets are scaled to metres here and the domain box scaled back for the map; across a
     // few kilometres the scale varies by well under 0.1 %, so one factor for the region is enough.
-    const glm::dvec2 region_centre = nucleus::srs::world_to_lat_long((region_aabb.min + region_aabb.max) * 0.5);
-    m_metres_per_world_unit = std::cos(glm::radians(region_centre.x));
+    // The sandbox region is a DEM in metres already.
+    if (sandbox != nullptr) {
+        m_metres_per_world_unit = 1.0;
+    } else {
+        const glm::dvec2 region_centre = nucleus::srs::world_to_lat_long((region_aabb.min + region_aabb.max) * 0.5);
+        m_metres_per_world_unit = std::cos(glm::radians(region_centre.x));
+    }
     const double to_metres = m_metres_per_world_unit;
     const glm::fvec2 region_size = glm::fvec2(region_aabb.size() * to_metres);
     // The domain cannot usefully exceed the terrain we actually have: outside the region the
     // height texture clamps to its edge texel, which would be a flat extrusion, not terrain.
-    const float region_limit = std::max(std::min(region_size.x, region_size.y), 1.0f);
+    // The sandbox allows the longer side: AvaFrame's DEMs are oblong and the avalanche runs
+    // along them, and its NODATA rim is filled the same way anyway (AvaFrameSandboxNode).
+    const float region_limit = sandbox != nullptr ? std::max(region_size.x, region_size.y) : std::max(std::min(region_size.x, region_size.y), 1.0f);
     const float domain_size = std::clamp(m_settings.domain_size_xy, 1.0f, region_limit);
     const float dx = domain_size / float(m_allocated_grid_res.x);
 
     // Place the domain inside the region and keep it fully covered by the terrain data.
     // Geographic anchors are converted here, where the region bounds are known, so tile
     // snapping cannot move the scenario relative to the ground.
-    const glm::dvec2 domain_centre_world = nucleus::srs::lat_long_to_world(m_settings.domain_center);
-    const glm::fvec2 requested_origin = glm::fvec2((domain_centre_world - region_aabb.min) * to_metres) - glm::fvec2(domain_size * 0.5f);
+    // The sandbox centres the domain on the dataset's avalanche (release and reference footprint).
+    const glm::fvec2 requested_centre = sandbox != nullptr
+        ? glm::fvec2(sandbox->suggested_domain_centre)
+        : glm::fvec2((nucleus::srs::lat_long_to_world(m_settings.domain_center) - region_aabb.min) * to_metres);
+    const glm::fvec2 requested_origin = requested_centre - glm::fvec2(domain_size * 0.5f);
     const glm::fvec2 max_origin = glm::max(region_size - glm::fvec2(domain_size), glm::fvec2(0.0f));
     const glm::fvec2 domain_origin = glm::clamp(requested_origin, glm::fvec2(0.0f), max_origin);
 
@@ -414,27 +431,48 @@ void MpmSolverNode::update_gpu_settings(const radix::geometry::Aabb<2, double>& 
     const float radius_texels = std::clamp(std::max(m_settings.splat_radius, 0.0f) / metres_per_texel, 0.5f, 8.0f);
     data.splat_radius_texels = radius_texels;
 
-    // Release zone, in region-relative metres. Clamped into the domain (with a margin for
-    // its own radius) so a slightly misplaced scenario still seeds instead of silently
-    // producing nothing.
-    const glm::dvec2 release_world = nucleus::srs::lat_long_to_world(m_settings.release_center);
-    data.release_radius = std::clamp(m_settings.release_radius, 1.0f, domain_size * 0.4f);
-    const float margin = data.release_radius + 2.0f * dx;
-    const glm::fvec2 release_centre = glm::clamp(glm::fvec2((release_world - region_aabb.min) * to_metres),
-        domain_origin + glm::fvec2(margin),
-        domain_origin + glm::fvec2(domain_size - margin));
-    data.release_centre_x = release_centre.x;
-    data.release_centre_y = release_centre.y;
+    float release_area_texels = 0.0f;
+    if (sandbox != nullptr) {
+        // Release cells with their depth: the seed samples the bounds of the release cells and
+        // keeps a sample with probability depth / max depth. The cells are where AvaFrame put
+        // them; no clamping into the domain - cells outside it are simply not seeded.
+        const glm::dvec2 centre = (sandbox->release_min + sandbox->release_max) * 0.5;
+        const glm::dvec2 half = (sandbox->release_max - sandbox->release_min) * 0.5;
+        data.release_mode = 1u;
+        data.release_centre_x = float(centre.x);
+        data.release_centre_y = float(centre.y);
+        data.release_radius = float(half.x);
+        data.release_half_y = float(half.y);
+        data.release_volume = float(sandbox->release_volume);
+        data.release_max_depth = sandbox->release_max_depth;
+        release_area_texels = float(sandbox->release_area) / (metres_per_texel * metres_per_texel);
+    } else {
+        // Release zone, in region-relative metres. Clamped into the domain (with a margin for
+        // its own radius) so a slightly misplaced scenario still seeds instead of silently
+        // producing nothing.
+        const glm::dvec2 release_world = nucleus::srs::lat_long_to_world(m_settings.release_center);
+        data.release_mode = 0u;
+        data.release_radius = std::clamp(m_settings.release_radius, 1.0f, domain_size * 0.4f);
+        const float margin = data.release_radius + 2.0f * dx;
+        const glm::fvec2 release_centre = glm::clamp(glm::fvec2((release_world - region_aabb.min) * to_metres),
+            domain_origin + glm::fvec2(margin),
+            domain_origin + glm::fvec2(domain_size - margin));
+        data.release_centre_x = release_centre.x;
+        data.release_centre_y = release_centre.y;
+        data.release_half_y = data.release_radius;
+        data.release_volume = 0.0f;
+        data.release_max_depth = 0.0f;
+        const float release_radius_texels = std::max(data.release_radius / metres_per_texel, 1.0f);
+        release_area_texels = 3.14159265f * release_radius_texels * release_radius_texels;
+    }
 
-    // Reference coverage for full opacity. Derived from the release disc rather than the
+    // Reference coverage for full opacity. Derived from the release area rather than the
     // whole domain: the snow starts concentrated there, and basing the scale on the domain
     // would make a small avalanche in a large box saturate everywhere. The spread factor
     // keeps the runout visible as the same snow covers a larger area.
     constexpr float SPREAD_TOLERANCE = 6.0f;
     const float splat_area = 3.14159265f * radius_texels * radius_texels;
-    const float release_radius_texels = std::max(data.release_radius / metres_per_texel, 1.0f);
-    const float release_area = 3.14159265f * release_radius_texels * release_radius_texels;
-    data.density_reference = std::max(float(m_allocated_particles) * splat_area / (SPREAD_TOLERANCE * release_area), 1.0f);
+    data.density_reference = std::max(float(m_allocated_particles) * splat_area / (SPREAD_TOLERANCE * std::max(release_area_texels, 1.0f)), 1.0f);
 
     data.constitutive_model = static_cast<uint32_t>(m_settings.constitutive_model);
     data.basal_friction_model = static_cast<uint32_t>(m_settings.basal_friction_model);
@@ -452,9 +490,8 @@ void MpmSolverNode::update_gpu_settings(const radix::geometry::Aabb<2, double>& 
 
     m_settings_uniform.update_gpu_data(m_ctx->queue());
 
-    // World space bounds of the simulated area, so the result can be placed on the map.
     // World space bounds of the simulated area (back from metres to world units), so the result
-    // can be placed on the map.
+    // can be placed on the map. In the sandbox these are sandbox metres.
     const glm::dvec2 domain_min = region_aabb.min + glm::dvec2(domain_origin) / to_metres;
     m_domain_aabb = { domain_min, domain_min + glm::dvec2(double(domain_size)) / to_metres };
 }
@@ -627,6 +664,13 @@ float MpmSolverNode::energy_line_friction() const
     return float(-slope);
 }
 
+const SandboxTerrain* MpmSolverNode::sandbox()
+{
+    if (!input_socket("sandbox").is_socket_connected())
+        return nullptr;
+    return std::get<data_type<const SandboxTerrain*>()>(input_socket("sandbox").get_connected_data());
+}
+
 bool MpmSolverNode::has_valid_inputs()
 {
     static constexpr const char* REQUIRED[] = { "region aabb", "height texture", "release point texture" };
@@ -642,6 +686,10 @@ bool MpmSolverNode::has_valid_inputs()
     if (std::get<data_type<const webgpu::raii::TextureWithSampler*>()>(input_socket("height texture").get_connected_data()) == nullptr)
         return false;
     if (std::get<data_type<const webgpu::raii::TextureWithSampler*>()>(input_socket("release point texture").get_connected_data()) == nullptr)
+        return false;
+    // Optional, but once connected it has to be there: without it the region would be taken
+    // for Web Mercator.
+    if (input_socket("sandbox").is_socket_connected() && sandbox() == nullptr)
         return false;
     return true;
 }
@@ -660,7 +708,8 @@ void MpmSolverNode::run_impl()
 
     m_run_started = std::chrono::steady_clock::now();
     ensure_resources();
-    update_gpu_settings(*region_aabb, height_texture);
+    const SandboxTerrain* sandbox_terrain = sandbox();
+    update_gpu_settings(*region_aabb, height_texture, sandbox_terrain);
     ensure_bind_group(height_texture, release_point_texture);
 
     const bool reset = m_settings.reset_on_next_run;
@@ -672,16 +721,25 @@ void MpmSolverNode::run_impl()
         m_perf.runs = 0;
         m_reset_count++;
 
-        // Report where on the planet we are actually simulating - without this there is no
-        // way to tell from the UI which slope the domain landed on.
-        const glm::dvec2 south_west = nucleus::srs::world_to_lat_long(m_domain_aabb.min);
-        const glm::dvec2 north_east = nucleus::srs::world_to_lat_long(m_domain_aabb.max);
-        const glm::dvec2 centre = nucleus::srs::world_to_lat_long((m_domain_aabb.min + m_domain_aabb.max) * 0.5);
-        qInfo().nospace() << "MpmSolverNode: simulating " << m_settings.domain_size_xy << " m domain at centre " << centre.x << ", " << centre.y
-                          << " (lat " << south_west.x << ".." << north_east.x << ", lon " << south_west.y << ".." << north_east.y << "), "
-                          << m_allocated_grid_res.x << "x" << m_allocated_grid_res.y << " grid, " << m_allocated_grid_res.z << " layers, dx "
-                          << m_settings_uniform.data.dx << " m, " << m_allocated_particles << " particles, " << m_metres_per_world_unit
-                          << " m per world unit";
+        // Report where we are actually simulating - without this there is no way to tell from
+        // the UI which slope the domain landed on.
+        if (sandbox_terrain != nullptr) {
+            const auto& d = m_settings_uniform.data;
+            qInfo().nospace() << "MpmSolverNode: sandbox " << QString::fromStdString(sandbox_terrain->name) << " / "
+                              << QString::fromStdString(sandbox_terrain->scenario) << ", " << d.domain_size_xy << " m domain at (" << d.domain_origin.x
+                              << ", " << d.domain_origin.y << ") m, " << m_allocated_grid_res.x << "x" << m_allocated_grid_res.y << " grid, "
+                              << m_allocated_grid_res.z << " layers, dx " << d.dx << " m, " << m_allocated_particles << " particles, release "
+                              << d.release_volume << " m3";
+        } else {
+            const glm::dvec2 south_west = nucleus::srs::world_to_lat_long(m_domain_aabb.min);
+            const glm::dvec2 north_east = nucleus::srs::world_to_lat_long(m_domain_aabb.max);
+            const glm::dvec2 centre = nucleus::srs::world_to_lat_long((m_domain_aabb.min + m_domain_aabb.max) * 0.5);
+            qInfo().nospace() << "MpmSolverNode: simulating " << m_settings.domain_size_xy << " m domain at centre " << centre.x << ", " << centre.y
+                              << " (lat " << south_west.x << ".." << north_east.x << ", lon " << south_west.y << ".." << north_east.y << "), "
+                              << m_allocated_grid_res.x << "x" << m_allocated_grid_res.y << " grid, " << m_allocated_grid_res.z << " layers, dx "
+                              << m_settings_uniform.data.dx << " m, " << m_allocated_particles << " particles, " << m_metres_per_world_unit
+                              << " m per world unit";
+        }
     } else {
         // Per-run counters only; the terrain scan and seed count from the reset must survive.
         reset_run_counters();

@@ -96,7 +96,17 @@ clamped onto its wall immediately). Then requires a release-point-texture hit un
 the share of the disc that holds snow — the seeded area, from which
 `seeded_particle_volume()` gets the real volume per particle (Voellmy depth).
 
-Particle z = terrain height + `rand · slab_thickness`, so the slab has real depth.
+**Sandbox (`release_mode = RELEASE_GRID`).** The release texture holds the vertical release
+depth per DEM cell (AvaFrame's slope-normal thickness / cos slope). Samples are uniform over
+the bounds of the release cells (centre `release_centre`, half extents `release_radius`,
+`release_half_y`). A sample is kept with probability depth / `release_max_depth`, so particles
+per area follow the depth and all stand for the same volume:
+`seeded_particle_volume()` = `release_volume` / active particles. There are up to 256 attempts,
+because the cells can fill a small share of their bounds (avaMal's three areas). `seed_anywhere`
+does not apply.
+
+Particle z = terrain height + `rand · slab_thickness` (the cell's depth in the sandbox), so
+the slab has real depth.
 Initialised with `F = I`, `C = 0`, `plastic_state = material_initial_state()` (Jp = 1 for
 Stomakhin — the initial state is model-dependent, which is why it is a dispatcher call).
 

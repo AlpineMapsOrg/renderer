@@ -32,6 +32,8 @@
 
 namespace webgpu_compute::nodes {
 
+struct SandboxTerrain;
+
 /// Real-time snow avalanche simulation using MLS-MPM (Hu et al. 2018) with the snow
 /// constitutive model of Stomakhin et al. 2013.
 ///
@@ -48,6 +50,12 @@ namespace webgpu_compute::nodes {
 /// The result is published both as a top-down density raster (storage buffer, for export
 /// or the generic BufferToTextureNode) and as a ready-to-display RGBA texture together
 /// with the AABB of the simulated domain, so it can be wired straight into an overlay.
+///
+/// Two ways to feed it terrain. On the map, the region is in world units (Web Mercator) and
+/// domain and release are placed by latitude/longitude, the release being a disc masked by
+/// the release point texture. With the optional "sandbox" input connected (AvaFrameSandboxNode),
+/// the region is a DEM in metres, the domain is centred on the dataset's avalanche and the
+/// release texture holds the release depth per cell.
 class MpmSolverNode : public Node {
     Q_OBJECT
 
@@ -225,8 +233,13 @@ private:
         float ccc_beta;
         float ccc_xi;
         float ccc_p0_initial;
+
+        uint32_t release_mode; // 0 = disc masked by release points, 1 = depth per cell (sandbox)
+        float release_volume; // [m^3], release_mode 1
+        float release_max_depth; // [m], release_mode 1
+        float release_half_y; // half height of the release bounds [m], release_mode 1 (release_radius = half width)
     };
-    static_assert(sizeof(MpmSolverSettingsUniform) == 176, "uniform layout must match the WGSL struct");
+    static_assert(sizeof(MpmSolverSettingsUniform) == 192, "uniform layout must match the WGSL struct");
 
 public:
     MpmSolverNode(webgpu::Context& ctx);
@@ -253,8 +266,13 @@ public:
     /// Edge length of the simulated box in metres, after clamping to the region. The solver
     /// works in metres; world units are Web Mercator (see update_gpu_settings).
     float domain_size_metres() const { return m_settings_uniform.data.domain_size_xy; }
-    /// Metres per world unit at the region, cos(latitude). 1 until the first run.
+    /// Metres per world unit at the region, cos(latitude). 1 until the first run, and 1 in
+    /// the sandbox, whose region is already in metres.
     double metres_per_world_unit() const { return m_metres_per_world_unit; }
+
+    /// The sandbox the solver runs on, or nullptr when it runs on the map (the optional
+    /// "sandbox" input is not connected or its node has not run).
+    const SandboxTerrain* sandbox();
 
     /// Diagnostics read back from the GPU after each run. Arrives asynchronously, so it
     /// describes the *previous* completed run; `valid` is false until the first readback.
@@ -334,7 +352,8 @@ private:
     /// Builds the bind group unless the cached one still refers to the current resources.
     void ensure_bind_group(const webgpu::raii::TextureWithSampler& height_texture, const webgpu::raii::TextureWithSampler& release_point_texture);
     void create_pipelines(WGPUDevice device, const webgpu::RenderResourceRegistry& reg);
-    void update_gpu_settings(const radix::geometry::Aabb<2, double>& region_aabb, const webgpu::raii::TextureWithSampler& height_texture);
+    void update_gpu_settings(
+        const radix::geometry::Aabb<2, double>& region_aabb, const webgpu::raii::TextureWithSampler& height_texture, const SandboxTerrain* sandbox);
     void write_initial_state();
     /// Zeroes the per-run counters (max speed, plastic particles) without touching the
     /// terrain scan or the seed count.

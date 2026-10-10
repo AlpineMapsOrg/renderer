@@ -15,7 +15,19 @@ capture of the terminal.
 
 ## 2026-10-10
 
-### 1. AvaFrame comparison, phase 1: dataset preparation (branch `avaframe-comparison`)
+### 1. Solver in metres instead of Web Mercator units (branch `mpm-metric-units`)
+
+Found while planning the AvaFrame comparison: `MpmSolverNode` took world units (Web Mercator,
+1/cos(latitude) too long horizontally) as metres, while heights are metres. **Measured** before
+changing anything, with a temporary probe comparing the slope the solver sees against the
+Mercator-corrected release mask (30–45°): 25.3–27.3° on all three scenarios, i.e. tan 37°/1.47.
+**Fix:** region size, domain position and release centre converted to metres with
+cos(latitude of the region centre); domain box converted back for the map; panel readout from
+the node's metric domain size. **Measured after:** 35.0–37.4°. Probe removed. Doc: 04 (coordinate
+conventions), 06 §4k, 01 §5, 05. **Consequence:** all earlier real-terrain results ran on
+flattened slopes; Dachstein now produces band-ceiling contacts on its cliffs. PR #6.
+
+### 2. AvaFrame comparison, phase 1: dataset preparation (branch `avaframe-comparison`)
 
 The plan (in Notion) compares the MPM solver with AvaFrame com1DFA on AvaFrame's own test
 cases. Phase 1 makes those cases usable: `mpm-mls-doc/avaframe/prepare_dataset.py` reads a
@@ -53,7 +65,45 @@ The tool's README has the dataset table and the conventions.
 **Not done:** phases 2–6 (sandbox terrain node, MPM peak rasters, display, AIMEC, model
 comparison).
 
-### 2. iOS build (PR #5, merged) — log entry added after the fact
+### 4. AvaFrame comparison, phase 2: the sandbox in the app
+
+PR #6 (`mpm-metric-units`) was merged into this branch first, because the sandbox needs the
+solver in metres. Then:
+- **`AvaFrameSandboxNode`** loads a prepared dataset: DEM, release, and the com1DFA footprint
+  resampled onto the DEM.
+- **`MpmSolverNode`** gets an optional `sandbox` input. When it is connected:
+  - the region is in metres;
+  - the domain is centred on release plus reference footprint;
+  - seeding uses rejection sampling by release depth per cell (`release_mode = 1`);
+  - the volume per particle is the exact release volume divided by the active particles.
+- The uniform grows from 176 to 192 B; the benchmark is updated to match.
+- The release binding is now `unfilterable-float`, so it accepts both RGBA8 and R32Float.
+- The **SandboxView** window and the panel's dataset picker, plus startup keys for running
+  straight into a dataset.
+
+**Decisions.**
+- **NODATA filled as a plateau, not walls.** A wall would exceed the terrain-following band's
+  step limit.
+- **The suggested domain decides the size and the cell size:** dx = max(DEM cell, size/512).
+- **No first-run notice for the sandbox preset.**
+
+**Verified:**
+- WGSL validator and the macOS build.
+- avaKot/relKot with Li V parameters runs end to end:
+  - all 65 536 particles seeded, release volume 21 681 m³;
+  - 85 s simulated in about 65 s;
+  - the centre of mass moves north as in AvaFrame's plot;
+  - screenshot of the 2D view checked.
+- Benchmark in the browser pane, this tree against HEAD: identical physics trace and GPU time
+  (the disc path is unchanged).
+- The map scenario runs without validation errors.
+
+**Not verified:**
+- The headless CDP benchmark script returned zeros on both trees. It is a harness problem,
+  because the browser pane works.
+- The web and iOS builds of the new files (no sandbox folder there by default).
+
+### 3. iOS build (PR #5, merged) — log entry added after the fact
 
 webgpu_app runs on an iPhone 17 Pro Max. The build uses:
 - Qt 6.11.1 iOS through aqt;

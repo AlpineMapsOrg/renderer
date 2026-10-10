@@ -32,6 +32,7 @@
 namespace webgpu_compute::nodes {
 
 class Node;
+struct SandboxTerrain; // AvaFrameSandboxNode.h
 
 using DataType = size_t;
 
@@ -43,7 +44,8 @@ using Data = std::variant<const std::vector<radix::tile::Id>*,
     const webgpu::raii::TextureWithSampler*,
     const radix::geometry::Aabb<2, double>*,
     const radix::geometry::Aabb<3, double>*,
-    glm::uvec2>;
+    glm::uvec2,
+    const SandboxTerrain*>;
 
 using SocketIndex = size_t;
 
