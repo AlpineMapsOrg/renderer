@@ -21,6 +21,8 @@
 #include "SandboxView.h"
 #include "ui/ImGuiPanel.h"
 
+#include <QJsonArray>
+#include <QJsonObject>
 #include <chrono>
 #include <glm/glm.hpp>
 #include <string>
@@ -177,6 +179,24 @@ private:
     /// (write_sandbox_result). Asynchronous; the outcome lands in m_sandbox_status.
     void export_sandbox_result(const std::string& stopped_by);
 
+    /// Batch mode (WEBIGEO_SANDBOX_BATCH=<jobs.json>, see mpm-mls-doc/avaframe/README.md): runs a
+    /// list of sandbox runs one after the other, each to rest or to its time limit, exports each
+    /// with its label, writes <jobs>.results.json and optionally quits. Never touches the stored
+    /// user preferences.
+    struct BatchRun {
+        std::string label;
+        std::string dataset;
+        std::string scenario; // empty = the dataset's first
+        std::string material_preset; // preset name; empty = keep the current material
+        QJsonObject settings; // solver settings to override, keys as in MpmSolverNode::serialize_settings
+        float max_time = 400.0f; // [s] simulated; com1DFA's default tEnd
+    };
+    enum class BatchPhase { Idle, Loading, Running, Exporting, Done };
+    bool load_batch(const QString& path);
+    void start_batch_run();
+    void batch_tick(webgpu_compute::nodes::MpmSolverNode& solver);
+    void finish_batch();
+
 private:
     NodeGraphPanel* m_graph_panel;
     bool m_playing = false;
@@ -205,6 +225,14 @@ private:
     bool m_sandbox_stopped = false; // this run has come to rest (paused once, exported once), until the next reset
     float m_sandbox_last_time = 0.0f; // simulated time last frame; going back means a reset
     std::string m_sandbox_status;
+    std::string m_last_export; // directory of the last finished export, or "error: ..."
+
+    QString m_batch_file;
+    std::vector<BatchRun> m_batch;
+    size_t m_batch_index = 0;
+    BatchPhase m_batch_phase = BatchPhase::Idle;
+    bool m_batch_quit = true;
+    QJsonArray m_batch_results;
     SandboxView m_sandbox_view;
 
     /* Simulated seconds per wall-clock second, measured over ~1 s windows while playing. */

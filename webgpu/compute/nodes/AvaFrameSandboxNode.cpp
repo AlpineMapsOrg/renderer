@@ -325,7 +325,9 @@ SandboxRunSummary write_sandbox_result(
         summary.footprint_area_10cm += pft[i] > SANDBOX_FOOTPRINT_THICKNESS ? cell_area : 0.0;
     }
 
-    const QString run_name = QDateTime::currentDateTime().toString("yyyyMMdd-HHmmss") + "_" + QString::fromStdString(t.scenario);
+    const QString label = run_info["label"].toString();
+    const QString run_name = QDateTime::currentDateTime().toString("yyyyMMdd-HHmmss") + "_" + QString::fromStdString(t.scenario)
+        + (label.isEmpty() ? QString() : "_" + label);
     QDir dir(QString::fromStdString(t.dataset_path));
     if (!dir.mkpath("mpm/" + run_name)) {
         summary.error = "cannot create " + dir.filePath("mpm/" + run_name).toStdString();

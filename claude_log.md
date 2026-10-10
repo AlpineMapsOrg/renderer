@@ -159,6 +159,28 @@ solver in metres. Then:
 - Test runs now back up and restore the user's app preferences and imgui.ini. They had
   overwritten startup preset, location and pacing; those were restored by hand.
 
+### 7. AvaFrame comparison, phase 5: AIMEC rating and batch mode
+
+- AvaFrame 2.1 installed in `.venv-avaframe`. It needs Python < 3.14 and Homebrew has only
+  3.14, so the venv uses the system Python 3.9.6; nothing installed system-wide.
+- `compare_aimec.py` builds one AvaFrame avalanche directory per run: dataset inputs, the
+  benchmark as module com1DFA, the MPM as module mpm. It runs AvaFrame's module comparison with
+  the benchmark's own AIMEC configuration, in two threshold variants (ppr > 1 kPa,
+  pft > 0.1 m), and writes `aimec.json`.
+- Batch mode via `WEBIGEO_SANDBOX_BATCH`. Each run is exported with its label; the app writes a
+  results file and quits without touching the preferences (checked by comparing the plist).
+  `params.json` gains wall time and GPU time.
+
+**Pitfall caught:** AIMEC's `deltaSXY` is each result's own length along the path, not the runout
+difference. The first version reported 1767 m "difference". It is now sRunout(MPM) −
+sRunout(com1DFA), and the area indicators are labelled as runout-area only.
+
+**Verified:**
+- AIMEC runs on avaKot. Its comparison plot shows MPM ⊇ reference with lateral spread.
+- The batch reproduces the manual run exactly.
+- Voellmy (com1DFA's mu 0.155, xi 4000) runs further than Coulomb on avaKot: +291 m against
+  +198 m (ppr).
+
 ### 3. iOS build (PR #5, merged) — log entry added after the fact
 
 webgpu_app runs on an iPhone 17 Pro Max. The build uses:

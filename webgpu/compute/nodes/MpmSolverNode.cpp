@@ -731,6 +731,7 @@ void MpmSolverNode::run_impl()
     if (reset) {
         write_initial_state();
         m_simulated_time = 0.0f;
+        m_reset_wall_start = std::chrono::steady_clock::now();
         m_last_state = {};
         m_peak_mean_speed_sq = 0.0f;
         m_at_rest = false;

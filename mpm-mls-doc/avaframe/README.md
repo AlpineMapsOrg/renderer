@@ -201,6 +201,71 @@ Loading a real dataset flies the camera there; "Show on the map" does it again.
 - **This shows place, not physics.** weBIGeo's terrain is not AvaFrame's DEM, so the overlay
   shows where the avalanche is, not how it would run on the map's terrain.
 
+## Phase 5: rating with AIMEC
+
+AvaFrame's own evaluation (AIMEC, Fischer 2013) compares an MPM run with the com1DFA benchmark
+in the coordinates of the avalanche path. AvaFrame 2.1 needs Python < 3.14, so it gets its own
+venv, built from the system Python 3.9:
+
+```bash
+/usr/bin/python3 -m venv mpm-mls-doc/avaframe/.venv-avaframe
+mpm-mls-doc/avaframe/.venv-avaframe/bin/pip install avaframe==2.1
+mpm-mls-doc/avaframe/.venv-avaframe/bin/python mpm-mls-doc/avaframe/compare_aimec.py --latest avaKot
+mpm-mls-doc/avaframe/.venv-avaframe/bin/python mpm-mls-doc/avaframe/compare_aimec.py extern/avaframe_sandbox/avaKot/mpm/<run>
+```
+
+For each run, `compare_aimec.py` builds an AvaFrame avalanche directory in `<run>/aimec/<variant>/`:
+- AvaFrame's inputs for the dataset;
+- the benchmark rasters as module `com1DFA`;
+- the MPM rasters as module `mpm`, under com1DFA-style names.
+
+It runs AvaFrame's module comparison (`dfa2Aimec.dfaBench2Aimec`, `ana3AIMEC.mainAIMEC`) with
+**the benchmark's own `*_AIMECCfg.ini`** (domain width, start of the runout area). AIMEC's plots
+land in `Outputs/ana3AIMEC/com1DFA_mpm/`, and a summary in `<run>/aimec.json`. There are two
+threshold variants:
+- **ppr > 1 kPa**, AvaFrame's default runout criterion. It also counts the MPM's sub-centimetre
+  particle layer wherever those particles are fast.
+- **pft > 0.1 m**, the flow thickness, which ignores that layer.
+
+What the numbers mean (AvaFrame's definitions, `aimecTools.py`):
+- `sRunout`: path coordinate of the last cross section whose maximum exceeds the threshold.
+  The **runout difference** is MPM minus com1DFA.
+- `deltaSXY`: each result's own length along the path, first to last such section. It is **not**
+  a difference, despite the name.
+- `runoutAngle`: travel angle from the first to the last such section, along the thalweg.
+- `TP`, `FN`, `FP`: areas in the **runout area only** (from `startOfRunoutAreaAngle` on), with
+  com1DFA as the reference. Recall = TP/(TP+FN), precision = TP/(TP+FP).
+
+### Batch mode
+
+`WEBIGEO_SANDBOX_BATCH=<jobs.json>` makes the app run a list of sandbox runs one after the
+other. Each run goes to rest (com1DFA's criterion) or to its time limit and is exported with its
+label. The app then writes `<jobs.json>.results.json` and quits. A batch never changes the stored
+user preferences.
+
+```json
+{ "runs": [
+    { "label": "liV_voellmy", "dataset": "avaKot", "scenario": "relKot",
+      "material_preset": "Vallee de la Sionne 2003 (Li 2021 V parameters)",
+      "settings": { "basal_friction_model": 1, "terrain_friction": 0.155, "voellmy_xi": 4000 },
+      "max_time": 400 } ],
+  "quit": true }
+```
+
+`settings` takes any key of `MpmSolverNode::serialize_settings`. `max_time` defaults to 400 s,
+com1DFA's tEnd. `params.json` records:
+- the wall time since the reset and the GPU time (timestamp queries × substeps), for the
+  computing-time comparison;
+- the label and the full solver settings.
+
+Checked (avaKot, two batch runs, 62 s in all): the Coulomb run reproduces the earlier manual
+run exactly (deterministic solver). AIMEC (ppr > 1 kPa / pft > 0.1 m):
+
+| run | runout difference | runout angle (com1DFA 31.0°) | runout area recall | precision |
+|---|---|---|---|---|
+| Li V, Coulomb mu 0.49 | +198 m / +130 m | 28.2° / 29.1° | 1.00 / 1.00 | 0.17 / 0.42 |
+| Li V, Voellmy mu 0.155, xi 4000 | +291 m / +281 m | 27.2° / 27.3° | 1.00 / 0.70 | 0.11 / 0.13 |
+
 ## Not done yet
 
 - Phase 1's overlay PNGs, for the Overlays panel, are superseded by Phase 4's in-app overlay,

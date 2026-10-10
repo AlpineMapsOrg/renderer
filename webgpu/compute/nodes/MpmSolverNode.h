@@ -265,6 +265,8 @@ public:
 
     /// Simulated time [s] accumulated since the last reset.
     float simulated_time() const { return m_simulated_time; }
+    /// Wall-clock seconds since the last reset, pauses included.
+    float wall_time_since_reset() const { return std::chrono::duration<float>(std::chrono::steady_clock::now() - m_reset_wall_start).count(); }
 
     /// World space bounds of the simulated box. Only meaningful after the first run.
     const radix::geometry::Aabb<2, double>& domain_aabb() const { return m_domain_aabb; }
@@ -474,6 +476,7 @@ private:
     std::array<bool, TIMESTAMP_SLOTS> m_timestamp_busy {};
     uint32_t m_chunk_counter = 0;
     std::chrono::steady_clock::time_point m_run_started;
+    std::chrono::steady_clock::time_point m_reset_wall_start = std::chrono::steady_clock::now();
     PerfStats m_perf;
     SimStateReadback m_last_state;
     float m_peak_mean_speed_sq = 0.0f; // since the reset, for the stop criterion
