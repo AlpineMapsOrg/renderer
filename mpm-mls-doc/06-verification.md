@@ -281,6 +281,33 @@ shear-dominated, changes — the shear softening at work. The built-in browser p
 were 2–4× slower and are not usable: the pane was hidden (`visibilityState: hidden`), which
 throttles the page.
 
+## 4k. Metres instead of Web Mercator units — measured, 2026-10-10
+
+The release-point mask comes from the normals node, which corrects for Mercator, and marks
+slopes of 30–45°. A temporary probe in `mpm_seed` sampled one random point per thread over the
+whole domain and averaged the slope the **solver** sees (`terrain_normal`) where the mask is set.
+Li V preset, macOS, removed afterwards.
+
+| Scenario | Before (world units as metres) | After (metres) |
+|---|---|---|
+| Breite Ries (47.78 N) | 25.8° | 35.8° |
+| Grossglockner (47.08 N) | 27.3° | 37.4° |
+| Dachstein (47.48 N) | 25.3° | 35.0° |
+
+Before: tan(37°)/1.47 ≈ 27°, exactly the predicted flattening. After: inside the mask's
+30–45° band. The domain is now its nominal size on the ground (Breite Ries: 0.036° of latitude
+for 4000 m, before 0.024°).
+
+Side effect worth knowing: at Dachstein the first run now has thousands of box
+contacts (band ceiling), because the real cliffs are steeper than the flattened terrain was —
+the terrain-following band can hold a step of about (layers − 4)·dx between neighbouring
+columns ([08-domain-size-options.md](08-domain-size-options.md)). The first attempt at this
+measurement mixed those contacts into the probe (same counters); measured cleanly with contact
+counting switched off for one run.
+
+**All real-terrain results before this date** (runout, speeds, the energy-line numbers on the
+Breite Ries in §4g/§4j) were on terrain flattened by ~1.47 and need re-checking.
+
 ## 5. On real terrain
 
 Runs end to end on the Schneeberg DEM: seeds, flows downhill, deposits, animates, and the

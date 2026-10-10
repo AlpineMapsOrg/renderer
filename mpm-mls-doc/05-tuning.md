@@ -4,7 +4,7 @@
 
 | Setting | Default | Effect |
 |---|---|---|
-| `domain_size_xy` | 1024 m (preset: 4000) | Simulated box. **Clamped to the tiled region** — bigger needs a bigger `GeoRegionNode.extent` (preset: 8000 m). |
+| `domain_size_xy` | 1024 m (preset: 4000) | Simulated box, **in metres on the ground** (since 2026-10-10; before that Web Mercator units, ~1.47× less ground). **Clamped to the tiled region** — bigger needs a bigger `GeoRegionNode.extent` (preset: 8000 m). |
 | `grid_resolution_xy` | 64 (preset: 320) | With domain size, sets `dx`. Memory and grid work are `res² × layers`. |
 | `grid_layers` | 12 (was 16) | Node layers stored above the terrain per column (the grid follows the surface). Headroom for piles and terrain steps, not the relief. 10–16 is plenty; the pile headroom is `dx × (layers − 4.5)`. |
 | `dt` | 0.01 s (preset: 0.02) | CFL bound; the node lowers it to 80 % of `max_stable_dt()` before any run that exceeds it. Too large = explosion. Stomakhin at 12.5 m cells is fine up to at least 0.03 (09-performance-analysis.md §8.4). |

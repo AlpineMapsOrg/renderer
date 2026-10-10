@@ -75,7 +75,8 @@ fn computeMain(@builtin(global_invocation_id) id: vec3<u32>) {
             // sample hits is the share of the disc that holds snow - see seeded_particle_volume().
             if attempt == 0u {
                 atomicAdd(&state.seed_first_hits, 1u);
-            }            found = true;
+            }
+            found = true;
             world_xy = candidate;
             break;
         }

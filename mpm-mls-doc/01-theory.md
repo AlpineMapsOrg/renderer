@@ -280,6 +280,11 @@ the model being right about weak snow, not a bug.
 
 Not in the source papers — this is the geographic part of the project.
 
+**Units.** The solver works in metres on the ground. weBIGeo's world coordinates are Web
+Mercator (1/cos(latitude) too long horizontally), heights are metres; the node converts with
+cos(latitude) — see [04-data-layout.md](04-data-layout.md#coordinate-conventions). Until
+2026-10-10 it did not, and every slope was simulated too flat.
+
 **Height sampling.** The stitched DEM is `R32Float` and therefore *not filterable*, so
 `textureSample` is unavailable. `sample_height_uv()` does manual bilinear interpolation from
 four `textureLoad` calls. Heights are metres above sea level (the decode shader scales by

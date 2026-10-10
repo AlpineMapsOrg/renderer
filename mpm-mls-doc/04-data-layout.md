@@ -7,11 +7,21 @@ error — so it is written down.
 
 | Quantity | Convention |
 |---|---|
-| `particle.position.xy` | World metres, **relative to the min corner of the region AABB** |
+| `particle.position.xy` | **Metres on the ground**, relative to the min corner of the region AABB. Not world units (see below) |
 | `particle.position.z` | **Absolute altitude** in metres (same units as the height texture) |
 | Texture UV | u grows with +x, **v grows with −y** (`v = 1 − y/region_size.y`) |
 | Grid space | `(position.xy − domain_origin) / dx` horizontally; **`position.z / dx`** vertically, i.e. the z index is absolute altitude in cells. Only a band of layers per column is stored — see below. |
 | Settings lat/lon | `glm::dvec2(latitude, longitude)`, converted in `update_gpu_settings()` |
+
+**Metres, not world units (2026-10-10).** weBIGeo's world coordinates are Web Mercator, which
+stretches horizontal distances by 1/cos(latitude) — 1.47 at 47° N — while heights are real
+metres. Until 2026-10-10 the solver took world units as metres, so every horizontal distance was
+1.47× too long: slopes too flat (a 37° slope at about 27°) and the "4000 m" domain only ~2700 m
+on the ground. `MpmSolverNode::update_gpu_settings()` now converts region size, domain position
+and release centre to metres with `cos(latitude of the region centre)`, and converts the domain
+box back to world units for the map. One factor per region is enough: across a few kilometres it
+varies by well under 0.1 %. `region_size` in the uniform is therefore in metres; the uv mapping is
+a ratio and does not care. Measurement: [06-verification.md](06-verification.md) §4k.
 
 The v-flip matches `avalanche_trajectories_compute.wgsl` and the height texture (row 0 =
 north). `world_to_uv()` is the only place it is applied — go through it.

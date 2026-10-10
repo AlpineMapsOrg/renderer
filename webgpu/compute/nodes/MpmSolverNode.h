@@ -250,6 +250,12 @@ public:
     /// World space bounds of the simulated box. Only meaningful after the first run.
     const radix::geometry::Aabb<2, double>& domain_aabb() const { return m_domain_aabb; }
 
+    /// Edge length of the simulated box in metres, after clamping to the region. The solver
+    /// works in metres; world units are Web Mercator (see update_gpu_settings).
+    float domain_size_metres() const { return m_settings_uniform.data.domain_size_xy; }
+    /// Metres per world unit at the region, cos(latitude). 1 until the first run.
+    double metres_per_world_unit() const { return m_metres_per_world_unit; }
+
     /// Diagnostics read back from the GPU after each run. Arrives asynchronously, so it
     /// describes the *previous* completed run; `valid` is false until the first readback.
     struct SimStateReadback {
@@ -391,6 +397,7 @@ private:
     uint32_t m_allocated_raster_resolution = 0;
 
     radix::geometry::Aabb<2, double> m_domain_aabb;
+    double m_metres_per_world_unit = 1.0;
     glm::uvec2 m_output_dimensions = glm::uvec2(0);
     float m_simulated_time = 0.0f;
 

@@ -344,7 +344,15 @@ float MpmSolverNode::max_stable_dt(const MpmSolverSettings& settings, float dx)
 
 void MpmSolverNode::update_gpu_settings(const radix::geometry::Aabb<2, double>& region_aabb, const webgpu::raii::TextureWithSampler& height_texture)
 {
-    const glm::fvec2 region_size = glm::fvec2(region_aabb.size());
+    // The solver works in metres. World units are Web Mercator, which stretches distances by
+    // 1/cos(latitude) - 1.47 at 47 degrees N - while heights are real metres, so taking world
+    // units as metres simulates every slope too flat (a 37 degree slope at about 27). Region
+    // offsets are scaled to metres here and the domain box scaled back for the map; across a
+    // few kilometres the scale varies by well under 0.1 %, so one factor for the region is enough.
+    const glm::dvec2 region_centre = nucleus::srs::world_to_lat_long((region_aabb.min + region_aabb.max) * 0.5);
+    m_metres_per_world_unit = std::cos(glm::radians(region_centre.x));
+    const double to_metres = m_metres_per_world_unit;
+    const glm::fvec2 region_size = glm::fvec2(region_aabb.size() * to_metres);
     // The domain cannot usefully exceed the terrain we actually have: outside the region the
     // height texture clamps to its edge texel, which would be a flat extrusion, not terrain.
     const float region_limit = std::max(std::min(region_size.x, region_size.y), 1.0f);
@@ -355,7 +363,7 @@ void MpmSolverNode::update_gpu_settings(const radix::geometry::Aabb<2, double>& 
     // Geographic anchors are converted here, where the region bounds are known, so tile
     // snapping cannot move the scenario relative to the ground.
     const glm::dvec2 domain_centre_world = nucleus::srs::lat_long_to_world(m_settings.domain_center);
-    const glm::fvec2 requested_origin = glm::fvec2(domain_centre_world - region_aabb.min) - glm::fvec2(domain_size * 0.5f);
+    const glm::fvec2 requested_origin = glm::fvec2((domain_centre_world - region_aabb.min) * to_metres) - glm::fvec2(domain_size * 0.5f);
     const glm::fvec2 max_origin = glm::max(region_size - glm::fvec2(domain_size), glm::fvec2(0.0f));
     const glm::fvec2 domain_origin = glm::clamp(requested_origin, glm::fvec2(0.0f), max_origin);
 
@@ -412,7 +420,7 @@ void MpmSolverNode::update_gpu_settings(const radix::geometry::Aabb<2, double>& 
     const glm::dvec2 release_world = nucleus::srs::lat_long_to_world(m_settings.release_center);
     data.release_radius = std::clamp(m_settings.release_radius, 1.0f, domain_size * 0.4f);
     const float margin = data.release_radius + 2.0f * dx;
-    const glm::fvec2 release_centre = glm::clamp(glm::fvec2(release_world - region_aabb.min),
+    const glm::fvec2 release_centre = glm::clamp(glm::fvec2((release_world - region_aabb.min) * to_metres),
         domain_origin + glm::fvec2(margin),
         domain_origin + glm::fvec2(domain_size - margin));
     data.release_centre_x = release_centre.x;
@@ -445,8 +453,10 @@ void MpmSolverNode::update_gpu_settings(const radix::geometry::Aabb<2, double>& 
     m_settings_uniform.update_gpu_data(m_ctx->queue());
 
     // World space bounds of the simulated area, so the result can be placed on the map.
-    const glm::dvec2 domain_min = region_aabb.min + glm::dvec2(domain_origin);
-    m_domain_aabb = { domain_min, domain_min + glm::dvec2(double(domain_size)) };
+    // World space bounds of the simulated area (back from metres to world units), so the result
+    // can be placed on the map.
+    const glm::dvec2 domain_min = region_aabb.min + glm::dvec2(domain_origin) / to_metres;
+    m_domain_aabb = { domain_min, domain_min + glm::dvec2(double(domain_size)) / to_metres };
 }
 
 void MpmSolverNode::write_initial_state()
@@ -670,7 +680,8 @@ void MpmSolverNode::run_impl()
         qInfo().nospace() << "MpmSolverNode: simulating " << m_settings.domain_size_xy << " m domain at centre " << centre.x << ", " << centre.y
                           << " (lat " << south_west.x << ".." << north_east.x << ", lon " << south_west.y << ".." << north_east.y << "), "
                           << m_allocated_grid_res.x << "x" << m_allocated_grid_res.y << " grid, " << m_allocated_grid_res.z << " layers, dx "
-                          << m_settings_uniform.data.dx << " m, " << m_allocated_particles << " particles";
+                          << m_settings_uniform.data.dx << " m, " << m_allocated_particles << " particles, " << m_metres_per_world_unit
+                          << " m per world unit";
     } else {
         // Per-run counters only; the terrain scan and seed count from the reset must survive.
         reset_run_counters();

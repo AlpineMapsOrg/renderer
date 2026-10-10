@@ -13,6 +13,20 @@ capture of the terminal.
 
 ---
 
+## 2026-10-10
+
+### 1. Solver in metres instead of Web Mercator units (branch `mpm-metric-units`)
+
+Found while planning the AvaFrame comparison: `MpmSolverNode` took world units (Web Mercator,
+1/cos(latitude) too long horizontally) as metres, while heights are metres. **Measured** before
+changing anything, with a temporary probe comparing the slope the solver sees against the
+Mercator-corrected release mask (30–45°): 25.3–27.3° on all three scenarios, i.e. tan 37°/1.47.
+**Fix:** region size, domain position and release centre converted to metres with
+cos(latitude of the region centre); domain box converted back for the map; panel readout from
+the node's metric domain size. **Measured after:** 35.0–37.4°. Probe removed. Doc: 04 (coordinate
+conventions), 06 §4k, 01 §5, 05. **Consequence:** all earlier real-terrain results ran on
+flattened slopes; Dachstein now produces band-ceiling contacts on its cliffs. Not committed.
+
 ## 2026-10-03
 
 ### 1. Issue #3 audit, re-checked with Klár 2016 and Wolper 2019

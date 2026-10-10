@@ -575,7 +575,7 @@ void AvalanchePanel::draw_panel()
 
     // The domain is clamped to the terrain the graph actually stitched, so report what the
     // solver settled on rather than what was asked for.
-    const float effective_domain = float(aabb.size().x);
+    const float effective_domain = solver->domain_size_metres();
     const float dx = effective_domain / float(std::max(settings.grid_resolution_xy, 1u));
     ImGui::TextDisabled("Effective: %.0f m box, %.1f m cells, %.0f m band above terrain", double(effective_domain), double(dx),
         double(dx * float(settings.grid_layers)));

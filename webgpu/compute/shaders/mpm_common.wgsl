@@ -23,7 +23,9 @@
 // ---------------------------------------------------------------------------------------
 // Coordinate conventions
 // ---------------------------------------------------------------------------------------
-// * particle.position.xy  world meters, relative to the min corner of the region aabb.
+// * particle.position.xy  metres on the ground, relative to the min corner of the region aabb.
+//                         Not world units: those are Web Mercator, 1/cos(latitude) times too
+//                         long; MpmSolverNode converts (update_gpu_settings).
 // * particle.position.z   absolute altitude in meters (same units as the height texture).
 // * texture uv            u grows with +x, v grows with -y (matches avalanche_trajectories_compute).
 // * grid space            (position - domain origin) / dx horizontally; vertically plain
@@ -38,7 +40,7 @@ struct MpmSettings {
     domain_size_xy: f32, // horizontal edge length of the domain in meters
     dx: f32, // grid spacing in meters (domain_size_xy / grid_res.x)
 
-    region_size: vec2f, // world size of the whole region in meters
+    region_size: vec2f, // size of the whole region in metres (converted from world units)
     height_texture_dim: vec2u,
 
     dt: f32,
