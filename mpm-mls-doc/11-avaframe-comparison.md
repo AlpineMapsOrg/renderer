@@ -40,6 +40,31 @@ so differences come from the models, not from terrain or coordinates.
   - basal laws: Coulomb with the preset's μ (0.47, or 0.49 for Li V), and Voellmy with
     com1DFA's Voellmy parameters μ 0.155, ξ 4000 m/s².
 
+**Material choice.** The result depends on the snow material, so the choice needs stating.
+These are the app's existing presets, one per material model, none tuned to these avalanches:
+
+| material model | preset | E / ν | ρ | parameters | Coulomb μ |
+|---|---|---|---|---|---|
+| Stomakhin 2013 | film snow | 0.14 MPa / 0.2 | 400 | ξ 10, θc 2.5·10⁻², θs 7.5·10⁻³ | 0.47 |
+| Drucker–Prager | cold dense, cohesionless | 3 MPa / 0.3 | 250 | φ 13.3° (from Li's M = 0.5) | 0.47 |
+| Cohesive Cam Clay | Li 2021 case V (Vallée de la Sionne 2003) | 3 MPa / 0.3 | 200 | M 0.7, β 0.2, ξ 0.002, p₀ 3 kPa | 0.49 |
+
+Why these:
+- **Li case V** is the only preset back-calculated from a real avalanche, and it uses the
+  benchmarks' density of 200 kg/m³. It is the solver's default for that reason.
+- **Drucker–Prager** is the cohesionless counterpart, with φ derived from Li's case I M = 0.5.
+- **Stomakhin** is the project's original material, made for film visuals, as the baseline.
+- **Friction.** Coulomb is what Li uses on real terrain. Voellmy with com1DFA's μ 0.155 and
+  ξ 4000 is the closest we have to com1DFA's law; there is no samosAT in the MPM.
+- **No per-avalanche tuning.** com1DFA's benchmarks also use one parameter set for all cases.
+  Calibrating per avalanche would make the MPM fit com1DFA by construction.
+
+Consequences:
+- **Li's cases I–IV were not run.** The ranking of materials holds for these three parameter
+  sets only.
+- **The material behaviour is only partly resolved at 5–7.7 m cells.** Li uses 0.5 m.
+- **None of the presets is known to match the events' snow.**
+
 **Rating.** AIMEC compares each result with the com1DFA reference in the coordinates of the
 avalanche path (AvaFrame's `path_aimec`), with each benchmark's own AIMEC settings (domain
 width, start of the runout area). Two thresholds:
@@ -225,7 +250,8 @@ faster than real time, it already beats the data-driven runout models on runout 
 - **The AIMEC path is finite.** Runouts beyond its end show as "≥" and count with their lower
   bound in the means. The models that run furthest therefore look somewhat better than they are.
 - **One run per configuration.** The solver is deterministic, so a rerun gives the same result.
-  There is no sensitivity study (particles, cell size, layers) yet.
+  There is no sensitivity study (particles, cell size, layers) yet. Material parameters (Li
+  I–IV) and friction (μ sweep) have not been varied either; see section 1, "Material choice".
 - **Computing time.** Wall time includes rendering and was measured while com4FlowPy ran on the
   CPU. GPU time is the solver's own, from timestamp queries (Apple M5). com1DFA's run time is
   from the benchmark metadata, on unknown hardware.
