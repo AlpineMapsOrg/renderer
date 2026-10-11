@@ -69,9 +69,8 @@ How to read the tables:
   "≥" also has a runout angle that is too steep.
 - **"walls".** The share of particle-substeps at the domain walls. The MPM domain is the whole
   DEM (512 cells of 5.0–7.7 m), and walls stay at 0–0.1 %.
-- **com4FlowPy** is listed for avaKot and avaGar only. On the other three it was still running
-  when these tables were made (5½ and 53 min per dataset on all CPU cores). Its wall time on
-  avaGar includes contention with the MPM batch.
+- **com4FlowPy** took 11–146 min per dataset on all CPU cores. avaGar and avaHit ran alongside the
+  MPM batch and AIMEC, so their wall times include contention.
 - **Footprint** is pft > 0.1 m for the MPM and cells reached for com4FlowPy and the trajectories.
 
 #### avaKot (reference avaKotNullTest: 11.7 ha, max pfv 40 m/s, com1DFA run time 118 s)
@@ -104,6 +103,7 @@ How to read the tables:
 
 | model | runout diff. ppr>1 kPa / pft>0.1 m [m] | runout angle [°] (com1DFA) | runout area recall / precision (pft) | footprint [ha] | max pfv [m/s] | t_sim [s] | wall / GPU [s] | walls |
 |---|---|---|---|---|---|---|---|---|
+| com4FlowPy (AvaFrame, defaults) | +91 / +96 | 26.2 (28.2) | 0.99 / 0.47 | 146.9 | 75 | – | 8789 / – | – |
 | weBIGeo trajectories (alpha 25, theta 24, p 0.4) | +196 / +206 | 23.8 (28.2) | 0.94 / 0.37 | 151.3 | 76 | – | 1 / – | – |
 | MPM Stomakhin 2013, Coulomb | -120 / -110 | 29.7 (28.2) | 0.81 / 0.84 | 129.0 | 57 | 151 | 103 / 67 | 0.00 % |
 | MPM Stomakhin 2013, Voellmy | ≥+220 / ≥+225 | 23.3 (28.2) | 1.00 / 0.34 | 174.3 | 104 | 70 | 43 / 23 | 0.00 % |
@@ -116,6 +116,7 @@ How to read the tables:
 
 | model | runout diff. ppr>1 kPa / pft>0.1 m [m] | runout angle [°] (com1DFA) | runout area recall / precision (pft) | footprint [ha] | max pfv [m/s] | t_sim [s] | wall / GPU [s] | walls |
 |---|---|---|---|---|---|---|---|---|
+| com4FlowPy (AvaFrame, defaults) | -49 / -44 | 26.0 (25.5) | 0.34 / 0.97 | 49.2 | 58 | – | 657 / – | – |
 | weBIGeo trajectories (alpha 25, theta 24, p 0.4) | +34 / +44 | 25.0 (25.5) | 0.97 / 0.67 | 72.8 | 62 | – | 1 / – | – |
 | MPM Stomakhin 2013, Coulomb | -975 / -1000 | 31.9 (25.5) | 0.00 / – | 34.4 | 45 | 51 | 27 / 15 | 0.00 % |
 | MPM Stomakhin 2013, Voellmy | +84 / +84 | 24.6 (25.5) | 0.58 / 0.60 | 53.7 | 82 | 66 | 32 / 14 | 0.00 % |
@@ -128,6 +129,7 @@ How to read the tables:
 
 | model | runout diff. ppr>1 kPa / pft>0.1 m [m] | runout angle [°] (com1DFA) | runout area recall / precision (pft) | footprint [ha] | max pfv [m/s] | t_sim [s] | wall / GPU [s] | walls |
 |---|---|---|---|---|---|---|---|---|
+| com4FlowPy (AvaFrame, defaults) | -119 / -115 | 26.6 (25.4) | 0.28 / 1.00 | 110.6 | 64 | – | 4760 / – | – |
 | weBIGeo trajectories (alpha 25, theta 24, p 0.4) | -27 / -22 | 25.6 (25.4) | 0.84 / 0.36 | 148.8 | 67 | – | 1 / – | – |
 | MPM Stomakhin 2013, Coulomb | -779 / -775 | 29.0 (25.4) | 0.00 / – | 92.7 | 56 | 57 | 29 / 17 | 0.00 % |
 | MPM Stomakhin 2013, Voellmy | +164 / +160 | 23.9 (25.4) | 0.87 / 0.38 | 188.4 | 90 | 106 | 48 / 28 | 0.00 % |
@@ -140,7 +142,7 @@ How to read the tables:
 
 | model | datasets | mean abs. runout difference [m] | of them at the path end (lower bound) | mean abs. runout angle difference [°] | mean recall / precision | max pfv range [m/s] |
 |---|---|---|---|---|---|---|
-| com4FlowPy (AvaFrame, defaults) | 2 | 337 | 0 | 4.4 | 0.95 / 0.22 | 78–81 |
+| com4FlowPy (AvaFrame, defaults) | 5 | 186 | 0 | 2.5 | 0.70 / 0.58 | 58–81 |
 | weBIGeo trajectories (alpha 25, theta 24, p 0.4) | 5 | 229 | 1 | 3.4 | 0.94 / 0.33 | 62–86 |
 | MPM Stomakhin 2013, Coulomb | 5 | 415 | 0 | 2.7 | 0.32 / 0.87 | 45–57 |
 | MPM Stomakhin 2013, Voellmy | 5 | 266 | 1 | 3.8 | 0.79 / 0.36 | 76–104 |
@@ -182,15 +184,18 @@ How to read the tables:
    the long, flat-ending avalanches: avaWog +44 m, avaMal −22 m. It overshoots the steep, short
    ones: avaKot +575 m, avaGar ≥ +297 m. With a fixed α of 25°, an energy-line model can only
    match avalanches whose runout angle is near 25°; com1DFA's are 25.4–31.0°. Its footprints
-   are 1.1–7× com1DFA's. com4FlowPy, with the same α, behaves the same way on the two datasets
-   it has finished (+474 m, +200 m).
-7. **Computing time.**
+   are 1.1–7× com1DFA's.
+7. **com4FlowPy** (same α 25°) shows the same pattern, but milder. It is too long on the steep
+   ones (+474 m avaKot, +200 m avaGar), close on avaHit (+96 m), and short on the long ones
+   (−44 m avaWog, −115 m avaMal). Mean 186 m and 2.5°, between the trajectory model and the
+   best MPM variant.
+8. **Computing time.**
 
    | model | time | for |
    |---|---|---|
    | MPM | 3–67 s GPU, 5–103 s wall with rendering | 51–231 s simulated, faster than real time on an M5 |
    | trajectory model | about 1 s | one run |
-   | com4FlowPy | 5½–53 min, on the CPU | one dataset |
+   | com4FlowPy | 11–146 min, on the CPU | one dataset |
    | com1DFA | 118–174 s | the benchmark's simulated run time, not its computing time, which the metadata does not give |
 
    So there is no fair comparison of computing time with com1DFA from these data.
@@ -200,8 +205,8 @@ and its travel angle to about 2°, with the right material (Cam Clay with Li V p
 Coulomb friction. It does not reproduce the speeds and pressures, and com1DFA's Voellmy
 parameters do not carry over. As a physical model of the flow it is still behind the
 depth-averaged reference. As an interactive model that runs in a browser-class GPU budget
-faster than real time, it already beats the data-driven runout models on travel angle (Cam Clay:
-1.5° against 3.4° for the trajectories).
+faster than real time, it already beats the data-driven runout models on runout and travel angle
+(Cam Clay: 135 m and 1.5°; com4FlowPy: 186 m and 2.5°; trajectory model: 229 m and 3.4°).
 
 ## 4. Limits of this comparison
 

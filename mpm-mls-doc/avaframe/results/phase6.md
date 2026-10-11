@@ -28,6 +28,7 @@
 
 | model | runout diff. ppr>1 kPa / pft>0.1 m [m] | runout angle [°] (com1DFA) | runout area recall / precision (pft) | footprint [ha] | max pfv [m/s] | t_sim [s] | wall / GPU [s] | walls |
 |---|---|---|---|---|---|---|---|---|
+| com4FlowPy (AvaFrame, defaults) | +91 / +96 | 26.2 (28.2) | 0.99 / 0.47 | 146.9 | 75 | – | 8789 / – | – |
 | weBIGeo trajectories (alpha 25, theta 24, p 0.4) | +196 / +206 | 23.8 (28.2) | 0.94 / 0.37 | 151.3 | 76 | – | 1 / – | – |
 | MPM Stomakhin 2013, Coulomb | -120 / -110 | 29.7 (28.2) | 0.81 / 0.84 | 129.0 | 57 | 151 | 103 / 67 | 0.00 % |
 | MPM Stomakhin 2013, Voellmy | ≥+220 / ≥+225 | 23.3 (28.2) | 1.00 / 0.34 | 174.3 | 104 | 70 | 43 / 23 | 0.00 % |
@@ -40,6 +41,7 @@
 
 | model | runout diff. ppr>1 kPa / pft>0.1 m [m] | runout angle [°] (com1DFA) | runout area recall / precision (pft) | footprint [ha] | max pfv [m/s] | t_sim [s] | wall / GPU [s] | walls |
 |---|---|---|---|---|---|---|---|---|
+| com4FlowPy (AvaFrame, defaults) | -49 / -44 | 26.0 (25.5) | 0.34 / 0.97 | 49.2 | 58 | – | 657 / – | – |
 | weBIGeo trajectories (alpha 25, theta 24, p 0.4) | +34 / +44 | 25.0 (25.5) | 0.97 / 0.67 | 72.8 | 62 | – | 1 / – | – |
 | MPM Stomakhin 2013, Coulomb | -975 / -1000 | 31.9 (25.5) | 0.00 / – | 34.4 | 45 | 51 | 27 / 15 | 0.00 % |
 | MPM Stomakhin 2013, Voellmy | +84 / +84 | 24.6 (25.5) | 0.58 / 0.60 | 53.7 | 82 | 66 | 32 / 14 | 0.00 % |
@@ -52,6 +54,7 @@
 
 | model | runout diff. ppr>1 kPa / pft>0.1 m [m] | runout angle [°] (com1DFA) | runout area recall / precision (pft) | footprint [ha] | max pfv [m/s] | t_sim [s] | wall / GPU [s] | walls |
 |---|---|---|---|---|---|---|---|---|
+| com4FlowPy (AvaFrame, defaults) | -119 / -115 | 26.6 (25.4) | 0.28 / 1.00 | 110.6 | 64 | – | 4760 / – | – |
 | weBIGeo trajectories (alpha 25, theta 24, p 0.4) | -27 / -22 | 25.6 (25.4) | 0.84 / 0.36 | 148.8 | 67 | – | 1 / – | – |
 | MPM Stomakhin 2013, Coulomb | -779 / -775 | 29.0 (25.4) | 0.00 / – | 92.7 | 56 | 57 | 29 / 17 | 0.00 % |
 | MPM Stomakhin 2013, Voellmy | +164 / +160 | 23.9 (25.4) | 0.87 / 0.38 | 188.4 | 90 | 106 | 48 / 28 | 0.00 % |
@@ -64,7 +67,7 @@
 
 | model | datasets | mean abs. runout difference [m] | of them at the path end (lower bound) | mean abs. runout angle difference [°] | mean recall / precision | max pfv range [m/s] |
 |---|---|---|---|---|---|---|
-| com4FlowPy (AvaFrame, defaults) | 2 | 337 | 0 | 4.4 | 0.95 / 0.22 | 78–81 |
+| com4FlowPy (AvaFrame, defaults) | 5 | 186 | 0 | 2.5 | 0.70 / 0.58 | 58–81 |
 | weBIGeo trajectories (alpha 25, theta 24, p 0.4) | 5 | 229 | 1 | 3.4 | 0.94 / 0.33 | 62–86 |
 | MPM Stomakhin 2013, Coulomb | 5 | 415 | 0 | 2.7 | 0.32 / 0.87 | 45–57 |
 | MPM Stomakhin 2013, Voellmy | 5 | 266 | 1 | 3.8 | 0.79 / 0.36 | 76–104 |

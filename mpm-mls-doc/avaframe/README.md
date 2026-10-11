@@ -291,7 +291,6 @@ of the AIMEC path are marked "≥" (lower bounds). Results and discussion:
 
 - Phase 1's overlay PNGs, for the Overlays panel, are superseded by Phase 4's in-app overlay,
   but kept: they come straight from pyproj.
-- com4FlowPy on avaHit, avaWog and avaMal (still running when the tables were made).
 - Why Voellmy with com1DFA's parameters gives so little drag in the MPM (see 11, finding 3).
 - GeoTIFF DEMs.
 - Entrainment and resistance benchmarks. They are ignored on purpose: the MPM solver has

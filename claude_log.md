@@ -205,7 +205,8 @@ sRunout(com1DFA), and the area indicators are labelled as runout-area only.
 - **Stomakhin's film snow stops early on the long avalanches.**
 - **The trajectory model is good where com1DFA's angle is near its α of 25°** and overshoots
   elsewhere.
-- **com4FlowPy finished only avaKot and avaGar** (5½ and 53 min).
+- **com4FlowPy, on all five after the PR (11–146 min each):** mean 186 m and 2.5°. It sits
+  between the trajectory model and the best MPM variant.
 
 ### 3. iOS build (PR #5, merged) — log entry added after the fact
 
