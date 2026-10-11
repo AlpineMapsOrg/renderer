@@ -34,6 +34,14 @@ MODELS = [
     ("dp_voellmy", "MPM Drucker-Prager, Voellmy"),
     ("liV_coulomb", "MPM Cam Clay (Li V), Coulomb"),
     ("liV_voellmy", "MPM Cam Clay (Li V), Voellmy"),
+    # Robustness: Li 2021's other cases, and the basal friction of the best variant.
+    ("liI_coulomb", "MPM Cam Clay (Li I cold dense), Coulomb"),
+    ("liII_coulomb", "MPM Cam Clay (Li II warm shear), Coulomb"),
+    ("liIII_coulomb", "MPM Cam Clay (Li III sliding slab), Coulomb"),
+    ("liIV_coulomb", "MPM Cam Clay (Li IV warm plug), Coulomb"),
+    ("liV_coulomb_mu040", "MPM Cam Clay (Li V), Coulomb mu 0.40"),
+    ("liV_coulomb_mu047", "MPM Cam Clay (Li V), Coulomb mu 0.47"),
+    ("liV_coulomb_mu055", "MPM Cam Clay (Li V), Coulomb mu 0.55"),
 ]
 
 

@@ -40,6 +40,8 @@
 #include "ui/AboutPanel.h"
 #include "ui/AppPanel.h"
 #include "ui/CameraPanel.h"
+#include <nucleus/camera/Controller.h>
+#include <nucleus/camera/Definition.h>
 #include "ui/CompassPanel.h"
 #include "ui/LogoPanel.h"
 #include "ui/SearchPanel.h"
@@ -109,8 +111,10 @@ void ImGuiManager::init(
     // Keeps a pointer to the graph panel so it can find the solver node in the active graph.
     auto* node_graph_panel = static_cast<NodeGraphPanel*>((m_panels.end() - 1)->get());
     m_panels.push_back(std::make_unique<AvalanchePanel>(node_graph_panel));
-    connect(static_cast<AvalanchePanel*>((m_panels.end() - 1)->get()), &AvalanchePanel::fly_to_requested, m_terrain_renderer->get_camera_controller(),
-        &nucleus::camera::Controller::fly_to_latitude_longitude);
+    connect(static_cast<AvalanchePanel*>((m_panels.end() - 1)->get()), &AvalanchePanel::camera_requested, this,
+        [controller = m_terrain_renderer->get_camera_controller()](glm::dvec3 position, glm::dvec3 look_at) {
+            controller->set_model_matrix(nucleus::camera::Definition(position, look_at));
+        });
 #endif
     m_panels.push_back(std::make_unique<OverlaysPanel>(engine_ctx));
 

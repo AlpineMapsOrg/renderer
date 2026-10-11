@@ -60,8 +60,8 @@ Why these:
   Calibrating per avalanche would make the MPM fit com1DFA by construction.
 
 Consequences:
-- **Li's cases I–IV were not run.** The ranking of materials holds for these three parameter
-  sets only.
+- **Li's cases I–IV and a μ sweep were run afterwards** (findings 1–3). The ranking changed:
+  Li I (cold dense) fits best.
 - **The material behaviour is only partly resolved at 5–7.7 m cells.** Li uses 0.5 m.
 - **None of the presets is known to match the events' snow.**
 
@@ -104,12 +104,19 @@ How to read the tables:
 |---|---|---|---|---|---|---|---|---|
 | com4FlowPy (AvaFrame, defaults) | +469 / +474 | 25.1 (31.0) | 0.99 / 0.13 | 34.3 | 81 | – | – / – | – |
 | weBIGeo trajectories (alpha 25, theta 24, p 0.4) | +575 / +575 | 24.1 (31.0) | 0.99 / 0.10 | 81.3 | 86 | – | 1 / – | – |
-| MPM Stomakhin 2013, Coulomb | +8 / +8 | 30.9 (31.0) | 0.68 / 0.75 | 12.5 | 54 | 80 | 5 / 3 | 0.00 % |
-| MPM Stomakhin 2013, Voellmy | ≥+598 / +589 | 24.0 (31.0) | 0.65 / 0.14 | 38.3 | 83 | 73 | 5 / 3 | 0.00 % |
-| MPM Drucker-Prager, Coulomb | +532 / +247 | 27.7 (31.0) | 0.95 / 0.37 | 28.1 | 113 | 88 | 53 / 34 | 0.00 % |
-| MPM Drucker-Prager, Voellmy | ≥+598 / +512 | 24.8 (31.0) | 0.75 / 0.10 | 51.0 | 116 | 61 | 42 / 30 | 0.06 % |
-| MPM Cam Clay (Li V), Coulomb | +213 / +164 | 28.6 (31.0) | 0.98 / 0.35 | 20.7 | 100 | 89 | 43 / 25 | 0.00 % |
-| MPM Cam Clay (Li V), Voellmy | ≥+598 / +455 | 25.4 (31.0) | 0.74 / 0.10 | 41.3 | 108 | 60 | 34 / 23 | 0.00 % |
+| MPM Stomakhin 2013, Coulomb | +8 / +8 | 30.9 (31.0) | 0.67 / 0.75 | 12.5 | 54 | 80 | 3 / 2 | 0.00 % |
+| MPM Stomakhin 2013, Voellmy | ≥+598 / ≥+598 | 23.9 (31.0) | 0.62 / 0.14 | 36.1 | 81 | 76 | 3 / 2 | 0.00 % |
+| MPM Drucker-Prager, Coulomb | +532 / +247 | 27.7 (31.0) | 0.95 / 0.37 | 28.2 | 113 | 89 | 35 / 24 | 0.00 % |
+| MPM Drucker-Prager, Voellmy | ≥+598 / +512 | 24.8 (31.0) | 0.75 / 0.10 | 51.0 | 116 | 61 | 28 / 32 | 0.06 % |
+| MPM Cam Clay (Li V), Coulomb | +213 / +155 | 28.8 (31.0) | 0.99 / 0.35 | 20.3 | 113 | 88 | 31 / 25 | 0.00 % |
+| MPM Cam Clay (Li V), Voellmy | ≥+598 / +469 | 25.2 (31.0) | 0.68 / 0.09 | 40.6 | 111 | 60 | 24 / 23 | 0.01 % |
+| MPM Cam Clay (Li I cold dense), Coulomb | +296 / +189 | 28.3 (31.0) | 0.94 / 0.29 | 30.4 | 125 | 85 | 28 / 26 | 0.00 % |
+| MPM Cam Clay (Li II warm shear), Coulomb | +125 / -40 | 31.6 (31.0) | 0.48 / 0.75 | 13.3 | 75 | 91 | 25 / 20 | 0.00 % |
+| MPM Cam Clay (Li III sliding slab), Coulomb | -72 / -63 | 31.9 (31.0) | 0.47 / 0.85 | 13.1 | 52 | 83 | 18 / 15 | 0.00 % |
+| MPM Cam Clay (Li IV warm plug), Coulomb | -690 / -690 | 36.6 (31.0) | 0.00 / – | 6.8 | 44 | 56 | 12 / 9 | 0.00 % |
+| MPM Cam Clay (Li V), Coulomb mu 0.40 | +426 / +271 | 27.4 (31.0) | 0.81 / 0.22 | 23.9 | 106 | 74 | 22 / 19 | 0.00 % |
+| MPM Cam Clay (Li V), Coulomb mu 0.47 | +232 / +169 | 28.6 (31.0) | 0.94 / 0.31 | 21.2 | 107 | 84 | 28 / 20 | 0.00 % |
+| MPM Cam Clay (Li V), Coulomb mu 0.55 | +159 / +77 | 29.9 (31.0) | 0.97 / 0.54 | 15.9 | 107 | 100 | 34 / 25 | 0.00 % |
 
 #### avaGar (reference avaGarNullTest: 28.2 ha, max pfv 50 m/s, com1DFA run time 122 s)
 
@@ -117,12 +124,19 @@ How to read the tables:
 |---|---|---|---|---|---|---|---|---|
 | com4FlowPy (AvaFrame, defaults) | +200 / +200 | 26.3 (29.3) | 0.91 / 0.31 | 31.5 | 78 | – | 3159 / – | – |
 | weBIGeo trajectories (alpha 25, theta 24, p 0.4) | ≥+294 / ≥+297 | 24.5 (29.3) | 0.97 / 0.17 | 59.7 | 73 | – | 0 / – | – |
-| MPM Stomakhin 2013, Coulomb | -187 / -182 | 31.2 (29.3) | 0.10 / 1.00 | 17.3 | 54 | 231 | 101 / 56 | 0.00 % |
-| MPM Stomakhin 2013, Voellmy | +286 / +275 | 24.9 (29.3) | 0.83 / 0.34 | 35.8 | 76 | 85 | 36 / 22 | 0.00 % |
-| MPM Drucker-Prager, Coulomb | +256 / +222 | 25.9 (29.3) | 0.98 / 0.31 | 41.2 | 96 | 111 | 58 / 36 | 0.00 % |
-| MPM Drucker-Prager, Voellmy | ≥+297 / +290 | 24.6 (29.3) | 1.00 / 0.17 | 70.6 | 105 | 76 | 43 / 28 | 0.01 % |
-| MPM Cam Clay (Li V), Coulomb | +132 / +87 | 28.2 (29.3) | 0.95 / 0.46 | 32.3 | 113 | 107 | 51 / 32 | 0.00 % |
-| MPM Cam Clay (Li V), Voellmy | ≥+297 / ≥+297 | 24.5 (29.3) | 1.00 / 0.17 | 72.9 | 101 | 78 | 42 / 27 | 0.10 % |
+| MPM Stomakhin 2013, Coulomb | -99 / -104 | 30.5 (29.3) | 0.22 / 1.00 | 19.9 | 50 | 117 | 5 / 3 | 0.00 % |
+| MPM Stomakhin 2013, Voellmy | ≥+297 / ≥+297 | 24.5 (29.3) | 1.00 / 0.31 | 47.9 | 75 | 92 | 4 / 3 | 0.52 % |
+| MPM Drucker-Prager, Coulomb | +256 / +218 | 26.0 (29.3) | 0.98 / 0.31 | 41.5 | 101 | 111 | 42 / 27 | 0.00 % |
+| MPM Drucker-Prager, Voellmy | ≥+297 / ≥+294 | 24.6 (29.3) | 1.00 / 0.17 | 70.4 | 100 | 76 | 29 / 20 | 0.01 % |
+| MPM Cam Clay (Li V), Coulomb | +158 / +109 | 27.9 (29.3) | 0.95 / 0.45 | 32.2 | 126 | 108 | 40 / 27 | 0.00 % |
+| MPM Cam Clay (Li V), Voellmy | ≥+297 / ≥+297 | 24.5 (29.3) | 1.00 / 0.17 | 70.7 | 101 | 79 | 27 / 22 | 0.10 % |
+| MPM Cam Clay (Li I cold dense), Coulomb | +237 / +128 | 27.6 (29.3) | 0.97 / 0.38 | 35.9 | 98 | 109 | 30 / 25 | 0.00 % |
+| MPM Cam Clay (Li II warm shear), Coulomb | -114 / -148 | 30.8 (29.3) | 0.15 / 1.00 | 20.4 | 56 | 171 | 52 / 33 | 0.00 % |
+| MPM Cam Clay (Li III sliding slab), Coulomb | -153 / -173 | 31.1 (29.3) | 0.08 / 1.00 | 20.1 | 45 | 368 | 124 / 73 | 0.00 % |
+| MPM Cam Clay (Li IV warm plug), Coulomb | -227 / -296 | 32.1 (29.3) | 0.00 / – | 18.2 | 47 | 251 | 66 / 43 | 0.00 % |
+| MPM Cam Clay (Li V), Coulomb mu 0.40 | +215 / +188 | 26.5 (29.3) | 0.95 / 0.28 | 40.9 | 121 | 94 | 35 / 24 | 0.01 % |
+| MPM Cam Clay (Li V), Coulomb mu 0.47 | +226 / +109 | 27.9 (29.3) | 0.98 / 0.41 | 33.4 | 120 | 106 | 39 / 28 | 0.00 % |
+| MPM Cam Clay (Li V), Coulomb mu 0.55 | +87 / +19 | 29.1 (29.3) | 0.84 / 0.72 | 27.0 | 110 | 111 | 39 / 26 | 0.00 % |
 
 #### avaHit (reference avaHitNullTest: 120.8 ha, max pfv 53 m/s, com1DFA run time 154 s)
 
@@ -130,12 +144,19 @@ How to read the tables:
 |---|---|---|---|---|---|---|---|---|
 | com4FlowPy (AvaFrame, defaults) | +91 / +96 | 26.2 (28.2) | 0.99 / 0.47 | 146.9 | 75 | – | 8789 / – | – |
 | weBIGeo trajectories (alpha 25, theta 24, p 0.4) | +196 / +206 | 23.8 (28.2) | 0.94 / 0.37 | 151.3 | 76 | – | 1 / – | – |
-| MPM Stomakhin 2013, Coulomb | -120 / -110 | 29.7 (28.2) | 0.81 / 0.84 | 129.0 | 57 | 151 | 103 / 67 | 0.00 % |
-| MPM Stomakhin 2013, Voellmy | ≥+220 / ≥+225 | 23.3 (28.2) | 1.00 / 0.34 | 174.3 | 104 | 70 | 43 / 23 | 0.00 % |
-| MPM Drucker-Prager, Coulomb | ≥+220 / +201 | 24.0 (28.2) | 1.00 / 0.36 | 175.6 | 131 | 83 | 60 / 33 | 0.00 % |
-| MPM Drucker-Prager, Voellmy | ≥+220 / ≥+225 | 23.3 (28.2) | 1.00 / 0.27 | 206.3 | 105 | 66 | 48 / 26 | 0.00 % |
-| MPM Cam Clay (Li V), Coulomb | +57 / +67 | 26.7 (28.2) | 1.00 / 0.52 | 147.6 | 112 | 90 | 61 / 34 | 0.00 % |
-| MPM Cam Clay (Li V), Voellmy | ≥+220 / ≥+225 | 23.3 (28.2) | 1.00 / 0.30 | 183.6 | 96 | 68 | 45 / 23 | 0.00 % |
+| MPM Stomakhin 2013, Coulomb | -81 / -77 | 29.2 (28.2) | 0.89 / 0.83 | 132.1 | 60 | 88 | 6 / 4 | 0.00 % |
+| MPM Stomakhin 2013, Voellmy | ≥+220 / ≥+225 | 23.3 (28.2) | 1.00 / 0.37 | 168.1 | 88 | 73 | 5 / 3 | 0.00 % |
+| MPM Drucker-Prager, Coulomb | ≥+215 / +187 | 24.4 (28.2) | 1.00 / 0.36 | 175.9 | 132 | 83 | 40 / 25 | 0.00 % |
+| MPM Drucker-Prager, Voellmy | ≥+220 / ≥+225 | 23.3 (28.2) | 1.00 / 0.27 | 206.2 | 105 | 67 | 32 / 18 | 0.00 % |
+| MPM Cam Clay (Li V), Coulomb | +62 / +67 | 26.7 (28.2) | 1.00 / 0.51 | 148.7 | 109 | 90 | 45 / 27 | 0.00 % |
+| MPM Cam Clay (Li V), Voellmy | ≥+220 / ≥+225 | 23.3 (28.2) | 1.00 / 0.30 | 184.2 | 102 | 68 | 34 / 19 | 0.00 % |
+| MPM Cam Clay (Li I cold dense), Coulomb | +105 / +77 | 26.5 (28.2) | 1.00 / 0.43 | 164.3 | 109 | 84 | 39 / 23 | 0.00 % |
+| MPM Cam Clay (Li II warm shear), Coulomb | -10 / -14 | 28.5 (28.2) | 0.95 / 0.75 | 138.8 | 58 | 114 | 56 / 37 | 0.00 % |
+| MPM Cam Clay (Li III sliding slab), Coulomb | -62 / -57 | 29.0 (28.2) | 0.92 / 0.79 | 134.7 | 55 | 148 | 65 / 44 | 0.00 % |
+| MPM Cam Clay (Li IV warm plug), Coulomb | -57 / -48 | 28.8 (28.2) | 0.79 / 0.92 | 108.3 | 57 | 80 | 30 / 20 | 0.00 % |
+| MPM Cam Clay (Li V), Coulomb mu 0.40 | +163 / +134 | 25.5 (28.2) | 1.00 / 0.42 | 159.2 | 122 | 78 | 38 / 21 | 0.00 % |
+| MPM Cam Clay (Li V), Coulomb mu 0.47 | +110 / +81 | 26.4 (28.2) | 1.00 / 0.49 | 151.3 | 110 | 88 | 44 / 26 | 0.00 % |
+| MPM Cam Clay (Li V), Coulomb mu 0.55 | +24 / +29 | 27.4 (28.2) | 0.97 / 0.63 | 140.1 | 97 | 90 | 47 / 30 | 0.00 % |
 
 #### avaWog (reference avaWogNullTest: 54.3 ha, max pfv 46 m/s, com1DFA run time 163 s)
 
@@ -143,12 +164,19 @@ How to read the tables:
 |---|---|---|---|---|---|---|---|---|
 | com4FlowPy (AvaFrame, defaults) | -49 / -44 | 26.0 (25.5) | 0.34 / 0.97 | 49.2 | 58 | – | 657 / – | – |
 | weBIGeo trajectories (alpha 25, theta 24, p 0.4) | +34 / +44 | 25.0 (25.5) | 0.97 / 0.67 | 72.8 | 62 | – | 1 / – | – |
-| MPM Stomakhin 2013, Coulomb | -975 / -1000 | 31.9 (25.5) | 0.00 / – | 34.4 | 45 | 51 | 27 / 15 | 0.00 % |
-| MPM Stomakhin 2013, Voellmy | +84 / +84 | 24.6 (25.5) | 0.58 / 0.60 | 53.7 | 82 | 66 | 32 / 14 | 0.00 % |
-| MPM Drucker-Prager, Coulomb | +187 / +103 | 24.4 (25.5) | 0.98 / 0.54 | 86.0 | 92 | 79 | 46 / 42 | 0.00 % |
-| MPM Drucker-Prager, Voellmy | ≥+439 / +375 | 21.0 (25.5) | 1.00 / 0.19 | 150.0 | 106 | 66 | 42 / 27 | 0.00 % |
-| MPM Cam Clay (Li V), Coulomb | +34 / -54 | 26.2 (25.5) | 0.57 / 0.89 | 57.5 | 98 | 70 | 35 / 23 | 0.00 % |
-| MPM Cam Clay (Li V), Voellmy | +389 / +232 | 23.1 (25.5) | 1.00 / 0.24 | 127.1 | 113 | 65 | 36 / 22 | 0.00 % |
+| MPM Stomakhin 2013, Coulomb | -906 / -901 | 31.0 (25.5) | 0.00 / – | 39.0 | 51 | 54 | 3 / 2 | 0.00 % |
+| MPM Stomakhin 2013, Voellmy | +301 / +306 | 21.8 (25.5) | 0.66 / 0.45 | 62.5 | 76 | 74 | 3 / 2 | 0.00 % |
+| MPM Drucker-Prager, Coulomb | +375 / +103 | 24.4 (25.5) | 0.99 / 0.51 | 86.8 | 104 | 80 | 31 / 20 | 0.00 % |
+| MPM Drucker-Prager, Voellmy | ≥+439 / +370 | 21.1 (25.5) | 1.00 / 0.19 | 149.3 | 103 | 66 | 28 / 18 | 0.00 % |
+| MPM Cam Clay (Li V), Coulomb | +84 / -89 | 26.7 (25.5) | 0.55 / 0.89 | 57.5 | 97 | 70 | 24 / 16 | 0.00 % |
+| MPM Cam Clay (Li V), Voellmy | +375 / +246 | 22.9 (25.5) | 1.00 / 0.24 | 128.0 | 127 | 65 | 26 / 17 | 0.00 % |
+| MPM Cam Clay (Li I cold dense), Coulomb | +79 / +30 | 25.3 (25.5) | 0.77 / 0.80 | 73.7 | 103 | 77 | 27 / 17 | 0.00 % |
+| MPM Cam Clay (Li II warm shear), Coulomb | -882 / -877 | 30.8 (25.5) | 0.00 / – | 40.6 | 41 | 50 | 18 / 11 | 0.00 % |
+| MPM Cam Clay (Li III sliding slab), Coulomb | -878 / -873 | 30.8 (25.5) | 0.00 / – | 39.8 | 40 | 49 | 19 / 10 | 0.00 % |
+| MPM Cam Clay (Li IV warm plug), Coulomb | -960 / -955 | 31.2 (25.5) | 0.00 / – | 36.1 | 41 | 57 | 17 / 11 | 0.00 % |
+| MPM Cam Clay (Li V), Coulomb mu 0.40 | +99 / +44 | 25.0 (25.5) | 0.94 / 0.70 | 73.2 | 110 | 68 | 28 / 16 | 0.00 % |
+| MPM Cam Clay (Li V), Coulomb mu 0.47 | +123 / -25 | 25.9 (25.5) | 0.68 / 0.87 | 61.2 | 99 | 70 | 28 / 16 | 0.00 % |
+| MPM Cam Clay (Li V), Coulomb mu 0.55 | +0 / -291 | 28.0 (25.5) | 0.15 / 0.90 | 46.3 | 96 | 70 | 27 / 15 | 0.00 % |
 
 #### avaMal (reference avaMalNullTest: 133.3 ha, max pfv 53 m/s, com1DFA run time 174 s)
 
@@ -156,12 +184,19 @@ How to read the tables:
 |---|---|---|---|---|---|---|---|---|
 | com4FlowPy (AvaFrame, defaults) | -119 / -115 | 26.6 (25.4) | 0.28 / 1.00 | 110.6 | 64 | – | 4760 / – | – |
 | weBIGeo trajectories (alpha 25, theta 24, p 0.4) | -27 / -22 | 25.6 (25.4) | 0.84 / 0.36 | 148.8 | 67 | – | 1 / – | – |
-| MPM Stomakhin 2013, Coulomb | -779 / -775 | 29.0 (25.4) | 0.00 / – | 92.7 | 56 | 57 | 29 / 17 | 0.00 % |
-| MPM Stomakhin 2013, Voellmy | +164 / +160 | 23.9 (25.4) | 0.87 / 0.38 | 188.4 | 90 | 106 | 48 / 28 | 0.00 % |
-| MPM Drucker-Prager, Coulomb | +164 / +115 | 24.3 (25.4) | 0.48 / 0.21 | 192.4 | 102 | 92 | 48 / 30 | 0.00 % |
-| MPM Drucker-Prager, Voellmy | ≥+231 / ≥+231 | 23.5 (25.4) | 1.00 / 0.13 | 300.3 | 98 | 108 | 54 / 32 | 0.00 % |
-| MPM Cam Clay (Li V), Coulomb | -4 / -303 | 27.5 (25.4) | 0.02 / 1.00 | 138.2 | 134 | 92 | 37 / 22 | 0.00 % |
-| MPM Cam Clay (Li V), Voellmy | ≥+231 / ≥+231 | 23.5 (25.4) | 1.00 / 0.16 | 258.5 | 128 | 130 | 55 / 35 | 0.00 % |
+| MPM Stomakhin 2013, Coulomb | -749 / -749 | 28.8 (25.4) | 0.00 / – | 121.5 | 53 | 89 | 3 / 2 | 0.00 % |
+| MPM Stomakhin 2013, Voellmy | +111 / +115 | 24.3 (25.4) | 0.95 / 0.37 | 185.6 | 80 | 121 | 4 / 2 | 0.00 % |
+| MPM Drucker-Prager, Coulomb | ≥+231 / +204 | 23.6 (25.4) | 0.50 / 0.19 | 196.0 | 119 | 91 | 26 / 15 | 0.00 % |
+| MPM Drucker-Prager, Voellmy | ≥+231 / ≥+231 | 23.5 (25.4) | 1.00 / 0.13 | 300.8 | 102 | 109 | 31 / 20 | 0.00 % |
+| MPM Cam Clay (Li V), Coulomb | -226 / -279 | 27.4 (25.4) | 0.04 / 1.00 | 136.2 | 130 | 93 | 27 / 15 | 0.00 % |
+| MPM Cam Clay (Li V), Voellmy | ≥+231 / ≥+231 | 23.5 (25.4) | 1.00 / 0.16 | 260.5 | 119 | 132 | 38 / 23 | 0.00 % |
+| MPM Cam Clay (Li I cold dense), Coulomb | +98 / +93 | 24.5 (25.4) | 0.24 / 0.26 | 174.1 | 103 | 91 | 25 / 14 | 0.00 % |
+| MPM Cam Clay (Li II warm shear), Coulomb | -676 / -694 | 28.2 (25.4) | 0.00 / – | 126.3 | 54 | 80 | 23 / 14 | 0.00 % |
+| MPM Cam Clay (Li III sliding slab), Coulomb | -737 / -732 | 28.5 (25.4) | 0.00 / – | 132.8 | 51 | 79 | 22 / 13 | 0.00 % |
+| MPM Cam Clay (Li IV warm plug), Coulomb | -772 / -768 | 29.0 (25.4) | 0.00 / – | 95.4 | 47 | 58 | 13 / 9 | 0.00 % |
+| MPM Cam Clay (Li V), Coulomb mu 0.40 | +173 / +67 | 24.8 (25.4) | 0.67 / 0.35 | 167.9 | 139 | 79 | 21 / 12 | 0.00 % |
+| MPM Cam Clay (Li V), Coulomb mu 0.47 | -132 / -173 | 27.0 (25.4) | 0.12 / 1.00 | 139.9 | 134 | 89 | 22 / 14 | 0.00 % |
+| MPM Cam Clay (Li V), Coulomb mu 0.55 | -434 / -462 | 27.7 (25.4) | 0.00 / – | 125.5 | 110 | 93 | 25 / 15 | 0.00 % |
 
 #### All five avalanches (pft > 0.1 m)
 
@@ -169,69 +204,96 @@ How to read the tables:
 |---|---|---|---|---|---|---|
 | com4FlowPy (AvaFrame, defaults) | 5 | 186 | 0 | 2.5 | 0.70 / 0.58 | 58–81 |
 | weBIGeo trajectories (alpha 25, theta 24, p 0.4) | 5 | 229 | 1 | 3.4 | 0.94 / 0.33 | 62–86 |
-| MPM Stomakhin 2013, Coulomb | 5 | 415 | 0 | 2.7 | 0.32 / 0.87 | 45–57 |
-| MPM Stomakhin 2013, Voellmy | 5 | 266 | 1 | 3.8 | 0.79 / 0.36 | 76–104 |
-| MPM Drucker-Prager, Coulomb | 5 | 178 | 0 | 2.6 | 0.88 / 0.36 | 92–131 |
-| MPM Drucker-Prager, Voellmy | 5 | 326 | 2 | 4.5 | 0.95 / 0.17 | 98–116 |
-| MPM Cam Clay (Li V), Coulomb | 5 | 135 | 0 | 1.5 | 0.71 / 0.64 | 98–134 |
-| MPM Cam Clay (Li V), Voellmy | 5 | 288 | 3 | 4.0 | 0.95 / 0.19 | 96–128 |
+| MPM Stomakhin 2013, Coulomb | 5 | 368 | 0 | 2.2 | 0.36 / 0.86 | 50–60 |
+| MPM Stomakhin 2013, Voellmy | 5 | 308 | 3 | 4.3 | 0.84 / 0.33 | 75–88 |
+| MPM Drucker-Prager, Coulomb | 5 | 192 | 0 | 2.7 | 0.88 / 0.35 | 101–132 |
+| MPM Drucker-Prager, Voellmy | 5 | 326 | 3 | 4.5 | 0.95 / 0.17 | 100–116 |
+| MPM Cam Clay (Li V), Coulomb | 5 | 140 | 0 | 1.7 | 0.70 / 0.64 | 97–130 |
+| MPM Cam Clay (Li V), Voellmy | 5 | 294 | 3 | 4.0 | 0.94 / 0.19 | 101–127 |
+| MPM Cam Clay (Li I cold dense), Coulomb | 5 | 103 | 0 | 1.4 | 0.79 / 0.43 | 98–125 |
+| MPM Cam Clay (Li II warm shear), Coulomb | 5 | 355 | 0 | 2.1 | 0.32 / 0.83 | 41–75 |
+| MPM Cam Clay (Li III sliding slab), Coulomb | 5 | 380 | 0 | 2.3 | 0.29 / 0.88 | 40–55 |
+| MPM Cam Clay (Li IV warm plug), Coulomb | 5 | 551 | 0 | 3.7 | 0.16 / 0.92 | 41–57 |
+| MPM Cam Clay (Li V), Coulomb mu 0.40 | 5 | 141 | 0 | 2.1 | 0.87 / 0.39 | 106–139 |
+| MPM Cam Clay (Li V), Coulomb mu 0.47 | 5 | 111 | 0 | 1.5 | 0.74 / 0.61 | 99–134 |
+| MPM Cam Clay (Li V), Coulomb mu 0.55 | 5 | 175 | 0 | 1.4 | 0.59 / 0.70 | 96–110 |
 
 ## 3. What the results show
 
-1. **Closest to com1DFA: Cohesive Cam Clay with Li 2021 case V parameters and Coulomb μ 0.49.**
-   - Mean runout difference 135 m, runout angle 1.5° off on average (0.7–2.4°), no run cut off
-     at the path end.
-   - The spread: +164 m (avaKot), +87 (avaGar), +67 (avaHit), −54 (avaWog), −303 (avaMal).
-   - On avaMal it stops short, so its runout-area recall is only 0.02 there.
-   - Where it reaches the runout area it covers 0.95–1.00 of com1DFA's footprint, but spreads
-     wider: precision 0.35–0.52.
-2. **The speeds are 2–2.5× com1DFA's.** All Coulomb variants except Stomakhin reach 92–134 m/s
-   against com1DFA's 40–53 m/s. Coulomb friction has no velocity-dependent resistance; samosAT
-   does. That Li V still stops near com1DFA's runout means the rest of the energy goes into the
-   material's plastic flow; the energy line's μ_eff is above μ. A model that gets the runout and
-   not the speed is not yet a hazard model: pressure is ρv².
-3. **Voellmy with com1DFA's parameters (μ 0.155, ξ 4000) runs too far in every material.**
-   - Mean runout difference 266–326 m, up to ≥ +598 m on avaKot.
-   - Up to three of five runs reach the end of the path.
-   - Runout angles 21.0–25.4°, against com1DFA's 25.4–31.0°.
-   - Speeds stay at 76–128 m/s: the drag barely acts.
+All figures use the pft > 0.1 m variant; per-avalanche values are in the tables above. The
+detailed report, with app screenshots of every run (the 2D sandbox view and the map), is an HTML
+page built by `avaframe/report.py`.
+
+1. **Closest to com1DFA: Cam Clay with Li 2021's cold dense parameters (case I) and Coulomb μ 0.47.**
+   - Mean runout difference 103 m, travel angle 1.4° off on average.
+   - Always slightly too long: +189 m (avaKot), +128 (avaGar), +77 (avaHit), +30 (avaWog),
+     +93 (avaMal).
+   - It reaches 94–100 % of com1DFA's runout area on avaKot, avaGar and avaHit, 77 % on avaWog,
+     and only 24 % on avaMal, where it ends in a different part of the fan. Precision is 0.26–0.80.
+2. **The material matters more than the friction.**
+   - Li's cohesive regimes stop far too early: case II warm shear (mean 355 m), III sliding slab
+     (380 m), IV warm plug (551 m). On Wolfsgruben and Madlein they never reach the runout area.
+   - Stomakhin's film snow behaves the same way (368 m).
+   - Li V, new snow from the Vallée de la Sionne back-calculation, lies in between: +155 m to
+     −279 m, mean 140 m.
+3. **One constant Coulomb μ cannot fit all five avalanches.** For Li V, the mean runout
+   difference is 141 m at μ 0.40, 111 m at 0.47, 140 m at the preset 0.49 and 175 m at 0.55. The
+   per-avalanche optimum differs:
+   - the avalanches with com1DFA's steeper travel angles (28.2–31.0°) fit best at μ 0.55:
+     avaKot +77 m, avaGar +19, avaHit +29;
+   - the two with the flattest (25.5° and 25.4°) fit best at μ 0.40: avaWog +44 m, avaMal +67 m.
+
+   Under Coulomb friction a flow keeps roughly the same travel angle everywhere, set by μ and the
+   material's dissipation. com1DFA's travel angles vary by 5.6° across the five avalanches, because
+   its samosAT friction depends on flow depth and speed. So no single μ can match all five.
+
+   This is not simply release size: avaHit has the second-largest release (268 000 m³) and still
+   fits at μ 0.55. Making the friction depend on flow depth and speed (Voellmy, samosAT) is the way to
+   capture it.
+4. **The speeds are 2–2.5× com1DFA's.** The variants that reach com1DFA's runout reach 97–139 m/s,
+   against com1DFA's 40–53 m/s. The slow variants (Li II–IV and Stomakhin, 40–75 m/s) are the ones
+   that stop short. No variant gets both right with Coulomb friction. Pressure is ρv², so it is
+   off by a factor of 4–6 where the runout matches.
+5. **Voellmy with com1DFA's parameters (μ 0.155, ξ 4000) runs too far in every material.**
+   - Mean 294–326 m.
+   - For each material, three of the five runs pass the end of the AIMEC path, so their
+     runouts are lower bounds.
+   - Travel angles 21–25° against com1DFA's 25–31°.
+   - Speeds stay at 75–127 m/s, so the drag barely acts.
 
    The parameters are calibrated for com1DFA's depth-averaged equations. In the MPM the drag
    g|v|²/(ξh) uses the column's B-spline depth and acts only on nodes below the terrain. Whether
-   that h is too large there is **open**, and the next thing to check in the solver.
-4. **The Stomakhin 2013 film-snow material with Coulomb** has the most realistic speeds (45–57 m/s)
-   and hits avaKot's runout (+8 m). On the long avalanches it stops early: −1000 m on avaWog and
-   −775 m on avaMal, never reaching the runout area. Its elastic, compaction-hardening snow
-   behaves like a sliding block. It was made for film visuals, and this shows it.
-5. **Drucker–Prager (cohesionless, φ 13.3°) with Coulomb** comes second on runout (mean 178 m,
-   2.6°), always too long, and with the highest speeds (92–131 m/s).
-6. **weBIGeo's earlier trajectory model**, with the earlier evaluation's parameters, is good on
+   that h is too large is **open**, and the next thing to check in the solver.
+6. **Drucker–Prager (cohesionless, φ 13.3°) with Coulomb** is always too long, by +103 to
+   +247 m (mean 192 m, 2.7°), and among the fastest variants (101–132 m/s).
+7. **weBIGeo's earlier trajectory model**, with the earlier evaluation's parameters, does well on
    the long, flat-ending avalanches: avaWog +44 m, avaMal −22 m. It overshoots the steep, short
    ones: avaKot +575 m, avaGar ≥ +297 m. With a fixed α of 25°, an energy-line model can only
-   match avalanches whose runout angle is near 25°; com1DFA's are 25.4–31.0°. Its footprints
+   match avalanches whose travel angle is near 25°; com1DFA's are 25.4–31.0°. Its footprints
    are 1.1–7× com1DFA's.
-7. **com4FlowPy** (same α 25°) shows the same pattern, but milder. It is too long on the steep
-   ones (+474 m avaKot, +200 m avaGar), close on avaHit (+96 m), and short on the long ones
-   (−44 m avaWog, −115 m avaMal). Mean 186 m and 2.5°, between the trajectory model and the
-   best MPM variant.
-8. **Computing time.**
+8. **com4FlowPy** (same α 25°) shows the same pattern, but milder: +474 m (avaKot), +200 (avaGar),
+   +96 (avaHit), −44 (avaWog), −115 (avaMal). Its mean, 186 m and 2.5°, lies between the
+   trajectory model and the best MPM variants.
+9. **Computing time.**
 
    | model | time | for |
    |---|---|---|
-   | MPM | 3–67 s GPU, 5–103 s wall with rendering | 51–231 s simulated, faster than real time on an M5 |
+   | MPM | 2–73 s GPU, 3–124 s wall with rendering | 49–368 s simulated, faster than real time on an M5 |
    | trajectory model | about 1 s | one run |
    | com4FlowPy | 11–146 min, on the CPU | one dataset |
    | com1DFA | 118–174 s | the benchmark's simulated run time, not its computing time, which the metadata does not give |
 
-   So there is no fair comparison of computing time with com1DFA from these data.
+   So these data allow no fair comparison of computing time with com1DFA.
 
-**Overall.** In AvaFrame's own terms, the MPM can reproduce com1DFA's runout to about 100–300 m
-and its travel angle to about 2°, with the right material (Cam Clay with Li V parameters) and plain
-Coulomb friction. It does not reproduce the speeds and pressures, and com1DFA's Voellmy
-parameters do not carry over. As a physical model of the flow it is still behind the
-depth-averaged reference. As an interactive model that runs in a browser-class GPU budget
-faster than real time, it already beats the data-driven runout models on runout and travel angle
-(Cam Clay: 135 m and 1.5°; com4FlowPy: 186 m and 2.5°; trajectory model: 229 m and 3.4°).
+**Overall.** In AvaFrame's own terms, the MPM reproduces com1DFA's runout to about 100 m and its
+travel angle to about 1.5° on average, with a fluid-like material (Li I cold dense, or Li V at
+μ 0.47) and plain Coulomb friction. That is better than both data-driven runout models
+(com4FlowPy 186 m and 2.5°, trajectory model 229 m and 3.4°), at faster than real time on a laptop
+GPU.
+
+It does not reproduce the speeds, and therefore not the pressures. A single Coulomb μ also cannot
+match avalanches whose travel angles differ, and com1DFA's Voellmy parameters do not carry over.
+Both point to the basal friction law as the next thing to work on, not the snow material.
 
 ## 4. Limits of this comparison
 
@@ -250,8 +312,8 @@ faster than real time, it already beats the data-driven runout models on runout 
 - **The AIMEC path is finite.** Runouts beyond its end show as "≥" and count with their lower
   bound in the means. The models that run furthest therefore look somewhat better than they are.
 - **One run per configuration.** The solver is deterministic, so a rerun gives the same result.
-  There is no sensitivity study (particles, cell size, layers) yet. Material parameters (Li
-  I–IV) and friction (μ sweep) have not been varied either; see section 1, "Material choice".
+  Material (Li I–V) and basal friction (μ 0.40–0.55) were varied; particle count and cell size
+  were not.
 - **Computing time.** Wall time includes rendering and was measured while com4FlowPy ran on the
   CPU. GPU time is the solver's own, from timestamp queries (Apple M5). com1DFA's run time is
   from the benchmark metadata, on unknown hardware.

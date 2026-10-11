@@ -287,6 +287,39 @@ batch showed it: different models stopped at the same distance.
 of the AIMEC path are marked "≥" (lower bounds). Results and discussion:
 [../11-avaframe-comparison.md](../11-avaframe-comparison.md).
 
+## Robustness runs, screenshots and the detailed report
+
+`batch_full.json` contains 65 MPM runs on the whole DEM:
+- three materials, each with Coulomb and with Voellmy;
+- Li 2021 cases I–IV with Coulomb;
+- Li V with μ 0.40 / 0.47 / 0.55.
+
+With `"screenshots": true` the batch pauses after each export. It shows the 2D sandbox view with
+the MPM peak thickness and asks for a screenshot, then hides the view so the map overlay is visible
+and asks again. `tools/run_batch_shots.sh` starts the app and answers each request with a capture
+of the app's own window (macOS). The images land in the run folder as `sandbox.png` and `map.png`:
+
+```bash
+mpm-mls-doc/avaframe/tools/run_batch_shots.sh mpm-mls-doc/avaframe/batch_full.json /tmp/batch.log   # about 65 min
+mpm-mls-doc/avaframe/.venv-avaframe/bin/python mpm-mls-doc/avaframe/summarise.py --jobs 4
+mpm-mls-doc/avaframe/.venv-avaframe/bin/python mpm-mls-doc/avaframe/report.py   # extern/avaframe_sandbox/report/
+```
+
+For the map shot, each real dataset is framed by a camera looking steeply from the south at the
+release and com1DFA footprint (`AvalanchePanel::frame_on_map`).
+
+**Each batch run now sets its own time step: 0.8 × the CFL bound of its grid and material.**
+Before, the preset and the domain setup only ever lowered dt, so a run inherited the time step of
+the run before it. Results then depended on the order of the batch. All MPM results in
+`results/` are from runs with the per-run time step.
+
+`report.py` builds one HTML page with:
+- the summary, the findings and the setup, including the material table;
+- the robustness tables;
+- per avalanche and run: the AIMEC numbers, a standard comparison image drawn from the
+  rasters (the same for every model, including com4FlowPy and the trajectories), and the two app
+  screenshots.
+
 ## Not done yet
 
 - Phase 1's overlay PNGs, for the Overlays panel, are superseded by Phase 4's in-app overlay,

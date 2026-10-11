@@ -58,6 +58,8 @@ public:
         m_layer_dirty = true;
     }
     bool layer_changed = false; // set when the user picks a layer, for the panel to store it
+    /// The MPM peaks shown (and on the map overlay) are those of the solver's current state.
+    bool peaks_current(float simulated_time) const { return m_peaks && m_peaks_time == simulated_time && !m_peaks_pending; }
 
 private:
     void request_peaks(webgpu_compute::nodes::AvaFrameSandboxNode& sandbox, webgpu_compute::nodes::MpmSolverNode& solver);

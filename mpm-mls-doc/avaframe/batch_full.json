@@ -1,0 +1,832 @@
+{
+  "_comment": "AvaFrame comparison, full MPM set with screenshots: three materials x Coulomb/Voellmy, Li 2021 cases I-IV with Coulomb, and a basal mu sweep for Li V. Whole DEM as the domain. Run with WEBIGEO_SANDBOX_BATCH=<this file>; screenshots need the capture script described in mpm-mls-doc/avaframe/README.md.",
+  "runs": [
+    {
+      "dataset": "avaKot",
+      "scenario": "relKot",
+      "max_time": 400,
+      "label": "stomakhin_coulomb",
+      "material_preset": "Stomakhin 2013 (film snow)",
+      "settings": {
+        "basal_friction_model": 0,
+        "domain_size_xy": 100000,
+        "grid_resolution_xy": 512
+      }
+    },
+    {
+      "dataset": "avaKot",
+      "scenario": "relKot",
+      "max_time": 400,
+      "label": "stomakhin_voellmy",
+      "material_preset": "Stomakhin 2013 (film snow)",
+      "settings": {
+        "basal_friction_model": 1,
+        "terrain_friction": 0.155,
+        "voellmy_xi": 4000,
+        "domain_size_xy": 100000,
+        "grid_resolution_xy": 512
+      }
+    },
+    {
+      "dataset": "avaKot",
+      "scenario": "relKot",
+      "max_time": 400,
+      "label": "dp_coulomb",
+      "material_preset": "Cold dense, cohesionless (Drucker-Prager)",
+      "settings": {
+        "basal_friction_model": 0,
+        "domain_size_xy": 100000,
+        "grid_resolution_xy": 512
+      }
+    },
+    {
+      "dataset": "avaKot",
+      "scenario": "relKot",
+      "max_time": 400,
+      "label": "dp_voellmy",
+      "material_preset": "Cold dense, cohesionless (Drucker-Prager)",
+      "settings": {
+        "basal_friction_model": 1,
+        "terrain_friction": 0.155,
+        "voellmy_xi": 4000,
+        "domain_size_xy": 100000,
+        "grid_resolution_xy": 512
+      }
+    },
+    {
+      "dataset": "avaKot",
+      "scenario": "relKot",
+      "max_time": 400,
+      "label": "liV_coulomb",
+      "material_preset": "Vallee de la Sionne 2003 (Li 2021 V parameters)",
+      "settings": {
+        "basal_friction_model": 0,
+        "domain_size_xy": 100000,
+        "grid_resolution_xy": 512
+      }
+    },
+    {
+      "dataset": "avaKot",
+      "scenario": "relKot",
+      "max_time": 400,
+      "label": "liV_voellmy",
+      "material_preset": "Vallee de la Sionne 2003 (Li 2021 V parameters)",
+      "settings": {
+        "basal_friction_model": 1,
+        "terrain_friction": 0.155,
+        "voellmy_xi": 4000,
+        "domain_size_xy": 100000,
+        "grid_resolution_xy": 512
+      }
+    },
+    {
+      "dataset": "avaKot",
+      "scenario": "relKot",
+      "max_time": 400,
+      "label": "liI_coulomb",
+      "material_preset": "Cold dense (Li 2021 I parameters)",
+      "settings": {
+        "basal_friction_model": 0,
+        "domain_size_xy": 100000,
+        "grid_resolution_xy": 512
+      }
+    },
+    {
+      "dataset": "avaKot",
+      "scenario": "relKot",
+      "max_time": 400,
+      "label": "liII_coulomb",
+      "material_preset": "Warm shear (Li 2021 II parameters)",
+      "settings": {
+        "basal_friction_model": 0,
+        "domain_size_xy": 100000,
+        "grid_resolution_xy": 512
+      }
+    },
+    {
+      "dataset": "avaKot",
+      "scenario": "relKot",
+      "max_time": 400,
+      "label": "liIII_coulomb",
+      "material_preset": "Sliding slab (Li 2021 III parameters)",
+      "settings": {
+        "basal_friction_model": 0,
+        "domain_size_xy": 100000,
+        "grid_resolution_xy": 512
+      }
+    },
+    {
+      "dataset": "avaKot",
+      "scenario": "relKot",
+      "max_time": 400,
+      "label": "liIV_coulomb",
+      "material_preset": "Warm plug (Li 2021 IV parameters)",
+      "settings": {
+        "basal_friction_model": 0,
+        "domain_size_xy": 100000,
+        "grid_resolution_xy": 512
+      }
+    },
+    {
+      "dataset": "avaKot",
+      "scenario": "relKot",
+      "max_time": 400,
+      "label": "liV_coulomb_mu040",
+      "material_preset": "Vallee de la Sionne 2003 (Li 2021 V parameters)",
+      "settings": {
+        "basal_friction_model": 0,
+        "terrain_friction": 0.4,
+        "domain_size_xy": 100000,
+        "grid_resolution_xy": 512
+      }
+    },
+    {
+      "dataset": "avaKot",
+      "scenario": "relKot",
+      "max_time": 400,
+      "label": "liV_coulomb_mu047",
+      "material_preset": "Vallee de la Sionne 2003 (Li 2021 V parameters)",
+      "settings": {
+        "basal_friction_model": 0,
+        "terrain_friction": 0.47,
+        "domain_size_xy": 100000,
+        "grid_resolution_xy": 512
+      }
+    },
+    {
+      "dataset": "avaKot",
+      "scenario": "relKot",
+      "max_time": 400,
+      "label": "liV_coulomb_mu055",
+      "material_preset": "Vallee de la Sionne 2003 (Li 2021 V parameters)",
+      "settings": {
+        "basal_friction_model": 0,
+        "terrain_friction": 0.55,
+        "domain_size_xy": 100000,
+        "grid_resolution_xy": 512
+      }
+    },
+    {
+      "dataset": "avaGar",
+      "scenario": "relGar",
+      "max_time": 400,
+      "label": "stomakhin_coulomb",
+      "material_preset": "Stomakhin 2013 (film snow)",
+      "settings": {
+        "basal_friction_model": 0,
+        "domain_size_xy": 100000,
+        "grid_resolution_xy": 512
+      }
+    },
+    {
+      "dataset": "avaGar",
+      "scenario": "relGar",
+      "max_time": 400,
+      "label": "stomakhin_voellmy",
+      "material_preset": "Stomakhin 2013 (film snow)",
+      "settings": {
+        "basal_friction_model": 1,
+        "terrain_friction": 0.155,
+        "voellmy_xi": 4000,
+        "domain_size_xy": 100000,
+        "grid_resolution_xy": 512
+      }
+    },
+    {
+      "dataset": "avaGar",
+      "scenario": "relGar",
+      "max_time": 400,
+      "label": "dp_coulomb",
+      "material_preset": "Cold dense, cohesionless (Drucker-Prager)",
+      "settings": {
+        "basal_friction_model": 0,
+        "domain_size_xy": 100000,
+        "grid_resolution_xy": 512
+      }
+    },
+    {
+      "dataset": "avaGar",
+      "scenario": "relGar",
+      "max_time": 400,
+      "label": "dp_voellmy",
+      "material_preset": "Cold dense, cohesionless (Drucker-Prager)",
+      "settings": {
+        "basal_friction_model": 1,
+        "terrain_friction": 0.155,
+        "voellmy_xi": 4000,
+        "domain_size_xy": 100000,
+        "grid_resolution_xy": 512
+      }
+    },
+    {
+      "dataset": "avaGar",
+      "scenario": "relGar",
+      "max_time": 400,
+      "label": "liV_coulomb",
+      "material_preset": "Vallee de la Sionne 2003 (Li 2021 V parameters)",
+      "settings": {
+        "basal_friction_model": 0,
+        "domain_size_xy": 100000,
+        "grid_resolution_xy": 512
+      }
+    },
+    {
+      "dataset": "avaGar",
+      "scenario": "relGar",
+      "max_time": 400,
+      "label": "liV_voellmy",
+      "material_preset": "Vallee de la Sionne 2003 (Li 2021 V parameters)",
+      "settings": {
+        "basal_friction_model": 1,
+        "terrain_friction": 0.155,
+        "voellmy_xi": 4000,
+        "domain_size_xy": 100000,
+        "grid_resolution_xy": 512
+      }
+    },
+    {
+      "dataset": "avaGar",
+      "scenario": "relGar",
+      "max_time": 400,
+      "label": "liI_coulomb",
+      "material_preset": "Cold dense (Li 2021 I parameters)",
+      "settings": {
+        "basal_friction_model": 0,
+        "domain_size_xy": 100000,
+        "grid_resolution_xy": 512
+      }
+    },
+    {
+      "dataset": "avaGar",
+      "scenario": "relGar",
+      "max_time": 400,
+      "label": "liII_coulomb",
+      "material_preset": "Warm shear (Li 2021 II parameters)",
+      "settings": {
+        "basal_friction_model": 0,
+        "domain_size_xy": 100000,
+        "grid_resolution_xy": 512
+      }
+    },
+    {
+      "dataset": "avaGar",
+      "scenario": "relGar",
+      "max_time": 400,
+      "label": "liIII_coulomb",
+      "material_preset": "Sliding slab (Li 2021 III parameters)",
+      "settings": {
+        "basal_friction_model": 0,
+        "domain_size_xy": 100000,
+        "grid_resolution_xy": 512
+      }
+    },
+    {
+      "dataset": "avaGar",
+      "scenario": "relGar",
+      "max_time": 400,
+      "label": "liIV_coulomb",
+      "material_preset": "Warm plug (Li 2021 IV parameters)",
+      "settings": {
+        "basal_friction_model": 0,
+        "domain_size_xy": 100000,
+        "grid_resolution_xy": 512
+      }
+    },
+    {
+      "dataset": "avaGar",
+      "scenario": "relGar",
+      "max_time": 400,
+      "label": "liV_coulomb_mu040",
+      "material_preset": "Vallee de la Sionne 2003 (Li 2021 V parameters)",
+      "settings": {
+        "basal_friction_model": 0,
+        "terrain_friction": 0.4,
+        "domain_size_xy": 100000,
+        "grid_resolution_xy": 512
+      }
+    },
+    {
+      "dataset": "avaGar",
+      "scenario": "relGar",
+      "max_time": 400,
+      "label": "liV_coulomb_mu047",
+      "material_preset": "Vallee de la Sionne 2003 (Li 2021 V parameters)",
+      "settings": {
+        "basal_friction_model": 0,
+        "terrain_friction": 0.47,
+        "domain_size_xy": 100000,
+        "grid_resolution_xy": 512
+      }
+    },
+    {
+      "dataset": "avaGar",
+      "scenario": "relGar",
+      "max_time": 400,
+      "label": "liV_coulomb_mu055",
+      "material_preset": "Vallee de la Sionne 2003 (Li 2021 V parameters)",
+      "settings": {
+        "basal_friction_model": 0,
+        "terrain_friction": 0.55,
+        "domain_size_xy": 100000,
+        "grid_resolution_xy": 512
+      }
+    },
+    {
+      "dataset": "avaHit",
+      "scenario": "relHit",
+      "max_time": 400,
+      "label": "stomakhin_coulomb",
+      "material_preset": "Stomakhin 2013 (film snow)",
+      "settings": {
+        "basal_friction_model": 0,
+        "domain_size_xy": 100000,
+        "grid_resolution_xy": 512
+      }
+    },
+    {
+      "dataset": "avaHit",
+      "scenario": "relHit",
+      "max_time": 400,
+      "label": "stomakhin_voellmy",
+      "material_preset": "Stomakhin 2013 (film snow)",
+      "settings": {
+        "basal_friction_model": 1,
+        "terrain_friction": 0.155,
+        "voellmy_xi": 4000,
+        "domain_size_xy": 100000,
+        "grid_resolution_xy": 512
+      }
+    },
+    {
+      "dataset": "avaHit",
+      "scenario": "relHit",
+      "max_time": 400,
+      "label": "dp_coulomb",
+      "material_preset": "Cold dense, cohesionless (Drucker-Prager)",
+      "settings": {
+        "basal_friction_model": 0,
+        "domain_size_xy": 100000,
+        "grid_resolution_xy": 512
+      }
+    },
+    {
+      "dataset": "avaHit",
+      "scenario": "relHit",
+      "max_time": 400,
+      "label": "dp_voellmy",
+      "material_preset": "Cold dense, cohesionless (Drucker-Prager)",
+      "settings": {
+        "basal_friction_model": 1,
+        "terrain_friction": 0.155,
+        "voellmy_xi": 4000,
+        "domain_size_xy": 100000,
+        "grid_resolution_xy": 512
+      }
+    },
+    {
+      "dataset": "avaHit",
+      "scenario": "relHit",
+      "max_time": 400,
+      "label": "liV_coulomb",
+      "material_preset": "Vallee de la Sionne 2003 (Li 2021 V parameters)",
+      "settings": {
+        "basal_friction_model": 0,
+        "domain_size_xy": 100000,
+        "grid_resolution_xy": 512
+      }
+    },
+    {
+      "dataset": "avaHit",
+      "scenario": "relHit",
+      "max_time": 400,
+      "label": "liV_voellmy",
+      "material_preset": "Vallee de la Sionne 2003 (Li 2021 V parameters)",
+      "settings": {
+        "basal_friction_model": 1,
+        "terrain_friction": 0.155,
+        "voellmy_xi": 4000,
+        "domain_size_xy": 100000,
+        "grid_resolution_xy": 512
+      }
+    },
+    {
+      "dataset": "avaHit",
+      "scenario": "relHit",
+      "max_time": 400,
+      "label": "liI_coulomb",
+      "material_preset": "Cold dense (Li 2021 I parameters)",
+      "settings": {
+        "basal_friction_model": 0,
+        "domain_size_xy": 100000,
+        "grid_resolution_xy": 512
+      }
+    },
+    {
+      "dataset": "avaHit",
+      "scenario": "relHit",
+      "max_time": 400,
+      "label": "liII_coulomb",
+      "material_preset": "Warm shear (Li 2021 II parameters)",
+      "settings": {
+        "basal_friction_model": 0,
+        "domain_size_xy": 100000,
+        "grid_resolution_xy": 512
+      }
+    },
+    {
+      "dataset": "avaHit",
+      "scenario": "relHit",
+      "max_time": 400,
+      "label": "liIII_coulomb",
+      "material_preset": "Sliding slab (Li 2021 III parameters)",
+      "settings": {
+        "basal_friction_model": 0,
+        "domain_size_xy": 100000,
+        "grid_resolution_xy": 512
+      }
+    },
+    {
+      "dataset": "avaHit",
+      "scenario": "relHit",
+      "max_time": 400,
+      "label": "liIV_coulomb",
+      "material_preset": "Warm plug (Li 2021 IV parameters)",
+      "settings": {
+        "basal_friction_model": 0,
+        "domain_size_xy": 100000,
+        "grid_resolution_xy": 512
+      }
+    },
+    {
+      "dataset": "avaHit",
+      "scenario": "relHit",
+      "max_time": 400,
+      "label": "liV_coulomb_mu040",
+      "material_preset": "Vallee de la Sionne 2003 (Li 2021 V parameters)",
+      "settings": {
+        "basal_friction_model": 0,
+        "terrain_friction": 0.4,
+        "domain_size_xy": 100000,
+        "grid_resolution_xy": 512
+      }
+    },
+    {
+      "dataset": "avaHit",
+      "scenario": "relHit",
+      "max_time": 400,
+      "label": "liV_coulomb_mu047",
+      "material_preset": "Vallee de la Sionne 2003 (Li 2021 V parameters)",
+      "settings": {
+        "basal_friction_model": 0,
+        "terrain_friction": 0.47,
+        "domain_size_xy": 100000,
+        "grid_resolution_xy": 512
+      }
+    },
+    {
+      "dataset": "avaHit",
+      "scenario": "relHit",
+      "max_time": 400,
+      "label": "liV_coulomb_mu055",
+      "material_preset": "Vallee de la Sionne 2003 (Li 2021 V parameters)",
+      "settings": {
+        "basal_friction_model": 0,
+        "terrain_friction": 0.55,
+        "domain_size_xy": 100000,
+        "grid_resolution_xy": 512
+      }
+    },
+    {
+      "dataset": "avaWog",
+      "scenario": "relWog",
+      "max_time": 400,
+      "label": "stomakhin_coulomb",
+      "material_preset": "Stomakhin 2013 (film snow)",
+      "settings": {
+        "basal_friction_model": 0,
+        "domain_size_xy": 100000,
+        "grid_resolution_xy": 512
+      }
+    },
+    {
+      "dataset": "avaWog",
+      "scenario": "relWog",
+      "max_time": 400,
+      "label": "stomakhin_voellmy",
+      "material_preset": "Stomakhin 2013 (film snow)",
+      "settings": {
+        "basal_friction_model": 1,
+        "terrain_friction": 0.155,
+        "voellmy_xi": 4000,
+        "domain_size_xy": 100000,
+        "grid_resolution_xy": 512
+      }
+    },
+    {
+      "dataset": "avaWog",
+      "scenario": "relWog",
+      "max_time": 400,
+      "label": "dp_coulomb",
+      "material_preset": "Cold dense, cohesionless (Drucker-Prager)",
+      "settings": {
+        "basal_friction_model": 0,
+        "domain_size_xy": 100000,
+        "grid_resolution_xy": 512
+      }
+    },
+    {
+      "dataset": "avaWog",
+      "scenario": "relWog",
+      "max_time": 400,
+      "label": "dp_voellmy",
+      "material_preset": "Cold dense, cohesionless (Drucker-Prager)",
+      "settings": {
+        "basal_friction_model": 1,
+        "terrain_friction": 0.155,
+        "voellmy_xi": 4000,
+        "domain_size_xy": 100000,
+        "grid_resolution_xy": 512
+      }
+    },
+    {
+      "dataset": "avaWog",
+      "scenario": "relWog",
+      "max_time": 400,
+      "label": "liV_coulomb",
+      "material_preset": "Vallee de la Sionne 2003 (Li 2021 V parameters)",
+      "settings": {
+        "basal_friction_model": 0,
+        "domain_size_xy": 100000,
+        "grid_resolution_xy": 512
+      }
+    },
+    {
+      "dataset": "avaWog",
+      "scenario": "relWog",
+      "max_time": 400,
+      "label": "liV_voellmy",
+      "material_preset": "Vallee de la Sionne 2003 (Li 2021 V parameters)",
+      "settings": {
+        "basal_friction_model": 1,
+        "terrain_friction": 0.155,
+        "voellmy_xi": 4000,
+        "domain_size_xy": 100000,
+        "grid_resolution_xy": 512
+      }
+    },
+    {
+      "dataset": "avaWog",
+      "scenario": "relWog",
+      "max_time": 400,
+      "label": "liI_coulomb",
+      "material_preset": "Cold dense (Li 2021 I parameters)",
+      "settings": {
+        "basal_friction_model": 0,
+        "domain_size_xy": 100000,
+        "grid_resolution_xy": 512
+      }
+    },
+    {
+      "dataset": "avaWog",
+      "scenario": "relWog",
+      "max_time": 400,
+      "label": "liII_coulomb",
+      "material_preset": "Warm shear (Li 2021 II parameters)",
+      "settings": {
+        "basal_friction_model": 0,
+        "domain_size_xy": 100000,
+        "grid_resolution_xy": 512
+      }
+    },
+    {
+      "dataset": "avaWog",
+      "scenario": "relWog",
+      "max_time": 400,
+      "label": "liIII_coulomb",
+      "material_preset": "Sliding slab (Li 2021 III parameters)",
+      "settings": {
+        "basal_friction_model": 0,
+        "domain_size_xy": 100000,
+        "grid_resolution_xy": 512
+      }
+    },
+    {
+      "dataset": "avaWog",
+      "scenario": "relWog",
+      "max_time": 400,
+      "label": "liIV_coulomb",
+      "material_preset": "Warm plug (Li 2021 IV parameters)",
+      "settings": {
+        "basal_friction_model": 0,
+        "domain_size_xy": 100000,
+        "grid_resolution_xy": 512
+      }
+    },
+    {
+      "dataset": "avaWog",
+      "scenario": "relWog",
+      "max_time": 400,
+      "label": "liV_coulomb_mu040",
+      "material_preset": "Vallee de la Sionne 2003 (Li 2021 V parameters)",
+      "settings": {
+        "basal_friction_model": 0,
+        "terrain_friction": 0.4,
+        "domain_size_xy": 100000,
+        "grid_resolution_xy": 512
+      }
+    },
+    {
+      "dataset": "avaWog",
+      "scenario": "relWog",
+      "max_time": 400,
+      "label": "liV_coulomb_mu047",
+      "material_preset": "Vallee de la Sionne 2003 (Li 2021 V parameters)",
+      "settings": {
+        "basal_friction_model": 0,
+        "terrain_friction": 0.47,
+        "domain_size_xy": 100000,
+        "grid_resolution_xy": 512
+      }
+    },
+    {
+      "dataset": "avaWog",
+      "scenario": "relWog",
+      "max_time": 400,
+      "label": "liV_coulomb_mu055",
+      "material_preset": "Vallee de la Sionne 2003 (Li 2021 V parameters)",
+      "settings": {
+        "basal_friction_model": 0,
+        "terrain_friction": 0.55,
+        "domain_size_xy": 100000,
+        "grid_resolution_xy": 512
+      }
+    },
+    {
+      "dataset": "avaMal",
+      "scenario": "relMal1to3",
+      "max_time": 400,
+      "label": "stomakhin_coulomb",
+      "material_preset": "Stomakhin 2013 (film snow)",
+      "settings": {
+        "basal_friction_model": 0,
+        "domain_size_xy": 100000,
+        "grid_resolution_xy": 512
+      }
+    },
+    {
+      "dataset": "avaMal",
+      "scenario": "relMal1to3",
+      "max_time": 400,
+      "label": "stomakhin_voellmy",
+      "material_preset": "Stomakhin 2013 (film snow)",
+      "settings": {
+        "basal_friction_model": 1,
+        "terrain_friction": 0.155,
+        "voellmy_xi": 4000,
+        "domain_size_xy": 100000,
+        "grid_resolution_xy": 512
+      }
+    },
+    {
+      "dataset": "avaMal",
+      "scenario": "relMal1to3",
+      "max_time": 400,
+      "label": "dp_coulomb",
+      "material_preset": "Cold dense, cohesionless (Drucker-Prager)",
+      "settings": {
+        "basal_friction_model": 0,
+        "domain_size_xy": 100000,
+        "grid_resolution_xy": 512
+      }
+    },
+    {
+      "dataset": "avaMal",
+      "scenario": "relMal1to3",
+      "max_time": 400,
+      "label": "dp_voellmy",
+      "material_preset": "Cold dense, cohesionless (Drucker-Prager)",
+      "settings": {
+        "basal_friction_model": 1,
+        "terrain_friction": 0.155,
+        "voellmy_xi": 4000,
+        "domain_size_xy": 100000,
+        "grid_resolution_xy": 512
+      }
+    },
+    {
+      "dataset": "avaMal",
+      "scenario": "relMal1to3",
+      "max_time": 400,
+      "label": "liV_coulomb",
+      "material_preset": "Vallee de la Sionne 2003 (Li 2021 V parameters)",
+      "settings": {
+        "basal_friction_model": 0,
+        "domain_size_xy": 100000,
+        "grid_resolution_xy": 512
+      }
+    },
+    {
+      "dataset": "avaMal",
+      "scenario": "relMal1to3",
+      "max_time": 400,
+      "label": "liV_voellmy",
+      "material_preset": "Vallee de la Sionne 2003 (Li 2021 V parameters)",
+      "settings": {
+        "basal_friction_model": 1,
+        "terrain_friction": 0.155,
+        "voellmy_xi": 4000,
+        "domain_size_xy": 100000,
+        "grid_resolution_xy": 512
+      }
+    },
+    {
+      "dataset": "avaMal",
+      "scenario": "relMal1to3",
+      "max_time": 400,
+      "label": "liI_coulomb",
+      "material_preset": "Cold dense (Li 2021 I parameters)",
+      "settings": {
+        "basal_friction_model": 0,
+        "domain_size_xy": 100000,
+        "grid_resolution_xy": 512
+      }
+    },
+    {
+      "dataset": "avaMal",
+      "scenario": "relMal1to3",
+      "max_time": 400,
+      "label": "liII_coulomb",
+      "material_preset": "Warm shear (Li 2021 II parameters)",
+      "settings": {
+        "basal_friction_model": 0,
+        "domain_size_xy": 100000,
+        "grid_resolution_xy": 512
+      }
+    },
+    {
+      "dataset": "avaMal",
+      "scenario": "relMal1to3",
+      "max_time": 400,
+      "label": "liIII_coulomb",
+      "material_preset": "Sliding slab (Li 2021 III parameters)",
+      "settings": {
+        "basal_friction_model": 0,
+        "domain_size_xy": 100000,
+        "grid_resolution_xy": 512
+      }
+    },
+    {
+      "dataset": "avaMal",
+      "scenario": "relMal1to3",
+      "max_time": 400,
+      "label": "liIV_coulomb",
+      "material_preset": "Warm plug (Li 2021 IV parameters)",
+      "settings": {
+        "basal_friction_model": 0,
+        "domain_size_xy": 100000,
+        "grid_resolution_xy": 512
+      }
+    },
+    {
+      "dataset": "avaMal",
+      "scenario": "relMal1to3",
+      "max_time": 400,
+      "label": "liV_coulomb_mu040",
+      "material_preset": "Vallee de la Sionne 2003 (Li 2021 V parameters)",
+      "settings": {
+        "basal_friction_model": 0,
+        "terrain_friction": 0.4,
+        "domain_size_xy": 100000,
+        "grid_resolution_xy": 512
+      }
+    },
+    {
+      "dataset": "avaMal",
+      "scenario": "relMal1to3",
+      "max_time": 400,
+      "label": "liV_coulomb_mu047",
+      "material_preset": "Vallee de la Sionne 2003 (Li 2021 V parameters)",
+      "settings": {
+        "basal_friction_model": 0,
+        "terrain_friction": 0.47,
+        "domain_size_xy": 100000,
+        "grid_resolution_xy": 512
+      }
+    },
+    {
+      "dataset": "avaMal",
+      "scenario": "relMal1to3",
+      "max_time": 400,
+      "label": "liV_coulomb_mu055",
+      "material_preset": "Vallee de la Sionne 2003 (Li 2021 V parameters)",
+      "settings": {
+        "basal_friction_model": 0,
+        "terrain_friction": 0.55,
+        "domain_size_xy": 100000,
+        "grid_resolution_xy": 512
+      }
+    }
+  ],
+  "quit": true,
+  "screenshots": true
+}

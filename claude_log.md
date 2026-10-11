@@ -208,6 +208,28 @@ sRunout(com1DFA), and the area indicators are labelled as runout-area only.
 - **com4FlowPy, on all five after the PR (11–146 min each):** mean 186 m and 2.5°. It sits
   between the trajectory model and the best MPM variant.
 
+### 9. AvaFrame comparison: robustness runs, screenshots, detailed report (2026-10-11)
+
+- **65 MPM runs** (`batch_full.json`): materials × friction, Li I–IV, and a μ sweep for Li V.
+- **Screenshots of every run.** The batch has screenshot phases; `tools/run_batch_shots.sh`
+  captures by process id. Each real dataset is framed on the map by an explicit camera
+  (`frame_on_map`), because the search fly-to hid north-facing gullies.
+- **Report.** `report.py` builds an HTML report with 205 images, published as a private claude.ai
+  artifact.
+
+**A reproducibility bug was found and fixed:** dt was only ever lowered, so a batch run inherited
+the previous run's dt. A test run of Li V on avaKot gave 112 m/s against 100 m/s inside the batch.
+Each batch run now sets 0.8 × CFL for its own grid, and all MPM runs were redone.
+
+**Result:**
+- **Li I cold dense with Coulomb μ 0.47 fits best:** 103 m mean runout difference, 1.4°.
+- **Li V:** 140 m at μ 0.49, 111 m at μ 0.47.
+- **The cohesive Li II–IV stop short.**
+- **One μ cannot fit all five avalanches.** The steeper ones fit at 0.55, the flattest at 0.40.
+  That points to the friction law.
+- **First draft corrected:** it called that pattern a size effect, but avaHit (268 000 m³) fits
+  at 0.55. The doc now relates it to com1DFA's travel angle instead.
+
 ### 3. iOS build (PR #5, merged) — log entry added after the fact
 
 webgpu_app runs on an iPhone 17 Pro Max. The build uses:
