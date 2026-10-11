@@ -317,3 +317,9 @@ Both point to the basal friction law as the next thing to work on, not the snow 
 - **Computing time.** Wall time includes rendering and was measured while com4FlowPy ran on the
   CPU. GPU time is the solver's own, from timestamp queries (Apple M5). com1DFA's run time is
   from the benchmark metadata, on unknown hardware.
+- **Native build only.** The sandbox needs AvaFrame's test data, which is not shipped with the
+  web build because its redistribution is unclear. The terrain is Land Tirol's terrain model
+  (Open Data Austria, CC BY 4.0). The release areas and thicknesses come from the Austrian
+  Torrent and Avalanche Service (WLV). AvaFrame says they were "kindly provided" and gives no
+  licence for them
+  ([AvaFrame data sources](https://docs.avaframe.org/en/latest/dataSources.html)).

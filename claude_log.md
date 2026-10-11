@@ -230,6 +230,32 @@ Each batch run now sets 0.8 × CFL for its own grid, and all MPM runs were redon
 - **First draft corrected:** it called that pattern a size effect, but avaHit (268 000 m³) fits
   at 0.55. The doc now relates it to com1DFA's travel angle instead.
 
+### 10. Where the AvaFrame test data comes from, before redistributing it in the web build (2026-10-11)
+
+The user decided to bundle the five real avalanches with the web build rather than load them
+from AvaFrame's repository at run time. They asked first where the data originally comes from.
+
+- **Terrain (DEM).** It is Land Tirol's "Digitales Geländemodell Tirol" (5 m) from Open Data Austria.
+  The dataset's licence on data.gv.at is **CC BY 4.0** on every distribution. Verified through the
+  hub API, record `0454f5f3-1d8c-464e-847d-541901eb021a`. The required attribution is
+  "Datenquelle: Land Tirol - data.tirol.gv.at".
+- **Release areas and thicknesses.** These came from the Austrian Torrent and Avalanche Service
+  (WLV, die-wildbach.at), through FZGL Fachbereich Lawinen, in November 2020. The dbf comments
+  ("Gutachterlich auf Basis Ereignis …") show they are expert assessments from hazard zoning.
+  AvaFrame's dataSources page says the data was "kindly provided" and names **no licence**.
+  No open-data listing for it was found.
+- **AvaFrame.** The repository is EUPL-1.2 as a whole, with one `LICENSE.txt` and no separate
+  data licence. `MANIFEST.in` prunes `avaframe/data`, so the PyPI package does not contain the
+  data; only the Git repository does.
+- **com1DFA reference rasters.** We generate these ourselves with AvaFrame code from the
+  inputs above, so they are derived from both sources.
+
+**Open:** whether the WLV release data may be redistributed outside AvaFrame. It is
+distributed publicly in AvaFrame's EUPL repository, but nothing states the WLV's terms.
+
+**Decision:** do not redistribute. The sandbox stays native-only, and the reason is written in the
+meeting notes of 13.10. and in `mpm-mls-doc/11-avaframe-comparison.md` §4.
+
 ### 3. iOS build (PR #5, merged) — log entry added after the fact
 
 webgpu_app runs on an iPhone 17 Pro Max. The build uses:
