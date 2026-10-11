@@ -201,6 +201,9 @@ private:
     void finish_batch();
     /// Frames a geolocated sandbox dataset on the map (emits camera_requested).
     void frame_on_map(const webgpu_compute::nodes::SandboxTerrain& terrain);
+    /// Frames a map scenario's domain once the solver has scanned its terrain (the altitude to
+    /// look at comes from that scan), so picking a location also takes the camera there.
+    void frame_scenario_when_ready(webgpu_compute::nodes::MpmSolverNode& solver);
     /// Batch screenshots: logs "AvaFrame batch: screenshot <path>" for an external script to
     /// capture the window, then waits until the file exists (or a timeout).
     void request_screenshot(const std::string& path);
@@ -217,6 +220,7 @@ private:
     std::vector<Scenario> m_scenarios;
     int m_selected_scenario = 0;
     std::string m_scenario_error;
+    const Scenario* m_frame_pending = nullptr; // scenario to frame on the map once its terrain is in
 
     std::vector<MaterialPreset> m_material_presets;
     int m_selected_material_preset = 0; // 0 = custom (no preset active)
